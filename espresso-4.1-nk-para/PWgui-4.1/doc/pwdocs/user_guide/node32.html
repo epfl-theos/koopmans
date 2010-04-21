@@ -1,0 +1,86 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2002-2-1 (1.71)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>6.3 File space requirements</TITLE>
+<META NAME="description" CONTENT="6.3 File space requirements">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2002-2-1">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="next" HREF="node33.html">
+<LINK REL="previous" HREF="node31.html">
+<LINK REL="up" HREF="node29.html">
+<LINK REL="next" HREF="node33.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html744"
+  HREF="node33.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html740"
+  HREF="node29.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html734"
+  HREF="node31.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html742"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html745"
+  HREF="node33.html">6.4 Parallelization issues</A>
+<B> Up:</B> <A NAME="tex2html741"
+  HREF="node29.html">6 Performance issues (PWscf)</A>
+<B> Previous:</B> <A NAME="tex2html735"
+  HREF="node31.html">6.2 Memory requirements</A>
+   <B>  <A NAME="tex2html743"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H2><A NAME="SECTION00073000000000000000">
+6.3 File space requirements</A>
+</H2>
+
+<P>
+A typical pw.x run will require an amount of temporary disk space in the
+order of O double precision complex numbers:
+<P><!-- MATH
+ \begin{displaymath}
+O = N_k M N + q N_{r1} N_{r2}N_{r3}
+\end{displaymath}
+ -->
+</P>
+<DIV ALIGN="CENTER">
+<I>O</I> = <I>N</I><SUB>k</SUB><I>MN</I> + <I>qN</I><SUB>r1</SUB><I>N</I><SUB>r2</SUB><I>N</I><SUB>r3</SUB>
+</DIV><P>
+<tex2html_verbatim_mark></P>
+where <!-- MATH
+ $q = 2\times$
+ -->
+<I>q</I> = 2 <TT>x</TT>
+<tex2html_verbatim_mark> mixing_ndim (number of iterations used in 
+self-consistency, default value = 8) if disk_io is set to 'high' 
+or not specified; q = 0 if disk_io='low' or 'minimal'.
+
+<P>
+<BR><HR>
+<ADDRESS>
+Paolo Giannozzi
+2009-07-19
+</ADDRESS>
+</BODY>
+</HTML>

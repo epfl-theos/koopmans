@@ -1,0 +1,137 @@
+! Input/Output Tool Kit (IOTK)
+! Copyright (C) 2004-2006 Giovanni Bussi
+!
+! This library is free software; you can redistribute it and/or
+! modify it under the terms of the GNU Lesser General Public
+! License as published by the Free Software Foundation; either
+! version 2.1 of the License, or (at your option) any later version.
+!
+! This library is distributed in the hope that it will be useful,
+! but WITHOUT ANY WARRANTY; without even the implied warranty of
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+! Lesser General Public License for more details.
+!
+! You should have received a copy of the GNU Lesser General Public
+! License along with this library; if not, write to the Free Software
+! Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+!------------------------------------------------------------------------------!
+! Inclusion of configuration file
+#include "iotk_config.h"
+!------------------------------------------------------------------------------!
+
+>##############################################################################<
+># inclusion of the spp definitions
+>include iotk_include.sh
+>##############################################################################<
+># inclusion of the auxiliary macros
+#include "iotk_auxmacros.h"
+>##############################################################################
+
+> REVISION='$Revision$'
+> REVISION="${REVISION//${dol}/}"
+
+function iotk_basefmt_x(type,ikind,ilen)
+  use iotk_base
+  use iotk_xtox_interf
+  use iotk_misc_interf
+  implicit none
+  character(len=*), intent(in) :: type
+  integer,          intent(in) :: ikind
+  integer,          intent(in) :: ilen
+  character(100)               :: iotk_basefmt_x
+  integer :: nexp,exp,ndig,baselen
+  logical, save :: first_call = .true.
+>for kind in $kinds ; do
+#ifdef __IOTK_INTEGER${kind}
+  integer (kind=iotk_integer${kind}) :: example_integer${kind} = 0
+  character(46), save :: save_basefmt_integer$kind = ""
+#endif
+#ifdef __IOTK_REAL${kind}
+  real (kind=iotk_real${kind}) :: example_real${kind} = 0.0
+  character(46), save :: save_basefmt_real$kind = ""
+#endif
+>done
+  if(first_call) then
+>for kind in $kinds ; do
+#ifdef __IOTK_INTEGER${kind}
+    baselen = range(example_integer${kind}) + 1
+    save_basefmt_integer$kind = "(i"//trim(iotk_itoa(baselen))//")"
+#endif
+#ifdef __IOTK_REAL${kind}
+    ndig = precision(example_real${kind})+1
+    exp = range(example_real${kind})+1
+    nexp = 1
+    do
+      if(exp < 10) exit
+      exp = exp / 10
+      nexp = nexp + 1
+    end do
+    baselen = nexp+ndig-1+5
+    save_basefmt_real$kind = "(ES"//trim(iotk_itoa(baselen))//"." &
+                //trim(iotk_itoa(ndig-1))//"E"//trim(iotk_itoa(nexp))//")"
+
+#endif
+>done
+    first_call = .false.
+  end if
+  select case(type)
+  case("LOGICAL")
+    iotk_basefmt_x = "(l1)"
+  case("INTEGER")
+    select case(ikind)
+> for kind in $kinds ; do
+#ifdef __IOTK_INTEGER${kind}
+    case(iotk_integer${kind})
+      iotk_basefmt_x = save_basefmt_integer$kind
+#endif
+> done
+    end select
+  case("REAL")
+    select case(ikind)
+> for kind in $kinds ; do
+#ifdef __IOTK_REAL${kind}
+    case(iotk_real${kind})
+      iotk_basefmt_x = save_basefmt_real$kind
+#endif
+> done
+    end select
+  case("COMPLEX")
+    select case(ikind)
+> for kind in $kinds ; do
+#ifdef __IOTK_REAL${kind}
+    case(iotk_real${kind})
+      iotk_basefmt_x = "("//trim(save_basefmt_real$kind)//",',',"//trim(save_basefmt_real$kind)//")"
+#endif
+> done
+    end select
+  case("CHARACTER")
+    if(ilen>=0) then
+      iotk_basefmt_x = "(a"//trim(iotk_itoa(ilen))//")"
+    else
+      iotk_basefmt_x = "(a)"
+    end if
+  end select
+end function iotk_basefmt_x
+
+function iotk_wfmt_x(type,ikind,isize,ilen,sep)
+  use iotk_base
+  use iotk_xtox_interf
+  use iotk_fmt_interf
+  use iotk_misc_interf
+  use iotk_str_interf
+  implicit none
+  character(len=*), intent(in)  :: type
+  integer,          intent(in)  :: ikind
+  integer,          intent(in)  :: isize
+  integer,          intent(in)  :: ilen
+  character(len=*), intent(in)  :: sep
+  character(150)                :: iotk_wfmt_x
+  if(isize==1) then
+    iotk_wfmt_x = "("//trim(iotk_basefmt(type,ikind,ilen))//")"
+  else
+    iotk_wfmt_x = "("//trim(iotk_itoa(isize))//"("//trim(iotk_basefmt(type,ikind,ilen)) &
+                //",:,'"//sep(1:iotk_strlen(sep))//"'))"
+  end if
+end function iotk_wfmt_x
+

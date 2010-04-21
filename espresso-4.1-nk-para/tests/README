@@ -1,0 +1,79 @@
+Automatic tests for pw.x - edit and run "check-pw.x.j"
+Tests are intended to verify that a specified feature works.
+They are NOT intended to be realistic calculations!
+Do not use tests as samples for realistic calculations
+Use the examples in the examples/ subdirectory instead.
+
+name      system   what is tested
+
+atom       O       occupancies from input, also with spin polarization
+                   PBE and spin-polarized PBE
+                   PBE and s-PBE stress
+berry     PbTiO3   scf: Q function in real space (tqr=.true.)
+                   nscf: Berry's phase calculation
+dipole    CO on Ni dipole field correction
+electric   Si      finite electric field using Berry's phase approach
+eval_infix Si      parser
+lattice   H_2      all bravais lattices, CELL_PARAMETERS, a b c parameters
+                   Gamma and automatic k-points
+lda+U     FeO      LDA+U with standard and user-defined occupancies
+                   forces and stresses, gamma-only case 
+lsda      Ni fcc   LSDA with starting magnetization and free occupancies
+                   core corrections
+                   davidson and cg diagonalizations
+                   simple, TF, local-TF mixing, ndim=4,8
+                   constrained occupancies: tot_magnetization, nelup+neldw
+                   LSDA stress
+                   non-scf calculation
+md        Si       verlet algorithm 
+                   potential extrapolation
+                   wavefunction extrapolation
+metadyn   Si+H     Metadynamics
+metaGGA   C4H6     meta-GGA
+metal     Al fcc   occupancies: all smearing schemes, tetrahedra
+                   stress in metals
+                   non-scf calculation with smearing and tetrahedra
+neb       H        NEB calculation for the H2+H proton exchange
+                   Automatic, manual, no choice of the climbing image
+                   Old RRKJ format for pseudopotentials
+noncolin  Fe bcc   noncollinear magnetization
+                   davidson and cg diagonalizations
+                   constraints: atomic, atomic direction, total magnetization
+                   noncollinear stress
+                   non-scf calculation
+paw-atom  O, Cu    PAW   
+paw-bfgs    H2O    PAW with bfgs    
+paw-vcbfgs  H2O    PAW with variable-cell bfgs    
+relax     CO       forces
+                   bfgs and damped dynamics
+                   energies, forces, bfgs with saw-like electric field 
+relax2    Al       forces in metals
+                   bfgs_ndim=3
+scf       Si fcc   davidson and cg diagonalizations
+                   simple, TF, local-TF mixing, ndim=4,8
+                   Gamma, automatic, list of k-points
+                   wf_collect and disk_io options
+                   stress with k-points and at Gamma
+                   non-scf calculation
+                   old "ncpp" format for pseudopotentials
+spinorbit Pt fcc   spin-orbit + noncollinear magnetization
+                   spin-orbit stress
+                   non-scf calculation
+uspp      Cu fcc   US PP, both single and double grid
+                   davidson and cg diagonalizations
+                   simple, TF, local-TF mixing, ndim=4,8
+                   stress with single and double grid
+                   non-scf calculation
+uspp1     H2O      old Vanderbilt format for pseudopotentials
+                   Fake coulombian (1/r) pseudopotential
+uspp2     Ni fcc   core corrections
+                   stress with core corrections
+                   non-scf calculation
+vc-relax  As       Variable-cell optimization (both damped dynamics and bfgs)
+                   at zero pressure and under an external pressure
+vdw       C        Dispersion (van der Waals) interactions with DFT-D
+
+Tests are still missing for:
+  forces with core corrections
+  blyp, pw91
+ 'bands' 'vc-md'

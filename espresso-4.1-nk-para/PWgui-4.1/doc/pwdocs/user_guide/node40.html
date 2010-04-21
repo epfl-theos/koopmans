@@ -1,0 +1,76 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2002-2-1 (1.71)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>7.6 pw.x stops with 'inconsistent DFT' error</TITLE>
+<META NAME="description" CONTENT="7.6 pw.x stops with 'inconsistent DFT' error">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2002-2-1">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="next" HREF="node41.html">
+<LINK REL="previous" HREF="node39.html">
+<LINK REL="up" HREF="node34.html">
+<LINK REL="next" HREF="node41.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html873"
+  HREF="node41.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html869"
+  HREF="node34.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html863"
+  HREF="node39.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html871"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html874"
+  HREF="node41.html">7.7 pw.x stops with</A>
+<B> Up:</B> <A NAME="tex2html870"
+  HREF="node34.html">7 Troubleshooting</A>
+<B> Previous:</B> <A NAME="tex2html864"
+  HREF="node39.html">7.5 pw.x mumbles something</A>
+   <B>  <A NAME="tex2html872"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H2><A NAME="SECTION00086000000000000000">
+7.6 pw.x stops with 'inconsistent DFT' error</A>
+</H2>
+As a rule, the flavor of DFT used in the calculation should be the
+same as the one used in the generation of PPs, and all PPs should be
+generated using the same flavor of DFT. This is actually enforced: the
+type of DFT is read from PP files and it is checked that the same DFT
+is read from all PPs. If this does not hold, the code stops with the
+above error message. 
+
+<P>
+If you really want to use PPs generated with different DFT, or to perform
+a calculation with a DFT that differs from what used in PP generation,
+change the appropriate field in the PP file(s), at your own risk.
+
+<P>
+<BR><HR>
+<ADDRESS>
+Paolo Giannozzi
+2009-07-19
+</ADDRESS>
+</BODY>
+</HTML>

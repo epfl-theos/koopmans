@@ -1,0 +1,133 @@
+\documentclass[a4paper,11pt,twoside]{book}
+%\documentclass[11pt,twoside,letterpaper]{book}
+\usepackage{a4wide}
+\usepackage{multirow}
+\usepackage{footnote}
+\usepackage{amsbsy}
+\usepackage[dvips]{graphicx}
+\usepackage{fancyhdr}
+%\setlength{\parindent}{0in}
+%\setlength{\parskip}{0.05in}
+\setlength{\parskip}{0.1in}
+
+%\usepackage{a4wide}
+\usepackage{color}
+\def\red{\textcolor{red}}
+
+%\parskip=2mm
+
+% Ensure that blank pages don't have numbers or heading on them 
+\makeatletter
+\def\cleardoublepage{\clearpage\if@twoside \ifodd\c@page\else
+ \hbox{}
+ \vspace*{\fill}
+ \thispagestyle{empty}
+ \newpage\fi\fi}
+\makeatother
+
+% set fancy headings
+\pagestyle{fancy}
+\lhead[{\it \thepage}]{{\bf\it {\tt wannier90}: User Guide}}
+\chead{}
+\rhead[{\bf\it {\tt wannier90}: User Guide}]{{\it \thepage}}
+\renewcommand{\headrulewidth}{0.2pt}
+\lfoot{}
+\cfoot{}
+\rfoot{}
+\renewcommand{\footrulewidth}{0pt}
+\setlength{\footskip}{0.25in}
+\setlength{\parindent}{0in}
+
+\title{{\tt wannier90}: User Guide}
+
+\author{Version 1.1}
+\date{21st December 2007}
+
+\begin{document}
+\newcommand{\wannier}{\texttt{wannier90}}
+\newcommand{\pwscf}{\textsc{pwscf}}
+\newcommand{\QE}{\textsc{quantum-espresso}}
+\newcommand{\Mkb}{\mathbf{M}^{(\mathbf{k},\mathbf{b})}}
+\newcommand{\Ak}{\mathbf{A}^{(\mathbf{k})}}
+\newcommand{\Uk}{\mathbf{U}^{(\mathbf{k})}}
+\newcommand{\cond}{\item[$\star$]}
+\newcommand{\omi}{\Omega_{\mathrm{I}}}
+\newcommand{\omt}{\widetilde{\Omega}}
+
+
+\maketitle
+
+%\tableofcontents
+
+%\listoftables
+
+%\listoffigures
+
+\include{overview}
+
+\include{parameters}
+
+\include{projections}
+
+\include{developers}
+
+\include{wannier-pp}
+
+\include{wannier}
+
+\include{files}
+
+\include{faq}
+
+\include{sample_input_files}
+
+%\include{other_thoughts}
+
+\begin{thebibliography}{99}
+
+%%\bibitem{UserGuide} A.~A.~Mostofi and J.~R.~Yates, \wannier: User
+%%  Guide v1.0.3, available at {\tt http://www.wannier.org/user\_guide.html}.
+
+\bibitem{MV} N.~Marzari and D.~Vanderbilt, 
+  Maximally Localized Generalized Wannier Functions for Composite
+  Energy Bands, {\it Phys. Rev. B} {\bf 56}, 12847 (1997).  
+
+\bibitem{SMV} I.~Souza, N.~Marzari and D.~Vanderbilt, Maximally
+     Localized Wannier Functions for Entangled Energy Bands, {\it
+     Phys. Rev. B} {\bf 65}, 035109 (2001).
+
+\bibitem{Gygi} Gygi, F., Fattebert, J.-L., and Schwegler, E.,
+ Computation of Maximally Localized Wannier Functions using a
+ simultaneous diagonalization algorithm, {\it Comp. Phys. Commun.}
+ {\bf 155}, 1 (2003).
+
+\bibitem{W90} A.~A.~Mostofi, J.~R.~Yates, Y.-S.~Lee, I.~Souza,
+   D.~Vanderbilt and N.~Marzari, \wannier: A Tool for Obtaining
+   Maximally-Localized Wannier Functions, {\it Comput. Phys. Commun.},
+   submitted (2007); {\tt http://arxiv.org/abs/0708.0650}.
+
+\bibitem{USPP} D.~Vanderbilt, Soft Self-Consistent Pseudopotentials in
+  a Generalized Eigenvalue Formalism, {\it Phys. Rev. B} {\bf 41}
+  (11), 7892 (1990).
+
+\bibitem{MnO} M.~Posternak, A.~Baldereschi, S.~Massidda and
+  N.~Marzari, Maximally Localized Wannier Functions in
+  Antiferromagnetic MnO within the FLAPW Formalism, {\it Phys. Rev. B}
+  {\bf 65}, 184422 (2002).
+
+\bibitem{Nardelli} M.~Buongiorno Nardelli, Electronic Transport in Extended Systems:
+  Application to Carbon Nanotubes, {\it Phys. Rev. B} {\bf 60}
+  (11), 7828 (1999).
+%%\bibitem{BaTiO3} N.~Marzari and D.~Vanderbilt, Maximally-Localized
+%%  Wannier Functions in Perovskites: BaTiO$_3$,
+%%  {\tt http://arxiv.org/abs/cond-mat/9802210}.
+
+%%\bibitem{WanInt} J.~R.~Yates {\it et al.}, Spectral and Fermi
+%%  Surface Properties from Wannier Interpolation, {\it Phys. Rev. B}
+%%  {\bf 75}, 195121 (2007). 
+
+\end{thebibliography}
+
+
+\end{document} 
+

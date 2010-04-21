@@ -1,0 +1,90 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2002-2-1 (1.71)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>6.2 Memory requirements</TITLE>
+<META NAME="description" CONTENT="6.2 Memory requirements">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2002-2-1">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="next" HREF="node32.html">
+<LINK REL="previous" HREF="node30.html">
+<LINK REL="up" HREF="node29.html">
+<LINK REL="next" HREF="node32.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html732"
+  HREF="node32.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html728"
+  HREF="node29.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html722"
+  HREF="node30.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html730"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html733"
+  HREF="node32.html">6.3 File space requirements</A>
+<B> Up:</B> <A NAME="tex2html729"
+  HREF="node29.html">6 Performance issues (PWscf)</A>
+<B> Previous:</B> <A NAME="tex2html723"
+  HREF="node30.html">6.1 CPU time requirements</A>
+   <B>  <A NAME="tex2html731"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H2><A NAME="SECTION00072000000000000000">
+6.2 Memory requirements</A>
+</H2>
+
+<P>
+A typical self-consistency or molecular-dynamics run requires a maximum
+memory in the order of O double precision complex numbers, where
+<P><!-- MATH
+ \begin{displaymath}
+O = m M N + P N + p N_1 N_2 N_3 + q N_{r1} N_{r2} N_{r3}
+\end{displaymath}
+ -->
+</P>
+<DIV ALIGN="CENTER">
+<I>O</I> = <I>mMN</I> + <I>PN</I> + <I>pN</I><SUB>1</SUB><I>N</I><SUB>2</SUB><I>N</I><SUB>3</SUB> + <I>qN</I><SUB>r1</SUB><I>N</I><SUB>r2</SUB><I>N</I><SUB>r3</SUB>
+</DIV><P>
+<tex2html_verbatim_mark></P>
+with m, p, q = small factors; all other variables have the same meaning as
+above. Note that if the <IMG
+ WIDTH="17" HEIGHT="16" ALIGN="BOTTOM" BORDER="0"
+ SRC="img4.gif"
+ ALT="$ \Gamma$"> -
+<tex2html_verbatim_mark>point only (q = 0) is used to sample the 
+Brillouin Zone, the value of N will be cut into half.
+
+<P>
+The memory required by the phonon code follows the same patterns, with
+somewhat larger factors m, p, q .
+
+<P>
+<BR><HR>
+<ADDRESS>
+Paolo Giannozzi
+2009-07-19
+</ADDRESS>
+</BODY>
+</HTML>

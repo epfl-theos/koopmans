@@ -1,0 +1,341 @@
+This is pdfeTeX, Version 3.141592-1.21a-2.2 (Web2C 7.5.4) (format=latex 2008.1.7)  19 JUL 2009 12:19
+entering extended mode
+**./images.tex
+(./images.tex
+LaTeX2e <2003/12/01>
+Babel <v3.8d> and hyphenation patterns for american, french, german, ngerman, b
+ahasa, basque, bulgarian, catalan, croatian, czech, danish, dutch, esperanto, e
+stonian, finnish, greek, icelandic, irish, italian, latin, magyar, norsk, polis
+h, portuges, romanian, russian, serbian, slovak, slovene, spanish, swedish, tur
+kish, ukrainian, nohyphenation, loaded.
+
+(/usr/share/texmf/tex/latex/base/article.cls
+Document Class: article 2004/02/16 v1.4f Standard LaTeX document class
+(/usr/share/texmf/tex/latex/base/size12.clo
+File: size12.clo 2004/02/16 v1.4f Standard LaTeX file (size option)
+)
+\c@part=\count79
+\c@section=\count80
+\c@subsection=\count81
+\c@subsubsection=\count82
+\c@paragraph=\count83
+\c@subparagraph=\count84
+\c@figure=\count85
+\c@table=\count86
+\abovecaptionskip=\skip41
+\belowcaptionskip=\skip42
+\bibindent=\dimen102
+) (/usr/share/texmf/tex/latex/base/ifthen.sty
+Package: ifthen 2001/05/26 v1.1c Standard LaTeX ifthen package (DPC)
+) (/usr/share/texmf/tex/latex/graphics/epsfig.sty
+Package: epsfig 1999/02/16 v1.7a (e)psfig emulation (SPQR)
+(/usr/share/texmf/tex/latex/graphics/graphicx.sty
+Package: graphicx 1999/02/16 v1.0f Enhanced LaTeX Graphics (DPC,SPQR)
+(/usr/share/texmf/tex/latex/graphics/keyval.sty
+Package: keyval 1999/03/16 v1.13 key=value parser (DPC)
+\KV@toks@=\toks14
+) (/usr/share/texmf/tex/latex/graphics/graphics.sty
+Package: graphics 2001/07/07 v1.0n Standard LaTeX Graphics (DPC,SPQR)
+(/usr/share/texmf/tex/latex/graphics/trig.sty
+Package: trig 1999/03/16 v1.09 sin cos tan (DPC)
+) (/usr/share/texmf/tex/latex/graphics/graphics.cfg
+File: graphics.cfg 2005/02/03 v1.3 graphics configuration of teTeX/TeXLive
+)
+Package graphics Info: Driver file: dvips.def on input line 80.
+(/usr/share/texmf/tex/latex/graphics/dvips.def
+File: dvips.def 1999/02/16 v3.0i Driver-dependant file (DPC,SPQR)
+))
+\Gin@req@height=\dimen103
+\Gin@req@width=\dimen104
+)
+\epsfxsize=\dimen105
+\epsfysize=\dimen106
+) (/usr/share/texmf/tex/latex/html/html.sty (/usr/share/texmf/tex/latex/hyperre
+f/hyperref.sty
+Package: hyperref 2003/11/30 v6.74m Hypertext links for LaTeX
+\@linkdim=\dimen107
+\Hy@linkcounter=\count87
+\Hy@pagecounter=\count88
+(/usr/share/texmf/tex/latex/hyperref/pd1enc.def
+File: pd1enc.def 2003/11/30 v6.74m Hyperref: PDFDocEncoding definition (HO)
+) (/usr/share/texmf/tex/latex/hyperref/hyperref.cfg
+File: hyperref.cfg 2002/06/06 v1.2 hyperref configuration of TeXLive and teTeX
+)
+Package hyperref Info: Hyper figures OFF on input line 1880.
+Package hyperref Info: Link nesting OFF on input line 1885.
+Package hyperref Info: Hyper index ON on input line 1888.
+Package hyperref Info: Plain pages ON on input line 1893.
+Package hyperref Info: Backreferencing OFF on input line 1900.
+Implicit mode ON; LaTeX internals redefined
+Package hyperref Info: Bookmarks ON on input line 2004.
+(/usr/share/texmf/tex/latex/html/url.sty
+Package: url 1999/03/02  ver 1.4  Verb mode for urls, email addresses, and file
+ names
+)
+LaTeX Info: Redefining \url on input line 2143.
+\Fld@menulength=\count89
+\Field@Width=\dimen108
+\Fld@charsize=\dimen109
+\Choice@toks=\toks15
+\Field@toks=\toks16
+Package hyperref Info: Hyper figures OFF on input line 2618.
+Package hyperref Info: Link nesting OFF on input line 2623.
+Package hyperref Info: Hyper index ON on input line 2626.
+Package hyperref Info: backreferencing OFF on input line 2633.
+Package hyperref Info: Link coloring OFF on input line 2638.
+\c@Item=\count90
+\c@Hfootnote=\count91
+)
+*hyperref using default driver hdvips*
+(/usr/share/texmf/tex/latex/hyperref/hdvips.def
+File: hdvips.def 2003/11/30 v6.74m Hyperref driver for dvips
+(/usr/share/texmf/tex/latex/hyperref/pdfmark.def
+File: pdfmark.def 2003/11/30 v6.74m Hyperref definitions for pdfmark specials
+\pdf@docset=\toks17
+\pdf@box=\box26
+\pdf@toks=\toks18
+\pdf@defaulttoks=\toks19
+\Fld@listcount=\count92
+\@outlinefile=\write3
+))
+Package: html 1999/07/19 v1.38 hypertext commands for latex2html (nd, hws, rrm)
+
+\c@lpart=\count93
+\c@lchapter=\count94
+\c@chapter=\count95
+\c@lsection=\count96
+\c@lsubsection=\count97
+\c@lsubsubsection=\count98
+\c@lparagraph=\count99
+\c@lsubparagraph=\count100
+\c@lsubsubparagraph=\count101
+\ptrfile=\write4
+) (/usr/share/texmf/tex/latex/graphics/color.sty
+Package: color 1999/02/16 v1.0i Standard LaTeX Color (DPC)
+(/usr/share/texmf/tex/latex/graphics/color.cfg
+File: color.cfg 2005/02/03 v1.3 color configuration of teTeX/TeXLive
+)
+Package color Info: Driver file: dvips.def on input line 125.
+(/usr/share/texmf/tex/latex/graphics/dvipsnam.def
+File: dvipsnam.def 1999/02/16 v3.0i Driver-dependant file (DPC,SPQR)
+)) (/usr/share/texmf/tex/latex/base/inputenc.sty
+Package: inputenc 2004/02/05 v1.0d Input encoding file
+(/usr/share/texmf/tex/latex/base/latin1.def
+File: latin1.def 2004/02/05 v1.0d Input encoding file
+))
+\sizebox=\box27
+\lthtmlwrite=\write5
+(./images.aux
+
+LaTeX Warning: Label `Sec:Libraries' multiply defined.
+
+)
+\openout1 = `images.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 135.
+LaTeX Font Info:    ... okay on input line 135.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 135.
+LaTeX Font Info:    ... okay on input line 135.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 135.
+LaTeX Font Info:    ... okay on input line 135.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 135.
+LaTeX Font Info:    ... okay on input line 135.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 135.
+LaTeX Font Info:    ... okay on input line 135.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 135.
+LaTeX Font Info:    ... okay on input line 135.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 135.
+LaTeX Font Info:    ... okay on input line 135.
+Package hyperref Info: Link coloring OFF on input line 135.
+(/usr/share/texmf/tex/latex/hyperref/nameref.sty
+Package: nameref 2003/12/03 v2.21 Cross-referencing by name of section
+\c@section@level=\count102
+)
+LaTeX Info: Redefining \ref on input line 135.
+LaTeX Info: Redefining \pageref on input line 135.
+\openout3 = `images.out'.
+
+
+latex2htmlLength hsize=349.0pt
+
+latex2htmlLength vsize=679.0pt
+
+latex2htmlLength hoffset=0.0pt
+
+latex2htmlLength voffset=0.0pt
+
+latex2htmlLength topmargin=0.0pt
+
+latex2htmlLength topskip=0.00003pt
+
+latex2htmlLength headheight=0.0pt
+
+latex2htmlLength headsep=0.0pt
+
+latex2htmlLength parskip=0.0pt plus 1.0pt
+
+latex2htmlLength oddsidemargin=31.0pt
+
+latex2htmlLength evensidemargin=31.0pt
+
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <12> on input line 159.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <8> on input line 159.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <6> on input line 159.
+l2hSize :tex2html_wrap_inline3552:7.75pt::0.0pt::8.33466pt.
+[1
+
+
+
+]
+
+! LaTeX Error: Cannot determine size of graphic in quantum_espresso.pdf (no Bou
+ndingBox).
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.165 ...ig{figure=quantum_espresso.pdf,width=5cm}
+                                                  %
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+File: quantum_espresso.pdf Graphic file (type eps)
+<quantum_espresso.pdf>
+l2hSize :tex2html_wrap941:142.2716pt::0.0pt::349.0pt.
+[2
+
+
+]
+
+! LaTeX Error: Cannot determine size of graphic in democritos.pdf (no BoundingB
+ox).
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.171 \epsfig{figure=democritos.pdf,width=6cm}
+                                              %
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+File: democritos.pdf Graphic file (type eps)
+<democritos.pdf>
+l2hSize :tex2html_wrap943:170.72594pt::0.0pt::349.0pt.
+[3
+
+
+]
+l2hSize :tex2html_wrap_inline3577:8.2pt::0.0pt::7.92912pt.
+[4
+
+
+]
+l2hSize :tex2html_wrap_inline3579:8.33331pt::0.0pt::7.44162pt.
+[5
+
+
+]
+l2hSize :tex2html_wrap_inline3581:10.01027pt::10.01027pt::12.88751pt.
+[6
+
+
+]
+l2hSize :tex2html_wrap_inline3614:7.75pt::0.0pt::9.92088pt.
+[7
+
+
+]
+l2hSize :tex2html_wrap_inline3629:8.83333pt::8.83333pt::9.72632pt.
+[8
+
+
+]
+l2hSize :tex2html_wrap_inline3684:8.83331pt::8.83331pt::8.65688pt.
+[9
+
+
+]
+l2hSize :tex2html_wrap_inline3795:10.01027pt::10.01027pt::13.08472pt.
+[10
+
+
+]
+l2hSize :tex2html_wrap_indisplay3833:16.48517pt::16.48517pt::27.53748pt.
+[11
+
+
+]
+l2hSize :tex2html_wrap_indisplay3834:8.25pt::8.25pt::10.4403pt.
+[12
+
+
+]
+l2hSize :tex2html_wrap_indisplay3835:16.48517pt::16.48517pt::29.06525pt.
+[13
+
+
+]
+l2hSize :tex2html_wrap_indisplay3836:8.25pt::8.25pt::10.4403pt.
+[14
+
+
+]
+l2hSize :tex2html_wrap_indisplay3837:16.9514pt::16.9514pt::30.04291pt.
+[15
+
+
+]
+l2hSize :tex2html_wrap_indisplay3838:8.25pt::8.25pt::10.4403pt.
+[16
+
+
+]
+l2hSize :tex2html_wrap_inline3840:8.25pt::8.25pt::9.0842pt.
+[17
+
+
+]
+l2hSize :tex2html_wrap_inline3842:8.25pt::8.25pt::10.4403pt.
+[18
+
+
+]
+l2hSize :tex2html_wrap_inline3845:8.25pt::8.25pt::10.4403pt.
+[19
+
+
+]
+l2hSize :tex2html_wrap_indisplay3848:14.61122pt::14.61122pt::10.58754pt.
+[20
+
+
+]
+l2hSize :tex2html_wrap_inline3858:8.33331pt::0.0pt::6.38954pt.
+[21
+
+
+]
+l2hSize :tex2html_wrap_inline3860:8.83331pt::8.83331pt::7.5416pt.
+[22
+
+
+] (./images.aux)
+
+LaTeX Warning: There were multiply-defined labels.
+
+ ) 
+Here is how much of TeX's memory you used:
+ 2779 strings out of 94501
+ 37615 string characters out of 1173693
+ 88360 words of memory out of 1000000
+ 5959 multiletter control sequences out of 10000+50000
+ 6376 words of font info for 23 fonts, out of 500000 for 2000
+ 580 hyphenation exceptions out of 1000
+ 32i,6n,23p,1009b,241s stack positions out of 1500i,500n,5000p,200000b,5000s
+
+Output written on images.dvi (22 pages, 15560 bytes).

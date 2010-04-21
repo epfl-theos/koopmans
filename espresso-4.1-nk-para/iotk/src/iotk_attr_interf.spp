@@ -1,0 +1,144 @@
+! Input/Output Tool Kit (IOTK)
+! Copyright (C) 2004-2006 Giovanni Bussi
+!
+! This library is free software; you can redistribute it and/or
+! modify it under the terms of the GNU Lesser General Public
+! License as published by the Free Software Foundation; either
+! version 2.1 of the License, or (at your option) any later version.
+!
+! This library is distributed in the hope that it will be useful,
+! but WITHOUT ANY WARRANTY; without even the implied warranty of
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+! Lesser General Public License for more details.
+!
+! You should have received a copy of the GNU Lesser General Public
+! License along with this library; if not, write to the Free Software
+! Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+!------------------------------------------------------------------------------!
+! Inclusion of configuration file
+#include "iotk_config.h"
+!------------------------------------------------------------------------------!
+
+>##############################################################################<
+># inclusion of the spp definitions
+>include iotk_include.sh
+>##############################################################################<
+># inclusion of the auxiliary macros
+#include "iotk_auxmacros.h"
+>##############################################################################
+
+module iotk_attr_interf
+implicit none
+private
+
+public :: iotk_read
+public :: iotk_write
+public :: iotk_write_attr
+public :: iotk_scan_attr
+
+
+interface iotk_read
+>for type in $types ; do
+>  [[ $type == CHARACTER ]] && continue
+>  for kind in $kinds ; do
+#ifdef __IOTK_${type}${kind}
+subroutine iotk_read_${type}${kind}(val,string,index,ierr)
+  use iotk_base
+  implicit none
+  integer, parameter :: this_kind = iotk_${type}${kind}
+  ${type}(kind=this_kind), intent(inout) :: val(:)
+  character(len=*),        intent(in)    :: string
+  integer,                 intent(inout) :: index
+  integer,                 intent(out)   :: ierr
+end subroutine iotk_read_${type}${kind}
+#endif
+>  done
+>done
+end interface
+
+interface iotk_write
+>for type in $types ; do
+>  [[ $type == CHARACTER ]] && continue
+>  for kind in $kinds ; do
+#ifdef __IOTK_${type}${kind}
+subroutine iotk_write_${type}${kind}(val,string,ierr)
+  use iotk_base
+  implicit none
+  integer, parameter :: this_kind = iotk_${type}${kind}
+  ${type}(kind=this_kind), intent(in)  :: val(:)
+#ifdef __IOTK_WORKAROUND6
+  character(len=*)                     :: string
+#else
+  character(len=*),        intent(out) :: string
+#endif
+  integer,                 intent(out) :: ierr
+end subroutine iotk_write_${type}${kind}
+#endif
+>  done
+>done
+end interface
+
+interface iotk_write_attr
+>for type in $types ; do
+>  eval "LENSTAR=\$LENSTAR_$type"
+>  for kind in $kinds ; do
+>    [[ $type == CHARACTER ]] && (( kind != 1 )) && continue
+#ifdef __IOTK_${type}${kind}
+>    for rank in $ranks ; do
+>    [[ $type == CHARACTER ]] && (( rank != 0 )) && continue
+#if $rank <= __IOTK_MAXRANK
+subroutine iotk_write_attr_${type}${kind}_${rank}(attr,name,val,dummy,first,newline,ierr)
+  use iotk_base
+  implicit none
+  integer, parameter :: this_kind = iotk_${type}${kind}
+  character(len=*), intent(inout) :: attr
+  character(len=*), intent(in)    :: name
+  ${type}(kind=this_kind$LENSTAR),           intent(in)  :: val ${SHAPE[$rank]}
+  type(iotk_dummytype),            optional              :: dummy
+  logical,                         optional, intent(in)  :: first
+  logical,                         optional, intent(in)  :: newline
+  integer,                         optional, intent(out) :: ierr
+end subroutine iotk_write_attr_${type}${kind}_${rank}
+#endif
+>    done
+#endif
+>  done
+>done
+end interface
+
+interface iotk_scan_attr
+>for type in $types ; do
+>  eval "LENSTAR=\$LENSTAR_$type"
+>  for kind in $kinds ; do
+>    [[ $type == CHARACTER ]] && (( kind != 1 )) && continue
+#ifdef __IOTK_${type}${kind}
+>    for rank in $ranks ; do
+>    [[ $type == CHARACTER ]] && (( rank != 0 )) && continue
+#if $rank <= __IOTK_MAXRANK
+subroutine iotk_scan_attr_${type}${kind}_${rank}(attr,name,val,dummy,found,default,eos,ierr)
+  use iotk_base
+  implicit none
+  integer, parameter :: this_kind = iotk_${type}${kind}
+  character(len=*),                          intent(in)  :: attr
+  character(len=*),                          intent(in)  :: name
+#ifdef __IOTK_WORKAROUND6
+  ${type}(kind=this_kind$LENSTAR)                        :: val ${SHAPE[$rank]}
+#else
+  ${type}(kind=this_kind$LENSTAR),           intent(out) :: val ${SHAPE[$rank]}
+#endif
+  type(iotk_dummytype),            optional              :: dummy
+  logical,                         optional, intent(out) :: found
+  ${type}(kind=this_kind$LENSTAR), optional, intent(in)  :: default ${SHAPE[$rank]}
+  logical,                         optional, intent(in)  :: eos
+  integer,                         optional, intent(out) :: ierr
+end subroutine iotk_scan_attr_${type}${kind}_${rank}
+#endif
+>    done
+#endif
+>  done
+>done
+end interface
+
+end module iotk_attr_interf
+

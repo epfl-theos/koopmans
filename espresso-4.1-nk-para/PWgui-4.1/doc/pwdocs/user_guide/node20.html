@@ -1,0 +1,187 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2002-2-1 (1.71)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>4.3 Post-processing</TITLE>
+<META NAME="description" CONTENT="4.3 Post-processing">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2002-2-1">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="next" HREF="node21.html">
+<LINK REL="previous" HREF="node19.html">
+<LINK REL="up" HREF="node17.html">
+<LINK REL="next" HREF="node21.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html581"
+  HREF="node21.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html577"
+  HREF="node17.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html571"
+  HREF="node19.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html579"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html582"
+  HREF="node21.html">4.4 Tools</A>
+<B> Up:</B> <A NAME="tex2html578"
+  HREF="node17.html">4 Using PWscf</A>
+<B> Previous:</B> <A NAME="tex2html572"
+  HREF="node19.html">4.2 Phonon calculations</A>
+   <B>  <A NAME="tex2html580"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+<!--Table of Child-Links-->
+<A NAME="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
+
+<UL>
+<LI><UL>
+<LI><A NAME="tex2html583"
+  HREF="node20.html#SECTION00053010000000000000">4.3.0.1 Plotting selected quantities</A>
+<LI><A NAME="tex2html584"
+  HREF="node20.html#SECTION00053020000000000000">4.3.0.2 Band structure, Fermi surface</A>
+<LI><A NAME="tex2html585"
+  HREF="node20.html#SECTION00053030000000000000">4.3.0.3 Projection over atomic states, DOS</A>
+</UL></UL>
+<!--End of Table of Child-Links-->
+<HR>
+
+<H2><A NAME="SECTION00053000000000000000">
+4.3 Post-processing</A>
+</H2>
+
+<P>
+There are a number of auxiliary codes performing postprocessing tasks such
+as plotting, averaging, and so on, on the various quantities calculated by
+pw.x. Such quantities are saved by pw.x into the output data file(s). 
+Postprocessing codes are in the PP/ directory.
+
+<P>
+
+<H4><A NAME="SECTION00053010000000000000">
+4.3.0.1 Plotting selected quantities</A>
+</H4>
+
+<P>
+The main postprocessing code pp.x reads data file(s), extracts or calculates 
+the selected quantity, writes it into a format that is suitable for plotting.
+
+<P>
+Quantities that can be read or calculated are:
+<PRE>
+      charge density
+      spin polarization
+      various potentials
+      local density of states at $E_F$
+      local density of electronic entropy
+      STM images
+      selected squared wavefunction
+      ELF (electron localization function)
+      planar averages
+      integrated local density of states
+</PRE>
+Various types of plotting (along a line, on a plane, three-dimensional, polar)
+and output formats (including the popular cube format) can be specified.
+The output files can be directly read by the free plotting system Gnuplot
+(1D or 2D plots), or by code plotrho.x that comes with PWscf (2D plots),
+or by advanced plotting software XCrySDen and gOpenMol (3D plots).
+
+<P>
+See file INPUT_PP.* for a detailed description of the input for code pp.x.
+See example05/ in the examples/ directory for a charge density plot.
+
+<P>
+
+<H4><A NAME="SECTION00053020000000000000">
+4.3.0.2 Band structure, Fermi surface</A>
+</H4>
+
+<P>
+The code bands.x reads data file(s), extracts eigenvalues,
+regroups them into bands (the algorithm used to order bands and to resolve
+crossings may not work in all circumstances, though). The output is written
+to a file in a simple format that can be directly read by plotting program
+plotband.x. Unpredictable plots may results if k-points are not in sequence
+along lines. See example05/ in the examples/ directory for a simple band plot.
+
+<P>
+The code bands.x performs as well a symmetry analysis of the band structure:
+see example01/. 
+
+<P>
+The calculation of Fermi surface can be performed using kvecs_FS.x and
+bands_FS.x. The resulting file in .xsf format can be read and plotted
+using xcrysden. See example08/ for an example of Fermi surface 
+visualization (Ni, including the spin-polarized case).
+
+<P>
+
+<H4><A NAME="SECTION00053030000000000000">
+4.3.0.3 Projection over atomic states, DOS</A>
+</H4>
+
+<P>
+The code projwfc.x calculates projections of wavefunctions
+over atomic orbitals. The atomic wavefunctions are those contained
+in the pseudopotential file(s). The L&#246;wdin population analysis (similar to
+Mulliken analysis) is presently implemented. The projected DOS (or PDOS:
+the DOS projected onto atomic orbitals) can also be calculated and written
+to file(s). More details on the input data are found in file
+INPUT_PROJWFC.*.  
+The auxiliary code sumpdos.x (courtesy of Andrea Ferretti) 
+can be used to sum selected PDOS, by specifiying the names of files
+containing the desired PDOS. Type sumpdos.x -h or look into the source
+code for more details. The total electronic DOS is instead calculated by code
+PP/dos.x. See example08/ in the examples/ directory for total and projected 
+electronic DOS calculations.
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html581"
+  HREF="node21.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html577"
+  HREF="node17.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html571"
+  HREF="node19.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html579"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html582"
+  HREF="node21.html">4.4 Tools</A>
+<B> Up:</B> <A NAME="tex2html578"
+  HREF="node17.html">4 Using PWscf</A>
+<B> Previous:</B> <A NAME="tex2html572"
+  HREF="node19.html">4.2 Phonon calculations</A>
+   <B>  <A NAME="tex2html580"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+<ADDRESS>
+Paolo Giannozzi
+2009-07-19
+</ADDRESS>
+</BODY>
+</HTML>

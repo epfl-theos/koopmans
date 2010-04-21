@@ -1,0 +1,141 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2002-2-1 (1.71)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>7.20 pw.x does not find all the symmetries you expected</TITLE>
+<META NAME="description" CONTENT="7.20 pw.x does not find all the symmetries you expected">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2002-2-1">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="next" HREF="node55.html">
+<LINK REL="previous" HREF="node53.html">
+<LINK REL="up" HREF="node34.html">
+<LINK REL="next" HREF="node55.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html1041"
+  HREF="node55.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html1037"
+  HREF="node34.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html1031"
+  HREF="node53.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html1039"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html1042"
+  HREF="node55.html">7.21 warning: 'symmetry operation</A>
+<B> Up:</B> <A NAME="tex2html1038"
+  HREF="node34.html">7 Troubleshooting</A>
+<B> Previous:</B> <A NAME="tex2html1032"
+  HREF="node53.html">7.19 the FFT grids</A>
+   <B>  <A NAME="tex2html1040"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H2><A NAME="SECTION000820000000000000000">
+7.20 pw.x does not find all the symmetries you expected</A>
+</H2> 
+pw.x determines first the symmetry operations (rotations) of the
+Bravais lattice; then checks which of these are symmetry operations of
+the system (including if needed fractional translations). This is done
+by rotating (and translating if needed) the atoms in the unit cell and
+verifying if the rotated unit cell coincides with the original one.
+
+<P>
+Assuming that your coordinates are correct (please carefully check!),
+you may not find all the symmetries you expect because:
+
+<UL>
+<LI>the number of significant figures in the atomic positions is not
+  large enough. In file PW/eqvect.f90, the variable accep is used to
+  decide whether a rotation is a symmetry operation. Its current value
+  (10<SUP>-5</SUP>
+<tex2html_verbatim_mark>) is quite strict: a rotated atom must coincide with
+  another atom to 5 significant digits. You may change the value of
+  accep and recompile. 
+</LI>
+<LI>they are not acceptable symmetry operations of the Bravais
+  lattice. This is the case for C<SUB>60</SUB>
+<tex2html_verbatim_mark>, for instance: the <I>I</I><SUB>h</SUB>
+<tex2html_verbatim_mark>
+  icosahedral group of C<SUB>60</SUB>
+<tex2html_verbatim_mark> contains 5-fold rotations that are
+  incompatible with translation symmetry.  
+</LI>
+<LI>the system is rotated with respect to symmetry axis. For
+  instance: a C<SUB>60</SUB>
+<tex2html_verbatim_mark> molecule in the fcc lattice will have 24
+  symmetry operations (<I>T</I><SUB>h</SUB>
+<tex2html_verbatim_mark> group) only if the double bond is
+  aligned along one of the crystal axis; if C<SUB>60</SUB>
+<tex2html_verbatim_mark> is rotated
+  in some arbitrary way, pw.x may not find any symmetry, apart from
+  inversion. 
+</LI>
+<LI>they contain a fractional translation that is incompatible with
+  the FFT grid (see next paragraph). Note that if you change cutoff or
+  unit cell volume, the automatically computed FFT grid changes, and
+  this may explain changes in symmetry (and in the number of k-points
+  as a consequence) for no apparent good reason (only if you have
+  fractional translations in the system, though). 
+</LI>
+<LI>a fractional translation, without rotation, is a symmetry
+  operation of the system. This means that the cell is actually a
+  supercell. In this case, all symmetry operations containing
+  fractional translations are disabled. The reason is that in this
+  rather exotic case there is no simple way to select those symmetry
+  operations forming a true group, in the mathematical sense of the
+  term. 
+</LI>
+</UL>
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html1041"
+  HREF="node55.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html1037"
+  HREF="node34.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html1031"
+  HREF="node53.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html1039"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html1042"
+  HREF="node55.html">7.21 warning: 'symmetry operation</A>
+<B> Up:</B> <A NAME="tex2html1038"
+  HREF="node34.html">7 Troubleshooting</A>
+<B> Previous:</B> <A NAME="tex2html1032"
+  HREF="node53.html">7.19 the FFT grids</A>
+   <B>  <A NAME="tex2html1040"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+<ADDRESS>
+Paolo Giannozzi
+2009-07-19
+</ADDRESS>
+</BODY>
+</HTML>

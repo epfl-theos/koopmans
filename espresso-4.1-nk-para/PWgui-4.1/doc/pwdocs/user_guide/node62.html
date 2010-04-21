@@ -1,0 +1,78 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2002-2-1 (1.71)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>7.28 pw.x stops during variable-cell optimization in checkallsym with 'non orthogonal operation' error</TITLE>
+<META NAME="description" CONTENT="7.28 pw.x stops during variable-cell optimization in checkallsym with 'non orthogonal operation' error">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2002-2-1">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="next" HREF="node63.html">
+<LINK REL="previous" HREF="node61.html">
+<LINK REL="up" HREF="node34.html">
+<LINK REL="next" HREF="node63.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html1137"
+  HREF="node63.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html1133"
+  HREF="node34.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html1127"
+  HREF="node61.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html1135"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html1138"
+  HREF="node63.html">7.29 some codes in</A>
+<B> Up:</B> <A NAME="tex2html1134"
+  HREF="node34.html">7 Troubleshooting</A>
+<B> Previous:</B> <A NAME="tex2html1128"
+  HREF="node61.html">7.27 structural optimization is</A>
+   <B>  <A NAME="tex2html1136"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H2><A NAME="SECTION000828000000000000000">
+7.28 pw.x stops during variable-cell optimization in
+  checkallsym with 'non orthogonal operation' error</A>
+</H2> 
+Variable-cell optimization may occasionally break the starting
+symmetry of the cell. When this happens, the run is stopped because
+the number of k-points calculated for the starting configuration may
+no longer be suitable. Possible solutions: 
+
+<UL>
+<LI>start with a nonsymmetric cell;
+</LI>
+<LI>use a symmetry-conserving algorithm: the Wentzcovitch algorithm
+  (cell dynamics='damp-w') should not break the symmetry. 
+</LI>
+</UL>
+
+<P>
+<BR><HR>
+<ADDRESS>
+Paolo Giannozzi
+2009-07-19
+</ADDRESS>
+</BODY>
+</HTML>

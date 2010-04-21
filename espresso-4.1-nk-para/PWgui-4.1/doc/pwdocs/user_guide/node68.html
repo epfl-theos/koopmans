@@ -1,0 +1,135 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2002-2-1 (1.71)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>7.34 ph.x yields really lousy phonons, with bad or negative frequencies or wrong symmetries or gross ASR violations</TITLE>
+<META NAME="description" CONTENT="7.34 ph.x yields really lousy phonons, with bad or negative frequencies or wrong symmetries or gross ASR violations">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2002-2-1">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="next" HREF="node69.html">
+<LINK REL="previous" HREF="node67.html">
+<LINK REL="up" HREF="node34.html">
+<LINK REL="next" HREF="node69.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html1209"
+  HREF="node69.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html1205"
+  HREF="node34.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html1199"
+  HREF="node67.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html1207"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html1210"
+  HREF="node69.html">7.35 'Wrong degeneracy' error</A>
+<B> Up:</B> <A NAME="tex2html1206"
+  HREF="node34.html">7 Troubleshooting</A>
+<B> Previous:</B> <A NAME="tex2html1200"
+  HREF="node67.html">7.33 ph.x does not</A>
+   <B>  <A NAME="tex2html1208"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H2><A NAME="SECTION000834000000000000000">
+7.34 ph.x yields really lousy phonons, with bad or negative
+  frequencies or wrong symmetries or gross ASR violations</A>
+</H2> 
+Possible reasons
+
+<UL>
+<LI>if this happens only for acoustic modes at <I>q</I> = 0
+<tex2html_verbatim_mark> that should
+  have <IMG
+ WIDTH="17" HEIGHT="19" ALIGN="BOTTOM" BORDER="0"
+ SRC="img1.gif"
+ ALT="$ \omega$"> = 0
+<tex2html_verbatim_mark>: Acoustic Sum Rule violation, see the item before
+  this one 
+</LI>
+<LI>wrong data file read.
+</LI>
+<LI>wrong atomic masses given in input will yield wrong frequencies
+  (but the content of file fildyn should be valid, since the force
+  constants, not the dynamical matrix, are written to file). 
+</LI>
+<LI>convergence threshold for either SCF (conv_thr) or phonon
+  calculation (tr2_ph) too large: try to reduce them. 
+</LI>
+<LI>maybe your system does have negative or strange phonon
+  frequencies, with the approximations you used. A negative frequency
+  signals a mechanical instability of the chosen structure. Check that
+  the structure is reasonable, and check the following parameters: 
+
+<UL>
+<LI>The cutoff for wavefunctions, ecutwfc
+</LI>
+<LI>For US PP: the cutoff for the charge density, ecutrho
+</LI>
+<LI>The k-point grid, especially for metallic systems!
+</LI>
+</UL>
+</LI>
+</UL>
+Note that "negative" frequencies are actually imaginary: the negative
+sign flags eigenvalues of the dynamical matrix for which <!-- MATH
+ $\omega^2 <
+0$
+ -->
+<IMG
+ WIDTH="25" HEIGHT="39" ALIGN="MIDDLE" BORDER="0"
+ SRC="img10.gif"
+ ALT="$ \omega^{2}_{}$"> &lt; 0
+<tex2html_verbatim_mark>. 
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html1209"
+  HREF="node69.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html1205"
+  HREF="node34.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html1199"
+  HREF="node67.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html1207"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html1210"
+  HREF="node69.html">7.35 'Wrong degeneracy' error</A>
+<B> Up:</B> <A NAME="tex2html1206"
+  HREF="node34.html">7 Troubleshooting</A>
+<B> Previous:</B> <A NAME="tex2html1200"
+  HREF="node67.html">7.33 ph.x does not</A>
+   <B>  <A NAME="tex2html1208"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+<ADDRESS>
+Paolo Giannozzi
+2009-07-19
+</ADDRESS>
+</BODY>
+</HTML>

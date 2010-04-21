@@ -1,0 +1,314 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2002-2-1 (1.71)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>4.1 Electronic and ionic structure calculations</TITLE>
+<META NAME="description" CONTENT="4.1 Electronic and ionic structure calculations">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2002-2-1">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="next" HREF="node19.html">
+<LINK REL="previous" HREF="node17.html">
+<LINK REL="up" HREF="node17.html">
+<LINK REL="next" HREF="node19.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html545"
+  HREF="node19.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html541"
+  HREF="node17.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html535"
+  HREF="node17.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html543"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html546"
+  HREF="node19.html">4.2 Phonon calculations</A>
+<B> Up:</B> <A NAME="tex2html542"
+  HREF="node17.html">4 Using PWscf</A>
+<B> Previous:</B> <A NAME="tex2html536"
+  HREF="node17.html">4 Using PWscf</A>
+   <B>  <A NAME="tex2html544"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+<!--Table of Child-Links-->
+<A NAME="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
+
+<UL>
+<LI><UL>
+<LI><A NAME="tex2html547"
+  HREF="node18.html#SECTION00051010000000000000">4.1.0.1 Input data</A>
+</UL>
+<BR>
+<LI><A NAME="tex2html548"
+  HREF="node18.html#SECTION00051100000000000000">4.1.1 Typical cases</A>
+<UL>
+<LI><A NAME="tex2html549"
+  HREF="node18.html#SECTION00051110000000000000">4.1.1.1 Single-point (fixed-ion) SCF calculation</A>
+<LI><A NAME="tex2html550"
+  HREF="node18.html#SECTION00051120000000000000">4.1.1.2 Band structure calculation</A>
+<LI><A NAME="tex2html551"
+  HREF="node18.html#SECTION00051130000000000000">4.1.1.3 Structural optimization</A>
+<LI><A NAME="tex2html552"
+  HREF="node18.html#SECTION00051140000000000000">4.1.1.4 Molecular Dynamics</A>
+<LI><A NAME="tex2html553"
+  HREF="node18.html#SECTION00051150000000000000">4.1.1.5 Polarization via Berry Phase</A>
+<LI><A NAME="tex2html554"
+  HREF="node18.html#SECTION00051160000000000000">4.1.1.6 Nudged Elastic Band calculation</A>
+</UL>
+<BR>
+<LI><A NAME="tex2html555"
+  HREF="node18.html#SECTION00051200000000000000">4.1.2 Data files</A>
+</UL>
+<!--End of Table of Child-Links-->
+<HR>
+
+<H2><A NAME="SECTION00051000000000000000">
+4.1 Electronic and ionic structure calculations</A>
+</H2>
+
+<P>
+Electronic and ionic structure calculations are performed by program pw.x.
+
+<P>
+
+<H4><A NAME="SECTION00051010000000000000">
+4.1.0.1 Input data</A>
+</H4>
+
+<P>
+The input data is organized as several namelists, followed by other fields
+introduced by keywords.
+
+<P>
+The namelists are
+<PRE>
+      &amp;CONTROL: general variables controlling the run
+      &amp;SYSTEM: structural information on the system under investigation
+      &amp;ELECTRONS: electronic variables: self-consistency, smearing
+      &amp;IONS (optional): ionic variables: relaxation, dynamics
+      &amp;CELL (optional): variable-cell dynamics
+      &amp;PHONON (optional): information required to produce data for
+      phonon calculations
+</PRE>    
+Optional namelist may be omitted if the calculation to be performed
+does not require them. This depends on the value of variable calculation
+in namelist &amp;CONTROL. Most variables in namelists have default values. Only
+the following variables in &amp;SYSTEM must always be specified:
+<PRE>
+      ibrav (integer): bravais-lattice index
+      celldm (real, dimension 6): crystallographic constants
+      nat (integer): number of atoms in the unit cell
+      ntyp (integer): number of types of atoms in the unit cell
+      ecutwfc (real): kinetic energy cutoff (Ry) for wavefunctions.
+</PRE>    
+For metallic systems, you have to specify how metallicity is treated
+by setting 
+variable occupations. If you choose occupations='smearing', you have
+to specify the smearing width degauss and optionally the smearing type
+smearing. If you choose occupations='tetrahedra', you need to specify 
+a suitable uniform k-point grid (card K_POINTS with option automatic).
+Spin-polarized systems must be treated as metallic system, except the 
+special case of a single k-point, for which occupation numbers can be fixed
+(occupations='from input' and card OCCUPATIONS).
+
+<P>
+Explanations for the meaning of variables ibrav and celldm are in file
+INPUT_PW. Please read them carefully. There is a large number of other
+variables, having default values, which may or may not fit your needs.
+
+<P>
+After the namelists, you have several fields introduced by keywords with
+self-explanatory names:
+<PRE>
+       ATOMIC_SPECIES
+       ATOMIC_POSITIONS
+       K_POINTS
+       CELL_PARAMETERS (optional)
+       OCCUPATIONS (optional)
+       CLIMBING_IMAGES (optional)
+</PRE>
+The keywords may be followed on the same line by an option. Unknown
+fields (including some that are specific to CP package) are ignored by PWscf.
+See file Doc/INPUT_PW for a detailed explanation of the meaning and format
+of the various fields.
+
+<P>
+Note about k points: The k-point grid can be either automatically generated 
+or manually provided as a list of k-points and a weight in the Irreducible
+Brillouin Zone only of the Bravais lattice of the crystal. The code will 
+generate (unless instructed not to do so: see variable nosym) all
+required k-point 
+and weights if the symmetry of the system is lower than the symmetry of the
+Bravais lattice. The automatic generation of k-points follows the convention
+of Monkhorst and Pack.
+
+<P>
+
+<H3><A NAME="SECTION00051100000000000000">
+4.1.1 Typical cases</A>
+</H3>
+We may distinguish the following typical cases for pw.x:
+
+<P>
+
+<H4><A NAME="SECTION00051110000000000000">
+4.1.1.1 Single-point (fixed-ion) SCF calculation</A>
+</H4> 
+Set calculation='scf'.
+Namelists &amp;IONS and &amp;CELL need not to be present (this is the default).
+<BR>
+See Example 01.
+
+<P>
+
+<H4><A NAME="SECTION00051120000000000000">
+4.1.1.2 Band structure calculation</A>
+</H4>
+First perform a SCF calculation as above;
+then do a non-SCF calculation by specifying calculation='bands' or
+calculation='nscf', with the desired k-point grid and number nbnd
+of bands. If you are interested in calculating only the Kohn-Sham states
+for the given set of k-points, use calculation='bands'. If you are
+interested in further processing of the results of non-SCF calculations
+(for instance, in DOS calculations) use calculations='nscf'.
+Specify nosym=.true. to avoid generation of additional k-points in
+low symmetry cases. Variables prefix and outdir, which determine
+the names of input or output files, should be the same in the two runs.
+<BR>
+See Example 01.
+
+<P>
+<B>Important:</B> until v.4.0, atomic positions for a non scf calculations 
+were read from input, while the scf potential was read from the data file
+of the scf calculation. Since v.4.1, both atomic positions and the scf
+potential are read from the data file so that consistency is guaranteed.
+
+<P>
+
+<H4><A NAME="SECTION00051130000000000000">
+4.1.1.3 Structural optimization</A>
+</H4>
+Specify calculation='relax' and add namelist &amp;IONS.
+
+<P>
+All options for a single SCF calculation apply, plus a few others. You
+may follow a structural optimization with a non-SCF band-structure
+calculation (since v.4.1, you do not need any longer to update the 
+atomic positions in the input file for non scf calculation).
+<BR>
+See Example 03.
+
+<P>
+
+<H4><A NAME="SECTION00051140000000000000">
+4.1.1.4 Molecular Dynamics</A>
+</H4> 
+Specify calculation='md' and time step dt.
+
+<P>
+Use variable ion dynamics in namelist &amp;IONS for a fine-grained control
+of the kind of dynamics. Other options for setting the initial
+temperature and for thermalization using velocity rescaling are
+available. Remember: this is MD on the electronic ground state, not
+Car-Parrinello MD.
+<BR>
+See Example 04.
+
+<P>
+
+<H4><A NAME="SECTION00051150000000000000">
+4.1.1.5 Polarization via Berry Phase</A>
+</H4>
+See Example 10, its README, and the documentation in the header of
+PW/bp_c_phase.f90. 
+
+<P>
+
+<H4><A NAME="SECTION00051160000000000000">
+4.1.1.6 Nudged Elastic Band calculation</A>
+</H4>
+Specify calculation='neb' and add namelist &amp;IONS.
+
+<P>
+All options for a single SCF calculation apply, plus a few others. In the
+namelist &amp;IONS the number of images used to discretize the elastic band
+must be specified. All other variables have a default value. Coordinates
+of the initial and final image of the elastic band have to be specified
+in the ATOMIC POSITIONS card. A detailed description of all input
+variables is contained in the file Doc/INPUT PW. See also Example 17.
+
+<P>
+
+<H3><A NAME="SECTION00051200000000000000">
+4.1.2 Data files</A>
+</H3>
+
+<P>
+The output data files are written in the directory specified by variable
+outdir, with names specified by variable prefix (a string that is prepended
+to all file names, whose default value is: prefix='pwscf'). The ''iotk''
+toolkit is used to write the file in a XML format, whose definition can
+be found in the Developer Manual. In order to use the data directory
+on a different machine, you need to convert the binary files to formatted
+and back, using the ''bin/iotk'' script.
+
+<P>
+The execution stops if you create a file "prefix.EXIT" in the working 
+directory. IMPORTANT NOTE: this is the directory where the program 
+is executed, NOT the directory "outdir" defined in input, where files 
+are written. Note that with some versions of MPI, the "working directory" 
+is the directory where the pw.x executable is! The advantage of this 
+procedure is that all files are properly closed, whereas  just killing 
+the process may leave data and output files in unusable state.
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html545"
+  HREF="node19.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html541"
+  HREF="node17.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html535"
+  HREF="node17.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html543"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html546"
+  HREF="node19.html">4.2 Phonon calculations</A>
+<B> Up:</B> <A NAME="tex2html542"
+  HREF="node17.html">4 Using PWscf</A>
+<B> Previous:</B> <A NAME="tex2html536"
+  HREF="node17.html">4 Using PWscf</A>
+   <B>  <A NAME="tex2html544"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+<ADDRESS>
+Paolo Giannozzi
+2009-07-19
+</ADDRESS>
+</BODY>
+</HTML>

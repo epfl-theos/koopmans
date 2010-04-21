@@ -1,0 +1,65 @@
+# Makefile for converters to UPF format
+
+include ../make.sys
+
+OBJS = write_upf.o 
+MODS = ../Modules/kind.o ../Modules/parameters.o ../Modules/pseudo_types.o \
+       ../Modules/parser.o ../Modules/io_global.o ../Modules/mp_global.o \
+       ../Modules/io_files.o ../Modules/error_handler.o ../Modules/radial_grids.o \
+       ../Modules/mp.o ../Modules/mp_base.o ../Modules/parallel_include.o \
+       ../Modules/constants.o ../flib/gridsetup.o ../flib/flush_unit.o 
+UPF_MOD =../Modules/upf.o ../Modules/write_upf_v2.o ../Modules/read_upf_v1.o ../Modules/read_upf_v2.o \
+         ../flib/matches.o
+SPLINE = ../Modules/splinelib.o
+FUNCT = ../Modules/functionals.o
+TLDEPS = mods libs libiotk
+
+all : tldeps casino2upf.x cpmd2upf.x fhi2upf.x fpmd2upf.x ncpp2upf.x oldcp2upf.x \
+      read_upf_tofile.x rrkj2upf.x uspp2upf.x vdb2upf.x virtual.x 
+
+casino2upf.x : casino2upf.o $(OBJS) $(MODS) $(FUNCT) $(LIBOBJS)
+	$(LD) $(LDFLAGS) -o $@ casino2upf.o $(OBJS) $(MODS) $(FUNCT) $(LIBOBJS) $(LIBS)
+
+cpmd2upf.x : cpmd2upf.o $(OBJS) $(MODS) $(LIBOBJS)
+	$(LD) $(LDFLAGS) -o $@ cpmd2upf.o $(OBJS) $(MODS) $(LIBOBJS) $(LIBS)
+
+fhi2upf.x : fhi2upf.o $(OBJS) $(MODS) $(FUNCT) $(LIBOBJS)
+	$(LD) $(LDFLAGS) -o $@ fhi2upf.o $(OBJS) $(MODS) $(FUNCT) $(LIBOBJS) $(LIBS)
+
+fpmd2upf.x : fpmd2upf.o $(OBJS) $(LIBOBJS) 
+	$(LD) $(LDFLAGS) -o $@ fpmd2upf.o $(OBJS) $(LIBOBJS) $(MODS) $(LIBS)
+
+ncpp2upf.x : ncpp2upf.o $(OBJS) $(MODS) $(FUNCT) $(LIBOBJS) 
+	$(LD) $(LDFLAGS) -o $@ ncpp2upf.o $(OBJS) $(MODS) $(FUNCT) $(LIBOBJS) $(LIBS)
+
+oldcp2upf.x : oldcp2upf.o $(OBJS) $(MODS) $(LIBOBJS)
+	$(LD) $(LDFLAGS) -o $@ oldcp2upf.o $(OBJS) $(MODS) $(LIBOBJS) $(LIBS)
+
+read_upf.x : read_upf.o
+	$(LD) $(LDFLAGS) -o $@ read_upf.o $(LIBS)
+
+read_upf_tofile.x : read_upf_tofile.o $(MODS) $(UPF_MOD) 
+	$(LD) $(LDFLAGS) -o $@ read_upf_tofile.o $(UPF_MOD) $(OBJS) $(LIBOBJS) $(MODS) $(LIBS)
+
+rrkj2upf.x : rrkj2upf.o $(OBJS) $(MODS) $(LIBOBJS)
+	$(LD) $(LDFLAGS) -o $@ rrkj2upf.o $(OBJS) $(LIBOBJS) $(MODS) $(LIBS)
+
+uspp2upf.x : uspp2upf.o vanderbilt.o $(OBJS) $(MODS) $(LIBOBJS)
+	$(LD) $(LDFLAGS) -o $@ \
+		uspp2upf.o vanderbilt.o $(OBJS) $(LIBOBJS) $(MODS) $(LIBS)
+
+vdb2upf.x : vdb2upf.o vanderbilt.o $(OBJS) $(MODS) $(LIBOBJS)
+	$(LD) $(LDFLAGS) -o $@ \
+		vdb2upf.o vanderbilt.o $(OBJS) $(LIBOBJS) $(MODS) $(LIBS)
+
+virtual.x : virtual.o $(OBJS) $(MODS) $(SPLINE) $(FUNCT) $(LIBOBJS)
+	$(LD) $(LDFLAGS) -o $@ \
+		virtual.o $(OBJS) $(MODS) $(SPLINE) $(FUNCT) $(LIBOBJS) $(LIBS)
+
+tldeps:
+	test -n "$(TLDEPS)" && ( cd .. ; $(MAKE) $(MFLAGS) $(TLDEPS) || exit 1) || :
+
+clean :
+	- /bin/rm -f  *.x *.o *~ *.F90 *.mod *.d *.i *.L
+
+include make.depend

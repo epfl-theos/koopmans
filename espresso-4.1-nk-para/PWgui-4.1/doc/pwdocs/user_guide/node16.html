@@ -1,0 +1,290 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2002-2-1 (1.71)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>3.2 Tricks and problems</TITLE>
+<META NAME="description" CONTENT="3.2 Tricks and problems">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2002-2-1">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="previous" HREF="node15.html">
+<LINK REL="up" HREF="node14.html">
+<LINK REL="next" HREF="node17.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html497"
+  HREF="node17.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html493"
+  HREF="node14.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html489"
+  HREF="node15.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html495"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html498"
+  HREF="node17.html">4 Using PWscf</A>
+<B> Up:</B> <A NAME="tex2html494"
+  HREF="node14.html">3 Running on parallel</A>
+<B> Previous:</B> <A NAME="tex2html490"
+  HREF="node15.html">3.1 Understanding Parallelism in</A>
+   <B>  <A NAME="tex2html496"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+<!--Table of Child-Links-->
+<A NAME="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
+
+<UL>
+<LI><UL>
+<LI><A NAME="tex2html499"
+  HREF="node16.html#SECTION00042010000000000000">3.2.0.1 Trouble with MKL and OpenMP parallelization</A>
+<LI><A NAME="tex2html500"
+  HREF="node16.html#SECTION00042020000000000000">3.2.0.2 Trouble with compilers and MPI libraries</A>
+<LI><A NAME="tex2html501"
+  HREF="node16.html#SECTION00042030000000000000">3.2.0.3 Understanding parallel I/O</A>
+<LI><A NAME="tex2html502"
+  HREF="node16.html#SECTION00042040000000000000">3.2.0.4 Trouble with input files</A>
+<LI><A NAME="tex2html503"
+  HREF="node16.html#SECTION00042050000000000000">3.2.0.5 Cray XT3</A>
+</UL></UL>
+<!--End of Table of Child-Links-->
+<HR>
+
+<H2><A NAME="SECTION00042000000000000000">
+3.2 Tricks and problems</A>
+</H2>
+
+<P>
+
+<H4><A NAME="SECTION00042010000000000000">
+3.2.0.1 Trouble with MKL and OpenMP parallelization</A>
+</H4>
+Q<SMALL>UANTUM </SMALL>ESPRESSO uses a parallelization paradigm based on message-passing:
+a copy of the executable runs on each CPU, each copy living in a different
+world, communicating with other copies via calls to MPI
+(Message-Passing Interface) libraries. OpenMP is a different
+parallelization paradigm: a single executable spawn subprocesses
+(threads) that perform some specific tasks. OpenMP can be implemented
+via compiler directives or else via OpenMP-aware libraries such as 
+ESSL or MKL. It is typically convenient for SMP (multiprocessor)
+machines, with one CPU running the master process and threads started
+on the other CPUs. Presently (nov. 2008)  MPI and OpenMP parallelization  
+<EM>must not be active at the same time</EM>. If you notice very bad parallel 
+performances, OpenMP and MPI may be conflicting for the same CPUs. This is 
+a frequent problem with MKL, that by default perform OpenMP
+autoparallelization. 
+
+<P>
+When running in parallel with MPI (using "mpirun" for instance) on
+multiprocessor  machines, you should set the environmental variable
+OMP_NUM_THREADS to 1. This is <EM>crucial</EM> if your code is linked
+with recent versions of MKL.  
+Note that if for some reason the correct setting  of variable
+OMP_NUM_THREADS  
+does not propagate to all processors, you may equally run into trouble. 
+Lorenzo Paulatto (Nov. 2008) suggests to use the "-x" option to "mpirun" to 
+propagate OMP_NUM_THREADS to all processors.
+Axel Kohlmeyer suggests the following (April 2008): 
+"(I've) found that Intel is now turning on multithreading without any
+warning and that is for example why their FFT seems faster than
+FFTW. For serial and OpenMP based runs this makes no difference (in
+fact the multi-threaded FFT helps), but if you run MPI locally, you
+actually lose performance. Also if you use the 'numactl' tool on linux
+to bind a job to a specific cpu core, MKL will still try to use all
+available cores (and slow down badly). The cleanest way of avoiding
+this mess is to either link with
+<PRE>
+-lmkl_intel_lp64 -lmkl_sequential -lmkl_core (on 64-bit: x86_64, ia64)
+-lmkl_intel -lmkl_sequential -lmkl_core (on 32-bit, i.e. ia32 )
+</PRE>
+or edit the libmkl_'platform'.a file (I'm using now a file libmkl10.a with:
+<PRE>
+  GROUP (libmkl_intel_lp64.a libmkl_sequential.a libmkl_core.a)
+</PRE>
+It works like a charm".
+
+<P>
+
+<H4><A NAME="SECTION00042020000000000000">
+3.2.0.2 Trouble with compilers and MPI libraries</A>
+</H4>
+Many users of Q<SMALL>UANTUM </SMALL>ESPRESSO, in particular those working on PC clusters,
+have to rely on themselves (or on less-than-adequate system managers) for 
+the correct configuration of software for parallel execution. Mysterious and
+irreproducible crashes in parallel execution are sometimes due to bugs
+in Q<SMALL>UANTUM </SMALL>ESPRESSO, but more often than not are a consequence of buggy
+compilers or of buggy or miscompiled MPI libraries. Very useful step-by-step 
+instructions to compile and install MPI libraries
+can be found in the following post by Javier Antonio Montoya:
+<BR>
+http://www.democritos.it/pipermail/pw_forum/2008-April/008818.htm .
+
+<P>
+On a Xeon quadriprocessor cluster, erratic crashes in parallel
+execution have been reported, apparently correlated with ifort 10.1
+(info by Nathalie Vast and Jelena Sjakste, May 2008).
+
+<P>
+
+<H4><A NAME="SECTION00042030000000000000">
+3.2.0.3 Understanding parallel I/O</A>
+</H4>
+In parallel exeution, each processor has its own slice of wavefunctions, 
+to be written to temporary files during the calculation. The way wavefunctions 
+are written by pw.x is governed by variable wf_collect, in namelist control. 
+If wf_collect=.true., the final wavefunctions are collected into a single 
+directory, written by a single processor, whose format is independent on 
+the number of processors. If wf_collect=.false. (default) each processor
+writes its own slice of the final 
+wavefunctions to disk in the internal format used by PWscf. 
+
+<P>
+The former case requires more
+disk I/O and disk space, but produces portable data files; the latter case
+requires less I/O and disk space, but the data so produced can be read only
+by a job running on the same number of processors and pools, and if
+all files are on a file system that is visible to all processors
+(i.e., you cannot use local scratch directories: there is presently no
+way to ensure that the distribution of processes on processors will
+follow the same pattern for different jobs).
+
+<P>
+cp.x instead always collects the final wavefunctions into a single directory.
+Files written by pw.x can be read by cp.x only if wf_collect=.true. (and if
+produced for k=0 case). 
+
+<P>
+With the new file format (v.3.1 and later) all data (except 
+wavefunctions in pw.x if wf_collect=.false.) is written to and read from
+a single directory outdir/prefix.save. A copy of pseudopotential files
+is also written there. If some processor cannot access outdir/prefix.save,
+it reads the pseudopotential files from the pseudopotential directory
+specified in input data. Unpredictable results may follow if those files
+are not the same as those in the data directory!
+
+<P>
+Avoid I/O to network-mounted disks (via NFS) as much as you can! 
+Ideally the scratch directory (ESPRESSO_TMPDIR) should be a modern 
+Parallel File System. If you do not have any, you can use local
+scratch disks (i.e. each node is physically connected to a disk
+and writes to it) but you may run into trouble anyway if you 
+need to access your files that are scattered in an unpredictable
+way across disks residing on different nodes.
+
+<P>
+You can use option "disk_io='minimal'", or even 'none', if you run
+into trouble (or angry system managers) with eccessive I/O with pw.x. 
+The code will store wavefunctions into RAM during the calculation.
+Note however that this will increase your memory usage and may limit 
+or prevent restarting from interrupted runs.
+
+<P>
+
+<H4><A NAME="SECTION00042040000000000000">
+3.2.0.4 Trouble with input files</A>
+</H4>
+Some implementations of the MPI library have problems with input 
+redirection in parallel. This typically shows up under the form of
+mysterious errors when reading data. If this happens, use the option 
+-in (or -inp or -input), followed by the input file name. 
+Example:
+<PRE>
+   pw.x -in inputfile npool 4 &gt; outputfile
+</PRE> 
+Of course the 
+input file must be accessible by the processor that must read it
+(only one processor reads the input file and subsequently broadcasts
+its contents to all other processors).
+
+<P>
+Apparently the LSF implementation of MPI libraries manages to ignore or to
+confuse even the -in/inp/input mechanism that is present in all
+Q<SMALL>UANTUM </SMALL>ESPRESSO codes. In this case, use the -i option of mpirun.lsf
+to provide an input file.
+
+<P>
+
+<H4><A NAME="SECTION00042050000000000000">
+3.2.0.5 Cray XT3</A>
+</H4>
+On the cray xt3 there is a special hack to keep files in
+memory instead of writing them without changes to the code.
+You have to do a: 
+module load iobuf
+before compiling and then add liobuf at link time.
+If you run a job you set the environment variable 
+IOBUF_PARAMS to proper numbers and you can gain a lot.
+Here is one example:
+<PRE>
+env IOBUF_PARAMS='*.wfc*:noflush:count=1:size=15M:verbose,\
+*.dat:count=2:size=50M:lazyflush:lazyclose:verbose,\
+*.UPF*.xml:count=8:size=8M:verbose' pbsyod =\
+\~{}/pwscf/pwscfcvs/bin/pw.x npool 4 in si64pw2x2x2.inp &gt; &amp; \
+si64pw2x2x232moreiobuf.out &amp;
+</PRE>
+This will ignore all flushes on the *wfc* (scratch files) using a
+single i/o buffer large enough to contain the whole file (<IMG
+ WIDTH="20" HEIGHT="19" ALIGN="BOTTOM" BORDER="0"
+ SRC="img7.gif"
+ ALT="$ \sim$"> 12
+<tex2html_verbatim_mark> Mb here).
+this way they are actually never(!) written to disk.
+The *.dat files are part of the restart, so needed, but you can be
+'lazy' since they are writeonly. .xml files have a lot of accesses
+(due to iotk), but with a few rather small buffers, this can be
+handled as well. You have to pay attention not to make the buffers
+too large, if the code needs a lot of memory, too and in this example
+there is a lot of room for improvement. After you have tuned those
+parameters, you can remove the 'verboses' and enjoy the fast execution.
+Apart from the i/o issues the cray xt3 is a really nice and fast machine.
+(Info by Axel Kohlmeyer, maybe obsolete)
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html497"
+  HREF="node17.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html493"
+  HREF="node14.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html489"
+  HREF="node15.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html495"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html498"
+  HREF="node17.html">4 Using PWscf</A>
+<B> Up:</B> <A NAME="tex2html494"
+  HREF="node14.html">3 Running on parallel</A>
+<B> Previous:</B> <A NAME="tex2html490"
+  HREF="node15.html">3.1 Understanding Parallelism in</A>
+   <B>  <A NAME="tex2html496"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+<ADDRESS>
+Paolo Giannozzi
+2009-07-19
+</ADDRESS>
+</BODY>
+</HTML>

@@ -1,0 +1,310 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2002-2-1 (1.71)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>5.3 CP dynamics</TITLE>
+<META NAME="description" CONTENT="5.3 CP dynamics">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2002-2-1">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="next" HREF="node26.html">
+<LINK REL="previous" HREF="node24.html">
+<LINK REL="up" HREF="node22.html">
+<LINK REL="next" HREF="node26.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html654"
+  HREF="node26.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html650"
+  HREF="node22.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html644"
+  HREF="node24.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html652"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html655"
+  HREF="node26.html">5.4 Variable-cell MD</A>
+<B> Up:</B> <A NAME="tex2html651"
+  HREF="node22.html">5 Using CP</A>
+<B> Previous:</B> <A NAME="tex2html645"
+  HREF="node24.html">5.2 Relax the system</A>
+   <B>  <A NAME="tex2html653"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+<!--Table of Child-Links-->
+<A NAME="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
+
+<UL>
+<LI><UL>
+<LI><A NAME="tex2html656"
+  HREF="node25.html#SECTION00063010000000000000">5.3.0.1  Varying the temperature </A>
+<LI><A NAME="tex2html657"
+  HREF="node25.html#SECTION00063020000000000000">5.3.0.2  Nose thermostat for electrons </A>
+<LI><A NAME="tex2html658"
+  HREF="node25.html#SECTION00063030000000000000">5.3.0.3  Self-interaction Correction </A>
+</UL></UL>
+<!--End of Table of Child-Links-->
+<HR>
+
+<H2><A NAME="SECTION00063000000000000000">
+5.3 CP dynamics</A>
+</H2>
+
+<P>
+At this point after having minimized the electrons, and with ions dis-
+placed from their equilibrium positions, we are ready to start a CP
+dynamics. We need to specify 'verlet' both in ionic and electronic
+dynamics. The threshold in control input section will be ignored, like
+any parameter related to minimization strategy. The first time we perform 
+a CP run after a minimization, it is always better to put velocities equal
+to zero, unless we have velocities, from a previous simulation, to
+specify in the input file. Restore the proper masses for the ions. In this
+way we will sample the microcanonical ensemble. The input section
+changes as follow:
+<PRE>
+           &amp;electrons
+              emass = 400.d0,
+              emass_cutoff = 2.5d0,
+              electron_dynamics = 'verlet',
+              electron_velocities = 'zero'
+           /
+           &amp;ions
+              ion_dynamics = 'verlet',
+              ion_velocities = 'zero'
+           /
+           ATOMIC_SPECIES
+           C 12.0d0 c_blyp_gia.pp
+           H 1.00d0 h.ps
+</PRE>
+
+<P>
+If you want to specify the initial velocities for ions, you have to set
+ion_velocities ='from_input', and add the IONIC_VELOCITIES
+card, after the ATOMIC_POSITION card, with the list of velocities in 
+atomic units.
+
+<P>
+<EM>IMPORTANT:</EM> in restarting the dynamics after the first CP run,
+remember to remove or comment the velocities parameters:
+<PRE>
+           &amp;electrons
+              emass = 400.d0,
+              emass_cutoff = 2.5d0,
+              electron_dynamics = 'verlet'
+              ! electron_velocities = 'zero'
+           /
+           &amp;ions
+              ion_dynamics = 'verlet'
+              ! ion_velocities = 'zero'
+           /
+</PRE>
+otherwise you will quench the system interrupting the sampling of the
+microcanonical ensemble.
+
+<P>
+
+<H4><A NAME="SECTION00063010000000000000">
+5.3.0.1  Varying the temperature </A>
+</H4>
+
+<P>
+It is possible to change the temperature of the system or to sample the 
+canonical ensemble fixing the average temperature, this is done using 
+the Nos&#233; thermostat. To activate this thermostat for ions you have 
+to specify in the ions input section:
+<PRE>
+           &amp;ions
+              ion_dynamics = 'verletâ',
+              ion_temperature = 'nose',
+              fnosep = 60.0,
+              tempw = 300.0
+           /
+</PRE>
+where fnosep is the frequency of the thermostat in THz, thatishould be
+chosen to be comparable with the center of the vibrational spectrum of
+the system, in order to excite as many vibrational modes as possible.
+tempw is the desired average temperature in Kelvin.
+
+<P>
+<EM>Note:</EM> to avoid a strong coupling between the Nos&#233; thermostat 
+and the system, proceed step by step. Don't switch on the thermostat 
+from a completely relaxed configuration: adding a random displacement
+is strongly recommended. Check which is the average temperature via a
+few steps of a microcanonical simulation. Don't increase the temperature
+too much. Finally switch on the thermostat. In the case of molecular system,
+different modes have to be thermalized: it is better to use a chain of 
+thermostat or equivalently running different simulations with different 
+frequencies. 
+
+<P>
+
+<H4><A NAME="SECTION00063020000000000000">
+5.3.0.2  Nose thermostat for electrons </A>
+</H4>
+
+<P>
+It is possible to specify also the thermostat for the electrons. This is
+usually activated in metals or in systems where we have a transfer of
+energy between ionic and electronic degrees of freedom. Beware: the
+usage of electronic thermostats is quite delicate. The following information 
+comes from K. Kudin: 
+
+<P>
+''The main issue is that there is usually some "natural" fictitious kinetic 
+energy that electrons gain from the ionic motion ("drag"). One could easily 
+quantify how much of the fictitious energy comes from this drag by doing a CP 
+run, then a couple of CG (same as BO) steps, and then going back to CP.
+The fictitious electronic energy at the last CP restart will be purely 
+due to the drag effect.''
+
+<P>
+''The thermostat on electrons will either try to overexcite the otherwise 
+"cold" electrons, or it will try to take them down to an unnaturally cold 
+state where their fictitious kinetic energy is even below what would be 
+just due pure drag. Neither of this is good.''
+
+<P>
+''I think the only workable regime with an electronic thermostat is a 
+mild overexcitation of the electrons, however, to do this one will need 
+to know rather precisely what is the fictititious kinetic energy due to the
+drag.''
+
+<P>
+
+<H4><A NAME="SECTION00063030000000000000">
+5.3.0.3  Self-interaction Correction </A>
+</H4>
+
+<P>
+The self-interaction correction (SIC) included in the CP package is based
+on the Constrained Local-Spin-Density approach proposed my F. Mauri and 
+coworkers (M. D'Avezac et al. PRB 71, 205210 (2005)). It was used for
+the first time in Q<SMALL>UANTUM </SMALL>ESPRESSO by F. Baletto, C. Cavazzoni 
+and S.Scandolo (PRL 95, 176801 (2005)).
+
+<P>
+This approach is a simple and nice way to treat ONE, and only one, 
+excess charge (EC). It is moreover necessary to check a priori that 
+the spin-up and spin-down eigenvalues are not too different, for the 
+corresponding neutral system. working in the Local-Spin-Density 
+Approximation (setting nspin = 2). If these two conditions are satisfied
+and you are interest in charged systems, you can apply the SIC.
+This approach is a on-the-fly method to correct the self-interaction 
+with the excess charge with itself.
+
+<P>
+Briefly, both the Hartree and the exchange-correlation part have been 
+corrected to avoid the interaction of the EC with tself.
+
+<P>
+For example, for the Boron atoms, where we have an even number of 
+electrons (valence electrons = 3), the parameters for working with
+the SIC are:
+<PRE>
+           &amp;system
+           nbnd= 2,
+           nelec= 3,
+           nelup = 2,
+           neldw = 1,
+           sic_alpha = 1.d0,
+           sic_epsilon = 1.0d0,
+           sic = 'sic_mac',
+           force_pairing = .true.,
+
+           &amp;ions
+           ion_dynamics = 'none',
+           ion_radius(1) = 0.8d0,
+           sic_rloc = 1.0,
+
+           ATOMIC_POSITIONS (bohr)
+           B 0.00 0.00 0.00 0 0 0 1
+</PRE>
+The two main parameters are:
+<BR>"force_pairing = .true.", which forces the paired electrons to be the same;
+<BR>"sic='sic_mac'," which instructs the code to use Mauri's correction.
+<BR>
+Remember to add an extra-column in ATOMIC_POSITIONS with "1" to activate
+SIC for those atoms.
+
+<P>
+<B>Warning</B>: 
+This approach has known problems for dissociation mechanism
+driven by excess electrons.
+
+<P>
+Comment 1:
+Two parameters, ''sic_alpha'' and ''sic_epsilon'', have been introduced 
+following the suggestion of M. Sprik (ICR(05)) to treat the radical
+(OH)-H<SUB>2</SUB>
+<tex2html_verbatim_mark>O. In any case, a complete ab-initio approach is followed 
+using ''sic_alpha=sic_epsilon=1''.
+
+<P>
+Comment 2:
+When you apply this SIC scheme to a molecule or to an atom, which are neutral,
+remember to add the correction to the energy level as proposed by Landau: 
+in a neutral system, subtracting the self-interaction, the unpaired electron
+feels a charged system, even if using a compensating positive background. 
+For a cubic box, the correction term due to the Madelung energy is approx. 
+given by <!-- MATH
+ $1.4186/L_{box} - 1.047/(L_{box})^3$
+ -->
+1.4186/<I>L</I><SUB>box</SUB> -1.047/(<I>L</I><SUB>box</SUB>)<SUP>3</SUP>
+<tex2html_verbatim_mark>, where <I>L</I><SUB>box</SUB>
+<tex2html_verbatim_mark> is the 
+linear dimension of your box (=celldm(1)). The Madelung coefficient is 
+taken from I. Dabo et al. PRB 77, 115139 (2007).
+
+<P>
+(info by F. Baletto, francesca.baletto@kcl.ac.uk)
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html654"
+  HREF="node26.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html650"
+  HREF="node22.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html644"
+  HREF="node24.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html652"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html655"
+  HREF="node26.html">5.4 Variable-cell MD</A>
+<B> Up:</B> <A NAME="tex2html651"
+  HREF="node22.html">5 Using CP</A>
+<B> Previous:</B> <A NAME="tex2html645"
+  HREF="node24.html">5.2 Relax the system</A>
+   <B>  <A NAME="tex2html653"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+<ADDRESS>
+Paolo Giannozzi
+2009-07-19
+</ADDRESS>
+</BODY>
+</HTML>

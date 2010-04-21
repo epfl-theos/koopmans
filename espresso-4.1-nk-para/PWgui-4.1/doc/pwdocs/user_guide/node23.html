@@ -1,0 +1,143 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2002-2-1 (1.71)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>5.1 Reaching the electronic ground state</TITLE>
+<META NAME="description" CONTENT="5.1 Reaching the electronic ground state">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2002-2-1">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="next" HREF="node24.html">
+<LINK REL="previous" HREF="node22.html">
+<LINK REL="up" HREF="node22.html">
+<LINK REL="next" HREF="node24.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html629"
+  HREF="node24.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html625"
+  HREF="node22.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html619"
+  HREF="node22.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html627"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html630"
+  HREF="node24.html">5.2 Relax the system</A>
+<B> Up:</B> <A NAME="tex2html626"
+  HREF="node22.html">5 Using CP</A>
+<B> Previous:</B> <A NAME="tex2html620"
+  HREF="node22.html">5 Using CP</A>
+   <B>  <A NAME="tex2html628"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+<!--Table of Child-Links-->
+<A NAME="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
+
+<UL>
+<LI><UL>
+<LI><A NAME="tex2html631"
+  HREF="node23.html#SECTION00061010000000000000">5.1.0.1 Important</A>
+</UL></UL>
+<!--End of Table of Child-Links-->
+<HR>
+
+<H2><A NAME="SECTION00061000000000000000">
+5.1 Reaching the electronic ground state</A>
+</H2>
+
+<P>
+The first step in a CP scheme is to reach the electronic 
+ground state (GS), for a given set of nuclear positions.
+Sometimes a single run is not enough to reach the GS. In this case,
+you need to re-run the electronic minimization stage. Use the input 
+of the first run, changing restart_mode = 'from_scratch' to 
+restart_mode = 'restart'.
+
+<P>
+
+<H4><A NAME="SECTION00061010000000000000">
+5.1.0.1 Important</A>
+</H4> Unless you are already experienced with the system 
+you are studying or with the internals of the code, you wil usually need 
+to tune some input parameters, like emass, dt, and cut-offs. For this 
+purpose, a few trial runs could be useful: you can perform short
+minimizations (say, 10 steps) changing and adjusting these parameters 
+to fit your needs. You can specify the degree of convergence with these
+two thresholds:
+
+<P>
+etot_conv_thr: total energy difference between two consecutive steps
+
+<P>
+ekin_conv_thr: value of the fictitious kinetic energy of the electrons
+
+<P>
+Usually we consider the system on the GS when ekin conv_thr &lt; 10<SUP>-5</SUP>
+<tex2html_verbatim_mark>.
+You could check the value of the fictitious kinetic energy on the standard 
+output (column EKINC).
+
+<P>
+Different strategies are available to minimize electrons, but the most used 
+ones are:
+
+<UL>
+<LI>steepest descent: electron_dynamics = 'sd'
+</LI>
+<LI>damped dynamics: electron_dynamics = 'damp',
+  electron_damping = a number typically ranging from 0.1 and 0.5 
+</LI>
+</UL>
+See the input description to compute the optimal damping factor.
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html629"
+  HREF="node24.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html625"
+  HREF="node22.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html619"
+  HREF="node22.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html627"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html630"
+  HREF="node24.html">5.2 Relax the system</A>
+<B> Up:</B> <A NAME="tex2html626"
+  HREF="node22.html">5 Using CP</A>
+<B> Previous:</B> <A NAME="tex2html620"
+  HREF="node22.html">5 Using CP</A>
+   <B>  <A NAME="tex2html628"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+<ADDRESS>
+Paolo Giannozzi
+2009-07-19
+</ADDRESS>
+</BODY>
+</HTML>

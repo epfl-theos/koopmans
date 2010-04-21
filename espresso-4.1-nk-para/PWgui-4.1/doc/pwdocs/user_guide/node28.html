@@ -1,0 +1,136 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2002-2-1 (1.71)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>5.6 About nr1b, nr2b, nr3b</TITLE>
+<META NAME="description" CONTENT="5.6 About nr1b, nr2b, nr3b">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2002-2-1">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="previous" HREF="node27.html">
+<LINK REL="up" HREF="node22.html">
+<LINK REL="next" HREF="node29.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html692"
+  HREF="node29.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html688"
+  HREF="node22.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html684"
+  HREF="node27.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html690"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html693"
+  HREF="node29.html">6 Performance issues (PWscf)</A>
+<B> Up:</B> <A NAME="tex2html689"
+  HREF="node22.html">5 Using CP</A>
+<B> Previous:</B> <A NAME="tex2html685"
+  HREF="node27.html">5.5 Conjugate Gradient</A>
+   <B>  <A NAME="tex2html691"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H2><A NAME="SECTION00066000000000000000">
+5.6  About nr1b, nr2b, nr3b</A>
+</H2>
+
+<P>
+ecutrho defines the resolution on the real space FFT mesh (as expressed 
+by nr1, nr2 and nr3, that the code left on its own sets automatically).
+In the ultrasoft case we refer to this mesh as the "hard" mesh, since it 
+is denser than the smooth mesh that is needed to represent the square 
+of the non-norm-conserving wavefunctions.
+
+<P>
+On this "hard", fine-spaced mesh, you need to determine the size of the
+cube that will encompass the largest of the augmentation charges - this
+is what nr1b, nr2b, nr3b are.
+
+<P>
+So, nr1b is independent of the system size, but dependent on the size
+of the augmentation charge (that doesn't vary that much) and on the
+real-space resolution needed by augmentation charges (rule of thumb:
+ecutrho is between 6 and 12 times ecutwfc).
+
+<P>
+In practice, nr1b et al. are often in the region of 20-24-28; testing seems
+again a necessity (unless the code started automagically to estimate these).
+
+<P>
+The core charge is in principle finite only at the core region (as defined
+by rcut ) and vanishes out side the core. Numerically the charge is
+represented in a Fourier series which may give rise to small charge
+oscillations outside the core and even to negative charge density, but
+only if the cut-off is too low. Having these small boxes removes the
+charge oscillations problem (at least outside the box) and also offers
+some numerical advantages in going to higher cut-offs.
+
+<P>
+The small boxes should be set as small as possible, but large enough
+to contain the core of the largest element in your system.
+The formula for determining the box size is quite simple: 
+<P><!-- MATH
+ \begin{displaymath}
+nr1b = (2 \times rcut )/Lx \times nr1
+\end{displaymath}
+ -->
+</P>
+<DIV ALIGN="CENTER">
+<I>nr</I>1<I>b</I> = (2 <TT>x</TT> <I>rcut</I>)/<I>Lx</I> <TT>x</TT> <I>nr</I>1
+</DIV><P>
+<tex2html_verbatim_mark></P>
+where rcut is the cut-off radius for the largest element and Lx is the
+physical length of your box along the x axis. You have to round your
+result to the nearest larger integer." (info by Nicola Marzari)
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html692"
+  HREF="node29.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html688"
+  HREF="node22.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html684"
+  HREF="node27.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html690"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html693"
+  HREF="node29.html">6 Performance issues (PWscf)</A>
+<B> Up:</B> <A NAME="tex2html689"
+  HREF="node22.html">5 Using CP</A>
+<B> Previous:</B> <A NAME="tex2html685"
+  HREF="node27.html">5.5 Conjugate Gradient</A>
+   <B>  <A NAME="tex2html691"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+<ADDRESS>
+Paolo Giannozzi
+2009-07-19
+</ADDRESS>
+</BODY>
+</HTML>

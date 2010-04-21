@@ -1,0 +1,87 @@
+\BOOKMARK [1][-]{section.1}{Introduction}{}
+\BOOKMARK [2][-]{subsection.1.1}{What can Quantum ESPRESSO do}{section.1}
+\BOOKMARK [2][-]{subsection.1.2}{People}{section.1}
+\BOOKMARK [2][-]{subsection.1.3}{Contacts}{section.1}
+\BOOKMARK [2][-]{subsection.1.4}{Terms of use}{section.1}
+\BOOKMARK [1][-]{section.2}{Installing Quantum ESPRESSO}{}
+\BOOKMARK [2][-]{subsection.2.1}{Download}{section.2}
+\BOOKMARK [2][-]{subsection.2.2}{Installation}{section.2}
+\BOOKMARK [2][-]{subsection.2.3}{configure}{section.2}
+\BOOKMARK [3][-]{subsubsection.2.3.1}{Libraries}{subsection.2.3}
+\BOOKMARK [3][-]{subsubsection.2.3.2}{Manual configuration}{subsection.2.3}
+\BOOKMARK [2][-]{subsection.2.4}{Compilation}{section.2}
+\BOOKMARK [2][-]{subsection.2.5}{Running examples}{section.2}
+\BOOKMARK [2][-]{subsection.2.6}{Installation tricks and problems}{section.2}
+\BOOKMARK [3][-]{subsubsection.2.6.1}{All architectures}{subsection.2.6}
+\BOOKMARK [3][-]{subsubsection.2.6.2}{IBM AIX}{subsection.2.6}
+\BOOKMARK [3][-]{subsubsection.2.6.3}{Linux PC}{subsection.2.6}
+\BOOKMARK [3][-]{subsubsection.2.6.4}{AMD 32-bit CPUs}{subsection.2.6}
+\BOOKMARK [3][-]{subsubsection.2.6.5}{64-bit CPUs}{subsection.2.6}
+\BOOKMARK [3][-]{subsubsection.2.6.6}{Linux PC clusters with MPI}{subsection.2.6}
+\BOOKMARK [3][-]{subsubsection.2.6.7}{Intel Mac OS X}{subsection.2.6}
+\BOOKMARK [1][-]{section.3}{Running on parallel machines}{}
+\BOOKMARK [2][-]{subsection.3.1}{Understanding Parallelism in Quantum ESPRESSO}{section.3}
+\BOOKMARK [2][-]{subsection.3.2}{Tricks and problems}{section.3}
+\BOOKMARK [1][-]{section.4}{Using PWscf}{}
+\BOOKMARK [2][-]{subsection.4.1}{Electronic and ionic structure calculations}{section.4}
+\BOOKMARK [3][-]{subsubsection.4.1.1}{Typical cases}{subsection.4.1}
+\BOOKMARK [3][-]{subsubsection.4.1.2}{Data files}{subsection.4.1}
+\BOOKMARK [2][-]{subsection.4.2}{Phonon calculations}{section.4}
+\BOOKMARK [2][-]{subsection.4.3}{Post-processing}{section.4}
+\BOOKMARK [2][-]{subsection.4.4}{Tools}{section.4}
+\BOOKMARK [1][-]{section.5}{Using CP}{}
+\BOOKMARK [2][-]{subsection.5.1}{Reaching the electronic ground state}{section.5}
+\BOOKMARK [2][-]{subsection.5.2}{Relax the system}{section.5}
+\BOOKMARK [2][-]{subsection.5.3}{CP dynamics}{section.5}
+\BOOKMARK [2][-]{subsection.5.4}{ Variable-cell MD }{section.5}
+\BOOKMARK [2][-]{subsection.5.5}{ Conjugate Gradient }{section.5}
+\BOOKMARK [2][-]{subsection.5.6}{ About nr1b, nr2b, nr3b}{section.5}
+\BOOKMARK [1][-]{section.6}{Performance issues \(PWscf\)}{}
+\BOOKMARK [2][-]{subsection.6.1}{CPU time requirements}{section.6}
+\BOOKMARK [2][-]{subsection.6.2}{Memory requirements}{section.6}
+\BOOKMARK [2][-]{subsection.6.3}{File space requirements}{section.6}
+\BOOKMARK [2][-]{subsection.6.4}{Parallelization issues}{section.6}
+\BOOKMARK [1][-]{section.7}{Troubleshooting}{}
+\BOOKMARK [2][-]{subsection.7.1}{pw.x says 'error while loading shared libraries' or 'cannot open shared object file' and does not start}{section.7}
+\BOOKMARK [2][-]{subsection.7.2}{errors in examples with parallel execution}{section.7}
+\BOOKMARK [2][-]{subsection.7.3}{pw.x prints the first few lines and then nothing happens \(parallel execution\)}{section.7}
+\BOOKMARK [2][-]{subsection.7.4}{pw.x stops with error while reading data}{section.7}
+\BOOKMARK [2][-]{subsection.7.5}{pw.x mumbles something like 'cannot recover' or 'error reading recover file'}{section.7}
+\BOOKMARK [2][-]{subsection.7.6}{pw.x stops with 'inconsistent DFT' error}{section.7}
+\BOOKMARK [2][-]{subsection.7.7}{pw.x stops with error in cdiaghg or rdiaghg}{section.7}
+\BOOKMARK [2][-]{subsection.7.8}{pw.x crashes with no error message at all}{section.7}
+\BOOKMARK [2][-]{subsection.7.9}{pw.x crashes with 'segmentation fault' or similarly obscure messages}{section.7}
+\BOOKMARK [2][-]{subsection.7.10}{pw.x crashes with 'error in davcio'}{section.7}
+\BOOKMARK [2][-]{subsection.7.11}{pw.x works for simple systems, but not for large systems or whenever more RAM is needed}{section.7}
+\BOOKMARK [2][-]{subsection.7.12}{pw.x crashes in parallel execution with an obscure message related to MPI errors}{section.7}
+\BOOKMARK [2][-]{subsection.7.13}{pw.x runs but nothing happens}{section.7}
+\BOOKMARK [2][-]{subsection.7.14}{pw.x yields weird results}{section.7}
+\BOOKMARK [2][-]{subsection.7.15}{pw.x stops with error message "the system is metallic, specify occupations"}{section.7}
+\BOOKMARK [2][-]{subsection.7.16}{pw.x stops with "internal error: cannot braket Ef " in efermig}{section.7}
+\BOOKMARK [2][-]{subsection.7.17}{pw.x yields 'internal error: cannot braket Ef' message in efermit, then stops because 'charge is incorrect'}{section.7}
+\BOOKMARK [2][-]{subsection.7.18}{pw.x yields 'internal error: cannot braket Ef' message in efermit but does not stop}{section.7}
+\BOOKMARK [2][-]{subsection.7.19}{the FFT grids in pw.x are machine-dependent}{section.7}
+\BOOKMARK [2][-]{subsection.7.20}{pw.x does not find all the symmetries you expected}{section.7}
+\BOOKMARK [2][-]{subsection.7.21}{warning: 'symmetry operation \043 N not allowed'}{section.7}
+\BOOKMARK [2][-]{subsection.7.22}{I do not get the same results in different machines!}{section.7}
+\BOOKMARK [2][-]{subsection.7.23}{the CPU time is time-dependent!}{section.7}
+\BOOKMARK [2][-]{subsection.7.24}{'warning : N eigenvectors not converged ...'}{section.7}
+\BOOKMARK [2][-]{subsection.7.25}{'warning : negative or imaginary charge...', or '...core charge ...', or 'npt with rhoup<0...' or 'rho dw<0...'}{section.7}
+\BOOKMARK [2][-]{subsection.7.26}{self-consistency is slow or does not converge}{section.7}
+\BOOKMARK [2][-]{subsection.7.27}{structural optimization is slow or does not converge}{section.7}
+\BOOKMARK [2][-]{subsection.7.28}{pw.x stops during variable-cell optimization in checkallsym with 'non orthogonal operation' error}{section.7}
+\BOOKMARK [2][-]{subsection.7.29}{some codes in PP/ complain that they do not find some files}{section.7}
+\BOOKMARK [2][-]{subsection.7.30}{ph.x stops with 'error reading file'}{section.7}
+\BOOKMARK [2][-]{subsection.7.31}{ph.x mumbles something like 'cannot recover' or 'error reading recover file'}{section.7}
+\BOOKMARK [2][-]{subsection.7.32}{ph.x says 'occupation numbers probably wrong' and continues; or 'phonon + tetrahedra not implemented' and stops}{section.7}
+\BOOKMARK [2][-]{subsection.7.33}{ph.x does not yield acoustic modes with =0 at q=0}{section.7}
+\BOOKMARK [2][-]{subsection.7.34}{ph.x yields really lousy phonons, with bad or negative frequencies or wrong symmetries or gross ASR violations}{section.7}
+\BOOKMARK [2][-]{subsection.7.35}{'Wrong degeneracy' error in star\137q}{section.7}
+\BOOKMARK [1][-]{section.8}{Frequently Asked Questions \(FAQ\)}{}
+\BOOKMARK [2][-]{subsection.8.1}{Installation}{section.8}
+\BOOKMARK [2][-]{subsection.8.2}{Pseudopotentials}{section.8}
+\BOOKMARK [2][-]{subsection.8.3}{Input data}{section.8}
+\BOOKMARK [2][-]{subsection.8.4}{Parallel execution}{section.8}
+\BOOKMARK [2][-]{subsection.8.5}{Frequent errors during execution}{section.8}
+\BOOKMARK [2][-]{subsection.8.6}{Self Consistency}{section.8}
+\BOOKMARK [2][-]{subsection.8.7}{ Phonons }{section.8}

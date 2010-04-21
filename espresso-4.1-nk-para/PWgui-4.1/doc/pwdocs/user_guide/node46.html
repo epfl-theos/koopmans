@@ -1,0 +1,114 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2002-2-1 (1.71)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>7.12 pw.x crashes in parallel execution with an obscure message related to MPI errors</TITLE>
+<META NAME="description" CONTENT="7.12 pw.x crashes in parallel execution with an obscure message related to MPI errors">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2002-2-1">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="next" HREF="node47.html">
+<LINK REL="previous" HREF="node45.html">
+<LINK REL="up" HREF="node34.html">
+<LINK REL="next" HREF="node47.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html945"
+  HREF="node47.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html941"
+  HREF="node34.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html935"
+  HREF="node45.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html943"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html946"
+  HREF="node47.html">7.13 pw.x runs but</A>
+<B> Up:</B> <A NAME="tex2html942"
+  HREF="node34.html">7 Troubleshooting</A>
+<B> Previous:</B> <A NAME="tex2html936"
+  HREF="node45.html">7.11 pw.x works for</A>
+   <B>  <A NAME="tex2html944"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H2><A NAME="SECTION000812000000000000000">
+7.12 pw.x crashes in parallel execution with an obscure message
+  related to MPI errors</A>
+</H2> 
+Random crashes due to MPI errors have often been reported, typically
+in Linux PC clusters. We cannot rule out the possibility that bugs in
+Q<SMALL>UANTUM </SMALL>ESPRESSO cause such behavior, but we are quite confident that
+the most likely explanation is a hardware problem (defective RAM  
+for instance) or a software bug (in MPI libraries, compiler, operating
+system). 
+
+<P>
+Debugging a parallel code may be difficult, but you should at least
+verify if your problem is reproducible on different
+architectures/software configurations/input data sets, and if  
+there is some particular condition that activates the bug. If this
+doesn't seem to happen, the odds are that the problem is not in
+Q<SMALL>UANTUM </SMALL>ESPRESSO. You may still report your problem, 
+but consider that reports like "it crashes with...(obscure MPI error)"
+contain 0 bits of information and are likely to get 0 bits of answers.
+
+<P>
+Concerning MPI libraries in particular, useful information can be
+found in Axel's web site: 
+<BR>
+http://www.theochem.rub.de/ axel.kohlmeyer/cpmd-linux.html, and in the
+following message by Javier Antonio Montoya: 
+<BR>
+http://www.democritos.it/pipermail/pw_forum/2008-April/008818.html
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html945"
+  HREF="node47.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html941"
+  HREF="node34.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html935"
+  HREF="node45.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html943"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html946"
+  HREF="node47.html">7.13 pw.x runs but</A>
+<B> Up:</B> <A NAME="tex2html942"
+  HREF="node34.html">7 Troubleshooting</A>
+<B> Previous:</B> <A NAME="tex2html936"
+  HREF="node45.html">7.11 pw.x works for</A>
+   <B>  <A NAME="tex2html944"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+<ADDRESS>
+Paolo Giannozzi
+2009-07-19
+</ADDRESS>
+</BODY>
+</HTML>

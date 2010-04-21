@@ -1,0 +1,226 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2002-2-1 (1.71)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>3.1 Understanding Parallelism in QUANTUM ESPRESSO</TITLE>
+<META NAME="description" CONTENT="3.1 Understanding Parallelism in QUANTUM ESPRESSO">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2002-2-1">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="next" HREF="node16.html">
+<LINK REL="previous" HREF="node14.html">
+<LINK REL="up" HREF="node14.html">
+<LINK REL="next" HREF="node16.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html486"
+  HREF="node16.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html482"
+  HREF="node14.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html476"
+  HREF="node14.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html484"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html487"
+  HREF="node16.html">3.2 Tricks and problems</A>
+<B> Up:</B> <A NAME="tex2html483"
+  HREF="node14.html">3 Running on parallel</A>
+<B> Previous:</B> <A NAME="tex2html477"
+  HREF="node14.html">3 Running on parallel</A>
+   <B>  <A NAME="tex2html485"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+<!--Table of Child-Links-->
+<A NAME="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
+
+<UL>
+<LI><UL>
+<LI><A NAME="tex2html488"
+  HREF="node15.html#SECTION00041010000000000000">3.1.0.1 Massively parallel calculations</A>
+</UL></UL>
+<!--End of Table of Child-Links-->
+<HR>
+
+<H2><A NAME="SECTION00041000000000000000">
+3.1 Understanding Parallelism in Q<SMALL>UANTUM </SMALL>ESPRESSO</A>
+</H2>
+
+<P>
+Q<SMALL>UANTUM </SMALL>ESPRESSO uses MPI parallelization.
+Data structures are distributed across processors organized in a hierarchy
+of groups, which are identified by different MPI communicators level.
+The groups hierarchy is as follow:
+<PRE>
+  world _ images _ pools _ task groups
+                \_ ortho groups
+</PRE>
+<B>world</B>: is the group of all processors (MPI_COMM_WORLD).
+
+<P>
+<B>images</B>: Processors can then be divided into different "images",
+corresponding to a point in configuration space (i.e. to
+a different set of atomic positions). Such partitioning 
+is used when performing Nudged Elastic band (NEB), Meta-dynamics 
+and Laio-Parrinello simulations.
+
+<P>
+<B>pools</B>: When k-point sampling is used, each image group can be 
+subpartitioned into "pools", and k-points can distributed to pools.
+Within each pool, reciprocal space basis set (plane waves)
+and real-space grids are distributed across processors.
+This is usually referred to as "plane-wave parallelization".
+All linear-algebra operations on array of  plane waves / 
+real-space grids are automatically and effectively parallelized.
+3D FFT is used to transform electronic wave functions from
+reciprocal to real space and vice versa. The 3D FFT is
+parallelized by distributing planes of the 3D grid in real
+space to processors (in reciprocal space, it is columns of
+G-vectors that are distributed to processors). 
+
+<P>
+<B>task groups</B>: 
+In order to allow good parallelization of the 3D FFT when 
+the number of processors exceeds the number of FFT planes,
+data can be redistributed to "task groups" so that each group 
+can process several wavefunctions at the same time.
+
+<P>
+<B>ortho group</B>:
+A further level of parallelization, independent on
+plane-wave (pool) parallelization, is the parallelization of
+subspace diagonalization (pw.x) or iterative orthonormalization
+(cp.x). Both operations required the diagonalization of 
+arrays whose dimension is the number of Kohn-Sham states
+(or a small multiple). All such arrays are distributed block-like
+across the "ortho group", a subgroup of the pool of processors,
+organized in a square 2D grid. The diagonalization is then performed
+in parallel using standard linear algebra operations. 
+(This diagonalization is used by, but should not be confused with,
+the iterative Davidson algorithm).
+
+<P>
+<B>Communications</B>:
+Images and pools are loosely coupled and processors communicate
+between different images and pools only once in a while, whereas
+processors within each pool are tightly coupled and communications
+are significant. This means that Gigabit ethernet (typical for
+cheap PC clusters) is ok up to 4-8 processors per pool, but <EM>fast</EM>
+communication hardware (e.g. Mirynet or comparable) is absolutely 
+needed beyond 8 processors per pool.
+
+<P>
+<B>Choosing parameters</B>:
+To control the number of images, pools and task groups,
+command line switch: -nimage -npools -ntg can be used.
+The dimension of the ortho group is set to the largest
+value compatible with the number of processors and with
+the number of electronic states. The user can choose a smaller
+value using the command line switch -ndiag (pw.x) or -northo (cp.x) .
+As an example consider the following command line:
+<PRE>
+mpirun -np 4096 ./pw.x -nimage 8 -npool 2 -ntg 8 -ndiag 144 -input my.input
+</PRE>
+This execute the PWscf code on 4096 processors, to simulate a system
+with 8 images, each of which is distributed across 512 processors.
+K-points are distributed across 2 pools of 256 processors each, 
+3D FFT is performed using 8 task groups (64 processors each, so
+the 3D real-space grid is cut into 64 slices), and the diagonalization
+of the subspace Hamiltonian is distributed to a square grid of 144
+processors (12x12).
+
+<P>
+Default values are: -nimage 1 -npool 1 -ntg 1 ; ndiag is chosen
+by the code as the fastest <I>n</I><SUP>2</SUP>
+<tex2html_verbatim_mark> (n integer) that fits into the size
+of each pool.
+
+<P>
+
+<H4><A NAME="SECTION00041010000000000000">
+3.1.0.1 Massively parallel calculations</A>
+</H4>
+For very large jobs (i.e. O(1000) atoms or so) or for very long jobs
+to be run on massively parallel  machines (e.g. IBM BlueGene) it is
+crucial to use in an effective way both the "task group" and the
+"ortho group" parallelization. Without a judicious choice of
+parameters, large jobs will find a stumbling block in either memory or 
+CPU requirements. In particular, the "ortho group" parallelization is
+used in the diagonalization  of matrices in the subspace of Kohn-Sham
+states (whose dimension is as a strict minumum equal to the number of
+occupied states). These are stored as block-distributed matrixes
+(distributed across processors) and diagonalized using custom-taylored
+diagonalization algorithms that work on block-distributed matrixes.
+
+<P>
+Since v.4.1, Scalapack can be used to diagonalize block distributed
+matrixes, yielding better speed-up than the default algorithms for
+large ( &gt; 1000
+<tex2html_verbatim_mark> ) matroces, when using a large number of processors 
+( &gt; 512
+<tex2html_verbatim_mark> ). If you want to test scalapack  you have to compile adding
+-D__SCALAPACK to DFLAGS in make.sys and you have to  
+modify the LAPACK_LIBS variable like in the following (works on
+CINECA BCX machine): 
+<PRE>
+SCALAPACK_LIBS = \
+/cineca/prod/libraries/SCALAPACK/1.8.0/openmpi--1.2.5--intel--10.1/libscalapack.a
+BLACS_LIBS     = \
+/cineca/prod/libraries/BLACS/1.1/openmpi--1.2.5--intel--10.1/libblacs.a 
+BLACS_INI      = \
+/cineca/prod/libraries/BLACS/1.1/openmpi--1.2.5--intel--10.1/libblacsF77init.a
+LAPACK_LIBS = $(SCALAPACK_LIBS) $(BLACS_LIBS) $(BLACS_INI) $(BLACS_LIBS) \
+                   /cineca/prod/acml/4.1.0/ifort64/lib/libacml.a
+</PRE>
+(info by Carlo Cavazzoni, Oct. 2008)
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html486"
+  HREF="node16.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html482"
+  HREF="node14.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html476"
+  HREF="node14.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html484"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html487"
+  HREF="node16.html">3.2 Tricks and problems</A>
+<B> Up:</B> <A NAME="tex2html483"
+  HREF="node14.html">3 Running on parallel</A>
+<B> Previous:</B> <A NAME="tex2html477"
+  HREF="node14.html">3 Running on parallel</A>
+   <B>  <A NAME="tex2html485"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+<ADDRESS>
+Paolo Giannozzi
+2009-07-19
+</ADDRESS>
+</BODY>
+</HTML>

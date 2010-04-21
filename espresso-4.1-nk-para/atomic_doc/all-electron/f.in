@@ -1,0 +1,18 @@
+ &input
+        title='F',
+        zed=9.0,
+        xmin=-6,
+        tr2=1.0-20
+        beta=1.0
+        rel=0,
+        lsd=1,
+        isic=1,
+        iswitch=1,
+        config='[He] 2s2 2p5',
+        dft='LDA',
+        fref=0.475,
+        rhobarfact=1.0
+        do_unrel =.true.
+        !do_affinity=.true.
+        nunrel=6
+ /

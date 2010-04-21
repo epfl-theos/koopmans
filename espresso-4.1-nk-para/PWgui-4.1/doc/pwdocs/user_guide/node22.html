@@ -1,0 +1,208 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2002-2-1 (1.71)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>5 Using CP</TITLE>
+<META NAME="description" CONTENT="5 Using CP">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2002-2-1">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="next" HREF="node29.html">
+<LINK REL="previous" HREF="node17.html">
+<LINK REL="up" HREF="user_guide.html">
+<LINK REL="next" HREF="node23.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html606"
+  HREF="node23.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<A NAME="tex2html602"
+  HREF="user_guide.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.gif"></A> 
+<A NAME="tex2html596"
+  HREF="node21.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.gif"></A> 
+<A NAME="tex2html604"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html607"
+  HREF="node23.html">5.1 Reaching the electronic</A>
+<B> Up:</B> <A NAME="tex2html603"
+  HREF="user_guide.html">User's Guide for Quantum-ESPRESSO</A>
+<B> Previous:</B> <A NAME="tex2html597"
+  HREF="node21.html">4.4 Tools</A>
+   <B>  <A NAME="tex2html605"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H1><A NAME="SECTION00060000000000000000">
+5 Using CP</A>
+</H1>
+
+<P>
+This section is intended to explain how to perform basic Car-Parrinello (CP)
+simulations using the CP package.
+
+<P>
+It is important to understand that a CP simulation is a sequence of different 
+runs, some of them used to "prepare" the initial state of the system, and 
+other performed to collect statistics, or to modify the state of the system
+itself, i.e. modify the temperature or the pressure.
+
+<P>
+To prepare and run a CP simulation you should:
+
+<OL>
+<LI>Define the system:
+  
+<OL>
+<LI>atomic positions
+</LI>
+<LI>system cell
+</LI>
+<LI>pseudopotentials
+</LI>
+<LI>number of electrons and bands
+</LI>
+<LI>cut-offs
+</LI>
+<LI>FFT grids
+  
+</LI>
+</OL>
+</LI>
+</OL>
+The first run, when starting from scratch, is always an electronic 
+minimization, with fixed ions and cell, to bring the electronic system 
+on the ground state (GS) relative to the starting atomic configuration.
+<BR>
+Example of input file (Benzene Molecule):
+<PRE>
+         &amp;control
+            title = 'Benzene Molecule',
+            calculation = 'cp',
+            restart_mode = 'from_scratch',
+            ndr = 51,
+            ndw = 51,
+            nstep = 100,
+            iprint = 10,
+            isave = 100,
+            tstress = .TRUE.,
+            tprnfor = .TRUE.,
+            dt    = 5.0d0,
+            etot_conv_thr = 1.d-9,
+            ekin_conv_thr = 1.d-4,
+            prefix = 'c6h6',
+            pseudo_dir='/scratch/benzene/',
+            outdir='/scratch/benzene/Out/'
+         /
+         &amp;system
+            ibrav = 14,
+            celldm(1) = 16.0,
+            celldm(2) = 1.0,
+            celldm(3) = 0.5,
+            celldm(4) = 0.0,
+            celldm(5) = 0.0,
+            celldm(6) = 0.0,
+            nat = 12,
+            ntyp = 2,
+            nbnd = 15,
+            nelec = 30,
+            ecutwfc = 40.0,
+            nr1b= 10, nr2b = 10, nr3b = 10,
+            xc_type = 'BLYP'
+         /
+         &amp;electrons
+            emass = 400.d0,
+            emass_cutoff = 2.5d0,
+            electron_dynamics = 'sd'
+         /
+         &amp;ions
+            ion_dynamics = 'none'
+         /
+         &amp;cell
+            cell_dynamics = 'none',
+            press = 0.0d0,
+          /
+          ATOMIC_SPECIES
+          C 12.0d0 c_blyp_gia.pp
+          H 1.00d0 h.ps
+          ATOMIC_POSITIONS (bohr)
+          C     2.6 0.0 0.0
+          C     1.3 -1.3 0.0
+          C    -1.3 -1.3 0.0
+          C    -2.6 0.0 0.0
+          C    -1.3 1.3 0.0
+          C     1.3 1.3 0.0
+          H     4.4 0.0 0.0
+          H     2.2 -2.2 0.0
+          H    -2.2 -2.2 0.0
+          H    -4.4 0.0 0.0
+          H    -2.2 2.2 0.0
+          H     2.2 2.2 0.0
+</PRE> 
+You can find the description of the input variables in file INPUT_CP 
+in the Doc/ directory. 
+
+<P>
+<BR><HR>
+<!--Table of Child-Links-->
+<A NAME="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
+
+<UL>
+<LI><A NAME="tex2html608"
+  HREF="node23.html">5.1 Reaching the electronic ground state</A>
+<UL>
+<LI><A NAME="tex2html609"
+  HREF="node23.html#SECTION00061010000000000000">5.1.0.1 Important</A>
+</UL>
+<BR>
+<LI><A NAME="tex2html610"
+  HREF="node24.html">5.2 Relax the system</A>
+<LI><A NAME="tex2html611"
+  HREF="node25.html">5.3 CP dynamics</A>
+<UL>
+<LI><A NAME="tex2html612"
+  HREF="node25.html#SECTION00063010000000000000">5.3.0.1  Varying the temperature </A>
+<LI><A NAME="tex2html613"
+  HREF="node25.html#SECTION00063020000000000000">5.3.0.2  Nose thermostat for electrons </A>
+<LI><A NAME="tex2html614"
+  HREF="node25.html#SECTION00063030000000000000">5.3.0.3  Self-interaction Correction </A>
+</UL>
+<BR>
+<LI><A NAME="tex2html615"
+  HREF="node26.html">5.4  Variable-cell MD </A>
+<LI><A NAME="tex2html616"
+  HREF="node27.html">5.5  Conjugate Gradient </A>
+<UL>
+<LI><A NAME="tex2html617"
+  HREF="node27.html#SECTION00065010000000000000">5.5.0.1  ensemble-DFT </A>
+</UL>
+<BR>
+<LI><A NAME="tex2html618"
+  HREF="node28.html">5.6  About nr1b, nr2b, nr3b</A>
+</UL>
+<!--End of Table of Child-Links-->
+<BR><HR>
+<ADDRESS>
+Paolo Giannozzi
+2009-07-19
+</ADDRESS>
+</BODY>
+</HTML>

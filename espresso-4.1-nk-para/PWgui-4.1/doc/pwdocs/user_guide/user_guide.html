@@ -1,0 +1,486 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2002-2-1 (1.71)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>User's Guide for Quantum-ESPRESSO</TITLE>
+<META NAME="description" CONTENT="User's Guide for Quantum-ESPRESSO">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2002-2-1">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="next" HREF="node1.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html3"
+  HREF="node1.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.gif"></A> 
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up_g.gif"> 
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev_g.gif"> 
+<A NAME="tex2html1"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.gif"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html4"
+  HREF="node1.html">Contents</A>
+   <B>  <A NAME="tex2html2"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H1 ALIGN="CENTER">
+ <!-- MATH
+ $\epsfig{figure=quantum_espresso.pdf,width=5cm}$
+ -->
+<tex2html_verbatim_mark><!-- MATH
+ $\epsfig{figure=democritos.pdf,width=6cm}$
+ -->
+<tex2html_verbatim_mark><FONT SIZE="+4">User's Guide for Q<SMALL>UANTUM </SMALL>ESPRESSO</FONT>
+<P></P>
+<FONT SIZE="+4">  <FONT SIZE="+2">(version 4.1)
+</FONT></FONT></H1>
+<DIV>
+
+</DIV>
+
+<P>
+<BR><HR>
+<!--Table of Child-Links-->
+<A NAME="CHILD_LINKS"></A>
+
+<UL>
+<LI><A NAME="tex2html5"
+  HREF="node1.html">Contents</A>
+<LI><A NAME="tex2html6"
+  HREF="node2.html">1 Introduction</A>
+<UL>
+<LI><A NAME="tex2html7"
+  HREF="node3.html">1.1 What can Q<SMALL>UANTUM </SMALL>ESPRESSO do</A>
+<LI><A NAME="tex2html8"
+  HREF="node4.html">1.2 People</A>
+<LI><A NAME="tex2html9"
+  HREF="node5.html">1.3 Contacts</A>
+<LI><A NAME="tex2html10"
+  HREF="node6.html">1.4 Terms of use</A>
+</UL>
+<BR>
+<LI><A NAME="tex2html11"
+  HREF="node7.html">2 Installing Q<SMALL>UANTUM </SMALL>ESPRESSO</A>
+<UL>
+<LI><A NAME="tex2html12"
+  HREF="node8.html">2.1 Download</A>
+<LI><A NAME="tex2html13"
+  HREF="node9.html">2.2 Installation</A>
+<LI><A NAME="tex2html14"
+  HREF="node10.html">2.3 <TT>configure</TT></A>
+<UL>
+<LI><A NAME="tex2html15"
+  HREF="node10.html#SECTION00033100000000000000">2.3.1 Libraries</A>
+<UL>
+<LI><A NAME="tex2html16"
+  HREF="node10.html#SECTION00033110000000000000">2.3.1.1 BLAS and LAPACK</A>
+<LI><A NAME="tex2html17"
+  HREF="node10.html#SECTION00033120000000000000">2.3.1.2 FFT</A>
+<LI><A NAME="tex2html18"
+  HREF="node10.html#SECTION00033130000000000000">2.3.1.3 MPI libraries</A>
+<LI><A NAME="tex2html19"
+  HREF="node10.html#SECTION00033140000000000000">2.3.1.4 Other libraries</A>
+</UL>
+<LI><A NAME="tex2html20"
+  HREF="node10.html#SECTION00033200000000000000">2.3.2 Manual configuration</A>
+</UL>
+<LI><A NAME="tex2html21"
+  HREF="node11.html">2.4 Compilation</A>
+<UL>
+<LI><A NAME="tex2html22"
+  HREF="node11.html#SECTION00034010000000000000">2.4.0.1 Other utilities</A>
+</UL>
+<LI><A NAME="tex2html23"
+  HREF="node12.html">2.5 Running examples</A>
+<LI><A NAME="tex2html24"
+  HREF="node13.html">2.6 Installation tricks and problems</A>
+<UL>
+<LI><A NAME="tex2html25"
+  HREF="node13.html#SECTION00036100000000000000">2.6.1 All architectures</A>
+<LI><A NAME="tex2html26"
+  HREF="node13.html#SECTION00036200000000000000">2.6.2 IBM AIX</A>
+<LI><A NAME="tex2html27"
+  HREF="node13.html#SECTION00036300000000000000">2.6.3 Linux PC</A>
+<UL>
+<LI><A NAME="tex2html28"
+  HREF="node13.html#SECTION00036310000000000000">2.6.3.1 Linux PCs with Portland Group compiler (pgf90)</A>
+<LI><A NAME="tex2html29"
+  HREF="node13.html#SECTION00036320000000000000">2.6.3.2 Linux PCs with Pathscale compiler</A>
+<LI><A NAME="tex2html30"
+  HREF="node13.html#SECTION00036330000000000000">2.6.3.3 Linux PCs with gfortran</A>
+<LI><A NAME="tex2html31"
+  HREF="node13.html#SECTION00036340000000000000">2.6.3.4 Linux PCs with Intel compiler (ifort, formerly ifc)</A>
+<LI><A NAME="tex2html32"
+  HREF="node13.html#SECTION00036350000000000000">2.6.3.5 Linux PCs with MKL libraries</A>
+<LI><A NAME="tex2html33"
+  HREF="node13.html#SECTION00036360000000000000">2.6.3.6 Fun with precompiled libraries</A>
+</UL>
+<LI><A NAME="tex2html34"
+  HREF="node13.html#SECTION00036400000000000000">2.6.4 AMD 32-bit CPUs</A>
+<LI><A NAME="tex2html35"
+  HREF="node13.html#SECTION00036500000000000000">2.6.5 64-bit CPUs</A>
+<LI><A NAME="tex2html36"
+  HREF="node13.html#SECTION00036600000000000000">2.6.6 Linux PC clusters with MPI</A>
+<LI><A NAME="tex2html37"
+  HREF="node13.html#SECTION00036700000000000000">2.6.7 Intel Mac OS X</A>
+<UL>
+<LI><A NAME="tex2html38"
+  HREF="node13.html#SECTION00036710000000000000">2.6.7.1 Intel Mac OS X with ifort</A>
+<LI><A NAME="tex2html39"
+  HREF="node13.html#SECTION00036720000000000000">2.6.7.2 Intel Mac OS X 10.4 and 10.5 with g95 and gfortran</A>
+</UL>
+</UL>
+</UL>
+<BR>
+<LI><A NAME="tex2html40"
+  HREF="node14.html">3 Running on parallel machines</A>
+<UL>
+<LI><A NAME="tex2html41"
+  HREF="node15.html">3.1 Understanding Parallelism in Q<SMALL>UANTUM </SMALL>ESPRESSO</A>
+<UL>
+<LI><A NAME="tex2html42"
+  HREF="node15.html#SECTION00041010000000000000">3.1.0.1 Massively parallel calculations</A>
+</UL>
+<LI><A NAME="tex2html43"
+  HREF="node16.html">3.2 Tricks and problems</A>
+<UL>
+<LI><A NAME="tex2html44"
+  HREF="node16.html#SECTION00042010000000000000">3.2.0.1 Trouble with MKL and OpenMP parallelization</A>
+<LI><A NAME="tex2html45"
+  HREF="node16.html#SECTION00042020000000000000">3.2.0.2 Trouble with compilers and MPI libraries</A>
+<LI><A NAME="tex2html46"
+  HREF="node16.html#SECTION00042030000000000000">3.2.0.3 Understanding parallel I/O</A>
+<LI><A NAME="tex2html47"
+  HREF="node16.html#SECTION00042040000000000000">3.2.0.4 Trouble with input files</A>
+<LI><A NAME="tex2html48"
+  HREF="node16.html#SECTION00042050000000000000">3.2.0.5 Cray XT3</A>
+</UL>
+</UL>
+<BR>
+<LI><A NAME="tex2html49"
+  HREF="node17.html">4 Using PWscf</A>
+<UL>
+<LI><A NAME="tex2html50"
+  HREF="node18.html">4.1 Electronic and ionic structure calculations</A>
+<UL>
+<LI><A NAME="tex2html51"
+  HREF="node18.html#SECTION00051010000000000000">4.1.0.1 Input data</A>
+<LI><A NAME="tex2html52"
+  HREF="node18.html#SECTION00051100000000000000">4.1.1 Typical cases</A>
+<UL>
+<LI><A NAME="tex2html53"
+  HREF="node18.html#SECTION00051110000000000000">4.1.1.1 Single-point (fixed-ion) SCF calculation</A>
+<LI><A NAME="tex2html54"
+  HREF="node18.html#SECTION00051120000000000000">4.1.1.2 Band structure calculation</A>
+<LI><A NAME="tex2html55"
+  HREF="node18.html#SECTION00051130000000000000">4.1.1.3 Structural optimization</A>
+<LI><A NAME="tex2html56"
+  HREF="node18.html#SECTION00051140000000000000">4.1.1.4 Molecular Dynamics</A>
+<LI><A NAME="tex2html57"
+  HREF="node18.html#SECTION00051150000000000000">4.1.1.5 Polarization via Berry Phase</A>
+<LI><A NAME="tex2html58"
+  HREF="node18.html#SECTION00051160000000000000">4.1.1.6 Nudged Elastic Band calculation</A>
+</UL>
+<LI><A NAME="tex2html59"
+  HREF="node18.html#SECTION00051200000000000000">4.1.2 Data files</A>
+</UL>
+<LI><A NAME="tex2html60"
+  HREF="node19.html">4.2 Phonon calculations</A>
+<UL>
+<LI><A NAME="tex2html61"
+  HREF="node19.html#SECTION00052010000000000000">4.2.0.1 Single-q calculation</A>
+<LI><A NAME="tex2html62"
+  HREF="node19.html#SECTION00052020000000000000">4.2.0.2 Calculation of interatomic force constants in real space</A>
+<LI><A NAME="tex2html63"
+  HREF="node19.html#SECTION00052030000000000000">4.2.0.3 Calculation of electron-phonon interaction coefficients</A>
+</UL>
+<LI><A NAME="tex2html64"
+  HREF="node20.html">4.3 Post-processing</A>
+<UL>
+<LI><A NAME="tex2html65"
+  HREF="node20.html#SECTION00053010000000000000">4.3.0.1 Plotting selected quantities</A>
+<LI><A NAME="tex2html66"
+  HREF="node20.html#SECTION00053020000000000000">4.3.0.2 Band structure, Fermi surface</A>
+<LI><A NAME="tex2html67"
+  HREF="node20.html#SECTION00053030000000000000">4.3.0.3 Projection over atomic states, DOS</A>
+</UL>
+<LI><A NAME="tex2html68"
+  HREF="node21.html">4.4 Tools</A>
+</UL>
+<BR>
+<LI><A NAME="tex2html69"
+  HREF="node22.html">5 Using CP</A>
+<UL>
+<LI><A NAME="tex2html70"
+  HREF="node23.html">5.1 Reaching the electronic ground state</A>
+<UL>
+<LI><A NAME="tex2html71"
+  HREF="node23.html#SECTION00061010000000000000">5.1.0.1 Important</A>
+</UL>
+<LI><A NAME="tex2html72"
+  HREF="node24.html">5.2 Relax the system</A>
+<LI><A NAME="tex2html73"
+  HREF="node25.html">5.3 CP dynamics</A>
+<UL>
+<LI><A NAME="tex2html74"
+  HREF="node25.html#SECTION00063010000000000000">5.3.0.1  Varying the temperature </A>
+<LI><A NAME="tex2html75"
+  HREF="node25.html#SECTION00063020000000000000">5.3.0.2  Nose thermostat for electrons </A>
+<LI><A NAME="tex2html76"
+  HREF="node25.html#SECTION00063030000000000000">5.3.0.3  Self-interaction Correction </A>
+</UL>
+<LI><A NAME="tex2html77"
+  HREF="node26.html">5.4  Variable-cell MD </A>
+<LI><A NAME="tex2html78"
+  HREF="node27.html">5.5  Conjugate Gradient </A>
+<UL>
+<LI><A NAME="tex2html79"
+  HREF="node27.html#SECTION00065010000000000000">5.5.0.1  ensemble-DFT </A>
+</UL>
+<LI><A NAME="tex2html80"
+  HREF="node28.html">5.6  About nr1b, nr2b, nr3b</A>
+</UL>
+<BR>
+<LI><A NAME="tex2html81"
+  HREF="node29.html">6 Performance issues (PWscf)</A>
+<UL>
+<LI><A NAME="tex2html82"
+  HREF="node30.html">6.1 CPU time requirements</A>
+<LI><A NAME="tex2html83"
+  HREF="node31.html">6.2 Memory requirements</A>
+<LI><A NAME="tex2html84"
+  HREF="node32.html">6.3 File space requirements</A>
+<LI><A NAME="tex2html85"
+  HREF="node33.html">6.4 Parallelization issues</A>
+</UL>
+<BR>
+<LI><A NAME="tex2html86"
+  HREF="node34.html">7 Troubleshooting</A>
+<UL>
+<LI><A NAME="tex2html87"
+  HREF="node35.html">7.1 pw.x says 'error while loading shared libraries' or
+  'cannot open shared object file' and does not start</A>
+<LI><A NAME="tex2html88"
+  HREF="node36.html">7.2 errors in examples with parallel execution</A>
+<LI><A NAME="tex2html89"
+  HREF="node37.html">7.3 pw.x prints the first few lines and then nothing happens
+  (parallel execution)</A>
+<LI><A NAME="tex2html90"
+  HREF="node38.html">7.4 pw.x stops with error while reading data</A>
+<LI><A NAME="tex2html91"
+  HREF="node39.html">7.5 pw.x mumbles something like 'cannot recover' or 'error
+  reading recover file'</A>
+<LI><A NAME="tex2html92"
+  HREF="node40.html">7.6 pw.x stops with 'inconsistent DFT' error</A>
+<LI><A NAME="tex2html93"
+  HREF="node41.html">7.7 pw.x stops with error in cdiaghg or rdiaghg</A>
+<LI><A NAME="tex2html94"
+  HREF="node42.html">7.8 pw.x crashes with no error message at all</A>
+<LI><A NAME="tex2html95"
+  HREF="node43.html">7.9 pw.x crashes with 'segmentation fault' or similarly
+  obscure messages</A>
+<LI><A NAME="tex2html96"
+  HREF="node44.html">7.10 pw.x crashes with 'error in davcio'</A>
+<LI><A NAME="tex2html97"
+  HREF="node45.html">7.11 pw.x works for simple systems, but not for large systems
+  or whenever more RAM is needed</A>
+<LI><A NAME="tex2html98"
+  HREF="node46.html">7.12 pw.x crashes in parallel execution with an obscure message
+  related to MPI errors</A>
+<LI><A NAME="tex2html99"
+  HREF="node47.html">7.13 pw.x runs but nothing happens</A>
+<LI><A NAME="tex2html100"
+  HREF="node48.html">7.14 pw.x yields weird results</A>
+<LI><A NAME="tex2html101"
+  HREF="node49.html">7.15 pw.x stops with error message "the system is metallic,
+  specify occupations"</A>
+<LI><A NAME="tex2html102"
+  HREF="node50.html">7.16 pw.x stops with "internal error: cannot braket Ef " in efermig</A>
+<LI><A NAME="tex2html103"
+  HREF="node51.html">7.17 pw.x yields 'internal error: cannot braket Ef' message in
+  efermit, then stops because 'charge is incorrect'</A>
+<LI><A NAME="tex2html104"
+  HREF="node52.html">7.18 pw.x yields 'internal error: cannot braket Ef' message in
+  efermit but does not stop</A>
+<LI><A NAME="tex2html105"
+  HREF="node53.html">7.19 the FFT grids in pw.x are machine-dependent</A>
+<LI><A NAME="tex2html106"
+  HREF="node54.html">7.20 pw.x does not find all the symmetries you expected</A>
+<LI><A NAME="tex2html107"
+  HREF="node55.html">7.21 warning: 'symmetry operation # N not allowed'</A>
+<LI><A NAME="tex2html108"
+  HREF="node56.html">7.22 I do not get the same results in different machines!</A>
+<LI><A NAME="tex2html109"
+  HREF="node57.html">7.23 the CPU time is time-dependent!</A>
+<LI><A NAME="tex2html110"
+  HREF="node58.html">7.24 'warning : N eigenvectors not converged ...'</A>
+<LI><A NAME="tex2html111"
+  HREF="node59.html">7.25 'warning : negative or imaginary charge...', or '...core
+  charge ...', or 'npt with rhoup&lt; 0
+<tex2html_verbatim_mark>...' or 'rho dw&lt; 0
+<tex2html_verbatim_mark>...'</A>
+<LI><A NAME="tex2html112"
+  HREF="node60.html">7.26 self-consistency is slow or does not converge</A>
+<LI><A NAME="tex2html113"
+  HREF="node61.html">7.27 structural optimization is slow or does not converge</A>
+<LI><A NAME="tex2html114"
+  HREF="node62.html">7.28 pw.x stops during variable-cell optimization in
+  checkallsym with 'non orthogonal operation' error</A>
+<LI><A NAME="tex2html115"
+  HREF="node63.html">7.29 some codes in PP/ complain that they do not find some files</A>
+<LI><A NAME="tex2html116"
+  HREF="node64.html">7.30 ph.x stops with 'error reading file'</A>
+<LI><A NAME="tex2html117"
+  HREF="node65.html">7.31 ph.x mumbles something like 'cannot recover' or 'error
+  reading recover file'</A>
+<LI><A NAME="tex2html118"
+  HREF="node66.html">7.32 ph.x says 'occupation numbers probably wrong' and
+  continues; or 'phonon + tetrahedra not implemented' and stops</A>
+<LI><A NAME="tex2html119"
+  HREF="node67.html">7.33 ph.x does not yield acoustic modes with <IMG
+ WIDTH="17" HEIGHT="19" ALIGN="BOTTOM" BORDER="0"
+ SRC="img1.gif"
+ ALT="$ \omega$"> = 0
+<tex2html_verbatim_mark> at <I>q</I> = 0
+<tex2html_verbatim_mark></A>
+<LI><A NAME="tex2html120"
+  HREF="node68.html">7.34 ph.x yields really lousy phonons, with bad or negative
+  frequencies or wrong symmetries or gross ASR violations</A>
+<LI><A NAME="tex2html121"
+  HREF="node69.html">7.35 'Wrong degeneracy' error in star_q</A>
+</UL>
+<BR>
+<LI><A NAME="tex2html122"
+  HREF="node70.html">8 Frequently Asked Questions (FAQ)</A>
+<UL>
+<LI><A NAME="tex2html123"
+  HREF="node71.html">8.1 Installation</A>
+<UL>
+<LI><A NAME="tex2html124"
+  HREF="node71.html#SECTION00091010000000000000">8.1.0.1  ''What Fortran compiler do I need to compile Q-E?''</A>
+<LI><A NAME="tex2html125"
+  HREF="node71.html#SECTION00091020000000000000">8.1.0.2  ''Why is <TT>configure</TT> saying that I have no fortran compiler?''</A>
+<LI><A NAME="tex2html126"
+  HREF="node71.html#SECTION00091030000000000000">8.1.0.3  ''Why is <TT>configure</TT> saying that my fortran compiler doesn't work?''</A>
+<LI><A NAME="tex2html127"
+  HREF="node71.html#SECTION00091040000000000000">8.1.0.4  ''<TT>configure</TT> says 'unsupported architecture', what should I do?''</A>
+<LI><A NAME="tex2html128"
+  HREF="node71.html#SECTION00091050000000000000">8.1.0.5  ''Why doesn't <TT>configure</TT> recognize that I have a parallel machine?''</A>
+<LI><A NAME="tex2html129"
+  HREF="node71.html#SECTION00091060000000000000">8.1.0.6  ''Compilation fails with "internal error", what should I do?''</A>
+<LI><A NAME="tex2html130"
+  HREF="node71.html#SECTION00091070000000000000">8.1.0.7  ''Compilation fails at linking stage: "symbol ... not found"''</A>
+</UL>
+<LI><A NAME="tex2html131"
+  HREF="node72.html">8.2 Pseudopotentials</A>
+<UL>
+<LI><A NAME="tex2html132"
+  HREF="node72.html#SECTION00092010000000000000">8.2.0.1  ''Can I mix Ultrasoft/Norm-Conserving/PAW pseudopotentials?''</A>
+<LI><A NAME="tex2html133"
+  HREF="node72.html#SECTION00092020000000000000">8.2.0.2  ''Where can I find pseudopotentials for atom X?''</A>
+</UL>
+<LI><A NAME="tex2html134"
+  HREF="node73.html">8.3 Input data</A>
+<UL>
+<LI><A NAME="tex2html135"
+  HREF="node73.html#SECTION00093010000000000000">8.3.0.1  ''Where can I find the crystal structure/atomic positions of XYZ?''</A>
+<LI><A NAME="tex2html136"
+  HREF="node73.html#SECTION00093020000000000000">8.3.0.2  ''Where can I find the Brillouin Zone/high-symmetry
+  points/irreps for XYZ?''</A>
+<LI><A NAME="tex2html137"
+  HREF="node73.html#SECTION00093030000000000000">8.3.0.3  ''Where can I find Monkhorst-Pack grids of k-points?''</A>
+<LI><A NAME="tex2html138"
+  HREF="node73.html#SECTION00093040000000000000">8.3.0.4  ''How do I perform a calculation with spin-orbit interactions?''</A>
+<LI><A NAME="tex2html139"
+  HREF="node73.html#SECTION00093050000000000000">8.3.0.5  ''How can I choose parameters for variable-cell molecular
+  dynamics?''</A>
+</UL>
+<LI><A NAME="tex2html140"
+  HREF="node74.html">8.4 Parallel execution</A>
+<UL>
+<LI><A NAME="tex2html141"
+  HREF="node74.html#SECTION00094010000000000000">8.4.0.1 ''Why is my parallel job running in such a lousy way?''</A>
+</UL>
+<LI><A NAME="tex2html142"
+  HREF="node75.html">8.5 Frequent errors during execution</A>
+<UL>
+<LI><A NAME="tex2html143"
+  HREF="node75.html#SECTION00095010000000000000">8.5.0.1  ''Why is the code saying "Wrong atomic coordinates"?''</A>
+<LI><A NAME="tex2html144"
+  HREF="node75.html#SECTION00095020000000000000">8.5.0.2  ''The code stops with an "error reading namelist xxxx"''</A>
+<LI><A NAME="tex2html145"
+  HREF="node75.html#SECTION00095030000000000000">8.5.0.3  ''The code stops with an "error in davcio"''</A>
+<LI><A NAME="tex2html146"
+  HREF="node75.html#SECTION00095040000000000000">8.5.0.4  ''The code stops with a "wrong charge" error''</A>
+</UL>
+<LI><A NAME="tex2html147"
+  HREF="node76.html">8.6 Self Consistency</A>
+<UL>
+<LI><A NAME="tex2html148"
+  HREF="node76.html#SECTION00096010000000000000">8.6.0.1 ''What are the units for quantity XYZ?''</A>
+<LI><A NAME="tex2html149"
+  HREF="node76.html#SECTION00096020000000000000">8.6.0.2 ''Self-consistency is slow or does not converge at all''</A>
+<LI><A NAME="tex2html150"
+  HREF="node76.html#SECTION00096030000000000000">8.6.0.3  ''How is the charge density (the potential, etc.) stored? What position in real space corresponds to an array value?''</A>
+<LI><A NAME="tex2html151"
+  HREF="node76.html#SECTION00096040000000000000">8.6.0.4  ''What is the difference between total and absolute
+  magnetization?''</A>
+<LI><A NAME="tex2html152"
+  HREF="node76.html#SECTION00096050000000000000">8.6.0.5  ''How can I calculate magnetic moments for each atom?''</A>
+<LI><A NAME="tex2html153"
+  HREF="node76.html#SECTION00096060000000000000">8.6.0.6  ''What is the order of <I>Y</I><SUB>lm</SUB>
+<tex2html_verbatim_mark> components in projected
+  DOS / projection of atomic wavefunctions?''</A>
+<LI><A NAME="tex2html154"
+  HREF="node76.html#SECTION00096070000000000000">8.6.0.7  ''Why is the sum of partial Lowdin charges not equal to
+  the total charge?''</A>
+<LI><A NAME="tex2html155"
+  HREF="node76.html#SECTION00096080000000000000">8.6.0.8  ''Why do I get a strange value of the Fermi energy?''</A>
+<LI><A NAME="tex2html156"
+  HREF="node76.html#SECTION00096090000000000000">8.6.0.9 ''Why I don't get zero pressure/stress at equilibrium?''</A>
+<LI><A NAME="tex2html157"
+  HREF="node76.html#SECTION000960100000000000000">8.6.0.10  ''Why do I get "negative starting charge"?'' </A>
+<LI><A NAME="tex2html158"
+  HREF="node76.html#SECTION000960110000000000000">8.6.0.11 ''How do I calculate the work function?''</A>
+</UL>
+<LI><A NAME="tex2html159"
+  HREF="node77.html">8.7  Phonons </A>
+<UL>
+<LI><A NAME="tex2html160"
+  HREF="node77.html#SECTION00097010000000000000">8.7.0.1  Is there a simple way to determine the symmetry of a given
+  phonon mode?</A>
+<LI><A NAME="tex2html161"
+  HREF="node77.html#SECTION00097020000000000000">8.7.0.2  I am not getting zero acoustic mode frequencies, why? </A>
+<LI><A NAME="tex2html162"
+  HREF="node77.html#SECTION00097030000000000000">8.7.0.3  Why do I get negative phonon frequencies? </A>
+</UL>
+</UL>
+<BR>
+<LI><A NAME="tex2html163"
+  HREF="node78.html">About this document ...</A>
+</UL>
+<!--End of Table of Child-Links-->
+<BR><HR>
+<ADDRESS>
+Paolo Giannozzi
+2009-07-19
+</ADDRESS>
+</BODY>
+</HTML>
