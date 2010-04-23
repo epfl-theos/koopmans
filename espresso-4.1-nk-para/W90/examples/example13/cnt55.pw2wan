@@ -1,9 +1,0 @@
-&inputpp
-  outdir='./'
-  prefix='cnt'
-  seedname='cnt55'
-  write_unk=.false.
-  write_amn=.true.
-  write_mmn=.true.
-  wan_mode='standalone'
-/
