@@ -230,7 +230,7 @@ MODULE read_namelists_module
        update_rhoref = .true. ! whether to update reference densities
        fref = 0.0_DP
        rhobarfact = 0.0_DP
-       vanishing_rho_w = 1.0e-12_DP
+       vanishing_rho_w = 1.0e-7_DP
        f_cutoff = 0.1_DP
        !
        do_efield = .false.

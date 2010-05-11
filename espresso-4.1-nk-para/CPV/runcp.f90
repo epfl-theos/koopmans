@@ -176,8 +176,8 @@
 
 
            IF ( lda_plus_u ) THEN
-              c2(:) = c2(:) - vupsi(:,i)
-              c3(:) = c3(:) - vupsi(:,i+1)
+              c2(:) = c2(:) - vupsi(:,i) * faux(i)
+              c3(:) = c3(:) - vupsi(:,i+1) * faux(i+1)
            END IF
            !
            IF ( do_nk ) THEN

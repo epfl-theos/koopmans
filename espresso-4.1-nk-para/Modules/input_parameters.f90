@@ -446,7 +446,7 @@ MODULE input_parameters
         REAL ( DP ) :: nkmixfact = 0.0_DP
         REAL ( DP ) :: nkscalfact = 1.0_DP
         REAL ( DP ) :: hfscalfact = 1.0_DP
-        REAL ( DP ) :: vanishing_rho_w = 1.0e-12_DP
+        REAL ( DP ) :: vanishing_rho_w = 1.0e-7_DP
         REAL ( DP ) :: f_cutoff = 0.1_DP
         ! add efield parameters
         LOGICAL :: do_efield  = .false.

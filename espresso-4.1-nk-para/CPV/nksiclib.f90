@@ -455,7 +455,6 @@
       !
       if(update_rhoref) then
         ehele=0.5_dp*f*f*sum(dble(aux(1:nnrx))*rhoele(1:nnrx,ispin))
-        aux=(fref-f)*aux
       end if
       !
       !   add self-xc contributions
@@ -495,12 +494,20 @@
       rhoraux=rhobar*rhobarfact
       call exch_corr_wrapper(nnrx,2,grhoraux,rhoraux,etxc0,vxc0,haux)
       !
-      vsic(1:nnrx)=dble(aux(1:nnrx)) &
-                  +vxcref(1:nnrx,ispin)-vxc(1:nnrx,ispin)
-      !
-      pink=(etxc0-etxc) &
+      if(update_rhoref) then
+        vsic(1:nnrx)=(fref-f)*dble(aux(1:nnrx)) &
+                    +vxcref(1:nnrx,ispin)-vxc(1:nnrx,ispin)
+        pink=(etxc0-etxc) &
+          +f*sum(vxcref(1:nnrx,ispin)*rhoele(1:nnrx,ispin)) &
+          +ehele+f*(fref-f)*sum(dble(aux(1:nnrx))*rhoele(1:nnrx,ispin))
+      else
+        vsic(1:nnrx)=dble(aux(1:nnrx)) &
+                    +vxcref(1:nnrx,ispin)-vxc(1:nnrx,ispin)
+        pink=(etxc0-etxc) &
           +f*sum(vxcref(1:nnrx,ispin)*rhoele(1:nnrx,ispin)) &
           +ehele+f*sum(dble(aux(1:nnrx))*rhoele(1:nnrx,ispin))
+      endif        
+      !
       pink=pink*fact
       !
       call mp_sum(pink,intra_image_comm)
@@ -513,7 +520,7 @@
           rhoraux=rhobar*rhobarfact+fref*rhoele
         else
           rhoraux=rhorefsic
-          if(iprsta>1) write(stdout,2020) 
+          if(tfirst) write(stdout,2020) 
         endif
         !
         do ir=1,nnrx

@@ -327,7 +327,7 @@ module nksic
   use kinds
   implicit none
   real(dp) :: fref = 0.d0, rhobarfact= 0.d0
-  real(dp) :: vanishing_rho_w = 1.d-12, nkmixfact= 0.d0
+  real(dp) :: vanishing_rho_w = 1.d-7, nkmixfact= 0.d0
   real(dp) :: nkscalfact = 0.d0
   real(dp) :: f_cutoff = 0.1d0
   real(dp), allocatable :: vsic(:,:)
