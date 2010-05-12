@@ -42,14 +42,12 @@
       real(dp),    allocatable :: vtempr(:)
       !
       integer             :: ig, ir1, ir2, ir3, ir, i, j, k
-      real(dp)            :: delta1, delta2, delta3
       real(dp)            :: sv(3), lv(3) ,dist
       real(dp),  external :: qe_erf
       
 
-      delta1=a1(1)/dble(nr1)
-      delta2=a2(2)/dble(nr2)
-      delta3=a3(3)/dble(nr3)
+      !
+      ! main body
       !
       allocate(vtemp(nnrx))
       allocate(vtempr(nnrx))
@@ -72,8 +70,7 @@
       vtempr=dble(vtemp)
       gcorr =-vtempr
       !
-      call writetofile(vtempr,nnrx,'vg3d0d.dat',dfftp, &
-                       delta1,delta2,delta3,'az')
+      call writetofile(vtempr,nnrx,'vg3d0d.dat',dfftp, 'az')
       !
       ir1=1
       ir2=1
@@ -120,10 +117,8 @@
         gcorr_fft(ig)=vtemp(np(ig))
       enddo
       !
-      call writetofile(vtempr,nnrx,'vg0d0d.dat',dfftp, &
-                       delta1,delta2,delta3,'az')
-      call writetofile(gcorr,nnrx,'gcorr0d.dat',dfftp, &
-                       delta1,delta2,delta3,'az')
+      call writetofile(vtempr,nnrx,'vg0d0d.dat',dfftp, 'az')
+      call writetofile(gcorr,nnrx,'gcorr0d.dat',dfftp, 'az')
       !
       deallocate(vtempr)
       deallocate(vtemp)
@@ -168,15 +163,12 @@
       real(dp),    allocatable :: vtempr(:)
       !
       integer                  :: ig, ir1, ir2, ir3, ir, i, j, k
-      real(dp)                 :: delta1, delta2, delta3
       real(dp)                 :: sv(3), lv(3), dist
       !
       real(dp),       external :: qe_erf
       real(dp),       external :: eimlmg
       !
-      delta1=a1(1)/dble(nr1)
-      delta2=a2(2)/dble(nr2)
-      delta3=a3(3)/dble(nr3)
+      ! main body
       !
       allocate(vtemp(nnrx))
       allocate(vtempr(nnrx))
@@ -204,10 +196,8 @@
       vtempr=dble(vtemp)
       gcorr1d=-vtempr
       !
-      call writetofile(vtempr,nnrx,'vg3d1dz.dat',dfftp, &
-                       delta1,delta2,delta3,'az')
-      call writetofile(vtempr,nnrx,'vg3d1dx.dat',dfftp, &
-                       delta1,delta2,delta3,'ax')
+      call writetofile(vtempr,nnrx,'vg3d1dz.dat',dfftp, 'az')
+      call writetofile(vtempr,nnrx,'vg3d1dx.dat',dfftp, 'ax')
       !
       ir1=1
       ir2=1
@@ -250,14 +240,10 @@
         gcorr1d_fft(ig)=vtemp(np(ig))
       end do
       !
-      call writetofile(vtempr,nnrx,'vg0d1dz.dat',dfftp, &
-                       delta1,delta2,delta3,'az')
-      call writetofile(vtempr,nnrx,'vg0d1dx.dat',dfftp, &
-                       delta1,delta2,delta3,'ax')
-      call writetofile(gcorr1d,nnrx,'gcorr1dz.dat',dfftp, &
-                       delta1,delta2,delta3,'az')
-      call writetofile(gcorr1d,nnrx,'gcorr1dx.dat',dfftp, &
-                       delta1,delta2,delta3,'ax')
+      call writetofile(vtempr,nnrx,'vg0d1dz.dat',dfftp, 'az')
+      call writetofile(vtempr,nnrx,'vg0d1dx.dat',dfftp, 'ax')
+      call writetofile(gcorr1d,nnrx,'gcorr1dz.dat',dfftp, 'az')
+      call writetofile(gcorr1d,nnrx,'gcorr1dx.dat',dfftp, 'ax')
       !
       deallocate(vtempr)
       deallocate(vtemp)
@@ -401,13 +387,8 @@
       type(boxdimensions), intent(in) :: box
       !
       integer    :: ig, ir1, ir2, ir3, ir, i, j, k
-      real(dp)   :: delta1, delta2, delta3
       real(dp)   :: sv(3), lv(3)
       complex(dp), allocatable :: vtemp(:)
-      !
-      delta1=a1(1)/dble(nr1)
-      delta2=a2(2)/dble(nr2)
-      delta3=a3(3)/dble(nr3)
       !
       allocate(vtemp(nnrx))
       ! 
@@ -450,8 +431,7 @@
         efieldpotg(ig)=vtemp(np(ig))
       end do
       !
-      call writetofile(efieldpot,nnrx,'efieldpot.dat',dfftp, &
-                       delta1,delta2,delta3,'az')
+      call writetofile(efieldpot,nnrx,'efieldpot.dat',dfftp, 'az')
       !
       deallocate( vtemp )
       !
@@ -495,17 +475,12 @@
       !
       integer       :: ig, ir1, ir2, ir3, ir, i, j, k
       integer       :: iss, isup, isdw, iss1, iss2, ios
-      real(dp)      :: delta1, delta2, delta3
       real(dp)      :: sa1, sa2, dipole(3), sv(3), lv(3) 
       complex(dp)   :: ci, fp, fm
       !
       complex(dp), allocatable :: vtemp(:)
       complex(dp), allocatable :: psi(:), psis(:), rhog(:,:)
       real(dp),    allocatable :: rhor(:,:), rhos(:,:)
-      !
-      delta1=a1(1)/dble(nr1)
-      delta2=a2(2)/dble(nr2)
-      delta3=a3(3)/dble(nr3)
       !
       ci=(0.0d0,1.0d0)
       !
@@ -584,10 +559,8 @@
         rhor(ir,isdw)=aimag(psi(ir))
       end do
       !
-      call writetofile(rhor,nnrx,'rhodipolez.dat',dfftp, &
-                       delta1,delta2,delta3,'az')
-      call writetofile(rhor,nnrx,'rhodipolex.dat',dfftp, &
-                       delta1,delta2,delta3,'ax')
+      call writetofile(rhor,nnrx,'rhodipolez.dat',dfftp, 'az')
+      call writetofile(rhor,nnrx,'rhodipolex.dat',dfftp, 'ax')
       !
       deallocate(psi) 
       deallocate(psis) 

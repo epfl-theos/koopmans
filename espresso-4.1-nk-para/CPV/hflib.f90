@@ -47,8 +47,6 @@
       !
       integer  :: iss, isup, isdw, iss1, iss2, ios, i, ir, ig, k, j
       real(dp) :: sa1, sa2, eaux, etxc, fact
-      real(dp) :: delta1,delta2,delta3
-      real(dp) :: delta1s,delta2s,delta3s
       real(dp), parameter :: vanishing_f = 1.e-6_dp
       complex(dp) :: ci,fp,fm
       character(len=6), external :: int_to_char
@@ -82,14 +80,6 @@
       allocate(rhos(nnrsx,2))
       allocate(rhor(nnrx,2))
       allocate(rhog(ngm,2))
-      !
-      delta1=a1(1)/dble(nr1)
-      delta2=a2(2)/dble(nr2)
-      delta3=a3(3)/dble(nr3)
-      !
-      delta1s=a1(1)/dble(nr1s)
-      delta2s=a2(2)/dble(nr2s)
-      delta3s=a3(3)/dble(nr3s)
       !
       fact=omega/dble(nr1*nr2*nr3)
       !
@@ -250,11 +240,9 @@
           !
           if(i.eq.j) then
             call writetofile(orbitalrhor(:,1),nnrx, &
-                        'rhoup'//TRIM(int_to_char(i))//'.dat',dfftp, &
-                        delta1, delta2, delta3,'az')
+                        'rhoup'//TRIM(int_to_char(i))//'.dat',dfftp,'az')
             call writetofile(orbitalrhor(:,2),nnrx, &
-                        'rhodw'//TRIM(int_to_char(i))//'.dat',dfftp, &
-                        delta1, delta2, delta3,'az')
+                        'rhodw'//TRIM(int_to_char(i))//'.dat',dfftp,'az')
           end if
           !
           ! calculate exchange contribution 

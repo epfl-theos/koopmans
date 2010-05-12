@@ -48,8 +48,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   USE mp_global,            ONLY : me_image 
   USE efield_mod,           ONLY : do_efield
   USE hfmod,                ONLY : do_hf, detothf, vxxpsi, exx
-  USE nksic,                ONLY : wxdsic, wrefsic, vsic, orbitalrhor, do_nk, &
-                                   vsicpsi, rhorefsic, pink
+  USE nksic,                ONLY : do_nk
   !
   IMPLICIT NONE
   !
@@ -62,7 +61,6 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   REAL(DP)                :: enb, enbi
   REAL(DP)                :: enthal
   REAL(DP)                :: ei_unp
-  REAL(DP)                :: delta1, delta2, delta3
   REAL(DP)                :: stress(3,3)
   !
   INTEGER :: i, j, is, n2
@@ -101,18 +99,18 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
      CALL vofrho( nfi, vpot(1,1), rhog(1,1), rhos(1,1), rhoc(1), tfirst, tlast, &
                      ei1, ei2, ei3, irb(1,1), eigrb(:,:), sfac(1,1), tau0(1,1), fion(1,1) )
      !
-     delta1 = a1( 1 ) / DBLE( nr1 )
-     delta2 = a2( 2 ) / DBLE( nr2 )
-     delta3 = a3( 3 ) / DBLE( nr3 )
+     ! compute auxiliary potentials
      !
      if( do_nk ) then
-       call calc_sic_potential(c0,orbitalrhor,vsic,wxdsic,wrefsic,rhorefsic,vsicpsi,pink,tfirst)
+         call nksic_potential( c0, rhor, tfirst)
      end if
+     !
      if( do_hf ) then
-       call calc_hf_potential(c0,vxxpsi,exx,detothf)
+         call calc_hf_potential( c0, vxxpsi, exx, detothf)
      end if
+     !
      if( do_efield ) then
-       call calc_dipole(c0, h)
+         call calc_dipole(c0, h)
      end if
      !
      IF ( lwf ) CALL wf_options( tfirst, nfi, cm, becsum, bec, &

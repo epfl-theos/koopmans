@@ -326,17 +326,18 @@ module nksic
   !
   use kinds
   implicit none
-  real(dp) :: fref = 0.d0, rhobarfact= 0.d0
+  real(dp) :: fref = 0.5d0, rhobarfact= 0.d0
   real(dp) :: vanishing_rho_w = 1.d-7, nkmixfact= 0.d0
   real(dp) :: nkscalfact = 0.d0
   real(dp) :: f_cutoff = 0.1d0
   real(dp), allocatable :: vsic(:,:)
   real(dp), allocatable :: pink(:)
   real(dp), allocatable :: wxdsic(:,:,:)
-  real(dp), allocatable :: orbitalrhor(:,:,:)
+  real(dp), allocatable :: orb_rhor(:,:)
   real(dp), allocatable :: rhorefsic(:,:,:)
   real(dp), allocatable :: wrefsic(:,:)
   complex(dp), allocatable :: vsicpsi(:,:)
+  !
   integer :: nknmax
   logical :: do_nk
   logical :: do_nkmix
@@ -344,33 +345,57 @@ module nksic
   logical :: do_wxd
   logical :: do_wref
   logical :: update_rhoref
+
 contains
   !
-  subroutine allocate_nksic(nnrx,ngw,nx)
-  implicit none
-  integer, intent(in):: nx
-  integer, intent(in):: ngw
-  integer, intent(in):: nnrx
-  allocate(vsic(nnrx,nx))
-  allocate(pink(nx))
-  allocate(vsicpsi(ngw,nx))
-  allocate(wxdsic(nnrx,2,nx))
-  allocate(orbitalrhor(nnrx,2,nx))
-  allocate(rhorefsic(nnrx,2,nx))
-  allocate(wrefsic(nnrx,nx))
-  end subroutine
+  subroutine allocate_nksic(nnrx,ngw,nspin,nx)
+      !
+      implicit none
+      integer, intent(in):: nx, nspin
+      integer, intent(in):: ngw
+      integer, intent(in):: nnrx
+      !
+      allocate( vsic(nnrx,nx) )
+      allocate( pink(nx) )
+      allocate( vsicpsi(ngw,nx) )
+      allocate( wxdsic(nnrx,nspin,nx) )
+      allocate( orb_rhor(nnrx,nx) )
+      allocate( rhorefsic(nnrx,nspin,nx) )
+      allocate( wrefsic(nnrx,nx) )
+      !
+  end subroutine allocate_nksic
+  !
+  real(dp) function nksic_memusage( )
+      ! output in MB (according to 4B integers and 8B reals)  
+      real(dp) :: cost
+      !
+      cost = 0.0_dp
+      if ( allocated(vsic) )       cost = cost + real( size(vsic) )       *  8.0_dp 
+      if ( allocated(pink) )       cost = cost + real( size(pink) )       *  8.0_dp 
+      if ( allocated(vsicpsi) )    cost = cost + real( size(vsicpsi) )    * 16.0_dp 
+      if ( allocated(wxdsic) )     cost = cost + real( size(wxdsic) )     *  8.0_dp 
+      if ( allocated(orb_rhor))    cost = cost + real( size(orb_rhor))    *  8.0_dp
+      if ( allocated(rhorefsic) )  cost = cost + real( size(rhorefsic) )  *  8.0_dp
+      if ( allocated(wrefsic) )    cost = cost + real( size(wrefsic) )    *  8.0_dp
+      !
+      nksic_memusage = cost / 1000000.0_dp
+      !   
+  end function nksic_memusage
   !
   subroutine deallocate_nksic
-  if(allocated(vsic)) deallocate(vsic)
-  if(allocated(pink)) deallocate(pink)
-  if(allocated(wxdsic)) deallocate(wxdsic)
-  if(allocated(vsicpsi)) deallocate(vsicpsi)
-  if(allocated(wrefsic)) deallocate(wrefsic)
-  if(allocated(orbitalrhor)) deallocate(orbitalrhor)
-  if(allocated(rhorefsic)) deallocate(rhorefsic)
-  end subroutine
+      !
+      if(allocated(vsic)) deallocate(vsic)
+      if(allocated(pink)) deallocate(pink)
+      if(allocated(wxdsic)) deallocate(wxdsic)
+      if(allocated(vsicpsi)) deallocate(vsicpsi)
+      if(allocated(wrefsic)) deallocate(wrefsic)
+      if(allocated(orb_rhor)) deallocate(orb_rhor)
+      if(allocated(rhorefsic)) deallocate(rhorefsic)
+      !
+  end subroutine deallocate_nksic
   !
 end module nksic
+
 
 module hfmod
   !

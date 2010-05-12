@@ -6,8 +6,7 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 !--------------------------------------------------------------------
-      SUBROUTINE writetofile( f, nnrx, filename, dfft, &
-                              delta1m, delta2m, delta3m, which_print )
+      SUBROUTINE writetofile( f, nnrx, filename, dfft, which_print )
 !--------------------------------------------------------------------
       !
       USE kinds,             ONLY : DP
@@ -16,21 +15,21 @@
       USE mp,                ONLY : mp_barrier, mp_gather
       USE fft_types,         ONLY : fft_dlay_descriptor
       USE control_flags,     ONLY : iprsta
+      USE cell_base,         ONLY : a1, a2, a3
       !
       IMPLICIT NONE
       !
-      INTEGER               :: nnrx
-      REAL(DP)              :: delta1m, delta2m, delta3m
-      REAL(DP)              :: f(nnrx)
-      TYPE(fft_dlay_descriptor)  :: dfft
+      INTEGER,   INTENT(IN) :: nnrx
+      REAL(DP),  INTENT(IN) :: f(nnrx)
+      TYPE(fft_dlay_descriptor), INTENT(IN)  :: dfft
       !
-      CHARACTER( LEN=* )    :: filename
-      CHARACTER( LEN=* )    :: which_print
+      CHARACTER( LEN=* ), INTENT(IN) :: filename
+      CHARACTER( LEN=* ), INTENT(IN) :: which_print
       !
       INTEGER               :: ir, ir1, ir2, ir3, num
       INTEGER               :: nr1, nr2, nr3, nr1x, nr2x, nr3x
       INTEGER               :: proc, ierr
-      REAL(DP)              :: total
+      REAL(DP)              :: total, delta1m, delta2m, delta3m
       REAL(DP), ALLOCATABLE :: fdist(:)
       INTEGER,  ALLOCATABLE :: displs(:), recvcount(:)
       !
@@ -51,6 +50,10 @@
       nr1x=dfft%nr1x
       nr2x=dfft%nr2x
       nr3x=dfft%nr3x
+      !
+      delta1m = a1(1)/DBLE( nr1 ) 
+      delta2m = a2(2)/DBLE( nr2 ) 
+      delta3m = a3(3)/DBLE( nr3 ) 
       !
       ALLOCATE( displs( nproc_image ), recvcount( nproc_image ) )
       !

@@ -2174,10 +2174,8 @@ END FUNCTION
         end do
         call invfft('Dense',aux,dfftp)
         vcorr=dble(aux)
-        call writetofile(vcorr,nnr,'vcorrz.dat',dfftp, &
-            a1(1)/dble(nr1),a2(2)/dble(nr2),a3(3)/dble(nr3),'az')
-        call writetofile(vcorr,nnr,'vcorrx.dat',dfftp, &
-            a1(1)/dble(nr1),a2(2)/dble(nr2),a3(3)/dble(nr3),'ax')
+        call writetofile(vcorr,nnr,'vcorrz.dat',dfftp, 'az')
+        call writetofile(vcorr,nnr,'vcorrx.dat',dfftp, 'ax')
         !
         if(tprnfor.or.tfor.or.tfirst.or.tpre) then
           allocate(stmp(3,nat))
@@ -2195,10 +2193,8 @@ END FUNCTION
         call invfft('Dense',aux,dfftp)
         v0d=dble(aux)
         !
-        call writetofile(v0d,nnr,'v0dz.dat',dfftp, &
-            a1(1)/dble(nr1),a2(2)/dble(nr2),a3(3)/dble(nr3),'az')
-        call writetofile(v0d,nnr,'v0dx.dat',dfftp, &
-            a1(1)/dble(nr1),a2(2)/dble(nr2),a3(3)/dble(nr3),'ax')
+        call writetofile(v0d,nnr,'v0dz.dat',dfftp, 'az')
+        call writetofile(v0d,nnr,'v0dx.dat',dfftp, 'ax')
         !
         aux=0.0_dp
         do ig=1,ng
@@ -2207,10 +2203,8 @@ END FUNCTION
         end do
         call invfft('Dense',aux, dfftp )
         v3d=dble(aux)
-        call writetofile(v3d, nnr,'v3dz.dat', dfftp, &
-            a1(1)/dble(nr1),a2(2)/dble(nr2),a3(3)/dble(nr3),'az')
-        call writetofile(v3d, nnr,'v3dx.dat', dfftp, &
-            a1(1)/dble(nr1),a2(2)/dble(nr2),a3(3)/dble(nr3),'ax')
+        call writetofile(v3d, nnr,'v3dz.dat', dfftp, 'az')
+        call writetofile(v3d, nnr,'v3dx.dat', dfftp, 'ax')
         !
         aux=0.0_dp
         do ig=1,ng
@@ -2219,10 +2213,8 @@ END FUNCTION
         end do
         call invfft('Dense',aux, dfftp )
         rhotot=dble(aux)
-        call writetofile(rhotot, nnr,'rhototz.dat', dfftp, &
-            a1(1)/dble(nr1),a2(2)/dble(nr2),a3(3)/dble(nr3),'az')
-        call writetofile(rhotot, nnr,'rhototx.dat', dfftp, &
-            a1(1)/dble(nr1),a2(2)/dble(nr2),a3(3)/dble(nr3),'ax')
+        call writetofile(rhotot, nnr,'rhototz.dat', dfftp, 'az')
+        call writetofile(rhotot, nnr,'rhototx.dat', dfftp, 'ax')
         !
         vtemp=vtemp+vcorr_fft
         eh=eh+ecomp/omega
@@ -2239,8 +2231,7 @@ END FUNCTION
       IF ( nlcc_any ) CALL add_cc( rhoc, rhog, rhor )
 !
       CALL exch_corr_h( nspin, rhog, rhor, rhoc, sfac, exc, dxc, self_exc )
-      call writetofile(rhor, nnr,'vxc.dat', dfftp, &
-              a1(1)/dble(nr1),a2(2)/dble(nr2),a3(3)/dble(nr3),'az')
+      call writetofile(rhor, nnr,'vxc.dat', dfftp, 'az')
 
 
 !
@@ -2605,7 +2596,8 @@ END FUNCTION
 !
       use nksic,            ONLY : do_nk, do_wref, do_wxd, fref, rhobarfact, allocate_nksic, &
                                    vanishing_rho_w, do_nkmix, nkmixfact, nknmax, &
-                                   do_spinsym, nkscalfact, f_cutoff, update_rhoref
+                                   do_spinsym, nkscalfact, f_cutoff, update_rhoref, &
+                                   nksic_memusage
       use input_parameters, ONLY : do_nk_ => do_nk, fref_ => fref, &
                                    rhobarfact_ => rhobarfact, &
                                    do_wref_ => do_wref, &
@@ -2639,27 +2631,36 @@ END FUNCTION
       do_nkmix = do_nkmix_
       f_cutoff = f_cutoff_
       !
-      if(do_nk.and.meta_ionode ) write(stdout,2000) fref, rhobarfact, &
-                                                    nkscalfact
-      if(do_nk.and.meta_ionode ) write(stdout,2005) vanishing_rho_w, &
-                                                    f_cutoff
-      if(do_nkmix.and.meta_ionode ) write(stdout,2020) nkmixfact
-      if(do_nk) call allocate_nksic(nnrx,ngw,nx)
-      if(do_nk.and.meta_ionode ) then
-        write(stdout,2010) do_wxd, do_wref, update_rhoref
-        if(nknmax>0) write(stdout,2030) nknmax
+      if( do_nk .and. meta_ionode ) then
+          write(stdout,2000) fref, rhobarfact, nkscalfact
+          write(stdout,2005) vanishing_rho_w,  f_cutoff
       endif
       !
-2000  format( 3X,'NK sic with reference occupation = ',f7.4, &
-                 ', background density factor = ',f7.4, &
-                 ', NK scaling factor = ',f7.4 )
-2005  format( 3X,'rhothr = ',e8.1, &
-                 ', f_cutoff = ',f7.4 )
-2010  format(3X,'NK cross-derivatives = ',l4, &
-                ', NK reference derivatives = ',l4, &
-                ', NK update of the reference = ',l4 )
-2020  format(3X,'NK-PZ mixing factor = ',f7.4)
-2030  format(3X,'NK applied up to orbital',i7)
+      if( do_nkmix .and. meta_ionode ) then
+          write(stdout,2020) nkmixfact
+      endif
+      !
+      if( do_nk ) call allocate_nksic( nnrx, ngw, nspin, nx)
+      !
+      if( do_nk .and. meta_ionode ) then
+          !
+          write(stdout,2010) do_wxd, do_wref, update_rhoref
+          if( nknmax > 0 ) write(stdout,2030) nknmax
+          !
+          write( stdout, "(3x, 'NK memusage = ', f10.3, ' MB', /)" ) &
+               nksic_memusage( )
+      endif
+      !
+2000  format( 3X,'NK sic with reference occupation = ',f7.4, /, &
+              3X,'NK background density factor = ',f7.4, /, &
+              3X,'NK scaling factor = ',f7.4 )
+2005  format( 3X,'rhothr = ',e8.1, /, &
+              3X,'f_cutoff = ',f7.4 )
+2010  format( 3X,'NK cross-derivatives = ',l4, /, &
+              3X,'NK reference derivatives = ',l4, /, &
+              3X,'NK update of the reference = ',l4 )
+2020  format( 3X,'NK-PZ mixing factor = ',f7.4)
+2030  format( 3X,'NK applied up to orbital',i7)
 
       end subroutine nksic_init
       

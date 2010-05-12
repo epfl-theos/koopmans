@@ -913,6 +913,7 @@ SUBROUTINE terminate_run()
   USE cg_module,         ONLY : tcg, print_clock_tcg
   USE mp,                ONLY : mp_report
   USE control_flags,     ONLY : use_task_groups
+  USE nksic,             ONLY : do_nk
   !
   IMPLICIT NONE
   !
@@ -951,6 +952,20 @@ SUBROUTINE terminate_run()
   CALL print_clock( 'fftb' )
   CALL print_clock( 'cft3s' )
   CALL print_clock( 'fft_scatter' )
+  !
+  IF ( do_nk ) THEN
+     !
+     CALL print_clock( 'nksic_drv' )
+     CALL print_clock( 'nksic_drv_1' )
+     CALL print_clock( 'nksic_drv_2' )
+     CALL print_clock( 'nksic_drv_3' )
+     CALL print_clock( 'nksic_orbrho' )
+     CALL print_clock( 'nksic_corr' )
+     CALL print_clock( 'nksic_corr_1' )
+     CALL print_clock( 'nksic_corr_2' )
+     CALL print_clock( 'nksic_corr_3' )
+     !
+  ENDIF
   !
   IF (tcg) call print_clock_tcg()
   !
