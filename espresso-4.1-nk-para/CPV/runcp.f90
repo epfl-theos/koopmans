@@ -42,6 +42,7 @@
       USE ldaU
       use nksic,               only : do_nk, vsicpsi, f_cutoff
       use hfmod,               only : do_hf, vxxpsi
+      USE nksic,               ONLY : do_nk, vsicpsi
       !
       IMPLICIT NONE
       !
@@ -117,9 +118,13 @@
 
         allocate( c2( c2_siz ), c3( c2_siz ) )
         allocate( tg_rhos( tg_rhos_siz, nspin ) )
-
+        !
         c2      = 0D0
         c3      = 0D0
+       
+        ! size check
+        IF ( do_nk .AND. use_task_groups ) &
+            CALL errore('runcp_uspp','NKSIC and task_groups incompatible',10)
 
         IF( use_task_groups ) THEN
            !
@@ -181,8 +186,13 @@
            END IF
            !
            IF ( do_nk ) THEN
-              c2(:) = c2(:) - vsicpsi(:,i) * faux(i)
-              c3(:) = c3(:) - vsicpsi(:,i+1) * faux(i+1)
+              !
+              !
+              CALL nksic_force( i, ngw, c0(:,i), c0(:,i+1), vsicpsi )
+              !
+              c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
+              c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1)
+              !
            END IF
            !
            IF ( do_hf ) THEN

@@ -332,10 +332,10 @@ module nksic
   real(dp) :: f_cutoff = 0.1d0
   real(dp), allocatable :: vsic(:,:)
   real(dp), allocatable :: pink(:)
-  real(dp), allocatable :: wxdsic(:,:,:)
+  real(dp), allocatable :: wxdsic(:,:)
   real(dp), allocatable :: orb_rhor(:,:)
   real(dp), allocatable :: rhorefsic(:,:,:)
-  real(dp), allocatable :: wrefsic(:,:)
+  real(dp), allocatable :: wrefsic(:)
   complex(dp), allocatable :: vsicpsi(:,:)
   !
   integer :: nknmax
@@ -357,11 +357,15 @@ contains
       !
       allocate( vsic(nnrx,nx) )
       allocate( pink(nx) )
-      allocate( vsicpsi(ngw,nx) )
-      allocate( wxdsic(nnrx,nspin,nx) )
+      allocate( vsicpsi(ngw,2) )
+      allocate( wxdsic(nnrx,2) )
+! XXX
+! compute two at a time
       allocate( orb_rhor(nnrx,nx) )
-      allocate( rhorefsic(nnrx,nspin,nx) )
-      allocate( wrefsic(nnrx,nx) )
+! XXX add an IF about update_rhoref
+      allocate( rhorefsic(nnrx,2,nx) )
+! XXX
+      allocate( wrefsic(nnrx) )
       !
   end subroutine allocate_nksic
   !

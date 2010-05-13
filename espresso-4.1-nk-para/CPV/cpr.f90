@@ -958,12 +958,12 @@ SUBROUTINE terminate_run()
      CALL print_clock( 'nksic_drv' )
      CALL print_clock( 'nksic_drv_1' )
      CALL print_clock( 'nksic_drv_2' )
-     CALL print_clock( 'nksic_drv_3' )
      CALL print_clock( 'nksic_orbrho' )
      CALL print_clock( 'nksic_corr' )
-     CALL print_clock( 'nksic_corr_1' )
-     CALL print_clock( 'nksic_corr_2' )
-     CALL print_clock( 'nksic_corr_3' )
+!     CALL print_clock( 'nksic_corr_1' )
+!    CALL print_clock( 'nksic_corr_2' )
+!    CALL print_clock( 'nksic_corr_3' )
+     CALL print_clock( 'nksic_force' )
      !
   ENDIF
   !

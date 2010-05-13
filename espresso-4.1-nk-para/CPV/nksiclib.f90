@@ -37,7 +37,7 @@
       use fft_base,                   only: dffts, dfftp
       !
       use nksic,                      only: orb_rhor, vsic, wxdsic, &
-                                            wrefsic, rhorefsic, vsicpsi, pink
+                                            wrefsic, rhorefsic, pink
       !
       implicit none
       !
@@ -50,13 +50,8 @@
       !
       ! local variables
       !
-      integer     :: i, ir, ig, k, j, ibnd
-      !
-      complex(dp),   allocatable :: psi(:),psis(:),vsics(:), &
-                                    vsicg(:),vsicpsis(:)
-      real(dp),      allocatable :: wtot(:,:)
-      !
-      character(len=6), external :: int_to_char
+      integer     :: i, ibnd
+      real(dp),   allocatable :: wtot(:,:)
 
       !
       ! main body
@@ -68,19 +63,13 @@
       !
       CALL nksic_get_orbitalrho( ngw, n, nnrx, c, orb_rhor )
 
-
       !
       ! compute the potentials
       !
       CALL start_clock( 'nksic_drv_2' )
       !
-      allocate(vsicg(nnrx))
       allocate(wtot(nnrx,2))
-      allocate(vsics(nnrsx))
-      allocate(psis(nnrsx))
-      allocate(vsicpsis(nnrsx))
       !
-      vsicpsi=0.0_dp
       wtot=0.0_dp
       pink=0.0_dp
       !
@@ -90,66 +79,31 @@
           if( i >= iupdwn(2) ) ibnd = i-iupdwn(2)+1
           !
           call nksic_correction( f(i), ispin(i), rhor,&
-                       orb_rhor(:,i), vsic(:,i), wxdsic(:,:,i), &
-                       wrefsic(:,i), rhorefsic(:,:,i), pink(i), ibnd, tfirst)
+                       orb_rhor(:,i), vsic(:,i), wxdsic(:,:), &
+                       wrefsic(:), rhorefsic(:,:,i), pink(i), ibnd, tfirst)
           !
-          wtot(1:nnrx,1:2) = wtot(1:nnrx,1:2) + wxdsic(1:nnrx,1:2,i)
+          ! here information is accumulated over states
+          ! This is way, wtot is added in the next loop
+          !
+          wtot(1:nnrx,1:2) = wtot(1:nnrx,1:2) + wxdsic(1:nnrx,1:2)
+          !
+          ! ths sic potential is partly updated here 
+          ! to save some memory
+          !
+          vsic(1:nnrx,i) = vsic(1:nnrx,i) + wrefsic(1:nnrx) &
+                           -wxdsic( 1:nnrx,ispin(i) )
+          ! 
+      enddo
+      !
+      do i=1,n
+          !
+          vsic(1:nnrx,i) = vsic(1:nnrx,i) + wtot( 1:nnrx, ispin(i) ) 
           !
       enddo
       !
       CALL stop_clock( 'nksic_drv_2' )
-      CALL start_clock( 'nksic_drv_3' )
       !
-      do i=1,n
-          !
-          call writetofile(vsic(:,i),nnrx, &
-                        'vsic'//trim(int_to_char(i))//'.dat',dfftp, 'az')
-
-          vsic(1:nnrx,i) = vsic(1:nnrx,i) + wrefsic(1:nnrx,i)
-          vsic(1:nnrx,i) = vsic(1:nnrx,i) + wtot(1:nnrx,ispin(i)) &
-                           -wxdsic(1:nnrx,ispin(i),i)
-
-          call writetofile(vsic(1,i),nnrx, &
-                        'v+wxdsic'//trim(int_to_char(i))//'.dat',dfftp, 'az')
-          !
-          psis=0.d0
-          do ig=1,ngw
-              psis(nms(ig))=conjg(c(ig,i))
-              psis(nps(ig))=c(ig,i)
-          end do
-          call invfft('Wave',psis,dffts)
-          !
-          vsicg(1:nnrx)=vsic(1:nnrx,i)
-          call fwfft('Dense',vsicg,dfftp)
-          !
-          vsics=0.0_dp
-          do ig=1,ngs
-              vsics(nps(ig))=vsicg(np(ig))
-              vsics(nms(ig))=conjg(vsicg(np(ig)))
-          end do
-          !
-          call invfft('Smooth',vsics,dffts)
-          !
-          vsicpsis=0.0_dp
-          do ir = 1, nnrsx
-              vsicpsis(ir)=cmplx(dble(vsics(ir))*dble(psis(ir)),0.0_dp)
-          enddo
-          !
-          call fwfft('Wave',vsicpsis,dffts)
-          !
-          do ig=1,ngw
-             vsicpsi(ig,i)=vsicpsis(nps(ig))
-          enddo
-          !
-      enddo
-      !
-      CALL stop_clock( 'nksic_drv_3' )
-      !
-      deallocate(vsicg)
       deallocate(wtot)
-      deallocate(vsics)
-      deallocate(psis)
-      deallocate(vsicpsis)
       !
       CALL stop_clock( 'nksic_drv' )
       return
@@ -157,6 +111,7 @@
 !-----------------------------------------------------------------------
       end subroutine nksic_potential
 !-----------------------------------------------------------------------
+
 !---------------------------------------------------------------
       subroutine nksic_correction( f, ispin, rho, orb_rho, vsic, wxdsic, &
                                    wrefsic, rhorefsic, pink, ibnd, tfirst) 
@@ -640,6 +595,160 @@
 !---------------------------------------------------------------
 end subroutine nksic_get_orbitalrho
 !---------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+      subroutine nksic_force( i, ngw, c1, c2, vsicpsi )
+!-----------------------------------------------------------------------
+!
+! Compute vsic potential for orbitals i and i+1 (c1 and c2) 
+!
+      use kinds,                only: dp
+      use cp_interfaces,        only: fwfft, invfft
+      use fft_base,             only: dffts, dfftp
+      use gvecs,                only: ngs, nps, nms
+      use nksic,                only: vsic
+      use grid_dimensions,      only: nnrx
+
+      !
+      implicit none
+
+      !
+      ! input/output vars
+      !
+      integer,       intent(in)  :: i, ngw
+      complex(dp),   intent(in)  :: c1(ngw), c2(ngw)
+      complex(dp),   intent(out) :: vsicpsi(ngw, 2)
+
+      !
+      ! local vars
+      !
+      character(11) :: subname='nksic_force'
+      integer       :: ir, ig, ierr, j
+      real(dp)      :: wfc(2)
+      complex(dp)   :: fm, fp
+      complex(dp),  allocatable :: psi(:)
+
+      !
+      !====================
+      ! main body
+      !====================
+      !
+      call start_clock( 'nksic_force' )
+      !
+      allocate( psi(nnrx), stat=ierr )
+      if ( ierr/=0 ) call errore(subname,'allocating psi',abs(ierr))
+      !
+      !
+
+#ifdef __I_AM_SLOW
+      ! this part is to be eliminated
+
+      CALL nksic_force_std()
+
+#else
+      !
+      CALL c2psi( psi, nnrx, c1, c2, ngw, 2 )
+      !
+      CALL invfft('Dense', psi, dfftp )
+
+      !
+      ! computing the orbital wfcs
+      ! and the potentials in real space on the full grid
+      !
+      do ir = 1, nnrx
+          !
+          wfc(1)    =  DBLE( psi(ir) )
+          wfc(2)    = AIMAG( psi(ir) )
+          !
+          psi( ir ) = CMPLX( wfc(1) * vsic(ir,i), &
+                             wfc(2) * vsic(ir,i+1), DP ) 
+          !
+      enddo
+      !
+      CALL fwfft('Dense', psi, dfftp )
+      !
+      vsicpsi(:,:)=0.0_dp
+      !
+      do ig=1,ngw
+          !
+          fp = psi(nps(ig))+psi(nms(ig))
+          fm = psi(nps(ig))-psi(nms(ig))
+          !
+          vsicpsi(ig,1)=0.5d0*cmplx(dble(fp),aimag(fm))
+          vsicpsi(ig,2)=0.5d0*cmplx(aimag(fp),-dble(fm))
+          !
+      enddo
+#endif
+      !
+      !
+      deallocate( psi )
+
+      call stop_clock( 'nksic_force' )
+      return
+
+#ifdef __I_AM_SLOW
+      ! this part is to be eliminated
+     
+      !
+      ! std way
+      !
+      CONTAINS
+      !
+      subroutine nksic_force_std()
+      !
+      use smooth_grid_dimensions,     only: nnrsx
+      use recvecs_indexes,            only: np, nm
+      implicit none
+      !     
+      complex(dp) :: c(ngw,2)
+      complex(dp) :: psis(nnrsx)
+      complex(dp) :: vsicg(ngs)
+      complex(dp) :: vsics(nnrsx)
+      complex(dp) :: vsicpsis(nnrsx)
+
+      c(:,1) = c1
+      c(:,2) = c2
+
+      do j = 1, 2
+          !
+          psis=0.d0
+          do ig=1,ngw
+              psis(nms(ig))=conjg(c(ig,j))
+              psis(nps(ig))=c(ig,j)
+          end do
+          call invfft('Wave',psis,dffts)
+          !
+          vsicg(1:nnrx)=vsic(1:nnrx,i+j-1)
+          call fwfft('Dense',vsicg,dfftp)
+          !
+          vsics=0.0_dp
+          do ig=1,ngs
+              vsics(nps(ig))=vsicg(np(ig))
+              vsics(nms(ig))=conjg(vsicg(np(ig)))
+          end do
+          !
+          call invfft('Smooth',vsics,dffts)
+          !
+          vsicpsis=0.0_dp
+          do ir = 1, nnrsx
+              vsicpsis(ir)=cmplx(dble(vsics(ir))*dble(psis(ir)),0.0_dp)
+          enddo
+          !
+          call fwfft('Wave',vsicpsis,dffts)
+          !
+          do ig=1,ngw
+             vsicpsi(ig,j)=vsicpsis(nps(ig))
+          enddo
+          !
+      enddo
+      !
+      end subroutine nksic_force_std
+#endif
+      !
+!---------------------------------------------------------------
+end subroutine nksic_force
+!---------------------------------------------------------------
+
 
 !---------------------------------------------------------------
       subroutine nksic_dmxc_spin_cp(rhoup,rhodw,dmuxc_uu, &
