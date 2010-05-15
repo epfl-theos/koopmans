@@ -326,16 +326,27 @@ module nksic
   !
   use kinds
   implicit none
-  real(dp) :: fref = 0.5d0, rhobarfact= 0.d0
-  real(dp) :: vanishing_rho_w = 1.d-7, nkmixfact= 0.d0
-  real(dp) :: nkscalfact = 0.d0
+  save
+  !
+  real(dp) :: fref = 0.5d0
+  real(dp) :: rhobarfact= 1.0d0
+  real(dp) :: nkmixfact= 0.d0
+  real(dp) :: nkscalfact = 1.0d0
+  real(dp) :: vanishing_rho_w = 1.d-7
   real(dp) :: f_cutoff = 0.1d0
-  real(dp), allocatable :: vsic(:,:)
-  real(dp), allocatable :: pink(:)
-  real(dp), allocatable :: wxdsic(:,:)
-  real(dp), allocatable :: orb_rhor(:,:)
-  real(dp), allocatable :: rhorefsic(:,:,:)
-  real(dp), allocatable :: wrefsic(:)
+  !
+  real(dp) :: etxc
+  !
+  real(dp),    allocatable :: vsic(:,:)
+  real(dp),    allocatable :: pink(:)
+  real(dp),    allocatable :: vxcsic(:,:)
+  real(dp),    allocatable :: wxdsic(:,:)
+  real(dp),    allocatable :: orb_rhor(:,:)
+  real(dp),    allocatable :: rhoref0(:,:,:)
+  real(dp),    allocatable :: rhoref(:,:)
+  real(dp),    allocatable :: rhobar(:,:)
+  real(dp),    allocatable :: wrefsic(:)
+  !
   complex(dp), allocatable :: vsicpsi(:,:)
   !
   integer :: nknmax
@@ -358,14 +369,15 @@ contains
       allocate( vsic(nnrx,nx) )
       allocate( pink(nx) )
       allocate( vsicpsi(ngw,2) )
+      allocate( vxcsic(nnrx,2) )
       allocate( wxdsic(nnrx,2) )
-! XXX
-! compute two at a time
-      allocate( orb_rhor(nnrx,nx) )
-! XXX add an IF about update_rhoref
-      allocate( rhorefsic(nnrx,2,nx) )
-! XXX
       allocate( wrefsic(nnrx) )
+      allocate( orb_rhor(nnrx,2) )
+      allocate( rhobar(nnrx,2) )
+      allocate( rhoref(nnrx,2) )
+      if ( update_rhoref ) then
+          allocate( rhoref0(nnrx,2,nx) )
+      endif
       !
   end subroutine allocate_nksic
   !
@@ -377,9 +389,12 @@ contains
       if ( allocated(vsic) )       cost = cost + real( size(vsic) )       *  8.0_dp 
       if ( allocated(pink) )       cost = cost + real( size(pink) )       *  8.0_dp 
       if ( allocated(vsicpsi) )    cost = cost + real( size(vsicpsi) )    * 16.0_dp 
+      if ( allocated(vxcsic) )     cost = cost + real( size(vxcsic) )     *  8.0_dp 
       if ( allocated(wxdsic) )     cost = cost + real( size(wxdsic) )     *  8.0_dp 
       if ( allocated(orb_rhor))    cost = cost + real( size(orb_rhor))    *  8.0_dp
-      if ( allocated(rhorefsic) )  cost = cost + real( size(rhorefsic) )  *  8.0_dp
+      if ( allocated(rhoref0) )    cost = cost + real( size(rhoref0) )    *  8.0_dp
+      if ( allocated(rhoref) )     cost = cost + real( size(rhoref) )     *  8.0_dp
+      if ( allocated(rhobar) )     cost = cost + real( size(rhobar) )     *  8.0_dp
       if ( allocated(wrefsic) )    cost = cost + real( size(wrefsic) )    *  8.0_dp
       !
       nksic_memusage = cost / 1000000.0_dp
@@ -391,10 +406,13 @@ contains
       if(allocated(vsic)) deallocate(vsic)
       if(allocated(pink)) deallocate(pink)
       if(allocated(wxdsic)) deallocate(wxdsic)
+      if(allocated(vxcsic)) deallocate(vxcsic)
       if(allocated(vsicpsi)) deallocate(vsicpsi)
       if(allocated(wrefsic)) deallocate(wrefsic)
       if(allocated(orb_rhor)) deallocate(orb_rhor)
-      if(allocated(rhorefsic)) deallocate(rhorefsic)
+      if(allocated(rhobar)) deallocate(rhobar)
+      if(allocated(rhoref)) deallocate(rhoref)
+      if(allocated(rhoref0)) deallocate(rhoref0)
       !
   end subroutine deallocate_nksic
   !

@@ -188,7 +188,7 @@
            IF ( do_nk ) THEN
               !
               !
-              CALL nksic_force( i, ngw, c0(:,i), c0(:,i+1), vsicpsi )
+              CALL nksic_eforce( i, ngw, c0(:,i), c0(:,i+1), vsicpsi )
               !
               c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
               c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1)
