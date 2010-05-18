@@ -51,6 +51,7 @@
       ! local variables
       !
       integer     :: i, j, jj, ibnd
+      real(dp)    :: focc
       real(dp),   allocatable :: wtot(:,:)
 
       !
@@ -87,21 +88,25 @@
               i = j + jj -1
               !
               ibnd=i
-              if( i >= iupdwn(2) ) ibnd = i-iupdwn(2)+1
+              if( nspin == 2 .and. i >= iupdwn(2) ) ibnd = i-iupdwn(2)+1
+              ! NOTE: iupdwn(2) is set to zero if nspin = 1
+              !
+              focc = f(i) * dble( nspin ) / 2.0d0
  
               !
               ! define rhoref and rhobar
               !
               call nksic_get_rhoref( i, nnrx, ispin(i), nspin, &
-                                     f(i), rhor, orb_rhor(:,jj),&
+                                     focc, rhor, orb_rhor(:,jj),&
                                      rhoref, rhobar, tfirst )
 
               !
               ! compute all the piecies to build the potentials
               !
-              call nksic_correction( f(i), ispin(i), orb_rhor(:,jj), &
-                                     rhoref, rhobar, vsic(:,i), &
+              call nksic_correction( focc, ispin(i), orb_rhor(:,jj), &
+                                     rhor, rhoref, rhobar, vsic(:,i), &
                                      wxdsic(:,:), wrefsic(:), pink(i), ibnd )
+
               !
               ! here information is accumulated over states
               ! This is way, wtot is added in the next loop
@@ -367,7 +372,7 @@ end subroutine nksic_get_rhoref
 !---------------------------------------------------------------
 
 !---------------------------------------------------------------
-      subroutine nksic_correction( f, ispin, orb_rhor, rhoref, rhobar, &
+      subroutine nksic_correction( f, ispin, orb_rhor, rhor, rhoref, rhobar, &
                                    vsic, wxdsic, wrefsic, pink, ibnd ) 
 !---------------------------------------------------------------
 !
@@ -393,10 +398,12 @@ end subroutine nksic_get_rhoref
       use mp_global,            only : intra_image_comm
       use io_global,            only : stdout, ionode
       use control_flags,        only : iprsta
+      use electrons_base,       only : nspin
       !
       implicit none
       integer,     intent(in)  :: ispin, ibnd
       real(dp),    intent(in)  :: f, orb_rhor(nnrx)
+      real(dp),    intent(in)  :: rhor(nnrx,nspin)
       real(dp),    intent(in)  :: rhoref(nnrx,2)
       real(dp),    intent(in)  :: rhobar(nnrx,2)
       real(dp),    intent(out) :: vsic(nnrx), wrefsic(nnrx)
@@ -597,7 +604,9 @@ end subroutine nksic_get_rhoref
          grhoraux=0.0_dp
       endif
          
-      allocate(rhoraux(nnrx,2))
+      if ( nspin == 1 .or. .not. update_rhoref ) then
+          allocate(rhoraux(nnrx,2))
+      endif
       allocate(vxc0(nnrx,2))
       allocate(vxcref(nnrx,2))
 
@@ -605,21 +614,29 @@ end subroutine nksic_get_rhoref
       etxcref=0.0_dp
       vxcref=0.0_dp
       !
-      rhoraux = rhoref
-      call exch_corr_wrapper(nnrx,2,grhoraux,rhoraux,etxcref,vxcref,haux)
+      !rhoraux = rhoref
+      call exch_corr_wrapper(nnrx,2,grhoraux,rhoref,etxcref,vxcref,haux)
       
 
       !
       ! this term is always computed if rhoref is not updated.
       ! otherwise is computed only for ibnd, ispin == 1 and stored
       !
+
       if ( .not. update_rhoref .or. ( ibnd == 1 .and. ispin == 1 ) ) then
           !
           etxc=0.0_dp
           vxc=0.0_dp
           !
-          rhoraux = rhobar + f*rhoele
-          call exch_corr_wrapper(nnrx,2,grhoraux,rhoraux,etxc,vxc,haux)
+          ! this is just a complication to save some memory 
+          if ( nspin == 2 ) then 
+              call exch_corr_wrapper(nnrx,2,grhoraux,rhor,etxc,vxc,haux)
+          else
+              !
+              rhoraux = rhobar + f*rhoele
+              call exch_corr_wrapper(nnrx,2,grhoraux,rhoraux,etxc,vxc,haux)
+              !
+          endif
           !
       endif
 
@@ -627,8 +644,8 @@ end subroutine nksic_get_rhoref
       etxc0=0.0_dp
       vxc0=0.0_dp
       !
-      rhoraux = rhobar
-      call exch_corr_wrapper(nnrx,2,grhoraux,rhoraux,etxc0,vxc0,haux)
+      !rhoraux = rhobar
+      call exch_corr_wrapper(nnrx,2,grhoraux,rhobar,etxc0,vxc0,haux)
       !
 ! 
 ! XXX
@@ -666,43 +683,57 @@ end subroutine nksic_get_rhoref
       CALL start_clock( 'nksic_corr_fxc' )
       !
       if( do_wref .or. do_wxd ) then
-        !  
-        do ir=1,nnrx
-            !
-            dmuxc=0.0_dp
-            rh(1:2) = rhoref( ir, 1:2)
-            !
-            call nksic_dmxc_spin_cp(rh(1),rh(2),dmuxc(1,1),dmuxc(1,2), &
-                                    dmuxc(2,1),dmuxc(2,2),vanishing_rho)
-            !
-            dvxc(1)=dmuxc(1,ispin)*rhoele(ir,ispin)*f
-            dvxc(2)=dmuxc(2,ispin)*rhoele(ir,ispin)*f
-            !
-            wrefsic(ir) = wrefsic(ir) + dmuxc(ispin,ispin)*rhoele(ir,ispin)
-            !
-            wxdsic(ir,1)=rhobarfact*(vxc0(ir,1)+dvxc(1)-vxc(ir,1))
-            wxdsic(ir,2)=rhobarfact*(vxc0(ir,2)+dvxc(2)-vxc(ir,2))     
-            !
-            !do is=1,2
-            !   if( dvxc(is).ne.0.0_dp ) & 
-            !     wxdsic(ir,is)=rhobarfact*(vxc0(ir,is)+dvxc(is)-vxc(ir,is))
-            !enddo
-            !
-        enddo
-        !
-        !
-        if ( do_wref ) then 
-            !
-            w2cst = sum( wrefsic(1:nnrx)*rhoele(1:nnrx,ispin) )*fact
-            !
-            call mp_sum(w2cst,intra_image_comm)
-            !
-            do ir=1,nnrx
-                wrefsic(ir)=fref*(wrefsic(ir)-w2cst)
-            enddo
-            !
-        endif
-        !
+          !  
+          ! note that vxd and wref are updated 
+          ! (and not overwritten) by the next call
+          wxdsic(:,:) = 0.0d0
+          !
+          call nksic_dmxc_spin_cp( nnrx, rhoref, f, ispin, rhoele, &
+                                   vanishing_rho, & wrefsic, wxdsic )
+
+!        do ir=1,nnrx
+!            !
+!            dmuxc=0.0_dp
+!            rh(1:2) = rhoref( ir, 1:2)
+!            !
+!            call nksic_dmxc_spin_cp(rh(1),rh(2),dmuxc(1,1),dmuxc(1,2), &
+!                                    dmuxc(2,1),dmuxc(2,2),vanishing_rho)
+!            !
+!            dvxc(1)=dmuxc(1,ispin)*rhoele(ir,ispin)*f
+!            dvxc(2)=dmuxc(2,ispin)*rhoele(ir,ispin)*f
+!            !
+!            wrefsic(ir) = wrefsic(ir) + dmuxc(ispin,ispin)*rhoele(ir,ispin)
+!            !
+!            wxdsic(ir,1)=rhobarfact*(vxc0(ir,1)+dvxc(1)-vxc(ir,1))
+!            wxdsic(ir,2)=rhobarfact*(vxc0(ir,2)+dvxc(2)-vxc(ir,2))     
+!            !
+!            !do is=1,2
+!            !   if( dvxc(is).ne.0.0_dp ) & 
+!            !     wxdsic(ir,is)=rhobarfact*(vxc0(ir,is)+dvxc(is)-vxc(ir,is))
+!            !enddo
+!            !
+!        enddo
+          !
+          !
+          if ( do_wref ) then
+              !
+              w2cst = sum( wrefsic(1:nnrx)*rhoele(1:nnrx,ispin) )*fact
+              !
+              call mp_sum(w2cst,intra_image_comm)
+              !
+              do ir=1,nnrx
+                  wrefsic(ir)=fref*(wrefsic(ir)-w2cst)
+              enddo
+              !
+          endif
+          !
+          if ( do_wxd ) then
+              !
+              wxdsic(:,1:2)= rhobarfact *( wxdsic(:,1:2) &
+                                         + vxc0(:,1:2) -vxc(:,1:2) )
+              !
+          endif
+          !
       endif
       !
       CALL stop_clock( 'nksic_corr_fxc' )
@@ -733,7 +764,7 @@ end subroutine nksic_get_rhoref
       if( do_nkmix .and. iprsta>1 .and. ionode ) &
          write(stdout,"(3X,'do_nkmix is now obsolete, nothing done')") 
       !
-      deallocate(rhoraux)
+      if ( allocated(rhoraux) ) deallocate(rhoraux)
       deallocate(vxc0)
       deallocate(vxcref)
       deallocate(rhoele)
@@ -904,94 +935,121 @@ end subroutine nksic_eforce
 
 
 !---------------------------------------------------------------
-      subroutine nksic_dmxc_spin_cp(rhoup,rhodw,dmuxc_uu, &
-                              dmuxc_ud,dmuxc_du,dmuxc_dd,small)
+      subroutine nksic_dmxc_spin_cp( nnrx, rhoref, f, ispin, rhoele, &
+                                     small, wref, wxd )
 !---------------------------------------------------------------
 !
 ! the derivative of the xc potential with respect to the local density
 ! is computed. 
+! In order to save time, the loop over space coordinates is performed 
+! inside this routine (inlining). 
+!
+! NOTE: wref and wsic are UPDATED and NOT OVERWRITTEN by this subroutine
 !
       USE kinds,                ONLY : DP
       USE funct,                ONLY : xc_spin, get_iexch, get_icorr
       implicit none
       !
-      real(dp), intent(in) :: rhoup, rhodw, small
-      real(dp), intent(out) :: dmuxc_uu, dmuxc_ud, dmuxc_du, dmuxc_dd
+      integer,  intent(in)    :: nnrx, ispin
+      real(dp), intent(in)    :: rhoref(nnrx,2), rhoele(nnrx,2)
+      real(dp), intent(in)    :: f, small
+      real(dp), intent(inout) :: wref(nnrx), wxd(nnrx,2)
       !
-      real(dp) :: rhotot, rs, zeta, fz, fz1, fz2, ex, vx, ecu, ecp, vcu, &
+      real(dp) :: rhoup, rhodw, rhotot, zeta
+      real(dp) :: dmuxc(2,2)
+      real(dp) :: rs, fz, fz1, fz2, ex, vx, ecu, ecp, vcu, &
            vcp, dmcu, dmcp, aa, bb, cc, dr, dz, ec, vxupm, vxdwm, vcupm, &
            vcdwm, rho, vxupp, vxdwp, vcupp, vcdwp, dzm, dzp, fact
       real(dp), external :: dpz, dpz_polarized
-      integer :: iflg
+      integer :: ir
+      logical :: do_exch, do_corr
       !
       real(dp), parameter :: e2 = 2.0_dp, &
            pi34=0.75_dp/3.141592653589793_dp, third=1.0_dp/3.0_dp, &
            p43=4.0_dp/3.0_dp, p49=4.0_dp/ 9.0_dp, m23=-2.0_dp/3.0_dp
-      real(dp) :: f, alpha
-      parameter (f=-1.10783814957303361d0, alpha=2.0d0/3.0d0)
+
       !
-      ! ... initialize variable
+      ! mian body
       !
       !CALL start_clock( 'nksic_dmxc_spin_cp' )
       !
-      dmuxc_uu=0.0_dp
-      dmuxc_du=0.0_dp
-      dmuxc_ud=0.0_dp
-      dmuxc_dd=0.0_dp
+      do_exch = ( get_iexch() == 1 )
+      do_corr = ( get_icorr() == 1 )
       !
-      rhotot=rhoup+rhodw
-      if(rhotot<small) return
+      ! main loop
       !
-      zeta=(rhoup-rhodw)/rhotot
-      if(abs(zeta)>1.0_dp) zeta=sign(1.0_dp,zeta)
-      !
-      ! ... calculate exchange contribution (analytical)
-      !
-      if (get_iexch().ne.1) goto 100
-      !
-      if(rhoup>small) then
-        rs=(pi34/(2.0_dp*rhoup))**third
-        call slater(rs,ex,vx)
-        dmuxc_uu=vx/(3.0_dp*rhoup)
-      endif
-      if(rhodw>small) then
-        rs=(pi34/(2.0_dp*rhodw))**third
-        call slater(rs,ex,vx)
-        dmuxc_dd=vx/(3.0_dp*rhodw)
-      endif
-      !
-100   continue
-      !
-      ! ... calculate correlation contribution (numerical)
-      !
-      if(get_icorr().ne.1) return
-      !
-      dr   = min(1.e-6_dp,1.e-4_dp*rhotot)
-      fact = 0.5d0 / dr
-      !
-      call xc_spin(rhotot-dr,zeta,ex,ec,vxupm,vxdwm,vcupm,vcdwm)
-      call xc_spin(rhotot+dr,zeta,ex,ec,vxupp,vxdwp,vcupp,vcdwp)
-      !
-      dmuxc_uu=dmuxc_uu+(vcupp-vcupm) * fact
-      dmuxc_ud=dmuxc_ud+(vcupp-vcupm) * fact
-      dmuxc_dd=dmuxc_dd+(vcdwp-vcdwm) * fact
-      dmuxc_du=dmuxc_du+(vcdwp-vcdwm) * fact
+      do ir = 1, nnrx
+          ! 
+          dmuxc(:,:)=0.0_dp
+          !
+          rhoup  = rhoref(ir,1)
+          rhodw  = rhoref(ir,2)
+          rhotot = rhoup + rhodw
+          !
+          if( rhotot < small) cycle
+          !
+          zeta = (rhoup-rhodw)/rhotot
+          if(abs(zeta)>1.0_dp) zeta=sign(1.0_dp,zeta)
+
+          !
+          ! calculate exchange contribution (analytical)
+          !
+          if ( do_exch ) then
+              !
+              if ( rhoup > small) then
+                  rs=(pi34/(2.0_dp*rhoup))**third
+                  call slater(rs,ex,vx)
+                  dmuxc(1,1)=vx/(3.0_dp*rhoup)
+              endif
+              !
+              if( rhodw > small) then
+                  rs=(pi34/(2.0_dp*rhodw))**third
+                  call slater(rs,ex,vx)
+                  dmuxc(2,2)=vx/(3.0_dp*rhodw)
+              endif
+              !
+          endif
+          !
+
+          !
+          ! calculate correlation contribution (numerical)
+          !
+          if( do_corr ) then
+              !
+              dr   = min(1.e-6_dp,1.e-4_dp*rhotot)
+              fact = 0.5d0 / dr
+              !
+              call xc_spin(rhotot-dr,zeta,ex,ec,vxupm,vxdwm,vcupm,vcdwm)
+              call xc_spin(rhotot+dr,zeta,ex,ec,vxupp,vxdwp,vcupp,vcdwp)
+              !
+              dmuxc(1,1) = dmuxc(1,1) +(vcupp-vcupm) * fact
+              dmuxc(1,2) = dmuxc(1,2) +(vcupp-vcupm) * fact
+              dmuxc(2,1) = dmuxc(2,1) +(vcdwp-vcdwm) * fact
+              dmuxc(2,2) = dmuxc(2,2) +(vcdwp-vcdwm) * fact
       
-      dz=1.e-6_dp
-      dzp=min(1.0,zeta+dz)-zeta
-      dzm=-max(-1.0,zeta-dz)+zeta
-      !
-      fact = 1.0d0 / ( rhotot * (dzp+dzm) )
-      ! 
-      call xc_spin(rhotot,zeta-dzm,ex,ec,vxupm,vxdwm,vcupm,vcdwm)
-      call xc_spin(rhotot,zeta+dzp,ex,ec,vxupp,vxdwp,vcupp,vcdwp)
-      !
-      dmuxc_uu=dmuxc_uu+(vcupp-vcupm)*(1.0_dp-zeta)*fact
-      dmuxc_ud=dmuxc_ud-(vcupp-vcupm)*(1.0_dp+zeta)*fact
-      dmuxc_du=dmuxc_du+(vcdwp-vcdwm)*(1.0_dp-zeta)*fact
-      dmuxc_dd=dmuxc_dd-(vcdwp-vcdwm)*(1.0_dp+zeta)*fact
-      !
-      !CALL stop_clock( 'nksic_dmxc_spin_cp' )
+              dz=1.e-6_dp
+              dzp=min(1.0,zeta+dz)-zeta
+              dzm=-max(-1.0,zeta-dz)+zeta
+              !
+              fact = 1.0d0 / ( rhotot * (dzp+dzm) )
+              ! 
+              call xc_spin(rhotot,zeta-dzm,ex,ec,vxupm,vxdwm,vcupm,vcdwm)
+              call xc_spin(rhotot,zeta+dzp,ex,ec,vxupp,vxdwp,vcupp,vcdwp)
+              !
+              dmuxc(1,1) = dmuxc(1,1) +(vcupp-vcupm)*(1.0_dp-zeta)*fact
+              dmuxc(1,2) = dmuxc(1,2) -(vcupp-vcupm)*(1.0_dp+zeta)*fact
+              dmuxc(2,1) = dmuxc(2,1) +(vcdwp-vcdwm)*(1.0_dp-zeta)*fact
+              dmuxc(2,2) = dmuxc(2,2) -(vcdwp-vcdwm)*(1.0_dp+zeta)*fact
+              !
+          endif
+          !
+          wxd(ir,1) = wxd(ir,1) + dmuxc(1,ispin) * rhoele(ir,ispin)*f
+          wxd(ir,2) = wxd(ir,2) + dmuxc(2,ispin) * rhoele(ir,ispin)*f
+          !   
+          wref(ir)  = wref(ir)  + dmuxc(ispin,ispin)*rhoele(ir,ispin)
+          !   
+      enddo
+
       return
       !
 !---------------------------------------------------------------

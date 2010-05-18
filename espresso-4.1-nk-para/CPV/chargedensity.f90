@@ -128,7 +128,6 @@
       USE cp_main_variables,  ONLY: iprint_stdout, drhor, drhog
       USE wannier_base,       ONLY: iwf
       USE cell_base,          ONLY: a1, a2, a3
-      USE nksic,              ONLY: orb_rhor, do_nk
 !
       IMPLICIT NONE
       INTEGER nfi
