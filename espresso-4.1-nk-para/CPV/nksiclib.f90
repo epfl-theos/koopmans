@@ -411,7 +411,7 @@ end subroutine nksic_get_rhoref
       real(dp),    intent(out) :: pink
       !
       integer     :: i, is, ig, ir
-      real(dp)    :: rh(2), rhc(2), exc_t, fact, pink_pz, ehele, ehele2
+      real(dp)    :: fact, ehele, ehele2, etmp
       real(dp)    :: etxcref, etxc0, w2cst, dvxc(2), dmuxc(2,2)
       !
       real(dp),    allocatable :: rhoele(:,:)
@@ -452,8 +452,6 @@ end subroutine nksic_get_rhoref
       wrefsic=0.0_dp
       wxdsic=0.0_dp
       pink=0.0_dp
-      !
-      rhc=0.D0
 
       !
       ! Compute self-hartree contributions
@@ -522,6 +520,7 @@ end subroutine nksic_get_rhoref
               enddo
               !
           enddo
+          !
       endif
 
       !    
@@ -646,29 +645,21 @@ end subroutine nksic_get_rhoref
       !
       !rhoraux = rhobar
       call exch_corr_wrapper(nnrx,2,grhoraux,rhobar,etxc0,vxc0,haux)
+
       !
-! 
-! XXX
-! using a blas here ?
-! 
+      ! update vsic pot 
+      ! 
+      vsic(1:nnrx) = vsic(1:nnrx) &
+                   + vxcref(1:nnrx,ispin)-vxc(1:nnrx,ispin)
+      !
+      ! define pink
+      !
+      etmp = f*sum( vxcref(1:nnrx,ispin) * rhoele(1:nnrx,ispin) )
+      !
       if( update_rhoref) then
-          !
-          vsic(1:nnrx) = vsic(1:nnrx) &
-                       + vxcref(1:nnrx,ispin)-vxc(1:nnrx,ispin)
-          !
-          pink=(etxc0-etxc) &
-              +f*sum(vxcref(1:nnrx,ispin)*rhoele(1:nnrx,ispin)) &
-              +(2.0_dp*fref-f) * ehele
-          !
+          pink = (etxc0-etxc) + etmp + (2.0_dp*fref-f) * ehele
       else
-          !
-          vsic(1:nnrx) = vsic(1:nnrx) &
-                       + vxcref(1:nnrx,ispin)-vxc(1:nnrx,ispin)
-          !
-          pink=(etxc0-etxc) &
-              +f*sum(vxcref(1:nnrx,ispin)*rhoele(1:nnrx,ispin)) &
-              +ehele +ehele2
-          !
+          pink = (etxc0-etxc) + etmp + ehele +ehele2
       endif        
       !
       pink=pink*fact
@@ -689,35 +680,12 @@ end subroutine nksic_get_rhoref
           wxdsic(:,:) = 0.0d0
           !
           call nksic_dmxc_spin_cp( nnrx, rhoref, f, ispin, rhoele, &
-                                   vanishing_rho, & wrefsic, wxdsic )
-
-!        do ir=1,nnrx
-!            !
-!            dmuxc=0.0_dp
-!            rh(1:2) = rhoref( ir, 1:2)
-!            !
-!            call nksic_dmxc_spin_cp(rh(1),rh(2),dmuxc(1,1),dmuxc(1,2), &
-!                                    dmuxc(2,1),dmuxc(2,2),vanishing_rho)
-!            !
-!            dvxc(1)=dmuxc(1,ispin)*rhoele(ir,ispin)*f
-!            dvxc(2)=dmuxc(2,ispin)*rhoele(ir,ispin)*f
-!            !
-!            wrefsic(ir) = wrefsic(ir) + dmuxc(ispin,ispin)*rhoele(ir,ispin)
-!            !
-!            wxdsic(ir,1)=rhobarfact*(vxc0(ir,1)+dvxc(1)-vxc(ir,1))
-!            wxdsic(ir,2)=rhobarfact*(vxc0(ir,2)+dvxc(2)-vxc(ir,2))     
-!            !
-!            !do is=1,2
-!            !   if( dvxc(is).ne.0.0_dp ) & 
-!            !     wxdsic(ir,is)=rhobarfact*(vxc0(ir,is)+dvxc(is)-vxc(ir,is))
-!            !enddo
-!            !
-!        enddo
+                                   vanishing_rho, wrefsic, wxdsic )
           !
           !
           if ( do_wref ) then
               !
-              w2cst = sum( wrefsic(1:nnrx)*rhoele(1:nnrx,ispin) )*fact
+              w2cst = sum( wrefsic(1:nnrx) * rhoele(1:nnrx,ispin) ) * fact
               !
               call mp_sum(w2cst,intra_image_comm)
               !
@@ -955,6 +923,7 @@ end subroutine nksic_eforce
       real(dp), intent(in)    :: f, small
       real(dp), intent(inout) :: wref(nnrx), wxd(nnrx,2)
       !
+      character(18) :: subname='nksic_dmxc_spin_cp'
       real(dp) :: rhoup, rhodw, rhotot, zeta
       real(dp) :: dmuxc(2,2)
       real(dp) :: rs, fz, fz1, fz2, ex, vx, ecu, ecp, vcu, &
@@ -965,7 +934,8 @@ end subroutine nksic_eforce
       logical :: do_exch, do_corr
       !
       real(dp), parameter :: e2 = 2.0_dp, &
-           pi34=0.75_dp/3.141592653589793_dp, third=1.0_dp/3.0_dp, &
+           pi34    = 0.6203504908994_DP,  & ! redefined to pi34=(3/4pi)^(1/3)
+           pi34_old= 0.75_dp/3.141592653589793_dp, third=1.0_dp/3.0_dp, &
            p43=4.0_dp/3.0_dp, p49=4.0_dp/ 9.0_dp, m23=-2.0_dp/3.0_dp
 
       !
@@ -973,8 +943,18 @@ end subroutine nksic_eforce
       !
       !CALL start_clock( 'nksic_dmxc_spin_cp' )
       !
+      ! the current implementation works only on top
+      ! of LSD and LDA. Other functionals have to
+      ! be implemented explicitly. To do that, we need to
+      ! call the proper xc-routine (at the moment we call
+      ! slater and pz_corr)
+      !
+      if ( get_iexch() /= 1 .or. get_icorr() /= 1 ) &
+         call errore(subname,'only LDA/LSD functionals implemented',10)
+      !
       do_exch = ( get_iexch() == 1 )
       do_corr = ( get_icorr() == 1 )
+      !
       !
       ! main loop
       !
@@ -994,54 +974,63 @@ end subroutine nksic_eforce
           !
           ! calculate exchange contribution (analytical)
           !
-          if ( do_exch ) then
-              !
-              if ( rhoup > small) then
-                  rs=(pi34/(2.0_dp*rhoup))**third
-                  call slater(rs,ex,vx)
-                  dmuxc(1,1)=vx/(3.0_dp*rhoup)
-              endif
-              !
-              if( rhodw > small) then
-                  rs=(pi34/(2.0_dp*rhodw))**third
-                  call slater(rs,ex,vx)
-                  dmuxc(2,2)=vx/(3.0_dp*rhodw)
-              endif
-              !
+          if ( rhoup > small) then
+              rs = pi34 / (2.0_dp*rhoup)**third
+              call slater(rs,ex,vx)
+              dmuxc(1,1)=vx/(3.0_dp*rhoup)
           endif
           !
+          if( rhodw > small) then
+              rs = pi34 / (2.0_dp*rhodw)**third
+              call slater(rs,ex,vx)
+              dmuxc(2,2)=vx/(3.0_dp*rhodw)
+          endif
 
           !
           ! calculate correlation contribution (numerical)
           !
-          if( do_corr ) then
-              !
-              dr   = min(1.e-6_dp,1.e-4_dp*rhotot)
-              fact = 0.5d0 / dr
-              !
-              call xc_spin(rhotot-dr,zeta,ex,ec,vxupm,vxdwm,vcupm,vcdwm)
-              call xc_spin(rhotot+dr,zeta,ex,ec,vxupp,vxdwp,vcupp,vcdwp)
-              !
-              dmuxc(1,1) = dmuxc(1,1) +(vcupp-vcupm) * fact
-              dmuxc(1,2) = dmuxc(1,2) +(vcupp-vcupm) * fact
-              dmuxc(2,1) = dmuxc(2,1) +(vcdwp-vcdwm) * fact
-              dmuxc(2,2) = dmuxc(2,2) +(vcdwp-vcdwm) * fact
-      
-              dz=1.e-6_dp
-              dzp=min(1.0,zeta+dz)-zeta
-              dzm=-max(-1.0,zeta-dz)+zeta
-              !
-              fact = 1.0d0 / ( rhotot * (dzp+dzm) )
-              ! 
-              call xc_spin(rhotot,zeta-dzm,ex,ec,vxupm,vxdwm,vcupm,vcdwm)
-              call xc_spin(rhotot,zeta+dzp,ex,ec,vxupp,vxdwp,vcupp,vcdwp)
-              !
-              dmuxc(1,1) = dmuxc(1,1) +(vcupp-vcupm)*(1.0_dp-zeta)*fact
-              dmuxc(1,2) = dmuxc(1,2) -(vcupp-vcupm)*(1.0_dp+zeta)*fact
-              dmuxc(2,1) = dmuxc(2,1) +(vcdwp-vcdwm)*(1.0_dp-zeta)*fact
-              dmuxc(2,2) = dmuxc(2,2) -(vcdwp-vcdwm)*(1.0_dp+zeta)*fact
-              !
-          endif
+          dr   = min(1.e-6_dp,1.e-4_dp*rhotot)
+          fact = 0.5d0 / dr
+          !
+          ! the explicit call to the correlation part only
+          ! are performed instead of colling xc_spin.
+          ! this saves some CPU time.
+          ! unfortunately, different functionals have then
+          ! to be treated explicitly
+          !
+          !call xc_spin(rhotot-dr,zeta,ex,ec,vxupm,vxdwm,vcupm,vcdwm)
+          !call xc_spin(rhotot+dr,zeta,ex,ec,vxupp,vxdwp,vcupp,vcdwp)
+          !
+          rs = pi34 / (rhotot-dr)**third
+          call pz_spin (rs, zeta, ec, vcupm, vcdwm)
+          rs = pi34 / (rhotot+dr)**third
+          call pz_spin (rs, zeta, ec, vcupp, vcdwp)
+          !
+          dmuxc(1,1) = dmuxc(1,1) +(vcupp-vcupm) * fact
+          dmuxc(1,2) = dmuxc(1,2) +(vcupp-vcupm) * fact
+          dmuxc(2,1) = dmuxc(2,1) +(vcdwp-vcdwm) * fact
+          dmuxc(2,2) = dmuxc(2,2) +(vcdwp-vcdwm) * fact
+  
+          dz=1.e-6_dp
+          dzp=min(1.0,zeta+dz)-zeta
+          dzm=-max(-1.0,zeta-dz)+zeta
+          !
+          fact = 1.0d0 / ( rhotot * (dzp+dzm) )
+          ! 
+          !call xc_spin(rhotot,zeta-dzm,ex,ec,vxupm,vxdwm,vcupm,vcdwm)
+          !call xc_spin(rhotot,zeta+dzp,ex,ec,vxupp,vxdwp,vcupp,vcdwp)
+          !
+          rs = pi34 / (rhotot)**third
+          call pz_spin (rs, zeta-dzm, ec, vcupm, vcdwm)
+          call pz_spin (rs, zeta+dzp, ec, vcupp, vcdwp)
+          
+          dmuxc(1,1) = dmuxc(1,1) +(vcupp-vcupm)*(1.0_dp-zeta)*fact
+          dmuxc(1,2) = dmuxc(1,2) -(vcupp-vcupm)*(1.0_dp+zeta)*fact
+          dmuxc(2,1) = dmuxc(2,1) +(vcdwp-vcdwm)*(1.0_dp-zeta)*fact
+          dmuxc(2,2) = dmuxc(2,2) -(vcdwp-vcdwm)*(1.0_dp+zeta)*fact
+
+          !
+          ! add corrections to the nksic potentials
           !
           wxd(ir,1) = wxd(ir,1) + dmuxc(1,ispin) * rhoele(ir,ispin)*f
           wxd(ir,2) = wxd(ir,2) + dmuxc(2,ispin) * rhoele(ir,ispin)*f

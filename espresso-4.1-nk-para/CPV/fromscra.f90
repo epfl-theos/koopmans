@@ -119,26 +119,34 @@ SUBROUTINE from_scratch( )
        CALL initbox ( tau0, taub, irb, ainv, a1, a2, a3 )
        CALL phbox( taub, eigrb, ainvb )
     END IF
+
     !
     !     wfc initialization with random numbers
     !     
-    CALL wave_rand_init( cm, nbsp, 1 )
-    !
-    !     spin symmetrization
-    !
-    if(do_spinsym) then
-      if(meta_ionode) write(stdout,2040)
-      if(nspin.eq.2) then
-        do i=1,min(nupdwn(1),nupdwn(2))
-          j=i+iupdwn(2)-1
-          cm(:,j)=cm(:,i)
-        enddo
-      endif
-2040  format(3X,'apply spin symmetry to initial electronic state')
-    endif
-    !
     IF ( ionode ) &
        WRITE( stdout, fmt = '(//,3X, "Wave Initialization: random initial wave-functions" )' )
+    !
+    IF ( .NOT. do_spinsym .OR. nspin == 1 ) then
+        !
+        CALL wave_rand_init( cm, nbsp, 1 )
+        !
+    ELSE 
+        !
+        IF ( nupdwn(1) < nupdwn(2) ) CALL errore('runcp','unexpec nupdwn(1) < nupdwn(2)',10)
+        !
+        CALL wave_rand_init( cm, nupdwn(1) , 1 )
+        !
+        DO i = 1, MIN(nupdwn(1),nupdwn(2))
+            !
+            j=i+iupdwn(2)-1
+            cm(:,j)=cm(:,i)
+            !
+        ENDDO
+        !
+        IF( meta_ionode ) write(stdout, "(24x, 'spin symmetry applied to init wave')" )
+        !
+    ENDIF
+
     !
     ! ... prefor calculates vkb (used by gram)
     !
