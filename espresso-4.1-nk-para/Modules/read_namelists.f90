@@ -228,9 +228,9 @@ MODULE read_namelists_module
        do_wref = .true.  ! include reference variational terms
        do_spinsym = .false. ! whether to apply spin up-down symmmetry 
        update_rhoref = .true. ! whether to update reference densities
-       fref = 0.0_DP
-       rhobarfact = 0.0_DP
-       vanishing_rho_w = 1.0e-7_DP
+       fref = 0.5_DP
+       rhobarfact = 1.0_DP
+       vanishing_rho_w = 1.0e-12_DP
        f_cutoff = 0.1_DP
        !
        do_efield = .false.

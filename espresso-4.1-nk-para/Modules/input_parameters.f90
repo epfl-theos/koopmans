@@ -441,9 +441,9 @@ MODULE input_parameters
         LOGICAL :: do_hf  = .false.
         LOGICAL :: do_spinsym  = .false.
         LOGICAL :: update_rhoref  = .true.
-        REAL ( DP ) :: fref  = 0.0_DP
-        REAL ( DP ) :: rhobarfact = 0.0_DP
-        REAL ( DP ) :: nkmixfact = 0.0_DP
+        REAL ( DP ) :: fref  = 0.5_DP
+        REAL ( DP ) :: rhobarfact = 1.0_DP
+        REAL ( DP ) :: nkmixfact = 1.0_DP
         REAL ( DP ) :: nkscalfact = 1.0_DP
         REAL ( DP ) :: hfscalfact = 1.0_DP
         REAL ( DP ) :: vanishing_rho_w = 1.0e-7_DP
