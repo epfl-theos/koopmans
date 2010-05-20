@@ -152,8 +152,11 @@
            ! ... (this preconditioning must be taken into account when
            ! ... calculating eigenvalues in eigs0.f90)
            !
-           faux=0.0_dp
-           faux(1:n)=max(f_cutoff,f(1:n))
+           !
+           ! faux takes into account spin multiplicity.
+           !
+           faux = 0.0_dp
+           faux(1:n) = max(f_cutoff,f(1:n)) * DBLE( nspin ) / 2.0d0
            !
            IF( use_task_groups ) THEN
               !
@@ -187,11 +190,12 @@
            !
            IF ( do_nk ) THEN
               !
+              ! faux takes into account spin multiplicity.
               !
               CALL nksic_eforce( i, ngw, c0(:,i), c0(:,i+1), vsicpsi )
               !
-              c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
-              c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1)
+              c2(:) = c2(:) - vsicpsi(:,1) * faux(i)   
+              c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1) 
               !
            END IF
            !

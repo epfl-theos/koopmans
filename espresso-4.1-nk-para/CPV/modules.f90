@@ -375,9 +375,21 @@ contains
       allocate( orb_rhor(nnrx,2) )
       allocate( rhobar(nnrx,2) )
       allocate( rhoref(nnrx,2) )
+      !
       if ( update_rhoref ) then
           allocate( rhoref0(nnrx,2,nx) )
       endif
+      !
+      pink     = 0.0d0
+      vsic     = 0.0d0
+      vsicpsi  = 0.0d0
+      !vxcsic   = 0.0d0
+      !wxdsic   = 0.0d0
+      !wrefsic  = 0.0d0
+      !orb_rhor = 0.0d0
+      !rhobar   = 0.0d0
+      !rhoref   = 0.0d0
+      !if ( allocated(rhoref0) ) rhoref0=0.0d0
       !
   end subroutine allocate_nksic
   !

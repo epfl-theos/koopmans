@@ -67,7 +67,6 @@ SUBROUTINE from_scratch( )
     IMPLICIT NONE
     !
     REAL(DP),    ALLOCATABLE :: emadt2(:), emaver(:)
-    COMPLEX(DP), ALLOCATABLE :: c2(:), c3(:)
     REAL(DP)                 :: verl1, verl2
     REAL(DP)                 :: bigr, dum
     INTEGER                  :: i, j, iter, iss, ierr, nspin_wfc
@@ -147,6 +146,35 @@ SUBROUTINE from_scratch( )
         !
     ENDIF
 
+!
+! DEBUG (left here temporarily, AF)
+!
+! Note: this piece of code is left here to impose the same
+! random wfcs for two calculations having all the same
+! parameters, but nspin = 1 and nspin = 2 respectively.
+! 
+! nspin = 2 should be run first, and the file DEBUG_wfc.dat
+! must be copied to the scratch dir of the nspin=1 calc.
+!
+!! WRITE
+!IF ( nspin == 2 ) THEN
+!    OPEN ( 2, FILE='DEBUG_wfc.dat', FORM='unformatted')
+!    DO i = 1, nupdwn(1)
+!       WRITE(2) cm(:,i)
+!    ENDDO
+!    CLOSE( 2 )
+!ENDIF
+!
+!! READ
+!IF ( nspin == 1 ) THEN
+!   OPEN ( 2, FILE='DEBUG_wfc.dat', FORM='unformatted', STATUS='old')
+!   DO i = 1, nbsp
+!      READ(2) cm(:,i)
+!   ENDDO
+!   CLOSE( 2 )
+!   IF( meta_ionode ) write(stdout, "(24x, 'READ FROM DEBUG FILE')" )
+!ENDIF
+
     !
     ! ... prefor calculates vkb (used by gram)
     !
@@ -160,7 +188,7 @@ SUBROUTINE from_scratch( )
        CALL gram( vkb, bec, nkb, cm(1,iupdwn(iss)), ngw, nupdwn(iss) )
        !
     END DO
-
+    !
     IF( force_pairing ) cm(:,iupdwn(2):iupdwn(2)+nupdwn(2)-1) = cm(:,1:nupdwn(2))
     !
     if( iprsta >= 3 ) CALL dotcsc( eigr, cm, ngw, nbsp )
@@ -201,6 +229,7 @@ SUBROUTINE from_scratch( )
        edft%ekin = ekin
        !
     END IF
+
     !
     !     put core charge (if present) in rhoc(r)
     !
@@ -236,6 +265,7 @@ SUBROUTINE from_scratch( )
 
          CALL newd( vpot, irb, eigrb, becsum, fion )
          !
+         !
          IF( force_pairing ) THEN
             !
             CALL runcp_uspp_force_pairing( nfi, fccc, ccc, ema0bg, dt2bye, rhos, bec, cm, &
@@ -266,8 +296,10 @@ SUBROUTINE from_scratch( )
             CALL ortho( eigr, c0, phi, ngw, lambda, descla, &
                         bigr, iter, ccc, bephi, becp, nbsp, nspin, nupdwn, iupdwn )
          else
+            !
             CALL gram( vkb, bec, nkb, c0, ngw, nbsp )
-         endif
+            !
+        endif
          !
          !
          if ( ttforce ) CALL nlfl( bec, becdr, lambda, fion )

@@ -1868,7 +1868,7 @@ END FUNCTION
                                      nr1sx, nr2sx, nr3sx, nnrsx
       USE electrons_base,     ONLY : nspin
       USE constants,          ONLY : pi, fpi, au_gpa
-      USE energies,           ONLY : etot, eself, enl, ekin, epseu, esr, eht, exc, eextfor 
+      USE energies,           ONLY : etot, eself, enl, ekin, epseu, esr, eht, exc, eextfor
       USE local_pseudo,       ONLY : vps, dvps, rhops
       USE core,               ONLY : nlcc_any
       USE gvecb
@@ -2417,18 +2417,12 @@ END FUNCTION
       !
       etot = ekin + eht + epseu + enl + exc + ebac +e_hubbard + eextfor
       !
+      !     extra contributions
+      !
       if (abivol) etot = etot + P_ext*volclu
       if (abisur) etot = etot + Surf_t*surfclu
-      if (do_nk) then
-        etot=etot+sum(pink(1:nx))
-        !write(stdout,2000) pink
-2000  format(3x,15f9.3)
-      end if
-      if (do_hf) then
-        etot=etot+detothf+sum(exx(1:nx))
-        !write(stdout,2020) exx
-2020  format(3x,15f9.3)
-      end if
+      if (do_nk)  etot = etot + sum(pink(1:nx))
+      if (do_hf)  etot = etot + detothf + sum(exx(1:nx))
       !
       IF( tpre ) THEN
          !

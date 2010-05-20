@@ -67,6 +67,7 @@
       !
       wtot=0.0_dp
       pink=0.0_dp
+      vsic=0.0_dp
 
       !
       ! loop over bands
@@ -673,12 +674,12 @@ end subroutine nksic_get_rhoref
       !
       CALL start_clock( 'nksic_corr_fxc' )
       !
+      wxdsic(:,:) = 0.0d0
+      !
       if( do_wref .or. do_wxd ) then
           !  
           ! note that vxd and wref are updated 
           ! (and not overwritten) by the next call
-          wxdsic(:,:) = 0.0d0
-          !
           call nksic_dmxc_spin_cp( nnrx, rhoref, f, ispin, rhoele, &
                                    vanishing_rho, wrefsic, wxdsic )
           !
@@ -791,6 +792,10 @@ end subroutine nksic_get_rhoref
       if ( ierr/=0 ) call errore(subname,'allocating psi',abs(ierr))
       !
       !
+
+#ifdef __I_AM_SLOW
+#  undef __I_AM_SLOW
+#endif
 
 #ifdef __I_AM_SLOW
       ! this part is to be eliminated

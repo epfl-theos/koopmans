@@ -27,7 +27,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   USE uspp,                     ONLY : nkb, vkb, becsum, deeq, okvan
   USE energies,                 ONLY : eht, epseu, exc, etot, eself, enl, &
                                        ekin, atot, entropy, egrand, enthal, &
-                                       ekincm, print_energies
+                                       ekincm, print_energies, debug_energies
   USE electrons_base,           ONLY : nbspx, nbsp, ispin, f, nspin
   USE electrons_base,           ONLY : nel, iupdwn, nupdwn, nudx, nelt
   USE efield_module,            ONLY : efield, epol, tefield, allocate_efield, &
@@ -697,6 +697,8 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      !
      if (abivol) etot = etot - P_ext*volclu
      if (abisur) etot = etot - Surf_t*surfclu
+     !
+     ! CALL debug_energies()
      !
      CALL printout_new( nfi, tfirst, tfile, ttprint, tps, hold, stress, &
                         tau0, vels, fion, ekinc, temphc, tempp, temps, etot, &

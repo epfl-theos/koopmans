@@ -167,6 +167,10 @@
                fi = -0.5d0
                fip = -0.5d0
             else
+               !
+               ! spin multiplicity is taken into account
+               ! before the call
+               !
                fi = -0.5d0*f(i+idx-1)
                fip = -0.5d0*f(i+idx)
             endif
@@ -223,6 +227,10 @@
                   fi = 1.0d0
                   fip= 1.0d0
                ELSE
+                  !
+                  ! spin multiplicity is taken into account
+                  ! before the call
+                  !
                   fi = f(i+idx-1)
                   fip= f(i+idx)
                END IF
