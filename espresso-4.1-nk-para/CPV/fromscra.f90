@@ -146,35 +146,6 @@ SUBROUTINE from_scratch( )
         !
     ENDIF
 
-!
-! DEBUG (left here temporarily, AF)
-!
-! Note: this piece of code is left here to impose the same
-! random wfcs for two calculations having all the same
-! parameters, but nspin = 1 and nspin = 2 respectively.
-! 
-! nspin = 2 should be run first, and the file DEBUG_wfc.dat
-! must be copied to the scratch dir of the nspin=1 calc.
-!
-!! WRITE
-!IF ( nspin == 2 ) THEN
-!    OPEN ( 2, FILE='DEBUG_wfc.dat', FORM='unformatted')
-!    DO i = 1, nupdwn(1)
-!       WRITE(2) cm(:,i)
-!    ENDDO
-!    CLOSE( 2 )
-!ENDIF
-!
-!! READ
-!IF ( nspin == 1 ) THEN
-!   OPEN ( 2, FILE='DEBUG_wfc.dat', FORM='unformatted', STATUS='old')
-!   DO i = 1, nbsp
-!      READ(2) cm(:,i)
-!   ENDDO
-!   CLOSE( 2 )
-!   IF( meta_ionode ) write(stdout, "(24x, 'READ FROM DEBUG FILE')" )
-!ENDIF
-
     !
     ! ... prefor calculates vkb (used by gram)
     !
