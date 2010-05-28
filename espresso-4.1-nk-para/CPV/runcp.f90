@@ -203,14 +203,19 @@
               c2(:) = c2(:) - vxxpsi(:,i) * faux(i)
               c3(:) = c3(:) - vxxpsi(:,i+1) * faux(i+1)
            END IF
+           
+           !
+           ! spin multiplicity and occupation factors 
+           ! are taken into account inside the calls
            !
            IF( tefield ) THEN
              CALL dforce_efield ( bec, i, c0, c2, c3, rhos)
            END IF
-
+           !
            IF( tefield2 ) THEN
              CALL dforce_efield2 ( bec, i, c0, c2, c3, rhos)
            END IF
+
 
            IF( iflag == 2 ) THEN
               DO idx = 1, incr, 2

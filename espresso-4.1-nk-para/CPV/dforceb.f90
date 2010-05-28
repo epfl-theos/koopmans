@@ -28,21 +28,21 @@ subroutine dforceb(c0, i, betae, ipol, bec0, ctabin, gqq, gqqm, qmat, dq2, df)
 !   df     output: force for the i-th state
 
 
-  use kinds, only : DP
-  use  gvecs
-  use gvecw, only: ngw
-  use  parameters
-  use electrons_base, only: nx => nbspx, n => nbsp, nspin, f
-  use  constants
-  use  cvan
-  use ions_base, only : nat, nas => nax, na, nsp
-  use cell_base, only: a1, a2, a3
-  use uspp_param, only: nh, nhm
-  use uspp, only : nhsa=> nkb
-  use efield_module, ONLY : ctabin_missing_1,ctabin_missing_2,n_g_missing_m,&
-       &      ctabin_missing_rev_1,ctabin_missing_rev_2
-  use mp_global, only: intra_image_comm, nproc_image
-  use mp, only: mp_alltoall
+  use kinds,              only : DP
+  use gvecs
+  use gvecw,              only : ngw
+  use parameters
+  use electrons_base,     only : nx => nbspx, n => nbsp, nspin, f
+  use constants
+  use cvan
+  use ions_base,          only : nat, nas => nax, na, nsp
+  use cell_base,          only : a1, a2, a3
+  use uspp_param,         only : nh, nhm
+  use uspp,               only : nhsa => nkb
+  use efield_module,      ONLY : ctabin_missing_1,ctabin_missing_2,n_g_missing_m,&
+                                 ctabin_missing_rev_1,ctabin_missing_rev_2
+  use mp_global,          only : intra_image_comm, nproc_image
+  use mp,                 only : mp_alltoall
   use parallel_include
 
 
@@ -192,7 +192,10 @@ subroutine dforceb(c0, i, betae, ipol, bec0, ctabin, gqq, gqqm, qmat, dq2, df)
      gmes=2*pi/SQRT(gmes)
   endif
 
-  fi=f(i)*ci/(2.d0*gmes)
+  !
+  ! properly take care of spin degeneracy
+  !
+  fi=f(i)*ci *DBLE(nspin) /( 2.0*2.0*gmes )
 
   do ig=1,ngw
      df(ig)= fi*dtemp(ig)
@@ -251,7 +254,8 @@ subroutine dforceb(c0, i, betae, ipol, bec0, ctabin, gqq, gqqm, qmat, dq2, df)
 
    use constants
    use parameters
-   use cell_base, only: a1, a2, a3
+   use cell_base,          ONLY : a1, a2, a3
+   USE electrons_base,     ONLY : nspin
 
    implicit none
 
@@ -275,7 +279,7 @@ subroutine dforceb(c0, i, betae, ipol, bec0, ctabin, gqq, gqqm, qmat, dq2, df)
    endif
 
    
-   enb = 2.d0*AIMAG(log(detq))/gmes!take care of sign
+   enb = 2.d0/REAL(nspin,DP) * AIMAG(log(detq)) / gmes
    
    return
  end subroutine enberry
