@@ -320,14 +320,21 @@
 
       IMPLICIT NONE
 
-      INTEGER :: nfi
+      INTEGER  :: nfi
       REAL(DP) :: lambda( :, :, : ), lambdap( :, :, : )
+      !
+      REAL(DP), ALLOCATABLE :: faux(:)
+
+      ALLOCATE( faux(nx) )
+      faux(:) = f(:) * DBLE(nspin) / 2.0d0
 
       if( .not. tens ) then
-         call eigs0( ei, .false. , nspin, nupdwn, iupdwn, .true. , f, nx, lambda, nudx, descla )
+         call eigs0( ei, .false. , nspin, nupdwn, iupdwn, .true. , faux, nx, lambda, nudx, descla )
       else
-         call eigs0( ei, .false. , nspin, nupdwn, iupdwn, .false. , f, nx, lambdap, nudx, descla )
+         call eigs0( ei, .false. , nspin, nupdwn, iupdwn, .false. , faux, nx, lambdap, nudx, descla )
       endif
-
+      !
+      DEALLOCATE( faux )
+      !
       RETURN
    END SUBROUTINE cp_eigs_x

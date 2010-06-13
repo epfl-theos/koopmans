@@ -39,6 +39,7 @@
       use nksic,                      only: orb_rhor, vsic, wxdsic, &
                                             wrefsic, rhoref, rhobar, pink
       !
+use mp_global,                        only: mpime
       implicit none
       !
       ! in/out vars
@@ -50,7 +51,7 @@
       !
       ! local variables
       !
-      integer     :: i, j, jj, ibnd
+      integer     :: i, j, jj, ibnd, isp
       real(dp)    :: focc
       real(dp),   allocatable :: wtot(:,:)
 
@@ -77,23 +78,27 @@
 
           !
           ! computing orbital densities
-          ! to be checked: nspin = 1, n odd
+          ! n odd => c(:,n+1) is already set to zero
           !
           call nksic_get_orbitalrho( ngw, nnrx, c(:,j), c(:,j+1), orb_rhor )
 
           !
           ! computing orbital potantials
           !
+          inner_loop: &
           do jj = 1, 2
               ! 
               i = j + jj -1
+              !
+              ! this condition is important when n is odd
+              if ( i > n ) EXIT inner_loop
               !
               ibnd=i
               if( nspin == 2 .and. i >= iupdwn(2) ) ibnd = i-iupdwn(2)+1
               ! NOTE: iupdwn(2) is set to zero if nspin = 1
               !
               focc = f(i) * dble( nspin ) / 2.0d0
- 
+
               !
               ! define rhoref and rhobar
               !
@@ -130,9 +135,9 @@
               ! to save some memory
               !
               vsic(1:nnrx,i) = vsic(1:nnrx,i) + wrefsic(1:nnrx) &
-                             -wxdsic( 1:nnrx,ispin(i) )
+                             -wxdsic( 1:nnrx, ispin(i) )
               ! 
-          enddo
+          enddo inner_loop
           !
       enddo
 

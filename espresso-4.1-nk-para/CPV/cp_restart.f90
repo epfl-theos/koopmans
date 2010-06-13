@@ -356,6 +356,8 @@ MODULE cp_restart
 ! ... PLANE_WAVES
 !-------------------------------------------------------------------------------
          !
+         ! change to .TRUE. to write gvectors.dat for rho
+         !
          CALL write_planewaves( ecutw, dual, ngwt, gamma_only, nr1, nr2, &
                                 nr3, ngmt, nr1s, nr2s, nr3s, ngst, nr1b, &
                                 nr2b, nr3b, mill, .FALSE. )

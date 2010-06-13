@@ -42,7 +42,6 @@
       USE ldaU
       use nksic,               only : do_nk, vsicpsi, f_cutoff
       use hfmod,               only : do_hf, vxxpsi
-      USE nksic,               ONLY : do_nk, vsicpsi
       !
       IMPLICIT NONE
       !

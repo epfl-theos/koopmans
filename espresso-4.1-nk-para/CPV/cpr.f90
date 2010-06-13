@@ -630,18 +630,26 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      !
      IF ( MOD( nfi, iprint ) == 0 .OR. tlast ) THEN
         !
-        IF( force_pairing )  THEN
-           lambda(:, :, 2) =  lambda(:, :, 1)
-           lambdap(:, :, 2) = lambdap(:, :, 1)
-           WRITE( stdout, '("Occupations in CPR:")' )
-           WRITE( stdout, '(10F9.6)' ) ( f(i), i = 1, nbspx )  
-        END IF
-        !
-        CALL eigs( nfi, lambdap, lambda )
-        !
-        ! ... Compute empty states
-        !
-        CALL empty_cp ( nfi, c0, rhos )
+        IF ( tortho ) THEN
+            !
+            IF( force_pairing )  THEN
+                lambda(:, :, 2) =  lambda(:, :, 1)
+                lambdap(:, :, 2) = lambdap(:, :, 1)
+                WRITE( stdout, '("Occupations in CPR:")' )
+                WRITE( stdout, '(10F9.6)' ) ( f(i), i = 1, nbspx )  
+            END IF
+            !
+            CALL eigs( nfi, lambdap, lambda )
+            !
+            ! ... Compute empty states
+            !
+            CALL empty_cp ( nfi, c0, rhos )
+            !
+        ELSE
+            !   
+            WRITE( stdout, '(6x,"NOTE: eigenvalues are not computed without ortho")' )
+            ! 
+        ENDIF
         !
      END IF
      !

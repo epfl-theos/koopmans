@@ -477,7 +477,7 @@
          IF( la_proc ) x0( :, :, iss ) = xloc / ccc
          !
       END DO
-
+      !
       IF( force_pairing ) cp(:, iupdwn(2):iupdwn(2)+nupdwn(2)-1 ) = cp(:,1:nupdwn(2))
       !
       DEALLOCATE( xloc )

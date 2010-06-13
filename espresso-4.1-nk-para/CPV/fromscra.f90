@@ -153,7 +153,7 @@ SUBROUTINE from_scratch( )
     !
     nspin_wfc = nspin
     IF( force_pairing ) nspin_wfc = 1
-
+    !
     DO iss = 1, nspin_wfc
        !
        CALL gram( vkb, bec, nkb, cm(1,iupdwn(iss)), ngw, nupdwn(iss) )
