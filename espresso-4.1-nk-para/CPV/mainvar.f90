@@ -131,7 +131,7 @@ MODULE cp_main_variables
       INTEGER,           INTENT(IN) :: nudx
       LOGICAL,           INTENT(IN) :: tpre
       !
-      INTEGER  :: iss
+      INTEGER  :: iss, nhsa_l
       !
       ! ... allocation of all arrays not already allocated in init and nlinit
       !
@@ -214,12 +214,16 @@ MODULE cp_main_variables
       !
       ! becdr, distributed over row processors of the ortho group
       !
-      ALLOCATE( becdr( nhsa, nspin*nlax, 3 ) )  
+      ! AF: this avoids problems when nhsa, i.e. nkb, is zero
+      !nhsa_l = MAX( nhsa, 1) 
+      nhsa_l = nhsa
       !
-      ALLOCATE( bec( nhsa,n ) )
+      ALLOCATE( becdr( nhsa_l, nspin*nlax, 3 ) )  
       !
-      ALLOCATE( bephi( nhsa, nspin*nlax ) )
-      ALLOCATE( becp(  nhsa, n ) )
+      ALLOCATE( bec( nhsa_l,n ) )
+      !
+      ALLOCATE( bephi( nhsa_l, nspin*nlax ) )
+      ALLOCATE( becp(  nhsa_l, n ) )
       !
       CALL wave_descriptor_init( wfill, ngw, ngwt, nupdwn,  nupdwn, &
             1, 1, nspin, 'gamma', gzero )

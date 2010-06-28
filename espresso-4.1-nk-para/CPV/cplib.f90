@@ -830,7 +830,8 @@ END FUNCTION
          !
          !         these are the final bec's
          !
-         CALL DSCAL( nkbx, 1.0d0/anorm, bec(:,i), 1 )
+         IF (nkbx > 0 ) CALL DSCAL( nkbx, 1.0d0/anorm, bec(:,i), 1 )
+         ! 
       END DO
 !
       DEALLOCATE( csc )

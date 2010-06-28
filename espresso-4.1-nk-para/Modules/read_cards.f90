@@ -1106,6 +1106,8 @@ MODULE read_cards_module
        nspin0=nspin
        if (nspin == 4) nspin0=1
        !
+       IF ( nbnd == 0 ) CALL errore( ' card_occupations ', ' nbnd not specified', 1 )
+       !
        ALLOCATE ( f_inp ( nbnd, nspin0 ) )
        DO is = 1, nspin0
           !
