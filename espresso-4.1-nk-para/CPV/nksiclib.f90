@@ -39,7 +39,6 @@
       use nksic,                      only: orb_rhor, vsic, wxdsic, &
                                             wrefsic, rhoref, rhobar, pink
       !
-use mp_global,                        only: mpime
       implicit none
       !
       ! in/out vars
@@ -505,7 +504,12 @@ end subroutine nksic_get_rhoref
       rhogaux=0.0_dp
       if ( update_rhoref ) then
           !
-          vhaux(:) = rhoele(:,ispin) ! (fref-f) is included afterwards
+          ! rhoele has no occupation
+          !
+          ! f-fref is NOT included here in vhaux
+          ! (will be added afterwards)
+          !
+          vhaux(:) = rhoele(:,ispin)
           !
           call fwfft('Dense',vhaux,dfftp )
           !
@@ -514,6 +518,8 @@ end subroutine nksic_get_rhoref
           enddo
           !
       else
+          !
+          ! f-fref is instead implicitly included here in vhaux
           !
           do is = 1, 2
               !
@@ -555,7 +561,10 @@ end subroutine nksic_get_rhoref
       enddo
       call invfft('Dense',vhaux,dfftp)
       !
-      ! init here wref sic to save some memrory
+      ! init here wref sic to save some memory
+      !
+      ! this is just the self-hartree potential 
+      ! (to be multiplied by fref later on)
       !
       wrefsic(1:nnrx) = dble( vhaux(1:nnrx) )
       
@@ -571,7 +580,8 @@ end subroutine nksic_get_rhoref
           ehele = 2.0_dp * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm)))
           if ( gstart == 2 ) ehele = ehele -DBLE ( CONJG( vtmp(1) ) * rhogaux(1) )
           !
-          ehele = 0.5_dp * ehele * omega / fact
+          ! the f * (2.0d0 * fref-f) term is added here
+          ehele = 0.5_dp * f * (2.0d0 * fref-f) * ehele * omega / fact
 
           !
           ! fref-f has to be included explicitly in rhoele
@@ -663,9 +673,9 @@ end subroutine nksic_get_rhoref
       etmp = f*sum( vxcref(1:nnrx,ispin) * rhoele(1:nnrx,ispin) )
       !
       if( update_rhoref) then
-          pink = (etxc0-etxc) + etmp + (2.0_dp*fref-f) * ehele
+          pink = (etxc0-etxc) + etmp + ehele
       else
-          pink = (etxc0-etxc) + etmp + ehele +ehele2
+          pink = (etxc0-etxc) + etmp + ehele + ehele2
       endif        
       !
       pink=pink*fact
