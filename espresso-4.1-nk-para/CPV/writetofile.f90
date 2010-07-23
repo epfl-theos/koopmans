@@ -37,9 +37,9 @@
       
 
       !
-      ! write only if verbosity is higher than "medium"
+      ! write only if verbosity is "high"
       !
-      IF ( iprsta < 2 ) RETURN
+      IF ( iprsta < 3 ) RETURN
       !
       ! first collect f across the processors
       !

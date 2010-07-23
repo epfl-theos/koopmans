@@ -48,7 +48,7 @@ SUBROUTINE init_run()
   USE cp_main_variables,        ONLY : lambda, lambdam, lambdap, ema0bg, bec,  &
                                        sfac, eigr, ei1, ei2, ei3, taub, &
                                        irb, eigrb, rhog, rhos, rhor,     &
-                                       acc, acc_this_run, wfill, &
+                                       acc, acc_this_run, wfill, hamilt, &
                                        edft, nfi, vpot, ht0, htm, iprint_stdout
   USE cp_main_variables,        ONLY : allocate_mainvar, nlax, descla, nrlx, nlam
   USE energies,                 ONLY : eself, enl, ekin, etot, enthal, ekincm
@@ -82,10 +82,11 @@ SUBROUTINE init_run()
   USE ldau
   use eecp_mod,                 ONLY : do_comp
   use efield_mod,               ONLY : do_efield
+  USE nksic,                    ONLY : do_nk
   !
   IMPLICIT NONE
   !
-  INTEGER            :: i
+  INTEGER            :: i, ndim
   CHARACTER(LEN=256) :: dirname
   !
   !
@@ -245,6 +246,18 @@ SUBROUTINE init_run()
       !
   ENDIF
   !
+  IF ( do_nk .AND. iprsta > 1 ) THEN
+      !
+      ndim=MAXVAL( nupdwn(:) )
+      ALLOCATE( hamilt( ndim, ndim, nspin) )
+      !
+  ELSE
+      ALLOCATE( hamilt(1,1,1) )
+  ENDIF
+  !
+  hamilt(:,:,:) = 0.0d0
+
+  
   IF( do_efield ) CALL ee_efieldpot_init(ht0)
 
 

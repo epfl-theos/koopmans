@@ -359,7 +359,7 @@ module nksic
 
 contains
   !
-  subroutine allocate_nksic(nnrx,ngw,nspin,nx)
+  subroutine allocate_nksic( nnrx, ngw, nspin, nx)
       !
       implicit none
       integer, intent(in):: nx, nspin

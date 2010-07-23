@@ -9,7 +9,7 @@
 !
 !----------------------------------------------------------------------------
 SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
-                           enthal, enb, enbi, fccc, ccc, dt2bye, stress )
+                           enthal, enb, enbi, fccc, ccc, dt2bye, stress, tprint_ham )
   !----------------------------------------------------------------------------
   !
   ! ... this routine updates the electronic degrees of freedom
@@ -62,6 +62,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   REAL(DP)                :: enthal
   REAL(DP)                :: ei_unp
   REAL(DP)                :: stress(3,3)
+  LOGICAL, OPTIONAL, INTENT(IN) :: tprint_ham
   !
   INTEGER :: i, j, is, n2
   !
@@ -158,7 +159,8 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
         !
      ELSE
         !
-        CALL runcp_uspp( nfi, fccc, ccc, ema0bg, dt2bye, rhos, bec, c0, cm )
+        CALL runcp_uspp( nfi, fccc, ccc, ema0bg, dt2bye, rhos, bec, c0, cm, &
+                         tprint_ham = tprint_ham )
         !
      ENDIF
      !

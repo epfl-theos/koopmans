@@ -415,9 +415,10 @@ end subroutine nksic_get_rhoref
       real(dp),    intent(out) :: wxdsic(nnrx,2)
       real(dp),    intent(out) :: pink
       !
-      integer     :: i, is, ig, ir
-      real(dp)    :: fact, ehele, ehele2, etmp
-      real(dp)    :: etxcref, etxc0, w2cst, dvxc(2), dmuxc(2,2)
+      character(16) :: subname='nksic_correction'
+      integer       :: i, is, ig, ir
+      real(dp)      :: fact, ehele, ehele2, etmp
+      real(dp)      :: etxcref, etxc0, w2cst, dvxc(2), dmuxc(2,2)
       !
       real(dp),    allocatable :: rhoele(:,:)
       real(dp),    allocatable :: rhoraux(:,:)
@@ -723,6 +724,39 @@ end subroutine nksic_get_rhoref
       CALL stop_clock( 'nksic_corr_fxc' )
 
       !
+      !   functional mixture
+      !
+      !  AF: I'll fix this by deleting the mixing feature
+      !      and adding the calculation of PZ in a separate routine
+      !
+      if( do_nkmix ) CALL errore(subname,'do_nkmix is now obsolete',10)
+
+      !if ( do_nkmix ) then
+      !    !
+      !    grhoraux=0.0_dp
+      !    vxc=0.0_dp
+      !    haux=0.0_dp
+      !    etxc=0.0_dp
+      !    rhoraux=f*rhoele
+      !    !
+      !    call exch_corr_wrapper(nnrx,2,grhoraux,rhoraux,etxc,vxc,haux)
+      !    vsic(1:nnrx)=(1.0_dp-nkmixfact)*vsic(1:nnrx) &
+      !                +nkmixfact*(-f*dble(aux(1:nnrx))-vxc(1:nnrx,ispin))
+      !    !
+      !    pink_pz=-etxc-f**2*0.5_dp &
+      !            *sum(dble(aux(1:nnrx))*rhoele(1:nnrx,ispin))
+      !    pink_pz=pink_pz*fact
+      !    call mp_sum(pink_pz,intra_image_comm)
+      !    !
+      !    pink=(1.0_dp-nkmixfact)*pink+nkmixfact*pink_pz
+      !    !
+      !    wxdsic=(1.0_dp-nkmixfact)*wxdsic
+      !    wrefsic=(1.0_dp-nkmixfact)*wrefsic
+      !    !
+      !endif
+
+
+      !
       !   rescale contributions with the nkscalfact parameter
       !   take care of non-variational formulations
       !
@@ -742,11 +776,6 @@ end subroutine nksic_get_rhoref
       endif
 
 
-      !
-      !   functional admixture
-      !
-      if( do_nkmix .and. iprsta>1 .and. ionode ) &
-         write(stdout,"(3X,'do_nkmix is now obsolete, nothing done')") 
       !
       if ( allocated(rhoraux) ) deallocate(rhoraux)
       deallocate(vxc0)

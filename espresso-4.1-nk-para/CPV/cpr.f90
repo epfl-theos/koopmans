@@ -108,7 +108,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
                                        ema0bg, sfac, eigr, ei1, ei2, ei3,  &
                                        irb, becdr, taub, eigrb, rhog, rhos, &
                                        rhor, bephi, becp, nfi, descla, iprint_stdout, &
-                                       drhor, drhog, nlax
+                                       drhor, drhog, nlax, hamilt
   USE autopilot,                ONLY : event_step, event_index, &
                                        max_event_step, restart_p
   USE cell_base,                ONLY : s_to_r, r_to_s
@@ -126,6 +126,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   USE mp_global,                ONLY : root_image, intra_image_comm, np_ortho, me_ortho, ortho_comm, &
                                        me_image
   USE ldaU,                     ONLY : lda_plus_u, vupsi
+  USE nksic,                    ONLY : do_nk
   USE step_constraint
   USE small_box,                ONLY : ainvb
   !
@@ -141,6 +142,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   !
   LOGICAL :: tfirst, tlast, tstop, tconv
   LOGICAL :: ttprint, tfile, tstdout
+  LOGICAL :: tprint_ham
     !  logical variable used to control printout
   !
   ! ... forces on ions
@@ -172,7 +174,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
     ! for force_pairing
   INTEGER   :: nspin_sub , i1, i2
   !
-  REAL(DP), ALLOCATABLE :: forceh(:,:)
+  REAL(DP),  ALLOCATABLE :: forceh(:,:)
   !
   !
   dt2bye   = dt2 / emass
@@ -197,6 +199,17 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   END IF
   !
   IF ( lda_plus_u ) ALLOCATE( forceh( 3, nat ) )
+
+  !
+  ! setup data to printout herm and anti-herm
+  ! measures of the hamiltonian  H_ij = < i | h_j | j >
+  !
+  ! matrix elements stored in  hamilt
+  !
+  tprint_ham = do_nk .AND. ( iprsta > 1 ) 
+  !
+  hamilt(:,:,:) = 0.0d0
+
   !
   !======================================================================
   !
@@ -333,7 +346,9 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      !
      !
      CALL move_electrons( nfi, tfirst, tlast, b1, b2, b3, fion, &
-                          enthal, enb, enbi, fccc, ccc, dt2bye, stress )
+                          enthal, enb, enbi, fccc, ccc, dt2bye, stress, &
+                          tprint_ham = tprint_ham )
+
      !
      IF (lda_plus_u) fion = fion + forceh
      !
@@ -499,6 +514,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      !                    imposing the orthogonality
      !--------------------------------------------------------------------------
      !
+     !
      IF ( .NOT. tcg ) THEN
         !
         IF ( tortho ) THEN
@@ -516,7 +532,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
         !
         !  correction to displacement of ions
         !
-        IF ( iprsta >= 3 ) CALL print_lambda( lambda, nbsp, 9, 1.D0 )
+        !IF ( iprsta >= 3 ) CALL print_lambda( lambda, nbsp, 9, 1.D0 )
         !
         IF ( tortho ) THEN
            DO iss = 1, nspin_sub
@@ -531,8 +547,8 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
         IF( force_pairing ) THEN
               c0(:,iupdwn(2):nbsp)       =     c0(:,1:nupdwn(2))
               cm(:,iupdwn(2):nbsp)       =     cm(:,1:nupdwn(2))
-             phi(:,iupdwn(2):nbsp)       =    phi(:,1:nupdwn(2))
-          lambda(:,:, 2) = lambda(:,:, 1)
+             phi(:,iupdwn(2):nbsp)       =    phi(:,1:nupdwn(2)) 
+          lambda(:,:, 2)                 = lambda(:,:, 1)
         ENDIF
         !
         CALL calbec( nvb+1, nsp, eigr, cm, bec )
@@ -711,7 +727,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      CALL printout_new( nfi, tfirst, tfile, ttprint, tps, hold, stress, &
                         tau0, vels, fion, ekinc, temphc, tempp, temps, etot, &
                         enthal, econs, econt, vnhh, xnhh0, vnhp, xnhp0, atot, &
-                        ekin, epot, tprnfor, tpre )
+                        ekin, epot, tprnfor, tpre, hamilt, tprint_ham )
      !
      if (abivol) etot = etot + P_ext*volclu
      if (abisur) etot = etot + Surf_t*surfclu
@@ -908,7 +924,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   IF( iprsta > 1 ) CALL print_lambda( lambda, nbsp, nbsp, 1.D0 )
   !
   IF (lda_plus_u) DEALLOCATE( forceh )
-
+  !
   RETURN
   !
 END SUBROUTINE cprmain

@@ -65,6 +65,7 @@ MODULE cp_main_variables
   ! ... constraints (lambda at t, lambdam at t-dt, lambdap at t+dt)
   !
   REAL(DP), ALLOCATABLE :: lambda(:,:,:), lambdam(:,:,:), lambdap(:,:,:)
+  REAL(DP), ALLOCATABLE :: hamilt(:,:,:)
   !
   INTEGER,  ALLOCATABLE :: descla(:,:) ! descriptor of the lambda distribution
                                        ! see descriptors_module
@@ -122,6 +123,7 @@ MODULE cp_main_variables
                              me_image, ortho_comm_id
       USE mp,          ONLY: mp_max, mp_min
       USE descriptors, ONLY: descla_siz_ , descla_init , nlax_ , la_nrlx_ , lambda_node_
+      USE nksic,       ONLY: do_nk
       !
       INTEGER,           INTENT(IN) :: ngw, ngwt, ngb, ngs, ng, nr1, nr2, nr3, &
                                        nnr, nnrsx, nat, nax, nsp, nspin, &
@@ -212,6 +214,7 @@ MODULE cp_main_variables
       ALLOCATE( lambdam( nlam, nlam, nspin ) )
       ALLOCATE( lambdap( nlam, nlam, nspin ) )
       !
+      !
       ! becdr, distributed over row processors of the ortho group
       !
       ! AF: this avoids problems when nhsa, i.e. nkb, is zero
@@ -262,6 +265,7 @@ MODULE cp_main_variables
       IF( ALLOCATED( vpot ) )    DEALLOCATE( vpot )
       IF( ALLOCATED( taub ) )    DEALLOCATE( taub )
       IF( ALLOCATED( descla ) )  DEALLOCATE( descla )
+      IF( ALLOCATED( hamilt ) )  DEALLOCATE( hamilt )
       !
       RETURN
       !

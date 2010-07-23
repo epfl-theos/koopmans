@@ -11,7 +11,8 @@
    SUBROUTINE printout_new_x   &
      ( nfi, tfirst, tfilei, tprint, tps, h, stress, tau0, vels, &
        fion, ekinc, temphc, tempp, temps, etot, enthal, econs, econt, &
-       vnhh, xnhh0, vnhp, xnhp0, atot, ekin, epot, print_forces, print_stress )
+       vnhh, xnhh0, vnhp, xnhp0, atot, ekin, epot, print_forces, print_stress, &
+       hamilt, print_hamilt_norm )
 !=----------------------------------------------------------------------------=!
 
       !
@@ -19,7 +20,8 @@
       USE control_flags,     ONLY : iprint, textfor, iprsta
       USE energies,          ONLY : print_energies, dft_energy_type
       USE printout_base,     ONLY : printout_base_open, printout_base_close, &
-                                    printout_pos, printout_cell, printout_stress
+                                    printout_pos, printout_cell, printout_stress, &
+                                    printout_matrix_norm
       USE constants,         ONLY : au_gpa, amu_si, bohr_radius_cm, &
                                     amu_au, BOHR_RADIUS_ANGS, pi
       USE ions_base,         ONLY : na, nsp, nat, ind_bck, atm, ityp, pmass, cdmi, &
@@ -30,6 +32,7 @@
       USE cg_module,         ONLY : tcg, itercg
       USE sic_module,        ONLY : self_interaction, sic_alpha, sic_epsilon
       USE electrons_module,  ONLY : print_eigenvalues
+      USE electrons_base,    ONLY : nspin
       USE pres_ai_mod,       ONLY : P_ext, Surf_t, volclu, surfclu, abivol, &
                                     abisur, pvar, n_ele
 
@@ -58,16 +61,20 @@
       REAL(DP), INTENT(IN) :: ekin
       REAL(DP), INTENT(IN) :: epot ! ( epseu + eht + exc )
       LOGICAL,  INTENT(IN) :: print_forces, print_stress
+      REAL(DP), OPTIONAL, INTENT(IN) :: hamilt(:, :, :)
+      LOGICAL,  OPTIONAL, INTENT(IN) :: print_hamilt_norm
       !
-      REAL(DP) :: stress_gpa( 3, 3 )
-      REAL(DP) :: cdm0( 3 )
-      REAL(DP) :: dis( nsp )
-      REAL(DP) :: out_press, volume
-      REAL(DP) :: totalmass
-      INTEGER  :: isa, is, ia, kilobytes
-      REAL(DP),         ALLOCATABLE :: tauw( :, : )
-      LOGICAL  :: tsic, tfile, tstdout
-      LOGICAL, PARAMETER :: nice_output_files=.false.
+      REAL(DP)     :: stress_gpa( 3, 3 )
+      REAL(DP)     :: cdm0( 3 )
+      REAL(DP)     :: dis( nsp )
+      REAL(DP)     :: out_press, volume
+      REAL(DP)     :: totalmass
+      REAL(DP)     :: hamn_h, hamn_ah
+      REAL(DP)     :: ham_h, ham_ah
+      INTEGER      :: i, j, isp, isa, is, ia, kilobytes
+      REAL(DP), ALLOCATABLE :: tauw( :, : )
+      LOGICAL      :: tsic, tfile, tstdout
+      LOGICAL, PARAMETER    :: nice_output_files=.false.
       !
       ! avoid double printing to files by refering to nprint_nfi
       !
@@ -125,6 +132,33 @@
             IF(tstdout) CALL printout_cell( stdout, h )
             !
             IF( tfile ) CALL printout_cell( 36, h, nfi, tps )
+            !
+            !
+            IF ( PRESENT(hamilt) .AND. PRESENT(print_hamilt_norm) ) THEN
+                ! 
+                hamn_h=0.0d0
+                hamn_ah=0.0d0
+                !
+                DO isp = 1, nspin
+                    !
+                    DO j = 1, SIZE( hamilt, 2)
+                    DO i = 1, SIZE( hamilt, 1)
+                        !
+                        ham_h   =  0.5d0 * ( hamilt(i,j,isp) + hamilt(j,i,isp) )
+                        ham_ah  =  0.5d0 * ( hamilt(i,j,isp) - hamilt(j,i,isp) )
+                        !
+                        hamn_h  =  hamn_h  + DBLE( ham_h  * ham_h )
+                        hamn_ah =  hamn_ah + DBLE( ham_ah * ham_ah )
+                        !
+                    ENDDO
+                    ENDDO
+                ENDDO
+                !
+                IF( tfile .AND. print_hamilt_norm ) &
+                    CALL printout_matrix_norm( 43, hamn_h, hamn_ah, nfi )
+                !
+            ENDIF
+
             !
             !  System density:
             !

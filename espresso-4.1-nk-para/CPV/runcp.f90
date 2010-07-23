@@ -12,7 +12,7 @@
 
 
    SUBROUTINE runcp_uspp_x &
-      ( nfi, fccc, ccc, ema0bg, dt2bye, rhos, bec, c0, cm, fromscra, restart )
+      ( nfi, fccc, ccc, ema0bg, dt2bye, rhos, bec, c0, cm, fromscra, restart, tprint_ham )
       !
       !  This subroutine performs a Car-Parrinello or Steepest-Descent step
       !  on the electronic variables, computing forces on electrons
@@ -27,6 +27,7 @@
       USE parallel_include
       USE kinds,               ONLY : DP
       USE mp_global,           ONLY : nogrp, ogrp_comm, me_image, nolist
+      USE mp,                  ONLY : mp_sum
       USE fft_base,            ONLY : dffts
       use wave_base,           only : wave_steepest, wave_verlet
       use control_flags,       only : lwf, tsde, use_task_groups, program_name
@@ -37,6 +38,7 @@
       use wannier_subroutines, only : ef_potential
       use efield_module,       only : dforce_efield, tefield, dforce_efield2, tefield2
       use gvecw,               only : ngw, ngwx
+      USE cp_main_variables,   ONLY : hamilt, iprint_stdout
       USE cp_interfaces,       ONLY : dforce
       USE task_groups,         ONLY : tg_gather
       USE ldaU
@@ -53,18 +55,21 @@
       COMPLEX(DP) :: c0(:,:), cm(:,:)
       LOGICAL, OPTIONAL, INTENT(IN) :: fromscra
       LOGICAL, OPTIONAL, INTENT(IN) :: restart
+      LOGICAL, OPTIONAL, INTENT(IN) :: tprint_ham
       !
       !
-     real(DP) ::  verl1, verl2, verl3
-     real(DP),    allocatable :: emadt2(:)
-     real(DP),    allocatable :: emaver(:)
-     real(DP),    allocatable :: faux(:)
-     complex(DP), allocatable :: c2(:), c3(:)
-     REAL(DP),    ALLOCATABLE :: tg_rhos(:,:)
-     integer :: i, nsiz, incr, idx, idx_in, ierr
-     integer :: iwfc, nwfc, is, ii, tg_rhos_siz, c2_siz
-     integer :: iflag
-     logical :: ttsde
+      real(DP) ::  verl1, verl2, verl3
+      real(DP),    allocatable :: emadt2(:)
+      real(DP),    allocatable :: emaver(:)
+      real(DP),    allocatable :: faux(:)
+      complex(DP), allocatable :: c2(:), c3(:)
+      REAL(DP),    ALLOCATABLE :: tg_rhos(:,:)
+      integer :: nsiz, incr, idx, idx_in, ierr
+      integer :: iwfc, nwfc, is, tg_rhos_siz, c2_siz
+      integer :: isp, j, jj, j0, i, ii, i0
+      integer :: iflag
+      logical :: ttsde
+      LOGICAL :: tprint_ham_ 
 
 
 
@@ -73,19 +78,27 @@
      iflag = 0
      !
      IF( PRESENT( fromscra ) ) THEN
-       IF( fromscra ) iflag = 1
-     END IF
+         IF( fromscra ) iflag = 1
+     ENDIF
+     !
      IF( PRESENT( restart ) ) THEN
-       IF( restart ) iflag = 2
-     END IF
-
+         IF( restart ) iflag = 2
+     ENDIF
+     !
+     tprint_ham_ = .FALSE.
+     hamilt(:,:,:) = 0.0d0
+     IF ( PRESENT( tprint_ham ) ) THEN
+         !
+         tprint_ham_ = tprint_ham
+     ENDIF
+     !
      IF( use_task_groups ) THEN
-        tg_rhos_siz = nogrp * dffts%nnrx
-        c2_siz      = nogrp * ngwx
+         tg_rhos_siz = nogrp * dffts%nnrx
+         c2_siz      = nogrp * ngwx
      ELSE
-        tg_rhos_siz = 1
-        c2_siz      = ngw 
-     END IF
+         tg_rhos_siz = 1
+         c2_siz      = ngw 
+     ENDIF
 
      !
      ! ...  set verlet variables 
@@ -183,37 +196,80 @@
 
 
            IF ( lda_plus_u ) THEN
-              c2(:) = c2(:) - vupsi(:,i) * faux(i)
-              c3(:) = c3(:) - vupsi(:,i+1) * faux(i+1)
-           END IF
+               !
+               c2(:) = c2(:) - vupsi(:,i) * faux(i)
+               c3(:) = c3(:) - vupsi(:,i+1) * faux(i+1)
+               !
+           ENDIF
            !
            IF ( do_nk ) THEN
-              !
-              ! faux takes into account spin multiplicity.
-              !
-              CALL nksic_eforce( i, ngw, c0(:,i), c0(:,i+1), vsicpsi )
-              !
-              c2(:) = c2(:) - vsicpsi(:,1) * faux(i)   
-              c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1) 
-              !
-           END IF
+               !
+               ! faux takes into account spin multiplicity.
+               !
+               CALL nksic_eforce( i, ngw, c0(:,i), c0(:,i+1), vsicpsi )
+               !
+               c2(:) = c2(:) - vsicpsi(:,1) * faux(i)   
+               c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1) 
+
+               !
+               ! build the matrix elements of 
+               ! the  Delta h^SIC hamiltonian
+               !
+               ! (for the sake of plotting the evolution 
+               !  of its imaginary part )
+               !
+               IF ( tprint_ham_ ) THEN
+                   !
+                   DO ii = 0, 1
+                       ! 
+                       IF ( i+ii > n ) CYCLE
+                       !
+                       isp = ispin( i+ii )
+                       i0  = i+ii
+                       !
+                       IF ( nspin==2 ) i0 = i0 -iupdwn(isp) +1 
+                       ! NOTE: iupdwn(isp) is set to zero if nspin=1
+                       !
+                       DO j0 = 1, nupdwn(isp)
+                           !
+                           jj = j0
+                           IF ( nspin==2 ) jj = jj +iupdwn(isp) -1 
+                           !
+                           hamilt( j0, i0, isp) = 2.0d0 * DOT_PRODUCT( c0(:,jj), vsicpsi(:,ii+1) )
+                           !
+                           IF ( gstart == 2 ) THEN
+                               hamilt( j0, i0, isp) =  hamilt( j0, i0, isp) -c0(1,jj)*vsicpsi(1,ii+1) 
+                           ENDIF
+                           !
+                       ENDDO
+                       !
+                   ENDDO
+                   !
+               ENDIF
+               !
+           ENDIF
+           
            !
+           ! HF exchange 
+           ! 
            IF ( do_hf ) THEN
-              c2(:) = c2(:) - vxxpsi(:,i) * faux(i)
-              c3(:) = c3(:) - vxxpsi(:,i+1) * faux(i+1)
-           END IF
+               !
+               c2(:) = c2(:) - vxxpsi(:,i) * faux(i)
+               c3(:) = c3(:) - vxxpsi(:,i+1) * faux(i+1)
+               !
+           ENDIF
            
            !
            ! spin multiplicity and occupation factors 
            ! are taken into account inside the calls
            !
            IF( tefield ) THEN
-             CALL dforce_efield ( bec, i, c0, c2, c3, rhos)
-           END IF
+               CALL dforce_efield ( bec, i, c0, c2, c3, rhos)
+           ENDIF
            !
            IF( tefield2 ) THEN
-             CALL dforce_efield2 ( bec, i, c0, c2, c3, rhos)
-           END IF
+               CALL dforce_efield2 ( bec, i, c0, c2, c3, rhos)
+           ENDIF
 
 
            IF( iflag == 2 ) THEN
@@ -252,7 +308,9 @@
         DEALLOCATE( tg_rhos )
 
      END IF
-
+     !
+     IF ( tprint_ham_ ) CALL mp_sum( hamilt )
+     !
      DEALLOCATE( emadt2 )
      DEALLOCATE( emaver )
 !

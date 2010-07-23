@@ -406,7 +406,7 @@
 
    INTERFACE runcp_uspp
       SUBROUTINE runcp_uspp_x &
-         ( nfi, fccc, ccc, ema0bg, dt2bye, rhos, bec, c0, cm, fromscra, restart )
+         ( nfi, fccc, ccc, ema0bg, dt2bye, rhos, bec, c0, cm, fromscra, restart, tprint_ham )
          USE kinds,             ONLY: DP
          IMPLICIT NONE
          integer, intent(in) :: nfi
@@ -417,6 +417,7 @@
          complex(DP) :: c0(:,:), cm(:,:)
          logical, optional, intent(in) :: fromscra
          logical, optional, intent(in) :: restart
+         logical, optional, intent(in) :: tprint_ham
       END SUBROUTINE
    END INTERFACE
 
@@ -883,7 +884,8 @@
       SUBROUTINE printout_new_x &
          ( nfi, tfirst, tfilei, tprint, tps, h, stress, tau0, vels, &
            fion, ekinc, temphc, tempp, temps, etot, enthal, econs, econt, &
-           vnhh, xnhh0, vnhp, xnhp0, atot, ekin, epot, print_forces, print_stress )
+           vnhh, xnhh0, vnhp, xnhp0, atot, ekin, epot, print_forces, print_stress, &
+           hamilt, print_hamilt_norm )
          USE kinds,          ONLY: DP
          IMPLICIT NONE
          INTEGER, INTENT(IN) :: nfi
@@ -901,6 +903,8 @@
          REAL(DP), INTENT(IN) :: ekin
          REAL(DP), INTENT(IN) :: epot ! ( epseu + eht + exc )
          LOGICAL, INTENT(IN) :: print_forces, print_stress
+         REAL(DP), OPTIONAL, INTENT(IN) :: hamilt(:, :, :)
+         LOGICAL,  OPTIONAL, INTENT(IN) :: print_hamilt_norm
       END SUBROUTINE
    END INTERFACE
 
@@ -1110,7 +1114,8 @@
 
    INTERFACE move_electrons
       SUBROUTINE move_electrons_x( &
-         nfi, tfirst, tlast, b1, b2, b3, fion, enthal, enb, enbi, fccc, ccc, dt2bye, stress )
+         nfi, tfirst, tlast, b1, b2, b3, fion, enthal, enb, enbi, fccc, ccc, dt2bye, &
+         stress, tprint_ham )
          USE kinds,         ONLY: DP
          IMPLICIT NONE
          INTEGER,  INTENT(IN)    :: nfi
@@ -1123,6 +1128,7 @@
          REAL(DP)                :: enthal
          REAL(DP)                :: ei_unp
          REAL(DP)                :: stress(3,3)
+         LOGICAL, OPTIONAL, INTENT(IN) :: tprint_ham
       END SUBROUTINE
    END INTERFACE
 
