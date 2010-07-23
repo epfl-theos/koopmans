@@ -117,8 +117,6 @@ libs : mods
 	else $(MAKE) $(MFLAGS) TLDEPS= all ; fi )
 	( cd flib ; if test "$(MAKE)" = "" ; then make $(MFLAGS) TLDEPS= all ; \
 	else $(MAKE) $(MFLAGS) TLDEPS= all ; fi )
-	( cd Multigrid ; if test "$(MAKE)" = "" ; then make $(MFLAGS) TLDEPS= all  ; \
-        else $(MAKE) $(MFLAGS) TLDEPS= all ; fi )
 
 eelib :
 	( cd EE ; if test "$(MAKE)" = "" ; then make $(MFLAGS) TLDEPS= all  ; \
@@ -131,7 +129,7 @@ bindir :
 clean :
 	touch make.sys 
 	for dir in \
-		CPV D3 Gamma Modules PH PP PW PWCOND VdW EE Multigrid \
+		CPV D3 Gamma Modules PH PP PW PWCOND VdW EE \
 		atomic clib flib pwtools upftools iotk GIPAW W90 XSpectra \
 		dev-tools Doc doc-def \
 	; do \
