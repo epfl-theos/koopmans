@@ -17,7 +17,7 @@ MODULE printout_base
   CHARACTER(LEN=75) :: title
   ! ...  title of the simulation
 
-  CHARACTER(LEN=256) :: fort_unit(30:42)
+  CHARACTER(LEN=256) :: fort_unit(30:43)
   ! ...  fort_unit = fortran units for saving physical quantity
 
   CHARACTER(LEN=256) :: pprefix
@@ -69,6 +69,8 @@ CONTAINS
         fort_unit(40) = trim(pprefix)//'.the'
         fort_unit(41) = trim(pprefix)//'.spr'  ! wannier spread
         fort_unit(42) = trim(pprefix)//'.wfc'  ! wannier function
+        fort_unit(43) = trim(pprefix)//'.ham'  ! norm of the ham matrices
+        !
         DO iunit = LBOUND( fort_unit, 1 ), UBOUND( fort_unit, 1 )
            OPEN(UNIT=iunit, FILE=fort_unit(iunit), &
                STATUS='unknown', POSITION='append', IOSTAT = ierr )
@@ -311,5 +313,33 @@ CONTAINS
 100 FORMAT(3(F18.8,1X))
     RETURN
   END SUBROUTINE printout_stress
+
+
+  SUBROUTINE printout_matrix_norm( iunit, matrix_h, matrix_ah, nfi, tps )
+    !
+    ! matrix_h:      norm of the hermitean part of matrix
+    ! matrix_ah:     norm of the anti-hermitean part of matrix
+    !
+    USE kinds
+    !
+    INTEGER,   INTENT(IN)           :: iunit
+    REAL(DP),  INTENT(IN)           :: matrix_h, matrix_ah
+    INTEGER,   INTENT(IN)           :: nfi
+    REAL(DP),  INTENT(IN), OPTIONAL :: tps
+    !
+    INTEGER :: i, j
+    !
+    IF( PRESENT( tps ) ) THEN
+       WRITE( iunit, 30 ) nfi, tps, matrix_h, matrix_ah
+    ELSE
+       WRITE( iunit, 40 ) nfi, matrix_h, matrix_ah
+    END IF
+    !
+ 30 FORMAT(I7,1X,F11.8,1X,2F20.12)
+ 40 FORMAT(3X,I7,1X,2F20.12)
+100 FORMAT(3F14.8)
+    RETURN
+  END SUBROUTINE printout_matrix_norm
+
 
 END MODULE printout_base
