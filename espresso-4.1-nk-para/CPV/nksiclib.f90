@@ -417,7 +417,7 @@ end subroutine nksic_get_rhoref
       !
       character(16) :: subname='nksic_correction'
       integer       :: i, is, ig, ir
-      real(dp)      :: fact, ehele, ehele2, etmp
+      real(dp)      :: fact, ehele, ehele2, etmp, pink_pz
       real(dp)      :: etxcref, etxc0, w2cst, dvxc(2), dmuxc(2,2)
       !
       real(dp),    allocatable :: rhoele(:,:)
@@ -604,7 +604,7 @@ end subroutine nksic_get_rhoref
       deallocate(rhogaux)
       deallocate(vtmp)
       deallocate(vcorr)
-      deallocate(vhaux)
+      if ( .not. do_nkmix ) deallocate(vhaux)
       !
       CALL stop_clock( 'nksic_corr_h' )
       CALL start_clock( 'nksic_corr_vxc' )
@@ -726,34 +726,39 @@ end subroutine nksic_get_rhoref
       !
       !   functional mixture
       !
-      !  AF: I'll fix this by deleting the mixing feature
-      !      and adding the calculation of PZ in a separate routine
-      !
-      if( do_nkmix ) CALL errore(subname,'do_nkmix is now obsolete',10)
+      !!  AF: I'll fix this by deleting the mixing feature
+      !!      and adding the calculation of PZ in a separate routine
+      !!
+      !if( do_nkmix ) CALL errore(subname,'do_nkmix is now obsolete',10)
 
-      !if ( do_nkmix ) then
-      !    !
-      !    grhoraux=0.0_dp
-      !    vxc=0.0_dp
-      !    haux=0.0_dp
-      !    etxc=0.0_dp
-      !    rhoraux=f*rhoele
-      !    !
-      !    call exch_corr_wrapper(nnrx,2,grhoraux,rhoraux,etxc,vxc,haux)
-      !    vsic(1:nnrx)=(1.0_dp-nkmixfact)*vsic(1:nnrx) &
-      !                +nkmixfact*(-f*dble(aux(1:nnrx))-vxc(1:nnrx,ispin))
-      !    !
-      !    pink_pz=-etxc-f**2*0.5_dp &
-      !            *sum(dble(aux(1:nnrx))*rhoele(1:nnrx,ispin))
-      !    pink_pz=pink_pz*fact
-      !    call mp_sum(pink_pz,intra_image_comm)
-      !    !
-      !    pink=(1.0_dp-nkmixfact)*pink+nkmixfact*pink_pz
-      !    !
-      !    wxdsic=(1.0_dp-nkmixfact)*wxdsic
-      !    wrefsic=(1.0_dp-nkmixfact)*wrefsic
-      !    !
-      !endif
+      if ( do_nkmix ) then
+          !
+          grhoraux=0.0_dp
+          vxc=0.0_dp
+          haux=0.0_dp
+          etxc=0.0_dp
+          rhoraux=f*rhoele
+          !
+          call exch_corr_wrapper(nnrx,2,grhoraux,rhoraux,etxc,vxc,haux)
+          !
+          vsic(1:nnrx) = ( 1.0_dp -nkmixfact ) * vsic(1:nnrx) &
+                         +nkmixfact*( -f*dble( vhaux(1:nnrx) ) -vxc(1:nnrx,ispin) )
+          !
+          pink_pz = -etxc  -0.5_dp * f**2 * &
+                           sum(dble( vhaux(1:nnrx) )*rhoele(1:nnrx,ispin))
+          !
+          pink_pz = pink_pz * fact
+          call mp_sum(pink_pz,intra_image_comm)
+          !
+          pink    = ( 1.0_dp -nkmixfact ) * pink + nkmixfact * pink_pz
+          !
+          wxdsic  = ( 1.0_dp -nkmixfact ) * wxdsic
+          wrefsic = ( 1.0_dp -nkmixfact ) * wrefsic
+          !
+          !
+          deallocate( vhaux )
+          !
+      endif
 
 
       !
