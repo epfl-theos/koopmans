@@ -18,7 +18,7 @@ subroutine esic
   use radial_grids, only: ndmx
   use ld1inc, only: grid, etot, ehrt, ecxc, ekin, rel, dhrsic, dxcsic, &
                     nwf, ll,  oc, psi, fref, enne, isw, vsic, wsic, w2sic, &
-                    wsictot, do_nkmix, nkmixfact, nkscalfact
+                    wsictot,nkscalfact,do_nkpz
  
   implicit none
   ! output
@@ -54,30 +54,20 @@ subroutine esic
         v(i)=v(i)*psi(i,1,n)**2
         work(i)=vsic(i,n)*psi(i,1,n)**2
      enddo
-     if( .not. do_nkmix ) then
-       if(oc(n)>1.0_dp) then
-         deksic = deksic + oc(n)*int_0_inf_dr(work,grid,grid%mesh,2*(ll(n)+1))
-         dhrsic = dhrsic + oc(n)*f(n)*(2.0_dp*fref-f(n)) &
-                         * 0.5_dp*int_0_inf_dr(v,grid,grid%mesh,2)*nkscalfact
-         dxcsic = dxcsic - oc(n)*int_0_inf_dr(work1,grid,grid%mesh,2)
-       else
-         deksic = deksic + f(n)*int_0_inf_dr(work,grid,grid%mesh,2*(ll(n)+1))
-         dhrsic = dhrsic + f(n)*(2.0_dp*fref-f(n)) &
-                         * 0.5_dp*int_0_inf_dr(v,grid,grid%mesh,2)*nkscalfact
-         dxcsic = dxcsic - int_0_inf_dr(work1,grid,grid%mesh,2)
-       endif
+     if(oc(n)>1.0_dp) then
+       deksic = deksic + oc(n)*int_0_inf_dr(work,grid,grid%mesh,2*(ll(n)+1))
+       dhrsic = dhrsic + oc(n)*f(n)*(2.0_dp*fref-f(n)) &
+                       * 0.5_dp*int_0_inf_dr(v,grid,grid%mesh,2)*nkscalfact
+       if(do_nkpz) dhrsic=dhrsic-oc(n)*f(n)*fref &
+                         *int_0_inf_dr(v,grid,grid%mesh,2)*nkscalfact
+       dxcsic = dxcsic - oc(n)*int_0_inf_dr(work1,grid,grid%mesh,2)
      else
-       if(oc(n)>1.0_dp) then
-         deksic = deksic + oc(n)*int_0_inf_dr(work,grid,grid%mesh,2*(ll(n)+1))
-         dhrsic = dhrsic + oc(n)*f(n)*(2.0_dp*fref*(1.0_dp-nkmixfact)-f(n)) &
-                         * 0.5_dp*int_0_inf_dr(v,grid,grid%mesh,2)*nkscalfact
-         dxcsic = dxcsic - oc(n)*int_0_inf_dr(work1,grid,grid%mesh,2)
-       else
-         deksic = deksic + f(n)*int_0_inf_dr(work,grid,grid%mesh,2*(ll(n)+1))
-         dhrsic = dhrsic + f(n)*(2.0_dp*fref*(1.0_dp-nkmixfact)-f(n)) &
-                         * 0.5_dp*int_0_inf_dr(v,grid,grid%mesh,2)*nkscalfact
-         dxcsic = dxcsic - int_0_inf_dr(work1,grid,grid%mesh,2)
-       endif
+       deksic = deksic + f(n)*int_0_inf_dr(work,grid,grid%mesh,2*(ll(n)+1))
+       dhrsic = dhrsic + f(n)*(2.0_dp*fref-f(n)) &
+                       * 0.5_dp*int_0_inf_dr(v,grid,grid%mesh,2)*nkscalfact
+       if(do_nkpz) dhrsic=dhrsic-f(n)*fref &
+                         *int_0_inf_dr(v,grid,grid%mesh,2)*nkscalfact
+       dxcsic = dxcsic - int_0_inf_dr(work1,grid,grid%mesh,2)
      endif
   enddo
   !

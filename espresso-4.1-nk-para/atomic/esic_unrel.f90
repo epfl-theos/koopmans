@@ -16,7 +16,7 @@ subroutine esic_unrel(enlunrel,nunrel,funrel,ekinnl)
   use radial_grids, only: ndmx
   use ld1inc, only: grid, etot, ehrt, ecxc, ekin, rel, dhrsic, dxcsic, &
                     nwf, ll,  oc, psi, wsic, w2sic, wsictot, fref, &
-                    enne, isw, do_nkmix, nkmixfact, nkscalfact
+                    enne, isw,nkscalfact,do_nkpz
  
   implicit none
   ! output
@@ -60,26 +60,18 @@ subroutine esic_unrel(enlunrel,nunrel,funrel,ekinnl)
      do i=1,grid%mesh
         v(i)=v(i)*psi(i,1,n)**2
      enddo
-     if( .not. do_nkmix ) then
-       if(oc(n)>1.0_dp) then
-         dhrsic = dhrsic + oc(n)*f(n)*(2.0_dp*fref-f(n)) &
-                         * 0.5_dp*int_0_inf_dr(v,grid,grid%mesh,2)*nkscalfact
-         dxcsic = dxcsic - oc(n)*int_0_inf_dr(work1,grid,grid%mesh,2)
-       else
-         dhrsic = dhrsic + f(n)*(2.0_dp*fref-f(n)) &
-                         * 0.5_dp*int_0_inf_dr(v,grid,grid%mesh,2)*nkscalfact
-         dxcsic = dxcsic - int_0_inf_dr(work1,grid,grid%mesh,2)
-       endif
+     if(oc(n)>1.0_dp) then
+       dhrsic = dhrsic + oc(n)*f(n)*(2.0_dp*fref-f(n)) &
+                       * 0.5_dp*int_0_inf_dr(v,grid,grid%mesh,2)*nkscalfact
+       if(do_nkpz) dhrsic = dhrsic - oc(n)*f(n)*fref &
+                       *int_0_inf_dr(v,grid,grid%mesh,2)*nkscalfact
+       dxcsic = dxcsic - oc(n)*int_0_inf_dr(work1,grid,grid%mesh,2)
      else
-       if(oc(n)>1.0_dp) then
-         dhrsic = dhrsic + oc(n)*f(n)*(2.0_dp*fref*(1.0_dp-nkmixfact)-f(n)) &
-                         * 0.5_dp*int_0_inf_dr(v,grid,grid%mesh,2)*nkscalfact
-         dxcsic = dxcsic - oc(n)*int_0_inf_dr(work1,grid,grid%mesh,2)
-       else
-         dhrsic = dhrsic + f(n)*(2.0_dp*fref*(1.0_dp-nkmixfact)-f(n)) &
-                         * 0.5_dp*int_0_inf_dr(v,grid,grid%mesh,2)*nkscalfact
-         dxcsic = dxcsic - int_0_inf_dr(work1,grid,grid%mesh,2)
-       endif
+       dhrsic = dhrsic + f(n)*(2.0_dp*fref-f(n)) &
+                       * 0.5_dp*int_0_inf_dr(v,grid,grid%mesh,2)*nkscalfact
+       if(do_nkpz) dhrsic = dhrsic - f(n)*fref &
+                       *int_0_inf_dr(v,grid,grid%mesh,2)*nkscalfact
+       dxcsic = dxcsic - int_0_inf_dr(work1,grid,grid%mesh,2)
      endif
   enddo
   !
@@ -89,13 +81,8 @@ subroutine esic_unrel(enlunrel,nunrel,funrel,ekinnl)
   do i=1,grid%mesh
     v(i)=v(i)*psi(i,1,nunrel)**2
   enddo
-  if( .not. do_nkmix ) then
-    dhrsic = dhrsic + funrel*(2.0_dp*fref-funrel) &
-                    * 0.5_dp*int_0_inf_dr(v,grid,grid%mesh,2)*nkscalfact
-  else
-    dhrsic = dhrsic + funrel*(2.0_dp*fref*(1.0_dp-nkmixfact)-funrel) &
-                    * 0.5_dp*int_0_inf_dr(v,grid,grid%mesh,2)*nkscalfact
-  endif
+  dhrsic = dhrsic + funrel*(2.0_dp*fref-funrel) &
+                  * 0.5_dp*int_0_inf_dr(v,grid,grid%mesh,2)*nkscalfact
   dxcsic = dxcsic - int_0_inf_dr(work1,grid,grid%mesh,2)
   !
   etot=etot+dhrsic+dxcsic

@@ -40,7 +40,7 @@ subroutine ld1_readin
                          rhos, bmat, lsmall, &              ! extra for paw2us
                          lgipaw_reconstruction, lsave_wfc, &
                          relpert, fref, rhobarfact, do_unrel, nunrel, do_affinity, &
-                         do_nkmix, nkmixfact, do_unocc, nkscalfact
+                         do_unocc, nkscalfact, do_nkpz
 
   use funct, only : set_dft_from_name
   use radial_grids, only: do_mesh, check_mesh
@@ -97,10 +97,9 @@ subroutine ld1_readin
        nunrel,   & ! the index of the unrelaxed orbital
        do_unrel, & ! whether to do post-processing unrelaxed calculations
        do_affinity, & ! whether to calculate EAs or IPs
-       do_nkmix, & ! whether to mix NK with PZ
-       nkmixfact, & ! mixing factor
-       nkscalfact, & ! NK scalng factor
-       do_unocc
+       nkscalfact, & ! NK scaling factor
+       do_nkpz, & ! whether to do NK on top of PZ
+       do_unocc ! 
 
   namelist /test/                 &
        nconf,         & ! the number of configurations
@@ -203,10 +202,9 @@ subroutine ld1_readin
   config= ' '
   fref=0.0
   rhobarfact=0.0
-  do_nkmix=.false.
-  nkmixfact=0.0
   nkscalfact=1.0
   do_unocc=.false.
+  do_nkpz=.false.
 
   verbosity='low'
   lpaw = .false.

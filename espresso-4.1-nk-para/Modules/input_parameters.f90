@@ -435,6 +435,7 @@ MODULE input_parameters
         ! add non-Koopmans self-interaction correction parameters
         INTEGER :: nknmax = -1
         LOGICAL :: do_nk  = .false.
+        LOGICAL :: do_nkpz  = .false.
         LOGICAL :: do_nkmix  = .false.
         LOGICAL :: do_wref = .true.
         LOGICAL :: do_wxd = .true.
@@ -477,7 +478,7 @@ MODULE input_parameters
              do_ee, do_nk, do_wref, do_wxd, update_rhoref,                    &
              fref, rhobarfact, ampfield, do_efield,                           &
              do_hf, vanishing_rho_w, do_nkmix, nkmixfact, nknmax,             &
-             do_spinsym, nkscalfact, f_cutoff, hfscalfact
+             do_spinsym, nkscalfact, f_cutoff, hfscalfact, do_nkpz
 !
 !=----------------------------------------------------------------------------=!
 !  EE Namelist Input Parameters

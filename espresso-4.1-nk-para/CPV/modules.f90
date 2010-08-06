@@ -351,6 +351,7 @@ module nksic
   !
   integer :: nknmax
   logical :: do_nk
+  logical :: do_nkpz
   logical :: do_nkmix
   logical :: do_spinsym
   logical :: do_wxd

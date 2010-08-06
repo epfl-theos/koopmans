@@ -20,7 +20,7 @@ subroutine write_results
                         dhrsic, dxcsic, eps0, iter, psi, rytoev_fact, lsmall, &
                         core_state, ekinc, ekinv, ae_fc_energy, cau_fact, &
                         relpert, evel, edar, eso, fref, rhobarfact, &
-                        nkmixfact, nkscalfact
+                        do_nkpz, nkscalfact
 
   use funct, only :  get_iexch, get_dft_name
   implicit none
@@ -48,10 +48,11 @@ subroutine write_results
   if (zed.ne.0.0) write(stdout,1250) zed
 1250 format(/5x,'atomic number is',f6.2)
   write(stdout,2300) dft_name(1:len_trim(dft_name)),lsd,isic,latt,beta, &
-                     tr2,fref,rhobarfact,nkscalfact,nkmixfact
+                     tr2,fref,rhobarfact,nkscalfact
 2300 format(5x,'dft =',a,'   lsd =',i1,' sic =',i1,' latt =',i1, &
        '  beta=',f4.2,' tr2=',1pe7.1,  ' fref=',1pe7.1, ' rhobarfact=',1pe7.1, &
-       ' nkscalfact=',1pe7.1,' nkmixfact=',1pe7.1)
+       ' nkscalfact=',1pe7.1)
+  if(do_nkpz) write(stdout,'(5x,''nk is done on top of pz'')')
   write(stdout,1270) grid%mesh,grid%r(grid%mesh),grid%xmin,grid%dx
 1270 format(5x,'mesh =',i4,' r(mesh) =',f10.5,' xmin =',f6.2,' dx =',f8.5)
   if (rel==0 .and. .not.relpert) then

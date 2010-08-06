@@ -67,7 +67,6 @@ module ld1inc
        deld,       & ! the deltae of energy
        fref,       & ! the reference occupation for the nk correction
        rhobarfact, & ! the factor of the background density
-       nkmixfact,  & ! the mixing factor 
        nkscalfact    ! the scaling factor 
   !
   !   the variables which define the pseudopotential
@@ -172,8 +171,8 @@ module ld1inc
         lsmall,   &  ! if true writes the small component on file
         do_unrel, &  ! if true performs unrelaxed calculation at the end of the run
         do_affinity, &
-        do_nkmix, &
-        do_unocc
+        do_unocc, &
+        do_nkpz ! if true nk is done on top of pz
 
   character(len=4) :: &
        verbosity     ! if 'high' writes more information on output

@@ -16,7 +16,7 @@ subroutine sic_wkercorr(n,f,wsic,w2sic)
   use radial_grids, only : ndmx
   use constants, only: e2, fpi
   use ld1inc, only : nspin, lsd, rel, nlcc, rhoc, grid, psi, rho, isw, fref, &
-                     ll, rhobarfact, do_nkmix, nkmixfact, nkscalfact
+  ll, rhobarfact,nkscalfact, do_nkpz
   use radial_grids, only: hartree
   use funct, only: dmxc_spin
   implicit none
@@ -86,16 +86,27 @@ subroutine sic_wkercorr(n,f,wsic,w2sic)
          wsic(i,is) = rhobarfact*(vxc0(is)+dvxc(is)-vxc(is))
      enddo
   enddo
+  !
+  !     add contribution for NK on top of PZ
+  !
+  if(do_nkpz) then
+    do i=1,grid%mesh
+      rh=0.0_dp
+      do is=1,nspin
+        if(is==isw(n)) rh(is)=fref*rhoele(i)/grid%r2(i)/fpi
+      enddo
+      dmuxc=0.0_dp
+      call dmxc_spin_ld1(rh(1),rh(2),dmuxc(1,1),dmuxc(1,2), &
+                         dmuxc(2,1),dmuxc(2,2),vanishing_rh)
+      w2sic(i)=w2sic(i)-dmuxc(isw(n),isw(n))*rhoele(i)/grid%r2(i)/fpi-vh(i)
+      waux(i)=w2sic(i)*psi(i,1,n)**2
+    enddo
+  endif
   if( do_w2 ) then
     w2cst = int_0_inf_dr(waux,grid,grid%mesh,2*ll(n)+2)
     do i=1,grid%mesh
        w2sic(i) = fref*(w2sic(i)-w2cst)
     enddo
-  endif
-  !
-  if( do_nkmix ) then
-    wsic=(1.0_dp-nkmixfact)*wsic
-    w2sic=(1.0_dp-nkmixfact)*w2sic
   endif
   !
   wsic=nkscalfact*wsic

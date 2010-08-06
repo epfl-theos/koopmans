@@ -10,23 +10,24 @@
 !---------------------------------------------------------------
 subroutine sic_correction(n,f,vhn1,vhn2,egc) 
   !---------------------------------------------------------------
-  !   set up the orbital-dependent selfconsistent potential generated
-  !   by the n-th wavefunction - for self-interaction correction
+  !   set up the orbital-dependent self-consistent potential generated
+  !   by the n-th wavefunction -- for self-interaction correction
   !
   use kinds, only : dp
   use radial_grids, only : ndmx
   use constants, only: e2, fpi
   use ld1inc, only : nspin, lsd, rel, nlcc, rhoc, grid, psi, rho, fref, &
-                     isw, rhobarfact, do_nkmix, nkmixfact, nkscalfact
+                     isw, rhobarfact, nkscalfact, &
+                     do_nkpz
   use funct, only: dft_is_gradient
   use radial_grids, only: hartree
   implicit none
   integer :: n
-  real(DP):: f,vhn1(ndmx),vhn2(ndmx), egc(ndmx)
+  real(dp):: f,vhn1(ndmx),vhn2(ndmx), egc(ndmx)
   !
   integer :: i, is
-  real(DP):: rh(2), rhc, exc_t, vxc(2), vxcref(2), vxc0(2)
-  real(DP):: vgc(ndmx,2),  egc0(ndmx), rhoele(ndmx), rhobar(ndmx,2)
+  real(dp):: rh(2), rhc, exc_t, vxc(2), vxcref(2), vxc0(2)
+  real(dp):: vgc(ndmx,2),  egc0(ndmx), rhoele(ndmx), rhobar(ndmx,2)
   logical :: gga
   vhn1=0.0_dp
   vhn2=0.0_dp
@@ -43,7 +44,6 @@ subroutine sic_correction(n,f,vhn1,vhn2,egc)
     rhoele(i)=psi(i,1,n)**2
   enddo
   call hartree(0,2,grid%mesh,grid,rhoele,vhn1)
-  !
   !
   rhobar=0.0_dp
   do i=1,grid%mesh
@@ -88,22 +88,26 @@ subroutine sic_correction(n,f,vhn1,vhn2,egc)
      !
      vhn2(i)= vhn1(i)*(f-fref)+vxc(isw(n))-vxcref(isw(n))
      !
-     if( do_nkmix ) then
-       rh=0.0_dp
-       do is=1,nspin
-         if(is==isw(n)) rh(is)=f*rhoele(i)
-         rh(is)=rh(is)/grid%r2(i)/fpi
-       enddo
-       vxc=0.0_dp
-       call vxc_t(rh,rhc,lsd,vxc)
-       egc(i)=(1.0-nkmixfact)*egc(i)+nkmixfact*exc_t(rh,rhc,lsd)*(rh(1)+rh(2))*grid%r2(i)*fpi
-       vhn2(i)=(1.0-nkmixfact)*vhn2(i)+nkmixfact*(vhn1(i)*f+vxc(isw(n)))
-     end if
-     !
      egc(i)=egc(i)*nkscalfact
      vhn2(i)=vhn2(i)*nkscalfact
      !
   enddo
+  !
+  !    compute Hxc contribution if NK is done on top of PZ
+  !    taking into account the minus sign in the definition of vhn2
+  !
+  if(do_nkpz) then
+    do i=1,grid%mesh
+      rh=0.0_dp
+      do is=1,nspin
+        if(is==isw(n)) rh(is)=fref*rhoele(i)/grid%r2(i)/fpi
+      enddo
+      vxc=0.0_dp
+      call vxc_t(rh,rhc,lsd,vxc)
+      egc(i)= egc(i)+vxc(isw(n))*rhoele(i)*f*nkscalfact
+      vhn2(i)=vhn2(i)+(vhn1(i)*fref+vxc(isw(n)))*nkscalfact
+    enddo
+  endif
   !
   return
   !

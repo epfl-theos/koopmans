@@ -218,6 +218,7 @@ MODULE read_namelists_module
 ! DCC
        do_ee = .false.  ! main switch of EE (electrostatic embedding)
        do_nk = .false.  ! main switch of NK (non-Koopmans)
+       do_nkpz = .false.  ! main switch of NK (non-Koopmans) on top of PZ
        do_nkmix = .false.  ! main switch of NK-PZ mixing
        nkmixfact = 0.0_DP  ! NK-PZ mixing 
        nkscalfact = 1.0_DP  ! NK coeffcient 
@@ -840,6 +841,7 @@ MODULE read_namelists_module
        !
        CALL mp_bcast( do_ee,                      ionode_id )
        CALL mp_bcast( do_nk,                      ionode_id )
+       CALL mp_bcast( do_nkpz,                    ionode_id )
        CALL mp_bcast( do_nkmix,                   ionode_id )
        CALL mp_bcast( nknmax,                     ionode_id )
        CALL mp_bcast( nkmixfact,                  ionode_id )
