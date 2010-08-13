@@ -140,7 +140,7 @@ clean :
 	    fi \
 	done
 	- /bin/rm -rf bin/*.x tmp
-	- cd tests; /bin/rm -rf CRASH *.out *.out2 
+	#- cd tests; /bin/rm -rf CRASH *.out *.out2 
 
 # remove configuration files too
 distclean veryclean : clean
