@@ -16,7 +16,7 @@ subroutine sic_wkercorr(n,f,wsic,w2sic)
   use radial_grids, only : ndmx
   use constants, only: e2, fpi
   use ld1inc, only : nspin, lsd, rel, nlcc, rhoc, grid, psi, rho, isw, fref, &
-  ll, rhobarfact,nkscalfact, do_nkpz
+  ll, rhobarfact,nkscalfact, do_nkpz, do_wref, do_wxd
   use radial_grids, only: hartree
   use funct, only: dmxc_spin
   implicit none
@@ -111,6 +111,9 @@ subroutine sic_wkercorr(n,f,wsic,w2sic)
   !
   wsic=nkscalfact*wsic
   w2sic=nkscalfact*w2sic
+  !
+  if(.not.do_wref) w2sic=0.0_dp
+  if(.not.do_wxd) wsic=0.0_dp
   !
   return
   !

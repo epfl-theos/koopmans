@@ -122,6 +122,7 @@ subroutine scf(ic)
      endif
   enddo
   call infomsg('scf','warning: convergence not achieved')
+  enl=0.0_dp
 45 continue
    return
 

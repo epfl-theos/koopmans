@@ -20,7 +20,7 @@ subroutine write_results
                         dhrsic, dxcsic, eps0, iter, psi, rytoev_fact, lsmall, &
                         core_state, ekinc, ekinv, ae_fc_energy, cau_fact, &
                         relpert, evel, edar, eso, fref, rhobarfact, &
-                        do_nkpz, nkscalfact
+                        do_nkpz, nkscalfact, do_wref, do_wxd
 
   use funct, only :  get_iexch, get_dft_name
   implicit none
@@ -53,6 +53,8 @@ subroutine write_results
        '  beta=',f4.2,' tr2=',1pe7.1,  ' fref=',1pe7.1, ' rhobarfact=',1pe7.1, &
        ' nkscalfact=',1pe7.1)
   if(do_nkpz) write(stdout,'(5x,''nk is done on top of pz'')')
+  if(.not.do_wref) write(stdout,'(5x,''wref not included'')')
+  if(.not.do_wxd) write(stdout,'(5x,''wxd not included'')')
   write(stdout,1270) grid%mesh,grid%r(grid%mesh),grid%xmin,grid%dx
 1270 format(5x,'mesh =',i4,' r(mesh) =',f10.5,' xmin =',f6.2,' dx =',f8.5)
   if (rel==0 .and. .not.relpert) then

@@ -170,8 +170,11 @@ module ld1inc
   logical ::      &
         lsmall,   &  ! if true writes the small component on file
         do_unrel, &  ! if true performs unrelaxed calculation at the end of the run
-        do_affinity, &
-        do_unocc, &
+        do_affinity, & ! if true goes in the affinity direction for the
+                       !unrelaxed calculations
+        do_unocc, & ! if true calculate unoccupied state energies
+        do_wref, & ! if true includes wref contributions
+        do_wxd, & ! if true includes wxd contributions
         do_nkpz ! if true nk is done on top of pz
 
   character(len=4) :: &

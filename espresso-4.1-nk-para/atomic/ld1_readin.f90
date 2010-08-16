@@ -40,7 +40,7 @@ subroutine ld1_readin
                          rhos, bmat, lsmall, &              ! extra for paw2us
                          lgipaw_reconstruction, lsave_wfc, &
                          relpert, fref, rhobarfact, do_unrel, nunrel, do_affinity, &
-                         do_unocc, nkscalfact, do_nkpz
+                         do_unocc, nkscalfact, do_nkpz, do_wxd, do_wref
 
   use funct, only : set_dft_from_name
   use radial_grids, only: do_mesh, check_mesh
@@ -99,7 +99,9 @@ subroutine ld1_readin
        do_affinity, & ! whether to calculate EAs or IPs
        nkscalfact, & ! NK scaling factor
        do_nkpz, & ! whether to do NK on top of PZ
-       do_unocc ! 
+       do_unocc, & ! whether to include unoccupied states
+       do_wref, & ! whether to include wref
+       do_wxd ! whether to include wxd
 
   namelist /test/                 &
        nconf,         & ! the number of configurations
@@ -205,6 +207,8 @@ subroutine ld1_readin
   nkscalfact=1.0
   do_unocc=.false.
   do_nkpz=.false.
+  do_wref=.true.
+  do_wxd=.true.
 
   verbosity='low'
   lpaw = .false.
