@@ -164,7 +164,14 @@
               END IF
           ELSE
              !
- 999         WRITE( stdout,100) etot, ekin, eht, esr, eself, epseu, enl, exc, vave
+             ! removed 999 line tag
+             !IF ( iprsta > 1 ) THEN 
+             !   WRITE( stdout,101) etot, ekin, ehte, eht, esr, eself, epseu, enl, exc, vave
+             !ELSE
+             !   WRITE( stdout,100) etot, ekin, eht, esr, eself, epseu, enl, exc, vave
+             !ENDIF
+             !
+             WRITE( stdout,100) etot, ekin, eht, esr, eself, epseu, enl, exc, vave
              !
           END IF
           !
@@ -206,6 +213,17 @@
 
   100 format(//'                total energy = ',f14.5,' Hartree a.u.'/ &
      &         '              kinetic energy = ',f14.5,' Hartree a.u.'/ &
+     &         '        electrostatic energy = ',f14.5,' Hartree a.u.'/ &
+     &         '                         esr = ',f14.5,' Hartree a.u.'/ &
+     &         '                       eself = ',f14.5,' Hartree a.u.'/ &
+     &         '      pseudopotential energy = ',f14.5,' Hartree a.u.'/ &
+     &         '  n-l pseudopotential energy = ',f14.5,' Hartree a.u.'/ &
+     &         ' exchange-correlation energy = ',f14.5,' Hartree a.u.'/ &
+     &         '           average potential = ',f14.5,' Hartree a.u.'//)
+
+  101 format(//'                total energy = ',f14.5,' Hartree a.u.'/ &
+     &         '              kinetic energy = ',f14.5,' Hartree a.u.'/ &
+     &         '              hartree energy = ',f14.5,' Hartree a.u.'/ &
      &         '        electrostatic energy = ',f14.5,' Hartree a.u.'/ &
      &         '                         esr = ',f14.5,' Hartree a.u.'/ &
      &         '                       eself = ',f14.5,' Hartree a.u.'/ &

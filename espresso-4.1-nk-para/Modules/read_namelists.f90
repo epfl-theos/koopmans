@@ -228,7 +228,6 @@ MODULE read_namelists_module
        do_wxd = .true.  ! include cross-terms in NK potential
        do_wref = .true.  ! include reference variational terms
        do_spinsym = .false. ! whether to apply spin up-down symmmetry 
-       update_rhoref = .true. ! whether to update reference densities
        fref = 0.5_DP
        rhobarfact = 1.0_DP
        vanishing_rho_w = 1.0e-12_DP
@@ -850,7 +849,6 @@ MODULE read_namelists_module
        CALL mp_bcast( do_hf,                      ionode_id )
        CALL mp_bcast( do_wref,                    ionode_id )
        CALL mp_bcast( do_wxd,                     ionode_id )
-       CALL mp_bcast( update_rhoref,              ionode_id )
        CALL mp_bcast( vanishing_rho_w,            ionode_id )
        CALL mp_bcast( fref,                       ionode_id )
        CALL mp_bcast( f_cutoff,                   ionode_id )

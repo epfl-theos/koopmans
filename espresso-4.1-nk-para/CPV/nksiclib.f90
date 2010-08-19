@@ -12,7 +12,7 @@
 !      (MIT, University of Oxford)
 !
 !-----------------------------------------------------------------------
-      subroutine nksic_potential(c,rhor,tfirst)
+      subroutine nksic_potential( c, rhor)
 !-----------------------------------------------------------------------
 !
 ! ... calculate orbital densities and non-Koopmans potentials
@@ -45,7 +45,6 @@
       !
       complex(dp), intent(in) :: c(ngw,nx)
       real(dp),    intent(in) :: rhor(nnrx,nspin)
-      logical,     intent(in) :: tfirst
 
       !
       ! local variables
@@ -96,15 +95,15 @@
           !
           ! define rhoref and rhobar
           !
-          call nksic_get_rhoref(i,nnrx,ispin(i),nspin,  &
-                                focc,rhor,orb_rhor(:,jj), &
-                                rhoref,rhobar,tfirst)
+          call nksic_get_rhoref( i, nnrx, ispin(i), nspin,  &
+                                 focc, rhor, orb_rhor(:,jj), &
+                                 rhoref, rhobar)
           !
           ! compute all the piecies to build the potentials
           !
-          call nksic_correction(focc,ispin(i),orb_rhor(:,jj), &
-                                rhor,rhoref,rhobar,vsic(:,i), &
-                                wxdsic(:,:),wrefsic(:),pink(i),ibnd)
+          call nksic_correction( focc, ispin(i), orb_rhor(:,jj), &
+                                 rhor, rhoref, rhobar, vsic(:,i), &
+                                 wxdsic(:,:), wrefsic(:), pink(i), ibnd)
 
           !
           ! here information is accumulated over states
@@ -120,10 +119,15 @@
           ! compute pz pieces to build the potential and the energy
           !
           if(do_nkpz) then
-            call nksic_correction_pz(focc,orb_rhor(:,jj),vsicpz,wrefsic,pinkpz, &
-                                     ibnd,ispin)
-            vsic(1:nnrx,i)=vsic(1:nnrx,i)+vsicpz(1:nnrx)+wrefsic(1:nnrx)
-            pink(i)=pink(i)+pinkpz
+            !
+            call nksic_correction_pz(focc,orb_rhor(:,jj),vsicpz,wrefsic,&
+                                     pinkpz, ibnd, ispin)
+            !
+            vsic(1:nnrx,i) = vsic(1:nnrx,i) + vsicpz(1:nnrx) &
+                           + wrefsic(1:nnrx)
+            !
+            pink(i) = pink(i) +pinkpz
+            !
           endif
           !
           ! take care of spin symmetry
@@ -318,14 +322,13 @@ end subroutine nksic_get_orbitalrho
 !---------------------------------------------------------------
 !-----------------------------------------------------------------------
       subroutine nksic_get_rhoref( i, nnrx, ispin, nspin, f, &
-                                   rhor, orb_rhor, rhoref_, rhobar_, tfirst )
+                                   rhor, orb_rhor, rhoref_, rhobar_)
 !-----------------------------------------------------------------------
 !
 ! Computes rhoref and rhobar
 !
       use kinds,         only: dp
-      use nksic,         only: rhoref0, update_rhoref, &
-                               fref, rhobarfact
+      use nksic,         only: fref, rhobarfact
       !
       implicit none
 
@@ -339,7 +342,6 @@ end subroutine nksic_get_orbitalrho
       real(dp),      intent(in)  :: orb_rhor(nnrx)
       real(dp),      intent(out) :: rhoref_(nnrx,2)
       real(dp),      intent(out) :: rhobar_(nnrx,2)
-      logical,       intent(in)  :: tfirst
       !
       integer :: ir, isp
 
@@ -367,29 +369,11 @@ end subroutine nksic_get_orbitalrho
 
       !
       ! define rhoref = rho + (f_ref -f_i) rho_i = rhobar_i + f_ref * rho_i
+      ! build rhoref from scratch
       !
-      if ( .not. update_rhoref .and. .not. tfirst ) then
-          !
-          ! rhoref is not updated and it is taken
-          ! from rhoref0
-          !
-          rhoref_(:,:) = rhoref0(:,:,i)
-          !
-      else
-          !
-          ! build rhoref from scratch
-          !
-          rhoref_(:,1:2)   = rhobar_(:,1:2)
-          rhoref_(:,ispin) = rhoref_(:,ispin) + fref * orb_rhor(:)
-          !
-      endif
+      rhoref_(:,1:2)   = rhobar_(:,1:2)
+      rhoref_(:,ispin) = rhoref_(:,ispin) + fref * orb_rhor(:)
       !
-      ! store rhoref if the case
-      if ( tfirst .and. .not. update_rhoref ) then
-          !
-          rhoref0(:,:,i) = rhoref_(:,:)
-          !
-      endif
       !
       call stop_clock( 'nksic_rhoref' )
       return
@@ -410,7 +394,7 @@ end subroutine nksic_get_rhoref
       use nksic,                only : fref, rhobarfact, nkmixfact, &
                                        do_nkmix, nknmax, nkscalfact, &
                                        vanishing_rho => vanishing_rho_w, &
-                                       do_wref, do_wxd, update_rhoref, &
+                                       do_wref, do_wxd, &
                                        etxc, vxc => vxcsic
       use grid_dimensions,      only : nnrx, nr1, nr2, nr3
       use gvecp,                only : ngm
@@ -483,79 +467,20 @@ end subroutine nksic_get_rhoref
       !
       ! Compute self-hartree contributions
       !
-      if( .not. update_rhoref ) then
-          !
-          ! when rhoref is not updated, we need to compute
-          ! the hartree term for more then one density.
-          ! The extra term is computed here.
-          !
-          rhogaux=0.0_dp
-          do is=1,2
-              !
-              vhaux(:)=rhoele(:,is)
-              call fwfft('Dense',vhaux,dfftp )
-              !
-              do ig=1,ngm
-                  rhogaux(ig)=rhogaux(ig)+vhaux(np(ig))
-              enddo
-              !
-          enddo
-          !
-          if(gstart==2) vtmp(1)=(0.d0,0.d0)
-          do ig=gstart,ngm
-              vtmp(ig)=rhogaux(ig)*fpi/(tpiba2*g(ig))
-          enddo
-          !
-          if(do_comp) then
-              call calc_tcc_potential(vcorr,rhogaux)
-              vtmp=vtmp+vcorr
-          endif
-          !
-          vhaux=0.0_dp
-          do ig=1,ngm
-              vhaux(np(ig))=vtmp(ig)
-              vhaux(nm(ig))=conjg(vtmp(ig))
-          enddo
-          call invfft('Dense',vhaux,dfftp)
-          !
-          ehele=0.5_dp*f*f*sum(dble(vhaux(1:nnrx))*rhoele(1:nnrx,ispin))
-          !
-      endif 
-      
-
       rhogaux=0.0_dp
-      if ( update_rhoref ) then
-          !
-          ! rhoele has no occupation
-          !
-          ! f-fref is NOT included here in vhaux
-          ! (will be added afterwards)
-          !
-          vhaux(:) = rhoele(:,ispin)
-          !
-          call fwfft('Dense',vhaux,dfftp )
-          !
-          do ig=1,ngm
-              rhogaux(ig) = vhaux( np(ig) )
-          enddo
-          !
-      else
-          !
-          ! f-fref is instead implicitly included here in vhaux
-          !
-          do is = 1, 2
-              !
-              vhaux(:) = rhoref(:,is)-rhobar(:,is)-f*rhoele(:,is)
-              !
-              call fwfft('Dense',vhaux,dfftp )
-              !
-              do ig=1,ngm
-                  rhogaux(ig)=rhogaux(ig)+vhaux(np(ig))
-              enddo
-              !
-          enddo
-          !
-      endif
+      !
+      ! rhoele has no occupation
+      !
+      ! f-fref is NOT included here in vhaux
+      ! (will be added afterwards)
+      !
+      vhaux(:) = rhoele(:,ispin)
+      !
+      call fwfft('Dense',vhaux,dfftp )
+      !
+      do ig=1,ngm
+          rhogaux(ig) = vhaux( np(ig) )
+      enddo
 
       !    
       ! compute hartree-like potential
@@ -595,39 +520,27 @@ end subroutine nksic_get_rhoref
       ! self-hartree contrib to pink
       ! and init vsic
       !
-      if( update_rhoref ) then
-          !
-          !ehele=0.5_dp * sum(dble(vhaux(1:nnrx))*rhoele(1:nnrx,ispin))
-          !
-          ehele = 2.0_dp * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm)))
-          if ( gstart == 2 ) ehele = ehele -DBLE ( CONJG( vtmp(1) ) * rhogaux(1) )
-          !
-          ! the f * (2.0d0 * fref-f) term is added here
-          ehele = 0.5_dp * f * (2.0d0 * fref-f) * ehele * omega / fact
-
-          !
-          ! fref-f has to be included explicitly in rhoele
-          !
-          vsic(1:nnrx)=(fref-f)*dble(vhaux(1:nnrx)) 
-          !
-      else
-          ! ehele has been computed at the beginning in this case
-          ! compute ehele2
-          ehele2 = f * sum(dble(vhaux(1:nnrx))*rhoele(1:nnrx,ispin))
-
-          !
-          ! fref-f has already included
-          !
-          vsic(1:nnrx)=dble(vhaux(1:nnrx)) 
-          !
-      endif
+      !ehele=0.5_dp * sum(dble(vhaux(1:nnrx))*rhoele(1:nnrx,ispin))
       !
+      ehele = 2.0_dp * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm)))
+      if ( gstart == 2 ) ehele = ehele -DBLE ( CONJG( vtmp(1) ) * rhogaux(1) )
+      !
+      ! the f * (2.0d0 * fref-f) term is added here
+      ehele = 0.5_dp * f * (2.0_dp * fref-f) * ehele * omega / fact
+
+      !
+      ! fref-f has to be included explicitly in rhoele
+      !
+      vsic(1:nnrx)=(fref-f)*dble(vhaux(1:nnrx)) 
+
       deallocate(rhogaux)
       deallocate(vtmp)
       deallocate(vcorr)
       if ( .not. do_nkmix ) deallocate(vhaux)
       !
       CALL stop_clock( 'nksic_corr_h' )
+
+
       CALL start_clock( 'nksic_corr_vxc' )
       !
       !   add self-xc contributions
@@ -640,43 +553,41 @@ end subroutine nksic_get_rhoref
          allocate(haux(1,1,1))
          grhoraux=0.0_dp
       endif
-         
-      if ( nspin == 1 .or. .not. update_rhoref ) then
-          allocate(rhoraux(nnrx,2))
-      endif
+      !   
       allocate(vxc0(nnrx,2))
       allocate(vxcref(nnrx,2))
-
-
+      !
       etxcref=0.0_dp
       vxcref=0.0_dp
+
       !
       !rhoraux = rhoref
       call exch_corr_wrapper(nnrx,2,grhoraux,rhoref,etxcref,vxcref,haux)
       
 
       !
-      ! this term is always computed if rhoref is not updated.
-      ! otherwise is computed only for ibnd, ispin == 1 and stored
+      ! this term is computed for ibnd, ispin == 1 and stored
+      ! or if rhobarfact < 1
       !
-
-      if ( .not. update_rhoref .or. ( ibnd == 1 .and. ispin == 1 ) ) then
+      if ( ( ibnd == 1 .and. ispin == 1) .OR. rhobarfact < 1.0_dp ) then
           !
           etxc=0.0_dp
           vxc=0.0_dp
           !
-          ! this is just a complication to save some memory 
-          if ( nspin == 2 ) then 
-              call exch_corr_wrapper(nnrx,2,grhoraux,rhor,etxc,vxc,haux)
-          else
-              !
-              rhoraux = rhobar + f*rhoele
-              call exch_corr_wrapper(nnrx,2,grhoraux,rhoraux,etxc,vxc,haux)
-              !
-          endif
+          ! some meory can be same in the nspin-2 case, 
+          ! considering that rhobar + f*rhoele is identical to rho
+          ! when rhobarfact == 1 
+          !
+          ! call exch_corr_wrapper(nnrx,2,grhoraux,rhor,etxc,vxc,haux)
+          !
+          allocate( rhoraux(nnrx, 2) )
+          !
+          rhoraux = rhobar + f*rhoele
+          call exch_corr_wrapper(nnrx,2,grhoraux,rhoraux,etxc,vxc,haux)
+          !
+          deallocate( rhoraux )
           !
       endif
-
 
       etxc0=0.0_dp
       vxc0=0.0_dp
@@ -694,13 +605,8 @@ end subroutine nksic_get_rhoref
       !
       etmp = f*sum( vxcref(1:nnrx,ispin) * rhoele(1:nnrx,ispin) )
       !
-      if( update_rhoref) then
-          pink = (etxc0-etxc) + etmp + ehele
-      else
-          pink = (etxc0-etxc) + etmp + ehele + ehele2
-      endif        
-      !
-      pink=pink*fact
+      pink = ( etxc0-etxc ) + etmp + ehele
+      pink = pink*fact
       !
       call mp_sum(pink,intra_image_comm)
       !
@@ -755,14 +661,16 @@ end subroutine nksic_get_rhoref
 
       if ( do_nkmix ) then
           !
+          allocate( rhoraux(nnrx, 2) )
+          !
           grhoraux=0.0_dp
           vxc=0.0_dp
           haux=0.0_dp
           etxc=0.0_dp
-          rhoraux=f*rhoele
+          rhoraux(:,:) = f*rhoele(:,:)
           !
           call exch_corr_wrapper(nnrx,2,grhoraux,rhoraux,etxc,vxc,haux)
-          !
+
           vsic(1:nnrx) = ( 1.0_dp -nkmixfact ) * vsic(1:nnrx) &
                          +nkmixfact*( -f*dble( vhaux(1:nnrx) ) -vxc(1:nnrx,ispin) )
           !
@@ -779,6 +687,7 @@ end subroutine nksic_get_rhoref
           !
           !
           deallocate( vhaux )
+          deallocate( rhoraux )
           !
       endif
 
@@ -804,7 +713,6 @@ end subroutine nksic_get_rhoref
 
 
       !
-      if ( allocated(rhoraux) ) deallocate(rhoraux)
       deallocate(vxc0)
       deallocate(vxcref)
       deallocate(rhoele)
@@ -1128,10 +1036,9 @@ end subroutine nksic_dmxc_spin_cp
       use kinds,                only : dp
       use constants,            only : e2, fpi
       use cell_base,            only : tpiba2,omega
-      use nksic,                only : fref, rhobarfact, nkmixfact, &
-                                       do_nkmix, nknmax, nkscalfact, &
+      use nksic,                only : fref, nkscalfact, &
                                        vanishing_rho => vanishing_rho_w, &
-                                       do_wref, do_wxd, update_rhoref, &
+                                       do_wref, do_wxd, &
                                        etxc, vxc => vxcsic
       use grid_dimensions,      only : nnrx, nr1, nr2, nr3
       use gvecp,                only : ngm

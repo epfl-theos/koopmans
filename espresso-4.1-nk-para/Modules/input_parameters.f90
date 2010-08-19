@@ -441,7 +441,6 @@ MODULE input_parameters
         LOGICAL :: do_wxd = .true.
         LOGICAL :: do_hf  = .false.
         LOGICAL :: do_spinsym  = .false.
-        LOGICAL :: update_rhoref  = .true.
         REAL ( DP ) :: fref  = 0.5_DP
         REAL ( DP ) :: rhobarfact = 1.0_DP
         REAL ( DP ) :: nkmixfact = 1.0_DP
@@ -475,7 +474,7 @@ MODULE input_parameters
              sic, sic_epsilon, force_pairing, sic_alpha,                      &
              tot_charge, multiplicity, tot_magnetization,                     &
              spline_ps, london, london_s6, london_rcut,                       &
-             do_ee, do_nk, do_wref, do_wxd, update_rhoref,                    &
+             do_ee, do_nk, do_wref, do_wxd,                                   &
              fref, rhobarfact, ampfield, do_efield,                           &
              do_hf, vanishing_rho_w, do_nkmix, nkmixfact, nknmax,             &
              do_spinsym, nkscalfact, f_cutoff, hfscalfact, do_nkpz

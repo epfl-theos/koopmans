@@ -2591,14 +2591,13 @@ END FUNCTION
 !
       use nksic,            ONLY : do_nk, do_wref, do_wxd, fref, rhobarfact, allocate_nksic, &
                                    vanishing_rho_w, do_nkmix, nkmixfact, nknmax, &
-                                   do_spinsym, nkscalfact, f_cutoff, update_rhoref, &
+                                   do_spinsym, nkscalfact, f_cutoff, &
                                    nksic_memusage, do_nkpz
       use input_parameters, ONLY : do_nk_ => do_nk, fref_ => fref, &
                                    rhobarfact_ => rhobarfact, &
                                    do_nkpz_ => do_nkpz, &
                                    do_wref_ => do_wref, &
                                    do_wxd_ => do_wxd, &
-                                   update_rhoref_ => update_rhoref, &
                                    vanishing_rho_w_ => vanishing_rho_w, &
                                    do_nkmix_ => do_nkmix, &
                                    do_spinsym_ => do_spinsym, &
@@ -2617,7 +2616,6 @@ END FUNCTION
       do_nkpz = do_nkpz_
       do_wxd = do_wxd_
       do_wref = do_wref_
-      update_rhoref = update_rhoref_
       fref = fref_
       do_spinsym = do_spinsym_
       vanishing_rho_w = vanishing_rho_w_
@@ -2641,7 +2639,7 @@ END FUNCTION
       !
       if( do_nk .and. meta_ionode ) then
           !
-          write(stdout,2010) do_wxd, do_wref, update_rhoref, do_nkpz
+          write(stdout,2010) do_wxd, do_wref, do_nkpz
           if( nknmax > 0 ) write(stdout,2030) nknmax
           !
           write( stdout, "(3x, 'NK memusage = ', f10.3, ' MB', /)" ) &
@@ -2655,7 +2653,6 @@ END FUNCTION
               3X,'f_cutoff = ',f7.4 )
 2010  format( 3X,'NK cross-derivatives = ',l4, /, &
               3X,'NK reference derivatives = ',l4, /, &
-              3X,'NK update of the reference = ',l4, /, &
               3X,'NK on top of PZ = ',l4 )
 2020  format( 3X,'NK-PZ mixing factor = ',f7.4)
 2030  format( 3X,'NK applied up to orbital',i7)
@@ -3569,3 +3566,5 @@ end function set_Hubbard_l
 !
       RETURN
       END SUBROUTINE atomic_wfc_northo
+
+

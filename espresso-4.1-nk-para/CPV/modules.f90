@@ -342,7 +342,6 @@ module nksic
   real(dp),    allocatable :: vxcsic(:,:)
   real(dp),    allocatable :: wxdsic(:,:)
   real(dp),    allocatable :: orb_rhor(:,:)
-  real(dp),    allocatable :: rhoref0(:,:,:)
   real(dp),    allocatable :: rhoref(:,:)
   real(dp),    allocatable :: rhobar(:,:)
   real(dp),    allocatable :: wrefsic(:)
@@ -356,7 +355,6 @@ module nksic
   logical :: do_spinsym
   logical :: do_wxd
   logical :: do_wref
-  logical :: update_rhoref
 
 contains
   !
@@ -377,20 +375,16 @@ contains
       allocate( rhobar(nnrx,2) )
       allocate( rhoref(nnrx,2) )
       !
-      if ( update_rhoref ) then
-          allocate( rhoref0(nnrx,2,nx) )
-      endif
-      !
       pink     = 0.0d0
       vsic     = 0.0d0
       vsicpsi  = 0.0d0
+      !
       !vxcsic   = 0.0d0
       !wxdsic   = 0.0d0
       !wrefsic  = 0.0d0
       !orb_rhor = 0.0d0
       !rhobar   = 0.0d0
       !rhoref   = 0.0d0
-      !if ( allocated(rhoref0) ) rhoref0=0.0d0
       !
   end subroutine allocate_nksic
   !
@@ -405,7 +399,6 @@ contains
       if ( allocated(vxcsic) )     cost = cost + real( size(vxcsic) )     *  8.0_dp 
       if ( allocated(wxdsic) )     cost = cost + real( size(wxdsic) )     *  8.0_dp 
       if ( allocated(orb_rhor))    cost = cost + real( size(orb_rhor))    *  8.0_dp
-      if ( allocated(rhoref0) )    cost = cost + real( size(rhoref0) )    *  8.0_dp
       if ( allocated(rhoref) )     cost = cost + real( size(rhoref) )     *  8.0_dp
       if ( allocated(rhobar) )     cost = cost + real( size(rhobar) )     *  8.0_dp
       if ( allocated(wrefsic) )    cost = cost + real( size(wrefsic) )    *  8.0_dp
@@ -425,7 +418,6 @@ contains
       if(allocated(orb_rhor)) deallocate(orb_rhor)
       if(allocated(rhobar)) deallocate(rhobar)
       if(allocated(rhoref)) deallocate(rhoref)
-      if(allocated(rhoref0)) deallocate(rhoref0)
       !
   end subroutine deallocate_nksic
   !
