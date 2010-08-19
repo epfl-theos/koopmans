@@ -216,17 +216,17 @@ MODULE read_namelists_module
        london_rcut = 200.00_DP
        !
 ! DCC
-       do_ee = .false.  ! main switch of EE (electrostatic embedding)
-       do_nk = .false.  ! main switch of NK (non-Koopmans)
-       do_nkpz = .false.  ! main switch of NK (non-Koopmans) on top of PZ
-       do_nkmix = .false.  ! main switch of NK-PZ mixing
-       nkmixfact = 0.0_DP  ! NK-PZ mixing 
+       do_ee = .false.      ! main switch of EE (electrostatic embedding)
+       do_nk = .false.      ! main switch of NK (non-Koopmans, fref)
+       do_pz = .false.      ! main switch of PZ SIC
+       do_nki = .false.     ! main switch of NKI (non-Koopmans, integral ref)
+       do_nkpz = .false.    ! main switch of NK (non-Koopmans) on top of PZ
        nkscalfact = 1.0_DP  ! NK coeffcient 
        hfscalfact = 1.0_DP  ! HF coefficient
-       nknmax = -1  ! if <> -1, index of the last orbital on which NK is applied
-       do_hf = .false.  ! main switch for HF calculations
-       do_wxd = .true.  ! include cross-terms in NK potential
-       do_wref = .true.  ! include reference variational terms
+       nknmax = -1          ! if <> -1, index of the last orbital on which NK is applied
+       do_hf = .false.      ! main switch for HF calculations
+       do_wxd = .true.      ! include cross-terms in NK potential
+       do_wref = .true.     ! include reference variational terms
        do_spinsym = .false. ! whether to apply spin up-down symmmetry 
        fref = 0.5_DP
        rhobarfact = 1.0_DP
@@ -840,10 +840,10 @@ MODULE read_namelists_module
        !
        CALL mp_bcast( do_ee,                      ionode_id )
        CALL mp_bcast( do_nk,                      ionode_id )
+       CALL mp_bcast( do_pz,                      ionode_id )
+       CALL mp_bcast( do_nki,                     ionode_id )
        CALL mp_bcast( do_nkpz,                    ionode_id )
-       CALL mp_bcast( do_nkmix,                   ionode_id )
        CALL mp_bcast( nknmax,                     ionode_id )
-       CALL mp_bcast( nkmixfact,                  ionode_id )
        CALL mp_bcast( nkscalfact,                 ionode_id )
        CALL mp_bcast( hfscalfact,                 ionode_id )
        CALL mp_bcast( do_hf,                      ionode_id )

@@ -82,7 +82,7 @@ SUBROUTINE init_run()
   USE ldau
   use eecp_mod,                 ONLY : do_comp
   use efield_mod,               ONLY : do_efield
-  USE nksic,                    ONLY : do_nk
+  USE nksic,                    ONLY : do_orbdep
   !
   IMPLICIT NONE
   !
@@ -246,7 +246,7 @@ SUBROUTINE init_run()
       !
   ENDIF
   !
-  IF ( do_nk .AND. iprsta > 1 ) THEN
+  IF ( do_orbdep .AND. iprsta > 1 ) THEN
       !
       ndim=MAXVAL( nupdwn(:) )
       ALLOCATE( hamilt( ndim, ndim, nspin) )

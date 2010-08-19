@@ -15,7 +15,11 @@
       subroutine nksic_potential( c, rhor)
 !-----------------------------------------------------------------------
 !
-! ... calculate orbital densities and non-Koopmans potentials
+! ... calculate orbital dependent potentials, 
+!     following the Non-Koopmans' (NK) scheme, 
+!     but also Perdew-Zunger (PZ),
+!     Non-Koopmans' integral definition (NKI),
+!     Non-Joopmans on Perdew Zunger (PZNK)
 !
       use kinds,                      only: dp
       use constants,                  only: pi, fpi
@@ -36,7 +40,8 @@
       use cp_interfaces,              only: fwfft, invfft
       use fft_base,                   only: dffts, dfftp
       use nksic,                      only: orb_rhor, vsic, wxdsic, &
-                                            wrefsic, rhoref, rhobar, pink, do_nkpz
+                                            wrefsic, rhoref, rhobar, pink, &
+                                            do_nk, do_nki, do_pz, do_nkpz
       use ions_base,                  only: nsp
       !
       implicit none
@@ -57,15 +62,23 @@
       ! main body
       !
       CALL start_clock( 'nksic_drv' )
+
       !
       ! compute potentials
       !
-      allocate(wtot(nnrx,2))
-      allocate(vsicpz(nnrx))
+      if ( do_nk .or. do_nkpz .or. do_nki ) then
+          allocate(wtot(nnrx,2))
+          wtot=0.0_dp
+      endif
       !
-      wtot=0.0_dp
+      if ( do_nkpz ) then
+          allocate(vsicpz(nnrx))
+          vsicpz=0.0_dp
+      endif
+      !
       pink=0.0_dp
       vsic=0.0_dp
+
       !
       ! loop over bands (2 ffts at the same time)
       !
@@ -84,10 +97,10 @@
           !
           ! this condition is important when n is odd
           !
-          if(i>n) exit inner_loop
+          if ( i>n ) exit inner_loop
           !
           ibnd=i
-          if(nspin==2.and.i>=iupdwn(2)) ibnd=i-iupdwn(2)+1
+          if( nspin==2 .and. i >= iupdwn(2) ) ibnd=i-iupdwn(2)+1
           !
           ! note: iupdwn(2) is set to zero if nspin = 1
           !
@@ -98,46 +111,89 @@
           call nksic_get_rhoref( i, nnrx, ispin(i), nspin,  &
                                  focc, rhor, orb_rhor(:,jj), &
                                  rhoref, rhobar)
-          !
-          ! compute all the piecies to build the potentials
-          !
-          call nksic_correction( focc, ispin(i), orb_rhor(:,jj), &
-                                 rhor, rhoref, rhobar, vsic(:,i), &
-                                 wxdsic(:,:), wrefsic(:), pink(i), ibnd)
 
           !
-          ! here information is accumulated over states
-          ! (wtot is added in the next loop)
+          ! compute nk pieces to build the potentials and the energy
           !
-          wtot(1:nnrx,1:2) = wtot(1:nnrx,1:2) + wxdsic(1:nnrx,1:2)
-          !
-          ! ths sic potential is partly updated here to save some memory
-          !
-          vsic(1:nnrx,i) = vsic(1:nnrx,i) + wrefsic(1:nnrx) &
-                         - wxdsic( 1:nnrx, ispin(i) )
-          ! 
-          ! compute pz pieces to build the potential and the energy
-          !
-          if(do_nkpz) then
-            !
-            call nksic_correction_pz(focc,orb_rhor(:,jj),vsicpz,wrefsic,&
-                                     pinkpz, ibnd, ispin)
-            !
-            vsic(1:nnrx,i) = vsic(1:nnrx,i) + vsicpz(1:nnrx) &
-                           + wrefsic(1:nnrx)
-            !
-            pink(i) = pink(i) +pinkpz
-            !
+          if ( do_nk .or. do_nkpz ) then
+              !
+              call nksic_correction_nk( focc, ispin(i), orb_rhor(:,jj), &
+                                        rhor, rhoref, rhobar, vsic(:,i), &
+                                        wxdsic, wrefsic, &
+                                        pink(i), ibnd)
+
+              !
+              ! here information is accumulated over states
+              ! (wtot is added in the next loop)
+              !
+              wtot(1:nnrx,1:2) = wtot(1:nnrx,1:2) + wxdsic(1:nnrx,1:2)
+              !
+              ! ths sic potential is partly updated here to save some memory
+              !
+              vsic(1:nnrx,i) = vsic(1:nnrx,i) + wrefsic(1:nnrx) &
+                             - wxdsic( 1:nnrx, ispin(i) )
+              !
           endif
+
+          ! 
+          ! compute nkpz pieces to build the potential and the energy
+          !
+          if( do_nkpz ) then
+              !
+              call nksic_correction_nkpz( focc, orb_rhor(:,jj), vsicpz, &
+                                           wrefsic, pinkpz, ibnd, ispin)
+              !
+              vsic(1:nnrx,i) = vsic(1:nnrx,i) + vsicpz(1:nnrx) &
+                             + wrefsic(1:nnrx)
+              !
+              pink(i) = pink(i) +pinkpz
+              !
+          endif
+
+          !
+          ! compute pz potentials and energy
+          !
+          if ( do_pz ) then 
+              !
+              call nksic_correction_pz ( focc, ispin(i), orb_rhor(:,jj), &
+                                         vsic(:,i), pink(i), ibnd )
+              !
+          endif
+
+          !
+          ! compute nki pieces to build the potentials and the energy
+          !
+          if ( do_nki ) then
+              !
+!              call nksic_correction_nki( focc, ispin(i), orb_rhor(:,jj), &
+!                                         rhor, rhobar, vsic(:,i), &
+!                                         wxdsic, pink(i), ibnd)
+              !
+              ! here information is accumulated over states
+              ! (wtot is added in the next loop)
+              !
+              wtot(1:nnrx,1:2) = wtot(1:nnrx,1:2) + wxdsic(1:nnrx,1:2)
+              !
+              ! ths sic potential is partly updated here to save some memory
+              !
+              vsic(1:nnrx,i) = vsic(1:nnrx,i) - wxdsic( 1:nnrx, ispin(i) )
+              !
+          endif
+
           !
           ! take care of spin symmetry
           !
-          if(nspin== 1) then
-            !
-            pink(i) = 2.0_dp * pink(i) 
-            wtot(1:nnrx,1) = wtot(1:nnrx,1) + wxdsic(1:nnrx,2)
-            wtot(1:nnrx,2) = wtot(1:nnrx,2) + wxdsic(1:nnrx,1)
-            !
+          pink(i) = f(i) * pink(i)
+          !
+          if ( do_nk .or. do_nkpz .or. do_nki ) then
+              !
+              if( nspin== 1 ) then
+                  !
+                  wtot(1:nnrx,1) = wtot(1:nnrx,1) + wxdsic(1:nnrx,2)
+                  wtot(1:nnrx,2) = wtot(1:nnrx,2) + wxdsic(1:nnrx,1)
+                  !
+              endif
+              !
           endif
           !
         enddo inner_loop
@@ -147,14 +203,18 @@
       !
       ! now wtot is completely built and can be added to vsic
       !
-      do i = 1, n
+      if ( do_nk .or. do_nkpz .or. do_nki ) then
           !
-          vsic(1:nnrx,i) = vsic(1:nnrx,i) + wtot( 1:nnrx, ispin(i) ) 
+          do i = 1, n
+              !
+              vsic(1:nnrx,i) = vsic(1:nnrx,i) + wtot( 1:nnrx, ispin(i) ) 
+              ! 
+          enddo
           !
-      enddo
+      endif
       !
-      deallocate(wtot)
-      deallocate(vsicpz)
+      if ( allocated(wtot) )   deallocate(wtot)
+      if ( allocated(vsicpz) ) deallocate(vsicpz)
       !
       CALL stop_clock( 'nksic_drv' )
       return
@@ -191,9 +251,9 @@
       !
       ! input/output vars
       !
-      integer, intent(in) :: ngw,nnrx,i1,i2
+      integer,     intent(in) :: ngw,nnrx,i1,i2
       complex(dp), intent(in) :: c1(ngw),c2(ngw)
-      real(dp), intent(out) :: orb_rhor(nnrx,2) 
+      real(dp),   intent(out) :: orb_rhor(nnrx,2) 
 
       !
       ! local vars
@@ -204,9 +264,9 @@
       complex(dp)   :: ci, fm, fp
       complex(dp), allocatable :: psis(:), psi(:)
       complex(dp), allocatable :: orb_rhog(:,:)
-      real(dp), allocatable :: orb_rhos(:)
-      real(dp), allocatable :: rhovan(:,:,:)
-      real(dp), allocatable :: rhovanaux(:,:,:)
+      real(dp),    allocatable :: orb_rhos(:)
+      real(dp),    allocatable :: rhovan(:,:,:)
+      real(dp),    allocatable :: rhovanaux(:,:,:)
       !
       !====================
       ! main body
@@ -228,7 +288,8 @@
 #ifdef __NO_SHORTCUT
 
       allocate( psis(nnrsx), stat=ierr )
-      allocate(orb_rhos(2),stat=ierr)
+      allocate( orb_rhos(2), stat=ierr )
+      !
       if ( ierr/=0 ) call errore(subname,'allocating psis',abs(ierr))
       if ( ierr/=0 ) call errore(subname,'allocating orb_rhos, orb_rhog',abs(ierr))
       !
@@ -320,6 +381,7 @@
 !---------------------------------------------------------------
 end subroutine nksic_get_orbitalrho
 !---------------------------------------------------------------
+
 !-----------------------------------------------------------------------
       subroutine nksic_get_rhoref( i, nnrx, ispin, nspin, f, &
                                    rhor, orb_rhor, rhoref_, rhobar_)
@@ -381,9 +443,10 @@ end subroutine nksic_get_orbitalrho
 !---------------------------------------------------------------
 end subroutine nksic_get_rhoref
 !---------------------------------------------------------------
+
 !---------------------------------------------------------------
-      subroutine nksic_correction( f, ispin, orb_rhor, rhor, rhoref, rhobar, &
-                                   vsic, wxdsic, wrefsic, pink, ibnd ) 
+      subroutine nksic_correction_nk( f, ispin, orb_rhor, rhor, rhoref, rhobar, &
+                                      vsic, wxdsic, wrefsic, pink, ibnd ) 
 !---------------------------------------------------------------
 !
 ! ... calculate the non-Koopmans potential from the orbital density
@@ -391,10 +454,9 @@ end subroutine nksic_get_rhoref
       use kinds,                only : dp
       use constants,            only : e2, fpi
       use cell_base,            only : tpiba2,omega
-      use nksic,                only : fref, rhobarfact, nkmixfact, &
-                                       do_nkmix, nknmax, nkscalfact, &
-                                       vanishing_rho => vanishing_rho_w, &
-                                       do_wref, do_wxd, &
+      use nksic,                only : fref, rhobarfact, nknmax, &
+                                       vanishing_rho_w, &
+                                       nkscalfact, do_wref, do_wxd, &
                                        etxc, vxc => vxcsic
       use grid_dimensions,      only : nnrx, nr1, nr2, nr3
       use gvecp,                only : ngm
@@ -420,9 +482,9 @@ end subroutine nksic_get_rhoref
       real(dp),    intent(out) :: wxdsic(nnrx,2)
       real(dp),    intent(out) :: pink
       !
-      character(16) :: subname='nksic_correction'
+      character(19) :: subname='nksic_correction_nk'
       integer       :: i, is, ig, ir
-      real(dp)      :: fact, ehele, ehele2, etmp, pink_pz
+      real(dp)      :: fact, ehele, etmp, pink_pz
       real(dp)      :: etxcref, etxc0, w2cst, dvxc(2), dmuxc(2,2)
       !
       real(dp),    allocatable :: rhoele(:,:)
@@ -536,7 +598,7 @@ end subroutine nksic_get_rhoref
       deallocate(rhogaux)
       deallocate(vtmp)
       deallocate(vcorr)
-      if ( .not. do_nkmix ) deallocate(vhaux)
+      deallocate(vhaux)
       !
       CALL stop_clock( 'nksic_corr_h' )
 
@@ -625,7 +687,7 @@ end subroutine nksic_get_rhoref
           ! (and not overwritten) by the next call
           !
           call nksic_dmxc_spin_cp( nnrx, rhoref, f, ispin, rhoele, &
-                                   vanishing_rho, wrefsic, wxdsic )
+                                   vanishing_rho_w, wrefsic, wxdsic )
           !
           !
           if ( do_wref ) then
@@ -652,47 +714,6 @@ end subroutine nksic_get_rhoref
       CALL stop_clock( 'nksic_corr_fxc' )
 
       !
-      !   functional mixture
-      !
-      !!  AF: I'll fix this by deleting the mixing feature
-      !!      and adding the calculation of PZ in a separate routine
-      !!
-      !if( do_nkmix ) CALL errore(subname,'do_nkmix is now obsolete',10)
-
-      if ( do_nkmix ) then
-          !
-          allocate( rhoraux(nnrx, 2) )
-          !
-          grhoraux=0.0_dp
-          vxc=0.0_dp
-          haux=0.0_dp
-          etxc=0.0_dp
-          rhoraux(:,:) = f*rhoele(:,:)
-          !
-          call exch_corr_wrapper(nnrx,2,grhoraux,rhoraux,etxc,vxc,haux)
-
-          vsic(1:nnrx) = ( 1.0_dp -nkmixfact ) * vsic(1:nnrx) &
-                         +nkmixfact*( -f*dble( vhaux(1:nnrx) ) -vxc(1:nnrx,ispin) )
-          !
-          pink_pz = -etxc  -0.5_dp * f**2 * &
-                           sum(dble( vhaux(1:nnrx) )*rhoele(1:nnrx,ispin))
-          !
-          pink_pz = pink_pz * fact
-          call mp_sum(pink_pz,intra_image_comm)
-          !
-          pink    = ( 1.0_dp -nkmixfact ) * pink + nkmixfact * pink_pz
-          !
-          wxdsic  = ( 1.0_dp -nkmixfact ) * wxdsic
-          wrefsic = ( 1.0_dp -nkmixfact ) * wrefsic
-          !
-          !
-          deallocate( vhaux )
-          deallocate( rhoraux )
-          !
-      endif
-
-
-      !
       !   rescale contributions with the nkscalfact parameter
       !   take care of non-variational formulations
       !
@@ -711,7 +732,6 @@ end subroutine nksic_get_rhoref
           wrefsic = 0.d0
       endif
 
-
       !
       deallocate(vxc0)
       deallocate(vxcref)
@@ -724,8 +744,383 @@ end subroutine nksic_get_rhoref
       return
       !
 !---------------------------------------------------------------
-      end subroutine nksic_correction
+      end subroutine nksic_correction_nk
 !---------------------------------------------------------------
+
+!---------------------------------------------------------------
+      subroutine nksic_correction_pz( f, ispin, orb_rhor, &
+                                      vsic, pink, ibnd ) 
+!---------------------------------------------------------------
+!
+! ... calculate the non-Koopmans potential from the orbital density
+!
+      use kinds,                only : dp
+      use constants,            only : e2, fpi
+      use cell_base,            only : tpiba2,omega
+      use nksic,                only : etxc, vxc => vxcsic, nknmax
+      use grid_dimensions,      only : nnrx, nr1, nr2, nr3
+      use gvecp,                only : ngm
+      use recvecs_indexes,      only : np, nm
+      use reciprocal_vectors,   only : gstart, g
+      use eecp_mod,             only : do_comp
+      use cp_interfaces,        only : fwfft, invfft
+      use fft_base,             only : dfftp
+      use funct,                only : dft_is_gradient
+      use mp,                   only : mp_sum
+      use mp_global,            only : intra_image_comm
+      use io_global,            only : stdout, ionode
+      use control_flags,        only : iprsta
+      use electrons_base,       only : nspin
+      !
+      implicit none
+      integer,     intent(in)  :: ispin, ibnd
+      real(dp),    intent(in)  :: f, orb_rhor(nnrx)
+      real(dp),    intent(out) :: vsic(nnrx)
+      real(dp),    intent(out) :: pink
+      !
+      character(19) :: subname='nksic_correction_pz'
+      integer       :: i, is, ig, ir
+      real(dp)      :: ehele, fact
+      !
+      real(dp),    allocatable :: rhoelef(:,:)
+      complex(dp), allocatable :: rhogaux(:)
+      complex(dp), allocatable :: vhaux(:)
+      complex(dp), allocatable :: vcorr(:)
+      complex(dp), allocatable :: vtmp(:)
+      !
+      real(dp),    allocatable :: grhoraux(:,:,:)
+      real(dp),    allocatable :: haux(:,:,:)
+
+      !
+      !==================
+      ! main body
+      !==================
+      !
+      if( ibnd > nknmax .and. nknmax > 0 ) return
+      !
+      CALL start_clock( 'nksic_corr' )
+      CALL start_clock( 'nksic_corr_h' )
+
+      !
+      fact=omega/dble(nr1*nr2*nr3)
+      !
+      allocate(rhoelef(nnrx,2))
+      allocate(rhogaux(ngm))
+      allocate(vtmp(ngm))
+      allocate(vcorr(ngm))
+      allocate(vhaux(nnrx))
+      !
+      rhoelef=0.0d0
+      rhoelef(:,ispin) = f * orb_rhor(:)
+      !
+      vsic=0.0_dp
+      pink=0.0_dp
+
+      !
+      ! Compute self-hartree contributions
+      !
+      rhogaux=0.0_dp
+      !
+      ! rhoelef contains occupations
+      !
+      vhaux(:) = rhoelef(:,ispin)
+      !
+      call fwfft('Dense',vhaux,dfftp )
+      !
+      do ig=1,ngm
+          rhogaux(ig) = vhaux( np(ig) )
+      enddo
+
+      !    
+      ! compute hartree-like potential
+      !
+      if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
+      do ig=gstart,ngm
+          vtmp(ig) = rhogaux(ig) * fpi/( tpiba2*g(ig) )
+      enddo
+      !
+      ! compute periodic corrections
+      !
+      if( do_comp ) then
+          !
+          call calc_tcc_potential( vcorr, rhogaux)
+          vtmp(:) = vtmp(:) + vcorr(:)
+          !
+      endif
+      ! 
+      vhaux=0.0_dp
+      do ig=1,ngm
+          !
+          vhaux(np(ig)) = vtmp(ig)
+          vhaux(nm(ig)) = conjg(vtmp(ig))
+          !
+      enddo
+      call invfft('Dense',vhaux,dfftp)
+      !
+      ! init vsic
+      !
+      vsic(1:nnrx) =  -dble( vhaux(1:nnrx) )
+      ehele        =   0.5_dp * sum( dble( vhaux(1:nnrx) ) &
+                              * rhoelef(1:nnrx,ispin) )
+      
+      !
+      ! partial cleanup
+      !
+      deallocate( rhogaux )
+      deallocate( vtmp )
+      deallocate( vcorr )
+      deallocate( vhaux )
+
+
+      !
+      ! Compute xc-contributions
+      !
+      if ( dft_is_gradient() ) then
+         allocate(grhoraux(nnrx,3,2))
+         allocate(haux(nnrx,2,2))
+      else
+         allocate(grhoraux(1,1,1))
+         allocate(haux(1,1,1))
+      endif
+      !
+      grhoraux=0.0_dp
+      vxc=0.0_dp
+      haux=0.0_dp
+      etxc=0.0_dp
+      !
+      call exch_corr_wrapper(nnrx,2,grhoraux,rhoelef,etxc,vxc,haux)
+      !
+      vsic(1:nnrx) =  vsic(1:nnrx) -vxc(1:nnrx,ispin)
+
+      !
+      ! energy correction terms
+      !
+      pink = fact * ( -etxc -ehele )
+      call mp_sum(pink,intra_image_comm)
+      
+      !
+      ! cleanup
+      !
+      deallocate( rhoelef )
+      deallocate( grhoraux )
+      deallocate( haux )
+      !
+      return
+      !
+!---------------------------------------------------------------
+end subroutine nksic_correction_pz
+!---------------------------------------------------------------
+
+
+!---------------------------------------------------------------
+      subroutine nksic_correction_nkpz( f, orb_rhor, vsic, wrefsic, pink, ibnd, ispin ) 
+!---------------------------------------------------------------
+!
+! ... calculate the non-Koopmans potential on top of Perdew-Zunger, 
+!     from the orbital densities
+!
+      use kinds,                only : dp
+      use constants,            only : e2, fpi
+      use cell_base,            only : tpiba2,omega
+      use nksic,                only : fref, nkscalfact, &
+                                       do_wref, do_wxd, vanishing_rho_w, &
+                                       etxc, vxc => vxcsic
+      use grid_dimensions,      only : nnrx, nr1, nr2, nr3
+      use gvecp,                only : ngm
+      use recvecs_indexes,      only : np, nm
+      use reciprocal_vectors,   only : gstart, g
+      use eecp_mod,             only : do_comp
+      use cp_interfaces,        only : fwfft, invfft
+      use fft_base,             only : dfftp
+      use funct,                only : dmxc_spin, dft_is_gradient
+      use mp,                   only : mp_sum
+      use mp_global,            only : intra_image_comm
+      use io_global,            only : stdout, ionode
+      use control_flags,        only : iprsta
+      use electrons_base,       only : nspin
+      !
+      implicit none
+      real(dp),    intent(in)  :: f, orb_rhor(nnrx)
+      integer,     intent(in)  :: ispin, ibnd
+      real(dp),    intent(out) :: vsic(nnrx), wrefsic(nnrx)
+      real(dp),    intent(out) :: pink
+      !
+      integer     :: i, is, ig, ir
+      real(dp)    :: fact, etxcref
+      real(dp)    :: w2cst, dvxc(2), dmuxc(2,2)
+      !
+      real(dp),    allocatable :: rhoele(:,:)
+      real(dp),    allocatable :: rhoref(:,:)
+      real(dp),    allocatable :: vxcref(:,:)
+      real(dp),    allocatable :: wxdsic(:,:)
+      real(dp),    allocatable :: grhoraux(:,:,:)
+      real(dp),    allocatable :: haux(:,:,:)
+      complex(dp), allocatable :: vhaux(:)
+      complex(dp), allocatable :: vcorr(:)
+      complex(dp), allocatable :: rhogaux(:)
+      complex(dp), allocatable :: vtmp(:)
+      !
+      CALL start_clock( 'nksic_corr' )
+      CALL start_clock( 'nksic_corr_h' )
+      !
+      fact=omega/dble(nr1*nr2*nr3)
+      !
+      allocate(wxdsic(nnrx,2))
+      allocate(rhoele(nnrx,2))
+      allocate(rhoref(nnrx,2))
+      allocate(rhogaux(ngm))
+      allocate(vtmp(ngm))
+      allocate(vcorr(ngm))
+      allocate(vhaux(nnrx))
+      !
+      rhoele=0.0d0
+      rhoele(:,ispin)=orb_rhor(:)
+      !
+      vsic=0.0_dp
+      wrefsic=0.0_dp
+      wxdsic=0.0_dp
+      pink=0.0_dp
+      !
+      ! compute self-hartree contributions
+      !
+      rhogaux=0.0_dp
+      !
+      ! rhoele has no occupation
+      !
+      vhaux(:) = rhoele(:,ispin)
+      !
+      call fwfft('Dense',vhaux,dfftp )
+      !
+      do ig=1,ngm
+        rhogaux(ig) = vhaux( np(ig) )
+      enddo
+      !    
+      ! compute hartree-like potential
+      !
+      if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
+      do ig=gstart,ngm
+        vtmp(ig)=rhogaux(ig)*fpi/(tpiba2*g(ig))
+      enddo
+      !
+      ! compute periodic corrections
+      !
+      if( do_comp ) then
+        !
+        call calc_tcc_potential( vcorr, rhogaux)
+        vtmp(:) = vtmp(:) + vcorr(:)
+        !
+      endif
+      !
+      vhaux=0.0_dp
+      do ig=1,ngm
+        !
+        vhaux(np(ig)) = vtmp(ig)
+        vhaux(nm(ig)) = conjg(vtmp(ig))
+        !
+      enddo
+      !
+      call invfft('Dense',vhaux,dfftp)
+      !
+      ! init here wref sic to save some memory
+      !
+      ! this is just the self-hartree potential 
+      ! (to be multiplied by fref later on)
+      !
+      wrefsic(1:nnrx)=dble(vhaux(1:nnrx))
+      !
+      ! the term - fref has to be included explicitly in rhoele
+      !
+      vsic(1:nnrx)=-fref*dble(vhaux(1:nnrx)) 
+      !
+      deallocate(rhogaux)
+      deallocate(vtmp)
+      deallocate(vcorr)
+      deallocate(vhaux)
+      !
+      call stop_clock( 'nksic_corr_h' )
+      call start_clock( 'nksic_corr_vxc' )
+      !
+      !   add self-xc contributions
+      !
+      if ( dft_is_gradient() ) then
+         allocate(grhoraux(nnrx,3,2))
+         allocate(haux(nnrx,2,2))
+      else
+         allocate(grhoraux(1,1,1))
+         allocate(haux(1,1,1))
+         grhoraux=0.0_dp
+      endif
+      !   
+      allocate(vxcref(nnrx,2))
+      !
+      etxcref=0.0_dp
+      vxcref=0.0_dp
+      rhoref=fref*rhoele
+      !
+      call exch_corr_wrapper(nnrx,2,grhoraux,rhoref,etxcref,vxcref,haux)
+      !
+      ! update vsic pot 
+      ! 
+      vsic(1:nnrx)=vsic(1:nnrx)-vxcref(1:nnrx,ispin)
+      !
+      ! define pink
+      !
+      pink=f*sum(vsic(1:nnrx)*rhoele(1:nnrx,ispin))*fact
+      call mp_sum(pink,intra_image_comm)
+      !
+      call stop_clock( 'nksic_corr_vxc' )
+      !
+      !   calculate wref
+      !
+      CALL start_clock( 'nksic_corr_fxc' )
+      !
+      if( do_wref ) then
+          !  
+          ! note that wxd and wref are updated 
+          ! (and not overwritten) by the next call
+          !
+          call nksic_dmxc_spin_cp(nnrx,rhoref,f,ispin,rhoele, &
+                                  vanishing_rho_w,wrefsic,wxdsic)
+          !
+          w2cst=sum(wrefsic(1:nnrx)*rhoele(1:nnrx,ispin))*fact
+          !
+          call mp_sum(w2cst,intra_image_comm)
+          !
+          do ir=1,nnrx
+            wrefsic(ir)=-fref*(wrefsic(ir)-w2cst)
+          enddo
+          !
+      endif
+      !
+      CALL stop_clock( 'nksic_corr_fxc' )
+      !
+      !   rescale contributions with the nkscalfact parameter
+      !   take care of non-variational formulations
+      !
+      pink = pink * nkscalfact
+      vsic = vsic * nkscalfact
+      !
+      if( do_wref ) then
+          wrefsic = wrefsic * nkscalfact
+      else
+          wrefsic = 0.d0
+      endif
+      !
+      deallocate(wxdsic)
+      deallocate(vxcref)
+      deallocate(rhoele)
+      deallocate(rhoref)
+      deallocate(grhoraux)
+      deallocate(haux)
+      !
+      CALL stop_clock( 'nksic_corr' )
+      return
+      !
+!---------------------------------------------------------------
+      end subroutine nksic_correction_nkpz
+!---------------------------------------------------------------
+
+
 !-----------------------------------------------------------------------
       subroutine nksic_eforce( i, ngw, c1, c2, vsicpsi )
 !-----------------------------------------------------------------------
@@ -1025,212 +1420,4 @@ end subroutine nksic_eforce
       !
 !---------------------------------------------------------------
 end subroutine nksic_dmxc_spin_cp
-!---------------------------------------------------------------
-
-!---------------------------------------------------------------
-      subroutine nksic_correction_pz( f, orb_rhor, vsic, wrefsic, pink, ibnd, ispin ) 
-!---------------------------------------------------------------
-!
-! ... calculate the non-Koopmans potential from the orbital density
-!
-      use kinds,                only : dp
-      use constants,            only : e2, fpi
-      use cell_base,            only : tpiba2,omega
-      use nksic,                only : fref, nkscalfact, &
-                                       vanishing_rho => vanishing_rho_w, &
-                                       do_wref, do_wxd, &
-                                       etxc, vxc => vxcsic
-      use grid_dimensions,      only : nnrx, nr1, nr2, nr3
-      use gvecp,                only : ngm
-      use recvecs_indexes,      only : np, nm
-      use reciprocal_vectors,   only : gstart, g
-      use eecp_mod,             only : do_comp
-      use cp_interfaces,        only : fwfft, invfft
-      use fft_base,             only : dfftp
-      use funct,                only : dmxc_spin, dft_is_gradient
-      use mp,                   only : mp_sum
-      use mp_global,            only : intra_image_comm
-      use io_global,            only : stdout, ionode
-      use control_flags,        only : iprsta
-      use electrons_base,       only : nspin
-      !
-      implicit none
-      real(dp),    intent(in)  :: f, orb_rhor(nnrx)
-      integer,     intent(in)  :: ispin, ibnd
-      real(dp),    intent(out) :: vsic(nnrx), wrefsic(nnrx)
-      real(dp),    intent(out) :: pink
-      !
-      integer     :: i, is, ig, ir
-      real(dp)    :: fact, etxcref
-      real(dp)    :: w2cst, dvxc(2), dmuxc(2,2)
-      !
-      real(dp),    allocatable :: rhoele(:,:)
-      real(dp),    allocatable :: rhoref(:,:)
-      real(dp),    allocatable :: vxcref(:,:)
-      real(dp),    allocatable :: wxdsic(:,:)
-      real(dp),    allocatable :: grhoraux(:,:,:)
-      real(dp),    allocatable :: haux(:,:,:)
-      complex(dp), allocatable :: vhaux(:)
-      complex(dp), allocatable :: vcorr(:)
-      complex(dp), allocatable :: rhogaux(:)
-      complex(dp), allocatable :: vtmp(:)
-      !
-      CALL start_clock( 'nksic_corr' )
-      CALL start_clock( 'nksic_corr_h' )
-      !
-      fact=omega/dble(nr1*nr2*nr3)
-      !
-      allocate(wxdsic(nnrx,2))
-      allocate(rhoele(nnrx,2))
-      allocate(rhoref(nnrx,2))
-      allocate(rhogaux(ngm))
-      allocate(vtmp(ngm))
-      allocate(vcorr(ngm))
-      allocate(vhaux(nnrx))
-      !
-      rhoele=0.0d0
-      rhoele(:,ispin)=orb_rhor(:)
-      !
-      vsic=0.0_dp
-      wrefsic=0.0_dp
-      wxdsic=0.0_dp
-      pink=0.0_dp
-      !
-      ! compute self-hartree contributions
-      !
-      rhogaux=0.0_dp
-      !
-      ! rhoele has no occupation
-      !
-      vhaux(:) = rhoele(:,ispin)
-      !
-      call fwfft('Dense',vhaux,dfftp )
-      !
-      do ig=1,ngm
-        rhogaux(ig) = vhaux( np(ig) )
-      enddo
-      !    
-      ! compute hartree-like potential
-      !
-      if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
-      do ig=gstart,ngm
-        vtmp(ig)=rhogaux(ig)*fpi/(tpiba2*g(ig))
-      enddo
-      !
-      ! compute periodic corrections
-      !
-      if( do_comp ) then
-        !
-        call calc_tcc_potential( vcorr, rhogaux)
-        vtmp(:) = vtmp(:) + vcorr(:)
-        !
-      endif
-      !
-      vhaux=0.0_dp
-      do ig=1,ngm
-        !
-        vhaux(np(ig)) = vtmp(ig)
-        vhaux(nm(ig)) = conjg(vtmp(ig))
-        !
-      enddo
-      !
-      call invfft('Dense',vhaux,dfftp)
-      !
-      ! init here wref sic to save some memory
-      !
-      ! this is just the self-hartree potential 
-      ! (to be multiplied by fref later on)
-      !
-      wrefsic(1:nnrx)=dble(vhaux(1:nnrx))
-      !
-      ! the term - fref has to be included explicitly in rhoele
-      !
-      vsic(1:nnrx)=-fref*dble(vhaux(1:nnrx)) 
-      !
-      deallocate(rhogaux)
-      deallocate(vtmp)
-      deallocate(vcorr)
-      deallocate(vhaux)
-      !
-      call stop_clock( 'nksic_corr_h' )
-      call start_clock( 'nksic_corr_vxc' )
-      !
-      !   add self-xc contributions
-      !
-      if ( dft_is_gradient() ) then
-         allocate(grhoraux(nnrx,3,2))
-         allocate(haux(nnrx,2,2))
-      else
-         allocate(grhoraux(1,1,1))
-         allocate(haux(1,1,1))
-         grhoraux=0.0_dp
-      endif
-      !   
-      allocate(vxcref(nnrx,2))
-      !
-      etxcref=0.0_dp
-      vxcref=0.0_dp
-      rhoref=fref*rhoele
-      !
-      call exch_corr_wrapper(nnrx,2,grhoraux,rhoref,etxcref,vxcref,haux)
-      !
-      ! update vsic pot 
-      ! 
-      vsic(1:nnrx)=vsic(1:nnrx)-vxcref(1:nnrx,ispin)
-      !
-      ! define pink
-      !
-      pink=f*sum(vsic(1:nnrx)*rhoele(1:nnrx,ispin))*fact
-      call mp_sum(pink,intra_image_comm)
-      !
-      call stop_clock( 'nksic_corr_vxc' )
-      !
-      !   calculate wref
-      !
-      CALL start_clock( 'nksic_corr_fxc' )
-      !
-      if( do_wref ) then
-          !  
-          ! note that wxd and wref are updated 
-          ! (and not overwritten) by the next call
-          !
-          call nksic_dmxc_spin_cp(nnrx,rhoref,f,ispin,rhoele, &
-                                  vanishing_rho,wrefsic,wxdsic)
-          !
-          w2cst=sum(wrefsic(1:nnrx)*rhoele(1:nnrx,ispin))*fact
-          !
-          call mp_sum(w2cst,intra_image_comm)
-          !
-          do ir=1,nnrx
-            wrefsic(ir)=-fref*(wrefsic(ir)-w2cst)
-          enddo
-          !
-      endif
-      !
-      CALL stop_clock( 'nksic_corr_fxc' )
-      !
-      !   rescale contributions with the nkscalfact parameter
-      !   take care of non-variational formulations
-      !
-      pink = pink * nkscalfact
-      vsic = vsic * nkscalfact
-      !
-      if( do_wref ) then
-          wrefsic = wrefsic * nkscalfact
-      else
-          wrefsic = 0.d0
-      endif
-      !
-      deallocate(wxdsic)
-      deallocate(vxcref)
-      deallocate(rhoele)
-      deallocate(rhoref)
-      deallocate(grhoraux)
-      deallocate(haux)
-      !
-      CALL stop_clock( 'nksic_corr' )
-      return
-      !
-!---------------------------------------------------------------
-      end subroutine nksic_correction_pz
 !---------------------------------------------------------------

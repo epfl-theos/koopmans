@@ -48,7 +48,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   USE mp_global,            ONLY : me_image 
   USE efield_mod,           ONLY : do_efield
   USE hfmod,                ONLY : do_hf, detothf, vxxpsi, exx
-  USE nksic,                ONLY : do_nk
+  USE nksic,                ONLY : do_orbdep
   !
   IMPLICIT NONE
   !
@@ -102,7 +102,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
      !
      ! compute auxiliary potentials
      !
-     if( do_nk ) then
+     if( do_orbdep ) then
          call nksic_potential( c0, rhor )
      end if
      !

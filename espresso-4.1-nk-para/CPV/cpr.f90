@@ -126,7 +126,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   USE mp_global,                ONLY : root_image, intra_image_comm, np_ortho, me_ortho, ortho_comm, &
                                        me_image
   USE ldaU,                     ONLY : lda_plus_u, vupsi
-  USE nksic,                    ONLY : do_nk
+  USE nksic,                    ONLY : do_orbdep
   USE step_constraint
   USE small_box,                ONLY : ainvb
   !
@@ -206,7 +206,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   !
   ! matrix elements stored in  hamilt
   !
-  tprint_ham = do_nk .AND. ( iprsta > 1 ) 
+  tprint_ham = do_orbdep .AND. ( iprsta > 1 ) 
   !
   hamilt(:,:,:) = 0.0d0
 
@@ -939,7 +939,7 @@ SUBROUTINE terminate_run()
   USE cg_module,         ONLY : tcg, print_clock_tcg
   USE mp,                ONLY : mp_report
   USE control_flags,     ONLY : use_task_groups
-  USE nksic,             ONLY : do_nk
+  USE nksic,             ONLY : do_orbdep
   !
   IMPLICIT NONE
   !
@@ -979,7 +979,7 @@ SUBROUTINE terminate_run()
   CALL print_clock( 'cft3s' )
   CALL print_clock( 'fft_scatter' )
   !
-  IF ( do_nk ) THEN
+  IF ( do_orbdep ) THEN
      !
      CALL print_clock( 'nksic_drv' )
         CALL print_clock( 'nksic_orbrho' )

@@ -1890,7 +1890,7 @@ END FUNCTION
 !@@@@@
       USE ldaU,               ONLY : e_hubbard
 !@@@@@
-      USE nksic,              ONLY : pink, do_nk, do_nkmix
+      USE nksic,              ONLY : pink, do_orbdep
       USE hfmod,              ONLY : exx, do_hf, detothf
       use eecp_mod,           only : do_comp, which_compensation, vcorr, &
                                      vcorr_fft, ecomp
@@ -2420,10 +2420,10 @@ END FUNCTION
       !
       !     extra contributions
       !
-      if (abivol) etot = etot + P_ext*volclu
-      if (abisur) etot = etot + Surf_t*surfclu
-      if (do_nk)  etot = etot + sum(pink(1:nx))
-      if (do_hf)  etot = etot + detothf + sum(exx(1:nx))
+      if (abivol)      etot = etot + P_ext*volclu
+      if (abisur)      etot = etot + Surf_t*surfclu
+      if (do_orbdep )  etot = etot + sum(pink(1:nx))
+      if (do_hf)       etot = etot + detothf + sum(exx(1:nx))
       !
       IF( tpre ) THEN
          !
@@ -2589,19 +2589,21 @@ END FUNCTION
       subroutine nksic_init
 !-----------------------------------------------------------------------
 !
-      use nksic,            ONLY : do_nk, do_wref, do_wxd, fref, rhobarfact, allocate_nksic, &
-                                   vanishing_rho_w, do_nkmix, nkmixfact, nknmax, &
-                                   do_spinsym, nkscalfact, f_cutoff, &
-                                   nksic_memusage, do_nkpz
-      use input_parameters, ONLY : do_nk_ => do_nk, fref_ => fref, &
-                                   rhobarfact_ => rhobarfact, &
+      use nksic,            ONLY : do_orbdep, do_nk, do_nkpz, do_pz, do_nki, &
+                                   do_wref, do_wxd, fref, rhobarfact, &
+                                   vanishing_rho_w, &
+                                   nknmax, do_spinsym, nkscalfact, f_cutoff, &
+                                   nksic_memusage, allocate_nksic
+      use input_parameters, ONLY : do_nk_ => do_nk, &
+                                   do_pz_ => do_pz, &
+                                   do_nki_ => do_nki, &
                                    do_nkpz_ => do_nkpz, &
+                                   fref_ => fref, &
+                                   rhobarfact_ => rhobarfact, &
+                                   vanishing_rho_w_ => vanishing_rho_w, &
                                    do_wref_ => do_wref, &
                                    do_wxd_ => do_wxd, &
-                                   vanishing_rho_w_ => vanishing_rho_w, &
-                                   do_nkmix_ => do_nkmix, &
                                    do_spinsym_ => do_spinsym, &
-                                   nkmixfact_ => nkmixfact, &
                                    nkscalfact_ => nkscalfact, &
                                    nknmax_ => nknmax, &
                                    f_cutoff_ => f_cutoff
@@ -2612,49 +2614,75 @@ END FUNCTION
       !
       implicit none
       !
-      do_nk = do_nk_
+      logical       :: found
+      character(10) :: subname='nksic_init'
+      
+
+      do_nk   = do_nk_
+      do_pz   = do_pz_
+      do_nki  = do_nki_
       do_nkpz = do_nkpz_
-      do_wxd = do_wxd_
+      !
+      do_orbdep = do_nk .or. do_pz .or. do_nki .or. do_nkpz
+
+      !
+      ! check only one orbital dependent scheme is used
+      !
+      found = .FALSE.
+      !
+      if ( do_nk   .and. (do_pz .or. do_nki .or. do_nkpz ) ) found=.TRUE.
+      if ( do_nki  .and. (do_pz .or. do_nk  .or. do_nkpz ) ) found=.TRUE.
+      if ( do_pz   .and. (do_nk .or. do_nki .or. do_nkpz ) ) found=.TRUE.
+      if ( do_nkpz .and. (do_nk .or. do_nki .or. do_pz   ) ) found=.TRUE.
+      !
+      if ( found ) CALL errore(subname,'more than one orb-dependent schme used',1)
+
+      do_wxd  = do_wxd_
       do_wref = do_wref_
-      fref = fref_
+      fref    = fref_
+      !
       do_spinsym = do_spinsym_
       vanishing_rho_w = vanishing_rho_w_
       rhobarfact = rhobarfact_
-      nkmixfact = nkmixfact_
       nkscalfact = nkscalfact_
       nknmax = nknmax_
-      do_nkmix = do_nkmix_
       f_cutoff = f_cutoff_
       !
-      if( do_nk .and. meta_ionode ) then
-          write(stdout,2000) fref, rhobarfact, nkscalfact
-          write(stdout,2005) vanishing_rho_w,  f_cutoff
+      if( (do_nk .or. do_nkpz) .and. meta_ionode ) then
+          write(stdout,2000) fref
+          write(stdout,2004) rhobarfact, nkscalfact
+      else if ( do_pz .and. meta_ionode ) then
+          write(stdout,2001) do_pz
+      else if ( do_nki .and. meta_ionode ) then
+          write(stdout,2002) do_nki
+          write(stdout,2004) rhobarfact, nkscalfact
       endif
       !
-      if( do_nkmix .and. meta_ionode ) then
-          write(stdout,2020) nkmixfact
-      endif
+      if( do_orbdep ) call allocate_nksic( nnrx, ngw, nspin, nx)
       !
-      if( do_nk ) call allocate_nksic( nnrx, ngw, nspin, nx)
-      !
-      if( do_nk .and. meta_ionode ) then
-          !
+      if( (do_nk .or. do_nkpz ) .and. meta_ionode ) then
           write(stdout,2010) do_wxd, do_wref, do_nkpz
+      endif
+      !
+      if( do_orbdep .and. meta_ionode ) then
+          !
+          write(stdout,2005) vanishing_rho_w, f_cutoff
           if( nknmax > 0 ) write(stdout,2030) nknmax
           !
           write( stdout, "(3x, 'NK memusage = ', f10.3, ' MB', /)" ) &
                nksic_memusage( )
       endif
       !
-2000  format( 3X,'NK sic with reference occupation = ',f7.4, /, &
-              3X,'NK background density factor = ',f7.4, /, &
+2000  format( 3X,'NK sic with reference occupation = ',f7.4, /)
+2001  format( 3X,'PZ sic = ',l4 ,/)
+2002  format( 3X,'NK sic with integral ref = ',l4, / )
+2004  format( 3X,'NK background density factor = ',f7.4, /, &
               3X,'NK scaling factor = ',f7.4 )
 2005  format( 3X,'rhothr = ',e8.1, /, &
               3X,'f_cutoff = ',f7.4 )
 2010  format( 3X,'NK cross-derivatives = ',l4, /, &
               3X,'NK reference derivatives = ',l4, /, &
               3X,'NK on top of PZ = ',l4 )
-2020  format( 3X,'NK-PZ mixing factor = ',f7.4)
 2030  format( 3X,'NK applied up to orbital',i7)
 
       end subroutine nksic_init

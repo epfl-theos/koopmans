@@ -328,12 +328,11 @@ module nksic
   implicit none
   save
   !
-  real(dp) :: fref = 0.5d0
-  real(dp) :: rhobarfact= 1.0d0
-  real(dp) :: nkmixfact= 0.d0
-  real(dp) :: nkscalfact = 1.0d0
-  real(dp) :: vanishing_rho_w = 1.d-7
-  real(dp) :: f_cutoff = 0.1d0
+  real(dp) :: fref
+  real(dp) :: rhobarfact
+  real(dp) :: nkscalfact
+  real(dp) :: vanishing_rho_w
+  real(dp) :: f_cutoff
   !
   real(dp) :: etxc
   !
@@ -349,9 +348,11 @@ module nksic
   complex(dp), allocatable :: vsicpsi(:,:)
   !
   integer :: nknmax
+  logical :: do_orbdep
   logical :: do_nk
+  logical :: do_pz
   logical :: do_nkpz
-  logical :: do_nkmix
+  logical :: do_nki
   logical :: do_spinsym
   logical :: do_wxd
   logical :: do_wref
@@ -369,11 +370,14 @@ contains
       allocate( pink(nx) )
       allocate( vsicpsi(ngw,2) )
       allocate( vxcsic(nnrx,2) )
-      allocate( wxdsic(nnrx,2) )
-      allocate( wrefsic(nnrx) )
       allocate( orb_rhor(nnrx,2) )
-      allocate( rhobar(nnrx,2) )
       allocate( rhoref(nnrx,2) )
+      allocate( rhobar(nnrx,2) )
+      !
+      if ( do_nk .or. do_nkpz ) then
+          allocate( wxdsic(nnrx,2) )
+          allocate( wrefsic(nnrx) )
+      endif
       !
       pink     = 0.0d0
       vsic     = 0.0d0

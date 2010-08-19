@@ -42,7 +42,7 @@
       USE cp_interfaces,       ONLY : dforce
       USE task_groups,         ONLY : tg_gather
       USE ldaU
-      use nksic,               only : do_nk, vsicpsi, f_cutoff
+      use nksic,               only : do_orbdep, vsicpsi, f_cutoff
       use hfmod,               only : do_hf, vxxpsi
       !
       IMPLICIT NONE
@@ -135,7 +135,7 @@
         c3      = 0D0
        
         ! size check
-        IF ( do_nk .AND. use_task_groups ) &
+        IF ( do_orbdep .AND. use_task_groups ) &
             CALL errore('runcp_uspp','NKSIC and task_groups incompatible',10)
 
         IF( use_task_groups ) THEN
@@ -202,7 +202,7 @@
                !
            ENDIF
            !
-           IF ( do_nk ) THEN
+           IF ( do_orbdep ) THEN
                !
                ! faux takes into account spin multiplicity.
                !

@@ -435,15 +435,15 @@ MODULE input_parameters
         ! add non-Koopmans self-interaction correction parameters
         INTEGER :: nknmax = -1
         LOGICAL :: do_nk  = .false.
+        LOGICAL :: do_pz  = .false.
+        LOGICAL :: do_nki  = .false.
         LOGICAL :: do_nkpz  = .false.
-        LOGICAL :: do_nkmix  = .false.
         LOGICAL :: do_wref = .true.
         LOGICAL :: do_wxd = .true.
         LOGICAL :: do_hf  = .false.
         LOGICAL :: do_spinsym  = .false.
         REAL ( DP ) :: fref  = 0.5_DP
         REAL ( DP ) :: rhobarfact = 1.0_DP
-        REAL ( DP ) :: nkmixfact = 1.0_DP
         REAL ( DP ) :: nkscalfact = 1.0_DP
         REAL ( DP ) :: hfscalfact = 1.0_DP
         REAL ( DP ) :: vanishing_rho_w = 1.0e-7_DP
@@ -474,10 +474,10 @@ MODULE input_parameters
              sic, sic_epsilon, force_pairing, sic_alpha,                      &
              tot_charge, multiplicity, tot_magnetization,                     &
              spline_ps, london, london_s6, london_rcut,                       &
-             do_ee, do_nk, do_wref, do_wxd,                                   &
-             fref, rhobarfact, ampfield, do_efield,                           &
-             do_hf, vanishing_rho_w, do_nkmix, nkmixfact, nknmax,             &
-             do_spinsym, nkscalfact, f_cutoff, hfscalfact, do_nkpz
+             do_ee, do_nk, do_pz, do_nki, do_nkpz, do_hf,                     &
+             do_wref, do_wxd, fref, rhobarfact, ampfield, do_efield,          &
+             do_hf, nknmax, do_spinsym, nkscalfact, f_cutoff, hfscalfact,     &
+             vanishing_rho_w
 !
 !=----------------------------------------------------------------------------=!
 !  EE Namelist Input Parameters
