@@ -433,7 +433,6 @@ MODULE input_parameters
         LOGICAL :: do_ee  = .false.
         
         ! add non-Koopmans self-interaction correction parameters
-        INTEGER :: nknmax = -1
         LOGICAL :: do_nk  = .false.
         LOGICAL :: do_pz  = .false.
         LOGICAL :: do_nki  = .false.
@@ -441,7 +440,18 @@ MODULE input_parameters
         LOGICAL :: do_wref = .true.
         LOGICAL :: do_wxd = .true.
         LOGICAL :: do_hf  = .false.
-        LOGICAL :: do_spinsym  = .false.
+        !
+        ! This variable overwrites the ones above
+        CHARACTER(80)     :: which_orbdep=" "
+        CHARACTER(LEN=80) :: which_orbdep_allowed(9)
+        !
+        DATA which_orbdep_allowed &
+          / "nk", "non-koopmans", "nk0", "nki", &
+            "perdew-zunger", "pz", "pznk", "nkpz" , "hf" /
+        !
+        LOGICAL     :: do_spinsym  = .false.
+        INTEGER     :: nknmax = -1
+        !
         REAL ( DP ) :: fref  = 0.5_DP
         REAL ( DP ) :: rhobarfact = 1.0_DP
         REAL ( DP ) :: nkscalfact = 1.0_DP
@@ -449,7 +459,7 @@ MODULE input_parameters
         REAL ( DP ) :: vanishing_rho_w = 1.0e-7_DP
         REAL ( DP ) :: f_cutoff = 0.1_DP
         ! add efield parameters
-        LOGICAL :: do_efield  = .false.
+        LOGICAL     :: do_efield  = .false.
         REAL ( DP ) :: ampfield(3)  = 0.0_DP
 !
         LOGICAL   :: london = .false.
@@ -477,7 +487,7 @@ MODULE input_parameters
              do_ee, do_nk, do_pz, do_nki, do_nkpz, do_hf,                     &
              do_wref, do_wxd, fref, rhobarfact, ampfield, do_efield,          &
              do_hf, nknmax, do_spinsym, nkscalfact, f_cutoff, hfscalfact,     &
-             vanishing_rho_w
+             vanishing_rho_w, which_orbdep
 !
 !=----------------------------------------------------------------------------=!
 !  EE Namelist Input Parameters

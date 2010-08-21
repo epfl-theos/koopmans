@@ -231,6 +231,7 @@ MODULE read_namelists_module
        fref = 0.5_DP
        rhobarfact = 1.0_DP
        vanishing_rho_w = 1.0e-12_DP
+       which_orbdep = " "
        f_cutoff = 0.1_DP
        !
        do_efield = .false.
@@ -839,6 +840,7 @@ MODULE read_namelists_module
        CALL mp_bcast( london_rcut,     ionode_id )
        !
        CALL mp_bcast( do_ee,                      ionode_id )
+       CALL mp_bcast( which_orbdep,               ionode_id )
        CALL mp_bcast( do_nk,                      ionode_id )
        CALL mp_bcast( do_pz,                      ionode_id )
        CALL mp_bcast( do_nki,                     ionode_id )
@@ -1356,6 +1358,8 @@ MODULE read_namelists_module
        !
        CHARACTER(LEN=2)  :: prog   ! ... specify the calling program
        CHARACTER(LEN=20) :: sub_name = ' system_checkin '
+       INTEGER           :: i
+       LOGICAL           :: allowed = .FALSE.
        !
        !
        IF( ibrav < 0 .OR. ibrav > 14 ) &
@@ -1456,6 +1460,19 @@ MODULE read_namelists_module
              CALL errore( sub_name, &
                   & ' invalid nelup /= (neldwn +1) spin with sic activated', 1 )
           !
+       ENDIF
+       !
+       ! ... control on NKSIC (and orbital dependent) variables
+       !
+       IF ( LEN_TRIM( which_orbdep ) > 0 ) THEN
+           !
+           DO i = 1, SIZE( which_orbdep_allowed )
+              IF( TRIM(which_orbdep) == which_orbdep_allowed(i) ) allowed = .TRUE.
+           END DO
+           IF( .NOT. allowed ) &
+               CALL errore( sub_name, ' which_orbdep '''// &
+                          & TRIM(which_orbdep)//''' not allowed ',1)
+           !
        ENDIF
        !
        RETURN

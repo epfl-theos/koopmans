@@ -2598,6 +2598,7 @@ END FUNCTION
                                    do_pz_ => do_pz, &
                                    do_nki_ => do_nki, &
                                    do_nkpz_ => do_nkpz, &
+                                   which_orbdep_ => which_orbdep, &
                                    fref_ => fref, &
                                    rhobarfact_ => rhobarfact, &
                                    vanishing_rho_w_ => vanishing_rho_w, &
@@ -2618,10 +2619,42 @@ END FUNCTION
       character(10) :: subname='nksic_init'
       
 
+      !
+      ! overwriten by which_orbdep, if not empty
+      !
       do_nk   = do_nk_
       do_pz   = do_pz_
       do_nki  = do_nki_
       do_nkpz = do_nkpz_
+      !
+      do_wxd  = do_wxd_
+      do_wref = do_wref_
+
+      !
+      ! use the collective var which_orbdep
+      !
+      SELECT CASE ( TRIM(which_orbdep_) )
+      CASE ( "", "hf" )
+         ! do nothing
+      CASE ( "nk", "non-koopmans" )
+         do_nk   = .TRUE.
+         do_wref = .TRUE.
+         do_wxd  = .TRUE.
+      CASE ( "nk0" )
+         do_nk   = .TRUE.
+         do_wref = .FALSE.
+         do_wxd  = .FALSE.
+      CASE ( "nki" )
+         do_nki  = .TRUE.
+         do_wxd  = .TRUE.
+         fref    = 1.0
+      CASE ( "pz", "perdew-zunger" )
+         do_pz   = .TRUE.
+      CASE ( "nkpz", "pznk" )
+         do_nkpz = .TRUE.
+      CASE DEFAULT
+         call errore(subname,"invalid which_orbdep = "//TRIM(which_orbdep_),10)
+      END SELECT
       !
       do_orbdep = do_nk .or. do_pz .or. do_nki .or. do_nkpz
 
@@ -2637,16 +2670,16 @@ END FUNCTION
       !
       if ( found ) CALL errore(subname,'more than one orb-dependent schme used',1)
 
-      do_wxd  = do_wxd_
-      do_wref = do_wref_
-      fref    = fref_
       !
-      do_spinsym = do_spinsym_
+      fref          = fref_
+      do_spinsym    = do_spinsym_
       vanishing_rho_w = vanishing_rho_w_
-      rhobarfact = rhobarfact_
-      nkscalfact = nkscalfact_
-      nknmax = nknmax_
-      f_cutoff = f_cutoff_
+      rhobarfact    = rhobarfact_
+      nkscalfact    = nkscalfact_
+      nknmax        = nknmax_
+      f_cutoff      = f_cutoff_
+      !
+      if ( do_nki .and. fref /= 1.0 ) CALL errore(subname,'nki and fref /= 1.0 ',1)
       !
       if( (do_nk .or. do_nkpz) .and. meta_ionode ) then
           write(stdout,2000) fref
@@ -2694,6 +2727,7 @@ END FUNCTION
       use hfmod,              only : do_hf, hfscalfact, allocate_hf
       use nksic,              only : f_cutoff
       use input_parameters,   only : do_hf_ => do_hf, &
+                                     which_orbdep_ => which_orbdep, &
                                      hfscalfact_ => hfscalfact, &
                                      f_cutoff_ => f_cutoff
       use io_global,          only : meta_ionode, stdout
@@ -2701,7 +2735,11 @@ END FUNCTION
       use gvecw,              only : ngw
       !
       implicit none
-      do_hf = do_hf_
+      !
+      do_hf = do_hf_ 
+      !
+      IF ( TRIM( which_orbdep_ ) == "hf" ) do_hf = .TRUE.
+      !
       hfscalfact = hfscalfact_
       f_cutoff = f_cutoff_
       !
