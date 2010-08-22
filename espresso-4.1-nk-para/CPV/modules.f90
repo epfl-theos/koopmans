@@ -377,6 +377,8 @@ contains
       if ( do_nk .or. do_nkpz ) then
           allocate( wxdsic(nnrx,2) )
           allocate( wrefsic(nnrx) )
+      else if ( do_nki ) then
+          allocate( wxdsic(nnrx,2) )
       endif
       !
       pink     = 0.0d0

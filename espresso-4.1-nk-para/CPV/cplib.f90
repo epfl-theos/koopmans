@@ -2629,12 +2629,14 @@ END FUNCTION
       !
       do_wxd  = do_wxd_
       do_wref = do_wref_
+      !
+      fref    = fref_
 
       !
       ! use the collective var which_orbdep
       !
       SELECT CASE ( TRIM(which_orbdep_) )
-      CASE ( "", "hf" )
+      CASE ( "", "hf", "none" )
          ! do nothing
       CASE ( "nk", "non-koopmans" )
          do_nk   = .TRUE.
@@ -2671,7 +2673,6 @@ END FUNCTION
       if ( found ) CALL errore(subname,'more than one orb-dependent schme used',1)
 
       !
-      fref          = fref_
       do_spinsym    = do_spinsym_
       vanishing_rho_w = vanishing_rho_w_
       rhobarfact    = rhobarfact_

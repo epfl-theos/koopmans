@@ -443,10 +443,10 @@ MODULE input_parameters
         !
         ! This variable overwrites the ones above
         CHARACTER(80)     :: which_orbdep=" "
-        CHARACTER(LEN=80) :: which_orbdep_allowed(9)
+        CHARACTER(LEN=80) :: which_orbdep_allowed(10)
         !
         DATA which_orbdep_allowed &
-          / "nk", "non-koopmans", "nk0", "nki", &
+          / "none", "nk", "non-koopmans", "nk0", "nki", &
             "perdew-zunger", "pz", "pznk", "nkpz" , "hf" /
         !
         LOGICAL     :: do_spinsym  = .false.
