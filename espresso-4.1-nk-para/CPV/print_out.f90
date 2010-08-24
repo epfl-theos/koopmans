@@ -139,23 +139,26 @@
                 hamn_h=0.0d0
                 hamn_ah=0.0d0
                 !
-                DO isp = 1, nspin
+                IF( tfile .AND. print_hamilt_norm ) THEN
                     !
-                    DO j = 1, SIZE( hamilt, 2)
-                    DO i = 1, SIZE( hamilt, 1)
+                    DO isp = 1, nspin
                         !
-                        ham_h   =  0.5d0 * ( hamilt(i,j,isp) + hamilt(j,i,isp) )
-                        ham_ah  =  0.5d0 * ( hamilt(i,j,isp) - hamilt(j,i,isp) )
-                        !
-                        hamn_h  =  hamn_h  + DBLE( ham_h  * ham_h )
-                        hamn_ah =  hamn_ah + DBLE( ham_ah * ham_ah )
-                        !
+                        DO j = 1, SIZE( hamilt, 2)
+                        DO i = 1, SIZE( hamilt, 1)
+                            !
+                            ham_h   =  0.5d0 * ( hamilt(i,j,isp) + hamilt(j,i,isp) )
+                            ham_ah  =  0.5d0 * ( hamilt(i,j,isp) - hamilt(j,i,isp) )
+                            !
+                            hamn_h  =  hamn_h  + DBLE( ham_h  * ham_h )
+                            hamn_ah =  hamn_ah + DBLE( ham_ah * ham_ah )
+                            !
+                        ENDDO
+                        ENDDO
                     ENDDO
-                    ENDDO
-                ENDDO
-                !
-                IF( tfile .AND. print_hamilt_norm ) &
+                    !
                     CALL printout_matrix_norm( 43, hamn_h, hamn_ah, nfi )
+                    !
+                ENDIF
                 !
             ENDIF
 

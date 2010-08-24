@@ -343,6 +343,7 @@ module nksic
   real(dp),    allocatable :: orb_rhor(:,:)
   real(dp),    allocatable :: rhoref(:,:)
   real(dp),    allocatable :: rhobar(:,:)
+  real(dp),    allocatable :: grhobar(:,:,:)
   real(dp),    allocatable :: wrefsic(:)
   !
   complex(dp), allocatable :: vsicpsi(:,:)
@@ -360,6 +361,8 @@ module nksic
 contains
   !
   subroutine allocate_nksic( nnrx, ngw, nspin, nx)
+      !
+      use funct,  only : dft_is_gradient
       !
       implicit none
       integer, intent(in):: nx, nspin
@@ -379,6 +382,10 @@ contains
           allocate( wrefsic(nnrx) )
       else if ( do_nki ) then
           allocate( wxdsic(nnrx,2) )
+      endif
+      !
+      if ( dft_is_gradient() ) then 
+          allocate( grhobar(nnrx,3,2) )
       endif
       !
       pink     = 0.0d0
@@ -407,6 +414,7 @@ contains
       if ( allocated(orb_rhor))    cost = cost + real( size(orb_rhor))    *  8.0_dp
       if ( allocated(rhoref) )     cost = cost + real( size(rhoref) )     *  8.0_dp
       if ( allocated(rhobar) )     cost = cost + real( size(rhobar) )     *  8.0_dp
+      if ( allocated(grhobar) )    cost = cost + real( size(grhobar) )    *  8.0_dp
       if ( allocated(wrefsic) )    cost = cost + real( size(wrefsic) )    *  8.0_dp
       !
       nksic_memusage = cost / 1000000.0_dp
@@ -422,6 +430,7 @@ contains
       if(allocated(vsicpsi)) deallocate(vsicpsi)
       if(allocated(wrefsic)) deallocate(wrefsic)
       if(allocated(orb_rhor)) deallocate(orb_rhor)
+      if(allocated(grhobar)) deallocate(grhobar)
       if(allocated(rhobar)) deallocate(rhobar)
       if(allocated(rhoref)) deallocate(rhoref)
       !

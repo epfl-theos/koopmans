@@ -103,11 +103,11 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
      ! compute auxiliary potentials
      !
      if( do_orbdep ) then
-         call nksic_potential( c0, rhor )
+         call nksic_potential( c0, rhor, rhog )
      end if
      !
      if( do_hf ) then
-         call calc_hf_potential( c0, vxxpsi, exx, detothf)
+         call calc_hf_potential( c0, rhor, rhog, vxxpsi, exx, detothf)
      end if
      !
      if( do_efield ) then

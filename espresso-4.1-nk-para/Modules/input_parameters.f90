@@ -447,7 +447,8 @@ MODULE input_parameters
         !
         DATA which_orbdep_allowed &
           / "none", "nk", "non-koopmans", "nk0", "nki", &
-            "perdew-zunger", "pz", "pznk", "nkpz" , "hf" /
+            "perdew-zunger", "pz", "pznk", "nkpz" ,     &
+            "hf" /
         !
         LOGICAL     :: do_spinsym  = .false.
         INTEGER     :: nknmax = -1

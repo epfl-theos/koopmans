@@ -7,298 +7,312 @@
 !
 ! Hartree-Fock method
 ! Implemented by I. Dabo (Universite Paris-Est, Ecole des Ponts, ParisTech)
-! Parallelized by Andrea Ferretti (MIT)
+! Optimized and Parallelized by Andrea Ferretti (MIT)
 !
 !-----------------------------------------------------------------------
-      subroutine calc_hf_potential(c,vxxpsi,exx,detothf)
+      subroutine calc_hf_potential(c, rhor, rhog, vxxpsi, exx, detothf)
 !-----------------------------------------------------------------------
 !
 ! ... calculate orbital densities and Hartree-Fock potentials
 ! ... (the calculation of the exchange potential uses
 ! ... periodic-image corrections)
 !
-      use kinds,              only: dp
-      use gvecp,              only: ngm
-      use gvecs,              only: ngs, nps, nms
-      use gvecw,              only: ngw
-      use recvecs_indexes,    only: np, nm
-      use reciprocal_vectors, only: gstart
-      use grid_dimensions,    only: nr1, nr2, nr3, &
-                                    nr1x, nr2x, nr3x, nnrx
-      use cell_base,          only: omega, a1, a2, a3
-      use smooth_grid_dimensions, only: nr1s, nr2s, nr3s, &
-                                        nr1sx, nr2sx, nr3sx, nnrsx
-      use electrons_base,     only: nx => nbspx, n => nbsp, f, ispin, &
-                                    nspin, nelt
-      use constants,          only: pi, fpi
-      use mp,                 only: mp_sum
-      use mp_global,          only : intra_image_comm
-      use io_global,          only: stdout, ionode
-      use cp_interfaces,      only: fwfft, invfft
-      use fft_base,           only: dffts, dfftp
-      use hfmod,              only: hfscalfact
+      use kinds,                   only: dp
+      use gvecp,                   only: ngm
+      use gvecs,                   only: ngs, nps, nms
+      use gvecw,                   only: ngw
+      use recvecs_indexes,         only: np, nm
+      use reciprocal_vectors,      only: gstart
+      use grid_dimensions,         only: nr1, nr2, nr3, &
+                                         nr1x, nr2x, nr3x, nnrx
+      use cell_base,               only: omega, a1, a2, a3
+      use smooth_grid_dimensions,  only: nr1s, nr2s, nr3s, &
+                                         nr1sx, nr2sx, nr3sx, nnrsx
+      use electrons_base,          only: nx => nbspx, n => nbsp, &
+                                         f, ispin, nspin, nelt
+      use constants,               only: pi, fpi
+      use mp,                      only: mp_sum
+      use mp_global,               only: intra_image_comm
+      use io_global,               only: stdout, ionode
+      use funct,                   only: dft_is_gradient
+      use cp_interfaces,           only: fwfft, invfft, fillgrad
+      use fft_base,                only: dffts, dfftp
+      use hfmod,                   only: hfscalfact
       !
       implicit none
       !
-      complex(dp) :: c(ngw,nx)
-      complex(dp) :: vxxpsi(ngw,nx)
-      real(dp)    :: exx(nx)
-      real(dp)    :: detothf
+      ! I/O vars
       !
-      integer  :: iss, isup, isdw, iss1, iss2, ios, i, ir, ig, k, j
-      real(dp) :: sa1, sa2, eaux, etxc, fact
+      complex(dp), intent(in)  :: c(ngw,nx)
+      real(dp),    intent(in)  :: rhor(nnrx,nspin)
+      complex(dp), intent(out) :: rhog(ngm,nspin)
+      complex(dp), intent(out) :: vxxpsi(ngw,nx)
+      real(dp),    intent(out) :: exx(nx)
+      real(dp),    intent(out) :: detothf
+      !
+      ! local vars
+      !
       real(dp), parameter :: vanishing_f = 1.e-6_dp
+      !
+      integer     :: iss, isup, isdw, iss1, iss2 
+      integer     :: ios, i, ir, ig, k, j
+      real(dp)    :: sa1, sa2, eaux, etxc, fact
+      real(dp)    :: faux_i, faux_j
       complex(dp) :: ci,fp,fm
-      character(len=6), external :: int_to_char
+      !
+      character(6),   external :: int_to_char
       complex(dp), allocatable :: psi(:), psis1(:), psis2(:), &
-                                  rhog(:,:), &
-                                  vxxs(:), vxxg(:), vxxpsis(:), psis(:)
+                                  vxxs(:), vxxg(:), &
+                                  vxxpsis(:), psis(:)
       complex(dp), allocatable :: orbitalrhog(:,:)
-      real(dp), allocatable :: orbitalrhos(:,:)
-      real(dp), allocatable :: orbitalrhor(:,:)
-      real(dp), allocatable :: aux(:),rhor(:,:),rhos(:,:)
-      real(dp), allocatable :: vxc(:,:)
-      real(dp), allocatable :: grhor(:,:,:)
-      real(dp), allocatable :: h(:,:,:)
+      real(dp),    allocatable :: orbitalrhos(:,:)
+      real(dp),    allocatable :: orbitalrhor(:,:)
+      real(dp),    allocatable :: aux(:)
+      real(dp),    allocatable :: vxc(:,:)
+      real(dp),    allocatable :: grhor(:,:,:)
+      real(dp),    allocatable :: h(:,:,:)
       !
       ci=(0.0d0,1.0d0)
       !
       ! ... calculate the density of each individual orbital
       !
-      allocate(orbitalrhog(ngm,2))
-      allocate(orbitalrhos(nnrsx,2))
-      allocate(orbitalrhor(nnrx,2))
-      allocate(aux(nnrx))
       allocate(psis1(nnrsx)) 
       allocate(psis2(nnrsx)) 
-      allocate(vxxg(nnrx))
-      allocate(vxxs(nnrsx))
-      allocate(vxxpsis(nnrsx))
-      allocate(vxc(nnrx,2))
-      allocate(grhor(nnrx,3,2))
-      allocate(h(nnrx,2,2))
-      allocate(rhos(nnrsx,2))
-      allocate(rhor(nnrx,2))
-      allocate(rhog(ngm,2))
+      allocate(vxc(nnrx,nspin))
+      !
+      if ( dft_is_gradient() ) then
+          !
+          allocate(grhor(nnrx,3,nspin))
+          allocate(h(nnrx,nspin,nspin))
+          !
+          call fillgrad( nspin, rhog, grhor)     
+      else
+          !
+          allocate(grhor(1,1,1))
+          allocate(h(1,1,1))
+          !
+          grhor=0.0_dp
+          h=0.0_dp
+          !
+      endif
       !
       fact=omega/dble(nr1*nr2*nr3)
       !
       vxxpsi=0.0_dp
       exx=0.0_dp
-      rhor=0.d0
-      rhos=0.d0
-      rhog=(0.d0,0.d0)
+
       !
-      ! ... calculate total charge density
-      ! ... (this step can be removed depending on where the 
-      ! ... subroutine is called, ID)
+      ! the calculation of the total charge density 
+      ! has been removed, now it comes from input
       !
-      allocate(psis(nnrsx)) 
-      !
-      do i=1,n,2
-        !
-        call c2psi(psis,nnrsx,c(1,i),c(1,i+1),ngw,2)
-        call invfft('Wave',psis,dffts)
-        !
-        iss1=ispin(i)
-        sa1=f(i)/omega
-        if(i.ne.n) then
-          iss2=ispin(i+1)
-          sa2=f(i+1)/omega
-        else
-          iss2=iss1
-          sa2=0.0d0
-        end if
-        !
-        do ir=1,nnrsx
-          rhos(ir,iss1)=rhos(ir,iss1)+sa1*(dble(psis(ir)))**2
-          rhos(ir,iss2)=rhos(ir,iss2)+sa2*(aimag(psis(ir)))**2
-        end do
-        !
-      end do
-      !
-      deallocate(psis) 
-      !
-      allocate(psis(nnrsx)) 
-      !
-      isup=1
-      isdw=2
-      !
-      do ir=1,nnrsx
-        psis(ir)=cmplx(rhos(ir,isup),rhos(ir,isdw))
-      end do
-      !
-      call fwfft('Smooth',psis,dffts)
-      !
-      do ig=1,ngs
-         fp=psis(nps(ig))+psis(nms(ig))
-         fm=psis(nps(ig))-psis(nms(ig))
-         rhog(ig,isup)=0.5d0*cmplx( dble(fp),aimag(fm))
-         rhog(ig,isdw)=0.5d0*cmplx(aimag(fp),-dble(fm))
-      end do
-      !
-      allocate(psi(nnrx))
-      !
-      isup=1
-      isdw=2
-      psi(:)=(0.d0,0.d0)
-      do ig=1,ngs
-        psi(nm(ig))=conjg(rhog(ig,isup))+ci*conjg(rhog(ig,isdw))
-        psi(np(ig))=rhog(ig,isup)+ci*rhog(ig,isdw)
-      end do
-      !
-      call invfft('Dense',psi,dfftp)
-      !
-      do ir=1,nnrx
-        rhor(ir,isup)=dble(psi(ir))
-        rhor(ir,isdw)=aimag(psi(ir))
-      end do
-      !
-      deallocate(psi) 
-      deallocate(psis) 
-      !
-      grhor=0.0_dp
-      h=0.0_dp
       vxc=0.0_dp
       etxc=0.0_dp
       !
-      call exch_corr_wrapper(nnrx,2,grhor,rhor,etxc,vxc,h)
+      call exch_corr_wrapper(nnrx,nspin,grhor,rhor,etxc,vxc,h)
       detothf=-etxc*fact
+      !
+      deallocate(grhor)
+      deallocate(h)
       !
       call mp_sum(detothf,intra_image_comm)
       !
+  
+      !
+      ! main loop over states
+      !
       do i=1,n
-        !
-        ! psi_i on the smooth grid
-        !
-        psis1=0.d0
-        do ig=1,ngw
-          psis1(nms(ig))=conjg(c(ig,i))
-          psis1(nps(ig))=c(ig,i)
-        end do
-        call invfft('Wave',psis1,dffts)
-        !
-        do j=1,n
           !
-          if(ispin(i).ne.ispin(j)) cycle
+          ! psi_i on the smooth grid
           !
-          ! psi_j on the smooth grid
-          !
-          psis2=0.d0
+          psis1=0.d0
           do ig=1,ngw
-            psis2(nms(ig))=conjg(c(ig,j))
-            psis2(nps(ig))=c(ig,j)
+              psis1(nms(ig))=conjg(c(ig,i))
+              psis1(nps(ig))=c(ig,i)
           end do
-          call invfft('Wave',psis2,dffts)
+          call invfft('Wave',psis1,dffts)
           !
-          ! psi_i * psi_j on the smooth grid
+          ! inner loop
           !
-          iss1=ispin(i)
-          sa1=1.d0/omega
-          orbitalrhos=0.d0
-          do ir=1,nnrsx
-            orbitalrhos(ir,iss1)=sa1*dble(psis1(ir))*dble(psis2(ir))
-          end do
+          do j=1,n
+              !
+              if( ispin(i) /= ispin(j) ) cycle
+              !
+              ! allocate mem
+              !
+              allocate(orbitalrhog(ngm,2))
+              allocate(orbitalrhos(nnrsx,2))
+              allocate(orbitalrhor(nnrx,2))
+    
+              !
+              ! take into account spin multiplicity
+              !
+              faux_i = f(i) * dble( nspin ) / 2.0_dp 
+              faux_j = f(j) * dble( nspin ) / 2.0_dp 
+              !
+              !
+              ! psi_j on the smooth grid
+              !
+              psis2=0.d0
+              do ig=1,ngw
+                  psis2(nms(ig))=conjg(c(ig,j))
+                  psis2(nps(ig))=c(ig,j)
+              end do
+              call invfft('Wave',psis2,dffts)
+              !
+              ! psi_i * psi_j on the smooth grid
+              !
+              iss1=ispin(i)
+              sa1=1.d0/omega
+              orbitalrhos=0.d0
+              !
+              do ir=1,nnrsx
+                  orbitalrhos(ir,iss1)=sa1*dble(psis1(ir))*dble(psis2(ir))
+              end do
+    
+              !
+              ! move to the dense grid
+              !
+              if ( nnrsx == nnrx ) then
+                  !
+                  orbitalrhor(:,:) = orbitalrhos(:,:)
+                  !
+              else
+                  !
+                  ! transform to reciprocal space
+                  !
+                  allocate(psis(nnrsx)) 
+                  isup=1
+                  isdw=2
+                  psis=0.0_dp
+                  do ir=1,nnrsx
+                    psis(ir)=cmplx(orbitalrhos(ir,isup),orbitalrhos(ir,isdw))
+                  end do
+                  call fwfft('Smooth',psis,dffts)
+                  orbitalrhog=(0.d0,0.d0)
+                  do ig=1,ngs
+                    fp=psis(nps(ig))+psis(nms(ig))
+                    fm=psis(nps(ig))-psis(nms(ig))
+                    orbitalrhog(ig,isup)=0.5d0*cmplx(dble(fp),aimag(fm))
+                    orbitalrhog(ig,isdw)=0.5d0*cmplx(aimag(fp),-dble(fm))
+                 end do
+                 !
+                 ! switch to dense grid in real space
+                 !
+                 allocate(psi(nnrx))
+                 isup=1
+                 isdw=2
+                 psi(:)=(0.d0,0.d0)
+                 do ig=1,ngs
+                   psi(nm(ig))=conjg(orbitalrhog(ig,isup)) &
+                              +ci*conjg(orbitalrhog(ig,isdw))
+                   psi(np(ig))=orbitalrhog(ig,isup)+ci*orbitalrhog(ig,isdw)
+                 end do
+                 call invfft('Dense',psi,dfftp)
+                 do ir=1,nnrx
+                   orbitalrhor(ir,isup)= dble(psi(ir))
+                   orbitalrhor(ir,isdw)=aimag(psi(ir))
+                 end do
+                 !
+                 deallocate(psi) 
+                 deallocate(psis)
+                 !
+              endif
+              !
+              deallocate(orbitalrhog)
+              deallocate(orbitalrhos)
+              !
+              !!
+              !! The following is left here for DEBUG purposes only,
+              !! it is definitely too bad for the performance in real calculations
+              !!
+              !if(i.eq.j) then
+              !  call writetofile(orbitalrhor(:,1),nnrx, &
+              !              'rhoup'//TRIM(int_to_char(i))//'.dat',dfftp,'az')
+              !  call writetofile(orbitalrhor(:,2),nnrx, &
+              !              'rhodw'//TRIM(int_to_char(i))//'.dat',dfftp,'az')
+              !end if
+    
+              !
+              ! calculate exchange contribution 
+              !
+              allocate(aux(nnrx))
+              !
+              call hf_correction(ispin(i),orbitalrhor,aux,eaux)
+              !
+              deallocate(orbitalrhor)
+              allocate(vxxg(nnrx))
+              !
+              vxxg(1:nnrx) = faux_j * aux(1:nnrx)
+              !
+              exx(i)=exx(i)-0.5_dp*faux_i*faux_j*eaux
+              !
+              deallocate(aux)
+              !
+              !
+              if ( i == j ) &
+                  vxxg(1:nnrx) = vxxg(1:nnrx)+vxc(1:nnrx,ispin(i))
+
+              allocate(vxxs(nnrsx))
+              !
+              call fwfft('Dense',vxxg,dfftp )
+              !
+              vxxs=0.0_dp
+              do ig=1,ngs
+                  vxxs(nps(ig))=vxxg(np(ig))
+                  vxxs(nms(ig))=conjg(vxxg(np(ig)))
+              enddo
+              !
+              deallocate(vxxg)
+
+              !
+              ! change grid
+              !
+              call invfft('Smooth',vxxs,dffts)
+              !
+              allocate(vxxpsis(nnrsx))
+              !
+              vxxpsis=0.0_dp
+              do ir=1,nnrsx
+                  vxxpsis(ir)=cmplx(dble(vxxs(ir))*dble(psis2(ir)),0.0_dp)
+              enddo
+              call fwfft('Wave',vxxpsis,dffts)
+              !
+              do ig=1,ngw
+                  vxxpsi(ig,i)=vxxpsi(ig,i)-vxxpsis(nps(ig))
+              enddo
+              !
+              deallocate(vxxpsis)
+              deallocate(vxxs)
+              !
+          enddo
           !
-          ! transform to reciprocal space
+          if ( nspin == 1 ) exx(i) = 2.0_dp * exx(i)
           !
-          allocate(psis(nnrsx)) 
-          isup=1
-          isdw=2
-          psis=0.0_dp
-          do ir=1,nnrsx
-            psis(ir)=cmplx(orbitalrhos(ir,isup),orbitalrhos(ir,isdw))
-          end do
-          call fwfft('Smooth',psis,dffts)
-          orbitalrhog=(0.d0,0.d0)
-          do ig=1,ngs
-            fp=psis(nps(ig))+psis(nms(ig))
-            fm=psis(nps(ig))-psis(nms(ig))
-            orbitalrhog(ig,isup)=0.5d0*cmplx(dble(fp),aimag(fm))
-            orbitalrhog(ig,isdw)=0.5d0*cmplx(aimag(fp),-dble(fm))
-          end do
-          !
-          ! switch to dense grid in real space
-          !
-          allocate(psi(nnrx))
-          isup=1
-          isdw=2
-          psi(:)=(0.d0,0.d0)
-          do ig=1,ngs
-            psi(nm(ig))=conjg(orbitalrhog(ig,isup)) &
-                       +ci*conjg(orbitalrhog(ig,isdw))
-            psi(np(ig))=orbitalrhog(ig,isup)+ci*orbitalrhog(ig,isdw)
-          end do
-          call invfft('Dense',psi,dfftp)
-          do ir=1,nnrx
-            orbitalrhor(ir,isup)= dble(psi(ir))
-            orbitalrhor(ir,isdw)=aimag(psi(ir))
-          end do
-          !
-          deallocate(psi) 
-          deallocate(psis)
-          !
-          if(i.eq.j) then
-            call writetofile(orbitalrhor(:,1),nnrx, &
-                        'rhoup'//TRIM(int_to_char(i))//'.dat',dfftp,'az')
-            call writetofile(orbitalrhor(:,2),nnrx, &
-                        'rhodw'//TRIM(int_to_char(i))//'.dat',dfftp,'az')
-          end if
-          !
-          ! calculate exchange contribution 
-          !
-          call hf_correction(ispin(i),orbitalrhor,aux,eaux)
-          !
-          vxxg(1:nnrx)=f(j)*aux(1:nnrx)
-          if(i.eq.j) vxxg(1:nnrx)=vxxg(1:nnrx)+vxc(1:nnrx,ispin(i))
-          call fwfft('Dense',vxxg,dfftp )
-          vxxs=0.0_dp
-          do ig=1,ngs
-            vxxs(nps(ig))=vxxg(np(ig))
-            vxxs(nms(ig))=conjg(vxxg(np(ig)))
-          end do
-          call invfft('Smooth',vxxs,dffts)
-          !
-          vxxpsis=0.0_dp
-          do ir=1,nnrsx
-            vxxpsis(ir)=cmplx(dble(vxxs(ir))*dble(psis2(ir)),0.0_dp)
-          end do
-          call fwfft('Wave',vxxpsis,dffts)
-          !
-          do ig=1,ngw
-            vxxpsi(ig,i)=vxxpsi(ig,i)-vxxpsis(nps(ig))
-          end do
-          !
-          exx(i)=exx(i)-0.5_dp*f(i)*f(j)*eaux
-          !
-        end do
-        !
-      end do
+      enddo
       !
-      vxxpsi=hfscalfact*vxxpsi
-      detothf=hfscalfact*detothf
+      vxxpsi  = hfscalfact *vxxpsi
       !
-      deallocate(orbitalrhog)
-      deallocate(orbitalrhos)
-      deallocate(orbitalrhor)
-      deallocate(aux)
+      detothf = hfscalfact *detothf
+!!
+!! XXX
+!!
+!  WRITE(0, "(a)") "DEBUG"
+!  WRITE(0, "(a, f15.9)") "detot   ", detothf
+!  WRITE(0, "(a, f15.9)") "exx_sum ", SUM(exx)
+!  WRITE(0, "(a)") "vsic"
+!  WRITE(0, "(8f12.9)") vxxpsi(1:4,:)
+!  WRITE(0, * )
+
       deallocate(psis1) 
       deallocate(psis2) 
-      deallocate(vxxg)
-      deallocate(vxxs)
-      deallocate(vxxpsis)
-      deallocate(vxc)
-      deallocate(grhor)
-      deallocate(h)
-      deallocate(rhos)
-      deallocate(rhor)
-      deallocate(rhog)
       !
+      deallocate(vxc)
       return
       !
 !-----------------------------------------------------------------------
       end subroutine calc_hf_potential
 !-----------------------------------------------------------------------
+
 !---------------------------------------------------------------
       SUBROUTINE hf_correction(ispin,rhoele,vxx,exx) 
 !---------------------------------------------------------------

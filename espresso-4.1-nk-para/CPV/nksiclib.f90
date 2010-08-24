@@ -12,7 +12,7 @@
 !      (MIT, University of Oxford)
 !
 !-----------------------------------------------------------------------
-      subroutine nksic_potential( c, rhor)
+      subroutine nksic_potential( c, rhor, rhog)
 !-----------------------------------------------------------------------
 !
 ! ... calculate orbital dependent potentials, 
@@ -41,7 +41,8 @@
       use fft_base,                   only: dffts, dfftp
       use nksic,                      only: orb_rhor, vsic, wxdsic, &
                                             wrefsic, rhoref, rhobar, pink, &
-                                            do_nk, do_nki, do_pz, do_nkpz
+                                            do_nk, do_nki, do_pz, do_nkpz, &
+                                            grhobar
       use ions_base,                  only: nsp
       !
       implicit none
@@ -50,6 +51,7 @@
       !
       complex(dp), intent(in) :: c(ngw,nx)
       real(dp),    intent(in) :: rhor(nnrx,nspin)
+      complex(dp), intent(in) :: rhog(ngm,nspin)
 
       !
       ! local variables
@@ -110,7 +112,7 @@
           !
           call nksic_get_rhoref( i, nnrx, ispin(i), nspin,  &
                                  focc, rhor, orb_rhor(:,jj), &
-                                 rhoref, rhobar)
+                                 rhoref, rhobar, grhobar )
 
           !
           ! compute nk pieces to build the potentials and the energy
@@ -118,8 +120,8 @@
           if ( do_nk .or. do_nkpz ) then
               !
               call nksic_correction_nk( focc, ispin(i), orb_rhor(:,jj), &
-                                        rhor, rhoref, rhobar, vsic(:,i), &
-                                        wxdsic, wrefsic, &
+                                        rhor, rhoref, rhobar, grhobar, &
+                                        vsic(:,i), wxdsic, wrefsic, &
                                         pink(i), ibnd)
 
               !
@@ -141,7 +143,7 @@
           if( do_nkpz ) then
               !
               call nksic_correction_nkpz( focc, orb_rhor(:,jj), vsicpz, &
-                                           wrefsic, pinkpz, ibnd, ispin)
+                                          wrefsic, pinkpz, ibnd, ispin)
               !
               vsic(1:nnrx,i) = vsic(1:nnrx,i) + vsicpz(1:nnrx) &
                              + wrefsic(1:nnrx)
@@ -166,8 +168,8 @@
           if ( do_nki ) then
               !
               call nksic_correction_nki( focc, ispin(i), orb_rhor(:,jj), &
-                                         rhor, rhoref, rhobar, vsic(:,i), &
-                                         wxdsic, pink(i), ibnd)
+                                         rhor, rhoref, rhobar, grhobar, &
+                                         vsic(:,i), wxdsic, pink(i), ibnd)
               !
               ! here information is accumulated over states
               ! (wtot is added in the next loop)
@@ -242,8 +244,8 @@
       use uspp_param,                 only: nhm
       use electrons_base,             only: nspin,ispin
       use ions_base,                  only: nat
-      use mp,                   only : mp_sum
-      use mp_global,            only : intra_image_comm
+      use mp,                         only: mp_sum
+      use mp_global,                  only: intra_image_comm
       use uspp,                       only: okvan
       !
       implicit none
@@ -384,13 +386,19 @@ end subroutine nksic_get_orbitalrho
 
 !-----------------------------------------------------------------------
       subroutine nksic_get_rhoref( i, nnrx, ispin, nspin, f, &
-                                   rhor, orb_rhor, rhoref_, rhobar_)
+                                   rhor, orb_rhor, &
+                                   rhoref_, rhobar_, grhobar_)
 !-----------------------------------------------------------------------
 !
 ! Computes rhoref and rhobar
 !
-      use kinds,         only: dp
-      use nksic,         only: fref, rhobarfact
+      use kinds,                      only : dp
+      use gvecp,                      only : ngm
+      use funct,                      only : dft_is_gradient
+      use cp_interfaces,              only : fwfft, invfft, fillgrad
+      use fft_base,                   only : dffts, dfftp
+      use recvecs_indexes,            only : np, nm
+      use nksic,                      only : fref, rhobarfact
       !
       implicit none
 
@@ -404,8 +412,12 @@ end subroutine nksic_get_orbitalrho
       real(dp),      intent(in)  :: orb_rhor(nnrx)
       real(dp),      intent(out) :: rhoref_(nnrx,2)
       real(dp),      intent(out) :: rhobar_(nnrx,2)
+      real(dp),      intent(out) :: grhobar_(nnrx,3,2)
       !
-      integer :: ir, isp
+      integer      :: ir, isp, ig
+      complex(dp)  :: fp, fm
+      complex(dp),   allocatable :: psi(:)
+      complex(dp),   allocatable :: rhobarg(:,:)
 
       !
       ! main body
@@ -436,6 +448,33 @@ end subroutine nksic_get_orbitalrho
       rhoref_(:,1:2)   = rhobar_(:,1:2)
       rhoref_(:,ispin) = rhoref_(:,ispin) + fref * orb_rhor(:)
       !
+ 
+      !
+      ! compute the gradient of rhobar if needed
+      !
+      if ( dft_is_gradient() ) then
+          !
+          allocate( rhobarg(ngm,2) )
+          allocate( psi(nnrx) )
+          !
+          psi(:) = cmplx ( rhobar_(:,1), rhobar_(:,2) )
+          !
+          call fwfft('Dense',psi,dfftp )
+          !
+          do ig=1,ngm
+              fp = psi( np(ig) ) +psi( nm(ig) )
+              fm = psi( np(ig) ) -psi( nm(ig) )
+              !
+              rhobarg(ig,1) = 0.5d0 *cmplx( dble(fp),aimag(fm))
+              rhobarg(ig,2) = 0.5d0 *cmplx(aimag(fp),-dble(fm))
+          enddo
+          !
+          call fillgrad( 2, rhobarg, grhobar_ )
+          !
+          deallocate( psi )
+          deallocate( rhobarg )
+          !
+      endif
       !
       call stop_clock( 'nksic_rhoref' )
       return
@@ -445,7 +484,8 @@ end subroutine nksic_get_rhoref
 !---------------------------------------------------------------
 
 !---------------------------------------------------------------
-      subroutine nksic_correction_nk( f, ispin, orb_rhor, rhor, rhoref, rhobar, &
+      subroutine nksic_correction_nk( f, ispin, orb_rhor, rhor, &
+                                      rhoref, rhobar, grhobar,  &
                                       vsic, wxdsic, wrefsic, pink, ibnd ) 
 !---------------------------------------------------------------
 !
@@ -463,7 +503,7 @@ end subroutine nksic_get_rhoref
       use recvecs_indexes,      only : np, nm
       use reciprocal_vectors,   only : gstart, g
       use eecp_mod,             only : do_comp
-      use cp_interfaces,        only : fwfft, invfft
+      use cp_interfaces,        only : fwfft, invfft, fillgrad
       use fft_base,             only : dfftp
       use funct,                only : dmxc_spin, dft_is_gradient
       use mp,                   only : mp_sum
@@ -478,6 +518,7 @@ end subroutine nksic_get_rhoref
       real(dp),    intent(in)  :: rhor(nnrx,nspin)
       real(dp),    intent(in)  :: rhoref(nnrx,2)
       real(dp),    intent(in)  :: rhobar(nnrx,2)
+      complex(dp), intent(in)  :: grhobar(nnrx,3,2)
       real(dp),    intent(out) :: vsic(nnrx), wrefsic(nnrx)
       real(dp),    intent(out) :: wxdsic(nnrx,2)
       real(dp),    intent(out) :: pink
@@ -493,10 +534,11 @@ end subroutine nksic_get_rhoref
       real(dp),    allocatable :: vxcref(:,:)
       complex(dp), allocatable :: vhaux(:)
       complex(dp), allocatable :: vcorr(:)
-      complex(dp), allocatable :: rhogaux(:)
+      complex(dp), allocatable :: rhogaux(:,:)
       complex(dp), allocatable :: vtmp(:)
       !
       real(dp),    allocatable :: grhoraux(:,:,:)
+      real(dp),    allocatable :: orb_grhor(:,:,:)
       real(dp),    allocatable :: haux(:,:,:)
 
       !
@@ -513,7 +555,7 @@ end subroutine nksic_get_rhoref
       fact=omega/dble(nr1*nr2*nr3)
       !
       allocate(rhoele(nnrx,2))
-      allocate(rhogaux(ngm))
+      allocate(rhogaux(ngm,1))
       allocate(vtmp(ngm))
       allocate(vcorr(ngm))
       allocate(vhaux(nnrx))
@@ -541,7 +583,7 @@ end subroutine nksic_get_rhoref
       call fwfft('Dense',vhaux,dfftp )
       !
       do ig=1,ngm
-          rhogaux(ig) = vhaux( np(ig) )
+          rhogaux(ig,1) = vhaux( np(ig) )
       enddo
 
       !    
@@ -549,14 +591,14 @@ end subroutine nksic_get_rhoref
       !
       if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
       do ig=gstart,ngm
-          vtmp(ig) = rhogaux(ig) * fpi/( tpiba2*g(ig) )
+          vtmp(ig) = rhogaux(ig,1) * fpi/( tpiba2*g(ig) )
       enddo
       !
       ! compute periodic corrections
       !
       if( do_comp ) then
           !
-          call calc_tcc_potential( vcorr, rhogaux)
+          call calc_tcc_potential( vcorr, rhogaux(:,1) )
           vtmp(:) = vtmp(:) + vcorr(:)
           !
       endif
@@ -584,8 +626,8 @@ end subroutine nksic_get_rhoref
       !
       !ehele=0.5_dp * sum(dble(vhaux(1:nnrx))*rhoele(1:nnrx,ispin))
       !
-      ehele = 2.0_dp * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm)))
-      if ( gstart == 2 ) ehele = ehele -DBLE ( CONJG( vtmp(1) ) * rhogaux(1) )
+      ehele = 2.0_dp * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm,1)))
+      if ( gstart == 2 ) ehele = ehele -DBLE ( CONJG( vtmp(1) ) * rhogaux(1,1) )
       !
       ! the f * (2.0d0 * fref-f) term is added here
       ehele = 0.5_dp * f * (2.0_dp * fref-f) * ehele * omega / fact
@@ -595,7 +637,6 @@ end subroutine nksic_get_rhoref
       !
       vsic(1:nnrx)=(fref-f)*dble(vhaux(1:nnrx)) 
 
-      deallocate(rhogaux)
       deallocate(vtmp)
       deallocate(vcorr)
       deallocate(vhaux)
@@ -607,14 +648,25 @@ end subroutine nksic_get_rhoref
       !
       !   add self-xc contributions
       !
+
+
       if ( dft_is_gradient() ) then
-         allocate(grhoraux(nnrx,3,2))
-         allocate(haux(nnrx,2,2))
+           !
+           allocate(grhoraux(nnrx,3,2))
+           allocate(orb_grhor(nnrx,3,1))
+           allocate(haux(nnrx,2,2))
+           !
+           ! compute the gradient of n_i(r)
+           call fillgrad( 1, rhogaux, orb_grhor(:,:,1:1) )
+           !
       else
-         allocate(grhoraux(1,1,1))
-         allocate(haux(1,1,1))
-         grhoraux=0.0_dp
+           allocate(grhoraux(1,1,1))
+           allocate(haux(1,1,1))
+           grhoraux=0.0_dp
+           !
       endif
+      !
+      deallocate(rhogaux)
       !   
       allocate(vxc0(nnrx,2))
       allocate(vxcref(nnrx,2))
@@ -624,6 +676,14 @@ end subroutine nksic_get_rhoref
 
       !
       !rhoraux = rhoref
+      !
+      if ( dft_is_gradient() ) then
+          !
+          grhoraux(:,:,1:2)   = grhobar(:,:,1:2)
+          grhoraux(:,:,ispin) = grhobar(:,:,ispin) &
+                              + fref * orb_grhor(:,:,1)
+      endif    
+      !
       call exch_corr_wrapper(nnrx,2,grhoraux,rhoref,etxcref,vxcref,haux)
       
 
@@ -645,6 +705,14 @@ end subroutine nksic_get_rhoref
           allocate( rhoraux(nnrx, 2) )
           !
           rhoraux = rhobar + f*rhoele
+          !
+          if ( dft_is_gradient() ) then
+              !
+              grhoraux(:,:,1:2)   = grhobar(:,:,1:2)
+              grhoraux(:,:,ispin) = grhobar(:,:,ispin) &
+                                  + f * orb_grhor(:,:,1)
+          endif
+          !
           call exch_corr_wrapper(nnrx,2,grhoraux,rhoraux,etxc,vxc,haux)
           !
           deallocate( rhoraux )
@@ -655,7 +723,8 @@ end subroutine nksic_get_rhoref
       vxc0=0.0_dp
       !
       !rhoraux = rhobar
-      call exch_corr_wrapper(nnrx,2,grhoraux,rhobar,etxc0,vxc0,haux)
+      !
+      call exch_corr_wrapper(nnrx,2,grhobar,rhobar,etxc0,vxc0,haux)
 
       !
       ! update vsic pot 
@@ -740,6 +809,8 @@ end subroutine nksic_get_rhoref
       deallocate(grhoraux)
       deallocate(haux)
       !
+      if ( allocated(orb_grhor) ) deallocate(orb_grhor)
+      !
       CALL stop_clock( 'nksic_corr' )
       return
       !
@@ -763,9 +834,9 @@ end subroutine nksic_get_rhoref
       use recvecs_indexes,      only : np, nm
       use reciprocal_vectors,   only : gstart, g
       use eecp_mod,             only : do_comp
-      use cp_interfaces,        only : fwfft, invfft
+      use cp_interfaces,        only : fwfft, invfft, fillgrad
       use fft_base,             only : dfftp
-      use funct,                only : dft_is_gradient
+      use funct,                only : dft_is_gradient, fillgrad
       use mp,                   only : mp_sum
       use mp_global,            only : intra_image_comm
       use io_global,            only : stdout, ionode
@@ -783,7 +854,7 @@ end subroutine nksic_get_rhoref
       real(dp)      :: ehele, fact
       !
       real(dp),    allocatable :: rhoelef(:,:)
-      complex(dp), allocatable :: rhogaux(:)
+      complex(dp), allocatable :: rhogaux(:,:)
       complex(dp), allocatable :: vhaux(:)
       complex(dp), allocatable :: vcorr(:)
       complex(dp), allocatable :: vtmp(:)
@@ -805,7 +876,7 @@ end subroutine nksic_get_rhoref
       fact=omega/dble(nr1*nr2*nr3)
       !
       allocate(rhoelef(nnrx,2))
-      allocate(rhogaux(ngm))
+      allocate(rhogaux(ngm,1))
       allocate(vtmp(ngm))
       allocate(vcorr(ngm))
       allocate(vhaux(nnrx))
@@ -828,7 +899,7 @@ end subroutine nksic_get_rhoref
       call fwfft('Dense',vhaux,dfftp )
       !
       do ig=1,ngm
-          rhogaux(ig) = vhaux( np(ig) )
+          rhogaux(ig,1) = vhaux( np(ig) )
       enddo
 
       !    
@@ -836,14 +907,14 @@ end subroutine nksic_get_rhoref
       !
       if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
       do ig=gstart,ngm
-          vtmp(ig) = rhogaux(ig) * fpi/( tpiba2*g(ig) )
+          vtmp(ig) = rhogaux(ig,1) * fpi/( tpiba2*g(ig) )
       enddo
       !
       ! compute periodic corrections
       !
       if( do_comp ) then
           !
-          call calc_tcc_potential( vcorr, rhogaux)
+          call calc_tcc_potential( vcorr, rhogaux(:,1) )
           vtmp(:) = vtmp(:) + vcorr(:)
           !
       endif
@@ -866,7 +937,6 @@ end subroutine nksic_get_rhoref
       !
       ! partial cleanup
       !
-      deallocate( rhogaux )
       deallocate( vtmp )
       deallocate( vcorr )
       deallocate( vhaux )
@@ -876,14 +946,22 @@ end subroutine nksic_get_rhoref
       ! Compute xc-contributions
       !
       if ( dft_is_gradient() ) then
-         allocate(grhoraux(nnrx,3,2))
-         allocate(haux(nnrx,2,2))
+          allocate(grhoraux(nnrx,3,2))
+          allocate(haux(nnrx,2,2))
+          !
+          ! note: rhogaux contains the occupation
+          !
+          grhoraux=0.0_dp
+          call fillgrad( 1, rhogaux, grhoraux(:,:,ispin:ispin) ) 
       else
-         allocate(grhoraux(1,1,1))
-         allocate(haux(1,1,1))
+          allocate(grhoraux(1,1,1))
+          allocate(haux(1,1,1))
+          !
+          grhoraux=0.0_dp
       endif
       !
-      grhoraux=0.0_dp
+      deallocate( rhogaux )
+      !
       vxc=0.0_dp
       haux=0.0_dp
       etxc=0.0_dp
@@ -930,7 +1008,7 @@ end subroutine nksic_correction_pz
       use recvecs_indexes,      only : np, nm
       use reciprocal_vectors,   only : gstart, g
       use eecp_mod,             only : do_comp
-      use cp_interfaces,        only : fwfft, invfft
+      use cp_interfaces,        only : fwfft, invfft, fillgrad
       use fft_base,             only : dfftp
       use funct,                only : dmxc_spin, dft_is_gradient
       use mp,                   only : mp_sum
@@ -957,7 +1035,7 @@ end subroutine nksic_correction_pz
       real(dp),    allocatable :: haux(:,:,:)
       complex(dp), allocatable :: vhaux(:)
       complex(dp), allocatable :: vcorr(:)
-      complex(dp), allocatable :: rhogaux(:)
+      complex(dp), allocatable :: rhogaux(:,:)
       complex(dp), allocatable :: vtmp(:)
       !
       CALL start_clock( 'nksic_corr' )
@@ -968,7 +1046,7 @@ end subroutine nksic_correction_pz
       allocate(wxdsic(nnrx,2))
       allocate(rhoele(nnrx,2))
       allocate(rhoref(nnrx,2))
-      allocate(rhogaux(ngm))
+      allocate(rhogaux(ngm,1))
       allocate(vtmp(ngm))
       allocate(vcorr(ngm))
       allocate(vhaux(nnrx))
@@ -992,21 +1070,21 @@ end subroutine nksic_correction_pz
       call fwfft('Dense',vhaux,dfftp )
       !
       do ig=1,ngm
-        rhogaux(ig) = vhaux( np(ig) )
+        rhogaux(ig,1) = vhaux( np(ig) )
       enddo
       !    
       ! compute hartree-like potential
       !
       if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
       do ig=gstart,ngm
-        vtmp(ig)=rhogaux(ig)*fpi/(tpiba2*g(ig))
+        vtmp(ig)=rhogaux(ig,1)*fpi/(tpiba2*g(ig))
       enddo
       !
       ! compute periodic corrections
       !
       if( do_comp ) then
         !
-        call calc_tcc_potential( vcorr, rhogaux)
+        call calc_tcc_potential( vcorr, rhogaux(:,1))
         vtmp(:) = vtmp(:) + vcorr(:)
         !
       endif
@@ -1032,7 +1110,6 @@ end subroutine nksic_correction_pz
       !
       vsic(1:nnrx)=-fref*dble(vhaux(1:nnrx)) 
       !
-      deallocate(rhogaux)
       deallocate(vtmp)
       deallocate(vcorr)
       deallocate(vhaux)
@@ -1042,20 +1119,29 @@ end subroutine nksic_correction_pz
       !
       !   add self-xc contributions
       !
+      rhoref=fref*rhoele
+      !
       if ( dft_is_gradient() ) then
          allocate(grhoraux(nnrx,3,2))
          allocate(haux(nnrx,2,2))
+         !
+         grhoraux=0.0_dp
+         call fillgrad( 1, rhogaux, grhoraux(:,:,ispin:ispin) ) 
+         !
+         grhoraux(:,:,ispin) = grhoraux(:,:,ispin) * fref
       else
          allocate(grhoraux(1,1,1))
          allocate(haux(1,1,1))
          grhoraux=0.0_dp
       endif
       !   
+      deallocate(rhogaux)
+
+
       allocate(vxcref(nnrx,2))
       !
       etxcref=0.0_dp
       vxcref=0.0_dp
-      rhoref=fref*rhoele
       !
       call exch_corr_wrapper(nnrx,2,grhoraux,rhoref,etxcref,vxcref,haux)
       !
@@ -1122,8 +1208,9 @@ end subroutine nksic_correction_pz
 
 
 !---------------------------------------------------------------
-      subroutine nksic_correction_nki( f, ispin, orb_rhor, rhor, rhoref, rhobar, &
-                                      vsic, wxdsic, pink, ibnd ) 
+      subroutine nksic_correction_nki( f, ispin, orb_rhor, rhor, &
+                                       rhoref, rhobar, grhobar,  &
+                                       vsic, wxdsic, pink, ibnd ) 
 !---------------------------------------------------------------
 !
 ! ... calculate the non-Koopmans (integrated, NKI) 
@@ -1145,7 +1232,7 @@ end subroutine nksic_correction_pz
       use recvecs_indexes,      only : np, nm
       use reciprocal_vectors,   only : gstart, g
       use eecp_mod,             only : do_comp
-      use cp_interfaces,        only : fwfft, invfft
+      use cp_interfaces,        only : fwfft, invfft, fillgrad
       use fft_base,             only : dfftp
       use funct,                only : dmxc_spin, dft_is_gradient
       use mp,                   only : mp_sum
@@ -1160,6 +1247,7 @@ end subroutine nksic_correction_pz
       real(dp),    intent(in)  :: rhor(nnrx,nspin)
       real(dp),    intent(in)  :: rhoref(nnrx,2)
       real(dp),    intent(in)  :: rhobar(nnrx,2)
+      complex(dp), intent(in)  :: grhobar(nnrx,3,2)
       real(dp),    intent(out) :: vsic(nnrx)
       real(dp),    intent(out) :: wxdsic(nnrx,2)
       real(dp),    intent(out) :: pink
@@ -1175,10 +1263,11 @@ end subroutine nksic_correction_pz
       real(dp),    allocatable :: vxcref(:,:)
       complex(dp), allocatable :: vhaux(:)
       complex(dp), allocatable :: vcorr(:)
-      complex(dp), allocatable :: rhogaux(:)
+      complex(dp), allocatable :: rhogaux(:,:)
       complex(dp), allocatable :: vtmp(:)
       !
       real(dp),    allocatable :: grhoraux(:,:,:)
+      real(dp),    allocatable :: orb_grhor(:,:,:)
       real(dp),    allocatable :: haux(:,:,:)
 
       !
@@ -1195,7 +1284,7 @@ end subroutine nksic_correction_pz
       fact=omega/dble(nr1*nr2*nr3)
       !
       allocate(rhoele(nnrx,2))
-      allocate(rhogaux(ngm))
+      allocate(rhogaux(ngm,1))
       allocate(vtmp(ngm))
       allocate(vcorr(ngm))
       allocate(vhaux(nnrx))
@@ -1219,7 +1308,7 @@ end subroutine nksic_correction_pz
       call fwfft('Dense',vhaux,dfftp )
       !
       do ig=1,ngm
-          rhogaux(ig) = vhaux( np(ig) )
+          rhogaux(ig,1) = vhaux( np(ig) )
       enddo
 
       !    
@@ -1227,14 +1316,14 @@ end subroutine nksic_correction_pz
       !
       if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
       do ig=gstart,ngm
-          vtmp(ig) = rhogaux(ig) * fpi/( tpiba2*g(ig) )
+          vtmp(ig) = rhogaux(ig,1) * fpi/( tpiba2*g(ig) )
       enddo
       !
       ! compute periodic corrections
       !
       if( do_comp ) then
           !
-          call calc_tcc_potential( vcorr, rhogaux)
+          call calc_tcc_potential( vcorr, rhogaux(:,1))
           vtmp(:) = vtmp(:) + vcorr(:)
           !
       endif
@@ -1262,8 +1351,8 @@ end subroutine nksic_correction_pz
       !
       !ehele=0.5_dp * sum(dble(vhaux(1:nnrx))*rhoele(1:nnrx,ispin))
       !
-      ehele = 2.0_dp * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm)))
-      if ( gstart == 2 ) ehele = ehele -DBLE ( CONJG( vtmp(1) ) * rhogaux(1) )
+      ehele = 2.0_dp * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm,1)))
+      if ( gstart == 2 ) ehele = ehele -DBLE ( CONJG( vtmp(1) ) * rhogaux(1,1) )
       !
       ! -self-hartree energy to be added to the vsic potential
       w2cst = -0.5_dp * ehele * omega 
@@ -1275,7 +1364,6 @@ end subroutine nksic_correction_pz
       ehele = 0.5_dp * f * (1.0_dp-f) * ehele * omega / fact
 
 
-      deallocate(rhogaux)
       deallocate(vtmp)
       deallocate(vcorr)
       deallocate(vhaux)
@@ -1288,14 +1376,24 @@ end subroutine nksic_correction_pz
       !   add self-xc contributions
       !
       if ( dft_is_gradient() ) then
-         allocate(grhoraux(nnrx,3,2))
-         allocate(haux(nnrx,2,2))
+           !
+           allocate(grhoraux(nnrx,3,2))
+           allocate(orb_grhor(nnrx,3,1))
+           allocate(haux(nnrx,2,2))
+           !
+           ! compute the gradient of n_i(r)
+           call fillgrad( 1, rhogaux, orb_grhor(:,:,1:1) )
+           !
       else
-         allocate(grhoraux(1,1,1))
-         allocate(haux(1,1,1))
-         grhoraux=0.0_dp
+           allocate(grhoraux(1,1,1))
+           allocate(haux(1,1,1))
+           grhoraux=0.0_dp
+           !
       endif
-      !   
+      !
+      deallocate(rhogaux)
+
+
       allocate(vxc0(nnrx,2))
       allocate(vxcref(nnrx,2))
 
@@ -1313,6 +1411,13 @@ end subroutine nksic_correction_pz
           ! when rhobarfact == 1 
           !
           ! call exch_corr_wrapper(nnrx,2,grhoraux,rhor,etxc,vxc,haux)
+          !
+          if ( dft_is_gradient() ) then
+              !
+              grhoraux(:,:,1:2)   = grhobar(:,:,1:2)
+              grhoraux(:,:,ispin) = grhobar(:,:,ispin) &
+                                  + f * orb_grhor(:,:,1)
+          endif
           !
           allocate( rhoraux(nnrx, 2) )
           !
@@ -1336,6 +1441,13 @@ end subroutine nksic_correction_pz
           !
       else
           !
+          if ( dft_is_gradient() ) then
+              !
+              grhoraux(:,:,1:2)   = grhobar(:,:,1:2)
+              grhoraux(:,:,ispin) = grhobar(:,:,ispin) &
+                                  + fref * orb_grhor(:,:,1)
+          endif
+          !
           call exch_corr_wrapper(nnrx,2,grhoraux,rhoref,etxcref,vxcref,haux)
           !
       endif
@@ -1347,7 +1459,7 @@ end subroutine nksic_correction_pz
       etxc0=0.0_dp
       vxc0=0.0_dp
       !
-      call exch_corr_wrapper(nnrx,2,grhoraux,rhobar,etxc0,vxc0,haux)
+      call exch_corr_wrapper(nnrx,2,grhobar,rhobar,etxc0,vxc0,haux)
 
       !
       ! update potential (including other constant terms)
@@ -1407,6 +1519,8 @@ end subroutine nksic_correction_pz
       !
       deallocate(grhoraux)
       deallocate(haux)
+      !
+      if ( allocated(orb_grhor) ) deallocate(orb_grhor)
       !
       CALL stop_clock( 'nksic_corr' )
       return
