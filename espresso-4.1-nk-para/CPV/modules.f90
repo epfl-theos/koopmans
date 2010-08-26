@@ -457,6 +457,9 @@ contains
   integer, intent(in):: ngw
   allocate(exx(nx))
   allocate(vxxpsi(ngw,nx))
+  !
+  exx(:) = 0.0
+  !
   end subroutine
   !
   subroutine deallocate_hf
