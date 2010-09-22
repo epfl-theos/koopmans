@@ -819,6 +819,28 @@ MODULE cp_restart
                CALL iotk_write_dat( iunpun, &
                                     "LAMBDA0" // TRIM( cspin ), mrepl )
                !
+               ! Changes by Nicolas Poilvert, Sep. 2010 for printing the lambda
+               ! matrix at current time step into a formatted file.
+               ! This matrix corresponds to the Hamiltonian matrix  in the case
+               ! of Self-Interaction. Only in the basis  of minimizing orbitals
+               ! do this matrix has an interpretation.
+               !
+               IF ( nspin == 1 ) THEN
+                   !
+                   filename = TRIM( wfc_filename( ".", 'hamiltonian', ik, EXTENSION='xml' ) )
+                   !
+               ELSE
+                   !
+                   filename = TRIM( wfc_filename( ".", 'hamiltonian', ik, iss, EXTENSION='xml' ) )
+                   !
+               ENDIF
+               !
+               CALL iotk_link( iunpun, "HAMILTONIAN" // TRIM( cspin ), &
+                               filename, CREATE = .TRUE., BINARY = .FALSE. )
+               !
+               CALL iotk_write_dat( iunpun, &
+                                    "HAMILTONIAN" // TRIM( cspin ), mrepl )
+               !
             END IF
             !
             CALL collect_lambda( mrepl, lambdam(:,:,iss), descla(:,iss) )
