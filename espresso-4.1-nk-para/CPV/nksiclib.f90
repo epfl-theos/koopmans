@@ -285,84 +285,94 @@
       if ( ierr/=0 ) call errore(subname,'allocating psi',abs(ierr))
 
       sa1 = 1.0d0 / omega 
-      !
-#define __SHORTCUT
-#ifdef __NO_SHORTCUT
 
-      allocate( psis(nnrsx), stat=ierr )
-      allocate( orb_rhos(2), stat=ierr )
-      !
-      if ( ierr/=0 ) call errore(subname,'allocating psis',abs(ierr))
-      if ( ierr/=0 ) call errore(subname,'allocating orb_rhos, orb_rhog',abs(ierr))
-      !
-      CALL c2psi( psis, nnrsx, c1, c2, ngw, 2 )
-      !
-      CALL invfft('Wave',psis, dffts )
-      !
-      ! computing the orbital charge 
-      ! in real space on the smooth grid
-      !
-      do ir = 1, nnrsx
-          !
-          orb_rhos(1) = sa1 * ( DBLE(psis(ir)) )**2 
-          orb_rhos(2) = sa1 * ( AIMAG(psis(ir)) )**2 
-          !
-          psis( ir )  = cmplx( orb_rhos(1), orb_rhos(2) ) 
-      enddo
-      !
-      ! orbital charges are taken to the G space
-      !
-      CALL fwfft('Smooth',psis, dffts )
-      !
-      do ig = 1, ngs
-          !
-          fp=psis(nps(ig))+psis(nms(ig))
-          fm=psis(nps(ig))-psis(nms(ig))
-          orb_rhog(ig,1)=0.5d0*cmplx(dble(fp),aimag(fm))
-          orb_rhog(ig,2)=0.5d0*cmplx(aimag(fp),-dble(fm))
-          !
-      enddo
-      !
-      psi (:) = (0.d0, 0.d0)
-      do ig=1,ngs
-          !
-          psi(nm(ig)) = conjg( orb_rhog(ig,1) ) &
-                        +ci*conjg( orb_rhog(ig,2) )
-          psi(np(ig)) = orb_rhog(ig,1) +ci*orb_rhog(ig,2)
-          !
-      enddo
-      !
-      call invfft('Dense',psi,dfftp)
-      !
-      do ir=1,nnrx
-          !
-          orb_rhor(ir,1) =  dble(psi(ir))
-          orb_rhor(ir,2) = aimag(psi(ir))
-      enddo
 
-      deallocate( psis )
-      deallocate( orb_rhos )
+      !
+      ! check whether it is necessary to 
+      ! deal with the smooth and dense grids separately
+      !
+      if ( nnrsx == nnrx ) then
+          !
+          ! This case should be the one when using NCPP
+          !
+          CALL c2psi( psi, nnrx, c1, c2, ngw, 2 )
+          !
+          CALL invfft('Dense', psi, dfftp )
+          !
+          ! computing the orbital charge in real space on the full grid
+          !
+          do ir = 1, nnrx
+              !
+              orb_rhor(ir,1) = sa1 * ( DBLE(psi(ir)) )**2 
+              orb_rhor(ir,2) = sa1 * ( AIMAG(psi(ir)) )**2 
+              !
+          enddo
+          !
+      else
+          !
+          ! this is the general case, 
+          ! normally used with USPP
+          !
 
-#else
-      !
-      CALL c2psi( psi, nnrx, c1, c2, ngw, 2 )
-      !
-      CALL invfft('Dense', psi, dfftp )
-      !
-      ! computing the orbital charge in real space on the full grid
-      !
-      do ir = 1, nnrx
+          allocate( psis(nnrsx), stat=ierr )
+          if ( ierr/=0 ) call errore(subname,'allocating psis',abs(ierr))
+          allocate( orb_rhos(2), stat=ierr )
+          if ( ierr/=0 ) call errore(subname,'allocating orb_rhos',abs(ierr))
           !
-          orb_rhor(ir,1) = sa1 * ( DBLE(psi(ir)) )**2 
-          orb_rhor(ir,2) = sa1 * ( AIMAG(psi(ir)) )**2 
+          CALL c2psi( psis, nnrsx, c1, c2, ngw, 2 )
           !
-      enddo
-      !
-#endif
+          CALL invfft('Wave',psis, dffts )
+          !
+          ! computing the orbital charge 
+          ! in real space on the smooth grid
+          !
+          do ir = 1, nnrsx
+              !
+              orb_rhos(1) = sa1 * ( DBLE(psis(ir)) )**2 
+              orb_rhos(2) = sa1 * ( AIMAG(psis(ir)) )**2 
+              !
+              psis( ir )  = cmplx( orb_rhos(1), orb_rhos(2) ) 
+          enddo
+          !
+          ! orbital charges are taken to the G space
+          !
+          CALL fwfft('Smooth',psis, dffts )
+          !
+          do ig = 1, ngs
+              !
+              fp=psis(nps(ig))+psis(nms(ig))
+              fm=psis(nps(ig))-psis(nms(ig))
+              orb_rhog(ig,1)=0.5d0*cmplx(dble(fp),aimag(fm))
+              orb_rhog(ig,2)=0.5d0*cmplx(aimag(fp),-dble(fm))
+              !
+          enddo
+          !
+          psi (:) = (0.d0, 0.d0)
+          do ig=1,ngs
+              !
+              psi(nm(ig)) = conjg( orb_rhog(ig,1) ) &
+                            +ci*conjg( orb_rhog(ig,2) )
+              psi(np(ig)) = orb_rhog(ig,1) +ci*orb_rhog(ig,2)
+              !
+          enddo
+          !
+          call invfft('Dense',psi,dfftp)
+          !
+          do ir=1,nnrx
+              !
+              orb_rhor(ir,1) =  dble(psi(ir))
+              orb_rhor(ir,2) = aimag(psi(ir))
+          enddo
+    
+          deallocate( psis )
+          deallocate( orb_rhos )
+
+      endif
+
       !
       ! add Vanderbilt contribution to orbital density
       !
-      if(okvan) then
+      if( okvan ) then
         !
         call calrhovan(rhovanaux,bec,i1)
         rhovan(:,:,1)=rhovanaux(:,:,ispin(i1))
@@ -836,7 +846,7 @@ end subroutine nksic_get_rhoref
       use eecp_mod,             only : do_comp
       use cp_interfaces,        only : fwfft, invfft, fillgrad
       use fft_base,             only : dfftp
-      use funct,                only : dft_is_gradient, fillgrad
+      use funct,                only : dft_is_gradient
       use mp,                   only : mp_sum
       use mp_global,            only : intra_image_comm
       use io_global,            only : stdout, ionode
@@ -1535,12 +1545,13 @@ end subroutine nksic_correction_pz
 !
 ! Compute vsic potential for orbitals i and i+1 (c1 and c2) 
 !
-      use kinds,                only: dp
-      use cp_interfaces,        only: fwfft, invfft
-      use fft_base,             only: dffts, dfftp
-      use gvecs,                only: ngs, nps, nms
-      use nksic,                only: vsic
-      use grid_dimensions,      only: nnrx
+      use kinds,                    only: dp
+      use cp_interfaces,            only: fwfft, invfft
+      use fft_base,                 only: dffts, dfftp
+      use gvecs,                    only: ngs, nps, nms
+      use nksic,                    only: vsic
+      use grid_dimensions,          only: nnrx
+      use smooth_grid_dimensions,   only: nnrsx
 
       !
       implicit none
@@ -1570,66 +1581,70 @@ end subroutine nksic_correction_pz
       !
       allocate( psi(nnrx), stat=ierr )
       if ( ierr/=0 ) call errore(subname,'allocating psi',abs(ierr))
-      !
-      !
-
-#ifdef __I_AM_SLOW
-#  undef __I_AM_SLOW
-#endif
-
-#ifdef __I_AM_SLOW
-      ! this part is to be eliminated
-
-      CALL nksic_eforce_std()
-
-#else
-      !
-      CALL c2psi( psi, nnrx, c1, c2, ngw, 2 )
-      !
-      CALL invfft('Dense', psi, dfftp )
 
       !
-      ! computing the orbital wfcs
-      ! and the potentials in real space on the full grid
+      ! take advantage of the smooth and the dense grids 
+      ! being equal (NCPP case)
       !
-      do ir = 1, nnrx
+      if ( nnrsx == nnrx ) then
+         !
+         ! no need to take care of the double grid.
+         ! typically, NCPP case
+
+         !
+         CALL c2psi( psi, nnrx, c1, c2, ngw, 2 )
+         !
+         CALL invfft('Dense', psi, dfftp )
+    
+         !
+         ! computing the orbital wfcs
+         ! and the potentials in real space on the full grid
+         !
+         do ir = 1, nnrx
+             !
+             wfc(1)    =  DBLE( psi(ir) )
+             wfc(2)    = AIMAG( psi(ir) )
+             !
+             psi( ir ) = CMPLX( wfc(1) * vsic(ir,i), &
+                                wfc(2) * vsic(ir,i+1), DP ) 
+             !
+         enddo
+         !
+         CALL fwfft('Dense', psi, dfftp )
+         !
+         vsicpsi(:,:)=0.0_dp
+         !
+         do ig=1,ngw
+             !
+             fp = psi(nps(ig))+psi(nms(ig))
+             fm = psi(nps(ig))-psi(nms(ig))
+             !
+             vsicpsi(ig,1)=0.5d0*cmplx(dble(fp),aimag(fm))
+             vsicpsi(ig,2)=0.5d0*cmplx(aimag(fp),-dble(fm))
+             !
+         enddo
+
+      else
           !
-          wfc(1)    =  DBLE( psi(ir) )
-          wfc(2)    = AIMAG( psi(ir) )
+          ! here we take properly into account the 
+          ! smooth and the dense grids
+          ! typically, USPP case
           !
-          psi( ir ) = CMPLX( wfc(1) * vsic(ir,i), &
-                             wfc(2) * vsic(ir,i+1), DP ) 
+          CALL nksic_eforce_std()
           !
-      enddo
-      !
-      CALL fwfft('Dense', psi, dfftp )
-      !
-      vsicpsi(:,:)=0.0_dp
-      !
-      do ig=1,ngw
-          !
-          fp = psi(nps(ig))+psi(nms(ig))
-          fm = psi(nps(ig))-psi(nms(ig))
-          !
-          vsicpsi(ig,1)=0.5d0*cmplx(dble(fp),aimag(fm))
-          vsicpsi(ig,2)=0.5d0*cmplx(aimag(fp),-dble(fm))
-          !
-      enddo
-#endif
-      !
+      endif
+      
       !
       deallocate( psi )
 
       call stop_clock( 'nksic_eforce' )
       return
-
-#ifdef __I_AM_SLOW
-      ! this part is to be eliminated
      
-      !
-      ! std way
-      !
-      CONTAINS
+!
+! implementation to deal with both 
+! the smooth and the dense grids
+!
+CONTAINS
       !
       subroutine nksic_eforce_std()
       !
@@ -1680,7 +1695,6 @@ end subroutine nksic_correction_pz
       enddo
       !
       end subroutine nksic_eforce_std
-#endif
       !
 !---------------------------------------------------------------
 end subroutine nksic_eforce
