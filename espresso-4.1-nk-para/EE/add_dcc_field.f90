@@ -171,8 +171,9 @@
       ! ... boundary conditions
       !
 
-      CALL mg_pb_solver( aux, vcorrcoarse, eps, kap2, mr1, mr2, mr3,   &
-                         delta1m, delta2m, delta3m )
+! XXX
+!      CALL mg_pb_solver( aux, vcorrcoarse, eps, kap2, mr1, mr2, mr3,   &
+!                         delta1m, delta2m, delta3m )
 
       !
       DEALLOCATE( aux )

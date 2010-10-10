@@ -292,6 +292,7 @@ subroutine pc2(a,beca,b,becb)
          enddo
          deallocate(zbectmp)
          call mp_sum( bectmp(:,:), intra_image_comm)
+
          if(nvb >= 0) then
 
             nl_max=0
@@ -312,16 +313,18 @@ subroutine pc2(a,beca,b,becb)
                   enddo
                enddo
             enddo
-            if(.not. mat_par)  then
+            !
+            if( nhsa > 0 .and. .not. mat_par)  then
                call dgemm('N','N',nl_max,nss,nl_max,1.d0,qq_tmp,nl_max,becb(:,istart),nhsa,0.d0,qqb_tmp,nl_max)
                call dgemm('T','N',nss,nss,nl_max,1.d0,beca(:,istart),nhsa,qqb_tmp,nl_max,1.d0,bectmp,nss)
-            else
-               call para_dgemm &
-& ('N','N',nl_max,nss,nl_max,1.d0,qq_tmp,nl_max,becb(:,istart),nhsa,0.d0,qqb_tmp,nl_max, intra_image_comm)
-               call para_dgemm &
-&('T','N',nss,nss,nl_max,1.d0,beca(:,istart),nhsa,qqb_tmp,nl_max,1.d0,bectmp,nss, intra_image_comm)
+            else if ( nhsa > 0 ) then
+               call para_dgemm ('N','N',nl_max,nss,nl_max,1.d0,qq_tmp,nl_max,&
+                                becb(:,istart),nhsa,0.d0,qqb_tmp,nl_max, intra_image_comm)
+               call para_dgemm ('T','N',nss,nss,nl_max,1.d0,beca(:,istart),nhsa, &
+                                qqb_tmp,nl_max,1.d0,bectmp,nss, intra_image_comm)
             endif
             deallocate(qq_tmp,qqb_tmp)
+            !
          endif
          allocate(zbectmp(nss,nss))
          do i=1,nss
@@ -331,8 +334,12 @@ subroutine pc2(a,beca,b,becb)
          enddo
          call zgemm('N','N',ngw,nss,nss,(-1.d0,0.d0),a(:,istart),ngw,zbectmp,nss,(1.d0,0.d0),b(:,istart),ngw)
          deallocate(zbectmp)
-         call dgemm('N','N',nhsa,nss,nss,1.0d0,beca(:,istart),nhsa,bectmp,nss,1.0d0,becb(:,istart),nhsa)
+         !
+         if ( nhsa > 0 ) then
+             call dgemm('N','N',nhsa,nss,nss,1.0d0,beca(:,istart),nhsa,bectmp,nss,1.0d0,becb(:,istart),nhsa)
+         endif
          deallocate(bectmp)
+         !
       enddo!on spin
       CALL stop_clock( 'pc2' )
       return

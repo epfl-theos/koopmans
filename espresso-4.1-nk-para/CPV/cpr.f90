@@ -29,7 +29,8 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
                                        ekin, atot, entropy, egrand, enthal, &
                                        ekincm, print_energies, debug_energies
   USE electrons_base,           ONLY : nbspx, nbsp, ispin, f, nspin
-  USE electrons_base,           ONLY : nel, iupdwn, nupdwn, nudx, nelt
+  USE electrons_base,           ONLY : nel, iupdwn, nupdwn, nudx, nel
+  USE electrons_module,         ONLY : ei
   USE efield_module,            ONLY : efield, epol, tefield, allocate_efield, &
                                        efield_update, ipolp, qmat, gqq, evalue,&
                                        berry_energy, pberryel, pberryion,      &
@@ -37,7 +38,8 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
                                        allocate_efield2, efield_update2,       &
                                        ipolp2, qmat2, gqq2, evalue2,           &
                                        berry_energy2, pberryel2, pberryion2
-  USE ensemble_dft,             ONLY : tens, z0t, gibbsfe
+  USE ensemble_dft,             ONLY : tens, z0t, gibbsfe, &
+                                       tsmear, ef, ismear, degauss => etemp
   USE cg_module,                ONLY : tcg,  cg_update, c0old
   USE gvecp,                    ONLY : ngm
   USE gvecs,                    ONLY : ngs
@@ -671,7 +673,36 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      !
      IF ( lwf ) CALL ef_enthalpy( enthal, tau0 )
      !
-     IF ( tens ) THEN
+! XXXX
+     !
+     ! recompute occupations
+     ! poorman eDFT, 
+     ! occupations are computed according to the eigenvalues,
+     ! but the density matrix is not taken properly into account
+     !
+     ! temporary implementation. AF
+     !
+     IF ( tsmear .AND. tortho ) THEN
+         !
+         !IF ( nudx /= nupdwn(1) ) CALL errore('cpr','missing impl: ei should be reshaped', 10)
+         !
+         DO iss = 1, nspin
+             !
+             IF ( nel(iss) > 0.0 )  THEN
+                 CALL efermi( nel(iss), nupdwn(iss), degauss, 1, f(iupdwn(iss):), &
+                              ef, ei(:,iss), entropy, ismear, nspin)
+                 !
+                 f(iupdwn(iss):iupdwn(iss)+nupdwn(iss)-1) = f(iupdwn(iss):iupdwn(iss)+nupdwn(iss)-1) * &
+                                 SUM( f(iupdwn(iss):iupdwn(iss)+nupdwn(iss)-1) ) / nel(iss)
+                 !
+             ENDIF
+             !
+         ENDDO
+         !
+     ENDIF
+     !
+! XXXX
+     IF ( tens .OR. tsmear ) THEN
         !
         IF ( MOD( nfi, iprint ) == 0 .OR. tlast ) THEN
            !

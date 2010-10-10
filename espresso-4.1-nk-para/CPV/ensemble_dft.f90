@@ -12,6 +12,8 @@ MODULE ensemble_dft
   IMPLICIT NONE
   SAVE
 
+      logical      :: tsmear     = .false. ! poor man smearing
+      !
       logical      :: tens       = .false. ! whether to do ensemble calculations.
       logical      :: tgrand     = .false. ! whether to do grand canonical
                                            ! ensemble calculations.
@@ -175,7 +177,7 @@ CONTAINS
           !
       CASE ('from_input')
           !
-      CASE ('fixed')
+      CASE ('fixed','smearing')
           !
       CASE ('grand-canonical','g-c','gc')
           !

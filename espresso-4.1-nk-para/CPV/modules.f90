@@ -386,6 +386,8 @@ contains
       !
       if ( dft_is_gradient() ) then 
           allocate( grhobar(nnrx,3,2) )
+      else
+          allocate( grhobar(1,1,1) )
       endif
       !
       pink     = 0.0d0

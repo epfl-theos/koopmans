@@ -242,7 +242,7 @@
       use smooth_grid_dimensions,     only: nnrsx
       use cp_main_variables,          only: bec,eigr,irb,eigrb
       use uspp_param,                 only: nhm
-      use electrons_base,             only: nspin,ispin
+      use electrons_base,             only: nspin ,ispin, nbsp
       use ions_base,                  only: nat
       use mp,                         only: mp_sum
       use mp_global,                  only: intra_image_comm
@@ -278,11 +278,20 @@
 
       ci = (0.0d0,1.0d0)
       !
-      allocate(rhovan(nhm*(nhm+1)/2,nat,nspin))
-      allocate(rhovanaux(nhm*(nhm+1)/2,nat,nspin))
+      if ( okvan ) then
+          !
+          allocate(rhovan(nhm*(nhm+1)/2,nat,nspin), stat=ierr )
+          if ( ierr/=0 ) call errore(subname,'allocating rhovan',abs(ierr))
+          allocate(rhovanaux(nhm*(nhm+1)/2,nat,nspin), stat=ierr)
+          if ( ierr/=0 ) call errore(subname,'allocating rhovanaux',abs(ierr))
+          !
+      endif
+      !
       allocate(psi(nnrx),stat=ierr)
-      allocate(orb_rhog(ngm,2),stat=ierr)
       if ( ierr/=0 ) call errore(subname,'allocating psi',abs(ierr))
+      !
+      allocate(orb_rhog(ngm,2),stat=ierr)
+      if ( ierr/=0 ) call errore(subname,'allocating orb_rhog',abs(ierr))
 
       sa1 = 1.0d0 / omega 
 
@@ -374,18 +383,49 @@
       !
       if( okvan ) then
         !
-        call calrhovan(rhovanaux,bec,i1)
-        rhovan(:,:,1)=rhovanaux(:,:,ispin(i1))
-        call calrhovan(rhovanaux,bec,i2)
-        rhovan(:,:,2)=rhovanaux(:,:,ispin(i2))
-        call rhov(irb,eigrb,rhovan,orb_rhog,orb_rhor)
+        rhovan(:,:,:) = 0.0d0
+        !
+        if ( nspin == 2 ) then 
+            !
+            if ( i2 <= nbsp ) then
+                call calrhovan(rhovanaux,bec,i1)
+                rhovan(:,:,1)=rhovanaux(:,:,ispin(i1))
+            endif
+            !
+            if ( i2 <= nbsp ) then
+                call calrhovan(rhovanaux,bec,i2)
+                rhovan(:,:,2)=rhovanaux(:,:,ispin(i2))
+            endif
+            !
+            call rhov(irb,eigrb,rhovan,orb_rhog,orb_rhor)
+        else
+            !
+            if ( i2 <= nbsp ) then
+                call calrhovan(rhovanaux,bec,i1)
+                rhovan(:,:,1)=rhovanaux(:,:,ispin(i1))
+                !
+                call rhov(irb,eigrb,rhovan,orb_rhog(:,1),orb_rhor(:,1))
+            endif
+            !
+            if ( i2 <= nbsp ) then
+                call calrhovan(rhovanaux,bec,i2)
+                rhovan(:,:,1)=rhovanaux(:,:,ispin(i2))
+                !
+                call rhov(irb,eigrb,rhovan,orb_rhog(:,2),orb_rhor(:,2))
+            endif
+            !
+        endif
         !
       endif
       !
       deallocate(psi)
-      deallocate(rhovan)
-      deallocate(rhovanaux)
       deallocate(orb_rhog)
+      !
+      if ( okvan ) then
+          deallocate(rhovan)
+          deallocate(rhovanaux)
+      endif
+      !
       call stop_clock('nksic_orbrho')
       !
       return
@@ -1654,7 +1694,7 @@ CONTAINS
       !     
       complex(dp) :: c(ngw,2)
       complex(dp) :: psis(nnrsx)
-      complex(dp) :: vsicg(ngs)
+      complex(dp) :: vsicg(nnrx)
       complex(dp) :: vsics(nnrsx)
       complex(dp) :: vsicpsis(nnrsx)
 

@@ -229,7 +229,8 @@
             end do
          end do
          !
-      CASE ('ensemble','ensemble-dft','edft')
+      CASE ('ensemble','ensemble-dft','edft', &
+            'smearing')
 
           if ( nspin == 1 ) then
             !

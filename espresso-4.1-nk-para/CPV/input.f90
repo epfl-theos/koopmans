@@ -909,7 +909,7 @@ MODULE input
      USE kohn_sham_states,   ONLY : ks_states_init
      USE electrons_module,   ONLY : electrons_setup, empty_init
      USE electrons_base,     ONLY : electrons_base_initval, nbsp
-     USE ensemble_dft,       ONLY : ensemble_initval,tens
+     USE ensemble_dft,       ONLY : ensemble_initval,tens, degauss, tsmear, etemp
      USE wannier_base,       ONLY : wannier_init
      USE efield_module,      ONLY : tefield
      !
@@ -1017,6 +1017,13 @@ MODULE input
      CALL electrons_base_initval( zv, na_inp, ntyp, nelec, nelup,         &
                                   neldw, nbnd, nspin, occupations, f_inp, &
                                   tot_charge, multiplicity, tot_magnetization )
+
+     IF ( TRIM(occupations) == "smearing" ) THEN
+         !
+         etemp = degauss
+         tsmear = .TRUE.
+         !
+     ENDIF
 
      CALL electrons_setup( empty_states_nbnd, emass, emass_cutoff )
 
