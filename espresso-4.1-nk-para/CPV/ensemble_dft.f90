@@ -18,6 +18,9 @@ MODULE ensemble_dft
       logical      :: tgrand     = .false. ! whether to do grand canonical
                                            ! ensemble calculations.
       integer      :: ninner     = 0       ! number of inner loops per CP step.
+! XXX
+!      integer      :: nfroz_occ  = 25      ! number of steps with frozen occupations
+      integer      :: nfroz_occ  = 6  
       integer      :: ismear     = 2       ! type of smearing:
                                            !  1 => gaussian
                                            !  2 => fermi-dirac
@@ -37,6 +40,8 @@ MODULE ensemble_dft
       real(DP), allocatable::               becdiag(:,:)
       real(DP), allocatable::                      e0(:)
       real(DP), allocatable::               fmat0(:,:,:)
+      real(DP), allocatable::               fmat0_diag(:)
+      logical  :: fmat0_diag_set = .FALSE.
       real(DP) :: gibbsfe
 ! variables for cold-smearing
       real(DP), allocatable ::               psihpsi(:,:,:)!it contains the matrix <Psi|H|Psi>
@@ -263,7 +268,10 @@ CONTAINS
       allocate(becdiag(nhsa,n))
       allocate(e0(nx))
       allocate(fmat0(nrlx,nudx,nspin))
+      allocate(fmat0_diag(nx))
       allocate(psihpsi(nlax,nlax,nspin))
+      !
+      fmat0_diag(:) = 0.0
     RETURN
   END SUBROUTINE allocate_ensemble_dft
 
@@ -271,12 +279,13 @@ CONTAINS
 
   SUBROUTINE deallocate_ensemble_dft( )
     IMPLICIT NONE
-    IF( ALLOCATED( c0diag ) )  deallocate(c0diag )
-    IF( ALLOCATED( z0t ) )  deallocate(z0t )
-    IF( ALLOCATED( becdiag ) )  deallocate(becdiag )
-    IF( ALLOCATED( e0 ) )  deallocate(e0 )
-    IF( ALLOCATED( fmat0 ) )  deallocate(fmat0 )
-    IF( ALLOCATED( psihpsi ) ) deallocate(psihpsi)
+    IF( ALLOCATED( c0diag ) )         deallocate(c0diag )
+    IF( ALLOCATED( z0t ) )            deallocate(z0t )
+    IF( ALLOCATED( becdiag ) )        deallocate(becdiag )
+    IF( ALLOCATED( e0 ) )             deallocate(e0 )
+    IF( ALLOCATED( fmat0 ) )          deallocate(fmat0 )
+    IF( ALLOCATED( fmat0_diag ) )     deallocate(fmat0_diag )
+    IF( ALLOCATED( psihpsi ) )        deallocate(psihpsi)
    RETURN
   END SUBROUTINE deallocate_ensemble_dft
   

@@ -25,7 +25,7 @@
       USE electrons_base,   ONLY: nspin, nbnd, nbsp, iupdwn, nupdwn
       USE electrons_module, ONLY: ei, ei_emp, n_emp, iupdwn_emp, nupdwn_emp
       USE io_files,         ONLY: outdir
-      USE ensemble_dft,     ONLY: tens
+      USE ensemble_dft,     ONLY: tens, tsmear
       USE mp,               ONLY: mp_bcast
       USE mp_global,        ONLY: root_image, intra_image_comm
       USE control_flags,    ONLY: tksw, ndw
@@ -91,10 +91,18 @@
       IF( tens ) THEN
         !
         CALL cp_writefile( ndw, outdir, .TRUE., nfi, tps, acc, nk, xk, wk,   &
-          ht, htm, htvel, gvel, xnhh0, xnhhm, vnhh, taui, cdmi , taus,        &
-          vels, tausm, velsm, fion, vnhp, xnhp0, xnhpm, nhpcl,nhpdim, occ_f , &
-          occ_f , lambda, lambdam, xnhe0, xnhem, vnhe, ekincm, ei,            &
-          rho, c0, cm, ctot, iupdwn, nupdwn, iupdwn, nupdwn, mat_z = mat_z  )
+             ht, htm, htvel, gvel, xnhh0, xnhhm, vnhh, taui, cdmi , taus,        &
+             vels, tausm, velsm, fion, vnhp, xnhp0, xnhpm, nhpcl,nhpdim, occ_f , &
+             occ_f , lambda, lambdam, xnhe0, xnhem, vnhe, ekincm, ei,            &
+             rho, c0, cm, ctot, iupdwn, nupdwn, iupdwn, nupdwn, mat_z = mat_z  )
+        !
+      ELSE IF ( tsmear ) THEN
+        ! 
+        CALL cp_writefile( ndw, outdir, .TRUE., nfi, tps, acc, nk, xk, wk,      &
+             ht, htm, htvel, gvel, xnhh0, xnhhm, vnhh, taui, cdmi , taus,        &
+             vels, tausm, velsm, fion, vnhp, xnhp0, xnhpm, nhpcl,nhpdim, occ_f , &
+             occ_f , lambda, lambdam, xnhe0, xnhem, vnhe, ekincm, eitot,          &
+             rho, c0, cm, ctot, iupdwn, nupdwn, iupdwn_tot, nupdwn_tot, mat_z = mat_z )
         !
       ELSE
         ! 
@@ -129,7 +137,7 @@
       USE gvecw,          ONLY : ngw, ngwt
       USE ions_base,      ONLY : nsp, na, cdmi, taui
       USE cp_restart,     ONLY : cp_readfile, cp_read_cell, cp_read_wfc
-      USE ensemble_dft,   ONLY : tens
+      USE ensemble_dft,   ONLY : tens, tsmear
       USE autopilot,      ONLY : event_step, event_index, max_event_step
       USE cp_autopilot,   ONLY : employ_rules
       USE control_flags,  ONLY : ndr
@@ -174,6 +182,12 @@
       ALLOCATE( occ_ ( SIZE( occ_f ) ) )
 
       IF( tens ) THEN
+         CALL cp_readfile( ndr, outdir, .TRUE., nfi, tps, acc, nk, xk, wk, &
+                ht, htm, htvel, gvel, xnhh0, xnhhm, vnhh, taui, cdmi, taus, &
+                vels, tausm, velsm, fion, vnhp, xnhp0, xnhpm, nhpcl,nhpdim,occ_ , &
+                occ_ , lambda, lambdam, b1, b2, b3, &
+                xnhe0, xnhem, vnhe, ekincm, c0, cm, mat_z = mat_z )
+      ELSE IF ( tsmear ) THEN
          CALL cp_readfile( ndr, outdir, .TRUE., nfi, tps, acc, nk, xk, wk, &
                 ht, htm, htvel, gvel, xnhh0, xnhhm, vnhh, taui, cdmi, taus, &
                 vels, tausm, velsm, fion, vnhp, xnhp0, xnhpm, nhpcl,nhpdim,occ_ , &

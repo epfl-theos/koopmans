@@ -34,7 +34,7 @@
       use uspp,                only : deeq, vkb
       use reciprocal_vectors,  only : gstart
       use electrons_base,      only : n=>nbsp, ispin, f, nspin, nupdwn, iupdwn
-      USE electrons_base,      ONLY: nx=>nbspx
+      USE electrons_base,      ONLY:  nx=>nbspx
       use wannier_subroutines, only : ef_potential
       use efield_module,       only : dforce_efield, tefield, dforce_efield2, tefield2
       use gvecw,               only : ngw, ngwx
@@ -42,8 +42,9 @@
       USE cp_interfaces,       ONLY : dforce
       USE task_groups,         ONLY : tg_gather
       USE ldaU
-      use nksic,               only : do_orbdep, vsicpsi, f_cutoff
+      use nksic,               only : do_orbdep, vsic, vsicpsi, deeq_sic, f_cutoff
       use hfmod,               only : do_hf, vxxpsi
+      use ensemble_dft,        only : tens, tsmear
       !
       IMPLICIT NONE
       !
@@ -167,8 +168,11 @@
            !
            ! faux takes into account spin multiplicity.
            !
-           faux = 0.0_dp
-           faux(1:n) = max(f_cutoff,f(1:n)) * DBLE( nspin ) / 2.0d0
+           faux(:) = 0.0_dp
+           !
+           DO j = 1, n
+               faux(j) = max( f_cutoff, f(j) ) * DBLE( nspin ) / 2.0d0
+           ENDDO
            !
            IF( use_task_groups ) THEN
               !
@@ -197,8 +201,17 @@
 
            IF ( lda_plus_u ) THEN
                !
-               c2(:) = c2(:) - vupsi(:,i) * faux(i)
-               c3(:) = c3(:) - vupsi(:,i+1) * faux(i+1)
+               IF ( tens .OR. tsmear ) THEN
+                   !
+                   c2(:) = c2(:) - vupsi(:,i) 
+                   c3(:) = c3(:) - vupsi(:,i+1) 
+                   !
+               ELSE
+                   !
+                   c2(:) = c2(:) - vupsi(:,i) * faux(i)
+                   c3(:) = c3(:) - vupsi(:,i+1) * faux(i+1)
+                   !
+               ENDIF
                !
            ENDIF
            !
@@ -206,10 +219,19 @@
                !
                ! faux takes into account spin multiplicity.
                !
-               CALL nksic_eforce( i, ngw, c0(:,i), c0(:,i+1), vsicpsi )
+               CALL nksic_eforce( i, nx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi )
                !
-               c2(:) = c2(:) - vsicpsi(:,1) * faux(i)   
-               c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1) 
+               IF ( tens .OR. tsmear ) THEN
+                   !
+                   c2(:) = c2(:) - vsicpsi(:,1)
+                   c3(:) = c3(:) - vsicpsi(:,2)
+                   !
+               ELSE
+                   !
+                   c2(:) = c2(:) - vsicpsi(:,1) * faux(i)   
+                   c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1) 
+                   !
+               ENDIF
 
                !
                ! build the matrix elements of 
@@ -254,8 +276,17 @@
            ! 
            IF ( do_hf ) THEN
                !
-               c2(:) = c2(:) - vxxpsi(:,i) * faux(i)
-               c3(:) = c3(:) - vxxpsi(:,i+1) * faux(i+1)
+               IF ( tens .OR. tsmear ) THEN
+                   !
+                   c2(:) = c2(:) - vxxpsi(:,i)
+                   c3(:) = c3(:) - vxxpsi(:,i+1)
+                   !
+               ELSE
+                   !
+                   c2(:) = c2(:) - vxxpsi(:,i) * faux(i)
+                   c3(:) = c3(:) - vxxpsi(:,i+1) * faux(i+1)
+                   !
+               ENDIF
                !
            ENDIF
            

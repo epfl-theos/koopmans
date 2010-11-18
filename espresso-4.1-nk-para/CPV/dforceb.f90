@@ -43,6 +43,7 @@ subroutine dforceb(c0, i, betae, ipol, bec0, ctabin, gqq, gqqm, qmat, dq2, df)
                                  ctabin_missing_rev_1,ctabin_missing_rev_2
   use mp_global,          only : intra_image_comm, nproc_image
   use mp,                 only : mp_alltoall
+  use ensemble_dft,       ONLY : tens, tsmear
   use parallel_include
 
 
@@ -197,9 +198,15 @@ subroutine dforceb(c0, i, betae, ipol, bec0, ctabin, gqq, gqqm, qmat, dq2, df)
   !
   fi=f(i)*ci *DBLE(nspin) /( 2.0*2.0*gmes )
 
-  do ig=1,ngw
-     df(ig)= fi*dtemp(ig)
-  end do
+  IF ( tens .OR. tsmear ) THEN
+      !
+      df(1:ngw)= dtemp(1:ngw)
+      !
+  ELSE
+      !
+      df(1:ngw)= fi*dtemp(1:ngw)
+      !
+  ENDIF
       
 ! now the interacting Vanderbilt term
 ! the term (-ie/|G|)(-beta_i'R>gqq(i',j')bec0_jRj'Q^-1_ji+

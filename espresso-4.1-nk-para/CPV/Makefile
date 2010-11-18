@@ -44,6 +44,7 @@ init.o \
 init_run.o \
 inner_loop.o \
 inner_loop_cold.o \
+inner_loop_smear.o \
 input.o \
 ions_positions.o \
 ksstates.o \

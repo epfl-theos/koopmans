@@ -37,7 +37,7 @@ SUBROUTINE init_run()
   USE smooth_grid_dimensions,   ONLY : nnrsx
   USE wavefunctions_module,     ONLY : c0, cm, cp
   USE cdvan,                    ONLY : dbec, drhovan
-  USE ensemble_dft,             ONLY : tens, z0t
+  USE ensemble_dft,             ONLY : tens, z0t, tsmear
   USE cg_module,                ONLY : tcg
   USE electrons_base,           ONLY : nudx, nbnd
   USE efield_module,            ONLY : tefield, tefield2
@@ -187,7 +187,7 @@ SUBROUTINE init_run()
   !
   IF ( lwf ) CALL allocate_wannier( nbsp, nnrsx, nspin, ngm )
   !
-  IF ( tens .OR. tcg ) &
+  IF ( tens .OR. tcg .OR. tsmear ) &
      CALL allocate_ensemble_dft( nkb, nbsp, ngw, nudx, nspin, nbspx, nnrsx, nat, nlax, nrlx )
   !
   IF ( tcg ) CALL allocate_cg( ngw, nbspx,nkbus )
@@ -214,9 +214,12 @@ SUBROUTINE init_run()
   c0 = ( 0.D0, 0.D0 )
   cp = ( 0.D0, 0.D0 )
   !
-  IF ( tens ) then
-     CALL id_matrix_init( descla, nspin )
-     CALL h_matrix_init( descla, nspin )
+  !
+  IF ( tens .OR. tsmear ) then
+      !
+      CALL id_matrix_init( descla, nspin )
+      CALL h_matrix_init( descla, nspin )
+      !
   ENDIF
   !
   IF ( lwf ) CALL wannier_startup( ibrav, alat, a1, a2, a3, b1, b2, b3 )

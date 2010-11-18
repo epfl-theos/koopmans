@@ -14,6 +14,7 @@
         USE electrons_base,     ONLY: nbnd, nbndx, nbsp, nbspx, nspin, nel, nelt, &
                                       nupdwn, iupdwn, telectrons_base_initval, f, &
                                       nudx
+        USE ensemble_dft,       ONLY: fmat0_diag
         USE cp_electronic_mass, ONLY: ecutmass => emass_cutoff, emass, emass_precond
 
         IMPLICIT NONE
@@ -233,8 +234,9 @@
 
    SUBROUTINE print_eigenvalues( ei_unit, tfile, tstdout, nfi, tps )
       !
-      use constants,  only : autoev 
-      USE io_global,  ONLY : stdout, ionode
+      use constants,      only : autoev 
+      USE io_global,      ONLY : stdout, ionode
+      USE ensemble_dft,   ONLY : tens, tsmear
       !
       INTEGER,  INTENT(IN) :: ei_unit
       LOGICAL,  INTENT(IN) :: tfile, tstdout
@@ -254,6 +256,15 @@
          IF( tstdout ) THEN
             WRITE( stdout,1002) ik, j
             WRITE( stdout,1004) ( ei( i, j ) * autoev, i = 1, nupdwn(j) )
+            !
+            IF ( tens .OR. tsmear ) THEN
+                WRITE( stdout,1082) ik, j
+                WRITE( stdout,1084) ( f( i ), i = iupdwn(j), iupdwn(j)+nupdwn(j)-1 )
+                !
+                WRITE( stdout,1092) ik, j
+                WRITE( stdout,1084) ( fmat0_diag( i ), i = iupdwn(j), iupdwn(j)+nupdwn(j)-1 )
+            ENDIF
+            !
             IF( n_emp .GT. 0 ) THEN
                WRITE( stdout,1005) ik, j
                WRITE( stdout,1004) ( ei_emp( i, j ) * autoev , i = 1, n_emp )
@@ -275,8 +286,11 @@
       !
   30  FORMAT(2X,'STEP:',I7,1X,F10.2)
  1002 FORMAT(/,3X,'Eigenvalues (eV), kp = ',I3, ' , spin = ',I2,/)
+ 1082 FORMAT(/,3X,'Occupations,      kp = ',I3, ' , spin = ',I2,/)
+ 1092 FORMAT(/,3X,'DensityMat diag,  kp = ',I3, ' , spin = ',I2,/)
  1005 FORMAT(/,3X,'Empty States Eigenvalues (eV), kp = ',I3, ' , spin = ',I2,/)
  1004 FORMAT(10F8.2)
+ 1084 FORMAT(10F8.4)
  1006 FORMAT(/,3X,'Electronic Gap (eV) = ',F8.2,/)
  1010 FORMAT(3X,'Eigenvalues (eV), kp = ',I3, ' , spin = ',I2)
  1011 FORMAT(3X,'Empty States Eigenvalues (eV), kp = ',I3, ' , spin = ',I2)

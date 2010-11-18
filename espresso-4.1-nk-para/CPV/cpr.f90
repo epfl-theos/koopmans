@@ -12,7 +12,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   !----------------------------------------------------------------------------
   !
   USE kinds,                    ONLY : DP
-  USE constants,                ONLY : bohr_radius_angs, amu_au
+  USE constants,                ONLY : bohr_radius_angs, amu_au, autoev
   USE control_flags,            ONLY : iprint, isave, thdyn, tpre, iprsta,     &
                                        tfor, remove_rigid_rot, taurdr,         &
                                        tprnfor, tsdc, lconstrain, lwf, lneb,   &
@@ -29,7 +29,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
                                        ekin, atot, entropy, egrand, enthal, &
                                        ekincm, print_energies, debug_energies
   USE electrons_base,           ONLY : nbspx, nbsp, ispin, f, nspin
-  USE electrons_base,           ONLY : nel, iupdwn, nupdwn, nudx, nel
+  USE electrons_base,           ONLY : nel, nelt, iupdwn, nupdwn, nudx
   USE electrons_module,         ONLY : ei
   USE efield_module,            ONLY : efield, epol, tefield, allocate_efield, &
                                        efield_update, ipolp, qmat, gqq, evalue,&
@@ -38,8 +38,9 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
                                        allocate_efield2, efield_update2,       &
                                        ipolp2, qmat2, gqq2, evalue2,           &
                                        berry_energy2, pberryel2, pberryion2
-  USE ensemble_dft,             ONLY : tens, z0t, gibbsfe, &
-                                       tsmear, ef, ismear, degauss => etemp
+  USE ensemble_dft,             ONLY : tens, e0, z0t, fmat0, fmat0_diag, fmat0_diag_set, gibbsfe, &
+                                       tsmear, ef, ismear, degauss => etemp, &
+                                       c0diag, becdiag, id_matrix_init, psihpsi, nfroz_occ
   USE cg_module,                ONLY : tcg,  cg_update, c0old
   USE gvecp,                    ONLY : ngm
   USE gvecs,                    ONLY : ngs
@@ -63,7 +64,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   USE local_pseudo,             ONLY : allocate_local_pseudo
   USE io_global,                ONLY : io_global_start, &
                                        stdout, ionode, ionode_id
-  USE dener,                    ONLY : detot
+  USE dener,                    ONLY : detot, denl, dekin6
   USE cdvan,                    ONLY : dbec, drhovan
   USE gvecw,                    ONLY : ggp
   USE constants,                ONLY : pi, k_boltzmann_au, au_ps
@@ -92,7 +93,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
                                        surfclu, Surf_t, abivol, abisur
   USE wavefunctions_module,     ONLY : c0, cm, phi => cp
   USE wannier_module,           ONLY : allocate_wannier
-  USE cp_interfaces,            ONLY : printout_new, move_electrons
+  USE cp_interfaces,            ONLY : printout_new, move_electrons, rhoofr
   USE printout_base,            ONLY : printout_base_open, &
                                        printout_base_close, &
                                        printout_pos, printout_cell, &
@@ -110,7 +111,8 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
                                        ema0bg, sfac, eigr, ei1, ei2, ei3,  &
                                        irb, becdr, taub, eigrb, rhog, rhos, &
                                        rhor, bephi, becp, nfi, descla, iprint_stdout, &
-                                       drhor, drhog, nlax, hamilt
+                                       drhor, drhog, nlax, hamilt, collect_zmat
+  USE cp_main_variables,        ONLY : vpot
   USE autopilot,                ONLY : event_step, event_index, &
                                        max_event_step, restart_p
   USE cell_base,                ONLY : s_to_r, r_to_s
@@ -177,6 +179,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   INTEGER   :: nspin_sub , i1, i2
   !
   REAL(DP),  ALLOCATABLE :: forceh(:,:)
+  REAL(DP),  ALLOCATABLE :: fmat0_repl(:,:)
   !
   !
   dt2bye   = dt2 / emass
@@ -673,43 +676,71 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      !
      IF ( lwf ) CALL ef_enthalpy( enthal, tau0 )
      !
-! XXXX
+     ! poorman eDFT 
+     ! occupations are re-computed according 
+     ! to the eigenvalues (recomputed as well)
      !
-     ! recompute occupations
-     ! poorman eDFT, 
-     ! occupations are computed according to the eigenvalues,
-     ! but the density matrix is not taken properly into account
-     !
-     ! temporary implementation. AF
-     !
-     IF ( tsmear .AND. tortho ) THEN
+     IF ( tsmear .AND. tortho .AND. ( MOD(nfi, nfroz_occ)==0 .OR. .NOT. fmat0_diag_set ) ) THEN
          !
-         !IF ( nudx /= nupdwn(1) ) CALL errore('cpr','missing impl: ei should be reshaped', 10)
+         !CALL inner_loop_smear( c0, bec, rhos, psihpsi )
+         psihpsi = lambda
+         !
+         CALL inner_loop_diag( c0, bec, psihpsi, z0t, e0 )
+         !
+         CALL efermi( nelt, nbsp, degauss, 1, f, ef, e0, entropy, ismear, nspin )
+         !
+         fmat0_diag_set = .TRUE.
+
+         !!
+         !! recompute rho
+         !!
+         !CALL rhoofr( nfi, c0diag, irb, eigrb, becdiag, &
+         !             becsum, rhor, rhog, rhos, enl, denl, ekin, dekin6 )
+         !!
+         !IF(nlcc_any) CALL set_cc( irb, eigrb, rhoc )
+         
+         !!
+         !! calculates the SCF potential, the total energy
+         !! and the ionic forces
+         !!
+         !vpot = rhor
+         !!
+         !CALL vofrho( nfi, vpot, rhog, rhos, rhoc, tfirst, &
+         !            tlast, ei1, ei2, ei3, irb, eigrb, sfac, &
+         !            tau0, fion )         
+         
+         !
+         ! recompute the proper density matrix, once z0t is given
+         ! and store its diagonal components
+         !
+         call calcmt( f, z0t, fmat0, .false. )
          !
          DO iss = 1, nspin
              !
-             IF ( nel(iss) > 0.0 )  THEN
-                 CALL efermi( nel(iss), nupdwn(iss), degauss, 1, f(iupdwn(iss):), &
-                              ef, ei(:,iss), entropy, ismear, nspin)
+             ALLOCATE( fmat0_repl(nupdwn(iss),nupdwn(iss)) )
+             !
+             CALL collect_zmat( fmat0_repl, fmat0(:,:,iss), descla(:,iss) )
+             !
+             DO  i = 1, nupdwn(iss)
                  !
-                 f(iupdwn(iss):iupdwn(iss)+nupdwn(iss)-1) = f(iupdwn(iss):iupdwn(iss)+nupdwn(iss)-1) * &
-                                 SUM( f(iupdwn(iss):iupdwn(iss)+nupdwn(iss)-1) ) / nel(iss)
+                 fmat0_diag( i+iupdwn(iss)-1 ) = fmat0_repl(i,i)
                  !
-             ENDIF
+             ENDDO
+             !
+             DEALLOCATE( fmat0_repl )
              !
          ENDDO
          !
      ENDIF
      !
-! XXXX
-     IF ( tens .OR. tsmear ) THEN
+     IF ( tens ) THEN
         !
         IF ( MOD( nfi, iprint ) == 0 .OR. tlast ) THEN
-           !
-           WRITE( stdout, '("Occupations  :")' )
-           WRITE( stdout, '(10F9.6)' ) ( f(i), i = 1, nbsp )
-           !
-        END IF
+            !
+            WRITE( stdout, '("Occupations  :")' )
+            WRITE( stdout, '(10F9.6)' ) ( f(i), i = 1, nbsp )
+            !
+        ENDIF
         !
      END IF
      !
@@ -791,7 +822,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
         !
         CALL cg_update( tfirst, nfi, c0 )
         !
-        IF ( tfor .AND. .NOT. tens .AND. &
+        IF ( tfor .AND. .NOT. ( tens ) .AND. &
              ( ( MOD( nfi, isave ) == 0 ) .OR. tlast ) ) THEN
            !
            ! ... in this case optimize c0 and lambda for smooth

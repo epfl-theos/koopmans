@@ -8,11 +8,11 @@
 ! Non-Koopmans method
 ! Developed and implemented by I. Dabo 
 !      (Universite Paris-Est, Ecole des Ponts, ParisTech)
-! Parallelized and optimized by Andrea Ferretti 
+! Further developed and optimized by Andrea Ferretti 
 !      (MIT, University of Oxford)
 !
 !-----------------------------------------------------------------------
-      subroutine nksic_potential( c, rhor, rhog)
+      subroutine nksic_potential( c, f_diag, bec, rhor, rhog, vsic)
 !-----------------------------------------------------------------------
 !
 ! ... calculate orbital dependent potentials, 
@@ -33,25 +33,29 @@
       use cell_base,                  only: omega, a1, a2, a3
       use smooth_grid_dimensions,     only: nr1s, nr2s, nr3s, &
                                             nr1sx, nr2sx, nr3sx, nnrsx
-      use electrons_base,             only: nx => nbspx, n => nbsp, f, &
+      use electrons_base,             only: nx => nbspx, nbsp, &
                                             ispin, nspin, nelt, nupdwn, iupdwn
       use mp,                         only: mp_sum
       use io_global,                  only: stdout, ionode
       use cp_interfaces,              only: fwfft, invfft
       use fft_base,                   only: dffts, dfftp
-      use nksic,                      only: orb_rhor, vsic, wxdsic, &
+      use nksic,                      only: orb_rhor, wxdsic, &
                                             wrefsic, rhoref, rhobar, pink, &
                                             do_nk, do_nki, do_pz, do_nkpz, &
-                                            grhobar
-      use ions_base,                  only: nsp
+                                            grhobar, fion_sic, deeq_sic
+      use ions_base,                  only: nsp, nat
+      use uspp,                       only: nkb
       !
       implicit none
       !
       ! in/out vars
       !
-      complex(dp), intent(in) :: c(ngw,nx)
-      real(dp),    intent(in) :: rhor(nnrx,nspin)
-      complex(dp), intent(in) :: rhog(ngm,nspin)
+      complex(dp), intent(in)  :: c(ngw,nx)
+      complex(dp), intent(in)  :: bec(nkb,nbsp)
+      real(dp),    intent(in)  :: f_diag(nx)
+      real(dp),    intent(in)  :: rhor(nnrx,nspin)
+      complex(dp), intent(in)  :: rhog(ngm,nspin)
+      real(dp),    intent(out) :: vsic(nnrx,nx)
 
       !
       ! local variables
@@ -81,15 +85,17 @@
       pink=0.0_dp
       vsic=0.0_dp
 
+
       !
       ! loop over bands (2 ffts at the same time)
       !
-      do j=1,n,2
+      do j=1,nbsp,2
         !
         ! compute orbital densities
         ! n odd => c(:,n+1) is already set to zero
         !
-        call nksic_get_orbitalrho(ngw,nnrx,c(:,j),c(:,j+1),orb_rhor,j,j+1)
+        call nksic_get_orbitalrho( ngw, nnrx, bec, c(:,j), c(:,j+1), &
+                                   orb_rhor, j, j+1)
         !
         ! compute orbital potentials
         !
@@ -99,14 +105,14 @@
           !
           ! this condition is important when n is odd
           !
-          if ( i>n ) exit inner_loop
+          if ( i>nbsp ) exit inner_loop
           !
           ibnd=i
           if( nspin==2 .and. i >= iupdwn(2) ) ibnd=i-iupdwn(2)+1
           !
           ! note: iupdwn(2) is set to zero if nspin = 1
           !
-          focc=f(i)*dble(nspin)/2.0d0
+          focc=f_diag(i)*dble(nspin)/2.0d0
           !
           ! define rhoref and rhobar
           !
@@ -185,7 +191,7 @@
           !
           ! take care of spin symmetry
           !
-          pink(i) = f(i) * pink(i)
+          pink(i) = f_diag(i) * pink(i)
           !
           if ( do_nk .or. do_nkpz .or. do_nki ) then
               !
@@ -207,7 +213,7 @@
       !
       if ( do_nk .or. do_nkpz .or. do_nki ) then
           !
-          do i = 1, n
+          do i = 1, nbsp
               !
               vsic(1:nnrx,i) = vsic(1:nnrx,i) + wtot( 1:nnrx, ispin(i) ) 
               ! 
@@ -217,7 +223,28 @@
       !
       if ( allocated(wtot) )   deallocate(wtot)
       if ( allocated(vsicpz) ) deallocate(vsicpz)
+      
       !
+      ! USPP:
+      ! compute corrections to the D coefficients of the pseudopots
+      ! due to vsic(r, i) in the case of orbital dependent functionals.
+      ! The corresponding contributions to the forces are computed.
+      !
+      ! IMPORTANT: the following call makes use of newd. 
+      !            It must be done before we call newd for the
+      !            total potentials, because deeq is overwritten at every call
+      !
+      fion_sic(:,:)     = 0.0d0
+      deeq_sic(:,:,:,:) = 0.0d0
+      !
+      DO i = 1, nbsp
+          !
+          CALL nksic_newd( i, nnrx, ispin, nspin, vsic(:,i), nat, &
+                           fion_sic, deeq_sic(:,:,:,i) )
+          !
+      ENDDO
+      ! 
+      ! 
       CALL stop_clock( 'nksic_drv' )
       return
       !
@@ -226,7 +253,8 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-      subroutine nksic_get_orbitalrho( ngw, nnrx, c1, c2, orb_rhor, i1,i2 )
+      subroutine nksic_get_orbitalrho( ngw, nnrx, bec, c1, c2, &
+                                       orb_rhor, i1, i2 )
 !-----------------------------------------------------------------------
 !
 ! Computes orbital densities on the real (not smooth) grid
@@ -240,13 +268,13 @@
       use gvecs,                      only: ngs, nps, nms
       use recvecs_indexes,            only: np, nm
       use smooth_grid_dimensions,     only: nnrsx
-      use cp_main_variables,          only: bec,eigr,irb,eigrb
+      use cp_main_variables,          only: eigr,irb,eigrb
       use uspp_param,                 only: nhm
       use electrons_base,             only: nspin ,ispin, nbsp
       use ions_base,                  only: nat
       use mp,                         only: mp_sum
       use mp_global,                  only: intra_image_comm
-      use uspp,                       only: okvan
+      use uspp,                       only: okvan, nkb
       !
       implicit none
 
@@ -254,6 +282,7 @@
       ! input/output vars
       !
       integer,     intent(in) :: ngw,nnrx,i1,i2
+      complex(dp), intent(in) :: bec(nkb, nbsp)
       complex(dp), intent(in) :: c1(ngw),c2(ngw)
       real(dp),   intent(out) :: orb_rhor(nnrx,2) 
 
@@ -531,6 +560,70 @@ end subroutine nksic_get_orbitalrho
       !
 !---------------------------------------------------------------
 end subroutine nksic_get_rhoref
+!---------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+      subroutine nksic_newd( i, nnrx, ispin, nspin, vsic, nat, fion, &
+                             deeq_sic )
+!-----------------------------------------------------------------------
+!
+! computes the deeq coefficients (contributions to the D coeff of USPP)
+! for the given orbital i. Coefficients are sotred in deeq_sic
+!
+      use kinds,                      only : dp
+      use gvecp,                      only : ngm
+      use cp_interfaces,              only : fwfft, invfft
+      use fft_base,                   only : dffts, dfftp
+      use recvecs_indexes,            only : np, nm
+      use uspp,                       only : becsum, okvan, deeq
+      use uspp_param,                 only : nhm
+      use cp_main_variables,          only : irb, eigrb
+      !
+      implicit none
+
+      !
+      ! input/output vars
+      !
+      integer,       intent(in)    :: i, nnrx, nat
+      integer,       intent(in)    :: ispin, nspin
+      real(dp),      intent(in)    :: vsic(nnrx)
+      real(dp),      intent(inout) :: fion(3,nat)
+      real(dp),      intent(out)   :: deeq_sic(nhm,nhm,nat) 
+      !
+      ! local vars
+      !
+      real(dp),      allocatable   :: vsic_aux(:,:)
+
+      !
+      ! main body
+      !
+      if ( .not. okvan ) then 
+          deeq_sic(:,:,:) = 0.0d0
+          return
+      endif
+      !
+      call start_clock( 'nksic_newd' )
+      !
+      allocate( vsic_aux(nnrx,nspin) )
+
+      !
+      ! fion are updated
+      ! deeq coefficients are overwritten
+      !
+      vsic_aux = 0.0d0
+      vsic_aux(:, ispin ) = vsic(:)
+      !
+      call newd( vsic_aux, irb, eigrb, becsum, fion )
+      !
+      deeq_sic(:,:,:) = deeq(:,:,:,ispin)
+
+      deallocate( vsic_aux )
+      !
+      call stop_clock( 'nksic_newd' )
+      return
+      !
+!---------------------------------------------------------------
+end subroutine nksic_newd
 !---------------------------------------------------------------
 
 !---------------------------------------------------------------
@@ -1580,18 +1673,22 @@ end subroutine nksic_correction_pz
 !---------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-      subroutine nksic_eforce( i, ngw, c1, c2, vsicpsi )
+      subroutine nksic_eforce( i, nx, vsic, deeq_sic, bec, ngw, c1, c2, vsicpsi )
 !-----------------------------------------------------------------------
 !
 ! Compute vsic potential for orbitals i and i+1 (c1 and c2) 
 !
-      use kinds,                    only: dp
-      use cp_interfaces,            only: fwfft, invfft
-      use fft_base,                 only: dffts, dfftp
-      use gvecs,                    only: ngs, nps, nms
-      use nksic,                    only: vsic
-      use grid_dimensions,          only: nnrx
-      use smooth_grid_dimensions,   only: nnrsx
+      use kinds,                    only : dp
+      use cp_interfaces,            only : fwfft, invfft
+      use fft_base,                 only : dffts, dfftp
+      use gvecs,                    only : ngs, nps, nms
+      use grid_dimensions,          only : nnrx
+      use smooth_grid_dimensions,   only : nnrsx
+      use uspp,                     only : nkb, vkb, dvan
+      use uspp_param,               only : nhm, nh
+      use cvan,                     only : ish
+      use ions_base,                only : nsp, na, nat
+      use electrons_base,           only : nbsp
 
       !
       implicit none
@@ -1599,7 +1696,10 @@ end subroutine nksic_correction_pz
       !
       ! input/output vars
       !
-      integer,       intent(in)  :: i, ngw
+      integer,       intent(in)  :: i, nx, ngw
+      real(dp),      intent(in)  :: vsic(nnrx,nx)
+      real(dp),      intent(in)  :: deeq_sic(nhm,nhm,nat,nx)
+      real(dp),      intent(in)  :: bec(nkb,nbsp)
       complex(dp),   intent(in)  :: c1(ngw), c2(ngw)
       complex(dp),   intent(out) :: vsicpsi(ngw, 2)
 
@@ -1608,9 +1708,12 @@ end subroutine nksic_correction_pz
       !
       character(12) :: subname='nksic_eforce'
       integer       :: ir, ig, ierr, j
-      real(dp)      :: wfc(2)
+      integer       :: is, iv, jv, isa, ism
+      integer       :: ivoff, jvoff, ia, inl, jnl
+      real(dp)      :: wfc(2), dd
       complex(dp)   :: fm, fp
       complex(dp),  allocatable :: psi(:)
+      real(dp),     allocatable :: aa(:,:)
 
       !
       !====================
@@ -1622,6 +1725,11 @@ end subroutine nksic_correction_pz
       allocate( psi(nnrx), stat=ierr )
       if ( ierr/=0 ) call errore(subname,'allocating psi',abs(ierr))
 
+
+      !
+      ! init
+      !
+      vsicpsi(:,:) = 0.0d0
       !
       ! take advantage of the smooth and the dense grids 
       ! being equal (NCPP case)
@@ -1673,9 +1781,79 @@ end subroutine nksic_correction_pz
           CALL nksic_eforce_std()
           !
       endif
-      
       !
       deallocate( psi )
+
+      !
+      ! add USPP non-local contribution 
+      ! to the potantial 
+      ! (this comes from the orbital-dependent piece of
+      ! the potential)
+      !
+! XXXX
+      if( nkb > 0 .AND. .FALSE. ) then
+          !
+          !     aa_i,i,n = sum_j d_i,ij <beta_i,j|c_n>
+          ! 
+          allocate( aa( nkb, 2 ) )
+          !
+          aa = 0.0d0
+          !
+          !
+          do is = 1, nsp
+              !
+              do iv = 1, nh(is)
+              do jv = 1, nh(is)
+                  !
+                  isa = 0
+                  do ism = 1, is-1
+                      isa = isa + na( ism )
+                  enddo
+                  !
+                  ivoff = ish(is)+(iv-1)*na(is)
+                  jvoff = ish(is)+(jv-1)*na(is)
+                  ! 
+                  if( i /= nbsp ) then
+                      ! 
+                      do ia=1,na(is)
+                          inl = ivoff + ia
+                          jnl = jvoff + ia
+                          isa = isa + 1
+                          !
+                          dd  = deeq_sic(iv,jv,isa,i) 
+                          aa(inl,1) = aa(inl,1) +dd * bec(jnl,i)
+                          !
+                          dd  = deeq_sic(iv,jv,isa,i+1) 
+                          aa(inl,2) = aa(inl,2) +dd * bec(jnl,i+1)
+                          !
+                      enddo
+                      ! 
+                  else
+                      ! 
+                      do ia=1,na(is)
+                          inl = ivoff + ia
+                          jnl = jvoff + ia
+                          isa = isa + 1
+                          !
+                          dd  = deeq_sic(iv,jv,isa,i) 
+                          aa(inl,1) = aa(inl,1) +dd * bec(jnl,i)
+                          !
+                      enddo
+                      ! 
+                  endif
+                  ! 
+              enddo
+              enddo
+              !
+          enddo
+          ! 
+          call DGEMM ( 'N', 'N', 2*ngw, 2, nkb, 1.0d0, &
+                       vkb, 2*ngw, aa, nkb, 1.0d0, vsicpsi(:,:), 2*ngw)
+          !
+          deallocate( aa )
+          !
+      endif
+
 
       call stop_clock( 'nksic_eforce' )
       return
@@ -1729,7 +1907,7 @@ CONTAINS
           call fwfft('Wave',vsicpsis,dffts)
           !
           do ig=1,ngw
-             vsicpsi(ig,j)=vsicpsis(nps(ig))
+              vsicpsi(ig,j)=vsicpsis(nps(ig))
           enddo
           !
       enddo

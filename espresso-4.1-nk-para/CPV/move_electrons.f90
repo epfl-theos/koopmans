@@ -36,7 +36,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   !
   USE wannier_subroutines,  ONLY : get_wannier_center, wf_options, &
                                    write_charge_and_exit, ef_tune
-  USE ensemble_dft,         ONLY : compute_entropy2
+  USE ensemble_dft,         ONLY : compute_entropy2, z0t, c0diag, becdiag, tens, tsmear, fmat0_diag
   USE efield_module,        ONLY : berry_energy, berry_energy2
   USE cp_interfaces,        ONLY : runcp_uspp, runcp_uspp_force_pairing, &
                                    interpolate_lambda
@@ -48,7 +48,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   USE mp_global,            ONLY : me_image 
   USE efield_mod,           ONLY : do_efield
   USE hfmod,                ONLY : do_hf, detothf, vxxpsi, exx
-  USE nksic,                ONLY : do_orbdep
+  USE nksic,                ONLY : do_orbdep, vsic, fsic, fion_sic
   !
   IMPLICIT NONE
   !
@@ -81,8 +81,29 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
           CALL get_wannier_center( tfirst, cm, bec, eigr, &
                                    eigrb, taub, irb, ibrav, b1, b2, b3 )
      !
-     CALL rhoofr( nfi, c0, irb, eigrb, bec, &
-                     becsum, rhor, rhog, rhos, enl, denl, ekin, dekin6 )
+     IF ( .NOT. tsmear ) THEN
+         !
+         ! std implementation
+         !
+         CALL rhoofr( nfi, c0, irb, eigrb, bec, &
+                         becsum, rhor, rhog, rhos, enl, denl, ekin, dekin6 )
+         !
+     ELSE
+         !
+         ! take into account of the proper density matrix
+         ! and rotate orbitals back to theie diagonal representation
+         ! to compute rho and other physical quantities, like the kinetic energy
+         !
+         ! rotates the wavefunctions c0 and the overlaps bec
+         ! (the occupation matrix f_ij becomes diagonal f_i)
+         !
+         CALL rotate( z0t, c0, bec, c0diag, becdiag, .false. )
+         !
+         CALL rhoofr( nfi, c0diag, irb, eigrb, becdiag, &
+                         becsum, rhor, rhog, rhos, enl, denl, ekin, dekin6 )
+         !
+     ENDIF
+
      !
      ! ... put core charge (if present) in rhoc(r)
      !
@@ -97,22 +118,34 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
      !
      vpot = rhor
      !
-     CALL vofrho( nfi, vpot(1,1), rhog(1,1), rhos(1,1), rhoc(1), tfirst, tlast, &
-                     ei1, ei2, ei3, irb(1,1), eigrb(:,:), sfac(1,1), tau0(1,1), fion(1,1) )
+     CALL vofrho( nfi, vpot, rhog, rhos, rhoc, tfirst, tlast, &
+                  ei1, ei2, ei3, irb, eigrb, sfac, tau0, fion )
      !
      ! compute auxiliary potentials
      !
      if( do_orbdep ) then
-         call nksic_potential( c0, rhor, rhog )
-     end if
+         !
+         if ( tens .or. tsmear) then
+             fsic = fmat0_diag
+         else
+             fsic = f
+         endif
+         !
+         call nksic_potential( c0, fsic, bec, rhor, rhog, vsic )
+         !
+     endif
      !
      if( do_hf ) then
+         !
          call calc_hf_potential( c0, rhor, rhog, vxxpsi, exx, detothf)
-     end if
+         !
+     endif
      !
      if( do_efield ) then
+         !
          call calc_dipole(c0, h)
-     end if
+         !
+     endif
      !
      IF ( lwf ) CALL wf_options( tfirst, nfi, cm, becsum, bec, &
                                  eigr, eigrb, taub, irb, ibrav, b1,   &
@@ -148,7 +181,16 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
      !
      !=======================================================================
      !
+     ! This call must be done after the call to nksic_potential
+     ! or nksic_inner_loop
+     !
      CALL newd( vpot, irb, eigrb, becsum, fion )
+     !
+     if( do_orbdep ) then
+         !
+         fion = fion + fion_sic
+         !
+     endif
      !
      CALL prefor( eigr, vkb )
      !

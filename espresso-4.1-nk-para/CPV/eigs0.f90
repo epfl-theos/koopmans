@@ -311,7 +311,7 @@
 !-----------------------------------------------------------------------
 
       USE kinds,             ONLY: DP
-      use ensemble_dft,      only: tens
+      use ensemble_dft,      only: tens, tsmear
       use electrons_base,    only: nx => nbspx, f, nspin
       use electrons_base,    only: iupdwn, nupdwn, nudx
       use electrons_module,  only: ei
@@ -328,10 +328,18 @@
       ALLOCATE( faux(nx) )
       faux(:) = f(:) * DBLE(nspin) / 2.0d0
 
-      if( .not. tens ) then
-         call eigs0( ei, .false. , nspin, nupdwn, iupdwn, .true. , faux, nx, lambda, nudx, descla )
+      if ( tens ) then 
+          !
+          call eigs0( ei, .false. , nspin, nupdwn, iupdwn, .false. , faux, nx, lambdap, nudx, descla )
+          !
+      else if ( tsmear ) then
+          !
+          call eigs0( ei, .false. , nspin, nupdwn, iupdwn, .false. , faux, nx, lambda, nudx, descla )
+          !
       else
-         call eigs0( ei, .false. , nspin, nupdwn, iupdwn, .false. , faux, nx, lambdap, nudx, descla )
+          !
+          call eigs0( ei, .false. , nspin, nupdwn, iupdwn, .true. , faux, nx, lambda, nudx, descla )
+          !
       endif
       !
       DEALLOCATE( faux )

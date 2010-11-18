@@ -269,6 +269,7 @@ cpr.o : cp_autopilot.o
 cpr.o : cp_emass.o
 cpr.o : cp_interfaces.o
 cpr.o : efield.o
+cpr.o : electrons.o
 cpr.o : ensemble_dft.o
 cpr.o : ions_positions.o
 cpr.o : mainvar.o
@@ -342,6 +343,7 @@ dforceb.o : ../Modules/parameters.o
 dforceb.o : ../Modules/recvec.o
 dforceb.o : ../Modules/uspp.o
 dforceb.o : efield.o
+dforceb.o : ensemble_dft.o
 dforceb.o : modules.o
 eelib.o : ../Modules/cell_base.o
 eelib.o : ../Modules/constants.o
@@ -384,6 +386,7 @@ electrons.o : ../Modules/io_global.o
 electrons.o : ../Modules/kind.o
 electrons.o : ../Modules/mp_global.o
 electrons.o : cp_emass.o
+electrons.o : ensemble_dft.o
 emptystates.o : ../Modules/cell_base.o
 emptystates.o : ../Modules/check_stop.o
 emptystates.o : ../Modules/control_flags.o
@@ -613,6 +616,25 @@ inner_loop_cold.o : ensemble_dft.o
 inner_loop_cold.o : ions_positions.o
 inner_loop_cold.o : mainvar.o
 inner_loop_cold.o : modules.o
+inner_loop_smear.o : ../Modules/cell_base.o
+inner_loop_smear.o : ../Modules/control_flags.o
+inner_loop_smear.o : ../Modules/descriptors.o
+inner_loop_smear.o : ../Modules/electrons_base.o
+inner_loop_smear.o : ../Modules/energies.o
+inner_loop_smear.o : ../Modules/griddim.o
+inner_loop_smear.o : ../Modules/io_files.o
+inner_loop_smear.o : ../Modules/io_global.o
+inner_loop_smear.o : ../Modules/ions_base.o
+inner_loop_smear.o : ../Modules/kind.o
+inner_loop_smear.o : ../Modules/mp.o
+inner_loop_smear.o : ../Modules/mp_global.o
+inner_loop_smear.o : ../Modules/recvec.o
+inner_loop_smear.o : ../Modules/uspp.o
+inner_loop_smear.o : cp_interfaces.o
+inner_loop_smear.o : ensemble_dft.o
+inner_loop_smear.o : ions_positions.o
+inner_loop_smear.o : mainvar.o
+inner_loop_smear.o : modules.o
 input.o : ../Modules/autopilot.o
 input.o : ../Modules/cell_base.o
 input.o : ../Modules/constants.o
@@ -1048,6 +1070,7 @@ runcp.o : ../Modules/uspp.o
 runcp.o : ../Modules/wave_base.o
 runcp.o : cp_interfaces.o
 runcp.o : efield.o
+runcp.o : ensemble_dft.o
 runcp.o : mainvar.o
 runcp.o : modules.o
 runcp.o : wannier.o
@@ -1178,6 +1201,7 @@ gradrho.o : ../include/f_defs.h
 init_run.o : ../include/f_defs.h
 inner_loop.o : ../include/f_defs.h
 inner_loop_cold.o : ../include/f_defs.h
+inner_loop_smear.o : ../include/f_defs.h
 ksstates.o : ../include/f_defs.h
 mainvar.o : ../include/f_defs.h
 move_electrons.o : ../include/f_defs.h

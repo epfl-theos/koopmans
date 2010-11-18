@@ -2612,6 +2612,7 @@ END FUNCTION
       use electrons_base,   ONLY : nspin, nx => nbspx
       use gvecw,            ONLY : ngw
       use grid_dimensions,  ONLY : nnrx
+      USE ions_base,        ONLY : nat
       !
       implicit none
       !
@@ -2692,7 +2693,7 @@ END FUNCTION
           write(stdout,2004) rhobarfact, nkscalfact
       endif
       !
-      if( do_orbdep ) call allocate_nksic( nnrx, ngw, nspin, nx)
+      if( do_orbdep ) call allocate_nksic( nnrx, ngw, nspin, nx, nat)
       !
       if( (do_nk .or. do_nkpz ) .and. meta_ionode ) then
           write(stdout,2010) do_wxd, do_wref, do_nkpz

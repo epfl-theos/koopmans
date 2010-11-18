@@ -38,7 +38,7 @@
       USE ions_base,              ONLY: nsp, na, nat
       USE gvecw,                  ONLY: ngw, ggp
       USE cell_base,              ONLY: tpiba2
-      USE ensemble_dft,           ONLY: tens
+      USE ensemble_dft,           ONLY: tens, tsmear
       USE fft_base,               ONLY: dffts
       USE funct,                  ONLY: dft_is_meta
       USE cp_interfaces,          ONLY: fwfft, invfft
@@ -163,7 +163,8 @@
       DO idx = 1, 2*nogrp_ , 2
 
          IF( idx + i - 1 <= n ) THEN
-            if (tens) then
+            !
+            if (tens .or. tsmear) then
                fi = -0.5d0
                fip = -0.5d0
             else
@@ -223,7 +224,7 @@
 
             IF( idx + i - 1 <= n ) THEN
 
-               IF (tens) THEN
+               IF (tens .or. tsmear) THEN
                   fi = 1.0d0
                   fip= 1.0d0
                ELSE
