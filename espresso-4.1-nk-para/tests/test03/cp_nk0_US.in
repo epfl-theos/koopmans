@@ -42,8 +42,8 @@
     which_compensation ='tcc'
  /
 ATOMIC_SPECIES
+C    12.011     C.pz-rrkjus.UPF
 H     1.0079    H.pz-vbc.UPF
-C    12.011     C.pz-vbc.UPF
 ATOMIC_POSITIONS (angstrom)
 C           1.401699340       0.000000000       0.000000000
 C          -1.401699340       0.000000000       0.000000000

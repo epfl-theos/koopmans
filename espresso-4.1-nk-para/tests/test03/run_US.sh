@@ -12,6 +12,7 @@ MANUAL=" Usage
  where FLAG is one of the following 
  (no FLAG will print this manual page) :
  
+ init            generates the random wfcs using 1proc
  gram            performs Gram-Schmidt orthogonalization steps
  lda             LDA calculation
  nk0             NK0 calculation
@@ -43,6 +44,7 @@ SUFFIX=_US
 #
 # evaluate the starting choice about what is to run 
 
+INIT=
 GRAM=
 LDA=
 NK0=
@@ -55,6 +57,7 @@ if [ $# = 0 ] ; then echo "$MANUAL" ; exit 0 ; fi
 INPUT=`echo $1 | tr [:upper:] [:lower:]`
 
 case $INPUT in 
+   (init)           INIT=yes ;;
    (gram)           GRAM=yes ;;
    (lda)            LDA=yes ;;
    (nk0)            NK0=yes ;;
@@ -62,7 +65,7 @@ case $INPUT in
    (pz)             PZ=yes ;;
 
    (odd)            NK0=yes  ; NK=yes; PZ=yes;;
-   (all)            GRAM=yes ; LDA=yes ;
+   (all)            INIT=yes ; GRAM=yes ; LDA=yes ;
                     NK0=yes  ; NK=yes; PZ=yes ;;
    (check)          CHECK=yes ;;
    (clean)          CLEAN=yes ;;
@@ -84,6 +87,8 @@ fi
 #
 # running calculations
 #
+run_cp  NAME=INIT   SUFFIX=$SUFFIX  RUN=$INIT  PARALLEL=no
+#
 run_cp  NAME=GRAM   SUFFIX=$SUFFIX  RUN=$GRAM
 #
 run_cp  NAME=LDA    SUFFIX=$SUFFIX  RUN=$LDA
@@ -103,7 +108,7 @@ if [ "$CHECK" = yes ] ; then
    #
    cd $TEST_HOME
    cd Reference
-       list="ls *out"
+       list=`ls *_US.out`
    cd ..
    #
    for file in $list

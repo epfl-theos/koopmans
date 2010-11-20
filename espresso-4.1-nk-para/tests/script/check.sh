@@ -122,6 +122,10 @@ printout () {
               #
               printf( "%-15s\t%12s\t%12s\n", name, val, val_ref );
               #
+           } else if ( name == "nproc" ) { 
+              #
+              printf( "%-15s\t%12i\t%12i\n", name, val, val_ref );
+              #
            } else {
               #
               diff = val - val_ref;

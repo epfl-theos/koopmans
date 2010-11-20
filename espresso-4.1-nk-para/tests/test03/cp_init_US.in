@@ -1,11 +1,11 @@
 &CONTROL
     prefix='benzene_US'
     calculation='cp',
-    restart_mode='restart',
-    nstep=100, 
+    restart_mode='from_scratch',
+    nstep=1 
     iprint=1, 
-    ndr=93
-    ndw=94
+    ndr=89
+    ndw=90
     dt=15.0,
     pseudo_dir='../../pseudo/',
     outdir='./SCRATCH',
@@ -23,8 +23,6 @@
     nr1b=24
     nr2b=24
     nr3b=24
-    which_orbdep='nk'
-    nkscalfact=0.57
 /
 &ELECTRONS
     electron_dynamics='damp', 
@@ -32,6 +30,7 @@
     emass=1000., 
     emass_cutoff=3.,
     ortho_max=500
+    orthogonalization="Gram-Schmidt"
     !ortho_para=1
 /
 &IONS

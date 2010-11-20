@@ -47,7 +47,8 @@ BEGIN{
 END{ 
    if ( program = "cp") {
        #
-       print "ITERATION@"iteration"@1e-3";
+       print "NPROC@"nproc"@";
+       print "ITERATION@"iteration"@5e-2";
        print "ETOT@"etot"@1e-3";
        print "EKINC@"ekinc"@1e-3";
        #
@@ -100,11 +101,19 @@ function check_line_cp()
          nline=NR
          iteration=$NF
       }
+   else if ( match($0, "Tasks = ") )
+      {
+         nproc=$3
+      }
    else if ( NR == nline+1 && NF > 5 )
       {
-         etot=$5
-         ekinc=$2
-         nline=-10
+         if ( match($0,"NOTE: eigenvalues are not computed without ortho") ) {
+             nline++
+         } else {
+             etot=$5
+             ekinc=$2
+             nline=-10
+         }
    }
 }
    

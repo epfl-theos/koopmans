@@ -1,8 +1,10 @@
 
 ==============================================================================
-@title@   H2 molecule
+@title@   Oligoacetylene molecule, electric field
 ==============================================================================
   
-  H2 molecule ina box calculated using different methods: 
-  nspin = 1:      LDA, NK0, NK, PZ, HF
-  nspin = 2:      LDA, NK0, NK, PZ, HF
+  oligoacetylene molecule in a box, calculated using different methods
+  and including an electric field.
+
+  nspin = 1:      LDA, NK0, NK, PZ
+

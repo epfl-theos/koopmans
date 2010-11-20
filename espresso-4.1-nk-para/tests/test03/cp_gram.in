@@ -1,7 +1,7 @@
 &CONTROL
     prefix='benzene'
     calculation='cp',
-    restart_mode='from_scratch',
+    restart_mode='restart',
     nstep=10, 
     iprint=1, 
     ndr=90
