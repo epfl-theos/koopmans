@@ -10,7 +10,7 @@
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:   9:25:13  20Nov2010               
+   This run was started on:  10:34:56  20Nov2010               
 
    MPI Parallel Build
    Tasks =    6  This task id =    0
@@ -64,9 +64,12 @@
 
    Electronic states
    -----------------
-   Number of Electron =     2, of States =     1
-   Occupation numbers :
-   2.00
+   Local Spin Density calculation
+   Number of Electron =     2
+   Spins up   =     1, occupations: 
+   1.00
+   Spins down =     1, occupations: 
+   1.00
 
 
    Exchange and correlations functionals
@@ -220,15 +223,15 @@
    NK on top of PZ =    F
    rhothr =  0.1E-11
    f_cutoff =  0.1000
-   NK memusage =     15.482 MB
+   NK memusage =     17.841 MB
 
    EE with periodic-image correction method = tcc                 
 
-   reading restart file: ./SCRATCH//job_92.save
-   restart file read in    0.019 sec.
+   reading restart file: ./SCRATCH//job_trad_92.save
+   restart file read in    0.017 sec.
 
  nprint_nfi=           -2
- nprint_nfi=          127
+ nprint_nfi=          135
 
    formf: eself=   0.79788
    formf:     vps(g=0)=  -0.0002023     rhops(g=0)=  -0.0000630
@@ -236,92 +239,41 @@
    Delta V(G=0):   0.000402Ry,    0.010936eV
  
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-  128 0.22E-03    0.0    0.0    -1.10147    -1.10147    -1.10147    -1.10125  0.0000  0.0000  0.0000  0.0000     0.00000
-  129 0.87E-03    0.0    0.0    -1.11905    -1.11905    -1.11905    -1.11818  0.0000  0.0000  0.0000  0.0000     0.00000
-
- * Physical Quantities at step:   130
-
-   from rhoofr: total integrated electronic density
-   in g-space =    2.000000   in r-space =   2.000000
-
-
-                total energy =       -1.11823 Hartree a.u.
-              kinetic energy =        0.89899 Hartree a.u.
-        electrostatic energy =       -0.75895 Hartree a.u.
-                         esr =        0.02275 Hartree a.u.
-                       eself =        0.79788 Hartree a.u.
-      pseudopotential energy =       -0.65320 Hartree a.u.
-  n-l pseudopotential energy =        0.00000 Hartree a.u.
- exchange-correlation energy =       -0.58712 Hartree a.u.
-           average potential =        0.00000 Hartree a.u.
-
-
-
-   Eigenvalues (eV), kp =   1 , spin =  1
-
-  -14.90
- 
-   Allocated memory (kb) =     52704
- 
-   CELL_PARAMETERS
-   25.00000000    0.00000000    0.00000000
-    0.00000000   25.00000000    0.00000000
-    0.00000000    0.00000000   25.00000000
-
-   System Density [g/cm^3] :     0.0014
-
-
-   Center of mass square displacement (a.u.):   0.000000
-
-   ATOMIC_POSITIONS
-   H    0.000000E+00  0.000000E+00 -0.100000E+01
-   H    0.000000E+00  0.000000E+00  0.100000E+01
- 
-   ATOMIC_VELOCITIES
-   H    0.000000E+00  0.000000E+00  0.000000E+00
-   H    0.000000E+00  0.000000E+00  0.000000E+00
- 
-
-
-   Partial temperatures (for each ionic specie) 
-   Species  Temp (K)   Mean Square Displacement (a.u.)
-        1       0.00     0.0000
- 
-  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-  130 0.16E-02    0.0    0.0    -1.11823    -1.11823    -1.11823    -1.11662  0.0000  0.0000  0.0000  0.0000     0.00000
-  131 0.19E-02    0.0    0.0    -1.11619    -1.11619    -1.11619    -1.11425  0.0000  0.0000  0.0000  0.0000     0.00000
-  132 0.17E-02    0.0    0.0    -1.11314    -1.11314    -1.11314    -1.11141  0.0000  0.0000  0.0000  0.0000     0.00000
-  133 0.12E-02    0.0    0.0    -1.11000    -1.11000    -1.11000    -1.10878  0.0000  0.0000  0.0000  0.0000     0.00000
-  134 0.72E-03    0.0    0.0    -1.10776    -1.10776    -1.10776    -1.10705  0.0000  0.0000  0.0000  0.0000     0.00000
-  135 0.42E-03    0.0    0.0    -1.10694    -1.10694    -1.10694    -1.10653  0.0000  0.0000  0.0000  0.0000     0.00000
-  136 0.33E-03    0.0    0.0    -1.10747    -1.10747    -1.10747    -1.10714  0.0000  0.0000  0.0000  0.0000     0.00000
-  137 0.38E-03    0.0    0.0    -1.10892    -1.10892    -1.10892    -1.10855  0.0000  0.0000  0.0000  0.0000     0.00000
-  138 0.48E-03    0.0    0.0    -1.11082    -1.11082    -1.11082    -1.11034  0.0000  0.0000  0.0000  0.0000     0.00000
-  139 0.56E-03    0.0    0.0    -1.11275    -1.11275    -1.11275    -1.11219  0.0000  0.0000  0.0000  0.0000     0.00000
+  136 0.44E-03    0.0    0.0    -1.10147    -1.10147    -1.10147    -1.10103  0.0000  0.0000  0.0000  0.0000     0.00000
+  137 0.17E-02    0.0    0.0    -1.11905    -1.11905    -1.11905    -1.11731  0.0000  0.0000  0.0000  0.0000     0.00000
+  138 0.32E-02    0.0    0.0    -1.11823    -1.11823    -1.11823    -1.11501  0.0000  0.0000  0.0000  0.0000     0.00000
+  139 0.39E-02    0.0    0.0    -1.11619    -1.11619    -1.11619    -1.11231  0.0000  0.0000  0.0000  0.0000     0.00000
 
  * Physical Quantities at step:   140
 
    from rhoofr: total integrated electronic density
-   in g-space =    2.000000   in r-space =   2.000000
+   spin up
+   in g-space =    1.000000   in r-space =   1.000000
+   spin down
+   in g-space =    1.000000   in r-space =   1.000000
 
 
-                total energy =       -1.11441 Hartree a.u.
-              kinetic energy =        0.95713 Hartree a.u.
-        electrostatic energy =       -0.76208 Hartree a.u.
+                total energy =       -1.11313 Hartree a.u.
+              kinetic energy =        0.96282 Hartree a.u.
+        electrostatic energy =       -0.76112 Hartree a.u.
                          esr =        0.02275 Hartree a.u.
                        eself =        0.79788 Hartree a.u.
-      pseudopotential energy =       -0.68431 Hartree a.u.
+      pseudopotential energy =       -0.68787 Hartree a.u.
   n-l pseudopotential energy =        0.00000 Hartree a.u.
- exchange-correlation energy =       -0.60587 Hartree a.u.
+ exchange-correlation energy =       -0.60818 Hartree a.u.
            average potential =        0.00000 Hartree a.u.
 
 
 
    Eigenvalues (eV), kp =   1 , spin =  1
 
-  -14.58
+  -14.56
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -14.56
  
-   Allocated memory (kb) =     52704
+   Allocated memory (kb) =     59608
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -348,40 +300,47 @@
         1       0.00     0.0000
  
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-  140 0.60E-03    0.0    0.0    -1.11441    -1.11441    -1.11441    -1.11381  0.0000  0.0000  0.0000  0.0000     0.00000
-  141 0.57E-03    0.0    0.0    -1.11561    -1.11561    -1.11561    -1.11504  0.0000  0.0000  0.0000  0.0000     0.00000
-  142 0.48E-03    0.0    0.0    -1.11630    -1.11630    -1.11630    -1.11582  0.0000  0.0000  0.0000  0.0000     0.00000
-  143 0.36E-03    0.0    0.0    -1.11653    -1.11653    -1.11653    -1.11617  0.0000  0.0000  0.0000  0.0000     0.00000
-  144 0.25E-03    0.0    0.0    -1.11645    -1.11645    -1.11645    -1.11619  0.0000  0.0000  0.0000  0.0000     0.00000
-  145 0.19E-03    0.0    0.0    -1.11620    -1.11620    -1.11620    -1.11601  0.0000  0.0000  0.0000  0.0000     0.00000
-  146 0.17E-03    0.0    0.0    -1.11587    -1.11587    -1.11587    -1.11570  0.0000  0.0000  0.0000  0.0000     0.00000
-  147 0.18E-03    0.0    0.0    -1.11552    -1.11552    -1.11552    -1.11533  0.0000  0.0000  0.0000  0.0000     0.00000
-  148 0.20E-03    0.0    0.0    -1.11514    -1.11514    -1.11514    -1.11494  0.0000  0.0000  0.0000  0.0000     0.00000
-  149 0.21E-03    0.0    0.0    -1.11477    -1.11477    -1.11477    -1.11456  0.0000  0.0000  0.0000  0.0000     0.00000
+  140 0.35E-02    0.0    0.0    -1.11313    -1.11313    -1.11313    -1.10968  0.0000  0.0000  0.0000  0.0000     0.00000
+  141 0.24E-02    0.0    0.0    -1.11000    -1.11000    -1.11000    -1.10757  0.0000  0.0000  0.0000  0.0000     0.00000
+  142 0.14E-02    0.0    0.0    -1.10777    -1.10777    -1.10777    -1.10634  0.0000  0.0000  0.0000  0.0000     0.00000
+  143 0.83E-03    0.0    0.0    -1.10695    -1.10695    -1.10695    -1.10612  0.0000  0.0000  0.0000  0.0000     0.00000
+  144 0.66E-03    0.0    0.0    -1.10748    -1.10748    -1.10748    -1.10682  0.0000  0.0000  0.0000  0.0000     0.00000
+  145 0.76E-03    0.0    0.0    -1.10893    -1.10893    -1.10893    -1.10818  0.0000  0.0000  0.0000  0.0000     0.00000
+  146 0.95E-03    0.0    0.0    -1.11083    -1.11083    -1.11083    -1.10988  0.0000  0.0000  0.0000  0.0000     0.00000
+  147 0.11E-02    0.0    0.0    -1.11275    -1.11275    -1.11275    -1.11163  0.0000  0.0000  0.0000  0.0000     0.00000
+  148 0.12E-02    0.0    0.0    -1.11441    -1.11441    -1.11441    -1.11321  0.0000  0.0000  0.0000  0.0000     0.00000
+  149 0.11E-02    0.0    0.0    -1.11561    -1.11561    -1.11561    -1.11447  0.0000  0.0000  0.0000  0.0000     0.00000
 
  * Physical Quantities at step:   150
 
    from rhoofr: total integrated electronic density
-   in g-space =    2.000000   in r-space =   2.000000
+   spin up
+   in g-space =    1.000000   in r-space =   1.000000
+   spin down
+   in g-space =    1.000000   in r-space =   1.000000
 
 
-                total energy =       -1.11440 Hartree a.u.
-              kinetic energy =        0.96290 Hartree a.u.
-        electrostatic energy =       -0.76167 Hartree a.u.
+                total energy =       -1.11630 Hartree a.u.
+              kinetic energy =        0.93491 Hartree a.u.
+        electrostatic energy =       -0.76096 Hartree a.u.
                          esr =        0.02275 Hartree a.u.
                        eself =        0.79788 Hartree a.u.
-      pseudopotential energy =       -0.68991 Hartree a.u.
+      pseudopotential energy =       -0.67157 Hartree a.u.
   n-l pseudopotential energy =        0.00000 Hartree a.u.
- exchange-correlation energy =       -0.60662 Hartree a.u.
+ exchange-correlation energy =       -0.59974 Hartree a.u.
            average potential =        0.00000 Hartree a.u.
 
 
 
    Eigenvalues (eV), kp =   1 , spin =  1
 
-  -14.58
+  -14.66
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -14.66
  
-   Allocated memory (kb) =     52704
+   Allocated memory (kb) =     59608
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -408,31 +367,235 @@
         1       0.00     0.0000
  
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-  150 0.20E-03    0.0    0.0    -1.11440    -1.11440    -1.11440    -1.11420  0.0000  0.0000  0.0000  0.0000     0.00000
-  151 0.18E-03    0.0    0.0    -1.11408    -1.11408    -1.11408    -1.11390  0.0000  0.0000  0.0000  0.0000     0.00000
-  152 0.16E-03    0.0    0.0    -1.11383    -1.11383    -1.11383    -1.11367  0.0000  0.0000  0.0000  0.0000     0.00000
-  153 0.13E-03    0.0    0.0    -1.11367    -1.11367    -1.11367    -1.11354  0.0000  0.0000  0.0000  0.0000     0.00000
-  154 0.10E-03    0.0    0.0    -1.11361    -1.11361    -1.11361    -1.11350  0.0000  0.0000  0.0000  0.0000     0.00000
-  155 0.81E-04    0.0    0.0    -1.11365    -1.11365    -1.11365    -1.11357  0.0000  0.0000  0.0000  0.0000     0.00000
-  156 0.68E-04    0.0    0.0    -1.11380    -1.11380    -1.11380    -1.11374  0.0000  0.0000  0.0000  0.0000     0.00000
-  157 0.66E-04    0.0    0.0    -1.11404    -1.11404    -1.11404    -1.11398  0.0000  0.0000  0.0000  0.0000     0.00000
-  158 0.70E-04    0.0    0.0    -1.11434    -1.11434    -1.11434    -1.11426  0.0000  0.0000  0.0000  0.0000     0.00000
-  159 0.75E-04    0.0    0.0    -1.11464    -1.11464    -1.11464    -1.11456  0.0000  0.0000  0.0000  0.0000     0.00000
+  150 0.96E-03    0.0    0.0    -1.11630    -1.11630    -1.11630    -1.11534  0.0000  0.0000  0.0000  0.0000     0.00000
+  151 0.72E-03    0.0    0.0    -1.11653    -1.11653    -1.11653    -1.11581  0.0000  0.0000  0.0000  0.0000     0.00000
+  152 0.51E-03    0.0    0.0    -1.11645    -1.11645    -1.11645    -1.11594  0.0000  0.0000  0.0000  0.0000     0.00000
+  153 0.38E-03    0.0    0.0    -1.11619    -1.11619    -1.11619    -1.11581  0.0000  0.0000  0.0000  0.0000     0.00000
+  154 0.34E-03    0.0    0.0    -1.11587    -1.11587    -1.11587    -1.11553  0.0000  0.0000  0.0000  0.0000     0.00000
+  155 0.36E-03    0.0    0.0    -1.11552    -1.11552    -1.11552    -1.11515  0.0000  0.0000  0.0000  0.0000     0.00000
+  156 0.40E-03    0.0    0.0    -1.11514    -1.11514    -1.11514    -1.11475  0.0000  0.0000  0.0000  0.0000     0.00000
+  157 0.41E-03    0.0    0.0    -1.11477    -1.11477    -1.11477    -1.11435  0.0000  0.0000  0.0000  0.0000     0.00000
+  158 0.40E-03    0.0    0.0    -1.11440    -1.11440    -1.11440    -1.11400  0.0000  0.0000  0.0000  0.0000     0.00000
+  159 0.37E-03    0.0    0.0    -1.11408    -1.11408    -1.11408    -1.11372  0.0000  0.0000  0.0000  0.0000     0.00000
 
  * Physical Quantities at step:   160
 
    from rhoofr: total integrated electronic density
-   in g-space =    2.000000   in r-space =   2.000000
+   spin up
+   in g-space =    1.000000   in r-space =   1.000000
+   spin down
+   in g-space =    1.000000   in r-space =   1.000000
 
 
-                total energy =       -1.11490 Hartree a.u.
-              kinetic energy =        0.95422 Hartree a.u.
-        electrostatic energy =       -0.76129 Hartree a.u.
+                total energy =       -1.11383 Hartree a.u.
+              kinetic energy =        0.96741 Hartree a.u.
+        electrostatic energy =       -0.76207 Hartree a.u.
                          esr =        0.02275 Hartree a.u.
                        eself =        0.79788 Hartree a.u.
-      pseudopotential energy =       -0.68352 Hartree a.u.
+      pseudopotential energy =       -0.69136 Hartree a.u.
   n-l pseudopotential energy =        0.00000 Hartree a.u.
- exchange-correlation energy =       -0.60520 Hartree a.u.
+ exchange-correlation energy =       -0.60862 Hartree a.u.
+           average potential =        0.00000 Hartree a.u.
+
+
+
+   Eigenvalues (eV), kp =   1 , spin =  1
+
+  -14.54
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -14.54
+ 
+   Allocated memory (kb) =     59608
+ 
+   CELL_PARAMETERS
+   25.00000000    0.00000000    0.00000000
+    0.00000000   25.00000000    0.00000000
+    0.00000000    0.00000000   25.00000000
+
+   System Density [g/cm^3] :     0.0014
+
+
+   Center of mass square displacement (a.u.):   0.000000
+
+   ATOMIC_POSITIONS
+   H    0.000000E+00  0.000000E+00 -0.100000E+01
+   H    0.000000E+00  0.000000E+00  0.100000E+01
+ 
+   ATOMIC_VELOCITIES
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+ 
+
+
+   Partial temperatures (for each ionic specie) 
+   Species  Temp (K)   Mean Square Displacement (a.u.)
+        1       0.00     0.0000
+ 
+  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
+  160 0.32E-03    0.0    0.0    -1.11383    -1.11383    -1.11383    -1.11351  0.0000  0.0000  0.0000  0.0000     0.00000
+  161 0.26E-03    0.0    0.0    -1.11367    -1.11367    -1.11367    -1.11341  0.0000  0.0000  0.0000  0.0000     0.00000
+  162 0.21E-03    0.0    0.0    -1.11361    -1.11361    -1.11361    -1.11340  0.0000  0.0000  0.0000  0.0000     0.00000
+  163 0.16E-03    0.0    0.0    -1.11365    -1.11365    -1.11365    -1.11349  0.0000  0.0000  0.0000  0.0000     0.00000
+  164 0.14E-03    0.0    0.0    -1.11381    -1.11381    -1.11381    -1.11367  0.0000  0.0000  0.0000  0.0000     0.00000
+  165 0.13E-03    0.0    0.0    -1.11404    -1.11404    -1.11404    -1.11391  0.0000  0.0000  0.0000  0.0000     0.00000
+  166 0.14E-03    0.0    0.0    -1.11434    -1.11434    -1.11434    -1.11420  0.0000  0.0000  0.0000  0.0000     0.00000
+  167 0.15E-03    0.0    0.0    -1.11464    -1.11464    -1.11464    -1.11449  0.0000  0.0000  0.0000  0.0000     0.00000
+  168 0.15E-03    0.0    0.0    -1.11490    -1.11490    -1.11490    -1.11475  0.0000  0.0000  0.0000  0.0000     0.00000
+  169 0.14E-03    0.0    0.0    -1.11510    -1.11510    -1.11510    -1.11496  0.0000  0.0000  0.0000  0.0000     0.00000
+
+ * Physical Quantities at step:   170
+
+   from rhoofr: total integrated electronic density
+   spin up
+   in g-space =    1.000000   in r-space =   1.000000
+   spin down
+   in g-space =    1.000000   in r-space =   1.000000
+
+
+                total energy =       -1.11521 Hartree a.u.
+              kinetic energy =        0.95380 Hartree a.u.
+        electrostatic energy =       -0.76135 Hartree a.u.
+                         esr =        0.02275 Hartree a.u.
+                       eself =        0.79788 Hartree a.u.
+      pseudopotential energy =       -0.68409 Hartree a.u.
+  n-l pseudopotential energy =        0.00000 Hartree a.u.
+ exchange-correlation energy =       -0.60451 Hartree a.u.
+           average potential =        0.00000 Hartree a.u.
+
+
+
+   Eigenvalues (eV), kp =   1 , spin =  1
+
+  -14.60
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -14.60
+ 
+   Allocated memory (kb) =     59608
+ 
+   CELL_PARAMETERS
+   25.00000000    0.00000000    0.00000000
+    0.00000000   25.00000000    0.00000000
+    0.00000000    0.00000000   25.00000000
+
+   System Density [g/cm^3] :     0.0014
+
+
+   Center of mass square displacement (a.u.):   0.000000
+
+   ATOMIC_POSITIONS
+   H    0.000000E+00  0.000000E+00 -0.100000E+01
+   H    0.000000E+00  0.000000E+00  0.100000E+01
+ 
+   ATOMIC_VELOCITIES
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+ 
+
+
+   Partial temperatures (for each ionic specie) 
+   Species  Temp (K)   Mean Square Displacement (a.u.)
+        1       0.00     0.0000
+ 
+  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
+  170 0.12E-03    0.0    0.0    -1.11521    -1.11521    -1.11521    -1.11510  0.0000  0.0000  0.0000  0.0000     0.00000
+  171 0.90E-04    0.0    0.0    -1.11525    -1.11525    -1.11525    -1.11516  0.0000  0.0000  0.0000  0.0000     0.00000
+  172 0.70E-04    0.0    0.0    -1.11522    -1.11522    -1.11522    -1.11515  0.0000  0.0000  0.0000  0.0000     0.00000
+  173 0.59E-04    0.0    0.0    -1.11515    -1.11515    -1.11515    -1.11509  0.0000  0.0000  0.0000  0.0000     0.00000
+  174 0.54E-04    0.0    0.0    -1.11504    -1.11504    -1.11504    -1.11499  0.0000  0.0000  0.0000  0.0000     0.00000
+  175 0.54E-04    0.0    0.0    -1.11493    -1.11493    -1.11493    -1.11488  0.0000  0.0000  0.0000  0.0000     0.00000
+  176 0.54E-04    0.0    0.0    -1.11483    -1.11483    -1.11483    -1.11477  0.0000  0.0000  0.0000  0.0000     0.00000
+  177 0.54E-04    0.0    0.0    -1.11473    -1.11473    -1.11473    -1.11468  0.0000  0.0000  0.0000  0.0000     0.00000
+  178 0.52E-04    0.0    0.0    -1.11466    -1.11466    -1.11466    -1.11461  0.0000  0.0000  0.0000  0.0000     0.00000
+  179 0.49E-04    0.0    0.0    -1.11462    -1.11462    -1.11462    -1.11457  0.0000  0.0000  0.0000  0.0000     0.00000
+
+ * Physical Quantities at step:   180
+
+   from rhoofr: total integrated electronic density
+   spin up
+   in g-space =    1.000000   in r-space =   1.000000
+   spin down
+   in g-space =    1.000000   in r-space =   1.000000
+
+
+                total energy =       -1.11459 Hartree a.u.
+              kinetic energy =        0.95749 Hartree a.u.
+        electrostatic energy =       -0.76147 Hartree a.u.
+                         esr =        0.02275 Hartree a.u.
+                       eself =        0.79788 Hartree a.u.
+      pseudopotential energy =       -0.68514 Hartree a.u.
+  n-l pseudopotential energy =        0.00000 Hartree a.u.
+ exchange-correlation energy =       -0.60634 Hartree a.u.
+           average potential =        0.00000 Hartree a.u.
+
+
+
+   Eigenvalues (eV), kp =   1 , spin =  1
+
+  -14.56
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -14.56
+ 
+   Allocated memory (kb) =     59608
+ 
+   CELL_PARAMETERS
+   25.00000000    0.00000000    0.00000000
+    0.00000000   25.00000000    0.00000000
+    0.00000000    0.00000000   25.00000000
+
+   System Density [g/cm^3] :     0.0014
+
+
+   Center of mass square displacement (a.u.):   0.000000
+
+   ATOMIC_POSITIONS
+   H    0.000000E+00  0.000000E+00 -0.100000E+01
+   H    0.000000E+00  0.000000E+00  0.100000E+01
+ 
+   ATOMIC_VELOCITIES
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+ 
+
+
+   Partial temperatures (for each ionic specie) 
+   Species  Temp (K)   Mean Square Displacement (a.u.)
+        1       0.00     0.0000
+ 
+  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
+  180 0.43E-04    0.0    0.0    -1.11459    -1.11459    -1.11459    -1.11455  0.0000  0.0000  0.0000  0.0000     0.00000
+  181 0.35E-04    0.0    0.0    -1.11458    -1.11458    -1.11458    -1.11454  0.0000  0.0000  0.0000  0.0000     0.00000
+  182 0.27E-04    0.0    0.0    -1.11458    -1.11458    -1.11458    -1.11455  0.0000  0.0000  0.0000  0.0000     0.00000
+  183 0.21E-04    0.0    0.0    -1.11459    -1.11459    -1.11459    -1.11457  0.0000  0.0000  0.0000  0.0000     0.00000
+  184 0.18E-04    0.0    0.0    -1.11461    -1.11461    -1.11461    -1.11460  0.0000  0.0000  0.0000  0.0000     0.00000
+  185 0.18E-04    0.0    0.0    -1.11465    -1.11465    -1.11465    -1.11463  0.0000  0.0000  0.0000  0.0000     0.00000
+  186 0.20E-04    0.0    0.0    -1.11469    -1.11469    -1.11469    -1.11467  0.0000  0.0000  0.0000  0.0000     0.00000
+  187 0.22E-04    0.0    0.0    -1.11474    -1.11474    -1.11474    -1.11472  0.0000  0.0000  0.0000  0.0000     0.00000
+  188 0.21E-04    0.0    0.0    -1.11479    -1.11479    -1.11479    -1.11477  0.0000  0.0000  0.0000  0.0000     0.00000
+  189 0.18E-04    0.0    0.0    -1.11484    -1.11484    -1.11484    -1.11482  0.0000  0.0000  0.0000  0.0000     0.00000
+
+ * Physical Quantities at step:   190
+
+   from rhoofr: total integrated electronic density
+   spin up
+   in g-space =    1.000000   in r-space =   1.000000
+   spin down
+   in g-space =    1.000000   in r-space =   1.000000
+
+
+                total energy =       -1.11488 Hartree a.u.
+              kinetic energy =        0.95545 Hartree a.u.
+        electrostatic energy =       -0.76141 Hartree a.u.
+                         esr =        0.02275 Hartree a.u.
+                       eself =        0.79788 Hartree a.u.
+      pseudopotential energy =       -0.68423 Hartree a.u.
+  n-l pseudopotential energy =        0.00000 Hartree a.u.
+ exchange-correlation energy =       -0.60558 Hartree a.u.
            average potential =        0.00000 Hartree a.u.
 
 
@@ -440,68 +603,12 @@
    Eigenvalues (eV), kp =   1 , spin =  1
 
   -14.58
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -14.58
  
-   Allocated memory (kb) =     52704
- 
-   CELL_PARAMETERS
-   25.00000000    0.00000000    0.00000000
-    0.00000000   25.00000000    0.00000000
-    0.00000000    0.00000000   25.00000000
-
-   System Density [g/cm^3] :     0.0014
-
-
-   Center of mass square displacement (a.u.):   0.000000
-
-   ATOMIC_POSITIONS
-   H    0.000000E+00  0.000000E+00 -0.100000E+01
-   H    0.000000E+00  0.000000E+00  0.100000E+01
- 
-   ATOMIC_VELOCITIES
-   H    0.000000E+00  0.000000E+00  0.000000E+00
-   H    0.000000E+00  0.000000E+00  0.000000E+00
- 
-
-
-   Partial temperatures (for each ionic specie) 
-   Species  Temp (K)   Mean Square Displacement (a.u.)
-        1       0.00     0.0000
- 
-  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-  160 0.76E-04    0.0    0.0    -1.11490    -1.11490    -1.11490    -1.11482  0.0000  0.0000  0.0000  0.0000     0.00000
-  161 0.69E-04    0.0    0.0    -1.11510    -1.11510    -1.11510    -1.11503  0.0000  0.0000  0.0000  0.0000     0.00000
-  162 0.58E-04    0.0    0.0    -1.11521    -1.11521    -1.11521    -1.11515  0.0000  0.0000  0.0000  0.0000     0.00000
-  163 0.45E-04    0.0    0.0    -1.11525    -1.11525    -1.11525    -1.11520  0.0000  0.0000  0.0000  0.0000     0.00000
-  164 0.35E-04    0.0    0.0    -1.11522    -1.11522    -1.11522    -1.11519  0.0000  0.0000  0.0000  0.0000     0.00000
-  165 0.29E-04    0.0    0.0    -1.11515    -1.11515    -1.11515    -1.11512  0.0000  0.0000  0.0000  0.0000     0.00000
-  166 0.27E-04    0.0    0.0    -1.11505    -1.11505    -1.11505    -1.11502  0.0000  0.0000  0.0000  0.0000     0.00000
-  167 0.27E-04    0.0    0.0    -1.11493    -1.11493    -1.11493    -1.11491  0.0000  0.0000  0.0000  0.0000     0.00000
-  168 0.27E-04    0.0    0.0    -1.11483    -1.11483    -1.11483    -1.11480  0.0000  0.0000  0.0000  0.0000     0.00000
-  169 0.27E-04    0.0    0.0    -1.11473    -1.11473    -1.11473    -1.11471  0.0000  0.0000  0.0000  0.0000     0.00000
-
- * Physical Quantities at step:   170
-
-   from rhoofr: total integrated electronic density
-   in g-space =    2.000000   in r-space =   2.000000
-
-
-                total energy =       -1.11466 Hartree a.u.
-              kinetic energy =        0.95628 Hartree a.u.
-        electrostatic energy =       -0.76142 Hartree a.u.
-                         esr =        0.02275 Hartree a.u.
-                       eself =        0.79788 Hartree a.u.
-      pseudopotential energy =       -0.68437 Hartree a.u.
-  n-l pseudopotential energy =        0.00000 Hartree a.u.
- exchange-correlation energy =       -0.60604 Hartree a.u.
-           average potential =        0.00000 Hartree a.u.
-
-
-
-   Eigenvalues (eV), kp =   1 , spin =  1
-
-  -14.57
- 
-   Allocated memory (kb) =     52704
+   Allocated memory (kb) =     59608
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -528,91 +635,34 @@
         1       0.00     0.0000
  
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-  170 0.26E-04    0.0    0.0    -1.11466    -1.11466    -1.11466    -1.11464  0.0000  0.0000  0.0000  0.0000     0.00000
-  171 0.24E-04    0.0    0.0    -1.11462    -1.11462    -1.11462    -1.11459  0.0000  0.0000  0.0000  0.0000     0.00000
-  172 0.21E-04    0.0    0.0    -1.11459    -1.11459    -1.11459    -1.11457  0.0000  0.0000  0.0000  0.0000     0.00000
-  173 0.18E-04    0.0    0.0    -1.11458    -1.11458    -1.11458    -1.11456  0.0000  0.0000  0.0000  0.0000     0.00000
-  174 0.14E-04    0.0    0.0    -1.11458    -1.11458    -1.11458    -1.11456  0.0000  0.0000  0.0000  0.0000     0.00000
-  175 0.10E-04    0.0    0.0    -1.11459    -1.11459    -1.11459    -1.11458  0.0000  0.0000  0.0000  0.0000     0.00000
-  176 0.89E-05    0.0    0.0    -1.11461    -1.11461    -1.11461    -1.11460  0.0000  0.0000  0.0000  0.0000     0.00000
-  177 0.91E-05    0.0    0.0    -1.11465    -1.11465    -1.11465    -1.11464  0.0000  0.0000  0.0000  0.0000     0.00000
-  178 0.10E-04    0.0    0.0    -1.11469    -1.11469    -1.11469    -1.11468  0.0000  0.0000  0.0000  0.0000     0.00000
-  179 0.11E-04    0.0    0.0    -1.11474    -1.11474    -1.11474    -1.11473  0.0000  0.0000  0.0000  0.0000     0.00000
+  190 0.15E-04    0.0    0.0    -1.11488    -1.11488    -1.11488    -1.11486  0.0000  0.0000  0.0000  0.0000     0.00000
+  191 0.11E-04    0.0    0.0    -1.11491    -1.11491    -1.11491    -1.11490  0.0000  0.0000  0.0000  0.0000     0.00000
+  192 0.86E-05    0.0    0.0    -1.11492    -1.11492    -1.11492    -1.11492  0.0000  0.0000  0.0000  0.0000     0.00000
+  193 0.76E-05    0.0    0.0    -1.11493    -1.11493    -1.11493    -1.11492  0.0000  0.0000  0.0000  0.0000     0.00000
+  194 0.75E-05    0.0    0.0    -1.11491    -1.11491    -1.11491    -1.11490  0.0000  0.0000  0.0000  0.0000     0.00000
+  195 0.78E-05    0.0    0.0    -1.11489    -1.11489    -1.11489    -1.11488  0.0000  0.0000  0.0000  0.0000     0.00000
+  196 0.81E-05    0.0    0.0    -1.11485    -1.11485    -1.11485    -1.11484  0.0000  0.0000  0.0000  0.0000     0.00000
+  197 0.82E-05    0.0    0.0    -1.11481    -1.11481    -1.11481    -1.11480  0.0000  0.0000  0.0000  0.0000     0.00000
+  198 0.76E-05    0.0    0.0    -1.11477    -1.11477    -1.11477    -1.11476  0.0000  0.0000  0.0000  0.0000     0.00000
+  199 0.64E-05    0.0    0.0    -1.11474    -1.11474    -1.11474    -1.11473  0.0000  0.0000  0.0000  0.0000     0.00000
 
- * Physical Quantities at step:   180
-
-   from rhoofr: total integrated electronic density
-   in g-space =    2.000000   in r-space =   2.000000
-
-
-                total energy =       -1.11479 Hartree a.u.
-              kinetic energy =        0.95667 Hartree a.u.
-        electrostatic energy =       -0.76149 Hartree a.u.
-                         esr =        0.02275 Hartree a.u.
-                       eself =        0.79788 Hartree a.u.
-      pseudopotential energy =       -0.68494 Hartree a.u.
-  n-l pseudopotential energy =        0.00000 Hartree a.u.
- exchange-correlation energy =       -0.60590 Hartree a.u.
-           average potential =        0.00000 Hartree a.u.
-
-
-
-   Eigenvalues (eV), kp =   1 , spin =  1
-
-  -14.57
- 
-   Allocated memory (kb) =     52704
- 
-   CELL_PARAMETERS
-   25.00000000    0.00000000    0.00000000
-    0.00000000   25.00000000    0.00000000
-    0.00000000    0.00000000   25.00000000
-
-   System Density [g/cm^3] :     0.0014
-
-
-   Center of mass square displacement (a.u.):   0.000000
-
-   ATOMIC_POSITIONS
-   H    0.000000E+00  0.000000E+00 -0.100000E+01
-   H    0.000000E+00  0.000000E+00  0.100000E+01
- 
-   ATOMIC_VELOCITIES
-   H    0.000000E+00  0.000000E+00  0.000000E+00
-   H    0.000000E+00  0.000000E+00  0.000000E+00
- 
-
-
-   Partial temperatures (for each ionic specie) 
-   Species  Temp (K)   Mean Square Displacement (a.u.)
-        1       0.00     0.0000
- 
-  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-  180 0.11E-04    0.0    0.0    -1.11479    -1.11479    -1.11479    -1.11478  0.0000  0.0000  0.0000  0.0000     0.00000
-  181 0.92E-05    0.0    0.0    -1.11484    -1.11484    -1.11484    -1.11483  0.0000  0.0000  0.0000  0.0000     0.00000
-  182 0.73E-05    0.0    0.0    -1.11488    -1.11488    -1.11488    -1.11487  0.0000  0.0000  0.0000  0.0000     0.00000
-  183 0.55E-05    0.0    0.0    -1.11491    -1.11491    -1.11491    -1.11490  0.0000  0.0000  0.0000  0.0000     0.00000
-  184 0.43E-05    0.0    0.0    -1.11492    -1.11492    -1.11492    -1.11492  0.0000  0.0000  0.0000  0.0000     0.00000
-  185 0.38E-05    0.0    0.0    -1.11493    -1.11493    -1.11493    -1.11492  0.0000  0.0000  0.0000  0.0000     0.00000
-  186 0.37E-05    0.0    0.0    -1.11491    -1.11491    -1.11491    -1.11491  0.0000  0.0000  0.0000  0.0000     0.00000
-  187 0.39E-05    0.0    0.0    -1.11489    -1.11489    -1.11489    -1.11488  0.0000  0.0000  0.0000  0.0000     0.00000
-  188 0.41E-05    0.0    0.0    -1.11485    -1.11485    -1.11485    -1.11485  0.0000  0.0000  0.0000  0.0000     0.00000
-  189 0.41E-05    0.0    0.0    -1.11481    -1.11481    -1.11481    -1.11481  0.0000  0.0000  0.0000  0.0000     0.00000
-
- * Physical Quantities at step:   190
+ * Physical Quantities at step:   200
 
    from rhoofr: total integrated electronic density
-   in g-space =    2.000000   in r-space =   2.000000
+   spin up
+   in g-space =    1.000000   in r-space =   1.000000
+   spin down
+   in g-space =    1.000000   in r-space =   1.000000
 
 
-                total energy =       -1.11477 Hartree a.u.
-              kinetic energy =        0.95715 Hartree a.u.
+                total energy =       -1.11471 Hartree a.u.
+              kinetic energy =        0.95746 Hartree a.u.
         electrostatic energy =       -0.76152 Hartree a.u.
                          esr =        0.02275 Hartree a.u.
                        eself =        0.79788 Hartree a.u.
-      pseudopotential energy =       -0.68530 Hartree a.u.
+      pseudopotential energy =       -0.68539 Hartree a.u.
   n-l pseudopotential energy =        0.00000 Hartree a.u.
- exchange-correlation energy =       -0.60599 Hartree a.u.
+ exchange-correlation energy =       -0.60614 Hartree a.u.
            average potential =        0.00000 Hartree a.u.
 
 
@@ -620,8 +670,12 @@
    Eigenvalues (eV), kp =   1 , spin =  1
 
   -14.57
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -14.57
  
-   Allocated memory (kb) =     52704
+   Allocated memory (kb) =     59608
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -648,73 +702,75 @@
         1       0.00     0.0000
  
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-  190 0.38E-05    0.0    0.0    -1.11477    -1.11477    -1.11477    -1.11477  0.0000  0.0000  0.0000  0.0000     0.00000
-  191 0.32E-05    0.0    0.0    -1.11474    -1.11474    -1.11474    -1.11473  0.0000  0.0000  0.0000  0.0000     0.00000
-  192 0.25E-05    0.0    0.0    -1.11471    -1.11471    -1.11471    -1.11471  0.0000  0.0000  0.0000  0.0000     0.00000
-  193 0.18E-05    0.0    0.0    -1.11470    -1.11470    -1.11470    -1.11470  0.0000  0.0000  0.0000  0.0000     0.00000
-  194 0.15E-05    0.0    0.0    -1.11470    -1.11470    -1.11470    -1.11470  0.0000  0.0000  0.0000  0.0000     0.00000
+  200 0.49E-05    0.0    0.0    -1.11471    -1.11471    -1.11471    -1.11471  0.0000  0.0000  0.0000  0.0000     0.00000
+
+   writing restart file: ./SCRATCH//job_trad_93.save
+   restart file written in    0.230 sec.
+
+  201 0.37E-05    0.0    0.0    -1.11470    -1.11470    -1.11470    -1.11470  0.0000  0.0000  0.0000  0.0000     0.00000
+  202 0.30E-05    0.0    0.0    -1.11470    -1.11470    -1.11470    -1.11470  0.0000  0.0000  0.0000  0.0000     0.00000
 
    MAIN:          EKINC   (thr)          DETOT   (thr)       MAXFORCE   (thr)
-   MAIN:   0.150751D-05  0.1D-04  0.578728D-07  0.1D-05  0.000000D+00  0.1D+11
+   MAIN:   0.300666D-05  0.1D-04  0.136349D-06  0.1D-05  0.000000D+00  0.1D+11
    MAIN: convergence achieved for system relaxation
 
- * Physical Quantities at step:   195
-  195 0.15E-05    0.0    0.0    -1.11471    -1.11471    -1.11471    -1.11471  0.0000  0.0000  0.0000  0.0000     0.00000
+ * Physical Quantities at step:   203
+  203 0.29E-05    0.0    0.0    -1.11471    -1.11471    -1.11471    -1.11471  0.0000  0.0000  0.0000  0.0000     0.00000
 
-   writing restart file: ./SCRATCH//job_93.save
-   restart file written in    0.077 sec.
+   writing restart file: ./SCRATCH//job_trad_93.save
+   restart file written in    0.231 sec.
 
 
 
    Averaged Physical Quantities
                       accomulated      this run
-   ekinc         :        0.08774       0.00023 (AU)
-   ekin          :        1.07422       0.95579 (AU)
-   epot          :       -1.89878      -2.05114 (AU)
-   total energy  :       -0.83113      -1.11417 (AU)
+   ekinc         :        0.16896       0.00045 (AU)
+   ekin          :        1.05852       0.95579 (AU)
+   epot          :       -1.87822      -2.05114 (AU)
+   total energy  :       -0.82601      -1.11417 (AU)
    temperature   :        0.00000       0.00000 (K )
-   enthalpy      :       -0.83113      -1.11417 (AU)
-   econs         :       -0.83113      -1.11417 (AU)
+   enthalpy      :       -0.82601      -1.11417 (AU)
+   econs         :       -0.82601      -1.11417 (AU)
    pressure      :        0.00000       0.00000 (Gpa)
    volume        :    15625.00000   15625.00000 (AU)
 
 
-     initialize   :     0.41s CPU
-     total_time   :    33.43s CPU (      68 calls,   0.492 s avg)
-     formf        :     0.01s CPU
-     rhoofr       :     3.57s CPU (      68 calls,   0.052 s avg)
-     vofrho       :    11.32s CPU (      68 calls,   0.166 s avg)
-     dforce       :     1.48s CPU (      68 calls,   0.022 s avg)
-     calphi       :     0.00s CPU (      68 calls,   0.000 s avg)
-     ortho        :     0.18s CPU (      68 calls,   0.003 s avg)
-     ortho_iter   :     0.00s CPU (      68 calls,   0.000 s avg)
-     rsg          :     0.00s CPU (      68 calls,   0.000 s avg)
-     rhoset       :     0.17s CPU (      68 calls,   0.003 s avg)
-     updatc       :     0.00s CPU (      68 calls,   0.000 s avg)
+     initialize   :     0.40s CPU
+     total_time   :    46.35s CPU (      68 calls,   0.682 s avg)
+     formf        :     0.02s CPU
+     rhoofr       :     4.01s CPU (      68 calls,   0.059 s avg)
+     vofrho       :    13.57s CPU (      68 calls,   0.200 s avg)
+     dforce       :     1.43s CPU (      68 calls,   0.021 s avg)
+     calphi       :     0.01s CPU (      68 calls,   0.000 s avg)
+     ortho        :     0.05s CPU (      68 calls,   0.001 s avg)
+     ortho_iter   :     0.00s CPU (     136 calls,   0.000 s avg)
+     rsg          :     0.00s CPU (     136 calls,   0.000 s avg)
+     rhoset       :     0.04s CPU (     136 calls,   0.000 s avg)
+     updatc       :     0.00s CPU (     136 calls,   0.000 s avg)
      newd         :     0.00s CPU (      68 calls,   0.000 s avg)
      calbec       :     0.00s CPU (      69 calls,   0.000 s avg)
      prefor       :     0.00s CPU (      69 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlsm1        :     0.00s CPU (     205 calls,   0.000 s avg)
-     fft          :    15.56s CPU (     820 calls,   0.019 s avg)
-     ffts         :     2.36s CPU (     136 calls,   0.017 s avg)
-     fftw         :     1.84s CPU (     204 calls,   0.009 s avg)
-     cft3s        :    19.77s CPU (    1160 calls,   0.017 s avg)
-     fft_scatter  :     8.50s CPU (    1160 calls,   0.007 s avg)
-     nksic_drv    :    14.06s CPU (      68 calls,   0.207 s avg)
-     nksic_orbrho :     1.60s CPU (      68 calls,   0.023 s avg)
-     nksic_rhoref :     0.22s CPU (      68 calls,   0.003 s avg)
-     nksic_eforce :     2.70s CPU (      68 calls,   0.040 s avg)
-     nksic_corr   :    11.76s CPU (      68 calls,   0.173 s avg)
-     nksic_corr_h :     3.50s CPU (      68 calls,   0.051 s avg)
-     nksic_corr_v :     8.08s CPU (      68 calls,   0.119 s avg)
-     nksic_corr_f :     0.05s CPU (      68 calls,   0.001 s avg)
+     fft          :    17.91s CPU (     956 calls,   0.019 s avg)
+     ffts         :     2.51s CPU (     136 calls,   0.018 s avg)
+     fftw         :     1.79s CPU (     204 calls,   0.009 s avg)
+     cft3s        :    22.20s CPU (    1296 calls,   0.017 s avg)
+     fft_scatter  :     6.68s CPU (    1296 calls,   0.005 s avg)
+     nksic_drv    :    24.10s CPU (      68 calls,   0.354 s avg)
+     nksic_orbrho :     1.66s CPU (      68 calls,   0.024 s avg)
+     nksic_rhoref :     0.81s CPU (     136 calls,   0.006 s avg)
+     nksic_eforce :     2.76s CPU (      68 calls,   0.041 s avg)
+     nksic_corr   :    20.86s CPU (     136 calls,   0.153 s avg)
+     nksic_corr_h :     6.67s CPU (     136 calls,   0.049 s avg)
+     nksic_corr_v :    13.61s CPU (     136 calls,   0.100 s avg)
+     nksic_corr_f :     0.18s CPU (     136 calls,   0.001 s avg)
  
  
-     CP           :    33.91s CPU time,   34.00s wall time
+     CP           :    46.97s CPU time,   47.17s wall time
 
  
-   This run was terminated on:   9:25:47  20Nov2010            
+   This run was terminated on:  10:35:43  20Nov2010            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

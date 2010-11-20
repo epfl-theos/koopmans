@@ -10,7 +10,7 @@
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19: 3:15  19Nov2010               
+   This run was started on:  10: 8:59  20Nov2010               
 
    MPI Parallel Build
    Tasks =    6  This task id =    0
@@ -28,7 +28,7 @@
 
    Main Simulation Parameters (from input)
    ---------------------------------------
-   Restart Mode       =      -1   from_scratch   
+   Restart Mode       =       1   restart        
    Number of MD Steps =      10
    Print out every            1 MD Steps
    Reads from unit    =      90
@@ -60,7 +60,6 @@
    verlet algorithm for electron dynamics
    with friction frice =  0.0500 , grease =  1.0000
    Electron dynamics : the temperature is not controlled
-   initial random displacement of el. coordinates with  amplitude=  0.020000
 
    Electronic states
    -----------------
@@ -88,12 +87,13 @@
    Species   1 atoms =    2 mass =      1822.89 (a.u.),         1.00 (amu) rcmax =   1.00 (a.u.)
         0.000000     0.000000    -1.000000
         0.000000     0.000000     1.000000
-   Ionic position read from input file
+   Ionic position will be re-read from restart file
 
 
    Cell Dynamics Parameters (from STDIN)
    -------------------------------------
    Starting cell generated from CELLDM
+   Cell parameters will be re-read from restart file
    Constant VOLUME Molecular dynamics
    cell parameters are not allowed to move
 
@@ -177,6 +177,12 @@
    Scaled positions from standard input
    H    0.000000E+00  0.000000E+00 -0.400000E-01
    H    0.000000E+00  0.000000E+00  0.400000E-01
+   ibrav =    1       cell parameters 
+
+      25.00000       0.00000       0.00000
+       0.00000      25.00000       0.00000
+       0.00000       0.00000      25.00000
+ 
 
    Matrix Multiplication Performances
    ortho mmul, time for parallel driver      =   0.00000 with    1 procs
@@ -209,30 +215,19 @@
  
    EE with periodic-image correction method = tcc                 
 
+   reading restart file: ./SCRATCH//job_90.save
+   restart file read in    0.027 sec.
 
-   Wave Initialization: random initial wave-functions
-                        spin symmetry applied to init wave
-   Occupation number from init
-   spin =   1 nbnd =     1
-    1.00
-   spin =   2 nbnd =     1
-    1.00
+ nprint_nfi=           -2
+ nprint_nfi=            1
 
    formf: eself=   0.79788
    formf:     vps(g=0)=  -0.0002023     rhops(g=0)=  -0.0000630
    formf: sum_g vps(g)=  -2.4432651 sum_g rhops(g)=  -0.0898256
    Delta V(G=0):   0.000402Ry,    0.010936eV
-
-   from rhoofr: total integrated electronic density
-   spin up
-   in g-space =    1.000000   in r-space =   1.000000
-   spin down
-   in g-space =    1.000000   in r-space =   1.000000
       NOTE: eigenvalues are not computed without ortho
  
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-    1 0.26E+00    0.0    0.0     6.97924     6.97924     6.97924     7.24394  0.0000  0.0000  0.0000  0.0000     0.00589
-      NOTE: eigenvalues are not computed without ortho
     2 0.12E+01    0.0    0.0     5.79867     5.79867     5.79867     6.98551  0.0000  0.0000  0.0000  0.0000     0.00369
       NOTE: eigenvalues are not computed without ortho
     3 0.29E+01    0.0    0.0     3.52610     3.52610     3.52610     6.43640  0.0000  0.0000  0.0000  0.0000     0.00140
@@ -279,7 +274,7 @@
 
     0.00
  
-   Allocated memory (kb) =     46500
+   Allocated memory (kb) =     42176
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -308,48 +303,52 @@
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
    10 0.16E+01    0.0    0.0     0.62882     0.62882     0.62882     2.21013  0.0000  0.0000  0.0000  0.0000     0.00037
 
+ * Physical Quantities at step:    11
+      NOTE: eigenvalues are not computed without ortho
+   11 0.12E+01    0.0    0.0     0.65327     0.65327     0.65327     1.87424  0.0000  0.0000  0.0000  0.0000     0.00069
+
    writing restart file: ./SCRATCH//job_91.save
-   restart file written in    0.164 sec.
+   restart file written in    0.135 sec.
 
 
 
    Averaged Physical Quantities
                       accomulated      this run
-   ekinc         :        1.88725       1.88725 (AU)
-   ekin          :        3.59471       3.59471 (AU)
-   epot          :       -1.00456      -1.00456 (AU)
-   total energy  :        2.59014       2.59014 (AU)
+   ekinc         :        1.82668       1.98288 (AU)
+   ekin          :        3.38254       2.91263 (AU)
+   epot          :       -0.96848      -0.95508 (AU)
+   total energy  :        2.41406       1.95755 (AU)
    temperature   :        0.00000       0.00000 (K )
-   enthalpy      :        2.59014       2.59014 (AU)
-   econs         :        2.59014       2.59014 (AU)
+   enthalpy      :        2.41406       1.95755 (AU)
+   econs         :        2.41406       1.95755 (AU)
    pressure      :        0.00000       0.00000 (Gpa)
    volume        :    15625.00000   15625.00000 (AU)
 
 
-     initialize   :     0.84s CPU
-     total_time   :     3.04s CPU (      10 calls,   0.304 s avg)
-     formf        :     0.02s CPU
-     rhoofr       :     0.62s CPU (      11 calls,   0.056 s avg)
-     vofrho       :     2.28s CPU (      11 calls,   0.207 s avg)
-     dforce       :     0.27s CPU (      11 calls,   0.025 s avg)
-     calphi       :     0.00s CPU (      11 calls,   0.000 s avg)
-     gram         :     0.08s CPU (      13 calls,   0.006 s avg)
-     newd         :     0.00s CPU (      11 calls,   0.000 s avg)
-     calbec       :     0.00s CPU (      12 calls,   0.000 s avg)
+     initialize   :     0.39s CPU
+     total_time   :     3.18s CPU (      10 calls,   0.318 s avg)
+     formf        :     0.01s CPU
+     rhoofr       :     0.58s CPU (      10 calls,   0.058 s avg)
+     vofrho       :     2.06s CPU (      10 calls,   0.206 s avg)
+     dforce       :     0.25s CPU (      10 calls,   0.025 s avg)
+     calphi       :     0.00s CPU (      10 calls,   0.000 s avg)
+     gram         :     0.15s CPU (      10 calls,   0.015 s avg)
+     newd         :     0.00s CPU (      10 calls,   0.000 s avg)
+     calbec       :     0.00s CPU (      11 calls,   0.000 s avg)
      prefor       :     0.00s CPU (      11 calls,   0.000 s avg)
      strucf       :     0.00s CPU
-     nlsm1        :     0.00s CPU (      12 calls,   0.000 s avg)
-     fft          :     1.50s CPU (      81 calls,   0.019 s avg)
-     ffts         :     0.38s CPU (      22 calls,   0.017 s avg)
-     fftw         :     0.34s CPU (      33 calls,   0.010 s avg)
-     cft3s        :     2.22s CPU (     136 calls,   0.016 s avg)
-     fft_scatter  :     1.05s CPU (     136 calls,   0.008 s avg)
+     nlsm1        :     0.00s CPU (      11 calls,   0.000 s avg)
+     fft          :     1.32s CPU (      74 calls,   0.018 s avg)
+     ffts         :     0.35s CPU (      20 calls,   0.017 s avg)
+     fftw         :     0.30s CPU (      30 calls,   0.010 s avg)
+     cft3s        :     1.97s CPU (     124 calls,   0.016 s avg)
+     fft_scatter  :     0.89s CPU (     124 calls,   0.007 s avg)
  
  
-     CP           :     3.99s CPU time,    4.40s wall time
+     CP           :     3.70s CPU time,    3.78s wall time
 
  
-   This run was terminated on:  19: 3:19  19Nov2010            
+   This run was terminated on:  10: 9: 3  20Nov2010            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

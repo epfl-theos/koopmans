@@ -10,7 +10,7 @@
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:   9:26:46  20Nov2010               
+   This run was started on:  10:34:13  20Nov2010               
 
    MPI Parallel Build
    Tasks =    6  This task id =    0
@@ -29,10 +29,10 @@
    Main Simulation Parameters (from input)
    ---------------------------------------
    Restart Mode       =       1   restart        
-   Number of MD Steps =     200
+   Number of MD Steps =      10
    Print out every            1 MD Steps
-   Reads from unit    =      95
-   Writes to unit     =      96
+   Reads from unit    =      90
+   Writes to unit     =      91
    MD Simulation time step            =      15.00
    Electronic fictitious mass (emass) =    1000.00
    emass cut-off                      =       3.00
@@ -56,17 +56,19 @@
    Ecutwfc =   35.0 Ry,      Ecutrho =  140.0 Ry,      Ecuts =  140.0 Ry
    Gcutwfc =   23.5     ,    Gcutrho =   47.1          Gcuts =   47.1
    NOTA BENE: refg, mmx =   0.050000  5600
-   Eigenvalues calculated without the kinetic term contribution
-   Orthog. with lagrange multipliers : eps =   0.10E-07,  max = 500
+   Orthog. with Gram-Schmidt
    verlet algorithm for electron dynamics
    with friction frice =  0.0500 , grease =  1.0000
    Electron dynamics : the temperature is not controlled
 
    Electronic states
    -----------------
-   Number of Electron =     2, of States =     1
-   Occupation numbers :
-   2.00
+   Local Spin Density calculation
+   Number of Electron =     2
+   Spins up   =     1, occupations: 
+   1.00
+   Spins down =     1, occupations: 
+   1.00
 
 
    Exchange and correlations functionals
@@ -211,50 +213,68 @@
    ECONS  [HARTREE A.U.] - Enthalpy + kinetic energy of ions and cell
    ECONT  [HARTREE A.U.] - Constant of motion for the CP lagrangian
  
-   HF scaling factor =  1.0000
-   f_cutoff =  0.1000
    EE with periodic-image correction method = tcc                 
 
-   reading restart file: ./SCRATCH//job_95.save
-   restart file read in    0.019 sec.
+   reading restart file: ./SCRATCH//job_trad_90.save
+   restart file read in    0.027 sec.
 
  nprint_nfi=           -2
- nprint_nfi=          295
+ nprint_nfi=            1
 
    formf: eself=   0.79788
    formf:     vps(g=0)=  -0.0002023     rhops(g=0)=  -0.0000630
    formf: sum_g vps(g)=  -2.4432651 sum_g rhops(g)=  -0.0898256
    Delta V(G=0):   0.000402Ry,    0.010936eV
+      NOTE: eigenvalues are not computed without ortho
  
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-  296 0.36E-05    0.0    0.0    -1.10042    -1.10042    -1.10042    -1.10042  0.0000  0.0000  0.0000  0.0000     0.00000
-  297 0.11E-04    0.0    0.0    -1.08551    -1.08551    -1.08551    -1.08550  0.0000  0.0000  0.0000  0.0000     0.00000
-  298 0.21E-04    0.0    0.0    -1.08555    -1.08555    -1.08555    -1.08553  0.0000  0.0000  0.0000  0.0000     0.00000
-  299 0.27E-04    0.0    0.0    -1.08558    -1.08558    -1.08558    -1.08555  0.0000  0.0000  0.0000  0.0000     0.00000
+    2 0.12E+01    0.0    0.0     5.74406     5.74406     5.74406     6.96105  0.0000  0.0000  0.0000  0.0000     0.00373
+      NOTE: eigenvalues are not computed without ortho
+    3 0.30E+01    0.0    0.0     3.44504     3.44504     3.44504     6.39967  0.0000  0.0000  0.0000  0.0000     0.00137
+      NOTE: eigenvalues are not computed without ortho
+    4 0.41E+01    0.0    0.0     1.20707     1.20707     1.20707     5.29803  0.0000  0.0000  0.0000  0.0000     0.00060
+      NOTE: eigenvalues are not computed without ortho
+    5 0.33E+01    0.0    0.0     0.82957     0.82957     0.82957     4.15161  0.0000  0.0000  0.0000  0.0000     0.00109
+      NOTE: eigenvalues are not computed without ortho
+    6 0.18E+01    0.0    0.0     1.69788     1.69788     1.69788     3.47313  0.0000  0.0000  0.0000  0.0000     0.00184
+      NOTE: eigenvalues are not computed without ortho
+    7 0.99E+00    0.0    0.0     2.21786     2.21786     2.21786     3.20807  0.0000  0.0000  0.0000  0.0000     0.00160
+      NOTE: eigenvalues are not computed without ortho
+    8 0.11E+01    0.0    0.0     1.87077     1.87077     1.87077     2.97243  0.0000  0.0000  0.0000  0.0000     0.00075
+      NOTE: eigenvalues are not computed without ortho
+    9 0.15E+01    0.0    0.0     1.10471     1.10471     1.10471     2.61053  0.0000  0.0000  0.0000  0.0000     0.00028
 
- * Physical Quantities at step:   300
+ * Physical Quantities at step:    10
 
    from rhoofr: total integrated electronic density
-   in g-space =    2.000000   in r-space =   2.000000
+   spin up
+   in g-space =    1.000000   in r-space =   1.000000
+   spin down
+   in g-space =    1.000000   in r-space =   1.000000
+      NOTE: eigenvalues are not computed without ortho
 
 
-                total energy =       -1.08559 Hartree a.u.
-              kinetic energy =        0.85605 Hartree a.u.
-        electrostatic energy =       -0.75549 Hartree a.u.
+                total energy =        0.65529 Hartree a.u.
+              kinetic energy =        1.32266 Hartree a.u.
+        electrostatic energy =       -0.27981 Hartree a.u.
                          esr =        0.02275 Hartree a.u.
                        eself =        0.79788 Hartree a.u.
-      pseudopotential energy =       -0.62430 Hartree a.u.
+      pseudopotential energy =       -0.04036 Hartree a.u.
   n-l pseudopotential energy =        0.00000 Hartree a.u.
- exchange-correlation energy =       -0.57690 Hartree a.u.
+ exchange-correlation energy =       -0.34720 Hartree a.u.
            average potential =        0.00000 Hartree a.u.
 
 
 
    Eigenvalues (eV), kp =   1 , spin =  1
 
-  -13.93
+    0.00
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+    0.00
  
-   Allocated memory (kb) =     41168
+   Allocated memory (kb) =     42176
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -281,71 +301,54 @@
         1       0.00     0.0000
  
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-  300 0.27E-04    0.0    0.0    -1.08559    -1.08559    -1.08559    -1.08556  0.0000  0.0000  0.0000  0.0000     0.00000
+   10 0.16E+01    0.0    0.0     0.65529     0.65529     0.65529     2.21294  0.0000  0.0000  0.0000  0.0000     0.00033
 
-   writing restart file: ./SCRATCH//job_96.save
-   restart file written in    0.136 sec.
+ * Physical Quantities at step:    11
+      NOTE: eigenvalues are not computed without ortho
+   11 0.12E+01    0.0    0.0     0.70743     0.70743     0.70743     1.89888  0.0000  0.0000  0.0000  0.0000     0.00068
 
-  301 0.21E-04    0.0    0.0    -1.08558    -1.08558    -1.08558    -1.08556  0.0000  0.0000  0.0000  0.0000     0.00000
-  302 0.14E-04    0.0    0.0    -1.08557    -1.08557    -1.08557    -1.08555  0.0000  0.0000  0.0000  0.0000     0.00000
-  303 0.83E-05    0.0    0.0    -1.08555    -1.08555    -1.08555    -1.08554  0.0000  0.0000  0.0000  0.0000     0.00000
-  304 0.53E-05    0.0    0.0    -1.08554    -1.08554    -1.08554    -1.08553  0.0000  0.0000  0.0000  0.0000     0.00000
-  305 0.48E-05    0.0    0.0    -1.08553    -1.08553    -1.08553    -1.08553  0.0000  0.0000  0.0000  0.0000     0.00000
-  306 0.59E-05    0.0    0.0    -1.08553    -1.08553    -1.08553    -1.08553  0.0000  0.0000  0.0000  0.0000     0.00000
-
-   MAIN:          EKINC   (thr)          DETOT   (thr)       MAXFORCE   (thr)
-   MAIN:   0.592027D-05  0.1D-04  0.127783D-06  0.1D-05  0.000000D+00  0.1D+11
-   MAIN: convergence achieved for system relaxation
-
- * Physical Quantities at step:   307
-  307 0.73E-05    0.0    0.0    -1.08554    -1.08554    -1.08554    -1.08553  0.0000  0.0000  0.0000  0.0000     0.00000
-
-   writing restart file: ./SCRATCH//job_96.save
-   restart file written in    0.088 sec.
+   writing restart file: ./SCRATCH//job_trad_91.save
+   restart file written in    0.228 sec.
 
 
 
    Averaged Physical Quantities
                       accomulated      this run
-   ekinc         :        0.05578       0.00001 (AU)
-   ekin          :        0.99920       0.85564 (AU)
-   epot          :       -1.92448      -1.95627 (AU)
-   total energy  :       -0.93671      -1.08679 (AU)
+   ekinc         :        1.81626       1.97067 (AU)
+   ekin          :        3.35359       2.88495 (AU)
+   epot          :       -0.95118      -0.93698 (AU)
+   total energy  :        2.40241       1.94797 (AU)
    temperature   :        0.00000       0.00000 (K )
-   enthalpy      :       -0.93671      -1.08679 (AU)
-   econs         :       -0.93671      -1.08679 (AU)
+   enthalpy      :        2.40241       1.94797 (AU)
+   econs         :        2.40241       1.94797 (AU)
    pressure      :        0.00000       0.00000 (Gpa)
    volume        :    15625.00000   15625.00000 (AU)
 
 
-     initialize   :     0.41s CPU
-     total_time   :     4.83s CPU (      12 calls,   0.403 s avg)
+     initialize   :     0.46s CPU
+     total_time   :     3.32s CPU (      10 calls,   0.332 s avg)
      formf        :     0.02s CPU
-     rhoofr       :     0.62s CPU (      12 calls,   0.052 s avg)
-     vofrho       :     1.99s CPU (      12 calls,   0.166 s avg)
-     dforce       :     0.27s CPU (      12 calls,   0.022 s avg)
-     calphi       :     0.00s CPU (      12 calls,   0.000 s avg)
-     ortho        :     0.00s CPU (      12 calls,   0.000 s avg)
-     ortho_iter   :     0.00s CPU (      12 calls,   0.000 s avg)
-     rsg          :     0.00s CPU (      12 calls,   0.000 s avg)
-     rhoset       :     0.00s CPU (      12 calls,   0.000 s avg)
-     updatc       :     0.00s CPU (      12 calls,   0.000 s avg)
-     newd         :     0.00s CPU (      12 calls,   0.000 s avg)
-     calbec       :     0.00s CPU (      13 calls,   0.000 s avg)
-     prefor       :     0.00s CPU (      13 calls,   0.000 s avg)
+     rhoofr       :     0.59s CPU (      10 calls,   0.059 s avg)
+     vofrho       :     2.06s CPU (      10 calls,   0.206 s avg)
+     dforce       :     0.23s CPU (      10 calls,   0.023 s avg)
+     calphi       :     0.00s CPU (      10 calls,   0.000 s avg)
+     gram         :     0.16s CPU (      10 calls,   0.016 s avg)
+     newd         :     0.00s CPU (      10 calls,   0.000 s avg)
+     calbec       :     0.00s CPU (      11 calls,   0.000 s avg)
+     prefor       :     0.00s CPU (      11 calls,   0.000 s avg)
      strucf       :     0.00s CPU
-     nlsm1        :     0.00s CPU (      37 calls,   0.000 s avg)
-     fft          :     2.47s CPU (     136 calls,   0.018 s avg)
-     ffts         :     0.42s CPU (      24 calls,   0.018 s avg)
-     fftw         :     0.69s CPU (      72 calls,   0.010 s avg)
-     cft3s        :     3.58s CPU (     232 calls,   0.015 s avg)
-     fft_scatter  :     1.33s CPU (     232 calls,   0.006 s avg)
+     nlsm1        :     0.00s CPU (      11 calls,   0.000 s avg)
+     fft          :     1.36s CPU (      74 calls,   0.018 s avg)
+     ffts         :     0.37s CPU (      20 calls,   0.019 s avg)
+     fftw         :     0.29s CPU (      30 calls,   0.010 s avg)
+     cft3s        :     2.02s CPU (     124 calls,   0.016 s avg)
+     fft_scatter  :     0.60s CPU (     124 calls,   0.005 s avg)
  
  
-     CP           :     5.32s CPU time,    5.51s wall time
+     CP           :     4.02s CPU time,    4.09s wall time
 
  
-   This run was terminated on:   9:26:51  20Nov2010            
+   This run was terminated on:  10:34:17  20Nov2010            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

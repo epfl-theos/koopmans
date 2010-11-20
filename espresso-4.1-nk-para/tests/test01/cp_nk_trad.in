@@ -4,13 +4,13 @@
              calculation = 'cp',
              restart_mode='restart',
              !verbosity='medium',
-             prefix='job_spin',
+             prefix='job_trad',
              pseudo_dir = '../../pseudo/',
              outdir = './SCRATCH/'
-             nstep=200
+             nstep=100
              iprint=1
-             ndr=91
-             ndw=92
+             ndr=93
+             ndw=94
              ekin_conv_thr=1.0d-5
              etot_conv_thr=1.0d-6
              dt=15.0
@@ -23,7 +23,8 @@
              ecutwfc=35.0,
              nspin=2
              do_ee=.TRUE.
-             do_spinsym = .TRUE.
+             do_nk=.TRUE.
+             fref=0.5
           /
           &ELECTRONS
              electron_dynamics = 'damp'

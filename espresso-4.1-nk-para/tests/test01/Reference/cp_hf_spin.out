@@ -10,7 +10,7 @@
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19: 6:16  19Nov2010               
+   This run was started on:  10:11:58  20Nov2010               
 
    MPI Parallel Build
    Tasks =    6  This task id =    0
@@ -219,10 +219,10 @@
    EE with periodic-image correction method = tcc                 
 
    reading restart file: ./SCRATCH//job_95.save
-   restart file read in    0.026 sec.
+   restart file read in    0.027 sec.
 
  nprint_nfi=           -2
- nprint_nfi=          311
+ nprint_nfi=          310
 
    formf: eself=   0.79788
    formf:     vps(g=0)=  -0.0002023     rhops(g=0)=  -0.0000630
@@ -230,14 +230,15 @@
    Delta V(G=0):   0.000402Ry,    0.010936eV
  
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-  312 0.87E-05    0.0    0.0    -1.10039    -1.10039    -1.10039    -1.10038  0.0000  0.0000  0.0000  0.0000     0.00000
-  313 0.26E-04    0.0    0.0    -1.08552    -1.08552    -1.08552    -1.08549  0.0000  0.0000  0.0000  0.0000     0.00000
-  314 0.46E-04    0.0    0.0    -1.08557    -1.08557    -1.08557    -1.08552  0.0000  0.0000  0.0000  0.0000     0.00000
-  315 0.56E-04    0.0    0.0    -1.08560    -1.08560    -1.08560    -1.08554  0.0000  0.0000  0.0000  0.0000     0.00000
-  316 0.52E-04    0.0    0.0    -1.08561    -1.08561    -1.08561    -1.08556  0.0000  0.0000  0.0000  0.0000     0.00000
-  317 0.39E-04    0.0    0.0    -1.08559    -1.08559    -1.08559    -1.08556  0.0000  0.0000  0.0000  0.0000     0.00000
-  318 0.25E-04    0.0    0.0    -1.08557    -1.08557    -1.08557    -1.08555  0.0000  0.0000  0.0000  0.0000     0.00000
-  319 0.15E-04    0.0    0.0    -1.08555    -1.08555    -1.08555    -1.08554  0.0000  0.0000  0.0000  0.0000     0.00000
+  311 0.87E-05    0.0    0.0    -1.10039    -1.10039    -1.10039    -1.10038  0.0000  0.0000  0.0000  0.0000     0.00000
+  312 0.26E-04    0.0    0.0    -1.08552    -1.08552    -1.08552    -1.08549  0.0000  0.0000  0.0000  0.0000     0.00000
+  313 0.46E-04    0.0    0.0    -1.08557    -1.08557    -1.08557    -1.08552  0.0000  0.0000  0.0000  0.0000     0.00000
+  314 0.56E-04    0.0    0.0    -1.08560    -1.08560    -1.08560    -1.08554  0.0000  0.0000  0.0000  0.0000     0.00000
+  315 0.52E-04    0.0    0.0    -1.08561    -1.08561    -1.08561    -1.08556  0.0000  0.0000  0.0000  0.0000     0.00000
+  316 0.39E-04    0.0    0.0    -1.08559    -1.08559    -1.08559    -1.08556  0.0000  0.0000  0.0000  0.0000     0.00000
+  317 0.25E-04    0.0    0.0    -1.08557    -1.08557    -1.08557    -1.08555  0.0000  0.0000  0.0000  0.0000     0.00000
+  318 0.15E-04    0.0    0.0    -1.08555    -1.08555    -1.08555    -1.08554  0.0000  0.0000  0.0000  0.0000     0.00000
+  319 0.10E-04    0.0    0.0    -1.08553    -1.08553    -1.08553    -1.08552  0.0000  0.0000  0.0000  0.0000     0.00000
 
  * Physical Quantities at step:   320
 
@@ -248,27 +249,27 @@
    in g-space =    1.000000   in r-space =   1.000000
 
 
-                total energy =       -1.08553 Hartree a.u.
-              kinetic energy =        0.84942 Hartree a.u.
-        electrostatic energy =       -0.75493 Hartree a.u.
+                total energy =       -1.08552 Hartree a.u.
+              kinetic energy =        0.85042 Hartree a.u.
+        electrostatic energy =       -0.75500 Hartree a.u.
                          esr =        0.02275 Hartree a.u.
                        eself =        0.79788 Hartree a.u.
-      pseudopotential energy =       -0.62063 Hartree a.u.
+      pseudopotential energy =       -0.62125 Hartree a.u.
   n-l pseudopotential energy =        0.00000 Hartree a.u.
- exchange-correlation energy =       -0.57459 Hartree a.u.
+ exchange-correlation energy =       -0.57489 Hartree a.u.
            average potential =        0.00000 Hartree a.u.
 
 
 
    Eigenvalues (eV), kp =   1 , spin =  1
 
-  -13.96
+  -13.95
 
    Eigenvalues (eV), kp =   1 , spin =  2
 
-  -13.96
+  -13.95
  
-   Allocated memory (kb) =     47056
+   Allocated memory (kb) =     47060
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -295,105 +296,49 @@
         1       0.00     0.0000
  
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-  320 0.10E-04    0.0    0.0    -1.08553    -1.08553    -1.08553    -1.08552  0.0000  0.0000  0.0000  0.0000     0.00000
-  321 0.10E-04    0.0    0.0    -1.08552    -1.08552    -1.08552    -1.08551  0.0000  0.0000  0.0000  0.0000     0.00000
-  322 0.12E-04    0.0    0.0    -1.08552    -1.08552    -1.08552    -1.08551  0.0000  0.0000  0.0000  0.0000     0.00000
-  323 0.15E-04    0.0    0.0    -1.08552    -1.08552    -1.08552    -1.08551  0.0000  0.0000  0.0000  0.0000     0.00000
-  324 0.16E-04    0.0    0.0    -1.08553    -1.08553    -1.08553    -1.08551  0.0000  0.0000  0.0000  0.0000     0.00000
-  325 0.16E-04    0.0    0.0    -1.08553    -1.08553    -1.08553    -1.08552  0.0000  0.0000  0.0000  0.0000     0.00000
-  326 0.15E-04    0.0    0.0    -1.08554    -1.08554    -1.08554    -1.08552  0.0000  0.0000  0.0000  0.0000     0.00000
-  327 0.12E-04    0.0    0.0    -1.08554    -1.08554    -1.08554    -1.08553  0.0000  0.0000  0.0000  0.0000     0.00000
-  328 0.92E-05    0.0    0.0    -1.08554    -1.08554    -1.08554    -1.08553  0.0000  0.0000  0.0000  0.0000     0.00000
-  329 0.71E-05    0.0    0.0    -1.08554    -1.08554    -1.08554    -1.08554  0.0000  0.0000  0.0000  0.0000     0.00000
+  320 0.10E-04    0.0    0.0    -1.08552    -1.08552    -1.08552    -1.08551  0.0000  0.0000  0.0000  0.0000     0.00000
+  321 0.12E-04    0.0    0.0    -1.08552    -1.08552    -1.08552    -1.08551  0.0000  0.0000  0.0000  0.0000     0.00000
+  322 0.15E-04    0.0    0.0    -1.08552    -1.08552    -1.08552    -1.08551  0.0000  0.0000  0.0000  0.0000     0.00000
+  323 0.16E-04    0.0    0.0    -1.08553    -1.08553    -1.08553    -1.08551  0.0000  0.0000  0.0000  0.0000     0.00000
+  324 0.16E-04    0.0    0.0    -1.08553    -1.08553    -1.08553    -1.08552  0.0000  0.0000  0.0000  0.0000     0.00000
+  325 0.15E-04    0.0    0.0    -1.08554    -1.08554    -1.08554    -1.08552  0.0000  0.0000  0.0000  0.0000     0.00000
+  326 0.12E-04    0.0    0.0    -1.08554    -1.08554    -1.08554    -1.08553  0.0000  0.0000  0.0000  0.0000     0.00000
+  327 0.92E-05    0.0    0.0    -1.08554    -1.08554    -1.08554    -1.08553  0.0000  0.0000  0.0000  0.0000     0.00000
+  328 0.71E-05    0.0    0.0    -1.08554    -1.08554    -1.08554    -1.08554  0.0000  0.0000  0.0000  0.0000     0.00000
 
    MAIN:          EKINC   (thr)          DETOT   (thr)       MAXFORCE   (thr)
-   MAIN:   0.707734D-05  0.1D-04  0.602830D-06  0.1D-05  0.000000D+00  0.1D+11
+   MAIN:   0.707734D-05  0.1D-04  0.602798D-06  0.1D-05  0.000000D+00  0.1D+11
    MAIN: convergence achieved for system relaxation
 
- * Physical Quantities at step:   330
-
-   from rhoofr: total integrated electronic density
-   spin up
-   in g-space =    1.000000   in r-space =   1.000000
-   spin down
-   in g-space =    1.000000   in r-space =   1.000000
-
-
-                total energy =       -1.08554 Hartree a.u.
-              kinetic energy =        0.85753 Hartree a.u.
-        electrostatic energy =       -0.75561 Hartree a.u.
-                         esr =        0.02275 Hartree a.u.
-                       eself =        0.79788 Hartree a.u.
-      pseudopotential energy =       -0.62512 Hartree a.u.
-  n-l pseudopotential energy =        0.00000 Hartree a.u.
- exchange-correlation energy =       -0.57742 Hartree a.u.
-           average potential =        0.00000 Hartree a.u.
-
-
-
-   Eigenvalues (eV), kp =   1 , spin =  1
-
-  -13.92
-
-   Eigenvalues (eV), kp =   1 , spin =  2
-
-  -13.92
- 
-   Allocated memory (kb) =     47056
- 
-   CELL_PARAMETERS
-   25.00000000    0.00000000    0.00000000
-    0.00000000   25.00000000    0.00000000
-    0.00000000    0.00000000   25.00000000
-
-   System Density [g/cm^3] :     0.0014
-
-
-   Center of mass square displacement (a.u.):   0.000000
-
-   ATOMIC_POSITIONS
-   H    0.000000E+00  0.000000E+00 -0.100000E+01
-   H    0.000000E+00  0.000000E+00  0.100000E+01
- 
-   ATOMIC_VELOCITIES
-   H    0.000000E+00  0.000000E+00  0.000000E+00
-   H    0.000000E+00  0.000000E+00  0.000000E+00
- 
-
-
-   Partial temperatures (for each ionic specie) 
-   Species  Temp (K)   Mean Square Displacement (a.u.)
-        1       0.00     0.0000
- 
-  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-  330 0.57E-05    0.0    0.0    -1.08554    -1.08554    -1.08554    -1.08554  0.0000  0.0000  0.0000  0.0000     0.00000
+ * Physical Quantities at step:   329
+  329 0.57E-05    0.0    0.0    -1.08554    -1.08554    -1.08554    -1.08554  0.0000  0.0000  0.0000  0.0000     0.00000
 
    writing restart file: ./SCRATCH//job_96.save
-   restart file written in    0.234 sec.
+   restart file written in    0.231 sec.
 
 
 
    Averaged Physical Quantities
                       accomulated      this run
-   ekinc         :        0.10553       0.00002 (AU)
-   ekin          :        0.99136       0.85604 (AU)
-   epot          :       -1.92731      -1.95667 (AU)
-   total energy  :       -0.94701      -1.08633 (AU)
+   ekinc         :        0.10410       0.00002 (AU)
+   ekin          :        0.99011       0.85604 (AU)
+   epot          :       -1.92713      -1.95667 (AU)
+   total energy  :       -0.94812      -1.08633 (AU)
    temperature   :        0.00000       0.00000 (K )
-   enthalpy      :       -0.94701      -1.08633 (AU)
-   econs         :       -0.94701      -1.08633 (AU)
+   enthalpy      :       -0.94812      -1.08633 (AU)
+   econs         :       -0.94812      -1.08633 (AU)
    pressure      :        0.00000       0.00000 (Gpa)
    volume        :    15625.00000   15625.00000 (AU)
 
 
      initialize   :     0.42s CPU
-     total_time   :    11.28s CPU (      19 calls,   0.594 s avg)
+     total_time   :    11.30s CPU (      19 calls,   0.595 s avg)
      formf        :     0.02s CPU
-     rhoofr       :     1.13s CPU (      19 calls,   0.060 s avg)
+     rhoofr       :     1.13s CPU (      19 calls,   0.059 s avg)
      vofrho       :     3.75s CPU (      19 calls,   0.197 s avg)
-     dforce       :     0.43s CPU (      19 calls,   0.023 s avg)
+     dforce       :     0.45s CPU (      19 calls,   0.024 s avg)
      calphi       :     0.00s CPU (      19 calls,   0.000 s avg)
-     ortho        :     0.01s CPU (      19 calls,   0.000 s avg)
+     ortho        :     0.00s CPU (      19 calls,   0.000 s avg)
      ortho_iter   :     0.00s CPU (      38 calls,   0.000 s avg)
      rsg          :     0.00s CPU (      38 calls,   0.000 s avg)
      rhoset       :     0.00s CPU (      38 calls,   0.000 s avg)
@@ -403,17 +348,17 @@
      prefor       :     0.00s CPU (      20 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlsm1        :     0.00s CPU (      58 calls,   0.000 s avg)
-     fft          :     5.32s CPU (     289 calls,   0.018 s avg)
+     fft          :     5.29s CPU (     289 calls,   0.018 s avg)
      ffts         :     0.71s CPU (      38 calls,   0.019 s avg)
-     fftw         :     1.58s CPU (     171 calls,   0.009 s avg)
+     fftw         :     1.60s CPU (     171 calls,   0.009 s avg)
      cft3s        :     7.61s CPU (     498 calls,   0.015 s avg)
-     fft_scatter  :     2.03s CPU (     498 calls,   0.004 s avg)
+     fft_scatter  :     1.97s CPU (     498 calls,   0.004 s avg)
  
  
-     CP           :    11.92s CPU time,   12.00s wall time
+     CP           :    11.95s CPU time,   12.05s wall time
 
  
-   This run was terminated on:  19: 6:28  19Nov2010            
+   This run was terminated on:  10:12:10  20Nov2010            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

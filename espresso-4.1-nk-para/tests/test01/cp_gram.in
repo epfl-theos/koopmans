@@ -2,7 +2,7 @@
 
           &CONTROL
              calculation = 'cp',
-             restart_mode='from_scratch',
+             restart_mode='restart',
              !verbosity='medium',
              prefix='job',
              pseudo_dir = '../../pseudo/',

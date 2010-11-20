@@ -4,7 +4,7 @@
              calculation = 'cp',
              restart_mode='restart',
              !verbosity='medium',
-             prefix='job',
+             prefix='job_spin',
              pseudo_dir = '../../pseudo/',
              outdir = './SCRATCH/'
              nstep=100

@@ -10,7 +10,7 @@
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  18:54:42  19Nov2010               
+   This run was started on:   9:25:49  20Nov2010               
 
    MPI Parallel Build
    Tasks =    6  This task id =    0
@@ -263,7 +263,7 @@
 
   -15.09
  
-   Allocated memory (kb) =     50072
+   Allocated memory (kb) =     52704
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -327,7 +327,7 @@
 
   -15.01
  
-   Allocated memory (kb) =     50072
+   Allocated memory (kb) =     52704
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -387,7 +387,7 @@
 
   -15.03
  
-   Allocated memory (kb) =     50072
+   Allocated memory (kb) =     52704
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -447,7 +447,7 @@
 
   -15.03
  
-   Allocated memory (kb) =     50072
+   Allocated memory (kb) =     52704
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -507,7 +507,7 @@
 
   -15.03
  
-   Allocated memory (kb) =     50072
+   Allocated memory (kb) =     52704
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -542,70 +542,70 @@
   245 0.93E-05    0.0    0.0    -1.11929    -1.11929    -1.11929    -1.11928  0.0000  0.0000  0.0000  0.0000     0.00000
 
    MAIN:          EKINC   (thr)          DETOT   (thr)       MAXFORCE   (thr)
-   MAIN:   0.934323D-05  0.1D-04  0.796773D-06  0.1D-05  0.000000D+00  0.1D+11
+   MAIN:   0.934324D-05  0.1D-04  0.796783D-06  0.1D-05  0.000000D+00  0.1D+11
    MAIN: convergence achieved for system relaxation
 
  * Physical Quantities at step:   246
   246 0.83E-05    0.0    0.0    -1.11929    -1.11929    -1.11929    -1.11929  0.0000  0.0000  0.0000  0.0000     0.00000
 
    MAIN:          EKINC   (thr)          DETOT   (thr)       MAXFORCE   (thr)
-   MAIN:   0.832258D-05  0.1D-04  0.621759D-06  0.1D-05  0.000000D+00  0.1D+11
+   MAIN:   0.832260D-05  0.1D-04  0.621762D-06  0.1D-05  0.000000D+00  0.1D+11
    MAIN: convergence achieved for system relaxation
 
    writing restart file: ./SCRATCH//job_94.save
-   restart file written in    0.128 sec.
+   restart file written in    0.137 sec.
 
 
 
    Averaged Physical Quantities
                       accomulated      this run
-   ekinc         :        0.07077       0.00023 (AU)
-   ekin          :        1.03478       0.87331 (AU)
-   epot          :       -1.91452      -1.97419 (AU)
-   total energy  :       -0.88859      -1.11845 (AU)
+   ekinc         :        0.06960       0.00023 (AU)
+   ekin          :        1.03256       0.87331 (AU)
+   epot          :       -1.91442      -1.97419 (AU)
+   total energy  :       -0.89070      -1.11845 (AU)
    temperature   :        0.00000       0.00000 (K )
-   enthalpy      :       -0.88859      -1.11845 (AU)
-   econs         :       -0.88859      -1.11845 (AU)
+   enthalpy      :       -0.89070      -1.11845 (AU)
+   econs         :       -0.89070      -1.11845 (AU)
    pressure      :        0.00000       0.00000 (Gpa)
    volume        :    15625.00000   15625.00000 (AU)
 
 
-     initialize   :     0.41s CPU
-     total_time   :    33.10s CPU (      51 calls,   0.649 s avg)
+     initialize   :     0.40s CPU
+     total_time   :    33.41s CPU (      51 calls,   0.655 s avg)
      formf        :     0.02s CPU
-     rhoofr       :     2.72s CPU (      51 calls,   0.053 s avg)
-     vofrho       :     8.49s CPU (      51 calls,   0.167 s avg)
-     dforce       :     1.07s CPU (      51 calls,   0.021 s avg)
+     rhoofr       :     2.76s CPU (      51 calls,   0.054 s avg)
+     vofrho       :     8.53s CPU (      51 calls,   0.167 s avg)
+     dforce       :     1.02s CPU (      51 calls,   0.020 s avg)
      calphi       :     0.00s CPU (      51 calls,   0.000 s avg)
-     ortho        :     0.10s CPU (      51 calls,   0.002 s avg)
+     ortho        :     0.01s CPU (      51 calls,   0.000 s avg)
      ortho_iter   :     0.00s CPU (      51 calls,   0.000 s avg)
      rsg          :     0.00s CPU (      51 calls,   0.000 s avg)
-     rhoset       :     0.10s CPU (      51 calls,   0.002 s avg)
+     rhoset       :     0.01s CPU (      51 calls,   0.000 s avg)
      updatc       :     0.00s CPU (      51 calls,   0.000 s avg)
      newd         :     0.00s CPU (      51 calls,   0.000 s avg)
      calbec       :     0.00s CPU (      52 calls,   0.000 s avg)
      prefor       :     0.00s CPU (      52 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlsm1        :     0.00s CPU (     154 calls,   0.000 s avg)
-     fft          :    11.34s CPU (     616 calls,   0.018 s avg)
-     ffts         :     1.83s CPU (     102 calls,   0.018 s avg)
-     fftw         :     1.39s CPU (     153 calls,   0.009 s avg)
-     cft3s        :    14.56s CPU (     871 calls,   0.017 s avg)
-     fft_scatter  :     5.19s CPU (     871 calls,   0.006 s avg)
-     nksic_drv    :    18.46s CPU (      51 calls,   0.362 s avg)
-     nksic_orbrho :     1.01s CPU (      51 calls,   0.020 s avg)
-     nksic_rhoref :     0.24s CPU (      51 calls,   0.005 s avg)
-     nksic_eforce :     2.04s CPU (      51 calls,   0.040 s avg)
-     nksic_corr   :    16.88s CPU (      51 calls,   0.331 s avg)
-     nksic_corr_h :     2.48s CPU (      51 calls,   0.049 s avg)
-     nksic_corr_v :     6.10s CPU (      51 calls,   0.120 s avg)
-     nksic_corr_f :     8.17s CPU (      51 calls,   0.160 s avg)
+     fft          :    11.36s CPU (     616 calls,   0.018 s avg)
+     ffts         :     1.90s CPU (     102 calls,   0.019 s avg)
+     fftw         :     1.35s CPU (     153 calls,   0.009 s avg)
+     cft3s        :    14.61s CPU (     871 calls,   0.017 s avg)
+     fft_scatter  :     3.69s CPU (     871 calls,   0.004 s avg)
+     nksic_drv    :    18.78s CPU (      51 calls,   0.368 s avg)
+     nksic_orbrho :     1.16s CPU (      51 calls,   0.023 s avg)
+     nksic_rhoref :     0.30s CPU (      51 calls,   0.006 s avg)
+     nksic_eforce :     2.08s CPU (      51 calls,   0.041 s avg)
+     nksic_corr   :    16.90s CPU (      51 calls,   0.331 s avg)
+     nksic_corr_h :     2.44s CPU (      51 calls,   0.048 s avg)
+     nksic_corr_v :     6.13s CPU (      51 calls,   0.120 s avg)
+     nksic_corr_f :     8.18s CPU (      51 calls,   0.160 s avg)
  
  
-     CP           :    33.63s CPU time,   34.07s wall time
+     CP           :    33.93s CPU time,   34.17s wall time
 
  
-   This run was terminated on:  18:55:17  19Nov2010            
+   This run was terminated on:   9:26:23  20Nov2010            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

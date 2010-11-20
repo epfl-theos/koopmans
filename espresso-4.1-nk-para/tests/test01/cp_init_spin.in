@@ -2,15 +2,15 @@
 
           &CONTROL
              calculation = 'cp',
-             restart_mode='restart',
+             restart_mode='from_scratch',
              !verbosity='medium',
              prefix='job_spin',
              pseudo_dir = '../../pseudo/',
              outdir = './SCRATCH/'
-             nstep=200
+             nstep=1
              iprint=1
-             ndr=91
-             ndw=92
+             ndr=89
+             ndw=90
              ekin_conv_thr=1.0d-5
              etot_conv_thr=1.0d-6
              dt=15.0
@@ -32,6 +32,7 @@
              emass_cutoff=3.,
              ortho_max=500
              ortho_para=1
+             orthogonalization='Gram-Schmidt'
           /
           &IONS
              ion_dynamics='none',

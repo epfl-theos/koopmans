@@ -1,6 +1,6 @@
 #! /bin/bash
 #
-# H2 molecule (nspin=2)
+# H2 molecule (nspin=2, traditional input)
 # 
 #================================================================
 #
@@ -39,7 +39,7 @@ MANUAL=" Usage
 
 #
 # macros
-SUFFIX=_spin
+SUFFIX=_trad
 
 
 #
@@ -67,9 +67,9 @@ case $INPUT in
    (pz)             PZ=yes ;;
    (hf)             HF=yes ;;
 
-   (odd)            NK0=yes  ; NK=yes; PZ=yes; HF=yes ;;
+   (odd)            NK0=yes  ; NK=yes; HF=yes ;;
    (all)            INIT=yes ; GRAM=yes ; LDA=yes ;
-                    NK0=yes  ; NK=yes; PZ=yes; HF=yes ;;
+                    NK0=yes  ; NK=yes; HF=yes ;;
    (check)          CHECK=yes ;;
    (clean)          CLEAN=yes ;;
    (*)              echo " Invalid input FLAG, type ./run.sh for help" ; exit 1 ;;
@@ -113,7 +113,7 @@ if [ "$CHECK" = yes ] ; then
    #
    cd $TEST_HOME
    cd Reference
-       list=`ls *_spin.out`
+       list=`ls *_trad.out`
    cd ..
    #
    for file in $list

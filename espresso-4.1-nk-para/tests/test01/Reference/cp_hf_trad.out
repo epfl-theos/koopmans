@@ -10,7 +10,7 @@
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:   9:26:46  20Nov2010               
+   This run was started on:  10:36:44  20Nov2010               
 
    MPI Parallel Build
    Tasks =    6  This task id =    0
@@ -64,9 +64,12 @@
 
    Electronic states
    -----------------
-   Number of Electron =     2, of States =     1
-   Occupation numbers :
-   2.00
+   Local Spin Density calculation
+   Number of Electron =     2
+   Spins up   =     1, occupations: 
+   1.00
+   Spins down =     1, occupations: 
+   1.00
 
 
    Exchange and correlations functionals
@@ -216,10 +219,10 @@
    EE with periodic-image correction method = tcc                 
 
    reading restart file: ./SCRATCH//job_95.save
-   restart file read in    0.019 sec.
+   restart file read in    0.027 sec.
 
  nprint_nfi=           -2
- nprint_nfi=          295
+ nprint_nfi=          310
 
    formf: eself=   0.79788
    formf:     vps(g=0)=  -0.0002023     rhops(g=0)=  -0.0000630
@@ -227,34 +230,46 @@
    Delta V(G=0):   0.000402Ry,    0.010936eV
  
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-  296 0.36E-05    0.0    0.0    -1.10042    -1.10042    -1.10042    -1.10042  0.0000  0.0000  0.0000  0.0000     0.00000
-  297 0.11E-04    0.0    0.0    -1.08551    -1.08551    -1.08551    -1.08550  0.0000  0.0000  0.0000  0.0000     0.00000
-  298 0.21E-04    0.0    0.0    -1.08555    -1.08555    -1.08555    -1.08553  0.0000  0.0000  0.0000  0.0000     0.00000
-  299 0.27E-04    0.0    0.0    -1.08558    -1.08558    -1.08558    -1.08555  0.0000  0.0000  0.0000  0.0000     0.00000
+  311 0.87E-05    0.0    0.0    -1.10039    -1.10039    -1.10039    -1.10038  0.0000  0.0000  0.0000  0.0000     0.00000
+  312 0.26E-04    0.0    0.0    -1.08552    -1.08552    -1.08552    -1.08549  0.0000  0.0000  0.0000  0.0000     0.00000
+  313 0.46E-04    0.0    0.0    -1.08557    -1.08557    -1.08557    -1.08552  0.0000  0.0000  0.0000  0.0000     0.00000
+  314 0.56E-04    0.0    0.0    -1.08560    -1.08560    -1.08560    -1.08554  0.0000  0.0000  0.0000  0.0000     0.00000
+  315 0.52E-04    0.0    0.0    -1.08561    -1.08561    -1.08561    -1.08556  0.0000  0.0000  0.0000  0.0000     0.00000
+  316 0.39E-04    0.0    0.0    -1.08559    -1.08559    -1.08559    -1.08556  0.0000  0.0000  0.0000  0.0000     0.00000
+  317 0.25E-04    0.0    0.0    -1.08557    -1.08557    -1.08557    -1.08555  0.0000  0.0000  0.0000  0.0000     0.00000
+  318 0.15E-04    0.0    0.0    -1.08555    -1.08555    -1.08555    -1.08554  0.0000  0.0000  0.0000  0.0000     0.00000
+  319 0.10E-04    0.0    0.0    -1.08553    -1.08553    -1.08553    -1.08552  0.0000  0.0000  0.0000  0.0000     0.00000
 
- * Physical Quantities at step:   300
+ * Physical Quantities at step:   320
 
    from rhoofr: total integrated electronic density
-   in g-space =    2.000000   in r-space =   2.000000
+   spin up
+   in g-space =    1.000000   in r-space =   1.000000
+   spin down
+   in g-space =    1.000000   in r-space =   1.000000
 
 
-                total energy =       -1.08559 Hartree a.u.
-              kinetic energy =        0.85605 Hartree a.u.
-        electrostatic energy =       -0.75549 Hartree a.u.
+                total energy =       -1.08552 Hartree a.u.
+              kinetic energy =        0.85042 Hartree a.u.
+        electrostatic energy =       -0.75500 Hartree a.u.
                          esr =        0.02275 Hartree a.u.
                        eself =        0.79788 Hartree a.u.
-      pseudopotential energy =       -0.62430 Hartree a.u.
+      pseudopotential energy =       -0.62125 Hartree a.u.
   n-l pseudopotential energy =        0.00000 Hartree a.u.
- exchange-correlation energy =       -0.57690 Hartree a.u.
+ exchange-correlation energy =       -0.57489 Hartree a.u.
            average potential =        0.00000 Hartree a.u.
 
 
 
    Eigenvalues (eV), kp =   1 , spin =  1
 
-  -13.93
+  -13.95
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -13.95
  
-   Allocated memory (kb) =     41168
+   Allocated memory (kb) =     47056
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -281,71 +296,69 @@
         1       0.00     0.0000
  
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-  300 0.27E-04    0.0    0.0    -1.08559    -1.08559    -1.08559    -1.08556  0.0000  0.0000  0.0000  0.0000     0.00000
-
-   writing restart file: ./SCRATCH//job_96.save
-   restart file written in    0.136 sec.
-
-  301 0.21E-04    0.0    0.0    -1.08558    -1.08558    -1.08558    -1.08556  0.0000  0.0000  0.0000  0.0000     0.00000
-  302 0.14E-04    0.0    0.0    -1.08557    -1.08557    -1.08557    -1.08555  0.0000  0.0000  0.0000  0.0000     0.00000
-  303 0.83E-05    0.0    0.0    -1.08555    -1.08555    -1.08555    -1.08554  0.0000  0.0000  0.0000  0.0000     0.00000
-  304 0.53E-05    0.0    0.0    -1.08554    -1.08554    -1.08554    -1.08553  0.0000  0.0000  0.0000  0.0000     0.00000
-  305 0.48E-05    0.0    0.0    -1.08553    -1.08553    -1.08553    -1.08553  0.0000  0.0000  0.0000  0.0000     0.00000
-  306 0.59E-05    0.0    0.0    -1.08553    -1.08553    -1.08553    -1.08553  0.0000  0.0000  0.0000  0.0000     0.00000
+  320 0.10E-04    0.0    0.0    -1.08552    -1.08552    -1.08552    -1.08551  0.0000  0.0000  0.0000  0.0000     0.00000
+  321 0.12E-04    0.0    0.0    -1.08552    -1.08552    -1.08552    -1.08551  0.0000  0.0000  0.0000  0.0000     0.00000
+  322 0.15E-04    0.0    0.0    -1.08552    -1.08552    -1.08552    -1.08551  0.0000  0.0000  0.0000  0.0000     0.00000
+  323 0.16E-04    0.0    0.0    -1.08553    -1.08553    -1.08553    -1.08551  0.0000  0.0000  0.0000  0.0000     0.00000
+  324 0.16E-04    0.0    0.0    -1.08553    -1.08553    -1.08553    -1.08552  0.0000  0.0000  0.0000  0.0000     0.00000
+  325 0.15E-04    0.0    0.0    -1.08554    -1.08554    -1.08554    -1.08552  0.0000  0.0000  0.0000  0.0000     0.00000
+  326 0.12E-04    0.0    0.0    -1.08554    -1.08554    -1.08554    -1.08553  0.0000  0.0000  0.0000  0.0000     0.00000
+  327 0.92E-05    0.0    0.0    -1.08554    -1.08554    -1.08554    -1.08553  0.0000  0.0000  0.0000  0.0000     0.00000
+  328 0.71E-05    0.0    0.0    -1.08554    -1.08554    -1.08554    -1.08554  0.0000  0.0000  0.0000  0.0000     0.00000
 
    MAIN:          EKINC   (thr)          DETOT   (thr)       MAXFORCE   (thr)
-   MAIN:   0.592027D-05  0.1D-04  0.127783D-06  0.1D-05  0.000000D+00  0.1D+11
+   MAIN:   0.707734D-05  0.1D-04  0.602798D-06  0.1D-05  0.000000D+00  0.1D+11
    MAIN: convergence achieved for system relaxation
 
- * Physical Quantities at step:   307
-  307 0.73E-05    0.0    0.0    -1.08554    -1.08554    -1.08554    -1.08553  0.0000  0.0000  0.0000  0.0000     0.00000
+ * Physical Quantities at step:   329
+  329 0.57E-05    0.0    0.0    -1.08554    -1.08554    -1.08554    -1.08554  0.0000  0.0000  0.0000  0.0000     0.00000
 
    writing restart file: ./SCRATCH//job_96.save
-   restart file written in    0.088 sec.
+   restart file written in    0.241 sec.
 
 
 
    Averaged Physical Quantities
                       accomulated      this run
-   ekinc         :        0.05578       0.00001 (AU)
-   ekin          :        0.99920       0.85564 (AU)
-   epot          :       -1.92448      -1.95627 (AU)
-   total energy  :       -0.93671      -1.08679 (AU)
+   ekinc         :        0.10410       0.00002 (AU)
+   ekin          :        0.99011       0.85604 (AU)
+   epot          :       -1.92713      -1.95667 (AU)
+   total energy  :       -0.94812      -1.08633 (AU)
    temperature   :        0.00000       0.00000 (K )
-   enthalpy      :       -0.93671      -1.08679 (AU)
-   econs         :       -0.93671      -1.08679 (AU)
+   enthalpy      :       -0.94812      -1.08633 (AU)
+   econs         :       -0.94812      -1.08633 (AU)
    pressure      :        0.00000       0.00000 (Gpa)
    volume        :    15625.00000   15625.00000 (AU)
 
 
      initialize   :     0.41s CPU
-     total_time   :     4.83s CPU (      12 calls,   0.403 s avg)
+     total_time   :    11.28s CPU (      19 calls,   0.594 s avg)
      formf        :     0.02s CPU
-     rhoofr       :     0.62s CPU (      12 calls,   0.052 s avg)
-     vofrho       :     1.99s CPU (      12 calls,   0.166 s avg)
-     dforce       :     0.27s CPU (      12 calls,   0.022 s avg)
-     calphi       :     0.00s CPU (      12 calls,   0.000 s avg)
-     ortho        :     0.00s CPU (      12 calls,   0.000 s avg)
-     ortho_iter   :     0.00s CPU (      12 calls,   0.000 s avg)
-     rsg          :     0.00s CPU (      12 calls,   0.000 s avg)
-     rhoset       :     0.00s CPU (      12 calls,   0.000 s avg)
-     updatc       :     0.00s CPU (      12 calls,   0.000 s avg)
-     newd         :     0.00s CPU (      12 calls,   0.000 s avg)
-     calbec       :     0.00s CPU (      13 calls,   0.000 s avg)
-     prefor       :     0.00s CPU (      13 calls,   0.000 s avg)
+     rhoofr       :     1.12s CPU (      19 calls,   0.059 s avg)
+     vofrho       :     3.77s CPU (      19 calls,   0.198 s avg)
+     dforce       :     0.42s CPU (      19 calls,   0.022 s avg)
+     calphi       :     0.00s CPU (      19 calls,   0.000 s avg)
+     ortho        :     0.01s CPU (      19 calls,   0.000 s avg)
+     ortho_iter   :     0.00s CPU (      38 calls,   0.000 s avg)
+     rsg          :     0.00s CPU (      38 calls,   0.000 s avg)
+     rhoset       :     0.00s CPU (      38 calls,   0.000 s avg)
+     updatc       :     0.00s CPU (      38 calls,   0.000 s avg)
+     newd         :     0.00s CPU (      19 calls,   0.000 s avg)
+     calbec       :     0.00s CPU (      20 calls,   0.000 s avg)
+     prefor       :     0.00s CPU (      20 calls,   0.000 s avg)
      strucf       :     0.00s CPU
-     nlsm1        :     0.00s CPU (      37 calls,   0.000 s avg)
-     fft          :     2.47s CPU (     136 calls,   0.018 s avg)
-     ffts         :     0.42s CPU (      24 calls,   0.018 s avg)
-     fftw         :     0.69s CPU (      72 calls,   0.010 s avg)
-     cft3s        :     3.58s CPU (     232 calls,   0.015 s avg)
-     fft_scatter  :     1.33s CPU (     232 calls,   0.006 s avg)
+     nlsm1        :     0.00s CPU (      58 calls,   0.000 s avg)
+     fft          :     5.29s CPU (     289 calls,   0.018 s avg)
+     ffts         :     0.68s CPU (      38 calls,   0.018 s avg)
+     fftw         :     1.56s CPU (     171 calls,   0.009 s avg)
+     cft3s        :     7.53s CPU (     498 calls,   0.015 s avg)
+     fft_scatter  :     2.22s CPU (     498 calls,   0.004 s avg)
  
  
-     CP           :     5.32s CPU time,    5.51s wall time
+     CP           :    11.90s CPU time,   12.00s wall time
 
  
-   This run was terminated on:   9:26:51  20Nov2010            
+   This run was terminated on:  10:36:56  20Nov2010            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
