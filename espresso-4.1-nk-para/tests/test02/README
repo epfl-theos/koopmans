@@ -1,0 +1,8 @@
+
+==============================================================================
+@title@   H2 molecule
+==============================================================================
+  
+  H2 molecule ina box calculated using different methods: 
+  nspin = 1:      LDA, NK0, NK, PZ, HF
+  nspin = 2:      LDA, NK0, NK, PZ, HF
