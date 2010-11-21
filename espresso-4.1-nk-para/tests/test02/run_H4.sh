@@ -1,6 +1,6 @@
 #! /bin/bash
 #
-# oligoacetylene with electric field
+# H2 dimer (H4), polarizabilities
 # 
 #================================================================
 #
@@ -39,7 +39,7 @@ MANUAL=" Usage
 
 #
 # macros
-SUFFIX=
+SUFFIX=_H4
 
 
 #
@@ -113,7 +113,7 @@ if [ "$CHECK" = yes ] ; then
    #
    cd $TEST_HOME
    cd Reference
-       list=`ls -1 *out | grep -v _H4`
+       list=`ls -1 *_H4.out `
    cd ..
    #
    for file in $list

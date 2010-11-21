@@ -31,7 +31,7 @@
              emass_cutoff=3.,
              ortho_max=500
              ortho_para=1
-             orthogonalization='gram-schmidt'
+             orthogonalization='Gram-Schmidt'
           /
           &IONS
              ion_dynamics='none',

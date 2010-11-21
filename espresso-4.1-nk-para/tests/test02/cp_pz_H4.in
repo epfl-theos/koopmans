@@ -3,26 +3,28 @@
           &CONTROL
              calculation = 'cp',
              restart_mode='restart',
-             prefix='opa',
+             prefix='h4',
              pseudo_dir = '../../pseudo/',
              outdir = './SCRATCH'
-             nstep=10
+             nstep=100
              iprint=1
-             ndr=90
-             ndw=91
+             ndr=94
+             ndw=95
              ekin_conv_thr=1.0d-5
              etot_conv_thr=1.0d-6
              dt=15.0
+             tefield=.TRUE.
           / 
           &SYSTEM
              ibrav=8,
              celldm(1)=25.0,
              celldm(2)=1.0,
              celldm(3)=2.0,
-             nat=6,
-             ntyp=2,
-             ecutwfc=40.0,
+             nat=4,
+             ntyp=1,
+             ecutwfc=25.0,
              do_ee=.TRUE.
+             which_orbdep='pz'
           /
           &ELECTRONS
              electron_dynamics = 'damp'
@@ -31,7 +33,8 @@
              emass_cutoff=3.,
              ortho_max=500
              ortho_para=1
-             orthogonalization='Gram-Schmidt'
+             efield=0.005
+             epol=3
           /
           &IONS
              ion_dynamics='none',
@@ -43,11 +46,8 @@
     
     ATOMIC_SPECIES 
       H     1.0    H.pz-vbc.UPF 
-      C     1.0    C.pz-vbc.UPF 
-    ATOMIC_POSITIONS {angstrom}
-H      0.000000000    -0.199000000    -1.518500000
-C      0.000000000     0.327000000    -0.584500000
-C      0.000000000    -0.327000000     0.584500000
-H      0.000000000     1.404000000    -0.584500000
-H      0.000000000    -1.404000000     0.584500000
-H      0.000000000     0.199000000     1.518500000
+    ATOMIC_POSITIONS {bohr}
+H      0.000000000     0.000000000    -3.500000000
+H      0.000000000     0.000000000    -1.500000000
+H      0.000000000     0.000000000     1.500000000
+H      0.000000000     0.000000000     3.500000000

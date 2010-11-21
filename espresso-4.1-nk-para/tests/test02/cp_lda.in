@@ -6,7 +6,7 @@
              prefix='opa',
              pseudo_dir = '../../pseudo/',
              outdir = './SCRATCH'
-             nstep=100
+             nstep=200
              iprint=1
              ndr=91
              ndw=92
