@@ -2,7 +2,7 @@
     prefix='benzene_US'
     calculation='cp',
     restart_mode='restart',
-    nstep=100, 
+    nstep=200, 
     iprint=1, 
     ndr=92
     ndw=93
