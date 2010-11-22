@@ -1790,8 +1790,7 @@ end subroutine nksic_correction_pz
       ! (this comes from the orbital-dependent piece of
       ! the potential)
       !
-! XXXX
-      if( nkb > 0 .AND. .FALSE. ) then
+      if( nkb > 0 ) then
           !
           !     aa_i,i,n = sum_j d_i,ij <beta_i,j|c_n>
           ! 
