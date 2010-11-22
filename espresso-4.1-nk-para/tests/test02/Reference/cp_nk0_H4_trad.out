@@ -1,0 +1,1138 @@
+=------------------------------------------------------------------------------=
+
+     CP: variable-cell Car-Parrinello molecular dynamics
+     using norm-conserving and ultrasoft Vanderbilt pseudopotentials
+
+     Version: 4.1 - Fri Nov 19 18:50:58 EST 2010                          
+     Authors: Alfredo Pasquarello, Kari Laasonen, Andrea Trave, Roberto Car,
+       Paolo Giannozzi, Nicola Marzari, Carlo Cavazzoni, Guido Chiarotti,
+       Sandro Scandolo, Paolo Focher, Gerardo Ballabio, and others
+
+=------------------------------------------------------------------------------=
+
+   This run was started on:   7:47:35  22Nov2010               
+
+   MPI Parallel Build
+   Tasks =    6  This task id =    0
+
+   Job Title: MD Simulation
+
+
+   Atomic Pseudopotentials Parameters
+   ----------------------------------
+
+   Reading pseudopotential for specie #  1 from file :
+   ../../pseudo/H.pz-vbc.UPF
+   file type is 20: UPF
+
+
+   Main Simulation Parameters (from input)
+   ---------------------------------------
+   Restart Mode       =       1   restart        
+   Number of MD Steps =     200
+   Print out every            1 MD Steps
+   Reads from unit    =      92
+   Writes to unit     =      93
+   MD Simulation time step            =      15.00
+   Electronic fictitious mass (emass) =    1000.00
+   emass cut-off                      =       3.00
+
+   Simulation Cell Parameters (from input)
+   external pressure       =            0.00 [GPa]
+   wmass (calculated)      =          554.09 [AU]
+   ibrav =    8
+   alat  =    25.00000000
+   a1    =    25.00000000    0.00000000    0.00000000
+   a2    =     0.00000000   25.00000000    0.00000000
+   a3    =     0.00000000    0.00000000   50.00000000
+ 
+   b1    =     0.04000000    0.00000000    0.00000000
+   b2    =     0.00000000    0.04000000    0.00000000
+   b3    =     0.00000000    0.00000000    0.02000000
+   omega = 31250.00000000
+
+   Energy Cut-offs
+   ---------------
+   Ecutwfc =   25.0 Ry,      Ecutrho =  100.0 Ry,      Ecuts =  100.0 Ry
+   Gcutwfc =   19.9     ,    Gcutrho =   39.8          Gcuts =   39.8
+   NOTA BENE: refg, mmx =   0.050000  4000
+   Eigenvalues calculated without the kinetic term contribution
+   Orthog. with lagrange multipliers : eps =   0.10E-07,  max = 500
+   verlet algorithm for electron dynamics
+   with friction frice =  0.0500 , grease =  1.0000
+   Electron dynamics : the temperature is not controlled
+
+   Electronic states
+   -----------------
+   Local Spin Density calculation
+   Number of Electron =     4
+   Spins up   =     2, occupations: 
+   1.00 1.00
+   Spins down =     2, occupations: 
+   1.00 1.00
+
+
+   Exchange and correlations functionals
+   -------------------------------------
+   Using Local Density Approximation with
+     Exchange functional: SLATER                                                      
+     Correlation functional: PERDEW AND ZUNGER                                           
+     Exchange-correlation      =  SLA  PZ   NOGX NOGC (1100)
+
+
+   Ions Simulation Parameters
+   --------------------------
+   Ions are not allowed to move
+   Ionic position (from input)
+   sorted by specie, and converted to real a.u. coordinates
+   Species   1 atoms =    4 mass =      1822.89 (a.u.),         1.00 (amu) rcmax =   1.00 (a.u.)
+        0.000000     0.000000    -3.500000
+        0.000000     0.000000    -1.500000
+        0.000000     0.000000     1.500000
+        0.000000     0.000000     3.500000
+   Ionic position will be re-read from restart file
+
+
+   Cell Dynamics Parameters (from STDIN)
+   -------------------------------------
+   Starting cell generated from CELLDM
+   Cell parameters will be re-read from restart file
+   Constant VOLUME Molecular dynamics
+   cell parameters are not allowed to move
+
+    =====================================
+    |  BERRY PHASE ELECTRIC FIELD 1        
+    =====================================
+    | direction    =         3            
+    | intensity    =   0.00500 a.u.     
+    =====================================
+
+   Verbosity: iprsta =  1
+
+
+
+   Simulation dimensions initialization
+   ------------------------------------
+
+   unit vectors of full simulation cell
+   in real space:                         in reciprocal space (units 2pi/alat):
+   1    25.0000    0.0000    0.0000              1.0000    0.0000    0.0000
+   2     0.0000   25.0000    0.0000              0.0000    1.0000    0.0000
+   3     0.0000    0.0000   50.0000              0.0000    0.0000    0.5000
+ 
+   Stick Mesh
+   ----------
+   nst =  2479,  nstw =   619, nsts =  2479
+        PEs    n.st   n.stw   n.sts    n.g    n.gw   n.gs
+          1     826     208     826   87930   11000   87930
+          2     826     206     826   87930   10990   87930
+          3     828     206     828   87948   10994   87948
+          4     826     206     826   87926   10998   87926
+          5     825     205     825   87927   10991   87927
+          6     826     206     826   87926   10990   87926
+          0    4957    1237    4957  527587   65963  527587
+ 
+ 
+   Real Mesh
+   ---------
+   Global Dimensions   Local  Dimensions   Processor Grid
+   .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
+    80    80   160      80    80    27       1     1     6
+   Array leading dimensions ( nr1x, nr2x, nr3x )   =     80    80   160
+   Local number of cell to store the grid ( nnrx ) =     172800
+   Number of x-y planes for each processors: 
+   nr3l =    27   27   27   27   26   26
+ 
+   Smooth Real Mesh
+   ----------------
+   Global Dimensions   Local  Dimensions   Processor Grid
+   .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
+    80    80   160      80    80    27       1     1     6
+   Array leading dimensions ( nr1x, nr2x, nr3x )   =     80    80   160
+   Local number of cell to store the grid ( nnrx ) =     172800
+   Number of x-y planes for each processors: 
+   nr3sl =    27   27   27   27   26   26
+ 
+   Reciprocal Space Mesh
+   ---------------------
+                Large Mesh
+   PE   Global(ngmt)     Local(ngm) MaxLocal(ngmx)
+    1         263794          43965          43974
+    2         263794          43965          43974
+    3         263794          43974          43974
+    4         263794          43963          43974
+    5         263794          43964          43974
+    6         263794          43963          43974
+                Smooth Mesh
+   PE   Global(ngst)     Local(ngs) MaxLocal(ngsx)
+    1         263794          43965          43974
+    2         263794          43965          43974
+    3         263794          43974          43974
+    4         263794          43963          43974
+    5         263794          43964          43974
+    6         263794          43963          43974
+                Wave function Mesh
+   PE   Global(ngwt)     Local(ngw) MaxLocal(ngwx)
+    1          32982           5500           5500
+    2          32982           5495           5500
+    3          32982           5497           5500
+    4          32982           5499           5500
+    5          32982           5496           5500
+    6          32982           5495           5500
+
+
+   System geometry initialization
+   ------------------------------
+ 
+   Scaled positions from standard input
+   H    0.000000E+00  0.000000E+00 -0.700000E-01
+   H    0.000000E+00  0.000000E+00 -0.300000E-01
+   H    0.000000E+00  0.000000E+00  0.300000E-01
+   H    0.000000E+00  0.000000E+00  0.700000E-01
+   ibrav =    8       cell parameters 
+
+      25.00000       0.00000       0.00000
+       0.00000      25.00000       0.00000
+       0.00000       0.00000      50.00000
+ 
+
+   Matrix Multiplication Performances
+   ortho mmul, time for parallel driver      =   0.00000 with    1 procs
+
+   Constraints matrixes will be distributed block like on
+   ortho sub-group =    1*   1 procs
+
+
+
+   Pseudopotentials initialization
+   -------------------------------
+
+
+   Common initialization
+
+   Specie:     1
+ 
+                        dion 
+ 
+   Short Legend and Physical Units in the Output
+   ---------------------------------------------
+   NFI    [int]          - step index
+   EKINC  [HARTREE A.U.] - kinetic energy of the fictitious electronic dynamics
+   TEMPH  [K]            - Temperature of the fictitious cell dynamics
+   TEMP   [K]            - Ionic temperature
+   ETOT   [HARTREE A.U.] - Scf total energy (Kohn-Sham hamiltonian)
+   ENTHAL [HARTREE A.U.] - Enthalpy ( ETOT + P * V )
+   ECONS  [HARTREE A.U.] - Enthalpy + kinetic energy of ions and cell
+   ECONT  [HARTREE A.U.] - Constant of motion for the CP lagrangian
+ 
+   NK sic with reference occupation =  0.5000
+
+   NK background density factor =  1.0000
+   NK scaling factor =  1.0000
+   NK cross-derivatives =    F
+   NK reference derivatives =    F
+   NK on top of PZ =    F
+   rhothr =  0.1E-11
+   f_cutoff =  0.1000
+   NK memusage =     20.912 MB
+
+   EE with periodic-image correction method = tcc                 
+
+   reading restart file: ./SCRATCH/h4_trad_92.save
+   restart file read in    0.040 sec.
+
+ nprint_nfi=           -2
+ nprint_nfi=          136
+
+   formf: eself=   1.59577
+   formf:     vps(g=0)=  -0.0001012     rhops(g=0)=  -0.0000315
+   formf: sum_g vps(g)=  -2.2273115 sum_g rhops(g)=  -0.0898096
+   Delta V(G=0):   0.000402Ry,    0.010936eV
+Initialize Berry phase electric field
+ Additional found:       57140
+ Additional found:       54816
+ Additional found:       57141
+ Additional found:       54817
+ #not found, gtable:    1237.00000000000     
+ #not found, gtabin:    1237.00000000000     
+ 
+  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
+  137 0.91E-03    0.0    0.0    -2.19494    -2.19400    -2.19400    -2.19309  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.188505  Ionic dipole 1    0.000000
+  138 0.37E-02    0.0    0.0    -2.22376    -2.22289    -2.22289    -2.21921  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.174710  Ionic dipole 1    0.000000
+  139 0.71E-02    0.0    0.0    -2.22246    -2.22170    -2.22170    -2.21462  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.150885  Ionic dipole 1    0.000000
+
+ * Physical Quantities at step:   140
+
+   from rhoofr: total integrated electronic density
+   spin up
+   in g-space =    2.000000   in r-space =   2.000000
+   spin down
+   in g-space =    2.000000   in r-space =   2.000000
+
+
+                total energy =       -2.21902 Hartree a.u.
+              kinetic energy =        1.83674 Hartree a.u.
+        electrostatic energy =       -1.51956 Hartree a.u.
+                         esr =        0.04640 Hartree a.u.
+                       eself =        1.59577 Hartree a.u.
+      pseudopotential energy =       -1.30538 Hartree a.u.
+  n-l pseudopotential energy =        0.00000 Hartree a.u.
+ exchange-correlation energy =       -1.19949 Hartree a.u.
+           average potential =        0.00000 Hartree a.u.
+
+
+
+   Eigenvalues (eV), kp =   1 , spin =  1
+
+  -15.82  -13.90
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -15.82  -13.90
+ 
+   Allocated memory (kb) =     71344
+ 
+   CELL_PARAMETERS
+   25.00000000    0.00000000    0.00000000
+    0.00000000   25.00000000    0.00000000
+    0.00000000    0.00000000   50.00000000
+
+   System Density [g/cm^3] :     0.0014
+
+
+   Center of mass square displacement (a.u.):   0.000000
+
+   ATOMIC_POSITIONS
+   H    0.000000E+00  0.000000E+00 -0.350000E+01
+   H    0.000000E+00  0.000000E+00 -0.150000E+01
+   H    0.000000E+00  0.000000E+00  0.150000E+01
+   H    0.000000E+00  0.000000E+00  0.350000E+01
+ 
+   ATOMIC_VELOCITIES
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+ 
+
+
+   Partial temperatures (for each ionic specie) 
+   Species  Temp (K)   Mean Square Displacement (a.u.)
+        1       0.00     0.0000
+ 
+  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
+  140 0.91E-02    0.0    0.0    -2.21902    -2.21841    -2.21841    -2.20929  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.122074  Ionic dipole 1    0.000000
+  141 0.92E-02    0.0    0.0    -2.21375    -2.21328    -2.21328    -2.20411  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.093362  Ionic dipole 1    0.000000
+  142 0.79E-02    0.0    0.0    -2.20818    -2.20784    -2.20784    -2.19994  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.068892  Ionic dipole 1    0.000000
+  143 0.63E-02    0.0    0.0    -2.20406    -2.20380    -2.20380    -2.19747  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.051339  Ionic dipole 1    0.000000
+  144 0.52E-02    0.0    0.0    -2.20234    -2.20213    -2.20213    -2.19697  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.041848  Ionic dipole 1    0.000000
+  145 0.45E-02    0.0    0.0    -2.20300    -2.20280    -2.20280    -2.19825  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.040289  Ionic dipole 1    0.000000
+  146 0.43E-02    0.0    0.0    -2.20539    -2.20516    -2.20516    -2.20085  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.045645  Ionic dipole 1    0.000000
+  147 0.43E-02    0.0    0.0    -2.20872    -2.20844    -2.20844    -2.20417  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.056446  Ionic dipole 1    0.000000
+  148 0.43E-02    0.0    0.0    -2.21228    -2.21193    -2.21193    -2.20767  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.071151  Ionic dipole 1    0.000000
+  149 0.42E-02    0.0    0.0    -2.21553    -2.21508    -2.21508    -2.21093  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.088429  Ionic dipole 1    0.000000
+
+ * Physical Quantities at step:   150
+
+   from rhoofr: total integrated electronic density
+   spin up
+   in g-space =    2.000000   in r-space =   2.000000
+   spin down
+   in g-space =    2.000000   in r-space =   2.000000
+
+
+                total energy =       -2.21807 Hartree a.u.
+              kinetic energy =        1.87270 Hartree a.u.
+        electrostatic energy =       -1.52055 Hartree a.u.
+                         esr =        0.04640 Hartree a.u.
+                       eself =        1.59577 Hartree a.u.
+      pseudopotential energy =       -1.32214 Hartree a.u.
+  n-l pseudopotential energy =        0.00000 Hartree a.u.
+ exchange-correlation energy =       -1.21140 Hartree a.u.
+           average potential =        0.00000 Hartree a.u.
+
+
+
+   Eigenvalues (eV), kp =   1 , spin =  1
+
+  -15.76  -13.87
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -15.76  -13.87
+ 
+   Allocated memory (kb) =     71344
+ 
+   CELL_PARAMETERS
+   25.00000000    0.00000000    0.00000000
+    0.00000000   25.00000000    0.00000000
+    0.00000000    0.00000000   50.00000000
+
+   System Density [g/cm^3] :     0.0014
+
+
+   Center of mass square displacement (a.u.):   0.000000
+
+   ATOMIC_POSITIONS
+   H    0.000000E+00  0.000000E+00 -0.350000E+01
+   H    0.000000E+00  0.000000E+00 -0.150000E+01
+   H    0.000000E+00  0.000000E+00  0.150000E+01
+   H    0.000000E+00  0.000000E+00  0.350000E+01
+ 
+   ATOMIC_VELOCITIES
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+ 
+
+
+   Partial temperatures (for each ionic specie) 
+   Species  Temp (K)   Mean Square Displacement (a.u.)
+        1       0.00     0.0000
+ 
+  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
+  150 0.39E-02    0.0    0.0    -2.21807    -2.21753    -2.21753    -2.21367  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.107281  Ionic dipole 1    0.000000
+  151 0.33E-02    0.0    0.0    -2.21973    -2.21910    -2.21910    -2.21575  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.127008  Ionic dipole 1    0.000000
+  152 0.27E-02    0.0    0.0    -2.22056    -2.21983    -2.21983    -2.21715  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.147059  Ionic dipole 1    0.000000
+  153 0.20E-02    0.0    0.0    -2.22076    -2.21992    -2.21992    -2.21794  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.166849  Ionic dipole 1    0.000000
+  154 0.14E-02    0.0    0.0    -2.22054    -2.21961    -2.21961    -2.21821  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.185642  Ionic dipole 1    0.000000
+  155 0.10E-02    0.0    0.0    -2.22010    -2.21909    -2.21909    -2.21810  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.202530  Ionic dipole 1    0.000000
+  156 0.76E-03    0.0    0.0    -2.21955    -2.21847    -2.21847    -2.21771  0.0000  0.0000  0.0000  0.0000    -0.00001
+Elct. dipole 1    0.216529  Ionic dipole 1    0.000000
+  157 0.66E-03    0.0    0.0    -2.21895    -2.21781    -2.21781    -2.21715  0.0000  0.0000  0.0000  0.0000    -0.00001
+Elct. dipole 1    0.226747  Ionic dipole 1    0.000000
+  158 0.67E-03    0.0    0.0    -2.21833    -2.21717    -2.21717    -2.21650  0.0000  0.0000  0.0000  0.0000    -0.00001
+Elct. dipole 1    0.232561  Ionic dipole 1    0.000000
+  159 0.73E-03    0.0    0.0    -2.21773    -2.21657    -2.21657    -2.21584  0.0000  0.0000  0.0000  0.0000    -0.00001
+Elct. dipole 1    0.233740  Ionic dipole 1    0.000000
+
+ * Physical Quantities at step:   160
+
+   from rhoofr: total integrated electronic density
+   spin up
+   in g-space =    2.000000   in r-space =   2.000000
+   spin down
+   in g-space =    2.000000   in r-space =   2.000000
+
+
+                total energy =       -2.21719 Hartree a.u.
+              kinetic energy =        1.90156 Hartree a.u.
+        electrostatic energy =       -1.52238 Hartree a.u.
+                         esr =        0.04640 Hartree a.u.
+                       eself =        1.59577 Hartree a.u.
+      pseudopotential energy =       -1.34256 Hartree a.u.
+  n-l pseudopotential energy =        0.00000 Hartree a.u.
+ exchange-correlation energy =       -1.21799 Hartree a.u.
+           average potential =        0.00000 Hartree a.u.
+
+
+
+   Eigenvalues (eV), kp =   1 , spin =  1
+
+  -15.69  -13.75
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -15.69  -13.75
+ 
+   Allocated memory (kb) =     71344
+ 
+   CELL_PARAMETERS
+   25.00000000    0.00000000    0.00000000
+    0.00000000   25.00000000    0.00000000
+    0.00000000    0.00000000   50.00000000
+
+   System Density [g/cm^3] :     0.0014
+
+
+   Center of mass square displacement (a.u.):   0.000000
+
+   ATOMIC_POSITIONS
+   H    0.000000E+00  0.000000E+00 -0.350000E+01
+   H    0.000000E+00  0.000000E+00 -0.150000E+01
+   H    0.000000E+00  0.000000E+00  0.150000E+01
+   H    0.000000E+00  0.000000E+00  0.350000E+01
+ 
+   ATOMIC_VELOCITIES
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+ 
+
+
+   Partial temperatures (for each ionic specie) 
+   Species  Temp (K)   Mean Square Displacement (a.u.)
+        1       0.00     0.0000
+ 
+  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
+  160 0.81E-03    0.0    0.0    -2.21719    -2.21604    -2.21604    -2.21523  0.0000  0.0000  0.0000  0.0000    -0.00001
+Elct. dipole 1    0.230465  Ionic dipole 1    0.000000
+  161 0.88E-03    0.0    0.0    -2.21673    -2.21561    -2.21561    -2.21473  0.0000  0.0000  0.0000  0.0000    -0.00001
+Elct. dipole 1    0.223281  Ionic dipole 1    0.000000
+  162 0.90E-03    0.0    0.0    -2.21634    -2.21528    -2.21528    -2.21438  0.0000  0.0000  0.0000  0.0000    -0.00001
+Elct. dipole 1    0.212978  Ionic dipole 1    0.000000
+  163 0.87E-03    0.0    0.0    -2.21607    -2.21507    -2.21507    -2.21420  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.200465  Ionic dipole 1    0.000000
+  164 0.80E-03    0.0    0.0    -2.21594    -2.21501    -2.21501    -2.21421  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.186671  Ionic dipole 1    0.000000
+  165 0.73E-03    0.0    0.0    -2.21598    -2.21512    -2.21512    -2.21439  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.172474  Ionic dipole 1    0.000000
+  166 0.66E-03    0.0    0.0    -2.21619    -2.21539    -2.21539    -2.21473  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.158665  Ionic dipole 1    0.000000
+  167 0.61E-03    0.0    0.0    -2.21653    -2.21580    -2.21580    -2.21519  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.145937  Ionic dipole 1    0.000000
+  168 0.57E-03    0.0    0.0    -2.21696    -2.21629    -2.21629    -2.21571  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.134873  Ionic dipole 1    0.000000
+  169 0.53E-03    0.0    0.0    -2.21741    -2.21678    -2.21678    -2.21625  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.125933  Ionic dipole 1    0.000000
+
+ * Physical Quantities at step:   170
+
+   from rhoofr: total integrated electronic density
+   spin up
+   in g-space =    2.000000   in r-space =   2.000000
+   spin down
+   in g-space =    2.000000   in r-space =   2.000000
+
+
+                total energy =       -2.21782 Hartree a.u.
+              kinetic energy =        1.89075 Hartree a.u.
+        electrostatic energy =       -1.52074 Hartree a.u.
+                         esr =        0.04640 Hartree a.u.
+                       eself =        1.59577 Hartree a.u.
+      pseudopotential energy =       -1.33568 Hartree a.u.
+  n-l pseudopotential energy =        0.00000 Hartree a.u.
+ exchange-correlation energy =       -1.21581 Hartree a.u.
+           average potential =        0.00000 Hartree a.u.
+
+
+
+   Eigenvalues (eV), kp =   1 , spin =  1
+
+  -15.73  -13.82
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -15.73  -13.82
+ 
+   Allocated memory (kb) =     71344
+ 
+   CELL_PARAMETERS
+   25.00000000    0.00000000    0.00000000
+    0.00000000   25.00000000    0.00000000
+    0.00000000    0.00000000   50.00000000
+
+   System Density [g/cm^3] :     0.0014
+
+
+   Center of mass square displacement (a.u.):   0.000000
+
+   ATOMIC_POSITIONS
+   H    0.000000E+00  0.000000E+00 -0.350000E+01
+   H    0.000000E+00  0.000000E+00 -0.150000E+01
+   H    0.000000E+00  0.000000E+00  0.150000E+01
+   H    0.000000E+00  0.000000E+00  0.350000E+01
+ 
+   ATOMIC_VELOCITIES
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+ 
+
+
+   Partial temperatures (for each ionic specie) 
+   Species  Temp (K)   Mean Square Displacement (a.u.)
+        1       0.00     0.0000
+ 
+  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
+  170 0.48E-03    0.0    0.0    -2.21782    -2.21722    -2.21722    -2.21674  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.119442  Ionic dipole 1    0.000000
+  171 0.42E-03    0.0    0.0    -2.21815    -2.21757    -2.21757    -2.21715  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.115559  Ionic dipole 1    0.000000
+  172 0.36E-03    0.0    0.0    -2.21838    -2.21781    -2.21781    -2.21746  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.114265  Ionic dipole 1    0.000000
+  173 0.29E-03    0.0    0.0    -2.21852    -2.21795    -2.21795    -2.21765  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.115351  Ionic dipole 1    0.000000
+  174 0.23E-03    0.0    0.0    -2.21858    -2.21798    -2.21798    -2.21775  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.118430  Ionic dipole 1    0.000000
+  175 0.18E-03    0.0    0.0    -2.21856    -2.21795    -2.21795    -2.21777  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.122974  Ionic dipole 1    0.000000
+  176 0.13E-03    0.0    0.0    -2.21849    -2.21785    -2.21785    -2.21772  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.128370  Ionic dipole 1    0.000000
+  177 0.10E-03    0.0    0.0    -2.21840    -2.21773    -2.21773    -2.21763  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.133991  Ionic dipole 1    0.000000
+  178 0.85E-04    0.0    0.0    -2.21829    -2.21759    -2.21759    -2.21751  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.139263  Ionic dipole 1    0.000000
+  179 0.84E-04    0.0    0.0    -2.21818    -2.21746    -2.21746    -2.21738  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.143725  Ionic dipole 1    0.000000
+
+ * Physical Quantities at step:   180
+
+   from rhoofr: total integrated electronic density
+   spin up
+   in g-space =    2.000000   in r-space =   2.000000
+   spin down
+   in g-space =    2.000000   in r-space =   2.000000
+
+
+                total energy =       -2.21807 Hartree a.u.
+              kinetic energy =        1.88859 Hartree a.u.
+        electrostatic energy =       -1.52131 Hartree a.u.
+                         esr =        0.04640 Hartree a.u.
+                       eself =        1.59577 Hartree a.u.
+      pseudopotential energy =       -1.33321 Hartree a.u.
+  n-l pseudopotential energy =        0.00000 Hartree a.u.
+ exchange-correlation energy =       -1.21616 Hartree a.u.
+           average potential =        0.00000 Hartree a.u.
+
+
+
+   Eigenvalues (eV), kp =   1 , spin =  1
+
+  -15.69  -13.78
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -15.69  -13.78
+ 
+   Allocated memory (kb) =     71344
+ 
+   CELL_PARAMETERS
+   25.00000000    0.00000000    0.00000000
+    0.00000000   25.00000000    0.00000000
+    0.00000000    0.00000000   50.00000000
+
+   System Density [g/cm^3] :     0.0014
+
+
+   Center of mass square displacement (a.u.):   0.000000
+
+   ATOMIC_POSITIONS
+   H    0.000000E+00  0.000000E+00 -0.350000E+01
+   H    0.000000E+00  0.000000E+00 -0.150000E+01
+   H    0.000000E+00  0.000000E+00  0.150000E+01
+   H    0.000000E+00  0.000000E+00  0.350000E+01
+ 
+   ATOMIC_VELOCITIES
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+ 
+
+
+   Partial temperatures (for each ionic specie) 
+   Species  Temp (K)   Mean Square Displacement (a.u.)
+        1       0.00     0.0000
+ 
+  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
+  180 0.93E-04    0.0    0.0    -2.21807    -2.21734    -2.21734    -2.21724  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.147070  Ionic dipole 1    0.000000
+  181 0.10E-03    0.0    0.0    -2.21797    -2.21722    -2.21722    -2.21712  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.149153  Ionic dipole 1    0.000000
+  182 0.11E-03    0.0    0.0    -2.21787    -2.21712    -2.21712    -2.21701  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.149986  Ionic dipole 1    0.000000
+  183 0.11E-03    0.0    0.0    -2.21778    -2.21703    -2.21703    -2.21692  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.149711  Ionic dipole 1    0.000000
+  184 0.11E-03    0.0    0.0    -2.21770    -2.21695    -2.21695    -2.21685  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.148557  Ionic dipole 1    0.000000
+  185 0.10E-03    0.0    0.0    -2.21764    -2.21691    -2.21691    -2.21681  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.146805  Ionic dipole 1    0.000000
+  186 0.96E-04    0.0    0.0    -2.21762    -2.21690    -2.21690    -2.21680  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.144747  Ionic dipole 1    0.000000
+  187 0.89E-04    0.0    0.0    -2.21764    -2.21692    -2.21692    -2.21683  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.142663  Ionic dipole 1    0.000000
+  188 0.81E-04    0.0    0.0    -2.21768    -2.21698    -2.21698    -2.21690  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.140800  Ionic dipole 1    0.000000
+  189 0.71E-04    0.0    0.0    -2.21776    -2.21706    -2.21706    -2.21699  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.139361  Ionic dipole 1    0.000000
+
+ * Physical Quantities at step:   190
+
+   from rhoofr: total integrated electronic density
+   spin up
+   in g-space =    2.000000   in r-space =   2.000000
+   spin down
+   in g-space =    2.000000   in r-space =   2.000000
+
+
+                total energy =       -2.21785 Hartree a.u.
+              kinetic energy =        1.89082 Hartree a.u.
+        electrostatic energy =       -1.52113 Hartree a.u.
+                         esr =        0.04640 Hartree a.u.
+                       eself =        1.59577 Hartree a.u.
+      pseudopotential energy =       -1.33467 Hartree a.u.
+  n-l pseudopotential energy =        0.00000 Hartree a.u.
+ exchange-correlation energy =       -1.21660 Hartree a.u.
+           average potential =        0.00000 Hartree a.u.
+
+
+
+   Eigenvalues (eV), kp =   1 , spin =  1
+
+  -15.70  -13.79
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -15.70  -13.79
+ 
+   Allocated memory (kb) =     71344
+ 
+   CELL_PARAMETERS
+   25.00000000    0.00000000    0.00000000
+    0.00000000   25.00000000    0.00000000
+    0.00000000    0.00000000   50.00000000
+
+   System Density [g/cm^3] :     0.0014
+
+
+   Center of mass square displacement (a.u.):   0.000000
+
+   ATOMIC_POSITIONS
+   H    0.000000E+00  0.000000E+00 -0.350000E+01
+   H    0.000000E+00  0.000000E+00 -0.150000E+01
+   H    0.000000E+00  0.000000E+00  0.150000E+01
+   H    0.000000E+00  0.000000E+00  0.350000E+01
+ 
+   ATOMIC_VELOCITIES
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+ 
+
+
+   Partial temperatures (for each ionic specie) 
+   Species  Temp (K)   Mean Square Displacement (a.u.)
+        1       0.00     0.0000
+ 
+  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
+  190 0.62E-04    0.0    0.0    -2.21785    -2.21716    -2.21716    -2.21710  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.138499  Ionic dipole 1    0.000000
+  191 0.54E-04    0.0    0.0    -2.21796    -2.21727    -2.21727    -2.21721  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.138311  Ionic dipole 1    0.000000
+  192 0.47E-04    0.0    0.0    -2.21806    -2.21737    -2.21737    -2.21732  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.138837  Ionic dipole 1    0.000000
+  193 0.41E-04    0.0    0.0    -2.21815    -2.21745    -2.21745    -2.21740  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.140056  Ionic dipole 1    0.000000
+  194 0.34E-04    0.0    0.0    -2.21820    -2.21750    -2.21750    -2.21746  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.141890  Ionic dipole 1    0.000000
+  195 0.27E-04    0.0    0.0    -2.21823    -2.21751    -2.21751    -2.21749  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.144210  Ionic dipole 1    0.000000
+  196 0.20E-04    0.0    0.0    -2.21823    -2.21750    -2.21750    -2.21748  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.146844  Ionic dipole 1    0.000000
+  197 0.15E-04    0.0    0.0    -2.21821    -2.21746    -2.21746    -2.21744  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.149590  Ionic dipole 1    0.000000
+  198 0.12E-04    0.0    0.0    -2.21817    -2.21740    -2.21740    -2.21739  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.152241  Ionic dipole 1    0.000000
+  199 0.11E-04    0.0    0.0    -2.21812    -2.21734    -2.21734    -2.21733  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.154597  Ionic dipole 1    0.000000
+
+ * Physical Quantities at step:   200
+
+   from rhoofr: total integrated electronic density
+   spin up
+   in g-space =    2.000000   in r-space =   2.000000
+   spin down
+   in g-space =    2.000000   in r-space =   2.000000
+
+
+                total energy =       -2.21806 Hartree a.u.
+              kinetic energy =        1.89108 Hartree a.u.
+        electrostatic energy =       -1.52136 Hartree a.u.
+                         esr =        0.04640 Hartree a.u.
+                       eself =        1.59577 Hartree a.u.
+      pseudopotential energy =       -1.33508 Hartree a.u.
+  n-l pseudopotential energy =        0.00000 Hartree a.u.
+ exchange-correlation energy =       -1.21652 Hartree a.u.
+           average potential =        0.00000 Hartree a.u.
+
+
+
+   Eigenvalues (eV), kp =   1 , spin =  1
+
+  -15.70  -13.79
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -15.70  -13.79
+ 
+   Allocated memory (kb) =     71344
+ 
+   CELL_PARAMETERS
+   25.00000000    0.00000000    0.00000000
+    0.00000000   25.00000000    0.00000000
+    0.00000000    0.00000000   50.00000000
+
+   System Density [g/cm^3] :     0.0014
+
+
+   Center of mass square displacement (a.u.):   0.000000
+
+   ATOMIC_POSITIONS
+   H    0.000000E+00  0.000000E+00 -0.350000E+01
+   H    0.000000E+00  0.000000E+00 -0.150000E+01
+   H    0.000000E+00  0.000000E+00  0.150000E+01
+   H    0.000000E+00  0.000000E+00  0.350000E+01
+ 
+   ATOMIC_VELOCITIES
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+ 
+
+
+   Partial temperatures (for each ionic specie) 
+   Species  Temp (K)   Mean Square Displacement (a.u.)
+        1       0.00     0.0000
+ 
+  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
+  200 0.11E-04    0.0    0.0    -2.21806    -2.21728    -2.21728    -2.21727  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.156489  Ionic dipole 1    0.000000
+
+   writing restart file: ./SCRATCH/h4_trad_93.save
+   restart file written in    0.269 sec.
+
+  201 0.12E-04    0.0    0.0    -2.21802    -2.21723    -2.21723    -2.21722  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.157787  Ionic dipole 1    0.000000
+  202 0.13E-04    0.0    0.0    -2.21799    -2.21719    -2.21719    -2.21718  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.158415  Ionic dipole 1    0.000000
+  203 0.14E-04    0.0    0.0    -2.21796    -2.21717    -2.21717    -2.21716  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.158352  Ionic dipole 1    0.000000
+  204 0.15E-04    0.0    0.0    -2.21795    -2.21716    -2.21716    -2.21715  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.157632  Ionic dipole 1    0.000000
+  205 0.14E-04    0.0    0.0    -2.21795    -2.21717    -2.21717    -2.21716  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.156333  Ionic dipole 1    0.000000
+  206 0.13E-04    0.0    0.0    -2.21796    -2.21718    -2.21718    -2.21717  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.154571  Ionic dipole 1    0.000000
+  207 0.12E-04    0.0    0.0    -2.21796    -2.21720    -2.21720    -2.21719  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.152489  Ionic dipole 1    0.000000
+  208 0.10E-04    0.0    0.0    -2.21797    -2.21722    -2.21722    -2.21721  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.150242  Ionic dipole 1    0.000000
+  209 0.93E-05    0.0    0.0    -2.21798    -2.21724    -2.21724    -2.21723  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.147987  Ionic dipole 1    0.000000
+
+ * Physical Quantities at step:   210
+
+   from rhoofr: total integrated electronic density
+   spin up
+   in g-space =    2.000000   in r-space =   2.000000
+   spin down
+   in g-space =    2.000000   in r-space =   2.000000
+
+
+                total energy =       -2.21799 Hartree a.u.
+              kinetic energy =        1.89116 Hartree a.u.
+        electrostatic energy =       -1.52125 Hartree a.u.
+                         esr =        0.04640 Hartree a.u.
+                       eself =        1.59577 Hartree a.u.
+      pseudopotential energy =       -1.33515 Hartree a.u.
+  n-l pseudopotential energy =        0.00000 Hartree a.u.
+ exchange-correlation energy =       -1.21650 Hartree a.u.
+           average potential =        0.00000 Hartree a.u.
+
+
+
+   Eigenvalues (eV), kp =   1 , spin =  1
+
+  -15.70  -13.79
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -15.70  -13.79
+ 
+   Allocated memory (kb) =     71344
+ 
+   CELL_PARAMETERS
+   25.00000000    0.00000000    0.00000000
+    0.00000000   25.00000000    0.00000000
+    0.00000000    0.00000000   50.00000000
+
+   System Density [g/cm^3] :     0.0014
+
+
+   Center of mass square displacement (a.u.):   0.000000
+
+   ATOMIC_POSITIONS
+   H    0.000000E+00  0.000000E+00 -0.350000E+01
+   H    0.000000E+00  0.000000E+00 -0.150000E+01
+   H    0.000000E+00  0.000000E+00  0.150000E+01
+   H    0.000000E+00  0.000000E+00  0.350000E+01
+ 
+   ATOMIC_VELOCITIES
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+ 
+
+
+   Partial temperatures (for each ionic specie) 
+   Species  Temp (K)   Mean Square Displacement (a.u.)
+        1       0.00     0.0000
+ 
+  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
+  210 0.85E-05    0.0    0.0    -2.21799    -2.21726    -2.21726    -2.21725  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.145870  Ionic dipole 1    0.000000
+  211 0.78E-05    0.0    0.0    -2.21800    -2.21728    -2.21728    -2.21727  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.144020  Ionic dipole 1    0.000000
+  212 0.69E-05    0.0    0.0    -2.21801    -2.21730    -2.21730    -2.21729  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.142535  Ionic dipole 1    0.000000
+  213 0.58E-05    0.0    0.0    -2.21802    -2.21731    -2.21731    -2.21731  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.141482  Ionic dipole 1    0.000000
+  214 0.46E-05    0.0    0.0    -2.21803    -2.21733    -2.21733    -2.21733  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.140889  Ionic dipole 1    0.000000
+  215 0.36E-05    0.0    0.0    -2.21805    -2.21734    -2.21734    -2.21734  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.140749  Ionic dipole 1    0.000000
+  216 0.28E-05    0.0    0.0    -2.21806    -2.21736    -2.21736    -2.21735  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.141019  Ionic dipole 1    0.000000
+  217 0.21E-05    0.0    0.0    -2.21807    -2.21736    -2.21736    -2.21736  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.141633  Ionic dipole 1    0.000000
+  218 0.17E-05    0.0    0.0    -2.21808    -2.21737    -2.21737    -2.21736  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.142501  Ionic dipole 1    0.000000
+  219 0.15E-05    0.0    0.0    -2.21808    -2.21736    -2.21736    -2.21736  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.143526  Ionic dipole 1    0.000000
+
+ * Physical Quantities at step:   220
+
+   from rhoofr: total integrated electronic density
+   spin up
+   in g-space =    2.000000   in r-space =   2.000000
+   spin down
+   in g-space =    2.000000   in r-space =   2.000000
+
+
+                total energy =       -2.21808 Hartree a.u.
+              kinetic energy =        1.89059 Hartree a.u.
+        electrostatic energy =       -1.52132 Hartree a.u.
+                         esr =        0.04640 Hartree a.u.
+                       eself =        1.59577 Hartree a.u.
+      pseudopotential energy =       -1.33477 Hartree a.u.
+  n-l pseudopotential energy =        0.00000 Hartree a.u.
+ exchange-correlation energy =       -1.21641 Hartree a.u.
+           average potential =        0.00000 Hartree a.u.
+
+
+
+   Eigenvalues (eV), kp =   1 , spin =  1
+
+  -15.70  -13.79
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -15.70  -13.79
+ 
+   Allocated memory (kb) =     71344
+ 
+   CELL_PARAMETERS
+   25.00000000    0.00000000    0.00000000
+    0.00000000   25.00000000    0.00000000
+    0.00000000    0.00000000   50.00000000
+
+   System Density [g/cm^3] :     0.0014
+
+
+   Center of mass square displacement (a.u.):   0.000000
+
+   ATOMIC_POSITIONS
+   H    0.000000E+00  0.000000E+00 -0.350000E+01
+   H    0.000000E+00  0.000000E+00 -0.150000E+01
+   H    0.000000E+00  0.000000E+00  0.150000E+01
+   H    0.000000E+00  0.000000E+00  0.350000E+01
+ 
+   ATOMIC_VELOCITIES
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+ 
+
+
+   Partial temperatures (for each ionic specie) 
+   Species  Temp (K)   Mean Square Displacement (a.u.)
+        1       0.00     0.0000
+ 
+  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
+  220 0.15E-05    0.0    0.0    -2.21808    -2.21735    -2.21735    -2.21735  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.144609  Ionic dipole 1    0.000000
+  221 0.16E-05    0.0    0.0    -2.21807    -2.21734    -2.21734    -2.21734  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.145657  Ionic dipole 1    0.000000
+  222 0.18E-05    0.0    0.0    -2.21805    -2.21732    -2.21732    -2.21732  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.146591  Ionic dipole 1    0.000000
+  223 0.18E-05    0.0    0.0    -2.21804    -2.21730    -2.21730    -2.21730  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.147352  Ionic dipole 1    0.000000
+  224 0.18E-05    0.0    0.0    -2.21802    -2.21728    -2.21728    -2.21728  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.147902  Ionic dipole 1    0.000000
+  225 0.18E-05    0.0    0.0    -2.21801    -2.21727    -2.21727    -2.21726  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.148222  Ionic dipole 1    0.000000
+  226 0.17E-05    0.0    0.0    -2.21800    -2.21726    -2.21726    -2.21726  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.148319  Ionic dipole 1    0.000000
+  227 0.16E-05    0.0    0.0    -2.21800    -2.21726    -2.21726    -2.21725  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.148216  Ionic dipole 1    0.000000
+  228 0.14E-05    0.0    0.0    -2.21800    -2.21726    -2.21726    -2.21726  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.147949  Ionic dipole 1    0.000000
+  229 0.13E-05    0.0    0.0    -2.21801    -2.21727    -2.21727    -2.21727  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.147568  Ionic dipole 1    0.000000
+
+ * Physical Quantities at step:   230
+
+   from rhoofr: total integrated electronic density
+   spin up
+   in g-space =    2.000000   in r-space =   2.000000
+   spin down
+   in g-space =    2.000000   in r-space =   2.000000
+
+
+                total energy =       -2.21802 Hartree a.u.
+              kinetic energy =        1.89084 Hartree a.u.
+        electrostatic energy =       -1.52126 Hartree a.u.
+                         esr =        0.04640 Hartree a.u.
+                       eself =        1.59577 Hartree a.u.
+      pseudopotential energy =       -1.33489 Hartree a.u.
+  n-l pseudopotential energy =        0.00000 Hartree a.u.
+ exchange-correlation energy =       -1.21648 Hartree a.u.
+           average potential =        0.00000 Hartree a.u.
+
+
+
+   Eigenvalues (eV), kp =   1 , spin =  1
+
+  -15.70  -13.79
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -15.70  -13.79
+ 
+   Allocated memory (kb) =     71344
+ 
+   CELL_PARAMETERS
+   25.00000000    0.00000000    0.00000000
+    0.00000000   25.00000000    0.00000000
+    0.00000000    0.00000000   50.00000000
+
+   System Density [g/cm^3] :     0.0014
+
+
+   Center of mass square displacement (a.u.):   0.000000
+
+   ATOMIC_POSITIONS
+   H    0.000000E+00  0.000000E+00 -0.350000E+01
+   H    0.000000E+00  0.000000E+00 -0.150000E+01
+   H    0.000000E+00  0.000000E+00  0.150000E+01
+   H    0.000000E+00  0.000000E+00  0.350000E+01
+ 
+   ATOMIC_VELOCITIES
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+ 
+
+
+   Partial temperatures (for each ionic specie) 
+   Species  Temp (K)   Mean Square Displacement (a.u.)
+        1       0.00     0.0000
+ 
+  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
+  230 0.12E-05    0.0    0.0    -2.21802    -2.21728    -2.21728    -2.21728  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.147127  Ionic dipole 1    0.000000
+  231 0.11E-05    0.0    0.0    -2.21803    -2.21729    -2.21729    -2.21729  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.146678  Ionic dipole 1    0.000000
+  232 0.95E-06    0.0    0.0    -2.21803    -2.21730    -2.21730    -2.21730  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.146273  Ionic dipole 1    0.000000
+  233 0.83E-06    0.0    0.0    -2.21804    -2.21731    -2.21731    -2.21731  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.145953  Ionic dipole 1    0.000000
+  234 0.68E-06    0.0    0.0    -2.21804    -2.21731    -2.21731    -2.21731  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.145747  Ionic dipole 1    0.000000
+  235 0.52E-06    0.0    0.0    -2.21804    -2.21731    -2.21731    -2.21731  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.145673  Ionic dipole 1    0.000000
+
+   MAIN:          EKINC   (thr)          DETOT   (thr)       MAXFORCE   (thr)
+   MAIN:   0.523503D-06  0.1D-04  0.161771D-06  0.1D-05  0.000000D+00  0.1D+11
+   MAIN: convergence achieved for system relaxation
+
+ * Physical Quantities at step:   236
+  236 0.38E-06    0.0    0.0    -2.21804    -2.21731    -2.21731    -2.21731  0.0000  0.0000  0.0000  0.0000     0.00000
+Elct. dipole 1    0.145734  Ionic dipole 1    0.000000
+
+   writing restart file: ./SCRATCH/h4_trad_93.save
+   restart file written in    0.285 sec.
+
+
+
+   Averaged Physical Quantities
+                      accomulated      this run
+   ekinc         :        0.23746       0.00099 (AU)
+   ekin          :        1.98006       1.88945 (AU)
+   epot          :       -3.76841      -4.07086 (AU)
+   total energy  :       -1.80399      -2.21702 (AU)
+   temperature   :        0.00000       0.00000 (K )
+   enthalpy      :       -1.80313      -2.21630 (AU)
+   econs         :       -1.80313      -2.21630 (AU)
+   pressure      :        0.00000       0.00000 (Gpa)
+   volume        :    31250.00000   31250.00000 (AU)
+
+
+     initialize   :     5.10s CPU
+     total_time   :   132.12s CPU (     100 calls,   1.321 s avg)
+     formf        :     0.02s CPU
+     rhoofr       :     8.12s CPU (     100 calls,   0.081 s avg)
+     vofrho       :    24.37s CPU (     100 calls,   0.244 s avg)
+     dforce       :     4.88s CPU (     200 calls,   0.024 s avg)
+     calphi       :     0.02s CPU (     100 calls,   0.000 s avg)
+     ortho        :     0.22s CPU (     100 calls,   0.002 s avg)
+     ortho_iter   :     0.00s CPU (     200 calls,   0.000 s avg)
+     rsg          :     0.00s CPU (     200 calls,   0.000 s avg)
+     rhoset       :     0.19s CPU (     200 calls,   0.001 s avg)
+     updatc       :     0.01s CPU (     200 calls,   0.000 s avg)
+     newd         :     0.00s CPU (     100 calls,   0.000 s avg)
+     calbec       :     0.00s CPU (     201 calls,   0.000 s avg)
+     prefor       :     0.00s CPU (     101 calls,   0.000 s avg)
+     strucf       :     0.00s CPU
+     nlsm1        :     0.00s CPU (     401 calls,   0.000 s avg)
+     fft          :    47.39s CPU (    2104 calls,   0.023 s avg)
+     ffts         :     4.45s CPU (     200 calls,   0.022 s avg)
+     fftw         :     6.31s CPU (     600 calls,   0.011 s avg)
+     cft3s        :    58.15s CPU (    2904 calls,   0.020 s avg)
+     fft_scatter  :    18.75s CPU (    2904 calls,   0.006 s avg)
+     nksic_drv    :    83.87s CPU (     100 calls,   0.839 s avg)
+     nksic_orbrho :     5.26s CPU (     200 calls,   0.026 s avg)
+     nksic_rhoref :     2.75s CPU (     400 calls,   0.007 s avg)
+     nksic_eforce :     9.64s CPU (     200 calls,   0.048 s avg)
+     nksic_corr   :    73.40s CPU (     400 calls,   0.184 s avg)
+     nksic_corr_h :    23.53s CPU (     400 calls,   0.059 s avg)
+     nksic_corr_v :    48.02s CPU (     400 calls,   0.120 s avg)
+     nksic_corr_f :     0.54s CPU (     400 calls,   0.001 s avg)
+ 
+ 
+     CP           :  2m17.49s CPU time,     2m17.77s wall time
+
+ 
+   This run was terminated on:   7:49:53  22Nov2010            
+
+=------------------------------------------------------------------------------=
+   JOB DONE.
+=------------------------------------------------------------------------------=

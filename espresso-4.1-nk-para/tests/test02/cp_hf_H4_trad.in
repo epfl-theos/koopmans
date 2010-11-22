@@ -3,7 +3,7 @@
           &CONTROL
              calculation = 'cp',
              restart_mode='restart',
-             prefix='h4',
+             prefix='h4_trad',
              pseudo_dir = '../../pseudo/',
              outdir = './SCRATCH'
              nstep=100
@@ -22,9 +22,10 @@
              celldm(3)=2.0,
              nat=4,
              ntyp=1,
+             nspin=2
              ecutwfc=25.0,
              do_ee=.TRUE.
-             which_orbdep='hf'
+             do_hf=.TRUE.
           /
           &ELECTRONS
              electron_dynamics = 'damp'
