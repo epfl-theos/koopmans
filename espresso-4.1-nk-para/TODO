@@ -1,0 +1,46 @@
+
+TO DO
+-----
+
+* implementation of the inner_loop to make the effective
+  NK hamiltonian hermitean (Pederson condition, Klupfel impl) 
+  (CHP)
+
+* Smearing in NK-CPV (formualtion using full occupation matrices)
+  (AF)
+
+* Implement NK-GGA.
+  (partly done)
+
+
+* Implement NK with hybrid functionals (B3LYP, etc.).
+
+* Test interatomic forces in NK-CPV.
+
+* Implement interatomic forces based 
+  on numerical derivatives (for numerical consistency).
+
+* Interatomic forces seem less accurate 
+  when used with NK in comparison with LSD.
+
+
+DONE
+-----
+
+* Suppress the redundant calculation of the total 
+  electronic density in nksiclib.f90 and eelib.f90. 
+  (around 2010 May 12-18th)
+
+* Implement US PPs in NK-CPV.
+  (started 2010 Aug 06, cleanup on 2010 Oct 10, bug fixed on 2010 Nov 22)
+
+* Test HF in NK-CPV.
+  (HF optimization and testing on 2010 Aug 24, test suite on 2010 Nov 20)
+
+* Test electric field in NK-CPV.
+  (fully tested through the 2010, test suite on 2010 Nov 20)
+
+* Gram-Schmidt seems to be stuck 
+  with the parallel version of 11/25/2009.
+  (solved)
+

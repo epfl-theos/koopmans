@@ -1,0 +1,114 @@
+
+=======================================================
+		NK code:  Log of Changes
+=======================================================
+
+
+Nov 22 2010     USPP implementation made effective. (AF)
+
+Nov 21 2010     Test suite added to repository. Extensive checks on the
+		historical versions performed starting from Jan 16 2010. (AF)
+
+Nov 18 2010     Smearing in cp further implemented. It is working with 
+		normal functionals but not yet with orbital-dependent functionals.                                  
+		Bug found in the USPP implementation of NK. Changes to fix some of the
+		problems added (nksic_newd, nksic_eforce). 
+		Further testing to be done. (AF)
+
+Oct 10 2010     USPP implementation cleaned up, bugs fixed, but implementation
+		*not* yet properly working.
+		A simple implementation of eDFT added (occupations='smearing'). (AF)
+
+Oct 09 2010     Problems with USPP implementation:
+		c-precompiler macros used to deal with double-grid implementation 
+		removed. (AF)
+
+Aug 24 2010     GGA implementation for NK started: calculation of the 
+		gradients added consistently in all the nksic library.
+		Bug fixed in printout.f90;
+		Possible values for   which_orbdep  further updated.
+		HF has been strongly optimized:  nspin=1 is working; 
+		memory requirements as well as cpu time (# of fft) reduced. (AF)
+
+Aug 21 2010     which_orbdep variable added.
+		Preliminary (but compiling) implementation of nki. (AF)
+
+Aug 19 2010     Input for NKC (now called: orbital dependent part) inproved:
+		do_nk, do_pz, do_nkpz, do_nki vars added; we still miss a global high
+		level variable  which_orbdep.                                        
+		PZ taken out of NK and cast in a separate routine (optimized as well).
+		nksic_potential subroutine shaped in such a way to deal with         
+		different kinds of orbital dependent functionals (nk, nk0, nki, pz,  
+		nkpz).
+		pz nkc mixing removed.                                               
+		Tests performed for pz and nk, serial/parallel. (AF)
+
+Aug 19 2010     PZ functionality fixed when using (f_ref=0 and rhobarfact=0.0);
+		Bug fixed in PZ when using nkmix. 
+		update_rhoref functionality removed. (AF)
+
+Aug 06 2010     US pseudopotentials implemented in CP. NK(PZ) implemented in CP. 
+		Nk(PZ) implemented in LD1. Option do_nkmix removed in LD1. 
+		This version must be tested to verify that files 
+		have been correctly merged. (ID)
+
+Jul 25 2010     NKC + PZ mixing re-added to nksiclib. (AF)
+
+Jun 30 2010     Pi terms were computed wrongly for occupations different
+		from 1  ( f /= 1 ). This was not affecting the NKC hamiltonian,
+		but only the total energies.  (AF)  
+
+Jun 13 2010     Bugs fixed in the case nspin=1: eigenvalues were not correct,
+		they were printed out divided by 2.0; 
+		NKC + nspin=1 + nbnd odd resulted in an out-of-bound error. (AF)
+
+May 28 2010     Bug fixed in efield+nspin=1 . Now nspin=1,nspin=2 are
+		exactly the same if do_spinsym=.TRUE. is used. This fix 
+		re-include the changes added on Feb 17 2010. (AF)
+
+May 20 2010     Important optimization of the NK subroutines done. (AF)
+		This involved major changes in nksiclib.f90 to optimize
+		both the speed and the memory usage of the code.
+		nspin=1 and nspin=2 calculations work in the same way.
+
+		ATTENTION: the defualts of some of the vairables 
+		(fref and rhobarfact) have been changed to more standard
+		values (0.5 and 1.0 respectively). Input that works after
+		this date may not work for previous versions.
+
+May 11 2010     Bug in the CVS code fixed. Results consistent again
+		with code from Feb 16 2010 (which means that the bug 
+		in the nspin=2 electric enthalpy implementation is still there).
+		do_wref and do_wxd vars added. (ID)
+
+Apr 21 2010     CVS repository started (on qe-forge). (ID)
+		CVSROOT: :ext:<user>@cvs.qe-forge.org:/cvsroot/nkc 
+		where <user> is the developer username on qe-forge
+		Version of the code from Feb 16 (and not from Feb 17) used.
+		A new bug is present anyway, and the results are not the same.
+
+Feb 17 2010     Dipole due to electric field was miscalculated (a missing 1/2
+		factor) when nspin=2 due to the occupation prefactors. 
+		The problem is now fixed. (AF)
+
+Feb 16 2010     Changes by Ismaila. (ID)
+		NOTE: this is the version of the code
+		that will be used (by mistake) to start the CVS repository.
+
+Jan 26 2010     Several corrections in the NK-CPV and NK-LD1 code. (ID)
+		in particular, the Hartree contribution was missing from the 
+		w_ref potential in addition to various numerical problems). 
+		The AlphaNK and hybrid EXX functionals have been implemented. 
+		The agreement between finite-difference and analytical energy 
+		derivatives (with resp is now verified.
+
+Nov 25 2009     Implementation of interatomic forces in NK-CPV 
+		using tricubic interpolation. (ID)
+
+Nov 14 2009     Parallelization of the NK-CPV code. (AF)
+		ee_mod renamed eecp_mod to avoid confusion with ee_mod in EE 
+		and allow automatic dependency generation.
+		writetofile is active only with high and medium verbosity.
+
+Sep 2009        Full implementation of the method in CPV
+and before      and LD1. (ID)
