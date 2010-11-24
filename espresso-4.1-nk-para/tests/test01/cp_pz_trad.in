@@ -27,6 +27,7 @@
              fref=0.5
              do_nkmix=.TRUE.
              nkmixfact=1.0
+             rhobarfact=1.0
           /
           &ELECTRONS
              electron_dynamics = 'damp'
