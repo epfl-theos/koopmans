@@ -3,14 +3,14 @@
      CP: variable-cell Car-Parrinello molecular dynamics
      using norm-conserving and ultrasoft Vanderbilt pseudopotentials
 
-     Version: 4.1 - Mon Nov 22 18:23:38 EST 2010                          
+     Version: 4.1 - Wed Nov 24 10:26:37 EST 2010                          
      Authors: Alfredo Pasquarello, Kari Laasonen, Andrea Trave, Roberto Car,
        Paolo Giannozzi, Nicola Marzari, Carlo Cavazzoni, Guido Chiarotti,
        Sandro Scandolo, Paolo Focher, Gerardo Ballabio, and others
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  10: 3: 5  24Nov2010               
+   This run was started on:  15:52:20  24Nov2010               
 
    MPI Parallel Build
    Tasks =    6  This task id =    0
@@ -271,23 +271,23 @@
       NOTE: eigenvalues are not computed without ortho
  
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-    1 0.23E+01    0.0    0.0     9.19695     9.19695     9.19695    11.48814  0.0000  0.0000  0.0000  0.0000     0.02507
+    1 0.77E+00    0.0    0.0     9.62781     9.62781     9.62781    10.39309  0.0000  0.0000  0.0000  0.0000     0.02448
       NOTE: eigenvalues are not computed without ortho
-    2 0.43E+01    0.0    0.0     6.62364     6.62364     6.62364    10.87865  0.0000  0.0000  0.0000  0.0000     0.02055
+    2 0.29E+01    0.0    0.0     7.42501     7.42501     7.42501    10.28341  0.0000  0.0000  0.0000  0.0000     0.01727
       NOTE: eigenvalues are not computed without ortho
-    3 0.59E+01    0.0    0.0     3.95886     3.95886     3.95886     9.81895  0.0000  0.0000  0.0000  0.0000     0.01722
+    3 0.54E+01    0.0    0.0     4.10003     4.10003     4.10003     9.48188  0.0000  0.0000  0.0000  0.0000     0.01081
       NOTE: eigenvalues are not computed without ortho
-    4 0.57E+01    0.0    0.0     2.46927     2.46927     2.46927     8.14560  0.0000  0.0000  0.0000  0.0000     0.01619
+    4 0.60E+01    0.0    0.0     1.66716     1.66716     1.66716     7.68688  0.0000  0.0000  0.0000  0.0000     0.00915
       NOTE: eigenvalues are not computed without ortho
-    5 0.41E+01    0.0    0.0     2.31789     2.31789     2.31789     6.42019  0.0000  0.0000  0.0000  0.0000     0.01533
+    5 0.44E+01    0.0    0.0     1.35973     1.35973     1.35973     5.75909  0.0000  0.0000  0.0000  0.0000     0.01015
       NOTE: eigenvalues are not computed without ortho
-    6 0.27E+01    0.0    0.0     2.55065     2.55065     2.55065     5.29225  0.0000  0.0000  0.0000  0.0000     0.01332
+    6 0.25E+01    0.0    0.0     2.07920     2.07920     2.07920     4.61066  0.0000  0.0000  0.0000  0.0000     0.01055
       NOTE: eigenvalues are not computed without ortho
-    7 0.23E+01    0.0    0.0     2.24425     2.24425     2.24425     4.59259  0.0000  0.0000  0.0000  0.0000     0.01060
+    7 0.18E+01    0.0    0.0     2.29448     2.29448     2.29448     4.08930  0.0000  0.0000  0.0000  0.0000     0.00911
       NOTE: eigenvalues are not computed without ortho
-    8 0.24E+01    0.0    0.0     1.57635     1.57635     1.57635     3.92843  0.0000  0.0000  0.0000  0.0000     0.00853
+    8 0.19E+01    0.0    0.0     1.76836     1.76836     1.76836     3.65908  0.0000  0.0000  0.0000  0.0000     0.00730
       NOTE: eigenvalues are not computed without ortho
-    9 0.23E+01    0.0    0.0     0.92687     0.92687     0.92687     3.17695  0.0000  0.0000  0.0000  0.0000     0.00708
+    9 0.21E+01    0.0    0.0     1.02802     1.02802     1.02802     3.09529  0.0000  0.0000  0.0000  0.0000     0.00628
 
  * Physical Quantities at step:    10
 
@@ -299,14 +299,14 @@
       NOTE: eigenvalues are not computed without ortho
 
 
-                total energy =        0.36159 Hartree a.u.
-              kinetic energy =        2.36886 Hartree a.u.
-        electrostatic energy =       -1.23659 Hartree a.u.
+                total energy =        0.50813 Hartree a.u.
+              kinetic energy =        2.21017 Hartree a.u.
+        electrostatic energy =       -1.01957 Hartree a.u.
                          esr =        0.00100 Hartree a.u.
                        eself =        3.59048 Hartree a.u.
-      pseudopotential energy =       -0.15693 Hartree a.u.
-  n-l pseudopotential energy =        0.03724 Hartree a.u.
- exchange-correlation energy =       -0.63603 Hartree a.u.
+      pseudopotential energy =       -0.05960 Hartree a.u.
+  n-l pseudopotential energy =        0.00334 Hartree a.u.
+ exchange-correlation energy =       -0.61286 Hartree a.u.
            average potential =        0.00000 Hartree a.u.
 
 
@@ -319,7 +319,7 @@
 
     0.00
  
-   Allocated memory (kb) =     69340
+   Allocated memory (kb) =     69336
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -347,60 +347,60 @@
         2       0.00     0.0000
  
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-   10 0.20E+01    0.0    0.0     0.36159     0.36159     0.36159     2.38746  0.0000  0.0000  0.0000  0.0000     0.00554
+   10 0.19E+01    0.0    0.0     0.50813     0.50813     0.50813     2.44193  0.0000  0.0000  0.0000  0.0000     0.00569
 
    writing restart file: ./SCRATCH//job_BeH_91.save
-   restart file written in    0.136 sec.
+   restart file written in    0.253 sec.
 
 
 
    Averaged Physical Quantities
                       accomulated      this run
-   ekinc         :        3.39029       3.39029 (AU)
-   ekin          :        5.29197       5.29197 (AU)
-   epot          :       -2.24547      -2.24547 (AU)
-   total energy  :        3.22263       3.22263 (AU)
+   ekinc         :        2.96427       2.96427 (AU)
+   ekin          :        5.51974       5.51974 (AU)
+   epot          :       -2.31998      -2.31998 (AU)
+   total energy  :        3.18579       3.18579 (AU)
    temperature   :        0.00000       0.00000 (K )
-   enthalpy      :        3.22263       3.22263 (AU)
-   econs         :        3.22263       3.22263 (AU)
+   enthalpy      :        3.18579       3.18579 (AU)
+   econs         :        3.18579       3.18579 (AU)
    pressure      :        0.00000       0.00000 (Gpa)
    volume        :    15625.00000   15625.00000 (AU)
 
 
-     initialize   :     1.07s CPU
-     total_time   :    14.97s CPU (      10 calls,   1.497 s avg)
-     formf        :     0.05s CPU
-     rhoofr       :     0.76s CPU (      11 calls,   0.069 s avg)
-     vofrho       :     2.60s CPU (      11 calls,   0.236 s avg)
-     dforce       :     0.45s CPU (      22 calls,   0.020 s avg)
+     initialize   :     1.58s CPU
+     total_time   :    15.97s CPU (      10 calls,   1.597 s avg)
+     formf        :     0.06s CPU
+     rhoofr       :     0.92s CPU (      11 calls,   0.083 s avg)
+     vofrho       :     2.77s CPU (      11 calls,   0.252 s avg)
+     dforce       :     0.49s CPU (      22 calls,   0.022 s avg)
      calphi       :     0.00s CPU (      11 calls,   0.000 s avg)
-     gram         :     0.18s CPU (      13 calls,   0.014 s avg)
-     newd         :     0.02s CPU (      11 calls,   0.001 s avg)
-     calbec       :     0.01s CPU (      12 calls,   0.001 s avg)
+     gram         :     0.39s CPU (      13 calls,   0.030 s avg)
+     newd         :     0.00s CPU (      11 calls,   0.000 s avg)
+     calbec       :     0.00s CPU (      12 calls,   0.000 s avg)
      prefor       :     0.00s CPU (      11 calls,   0.000 s avg)
      strucf       :     0.00s CPU
-     set_cc       :     0.01s CPU (      11 calls,   0.001 s avg)
-     nlsm1        :     0.01s CPU (      12 calls,   0.001 s avg)
-     fft          :     4.10s CPU (     216 calls,   0.019 s avg)
-     ffts         :     0.40s CPU (      22 calls,   0.018 s avg)
-     fftw         :     0.55s CPU (      66 calls,   0.008 s avg)
+     set_cc       :     0.03s CPU (      11 calls,   0.003 s avg)
+     nlsm1        :     0.00s CPU (      12 calls,   0.000 s avg)
+     fft          :     4.12s CPU (     216 calls,   0.019 s avg)
+     ffts         :     0.44s CPU (      22 calls,   0.020 s avg)
+     fftw         :     0.61s CPU (      66 calls,   0.009 s avg)
      fftb         :     0.00s CPU (      13 calls,   0.000 s avg)
-     cft3s        :     5.05s CPU (     304 calls,   0.017 s avg)
-     fft_scatter  :     1.83s CPU (     304 calls,   0.006 s avg)
-     nksic_drv    :    10.63s CPU (      10 calls,   1.063 s avg)
-     nksic_orbrho :     0.44s CPU (      20 calls,   0.022 s avg)
-     nksic_rhoref :     0.16s CPU (      30 calls,   0.005 s avg)
-     nksic_eforce :     0.88s CPU (      22 calls,   0.040 s avg)
-     nksic_corr   :     9.88s CPU (      30 calls,   0.329 s avg)
-     nksic_corr_h :     1.50s CPU (      30 calls,   0.050 s avg)
-     nksic_corr_v :     3.37s CPU (      30 calls,   0.112 s avg)
-     nksic_corr_f :     4.95s CPU (      30 calls,   0.165 s avg)
+     cft3s        :     5.18s CPU (     304 calls,   0.017 s avg)
+     fft_scatter  :     1.27s CPU (     304 calls,   0.004 s avg)
+     nksic_drv    :    11.24s CPU (      10 calls,   1.124 s avg)
+     nksic_orbrho :     0.43s CPU (      20 calls,   0.022 s avg)
+     nksic_rhoref :     0.22s CPU (      30 calls,   0.007 s avg)
+     nksic_eforce :     0.96s CPU (      22 calls,   0.044 s avg)
+     nksic_corr   :    10.31s CPU (      30 calls,   0.344 s avg)
+     nksic_corr_h :     1.57s CPU (      30 calls,   0.052 s avg)
+     nksic_corr_v :     3.45s CPU (      30 calls,   0.115 s avg)
+     nksic_corr_f :     5.22s CPU (      30 calls,   0.174 s avg)
  
  
-     CP           :    16.17s CPU time,   16.34s wall time
+     CP           :    17.79s CPU time,   17.95s wall time
 
  
-   This run was terminated on:  10: 3:21  24Nov2010            
+   This run was terminated on:  15:52:38  24Nov2010            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
