@@ -401,6 +401,7 @@ contains
       fsic     = 0.0d0
       pink     = 0.0d0
       vsic     = 0.0d0
+      deeq_sic = 0.0d0
       vsicpsi  = 0.0d0
       !
       !vxcsic   = 0.0d0
