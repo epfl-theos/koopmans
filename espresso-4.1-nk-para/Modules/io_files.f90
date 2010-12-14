@@ -42,6 +42,7 @@ MODULE io_files
   CHARACTER(LEN=256) :: tran_prefix = ' '  !  prefix for restart directory
   CHARACTER(LEN=12), PARAMETER :: tk_file = 'transmission'
   CHARACTER(LEN=256) :: fil_loc = ' '      !  file with 2D eigenvectors and eigenvalues
+  CHARACTER(LEN=256) :: empty_file = ' '
   !
   CHARACTER(LEN=14), PARAMETER :: rho_name      = 'CHARGE_DENSITY'
   CHARACTER(LEN=17), PARAMETER :: rho_name_up   = 'CHARGE_DENSITY.UP'
@@ -51,7 +52,6 @@ MODULE io_files
   CHARACTER(LEN=4 ), PARAMETER :: chifile       = 'CHI2'
   CHARACTER(LEN=7 ), PARAMETER :: dielecfile    = 'EPSILON'
   !
-  CHARACTER(LEN=15), PARAMETER :: empty_file    = 'EMPTY_STATES.WF'
   CHARACTER(LEN=5 ), PARAMETER :: crash_file    = 'CRASH'
   CHARACTER(LEN=7 ), PARAMETER :: stop_file     = '.cpstop'
   CHARACTER(LEN=2 ), PARAMETER :: ks_file       = 'KS'

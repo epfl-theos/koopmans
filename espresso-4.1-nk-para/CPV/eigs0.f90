@@ -310,13 +310,13 @@
    SUBROUTINE cp_eigs_x( nfi, lambdap, lambda )
 !-----------------------------------------------------------------------
 
-      USE kinds,             ONLY: DP
+      use kinds,             only: DP
       use ensemble_dft,      only: tens, tsmear
       use electrons_base,    only: nx => nbspx, f, nspin
       use electrons_base,    only: iupdwn, nupdwn, nudx
       use electrons_module,  only: ei
       use io_global,         only: stdout
-      USE cp_main_variables, only: descla
+      use cp_main_variables, only: descla
 
       IMPLICIT NONE
 

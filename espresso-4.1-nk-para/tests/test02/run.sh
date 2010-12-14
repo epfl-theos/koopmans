@@ -19,6 +19,8 @@ MANUAL=" Usage
  nk              NK calculation
  pz              Perdew-Zunger SIC calculation
  hf              Hartree-Fock calculation
+ pbe0            PBE0 calculation
+ b3lyp           B3LYP calculation
 
  odd             performs the orbital dependent density (ODD) calculations
  all             perform all the above described steps
@@ -52,6 +54,8 @@ NK0=
 NK=
 PZ=
 HF=
+PBE0=
+B3LYP=
 CHECK=
 CLEAN=
 
@@ -66,10 +70,12 @@ case $INPUT in
    (nk)             NK=yes ;;
    (pz)             PZ=yes ;;
    (hf)             HF=yes ;;
+   (pbe0)           PBE0=yes ;;
+   (b3lyp)          B3LYP=yes ;;
 
-   (odd)            NK0=yes  ; NK=yes; PZ=yes; HF=yes ;;
+   (odd)            NK0=yes  ; NK=yes; PZ=yes; HF=yes ; PBE0=yes ; B3LYP=yes ;;
    (all)            INIT=yes ; GRAM=yes ; LDA=yes ;
-                    NK0=yes  ; NK=yes; PZ=yes; HF=yes ;;
+                    NK0=yes  ; NK=yes; PZ=yes; HF=yes ; PBE0=yes ; B3LYP=yes ;;
    (check)          CHECK=yes ;;
    (clean)          CLEAN=yes ;;
    (*)              echo " Invalid input FLAG, type ./run.sh for help" ; exit 1 ;;
@@ -103,6 +109,10 @@ run_cp  NAME=NK     SUFFIX=$SUFFIX  RUN=$NK
 run_cp  NAME=PZ     SUFFIX=$SUFFIX  RUN=$PZ
 #
 run_cp  NAME=HF     SUFFIX=$SUFFIX  RUN=$HF
+#
+run_cp  NAME=PBE0   SUFFIX=$SUFFIX  RUN=$PBE0
+#
+run_cp  NAME=B3LYP  SUFFIX=$SUFFIX  RUN=$B3LYP
 
 
 #

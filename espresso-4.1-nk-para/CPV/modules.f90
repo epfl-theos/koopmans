@@ -334,20 +334,21 @@ module nksic
   real(dp) :: vanishing_rho_w
   real(dp) :: f_cutoff
   !
-  real(dp) :: etxc
+  real(dp) :: etxc_sic
   !
   real(dp),    allocatable :: fsic(:)
   real(dp),    allocatable :: vsic(:,:)
   real(dp),    allocatable :: fion_sic(:,:)
   real(dp),    allocatable :: deeq_sic(:,:,:,:)
   real(dp),    allocatable :: pink(:)
-  real(dp),    allocatable :: vxcsic(:,:)
+  real(dp),    allocatable :: vxc_sic(:,:)
   real(dp),    allocatable :: wxdsic(:,:)
   real(dp),    allocatable :: orb_rhor(:,:)
   real(dp),    allocatable :: rhoref(:,:)
   real(dp),    allocatable :: rhobar(:,:)
   real(dp),    allocatable :: grhobar(:,:,:)
   real(dp),    allocatable :: wrefsic(:)
+  real(dp),    allocatable :: wtot(:,:)
   !
   complex(dp), allocatable :: vsicpsi(:,:)
   !
@@ -380,7 +381,7 @@ contains
       allocate( deeq_sic(nhm, nhm, nat, nx) )
       allocate( pink(nx) )
       allocate( vsicpsi(ngw,2) )
-      allocate( vxcsic(nnrx,2) )
+      allocate( vxc_sic(nnrx,2) )
       allocate( orb_rhor(nnrx,2) )
       allocate( rhoref(nnrx,2) )
       allocate( rhobar(nnrx,2) )
@@ -391,6 +392,12 @@ contains
       else if ( do_nki ) then
           allocate( wxdsic(nnrx,2) )
       endif
+      if ( do_nk .or. do_nkpz .or. do_nki ) then
+          allocate(wtot(nnrx,2))
+      else
+          allocate(wtot(1,2))
+      endif
+      wtot=0.0_dp
       !
       if ( dft_is_gradient() ) then 
           allocate( grhobar(nnrx,3,2) )
@@ -404,7 +411,7 @@ contains
       deeq_sic = 0.0d0
       vsicpsi  = 0.0d0
       !
-      !vxcsic   = 0.0d0
+      !vxc_sic   = 0.0d0
       !wxdsic   = 0.0d0
       !wrefsic  = 0.0d0
       !orb_rhor = 0.0d0
@@ -424,13 +431,14 @@ contains
       if ( allocated(deeq_sic) )   cost = cost + real( size(deeq_sic) )   *  8.0_dp 
       if ( allocated(pink) )       cost = cost + real( size(pink) )       *  8.0_dp 
       if ( allocated(vsicpsi) )    cost = cost + real( size(vsicpsi) )    * 16.0_dp 
-      if ( allocated(vxcsic) )     cost = cost + real( size(vxcsic) )     *  8.0_dp 
+      if ( allocated(vxc_sic) )    cost = cost + real( size(vxc_sic) )    *  8.0_dp 
       if ( allocated(wxdsic) )     cost = cost + real( size(wxdsic) )     *  8.0_dp 
       if ( allocated(orb_rhor))    cost = cost + real( size(orb_rhor))    *  8.0_dp
       if ( allocated(rhoref) )     cost = cost + real( size(rhoref) )     *  8.0_dp
       if ( allocated(rhobar) )     cost = cost + real( size(rhobar) )     *  8.0_dp
       if ( allocated(grhobar) )    cost = cost + real( size(grhobar) )    *  8.0_dp
       if ( allocated(wrefsic) )    cost = cost + real( size(wrefsic) )    *  8.0_dp
+      if ( allocated(wtot) )       cost = cost + real( size(wtot) )       *  8.0_dp
       !
       nksic_memusage = cost / 1000000.0_dp
       !   
@@ -443,9 +451,10 @@ contains
       if(allocated(deeq_sic))    deallocate(deeq_sic)
       if(allocated(pink))        deallocate(pink)
       if(allocated(wxdsic))      deallocate(wxdsic)
-      if(allocated(vxcsic))      deallocate(vxcsic)
+      if(allocated(vxc_sic))     deallocate(vxc_sic)
       if(allocated(vsicpsi))     deallocate(vsicpsi)
       if(allocated(wrefsic))     deallocate(wrefsic)
+      if(allocated(wtot))        deallocate(wtot)
       if(allocated(orb_rhor))    deallocate(orb_rhor)
       if(allocated(grhobar))     deallocate(grhobar)
       if(allocated(rhobar))      deallocate(rhobar)
@@ -461,27 +470,30 @@ module hfmod
   use kinds
   implicit none
   complex(dp), allocatable :: vxxpsi(:,:)
-  real(dp), allocatable :: exx(:)
-  real(dp), allocatable :: dvxchf(:,:)
-  real(dp) :: detothf = 0.d0
+  real(dp),    allocatable :: exx(:)
+  !real(dp),    allocatable :: dvxc_hf(:,:)
+  !real(dp) :: dexc_hf = 0.d0
   real(dp) :: hfscalfact = 1.d0
   logical  :: do_hf
 contains
   !
-  subroutine allocate_hf(ngw,nx)
+  subroutine allocate_hf(ngw,nnrx,nspin,nx)
   implicit none
-  integer, intent(in):: nx
-  integer, intent(in):: ngw
+  integer, intent(in):: ngw, nnrx, nspin, nx
+  !
   allocate(exx(nx))
   allocate(vxxpsi(ngw,nx))
+  !allocate(dvxc_hf(nnrx,nspin))
   !
+  !dvxc_hf(:,:) = 0.0d0
   exx(:) = 0.0
   !
   end subroutine
   !
   subroutine deallocate_hf
-  if(allocated(exx)) deallocate(exx)
-  if(allocated(vxxpsi)) deallocate(vxxpsi)
+  if(allocated(exx))      deallocate(exx)
+  if(allocated(vxxpsi))   deallocate(vxxpsi)
+  !if(allocated(dvxc_hf))  deallocate(dvxc_hf)
   end subroutine
   !
 end module hfmod

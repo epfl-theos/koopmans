@@ -1166,6 +1166,8 @@ MODULE input
       !
       CALL electrons_print_info( )
       !
+      CALL empty_print_info( stdout )
+      !
       CALL exch_corr_print_info( )
 
       IF ( trhor ) THEN
@@ -1174,10 +1176,6 @@ MODULE input
       IF( tksw )THEN
          WRITE( stdout,722)
       ENDIF
-      !
-      IF( program_name == 'FPMD' ) THEN
-        CALL empty_print_info( stdout )
-      END IF
       !
       IF( tfor .AND. tnosep ) fricp = 0.0d0
       !

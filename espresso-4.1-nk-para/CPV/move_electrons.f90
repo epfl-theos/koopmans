@@ -26,7 +26,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   USE uspp,                 ONLY : becsum, vkb, nkb
   USE energies,             ONLY : ekin, enl, entropy, etot
   USE grid_dimensions,      ONLY : nnrx
-  USE electrons_base,       ONLY : nbsp, nspin, f, nudx
+  USE electrons_base,       ONLY : nbsp, nbspx, nspin, f, nudx
   USE core,                 ONLY : nlcc_any, rhoc
   USE ions_positions,       ONLY : tau0
   USE ions_base,            ONLY : nat
@@ -44,11 +44,11 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   USE orthogonalize_base,   ONLY : calphi
   USE control_flags,        ONLY : force_pairing
   USE cp_interfaces,        ONLY : rhoofr, compute_stress
-  USE electrons_base,       ONLY : nupdwn 
+  USE electrons_base,       ONLY : ispin, iupdwn, nupdwn 
   USE mp_global,            ONLY : me_image 
   USE efield_mod,           ONLY : do_efield
-  USE hfmod,                ONLY : do_hf, detothf, vxxpsi, exx
-  USE nksic,                ONLY : do_orbdep, vsic, fsic, fion_sic
+  USE hfmod,                ONLY : do_hf, vxxpsi, exx
+  USE nksic,                ONLY : do_orbdep, vsic, wtot, fsic, fion_sic, deeq_sic, pink
   !
   IMPLICIT NONE
   !
@@ -120,6 +120,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
      !
      CALL vofrho( nfi, vpot, rhog, rhos, rhoc, tfirst, tlast, &
                   ei1, ei2, ei3, irb, eigrb, sfac, tau0, fion )
+
      !
      ! compute auxiliary potentials
      !
@@ -131,13 +132,20 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
              fsic = f
          endif
          !
-         call nksic_potential( c0, fsic, bec, rhor, rhog, vsic )
+         call nksic_potential( nbsp, nbspx, c0, fsic, bec, becsum, deeq_sic, &
+                    ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+         !
+         etot = etot + sum(pink(1:nbsp))
          !
      endif
      !
      if( do_hf ) then
          !
-         call calc_hf_potential( c0, rhor, rhog, vxxpsi, exx, detothf)
+         call hf_potential( nbsp, nbspx, c0, f, ispin, iupdwn, nupdwn, &
+                            nbsp, nbspx, c0, f, ispin, iupdwn, nupdwn, &
+                            rhor, rhog, vxxpsi, exx)
+         !
+         etot = etot + sum(exx(1:nbsp))
          !
      endif
      !

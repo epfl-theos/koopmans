@@ -131,7 +131,7 @@ SUBROUTINE from_scratch( )
         !
     ELSE 
         !
-        IF ( nupdwn(1) < nupdwn(2) ) CALL errore('runcp','unexpec nupdwn(1) < nupdwn(2)',10)
+        IF ( nupdwn(1) < nupdwn(2) ) CALL errore('from_scratch','unexpec nupdwn(1) < nupdwn(2)',10)
         !
         CALL wave_rand_init( cm, nupdwn(1) , 1 )
         !

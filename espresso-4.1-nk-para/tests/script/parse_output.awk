@@ -48,9 +48,9 @@ END{
    if ( program = "cp") {
        #
        print "NPROC@"nproc"@";
-       print "ITERATION@"iteration"@5e-2";
+       print "ITERATION@"iteration"@1e-1";
        print "ETOT@"etot"@1e-3";
-       print "EKINC@"ekinc"@1e-3";
+       print "EKINC@"ekinc"@2.0e-1";
        #
    } else if ( program = "pw") {
        # 
@@ -101,14 +101,24 @@ function check_line_cp()
          nline=NR
          iteration=$NF
       }
+   else if ( $1 == iteration ) {
+         etot=$5
+         ekinc=$2
+         nline=-10
+   }
    else if ( match($0, "Tasks = ") )
       {
          nproc=$3
       }
-   else if ( NR == nline+1 && NF > 5 )
+   else if ( NR == nline+1 )
       {
-         if ( match($0,"NOTE: eigenvalues are not computed without ortho") ) {
+         if ( NF == 0 ) {
              nline++
+         } else if ( match($0,"NOTE: eigenvalues are not computed without ortho") ) {
+             nline++
+         } else if ( match($0,"total energy =") ) {
+             etot=$4
+             nline=-10
          } else {
              etot=$5
              ekinc=$2

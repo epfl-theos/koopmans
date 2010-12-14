@@ -54,8 +54,7 @@ case $INPUT in
    (gram)           GRAM=yes ;;
    (nk)             NK=yes ;;
 
-#   (all)            INIT=yes ; GRAM=yes ; NK=yes ;;
-   (all)            GRAM=yes ; NK=yes ;;
+   (all)            INIT=yes ; GRAM=yes ; NK=yes ;;
    (check)          CHECK=yes ;;
    (clean)          CLEAN=yes ;;
    (*)              echo " Invalid input FLAG, type ./run.sh for help" ; exit 1 ;;

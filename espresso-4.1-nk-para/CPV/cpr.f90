@@ -786,7 +786,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      !
      ! CALL debug_energies()
      !
-     CALL printout_new( nfi, tfirst, tfile, ttprint, tps, hold, stress, &
+     CALL printout_new( nfi, tfirst, tfile, tstdout, ttprint, tps, hold, stress, &
                         tau0, vels, fion, ekinc, temphc, tempp, temps, etot, &
                         enthal, econs, econt, vnhh, xnhh0, vnhp, xnhp0, atot, &
                         ekin, epot, tprnfor, tpre, hamilt, tprint_ham )

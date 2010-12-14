@@ -1,0 +1,18 @@
+
+==============================================================================
+@title@   Empty states
+==============================================================================
+ 
+  The aim of this test is to show how to compute empty states using cp
+  w/ or w/o  orbital density dependent potentials.
+
+  The calculations work in the following way:
+  - first a normal cp calculation is performed in order to reach
+    a decent description of the GS properties
+
+  - then, additional empty states are included in the minimization.
+    the occupied orbitals are not changed, while the unoccupied ones
+    are kept orthogonal to the first set. The unoccupied ones are
+    minimized as if their occupations were non-zero.
+
+

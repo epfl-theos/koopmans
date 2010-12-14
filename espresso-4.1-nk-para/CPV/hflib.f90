@@ -10,12 +10,19 @@
 ! Optimized and Parallelized by Andrea Ferretti (MIT)
 !
 !-----------------------------------------------------------------------
-      subroutine calc_hf_potential(c, rhor, rhog, vxxpsi, exx, detothf)
+      subroutine hf_potential(nbsp1, nx1, c1, f1, ispin1, iupdwn1, nupdwn1, &
+                              nbsp2, nx2, c2, f2, ispin2, iupdwn2, nupdwn2, &
+                              rhor, rhog, vxxpsi, exx )
 !-----------------------------------------------------------------------
 !
-! ... calculate orbital densities and Hartree-Fock potentials
-! ... (the calculation of the exchange potential uses
-! ... periodic-image corrections)
+! Calculate orbital densities and Hartree-Fock potentials
+! (the calculation of the exchange potential uses
+! periodic-image corrections)
+!
+! 1 -> inner quantities (those used to build the density matrix)
+! 2 -> outer quantities (those referring to the wfcs to which the
+!              HF potential is applied)
+!
 !
       use kinds,                   only: dp
       use gvecp,                   only: ngm
@@ -28,9 +35,7 @@
       use cell_base,               only: omega, a1, a2, a3
       use smooth_grid_dimensions,  only: nr1s, nr2s, nr3s, &
                                          nr1sx, nr2sx, nr3sx, nnrsx
-      use electrons_base,          only: nx => nbspx, nbsp, &
-                                         f, ispin, nspin, nelt, &
-                                         nupdwn, iupdwn
+      use electrons_base,          only: nspin
       use constants,               only: pi, fpi
       use mp,                      only: mp_sum
       use mp_global,               only: intra_image_comm
@@ -44,12 +49,22 @@
       !
       ! I/O vars
       !
-      complex(dp), intent(in)  :: c(ngw,nx)
+      integer,     intent(in)  :: nbsp1, nx1
+      complex(dp), intent(in)  :: c1(ngw,nx1)
+      integer,     intent(in)  :: ispin1(nx1)
+      integer,     intent(in)  :: iupdwn1(nspin), nupdwn1(nspin)
+      real(dp),    intent(in)  :: f1(nx1)
+      !
+      integer,     intent(in)  :: nbsp2, nx2
+      complex(dp), intent(in)  :: c2(ngw,nx2)
+      integer,     intent(in)  :: ispin2(nx2)
+      integer,     intent(in)  :: iupdwn2(nspin), nupdwn2(nspin)
+      real(dp),    intent(in)  :: f2(nx2)
+      !
       real(dp),    intent(in)  :: rhor(nnrx,nspin)
-      complex(dp), intent(out) :: rhog(ngm,nspin)
-      complex(dp), intent(out) :: vxxpsi(ngw,nx)
-      real(dp),    intent(out) :: exx(nx)
-      real(dp),    intent(out) :: detothf
+      complex(dp), intent(in)  :: rhog(ngm,nspin)
+      complex(dp), intent(out) :: vxxpsi(ngw,nx2)
+      real(dp),    intent(out) :: exx(nx2)
       !
       ! local vars
       !
@@ -75,65 +90,32 @@
       real(dp),    allocatable :: h(:,:,:)
       !
       ci=(0.0d0,1.0d0)
+
       !
-      ! ... calculate the density of each individual orbital
+      ! ... local workspace
       !
       allocate(psis1(nnrsx)) 
       allocate(psis2(nnrsx)) 
-      allocate(vxc(nnrx,nspin))
-      !
-      if ( dft_is_gradient() ) then
-          !
-          allocate(grhor(nnrx,3,nspin))
-          allocate(h(nnrx,nspin,nspin))
-          !
-          call fillgrad( nspin, rhog, grhor)     
-      else
-          !
-          allocate(grhor(1,1,1))
-          allocate(h(1,1,1))
-          !
-          grhor=0.0_dp
-          h=0.0_dp
-          !
-      endif
-      !
-      fact=omega/dble(nr1*nr2*nr3)
       !
       vxxpsi=0.0_dp
       exx=0.0_dp
 
-      !
-      ! the calculation of the total charge density 
-      ! has been removed, now it comes from input
-      !
-      vxc=0.0_dp
-      etxc=0.0_dp
-      !
-      call exch_corr_wrapper(nnrx,nspin,grhor,rhor,etxc,vxc,h)
-      detothf=-etxc*fact
-      !
-      deallocate(grhor)
-      deallocate(h)
-      !
-      call mp_sum(detothf,intra_image_comm)
-      !
   
       !
       ! main loop over states
       !
       outer_loop: &
-      do i = 1, nbsp
+      do i = 1, nbsp2
 
           !
           ! psi_i on the smooth grid
           !
-          psis1=0.d0
+          psis2=0.d0
           do ig=1,ngw
-              psis1(nms(ig))=conjg(c(ig,i))
-              psis1(nps(ig))=c(ig,i)
+              psis2(nms(ig))=conjg(c2(ig,i))
+              psis2(nps(ig))=c2(ig,i)
           enddo
-          call invfft('Wave',psis1,dffts)
+          call invfft('Wave',psis2,dffts)
 
 
           !
@@ -141,10 +123,10 @@
           !
           if ( nspin == 1 ) then
              istart = 1
-             iend   = nbsp
+             iend   = nbsp1
           else
-             istart = iupdwn( ispin(i) )
-             iend   = iupdwn( ispin(i) ) + nupdwn( ispin(i) ) -1
+             istart = iupdwn1( ispin2(i) )
+             iend   = iupdwn1( ispin2(i) ) + nupdwn1( ispin2(i) ) -1
           endif
           !          
           inner_loop: &
@@ -154,11 +136,11 @@
               !
               ! take into account spin multiplicity
               !
-              faux_i  = f(i)   * dble( nspin ) / 2.0_dp 
-              faux_j0 = f(j)   * dble( nspin ) / 2.0_dp 
+              faux_i  = f2(i)   * dble( nspin ) / 2.0_dp 
+              faux_j0 = f1(j)   * dble( nspin ) / 2.0_dp 
               !
               if ( j+1 <= iend ) then
-                 faux_jp = f(j+1) * dble( nspin ) / 2.0_dp 
+                 faux_jp = f1(j+1) * dble( nspin ) / 2.0_dp 
               else
                  faux_jp = 0
               endif
@@ -174,10 +156,10 @@
               allocate(orbitalrhor(nnrx,2))
               !
 
-              orbitalrhog(1:ngw,1) = c(1:ngw, j)
+              orbitalrhog(1:ngw,1) = c1(1:ngw, j)
               !
               if ( j+1 <= iend ) then
-                  orbitalrhog(1:ngw,2) = c(1:ngw, j+1)
+                  orbitalrhog(1:ngw,2) = c1(1:ngw, j+1)
               else
                   orbitalrhog(1:ngw,2) = 0.0_dp
               endif
@@ -185,21 +167,23 @@
               !
               ! psi_j's on the smooth grid
               !
-              call c2psi( psis2, nnrsx, orbitalrhog(:,1), &
+              call c2psi( psis1, nnrsx, orbitalrhog(:,1), &
                                         orbitalrhog(:,2), ngw, 2)
               !
-              call invfft('Wave', psis2, dffts)
+              call invfft('Wave', psis1, dffts)
           
 
               !
               ! psi_i * psi_j on the smooth grid
+              ! psis2 <=  psi_i
+              ! psis1 <=  psi_j, psi_j+1
               !
               sa1=1.d0/omega
               orbitalrhos=0.d0
               !
               do ir=1,nnrsx
-                  orbitalrhos(ir,1) = sa1*dble(psis1(ir))*dble(psis2(ir))
-                  orbitalrhos(ir,2) = sa1*dble(psis1(ir))*aimag(psis2(ir))
+                  orbitalrhos(ir,1) = sa1*dble(psis2(ir))*dble(psis1(ir))
+                  orbitalrhos(ir,2) = sa1*dble(psis2(ir))*aimag(psis1(ir))
               enddo
 
 
@@ -286,13 +270,7 @@
                             - 0.5_dp*faux_i*faux_jp*eaux(2)
               !
               deallocate(aux)
-              !
-              !
-              if ( i == j ) then
-                  vxxd(1:nnrx) = vxxd(1:nnrx) + vxc(1:nnrx,ispin(i))
-              elseif ( i == j+1 ) then
-                  vxxd(1:nnrx) = vxxd(1:nnrx) + ci * vxc(1:nnrx,ispin(i))
-              endif
+
 
               !
               ! change grid if the case
@@ -323,8 +301,8 @@
               !
               vxxpsis=0.0_dp
               do ir=1,nnrsx
-                  vxxpsis(ir)= cmplx( dble(vxxs(ir)) * dble(psis2(ir)), & 
-                                     aimag(vxxs(ir)) *aimag(psis2(ir))  )
+                  vxxpsis(ir)= cmplx( dble(vxxs(ir)) * dble(psis1(ir)), & 
+                                     aimag(vxxs(ir)) *aimag(psis1(ir))  )
               enddo
               call fwfft('Wave',vxxpsis,dffts)
               !
@@ -349,17 +327,14 @@
       enddo outer_loop
       !
       vxxpsi  = hfscalfact *vxxpsi
-      detothf = hfscalfact *detothf
 
-
-      deallocate(psis1) 
       deallocate(psis2) 
+      deallocate(psis1) 
       !
-      deallocate(vxc)
       return
       !
 !-----------------------------------------------------------------------
-      end subroutine calc_hf_potential
+      end subroutine hf_potential
 !-----------------------------------------------------------------------
 
 !---------------------------------------------------------------

@@ -165,10 +165,6 @@
 
      n_emp = n_emp_
      !
-     ! assure that the number of empty states is an even number
-     !
-     n_emp = n_emp + MOD( n_emp, 2 )
-     !
      nupdwn_emp(1) = n_emp
      iupdwn_emp(1) = 1
 
@@ -206,9 +202,13 @@
           USE kinds,            ONLY: DP
           INTEGER, INTENT(IN) :: iunit
           !
-          IF ( n_emp > 0 ) WRITE (iunit,620) n_emp, max_emp, ethr_emp
-620       FORMAT(3X,'Empty states minimization : states = ',I4, &
-             ' maxiter = ',I8,' ethr = ',D10.4)
+          IF ( n_emp > 0 ) THEN
+              WRITE (iunit,"(//, 3X, 'Empty states minimization')")
+              WRITE (iunit,"(    3X, '--------------------------')")
+              WRITE (iunit,"(3X, '   states = ',i8)") n_emp
+              WRITE (iunit,"(3X, '  maxiter = ',i8)") max_emp
+              WRITE (iunit,"(3X, '     ethr = ',D10.4)") ethr_emp
+          ENDIF
           !
           RETURN
         END SUBROUTINE empty_print_info
@@ -224,7 +224,7 @@
 
           max_emp   = max_emp_
           ethr_emp  = ethr_emp_
-
+          !
           RETURN
         END SUBROUTINE empty_init
 

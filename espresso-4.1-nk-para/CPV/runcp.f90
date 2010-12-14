@@ -42,8 +42,8 @@
       USE cp_interfaces,       ONLY : dforce
       USE task_groups,         ONLY : tg_gather
       USE ldaU
-      use nksic,               only : do_orbdep, vsic, vsicpsi, deeq_sic, f_cutoff
       use hfmod,               only : do_hf, vxxpsi
+      use nksic,               only : do_orbdep, vsic, vsicpsi, deeq_sic, f_cutoff
       use ensemble_dft,        only : tens, tsmear
       !
       IMPLICIT NONE
@@ -157,6 +157,15 @@
 
         END IF
 
+
+        !
+        ! faux takes into account spin multiplicity.
+        !
+        faux(:) = f(:) * DBLE( nspin ) / 2.0d0
+        !
+        DO j = 1, n
+            faux(j) = max( f_cutoff, faux(j) )
+        ENDDO
         
 
         DO i = 1, n, incr
@@ -165,14 +174,7 @@
            ! ... (this preconditioning must be taken into account when
            ! ... calculating eigenvalues in eigs0.f90)
            !
-           !
-           ! faux takes into account spin multiplicity.
-           !
-           faux(:) = 0.0_dp
-           !
-           DO j = 1, n
-               faux(j) = max( f_cutoff, f(j) ) * DBLE( nspin ) / 2.0d0
-           ENDDO
+
            !
            IF( use_task_groups ) THEN
               !
@@ -219,7 +221,7 @@
                !
                ! faux takes into account spin multiplicity.
                !
-               CALL nksic_eforce( i, nx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi )
+               CALL nksic_eforce( i, n, nx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi )
                !
                IF ( tens .OR. tsmear ) THEN
                    !
@@ -283,7 +285,7 @@
                    !
                ELSE
                    !
-                   c2(:) = c2(:) - vxxpsi(:,i) * faux(i)
+                   c2(:) = c2(:) - vxxpsi(:,i)   * faux(i)
                    c3(:) = c3(:) - vxxpsi(:,i+1) * faux(i+1)
                    !
                ENDIF

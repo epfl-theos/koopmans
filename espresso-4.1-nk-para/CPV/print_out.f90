@@ -9,7 +9,7 @@
 
 !=----------------------------------------------------------------------------=!
    SUBROUTINE printout_new_x   &
-     ( nfi, tfirst, tfilei, tprint, tps, h, stress, tau0, vels, &
+     ( nfi, tfirst, tfilei, tstdouti, tprint, tps, h, stress, tau0, vels, &
        fion, ekinc, temphc, tempp, temps, etot, enthal, econs, econt, &
        vnhh, xnhh0, vnhp, xnhp0, atot, ekin, epot, print_forces, print_stress, &
        hamilt, print_hamilt_norm )
@@ -47,7 +47,7 @@
       IMPLICIT NONE
       !
       INTEGER,  INTENT(IN) :: nfi
-      LOGICAL,  INTENT(IN) :: tfirst, tfilei, tprint
+      LOGICAL,  INTENT(IN) :: tfirst, tfilei, tprint, tstdouti
       REAL(DP), INTENT(IN) :: tps
       REAL(DP), INTENT(IN) :: h( 3, 3 )
       REAL(DP), INTENT(IN) :: stress( 3, 3 )
@@ -78,9 +78,8 @@
       !
       ! avoid double printing to files by refering to nprint_nfi
       !
-      tfile = tfilei .and. ( nfi .gt. nprint_nfi )
-      !
-      tstdout = ( MOD( nfi, iprint_stdout ) == 0 )
+      tfile   = tfilei .and. ( nfi .gt. nprint_nfi )
+      tstdout = tstdouti .or. ( MOD( nfi, iprint_stdout ) == 0 )
       !
       CALL memstat( kilobytes )
       !
@@ -469,7 +468,7 @@
       END DO
 
       CALL  printout_new &
-     ( nfi, tfirst, tfile, tprint, tps, ht%hmat, stress_tensor, tauw, atoms%vels, &
+     ( nfi, tfirst, tfile, .FALSE., tprint, tps, ht%hmat, stress_tensor, tauw, atoms%vels, &
        atoms%for, ekinc, temphc, tempp, temps, edft%etot, enthal, econs, ettt, &
        vnhh, xnhh0, vnhp, xnhp0, 0.0d0, edft%ekin, epot, .true. , .true. )
 

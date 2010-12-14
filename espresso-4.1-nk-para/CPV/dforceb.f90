@@ -43,7 +43,7 @@ subroutine dforceb(c0, i, betae, ipol, bec0, ctabin, gqq, gqqm, qmat, dq2, df)
                                  ctabin_missing_rev_1,ctabin_missing_rev_2
   use mp_global,          only : intra_image_comm, nproc_image
   use mp,                 only : mp_alltoall
-  use ensemble_dft,       ONLY : tens, tsmear
+  use ensemble_dft,       only : tens, tsmear
   use parallel_include
 
 

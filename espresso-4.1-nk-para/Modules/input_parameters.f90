@@ -443,12 +443,12 @@ MODULE input_parameters
         !
         ! This variable overwrites the ones above
         CHARACTER(80)     :: which_orbdep=" "
-        CHARACTER(LEN=80) :: which_orbdep_allowed(10)
+        CHARACTER(LEN=80) :: which_orbdep_allowed(12)
         !
         DATA which_orbdep_allowed &
           / "none", "nk", "non-koopmans", "nk0", "nki", &
             "perdew-zunger", "pz", "pznk", "nkpz" ,     &
-            "hf" /
+            "hf", "b3lyp", "pbe0" /
         !
         LOGICAL     :: do_spinsym  = .false.
         INTEGER     :: nknmax = -1
@@ -487,8 +487,8 @@ MODULE input_parameters
              spline_ps, london, london_s6, london_rcut,                       &
              do_ee, do_nk, do_pz, do_nki, do_nkpz, do_hf,                     &
              do_wref, do_wxd, fref, rhobarfact, ampfield, do_efield,          &
-             do_hf, nknmax, do_spinsym, nkscalfact, f_cutoff, hfscalfact,     &
-             vanishing_rho_w, which_orbdep
+             do_hf, nknmax, do_spinsym, f_cutoff,                             &
+             nkscalfact, hfscalfact, vanishing_rho_w, which_orbdep
 !
 !=----------------------------------------------------------------------------=!
 !  EE Namelist Input Parameters

@@ -12,15 +12,14 @@ MODULE ensemble_dft
   IMPLICIT NONE
   SAVE
 
-      logical      :: tsmear     = .false. ! poor man smearing
+      logical      :: tsmear     = .false. ! smearing
+      logical      :: tuseocc    = .true.  ! use occupations when applying the forces
       !
       logical      :: tens       = .false. ! whether to do ensemble calculations.
       logical      :: tgrand     = .false. ! whether to do grand canonical
                                            ! ensemble calculations.
       integer      :: ninner     = 0       ! number of inner loops per CP step.
-! XXX
-!      integer      :: nfroz_occ  = 25      ! number of steps with frozen occupations
-      integer      :: nfroz_occ  = 6  
+      integer      :: nfroz_occ  = 25      ! number of steps with frozen occupations
       integer      :: ismear     = 2       ! type of smearing:
                                            !  1 => gaussian
                                            !  2 => fermi-dirac

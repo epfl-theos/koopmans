@@ -882,14 +882,14 @@
 
    INTERFACE printout_new
       SUBROUTINE printout_new_x &
-         ( nfi, tfirst, tfilei, tprint, tps, h, stress, tau0, vels, &
+         ( nfi, tfirst, tfilei, tstdouti, tprint, tps, h, stress, tau0, vels, &
            fion, ekinc, temphc, tempp, temps, etot, enthal, econs, econt, &
            vnhh, xnhh0, vnhp, xnhp0, atot, ekin, epot, print_forces, print_stress, &
            hamilt, print_hamilt_norm )
          USE kinds,          ONLY: DP
          IMPLICIT NONE
          INTEGER, INTENT(IN) :: nfi
-         LOGICAL, INTENT(IN) :: tfirst, tfilei, tprint
+         LOGICAL, INTENT(IN) :: tfirst, tfilei, tstdouti, tprint
          REAL(DP), INTENT(IN) :: tps
          REAL(DP), INTENT(IN) :: h( 3, 3 )
          REAL(DP), INTENT(IN) :: stress( 3, 3 )

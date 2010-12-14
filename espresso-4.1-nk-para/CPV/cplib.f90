@@ -1878,7 +1878,7 @@ END FUNCTION
       USE cp_main_variables,  ONLY : drhog, drhor, ht0
       USE mp,                 ONLY : mp_sum
       USE mp_global,          ONLY : intra_image_comm
-      USE funct,              ONLY : dft_is_meta
+      USE funct,              ONLY : dft_is_meta, dft_is_hybrid
       USE pres_ai_mod,        ONLY : abivol, abisur, v_vol, P_ext, volclu,  &
                                      Surf_t, surfclu
       USE cp_interfaces,      ONLY : fwfft, invfft, self_vofhar
@@ -1887,11 +1887,8 @@ END FUNCTION
       USE cp_interfaces,      ONLY : pseudo_stress, compute_gagb, stress_hartree, &
                                      add_drhoph, stress_local, force_loc
       USE fft_base,           ONLY : dfftp, dffts
-!@@@@@
       USE ldaU,               ONLY : e_hubbard
-!@@@@@
-      USE nksic,              ONLY : pink, do_orbdep
-      USE hfmod,              ONLY : exx, do_hf, detothf
+      USE hfmod,              ONLY : do_hf, hfscalfact
       use eecp_mod,           only : do_comp, which_compensation, vcorr, &
                                      vcorr_fft, ecomp
       USE efield_mod,         ONLY : do_efield, efieldpotg
@@ -2234,6 +2231,19 @@ END FUNCTION
       CALL exch_corr_h( nspin, rhog, rhor, rhoc, sfac, exc, dxc, self_exc )
       call writetofile(rhor, nnr,'vxc.dat', dfftp, 'az')
 
+      !
+      ! correction for traditional use of HF without
+      ! reference to the EXX implementation 
+      !
+      IF ( do_hf .AND. .NOT. dft_is_hybrid() ) THEN
+          !
+          rhor      = rhor      * ( 1.0d0 -hfscalfact )
+          exc       = exc       * ( 1.0d0 -hfscalfact )
+          dxc       = dxc       * ( 1.0d0 -hfscalfact )
+          self_exc  = self_exc  * ( 1.0d0 -hfscalfact )
+          !
+      ENDIF
+
 
 !
 !     rhor contains the xc potential in r-space
@@ -2422,8 +2432,6 @@ END FUNCTION
       !
       if (abivol)      etot = etot + P_ext*volclu
       if (abisur)      etot = etot + Surf_t*surfclu
-      if (do_orbdep )  etot = etot + sum(pink(1:nx))
-      if (do_hf)       etot = etot + detothf + sum(exx(1:nx))
       !
       IF( tpre ) THEN
          !
@@ -2589,11 +2597,14 @@ END FUNCTION
       subroutine nksic_init
 !-----------------------------------------------------------------------
 !
+      !
+      ! this routine is called anyway, even if do_nk=F
+      !
       use nksic,            ONLY : do_orbdep, do_nk, do_nkpz, do_pz, do_nki, &
                                    do_wref, do_wxd, fref, rhobarfact, &
                                    vanishing_rho_w, &
-                                   nknmax, do_spinsym, nkscalfact, f_cutoff, &
-                                   nksic_memusage, allocate_nksic
+                                   nknmax, do_spinsym, f_cutoff, &
+                                   nkscalfact,  nksic_memusage, allocate_nksic
       use input_parameters, ONLY : do_nk_ => do_nk, &
                                    do_pz_ => do_pz, &
                                    do_nki_ => do_nki, &
@@ -2637,7 +2648,7 @@ END FUNCTION
       ! use the collective var which_orbdep
       !
       SELECT CASE ( TRIM(which_orbdep_) )
-      CASE ( "", "hf", "none" )
+      CASE ( "", "hf", "b3lyp", 'pbe0', "none" )
          ! do nothing
       CASE ( "nk", "non-koopmans" )
          do_nk   = .TRUE.
@@ -2701,11 +2712,18 @@ END FUNCTION
       !
       if( do_orbdep .and. meta_ionode ) then
           !
-          write(stdout,2005) vanishing_rho_w, f_cutoff
+          write(stdout,2005) vanishing_rho_w
           if( nknmax > 0 ) write(stdout,2030) nknmax
           !
           write( stdout, "(3x, 'NK memusage = ', f10.3, ' MB', /)" ) &
                nksic_memusage( )
+      endif
+      !
+      if( meta_ionode ) then
+          !
+          write(stdout,"()")
+          write(stdout,2006) f_cutoff, do_spinsym
+          !
       endif
       !
 2000  format( 3X,'NK sic with reference occupation = ',f7.4, /)
@@ -2713,8 +2731,9 @@ END FUNCTION
 2002  format( 3X,'NK sic with integral ref = ',l4, / )
 2004  format( 3X,'NK background density factor = ',f7.4, /, &
               3X,'NK scaling factor = ',f7.4 )
-2005  format( 3X,'rhothr = ',e8.1, /, &
-              3X,'f_cutoff = ',f7.4 )
+2005  format( 3X,'rhothr = ',e8.1 )
+2006  format( 3X,'f_cutoff = ',f7.4, /, &
+              3X,'do_spinsym   = ',l4 )
 2010  format( 3X,'NK cross-derivatives = ',l4, /, &
               3X,'NK reference derivatives = ',l4, /, &
               3X,'NK on top of PZ = ',l4 )
@@ -2735,23 +2754,64 @@ END FUNCTION
       use io_global,          only : meta_ionode, stdout
       use electrons_base,     only : nspin, nx => nbspx
       use gvecw,              only : ngw
+      use grid_dimensions,    only : nnrx
+      use funct,              only : start_exx, set_dft_from_name, dft_is_hybrid
       !
       implicit none
       !
-      do_hf = do_hf_ 
+      logical         :: ishybrid = .false.
+      character(30)   :: dft_name
+
+
+      do_hf       = do_hf_ 
+      hfscalfact  = hfscalfact_
+      f_cutoff    = f_cutoff_
       !
-      IF ( TRIM( which_orbdep_ ) == "hf" ) do_hf = .TRUE.
+      SELECT CASE ( TRIM( which_orbdep_ ) )
+      CASE ( "hf" )
+          !
+          do_hf = .TRUE.
+          ishybrid = .TRUE.
+          !
+      CASE ( "b3lyp" )
+          !
+          do_hf = .TRUE.
+          hfscalfact = 0.20
+          ishybrid = .TRUE.
+          !
+      CASE ( "pbe0" )
+          !
+          do_hf = .TRUE.
+          hfscalfact = 0.25
+          ishybrid = .TRUE.
+          !
+      END SELECT
       !
-      hfscalfact = hfscalfact_
-      f_cutoff = f_cutoff_
+      IF ( ishybrid ) THEN
+          !
+          dft_name = TRIM( which_orbdep_ )
+          CALL set_dft_from_name( dft_name )
+          !
+          IF ( meta_ionode ) &
+               WRITE( stdout, fmt="(/,3X,'Warning XC functionals forced to be: ',A)" ) dft_name
+          !
+          CALL start_exx()
+          !
+      ENDIF
+          
       !
-      if( do_hf .and. meta_ionode ) write(stdout,2000) hfscalfact
-      if( do_hf .and. meta_ionode ) write(stdout,2005) f_cutoff
       !
-2000  format( 3X,'HF scaling factor = ',f7.4 )
-2005  format( 3X,'f_cutoff = ',f7.4 )
+      if( do_hf .and. meta_ionode ) then
+          !
+          write(stdout,"( 3X,'HF scaling factor = ',f7.4 )") hfscalfact
+          write(stdout,"( 3X,'         f_cutoff = ',f7.4 )") f_cutoff
+          write(stdout,"( 3X,'    dft_is_hybrid = ',l5 )") dft_is_hybrid()
+          !
+      endif
       !
-      if( do_hf ) call allocate_hf(ngw,nx)
+      ! allocations
+      !
+      if( do_hf ) call allocate_hf(ngw,nnrx,nspin,nx)
       ! 
       end subroutine hf_init
 

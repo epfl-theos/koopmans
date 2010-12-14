@@ -4,6 +4,21 @@
 =======================================================
 
 
+Dec 14 2010     PBE0 and B3LYP functionals implemented in cp. 
+		Tests 02 and 05 updated. (AF)
+
+Dec 13 2010     Routine to compute empty states restored and re-added.
+		Test05 added to demonstrate how to use it and compare with the
+		traditional way of compute empty states using occupations from input. 
+
+		IMPORTANT CHANGE: exx and pink energies are added now after 
+		their calculation (not before as it used to be). This means
+		that the dynamics is not going to be exactly the same, while
+		the converged results should be. (AF)
+
+Nov 24 2010     Bug fixed in the initialization of deeq_sic: it was affecting
+		the random wfc at startup when do_nk=T (harmless anyway). (AF)
+
 Nov 22 2010     USPP implementation made effective. (AF)
 
 Nov 21 2010     Test suite added to repository. Extensive checks on the

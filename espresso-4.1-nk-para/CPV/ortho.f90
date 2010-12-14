@@ -109,7 +109,6 @@
                                     nlax_ , la_comm_ , descla_siz_
       USE mp_global,          ONLY: nproc_image, me_image, intra_image_comm
       USE mp,                 ONLY: mp_sum
-      USE cp_main_variables,  ONLY: nlam, la_proc, nlax
 
       IMPLICIT  NONE
 
@@ -131,9 +130,17 @@
       REAL(DP),   ALLOCATABLE :: s(:,:), sig(:,:), tau(:,:), rhot(:,:)
       REAL(DP),   ALLOCATABLE :: wrk(:,:), rhoa(:,:), rhos(:,:), rhod(:)
       INTEGER  :: i, j, info, nr, nc, ir, ic
+      INTEGER  :: nlam, nlax
+      LOGICAL  :: la_proc
+
       !
       ! ...   Subroutine body
       !
+      nlax    = descla( nlax_ )
+      la_proc = ( descla( lambda_node_ ) > 0 )
+      nlam    = 1
+      if ( la_proc ) nlam = nlax
+
       IF( la_proc ) THEN
          !
          IF( nx0 /= descla( nlax_ ) ) &
@@ -346,8 +353,8 @@
       USE control_flags,  ONLY: force_pairing
       USE io_global,      ONLY: stdout, ionode
       USE cp_interfaces,  ONLY: ortho_gamma
-      USE descriptors,    ONLY: nlac_ , ilac_ , descla_siz_ , nlar_ , ilar_
-      USE cp_main_variables,  ONLY: nlam, la_proc, nlax
+      USE descriptors,    ONLY: nlac_ , ilac_ , descla_siz_ , nlar_ , ilar_, lambda_node_, nlax_
+!      USE cp_main_variables,  ONLY: nlam, la_proc, nlax
       USE mp_global,          ONLY: nproc_image, me_image, intra_image_comm  ! DEBUG
       !
       IMPLICIT NONE
@@ -362,7 +369,10 @@
       !
       REAL(DP), ALLOCATABLE :: xloc(:,:)
       REAL(DP), ALLOCATABLE :: qbephi(:,:,:), qbecp(:,:,:), bephi_c(:,:)
-
+      !
+      INTEGER :: nlam, nlax
+      LOGICAL :: la_proc
+      !
       INTEGER :: nkbx
       INTEGER :: istart, nss, ifail, i, j, iss, iv, jv, ia, is, inl, jnl
       INTEGER :: nspin_sub, nx0, nc, ic, icc, nr, ir
@@ -372,8 +382,14 @@
       !
       nx0 = SIZE( x0, 1 )
       !
+      nlax    = descla( nlax_ , 1)
+      la_proc = ( descla( lambda_node_ , 1) > 0 )
+      nlam    = 1
+      if ( la_proc ) nlam = nlax
+
       IF( nx0 /= nlam ) &
          CALL errore( " ortho_cp ", " inconsistent dimensions for x0 ", nx0 )
+
       !
       !
       !     calculation of becp and bephi

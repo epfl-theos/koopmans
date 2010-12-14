@@ -164,7 +164,7 @@
 
          IF( idx + i - 1 <= n ) THEN
             !
-            if (tens .or. tsmear) then
+            if ( tens .or. tsmear ) then
                fi = -0.5d0
                fip = -0.5d0
             else
@@ -224,7 +224,7 @@
 
             IF( idx + i - 1 <= n ) THEN
 
-               IF (tens .or. tsmear) THEN
+               IF ( tens .or. tsmear ) THEN
                   fi = 1.0d0
                   fip= 1.0d0
                ELSE
