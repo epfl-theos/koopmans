@@ -10,7 +10,7 @@
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  16:16:58  14Dec2010               
+   This run was started on:   9:49:51  15Dec2010               
 
    MPI Parallel Build
    Tasks =    6  This task id =    0
@@ -29,11 +29,11 @@
    Main Simulation Parameters (from input)
    ---------------------------------------
    Restart Mode       =       1   restart        
-   Number of MD Steps =       1
+   Number of MD Steps =      10
    Print out every            1 MD Steps
-   Reads from unit    =      96
-   Writes to unit     =     196
-   MD Simulation time step            =       3.00
+   Reads from unit    =      90
+   Writes to unit     =      91
+   MD Simulation time step            =      15.00
    Electronic fictitious mass (emass) =    1000.00
    emass cut-off                      =       3.00
 
@@ -56,24 +56,16 @@
    Ecutwfc =   50.0 Ry,      Ecutrho =  200.0 Ry,      Ecuts =  200.0 Ry
    Gcutwfc =   22.5     ,    Gcutrho =   45.0          Gcuts =   45.0
    NOTA BENE: refg, mmx =   0.050000  8000
-   Eigenvalues calculated without the kinetic term contribution
-   Orthog. with lagrange multipliers : eps =   0.10E-07,  max = 500
+   Orthog. with Gram-Schmidt
    verlet algorithm for electron dynamics
    with friction frice =  0.0500 , grease =  1.0000
    Electron dynamics : the temperature is not controlled
 
    Electronic states
    -----------------
-   Number of Electron =    14, of States =     7
+   Number of Electron =    14, of States =     8
    Occupation numbers :
-   2.00 2.00 2.00 2.00 2.00 2.00 2.00
-
-
-   Empty states minimization
-   --------------------------
-      states =        3
-     maxiter =      140
-        ethr = 0.1000D-04
+   2.00 2.00 2.00 2.00 2.00 2.00 2.00 0.00
 
 
    Exchange and correlations functionals
@@ -197,8 +189,8 @@
 
 
    Diagonalization Performances
-   ortho diag, time for serial   driver =   0.03392
-   ortho diag, time for parallel driver =   0.00019 with    4 procs
+   ortho diag, time for serial   driver =   0.02588
+   ortho diag, time for parallel driver =   0.00024 with    4 procs
 
 
    Pseudopotentials initialization
@@ -231,195 +223,61 @@
 
    f_cutoff =  0.1000
    do_spinsym   =    F
-
-   Warning XC functionals forced to be: hf                            
-   HF scaling factor =  1.0000
-            f_cutoff =  0.1000
-       dft_is_hybrid =     T
    EE with periodic-image correction method = tcc                 
 
-   reading restart file: ./SCRATCH/clorine_96.save
-   restart file read in    0.043 sec.
+   reading restart file: ./SCRATCH/clorine_occ_90.save
+   restart file read in    0.047 sec.
 
  nprint_nfi=           -2
- nprint_nfi=          451
+ nprint_nfi=            1
 
    formf: eself=  39.09634
    formf:     vps(g=0)=  -0.0025842     rhops(g=0)=  -0.0008750
    formf: sum_g vps(g)=  -1.7047711 sum_g rhops(g)=  -0.6289924
    Delta V(G=0):   0.005498Ry,    0.149602eV
+      NOTE: eigenvalues are not computed without ortho
+ 
+  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
+    2 0.10E+02    0.0    0.0    59.60484    59.60484    59.60484    69.81593  0.0000  0.0000  0.0000  0.0000     1.08122
+      NOTE: eigenvalues are not computed without ortho
+    3 0.22E+02    0.0    0.0    28.91075    28.91075    28.91075    51.00512  0.0000  0.0000  0.0000  0.0000     0.47318
+      NOTE: eigenvalues are not computed without ortho
+    4 0.26E+02    0.0    0.0    -4.79624    -4.79624    -4.79624    21.58536  0.0000  0.0000  0.0000  0.0000     0.08918
+      NOTE: eigenvalues are not computed without ortho
+    5 0.18E+02    0.0    0.0   -12.84214   -12.84214   -12.84214     5.23291  0.0000  0.0000  0.0000  0.0000     0.05523
+      NOTE: eigenvalues are not computed without ortho
+    6 0.92E+01    0.0    0.0    -8.82875    -8.82875    -8.82875     0.38402  0.0000  0.0000  0.0000  0.0000     0.08600
+      NOTE: eigenvalues are not computed without ortho
+    7 0.70E+01    0.0    0.0   -10.80172   -10.80172   -10.80172    -3.84827  0.0000  0.0000  0.0000  0.0000     0.06431
+      NOTE: eigenvalues are not computed without ortho
+    8 0.79E+01    0.0    0.0   -18.58704   -18.58704   -18.58704   -10.67872  0.0000  0.0000  0.0000  0.0000     0.02244
+      NOTE: eigenvalues are not computed without ortho
+    9 0.73E+01    0.0    0.0   -23.72022   -23.72022   -23.72022   -16.45092  0.0000  0.0000  0.0000  0.0000     0.01017
 
- * Physical Quantities at step:   452
+ * Physical Quantities at step:    10
 
-   Empty states minimization starting 
-   nfi         dekinc         ekinc
-    1    0.143701D-01  0.143701D-01
-    2   -0.134498D-01  0.920257D-03
-    3    0.940509D-03  0.186077D-02
-    4    0.110501D-02  0.296578D-02
-    5    0.117898D-02  0.414476D-02
-    6    0.118144D-02  0.532621D-02
-    7    0.112951D-02  0.645572D-02
-    8    0.103829D-02  0.749401D-02
-    9    0.920787D-03  0.841480D-02
-   10    0.787948D-03  0.920275D-02
-   11    0.648689D-03  0.985143D-02
-   12    0.510025D-03  0.103615D-01
-   13    0.377226D-03  0.107387D-01
-   14    0.254010D-03  0.109927D-01
-   15    0.142760D-03  0.111355D-01
-   16    0.447495D-04  0.111802D-01
-   17   -0.396361D-04  0.111406D-01
-   18   -0.110685D-03  0.110299D-01
-   19   -0.169170D-03  0.108607D-01
-   20   -0.216177D-03  0.106445D-01
-   21   -0.252968D-03  0.103916D-01
-   22   -0.280866D-03  0.101107D-01
-   23   -0.301175D-03  0.980953D-02
-   24   -0.315116D-03  0.949441D-02
-   25   -0.323795D-03  0.917062D-02
-   26   -0.328181D-03  0.884244D-02
-   27   -0.329102D-03  0.851333D-02
-   28   -0.327253D-03  0.818608D-02
-   29   -0.323206D-03  0.786287D-02
-   30   -0.317428D-03  0.754545D-02
-   31   -0.310298D-03  0.723515D-02
-   32   -0.302122D-03  0.693303D-02
-   33   -0.293153D-03  0.663987D-02
-   34   -0.283599D-03  0.635627D-02
-   35   -0.273633D-03  0.608264D-02
-   36   -0.263405D-03  0.581924D-02
-   37   -0.253043D-03  0.556619D-02
-   38   -0.242657D-03  0.532354D-02
-   39   -0.232341D-03  0.509119D-02
-   40   -0.222176D-03  0.486902D-02
-   41   -0.212228D-03  0.465679D-02
-   42   -0.202549D-03  0.445424D-02
-   43   -0.193179D-03  0.426106D-02
-   44   -0.184147D-03  0.407692D-02
-   45   -0.175470D-03  0.390145D-02
-   46   -0.167155D-03  0.373429D-02
-   47   -0.159204D-03  0.357509D-02
-   48   -0.151611D-03  0.342348D-02
-   49   -0.144365D-03  0.327911D-02
-   50   -0.137455D-03  0.314166D-02
-   51   -0.130866D-03  0.301079D-02
-   52   -0.124583D-03  0.288621D-02
-   53   -0.118592D-03  0.276762D-02
-   54   -0.112879D-03  0.265474D-02
-   55   -0.107434D-03  0.254730D-02
-   56   -0.102244D-03  0.244506D-02
-   57   -0.973011D-04  0.234776D-02
-   58   -0.925959D-04  0.225516D-02
-   59   -0.881207D-04  0.216704D-02
-   60   -0.838681D-04  0.208317D-02
-   61   -0.798308D-04  0.200334D-02
-   62   -0.760015D-04  0.192734D-02
-   63   -0.723727D-04  0.185497D-02
-   64   -0.689365D-04  0.178603D-02
-   65   -0.656847D-04  0.172035D-02
-   66   -0.626089D-04  0.165774D-02
-   67   -0.597003D-04  0.159804D-02
-   68   -0.569501D-04  0.154109D-02
-   69   -0.543496D-04  0.148674D-02
-   70   -0.518900D-04  0.143485D-02
-   71   -0.495631D-04  0.138528D-02
-   72   -0.473607D-04  0.133792D-02
-   73   -0.452753D-04  0.129265D-02
-   74   -0.432997D-04  0.124935D-02
-   75   -0.414272D-04  0.120792D-02
-   76   -0.396518D-04  0.116827D-02
-   77   -0.379677D-04  0.113030D-02
-   78   -0.363697D-04  0.109393D-02
-   79   -0.348530D-04  0.105908D-02
-   80   -0.334131D-04  0.102567D-02
-   81   -0.320457D-04  0.993620D-03
-   82   -0.307470D-04  0.962873D-03
-   83   -0.295134D-04  0.933359D-03
-   84   -0.283412D-04  0.905018D-03
-   85   -0.272273D-04  0.877791D-03
-   86   -0.261683D-04  0.851623D-03
-   87   -0.251614D-04  0.826461D-03
-   88   -0.242037D-04  0.802258D-03
-   89   -0.232924D-04  0.778965D-03
-   90   -0.224248D-04  0.756540D-03
-   91   -0.215987D-04  0.734942D-03
-   92   -0.208115D-04  0.714130D-03
-   93   -0.200612D-04  0.694069D-03
-   94   -0.193457D-04  0.674723D-03
-   95   -0.186629D-04  0.656060D-03
-   96   -0.180112D-04  0.638049D-03
-   97   -0.173887D-04  0.620660D-03
-   98   -0.167940D-04  0.603866D-03
-   99   -0.162255D-04  0.587641D-03
-  100   -0.156819D-04  0.571959D-03
-  101   -0.151618D-04  0.556797D-03
-  102   -0.146641D-04  0.542133D-03
-  103   -0.141875D-04  0.527946D-03
-  104   -0.137311D-04  0.514214D-03
-  105   -0.132938D-04  0.500921D-03
-  106   -0.128746D-04  0.488046D-03
-  107   -0.124727D-04  0.475573D-03
-  108   -0.120871D-04  0.463486D-03
-  109   -0.117172D-04  0.451769D-03
-  110   -0.113620D-04  0.440407D-03
-  111   -0.110208D-04  0.429386D-03
-  112   -0.106931D-04  0.418693D-03
-  113   -0.103780D-04  0.408315D-03
-  114   -0.100750D-04  0.398240D-03
-  115   -0.978354D-05  0.388457D-03
-  116   -0.950294D-05  0.378954D-03
-  117   -0.923273D-05  0.369721D-03
-  118   -0.897238D-05  0.360749D-03
-  119   -0.872142D-05  0.352027D-03
-  120   -0.847939D-05  0.343548D-03
-  121   -0.824587D-05  0.335302D-03
-  122   -0.802045D-05  0.327281D-03
-  123   -0.780274D-05  0.319479D-03
-  124   -0.759240D-05  0.311886D-03
-  125   -0.738909D-05  0.304497D-03
-  126   -0.719248D-05  0.297305D-03
-  127   -0.700228D-05  0.290302D-03
-  128   -0.681822D-05  0.283484D-03
-  129   -0.664002D-05  0.276844D-03
-  130   -0.646745D-05  0.270377D-03
-  131   -0.630026D-05  0.264076D-03
-  132   -0.613825D-05  0.257938D-03
-  133   -0.598121D-05  0.251957D-03
-  134   -0.582894D-05  0.246128D-03
-  135   -0.568125D-05  0.240447D-03
-  136   -0.553798D-05  0.234909D-03
-  137   -0.539895D-05  0.229510D-03
-  138   -0.526402D-05  0.224246D-03
-  139   -0.513301D-05  0.219113D-03
-  140   -0.500580D-05  0.214107D-03
+   from rhoofr: total integrated electronic density
+   in g-space =   14.000000   in r-space =  14.000000
+      NOTE: eigenvalues are not computed without ortho
 
 
-
-                total energy =      -29.64272 Hartree a.u.
-              kinetic energy =       11.06567 Hartree a.u.
-        electrostatic energy =      -34.41141 Hartree a.u.
+                total energy =      -23.89136 Hartree a.u.
+              kinetic energy =       15.38916 Hartree a.u.
+        electrostatic energy =      -33.45082 Hartree a.u.
                          esr =        0.00180 Hartree a.u.
                        eself =       39.09634 Hartree a.u.
-      pseudopotential energy =       -7.91061 Hartree a.u.
-  n-l pseudopotential energy =        6.93622 Hartree a.u.
- exchange-correlation energy =        0.00000 Hartree a.u.
+      pseudopotential energy =       -7.65092 Hartree a.u.
+  n-l pseudopotential energy =        7.01000 Hartree a.u.
+ exchange-correlation energy =       -5.18877 Hartree a.u.
            average potential =        0.00000 Hartree a.u.
 
 
 
    Eigenvalues (eV), kp =   1 , spin =  1
 
-  -33.11  -27.90  -16.22  -15.47  -15.47  -12.27  -12.27
-
-   Empty States Eigenvalues (eV), kp =   1 , spin =  1
-
-    0.32    0.47    1.59
-
-   Electronic Gap (eV) =    12.59
-
+    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00
  
-   Allocated memory (kb) =     62720
+   Allocated memory (kb) =     51068
  
    CELL_PARAMETERS
    20.00000000    0.00000000    0.00000000
@@ -446,54 +304,97 @@
         1       0.00     0.0000
  
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-  452 0.14E-03    0.0    0.0   -29.64272   -29.64272   -29.64272   -29.64258  0.0000  0.0000  0.0000  0.0000     0.00000
+   10 0.48E+01    0.0    0.0   -23.89136   -23.89136   -23.89136   -19.07585  0.0000  0.0000  0.0000  0.0000     0.01423
 
-   writing restart file: ./SCRATCH/clorine_196.save
-   restart file written in    0.101 sec.
+ * Physical Quantities at step:    11
+      NOTE: eigenvalues are not computed without ortho
+
+
+                total energy =      -23.23278 Hartree a.u.
+              kinetic energy =       15.89382 Hartree a.u.
+        electrostatic energy =      -33.35978 Hartree a.u.
+                         esr =        0.00180 Hartree a.u.
+                       eself =       39.09634 Hartree a.u.
+      pseudopotential energy =       -7.47779 Hartree a.u.
+  n-l pseudopotential energy =        6.85153 Hartree a.u.
+ exchange-correlation energy =       -5.14057 Hartree a.u.
+           average potential =        0.00000 Hartree a.u.
+
+
+
+   Eigenvalues (eV), kp =   1 , spin =  1
+
+    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00
+ 
+   Allocated memory (kb) =     51068
+ 
+   CELL_PARAMETERS
+   20.00000000    0.00000000    0.00000000
+    0.00000000   20.00000000    0.00000000
+    0.00000000    0.00000000   20.00000000
+
+   System Density [g/cm^3] :     0.0993
+
+
+   Center of mass square displacement (a.u.):   0.000000
+
+   ATOMIC_POSITIONS
+   Cl   0.000000E+00  0.000000E+00  0.190398E+01
+   Cl   0.000000E+00  0.000000E+00 -0.190398E+01
+ 
+   ATOMIC_VELOCITIES
+   Cl   0.000000E+00  0.000000E+00  0.000000E+00
+   Cl   0.000000E+00  0.000000E+00  0.000000E+00
+ 
+
+
+   Partial temperatures (for each ionic specie) 
+   Species  Temp (K)   Mean Square Displacement (a.u.)
+        1       0.00     0.0000
+   11 0.30E+01    0.0    0.0   -23.23278   -23.23278   -23.23278   -20.24750  0.0000  0.0000  0.0000  0.0000     0.01664
+
+   writing restart file: ./SCRATCH/clorine_occ_91.save
+   restart file written in    0.162 sec.
 
 
 
    Averaged Physical Quantities
                       accomulated      this run
-   ekinc         :        0.32562       0.00014 (AU)
-   ekin          :       11.81253      11.06567 (AU)
-   epot          :      -47.09027     -42.32202 (AU)
-   total energy  :      -29.06704     -29.64272 (AU)
+   ekinc         :       10.77652      11.59067 (AU)
+   ekin          :       33.85058      29.10666 (AU)
+   epot          :      -35.56481     -38.19888 (AU)
+   total energy  :        3.08662      -3.81847 (AU)
    temperature   :        0.00000       0.00000 (K )
-   enthalpy      :      -29.06704     -29.64272 (AU)
-   econs         :      -29.06704     -29.64272 (AU)
+   enthalpy      :        3.08662      -3.81847 (AU)
+   econs         :        3.08662      -3.81847 (AU)
    pressure      :        0.00000       0.00000 (Gpa)
    volume        :     8000.00000    8000.00000 (AU)
 
 
-     initialize   :     1.01s CPU
-     total_time   :   209.33s CPU
-     formf        :     0.05s CPU
-     rhoofr       :     0.08s CPU
-     vofrho       :     0.18s CPU
-     dforce       :     5.96s CPU (     284 calls,   0.021 s avg)
-     calphi       :     0.03s CPU (     141 calls,   0.000 s avg)
-     ortho        :     0.05s CPU (     141 calls,   0.000 s avg)
-     ortho_iter   :     0.00s CPU (     141 calls,   0.000 s avg)
-     rsg          :     0.00s CPU (     141 calls,   0.000 s avg)
-     rhoset       :     0.02s CPU (     141 calls,   0.000 s avg)
-     updatc       :     0.02s CPU (     141 calls,   0.000 s avg)
-     newd         :     0.00s CPU
-     calbec       :     0.01s CPU (       2 calls,   0.004 s avg)
-     prefor       :     0.00s CPU (       3 calls,   0.000 s avg)
+     initialize   :     1.17s CPU
+     total_time   :     3.30s CPU (      10 calls,   0.330 s avg)
+     formf        :     0.06s CPU
+     rhoofr       :     0.82s CPU (      10 calls,   0.082 s avg)
+     vofrho       :     1.60s CPU (      10 calls,   0.160 s avg)
+     dforce       :     0.80s CPU (      40 calls,   0.020 s avg)
+     calphi       :     0.00s CPU (      10 calls,   0.000 s avg)
+     gram         :     0.02s CPU (      10 calls,   0.002 s avg)
+     newd         :     0.03s CPU (      10 calls,   0.003 s avg)
+     calbec       :     0.01s CPU (      11 calls,   0.001 s avg)
+     prefor       :     0.01s CPU (      11 calls,   0.001 s avg)
      strucf       :     0.00s CPU
-     nlsm1        :     0.07s CPU (     426 calls,   0.000 s avg)
-     fft          :   118.58s CPU (    6843 calls,   0.017 s avg)
-     ffts         :     0.04s CPU (       2 calls,   0.020 s avg)
-     fftw         :    38.09s CPU (    4415 calls,   0.009 s avg)
-     cft3s        :   156.67s CPU (   11260 calls,   0.014 s avg)
-     fft_scatter  :    44.13s CPU (   11260 calls,   0.004 s avg)
+     nlsm1        :     0.01s CPU (      11 calls,   0.001 s avg)
+     fft          :     1.24s CPU (      74 calls,   0.017 s avg)
+     ffts         :     0.33s CPU (      20 calls,   0.017 s avg)
+     fftw         :     1.11s CPU (     120 calls,   0.009 s avg)
+     cft3s        :     2.68s CPU (     214 calls,   0.013 s avg)
+     fft_scatter  :     1.11s CPU (     214 calls,   0.005 s avg)
  
  
-     CP           :  3m30.44s CPU time,     3m31.11s wall time
+     CP           :     4.62s CPU time,    4.70s wall time
 
  
-   This run was terminated on:  16:20:29  14Dec2010            
+   This run was terminated on:   9:49:56  15Dec2010            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

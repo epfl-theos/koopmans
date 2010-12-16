@@ -13,9 +13,9 @@
     etot_conv_thr = 1.0e-6
 /
 &SYSTEM
-    ecutwfc = 80.0 
+    ecutwfc = 50.0 
     ibrav = 1
-    celldm(1) = 25.0
+    celldm(1) = 20.0
     nat = 2
     ntyp = 1
     do_ee =.true.

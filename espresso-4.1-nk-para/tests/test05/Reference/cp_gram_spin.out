@@ -3,14 +3,14 @@
      CP: variable-cell Car-Parrinello molecular dynamics
      using norm-conserving and ultrasoft Vanderbilt pseudopotentials
 
-     Version: 4.1 - Wed Dec 8 14:15:08 EST 2010                           
+     Version: 4.1 - Mon Dec 13 15:39:43 EST 2010                          
      Authors: Alfredo Pasquarello, Kari Laasonen, Andrea Trave, Roberto Car,
        Paolo Giannozzi, Nicola Marzari, Carlo Cavazzoni, Guido Chiarotti,
        Sandro Scandolo, Paolo Focher, Gerardo Ballabio, and others
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  14:17:49   8Dec2010               
+   This run was started on:  10:10:40  15Dec2010               
 
    MPI Parallel Build
    Tasks =    6  This task id =    0
@@ -41,21 +41,21 @@
    external pressure       =            0.00 [GPa]
    wmass (calculated)      =         9821.27 [AU]
    ibrav =    1
-   alat  =    25.00000000
-   a1    =    25.00000000    0.00000000    0.00000000
-   a2    =     0.00000000   25.00000000    0.00000000
-   a3    =     0.00000000    0.00000000   25.00000000
+   alat  =    20.00000000
+   a1    =    20.00000000    0.00000000    0.00000000
+   a2    =     0.00000000   20.00000000    0.00000000
+   a3    =     0.00000000    0.00000000   20.00000000
  
-   b1    =     0.04000000    0.00000000    0.00000000
-   b2    =     0.00000000    0.04000000    0.00000000
-   b3    =     0.00000000    0.00000000    0.04000000
-   omega = 15625.00000000
+   b1    =     0.05000000    0.00000000    0.00000000
+   b2    =     0.00000000    0.05000000    0.00000000
+   b3    =     0.00000000    0.00000000    0.05000000
+   omega =  8000.00000000
 
    Energy Cut-offs
    ---------------
-   Ecutwfc =   80.0 Ry,      Ecutrho =  320.0 Ry,      Ecuts =  320.0 Ry
-   Gcutwfc =   35.6     ,    Gcutrho =   71.2          Gcuts =   71.2
-   NOTA BENE: refg, mmx =   0.050000 12800
+   Ecutwfc =   50.0 Ry,      Ecutrho =  200.0 Ry,      Ecuts =  200.0 Ry
+   Gcutwfc =   22.5     ,    Gcutrho =   45.0          Gcuts =   45.0
+   NOTA BENE: refg, mmx =   0.050000  8000
    Orthog. with Gram-Schmidt
    verlet algorithm for electron dynamics
    with friction frice =  0.0500 , grease =  1.0000
@@ -106,82 +106,82 @@
 
    unit vectors of full simulation cell
    in real space:                         in reciprocal space (units 2pi/alat):
-   1    25.0000    0.0000    0.0000              1.0000    0.0000    0.0000
-   2     0.0000   25.0000    0.0000              0.0000    1.0000    0.0000
-   3     0.0000    0.0000   25.0000              0.0000    0.0000    1.0000
+   1    20.0000    0.0000    0.0000              1.0000    0.0000    0.0000
+   2     0.0000   20.0000    0.0000              0.0000    1.0000    0.0000
+   3     0.0000    0.0000   20.0000              0.0000    0.0000    1.0000
  
    Stick Mesh
    ----------
-   nst =  7967,  nstw =  1993, nsts =  7967
+   nst =  3185,  nstw =   799, nsts =  3185
         PEs    n.st   n.stw   n.sts    n.g    n.gw   n.gs
-          1    2654     664    2654  251806   31508  251806
-          2    2654     664    2654  251806   31508  251806
-          3    2654     664    2654  251806   31508  251806
-          4    2658     666    2658  251806   31514  251806
-          5    2655     663    2655  251805   31505  251805
-          6    2658     664    2658  251806   31504  251806
-          0   15933    3985   15933 1510835  189047 1510835
+          1    1063     265    1063   63721    7973   63721
+          2    1060     266    1060   63720    7974   63720
+          3    1060     268    1060   63720    7976   63720
+          4    1060     266    1060   63720    7970   63720
+          5    1062     266    1062   63722    7970   63722
+          6    1064     266    1064   63720    7970   63720
+          0    6369    1597    6369  382323   47833  382323
  
  
    Real Mesh
    ---------
    Global Dimensions   Local  Dimensions   Processor Grid
    .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
-   144   144   144     144   144    24       1     1     6
-   Array leading dimensions ( nr1x, nr2x, nr3x )   =    144   144   144
-   Local number of cell to store the grid ( nnrx ) =     497664
+    96    96    96      96    96    16       1     1     6
+   Array leading dimensions ( nr1x, nr2x, nr3x )   =     96    96    96
+   Local number of cell to store the grid ( nnrx ) =     147456
    Number of x-y planes for each processors: 
-   nr3l =    24   24   24   24   24   24
+   nr3l =    16   16   16   16   16   16
  
    Smooth Real Mesh
    ----------------
    Global Dimensions   Local  Dimensions   Processor Grid
    .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
-   144   144   144     144   144    24       1     1     6
-   Array leading dimensions ( nr1x, nr2x, nr3x )   =    144   144   144
-   Local number of cell to store the grid ( nnrx ) =     497664
+    96    96    96      96    96    16       1     1     6
+   Array leading dimensions ( nr1x, nr2x, nr3x )   =     96    96    96
+   Local number of cell to store the grid ( nnrx ) =     147456
    Number of x-y planes for each processors: 
-   nr3sl =    24   24   24   24   24   24
+   nr3sl =    16   16   16   16   16   16
  
    Reciprocal Space Mesh
    ---------------------
                 Large Mesh
    PE   Global(ngmt)     Local(ngm) MaxLocal(ngmx)
-    1         755418         125903         125903
-    2         755418         125903         125903
-    3         755418         125903         125903
-    4         755418         125903         125903
-    5         755418         125903         125903
-    6         755418         125903         125903
+    1         191162          31861          31861
+    2         191162          31860          31861
+    3         191162          31860          31861
+    4         191162          31860          31861
+    5         191162          31861          31861
+    6         191162          31860          31861
                 Smooth Mesh
    PE   Global(ngst)     Local(ngs) MaxLocal(ngsx)
-    1         755418         125903         125903
-    2         755418         125903         125903
-    3         755418         125903         125903
-    4         755418         125903         125903
-    5         755418         125903         125903
-    6         755418         125903         125903
+    1         191162          31861          31861
+    2         191162          31860          31861
+    3         191162          31860          31861
+    4         191162          31860          31861
+    5         191162          31861          31861
+    6         191162          31860          31861
                 Wave function Mesh
    PE   Global(ngwt)     Local(ngw) MaxLocal(ngwx)
-    1          94524          15754          15757
-    2          94524          15754          15757
-    3          94524          15754          15757
-    4          94524          15757          15757
-    5          94524          15753          15757
-    6          94524          15752          15757
+    1          23917           3987           3988
+    2          23917           3987           3988
+    3          23917           3988           3988
+    4          23917           3985           3988
+    5          23917           3985           3988
+    6          23917           3985           3988
 
 
    System geometry initialization
    ------------------------------
  
    Scaled positions from standard input
-   Cl   0.000000E+00  0.000000E+00  0.761591E-01
-   Cl   0.000000E+00  0.000000E+00 -0.761591E-01
+   Cl   0.000000E+00  0.000000E+00  0.951988E-01
+   Cl   0.000000E+00  0.000000E+00 -0.951988E-01
    ibrav =    1       cell parameters 
 
-      25.00000       0.00000       0.00000
-       0.00000      25.00000       0.00000
-       0.00000       0.00000      25.00000
+      20.00000       0.00000       0.00000
+       0.00000      20.00000       0.00000
+       0.00000       0.00000      20.00000
  
 
    Matrix Multiplication Performances
@@ -192,8 +192,8 @@
 
 
    Diagonalization Performances
-   ortho diag, time for serial   driver =   0.06316
-   ortho diag, time for parallel driver =   0.00018 with    4 procs
+   ortho diag, time for serial   driver =   0.04648
+   ortho diag, time for parallel driver =   0.00021 with    4 procs
 
 
    Pseudopotentials initialization
@@ -225,37 +225,37 @@
  
 
    f_cutoff =  0.1000
-   do_spinsym   =    F
+   do_spinsym   =    T
    EE with periodic-image correction method = tcc                 
 
    reading restart file: ./SCRATCH/clorine_spin_90.save
-   restart file read in    0.234 sec.
+   restart file read in    0.044 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            1
 
    formf: eself=  39.09634
-   formf:     vps(g=0)=  -0.0013111     rhops(g=0)=  -0.0004410
-   formf: sum_g vps(g)=  -1.5988328 sum_g rhops(g)=  -0.6287789
-   Delta V(G=0):   0.002815Ry,    0.076596eV
+   formf:     vps(g=0)=  -0.0025842     rhops(g=0)=  -0.0008750
+   formf: sum_g vps(g)=  -1.7047711 sum_g rhops(g)=  -0.6289924
+   Delta V(G=0):   0.005498Ry,    0.149602eV
       NOTE: eigenvalues are not computed without ortho
  
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-    2 0.21E+02    0.0    0.0   112.20211   112.20211   112.20211   133.50122  0.0000  0.0000  0.0000  0.0000     1.05576
+    2 0.20E+02    0.0    0.0    59.60484    59.60484    59.60484    79.99110  0.0000  0.0000  0.0000  0.0000     1.08122
       NOTE: eigenvalues are not computed without ortho
-    3 0.53E+02    0.0    0.0    79.86113    79.86113    79.86113   133.10184  0.0000  0.0000  0.0000  0.0000     0.67275
+    3 0.44E+02    0.0    0.0    28.91075    28.91075    28.91075    73.06114  0.0000  0.0000  0.0000  0.0000     0.47318
       NOTE: eigenvalues are not computed without ortho
-    4 0.81E+02    0.0    0.0    22.06521    22.06521    22.06521   103.32415  0.0000  0.0000  0.0000  0.0000     0.16636
+    4 0.53E+02    0.0    0.0    -4.79624    -4.79624    -4.79624    47.92607  0.0000  0.0000  0.0000  0.0000     0.08918
       NOTE: eigenvalues are not computed without ortho
-    5 0.70E+02    0.0    0.0    -9.27919    -9.27919    -9.27919    60.82578  0.0000  0.0000  0.0000  0.0000     0.03259
+    5 0.36E+02    0.0    0.0   -12.84214   -12.84214   -12.84214    23.26011  0.0000  0.0000  0.0000  0.0000     0.05523
       NOTE: eigenvalues are not computed without ortho
-    6 0.35E+02    0.0    0.0    -4.88309    -4.88309    -4.88309    30.45977  0.0000  0.0000  0.0000  0.0000     0.04790
+    6 0.18E+02    0.0    0.0    -8.82875    -8.82875    -8.82875     9.53686  0.0000  0.0000  0.0000  0.0000     0.08600
       NOTE: eigenvalues are not computed without ortho
-    7 0.18E+02    0.0    0.0    -0.95272    -0.95272    -0.95272    17.29877  0.0000  0.0000  0.0000  0.0000     0.05540
+    7 0.14E+02    0.0    0.0   -10.80172   -10.80172   -10.80172     3.03176  0.0000  0.0000  0.0000  0.0000     0.06431
       NOTE: eigenvalues are not computed without ortho
-    8 0.20E+02    0.0    0.0   -10.32418   -10.32418   -10.32418     9.43645  0.0000  0.0000  0.0000  0.0000     0.02362
+    8 0.16E+02    0.0    0.0   -18.58704   -18.58704   -18.58704    -2.85398  0.0000  0.0000  0.0000  0.0000     0.02244
       NOTE: eigenvalues are not computed without ortho
-    9 0.22E+02    0.0    0.0   -20.86219   -20.86219   -20.86219     0.69227  0.0000  0.0000  0.0000  0.0000     0.00605
+    9 0.14E+02    0.0    0.0   -23.72022   -23.72022   -23.72022    -9.27404  0.0000  0.0000  0.0000  0.0000     0.01017
 
  * Physical Quantities at step:    10
 
@@ -267,14 +267,14 @@
       NOTE: eigenvalues are not computed without ortho
 
 
-                total energy =      -22.97875 Hartree a.u.
-              kinetic energy =       16.40727 Hartree a.u.
-        electrostatic energy =      -33.53319 Hartree a.u.
+                total energy =      -23.89136 Hartree a.u.
+              kinetic energy =       15.38916 Hartree a.u.
+        electrostatic energy =      -33.45082 Hartree a.u.
                          esr =        0.00180 Hartree a.u.
                        eself =       39.09634 Hartree a.u.
-      pseudopotential energy =       -7.51766 Hartree a.u.
-  n-l pseudopotential energy =        6.85446 Hartree a.u.
- exchange-correlation energy =       -5.18963 Hartree a.u.
+      pseudopotential energy =       -7.65092 Hartree a.u.
+  n-l pseudopotential energy =        7.01000 Hartree a.u.
+ exchange-correlation energy =       -5.18877 Hartree a.u.
            average potential =        0.00000 Hartree a.u.
 
 
@@ -287,14 +287,14 @@
 
     0.00    0.00    0.00    0.00    0.00    0.00    0.00
  
-   Allocated memory (kb) =    165260
+   Allocated memory (kb) =     57012
  
    CELL_PARAMETERS
-   25.00000000    0.00000000    0.00000000
-    0.00000000   25.00000000    0.00000000
-    0.00000000    0.00000000   25.00000000
+   20.00000000    0.00000000    0.00000000
+    0.00000000   20.00000000    0.00000000
+    0.00000000    0.00000000   20.00000000
 
-   System Density [g/cm^3] :     0.0508
+   System Density [g/cm^3] :     0.0993
 
 
    Center of mass square displacement (a.u.):   0.000000
@@ -314,54 +314,101 @@
         1       0.00     0.0000
  
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-   10 0.16E+02    0.0    0.0   -22.97875   -22.97875   -22.97875    -7.30371  0.0000  0.0000  0.0000  0.0000     0.00604
+   10 0.95E+01    0.0    0.0   -23.89136   -23.89136   -23.89136   -14.36573  0.0000  0.0000  0.0000  0.0000     0.01423
 
  * Physical Quantities at step:    11
       NOTE: eigenvalues are not computed without ortho
-   11 0.84E+01    0.0    0.0   -20.61898   -20.61898   -20.61898   -12.24229  0.0000  0.0000  0.0000  0.0000     0.01064
+
+
+                total energy =      -23.23278 Hartree a.u.
+              kinetic energy =       15.89382 Hartree a.u.
+        electrostatic energy =      -33.35978 Hartree a.u.
+                         esr =        0.00180 Hartree a.u.
+                       eself =       39.09634 Hartree a.u.
+      pseudopotential energy =       -7.47779 Hartree a.u.
+  n-l pseudopotential energy =        6.85153 Hartree a.u.
+ exchange-correlation energy =       -5.14057 Hartree a.u.
+           average potential =        0.00000 Hartree a.u.
+
+
+
+   Eigenvalues (eV), kp =   1 , spin =  1
+
+    0.00    0.00    0.00    0.00    0.00    0.00    0.00
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+    0.00    0.00    0.00    0.00    0.00    0.00    0.00
+ 
+   Allocated memory (kb) =     57012
+ 
+   CELL_PARAMETERS
+   20.00000000    0.00000000    0.00000000
+    0.00000000   20.00000000    0.00000000
+    0.00000000    0.00000000   20.00000000
+
+   System Density [g/cm^3] :     0.0993
+
+
+   Center of mass square displacement (a.u.):   0.000000
+
+   ATOMIC_POSITIONS
+   Cl   0.000000E+00  0.000000E+00  0.190398E+01
+   Cl   0.000000E+00  0.000000E+00 -0.190398E+01
+ 
+   ATOMIC_VELOCITIES
+   Cl   0.000000E+00  0.000000E+00  0.000000E+00
+   Cl   0.000000E+00  0.000000E+00  0.000000E+00
+ 
+
+
+   Partial temperatures (for each ionic specie) 
+   Species  Temp (K)   Mean Square Displacement (a.u.)
+        1       0.00     0.0000
+   11 0.58E+01    0.0    0.0   -23.23278   -23.23278   -23.23278   -17.38796  0.0000  0.0000  0.0000  0.0000     0.01664
 
    writing restart file: ./SCRATCH/clorine_spin_91.save
-   restart file written in    0.966 sec.
+   restart file written in    0.301 sec.
 
 
 
    Averaged Physical Quantities
                       accomulated      this run
-   ekinc         :       31.80558      34.48649 (AU)
-   ekin          :       51.64916      43.68342 (AU)
-   epot          :      -33.25030     -35.87971 (AU)
-   total energy  :       22.59964      12.42293 (AU)
+   ekinc         :       21.48726      23.11100 (AU)
+   ekin          :       33.85058      29.10666 (AU)
+   epot          :      -35.56481     -38.19888 (AU)
+   total energy  :        3.08662      -3.81847 (AU)
    temperature   :        0.00000       0.00000 (K )
-   enthalpy      :       22.59964      12.42293 (AU)
-   econs         :       22.59964      12.42293 (AU)
+   enthalpy      :        3.08662      -3.81847 (AU)
+   econs         :        3.08662      -3.81847 (AU)
    pressure      :        0.00000       0.00000 (Gpa)
-   volume        :    15625.00000   15625.00000 (AU)
+   volume        :     8000.00000    8000.00000 (AU)
 
 
-     initialize   :     2.57s CPU
-     total_time   :    18.63s CPU (      10 calls,   1.863 s avg)
-     formf        :     0.10s CPU
-     rhoofr       :     4.70s CPU (      10 calls,   0.470 s avg)
-     vofrho       :     7.78s CPU (      10 calls,   0.778 s avg)
-     dforce       :     5.66s CPU (      70 calls,   0.081 s avg)
-     calphi       :     0.04s CPU (      10 calls,   0.004 s avg)
-     gram         :     0.12s CPU (      10 calls,   0.012 s avg)
-     newd         :     0.04s CPU (      10 calls,   0.004 s avg)
-     calbec       :     0.10s CPU (      11 calls,   0.009 s avg)
-     prefor       :     0.03s CPU (      11 calls,   0.003 s avg)
+     initialize   :     1.08s CPU
+     total_time   :     4.65s CPU (      10 calls,   0.465 s avg)
+     formf        :     0.05s CPU
+     rhoofr       :     1.18s CPU (      10 calls,   0.118 s avg)
+     vofrho       :     1.98s CPU (      10 calls,   0.198 s avg)
+     dforce       :     1.40s CPU (      70 calls,   0.020 s avg)
+     calphi       :     0.02s CPU (      10 calls,   0.002 s avg)
+     gram         :     0.02s CPU (      10 calls,   0.002 s avg)
+     newd         :     0.01s CPU (      10 calls,   0.001 s avg)
+     calbec       :     0.02s CPU (      11 calls,   0.001 s avg)
+     prefor       :     0.00s CPU (      11 calls,   0.000 s avg)
      strucf       :     0.00s CPU
-     nlsm1        :     0.10s CPU (      11 calls,   0.009 s avg)
-     fft          :     5.28s CPU (      74 calls,   0.071 s avg)
-     ffts         :     1.42s CPU (      20 calls,   0.071 s avg)
-     fftw         :     7.22s CPU (     210 calls,   0.034 s avg)
-     cft3s        :    13.93s CPU (     304 calls,   0.046 s avg)
-     fft_scatter  :     3.56s CPU (     304 calls,   0.012 s avg)
+     nlsm1        :     0.02s CPU (      11 calls,   0.001 s avg)
+     fft          :     1.30s CPU (      74 calls,   0.018 s avg)
+     ffts         :     0.35s CPU (      20 calls,   0.017 s avg)
+     fftw         :     1.77s CPU (     210 calls,   0.008 s avg)
+     cft3s        :     3.42s CPU (     304 calls,   0.011 s avg)
+     fft_scatter  :     1.21s CPU (     304 calls,   0.004 s avg)
  
  
-     CP           :    22.08s CPU time,   22.43s wall time
+     CP           :     6.00s CPU time,    6.16s wall time
 
  
-   This run was terminated on:  14:18:12   8Dec2010            
+   This run was terminated on:  10:10:46  15Dec2010            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

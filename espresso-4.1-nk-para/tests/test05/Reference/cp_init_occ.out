@@ -10,7 +10,7 @@
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  10:10:34  15Dec2010               
+   This run was started on:   9:49:46  15Dec2010               
 
    MPI Parallel Build
    Tasks =    1  This task id =    0
@@ -64,12 +64,9 @@
 
    Electronic states
    -----------------
-   Local Spin Density calculation
-   Number of Electron =    14
-   Spins up   =     7, occupations: 
-   1.00 1.00 1.00 1.00 1.00 1.00 1.00
-   Spins down =     7, occupations: 
-   1.00 1.00 1.00 1.00 1.00 1.00 1.00
+   Number of Electron =    14, of States =     8
+   Occupation numbers :
+   2.00 2.00 2.00 2.00 2.00 2.00 2.00 0.00
 
 
    Exchange and correlations functionals
@@ -199,17 +196,14 @@
  
 
    f_cutoff =  0.1000
-   do_spinsym   =    T
+   do_spinsym   =    F
    EE with periodic-image correction method = tcc                 
 
 
    Wave Initialization: random initial wave-functions
-                        spin symmetry applied to init wave
    Occupation number from init
-   spin =   1 nbnd =     7
-    1.00 1.00 1.00 1.00 1.00 1.00 1.00
-   spin =   2 nbnd =     7
-    1.00 1.00 1.00 1.00 1.00 1.00 1.00
+   nbnd =     8
+    2.00 2.00 2.00 2.00 2.00 2.00 2.00 0.00
 
    formf: eself=  39.09634
    formf:     vps(g=0)=  -0.0025842     rhops(g=0)=  -0.0008750
@@ -217,10 +211,7 @@
    Delta V(G=0):   0.005498Ry,    0.149602eV
 
    from rhoofr: total integrated electronic density
-   spin up
-   in g-space =    7.000000   in r-space =   7.000000
-   spin down
-   in g-space =    7.000000   in r-space =   7.000000
+   in g-space =   14.000000   in r-space =  14.000000
 
  * Physical Quantities at step:     1
       NOTE: eigenvalues are not computed without ortho
@@ -240,13 +231,9 @@
 
    Eigenvalues (eV), kp =   1 , spin =  1
 
-    0.00    0.00    0.00    0.00    0.00    0.00    0.00
-
-   Eigenvalues (eV), kp =   1 , spin =  2
-
-    0.00    0.00    0.00    0.00    0.00    0.00    0.00
+    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00
  
-   Allocated memory (kb) =    171436
+   Allocated memory (kb) =    135752
  
    CELL_PARAMETERS
    20.00000000    0.00000000    0.00000000
@@ -273,16 +260,16 @@
         1       0.00     0.0000
  
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-    1 0.52E+01    0.0    0.0    72.13748    72.13748    72.13748    77.38729  0.0000  0.0000  0.0000  0.0000     1.40580
+    1 0.26E+01    0.0    0.0    72.13748    72.13748    72.13748    74.77250  0.0000  0.0000  0.0000  0.0000     1.40580
 
-   writing restart file: ./SCRATCH/clorine_spin_90.save
-   restart file written in    0.169 sec.
+   writing restart file: ./SCRATCH/clorine_occ_90.save
+   restart file written in    0.100 sec.
 
 
 
    Averaged Physical Quantities
                       accomulated      this run
-   ekinc         :        5.24981       5.24981 (AU)
+   ekinc         :        2.63503       2.63503 (AU)
    ekin          :       81.28974      81.28974 (AU)
    epot          :       -9.22403      -9.22403 (AU)
    total energy  :       72.13748      72.13748 (AU)
@@ -293,29 +280,29 @@
    volume        :     8000.00000    8000.00000 (AU)
 
 
-     initialize   :     2.28s CPU
-     total_time   :     1.11s CPU
+     initialize   :     1.97s CPU
+     total_time   :     0.73s CPU
      formf        :     0.05s CPU
-     rhoofr       :     0.54s CPU (       2 calls,   0.272 s avg)
-     vofrho       :     0.97s CPU (       2 calls,   0.484 s avg)
-     dforce       :     0.64s CPU (      14 calls,   0.045 s avg)
-     calphi       :     0.01s CPU (       2 calls,   0.004 s avg)
-     gram         :     0.01s CPU (       4 calls,   0.003 s avg)
+     rhoofr       :     0.37s CPU (       2 calls,   0.186 s avg)
+     vofrho       :     0.73s CPU (       2 calls,   0.364 s avg)
+     dforce       :     0.37s CPU (       8 calls,   0.046 s avg)
+     calphi       :     0.00s CPU (       2 calls,   0.000 s avg)
+     gram         :     0.01s CPU (       3 calls,   0.003 s avg)
      newd         :     0.00s CPU (       2 calls,   0.000 s avg)
-     calbec       :     0.01s CPU (       3 calls,   0.004 s avg)
-     prefor       :     0.00s CPU (       2 calls,   0.000 s avg)
+     calbec       :     0.01s CPU (       3 calls,   0.003 s avg)
+     prefor       :     0.00s CPU (       2 calls,   0.002 s avg)
      strucf       :     0.00s CPU
-     nlsm1        :     0.01s CPU (       3 calls,   0.004 s avg)
-     fft          :     0.63s CPU (      18 calls,   0.035 s avg)
+     nlsm1        :     0.01s CPU (       3 calls,   0.003 s avg)
+     fft          :     0.65s CPU (      18 calls,   0.036 s avg)
      ffts         :     0.16s CPU (       4 calls,   0.039 s avg)
-     fftw         :     0.84s CPU (      42 calls,   0.020 s avg)
-     cft3s        :     1.63s CPU (      64 calls,   0.026 s avg)
+     fftw         :     0.49s CPU (      24 calls,   0.020 s avg)
+     cft3s        :     1.29s CPU (      46 calls,   0.028 s avg)
  
  
-     CP           :     3.53s CPU time,    3.78s wall time
+     CP           :     2.80s CPU time,    2.96s wall time
 
  
-   This run was terminated on:  10:10:38  15Dec2010            
+   This run was terminated on:   9:49:49  15Dec2010            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

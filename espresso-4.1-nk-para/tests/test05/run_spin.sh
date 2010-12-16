@@ -16,7 +16,6 @@ MANUAL=" Usage
  gram            performs Gram-Schmidt orthogonalization steps
  lda             LDA calculation (occupied states)
  lda_empty       LDA empty states
- lda_diag        LDA (occ+emp) by diagonalization
  nk0             NK0 calculation
  nk0_empty       NK0 empty states
  nk              NK calculation
@@ -55,7 +54,6 @@ INIT=
 GRAM=
 LDA=
 LDA_EMPTY=
-LDA_DIAG=
 NK0=
 NK0_EMPTY=
 NK=
@@ -75,7 +73,6 @@ case $INPUT in
    (gram)           GRAM=yes ;;
    (lda)            LDA=yes ;;
    (lda_empty)      LDA_EMPTY=yes ;;
-   (lda_diag)       LDA_DIAG=yes ;;
    (nk0)            NK0=yes ;;
    (nk0_empty)      NK0_EMPTY=yes ;;
    (nk)             NK=yes ;;
@@ -87,7 +84,7 @@ case $INPUT in
 
    (odd)            NK0=yes  ; NK=yes; PZ=yes; HF=yes ;
                     NK0_EMPTY=yes ; NK_EMPTY=yes; PZ_EMPTY=yes; HF_EMPTY=yes ;;
-   (all)            INIT=yes ; GRAM=yes ; LDA=yes ; LDA_EMPTY=yes ; LDA_DIAG=yes ;
+   (all)            INIT=yes ; GRAM=yes ; LDA=yes ; LDA_EMPTY=yes ;
                     NK0=yes  ; NK=yes; PZ=yes; HF=yes ;
                     NK0_EMPTY=yes ; NK_EMPTY=yes; PZ_EMPTY=yes; HF_EMPTY=yes ;;
    (check)          CHECK=yes ;;
@@ -121,7 +118,6 @@ if [ "$LDA_EMPTY" = "yes" -a -e ./SCRATCH/clorine_spin.emp ] ; then
 fi
 #
 run_cp  NAME=LDA_EMPTY    SUFFIX=$SUFFIX  RUN=$LDA_EMPTY
-run_pw  NAME=LDA_DIAG     SUFFIX=$SUFFIX  RUN=$LDA_DIAG
 #
 run_cp  NAME=NK0          SUFFIX=$SUFFIX  RUN=$NK0
 run_cp  NAME=NK0_EMPTY    SUFFIX=$SUFFIX  RUN=$NK0_EMPTY
