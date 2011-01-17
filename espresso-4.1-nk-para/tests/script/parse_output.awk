@@ -14,6 +14,7 @@ BEGIN{
     niter=-10
     etot=""
     ekinc=""
+    dipole=""
 
 }
 
@@ -51,6 +52,7 @@ END{
        print "ITERATION@"iteration"@1e-1";
        print "ETOT@"etot"@1e-3";
        print "EKINC@"ekinc"@2.0e-1";
+       print "DIPOLE@"dipole"@5.0e-3";
        #
    } else if ( program = "pw") {
        # 
@@ -100,6 +102,10 @@ function check_line_cp()
       {
          nline=NR
          iteration=$NF
+      }
+   else if ( match($0, "Elct. dipole 1") )
+      {
+         dipole=$4+$8
       }
    else if ( $1 == iteration ) {
          etot=$5
