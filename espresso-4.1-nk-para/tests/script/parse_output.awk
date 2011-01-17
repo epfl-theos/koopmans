@@ -52,7 +52,10 @@ END{
        print "ITERATION@"iteration"@1e-1";
        print "ETOT@"etot"@1e-3";
        print "EKINC@"ekinc"@2.0e-1";
-       print "DIPOLE@"dipole"@5.0e-3";
+       #
+       if ( dipole != "" ) {
+          print "DIPOLE@"dipole"@5.0e-3";
+       }
        #
    } else if ( program = "pw") {
        # 
