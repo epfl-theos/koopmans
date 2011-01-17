@@ -27,7 +27,7 @@
 
   nspin = 1:      LDA, NK0, NK, PZ, HF
   The electric field is set to 0.005 Ha-au
-  Nunit = 2
+  Nunit = 2,      H-bond length alternation: 2.0-3.0 bohr
 
             Dipole [e*bohr]      Alpha/unit [Ha-au]
   LDA:          0.188407             18.84
