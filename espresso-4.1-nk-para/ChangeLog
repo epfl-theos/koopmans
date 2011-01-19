@@ -4,6 +4,13 @@
 =======================================================
 
 
+Jan 19 2010     energies in cp are printed out with 10 digits instead of 5.
+		This is fundamental to extract hyperpolarizabilities from
+		total energy fittings. (AF)
+
+Dec 19 2010     nksiclib and hflib embedded in modules, to have a better
+		check on the interfaces of subroutines. (AF)
+
 Dec 14 2010     PBE0 and B3LYP functionals implemented in cp. 
 		Tests 02 and 05 updated. (AF)
 
