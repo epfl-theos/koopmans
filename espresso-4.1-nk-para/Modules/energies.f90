@@ -211,26 +211,26 @@
 15        FORMAT(6X,' sic exchange-correla energy = ',F18.10,' Hartree a.u.', 1X, 'corr. factor = ',F6.3)
 16        FORMAT(6X,'       external force energy = ',F18.10,' Hartree a.u.')
 
-  100 format(//'                total energy = ',f14.5,' Hartree a.u.'/ &
-     &         '              kinetic energy = ',f14.5,' Hartree a.u.'/ &
-     &         '        electrostatic energy = ',f14.5,' Hartree a.u.'/ &
-     &         '                         esr = ',f14.5,' Hartree a.u.'/ &
-     &         '                       eself = ',f14.5,' Hartree a.u.'/ &
-     &         '      pseudopotential energy = ',f14.5,' Hartree a.u.'/ &
-     &         '  n-l pseudopotential energy = ',f14.5,' Hartree a.u.'/ &
-     &         ' exchange-correlation energy = ',f14.5,' Hartree a.u.'/ &
-     &         '           average potential = ',f14.5,' Hartree a.u.'//)
+  100 format(//'                total energy = ',f18.10,' Hartree a.u.'/ &
+     &         '              kinetic energy = ',f18.10,' Hartree a.u.'/ &
+     &         '        electrostatic energy = ',f18.10,' Hartree a.u.'/ &
+     &         '                         esr = ',f18.10,' Hartree a.u.'/ &
+     &         '                       eself = ',f18.10,' Hartree a.u.'/ &
+     &         '      pseudopotential energy = ',f18.10,' Hartree a.u.'/ &
+     &         '  n-l pseudopotential energy = ',f18.10,' Hartree a.u.'/ &
+     &         ' exchange-correlation energy = ',f18.10,' Hartree a.u.'/ &
+     &         '           average potential = ',f18.10,' Hartree a.u.'//)
 
-  101 format(//'                total energy = ',f14.5,' Hartree a.u.'/ &
-     &         '              kinetic energy = ',f14.5,' Hartree a.u.'/ &
-     &         '              hartree energy = ',f14.5,' Hartree a.u.'/ &
-     &         '        electrostatic energy = ',f14.5,' Hartree a.u.'/ &
-     &         '                         esr = ',f14.5,' Hartree a.u.'/ &
-     &         '                       eself = ',f14.5,' Hartree a.u.'/ &
-     &         '      pseudopotential energy = ',f14.5,' Hartree a.u.'/ &
-     &         '  n-l pseudopotential energy = ',f14.5,' Hartree a.u.'/ &
-     &         ' exchange-correlation energy = ',f14.5,' Hartree a.u.'/ &
-     &         '           average potential = ',f14.5,' Hartree a.u.'//)
+  101 format(//'                total energy = ',f18.10,' Hartree a.u.'/ &
+     &         '              kinetic energy = ',f18.10,' Hartree a.u.'/ &
+     &         '              hartree energy = ',f18.10,' Hartree a.u.'/ &
+     &         '        electrostatic energy = ',f18.10,' Hartree a.u.'/ &
+     &         '                         esr = ',f18.10,' Hartree a.u.'/ &
+     &         '                       eself = ',f18.10,' Hartree a.u.'/ &
+     &         '      pseudopotential energy = ',f18.10,' Hartree a.u.'/ &
+     &         '  n-l pseudopotential energy = ',f18.10,' Hartree a.u.'/ &
+     &         ' exchange-correlation energy = ',f18.10,' Hartree a.u.'/ &
+     &         '           average potential = ',f18.10,' Hartree a.u.'//)
 
           RETURN
         END SUBROUTINE print_energies
