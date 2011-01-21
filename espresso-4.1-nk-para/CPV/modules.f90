@@ -378,13 +378,19 @@ contains
       allocate( fsic(nx) )
       allocate( vsic(nnrx,nx) )
       allocate( fion_sic(3,nat) )
-      allocate( deeq_sic(nhm, nhm, nat, nx) )
+      !
       allocate( pink(nx) )
       allocate( vsicpsi(ngw,2) )
       allocate( vxc_sic(nnrx,2) )
       allocate( orb_rhor(nnrx,2) )
       allocate( rhoref(nnrx,2) )
       allocate( rhobar(nnrx,2) )
+      !
+      if ( nhm > 0 ) then
+          allocate( deeq_sic(nhm, nhm, nat, nx) )
+      else
+          allocate( deeq_sic(1, 1, nat, nx) )
+      endif
       !
       if ( do_nk .or. do_nkpz ) then
           allocate( wxdsic(nnrx,2) )

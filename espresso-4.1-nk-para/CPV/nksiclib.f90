@@ -243,14 +243,19 @@
       !            total potentials, because deeq is overwritten at every call
       !
       fion_sic(:,:)     = 0.0d0
-      deeq_sic(:,:,:,:) = 0.0d0
       !
-      DO i = 1, nbsp
+      IF ( nhm > 0 ) then
           !
-          CALL nksic_newd( i, nnrx, ispin, nspin, vsic(:,i), nat, nhm, &
-                           becsum, fion_sic, deeq_sic(:,:,:,i) )
+          deeq_sic(:,:,:,:) = 0.0d0
           !
-      ENDDO
+          DO i = 1, nbsp
+              !
+              CALL nksic_newd( i, nnrx, ispin, nspin, vsic(:,i), nat, nhm, &
+                               becsum, fion_sic, deeq_sic(:,:,:,i) )
+              !
+          ENDDO
+          !
+      ENDIF
       ! 
       ! 
       CALL stop_clock( 'nksic_drv' )
