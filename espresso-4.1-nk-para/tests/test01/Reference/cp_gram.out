@@ -3,14 +3,14 @@
      CP: variable-cell Car-Parrinello molecular dynamics
      using norm-conserving and ultrasoft Vanderbilt pseudopotentials
 
-     Version: 4.1 - Fri Nov 19 18:50:58 EST 2010                          
+     Version: 4.1 - Thu Feb 3 07:44:05 EST 2011                           
      Authors: Alfredo Pasquarello, Kari Laasonen, Andrea Trave, Roberto Car,
        Paolo Giannozzi, Nicola Marzari, Carlo Cavazzoni, Guido Chiarotti,
        Sandro Scandolo, Paolo Focher, Gerardo Ballabio, and others
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:   9:24:37  20Nov2010               
+   This run was started on:   7:46:58   3Feb2011               
 
    MPI Parallel Build
    Tasks =    6  This task id =    0
@@ -210,6 +210,9 @@
    ECONS  [HARTREE A.U.] - Enthalpy + kinetic energy of ions and cell
    ECONT  [HARTREE A.U.] - Constant of motion for the CP lagrangian
  
+
+   f_cutoff =  0.1000
+   do_spinsym   =    F
    EE with periodic-image correction method = tcc                 
 
    reading restart file: ./SCRATCH//job_90.save
@@ -248,15 +251,15 @@
       NOTE: eigenvalues are not computed without ortho
 
 
-                total energy =        0.62882 Hartree a.u.
-              kinetic energy =        1.33111 Hartree a.u.
-        electrostatic energy =       -0.29730 Hartree a.u.
-                         esr =        0.02275 Hartree a.u.
-                       eself =        0.79788 Hartree a.u.
-      pseudopotential energy =       -0.05585 Hartree a.u.
-  n-l pseudopotential energy =        0.00000 Hartree a.u.
- exchange-correlation energy =       -0.34914 Hartree a.u.
-           average potential =        0.00000 Hartree a.u.
+                total energy =       0.6288221956 Hartree a.u.
+              kinetic energy =       1.3311107477 Hartree a.u.
+        electrostatic energy =      -0.2972984449 Hartree a.u.
+                         esr =       0.0227501319 Hartree a.u.
+                       eself =       0.7978845608 Hartree a.u.
+      pseudopotential energy =      -0.0558532585 Hartree a.u.
+  n-l pseudopotential energy =       0.0000000000 Hartree a.u.
+ exchange-correlation energy =      -0.3491368487 Hartree a.u.
+           average potential =       0.0000000000 Hartree a.u.
 
 
 
@@ -264,7 +267,7 @@
 
     0.00
  
-   Allocated memory (kb) =     37584
+   Allocated memory (kb) =     37580
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -295,10 +298,53 @@
 
  * Physical Quantities at step:    11
       NOTE: eigenvalues are not computed without ortho
+
+
+                total energy =       0.6532744330 Hartree a.u.
+              kinetic energy =       1.2609229524 Hartree a.u.
+        electrostatic energy =      -0.2337955137 Hartree a.u.
+                         esr =       0.0227501319 Hartree a.u.
+                       eself =       0.7978845608 Hartree a.u.
+      pseudopotential energy =      -0.0579962205 Hartree a.u.
+  n-l pseudopotential energy =       0.0000000000 Hartree a.u.
+ exchange-correlation energy =      -0.3158567852 Hartree a.u.
+           average potential =       0.0000000000 Hartree a.u.
+
+
+
+   Eigenvalues (eV), kp =   1 , spin =  1
+
+    0.00
+ 
+   Allocated memory (kb) =     37580
+ 
+   CELL_PARAMETERS
+   25.00000000    0.00000000    0.00000000
+    0.00000000   25.00000000    0.00000000
+    0.00000000    0.00000000   25.00000000
+
+   System Density [g/cm^3] :     0.0014
+
+
+   Center of mass square displacement (a.u.):   0.000000
+
+   ATOMIC_POSITIONS
+   H    0.000000E+00  0.000000E+00 -0.100000E+01
+   H    0.000000E+00  0.000000E+00  0.100000E+01
+ 
+   ATOMIC_VELOCITIES
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+ 
+
+
+   Partial temperatures (for each ionic specie) 
+   Species  Temp (K)   Mean Square Displacement (a.u.)
+        1       0.00     0.0000
    11 0.61E+00    0.0    0.0     0.65327     0.65327     0.65327     1.26376  0.0000  0.0000  0.0000  0.0000     0.00069
 
    writing restart file: ./SCRATCH//job_91.save
-   restart file written in    0.074 sec.
+   restart file written in    0.134 sec.
 
 
 
@@ -316,29 +362,29 @@
 
 
      initialize   :     0.40s CPU
-     total_time   :     2.48s CPU (      10 calls,   0.248 s avg)
+     total_time   :     2.50s CPU (      10 calls,   0.250 s avg)
      formf        :     0.02s CPU
-     rhoofr       :     0.51s CPU (      10 calls,   0.051 s avg)
-     vofrho       :     1.69s CPU (      10 calls,   0.169 s avg)
-     dforce       :     0.26s CPU (      10 calls,   0.026 s avg)
+     rhoofr       :     0.55s CPU (      10 calls,   0.055 s avg)
+     vofrho       :     1.70s CPU (      10 calls,   0.170 s avg)
+     dforce       :     0.21s CPU (      10 calls,   0.021 s avg)
      calphi       :     0.00s CPU (      10 calls,   0.000 s avg)
-     gram         :     0.01s CPU (      10 calls,   0.001 s avg)
+     gram         :     0.00s CPU (      10 calls,   0.000 s avg)
      newd         :     0.00s CPU (      10 calls,   0.000 s avg)
      calbec       :     0.00s CPU (      11 calls,   0.000 s avg)
      prefor       :     0.00s CPU (      11 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlsm1        :     0.00s CPU (      11 calls,   0.000 s avg)
-     fft          :     1.34s CPU (      74 calls,   0.018 s avg)
-     ffts         :     0.34s CPU (      20 calls,   0.017 s avg)
-     fftw         :     0.31s CPU (      30 calls,   0.010 s avg)
-     cft3s        :     1.98s CPU (     124 calls,   0.016 s avg)
-     fft_scatter  :     0.88s CPU (     124 calls,   0.007 s avg)
+     fft          :     1.38s CPU (      74 calls,   0.019 s avg)
+     ffts         :     0.36s CPU (      20 calls,   0.018 s avg)
+     fftw         :     0.28s CPU (      30 calls,   0.009 s avg)
+     cft3s        :     2.03s CPU (     124 calls,   0.016 s avg)
+     fft_scatter  :     0.54s CPU (     124 calls,   0.004 s avg)
  
  
-     CP           :     3.04s CPU time,    3.10s wall time
+     CP           :     3.02s CPU time,    3.06s wall time
 
  
-   This run was terminated on:   9:24:40  20Nov2010            
+   This run was terminated on:   7:47: 1   3Feb2011            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

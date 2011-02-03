@@ -3,14 +3,14 @@
      CP: variable-cell Car-Parrinello molecular dynamics
      using norm-conserving and ultrasoft Vanderbilt pseudopotentials
 
-     Version: 4.1 - Fri Nov 19 18:50:58 EST 2010                          
+     Version: 4.1 - Thu Feb 3 07:44:05 EST 2011                           
      Authors: Alfredo Pasquarello, Kari Laasonen, Andrea Trave, Roberto Car,
        Paolo Giannozzi, Nicola Marzari, Carlo Cavazzoni, Guido Chiarotti,
        Sandro Scandolo, Paolo Focher, Gerardo Ballabio, and others
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  10:34:13  20Nov2010               
+   This run was started on:   7:52:44   3Feb2011               
 
    MPI Parallel Build
    Tasks =    6  This task id =    0
@@ -213,6 +213,9 @@
    ECONS  [HARTREE A.U.] - Enthalpy + kinetic energy of ions and cell
    ECONT  [HARTREE A.U.] - Constant of motion for the CP lagrangian
  
+
+   f_cutoff =  0.1000
+   do_spinsym   =    F
    EE with periodic-image correction method = tcc                 
 
    reading restart file: ./SCRATCH//job_trad_90.save
@@ -254,15 +257,15 @@
       NOTE: eigenvalues are not computed without ortho
 
 
-                total energy =        0.65529 Hartree a.u.
-              kinetic energy =        1.32266 Hartree a.u.
-        electrostatic energy =       -0.27981 Hartree a.u.
-                         esr =        0.02275 Hartree a.u.
-                       eself =        0.79788 Hartree a.u.
-      pseudopotential energy =       -0.04036 Hartree a.u.
-  n-l pseudopotential energy =        0.00000 Hartree a.u.
- exchange-correlation energy =       -0.34720 Hartree a.u.
-           average potential =        0.00000 Hartree a.u.
+                total energy =       0.6552861418 Hartree a.u.
+              kinetic energy =       1.3226603621 Hartree a.u.
+        electrostatic energy =      -0.2798126063 Hartree a.u.
+                         esr =       0.0227501319 Hartree a.u.
+                       eself =       0.7978845608 Hartree a.u.
+      pseudopotential energy =      -0.0403637224 Hartree a.u.
+  n-l pseudopotential energy =       0.0000000000 Hartree a.u.
+ exchange-correlation energy =      -0.3471978916 Hartree a.u.
+           average potential =       0.0000000000 Hartree a.u.
 
 
 
@@ -305,10 +308,57 @@
 
  * Physical Quantities at step:    11
       NOTE: eigenvalues are not computed without ortho
+
+
+                total energy =       0.7074251948 Hartree a.u.
+              kinetic energy =       1.2555641919 Hartree a.u.
+        electrostatic energy =      -0.2005815697 Hartree a.u.
+                         esr =       0.0227501319 Hartree a.u.
+                       eself =       0.7978845608 Hartree a.u.
+      pseudopotential energy =      -0.0332503661 Hartree a.u.
+  n-l pseudopotential energy =       0.0000000000 Hartree a.u.
+ exchange-correlation energy =      -0.3143070613 Hartree a.u.
+           average potential =       0.0000000000 Hartree a.u.
+
+
+
+   Eigenvalues (eV), kp =   1 , spin =  1
+
+    0.00
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+    0.00
+ 
+   Allocated memory (kb) =     42176
+ 
+   CELL_PARAMETERS
+   25.00000000    0.00000000    0.00000000
+    0.00000000   25.00000000    0.00000000
+    0.00000000    0.00000000   25.00000000
+
+   System Density [g/cm^3] :     0.0014
+
+
+   Center of mass square displacement (a.u.):   0.000000
+
+   ATOMIC_POSITIONS
+   H    0.000000E+00  0.000000E+00 -0.100000E+01
+   H    0.000000E+00  0.000000E+00  0.100000E+01
+ 
+   ATOMIC_VELOCITIES
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+ 
+
+
+   Partial temperatures (for each ionic specie) 
+   Species  Temp (K)   Mean Square Displacement (a.u.)
+        1       0.00     0.0000
    11 0.12E+01    0.0    0.0     0.70743     0.70743     0.70743     1.89888  0.0000  0.0000  0.0000  0.0000     0.00068
 
    writing restart file: ./SCRATCH//job_trad_91.save
-   restart file written in    0.228 sec.
+   restart file written in    0.226 sec.
 
 
 
@@ -325,30 +375,30 @@
    volume        :    15625.00000   15625.00000 (AU)
 
 
-     initialize   :     0.46s CPU
-     total_time   :     3.32s CPU (      10 calls,   0.332 s avg)
+     initialize   :     0.40s CPU
+     total_time   :     3.20s CPU (      10 calls,   0.320 s avg)
      formf        :     0.02s CPU
      rhoofr       :     0.59s CPU (      10 calls,   0.059 s avg)
      vofrho       :     2.06s CPU (      10 calls,   0.206 s avg)
-     dforce       :     0.23s CPU (      10 calls,   0.023 s avg)
+     dforce       :     0.24s CPU (      10 calls,   0.024 s avg)
      calphi       :     0.00s CPU (      10 calls,   0.000 s avg)
-     gram         :     0.16s CPU (      10 calls,   0.016 s avg)
+     gram         :     0.12s CPU (      10 calls,   0.012 s avg)
      newd         :     0.00s CPU (      10 calls,   0.000 s avg)
      calbec       :     0.00s CPU (      11 calls,   0.000 s avg)
      prefor       :     0.00s CPU (      11 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlsm1        :     0.00s CPU (      11 calls,   0.000 s avg)
-     fft          :     1.36s CPU (      74 calls,   0.018 s avg)
-     ffts         :     0.37s CPU (      20 calls,   0.019 s avg)
-     fftw         :     0.29s CPU (      30 calls,   0.010 s avg)
-     cft3s        :     2.02s CPU (     124 calls,   0.016 s avg)
-     fft_scatter  :     0.60s CPU (     124 calls,   0.005 s avg)
+     fft          :     1.38s CPU (      74 calls,   0.019 s avg)
+     ffts         :     0.36s CPU (      20 calls,   0.018 s avg)
+     fftw         :     0.30s CPU (      30 calls,   0.010 s avg)
+     cft3s        :     2.04s CPU (     124 calls,   0.016 s avg)
+     fft_scatter  :     0.58s CPU (     124 calls,   0.005 s avg)
  
  
-     CP           :     4.02s CPU time,    4.09s wall time
+     CP           :     3.82s CPU time,    4.00s wall time
 
  
-   This run was terminated on:  10:34:17  20Nov2010            
+   This run was terminated on:   7:52:48   3Feb2011            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
