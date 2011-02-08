@@ -4,6 +4,9 @@
 =======================================================
 
 
+Feb 08 2010     references updated in test01 and test02. The total energy of 
+		PBE0 is not working properly. (AF)
+
 Jan 19 2010     energies in cp are printed out with 10 digits instead of 5.
 		This is fundamental to extract hyperpolarizabilities from
 		total energy fittings. (AF)
