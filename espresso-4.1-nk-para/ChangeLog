@@ -4,8 +4,19 @@
 =======================================================
 
 
+Feb 09 2010     references updated in test03. (AF)
+
 Feb 08 2010     references updated in test01 and test02. The total energy of 
 		PBE0 is not working properly. (AF)
+
+Jan 28 2010     calc_dipole routine simplified (rhor is no longer recomputed). 
+		Anyway, the do_efield implementation seems not to be working;
+		use tefield (Berry phases) instead. (AF) 
+
+Jan 21 2010     rhobarfact implementation removed. Further optimization
+		implemented (such as nksic_hartree_drv) to reduce repeated code. 
+		Cleanup of unused variables done in nksiclib. Reshufling of parts
+		of the calculations introduced. (AF)
 
 Jan 19 2010     energies in cp are printed out with 10 digits instead of 5.
 		This is fundamental to extract hyperpolarizabilities from
