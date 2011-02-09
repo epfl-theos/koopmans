@@ -3,7 +3,7 @@
 @title@   Benzene molecule
 ==============================================================================
   
-  H2 molecule in a box, using both norm-conserving and ultrasoft pseudopotentials.
+  Benzene molecule in a box, using both norm-conserving and ultrasoft pseudopotentials.
 
   The Hartree-Fock calculation is not performed with USPP because of the
   missing augmentation terms. 
