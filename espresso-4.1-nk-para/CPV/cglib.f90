@@ -158,6 +158,43 @@
       return
     end subroutine ddiag
 
+
+!$$
+!-----------------------------------------------------------------------
+      subroutine zdiag(nx,n,amat,dval,cvec,iflag)
+!-----------------------------------------------------------------------
+!
+      use zhpev_module, only: zhpev_drv
+      use kinds , only : dp
+
+      implicit none
+
+      integer nx,n,ndim,iflag,k,i,j
+      real(dp)   dval(n)
+      complex(dp) amat(nx,n), cvec(nx,n)
+      complex(dp), allocatable::  ap(:)
+
+      ndim=(n*(n+1))/2
+      allocate(ap(ndim))
+      ap(:)=(0.d0,0.d0)
+
+      k=0
+      do j=1,n
+       do i=1,j
+        k=k+1
+        ap(k)=amat(i,j)
+       end do
+      end do
+
+      CALL zhpev_drv( 'V', 'U', n, ap, dval, cvec, nx )
+
+      deallocate(ap)
+
+      return
+    end subroutine zdiag
+!$$
+
+
 !-----------------------------------------------------------------------
       subroutine calcm(fdiag,zmat,fmat,firstiter)
 !-----------------------------------------------------------------------

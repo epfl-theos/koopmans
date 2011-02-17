@@ -180,6 +180,11 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   !
   REAL(DP),  ALLOCATABLE :: forceh(:,:)
   REAL(DP),  ALLOCATABLE :: fmat0_repl(:,:)
+
+!$$
+!  LOGICAL :: ttest
+!$$
+
   !
   !
   dt2bye   = dt2 / emass
@@ -225,6 +230,9 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   main_loop: DO
      !
      CALL start_clock( 'total_time' )
+!$$ For CG calculation, one minimization is enough
+     if(tcg) tlast = .true.
+!$$
      !
      nfi     = nfi + 1
      tlast   = ( nfi == nomore ) .OR. tlast
@@ -353,7 +361,6 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      CALL move_electrons( nfi, tfirst, tlast, b1, b2, b3, fion, &
                           enthal, enb, enbi, fccc, ccc, dt2bye, stress, &
                           tprint_ham = tprint_ham )
-
      !
      IF (lda_plus_u) fion = fion + forceh
      !
@@ -651,7 +658,18 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      !
      IF ( MOD( nfi, iprint ) == 0 .OR. tlast ) THEN
         !
-        IF ( tortho ) THEN
+!$$        IF ( tortho ) THEN
+!$$ In order to calculate the eigenvalues for CG case
+        IF ( tortho .or. tcg ) THEN
+!$$
+
+!$$
+!            if(ionode) write(37,*) 'lambda in tortho routine'
+!            do i=1,nbspx
+!              if(ionode) write(37,*) (lambda(i,j,1),j=1,nbspx)
+!            enddo
+!$$ test orthonormality of wavefunctions here
+!$$
             !
             IF( force_pairing )  THEN
                 lambda(:, :, 2) =  lambda(:, :, 1)
@@ -661,6 +679,11 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
             END IF
             !
             CALL eigs( nfi, lambdap, lambda )
+!$$
+!            do iss=1,nspin
+!              if(ionode) write(37,*) 'eigenvalues for spin',iss,'are',(13.6056923 * ei(i,iss),i=1,nbspx)
+!            enddo
+!$$
             !
             ! ... Compute empty states
             !
@@ -889,6 +912,12 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      delta_etot = ABS( epre - enow )
      !
      tstop = check_stop_now() .OR. tlast
+!$$
+!     ttest = check_stop_now()
+!     tstop = ttest .OR. tlast
+!     if(ionode) write(37,*) 'check_stop_now tlast', ttest,tlast
+!     if(ionode) write(37,*) 'nfi nomore', nfi,nomore
+!$$
      !
      tconv = .FALSE.
      !
@@ -941,6 +970,9 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
                                  vnhe, xnhp0, xnhpm, vnhp, nhpcl, nhpdim,    &
                                  ekincm, xnhh0, xnhhm, vnhh, velh, ecutp,    &
                                  ecutw, delt, celldm, fion, tps, z0t, f, rhor )
+!$$
+!     if(ionode) write(37,*) 'tconv', tconv
+!$$
      !
      IF ( tstop ) EXIT main_loop
      !
