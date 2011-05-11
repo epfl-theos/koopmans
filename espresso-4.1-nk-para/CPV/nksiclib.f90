@@ -200,11 +200,12 @@
           !
           ! take care of spin symmetry
           !
-          pink(i) = f_diag(i) * pink(i)
-          !
-          if ( do_nk .or. do_nkpz .or. do_nki ) then
+          if ( nspin == 1 ) then
               !
-              if( nspin== 1 ) then
+              pink(i) = 2.0_dp * pink(i)
+              !
+              !
+              if ( do_nk .or. do_nkpz .or. do_nki ) then
                   !
                   wtot(1:nnrx,1) = wtot(1:nnrx,1) + wxdsic(1:nnrx,2)
                   wtot(1:nnrx,2) = wtot(1:nnrx,2) + wxdsic(1:nnrx,1)
@@ -212,6 +213,7 @@
               endif
               !
           endif
+          !
           !
         enddo inner_loop
         !

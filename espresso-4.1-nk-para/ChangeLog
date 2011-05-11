@@ -4,21 +4,25 @@
 =======================================================
 
 
-Feb 09 2010     references updated in test03. (AF)
+May 04 2011     bug fixed in nksiclib for calculations with fractional numbers
+		of electrons. The numerical check of the Janak's theorem is 
+		now working. (AF)
 
-Feb 08 2010     references updated in test01 and test02. The total energy of 
+Feb 09 2011     references updated in test03. (AF)
+
+Feb 08 2011     references updated in test01 and test02. The total energy of 
 		PBE0 is not working properly. (AF)
 
-Jan 28 2010     calc_dipole routine simplified (rhor is no longer recomputed). 
+Jan 28 2011     calc_dipole routine simplified (rhor is no longer recomputed). 
 		Anyway, the do_efield implementation seems not to be working;
 		use tefield (Berry phases) instead. (AF) 
 
-Jan 21 2010     rhobarfact implementation removed. Further optimization
+Jan 21 2011     rhobarfact implementation removed. Further optimization
 		implemented (such as nksic_hartree_drv) to reduce repeated code. 
 		Cleanup of unused variables done in nksiclib. Reshufling of parts
 		of the calculations introduced. (AF)
 
-Jan 19 2010     energies in cp are printed out with 10 digits instead of 5.
+Jan 19 2011     energies in cp are printed out with 10 digits instead of 5.
 		This is fundamental to extract hyperpolarizabilities from
 		total energy fittings. (AF)
 
@@ -84,14 +88,14 @@ Aug 19 2010     PZ functionality fixed when using (f_ref=0 and rhobarfact=0.0);
 		update_rhoref functionality removed. (AF)
 
 Aug 06 2010     US pseudopotentials implemented in CP. NK(PZ) implemented in CP. 
-		Nk(PZ) implemented in LD1. Option do_nkmix removed in LD1. 
+		NK(PZ) implemented in LD1. Option do_nkmix removed in LD1. 
 		This version must be tested to verify that files 
 		have been correctly merged. (ID)
 
 Jul 25 2010     NKC + PZ mixing re-added to nksiclib. (AF)
 
 Jun 30 2010     Pi terms were computed wrongly for occupations different
-		from 1  ( f /= 1 ). This was not affecting the NKC hamiltonian,
+		from 1  ( f /= 1 ). This was not affecting the NKC hamiltonian.
 		but only the total energies.  (AF)  
 
 Jun 13 2010     Bugs fixed in the case nspin=1: eigenvalues were not correct,
@@ -107,7 +111,7 @@ May 20 2010     Important optimization of the NK subroutines done. (AF)
 		both the speed and the memory usage of the code.
 		nspin=1 and nspin=2 calculations work in the same way.
 
-		ATTENTION: the defualts of some of the vairables 
+		ATTENTION: the defaults of some of the variables 
 		(fref and rhobarfact) have been changed to more standard
 		values (0.5 and 1.0 respectively). Input that works after
 		this date may not work for previous versions.
@@ -136,7 +140,7 @@ Jan 26 2010     Several corrections in the NK-CPV and NK-LD1 code. (ID)
 		w_ref potential in addition to various numerical problems). 
 		The AlphaNK and hybrid EXX functionals have been implemented. 
 		The agreement between finite-difference and analytical energy 
-		derivatives (with resp is now verified.
+		derivatives (with resp is now verified).
 
 Nov 25 2009     Implementation of interatomic forces in NK-CPV 
 		using tricubic interpolation. (ID)
