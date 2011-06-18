@@ -3,6 +3,15 @@
 		NK code:  Log of Changes
 =======================================================
 
+Jun 18 2011     inner loop minimization for SIC implemented for damped dynamics.
+		An optimal unitary rotation among occupied states is calculated
+		when the variable do_innerloop in the namelist SYSTEM of the
+		input file is set .true.  Convergence for this inner loop
+		minimization and (conventional) outer loop minimization can be
+		found in the files convg_inner.dat and convg_outer.dat, respectively.
+
+		Nota Bene: This inner-loop minimization cannot be used for the
+		case where an energy functional cannot be defined like nk0. (CHP)
 
 May 04 2011     bug fixed in nksiclib for calculations with fractional numbers
 		of electrons. The numerical check of the Janak's theorem is 
