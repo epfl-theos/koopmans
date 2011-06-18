@@ -182,7 +182,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   REAL(DP),  ALLOCATABLE :: fmat0_repl(:,:)
 
 !$$
-!  LOGICAL :: ttest
+  LOGICAL :: ttest
 !$$
 
   !
@@ -681,7 +681,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
             CALL eigs( nfi, lambdap, lambda )
 !$$
 !            do iss=1,nspin
-!              if(ionode) write(37,*) 'eigenvalues for spin',iss,'are',(13.6056923 * ei(i,iss),i=1,nbspx)
+!              if(ionode) write(101,*) 'eigenvalues for spin',iss,'are',(13.6056923 * ei(i,iss),i=1,nbspx)
 !            enddo
 !$$
             !
@@ -913,10 +913,10 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      !
      tstop = check_stop_now() .OR. tlast
 !$$
-!     ttest = check_stop_now()
-!     tstop = ttest .OR. tlast
-!     if(ionode) write(37,*) 'check_stop_now tlast', ttest,tlast
-!     if(ionode) write(37,*) 'nfi nomore', nfi,nomore
+     ttest = check_stop_now()
+     tstop = ttest .OR. tlast
+!     if(ionode) write(137,*) 'check_stop_now tlast', ttest,tlast
+!     if(ionode) write(137,*) 'nfi nomore', nfi,nomore
 !$$
      !
      tconv = .FALSE.
@@ -971,9 +971,12 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
                                  ekincm, xnhh0, xnhhm, vnhh, velh, ecutp,    &
                                  ecutw, delt, celldm, fion, tps, z0t, f, rhor )
 !$$
-!     if(ionode) write(37,*) 'tconv', tconv
+!     if(ionode) write(137,*) 'tconv', tconv
 !$$
      !
+!$$
+!$$     exit main_loop
+!$$
      IF ( tstop ) EXIT main_loop
      !
   END DO main_loop
@@ -1047,7 +1050,14 @@ SUBROUTINE terminate_run()
   CALL print_clock( 'formf' )
   CALL print_clock( 'rhoofr' )
   CALL print_clock( 'vofrho' )
+  CALL print_clock( 'vofrho1' )
+  CALL print_clock( 'vofrho2' )
+  CALL print_clock( 'vofrho3' )
+  CALL print_clock( 'vofrho4' )
+  CALL print_clock( 'vofrho5' )
   CALL print_clock( 'dforce' )
+  CALL print_clock( 'dforce1' )
+  CALL print_clock( 'dforce2' )
   CALL print_clock( 'calphi' )
   CALL print_clock( 'ortho' )
   CALL print_clock( 'ortho_iter' )

@@ -361,6 +361,9 @@ module nksic
   logical :: do_spinsym
   logical :: do_wxd
   logical :: do_wref
+!$$
+  logical :: do_innerloop
+!$$
 
 contains
   !

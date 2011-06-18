@@ -175,6 +175,9 @@
               call nksic_correction_pz ( focc, ispin(i), orb_rhor(:,jj), &
                                          vsic(:,i), pink(i), ibnd )
               !
+!$$
+!              if(ionode) write(1050,'(2I5,3E10.1)') i,ibnd,sum(orb_rhor(:,jj)),sum(vsic(:,i)),pink(i)
+!$$
           endif
 
           !
@@ -200,12 +203,11 @@
           !
           ! take care of spin symmetry
           !
-          if ( nspin == 1 ) then
+          pink(i) = f_diag(i) * pink(i)
+          !
+          if ( do_nk .or. do_nkpz .or. do_nki ) then
               !
-              pink(i) = 2.0_dp * pink(i)
-              !
-              !
-              if ( do_nk .or. do_nkpz .or. do_nki ) then
+              if( nspin== 1 ) then
                   !
                   wtot(1:nnrx,1) = wtot(1:nnrx,1) + wxdsic(1:nnrx,2)
                   wtot(1:nnrx,2) = wtot(1:nnrx,2) + wxdsic(1:nnrx,1)
@@ -213,7 +215,6 @@
               endif
               !
           endif
-          !
           !
         enddo inner_loop
         !
@@ -1128,12 +1129,17 @@ end subroutine nksic_newd
       !
       call exch_corr_wrapper(nnrx,2,grhoraux,rhoelef,etxc,vxc,haux)
       !
+!$$
       vsic(1:nnrx) =  vsic(1:nnrx) -vxc(1:nnrx,ispin)
-
+!$$
       !
       ! energy correction terms
       !
+!$$
       pink = fact * ( -etxc -ehele )
+!$$
+!$$      pink = fact * ( -ehele )
+!$$
       call mp_sum(pink,intra_image_comm)
       
       !

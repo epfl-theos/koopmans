@@ -72,8 +72,6 @@
       logical :: ttsde
       LOGICAL :: tprint_ham_ 
 
-
-
      allocate(faux(nx))
 
      iflag = 0
@@ -303,7 +301,6 @@
            IF( tefield2 ) THEN
                CALL dforce_efield2 ( bec, i, c0, c2, c3, rhos)
            ENDIF
-
 
            IF( iflag == 2 ) THEN
               DO idx = 1, incr, 2

@@ -440,6 +440,9 @@ MODULE input_parameters
         LOGICAL :: do_wref = .true.
         LOGICAL :: do_wxd = .true.
         LOGICAL :: do_hf  = .false.
+!$$
+        LOGICAL :: do_innerloop  = .false.
+!$$
         !
         ! This variable overwrites the ones above
         CHARACTER(80)     :: which_orbdep=" "
@@ -488,7 +491,10 @@ MODULE input_parameters
              do_ee, do_nk, do_pz, do_nki, do_nkpz, do_hf,                     &
              do_wref, do_wxd, fref, rhobarfact, ampfield, do_efield,          &
              do_hf, nknmax, do_spinsym, f_cutoff,                             &
-             nkscalfact, hfscalfact, vanishing_rho_w, which_orbdep
+             nkscalfact, hfscalfact, vanishing_rho_w, which_orbdep,           &
+!$$
+             do_innerloop
+!$$
 !
 !=----------------------------------------------------------------------------=!
 !  EE Namelist Input Parameters

@@ -2605,6 +2605,9 @@ END FUNCTION
                                    vanishing_rho_w, &
                                    nknmax, do_spinsym, f_cutoff, &
                                    nkscalfact,  nksic_memusage, allocate_nksic
+!$$
+      use nksic,            only : do_innerloop
+!$$
       use input_parameters, ONLY : do_nk_ => do_nk, &
                                    do_pz_ => do_pz, &
                                    do_nki_ => do_nki, &
@@ -2619,6 +2622,9 @@ END FUNCTION
                                    nkscalfact_ => nkscalfact, &
                                    nknmax_ => nknmax, &
                                    f_cutoff_ => f_cutoff
+!$$
+      use input_parameters, only : do_innerloop_ => do_innerloop
+!$$
       USE io_global,        ONLY : meta_ionode, stdout
       use electrons_base,   ONLY : nspin, nx => nbspx
       use gvecw,            ONLY : ngw
@@ -2643,7 +2649,9 @@ END FUNCTION
       do_wref = do_wref_
       !
       fref    = fref_
-
+!$$
+      do_innerloop = do_innerloop_
+!$$
       !
       ! use the collective var which_orbdep
       !

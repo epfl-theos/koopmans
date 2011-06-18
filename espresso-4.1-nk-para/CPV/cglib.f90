@@ -253,7 +253,12 @@
       if( a.lt.0.d0) then
          if(ene1.lt.ene0) then
             passo=passop
+!$$            passo=passop*2.d0
          else 
+!$$ This case never happens.
+!$$ (1) b is always negative and hence -b*passop is positive.
+!$$ (2) in order for a to be negative, therefore, ene1-c(=ene0).
+!$$     should be very negative.
             passo=0.5d0*passop
          endif
       endif

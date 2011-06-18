@@ -13,25 +13,6 @@
       rhor, rhog, rhos, rhoc, ei1, ei2, ei3, sfac, fion, ema0bg, becdr, &
       lambdap, lambda, vpot  )
 
-! Comments added by Cheol-Hwan Park (CHP) in 20 January 2011.
-!
-! This routine originally written by P. Umari performs cg minimization.
-! There are two important input parameters in the namelist ELECTRONS.
-!
-!           &ELECTRONS
-!             electron_dynamics='cg',
-!             passop=0.5,
-!
-! passo in Italian means 'step.'
-! It determines the initial guess for how much the wavefunctions are evolved
-!
-! CHP (1) made it compatible with nksic routines and
-!     (2) fixed the faux bug regarding spin occupation according to AF's solution.
-!          - For carbon atom nk0 requires 80 Ry to converge
-!            whereas within damped dynamics scheme 40 Ry was enough.
-!            We have to find out why CG does badly in terms of cutoff.
-!
-
       use kinds, only: dp
       use control_flags, only: iprint, thdyn, tpre, iprsta, &
             tfor, taurdr, tprnfor
@@ -43,10 +24,15 @@
       use energies, only: eht, epseu, exc, etot, eself, enl, ekin,          &
      &                    atot, entropy, egrand
       use electrons_base, only: f, nspin, nel, iupdwn, nupdwn, nudx, nelt, &
-                                nbspx, nbsp, ispin, nspin
+                                nx => nbspx, n => nbsp, ispin
 
+!$$      use ensemble_dft, only: tens,   ef,  z0t, c0diag,  &
+!$$                      becdiag, fmat0, e0,  id_matrix_init
+!$$
       use ensemble_dft, only: tens, tsmear,   ef,  z0t, c0diag,  &
                       becdiag, fmat0, fmat0_diag, e0,  id_matrix_init
+!$$
+
 !---
       use gvecp, only: ngm
       use gvecs, only: ngs
@@ -90,6 +76,7 @@
       use nksic,               only : do_orbdep, vsicpsi, vsic, wtot, fsic, fion_sic, deeq_sic, f_cutoff, pink
 !$$
 
+
 !
       implicit none
 !
@@ -98,7 +85,7 @@
       integer :: nfi
       logical :: tfirst , tlast
       complex(dp) :: eigr(ngw,nat)
-      real(dp) :: bec(nhsa,nbsp)
+      real(dp) :: bec(nhsa,n)
       real(dp) :: becdr(nhsa,nspin*nlax,3)
       integer irb(3,nat)
       complex(dp) :: eigrb(ngb,nat)
@@ -151,14 +138,17 @@
       real(DP)  ene0,ene1,dene0,enesti !energy terms for linear minimization along hi
 !$$
       real(DP),    allocatable :: faux(:) ! takes into account spin multiplicity
+!      real(DP), allocatable :: hpsinorm(:), hpsinosicnorm(:)
+!      complex(DP), allocatable :: hpsinosic(:,:)
 !$$
 
+!$$   
+      allocate(faux(n))
+!      allocate(hpsinorm(n))
+!      allocate(hpsinosicnorm(n))
 !$$
-      allocate(faux(nbspx))
-!$$
-
-      allocate(bec0(nhsa,nbsp),becm(nhsa,nbsp), becdrdiag(nhsa,nspin*nlax,3))
-      allocate (ave_ene(nbsp))
+      allocate(bec0(nhsa,n),becm(nhsa,n), becdrdiag(nhsa,nspin*nlax,3))
+      allocate (ave_ene(n))
       allocate(c2(ngw),c3(ngw))
 
 
@@ -176,6 +166,9 @@
                  // trim(int_to_char( my_image_id )) // '_' // trim(int_to_char( me_image))
          !open(37,file='convergence.dat',status='unknown')!for debug and tuning purposes
          open(37,file=uname,status='unknown')!for debug and tuning purposes
+!$$
+         open(1037,file='cg_convg.dat',status='unknown')!for debug and tuning purposes
+!$$
       endif
       if( tfirst .and. ionode ) &
          write(stdout,*) 'PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES'
@@ -198,14 +191,14 @@
 
       call calbec(1,nsp,eigr,c0,bec)
 
-      call gram(betae,bec,nhsa,c0,ngw,nbsp)
+      call gram(betae,bec,nhsa,c0,ngw,n)
 
       !call calbec(1,nsp,eigr,c0,bec)
 
       !calculates phi for pcdaga
 
       ! call calphiid(c0,bec,betae,phi)
-      CALL calphi( c0, SIZE(c0,1), bec, nhsa, betae, phi, nbsp )
+      CALL calphi( c0, SIZE(c0,1), bec, nhsa, betae, phi, n )
 
       !calculates the factors for S and K inversion in US case
       if(nvb.gt.0) then
@@ -222,10 +215,14 @@
 
       numok = 0
 
-      allocate(hpsi(ngw,nbsp),hpsi0(ngw,nbsp),gi(ngw,nbsp),hi(ngw,nbsp))
+      allocate(hpsi(ngw,n),hpsi0(ngw,n),gi(ngw,n),hi(ngw,n))
+!$$
+!      allocate(hpsinosic(ngw,n))
+!$$
       do while ( itercg .lt. maxiter .and. (.not.ltresh) )
-        ENERGY_CHECK: &
-        if(.not. ene_ok ) then
+
+
+        ENERGY_CHECK: if(.not. ene_ok ) then
           call calbec(1,nsp,eigr,c0,bec)
           if(.not.tens) then
              call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
@@ -242,18 +239,22 @@
             !     calculation of rho corresponding to the rotated wavefunctions
             call rhoofr(nfi,c0diag,irb,eigrb,becdiag                        &
                      &                    ,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
-          endif
+         endif
            
 !when cycle is restarted go to diagonal representation
 
+!$$ CHP: do we need to do the following even if when we do not use ensemble dft?
+!$$      I have added this additional constraint.
 !$$          if(mod(itercg,niter_cg_restart)==1 .and. itercg >=2) then
           if(tens.and.mod(itercg,niter_cg_restart)==1 .and. itercg >=2) then
 !$$
+
               call rotate( z0t, c0(:,:), bec, c0diag, becdiag, .false. )
               c0(:,:)=c0diag(:,:)
               bec(:,:)=becdiag(:,:)
               call id_matrix_init( descla, nspin )
-          endif
+           endif
+        
 
           !calculates the potential
           !
@@ -266,8 +267,15 @@
 
           vpot = rhor
 
+!$$
+!          if(ionode) write(*,*) 'Now doing vofrho1'
+          CALL start_clock( 'vofrho1' )
+!$$
           call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
                  &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
+!$$
+          CALL stop_clock( 'vofrho1' )
+!$$
 
 !$$
           if( do_orbdep ) then
@@ -279,7 +287,7 @@
             endif
           !
 !$$          if(.false.) then
-            call nksic_potential( nbsp, nbspx, c0, fsic, bec, rhovan, deeq_sic, &
+            call nksic_potential( n, nx, c0, fsic, bec, rhovan, deeq_sic, &
                        ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
             etot = etot + sum(pink(:))
           endif
@@ -302,7 +310,7 @@
              etot=etot+enb+enbi
           endif
 
-        else ! if(.not.ene_ok)
+        else
 
           etot=enever
           if(.not.tens) then 
@@ -315,10 +323,10 @@
         end if ENERGY_CHECK
         if(ionode) write(37,*)itercg, etotnew,pberryel,pberryel2!for debug and tuning purposes
 !$$
-!        if(ionode) write(37,*) 'etot, pink, do_orbdep', etot, sum(pink(:)), do_orbdep
-!        if(ionode) write(37,*) ene_ok,ngw,n,itercg,niter_cg_restart
-!        if(ionode) write(37,*) 'emass_cutoff',emass_cutoff,'etot',etot
+        if(ionode) write(1037,'("iteration =",I4,"   Etot (Ha) =",F18.14)') itercg, etotnew !for debug and tuning purposes
 !$$
+
+        
 
         if(abs(etotnew-etotold).lt.conv_thr) then
            numok=numok+1
@@ -330,9 +338,7 @@
            ltresh=.true.
         endif
 
-!$$
-!        if(ionode) write(37,*) 'numok ltresh', numok,ltresh
-!$$
+
 
         etotold=etotnew
         ene0=etot
@@ -348,32 +354,24 @@
 
         call prefor(eigr,betae)!ATTENZIONE
 
-        do i=1,nbsp,2
 !$$
-          ! faux takes into account spin multiplicity.
-          !
-          faux(1:nbsp) = max(f_cutoff,f(1:nbsp)) * DBLE( nspin ) / 2.0d0
-!$$          faux(1:nbsp) = f(1:nbsp)
-          !
-!$$
-
-!$$          call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin,f,nbsp,nspin)
-          call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin,faux,nbsp,nspin)
+        ! faux takes into account spin multiplicity.
+        !
+        faux(1:n) = max(f_cutoff,f(1:n)) * DBLE( nspin ) / 2.0d0
 !$$
 
 !$$
-           IF ( do_orbdep ) THEN
-!           if(.false.) then
-               !
-               ! faux takes into account spin multiplicity.
-               !
-               CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi )
-               !
-               c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
-               c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1)
-           ENDIF
+!        if(ionode) write(100,*) 'n is',n
+!        if(ionode) write(100,*) 'f is',f(1),f(2)
 !$$
 
+        do i=1,n,2
+!$$
+          CALL start_clock( 'dforce1' )
+!$$          call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin,f,n,nspin)
+          call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin,faux,n,nspin)
+          CALL stop_clock( 'dforce1' )
+!$$
           if(tefield .and. (evalue.ne.0.d0)) then
             call dforceb(c0, i, betae, ipolp, bec ,ctabin(1,1,ipolp), gqq, gqqm, qmat, deeq, df)
             c2(1:ngw)=c2(1:ngw)+evalue*df(1:ngw)
@@ -387,25 +385,66 @@
             c3(1:ngw)=c3(1:ngw)+evalue2*df(1:ngw)
           endif
 
+!$$
+!          hpsinosic(1:ngw,  i)=c2(1:ngw)
+!          if(i+1 <= n) then
+!            hpsinosic(1:ngw,i+1)=c3(1:ngw)
+!          endif
+!          if (ng0.eq.2) then
+!            hpsinosic(1,  i)=CMPLX(DBLE(hpsinosic(1,  i)), 0.d0)
+!            if(i+1 <= n) then
+!              hpsinosic(1,i+1)=CMPLX(DBLE(hpsinosic(1,i+1)), 0.d0)
+!            endif
+!          end if
+
+
+          IF ( do_orbdep ) THEN
+              !
+              ! faux takes into account spin multiplicity.
+              !
+              CALL nksic_eforce( i, n, nx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi )
+              !
+              c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
+              c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1)
+          ENDIF
+!$$
+
           hpsi(1:ngw,  i)=c2(1:ngw)
-          if(i+1 <= nbsp) then
+          if(i+1 <= n) then
             hpsi(1:ngw,i+1)=c3(1:ngw)
           endif
           if (ng0.eq.2) then
             hpsi(1,  i)=CMPLX(DBLE(hpsi(1,  i)), 0.d0)
-            if(i+1 <= nbsp) then
+            if(i+1 <= n) then
               hpsi(1,i+1)=CMPLX(DBLE(hpsi(1,i+1)), 0.d0)
             endif
           end if
         enddo
 
-        if(pre_state) call ave_kin(c0,SIZE(c0,1),nbsp,ave_ene)
+!$$
+!        if(.not.tens) then
+!          do i=1,n
+!            hpsinorm(i) = 0.d0
+!            hpsinosicnorm(i) = 0.d0
+!            do ig=1,ngw
+!              hpsinorm(i)=hpsinorm(i)+DBLE(CONJG(hpsi(ig,i))*hpsi(ig,i))
+!              hpsinosicnorm(i)=hpsinosicnorm(i)+DBLE(CONJG(hpsinosic(ig,i))*hpsinosic(ig,i))
+!            enddo
+!          end do
+!        endif
+!        call mp_sum(hpsinorm(1:n),intra_image_comm)
+!        call mp_sum(hpsinosicnorm(1:n),intra_image_comm)
+!        if(ionode) write(100,*) 'hpsinorm is ',(hpsinorm(i),i=1,n)
+!        if(ionode) write(100,*) 'hpsinosicnorm is ',(hpsinosicnorm(i),i=1,n)
+!$$
+
+        if(pre_state) call ave_kin(c0,SIZE(c0,1),n,ave_ene)
 
                
         call pcdaga2(c0,phi,hpsi)
                
-        hpsi0(1:ngw,1:nbsp)=hpsi(1:ngw,1:nbsp)
-        gi(1:ngw,1:nbsp) = hpsi(1:ngw,1:nbsp)
+        hpsi0(1:ngw,1:n)=hpsi(1:ngw,1:n)
+        gi(1:ngw,1:n) = hpsi(1:ngw,1:n)
         
         call calbec(1,nsp,eigr,hpsi,becm)
         call xminus1(hpsi,betae,dumm,becm,s_minus1,.false.)
@@ -435,7 +474,7 @@
         gamma=0.d0
         
         if(.not.tens) then
-           do i=1,nbsp
+           do i=1,n
               do ig=1,ngw
                  gamma=gamma+2.d0*DBLE(CONJG(gi(ig,i))*hpsi(ig,i))
               enddo
@@ -447,7 +486,7 @@
            call mp_sum( gamma, intra_image_comm )
            
            if (nvb.gt.0) then
-              do i=1,nbsp
+              do i=1,n
                  do is=1,nvb
                     do iv=1,nh(is)
                        do jv=1,nh(is)
@@ -538,7 +577,7 @@
 
           restartcg=.false.
           passof=passop
-          hi(1:ngw,1:nbsp)=gi(1:ngw,1:nbsp)!hi is the search direction
+          hi(1:ngw,1:n)=gi(1:ngw,1:n)!hi is the search direction
           esse=gamma
 
 
@@ -551,7 +590,7 @@
           gamma=gamma/esse
           esse=essenew
 
-          hi(1:ngw,1:nbsp)=gi(1:ngw,1:nbsp)+gamma*hi(1:ngw,1:nbsp)
+          hi(1:ngw,1:n)=gi(1:ngw,1:n)+gamma*hi(1:ngw,1:n)
 
         endif
 !note that hi, is saved  on gi, because we need it before projection on conduction states
@@ -570,7 +609,7 @@
 
         dene0=0.
         if(.not.tens) then
-          do i=1,nbsp               
+          do i=1,n               
             do ig=1,ngw
               dene0=dene0-4.d0*DBLE(CONJG(hi(ig,i))*hpsi0(ig,i))
             enddo
@@ -578,11 +617,15 @@
               dene0=dene0+2.d0*DBLE(CONJG(hi(1,i))*hpsi0(1,i))
             endif
           end do
+!$$ We need the following because n for spin 2 is double that for spin 1!
+          dene0 = dene0 *2.0/nspin
+!$$          dene0 = dene0 *4.0/nspin
+!$$
         else
           !in the ensamble case the derivative is Sum_ij (<hi|H|Psi_j>+ <Psi_i|H|hj>)*f_ji
           !     calculation of the kinetic energy x=xmin      
-          call calcmt( f, z0t, fmat0, .false. )
-          do iss = 1, nspin
+         call calcmt( f, z0t, fmat0, .false. )
+         do iss = 1, nspin
             nss    = nupdwn(iss)
             istart = iupdwn(iss)
             me_rot = descla( la_me_ , iss )
@@ -611,7 +654,7 @@
             end do
             deallocate( fmat_ )
          enddo
-       endif
+      endif
 
       call mp_sum( dene0, intra_image_comm )
 
@@ -623,14 +666,19 @@
       endif
 
         !calculates wave-functions on a point on direction hi
-
-      cm(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passof*hi(1:ngw,1:nbsp)
+!$$
+!$$      if(mod(itercg,5).eq.4) passof=0.0001
+!$$
+      cm(1:ngw,1:n)=c0(1:ngw,1:n)+spasso*passof*hi(1:ngw,1:n)
 
 
         !orthonormalize
 
       call calbec(1,nsp,eigr,cm,becm)
-      call gram(betae,becm,nhsa,cm,ngw,nbsp)
+!$$ For a test, let's kill this orthonormalization condition!!!
+!$$ Should be recovered after the test!!!
+      call gram(betae,becm,nhsa,cm,ngw,n)
+!$$
         !call calbec(1,nsp,eigr,cm,becm)
                
         !calculate energy
@@ -656,13 +704,19 @@
         !
         vpot = rhor
         !
+!$$
+!        if(ionode) write(*,*) 'Now doing vofrho2'
+        CALL start_clock( 'vofrho2' )
+!$$
         call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
                       &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
+!$$
+        CALL stop_clock( 'vofrho2' )
+!$$
 
 !$$
         if(do_orbdep) then
-!        if(.false.) then
-          call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
+          call nksic_potential( n, nx, cm, fsic, bec, rhovan, deeq_sic, &
                      ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
           etot = etot + sum(pink(:))
         endif
@@ -696,13 +750,13 @@
               
         !calculates wave-functions at minimum
 
-        cm(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passo*hi(1:ngw,1:nbsp)
+        cm(1:ngw,1:n)=c0(1:ngw,1:n)+spasso*passo*hi(1:ngw,1:n)
         if(ng0.eq.2) then
           cm(1,:)=0.5d0*(cm(1,:)+CONJG(cm(1,:)))
         endif
 
         call calbec(1,nsp,eigr,cm,becm)
-        call gram(betae,becm,nhsa,cm,ngw,nbsp)
+        call gram(betae,becm,nhsa,cm,ngw,n)
 
         !test on energy: check the energy has really diminished
 
@@ -727,17 +781,15 @@
         if (nlcc_any) call set_cc(irb,eigrb,rhoc)
         !
         vpot = rhor
+!$$
+!        if(ionode) write(*,*) 'Now doing vofrho3'
+        CALL start_clock( 'vofrho3' )
+!$$
         !
         call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
                        &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
-
 !$$
-        if(do_orbdep) then
-!        if(.false.) then
-          call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
-                     ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
-          etot = etot + sum(pink(:))
-        endif
+        CALL stop_clock( 'vofrho3' )
 !$$
 
         if( tefield )  then!to be bettered
@@ -749,6 +801,14 @@
           etot=etot+enb+enbi
         endif
 
+!$$
+        if(do_orbdep) then
+          call nksic_potential( n, nx, cm, fsic, bec, rhovan, deeq_sic, &
+                     ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+          etot = etot + sum(pink(:))
+        endif
+!$$
+
         enever=etot
         if(tens.and.newscheme) then
           enever=enever+entropy
@@ -758,8 +818,15 @@
           if(ionode) write(37,'(a3,4f10.7)')  'CG2',spasso,passov,passo,(enever-ene0)/passo/dene0
         else
           if(ionode) write(37,'(a3,4f20.10)') 'CG1',ene0+entropy,ene1+entropy,enesti+entropy,enever+entropy
-          if(ionode) write(37,'(a3,4f10.7)')  'CG2',spasso,passov,passo,(enever-ene0)/passo/dene0
-          !$$ the last quantity is supposed to be 0.50 if parabola
+!$$          if(ionode) write(37,'(a3,4f10.7)')  'CG2',spasso,passov,passo,(enever-ene0)/passo/dene0
+          if(ionode) write(37,'(a3,3f12.7,e20.10,f12.7)')  'CG2',spasso,passov,passo,dene0,(enever-ene0)/passo/dene0
+!$$
+          if(ionode) then
+            write(1037,'(a3,4f20.10)') 'CG1',ene0+entropy,ene1+entropy,enesti+entropy,enever+entropy
+            write(1037,'(a3,4f20.10)') 'CG2',spasso,passov,passo,(enever-ene0)/passo/dene0
+            write(1037,*)
+          endif
+!$$
         endif
         !check with  what supposed
 
@@ -779,20 +846,20 @@
           if(ionode) then
              write(stdout,*) 'cg_sub: missed minimum, case 1, iteration',itercg
           endif
-          c0(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
+          c0(1:ngw,1:n)=c0(1:ngw,1:n)+spasso*passov*hi(1:ngw,1:n)
           restartcg=.true.
           call calbec(1,nsp,eigr,c0,bec)
-          call gram(betae,bec,nhsa,c0,ngw,nbsp)
+          call gram(betae,bec,nhsa,c0,ngw,n)
           ene_ok=.false.
           !if  ene1 << energy <  ene0; go to  ene1
         else if( (enever.ge.ene0).and.(ene0.gt.ene1)) then
           if(ionode) then
              write(stdout,*) 'cg_sub: missed minimum, case 2, iteration',itercg
           endif  
-          c0(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
+          c0(1:ngw,1:n)=c0(1:ngw,1:n)+spasso*passov*hi(1:ngw,1:n)
           restartcg=.true.!ATTENZIONE
           call calbec(1,nsp,eigr,c0,bec)
-          call gram(betae,bec,nhsa,c0,ngw,nbsp)
+          call gram(betae,bec,nhsa,c0,ngw,n)
           !if ene > ene0,en1 do a steepest descent step
           ene_ok=.false.
         else if((enever.ge.ene0).and.(ene0.le.ene1)) then
@@ -804,11 +871,11 @@
           do while(enever.gt.ene0 .and. iter3.lt.maxiter3)
             iter3=iter3+1
             passov=passov*0.5d0
-            cm(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
+            cm(1:ngw,1:n)=c0(1:ngw,1:n)+spasso*passov*hi(1:ngw,1:n)
             ! chenge the searching direction
             spasso=spasso*(-1.d0)
             call calbec(1,nsp,eigr,cm,becm)
-            call gram(betae,bec,nhsa,cm,ngw,nbsp)
+            call gram(betae,bec,nhsa,cm,ngw,n)
             call calbec(1,nsp,eigr,cm,becm)
             if(.not.tens) then
               call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
@@ -831,16 +898,13 @@
             !
             vpot = rhor
             !
+!$$
+            CALL start_clock( 'vofrho4' )
+!$$
             call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
                         &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
-
 !$$
-            if(do_orbdep) then
-!            if(.false.) then
-              call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
-                         ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
-              etot = etot + sum(pink(:))
-            endif
+            CALL stop_clock( 'vofrho4' )
 !$$
 
             if( tefield)  then !to be bettered
@@ -851,6 +915,14 @@
               call berry_energy2( enb, enbi, becm, cm(:,:), fion )
               etot=etot+enb+enbi
             endif
+
+!$$
+            if(do_orbdep) then
+              call nksic_potential( n, nx, cm, fsic, bec, rhovan, deeq_sic, &
+                         ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+              etot = etot + sum(pink(:))
+            endif
+!$$
 
             enever=etot
            if(tens.and.newscheme) then
@@ -869,7 +941,7 @@
         if(.not. ene_ok) call calbec (1,nsp,eigr,c0,bec)
 
         !calculates phi for pc_daga
-        CALL calphi( c0, SIZE(c0,1), bec, nhsa, betae, phi, nbsp )
+        CALL calphi( c0, SIZE(c0,1), bec, nhsa, betae, phi, n )
   
         !=======================================================================
         !
@@ -887,6 +959,10 @@
           !=======================================================================
           !                 end of the inner loop
           !=======================================================================
+
+!$$
+!$$        if(itercg.eq.20) exit
+!$$
   
   
         itercg=itercg+1
@@ -894,21 +970,20 @@
 !   restore hi
 !        hi(:,:)=gi(:,:) 
 
-
       end do!on conjugate gradient iterations
       !calculates atomic forces and lambda
 
        if(tpre) then!if pressure is need the following is written because of caldbec
           call  calbec(1,nsp,eigr,c0,bec)
           if(.not.tens) then
-            call  caldbec( ngw, nhsa, nbsp, 1, nsp, eigr, c0, dbec )
+            call  caldbec( ngw, nhsa, n, 1, nsp, eigr, c0, dbec )
             call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
           else
 
             !     calculation of the rotated quantities
             call rotate( z0t, c0(:,:), bec, c0diag, becdiag, .false. )
             !     calculation of rho corresponding to the rotated wavefunctions
-            call  caldbec( ngw, nhsa, nbsp, 1, nsp, eigr, c0diag, dbec )
+            call  caldbec( ngw, nhsa, n, 1, nsp, eigr, c0diag, dbec )
             call rhoofr(nfi,c0diag,irb,eigrb,becdiag                         &
                      &                    ,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
           endif
@@ -924,17 +999,27 @@
 
           vpot = rhor
 
+!$$
+          CALL start_clock( 'vofrho5' )
+!$$
           call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
                  &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
+!$$
+          CALL stop_clock( 'vofrho5' )
+!$$
+
+!$$
+!$$ Why there are not other terms here???
+!$$
 
 !$$
           if(do_orbdep) then
-!          if(.false.) then
-            call nksic_potential( nbsp, nbspx, c0, fsic, bec, rhovan, deeq_sic, &
+            call nksic_potential( n, nx, c0, fsic, bec, rhovan, deeq_sic, &
                        ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
             etot = etot + sum(pink(:))
           endif
 !$$
+
    
 
      endif
@@ -950,32 +1035,20 @@
       endif
   
         call prefor(eigr,betae)
-        do i=1,nbsp,2
 !$$
-          ! faux takes into account spin multiplicity.
-          !
-          faux(1:nbsp) = max(f_cutoff,f(1:nbsp)) * DBLE( nspin ) / 2.0d0
-!$$          faux(1:nbsp) = f(1:nbsp)
-          !
+        ! faux takes into account spin multiplicity.
+        !
+        faux(1:n) = max(f_cutoff,f(1:n)) * DBLE( nspin ) / 2.0d0
+        !
 !$$
 
-!$$          call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin,f,nbsp,nspin)
-          call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin,faux,nbsp,nspin)
+        do i=1,n,2
 !$$
-
+          CALL start_clock( 'dforce2' )
+!$$          call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin,f,n,nspin)
+          call dforce(i,bec,betae,c0,c2,c3,rhos,nnrsx,ispin,faux,n,nspin)
+          CALL start_clock( 'dforce2' )
 !$$
-           IF ( do_orbdep ) THEN
-!           if(.false.) then
-               !
-               ! faux takes into account spin multiplicity.
-               !
-               CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi )
-               !
-               c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
-               c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1)
-           ENDIF
-!$$
-
           if(tefield.and.(evalue .ne. 0.d0)) then
             call dforceb &
                (c0, i, betae, ipolp, bec ,ctabin(1,1,ipolp), gqq, gqqm, qmat, deeq, df)
@@ -1001,15 +1074,27 @@
             enddo
           endif
 
+!$$
+           IF ( do_orbdep ) THEN
+               !
+               ! faux takes into account spin multiplicity.
+               !
+               CALL nksic_eforce( i, n, nx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi )
+               !
+               c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
+               c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1)
+           ENDIF
+!$$
+
           do ig=1,ngw
             gi(ig,  i)=c2(ig)
-            if(i+1 <= nbsp) then
+            if(i+1 <= n) then
               gi(ig,i+1)=c3(ig)
             endif
           end do
           if (ng0.eq.2) then
             gi(1,  i)=CMPLX(DBLE(gi(1,  i)),0.d0)
-            if(i+1 <= nbsp) then
+            if(i+1 <= n) then
               gi(1,i+1)=CMPLX(DBLE(gi(1,i+1)),0.d0)
             endif
           end if
@@ -1044,12 +1129,6 @@
            !
            CALL distribute_lambda( lambda_repl, lambda( :, :, is ), descla( :, is ) )
            !
-!$$
-!           if(ionode) write(37,*) 'lambda is',is
-!           do i=1,nss
-!             if(ionode) write(37,*) (lambda(i,j,is),j=1,nss)
-!           enddo
-!$$
         end do
 
         DEALLOCATE( lambda_repl )
@@ -1081,7 +1160,7 @@
            !
            DEALLOCATE( lambda_dist )
            !
-           call nlsm2(ngw,nhsa,nbsp,nspin,eigr,c0(:,:),becdr)
+           call nlsm2(ngw,nhsa,n,nspin,eigr,c0(:,:),becdr)
            !
         endif
         !
@@ -1102,6 +1181,9 @@
         deallocate(hpsi0,hpsi,gi,hi)
         deallocate( s_minus1,k_minus1)
        if(ionode) close(37)!for debug and tuning purposes
+!$$
+       if(ionode) close(1037)!for debug and tuning purposes
+!$$
        call stop_clock('runcg_uspp')
 
        deallocate(bec0,becm,becdrdiag)

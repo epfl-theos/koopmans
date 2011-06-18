@@ -41,6 +41,9 @@ MODULE control_flags
             tconvthrs, tolp, convergence_criteria, tionstep, nstepe,         &
             tsteepdesc, tatomicwfc, tscreen, gamma_only, force_pairing,      &
             tchi2, do_ee
+!$$
+  PUBLIC :: do_innerloop
+!$$
   !
   PUBLIC :: fix_dependencies, check_flags
   PUBLIC :: tksw, trhor, thdyn, iprsta, trhow
@@ -86,6 +89,9 @@ MODULE control_flags
   LOGICAL :: force_pairing = .FALSE. ! Force pairing
   LOGICAL :: tchi2         = .FALSE. ! Compute Chi^2
   LOGICAL :: do_ee         = .FALSE. ! Compute periodi-image correction
+!$$
+  LOGICAL :: do_innerloop  = .FALSE. ! Do inner loop minimization in case do_orbdep
+!$$
   !
   TYPE (convergence_criteria) :: tconvthrs
                               !  thresholds used to check GS convergence

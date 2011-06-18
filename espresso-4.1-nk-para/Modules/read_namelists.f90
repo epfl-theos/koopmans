@@ -221,6 +221,9 @@ MODULE read_namelists_module
        do_pz = .false.      ! main switch of PZ SIC
        do_nki = .false.     ! main switch of NKI (non-Koopmans, integral ref)
        do_nkpz = .false.    ! main switch of NK (non-Koopmans) on top of PZ
+!$$
+       do_innerloop = .false. ! main switch of inner loop minimization
+!$$
        nkscalfact = 1.0_DP  ! NK coeffcient 
        hfscalfact = 1.0_DP  ! HF coefficient
        nknmax = -1          ! if <> -1, index of the last orbital on which NK is applied
@@ -845,6 +848,9 @@ MODULE read_namelists_module
        CALL mp_bcast( do_pz,                      ionode_id )
        CALL mp_bcast( do_nki,                     ionode_id )
        CALL mp_bcast( do_nkpz,                    ionode_id )
+!$$
+       CALL mp_bcast( do_innerloop,               ionode_id )
+!$$
        CALL mp_bcast( nknmax,                     ionode_id )
        CALL mp_bcast( nkscalfact,                 ionode_id )
        CALL mp_bcast( hfscalfact,                 ionode_id )
