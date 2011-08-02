@@ -185,6 +185,14 @@ MODULE input_parameters
           ! where "n" is the step index, "etot" the DFT energy
           ! convergence is achieved when all criteria are met
 
+!$$
+        REAL(DP) :: esic_conv_thr = 1.0E-5_DP
+          ! convergence criterion for self-interaction correction minimization
+          ! this criterion is met when "esic(n+1)-esic(n) < esic_conv_thr",
+          ! where "n" is the step index, "esic" the SIC energy
+          ! convergence is achieved when all criteria are met
+!$$
+
         REAL(DP) :: forc_conv_thr = 1.0E-3_DP
           ! convergence criterion for ion minimization
           ! this criterion is met when "MAXVAL(fion) < forc_conv_thr",
@@ -250,6 +258,9 @@ MODULE input_parameters
         NAMELIST / control / title, calculation, verbosity, restart_mode, &
           nstep, iprint, isave, tstress, tprnfor, dt, ndr, ndw, outdir,   &
           prefix, wfcdir, max_seconds, ekin_conv_thr, etot_conv_thr,      &
+!$$
+          esic_conv_thr,                                                  &
+!$$
           forc_conv_thr, pseudo_dir, disk_io, tefield, dipfield, lberry,  &
           gdir, nppstr, wf_collect, printwfc, lelfield, nberrycyc, refg,  &
           tefield2, saverho, tabps, lkpoint_dir, use_wannier
@@ -442,6 +453,10 @@ MODULE input_parameters
         LOGICAL :: do_hf  = .false.
 !$$
         LOGICAL :: do_innerloop  = .false.
+        LOGICAL :: do_innerloop_cg  = .false.
+        LOGICAL :: innerloop_dd_nstep  = 50
+        LOGICAL :: innerloop_cg_nsd  = 20
+        LOGICAL :: innerloop_cg_nreset  = 10
 !$$
         !
         ! This variable overwrites the ones above
@@ -493,7 +508,7 @@ MODULE input_parameters
              do_hf, nknmax, do_spinsym, f_cutoff,                             &
              nkscalfact, hfscalfact, vanishing_rho_w, which_orbdep,           &
 !$$
-             do_innerloop
+             do_innerloop,do_innerloop_cg,innerloop_dd_nstep,innerloop_cg_nsd,innerloop_cg_nreset
 !$$
 !
 !=----------------------------------------------------------------------------=!

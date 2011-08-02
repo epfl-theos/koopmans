@@ -258,6 +258,9 @@ MODULE input
                                tbeg_   => tbeg
      USE control_flags, ONLY : ekin_conv_thr_ => ekin_conv_thr, &
                                etot_conv_thr_ => etot_conv_thr, &
+!$$
+                               esic_conv_thr_ => esic_conv_thr, &
+!$$
                                forc_conv_thr_ => forc_conv_thr, &
                                ekin_maxiter_  => ekin_maxiter, &
                                etot_maxiter_  => etot_maxiter, &
@@ -291,6 +294,9 @@ MODULE input
      USE input_parameters,   ONLY: &
         electron_dynamics, electron_damping, electron_temperature,   &
         ion_dynamics, ekin_conv_thr, etot_conv_thr, forc_conv_thr, ion_maxstep,&
+!$$
+        esic_conv_thr, &
+!$$
         electron_maxstep, ion_damping, ion_temperature, ion_velocities, tranp, &
         amprp, ion_nstepe, cell_nstepe, cell_dynamics, cell_damping,           &
         cell_parameters, cell_velocities, cell_temperature, force_pairing,     &
@@ -322,6 +328,9 @@ MODULE input
      tchi2_         = tchi2_inp
      ekin_conv_thr_ = ekin_conv_thr
      etot_conv_thr_ = etot_conv_thr
+!$$
+     esic_conv_thr_ = esic_conv_thr
+!$$
      forc_conv_thr_ = forc_conv_thr
      ekin_maxiter_  = electron_maxstep
      iesr           = iesr_inp
@@ -858,6 +867,9 @@ MODULE input
            empty_states_ethr, empty_states_nbnd,                               &
            iprnks_empty, nconstr_inp, iprnks, nprnks,                          &
            etot_conv_thr, ekin_conv_thr, nspin, f_inp, nelup, neldw, nbnd,     &
+!$$
+           esic_conv_thr, &
+!$$
            nelec, press, cell_damping, cell_dofree, tf_inp, nprnks_empty,      &
            refg, greash, grease, greasp, epol, efield, tcg, maxiter, conv_thr, &
            passop, tot_charge, multiplicity, tot_magnetization, ncolvar_inp,   &

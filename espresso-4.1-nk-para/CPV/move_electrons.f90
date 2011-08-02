@@ -15,15 +15,31 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   ! ... this routine updates the electronic degrees of freedom
   !
 !$$
-!$$ CHP (June 18 / 2011)
+!$$ CHP (August 01 / 2011)
 !$$
-!$$ When damped dynamics is used, an optimal unitary rotation among occupied states is
-!$$ calculated by setting 'do_innerloop=.true.' in the namelist SYSTEM of the input file.
+!$$ An optimal unitary rotation among occupied states is calculated by setting
+!$$ 'do_innerloop=.true.' in the namelist SYSTEM of the input file.
+!$$ Also, either CG or SD with parabolic minimization or steepest-descent method without
+!$$ parabolic minimization can be chosen: 'do_innerloop_cg' being .true. or .false.
+!$$ (Default: do_innerloop_cg=.false.)
 !$$ Convergence for this inner loop minimization and (conventional) outer loop minimization
 !$$ can be found in the files convg_inner.dat and convg_outer.dat, respectively.
+!$$ esic_conv_thr is the threshold of convergence for the inner loop minimization.
 !$$
-!$$ Nota Bene: This inner-loop minimization cannot be used for the case where an energy
-!$$ functional cannot be defined like nk0.
+!$$ When do_innerloop_cg=.true., one could also set innerloop_cg_nsd (the number of
+!$$ initial steepest-descent steps) and innerloop_cg_nreset (the number of CG step running
+!$$ before resetting the CG direction, i.e., when this variable is set to 1, the calculation
+!$$ becomes SD).  Initially, SD is better than CG but when near the energy minimum, CG
+!$$ works better.
+!$$
+!$$ When the outerloop dynamics is damped dynamics, we should set innerloop_dd_nstep,
+!$$ which is the number of outerloop steps between each inner loop minimization.
+!$$
+!$$ Nota Bene:
+!$$ 1. When using methods without energy functional such as nk0, do_innerloop_cg
+!$$ should be set to .false.  In general, it is faster to set this one to .false.
+!$$ 2. Fractional occupation is not supported yet.  This is the case for the outer loop's
+!$$ CG routine as well - even without SIC.
 !$$
   USE kinds,                ONLY : DP
   USE control_flags,        ONLY : lwf, tfor, tprnfor, thdyn, use_task_groups
@@ -64,7 +80,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   USE hfmod,                ONLY : do_hf, vxxpsi, exx
   USE nksic,                ONLY : do_orbdep, vsic, wtot, fsic, fion_sic, deeq_sic, pink
 !$$
-  USE nksic,                ONLY : do_pz, do_innerloop
+  USE nksic,                ONLY : do_pz, do_innerloop, innerloop_dd_nstep
   use ions_base, only: nsp
   use electrons_base, only: nel,nelt,nupdwn,iupdwn
 !$$
@@ -85,68 +101,13 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   !
   INTEGER :: i, j, is, n2
 !$$ The following local variables are for the inner-loop, i.e., unitary rotation
-  REAL(DP)                :: bec1(nkb,nbsp)
-  REAL(DP), allocatable   :: vsicah(:,:),overlap(:,:)
-  COMPLEX(DP)             :: psi1(nnrx), psi2(nnrx)
-  REAL(DP)                   :: vsicahtmp,overlaptmp
-  INTEGER :: nbnd1,nbnd2,ninner
-  REAL(DP), allocatable      :: Omat1(:,:),Omatim(:,:)
-  REAL(DP)                   :: Omat1tot(nbspx,nbspx)
+  INTEGER :: ninner
   REAL(DP)                   :: Omattot(nbspx,nbspx)
-  REAL(DP)                   :: vsic1(nnrx,nbspx)
   INTEGER , save             ::  nouter = 0
   REAL(DP)                   :: ene0
-  COMPLEX(DP), allocatable   :: Hmat(:,:), Umat(:,:), Cmattmp(:,:)
-  REAL(DP), allocatable      :: Heig(:)
-  REAL(DP)                   :: dwfnnorm, dtmp
-  COMPLEX(DP), allocatable   :: exp_iHeig(:)
-  COMPLEX(DP)                :: ci
-  COMPLEX(DP)                :: wfn_ctmp(ngw,nbspx), wfn_ctmp2(ngw,nbspx), wfn_ctmp1(ngw,nbspx)
-  REAL(DP)                   :: passof,passoprodmin
-  INTEGER                    :: npassofailmax
-  INTEGER, SAVE              :: npassofail=0
-  REAL(DP), SAVE             :: pinksumprev=1.d8, passoprod=0.3d0
-  REAL(DP)                   :: pink1(nbspx)
-  INTEGER                    :: isp
-!  COMPLEX(DP)                :: Htest(2,2), Utest(2,2)
-!  REAL(DP)                   :: Eigtest(2)
 !$$
   !
   !
-!$$
-  ci = (0.d0,1.d0)
-  dwfnnorm = 1.0/(dble(nr1x)*dble(nr2x)*dble(nr3x))
-  npassofailmax = 5 ! when to stop dividing passoprod by 2
-!$$
-
-!$$ LAPACK TEST
-!  Htest(1,1) =  0.0
-!  Htest(1,2) = -ci
-!  Htest(2,1) = ci
-!  Htest(2,2) = 0.0
-!  if(ionode) then
-!    CALL zdiag(2,2,Htest(1,1),Eigtest(1),Utest(1,1),1)
-!  endif
-!
-!  CALL mp_bcast(Utest, ionode_id, intra_image_comm)
-!  CALL mp_bcast(Htest, ionode_id, intra_image_comm)
-!
-!  if(ionode) then
-!    write(555,*) 'Printing out Htest ...'
-!    write(555,*) Htest(1,1),Htest(1,2)
-!    write(555,*) Htest(2,1),Htest(2,2)
-!
-!    write(555,*) 'Printing out Utest ...'
-!    write(555,*) Utest(1,1),Utest(1,2)
-!    write(555,*) Utest(2,1),Utest(2,2)
-!
-!    write(555,*) 'Printing out Eigtest ...'
-!    write(555,*) Eigtest(1),Eigtest(2)
-!
-!    write(555,*) 'nbsp,nbspx,nspin,nudx', nbsp,nbspx,nspin,nudx
-!    write(555,*) 'nel(2),nelt,nupdwn(2),iupdwn(2)',nel,nelt,nupdwn,iupdwn
-!  endif
-!$$
 
   electron_dynamic: IF ( tcg ) THEN
      !
@@ -226,6 +187,11 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
          if(ionode.and.( nouter.eq.1)) then
            open(1032,file='convg_outer.dat',status='unknown')
            write(1032,'("#   ninner    nouter     non-sic energy (Ha)         sic energy (Ha)")')
+
+           if(do_innerloop) then
+             open(1031,file='convg_inner.dat',status='unknown')
+             write(1031,'("#   ninner    nouter     non-sic energy (Ha)         sic energy (Ha)    RMS force eigenvalue")')
+           endif
          endif
 
 !$$ Inner loop convergence is performed only once at the first iteration:
@@ -233,206 +199,21 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
 !$$ except for the unitary rotation.
 
          ninner = 0
-
-         if( do_innerloop .and. ( nouter.eq.1) ) then
-
-           Omattot(:,:)=0.d0
-           do nbnd1=1,nbspx
-             Omattot(nbnd1,nbnd1)=1.d0
-           enddo
-
-           do nbnd1=1,nbspx
-             wfn_ctmp(:,nbnd1)=c0(:,nbnd1)
-           enddo
-
-           if(ionode) then
-             open(1031,file='convg_inner.dat',status='unknown')
-             write(1031,'("#   ninner    nouter     non-sic energy (Ha)         sic energy (Ha)")')
-           endif
-
-           do while (.true.)
-
-             ninner = ninner + 1
-
-!$$ print out ESIC part & other total energy
-             if(ionode) write(1031,'(2I10,2F24.13)') ninner, nouter,etot,ene0
-
-             Omat1tot(:,:)=0.d0
-             do nbnd1=1,nbspx
-               Omat1tot(nbnd1,nbnd1)=1.d0
-             enddo
-
-
-!$$ This part calculates the anti-hermitian Wmat and see whether a convergence has been achieved
-
-             wfn_ctmp1(:,:) = (0.d0,0.d0)
-
-             do isp=1,nspin
-
-               allocate(vsicah(nupdwn(isp),nupdwn(isp)))
-               allocate(overlap(nupdwn(isp),nupdwn(isp)))
-               allocate(Hmat(nupdwn(isp),nupdwn(isp)))
-               allocate(Umat(nupdwn(isp),nupdwn(isp)))
-               allocate(Heig(nupdwn(isp)))
-               allocate(exp_iHeig(nupdwn(isp)))
-               allocate(Cmattmp(nupdwn(isp),nupdwn(isp)))
-               allocate(Omat1(nupdwn(isp),nupdwn(isp)))
-
-               vsicah(:,:) = 0.d0
-
-               do nbnd1=1,nupdwn(isp)
-                 CALL c2psi( psi1, nnrx, wfn_ctmp(:,iupdwn(isp)-1 + nbnd1), (0.d0,0.d0), ngw, 1)
-                 CALL invfft('Dense', psi1, dfftp )
-
-                 do nbnd2=1,nupdwn(isp)
-                   if(nbnd2.lt.nbnd1) then
-                     vsicahtmp = -vsicah(nbnd2,nbnd1)
-                     overlaptmp = overlap(nbnd2,nbnd1)
-                   else
-                     CALL c2psi( psi2, nnrx, wfn_ctmp(:,iupdwn(isp)-1 + nbnd2), (0.d0,0.d0), ngw, 1)
-                     CALL invfft('Dense', psi2, dfftp )
-
-                     vsicahtmp = 0.d0
-                     overlaptmp = 0.d0
-
-                     do i=1,nnrx
-!$$ Imposing Pederson condition
-                       vsicahtmp = vsicahtmp &
-                           + 2.d0 * dble( conjg(psi1(i)) * (vsic(i,nbnd2)-vsic(i,nbnd1)) * psi2(i) ) * dwfnnorm
-!                           + 2.d0 * dble( vsic(i,nbnd2)-vsic(i,nbnd1) ) * dwfnnorm
-                       overlaptmp = overlaptmp + dble( conjg(psi1(i)) * psi2(i) ) * dwfnnorm
-                     enddo
-
-                     CALL mp_sum(vsicahtmp,intra_image_comm)
-                     CALL mp_sum(overlaptmp,intra_image_comm)
-                   endif ! if(nbnd2.lt.nbnd1)
-
-                   vsicah(nbnd1,nbnd2) = vsicahtmp
-                   overlap(nbnd1,nbnd2) = overlaptmp
-
-                 enddo ! nbnd2=1,nupdwn(isp)
-               enddo ! nbnd1=1,nupdwn(isp)
-
-!$$ Now this part diagonalizes Hmat = iWmat
-               Hmat(:,:) = ci * vsicah(:,:)
-!$$ diagonalize Hmat
-               if(ionode) then
-                 CALL zdiag(nupdwn(isp),nupdwn(isp),Hmat(1,1),Heig(1),Umat(1,1),1)
-               endif
-
-               CALL mp_bcast(Umat, ionode_id, intra_image_comm)
-               CALL mp_bcast(Heig, ionode_id, intra_image_comm)
-
-!$$ We set the step size in such a way that the phase change
-!$$ of the wavevector with largest eigenvalue upon rotation is fixed
-               passof = passoprod/max(abs(Heig(1)),abs(Heig(nupdwn(isp))))
-
-               do nbnd1=1,nupdwn(isp)
-                 dtmp =  passof * Heig(nbnd1)
-                 exp_iHeig(nbnd1) = cos(dtmp) + ci*sin(dtmp)
-               enddo
-
-!$$ Cmattmp = exp(i * passof * Heig) * Umat   ; Omat = Umat^dagger * Cmattmp
-               do nbnd1=1,nupdwn(isp)
-                 Cmattmp(:,nbnd1) = Umat(:,nbnd1) * exp_iHeig(nbnd1)
-               enddo
-
-               Omat1 = dble ( MATMUL(Cmattmp, conjg(transpose(Umat)) ) )
-
-!$$ Wavefunction c0 rotation using according to Omat
-               do nbnd1=1,nupdwn(isp)
-                 do nbnd2=1,nupdwn(isp)
-                   wfn_ctmp1(:,iupdwn(isp)-1 + nbnd1)=wfn_ctmp1(:,iupdwn(isp)-1 + nbnd1) &
-                       + wfn_ctmp(:,iupdwn(isp)-1 + nbnd2) * Omat1(nbnd2,nbnd1)
-                 enddo
-               enddo
-
-! Assigning the rotation matrix for a specific spin isp
-               Omat1tot(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp),iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Omat1(:,:)
-
-!               if(ionode) write(1041,*) ninner, nouter,isp
-!               if(ionode) write(1042,*) ninner, nouter,isp
-!               if(ionode) write(1043,*) ninner, nouter,isp
-!!               if(ionode) write(1041,*) pink  ! results are okay
-!!               if(ionode) write(1041,*) pink1 ! 15th result is NaN
-!               do nbnd1=1,nupdwn(isp)
-!                 if(ionode) write(1041,'(15E9.1)') (overlap(nbnd1,nbnd2),nbnd2=1,nupdwn(isp))
-!                 if(ionode) write(1042,'(15E9.1)') (Omat1(nbnd1,nbnd2),nbnd2=1,nupdwn(isp))
-!                 if(ionode) write(1043,'(15E9.1)') (vsicah(nbnd1,nbnd2),nbnd2=1,nupdwn(isp))
-!               enddo
-!!               do nbnd1=1,nbspx
-!!                 if(ionode) write(1041,'(30E9.1)') (Omat1tot(nbnd1,nbnd2),nbnd2=1,nbspx)
-!!               enddo
-
-               deallocate(vsicah)
-               deallocate(overlap)
-               deallocate(Umat)
-               deallocate(Hmat)
-               deallocate(Heig)
-               deallocate(exp_iHeig)
-               deallocate(Cmattmp)
-               deallocate(Omat1)
-
-             enddo ! do isp=1,nspin
-
-!$$ recalculate bec & vsic according to the new wavefunction
-             call calbec(1,nsp,eigr,wfn_ctmp1,bec1)
-
-             vsic1(:,:) = 0.d0
-             pink1(:) = 0.d0
-
-             call nksic_potential( nbsp, nbspx, wfn_ctmp1, fsic, bec1, becsum, deeq_sic, &
-                        ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic1, pink1 )
-!$$ Currently, this nksic_potential call messes up pink1 and vsic1 !!!
-!             call nksic_potential( nbsp, nbspx, c0, fsic, bec1, becsum, deeq_sic, &
-!                        ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic1, pink1 )
-
-
-!$$ if converged, exit
-             if(sum(pink1(:)).gt.ene0) then
-               npassofail = npassofail+1
-
-               if(ionode) then
-                 write(1031,'("# procedure  ",I2," / ",I2," is finished.")') npassofail,npassofailmax
-                 write(1031,*)
-               endif
-
-               if(npassofail.eq.npassofailmax) then
-!$$ if we reach at the maximum allowed npassofail number, we exit without further update
-                 exit
-               endif
-               passoprod = passoprod * 0.5d0
-               cycle
-             endif
-
-!$$ we keep track of all the rotations to rotate cm later
-             Omattot = MATMUL(Omattot,Omat1tot)
-
-             pink(:) = pink1(:)
-             ene0 = sum(pink1(:))
-             vsic(:,:) = vsic1(:,:)
-             wfn_ctmp(:,:) = wfn_ctmp1(:,:)
-             bec(:,:) = bec1(:,:)
-           enddo  !$$ do while (.true.)
-
-!$$ Now update c0 (wfn_ctmp is in fact not necessary but ...)
-           c0(:,1:nbspx) = wfn_ctmp(:,1:nbspx)
-
-!$$ Wavefunction cm rotation according to Omattot
-           wfn_ctmp2(:,:) = (0.d0,0.d0)
-           do nbnd1=1,nbspx
-             do nbnd2=1,nbspx
-               wfn_ctmp2(:,nbnd1)=wfn_ctmp2(:,nbnd1) + cm(:,nbnd2) * Omattot(nbnd2,nbnd1)
-             enddo
-           enddo
-           cm(:,1:nbspx) = wfn_ctmp2(:,1:nbspx)
-
-           if(ionode) close(1031)
-
-         endif !$$ if( do_innerloop .and. ( nouter.eq.1) )
+!$$
+!$$ For Benzene, it has been checked that pz and nk both need only one
+!$$ inner loop optimization.
+!$$
+         if( do_innerloop .and. ( nouter.eq.1 .or. mod(nouter,innerloop_dd_nstep).eq.0 ) ) then
+!         if( do_innerloop .and. ( nouter.eq.1) ) then
+!         if( do_innerloop ) then
+!         if(do_innerloop .and. nouter.eq.1) then
+!         if(.false.) then
+           call nksic_rot_emin(nouter,ninner,etot,Omattot)
+           ene0 = sum(pink(:))
+         endif
 
 !$$ to see the outer loop energy convergence
-         if(ionode) write(1032,'(2I10,2F24.13)') ninner, nouter,etot,ene0
+         if(ionode) write(1032,'(2I10,2F24.13)') ninner, nouter,etot,sum(pink(:))
 !$$
          !
          etot = etot + ene0

@@ -2606,7 +2606,8 @@ END FUNCTION
                                    nknmax, do_spinsym, f_cutoff, &
                                    nkscalfact,  nksic_memusage, allocate_nksic
 !$$
-      use nksic,            only : do_innerloop
+      use nksic,            only : do_innerloop, do_innerloop_cg, innerloop_dd_nstep, &
+                                   innerloop_cg_nsd, innerloop_cg_nreset
 !$$
       use input_parameters, ONLY : do_nk_ => do_nk, &
                                    do_pz_ => do_pz, &
@@ -2623,7 +2624,11 @@ END FUNCTION
                                    nknmax_ => nknmax, &
                                    f_cutoff_ => f_cutoff
 !$$
-      use input_parameters, only : do_innerloop_ => do_innerloop
+      use input_parameters, only : do_innerloop_ => do_innerloop, &
+                                   do_innerloop_cg_ => do_innerloop_cg, &
+                                   innerloop_dd_nstep_ => innerloop_dd_nstep, &
+                                   innerloop_cg_nsd_ => innerloop_cg_nsd, &
+                                   innerloop_cg_nreset_ => innerloop_cg_nreset
 !$$
       USE io_global,        ONLY : meta_ionode, stdout
       use electrons_base,   ONLY : nspin, nx => nbspx
@@ -2651,6 +2656,10 @@ END FUNCTION
       fref    = fref_
 !$$
       do_innerloop = do_innerloop_
+      do_innerloop_cg = do_innerloop_cg_
+      innerloop_dd_nstep = innerloop_dd_nstep_
+      innerloop_cg_nsd = innerloop_cg_nsd_
+      innerloop_cg_nreset = innerloop_cg_nreset_
 !$$
       !
       ! use the collective var which_orbdep

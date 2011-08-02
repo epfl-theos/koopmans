@@ -2799,6 +2799,10 @@ SUBROUTINE wfsteep( m, Omat, Umat, b1, b2, b3 )
   !
   !  write(24, *) "spread: (unit \AA^2)"
 
+!$$
+  spread = 0.d0
+!$$
+
   IF(me.EQ.1) THEN
      iunit = printout_base_unit( "spr" )
      CALL printout_base_open( "spr" )

@@ -42,7 +42,7 @@ MODULE control_flags
             tsteepdesc, tatomicwfc, tscreen, gamma_only, force_pairing,      &
             tchi2, do_ee
 !$$
-  PUBLIC :: do_innerloop
+  PUBLIC :: do_innerloop, do_innerloop_cg, innerloop_dd_nstep, innerloop_cg_nsd, innerloop_cg_nreset
 !$$
   !
   PUBLIC :: fix_dependencies, check_flags
@@ -91,6 +91,10 @@ MODULE control_flags
   LOGICAL :: do_ee         = .FALSE. ! Compute periodi-image correction
 !$$
   LOGICAL :: do_innerloop  = .FALSE. ! Do inner loop minimization in case do_orbdep
+  LOGICAL :: do_innerloop_cg  = .FALSE. ! Do cg inner loop minimization with parabolic minimization in case do_orbdep
+  INTEGER :: innerloop_dd_nstep = 50 ! Number of outer loop damped dynamics steps before each inner loop minimization
+  INTEGER :: innerloop_cg_nsd  = 20 ! Number of steepest-descent steps in doing conjugate-gradient inner loop minimization
+  INTEGER :: innerloop_cg_nreset  = 10 ! Number of steps to reset the search direction to be the steepest-descent direction in inner loop minimization
 !$$
   !
   TYPE (convergence_criteria) :: tconvthrs
@@ -171,6 +175,9 @@ MODULE control_flags
   REAL(DP), PUBLIC :: &
        ekin_conv_thr = 0.0_DP, &!  conv. threshold for fictitious e. kinetic energy
        etot_conv_thr = 0.0_DP, &!  conv. threshold for DFT energy
+!$$
+       esic_conv_thr = 0.0_DP, &!  conv. threshold for SIC energy
+!$$
        forc_conv_thr = 0.0_DP   !  conv. threshold for atomic forces
   INTEGER, PUBLIC :: &
        ekin_maxiter = 100,   &!  max number of iter. for ekin convergence

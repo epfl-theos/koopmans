@@ -93,6 +93,9 @@ MODULE read_namelists_module
        max_seconds   = 1.E+7_DP
        ekin_conv_thr = 1.E-6_DP
        etot_conv_thr = 1.E-4_DP
+!$$
+       esic_conv_thr = 1.E-5_DP
+!$$
        forc_conv_thr = 1.E-3_DP
        disk_io  = 'default'
        dipfield = .FALSE.
@@ -223,6 +226,10 @@ MODULE read_namelists_module
        do_nkpz = .false.    ! main switch of NK (non-Koopmans) on top of PZ
 !$$
        do_innerloop = .false. ! main switch of inner loop minimization
+       do_innerloop_cg = .false. ! main switch of cg inner loop minimization
+       innerloop_dd_nstep = 50 ! number of outer loop damped dynamics steps between each inner loop minimization
+       innerloop_cg_nsd = 20 ! number of initial steepest-descent steps in cg inner loop minimization
+       innerloop_cg_nreset = 10 ! number of cg steps after which the search direction is set to the steepest-descent direction in inner loop minimization
 !$$
        nkscalfact = 1.0_DP  ! NK coeffcient 
        hfscalfact = 1.0_DP  ! HF coefficient
@@ -729,6 +736,9 @@ MODULE read_namelists_module
        CALL mp_bcast( max_seconds,   ionode_id )
        CALL mp_bcast( ekin_conv_thr, ionode_id )
        CALL mp_bcast( etot_conv_thr, ionode_id )
+!$$
+       CALL mp_bcast( esic_conv_thr, ionode_id )
+!$$
        CALL mp_bcast( forc_conv_thr, ionode_id )
        CALL mp_bcast( pseudo_dir,    ionode_id )
        CALL mp_bcast( refg,          ionode_id )
@@ -850,6 +860,10 @@ MODULE read_namelists_module
        CALL mp_bcast( do_nkpz,                    ionode_id )
 !$$
        CALL mp_bcast( do_innerloop,               ionode_id )
+       CALL mp_bcast( do_innerloop_cg,            ionode_id )
+       CALL mp_bcast( innerloop_dd_nstep,         ionode_id )
+       CALL mp_bcast( innerloop_cg_nsd,           ionode_id )
+       CALL mp_bcast( innerloop_cg_nreset,        ionode_id )
 !$$
        CALL mp_bcast( nknmax,                     ionode_id )
        CALL mp_bcast( nkscalfact,                 ionode_id )
@@ -1325,6 +1339,10 @@ MODULE read_namelists_module
 
        IF( etot_conv_thr < 0.0_DP ) &
           CALL errore( sub_name,' etot_conv_thr out of range ', 1 )
+!$$
+       IF( esic_conv_thr < 0.0_DP ) &
+          CALL errore( sub_name,' esic_conv_thr out of range ', 1 )
+!$$
        IF( forc_conv_thr < 0.0_DP ) &
           CALL errore( sub_name,' forc_conv_thr out of range ', 1 )
        IF( prog == 'CP' ) THEN

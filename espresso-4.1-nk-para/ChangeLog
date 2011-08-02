@@ -3,6 +3,13 @@
 		NK code:  Log of Changes
 =======================================================
 
+Aug 02 2011     Conjugate gradient inner loop minimization implemented.
+                Inner loop CG routine can be run with parabolic minimization
+                and also without parabolic minimization: the latter should be used
+                when using nk0 or any SIC method without an energy functional.
+                Fractional occupation is not yet implemented.  (This is the case
+                even for the original cp code's conjugate gradient routine.)
+
 Jun 18 2011     inner loop minimization for SIC implemented for damped dynamics.
 		An optimal unitary rotation among occupied states is calculated
 		when the variable do_innerloop in the namelist SYSTEM of the

@@ -73,7 +73,8 @@
       USE descriptors,              ONLY : la_npc_ , la_npr_ , la_comm_ , la_me_ , la_nrl_ , ldim_cyclic
       USE mp_global, ONLY:  me_image,my_image_id
 !$$
-      use nksic,               only : do_orbdep, vsicpsi, vsic, wtot, fsic, fion_sic, deeq_sic, f_cutoff, pink
+      use nksic,               only : do_orbdep, do_innerloop, do_innerloop_cg, innerloop_cg_nsd, innerloop_cg_nreset, &
+                                      vsicpsi, vsic, wtot, fsic, fion_sic, deeq_sic, f_cutoff, pink
 !$$
 
 
@@ -140,10 +141,15 @@
       real(DP),    allocatable :: faux(:) ! takes into account spin multiplicity
 !      real(DP), allocatable :: hpsinorm(:), hpsinosicnorm(:)
 !      complex(DP), allocatable :: hpsinosic(:,:)
+      integer :: ninner,nbnd1,nbnd2
+      real(DP) esic
+      real(DP) Omattot(nx,nx)
+      complex(DP) hi_tmp(ngw,n)
 !$$
 
 !$$   
-      allocate(faux(n))
+!$$      allocate(faux(n))
+      allocate(faux(nx))
 !      allocate(hpsinorm(n))
 !      allocate(hpsinosicnorm(n))
 !$$
@@ -218,9 +224,22 @@
       allocate(hpsi(ngw,n),hpsi0(ngw,n),gi(ngw,n),hi(ngw,n))
 !$$
 !      allocate(hpsinosic(ngw,n))
+      gi(:,:)=(0.d0,0.d0)
+      hi(:,:)=(0.d0,0.d0)
 !$$
       do while ( itercg .lt. maxiter .and. (.not.ltresh) )
 
+!$$
+        if(ionode.and.( itercg.eq.1)) then
+          open(1032,file='convg_outer.dat',status='unknown')
+          write(1032,'("#   ninner    nouter     non-sic energy (Ha)         sic energy (Ha)")')
+
+          if(do_innerloop) then
+            open(1031,file='convg_inner.dat',status='unknown')
+            write(1031,'("#   ninner    nouter     non-sic energy (Ha)         sic energy (Ha)    RMS force eigenvalue")')
+          endif
+        endif
+!$$
 
         ENERGY_CHECK: if(.not. ene_ok ) then
           call calbec(1,nsp,eigr,c0,bec)
@@ -239,7 +258,7 @@
             !     calculation of rho corresponding to the rotated wavefunctions
             call rhoofr(nfi,c0diag,irb,eigrb,becdiag                        &
                      &                    ,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
-         endif
+          endif
            
 !when cycle is restarted go to diagonal representation
 
@@ -253,7 +272,7 @@
               c0(:,:)=c0diag(:,:)
               bec(:,:)=becdiag(:,:)
               call id_matrix_init( descla, nspin )
-           endif
+          endif
         
 
           !calculates the potential
@@ -268,7 +287,7 @@
           vpot = rhor
 
 !$$
-!          if(ionode) write(*,*) 'Now doing vofrho1'
+          if(ionode) write(*,*) 'Now doing vofrho1'
           CALL start_clock( 'vofrho1' )
 !$$
           call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
@@ -286,9 +305,30 @@
               fsic = f
             endif
           !
-!$$          if(.false.) then
             call nksic_potential( n, nx, c0, fsic, bec, rhovan, deeq_sic, &
                        ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+!$$
+            esic=sum(pink(1:n))
+
+            if(do_innerloop .and. itercg.eq.1) then
+
+!$$ The following makes the computation never ending...
+!$$            if(do_innerloop) then
+!$$
+
+              ninner=0
+
+              if(.not.do_innerloop_cg) then
+                call nksic_rot_emin(itercg,ninner,etot,Omattot)
+              else
+                call nksic_rot_emin_cg(itercg,ninner,etot,Omattot)
+              endif
+
+              esic=sum(pink(1:n))
+
+              restartcg=.true.
+
+            endif
             etot = etot + sum(pink(:))
           endif
 !$$
@@ -321,18 +361,48 @@
           ene_ok=.false.
 
         end if ENERGY_CHECK
-        if(ionode) write(37,*)itercg, etotnew,pberryel,pberryel2!for debug and tuning purposes
-!$$
-        if(ionode) write(1037,'("iteration =",I4,"   Etot (Ha) =",F18.14)') itercg, etotnew !for debug and tuning purposes
+!$$        if(ionode) write(37,*)itercg, etotnew,pberryel,pberryel2!for debug and tuning purposes
+        if(ionode) write(37,*)itercg, etotnew!for debug and tuning purposes
 !$$
 
-        
+!$$
+        if(ionode) write(1037,'("iteration =",I4,"   Etot (Ha) =",F22.14)') itercg, etotnew !for debug and tuning purposes
+!$$
+
+
+!$$ to see the outer loop energy convergence
+        esic = sum(pink(:))
+        if(ionode) write(1032,'(2I10,2F24.13)') ninner,itercg,etot-esic,esic
+!$$
 
         if(abs(etotnew-etotold).lt.conv_thr) then
            numok=numok+1
         else 
            numok=0
         endif
+
+!$$         
+        if(do_innerloop .and. numok.eq.3) then
+!$$        if(.false.) then  
+          esic=sum(pink(:))
+          etot=etot-esic
+          etotnew=etotnew-esic
+          ninner=0        
+
+          if(.not.do_innerloop_cg) then
+            call nksic_rot_emin(itercg,ninner,etot,Omattot)
+          else
+            call nksic_rot_emin_cg(itercg,ninner,etot,Omattot)
+          endif
+
+          esic = sum(pink(:))
+          etot = etot + esic
+          etotnew = etotnew + esic
+
+          restartcg=.true.
+
+        endif
+!$$
 
         if(numok.ge.4) then
            ltresh=.true.
@@ -357,12 +427,8 @@
 !$$
         ! faux takes into account spin multiplicity.
         !
+        faux(1:nx)=0.d0
         faux(1:n) = max(f_cutoff,f(1:n)) * DBLE( nspin ) / 2.0d0
-!$$
-
-!$$
-!        if(ionode) write(100,*) 'n is',n
-!        if(ionode) write(100,*) 'f is',f(1),f(2)
 !$$
 
         do i=1,n,2
@@ -372,6 +438,7 @@
           call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin,faux,n,nspin)
           CALL stop_clock( 'dforce1' )
 !$$
+
           if(tefield .and. (evalue.ne.0.d0)) then
             call dforceb(c0, i, betae, ipolp, bec ,ctabin(1,1,ipolp), gqq, gqqm, qmat, deeq, df)
             c2(1:ngw)=c2(1:ngw)+evalue*df(1:ngw)
@@ -405,7 +472,9 @@
               CALL nksic_eforce( i, n, nx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi )
               !
               c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
-              c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1)
+              if(i+1 <= n) then
+                c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1)
+              endif
           ENDIF
 !$$
 
@@ -574,6 +643,8 @@
         !case of first iteration
 
         if(itercg==1.or.(mod(itercg,niter_cg_restart).eq.1).or.restartcg) then
+!$$        if(.true.) then
+!$$
 
           restartcg=.false.
           passof=passop
@@ -705,7 +776,7 @@
         vpot = rhor
         !
 !$$
-!        if(ionode) write(*,*) 'Now doing vofrho2'
+        if(ionode) write(*,*) 'Now doing vofrho2'
         CALL start_clock( 'vofrho2' )
 !$$
         call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
@@ -782,7 +853,7 @@
         !
         vpot = rhor
 !$$
-!        if(ionode) write(*,*) 'Now doing vofrho3'
+        if(ionode) write(*,*) 'Now doing vofrho3'
         CALL start_clock( 'vofrho3' )
 !$$
         !
@@ -820,6 +891,7 @@
           if(ionode) write(37,'(a3,4f20.10)') 'CG1',ene0+entropy,ene1+entropy,enesti+entropy,enever+entropy
 !$$          if(ionode) write(37,'(a3,4f10.7)')  'CG2',spasso,passov,passo,(enever-ene0)/passo/dene0
           if(ionode) write(37,'(a3,3f12.7,e20.10,f12.7)')  'CG2',spasso,passov,passo,dene0,(enever-ene0)/passo/dene0
+          if(ionode) write(37,*)
 !$$
           if(ionode) then
             write(1037,'(a3,4f20.10)') 'CG1',ene0+entropy,ene1+entropy,enesti+entropy,enever+entropy
@@ -1082,7 +1154,9 @@
                CALL nksic_eforce( i, n, nx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi )
                !
                c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
-               c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1)
+               if(i+1.le.n) then
+                 c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1)
+               endif
            ENDIF
 !$$
 

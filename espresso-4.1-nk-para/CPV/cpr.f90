@@ -663,11 +663,6 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
         IF ( tortho .or. tcg ) THEN
 !$$
 
-!$$
-!            if(ionode) write(37,*) 'lambda in tortho routine'
-!            do i=1,nbspx
-!              if(ionode) write(37,*) (lambda(i,j,1),j=1,nbspx)
-!            enddo
 !$$ test orthonormality of wavefunctions here
 !$$
             !
@@ -681,7 +676,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
             CALL eigs( nfi, lambdap, lambda )
 !$$
 !            do iss=1,nspin
-!              if(ionode) write(101,*) 'eigenvalues for spin',iss,'are',(13.6056923 * ei(i,iss),i=1,nbspx)
+!              if(ionode) write(101,*) 'eigenvalues for spin',iss,'are',(13.6056923 * ei(i,iss),i=1,nupdwn(iss))
 !            enddo
 !$$
             !

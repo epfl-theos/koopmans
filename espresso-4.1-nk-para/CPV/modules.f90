@@ -363,6 +363,10 @@ module nksic
   logical :: do_wref
 !$$
   logical :: do_innerloop
+  logical :: do_innerloop_cg
+  integer :: innerloop_dd_nstep
+  integer :: innerloop_cg_nsd
+  integer :: innerloop_cg_nreset
 !$$
 
 contains
