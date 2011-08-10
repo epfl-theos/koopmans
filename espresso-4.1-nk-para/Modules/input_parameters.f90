@@ -454,9 +454,9 @@ MODULE input_parameters
 !$$
         LOGICAL :: do_innerloop  = .false.
         LOGICAL :: do_innerloop_cg  = .false.
-        LOGICAL :: innerloop_dd_nstep  = 50
-        LOGICAL :: innerloop_cg_nsd  = 20
-        LOGICAL :: innerloop_cg_nreset  = 10
+        INTEGER :: innerloop_dd_nstep  = 50
+        INTEGER :: innerloop_cg_nsd  = 20
+        INTEGER :: innerloop_cg_nreset  = 10
 !$$
         !
         ! This variable overwrites the ones above

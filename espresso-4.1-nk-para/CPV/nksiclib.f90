@@ -1128,6 +1128,7 @@ end subroutine nksic_newd
       !
 !$$
       vsic(1:nnrx) =  vsic(1:nnrx) -vxc(1:nnrx,ispin)
+!      vsic(1:nnrx) = -vxc(1:nnrx,ispin)
 !$$
       !
       ! energy correction terms
@@ -1135,7 +1136,8 @@ end subroutine nksic_newd
 !$$
       pink = fact * ( -etxc -ehele )
 !$$
-!$$      pink = fact * ( -ehele )
+!      pink = fact * ( -ehele )
+!      pink = fact * ( -etxc )
 !$$
       call mp_sum(pink,intra_image_comm)
       
@@ -2137,6 +2139,7 @@ end subroutine nksic_dmxc_spin_cp
       integer                  :: isp
       real(dp), allocatable    :: vsicah(:,:)
       real(dp)                 :: vsicah2sum,deigrms,dmaxeig
+      integer :: nfile
 
       !
       ! variables for test calculations - along gradient line direction
@@ -2164,11 +2167,11 @@ end subroutine nksic_dmxc_spin_cp
       ninner = 0
 
       ldotest=.false.
-      
+
       do while (.true.)
       
         ninner = ninner + 1
-
+        
 !        if(mod(ninner,10).eq.1) ldotest=.true.
 !        if(ninner.le.20.and.nouter.eq.1) ldotest=.true.
         ldotest=.true.
@@ -2184,7 +2187,6 @@ end subroutine nksic_dmxc_spin_cp
         do nbnd1=1,nbspx
           Omat1tot(nbnd1,nbnd1)=1.d0
         enddo
-             
 
 !$$ This part calculates the anti-hermitian part of the hamiltonian
 !$$ vsicah and see whether a convergence has been achieved
@@ -2204,6 +2206,14 @@ end subroutine nksic_dmxc_spin_cp
           Umatbig(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp),iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Umat(:,:)
           Heigbig(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Heig(:)
 
+!$$ The following file prints out the eigenvalues of the force matrix: for debugging
+!$$
+!$$          if(ionode) then
+!$$            nfile=10000+isp
+!$$            write(nfile,'(2I10,100F10.6)') ninner,nouter,sum(Heig(:)**2),Heig(:)
+!$$          endif
+!$$
+
           deigrms = deigrms + sum(Heig(:)**2)
 
           deallocate(Umat)
@@ -2213,7 +2223,7 @@ end subroutine nksic_dmxc_spin_cp
         enddo ! do isp=1,nspin
 
         dmaxeig = max( abs(Heigbig(iupdwn(1))), abs(Heigbig(iupdwn(1)+nupdwn(1)-1)) )
-        do isp=2,nsp
+        do isp=2,nspin
           dmaxeig = max(dmaxeig,abs(Heigbig(iupdwn(isp))))
           dmaxeig = max(dmaxeig,abs(Heigbig(iupdwn(isp)+nupdwn(isp)-1)))
         enddo
@@ -2228,8 +2238,10 @@ end subroutine nksic_dmxc_spin_cp
         dalpha = passoprod/dmaxeig
         call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfn_ctmp,Omat1tot,bec1,vsic1,pink1,dtmp)
 
-!$$ if converged, exit
+!$$$$ if converged, exit
 !        if(dtmp.gt.esic.or.abs(esic-dtmp).lt.esic_conv_thr) then
+!$$ the following rather complicated condition is for nk0 calculation where we are not minimizing the total energy
+!$$
         if((ninner.ge.2.and.(esic-dtmp)*(esic-esic_old).gt.0.d0) &
             .or.(abs(esic-dtmp).lt.esic_conv_thr)) then
           npassofail = npassofail+1
@@ -2258,6 +2270,7 @@ end subroutine nksic_dmxc_spin_cp
         c0(:,:) = wfn_ctmp(:,:)
         bec(:,:) = bec1(:,:)
         esic_old = esic
+
       enddo  !$$ do while (.true.)
 
 !$$ Wavefunction cm rotation according to Omattot
@@ -2369,6 +2382,10 @@ end subroutine nksic_rot_emin
       deigrms = sqrt(deigrms/nbsp)
 
       dmaxeig = max( abs(Heigbig(iupdwn(1))), abs(Heigbig(iupdwn(1)+nupdwn(1)-1)) )
+      do isp=2,nspin
+        dmaxeig = max(dmaxeig,abs(Heigbig(iupdwn(isp))))
+        dmaxeig = max(dmaxeig,abs(Heigbig(iupdwn(isp)+nupdwn(isp)-1)))
+      enddo
 
       nfile = 10000+100*nouter+ninner
       if(ionode) write(nfile,*) '# passoprod',passoprod
@@ -2382,7 +2399,7 @@ end subroutine nksic_rot_emin
 
         call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfn_ctmp,Omat1tot,bec1,vsic1,pink1,esic)
 
-       if(ionode) write(nfile,'(5F24.13,2I10)') dalpha/3.141592*dmaxeig, dmaxeig, etot, esic, deigrms,ninner, nouter
+        if(ionode) write(nfile,'(5F24.13,2I10)') dalpha/3.141592*dmaxeig, dmaxeig, etot, esic, deigrms,ninner, nouter
 
       enddo  !$$ do istep=1,nsteps
 
@@ -2423,7 +2440,8 @@ end subroutine nksic_rot_test
       use uspp_param,                 only: nhm
       use cp_main_variables,          only: bec, eigr, rhor, rhog
       use nksic,                      only: deeq_sic, wtot, vsic, pink, fsic, &
-                                            innerloop_cg_nsd, innerloop_cg_nreset
+                                            innerloop_cg_nsd, innerloop_cg_nreset,&
+                                            do_spinsym
       use wavefunctions_module,       only : c0, cm
       use control_flags,              only : esic_conv_thr
       !
@@ -2456,27 +2474,31 @@ end subroutine nksic_rot_test
       REAL(dp)                 :: ene0_prev
       real(dp)                 :: ene0,ene1,enesti,enever,dene0
       real(dp)                 :: passo,passov,passof,passomax,spasso
-      real(dp)                 :: gi(nbspx,nbspx) ! gradient
-      real(dp)                 :: hi(nbspx,nbspx) ! search direction
+      real(dp)                 :: gi(nbsp,nbsp) ! gradient
+      real(dp)                 :: hi(nbsp,nbsp) ! search direction
       real(dp), allocatable    :: vsicah(:,:)
       real(dp)                 :: vsicah2sum,vsicah2sum_prev
       integer                  :: nidx1,nidx2
       real(dp)                 :: dPI,dalpha,dmaxeig,deigrms
       real(dp)                 :: pinksumprev
+      integer :: nfile
 !
 
 !
-!$$
+
       ldotest=.false.
 
       pinksumprev=1.d8
       dPI = 2.0*asin(1.0)
-!$$
 
-      ! main body
-      !
       CALL start_clock( 'nksic_rot_emin' )
 
+      !if(nouter.eq.1.and.ionode) then
+      !  write(1020,*) 'nbsp,nbspx',nbsp,nbspx
+      !  write(1020,*) 'iupdwn',iupdwn
+      !  write(1020,*) 'nupdwn',nupdwn
+      !  write(1020,*) 'ispin',ispin
+      !endif
 
       Omattot(:,:)=0.d0
       do nbnd1=1,nbspx
@@ -2493,12 +2515,17 @@ end subroutine nksic_rot_test
 
         ninner = ninner + 1
 
+!        call nksic_printoverlap(ninner,nouter)
+
 !        if(ninner.le.20.and.nouter.eq.1) ldotest=.true.
 !        if(ninner.le.10.and.nouter.eq.1) ldotest=.true.
-         ldotest=.true.
+!         ldotest=.true.
+!        if(ninner.ge.25) ldotest=.true.
+        if(ninner.ge.1.and.nouter.eq.37) ldotest=.true.
 !$$ Now do the test
         if(ldotest) then
-          dtmp = 1.5d0*3.141592d0
+!          dtmp = 1.5d0*3.141592d0
+          dtmp = 0.15d0*3.141592d0
 !          call nksic_rot_test(dtmp,151,nouter,ninner,etot)
           ldotest=.false.
         endif
@@ -2506,7 +2533,9 @@ end subroutine nksic_rot_test
 !$$ print out ESIC part & other total energy
         ene0 = sum(pink(:))
 
+!$$ test convergence
         if(abs(ene0-pinksumprev).lt.esic_conv_thr) then
+!        if(ninner.ge.20) then
           if(ionode) then
             write(1037,*) '# inner-loop converged.'
             write(1037,*)
@@ -2514,7 +2543,6 @@ end subroutine nksic_rot_test
             write(1031,*) '# inner-loop converged.'
             write(1031,*)
           endif
-
           exit
         endif
 
@@ -2551,6 +2579,8 @@ end subroutine nksic_rot_test
           deallocate(vsicah)
         enddo ! do isp=1,nspin
 
+!        call nksic_printoverlap(ninner,nouter)
+
         if(ninner.ne.1) dtmp = vsicah2sum/vsicah2sum_prev
 
         if(ninner.le.innerloop_cg_nsd.or.mod(ninner,innerloop_cg_nreset).eq.0) then
@@ -2567,12 +2597,20 @@ end subroutine nksic_rot_test
 
           vsicah(:,:) = hi(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp),iupdwn(isp):iupdwn(isp)-1+nupdwn(isp))
 
+          Heig(:)=0.d0
+          Umat(:,:)=(0.d0,0.d0)
           call nksic_getHeigU(isp,vsicah,Heig,Umat)
+
+
+!          if(ionode) then
+!            nfile=10000+isp
+!            write(nfile,'(2I10,100F10.6)') ninner,nouter,sum(Heig(:)**2),Heig(:)
+!          endif
+
+          deigrms = deigrms + sum(Heig(:)**2)
 
           Umatbig(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp),iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Umat(:,:)
           Heigbig(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Heig(:)
-
-          deigrms = deigrms + sum(Heig(:)**2)
 
           deallocate(vsicah)
           deallocate(Umat)
@@ -2585,6 +2623,10 @@ end subroutine nksic_rot_test
         if(ionode) write(1031,'(2I10,3F24.13)') ninner, nouter,etot,ene0,deigrms
 
         dmaxeig = max( abs(Heigbig(iupdwn(1))), abs(Heigbig(iupdwn(1)+nupdwn(1)-1)) )
+        do isp=2,nspin
+          dmaxeig = max(dmaxeig,abs(Heigbig(iupdwn(isp))))
+          dmaxeig = max(dmaxeig,abs(Heigbig(iupdwn(isp)+nupdwn(isp)-1)))
+        enddo
 
         passomax=0.2*dPI/dmaxeig
 
@@ -2617,12 +2659,15 @@ end subroutine nksic_rot_test
           enddo
         enddo
 
+!        dene0 = dene0 * 2.d0/nspin
+!$$  strangely enough, the following is correct!
+        dene0 = dene0 * 1.d0/nspin
+
         spasso = 1.d0
         if(dene0 .gt. 0.d0) spasso=-1.d0
 
         dalpha = spasso*passof
         call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfn_ctmp,Omat1tot,bec1,vsic1,pink1,ene1)
-
         call minparabola(ene0,spasso*dene0,ene1,passof,passo,enesti)
 
         if(passo .gt. passomax) then
@@ -2633,10 +2678,10 @@ end subroutine nksic_rot_test
         passov = passof
         passof = 2.d0*passo
 
-!$$ The following line is for dene0 test
-!        dalpha = spasso*passo*0.00001
-!$$
         dalpha = spasso*passo
+!$$ The following line is for dene0 test
+!        if(ninner.ge.15) dalpha = spasso*passo*0.00001
+!$$
         call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfn_ctmp2,Omat2tot,bec2,vsic2,pink2,enever)
 
         if(ionode) then
@@ -2650,25 +2695,42 @@ end subroutine nksic_rot_test
           write(1037,*)
         endif
 
-!$$ we keep track of all the rotations to rotate cm later
-        Omattot = MATMUL(Omattot,Omat2tot)
+        if(ene0.lt.ene1.and.ene0.lt.enever) then
+          if(ionode) then
+            write(1037,'("# ene0<ene1 and ene0<enever!!  we exit!")')
+            write(1037,*)
+            write(1031,*) '# inner-loop NOT converged. we exit!'
+            write(1031,*)
+          endif
+          exit
+        endif
 
         if(ene1.ge.enever) then
           pink(:) = pink2(:)
           vsic(:,:) = vsic2(:,:)
           c0(:,:) = wfn_ctmp2(:,:)
           bec(:,:) = bec2(:,:)
+          Omattot = MATMUL(Omattot,Omat2tot)
         else
           pink(:) = pink1(:)
           vsic(:,:) = vsic1(:,:)
           c0(:,:) = wfn_ctmp(:,:)
           bec(:,:) = bec1(:,:)
+          Omattot = MATMUL(Omattot,Omat1tot)
           if(ionode) then
             write(1037,'("# It happened that ene1 < enever!!")')
             write(1037,*)
           endif
         endif
+
       enddo  !$$ do while (.true.)
+
+!      do isp=1,nsp
+!        if(ionode) then
+!          nfile=10000+isp
+!          write(nfile,*)
+!        endif
+!      enddo
 
 !$$ Wavefunction cm rotation according to Omattot
       wfn_ctmp(:,:) = (0.d0,0.d0)
@@ -2678,6 +2740,7 @@ end subroutine nksic_rot_test
         enddo
       enddo
       cm(:,1:nbspx) = wfn_ctmp(:,1:nbspx)
+!$$ We need this because outer loop could be damped dynamics.
 
       CALL stop_clock( 'nksic_rot_emin' )
       return
@@ -2728,6 +2791,7 @@ end subroutine nksic_rot_emin_cg
       real(dp), allocatable    :: Omat1(:,:)
       complex(dp), allocatable :: Umat(:,:)
       real(dp), allocatable    :: Heig(:)
+      real(dp) :: dmaxeig,dtmp
 !
 
       Omat1tot(:,:) = 0.d0
@@ -2736,6 +2800,12 @@ end subroutine nksic_rot_emin_cg
       enddo
 
       wfn1(:,:) = (0.d0,0.d0)
+
+      dmaxeig = max( abs(Heigbig(iupdwn(1))), abs(Heigbig(iupdwn(1)+nupdwn(1)-1)) )
+      do isp=2,nspin
+        dmaxeig = max(dmaxeig,abs(Heigbig(iupdwn(isp))))
+        dmaxeig = max(dmaxeig,abs(Heigbig(iupdwn(isp)+nupdwn(isp)-1)))
+      enddo
 
 !$$ For this run, we calculate ...
       do isp=1,nspin
@@ -2872,6 +2942,98 @@ end subroutine nksic_getHeigU
 !---------------------------------------------------------------
 
 
+!-----------------------------------------------------------------------
+      subroutine nksic_printoverlap(ninner,nouter)
+!-----------------------------------------------------------------------
+!
+! ... Calculates the anti-hermitian part of the SIC hamiltonian, vsicah.
+!
+      use kinds,                      only: dp
+      use grid_dimensions,            only: nr1x, nr2x, nr3x, nnrx
+      use gvecw,                      only: ngw
+      use mp,                         only: mp_sum, mp_bcast
+      use mp_global,                  only : intra_image_comm
+      use io_global,                  only: stdout, ionode, ionode_id
+      use electrons_base,             only : nbsp, nbspx, nspin,ispin, &
+                                             iupdwn,nupdwn
+      use cp_interfaces,              only: invfft
+      use fft_base,                   only: dfftp
+      use nksic,                      only: vsic,fsic
+      use wavefunctions_module,       only : c0
+      !
+      implicit none
+      !
+      ! in/out vars
+      !
+      integer :: ninner,nouter
+      real(dp)  :: overlap(nbspx,nbspx),vsicah(nbspx,nbspx)
+
+      !
+      ! local variables
+      !
+      complex(dp)              :: psi1(nnrx), psi2(nnrx)
+      real(dp)                 :: overlaptmp,vsicahtmp
+      integer                  :: i,nbnd1,nbnd2
+      real(dp)                 :: dwfnnorm, dtmp, vsicah2tmp
+
+      dwfnnorm = 1.0/(dble(nr1x)*dble(nr2x)*dble(nr3x))
+
+      vsicah(:,:) = 0.d0
+      overlap(:,:) = 0.d0
+
+      do nbnd1=1,nbspx
+        CALL c2psi( psi1, nnrx, c0(:,nbnd1), (0.d0,0.d0), ngw, 1)
+        CALL invfft('Dense', psi1, dfftp )
+
+        do nbnd2=1,nbspx
+          if(nbnd2.lt.nbnd1) then
+            vsicahtmp = -vsicah(nbnd2,nbnd1)
+            overlaptmp = overlap(nbnd2,nbnd1)
+          else
+            CALL c2psi( psi2, nnrx, c0(:,nbnd2), (0.d0,0.d0), ngw, 1)
+            CALL invfft('Dense', psi2, dfftp )
+
+            vsicahtmp = 0.d0
+            overlaptmp = 0.d0
+
+            do i=1,nnrx
+!$$ Imposing Pederson condition
+              vsicahtmp = vsicahtmp &
+                  + 2.d0 * dble( conjg(psi1(i)) * (vsic(i,nbnd2)  &
+                  - vsic(i,nbnd1) ) * psi2(i) ) * dwfnnorm
+!$$ The following two lines give exactly the same results: checked
+              overlaptmp = overlaptmp + dble( conjg(psi1(i)) * psi2(i) ) * dwfnnorm
+!              overlaptmp = overlaptmp + dble(psi1(i)) * dble(psi2(i)) * dwfnnorm
+            enddo
+
+            CALL mp_sum(vsicahtmp,intra_image_comm)
+            CALL mp_sum(overlaptmp,intra_image_comm)
+          endif ! if(nbnd2.lt.nbnd1)
+
+          vsicah(nbnd1,nbnd2) = vsicahtmp
+          overlap(nbnd1,nbnd2) = overlaptmp
+
+        enddo ! nbnd2=1,nbspx
+
+      enddo ! nbspx
+
+      if(ionode) then
+        write(1021,*) ninner,nouter
+        write(1022,*) ninner,nouter
+        do nbnd1=1,nbspx
+          write(1021,'(100F12.7)') (overlap(nbnd1,nbnd2),nbnd2=1,nbspx)
+          write(1022,'(100F12.7)') (vsicah(nbnd1,nbnd2),nbnd2=1,nbspx)
+        enddo
+        write(1021,*)
+        write(1022,*)
+      endif
+
+      return
+      !
+!---------------------------------------------------------------
+end subroutine nksic_printoverlap
+!---------------------------------------------------------------
+
 
 !-----------------------------------------------------------------------
       subroutine nksic_getvsicah(isp,vsicah,vsicah2sum)
@@ -2889,7 +3051,7 @@ end subroutine nksic_getHeigU
                                              iupdwn,nupdwn
       use cp_interfaces,              only: invfft
       use fft_base,                   only: dfftp
-      use nksic,                      only: vsic
+      use nksic,                      only: vsic,fsic
       use wavefunctions_module,       only : c0
       !
       implicit none
@@ -2898,7 +3060,7 @@ end subroutine nksic_getHeigU
       ! 
       integer,     intent(in)  :: isp
       real(dp)  :: vsicah(nupdwn(isp),nupdwn(isp))
-!      real(dp)  :: overlap(nupdwn(isp),nupdwn(isp))
+      real(dp)  :: overlap(nupdwn(isp),nupdwn(isp))
       real(dp)  :: vsicah2sum
 
       !
@@ -2966,7 +3128,11 @@ end subroutine nksic_getHeigU
             do i=1,nnrx
 !$$ Imposing Pederson condition
               vsicahtmp = vsicahtmp &
-                  + 2.d0 * dble( conjg(psi1(i)) * (vsic(i,nbnd2)-vsic(i,nbnd1)) * psi2(i) ) * dwfnnorm
+                 + 2.d0 * dble( conjg(psi1(i)) * nspin * 0.5d0 &
+                  * (vsic(i,iupdwn(isp)+nbnd2-1) * fsic(iupdwn(isp)+nbnd2-1) &
+                  -  vsic(i,iupdwn(isp)+nbnd1-1) * fsic(iupdwn(isp)+nbnd1-1)) * psi2(i) ) * dwfnnorm
+!                  + 2.d0 * dble( conjg(psi1(i)) * (vsic(i,iupdwn(isp)+nbnd2-1)  &
+!                  - vsic(i,iupdwn(isp)+nbnd1-1) ) * psi2(i) ) * dwfnnorm
 !              overlaptmp = overlaptmp + dble( conjg(psi1(i)) * psi2(i) ) * dwfnnorm
             enddo
 
@@ -2979,17 +3145,22 @@ end subroutine nksic_getHeigU
 
           vsicah2sum = vsicah2sum + vsicahtmp*vsicahtmp
         enddo ! nbnd2=1,nupdwn(isp)
+
       enddo ! nbnd1=1,nupdwn(isp)
+
+!      if(ionode) then
+!        write(1020,*) 'isp,iupdown,nupdwn',isp,iupdwn(isp),nupdwn(isp)
+!        do nbnd1=1,nupdwn(isp)
+!          write(1020,'(30F12.7)') (vsicah(nbnd1,nbnd2),nbnd2=1,nupdwn(isp))
+!        enddo
+!        write(1020,*)
+!      endif
 
       return
       !
 !---------------------------------------------------------------
 end subroutine nksic_getvsicah
 !---------------------------------------------------------------
-
-
-
-
 
 
 !-----------------------------------------------------------------------

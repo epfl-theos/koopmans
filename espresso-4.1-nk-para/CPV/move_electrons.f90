@@ -15,7 +15,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   ! ... this routine updates the electronic degrees of freedom
   !
 !$$
-!$$ CHP (August 01 / 2011)
+!$$ CHP (August 10 / 2011)
 !$$
 !$$ An optimal unitary rotation among occupied states is calculated by setting
 !$$ 'do_innerloop=.true.' in the namelist SYSTEM of the input file.
@@ -32,8 +32,9 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
 !$$ becomes SD).  Initially, SD is better than CG but when near the energy minimum, CG
 !$$ works better.
 !$$
-!$$ When the outerloop dynamics is damped dynamics, we should set innerloop_dd_nstep,
-!$$ which is the number of outerloop steps between each inner loop minimization.
+!$$ When the OUTERLOOP dynamics is damped dynamics, we should set innerloop_dd_nstep,
+!$$ which is the number of outerloop steps between each inner loop minimization. When it is
+!$$ set to 1, we do inner loop minimization at every outer loop step.
 !$$
 !$$ Nota Bene:
 !$$ 1. When using methods without energy functional such as nk0, do_innerloop_cg
@@ -80,7 +81,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   USE hfmod,                ONLY : do_hf, vxxpsi, exx
   USE nksic,                ONLY : do_orbdep, vsic, wtot, fsic, fion_sic, deeq_sic, pink
 !$$
-  USE nksic,                ONLY : do_pz, do_innerloop, innerloop_dd_nstep
+  USE nksic,                ONLY : do_pz, do_innerloop,do_innerloop_cg, innerloop_dd_nstep
   use ions_base, only: nsp
   use electrons_base, only: nel,nelt,nupdwn,iupdwn
 !$$
@@ -191,6 +192,11 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
            if(do_innerloop) then
              open(1031,file='convg_inner.dat',status='unknown')
              write(1031,'("#   ninner    nouter     non-sic energy (Ha)         sic energy (Ha)    RMS force eigenvalue")')
+
+             if(do_innerloop_cg) then
+               open(1037,file='cg_convg.dat',status='unknown')!for debug and tuning purposes
+             endif
+
            endif
          endif
 
@@ -203,12 +209,17 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
 !$$ For Benzene, it has been checked that pz and nk both need only one
 !$$ inner loop optimization.
 !$$
+
          if( do_innerloop .and. ( nouter.eq.1 .or. mod(nouter,innerloop_dd_nstep).eq.0 ) ) then
 !         if( do_innerloop .and. ( nouter.eq.1) ) then
 !         if( do_innerloop ) then
 !         if(do_innerloop .and. nouter.eq.1) then
 !         if(.false.) then
-           call nksic_rot_emin(nouter,ninner,etot,Omattot)
+           if(.not.do_innerloop_cg) then
+             call nksic_rot_emin(nouter,ninner,etot,Omattot)
+           else
+             call nksic_rot_emin_cg(nouter,ninner,etot,Omattot)
+           endif
            ene0 = sum(pink(:))
          endif
 
@@ -218,7 +229,13 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
          !
          etot = etot + ene0
          !
-
+!$$
+!         if(nouter.eq.1.and.ionode) then
+!           write(1033,*) 'fsic',fsic
+!           write(1033,*) 'nupdwn',nupdwn
+!           write(1033,*) 'iupdwn',iupdwn
+!           write(1033,*) 'nbsp,nbspx',nbsp,nbspx
+!         endif
      endif !if( do_orbdep )
      !
      if( do_hf ) then

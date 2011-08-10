@@ -139,12 +139,13 @@
       real(DP)  ene0,ene1,dene0,enesti !energy terms for linear minimization along hi
 !$$
       real(DP),    allocatable :: faux(:) ! takes into account spin multiplicity
-!      real(DP), allocatable :: hpsinorm(:), hpsinosicnorm(:)
-!      complex(DP), allocatable :: hpsinosic(:,:)
+      real(DP), allocatable :: hpsinorm(:), hpsinosicnorm(:)
+      complex(DP), allocatable :: hpsinosic(:,:)
       integer :: ninner,nbnd1,nbnd2
       real(DP) esic
       real(DP) Omattot(nx,nx)
       complex(DP) hi_tmp(ngw,n)
+      real(DP) dtmp
 !$$
 
 !$$   
@@ -165,6 +166,17 @@
       pre_state=.false.!normally is disabled
 
       maxiter3=250
+      ninner=0
+
+      !$$ the following is just a beginning; many things to be done...
+      if(do_orbdep) then
+        if ( tens .or. tsmear) then
+          fsic = fmat0_diag
+        else
+          fsic = f
+        endif
+      endif
+      !$$
 
 
       if(ionode) then
@@ -287,7 +299,7 @@
           vpot = rhor
 
 !$$
-          if(ionode) write(*,*) 'Now doing vofrho1'
+!          if(ionode) write(*,*) 'Now doing vofrho1'
           CALL start_clock( 'vofrho1' )
 !$$
           call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
@@ -317,7 +329,6 @@
 !$$
 
               ninner=0
-
               if(.not.do_innerloop_cg) then
                 call nksic_rot_emin(itercg,ninner,etot,Omattot)
               else
@@ -371,8 +382,10 @@
 
 
 !$$ to see the outer loop energy convergence
-        esic = sum(pink(:))
-        if(ionode) write(1032,'(2I10,2F24.13)') ninner,itercg,etot-esic,esic
+        if(do_orbdep) then
+          esic = sum(pink(1:n))
+          if(ionode) write(1032,'(2I10,2F24.13)') ninner,itercg,etot-esic,esic
+        endif
 !$$
 
         if(abs(etotnew-etotold).lt.conv_thr) then
@@ -739,9 +752,14 @@
         !calculates wave-functions on a point on direction hi
 !$$
 !$$      if(mod(itercg,5).eq.4) passof=0.0001
-!$$
-      cm(1:ngw,1:n)=c0(1:ngw,1:n)+spasso*passof*hi(1:ngw,1:n)
 
+
+      cm(1:ngw,1:n)=c0(1:ngw,1:n)+spasso*passof*hi(1:ngw,1:n)
+!$$  I do not know why the following 3 lines were not in the original code
+      if(ng0.eq.2) then
+        cm(1,:)=0.5d0*(cm(1,:)+CONJG(cm(1,:)))
+      endif
+!$$
 
         !orthonormalize
 
@@ -751,7 +769,7 @@
       call gram(betae,becm,nhsa,cm,ngw,n)
 !$$
         !call calbec(1,nsp,eigr,cm,becm)
-               
+
         !calculate energy
         if(.not.tens) then
           call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
@@ -776,7 +794,7 @@
         vpot = rhor
         !
 !$$
-        if(ionode) write(*,*) 'Now doing vofrho2'
+!        if(ionode) write(*,*) 'Now doing vofrho2'
         CALL start_clock( 'vofrho2' )
 !$$
         call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
@@ -853,7 +871,7 @@
         !
         vpot = rhor
 !$$
-        if(ionode) write(*,*) 'Now doing vofrho3'
+!        if(ionode) write(*,*) 'Now doing vofrho3'
         CALL start_clock( 'vofrho3' )
 !$$
         !
