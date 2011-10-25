@@ -44,15 +44,13 @@ subroutine bforceion(fion,tfor,ipol,qmatinv,bec0,becdr,gqq,evalue)
 
 !local variables
 
-  complex(8) ci, temp, temp1,temp2,temp3
+  complex(8) temp, temp1,temp2,temp3
   real(8) gmes
   integer iv,jv,ia,is,k,i,j,isa,ilm,jlm,inl,jnl,ism
   real(8), allocatable :: becdr_repl(:,:,:)
       
   if(.not. tfor) return
 
-  ci = (0.d0,1.d0)
-     
   ALLOCATE( becdr_repl( nhsa,n,3 ) )
   CALL collect_bec( becdr_repl(:,:,1), becdr(:,:,1), descla, nspin )
   CALL collect_bec( becdr_repl(:,:,2), becdr(:,:,2), descla, nspin )

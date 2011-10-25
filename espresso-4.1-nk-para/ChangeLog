@@ -3,23 +3,27 @@
 		NK code:  Log of Changes
 =======================================================
 
+
+Oct 25 2011     Cleanup of unused variables and consistency check in
+		nksiclib.f90. Few bugs (eg real-complex mismatch of bec) fixed. (AF)
+
 Aug 10 2011     Fixed a bug for nspin=2 and no spin-symmetrized case (before, the
 		SIC force was calculated with a wrong index for vsic(:,i) in the
-		case of inner loop minimization.
+		case of inner loop minimization. (CHP)
 
 Aug 04 2011     Fixed three bugs.
 		innerloop_dd_nstep, innerloop_cg_nsd, innerloop_cg_nreset was
 		previous defined LOGICAL in Modules/input_parameters.f90 (thanks Iss).
 		In inner loop CG routine, (1) nspin was considered in dE/d(step).
 		and (2) we stop the minimization if CG step increases the energy
-		without reducing the step size, etc.
+		without reducing the step size, etc. (CHP)
 
 Aug 02 2011     Conjugate gradient inner loop minimization implemented.
 		Inner loop CG routine can be run with parabolic minimization
 		and also without parabolic minimization: the latter should be used
 		when using nk0 or any SIC method without an energy functional.
 		Fractional occupation is not yet implemented.  (This is the case
-		even for the original cp code's conjugate gradient routine.)
+		even for the original cp code's conjugate gradient routine.) (CHP)
 
 Jun 18 2011     inner loop minimization for SIC implemented for damped dynamics.
 		An optimal unitary rotation among occupied states is calculated

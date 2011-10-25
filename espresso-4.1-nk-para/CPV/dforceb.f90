@@ -62,7 +62,7 @@ subroutine dforceb(c0, i, betae, ipol, bec0, ctabin, gqq, gqqm, qmat, dq2, df)
 
   integer j,k,ig,iv,jv,ix,jx,is,ia, isa,iss,iss1,mism
   integer ir,ism,itemp,itempa,jnl,inl
-  complex(DP) ci ,fi, fp, fm
+  complex(DP) fi, fp, fm
   real(DP) afr(nhsa), dd
   complex(DP)  afrc(nhsa)
   complex(DP), allocatable::  dtemp(:)
@@ -72,8 +72,6 @@ subroutine dforceb(c0, i, betae, ipol, bec0, ctabin, gqq, gqqm, qmat, dq2, df)
   allocate( dtemp(ngw))
 
 
-  ci=(0.d0,1.d0)
- 
 
 ! now the interaction term 
 ! first the norm-conserving part 

@@ -921,7 +921,9 @@ MODULE input
      USE kohn_sham_states,   ONLY : ks_states_init
      USE electrons_module,   ONLY : electrons_setup, empty_init
      USE electrons_base,     ONLY : electrons_base_initval, nbsp
-     USE ensemble_dft,       ONLY : ensemble_initval,tens, degauss, tsmear, etemp
+     !USE ensemble_dft,       ONLY : ensemble_initval,tens, degauss, tsmear, etemp
+     USE ensemble_dft,       ONLY : ensemble_initval,tens, tsmear, etemp
+     !
      USE wannier_base,       ONLY : wannier_init
      USE efield_module,      ONLY : tefield
      !

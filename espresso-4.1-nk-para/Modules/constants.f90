@@ -26,6 +26,8 @@ MODULE constants
   REAL(DP), PARAMETER :: sqrtpm1= 1.0_DP / sqrtpi
   REAL(DP), PARAMETER :: sqrt2  = 1.41421356237309504880_DP
   !
+  COMPLEX(DP), PARAMETER :: CI  = (0.0_DP,1.0_DP)
+  !
   ! ... Physical constants, SI (NIST CODATA 2006), Web Version 5.1
   !     http://physics.nist.gov/constants
   REAL(DP), PARAMETER :: H_PLANCK_SI      = 6.62606896E-34_DP   ! J s

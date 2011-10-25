@@ -24,27 +24,15 @@
 !     Non-Joopmans on Perdew Zunger (PZNK)
 !
       use kinds,                      only: dp
-      use constants,                  only: pi, fpi
       use gvecp,                      only: ngm
-      use gvecs,                      only: ngs, nps, nms
       use gvecw,                      only: ngw
-      use recvecs_indexes,            only: np, nm
-      use reciprocal_vectors,         only: gstart
-      use grid_dimensions,            only: nr1, nr2, nr3, &
-                                            nr1x, nr2x, nr3x, nnrx
-      use cell_base,                  only: omega, a1, a2, a3
-      use smooth_grid_dimensions,     only: nr1s, nr2s, nr3s, &
-                                            nr1sx, nr2sx, nr3sx, nnrsx
+      use grid_dimensions,            only: nnrx
       use electrons_base,             only: nspin
-      use mp,                         only: mp_sum
-      use io_global,                  only: stdout, ionode
-      use cp_interfaces,              only: fwfft, invfft
-      use fft_base,                   only: dffts, dfftp
       use nksic,                      only: orb_rhor, wxdsic, &
                                             wrefsic, rhoref, rhobar, &
                                             do_nk, do_nki, do_pz, do_nkpz, &
                                             grhobar, fion_sic
-      use ions_base,                  only: nsp, nat
+      use ions_base,                  only: nat
       use uspp,                       only: nkb
       use uspp_param,                 only: nhm
       !
@@ -54,7 +42,7 @@
       !
       integer,     intent(in)  :: nbsp, nx
       complex(dp), intent(in)  :: c(ngw,nx)
-      complex(dp), intent(in)  :: bec(nkb,nbsp)
+      real(dp),    intent(in)  :: bec(nkb,nbsp)
       real(dp),    intent(in)  :: becsum( nhm*(nhm+1)/2, nat, nspin)
       integer,     intent(in)  :: ispin(nx)
       integer,     intent(in)  :: iupdwn(nspin), nupdwn(nspin)
@@ -68,7 +56,7 @@
       !
       ! local variables
       !
-      integer  :: i,j,jj,ibnd,isp
+      integer  :: i,j,jj,ibnd
       real(dp) :: focc,pinkpz
       real(dp), allocatable :: vsicpz(:)
       !
@@ -273,20 +261,18 @@
 ! Computes orbital densities on the real (not smooth) grid
 !
       use kinds,                      only: dp
+      use constants,                  only: ci
       use cp_interfaces,              only: fwfft, invfft
       use fft_base,                   only: dffts, dfftp
       use cell_base,                  only: omega
-      use grid_dimensions,            only: nr1,nr2,nr3
       use gvecp,                      only: ngm
       use gvecs,                      only: ngs, nps, nms
       use recvecs_indexes,            only: np, nm
       use smooth_grid_dimensions,     only: nnrsx
-      use cp_main_variables,          only: eigr,irb,eigrb
+      use cp_main_variables,          only: irb,eigrb
       use uspp_param,                 only: nhm
       use electrons_base,             only: nspin
       use ions_base,                  only: nat
-      use mp,                         only: mp_sum
-      use mp_global,                  only: intra_image_comm
       use uspp,                       only: okvan, nkb
       !
       implicit none
@@ -296,7 +282,7 @@
       !
       integer,     intent(in) :: ngw,nnrx,i1,i2
       integer,     intent(in) :: nbsp, ispin(nbsp)
-      complex(dp), intent(in) :: bec(nkb, nbsp)
+      real(dp),    intent(in) :: bec(nkb, nbsp)
       complex(dp), intent(in) :: c1(ngw),c2(ngw)
       real(dp),   intent(out) :: orb_rhor(nnrx,2) 
 
@@ -304,9 +290,9 @@
       ! local vars
       !
       character(20) :: subname='nksic_get_orbitalrho'
-      integer       :: i, ir, ig, ierr
+      integer       :: ir, ig, ierr
       real(dp)      :: sa1
-      complex(dp)   :: ci, fm, fp
+      complex(dp)   :: fm, fp
       complex(dp), allocatable :: psis(:), psi(:)
       complex(dp), allocatable :: orb_rhog(:,:)
       real(dp),    allocatable :: orb_rhos(:)
@@ -319,7 +305,6 @@
       !
       call start_clock( 'nksic_orbrho' )
 
-      ci = (0.0d0,1.0d0)
       !
       if ( okvan ) then
           !
@@ -489,7 +474,7 @@ end subroutine nksic_get_orbitalrho
       use gvecp,                      only : ngm
       use funct,                      only : dft_is_gradient
       use cp_interfaces,              only : fwfft, invfft, fillgrad
-      use fft_base,                   only : dffts, dfftp
+      use fft_base,                   only : dfftp
       use recvecs_indexes,            only : np, nm
       use nksic,                      only : fref, rhobarfact
       !
@@ -507,7 +492,7 @@ end subroutine nksic_get_orbitalrho
       real(dp),      intent(out) :: rhobar_(nnrx,2)
       real(dp),      intent(out) :: grhobar_(nnrx,3,2)
       !
-      integer      :: ir, isp, ig
+      integer      :: ig
       complex(dp)  :: fp, fm
       complex(dp),   allocatable :: psi(:)
       complex(dp),   allocatable :: rhobarg(:,:)
@@ -585,10 +570,6 @@ end subroutine nksic_get_rhoref
 ! for the given orbital i. Coefficients are sotred in deeq_sic
 !
       use kinds,                      only : dp
-      use gvecp,                      only : ngm
-      use cp_interfaces,              only : fwfft, invfft
-      use fft_base,                   only : dffts, dfftp
-      use recvecs_indexes,            only : np, nm
       use uspp,                       only : okvan, deeq
       use cp_main_variables,          only : irb, eigrb
       !
@@ -665,8 +646,6 @@ end subroutine nksic_newd
       use funct,                only : dmxc_spin, dft_is_gradient
       use mp,                   only : mp_sum
       use mp_global,            only : intra_image_comm
-      use io_global,            only : stdout, ionode
-      use control_flags,        only : iprsta
       use electrons_base,       only : nspin
       !
       implicit none
@@ -675,15 +654,15 @@ end subroutine nksic_newd
       real(dp),    intent(in)  :: rhor(nnrx,nspin)
       real(dp),    intent(in)  :: rhoref(nnrx,2)
       real(dp),    intent(in)  :: rhobar(nnrx,2)
-      complex(dp), intent(in)  :: grhobar(nnrx,3,2)
+      real(dp),    intent(in)  :: grhobar(nnrx,3,2)
       real(dp),    intent(out) :: vsic(nnrx), wrefsic(nnrx)
       real(dp),    intent(out) :: wxdsic(nnrx,2)
       real(dp),    intent(out) :: pink
       !
-      character(19) :: subname='nksic_correction_nk'
-      integer       :: i, is, ig, ir
-      real(dp)      :: fact, ehele, etmp, pink_pz
-      real(dp)      :: etxcref, etxc0, w2cst, dvxc(2), dmuxc(2,2)
+      !character(19) :: subname='nksic_correction_nk'
+      integer       :: ig, ir
+      real(dp)      :: fact, ehele, etmp
+      real(dp)      :: etxcref, etxc0, w2cst
       !
       real(dp),    allocatable :: rhoele(:,:)
       real(dp),    allocatable :: rhoraux(:,:)
@@ -996,9 +975,6 @@ end subroutine nksic_newd
       use funct,                only : dft_is_gradient
       use mp,                   only : mp_sum
       use mp_global,            only : intra_image_comm
-      use io_global,            only : stdout, ionode
-      use control_flags,        only : iprsta
-      use electrons_base,       only : nspin
       !
       implicit none
       integer,     intent(in)  :: ispin, ibnd
@@ -1006,8 +982,8 @@ end subroutine nksic_newd
       real(dp),    intent(out) :: vsic(nnrx)
       real(dp),    intent(out) :: pink
       !
-      character(19) :: subname='nksic_correction_pz'
-      integer       :: i, is, ig, ir
+      !character(19) :: subname='nksic_correction_pz'
+      integer       :: ig
       real(dp)      :: ehele, fact
       !
       real(dp),    allocatable :: rhoelef(:,:)
@@ -1166,8 +1142,7 @@ end subroutine nksic_correction_pz
       use constants,            only : e2, fpi
       use cell_base,            only : tpiba2,omega
       use nksic,                only : fref, nkscalfact, &
-                                       do_wref, do_wxd, vanishing_rho_w, &
-                                       etxc => etxc_sic, vxc => vxc_sic
+                                       do_wref, vanishing_rho_w
       use grid_dimensions,      only : nnrx, nr1, nr2, nr3
       use gvecp,                only : ngm
       use recvecs_indexes,      only : np, nm
@@ -1176,11 +1151,8 @@ end subroutine nksic_correction_pz
       use cp_interfaces,        only : fwfft, invfft, fillgrad
       use fft_base,             only : dfftp
       use funct,                only : dmxc_spin, dft_is_gradient
-      use mp,                   only : mp_sum
       use mp_global,            only : intra_image_comm
-      use io_global,            only : stdout, ionode
-      use control_flags,        only : iprsta
-      use electrons_base,       only : nspin
+      use mp,                   only : mp_sum
       !
       implicit none
       real(dp),    intent(in)  :: f, orb_rhor(nnrx)
@@ -1188,9 +1160,9 @@ end subroutine nksic_correction_pz
       real(dp),    intent(out) :: vsic(nnrx), wrefsic(nnrx)
       real(dp),    intent(out) :: pink
       !
-      integer     :: i, is, ig, ir
+      integer     :: ig, ir
       real(dp)    :: fact, etxcref
-      real(dp)    :: w2cst, dvxc(2), dmuxc(2,2)
+      real(dp)    :: w2cst
       !
       real(dp),    allocatable :: rhoele(:,:)
       real(dp),    allocatable :: rhoref(:,:)
@@ -1389,7 +1361,6 @@ end subroutine nksic_correction_pz
       use constants,            only : e2, fpi
       use cell_base,            only : tpiba2,omega
       use nksic,                only : fref, rhobarfact, nknmax, &
-                                       vanishing_rho_w, &
                                        nkscalfact, do_wxd, &
                                        etxc => etxc_sic, vxc => vxc_sic
       use grid_dimensions,      only : nnrx, nr1, nr2, nr3
@@ -1402,8 +1373,6 @@ end subroutine nksic_correction_pz
       use funct,                only : dmxc_spin, dft_is_gradient
       use mp,                   only : mp_sum
       use mp_global,            only : intra_image_comm
-      use io_global,            only : stdout, ionode
-      use control_flags,        only : iprsta
       use electrons_base,       only : nspin
       !
       implicit none
@@ -1412,15 +1381,15 @@ end subroutine nksic_correction_pz
       real(dp),    intent(in)  :: rhor(nnrx,nspin)
       real(dp),    intent(in)  :: rhoref(nnrx,2)
       real(dp),    intent(in)  :: rhobar(nnrx,2)
-      complex(dp), intent(in)  :: grhobar(nnrx,3,2)
+      real(dp),    intent(in)  :: grhobar(nnrx,3,2)
       real(dp),    intent(out) :: vsic(nnrx)
       real(dp),    intent(out) :: wxdsic(nnrx,2)
       real(dp),    intent(out) :: pink
       !
-      character(20) :: subname='nksic_correction_nki'
-      integer       :: i, is, ig, ir
-      real(dp)      :: fact, ehele, etmp, pink_pz
-      real(dp)      :: etxcref, etxc0, w2cst, dvxc(2), dmuxc(2,2)
+      !character(20) :: subname='nksic_correction_nki'
+      integer       :: ig
+      real(dp)      :: fact, ehele, etmp
+      real(dp)      :: etxcref, etxc0, w2cst
       !
       real(dp),    allocatable :: rhoele(:,:)
       real(dp),    allocatable :: rhoraux(:,:)
@@ -1701,7 +1670,7 @@ end subroutine nksic_correction_pz
       use gvecs,                    only : ngs, nps, nms
       use grid_dimensions,          only : nnrx
       use smooth_grid_dimensions,   only : nnrsx
-      use uspp,                     only : nkb, vkb, dvan
+      use uspp,                     only : nkb, vkb
       use uspp_param,               only : nhm, nh
       use cvan,                     only : ish
       use ions_base,                only : nsp, na, nat
@@ -1881,8 +1850,8 @@ CONTAINS
       !
       subroutine nksic_eforce_std()
       !
-      use smooth_grid_dimensions,     only: nnrsx
-      use recvecs_indexes,            only: np, nm
+      use smooth_grid_dimensions,     only : nnrsx
+      use recvecs_indexes,            only : np
       implicit none
       !     
       complex(dp) :: c(ngw,2)
@@ -1946,7 +1915,7 @@ end subroutine nksic_eforce
 !
 ! NOTE: wref and wsic are UPDATED and NOT OVERWRITTEN by this subroutine
 !
-      USE kinds,                ONLY : DP
+      USE kinds,                ONLY : dp
       USE funct,                ONLY : xc_spin, get_iexch, get_icorr
       implicit none
       !
@@ -1958,12 +1927,12 @@ end subroutine nksic_eforce
       character(18) :: subname='nksic_dmxc_spin_cp'
       real(dp) :: rhoup, rhodw, rhotot, zeta
       real(dp) :: dmuxc(2,2)
-      real(dp) :: rs, fz, fz1, fz2, ex, vx, ecu, ecp, vcu, &
-           vcp, dmcu, dmcp, aa, bb, cc, dr, dz, ec, vxupm, vxdwm, vcupm, &
-           vcdwm, rho, vxupp, vxdwp, vcupp, vcdwp, dzm, dzp, fact
+      real(dp) :: rs, ex, vx, dr, dz, ec, &
+                  vcupm, vcdwm, vcupp, vcdwp, dzm, dzp, fact
+      !real(dp) :: vxupp, vxdwp, vxupm, vxdwm
       real(dp), external :: dpz, dpz_polarized
       integer :: ir
-      logical :: do_exch, do_corr
+      !logical :: do_exch, do_corr
       !
       real(dp), parameter :: e2 = 2.0_dp, &
            pi34    = 0.6203504908994_DP,  & ! redefined to pi34=(3/4pi)^(1/3)
@@ -1984,8 +1953,8 @@ end subroutine nksic_eforce
       if ( get_iexch() /= 1 .or. get_icorr() /= 1 ) &
          call errore(subname,'only LDA/LSD PZ functionals implemented',10)
       !
-      do_exch = ( get_iexch() == 1 )
-      do_corr = ( get_icorr() == 1 )
+      !do_exch = ( get_iexch() == 1 )
+      !do_corr = ( get_icorr() == 1 )
       !
       !
       ! main loop
@@ -2090,21 +2059,15 @@ end subroutine nksic_dmxc_spin_cp
 !     minimization routine, i.e., setting the search direction to be gradient direction.
 !     (Ultrasoft pseudopotential case is not implemented.)
 !
-      use kinds,                      only: dp
-      use grid_dimensions,            only: nr1x, nr2x, nr3x, nnrx
-      use gvecw,                      only: ngw
-      use mp,                         only: mp_sum, mp_bcast
-      use mp_global,                  only : intra_image_comm
-      use io_global,                  only: stdout, ionode, ionode_id
-      use electrons_base,             only : nbsp, nbspx, nspin,ispin, &
+      use kinds,                      only : dp
+      use grid_dimensions,            only : nnrx
+      use gvecw,                      only : ngw
+      use io_global,                  only : ionode
+      use electrons_base,             only : nbsp, nbspx, nspin, &
                                              iupdwn,nupdwn
-      use cp_interfaces,              only: invfft
-      use fft_base,                   only: dfftp
-      use ions_base,                  only: nsp, nat
-      use uspp,                       only : becsum,nkb
-      use uspp_param,                 only: nhm
-      use cp_main_variables,          only: bec, eigr, rhor, rhog
-      use nksic,                      only: deeq_sic, wtot, vsic, pink, fsic
+      use uspp,                       only : nkb
+      use cp_main_variables,          only : bec
+      use nksic,                      only : vsic, pink
       use wavefunctions_module,       only : c0, cm
       use control_flags,              only : esic_conv_thr
       !
@@ -2112,10 +2075,10 @@ end subroutine nksic_dmxc_spin_cp
       !
       ! in/out vars
       !
-      integer :: ninner
+      integer                  :: ninner
       integer,     intent(in)  :: nouter
       real(dp),    intent(in)  :: etot
-      real(dp)  :: Omattot(nbspx,nbspx)
+      real(dp)                 :: Omattot(nbspx,nbspx)
 
 
       !
@@ -2123,8 +2086,7 @@ end subroutine nksic_dmxc_spin_cp
       !
       real(dp) :: esic,esic_old
       real(dp)                 :: bec1(nkb,nbsp)
-      integer                  :: i,nbnd1,nbnd2
-      real(dp), allocatable    :: Omat1(:,:)
+      integer                  :: nbnd1,nbnd2
       real(dp)                 :: Omat1tot(nbspx,nbspx)
       real(dp)                 :: vsic1(nnrx,nbspx)
       complex(dp), allocatable :: Umat(:,:)
@@ -2139,14 +2101,13 @@ end subroutine nksic_dmxc_spin_cp
       integer                  :: isp
       real(dp), allocatable    :: vsicah(:,:)
       real(dp)                 :: vsicah2sum,deigrms,dmaxeig
-      integer :: nfile
 
       !
       ! variables for test calculations - along gradient line direction
       !
       logical :: ldotest
-
-!
+      
+      !
       npassofailmax = 5 ! when to stop dividing passoprod by 2
       ldotest=.false.
       esic_old=0.d0
@@ -2297,21 +2258,13 @@ end subroutine nksic_rot_emin
 ! ... prints out esic by varying the wavefunction along a search direction.
 !     (Ultrasoft pseudopotential case is not implemented.)
 !
-      use kinds,                      only: dp
-      use grid_dimensions,            only: nr1x, nr2x, nr3x, nnrx
-      use gvecw,                      only: ngw
-      use mp,                         only: mp_sum, mp_bcast
-      use mp_global,                  only : intra_image_comm
-      use io_global,                  only: stdout, ionode, ionode_id
-      use electrons_base,             only : nbsp, nbspx, nspin,ispin, &
-                                             iupdwn,nupdwn
-      use cp_interfaces,              only: invfft
-      use fft_base,                   only: dfftp
-      use ions_base,                  only: nsp, nat
-      use uspp,                       only : becsum,nkb
-      use uspp_param,                 only: nhm
-      use cp_main_variables,          only: bec, eigr, rhor, rhog
-      use nksic,                      only: deeq_sic, wtot, vsic, pink, fsic
+      use kinds,                      only : dp
+      use grid_dimensions,            only : nnrx
+      use gvecw,                      only : ngw
+      use io_global,                  only : ionode
+      use electrons_base,             only : nbsp, nbspx, nspin, &
+                                             iupdwn, nupdwn
+      use uspp,                       only : nkb
       use wavefunctions_module,       only : c0
       !
       implicit none
@@ -2328,8 +2281,6 @@ end subroutine nksic_rot_emin
       !
       real(dp) :: esic
       real(dp)                 :: bec1(nkb,nbsp)
-      integer                  :: i,nbnd1,nbnd2
-      real(dp), allocatable    :: Omat1(:,:)
       real(dp)                 :: Omat1tot(nbspx,nbspx)
       real(dp)                 :: vsic1(nnrx,nbspx)
       complex(dp), allocatable :: Umat(:,:)
@@ -2348,7 +2299,7 @@ end subroutine nksic_rot_emin
       ! variables for test calculations - along gradient line direction
       !
 
-!
+      !
       ! main body
       !
       CALL start_clock( 'nksic_rot_test' )
@@ -2425,23 +2376,16 @@ end subroutine nksic_rot_test
 !     minimization routine, i.e., setting the search direction to be gradient direction.
 !     (Ultrasoft pseudopotential case is not implemented.)
 !
-      use kinds,                      only: dp
-      use grid_dimensions,            only: nr1x, nr2x, nr3x, nnrx
-      use gvecw,                      only: ngw
-      use mp,                         only: mp_sum, mp_bcast
-      use mp_global,                  only : intra_image_comm
-      use io_global,                  only: stdout, ionode, ionode_id
-      use electrons_base,             only : nbsp, nbspx, nspin,ispin, &
+      use kinds,                      only : dp
+      use grid_dimensions,            only : nnrx
+      use gvecw,                      only : ngw
+      use io_global,                  only : ionode
+      use electrons_base,             only : nbsp, nbspx, nspin, &
                                              iupdwn,nupdwn
-      use cp_interfaces,              only: invfft
-      use fft_base,                   only: dfftp
-      use ions_base,                  only: nsp, nat
-      use uspp,                       only : becsum,nkb
-      use uspp_param,                 only: nhm
-      use cp_main_variables,          only: bec, eigr, rhor, rhog
-      use nksic,                      only: deeq_sic, wtot, vsic, pink, fsic, &
-                                            innerloop_cg_nsd, innerloop_cg_nreset,&
-                                            do_spinsym
+      use uspp,                       only : nkb
+      use cp_main_variables,          only : bec
+      use nksic,                      only : vsic, pink,&
+                                             innerloop_cg_nsd, innerloop_cg_nreset
       use wavefunctions_module,       only : c0, cm
       use control_flags,              only : esic_conv_thr
       !
@@ -2449,18 +2393,16 @@ end subroutine nksic_rot_test
       !
       ! in/out vars
       ! 
-      integer :: ninner
+      integer                  :: ninner
       integer,     intent(in)  :: nouter
       real(dp),    intent(in)  :: etot
-      real(dp)  :: Omattot(nbspx,nbspx)
-
+      real(dp)                 :: Omattot(nbspx,nbspx)
         
       ! 
       ! local variables for cg routine
       ! 
       real(dp)                 :: bec1(nkb,nbsp),bec2(nkb,nbsp)
-      integer                  :: i,nbnd1,nbnd2
-      real(dp), allocatable    :: Omat1(:,:)
+      integer                  :: nbnd1,nbnd2
       real(dp)                 :: Omat1tot(nbspx,nbspx),Omat2tot(nbspx,nbspx)
       real(dp)                 :: vsic1(nnrx,nbspx),vsic2(nnrx,nbspx)
       complex(dp), allocatable :: Umat(:,:)
@@ -2471,7 +2413,6 @@ end subroutine nksic_rot_test
       real(dp)                 :: pink1(nbspx),pink2(nbspx),dtmp
       integer                  :: isp
       logical :: ldotest
-      REAL(dp)                 :: ene0_prev
       real(dp)                 :: ene0,ene1,enesti,enever,dene0
       real(dp)                 :: passo,passov,passof,passomax,spasso
       real(dp)                 :: gi(nbsp,nbsp) ! gradient
@@ -2481,24 +2422,17 @@ end subroutine nksic_rot_test
       integer                  :: nidx1,nidx2
       real(dp)                 :: dPI,dalpha,dmaxeig,deigrms
       real(dp)                 :: pinksumprev
-      integer :: nfile
-!
 
-!
 
+      !
+      ! main body
+      !
       ldotest=.false.
 
       pinksumprev=1.d8
       dPI = 2.0*asin(1.0)
 
       CALL start_clock( 'nksic_rot_emin' )
-
-      !if(nouter.eq.1.and.ionode) then
-      !  write(1020,*) 'nbsp,nbspx',nbsp,nbspx
-      !  write(1020,*) 'iupdwn',iupdwn
-      !  write(1020,*) 'nupdwn',nupdwn
-      !  write(1020,*) 'ispin',ispin
-      !endif
 
       Omattot(:,:)=0.d0
       do nbnd1=1,nbspx
@@ -2602,11 +2536,6 @@ end subroutine nksic_rot_test
           call nksic_getHeigU(isp,vsicah,Heig,Umat)
 
 
-!          if(ionode) then
-!            nfile=10000+isp
-!            write(nfile,'(2I10,100F10.6)') ninner,nouter,sum(Heig(:)**2),Heig(:)
-!          endif
-
           deigrms = deigrms + sum(Heig(:)**2)
 
           Umatbig(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp),iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Umat(:,:)
@@ -2634,17 +2563,6 @@ end subroutine nksic_rot_test
           passof = passomax
           if(ionode) write(1031,*) '# passof set to passomax'
         endif
-
-!        if(passof .gt. passomax) then
-!          passof = passomax
-!          if(ionode) write(1031,*) '# passof > passomax'
-!        endif
-
-!        if(ionode) then
-!          write(1037,*)'# deigrms = ',deigrms
-!          write(1037,*)'# vsicah2sum = ',vsicah2sum
-!          if(ninner.ne.1) write(1037,*)'# vsicah2sum/vsicah2sum_prev = ',dtmp
-!        endif
 
         vsicah2sum_prev = vsicah2sum
 
@@ -2689,7 +2607,7 @@ end subroutine nksic_rot_test
           write(1037,'("ene0,ene1,enesti,enever")')
           write(1037,'(a3,4f20.10)') 'CG1',ene0,ene1,enesti,enever
           write(1037,'("spasso,passov,passo,passomax,dene0,&
-            (enever-ene0)/passo/dene0")')
+                       & (enever-ene0)/passo/dene0")')
           write(1037,'(a3,4f12.7,e20.10,f12.7)')  &
             'CG2',spasso,passov,passo,passomax,dene0,(enever-ene0)/passo/dene0
           write(1037,*)
@@ -2725,12 +2643,6 @@ end subroutine nksic_rot_test
 
       enddo  !$$ do while (.true.)
 
-!      do isp=1,nsp
-!        if(ionode) then
-!          nfile=10000+isp
-!          write(nfile,*)
-!        endif
-!      enddo
 
 !$$ Wavefunction cm rotation according to Omattot
       wfn_ctmp(:,:) = (0.d0,0.d0)
@@ -2758,31 +2670,33 @@ end subroutine nksic_rot_emin_cg
 !     Other quantities such as bec, vsic, pink are also calculated for wfn1.
 !
 
-      use kinds,                      only: dp
-      use grid_dimensions,            only: nr1x, nr2x, nr3x, nnrx
-      use gvecw,                      only: ngw
-      use electrons_base,             only : nbsp, nbspx, nspin,ispin, &
-                                             iupdwn,nupdwn
-      use ions_base,                  only: nsp, nat
+      use kinds,                      only : dp
+      use grid_dimensions,            only : nnrx
+      use gvecw,                      only : ngw
+      use electrons_base,             only : nbsp, nbspx, nspin, ispin, &
+                                             iupdwn, nupdwn
+      use ions_base,                  only : nsp
       use uspp,                       only : becsum,nkb
-      use cp_main_variables,          only: bec, eigr, rhor, rhog
-      use nksic,                      only: deeq_sic, wtot, vsic, pink, fsic
-      use io_global,                  only: stdout, ionode, ionode_id
+      use cp_main_variables,          only : eigr, rhor, rhog
+      use nksic,                      only : deeq_sic, wtot, fsic
       !
       implicit none
       !
       ! in/out vars
       !
-      real(dp), intent(in) :: dalpha
-      complex(dp), intent(in)              :: Umatbig(nbspx,nbspx)
-      real(dp), intent(in)                 :: Heigbig(nbspx)
-      complex(dp), intent(in)              :: wfn0(ngw,nbspx)
-      complex(dp) :: wfn1(ngw,nbspx)
-      real(dp)  :: Omat1tot(nbspx,nbspx)
-      real(dp)  :: bec1(nkb,nbsp)
-      real(dp)  :: vsic1(nnrx,nbspx)
-      real(dp)  :: pink1(nbspx)
-      real(dp)  :: ene1
+      real(dp),           intent(in) :: dalpha
+      complex(dp),        intent(in) :: Umatbig(nbspx,nbspx)
+      real(dp),           intent(in) :: Heigbig(nbspx)
+      complex(dp),        intent(in) :: wfn0(ngw,nbspx)
+      !
+      ! XXX AF: variables to be properly allocated
+      !
+      complex(dp)  :: wfn1(ngw,nbspx)
+      real(dp)     :: Omat1tot(nbspx,nbspx)
+      real(dp)     :: bec1(nkb,nbsp)
+      real(dp)     :: vsic1(nnrx,nbspx)
+      real(dp)     :: pink1(nbspx)
+      real(dp)     :: ene1
 
       !
       ! local variables for cg routine
@@ -2791,7 +2705,7 @@ end subroutine nksic_rot_emin_cg
       real(dp), allocatable    :: Omat1(:,:)
       complex(dp), allocatable :: Umat(:,:)
       real(dp), allocatable    :: Heig(:)
-      real(dp) :: dmaxeig,dtmp
+      real(dp) :: dmaxeig
 !
 
       Omat1tot(:,:) = 0.d0
@@ -2857,14 +2771,13 @@ end subroutine nksic_getOmattot
 !     wfn2(n) = sum_m wfn1(m) Omat1(m,n)
 !
       use electrons_base,             only : iupdwn,nupdwn,nbspx
-      use gvecw,                      only: ngw
-      use kinds,                      only: dp
+      use gvecw,                      only : ngw
+      use kinds,                      only : dp
       !
       implicit none
       !
       ! in/out vars
       !
-      integer :: ninner
       integer,     intent(in)  :: isp
       real(dp),    intent(in)  :: Omat1(nupdwn(isp),nupdwn(isp))
       complex(dp), intent(in)  :: wfn1(ngw,nbspx)
@@ -2901,10 +2814,10 @@ end subroutine nksic_rotwfn
 !     matrix vsicah.
 !     (Ultrasoft pseudopotential case is not implemented.)
 !
-      use kinds,                      only: dp
-      use mp,                         only: mp_bcast
+      use kinds,                      only : dp
+      use mp,                         only : mp_bcast
       use mp_global,                  only : intra_image_comm
-      use io_global,                  only:  ionode, ionode_id
+      use io_global,                  only : ionode, ionode_id
       use electrons_base,             only : nupdwn
       !
       implicit none
@@ -2924,6 +2837,10 @@ end subroutine nksic_rotwfn
       complex(dp)              :: ci
 
       ci = (0.d0,1.d0)
+
+! XXXX
+!  AF: Parallelism to be removed 
+! XXXX
 
 !$$ Now this part diagonalizes Hmat = iWmat
       Hmat(:,:) = ci * vsicah(:,:)
@@ -2948,24 +2865,23 @@ end subroutine nksic_getHeigU
 !
 ! ... Calculates the anti-hermitian part of the SIC hamiltonian, vsicah.
 !
-      use kinds,                      only: dp
-      use grid_dimensions,            only: nr1x, nr2x, nr3x, nnrx
-      use gvecw,                      only: ngw
-      use mp,                         only: mp_sum, mp_bcast
+      use kinds,                      only : dp
+      use grid_dimensions,            only : nr1x, nr2x, nr3x, nnrx
+      use gvecw,                      only : ngw
+      use mp,                         only : mp_sum
       use mp_global,                  only : intra_image_comm
-      use io_global,                  only: stdout, ionode, ionode_id
-      use electrons_base,             only : nbsp, nbspx, nspin,ispin, &
-                                             iupdwn,nupdwn
-      use cp_interfaces,              only: invfft
-      use fft_base,                   only: dfftp
-      use nksic,                      only: vsic,fsic
+      use io_global,                  only : ionode
+      use electrons_base,             only : nbspx
+      use cp_interfaces,              only : invfft
+      use fft_base,                   only : dfftp
+      use nksic,                      only : vsic
       use wavefunctions_module,       only : c0
       !
       implicit none
       !
       ! in/out vars
       !
-      integer :: ninner,nouter
+      integer   :: ninner, nouter
       real(dp)  :: overlap(nbspx,nbspx),vsicah(nbspx,nbspx)
 
       !
@@ -2974,7 +2890,7 @@ end subroutine nksic_getHeigU
       complex(dp)              :: psi1(nnrx), psi2(nnrx)
       real(dp)                 :: overlaptmp,vsicahtmp
       integer                  :: i,nbnd1,nbnd2
-      real(dp)                 :: dwfnnorm, dtmp, vsicah2tmp
+      real(dp)                 :: dwfnnorm
 
       dwfnnorm = 1.0/(dble(nr1x)*dble(nr2x)*dble(nr3x))
 
@@ -3041,17 +2957,15 @@ end subroutine nksic_printoverlap
 !
 ! ... Calculates the anti-hermitian part of the SIC hamiltonian, vsicah.
 !
-      use kinds,                      only: dp
-      use grid_dimensions,            only: nr1x, nr2x, nr3x, nnrx
-      use gvecw,                      only: ngw
-      use mp,                         only: mp_sum, mp_bcast
+      use kinds,                      only : dp
+      use grid_dimensions,            only : nr1x, nr2x, nr3x, nnrx
+      use gvecw,                      only : ngw
+      use mp,                         only : mp_sum
       use mp_global,                  only : intra_image_comm
-      use io_global,                  only: stdout, ionode, ionode_id
-      use electrons_base,             only : nbsp, nbspx, nspin,ispin, &
-                                             iupdwn,nupdwn
-      use cp_interfaces,              only: invfft
-      use fft_base,                   only: dfftp
-      use nksic,                      only: vsic,fsic
+      use electrons_base,             only : nspin, iupdwn,nupdwn
+      use cp_interfaces,              only : invfft
+      use fft_base,                   only : dfftp
+      use nksic,                      only : vsic,fsic
       use wavefunctions_module,       only : c0
       !
       implicit none
@@ -3060,49 +2974,20 @@ end subroutine nksic_printoverlap
       ! 
       integer,     intent(in)  :: isp
       real(dp)  :: vsicah(nupdwn(isp),nupdwn(isp))
-      real(dp)  :: overlap(nupdwn(isp),nupdwn(isp))
+      !real(dp)  :: overlap(nupdwn(isp),nupdwn(isp))
       real(dp)  :: vsicah2sum
 
       !
       ! local variables
       !     
       complex(dp)              :: psi1(nnrx), psi2(nnrx)
-      real(dp)                 :: vsicahtmp,overlaptmp
+      real(dp)                 :: vsicahtmp !,overlaptmp
       integer                  :: i,nbnd1,nbnd2
-      real(dp)                 :: dwfnnorm, dtmp
+      real(dp)                 :: dwfnnorm
 !      complex(dp)              :: Htest(2,2), Utest(2,2) 
 !      real(dp)                 :: Eigtest(2)
 
       dwfnnorm = 1.0/(dble(nr1x)*dble(nr2x)*dble(nr3x))
-
-!$$ LAPACK TEST
-!  Htest(1,1) =  0.0     
-!  Htest(1,2) = -ci
-!  Htest(2,1) = ci
-!  Htest(2,2) = 0.0
-!  if(ionode) then
-!    CALL zdiag(2,2,Htest(1,1),Eigtest(1),Utest(1,1),1)
-!  endif  
-!         
-!  CALL mp_bcast(Utest, ionode_id, intra_image_comm)
-!  CALL mp_bcast(Htest, ionode_id, intra_image_comm)
-!
-!  if(ionode) then
-!    write(555,*) 'Printing out Htest ...'
-!    write(555,*) Htest(1,1),Htest(1,2)
-!    write(555,*) Htest(2,1),Htest(2,2)
-!
-!    write(555,*) 'Printing out Utest ...'
-!    write(555,*) Utest(1,1),Utest(1,2)
-!    write(555,*) Utest(2,1),Utest(2,2)
-!
-!    write(555,*) 'Printing out Eigtest ...'
-!    write(555,*) Eigtest(1),Eigtest(2) 
-!               
-!    write(555,*) 'nbsp,nbspx,nspin,nudx', nbsp,nbspx,nspin,nudx
-!    write(555,*) 'nel(2),nelt,nupdwn(2),iupdwn(2)',nel,nelt,nupdwn,iupdwn
-!  endif
-!$$
 
 
       vsicah(:,:) = 0.d0
@@ -3148,14 +3033,6 @@ end subroutine nksic_printoverlap
 
       enddo ! nbnd1=1,nupdwn(isp)
 
-!      if(ionode) then
-!        write(1020,*) 'isp,iupdown,nupdwn',isp,iupdwn(isp),nupdwn(isp)
-!        do nbnd1=1,nupdwn(isp)
-!          write(1020,'(30F12.7)') (vsicah(nbnd1,nbnd2),nbnd2=1,nupdwn(isp))
-!        enddo
-!        write(1020,*)
-!      endif
-
       return
       !
 !---------------------------------------------------------------
@@ -3170,18 +3047,19 @@ end subroutine nksic_getvsicah
 ! ... Obtains the rotation matrix from the force-related matrices Heig and Umat
 !     and also from the step size (passof).
 !
-      use kinds,                      only: dp
-      use electrons_base,             only: nupdwn
+      use kinds,                      only : dp
+      use constants,                  only : ci 
+      use electrons_base,             only : nupdwn
       !
       implicit none
       !
       ! in/out vars
       !
-      integer,     intent(in)  :: isp
-      real(dp), intent(in)  :: Heig(nupdwn(isp))
-      complex(dp), intent(in)  :: Umat(nupdwn(isp),nupdwn(isp))
-      real(dp), intent(in) :: passof
-      real(dp)  :: Omat1(nupdwn(isp),nupdwn(isp))
+      integer,      intent(in) :: isp
+      real(dp),     intent(in) :: Heig(nupdwn(isp))
+      complex(dp),  intent(in) :: Umat(nupdwn(isp),nupdwn(isp))
+      real(dp),     intent(in) :: passof
+      real(dp)                 :: Omat1(nupdwn(isp),nupdwn(isp))
 
       !
       ! local variables
@@ -3189,11 +3067,9 @@ end subroutine nksic_getvsicah
       complex(dp) :: Cmattmp(nupdwn(isp),nupdwn(isp))
       complex(dp) :: exp_iHeig(nupdwn(isp))
 
-      integer                  :: i,nbnd1,nbnd2
-      complex(dp)              :: ci
-      real(dp) ::  dtmp
+      integer     :: nbnd1
+      real(dp)    :: dtmp
 
-      ci = (0.d0,1.d0)
 
 !$$ We set the step size in such a way that the phase change
 !$$ of the wavevector with largest eigenvalue upon rotation is fixed
