@@ -42,7 +42,8 @@ MODULE control_flags
             tsteepdesc, tatomicwfc, tscreen, gamma_only, force_pairing,      &
             tchi2, do_ee
 !$$
-  PUBLIC :: do_innerloop, do_innerloop_cg, innerloop_dd_nstep, innerloop_cg_nsd, innerloop_cg_nreset
+  PUBLIC :: do_innerloop, do_innerloop_cg, innerloop_dd_nstep,&
+            innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax
 !$$
   !
   PUBLIC :: fix_dependencies, check_flags
@@ -95,6 +96,7 @@ MODULE control_flags
   INTEGER :: innerloop_dd_nstep = 50 ! Number of outer loop damped dynamics steps before each inner loop minimization
   INTEGER :: innerloop_cg_nsd  = 20 ! Number of steepest-descent steps in doing conjugate-gradient inner loop minimization
   INTEGER :: innerloop_cg_nreset  = 10 ! Number of steps to reset the search direction to be the steepest-descent direction in inner loop minimization
+  INTEGER :: innerloop_nmax = 10000 ! Maximum number of inner loop minimization
 !$$
   !
   TYPE (convergence_criteria) :: tconvthrs

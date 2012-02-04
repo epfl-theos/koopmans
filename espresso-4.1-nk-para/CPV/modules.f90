@@ -367,6 +367,7 @@ module nksic
   integer :: innerloop_dd_nstep
   integer :: innerloop_cg_nsd
   integer :: innerloop_cg_nreset
+  integer :: innerloop_nmax
 !$$
 
 contains

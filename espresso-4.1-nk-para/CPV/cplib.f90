@@ -791,6 +791,184 @@ END FUNCTION
       END SUBROUTINE bec_csv
 
 
+!$$
+!----------------------------------------------------------------------
+     SUBROUTINE lowdin(a)
+!----------------------------------------------------------------------
+
+      use kinds
+      use io_global, only: stdout,ionode
+      use mp_global, only: intra_image_comm
+      use gvecw, only: ngw
+      use reciprocal_vectors, only: ng0 => gstart
+      use mp, only: mp_sum
+      use electrons_base, only: n => nbsp, ispin, nspin,nupdwn,iupdwn
+
+      implicit none
+
+      complex(dp) a(ngw,n), aold(ngw,n)
+      integer i, j,k,ig, isp,ndim,nbnd1,nbnd2
+      real(dp) sca,sqrt_seig(n)
+      real(DP), allocatable :: s(:,:),omat(:,:),seig(:),sqrt_s(:,:)
+      !
+      aold(:,:)=a(:,:)
+
+      s(:,:)=0.d0
+
+      do isp=1,nspin
+
+        ndim=nupdwn(isp)
+
+        allocate(s(ndim,ndim))
+        allocate(omat(ndim,ndim))
+        allocate(seig(ndim))
+        allocate(sqrt_s(ndim,ndim))
+
+        s(:,:)=0.d0
+
+        do i=1,ndim
+          nbnd1=iupdwn(isp)-1+i
+          do j=1,ndim
+            nbnd2=iupdwn(isp)-1+j
+            if(j.lt.i) then
+              s(i,j)=s(j,i)
+            else
+              sca=0.0d0
+              if (ng0.eq.2) aold(1,nbnd1) = cmplx(dble(a(1,nbnd1)),0.0d0)
+              do  ig=1,ngw           !loop on g vectors
+                sca=sca+DBLE(CONJG(a(ig,nbnd2))*a(ig,nbnd1))
+              enddo
+              sca = sca*2.0d0  !2. for real weavefunctions
+              if (ng0.eq.2) sca = sca - dble(a(1,nbnd2))*dble(a(1,nbnd1))
+              s(i,j) = sca
+            endif
+          enddo
+        enddo
+        call mp_sum( s, intra_image_comm )
+
+        call ddiag(ndim,ndim,s,seig,omat,1)
+
+        do i=1,ndim
+          if(seig(i).lt.0.d0.and.ionode) write(*,*) 'seig is negative ',seig(:)
+        enddo
+
+        sqrt_seig(:)=1.d0/sqrt(seig(:))
+
+        sqrt_s(:,:)=0.d0
+        do i=1,ndim
+          do j=1,ndim
+            if(j.lt.i) then
+              sqrt_s(i,j)=sqrt_s(j,i)
+            else
+              sca=0.d0
+              do k=1,ndim
+                sca=sca+sqrt_seig(k) * omat(i,k)*omat(j,k)
+              enddo
+              sqrt_s(i,j) = sca
+            endif
+          enddo
+        enddo
+
+        do i=1,ndim
+          nbnd1=iupdwn(isp)-1+i
+
+          a(:,nbnd1) = cmplx(0.d0,0.d0)
+
+          do j=1,ndim
+            nbnd2=iupdwn(isp)-1+j
+
+            a(:,nbnd1) = a(:,nbnd1) + sqrt_s(i,j) * aold(:,nbnd2)
+          enddo
+        enddo
+
+        deallocate(s)
+        deallocate(omat)
+        deallocate(seig)
+        deallocate(sqrt_s)
+
+      enddo
+
+     END SUBROUTINE lowdin
+!$$
+
+
+
+!$$
+!----------------------------------------------------------------------
+     SUBROUTINE calc_wfnoverlap(a,b)
+!----------------------------------------------------------------------
+
+      use kinds
+      use io_global, only: stdout,ionode
+      use mp_global, only: intra_image_comm
+      use gvecw, only: ngw
+      use reciprocal_vectors, only: ng0 => gstart
+      use mp, only: mp_sum
+      use electrons_base, only: n => nbsp, ispin, nspin,nupdwn,iupdwn
+
+      implicit none
+
+      complex(dp) a(ngw,n), b(ngw,n)
+      integer i, j,k,ig, isp,ndim,nbnd1,nbnd2
+      real(dp) sca
+      real(DP), allocatable :: s(:,:)
+      !
+
+      s(:,:)=0.d0
+
+      do isp=1,nspin
+
+        ndim=nupdwn(isp)
+
+        allocate(s(ndim,ndim))
+
+        s(:,:)=0.d0
+
+        do i=1,ndim
+          nbnd1=iupdwn(isp)-1+i
+          if (ng0.eq.2) a(1,nbnd1) = cmplx(dble(a(1,nbnd1)),0.0d0)
+          if (ng0.eq.2) b(1,nbnd1) = cmplx(dble(b(1,nbnd1)),0.0d0)
+        enddo
+
+        do i=1,ndim
+          nbnd1=iupdwn(isp)-1+i
+          do j=1,ndim
+            nbnd2=iupdwn(isp)-1+j
+            sca=0.0d0
+            do ig=1,ngw           !loop on g vectors
+              sca=sca+DBLE(CONJG(a(ig,nbnd1))*b(ig,nbnd2))
+            enddo
+            sca = sca*2.0d0  !2. for real weavefunctions
+            if (ng0.eq.2) sca = sca - dble(a(1,nbnd1))*dble(b(1,nbnd2))
+            s(i,j) = sca
+          enddo
+        enddo
+        call mp_sum( s, intra_image_comm )
+
+        do i=1,ndim
+          do j=1,ndim
+            s(i,j) = s(i,j)*s(i,j)
+          enddo
+        enddo
+
+
+        if(ionode) then
+          write(1235,*) 'spin ',isp,', sum ',sum(s(:,:))/ndim
+          do i=1,ndim
+            write(1235,'(40f5.2)') (s(i,j),j=1,ndim)
+          enddo
+          write(1235,*)
+        endif
+
+        deallocate(s)
+
+      enddo
+
+     END SUBROUTINE calc_wfnoverlap
+!$$
+
+
+
 
 !-------------------------------------------------------------------------
       SUBROUTINE gram( betae, bec, nkbx, cp, ngwx, n )
@@ -2607,7 +2785,7 @@ END FUNCTION
                                    nkscalfact,  nksic_memusage, allocate_nksic
 !$$
       use nksic,            only : do_innerloop, do_innerloop_cg, innerloop_dd_nstep, &
-                                   innerloop_cg_nsd, innerloop_cg_nreset
+                                   innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax
 !$$
       use input_parameters, ONLY : do_nk_ => do_nk, &
                                    do_pz_ => do_pz, &
@@ -2628,7 +2806,8 @@ END FUNCTION
                                    do_innerloop_cg_ => do_innerloop_cg, &
                                    innerloop_dd_nstep_ => innerloop_dd_nstep, &
                                    innerloop_cg_nsd_ => innerloop_cg_nsd, &
-                                   innerloop_cg_nreset_ => innerloop_cg_nreset
+                                   innerloop_cg_nreset_ => innerloop_cg_nreset, &
+                                   innerloop_nmax_ => innerloop_nmax
 !$$
       USE io_global,        ONLY : meta_ionode, stdout
       use electrons_base,   ONLY : nspin, nx => nbspx
@@ -2660,6 +2839,7 @@ END FUNCTION
       innerloop_dd_nstep = innerloop_dd_nstep_
       innerloop_cg_nsd = innerloop_cg_nsd_
       innerloop_cg_nreset = innerloop_cg_nreset_
+      innerloop_nmax = innerloop_nmax_
 !$$
       !
       ! use the collective var which_orbdep

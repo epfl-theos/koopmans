@@ -119,6 +119,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
      CALL compute_stress( stress, detot, h, omega )
      !
   ELSE
+
      !
      IF ( lwf ) &
           CALL get_wannier_center( tfirst, cm, bec, eigr, &

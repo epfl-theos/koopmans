@@ -3,6 +3,12 @@
 		NK code:  Log of Changes
 =======================================================
 
+Feb 03 2012     Fixed bugs in CG routine for SIC.  Mainly, pc2 has been replaced
+		by pc3, which is an wavefunction orthonormalization routine
+		suitable for ODD density functionals.  Previous pc2 does not alllow
+		the unitary transform between wavefunctions in the occupied
+		manifold. Approximate, analytical Lowdin orthogonalization has
+		been performed in pc3. (CHP)
 
 Oct 25 2011     Cleanup of unused variables and consistency check in
 		nksiclib.f90. Few bugs (eg real-complex mismatch of bec) fixed. (AF)

@@ -200,7 +200,6 @@
                 occ_ , lambda, lambdam, b1, b2, b3, &
                 xnhe0, xnhem, vnhe, ekincm, c0, cm )
       END IF
-
       ! AutoPilot (Dynamic Rules) Implementation
       event_index = 1
 

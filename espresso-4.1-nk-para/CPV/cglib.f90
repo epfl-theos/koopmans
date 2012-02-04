@@ -456,6 +456,75 @@ subroutine pc2(a,beca,b,becb)
       return
       end subroutine pcdaga2
 
+!$$
+    subroutine pc3(a,b)
+
+! this function applies the modified Pc operator which is
+! equivalent to Lowdin orthonormalization of the revised wavefunctions.
+! currently implemented only for norm-conserving pseudopotentials. 
+
+!    this subroutine applies the modified Pc operator
+!    a input :unperturbed wavefunctions
+!    b input :first order wavefunctions
+!    b output:b_i =b_i - |a_j>(<a_j|b_i>+<a_i|b_j>)/2
+
+      use kinds
+      use io_global, only: stdout
+      use mp_global, only: intra_image_comm
+      use gvecw, only: ngw
+      use reciprocal_vectors, only: ng0 => gstart
+      use mp, only: mp_sum
+      use electrons_base, only: n => nbsp, ispin
+
+      implicit none
+
+      complex(dp) a(ngw,n), b(ngw,n), bold(ngw,n)
+      ! local variables
+      integer i, j,ig
+      real(dp) sca
+      real(DP), allocatable:: scar(:)
+      !
+      call start_clock('pc3')
+      allocate(scar(n))
+
+      bold(:,:)=b(:,:)
+
+      do j=1,n
+         do i=1,n
+            sca=0.0d0
+            if(ispin(i) == ispin(j)) then
+               if (ng0.eq.2) bold(1,i) = cmplx(dble(bold(1,i)),0.0d0)
+               do  ig=1,ngw           !loop on g vectors
+                  sca=sca+DBLE(CONJG(a(ig,j))*bold(ig,i))
+                  sca=sca+DBLE(CONJG(a(ig,i))*bold(ig,j))
+               enddo
+               !sca = sca*2.0d0  !2. for real weavefunctions
+               !$$ not necessary: sca = sca*2.0d0  !2. for real weavefunctions
+               if (ng0.eq.2) sca = sca - 0.5*(dble(a(1,j))*dble(bold(1,i))+dble(a(1,i))*dble(bold(1,j)))
+               !if (ng0.eq.2) sca = sca - dble(a(1,j))*dble(bold(1,i))
+            endif
+            scar(i) = sca
+         enddo
+
+         call mp_sum( scar, intra_image_comm )
+
+         do i=1,n
+            if(ispin(i) == ispin(j)) then
+               sca = scar(i)
+               do ig=1,ngw
+                  b(ig,i)=b(ig,i)-sca*a(ig,j)
+               enddo
+               ! this to prevent numerical errors
+               if (ng0.eq.2) b(1,i) = cmplx(dble(b(1,i)),0.0d0)
+            endif
+         enddo
+      enddo
+      deallocate(scar)
+      call stop_clock('pc3')
+      return
+      end subroutine pc3
+
+
      subroutine set_x_minus1(betae,m_minus1,ema0bg,use_ema)
 
 ! this function calculates the factors for the inverse of the US K  matrix
@@ -589,6 +658,9 @@ subroutine pc2(a,beca,b,becb)
       use kinds, only: dp
       use ions_base, only: na, nsp
       use io_global, only: stdout
+!$$
+      use io_global, only: ionode
+!$$
       use mp_global, only: intra_image_comm
       use cvan
       use uspp_param, only: nh
@@ -615,6 +687,9 @@ subroutine pc2(a,beca,b,becb)
       logical :: mat_par=.true.!if true uses parallel routines      
 
       call start_clock('xminus1')
+!$$
+!      if(ionode) write(700,*) 'nvb is',nvb
+!$$
       if (nvb.gt.0) then
 !calculates beck
          if (do_k) then

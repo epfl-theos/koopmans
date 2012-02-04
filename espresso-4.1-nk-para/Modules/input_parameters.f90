@@ -457,6 +457,7 @@ MODULE input_parameters
         INTEGER :: innerloop_dd_nstep  = 50
         INTEGER :: innerloop_cg_nsd  = 20
         INTEGER :: innerloop_cg_nreset  = 10
+        INTEGER :: innerloop_nmax  = 10000
 !$$
         !
         ! This variable overwrites the ones above
@@ -508,7 +509,8 @@ MODULE input_parameters
              do_hf, nknmax, do_spinsym, f_cutoff,                             &
              nkscalfact, hfscalfact, vanishing_rho_w, which_orbdep,           &
 !$$
-             do_innerloop,do_innerloop_cg,innerloop_dd_nstep,innerloop_cg_nsd,innerloop_cg_nreset
+             do_innerloop,do_innerloop_cg,innerloop_dd_nstep,&
+             innerloop_cg_nsd,innerloop_cg_nreset,innerloop_nmax
 !$$
 !
 !=----------------------------------------------------------------------------=!

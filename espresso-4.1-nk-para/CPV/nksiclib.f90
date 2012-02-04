@@ -965,6 +965,9 @@ end subroutine nksic_newd
       use constants,            only : e2, fpi
       use cell_base,            only : tpiba2,omega
       use nksic,                only : etxc => etxc_sic, vxc => vxc_sic, nknmax
+!$$
+      use nksic,                only : nkscalfact
+!$$
       use grid_dimensions,      only : nnrx, nr1, nr2, nr3
       use gvecp,                only : ngm
       use recvecs_indexes,      only : np, nm
@@ -1115,6 +1118,17 @@ end subroutine nksic_newd
 !      pink = fact * ( -ehele )
 !      pink = fact * ( -etxc )
 !$$
+
+!$$ This is for screened pz functional; apparently, I should have used a different variable name.
+      !
+      !   rescale contributions with the nkscalfact parameter
+      !   take care of non-variational formulations
+      !
+      pink = pink * nkscalfact
+      vsic = vsic * nkscalfact
+      !
+!$$
+
       call mp_sum(pink,intra_image_comm)
       
       !
@@ -2065,9 +2079,15 @@ end subroutine nksic_dmxc_spin_cp
       use io_global,                  only : ionode
       use electrons_base,             only : nbsp, nbspx, nspin, &
                                              iupdwn,nupdwn
+      use cp_interfaces,              only: invfft
+      use fft_base,                   only: dfftp
+      use ions_base,                  only: nsp, nat
+      use uspp_param,                 only: nhm
+      use nksic,                      only: vsic, pink,&
+                                            do_nk, do_wref, do_wxd,&
+                                            innerloop_nmax
       use uspp,                       only : nkb
       use cp_main_variables,          only : bec
-      use nksic,                      only : vsic, pink
       use wavefunctions_module,       only : c0, cm
       use control_flags,              only : esic_conv_thr
       !
@@ -2101,6 +2121,8 @@ end subroutine nksic_dmxc_spin_cp
       integer                  :: isp
       real(dp), allocatable    :: vsicah(:,:)
       real(dp)                 :: vsicah2sum,deigrms,dmaxeig
+      integer :: nfile
+      logical                  :: do_nonvar,lstopinner
 
       !
       ! variables for test calculations - along gradient line direction
@@ -2130,17 +2152,23 @@ end subroutine nksic_dmxc_spin_cp
       ldotest=.false.
 
       do while (.true.)
-      
+
         ninner = ninner + 1
+
+        if(ninner.gt.innerloop_nmax) then
+          if(ionode) write(1031,*) '# innerloop_nmax reached.'
+          if(ionode) write(1031,*)
+          exit
+        endif
         
 !        if(mod(ninner,10).eq.1) ldotest=.true.
-!        if(ninner.le.20.and.nouter.eq.1) ldotest=.true.
-        ldotest=.true.
+        if(mod(ninner,10).eq.1.or.ninner.le.5) ldotest=.true.
+!        ldotest=.true.
 
 !$$ Now do the test
         if(ldotest) then
-          dtmp = 1.5d0*3.141592d0
-!          call nksic_rot_test(dtmp,151,nouter,ninner,etot)
+          dtmp = 4.d0*3.141592d0
+!          call nksic_rot_test(dtmp,201,nouter,ninner,etot)
           ldotest=.false.
         endif
 
@@ -2199,21 +2227,28 @@ end subroutine nksic_dmxc_spin_cp
         dalpha = passoprod/dmaxeig
         call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfn_ctmp,Omat1tot,bec1,vsic1,pink1,dtmp)
 
-!$$$$ if converged, exit
-!        if(dtmp.gt.esic.or.abs(esic-dtmp).lt.esic_conv_thr) then
-!$$ the following rather complicated condition is for nk0 calculation where we are not minimizing the total energy
-!$$
-        if((ninner.ge.2.and.(esic-dtmp)*(esic-esic_old).gt.0.d0) &
-            .or.(abs(esic-dtmp).lt.esic_conv_thr)) then
+!$$ for nk0 which is not derived from an energy functional variation
+        do_nonvar = (do_nk.and.(.not.do_wref.or..not.do_wxd))
+
+        if(.not.do_nonvar) then
+          lstopinner = dtmp.ge.esic
+        else
+          lstopinner = (ninner.ge.2.and.(esic-dtmp)*(esic-esic_old).gt.0.d0)
+        endif
+        lstopinner = lstopinner.or.(abs(esic-dtmp).lt.esic_conv_thr)
+
+        if(lstopinner) then
+
           npassofail = npassofail+1
 
           if(ionode) then
-            write(1031,'("# procedure  ",I2," / ",I2," is finished.")') npassofail,npassofailmax
+            write(1031,'("# procedure  ",I4," / ",I4," is finished.")') npassofail,npassofailmax
             write(1031,*)
           endif
 
           if(npassofail.ge.npassofailmax) then
 !$$ if we reach at the maximum allowed npassofail number, we exit without further update
+            ninner = ninner + 1
             exit
           endif
           passoprod = passoprod * 0.5d0
@@ -2235,13 +2270,15 @@ end subroutine nksic_dmxc_spin_cp
       enddo  !$$ do while (.true.)
 
 !$$ Wavefunction cm rotation according to Omattot
-      wfn_ctmp(:,:) = (0.d0,0.d0)
-      do nbnd1=1,nbspx
-        do nbnd2=1,nbspx
-          wfn_ctmp(:,nbnd1)=wfn_ctmp(:,nbnd1) + cm(:,nbnd2) * Omattot(nbnd2,nbnd1)
+      if(ninner.ge.2) then
+        wfn_ctmp(:,:) = (0.d0,0.d0)
+        do nbnd1=1,nbspx
+          do nbnd2=1,nbspx
+            wfn_ctmp(:,nbnd1)=wfn_ctmp(:,nbnd1) + cm(:,nbnd2) * Omattot(nbnd2,nbnd1)
+          enddo
         enddo
-      enddo
-      cm(:,1:nbspx) = wfn_ctmp(:,1:nbspx)
+        cm(:,1:nbspx) = wfn_ctmp(:,1:nbspx)
+      endif
 
       CALL stop_clock( 'nksic_rot_emin' )
       return
@@ -2382,10 +2419,15 @@ end subroutine nksic_rot_test
       use io_global,                  only : ionode
       use electrons_base,             only : nbsp, nbspx, nspin, &
                                              iupdwn,nupdwn
+      use cp_interfaces,              only: invfft
+      use fft_base,                   only: dfftp
+      use ions_base,                  only: nsp, nat
+      use uspp_param,                 only: nhm
+      use nksic,                      only: vsic, pink, &
+                                            innerloop_cg_nsd, innerloop_cg_nreset,&
+                                            innerloop_nmax
       use uspp,                       only : nkb
       use cp_main_variables,          only : bec
-      use nksic,                      only : vsic, pink,&
-                                             innerloop_cg_nsd, innerloop_cg_nreset
       use wavefunctions_module,       only : c0, cm
       use control_flags,              only : esic_conv_thr
       !
@@ -2421,8 +2463,9 @@ end subroutine nksic_rot_test
       real(dp)                 :: vsicah2sum,vsicah2sum_prev
       integer                  :: nidx1,nidx2
       real(dp)                 :: dPI,dalpha,dmaxeig,deigrms
-      real(dp)                 :: pinksumprev
-
+      real(dp)                 :: pinksumprev,passoprod
+      integer :: nfile
+!
 
       !
       ! main body
@@ -2431,6 +2474,7 @@ end subroutine nksic_rot_test
 
       pinksumprev=1.d8
       dPI = 2.0*asin(1.0)
+      passoprod = (0.3d0/dPI)*dPI
 
       CALL start_clock( 'nksic_rot_emin' )
 
@@ -2449,18 +2493,24 @@ end subroutine nksic_rot_test
 
         ninner = ninner + 1
 
+        if(ninner.gt.innerloop_nmax) then
+          if(ionode) write(1031,*) '# innerloop_nmax reached.'
+          if(ionode) write(1031,*)
+          exit
+        endif
+
 !        call nksic_printoverlap(ninner,nouter)
 
-!        if(ninner.le.20.and.nouter.eq.1) ldotest=.true.
+!        if(mod(ninner,10).eq.1.or.ninner.le.5) ldotest=.true.
+        if(ninner.eq.31.or.ninner.eq.61.or.ninner.eq.91) ldotest=.true.
 !        if(ninner.le.10.and.nouter.eq.1) ldotest=.true.
 !         ldotest=.true.
 !        if(ninner.ge.25) ldotest=.true.
-        if(ninner.ge.1.and.nouter.eq.37) ldotest=.true.
 !$$ Now do the test
         if(ldotest) then
-!          dtmp = 1.5d0*3.141592d0
-          dtmp = 0.15d0*3.141592d0
-!          call nksic_rot_test(dtmp,151,nouter,ninner,etot)
+!          dtmp = 1.0d0*3.141592d0
+          dtmp = 4.d0*3.141592d0
+!          call nksic_rot_test(dtmp,201,nouter,ninner,etot)
           ldotest=.false.
         endif
 
@@ -2557,12 +2607,23 @@ end subroutine nksic_rot_test
           dmaxeig = max(dmaxeig,abs(Heigbig(iupdwn(isp)+nupdwn(isp)-1)))
         enddo
 
-        passomax=0.2*dPI/dmaxeig
+        passomax=passoprod/dmaxeig
 
         if(ninner.eq.1) then
           passof = passomax
           if(ionode) write(1031,*) '# passof set to passomax'
         endif
+
+!$$$$        if(passof .gt. passomax*2.d0) then
+!$$$$          passof = passomax*2.d0
+!$$$$          if(ionode) write(1031,*) '# passof > twice passomax'
+!$$$$        endif
+
+!        if(ionode) then
+!          write(1037,*)'# deigrms = ',deigrms
+!          write(1037,*)'# vsicah2sum = ',vsicah2sum
+!          if(ninner.ne.1) write(1037,*)'# vsicah2sum/vsicah2sum_prev = ',dtmp
+!        endif
 
         vsicah2sum_prev = vsicah2sum
 
@@ -2577,8 +2638,12 @@ end subroutine nksic_rot_test
           enddo
         enddo
 
-!        dene0 = dene0 * 2.d0/nspin
-!$$  strangely enough, the following is correct!
+!$$
+!$$        dene0 = dene0 * 2.d0/nspin
+!$$
+!$$  Be careful, the following is correct because A_ji = - A_ij, i.e., the number of
+!$$  linearly independent variables is half the number of total variables!
+!$$
         dene0 = dene0 * 1.d0/nspin
 
         spasso = 1.d0
@@ -2588,6 +2653,8 @@ end subroutine nksic_rot_test
         call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfn_ctmp,Omat1tot,bec1,vsic1,pink1,ene1)
         call minparabola(ene0,spasso*dene0,ene1,passof,passo,enesti)
 
+!$$$$ We neglect this step for paper writing purposes
+!$$$$
         if(passo .gt. passomax) then
           passo = passomax
           if(ionode) write(1031,*) '# passo > passomax'
@@ -2620,6 +2687,7 @@ end subroutine nksic_rot_test
             write(1031,*) '# inner-loop NOT converged. we exit!'
             write(1031,*)
           endif
+          ninner = ninner + 1
           exit
         endif
 
@@ -2645,13 +2713,15 @@ end subroutine nksic_rot_test
 
 
 !$$ Wavefunction cm rotation according to Omattot
-      wfn_ctmp(:,:) = (0.d0,0.d0)
-      do nbnd1=1,nbspx
-        do nbnd2=1,nbspx
-          wfn_ctmp(:,nbnd1)=wfn_ctmp(:,nbnd1) + cm(:,nbnd2) * Omattot(nbnd2,nbnd1)
+      if(ninner.ge.2) then
+        wfn_ctmp(:,:) = (0.d0,0.d0)
+        do nbnd1=1,nbspx
+          do nbnd2=1,nbspx
+            wfn_ctmp(:,nbnd1)=wfn_ctmp(:,nbnd1) + cm(:,nbnd2) * Omattot(nbnd2,nbnd1)
+          enddo
         enddo
-      enddo
-      cm(:,1:nbspx) = wfn_ctmp(:,1:nbspx)
+        cm(:,1:nbspx) = wfn_ctmp(:,1:nbspx)
+      endif
 !$$ We need this because outer loop could be damped dynamics.
 
       CALL stop_clock( 'nksic_rot_emin' )
@@ -3081,7 +3151,7 @@ end subroutine nksic_getvsicah
             exp_iHeig(nbnd1) = cos(dtmp) + ci*sin(dtmp)
           enddo
             
-!$$ Cmattmp = exp(i * passof * Heig) * Umat   ; Omat = Umat^dagger * Cmattmp
+!$$ Cmattmp = exp(i * passof * Heig) * Umat^dagger   ; Omat = Umat * Cmattmp
           do nbnd1=1,nupdwn(isp)
             Cmattmp(:,nbnd1) = Umat(:,nbnd1) * exp_iHeig(nbnd1)
           enddo

@@ -190,6 +190,20 @@ cp.x : cprstart.o libcp.a $(LIBOBJS)
 		cprstart.o $(MODULES) libcp.a $(LIBOBJS) $(LIBS)
 	- ( cd ../bin ; ln -fs ../CPV/cp.x . )
 
+cp_test : tldeps libcp.a cp_test.x cppp.x
+
+cp_test.x : cprstart.o libcp.a $(LIBOBJS)
+	$(LD) $(LDFLAGS) -o cp_test.x \
+		cprstart.o $(MODULES) libcp.a $(LIBOBJS) $(LIBS)
+	- ( cd ../bin ; ln -fs ../CPV/cp_test.x . )
+
+cp_bad_sd : tldeps libcp.a cp_bad_sd.x cppp.x
+
+cp_bad_sd.x : cprstart.o libcp.a $(LIBOBJS)
+	$(LD) $(LDFLAGS) -o cp_bad_sd.x \
+		cprstart.o $(MODULES) libcp.a $(LIBOBJS) $(LIBS)
+	- ( cd ../bin ; ln -fs ../CPV/cp_bad_sd.x . )
+
 libcp.a : $(FOBJS) $(LOBJS) 
 	 $(AR) $(ARFLAGS) $@ $?
 	 $(RANLIB) $@

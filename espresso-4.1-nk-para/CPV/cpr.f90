@@ -131,6 +131,9 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
                                        me_image
   USE ldaU,                     ONLY : lda_plus_u, vupsi
   USE nksic,                    ONLY : do_orbdep
+!$$
+  USE nksic,                    ONLY : pink
+!$$
   USE step_constraint
   USE small_box,                ONLY : ainvb
   !
@@ -933,6 +936,14 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
         END IF
         !
      END IF
+!$$
+!     if(ionode) write(1111,'("etot=",F20.13," delta_etot=",F20.13," conv=",F20.13)') enow,delta_etot,tconvthrs%derho
+     !if(ionode) write(1111,*) 'tconvthrs%active,tconv,ttest,tlast,tstop,tfor'
+     !if(ionode) write(1111,*) tconvthrs%active,tconv,ttest,tlast,tstop,tfor
+!$$$$
+!     if(nfi.lt.10000) tconv=.false.
+!$$$$
+!$$
      !
      ! ... in the case cp-wf the check on convergence is done starting
      ! ... from the second step 
