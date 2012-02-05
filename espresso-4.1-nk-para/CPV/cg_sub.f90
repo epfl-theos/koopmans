@@ -387,15 +387,19 @@
             endif
 
 !$$ Now rotate hi(:,:) according to Omattot!
-            if(ninner.ge.2) then
-              hitmp(:,:) = (0.d0,0.d0)
-              do nbnd1=1,n
-                do nbnd2=1,n
-                  hitmp(:,nbnd1)=hitmp(:,nbnd1) + hi(:,nbnd2) * Omattot(nbnd2,nbnd1)
-                enddo
-              enddo
-              hi(:,:) = hitmp(:,:)
-            endif
+!$$ It seems that not rotating hi gives us better convergence.
+!$$ So, we do not perform the following routine.
+!$$
+!            if(ninner.ge.2) then
+!              hitmp(:,:) = (0.d0,0.d0)
+!              do nbnd1=1,n
+!                do nbnd2=1,n
+!                  hitmp(:,nbnd1)=hitmp(:,nbnd1) + hi(:,nbnd2) * Omattot(nbnd2,nbnd1)
+!                enddo
+!              enddo
+!              hi(:,:) = hitmp(:,:)
+!            endif
+!$$
 
             esic=sum(pink(1:n))
             etot = etot + esic

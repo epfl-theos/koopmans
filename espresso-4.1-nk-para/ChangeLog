@@ -3,6 +3,11 @@
 		NK code:  Log of Changes
 =======================================================
 
+Feb 04 2012     Changed a minor flavor in CG outer loop routine.  Not rotating
+		the conjugate gradient vector according to the inner loop rotation
+		gives us a better convergence result (empirically).  This version
+		comments out the rotation of the conjugate gradient vector. (CHP)
+
 Feb 03 2012     Fixed bugs in CG routine for SIC.  Mainly, pc2 has been replaced
 		by pc3, which is an wavefunction orthonormalization routine
 		suitable for ODD density functionals.  Previous pc2 does not alllow
