@@ -327,6 +327,7 @@
       enddo outer_loop
       !
       vxxpsi  = hfscalfact *vxxpsi
+      exx     = hfscalfact *exx
 
       deallocate(psis2) 
       deallocate(psis1) 

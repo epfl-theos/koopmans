@@ -3,6 +3,12 @@
 		NK code:  Log of Changes
 =======================================================
 
+
+Feb 16 2012     Bug fixed in the calculation of PBE0 and B3LYP energies (hfscalfact missing
+		in the calculation of the exx term). The bug didn't affect at all the
+		eigenvalues and eigenvectors (the force term was already correct).
+		Reference results for tests 02 and 05 updated accordingly. (AF)
+
 Feb 04 2012     Changed a minor flavor in CG outer loop routine.  Not rotating
 		the conjugate gradient vector according to the inner loop rotation
 		gives us a better convergence result (empirically).  This version
