@@ -3,14 +3,14 @@
      CP: variable-cell Car-Parrinello molecular dynamics
      using norm-conserving and ultrasoft Vanderbilt pseudopotentials
 
-     Version: 4.1 - Mon Dec 13 15:39:43 EST 2010                          
+     Version: 4.1 - Wed Feb 15 19:22:38 CET 2012                          
      Authors: Alfredo Pasquarello, Kari Laasonen, Andrea Trave, Roberto Car,
        Paolo Giannozzi, Nicola Marzari, Carlo Cavazzoni, Guido Chiarotti,
        Sandro Scandolo, Paolo Focher, Gerardo Ballabio, and others
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  15:56:19  14Dec2010               
+   This run was started on:  18:18: 0  16Feb2012               
 
    MPI Parallel Build
    Tasks =    1  This task id =    0
@@ -163,7 +163,7 @@
 
 
    Diagonalization Performances
-   ortho diag, time for serial   driver =   0.00014
+   ortho diag, time for serial   driver =   0.00032
    ortho diag, time for parallel driver =   0.00002 with    1 procs
 
 
@@ -217,15 +217,15 @@
       NOTE: eigenvalues are not computed without ortho
 
 
-                total energy =       72.13748 Hartree a.u.
-              kinetic energy =       81.28974 Hartree a.u.
-        electrostatic energy =       -6.54840 Hartree a.u.
-                         esr =        0.00180 Hartree a.u.
-                       eself =       39.09634 Hartree a.u.
-      pseudopotential energy =       -0.25023 Hartree a.u.
-  n-l pseudopotential energy =        0.07177 Hartree a.u.
- exchange-correlation energy =       -2.42541 Hartree a.u.
-           average potential =        0.00000 Hartree a.u.
+                total energy =      72.1374778667 Hartree a.u.
+              kinetic energy =      81.2897435637 Hartree a.u.
+        electrostatic energy =      -6.5484003946 Hartree a.u.
+                         esr =       0.0018030605 Hartree a.u.
+                       eself =      39.0963434793 Hartree a.u.
+      pseudopotential energy =      -0.2502277868 Hartree a.u.
+  n-l pseudopotential energy =       0.0717682168 Hartree a.u.
+ exchange-correlation energy =      -2.4254057324 Hartree a.u.
+           average potential =       0.0000000000 Hartree a.u.
 
 
 
@@ -233,7 +233,7 @@
 
     0.00    0.00    0.00    0.00    0.00    0.00    0.00
  
-   Allocated memory (kb) =    135752
+   Allocated memory (kb) =    124444
  
    CELL_PARAMETERS
    20.00000000    0.00000000    0.00000000
@@ -263,7 +263,7 @@
     1 0.26E+01    0.0    0.0    72.13748    72.13748    72.13748    74.76238  0.0000  0.0000  0.0000  0.0000     1.40580
 
    writing restart file: ./SCRATCH/clorine_90.save
-   restart file written in    0.098 sec.
+   restart file written in    0.139 sec.
 
 
 
@@ -280,29 +280,29 @@
    volume        :     8000.00000    8000.00000 (AU)
 
 
-     initialize   :     1.92s CPU
-     total_time   :     0.72s CPU
-     formf        :     0.06s CPU
-     rhoofr       :     0.36s CPU (       2 calls,   0.180 s avg)
-     vofrho       :     0.70s CPU (       2 calls,   0.352 s avg)
-     dforce       :     0.36s CPU (       8 calls,   0.045 s avg)
-     calphi       :     0.00s CPU (       2 calls,   0.002 s avg)
-     gram         :     0.00s CPU (       3 calls,   0.001 s avg)
+     initialize   :     2.94s CPU
+     total_time   :     1.07s CPU
+     formf        :     0.07s CPU
+     rhoofr       :     0.53s CPU (       2 calls,   0.265 s avg)
+     vofrho       :     1.06s CPU (       2 calls,   0.530 s avg)
+     dforce       :     0.55s CPU (       8 calls,   0.069 s avg)
+     calphi       :     0.00s CPU (       2 calls,   0.000 s avg)
+     gram         :     0.02s CPU (       3 calls,   0.007 s avg)
      newd         :     0.00s CPU (       2 calls,   0.000 s avg)
-     calbec       :     0.00s CPU (       3 calls,   0.001 s avg)
+     calbec       :     0.01s CPU (       3 calls,   0.003 s avg)
      prefor       :     0.00s CPU (       2 calls,   0.000 s avg)
-     strucf       :     0.00s CPU
-     nlsm1        :     0.00s CPU (       3 calls,   0.001 s avg)
-     fft          :     0.66s CPU (      18 calls,   0.037 s avg)
-     ffts         :     0.15s CPU (       4 calls,   0.037 s avg)
-     fftw         :     0.47s CPU (      24 calls,   0.020 s avg)
-     cft3s        :     1.28s CPU (      46 calls,   0.028 s avg)
+     strucf       :     0.01s CPU
+     nlsm1        :     0.01s CPU (       3 calls,   0.003 s avg)
+     fft          :     0.94s CPU (      18 calls,   0.052 s avg)
+     ffts         :     0.21s CPU (       4 calls,   0.053 s avg)
+     fftw         :     0.71s CPU (      24 calls,   0.030 s avg)
+     cft3s        :     1.86s CPU (      46 calls,   0.040 s avg)
  
  
-     CP           :     2.72s CPU time,    2.93s wall time
+     CP           :     4.15s CPU time,    4.44s wall time
 
  
-   This run was terminated on:  15:56:22  14Dec2010            
+   This run was terminated on:  18:18: 5  16Feb2012            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
