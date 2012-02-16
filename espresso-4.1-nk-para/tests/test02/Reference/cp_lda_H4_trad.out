@@ -3,17 +3,17 @@
      CP: variable-cell Car-Parrinello molecular dynamics
      using norm-conserving and ultrasoft Vanderbilt pseudopotentials
 
-     Version: 4.1 - Thu Feb 3 07:44:05 EST 2011                           
+     Version: 4.1 - Wed Feb 15 19:22:38 CET 2012                          
      Authors: Alfredo Pasquarello, Kari Laasonen, Andrea Trave, Roberto Car,
        Paolo Giannozzi, Nicola Marzari, Carlo Cavazzoni, Guido Chiarotti,
        Sandro Scandolo, Paolo Focher, Gerardo Ballabio, and others
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:   9:15:37   3Feb2011               
+   This run was started on:  17: 6:39  16Feb2012               
 
    MPI Parallel Build
-   Tasks =    6  This task id =    0
+   Tasks =    4  This task id =    0
 
    Job Title: MD Simulation
 
@@ -124,12 +124,10 @@
    ----------
    nst =  2479,  nstw =   619, nsts =  2479
         PEs    n.st   n.stw   n.sts    n.g    n.gw   n.gs
-          1     826     208     826   87930   11000   87930
-          2     826     206     826   87930   10990   87930
-          3     828     206     828   87948   10994   87948
-          4     826     206     826   87926   10998   87926
-          5     825     205     825   87927   10991   87927
-          6     826     206     826   87926   10990   87926
+          1    1240     310    1240  131904   16494  131904
+          2    1238     308    1238  131882   16488  131882
+          3    1239     309    1239  131901   16491  131901
+          4    1240     310    1240  131900   16490  131900
           0    4957    1237    4957  527587   65963  527587
  
  
@@ -137,48 +135,42 @@
    ---------
    Global Dimensions   Local  Dimensions   Processor Grid
    .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
-    80    80   160      80    80    27       1     1     6
+    80    80   160      80    80    40       1     1     4
    Array leading dimensions ( nr1x, nr2x, nr3x )   =     80    80   160
-   Local number of cell to store the grid ( nnrx ) =     172800
+   Local number of cell to store the grid ( nnrx ) =     256000
    Number of x-y planes for each processors: 
-   nr3l =    27   27   27   27   26   26
+   nr3l =    40   40   40   40
  
    Smooth Real Mesh
    ----------------
    Global Dimensions   Local  Dimensions   Processor Grid
    .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
-    80    80   160      80    80    27       1     1     6
+    80    80   160      80    80    40       1     1     4
    Array leading dimensions ( nr1x, nr2x, nr3x )   =     80    80   160
-   Local number of cell to store the grid ( nnrx ) =     172800
+   Local number of cell to store the grid ( nnrx ) =     256000
    Number of x-y planes for each processors: 
-   nr3sl =    27   27   27   27   26   26
+   nr3sl =    40   40   40   40
  
    Reciprocal Space Mesh
    ---------------------
                 Large Mesh
    PE   Global(ngmt)     Local(ngm) MaxLocal(ngmx)
-    1         263794          43965          43974
-    2         263794          43965          43974
-    3         263794          43974          43974
-    4         263794          43963          43974
-    5         263794          43964          43974
-    6         263794          43963          43974
+    1         263794          65952          65952
+    2         263794          65941          65952
+    3         263794          65951          65952
+    4         263794          65950          65952
                 Smooth Mesh
    PE   Global(ngst)     Local(ngs) MaxLocal(ngsx)
-    1         263794          43965          43974
-    2         263794          43965          43974
-    3         263794          43974          43974
-    4         263794          43963          43974
-    5         263794          43964          43974
-    6         263794          43963          43974
+    1         263794          65952          65952
+    2         263794          65941          65952
+    3         263794          65951          65952
+    4         263794          65950          65952
                 Wave function Mesh
    PE   Global(ngwt)     Local(ngw) MaxLocal(ngwx)
-    1          32982           5500           5500
-    2          32982           5495           5500
-    3          32982           5497           5500
-    4          32982           5499           5500
-    5          32982           5496           5500
-    6          32982           5495           5500
+    1          32982           8247           8247
+    2          32982           8244           8247
+    3          32982           8246           8247
+    4          32982           8245           8247
 
 
    System geometry initialization
@@ -231,7 +223,7 @@
    EE with periodic-image correction method = tcc                 
 
    reading restart file: ./SCRATCH/h4_trad_91.save
-   restart file read in    0.024 sec.
+   restart file read in    0.040 sec.
 
  nprint_nfi=           -2
  nprint_nfi=           11
@@ -241,10 +233,10 @@
    formf: sum_g vps(g)=  -2.2273115 sum_g rhops(g)=  -0.0898096
    Delta V(G=0):   0.000402Ry,    0.010936eV
 Initialize Berry phase electric field
- Additional found:       57140
- Additional found:       54816
- Additional found:       57141
- Additional found:       54817
+ Additional found:       51528
+ Additional found:       50500
+ Additional found:       51529
+ Additional found:       50501
  #not found, gtable:    1237.00000000000     
  #not found, gtabin:    1237.00000000000     
  
@@ -295,7 +287,7 @@ Elct. dipole 1    0.173781  Ionic dipole 1    0.000000
 
   -15.22  -12.28
  
-   Allocated memory (kb) =     50916
+   Allocated memory (kb) =     57784
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -376,7 +368,7 @@ Elct. dipole 1    0.377212  Ionic dipole 1    0.000000
 
   -12.85  -10.77
  
-   Allocated memory (kb) =     50916
+   Allocated memory (kb) =     57784
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -457,7 +449,7 @@ Elct. dipole 1    0.569654  Ionic dipole 1    0.000000
 
   -10.87   -8.96
  
-   Allocated memory (kb) =     50916
+   Allocated memory (kb) =     57784
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -538,7 +530,7 @@ Elct. dipole 1    0.293394  Ionic dipole 1    0.000000
 
   -10.44   -8.73
  
-   Allocated memory (kb) =     50916
+   Allocated memory (kb) =     57784
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -619,7 +611,7 @@ Elct. dipole 1    0.166115  Ionic dipole 1    0.000000
 
   -10.32   -8.46
  
-   Allocated memory (kb) =     50916
+   Allocated memory (kb) =     57784
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -700,7 +692,7 @@ Elct. dipole 1    0.237165  Ionic dipole 1    0.000000
 
   -10.20   -8.40
  
-   Allocated memory (kb) =     50916
+   Allocated memory (kb) =     57784
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -781,7 +773,7 @@ Elct. dipole 1    0.163492  Ionic dipole 1    0.000000
 
   -10.14   -8.34
  
-   Allocated memory (kb) =     50916
+   Allocated memory (kb) =     57784
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -862,7 +854,7 @@ Elct. dipole 1    0.203330  Ionic dipole 1    0.000000
 
   -10.14   -8.33
  
-   Allocated memory (kb) =     50916
+   Allocated memory (kb) =     57784
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -943,7 +935,7 @@ Elct. dipole 1    0.183124  Ionic dipole 1    0.000000
 
   -10.14   -8.33
  
-   Allocated memory (kb) =     50916
+   Allocated memory (kb) =     57784
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -978,7 +970,7 @@ Elct. dipole 1    0.183124  Ionic dipole 1    0.000000
 Elct. dipole 1    0.183640  Ionic dipole 1    0.000000
 
    writing restart file: ./SCRATCH/h4_trad_92.save
-   restart file written in    0.158 sec.
+   restart file written in    0.241 sec.
 
   101 0.32E-03    0.0    0.0    -2.19466    -2.19374    -2.19374    -2.19342  0.0000  0.0000  0.0000  0.0000     0.00000
 Elct. dipole 1    0.184437  Ionic dipole 1    0.000000
@@ -1028,7 +1020,7 @@ Elct. dipole 1    0.189779  Ionic dipole 1    0.000000
 
   -10.14   -8.33
  
-   Allocated memory (kb) =     50916
+   Allocated memory (kb) =     57784
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -1109,7 +1101,7 @@ Elct. dipole 1    0.188318  Ionic dipole 1    0.000000
 
   -10.14   -8.33
  
-   Allocated memory (kb) =     50916
+   Allocated memory (kb) =     57784
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -1190,7 +1182,7 @@ Elct. dipole 1    0.187636  Ionic dipole 1    0.000000
 
   -10.14   -8.33
  
-   Allocated memory (kb) =     50916
+   Allocated memory (kb) =     57784
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -1261,7 +1253,7 @@ Elct. dipole 1    0.188407  Ionic dipole 1    0.000000
 
   -10.14   -8.33
  
-   Allocated memory (kb) =     50916
+   Allocated memory (kb) =     57784
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -1298,7 +1290,7 @@ Elct. dipole 1    0.188476  Ionic dipole 1    0.000000
    MAIN: convergence achieved for system relaxation
 
    writing restart file: ./SCRATCH/h4_trad_92.save
-   restart file written in    0.204 sec.
+   restart file written in    0.244 sec.
 
 
 
@@ -1315,34 +1307,34 @@ Elct. dipole 1    0.188476  Ionic dipole 1    0.000000
    volume        :    31250.00000   31250.00000 (AU)
 
 
-     initialize   :     5.03s CPU
-     total_time   :    48.19s CPU (     125 calls,   0.385 s avg)
+     initialize   :     7.35s CPU
+     total_time   :    49.62s CPU (     125 calls,   0.397 s avg)
      formf        :     0.02s CPU
-     rhoofr       :    10.06s CPU (     125 calls,   0.080 s avg)
-     vofrho       :    30.68s CPU (     125 calls,   0.245 s avg)
-     dforce       :     6.01s CPU (     250 calls,   0.024 s avg)
-     calphi       :     0.03s CPU (     125 calls,   0.000 s avg)
-     ortho        :     0.19s CPU (     125 calls,   0.002 s avg)
-     ortho_iter   :     0.00s CPU (     250 calls,   0.000 s avg)
-     rsg          :     0.00s CPU (     250 calls,   0.000 s avg)
-     rhoset       :     0.17s CPU (     250 calls,   0.001 s avg)
+     rhoofr       :     9.64s CPU (     125 calls,   0.077 s avg)
+     vofrho       :    32.38s CPU (     125 calls,   0.259 s avg)
+     dforce       :     5.77s CPU (     250 calls,   0.023 s avg)
+     calphi       :     0.07s CPU (     125 calls,   0.001 s avg)
+     ortho        :     0.08s CPU (     125 calls,   0.001 s avg)
+     ortho_iter   :     0.01s CPU (     250 calls,   0.000 s avg)
+     rsg          :     0.01s CPU (     250 calls,   0.000 s avg)
+     rhoset       :     0.02s CPU (     250 calls,   0.000 s avg)
      updatc       :     0.03s CPU (     250 calls,   0.000 s avg)
      newd         :     0.00s CPU (     125 calls,   0.000 s avg)
      calbec       :     0.00s CPU (     251 calls,   0.000 s avg)
      prefor       :     0.00s CPU (     126 calls,   0.000 s avg)
-     strucf       :     0.00s CPU
+     strucf       :     0.01s CPU
      nlsm1        :     0.00s CPU (     501 calls,   0.000 s avg)
-     fft          :    19.50s CPU (     879 calls,   0.022 s avg)
-     ffts         :     5.37s CPU (     250 calls,   0.021 s avg)
-     fftw         :     7.83s CPU (     750 calls,   0.010 s avg)
-     cft3s        :    32.69s CPU (    1879 calls,   0.017 s avg)
-     fft_scatter  :    12.55s CPU (    1879 calls,   0.007 s avg)
+     fft          :    18.69s CPU (     879 calls,   0.021 s avg)
+     ffts         :     5.39s CPU (     250 calls,   0.022 s avg)
+     fftw         :     7.77s CPU (     750 calls,   0.010 s avg)
+     cft3s        :    31.85s CPU (    1879 calls,   0.017 s avg)
+     fft_scatter  :     6.95s CPU (    1879 calls,   0.004 s avg)
  
  
-     CP           :    53.40s CPU time,   53.60s wall time
+     CP           :    57.20s CPU time,   58.77s wall time
 
  
-   This run was terminated on:   9:16:30   3Feb2011            
+   This run was terminated on:  17: 7:38  16Feb2012            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

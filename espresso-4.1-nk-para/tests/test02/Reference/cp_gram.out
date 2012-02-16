@@ -3,17 +3,17 @@
      CP: variable-cell Car-Parrinello molecular dynamics
      using norm-conserving and ultrasoft Vanderbilt pseudopotentials
 
-     Version: 4.1 - Thu Feb 3 07:44:05 EST 2011                           
+     Version: 4.1 - Wed Feb 15 19:22:38 CET 2012                          
      Authors: Alfredo Pasquarello, Kari Laasonen, Andrea Trave, Roberto Car,
        Paolo Giannozzi, Nicola Marzari, Carlo Cavazzoni, Guido Chiarotti,
        Sandro Scandolo, Paolo Focher, Gerardo Ballabio, and others
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:   8: 0:32   3Feb2011               
+   This run was started on:  17:15: 9  16Feb2012               
 
    MPI Parallel Build
-   Tasks =    6  This task id =    0
+   Tasks =    4  This task id =    0
 
    Job Title: MD Simulation
 
@@ -120,12 +120,10 @@
    ----------
    nst =  3991,  nstw =   997, nsts =  3991
         PEs    n.st   n.stw   n.sts    n.g    n.gw   n.gs
-          1    1338     332    1338  178026   22272  178026
-          2    1328     332    1328  178028   22272  178028
-          3    1327     331    1327  178027   22271  178027
-          4    1330     334    1330  178026   22282  178026
-          5    1330     332    1330  178026   22272  178026
-          6    1328     332    1328  178024   22268  178024
+          1    2004     500    2004  267040   33420  267040
+          2    1992     498    1992  267040   33406  267040
+          3    1991     497    1991  267039   33405  267039
+          4    1994     498    1994  267038   33406  267038
           0    7981    1993    7981 1068157  133637 1068157
  
  
@@ -133,48 +131,42 @@
    ---------
    Global Dimensions   Local  Dimensions   Processor Grid
    .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
-   108   108   216     108   108    36       1     1     6
+   108   108   216     108   108    54       1     1     4
    Array leading dimensions ( nr1x, nr2x, nr3x )   =    108   108   216
-   Local number of cell to store the grid ( nnrx ) =     419904
+   Local number of cell to store the grid ( nnrx ) =     629856
    Number of x-y planes for each processors: 
-   nr3l =    36   36   36   36   36   36
+   nr3l =    54   54   54   54
  
    Smooth Real Mesh
    ----------------
    Global Dimensions   Local  Dimensions   Processor Grid
    .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
-   108   108   216     108   108    36       1     1     6
+   108   108   216     108   108    54       1     1     4
    Array leading dimensions ( nr1x, nr2x, nr3x )   =    108   108   216
-   Local number of cell to store the grid ( nnrx ) =     419904
+   Local number of cell to store the grid ( nnrx ) =     629856
    Number of x-y planes for each processors: 
-   nr3sl =    36   36   36   36   36   36
+   nr3sl =    54   54   54   54
  
    Reciprocal Space Mesh
    ---------------------
                 Large Mesh
    PE   Global(ngmt)     Local(ngm) MaxLocal(ngmx)
-    1         534079          89013          89014
-    2         534079          89014          89014
-    3         534079          89014          89014
-    4         534079          89013          89014
-    5         534079          89013          89014
-    6         534079          89012          89014
+    1         534079         133520         133520
+    2         534079         133520         133520
+    3         534079         133520         133520
+    4         534079         133519         133520
                 Smooth Mesh
    PE   Global(ngst)     Local(ngs) MaxLocal(ngsx)
-    1         534079          89013          89014
-    2         534079          89014          89014
-    3         534079          89014          89014
-    4         534079          89013          89014
-    5         534079          89013          89014
-    6         534079          89012          89014
+    1         534079         133520         133520
+    2         534079         133520         133520
+    3         534079         133520         133520
+    4         534079         133519         133520
                 Wave function Mesh
    PE   Global(ngwt)     Local(ngw) MaxLocal(ngwx)
-    1          66819          11136          11141
-    2          66819          11136          11141
-    3          66819          11136          11141
-    4          66819          11141          11141
-    5          66819          11136          11141
-    6          66819          11134          11141
+    1          66819          16710          16710
+    2          66819          16703          16710
+    3          66819          16703          16710
+    4          66819          16703          16710
 
 
    System geometry initialization
@@ -235,7 +227,7 @@
    EE with periodic-image correction method = tcc                 
 
    reading restart file: ./SCRATCH/opa_90.save
-   restart file read in    0.047 sec.
+   restart file read in    0.080 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            1
@@ -288,7 +280,7 @@
 
     0.00    0.00    0.00    0.00    0.00    0.00
  
-   Allocated memory (kb) =    118292
+   Allocated memory (kb) =    117496
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -346,7 +338,7 @@
 
     0.00    0.00    0.00    0.00    0.00    0.00
  
-   Allocated memory (kb) =    118292
+   Allocated memory (kb) =    117496
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -383,7 +375,7 @@
    11 0.23E+01    0.0    0.0    -8.32912    -8.32912    -8.32912    -6.07854  0.0000  0.0000  0.0000  0.0000     0.00364
 
    writing restart file: ./SCRATCH/opa_91.save
-   restart file written in    0.223 sec.
+   restart file written in    0.338 sec.
 
 
 
@@ -400,30 +392,30 @@
    volume        :    31250.00000   31250.00000 (AU)
 
 
-     initialize   :     1.31s CPU
-     total_time   :     9.94s CPU (      10 calls,   0.994 s avg)
-     formf        :     0.07s CPU
-     rhoofr       :     2.35s CPU (      10 calls,   0.235 s avg)
-     vofrho       :     5.29s CPU (      10 calls,   0.529 s avg)
-     dforce       :     1.96s CPU (      30 calls,   0.065 s avg)
-     calphi       :     0.01s CPU (      10 calls,   0.001 s avg)
-     gram         :     0.21s CPU (      10 calls,   0.021 s avg)
-     newd         :     0.05s CPU (      10 calls,   0.005 s avg)
-     calbec       :     0.02s CPU (      11 calls,   0.001 s avg)
+     initialize   :     1.65s CPU
+     total_time   :    11.83s CPU (      10 calls,   1.183 s avg)
+     formf        :     0.08s CPU
+     rhoofr       :     2.74s CPU (      10 calls,   0.274 s avg)
+     vofrho       :     6.51s CPU (      10 calls,   0.651 s avg)
+     dforce       :     2.33s CPU (      30 calls,   0.078 s avg)
+     calphi       :     0.00s CPU (      10 calls,   0.000 s avg)
+     gram         :     0.08s CPU (      10 calls,   0.008 s avg)
+     newd         :     0.06s CPU (      10 calls,   0.006 s avg)
+     calbec       :     0.00s CPU (      11 calls,   0.000 s avg)
      prefor       :     0.00s CPU (      11 calls,   0.000 s avg)
-     strucf       :     0.00s CPU
-     nlsm1        :     0.02s CPU (      11 calls,   0.001 s avg)
-     fft          :     4.25s CPU (      74 calls,   0.057 s avg)
-     ffts         :     1.12s CPU (      20 calls,   0.056 s avg)
-     fftw         :     2.58s CPU (      90 calls,   0.029 s avg)
-     cft3s        :     7.95s CPU (     184 calls,   0.043 s avg)
-     fft_scatter  :     2.25s CPU (     184 calls,   0.012 s avg)
+     strucf       :     0.01s CPU
+     nlsm1        :     0.00s CPU (      11 calls,   0.000 s avg)
+     fft          :     5.04s CPU (      74 calls,   0.068 s avg)
+     ffts         :     1.36s CPU (      20 calls,   0.068 s avg)
+     fftw         :     3.12s CPU (      90 calls,   0.035 s avg)
+     cft3s        :     9.52s CPU (     184 calls,   0.052 s avg)
+     fft_scatter  :     2.86s CPU (     184 calls,   0.016 s avg)
  
  
-     CP           :    11.46s CPU time,   11.76s wall time
+     CP           :    13.82s CPU time,   14.46s wall time
 
  
-   This run was terminated on:   8: 0:44   3Feb2011            
+   This run was terminated on:  17:15:24  16Feb2012            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

@@ -3,17 +3,17 @@
      CP: variable-cell Car-Parrinello molecular dynamics
      using norm-conserving and ultrasoft Vanderbilt pseudopotentials
 
-     Version: 4.1 - Thu Feb 3 07:44:05 EST 2011                           
+     Version: 4.1 - Wed Feb 15 19:22:38 CET 2012                          
      Authors: Alfredo Pasquarello, Kari Laasonen, Andrea Trave, Roberto Car,
        Paolo Giannozzi, Nicola Marzari, Carlo Cavazzoni, Guido Chiarotti,
        Sandro Scandolo, Paolo Focher, Gerardo Ballabio, and others
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:   8:30:22   3Feb2011               
+   This run was started on:  17:52: 1  16Feb2012               
 
    MPI Parallel Build
-   Tasks =    6  This task id =    0
+   Tasks =    4  This task id =    0
 
    Job Title: MD Simulation
 
@@ -128,12 +128,10 @@
    ----------
    nst =  3991,  nstw =   997, nsts =  3991
         PEs    n.st   n.stw   n.sts    n.g    n.gw   n.gs
-          1    1338     332    1338  178026   22272  178026
-          2    1328     332    1328  178028   22272  178028
-          3    1327     331    1327  178027   22271  178027
-          4    1330     334    1330  178026   22282  178026
-          5    1330     332    1330  178026   22272  178026
-          6    1328     332    1328  178024   22268  178024
+          1    2004     500    2004  267040   33420  267040
+          2    1992     498    1992  267040   33406  267040
+          3    1991     497    1991  267039   33405  267039
+          4    1994     498    1994  267038   33406  267038
           0    7981    1993    7981 1068157  133637 1068157
  
  
@@ -141,48 +139,42 @@
    ---------
    Global Dimensions   Local  Dimensions   Processor Grid
    .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
-   108   108   216     108   108    36       1     1     6
+   108   108   216     108   108    54       1     1     4
    Array leading dimensions ( nr1x, nr2x, nr3x )   =    108   108   216
-   Local number of cell to store the grid ( nnrx ) =     419904
+   Local number of cell to store the grid ( nnrx ) =     629856
    Number of x-y planes for each processors: 
-   nr3l =    36   36   36   36   36   36
+   nr3l =    54   54   54   54
  
    Smooth Real Mesh
    ----------------
    Global Dimensions   Local  Dimensions   Processor Grid
    .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
-   108   108   216     108   108    36       1     1     6
+   108   108   216     108   108    54       1     1     4
    Array leading dimensions ( nr1x, nr2x, nr3x )   =    108   108   216
-   Local number of cell to store the grid ( nnrx ) =     419904
+   Local number of cell to store the grid ( nnrx ) =     629856
    Number of x-y planes for each processors: 
-   nr3sl =    36   36   36   36   36   36
+   nr3sl =    54   54   54   54
  
    Reciprocal Space Mesh
    ---------------------
                 Large Mesh
    PE   Global(ngmt)     Local(ngm) MaxLocal(ngmx)
-    1         534079          89013          89014
-    2         534079          89014          89014
-    3         534079          89014          89014
-    4         534079          89013          89014
-    5         534079          89013          89014
-    6         534079          89012          89014
+    1         534079         133520         133520
+    2         534079         133520         133520
+    3         534079         133520         133520
+    4         534079         133519         133520
                 Smooth Mesh
    PE   Global(ngst)     Local(ngs) MaxLocal(ngsx)
-    1         534079          89013          89014
-    2         534079          89014          89014
-    3         534079          89014          89014
-    4         534079          89013          89014
-    5         534079          89013          89014
-    6         534079          89012          89014
+    1         534079         133520         133520
+    2         534079         133520         133520
+    3         534079         133520         133520
+    4         534079         133519         133520
                 Wave function Mesh
    PE   Global(ngwt)     Local(ngw) MaxLocal(ngwx)
-    1          66819          11136          11141
-    2          66819          11136          11141
-    3          66819          11136          11141
-    4          66819          11141          11141
-    5          66819          11136          11141
-    6          66819          11134          11141
+    1          66819          16710          16710
+    2          66819          16703          16710
+    3          66819          16703          16710
+    4          66819          16703          16710
 
 
    System geometry initialization
@@ -248,7 +240,7 @@
    EE with periodic-image correction method = tcc                 
 
    reading restart file: ./SCRATCH/opa_95.save
-   restart file read in    0.082 sec.
+   restart file read in    0.078 sec.
 
  nprint_nfi=           -2
  nprint_nfi=          454
@@ -260,10 +252,10 @@
    formf: sum_g vps(g)=  -2.9163930 sum_g rhops(g)=  -2.8729706
    Delta V(G=0):   0.000603Ry,    0.016407eV
 Initialize Berry phase electric field
- Additional found:      111386
- Additional found:      115814
- Additional found:      111387
- Additional found:      115814
+ Additional found:      104442
+ Additional found:      102926
+ Additional found:      104443
+ Additional found:      102926
  #not found, gtable:    1993.00000000000     
  #not found, gtabin:    1993.00000000000     
  
@@ -287,11 +279,11 @@ Elct. dipole 1    0.155543  Ionic dipole 1    0.000000
 
                 total energy =     -13.3127615565 Hartree a.u.
               kinetic energy =      10.1044447204 Hartree a.u.
-        electrostatic energy =     -16.9215819839 Hartree a.u.
+        electrostatic energy =     -16.9215819840 Hartree a.u.
                          esr =       0.0808070377 Hartree a.u.
                        eself =      27.1280750673 Hartree a.u.
       pseudopotential energy =      -3.2244418179 Hartree a.u.
-  n-l pseudopotential energy =       1.2181569069 Hartree a.u.
+  n-l pseudopotential energy =       1.2181569070 Hartree a.u.
  exchange-correlation energy =       0.0000000000 Hartree a.u.
            average potential =       0.0000000000 Hartree a.u.
 
@@ -301,7 +293,7 @@ Elct. dipole 1    0.155543  Ionic dipole 1    0.000000
 
   -28.40  -21.78  -17.81  -16.01  -14.05  -10.38
  
-   Allocated memory (kb) =     97332
+   Allocated memory (kb) =    126012
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -365,12 +357,12 @@ Elct. dipole 1    0.173340  Ionic dipole 1    0.000000
 
 
                 total energy =     -13.3135848764 Hartree a.u.
-              kinetic energy =      10.2141635561 Hartree a.u.
-        electrostatic energy =     -17.0070270700 Hartree a.u.
+              kinetic energy =      10.2141635559 Hartree a.u.
+        electrostatic energy =     -17.0070270699 Hartree a.u.
                          esr =       0.0808070377 Hartree a.u.
                        eself =      27.1280750673 Hartree a.u.
-      pseudopotential energy =      -3.2403198970 Hartree a.u.
-  n-l pseudopotential energy =       1.2141984886 Hartree a.u.
+      pseudopotential energy =      -3.2403198969 Hartree a.u.
+  n-l pseudopotential energy =       1.2141984885 Hartree a.u.
  exchange-correlation energy =       0.0000000000 Hartree a.u.
            average potential =       0.0000000000 Hartree a.u.
 
@@ -380,7 +372,7 @@ Elct. dipole 1    0.173340  Ionic dipole 1    0.000000
 
   -28.14  -21.62  -17.75  -15.91  -13.98  -10.20
  
-   Allocated memory (kb) =     97332
+   Allocated memory (kb) =    126012
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -444,12 +436,12 @@ Elct. dipole 1    0.162795  Ionic dipole 1    0.000000
 
 
                 total energy =     -13.3140211819 Hartree a.u.
-              kinetic energy =      10.1618914950 Hartree a.u.
-        electrostatic energy =     -16.9684942669 Hartree a.u.
+              kinetic energy =      10.1618914947 Hartree a.u.
+        electrostatic energy =     -16.9684942672 Hartree a.u.
                          esr =       0.0808070377 Hartree a.u.
                        eself =      27.1280750673 Hartree a.u.
-      pseudopotential energy =      -3.2373061403 Hartree a.u.
-  n-l pseudopotential energy =       1.2248941996 Hartree a.u.
+      pseudopotential energy =      -3.2373061401 Hartree a.u.
+  n-l pseudopotential energy =       1.2248941998 Hartree a.u.
  exchange-correlation energy =       0.0000000000 Hartree a.u.
            average potential =       0.0000000000 Hartree a.u.
 
@@ -459,7 +451,7 @@ Elct. dipole 1    0.162795  Ionic dipole 1    0.000000
 
   -28.23  -21.67  -17.73  -15.91  -13.97  -10.27
  
-   Allocated memory (kb) =     97332
+   Allocated memory (kb) =    126012
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -523,12 +515,12 @@ Elct. dipole 1    0.163259  Ionic dipole 1    0.000000
 
 
                 total energy =     -13.3141747847 Hartree a.u.
-              kinetic energy =      10.1724860344 Hartree a.u.
-        electrostatic energy =     -16.9725805832 Hartree a.u.
+              kinetic energy =      10.1724860343 Hartree a.u.
+        electrostatic energy =     -16.9725805835 Hartree a.u.
                          esr =       0.0808070377 Hartree a.u.
                        eself =      27.1280750673 Hartree a.u.
       pseudopotential energy =      -3.2369789482 Hartree a.u.
-  n-l pseudopotential energy =       1.2183715720 Hartree a.u.
+  n-l pseudopotential energy =       1.2183715723 Hartree a.u.
  exchange-correlation energy =       0.0000000000 Hartree a.u.
            average potential =       0.0000000000 Hartree a.u.
 
@@ -538,7 +530,7 @@ Elct. dipole 1    0.163259  Ionic dipole 1    0.000000
 
   -28.22  -21.66  -17.75  -15.92  -13.99  -10.24
  
-   Allocated memory (kb) =     97332
+   Allocated memory (kb) =    126012
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -602,12 +594,12 @@ Elct. dipole 1    0.167088  Ionic dipole 1    0.000000
 
 
                 total energy =     -13.3142306427 Hartree a.u.
-              kinetic energy =      10.1769954036 Hartree a.u.
-        electrostatic energy =     -16.9799635438 Hartree a.u.
+              kinetic energy =      10.1769954034 Hartree a.u.
+        electrostatic energy =     -16.9799635440 Hartree a.u.
                          esr =       0.0808070377 Hartree a.u.
                        eself =      27.1280750673 Hartree a.u.
       pseudopotential energy =      -3.2360741882 Hartree a.u.
-  n-l pseudopotential energy =       1.2207448162 Hartree a.u.
+  n-l pseudopotential energy =       1.2207448166 Hartree a.u.
  exchange-correlation energy =       0.0000000000 Hartree a.u.
            average potential =       0.0000000000 Hartree a.u.
 
@@ -617,7 +609,7 @@ Elct. dipole 1    0.167088  Ionic dipole 1    0.000000
 
   -28.20  -21.65  -17.73  -15.90  -13.97  -10.24
  
-   Allocated memory (kb) =     97332
+   Allocated memory (kb) =    126012
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -657,7 +649,7 @@ Elct. dipole 1    0.167088  Ionic dipole 1    0.000000
 Elct. dipole 1    0.166910  Ionic dipole 1    0.000000
 
    writing restart file: ./SCRATCH/opa_96.save
-   restart file written in    0.223 sec.
+   restart file written in    0.326 sec.
 
   501 0.14E-04    0.0    0.0   -13.31423   -13.31340   -13.31340   -13.31339  0.0000  0.0000  0.0000  0.0000    -0.00001
 Elct. dipole 1    0.166639  Ionic dipole 1    0.000000
@@ -685,12 +677,12 @@ Elct. dipole 1    0.163877  Ionic dipole 1    0.000000
 
 
                 total energy =     -13.3142486946 Hartree a.u.
-              kinetic energy =      10.1734413779 Hartree a.u.
-        electrostatic energy =     -16.9780429333 Hartree a.u.
+              kinetic energy =      10.1734413785 Hartree a.u.
+        electrostatic energy =     -16.9780429338 Hartree a.u.
                          esr =       0.0808070377 Hartree a.u.
                        eself =      27.1280750673 Hartree a.u.
-      pseudopotential energy =      -3.2360106207 Hartree a.u.
-  n-l pseudopotential energy =       1.2221966065 Hartree a.u.
+      pseudopotential energy =      -3.2360106210 Hartree a.u.
+  n-l pseudopotential energy =       1.2221966068 Hartree a.u.
  exchange-correlation energy =       0.0000000000 Hartree a.u.
            average potential =       0.0000000000 Hartree a.u.
 
@@ -700,7 +692,7 @@ Elct. dipole 1    0.163877  Ionic dipole 1    0.000000
 
   -28.20  -21.65  -17.73  -15.90  -13.97  -10.23
  
-   Allocated memory (kb) =     97332
+   Allocated memory (kb) =    126012
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -740,19 +732,19 @@ Elct. dipole 1    0.163877  Ionic dipole 1    0.000000
 Elct. dipole 1    0.163734  Ionic dipole 1    0.000000
 
    MAIN:          EKINC   (thr)          DETOT   (thr)       MAXFORCE   (thr)
-   MAIN:   0.591389D-05  0.1D-04  0.646053D-06  0.1D-05  0.000000D+00  0.1D+11
+   MAIN:   0.591389D-05  0.1D-04  0.646054D-06  0.1D-05  0.000000D+00  0.1D+11
    MAIN: convergence achieved for system relaxation
 
  * Physical Quantities at step:   511
 
 
                 total energy =     -13.3142492340 Hartree a.u.
-              kinetic energy =      10.1732809889 Hartree a.u.
-        electrostatic energy =     -16.9783056370 Hartree a.u.
+              kinetic energy =      10.1732809896 Hartree a.u.
+        electrostatic energy =     -16.9783056376 Hartree a.u.
                          esr =       0.0808070377 Hartree a.u.
                        eself =      27.1280750673 Hartree a.u.
-      pseudopotential energy =      -3.2358524214 Hartree a.u.
-  n-l pseudopotential energy =       1.2224649612 Hartree a.u.
+      pseudopotential energy =      -3.2358524216 Hartree a.u.
+  n-l pseudopotential energy =       1.2224649615 Hartree a.u.
  exchange-correlation energy =       0.0000000000 Hartree a.u.
            average potential =       0.0000000000 Hartree a.u.
 
@@ -762,7 +754,7 @@ Elct. dipole 1    0.163734  Ionic dipole 1    0.000000
 
   -28.20  -21.65  -17.73  -15.90  -13.98  -10.23
  
-   Allocated memory (kb) =     97332
+   Allocated memory (kb) =    126012
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -804,7 +796,7 @@ Elct. dipole 1    0.163663  Ionic dipole 1    0.000000
    MAIN: convergence achieved for system relaxation
 
    writing restart file: ./SCRATCH/opa_96.save
-   restart file written in    0.275 sec.
+   restart file written in    0.332 sec.
 
 
 
@@ -821,34 +813,34 @@ Elct. dipole 1    0.163663  Ionic dipole 1    0.000000
    volume        :    31250.00000   31250.00000 (AU)
 
 
-     initialize   :    19.39s CPU
-     total_time   :   695.38s CPU (      57 calls,  12.200 s avg)
-     formf        :     0.06s CPU
-     rhoofr       :    20.83s CPU (      57 calls,   0.365 s avg)
-     vofrho       :    42.57s CPU (      57 calls,   0.747 s avg)
-     dforce       :    18.01s CPU (     171 calls,   0.105 s avg)
+     initialize   :    27.61s CPU
+     total_time   :   441.46s CPU (      57 calls,   7.745 s avg)
+     formf        :     0.08s CPU
+     rhoofr       :    13.58s CPU (      57 calls,   0.238 s avg)
+     vofrho       :    28.99s CPU (      57 calls,   0.509 s avg)
+     dforce       :    11.27s CPU (     171 calls,   0.066 s avg)
      calphi       :     0.06s CPU (      57 calls,   0.001 s avg)
-     ortho        :     3.16s CPU (      57 calls,   0.055 s avg)
-     ortho_iter   :     0.50s CPU (      57 calls,   0.009 s avg)
+     ortho        :     0.22s CPU (      57 calls,   0.004 s avg)
+     ortho_iter   :     0.00s CPU (      57 calls,   0.000 s avg)
      rsg          :     0.00s CPU (      57 calls,   0.000 s avg)
-     rhoset       :     1.44s CPU (      57 calls,   0.025 s avg)
-     updatc       :     0.26s CPU (      57 calls,   0.004 s avg)
-     newd         :     0.41s CPU (      57 calls,   0.007 s avg)
-     calbec       :     1.72s CPU (     115 calls,   0.015 s avg)
+     rhoset       :     0.07s CPU (      57 calls,   0.001 s avg)
+     updatc       :     0.10s CPU (      57 calls,   0.002 s avg)
+     newd         :     0.00s CPU (      57 calls,   0.000 s avg)
+     calbec       :     0.07s CPU (     115 calls,   0.001 s avg)
      prefor       :     0.02s CPU (      58 calls,   0.000 s avg)
-     strucf       :     0.01s CPU
-     nlsm1        :     1.72s CPU (     229 calls,   0.008 s avg)
-     fft          :   365.98s CPU (    4507 calls,   0.081 s avg)
-     ffts         :     9.20s CPU (     114 calls,   0.081 s avg)
-     fftw         :   150.85s CPU (    2907 calls,   0.052 s avg)
-     cft3s        :   526.03s CPU (    7528 calls,   0.070 s avg)
-     fft_scatter  :   298.85s CPU (    7528 calls,   0.040 s avg)
+     strucf       :     0.02s CPU
+     nlsm1        :     0.07s CPU (     229 calls,   0.000 s avg)
+     fft          :   266.48s CPU (    4507 calls,   0.059 s avg)
+     ffts         :     6.74s CPU (     114 calls,   0.059 s avg)
+     fftw         :    82.97s CPU (    2907 calls,   0.029 s avg)
+     cft3s        :   356.19s CPU (    7528 calls,   0.047 s avg)
+     fft_scatter  :    65.84s CPU (    7528 calls,   0.009 s avg)
  
  
-     CP           : 11m55.42s CPU time,    14m58.58s wall time
+     CP           :  7m49.37s CPU time,     8m13.41s wall time
 
  
-   This run was terminated on:   8:45:21   3Feb2011            
+   This run was terminated on:  18: 0:14  16Feb2012            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

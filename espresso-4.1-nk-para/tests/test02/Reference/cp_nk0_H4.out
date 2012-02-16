@@ -3,17 +3,17 @@
      CP: variable-cell Car-Parrinello molecular dynamics
      using norm-conserving and ultrasoft Vanderbilt pseudopotentials
 
-     Version: 4.1 - Thu Feb 3 07:44:05 EST 2011                           
+     Version: 4.1 - Wed Feb 15 19:22:38 CET 2012                          
      Authors: Alfredo Pasquarello, Kari Laasonen, Andrea Trave, Roberto Car,
        Paolo Giannozzi, Nicola Marzari, Carlo Cavazzoni, Guido Chiarotti,
        Sandro Scandolo, Paolo Focher, Gerardo Ballabio, and others
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:   9:11:36   3Feb2011               
+   This run was started on:  17: 1:49  16Feb2012               
 
    MPI Parallel Build
-   Tasks =    6  This task id =    0
+   Tasks =    4  This task id =    0
 
    Job Title: MD Simulation
 
@@ -121,12 +121,10 @@
    ----------
    nst =  2479,  nstw =   619, nsts =  2479
         PEs    n.st   n.stw   n.sts    n.g    n.gw   n.gs
-          1     826     208     826   87930   11000   87930
-          2     826     206     826   87930   10990   87930
-          3     828     206     828   87948   10994   87948
-          4     826     206     826   87926   10998   87926
-          5     825     205     825   87927   10991   87927
-          6     826     206     826   87926   10990   87926
+          1    1240     310    1240  131904   16494  131904
+          2    1238     308    1238  131882   16488  131882
+          3    1239     309    1239  131901   16491  131901
+          4    1240     310    1240  131900   16490  131900
           0    4957    1237    4957  527587   65963  527587
  
  
@@ -134,48 +132,42 @@
    ---------
    Global Dimensions   Local  Dimensions   Processor Grid
    .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
-    80    80   160      80    80    27       1     1     6
+    80    80   160      80    80    40       1     1     4
    Array leading dimensions ( nr1x, nr2x, nr3x )   =     80    80   160
-   Local number of cell to store the grid ( nnrx ) =     172800
+   Local number of cell to store the grid ( nnrx ) =     256000
    Number of x-y planes for each processors: 
-   nr3l =    27   27   27   27   26   26
+   nr3l =    40   40   40   40
  
    Smooth Real Mesh
    ----------------
    Global Dimensions   Local  Dimensions   Processor Grid
    .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
-    80    80   160      80    80    27       1     1     6
+    80    80   160      80    80    40       1     1     4
    Array leading dimensions ( nr1x, nr2x, nr3x )   =     80    80   160
-   Local number of cell to store the grid ( nnrx ) =     172800
+   Local number of cell to store the grid ( nnrx ) =     256000
    Number of x-y planes for each processors: 
-   nr3sl =    27   27   27   27   26   26
+   nr3sl =    40   40   40   40
  
    Reciprocal Space Mesh
    ---------------------
                 Large Mesh
    PE   Global(ngmt)     Local(ngm) MaxLocal(ngmx)
-    1         263794          43965          43974
-    2         263794          43965          43974
-    3         263794          43974          43974
-    4         263794          43963          43974
-    5         263794          43964          43974
-    6         263794          43963          43974
+    1         263794          65952          65952
+    2         263794          65941          65952
+    3         263794          65951          65952
+    4         263794          65950          65952
                 Smooth Mesh
    PE   Global(ngst)     Local(ngs) MaxLocal(ngsx)
-    1         263794          43965          43974
-    2         263794          43965          43974
-    3         263794          43974          43974
-    4         263794          43963          43974
-    5         263794          43964          43974
-    6         263794          43963          43974
+    1         263794          65952          65952
+    2         263794          65941          65952
+    3         263794          65951          65952
+    4         263794          65950          65952
                 Wave function Mesh
    PE   Global(ngwt)     Local(ngw) MaxLocal(ngwx)
-    1          32982           5500           5500
-    2          32982           5495           5500
-    3          32982           5497           5500
-    4          32982           5499           5500
-    5          32982           5496           5500
-    6          32982           5495           5500
+    1          32982           8247           8247
+    2          32982           8244           8247
+    3          32982           8246           8247
+    4          32982           8245           8247
 
 
    System geometry initialization
@@ -230,7 +222,7 @@
    NK reference derivatives =    F
    NK on top of PZ =    F
    rhothr =  0.1E-11
-   NK memusage =     20.912 MB
+   NK memusage =     30.984 MB
 
 
    f_cutoff =  0.1000
@@ -238,7 +230,7 @@
    EE with periodic-image correction method = tcc                 
 
    reading restart file: ./SCRATCH/h4_92.save
-   restart file read in    0.016 sec.
+   restart file read in    0.026 sec.
 
  nprint_nfi=           -2
  nprint_nfi=          135
@@ -248,10 +240,10 @@
    formf: sum_g vps(g)=  -2.2273115 sum_g rhops(g)=  -0.0898096
    Delta V(G=0):   0.000402Ry,    0.010936eV
 Initialize Berry phase electric field
- Additional found:       57140
- Additional found:       54816
- Additional found:       57141
- Additional found:       54817
+ Additional found:       51528
+ Additional found:       50500
+ Additional found:       51529
+ Additional found:       50501
  #not found, gtable:    1237.00000000000     
  #not found, gtabin:    1237.00000000000     
  
@@ -287,7 +279,7 @@ Elct. dipole 1    0.122141  Ionic dipole 1    0.000000
 
   -15.66  -13.76
  
-   Allocated memory (kb) =     67120
+   Allocated memory (kb) =     85012
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -361,7 +353,7 @@ Elct. dipole 1    0.107230  Ionic dipole 1    0.000000
 
   -15.80  -13.89
  
-   Allocated memory (kb) =     67120
+   Allocated memory (kb) =     85012
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -435,7 +427,7 @@ Elct. dipole 1    0.230490  Ionic dipole 1    0.000000
 
   -15.67  -13.74
  
-   Allocated memory (kb) =     67120
+   Allocated memory (kb) =     85012
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -509,7 +501,7 @@ Elct. dipole 1    0.119427  Ionic dipole 1    0.000000
 
   -15.73  -13.83
  
-   Allocated memory (kb) =     67120
+   Allocated memory (kb) =     85012
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -583,7 +575,7 @@ Elct. dipole 1    0.147076  Ionic dipole 1    0.000000
 
   -15.69  -13.78
  
-   Allocated memory (kb) =     67120
+   Allocated memory (kb) =     85012
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -657,7 +649,7 @@ Elct. dipole 1    0.138498  Ionic dipole 1    0.000000
 
   -15.71  -13.80
  
-   Allocated memory (kb) =     67120
+   Allocated memory (kb) =     85012
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -731,7 +723,7 @@ Elct. dipole 1    0.156486  Ionic dipole 1    0.000000
 
   -15.70  -13.79
  
-   Allocated memory (kb) =     67120
+   Allocated memory (kb) =     85012
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -766,7 +758,7 @@ Elct. dipole 1    0.156486  Ionic dipole 1    0.000000
 Elct. dipole 1    0.157781  Ionic dipole 1    0.000000
 
    writing restart file: ./SCRATCH/h4_93.save
-   restart file written in    0.088 sec.
+   restart file written in    0.132 sec.
 
   201 0.65E-05    0.0    0.0    -2.21800    -2.21721    -2.21721    -2.21720  0.0000  0.0000  0.0000  0.0000     0.00000
 Elct. dipole 1    0.158408  Ionic dipole 1    0.000000
@@ -809,7 +801,7 @@ Elct. dipole 1    0.145874  Ionic dipole 1    0.000000
 
   -15.70  -13.79
  
-   Allocated memory (kb) =     67120
+   Allocated memory (kb) =     85012
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -883,7 +875,7 @@ Elct. dipole 1    0.144606  Ionic dipole 1    0.000000
 
   -15.70  -13.79
  
-   Allocated memory (kb) =     67120
+   Allocated memory (kb) =     85012
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -957,7 +949,7 @@ Elct. dipole 1    0.147128  Ionic dipole 1    0.000000
 
   -15.70  -13.79
  
-   Allocated memory (kb) =     67120
+   Allocated memory (kb) =     85012
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -1022,7 +1014,7 @@ Elct. dipole 1    0.145674  Ionic dipole 1    0.000000
 
   -15.70  -13.79
  
-   Allocated memory (kb) =     67120
+   Allocated memory (kb) =     85012
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -1055,7 +1047,7 @@ Elct. dipole 1    0.145674  Ionic dipole 1    0.000000
 Elct. dipole 1    0.145735  Ionic dipole 1    0.000000
 
    writing restart file: ./SCRATCH/h4_93.save
-   restart file written in    0.164 sec.
+   restart file written in    0.134 sec.
 
 
 
@@ -1072,42 +1064,42 @@ Elct. dipole 1    0.145735  Ionic dipole 1    0.000000
    volume        :    31250.00000   31250.00000 (AU)
 
 
-     initialize   :     4.98s CPU
-     total_time   :    79.45s CPU (     100 calls,   0.795 s avg)
+     initialize   :     7.35s CPU
+     total_time   :    89.23s CPU (     100 calls,   0.892 s avg)
      formf        :     0.02s CPU
-     rhoofr       :     6.39s CPU (     100 calls,   0.064 s avg)
-     vofrho       :    20.20s CPU (     100 calls,   0.202 s avg)
-     dforce       :     2.44s CPU (     100 calls,   0.024 s avg)
-     calphi       :     0.01s CPU (     100 calls,   0.000 s avg)
-     ortho        :     0.27s CPU (     100 calls,   0.003 s avg)
+     rhoofr       :     5.91s CPU (     100 calls,   0.059 s avg)
+     vofrho       :    19.86s CPU (     100 calls,   0.199 s avg)
+     dforce       :     2.32s CPU (     100 calls,   0.023 s avg)
+     calphi       :     0.04s CPU (     100 calls,   0.000 s avg)
+     ortho        :     0.02s CPU (     100 calls,   0.000 s avg)
      ortho_iter   :     0.00s CPU (     100 calls,   0.000 s avg)
-     rsg          :     0.00s CPU (     100 calls,   0.000 s avg)
-     rhoset       :     0.25s CPU (     100 calls,   0.002 s avg)
+     rsg          :     0.01s CPU (     100 calls,   0.000 s avg)
+     rhoset       :     0.00s CPU (     100 calls,   0.000 s avg)
      updatc       :     0.00s CPU (     100 calls,   0.000 s avg)
      newd         :     0.00s CPU (     100 calls,   0.000 s avg)
      calbec       :     0.00s CPU (     201 calls,   0.000 s avg)
      prefor       :     0.00s CPU (     101 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlsm1        :     0.00s CPU (     401 calls,   0.000 s avg)
-     fft          :    32.02s CPU (    1404 calls,   0.023 s avg)
-     ffts         :     4.44s CPU (     200 calls,   0.022 s avg)
-     fftw         :     3.09s CPU (     300 calls,   0.010 s avg)
-     cft3s        :    39.55s CPU (    1904 calls,   0.021 s avg)
-     fft_scatter  :    14.55s CPU (    1904 calls,   0.008 s avg)
-     nksic_drv    :    44.73s CPU (     100 calls,   0.447 s avg)
-     nksic_orbrho :     2.60s CPU (     100 calls,   0.026 s avg)
-     nksic_rhoref :     1.15s CPU (     200 calls,   0.006 s avg)
-     nksic_eforce :     4.75s CPU (     100 calls,   0.047 s avg)
-     nksic_corr   :    39.39s CPU (     200 calls,   0.197 s avg)
-     nksic_corr_h :    12.02s CPU (     200 calls,   0.060 s avg)
-     nksic_corr_v :    26.49s CPU (     200 calls,   0.132 s avg)
-     nksic_corr_f :     0.28s CPU (     200 calls,   0.001 s avg)
+     fft          :    30.21s CPU (    1404 calls,   0.022 s avg)
+     ffts         :     4.29s CPU (     200 calls,   0.021 s avg)
+     fftw         :     2.83s CPU (     300 calls,   0.009 s avg)
+     cft3s        :    37.33s CPU (    1904 calls,   0.020 s avg)
+     fft_scatter  :     7.72s CPU (    1904 calls,   0.004 s avg)
+     nksic_drv    :    55.26s CPU (     100 calls,   0.553 s avg)
+     nksic_orbrho :     2.25s CPU (     100 calls,   0.022 s avg)
+     nksic_rhoref :     1.13s CPU (     200 calls,   0.006 s avg)
+     nksic_eforce :     4.70s CPU (     100 calls,   0.047 s avg)
+     nksic_corr   :    50.50s CPU (     200 calls,   0.253 s avg)
+     nksic_corr_h :    11.23s CPU (     200 calls,   0.056 s avg)
+     nksic_corr_v :    38.52s CPU (     200 calls,   0.193 s avg)
+     nksic_corr_f :     0.23s CPU (     200 calls,   0.001 s avg)
  
  
-     CP           :  1m24.59s CPU time,     1m24.81s wall time
+     CP           :  1m36.71s CPU time,     1m39.25s wall time
 
  
-   This run was terminated on:   9:13: 1   3Feb2011            
+   This run was terminated on:  17: 3:28  16Feb2012            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

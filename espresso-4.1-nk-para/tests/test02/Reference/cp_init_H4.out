@@ -3,14 +3,14 @@
      CP: variable-cell Car-Parrinello molecular dynamics
      using norm-conserving and ultrasoft Vanderbilt pseudopotentials
 
-     Version: 4.1 - Thu Feb 3 07:44:05 EST 2011                           
+     Version: 4.1 - Wed Feb 15 19:22:38 CET 2012                          
      Authors: Alfredo Pasquarello, Kari Laasonen, Andrea Trave, Roberto Car,
        Paolo Giannozzi, Nicola Marzari, Carlo Cavazzoni, Guido Chiarotti,
        Sandro Scandolo, Paolo Focher, Gerardo Ballabio, and others
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:   9:10:43   3Feb2011               
+   This run was started on:  17: 0:53  16Feb2012               
 
    MPI Parallel Build
    Tasks =    1  This task id =    0
@@ -227,7 +227,7 @@
 
     0.00    0.00
  
-   Allocated memory (kb) =    135308
+   Allocated memory (kb) =    135384
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -261,7 +261,7 @@
     1 0.24E+00    0.0    0.0    11.01887    11.01887    11.01887    11.26114  0.0000  0.0000  0.0000  0.0000     0.01102
 
    writing restart file: ./SCRATCH/h4_90.save
-   restart file written in    0.106 sec.
+   restart file written in    0.130 sec.
 
 
 
@@ -278,29 +278,29 @@
    volume        :    31250.00000   31250.00000 (AU)
 
 
-     initialize   :     1.79s CPU
-     total_time   :     0.63s CPU
-     formf        :     0.04s CPU
-     rhoofr       :     0.27s CPU (       2 calls,   0.134 s avg)
-     vofrho       :     0.88s CPU (       2 calls,   0.438 s avg)
-     dforce       :     0.11s CPU (       2 calls,   0.054 s avg)
+     initialize   :     2.71s CPU
+     total_time   :     0.90s CPU
+     formf        :     0.06s CPU
+     rhoofr       :     0.36s CPU (       2 calls,   0.180 s avg)
+     vofrho       :     1.27s CPU (       2 calls,   0.635 s avg)
+     dforce       :     0.16s CPU (       2 calls,   0.080 s avg)
      calphi       :     0.00s CPU (       2 calls,   0.000 s avg)
      gram         :     0.00s CPU (       3 calls,   0.000 s avg)
      newd         :     0.00s CPU (       2 calls,   0.000 s avg)
      calbec       :     0.00s CPU (       3 calls,   0.000 s avg)
      prefor       :     0.00s CPU (       2 calls,   0.000 s avg)
-     strucf       :     0.01s CPU
+     strucf       :     0.02s CPU
      nlsm1        :     0.00s CPU (       3 calls,   0.000 s avg)
-     fft          :     0.79s CPU (      18 calls,   0.044 s avg)
-     ffts         :     0.18s CPU (       4 calls,   0.046 s avg)
-     fftw         :     0.15s CPU (       6 calls,   0.025 s avg)
-     cft3s        :     1.12s CPU (      28 calls,   0.040 s avg)
+     fft          :     1.12s CPU (      18 calls,   0.062 s avg)
+     ffts         :     0.25s CPU (       4 calls,   0.062 s avg)
+     fftw         :     0.19s CPU (       6 calls,   0.032 s avg)
+     cft3s        :     1.56s CPU (      28 calls,   0.056 s avg)
  
  
-     CP           :     2.50s CPU time,    2.74s wall time
+     CP           :     3.74s CPU time,    4.04s wall time
 
  
-   This run was terminated on:   9:10:46   3Feb2011            
+   This run was terminated on:  17: 0:57  16Feb2012            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
