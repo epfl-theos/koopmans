@@ -254,7 +254,7 @@
       do while ( itercg .lt. maxiter .and. (.not.ltresh) )
 
 !$$
-        if(do_orbdep.and.ionode.and.( itercg.eq.1)) then
+        if(do_orbdep.and.ionode.and.( itercg.eq.1) .and. (iprsta > 1) ) then
           open(1032,file='convg_outer.dat',status='unknown')
           write(1032,'("#   ninner    nouter     non-sic energy (Ha)         sic energy (Ha)")')
 

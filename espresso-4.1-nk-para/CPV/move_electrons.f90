@@ -43,7 +43,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
 !$$ CG routine as well - even without SIC.
 !$$
   USE kinds,                ONLY : DP
-  USE control_flags,        ONLY : lwf, tfor, tprnfor, thdyn, use_task_groups
+  USE control_flags,        ONLY : lwf, tfor, tprnfor, thdyn, use_task_groups, iprsta
   USE cg_module,            ONLY : tcg
   USE cp_main_variables,    ONLY : eigr, bec, irb, eigrb, rhog, rhos, rhor, &
                                    ei1, ei2, ei3, sfac, ema0bg, becdr, &
@@ -186,7 +186,9 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
          !
 
          nouter = nouter + 1
-         if(ionode.and.( nouter.eq.1)) then
+         !
+         if( ionode .and.( nouter.eq.1) .and. (iprsta > 1) ) then
+           !
            open(1032,file='convg_outer.dat',status='unknown')
            write(1032,'("#   ninner    nouter     non-sic energy (Ha)         sic energy (Ha)")')
 
