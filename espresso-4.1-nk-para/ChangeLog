@@ -4,6 +4,10 @@
 =======================================================
 
 
+Feb 23 2012     cp_restarted slightly changed to allow WanT postprocessing. (AF)
+
+Feb 20 2012     convg_outer.dat is written only if iprsta > 1 (ie verbosity="high"). (AF)
+
 Feb 16 2012     Bug fixed in the calculation of PBE0 and B3LYP energies (hfscalfact missing
 		in the calculation of the exx term). The bug didn't affect at all the
 		eigenvalues and eigenvectors (the force term was already correct).
