@@ -253,6 +253,10 @@
 !$$
       do while ( itercg .lt. maxiter .and. (.not.ltresh) )
 
+!$$$$
+!$$$$        if(itercg.ge.10) do_innerloop=.false.
+!$$$$
+
 !$$
         if(do_orbdep.and.ionode.and.( itercg.eq.1) .and. (iprsta > 1) ) then
           open(1032,file='convg_outer.dat',status='unknown')
@@ -470,38 +474,38 @@
 
 
 !$$$$ For a test: Calculates wavefunction very close to c0.
-!    if(.false.) then
-!      if(ionode) write(1000,*) 'Now entering the routine...'
-!      if(ionode) write(1000,*) itercg
-!      cm(1:ngw,1:n)=c0(1:ngw,1:n)
-!      if(ng0.eq.2) then
-!        cm(1,:)=0.5d0*(cm(1,:)+CONJG(cm(1,:)))
-!      endif
-!
-!      call lowdin(cm)
-!      call calbec(1,nsp,eigr,cm,becm)
-!!      becm=bec
-!
-!      call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
-!      vpot = rhor
-!
-!      call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
-!                  &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
-!
-!      ene_save2(1)=etot
-!
-!      if(do_orbdep) then
-!        call nksic_potential( n, nx, cm, fsic, bec, rhovan, deeq_sic, &
-!                 ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
-!        etot = etot + sum(pink(:))
-!      endif
-!
-!      if(ionode) then
-!        write(1000,'(3e30.20)')  ene0,etot,etot-ene0
-!        write(1000,'(3e30.20)')  esic,sum(pink(:)), sum(pink(:))-esic
-!        write(1000,*)
-!      endif
-!    endif
+    if(.false.) then
+      if(ionode) write(1000,*) 'Now entering the routine...'
+      if(ionode) write(1000,*) itercg
+      cm(1:ngw,1:n)=c0(1:ngw,1:n)
+      if(ng0.eq.2) then
+        cm(1,:)=0.5d0*(cm(1,:)+CONJG(cm(1,:)))
+      endif
+
+      call lowdin(cm)
+      call calbec(1,nsp,eigr,cm,becm)
+!      becm=bec
+
+      call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
+      vpot = rhor
+
+      call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
+                  &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
+
+      ene_save2(1)=etot
+
+      if(do_orbdep) then
+        call nksic_potential( n, nx, cm, fsic, bec, rhovan, deeq_sic, &
+                 ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+        etot = etot + sum(pink(:))
+      endif
+
+      if(ionode) then
+        write(1000,'(3e30.20)')  ene0,etot,etot-ene0
+        write(1000,'(3e30.20)')  esic,sum(pink(:)), sum(pink(:))-esic
+        write(1000,*)
+      endif
+    endif
 !$$$$
 
 
@@ -816,8 +820,8 @@
             endif
           end do
 !$$ We need the following because n for spin 2 is double that for spin 1!
-          dene0 = dene0 *2.0/nspin
-!$$          dene0 = dene0 *4.0/nspin
+          dene0 = dene0 *2.d0/nspin
+!$$          dene0 = dene0 *4.d0/nspin
 !$$
         else
           !in the ensamble case the derivative is Sum_ij (<hi|H|Psi_j>+ <Psi_i|H|hj>)*f_ji
@@ -912,46 +916,46 @@
 
 
 !$$$$ Calculates wavefunction at very close to c0.
-!    if(.false.) then
-!      tmppasso=1.d-4
-!      if(ionode) write(8000,*) itercg
-!      do i=1,5
-!        cm(1:ngw,1:n)=c0(1:ngw,1:n)+spasso * tmppasso * hi(1:ngw,1:n)
-!        if(ng0.eq.2) then
-!          cm(1,:)=0.5d0*(cm(1,:)+CONJG(cm(1,:)))
-!        endif
-!
-!        call lowdin(cm)
-!        call calbec(1,nsp,eigr,cm,becm)
-!
-!        call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
-!        vpot = rhor
-!
-!        call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
-!                    &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
-!
-!        ene_save2(i)=etot
-!
-!        if(do_orbdep) then
-!          call nksic_potential( n, nx, cm, fsic, bec, rhovan, deeq_sic, &
-!                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
-!          etot = etot + sum(pink(:))
-!        endif
-!
-!        if(ionode) then
-!          write(8000,'(2e30.20,3e20.10)')  ene0,etot,dene0,tmppasso,(etot-ene0)/tmppasso/dene0
-!        endif
-!
-!        ene_save(i)=etot
-!
-!        tmppasso=tmppasso*0.1d0
-!      enddo
-!
-!      if(ionode) then
-!        write(8000,*)
-!      endif
-!
-!    endif
+    if(.false.) then
+      tmppasso=1.d-4
+      if(ionode) write(8000,*) itercg
+      do i=1,5
+        cm(1:ngw,1:n)=c0(1:ngw,1:n)+spasso * tmppasso * hi(1:ngw,1:n)
+        if(ng0.eq.2) then
+          cm(1,:)=0.5d0*(cm(1,:)+CONJG(cm(1,:)))
+        endif
+
+        call lowdin(cm)
+        call calbec(1,nsp,eigr,cm,becm)
+
+        call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
+        vpot = rhor
+
+        call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
+                    &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
+
+        ene_save2(i)=etot
+
+        if(do_orbdep) then
+          call nksic_potential( n, nx, cm, fsic, bec, rhovan, deeq_sic, &
+                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+          etot = etot + sum(pink(:))
+        endif
+
+        if(ionode) then
+          write(8000,'(2e30.20,3e20.10)')  ene0,etot,dene0,tmppasso,(etot-ene0)/tmppasso/dene0
+        endif
+
+        ene_save(i)=etot
+
+        tmppasso=tmppasso*0.1d0
+      enddo
+
+      if(ionode) then
+        write(8000,*)
+      endif
+
+    endif
 !$$$$
 
 
@@ -1144,7 +1148,7 @@
           endif
           c0(1:ngw,1:n)=c0(1:ngw,1:n)+spasso*passov*hi(1:ngw,1:n)
 !$$
-          passof=1.0*passov
+          passof=1.d0*passov
 !$$
           restartcg=.true.
           call calbec(1,nsp,eigr,c0,bec)
@@ -1158,7 +1162,7 @@
           endif  
           c0(1:ngw,1:n)=c0(1:ngw,1:n)+spasso*passov*hi(1:ngw,1:n)
 !$$
-          passof=1.0*passov
+          passof=1.d0*passov
 !$$
           restartcg=.true.!ATTENZIONE
           call calbec(1,nsp,eigr,c0,bec)
@@ -1177,7 +1181,7 @@
             passov=passov*0.5d0
             cm(1:ngw,1:n)=c0(1:ngw,1:n)+spasso*passov*hi(1:ngw,1:n)
 !$$
-            passof=1.0*passov
+            passof=1.d0*passov
 !$$
             ! chenge the searching direction
             spasso=spasso*(-1.d0)
