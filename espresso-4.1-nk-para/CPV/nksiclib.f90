@@ -2270,11 +2270,13 @@ end subroutine nksic_dmxc_spin_cp
       enddo  !$$ do while (.true.)
 
 !$$ Wavefunction cm rotation according to Omattot
+! XXX We can put a if ( .not. tcg ) here (cm is relevant only for damped dynamics)
       if(ninner.ge.2) then
         wfn_ctmp(:,:) = (0.d0,0.d0)
         do nbnd1=1,nbspx
           do nbnd2=1,nbspx
             wfn_ctmp(:,nbnd1)=wfn_ctmp(:,nbnd1) + cm(:,nbnd2) * Omattot(nbnd2,nbnd1)
+! XXX (we can think to use a blas, here)
           enddo
         enddo
         cm(:,1:nbspx) = wfn_ctmp(:,1:nbspx)
@@ -3090,6 +3092,8 @@ end subroutine nksic_printoverlap
 !                  - vsic(i,iupdwn(isp)+nbnd1-1) ) * psi2(i) ) * dwfnnorm
 !              overlaptmp = overlaptmp + dble( conjg(psi1(i)) * psi2(i) ) * dwfnnorm
             enddo
+
+! XXXX Use reciprocal space
 
             CALL mp_sum(vsicahtmp,intra_image_comm)
 !            CALL mp_sum(overlaptmp,intra_image_comm)
