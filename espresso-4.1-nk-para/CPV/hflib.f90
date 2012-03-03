@@ -92,6 +92,8 @@
       ci=(0.0d0,1.0d0)
 
       !
+      CALL start_clock( 'hf_potential' )
+      !
       ! ... local workspace
       !
       allocate(psis1(nnrsx)) 
@@ -332,6 +334,8 @@
       deallocate(psis2) 
       deallocate(psis1) 
       !
+      CALL stop_clock( 'hf_potential' )
+      !
       return
       !
 !-----------------------------------------------------------------------
@@ -369,6 +373,9 @@
       complex(dp),allocatable :: rhotmp(:)
       complex(dp),allocatable :: vtemp(:)
       complex(dp),allocatable :: vcorrtmp(:)
+      
+
+      CALL start_clock( 'hf_corr' )
       !
       allocate(rhotmp(ngm))
       allocate(vtemp(ngm))
@@ -414,6 +421,7 @@
       deallocate(vcorrtmp)
       deallocate(aux)
       !
+      CALL stop_clock( 'hf_corr' )
       return
       !
 !---------------------------------------------------------------

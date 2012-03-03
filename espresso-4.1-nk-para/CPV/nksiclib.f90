@@ -1077,6 +1077,8 @@ end subroutine nksic_newd
       deallocate( vtmp )
       deallocate( vcorr )
       deallocate( vhaux )
+      !
+      CALL stop_clock( 'nksic_corr_h' )
 
 
       !
@@ -1137,6 +1139,8 @@ end subroutine nksic_newd
       deallocate( rhoelef )
       deallocate( grhoraux )
       deallocate( haux )
+      !
+      CALL stop_clock( 'nksic_corr' )
       !
       return
       !
@@ -2860,8 +2864,13 @@ end subroutine nksic_getOmattot
       !
       integer                  :: nbnd1,nbnd2
 
+      CALL start_clock('nksic_rotwfn')
+      !
       wfn2(:,iupdwn(isp):iupdwn(isp)-1+nupdwn(isp))=(0.d0,0.d0)
 
+      !
+      ! a blas could be used here XXX
+      !
       do nbnd1=1,nupdwn(isp)
         do nbnd2=1,nupdwn(isp)
           wfn2(:,iupdwn(isp)-1 + nbnd1)=wfn2(:,iupdwn(isp)-1 + nbnd1) &
@@ -2869,6 +2878,8 @@ end subroutine nksic_getOmattot
         enddo
       enddo
 
+      CALL stop_clock('nksic_rotwfn')
+      !
       return
       !
 !---------------------------------------------------------------
@@ -2897,7 +2908,7 @@ end subroutine nksic_rotwfn
       ! in/out vars
       !
       integer,     intent(in)  :: isp
-      real(dp)  :: Heig(nupdwn(isp))
+      real(dp)     :: Heig(nupdwn(isp))
       complex(dp)  :: Umat(nupdwn(isp),nupdwn(isp))
       real(dp)     :: vsicah(nupdwn(isp),nupdwn(isp))
 
@@ -2910,19 +2921,15 @@ end subroutine nksic_rotwfn
 
       ci = (0.d0,1.d0)
 
-! XXXX
-!  AF: Parallelism to be removed 
-! XXXX
-
 !$$ Now this part diagonalizes Hmat = iWmat
       Hmat(:,:) = ci * vsicah(:,:)
 !$$ diagonalize Hmat
-      if(ionode) then
-        CALL zdiag(nupdwn(isp),nupdwn(isp),Hmat(1,1),Heig(1),Umat(1,1),1)
-      endif
+!      if(ionode) then
+      CALL zdiag(nupdwn(isp),nupdwn(isp),Hmat(1,1),Heig(1),Umat(1,1),1)
+!      endif
 
-      CALL mp_bcast(Umat, ionode_id, intra_image_comm)
-      CALL mp_bcast(Heig, ionode_id, intra_image_comm)
+!      CALL mp_bcast(Umat, ionode_id, intra_image_comm)
+!      CALL mp_bcast(Heig, ionode_id, intra_image_comm)
 
       return
       !
@@ -3059,6 +3066,9 @@ end subroutine nksic_printoverlap
 !      complex(dp)              :: Htest(2,2), Utest(2,2) 
 !      real(dp)                 :: Eigtest(2)
 
+    
+      CALL start_clock('get_vsicah')
+      !
       dwfnnorm = 1.0/(dble(nr1x)*dble(nr2x)*dble(nr3x))
 
 
@@ -3107,6 +3117,8 @@ end subroutine nksic_printoverlap
 
       enddo ! nbnd1=1,nupdwn(isp)
 
+      CALL stop_clock('get_vsicah')
+      !
       return
       !
 !---------------------------------------------------------------

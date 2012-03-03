@@ -130,10 +130,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   USE mp_global,                ONLY : root_image, intra_image_comm, np_ortho, me_ortho, ortho_comm, &
                                        me_image
   USE ldaU,                     ONLY : lda_plus_u, vupsi
-  USE nksic,                    ONLY : do_orbdep
-!$$
-  USE nksic,                    ONLY : pink
-!$$
+  USE nksic,                    ONLY : do_orbdep, pink
   USE step_constraint
   USE small_box,                ONLY : ainvb
   !
@@ -347,7 +344,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
           c0(:,iupdwn(2):nbsp)       =     c0(:,1:nupdwn(2))
           cm(:,iupdwn(2):nbsp)       =     cm(:,1:nupdwn(2))
          phi(:,iupdwn(2):nbsp)       =    phi(:,1:nupdwn(2))
-      lambda(:,:, 2) = lambda(:,:, 1)
+          lambda(:,:, 2)             = lambda(:,:, 1)
      ENDIF
      !
      ! ... fake electronic kinetic energy
@@ -1043,6 +1040,7 @@ SUBROUTINE terminate_run()
   USE mp,                ONLY : mp_report
   USE control_flags,     ONLY : use_task_groups
   USE nksic,             ONLY : do_orbdep
+  USE hfmod,             ONLY : do_hf
   !
   IMPLICIT NONE
   !
@@ -1088,6 +1086,7 @@ SUBROUTINE terminate_run()
   CALL print_clock( 'fftb' )
   CALL print_clock( 'cft3s' )
   CALL print_clock( 'fft_scatter' )
+  IF ( ionode ) WRITE(stdout,"()")
   !
   IF ( do_orbdep ) THEN
      !
@@ -1100,9 +1099,26 @@ SUBROUTINE terminate_run()
         CALL print_clock( 'nksic_corr_vxc' )
         CALL print_clock( 'nksic_corr_fxc' )
      !
+     CALL print_clock( 'nksic_rot_emin' )
+     CALL print_clock( 'nksic_rotwfn' )
+     CALL print_clock( 'get_vsicah' )
+     IF ( ionode ) WRITE(stdout,"()")
+     !
   ENDIF
   !
-  IF (tcg) call print_clock_tcg()
+  IF ( do_hf ) THEN
+     !
+     CALL print_clock( 'hf_potential' )
+     CALL print_clock( 'hf_corr' )
+     IF ( ionode ) WRITE(stdout,"()")
+     !
+  ENDIF
+  !
+  IF ( tcg ) THEN
+     !
+     call print_clock_tcg()
+     !
+  ENDIF
   !
   IF( use_task_groups ) THEN
      !

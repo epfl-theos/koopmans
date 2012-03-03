@@ -61,6 +61,7 @@ cglib.o : ../Modules/mp_global.o
 cglib.o : ../Modules/ptoolkit.o
 cglib.o : ../Modules/recvec.o
 cglib.o : ../Modules/uspp.o
+cglib.o : ../Modules/zhpev_drv.o
 cglib.o : cp_interfaces.o
 cglib.o : mainvar.o
 cglib.o : modules.o
@@ -631,7 +632,6 @@ inner_loop_smear.o : ../Modules/mp_global.o
 inner_loop_smear.o : ../Modules/recvec.o
 inner_loop_smear.o : ../Modules/uspp.o
 inner_loop_smear.o : cp_interfaces.o
-inner_loop_smear.o : ensemble_dft.o
 inner_loop_smear.o : ions_positions.o
 inner_loop_smear.o : mainvar.o
 inner_loop_smear.o : modules.o
@@ -742,13 +742,17 @@ metaxc.o : ../Modules/recvec.o
 modules.o : ../Modules/functionals.o
 modules.o : ../Modules/kind.o
 modules.o : ../Modules/parameters.o
+modules.o : ../Modules/uspp.o
 move_electrons.o : ../Modules/cell_base.o
 move_electrons.o : ../Modules/control_flags.o
 move_electrons.o : ../Modules/electrons_base.o
 move_electrons.o : ../Modules/energies.o
+move_electrons.o : ../Modules/fft_base.o
 move_electrons.o : ../Modules/griddim.o
+move_electrons.o : ../Modules/io_global.o
 move_electrons.o : ../Modules/ions_base.o
 move_electrons.o : ../Modules/kind.o
+move_electrons.o : ../Modules/mp.o
 move_electrons.o : ../Modules/mp_global.o
 move_electrons.o : ../Modules/recvec.o
 move_electrons.o : ../Modules/uspp.o
@@ -776,6 +780,7 @@ nksiclib.o : ../Modules/mp.o
 nksiclib.o : ../Modules/mp_global.o
 nksiclib.o : ../Modules/recvec.o
 nksiclib.o : ../Modules/uspp.o
+nksiclib.o : ../Modules/wavefunctions.o
 nksiclib.o : cp_interfaces.o
 nksiclib.o : mainvar.o
 nksiclib.o : modules.o

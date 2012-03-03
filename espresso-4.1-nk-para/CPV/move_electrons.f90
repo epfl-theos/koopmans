@@ -82,8 +82,8 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   USE nksic,                ONLY : do_orbdep, vsic, wtot, fsic, fion_sic, deeq_sic, pink
 !$$
   USE nksic,                ONLY : do_pz, do_innerloop,do_innerloop_cg, innerloop_dd_nstep
-  use ions_base, only: nsp
-  use electrons_base, only: nel,nelt,nupdwn,iupdwn
+  use ions_base,            only : nsp
+  use electrons_base,       only : nel, nelt
 !$$
   !
   IMPLICIT NONE
@@ -187,7 +187,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
 
          nouter = nouter + 1
          !
-         if( ionode .and.( nouter.eq.1) .and. (iprsta > 1) ) then
+         if( ionode .and.( nouter == 1) .and. (iprsta > 1) ) then
            !
            open(1032,file='convg_outer.dat',status='unknown')
            write(1032,'("#   ninner    nouter     non-sic energy (Ha)         sic energy (Ha)")')
@@ -213,21 +213,25 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
 !$$ inner loop optimization.
 !$$
 
-         if( do_innerloop .and. ( nouter.eq.1 .or. mod(nouter,innerloop_dd_nstep).eq.0 ) ) then
-!         if( do_innerloop .and. ( nouter.eq.1) ) then
-!         if( do_innerloop ) then
-!         if(do_innerloop .and. nouter.eq.1) then
-!         if(.false.) then
-           if(.not.do_innerloop_cg) then
-             call nksic_rot_emin(nouter,ninner,etot,Omattot)
-           else
-             call nksic_rot_emin_cg(nouter,ninner,etot,Omattot)
-           endif
-           ene0 = sum(pink(:))
+         if( do_innerloop .and. ( nouter == 1 .or. mod(nouter,innerloop_dd_nstep) == 0 ) ) then
+             !
+             ! if( do_innerloop .and. ( nouter.eq.1) ) then
+             ! if( do_innerloop ) then
+             ! if(do_innerloop .and. nouter.eq.1) then
+             ! if(.false.) then
+             !
+             if(.not.do_innerloop_cg) then
+                 call nksic_rot_emin(nouter,ninner,etot,Omattot)
+             else
+                 call nksic_rot_emin_cg(nouter,ninner,etot,Omattot)
+             endif
+             !
+             ene0 = sum(pink(:))
+             !
          endif
 
 !$$ to see the outer loop energy convergence
-         if(ionode) write(1032,'(2I10,2F24.13)') ninner, nouter,etot,sum(pink(:))
+         if(ionode .and. iprsta>1) write(1032,'(2I10,2F24.13)') ninner, nouter,etot,sum(pink(:))
 !$$
          !
          etot = etot + ene0

@@ -2819,6 +2819,7 @@ END FUNCTION
       !
       logical       :: found
       character(10) :: subname='nksic_init'
+      character(1), external :: lowercase
       
 
       !
@@ -2834,15 +2835,19 @@ END FUNCTION
       !
       fref    = fref_
 !$$
-      do_innerloop = do_innerloop_
-      do_innerloop_cg = do_innerloop_cg_
-      innerloop_dd_nstep = innerloop_dd_nstep_
-      innerloop_cg_nsd = innerloop_cg_nsd_
+      do_innerloop        = do_innerloop_
+      do_innerloop_cg     = do_innerloop_cg_
+      innerloop_dd_nstep  = innerloop_dd_nstep_
+      innerloop_cg_nsd    = innerloop_cg_nsd_
       innerloop_cg_nreset = innerloop_cg_nreset_
-      innerloop_nmax = innerloop_nmax_
+      innerloop_nmax      = innerloop_nmax_
 !$$
       !
       ! use the collective var which_orbdep
+      !
+      DO i = 1, LEN_TRIM( which_orbdep_ )
+          which_orbdep_(i) = lowercase( which_orbdep_(i) )
+      ENDDO
       !
       SELECT CASE ( TRIM(which_orbdep_) )
       CASE ( "", "hf", "b3lyp", 'pbe0', "none" )
