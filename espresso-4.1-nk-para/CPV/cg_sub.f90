@@ -184,7 +184,7 @@
 
 
       if(ionode) then
-         uname = TRIM( outdir ) // trim(prefix) // '.' &
+         uname = TRIM( outdir ) // "/" // trim(prefix) // '.' &
                  // trim(int_to_char( my_image_id )) // '_' // trim(int_to_char( me_image))
          !open(37,file='convergence.dat',status='unknown')!for debug and tuning purposes
          open(37,file=uname,status='unknown')!for debug and tuning purposes
