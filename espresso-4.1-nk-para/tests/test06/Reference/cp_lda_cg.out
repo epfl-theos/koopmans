@@ -10,7 +10,7 @@
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:56:59   7Mar2012               
+   This run was started on:  17:59:20   6Mar2012               
 
    MPI Parallel Build
    Tasks =    6  This task id =    0
@@ -202,7 +202,7 @@
 
 
    Diagonalization Performances
-   ortho diag, time for serial   driver =   0.00034
+   ortho diag, time for serial   driver =   0.00031
    ortho diag, time for parallel driver =   0.00021 with    4 procs
 
 
@@ -233,11 +233,6 @@
    ECONS  [HARTREE A.U.] - Enthalpy + kinetic energy of ions and cell
    ECONT  [HARTREE A.U.] - Constant of motion for the CP lagrangian
  
-   PZ sic =    T
-
-   rhothr =  0.1E-11
-   NK memusage =     14.302 MB
-
 
    f_cutoff =  0.1000
    do_spinsym   =    F
@@ -260,95 +255,62 @@
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     iteration =   1   Etot (Ha) =     32.36902045731906
-     iteration =   2   Etot (Ha) =     10.98893138310562
-     iteration =   3   Etot (Ha) =      5.14649416830403
-     iteration =   4   Etot (Ha) =      0.38625389964874
-     iteration =   5   Etot (Ha) =     -3.04648524630152
-     iteration =   6   Etot (Ha) =     -5.29123068797883
-  cg_sub: missed minimum, case 1, iteration    6
-     iteration =   7   Etot (Ha) =     -6.50599832338826
-     iteration =   8   Etot (Ha) =     -7.33341117015353
-     iteration =   9   Etot (Ha) =     -7.65169392740796
-     iteration =  10   Etot (Ha) =     -7.76581166695225
+     iteration =   1   Etot (Ha) =     32.12053958589242
+     iteration =   2   Etot (Ha) =     10.79030264009200
+     iteration =   3   Etot (Ha) =      4.96081396762318
+     iteration =   4   Etot (Ha) =      0.19688809485594
+     iteration =   5   Etot (Ha) =     -3.14614771373757
+     iteration =   6   Etot (Ha) =     -5.34984585304559
+     iteration =   7   Etot (Ha) =     -6.53199614201211
+     iteration =   8   Etot (Ha) =     -7.12145120824296
+     iteration =   9   Etot (Ha) =     -7.43339137841659
+     iteration =  10   Etot (Ha) =     -7.59538269445083
 
-     iteration =  11   Etot (Ha) =     -7.80924364178119
-     iteration =  12   Etot (Ha) =     -7.82310658864631
-     iteration =  13   Etot (Ha) =     -7.82937182564238
-     iteration =  14   Etot (Ha) =     -7.83380465852268
-     iteration =  15   Etot (Ha) =     -7.83872514315093
-     iteration =  16   Etot (Ha) =     -7.84388866151306
-     iteration =  17   Etot (Ha) =     -7.84803791594365
-     iteration =  18   Etot (Ha) =     -7.85094581078875
-     iteration =  19   Etot (Ha) =     -7.85305159306110
-     iteration =  20   Etot (Ha) =     -7.85467762766920
+     iteration =  11   Etot (Ha) =     -7.68373276751144
+     iteration =  12   Etot (Ha) =     -7.72973280460971
+     iteration =  13   Etot (Ha) =     -7.75187710789087
+     iteration =  14   Etot (Ha) =     -7.76282452602481
+     iteration =  15   Etot (Ha) =     -7.76803012696964
+     iteration =  16   Etot (Ha) =     -7.77072147624220
+     iteration =  17   Etot (Ha) =     -7.77224688103223
+     iteration =  18   Etot (Ha) =     -7.77310131622489
+     iteration =  19   Etot (Ha) =     -7.77363740127731
+     iteration =  20   Etot (Ha) =     -7.77398572414903
 
-     iteration =  21   Etot (Ha) =     -7.85608216770913
-     iteration =  22   Etot (Ha) =     -7.85724855570492
-     iteration =  23   Etot (Ha) =     -7.85869790537694
-     iteration =  24   Etot (Ha) =     -7.85993337464784
-     iteration =  25   Etot (Ha) =     -7.86056334955839
-     iteration =  26   Etot (Ha) =     -7.86087273279658
-     iteration =  27   Etot (Ha) =     -7.86121030641809
-     iteration =  28   Etot (Ha) =     -7.86173551860480
-     iteration =  29   Etot (Ha) =     -7.86235393437038
-     iteration =  30   Etot (Ha) =     -7.86271445757492
+     iteration =  21   Etot (Ha) =     -7.77431936417005
+     iteration =  22   Etot (Ha) =     -7.77448469858275
+     iteration =  23   Etot (Ha) =     -7.77463677059928
+     iteration =  24   Etot (Ha) =     -7.77479169960778
+     iteration =  25   Etot (Ha) =     -7.77487234142148
+     iteration =  26   Etot (Ha) =     -7.77489642133228
+     iteration =  27   Etot (Ha) =     -7.77490288248164
+     iteration =  28   Etot (Ha) =     -7.77490505334671
+     iteration =  29   Etot (Ha) =     -7.77490621784123
+     iteration =  30   Etot (Ha) =     -7.77490671287334
 
-     iteration =  31   Etot (Ha) =     -7.86289869029340
-     iteration =  32   Etot (Ha) =     -7.86311341532274
-     iteration =  33   Etot (Ha) =     -7.86332565504566
-     iteration =  34   Etot (Ha) =     -7.86362986316449
-     iteration =  35   Etot (Ha) =     -7.86403195010699
-     iteration =  36   Etot (Ha) =     -7.86444652187261
-     iteration =  37   Etot (Ha) =     -7.86479275902755
-     iteration =  38   Etot (Ha) =     -7.86505016704816
-     iteration =  39   Etot (Ha) =     -7.86525000288088
-     iteration =  40   Etot (Ha) =     -7.86540022159943
-
-     iteration =  41   Etot (Ha) =     -7.86547539348329
-     iteration =  42   Etot (Ha) =     -7.86556323804498
-     iteration =  43   Etot (Ha) =     -7.86564881860583
-     iteration =  44   Etot (Ha) =     -7.86572179751133
-     iteration =  45   Etot (Ha) =     -7.86576680590181
-     iteration =  46   Etot (Ha) =     -7.86579499539084
-     iteration =  47   Etot (Ha) =     -7.86581539306794
-     iteration =  48   Etot (Ha) =     -7.86583176604201
-     iteration =  49   Etot (Ha) =     -7.86584740359227
-     iteration =  50   Etot (Ha) =     -7.86586226727045
-
-     iteration =  51   Etot (Ha) =     -7.86588162355919
-     iteration =  52   Etot (Ha) =     -7.86589908119285
-     iteration =  53   Etot (Ha) =     -7.86590824574864
-     iteration =  54   Etot (Ha) =     -7.86591246024898
-     iteration =  55   Etot (Ha) =     -7.86591471994908
-     iteration =  56   Etot (Ha) =     -7.86591646682510
-     iteration =  57   Etot (Ha) =     -7.86591789675143
-     iteration =  58   Etot (Ha) =     -7.86591903731286
-     iteration =  59   Etot (Ha) =     -7.86591989325852
-  cg_sub: missed minimum, case 1, iteration   59
-     iteration =  60   Etot (Ha) =     -7.86592055631886
-
-     iteration =  61   Etot (Ha) =     -7.86592087575756
-     iteration =  62   Etot (Ha) =     -7.86592110704380
+     iteration =  31   Etot (Ha) =     -7.77490692247374
+     iteration =  32   Etot (Ha) =     -7.77490699233984
+  cg_sub: missed minimum, case 1, iteration   32
+     iteration =  33   Etot (Ha) =     -7.77490701616863
 
 
-                total energy =      -7.8659213549 Hartree a.u.
-              kinetic energy =       6.4092356547 Hartree a.u.
-        electrostatic energy =      -9.2688732587 Hartree a.u.
+                total energy =      -7.7749070223 Hartree a.u.
+              kinetic energy =       6.3207984996 Hartree a.u.
+        electrostatic energy =      -9.2509775400 Hartree a.u.
                          esr =       0.0979432786 Hartree a.u.
                        eself =      14.3619220945 Hartree a.u.
-      pseudopotential energy =      -2.3881274763 Hartree a.u.
-  n-l pseudopotential energy =       0.5627109179 Hartree a.u.
- exchange-correlation energy =      -3.0722835632 Hartree a.u.
+      pseudopotential energy =      -2.3673262779 Hartree a.u.
+  n-l pseudopotential energy =       0.5637437717 Hartree a.u.
+ exchange-correlation energy =      -3.0411454757 Hartree a.u.
            average potential =       0.0000000000 Hartree a.u.
 
 
 
    Eigenvalues (eV), kp =   1 , spin =  1
 
-  -24.81  -17.55  -17.55   -9.46
+  -18.18  -12.01  -12.01   -4.28
  
-   Allocated memory (kb) =     51628
+   Allocated memory (kb) =     33648
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -384,70 +346,64 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
  
        nfi   tempp            E -T.S-mu.nbsp         +K_p #Iter
-Step     1       0     -7.86592     -7.86592     -7.86592    63
+Step     1       0     -7.77491     -7.77491     -7.77491    34
 
-   writing restart file: ./SCRATCH/CH4_PZ_cg_91.save
-   restart file written in    0.184 sec.
+   writing restart file: ./SCRATCH/CH4_LDA_cg_91.save
+   restart file written in    0.182 sec.
 
 
 
    Averaged Physical Quantities
                       accomulated      this run
    ekinc         :        0.00000       0.00000 (AU)
-   ekin          :        6.40924       6.40924 (AU)
-   epot          :      -14.72928     -14.72928 (AU)
-   total energy  :       -7.86592      -7.86592 (AU)
+   ekin          :        6.32080       6.32080 (AU)
+   epot          :      -14.65945     -14.65945 (AU)
+   total energy  :       -7.77491      -7.77491 (AU)
    temperature   :        0.00000       0.00000 (K )
    enthalpy      :        0.00000       0.00000 (AU)
-   econs         :       -7.86592      -7.86592 (AU)
+   econs         :       -7.77491      -7.77491 (AU)
    pressure      :        0.00000       0.00000 (Gpa)
    volume        :    15625.00000   15625.00000 (AU)
 
 
-     initialize   :     0.42s CPU
-     total_time   :    77.30s CPU
+     initialize   :     0.40s CPU
+     total_time   :    15.79s CPU
      formf        :     0.04s CPU
-     rhoofr       :     6.59s CPU (     127 calls,   0.052 s avg)
-     vofrho       :    20.02s CPU (     127 calls,   0.158 s avg)
-     vofrho1      :     0.48s CPU (       3 calls,   0.160 s avg)
-     vofrho2      :     9.86s CPU (      62 calls,   0.159 s avg)
-     vofrho3      :     9.69s CPU (      62 calls,   0.156 s avg)
-     dforce       :     1.78s CPU (     126 calls,   0.014 s avg)
-     dforce1      :     1.74s CPU (     124 calls,   0.014 s avg)
-     dforce2      :     0.29s CPU
-     calphi       :     0.01s CPU (      63 calls,   0.000 s avg)
-     gram         :     0.06s CPU (     128 calls,   0.000 s avg)
-     newd         :     0.00s CPU (      63 calls,   0.000 s avg)
-     calbec       :     0.03s CPU (     442 calls,   0.000 s avg)
-     prefor       :     0.00s CPU (      65 calls,   0.000 s avg)
+     rhoofr       :     3.51s CPU (      68 calls,   0.052 s avg)
+     vofrho       :    10.91s CPU (      68 calls,   0.160 s avg)
+     vofrho1      :     0.33s CPU (       2 calls,   0.165 s avg)
+     vofrho2      :     5.30s CPU (      33 calls,   0.161 s avg)
+     vofrho3      :     5.29s CPU (      33 calls,   0.160 s avg)
+     dforce       :     0.93s CPU (      68 calls,   0.014 s avg)
+     dforce1      :     0.90s CPU (      66 calls,   0.014 s avg)
+     dforce2      :     0.21s CPU
+     calphi       :     0.01s CPU (      34 calls,   0.000 s avg)
+     gram         :     0.06s CPU (      69 calls,   0.001 s avg)
+     newd         :     0.00s CPU (      34 calls,   0.000 s avg)
+     calbec       :     0.02s CPU (     236 calls,   0.000 s avg)
+     prefor       :     0.00s CPU (      36 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
-     nlsm1        :     0.03s CPU (     442 calls,   0.000 s avg)
-     fft          :    35.10s CPU (    2415 calls,   0.015 s avg)
-     ffts         :     3.59s CPU (     254 calls,   0.014 s avg)
-     fftw         :     3.59s CPU (     506 calls,   0.007 s avg)
-     cft3s        :    42.27s CPU (    3175 calls,   0.013 s avg)
-     fft_scatter  :    12.69s CPU (    3175 calls,   0.004 s avg)
+     nlsm1        :     0.02s CPU (     236 calls,   0.000 s avg)
+     fft          :     7.00s CPU (     480 calls,   0.015 s avg)
+     ffts         :     2.03s CPU (     136 calls,   0.015 s avg)
+     fftw         :     1.77s CPU (     272 calls,   0.007 s avg)
+     cft3s        :    10.79s CPU (     888 calls,   0.012 s avg)
+     fft_scatter  :     2.93s CPU (     888 calls,   0.003 s avg)
 
-     nk_drv       :    43.97s CPU (     127 calls,   0.346 s avg)
-     nk_orbrho    :     4.07s CPU (     254 calls,   0.016 s avg)
-     nk_rhoref    :     2.25s CPU (     508 calls,   0.004 s avg)
-     nk_eforce    :     4.07s CPU (     126 calls,   0.032 s avg)
-     nk_corr      :    37.11s CPU (     508 calls,   0.073 s avg)
-     nk_corr_h    :    18.87s CPU (     508 calls,   0.037 s avg)
-
-
-     outer_loop   :    77.20s CPU (      62 calls,   1.245 s avg)
-     runcg_uspp   :    77.30s CPU
+     outer_loop   :    15.75s CPU (      33 calls,   0.477 s avg)
+     runcg_uspp   :    15.79s CPU
      calcmt       :     0.00s CPU
-     xminus1      :     0.02s CPU (     124 calls,   0.000 s avg)
+     pc2          :     0.05s CPU (      99 calls,   0.001 s avg)
+     pcdaga2      :     0.03s CPU (      33 calls,   0.001 s avg)
+     xminus1      :     0.00s CPU (      66 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :  1m17.92s CPU time,     1m19.76s wall time
+     CP           :    16.38s CPU time,   17.24s wall time
 
  
-   This run was terminated on:  19:58:19   7Mar2012            
+   This run was terminated on:  17:59:37   6Mar2012            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

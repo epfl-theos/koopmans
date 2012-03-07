@@ -1,7 +1,8 @@
           &CONTROL
              calculation = 'cp',
              restart_mode='from_scratch',
-             prefix='CH4_PZ_cg',
+             !verbosity='medium',
+             prefix='CH4_LDA_dd',
              pseudo_dir = '../../pseudo/',
              outdir = './SCRATCH'
              nstep=10000
@@ -10,9 +11,7 @@
              ndw=91
              ekin_conv_thr=1.0d-5
              etot_conv_thr=1.0d-6
-             esic_conv_thr=1.0d-5
-             !verbosity="high"
-             !disk_io = "high"
+             dt=15.0
           /
           &SYSTEM
              ibrav=1,
@@ -22,14 +21,13 @@
              ecutwfc=35.0,
              nspin=1
              do_ee =.true.
-             which_orbdep='pz'
-             nkscalfact = 1.0
           /
           &ELECTRONS
-             electron_dynamics='cg',
-             passop=0.5,
-             maxiter = 2500,
-             !conv_thr=1.d-8
+             electron_dynamics = 'damp'
+             electron_damping = 0.05
+             emass = 1000
+             emass_cutoff=3.,
+             ortho_max=500
           /
           &IONS
              ion_dynamics='none',

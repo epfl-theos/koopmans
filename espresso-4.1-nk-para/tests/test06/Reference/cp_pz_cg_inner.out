@@ -1,0 +1,640 @@
+=------------------------------------------------------------------------------=
+
+     CP: variable-cell Car-Parrinello molecular dynamics
+     using norm-conserving and ultrasoft Vanderbilt pseudopotentials
+
+     Version: 4.1 - Tue Mar 6 17:02:41 CET 2012                           
+     Authors: Alfredo Pasquarello, Kari Laasonen, Andrea Trave, Roberto Car,
+       Paolo Giannozzi, Nicola Marzari, Carlo Cavazzoni, Guido Chiarotti,
+       Sandro Scandolo, Paolo Focher, Gerardo Ballabio, and others
+
+=------------------------------------------------------------------------------=
+
+   This run was started on:  19:49:44   7Mar2012               
+
+   MPI Parallel Build
+   Tasks =    6  This task id =    0
+
+   Job Title: MD Simulation
+
+
+   Atomic Pseudopotentials Parameters
+   ----------------------------------
+
+   Reading pseudopotential for specie #  1 from file :
+   ../../pseudo/H.pz-vbc.UPF
+   file type is 20: UPF
+
+   Reading pseudopotential for specie #  2 from file :
+   ../../pseudo/C.pz-vbc.UPF
+   file type is 20: UPF
+
+
+   Main Simulation Parameters (from input)
+   ---------------------------------------
+   Restart Mode       =      -1   from_scratch   
+   Number of MD Steps =   10000
+   Print out every            1 MD Steps
+   Reads from unit    =      90
+   Writes to unit     =      91
+   MD Simulation time step            =       1.00
+   Electronic fictitious mass (emass) =     400.00
+   emass cut-off                      =       2.50
+
+   Simulation Cell Parameters (from input)
+   external pressure       =            0.00 [GPa]
+   wmass (calculated)      =         2222.27 [AU]
+   ibrav =    1
+   alat  =    25.00000000
+   a1    =    25.00000000    0.00000000    0.00000000
+   a2    =     0.00000000   25.00000000    0.00000000
+   a3    =     0.00000000    0.00000000   25.00000000
+ 
+   b1    =     0.04000000    0.00000000    0.00000000
+   b2    =     0.00000000    0.04000000    0.00000000
+   b3    =     0.00000000    0.00000000    0.04000000
+   omega = 15625.00000000
+
+    ========================================
+    |  CONJUGATE GRADIENT                  |
+    ========================================
+    | iterations   =          2500         |
+    | conv_thr     = 0.00000100000 a.u.    |
+    | passop       =       0.50000 a.u.    |
+    | niter_cg_restart =  20      |
+    ========================================
+
+   Energy Cut-offs
+   ---------------
+   Ecutwfc =   35.0 Ry,      Ecutrho =  140.0 Ry,      Ecuts =  140.0 Ry
+   Gcutwfc =   23.5     ,    Gcutrho =   47.1          Gcuts =   47.1
+   NOTA BENE: refg, mmx =   0.050000  5600
+   Orthog. with Gram-Schmidt
+   Electron dynamics with conjugate gradient
+   Electron dynamics : the temperature is not controlled
+   initial random displacement of el. coordinates with  amplitude=  0.020000
+
+   Electronic states
+   -----------------
+   Number of Electron =     8, of States =     4
+   Occupation numbers :
+   2.00 2.00 2.00 2.00
+
+
+   Exchange and correlations functionals
+   -------------------------------------
+   Using Local Density Approximation with
+     Exchange functional: SLATER                                                      
+     Correlation functional: PERDEW AND ZUNGER                                           
+     Exchange-correlation      =  SLA  PZ   NOGX NOGC (1100)
+
+
+   Ions Simulation Parameters
+   --------------------------
+   Ions are not allowed to move
+   Ionic position (from input)
+   sorted by specie, and converted to real a.u. coordinates
+   Species   1 atoms =    4 mass =      1837.29 (a.u.),         1.01 (amu) rcmax =   1.00 (a.u.)
+        0.000000     0.000000    -2.000000
+        0.000000     0.000000     2.000000
+        0.000000     2.000000     0.000000
+        0.000000    -2.000000     0.000000
+   Species   2 atoms =    1 mass =     21894.71 (a.u.),        12.01 (amu) rcmax =   0.50 (a.u.)
+        0.000000     0.000000     0.000000
+   Ionic position read from input file
+
+
+   Cell Dynamics Parameters (from STDIN)
+   -------------------------------------
+   Starting cell generated from CELLDM
+   Constant VOLUME Molecular dynamics
+   cell parameters are not allowed to move
+
+   Verbosity: iprsta =  1
+
+
+
+   Simulation dimensions initialization
+   ------------------------------------
+
+   unit vectors of full simulation cell
+   in real space:                         in reciprocal space (units 2pi/alat):
+   1    25.0000    0.0000    0.0000              1.0000    0.0000    0.0000
+   2     0.0000   25.0000    0.0000              0.0000    1.0000    0.0000
+   3     0.0000    0.0000   25.0000              0.0000    0.0000    1.0000
+ 
+   Stick Mesh
+   ----------
+   nst =  3485,  nstw =   875, nsts =  3485
+        PEs    n.st   n.stw   n.sts    n.g    n.gw   n.gs
+          1    1162     292    1162   72842    9132   72842
+          2    1162     292    1162   72842    9132   72842
+          3    1163     291    1163   72841    9137   72841
+          4    1160     292    1160   72840    9132   72840
+          5    1160     292    1160   72840    9132   72840
+          6    1162     290    1162   72842    9130   72842
+          0    6969    1749    6969  437047   54795  437047
+ 
+ 
+   Real Mesh
+   ---------
+   Global Dimensions   Local  Dimensions   Processor Grid
+   .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
+    96    96    96      96    96    16       1     1     6
+   Array leading dimensions ( nr1x, nr2x, nr3x )   =     96    96    96
+   Local number of cell to store the grid ( nnrx ) =     147456
+   Number of x-y planes for each processors: 
+   nr3l =    16   16   16   16   16   16
+ 
+   Smooth Real Mesh
+   ----------------
+   Global Dimensions   Local  Dimensions   Processor Grid
+   .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
+    96    96    96      96    96    16       1     1     6
+   Array leading dimensions ( nr1x, nr2x, nr3x )   =     96    96    96
+   Local number of cell to store the grid ( nnrx ) =     147456
+   Number of x-y planes for each processors: 
+   nr3sl =    16   16   16   16   16   16
+ 
+   Reciprocal Space Mesh
+   ---------------------
+                Large Mesh
+   PE   Global(ngmt)     Local(ngm) MaxLocal(ngmx)
+    1         218524          36421          36421
+    2         218524          36421          36421
+    3         218524          36421          36421
+    4         218524          36420          36421
+    5         218524          36420          36421
+    6         218524          36421          36421
+                Smooth Mesh
+   PE   Global(ngst)     Local(ngs) MaxLocal(ngsx)
+    1         218524          36421          36421
+    2         218524          36421          36421
+    3         218524          36421          36421
+    4         218524          36420          36421
+    5         218524          36420          36421
+    6         218524          36421          36421
+                Wave function Mesh
+   PE   Global(ngwt)     Local(ngw) MaxLocal(ngwx)
+    1          27398           4566           4569
+    2          27398           4566           4569
+    3          27398           4569           4569
+    4          27398           4566           4569
+    5          27398           4566           4569
+    6          27398           4565           4569
+
+
+   System geometry initialization
+   ------------------------------
+ 
+   Scaled positions from standard input
+   H    0.000000E+00  0.000000E+00 -0.800000E-01
+   H    0.000000E+00  0.000000E+00  0.800000E-01
+   H    0.000000E+00  0.800000E-01  0.000000E+00
+   H    0.000000E+00 -0.800000E-01  0.000000E+00
+   C    0.000000E+00  0.000000E+00  0.000000E+00
+
+   Matrix Multiplication Performances
+   ortho mmul, time for parallel driver      =   0.00003 with    4 procs
+
+   Constraints matrixes will be distributed block like on
+   ortho sub-group =    2*   2 procs
+
+
+   Diagonalization Performances
+   ortho diag, time for serial   driver =   0.00032
+   ortho diag, time for parallel driver =   0.00021 with    4 procs
+
+
+   Pseudopotentials initialization
+   -------------------------------
+
+
+   Common initialization
+
+   Specie:     1
+ 
+                        dion 
+
+   Specie:     2
+   1  indv=  1   ang. mom=  0
+ 
+                        dion 
+   0.5848
+ 
+   Short Legend and Physical Units in the Output
+   ---------------------------------------------
+   NFI    [int]          - step index
+   EKINC  [HARTREE A.U.] - kinetic energy of the fictitious electronic dynamics
+   TEMPH  [K]            - Temperature of the fictitious cell dynamics
+   TEMP   [K]            - Ionic temperature
+   ETOT   [HARTREE A.U.] - Scf total energy (Kohn-Sham hamiltonian)
+   ENTHAL [HARTREE A.U.] - Enthalpy ( ETOT + P * V )
+   ECONS  [HARTREE A.U.] - Enthalpy + kinetic energy of ions and cell
+   ECONT  [HARTREE A.U.] - Constant of motion for the CP lagrangian
+ 
+   PZ sic =    T
+
+   rhothr =  0.1E-11
+   NK memusage =     14.302 MB
+
+
+   f_cutoff =  0.1000
+   do_spinsym   =    F
+   EE with periodic-image correction method = tcc                 
+
+
+   Wave Initialization: random initial wave-functions
+   Occupation number from init
+   nbnd =     4
+    2.00 2.00 2.00 2.00
+
+   formf: eself=  14.36192
+   formf:     vps(g=0)=  -0.0002023     rhops(g=0)=  -0.0000630
+   formf: sum_g vps(g)=  -2.4432651 sum_g rhops(g)=  -0.0898256
+   formf:     vps(g=0)=  -0.0002057     rhops(g=0)=  -0.0002550
+   formf: sum_g vps(g)=  -2.9143882 sum_g rhops(g)=  -2.8719189
+   Delta V(G=0):   0.001005Ry,    0.027343eV
+
+ * Physical Quantities at step:     1
+
+PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
+
+              1    1     32.1205395858924      0.2484808714266      0.0524340364429
+              2    1     32.1205395858924      0.2061204730810      0.0367536951640
+              3    1     32.1205395858924      0.1936252481112      0.0028963994415
+# procedure     1 /    5 is finished.
+
+              4    1     32.1205395858924      0.1936252481112      0.0028963994415
+# procedure     2 /    5 is finished.
+
+              5    1     32.1205395858924      0.1936252481112      0.0028963994415
+# procedure     3 /    5 is finished.
+
+              # innerloop_nmax reached.
+
+     iteration =   1   Etot (Ha) =     32.31416483400359
+              1    2     10.8133062826664      0.1102951345193      0.0037922360653
+# procedure     4 /    5 is finished.
+
+              2    2     10.8133062826664      0.1102951345193      0.0037922360653
+              3    2     10.8133062826664      0.1102123586417      0.0008345156187
+# procedure     5 /    5 is finished.
+
+     iteration =   2   Etot (Ha) =     10.92351864130815
+              1    3      5.0435752319025      0.0977762092768      0.0048063609849
+              2    3      5.0435752319025      0.0976294578977      0.0022575974146
+              3    3      5.0435752319025      0.0975194872647      0.0024902266701
+              4    3      5.0435752319025      0.0974095715291      0.0028290750903
+              5    3      5.0435752319025      0.0973026996069      0.0032962469529
+              # innerloop_nmax reached.
+
+     iteration =   3   Etot (Ha) =      5.14077480218187
+              1    4      0.3006504339430      0.1660216023317      0.0101116997052
+              2    4      0.3006504339430      0.1654992361212      0.0096199767136
+              3    4      0.3006504339430      0.1649983419818      0.0093172467118
+              4    4      0.3006504339430      0.1645088526957      0.0091446771090
+              5    4      0.3006504339430      0.1640249349284      0.0090532610649
+              # innerloop_nmax reached.
+
+     iteration =   4   Etot (Ha) =      0.46419426680786
+              1    5     -3.0864198715769      0.1614916199006      0.0171334772711
+              2    5     -3.0864198715769      0.1605414496294      0.0183793472158
+              3    5     -3.0864198715769      0.1595270049808      0.0196521708930
+              4    5     -3.0864198715769      0.1584467925302      0.0209297791722
+              5    5     -3.0864198715769      0.1573005327436      0.0221933297898
+              # innerloop_nmax reached.
+
+     iteration =   5   Etot (Ha) =     -2.93033080949506
+              1    6     -5.2722935148319      0.0989292886204      0.0346009279621
+              2    6     -5.2722935148319      0.0970683488217      0.0355042367496
+              3    6     -5.2722935148319      0.0951607249127      0.0363654757041
+              4    6     -5.2722935148319      0.0932088788078      0.0371764985972
+              5    6     -5.2722935148319      0.0912157432990      0.0379288631882
+              # innerloop_nmax reached.
+
+     iteration =   6   Etot (Ha) =     -5.18310888089462
+  cg_sub: missed minimum, case 1, iteration    6
+              1    7     -6.4529050402142      0.0426943508690      0.0394885433416
+              2    7     -6.4529050402142      0.0405954639420      0.0396821493028
+              3    7     -6.4529050402142      0.0384843595083      0.0399530579973
+              4    7     -6.4529050402142      0.0363569055227      0.0403009557479
+              5    7     -6.4529050402142      0.0342090725749      0.0407239919884
+              # innerloop_nmax reached.
+
+     iteration =   7   Etot (Ha) =     -6.42086797536541
+              1    8     -7.2623557178003     -0.0184403794028      0.0458434784271
+              2    8     -7.2623557178003     -0.0208991510373      0.0468549214689
+              3    8     -7.2623557178003     -0.0234157872315      0.0479882665286
+              4    8     -7.2623557178003     -0.0259953388600      0.0491838559479
+              5    8     -7.2623557178003     -0.0286396826678      0.0503860851854
+              # innerloop_nmax reached.
+
+     iteration =   8   Etot (Ha) =     -7.29370355137501
+              1    9     -7.5861208084768     -0.0400628774376      0.0425021919332
+              2    9     -7.5861208084768     -0.0423951226197      0.0441518479429
+              3    9     -7.5861208084768     -0.0448121803186      0.0456692930596
+              4    9     -7.5861208084768     -0.0473056457061      0.0470098259479
+              5    9     -7.5861208084768     -0.0498650910899      0.0481405041339
+              # innerloop_nmax reached.
+
+     iteration =   9   Etot (Ha) =     -7.63859939723018
+              1   10     -7.7022547865086     -0.0546688308816      0.0404795983765
+              2   10     -7.7022547865086     -0.0568808391164      0.0410494947929
+              3   10     -7.7022547865086     -0.0591157499582      0.0414098233815
+              4   10     -7.7022547865086     -0.0613625004316      0.0415490286918
+              5   10     -7.7022547865086     -0.0636093361615      0.0414583629554
+              # innerloop_nmax reached.
+
+     iteration =  10   Etot (Ha) =     -7.76809916113402
+
+              1   11     -7.7453290276599     -0.0665821098405      0.0371489438101
+              2   11     -7.7453290276599     -0.0685713605808      0.0365533195475
+              3   11     -7.7453290276599     -0.0705221476397      0.0357470129129
+              4   11     -7.7453290276599     -0.0724234940411      0.0347292119980
+              5   11     -7.7453290276599     -0.0742647456691      0.0335087427494
+              # innerloop_nmax reached.
+
+     iteration =  11   Etot (Ha) =     -7.82136458403114
+              1   12     -7.7586300785749     -0.0761081560997      0.0315565527203
+              2   12     -7.7586300785749     -0.0777598962701      0.0298517482922
+              3   12     -7.7586300785749     -0.0793166974248      0.0279811826379
+              4   12     -7.7586300785749     -0.0807703611425      0.0259521560220
+              5   12     -7.7586300785749     -0.0821134299512      0.0237852523920
+              # innerloop_nmax reached.
+
+     iteration =  12   Etot (Ha) =     -7.84197021331107
+              1   13     -7.7633089968028     -0.0838376696357      0.0216675354652
+              2   13     -7.7633089968028     -0.0849433084895      0.0191637686322
+              3   13     -7.7633089968028     -0.0859187405341      0.0166571088627
+              4   13     -7.7633089968028     -0.0867673181449      0.0142283289078
+              5   13     -7.7633089968028     -0.0874983975565      0.0119864147675
+              # innerloop_nmax reached.
+
+     iteration =  13   Etot (Ha) =     -7.85143820344210
+              1   14     -7.7644301423821     -0.0889354511014      0.0103483439101
+              2   14     -7.7644301423821     -0.0895036836588      0.0087117899064
+              3   14     -7.7644301423821     -0.0900171652769      0.0075915822646
+              4   14     -7.7644301423821     -0.0904703461141      0.0068538904853
+              5   14     -7.7644301423821     -0.0908625538441      0.0062902796315
+              # innerloop_nmax reached.
+
+     iteration =  14   Etot (Ha) =     -7.85563997502199
+              1   15     -7.7643509502736     -0.0921499351817      0.0065438581489
+              2   15     -7.7643509502736     -0.0925082577195      0.0059553919950
+              3   15     -7.7643509502736     -0.0928272805212      0.0054091208138
+              4   15     -7.7643509502736     -0.0931120152226      0.0049059399719
+              5   15     -7.7643509502736     -0.0933666809204      0.0044395717435
+              # innerloop_nmax reached.
+
+     iteration =  15   Etot (Ha) =     -7.85794555741899
+              1   16     -7.7639245881357     -0.0945422080279      0.0049911593866
+              2   16     -7.7639245881357     -0.0947952961759      0.0044091425920
+              3   16     -7.7639245881357     -0.0950188035047      0.0038749444995
+              4   16     -7.7639245881357     -0.0952132188529      0.0033661009707
+              5   16     -7.7639245881357     -0.0953802237265      0.0028856321290
+              # innerloop_nmax reached.
+
+     iteration =  16   Etot (Ha) =     -7.85944610152796
+              1   17     -7.7634206126661     -0.0964370593242      0.0035143100679
+              2   17     -7.7634206126661     -0.0966050285928      0.0028667655337
+              3   17     -7.7634206126661     -0.0967427659434      0.0022660130745
+              4   17     -7.7634206126661     -0.0968480171878      0.0017014885332
+              5   17     -7.7634206126661     -0.0969242570197      0.0011740295769
+              # innerloop_nmax reached.
+
+     iteration =  17   Etot (Ha) =     -7.86039300478361
+              1   18     -7.7628666466461     -0.0979264066429      0.0019934093227
+              2   18     -7.7628666466461     -0.0980123471623      0.0013478857496
+              3   18     -7.7628666466461     -0.0980628317384      0.0010331873848
+# procedure     6 /    5 is finished.
+
+     iteration =  18   Etot (Ha) =     -7.86092947838452
+              1   19     -7.7623524065036     -0.0988877052680      0.0024110929317
+              2   19     -7.7623524065036     -0.0989751429764      0.0017883164106
+              3   19     -7.7623524065036     -0.0990212881759      0.0021006402376
+# procedure     7 /    5 is finished.
+
+     iteration =  19   Etot (Ha) =     -7.86137369467953
+              1   20     -7.7618449260015     -0.0998546736833      0.0032774745152
+              2   20     -7.7618449260015     -0.0999676345116      0.0020978350669
+              3   20     -7.7618449260015     -0.1000481406137      0.0017610815210
+              4   20     -7.7618449260015     -0.1000648309994      0.0022686625406
+# procedure     8 /    5 is finished.
+
+     iteration =  20   Etot (Ha) =     -7.86190975700097
+
+              1   21     -7.7631681457554     -0.0997988784217      0.0026538157264
+              2   21     -7.7631681457554     -0.0998571748603      0.0021991927323
+              3   21     -7.7631681457554     -0.0998821877748      0.0021239905226
+# procedure     9 /    5 is finished.
+
+     iteration =  21   Etot (Ha) =     -7.86305033353011
+              1   22     -7.7632890955993     -0.1003836366948      0.0033294907363
+              2   22     -7.7632890955993     -0.1005144978916      0.0022678029318
+              3   22     -7.7632890955993     -0.1005981716740      0.0017100205560
+              4   22     -7.7632890955993     -0.1006335802555      0.0020817944850
+# procedure    10 /    5 is finished.
+
+     iteration =  22   Etot (Ha) =     -7.86392267585485
+              1   23     -7.7623527049980     -0.1021052930935      0.0035452150868
+              2   23     -7.7623527049980     -0.1022592041970      0.0024927049485
+              3   23     -7.7623527049980     -0.1023681586269      0.0017288847048
+              4   23     -7.7623527049980     -0.1024324973413      0.0012016366187
+# procedure    11 /    5 is finished.
+
+     iteration =  23   Etot (Ha) =     -7.86478520233922
+              1   24     -7.7609513757872     -0.1042257681040      0.0027532435951
+              2   24     -7.7609513757872     -0.1043428394446      0.0019022347277
+              3   24     -7.7609513757872     -0.1044135821039      0.0012695938070
+# procedure    12 /    5 is finished.
+
+     iteration =  24   Etot (Ha) =     -7.86536495789106
+              1   25     -7.7596692293025     -0.1059124279147      0.0020310004295
+              2   25     -7.7596692293025     -0.1059775383414      0.0015318310874
+# procedure    13 /    5 is finished.
+
+     iteration =  25   Etot (Ha) =     -7.86564676764394
+              1   26     -7.7584695207834     -0.1073114714986      0.0015214228776
+              2   26     -7.7584695207834     -0.1073350621895      0.0018409165889
+# procedure    14 /    5 is finished.
+
+     iteration =  26   Etot (Ha) =     -7.86580458297296
+              1   27     -7.7576673391914     -0.1082058249075      0.0015430842691
+# procedure    15 /    5 is finished.
+
+     iteration =  27   Etot (Ha) =     -7.86587316409889
+              1   28     -7.7573329654345     -0.1085671108432      0.0012410394013
+# procedure    16 /    5 is finished.
+
+     iteration =  28   Etot (Ha) =     -7.86590007627764
+              1   29     -7.7572104999960     -0.1087001891592      0.0010769768927
+# procedure    17 /    5 is finished.
+
+     iteration =  29   Etot (Ha) =     -7.86591068915519
+              1   30     -7.7571653426151     -0.1087501575137      0.0009341163593
+# procedure    18 /    5 is finished.
+
+     iteration =  30   Etot (Ha) =     -7.86591550012874
+
+              1   31     -7.7571451571459     -0.1087726950674      0.0007906132012
+# procedure    19 /    5 is finished.
+
+     iteration =  31   Etot (Ha) =     -7.86591785221338
+              1   32     -7.7571418179666     -0.1087777470844      0.0006234676466
+# procedure    20 /    5 is finished.
+
+     iteration =  32   Etot (Ha) =     -7.86591956505102
+              1   33     -7.7571666461634     -0.1087543618013      0.0004268421689
+# procedure    21 /    5 is finished.
+
+     iteration =  33   Etot (Ha) =     -7.86592100796478
+              1   34     -7.7572106397356     -0.1087115231832      0.0002301929499
+# procedure    22 /    5 is finished.
+
+     iteration =  34   Etot (Ha) =     -7.86592216291883
+              1   35     -7.7572500645773     -0.1086728773764      0.0000935805185
+# procedure    23 /    5 is finished.
+
+     iteration =  35   Etot (Ha) =     -7.86592294195365
+              1   36     -7.7572741700564     -0.1086491630809      0.0000665852840
+# procedure    24 /    5 is finished.
+
+     iteration =  36   Etot (Ha) =     -7.86592333313735
+              1   37     -7.7572875819860     -0.1086359110730      0.0000795123377
+# procedure    25 /    5 is finished.
+
+     iteration =  37   Etot (Ha) =     -7.86592349305903
+              1   38     -7.7572946519166     -0.1086289011584      0.0000848228494
+# procedure    26 /    5 is finished.
+
+     iteration =  38   Etot (Ha) =     -7.86592355307501
+
+
+                total energy =      -7.8659235780 Hartree a.u.
+              kinetic energy =       6.4093024466 Hartree a.u.
+        electrostatic energy =      -9.2687843053 Hartree a.u.
+                         esr =       0.0979432786 Hartree a.u.
+                       eself =      14.3619220945 Hartree a.u.
+      pseudopotential energy =      -2.3882511662 Hartree a.u.
+  n-l pseudopotential energy =       0.5627339165 Hartree a.u.
+ exchange-correlation energy =      -3.0722992104 Hartree a.u.
+           average potential =       0.0000000000 Hartree a.u.
+
+
+
+   Eigenvalues (eV), kp =   1 , spin =  1
+
+  -24.81  -17.55  -17.55   -9.46
+ 
+   Allocated memory (kb) =     51940
+ 
+   CELL_PARAMETERS
+   25.00000000    0.00000000    0.00000000
+    0.00000000   25.00000000    0.00000000
+    0.00000000    0.00000000   25.00000000
+
+   System Density [g/cm^3] :     0.0115
+
+
+   Center of mass square displacement (a.u.):   0.000000
+
+   ATOMIC_POSITIONS
+   C    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00 -0.200000E+01
+   H    0.000000E+00  0.000000E+00  0.200000E+01
+   H    0.000000E+00  0.200000E+01  0.000000E+00
+   H    0.000000E+00 -0.200000E+01  0.000000E+00
+ 
+   ATOMIC_VELOCITIES
+   C    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+ 
+
+
+   Partial temperatures (for each ionic specie) 
+   Species  Temp (K)   Mean Square Displacement (a.u.)
+        1       0.00     0.0000
+        2       0.00     0.0000
+ 
+  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
+ 
+       nfi   tempp            E -T.S-mu.nbsp         +K_p #Iter
+Step     1       0     -7.86592     -7.86592     -7.86592    39
+
+   writing restart file: ./SCRATCH/CH4_PZ_cg_inn_91.save
+   restart file written in    0.183 sec.
+
+
+
+   Averaged Physical Quantities
+                      accomulated      this run
+   ekinc         :        0.00000       0.00000 (AU)
+   ekin          :        6.40930       6.40930 (AU)
+   epot          :      -14.72933     -14.72933 (AU)
+   total energy  :       -7.86592      -7.86592 (AU)
+   temperature   :        0.00000       0.00000 (K )
+   enthalpy      :        0.00000       0.00000 (AU)
+   econs         :       -7.86592      -7.86592 (AU)
+   pressure      :        0.00000       0.00000 (Gpa)
+   volume        :    15625.00000   15625.00000 (AU)
+
+
+     initialize   :     0.46s CPU
+     total_time   :   121.40s CPU
+     formf        :     0.05s CPU
+     rhoofr       :     4.10s CPU (      78 calls,   0.053 s avg)
+     vofrho       :    12.22s CPU (      78 calls,   0.157 s avg)
+     vofrho1      :     0.32s CPU (       2 calls,   0.160 s avg)
+     vofrho2      :     5.95s CPU (      38 calls,   0.157 s avg)
+     vofrho3      :     5.95s CPU (      38 calls,   0.157 s avg)
+     dforce       :     1.06s CPU (      78 calls,   0.014 s avg)
+     dforce1      :     1.04s CPU (      76 calls,   0.014 s avg)
+     dforce2      :     0.27s CPU
+     calphi       :     0.00s CPU (      39 calls,   0.000 s avg)
+     gram         :     0.01s CPU (      79 calls,   0.000 s avg)
+     newd         :     0.00s CPU (      39 calls,   0.000 s avg)
+     calbec       :     0.06s CPU (     394 calls,   0.000 s avg)
+     prefor       :     0.00s CPU (      41 calls,   0.000 s avg)
+     strucf       :     0.00s CPU
+     nlfl         :     0.00s CPU
+     nlsm1        :     0.06s CPU (     394 calls,   0.000 s avg)
+     fft          :    64.82s CPU (    4438 calls,   0.015 s avg)
+     ffts         :     2.32s CPU (     156 calls,   0.015 s avg)
+     fftw         :     2.19s CPU (     312 calls,   0.007 s avg)
+     cft3s        :    69.33s CPU (    4906 calls,   0.014 s avg)
+     fft_scatter  :    19.08s CPU (    4906 calls,   0.004 s avg)
+
+     nk_drv       :    70.16s CPU (     201 calls,   0.349 s avg)
+     nk_orbrho    :     6.82s CPU (     402 calls,   0.017 s avg)
+     nk_rhoref    :     3.54s CPU (     804 calls,   0.004 s avg)
+     nk_eforce    :     2.62s CPU (      78 calls,   0.034 s avg)
+     nk_corr      :    59.21s CPU (     804 calls,   0.074 s avg)
+     nk_corr_h    :    29.96s CPU (     804 calls,   0.037 s avg)
+
+     nk_rot_emin  :    73.87s CPU (      38 calls,   1.944 s avg)
+     nk_innerloop :    73.87s CPU (     135 calls,   0.547 s avg)
+     nk_rot_cm    :     0.00s CPU (      38 calls,   0.000 s avg)
+     nk_get_vsica :    29.59s CPU (     123 calls,   0.241 s avg)
+     nk_getOmatto :    43.02s CPU (     123 calls,   0.350 s avg)
+     nk_getOmat1  :     0.00s CPU (     123 calls,   0.000 s avg)
+     nk_rotwfn    :     0.00s CPU (     123 calls,   0.000 s avg)
+
+     outer_loop   :   121.29s CPU (      38 calls,   3.192 s avg)
+     runcg_uspp   :   121.39s CPU
+     calcmt       :     0.00s CPU
+     xminus1      :     0.01s CPU (      76 calls,   0.000 s avg)
+     emass_p_tpa  :     0.00s CPU
+ 
+ 
+     CP           :  2m 2.04s CPU time,     2m 3.20s wall time
+
+ 
+   This run was terminated on:  19:51:47   7Mar2012            
+
+=------------------------------------------------------------------------------=
+   JOB DONE.
+=------------------------------------------------------------------------------=

@@ -1,7 +1,7 @@
           &CONTROL
              calculation = 'cp',
              restart_mode='from_scratch',
-             prefix='CH4_PZ_cg',
+             prefix='CH4_PZ_cg_icg',
              pseudo_dir = '../../pseudo/',
              outdir = './SCRATCH'
              nstep=10000
@@ -23,7 +23,10 @@
              nspin=1
              do_ee =.true.
              which_orbdep='pz'
-             nkscalfact = 1.0
+             do_innerloop=.true.
+             do_innerloop_cg=.true.
+             innerloop_cg_nsd=20
+             innerloop_cg_nreset=10
           /
           &ELECTRONS
              electron_dynamics='cg',

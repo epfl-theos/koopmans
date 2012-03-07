@@ -10,7 +10,7 @@
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:56:59   7Mar2012               
+   This run was started on:  18:23:22   6Mar2012               
 
    MPI Parallel Build
    Tasks =    6  This task id =    0
@@ -76,9 +76,12 @@
 
    Electronic states
    -----------------
-   Number of Electron =     8, of States =     4
-   Occupation numbers :
-   2.00 2.00 2.00 2.00
+   Local Spin Density calculation
+   Number of Electron =     8
+   Spins up   =     4, occupations: 
+   1.00 1.00 1.00 1.00
+   Spins down =     4, occupations: 
+   1.00 1.00 1.00 1.00
 
 
    Exchange and correlations functionals
@@ -202,7 +205,7 @@
 
 
    Diagonalization Performances
-   ortho diag, time for serial   driver =   0.00034
+   ortho diag, time for serial   driver =   0.00031
    ortho diag, time for parallel driver =   0.00021 with    4 procs
 
 
@@ -236,18 +239,21 @@
    PZ sic =    T
 
    rhothr =  0.1E-11
-   NK memusage =     14.302 MB
+   NK memusage =     19.021 MB
 
 
    f_cutoff =  0.1000
-   do_spinsym   =    F
+   do_spinsym   =    T
    EE with periodic-image correction method = tcc                 
 
 
    Wave Initialization: random initial wave-functions
+                        spin symmetry applied to init wave
    Occupation number from init
-   nbnd =     4
-    2.00 2.00 2.00 2.00
+   spin =   1 nbnd =     4
+    1.00 1.00 1.00 1.00
+   spin =   2 nbnd =     4
+    1.00 1.00 1.00 1.00
 
    formf: eself=  14.36192
    formf:     vps(g=0)=  -0.0002023     rhops(g=0)=  -0.0000630
@@ -263,83 +269,83 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
      iteration =   1   Etot (Ha) =     32.36902045731906
      iteration =   2   Etot (Ha) =     10.98893138310562
      iteration =   3   Etot (Ha) =      5.14649416830403
-     iteration =   4   Etot (Ha) =      0.38625389964874
-     iteration =   5   Etot (Ha) =     -3.04648524630152
+     iteration =   4   Etot (Ha) =      0.38625389964871
+     iteration =   5   Etot (Ha) =     -3.04648524630153
      iteration =   6   Etot (Ha) =     -5.29123068797883
   cg_sub: missed minimum, case 1, iteration    6
      iteration =   7   Etot (Ha) =     -6.50599832338826
-     iteration =   8   Etot (Ha) =     -7.33341117015353
+     iteration =   8   Etot (Ha) =     -7.33341117015354
      iteration =   9   Etot (Ha) =     -7.65169392740796
      iteration =  10   Etot (Ha) =     -7.76581166695225
 
      iteration =  11   Etot (Ha) =     -7.80924364178119
      iteration =  12   Etot (Ha) =     -7.82310658864631
-     iteration =  13   Etot (Ha) =     -7.82937182564238
+     iteration =  13   Etot (Ha) =     -7.82937182564239
      iteration =  14   Etot (Ha) =     -7.83380465852268
-     iteration =  15   Etot (Ha) =     -7.83872514315093
-     iteration =  16   Etot (Ha) =     -7.84388866151306
-     iteration =  17   Etot (Ha) =     -7.84803791594365
-     iteration =  18   Etot (Ha) =     -7.85094581078875
-     iteration =  19   Etot (Ha) =     -7.85305159306110
-     iteration =  20   Etot (Ha) =     -7.85467762766920
+     iteration =  15   Etot (Ha) =     -7.83872514315094
+     iteration =  16   Etot (Ha) =     -7.84388866151307
+     iteration =  17   Etot (Ha) =     -7.84803791594386
+     iteration =  18   Etot (Ha) =     -7.85094581078899
+     iteration =  19   Etot (Ha) =     -7.85305159306171
+     iteration =  20   Etot (Ha) =     -7.85467762766972
 
-     iteration =  21   Etot (Ha) =     -7.85608216770913
-     iteration =  22   Etot (Ha) =     -7.85724855570492
-     iteration =  23   Etot (Ha) =     -7.85869790537694
-     iteration =  24   Etot (Ha) =     -7.85993337464784
-     iteration =  25   Etot (Ha) =     -7.86056334955839
-     iteration =  26   Etot (Ha) =     -7.86087273279658
-     iteration =  27   Etot (Ha) =     -7.86121030641809
-     iteration =  28   Etot (Ha) =     -7.86173551860480
-     iteration =  29   Etot (Ha) =     -7.86235393437038
-     iteration =  30   Etot (Ha) =     -7.86271445757492
+     iteration =  21   Etot (Ha) =     -7.85608216770976
+     iteration =  22   Etot (Ha) =     -7.85724855570678
+     iteration =  23   Etot (Ha) =     -7.85869790538053
+     iteration =  24   Etot (Ha) =     -7.85993337465061
+     iteration =  25   Etot (Ha) =     -7.86056334955596
+     iteration =  26   Etot (Ha) =     -7.86087273279538
+     iteration =  27   Etot (Ha) =     -7.86121030641423
+     iteration =  28   Etot (Ha) =     -7.86173551860108
+     iteration =  29   Etot (Ha) =     -7.86235393436495
+     iteration =  30   Etot (Ha) =     -7.86271445757371
 
-     iteration =  31   Etot (Ha) =     -7.86289869029340
-     iteration =  32   Etot (Ha) =     -7.86311341532274
-     iteration =  33   Etot (Ha) =     -7.86332565504566
-     iteration =  34   Etot (Ha) =     -7.86362986316449
-     iteration =  35   Etot (Ha) =     -7.86403195010699
-     iteration =  36   Etot (Ha) =     -7.86444652187261
-     iteration =  37   Etot (Ha) =     -7.86479275902755
-     iteration =  38   Etot (Ha) =     -7.86505016704816
-     iteration =  39   Etot (Ha) =     -7.86525000288088
-     iteration =  40   Etot (Ha) =     -7.86540022159943
+     iteration =  31   Etot (Ha) =     -7.86289869029378
+     iteration =  32   Etot (Ha) =     -7.86311341532362
+     iteration =  33   Etot (Ha) =     -7.86332565504658
+     iteration =  34   Etot (Ha) =     -7.86362986316029
+     iteration =  35   Etot (Ha) =     -7.86403195011535
+     iteration =  36   Etot (Ha) =     -7.86444652186923
+     iteration =  37   Etot (Ha) =     -7.86479275904068
+     iteration =  38   Etot (Ha) =     -7.86505016705577
+     iteration =  39   Etot (Ha) =     -7.86525000288630
+     iteration =  40   Etot (Ha) =     -7.86540022159709
 
-     iteration =  41   Etot (Ha) =     -7.86547539348329
-     iteration =  42   Etot (Ha) =     -7.86556323804498
-     iteration =  43   Etot (Ha) =     -7.86564881860583
-     iteration =  44   Etot (Ha) =     -7.86572179751133
-     iteration =  45   Etot (Ha) =     -7.86576680590181
-     iteration =  46   Etot (Ha) =     -7.86579499539084
-     iteration =  47   Etot (Ha) =     -7.86581539306794
-     iteration =  48   Etot (Ha) =     -7.86583176604201
-     iteration =  49   Etot (Ha) =     -7.86584740359227
-     iteration =  50   Etot (Ha) =     -7.86586226727045
+     iteration =  41   Etot (Ha) =     -7.86547539347213
+     iteration =  42   Etot (Ha) =     -7.86556323803904
+     iteration =  43   Etot (Ha) =     -7.86564881861395
+     iteration =  44   Etot (Ha) =     -7.86572179753095
+     iteration =  45   Etot (Ha) =     -7.86576680590811
+     iteration =  46   Etot (Ha) =     -7.86579499539628
+     iteration =  47   Etot (Ha) =     -7.86581539307402
+     iteration =  48   Etot (Ha) =     -7.86583176604107
+     iteration =  49   Etot (Ha) =     -7.86584740358508
+     iteration =  50   Etot (Ha) =     -7.86586226726991
 
-     iteration =  51   Etot (Ha) =     -7.86588162355919
-     iteration =  52   Etot (Ha) =     -7.86589908119285
-     iteration =  53   Etot (Ha) =     -7.86590824574864
-     iteration =  54   Etot (Ha) =     -7.86591246024898
-     iteration =  55   Etot (Ha) =     -7.86591471994908
-     iteration =  56   Etot (Ha) =     -7.86591646682510
-     iteration =  57   Etot (Ha) =     -7.86591789675143
-     iteration =  58   Etot (Ha) =     -7.86591903731286
-     iteration =  59   Etot (Ha) =     -7.86591989325852
+     iteration =  51   Etot (Ha) =     -7.86588162356578
+     iteration =  52   Etot (Ha) =     -7.86589908119938
+     iteration =  53   Etot (Ha) =     -7.86590824575040
+     iteration =  54   Etot (Ha) =     -7.86591246024929
+     iteration =  55   Etot (Ha) =     -7.86591471994965
+     iteration =  56   Etot (Ha) =     -7.86591646682517
+     iteration =  57   Etot (Ha) =     -7.86591789675142
+     iteration =  58   Etot (Ha) =     -7.86591903731258
+     iteration =  59   Etot (Ha) =     -7.86591989325797
   cg_sub: missed minimum, case 1, iteration   59
-     iteration =  60   Etot (Ha) =     -7.86592055631886
+     iteration =  60   Etot (Ha) =     -7.86592055631777
 
-     iteration =  61   Etot (Ha) =     -7.86592087575756
-     iteration =  62   Etot (Ha) =     -7.86592110704380
+     iteration =  61   Etot (Ha) =     -7.86592087575730
+     iteration =  62   Etot (Ha) =     -7.86592110704375
 
 
                 total energy =      -7.8659213549 Hartree a.u.
-              kinetic energy =       6.4092356547 Hartree a.u.
+              kinetic energy =       6.4092356545 Hartree a.u.
         electrostatic energy =      -9.2688732587 Hartree a.u.
                          esr =       0.0979432786 Hartree a.u.
                        eself =      14.3619220945 Hartree a.u.
-      pseudopotential energy =      -2.3881274763 Hartree a.u.
-  n-l pseudopotential energy =       0.5627109179 Hartree a.u.
- exchange-correlation energy =      -3.0722835632 Hartree a.u.
+      pseudopotential energy =      -2.3881274759 Hartree a.u.
+  n-l pseudopotential energy =       0.5627109175 Hartree a.u.
+ exchange-correlation energy =      -3.0722835630 Hartree a.u.
            average potential =       0.0000000000 Hartree a.u.
 
 
@@ -347,8 +353,12 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
    Eigenvalues (eV), kp =   1 , spin =  1
 
   -24.81  -17.55  -17.55   -9.46
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -24.81  -17.55  -17.55   -9.46
  
-   Allocated memory (kb) =     51628
+   Allocated memory (kb) =     63412
  
    CELL_PARAMETERS
    25.00000000    0.00000000    0.00000000
@@ -386,8 +396,8 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
        nfi   tempp            E -T.S-mu.nbsp         +K_p #Iter
 Step     1       0     -7.86592     -7.86592     -7.86592    63
 
-   writing restart file: ./SCRATCH/CH4_PZ_cg_91.save
-   restart file written in    0.184 sec.
+   writing restart file: ./SCRATCH/CH4_PZ_cg_spin_91.save
+   restart file written in    0.295 sec.
 
 
 
@@ -404,50 +414,49 @@ Step     1       0     -7.86592     -7.86592     -7.86592    63
    volume        :    15625.00000   15625.00000 (AU)
 
 
-     initialize   :     0.42s CPU
-     total_time   :    77.30s CPU
+     initialize   :     0.40s CPU
+     total_time   :   136.32s CPU
      formf        :     0.04s CPU
-     rhoofr       :     6.59s CPU (     127 calls,   0.052 s avg)
-     vofrho       :    20.02s CPU (     127 calls,   0.158 s avg)
-     vofrho1      :     0.48s CPU (       3 calls,   0.160 s avg)
-     vofrho2      :     9.86s CPU (      62 calls,   0.159 s avg)
-     vofrho3      :     9.69s CPU (      62 calls,   0.156 s avg)
-     dforce       :     1.78s CPU (     126 calls,   0.014 s avg)
-     dforce1      :     1.74s CPU (     124 calls,   0.014 s avg)
-     dforce2      :     0.29s CPU
-     calphi       :     0.01s CPU (      63 calls,   0.000 s avg)
-     gram         :     0.06s CPU (     128 calls,   0.000 s avg)
+     rhoofr       :     9.46s CPU (     127 calls,   0.074 s avg)
+     vofrho       :    24.69s CPU (     127 calls,   0.194 s avg)
+     vofrho1      :     0.56s CPU (       3 calls,   0.187 s avg)
+     vofrho2      :    12.08s CPU (      62 calls,   0.195 s avg)
+     vofrho3      :    12.08s CPU (      62 calls,   0.195 s avg)
+     dforce       :     3.77s CPU (     252 calls,   0.015 s avg)
+     dforce1      :     3.71s CPU (     248 calls,   0.015 s avg)
+     dforce2      :     0.46s CPU
+     calphi       :     0.04s CPU (      63 calls,   0.001 s avg)
+     gram         :     0.13s CPU (     129 calls,   0.001 s avg)
      newd         :     0.00s CPU (      63 calls,   0.000 s avg)
-     calbec       :     0.03s CPU (     442 calls,   0.000 s avg)
+     calbec       :     0.04s CPU (     442 calls,   0.000 s avg)
      prefor       :     0.00s CPU (      65 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
-     nlsm1        :     0.03s CPU (     442 calls,   0.000 s avg)
-     fft          :    35.10s CPU (    2415 calls,   0.015 s avg)
-     ffts         :     3.59s CPU (     254 calls,   0.014 s avg)
-     fftw         :     3.59s CPU (     506 calls,   0.007 s avg)
-     cft3s        :    42.27s CPU (    3175 calls,   0.013 s avg)
-     fft_scatter  :    12.69s CPU (    3175 calls,   0.004 s avg)
+     nlsm1        :     0.04s CPU (     442 calls,   0.000 s avg)
+     fft          :    57.58s CPU (    3937 calls,   0.015 s avg)
+     ffts         :     3.75s CPU (     254 calls,   0.015 s avg)
+     fftw         :     6.86s CPU (    1012 calls,   0.007 s avg)
+     cft3s        :    68.18s CPU (    5203 calls,   0.013 s avg)
+     fft_scatter  :    18.74s CPU (    5203 calls,   0.004 s avg)
 
-     nk_drv       :    43.97s CPU (     127 calls,   0.346 s avg)
-     nk_orbrho    :     4.07s CPU (     254 calls,   0.016 s avg)
-     nk_rhoref    :     2.25s CPU (     508 calls,   0.004 s avg)
-     nk_eforce    :     4.07s CPU (     126 calls,   0.032 s avg)
-     nk_corr      :    37.11s CPU (     508 calls,   0.073 s avg)
-     nk_corr_h    :    18.87s CPU (     508 calls,   0.037 s avg)
+     nksic_drv    :    88.88s CPU (     127 calls,   0.700 s avg)
+     nksic_orbrho :     8.55s CPU (     508 calls,   0.017 s avg)
+     nksic_rhoref :     4.80s CPU (    1016 calls,   0.005 s avg)
+     nksic_eforce :     8.05s CPU (     252 calls,   0.032 s avg)
+     nksic_corr   :    74.60s CPU (    1016 calls,   0.073 s avg)
+     nksic_corr_h :    37.86s CPU (    1016 calls,   0.037 s avg)
 
-
-     outer_loop   :    77.20s CPU (      62 calls,   1.245 s avg)
-     runcg_uspp   :    77.30s CPU
+     outer_loop   :   136.13s CPU (      62 calls,   2.196 s avg)
+     runcg_uspp   :   136.32s CPU
      calcmt       :     0.00s CPU
-     xminus1      :     0.02s CPU (     124 calls,   0.000 s avg)
+     xminus1      :     0.01s CPU (     124 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :  1m17.92s CPU time,     1m19.76s wall time
+     CP           :  2m17.00s CPU time,     2m19.02s wall time
 
  
-   This run was terminated on:  19:58:19   7Mar2012            
+   This run was terminated on:  18:25:41   6Mar2012            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
