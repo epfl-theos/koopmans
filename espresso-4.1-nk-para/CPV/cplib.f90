@@ -2810,7 +2810,7 @@ END FUNCTION
                                    innerloop_nmax_ => innerloop_nmax
 !$$
       USE io_global,        ONLY : meta_ionode, stdout
-      use electrons_base,   ONLY : nspin, nx => nbspx
+      use electrons_base,   ONLY : nspin, nbspx
       use gvecw,            ONLY : ngw
       use grid_dimensions,  ONLY : nnrx
       USE ions_base,        ONLY : nat
@@ -2818,6 +2818,7 @@ END FUNCTION
       implicit none
       !
       logical       :: found
+      integer       :: i
       character(10) :: subname='nksic_init'
       character(1), external :: lowercase
       
@@ -2846,7 +2847,7 @@ END FUNCTION
       ! use the collective var which_orbdep
       !
       DO i = 1, LEN_TRIM( which_orbdep_ )
-          which_orbdep_(i) = lowercase( which_orbdep_(i) )
+          which_orbdep_(i:i) = lowercase( which_orbdep_(i:i) )
       ENDDO
       !
       SELECT CASE ( TRIM(which_orbdep_) )
@@ -2906,7 +2907,7 @@ END FUNCTION
           write(stdout,2004) rhobarfact, nkscalfact
       endif
       !
-      if( do_orbdep ) call allocate_nksic( nnrx, ngw, nspin, nx, nat)
+      if( do_orbdep ) call allocate_nksic( nnrx, ngw, nspin, nbspx, nat)
       !
       if( (do_nk .or. do_nkpz ) .and. meta_ionode ) then
           write(stdout,2010) do_wxd, do_wref, do_nkpz
@@ -2954,7 +2955,7 @@ END FUNCTION
                                      hfscalfact_ => hfscalfact, &
                                      f_cutoff_ => f_cutoff
       use io_global,          only : meta_ionode, stdout
-      use electrons_base,     only : nspin, nx => nbspx
+      use electrons_base,     only : nspin, nbspx
       use gvecw,              only : ngw
       use grid_dimensions,    only : nnrx
       use funct,              only : start_exx, set_dft_from_name, dft_is_hybrid
@@ -3013,7 +3014,7 @@ END FUNCTION
       !
       ! allocations
       !
-      if( do_hf ) call allocate_hf(ngw,nnrx,nspin,nx)
+      if( do_hf ) call allocate_hf(ngw,nnrx,nspin,nbspx)
       ! 
       end subroutine hf_init
 

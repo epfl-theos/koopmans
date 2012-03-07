@@ -183,17 +183,19 @@
       !$$
 
 
+#ifdef __DEBUG
       if(ionode) then
          uname = TRIM( outdir ) // "/" // trim(prefix) // '.' &
                  // trim(int_to_char( my_image_id )) // '_' // trim(int_to_char( me_image))
-         !open(37,file='convergence.dat',status='unknown')!for debug and tuning purposes
          open(37,file=uname,status='unknown')!for debug and tuning purposes
 !$$
          open(1037,file='cg_convg.dat',status='unknown')!for debug and tuning purposes
 !$$
       endif
+#endif
+
       if( tfirst .and. ionode ) &
-         write(stdout,*) 'PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES'
+         write(stdout,"(/,a,/)") 'PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES'
       
 !set tpa preconditioning
 
@@ -249,14 +251,23 @@
       hi(:,:)=(0.d0,0.d0)
 
 !$$
-      do while ( itercg .lt. maxiter .and. (.not.ltresh) )
+      !=======================================================================
+      !                 begin of the main loop
+      !=======================================================================
+      !
+      OUTER_LOOP: &
+      do while ( itercg < maxiter .and. (.not. ltresh) )
+        !
+        call start_clock( "outer_loop" )
 
 !$$$$
 !$$$$        if(itercg.ge.10) do_innerloop=.false.
 !$$$$
 
 !$$
-        if(do_orbdep.and.ionode.and.( itercg.eq.1) .and. (iprsta > 1) ) then
+#ifdef __DEBUG
+        if( do_orbdep .and .ionode .and.( itercg == 1) ) then
+
           open(1032,file='convg_outer.dat',status='unknown')
           write(1032,'("#   ninner    nouter     non-sic energy (Ha)         sic energy (Ha)")')
 
@@ -265,9 +276,12 @@
             write(1031,'("#   ninner    nouter     non-sic energy (Ha)         sic energy (Ha)    RMS force eigenvalue")')
           endif
         endif
+#endif
 !$$
 
-        ENERGY_CHECK: if(.not. ene_ok ) then
+        ENERGY_CHECK: &
+        if(.not. ene_ok ) then
+
           call calbec(1,nsp,eigr,c0,bec)
           if(.not.tens) then
              call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
@@ -291,7 +305,8 @@
 !$$ CHP: do we need to do the following even if when we do not use ensemble dft?
 !$$      I have added this additional constraint.
 !$$          if(mod(itercg,niter_cg_restart)==1 .and. itercg >=2) then
-          if(tens.and.mod(itercg,niter_cg_restart)==1 .and. itercg >=2) then
+
+          if(tens .and. mod(itercg,niter_cg_restart)==1 .and. itercg >= 2) then
 !$$
 
               call rotate( z0t, c0(:,:), bec, c0diag, becdiag, .false. )
@@ -383,11 +398,15 @@
 !$$
         if( do_orbdep ) then
 
-          if(ionode.and.(itercg.eq.1)) then
-            write(1032,'(2I10,2F24.13)') 0,0,etot-esic,esic
+#ifdef __DEBUG
+          if( ionode .and. itercg == 1 ) then
+             write(1032,'(2I10,2F24.13)') 0,0,etot-esic,esic
           endif
+#endif
 
           if(do_innerloop) then
+             !
+             !call start_clock( "inner_loop" )
              !
              esic    = sum(pink(1:nbsp))
              etot    = etot - esic
@@ -415,19 +434,24 @@
 !            endif
 !$$
 
-              esic    = sum(pink(1:nbsp))
-              etot    = etot + esic
-              etotnew = etotnew + esic
-          endif
+             esic    = sum(pink(1:nbsp))
+             etot    = etot + esic
+             etotnew = etotnew + esic
+             !call stop_clock( "inner_loop" )
+             !
+           endif
+           !
         endif
 !$$
 
-!$$        if(ionode) write(37,*)itercg, etotnew,pberryel,pberryel2!for debug and tuning purposes
-        if(ionode) write(37,*)itercg, etotnew!for debug and tuning purposes
-!$$
-
-!$$
-        if(ionode) write(1037,'("iteration =",I4,"   Etot (Ha) =",F22.14)') itercg, etotnew !for debug and tuning purposes
+!$$     
+#ifdef __DEBUG
+        ! for debug and tuning purposes
+        if ( ionode ) write(37,*)itercg, etotnew
+        if ( ionode ) write(1037,'("iteration =",I4,"   Etot (Ha) =",F22.14)') itercg, etotnew 
+#endif
+        if ( ionode ) write(stdout,'(5x,"iteration =",I4,"   Etot (Ha) =",F22.14)') itercg, etotnew
+        if ( ionode .and. mod(itercg,10) == 0 ) write(stdout,"()" )
 !$$
 
 
@@ -435,26 +459,25 @@
         if (do_orbdep) then
             !
             esic = sum(pink(1:nbsp))
+#ifdef __DEBUG
             if(ionode) write(1032,'(2I10,2F24.13)') ninner,itercg,etot-esic,esic
+#endif
             !
         endif
 !$$
 
-        if(abs(etotnew-etotold).lt.conv_thr) then
+        if( abs(etotnew-etotold) < conv_thr ) then
            numok=numok+1
         else 
            numok=0
         endif
-
-        if(numok.ge.4) then
-           ltresh=.true.
-        endif
-
+        !
+        if( numok >= 4 ) ltresh=.true.
+        !
         etotold=etotnew
         ene0=etot
-        if(tens .and. newscheme) then
-          ene0=ene0+entropy
-        endif
+        !
+        if( tens .and. newscheme ) ene0=ene0+entropy
 
 
 !$$$$ For a test: Calculates wavefunctions very close to c0.
@@ -484,55 +507,59 @@
 !$$$$
 
 
-
-!$$$$ For a test: Calculates wavefunction very close to c0.
-    if(.false.) then
-      if(ionode) write(1000,*) 'Now entering the routine...'
-      if(ionode) write(1000,*) itercg
-      cm(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)
-      if(ng0.eq.2) then
-        cm(1,:)=0.5d0*(cm(1,:)+CONJG(cm(1,:)))
-      endif
-
-      call lowdin(cm)
-      call calbec(1,nsp,eigr,cm,becm)
-!      becm=bec
-
-      call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
-      vpot = rhor
-
-      call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
-                  &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
-
-      ene_save2(1)=etot
-
-      if(do_orbdep) then
-          !
-          call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
-                                ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
-          etot = etot + sum(pink(1:nbsp))
-          !
-      endif
-      !
-      if( do_hf ) then
-          !
-          call hf_potential( nbsp, nbspx, cm, f, ispin, iupdwn, nupdwn, &
-                             nbsp, nbspx, cm, f, ispin, iupdwn, nupdwn, &
-                             rhor, rhog, vxxpsi, exx)
-          !
-          etot = etot + sum(exx(1:nbsp))
-          !
-      endif
-
-
-      !if(ionode) then
-      !    write(1000,'(3e30.20)')  ene0,etot,etot-ene0
-      !    write(1000,'(3e30.20)')  esic,sum(pink(:)), sum(pink(:))-esic
-      !    write(1000,*)
-      !endif
-      !
-    endif
-!$$$$
+!!$$$$ For a test: Calculates wavefunction very close to c0.
+!    if(.false.) then
+!      !
+!#ifdef __DEBUG
+!      if(ionode) write(1000,*) 'Now entering the routine...'
+!      if(ionode) write(1000,*) itercg
+!#endif
+!      !
+!      cm(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)
+!      if(ng0.eq.2) then
+!        cm(1,:)=0.5d0*(cm(1,:)+CONJG(cm(1,:)))
+!      endif
+!
+!      call lowdin(cm)
+!      call calbec(1,nsp,eigr,cm,becm)
+!!      becm=bec
+!
+!      call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
+!      vpot = rhor
+!
+!      call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
+!                  &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
+!
+!      ene_save2(1)=etot
+!
+!      if(do_orbdep) then
+!          !
+!          call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
+!                                ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+!          etot = etot + sum(pink(1:nbsp))
+!          !
+!      endif
+!      !
+!      if( do_hf ) then
+!          !
+!          call hf_potential( nbsp, nbspx, cm, f, ispin, iupdwn, nupdwn, &
+!                             nbsp, nbspx, cm, f, ispin, iupdwn, nupdwn, &
+!                             rhor, rhog, vxxpsi, exx)
+!          !
+!          etot = etot + sum(exx(1:nbsp))
+!          !
+!      endif
+!
+!#ifdef __DEBUG
+!      if(ionode) then
+!          write(1000,'(3e30.20)')  ene0,etot,etot-ene0
+!          write(1000,'(3e30.20)')  esic,sum(pink(:)), sum(pink(:))-esic
+!          write(1000,*)
+!      endif
+!#endif
+!      !
+!    endif
+!!$$$$
 
 
         !update d
@@ -563,6 +590,7 @@
             call dforceb(c0, i+1, betae, ipolp, bec ,ctabin(1,1,ipolp), gqq, gqqm, qmat, deeq, df)
             c3(1:ngw)=c3(1:ngw)+evalue*df(1:ngw)
           endif
+          !
           if(tefield2 .and. (evalue2.ne.0.d0)) then
             call dforceb(c0, i, betae, ipolp2, bec ,ctabin2(1,1,ipolp2), gqq2, gqqm2, qmat2, deeq, df)
             c2(1:ngw)=c2(1:ngw)+evalue2*df(1:ngw)
@@ -802,7 +830,7 @@
         !case of first iteration
 
 !$$        if(itercg==1.or.(mod(itercg,niter_cg_restart).eq.1).or.restartcg) then
-        if(itercg==1.or.(mod(itercg,niter_cg_restart).eq.0).or.restartcg) then
+        if( itercg==1 .or. mod(itercg,niter_cg_restart)==0 .or. restartcg) then
 !$$
 
           restartcg=.false.
@@ -951,60 +979,70 @@
 
 
 
-!$$$$ Calculates wavefunction at very close to c0.
-    if(.false.) then
-      tmppasso=1.d-4
-      if(ionode) write(8000,*) itercg
-      do i=1,5
-        cm(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso * tmppasso * hi(1:ngw,1:nbsp)
-        if(ng0.eq.2) then
-          cm(1,:)=0.5d0*(cm(1,:)+CONJG(cm(1,:)))
-        endif
-
-        call lowdin(cm)
-        call calbec(1,nsp,eigr,cm,becm)
-
-        call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
-        vpot = rhor
-
-        call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
-                    &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
-
-        ene_save2(i)=etot
-
-        if(do_orbdep) then
-            !
-            call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
-                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
-            !
-            etot = etot + sum(pink(1:nbsp))
-            !
-        endif
-        !
-        if( do_hf ) then
-            !
-            call hf_potential( nbsp, nbspx, cm, f, ispin, iupdwn, nupdwn, &
-                               nbsp, nbspx, cm, f, ispin, iupdwn, nupdwn, &
-                               rhor, rhog, vxxpsi, exx)
-            !
-            etot = etot + sum(exx(1:nbsp))
-            !
-        endif
-        !
-        if(ionode) then
-            write(8000,'(2e30.20,3e20.10)')  ene0,etot,dene0,tmppasso,(etot-ene0)/tmppasso/dene0
-        endif
-
-        ene_save(i)=etot
-
-        tmppasso=tmppasso*0.1d0
-        !
-      enddo
-
-      if(ionode) write(8000,*)
-      !
-    endif
-!$$$$
+!!$$$$ Calculates wavefunction at very close to c0.
+!    if(.false.) then
+!      tmppasso=1.d-4
+!      !
+!#ifdef __DEBUG
+!      if(ionode) write(8000,*) itercg
+!#endif
+!      do i=1,5
+!        cm(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso * tmppasso * hi(1:ngw,1:nbsp)
+!        if(ng0.eq.2) then
+!          cm(1,:)=0.5d0*(cm(1,:)+CONJG(cm(1,:)))
+!        endif
+!
+!        call lowdin(cm)
+!        call calbec(1,nsp,eigr,cm,becm)
+!
+!        call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
+!        vpot = rhor
+!
+!        call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
+!                    &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
+!
+!        ene_save2(i)=etot
+!
+!        if(do_orbdep) then
+!            !
+!            call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
+!                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+!            !
+!            etot = etot + sum(pink(1:nbsp))
+!            !
+!        endif
+!        !
+!        if( do_hf ) then
+!            !
+!            call hf_potential( nbsp, nbspx, cm, f, ispin, iupdwn, nupdwn, &
+!                               nbsp, nbspx, cm, f, ispin, iupdwn, nupdwn, &
+!                               rhor, rhog, vxxpsi, exx)
+!            !
+!            etot = etot + sum(exx(1:nbsp))
+!            !
+!        endif
+!        !
+!#ifdef __DEBUG
+!        if(ionode) then
+!            write(8000,'(2e30.20,3e20.10)')  ene0,etot,dene0,tmppasso,(etot-ene0)/tmppasso/dene0
+!        endif
+!#endif
+!        !if(ionode) then
+!        !    write(stdout,'(2e30.20,3e20.10)')  ene0,etot,dene0,tmppasso,(etot-ene0)/tmppasso/dene0
+!        !endif
+!
+!        ene_save(i)=etot
+!
+!        tmppasso=tmppasso*0.1d0
+!        !
+!      enddo
+!
+!#ifdef __DEBUG
+!      if(ionode) write(8000,*)
+!#endif
+!      !
+!    endif
+!!$$$$
 
 
 
@@ -1098,7 +1136,7 @@
 
         call minparabola(ene0,spasso*dene0,ene1,passof,passo,enesti)
 
-        if(iprsta.gt.1) write(6,*) ene0,dene0,ene1,passo, gamma, esse
+        if( iprsta > 1 ) write(6,"(6f20.12)") ene0,dene0,ene1,passo, gamma, esse
 
         !set new step
 
@@ -1182,37 +1220,47 @@
         enever=etot
         if( tens .and. newscheme) enever=enever+entropy
         !
-        if(tens.and.newscheme) then
-          if(ionode) write(37,'(a3,4f20.10)') 'CG1',ene0,ene1,enesti,enever
-          if(ionode) write(37,'(a3,4f10.7)')  'CG2',spasso,passov,passo,(enever-ene0)/passo/dene0
+        if( tens .and. newscheme .and. ionode ) then
+#ifdef __DEBUG
+            write(37,'(a3,4f20.10)')   'CG1',ene0,ene1,enesti,enever
+            write(37,'(a3,4f10.7,/)')  'CG2',spasso,passov,passo,(enever-ene0)/passo/dene0
+#endif
+            !write(stdout,'(a3,4f20.10)')   'CG1',ene0,ene1,enesti,enever
+            !write(stdout,'(a3,4f10.7,/)')  'CG2',spasso,passov,passo,(enever-ene0)/passo/dene0
         else
-          if(ionode) write(37,'(a3,4f20.10)') 'CG1',ene0+entropy,ene1+entropy,enesti+entropy,enever+entropy
-!$$          if(ionode) write(37,'(a3,4f10.7)')  'CG2',spasso,passov,passo,(enever-ene0)/passo/dene0
-          if(ionode) write(37,'(a3,3f12.7,e20.10,f12.7)')  'CG2',spasso,passov,passo,dene0,(enever-ene0)/passo/dene0
-          if(ionode) write(37,*)
-!$$
-          if(ionode) then
+            !
+!$$         
+#ifdef __DEBUG
+            write(37,'(a3,4f20.10)') 'CG1',ene0+entropy,ene1+entropy,enesti+entropy,enever+entropy
+            write(37,'(a3,3f12.7,e20.10,f12.7)')  'CG2',spasso,passov,passo,dene0,(enever-ene0)/passo/dene0
+            write(37,"()")
             write(1037,'(a3,4f20.10)') 'CG1',ene0+entropy,ene1+entropy,enesti+entropy,enever+entropy
             write(1037,'(a3,3f12.7,e20.10,f12.7)')  'CG2',spasso,passov,passo,dene0,(enever-ene0)/passo/dene0
-            write(1037,*)
-          endif
+            write(1037, "()")
+#endif
+            !write(stdout,'(a3,4f20.10)') 'CG1',ene0+entropy,ene1+entropy,enesti+entropy,enever+entropy
+            !write(stdout,'(a3,3f12.7,e20.10,f12.7)')  'CG2',spasso,passov,passo,dene0,(enever-ene0)/passo/dene0
+            !write(stdout, "()")
 !$$
         endif
-        !check with  what supposed
 
+        !check with  what supposed
+        !
         if(ionode .and. iprsta > 1 ) then
-            write(stdout,*) 'cg_sub: estimate :'  , (enesti-enever)/(ene0-enever)
-            write(stdout,*) 'cg_sub: minmum   :'  , enever,passo,passov
+            write(stdout,"(2x,a,f20.12)") 'cg_sub: estimate :'  , (enesti-enever)/(ene0-enever)
+            write(stdout,"(2x,a,f20.12)") 'cg_sub: minmum   :'  , enever,passo,passov
         endif
 
+        !
         !if the energy has diminished with respect to  ene0 and ene1 , everything ok
+        !
         if( ((enever.lt.ene0) .and. (enever.lt.ene1)).or.(tefield.or.tefield2)) then
           c0(:,:)=cm(:,:)
           bec(:,:)=becm(:,:)
           ene_ok=.true.
         elseif( (enever.ge.ene1) .and. (enever.lt.ene0)) then
           if(ionode) then
-             write(stdout,*) 'cg_sub: missed minimum, case 1, iteration',itercg
+             write(stdout,"(2x,a,i5)") 'cg_sub: missed minimum, case 1, iteration',itercg
           endif
           c0(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
 !$$
@@ -1226,7 +1274,7 @@
           !if  ene1 << energy <  ene0; go to  ene1
         else if( (enever.ge.ene0).and.(ene0.gt.ene1)) then
           if(ionode) then
-             write(stdout,*) 'cg_sub: missed minimum, case 2, iteration',itercg
+             write(stdout,"(2x,a,i5)") 'cg_sub: missed minimum, case 2, iteration',itercg
           endif  
           c0(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
 !$$
@@ -1240,7 +1288,7 @@
           ene_ok=.false.
         else if((enever.ge.ene0).and.(ene0.le.ene1)) then
           if(ionode) then
-             write(stdout,*) 'cg_sub: missed minimum, case 3, iteration',itercg
+             write(stdout,"(2x,a,i5)") 'cg_sub: missed minimum, case 3, iteration',itercg
           endif
 
           iter3=0
@@ -1326,12 +1374,12 @@
             !
           enddo
 !$$
-          write(stdout,*) 'iter3 = ',iter3
+          if (ionode) write(stdout,"(2x,a,i5)") 'iter3 = ',iter3
 !$$
 
 !$$
           if(.not.do_orbdep) then
-              if(iter3 == maxiter3) write(stdout,*) 'missed minimun: iter3 = maxiter3'
+              if(iter3 == maxiter3) write(stdout,"(2x,a)") 'missed minimun: iter3 = maxiter3'
               c0(:,:)=cm(:,:)
           endif
 !$$
@@ -1359,26 +1407,36 @@
         !=======================================================================
         if(tens.and. .not.newscheme) then
             !
+            call start_clock( "inner_loop" )
+            !
             call  inner_loop_cold( nfi, tfirst, tlast, eigr,  irb, eigrb, &
                                    rhor, rhog, rhos, rhoc, ei1, ei2, ei3, sfac, &
                                    c0, bec, firstiter, vpot  )
             ! the following sets up the new energy
             enever=etot
             !
+            call stop_clock( "inner_loop" )
+            !
         endif
-      
+        ! 
         !=======================================================================
         !                 end of the inner loop
         !=======================================================================
 
   
         itercg=itercg+1
+        !
+        call stop_clock( "outer_loop" )
 
-!   restore hi
-!        hi(:,:)=gi(:,:) 
+      enddo OUTER_LOOP
+      ! 
+      !=======================================================================
+      !                 end of the main loop
+      !=======================================================================
 
-      enddo !on conjugate gradient iterations
+      !
       !calculates atomic forces and lambda
+      !
 
       !
       ! if pressure is need the following is written because of caldbec
@@ -1617,16 +1675,20 @@
         deallocate(hitmp)
 !$$
         deallocate( s_minus1,k_minus1)
-       if(ionode) close(37)!for debug and tuning purposes
-!$$
-       if(ionode) close(1037)!for debug and tuning purposes
-!$$
-       call stop_clock('runcg_uspp')
 
-       deallocate(bec0,becm,becdrdiag)
-       deallocate(ave_ene)
-       deallocate(c2,c3)
+#ifdef __DEBUG
+!$$     !for debug and tuning purposes
+        if(ionode) close(37)
+        if(ionode) close(1037)
+!$$
+#endif
+        call stop_clock('runcg_uspp')
 
-       return
+        deallocate(bec0,becm,becdrdiag)
+        deallocate(ave_ene)
+        deallocate(c2,c3)
+
+        return
 
      END SUBROUTINE runcg_uspp
+

@@ -14,13 +14,12 @@ MODULE cp_restart
   !
   USE iotk_module
   USE xml_io_base
-  USE xml_io_base, ONLY : default_fmt_version => fmt_version
   !
-  USE kinds,     ONLY : DP
-  USE io_global, ONLY : ionode, ionode_id, stdout
-  USE io_files,  ONLY : prefix, iunpun, xmlpun, qexml_version, qexml_version_init
-  USE mp,        ONLY : mp_bcast
-  USE parser,    ONLY : version_compare
+  USE kinds,       ONLY : DP
+  USE io_global,   ONLY : ionode, ionode_id, stdout
+  USE io_files,    ONLY : prefix, iunpun, xmlpun, qexml_version, qexml_version_init
+  USE mp,          ONLY : mp_bcast
+  USE parser,      ONLY : version_compare
   !
   IMPLICIT NONE
   !
@@ -1074,7 +1073,7 @@ MODULE cp_restart
             !
          ELSE
             !
-            qexml_version = TRIM( default_fmt_version )
+            qexml_version = TRIM( fmt_version )
             !
          ENDIF
          !

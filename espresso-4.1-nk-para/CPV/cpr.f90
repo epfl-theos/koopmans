@@ -1090,18 +1090,23 @@ SUBROUTINE terminate_run()
   !
   IF ( do_orbdep ) THEN
      !
-     CALL print_clock( 'nksic_drv' )
-        CALL print_clock( 'nksic_orbrho' )
-        CALL print_clock( 'nksic_rhoref' )
-        CALL print_clock( 'nksic_eforce' )
-     CALL print_clock( 'nksic_corr' )
-        CALL print_clock( 'nksic_corr_h' )
-        CALL print_clock( 'nksic_corr_vxc' )
-        CALL print_clock( 'nksic_corr_fxc' )
+     CALL print_clock( 'nk_drv' )
+        CALL print_clock( 'nk_orbrho' )
+        CALL print_clock( 'nk_rhoref' )
+        CALL print_clock( 'nk_eforce' )
+     CALL print_clock( 'nk_corr' )
+        CALL print_clock( 'nk_corr_h' )
+        CALL print_clock( 'nk_corr_vxc' )
+        CALL print_clock( 'nk_corr_fxc' )
      !
-     CALL print_clock( 'nksic_rot_emin' )
-     CALL print_clock( 'nksic_rotwfn' )
-     CALL print_clock( 'get_vsicah' )
+     IF ( ionode ) WRITE(stdout,"()")
+     CALL print_clock( 'nk_rot_emin' )
+     CALL print_clock( 'nk_innerloop' )
+     CALL print_clock( 'nk_rot_cm' )
+     CALL print_clock( 'nk_get_vsicah' )
+     CALL print_clock( 'nk_getOmattot' )
+     CALL print_clock( 'nk_getOmat1' )
+     CALL print_clock( 'nk_rotwfn' )
      IF ( ionode ) WRITE(stdout,"()")
      !
   ENDIF
@@ -1116,6 +1121,8 @@ SUBROUTINE terminate_run()
   !
   IF ( tcg ) THEN
      !
+     CALL print_clock( 'outer_loop' )
+     !CALL print_clock( 'inner_loop' )
      call print_clock_tcg()
      !
   ENDIF

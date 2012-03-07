@@ -207,7 +207,7 @@
               WRITE (iunit,"(    3X, '--------------------------')")
               WRITE (iunit,"(3X, '   states = ',i8)") n_emp
               WRITE (iunit,"(3X, '  maxiter = ',i8)") max_emp
-              WRITE (iunit,"(3X, '     ethr = ',D10.4)") ethr_emp
+              WRITE (iunit,"(3X, '     ethr = ',D12.4)") ethr_emp
           ENDIF
           !
           RETURN
