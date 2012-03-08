@@ -1136,7 +1136,7 @@
 
         call minparabola(ene0,spasso*dene0,ene1,passof,passo,enesti)
 
-        if( iprsta > 1 ) write(6,"(6f20.12)") ene0,dene0,ene1,passo, gamma, esse
+        if( ionode .and. iprsta > 1 ) write(stdout,"(6f20.12)") ene0,dene0,ene1,passo, gamma, esse
 
         !set new step
 
@@ -1248,7 +1248,7 @@
         !
         if(ionode .and. iprsta > 1 ) then
             write(stdout,"(2x,a,f20.12)") 'cg_sub: estimate :'  , (enesti-enever)/(ene0-enever)
-            write(stdout,"(2x,a,f20.12)") 'cg_sub: minmum   :'  , enever,passo,passov
+            write(stdout,"(2x,a,3f20.12)") 'cg_sub: minmum   :'  , enever,passo,passov
         endif
 
         !
