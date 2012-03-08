@@ -2092,6 +2092,7 @@ end subroutine nksic_dmxc_spin_cp
       use cp_main_variables,          only : bec
       use wavefunctions_module,       only : c0, cm
       use control_flags,              only : esic_conv_thr
+      use cg_module,                  only : tcg
       !
       implicit none
       !
@@ -2106,25 +2107,25 @@ end subroutine nksic_dmxc_spin_cp
       !
       ! local variables
       !
-      real(dp) :: esic,esic_old
-      real(dp)                 :: bec1(nkb,nbsp)
-      integer                  :: nbnd1,nbnd2
-      real(dp)                 :: Omat1tot(nbspx,nbspx)
-      real(dp)                 :: vsic1(nnrx,nbspx)
+      real(dp)    :: esic,esic_old
+      integer     :: i, nbnd1,nbnd2
+      integer     :: npassofailmax
+      real(dp)    :: dtmp,dalpha
+      integer     :: isp
+      real(dp)    :: vsicah2sum,deigrms,dmaxeig
+      integer     :: nfile
+      logical     :: do_nonvar,lstopinner
+      !
+      real(dp),    allocatable :: Omat1tot(:,:)
+      complex(dp), allocatable :: Umatbig(:,:)
+      real(dp),    allocatable :: Heigbig(:)
+      complex(dp), allocatable :: wfc_ctmp(:,:)
       complex(dp), allocatable :: Umat(:,:)
-      complex(dp)              :: Umatbig(nbspx,nbspx)
-      real(dp), allocatable    :: Heig(:)
-      real(dp)                 :: Heigbig(nbspx)
-      complex(dp)              :: wfn_ctmp(ngw,nbspx)
-      integer                  :: npassofailmax
-      integer, save            :: npassofail=0
-      real(dp), save           :: passoprod=0.3d0
-      real(dp)                 :: pink1(nbspx),dtmp,dalpha
-      integer                  :: isp
-      real(dp), allocatable    :: vsicah(:,:)
-      real(dp)                 :: vsicah2sum,deigrms,dmaxeig
-      integer :: nfile
-      logical                  :: do_nonvar,lstopinner
+      real(dp),    allocatable :: Heig(:)
+      real(dp),    allocatable :: vsicah(:,:)
+      !
+      integer,  save :: npassofail=0
+      real(dp), save :: passoprod=0.3d0
 
       !
       ! variables for test calculations - along gradient line direction
@@ -2135,6 +2136,11 @@ end subroutine nksic_dmxc_spin_cp
       npassofailmax = 5 ! when to stop dividing passoprod by 2
       esic_old=0.d0
 
+      allocate( Omat1tot(nbspx,nbspx) )
+      allocate( Umatbig(nbspx,nbspx) )
+      allocate( Heigbig(nbspx) )
+      allocate( wfc_ctmp(ngw,nbspx) )
+      !
       Umatbig(:,:)=(0.d0,0.d0)
       Heigbig(:)=0.d0
       deigrms = 0.d0
@@ -2151,7 +2157,8 @@ end subroutine nksic_dmxc_spin_cp
       ninner = 0
       ldotest=.false.
 
-      if (ionode) write(stdout, "(14x,'#   etot    esic    deigrms')")
+      if (ionode) write(stdout, "(14x,'# iter',6x,'etot',17x,'esic',&
+                                  & 17x,'deigrms')")
 
       ! 
       ! main loop 
@@ -2195,48 +2202,70 @@ end subroutine nksic_dmxc_spin_cp
 !$$ This part calculates the anti-hermitian part of the hamiltonian
 !$$ vsicah and see whether a convergence has been achieved
 
-        wfn_ctmp(:,:) = (0.d0,0.d0)
+        wfc_ctmp(:,:) = (0.d0,0.d0)
         deigrms = 0.d0
 
+        spin_loop: &
         do isp=1,nspin
 
-          allocate(Umat(nupdwn(isp),nupdwn(isp)))
-          allocate(Heig(nupdwn(isp)))
-          allocate(vsicah(nupdwn(isp),nupdwn(isp)))
+          allocate( Umat(nupdwn(isp),nupdwn(isp)) )
+          allocate( Heig(nupdwn(isp)) )
+          allocate( vsicah(nupdwn(isp), nupdwn(isp)) )
 
-          call nksic_getvsicah( isp, vsicah, vsicah2sum)
+          !call nksic_getvsicah( isp, vsicah, vsicah2sum)
+          !call nksic_getvsicah_new1( isp, vsicah, vsicah2sum)
+          call nksic_getvsicah_new2( isp, vsicah, vsicah2sum)
+          !
+!! DEBUG XXX
+!IF ( ionode ) THEN
+!      WRITE(6,"()")
+!      WRITE(6,"(a,5i3)") "SHAPE", SHAPE(vsicah)
+!      DO i = 1, SIZE( vsicah, 2)
+!          WRITE(6,"(8f15.9)") vsicah(:,i)
+!      ENDDO
+!      WRITE(6,"()")
+!      WRITE(6,"(f15.9)") vsicah2sum
+!      CALL errore("culo","debug",10)
+!ENDIF
+
           call nksic_getHeigU(  isp, vsicah, Heig, Umat)
 
           Umatbig( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp), &
                    iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Umat(:,:)
           Heigbig( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Heig(:)
 
-!$$ The following file prints out the eigenvalues of the force matrix: for debugging
-!$$
-!$$          if(ionode) then
-!$$            nfile=10000+isp
-!$$            write(nfile,'(2I10,100F10.6)') ninner,nouter,sum(Heig(:)**2),Heig(:)
-!$$          endif
-!$$
-
+          !!
+          !! CHP: The following file prints out 
+          !! the eigenvalues of the force matrix for debugging
+          !
+          !if (ionode) then
+          !     nfile=10000+isp
+          !     write(nfile,'(2I10,100F10.6)') ninner,nouter,sum(Heig(:)**2),Heig(:)
+          !endif
+          !
           deigrms = deigrms + sum(Heig(:)**2)
 
           deallocate(Umat)
           deallocate(Heig)
           deallocate(vsicah)
+          !
+        enddo spin_loop
 
-        enddo ! do isp=1,nspin
 
         dmaxeig = max( abs(Heigbig(iupdwn(1))), abs(Heigbig(iupdwn(1)+nupdwn(1)-1)) )
         do isp=2,nspin
-          dmaxeig = max(dmaxeig,abs(Heigbig(iupdwn(isp))))
-          dmaxeig = max(dmaxeig,abs(Heigbig(iupdwn(isp)+nupdwn(isp)-1)))
+            !
+            dmaxeig = max(dmaxeig,abs(Heigbig(iupdwn(isp))))
+            dmaxeig = max(dmaxeig,abs(Heigbig(iupdwn(isp)+nupdwn(isp)-1)))
+            !
         enddo
 
         ! how severe the transform is
         deigrms = sqrt(deigrms/nbsp)
 
-!$$ print out ESIC part & other total energy
+        !
+        ! print out ESIC part & other total energy
+        !
         esic=sum(pink(:))
         !
 #ifdef __DEBUG
@@ -2247,7 +2276,7 @@ end subroutine nksic_dmxc_spin_cp
 
         dalpha = passoprod/dmaxeig
         !
-        call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfn_ctmp,Omat1tot,bec1,vsic1,pink1,dtmp)
+        call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfc_ctmp,Omat1tot,bec,vsic,pink,dtmp)
 
         !
         ! deal with non-variational functionals, 
@@ -2298,10 +2327,7 @@ end subroutine nksic_dmxc_spin_cp
         !
         Omattot = MATMUL(Omattot,Omat1tot)
         !
-        pink(:)    = pink1(:)
-        vsic(:,:)  = vsic1(:,:)
-        c0(:,:)    = wfn_ctmp(:,:)
-        bec(:,:)   = bec1(:,:)
+        c0(:,:)    = wfc_ctmp(:,:)
         esic_old   = esic
 
         call stop_clock( "nk_innerloop" )
@@ -2314,28 +2340,33 @@ end subroutine nksic_dmxc_spin_cp
       ! cm is relevant only for damped dynamics
       !
       call start_clock( "nk_rot_cm" )
-!      if ( .not. tcg ) then
+      if ( .not. tcg ) then
           !
           if( ninner >= 2 ) then
               !
-              wfn_ctmp(:,:) = (0.d0,0.d0)
+              wfc_ctmp(:,:) = (0.d0,0.d0)
               !
               do nbnd1=1,nbspx
               do nbnd2=1,nbspx
-                  wfn_ctmp(:,nbnd1)=wfn_ctmp(:,nbnd1) + cm(:,nbnd2) * Omattot(nbnd2,nbnd1)
+                  wfc_ctmp(:,nbnd1)=wfc_ctmp(:,nbnd1) + cm(:,nbnd2) * Omattot(nbnd2,nbnd1)
                   ! XXX (we can think to use a blas, here, and split over spins)
               enddo
               enddo
               !
-              cm(:,1:nbspx) = wfn_ctmp(:,1:nbspx)
+              cm(:,1:nbspx) = wfc_ctmp(:,1:nbspx)
               !
           endif
           !
-!      endif
+      endif
+      !
+      deallocate( Omat1tot )
+      deallocate( Umatbig )
+      deallocate( Heigbig )
+      deallocate( wfc_ctmp )
       !
       call stop_clock( "nk_rot_cm" )
-      !
       call stop_clock( 'nk_rot_emin' )
+      !
       return
       !
 !---------------------------------------------------------------
@@ -2379,7 +2410,7 @@ end subroutine nksic_rot_emin
       complex(dp)              :: Umatbig(nbspx,nbspx)
       real(dp), allocatable    :: Heig(:)
       real(dp)                 :: Heigbig(nbspx)
-      complex(dp)              :: wfn_ctmp(ngw,nbspx)
+      complex(dp)              :: wfc_ctmp(ngw,nbspx)
       real(dp)                 :: dalpha,dmaxeig
       real(dp)                 :: pink1(nbspx)
       integer                  :: isp,istep
@@ -2440,7 +2471,7 @@ end subroutine nksic_rot_emin
           dalpha = 0.d0
         endif
 
-        call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfn_ctmp,Omat1tot,bec1,vsic1,pink1,esic)
+        call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfc_ctmp,Omat1tot,bec1,vsic1,pink1,esic)
 
         if(ionode) write(nfile,'(5F24.13,2I10)') dalpha/3.141592*dmaxeig, dmaxeig, etot, esic, deigrms,ninner, nouter
 
@@ -2506,7 +2537,7 @@ end subroutine nksic_rot_test
       real(dp), allocatable    :: Heig(:)
       complex(dp)              :: Umatbig(nbspx,nbspx)
       real(dp)                 :: Heigbig(nbspx)
-      complex(dp)              :: wfn_ctmp(ngw,nbspx),wfn_ctmp2(ngw,nbspx)
+      complex(dp)              :: wfc_ctmp(ngw,nbspx),wfc_ctmp2(ngw,nbspx)
       real(dp)                 :: pink1(nbspx),pink2(nbspx),dtmp
       integer                  :: isp
       logical :: ldotest
@@ -2599,8 +2630,8 @@ end subroutine nksic_rot_test
 !$$ This part calculates the anti-hermitian part of the Hamiltonian vsicah
 !$$ and see whether a convergence has been achieved
 
-        wfn_ctmp(:,:) = (0.d0,0.d0)
-        wfn_ctmp2(:,:) = (0.d0,0.d0)
+        wfc_ctmp(:,:) = (0.d0,0.d0)
+        wfc_ctmp2(:,:) = (0.d0,0.d0)
 
         gi(:,:) = 0.d0
         vsicah2sum = 0.d0
@@ -2712,7 +2743,7 @@ end subroutine nksic_rot_test
         if(dene0 .gt. 0.d0) spasso=-1.d0
 
         dalpha = spasso*passof
-        call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfn_ctmp,Omat1tot,bec1,vsic1,pink1,ene1)
+        call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfc_ctmp,Omat1tot,bec1,vsic1,pink1,ene1)
         call minparabola(ene0,spasso*dene0,ene1,passof,passo,enesti)
 
 !$$$$ We neglect this step for paper writing purposes
@@ -2729,7 +2760,7 @@ end subroutine nksic_rot_test
 !$$ The following line is for dene0 test
 !        if(ninner.ge.15) dalpha = spasso*passo*0.00001
 !$$
-        call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfn_ctmp2,Omat2tot,bec2,vsic2,pink2,enever)
+        call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfc_ctmp2,Omat2tot,bec2,vsic2,pink2,enever)
 
         if(ionode) then
           write(1037,*) ninner, nouter
@@ -2756,13 +2787,13 @@ end subroutine nksic_rot_test
         if(ene1.ge.enever) then
           pink(:) = pink2(:)
           vsic(:,:) = vsic2(:,:)
-          c0(:,:) = wfn_ctmp2(:,:)
+          c0(:,:) = wfc_ctmp2(:,:)
           bec(:,:) = bec2(:,:)
           Omattot = MATMUL(Omattot,Omat2tot)
         else
           pink(:) = pink1(:)
           vsic(:,:) = vsic1(:,:)
-          c0(:,:) = wfn_ctmp(:,:)
+          c0(:,:) = wfc_ctmp(:,:)
           bec(:,:) = bec1(:,:)
           Omattot = MATMUL(Omattot,Omat1tot)
           if(ionode) then
@@ -2776,13 +2807,13 @@ end subroutine nksic_rot_test
 
 !$$ Wavefunction cm rotation according to Omattot
       if(ninner.ge.2) then
-        wfn_ctmp(:,:) = (0.d0,0.d0)
+        wfc_ctmp(:,:) = (0.d0,0.d0)
         do nbnd1=1,nbspx
           do nbnd2=1,nbspx
-            wfn_ctmp(:,nbnd1)=wfn_ctmp(:,nbnd1) + cm(:,nbnd2) * Omattot(nbnd2,nbnd1)
+            wfc_ctmp(:,nbnd1)=wfc_ctmp(:,nbnd1) + cm(:,nbnd2) * Omattot(nbnd2,nbnd1)
           enddo
         enddo
-        cm(:,1:nbspx) = wfn_ctmp(:,1:nbspx)
+        cm(:,1:nbspx) = wfc_ctmp(:,1:nbspx)
       endif
 !$$ We need this because outer loop could be damped dynamics.
 
@@ -2794,12 +2825,12 @@ end subroutine nksic_rot_emin_cg
 !---------------------------------------------------------------
 
 !---------------------------------------------------------------
-      subroutine nksic_getOmattot(dalpha,Heigbig,Umatbig,wfn0,wfn1,Omat1tot,bec1,vsic1,pink1,ene1)
+      subroutine nksic_getOmattot(dalpha,Heigbig,Umatbig,wfc0,wfc1,Omat1tot,bec1,vsic1,pink1,ene1)
 !---------------------------------------------------------------
 !
-! ... This routine rotates the wavefunction wfn0 into wfn1 according to
+! ... This routine rotates the wavefunction wfc0 into wfc1 according to
 !     the force matrix (Heigbig, Umatbig) and the step of size dalpha.
-!     Other quantities such as bec, vsic, pink are also calculated for wfn1.
+!     Other quantities such as bec, vsic, pink are also calculated for wfc1.
 !
 
       use kinds,                      only : dp
@@ -2819,9 +2850,9 @@ end subroutine nksic_rot_emin_cg
       real(dp),           intent(in) :: dalpha
       complex(dp),        intent(in) :: Umatbig(nbspx,nbspx)
       real(dp),           intent(in) :: Heigbig(nbspx)
-      complex(dp),        intent(in) :: wfn0(ngw,nbspx)
+      complex(dp),        intent(in) :: wfc0(ngw,nbspx)
       !
-      complex(dp)                    :: wfn1(ngw,nbspx)
+      complex(dp)                    :: wfc1(ngw,nbspx)
       real(dp)                       :: Omat1tot(nbspx,nbspx)
       real(dp)                       :: bec1(nkb,nbsp)
       real(dp)                       :: vsic1(nnrx,nbspx)
@@ -2847,7 +2878,7 @@ end subroutine nksic_rot_emin_cg
         Omat1tot(nbnd1,nbnd1)=1.d0
       enddo
 
-      wfn1(:,:) = (0.d0,0.d0)
+      wfc1(:,:) = (0.d0,0.d0)
 
       dmaxeig = max( abs(Heigbig(iupdwn(1))), abs(Heigbig(iupdwn(1)+nupdwn(1)-1)) )
       do isp=2,nspin
@@ -2867,8 +2898,8 @@ end subroutine nksic_rot_emin_cg
 
         call nksic_getOmat1(isp,Heig,Umat,dalpha,Omat1)
 
-!$$ Wavefunction wfn0 is rotated into wfn0 using Omat1
-        call nksic_rotwfn(isp,Omat1,wfn0,wfn1)
+!$$ Wavefunction wfc0 is rotated into wfc0 using Omat1
+        call nksic_rotwfn(isp,Omat1,wfc0,wfc1)
 
 ! Assigning the rotation matrix for a specific spin isp
         Omat1tot(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp),iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Omat1(:,:)
@@ -2882,11 +2913,11 @@ end subroutine nksic_rot_emin_cg
       !
       ! recalculate bec & vsic according to the new wavefunction
       !
-      call calbec(1,nsp,eigr,wfn1,bec1)
+      call calbec(1,nsp,eigr,wfc1,bec1)
 
       vsic1(:,:) = 0.d0
       pink1(:) = 0.d0
-      call nksic_potential( nbsp, nbspx, wfn1, fsic, bec1, becsum, deeq_sic, &
+      call nksic_potential( nbsp, nbspx, wfc1, fsic, bec1, becsum, deeq_sic, &
                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic1, pink1 )
 
       ene1=sum(pink1(:))
@@ -2902,11 +2933,11 @@ end subroutine nksic_getOmattot
 
 
 !-----------------------------------------------------------------------
-      subroutine nksic_rotwfn(isp,Omat1,wfn1,wfn2)
+      subroutine nksic_rotwfn(isp,Omat1,wfc1,wfc2)
 !-----------------------------------------------------------------------
 !
-! ... Simple rotation of wfn1 into wfn2 by Omat1.
-!     wfn2(n) = sum_m wfn1(m) Omat1(m,n)
+! ... Simple rotation of wfc1 into wfc2 by Omat1.
+!     wfc2(n) = sum_m wfc1(m) Omat1(m,n)
 !
       use electrons_base,             only : iupdwn,nupdwn,nbspx
       use gvecw,                      only : ngw
@@ -2918,8 +2949,8 @@ end subroutine nksic_getOmattot
       !
       integer,     intent(in)  :: isp
       real(dp),    intent(in)  :: Omat1(nupdwn(isp),nupdwn(isp))
-      complex(dp), intent(in)  :: wfn1(ngw,nbspx)
-      complex(dp)              :: wfn2(ngw,nbspx)
+      complex(dp), intent(in)  :: wfc1(ngw,nbspx)
+      complex(dp)              :: wfc2(ngw,nbspx)
 
       !
       ! local variables for cg routine
@@ -2928,16 +2959,18 @@ end subroutine nksic_getOmattot
 
       CALL start_clock('nk_rotwfn')
       !
-      wfn2(:,iupdwn(isp):iupdwn(isp)-1+nupdwn(isp))=(0.d0,0.d0)
+      wfc2(:,iupdwn(isp):iupdwn(isp)-1+nupdwn(isp))=(0.d0,0.d0)
 
       !
       ! a blas could be used here XXX
       !
       do nbnd1=1,nupdwn(isp)
-        do nbnd2=1,nupdwn(isp)
-          wfn2(:,iupdwn(isp)-1 + nbnd1)=wfn2(:,iupdwn(isp)-1 + nbnd1) &
-              + wfn1(:,iupdwn(isp)-1 + nbnd2) * Omat1(nbnd2,nbnd1)
-        enddo
+      do nbnd2=1,nupdwn(isp)
+          !
+          wfc2(:,iupdwn(isp)-1 + nbnd1)=wfc2(:,iupdwn(isp)-1 + nbnd1) &
+              + wfc1(:,iupdwn(isp)-1 + nbnd2) * Omat1(nbnd2,nbnd1)
+          !
+      enddo
       enddo
 
       CALL stop_clock('nk_rotwfn')
@@ -3170,12 +3203,12 @@ end subroutine nksic_printoverlap
           !
       enddo
       !
-      !call mp_sum( vsicah2sum, intra_image_comm)
       call mp_sum( vsicah,     intra_image_comm)
       !
+      vsicah2sum = 0.0d0
       do nbnd1 = 1, nupdwn(isp)
-      do nbnd2 = 1, nupdwn(isp)
-          vsicah2sum  =  vsicah2sum + vsicahtmp*vsicahtmp
+      do nbnd2 = 1, nbnd1-1
+          vsicah2sum  =  vsicah2sum + 2.0d0*vsicah(nbnd2,nbnd1)*vsicah(nbnd2,nbnd1)
       enddo
       enddo
       !
@@ -3193,6 +3226,7 @@ end subroutine nksic_getvsicah
 !-----------------------------------------------------------------------
 !
 ! ... Calculates the anti-hermitian part of the SIC hamiltonian, vsicah.
+!     Exploit fft of wfc pairs.
 !
       use kinds,                      only : dp
       use grid_dimensions,            only : nr1x, nr2x, nr3x, nnrx
@@ -3216,12 +3250,13 @@ end subroutine nksic_getvsicah
       !
       ! local variables
       !     
-      complex(dp)     :: psi1(nnrx), psi2(nnrx)
       real(dp)        :: vsicahtmp, cost
       real(dp)        :: dwfnnorm
       integer         :: nbnd1,nbnd2
-      integer         :: i, j1, j2, jj2
-      real(dp), allocatable :: wfc2(:,:)
+      integer         :: i, j1, jj1, j2, jj2
+      !
+      complex(dp), allocatable :: psi1(:), psi2(:) 
+      real(dp),    allocatable :: wfc1(:,:), wfc2(:,:)
 
     
       CALL start_clock('nk_get_vsicah')
@@ -3229,60 +3264,78 @@ end subroutine nksic_getvsicah
       dwfnnorm = 1.0d0/(dble(nr1x)*dble(nr2x)*dble(nr3x))
       cost     = 2.0d0 * dble( nspin ) * 0.5d0 * dwfnnorm
       !
-      vsicah(:,:) = 0.d0
-      vsicah2sum  = 0.d0
-      !
-      allocate( wfc2(ngw, 2) )
+      allocate( wfc1(nnrx, 2) )
+      allocate( wfc2(nnrx, 2) )
+      allocate( psi1(nnrx) )
+      allocate( psi2(nnrx) )
 
       !
       ! Imposing Pederson condition
       !
-      do nbnd1=1,nupdwn(isp)
+      vsicah(:,:) = 0.d0
+      !
+      do nbnd1=1,nupdwn(isp),2
           !
           j1 = iupdwn(isp)-1 + nbnd1
           !
-          CALL c2psi( psi1, nnrx, c0(:,j1), (0.d0,0.d0), ngw, 1)
+          CALL c2psi( psi1, nnrx, c0(:,j1), c0(:,j1+1), ngw, 2)
           CALL invfft('Dense', psi1, dfftp )
-
-          do nbnd2=1,nbnd1-1,2
+          !
+          wfc1(:,1) =  dble ( psi1(:) )
+          wfc1(:,2) = aimag ( psi1(:) )
+          !
+          do jj1 = 1, 2
               !
-              j2 = iupdwn(isp)-1 + nbnd2
+              if ( nbnd1+jj1-1 > nupdwn(isp) ) cycle
               !
-              CALL c2psi( psi2, nnrx, c0(:,j2), c0(:,j2+1), ngw, 1 )
-              CALL invfft('Dense', psi2, dfftp )
               !
-              wfc2(:,1) =  dble ( psi2(:) )
-              wfc2(:,2) = aimag ( psi2(:) )
-              !
-              do jj2 = 1, 2
+              do nbnd2 = 1, nbnd1-1+jj1-1, 2
                   !
+                  j2 = iupdwn(isp)-1 + nbnd2
                   !
-                  vsicahtmp = 0.d0
+                  CALL c2psi( psi2, nnrx, c0(:,j2), c0(:,j2+1), ngw, 2 )
+                  CALL invfft('Dense', psi2, dfftp )
                   !
-                  do i=1,nnrx
+                  wfc2(:,1) =  dble ( psi2(:) )
+                  wfc2(:,2) = aimag ( psi2(:) )
+                  !
+                  do jj2 = 1, 2
                       !
-                      vsicahtmp = vsicahtmp + &
-                            !cost * dble( conjg(psi1(i)) * psi2(i) &
-                            cost * dble( conjg(psi1(i)) * wfc2(i,jj2) &
-                                 * ( vsic(i, j2+jj2-1 ) * fsic( j2+jj2-1 ) &
-                                  -  vsic(i, j1 )       * fsic( j1 ) ) )
+                      if ( nbnd2+jj2-1 > nbnd1-1+jj1-1 ) cycle
+                      !
+                      vsicahtmp = 0.d0
+                      !
+                      do i=1,nnrx
+                          !
+                          vsicahtmp = vsicahtmp + &
+                                cost * dble( wfc1(i,jj1) * wfc2(i,jj2) &
+                                     * ( vsic(i, j2+jj2-1 ) * fsic( j2+jj2-1 ) &
+                                      -  vsic(i, j1+jj1-1 ) * fsic( j1+jj1-1 ) ) )
+                          !
+                      enddo
+                      !
+                      vsicah(nbnd1+jj1-1,nbnd2+jj2-1) =  vsicahtmp
+                      vsicah(nbnd2+jj2-1,nbnd1+jj1-1) = -vsicahtmp
                       !
                   enddo
-                  !
-                  vsicah(nbnd1,nbnd2+jj2-1) =  vsicahtmp
-                  vsicah(nbnd2+jj2-1,nbnd1) = -vsicahtmp
-                  vsicah2sum                =  vsicah2sum + 2.0d0*vsicahtmp*vsicahtmp
-                  !
               enddo
               !
           enddo
-          !
       enddo
       !
-      call mp_sum( vsicah2sum, intra_image_comm)
       call mp_sum( vsicah,     intra_image_comm)
       !
-      deallocate( wfc2 )
+      vsicah2sum = 0.0d0
+      !
+      do nbnd1 = 1, nupdwn(isp)
+      do nbnd2 = 1, nbnd1-1
+          vsicah2sum  =  vsicah2sum + 2.0d0*vsicah(nbnd2,nbnd1)*vsicah(nbnd2,nbnd1)
+      enddo
+      enddo
+      !
+      !
+      deallocate( wfc1, wfc2 )
+      deallocate( psi1, psi2 )
       !
       call stop_clock('nk_get_vsicah')
       !
@@ -3290,6 +3343,111 @@ end subroutine nksic_getvsicah
       !
 !---------------------------------------------------------------
 end subroutine nksic_getvsicah_new1
+!---------------------------------------------------------------
+
+
+!-----------------------------------------------------------------------
+      subroutine nksic_getvsicah_new2( isp, vsicah, vsicah2sum)
+!-----------------------------------------------------------------------
+!
+! ... Calculates the anti-hermitian part of the SIC hamiltonian, vsicah.
+!     makes use of nksic_eforce to compute   h_i | phi_i >
+!     and then computes   < phi_j | h_i | phi_i >  in reciprocal space.
+!
+      use kinds,                      only : dp
+      use grid_dimensions,            only : nr1x, nr2x, nr3x, nnrx
+      use gvecw,                      only : ngw
+      use reciprocal_vectors,         only : gstart
+      use mp,                         only : mp_sum
+      use mp_global,                  only : intra_image_comm
+      use electrons_base,             only : nspin, iupdwn, nupdwn
+      use cp_interfaces,              only : invfft
+      use fft_base,                   only : dfftp
+      use nksic,                      only : vsic, fsic, vsicpsi, &
+                                             deeq_sic  ! to be passed directly
+      use wavefunctions_module,       only : c0
+      use cp_main_variables,          only : bec  ! to be passed directly
+      !
+      implicit none
+      !
+      ! in/out vars
+      ! 
+      integer,     intent(in)  :: isp
+      real(dp)                 :: vsicah( nupdwn(isp),nupdwn(isp))
+      real(dp)                 :: vsicah2sum
+
+      !
+      ! local variables
+      !     
+      real(dp)        :: vsicahtmp, cost
+      integer         :: nbnd1,nbnd2
+      integer         :: i, j1, jj1, j2, jj2
+      !
+      !complex(dp), allocatable :: vsicpsi(:,:)
+      real(dp),    allocatable :: hmat(:,:)
+
+    
+      CALL start_clock('nk_get_vsicah')
+      !
+      cost     = dble( nspin ) * 2.0d0
+      !
+      !allocate( vsicpsi(npw,2) )
+      allocate( hmat(nupdwn(isp),nupdwn(isp)) )
+
+      !
+      ! compute < phi_j | Delta h_i | phi_i > 
+      !
+      do nbnd1 = 1, nupdwn(isp), 2
+          !
+          ! NOTE: USPP not implemented
+          !
+          CALL nksic_eforce( nbnd1, nupdwn(isp), nupdwn(isp), vsic, &
+                             deeq_sic, bec, ngw, c0(:,nbnd1), c0(:,nbnd1+1), vsicpsi )
+          !
+          do jj1 = 1, 2
+              !
+              do nbnd2 = 1, nupdwn(isp)
+                  !
+                  hmat(nbnd2,nbnd1+jj1-1) = 2.000*dot_product( c0(:,nbnd2), vsicpsi(:,jj1))
+                  !
+                  if ( gstart == 2 ) then
+                       hmat(nbnd2,nbnd1+jj1-1) = hmat(nbnd2,nbnd1+jj1-1) - &
+                                                 dble( c0(1,nbnd2) * vsicpsi(1,jj1) )
+                  endif
+                  ! 
+              enddo
+              !
+          enddo
+      enddo
+      !
+      call mp_sum( hmat, intra_image_comm )
+      hmat = hmat * cost
+      
+
+      !
+      ! Imposing Pederson condition
+      !
+      vsicah(:,:) = 0.d0
+      vsicah2sum = 0.0d0
+      !
+      do nbnd1 = 1, nupdwn(isp)
+      do nbnd2 = 1, nbnd1-1
+          !
+          vsicah( nbnd2, nbnd1) = hmat(nbnd2,nbnd1) -hmat(nbnd1,nbnd2)
+          vsicah( nbnd1, nbnd2) = hmat(nbnd1,nbnd2) -hmat(nbnd2,nbnd1)
+          vsicah2sum            =  vsicah2sum + 2.0d0*vsicah(nbnd2,nbnd1)*vsicah(nbnd2,nbnd1)
+          !
+      enddo
+      enddo
+      !
+      deallocate( hmat )
+      !
+      call stop_clock('nk_get_vsicah')
+      !
+      return
+      !
+!---------------------------------------------------------------
+end subroutine nksic_getvsicah_new2
 !---------------------------------------------------------------
 
 
