@@ -138,7 +138,7 @@
       real(DP),    allocatable :: hpsinorm(:), hpsinosicnorm(:)
       complex(DP), allocatable :: hpsinosic(:,:)
       complex(DP), allocatable :: hitmp(:,:)
-      integer     :: ninner,nbnd1,nbnd2
+      integer     :: ninner,nbnd1,nbnd2,itercgeff
       real(DP)    :: esic
       real(DP)    :: Omattot(nbspx,nbspx)
       complex(DP) :: hi_tmp(ngw,nbsp)
@@ -209,6 +209,10 @@
       restartcg = .true.
       passof = passop
       ene_ok = .false.
+
+!$$
+      itercgeff = 1
+!$$
 
       !orthonormalize c0
       call calbec(1,nsp,eigr,c0,bec)
@@ -447,10 +451,12 @@
 !$$     
 !$$#ifdef __DEBUG
         ! for debug and tuning purposes
-        if ( ionode ) write(37,*)itercg, etotnew
-        if ( ionode ) write(1037,'("iteration =",I4,"   Etot (Ha) =",F22.14)') itercg, etotnew 
+        if ( ionode ) write(37,*)itercg, itercgeff, etotnew
+        if ( ionode ) write(1037,'("iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14)')&
+            itercg, itercgeff, etotnew 
 !$$#endif
-        if ( ionode ) write(stdout,'(5x,"iteration =",I4,"   Etot (Ha) =",F22.14)') itercg, etotnew
+        if ( ionode ) write(stdout,'(5x,"iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14)')&
+            itercg, itercgeff, etotnew
         if ( ionode .and. mod(itercg,10) == 0 ) write(stdout,"()" )
 !$$
 
@@ -1267,6 +1273,7 @@
           c0(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
 !$$
           passof=1.d0*passov
+          itercgeff = itercgeff+1
 !$$
           restartcg=.true.
           call calbec(1,nsp,eigr,c0,bec)
@@ -1281,6 +1288,7 @@
           c0(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
 !$$
           passof=1.d0*passov
+          itercgeff=itercgeff+1
 !$$
           restartcg=.true.!ATTENZIONE
           call calbec(1,nsp,eigr,c0,bec)
@@ -1294,12 +1302,13 @@
           endif
 
           iter3=0
-          do while(enever.gt.ene0 .and. iter3.lt.maxiter3)
+          do while(enever.ge.ene0 .and. iter3.lt.maxiter3)
             iter3=iter3+1
             passov=passov*0.5d0
             cm(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
 !$$
             passof=1.d0*passov
+            itercgeff=itercgeff+1
 !$$
             ! chenge the searching direction
             spasso=spasso*(-1.d0)
@@ -1427,6 +1436,10 @@
 
   
         itercg=itercg+1
+
+!$$
+        itercgeff=itercgeff+1
+!$$
         !
         call stop_clock( "outer_loop" )
 
