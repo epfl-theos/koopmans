@@ -183,7 +183,7 @@
       !$$
 
 
-#ifdef __DEBUG
+!$$#ifdef __DEBUG
       if(ionode) then
          uname = TRIM( outdir ) // "/" // trim(prefix) // '.' &
                  // trim(int_to_char( my_image_id )) // '_' // trim(int_to_char( me_image))
@@ -192,7 +192,7 @@
          open(1037,file='cg_convg.dat',status='unknown')!for debug and tuning purposes
 !$$
       endif
-#endif
+!$$#endif
 
       if( tfirst .and. ionode ) &
          write(stdout,"(/,a,/)") 'PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES'
@@ -265,8 +265,8 @@
 !$$$$
 
 !$$
-#ifdef __DEBUG
-        if( do_orbdep .and .ionode .and.( itercg == 1) ) then
+!$$#ifdef __DEBUG
+        if( do_orbdep .and. ionode .and.( itercg == 1) ) then
 
           open(1032,file='convg_outer.dat',status='unknown')
           write(1032,'("#   ninner    nouter     non-sic energy (Ha)         sic energy (Ha)")')
@@ -276,7 +276,7 @@
             write(1031,'("#   ninner    nouter     non-sic energy (Ha)         sic energy (Ha)    RMS force eigenvalue")')
           endif
         endif
-#endif
+!$$#endif
 !$$
 
         ENERGY_CHECK: &
@@ -398,11 +398,11 @@
 !$$
         if( do_orbdep ) then
 
-#ifdef __DEBUG
+!$$#ifdef __DEBUG
           if( ionode .and. itercg == 1 ) then
              write(1032,'(2I10,2F24.13)') 0,0,etot-esic,esic
           endif
-#endif
+!$$#endif
 
           if(do_innerloop) then
              !
@@ -445,11 +445,11 @@
 !$$
 
 !$$     
-#ifdef __DEBUG
+!$$#ifdef __DEBUG
         ! for debug and tuning purposes
         if ( ionode ) write(37,*)itercg, etotnew
         if ( ionode ) write(1037,'("iteration =",I4,"   Etot (Ha) =",F22.14)') itercg, etotnew 
-#endif
+!$$#endif
         if ( ionode ) write(stdout,'(5x,"iteration =",I4,"   Etot (Ha) =",F22.14)') itercg, etotnew
         if ( ionode .and. mod(itercg,10) == 0 ) write(stdout,"()" )
 !$$
@@ -459,9 +459,9 @@
         if (do_orbdep) then
             !
             esic = sum(pink(1:nbsp))
-#ifdef __DEBUG
+!$$#ifdef __DEBUG
             if(ionode) write(1032,'(2I10,2F24.13)') ninner,itercg,etot-esic,esic
-#endif
+!$$#endif
             !
         endif
 !$$
@@ -1221,23 +1221,23 @@
         if( tens .and. newscheme) enever=enever+entropy
         !
         if( tens .and. newscheme .and. ionode ) then
-#ifdef __DEBUG
+!$$#ifdef __DEBUG
             write(37,'(a3,4f20.10)')   'CG1',ene0,ene1,enesti,enever
             write(37,'(a3,4f10.7,/)')  'CG2',spasso,passov,passo,(enever-ene0)/passo/dene0
-#endif
+!$$#endif
             !write(stdout,'(a3,4f20.10)')   'CG1',ene0,ene1,enesti,enever
             !write(stdout,'(a3,4f10.7,/)')  'CG2',spasso,passov,passo,(enever-ene0)/passo/dene0
         else
             !
 !$$         
-#ifdef __DEBUG
+!$$#ifdef __DEBUG
             write(37,'(a3,4f20.10)') 'CG1',ene0+entropy,ene1+entropy,enesti+entropy,enever+entropy
             write(37,'(a3,3f12.7,e20.10,f12.7)')  'CG2',spasso,passov,passo,dene0,(enever-ene0)/passo/dene0
             write(37,"()")
             write(1037,'(a3,4f20.10)') 'CG1',ene0+entropy,ene1+entropy,enesti+entropy,enever+entropy
             write(1037,'(a3,3f12.7,e20.10,f12.7)')  'CG2',spasso,passov,passo,dene0,(enever-ene0)/passo/dene0
             write(1037, "()")
-#endif
+!$$#endif
             !write(stdout,'(a3,4f20.10)') 'CG1',ene0+entropy,ene1+entropy,enesti+entropy,enever+entropy
             !write(stdout,'(a3,3f12.7,e20.10,f12.7)')  'CG2',spasso,passov,passo,dene0,(enever-ene0)/passo/dene0
             !write(stdout, "()")
@@ -1676,12 +1676,12 @@
 !$$
         deallocate( s_minus1,k_minus1)
 
-#ifdef __DEBUG
+!$$#ifdef __DEBUG
 !$$     !for debug and tuning purposes
         if(ionode) close(37)
         if(ionode) close(1037)
 !$$
-#endif
+!$$#endif
         call stop_clock('runcg_uspp')
 
         deallocate(bec0,becm,becdrdiag)

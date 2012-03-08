@@ -2172,10 +2172,10 @@ end subroutine nksic_dmxc_spin_cp
 
         if( ninner > innerloop_nmax ) then
             !
-#ifdef __DEBUG
+!$$#ifdef __DEBUG
             if(ionode) write(1031,*) '# innerloop_nmax reached.'
             if(ionode) write(1031,*)
-#endif
+!$$#endif
             if(ionode) then 
                 write(stdout,"(14x,'# innerloop_nmax reached.',/)")
             endif
@@ -2185,7 +2185,7 @@ end subroutine nksic_dmxc_spin_cp
             !
         endif
         
-#ifdef __DEBUG
+!$$#ifdef __DEBUG
         !
 !$$     ! Now do the test
         !
@@ -2196,7 +2196,7 @@ end subroutine nksic_dmxc_spin_cp
 !          call nksic_rot_test(dtmp,201,nouter,ninner,etot)
           ldotest=.false.
         endif
-#endif
+!$$#endif
 
 
 !$$ This part calculates the anti-hermitian part of the hamiltonian
@@ -2268,9 +2268,9 @@ end subroutine nksic_dmxc_spin_cp
         !
         esic=sum(pink(:))
         !
-#ifdef __DEBUG
+!$$#ifdef __DEBUG
         if(ionode) write(1031,'(2I10,3F24.13)') ninner, nouter,etot,esic,deigrms
-#endif
+!$$#endif
         if(ionode) write(stdout,'(10x,2i5,3F21.13)') ninner, nouter, etot, esic, deigrms
 
 
@@ -2298,10 +2298,10 @@ end subroutine nksic_dmxc_spin_cp
             !
             npassofail = npassofail+1
             !
-#ifdef __DEBUG
+!$$#ifdef __DEBUG
             if(ionode) write(1031,'("# procedure  ",I4," / ",I4, &
                                     & " is finished.",/)') npassofail,npassofailmax
-#endif
+!$$#endif
             if(ionode) write(stdout,'(14x, "# procedure  ",I4," / ",I4, &
                                     & " is finished.",/)') npassofail,npassofailmax
             !
@@ -2644,7 +2644,7 @@ end subroutine nksic_rot_test
         do isp=1,nspin
             !
             allocate(vsicah(nupdwn(isp),nupdwn(isp)))
-            call nksic_getvsicah(isp,vsicah,dtmp)
+            call nksic_getvsicah_new2(isp,vsicah,dtmp)
             !
             gi(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp),iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = vsicah(:,:)
             vsicah2sum = vsicah2sum + dtmp
