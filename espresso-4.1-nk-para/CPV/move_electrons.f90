@@ -188,7 +188,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
 
          nouter = nouter + 1
          !
-#ifdef __DEBUG
+!$$#ifdef __DEBUG
          if( ionode .and.( nouter == 1) ) then
            !
            open(1032,file='convg_outer.dat',status='unknown')
@@ -204,7 +204,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
 
            endif
          endif
-#endif
+!$$#endif
 
 !$$ Inner loop convergence is performed only once at the first iteration:
 !$$ therefore it is better to start from LDA wavefunctions which are good
