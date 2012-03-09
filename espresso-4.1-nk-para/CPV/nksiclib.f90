@@ -2585,6 +2585,7 @@ end subroutine nksic_rot_test
           exit
         endif
 
+
 !        call nksic_printoverlap(ninner,nouter)
 
 !        if(mod(ninner,10).eq.1.or.ninner.le.5) ldotest=.true.
@@ -2615,6 +2616,8 @@ end subroutine nksic_rot_test
           endif
           exit
         endif
+
+        call start_clock( "nk_innerloop" )
 
         pinksumprev=ene0
 
@@ -2782,6 +2785,7 @@ end subroutine nksic_rot_test
           endif
           ninner = ninner + 1
           exit
+          call stop_clock( "nk_innerloop" )
         endif
 
         if(ene1.ge.enever) then
@@ -2801,6 +2805,8 @@ end subroutine nksic_rot_test
             write(1037,*)
           endif
         endif
+
+        call stop_clock( "nk_innerloop" )
 
       enddo  !$$ do while (.true.)
 
@@ -3190,11 +3196,12 @@ end subroutine nksic_printoverlap
               do i=1,nnrx
                   !
                   vsicahtmp = vsicahtmp + &
-                              cost * dble( conjg(psi1(i)) * psi2(i) &
+                              dble( conjg(psi1(i)) * psi2(i) &
                                    * ( vsic(i, j2 ) * fsic( j2 ) &
                                      - vsic(i, j1 ) * fsic( j1 ) ) )
                   !
               enddo
+              vsicahtmp = vsicahtmp * cost
               !
               vsicah(nbnd1,nbnd2) =  vsicahtmp
               vsicah(nbnd2,nbnd1) = -vsicahtmp
@@ -3360,7 +3367,7 @@ end subroutine nksic_getvsicah_new1
       use reciprocal_vectors,         only : gstart
       use mp,                         only : mp_sum
       use mp_global,                  only : intra_image_comm
-      use electrons_base,             only : nspin, iupdwn, nupdwn
+      use electrons_base,             only : nspin, iupdwn, nupdwn, nbsp,nbspx
       use cp_interfaces,              only : invfft
       use fft_base,                   only : dfftp
       use nksic,                      only : vsic, fsic, vsicpsi, &
@@ -3401,18 +3408,26 @@ end subroutine nksic_getvsicah_new1
           !
           ! NOTE: USPP not implemented
           !
-          CALL nksic_eforce( nbnd1, nupdwn(isp), nupdwn(isp), vsic, &
-                             deeq_sic, bec, ngw, c0(:,nbnd1), c0(:,nbnd1+1), vsicpsi )
+!$$          CALL nksic_eforce( nbnd1, nupdwn(isp), nupdwn(isp), vsic, &
+!$$                             deeq_sic, bec, ngw, c0(:,nbnd1), c0(:,nbnd1+1), vsicpsi )
+          j1 = nbnd1+iupdwn(isp)-1
+          CALL nksic_eforce( j1, nbsp, nbspx, vsic, &
+                             deeq_sic, bec, ngw, c0(:,j1), c0(:,j1+1), vsicpsi )
           !
           do jj1 = 1, 2
               !
+              if ( nbnd1+jj1-1 > nupdwn(isp) ) cycle
+              !
               do nbnd2 = 1, nupdwn(isp)
                   !
-                  hmat(nbnd2,nbnd1+jj1-1) = 2.000*dot_product( c0(:,nbnd2), vsicpsi(:,jj1))
+!$$                  hmat(nbnd2,nbnd1+jj1-1) = 2.000*dot_product( c0(:,nbnd2), vsicpsi(:,jj1))
+                  j2 = nbnd2+iupdwn(isp)-1
+                  hmat(nbnd2,nbnd1+jj1-1) = 2.000*dot_product( c0(:,j2), vsicpsi(:,jj1))
                   !
                   if ( gstart == 2 ) then
                        hmat(nbnd2,nbnd1+jj1-1) = hmat(nbnd2,nbnd1+jj1-1) - &
-                                                 dble( c0(1,nbnd2) * vsicpsi(1,jj1) )
+!$$                                                 dble( c0(1,nbnd2) * vsicpsi(1,jj1) )
+                                                 dble( c0(1,j2) * vsicpsi(1,jj1) )
                   endif
                   ! 
               enddo

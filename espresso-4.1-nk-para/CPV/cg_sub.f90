@@ -167,7 +167,7 @@
 
       maxiter3=250
 !$$
-      if(do_orbdep) maxiter3=10
+      if(do_orbdep) maxiter3=0
 !$$
       ninner=0
 
@@ -1444,6 +1444,13 @@
         call stop_clock( "outer_loop" )
 
       enddo OUTER_LOOP
+
+!$$#ifdef __DEBUG
+        ! for debug and tuning purposes
+        if ( ionode ) write(37,*)itercg, itercgeff, etotnew
+        if ( ionode ) write(1037,'("iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14)')&
+            itercg, itercgeff, etotnew
+!$$#endif
       ! 
       !=======================================================================
       !                 end of the main loop
