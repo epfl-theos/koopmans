@@ -16,6 +16,7 @@ MANUAL=" Usage
  PZ_CG           PZ: Conjugate gradient (outer loop only)
  PZ_CG_SPIN      PZ: Conjugate gradient w/ spin (outer loop only)
  PZ_CG_INN       PZ: Conjugate gradient (outer loop) + simple inner-loop
+ PZ_CG_INN_SPIN  PZ: Conjugate gradient (outer loop) + simple inner-loop, spin polariz
  PZ_CG_ICG       PZ: Conjugate gradient (outer loop) + Conjugate gradient inner-loop
  PZ_DD_ICG       PZ: Damped dynamics (outer loop) + Conjugate gradient inner-loop
 
@@ -57,6 +58,7 @@ PZ_DD=
 PZ_CG=
 PZ_CG_SPIN=
 PZ_CG_INN=
+PZ_CG_INN_SPIN=
 PZ_CG_ICG=
 PZ_DD_ICG=
 HF_DD=
@@ -77,6 +79,7 @@ case $INPUT in
    (pz_cg)          PZ_CG=yes ;;
    (pz_cg_spin)     PZ_CG_SPIN=yes ;;
    (pz_cg_inn)      PZ_CG_INN=yes ;;
+   (pz_cg_inn_spin) PZ_CG_INN_SPIN=yes ;;
    (pz_cg_icg)      PZ_CG_ICG=yes ;;
    (pz_dd_icg)      PZ_DD_ICG=yes ;;
 
@@ -86,9 +89,9 @@ case $INPUT in
    (pbe0_cg)        PBE0_CG=yes ;;
 
    (odd)            PZ_DD=yes ; PZ_CG=yes ; PZ_CG_SPIN=yes ; 
-                    PZ_CG_INN=yes ; PZ_CG_ICG=yes ; PZ_DD_ICG=yes ;;
+                    PZ_CG_INN=yes ; PZ_CG_INN_SPIN=yes ; PZ_CG_ICG=yes ; PZ_DD_ICG=yes ;;
    (all)            PZ_DD=yes ; PZ_CG=yes ; PZ_CG_SPIN=yes ; 
-                    PZ_CG_INN=yes ; PZ_CG_ICG=yes ; PZ_DD_ICG=yes ;
+                    PZ_CG_INN=yes ; PZ_CG_INN_SPIN=yes ; PZ_CG_ICG=yes ; PZ_DD_ICG=yes ;
                     HF_DD=yes ; HF_CG=yes ; PBE0_DD=yes    ; PBE0_CG=yes ;
                     LDA_DD=yes ; LDA_CG=yes ;;
    (check)          CHECK=yes ;;
@@ -116,6 +119,7 @@ run_cp  NAME=PZ_CG        SUFFIX=$SUFFIX  RUN=$PZ_CG
 run_cp  NAME=PZ_CG_SPIN   SUFFIX=$SUFFIX  RUN=$PZ_CG_SPIN
 #
 run_cp  NAME=PZ_CG_INNER      SUFFIX=$SUFFIX  RUN=$PZ_CG_INN
+run_cp  NAME=PZ_CG_INNER_SPIN SUFFIX=$SUFFIX  RUN=$PZ_CG_INN_SPIN
 run_cp  NAME=PZ_CG_INNERCG    SUFFIX=$SUFFIX  RUN=$PZ_CG_ICG
 run_cp  NAME=PZ_DD_INNERCG    SUFFIX=$SUFFIX  RUN=$PZ_DD_ICG
 #
