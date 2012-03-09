@@ -1273,7 +1273,6 @@
           c0(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
 !$$
           passof=1.d0*passov
-          itercgeff = itercgeff+1
 !$$
           restartcg=.true.
           call calbec(1,nsp,eigr,c0,bec)
@@ -1288,7 +1287,6 @@
           c0(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
 !$$
           passof=1.d0*passov
-          itercgeff=itercgeff+1
 !$$
           restartcg=.true.!ATTENZIONE
           call calbec(1,nsp,eigr,c0,bec)

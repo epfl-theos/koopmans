@@ -2784,8 +2784,8 @@ end subroutine nksic_rot_test
             write(1031,*)
           endif
           ninner = ninner + 1
-          exit
           call stop_clock( "nk_innerloop" )
+          exit
         endif
 
         if(ene1.ge.enever) then
