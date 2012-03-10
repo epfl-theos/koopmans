@@ -66,11 +66,10 @@
       USE cp_main_variables,        ONLY : nlax, collect_lambda, distribute_lambda, descla, nrlx, nlam
       USE descriptors,              ONLY : la_npc_ , la_npr_ , la_comm_ , la_me_ , la_nrl_ , ldim_cyclic
       USE mp_global,                ONLY : me_image,my_image_id
-!$$
+      !
       use nksic,                    only : do_orbdep, do_innerloop, do_innerloop_cg, innerloop_cg_nsd, &
                                            innerloop_cg_nreset, &
                                            vsicpsi, vsic, wtot, fsic, fion_sic, deeq_sic, f_cutoff, pink
-!$$
       use hfmod,                    only : do_hf, vxxpsi, exx
 
 
@@ -115,14 +114,13 @@
       real(dp)    :: sca, dumm(1)
       logical     :: newscheme, firstiter
       integer     :: maxiter3
-!
-!
+      !
       real(kind=DP), allocatable :: bec0(:,:), becm(:,:), becdrdiag(:,:,:)
       real(kind=DP), allocatable :: ave_ene(:)!average kinetic energy for preconditioning
       real(kind=DP), allocatable :: fmat_(:,:)!average kinetic energy for preconditioning
-      
+      ! 
       logical     :: pre_state!if .true. does preconditioning state by state
-
+      !
       real(DP)    :: esse,essenew !factors in c.g.
       logical     :: ltresh!flag for convergence on energy
       real(DP)    :: passo!step to minimum
@@ -133,7 +131,7 @@
       integer     :: iter3
       real(DP)    :: passof,passov !step to minimum: effective, estimated
       real(DP)    :: ene0,ene1,dene0,enesti !energy terms for linear minimization along hi
-!$$
+      !
       real(DP),    allocatable :: faux(:) ! takes into account spin multiplicity
       real(DP),    allocatable :: hpsinorm(:), hpsinosicnorm(:)
       complex(DP), allocatable :: hpsinosic(:,:)
@@ -146,14 +144,12 @@
       real(dp),    allocatable :: vsicah(:,:)
       real(dp)    :: vsicah2sum
       real(dp)    :: tmppasso, ene_save(100), ene_save2(100), ene_lda
-!$$
-
-!$$   
-!$$      allocate(faux(n))
+      !
+      !
       allocate (faux(nbspx))
-!      allocate(hpsinorm(n))
-!      allocate(hpsinosicnorm(n))
-!$$
+      !allocate(hpsinorm(n))
+      !allocate(hpsinosicnorm(n))
+      !
       allocate (bec0(nhsa,nbsp),becm(nhsa,nbsp), becdrdiag(nhsa,nspin*nlax,3))
       allocate (ave_ene(nbsp))
       allocate (c2(ngw),c3(ngw))
@@ -171,28 +167,28 @@
 !$$
       ninner=0
 
-
-      !$$ the following is just a beginning; many things to be done...
+      !
+      ! the following is just a beginning; many things to be done...
+      !
       if(do_orbdep) then
-        if ( tens .or. tsmear) then
-          fsic = fmat0_diag
-        else
-          fsic = f
-        endif
+          !
+          if ( tens .or. tsmear) then
+              fsic = fmat0_diag
+          else
+              fsic = f
+          endif
+          !
       endif
-      !$$
 
 
-!$$#ifdef __DEBUG
+#ifdef __DEBUG
       if(ionode) then
          uname = TRIM( outdir ) // "/" // trim(prefix) // '.' &
                  // trim(int_to_char( my_image_id )) // '_' // trim(int_to_char( me_image))
          open(37,file=uname,status='unknown')!for debug and tuning purposes
-!$$
          open(1037,file='cg_convg.dat',status='unknown')!for debug and tuning purposes
-!$$
       endif
-!$$#endif
+#endif
 
       if( tfirst .and. ionode ) &
          write(stdout,"(/,a,/)") 'PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES'
@@ -221,40 +217,44 @@
 
       !call calbec(1,nsp,eigr,c0,bec)
 
-      !calculates phi for pcdaga
-
-      ! call calphiid(c0,bec,betae,phi)
+      ! calculates phi for pcdaga
+      !
+      !call calphiid(c0,bec,betae,phi)
+      !
       CALL calphi( c0, SIZE(c0,1), bec, nhsa, betae, phi, nbsp )
-
-      !calculates the factors for S and K inversion in US case
-      if(nvb.gt.0) then
-         allocate( s_minus1(nhsavb,nhsavb))
-         allocate( k_minus1(nhsavb,nhsavb))
-        call  set_x_minus1(betae,s_minus1,dumm,.false.)
-        call  set_x_minus1(betae,k_minus1,ema0bg,.true.)
+      !
+      ! calculates the factors for S and K inversion in US case
+      !
+      if ( nvb > 0 ) then
+          !
+          allocate( s_minus1(nhsavb,nhsavb))
+          allocate( k_minus1(nhsavb,nhsavb))
+          call  set_x_minus1(betae,s_minus1,dumm,.false.)
+          call  set_x_minus1(betae,k_minus1,ema0bg,.true.)
+          !
       else
-         allocate( s_minus1(1,1))
-         allocate( k_minus1(1,1))
+          !
+          allocate( s_minus1(1,1))
+          allocate( k_minus1(1,1))
+          !
       endif  
-
-      !set index on number of converged iterations
-
+      !
+      ! set index on number of converged iterations
+      !
       numok = 0
 
       allocate( hpsi(ngw,nbsp) )
       allocate( hpsi0(ngw,nbsp) )
       allocate( gi(ngw,nbsp), hi(ngw,nbsp) )
-
-!$$
+      !
       allocate(hitmp(ngw,nbsp))
       hitmp(:,:) = (0.d0,0.d0)
-!      allocate(hpsinosic(ngw,n))
-!$$
-
+      ! allocate(hpsinosic(ngw,n))
+      !
       gi(:,:)=(0.d0,0.d0)
       hi(:,:)=(0.d0,0.d0)
 
-!$$
+
       !=======================================================================
       !                 begin of the main loop
       !=======================================================================
@@ -269,7 +269,7 @@
 !$$$$
 
 !$$
-!$$#ifdef __DEBUG
+#ifdef __DEBUG
         if( do_orbdep .and. ionode .and.( itercg == 1) ) then
 
           open(1032,file='convg_outer.dat',status='unknown')
@@ -280,7 +280,7 @@
             write(1031,'("#   ninner    nouter     non-sic energy (Ha)         sic energy (Ha)    RMS force eigenvalue")')
           endif
         endif
-!$$#endif
+#endif
 !$$
 
         ENERGY_CHECK: &
@@ -304,24 +304,24 @@
                      &                    ,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
           endif
            
-!when cycle is restarted go to diagonal representation
-
-!$$ CHP: do we need to do the following even if when we do not use ensemble dft?
-!$$      I have added this additional constraint.
-!$$          if(mod(itercg,niter_cg_restart)==1 .and. itercg >=2) then
-
-          if(tens .and. mod(itercg,niter_cg_restart)==1 .and. itercg >= 2) then
-!$$
-
+          !
+          ! when cycle is restarted go to diagonal representation
+          !
+          ! CHP: do we need to do the following even if when we do not use ensemble dft?
+          !      I have added this additional constraint.
+          !
+          if( tens .and. mod(itercg,niter_cg_restart) ==1 .and. itercg >= 2 ) then
+              !
               call rotate( z0t, c0(:,:), bec, c0diag, becdiag, .false. )
               c0(:,:)=c0diag(:,:)
               bec(:,:)=becdiag(:,:)
+              !
               call id_matrix_init( descla, nspin )
               !
           endif
         
-
-          !calculates the potential
+          !
+          ! calculates the potential
           !
           !     put core charge (if present) in rhoc(r)
           !
@@ -402,11 +402,11 @@
 !$$
         if( do_orbdep ) then
 
-!$$#ifdef __DEBUG
+#ifdef __DEBUG
           if( ionode .and. itercg == 1 ) then
              write(1032,'(2I10,2F24.13)') 0,0,etot-esic,esic
           endif
-!$$#endif
+#endif
 
           if(do_innerloop) then
              !
@@ -449,12 +449,12 @@
 !$$
 
 !$$     
-!$$#ifdef __DEBUG
+#ifdef __DEBUG
         ! for debug and tuning purposes
         if ( ionode ) write(37,*)itercg, itercgeff, etotnew
         if ( ionode ) write(1037,'("iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14)')&
             itercg, itercgeff, etotnew 
-!$$#endif
+#endif
         if ( ionode ) write(stdout,'(5x,"iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14)')&
             itercg, itercgeff, etotnew
         if ( ionode .and. mod(itercg,10) == 0 ) write(stdout,"()" )
@@ -465,9 +465,9 @@
         if (do_orbdep) then
             !
             esic = sum(pink(1:nbsp))
-!$$#ifdef __DEBUG
+#ifdef __DEBUG
             if(ionode) write(1032,'(2I10,2F24.13)') ninner,itercg,etot-esic,esic
-!$$#endif
+#endif
             !
         endif
 !$$
@@ -1227,16 +1227,15 @@
         if( tens .and. newscheme) enever=enever+entropy
         !
         if( tens .and. newscheme .and. ionode ) then
-!$$#ifdef __DEBUG
+#ifdef __DEBUG
             write(37,'(a3,4f20.10)')   'CG1',ene0,ene1,enesti,enever
             write(37,'(a3,4f10.7,/)')  'CG2',spasso,passov,passo,(enever-ene0)/passo/dene0
-!$$#endif
+#endif
             !write(stdout,'(a3,4f20.10)')   'CG1',ene0,ene1,enesti,enever
             !write(stdout,'(a3,4f10.7,/)')  'CG2',spasso,passov,passo,(enever-ene0)/passo/dene0
         else
             !
-!$$         
-!$$#ifdef __DEBUG
+#ifdef __DEBUG
             if(ionode) then
                 write(37,'(a3,4f20.10)') 'CG1',ene0+entropy,ene1+entropy,enesti+entropy,enever+entropy
                 write(37,'(a3,3f12.7,e20.10,f12.7)')  'CG2',spasso,passov,passo,dene0,(enever-ene0)/passo/dene0
@@ -1245,13 +1244,14 @@
                 write(1037,'(a3,3f12.7,e20.10,f12.7)')  'CG2',spasso,passov,passo,dene0,(enever-ene0)/passo/dene0
                 write(1037, "()")
             endif
-!$$#endif
+#endif
             !write(stdout,'(a3,4f20.10)') 'CG1',ene0+entropy,ene1+entropy,enesti+entropy,enever+entropy
             !write(stdout,'(a3,3f12.7,e20.10,f12.7)')  'CG2',spasso,passov,passo,dene0,(enever-ene0)/passo/dene0
             !write(stdout, "()")
-!$$
+            !
         endif
 
+        !
         !check with  what supposed
         !
         if(ionode .and. iprsta > 1 ) then
@@ -1414,6 +1414,7 @@
         !                 (Uij degrees of freedom)
         !
         !=======================================================================
+        !
         if(tens.and. .not.newscheme) then
             !
             call start_clock( "inner_loop" )
@@ -1431,7 +1432,19 @@
         !=======================================================================
         !                 end of the inner loop
         !=======================================================================
-
+        !
+!        if ( ( mod( itercg, isave ) == 0 ) ) then
+!            !
+!            CALL writefile( h, hold ,nfi, c0, c0old, taus, tausm,  &
+!                            vels, velsm, acc, lambda, lambdam, xnhe0, xnhem,     &
+!                            vnhe, xnhp0, xnhpm, vnhp, nhpcl,nhpdim,ekincm, xnhh0,&
+!                            xnhhm, vnhh, velh, fion, tps, z0t, f, rhor )
+!            !
+!        endif
+        !
+        !=======================================================================
+        !                 end write to file
+        !=======================================================================
   
         itercg=itercg+1
 
@@ -1443,12 +1456,12 @@
 
       enddo OUTER_LOOP
 
-!$$#ifdef __DEBUG
+#ifdef __DEBUG
         ! for debug and tuning purposes
         if ( ionode ) write(37,*)itercg, itercgeff, etotnew
         if ( ionode ) write(1037,'("iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14)')&
             itercg, itercgeff, etotnew
-!$$#endif
+#endif
       ! 
       !=======================================================================
       !                 end of the main loop
@@ -1691,17 +1704,16 @@
            call bforceion(fion,tfor.or.tprnfor,ipolp2, qmat2,bec,becdr,gqq2,evalue2)
         endif
         deallocate(hpsi0,hpsi,gi,hi)
-!$$
         deallocate(hitmp)
-!$$
         deallocate( s_minus1,k_minus1)
 
-!$$#ifdef __DEBUG
-!$$     !for debug and tuning purposes
+#ifdef __DEBUG
+        !
+        !for debug and tuning purposes
+        !
         if(ionode) close(37)
         if(ionode) close(1037)
-!$$
-!$$#endif
+#endif
         call stop_clock('runcg_uspp')
 
         deallocate(bec0,becm,becdrdiag)

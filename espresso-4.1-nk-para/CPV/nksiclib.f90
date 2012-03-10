@@ -2133,6 +2133,11 @@ end subroutine nksic_dmxc_spin_cp
       logical :: ldotest
       
       !
+      ! main body
+      !
+      CALL start_clock( 'nk_rot_emin' )
+
+      !
       npassofailmax = 5 ! when to stop dividing passoprod by 2
       esic_old=0.d0
 
@@ -2145,10 +2150,6 @@ end subroutine nksic_dmxc_spin_cp
       Heigbig(:)=0.d0
       deigrms = 0.d0
 
-      ! main body
-      !
-      CALL start_clock( 'nk_rot_emin' )
-
       Omattot(:,:)=0.d0
       do nbnd1=1,nbspx
           Omattot(nbnd1,nbnd1)=1.d0
@@ -2157,6 +2158,8 @@ end subroutine nksic_dmxc_spin_cp
       ninner = 0
       ldotest=.false.
 
+      !
+      ! init IO
       if (ionode) write(stdout, "(14x,'# iter',6x,'etot',17x,'esic',&
                                   & 17x,'deigrms')")
 
@@ -2172,10 +2175,10 @@ end subroutine nksic_dmxc_spin_cp
 
         if( ninner > innerloop_nmax ) then
             !
-!$$#ifdef __DEBUG
+#ifdef __DEBUG
             if(ionode) write(1031,*) '# innerloop_nmax reached.'
             if(ionode) write(1031,*)
-!$$#endif
+#endif
             if(ionode) then 
                 write(stdout,"(14x,'# innerloop_nmax reached.',/)")
             endif
@@ -2185,70 +2188,58 @@ end subroutine nksic_dmxc_spin_cp
             !
         endif
         
-!$$#ifdef __DEBUG
+#ifdef __DEBUG
         !
 !$$     ! Now do the test
         !
         if( mod(ninner,10) == 1 .or. ninner <= 5) ldotest=.true.
-!        ldotest=.true.
+        !ldotest=.true.
         if(ldotest) then
-          dtmp = 4.d0*PI
-!          call nksic_rot_test(dtmp,201,nouter,ninner,etot)
-          ldotest=.false.
+            !
+            dtmp = 4.d0*PI
+            !call nksic_rot_test(dtmp,201,nouter,ninner,etot)
+            ldotest=.false.
+            !
         endif
-!$$#endif
+#endif
 
-
-!$$ This part calculates the anti-hermitian part of the hamiltonian
-!$$ vsicah and see whether a convergence has been achieved
-
+        !
+        ! This part calculates the anti-hermitian part of the hamiltonian
+        ! vsicah and see whether a convergence has been achieved
+        !
         wfc_ctmp(:,:) = (0.d0,0.d0)
         deigrms = 0.d0
 
         spin_loop: &
         do isp=1,nspin
+            !
+            allocate( Umat(nupdwn(isp),nupdwn(isp)) )
+            allocate( Heig(nupdwn(isp)) )
+            allocate( vsicah(nupdwn(isp), nupdwn(isp)) )
+            !
+            call nksic_getvsicah_new2( isp, vsicah, vsicah2sum)
+            !
+            call nksic_getHeigU(  isp, vsicah, Heig, Umat)
 
-          allocate( Umat(nupdwn(isp),nupdwn(isp)) )
-          allocate( Heig(nupdwn(isp)) )
-          allocate( vsicah(nupdwn(isp), nupdwn(isp)) )
+            Umatbig( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp), &
+                     iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Umat(:,:)
+            Heigbig( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Heig(:)
 
-          !call nksic_getvsicah( isp, vsicah, vsicah2sum)
-          !call nksic_getvsicah_new1( isp, vsicah, vsicah2sum)
-          call nksic_getvsicah_new2( isp, vsicah, vsicah2sum)
-          !
-!! DEBUG XXX
-!IF ( ionode ) THEN
-!      WRITE(6,"()")
-!      WRITE(6,"(a,5i3)") "SHAPE", SHAPE(vsicah)
-!      DO i = 1, SIZE( vsicah, 2)
-!          WRITE(6,"(8f15.9)") vsicah(:,i)
-!      ENDDO
-!      WRITE(6,"()")
-!      WRITE(6,"(f15.9)") vsicah2sum
-!      CALL errore("culo","debug",10)
-!ENDIF
+            !!
+            !! CHP: The following file prints out 
+            !! the eigenvalues of the force matrix for debugging
+            !
+            !if (ionode) then
+            !     nfile=10000+isp
+            !     write(nfile,'(2I10,100F10.6)') ninner,nouter,sum(Heig(:)**2),Heig(:)
+            !endif
+            !
+            deigrms = deigrms + sum(Heig(:)**2)
 
-          call nksic_getHeigU(  isp, vsicah, Heig, Umat)
-
-          Umatbig( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp), &
-                   iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Umat(:,:)
-          Heigbig( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Heig(:)
-
-          !!
-          !! CHP: The following file prints out 
-          !! the eigenvalues of the force matrix for debugging
-          !
-          !if (ionode) then
-          !     nfile=10000+isp
-          !     write(nfile,'(2I10,100F10.6)') ninner,nouter,sum(Heig(:)**2),Heig(:)
-          !endif
-          !
-          deigrms = deigrms + sum(Heig(:)**2)
-
-          deallocate(Umat)
-          deallocate(Heig)
-          deallocate(vsicah)
-          !
+            deallocate(Umat)
+            deallocate(Heig)
+            deallocate(vsicah)
+            !
         enddo spin_loop
 
 
@@ -2268,9 +2259,9 @@ end subroutine nksic_dmxc_spin_cp
         !
         esic=sum(pink(:))
         !
-!$$#ifdef __DEBUG
+#ifdef __DEBUG
         if(ionode) write(1031,'(2I10,3F24.13)') ninner, nouter,etot,esic,deigrms
-!$$#endif
+#endif
         if(ionode) write(stdout,'(10x,2i5,3F21.13)') ninner, nouter, etot, esic, deigrms
 
 
@@ -2298,10 +2289,10 @@ end subroutine nksic_dmxc_spin_cp
             !
             npassofail = npassofail+1
             !
-!$$#ifdef __DEBUG
+#ifdef __DEBUG
             if(ionode) write(1031,'("# procedure  ",I4," / ",I4, &
                                     & " is finished.",/)') npassofail,npassofailmax
-!$$#endif
+#endif
             if(ionode) write(stdout,'(14x, "# procedure  ",I4," / ",I4, &
                                     & " is finished.",/)') npassofail,npassofailmax
             !
@@ -2317,7 +2308,7 @@ end subroutine nksic_dmxc_spin_cp
             endif
             !
             passoprod = passoprod * 0.5d0
-!            ldotest=.true.
+            ! ldotest=.true.
             cycle
             !
         endif
@@ -2389,6 +2380,7 @@ end subroutine nksic_rot_emin
                                              iupdwn, nupdwn
       use uspp,                       only : nkb
       use wavefunctions_module,       only : c0
+      use cg_module,                  only : tcg
       !
       implicit none
       !
@@ -2502,7 +2494,7 @@ end subroutine nksic_rot_test
       use kinds,                      only : dp
       use grid_dimensions,            only : nnrx
       use gvecw,                      only : ngw
-      use io_global,                  only : ionode
+      use io_global,                  only : stdout, ionode
       use electrons_base,             only : nbsp, nbspx, nspin, &
                                              iupdwn,nupdwn
       use cp_interfaces,              only : invfft
@@ -2516,6 +2508,7 @@ end subroutine nksic_rot_test
       use cp_main_variables,          only : bec
       use wavefunctions_module,       only : c0, cm
       use control_flags,              only : esic_conv_thr
+      use cg_module,                  only : tcg
       !
       implicit none
       !
@@ -2529,135 +2522,162 @@ end subroutine nksic_rot_test
       ! 
       ! local variables for cg routine
       ! 
-      real(dp)                 :: bec1(nkb,nbsp),bec2(nkb,nbsp)
-      integer                  :: nbnd1,nbnd2
-      real(dp)                 :: Omat1tot(nbspx,nbspx),Omat2tot(nbspx,nbspx)
-      real(dp)                 :: vsic1(nnrx,nbspx),vsic2(nnrx,nbspx)
+      integer     :: nbnd1,nbnd2
+      integer     :: isp
+      logical     :: ldotest
+      integer     :: nfile
+      real(dp)    :: dtmp
+      real(dp)    :: ene0,ene1,enesti,enever,dene0
+      real(dp)    :: passo,passov,passof,passomax,spasso
+      real(dp)    :: vsicah2sum,vsicah2sum_prev
+      integer     :: nidx1,nidx2
+      real(dp)    :: dPI,dalpha,dmaxeig,deigrms
+      real(dp)    :: pinksumprev,passoprod
+      !
+      real(dp),    allocatable :: Omat1tot(:,:), Omat2tot(:,:)
+      real(dp),    allocatable :: Heigbig(:)
+      complex(dp), allocatable :: Umatbig(:,:)
+      complex(dp), allocatable :: wfc_ctmp(:,:), wfc_ctmp2(:,:)
+      real(dp),    allocatable :: gi(:,:), hi(:,:)
+      !
       complex(dp), allocatable :: Umat(:,:)
-      real(dp), allocatable    :: Heig(:)
-      complex(dp)              :: Umatbig(nbspx,nbspx)
-      real(dp)                 :: Heigbig(nbspx)
-      complex(dp)              :: wfc_ctmp(ngw,nbspx),wfc_ctmp2(ngw,nbspx)
-      real(dp)                 :: pink1(nbspx),pink2(nbspx),dtmp
-      integer                  :: isp
-      logical :: ldotest
-      real(dp)                 :: ene0,ene1,enesti,enever,dene0
-      real(dp)                 :: passo,passov,passof,passomax,spasso
-      real(dp)                 :: gi(nbsp,nbsp) ! gradient
-      real(dp)                 :: hi(nbsp,nbsp) ! search direction
-      real(dp), allocatable    :: vsicah(:,:)
-      real(dp)                 :: vsicah2sum,vsicah2sum_prev
-      integer                  :: nidx1,nidx2
-      real(dp)                 :: dPI,dalpha,dmaxeig,deigrms
-      real(dp)                 :: pinksumprev,passoprod
-      integer :: nfile
-!
+      real(dp),    allocatable :: Heig(:)
+      real(dp),    allocatable :: vsicah(:,:)
+      real(dp),    allocatable :: vsic1(:,:), vsic2(:,:)
+      real(dp),    allocatable :: bec1(:,:), bec2(:,:)
+      real(dp),    allocatable :: pink1(:), pink2(:)
 
       !
       ! main body
       !
-      ldotest=.false.
-
+      CALL start_clock( 'nk_rot_emin' )
+      !
+      !
       pinksumprev=1.d8
       dPI = 2.0_DP * asin(1.0_DP)
       passoprod = (0.3d0/dPI)*dPI
 
-      CALL start_clock( 'nk_rot_emin' )
+      !
+      ! local workspace
+      !
+      allocate( Omat1tot(nbspx,nbspx), Omat2tot(nbspx,nbspx) )
+      allocate( Umatbig(nbspx,nbspx) )
+      allocate( Heigbig(nbspx) )
+      allocate( wfc_ctmp(ngw,nbspx), wfc_ctmp2(ngw,nbspx) )
+      allocate( hi(nbsp,nbsp) )
+      allocate( gi(nbsp,nbsp) )
+      allocate( pink1(nbspx), pink2(nbspx) )
+      allocate( vsic1(nnrx,nbspx), vsic2(nnrx,nbspx) )
+      allocate( bec1(nkb,nbsp), bec2(nkb,nbsp) )
+      !
+      Umatbig(:,:)=(0.d0,0.d0)
+      Heigbig(:)=0.d0
+      deigrms = 0.d0
+      hi(:,:) = 0.d0
+      gi(:,:) = 0.d0
 
       Omattot(:,:)=0.d0
       do nbnd1=1,nbspx
-        Omattot(nbnd1,nbnd1)=1.d0
+          Omattot(nbnd1,nbnd1)=1.d0
       enddo
 
       ninner = 0
-
       ldotest=.false.
 
-      hi(:,:) = 0.d0
+      if (ionode) write(stdout, "(14x,'# iter',6x,'etot',17x,'esic',&
+                                  & 17x,'deigrms')")
 
+      ! 
+      ! main loop 
+      !
+      inner_loop: &
       do while (.true.)
 
+        call start_clock( "nk_innerloop" )
+        !
         ninner = ninner + 1
 
-        if(ninner.gt.innerloop_nmax) then
-          if(ionode) write(1031,*) '# innerloop_nmax reached.'
-          if(ionode) write(1031,*)
-          exit
+        if( ninner > innerloop_nmax ) then
+            !
+#ifdef __DEBUG
+            if(ionode) write(1031,*) '# innerloop_nmax reached.'
+            if(ionode) write(1031,*)
+#endif
+            if(ionode) then
+                write(stdout,"(14x,'# innerloop_nmax reached.',/)")
+            endif
+            !
+            call stop_clock( "nk_innerloop" )
+            exit inner_loop
+            !
         endif
 
-
-!        call nksic_printoverlap(ninner,nouter)
+#ifdef __DEBUG
+         !
+         ! call nksic_printoverlap(ninner,nouter)
 
 !        if(mod(ninner,10).eq.1.or.ninner.le.5) ldotest=.true.
         if(ninner.eq.31.or.ninner.eq.61.or.ninner.eq.91) ldotest=.true.
 !        if(ninner.le.10.and.nouter.eq.1) ldotest=.true.
 !         ldotest=.true.
 !        if(ninner.ge.25) ldotest=.true.
-!$$ Now do the test
+        ! Now do the test
         if(ldotest) then
 !          dtmp = 1.0d0*3.141592d0
           dtmp = 4.d0*3.141592d0
 !          call nksic_rot_test(dtmp,201,nouter,ninner,etot)
           ldotest=.false.
         endif
+#endif
 
-!$$ print out ESIC part & other total energy
-        ene0 = sum(pink(:))
-
-!$$ test convergence
-        if(abs(ene0-pinksumprev).lt.esic_conv_thr) then
-!        if(ninner.ge.20) then
-          if(ionode) then
-            write(1037,*) '# inner-loop converged.'
-            write(1037,*)
-
-            write(1031,*) '# inner-loop converged.'
-            write(1031,*)
-          endif
-          exit
+        !
+        !print out ESIC part & other total energy
+        !
+        ene0 = sum( pink(1:nbsp) )
+ 
+        !
+        ! test convergence
+        !
+        if( abs(ene0-pinksumprev) < esic_conv_thr) then
+            !
+#ifdef __DEBUG
+            if(ionode) then
+                 write(1037,"(a,/)") '# inner-loop converged.'
+                 write(1031,"(a,/)") '# inner-loop converged.'
+            endif
+#endif
+            if(ionode) write(stdout,"(14x,'# innerloop converged',/)")
+            !
+            call stop_clock( "nk_innerloop" )
+            exit inner_loop
+            !
         endif
-
-        call start_clock( "nk_innerloop" )
-
+        !
         pinksumprev=ene0
 
-
-        Omat1tot(:,:)=0.d0
-        Omat2tot(:,:)=0.d0
-        do nbnd1=1,nbspx
-          Omat1tot(nbnd1,nbnd1)=1.d0
-          Omat2tot(nbnd1,nbnd1)=1.d0
-        enddo
-
-
-!$$ This part calculates the anti-hermitian part of the Hamiltonian vsicah
-!$$ and see whether a convergence has been achieved
-
-        wfc_ctmp(:,:) = (0.d0,0.d0)
-        wfc_ctmp2(:,:) = (0.d0,0.d0)
-
-        gi(:,:) = 0.d0
-        vsicah2sum = 0.d0
-        Heigbig(:)=0.d0
-        Umatbig(:,:)=(0.d0,0.d0)
-        deigrms = 0.d0
-
-!$$ For this run, we obtain the gradient
-
+        !
+        ! This part calculates the anti-hermitian part of the Hamiltonian vsicah
+        ! and see whether a convergence has been achieved
+        !
+        ! For this run, we obtain the gradient
+        !
+        vsicah2sum = 0.0d0
+        !
         do isp=1,nspin
             !
             allocate(vsicah(nupdwn(isp),nupdwn(isp)))
+            !
             call nksic_getvsicah_new2(isp,vsicah,dtmp)
             !
-            gi(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp),iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = vsicah(:,:)
+            gi( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp), &
+                iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = vsicah(:,:)
+            !
             vsicah2sum = vsicah2sum + dtmp
             !
             deallocate(vsicah)
             !
         enddo
-
-        !call nksic_printoverlap(ninner,nouter)
-
+        !
         if( ninner /= 1 ) dtmp = vsicah2sum/vsicah2sum_prev
         !
         if( ninner <= innerloop_cg_nsd .or. &
@@ -2668,46 +2688,52 @@ end subroutine nksic_rot_test
             hi(:,:) = gi(:,:) + dtmp*hi(:,:)
         endif
         !
+        spin_loop: &
         do isp=1,nspin
+            !
+            allocate( vsicah(nupdwn(isp),nupdwn(isp)) )
+            allocate( Umat(nupdwn(isp),nupdwn(isp)) )
+            allocate( Heig(nupdwn(isp)) )
 
-          allocate(vsicah(nupdwn(isp),nupdwn(isp)))
-          allocate(Umat(nupdwn(isp),nupdwn(isp)))
-          allocate(Heig(nupdwn(isp)))
+            vsicah(:,:) = hi( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp), &
+                              iupdwn(isp):iupdwn(isp)-1+nupdwn(isp) )
 
-          vsicah(:,:) = hi(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp),iupdwn(isp):iupdwn(isp)-1+nupdwn(isp))
-
-          Heig(:)=0.d0
-          Umat(:,:)=(0.d0,0.d0)
-          call nksic_getHeigU(isp,vsicah,Heig,Umat)
-
-
-          deigrms = deigrms + sum(Heig(:)**2)
-
-          Umatbig(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp),iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Umat(:,:)
-          Heigbig(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Heig(:)
-
-          deallocate(vsicah)
-          deallocate(Umat)
-          deallocate(Heig)
-          !
-        enddo ! do isp=1,nspin
+            call nksic_getHeigU(isp,vsicah,Heig,Umat)
+            !
+            deigrms = deigrms + sum(Heig(:)**2)
+            !
+            Umatbig( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp), &
+                     iupdwn(isp):iupdwn(isp)-1+nupdwn(isp) ) = Umat(:,:)
+            Heigbig( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp) ) = Heig(:)
+            !
+            deallocate(vsicah)
+            deallocate(Umat)
+            deallocate(Heig)
+            !
+        enddo spin_loop
 
         ! how severe the transform is
         deigrms = sqrt(deigrms/nbsp)
-
+#ifdef __DEBUG
         if(ionode) write(1031,'(2I10,3F24.13)') ninner, nouter,etot,ene0,deigrms
-
+#endif
+        if(ionode) write(stdout,'(10x,2i5,3F21.13)') ninner, nouter, etot, ene0, deigrms
+        !
+        !
         dmaxeig = max( abs(Heigbig(iupdwn(1))), abs(Heigbig(iupdwn(1)+nupdwn(1)-1)) )
-        do isp=2,nspin
-          dmaxeig = max(dmaxeig,abs(Heigbig(iupdwn(isp))))
-          dmaxeig = max(dmaxeig,abs(Heigbig(iupdwn(isp)+nupdwn(isp)-1)))
+        !
+        do isp = 2, nspin
+            dmaxeig = max(dmaxeig,abs(Heigbig(iupdwn(isp))))
+            dmaxeig = max(dmaxeig,abs(Heigbig(iupdwn(isp)+nupdwn(isp)-1)))
         enddo
-
+        !
         passomax=passoprod/dmaxeig
-
-        if(ninner.eq.1) then
-          passof = passomax
-          if(ionode) write(1031,*) '# passof set to passomax'
+        !
+        if( ninner == 1 ) then
+            passof = passomax
+#ifdef __DEBUG
+            if(ionode) write(1031,*) '# passof set to passomax'
+#endif
         endif
 
 !$$$$        if(passof .gt. passomax*2.d0) then
@@ -2721,107 +2747,160 @@ end subroutine nksic_rot_test
 !          if(ninner.ne.1) write(1037,*)'# vsicah2sum/vsicah2sum_prev = ',dtmp
 !        endif
 
-        vsicah2sum_prev = vsicah2sum
 
+        vsicah2sum_prev = vsicah2sum
+        !
         dene0 = 0.d0
-        do isp=1,nspin
-          do nbnd1=1,nupdwn(isp)
-            do nbnd2=1,nupdwn(isp)
-              nidx1=nbnd1-1+iupdwn(isp)
-              nidx2=nbnd2-1+iupdwn(isp)
-              dene0 = dene0 - gi(nidx1,nidx2)*hi(nidx1,nidx2)
+        !
+        do isp = 1, nspin
+            !
+            do nbnd1 = 1, nupdwn(isp)
+            do nbnd2 = 1, nupdwn(isp)
+                !
+                nidx1 = nbnd1-1+iupdwn(isp)
+                nidx2 = nbnd2-1+iupdwn(isp)
+                dene0 = dene0 -gi(nidx1,nidx2)*hi(nidx1,nidx2)
+                !
             enddo
-          enddo
+            enddo
+            !
         enddo
 
-!$$
-!$$        dene0 = dene0 * 2.d0/nspin
-!$$
-!$$  Be careful, the following is correct because A_ji = - A_ij, i.e., the number of
-!$$  linearly independent variables is half the number of total variables!
-!$$
+        !$$
+        !$$ dene0 = dene0 * 2.d0/nspin
+        !
+        ! Be careful, the following is correct because A_ji = - A_ij, i.e., the number of
+        ! linearly independent variables is half the number of total variables!
+        !
         dene0 = dene0 * 1.d0/nspin
-
+        !
         spasso = 1.d0
-        if(dene0 .gt. 0.d0) spasso=-1.d0
-
+        if( dene0 > 0.d0) spasso = -1.d0
+        !
         dalpha = spasso*passof
-        call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfc_ctmp,Omat1tot,bec1,vsic1,pink1,ene1)
-        call minparabola(ene0,spasso*dene0,ene1,passof,passo,enesti)
+        !
+        call nksic_getOmattot( dalpha, Heigbig, Umatbig, c0, wfc_ctmp, &
+                               Omat1tot, bec1, vsic1, pink1, ene1)
+        call minparabola( ene0, spasso*dene0, ene1, passof, passo, enesti)
 
-!$$$$ We neglect this step for paper writing purposes
-!$$$$
-        if(passo .gt. passomax) then
-          passo = passomax
-          if(ionode) write(1031,*) '# passo > passomax'
+        !
+        ! We neglect this step for paper writing purposes
+        !
+        if( passo > passomax ) then
+            passo = passomax
+#ifdef __DEBUG
+            if(ionode) write(1031,*) '# passo > passomax'
+#endif
+            !
         endif
 
         passov = passof
         passof = 2.d0*passo
 
         dalpha = spasso*passo
+        !
 !$$ The following line is for dene0 test
 !        if(ninner.ge.15) dalpha = spasso*passo*0.00001
 !$$
-        call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfc_ctmp2,Omat2tot,bec2,vsic2,pink2,enever)
+        call nksic_getOmattot( dalpha, Heigbig, Umatbig, c0, wfc_ctmp2, &
+                               Omat2tot, bec2, vsic2, pink2, enever)
 
+#ifdef __DEBUG
         if(ionode) then
-          write(1037,*) ninner, nouter
-          write(1037,'("ene0,ene1,enesti,enever")')
-          write(1037,'(a3,4f20.10)') 'CG1',ene0,ene1,enesti,enever
-          write(1037,'("spasso,passov,passo,passomax,dene0,&
-                       & (enever-ene0)/passo/dene0")')
-          write(1037,'(a3,4f12.7,e20.10,f12.7)')  &
-            'CG2',spasso,passov,passo,passomax,dene0,(enever-ene0)/passo/dene0
-          write(1037,*)
-        endif
-
-        if(ene0.lt.ene1.and.ene0.lt.enever) then
-          if(ionode) then
-            write(1037,'("# ene0<ene1 and ene0<enever!!  we exit!")')
+            !
+            write(1037,*) ninner, nouter
+            write(1037,'("ene0,ene1,enesti,enever")')
+            write(1037,'(a3,4f20.10)') 'CG1',ene0,ene1,enesti,enever
+            write(1037,'("spasso,passov,passo,passomax,dene0,&
+                         & (enever-ene0)/passo/dene0")')
+            write(1037,'(a3,4f12.7,e20.10,f12.7)')  &
+                  'CG2',spasso,passov,passo,passomax,dene0,(enever-ene0)/passo/dene0
             write(1037,*)
-            write(1031,*) '# inner-loop NOT converged. we exit!'
-            write(1031,*)
-          endif
-          ninner = ninner + 1
-          call stop_clock( "nk_innerloop" )
-          exit
+            !
+        endif
+#endif
+
+        if(ene0 < ene1 .and. ene0 < enever) then
+            !
+#ifdef __DEBUG
+            if(ionode) then
+                write(1037,'("# ene0<ene1 and ene0<enever, exit",/)')
+                write(1031,'("# innerloop NOT converged, exit",/)') 
+            endif
+#endif
+            !
+            ninner = ninner + 1
+            call stop_clock( "nk_innerloop" )
+            !
+            exit
+            !
         endif
 
-        if(ene1.ge.enever) then
-          pink(:) = pink2(:)
-          vsic(:,:) = vsic2(:,:)
-          c0(:,:) = wfc_ctmp2(:,:)
-          bec(:,:) = bec2(:,:)
-          Omattot = MATMUL(Omattot,Omat2tot)
+        if( ene1 >= enever ) then
+            !
+            pink(:)   = pink2(:)
+            vsic(:,:) = vsic2(:,:)
+            c0(:,:)   = wfc_ctmp2(:,:)
+            bec(:,:)  = bec2(:,:)
+            Omattot   = MATMUL( Omattot, Omat2tot)
+            !
         else
-          pink(:) = pink1(:)
-          vsic(:,:) = vsic1(:,:)
-          c0(:,:) = wfc_ctmp(:,:)
-          bec(:,:) = bec1(:,:)
-          Omattot = MATMUL(Omattot,Omat1tot)
-          if(ionode) then
-            write(1037,'("# It happened that ene1 < enever!!")')
-            write(1037,*)
-          endif
+            !
+            pink(:)   = pink1(:)
+            vsic(:,:) = vsic1(:,:)
+            c0(:,:)   = wfc_ctmp(:,:)
+            bec(:,:)  = bec1(:,:)
+            Omattot   = MATMUL( Omattot, Omat1tot)
+            !
+#ifdef __DEBUG
+            if(ionode) then
+                write(1037,'("# It happened that ene1 < enever!!")')
+                write(1037,*)
+            endif
+#endif
+            !
         endif
-
+        !
         call stop_clock( "nk_innerloop" )
+        !
+      enddo  inner_loop
 
-      enddo  !$$ do while (.true.)
-
-
-!$$ Wavefunction cm rotation according to Omattot
-      if(ninner.ge.2) then
-        wfc_ctmp(:,:) = (0.d0,0.d0)
-        do nbnd1=1,nbspx
-          do nbnd2=1,nbspx
-            wfc_ctmp(:,nbnd1)=wfc_ctmp(:,nbnd1) + cm(:,nbnd2) * Omattot(nbnd2,nbnd1)
-          enddo
-        enddo
-        cm(:,1:nbspx) = wfc_ctmp(:,1:nbspx)
+      !
+      ! Wavefunction cm rotation according to Omattot
+      ! We need this because outer loop could be damped dynamics.
+      !
+      if ( .not. tcg ) then
+          !
+          if( ninner >= 2 ) then
+              !
+              wfc_ctmp(:,:) = (0.d0,0.d0)
+              !
+              do nbnd1=1,nbspx
+              do nbnd2=1,nbspx
+                  wfc_ctmp(:,nbnd1)=wfc_ctmp(:,nbnd1) + cm(:,nbnd2) * Omattot(nbnd2,nbnd1)
+                  ! XXX (we can think to use a blas, here, and split over spins)
+              enddo
+              enddo
+              !
+              cm(:,1:nbspx) = wfc_ctmp(:,1:nbspx)
+              !
+          endif
+          !
       endif
-!$$ We need this because outer loop could be damped dynamics.
+
+      !
+      ! clean local workspace
+      !
+      deallocate( Omat1tot, Omat2tot )
+      deallocate( Umatbig )
+      deallocate( Heigbig )
+      deallocate( wfc_ctmp, wfc_ctmp2 )
+      deallocate( hi )
+      deallocate( gi )
+      deallocate( pink1, pink2 )
+      deallocate( vsic1, vsic2 )
+      deallocate( bec1, bec2 )
+
 
       CALL stop_clock( 'nk_rot_emin' )
       return
@@ -3408,8 +3487,6 @@ end subroutine nksic_getvsicah_new1
           !
           ! NOTE: USPP not implemented
           !
-!$$          CALL nksic_eforce( nbnd1, nupdwn(isp), nupdwn(isp), vsic, &
-!$$                             deeq_sic, bec, ngw, c0(:,nbnd1), c0(:,nbnd1+1), vsicpsi )
           j1 = nbnd1+iupdwn(isp)-1
           CALL nksic_eforce( j1, nbsp, nbspx, vsic, &
                              deeq_sic, bec, ngw, c0(:,j1), c0(:,j1+1), vsicpsi )
@@ -3420,13 +3497,11 @@ end subroutine nksic_getvsicah_new1
               !
               do nbnd2 = 1, nupdwn(isp)
                   !
-!$$                  hmat(nbnd2,nbnd1+jj1-1) = 2.000*dot_product( c0(:,nbnd2), vsicpsi(:,jj1))
                   j2 = nbnd2+iupdwn(isp)-1
                   hmat(nbnd2,nbnd1+jj1-1) = 2.000*dot_product( c0(:,j2), vsicpsi(:,jj1))
                   !
                   if ( gstart == 2 ) then
                        hmat(nbnd2,nbnd1+jj1-1) = hmat(nbnd2,nbnd1+jj1-1) - &
-!$$                                                 dble( c0(1,nbnd2) * vsicpsi(1,jj1) )
                                                  dble( c0(1,j2) * vsicpsi(1,jj1) )
                   endif
                   ! 

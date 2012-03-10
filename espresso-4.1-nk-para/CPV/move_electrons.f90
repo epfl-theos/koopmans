@@ -81,11 +81,10 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   USE io_global,            ONLY : ionode, ionode_id
   USE hfmod,                ONLY : do_hf, vxxpsi, exx
   USE nksic,                ONLY : do_orbdep, vsic, wtot, fsic, fion_sic, deeq_sic, pink
-!$$
+  !
   USE nksic,                ONLY : do_pz, do_innerloop,do_innerloop_cg, innerloop_dd_nstep
   use ions_base,            only : nsp
   use electrons_base,       only : nel, nelt
-!$$
   !
   IMPLICIT NONE
   !
@@ -188,7 +187,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
 
          nouter = nouter + 1
          !
-!$$#ifdef __DEBUG
+#ifdef __DEBUG
          if( ionode .and.( nouter == 1) ) then
            !
            open(1032,file='convg_outer.dat',status='unknown')
@@ -204,7 +203,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
 
            endif
          endif
-!$$#endif
+#endif
 
 !$$ Inner loop convergence is performed only once at the first iteration:
 !$$ therefore it is better to start from LDA wavefunctions which are good
@@ -234,7 +233,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
          endif
 
          !
-#ifdef __DEBUG
+#ifdef __DEBUG_EXTRA
 !$$      ! to see the outer loop energy convergence
          if(ionode) write(1032,'(2I10,2F24.13)') ninner, nouter,etot,sum(pink(:))
          !
