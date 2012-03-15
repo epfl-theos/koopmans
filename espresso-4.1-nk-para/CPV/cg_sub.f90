@@ -163,7 +163,7 @@
 
       maxiter3=250
 !$$
-      if(do_orbdep) maxiter3=0
+      if(do_orbdep) maxiter3=10
 !$$
       ninner=0
 
@@ -409,6 +409,8 @@
 #endif
 
           if(do_innerloop) then
+!$$$$          if(do_innerloop.and.itercg.le.20) then
+!$$$$
              !
              !call start_clock( "inner_loop" )
              !
