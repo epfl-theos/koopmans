@@ -4,7 +4,8 @@
              prefix='CH4_PZ_cg',
              pseudo_dir = '../../pseudo/',
              outdir = './SCRATCH'
-             nstep=10000
+             nstep=1000
+             isave = 1
              iprint=1
              ndr=90
              ndw=91
@@ -28,8 +29,8 @@
           &ELECTRONS
              electron_dynamics='cg',
              passop=0.5,
-             maxiter = 2500,
-             !conv_thr=1.d-8
+             maxiter = 10000,
+             conv_thr=1.d-8
           /
           &IONS
              ion_dynamics='none',

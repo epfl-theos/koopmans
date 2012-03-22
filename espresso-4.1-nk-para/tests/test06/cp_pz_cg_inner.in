@@ -10,7 +10,7 @@
              ndw=91
              ekin_conv_thr=1.0d-5
              etot_conv_thr=1.0d-6
-             esic_conv_thr=1.0d-5
+             esic_conv_thr=1.0d-8
           /
           &SYSTEM
              ibrav=1,
@@ -28,7 +28,7 @@
              electron_dynamics='cg',
              passop=0.5,
              maxiter = 2500,
-             !conv_thr=1.d-8
+             conv_thr=1.d-8
           /
           &IONS
              ion_dynamics='none',

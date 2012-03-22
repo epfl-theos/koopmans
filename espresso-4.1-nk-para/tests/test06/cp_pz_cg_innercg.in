@@ -10,9 +10,7 @@
              ndw=91
              ekin_conv_thr=1.0d-5
              etot_conv_thr=1.0d-6
-             esic_conv_thr=1.0d-5
-             !verbosity="high"
-             !disk_io = "high"
+             esic_conv_thr=1.0d-8
           /
           &SYSTEM
              ibrav=1,
@@ -27,12 +25,13 @@
              do_innerloop_cg=.true.
              innerloop_cg_nsd=20
              innerloop_cg_nreset=10
+             innerloop_nmax = 5
           /
           &ELECTRONS
              electron_dynamics='cg',
              passop=0.5,
              maxiter = 2500,
-             !conv_thr=1.d-8
+             conv_thr=1.d-8
           /
           &IONS
              ion_dynamics='none',

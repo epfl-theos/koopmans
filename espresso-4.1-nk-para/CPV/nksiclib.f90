@@ -2123,6 +2123,9 @@ end subroutine nksic_dmxc_spin_cp
       complex(dp), allocatable :: Umat(:,:)
       real(dp),    allocatable :: Heig(:)
       real(dp),    allocatable :: vsicah(:,:)
+      real(dp),    allocatable :: vsic1(:,:)
+      real(dp),    allocatable :: bec1(:,:)
+      real(dp),    allocatable :: pink1(:)
       !
       integer,  save :: npassofail=0
       real(dp), save :: passoprod=0.3d0
@@ -2145,6 +2148,9 @@ end subroutine nksic_dmxc_spin_cp
       allocate( Umatbig(nbspx,nbspx) )
       allocate( Heigbig(nbspx) )
       allocate( wfc_ctmp(ngw,nbspx) )
+      allocate( vsic1(nnrx,nbspx) )
+      allocate( pink1(nbspx) )
+      allocate( bec1(nkb,nbsp) )
       !
       Umatbig(:,:)=(0.d0,0.d0)
       Heigbig(:)=0.d0
@@ -2267,7 +2273,7 @@ end subroutine nksic_dmxc_spin_cp
 
         dalpha = passoprod/dmaxeig
         !
-        call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfc_ctmp,Omat1tot,bec,vsic,pink,dtmp)
+        call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfc_ctmp,Omat1tot,bec1,vsic1,pink1,dtmp)
 
         !
         ! deal with non-variational functionals, 
@@ -2318,6 +2324,9 @@ end subroutine nksic_dmxc_spin_cp
         !
         Omattot = MATMUL(Omattot,Omat1tot)
         !
+        pink(:)    = pink1(:)
+        vsic(:,:)  = vsic1(:,:)
+        bec(:,:)   = bec1(:,:)
         c0(:,:)    = wfc_ctmp(:,:)
         esic_old   = esic
 
@@ -2354,6 +2363,9 @@ end subroutine nksic_dmxc_spin_cp
       deallocate( Umatbig )
       deallocate( Heigbig )
       deallocate( wfc_ctmp )
+      deallocate( vsic1 )
+      deallocate( bec1 )
+      deallocate( pink1 )
       !
       call stop_clock( "nk_rot_cm" )
       call stop_clock( 'nk_rot_emin' )

@@ -4,6 +4,10 @@
 =======================================================
 
 
+Mar 22 2012     bug fixed in nksiclib (routine nksic_rot_emin), when performing
+		CG+innerloop-simple (the bug was introduced during cleanup to save some
+		memory). (AF)
+
 Mar 07 2012     partial cleanup of CG and nksiclib, in order to speedup the innerloop part.(AF)
 
 Feb 23 2012     cp_restarted slightly changed to allow WanT postprocessing. (AF)
