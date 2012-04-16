@@ -203,7 +203,7 @@
      !
      INTEGER, ALLOCATABLE, TARGET :: mill_l(:,:)
 
-     !     ig_l2g  = "l2g" means local to global, this array convert a local
+     !     ig_l2g  = "l2g" means local to global, this array converts a local
      !               G-vector index into the global index, in other words
      !               the index of the G-v. in the overall array of G-vectors
      !

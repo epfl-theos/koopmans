@@ -13,7 +13,7 @@ subroutine start_postproc (nodenumber)
   !
   USE global_version, ONLY: version_number
   implicit none
-  character(len=3) :: nodenumber
+  character(len=6) :: nodenumber !modified:giovanni
   character(len=9) :: code = 'POST-PROC'
   !
   ! ... Intel compilers v .ge.8 allocate a lot of stack space

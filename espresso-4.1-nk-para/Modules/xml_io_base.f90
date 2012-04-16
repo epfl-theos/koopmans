@@ -50,8 +50,16 @@ MODULE xml_io_base
             write_cell, write_ions, write_symmetry, write_planewaves,    &
             write_efield, write_spin, write_magnetization, write_xc,     &
             write_occ, write_bz,     &
-            write_phonon, write_rho_xml, write_wfc, write_eig,           &
+            write_phonon, write_rho_xml, write_wfc, write_wfc_cmplx, write_eig, &
             read_wfc, read_rho_xml
+  !
+       INTERFACE write_wfc
+	    module procedure write_wfc_real, write_wfc_cmplx
+       END INTERFACE       
+
+       INTERFACE write_planewaves
+	    module procedure write_planewaves_real, write_planewaves_cmplx
+       END INTERFACE       
   !
   CONTAINS
     !
@@ -1015,7 +1023,7 @@ MODULE xml_io_base
     END SUBROUTINE write_efield
     !
     !------------------------------------------------------------------------
-    SUBROUTINE write_planewaves( ecutwfc, dual, npwx, gamma_only, nr1, nr2, &
+    SUBROUTINE write_planewaves_real( ecutwfc, dual, npwx, gamma_only, nr1, nr2, &
                                  nr3, ngm_g, nr1s, nr2s, nr3s, ngms_g, nr1b, &
                                  nr2b, nr3b, itmp, lgvec )
       !------------------------------------------------------------------------
@@ -1085,7 +1093,83 @@ MODULE xml_io_base
       !
       CALL iotk_write_end( iunpun, "PLANE_WAVES" )
       !
-    END SUBROUTINE write_planewaves
+    END SUBROUTINE write_planewaves_real
+    !
+    !
+    !------------------------------------------------------------------------
+    SUBROUTINE write_planewaves_cmplx( ecutwfc, dual, npwx, do_wf_cmplx, gamma_only, nr1, nr2, & !added:giovanni do_wf_cmplx
+                                 nr3, ngm_g, nr1s, nr2s, nr3s, ngms_g, nr1b,            &
+                                 nr2b, nr3b, itmp, lgvec )
+      !------------------------------------------------------------------------
+      !
+      USE constants, ONLY : e2
+      !
+      INTEGER,  INTENT(IN) :: npwx, nr1, nr2, nr3, ngm_g, &
+                              nr1s, nr2s, nr3s, ngms_g, nr1b, nr2b, nr3b
+      INTEGER,  INTENT(IN) :: itmp(:,:)
+      REAL(DP), INTENT(IN) :: ecutwfc, dual
+      LOGICAL,  INTENT(IN) :: do_wf_cmplx, gamma_only, lgvec !added:giovanni do_wf_cmplx
+      !
+      !
+      CALL iotk_write_begin( iunpun, "PLANE_WAVES" )
+      !
+      CALL iotk_write_attr ( attr, "UNITS", "Hartree", FIRST = .TRUE. )
+      CALL iotk_write_empty( iunpun, "UNITS_FOR_CUTOFF", ATTR = attr )
+      !
+      CALL iotk_write_dat( iunpun, "WFC_CUTOFF", ecutwfc / e2 )
+      !
+      CALL iotk_write_dat( iunpun, "RHO_CUTOFF", ecutwfc * dual / e2 )
+      !
+      CALL iotk_write_dat( iunpun, "MAX_NUMBER_OF_GK-VECTORS", npwx )
+      !
+      CALL iotk_write_dat( iunpun, "DO_WF_CMPLX", do_wf_cmplx ) !added:giovanni
+      CALL iotk_write_dat( iunpun, "GAMMA_ONLY", gamma_only.and..not.do_wf_cmplx )
+      !
+      CALL iotk_write_attr( attr, "nr1", nr1, FIRST = .TRUE. )
+      CALL iotk_write_attr( attr, "nr2", nr2 )
+      CALL iotk_write_attr( attr, "nr3", nr3 )
+      CALL iotk_write_empty( iunpun, "FFT_GRID", ATTR = attr )
+      !
+      CALL iotk_write_dat( iunpun, "GVECT_NUMBER", ngm_g )
+      !
+      CALL iotk_write_attr( attr, "nr1s", nr1s, FIRST = .TRUE. )
+      CALL iotk_write_attr( attr, "nr2s", nr2s )
+      CALL iotk_write_attr( attr, "nr3s", nr3s )
+      CALL iotk_write_empty( iunpun, "SMOOTH_FFT_GRID", ATTR = attr )
+      !
+      CALL iotk_write_dat( iunpun, "SMOOTH_GVECT_NUMBER", ngms_g )
+      !
+      IF ( lgvec ) THEN
+         !
+         ! ... write the G-vectors
+         !
+         CALL iotk_link( iunpun, "G-VECTORS", &
+                         "./gvectors.dat", CREATE = .TRUE., BINARY = .TRUE. )
+         !
+         CALL iotk_write_begin( iunpun, "G-VECTORS" )
+         !
+         CALL iotk_write_attr( attr, "nr1s", nr1s, FIRST = .TRUE. )
+         CALL iotk_write_attr( attr, "nr2s", nr2s )
+         CALL iotk_write_attr( attr, "nr3s", nr3s )
+         CALL iotk_write_attr( attr, "gvect_number", ngm_g )
+         CALL iotk_write_attr( attr, "do_wf_cmplx", do_wf_cmplx ) !added:giovanni
+         CALL iotk_write_attr( attr, "gamma_only", gamma_only.and..not.do_wf_cmplx ) !modified:giovanni
+         CALL iotk_write_attr( attr, "units", "crystal" )
+         CALL iotk_write_empty( iunpun, "INFO", ATTR = attr )
+         !
+         CALL iotk_write_dat  ( iunpun, "g", itmp(1:3,1:ngm_g), COLUMNS = 3 )
+         CALL iotk_write_end  ( iunpun, "G-VECTORS" )
+         !
+      END IF
+      !
+      CALL iotk_write_attr( attr, "nr1b", nr1b , FIRST = .TRUE. )
+      CALL iotk_write_attr( attr, "nr2b", nr2b )
+      CALL iotk_write_attr( attr, "nr3b", nr3b )
+      CALL iotk_write_empty( iunpun, "SMALLBOX_FFT_GRID", ATTR = attr )
+      !
+      CALL iotk_write_end( iunpun, "PLANE_WAVES" )
+      !
+    END SUBROUTINE write_planewaves_cmplx
     !
     !------------------------------------------------------------------------
     SUBROUTINE write_spin( lsda, noncolin, npol, lspinorb, domag )
@@ -1719,7 +1803,7 @@ MODULE xml_io_base
     ! ... methods to write and read wavefunctions
     !
     !------------------------------------------------------------------------
-    SUBROUTINE write_wfc( iuni, ik, nk, kunit, ispin, &
+    SUBROUTINE write_wfc_real( iuni, ik, nk, kunit, ispin, &
                           nspin, wf0, ngw, gamma_only, nbnd, igl, ngwl, filename, scalef )
       !------------------------------------------------------------------------
       !
@@ -1804,8 +1888,98 @@ MODULE xml_io_base
       !
       RETURN
       !
-    END SUBROUTINE write_wfc
+    END SUBROUTINE write_wfc_real
     !
+!------------------------------------------------------------------------
+    SUBROUTINE write_wfc_cmplx( iuni, ik, nk, kunit, ispin, &
+                          nspin, wf0, ngw, do_wf_cmplx, gamma_only, nbnd, igl, ngwl, filename, scalef ) !added:giovanni do_wf_cmplx
+      !------------------------------------------------------------------------
+      !
+      USE mp_wave,    ONLY : mergewf
+      USE mp,         ONLY : mp_get
+      USE mp_global,  ONLY : me_pool, nproc_image, nproc_pool, &
+                             root_pool, intra_pool_comm, me_image, &
+                             intra_image_comm
+      !
+      IMPLICIT NONE
+      !
+      INTEGER,            INTENT(IN) :: iuni
+      INTEGER,            INTENT(IN) :: ik, nk, kunit, ispin, nspin
+      COMPLEX(DP),        INTENT(IN) :: wf0(:,:)
+      INTEGER,            INTENT(IN) :: ngw
+      LOGICAL,            INTENT(IN) :: do_wf_cmplx ! added:giovanni
+      LOGICAL,            INTENT(IN) :: gamma_only
+      INTEGER,            INTENT(IN) :: nbnd
+      INTEGER,            INTENT(IN) :: ngwl
+      INTEGER,            INTENT(IN) :: igl(:)
+      CHARACTER(LEN=256), INTENT(IN) :: filename
+      REAL(DP),           INTENT(IN) :: scalef    
+        ! scale factor, usually 1.0 for pw and 1/SQRT( omega ) for CP
+      !
+      INTEGER                  :: j
+      INTEGER                  :: iks, ike, ikt, igwx
+      INTEGER                  :: npool, ipmask(nproc_image), ipsour
+      COMPLEX(DP), ALLOCATABLE :: wtmp(:)
+      !
+      !
+      CALL set_kpoints_vars( ik, nk, kunit, ngwl, igl, &
+                             npool, ikt, iks, ike, igwx, ipmask, ipsour )
+      !
+      IF ( ionode ) THEN
+         !
+         CALL iotk_open_write( iuni, FILE = TRIM( filename ), ROOT="WFC", BINARY = .TRUE. )
+         !
+         CALL iotk_write_attr( attr, "ngw",          ngw, FIRST = .TRUE. )
+         CALL iotk_write_attr( attr, "igwx",         igwx )
+         CALL iotk_write_attr( attr, "do_wf_cmplx",   do_wf_cmplx ) !added:giovanni
+         CALL iotk_write_attr( attr, "gamma_only",   gamma_only.and..not.do_wf_cmplx )
+         CALL iotk_write_attr( attr, "nbnd",         nbnd )
+         CALL iotk_write_attr( attr, "ik",           ik )
+         CALL iotk_write_attr( attr, "nk",           nk )
+         CALL iotk_write_attr( attr, "ispin",        ispin )
+         CALL iotk_write_attr( attr, "nspin",        nspin )
+         CALL iotk_write_attr( attr, "scale_factor", scalef )
+         !
+         CALL iotk_write_empty( iuni, "INFO", attr )
+         !
+      END IF
+      !
+      ALLOCATE( wtmp( MAX( igwx, 1 ) ) )
+      !
+      wtmp = 0.0_DP
+      !
+      DO j = 1, nbnd
+         !
+         IF ( npool > 1 ) THEN
+            !
+            IF ( ikt >= iks .AND. ikt <= ike ) &      
+               CALL mergewf( wf0(:,j), wtmp, ngwl, igl, me_pool, &
+                             nproc_pool, root_pool, intra_pool_comm )
+            !
+            IF ( ipsour /= ionode_id ) &
+               CALL mp_get( wtmp, wtmp, me_image, &
+                            ionode_id, ipsour, j, intra_image_comm )
+            !
+         ELSE
+            !
+            CALL mergewf( wf0(:,j), wtmp, ngwl, igl, &
+                          me_image, nproc_image, ionode_id, intra_image_comm )
+            !
+         END IF
+         !
+         IF ( ionode ) &
+            CALL iotk_write_dat( iuni, "evc" // iotk_index( j ), wtmp(1:igwx) )
+         !
+      END DO
+      !
+      IF ( ionode ) CALL iotk_close_write( iuni )
+      !
+      DEALLOCATE( wtmp )
+      !
+      RETURN
+      !
+    END SUBROUTINE write_wfc_cmplx
+
     !------------------------------------------------------------------------
     SUBROUTINE read_wfc( iuni, ik, nk, kunit, ispin, &
                          nspin, wf, ngw, nbnd, igl, ngwl, filename, scalef, &

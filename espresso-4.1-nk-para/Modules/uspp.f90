@@ -39,6 +39,7 @@ MODULE uspp
   !
   USE kinds, ONLY: DP
   USE parameters, ONLY: lmaxx, lqmax
+  USE twin_types !added:giovanni
   IMPLICIT NONE
   PRIVATE
   SAVE
@@ -71,6 +72,10 @@ MODULE uspp
        vkb(:,:)                ! all beta functions in reciprocal space
   REAL(DP), ALLOCATABLE :: &
        becsum(:,:,:)           ! \sum_i f(i) <psi(i)|beta_l><beta_m|psi(i)>
+! !begin_modified:giovanni
+!   type(twin_tensor) :: &
+!        becsum           ! \sum_i f(i) <psi(i)|beta_l><beta_m|psi(i)>
+! !end_modified:giovanni
   REAL(DP), ALLOCATABLE :: &
        dvan(:,:,:),           &! the D functions of the solid
        deeq(:,:,:,:),         &! the integral of V_eff and Q_{nm} 
@@ -252,7 +257,8 @@ CONTAINS
     IF( ALLOCATED( nhtoj ) )   DEALLOCATE( nhtoj )
     IF( ALLOCATED( ijtoh ) )   DEALLOCATE( ijtoh )
     IF( ALLOCATED( vkb ) )     DEALLOCATE( vkb )
-    IF( ALLOCATED( becsum ) )  DEALLOCATE( becsum )
+!     CALL deallocate_twin( becsum ) !modified:giovanni
+    IF( ALLOCATED( becsum ) )      DEALLOCATE( becsum )
     IF( ALLOCATED( qq ) )      DEALLOCATE( qq )
     IF( ALLOCATED( dvan ) )    DEALLOCATE( dvan )
     IF( ALLOCATED( deeq ) )    DEALLOCATE( deeq )

@@ -113,8 +113,6 @@ run_cp  NAME=HF     SUFFIX=$SUFFIX  RUN=$HF
 run_cp  NAME=PBE0   SUFFIX=$SUFFIX  RUN=$PBE0
 #
 run_cp  NAME=B3LYP  SUFFIX=$SUFFIX  RUN=$B3LYP
-
-
 #
 # running CHECK
 #

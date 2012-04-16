@@ -39,8 +39,8 @@ MODULE control_flags
             trane,dt_old,ampre, tranp, amprp, tdipole, t_diis, t_diis_simple,&
             t_diis_rot, tnosee, tnosep, tnoseh, tcp, tcap, tdamp, tdampions, &
             tconvthrs, tolp, convergence_criteria, tionstep, nstepe,         &
-            tsteepdesc, tatomicwfc, tscreen, gamma_only, force_pairing,      &
-            tchi2, do_ee
+            tsteepdesc, tatomicwfc, tscreen, do_wf_cmplx, gamma_only,         & !added:giovanni do_wf_cmplx
+            force_pairing, tchi2, do_ee
 !$$
   PUBLIC :: do_innerloop, do_innerloop_cg, innerloop_dd_nstep,&
             innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax
@@ -123,6 +123,7 @@ MODULE control_flags
   INTEGER :: isave  = 0 ! write restart to ndr unit every isave step
   INTEGER :: nv0rd  = 0 !
   INTEGER :: iprsta = 0 ! output verbosity (increasing from 0 to infinity)
+  LOGICAL :: do_wf_cmplx = .TRUE. !added:giovanni
   !
   ! ... .TRUE. if only gamma point is used
   !

@@ -668,7 +668,7 @@
 !==----------------------------------------------==!
 !==----------------------------------------------==!
 
-   FUNCTION wave_speed2( cp, cm, wmss, fact )
+   FUNCTION wave_speed2( cp, cm, wmss, fact, lgam)!added:giovanni lgam
      IMPLICIT NONE
      COMPLEX(DP), INTENT(IN) :: cp(:)
      COMPLEX(DP), INTENT(IN) :: cm(:)
@@ -677,16 +677,29 @@
      REAL(DP) :: ekinc
      COMPLEX(DP) :: speed
      INTEGER :: j
-     speed  = ( cp(1) - cm(1) )
-     ekinc  = fact * wmss(1) * CONJG( speed ) * speed
-     DO j = 2, SIZE( cp )
-       speed  = ( cp(j) - cm(j) )
-       ekinc  = ekinc + wmss(j) * CONJG( speed ) * speed
-     END DO
+     LOGICAL :: lgam!added:giovanni
+
+
+     IF(lgam) THEN
+       speed  = ( cp(1) - cm(1) )
+       ekinc  = fact * wmss(1) * CONJG( speed ) * speed
+       DO j = 2, SIZE( cp )
+         speed  = ( cp(j) - cm(j) )
+         ekinc  = ekinc + wmss(j) * CONJG( speed ) * speed
+       END DO
+     ELSE
+!begin_added:giovanni
+       speed  = ( cp(1) - cm(1) )
+       ekinc  = 0.5d0 * wmss(1) * CONJG( speed ) * speed
+       DO j = 2, SIZE( cp )
+         speed  = ( cp(j) - cm(j) )
+         ekinc  = ekinc + 0.5d0 * wmss(j) * CONJG( speed ) * speed
+       END DO
+!end_added:giovanni
+     ENDIF
      wave_speed2 = ekinc
      RETURN
    END FUNCTION wave_speed2
-
 
 !==----------------------------------------------==!
        END MODULE wave_base

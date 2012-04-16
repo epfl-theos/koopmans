@@ -253,6 +253,9 @@ SUBROUTINE chdens (filplot,plot_num)
   !
   do ifile = 1, nfile
      !
+     ntyps=ntyp
+     nats=nat
+     write(6,*) "myntyp", ntyp !added:giovanni:debug
      call plot_io (filepp (ifile), title, nrx1sa, nrx2sa, nrx3sa, &
           nr1sa, nr2sa, nr3sa, nats, ntyps, ibravs, celldms, ats, gcutmsa, &
           duals, ecuts, idum, atms, ityps, zvs, taus, rhos, - 1)

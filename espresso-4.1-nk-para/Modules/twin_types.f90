@@ -1,0 +1,247 @@
+!
+! Copyright (C) 2002-2005 FPMD-CPV groups
+! This file is distributed under the terms of the
+! GNU General Public License. See the file `License'
+! in the root directory of the present distribution,
+! or http://www.gnu.org/copyleft/gpl.txt .
+!
+! #include "f_defs.h"
+!
+!----------------------------------------------------------------------------
+MODULE twin_types
+  !----------------------------------------------------------------------------
+  !
+  USE kinds,             ONLY : DP
+  USE control_flags,     ONLY : gamma_only, do_wf_cmplx
+  !
+
+  IMPLICIT NONE
+
+  INTERFACE init_twin
+    MODULE PROCEDURE init_twin_matrix, init_twin_tensor
+  END INTERFACE
+  
+  INTERFACE set_twin
+    MODULE PROCEDURE set_twin_matrix, set_twin_tensor
+  END INTERFACE
+
+  INTERFACE allocate_twin
+    MODULE PROCEDURE allocate_twin_matrix, allocate_twin_tensor
+  END INTERFACE
+
+  INTERFACE deallocate_twin
+    MODULE PROCEDURE deallocate_twin_matrix, deallocate_twin_tensor
+  END INTERFACE
+!   SAVE
+
+  TYPE :: twin_matrix
+
+    REAL(DP), DIMENSION(:,:), POINTER :: rvec
+    COMPLEX(DP), DIMENSION(:,:), POINTER :: cvec
+    
+    INTEGER :: xdim
+    INTEGER :: ydim
+    
+    LOGICAL :: isalloc
+    LOGICAL :: iscmplx
+
+  END TYPE twin_matrix
+
+  TYPE :: twin_tensor
+
+    REAL(DP), DIMENSION(:,:,:), POINTER :: rvec
+    COMPLEX(DP), DIMENSION(:,:,:), POINTER :: cvec
+    
+    INTEGER :: xdim
+    INTEGER :: ydim
+    INTEGER :: zdim
+    
+    LOGICAL :: isalloc
+    LOGICAL :: iscmplx
+
+  END TYPE twin_tensor
+!! rvec-> rdata
+!! ierr ovunque
+  CONTAINS
+
+  SUBROUTINE init_twin_matrix(tmatrix, lgam)
+
+   type(twin_matrix)   :: tmatrix
+   logical, intent(in) :: lgam
+
+   tmatrix%isalloc=.false.
+   tmatrix%iscmplx = .not.lgam
+   
+   return
+  END SUBROUTINE init_twin_matrix
+
+  SUBROUTINE set_twin_matrix(tmatrix, value)
+
+   type(twin_matrix)   :: tmatrix
+   COMPLEX(DP), INTENT(IN) :: value
+
+   IF(tmatrix%iscmplx) THEN
+     tmatrix%cvec=value
+   ELSE
+     tmatrix%rvec = DBLE(value)
+   ENDIF
+   
+   return
+  END SUBROUTINE set_twin_matrix
+
+  SUBROUTINE init_twin_tensor(ttensor, lgam)
+
+   type(twin_tensor)   :: ttensor
+   logical, intent(in) :: lgam
+
+   ttensor%isalloc=.false.
+   ttensor%iscmplx = .not.lgam
+   
+   return
+  END SUBROUTINE init_twin_tensor
+
+  SUBROUTINE set_twin_tensor(ttensor, value)
+
+   type(twin_tensor)   :: ttensor
+   COMPLEX(DP), INTENT(IN) :: value
+
+   IF(ttensor%iscmplx) THEN
+     ttensor%cvec=value
+   ELSE
+     ttensor%rvec = DBLE(value)
+   ENDIF
+   
+   return
+  END SUBROUTINE set_twin_tensor
+
+  SUBROUTINE allocate_twin_matrix(tmatrix,xlen,ylen,doreal)
+   
+   type(twin_matrix)   :: tmatrix
+   INTEGER, INTENT(IN) :: xlen,ylen
+   LOGICAL, INTENT(IN) :: doreal
+
+   character(len=24)   :: subname="allocate_twin_matrix"
+   INTEGER             :: ierr
+
+   !write(6,*) "allocating twin matrix"
+   IF(tmatrix%isalloc) THEN
+     call deallocate_twin(tmatrix)
+   ENDIF
+
+   IF(.not.doreal) THEN
+   !write(6,*) "TWIN:allocating complex matrix", xlen, ylen
+!      nullify(tmatrix%cvec)
+     ALLOCATE(tmatrix%cvec(xlen,ylen), STAT=ierr)
+     IF(ierr/=0) call errore(subname,"allocating twin_matrix cvec", abs(ierr))
+     tmatrix%iscmplx=.true.
+     tmatrix%cvec=CMPLX(0.d0,0.d0)
+   ELSE
+   !write(6,*) "TWIN:allocating real matrix", xlen, ylen
+!      nullify(tmatrix%rvec)
+     allocate(tmatrix%rvec(xlen,ylen), STAT=ierr)
+     IF(ierr/=0) call errore(subname,"allocating twin_matrix rvec", abs(ierr))
+     tmatrix%iscmplx=.false.
+     tmatrix%rvec=0.d0
+   ENDIF
+
+   tmatrix%xdim=xlen
+   tmatrix%ydim=ylen
+   tmatrix%isalloc=.true.
+   return
+
+  END SUBROUTINE allocate_twin_matrix
+
+  SUBROUTINE deallocate_twin_matrix(tmatrix)
+
+    type(twin_matrix) :: tmatrix
+
+    CHARACTER(len=26) :: subname="deallocate_twin_matrix"
+    INTEGER           :: ierr
+
+    IF(.not.tmatrix%iscmplx) THEN
+       !write(6,*) "deallocating rvec"
+       deallocate(tmatrix%rvec, STAT=ierr)
+       nullify(tmatrix%rvec)
+       IF(ierr/=0) call errore(subname,"deallocating twin_matrix rvec", abs(ierr))
+    ENDIF
+
+    IF(tmatrix%iscmplx) THEN
+       !write(6,*) "deallocating cvec", tmatrix%xdim, tmatrix%ydim, tmatrix%iscmplx, tmatrix%isalloc, associated(tmatrix%rvec)
+       deallocate(tmatrix%cvec, STAT=ierr)
+       !write(6,*) "deallocating cvec", ierr
+       nullify(tmatrix%cvec)
+       IF(ierr/=0) call errore(subname,"deallocating twin_matrix cvec", abs(ierr))
+    ENDIF
+
+    tmatrix%xdim=0
+    tmatrix%ydim=0
+    tmatrix%iscmplx=.false.
+    tmatrix%isalloc=.false.
+    return
+  END SUBROUTINE deallocate_twin_matrix
+
+  SUBROUTINE allocate_twin_tensor(ttensor,xlen,ylen,zlen,doreal)
+   
+   type(twin_tensor) :: ttensor
+   INTEGER, INTENT(IN) :: xlen,ylen,zlen
+   LOGICAL :: doreal
+
+   character(len=24)   :: subname="allocate_twin_tensor"
+   INTEGER             :: ierr   
+
+   IF(ttensor%isalloc) THEN
+     call deallocate_twin(ttensor)
+   ENDIF
+   nullify(ttensor%rvec)
+   nullify(ttensor%cvec)
+
+   IF(.not.doreal) THEN
+     ALLOCATE(ttensor%cvec(xlen,ylen,zlen), STAT=ierr)
+     IF(ierr/=0) call errore(subname,"allocating twin_tensor cvec", abs(ierr))
+     ttensor%iscmplx=.true.
+     ttensor%cvec=CMPLX(0.d0,0.d0)
+   ELSE
+     ALLOCATE(ttensor%rvec(xlen,ylen,zlen), STAT=ierr)
+     IF(ierr/=0) call errore(subname,"allocating twin_tensor rvec", abs(ierr))
+     ttensor%iscmplx=.false.
+     ttensor%rvec=0.d0
+   ENDIF
+
+   ttensor%xdim=xlen
+   ttensor%ydim=ylen
+   ttensor%ydim=zlen
+   ttensor%isalloc=.true.
+   return
+
+  END SUBROUTINE allocate_twin_tensor
+
+  SUBROUTINE deallocate_twin_tensor(ttensor)
+
+    type(twin_tensor) :: ttensor
+    character(len=26) :: subname="deallocate_twin_tensor"
+
+    INTEGER :: ierr
+
+    IF(.not.ttensor%iscmplx) THEN
+       DEALLOCATE(ttensor%rvec, STAT=ierr)
+       IF(ierr/=0) call errore(subname,"deallocating twin_tensor rvec", abs(ierr))
+    ENDIF
+    
+    IF(ttensor%iscmplx) THEN
+       DEALLOCATE(ttensor%cvec, STAT=ierr)
+       IF(ierr/=0) call errore(subname,"deallocating twin_tensor cvec", abs(ierr))
+    ENDIF
+
+    ttensor%xdim=0
+    ttensor%ydim=0
+    ttensor%zdim=0
+
+    ttensor%iscmplx=.false.
+    ttensor%isalloc=.false.
+    nullify(ttensor%rvec)
+    nullify(ttensor%cvec)
+
+    return
+  END SUBROUTINE deallocate_twin_tensor
+
+END MODULE twin_types

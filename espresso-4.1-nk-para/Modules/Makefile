@@ -69,6 +69,7 @@ splinelib.o \
 stick_base.o \
 task_groups.o \
 timestep.o \
+twin_types.o \
 version.o \
 upf.o \
 upf_to_internal.o \

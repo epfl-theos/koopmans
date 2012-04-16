@@ -73,11 +73,14 @@ subroutine local_dos (iflag, lsign, kpoint, kband, spin_component, &
   real(DP), external :: w0gauss, w1gauss
   logical :: i_am_the_pool
   integer :: which_pool, kpoint_pool
+  logical :: lgam
   !
   ! input checks
   !
+  lgam=gamma_only !.and..not.do_wf_cmplx
+  write(6,*) "calling local dos", lgam ! added:giovanni:debug
   if (noncolin.and. lsign) call errore('local_dos','not available',1)
-  if (noncolin.and. gamma_only) call errore('local_dos','not available',1)
+  if (noncolin.and. lgam) call errore('local_dos','not available',1)
   !
   if ( (iflag == 0) .and. ( kband < 1 .or. kband > nbnd ) ) &
        call errore ('local_dos', 'wrong band specified', 1)
@@ -89,7 +92,7 @@ subroutine local_dos (iflag, lsign, kpoint, kband, spin_component, &
         call errore ('local_dos', 'k must be zero', 1)
   end if
   !
-  if (gamma_only) then 
+  if (lgam) then 
      allocate (rbecp(nkb,nbnd))
   else 
      if (noncolin) then
@@ -157,7 +160,7 @@ subroutine local_dos (iflag, lsign, kpoint, kband, spin_component, &
         call davcio (evc, nwordwfc, iunwfc, ik, - 1)
         call init_us_2 (npw, igk, xk (1, ik), vkb)
 
-        if (gamma_only) then
+        if (lgam) then
            call calbec ( npw, vkb, evc, rbecp )
         else if (noncolin) then
            call calbec ( npw, vkb, evc, becp_nc )
@@ -184,7 +187,7 @@ subroutine local_dos (iflag, lsign, kpoint, kband, spin_component, &
                  do ig = 1, npw
                     psic (nls (igk (ig) ) ) = evc (ig, ibnd)
                  enddo
-                 if (gamma_only) then
+                 if (lgam) then
                     do ig = 1, npw
                        psic (nlsm(igk (ig) ) ) = CONJG(evc (ig, ibnd))
                     enddo
@@ -196,7 +199,7 @@ subroutine local_dos (iflag, lsign, kpoint, kband, spin_component, &
 !  Compute and save the sign of the wavefunction at the gamma point
 !
               if (lsign) then
-                 if (gamma_only) then
+                 if (lgam) then
                     !  psi(r) is real by construction
                     segno(1:nrxxs) = DBLE(psic(1:nrxxs))
                  else
@@ -316,7 +319,7 @@ subroutine local_dos (iflag, lsign, kpoint, kband, spin_component, &
                         ijh = 1
                         do ih = 1, nh (np)
                           ikb = ijkb0 + ih
-                          if (gamma_only) then
+                          if (lgam) then
                               becsum(ijh,na,current_spin) = &
                                     becsum(ijh,na,current_spin) + w1 * &
                                     rbecp(ikb,ibnd)*rbecp(ikb,ibnd)
@@ -328,7 +331,7 @@ subroutine local_dos (iflag, lsign, kpoint, kband, spin_component, &
                           ijh = ijh + 1
                           do jh = ih + 1, nh (np)
                              jkb = ijkb0 + jh
-                             if (gamma_only) then
+                             if (lgam) then
                                 becsum(ijh,na,current_spin) = &
                                    becsum(ijh,na,current_spin) + 2.d0*w1 * &
                                    rbecp(ikb,ibnd)*rbecp(jkb,ibnd)
@@ -354,7 +357,7 @@ subroutine local_dos (iflag, lsign, kpoint, kband, spin_component, &
         enddo
      endif
   enddo
-  if (gamma_only) then
+  if (lgam) then
      deallocate(rbecp)
   else
      if (noncolin) then

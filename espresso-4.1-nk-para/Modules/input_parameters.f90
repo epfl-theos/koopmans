@@ -451,14 +451,15 @@ MODULE input_parameters
         LOGICAL :: do_wref = .true.
         LOGICAL :: do_wxd = .true.
         LOGICAL :: do_hf  = .false.
-!$$
+        !
         LOGICAL :: do_innerloop  = .false.
         LOGICAL :: do_innerloop_cg  = .false.
         INTEGER :: innerloop_dd_nstep  = 50
         INTEGER :: innerloop_cg_nsd  = 20
         INTEGER :: innerloop_cg_nreset  = 10
         INTEGER :: innerloop_nmax  = 10000
-!$$
+        !
+        LOGICAL :: do_wf_cmplx = .false. !added_giovanni
         !
         ! This variable overwrites the ones above
         CHARACTER(80)     :: which_orbdep=" "
@@ -508,10 +509,9 @@ MODULE input_parameters
              do_wref, do_wxd, fref, rhobarfact, ampfield, do_efield,          &
              do_hf, nknmax, do_spinsym, f_cutoff,                             &
              nkscalfact, hfscalfact, vanishing_rho_w, which_orbdep,           &
-!$$
-             do_innerloop,do_innerloop_cg,innerloop_dd_nstep,&
-             innerloop_cg_nsd,innerloop_cg_nreset,innerloop_nmax
-!$$
+             do_innerloop, do_innerloop_cg, innerloop_dd_nstep,                 &
+             innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax,          &
+             do_wf_cmplx !added:giovanni do_wf_cmplx
 !
 !=----------------------------------------------------------------------------=!
 !  EE Namelist Input Parameters

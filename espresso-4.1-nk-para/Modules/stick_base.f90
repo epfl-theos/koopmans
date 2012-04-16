@@ -573,7 +573,7 @@
 
           USE kinds, ONLY: DP
           USE mp_global, ONLY: me_pool, nproc_pool, intra_pool_comm, nogrp
-          USE control_flags, ONLY: gamma_only
+          USE control_flags, ONLY: gamma_only, do_wf_cmplx !added:giovanni
           USE io_global, ONLY: ionode
           USE io_global, ONLY: stdout
           USE fft_types, ONLY: fft_dlay_descriptor, fft_dlay_allocate, fft_dlay_set, &
@@ -667,7 +667,7 @@
           INTEGER :: ip, ngm_ , ngs_
           INTEGER, ALLOCATABLE :: idx(:)
 
-          tk    = .NOT. gamma_only
+          tk    = .NOT. (gamma_only)!.and..not.do_wf_cmplx)!added:giovanni do_wf_cmplx
           ub(1) = ( nr1 - 1 ) / 2
           ub(2) = ( nr2 - 1 ) / 2
           ub(3) = ( nr3 - 1 ) / 2

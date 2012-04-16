@@ -26,6 +26,72 @@
 #if defined __SCALAPACK
     PUBLIC :: pdsyevd_drv, pzheevd_drv
 #endif
+    PUBLIC :: redist_row2col, sqr_tr_cannon
+! 
+    INTERFACE sqr_tr_cannon
+	SUBROUTINE sqr_tr_cannon_real( n, a, lda, b, ldb, desc )
+	  !
+	  !  Parallel square matrix transposition with Cannon's algorithm
+	  !
+	  USE kinds,       ONLY : DP
+	  USE descriptors, ONLY : ilar_ , nlar_ , ilac_ , nlac_ , nlax_ , la_npc_ , la_n_ , &
+				  la_comm_ , lambda_node_ , la_npr_ , la_myr_ , la_myc_
+	  !
+	  IMPLICIT NONE
+	  !
+	  INTEGER, INTENT(IN) :: n
+	  INTEGER, INTENT(IN) :: lda, ldb
+	  REAL(DP)            :: a(lda,*), b(lda,*)
+	  INTEGER, INTENT(IN) :: desc(*)
+	END SUBROUTINE
+	SUBROUTINE sqr_tr_cannon_cmplx( n, a, lda, b, ldb, desc )
+	  !
+	  !  Parallel square matrix transposition with Cannon's algorithm
+	  !
+	  USE kinds,       ONLY : DP
+	  USE descriptors, ONLY : ilar_ , nlar_ , ilac_ , nlac_ , nlax_ , la_npc_ , la_n_ , &
+				  la_comm_ , lambda_node_ , la_npr_ , la_myr_ , la_myc_
+	  !
+	  IMPLICIT NONE
+	  !
+	  INTEGER, INTENT(IN) :: n
+	  INTEGER, INTENT(IN) :: lda, ldb
+	  COMPLEX(DP)            :: a(lda,*), b(ldb,*)
+	  INTEGER, INTENT(IN) :: desc(*)
+	END SUBROUTINE
+    END INTERFACE
+
+    INTERFACE redist_row2col
+	SUBROUTINE redist_row2col_real( n, a, b, ldx, nx, desc )
+	  !
+	  !  redistribute a, array whose second dimension is distributed over processor row,
+	  !  to obtain b, with the second dim. distributed over processor clolumn 
+	  !
+	  USE kinds,       ONLY : DP
+	  !
+	  IMPLICIT NONE
+	  !
+	  INTEGER, INTENT(IN) :: n
+	  INTEGER, INTENT(IN) :: ldx, nx
+	  REAL(DP)            :: a(ldx,nx), b(ldx,nx)
+	  INTEGER, INTENT(IN) :: desc(*)
+        END SUBROUTINE
+        !
+	SUBROUTINE redist_row2col_cmplx( n, a, b, ldx, nx, desc )
+	  !
+	  !  redistribute a, array whose second dimension is distributed over processor row,
+	  !  to obtain b, with the second dim. distributed over processor clolumn 
+	  !
+	  USE kinds,       ONLY : DP
+	  !
+	  IMPLICIT NONE
+	  !
+	  INTEGER, INTENT(IN) :: n
+	  INTEGER, INTENT(IN) :: ldx, nx
+	  COMPLEX(DP)            :: a(ldx,nx), b(ldx,nx)
+	  INTEGER, INTENT(IN) :: desc(*)
+        END SUBROUTINE
+    END INTERFACE
 
     CONTAINS
 
@@ -1771,7 +1837,6 @@ END SUBROUTINE zrep_matmul_drv
      COMPLEX(DP) :: h(:,:)
      REAL(DP) :: w(:)
 
-
      COMPLEX(DP) :: ztmp( 4 )
      REAL(DP)    :: rtmp( 4 )
      INTEGER     :: itmp( 4 )
@@ -2455,7 +2520,7 @@ END SUBROUTINE sqr_zmm_cannon
 !
 !
 
-SUBROUTINE sqr_tr_cannon( n, a, lda, b, ldb, desc )
+SUBROUTINE sqr_tr_cannon_real( n, a, lda, b, ldb, desc )
    !
    !  Parallel square matrix transposition with Cannon's algorithm
    !
@@ -2589,12 +2654,147 @@ CONTAINS
       RETURN
    END SUBROUTINE
 
+END SUBROUTINE sqr_tr_cannon_real
 
-END SUBROUTINE
+
+SUBROUTINE sqr_tr_cannon_cmplx( n, a, lda, b, ldb, desc )
+   !
+   !  Parallel square matrix transposition with Cannon's algorithm
+   !
+   USE kinds,       ONLY : DP
+   USE descriptors, ONLY : ilar_ , nlar_ , ilac_ , nlac_ , nlax_ , la_npc_ , la_n_ , &
+                           la_comm_ , lambda_node_ , la_npr_ , la_myr_ , la_myc_
+   !
+   IMPLICIT NONE
+   !
+   INTEGER, INTENT(IN) :: n
+   INTEGER, INTENT(IN) :: lda, ldb
+   COMPLEX(DP)            :: a(lda,*), b(ldb,*)
+   INTEGER, INTENT(IN) :: desc(*)
+   !
+#if defined (__MPI)
+   !
+   INCLUDE 'mpif.h'
+   !
+#endif
+   !
+   INTEGER :: ierr
+   INTEGER :: np, rowid, colid
+   INTEGER :: i, j, nr, nc, nb
+   INTEGER :: comm
+   !
+   COMPLEX(DP), ALLOCATABLE :: ablk(:,:)
+   !
+#if defined (__MPI)
+   !
+   INTEGER :: istatus( MPI_STATUS_SIZE )
+   !
+#endif
+   !
+   IF( desc( lambda_node_ ) < 0 ) THEN
+      RETURN
+   END IF
+
+   IF( n < 1 ) THEN
+     RETURN
+   END IF
+   IF( desc( la_npr_ ) == 1 ) THEN
+      CALL mytransposezc( a, lda, b, ldb, n, n )
+      RETURN
+   END IF
+   IF( desc( la_npr_ ) /= desc( la_npc_ ) ) &
+      CALL errore( ' sqr_tr_cannon ', ' works only with square processor mesh ', 1 )
+   IF( n /= desc( la_n_ ) ) &
+      CALL errore( ' sqr_tr_cannon ', ' inconsistent size n  ', 1 )
+   IF( lda /= desc( nlax_ ) ) &
+      CALL errore( ' sqr_tr_cannon ', ' inconsistent size lda  ', 1 )
+   IF( ldb /= desc( nlax_ ) ) &
+      CALL errore( ' sqr_tr_cannon ', ' inconsistent size ldb  ', 1 )
+
+   comm = desc( la_comm_ )
+
+   rowid = desc( la_myr_ )
+   colid = desc( la_myc_ )
+   np    = desc( la_npr_ )
+   !
+   !  Compute the size of the local block
+   !
+   nr = desc( nlar_ ) 
+   nc = desc( nlac_ ) 
+   nb = desc( nlax_ )
+   !
+   allocate( ablk( nb, nb ) )
+   DO j = 1, nc
+      DO i = 1, nr
+         ablk( i, j ) = a( i, j )
+      END DO
+   END DO
+   DO j = nc+1, nb
+      DO i = 1, nb
+         ablk( i, j ) = CMPLX(0.d0,0.d0)
+      END DO
+   END DO
+   DO j = 1, nb
+      DO i = nr+1, nb
+         ablk( i, j ) = CMPLX(0.d0,0.d0)
+      END DO
+   END DO
+   !
+   CALL exchange_block( ablk )
+   !
+#if defined (__MPI)
+   CALL MPI_BARRIER( comm, ierr )
+   IF( ierr /= 0 ) &
+      CALL errore( " sqr_tr_cannon ", " in MPI_BARRIER ", ABS( ierr ) )
+#endif
+   !
+   DO j = 1, nr
+      DO i = 1, nc
+         b( j, i ) = CONJG(ablk( i, j ))
+      END DO
+   END DO
+   !
+   deallocate( ablk )
+   
+   RETURN
+
+CONTAINS
+
+   SUBROUTINE exchange_block( blk )
+      !
+      !   Block exchange ( transpose )
+      !
+      IMPLICIT NONE
+      COMPLEX(DP) :: blk( :, : )
+      !
+      INTEGER :: icdst, irdst, icsrc, irsrc, idest, isour
+      !
+      irdst = colid
+      icdst = rowid
+      irsrc = colid
+      icsrc = rowid
+      !
+      CALL GRID2D_RANK( 'R', np, np, irdst, icdst, idest )
+      CALL GRID2D_RANK( 'R', np, np, irsrc, icsrc, isour )
+      !
+#if defined (__MPI)
+      !
+      CALL MPI_SENDRECV_REPLACE(blk, nb*nb, MPI_DOUBLE_COMPLEX, &
+           idest, np+np+1, isour, np+np+1, comm, istatus, ierr)
+      IF( ierr /= 0 ) &
+         CALL errore( " sqr_tr_cannon ", " in MPI_SENDRECV_REPLACE ", ABS( ierr ) )
+      !
+#endif
+
+      RETURN
+   END SUBROUTINE
+
+
+END SUBROUTINE sqr_tr_cannon_cmplx
 
 !
 
-SUBROUTINE redist_row2col( n, a, b, ldx, nx, desc )
+SUBROUTINE redist_row2col_real( n, a, b, ldx, nx, desc )
    !
    !  redistribute a, array whose second dimension is distributed over processor row,
    !  to obtain b, with the second dim. distributed over processor clolumn 
@@ -2678,7 +2878,93 @@ SUBROUTINE redist_row2col( n, a, b, ldx, nx, desc )
    !
    RETURN
 
-END SUBROUTINE redist_row2col
+END SUBROUTINE redist_row2col_real
+
+SUBROUTINE redist_row2col_cmplx( n, a, b, ldx, nx, desc )
+   !
+   !  redistribute a, array whose second dimension is distributed over processor row,
+   !  to obtain b, with the second dim. distributed over processor clolumn 
+   !
+   USE kinds,       ONLY : DP
+   USE descriptors, ONLY : ilar_ , nlar_ , ilac_ , nlac_ , nlax_ , la_npc_ , la_n_ , &
+                           la_comm_ , lambda_node_ , la_npr_ , la_myr_ , la_myc_
+   !
+   IMPLICIT NONE
+   !
+   INTEGER, INTENT(IN) :: n
+   INTEGER, INTENT(IN) :: ldx, nx
+   COMPLEX(DP)            :: a(ldx,nx), b(ldx,nx)
+   INTEGER, INTENT(IN) :: desc(*)
+   !
+#if defined (__MPI)
+   !
+   INCLUDE 'mpif.h'
+   !
+#endif
+   !
+   INTEGER :: ierr
+   INTEGER :: np, rowid, colid
+   INTEGER :: comm
+   INTEGER :: icdst, irdst, icsrc, irsrc, idest, isour
+   !
+#if defined (__MPI)
+   !
+   INTEGER :: istatus( MPI_STATUS_SIZE )
+   !
+#endif
+   !
+   IF( desc( lambda_node_ ) < 0 ) THEN
+      RETURN
+   END IF
+
+   IF( n < 1 ) THEN
+     RETURN
+   END IF
+
+   IF( desc( la_npr_ ) == 1 ) THEN
+      b = a
+      RETURN
+   END IF
+
+   IF( desc( la_npr_ ) /= desc( la_npc_ ) ) &
+      CALL errore( ' redist_row2col ', ' works only with square processor mesh ', 1 )
+   IF( n /= desc( la_n_ ) ) &
+      CALL errore( ' redist_row2col ', ' inconsistent size n  ', 1 )
+   IF( nx /= desc( nlax_ ) ) &
+      CALL errore( ' redist_row2col ', ' inconsistent size lda  ', 1 )
+
+   comm = desc( la_comm_ )
+
+   rowid = desc( la_myr_ )
+   colid = desc( la_myc_ )
+   np    = desc( la_npr_ )
+   !
+   irdst = colid
+   icdst = rowid
+   irsrc = colid
+   icsrc = rowid
+   !
+   CALL GRID2D_RANK( 'R', np, np, irdst, icdst, idest )
+   CALL GRID2D_RANK( 'R', np, np, irsrc, icsrc, isour )
+   !
+#if defined (__MPI)
+   !
+   CALL MPI_BARRIER( comm, ierr )
+   IF( ierr /= 0 ) &
+      CALL errore( " redist_row2col ", " in MPI_BARRIER ", ABS( ierr ) )
+   !
+   CALL MPI_SENDRECV(a, ldx*nx, MPI_DOUBLE_COMPLEX, idest, np+np+1, &
+                     b, ldx*nx, MPI_DOUBLE_COMPLEX, isour, np+np+1, comm, istatus, ierr)
+   IF( ierr /= 0 ) &
+      CALL errore( " redist_row2col ", " in MPI_SENDRECV ", ABS( ierr ) )
+   !
+#else
+   b = a
+#endif
+   !
+   RETURN
+
+END SUBROUTINE redist_row2col_cmplx
 
 !
 !
@@ -4504,8 +4790,6 @@ SUBROUTINE qe_pdsyevd( tv, n, desc, hh, ldh, e )
 
    RETURN
 END SUBROUTINE
-
-
 
 SUBROUTINE qe_pzheevd( tv, n, desc, hh, ldh, e )
    USE kinds
