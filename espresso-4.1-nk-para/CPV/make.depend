@@ -80,6 +80,7 @@ chargedensity.o : ../Modules/mp_global.o
 chargedensity.o : ../Modules/parallel_include.o
 chargedensity.o : ../Modules/recvec.o
 chargedensity.o : ../Modules/smallbox.o
+chargedensity.o : ../Modules/twin_types.o
 chargedensity.o : ../Modules/uspp.o
 chargedensity.o : ../Modules/wave_base.o
 chargedensity.o : cg.o
@@ -167,14 +168,17 @@ cp_fpmd.o : cpr_mod.o
 cp_fpmd.o : pseudopot.o
 cp_interfaces.o : ../Modules/cell_base.o
 cp_interfaces.o : ../Modules/descriptors.o
+cp_interfaces.o : ../Modules/electrons_base.o
 cp_interfaces.o : ../Modules/energies.o
 cp_interfaces.o : ../Modules/fft_types.o
 cp_interfaces.o : ../Modules/griddim.o
 cp_interfaces.o : ../Modules/ions_base.o
 cp_interfaces.o : ../Modules/kind.o
 cp_interfaces.o : ../Modules/recvec.o
+cp_interfaces.o : ../Modules/twin_types.o
 cp_interfaces.o : ../Modules/uspp.o
 cp_interfaces.o : atoms_type.o
+cp_interfaces.o : modules.o
 cp_interfaces.o : wave_types.o
 cp_restart.o : ../Modules/cell_base.o
 cp_restart.o : ../Modules/constants.o
@@ -194,6 +198,7 @@ cp_restart.o : ../Modules/parameters.o
 cp_restart.o : ../Modules/parser.o
 cp_restart.o : ../Modules/printout_base.o
 cp_restart.o : ../Modules/recvec.o
+cp_restart.o : ../Modules/twin_types.o
 cp_restart.o : ../Modules/version.o
 cp_restart.o : ../Modules/xml_io_base.o
 cp_restart.o : ../iotk/src/iotk_module.o
@@ -221,6 +226,7 @@ cplib.o : ../Modules/mp_global.o
 cplib.o : ../Modules/recvec.o
 cplib.o : ../Modules/sic.o
 cplib.o : ../Modules/smallbox.o
+cplib.o : ../Modules/twin_types.o
 cplib.o : ../Modules/uspp.o
 cplib.o : cp_interfaces.o
 cplib.o : mainvar.o
@@ -247,6 +253,7 @@ cpr.o : ../Modules/check_stop.o
 cpr.o : ../Modules/constants.o
 cpr.o : ../Modules/constraints_module.o
 cpr.o : ../Modules/control_flags.o
+cpr.o : ../Modules/descriptors.o
 cpr.o : ../Modules/electrons_base.o
 cpr.o : ../Modules/energies.o
 cpr.o : ../Modules/griddim.o
@@ -299,6 +306,7 @@ cprsub.o : ../Modules/kind.o
 cprsub.o : ../Modules/mp.o
 cprsub.o : ../Modules/mp_global.o
 cprsub.o : ../Modules/recvec.o
+cprsub.o : ../Modules/twin_types.o
 cprsub.o : ../Modules/uspp.o
 cprsub.o : cp_interfaces.o
 cprsub.o : cpr_mod.o
@@ -348,6 +356,7 @@ dforceb.o : ensemble_dft.o
 dforceb.o : modules.o
 eelib.o : ../Modules/cell_base.o
 eelib.o : ../Modules/constants.o
+eelib.o : ../Modules/control_flags.o
 eelib.o : ../Modules/electrons_base.o
 eelib.o : ../Modules/fft_base.o
 eelib.o : ../Modules/fft_types.o
@@ -365,6 +374,7 @@ efield.o : ../Modules/control_flags.o
 efield.o : ../Modules/io_global.o
 efield.o : ../Modules/kind.o
 efield.o : ../Modules/recvec.o
+efield.o : ../Modules/twin_types.o
 efield.o : ../Modules/uspp.o
 efield.o : ions_positions.o
 eigs0.o : ../Modules/constants.o
@@ -376,6 +386,8 @@ eigs0.o : ../Modules/kind.o
 eigs0.o : ../Modules/mp.o
 eigs0.o : ../Modules/mp_global.o
 eigs0.o : ../Modules/sic.o
+eigs0.o : ../Modules/twin_types.o
+eigs0.o : ../Modules/zhpev_drv.o
 eigs0.o : electrons.o
 eigs0.o : ensemble_dft.o
 eigs0.o : mainvar.o
@@ -403,6 +415,7 @@ emptystates.o : ../Modules/mp_global.o
 emptystates.o : ../Modules/mp_wave.o
 emptystates.o : ../Modules/recvec.o
 emptystates.o : ../Modules/timestep.o
+emptystates.o : ../Modules/twin_types.o
 emptystates.o : ../Modules/uspp.o
 emptystates.o : ../Modules/wave_base.o
 emptystates.o : ../Modules/xml_io_base.o
@@ -415,6 +428,7 @@ emptystates.o : ortho_base.o
 ensemble_dft.o : ../Modules/descriptors.o
 ensemble_dft.o : ../Modules/io_global.o
 ensemble_dft.o : ../Modules/kind.o
+ensemble_dft.o : ../Modules/twin_types.o
 entropy.o : ../Modules/kind.o
 environment.o : ../Modules/io_files.o
 environment.o : ../Modules/io_global.o
@@ -458,6 +472,7 @@ forces.o : ../Modules/kind.o
 forces.o : ../Modules/mp_global.o
 forces.o : ../Modules/parallel_include.o
 forces.o : ../Modules/recvec.o
+forces.o : ../Modules/twin_types.o
 forces.o : ../Modules/uspp.o
 forces.o : cp_interfaces.o
 forces.o : ensemble_dft.o
@@ -562,6 +577,7 @@ init_run.o : ../Modules/kind.o
 init_run.o : ../Modules/printout_base.o
 init_run.o : ../Modules/recvec.o
 init_run.o : ../Modules/timestep.o
+init_run.o : ../Modules/twin_types.o
 init_run.o : ../Modules/uspp.o
 init_run.o : ../Modules/wavefunctions.o
 init_run.o : ../Modules/xml_io_base.o
@@ -735,6 +751,7 @@ mainvar.o : ../Modules/functionals.o
 mainvar.o : ../Modules/kind.o
 mainvar.o : ../Modules/mp.o
 mainvar.o : ../Modules/mp_global.o
+mainvar.o : ../Modules/twin_types.o
 mainvar.o : modules.o
 mainvar.o : pres_ai_mod.o
 mainvar.o : wave_types.o
@@ -779,8 +796,10 @@ nksiclib.o : ../Modules/kind.o
 nksiclib.o : ../Modules/mp.o
 nksiclib.o : ../Modules/mp_global.o
 nksiclib.o : ../Modules/recvec.o
+nksiclib.o : ../Modules/twin_types.o
 nksiclib.o : ../Modules/uspp.o
 nksiclib.o : ../Modules/wavefunctions.o
+nksiclib.o : cg.o
 nksiclib.o : cp_interfaces.o
 nksiclib.o : mainvar.o
 nksiclib.o : modules.o
@@ -795,6 +814,7 @@ nl_base.o : ../Modules/kind.o
 nl_base.o : ../Modules/mp.o
 nl_base.o : ../Modules/mp_global.o
 nl_base.o : ../Modules/recvec.o
+nl_base.o : ../Modules/twin_types.o
 nl_base.o : ../Modules/uspp.o
 nl_base.o : mainvar.o
 nl_base.o : modules.o
@@ -826,7 +846,9 @@ ortho.o : ../Modules/ions_base.o
 ortho.o : ../Modules/kind.o
 ortho.o : ../Modules/mp.o
 ortho.o : ../Modules/mp_global.o
+ortho.o : ../Modules/ptoolkit.o
 ortho.o : ../Modules/recvec.o
+ortho.o : ../Modules/twin_types.o
 ortho.o : ../Modules/uspp.o
 ortho.o : cp_interfaces.o
 ortho.o : mainvar.o
@@ -843,7 +865,9 @@ ortho_base.o : ../Modules/mp.o
 ortho_base.o : ../Modules/mp_global.o
 ortho_base.o : ../Modules/ptoolkit.o
 ortho_base.o : ../Modules/recvec.o
+ortho_base.o : ../Modules/twin_types.o
 ortho_base.o : ../Modules/uspp.o
+ortho_base.o : ../Modules/zhpev_drv.o
 ortho_base.o : modules.o
 para.o : ../Modules/constants.o
 para.o : ../Modules/control_flags.o
@@ -931,6 +955,7 @@ print_out.o : ../Modules/printout_base.o
 print_out.o : ../Modules/recvec.o
 print_out.o : ../Modules/sic.o
 print_out.o : ../Modules/timestep.o
+print_out.o : ../Modules/twin_types.o
 print_out.o : ../Modules/xml_io_base.o
 print_out.o : atoms_type.o
 print_out.o : cg.o
@@ -988,6 +1013,7 @@ qmatrixd.o : ../Modules/kind.o
 qmatrixd.o : ../Modules/mp.o
 qmatrixd.o : ../Modules/mp_global.o
 qmatrixd.o : ../Modules/recvec.o
+qmatrixd.o : ../Modules/twin_types.o
 qmatrixd.o : ../Modules/uspp.o
 qmatrixd.o : efield.o
 qmatrixd.o : modules.o
@@ -1030,6 +1056,7 @@ restart.o : ../Modules/kind.o
 restart.o : ../Modules/mp.o
 restart.o : ../Modules/mp_global.o
 restart.o : ../Modules/recvec.o
+restart.o : ../Modules/twin_types.o
 restart.o : atoms_type.o
 restart.o : cp_autopilot.o
 restart.o : cp_interfaces.o
@@ -1071,6 +1098,7 @@ runcp.o : ../Modules/mp_global.o
 runcp.o : ../Modules/parallel_include.o
 runcp.o : ../Modules/recvec.o
 runcp.o : ../Modules/task_groups.o
+runcp.o : ../Modules/twin_types.o
 runcp.o : ../Modules/uspp.o
 runcp.o : ../Modules/wave_base.o
 runcp.o : cp_interfaces.o
@@ -1138,11 +1166,13 @@ wannier.o : ../Modules/ions_base.o
 wannier.o : ../Modules/kind.o
 wannier.o : ../Modules/printout_base.o
 wannier.o : ../Modules/recvec.o
+wannier.o : ../Modules/twin_types.o
 wannier.o : ../Modules/wave_base.o
 wannier.o : cp_interfaces.o
 wannier.o : modules.o
 wannier.o : wannier_base.o
 wannier_base.o : ../Modules/kind.o
+wave.o : ../Modules/control_flags.o
 wave.o : ../Modules/dspev_drv.o
 wave.o : ../Modules/io_global.o
 wave.o : ../Modules/kind.o
@@ -1151,7 +1181,9 @@ wave.o : ../Modules/mp_global.o
 wave.o : ../Modules/mp_wave.o
 wave.o : ../Modules/random_numbers.o
 wave.o : ../Modules/recvec.o
+wave.o : ../Modules/twin_types.o
 wave.o : ../Modules/wave_base.o
+wave.o : ../Modules/zhpev_drv.o
 wave.o : electrons.o
 wave_types.o : ../Modules/kind.o
 waveinit.o : ../Modules/kind.o

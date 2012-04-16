@@ -98,7 +98,6 @@
    PUBLIC :: open_and_append
    PUBLIC :: cp_print_rho
 
-
    PUBLIC :: vofmean
    PUBLIC :: vofrhos
    PUBLIC :: vofps
@@ -120,9 +119,165 @@
    PUBLIC :: compute_stress
 
    PUBLIC :: protate
+   
+   !--- FOR COMPLEX IMPLEMENTATION --! added:giovanni
+   
+   PUBLIC :: nlsm1
+   PUBLIC :: nlsm1_dist
+   PUBLIC :: wave_sine_init !added:giovanni debug
+   PUBLIC :: nksic_get_orbitalrho
+   PUBLIC :: calrhovan
+   PUBLIC :: nlfl
+   PUBLIC :: grabec
+   PUBLIC :: smooth_csv
+   PUBLIC :: bec_csv
 
-   ! ------------------------------------ !
+    INTERFACE smooth_csv
+      SUBROUTINE smooth_csv_real( c, v, ngwx, csv, n )
+	USE kinds,              ONLY: DP
+	IMPLICIT NONE
+  !
+	INTEGER, INTENT(IN) :: ngwx, n
+	COMPLEX(DP)    :: c( ngwx )
+	COMPLEX(DP)    :: v( ngwx, n )
+	REAL(DP)    :: csv( n )
+      END SUBROUTINE
+      SUBROUTINE smooth_csv_twin( c, v, ngwx, csv, n )
+      USE kinds,              ONLY: DP
+      USE twin_types
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: ngwx, n
+      COMPLEX(DP)    :: c( ngwx )
+      COMPLEX(DP)    :: v( ngwx, n )
+      type(twin_matrix)    :: csv
+      END SUBROUTINE
+    END INTERFACE
 
+    INTERFACE  bec_csv
+      SUBROUTINE bec_csv_real( becc, becv, nkbx, csv, n )
+      USE ions_base,      ONLY: na
+      USE cvan,           ONLY :nvb, ish
+      USE uspp,           ONLY : nkb, nhsavb=>nkbus, qq
+      USE uspp_param,     ONLY:  nh
+      USE kinds,          ONLY: DP
+!
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: nkbx, n
+      REAL(DP)    :: becc( nkbx )
+      REAL(DP)    :: becv( nkbx, n )
+      REAL(DP)    :: csv( n )
+      INTEGER     :: k, is, iv, jv, ia, inl, jnl
+      REAL(DP)    :: rsum
+      END SUBROUTINE
+
+      SUBROUTINE bec_csv_twin( becc, becv, nkbx, csv, n, lcc )
+      USE ions_base,      ONLY: na
+      USE cvan,           ONLY :nvb, ish
+      USE uspp,           ONLY : nkb, nhsavb=>nkbus, qq
+      USE uspp_param,     ONLY:  nh
+      USE kinds,          ONLY: DP
+      USE twin_types
+!
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: nkbx, n, lcc
+      type(twin_matrix)    :: becc !( nkbx )
+      type(twin_matrix)    :: becv !( nkbx, n )
+      type(twin_matrix)    :: csv!( n )
+      INTEGER     :: k, is, iv, jv, ia, inl, jnl
+      REAL(DP)    :: rsum
+      END SUBROUTINE
+    END INTERFACE
+
+    INTERFACE nlfl
+	  SUBROUTINE nlfl_real(bec,becdr,lambda,fion)
+	    USE kinds,             ONLY: DP
+! 	    USE ions_base,         ONLY: na, nsp, nat
+! 	    USE uspp,              ONLY: nhsa=>nkb, qq
+! 	    USE electrons_base,    ONLY: nbspx, nbsp, nudx, nspin, iupdwn, nupdwn
+! 	    USE cp_main_variables, ONLY: nlam, nlax, descla, la_proc
+!
+	    IMPLICIT NONE
+	    REAL(DP) bec(:,:), becdr(:,:,:), lambda(:,:,:)
+	    REAL(DP) fion(:,:)
+          END SUBROUTINE
+	  SUBROUTINE nlfl_twin(bec,becdr,lambda,fion, lgam)
+	    USE kinds,             ONLY: DP
+! 	    USE ions_base,         ONLY: na, nsp, nat
+! 	    USE uspp,              ONLY: nhsa=>nkb, qq
+! 	    USE electrons_base,    ONLY: nbspx, nbsp, nudx, nspin, iupdwn, nupdwn
+! 	    USE cp_main_variables, ONLY: nlam, nlax, descla, la_proc
+            USE twin_types
+!
+	    IMPLICIT NONE
+
+	    TYPE(twin_matrix) :: bec
+	    TYPE(twin_tensor) :: becdr
+	    TYPE(twin_matrix), dimension(:) :: lambda!(nlam,nlam,nspin)
+	    REAL(DP) fion(:,:)
+            LOGICAL :: lgam
+          END SUBROUTINE
+    END INTERFACE
+     
+   INTERFACE calrhovan
+      subroutine calrhovan_real( rhovan, bec, iwf )
+	  use kinds,          only : DP
+	  use cvan,           only : ish
+	  use uspp_param,     only : nhm, nh
+	  use uspp,           only : nkb, dvan
+	  use electrons_base, only : nbsp, nspin, ispin, f
+	  use ions_base,      only : nsp, nat, na
+	  implicit none
+	  real(DP) :: bec( nkb, nbsp )
+	  real(DP) :: rhovan( nhm*(nhm+1)/2, nat, nspin )
+	  integer, intent(in) :: iwf
+      end subroutine
+      subroutine calrhovan_twin( rhovan, bec, iwf )
+	  use kinds,          only : DP
+	  use uspp_param,     only : nhm, nh
+	  use uspp,           only : nkb, dvan
+	  use electrons_base, only : nspin, ispin, f
+	  use ions_base,      only : nsp, nat, na
+          use twin_types
+	  implicit none
+	  type(twin_matrix) :: bec !( nkb, n )
+	  real(DP) :: rhovan( nhm*(nhm+1)/2, nat, nspin )
+	  integer, intent(in) :: iwf
+      end subroutine
+   END INTERFACE
+
+   INTERFACE nksic_get_orbitalrho
+         subroutine nksic_get_orbitalrho_real( ngw, nnrx, bec, ispin, nbsp, &
+                                       c1, c2, orb_rhor, i1, i2 )
+      use kinds,                      only: dp
+      use twin_types
+      !
+      implicit none
+
+      integer,     intent(in) :: ngw,nnrx,i1,i2
+      integer,     intent(in) :: nbsp, ispin(nbsp)
+      type(twin_matrix),    intent(in) :: bec!(nkb, nbsp)
+      complex(dp), intent(in) :: c1(ngw),c2(ngw)
+      real(dp),   intent(out) :: orb_rhor(nnrx,2)
+      END SUBROUTINE nksic_get_orbitalrho_real
+!-----------------------------------------------------------------------
+      SUBROUTINE nksic_get_orbitalrho_twin( ngw, nnrx, bec, ispin, nbsp, &
+                                       c1, c2, orb_rhor, i1, i2, lgam )
+!-----------------------------------------------------------------------
+	  use kinds,                      only: dp
+	  use twin_types
+	  !
+	  implicit none
+	  integer,     intent(in) :: ngw,nnrx,i1,i2
+	  integer,     intent(in) :: nbsp, ispin(nbsp)
+	  type(twin_matrix) :: bec !(nkb, nbsp)
+	  complex(dp), intent(in) :: c1(ngw),c2(ngw)
+	  real(dp),   intent(out) :: orb_rhor(nnrx,2) 
+	  logical :: lgam
+      END SUBROUTINE
+   END INTERFACE
 
    INTERFACE bessel2
       SUBROUTINE bessel2_x(XG, RW, FINT, LNL, INDL, MMAX)
@@ -146,13 +301,29 @@
       END SUBROUTINE BESSEL3_x
    END INTERFACE
 
-
    INTERFACE dforce 
+      SUBROUTINE dforce_x_new( i, bec, vkb, c, df, da, v, ldv, ispin, f, n, nspin, v1 )
+         USE kinds,              ONLY: DP
+         USE twin_types
+         IMPLICIT NONE
+         INTEGER,     INTENT(IN)    :: i
+         type(twin_matrix)           :: bec!(:,:)!modified:giovanni
+         COMPLEX(DP)                :: vkb(:,:)
+         COMPLEX(DP)                :: c(:,:)
+         COMPLEX(DP)                :: df(:), da(:)
+         INTEGER,     INTENT(IN)    :: ldv
+         REAL(DP)                   :: v( ldv, * )
+         INTEGER                    :: ispin( : )
+         REAL(DP)                   :: f( : )
+         INTEGER,     INTENT(IN)    :: n, nspin
+         REAL(DP),    OPTIONAL      :: v1( ldv, * )
+      END SUBROUTINE dforce_x_new
+
       SUBROUTINE dforce_x( i, bec, vkb, c, df, da, v, ldv, ispin, f, n, nspin, v1 )
          USE kinds,              ONLY: DP
          IMPLICIT NONE
          INTEGER,     INTENT(IN)    :: i
-         REAL(DP)                   :: bec(:,:)
+         REAL(DP)           :: bec(:,:)
          COMPLEX(DP)                :: vkb(:,:)
          COMPLEX(DP)                :: c(:,:)
          COMPLEX(DP)                :: df(:), da(:)
@@ -165,13 +336,11 @@
       END SUBROUTINE dforce_x
    END INTERFACE
 
-
    INTERFACE pseudopotential_indexes
       SUBROUTINE pseudopotential_indexes_x( )
          IMPLICIT NONE
       END SUBROUTINE pseudopotential_indexes_x
    END INTERFACE
-
 
    INTERFACE compute_dvan
       SUBROUTINE compute_dvan_x()
@@ -276,18 +445,19 @@
          REAL(DP) dft_total_charge_x
       END FUNCTION
    END INTERFACE
-
   
    INTERFACE rhoofr
       SUBROUTINE rhoofr_cp &
          ( nfi, c, irb, eigrb, bec, rhovan, rhor, rhog, rhos, enl, denl, ekin, dekin, tstress, ndwwf )
-         USE kinds,      ONLY: DP         
+         USE kinds,      ONLY: DP
+         USE twin_types
+         
          IMPLICIT NONE
          INTEGER nfi
          COMPLEX(DP) c( :, : )
          INTEGER irb( :, : )
          COMPLEX(DP) eigrb( :, : )
-         REAL(DP) bec(:,:)
+         type(twin_matrix) :: bec!(:,:)!modified:giovanni
          REAL(DP) rhovan(:, :, : )
          REAL(DP) rhor(:,:)
          COMPLEX(DP) rhog( :, : )
@@ -297,11 +467,32 @@
          LOGICAL, OPTIONAL, INTENT(IN) :: tstress
          INTEGER, OPTIONAL, INTENT(IN) :: ndwwf
       END SUBROUTINE rhoofr_cp
+
+      SUBROUTINE rhoofr_cp_old &
+         ( nfi, c, irb, eigrb, bec, rhovan, rhor, rhog, rhos, enl, denl, ekin, dekin, tstress, ndwwf )
+         USE kinds,      ONLY: DP
+         USE twin_types
+         
+         IMPLICIT NONE
+         INTEGER nfi
+         COMPLEX(DP) c( :, : )
+         INTEGER irb( :, : )
+         COMPLEX(DP) eigrb( :, : )
+         REAL(DP) :: bec(:,:)
+         REAL(DP) rhovan(:, :, : )
+         REAL(DP) rhor(:,:)
+         COMPLEX(DP) rhog( :, : )
+         REAL(DP) rhos(:,:)
+         REAL(DP) enl, ekin
+         REAL(DP) denl(3,3), dekin(6)
+         LOGICAL, OPTIONAL, INTENT(IN) :: tstress
+         INTEGER, OPTIONAL, INTENT(IN) :: ndwwf
+      END SUBROUTINE rhoofr_cp_old
    END INTERFACE
 
 
    INTERFACE fillgrad
-      SUBROUTINE fillgrad_x( nspin, rhog, gradr )
+      SUBROUTINE fillgrad_x( nspin, rhog, gradr, lgam )
          USE kinds,           ONLY: DP         
          USE gvecp,           ONLY: ngm
          USE grid_dimensions, ONLY: nnrx
@@ -309,6 +500,7 @@
          INTEGER, INTENT(IN) :: nspin
          complex(DP) :: rhog( ngm, nspin )
          real(DP)    :: gradr( nnrx, 3, nspin )
+        logical :: lgam
       END SUBROUTINE fillgrad_x
    END INTERFACE
 
@@ -324,7 +516,7 @@
    END INTERFACE
 
    INTERFACE readfile
-      SUBROUTINE readfile_cp                                         &
+      SUBROUTINE readfile_cp_real                                         &
       &     ( flag, h,hold,nfi,c0,cm,taus,tausm,vels,velsm,acc,    &
       &       lambda,lambdam,xnhe0,xnhem,vnhe,xnhp0,xnhpm,vnhp,nhpcl,nhpdim,ekincm,&
       &       xnhh0,xnhhm,vnhh,velh,fion, tps, mat_z, occ_f )
@@ -344,12 +536,35 @@
          REAL(DP) :: xnhh0(3,3),xnhhm(3,3),vnhh(3,3),velh(3,3)
          REAL(DP), INTENT(OUT) :: tps
          REAL(DP), INTENT(INOUT) :: mat_z(:,:,:), occ_f(:)
-      END SUBROUTINE readfile_cp
+      END SUBROUTINE readfile_cp_real
+      SUBROUTINE readfile_cp_twin                                         &
+      &     ( flag, h,hold,nfi,c0,cm,taus,tausm,vels,velsm,acc,    &
+      &       lambda,lambdam,xnhe0,xnhem,vnhe,xnhp0,xnhpm,vnhp,nhpcl,nhpdim,ekincm,&
+      &       xnhh0,xnhhm,vnhh,velh,fion, tps, mat_z, occ_f )
+         USE kinds,          ONLY : DP
+         USE twin_types
+
+         IMPLICIT NONE
+         INTEGER, INTENT(in) :: flag
+         integer ::  nfi
+         REAL(DP) :: h(3,3), hold(3,3)
+         complex(DP) :: c0(:,:), cm(:,:)
+         REAL(DP) :: tausm(:,:),taus(:,:), fion(:,:)
+         REAL(DP) :: vels(:,:), velsm(:,:) 
+         REAL(DP) :: acc(:)
+         TYPE(twin_matrix), dimension(:) :: lambda, lambdam
+         REAL(DP) :: xnhe0,xnhem,vnhe
+         REAL(DP) :: xnhp0(:), xnhpm(:), vnhp(:)
+         integer, INTENT(inout) :: nhpcl,nhpdim
+         REAL(DP) :: ekincm
+         REAL(DP) :: xnhh0(3,3),xnhhm(3,3),vnhh(3,3),velh(3,3)
+         REAL(DP), INTENT(OUT) :: tps
+         REAL(DP), INTENT(INOUT) :: mat_z(:,:,:), occ_f(:)
+      END SUBROUTINE readfile_cp_twin
    END INTERFACE
 
-
    INTERFACE writefile
-      SUBROUTINE writefile_cp &
+      SUBROUTINE writefile_cp_real &
       &     ( h,hold,nfi,c0,cm,taus,tausm,vels,velsm,acc,           &
       &       lambda,lambdam,xnhe0,xnhem,vnhe,xnhp0,xnhpm,vnhp,nhpcl,nhpdim,ekincm,&
       &       xnhh0,xnhhm,vnhh,velh, fion, tps, mat_z, occ_f, rho )
@@ -369,7 +584,30 @@
          REAL(DP), INTENT(in) :: rho(:,:)
          REAL(DP), INTENT(in) :: occ_f(:)
          REAL(DP), INTENT(in) :: mat_z(:,:,:)
-      END SUBROUTINE writefile_cp
+      END SUBROUTINE writefile_cp_real
+      SUBROUTINE writefile_cp_twin &
+      &     ( h,hold,nfi,c0,cm,taus,tausm,vels,velsm,acc,           &
+      &       lambda,lambdam,xnhe0,xnhem,vnhe,xnhp0,xnhpm,vnhp,nhpcl,nhpdim,ekincm,&
+      &       xnhh0,xnhhm,vnhh,velh, fion, tps, mat_z, occ_f, rho )
+         USE kinds,            ONLY: DP
+         USE twin_types
+         implicit none
+         integer, INTENT(IN) :: nfi
+         REAL(DP), INTENT(IN) :: h(3,3), hold(3,3)
+         complex(DP), INTENT(IN) :: c0(:,:), cm(:,:)
+         REAL(DP), INTENT(IN) :: tausm(:,:), taus(:,:), fion(:,:)
+         REAL(DP), INTENT(IN) :: vels(:,:), velsm(:,:)
+         REAL(DP), INTENT(IN) :: acc(:)
+         TYPE(twin_matrix), DIMENSION(:), INTENT(IN) :: lambda, lambdam
+         REAL(DP), INTENT(IN) :: xnhe0, xnhem, vnhe, ekincm
+         REAL(DP), INTENT(IN) :: xnhp0(:), xnhpm(:), vnhp(:)
+         integer,      INTENT(in) :: nhpcl, nhpdim
+         REAL(DP), INTENT(IN) :: xnhh0(3,3),xnhhm(3,3),vnhh(3,3),velh(3,3)
+         REAL(DP), INTENT(in) :: tps
+         REAL(DP), INTENT(in) :: rho(:,:)
+         REAL(DP), INTENT(in) :: occ_f(:)
+         REAL(DP), INTENT(in) :: mat_z(:,:,:)
+      END SUBROUTINE writefile_cp_twin
       SUBROUTINE writefile_fpmd  &
          ( nfi, trutime, c0, cm, occ, atoms_0, atoms_m, acc, taui, cdmi, ht_m, &
            ht_0, rho, vpot, lambda, tlast )
@@ -392,7 +630,6 @@
       END SUBROUTINE writefile_fpmd
    END INTERFACE
  
-
    INTERFACE main_fpmd
       SUBROUTINE cpmain_x( tau, fion, etot )
          USE kinds,             ONLY: DP
@@ -408,12 +645,14 @@
       SUBROUTINE runcp_uspp_x &
          ( nfi, fccc, ccc, ema0bg, dt2bye, rhos, bec, c0, cm, fromscra, restart, tprint_ham )
          USE kinds,             ONLY: DP
+         USE twin_types !added:giovanni
+
          IMPLICIT NONE
          integer, intent(in) :: nfi
          real(DP) :: fccc, ccc
          real(DP) :: ema0bg(:), dt2bye
          real(DP) :: rhos(:,:)
-         real(DP) :: bec(:,:)
+         type(twin_matrix) :: bec!(:,:) !modified:giovanni
          complex(DP) :: c0(:,:), cm(:,:)
          logical, optional, intent(in) :: fromscra
          logical, optional, intent(in) :: restart
@@ -474,7 +713,7 @@
 
 
    INTERFACE gram_empty
-      SUBROUTINE gram_empty_x  &
+      SUBROUTINE gram_empty_real_x  &
          ( tortho, eigr, betae, bec_emp, bec_occ, nkbx, c_emp, c_occ, ngwx, n_emp, n_occ )
          USE kinds,          ONLY: DP
          USE ions_base,      ONLY : nat
@@ -489,11 +728,27 @@
          COMPLEX(DP)   :: c_occ( ngwx, n_occ )
          LOGICAL, INTENT(IN) :: tortho
       END SUBROUTINE
+      SUBROUTINE gram_empty_twin_x  &
+         ( tortho, eigr, betae, bec_emp, bec_occ, nkbx, c_emp, c_occ, ngwx, n_emp, n_occ, l_emp, l_occ )
+         USE kinds,          ONLY: DP
+         USE ions_base,      ONLY : nat
+         USE uspp,           ONLY : nkb
+         USE twin_types
+         IMPLICIT NONE
+         INTEGER, INTENT(IN) :: nkbx, ngwx, n_emp, n_occ, l_emp, l_occ
+         COMPLEX(DP)   :: eigr(ngwx,nat)
+         type(twin_matrix)      :: bec_emp !( nkbx, n_emp )
+         type(twin_matrix)      :: bec_occ !( nkbx, n_occ )
+         COMPLEX(DP)   :: betae( ngwx, nkb )
+         COMPLEX(DP)   :: c_emp( ngwx, n_emp )
+         COMPLEX(DP)   :: c_occ( ngwx, n_occ )
+         LOGICAL, INTENT(IN) :: tortho
+      END SUBROUTINE
    END INTERFACE
 
 
    INTERFACE empty_cp
-      SUBROUTINE empty_cp_x ( nfi, c0, v )
+      SUBROUTINE empty_cp_twin_x ( nfi, c0, v )
          USE kinds,             ONLY: DP
          IMPLICIT NONE
          INTEGER,    INTENT(IN) :: nfi
@@ -528,11 +783,19 @@
 
 
    INTERFACE eigs
-      SUBROUTINE cp_eigs_x( nfi, lambdap, lambda )
+      SUBROUTINE cp_eigs_real_x( nfi, lambdap, lambda )
          USE kinds,            ONLY: DP
          IMPLICIT NONE
          INTEGER :: nfi
          REAL(DP) :: lambda( :, :, : ), lambdap( :, :, : )
+      END SUBROUTINE
+     SUBROUTINE cp_eigs_twin_x( nfi, lambdap, lambda )
+         USE kinds,            ONLY: DP
+         use electrons_base,    only: nspin
+         USE twin_types
+         IMPLICIT NONE
+         INTEGER :: nfi
+         type(twin_matrix), dimension(nspin) :: lambda, lambdap
       END SUBROUTINE
    END INTERFACE
 
@@ -568,7 +831,18 @@
          REAL(DP),    INTENT(INOUT) :: lambda(:,:,:)
          REAL(DP),    INTENT(IN)    :: ccc
       END SUBROUTINE
-      SUBROUTINE ortho_cp &
+      SUBROUTINE ortho_m_twin &
+         ( c0, cp, lambda, descla, ccc, nupdwn, iupdwn, nspin )
+         USE kinds,              ONLY: DP
+         USE twin_types
+         IMPLICIT NONE
+         INTEGER,     INTENT(IN)    :: descla(:,:)
+         INTEGER,     INTENT(IN)    :: nupdwn(:), iupdwn(:), nspin
+         COMPLEX(DP), INTENT(INOUT) :: c0(:,:), cp(:,:)
+         TYPE(twin_matrix), DIMENSION(:), INTENT(INOUT) :: lambda
+         REAL(DP),    INTENT(IN)    :: ccc
+      END SUBROUTINE
+      SUBROUTINE ortho_cp_real &
          ( eigr, cp, phi, ngwx, x0, descla, diff, iter, ccc, bephi, becp, nbsp, nspin, nupdwn, iupdwn)
          USE kinds,          ONLY: DP
          USE ions_base,      ONLY: nat
@@ -583,10 +857,27 @@
          INTEGER     :: iter
          REAL(DP)    :: bephi(:,:), becp(:,:)
       END SUBROUTINE
+      SUBROUTINE ortho_cp_twin &
+         ( eigr, cp, phi, ngwx, x0, descla, diff, iter, ccc, bephi, becp, nbsp, nspin, nupdwn, iupdwn)
+         USE kinds,          ONLY: DP
+         USE ions_base,      ONLY: nat
+         USE uspp,           ONLY: nkb
+         USE descriptors,    ONLY: descla_siz_
+         USE twin_types
+         IMPLICIT NONE
+         INTEGER,    INTENT(IN)     :: ngwx, nbsp, nspin
+         INTEGER,    INTENT(IN)     :: nupdwn( nspin ), iupdwn( nspin )
+         INTEGER,     INTENT(IN)    :: descla( descla_siz_ , nspin ) ! this is not varied
+         COMPLEX(DP) :: cp(ngwx,nbsp), phi(ngwx,nbsp), eigr(ngwx,nat) !these are not 
+         type(twin_matrix), dimension(:) :: x0 !this becomes a twin 
+         REAL(DP) :: diff, ccc
+         INTEGER     :: iter
+         type(twin_matrix) :: bephi, becp
+!          REAL(DP)    :: bephi(:,:), becp(:,:)
+      END SUBROUTINE
    END INTERFACE
-
    INTERFACE ortho_gamma
-      SUBROUTINE ortho_gamma_x &
+      SUBROUTINE ortho_gamma_real_x &
          ( iopt, cp, ngwx, phi, becp, qbecp, nkbx, bephi, qbephi, &
            x0, nx0, descla, diff, iter, n, nss, istart )
          USE kinds,          ONLY: DP
@@ -602,6 +893,23 @@
          INTEGER,  INTENT(IN)  :: descla( descla_siz_ )
          INTEGER,  INTENT(OUT) :: iter
          REAL(DP), INTENT(OUT) :: diff
+      END SUBROUTINE
+      SUBROUTINE ortho_gamma_cmplx_x &
+         ( iopt, cp, ngwx, phi, becp, qbecp, nkbx, bephi, qbephi, &
+           x0, nx0, descla, diff, iter, n, nss, istart )
+         USE kinds,          ONLY: DP
+         USE descriptors,    ONLY: descla_siz_
+         IMPLICIT NONE
+      INTEGER,  INTENT(IN)  :: iopt
+      INTEGER,  INTENT(IN)  :: ngwx, nkbx, nx0
+      INTEGER,  INTENT(IN)  :: n, nss, istart
+      COMPLEX(DP) :: phi( ngwx, n ), cp( ngwx, n )
+      COMPLEX(DP)    :: bephi( :, : ), becp( :, : )
+      COMPLEX(DP)    :: qbephi( :, : ), qbecp( :, : )
+      COMPLEX(DP)    :: x0( nx0, nx0 )
+      INTEGER,  INTENT(IN)  :: descla( descla_siz_ )
+      INTEGER,  INTENT(OUT) :: iter
+      REAL(DP), INTENT(OUT) :: diff
       END SUBROUTINE
    END INTERFACE
 
@@ -751,11 +1059,17 @@
 
 
    INTERFACE interpolate_lambda
-      SUBROUTINE interpolate_lambda_x( lambdap, lambda, lambdam )
+     SUBROUTINE interpolate_lambda_x( lambdap, lambda, lambdam )
          USE kinds,              ONLY: DP
          IMPLICIT NONE
          REAL(DP) :: lambdap(:,:,:), lambda(:,:,:), lambdam(:,:,:)
       END SUBROUTINE
+     SUBROUTINE interpolate_lambda_twin_x( lambdap, lambda, lambdam )
+       USE kinds, ONLY: DP
+       USE twin_types
+       IMPLICIT NONE
+       TYPE(twin_matrix), dimension(:) :: lambdap, lambda, lambdam
+     END SUBROUTINE
    END INTERFACE
 
    INTERFACE update_lambda
@@ -783,7 +1097,6 @@
       END SUBROUTINE
    END INTERFACE
 
-
    INTERFACE wave_rand_init
       SUBROUTINE wave_rand_init_x( cm, n, noff )
          USE kinds,              ONLY: DP
@@ -794,13 +1107,22 @@
    END INTERFACE
 
    INTERFACE crot
-      SUBROUTINE crot_gamma2 ( c0rot, c0, ngw, n, noffr, noff, lambda, nx, eig )
+      SUBROUTINE crot_gamma2_real ( c0rot, c0, ngw, n, noffr, noff, lambda, nx, eig )
          USE kinds,              ONLY: DP
          IMPLICIT NONE
          INTEGER,     INTENT(IN)    :: ngw, n, nx, noffr, noff
          COMPLEX(DP), INTENT(INOUT) :: c0rot(:,:)
          COMPLEX(DP), INTENT(IN)    :: c0(:,:)
          REAL(DP),    INTENT(IN)    :: lambda(:,:)
+         REAL(DP),    INTENT(OUT)   :: eig(:)
+      END SUBROUTINE
+      SUBROUTINE crot_gamma2_cmplx ( c0rot, c0, ngw, n, noffr, noff, lambda, nx, eig )
+         USE kinds,              ONLY: DP
+         IMPLICIT NONE
+         INTEGER,     INTENT(IN)    :: ngw, n, nx, noffr, noff
+         COMPLEX(DP), INTENT(INOUT) :: c0rot(:,:)
+         COMPLEX(DP), INTENT(IN)    :: c0(:,:)
+         COMPLEX(DP),    INTENT(IN)    :: lambda(:,:)
          REAL(DP),    INTENT(OUT)   :: eig(:)
       END SUBROUTINE
    END INTERFACE
@@ -881,7 +1203,7 @@
 
 
    INTERFACE printout_new
-      SUBROUTINE printout_new_x &
+      SUBROUTINE printout_new_real_x &
          ( nfi, tfirst, tfilei, tstdouti, tprint, tps, h, stress, tau0, vels, &
            fion, ekinc, temphc, tempp, temps, etot, enthal, econs, econt, &
            vnhh, xnhh0, vnhp, xnhp0, atot, ekin, epot, print_forces, print_stress, &
@@ -905,6 +1227,33 @@
          LOGICAL, INTENT(IN) :: print_forces, print_stress
          REAL(DP), OPTIONAL, INTENT(IN) :: hamilt(:, :, :)
          LOGICAL,  OPTIONAL, INTENT(IN) :: print_hamilt_norm
+      END SUBROUTINE
+      SUBROUTINE printout_new_twin_x &
+         ( nfi, tfirst, tfilei, tstdouti, tprint, tps, h, stress, tau0, vels, &
+           fion, ekinc, temphc, tempp, temps, etot, enthal, econs, econt, &
+           vnhh, xnhh0, vnhp, xnhp0, atot, ekin, epot, print_forces, print_stress, &
+           hamilt, print_hamilt_norm, lgam )
+         USE kinds,          ONLY: DP
+         USE twin_types
+         IMPLICIT NONE
+         INTEGER, INTENT(IN) :: nfi
+         LOGICAL, INTENT(IN) :: tfirst, tfilei, tstdouti, tprint
+         REAL(DP), INTENT(IN) :: tps
+         REAL(DP), INTENT(IN) :: h( 3, 3 )
+         REAL(DP), INTENT(IN) :: stress( 3, 3 )
+         REAL(DP), INTENT(IN) :: tau0( :, : )  ! real positions
+         REAL(DP), INTENT(IN) :: vels( :, : )  ! scaled velocities
+         REAL(DP), INTENT(IN) :: fion( :, : )  ! real forces
+         REAL(DP), INTENT(IN) :: ekinc, temphc, tempp, etot, enthal, econs, econt
+         REAL(DP), INTENT(IN) :: temps( : ) ! partial temperature for different ionic species
+         REAL(DP), INTENT(IN) :: vnhh( 3, 3 ), xnhh0( 3, 3 ), vnhp( 1 ), xnhp0( 1 )
+         REAL(DP), INTENT(IN) :: atot! enthalpy of system for c.g. case
+         REAL(DP), INTENT(IN) :: ekin
+         REAL(DP), INTENT(IN) :: epot ! ( epseu + eht + exc )
+         LOGICAL, INTENT(IN) :: print_forces, print_stress
+         type(twin_matrix), dimension(:), OPTIONAL, INTENT(IN) :: hamilt
+         LOGICAL,  OPTIONAL, INTENT(IN) :: print_hamilt_norm
+         LOGICAL, intent(IN) :: lgam
       END SUBROUTINE
    END INTERFACE
 
@@ -1000,7 +1349,18 @@
    
 
    INTERFACE vofps
-      SUBROUTINE vofps_x( eps, vloc, rhoeg, vps, sfac, omega )
+      SUBROUTINE vofps_x_new( eps, vloc, rhoeg, vps, sfac, omega, lgam )
+         USE kinds,              ONLY: DP 
+         IMPLICIT NONE
+         REAL(DP),    INTENT(IN)  :: vps(:,:)
+         REAL(DP),    INTENT(IN)  :: omega
+         COMPLEX(DP), INTENT(OUT) :: vloc(:)
+         COMPLEX(DP), INTENT(IN)  :: rhoeg(:)
+         COMPLEX(DP), INTENT(IN)  :: sfac(:,:)
+         COMPLEX(DP), INTENT(OUT) :: eps
+         LOGICAL, INTENT(IN) :: lgam
+      END SUBROUTINE
+      SUBROUTINE vofps_x( eps, vloc, rhoeg, vps, sfac, omega)
          USE kinds,              ONLY: DP 
          IMPLICIT NONE
          REAL(DP),    INTENT(IN)  :: vps(:,:)
@@ -1091,12 +1451,21 @@
    END INTERFACE
 
    INTERFACE set_evtot
-      SUBROUTINE set_evtot_x( c0, ctot, lambda, iupdwn_tot, nupdwn_tot )
+      SUBROUTINE set_evtot_real_x( c0, ctot, lambda, iupdwn_tot, nupdwn_tot )
          USE kinds,            ONLY: DP
          IMPLICIT NONE
          COMPLEX(DP), INTENT(IN)  :: c0(:,:)
          COMPLEX(DP), INTENT(OUT) :: ctot(:,:)
          REAL(DP),    INTENT(IN)  :: lambda(:,:,:)
+         INTEGER,     INTENT(IN)  :: iupdwn_tot(2), nupdwn_tot(2)
+      END SUBROUTINE
+      SUBROUTINE set_evtot_twin_x( c0, ctot, lambda, iupdwn_tot, nupdwn_tot )
+         USE kinds,            ONLY: DP
+         USE twin_types
+         IMPLICIT NONE
+         COMPLEX(DP), INTENT(IN)  :: c0(:,:)
+         COMPLEX(DP), INTENT(OUT) :: ctot(:,:)
+         TYPE(twin_matrix), dimension(:), INTENT(IN) :: lambda
          INTEGER,     INTENT(IN)  :: iupdwn_tot(2), nupdwn_tot(2)
       END SUBROUTINE
    END INTERFACE
@@ -1108,9 +1477,14 @@
          COMPLEX(DP), INTENT(IN)  :: c0(:,:), eigr(:,:), vkb(:,:)
          REAL(DP),    INTENT(IN)  :: lambda(:,:,:)
       END SUBROUTINE
+      SUBROUTINE print_projwfc_twin_x ( c0, lambda, eigr, vkb )
+         USE kinds,            ONLY: DP
+         USE twin_types
+         IMPLICIT NONE
+         COMPLEX(DP), INTENT(IN)  :: c0(:,:), eigr(:,:), vkb(:,:)
+         TYPE(twin_matrix), DIMENSION(:), INTENT(IN) :: lambda(:)
+      END SUBROUTINE
    END INTERFACE
-
-
 
    INTERFACE move_electrons
       SUBROUTINE move_electrons_x( &
@@ -1142,23 +1516,41 @@
    END INTERFACE
 
    INTERFACE nlfh
-      SUBROUTINE nlfh_x( stress, bec, dbec, lambda )
+      SUBROUTINE nlfh_real_x( stress, bec, dbec, lambda )
          USE kinds, ONLY : DP
          IMPLICIT NONE
          REAL(DP), INTENT(INOUT) :: stress(3,3) 
          REAL(DP), INTENT(IN)    :: bec( :, : ), dbec( :, :, :, : )
          REAL(DP), INTENT(IN)    :: lambda( :, :, : )
       END SUBROUTINE
+      SUBROUTINE nlfh_twin_x( stress, bec, dbec, lambda )
+         USE kinds, ONLY : DP
+         USE twin_types
+         IMPLICIT NONE
+         REAL(DP), INTENT(INOUT) :: stress(3,3) 
+         type(twin_matrix) :: bec
+         REAL(DP), INTENT(IN) :: dbec( :, :, :, : )
+         type(twin_matrix), dimension(:), INTENT(IN)    :: lambda ! ( :, :, : )
+      END SUBROUTINE
    END INTERFACE
 
    INTERFACE print_lambda
-      SUBROUTINE print_lambda_x( lambda, n, nshow, ccc, iunit )
+      SUBROUTINE print_lambda_x_real( lambda, n, nshow, ccc, iunit )
          USE kinds, ONLY : DP
          IMPLICIT NONE
          REAL(DP), INTENT(IN) :: lambda(:,:,:), ccc
          INTEGER, INTENT(IN) :: n, nshow
          INTEGER, INTENT(IN), OPTIONAL :: iunit
       END SUBROUTINE
+    SUBROUTINE print_lambda_x_twin( lambda, n, nshow, ccc, iunit )
+	USE kinds, ONLY : DP
+        USE twin_types
+	IMPLICIT NONE
+	real(DP), intent(in) :: ccc
+        type(twin_matrix), dimension(:) :: lambda
+	integer, intent(in) :: n, nshow
+	integer, intent(in), optional :: iunit
+    END SUBROUTINE
    END INTERFACE
 
    INTERFACE protate
@@ -1177,6 +1569,129 @@
       END SUBROUTINE
 
    END INTERFACE
+
+!---------- INTERFACES FOR COMPLEX IMPLEMENTATION
+   INTERFACE wave_sine_init ! added:giovanni
+      SUBROUTINE wave_sine_init_x( cm, n, noff )
+         USE kinds,              ONLY: DP
+         IMPLICIT NONE
+         INTEGER,     INTENT(IN)  :: n, noff
+         COMPLEX(DP), INTENT(OUT) :: cm(:,:)
+      END SUBROUTINE
+   END INTERFACE
+
+   INTERFACE nlsm1
+	SUBROUTINE nlsm1_real ( n, nspmn, nspmx, eigr, c, becp )
+      !-----------------------------------------------------------------------
+	    USE kinds,      ONLY : DP
+	    !
+	    USE reciprocal_vectors, ONLY : gstart
+      !
+	    implicit none
+
+	    integer,   intent(in)  :: n, nspmn, nspmx
+	    complex(DP), intent(in)  :: eigr( :, : ), c( :, : )
+	    real(DP), intent(out) :: becp( :, : )
+        END SUBROUTINE
+      !-----------------------------------------------------------------------
+	SUBROUTINE nlsm1_twin(n, nspmn, nspmx, eigr, c, becp, lbound_bec, lgam2)!added:giovanni lgam
+
+	    USE kinds,      ONLY : DP
+	    USE twin_types !added:giovanni
+	    USE ions_base,  only : na, nat
+	    USE gvecw,      only : ngw
+	    !
+	    USE reciprocal_vectors, ONLY : gstart, gx !added:giovanni:debug gx
+      !
+	    implicit none
+
+	    integer,   intent(in)  :: n, nspmn, nspmx, lbound_bec
+	    complex(DP), intent(in) :: eigr(ngw,nat), c(ngw, n )!modified:giovanni
+      !       real(DP), intent(out) :: becp
+	    type(twin_matrix) :: becp!( nkb, n ) !modified:giovanni
+	    logical :: lgam2!added:giovanni
+	END SUBROUTINE
+   END INTERFACE
+
+   INTERFACE nlsm1_dist
+	SUBROUTINE nlsm1_dist_real ( n, nspmn, nspmx, eigr, c, becp, nlax, nspin, desc )
+
+	    USE kinds,      ONLY : DP
+! 	    USE mp,         ONLY : mp_sum
+! 	    USE mp_global,  ONLY : nproc_image, intra_image_comm
+	    USE ions_base,  only : na, nat
+	    USE gvecw,      only : ngw
+	    USE uspp,       only : nkb, nhtol, beta
+! 	    USE cvan,       only : ish
+! 	    USE uspp_param, only : nh
+	    !
+! 	    USE reciprocal_vectors, ONLY : gstart
+	    USE descriptors,        ONLY : descla_siz_ , lambda_node_ , nlar_ , ilar_ , la_n_
+      !
+	    implicit none
+
+	    integer,  intent(in)  :: n, nspmn, nspmx, nlax, nspin
+	    integer,  intent(in)  :: desc( descla_siz_ , nspin )
+	    complex(DP), intent(in)  :: eigr( :, :), c( :, : )
+	    real(DP), intent(out) :: becp( nkb, nlax*nspin )
+	END SUBROUTINE
+	subroutine nlsm1_dist_twin ( n, nspmn, nspmx, eigr, c, becp, nlax, nspin, desc, lgam2 )
+
+	    USE kinds,      ONLY : DP
+! 	    USE mp,         ONLY : mp_sum
+! 	    USE mp_global,  ONLY : nproc_image, intra_image_comm
+	    USE ions_base,  only : na, nat
+	    USE gvecw,      only : ngw
+	    USE uspp,       only : nkb, nhtol, beta
+	    USE ions_base,  only : na, nat
+	    USE gvecw,      only : ngw
+! 	    USE cvan,       only : ish
+! 	    USE uspp_param, only : nh
+! 	    !
+! 	    USE reciprocal_vectors, ONLY : gstart
+	    USE descriptors,        ONLY : descla_siz_ , lambda_node_ , nlar_ , ilar_ , la_n_
+	    USE twin_types
+      !
+	    implicit none
+
+	    integer,  intent(in)  :: n, nspmn, nspmx, nlax, nspin
+	    integer,  intent(in)  :: desc( descla_siz_ , nspin )
+	    complex(DP), intent(in)  :: eigr( ngw, nat ), c( ngw, n )
+! 	    complex(DP), intent(in)  :: eigr( :, : ), c( :, : )
+	    type(twin_matrix), intent(out) :: becp !( nkb, nlax*nspin )
+	    logical, intent(IN) :: lgam2
+	END SUBROUTINE
+   END INTERFACE
+
+
+   INTERFACE grabec
+      SUBROUTINE grabec_real( becc, nkbx, betae, c, ngwx )
+! 	USE uspp,           ONLY : nkb, nhsavb=>nkbus
+! 	USE gvecw,          ONLY: ngw
+	USE kinds,          ONLY: DP
+! 	USE reciprocal_vectors, ONLY: gstart
+  !
+	IMPLICIT NONE
+  !
+	INTEGER, INTENT(IN) :: nkbx, ngwx
+	COMPLEX(DP) :: betae( :,: )
+	REAL(DP)    :: becc(: )
+        COMPLEX(DP) :: c( :, : )
+      END SUBROUTINE
+      SUBROUTINE grabec_twin( becc, nkbx, betae, c, ngwx, l2_bec)
+	USE kinds,          ONLY: DP
+	USE twin_types
+	IMPLICIT NONE
+  !
+	INTEGER, INTENT(IN) :: nkbx, ngwx, l2_bec
+	COMPLEX(DP) :: betae( :, : )
+	LOGICAL :: lgam
+	COMPLEX(DP)    ::  c( :, : )
+	type(twin_matrix) :: becc !( nkbx ),
+      END SUBROUTINE
+   END INTERFACE
+!---------- END INTERFACES FOR COMPLEX IMPLEMENTATION
+
 
 !=----------------------------------------------------------------------------=!
    END MODULE

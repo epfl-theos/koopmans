@@ -4,11 +4,8 @@
 ! GNU General Public License. See the file `License'
 ! in the root directory of the present distribution,
 ! or http://www.gnu.org/copyleft/gpl.txt .
-!
-
 
 SUBROUTINE cpmain_x( tau, fion, etot )
-
 
 !  this routine does some initialization, then handles for the main loop
 !  for Car-Parrinello dynamics
@@ -65,7 +62,8 @@ SUBROUTINE cpmain_x( tau, fion, etot )
                   tprnsfac, tcarpar, &
                   tdipole, textfor, &
                   tnosee, tnosep, force_pairing, tconvthrs, convergence_criteria, tionstep, nstepe, &
-                  ekin_conv_thr, ekin_maxiter, conv_elec, lneb, tnoseh, etot_conv_thr, tdamp
+                  ekin_conv_thr, ekin_maxiter, conv_elec, lneb, tnoseh, etot_conv_thr, tdamp, &
+                  gamma_only, do_wf_cmplx
       USE atoms_type_module, ONLY: atoms_type
       USE cell_base, ONLY: press, wmass, boxdimensions, cell_force, cell_move, gethinv, &
                            cell_update_vel, cell_init
@@ -187,11 +185,15 @@ SUBROUTINE cpmain_x( tau, fion, etot )
 
       REAL(DP) :: fccc, vnosep, ccc, dt2bye, intermed
       REAL(DP) :: temps(nat), tempp
+      REAL(DP), DIMENSION(:,:,:), ALLOCATABLE :: lambda_dumb
+
+      LOGICAL :: lgam
 
       !
       ! ... end of declarations
       !
-
+      lgam=gamma_only.and..not.do_wf_cmplx
+      !
       erhoold   = 1.0d+20  ! a very large number
       ekinc     = 0.0_DP
       ekcell    = 0.0_DP
@@ -202,7 +204,6 @@ SUBROUTINE cpmain_x( tau, fion, etot )
          CALL errore( ' fpmd ', ' CG not allowed, use CP instead ', 1 )
 
       ttexit = .FALSE.
-
 
       MAIN_LOOP: DO 
 
@@ -323,7 +324,7 @@ SUBROUTINE cpmain_x( tau, fion, etot )
         !
         IF( ttforce .OR. thdyn ) THEN
            !
-           call nlfq( c0, eigr, bec, becdr, atoms0%for )
+           call nlfq( c0, eigr, bec, becdr, atoms0%for, lgam )
            !
         END IF
         !
@@ -335,7 +336,7 @@ SUBROUTINE cpmain_x( tau, fion, etot )
         ! ...   ionc forces "fion" and stress "paiu".
         !
         CALL vofrhos(ttprint, ttforce, tstress, rhor, rhog, atoms0, &
-          vpot, bec, c0, f, eigr, ei1, ei2, ei3, sfac, ht0, edft)
+          vpot, bec%rvec, c0, f, eigr, ei1, ei2, ei3, sfac, ht0, edft)
 
         ! CALL debug_energies( edft ) ! DEBUG
 
@@ -357,7 +358,7 @@ SUBROUTINE cpmain_x( tau, fion, etot )
            ! unpaired electron is assumed of spinup and in highest 
            ! index band; and put equal for paired wf spin up and down
            !
-           CALL runcp_uspp_force_pairing( nfi, fccc, ccc, ema0bg, dt2bye, vpot, bec, c0, cp, intermed )
+           CALL runcp_uspp_force_pairing( nfi, fccc, ccc, ema0bg, dt2bye, vpot, bec%rvec, c0, cp, intermed )
            !
         ELSE
            !
@@ -647,7 +648,7 @@ SUBROUTINE cpmain_x( tau, fion, etot )
         !
         IF( ttsave .OR. ttexit ) THEN
           CALL writefile( nfi, tps, c0, cm, f, atoms0, atomsm, acc,  &
-                          taui, cdmi, htm, ht0, rhor, vpot, lambda, ttexit )
+                          taui, cdmi, htm, ht0, rhor, vpot, lambda_dumb, ttexit ) !modified:giovanni
         END IF
 
         ! ...   loop back

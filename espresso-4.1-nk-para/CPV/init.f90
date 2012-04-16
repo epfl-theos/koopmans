@@ -20,7 +20,7 @@
       !
 
       use io_global,                only: stdout, ionode
-      use control_flags,            only: program_name, gamma_only, use_task_groups
+      use control_flags,            only: program_name, do_wf_cmplx, gamma_only, use_task_groups !added:giovanni do_wf_cmplx
       use grid_dimensions,          only: nr1, nr2, nr3, nr1x, nr2x, nr3x, nnr => nnrx
       use cell_base,                only: ainv, a1, a2, a3
       use cell_base,                only: omega, alat
@@ -52,6 +52,13 @@
       real(8) :: rat1, rat2, rat3
       real(8) :: b1(3), b2(3), b3(3)
       integer :: ng_ , ngs_ , ngm_ , ngw_
+      logical :: lgam !added:giovanni
+
+      lgam = gamma_only.and..not.do_wf_cmplx !added:giovanni
+
+!       IF((do_wf_cmplx).and.(okvan.or.nlcc_any)) THEN
+!          CALL errore( 'init_dimensions ', 'ultrasoft and non-linear core correction not working with complex wavefunctions', 1 ) !warning:giovanni not yet implemented
+!       ENDIF
 
       IF( ionode ) THEN
         WRITE( stdout, 100 )
@@ -143,7 +150,7 @@
       !
       ! ... generate g-space
       !
-      call ggencp( b1, b2, b3, nr1, nr2, nr3, nr1s, nr2s, nr3s, gcut, gcuts, gkcut, gamma_only )
+      call ggencp( b1, b2, b3, nr1, nr2, nr3, nr1s, nr2s, nr3s, gcut, gcuts, gkcut, lgam) !added:giovanni do_wf_cmplx
 
       ! 
       !  Allocate index required to compute polarizability

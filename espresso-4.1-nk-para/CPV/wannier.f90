@@ -198,6 +198,10 @@ MODULE wannier_subroutines
   IMPLICIT NONE
   SAVE
   !
+  INTERFACE wf_closing_options
+     module procedure wf_closing_options_real, wf_closing_options_twin
+  END INTERFACE
+
   CONTAINS
   !
   !------------------------------------------------------------------------
@@ -671,7 +675,7 @@ MODULE wannier_subroutines
   END SUBROUTINE ef_enthalpy
   !
   !--------------------------------------------------------------------------
-  SUBROUTINE wf_closing_options( nfi, c0, cm, bec, eigr, eigrb, taub,  &
+  SUBROUTINE wf_closing_options_real( nfi, c0, cm, bec, eigr, eigrb, taub,  &
                                  irb, ibrav, b1, b2, b3, taus, tausm, vels,   &
                                  velsm, acc, lambda, lambdam, xnhe0, xnhem,   &
                                  vnhe, xnhp0, xnhpm, vnhp, nhpcl,nhpdim,ekincm,&
@@ -760,6 +764,101 @@ MODULE wannier_subroutines
     !
     RETURN
     !
-  END SUBROUTINE wf_closing_options
+  END SUBROUTINE wf_closing_options_real
+
+  !--------------------------------------------------------------------------
+  SUBROUTINE wf_closing_options_twin( nfi, c0, cm, bec, eigr, eigrb, taub,  &
+                                 irb, ibrav, b1, b2, b3, taus, tausm, vels,   &
+                                 velsm, acc, lambda, lambdam, xnhe0, xnhem,   &
+                                 vnhe, xnhp0, xnhpm, vnhp, nhpcl,nhpdim,ekincm,&
+                                 xnhh0, xnhhm, vnhh, velh, ecut, ecutw, delt, &
+                                 celldm, fion, tps, mat_z, occ_f, rho )
+    !--------------------------------------------------------------------------
+    !
+    USE efcalc,         ONLY : wf_efield
+    USE wannier_base,   ONLY : nwf, calwf, jwf, wffort, iplot, iwf
+    USE wannier_module, ONLY : what1, wfc, utwf
+    USE control_flags,  ONLY : iprsta
+    USE electrons_base, ONLY : nbsp
+    USE gvecw,          ONLY : ngw
+    USE control_flags,  ONLY : ndw
+    USE cell_base,      ONLY : h, hold
+    USE ions_base,      ONLY : pmass
+    USE cvan,           ONLY : nvb
+    USE cp_interfaces,  ONLY : writefile
+    USE twin_types
+    !
+    IMPLICIT NONE
+    !
+    INTEGER           :: nfi
+    COMPLEX(DP) :: c0(:,:)
+    COMPLEX(DP) :: cm(:,:)
+!     REAL(DP)    :: bec(:,:)
+    TYPE(twin_matrix) :: bec
+    COMPLEX(DP) :: eigrb(:,:), eigr(:,:)
+    INTEGER           :: irb(:,:)
+    REAL(DP)    :: taub(:,:)
+    INTEGER           :: ibrav
+    REAL(DP)    :: b1(:), b2(:), b3(:)
+    REAL(DP)    :: taus(:,:), tausm(:,:), vels(:,:), velsm(:,:)
+    REAL(DP)    :: acc(:)
+!     REAL(DP)    :: lambda(:,:,:), lambdam(:,:,:)
+    TYPE(twin_matrix), dimension(:) :: lambda, lambdam
+    REAL(DP)    :: xnhe0, xnhem, vnhe, xnhp0(:), xnhpm(:), vnhp(:), ekincm
+    INTEGER           :: nhpcl, nhpdim
+    REAL(DP)    :: velh(:,:)
+    REAL(DP)    :: xnhh0(:,:), xnhhm(:,:), vnhh(:,:)
+    REAL(DP)    :: ecut, ecutw, delt, celldm(:)
+    REAL(DP)    :: fion(:,:), tps
+    REAL(DP)    :: mat_z(:,:,:), occ_f(:), rho(:,:)
+    !
+    CALL start_clock('wf_close_opt')
+    !
+    ! ... More Wannier Function Options
+    !
+    IF ( calwf == 4 ) THEN
+       !
+       jwf = 1
+       !
+       CALL wf( calwf, c0, bec, eigr, eigrb, taub, irb, &
+                b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
+       !
+       IF ( nvb == 0 ) THEN
+          !
+          CALL wf( calwf, cm, bec, eigr, eigrb, taub, irb, &
+                   b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
+          !
+       ELSE
+          !
+          cm = c0
+          !
+       END IF
+       !
+       CALL writefile( h, hold, nfi, c0, cm, taus, &
+                       tausm, vels, velsm,acc, lambda, lambdam, xnhe0, xnhem, &
+                       vnhe, xnhp0, xnhpm, vnhp,nhpcl,nhpdim,ekincm, xnhh0, xnhhm,&
+                       vnhh, velh, fion, tps, mat_z, occ_f, rho )
+       !
+       CALL stop_clock('wf_close_opt')
+       CALL stop_run( .TRUE. )
+       !
+    END IF
+    !
+    IF ( calwf == 3 ) THEN
+       !
+       ! ... construct overlap matrix and calculate spreads and do Localization
+       !
+       jwf = 1
+       !
+       CALL wf( calwf, c0, bec, eigr, eigrb, taub, irb, &
+                b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
+       !
+       CALL stop_clock('wf_close_opt')
+       !
+    END IF
+    !
+    RETURN
+    !
+  END SUBROUTINE wf_closing_options_twin
   !
 END MODULE wannier_subroutines

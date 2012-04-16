@@ -71,7 +71,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   USE io_files,                 ONLY : psfile, pseudo_dir
   USE wave_base,                ONLY : wave_steepest, wave_verlet
   USE wave_base,                ONLY : wave_speed2, frice, grease
-  USE control_flags,            ONLY : conv_elec, tconvthrs
+  USE control_flags,            ONLY : conv_elec, tconvthrs, gamma_only, do_wf_cmplx !added:giovanni gamma_only, do_wf_cmplx
   USE check_stop,               ONLY : check_stop_now
   USE efcalc,                   ONLY : clear_nbeg, ef_force
   USE ions_base,                ONLY : zv, ions_vel
@@ -133,6 +133,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   USE nksic,                    ONLY : do_orbdep, pink
   USE step_constraint
   USE small_box,                ONLY : ainvb
+  USE descriptors,          ONLY: descla_siz_
   !
   IMPLICIT NONE
   !
@@ -180,11 +181,13 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   !
   REAL(DP),  ALLOCATABLE :: forceh(:,:)
   REAL(DP),  ALLOCATABLE :: fmat0_repl(:,:)
+  LOGICAL :: lgam
 
 !$$
   LOGICAL :: ttest
 !$$
-
+  iter=0
+  lgam=gamma_only.and..not.do_wf_cmplx
   !
   !
   dt2bye   = dt2 / emass
@@ -218,8 +221,15 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   !
   tprint_ham = do_orbdep .AND. ( iprsta > 1 ) 
   !
-  hamilt(:,:,:) = 0.0d0
-
+  write(6,*) "size hamilt", size(hamilt)
+  !
+  DO iss=1,size(hamilt)
+    if(.not. hamilt(iss)%iscmplx) then
+      hamilt(iss)%rvec = 0.0d0
+    else
+      hamilt(iss)%cvec = CMPLX(0.0d0,0.d0)
+    endif
+  END DO
   !
   !======================================================================
   !
@@ -344,7 +354,13 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
           c0(:,iupdwn(2):nbsp)       =     c0(:,1:nupdwn(2))
           cm(:,iupdwn(2):nbsp)       =     cm(:,1:nupdwn(2))
          phi(:,iupdwn(2):nbsp)       =    phi(:,1:nupdwn(2))
-          lambda(:,:, 2)             = lambda(:,:, 1)
+!begin_modified:giovanni
+         IF(.not.lambda(1)%iscmplx) THEN
+              lambda(2)%rvec(:,:) = lambda(1)%rvec(:,:)
+         ELSE
+              lambda(2)%cvec(:,:) = lambda(1)%cvec(:,:)
+         ENDIF
+!end_modified:giovanni
      ENDIF
      !
      ! ... fake electronic kinetic energy
@@ -531,14 +547,16 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
         !
         IF ( tortho ) THEN
            !
-           CALL ortho( eigr, cm, phi, ngw, lambda, descla, &
-                       bigr, iter, ccc, bephi, becp, nbsp, nspin, nupdwn, iupdwn )
+!            write(6,*) "calling ortho_cp_twin", phi !added:giovanni:debug
+           CALL ortho_cp_twin( eigr(1:ngw,1:nat), cm(1:ngw,1:nbsp), phi(1:ngw,1:nbsp), ngw, &
+                                                 lambda(1:nspin), descla(1:descla_siz_ , 1:nspin) &
+                                                 , bigr, iter, ccc, bephi, becp, nbsp, nspin, nupdwn, iupdwn )
            !
         ELSE
            !
            CALL gram( vkb, bec, nkb, cm, ngw, nbsp )
            !
-           IF ( iprsta > 4 ) CALL dotcsc( eigr, cm, ngw, nbsp )
+           IF ( iprsta > 4 ) CALL dotcsc( eigr, cm, ngw, nbsp, lgam )!added:giovanni lgam
            !
         END IF
         !
@@ -550,9 +568,15 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
            DO iss = 1, nspin_sub
               i1 = (iss-1)*nlax+1
               i2 = iss*nlax
-              CALL updatc( ccc, nbsp, lambda(:,:,iss), SIZE(lambda,1), phi, SIZE(phi,1), &
-                        bephi(:,i1:i2), SIZE(bephi,1), becp, bec, cm, nupdwn(iss), iupdwn(iss), &
-                        descla(:,iss) )
+              IF(.not.lambda(iss)%iscmplx) THEN
+		  CALL updatc( ccc, nbsp, lambda(iss)%rvec, SIZE(lambda(iss)%rvec,1),  &
+			    phi, SIZE(phi,1),bephi%rvec(:,i1:i2), SIZE(bephi%rvec,1), becp%rvec,  &
+			    bec%rvec, cm, nupdwn(iss), iupdwn(iss), descla(:,iss) )
+              ELSE
+		  CALL updatc( ccc, nbsp, lambda(iss)%cvec, SIZE(lambda(iss)%cvec,1), &
+			    phi, SIZE(phi,1), bephi%cvec(:,i1:i2), SIZE(bephi%cvec,1), becp%cvec, &
+			     bec%cvec, cm, nupdwn(iss), iupdwn(iss), descla(:,iss) )
+              ENDIF
            END DO
         END IF
         !
@@ -560,7 +584,11 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
               c0(:,iupdwn(2):nbsp)       =     c0(:,1:nupdwn(2))
               cm(:,iupdwn(2):nbsp)       =     cm(:,1:nupdwn(2))
              phi(:,iupdwn(2):nbsp)       =    phi(:,1:nupdwn(2)) 
-          lambda(:,:, 2)                 = lambda(:,:, 1)
+             IF(.not.lambda(1)%iscmplx) THEN
+		  lambda(2)%rvec(:,:) = lambda(1)%rvec(:,:)
+             ELSE
+		  lambda(2)%cvec(:,:) = lambda(1)%cvec(:,:)
+             ENDIF
         ENDIF
         !
         CALL calbec( nvb+1, nsp, eigr, cm, bec )
@@ -569,7 +597,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
            CALL caldbec( ngw, nkb, nbsp, 1, nsp, eigr, cm, dbec )
         END IF
         !
-        IF ( iprsta >= 3 ) CALL dotcsc( eigr, cm, ngw, nbsp )
+        IF ( iprsta >= 3 ) CALL dotcsc( eigr, cm, ngw, nbsp, lgam )!added:giovanni lgam
         !
      END IF
      !
@@ -667,8 +695,16 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
 !$$
             !
             IF( force_pairing )  THEN
-                lambda(:, :, 2) =  lambda(:, :, 1)
-                lambdap(:, :, 2) = lambdap(:, :, 1)
+             IF(.not.lambda(1)%iscmplx) THEN
+		  lambda(2)%rvec(:,:) = lambda(1)%rvec(:,:)
+             ELSE
+		  lambda(2)%cvec(:,:) = lambda(1)%cvec(:,:)
+             ENDIF
+             IF(.not.lambdap(1)%iscmplx) THEN
+		  lambdap(2)%rvec(:,:) = lambdap(1)%rvec(:,:)
+             ELSE
+		  lambdap(2)%cvec(:,:) = lambdap(1)%cvec(:,:)
+             ENDIF
                 WRITE( stdout, '("Occupations in CPR:")' )
                 WRITE( stdout, '(10F9.6)' ) ( f(i), i = 1, nbspx )  
             END IF
@@ -701,9 +737,11 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      IF ( tsmear .AND. tortho .AND. ( MOD(nfi, nfroz_occ)==0 .OR. .NOT. fmat0_diag_set ) ) THEN
          !
          !CALL inner_loop_smear( c0, bec, rhos, psihpsi )
-         psihpsi = lambda
+         DO iss=1,nspin
+            psihpsi(:,:,iss) = lambda(iss)%rvec(:,:)
+         END DO
          !
-         CALL inner_loop_diag( c0, bec, psihpsi, z0t, e0 )
+         CALL inner_loop_diag( c0, bec%rvec, psihpsi, z0t, e0 )
          !
          CALL efermi( nelt, nbsp, degauss, 1, f, ef, e0, entropy, ismear, nspin )
          !
@@ -807,7 +845,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      CALL printout_new( nfi, tfirst, tfile, tstdout, ttprint, tps, hold, stress, &
                         tau0, vels, fion, ekinc, temphc, tempp, temps, etot, &
                         enthal, econs, econt, vnhh, xnhh0, vnhp, xnhp0, atot, &
-                        ekin, epot, tprnfor, tpre, hamilt, tprint_ham )
+                        ekin, epot, tprnfor, tpre, hamilt, tprint_ham, lgam )
      !
      if (abivol) etot = etot + P_ext*volclu
      if (abisur) etot = etot + Surf_t*surfclu
@@ -825,6 +863,8 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
         IF ( tnoseh ) CALL cell_nose_shiftvar( xnhhp, xnhh0, xnhhm )
         !
      END IF
+     !
+     write(6,*) "tnosep=",tnosep,"thdyn=",thdyn
      !
      IF ( thdyn ) CALL emass_precond( ema0bg, ggp, ngw, tpiba2, emass_cutoff )
      !
@@ -968,10 +1008,10 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      !
      IF ( lwf ) &
         CALL wf_closing_options( nfi, c0, cm, bec, eigr, eigrb, taub, &
-                                 irb, ibrav, b1, b2, b3, taus, tausm, vels,  &
-                                 velsm, acc, lambda, lambdam, xnhe0, xnhem,  &
-                                 vnhe, xnhp0, xnhpm, vnhp, nhpcl, nhpdim,    &
-                                 ekincm, xnhh0, xnhhm, vnhh, velh, ecutp,    &
+                                 irb, ibrav, b1, b2, b3, taus, tausm, vels, &
+                                 velsm, acc, lambda, lambdam, xnhe0, xnhem, &
+                                 vnhe, xnhp0, xnhpm, vnhp, nhpcl, nhpdim, &
+                                 ekincm, xnhh0, xnhhm, vnhh, velh, ecutp, &
                                  ecutw, delt, celldm, fion, tps, z0t, f, rhor )
 !$$
 !     if(ionode) write(137,*) 'tconv', tconv

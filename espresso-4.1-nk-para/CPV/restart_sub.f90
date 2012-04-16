@@ -97,9 +97,15 @@ SUBROUTINE from_restart( )
    IF( force_pairing ) THEN
       cm(:,iupdwn(2):nbsp) = cm(:,1:nupdwn(2))
       c0(:,iupdwn(2):nbsp) = c0(:,1:nupdwn(2))
-      lambdap( :, :, 2) =  lambdap( :, :, 1)
-      lambda( :, :, 2) =  lambda( :, :, 1)
-      lambdam( :, :, 2) = lambdam( :, :, 1)
+      IF(.not.lambda(1)%iscmplx) THEN
+	  lambdap(2)%rvec( :, :) =  lambdap(1)%rvec( :, :)
+	  lambda(2)%rvec( :, :) =  lambda(1)%rvec( :, :)
+	  lambdam(2)%rvec( :, :) =  lambdam(1)%rvec( :, :)
+      ELSE
+	  lambdap(2)%cvec( :, :) =  lambdap(1)%cvec( :, :)
+	  lambda(2)%cvec( :, :) =  lambda(1)%cvec( :, :)
+	  lambdam(2)%cvec( :, :) =  lambda(1)%cvec( :, :)
+      ENDIF
    END IF 
    !
    IF ( tzeroe ) THEN

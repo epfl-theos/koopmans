@@ -11,8 +11,6 @@
 
 #include "f_defs.h"
 
-
-
     SUBROUTINE potential_print_info( iunit )
 
         USE control_flags, ONLY: iesr
@@ -123,7 +121,6 @@
         RETURN
       END SUBROUTINE vofmean_x
 
-
 !=----------------------------------------------------------------------------=!
 
    SUBROUTINE vofrhos_x &
@@ -165,7 +162,8 @@
       ! ... include modules
 
       USE kinds,          ONLY: DP
-      USE control_flags,  ONLY: tscreen, iprsta, iesr, tvhmean, textfor
+      USE control_flags,  ONLY: tscreen, iprsta, iesr, tvhmean, textfor, &
+                                                       gamma_only, do_wf_cmplx !added:giovanni
       USE mp_global,      ONLY: nproc_image, me_image, intra_image_comm
       USE mp,             ONLY: mp_sum
       USE cell_base,      ONLY: tpiba2, boxdimensions, s_to_r
@@ -256,6 +254,7 @@
       INTEGER ig1, ig2, ig3, is, ia, ig, isc, iflag, iss
       INTEGER ik, i, j, k, isa, idum
       INTEGER :: ierr
+      LOGICAL :: lgam
 
       DATA iflag / 0 /
       SAVE iflag, desr
@@ -264,6 +263,7 @@
       !  ----------------------------------------------
 
       CALL start_clock( 'vofrho' )
+      lgam=gamma_only.and..not.do_wf_cmplx
 
       edft%evdw = 0.0d0
       !
@@ -342,9 +342,8 @@
       END IF
 
       ! ... Calculate local part of the pseudopotential and its energy contribution (eps)
-
-      CALL vofps( eps, vloc, rhog, vps, sfac, box%deth )
-
+      CALL vofps( eps, vloc, rhog, vps, sfac, box%deth, lgam )
+ 
       edft%epseu = DBLE(eps)
 
       IF( tstress ) THEN
@@ -447,7 +446,7 @@
 
       IF( tgc ) THEN
          !
-         CALL fillgrad( nspin, rhoeg, grho )
+         CALL fillgrad( nspin, rhoeg, grho, lgam)
          !
       END IF
 
@@ -747,6 +746,86 @@
 !=----------------------------------------------------------------------------=!
 
 
+   SUBROUTINE vofps_x_new( eps, vloc, rhoeg, vps, sfac, omega, lgam)
+
+      !  this routine computes:
+      !  omega = ht%deth
+      !  vloc_ps(ig)  =  (sum over is) sfac(is,ig) * vps(ig,is)
+      !
+      !  Eps = Fact * omega * (sum over ig) cmplx ( rho_e(ig) ) * vloc_ps(ig)
+      !  if Gamma symmetry Fact = 2 else Fact = 1
+      !
+
+      USE kinds,              ONLY: DP
+      USE io_global,          ONLY: stdout
+      USE ions_base,          ONLY: nsp
+      USE gvecp,              ONLY: ngm
+      USE reciprocal_vectors, ONLY: gstart, gx, g
+      USE mp_global,          ONLY: intra_image_comm
+      USE mp,                 ONLY: mp_sum
+
+      IMPLICIT NONE
+
+      ! ... Arguments
+
+      REAL(DP),    INTENT(IN)  :: vps(:,:)
+      REAL(DP),    INTENT(IN)  :: omega
+      COMPLEX(DP), INTENT(OUT) :: vloc(:)
+      COMPLEX(DP), INTENT(IN)  :: rhoeg(:)
+      COMPLEX(DP), INTENT(IN)  :: sfac(:,:)
+      COMPLEX(DP), INTENT(OUT) :: eps
+      LOGICAL :: lgam
+
+      ! ... Locals
+
+      INTEGER     :: is, ig
+      COMPLEX(DP) :: vp
+
+      ! ... Subroutine body ...
+      !
+      eps   = CMPLX(0.D0,0.D0)
+      !
+      DO ig = gstart, ngm 
+
+        vp   = CMPLX(0.D0,0.D0)
+        DO is = 1, nsp
+          vp = vp + sfac( ig, is ) * vps( ig, is )
+        END DO
+
+        vloc(ig) = vp
+        eps      = eps  +     vp * CONJG( rhoeg( ig ) )
+
+      END DO
+      ! ... 
+      ! ... G = 0 element
+      !
+
+      IF ( gstart == 2 ) THEN
+        vp = (0.D0,0.D0)
+        DO is = 1, nsp
+          vp = vp + sfac( 1, is) * vps(1, is)
+        END DO
+        vloc(1) = VP
+        IF(lgam) THEN
+           eps     = eps + vp * CONJG( rhoeg(1) ) * 0.5d0
+        ELSE
+           eps     = eps + vp * CONJG( rhoeg(1) )
+        ENDIF
+      END IF
+      !
+      IF(lgam) THEN
+         eps = 2.D0 * eps  * omega
+      ELSE
+         eps = eps  * omega
+      ENDIF
+      !
+      CALL mp_sum( eps, intra_image_comm )
+
+      RETURN
+   END SUBROUTINE vofps_x_new
+
+!=----------------------------------------------------------------------------=!
+
    SUBROUTINE vofps_x( eps, vloc, rhoeg, vps, sfac, omega )
 
       !  this routine computes:
@@ -814,7 +893,6 @@
 
       RETURN
    END SUBROUTINE vofps_x
-
 
 !=----------------------------------------------------------------------------=!
 
@@ -1269,7 +1347,7 @@
 
       USE kinds,              ONLY: DP
       USE constants,          ONLY: fpi
-      USE control_flags,      ONLY: gamma_only
+      USE control_flags,      ONLY: do_wf_cmplx, gamma_only !added:giovanni do_wf_cmplx
       USE cell_base,          ONLY: tpiba2, boxdimensions
       USE gvecp,              ONLY: ngm
       USE reciprocal_vectors, ONLY: gstart, g
@@ -1362,7 +1440,7 @@
 
       USE kinds,              ONLY: DP
       USE constants, ONLY: fpi
-      USE control_flags, ONLY: gamma_only
+      USE control_flags, ONLY: do_wf_cmplx, gamma_only !added:giovanni do_wf_cmplx
       USE atoms_type_module, ONLY: atoms_type
       USE sic_module, ONLY: ind_localisation, nat_localisation, print_localisation
       USE sic_module, ONLY: sic_rloc, pos_localisation

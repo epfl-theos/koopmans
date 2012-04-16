@@ -5,10 +5,9 @@
 ! in the root directory of the present distribution,
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
-
 !-----------------------------------------------------------------------
 subroutine formf( tfirst, eself )
-  !-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 
   !computes (a) the self-energy eself of the ionic pseudocharges;
   !         (b) the form factors of: (i) pseudopotential (vps),
@@ -18,7 +17,7 @@ subroutine formf( tfirst, eself )
   ! 
   USE kinds,           ONLY : DP
   use mp,              ONLY : mp_sum
-  use control_flags,   ONLY : iprint, tpre, iprsta
+  use control_flags,   ONLY : iprint, tpre, iprsta, gamma_only, do_wf_cmplx!added:giovanni
   use io_global,       ONLY : stdout
   use mp_global,       ONLY : intra_image_comm
   use gvecs,           ONLY : ngs
@@ -108,7 +107,7 @@ subroutine formf( tfirst, eself )
         rhopsum = SUM( rhops( 1:ngs, is ) )
         call mp_sum( vpsum, intra_image_comm )
         call mp_sum( rhopsum, intra_image_comm )
-        WRITE( stdout,1250) vps(1,is),rhops(1,is)
+        WRITE( stdout,1250) vps(1,is),rhops(1,is), vps(2,is), rhops(2,is)!modified:giovanni:debug
         WRITE( stdout,1300) vpsum,rhopsum
      endif
      !
@@ -188,7 +187,7 @@ SUBROUTINE newnlinit()
 END SUBROUTINE newnlinit
 !
 !-----------------------------------------------------------------------
-subroutine nlfh_x( stress, bec, dbec, lambda )
+subroutine nlfh_real_x( stress, bec, dbec, lambda )
   !-----------------------------------------------------------------------
   !
   !     contribution to the internal stress tensor due to the constraints
@@ -324,8 +323,193 @@ subroutine nlfh_x( stress, bec, dbec, lambda )
      &       1x,f12.5,1x,f12.5,1x,f12.5//)
 
   return
-end subroutine nlfh_x
+end subroutine nlfh_real_x
 
+!-----------------------------------------------------------------------
+subroutine nlfh_twin_x( stress, bec, dbec, lambda ) !added:giovanni warning:dbec is only real
+  !-----------------------------------------------------------------------
+  !
+  !     contribution to the internal stress tensor due to the constraints
+  !
+  USE kinds,             ONLY : DP
+  use cvan,              ONLY : nvb, ish
+  use uspp,              ONLY : nkb, qq
+  use uspp_param,        ONLY : nh, nhm
+  use ions_base,         ONLY : na
+  use electrons_base,    ONLY : nbspx, nbsp, nudx, nspin, nupdwn, iupdwn
+  use cell_base,         ONLY : omega, h
+  use constants,         ONLY : pi, fpi, au_gpa
+  use io_global,         ONLY : stdout
+  use control_flags,     ONLY : iprsta
+  USE cp_main_variables, ONLY : descla, la_proc
+  USE descriptors,       ONLY : nlar_ , nlac_ , ilar_ , ilac_ , nlax_
+  USE mp,                ONLY : mp_sum
+  USE mp_global,         ONLY : intra_image_comm
+  USE twin_types !added:giovanni
+!
+  implicit none
+
+  REAL(DP), INTENT(INOUT) :: stress(3,3)
+  TYPE(twin_matrix) :: bec 
+  REAL(DP), INTENT(IN)    :: dbec( :, :, :, : )
+  TYPE(twin_matrix), dimension(:), INTENT(IN)    :: lambda
+!
+  INTEGER  :: i, j, ii, jj, inl, iv, jv, ia, is, iss, nss, istart
+  INTEGER  :: jnl, ir, ic, nr, nc, nx
+  REAL(DP) :: fpre(3,3), TT, T1, T2
+  !
+  REAL(DP), ALLOCATABLE :: tmpbec(:,:), tmpdh(:,:), temp(:,:)
+  COMPLEX(DP), ALLOCATABLE :: tmpbec_c(:,:), tmpdh_c(:,:), temp_c(:,:)
+  COMPLEX(DP), PARAMETER :: c_one = CMPLX(1.d0, 0.d0), c_zero = CMPLX(0.d0,0.d0)
+  !
+  !
+  IF( la_proc ) THEN
+     nx=descla( nlax_ , 1 ) 
+     IF( nspin == 2 ) nx = MAX( nx , descla( nlax_ , 2 ) )
+     IF(.not.bec%iscmplx) THEN
+          ALLOCATE ( tmpbec(nhm,nx), tmpdh(nx,nhm), temp(nx,nx) )
+     ELSE
+          ALLOCATE ( tmpbec_c(nhm,nx), tmpdh_c(nx,nhm), temp_c(nx,nx) )
+     ENDIF
+  END IF
+  !
+  fpre = 0.d0
+  !
+  do ii=1,3
+
+     do jj=1,3
+
+        do is=1,nvb
+
+           do ia=1,na(is)
+
+              do iss = 1, nspin
+                 !
+                 istart = iupdwn( iss )
+                 nss    = nupdwn( iss )
+                 !
+                 IF( la_proc ) THEN
+
+                    nr = descla( nlar_ , iss )
+                    nc = descla( nlac_ , iss )
+                    ir = descla( ilar_ , iss )
+                    ic = descla( ilac_ , iss )
+
+                    IF(.not.bec%iscmplx) THEN
+		      tmpbec = 0.d0
+		      tmpdh  = 0.d0
+  !
+		      do iv=1,nh(is)
+			do jv=1,nh(is)
+			    inl=ish(is)+(jv-1)*na(is)+ia
+			    if(abs(qq(iv,jv,is)).gt.1.e-5) then
+			      do i = 1, nc
+				  tmpbec(iv,i) = tmpbec(iv,i) +  qq(iv,jv,is) * bec%rvec(inl, i + istart - 1 + ic - 1 )
+			      end do
+			    endif
+			end do
+		      end do
+
+		      do iv=1,nh(is)
+			inl=ish(is)+(iv-1)*na(is)+ia
+			do i = 1, nr
+			    tmpdh(i,iv) = dbec( inl, i + (iss-1)*nspin, ii, jj )
+			end do
+		      end do
+
+		      if(nh(is).gt.0)then
+
+			CALL DGEMM &
+			( 'N', 'N', nr, nc, nh(is), 1.0d0, tmpdh, nx, tmpbec, nhm, 0.0d0, temp, nx )
+
+			do j = 1, nc
+			    do i = 1, nr
+			      fpre(ii,jj) = fpre(ii,jj) + 2D0 * temp( i, j ) * lambda(iss)%rvec(i,j)
+			    end do
+			end do
+		      endif
+                    ELSE
+		      tmpbec_c = c_zero
+		      tmpdh_c  = c_zero
+  !
+		      do iv=1,nh(is)
+			do jv=1,nh(is)
+			    inl=ish(is)+(jv-1)*na(is)+ia
+			    if(abs(qq(iv,jv,is)).gt.1.e-5) then
+			      do i = 1, nc
+				  tmpbec_c(iv,i) = tmpbec_c(iv,i) +  qq(iv,jv,is) * bec%cvec(inl, i + istart - 1 + ic - 1 )
+			      end do
+			    endif
+			end do
+		      end do
+
+		      do iv=1,nh(is)
+			inl=ish(is)+(iv-1)*na(is)+ia
+			do i = 1, nr
+			    tmpdh_c(i,iv) = dbec( inl, i + (iss-1)*nspin, ii, jj )
+			end do
+		      end do
+
+		      if(nh(is).gt.0)then
+
+			CALL ZGEMM &
+			( 'N', 'N', nr, nc, nh(is), c_one, tmpdh_c, nx, tmpbec_c, nhm, c_zero, temp_c, nx )
+
+			do j = 1, nc
+			    do i = 1, nr
+			      fpre(ii,jj) = fpre(ii,jj) + 2D0 * temp( i, j ) * lambda(iss)%cvec(i,j)
+			    end do
+			end do
+		      endif
+
+                    ENDIF
+
+                 END IF
+                 !
+              end do
+              !
+           end do
+           !
+        end do
+        !
+     end do
+     !
+  end do
+
+  CALL mp_sum( fpre, intra_image_comm )
+
+  do i=1,3
+     do j=1,3
+        stress(i,j)=stress(i,j)+ &
+                    (fpre(i,1)*h(j,1)+fpre(i,2)*h(j,2)+fpre(i,3)*h(j,3))/omega
+     enddo
+  enddo
+
+  IF( la_proc ) THEN
+     IF(.not.bec%iscmplx) THEN
+        DEALLOCATE ( tmpbec, tmpdh, temp )
+     ELSE
+        DEALLOCATE ( tmpbec_c, tmpdh_c, temp_c )
+     ENDIF
+  END IF
+
+
+  IF( iprsta >= 2 ) THEN
+     WRITE( stdout,*) 
+     WRITE( stdout,*) "constraints contribution to stress"
+     WRITE( stdout,5555) ((-fpre(i,j),j=1,3),i=1,3)
+     fpre = MATMUL( fpre, TRANSPOSE( h ) ) / omega * au_gpa * 10.0d0
+     WRITE( stdout,5555) ((fpre(i,j),j=1,3),i=1,3)
+     WRITE( stdout,*) 
+  END IF
+!
+
+5555  FORMAT(1x,f12.5,1x,f12.5,1x,f12.5/                                &
+     &       1x,f12.5,1x,f12.5,1x,f12.5/                                &
+     &       1x,f12.5,1x,f12.5,1x,f12.5//)
+
+  return
+end subroutine nlfh_twin_x
 
 !-----------------------------------------------------------------------
 subroutine nlinit
@@ -683,7 +867,7 @@ subroutine dylmr2_( nylm, ngy, g, gg, ainv, dylm )
 end subroutine dylmr2_
 
 
-SUBROUTINE print_lambda_x( lambda, n, nshow, ccc, iunit )
+SUBROUTINE print_lambda_x_real( lambda, n, nshow, ccc, iunit )
     USE kinds, ONLY : DP
     USE io_global,         ONLY: stdout, ionode
     USE cp_main_variables, ONLY: collect_lambda, descla
@@ -717,5 +901,63 @@ SUBROUTINE print_lambda_x( lambda, n, nshow, ccc, iunit )
 3370   FORMAT(26x,a,2i4)
 3380   FORMAT(100f8.4)
     RETURN
-END SUBROUTINE print_lambda_x
+END SUBROUTINE print_lambda_x_real
 
+SUBROUTINE print_lambda_x_twin( lambda, n, nshow, ccc, iunit )
+    USE kinds, ONLY : DP
+    USE io_global,         ONLY: stdout, ionode
+    USE cp_main_variables, ONLY: collect_lambda, descla
+    USE electrons_base,    ONLY: nudx
+    USE twin_types
+    IMPLICIT NONE
+    real(DP), intent(in) :: ccc
+    type(twin_matrix), dimension(:) :: lambda 
+    integer, intent(in) :: n, nshow
+    integer, intent(in), optional :: iunit
+    !
+    integer :: nnn, j, un, i, is
+    real(DP), allocatable :: lambda_repl(:,:)
+    complex(DP), allocatable :: lambda_repl_c(:,:)
+    !
+    if( present( iunit ) ) then
+      un = iunit
+    else
+      un = stdout
+    end if
+    nnn = min( nudx, nshow )
+    IF(.not.lambda(1)%iscmplx) THEN
+       ALLOCATE( lambda_repl( nudx, nudx ) )
+
+	IF( ionode ) WRITE( un,*)
+	DO is = 1, SIZE( lambda )
+	  CALL collect_lambda( lambda_repl, lambda(is)%rvec(:,:), descla(:,is) )
+	  IF( ionode ) THEN
+	      WRITE( un,3370) '    lambda   nudx, spin = ', nudx, is
+	      IF( nnn < n ) WRITE( un,3370) '    print only first ', nnn
+	      DO i=1,nnn
+		WRITE( un,3380) (lambda_repl(i,j)*ccc,j=1,nnn)
+	      END DO
+	  END IF
+	END DO
+        DEALLOCATE( lambda_repl )
+    ELSE
+       ALLOCATE( lambda_repl_c( nudx, nudx ) )
+	IF( ionode ) WRITE( un,*)
+	DO is = 1, SIZE( lambda )
+	  CALL collect_lambda( lambda_repl_c, lambda(is)%cvec(:,:), descla(:,is) )
+	  IF( ionode ) THEN
+	      WRITE( un,3370) '    lambda   nudx, spin = ', nudx, is
+	      IF( nnn < n ) WRITE( un,3370) '    print only first ', nnn
+	      DO i=1,nnn
+		WRITE( un,3390) (lambda_repl_c(i,j)*ccc,j=1,nnn)
+	      END DO
+	  END IF
+	END DO
+        DEALLOCATE( lambda_repl_c )
+    ENDIF
+
+3370   FORMAT(26x,a,2i4)
+3380   FORMAT(100f8.4)
+3390   FORMAT(100(2((f8.4)(4x))))
+    RETURN
+END SUBROUTINE print_lambda_x_twin

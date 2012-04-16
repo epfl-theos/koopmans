@@ -62,6 +62,89 @@
     end subroutine dforce_meta
 !-----------------------------------------------------------------------
 !
+      subroutine dforce_meta_new (c,ca,df,da, psi,psi2,iss1,iss2,fi,fip,lgam)
+!-----------------------------------------------------------------------
+!computes: the generalized force df=CMPLX(dfr,dfi) acting on the i-th
+!          electron state at the gamma point of the brillouin zone
+!          represented by the vector c=CMPLX(cr,ci)
+!
+!          contribution from metaGGA
+#include "f_defs.h"
+      use kinds, only: dp
+      use reciprocal_vectors
+      use gvecs
+      use gvecw,                  only : ngw
+      use smooth_grid_dimensions, only : nr1s, nr2s, nr3s, &
+                                         nr1sx, nr2sx, nr3sx, nnrs => nnrsx
+      use cell_base,              only : tpiba2
+      USE metagga,                ONLY : kedtaus
+      USE cp_interfaces,          ONLY : fwfft, invfft
+      USE fft_base,               ONLY: dffts
+!
+      implicit none
+!
+      complex(8) c(ngw), ca(ngw), df(ngw), da(ngw),psi(nnrs), psi2(nnrs)
+      integer iss1, iss2
+      real(8) fi, fip
+      logical, intent(IN) :: lgam
+! local variables
+      integer ir,ig, ipol !metagga
+      complex(8) fp,fm,ci
+!
+!
+      ci=(0.0d0,1.0d0)
+!
+         do ipol = 1, 3
+            psi(:)=(0.d0,0.d0)
+            IF(lgam) THEN
+		do ig=1,ngw
+		  psi(nps(ig))=gx(ipol,ig)* (ci*c(ig) - ca(ig))
+		  psi(nms(ig))=gx(ipol,ig)* (CONJG(ci*c(ig) + ca(ig)))
+		end do
+            ELSE
+		do ig=1,ngw
+		  psi(nps(ig))=gx(ipol,ig)* (ci*c(ig))
+ 		  psi2(nps(ig))=gx(ipol,ig)* (ci*ca(ig))
+		end do
+	    ENDIF
+            call invfft('Wave',psi,dffts )
+            IF(.not.lgam) call invfft('Wave',psi,dffts )
+!           on smooth grids--> grids for charge density
+            IF(lgam) THEN
+		do ir=1, nnrs
+		  psi(ir) = &
+		  CMPLX(kedtaus(ir,iss1)*DBLE(psi(ir)), kedtaus(ir,iss2)*AIMAG(psi(ir)))
+		end do
+            ELSE
+                do ir=1, nnrs
+		  psi(ir) = kedtaus(ir,iss1)*psi(ir)
+		  psi2(ir) = kedtaus(ir,iss2)*psi2(ir)
+		end do
+            ENDIF
+            call fwfft('Wave',psi, dffts )
+            IF(.not.lgam) call fwfft('Wave',psi2, dffts )
+            IF(lgam) THEN
+		do ig=1,ngw
+		  fp= (psi(nps(ig)) + psi(nms(ig)))
+		  fm= (psi(nps(ig)) - psi(nms(ig)))
+		  df(ig)= df(ig) - ci*fi*tpiba2*gx(ipol,ig)*CMPLX(DBLE(fp), AIMAG(fm))
+		  da(ig)= da(ig) - ci*fip*tpiba2*gx(ipol,ig)*CMPLX(AIMAG(fp),-DBLE(fm))
+		end do
+            ELSE
+                do ig=1,ngw
+		  fp= psi(nps(ig))
+ 		  fm= psi2(nps(ig))
+		  df(ig)= df(ig) - ci*fi*tpiba2*gx(ipol,ig)*(ci*fm)
+		  da(ig)= da(ig) - ci*fip*tpiba2*gx(ipol,ig)*(-ci *fp)
+		end do
+            ENDIF
+         end do
+
+!
+      return
+    end subroutine dforce_meta_new
+
+
 !-----------------------------------------------------------------------
       subroutine kedtauofr_meta (c, psi, npsi, psis, npsis )
 !-----------------------------------------------------------------------

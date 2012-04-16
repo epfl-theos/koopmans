@@ -30,6 +30,7 @@
       use cp_interfaces,      only : fwfft, invfft
       use eecp_mod,           only : gcorr,gcorr_fft
       use mp_global,          only : me_image
+      use control_flags,      only : gamma_only, do_wf_cmplx !added:giovanni
       !
       implicit none
       !
@@ -44,11 +45,13 @@
       integer             :: ig, ir1, ir2, ir3, ir, i, j, k
       real(dp)            :: sv(3), lv(3) ,dist
       real(dp),  external :: qe_erf
-      
+      logical :: lgam !added:giovanni
 
       !
       ! main body
       !
+      lgam=gamma_only.and..not.do_wf_cmplx !added:giovanni
+
       allocate(vtemp(nnrx))
       allocate(vtempr(nnrx))
       ! 
@@ -58,12 +61,19 @@
       !
       if(gstart==2) vtemp(np(1))=-pi*sigma**2/omega
       !
-      do ig=gstart,ngm
-          vtemp(np(ig))=exp(-0.25_dp*tpiba2*g(ig)*sigma**2) &
-                       /omega*fpi/(tpiba2*g(ig))
-          vtemp(nm(ig))=exp(-0.25_dp*tpiba2*g(ig)*sigma**2) &
-                       /omega*fpi/(tpiba2*g(ig))
-      enddo
+      IF(lgam) THEN
+	do ig=gstart,ngm
+	    vtemp(np(ig))=exp(-0.25_dp*tpiba2*g(ig)*sigma**2) &
+			/omega*fpi/(tpiba2*g(ig))
+	    vtemp(nm(ig))=exp(-0.25_dp*tpiba2*g(ig)*sigma**2) &
+			/omega*fpi/(tpiba2*g(ig))
+	enddo
+      ELSE
+        do ig=gstart,ngm
+	    vtemp(np(ig))=exp(-0.25_dp*tpiba2*g(ig)*sigma**2) &
+			/omega*fpi/(tpiba2*g(ig))
+	enddo
+      ENDIF
       !
       call invfft('Dense',vtemp,dfftp)
       !
@@ -149,6 +159,7 @@
       use cp_interfaces,      only : fwfft, invfft
       use eecp_mod,           only : gcorr1d,gcorr1d_fft
       use mp_global,          only : me_image
+      use control_flags,      only : gamma_only, do_wf_cmplx !added:giovanni
       !
       implicit none
       !
@@ -167,9 +178,11 @@
       !
       real(dp),       external :: qe_erf
       real(dp),       external :: eimlmg
+      logical :: lgam !added:giovanni
       !
       ! main body
       !
+      lgam=gamma_only.and..not. do_wf_cmplx
       allocate(vtemp(nnrx))
       allocate(vtempr(nnrx))
       ! 
@@ -183,14 +196,23 @@
         !
       endif
       !
-      do ig=gstart,ngm
-        if(abs(gx(3,ig))<vanishing_g) then
-          vtemp(np(ig))=exp(-0.25_dp*tpiba2*g(ig)*sigma**2) &
-                       /omega*fpi/(tpiba2*g(ig))
-          vtemp(nm(ig))=exp(-0.25_dp*tpiba2*g(ig)*sigma**2) &
-                       /omega*fpi/(tpiba2*g(ig))
-        endif
-      end do
+      IF(lgam) THEN
+	do ig=gstart,ngm
+	  if(abs(gx(3,ig))<vanishing_g) then
+	    vtemp(np(ig))=exp(-0.25_dp*tpiba2*g(ig)*sigma**2) &
+			/omega*fpi/(tpiba2*g(ig))
+	    vtemp(nm(ig))=exp(-0.25_dp*tpiba2*g(ig)*sigma**2) &
+			/omega*fpi/(tpiba2*g(ig))
+	  endif
+	end do
+      ELSE
+	do ig=gstart,ngm
+	  if(abs(gx(3,ig))<vanishing_g) then
+	    vtemp(np(ig))=exp(-0.25_dp*tpiba2*g(ig)*sigma**2) &
+			/omega*fpi/(tpiba2*g(ig))
+	  endif
+	end do
+      ENDIF
       !
       call invfft('Dense',vtemp,dfftp)
       vtempr=dble(vtemp)
@@ -308,7 +330,7 @@
       end subroutine calc_tcc1d_potential
 !-----------------------------------------------------------------------
 !-----------------------------------------------------------------------
-      subroutine calc_tcc_energy(ecomp,vcorr_fft,rho_fft)
+      subroutine calc_tcc_energy(ecomp,vcorr_fft,rho_fft, lgam)
 !-----------------------------------------------------------------------
 !
 ! ... calculate the truncated countercharge (TCC) 
@@ -327,6 +349,7 @@
       real(dp),    intent(out) :: ecomp
       complex(dp), intent(in)  :: rho_fft(ngm)
       complex(dp), intent(in)  :: vcorr_fft(ngm)
+      logical :: lgam
       !
       complex(dp), allocatable :: aux(:)
       integer      :: ig
@@ -341,9 +364,15 @@
         aux(1)=0.5d0*omega*vcorr_fft(1)*conjg(rho_fft(1))
       end if
       !
-      do ig=gstart,ngm
-        aux(ig)=0.5d0*wz*omega*vcorr_fft(ig)*conjg(rho_fft(ig))
-      end do
+      IF(lgam) THEN
+	  do ig=gstart,ngm
+	    aux(ig)=0.5d0*wz*omega*vcorr_fft(ig)*conjg(rho_fft(ig))
+	  end do
+      ELSE
+	  do ig=gstart,ngm
+	    aux(ig)=0.5d0*omega*vcorr_fft(ig)*conjg(rho_fft(ig))
+	  end do
+      ENDIF
       !
       zh=0.0_dp
       do ig=1,ngm
@@ -360,6 +389,7 @@
 !-----------------------------------------------------------------------
       end subroutine calc_tcc_energy
 !-----------------------------------------------------------------------
+
 !-----------------------------------------------------------------------
       subroutine ee_efieldpot_init(box)
 !-----------------------------------------------------------------------

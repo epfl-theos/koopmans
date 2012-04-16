@@ -84,7 +84,6 @@
       RETURN
       END SUBROUTINE calcmt
 
-
 !-----------------------------------------------------------------------
       subroutine rotate( z0, c0, bec, c0diag, becdiag, firstiter )
 !-----------------------------------------------------------------------
@@ -124,6 +123,44 @@
       return
       end subroutine rotate
 
+!-----------------------------------------------------------------------
+      subroutine rotate_twin( z0, c0, bec, c0diag, becdiag, firstiter )
+!-----------------------------------------------------------------------
+      use kinds, only: dp
+      use cvan
+      use electrons_base, only: nudx, nspin, nupdwn, iupdwn, nx => nbspx, n => nbsp
+      use uspp_param, only: nh
+      use uspp, only :nhsa=>nkb, nhsavb=>nkbus, qq
+      use gvecw, only: ngw
+      use ions_base, only: nsp, na
+      USE cp_main_variables, ONLY: descla, nlax, nrlx
+      USE descriptors,       ONLY: la_npc_ , la_npr_ , la_comm_ , la_me_ , la_nrl_
+      USE cp_interfaces,     ONLY: protate
+
+      implicit none
+      integer iss, nss, istart
+      integer :: np_rot, me_rot, nrl, comm_rot
+      real(kind=DP)    z0( nrlx, nudx, nspin )
+      real(kind=DP)    bec( nhsa, n ), becdiag( nhsa, n )
+      complex(kind=DP) c0( ngw, nx ), c0diag( ngw, nx )
+      logical firstiter
+  
+      CALL start_clock( 'rotate' )
+
+      DO iss = 1, nspin
+         istart   = iupdwn( iss )
+         nss      = nupdwn( iss )
+         np_rot   = descla( la_npr_  , iss ) * descla( la_npc_ , iss )
+         me_rot   = descla( la_me_   , iss )
+         nrl      = descla( la_nrl_  , iss )
+         comm_rot = descla( la_comm_ , iss )
+         CALL protate ( c0, bec, c0diag, becdiag, ngw, nss, istart, z0(:,:,iss), nrl, &
+                        na, nsp, ish, nh, np_rot, me_rot, comm_rot )
+      END DO
+
+      CALL stop_clock( 'rotate' )
+      return
+      end subroutine rotate_twin
 
 !-----------------------------------------------------------------------
       subroutine ddiag(nx,n,amat,dval,dvec,iflag)

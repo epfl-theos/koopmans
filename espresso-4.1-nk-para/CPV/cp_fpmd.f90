@@ -252,7 +252,7 @@ end subroutine ggenb
 
 !-------------------------------------------------------------------------
       subroutine ggencp ( b1, b2, b3, nr1, nr2, nr3, nr1s, nr2s, nr3s,               &
-     &      gcut, gcuts, gcutw, lgam )
+      &     gcut, gcuts, gcutw, lgam) !added:giovanni do_wf_cmplx
 !-----------------------------------------------------------------------
 !   generates the reciprocal lattice vectors (g>) with length squared
 !   less than gcut and returns them in order of increasing length.
@@ -342,7 +342,7 @@ end subroutine ggenb
       USE fft_base,           ONLY: dfftp, dffts, fft_dlay_descriptor
       use mp,                 ONLY: mp_sum, mp_max
       use io_global,          only: ionode
-      use mp_global,          only: intra_image_comm
+      use mp_global,          only: intra_image_comm, mpime
       use constants,          only: eps8
       use control_flags,      only: iprsta
       !
@@ -350,16 +350,18 @@ end subroutine ggenb
       !
       REAL(DP) :: b1(3), b2(3), b3(3), gcut, gcuts, gcutw
       REAL(DP) :: t(3), g2
-      logical      :: lgam
+      logical      ::  lgam !added:giovanni do_wf_cmplx
       integer      :: nr1,nr2,nr3, nr1s,nr2s,nr3s
       integer      :: n1p, n2p, n3p, n1m, n2m, n3m
       integer      :: n1ps, n2ps, n3ps, n1ms, n2ms, n3ms
       integer      :: it, icurr, nr1m1, nr2m1, nr3m1, nrefold, ir, ig, i,j,k
       integer      :: ichk
       integer      :: mill(3)
+ 
       !
       !  First of all count the number of G vectors according with the FFT mesh 
       ! 
+
       CALL gcount( ng, ngs, ngw, b1, b2, b3, nr1, nr2, nr3, gcut, gcuts, gcutw,&
                    dfftp%isind, SIZE( dfftp%isind), dfftp%nr1x, lgam )
       !
@@ -367,6 +369,7 @@ end subroutine ggenb
       !     distributed reciprocal space vectors arrays (ng_g = global
       !     number og Gs )
       !
+      
       ng_g = ng
       ngwt = ngw
 
@@ -422,7 +425,7 @@ end subroutine ggenb
       !     costruct fft indexes (n1,n2,n3) for the dense grid
       !
       CALL gfftindex( np, nm, ng, mill_l, nr1, nr2, nr3, &
-                      dfftp%isind, dfftp%nr1x, dfftp%nr2x, dfftp%nr3x )
+                      dfftp%isind, dfftp%nr1x, dfftp%nr2x, dfftp%nr3x, lgam)
 
 ! ... Uncomment to make tests and comparisons with other codes
 !      IF ( ionode ) THEN
@@ -447,7 +450,7 @@ end subroutine ggenb
       allocate(nms(ngs))
 !
       CALL gfftindex( nps, nms, ngs, mill_l, nr1s, nr2s, nr3s, &
-                      dffts%isind, dffts%nr1x, dffts%nr2x, dffts%nr3x )
+                      dffts%isind, dffts%nr1x, dffts%nr2x, dffts%nr3x, lgam )
 
 
 ! ... Uncomment to make tests and comparisons with other codes
@@ -512,14 +515,16 @@ end subroutine ggenb
 !
 ! calculation of G-vectors
 !
-      do ig=1,ng
-         i=mill_l(1,ig)
-         j=mill_l(2,ig)
-         k=mill_l(3,ig)
-         gx(1,ig)=i*b1(1)+j*b2(1)+k*b3(1)
-         gx(2,ig)=i*b1(2)+j*b2(2)+k*b3(2)
-         gx(3,ig)=i*b1(3)+j*b2(3)+k*b3(3)
-      end do
+!------begin_added:giovanni:debug--------G-VECTORS
+!       do ig=1,ng
+!          i=mill_l(1,ig)
+!          j=mill_l(2,ig)
+!          k=mill_l(3,ig)
+!          gx(1,ig)=i*b1(1)+j*b2(1)+k*b3(1)
+!          gx(2,ig)=i*b1(2)+j*b2(2)+k*b3(2)
+!          gx(3,ig)=i*b1(3)+j*b2(3)+k*b3(3)
+!       end do
+!------end_added:giovanni:debug-----------G-VECTORS
 
       return
       end subroutine ggencp
@@ -529,7 +534,7 @@ end subroutine ggenb
 !-------------------------------------------------------------------------
 SUBROUTINE gcount &
    ( ng, ngs, ngw, b1, b2, b3, nr1, nr2, nr3, gcut, gcuts, gcutw, &
-     isind, nind, ldis, lgam )
+     isind, nind, ldis, lgam )!added:giovanni do_wf_cmplx
 !-------------------------------------------------------------------------
 
   USE kinds, ONLY: DP
@@ -540,7 +545,7 @@ SUBROUTINE gcount &
   INTEGER  nr1, nr2, nr3, nind
   REAL(DP) b1(3), b2(3), b3(3), gcut, gcuts, gcutw
   INTEGER :: isind( nind ), ldis
-  LOGICAL :: lgam
+  LOGICAL :: lgam, do_wf_cmplx !added:giovanni do_wf_cmplx
 
   INTEGER :: nr1m1, nr2m1, nr3m1
   INTEGER :: i, j, k, n1p, n2p, ir, iind
@@ -552,7 +557,6 @@ SUBROUTINE gcount &
   ng  = 0
   ngs = 0
   ngw = 0
-
 !
 ! NOTA BENE: these limits are larger than those actually needed
 ! (-nr/2,..,+nr/2  for nr even; -(nr-1)/2,..,+(nr-1)/2  for nr odd).
@@ -583,14 +587,18 @@ SUBROUTINE gcount &
             !
 
 #if defined __PARA
-            n1p = i + 1
+!             n1p = i + 1
+            n1p = mod(i,nr1) + 1
             if ( n1p .lt. 1 ) n1p = n1p + nr1
-            n2p = j + 1
+!             n2p = j + 1
+            n2p = mod(j,nr2) + 1
             if ( n2p .lt. 1 ) n2p = n2p + nr2
             iind = n1p + (n2p-1)*ldis
             if ( iind > nind ) &
                CALL errore( " gcount ", " wrong grid size ", iind )
-            if ( isind( iind ) .eq. 0 ) cycle loop_y
+            if ( isind( iind ) .eq. 0 ) then
+              cycle loop_y
+            endif
 #endif
 
             loop_z: do k=-nr3m1,nr3m1
@@ -614,11 +622,8 @@ SUBROUTINE gcount &
          end do loop_y
          !
       end do loop_x
-
   RETURN
 END SUBROUTINE gcount
-
-
 
 !-------------------------------------------------------------------------
 SUBROUTINE gglobal( ng_g, g2_g, mill_g, b1, b2, b3, nr1, nr2, nr3, gcut, lgam )
@@ -827,25 +832,36 @@ END SUBROUTINE gchkrefold
 
 !-------------------------------------------------------------------------
 
-SUBROUTINE gfftindex( np, nm, ng, mill_l, nr1, nr2, nr3, isind, nr1x, nr2x, nr3x )
+SUBROUTINE gfftindex( np, nm, ng, mill_l, nr1, nr2, nr3, isind, nr1x, nr2x, nr3x, lgam )
   !
+  use mp_global,  ONLY:mpime
   IMPLICIT NONE
 
   INTEGER :: ng
   INTEGER :: isind(*), nr1x, nr2x, nr3x
   INTEGER :: mill_l(3,*), np(*), nm(*)
   integer :: nr1, nr2, nr3
+  logical :: lgam
 
   INTEGER :: n1p, n2p, n3p
   INTEGER :: n1m, n2m, n3m
   INTEGER :: i, j, k, ig, isp, ism
+  INTEGER :: m1,m2,mc
 
-
-      do ig = 1, ng
+ngloop:  do ig = 1, ng
 
          i = mill_l(1,ig)
          j = mill_l(2,ig)
          k = mill_l(3,ig)
+
+! #ifdef __PARA
+!       m1 = mod (i, nr1) + 1
+!       IF (m1 < 1) m1 = m1 + nr1
+!       m2 = mod (j, nr2) + 1
+!       IF (m2 < 1) m2 = m2 + nr2
+!       mc = m1 + (m2 - 1) * nr1x
+!       IF ( isind ( mc ) == 0) CYCLE ngloop
+! #endif
 
          !
          ! n1p,n2p,n3p: indexes of G
@@ -861,6 +877,14 @@ SUBROUTINE gfftindex( np, nm, ng, mill_l, nr1, nr2, nr3, isind, nr1x, nr2x, nr3x
          !
          ! n1m,n2m,n3m: indexes of -G
          !
+!          n1m=-i+1
+!          n2m=-j+1
+!          n3m=-k+1
+! 
+!          if(-i.lt.0) n1m=n1m+nr1
+!          if(-j.lt.0) n2m=n2m+nr2
+!          if(-k.lt.0) n3m=n3m+nr3
+
          if(i.eq.0) then
             n1m=1
          else
@@ -892,24 +916,30 @@ SUBROUTINE gfftindex( np, nm, ng, mill_l, nr1, nr2, nr3, isind, nr1x, nr2x, nr3x
            CALL errore( ' gfftindex ', ' wrong index: isp', 1 )
          IF( n3p > nr3x ) &
            CALL errore( ' gfftindex ', ' wrong index: n3p ', 1 )
-
-         ism = isind( n1m + ( n2m - 1 ) * nr1x )
-         IF( ism <= 0 ) &
-           CALL errore( ' gfftindex ', ' wrong index: ism ', 1 )
-         IF( n3m > nr3x ) &
-           CALL errore( ' gfftindex ', ' wrong index: n3m ', 1 )
-
          np(ig) = n3p + ( isp - 1 ) * nr3x
-         nm(ig) = n3m + ( ism - 1 ) * nr3x
 
-#else
-
+!          IF(lgam) THEN !!!### uncomment for k points
+	    ism = isind( n1m + ( n2m - 1 ) * nr1x )
+	    IF( ism <= 0 ) THEN !modified:giovanni
+	      CALL errore( ' gfftindex ', ' wrong index: ism ', 1 )           
+	    ENDIF
+	    IF( n3m > nr3x ) &
+	      CALL errore( ' gfftindex ', ' wrong index: n3m ', 1 )
+            nm(ig) = n3m + ( ism - 1 ) * nr3x
+!          ELSE !!!### uncomment for k points
+!             nm(ig) = 0 !n3m + ( ism - 1 ) * nr3x !!!### uncomment for k points
+!          ENDIFv!!!### uncomment for k points
+#else       
          np(ig) = n1p + (n2p-1)*nr1x + (n3p-1)*nr1x*nr2x
-         nm(ig) = n1m + (n2m-1)*nr1x + (n3m-1)*nr1x*nr2x
 
+!          IF(lgam) THEN !!!### uncomment for k points
+            nm(ig) = n1m + (n2m-1)*nr1x + (n3m-1)*nr1x*nr2x
+!          ELSE !!!### uncomment for k points
+!             nm(ig) = 0 !n1m + (n2m-1)*nr1x + (n3m-1)*nr1x*nr2x !!!### uncomment for k points
+!          ENDIF !!!### uncomment for k points
 #endif
 
-      end do
+      end do ngloop
 
   RETURN
 END SUBROUTINE gfftindex
@@ -1811,3 +1841,220 @@ SUBROUTINE compute_stress_x( stress, detot, h, omega )
    enddo
    return
 END SUBROUTINE compute_stress_x
+
+
+! 
+! SUBROUTINE ggen_borghi ( gamma_only, at, bg )
+! !in declaration
+! ! ( b1, b2, b3, nr1, nr2, nr3, nr1s, nr2s, nr3s,               &
+! !       &     gcut, gcuts, gcutw, do_wf_cmplx, lgam)
+! 
+! !*      USE kinds,              ONLY: DP
+! !      use reciprocal_vectors, only: g, gx, igl, mill_g, g2_g, gl
+! !      use reciprocal_vectors, only: mill_l, ig_l2g
+! !      use reciprocal_vectors, only: gzero, gstart, sortedig_l2g
+! !      use recvecs_indexes,    only: nm, np
+! !      use gvecs,              only: ngs, nms, ngsl, nps
+! !      use gvecw,              only: ngw, ngwl, ngwt, ggp
+! !      use gvecp,              only: ng => ngm, ngl => ngml, ng_g => ngmt
+! !      use io_global,          only: stdout
+! !      USE fft_base,           ONLY: dfftp, dffts, fft_dlay_descriptor>
+! !      use mp,                 ONLY: mp_sum, mp_max
+! !      use io_global,          only: ionode
+! !      use mp_global,          only: intra_image_comm
+! !*      use constants,          only: eps8
+! !      use control_flags,      only: iprsta
+! 
+! !in modulo
+! !    USE gvect,              ONLY : ig_l2g, g, gg, ngm, ngm_g, gcutm, &
+! !                                   mill,  nl, gstart
+! !    USE gvecs,              ONLY : ngms, gcutms, ngms_g, nls
+! !    USE fft_base,           ONLY : dfftp, dffts
+! !
+! !*    USE kinds,              ONLY : DP  ---checked
+! !*    USE constants,          ONLY : eps8
+! 
+! 
+! 
+!    !----------------------------------------------------------------------
+!    !
+!    !     This routine generates all the reciprocal lattice vectors
+!    !     contained in the sphere of radius gcutm. Furthermore it
+!    !     computes the indices nl which give the correspondence
+!    !     between the fft mesh points and the array of g vectors.
+!    !
+!    IMPLICIT NONE
+!    !
+!    LOGICAL,  INTENT(in) :: gamma_only
+!    real(DP), INTENT(IN) :: b1,b2,b3
+!    REAL(DP) ::  at(3,3), bg(3,3)
+!    !     here a few local variables
+!    !
+!    REAL(DP) ::  t (3), tt
+!    INTEGER :: ngm_, n1, n2, n3, n1s, n2s, n3s
+!    !
+!    REAL(DP), ALLOCATABLE :: g2sort_g(:)
+!    ! array containing all g vectors, on all processors: replicated data
+!    INTEGER, ALLOCATABLE :: mill_g(:,:), mill_unsorted(:,:)
+!    ! array containing all g vectors generators, on all processors:
+!    !     replicated data
+!    INTEGER, ALLOCATABLE :: igsrt(:)
+!    !
+! #ifdef __PARA
+!    INTEGER :: m1, m2, mc
+! #endif
+!    INTEGER :: ni, nj, nk, i, j, k, ipol, ng, igl, indsw
+!    !
+!    ! counters
+!    !
+!    !    set the total number of fft mesh points and and initial value of gg
+!    !    The choice of gcutm is due to the fact that we have to order the
+!    !    vectors after computing them.
+!    !
+!    gg(:) = gcutm + 1.d0
+!    !
+!    !     set d vector for unique ordering
+!    !
+!    !    and computes all the g vectors inside a sphere
+!    !
+!    ALLOCATE( mill_g( 3, ngm_g ),mill_unsorted( 3, ngm_g ) )
+!    ALLOCATE( igsrt( ngm_g ) )
+!    ALLOCATE( g2sort_g( ngm_g ) )
+!    g2sort_g(:) = 1.0d20
+!    !
+!    ! save present value of ngm 
+!    !
+!    ngm_ = ngm
+!    !
+!    ngm = 0
+!    ngms = 0
+!    !
+!    ! max miller indices (same convention as in module stick_set)
+!    !
+!    ni = (dfftp%nr1-1)/2
+!    nj = (dfftp%nr2-1)/2
+!    nk = (dfftp%nr3-1)/2
+!    !
+!    iloop: DO i = -ni, ni
+!       !
+!       ! gamma-only: exclude space with x < 0
+!       !
+!       IF ( gamma_only .and. i < 0) CYCLE iloop
+!       jloop: DO j = -nj, nj
+!          !
+!          ! gamma-only: exclude plane with x = 0, y < 0
+!          !
+!          IF ( gamma_only .and. i == 0 .and. j < 0) CYCLE jloop
+!          kloop: DO k = -nk, nk
+!             !
+!             ! gamma-only: exclude line with x = 0, y = 0, z < 0
+!             !
+!             IF ( gamma_only .and. i == 0 .and. j == 0 .and. k < 0) CYCLE kloop
+!             t(:) = i * bg (:,1) + j * bg (:,2) + k * bg (:,3)
+!             tt = sum(t(:)**2)
+!             IF (tt <= gcutm) THEN
+!                ngm = ngm + 1
+!                IF (tt <= gcutms) ngms = ngms + 1
+!                IF (ngm > ngm_g) CALL errore ('ggen', 'too many g-vectors', ngm)
+!                mill_unsorted( :, ngm ) = (/ i,j,k /)
+!                IF ( tt > eps8 ) THEN
+!                   g2sort_g(ngm) = tt
+!                ELSE
+!                   g2sort_g(ngm) = 0.d0
+!                ENDIF
+!             ENDIF
+!          ENDDO kloop
+!       ENDDO jloop
+!    ENDDO iloop
+! 
+!    IF (ngm  /= ngm_g ) &
+!          CALL errore ('ggen', 'g-vectors missing !', abs(ngm - ngm_g))
+!    IF (ngms /= ngms_g) &
+!          CALL errore ('ggen', 'smooth g-vectors missing !', abs(ngms - ngms_g))
+! 
+!    igsrt(1) = 0
+!    CALL hpsort_eps( ngm_g, g2sort_g, igsrt, eps8 )
+!    mill_g(1,:) = mill_unsorted(1,igsrt(:))
+!    mill_g(2,:) = mill_unsorted(2,igsrt(:))
+!    mill_g(3,:) = mill_unsorted(3,igsrt(:))
+!    DEALLOCATE( g2sort_g, igsrt, mill_unsorted )
+! 
+!    ngm = 0
+!    ngms = 0
+!    ngloop: DO ng = 1, ngm_g
+!       i = mill_g(1, ng)
+!       j = mill_g(2, ng)
+!       k = mill_g(3, ng)
+! 
+! #ifdef __PARA
+!       m1 = mod (i, dfftp%nr1) + 1
+!       IF (m1 < 1) m1 = m1 + dfftp%nr1
+!       m2 = mod (j, dfftp%nr2) + 1
+!       IF (m2 < 1) m2 = m2 + dfftp%nr2
+!       mc = m1 + (m2 - 1) * dfftp%nr1x
+!       IF ( dfftp%isind ( mc ) == 0) CYCLE ngloop
+! #endif
+! 
+!       ngm = ngm + 1
+! 
+!       !  Here map local and global g index !!!
+!       ig_l2g( ngm ) = ng
+! 
+!       g (1:3, ngm) = i * bg (:, 1) + j * bg (:, 2) + k * bg (:, 3)
+!       gg (ngm) = sum(g (1:3, ngm)**2)
+! 
+!       IF (gg (ngm) <= gcutms) ngms = ngms + 1
+!       IF (ngm > ngm_) CALL errore ('ggen', 'too many g-vectors', ngm)
+!    ENDDO ngloop
+! 
+!    IF (ngm /= ngm_) &
+!       CALL errore ('ggen', 'g-vectors missing !', abs(ngm - ngm_))
+!    !
+!    !     determine first nonzero g vector
+!    !
+!    IF (gg(1).le.eps8) THEN
+!       gstart=2
+!    ELSE
+!       gstart=1
+!    ENDIF
+!    !
+!    !     Now set nl and nls with the correct fft correspondence
+!    !
+!    DO ng = 1, ngm
+!       n1 = nint (sum(g (:, ng) * at (:, 1))) + 1
+!       mill (1,ng) = n1 - 1
+!       n1s = n1
+!       IF (n1<1) n1 = n1 + dfftp%nr1
+!       IF (n1s<1) n1s = n1s + dffts%nr1
+! 
+!       n2 = nint (sum(g (:, ng) * at (:, 2))) + 1
+!       mill (2,ng) = n2 - 1
+!       n2s = n2
+!       IF (n2<1) n2 = n2 + dfftp%nr2
+!       IF (n2s<1) n2s = n2s + dffts%nr2
+! 
+!       n3 = nint (sum(g (:, ng) * at (:, 3))) + 1
+!       mill (3,ng) = n3 - 1
+!       n3s = n3
+!       IF (n3<1) n3 = n3 + dfftp%nr3
+!       IF (n3s<1) n3s = n3s + dffts%nr3
+! 
+!       IF (n1>dfftp%nr1 .or. n2>dfftp%nr2 .or. n3>dfftp%nr3) &
+!          CALL errore('ggen','Mesh too small?',ng)
+! 
+! #if defined (__PARA) && !defined (__USE_3D_FFT)
+!       nl (ng) = n3 + ( dfftp%isind (n1 + (n2 - 1) * dfftp%nr1x) - 1) * dfftp%nr3x
+!       IF (ng <= ngms) &
+!          nls (ng) = n3s + ( dffts%isind (n1s+(n2s-1)*dffts%nr1x) - 1 ) * dffts%nr3x
+! #else
+!       nl (ng) = n1 + (n2 - 1) * dfftp%nr1x + (n3 - 1) * dfftp%nr1x * dfftp%nr2x
+!       IF (ng <= ngms) &
+!          nls (ng) = n1s + (n2s - 1) * dffts%nr1x + (n3s - 1) * dffts%nr1x * dffts%nr2x
+! #endif
+!    ENDDO
+!    !
+!    DEALLOCATE( mill_g )
+! 
+!    IF ( gamma_only) CALL index_minusg()
+! 
+!    END SUBROUTINE ggen_borghi

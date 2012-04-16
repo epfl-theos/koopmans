@@ -7,10 +7,8 @@
 !
 #include "f_defs.h"
 
-
-
 !=----------------------------------------------------------------------------=!
-     SUBROUTINE interpolate_lambda_x( lambdap, lambda, lambdam )
+     SUBROUTINE interpolate_lambda_real_x( lambdap, lambda, lambdam )
 !=----------------------------------------------------------------------------=!
        USE kinds, ONLY: DP
        IMPLICIT NONE
@@ -22,8 +20,32 @@
        lambdam=lambda 
        lambda =lambdap
        RETURN
-     END SUBROUTINE interpolate_lambda_x
-
+     END SUBROUTINE interpolate_lambda_real_x
+!=----------------------------------------------------------------------------=!
+     SUBROUTINE interpolate_lambda_twin_x( lambdap, lambda, lambdam )
+!=----------------------------------------------------------------------------=!
+       USE kinds, ONLY: DP
+       USE twin_types
+       IMPLICIT NONE
+       TYPE(twin_matrix), dimension(:) :: lambdap, lambda, lambdam
+       !
+       INTEGER :: i
+       !
+       ! interpolate new lambda at (t+dt) from lambda(t) and lambda(t-dt):
+       !
+       DO i=1,size(lambda)
+         IF(.not.lambda(i)%iscmplx) THEN
+	    lambdap(i)%rvec= 2.d0*lambda(i)%rvec - lambdam(i)%rvec
+	    lambdam(i)%rvec=lambda(i)%rvec 
+	    lambda(i)%rvec =lambdap(i)%rvec
+         ELSE
+	    lambdap(i)%cvec= 2.d0*lambda(i)%cvec - lambdam(i)%cvec
+	    lambdam(i)%cvec=lambda(i)%cvec 
+	    lambda(i)%cvec =lambdap(i)%cvec
+         ENDIF
+       ENDDO
+       RETURN
+     END SUBROUTINE interpolate_lambda_twin_x
 
 !=----------------------------------------------------------------------------=!
      SUBROUTINE update_lambda_x( i, lambda, c0, c2, n, noff, tdist )
@@ -59,9 +81,6 @@
        RETURN
      END SUBROUTINE update_lambda_x
 
-
-
-
 !=----------------------------------------------------------------------------=!
   subroutine elec_fakekine_x( ekincm, ema0bg, emass, c0, cm, ngw, n, noff, delt )
 !=----------------------------------------------------------------------------=!
@@ -73,6 +92,7 @@
     use mp_global,          only : intra_image_comm
     use reciprocal_vectors, only : gstart
     use wave_base,          only : wave_speed2
+    use control_flags,      only: gamma_only, do_wf_cmplx!added:giovanni
     !
     IMPLICIT NONE
     !
@@ -86,6 +106,9 @@
     real(DP), allocatable :: emainv(:)
     real(DP) :: ftmp
     integer  :: i
+    logical :: lgam!added:giovanni
+
+    lgam=gamma_only.and..not.do_wf_cmplx!added:giovanni
 
     ALLOCATE( emainv( ngw ) )
     emainv = 1.0d0 / ema0bg
@@ -94,7 +117,7 @@
 
     ekincm=0.0d0
     do i = noff, n + noff - 1
-      ekincm = ekincm + 2.0d0 * wave_speed2( c0(:,i), cm(:,i), emainv, ftmp )
+      ekincm = ekincm + 2.0d0 * wave_speed2( c0(:,i), cm(:,i), emainv, ftmp, lgam )!added:giovanni lgam
     end do
     ekincm = ekincm * emass / ( delt * delt )
 
@@ -215,7 +238,7 @@
 
 
 !=----------------------------------------------------------------------------=!
-   SUBROUTINE crot_gamma2 ( c0rot, c0, ngw, n, noffr, noff, lambda, nx, eig )
+   SUBROUTINE crot_gamma2_real ( c0rot, c0, ngw, n, noffr, noff, lambda, nx, eig )
 !=----------------------------------------------------------------------------=!
 
       !  this routine rotates the wave functions to the Kohn-Sham base
@@ -279,8 +302,74 @@
       DEALLOCATE( vv )
 
       RETURN
-   END SUBROUTINE crot_gamma2
+   END SUBROUTINE crot_gamma2_real
 
+!=----------------------------------------------------------------------------=!
+   SUBROUTINE crot_gamma2_cmplx ( c0rot, c0, ngw, n, noffr, noff, lambda, nx, eig )
+!=----------------------------------------------------------------------------=!
+
+      !  this routine rotates the wave functions to the Kohn-Sham base
+      !  it works with a block-like distributed matrix
+      !  of the Lagrange multipliers ( lambda ).
+      !
+      ! ... declare modules
+
+      USE kinds,            ONLY: DP
+      USE mp,               ONLY: mp_bcast
+      USE mp_global,        ONLY: nproc_image, me_image, intra_image_comm
+      USE zhpev_module,     ONLY: zhpev_drv
+
+      IMPLICIT NONE
+
+      ! ... declare subroutine arguments
+
+      INTEGER,     INTENT(IN)    :: ngw, n, nx, noffr, noff
+      COMPLEX(DP), INTENT(INOUT) :: c0rot(:,:)
+      COMPLEX(DP), INTENT(IN)    :: c0(:,:)
+      COMPLEX(DP),    INTENT(IN)    :: lambda(:,:)
+      REAL(DP),    INTENT(OUT)   :: eig(:)
+
+      ! ... declare other variables
+      !
+      COMPLEX(DP), ALLOCATABLE :: vv(:,:), ap(:)
+      INTEGER               :: i, j, k
+
+      IF( nx < 1 ) THEN
+        RETURN
+      END IF
+
+      ALLOCATE( vv( nx, nx ) )
+
+      ! NON distributed lambda
+
+      ALLOCATE( ap( nx * ( nx + 1 ) / 2 ) )
+
+      K = 0
+      DO J = 1, n
+         DO I = J, n
+            K = K + 1
+            ap( k ) = lambda( i, j )
+         END DO
+      END DO
+
+      CALL zhpev_drv( 'V', 'L', n, ap, eig, vv, nx )
+
+      DEALLOCATE( ap )
+
+      DO i = 1, n
+         c0rot( :, i+noffr-1 ) = 0.0d0
+      END DO
+
+      DO j = 1, n
+         DO i = 1, n
+            CALL ZAXPY( ngw, vv(j,i), c0(1,j+noff-1), 1, c0rot(1,i+noffr-1), 1 )
+         END DO
+      END DO
+
+      DEALLOCATE( vv )
+
+      RETURN
+   END SUBROUTINE crot_gamma2_cmplx
 
 
 !=----------------------------------------------------------------------------=!
@@ -377,7 +466,6 @@
       COMPLEX(DP), ALLOCATABLE :: pwt( : )
 
       ! ... Check array dimensions
-
       IF( SIZE( cm, 1 ) < ngw ) THEN 
         CALL errore(' wave_rand_init ', ' wrong dimensions ', 3)
       END IF
@@ -419,3 +507,67 @@
       RETURN
     END SUBROUTINE wave_rand_init_x
 
+!=----------------------------------------------------------------------------=!
+   SUBROUTINE wave_sine_init_x( cm, n, noff ) !added:giovanni
+!=----------------------------------------------------------------------------=!
+
+      !  this routine sets the initial wavefunctions at random
+
+! ... declare modules
+      USE kinds,              ONLY: DP
+      USE mp,                 ONLY: mp_sum
+      USE mp_wave,            ONLY: splitwf
+      USE mp_global,          ONLY: me_image, nproc_image, root_image, intra_image_comm
+      USE reciprocal_vectors, ONLY: ig_l2g, ngw, ngwt, gzero, gx
+      USE io_global,          ONLY: stdout
+      USE random_numbers,     ONLY: randy
+      
+      IMPLICIT NONE
+
+      ! ... declare subroutine arguments 
+      INTEGER,     INTENT(IN)  :: n, noff
+      COMPLEX(DP), INTENT(OUT) :: cm(:,:)
+
+      ! ... declare other variables
+      INTEGER :: ntest, ig, ib
+      REAL(DP) ::  rranf1, rranf2, ampre
+      COMPLEX(DP), ALLOCATABLE :: pwt( : )
+
+      ! ... Check array dimensions
+      IF( SIZE( cm, 1 ) < ngw ) THEN 
+        CALL errore(' wave_rand_init ', ' wrong dimensions ', 3)
+      END IF
+
+      ! ... Reset them to zero
+ 
+      cm( :, noff : noff + n - 1 ) = 0.0d0
+
+      ! ... initialize the wave functions in such a way that the values
+      ! ... of the components are independent of the number of processors
+
+      ampre = 0.01d0
+      ALLOCATE( pwt( ngw ) )
+
+      ntest = ngw
+      IF( ntest < SIZE( cm, 2 ) ) THEN
+         ntest = ngw
+      END IF
+      !
+      ! ... assign real values to wave functions
+      !
+      DO ib = noff, noff + n - 1
+        pwt( : ) = CMPLX(0.0d0,0.d0)
+        DO ig = 1, ntest
+          rranf1 = dcos(ib*(gx(1, ig )))+dcos(ib*(gx(2, ig )))+dcos(ib*(gx(3, ig )))
+          rranf2 = (dsin(ib*(gx(1,ig)))+dsin(ib*(gx(2, ig)))+dsin(ib*(gx(3, ig))))
+          pwt( ig ) = ampre * CMPLX(rranf1, rranf2)
+        END DO
+        DO ig = 1, ngw
+          cm( ig, ib ) = pwt(  ig  )
+        END DO
+      END DO
+
+      DEALLOCATE( pwt )
+
+      RETURN
+    END SUBROUTINE wave_sine_init_x

@@ -298,7 +298,7 @@
       use grid_dimensions, only : nr1, nr2, nr3, nnr => nnrx
       use cell_base,       only : ainv, omega, h
       use ions_base,       only : nsp
-      use control_flags,   only : tpre, iprsta
+      use control_flags,   only : tpre, iprsta, gamma_only, do_wf_cmplx
       use core,            only : drhocg, nlcc_any
       use mp,              only : mp_sum
       use metagga,         ONLY : kedtaur
@@ -334,6 +334,7 @@
       integer :: i, j, ir, iss
       real(DP) :: dexc(3,3)
       real(DP), allocatable :: gradr(:,:,:)
+      logical :: lgam
       !
       !sic
       REAL(DP) :: self_exc
@@ -341,13 +342,15 @@
       complex(DP), ALLOCATABLE :: self_rhog( :,: )
       LOGICAL  :: ttsic
       real(DP) :: detmp(3,3)
+      
+      lgam=gamma_only.and..not.do_wf_cmplx
       !
       !     filling of gradr with the gradient of rho using fft's
       !
       if ( dft_is_gradient() ) then
          !
          allocate( gradr( nnr, 3, nspin ) )
-         call fillgrad( nspin, rhog, gradr )
+         call fillgrad( nspin, rhog, gradr, lgam )
          ! 
       else
          allocate( gradr( 1, 1, 2) )
@@ -458,7 +461,7 @@
          !  Add second part of the xc-potential to rhor
          !  Compute contribution to the stress dexc
          !
-         call gradh( nspin, gradr, rhog, rhor, dexc)
+         call gradh( nspin, gradr, rhog, rhor, dexc, lgam)
          !
          if (tpre) then
             !
@@ -475,7 +478,7 @@
 !
          IF (dft_is_gradient()) then
       
-            call gradh( nspin, self_gradr, self_rhog, self_rho, dexc)
+            call gradh( nspin, self_gradr, self_rhog, self_rho, dexc, lgam)
           
             gradr(:,:, 1) = (1.d0 - sic_alpha ) * gradr(:,:, 1)
             gradr(:,:, 2) = (1.d0 - sic_alpha ) * gradr(:,:, 2) + &
@@ -535,7 +538,7 @@
 
 !=----------------------------------------------------------------------------=!
 
-      subroutine gradh( nspin, gradr, rhog, rhor, dexc )
+      subroutine gradh( nspin, gradr, rhog, rhor, dexc, lgam )
 !     _________________________________________________________________
 !     
 !     calculate the second part of gradient corrected xc potential
@@ -557,6 +560,7 @@
       integer nspin
       real(DP)    :: gradr( nnr, 3, nspin ), rhor( nnr, nspin ), dexc( 3, 3 )
       complex(DP) :: rhog( ng, nspin )
+      logical :: lgam
 !
       complex(DP), allocatable:: v(:)
       complex(DP), allocatable:: x(:), vtemp(:)
@@ -601,32 +605,62 @@
          end do
          call fwfft('Dense',v, dfftp )
 !
-         do ig=1,ng
-            fp=v(np(ig))+v(nm(ig))
-            fm=v(np(ig))-v(nm(ig))
-            x(ig) = x(ig) +                                             &
-     &           ci*tpiba*gx(2,ig)*0.5d0*CMPLX( DBLE(fp),AIMAG(fm))
-            x(ig) = x(ig) +                                             &
-     &           ci*tpiba*gx(3,ig)*0.5d0*CMPLX(AIMAG(fp),-DBLE(fm))
-         end do
+         IF(lgam) THEN
+	    do ig=1,ng
+		fp=v(np(ig))+v(nm(ig))
+		fm=v(np(ig))-v(nm(ig))
+		x(ig) = x(ig) +                                             &
+	&           ci*tpiba*gx(2,ig)*0.5d0*CMPLX( DBLE(fp),AIMAG(fm))
+		x(ig) = x(ig) +                                             &
+	&           ci*tpiba*gx(3,ig)*0.5d0*CMPLX(AIMAG(fp),-DBLE(fm))
+	    end do
+         ELSE
+           do ig=1,ng
+		fp=v(np(ig))
+		fm=v(np(ig))!-v(nm(ig))
+		x(ig) = x(ig) +                                             &
+	&           ci*tpiba*gx(2,ig)*0.5d0*CMPLX( DBLE(fp),AIMAG(fm))
+		x(ig) = x(ig) +                                             &
+	&           ci*tpiba*gx(3,ig)*0.5d0*CMPLX(AIMAG(fp),-DBLE(fm))
+	   end do
+         ENDIF
 !
          if(tpre) then
-            do i=1,3
-               do j=1,3
-                  do ig=1,ng
-                     fp=v(np(ig))+v(nm(ig))
-                     fm=v(np(ig))-v(nm(ig))
-                     vtemp(ig) = omega*ci*                              &
-     &                    (0.5d0*CMPLX(DBLE(fp),-AIMAG(fm))*              &
-     &                    tpiba*(-rhog(ig,iss)*gx(i,ig)*ainv(j,2)+      &
-     &                    gx(2,ig)*drhog(ig,iss,i,j))+                  &
-     &                    0.5d0*CMPLX(AIMAG(fp),DBLE(fm))*tpiba*          &
-     &                    (-rhog(ig,iss)*gx(i,ig)*ainv(j,3)+            &
-     &                    gx(3,ig)*drhog(ig,iss,i,j)))
-                  end do
-                  dexc(i,j) = dexc(i,j) + 2.0d0*DBLE(SUM(vtemp))
-               end do
-            end do
+	    IF(lgam) THEN
+		do i=1,3
+		  do j=1,3
+		      do ig=1,ng
+			fp=v(np(ig))+v(nm(ig))
+			fm=v(np(ig))-v(nm(ig))
+			vtemp(ig) = omega*ci*                              &
+	&                    (0.5d0*CMPLX(DBLE(fp),-AIMAG(fm))*              &
+	&                    tpiba*(-rhog(ig,iss)*gx(i,ig)*ainv(j,2)+      &
+	&                    gx(2,ig)*drhog(ig,iss,i,j))+                  &
+	&                    0.5d0*CMPLX(AIMAG(fp),DBLE(fm))*tpiba*          &
+	&                    (-rhog(ig,iss)*gx(i,ig)*ainv(j,3)+            &
+	&                    gx(3,ig)*drhog(ig,iss,i,j)))
+		      end do
+		      dexc(i,j) = dexc(i,j) + 2.0d0*DBLE(SUM(vtemp))
+		  end do
+		end do
+	    ELSE
+		do i=1,3
+		  do j=1,3
+		      do ig=1,ng
+			fp=v(np(ig))!+v(nm(ig))
+			fm=v(np(ig))!-v(nm(ig))
+			vtemp(ig) = omega*ci*                              &
+	&                    (0.5d0*CMPLX(DBLE(fp),-AIMAG(fm))*              &
+	&                    tpiba*(-rhog(ig,iss)*gx(i,ig)*ainv(j,2)+      &
+	&                    gx(2,ig)*drhog(ig,iss,i,j))+                  &
+	&                    0.5d0*CMPLX(AIMAG(fp),DBLE(fm))*tpiba*          &
+	&                    (-rhog(ig,iss)*gx(i,ig)*ainv(j,3)+            &
+	&                    gx(3,ig)*drhog(ig,iss,i,j)))
+		      end do
+		      dexc(i,j) = dexc(i,j) + 2.0d0*DBLE(SUM(vtemp))
+		  end do
+		end do
+	    ENDIF
          endif
 !     _________________________________________________________________
 !     second part xc-potential: 1 inverse fft
@@ -634,10 +668,17 @@
          do ig=1,nnr
             v(ig)=(0.0d0,0.0d0)
          end do
-         do ig=1,ng
-            v(np(ig))=x(ig)
-            v(nm(ig))=CONJG(x(ig))
-         end do
+         IF(lgam) THEN
+	    do ig=1,ng
+		v(np(ig))=x(ig)
+		v(nm(ig))=CONJG(x(ig))
+	    end do
+         ELSE
+	    do ig=1,ng
+		v(np(ig))=x(ig)
+    !             v(nm(ig))=CONJG(x(ig))
+	    end do
+         ENDIF
          call invfft('Dense',v, dfftp )
          do ir=1,nnr
             rhor(ir,iss)=rhor(ir,iss)-DBLE(v(ir))

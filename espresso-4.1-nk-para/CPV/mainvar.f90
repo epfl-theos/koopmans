@@ -20,6 +20,7 @@ MODULE cp_main_variables
   USE energies,          ONLY : dft_energy_type
   USE pres_ai_mod,       ONLY : abivol, abisur, jellium, t_gauss, rho_gaus, &
                                 v_vol, posv, f_vol
+  USE twin_types
   !
   IMPLICIT NONE
   SAVE
@@ -55,8 +56,12 @@ MODULE cp_main_variables
   ! ...    rhovan= \sum_i f(i) <psi(i)|beta_l><beta_m|psi(i)>
   ! ...    deeq  = \int V_eff(r) q_lm(r) dr
   !
-  REAL(DP), ALLOCATABLE :: bec(:,:), becdr(:,:,:)
-  REAL(DP), ALLOCATABLE :: bephi(:,:), becp(:,:)
+  type(twin_tensor) :: becdr!(:,:,:)!,bec(:,:) !modified:giovanni
+!   REAL(DP), ALLOCATABLE :: bephi(:,:)!, becp(:,:) !removed:giovanni
+  TYPE(twin_matrix)     :: bec, becp,bephi !added:giovanni
+  TYPE(twin_matrix), ALLOCATABLE :: lambda(:)
+  TYPE(twin_matrix), ALLOCATABLE :: lambdam(:)
+  TYPE(twin_matrix), ALLOCATABLE :: lambdap(:)
   !
   ! ... mass preconditioning
   !
@@ -64,8 +69,8 @@ MODULE cp_main_variables
   !
   ! ... constraints (lambda at t, lambdam at t-dt, lambdap at t+dt)
   !
-  REAL(DP), ALLOCATABLE :: lambda(:,:,:), lambdam(:,:,:), lambdap(:,:,:)
-  REAL(DP), ALLOCATABLE :: hamilt(:,:,:)
+!   REAL(DP), ALLOCATABLE :: hamilt(:,:,:) !removed:giovanni
+  type(twin_matrix), dimension(:), allocatable :: hamilt(:)
   !
   INTEGER,  ALLOCATABLE :: descla(:,:) ! descriptor of the lambda distribution
                                        ! see descriptors_module
@@ -110,6 +115,22 @@ MODULE cp_main_variables
                              ! for the present run
   INTEGER :: iprint_stdout=1 ! define how often CP writes verbose information to stdout
   !
+  INTERFACE distribute_bec
+     module procedure distribute_bec_cmplx, distribute_bec_real
+  END INTERFACE
+
+  INTERFACE collect_lambda
+      module procedure collect_lambda_real, collect_lambda_cmplx
+  END INTERFACE
+
+  INTERFACE distribute_lambda
+      module procedure distribute_lambda_real, distribute_lambda_cmplx
+  END INTERFACE
+
+  INTERFACE setval_lambda
+      module procedure setval_lambda_real, setval_lambda_cmplx
+  END INTERFACE
+
   CONTAINS
     !
     !------------------------------------------------------------------------
@@ -123,6 +144,8 @@ MODULE cp_main_variables
                              me_image, ortho_comm_id
       USE mp,          ONLY: mp_max, mp_min
       USE descriptors, ONLY: descla_siz_ , descla_init , nlax_ , la_nrlx_ , lambda_node_
+      USE control_flags, ONLY: do_wf_cmplx, gamma_only! added:giovanni
+      USE twin_types
       !
       INTEGER,           INTENT(IN) :: ngw, ngwt, ngb, ngs, ng, nr1, nr2, nr3, &
                                        nnr, nnrsx, nat, nax, nsp, nspin, &
@@ -133,6 +156,9 @@ MODULE cp_main_variables
       LOGICAL,           INTENT(IN) :: tpre
       !
       INTEGER  :: iss, nhsa_l
+      LOGICAL  :: lgam !added:giovanni
+
+      lgam=gamma_only.and..not.do_wf_cmplx !added:giovanni
       !
       ! ... allocation of all arrays not already allocated in init and nlinit
       !
@@ -209,10 +235,20 @@ MODULE cp_main_variables
          !
       END IF
       !
-      ALLOCATE( lambda(  nlam, nlam, nspin ) )
-      ALLOCATE( lambdam( nlam, nlam, nspin ) )
-      ALLOCATE( lambdap( nlam, nlam, nspin ) )
-      !
+!!!! begin_modified:giovanni 
+      ALLOCATE( lambda(nspin ) )
+      ALLOCATE( lambdam(nspin ) )
+      ALLOCATE( lambdap(nspin ) )
+      DO iss=1,nspin
+          lambda(iss)%iscmplx=.not.lgam
+          call init_twin(lambda(iss), lgam)
+          call allocate_twin(lambda(iss), nlam, nlam, lgam)
+          call init_twin(lambdap(iss), lgam)
+          call allocate_twin(lambdap(iss), nlam, nlam, lgam)
+          call init_twin(lambdam(iss), lgam)
+          call allocate_twin(lambdam(iss), nlam, nlam, lgam)
+      ENDDO
+!!!! end_modified:giovanni
       !
       ! becdr, distributed over row processors of the ortho group
       !
@@ -220,12 +256,20 @@ MODULE cp_main_variables
       !nhsa_l = MAX( nhsa, 1) 
       nhsa_l = nhsa
       !
-      ALLOCATE( becdr( nhsa_l, nspin*nlax, 3 ) )  
+      call init_twin(becdr, lgam)
+      call allocate_twin(becdr, nhsa_l, nspin*nlax, 3, lgam) !added:giovanni
       !
-      ALLOCATE( bec( nhsa_l,n ) )
+      call init_twin(bec, lgam)
+      call allocate_twin(bec,nhsa_l,n, lgam)!added:giovanni
+      call init_twin(becp, lgam)
+      call allocate_twin(becp,nhsa_l,n, lgam)!added:giovanni
+      call init_twin(bephi, lgam)
+      call allocate_twin(bephi, nhsa_l, nspin*nlax, lgam)!added:giovanni
+
+!       ALLOCATE( bec( nhsa_l,n ) )!removed:giovanni
       !
-      ALLOCATE( bephi( nhsa_l, nspin*nlax ) )
-      ALLOCATE( becp(  nhsa_l, n ) )
+!       ALLOCATE( bephi( nhsa_l, nspin*nlax ) ) !removed:giovanni
+!       ALLOCATE( becp(  nhsa_l, n ) ) !removed:giovanni
       !
       CALL wave_descriptor_init( wfill, ngw, ngwt, nupdwn,  nupdwn, &
             1, 1, nspin, 'gamma', gzero )
@@ -236,6 +280,9 @@ MODULE cp_main_variables
     !
     !------------------------------------------------------------------------
     SUBROUTINE deallocate_mainvar()
+      IMPLICIT NONE
+
+      INTEGER :: iss
       !------------------------------------------------------------------------
       !
       IF( ALLOCATED( ei1 ) )     DEALLOCATE( ei1 )
@@ -250,31 +297,54 @@ MODULE cp_main_variables
       IF( ALLOCATED( rhog ) )    DEALLOCATE( rhog )
       IF( ALLOCATED( drhog ) )   DEALLOCATE( drhog )
       IF( ALLOCATED( drhor ) )   DEALLOCATE( drhor )
-      IF( ALLOCATED( bec ) )     DEALLOCATE( bec )
-      IF( ALLOCATED( becdr ) )   DEALLOCATE( becdr )
-      IF( ALLOCATED( bephi ) )   DEALLOCATE( bephi )
-      IF( ALLOCATED( becp ) )    DEALLOCATE( becp )
       IF( ALLOCATED( ema0bg ) )  DEALLOCATE( ema0bg )
-      IF( ALLOCATED( lambda ) )  DEALLOCATE( lambda )
-      IF( ALLOCATED( lambdam ) ) DEALLOCATE( lambdam )
-      IF( ALLOCATED( lambdap ) ) DEALLOCATE( lambdap )
       IF( ALLOCATED( kedtaur ) ) DEALLOCATE( kedtaur )
       IF( ALLOCATED( kedtaus ) ) DEALLOCATE( kedtaus )
       IF( ALLOCATED( kedtaug ) ) DEALLOCATE( kedtaug )
       IF( ALLOCATED( vpot ) )    DEALLOCATE( vpot )
       IF( ALLOCATED( taub ) )    DEALLOCATE( taub )
       IF( ALLOCATED( descla ) )  DEALLOCATE( descla )
-      IF( ALLOCATED( hamilt ) )  DEALLOCATE( hamilt )
-      !
+      !added:giovanni -- deallocation of structured types -- the check is inside deallocate
+      CALL deallocate_twin(bec)
+      CALL deallocate_twin(becp)
+      CALL deallocate_twin(becdr) 
+      CALL deallocate_twin(bephi)
+
+      IF(allocated(hamilt)) THEN 
+	  DO iss=1, size(hamilt)
+	      CALL deallocate_twin(hamilt(iss))
+	  END DO
+          DEALLOCATE(hamilt)
+      ENDIF
+
+      IF(allocated(lambda)) THEN 
+	  DO iss=1, size(lambda)
+	      CALL deallocate_twin(lambda(iss))
+	  END DO
+          DEALLOCATE(lambda)
+      ENDIF
+
+      IF(allocated(lambdam)) THEN 
+	  DO iss=1, size(lambdam)
+	      CALL deallocate_twin(lambdam(iss))
+	  END DO
+          DEALLOCATE(lambdam)
+      ENDIF
+
+      IF(allocated(lambdap)) THEN 
+	  DO iss=1, size(lambdap)
+	      CALL deallocate_twin(lambdap(iss))
+	  END DO
+          DEALLOCATE(lambdap)
+      ENDIF
+      ! -- deallocation of structured types -------------------------------------------------------------
       RETURN
       !
     END SUBROUTINE deallocate_mainvar
     !
     !
-    !
-    !
     !------------------------------------------------------------------------
-    SUBROUTINE distribute_lambda( lambda_repl, lambda_dist, desc )
+    SUBROUTINE distribute_lambda_real( lambda_repl, lambda_dist, desc )
        USE descriptors, ONLY: lambda_node_ , ilar_ , ilac_ , nlac_ , nlar_
        REAL(DP), INTENT(IN)  :: lambda_repl(:,:)
        REAL(DP), INTENT(OUT) :: lambda_dist(:,:)
@@ -290,18 +360,76 @@ MODULE cp_main_variables
           END DO
        END IF
        RETURN
-    END SUBROUTINE distribute_lambda
-    !
+    END SUBROUTINE distribute_lambda_real
+
+    SUBROUTINE distribute_lambda_cmplx( lambda_repl, lambda_dist, desc )
+       USE descriptors, ONLY: lambda_node_ , ilar_ , ilac_ , nlac_ , nlar_
+       COMPLEX(DP), INTENT(IN)  :: lambda_repl(:,:)
+       COMPLEX(DP), INTENT(OUT) :: lambda_dist(:,:)
+       INTEGER,  INTENT(IN)  :: desc(:)
+       INTEGER :: i, j, ic, ir
+       IF( desc( lambda_node_ ) > 0 ) THEN
+          ir = desc( ilar_ )       
+          ic = desc( ilac_ )       
+          DO j = 1, desc( nlac_ )
+             DO i = 1, desc( nlar_ )
+                lambda_dist( i, j ) = lambda_repl( i + ir - 1, j + ic - 1 )
+             END DO
+          END DO
+       END IF
+       RETURN
+    END SUBROUTINE distribute_lambda_cmplx
     !
     !------------------------------------------------------------------------
-    SUBROUTINE distribute_bec( bec_repl, bec_dist, desc, nspin )
+    SUBROUTINE distribute_bec_cmplx( bec_repl, bec_dist, desc, nspin )
        USE descriptors, ONLY: lambda_node_ , ilar_ , nlar_ , la_n_ , nlax_
-       REAL(DP), INTENT(IN)  :: bec_repl(:,:)
-       REAL(DP), INTENT(OUT) :: bec_dist(:,:)
+       COMPLEX(DP), INTENT(IN)  :: bec_repl(:,:)
+       COMPLEX(DP) :: bec_dist(:,:) !modified:giovanni
        INTEGER,  INTENT(IN)  :: desc(:,:)
        INTEGER,  INTENT(IN)  :: nspin
        INTEGER :: i, ir, n, nlax
+       CHARACTER(len=21) :: subname = "distribute_bec_cmplx"
        !
+!        IF(.not.bec_dist%iscmplx) THEN
+!            call errore(subname, "incompatible types", 1)
+!        ENDIF
+
+       IF( desc( lambda_node_ , 1 ) > 0 ) THEN
+          !
+          bec_dist = CMPLX(0.0d0,0.d0)
+          !
+          ir = desc( ilar_ , 1 )
+          DO i = 1, desc( nlar_ , 1 )
+             bec_dist( :, i ) = bec_repl( :, i + ir - 1 )
+          END DO
+          !
+          IF( nspin == 2 ) THEN
+             n     = desc( la_n_ , 1 )  !  number of states with spin 1 ( nupdw(1) )
+             nlax  = desc( nlax_ , 1 )   !  array elements reserved for each spin ( bec(:,2*nlax) )
+             ir = desc( ilar_ , 2 )
+             DO i = 1, desc( nlar_ , 2 )
+                bec_dist( :, i + nlax ) = bec_repl( :, i + ir - 1 + n )
+             END DO
+          END IF
+          !
+       END IF
+       RETURN
+    END SUBROUTINE distribute_bec_cmplx
+    !
+    !-----------------------------------------------------------------------------------------------
+    SUBROUTINE distribute_bec_real( bec_repl, bec_dist, desc, nspin )
+       USE descriptors, ONLY: lambda_node_ , ilar_ , nlar_ , la_n_ , nlax_
+       REAL(DP), INTENT(IN)  :: bec_repl(:,:)
+       REAL(DP) :: bec_dist(:,:) !modified:giovanni
+       INTEGER,  INTENT(IN)  :: desc(:,:)
+       INTEGER,  INTENT(IN)  :: nspin
+       INTEGER :: i, ir, n, nlax
+       CHARACTER(len=21) :: subname = "distribute_bec_real"
+       !
+!        IF(bec_dist%iscmplx) THEN
+!            call errore(subname, "incompatible types", 1)
+!        ENDIF
+
        IF( desc( lambda_node_ , 1 ) > 0 ) THEN
           !
           bec_dist = 0.0d0
@@ -322,8 +450,7 @@ MODULE cp_main_variables
           !
        END IF
        RETURN
-    END SUBROUTINE distribute_bec
-    !
+    END SUBROUTINE distribute_bec_real
     !
     !------------------------------------------------------------------------
     SUBROUTINE distribute_zmat( zmat_repl, zmat_dist, desc )
@@ -346,9 +473,8 @@ MODULE cp_main_variables
        RETURN
     END SUBROUTINE distribute_zmat
     !
-    !
     !------------------------------------------------------------------------
-    SUBROUTINE collect_lambda( lambda_repl, lambda_dist, desc )
+    SUBROUTINE collect_lambda_real( lambda_repl, lambda_dist, desc )
        USE mp_global,   ONLY: intra_image_comm
        USE mp,          ONLY: mp_sum
        USE descriptors, ONLY: lambda_node_ , ilar_ , ilac_ , nlac_ , nlar_
@@ -368,8 +494,30 @@ MODULE cp_main_variables
        END IF
        CALL mp_sum( lambda_repl, intra_image_comm )
        RETURN
-    END SUBROUTINE collect_lambda
-    !
+    END SUBROUTINE collect_lambda_real
+
+    SUBROUTINE collect_lambda_cmplx( lambda_repl, lambda_dist, desc )
+       USE mp_global,   ONLY: intra_image_comm
+       USE mp,          ONLY: mp_sum
+       USE descriptors, ONLY: lambda_node_ , ilar_ , ilac_ , nlac_ , nlar_
+       COMPLEX(DP), INTENT(OUT) :: lambda_repl(:,:)
+       COMPLEX(DP), INTENT(IN)  :: lambda_dist(:,:)
+       INTEGER,  INTENT(IN)  :: desc(:)
+       INTEGER :: i, j, ic, ir
+
+       lambda_repl = CMPLX(0.0d0,0.d0)
+       IF( desc( lambda_node_ ) > 0 ) THEN
+          ir = desc( ilar_ )       
+          ic = desc( ilac_ )       
+          DO j = 1, desc( nlac_ )
+             DO i = 1, desc( nlar_ )
+                lambda_repl( i + ir - 1, j + ic - 1 ) = lambda_dist( i, j )
+             END DO
+          END DO
+       END IF
+       CALL mp_sum( lambda_repl, intra_image_comm )
+       RETURN
+    END SUBROUTINE collect_lambda_cmplx
     !
     !------------------------------------------------------------------------
     SUBROUTINE collect_bec( bec_repl, bec_dist, desc, nspin )
@@ -434,7 +582,7 @@ MODULE cp_main_variables
     !
     !
     !------------------------------------------------------------------------
-    SUBROUTINE setval_lambda( lambda_dist, i, j, val, desc )
+    SUBROUTINE setval_lambda_real( lambda_dist, i, j, val, desc )
        USE descriptors, ONLY: lambda_node_ , ilar_ , ilac_ , nlac_ , nlar_
        REAL(DP), INTENT(OUT) :: lambda_dist(:,:)
        INTEGER,  INTENT(IN)  :: i, j
@@ -448,7 +596,23 @@ MODULE cp_main_variables
           END IF
        END IF
        RETURN
-    END SUBROUTINE setval_lambda
+    END SUBROUTINE setval_lambda_real
+
+    SUBROUTINE setval_lambda_cmplx( lambda_dist, i, j, val, desc )
+       USE descriptors, ONLY: lambda_node_ , ilar_ , ilac_ , nlac_ , nlar_
+       COMPLEX(DP), INTENT(OUT) :: lambda_dist(:,:)
+       INTEGER,  INTENT(IN)  :: i, j
+       COMPLEX(DP), INTENT(IN)  :: val
+       INTEGER,  INTENT(IN)  :: desc(:)
+       IF( desc( lambda_node_ ) > 0 ) THEN
+          IF( ( i >= desc( ilar_ ) ) .AND. ( i - desc( ilar_ ) + 1 <= desc( nlar_ ) ) ) THEN
+             IF( ( j >= desc( ilac_ ) ) .AND. ( j - desc( ilac_ ) + 1 <= desc( nlac_ ) ) ) THEN
+                lambda_dist( i - desc( ilar_ ) + 1, j - desc( ilac_ ) + 1 ) = val
+             END IF
+          END IF
+       END IF
+       RETURN
+    END SUBROUTINE setval_lambda_cmplx
     !
     !
 END MODULE cp_main_variables

@@ -33,8 +33,11 @@
                                             do_nk, do_nki, do_pz, do_nkpz, &
                                             grhobar, fion_sic
       use ions_base,                  only: nat
+      use control_flags,         only: gamma_only, do_wf_cmplx !added:giovanni
       use uspp,                       only: nkb
       use uspp_param,                 only: nhm
+      use cp_interfaces,         only: nksic_get_orbitalrho !added:giovanni
+      use twin_types !added:giovanni
       !
       implicit none
       !
@@ -42,7 +45,7 @@
       !
       integer,     intent(in)  :: nbsp, nx
       complex(dp), intent(in)  :: c(ngw,nx)
-      real(dp),    intent(in)  :: bec(nkb,nbsp)
+      type(twin_matrix),    intent(in)  :: bec!(nkb,nbsp) !modified:giovanni
       real(dp),    intent(in)  :: becsum( nhm*(nhm+1)/2, nat, nspin)
       integer,     intent(in)  :: ispin(nx)
       integer,     intent(in)  :: iupdwn(nspin), nupdwn(nspin)
@@ -59,11 +62,12 @@
       integer  :: i,j,jj,ibnd
       real(dp) :: focc,pinkpz
       real(dp), allocatable :: vsicpz(:)
+      logical :: lgam
       !
       ! main body
       !
-      CALL start_clock( 'nk_drv' )
-
+      CALL start_clock( 'nksic_drv' )
+      lgam = gamma_only.and..not.do_wf_cmplx
       !
       ! compute potentials
       !
@@ -89,7 +93,7 @@
         ! n odd => c(:,n+1) is already set to zero
         !
         call nksic_get_orbitalrho( ngw, nnrx, bec, ispin, nbsp, &
-                                   c(:,j), c(:,j+1), orb_rhor, j, j+1)
+                                   c(:,j), c(:,j+1), orb_rhor, j, j+1, lgam) !warning:giovanni need modification
 
         !
         ! compute orbital potentials
@@ -239,7 +243,7 @@
           DO i = 1, nbsp
               !
               CALL nksic_newd( i, nnrx, ispin, nspin, vsic(:,i), nat, nhm, &
-                               becsum, fion_sic, deeq_sic(:,:,:,i) )
+                               becsum, fion_sic, deeq_sic(:,:,:,i) ) !this is for ultrasoft! watch out! warning:giovanni this has to be modified in order to run ultrasoft
               !
           ENDDO
           !
@@ -254,7 +258,7 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-      subroutine nksic_get_orbitalrho( ngw, nnrx, bec, ispin, nbsp, &
+      subroutine nksic_get_orbitalrho_real( ngw, nnrx, bec, ispin, nbsp, &
                                        c1, c2, orb_rhor, i1, i2 )
 !-----------------------------------------------------------------------
 !
@@ -262,7 +266,7 @@
 !
       use kinds,                      only: dp
       use constants,                  only: ci
-      use cp_interfaces,              only: fwfft, invfft
+      use cp_interfaces,              only: fwfft, invfft, calrhovan
       use fft_base,                   only: dffts, dfftp
       use cell_base,                  only: omega
       use gvecp,                      only: ngm
@@ -425,21 +429,21 @@
                 rhovan(:,:,2)=rhovanaux(:,:,ispin(i2))
             endif
             !
-            call rhov(irb,eigrb,rhovan,orb_rhog,orb_rhor)
+            call rhov(irb,eigrb,rhovan,orb_rhog,orb_rhor, .true.)
         else
             !
             if ( i2 <= nbsp ) then
                 call calrhovan(rhovanaux,bec,i1)
                 rhovan(:,:,1)=rhovanaux(:,:,ispin(i1))
                 !
-                call rhov(irb,eigrb,rhovan,orb_rhog(:,1),orb_rhor(:,1))
+                call rhov(irb,eigrb,rhovan,orb_rhog(:,1),orb_rhor(:,1), .true.)
             endif
             !
             if ( i2 <= nbsp ) then
                 call calrhovan(rhovanaux,bec,i2)
                 rhovan(:,:,1)=rhovanaux(:,:,ispin(i2))
                 !
-                call rhov(irb,eigrb,rhovan,orb_rhog(:,2),orb_rhor(:,2))
+                call rhov(irb,eigrb,rhovan,orb_rhog(:,2),orb_rhor(:,2), .true.)
             endif
             !
         endif
@@ -459,7 +463,305 @@
       return
       !
 !---------------------------------------------------------------
-end subroutine nksic_get_orbitalrho
+end subroutine nksic_get_orbitalrho_real
+!---------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+      subroutine nksic_get_orbitalrho_twin( ngw, nnrx, bec, ispin, nbsp, &
+                                       c1, c2, orb_rhor, i1, i2, lgam )
+!-----------------------------------------------------------------------
+!
+! Computes orbital densities on the real (not smooth) grid
+!
+      use kinds,                      only: dp
+      use constants,                  only: ci
+      use cp_interfaces,              only: fwfft, invfft, calrhovan
+      use fft_base,                   only: dffts, dfftp
+      use cell_base,                  only: omega
+      use gvecp,                      only: ngm
+      use gvecs,                      only: ngs, nps, nms
+      use recvecs_indexes,            only: np, nm
+      use smooth_grid_dimensions,     only: nnrsx
+      use cp_main_variables,          only: irb,eigrb
+      use uspp_param,                 only: nhm
+      use electrons_base,             only: nspin
+      use ions_base,                  only: nat
+      use uspp,                       only: okvan, nkb
+      use twin_types
+      !
+      implicit none
+
+      !
+      ! input/output vars
+      !
+      integer,     intent(in) :: ngw,nnrx,i1,i2
+      integer,     intent(in) :: nbsp, ispin(nbsp)
+      type(twin_matrix) :: bec !(nkb, nbsp)
+      complex(dp), intent(in) :: c1(ngw),c2(ngw)
+      real(dp),   intent(out) :: orb_rhor(nnrx,2) 
+      logical :: lgam
+      !
+      ! local vars
+      !
+      character(20) :: subname='nksic_get_orbitalrho'
+      integer       :: ir, ig, ierr
+      real(dp)      :: sa1
+      complex(dp)   :: fm, fp
+      complex(dp), allocatable :: psis1(:), psis2(:), psi1(:), psi2(:)
+      complex(dp), allocatable :: orb_rhog(:,:)
+      real(dp),    allocatable :: orb_rhos(:)
+      real(dp),    allocatable :: rhovan(:,:,:)
+      real(dp),    allocatable :: rhovanaux(:,:,:)
+      !
+      !====================
+      ! main body
+      !====================
+      !
+      call start_clock( 'nksic_orbrho' )
+
+      !
+      if ( okvan ) then
+          !
+          allocate(rhovan(nhm*(nhm+1)/2,nat,nspin), stat=ierr )
+          if ( ierr/=0 ) call errore(subname,'allocating rhovan',abs(ierr))
+          allocate(rhovanaux(nhm*(nhm+1)/2,nat,nspin), stat=ierr)
+          if ( ierr/=0 ) call errore(subname,'allocating rhovanaux',abs(ierr))
+          !
+      endif
+      !
+      allocate(psi1(nnrx),stat=ierr)
+      if ( ierr/=0 ) call errore(subname,'allocating psi1',abs(ierr))
+      !
+      if(.not.lgam) then
+	  allocate(psi2(nnrx),stat=ierr)
+	  if ( ierr/=0 ) call errore(subname,'allocating psi2',abs(ierr))
+      endif
+      !
+      allocate(orb_rhog(ngm,2),stat=ierr)
+      if ( ierr/=0 ) call errore(subname,'allocating orb_rhog',abs(ierr))
+
+      sa1 = 1.0d0 / omega 
+
+
+      !
+      ! check whether it is necessary to 
+      ! deal with the smooth and dense grids separately
+      !
+      if ( nnrsx == nnrx ) then
+          !
+          ! This case should be the one when using NCPP
+          !
+          if(lgam) then
+	      CALL c2psi( psi1, nnrx, c1, c2, ngw, 2 )
+          else
+	      CALL c2psi( psi1, nnrx, c1, c2, ngw, 0 )
+	      CALL c2psi( psi2, nnrx, c2, c1, ngw, 0 )
+          endif
+          !
+          CALL invfft('Dense', psi1, dfftp )
+          !
+
+          !
+          if(.not.lgam) then
+	      CALL invfft('Dense', psi2, dfftp )
+          endif
+          !
+          ! computing the orbital charge in real space on the full grid
+          !
+          if(lgam) then
+	      do ir = 1, nnrx
+		  !
+		  orb_rhor(ir,1) = sa1 * (( DBLE(psi1(ir)) )**2 )
+		  orb_rhor(ir,2) = sa1 * (( AIMAG(psi1(ir)) )**2 )
+		  !
+	      enddo
+          else
+	      do ir = 1, nnrx
+		  !
+		  orb_rhor(ir,1) = sa1 * (( DBLE(psi1(ir)) )**2 + ( AIMAG(psi1(ir)) )**2)
+		  orb_rhor(ir,2) = sa1 * (( DBLE(psi2(ir)) )**2 + ( AIMAG(psi2(ir)) )**2)
+		  !
+	      enddo
+          endif
+          !
+      else
+          !
+          ! this is the general case, 
+          ! normally used with USPP
+          !
+
+          allocate( psis1(nnrsx), stat=ierr )
+          if ( ierr/=0 ) call errore(subname,'allocating psis1',abs(ierr))
+          if(.not.lgam) then
+	      allocate( psis2(nnrsx), stat=ierr )
+	      if ( ierr/=0 ) call errore(subname,'allocating psis2',abs(ierr))
+          endif
+
+          allocate( orb_rhos(2), stat=ierr )
+          if ( ierr/=0 ) call errore(subname,'allocating orb_rhos',abs(ierr))
+          !
+          if(lgam) then
+	      CALL c2psi( psis1, nnrsx, c1, c2, ngw, 2 )
+          else
+	      CALL c2psi( psis1, nnrsx, c1, c2, ngw, 0 )
+	      CALL c2psi( psis2, nnrsx, c2, c1, ngw, 0 )
+          endif
+          !
+       
+          CALL invfft('Wave',psis1, dffts )
+          !
+          if(.not. lgam) then
+	      CALL invfft('Wave',psis2, dffts )
+          endif
+          !
+          ! computing the orbital charge 
+          ! in real space on the smooth grid
+          !
+          if(lgam) then
+	      do ir = 1, nnrsx
+		  !
+		  orb_rhos(1) = sa1 * (( DBLE(psis1(ir)) )**2 )
+		  orb_rhos(2) = sa1 * (( AIMAG(psis1(ir)) )**2 )
+		  !
+		  psis1( ir )  = CMPLX( orb_rhos(1), orb_rhos(2) ) 
+	      enddo
+          else
+	      do ir = 1, nnrsx
+		  !
+		  orb_rhos(1) = sa1 * (( DBLE(psis1(ir)) )**2 +( AIMAG(psis1(ir)) )**2)
+		  orb_rhos(2) = sa1 * (( DBLE(psis2(ir)) )**2 +( AIMAG(psis2(ir)) )**2)
+		  !
+		  psis1( ir )  = CMPLX(orb_rhos(1), orb_rhos(2)) !!!### comment for k points
+!  		  psis1( ir )  = cmplx( orb_rhos(1), 0.d0) !!!### uncomment for k points
+!  		  psis2( ir )  = cmplx( orb_rhos(2), 0.d0) !!!### uncomment for k points
+	      enddo
+          endif
+!           write(6,*) "psis", psis1 !added:giovanni:debug
+          !
+          ! orbital charges are taken to the G space
+          !
+
+	  CALL fwfft('Smooth',psis1, dffts )
+!           IF(.not.lgam) THEN !  !!!### uncomment for k points
+!               CALL fwfft('Smooth',psis2, dffts ) !!!### uncomment for k points
+!           ENDIF !!!### uncomment for k points
+          !
+! 	  IF(lgam) then !!!### uncomment for k points
+	      do ig = 1, ngs
+		  !
+		  fp=psis1(nps(ig))+psis1(nms(ig))
+		  fm=psis1(nps(ig))-psis1(nms(ig))
+		  orb_rhog(ig,1)=0.5d0*CMPLX(DBLE(fp),AIMAG(fm))
+		  orb_rhog(ig,2)=0.5d0*CMPLX(AIMAG(fp),-DBLE(fm))
+		  !
+	      enddo
+!           else !!!### uncomment for k points
+! 	      do ig = 1, ngs !!!### uncomment for k points
+		  !
+! 		  fp=psis1(nps(ig)) !!!### uncomment for k points
+! 		  fm=psis2(nps(ig)) !!!### uncomment for k points
+! 		  orb_rhog(ig,1)=fp !!!### uncomment for k points
+! 		  orb_rhog(ig,2)=fm !!!### uncomment for k points
+		  !
+! 	      enddo !!!### uncomment for k points
+!           endif !!!### uncomment for k points
+          !
+          psi1 (:) = CMPLX(0.d0, 0.d0)
+!           if(lgam) then !!!### uncomment for k points
+	      do ig=1,ngs
+		  !
+		  psi1(nm(ig)) = conjg( orb_rhog(ig,1) ) &
+				+ci*conjg( orb_rhog(ig,2) )
+		  psi1(np(ig)) = orb_rhog(ig,1) +ci*orb_rhog(ig,2)
+		  !
+	      enddo
+!           else !!!### uncomment for k points
+! 	      do ig=1,ngs !!!### uncomment for k points
+		  !
+! 		  psi1(nm(ig)) = conjg( orb_rhog(ig,1) ) &
+! 				+ci*conjg( orb_rhog(ig,2) )
+! 		  psi1(np(ig)) = orb_rhog(ig,1) +ci*orb_rhog(ig,2)  !!!### uncomment for k points
+		  !
+! 	      enddo !!!### uncomment for k points
+!           endif !!!### uncomment for k points
+          !
+          call invfft('Dense',psi1,dfftp)
+          !
+          do ir=1,nnrx
+              !
+              orb_rhor(ir,1) =  DBLE(psi1(ir))
+              orb_rhor(ir,2) = AIMAG(psi1(ir))
+          enddo
+    
+          deallocate( psis1 )
+          if(.not.lgam) then
+              deallocate(psis2)
+          endif 
+
+          deallocate( orb_rhos )
+
+      endif
+!       write(6,*) "orb_rhog", orb_rhog !added:giovanni:debug
+      !
+      ! add Vanderbilt contribution to orbital density
+      !
+      if( okvan ) then
+        !
+        rhovan(:,:,:) = 0.0d0
+        !
+        if ( nspin == 2 ) then 
+            !
+            if ( i2 <= nbsp ) then
+                call calrhovan(rhovanaux,bec,i1)
+                rhovan(:,:,1)=rhovanaux(:,:,ispin(i1))
+            endif
+            !
+            if ( i2 <= nbsp ) then
+                call calrhovan(rhovanaux,bec,i2)
+                rhovan(:,:,2)=rhovanaux(:,:,ispin(i2))
+            endif
+            !
+            call rhov(irb,eigrb,rhovan,orb_rhog,orb_rhor, lgam)
+        else
+            !
+            if ( i2 <= nbsp ) then
+                call calrhovan(rhovanaux,bec,i1)
+                rhovan(:,:,1)=rhovanaux(:,:,ispin(i1))
+                !
+                call rhov(irb,eigrb,rhovan,orb_rhog(:,1),orb_rhor(:,1), lgam)
+            endif
+            !
+            if ( i2 <= nbsp ) then
+                call calrhovan(rhovanaux,bec,i2)
+                rhovan(:,:,1)=rhovanaux(:,:,ispin(i2))
+                !
+                call rhov(irb,eigrb,rhovan,orb_rhog(:,2),orb_rhor(:,2), lgam)
+            endif
+            !
+        endif
+        !
+      endif
+      !
+!       write(6,*) "rhovan", rhovan(:,:,1) !added:giovanni:debug
+!       stop
+      deallocate(psi1)
+      if(.not.lgam) then
+	  deallocate(psi2)
+      endif
+
+      deallocate(orb_rhog)
+      !
+      if ( okvan ) then
+          deallocate(rhovan)
+          deallocate(rhovanaux)
+      endif
+      !
+      call stop_clock('nksic_orbrho')
+      !
+      return
+      !
+!---------------------------------------------------------------
+end subroutine nksic_get_orbitalrho_twin
 !---------------------------------------------------------------
 
 !-----------------------------------------------------------------------
@@ -477,6 +779,7 @@ end subroutine nksic_get_orbitalrho
       use fft_base,                   only : dfftp
       use recvecs_indexes,            only : np, nm
       use nksic,                      only : fref, rhobarfact
+      use control_flags,        only : gamma_only, do_wf_cmplx
       !
       implicit none
 
@@ -496,12 +799,13 @@ end subroutine nksic_get_orbitalrho
       complex(dp)  :: fp, fm
       complex(dp),   allocatable :: psi(:)
       complex(dp),   allocatable :: rhobarg(:,:)
+      logical :: lgam
 
       !
       ! main body
       !
-      call start_clock( 'nk_rhoref' )
-
+      lgam=gamma_only.and..not.do_wf_cmplx
+      call stop_clock( 'nksic_rhoref' )
       !
       ! define rhobar_i = rho - f_i * rho_i
       !
@@ -547,7 +851,7 @@ end subroutine nksic_get_orbitalrho
               rhobarg(ig,2) = 0.5d0 *cmplx(aimag(fp),-dble(fm))
           enddo
           !
-          call fillgrad( 2, rhobarg, grhobar_ )
+          call fillgrad( 2, rhobarg, grhobar_, lgam )
           !
           deallocate( psi )
           deallocate( rhobarg )
@@ -647,6 +951,7 @@ end subroutine nksic_newd
       use mp,                   only : mp_sum
       use mp_global,            only : intra_image_comm
       use electrons_base,       only : nspin
+      use control_flags,          only : gamma_only, do_wf_cmplx
       !
       implicit none
       integer,     intent(in)  :: ispin, ibnd
@@ -676,12 +981,14 @@ end subroutine nksic_newd
       real(dp),    allocatable :: grhoraux(:,:,:)
       real(dp),    allocatable :: orb_grhor(:,:,:)
       real(dp),    allocatable :: haux(:,:,:)
-
+      logical :: lgam
       !
       !==================
       ! main body
       !==================
       !
+      lgam=gamma_only.and..not.do_wf_cmplx
+
       if( ibnd > nknmax .and. nknmax > 0 ) return
       !
       CALL start_clock( 'nk_corr' )
@@ -740,12 +1047,22 @@ end subroutine nksic_newd
       endif
       
       vhaux=0.0_dp
-      do ig=1,ngm
-          !
-          vhaux(np(ig)) = vtmp(ig)
-          vhaux(nm(ig)) = conjg(vtmp(ig))
-          !
-      enddo
+!       IF(lgam) THEN !!!### uncomment for k points
+	  do ig=1,ngm
+	      !
+	      vhaux(np(ig)) = vtmp(ig)
+	      vhaux(nm(ig)) = conjg(vtmp(ig))
+	      !
+	  enddo
+!       ELSE !!!### uncomment for k points
+! 	  do ig=1,ngm !!!### uncomment for k points
+	      !
+! 	      vhaux(np(ig)) = vtmp(ig) !!!### uncomment for k points
+! 	      vhaux(nm(ig)) = conjg(vtmp(ig))
+	      !
+! 	  enddo !!!### uncomment for k points
+!       ENDIF !!!### uncomment for k points
+
       call invfft('Dense',vhaux,dfftp)
       !
       ! init here wref sic to save some memory
@@ -793,7 +1110,7 @@ end subroutine nksic_newd
            allocate(haux(nnrx,2,2))
            !
            ! compute the gradient of n_i(r)
-           call fillgrad( 1, rhogaux, orb_grhor(:,:,1:1) )
+           call fillgrad( 1, rhogaux, orb_grhor(:,:,1:1), lgam )
            !
       else
            allocate(grhoraux(1,1,1))
@@ -975,6 +1292,7 @@ end subroutine nksic_newd
       use funct,                only : dft_is_gradient
       use mp,                   only : mp_sum
       use mp_global,            only : intra_image_comm
+      use control_flags,        only : gamma_only, do_wf_cmplx
       !
       implicit none
       integer,     intent(in)  :: ispin, ibnd
@@ -994,12 +1312,13 @@ end subroutine nksic_newd
       !
       real(dp),    allocatable :: grhoraux(:,:,:)
       real(dp),    allocatable :: haux(:,:,:)
-
+      logical :: lgam
       !
       !==================
       ! main body
       !==================
       !
+      lgam=gamma_only.and..not.do_wf_cmplx
       vsic=0.0_dp
       pink=0.0_dp
       !
@@ -1054,12 +1373,21 @@ end subroutine nksic_newd
       endif
       ! 
       vhaux=0.0_dp
-      do ig=1,ngm
-          !
-          vhaux(np(ig)) = vtmp(ig)
-          vhaux(nm(ig)) = conjg(vtmp(ig))
-          !
-      enddo
+!       if(lgam) then  !!!### uncomment for k points
+	  do ig=1,ngm
+	      !
+	      vhaux(np(ig)) = vtmp(ig)
+	      vhaux(nm(ig)) = conjg(vtmp(ig))
+	      !
+	  enddo
+!       else !!!### uncomment for k points
+! 	  do ig=1,ngm !!!### uncomment for k points
+	      !
+! 	      vhaux(np(ig)) = vtmp(ig) !!!### uncomment for k points
+! 	      vhaux(nm(ig)) = conjg(vtmp(ig))
+	      !
+! 	  enddo !!!### uncomment for k points
+!       endif !!!### uncomment for k points
       call invfft('Dense',vhaux,dfftp)
       !
       ! init vsic
@@ -1088,7 +1416,7 @@ end subroutine nksic_newd
           ! note: rhogaux contains the occupation
           !
           grhoraux=0.0_dp
-          call fillgrad( 1, rhogaux, grhoraux(:,:,ispin:ispin) ) 
+          call fillgrad( 1, rhogaux, grhoraux(:,:,ispin:ispin), lgam ) 
       else
           allocate(grhoraux(1,1,1))
           allocate(haux(1,1,1))
@@ -1168,6 +1496,8 @@ end subroutine nksic_correction_pz
       use funct,                only : dmxc_spin, dft_is_gradient
       use mp_global,            only : intra_image_comm
       use mp,                   only : mp_sum
+      use control_flags,  only : gamma_only, do_wf_cmplx
+
       !
       implicit none
       real(dp),    intent(in)  :: f, orb_rhor(nnrx)
@@ -1189,10 +1519,12 @@ end subroutine nksic_correction_pz
       complex(dp), allocatable :: vcorr(:)
       complex(dp), allocatable :: rhogaux(:,:)
       complex(dp), allocatable :: vtmp(:)
+      logical :: lgam
       !
       CALL start_clock( 'nk_corr' )
       CALL start_clock( 'nk_corr_h' )
       !
+      lgam = gamma_only.and..not.do_wf_cmplx
       fact=omega/dble(nr1*nr2*nr3)
       !
       allocate(wxdsic(nnrx,2))
@@ -1242,12 +1574,21 @@ end subroutine nksic_correction_pz
       endif
       !
       vhaux=0.0_dp
-      do ig=1,ngm
-        !
-        vhaux(np(ig)) = vtmp(ig)
-        vhaux(nm(ig)) = conjg(vtmp(ig))
-        !
-      enddo
+!       IF(lgam) THEN  !!!### uncomment for k points
+	  do ig=1,ngm
+	    !
+	    vhaux(np(ig)) = vtmp(ig)
+	    vhaux(nm(ig)) = conjg(vtmp(ig))
+	    !
+	  enddo
+!       ELSE !!!### uncomment for k points
+! 	  do ig=1,ngm !!!### uncomment for k points
+	    !
+! 	    vhaux(np(ig)) = vtmp(ig) !!!### uncomment for k points
+! 	    vhaux(nm(ig)) = conjg(vtmp(ig))
+	    !
+! 	  enddo !!!### uncomment for k points
+!       ENDIF !!!### uncomment for k points
       !
       call invfft('Dense',vhaux,dfftp)
       !
@@ -1278,7 +1619,7 @@ end subroutine nksic_correction_pz
          allocate(haux(nnrx,2,2))
          !
          grhoraux=0.0_dp
-         call fillgrad( 1, rhogaux, grhoraux(:,:,ispin:ispin) ) 
+         call fillgrad( 1, rhogaux, grhoraux(:,:,ispin:ispin), lgam ) 
          !
          grhoraux(:,:,ispin) = grhoraux(:,:,ispin) * fref
       else
@@ -1389,6 +1730,7 @@ end subroutine nksic_correction_pz
       use mp,                   only : mp_sum
       use mp_global,            only : intra_image_comm
       use electrons_base,       only : nspin
+      use control_flags,          only : gamma_only, do_wf_cmplx
       !
       implicit none
       integer,     intent(in)  :: ispin, ibnd
@@ -1418,12 +1760,15 @@ end subroutine nksic_correction_pz
       real(dp),    allocatable :: grhoraux(:,:,:)
       real(dp),    allocatable :: orb_grhor(:,:,:)
       real(dp),    allocatable :: haux(:,:,:)
+      logical :: lgam
 
       !
       !==================
       ! main body
       !==================
       !
+      lgam = gamma_only.and..not.do_wf_cmplx
+
       if( ibnd > nknmax .and. nknmax > 0 ) return
       !
       CALL start_clock( 'nk_corr' )
@@ -1478,12 +1823,22 @@ end subroutine nksic_correction_pz
       endif
       
       vhaux=0.0_dp
-      do ig=1,ngm
-          !
-          vhaux(np(ig)) = vtmp(ig)
-          vhaux(nm(ig)) = conjg(vtmp(ig))
-          !
-      enddo
+!       IF(lgam) THEN !!!### uncomment for k points
+	  do ig=1,ngm
+	      !
+	      vhaux(np(ig)) = vtmp(ig)
+	      vhaux(nm(ig)) = conjg(vtmp(ig))
+	      !
+	  enddo
+!       ELSE !!!### uncomment for k points
+! 	  do ig=1,ngm !!!### uncomment for k points
+	      !
+! 	      vhaux(np(ig)) = vtmp(ig) !!!### uncomment for k points
+! 	      vhaux(nm(ig)) = conjg(vtmp(ig))
+	      !
+! 	  enddo !!!### uncomment for k points
+!        ENDIF !!!### uncomment for k points
+
       call invfft('Dense',vhaux,dfftp)
       !
       ! init here vsic to save some memory
@@ -1530,7 +1885,7 @@ end subroutine nksic_correction_pz
            allocate(haux(nnrx,2,2))
            !
            ! compute the gradient of n_i(r)
-           call fillgrad( 1, rhogaux, orb_grhor(:,:,1:1) )
+           call fillgrad( 1, rhogaux, orb_grhor(:,:,1:1), lgam )
            !
       else
            allocate(grhoraux(1,1,1))
@@ -1674,7 +2029,7 @@ end subroutine nksic_correction_pz
 !---------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-      subroutine nksic_eforce( i, nbsp, nx, vsic, deeq_sic, bec, ngw, c1, c2, vsicpsi )
+      subroutine nksic_eforce( i, nbsp, nx, vsic, deeq_sic, bec, ngw, c1, c2, vsicpsi, lgam ) !added:giovanni lgam !recheck this subroutine and eforce_std
 !-----------------------------------------------------------------------
 !
 ! Compute vsic potential for orbitals i and i+1 (c1 and c2) 
@@ -1689,7 +2044,7 @@ end subroutine nksic_correction_pz
       use uspp_param,               only : nhm, nh
       use cvan,                     only : ish
       use ions_base,                only : nsp, na, nat
-
+      use twin_types !added:giovanni
       !
       implicit none
 
@@ -1699,9 +2054,10 @@ end subroutine nksic_correction_pz
       integer,       intent(in)  :: i, nbsp, nx, ngw
       real(dp),      intent(in)  :: vsic(nnrx,nx)
       real(dp),      intent(in)  :: deeq_sic(nhm,nhm,nat,nx)
-      real(dp),      intent(in)  :: bec(nkb,nbsp)
+      type(twin_matrix),      intent(in)  :: bec!(nkb,nbsp) !modified:giovanni
       complex(dp),   intent(in)  :: c1(ngw), c2(ngw)
       complex(dp),   intent(out) :: vsicpsi(ngw, 2)
+      logical, intent(in) :: lgam !added:giovanni
 
       !
       ! local vars
@@ -1711,9 +2067,12 @@ end subroutine nksic_correction_pz
       integer       :: is, iv, jv, isa, ism
       integer       :: ivoff, jvoff, ia, inl, jnl
       real(dp)      :: wfc(2), dd
+      complex(dp) :: wfc_c(2)
       complex(dp)   :: fm, fp
-      complex(dp),  allocatable :: psi(:)
+      complex(dp),  allocatable :: psi1(:), psi2(:)
       real(dp),     allocatable :: aa(:,:)
+      complex(dp),     allocatable :: aa_c(:,:)
+      complex(dp), parameter :: c_one= CMPLX(1.d0,0.d0)
 
       !
       !====================
@@ -1722,9 +2081,12 @@ end subroutine nksic_correction_pz
       !
       call start_clock( 'nk_eforce' )
       !
-      allocate( psi(nnrx), stat=ierr )
-      if ( ierr/=0 ) call errore(subname,'allocating psi',abs(ierr))
-
+      allocate( psi1(nnrx), stat=ierr )
+	  if ( ierr/=0 ) call errore(subname,'allocating psi1',abs(ierr))
+      if(.not.lgam) then
+	  allocate( psi2(nnrx), stat=ierr )
+	  if ( ierr/=0 ) call errore(subname,'allocating psi2',abs(ierr))
+      endif
 
       !
       ! init
@@ -1734,43 +2096,79 @@ end subroutine nksic_correction_pz
       ! take advantage of the smooth and the dense grids 
       ! being equal (NCPP case)
       !
-      if ( nnrsx == nnrx ) then
+      if ( nnrsx == nnrx ) then !waring:giovanni we are not using ultrasoft
          !
          ! no need to take care of the double grid.
          ! typically, NCPP case
 
          !
-         CALL c2psi( psi, nnrx, c1, c2, ngw, 2 )
+         if(lgam) then
+	    CALL c2psi( psi1, nnrx, c1, c2, ngw, 2 ) !warning:giovanni need to change this
+         else
+	    CALL c2psi( psi1, nnrx, c1, c2, ngw, 0 ) !warning:giovanni need to change this
+	    CALL c2psi( psi2, nnrx, c2, c1, ngw, 0 ) !warning:giovanni need to change this
+         endif
          !
-         CALL invfft('Dense', psi, dfftp )
+         CALL invfft('Dense', psi1, dfftp )
+         if(.not. lgam) then
+             CALL invfft('Dense', psi2, dfftp )
+         endif
     
          !
          ! computing the orbital wfcs
          ! and the potentials in real space on the full grid
          !
-         do ir = 1, nnrx
-             !
-             wfc(1)    =  DBLE( psi(ir) )
-             wfc(2)    = AIMAG( psi(ir) )
-             !
-             psi( ir ) = CMPLX( wfc(1) * vsic(ir,i), &
-                                wfc(2) * vsic(ir,i+1), DP ) 
-             !
-         enddo
+         if(lgam) then
+	    do ir = 1, nnrx
+		!
+		wfc(1)    =  DBLE( psi1(ir) )
+		wfc(2)    = AIMAG( psi1(ir) )
+		!
+		psi1( ir ) = CMPLX( wfc(1) * vsic(ir,i), &
+				    wfc(2) * vsic(ir,i+1), DP ) 
+		!
+	    enddo
+         else
+	    do ir = 1, nnrx
+		!
+		wfc_c(1)    = psi1(ir)
+		wfc_c(2)    = psi2(ir)
+		!
+		psi1( ir ) = wfc_c(1) * vsic(ir,i)
+                psi2(ir) = wfc_c(2) * vsic(ir,i+1) 
+		!
+	    enddo
+         endif
          !
-         CALL fwfft('Dense', psi, dfftp )
+
+         CALL fwfft('Dense', psi1, dfftp )
+         if(.not. lgam) then
+	    CALL fwfft('Dense', psi2, dfftp )
+         endif
          !
          vsicpsi(:,:)=0.0_dp
          !
-         do ig=1,ngw
-             !
-             fp = psi(nps(ig))+psi(nms(ig))
-             fm = psi(nps(ig))-psi(nms(ig))
-             !
-             vsicpsi(ig,1)=0.5d0*cmplx(dble(fp),aimag(fm))
-             vsicpsi(ig,2)=0.5d0*cmplx(aimag(fp),-dble(fm))
-             !
-         enddo
+         if(lgam) then
+	    do ig=1,ngw
+		!
+		fp = psi1(nps(ig))+psi1(nms(ig))
+		fm = psi1(nps(ig))-psi1(nms(ig))
+		!
+		vsicpsi(ig,1)=0.5d0*CMPLX(dble(fp),aimag(fm))
+		vsicpsi(ig,2)=0.5d0*CMPLX(aimag(fp),-dble(fm))
+		!
+	    enddo
+         else
+	    do ig=1,ngw
+		!
+		fp = psi1(nps(ig))
+		fm = psi2(nps(ig))
+		!
+		vsicpsi(ig,1)=fp
+		vsicpsi(ig,2)=fm
+		!
+	    enddo
+         endif
 
       else
           !
@@ -1778,11 +2176,14 @@ end subroutine nksic_correction_pz
           ! smooth and the dense grids
           ! typically, USPP case
           !
-          CALL nksic_eforce_std()
+          CALL nksic_eforce_std(lgam) !warning:giovanni this makes fourier transforms
           !
       endif
       !
-      deallocate( psi )
+      deallocate( psi1 )
+      if(.not.lgam) then
+	  deallocate( psi2 )
+      endif
 
       !
       ! add USPP non-local contribution 
@@ -1794,63 +2195,123 @@ end subroutine nksic_correction_pz
           !
           !     aa_i,i,n = sum_j d_i,ij <beta_i,j|c_n>
           ! 
-          allocate( aa( nkb, 2 ) )
-          !
-          aa = 0.0d0
-          !
-          !
-          do is = 1, nsp
-              !
-              do iv = 1, nh(is)
-              do jv = 1, nh(is)
-                  !
-                  isa = 0
-                  do ism = 1, is-1
-                      isa = isa + na( ism )
-                  enddo
-                  !
-                  ivoff = ish(is)+(iv-1)*na(is)
-                  jvoff = ish(is)+(jv-1)*na(is)
-                  ! 
-                  if( i /= nbsp ) then
-                      ! 
-                      do ia=1,na(is)
-                          inl = ivoff + ia
-                          jnl = jvoff + ia
-                          isa = isa + 1
-                          !
-                          dd  = deeq_sic(iv,jv,isa,i) 
-                          aa(inl,1) = aa(inl,1) +dd * bec(jnl,i)
-                          !
-                          dd  = deeq_sic(iv,jv,isa,i+1) 
-                          aa(inl,2) = aa(inl,2) +dd * bec(jnl,i+1)
-                          !
-                      enddo
-                      ! 
-                  else
-                      ! 
-                      do ia=1,na(is)
-                          inl = ivoff + ia
-                          jnl = jvoff + ia
-                          isa = isa + 1
-                          !
-                          dd  = deeq_sic(iv,jv,isa,i) 
-                          aa(inl,1) = aa(inl,1) +dd * bec(jnl,i)
-                          !
-                      enddo
-                      ! 
-                  endif
-                  ! 
-              enddo
-              enddo
-              !
-          enddo
-          ! 
-          call DGEMM ( 'N', 'N', 2*ngw, 2, nkb, 1.0d0, &
-                       vkb, 2*ngw, aa, nkb, 1.0d0, vsicpsi(:,:), 2*ngw)
-          !
-          deallocate( aa )
-          !
+	  if(.not.bec%iscmplx) then
+	      allocate( aa( nkb, 2 ) )
+	      !
+	      aa = 0.0d0
+	      !
+	      !
+	      do is = 1, nsp
+		  !
+		  do iv = 1, nh(is)
+		  do jv = 1, nh(is)
+		      !
+		      isa = 0
+		      do ism = 1, is-1
+			  isa = isa + na( ism )
+		      enddo
+		      !
+		      ivoff = ish(is)+(iv-1)*na(is)
+		      jvoff = ish(is)+(jv-1)*na(is)
+		      ! 
+		      if( i /= nbsp ) then
+			  ! 
+			  do ia=1,na(is)
+			      inl = ivoff + ia
+			      jnl = jvoff + ia
+			      isa = isa + 1
+			      !
+			      dd  = deeq_sic(iv,jv,isa,i) 
+			      aa(inl,1) = aa(inl,1) +dd * bec%rvec(jnl,i)
+			      !
+			      dd  = deeq_sic(iv,jv,isa,i+1) 
+			      aa(inl,2) = aa(inl,2) +dd * bec%rvec(jnl,i+1)
+			      !
+			  enddo
+			  ! 
+		      else
+			  ! 
+			  do ia=1,na(is)
+			      inl = ivoff + ia
+			      jnl = jvoff + ia
+			      isa = isa + 1
+			      !
+			      dd  = deeq_sic(iv,jv,isa,i) 
+			      aa(inl,1) = aa(inl,1) +dd * bec%rvec(jnl,i)
+			      !
+			  enddo
+			  ! 
+		      endif
+		      ! 
+		  enddo
+		  enddo
+		  !
+	      enddo
+	      ! 
+	      call DGEMM ( 'N', 'N', 2*ngw, 2, nkb, 1.0d0, &
+			  vkb, 2*ngw, aa, nkb, 1.0d0, vsicpsi(:,:), 2*ngw)
+	      !
+	      deallocate( aa )
+	      !
+	  else
+	      allocate( aa_c( nkb, 2 ) )
+	      !
+	      aa_c = CMPLX(0.0d0, 0.d0)
+	      !
+	      !
+	      do is = 1, nsp
+		  !
+		  do iv = 1, nh(is)
+		  do jv = 1, nh(is)
+		      !
+		      isa = 0
+		      do ism = 1, is-1
+			  isa = isa + na( ism )
+		      enddo
+		      !
+		      ivoff = ish(is)+(iv-1)*na(is)
+		      jvoff = ish(is)+(jv-1)*na(is)
+		      ! 
+		      if( i /= nbsp ) then
+			  ! 
+			  do ia=1,na(is)
+			      inl = ivoff + ia
+			      jnl = jvoff + ia
+			      isa = isa + 1
+			      !
+			      dd  = deeq_sic(iv,jv,isa,i) 
+			      aa_c(inl,1) = aa_c(inl,1) +dd * bec%cvec(jnl,i) !warning:giovanni or conjg?
+			      !
+			      dd  = deeq_sic(iv,jv,isa,i+1) 
+			      aa_c(inl,2) = aa_c(inl,2) +dd * bec%cvec(jnl,i+1) !warning:giovanni or conjg?
+			      !
+			  enddo
+			  ! 
+		      else
+			  ! 
+			  do ia=1,na(is)
+			      inl = ivoff + ia
+			      jnl = jvoff + ia
+			      isa = isa + 1
+			      !
+			      dd  = deeq_sic(iv,jv,isa,i) 
+			      aa_c(inl,1) = aa_c(inl,1) +dd * bec%cvec(jnl,i) !warning:giovanni or conjg?
+			      !
+			  enddo
+			  ! 
+		      endif
+		      ! 
+		  enddo
+		  enddo
+		  !
+	      enddo
+	      !
+	      call ZGEMM ( 'N', 'N', ngw, 2, nkb, c_one, &
+			  vkb, ngw, aa_c, nkb, c_one, vsicpsi(:,:), ngw)
+	      !
+	      deallocate( aa_c )
+	      !
+	  endif
       endif
 
 
@@ -1863,14 +2324,16 @@ end subroutine nksic_correction_pz
 !
 CONTAINS
       !
-      subroutine nksic_eforce_std()
+      subroutine nksic_eforce_std(lgam)
       !
       use smooth_grid_dimensions,     only : nnrsx
       use recvecs_indexes,            only : np
       implicit none
+      
+      logical, intent(IN) :: lgam
       !     
       complex(dp) :: c(ngw,2)
-      complex(dp) :: psis(nnrsx)
+      complex(dp) :: psis(nnrsx), psis2(nnrsx)
       complex(dp) :: vsicg(nnrx)
       complex(dp) :: vsics(nnrsx)
       complex(dp) :: vsicpsis(nnrsx)
@@ -1881,27 +2344,48 @@ CONTAINS
       do j = 1, 2
           !
           psis=0.d0
-          do ig=1,ngw
-              psis(nms(ig))=conjg(c(ig,j))
-              psis(nps(ig))=c(ig,j)
-          end do
+          if(lgam) then
+	      do ig=1,ngw
+		  psis(nms(ig))=conjg(c(ig,j))
+		  psis(nps(ig))=c(ig,j)
+	      end do
+          else
+	      do ig=1,ngw
+! 		  psis(nms(ig))=conjg(c(ig,j))
+		  psis(nps(ig))=c(ig,j)
+	      end do
+          endif
           call invfft('Wave',psis,dffts)
           !
           vsicg(1:nnrx)=vsic(1:nnrx,i+j-1)
           call fwfft('Dense',vsicg,dfftp)
           !
           vsics=0.0_dp
-          do ig=1,ngs
-              vsics(nps(ig))=vsicg(np(ig))
-              vsics(nms(ig))=conjg(vsicg(np(ig)))
-          end do
+          if(lgam) then
+	      do ig=1,ngs
+		  vsics(nps(ig))=vsicg(np(ig))
+		  vsics(nms(ig))=conjg(vsicg(np(ig)))
+	      end do
+          else
+	    do ig=1,ngs
+		  vsics(nps(ig))=vsicg(np(ig))
+		  vsics(nms(ig))=conjg(vsicg(np(ig)))
+	      end do
+          endif
           !
           call invfft('Smooth',vsics,dffts)
           !
           vsicpsis=0.0_dp
-          do ir = 1, nnrsx
-              vsicpsis(ir)=cmplx(dble(vsics(ir))*dble(psis(ir)),0.0_dp)
-          enddo
+          if(lgam) then
+	      do ir = 1, nnrsx
+		  vsicpsis(ir)=cmplx(dble(vsics(ir))*dble(psis(ir)),0.0_dp)
+	      enddo
+          else
+	      do ir = 1, nnrsx
+		  vsicpsis(ir)=cmplx(dble(vsics(ir))*dble(psis(ir)), &
+                                        dble(vsics(ir))*aimag(psis(ir)))
+	      enddo
+          endif
           !
           call fwfft('Wave',vsicpsis,dffts)
           !
@@ -2326,7 +2810,7 @@ end subroutine nksic_dmxc_spin_cp
         !
         pink(:)    = pink1(:)
         vsic(:,:)  = vsic1(:,:)
-        bec(:,:)   = bec1(:,:)
+        bec%rvec(:,:)   = bec1(:,:)
         c0(:,:)    = wfc_ctmp(:,:)
         esic_old   = esic
 
@@ -2334,7 +2818,6 @@ end subroutine nksic_dmxc_spin_cp
         !
       enddo inner_loop
  
-
       !
       ! Wavefunction cm rotation according to Omattot
       ! cm is relevant only for damped dynamics
@@ -2853,7 +3336,7 @@ end subroutine nksic_rot_test
             pink(:)   = pink2(:)
             vsic(:,:) = vsic2(:,:)
             c0(:,:)   = wfc_ctmp2(:,:)
-            bec(:,:)  = bec2(:,:)
+            bec%rvec(:,:)  = bec2(:,:)
             Omattot   = MATMUL( Omattot, Omat2tot)
             !
         else
@@ -2861,7 +3344,7 @@ end subroutine nksic_rot_test
             pink(:)   = pink1(:)
             vsic(:,:) = vsic1(:,:)
             c0(:,:)   = wfc_ctmp(:,:)
-            bec(:,:)  = bec1(:,:)
+            bec%rvec(:,:)  = bec1(:,:)
             Omattot   = MATMUL( Omattot, Omat1tot)
             !
 #ifdef __DEBUG
@@ -2871,6 +3354,17 @@ end subroutine nksic_rot_test
             endif
 #endif
             !
+! =======
+!           pink(:) = pink1(:)
+!           vsic(:,:) = vsic1(:,:)
+!           c0(:,:) = wfn_ctmp(:,:)
+!           bec%rvec(:,:) = bec1(:,:)
+!           Omattot = MATMUL(Omattot,Omat1tot)
+!           if(ionode) then
+!             write(1037,'("# It happened that ene1 < enever!!")')
+!             write(1037,*)
+!           endif
+! 1.28.2.14
         endif
         !
         call stop_clock( "nk_innerloop" )
@@ -2922,7 +3416,7 @@ end subroutine nksic_rot_emin_cg
 !---------------------------------------------------------------
 
 !---------------------------------------------------------------
-      subroutine nksic_getOmattot(dalpha,Heigbig,Umatbig,wfc0,wfc1,Omat1tot,bec1,vsic1,pink1,ene1)
+      subroutine nksic_getOmattot(dalpha,Heigbig,Umatbig,wfc0,wfc1,Omat1tot,bec1,vsic1,pink1,ene1)!warning:giovanni bec1 here needs to be a twin!
 !---------------------------------------------------------------
 !
 ! ... This routine rotates the wavefunction wfc0 into wfc1 according to
@@ -2939,6 +3433,8 @@ end subroutine nksic_rot_emin_cg
       use uspp,                       only : becsum,nkb
       use cp_main_variables,          only : eigr, rhor, rhog
       use nksic,                      only : deeq_sic, wtot, fsic
+      use control_flags,         only : gamma_only, do_wf_cmplx
+      use twin_types
       !
       implicit none
       !
@@ -2951,10 +3447,11 @@ end subroutine nksic_rot_emin_cg
       !
       complex(dp)                    :: wfc1(ngw,nbspx)
       real(dp)                       :: Omat1tot(nbspx,nbspx)
-      real(dp)                       :: bec1(nkb,nbsp)
+      type(twin_matrix)     :: bec1 !(nkb,nbsp) !modified:giovanni
       real(dp)                       :: vsic1(nnrx,nbspx)
       real(dp)                       :: pink1(nbspx)
       real(dp)                       :: ene1
+      logical :: lgam
 
       !
       ! local variables for cg routine
@@ -2969,6 +3466,11 @@ end subroutine nksic_rot_emin_cg
       call start_clock( "nk_getOmattot" )
       !
       
+
+      lgam=gamma_only.and. .not. do_wf_cmplx
+
+      call init_twin(bec1,lgam)
+      call allocate_twin(bec1,nkb,nbsp, lgam)
 
       Omat1tot(:,:) = 0.d0
       do nbnd1=1,nbspx
@@ -3018,6 +3520,9 @@ end subroutine nksic_rot_emin_cg
                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic1, pink1 )
 
       ene1=sum(pink1(:))
+
+      call deallocate_twin(bec1)
+
       !
       call stop_clock( "nk_getOmattot" )
       !

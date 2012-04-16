@@ -64,8 +64,17 @@ MODULE efield_module
                                               !n_g_missing*nproc
       integer, allocatable :: ctabin_missing_rev_2(:,:,:)!missing_g --> G (plane waves local)
 
-CONTAINS
+!begin_added:giovanni
+      INTERFACE berry_energy
+         module procedure berry_energy_old, berry_energy_new
+      END INTERFACE
 
+      INTERFACE berry_energy2
+         module procedure berry_energy2_old, berry_energy2_new
+      END INTERFACE
+!end_added:giovanni
+
+CONTAINS
 
   SUBROUTINE efield_init( epol_ , efield_ )
     USE kinds, ONLY: DP
@@ -167,8 +176,30 @@ CONTAINS
     RETURN
   END SUBROUTINE deallocate_efield
 
+!begin_added:giovanni
+  SUBROUTINE berry_energy_new( enb, enbi, bec, cm, fion)
+    USE ions_positions, ONLY: tau0
+    USE control_flags, ONLY: tfor, tprnfor, gamma_only, do_wf_cmplx
+    USE twin_types !added:giovanni
+    IMPLICIT NONE
+    real(DP), intent(out) :: enb, enbi
+    type(twin_matrix) :: bec !modified:giovanni
+    real(DP) :: fion(:,:)
+    complex(DP) :: cm(:,:)
+    logical :: lgam
 
-  SUBROUTINE berry_energy( enb, enbi, bec, cm, fion )
+    lgam=gamma_only.and..not.do_wf_cmplx
+    call qmatrixd(cm,bec,ctable(1,1,ipolp),gqq,qmat,detq,ipolp, lgam)
+    call enberry( detq, ipolp,enb)
+    call berryion(tau0,fion,tfor.or.tprnfor,ipolp,evalue,enbi)
+    pberryel=enb
+    pberryion=enbi
+    enb=enb*evalue
+    enbi=enbi*evalue
+  END SUBROUTINE berry_energy_new
+!end_added:giovanni
+
+  SUBROUTINE berry_energy_old( enb, enbi, bec, cm, fion)
     USE ions_positions, ONLY: tau0
     USE control_flags, ONLY: tfor, tprnfor
     IMPLICIT NONE
@@ -176,14 +207,15 @@ CONTAINS
     real(DP) :: bec(:,:)
     real(DP) :: fion(:,:)
     complex(DP) :: cm(:,:)
-    call qmatrixd(cm,bec,ctable(1,1,ipolp),gqq,qmat,detq,ipolp)
+
+    call qmatrixd_old(cm,bec,ctable(1,1,ipolp),gqq,qmat,detq,ipolp)
     call enberry( detq, ipolp,enb)
     call berryion(tau0,fion,tfor.or.tprnfor,ipolp,evalue,enbi)
     pberryel=enb
     pberryion=enbi
     enb=enb*evalue
     enbi=enbi*evalue
-  END SUBROUTINE berry_energy
+  END SUBROUTINE berry_energy_old
 
 
   SUBROUTINE dforce_efield (bec,i,cm,c2,c3,rhos)
@@ -285,7 +317,7 @@ CONTAINS
   END SUBROUTINE deallocate_efield2
 
 
-  SUBROUTINE berry_energy2( enb, enbi, bec, cm, fion )
+  SUBROUTINE berry_energy2_old( enb, enbi, bec, cm, fion )
     USE ions_positions, ONLY: tau0
     USE control_flags, ONLY: tfor, tprnfor
     IMPLICIT NONE
@@ -293,15 +325,35 @@ CONTAINS
     real(DP) :: bec(:,:)
     real(DP) :: fion(:,:)
     complex(DP) :: cm(:,:)
-    call qmatrixd(cm,bec,ctable2(1,1,ipolp2),gqq2,qmat2,detq2,ipolp2)
+    call qmatrixd_old(cm,bec,ctable2(1,1,ipolp2),gqq2,qmat2,detq2,ipolp2)
     call enberry( detq2, ipolp2,enb)
     call berryion(tau0,fion,tfor.or.tprnfor,ipolp2,evalue2,enbi)
     pberryel2=enb
     pberryion2=enbi
     enb=enb*evalue2
     enbi=enbi*evalue2
-  END SUBROUTINE berry_energy2
+  END SUBROUTINE berry_energy2_old
 
+  SUBROUTINE berry_energy2_new( enb, enbi, bec, cm, fion )
+    USE ions_positions, ONLY: tau0
+    USE control_flags, ONLY: tfor, tprnfor, gamma_only, do_wf_cmplx
+    USE twin_types
+    IMPLICIT NONE
+    real(DP), intent(out) :: enb, enbi
+    type(twin_matrix) :: bec !modified:giovanni(:,:)
+    real(DP) :: fion(:,:)
+    complex(DP) :: cm(:,:)
+    logical :: lgam
+
+    lgam=gamma_only.and..not.do_wf_cmplx
+    call qmatrixd(cm,bec,ctable2(1,1,ipolp2),gqq2,qmat2,detq2,ipolp2, lgam)
+    call enberry( detq2, ipolp2,enb)
+    call berryion(tau0,fion,tfor.or.tprnfor,ipolp2,evalue2,enbi)
+    pberryel2=enb
+    pberryion2=enbi
+    enb=enb*evalue2
+    enbi=enbi*evalue2
+  END SUBROUTINE berry_energy2_new
 
   SUBROUTINE dforce_efield2 (bec,i,cm,c2,c3,rhos)
     USE uspp, ONLY: betae => vkb, deeq

@@ -10,7 +10,6 @@
 
 !=----------------------------------------------------------------------------------=!
 
-
    SUBROUTINE runcp_uspp_x &
       ( nfi, fccc, ccc, ema0bg, dt2bye, rhos, bec, c0, cm, fromscra, restart, tprint_ham )
       !
@@ -30,7 +29,8 @@
       USE mp,                  ONLY : mp_sum
       USE fft_base,            ONLY : dffts
       use wave_base,           only : wave_steepest, wave_verlet
-      use control_flags,       only : lwf, tsde, use_task_groups, program_name
+      use control_flags,       only : lwf, tsde, use_task_groups, program_name, &
+                                                       gamma_only, do_wf_cmplx
       use uspp,                only : deeq, vkb
       use reciprocal_vectors,  only : gstart
       use electrons_base,      only : n=>nbsp, ispin, f, nspin, nupdwn, iupdwn
@@ -45,6 +45,7 @@
       use hfmod,               only : do_hf, vxxpsi
       use nksic,               only : do_orbdep, vsic, vsicpsi, deeq_sic, f_cutoff
       use ensemble_dft,        only : tens, tsmear
+      use twin_types !added:giovanni
       !
       IMPLICIT NONE
       !
@@ -52,7 +53,7 @@
       REAL(DP) :: fccc, ccc
       REAL(DP) :: ema0bg(:), dt2bye
       REAL(DP) :: rhos(:,:)
-      REAL(DP) :: bec(:,:)
+      type(twin_matrix) :: bec!(:,:) !modified:giovanni
       COMPLEX(DP) :: c0(:,:), cm(:,:)
       LOGICAL, OPTIONAL, INTENT(IN) :: fromscra
       LOGICAL, OPTIONAL, INTENT(IN) :: restart
@@ -71,6 +72,10 @@
       integer :: iflag
       logical :: ttsde
       LOGICAL :: tprint_ham_ 
+      LOGICAL :: lgam
+      integer :: iss
+
+     lgam=gamma_only.and..not.do_wf_cmplx
 
      allocate(faux(nx))
 
@@ -85,7 +90,15 @@
      ENDIF
      !
      tprint_ham_ = .FALSE.
-     hamilt(:,:,:) = 0.0d0
+
+     DO iss=1,size(hamilt)
+      if(.not. hamilt(iss)%iscmplx) then
+	hamilt(iss)%rvec = 0.0d0
+      else
+	hamilt(iss)%cvec = CMPLX(0.0d0,0.d0)
+      endif
+     END DO
+
      IF ( PRESENT( tprint_ham ) ) THEN
          !
          tprint_ham_ = tprint_ham
@@ -105,7 +118,6 @@
      verl1 = 2.0d0 * fccc
      verl2 = 1.0d0 - verl1
      verl3 = 1.0d0 * fccc
-
      ALLOCATE( emadt2( ngw ) )
      ALLOCATE( emaver( ngw ) )
 
@@ -123,7 +135,7 @@
 
      IF( lwf ) THEN
 
-        call ef_potential( nfi, rhos, bec, deeq, vkb, c0, cm, emadt2, emaver, verl1, verl2 )
+        call ef_potential( nfi, rhos, bec%rvec, deeq, vkb, c0, cm, emadt2, emaver, verl1, verl2 ) !warning:giovanni not yet modified
 
      ELSE
 
@@ -146,12 +158,20 @@
            DO i = 1, nspin
               CALL tg_gather( dffts, rhos(:,i), tg_rhos(:,i) )
            END DO
-
-           incr = 2 * nogrp
+           
+!            IF(lgam) THEN
+             incr = 2 * nogrp
+!            ELSE
+!              incr = nogrp
+!            ENDIF
 
         ELSE
 
-           incr = 2
+!            IF(lgam) THEN
+             incr = 2 
+!            ELSE
+!              incr = 1
+!            ENDIF
 
         END IF
 
@@ -193,9 +213,23 @@
               CALL dforce( i, bec, vkb, c0, c2, c3, tg_rhos, tg_rhos_siz, ispin, faux, n, nspin )
 
            ELSE
-
+!begin_added:giovanni:debug ------------ FORCES
+!               write(6,*) "c0, debug, before dforce", i
+!               write(6,*) c0(1,i), c0(2,i), c0(3,i), rhos(1,1)
+!               write(6,*) "c2, debug, before dforce"
+!               write(6,*) c2(1), c2(2), c2(3), rhos(2,1)
+!               write(6,*) "c3, debug, before dforce"
+!               write(6,*) c3(1), c3(2), c3(3), rhos(3,1)
+!end_added:giovanni:debug ------------ FORCES
               CALL dforce( i, bec, vkb, c0, c2, c3, rhos, SIZE(rhos,1), ispin, faux, n, nspin )
-
+!begin_added:giovanni:debug ------------ FORCES
+!               write(6,*) "c0, debug, after dforce"
+!               write(6,*) c0(1,i), c0(2,i), c0(3,i), rhos(1,1)
+!               write(6,*) "c2, debug, after dforce"
+!               write(6,*) c2(1), c2(2), c2(3), rhos(2,1)
+!               write(6,*) "c3, debug, after dforce"
+!               write(6,*) c3(1), c3(2), c3(3), rhos(3,1)
+!end_added:giovanni:debug ------------ FORCES
            END IF
 
 
@@ -219,7 +253,7 @@
                !
                ! faux takes into account spin multiplicity.
                !
-               CALL nksic_eforce( i, n, nx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi )
+               CALL nksic_eforce( i, n, nx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi, lgam )
                !
                IF ( tens .OR. tsmear ) THEN
                    !
@@ -257,10 +291,14 @@
                            jj = j0
                            IF ( nspin==2 ) jj = jj +iupdwn(isp) -1 
                            !
-                           hamilt( j0, i0, isp) = 2.0d0 * DOT_PRODUCT( c0(:,jj), vsicpsi(:,ii+1) )
+                           IF(.not.hamilt(isp)%iscmplx) THEN
+			      hamilt(isp)%rvec(j0, i0) = 2.0d0 * DOT_PRODUCT( c0(:,jj), vsicpsi(:,ii+1) )
                            !
-                           IF ( gstart == 2 ) THEN
-                               hamilt( j0, i0, isp) =  hamilt( j0, i0, isp) -c0(1,jj)*vsicpsi(1,ii+1) 
+			      IF ( gstart == 2 ) THEN
+				  hamilt(isp)%rvec( j0, i0) =  hamilt(isp)%rvec( j0, i0) -c0(1,jj)*vsicpsi(1,ii+1) 
+			      ENDIF
+                           ELSE
+				  hamilt(isp)%cvec(j0, i0) = DOT_PRODUCT( c0(:,jj), vsicpsi(:,ii+1) ) !warning:giovanni put conjugate??
                            ENDIF
                            !
                        ENDDO
@@ -295,11 +333,11 @@
            ! are taken into account inside the calls
            !
            IF( tefield ) THEN
-               CALL dforce_efield ( bec, i, c0, c2, c3, rhos)
+               CALL dforce_efield ( bec%rvec, i, c0, c2, c3, rhos)
            ENDIF
            !
            IF( tefield2 ) THEN
-               CALL dforce_efield2 ( bec, i, c0, c2, c3, rhos)
+               CALL dforce_efield2 ( bec%rvec, i, c0, c2, c3, rhos)
            ENDIF
 
            IF( iflag == 2 ) THEN
@@ -311,6 +349,11 @@
               ENDDO
            END IF
 
+!begin_added:giovanni:debug --------- STEEPEST
+!            write(6,*) "cm, debug, before steepest"
+!            write(6,*) cm(1,i), cm(2,i), cm(3,i), iflag,i
+!            write(6,*) emaver(1), emaver(2), emaver(3)
+!end_added:giovanni:debug --------- STEEPEST
            idx_in = 1
            DO idx = 1, incr, 2
               IF( i + idx - 1 <= n ) THEN
@@ -322,14 +365,20 @@
                     CALL wave_verlet( cm(:, i+idx   ), c0(:, i+idx   ), verl1, verl2, emaver, c3, ngw, idx_in )
                  ENDIF
                  IF ( gstart == 2 ) THEN
-                    cm(1,i+idx-1) = cmplx(real(cm(1,i+idx-1)),0.0d0)
-                    cm(1,i+idx  ) = cmplx(real(cm(1,i+idx  )),0.0d0)
+                    IF(lgam) THEN
+                       cm(1,i+idx-1) = CMPLX(DBLE(cm(1,i+idx-1)),0.0d0)
+                       cm(1,i+idx  ) = CMPLX(DBLE(cm(1,i+idx  )),0.0d0)
+                    ENDIF
                  END IF
               END IF
               !
               idx_in = idx_in + 1
               !
            END DO
+!begin_added:giovanni:debug --------- STEEPEST
+!            write(6,*) "cm, debug, after steepest"
+!            write(6,*) cm(1,i), cm(2,i), cm(3,i), iflag, i
+!end_added:giovanni:debug --------- STEEPEST
 
         end do
 
@@ -339,7 +388,15 @@
 
      END IF
      !
-     IF ( tprint_ham_ ) CALL mp_sum( hamilt )
+     IF ( tprint_ham_ ) THEN
+       DO iss=1, size(hamilt)
+         IF(.not.hamilt(iss)%iscmplx) THEN
+	    CALL mp_sum( hamilt(iss)%rvec )
+         ELSE
+	    CALL mp_sum( hamilt(iss)%cvec )
+         ENDIF
+       END DO
+     ENDIF
      !
      DEALLOCATE( emadt2 )
      DEALLOCATE( emaver )
@@ -353,7 +410,7 @@
 
 !=----------------------------------------------------------------------------=!
 
-    SUBROUTINE runcp_uspp_force_pairing_x  &
+    SUBROUTINE runcp_uspp_force_pairing_x  & !warning:giovanni still to be modified
        ( nfi, fccc, ccc, ema0bg, dt2bye, rhos, bec, c0, cm, intermed, fromscra, &
          restart )
   !

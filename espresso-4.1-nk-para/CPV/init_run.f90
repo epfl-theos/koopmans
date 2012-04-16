@@ -49,7 +49,7 @@ SUBROUTINE init_run()
                                        sfac, eigr, ei1, ei2, ei3, taub, &
                                        irb, eigrb, rhog, rhos, rhor,     &
                                        acc, acc_this_run, wfill, hamilt, &
-                                       edft, nfi, vpot, ht0, htm, iprint_stdout
+                                       edft, nfi, vpot, ht0, htm, iprint_stdout, gamma_only, do_wf_cmplx !added:giovanni gamma_only, do_wf_cmplx
   USE cp_main_variables,        ONLY : allocate_mainvar, nlax, descla, nrlx, nlam
   USE energies,                 ONLY : eself, enl, ekin, etot, enthal, ekincm
   USE dener,                    ONLY : detot
@@ -83,15 +83,18 @@ SUBROUTINE init_run()
   use eecp_mod,                 ONLY : do_comp
   use efield_mod,               ONLY : do_efield
   USE nksic,                    ONLY : do_orbdep
+  USE twin_types !added:giovanni
   !
   IMPLICIT NONE
   !
-  INTEGER            :: i, ndim
+  INTEGER            :: i, iss, ndim
   CHARACTER(LEN=256) :: dirname
+  LOGICAL :: lgam
   !
   !
   CALL start_clock( 'initialize' )
   !
+  lgam = gamma_only.and..not.do_wf_cmplx
   ! ... initialize directories
   !
   CALL printout_base_init( outdir, prefix )
@@ -139,8 +142,11 @@ SUBROUTINE init_run()
   !  initialize wave functions descriptors and allocate wf
   !
   ALLOCATE( c0( ngw, nbspx ) )
+  !gvn23 ALLOCATE(c0i(ngw, nbspx))
   ALLOCATE( cm( ngw, nbspx ) )
+  !gvn23 ALLOCATE(cmi(ngw, nbspx))
   ALLOCATE( cp( ngw, nbspx ) )
+  !gvn23 ALLOCATE(cpi(ngw, nbspx))
   !
   IF ( iprsta > 2 ) THEN
      !
@@ -197,8 +203,29 @@ SUBROUTINE init_run()
   !
   IF ( ALLOCATED( deeq ) ) deeq(:,:,:,:) = 0.D0
   !
-  IF ( ALLOCATED( lambda  ) ) lambda  = 0.D0
-  IF ( ALLOCATED( lambdam ) ) lambdam = 0.D0
+  IF(ALLOCATED(lambda)) THEN
+      DO iss=1,size(lambda)
+          IF ( lambda(iss)%isalloc ) THEN
+              IF(.not. lambda(iss)%iscmplx) THEN
+		  lambda(iss)%rvec  = 0.D0
+              ELSE
+		  lambda(iss)%cvec  = CMPLX(0.D0,0.D0)
+              ENDIF
+          ENDIF
+      END DO
+  ENDIF
+
+  IF(ALLOCATED(lambdam)) THEN
+      DO iss=1,size(lambdam)
+          IF (lambdam(iss)%isalloc ) THEN
+              IF(.not. lambdam(iss)%iscmplx) THEN
+		  lambdam(iss)%rvec  = 0.D0
+              ELSE
+		  lambdam(iss)%cvec  = CMPLX(0.D0,0.D0)
+              ENDIF
+          ENDIF
+      END DO
+  ENDIF  
   !
   taum  = tau0
   taup  = 0.D0
@@ -211,8 +238,11 @@ SUBROUTINE init_run()
   hnew = h
   !
   cm = ( 0.D0, 0.D0 )
+  !gvn23 cmi = (0.D0, 0.D0)
   c0 = ( 0.D0, 0.D0 )
+  !gvn23 c0i = (0.D0, 0.D0)
   cp = ( 0.D0, 0.D0 )
+  !gvn23 cpi = (0.D0, 0.D0)
   !
   !
   IF ( tens .OR. tsmear ) then
@@ -252,17 +282,29 @@ SUBROUTINE init_run()
   IF ( do_orbdep .AND. iprsta > 1 ) THEN
       !
       ndim=MAXVAL( nupdwn(:) )
-      ALLOCATE( hamilt( ndim, ndim, nspin) )
+      
+      ALLOCATE( hamilt(nspin ) )
+      DO iss=1,nspin
+          call init_twin(hamilt(iss), lgam)
+          call allocate_twin(hamilt(iss), ndim, ndim, lgam)
+      ENDDO
+!       ALLOCATE( hamilt( ndim, ndim, nspin) )
       !
   ELSE
-      ALLOCATE( hamilt(1,1,1) )
+      ALLOCATE( hamilt(1 ) )
+      call init_twin(hamilt(1), lgam)
+      call allocate_twin(hamilt(1), 1, 1, lgam)
   ENDIF
   !
-  hamilt(:,:,:) = 0.0d0
-
+  DO iss=1,size(hamilt)
+    if(.not. hamilt(iss)%iscmplx) then
+      hamilt(iss)%rvec = 0.0d0
+    else
+      hamilt(iss)%cvec = CMPLX(0.0d0,0.d0)
+    endif
+  END DO
   
   IF( do_efield ) CALL ee_efieldpot_init(ht0)
-
 
   IF ( nbeg < 0 ) THEN
      !
@@ -280,7 +322,8 @@ SUBROUTINE init_run()
      !     nbeg = 0, nbeg = 1
      !======================================================================
      !
-     i = 1  
+     i = 1
+     !gvn22 !change readfile?
      CALL readfile( i, h, hold, nfi, c0, cm, taus,   &
                     tausm, vels, velsm, acc, lambda, lambdam, xnhe0, xnhem, &
                     vnhe, xnhp0, xnhpm, vnhp,nhpcl,nhpdim,ekincm, xnhh0, xnhhm,&

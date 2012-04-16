@@ -8,6 +8,7 @@
 MODULE ensemble_dft
 
   USE kinds, ONLY: DP
+  USE twin_types !added:giovanni
 
   IMPLICIT NONE
   SAVE
@@ -44,7 +45,7 @@ MODULE ensemble_dft
       real(DP) :: gibbsfe
 ! variables for cold-smearing
       real(DP), allocatable ::               psihpsi(:,:,:)!it contains the matrix <Psi|H|Psi>
-
+      type(twin_matrix), dimension(:), allocatable :: psihpsi_twin !added:giovanni !still need to define allocation_deallocations
 CONTAINS
 
 

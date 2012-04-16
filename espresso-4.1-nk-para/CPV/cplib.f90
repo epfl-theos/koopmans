@@ -7,7 +7,6 @@
 !
 
 #include "f_defs.h"
-
 !
 !-----------------------------------------------------------------------
       SUBROUTINE atomic_wfc( eigr, n_atomic_wfc, wfc )
@@ -130,7 +129,7 @@ END FUNCTION
 !
 
 !-----------------------------------------------------------------------
-   FUNCTION cscnorm( bec, nkbx, cp, ngwx, i, n )
+   FUNCTION cscnorm( bec, nkbx, cp, ngwx, i, n, lgam)
 !-----------------------------------------------------------------------
 !     requires in input the updated bec(i)
 !
@@ -143,46 +142,85 @@ END FUNCTION
       USE mp,                 ONLY: mp_sum
       USE mp_global,          ONLY: intra_image_comm
       USE kinds,              ONLY: DP
+      USE twin_types !added:giovanni
 !
       IMPLICIT NONE
       !
       INTEGER, INTENT(IN) :: i, n
       INTEGER, INTENT(IN) :: ngwx, nkbx
-      REAL(DP)    :: bec( nkbx, n )
+      type(twin_matrix)   :: bec!modified:giovanni
       COMPLEX(DP) :: cp( ngwx, n )
+      LOGICAL :: lgam!added:giovanni
       !
       REAL(DP) :: cscnorm
       !
       INTEGER ig, is, iv, jv, ia, inl, jnl
       REAL(DP) rsum
+      COMPLEX(DP) csum
       REAL(DP), ALLOCATABLE:: temp(:)
+      REAL(DP) :: icoeff !added:giovanni
+
+!!!begin_added:giovanni
+      IF(lgam) THEN
+         icoeff=2.d0
+      ELSE
+         icoeff=1.d0
+      ENDIF
+!!!end_added:giovanni
 !
 !
       ALLOCATE(temp(ngw))
+
       DO ig=1,ngw
-         temp(ig)=DBLE(CONJG(cp(ig,i))*cp(ig,i))
+	temp(ig)=DBLE(CONJG(cp(ig,i))*cp(ig,i))
       END DO
-      rsum=2.d0*SUM(temp)
-      IF (gstart == 2) rsum=rsum-temp(1)
+
+      IF(lgam) THEN!added:giovanni
+        rsum=2.d0*SUM(temp)
+        IF (gstart == 2) rsum=rsum-temp(1)
+      ELSE!added:giovanni
+        rsum=SUM(temp) !added:giovanni
+      ENDIF
 
       CALL mp_sum( rsum, intra_image_comm )
 
       DEALLOCATE(temp)
 !
-      DO is=1,nvb
-         DO iv=1,nh(is)
-            DO jv=1,nh(is)
-               IF(ABS(qq(iv,jv,is)).GT.1.e-5) THEN 
-                  DO ia=1,na(is)
-                     inl=ish(is)+(iv-1)*na(is)+ia
-                     jnl=ish(is)+(jv-1)*na(is)+ia
-                     rsum = rsum +                                        &
-     &                    qq(iv,jv,is)*bec(inl,i)*bec(jnl,i)
-                  END DO
-               ENDIF
-            END DO
-         END DO
-      END DO
+      IF(.not.bec%iscmplx) THEN
+	DO is=1,nvb
+	  DO iv=1,nh(is)
+	      DO jv=1,nh(is)
+		IF(ABS(qq(iv,jv,is)).GT.1.e-5) THEN 
+		    DO ia=1,na(is)
+		      inl=ish(is)+(iv-1)*na(is)+ia
+		      jnl=ish(is)+(jv-1)*na(is)+ia
+		      rsum = rsum +                                        &
+      &                    qq(iv,jv,is)*bec%rvec(inl,i)*bec%rvec(jnl,i)
+		    END DO
+		ENDIF
+	      END DO
+	  END DO
+	END DO
+      ELSE
+!begin_added:giovanni
+        csum=CMPLX(rsum, 0.d0)
+	DO is=1,nvb
+	  DO iv=1,nh(is)
+	      DO jv=1,nh(is)
+		IF(ABS(qq(iv,jv,is)).GT.1.e-5) THEN 
+		  DO ia=1,na(is)
+		    inl=ish(is)+(iv-1)*na(is)+ia
+		    jnl=ish(is)+(jv-1)*na(is)+ia
+		    csum = csum +                                        &
+      &                  CMPLX(qq(iv,jv,is),0.d0) * CONJG(bec%cvec(inl,i))*bec%cvec(jnl,i)
+		  END DO
+		ENDIF
+	      END DO
+	  END DO
+	END DO
+        rsum=DBLE(csum)
+!end_added:giovanni
+      ENDIF
 !
       cscnorm=SQRT(rsum)
 !
@@ -270,7 +308,7 @@ END FUNCTION
 
 
 !-----------------------------------------------------------------------
-      SUBROUTINE dotcsc( eigr, cp, ngw, n )
+      SUBROUTINE dotcsc( eigr, cp, ngw, n, lgam )!added:giovanni lgam
 !-----------------------------------------------------------------------
 !
       USE kinds,              ONLY: DP
@@ -282,19 +320,35 @@ END FUNCTION
       USE uspp_param,         ONLY: nh
       USE mp,                 ONLY: mp_sum
       USE mp_global,          ONLY: intra_image_comm
+      USE twin_types !added:giovanni
+      USE cp_interfaces,  ONLY: nlsm1 !added:giovanni
 !
       IMPLICIT NONE
 !
       INTEGER, INTENT(IN) :: ngw, n
       COMPLEX(DP) ::  eigr(ngw,nat), cp(ngw,n)
+      LOGICAL, INTENT(IN) :: lgam
 ! local variables
-      REAL(DP) rsum, csc(n) ! automatic array
-      COMPLEX(DP) temp(ngw) ! automatic array
+      REAL(DP) rsum
+      COMPLEX(DP) :: csum
+      COMPLEX(DP) :: csc(n) ! automatic array
+      COMPLEX(DP) :: temp(ngw) ! automatic array
  
-      REAL(DP), ALLOCATABLE::  becp(:,:)
+      type(twin_matrix) ::  becp !modified:giovanni
       INTEGER i,kmax,nnn,k,ig,is,ia,iv,jv,inl,jnl
+      COMPLEX(DP) :: icoeff
+
+!!!begin_added:giovanni
+      IF(lgam) THEN
+        icoeff=CMPLX(2.d0,0.d0)
+!         becp%iscmplx=.false.!optional:giovanni
+      ELSE
+        icoeff=CMPLX(1.d0,0.d0)
+!         becp%iscmplx=.true.!optional:giovanni
+      ENDIF
+!!!end_added:giovanni
 !
-      ALLOCATE(becp(nkb,n))
+      CALL allocate_twin(becp, nkb, n, lgam)
 !
 !     < beta | phi > is real. only the i lowest:
 !
@@ -302,41 +356,64 @@ END FUNCTION
 
       DO i = nnn, 1, -1
          kmax = i
-         CALL nlsm1(i,1,nvb,eigr,cp,becp)
+         CALL nlsm1(i,1,nvb,eigr,cp,becp,1,lgam)
 !
          DO k=1,kmax
             DO ig=1,ngw
                temp(ig)=CONJG(cp(ig,k))*cp(ig,i)
             END DO
-            csc(k)=2.d0*DBLE(SUM(temp))
-            IF (gstart == 2) csc(k)=csc(k)-DBLE(temp(1))
+            csc(k)=icoeff*SUM(temp)!modified:giovanni
+            IF (gstart == 2) csc(k)=csc(k)-(icoeff-CMPLX(1.d0,0.d0))*(temp(1)) !modified:giovanni
          END DO
 
          CALL mp_sum( csc( 1:kmax ), intra_image_comm )
 
-         DO k=1,kmax
-            rsum=0.d0
-            DO is=1,nvb
-               DO iv=1,nh(is)
-                  DO jv=1,nh(is)
-                     DO ia=1,na(is)
-                        inl=ish(is)+(iv-1)*na(is)+ia
-                        jnl=ish(is)+(jv-1)*na(is)+ia
-                        rsum = rsum +                                    &
-     &                   qq(iv,jv,is)*becp(inl,i)*becp(jnl,k)
-                     END DO
-                  END DO
-               END DO
-            END DO
-            csc(k)=csc(k)+rsum
-         END DO
+         IF(lgam) THEN
+	  DO k=1,kmax
+	      rsum=0.d0
+	      DO is=1,nvb
+		DO iv=1,nh(is)
+		    DO jv=1,nh(is)
+		      DO ia=1,na(is)
+			  inl=ish(is)+(iv-1)*na(is)+ia
+			  jnl=ish(is)+(jv-1)*na(is)+ia
+			  rsum = rsum +                                    &
+      &                   qq(iv,jv,is)*becp%rvec(inl,i)*becp%rvec(jnl,k)
+		      END DO
+		    END DO
+		END DO
+	      END DO
+	      csc(k)=csc(k)+CMPLX(rsum, 0.d0)
+	  END DO
+!       
+          WRITE( stdout,'("dotcsc =",12f18.15)') (DBLE(csc(k)),k=1,i)
 !
-         WRITE( stdout,'("dotcsc =",12f18.15)') (csc(k),k=1,i)
-!
+       ELSE
+	  DO k=1,kmax
+	      csum=0.d0
+	      DO is=1,nvb
+		DO iv=1,nh(is)
+		    DO jv=1,nh(is)
+		      DO ia=1,na(is)
+			  inl=ish(is)+(iv-1)*na(is)+ia
+			  jnl=ish(is)+(jv-1)*na(is)+ia
+			  csum = csum +                                    &
+      &                   qq(iv,jv,is)*CONJG(becp%cvec(inl,i))*becp%cvec(jnl,k)
+		      END DO
+		    END DO
+		END DO
+	      END DO
+	      csc(k)=csc(k)+csum
+	  END DO
+!       
+          WRITE( stdout,'("dotcsc =",12((f18.15)2x(f18.15)))') (csc(k),k=1,i)
+!          
+       ENDIF
+
       END DO
       WRITE( stdout,*)
 !
-      DEALLOCATE(becp)
+      call deallocate_twin(becp)
 !
       RETURN
       END SUBROUTINE dotcsc
@@ -367,14 +444,26 @@ END FUNCTION
  
       REAL(DP), ALLOCATABLE ::  bec(:), bev(:)
       INTEGER ig,is,ia,iv,jv,inl,jnl
+
+      INTERFACE nlsm1_local
+        subroutine nlsm1_real( n, nspmn, nspmx, eigr, c, becp ) !addded:giovanni
+          USE kinds,   ONLY : DP
+
+          implicit none
+
+	  integer,   intent(in)  :: n, nspmn, nspmx
+	  complex(DP), intent(in)  :: eigr( :, : ), c( :)
+	  real(DP) :: becp( : )
+        end subroutine
+      END INTERFACE
 !
       ALLOCATE(bec(nkb))
       ALLOCATE(bev(nkb))
 !
 !     < beta | c > is real. only the i lowest:
 !
-      CALL nlsm1(1,1,nvb,eigr,c,bec)
-      CALL nlsm1(1,1,nvb,eigr,v,bev)
+      CALL nlsm1_local(1,1,nvb,eigr,c,bec)
+      CALL nlsm1_local(1,1,nvb,eigr,v,bev)
 !
       DO ig=1,ngw
          temp(ig)=CONJG(c(ig))*v(ig)
@@ -405,7 +494,7 @@ END FUNCTION
 
 !
 !-----------------------------------------------------------------------
-   FUNCTION enkin( c, ngwx, f, n )
+   FUNCTION enkin( c, ngwx, f, n, lgam ) !added:giovanni
 !-----------------------------------------------------------------------
       !
       ! calculation of kinetic energy term
@@ -433,6 +522,14 @@ END FUNCTION
 
       INTEGER  :: ig, i
       REAL(DP) :: sk(n)  ! automatic array
+      LOGICAL :: lgam !added:giovanni
+      REAL(DP) :: icoeff
+
+      IF(lgam) THEN
+         icoeff=1.d0
+      ELSE
+         icoeff=0.5d0
+      ENDIF
       !
       DO i=1,n
          sk(i)=0.0d0
@@ -451,7 +548,7 @@ END FUNCTION
       ! ... reciprocal-space vectors are in units of alat/(2 pi) so a
       ! ... multiplicative factor (2 pi/alat)**2 is required
 
-      enkin = enkin * tpiba2
+      enkin = enkin * tpiba2 * icoeff
 !
       RETURN
    END FUNCTION enkin
@@ -563,9 +660,8 @@ END FUNCTION
       RETURN
       END SUBROUTINE gausin
 !            
-
 !-------------------------------------------------------------------------
-      SUBROUTINE gracsc( bec, nkbx, betae, cp, ngwx, i, csc, n )
+      SUBROUTINE scalar_us( bec, nkbx, betae, cp, ngwx, i, csc, n, lgam) !added:giovanni SUBROUTINE scalar_us
 !-----------------------------------------------------------------------
 !     requires in input the updated bec(k) for k<i
 !     on output: bec(i) is recalculated
@@ -580,100 +676,621 @@ END FUNCTION
       USE mp_global,      ONLY: intra_image_comm
       USE kinds,          ONLY: DP
       USE reciprocal_vectors, ONLY: gstart
+      USE twin_types !added:giovanni
 !
       IMPLICIT NONE
 !
       INTEGER, INTENT(IN) :: i, nkbx, ngwx, n
       COMPLEX(DP) :: betae( ngwx, nkb )
-      REAL(DP)    :: bec( nkbx, n ), cp( 2, ngwx, n )
-      REAL(DP)    :: csc( n )
-      INTEGER     :: k, kmax,ig, is, iv, jv, ia, inl, jnl
+      COMPLEX(DP)    :: cp(ngwx, n )
+      type(twin_matrix) :: bec!( nkbx, n )!modified:giovanni
+      COMPLEX(DP)    :: csc( n ) !modified:giovanni
+      LOGICAL :: lgam !added:giovanni
+      INTEGER :: k, kmax,ig, is, iv, jv, ia, inl, jnl
       REAL(DP)    :: rsum
-      REAL(DP), ALLOCATABLE :: temp(:) 
+      COMPLEX(DP) :: csum
+      REAL(DP), ALLOCATABLE :: temp(:)
+      COMPLEX(DP), ALLOCATABLE :: temp_c(:) !added:giovanni
+      REAL(DP) :: icoeff !added:giovanni
+      
 
+!!!begin_added:giovanni
+      IF(lgam) THEN 
+        ALLOCATE( temp(ngw ) )
+        temp = 0.d0
+      ELSE
+        ALLOCATE( temp_c( ngw ) )
+        temp_c = CMPLX(0.d0,0.d0)
+      ENDIF
+!!!end_added:giovanni
       !
-      !     calculate csc(k)=<cp(i)|cp(k)>,  k<i
+      !     calculate csc(k)=<cp(i)|cp(k)>,  k<i --->  <cp(k)|cp(i)>
       !
       kmax = i - 1
       !
 !$omp parallel default(shared), private( temp, k, ig )
 
-      ALLOCATE( temp( ngw ) )
-
 !$omp do
-      DO k = 1, kmax
-         csc(k) = 0.0d0
-         IF ( ispin(i) .EQ. ispin(k) ) THEN
-            DO ig = 1, ngw
-               temp(ig) = cp(1,ig,k) * cp(1,ig,i) + cp(2,ig,k) * cp(2,ig,i)
-            END DO
-            csc(k) = 2.0d0 * SUM(temp)
-            IF (gstart == 2) csc(k) = csc(k) - temp(1)
-         ENDIF
-      END DO
+      IF(lgam) THEN
+        DO k = 1, kmax
+          csc(k) = CMPLX(0.0d0, 0.d0)
+	  IF ( ispin(i) .EQ. ispin(k) ) THEN
+	      DO ig = 1, ngw
+		 temp(ig) =  DBLE(CONJG(cp(ig,i))*cp(ig,k))
+	      END DO
+	      csc(k) = CMPLX(2.d0* SUM(temp,ngw),0.d0)
+	      IF (gstart == 2) csc(k) = csc(k) - CMPLX(temp(1), 0.d0)
+	  ENDIF
+	END DO
+      ELSE
+     !begin_added:giovanni
+	DO k = 1, kmax
+	  csc(k) = CMPLX(0.0d0,0.d0)
+	  IF ( ispin(i) .EQ. ispin(k) ) THEN
+	      DO ig = 1, ngw
+		temp_c(ig) = CONJG(cp(ig,k))*cp(ig,i)
+	      END DO
+	      csc(k) = SUM(temp_c,ngw)
+	  ENDIF
+	END DO
+      !end_added:giovanni
+      ENDIF
 !$omp end do
-
-      DEALLOCATE( temp )
-
+      IF(lgam) THEN
+        DEALLOCATE( temp )
+      ELSE
+        DEALLOCATE( temp_c )
+      ENDIF
 !$omp end parallel
 
       CALL mp_sum( csc( 1:kmax ), intra_image_comm )
+      IF(lgam) THEN
+        ALLOCATE( temp(ngw) )
+      ELSE
+        ALLOCATE( temp_c(ngw) )
+      ENDIF
+!
+!     calculate csc(k)=<cp(i)|S|cp(k)>,  k<i -----> csc(k) = <cp(k)|S|cp(i)>
+!
+      IF(.not.bec%iscmplx) THEN
+	DO k=1,kmax
+	  IF (ispin(i).EQ.ispin(k)) THEN
+	      rsum=0.d0
+	      DO is=1,nvb
+		DO iv=1,nh(is)
+		    DO jv=1,nh(is)
+		      IF(ABS(qq(iv,jv,is)).GT.1.e-5) THEN 
+			  DO ia=1,na(is)
+			    inl=ish(is)+(iv-1)*na(is)+ia
+			    jnl=ish(is)+(jv-1)*na(is)+ia
+			    rsum = rsum + qq(iv,jv,is)*bec%rvec(inl,i)*bec%rvec(jnl,k)
+			  END DO
+		      ENDIF
+		    END DO
+		END DO
+	      END DO
+	      csc(k)=csc(k)+CMPLX(rsum,0.d0)
+	  ENDIF
+	END DO
+      ELSE 
+	DO k=1,kmax
+	  IF (ispin(i).EQ.ispin(k)) THEN
+	      csum=CMPLX(0.d0,0.d0)
+	      DO is=1,nvb
+		DO iv=1,nh(is)
+		    DO jv=1,nh(is)
+		      IF(ABS(qq(iv,jv,is)).GT.1.e-5) THEN 
+! write(6,*) "updating via qq" ! added
+			  DO ia=1,na(is)
+			    inl=ish(is)+(iv-1)*na(is)+ia
+			    jnl=ish(is)+(jv-1)*na(is)+ia
+			    csum = csum + CMPLX(qq(iv,jv,is),0.d0) * (bec%cvec(inl,i))*CONJG(bec%cvec(jnl,k))
+			  END DO
+		      ENDIF
+		    END DO
+		END DO
+	      END DO
+	      csc(k)=csc(k)+csum
+	  ENDIF
+	END DO
+      ENDIF
 
-      ALLOCATE( temp( ngw ) )
+      IF(lgam) THEN
+        DEALLOCATE( temp )
+      ELSE
+        DEALLOCATE( temp_c ) !added:giovanni
+      ENDIF
+!
+!       write(6,*) "bec", bec%rvec
+      RETURN
+      END SUBROUTINE scalar_us
+
+!            
+!-------------------------------------------------------------------------
+      SUBROUTINE scalar_character(cp, n , ngwx, csc, nunit, lgam) !added:giovanni SUBROUTINE scalar_character
+!-----------------------------------------------------------------------
+!     requires in input the updated bec(k) for k<i
+!     on output: bec(i) is recalculated
+!
+      USE ions_base,      ONLY: na
+      USE cvan,           ONLY :nvb, ish
+      USE reciprocal_vectors, ONLY: gx
+      USE cell_base, ONLY: a1,a2,a3
+      USE uspp,           ONLY : nkb, nhsavb=>nkbus, qq
+      USE uspp_param,     ONLY:  nh
+      USE electrons_base, ONLY: ispin
+      USE gvecw,          ONLY: ngw
+      USE mp,             ONLY: mp_sum
+      USE mp_global,      ONLY: intra_image_comm
+      USE kinds,          ONLY: DP
+      USE reciprocal_vectors, ONLY: gstart
+      USE twin_types !added:giovanni
+      USE constants
+!
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: ngwx, n, nunit
+!       COMPLEX(DP) :: betae( ngwx, nkb )
+      COMPLEX(DP)    :: cp(ngwx, n ), phase
+      REAL(DP) :: rvector(3)
+!       type(twin_matrix) :: bec!( nkbx, n )!modified:giovanni
+      COMPLEX(DP)    :: csc( n,n ) !modified:giovanni
+      LOGICAL :: lgam !added:giovanni
+      INTEGER :: k, i, kmax,ig, is, iv, jv, ia, inl, jnl
+      REAL(DP)    :: rsum
+      COMPLEX(DP) :: csum
+      REAL(DP), ALLOCATABLE :: temp(:)
+      COMPLEX(DP), ALLOCATABLE :: temp_c(:) !added:giovanni
+      REAL(DP) :: icoeff !added:giovanni
+      
+!!!begin_added:giovanni
+      IF(lgam) THEN 
+        ALLOCATE( temp(ngw ) )
+        temp = 0.d0
+      ELSE
+        ALLOCATE( temp_c( ngw ) )
+        temp_c = CMPLX(0.d0,0.d0)
+      ENDIF
+!!!end_added:giovanni
+      !
+      !     calculate csc(k)=-ilog(<cp(k)|T| cp(k)>)
+      kmax = n
+      rvector(:) = 2.d0*pi*a3(:)/20.d0*nunit
+      !
+!$omp parallel default(shared), private( temp, k, ig )
+
+!$omp do
+      IF(lgam) THEN
+        DO i =1,kmax
+         DO k = 1, kmax
+          csc(k,i) = CMPLX(0.0d0, 0.d0)
+	    IF ( ispin(i) .EQ. ispin(k) ) THEN
+	      DO ig = 1, ngw
+                 phase = exp(CMPLX(0.d0,gx(1, ig )*rvector(1)+gx(2, ig )*rvector(2)+gx(3, ig )*rvector(3)))
+		 temp(ig) =  DBLE(CONJG(cp(ig,k))*phase*cp(ig,i))
+	      END DO
+	      csc(k,i) = CMPLX(2.d0* SUM(temp,ngw),0.d0)
+	      IF (gstart == 2) csc(k,i) = csc(k,i) - CMPLX(temp(1), 0.d0)
+           ENDIF
+	 END DO
+        END DO
+      ELSE
+     !begin_added:giovanni
+	DO i = 1, kmax
+	 DO k = 1, kmax
+	  csc(k,i) = CMPLX(0.0d0,0.d0)
+	  IF ( ispin(i) .EQ. ispin(k) ) THEN
+	      DO ig = 1, ngw
+                 phase = exp(CMPLX(0.d0,gx(1, ig )*rvector(1)+gx(2, ig )*rvector(2)+gx(3, ig )*rvector(3)))
+		 temp_c(ig) = CONJG(cp(ig,k))*phase*cp(ig,i)
+	      END DO
+	      csc(k,i) = SUM(temp_c,ngw)
+	  ENDIF
+	 END DO
+        END DO
+      !end_added:giovanni
+      ENDIF
+!$omp end do
+      IF(lgam) THEN
+        DEALLOCATE( temp )
+      ELSE
+        DEALLOCATE( temp_c )
+      ENDIF
+!$omp end parallel
+
+      CALL mp_sum( csc( 1:kmax, 1:kmax), intra_image_comm )
+!       write(6,*) "bec", bec%rvec
+      RETURN
+      END SUBROUTINE scalar_character
+
+!-------------------------------------------------------------------------
+      SUBROUTINE gracsc( bec, nkbx, betae, cp, ngwx, i, csc, n, lgam) !added:giovanni lgam
+!-----------------------------------------------------------------------
+!     requires in input the updated bec(k) for k<i
+!     on output: bec(i) is recalculated
+!
+      USE ions_base,      ONLY: na
+      USE cvan,           ONLY :nvb, ish
+      USE uspp,           ONLY : nkb, nhsavb=>nkbus, qq
+      USE uspp_param,     ONLY:  nh
+      USE electrons_base, ONLY: ispin
+      USE gvecw,          ONLY: ngw
+      USE mp,             ONLY: mp_sum
+      USE mp_global,      ONLY: intra_image_comm
+      USE kinds,          ONLY: DP
+      USE reciprocal_vectors, ONLY: gstart
+      USE twin_types !added:giovanni
+!
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: i, nkbx, ngwx, n
+      COMPLEX(DP) :: betae( ngwx, nkb )
+      COMPLEX(DP)    :: cp(ngwx, n )
+      type(twin_matrix) :: bec!( nkbx, n )!modified:giovanni
+      COMPLEX(DP)    :: csc( n ) !modified:giovanni
+      LOGICAL :: lgam !added:giovanni
+      INTEGER :: k, kmax,ig, is, iv, jv, ia, inl, jnl
+      REAL(DP)    :: rsum
+      COMPLEX(DP) :: csum
+      REAL(DP), ALLOCATABLE :: temp(:)
+      COMPLEX(DP), ALLOCATABLE :: temp_c(:) !added:giovanni
+      REAL(DP) :: icoeff !added:giovanni
+      
+
+!!!begin_added:giovanni
+      IF(lgam) THEN 
+        ALLOCATE( temp(ngw ) )
+        temp = 0.d0
+      ELSE
+        ALLOCATE( temp_c( ngw ) )
+        temp_c = CMPLX(0.d0,0.d0)
+      ENDIF
+!!!end_added:giovanni
+      !
+      !     calculate csc(k)=<cp(i)|cp(k)>,  k<i --->  <cp(k)|cp(i)>
+      !
+      kmax = i - 1
+      !
+!$omp parallel default(shared), private( temp, k, ig )
+
+!$omp do
+      IF(lgam) THEN
+        DO k = 1, kmax
+          csc(k) = CMPLX(0.0d0, 0.d0)
+	  IF ( ispin(i) .EQ. ispin(k) ) THEN
+	      DO ig = 1, ngw
+		 temp(ig) =  DBLE(CONJG(cp(ig,i))*cp(ig,k))
+	      END DO
+	      csc(k) = CMPLX(2.d0* SUM(temp,ngw),0.d0)
+	      IF (gstart == 2) csc(k) = csc(k) - CMPLX(temp(1), 0.d0)
+	  ENDIF
+	END DO
+      ELSE
+     !begin_added:giovanni
+	DO k = 1, kmax
+	  csc(k) = CMPLX(0.0d0,0.d0)
+	  IF ( ispin(i) .EQ. ispin(k) ) THEN
+	      DO ig = 1, ngw
+		temp_c(ig) = CONJG(cp(ig,k))*cp(ig,i)
+	      END DO
+	      csc(k) = SUM(temp_c,ngw)
+	  ENDIF
+	END DO
+      !end_added:giovanni
+      ENDIF
+!$omp end do
+      IF(lgam) THEN
+        DEALLOCATE( temp )
+      ELSE
+        DEALLOCATE( temp_c )
+      ENDIF
+!$omp end parallel
+
+      CALL mp_sum( csc( 1:kmax ), intra_image_comm )
+      IF(lgam) THEN
+        ALLOCATE( temp(ngw) )
+      ELSE
+        ALLOCATE( temp_c(ngw) )
+      ENDIF
+      !
+      !     calculate bec(i)=<cp(i)|beta> NO:giovanni--> <beta|cp(i)>
+      !
+      IF(lgam) THEN
+	DO inl=1,nhsavb
+	  DO ig=1,ngw
+	      temp(ig)=DBLE(cp(ig,i)* CONJG(betae(ig,inl)))
+	  END DO
+	  bec%rvec(inl,i)=2.d0*SUM(temp)!modified:giovanni
+	  IF (gstart == 2) bec%rvec(inl,i)= bec%rvec(inl,i)-temp(1)!modified:giovanni
+	END DO
+        CALL mp_sum( bec%rvec( 1:nhsavb, i ), intra_image_comm )
+      ELSE
+!begin_added:giovanni
+	DO inl=1,nhsavb
+	  DO ig=1,ngw
+	      temp_c(ig)=cp(ig,i)*CONJG(betae(ig,inl))
+	  END DO
+          IF(bec%iscmplx) then
+	     bec%cvec(inl,i)=SUM(temp_c)
+          ELSE !added:giovanni:debug
+	     bec%rvec(inl,i)=DBLE(SUM(temp_c))
+          ENDIF
+	END DO
+        IF(bec%iscmplx) then
+          CALL mp_sum(bec%cvec( 1:nhsavb, i ),intra_image_comm)
+        ELSE
+          CALL mp_sum(bec%rvec( 1:nhsavb, i ),intra_image_comm)
+        ENDIF
+!end_added:giovanni
+      ENDIF
+
+!
+!     calculate csc(k)=<cp(i)|S|cp(k)>,  k<i -----> csc(k) = <cp(k)|S|cp(i)>
+!
+      IF(.not.bec%iscmplx) THEN
+	DO k=1,kmax
+	  IF (ispin(i).EQ.ispin(k)) THEN
+	      rsum=0.d0
+	      DO is=1,nvb
+		DO iv=1,nh(is)
+		    DO jv=1,nh(is)
+		      IF(ABS(qq(iv,jv,is)).GT.1.e-5) THEN 
+			  DO ia=1,na(is)
+			    inl=ish(is)+(iv-1)*na(is)+ia
+			    jnl=ish(is)+(jv-1)*na(is)+ia
+			    rsum = rsum + qq(iv,jv,is)*bec%rvec(inl,i)*bec%rvec(jnl,k)
+			  END DO
+		      ENDIF
+		    END DO
+		END DO
+	      END DO
+	      csc(k)=csc(k)+CMPLX(rsum,0.d0)
+	  ENDIF
+	END DO
+      ELSE 
+	DO k=1,kmax
+	  IF (ispin(i).EQ.ispin(k)) THEN
+	      csum=CMPLX(0.d0,0.d0)
+	      DO is=1,nvb
+		DO iv=1,nh(is)
+		    DO jv=1,nh(is)
+		      IF(ABS(qq(iv,jv,is)).GT.1.e-5) THEN 
+! write(6,*) "updating via qq" ! added
+			  DO ia=1,na(is)
+			    inl=ish(is)+(iv-1)*na(is)+ia
+			    jnl=ish(is)+(jv-1)*na(is)+ia
+			    csum = csum + CMPLX(qq(iv,jv,is),0.d0) * (bec%cvec(inl,i))*CONJG(bec%cvec(jnl,k))
+			  END DO
+		      ENDIF
+		    END DO
+		END DO
+	      END DO
+	      csc(k)=csc(k)+csum
+	  ENDIF
+	END DO
+      ENDIF
+!
+!     orthogonalized cp(i) : |cp(i)>=|cp(i)>-\sum_k<i csc(k)|cp(k)>
+!
+!     corresponing bec:  bec(i)=<cp(i)|beta>-(csc(k))*<cp(k)|beta>
+!
+      IF (.not.bec%iscmplx) THEN
+	DO k=1,kmax
+	  DO inl=1,nkbx
+	    bec%rvec(inl,i)=bec%rvec(inl,i)-DBLE(csc(k))*bec%rvec(inl,k)
+	  END DO
+	END DO
+      ELSE
+!begin_added:giovanni
+       DO k=1,kmax
+	  DO inl=1,nkbx
+	    bec%cvec(inl,i)=bec%cvec(inl,i)-(csc(k))*bec%cvec(inl,k)
+	  END DO
+	END DO
+!         write(6,*) "output complex bec", bec%cvec
+!end_added:giovanni
+      ENDIF
+
+      IF(lgam) THEN
+        DEALLOCATE( temp )
+      ELSE
+        DEALLOCATE( temp_c ) !added:giovanni
+      ENDIF
+!
+!       write(6,*) "bec", bec%rvec
+      RETURN
+      END SUBROUTINE gracsc
+
+!-------------------------------------------------------------------------
+      SUBROUTINE gracsc2( bec, nkbx, betae, cp, ngwx, i, k, csc, n, lgam) !added:giovanni lgam
+!-----------------------------------------------------------------------
+!     requires in input the updated bec(k) for k<i
+!     on output: bec(i) is recalculated
+!
+      USE ions_base,      ONLY: na
+      USE cvan,           ONLY :nvb, ish
+      USE uspp,           ONLY : nkb, nhsavb=>nkbus, qq
+      USE uspp_param,     ONLY:  nh
+      USE electrons_base, ONLY: ispin
+      USE gvecw,          ONLY: ngw
+      USE mp,             ONLY: mp_sum
+      USE mp_global,      ONLY: intra_image_comm
+      USE kinds,          ONLY: DP
+      USE reciprocal_vectors, ONLY: gstart
+      USE twin_types !added:giovanni
+!
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: i, nkbx, ngwx, n, k
+      COMPLEX(DP) :: betae( ngwx, nkb )
+      COMPLEX(DP)    :: cp( ngwx, n )
+      type(twin_matrix) :: bec!( nkbx, n )!modified:giovanni
+      COMPLEX(DP)    :: csc( n ) !modified:giovanni
+      LOGICAL :: lgam !added:giovanni
+      INTEGER :: ig, is, iv, jv, ia, inl, jnl
+      REAL(DP)    :: rsum
+      COMPLEX(DP) :: csum
+      REAL(DP), ALLOCATABLE :: temp(:)
+      COMPLEX(DP), ALLOCATABLE :: temp_c(:) !added:giovanni
+      REAL(DP) :: icoeff !added:giovanni
+      
+
+!!!begin_added:giovanni
+      IF(lgam) THEN 
+        ALLOCATE( temp(ngw ) )
+        temp = 0.d0
+      ELSE
+        ALLOCATE( temp_c( ngw ) )
+        temp_c = CMPLX(0.d0,0.d0)
+      ENDIF
+!!!end_added:giovanni
+      !
+      !     calculate csc(k)=<cp(i)|cp(k)>,  k<i
+      !
+!$omp parallel default(shared), private( temp, k, ig )
+
+!$omp do
+      
+      IF(lgam) THEN
+	csc(k) = CMPLX(0.0d0, 0.d0)
+	IF ( ispin(i) .EQ. ispin(k) ) THEN
+	    DO ig = 1, ngw
+		temp(ig) =  DBLE(CONJG(cp(ig,k))*cp(ig,i))
+	    END DO
+	    csc(k) = CMPLX(2.d0* SUM(temp,ngw),0.d0)
+	    IF (gstart == 2) csc(k) = csc(k) - CMPLX(temp(1), 0.d0)
+	ENDIF
+      ELSE
+     !begin_added:giovanni
+	csc(k) = CMPLX(0.0d0,0.d0)
+	IF ( ispin(i) .EQ. ispin(k) ) THEN
+	    DO ig = 1, ngw
+	      temp_c(ig) = CONJG(cp(ig,k))*cp(ig,i)
+! cmplx(cp(1,ig,k) * cp(1,ig,i) + cp(2,ig,k) * cp(2,ig,i),  &
+!                                       cp(1,ig,k) * cp(2,ig,i) - cp(2,ig,k) * cp(1,ig,i), DP)
+	    END DO
+	    csc(k) = SUM(temp_c,ngw)
+	ENDIF
+      !end_added:giovanni
+      ENDIF
+!$omp end do
+      IF(lgam) THEN
+        DEALLOCATE( temp )
+      ELSE
+        DEALLOCATE( temp_c )
+      ENDIF
+!$omp end parallel
+
+      CALL mp_sum( csc( k ), intra_image_comm )
+      IF(lgam) THEN
+        ALLOCATE( temp(ngw) )
+      ELSE
+        ALLOCATE( temp_c(ngw) )
+      ENDIF
       !
       !     calculate bec(i)=<cp(i)|beta>
       !
-      DO inl=1,nhsavb
-         DO ig=1,ngw
-            temp(ig)=cp(1,ig,i)* DBLE(betae(ig,inl))+             &
-     &               cp(2,ig,i)*AIMAG(betae(ig,inl))
-         END DO
-         bec(inl,i)=2.d0*SUM(temp)
-         IF (gstart == 2) bec(inl,i)= bec(inl,i)-temp(1)
-      END DO
+      IF(lgam) THEN
+	DO inl=1,nhsavb
+	  DO ig=1,ngw
+	      temp(ig)=DBLE(CONJG(cp(ig,i))* betae(ig,inl))
+	  END DO
+	  bec%rvec(inl,i)=SUM(temp)!modified:giovanni
+	  IF (gstart == 2) bec%rvec(inl,i)= bec%rvec(inl,i)-temp(1)!modified:giovanni
+	END DO
+        CALL mp_sum( bec%rvec( 1:nhsavb, i ), intra_image_comm )
+      ELSE
+!begin_added:giovanni
+	DO inl=1,nhsavb
+	  DO ig=1,ngw
+	      temp_c(ig)= CONJG(cp(ig,i))*betae(ig,inl)
+! cmplx(cp(1,ig,i)* DBLE(betae(ig,inl)) +      &
+!       &               cp(2,ig,i)*AIMAG(betae(ig,inl)),                &
+!       &               cp(1,ig,i)*AIMAG(betae(ig,inl))-                &
+!       &               cp(2,ig,i)*DBLE(betae(ig,inl)), DP)
+	  END DO
+          IF(bec%iscmplx) then
+	     bec%cvec(inl,i)=SUM(temp_c)
+          ELSE !added:giovanni:debug
+	     bec%rvec(inl,i)=DBLE(SUM(temp_c))
+          ENDIF
+	END DO
+        IF(bec%iscmplx) then
+          CALL mp_sum(bec%cvec( 1:nhsavb, i ),intra_image_comm)
+        ELSE
+          CALL mp_sum(bec%rvec( 1:nhsavb, i ),intra_image_comm)
+        ENDIF
+!end_added:giovanni
+      ENDIF
 
-      CALL mp_sum( bec( 1:nhsavb, i ), intra_image_comm )
 !
 !     calculate csc(k)=<cp(i)|S|cp(k)>,  k<i
 !
-      DO k=1,kmax
-         IF (ispin(i).EQ.ispin(k)) THEN
-            rsum=0.d0
-            DO is=1,nvb
-               DO iv=1,nh(is)
-                  DO jv=1,nh(is)
-                     IF(ABS(qq(iv,jv,is)).GT.1.e-5) THEN 
-                        DO ia=1,na(is)
-                           inl=ish(is)+(iv-1)*na(is)+ia
-                           jnl=ish(is)+(jv-1)*na(is)+ia
-                           rsum = rsum + qq(iv,jv,is)*bec(inl,i)*bec(jnl,k)
-                        END DO
-                     ENDIF
-                  END DO
-               END DO
-            END DO
-            csc(k)=csc(k)+rsum
-         ENDIF
-      END DO
+      IF(.not.bec%iscmplx) THEN
+	IF (ispin(i).EQ.ispin(k)) THEN
+	    rsum=0.d0
+	    DO is=1,nvb
+	      DO iv=1,nh(is)
+		  DO jv=1,nh(is)
+		    IF(ABS(qq(iv,jv,is)).GT.1.e-5) THEN 
+			DO ia=1,na(is)
+			  inl=ish(is)+(iv-1)*na(is)+ia
+			  jnl=ish(is)+(jv-1)*na(is)+ia
+			  rsum = rsum + qq(iv,jv,is)*bec%rvec(inl,i)*bec%rvec(jnl,k)
+			END DO
+		    ENDIF
+		  END DO
+	      END DO
+	    END DO
+	    csc(k)=csc(k)+CMPLX(rsum,0.d0)
+	ENDIF
+      ELSE 
+	IF (ispin(i).EQ.ispin(k)) THEN
+	    csum=CMPLX(0.d0,0.d0)
+	    DO is=1,nvb
+	      DO iv=1,nh(is)
+		  DO jv=1,nh(is)
+		    IF(ABS(qq(iv,jv,is)).GT.1.e-5) THEN 
+			DO ia=1,na(is)
+			  inl=ish(is)+(iv-1)*na(is)+ia
+			  jnl=ish(is)+(jv-1)*na(is)+ia
+			  csum = csum + CMPLX(qq(iv,jv,is),0.d0)*CONJG(bec%cvec(inl,i))*(bec%cvec(jnl,k))
+			END DO
+		    ENDIF
+		  END DO
+	      END DO
+	    END DO
+	    csc(k)=csc(k)+csum
+	ENDIF
+      ENDIF
 !
 !     orthogonalized cp(i) : |cp(i)>=|cp(i)>-\sum_k<i csc(k)|cp(k)>
 !
 !     corresponing bec:  bec(i)=<cp(i)|beta>-csc(k)<cp(k)|beta>
 !
-      DO k=1,kmax
-          DO inl=1,nkbx
-            bec(inl,i)=bec(inl,i)-csc(k)*bec(inl,k)
-         END DO
-      END DO
+      IF (.not.bec%iscmplx) THEN
+	DO inl=1,nkbx
+	  bec%rvec(inl,i)=bec%rvec(inl,i)-DBLE(csc(k))*bec%rvec(inl,k)
+	END DO
+      ELSE
+!begin_added:giovanni
+	DO inl=1,nkbx
+	  bec%cvec(inl,i)=bec%cvec(inl,i)-CONJG(csc(k))*bec%cvec(inl,k)
+	END DO
+!end_added:giovanni
+      ENDIF
 
-      DEALLOCATE( temp )
+      IF(lgam) THEN
+        DEALLOCATE( temp )
+      ELSE
+        DEALLOCATE( temp_c ) !added:giovanni
+      ENDIF
 !
       RETURN
-      END SUBROUTINE gracsc
-
+      END SUBROUTINE gracsc2
 
 !-------------------------------------------------------------------------
-      SUBROUTINE smooth_csv( c, v, ngwx, csv, n )
+      SUBROUTINE smooth_csv_real( c, v, ngwx, csv, n )
 !-----------------------------------------------------------------------
 
       USE gvecw,              ONLY: ngw
@@ -705,11 +1322,64 @@ END FUNCTION
       DEALLOCATE( temp )
 !
       RETURN
-      END SUBROUTINE smooth_csv
-
+      END SUBROUTINE smooth_csv_real
 
 !-------------------------------------------------------------------------
-      SUBROUTINE grabec( becc, nkbx, betae, c, ngwx )
+      SUBROUTINE smooth_csv_twin( c, v, ngwx, csv, n )
+!-----------------------------------------------------------------------
+
+      USE gvecw,              ONLY: ngw
+      USE kinds,              ONLY: DP
+      USE reciprocal_vectors, ONLY: gstart
+      USE twin_types
+!
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: ngwx, n
+      COMPLEX(DP)    :: c( ngwx )
+      COMPLEX(DP)    :: v( ngwx, n )
+      type(twin_matrix)    :: csv !( n )
+!       LOGICAL :: lgam
+      INTEGER     :: k, ig
+      REAL(DP), ALLOCATABLE :: temp(:) 
+      COMPLEX(DP), ALLOCATABLE :: temp_c(:) 
+      !
+      !     calculate csv(k)=<c|v(k)>
+      !
+      IF(.not.csv%iscmplx) THEN
+	ALLOCATE( temp( ngw ) )
+      ELSE
+	ALLOCATE( temp_c( ngw ) )
+      ENDIF
+
+      IF(.not.csv%iscmplx) THEN
+	DO k = 1, n
+	  DO ig = 1, ngw
+	      temp(ig) = DBLE(CONJG(v(ig,k)) * c(ig) )
+	  END DO
+	  csv%rvec(k,1) = 2.0d0 * SUM(temp)
+	  IF (gstart == 2) csv%rvec(k,1) = csv%rvec(k,1) - temp(1)
+	END DO
+      ELSE
+	DO k = 1, n
+	  DO ig = 1, ngw
+	      temp_c(ig) = CONJG(v(ig,k)) * c(ig)
+	  END DO
+	  csv%cvec(k,1) = SUM(temp_c)
+	END DO
+      ENDIF
+
+      IF(.not.csv%iscmplx) THEN
+	  DEALLOCATE( temp )
+      ELSE
+	  DEALLOCATE( temp_c )
+      ENDIF
+!
+      RETURN
+      END SUBROUTINE smooth_csv_twin
+
+!-------------------------------------------------------------------------
+      SUBROUTINE grabec_real( becc, nkbx, betae, c, ngwx )
 !-----------------------------------------------------------------------
       !
       !     on output: bec(i) is recalculated
@@ -743,11 +1413,60 @@ END FUNCTION
       DEALLOCATE( temp )
 
       RETURN
-      END SUBROUTINE grabec
-
+      END SUBROUTINE grabec_real
 
 !-------------------------------------------------------------------------
-      SUBROUTINE bec_csv( becc, becv, nkbx, csv, n )
+      SUBROUTINE grabec_twin( becc, nkbx, betae, c, ngwx, l2_bec)
+!-----------------------------------------------------------------------
+      !
+      !     on output: bec(i) is recalculated
+      !
+      USE uspp,           ONLY : nkb, nhsavb=>nkbus
+      USE gvecw,          ONLY: ngw
+      USE kinds,          ONLY: DP
+      USE reciprocal_vectors, ONLY: gstart
+      USE twin_types
+!
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: nkbx, ngwx, l2_bec
+      COMPLEX(DP) :: betae( ngwx, nkb )
+      LOGICAL :: lgam
+      COMPLEX(DP)    ::  c( 1, ngwx )
+      type(twin_matrix) :: becc !( nkbx ),
+      INTEGER     :: ig, inl
+      REAL(DP), ALLOCATABLE :: temp(:)
+      COMPLEX(DP), ALLOCATABLE :: temp_c(:) 
+      !
+      !
+      !     calculate becc=<c|beta>
+      !
+      IF(.not.becc%iscmplx) THEN
+	ALLOCATE( temp( ngw ) )
+	DO inl=1,nhsavb
+	  DO ig=1,ngw
+	      temp(ig)=DBLE(CONJG(c(1,ig))* betae(ig,inl))
+	  END DO
+	  becc%rvec(inl,l2_bec)=2.d0*SUM(temp)
+	  IF (gstart == 2) becc%rvec(inl, l2_bec)= becc%rvec(inl, l2_bec)-temp(1)
+	END DO
+	DEALLOCATE( temp )
+      ELSE
+ 	ALLOCATE( temp_c( ngw ) )
+	DO inl=1,nhsavb
+	  DO ig=1,ngw
+	      temp_c(ig)=CONJG(c(1,ig))*betae(ig,inl)
+	  END DO
+	  becc%cvec(inl,l2_bec)=SUM(temp_c)
+        END DO
+        DEALLOCATE( temp_c )
+      ENDIF
+
+      RETURN
+      END SUBROUTINE grabec_twin
+
+!-------------------------------------------------------------------------
+      SUBROUTINE bec_csv_real( becc, becv, nkbx, csv, n )
 !-----------------------------------------------------------------------
 !     requires in input the updated becc and becv(k)
 !     on output: csv is updated
@@ -788,8 +1507,72 @@ END FUNCTION
       END DO
 !
       RETURN
-      END SUBROUTINE bec_csv
+      END SUBROUTINE bec_csv_real
+!-------------------------------------------------------------------------
+      SUBROUTINE bec_csv_twin( becc, becv, nkbx, csv, n, lcc )
+!-----------------------------------------------------------------------
+!     requires in input the updated becc and becv(k)
+!     on output: csv is updated
+!
+      USE ions_base,      ONLY: na
+      USE cvan,           ONLY :nvb, ish
+      USE uspp,           ONLY : nkb, nhsavb=>nkbus, qq
+      USE uspp_param,     ONLY:  nh
+      USE kinds,          ONLY: DP
+      USE twin_types
+!
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: nkbx, n, lcc
+      type(twin_matrix)    :: becc!( nkbx )
+      type(twin_matrix)    :: becv!( nkbx, n )
+      type(twin_matrix)    :: csv!( n )
+      INTEGER     :: k, is, iv, jv, ia, inl, jnl
+      REAL(DP)    :: rsum
+      COMPLEX(DP) :: csum
 
+!     calculate csv(k) = csv(k) + <c| SUM_nm |beta(n)><beta(m)|v(k)>,  k<i
+!
+      IF(.not.csv%iscmplx) THEN
+	DO k=1,n
+	      rsum=0.d0
+	      DO is=1,nvb
+		DO iv=1,nh(is)
+		    DO jv=1,nh(is)
+		      IF(ABS(qq(iv,jv,is)).GT.1.e-5) THEN 
+			  DO ia=1,na(is)
+			    inl=ish(is)+(iv-1)*na(is)+ia
+			    jnl=ish(is)+(jv-1)*na(is)+ia
+			    rsum = rsum + qq(iv,jv,is)*becc%rvec(inl, lcc)*becv%rvec(jnl,k)
+			  END DO
+		      ENDIF
+		    END DO
+		END DO
+	      END DO
+	      csv%rvec(k,1)=csv%rvec(k,1)+rsum
+	END DO
+      ELSE
+	DO k=1,n
+	      csum=CMPLX(0.d0,0.d0)
+	      DO is=1,nvb
+		DO iv=1,nh(is)
+		    DO jv=1,nh(is)
+		      IF(ABS(qq(iv,jv,is)).GT.1.e-5) THEN 
+			  DO ia=1,na(is)
+			    inl=ish(is)+(iv-1)*na(is)+ia
+			    jnl=ish(is)+(jv-1)*na(is)+ia
+			    csum = csum + qq(iv,jv,is)*(becc%cvec(inl, lcc))*CONJG(becv%cvec(jnl,k))
+			  END DO
+		      ENDIF
+		    END DO
+		END DO
+	      END DO
+	      csv%cvec(k,1)=csv%cvec(k,1)+csum
+	END DO
+      ENDIF
+!
+      RETURN
+      END SUBROUTINE bec_csv_twin
 
 !$$
 !----------------------------------------------------------------------
@@ -978,40 +1761,57 @@ END FUNCTION
       USE uspp,           ONLY : nkb, nhsavb=> nkbus
       USE gvecw,          ONLY : ngw
       USE kinds,          ONLY : DP
+      USE control_flags,  ONLY : gamma_only, do_wf_cmplx !added:giovanni
+      USE twin_types !added:giovanni
 !
       IMPLICIT NONE
 !
       INTEGER, INTENT(IN) :: nkbx, ngwx, n
-      REAL(DP)      :: bec( nkbx, n )
+      type(twin_matrix)   :: bec!( nkbx, n )!modified:giovanni
       COMPLEX(DP)   :: cp( ngwx, n ), betae( ngwx, nkb )
 !
       REAL(DP) :: anorm, cscnorm
-      REAL(DP), ALLOCATABLE :: csc( : )
+      COMPLEX(DP), ALLOCATABLE :: csc( : ) !modified:giovanni
       INTEGER :: i,k
+      LOGICAL :: lgam !added:giovanni
       EXTERNAL cscnorm
+
+      lgam=gamma_only.and..not.do_wf_cmplx !added:giovanni
+      
 !
       CALL start_clock( 'gram' )
-
+!       write(6,*) bec%rvec !added:giovanni:debug
+!       stop
       ALLOCATE( csc( n ) )
+      csc=CMPLX(0.d0,0.d0)
 !
       DO i = 1, n
          !
-         CALL gracsc( bec, nkbx, betae, cp, ngwx, i, csc, n )
+         CALL gracsc( bec, nkbx, betae, cp, ngwx, i, csc, n, lgam )!added:giovanni lgam
          !
          ! calculate orthogonalized cp(i) : |cp(i)>=|cp(i)>-\sum_k<i csc(k)|cp(k)>
          !
          DO k = 1, i - 1
-            CALL DAXPY( 2*ngw, -csc(k), cp(1,k), 1, cp(1,i), 1 )
+            CALL ZAXPY(ngw,-csc(k),cp(1,k),1,cp(1,i),1)!modified:giovanni
          END DO
-         anorm = cscnorm( bec, nkbx, cp, ngwx, i, n )
-         CALL DSCAL( 2*ngw, 1.0d0/anorm, cp(1,i), 1 )
+         anorm = cscnorm( bec, nkbx, cp, ngwx, i, n, lgam)
+         CALL ZSCAL( ngw, CMPLX(1.0d0/anorm,0.d0) , cp(1,i), 1 )
+         !
+
          !
          !         these are the final bec's
          !
-         IF (nkbx > 0 ) CALL DSCAL( nkbx, 1.0d0/anorm, bec(:,i), 1 )
-         ! 
+         IF (nkbx > 0 ) THEN
+            IF(.not.bec%iscmplx) THEN
+              CALL DSCAL( nkbx, 1.0d0/anorm, bec%rvec(1:nkbx,i), 1 )!modified:giovanni
+            ELSE
+              CALL ZSCAL( nkbx, CMPLX(1.0d0/anorm,0.d0) , bec%cvec(1:nkbx,i), 1 )!added:giovanni
+            ENDIF
+         ENDIF
+
       END DO
 !
+!       write(6,*) "csc_giovanni_debug", csc !added:giovanni:debug
       DEALLOCATE( csc )
 
       CALL stop_clock( 'gram' )
@@ -1019,6 +1819,76 @@ END FUNCTION
       RETURN
       END SUBROUTINE gram
 !
+!-------------------------------------------------------------------------
+      SUBROUTINE gram2( betae, bec, nkbx, cp, ngwx, n )
+!-----------------------------------------------------------------------
+!     gram-schmidt orthogonalization of the set of wavefunctions cp
+!
+      USE uspp,           ONLY : nkb, nhsavb=> nkbus
+      USE gvecw,          ONLY : ngw
+      USE kinds,          ONLY : DP
+      USE control_flags,  ONLY : gamma_only, do_wf_cmplx !added:giovanni
+      USE twin_types !added:giovanni
+!
+      IMPLICIT NONE
+!
+      INTEGER, INTENT(IN) :: nkbx, ngwx, n
+      type(twin_matrix)   :: bec!( nkbx, n )!modified:giovanni
+      COMPLEX(DP)   :: cp( ngwx, n ), betae( ngwx, nkb )
+!
+      REAL(DP) :: anorm, cscnorm
+      COMPLEX(DP), ALLOCATABLE :: csc( : ) !modified:giovanni
+      INTEGER :: i,k,j
+      LOGICAL :: lgam !added:giovanni
+      EXTERNAL cscnorm
+
+      lgam=gamma_only.and..not.do_wf_cmplx !added:giovanni
+      
+!
+      CALL start_clock( 'gram' )
+
+      ALLOCATE( csc( n ) )
+      csc=CMPLX(0.d0,0.d0)
+!
+      DO i = 1, n
+         DO k=1,i-1
+         !
+           CALL gracsc2( bec, nkbx, betae, cp, ngwx, i, k, csc, n, lgam )!added:giovanni lgam
+           anorm = cscnorm( bec, nkbx, cp, ngwx, k, n, lgam)
+           !
+           ! calculate orthogonalized cp(i) : |cp(i)>=|cp(i)>-\sum_k<i csc(k)|cp(k)>
+           !
+           CALL ZAXPY(ngw,-csc(k)*CMPLX(1/anorm,0.d0),cp(1,k),1,cp(1,i),1)!modified:giovanni
+         END DO
+         anorm = cscnorm( bec, nkbx, cp, ngwx, i, n, lgam)
+         CALL ZSCAL( ngw, CMPLX(1.0d0/anorm,0.d0), cp(1,i), 1 )
+         !
+
+         !
+         !         these are the final bec's
+         !
+         IF (nkbx > 0 ) THEN
+            IF(.not.bec%iscmplx) THEN
+              CALL DSCAL( nkbx, 1.0d0/anorm, bec%rvec(1:nkbx,i), 1 )!modified:giovanni
+            ELSE
+              CALL ZSCAL( nkbx, CMPLX(1.0d0/anorm,0.d0), bec%cvec(1:nkbx,i), 1 )!added:giovanni
+            ENDIF
+         ENDIF
+
+      END DO
+!
+         Do i=1,n
+         DO k=1,i
+             write(6,*)  dot_product(conjg(cp(:,i)),cp(:,k))
+         ENDDO
+         ENDDO
+      DEALLOCATE( csc )
+
+      CALL stop_clock( 'gram' )
+!
+      RETURN
+      END SUBROUTINE gram2
+
 !-----------------------------------------------------------------------
       SUBROUTINE initbox ( tau0, taub, irb, ainv, a1, a2, a3 )
 !-----------------------------------------------------------------------
@@ -1178,6 +2048,7 @@ END FUNCTION
       USE mp_global,                ONLY: intra_image_comm
       USE cp_interfaces,            ONLY: invfft
       USE fft_base,                 ONLY: dfftb
+      USE control_flags,        ONLY: gamma_only, do_wf_cmplx !added:giovanni
 !
       IMPLICIT NONE
 ! input
@@ -1192,15 +2063,23 @@ END FUNCTION
       REAL(DP)  fvan(3,nat,nvb), fac, fac1, fac2, boxdotgrid
       COMPLEX(DP) ci, facg1, facg2
       COMPLEX(DP), ALLOCATABLE :: qv(:)
+      LOGICAL :: lgam !added:giovanni
+      INTEGER :: istep !added:giovanni
       EXTERNAL boxdotgrid
 !
       CALL start_clock( 'newd' )
+      lgam=gamma_only.and..not.do_wf_cmplx
       ci=(0.d0,1.d0)
       fac=omegab/DBLE(nr1b*nr2b*nr3b)
       deeq (:,:,:,:) = 0.d0
       fvan (:,:,:) = 0.d0
 
       ALLOCATE( qv( nnrb ) )
+      IF(lgam) THEN
+	istep=2
+      ELSE
+	istep=2
+      ENDIF
 !
 ! calculation of deeq_i,lm = \int V_eff(r) q_i,lm(r) dr
 !
@@ -1211,8 +2090,8 @@ END FUNCTION
             nfft=1
             IF ( dfftb%np3( isa ) <= 0 ) go to 15
 #else
-         DO ia=1,na(is),2
-            nfft=2
+         DO ia=1,na(is),istep
+            nfft=istep
 #endif
             IF( ia .EQ. na(is) ) nfft=1
 !
@@ -1232,11 +2111,19 @@ END FUNCTION
      &                               eigrb(ig,isa+1)*qgb(ig,ijv,is))
                      END DO
                   ELSE
-                     DO ig=1,ngb
-                        qv(npb(ig)) = eigrb(ig,isa)*qgb(ig,ijv,is)
-                        qv(nmb(ig)) = CONJG(                            &
-     &                                eigrb(ig,isa)*qgb(ig,ijv,is))
-                     END DO
+!                      IF(lgam) THEN
+		      DO ig=1,ngb
+			  qv(npb(ig)) = eigrb(ig,isa)*qgb(ig,ijv,is)
+			  qv(nmb(ig)) = CONJG(                            &
+      &                                eigrb(ig,isa)*qgb(ig,ijv,is))
+		      END DO
+!                     ELSE
+!                      DO ig=1,ngb
+!                         qv(npb(ig)) = eigrb(ig,isa)*qgb(ig,ijv,is)
+! 			  qv(nmb(ig)) = CONJG(                            &
+!       &                                eigrb(ig,isa)*qgb(ig,ijv,is))
+!                      END DO
+!                     ENDIF
                   END IF
 !
                   CALL invfft('Box',qv,dfftb,isa)
@@ -1279,8 +2166,8 @@ END FUNCTION
                nfft=1
                IF ( dfftb%np3( isa ) <= 0 ) go to 20
 #else
-            DO ia=1,na(is),2
-               nfft=2
+            DO ia=1,na(is),istep
+               nfft=istep
 #endif
                IF( ia.EQ.na(is)) nfft=1
                DO ik=1,3
@@ -1311,14 +2198,23 @@ END FUNCTION
      &                                +ci*CONJG(eigrb(ig,isa+1)*facg2)
                            END DO
                         ELSE
-                           DO ig=1,ngb
-                              facg1 = CMPLX(0.d0,-gxb(ik,ig)) *         &
-     &                                   qgb(ig,ijv,is)*fac1
-                              qv(npb(ig)) = qv(npb(ig))                 &
-     &                                    +    eigrb(ig,isa)*facg1
-                              qv(nmb(ig)) = qv(nmb(ig))                 &
-     &                               +  CONJG( eigrb(ig,isa)*facg1)
-                           END DO
+!                            IF(lgam) THEN
+			    DO ig=1,ngb
+				facg1 = CMPLX(0.d0,-gxb(ik,ig)) *         &
+      &                                   qgb(ig,ijv,is)*fac1
+				qv(npb(ig)) = qv(npb(ig))                 &
+      &                                    +    eigrb(ig,isa)*facg1
+				qv(nmb(ig)) = qv(nmb(ig))                 &
+      &                               +  CONJG( eigrb(ig,isa)*facg1)
+                            END DO
+!                            ELSE
+! 				facg1 = CMPLX(0.d0,-gxb(ik,ig)) *         &
+!       &                                   qgb(ig,ijv,is)*fac1
+! 				qv(npb(ig)) = qv(npb(ig))                 &
+!       &                                    +    eigrb(ig,isa)*facg1
+! 				qv(nmb(ig)) = qv(nmb(ig))                 &
+!       &                               +  CONJG( eigrb(ig,isa)*facg1)
+!                            ENDIF
                         END IF
                      END DO
                   END DO
@@ -1359,6 +2255,7 @@ END FUNCTION
                            fac1=     fac*tpibab*rhovan(ijv,isa,isup)
                            fac2=     fac*tpibab*rhovan(ijv,isa,isdw)
                         END IF
+!                         IF(lgam) THEN
                         DO ig=1,ngb
                            facg1 = fac1 * CMPLX(0.d0,-gxb(ik,ig)) *     &
      &                                qgb(ig,ijv,is) * eigrb(ig,isa)
@@ -1369,6 +2266,18 @@ END FUNCTION
                            qv(nmb(ig)) = qv(nmb(ig))                    &
      &                                    +CONJG(facg1)+ci*CONJG(facg2)
                         END DO
+!                         ELSE
+! 			  DO ig=1,ngb
+! 			    facg1 = fac1 * CMPLX(0.d0,-gxb(ik,ig)) *     &
+!       &                                qgb(ig,ijv,is) * eigrb(ig,isa)
+! 			    facg2 = fac2 * CMPLX(0.d0,-gxb(ik,ig)) *     &
+!       &                                qgb(ig,ijv,is) * eigrb(ig,isa)
+! 			    qv(npb(ig)) = qv(npb(ig))                    &
+!       &                                    + facg1 + ci*facg2
+!                            qv(nmb(ig)) = qv(nmb(ig))                    &
+!      &                                    +CONJG(facg1)+ci*CONJG(facg2)
+! 			  END DO
+!                         ENDIF
                      END DO
                   END DO
 !
@@ -1403,7 +2312,7 @@ END FUNCTION
 
 
 !-------------------------------------------------------------------------
-      SUBROUTINE nlfl(bec,becdr,lambda,fion)
+      SUBROUTINE nlfl_real(bec,becdr,lambda,fion)
 !-----------------------------------------------------------------------
 !     contribution to fion due to the orthonormality constraint
 ! 
@@ -1512,11 +2421,199 @@ END FUNCTION
       !
       RETURN
 
-      END SUBROUTINE nlfl
+      END SUBROUTINE nlfl_real
 
+!-------------------------------------------------------------------------
+      SUBROUTINE nlfl_twin(bec,becdr,lambda,fion, lgam2)
+!-----------------------------------------------------------------------
+!     contribution to fion due to the orthonormality constraint
+! 
+!
+      USE kinds,             ONLY: DP
+      USE io_global,         ONLY: stdout
+      USE ions_base,         ONLY: na, nsp, nat
+      USE uspp,              ONLY: nhsa=>nkb, qq
+      USE uspp_param,        ONLY: nhm, nh
+      USE cvan,              ONLY: ish, nvb
+      USE electrons_base,    ONLY: nbspx, nbsp, nudx, nspin, iupdwn, nupdwn
+      USE constants,         ONLY: pi, fpi
+      USE cp_main_variables, ONLY: nlam, nlax, descla, la_proc
+      USE descriptors,       ONLY: nlar_ , nlac_ , ilar_ , ilac_ 
+      USE mp,                ONLY: mp_sum
+      USE mp_global,         ONLY: intra_image_comm
+      USE twin_types !added:giovanni
+!
+      IMPLICIT NONE
 
+      type(twin_matrix), dimension(nspin) :: lambda
+      REAL(DP) fion(3,nat)
+      TYPE(twin_matrix) :: bec
+      TYPE(twin_tensor) :: becdr
+      LOGICAL :: lgam2
+!
+      INTEGER :: k, is, ia, iv, jv, i, j, inl, isa, iss, nss, istart, ir, ic, nr, nc
+      REAL(DP), ALLOCATABLE :: temp(:,:), tmpbec(:,:),tmpdr(:,:)
+      COMPLEX(DP), ALLOCATABLE :: temp_c(:,:), tmpbec_c(:,:), tmpdr_c(:,:)
+      REAL(DP), ALLOCATABLE :: fion_tmp(:,:)
+      LOGICAL :: lgam
+      COMPLEX(DP), PARAMETER :: c_one=CMPLX(1.d0,0.d0), c_zero=CMPLX(0.d0,0.d0)
+      !
+      CALL start_clock( 'nlfl' )
+      !
+      lgam=lgam2.or..not.bec%iscmplx
+      ALLOCATE( fion_tmp( 3, nat ) )
+      !
+      fion_tmp = 0.0d0
+      !
+      IF(lgam) THEN
+         ALLOCATE( temp( nlax, nlax ), tmpbec( nhm, nlax ), tmpdr( nlax, nhm ) )
+      ELSE
+         ALLOCATE( temp_c( nlax, nlax ), tmpbec_c( nhm, nlax ), tmpdr_c( nlax, nhm ) )
+      ENDIF
 
+      IF(lgam) THEN
+	  DO k=1,3
+	    isa = 0
+	    DO is=1,nvb
+		DO ia=1,na(is)
+		  isa = isa + 1
+		  !
+		  DO iss = 1, nspin
+		      !
+		      nss = nupdwn( iss )
+		      istart = iupdwn( iss )
+		      !
+		      tmpbec = 0.d0
+		      tmpdr  = 0.d0
+    !
+		      IF( la_proc ) THEN
+			! tmpbec distributed by columns
+			ic = descla( ilac_ , iss )
+			nc = descla( nlac_ , iss )
+			DO iv=1,nh(is)
+			    DO jv=1,nh(is)
+			      inl=ish(is)+(jv-1)*na(is)+ia
+			      IF(ABS(qq(iv,jv,is)).GT.1.e-5) THEN
+				  DO i=1,nc
+				    tmpbec(iv,i)=tmpbec(iv,i) + qq(iv,jv,is)*bec%rvec(inl,i+istart-1+ic-1)
+				  END DO
+			      ENDIF
+			    END DO
+			END DO
+			! tmpdr distributed by rows
+			ir = descla( ilar_ , iss )
+			nr = descla( nlar_ , iss )
+			DO iv=1,nh(is)
+			    inl=ish(is)+(iv-1)*na(is)+ia
+			    DO i=1,nr
+			      tmpdr(i,iv)=becdr%rvec(inl,i+(iss-1)*nlax,k)
+			    END DO
+			END DO
+		      END IF
+    !
+		      IF(nh(is).GT.0)THEN
+			!
+			IF( la_proc ) THEN
+			    ir = descla( ilar_ , iss )
+			    ic = descla( ilac_ , iss )
+			    nr = descla( nlar_ , iss )
+			    nc = descla( nlac_ , iss )
+			    CALL DGEMM( 'N', 'N', nr, nc, nh(is), 1.0d0, tmpdr, nlax, tmpbec, nhm, 0.0d0, temp, nlax )
+			    DO j = 1, nc
+			      DO i = 1, nr
+				  fion_tmp(k,isa) = fion_tmp(k,isa) + 2D0 * temp( i, j ) * lambda(iss)%rvec( i, j )
+			      END DO
+			    END DO
+			END IF
+    !
+		      ENDIF
 
+		  END DO
+    !
+		END DO
+	    END DO
+	  END DO
+      ELSE
+	  DO k=1,3
+	    isa = 0
+	    DO is=1,nvb
+		DO ia=1,na(is)
+		  isa = isa + 1
+		  !
+		  DO iss = 1, nspin
+		      !
+		      nss = nupdwn( iss )
+		      istart = iupdwn( iss )
+		      !
+		      tmpbec_c = CMPLX(0.d0,0.d0)
+		      tmpdr_c  = CMPLX(0.d0,0.d0)
+    !
+		      IF( la_proc ) THEN
+			! tmpbec distributed by columns
+			ic = descla( ilac_ , iss )
+			nc = descla( nlac_ , iss )
+			DO iv=1,nh(is)
+			    DO jv=1,nh(is)
+			      inl=ish(is)+(jv-1)*na(is)+ia
+			      IF(ABS(qq(iv,jv,is)).GT.1.e-5) THEN
+				  DO i=1,nc
+				    tmpbec_c(iv,i)=tmpbec_c(iv,i) + qq(iv,jv,is)*bec%cvec(inl,i+istart-1+ic-1)
+				  END DO
+			      ENDIF
+			    END DO
+			END DO
+			! tmpdr distributed by rows
+			ir = descla( ilar_ , iss )
+			nr = descla( nlar_ , iss )
+			DO iv=1,nh(is)
+			    inl=ish(is)+(iv-1)*na(is)+ia
+			    DO i=1,nr
+			      tmpdr_c(i,iv)=becdr%cvec(inl,i+(iss-1)*nlax,k)
+			    END DO
+			END DO
+		      END IF
+    !
+		      IF(nh(is).GT.0)THEN
+			!
+			IF( la_proc ) THEN
+			    ir = descla( ilar_ , iss )
+			    ic = descla( ilac_ , iss )
+			    nr = descla( nlar_ , iss )
+			    nc = descla( nlac_ , iss )
+			    CALL ZGEMM( 'C', 'N', nr, nc, nh(is), c_one, tmpdr_c, nlax, tmpbec_c, nhm, c_zero, temp_c, nlax ) !warning:giovanni:check C
+			    DO j = 1, nc
+			      DO i = 1, nr
+				  fion_tmp(k,isa) = fion_tmp(k,isa) + 2D0 * DBLE(temp_c( i, j )) * lambda(iss)%cvec( i, j )
+			      END DO
+			    END DO
+			END IF
+    !
+		      ENDIF
+
+		  END DO
+    !
+		END DO
+	    END DO
+	  END DO
+      ENDIF
+      !
+      IF(lgam) THEN
+         DEALLOCATE( temp, tmpbec, tmpdr )
+      ELSE
+         DEALLOCATE( temp_c, tmpbec_c, tmpdr_c )
+      ENDIF
+      !
+      CALL mp_sum( fion_tmp, intra_image_comm )
+      !
+      fion = fion + fion_tmp
+      !
+      DEALLOCATE( fion_tmp )
+      !
+      CALL stop_clock( 'nlfl' )
+      !
+      RETURN
+
+      END SUBROUTINE nlfl_twin
 
 !
 !-----------------------------------------------------------------------
@@ -1613,19 +2710,34 @@ END FUNCTION
       USE ions_base,          ONLY: nsp, na, nat
       USE uspp,               ONLY: nhsa => nkb
       USE uspp_param,         ONLY: upf
+      USE twin_types !added:giovanni
+      USE cp_interfaces,   ONLY: nlsm1 !added:giovanni
 !
       IMPLICIT NONE
       INTEGER,     INTENT(IN) :: nx, n
       COMPLEX(DP), INTENT(IN) :: c( ngw, nx ), eigr(ngw,nat), betae(ngw,nhsa)
       REAL(DP),    INTENT(IN) :: ei( nx )
 !
-      COMPLEX(DP), ALLOCATABLE :: wfc(:,:), swfc(:,:), becwfc(:,:)
+      COMPLEX(DP), ALLOCATABLE :: wfc(:,:), swfc(:,:)
+      REAL(DP), ALLOCATABLE :: becwfc(:,:)
       REAL(DP),    ALLOCATABLE :: overlap(:,:), e(:), z(:,:)
       REAL(DP),    ALLOCATABLE :: proj(:,:), temp(:)
       REAL(DP)                 :: somma
 
       INTEGER :: n_atomic_wfc
       INTEGER :: is, ia, nb, l, m, k, i
+
+      INTERFACE nlsm1_local
+        subroutine nlsm1_real( n, nspmn, nspmx, eigr, c, becp ) !addded:giovanni
+          USE kinds,   ONLY : DP
+
+          implicit none
+
+	  integer,   intent(in)  :: n, nspmn, nspmx
+	  complex(DP), intent(in)  :: eigr( :, : ), c( :, :)
+	  REAL(DP) :: becp(: ,:)
+        end subroutine
+      END INTERFACE
       !
       ! calculate number of atomic states
       !
@@ -1649,7 +2761,7 @@ END FUNCTION
       !
       ALLOCATE( becwfc( nhsa, n_atomic_wfc ) )
       !
-      CALL nlsm1( n_atomic_wfc, 1, nsp, eigr, wfc, becwfc )
+      CALL nlsm1_local( n_atomic_wfc, 1, nsp, eigr, wfc, becwfc)
       !
       ! calculate swfc = S|wfc>
       !
@@ -2030,7 +3142,7 @@ END FUNCTION
 !
       USE kinds,              ONLY : dp
       USE control_flags,      ONLY : iprint, iprsta, thdyn, tpre, tfor, &
-                                     tprnfor, iesr, textfor
+                                     tprnfor, iesr, textfor, gamma_only, do_wf_cmplx !addded:giovanni
       use electrons_base,     only : nx => nbspx, n => nbsp
       USE io_global,          ONLY : meta_ionode, stdout
       USE ions_base,          ONLY : nsp, na, nat, rcmax, compute_eextfor
@@ -2111,10 +3223,11 @@ END FUNCTION
       ! ...  dalbe(:) = delta( alpha(:), beta(:) )
       REAL(DP),  DIMENSION(6), PARAMETER :: dalbe = &
          (/ 1.0_DP, 0.0_DP, 0.0_DP, 1.0_DP, 0.0_DP, 1.0_DP /)
-
+      LOGICAL :: lgam !added:giovanni
 
 
       CALL start_clock( 'vofrho' )
+      lgam=gamma_only.and..not.do_wf_cmplx !added:giovanni
 
       ci = ( 0.0d0, 1.0d0 )
       !
@@ -2220,12 +3333,17 @@ END FUNCTION
 
       epseu = wz * DBLE(zpseu)
       !
-      IF (gstart == 2) epseu = epseu - DBLE( vtemp(1) )
+      IF(lgam) THEN
+         IF (gstart == 2) epseu = epseu - DBLE( vtemp(1) )
+      ENDIF
       !
       CALL mp_sum( epseu, intra_image_comm )
 
-      epseu = epseu * omega
-
+      IF(lgam) THEN
+         epseu = epseu * omega
+      ELSE
+         epseu = 0.5d0*epseu * omega
+      ENDIF
 !
       IF( tpre ) THEN
          !
@@ -2263,8 +3381,11 @@ END FUNCTION
       END DO
 
 !$omp end parallel
-
-      eh = DBLE( zh ) * wz * 0.5d0 * fpi / tpiba2
+      IF(lgam) THEN
+         eh = DBLE( zh ) * wz * 0.5d0 * fpi / tpiba2
+      ELSE
+         eh = DBLE( zh ) * wz * 0.25d0 * fpi / tpiba2
+      ENDIF
 !
       CALL mp_sum( eh, intra_image_comm )
       !
@@ -2325,7 +3446,7 @@ END FUNCTION
           !
         case('tcc')
           !
-          call calc_tcc_potential(vcorr_fft,rhotmp)
+          call calc_tcc_potential(vcorr_fft,rhotmp, lgam)
           !
         case('tcc1d')
           !
@@ -2341,13 +3462,21 @@ END FUNCTION
           !
         end select
         !
-        call calc_tcc_energy(ecomp,vcorr_fft,rhotmp)
+        call calc_tcc_energy(ecomp,vcorr_fft,rhotmp, lgam)
         !
         aux=0.0_dp
-        do ig=1,ng
-          aux(np(ig))=vcorr_fft(ig)
-          aux(nm(ig))=conjg(vcorr_fft(ig))
-        end do
+
+!         IF(lgam) THEN !!!### uncomment for k points
+	  do ig=1,ng
+	    aux(np(ig))=vcorr_fft(ig)
+	    aux(nm(ig))=conjg(vcorr_fft(ig))
+	  end do
+!         ELSE !!!### uncomment for k points
+!           do ig=1,ng !!!### uncomment for k points
+! 	    aux(np(ig))=vcorr_fft(ig) !!!### uncomment for k points
+! ! 	    aux(nm(ig))=conjg(vcorr_fft(ig))
+! 	  end do !!!### uncomment for k points
+!         ENDIF 
         call invfft('Dense',aux,dfftp)
         vcorr=dble(aux)
         call writetofile(vcorr,nnr,'vcorrz.dat',dfftp, 'az')
@@ -2361,10 +3490,16 @@ END FUNCTION
         endif
         !
         aux=0.0_dp
-        do ig=1,ng
-          aux(np(ig))=vcorr_fft(ig)+vtemp(ig)
-          aux(nm(ig))=conjg(vcorr_fft(ig)+vtemp(ig))
-        end do
+!         IF(lgam) THEN !!!### uncomment for k points
+	  do ig=1,ng 
+	    aux(np(ig))=vcorr_fft(ig)+vtemp(ig)
+	    aux(nm(ig))=conjg(vcorr_fft(ig)+vtemp(ig))
+	  end do
+!         ELSE !!!### uncomment for k points
+!           do ig=1,ng !!!### uncomment for k points
+! 	    aux(np(ig))=vcorr_fft(ig)+vtemp(ig) !!!### uncomment for k points
+! 	  end do !!!### uncomment for k points
+!         ENDIF !!!### uncomment for k points
         !
         call invfft('Dense',aux,dfftp)
         v0d=dble(aux)
@@ -2373,20 +3508,33 @@ END FUNCTION
         call writetofile(v0d,nnr,'v0dx.dat',dfftp, 'ax')
         !
         aux=0.0_dp
-        do ig=1,ng
-          aux(np(ig))=vtemp(ig)
-          aux(nm(ig))=conjg(vtemp(ig))
-        end do
+!         IF(lgam) THEN !!!### uncomment for k points
+	  do ig=1,ng
+	    aux(np(ig))=vtemp(ig)
+	    aux(nm(ig))=conjg(vtemp(ig))
+	  end do
+!         ELSE !!!### uncomment for k points
+!           do ig=1,ng !!!### uncomment for k points
+! 	    aux(np(ig))=vtemp(ig) !!!### uncomment for k points
+! 	  end do !!!### uncomment for k points
+!         ENDIF !!!### uncomment for k points
         call invfft('Dense',aux, dfftp )
         v3d=dble(aux)
         call writetofile(v3d, nnr,'v3dz.dat', dfftp, 'az')
         call writetofile(v3d, nnr,'v3dx.dat', dfftp, 'ax')
         !
         aux=0.0_dp
-        do ig=1,ng
-          aux(np(ig))=rhotmp(ig)
-          aux(nm(ig))=conjg(rhotmp(ig))
-        end do
+
+!         IF(lgam) THEN  !!!### uncomment for k points
+	  do ig=1,ng
+	    aux(np(ig))=rhotmp(ig)
+	    aux(nm(ig))=conjg(rhotmp(ig))
+	  end do
+!         ELSE !!!### uncomment for k points
+! 	  do ig=1,ng !!!### uncomment for k points
+! 	    aux(np(ig))=rhotmp(ig) !!!### uncomment for k points
+! 	  end do !!!### uncomment for k points
+!         ENDIF !!!### uncomment for k points
         call invfft('Dense',aux, dfftp )
         rhotot=dble(aux)
         call writetofile(rhotot, nnr,'rhototz.dat', dfftp, 'az')
@@ -2511,10 +3659,16 @@ END FUNCTION
       IF(nspin.EQ.1) THEN
          iss=1
 !$omp parallel do
-         DO ig=1,ng
-            v(np(ig))=rhog(ig,iss)
-            v(nm(ig))=CONJG(rhog(ig,iss))
-         END DO
+! 	IF(lgam) THEN !!!### uncomment for k points
+	    DO ig=1,ng
+		v(np(ig))=rhog(ig,iss)
+		v(nm(ig))=CONJG(rhog(ig,iss))
+	    END DO
+! 	ELSE !!!### uncomment for k points
+! 	    DO ig=1,ng !!!### uncomment for k points
+! 		v(np(ig))=rhog(ig,iss) !!!### uncomment for k points
+! 	    END DO !!!### uncomment for k points
+! 	ENDIF !!!### uncomment for k points
 !
 !     v(g) --> v(r)
 !
@@ -2532,10 +3686,17 @@ END FUNCTION
          isup=1
          isdw=2
 !$omp parallel do
-         DO ig=1,ng
-            v(np(ig))=rhog(ig,isup)+ci*rhog(ig,isdw)
-            v(nm(ig))=CONJG(rhog(ig,isup)) +ci*CONJG(rhog(ig,isdw))
-         END DO
+!          IF(lgam) THEN !!!### uncomment for k points
+	    DO ig=1,ng
+		v(np(ig))=rhog(ig,isup)+ci*rhog(ig,isdw)
+		v(nm(ig))=CONJG(rhog(ig,isup)) +ci*CONJG(rhog(ig,isdw))
+	    END DO
+!          ELSE !!!### uncomment for k points
+! 	    DO ig=1,ng !!!### uncomment for k points
+! 		v(np(ig))=rhog(ig,isup)+ci*rhog(ig,isdw) !!!### uncomment for k points
+! 		v(nm(ig))=CONJG(rhog(ig,isup)) +ci*CONJG(rhog(ig,isdw))
+! 	    END DO !!!### uncomment for k points
+!          ENDIF !!!### uncomment for k points
 !
          CALL invfft('Dense',v, dfftp )
 !$omp parallel do
@@ -2554,16 +3715,23 @@ END FUNCTION
       !
       !     fourier transform of total potential to r-space (smooth grid)
       !
-      vs (:) = (0.d0, 0.d0)
+      vs (:) = CMPLX(0.d0, 0.d0)
       !
       IF(nspin.EQ.1)THEN
          !
          iss=1
 !$omp parallel do
-         DO ig=1,ngs
-            vs(nms(ig))=CONJG(rhog(ig,iss))
-            vs(nps(ig))=rhog(ig,iss)
-         END DO
+!        IF(lgam) THEN !!!### uncomment for k points
+	  DO ig=1,ngs
+	      vs(nms(ig))=CONJG(rhog(ig,iss))
+	      vs(nps(ig))=rhog(ig,iss)
+	  END DO
+!        ELSE !!!### uncomment for k points
+! 	  DO ig=1,ngs !!!### uncomment for k points
+!               write(6,*) "debug", nps(ig), nnrsx, ig, ngs  !added:giovanni:debug
+! 	      vs(nps(ig))=rhog(ig,iss) !!!### uncomment for k points
+! 	  END DO !!!### uncomment for k points
+!        ENDIF !!!### uncomment for k points
          !
          CALL invfft('Smooth',vs, dffts )
          !
@@ -2577,10 +3745,17 @@ END FUNCTION
          isup=1
          isdw=2
 !$omp parallel do
-         DO ig=1,ngs
-            vs(nps(ig))=rhog(ig,isup)+ci*rhog(ig,isdw)
-            vs(nms(ig))=CONJG(rhog(ig,isup)) +ci*CONJG(rhog(ig,isdw))
-         END DO 
+!          IF(lgam) THEN !!!### uncomment for k points
+	    DO ig=1,ngs
+		vs(nps(ig))=rhog(ig,isup)+ci*rhog(ig,isdw)
+		vs(nms(ig))=CONJG(rhog(ig,isup)) +ci*CONJG(rhog(ig,isdw))
+	    END DO 
+!          ELSE !!!### uncomment for k points
+! 	    DO ig=1,ngs !!!### uncomment for k points
+! 		vs(nps(ig))=rhog(ig,isup)+ci*rhog(ig,isdw) !!!### uncomment for k points
+! 		vs(nms(ig))=CONJG(rhog(ig,isup)) +ci*CONJG(rhog(ig,isdw))
+! 	    END DO !!!### uncomment for k points
+!          ENDIF !!!### uncomment for k points
          !
          CALL invfft('Smooth',vs, dffts )
          !
@@ -3113,6 +4288,7 @@ end function set_Hubbard_l
       use electrons_base,     only: nspin, n => nbsp, nx => nbspx, ispin, f
       USE ldaU,               ONLY: lda_plus_u, Hubbard_U, Hubbard_l
       USE ldaU,               ONLY: n_atomic_wfc, ns, e_hubbard
+      USE cp_interfaces, ONLY: nlsm1 !added:giovanni
 !
       implicit none
 #ifdef __PARA
@@ -3757,6 +4933,7 @@ end function set_Hubbard_l
       USE reciprocal_vectors, ONLY: gstart
       USE ions_base,          ONLY: nsp, na, nat
       USE uspp,               ONLY: nhsa => nkb
+      USE cp_interfaces, ONLY: nlsm1 !added:giovanni
 !
       IMPLICIT NONE
       INTEGER,     INTENT(IN) :: nx, n, n_atomic_wfc

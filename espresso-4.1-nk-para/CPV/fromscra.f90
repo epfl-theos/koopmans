@@ -14,7 +14,7 @@ SUBROUTINE from_scratch( )
                                      tzeroc, tzerop, tzeroe, tfor, thdyn, &
                                      lwf, tprnfor, tortho, amprp, ampre,  &
                                      tsde, ortho_eps, ortho_max, program_name, &
-                                     force_pairing, use_task_groups
+                                     force_pairing, use_task_groups, gamma_only, do_wf_cmplx!added:giovanni gamma_only, do_wf_cmplx
     USE ions_positions,       ONLY : taus, tau0, tausm, vels, fion, fionm, atoms0
     USE ions_base,            ONLY : na, nsp, randpos, zv, ions_vel, pmass
     USE ions_base,            ONLY : taui, cdmi, nat, iforce
@@ -25,7 +25,7 @@ SUBROUTINE from_scratch( )
                                      a2, a3, b1, b2, b3
     USE cell_nose,            ONLY : xnhh0, xnhhm, vnhh
     USE electrons_nose,       ONLY : xnhe0, xnhem, vnhe
-    use electrons_base,       ONLY : nbsp, f, nspin, nupdwn, iupdwn
+    use electrons_base,       ONLY : nbsp, f, nspin, nupdwn, iupdwn, nbspx
     USE electrons_module,     ONLY : occn_info
     USE energies,             ONLY : entropy, eself, enl, ekin, enthal, etot, ekincm
     USE energies,             ONLY : dft_energy_type, debug_energies
@@ -36,7 +36,7 @@ SUBROUTINE from_scratch( )
     USE gvecw,                ONLY : ngw
     USE gvecs,                ONLY : ngs
     USE gvecp,                ONLY : ngm
-    USE reciprocal_vectors,   ONLY : gstart, mill_l, gx
+    USE reciprocal_vectors,   ONLY : gstart, mill_l, gx, ig_l2g!added:giovanni ig_l2g
     USE cvan,                 ONLY : nvb
     USE cp_electronic_mass,   ONLY : emass
     USE efield_module,        ONLY : tefield, efield_berry_setup, berry_energy, &
@@ -44,12 +44,13 @@ SUBROUTINE from_scratch( )
     USE cg_module,            ONLY : tcg
     USE ensemble_dft,         ONLY : tens, compute_entropy
     USE cp_interfaces,        ONLY : runcp_uspp, runcp_uspp_force_pairing, &
-                                     strucf, phfacs, nlfh
-    USE cp_interfaces,        ONLY : rhoofr, ortho, wave_rand_init, elec_fakekine
+                                     strucf, phfacs, nlfh, nlfl
+    USE cp_interfaces,        ONLY : rhoofr, ortho, wave_rand_init, elec_fakekine, &
+                                     wave_sine_init
     USE cp_interfaces,        ONLY : vofrhos, compute_stress
     USE cp_interfaces,        ONLY : printout, print_lambda
     USE printout_base,        ONLY : printout_pos
-    USE orthogonalize_base,   ONLY : updatc, calphi
+    USE orthogonalize_base,   ONLY : updatc, calphi 
     USE atoms_type_module,    ONLY : atoms_type
     USE wave_base,            ONLY : wave_steepest
     USE wavefunctions_module, ONLY : c0, cm, phi => cp
@@ -63,6 +64,7 @@ SUBROUTINE from_scratch( )
     USE small_box,            ONLY : ainvb
     USE cdvan,                ONLY : dbec
     USE nksic,                ONLY : do_spinsym
+    USE mp_global,      ONLY : mpime !added:giovanni:debug
     !
     IMPLICIT NONE
     !
@@ -82,9 +84,12 @@ SUBROUTINE from_scratch( )
     LOGICAL                  :: tfirst = .TRUE.
     REAL(DP)                 :: stress(3,3)
     INTEGER                  :: i1, i2 
+    LOGICAL                  :: lgam !added:giovanni
+    COMPLEX(DP), parameter :: c_zero = CMPLX(0.d0,0.d0) !added:giovanni
     !
     ! ... Subroutine body
     !
+    lgam=gamma_only.and..not.do_wf_cmplx !added:giovanni
     nfi = 0
     !
     ttforce = tfor  .or. tprnfor
@@ -118,7 +123,6 @@ SUBROUTINE from_scratch( )
        CALL initbox ( tau0, taub, irb, ainv, a1, a2, a3 )
        CALL phbox( taub, eigrb, ainvb )
     END IF
-
     !
     !     wfc initialization with random numbers
     !     
@@ -127,7 +131,12 @@ SUBROUTINE from_scratch( )
     !
     IF ( .NOT. do_spinsym .OR. nspin == 1 ) then
         !
-        CALL wave_rand_init( cm, nbsp, 1 )
+        CALL wave_rand_init( cm, nbsp, 1 )!modified:giovanni
+! !begin_added:giovanni:debug
+!         DO i=1,size(cm(:,1))
+!             write(201+mpime,'(5((F18.12)5x))') gx(1:3,i), cm(i,1) 
+!         ENDDO
+! !end_added:giovanni:debug
         !
     ELSE 
         !
@@ -154,15 +163,22 @@ SUBROUTINE from_scratch( )
     nspin_wfc = nspin
     IF( force_pairing ) nspin_wfc = 1
     !
+
     DO iss = 1, nspin_wfc
        !
        CALL gram( vkb, bec, nkb, cm(1,iupdwn(iss)), ngw, nupdwn(iss) )
        !
     END DO
+! begin_added:giovanni:debug
+!         DO i=1,size(cm(:,1))
+!             write(201+mpime,'(5((F18.12)5x))') gx(1:3,i), cm(i,1) 
+!         ENDDO
+!        stop
+! end_added:giovanni:debug
     !
     IF( force_pairing ) cm(:,iupdwn(2):iupdwn(2)+nupdwn(2)-1) = cm(:,1:nupdwn(2))
     !
-    if( iprsta >= 3 ) CALL dotcsc( eigr, cm, ngw, nbsp )
+    if( iprsta >= 3 ) CALL dotcsc( eigr, cm, ngw, nbsp, lgam )!added:giovanni lgam
     !
     ! ... initialize bands
     !
@@ -190,9 +206,14 @@ SUBROUTINE from_scratch( )
     !
     IF( .NOT. tcg ) THEN
        !
+! ! begin_added:giovanni:debug
+!         DO i=1,size(cm(:,1))
+!              write(202,'(5((F18.12)5x))') gx(1:3,i), eigr( i,1) 
+!         ENDDO
+! ! end_added:giovanni:debug
        CALL calbec ( 1, nsp, eigr, cm, bec )
        !
-       if ( tstress ) CALL caldbec( ngw, nkb, nbsp, 1, nsp, eigr, cm, dbec )
+       if ( tstress ) CALL caldbec( ngw, nkb, nbsp, 1, nsp, eigr, cm, dbec ) !warning:giovanni still to be modified
        !
        CALL rhoofr ( nfi, cm(:,:), irb, eigrb, bec, becsum, rhor, rhog, rhos, enl, denl, ekin, dekin6 )
        !
@@ -204,7 +225,7 @@ SUBROUTINE from_scratch( )
     !
     !     put core charge (if present) in rhoc(r)
     !
-    if ( nlcc_any ) CALL set_cc( irb, eigrb, rhoc )
+    if ( nlcc_any ) CALL set_cc( irb, eigrb, rhoc ) !warning:giovanni not yet implemented
     !
     IF( program_name == 'CP90' ) THEN
 
@@ -220,11 +241,11 @@ SUBROUTINE from_scratch( )
          CALL vofrho( nfi, vpot, rhog, rhos, rhoc, tfirst, tlast, &
         &  ei1, ei2, ei3, irb, eigrb, sfac, tau0, fion )
 
-         IF( tefield ) THEN
-           CALL berry_energy( enb, enbi, bec, cm(:,:), fion ) 
+         IF( tefield ) THEN !warning:giovanni modified but not checked
+           CALL berry_energy( enb, enbi, bec, cm(:,:), fion )
            etot = etot + enb + enbi
          END IF
-         IF( tefield2 ) THEN
+         IF( tefield2 ) THEN !warning:giovanni modified but not checked
            CALL berry_energy2( enb, enbi, bec, cm(:,:), fion )
            etot = etot + enb + enbi
          END IF
@@ -239,41 +260,56 @@ SUBROUTINE from_scratch( )
          !
          IF( force_pairing ) THEN
             !
-            CALL runcp_uspp_force_pairing( nfi, fccc, ccc, ema0bg, dt2bye, rhos, bec, cm, &
-        &                 c0, ei_unp, fromscra = .TRUE. )
+            CALL runcp_uspp_force_pairing( nfi, fccc, ccc, ema0bg, dt2bye, rhos, bec%rvec, cm, &
+        &                 c0, ei_unp, fromscra = .TRUE. ) !warning:giovanni not yet modified
             !
-            CALL setval_lambda( lambda(:,:,2), nupdwn(1), nupdwn(1), 0.d0, descla(:,1) )
+            IF(.not.lambda(2)%iscmplx) THEN
+		CALL setval_lambda( lambda(2)%rvec, nupdwn(1), nupdwn(1), 0.d0, descla(:,1) )
+            ELSE
+                CALL setval_lambda( lambda(2)%cvec, nupdwn(1), nupdwn(1), c_zero, descla(:,1) )
+            ENDIF
             !
          ELSE
             !
+! !begin_added:giovanni:debug ---- RUNCP WAVEFUNCTION
+!             write(6,*) "wavefunctions before runcp"
+!             write(6,*) "wavefunction_0", c0(1,2), c0(2,2), c0(3,2)
+!             write(6,*) "wavefunction_m", cm(1,2), cm(2,2), cm(3,2)
+! !end_added:giovanni:debug ---- RUNCP WAVEFUNCTION
             CALL runcp_uspp( nfi, fccc, ccc, ema0bg, dt2bye, rhos, bec, cm, c0, fromscra = .TRUE. )
+! !begin_added:giovanni:debug ---- RUNCP WAVEFUNCTION
+!             write(6,*) "wavefunctions after runcp"
+!             write(6,*) "check_allocated_5", associated(bec%rvec), ubound(bec%rvec)!added:giovanni:debug
+!             write(6,*) "wavefunction_0", c0(1,2), c0(2,2), c0(3,2)
+!             write(6,*) "wavefunction_m", cm(1,2), cm(2,2), cm(3,2)
+! !end_added:giovanni:debug ---- RUNCP WAVEFUNCTION
             !
          ENDIF
          !
          !     nlfq needs deeq bec
          !
-         if( ttforce ) CALL nlfq( cm, eigr, bec, becdr, fion )
+         if( ttforce ) CALL nlfq( cm, eigr, bec, becdr, fion, lgam )
          !
          !     calphi calculates phi
          !     the electron mass rises with g**2
          !
-         CALL calphi( cm, ngw, bec, nkb, vkb, phi, nbsp, ema0bg )
+         CALL calphi( cm, ngw, bec, nkb, vkb, phi, nbsp, ema0bg, lgam)
          !
          IF( force_pairing ) &
          &   phi( :, iupdwn(2):(iupdwn(2)+nupdwn(2)-1) ) =    phi( :, 1:nupdwn(2))
 
 
-         if( tortho ) then
+         IF( tortho ) THEN
             CALL ortho( eigr, c0, phi, ngw, lambda, descla, &
                         bigr, iter, ccc, bephi, becp, nbsp, nspin, nupdwn, iupdwn )
-         else
+         ELSE
             !
             CALL gram( vkb, bec, nkb, c0, ngw, nbsp )
             !
-        endif
+         ENDIF
          !
          !
-         if ( ttforce ) CALL nlfl( bec, becdr, lambda, fion )
+         if ( ttforce ) CALL nlfl( bec, becdr, lambda, fion, lgam ) !warning:giovanni may not work
 
          if ( iprsta >= 3 ) CALL print_lambda( lambda, nbsp, 9, ccc )
 
@@ -283,9 +319,15 @@ SUBROUTINE from_scratch( )
             DO iss = 1, nspin_wfc
                i1 = (iss-1)*nlax+1
                i2 = iss*nlax
-               CALL updatc( ccc, nbsp, lambda(:,:,iss), SIZE(lambda,1), phi, SIZE(phi,1), &
-                            bephi(:,i1:i2), SIZE(bephi,1), becp, bec, c0, nupdwn(iss), iupdwn(iss), &
-                            descla(:,iss) )
+               IF(.not.bec%iscmplx) THEN
+		    CALL updatc( ccc, nbsp, lambda(iss)%rvec, SIZE(lambda,1), phi, SIZE(phi,1), &
+				  bephi%rvec(:,i1:i2), SIZE(bephi%rvec,1), becp%rvec, bec%rvec, c0, nupdwn(iss), iupdwn(iss), &
+				  descla(:,iss) )
+               ELSE
+		    CALL updatc( ccc, nbsp, lambda(iss)%cvec, SIZE(lambda,1), phi, SIZE(phi,1), &
+				  bephi%cvec(:,i1:i2), SIZE(bephi%cvec,1), becp%cvec, bec%cvec, c0, nupdwn(iss), iupdwn(iss), &
+				  descla(:,iss) )
+               ENDIF
             END DO
          END IF
          !
@@ -293,15 +335,20 @@ SUBROUTINE from_scratch( )
             !
             c0 ( :, iupdwn(2):(iupdwn(2)+nupdwn(2)-1) ) =  c0( :, 1:nupdwn(2))
             phi( :, iupdwn(2):(iupdwn(2)+nupdwn(2)-1) ) = phi( :, 1:nupdwn(2))
-            lambda(:,:,2) = lambda(:,:,1)
+
+            IF(.not.lambda(1)%iscmplx) THEN
+		lambda(2)%rvec(:,:) = lambda(1)%rvec(:,:)
+            ELSE
+		lambda(2)%cvec(:,:) = lambda(1)%cvec(:,:)
+            ENDIF
             !
          ENDIF
          !
-         CALL calbec ( nvb+1, nsp, eigr, c0, bec )
+         CALL calbec ( nvb+1, nsp, eigr, c0, bec)
 
          if ( tstress ) CALL caldbec( ngw, nkb, nbsp, 1, nsp, eigr, cm, dbec )
 
-         if ( iprsta >= 3 ) CALL dotcsc( eigr, c0, ngw, nbsp )
+         if ( iprsta >= 3 ) CALL dotcsc( eigr, c0, ngw, nbsp , lgam)
          !
          xnhp0 = 0.0d0
          xnhpm = 0.0d0
@@ -321,7 +368,13 @@ SUBROUTINE from_scratch( )
          xnhem = 0.0d0
          vnhe  = 0.0d0
 
-         lambdam = lambda
+         DO iss=1,nspin
+            IF(.not.lambda(iss)%iscmplx) THEN
+                lambdam(iss)%rvec = lambda(iss)%rvec
+            ELSE
+                lambdam(iss)%cvec = lambda(iss)%cvec
+            ENDIF
+         ENDDO
          !
        ELSE 
           !
@@ -331,10 +384,10 @@ SUBROUTINE from_scratch( )
 
     ELSE
        !
-       IF( ttforce ) call nlfq( cm, eigr, bec, becdr, atoms0%for )
+       IF( ttforce ) call nlfq( cm, eigr, bec, becdr, atoms0%for, lgam )
        !
        CALL vofrhos( ttprint, ttforce, tstress, rhor, rhog, atoms0, &
-                  vpot, bec, cm, f, eigr, ei1, ei2, ei3, sfac, ht0, edft )
+                  vpot, bec%rvec, cm, f, eigr, ei1, ei2, ei3, sfac, ht0, edft ) 
        !
        IF( iprsta > 1 ) CALL debug_energies( edft )
        !

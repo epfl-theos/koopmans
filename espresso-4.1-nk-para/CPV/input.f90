@@ -220,6 +220,7 @@ MODULE input
                                iprsta_     => iprsta, &
                                taurdr_     => taurdr, &
                                nbeg_       => nbeg, &
+                               do_wf_cmplx_ => do_wf_cmplx, & !added:giovanni
                                gamma_only_ => gamma_only, &
                                tchi2_      => tchi2, &
                                tatomicwfc_ => tatomicwfc, &
@@ -308,7 +309,7 @@ MODULE input
         orthogonalization, electron_velocities, nat, if_pos, phase_space,      &
         tefield, epol, efield, tefield2, epol2, efield2, remove_rigid_rot,     &
         iesr_inp, vhrmax_inp, vhrmin_inp, tvhmean_inp, vhasse_inp, saverho,    &
-        ortho_para, rd_for
+        ortho_para, rd_for, do_wf_cmplx, empty_states_nbnd !added:giovanni do_wf_cmplx, empty_states_nbnd
      !
      IMPLICIT NONE
      !
@@ -322,6 +323,7 @@ MODULE input
      isave_         = isave
      tstress_       = tstress
      tpre_          = tstress
+     do_wf_cmplx_   = do_wf_cmplx !added:giovanni
      gamma_only_    = ( TRIM( k_points ) == 'gamma' )
      tprnfor_       = tprnfor
      printwfc_      = printwfc
@@ -401,7 +403,7 @@ MODULE input
          !
        CASE( 'high' )
          !
-         iprsta_   = 3
+         iprsta_   = 3!modified:giovanni 3->4
          memchk_   = .TRUE.
          timing_   = .TRUE.
          tprnsfac_ = .TRUE.
@@ -835,6 +837,26 @@ MODULE input
       IF( ( TRIM( calculation ) == 'smd' ) .AND. ( TRIM( cell_dynamics ) /= 'none' ) ) THEN
         CALL errore(' smiosys ',' cell_dynamics not implemented : '//TRIM(cell_dynamics), 1 )
       END IF
+
+      IF(do_wf_cmplx_) THEN !warning:giovanni not yet implemented
+! 
+	  IF(tcg) THEN
+	    CALL errore(' iosys ',' conjugate-gradient minimization not implemented with complex wavefunctions', 1 )
+	  ENDIF
+! 
+	  IF(tfor_  .or. tprnfor_ .or. thdyn_ .or. tpre_) THEN
+	    CALL errore(' iosys ',' stress or force calculation may not work with complex wavefunctions', 1 )
+	  ENDIF
+! 
+          IF ( program_name == 'FPMD' ) THEN
+             CALL errore(' iosys ','FPMD not working with complex wavefunctions', 1 )
+          ENDIF
+
+! 	  IF(empty_states_nbnd>0) THEN
+! 	    CALL errore(' iosys ',' empty states not yet implemented with complex wavefunctions', 1 )
+! 	  ENDIF
+
+      ENDIF
 
       RETURN
    END SUBROUTINE set_control_flags
