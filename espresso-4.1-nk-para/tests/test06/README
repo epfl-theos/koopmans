@@ -8,5 +8,7 @@
   When the functional is not unitary invariant, a innerloop strategy is also
   implemented and tested. 
 
+  NOTE: the system studied is not methane but a planar model version of it.
+
 
 
