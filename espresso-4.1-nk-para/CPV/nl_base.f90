@@ -1344,7 +1344,7 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-SUBROUTINE caldbec( ngw, nkb, n, nspmn, nspmx, eigr, c, dbec )
+SUBROUTINE caldbec( ngw, nkb, n, nspmn, nspmx, eigr, c, dbec ) !warning:giovanni this still does not work with complex wavefunctions
   !-----------------------------------------------------------------------
   !
   !     this routine calculates array dbec, derivative of bec:

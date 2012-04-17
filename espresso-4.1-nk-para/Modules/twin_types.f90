@@ -25,6 +25,10 @@ MODULE twin_types
     MODULE PROCEDURE set_twin_matrix, set_twin_tensor
   END INTERFACE
 
+  INTERFACE copy_twin
+    MODULE PROCEDURE copy_twin_matrix, copy_twin_tensor
+  END INTERFACE
+
   INTERFACE allocate_twin
     MODULE PROCEDURE allocate_twin_matrix, allocate_twin_tensor
   END INTERFACE
@@ -113,6 +117,56 @@ MODULE twin_types
    
    return
   END SUBROUTINE set_twin_tensor
+
+  SUBROUTINE copy_twin_matrix(tmatrix1,tmatrix2)
+
+   type(twin_matrix)   :: tmatrix1,tmatrix2
+   character(len=17)   :: subname="copy_twin_tensor"
+!    COMPLEX(DP), INTENT(IN) :: value
+
+   IF(tmatrix1%iscmplx) THEN
+     IF(tmatrix2%iscmplx) THEN
+      tmatrix1%cvec(:,:)=tmatrix2%cvec(:,:)
+     ELSE
+      call errore(subname,"copying real tensor into complex tensor", 1)
+      tmatrix1%cvec(:,:)=tmatrix2%rvec(:,:)
+     ENDIF
+   ELSE
+     IF(.not.tmatrix2%iscmplx) THEN
+      tmatrix1%rvec(:,:)=tmatrix2%rvec(:,:)
+     ELSE
+      call errore(subname,"copying complex tensor into real tensor", 1)
+      tmatrix1%rvec(:,:)=tmatrix2%cvec(:,:)
+     ENDIF
+   ENDIF
+   
+   return
+  END SUBROUTINE copy_twin_matrix
+
+  SUBROUTINE copy_twin_tensor(ttensor1,ttensor2)
+
+   type(twin_tensor)   :: ttensor1, ttensor2
+   character(len=17)   :: subname="copy_twin_tensor"
+!    COMPLEX(DP), INTENT(IN) :: value
+
+   IF(ttensor1%iscmplx) THEN
+     IF(ttensor2%iscmplx) THEN
+      ttensor1%cvec(:,:,:)=ttensor2%cvec(:,:,:)
+     ELSE
+      call errore(subname,"copying real tensor into complex tensor", 1)
+      ttensor1%cvec(:,:,:)=ttensor2%rvec(:,:,:)
+     ENDIF
+   ELSE
+     IF(.not.ttensor2%iscmplx) THEN
+      ttensor1%rvec(:,:,:)=ttensor2%rvec(:,:,:)
+     ELSE
+      call errore(subname,"copying complex tensor into real tensor", 1)
+      ttensor1%rvec(:,:,:)=ttensor2%cvec(:,:,:)
+     ENDIF
+   ENDIF
+   
+   return
+  END SUBROUTINE copy_twin_tensor
 
   SUBROUTINE allocate_twin_matrix(tmatrix,xlen,ylen,doreal)
    

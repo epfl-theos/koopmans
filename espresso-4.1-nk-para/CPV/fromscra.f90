@@ -293,7 +293,7 @@ SUBROUTINE from_scratch( )
          !     calphi calculates phi
          !     the electron mass rises with g**2
          !
-         CALL calphi( cm, ngw, bec, nkb, vkb, phi, nbsp, ema0bg, lgam)
+         CALL calphi( cm, ngw, bec, nkb, vkb, phi, nbsp, lgam, ema0bg)
          !
          IF( force_pairing ) &
          &   phi( :, iupdwn(2):(iupdwn(2)+nupdwn(2)-1) ) =    phi( :, 1:nupdwn(2))

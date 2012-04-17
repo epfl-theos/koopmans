@@ -36,6 +36,7 @@ cg_sub.o : ../Modules/kind.o
 cg_sub.o : ../Modules/mp.o
 cg_sub.o : ../Modules/mp_global.o
 cg_sub.o : ../Modules/recvec.o
+cg_sub.o : ../Modules/twin_types.o
 cg_sub.o : ../Modules/uspp.o
 cg_sub.o : ../Modules/wavefunctions.o
 cg_sub.o : cg.o
@@ -626,6 +627,7 @@ inner_loop_cold.o : ../Modules/kind.o
 inner_loop_cold.o : ../Modules/mp.o
 inner_loop_cold.o : ../Modules/mp_global.o
 inner_loop_cold.o : ../Modules/recvec.o
+inner_loop_cold.o : ../Modules/twin_types.o
 inner_loop_cold.o : ../Modules/uspp.o
 inner_loop_cold.o : cg.o
 inner_loop_cold.o : cp_interfaces.o

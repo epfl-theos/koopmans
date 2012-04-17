@@ -468,7 +468,7 @@
          ! ... calphi calculates phi
          ! ... the electron mass rises with g**2
          !
-         CALL calphi( c0_emp, ngw, bec_emp, nkb, vkb, phi_emp, n_emps, ema0bg, lgam )
+         CALL calphi( c0_emp, ngw, bec_emp, nkb, vkb, phi_emp, n_emps, lgam, ema0bg )
          !
          write(6,*) "check_dimensions ", ubound(eigr), ubound(cm_emp), lambda_emp(1)%iscmplx, ubound(lambda_emp(1)%cvec) !added:giovanni:debug
          CALL ortho_cp_twin( eigr(1:ngw,1:nat), cm_emp(1:ngw,1:n_emps), phi_emp(1:ngw,1:n_emps), ngw, lambda_emp(1:nspin), desc_emp(1:descla_siz_,1:nspin), &

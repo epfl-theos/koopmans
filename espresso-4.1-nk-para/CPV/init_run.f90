@@ -194,7 +194,7 @@ SUBROUTINE init_run()
   IF ( lwf ) CALL allocate_wannier( nbsp, nnrsx, nspin, ngm )
   !
   IF ( tens .OR. tcg .OR. tsmear ) &
-     CALL allocate_ensemble_dft( nkb, nbsp, ngw, nudx, nspin, nbspx, nnrsx, nat, nlax, nrlx )
+     CALL allocate_ensemble_dft( nkb, nbsp, ngw, nudx, nspin, nbspx, nnrsx, nat, nlax, nrlx, lgam )
   !
   IF ( tcg ) CALL allocate_cg( ngw, nbspx,nkbus )
   !

@@ -30,7 +30,7 @@
       USE fft_base,            ONLY : dffts
       use wave_base,           only : wave_steepest, wave_verlet
       use control_flags,       only : lwf, tsde, use_task_groups, program_name, &
-                                                       gamma_only, do_wf_cmplx
+                                                       gamma_only, do_wf_cmplx !added:giovanni do_wf_cmplx
       use uspp,                only : deeq, vkb
       use reciprocal_vectors,  only : gstart
       use electrons_base,      only : n=>nbsp, ispin, f, nspin, nupdwn, iupdwn

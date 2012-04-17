@@ -37,7 +37,7 @@ MODULE ensemble_dft
 !***ensemble-DFT
       real(DP), allocatable::                 z0t(:,:,:)   ! transpose of z0
       complex(DP), allocatable::             c0diag(:,:)
-      real(DP), allocatable::               becdiag(:,:)
+      type(twin_matrix)::               becdiag!(:,:) !modified:giovanni
       real(DP), allocatable::                      e0(:)
       real(DP), allocatable::               fmat0(:,:,:)
       real(DP), allocatable::               fmat0_diag(:)
@@ -259,17 +259,21 @@ CONTAINS
     RETURN
   END SUBROUTINE ensemble_dft_info
 
-
-  SUBROUTINE allocate_ensemble_dft( nhsa, n, ngw, nudx, nspin, nx, nnrsx, nat, nlax, nrlx )
+  SUBROUTINE allocate_ensemble_dft( nhsa, n, ngw, nudx, nspin, nx, nnrsx, nat, nlax, nrlx , lgam)
     IMPLICIT NONE
     INTEGER, INTENT(IN) :: nhsa, n, ngw, nudx, nspin, nx, nnrsx, nat, nlax, nrlx
+    LOGICAL, INTENT(IN) :: lgam
       allocate(c0diag(ngw,nx))
       allocate(z0t(nrlx,nudx,nspin))
-      allocate(becdiag(nhsa,n))
+!       allocate(becdiag(nhsa,n))
       allocate(e0(nx))
       allocate(fmat0(nrlx,nudx,nspin))
       allocate(fmat0_diag(nx))
       allocate(psihpsi(nlax,nlax,nspin))
+      !begin_added:giovanni
+      call init_twin(becdiag, lgam)
+      call allocate_twin(becdiag,nhsa,n, lgam)
+      !end_added:giovanni
       !
       fmat0_diag(:) = 0.0
     RETURN
@@ -281,7 +285,8 @@ CONTAINS
     IMPLICIT NONE
     IF( ALLOCATED( c0diag ) )         deallocate(c0diag )
     IF( ALLOCATED( z0t ) )            deallocate(z0t )
-    IF( ALLOCATED( becdiag ) )        deallocate(becdiag )
+!     IF( ALLOCATED( becdiag ) )        deallocate(becdiag )
+    call deallocate_twin(becdiag) !modified:giovanni
     IF( ALLOCATED( e0 ) )             deallocate(e0 )
     IF( ALLOCATED( fmat0 ) )          deallocate(fmat0 )
     IF( ALLOCATED( fmat0_diag ) )     deallocate(fmat0_diag )

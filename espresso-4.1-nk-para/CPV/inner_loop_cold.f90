@@ -25,7 +25,7 @@
                                 tprnfor, ndr, ndw, nbeg, nomore, &
                                 tsde, tortho, tnosee, tnosep, trane, &
                                 tranp, tsdp, tcp, tcap, ampre, &
-                                amprp, tnoseh
+                                amprp, tnoseh, gamma_only, do_wf_cmplx !added:giovanni gamma_only do_wf_cmplx
       USE core,           ONLY: nlcc_any
       USE energies,       ONLY: eht, epseu, exc, etot, eself, enl, &
                                 ekin, atot, entropy, egrand
@@ -76,6 +76,7 @@
                                    descla_init , la_comm_ , ilar_ , ilac_ , nlar_ , &
                                    nlac_ , la_myr_ , la_myc_ , la_nx_ , la_n_ , la_me_ , la_nrl_
       USE dspev_module,   ONLY: pdspev_drv, dspev_drv
+      USE twin_types !added:giovanni
 
 
       !
@@ -87,7 +88,7 @@
       LOGICAL                :: tlast
       COMPLEX(kind=DP)            :: eigr( ngw, nat )
       COMPLEX(kind=DP)            :: c0( ngw, n )
-      REAL(kind=DP)               :: bec( nhsa, n )
+      TYPE(twin_matrix)               :: bec!( nhsa, n )
       LOGICAL                :: firstiter
 
 
@@ -101,12 +102,12 @@
       COMPLEX(kind=DP)            :: ei1( nr1:nr1, nat )
       COMPLEX(kind=DP)            :: ei2( nr2:nr2, nat )
       COMPLEX(kind=DP)            :: ei3( nr3:nr3, nat )
-      COMPLEX(kind=DP)            :: sfac( ngs, nsp )
-  
+      COMPLEX(kind=DP)            :: sfac( ngs, nsp )  
 
 !local variables
       REAL(kind=DP) :: atot0, atot1, atotl, atotmin
-      REAL(kind=DP), ALLOCATABLE :: fion2(:,:), c0hc0(:,:,:)
+      REAL(kind=DP), ALLOCATABLE :: fion2(:,:)
+      type(twin_matrix), dimension(:), allocatable :: c0hc0(:)!modified:giovanni
       REAL(kind=DP), ALLOCATABLE :: mtmp(:,:)
       COMPLEX(kind=DP), ALLOCATABLE :: h0c0(:,:)
       INTEGER :: niter
@@ -117,16 +118,24 @@
       INTEGER :: np(2), coor_ip(2), ipr, ipc, nr, nc, ir, ic, ii, jj, root, j
       INTEGER :: desc_ip( descla_siz_ )
       INTEGER :: np_rot, me_rot, comm_rot, nrl
+      !
+      LOGICAL :: lgam !added:giovanni
 
       CALL start_clock( 'inner_loop')
-
+       
+      lgam=gamma_only.and..not.do_wf_cmplx !added:giovanni
+      !
       allocate(fion2(3,nat))
       allocate(c0hc0(nlax,nlax,nspin))
       allocate(h0c0(ngw,nx))
-
-
+      !begin_added:giovanni
+      allocate(c0hc0(nspin))
+      do j=1,nspin
+          call init_twin(c0hc0(j), lgam)
+          call allocate_twin(c0hc0(j),nlax,nlax, lgam)
+      enddo
+      !end_added:giovanni
       lambdap=0.3d0!small step for free-energy calculation
-
 
       ! calculates the initial free energy if necessary
       IF( .not. ene_ok ) THEN
@@ -177,7 +186,10 @@
     
           
          ! calculates the Hamiltonian matrix in the basis {c0}           
-         c0hc0(:,:,:)=0.d0
+!          c0hc0(:,:,:)=0.d0
+         do i=1,nspin
+	    call set_twin(c0hc0(i), CMPLX(0.d0,0.d0))
+         enddo
          !
          DO is= 1, nspin
 

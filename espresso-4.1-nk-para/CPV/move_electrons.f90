@@ -116,6 +116,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   !
   lgam=gamma_only.and..not. do_wf_cmplx
   electron_dynamic: IF ( tcg ) THEN
+! 
      CALL runcg_uspp( nfi, tfirst, tlast, eigr, bec%rvec, irb, eigrb, &
                       rhor, rhog, rhos, rhoc, ei1, ei2, ei3, sfac, &
                       fion, ema0bg, becdr%rvec, lambdap, lambda, vpot  )

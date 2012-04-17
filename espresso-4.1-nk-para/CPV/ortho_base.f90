@@ -2248,13 +2248,13 @@ END SUBROUTINE diagonalize_parallel_cmplx
    END SUBROUTINE updatc_cmplx
 
 !-------------------------------------------------------------------------
-      SUBROUTINE calphi_new( c0, ngwx, bec, nkbx, betae, phi, n, ema0bg, lgam2)
+      SUBROUTINE calphi_new( c0, ngwx, bec, nkbx, betae, phi, n, lgam2,  ema0bg)
 !-----------------------------------------------------------------------
 !     input: c0 (orthonormal with s(r(t)), bec=<c0|beta>, betae=|beta>
 !     computes the matrix phi (with the old positions)
 !       where  |phi> = s'|c0> = |c0> + sum q_ij |i><j|c0>
 !     where s'=s(r(t))  
-!
+! 
       USE kinds,          ONLY: DP
       USE ions_base,      ONLY: na, nsp
       USE io_global,      ONLY: stdout

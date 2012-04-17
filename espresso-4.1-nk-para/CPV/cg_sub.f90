@@ -15,7 +15,7 @@
 
       use kinds,                    only : dp
       use control_flags,            only : iprint, thdyn, tpre, iprsta, &
-                                           tfor, taurdr, tprnfor
+                                           tfor, taurdr, tprnfor, gamma_only, do_wf_cmplx !added:giovanni gamma_only, do_wf_cmplx
       use control_flags,            only : ndr, ndw, nbeg, nomore, tsde, tortho, tnosee, &
                                            tnosep, trane, tranp, tsdp, tcp, tcap, ampre, &
                                            amprp, tnoseh
@@ -71,7 +71,7 @@
                                            innerloop_cg_nreset, &
                                            vsicpsi, vsic, wtot, fsic, fion_sic, deeq_sic, f_cutoff, pink
       use hfmod,                    only : do_hf, vxxpsi, exx
-
+      use twin_types !added:giovanni
 
 !
       implicit none
@@ -81,8 +81,8 @@
       integer     :: nfi
       logical     :: tfirst , tlast
       complex(dp) :: eigr(ngw,nat)
-      real(dp)    :: bec(nhsa,nbsp)
-      real(dp)    :: becdr(nhsa,nspin*nlax,3)
+      type(twin_matrix)    :: bec !modified:giovanni
+      type(twin_tensor)    :: becdr!(nhsa,nspin*nlax,3) !modified:giovanni
       integer     :: irb(3,nat)
       complex(dp) :: eigrb(ngb,nat)
       real(dp)    :: rhor(nnr,nspin)
@@ -96,8 +96,8 @@
       complex(dp) :: sfac( ngs, nsp )
       real(dp)    :: fion(3,nat)
       real(dp)    :: ema0bg(ngw)
-      real(dp)    :: lambdap(nlam,nlam,nspin)
-      real(dp)    :: lambda(nlam,nlam,nspin)
+      type(twin_matrix), dimension(nspin)    :: lambdap!(nlam,nlam,nspin) !modified:giovanni
+      type(twin_matrix), dimension(nspin)    :: lambda!(nlam,nlam,nspin)   !modified:giovanni
 !
 !
       integer     :: i, j, ig, k, is, iss,ia, iv, jv, il, ii, jj, kk, ip
@@ -109,13 +109,18 @@
       complex(dp), allocatable :: hpsi(:,:), hpsi0(:,:), gi(:,:), hi(:,:)
       real(DP),    allocatable :: s_minus1(:,:)    !factors for inverting US S matrix
       real(DP),    allocatable :: k_minus1(:,:)    !factors for inverting US preconditioning matrix 
-      real(DP),    allocatable :: lambda_repl(:,:) ! replicated copy of lambda
-      real(DP),    allocatable :: lambda_dist(:,:) ! replicated copy of lambda
+!       real(DP),    allocatable :: lambda_repl(:,:) ! replicated copy of lambda
+!       real(DP),    allocatable :: lambda_dist(:,:) ! replicated copy of lambda
+      type(twin_matrix) :: lambda_repl!(:,:) ! replicated copy of lambda !modified:giovanni
+      type(twin_matrix) :: lambda_dist!(:,:) ! replicated copy of lambda  !modified:giovanni
+      !
       real(dp)    :: sca, dumm(1)
       logical     :: newscheme, firstiter
       integer     :: maxiter3
       !
-      real(kind=DP), allocatable :: bec0(:,:), becm(:,:), becdrdiag(:,:,:)
+!       real(kind=DP), allocatable :: bec0(:,:), becm(:,:), becdrdiag(:,:,:)
+      type(twin_tensor) :: becdrdiag !modified:giovanni
+      type(twin_matrix) :: bec0, becm !modified:giovanni
       real(kind=DP), allocatable :: ave_ene(:)!average kinetic energy for preconditioning
       real(kind=DP), allocatable :: fmat_(:,:)!average kinetic energy for preconditioning
       ! 
@@ -145,15 +150,33 @@
       real(dp)    :: vsicah2sum
       real(dp)    :: tmppasso, ene_save(100), ene_save2(100), ene_lda
       !
+      logical :: lgam
+      integer :: ispin
+      !
+      lgam=gamma_only.and..not.do_wf_cmplx
       !
       allocate (faux(nbspx))
       !allocate(hpsinorm(n))
       !allocate(hpsinosicnorm(n))
       !
-      allocate (bec0(nhsa,nbsp),becm(nhsa,nbsp), becdrdiag(nhsa,nspin*nlax,3))
+!       allocate (bec0(nhsa,nbsp),becm(nhsa,nbsp), becdrdiag(nhsa,nspin*nlax,3))
       allocate (ave_ene(nbsp))
       allocate (c2(ngw),c3(ngw))
 
+      !begin_added:giovanni
+      call init_twin(bec0, lgam)
+      call allocate_twin(bec0, nhsa, nbsp, lgam)
+      call init_twin(becm, lgam)
+      call allocate_twin(becm, nhsa, nbsp, lgam)
+      call init_twin(becdrdiag, lgam)
+      call allocate_twin(becdrdiag, nhsa, nspin*nlax,3, lgam)
+      do ispin=1,nspin
+	call init_twin(lambda, lgam)
+	call allocate_twin(lambda, nlam, nlam, lgam)
+	call init_twin(lambdap, lgam)
+	call allocate_twin(lambdap, nlam, nlam, lgam)
+      enddo
+      !end_added:giovanni
 
       call start_clock('runcg_uspp')
       newscheme=.false.
@@ -218,10 +241,9 @@
       !call calbec(1,nsp,eigr,c0,bec)
 
       ! calculates phi for pcdaga
-      !
+
       !call calphiid(c0,bec,betae,phi)
-      !
-      CALL calphi( c0, SIZE(c0,1), bec, nhsa, betae, phi, nbsp )
+      CALL calphi( c0, SIZE(c0,1), bec, nhsa, betae, phi, nbsp, lgam)
       !
       ! calculates the factors for S and K inversion in US case
       !
@@ -314,7 +336,8 @@
               !
               call rotate( z0t, c0(:,:), bec, c0diag, becdiag, .false. )
               c0(:,:)=c0diag(:,:)
-              bec(:,:)=becdiag(:,:)
+              call copy_twin(bec,becdiag) !modified:giovanni
+!               bec(:,:)=becdiag(:,:)
               !
               call id_matrix_init( descla, nspin )
               !
@@ -1266,7 +1289,8 @@
         !
         if( ((enever.lt.ene0) .and. (enever.lt.ene1)).or.(tefield.or.tefield2)) then
           c0(:,:)=cm(:,:)
-          bec(:,:)=becm(:,:)
+!           bec(:,:)=becm(:,:)
+          call copy_twin(bec,becm) !modified:giovanni
           ene_ok=.true.
         elseif( (enever.ge.ene1) .and. (enever.lt.ene0)) then
           if(ionode) then
@@ -1627,7 +1651,9 @@
 
         enddo
 
-        ALLOCATE( lambda_repl( nudx, nudx ) )
+        call init_twin(lambda_repl,lgam) !modified:giovanni
+        call allocate_twin(lambda_repl, nudx, nudx, lgam) !modified:giovanni
+!         ALLOCATE( lambda_repl( nudx, nudx ) )
         !
         do is = 1, nspin
            !
@@ -1664,7 +1690,9 @@
            !
            ! in the ensemble case matrix labda must be multiplied with f
 
-           ALLOCATE( lambda_dist( nlam, nlam ) )
+!            ALLOCATE( lambda_dist( nlam, nlam ) )
+           call init_twin(lambda_dist, lgam) !modified:giovanni
+           call allocate_twin(lambda_dist,nlam,nlam,lgam) !modified:giovanni
  
            do iss = 1, nspin
               !
@@ -1679,12 +1707,15 @@
               CALL sqr_mm_cannon( 'N', 'N', nss, 1.0d0, lambda(1,1,iss), nlam, lambda_dist, nlam, &
                                   0.0d0, lambdap(1,1,iss), nlam, descla(1,iss) )
               !
-              lambda_dist      = lambda(:,:,iss)
-              lambda(:,:,iss)  = lambdap(:,:,iss)
-              lambdap(:,:,iss) = lambda_dist
+              !begin_modified:giovanni
+              call copy_twin(lambda_dist, lambda(iss))
+              call copy_twin(lambda(iss), lambdap(iss))
+              call copy_twin(lambdap(iss), lambda_dist)
+              !end_modified:giovanni
               !
            end do
            !
+           call deallocate_twin(lambda_dist)
            DEALLOCATE( lambda_dist )
            !
            call nlsm2(ngw,nhsa,nbsp,nspin,eigr,c0(:,:),becdr)
@@ -1693,7 +1724,7 @@
         !
   
         !
-        call nlfl(bec,becdr,lambda,fion)
+        call nlfl(bec,becdr,lambda,fion, lgam)
           
         ! bforceion adds the force term due to electronic berry phase
         ! only in US-case
@@ -1718,7 +1749,20 @@
 #endif
         call stop_clock('runcg_uspp')
 
-        deallocate(bec0,becm,becdrdiag)
+!         deallocate(bec0,becm,becdrdiag)
+
+        !begin_modified:giovanni
+        call deallocate_twin(bec0)
+        call deallocate_twin(becm)
+        call deallocate_twin(becdrdiag)
+        !
+        do i=1,nspin
+	  call deallocate_twin(lambda(i))
+	  call deallocate_twin(lambdap(i))
+        enddo
+        !
+        !end_modified:giovanni
+
         deallocate(ave_ene)
         deallocate(c2,c3)
 
