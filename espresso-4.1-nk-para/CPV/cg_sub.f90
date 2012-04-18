@@ -1704,8 +1704,13 @@
               !
               ! Perform lambdap = lambda * fmat0
               !
-              CALL sqr_mm_cannon( 'N', 'N', nss, 1.0d0, lambda(1,1,iss), nlam, lambda_dist, nlam, &
-                                  0.0d0, lambdap(1,1,iss), nlam, descla(1,iss) )
+              IF(.not. lambdap%iscmplx) then
+		CALL sqr_mm_cannon( 'N', 'N', nss, 1.0d0, lambda(iss)%rvec(1,1), nlam, lambda_dist, nlam, &
+                                  0.0d0, lambdap(iss)%rvec(1,1), nlam, descla(1,iss) )
+              ELSE
+		CALL sqr_zmm_cannon( 'N', 'N', nss, 1.0d0, lambda(iss)%cvec(1,1), nlam, lambda_dist, nlam, &
+                                  0.0d0, lambdap(iss)%cvec(1,1), nlam, descla(1,iss) )
+              ENDIF
               !
               !begin_modified:giovanni
               call copy_twin(lambda_dist, lambda(iss))
@@ -1716,7 +1721,7 @@
            end do
            !
            call deallocate_twin(lambda_dist)
-           DEALLOCATE( lambda_dist )
+!            DEALLOCATE( lambda_dist )
            !
            call nlsm2(ngw,nhsa,nbsp,nspin,eigr,c0(:,:),becdr)
            !
