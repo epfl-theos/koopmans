@@ -35,17 +35,17 @@ MODULE ensemble_dft
       real(DP) :: lambda_cold !step for cold smearing for not accurate iterations     
 
 !***ensemble-DFT
-      real(DP), allocatable::                 z0t(:,:,:)   ! transpose of z0
+!       real(DP), allocatable::                 z0t(:,:,:)   ! transpose of z0
+      type(twin_matrix), dimension(:), allocatable :: z0t
       complex(DP), allocatable::             c0diag(:,:)
       type(twin_matrix)::               becdiag!(:,:) !modified:giovanni
       real(DP), allocatable::                      e0(:)
-      real(DP), allocatable::               fmat0(:,:,:)
+      type(twin_matrix), dimension(:), allocatable :: fmat0 !modified:giovanni
       real(DP), allocatable::               fmat0_diag(:)
       logical  :: fmat0_diag_set = .FALSE.
       real(DP) :: gibbsfe
 ! variables for cold-smearing
-      real(DP), allocatable ::               psihpsi(:,:,:)!it contains the matrix <Psi|H|Psi>
-      type(twin_matrix), dimension(:), allocatable :: psihpsi_twin !added:giovanni !still need to define allocation_deallocations
+      type(twin_matrix), dimension(:), allocatable :: psihpsi !modified:giovanni
 CONTAINS
 
 
@@ -120,14 +120,21 @@ CONTAINS
     INTEGER, INTENT(IN) :: descla( descla_siz_ , nspin )
     INTEGER :: is, i, ii
     INTEGER :: np, me
-    z0t(:,:,:)=0.0d0
+    do is=1,nspin
+      call set_twin(z0t(is),CMPLX(0.d0,0.d0))
+    enddo
+
     do is = 1, nspin
        np = descla( la_npc_ , is ) * descla( la_npr_ , is )
        me = descla( la_me_ , is )
        IF( descla( lambda_node_ , is ) > 0 ) THEN
           ii = me + 1
           DO i = 1, descla( la_nrl_ , is )
-             z0t( i, ii , is ) = 1.d0
+             IF(.not.z0t(is)%iscmplx) THEN
+	      z0t(is)%rvec( i, ii) = 1.d0
+             ELSE
+	      z0t(is)%cvec( i, ii) = 1.d0
+             ENDIF
              ii = ii + np
           END DO
        END IF
@@ -139,20 +146,32 @@ CONTAINS
   SUBROUTINE h_matrix_init( descla, nspin )
     ! initialization of the psihpsi matrix 
     USE descriptors, ONLY: lambda_node_ , nlar_ , la_myr_ , la_myc_
+    USE twin_types
     IMPLICIT NONE
     INTEGER, INTENT(IN) :: nspin
     INTEGER, INTENT(IN) :: descla(:,:)
     INTEGER :: is, i, nr
-      psihpsi(:,:,:)=0.0d0
+    COMPLEX(DP), PARAMETER :: czero = CMPLX(0.d0,0.d0)
+
+      do is=1,nspin
+	call set_twin(psihpsi(is), czero)
+      enddo
+
       do is = 1, nspin
          IF( descla( lambda_node_ , is ) > 0 ) THEN
             !
             nr = descla( nlar_ , is )
             !
 !            IF( descla( la_myr_ , is ) == descla( la_myc_ , is ) ) THEN
-               DO i = 1, nr
-                  psihpsi(i,i,is) = 1.0d0
-               END DO
+               IF(.not.psihpsi(is)%iscmplx) THEN
+		DO i = 1, nr
+		    psihpsi(is)%rvec(i,i) = 1.0d0
+		END DO
+               ELSE
+		DO i = 1, nr
+		    psihpsi(is)%cvec(i,i) = CMPLX(1.0d0,0.d0)
+		END DO
+               ENDIF
 !            END IF
          END IF
       end do
@@ -263,16 +282,27 @@ CONTAINS
     IMPLICIT NONE
     INTEGER, INTENT(IN) :: nhsa, n, ngw, nudx, nspin, nx, nnrsx, nat, nlax, nrlx
     LOGICAL, INTENT(IN) :: lgam
+    !
+    INTEGER :: ispin
+    !
       allocate(c0diag(ngw,nx))
-      allocate(z0t(nrlx,nudx,nspin))
+!       allocate(z0t(nrlx,nudx,nspin))
 !       allocate(becdiag(nhsa,n))
       allocate(e0(nx))
-      allocate(fmat0(nrlx,nudx,nspin))
       allocate(fmat0_diag(nx))
-      allocate(psihpsi(nlax,nlax,nspin))
       !begin_added:giovanni
       call init_twin(becdiag, lgam)
       call allocate_twin(becdiag,nhsa,n, lgam)
+      allocate(fmat0(nspin))
+      allocate(psihpsi(nspin))
+      do ispin=1,nspin
+	call init_twin(fmat0(ispin), lgam)
+	call allocate_twin(fmat0(ispin),nrlx,nudx, lgam)
+	call init_twin(psihpsi(ispin), lgam)
+	call allocate_twin(psihpsi(ispin),nlax,nlax, lgam)
+	call init_twin(z0t(ispin), lgam)
+	call allocate_twin(z0t(ispin),nrlx,nudx, lgam)
+      enddo
       !end_added:giovanni
       !
       fmat0_diag(:) = 0.0
@@ -283,14 +313,19 @@ CONTAINS
 
   SUBROUTINE deallocate_ensemble_dft( )
     IMPLICIT NONE
+    INTEGER :: ispin
     IF( ALLOCATED( c0diag ) )         deallocate(c0diag )
-    IF( ALLOCATED( z0t ) )            deallocate(z0t )
-!     IF( ALLOCATED( becdiag ) )        deallocate(becdiag )
-    call deallocate_twin(becdiag) !modified:giovanni
+!     IF( ALLOCATED( z0t ) )            deallocate(z0t )
+    !begin_modified:giovanni
+    call deallocate_twin(becdiag)
+    do ispin=1,size(fmat0)
+      call deallocate_twin(fmat0(ispin))
+      call deallocate_twin(psihpsi(ispin))
+      call deallocate_twin(z0t(ispin))
+    enddo
+    !end_modified:giovanni
     IF( ALLOCATED( e0 ) )             deallocate(e0 )
-    IF( ALLOCATED( fmat0 ) )          deallocate(fmat0 )
     IF( ALLOCATED( fmat0_diag ) )     deallocate(fmat0_diag )
-    IF( ALLOCATED( psihpsi ) )        deallocate(psihpsi)
    RETURN
   END SUBROUTINE deallocate_ensemble_dft
   

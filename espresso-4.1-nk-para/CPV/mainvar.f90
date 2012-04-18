@@ -123,6 +123,10 @@ MODULE cp_main_variables
       module procedure collect_lambda_real, collect_lambda_cmplx
   END INTERFACE
 
+  INTERFACE collect_zmat
+      module procedure collect_zmat_real, collect_zmat_cmplx
+  END INTERFACE
+
   INTERFACE distribute_lambda
       module procedure distribute_lambda_real, distribute_lambda_cmplx
   END INTERFACE
@@ -555,7 +559,7 @@ MODULE cp_main_variables
     END SUBROUTINE collect_bec
     !
     !------------------------------------------------------------------------
-    SUBROUTINE collect_zmat( zmat_repl, zmat_dist, desc )
+    SUBROUTINE collect_zmat_real( zmat_repl, zmat_dist, desc )
        USE mp_global,   ONLY: intra_image_comm
        USE mp,          ONLY: mp_sum
        USE descriptors, ONLY: lambda_node_ , la_nrl_ , la_me_ , la_npr_ , la_npc_ , la_n_
@@ -578,8 +582,33 @@ MODULE cp_main_variables
        END IF
        CALL mp_sum( zmat_repl, intra_image_comm )
        RETURN
-    END SUBROUTINE collect_zmat
+    END SUBROUTINE collect_zmat_real
     !
+    !------------------------------------------------------------------------
+    SUBROUTINE collect_zmat_cmplx( zmat_repl, zmat_dist, desc )
+       USE mp_global,   ONLY: intra_image_comm
+       USE mp,          ONLY: mp_sum
+       USE descriptors, ONLY: lambda_node_ , la_nrl_ , la_me_ , la_npr_ , la_npc_ , la_n_
+       COMPLEX(DP), INTENT(OUT) :: zmat_repl(:,:)
+       COMPLEX(DP), INTENT(IN)  :: zmat_dist(:,:)
+       INTEGER,  INTENT(IN)  :: desc(:)
+       INTEGER :: i, ii, j, me, np, nrl
+       zmat_repl = CMPLX(0.0d0,0.d0)
+       me = desc( la_me_ )
+       np = desc( la_npc_ ) * desc( la_npr_ )
+       nrl = desc( la_nrl_ )
+       IF( desc( lambda_node_ ) > 0 ) THEN
+          DO j = 1, desc( la_n_ )
+             ii = me + 1
+             DO i = 1, nrl
+                zmat_repl( ii, j ) = zmat_dist( i, j )
+                ii = ii + np
+             END DO
+          END DO
+       END IF
+       CALL mp_sum( zmat_repl, intra_image_comm )
+       RETURN
+    END SUBROUTINE collect_zmat_cmplx
     !
     !------------------------------------------------------------------------
     SUBROUTINE setval_lambda_real( lambda_dist, i, j, val, desc )

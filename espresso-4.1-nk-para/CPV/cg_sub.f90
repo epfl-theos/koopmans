@@ -109,10 +109,11 @@
       complex(dp), allocatable :: hpsi(:,:), hpsi0(:,:), gi(:,:), hi(:,:)
       real(DP),    allocatable :: s_minus1(:,:)    !factors for inverting US S matrix
       real(DP),    allocatable :: k_minus1(:,:)    !factors for inverting US preconditioning matrix 
-!       real(DP),    allocatable :: lambda_repl(:,:) ! replicated copy of lambda
-!       real(DP),    allocatable :: lambda_dist(:,:) ! replicated copy of lambda
-      type(twin_matrix) :: lambda_repl!(:,:) ! replicated copy of lambda !modified:giovanni
-      type(twin_matrix) :: lambda_dist!(:,:) ! replicated copy of lambda  !modified:giovanni
+      real(DP),    allocatable :: lambda_repl(:,:) ! replicated copy of lambda
+      real(DP),    allocatable :: lambda_dist(:,:) ! replicated copy of lambda
+      complex(DP),    allocatable :: lambda_repl_c(:,:) ! replicated copy of lambda
+      complex(DP),    allocatable :: lambda_dist_c(:,:) ! replicated copy of lambda
+
       !
       real(dp)    :: sca, dumm(1)
       logical     :: newscheme, firstiter
@@ -123,6 +124,7 @@
       type(twin_matrix) :: bec0, becm !modified:giovanni
       real(kind=DP), allocatable :: ave_ene(:)!average kinetic energy for preconditioning
       real(kind=DP), allocatable :: fmat_(:,:)!average kinetic energy for preconditioning
+      complex(kind=DP), allocatable :: fmat_c_(:,:)!average kinetic energy for preconditioning
       ! 
       logical     :: pre_state!if .true. does preconditioning state by state
       !
@@ -151,7 +153,6 @@
       real(dp)    :: tmppasso, ene_save(100), ene_save2(100), ene_lda
       !
       logical :: lgam
-      integer :: ispin
       !
       lgam=gamma_only.and..not.do_wf_cmplx
       !
@@ -170,11 +171,11 @@
       call allocate_twin(becm, nhsa, nbsp, lgam)
       call init_twin(becdrdiag, lgam)
       call allocate_twin(becdrdiag, nhsa, nspin*nlax,3, lgam)
-      do ispin=1,nspin
-	call init_twin(lambda, lgam)
-	call allocate_twin(lambda, nlam, nlam, lgam)
-	call init_twin(lambdap, lgam)
-	call allocate_twin(lambdap, nlam, nlam, lgam)
+      do iss=1,nspin
+	call init_twin(lambda(iss), lgam)
+	call allocate_twin(lambda(iss), nlam, nlam, lgam)
+	call init_twin(lambdap(iss), lgam)
+	call allocate_twin(lambdap(iss), nlam, nlam, lgam)
       enddo
       !end_added:giovanni
 
@@ -772,21 +773,39 @@
            
            call mp_sum( gamma, intra_image_comm )
            
-           if (nvb.gt.0) then
-              do i=1,nbsp
-                 do is=1,nvb
-                    do iv=1,nh(is)
-                       do jv=1,nh(is)
-                          do ia=1,na(is)
-                             inl=ish(is)+(iv-1)*na(is)+ia
-                             jnl=ish(is)+(jv-1)*na(is)+ia
-                             gamma=gamma+ qq(iv,jv,is)*becm(inl,i)*bec0(jnl,i)
-                          end do
-                       end do
-                    end do
-                 end do
-              enddo
-           endif
+           if(.not.becm%iscmplx) then
+	    if (nvb.gt.0) then
+		do i=1,nbsp
+		  do is=1,nvb
+		      do iv=1,nh(is)
+			do jv=1,nh(is)
+			    do ia=1,na(is)
+			      inl=ish(is)+(iv-1)*na(is)+ia
+			      jnl=ish(is)+(jv-1)*na(is)+ia
+			      gamma=gamma+ qq(iv,jv,is)*becm%rvec(inl,i)*bec0%rvec(jnl,i)
+			    end do
+			end do
+		      end do
+		  end do
+		enddo
+	    endif
+          else
+	    if (nvb.gt.0) then
+		do i=1,nbsp
+		  do is=1,nvb
+		      do iv=1,nh(is)
+			do jv=1,nh(is)
+			    do ia=1,na(is)
+			      inl=ish(is)+(iv-1)*na(is)+ia
+			      jnl=ish(is)+(jv-1)*na(is)+ia
+			      gamma=gamma+ qq(iv,jv,is)*becm%cvec(inl,i)*bec0%cvec(jnl,i)
+			    end do
+			end do
+		      end do
+		  end do
+		enddo
+	    endif
+          endif
 
         else
 
@@ -795,27 +814,51 @@
               istart=iupdwn(iss)
               me_rot = descla( la_me_ , iss )
               np_rot = descla( la_npc_ , iss ) * descla( la_npr_ , iss )
-              allocate( fmat_ ( nrlx, nudx ) )
-              do ip = 1, np_rot
-                 if( me_rot == ( ip - 1 ) ) then
-                    fmat_ = fmat0(:,:,iss)
-                 end if
-                 nrl = ldim_cyclic( nss, np_rot, ip - 1 )
-                 CALL mp_bcast( fmat_ , ip - 1 , intra_image_comm )
-                 do i=1,nss
-                    jj = ip
-                    do j=1,nrl
-                       do ig=1,ngw
-                          gamma=gamma+2.d0*DBLE(CONJG(gi(ig,i+istart-1))*hpsi(ig,jj+istart-1))*fmat_(j,i)
-                       enddo
-                       if (ng0.eq.2) then
-                          gamma=gamma-DBLE(CONJG(gi(1,i+istart-1))*hpsi(1,jj+istart-1))*fmat_(j,i)
-                       endif
-                       jj = jj + np_rot
-                    enddo
-                 enddo
-              enddo
-              deallocate( fmat_ )
+              if(.not.fmat0(iss)%iscmplx) then
+		allocate( fmat_ ( nrlx, nudx ) )
+		do ip = 1, np_rot
+		  if( me_rot == ( ip - 1 ) ) then
+		      fmat_ = fmat0(iss)%rvec(:,:)
+		  end if
+		  nrl = ldim_cyclic( nss, np_rot, ip - 1 )
+		  CALL mp_bcast( fmat_ , ip - 1 , intra_image_comm )
+		  do i=1,nss
+		      jj = ip
+		      do j=1,nrl
+			do ig=1,ngw
+			    gamma=gamma+2.d0*DBLE(CONJG(gi(ig,i+istart-1))*hpsi(ig,jj+istart-1))*fmat_(j,i)
+			enddo
+			if (ng0.eq.2) then
+			    gamma=gamma-DBLE(CONJG(gi(1,i+istart-1))*hpsi(1,jj+istart-1))*fmat_(j,i)
+			endif
+			jj = jj + np_rot
+		      enddo
+		  enddo
+		enddo
+		deallocate( fmat_ )
+              else
+		allocate( fmat_c_ ( nrlx, nudx ) ) !warning:giovanni, need to put some conjugates somewhere?
+		do ip = 1, np_rot
+		  if( me_rot == ( ip - 1 ) ) then
+		      fmat_c_ = fmat0(iss)%cvec(:,:)
+		  end if
+		  nrl = ldim_cyclic( nss, np_rot, ip - 1 )
+		  CALL mp_bcast( fmat_c_ , ip - 1 , intra_image_comm )
+		  do i=1,nss
+		      jj = ip
+		      do j=1,nrl
+			do ig=1,ngw
+			    gamma=gamma+2.d0*DBLE(CONJG(gi(ig,i+istart-1))*hpsi(ig,jj+istart-1))*fmat_c_(j,i)
+			enddo
+			if (ng0.eq.2) then
+			    gamma=gamma-DBLE(CONJG(gi(1,i+istart-1))*hpsi(1,jj+istart-1))*fmat_c_(j,i)
+			endif
+			jj = jj + np_rot
+		      enddo
+		  enddo
+		enddo
+		deallocate( fmat_c_ )
+              endif
            enddo
            if(nvb.gt.0) then
               do iss=1,nspin
@@ -823,41 +866,67 @@
                  istart=iupdwn(iss)
                  me_rot = descla( la_me_ , iss )
                  np_rot = descla( la_npc_ , iss ) * descla( la_npr_ , iss )
-                 allocate( fmat_ ( nrlx, nudx ) )
-                 do ip = 1, np_rot
-                    if( me_rot == ( ip - 1 ) ) then
-                       fmat_ = fmat0(:,:,iss)
-                    end if
-                    nrl = ldim_cyclic( nss, np_rot, ip - 1 )
-                    CALL mp_bcast( fmat_ , ip - 1 , intra_image_comm )
+                 if(.not.fmat0(iss)%iscmplx) then
+		  allocate( fmat_ ( nrlx, nudx ) )
+		  do ip = 1, np_rot
+		      if( me_rot == ( ip - 1 ) ) then
+			fmat_ = fmat0(iss)%rvec(:,:)
+		      end if
+		      nrl = ldim_cyclic( nss, np_rot, ip - 1 )
+		      CALL mp_bcast( fmat_ , ip - 1 , intra_image_comm )
 
-                    do i=1,nss
-                       jj = ip 
-                       do j=1,nrl
-                          do is=1,nvb
-                             do iv=1,nh(is)
-                                do jv=1,nh(is)
-                                   do ia=1,na(is)
-                                      inl=ish(is)+(iv-1)*na(is)+ia
-                                      jnl=ish(is)+(jv-1)*na(is)+ia
-                                      gamma=gamma+ qq(iv,jv,is)*becm(inl,i+istart-1)*bec0(jnl,jj+istart-1)*fmat_(j,i)
-                                   end do
-                                end do
-                             end do
-                          enddo
-                          jj = jj + np_rot
-                       enddo
-                    enddo
-                 end do
-                 deallocate( fmat_ )
+		      do i=1,nss
+			jj = ip 
+			do j=1,nrl
+			    do is=1,nvb
+			      do iv=1,nh(is)
+				  do jv=1,nh(is)
+				    do ia=1,na(is)
+					inl=ish(is)+(iv-1)*na(is)+ia
+					jnl=ish(is)+(jv-1)*na(is)+ia
+					gamma=gamma+ qq(iv,jv,is)*becm%rvec(inl,i+istart-1)*bec0%rvec(jnl,jj+istart-1)*fmat_(j,i)
+				    end do
+				  end do
+			      end do
+			    enddo
+			    jj = jj + np_rot
+			enddo
+		      enddo
+		  end do
+		  deallocate( fmat_ )
+                 else
+		  allocate( fmat_c_ ( nrlx, nudx ) )
+		  do ip = 1, np_rot
+		      if( me_rot == ( ip - 1 ) ) then
+			fmat_c_ = fmat0(iss)%cvec(:,:)
+		      end if
+		      nrl = ldim_cyclic( nss, np_rot, ip - 1 )
+		      CALL mp_bcast( fmat_c_ , ip - 1 , intra_image_comm )
+
+		      do i=1,nss
+			jj = ip 
+			do j=1,nrl
+			    do is=1,nvb
+			      do iv=1,nh(is)
+				  do jv=1,nh(is)
+				    do ia=1,na(is)
+					inl=ish(is)+(iv-1)*na(is)+ia
+					jnl=ish(is)+(jv-1)*na(is)+ia
+					gamma=gamma+ qq(iv,jv,is)*becm%cvec(inl,i+istart-1)*bec0%cvec(jnl,jj+istart-1)*fmat_c_(j,i)
+				    end do
+				  end do
+			      end do
+			    enddo
+			    jj = jj + np_rot
+			enddo
+		      enddo
+		  end do
+		  deallocate( fmat_c_ )
+                 endif
               enddo
            endif
            call mp_sum( gamma, intra_image_comm )
         endif
-
-
-
-
         !case of first iteration
 
 !$$        if(itercg==1.or.(mod(itercg,niter_cg_restart).eq.1).or.restartcg) then
@@ -927,29 +996,55 @@
             istart = iupdwn(iss)
             me_rot = descla( la_me_ , iss )
             np_rot = descla( la_npc_ , iss ) * descla( la_npr_ , iss )
-            allocate( fmat_ ( nrlx, nudx ) )
-            do ip = 1, np_rot
-               if( me_rot == ( ip - 1 ) ) then
-                  fmat_ = fmat0(:,:,iss)
-               end if
-               nrl = ldim_cyclic( nss, np_rot, ip - 1 )
-               CALL mp_bcast( fmat_ , ip - 1 , intra_image_comm )
-               do i=1,nss
-                  jj = ip
-                  do j=1,nrl
-                     do ig=1,ngw
-                        dene0=dene0-2.d0*DBLE(CONJG(hi(ig,i+istart-1))*hpsi0(ig,jj+istart-1))*fmat_(j,i)
-                        dene0=dene0-2.d0*DBLE(CONJG(hpsi0(ig,i+istart-1))*hi(ig,jj+istart-1))*fmat_(j,i)
-                     enddo
-                     if (ng0.eq.2) then
-                        dene0=dene0+DBLE(CONJG(hi(1,i+istart-1))*hpsi0(1,jj+istart-1))*fmat_(j,i)
-                        dene0=dene0+DBLE(CONJG(hpsi0(1,i+istart-1))*hi(1,jj+istart-1))*fmat_(j,i)
-                     end if
-                     jj = jj + np_rot
-                  enddo
-               enddo
-            end do
-            deallocate( fmat_ )
+            if(.not. fmat0(iss)%iscmplx) then
+	      allocate( fmat_ ( nrlx, nudx ) )
+	      do ip = 1, np_rot
+		if( me_rot == ( ip - 1 ) ) then
+		    fmat_ = fmat0(iss)%rvec(:,:)
+		end if
+		nrl = ldim_cyclic( nss, np_rot, ip - 1 )
+		CALL mp_bcast( fmat_ , ip - 1 , intra_image_comm )
+		do i=1,nss
+		    jj = ip
+		    do j=1,nrl
+		      do ig=1,ngw
+			  dene0=dene0-2.d0*DBLE(CONJG(hi(ig,i+istart-1))*hpsi0(ig,jj+istart-1))*fmat_(j,i)
+			  dene0=dene0-2.d0*DBLE(CONJG(hpsi0(ig,i+istart-1))*hi(ig,jj+istart-1))*fmat_(j,i)
+		      enddo
+		      if (ng0.eq.2) then
+			  dene0=dene0+DBLE(CONJG(hi(1,i+istart-1))*hpsi0(1,jj+istart-1))*fmat_(j,i)
+			  dene0=dene0+DBLE(CONJG(hpsi0(1,i+istart-1))*hi(1,jj+istart-1))*fmat_(j,i)
+		      end if
+		      jj = jj + np_rot
+		    enddo
+		enddo
+	      end do
+	      deallocate( fmat_ )
+            else
+	      allocate( fmat_c_ ( nrlx, nudx ) )
+	      do ip = 1, np_rot
+		if( me_rot == ( ip - 1 ) ) then
+		    fmat_c_ = fmat0(iss)%cvec(:,:)
+		end if
+		nrl = ldim_cyclic( nss, np_rot, ip - 1 )
+		CALL mp_bcast( fmat_ , ip - 1 , intra_image_comm )
+		do i=1,nss
+		    jj = ip
+		    do j=1,nrl
+		      do ig=1,ngw
+			  dene0=dene0-2.d0*DBLE(CONJG(hi(ig,i+istart-1))*hpsi0(ig,jj+istart-1))*fmat_c_(j,i)
+			  dene0=dene0-2.d0*DBLE(CONJG(hpsi0(ig,i+istart-1))*hi(ig,jj+istart-1))*fmat_c_(j,i)
+		      enddo
+		      if (ng0.eq.2) then
+			  dene0=dene0+DBLE(CONJG(hi(1,i+istart-1))*hpsi0(1,jj+istart-1))*fmat_c_(j,i)
+			  dene0=dene0+DBLE(CONJG(hpsi0(1,i+istart-1))*hi(1,jj+istart-1))*fmat_c_(j,i)
+		      end if
+		      jj = jj + np_rot
+		    enddo
+		enddo
+	      end do
+	      deallocate( fmat_c_ )
+            endif
          enddo
       endif
 
@@ -1432,7 +1527,7 @@
         if(.not. ene_ok) call calbec (1,nsp,eigr,c0,bec)
 
         !calculates phi for pc_daga
-        CALL calphi( c0, SIZE(c0,1), bec, nhsa, betae, phi, nbsp )
+        CALL calphi( c0, SIZE(c0,1), bec, nhsa, betae, phi, nbsp, lgam )
   
         !=======================================================================
         !
@@ -1651,77 +1746,125 @@
 
         enddo
 
-        call init_twin(lambda_repl,lgam) !modified:giovanni
-        call allocate_twin(lambda_repl, nudx, nudx, lgam) !modified:giovanni
-!         ALLOCATE( lambda_repl( nudx, nudx ) )
+        IF(.not.lambda(1)%iscmplx) THEN
+	  allocate(lambda_repl(nudx,nudx))
+        ELSE
+	  allocate(lambda_repl_c(nudx,nudx))
+        ENDIF
+
         !
         do is = 1, nspin
            !
            nss = nupdwn(is)
            istart = iupdwn(is)
-           lambda_repl = 0.d0
+           
+           IF(.not.lambda(1)%iscmplx) THEN
+	      lambda_repl = 0.d0
+           ELSE
+              lambda_repl_c = CMPLX(0.d0,0.d0)
+           ENDIF
            !
            !
            do i = 1, nss
               do j = i, nss
                  ii = i + istart - 1
                  jj = j + istart - 1
-                 do ig = 1, ngw
-                    lambda_repl( i, j ) = lambda_repl( i, j ) - &
-                       2.d0 * DBLE( CONJG( c0( ig, ii ) ) * gi( ig, jj) )
-                 enddo
-                 if( ng0 == 2 ) then
-                    lambda_repl( i, j ) = lambda_repl( i, j ) + &
-                       DBLE( CONJG( c0( 1, ii ) ) * gi( 1, jj ) )
-                 endif
-                 lambda_repl( j, i ) = lambda_repl( i, j )
+                 IF(.not.lambda(1)%iscmplx) THEN
+		    do ig = 1, ngw
+			lambda_repl( i, j ) = lambda_repl( i, j ) - &
+			  2.d0 * DBLE( CONJG( c0( ig, ii ) ) * gi( ig, jj) )
+		    enddo
+		    if( ng0 == 2 ) then
+			lambda_repl( i, j ) = lambda_repl( i, j ) + &
+			  DBLE( CONJG( c0( 1, ii ) ) * gi( 1, jj ) )
+		    endif
+		    lambda_repl( j, i ) = lambda_repl( i, j )
+		ELSE
+		    do ig = 1, ngw
+			lambda_repl_c( i, j ) = lambda_repl_c( i, j ) - &
+			  2.d0 * DBLE( CONJG( c0( ig, ii ) ) * gi( ig, jj) )
+		    enddo
+		    if( ng0 == 2 ) then
+			lambda_repl_c( i, j ) = lambda_repl_c( i, j ) + &
+			  DBLE( CONJG( c0( 1, ii ) ) * gi( 1, jj ) )
+		    endif
+		    lambda_repl_c( j, i ) = lambda_repl_c( i, j )
+                 ENDIF
               enddo
            enddo
            !
-           CALL mp_sum( lambda_repl, intra_image_comm )
+           IF(.not.lambda(1)%iscmplx) THEN
+	      CALL mp_sum( lambda_repl, intra_image_comm )
+	      CALL distribute_lambda( lambda_repl, lambda(is)%rvec( :, :), descla( :, is ) )
+           ELSE
+	      CALL mp_sum( lambda_repl_c, intra_image_comm )
+	      CALL distribute_lambda( lambda_repl_c, lambda(is)%cvec( :, :), descla( :, is ) )
+           ENDIF
            !
-           CALL distribute_lambda( lambda_repl, lambda( :, :, is ), descla( :, is ) )
            !
         end do
 
-        DEALLOCATE( lambda_repl )
+        IF(.not.lambda(1)%iscmplx) THEN
+	  DEALLOCATE( lambda_repl )
+        ELSE
+	  DEALLOCATE( lambda_repl_c )
+        ENDIF
   
         if ( tens ) then
            !
            ! in the ensemble case matrix labda must be multiplied with f
-
-!            ALLOCATE( lambda_dist( nlam, nlam ) )
-           call init_twin(lambda_dist, lgam) !modified:giovanni
-           call allocate_twin(lambda_dist,nlam,nlam,lgam) !modified:giovanni
+	   IF(.not.lambda(1)%iscmplx) THEN
+	    ALLOCATE( lambda_dist( nlam, nlam ) )
+           ELSE
+	    ALLOCATE( lambda_dist_c( nlam, nlam ) )
+           ENDIF
  
            do iss = 1, nspin
               !
               nss    = nupdwn( iss )
               !
-              lambdap(:,:,iss) = 0.0d0
+              call set_twin(lambdap(iss), CMPLX(0.d0,0.d0)) !modified:giovanni
               !
-              CALL cyc2blk_redist( nss, fmat0(1,1,iss), nrlx, SIZE(fmat0,2), lambda_dist, nlam, nlam, descla(1,iss) )
+              IF(.not.lambdap(iss)%iscmplx) THEN
+		CALL cyc2blk_redist( nss, fmat0(iss)%rvec(1,1), nrlx, SIZE(fmat0(iss)%rvec,2), lambda_dist, nlam, nlam, descla(1,iss) )
+              ELSE
+		CALL cyc2blk_zredist( nss, fmat0(iss)%cvec(1,1), nrlx, SIZE(fmat0(iss)%cvec,2), lambda_dist, nlam, nlam, descla(1,iss) )
+              ENDIF
               !
               ! Perform lambdap = lambda * fmat0
               !
-              IF(.not. lambdap%iscmplx) then
+              IF(.not. lambdap(iss)%iscmplx) then !modified:giovanni
 		CALL sqr_mm_cannon( 'N', 'N', nss, 1.0d0, lambda(iss)%rvec(1,1), nlam, lambda_dist, nlam, &
                                   0.0d0, lambdap(iss)%rvec(1,1), nlam, descla(1,iss) )
               ELSE
-		CALL sqr_zmm_cannon( 'N', 'N', nss, 1.0d0, lambda(iss)%cvec(1,1), nlam, lambda_dist, nlam, &
-                                  0.0d0, lambdap(iss)%cvec(1,1), nlam, descla(1,iss) )
+		CALL sqr_zmm_cannon( 'C', 'N', nss, 1.0d0, lambda(iss)%cvec(1,1), nlam, lambda_dist, nlam, &
+                                  0.0d0, lambdap(iss)%cvec(1,1), nlam, descla(1,iss) ) !warning:giovanni C or N?
               ENDIF
               !
               !begin_modified:giovanni
-              call copy_twin(lambda_dist, lambda(iss))
+              IF(.not.lambda(iss)%iscmplx) THEN
+                lambda_dist(:,:) = lambda(iss)%rvec(:,:)
+              ELSE
+                lambda_dist_c(:,:) = lambda(iss)%cvec(:,:)
+              ENDIF
+
               call copy_twin(lambda(iss), lambdap(iss))
-              call copy_twin(lambdap(iss), lambda_dist)
+
+              IF(.not.lambdap(iss)%iscmplx) THEN
+                lambdap(iss)%rvec(:,:) = lambda_dist(:,:)
+              ELSE
+                lambda(iss)%cvec(:,:) = lambda_dist_c(:,:)
+              ENDIF
               !end_modified:giovanni
               !
            end do
            !
-           call deallocate_twin(lambda_dist)
-!            DEALLOCATE( lambda_dist )
+	   IF(.not.lambdap(iss)%iscmplx) THEN
+	    DEALLOCATE( lambda_dist )
+           ELSE
+	    DEALLOCATE( lambda_dist_c )
+           ENDIF
+
            !
            call nlsm2(ngw,nhsa,nbsp,nspin,eigr,c0(:,:),becdr)
            !

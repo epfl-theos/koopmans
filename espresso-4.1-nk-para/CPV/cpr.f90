@@ -181,6 +181,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   !
   REAL(DP),  ALLOCATABLE :: forceh(:,:)
   REAL(DP),  ALLOCATABLE :: fmat0_repl(:,:)
+  COMPLEX(DP),  ALLOCATABLE :: fmat0_repl_c(:,:)
   LOGICAL :: lgam
 
 !$$
@@ -773,17 +774,31 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
          !
          DO iss = 1, nspin
              !
-             ALLOCATE( fmat0_repl(nupdwn(iss),nupdwn(iss)) )
-             !
-             CALL collect_zmat( fmat0_repl, fmat0(:,:,iss), descla(:,iss) )
-             !
-             DO  i = 1, nupdwn(iss)
-                 !
-                 fmat0_diag( i+iupdwn(iss)-1 ) = fmat0_repl(i,i)
-                 !
-             ENDDO
-             !
-             DEALLOCATE( fmat0_repl )
+             IF(.not.fmat0(iss)%iscmplx) THEN
+	      ALLOCATE( fmat0_repl(nupdwn(iss),nupdwn(iss)) )
+	      !
+	      CALL collect_zmat( fmat0_repl, fmat0(iss)%rvec(:,:), descla(:,iss) )
+	      !
+	      DO  i = 1, nupdwn(iss)
+		  !
+		  fmat0_diag( i+iupdwn(iss)-1 ) = fmat0_repl(i,i)
+		  !
+	      ENDDO
+	      !
+	      DEALLOCATE( fmat0_repl )
+             ELSE
+	      ALLOCATE( fmat0_repl_c(nupdwn(iss),nupdwn(iss)) )
+	      !
+	      CALL collect_zmat( fmat0_repl_c, fmat0(iss)%cvec(:,:), descla(:,iss) )
+	      !
+	      DO  i = 1, nupdwn(iss)
+		  !
+		  fmat0_diag( i+iupdwn(iss)-1 ) = fmat0_repl(i,i)
+		  !
+	      ENDDO
+	      !
+	      DEALLOCATE( fmat0_repl_c )
+             ENDIF
              !
          ENDDO
          !

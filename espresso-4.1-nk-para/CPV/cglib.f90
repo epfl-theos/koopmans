@@ -85,6 +85,90 @@
       END SUBROUTINE calcmt
 
 !-----------------------------------------------------------------------
+   subroutine calcmt_twin( fdiag, zmat, fmat, firstiter)
+!-----------------------------------------------------------------------
+!
+!  constructs fmat=z0^t.fdiag.z0    zmat = z0^t
+!
+      USE kinds,             ONLY: DP
+      use electrons_base,    ONLY: nudx, nspin, nupdwn, iupdwn, nx => nbspx
+      USE cp_main_variables, ONLY: descla, nlax, nrlx
+      USE descriptors,       ONLY: la_npc_ , la_npr_ , la_comm_ , la_me_ , la_nrl_ , &
+                                   lambda_node_ , ldim_cyclic
+      USE mp,                ONLY: mp_sum, mp_bcast
+
+      implicit none
+      logical firstiter
+
+      real(DP) ::  fdiag( nx )
+                  !  NOTE: zmat and fmat are distributed by row across processors
+                  !        fdiag is replicated
+      type(twin_matrix), dimension(nspin) :: zmat, fmat
+
+      integer  :: iss, nss, istart, i, j, k, ii, jj, kk
+      integer  :: np_rot, me_rot, nrl, comm_rot, ip, nrl_ip
+
+      real(DP), ALLOCATABLE :: mtmp(:,:)
+      complex(DP), ALLOCATABLE :: mtmp_c(:,:)
+      real(DP) :: f_z0t
+
+
+      call start_clock('calcmt')
+
+      do iss=1,nspin
+	call set_twin(fmat(iss), CMPLX(0.d0,0.d0))
+      enddo
+
+      DO iss = 1, nspin
+
+         nss      = nupdwn( iss )
+         istart   = iupdwn( iss )
+         np_rot   = descla( la_npr_  , iss ) * descla( la_npc_ , iss )
+         me_rot   = descla( la_me_   , iss )
+         nrl      = descla( la_nrl_  , iss )
+         comm_rot = descla( la_comm_ , iss )
+
+         IF( descla( lambda_node_ , iss ) > 0 ) THEN
+            
+            IF(.not.fmat(iss)%iscmplx) THEN
+	      ALLOCATE( mtmp( nrlx, nudx ) )
+            ELSE
+	      ALLOCATE( mtmp_c( nrlx, nudx ) )
+            ENDIF
+
+            DO ip = 1, np_rot
+
+               IF( me_rot == ( ip - 1 ) ) THEN
+                  mtmp = zmat(:,:,iss)
+               END IF
+               nrl_ip = ldim_cyclic( nss, np_rot, ip - 1 )
+               CALL mp_bcast( mtmp , ip - 1 , comm_rot )
+
+               DO j = 1, nss
+                  ii = ip
+                  DO i = 1, nrl_ip
+                     f_z0t = fdiag( j + istart - 1 ) * mtmp( i, j )
+                     DO k = 1, nrl
+                        fmat( k, ii, iss ) = fmat( k, ii, iss )+ zmat( k, j, iss ) * f_z0t 
+                     END DO
+                     ii = ii + np_rot
+                  END DO
+               END DO
+
+            END DO
+
+            DEALLOCATE( mtmp )
+
+         END IF
+
+      END DO
+
+      call stop_clock('calcmt')
+
+      RETURN
+      END SUBROUTINE calcmt_twin
+
+!-----------------------------------------------------------------------
       subroutine rotate( z0, c0, bec, c0diag, becdiag, firstiter )
 !-----------------------------------------------------------------------
       use kinds, only: dp
