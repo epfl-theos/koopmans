@@ -115,13 +115,16 @@ CONTAINS
     ! initialization of the matrix identity
     USE descriptors,       ONLY: lambda_node_ , la_npc_ , la_npr_ , descla_siz_ , &
                                  la_comm_ ,  la_me_ , la_nrl_
+    USE twin_types
     IMPLICIT NONE
     INTEGER, INTENT(IN) :: nspin
     INTEGER, INTENT(IN) :: descla( descla_siz_ , nspin )
     INTEGER :: is, i, ii
     INTEGER :: np, me
+    COMPLEX(DP), PARAMETER :: c_zero = CMPLX(0.d0,0.d0)
+
     do is=1,nspin
-      call set_twin(z0t(is),CMPLX(0.d0,0.d0))
+      call set_twin(z0t(is), c_zero)
     enddo
 
     do is = 1, nspin

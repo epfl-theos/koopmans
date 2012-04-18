@@ -131,6 +131,10 @@ MODULE cp_main_variables
       module procedure distribute_lambda_real, distribute_lambda_cmplx
   END INTERFACE
 
+  INTERFACE distribute_zmat
+      module procedure distribute_zmat_real, distribute_zmat_cmplx
+  END INTERFACE
+
   INTERFACE setval_lambda
       module procedure setval_lambda_real, setval_lambda_cmplx
   END INTERFACE
@@ -457,7 +461,7 @@ MODULE cp_main_variables
     END SUBROUTINE distribute_bec_real
     !
     !------------------------------------------------------------------------
-    SUBROUTINE distribute_zmat( zmat_repl, zmat_dist, desc )
+    SUBROUTINE distribute_zmat_real( zmat_repl, zmat_dist, desc )
        USE descriptors, ONLY: lambda_node_ , la_nrl_ , la_me_ , la_npr_ , la_npc_ , la_n_
        REAL(DP), INTENT(IN)  :: zmat_repl(:,:)
        REAL(DP), INTENT(OUT) :: zmat_dist(:,:)
@@ -475,7 +479,27 @@ MODULE cp_main_variables
           END DO
        END IF
        RETURN
-    END SUBROUTINE distribute_zmat
+    END SUBROUTINE distribute_zmat_real
+
+    SUBROUTINE distribute_zmat_cmplx( zmat_repl, zmat_dist, desc )
+       USE descriptors, ONLY: lambda_node_ , la_nrl_ , la_me_ , la_npr_ , la_npc_ , la_n_
+       COMPLEX(DP), INTENT(IN)  :: zmat_repl(:,:)
+       COMPLEX(DP), INTENT(OUT) :: zmat_dist(:,:)
+       INTEGER,  INTENT(IN)  :: desc(:)
+       INTEGER :: i, ii, j, me, np
+       me = desc( la_me_ )
+       np = desc( la_npc_ ) * desc( la_npr_ )
+       IF( desc( lambda_node_ ) > 0 ) THEN
+          DO j = 1, desc( la_n_ )
+             ii = me + 1
+             DO i = 1, desc( la_nrl_ )
+                zmat_dist( i, j ) = zmat_repl( ii, j )
+                ii = ii + np
+             END DO
+          END DO
+       END IF
+       RETURN
+    END SUBROUTINE distribute_zmat_cmplx
     !
     !------------------------------------------------------------------------
     SUBROUTINE collect_lambda_real( lambda_repl, lambda_dist, desc )

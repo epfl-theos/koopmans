@@ -559,7 +559,8 @@
          REAL(DP) :: ekincm
          REAL(DP) :: xnhh0(3,3),xnhhm(3,3),vnhh(3,3),velh(3,3)
          REAL(DP), INTENT(OUT) :: tps
-         REAL(DP), INTENT(INOUT) :: mat_z(:,:,:), occ_f(:)
+         REAL(DP), INTENT(INOUT) ::  occ_f(:)
+         TYPE(twin_matrix), dimension(:) :: mat_z
       END SUBROUTINE readfile_cp_twin
    END INTERFACE
 
@@ -606,7 +607,8 @@
          REAL(DP), INTENT(in) :: tps
          REAL(DP), INTENT(in) :: rho(:,:)
          REAL(DP), INTENT(in) :: occ_f(:)
-         REAL(DP), INTENT(in) :: mat_z(:,:,:)
+!          REAL(DP), INTENT(in) :: mat_z(:,:,:)
+         TYPE(twin_matrix), DIMENSION(:), INTENT(IN) :: mat_z
       END SUBROUTINE writefile_cp_twin
       SUBROUTINE writefile_fpmd  &
          ( nfi, trutime, c0, cm, occ, atoms_0, atoms_m, acc, taui, cdmi, ht_m, &

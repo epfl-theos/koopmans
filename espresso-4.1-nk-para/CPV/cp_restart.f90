@@ -133,7 +133,8 @@ MODULE cp_restart
       INTEGER,               INTENT(IN) :: nupdwn(:)    ! 
       INTEGER,               INTENT(IN) :: iupdwn_tot(:)! 
       INTEGER,               INTENT(IN) :: nupdwn_tot(:)! 
-      REAL(DP),    OPTIONAL, INTENT(IN) :: mat_z(:,:,:) ! 
+!       REAL(DP),    OPTIONAL, INTENT(IN) :: mat_z(:,:,:) ! 
+      TYPE(twin_matrix), DIMENSION(:), INTENT(IN), OPTIONAL :: mat_z
       !
       LOGICAL               :: write_charge_density
       CHARACTER(LEN=20)     :: dft_name
@@ -934,14 +935,21 @@ MODULE cp_restart
             IF(allocated(mrepl_c)) THEN
                 DEALLOCATE( mrepl_c )
             ENDIF
-            IF(.not.allocated(mrepl)) THEN
-                ALLOCATE( mrepl( nudx, nudx ) )
-            ENDIF
 	    ! 
 	    ! 
             IF( PRESENT( mat_z ) ) THEN
                !
-               CALL collect_zmat( mrepl, mat_z(:,:,iss), descla(:,iss) )
+               IF(.not.mat_z(iss)%iscmplx) THEN
+		IF(.not.allocated(mrepl)) THEN
+		  ALLOCATE( mrepl( nudx, nudx ) )
+		ENDIF
+		CALL collect_zmat( mrepl, mat_z(iss)%rvec(:,:), descla(:,iss) )
+               ELSE
+		IF(.not.allocated(mrepl_c)) THEN
+		  ALLOCATE( mrepl_c( nudx, nudx ) )
+		ENDIF
+		CALL collect_zmat( mrepl_c, mat_z(iss)%cvec(:,:), descla(:,iss) )
+               ENDIF
                !
                IF ( ionode ) THEN
                   !
@@ -950,13 +958,21 @@ MODULE cp_restart
                   CALL iotk_link( iunpun, "MAT_Z" // TRIM( cspin ), &
                                   filename, CREATE = .TRUE., BINARY = .TRUE. )
                   !
-                  CALL iotk_write_dat( iunpun, "MAT_Z" // TRIM( cspin ), mrepl )
+                  IF(.not.mat_z(iss)%iscmplx) THEN
+                    CALL iotk_write_dat( iunpun, "MAT_Z" // TRIM( cspin ), mrepl )
+                  ELSE
+		    CALL iotk_write_dat( iunpun, "MAT_Z" // TRIM( cspin ), mrepl_c )
+                  ENDIF
                   !
                END IF
                !
             END IF
             !
-            DEALLOCATE( mrepl )
+	    IF(.not.mat_z(iss)%iscmplx) THEN
+	      DEALLOCATE( mrepl )
+            ELSE
+	      DEALLOCATE( mrepl_c )
+            ENDIF
             !
          END DO
          !
@@ -2800,7 +2816,7 @@ MODULE cp_restart
       REAL(DP),              INTENT(INOUT) :: ekincm       !  
       COMPLEX(DP),           INTENT(INOUT) :: c02(:,:)     ! 
       COMPLEX(DP),           INTENT(INOUT) :: cm2(:,:)     ! 
-      REAL(DP),    OPTIONAL, INTENT(INOUT) :: mat_z(:,:,:) ! 
+      TYPE(twin_matrix), dimension(:), INTENT(INOUT), optional :: mat_z
       !
       CHARACTER(LEN=256)   :: dirname, kdirname, filename
       CHARACTER(LEN=5)     :: kindex
@@ -3515,7 +3531,6 @@ MODULE cp_restart
 		END IF
 		! 
 		CALL mp_bcast( mrepl_c, ionode_id, intra_image_comm )
-
 		CALL distribute_lambda( mrepl_c, lambdam(iss)%cvec(:,:), descla(:,iss) )
                 DEALLOCATE(mrepl_c)
 
@@ -3523,28 +3538,40 @@ MODULE cp_restart
 
             IF ( PRESENT( mat_z ) ) THEN
                !
-               IF(.not.allocated(mrepl)) THEN
+               IF(.not.(mat_z(iss)%iscmplx)) THEN
+                 IF(.not.allocated(mrepl)) THEN
                   ALLOCATE(mrepl(nudx,nudx))
+                 ENDIF
+               ELSE
+                 IF(.not.allocated(mrepl_c)) THEN
+                  ALLOCATE(mrepl_c(nudx,nudx))
+                 ENDIF
                ENDIF
 
                IF( ionode ) THEN
-                  CALL iotk_scan_dat( iunpun, "MAT_Z" // TRIM( iotk_index( iss ) ), mrepl, FOUND = found )
-                  IF( .NOT. found ) THEN
-                     WRITE( stdout, * ) 'WARNING mat_z not read from restart file'
-                     mrepl = 0.0d0
-                  END IF
+                  IF(.not.mat_z(iss)%iscmplx) THEN
+		    CALL iotk_scan_dat( iunpun, "MAT_Z" // TRIM( iotk_index( iss ) ), mrepl, FOUND = found )
+		    IF( .NOT. found ) THEN
+		      WRITE( stdout, * ) 'WARNING mat_z not read from restart file'
+		      mrepl = 0.0d0
+		    END IF
+		    CALL mp_bcast( mrepl, ionode_id, intra_image_comm )
+		    CALL distribute_zmat( mrepl, mat_z(iss)%rvec(:,:), descla(:,iss) )
+		    DEALLOCATE(mrepl)
+                  ELSE
+		    CALL iotk_scan_dat( iunpun, "MAT_Z" // TRIM( iotk_index( iss ) ), mrepl_c, FOUND = found )
+		    IF( .NOT. found ) THEN
+		      WRITE( stdout, * ) 'WARNING mat_z not read from restart file'
+		      mrepl_c = CMPLX(0.0d0,0.d0)
+		    END IF
+		    CALL mp_bcast( mrepl_c, ionode_id, intra_image_comm )
+		    CALL distribute_zmat( mrepl_c, mat_z(iss)%cvec(:,:), descla(:,iss) )
+		    DEALLOCATE(mrepl_c)
+                  ENDIF
                END IF
-
-               CALL mp_bcast( mrepl, ionode_id, intra_image_comm )
-
-               CALL distribute_zmat( mrepl, mat_z(:,:,iss), descla(:,iss) )
-               DEALLOCATE(mrepl)
                !
             END IF
             !
-            IF(allocated(mrepl)) THEN
-		DEALLOCATE( mrepl )
-            ENDIF
             !
          END DO
          !
@@ -3597,8 +3624,15 @@ MODULE cp_restart
       CALL mp_bcast( occ0, ionode_id, intra_image_comm )
       CALL mp_bcast( occm, ionode_id, intra_image_comm )
       !
-      IF ( PRESENT( mat_z ) ) &
-         CALL mp_bcast( mat_z(:,:,:), ionode_id, intra_image_comm )
+      IF ( PRESENT( mat_z ) ) THEN
+	DO iss=1,nspin
+	  IF(.not.mat_z(iss)%iscmplx) THEN  
+	    CALL mp_bcast( mat_z(iss)%rvec(:,:), ionode_id, intra_image_comm )
+          ELSE
+	    CALL mp_bcast( mat_z(iss)%cvec(:,:), ionode_id, intra_image_comm )
+          ENDIF
+	ENDDO
+      ENDIF
       !
       IF ( ionode ) &
          CALL iotk_close_read( iunpun )

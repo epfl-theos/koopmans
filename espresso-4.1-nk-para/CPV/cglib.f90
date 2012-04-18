@@ -96,6 +96,7 @@
       USE descriptors,       ONLY: la_npc_ , la_npr_ , la_comm_ , la_me_ , la_nrl_ , &
                                    lambda_node_ , ldim_cyclic
       USE mp,                ONLY: mp_sum, mp_bcast
+      USE twin_types
 
       implicit none
       logical firstiter
@@ -111,6 +112,7 @@
       real(DP), ALLOCATABLE :: mtmp(:,:)
       complex(DP), ALLOCATABLE :: mtmp_c(:,:)
       real(DP) :: f_z0t
+      complex(DP) :: f_z0t_c
 
 
       call start_clock('calcmt')
@@ -132,32 +134,55 @@
             
             IF(.not.fmat(iss)%iscmplx) THEN
 	      ALLOCATE( mtmp( nrlx, nudx ) )
+
+	      DO ip = 1, np_rot
+
+		IF( me_rot == ( ip - 1 ) ) THEN
+		    mtmp = zmat(iss)%rvec(:,:)
+		END IF
+		nrl_ip = ldim_cyclic( nss, np_rot, ip - 1 )
+		CALL mp_bcast( mtmp , ip - 1 , comm_rot )
+
+		DO j = 1, nss
+		    ii = ip
+		    DO i = 1, nrl_ip
+		      f_z0t = fdiag( j + istart - 1 ) * mtmp( i, j )
+		      DO k = 1, nrl
+			  fmat(iss)%rvec( k, ii) = fmat(iss)%rvec( k, ii)+ zmat(iss)%rvec(k, j) * f_z0t 
+		      END DO
+		      ii = ii + np_rot
+		    END DO
+		END DO
+
+	      END DO
+
+	      DEALLOCATE( mtmp )
             ELSE
 	      ALLOCATE( mtmp_c( nrlx, nudx ) )
+
+	      DO ip = 1, np_rot
+
+		IF( me_rot == ( ip - 1 ) ) THEN
+		    mtmp_c(:,:) = zmat(iss)%cvec(:,:)
+		END IF
+		nrl_ip = ldim_cyclic( nss, np_rot, ip - 1 )
+		CALL mp_bcast( mtmp_c , ip - 1 , comm_rot )
+
+		DO j = 1, nss
+		    ii = ip
+		    DO i = 1, nrl_ip
+		      f_z0t_c = fdiag( j + istart - 1 ) * mtmp_c( i, j )
+		      DO k = 1, nrl
+			  fmat(iss)%cvec( k, ii) = fmat(iss)%cvec(k, ii)+ zmat(iss)%cvec( k, j) * f_z0t_c 
+		      END DO
+		      ii = ii + np_rot
+		    END DO
+		END DO
+
+	      END DO
+
+	      DEALLOCATE( mtmp_c )
             ENDIF
-
-            DO ip = 1, np_rot
-
-               IF( me_rot == ( ip - 1 ) ) THEN
-                  mtmp = zmat(:,:,iss)
-               END IF
-               nrl_ip = ldim_cyclic( nss, np_rot, ip - 1 )
-               CALL mp_bcast( mtmp , ip - 1 , comm_rot )
-
-               DO j = 1, nss
-                  ii = ip
-                  DO i = 1, nrl_ip
-                     f_z0t = fdiag( j + istart - 1 ) * mtmp( i, j )
-                     DO k = 1, nrl
-                        fmat( k, ii, iss ) = fmat( k, ii, iss )+ zmat( k, j, iss ) * f_z0t 
-                     END DO
-                     ii = ii + np_rot
-                  END DO
-               END DO
-
-            END DO
-
-            DEALLOCATE( mtmp )
 
          END IF
 

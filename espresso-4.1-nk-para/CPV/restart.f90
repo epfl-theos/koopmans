@@ -159,7 +159,7 @@
       REAL(DP), INTENT(in) :: tps
       REAL(DP), INTENT(in) :: rho(:,:)
       REAL(DP), INTENT(in) :: occ_f(:)
-      REAL(DP), INTENT(in) :: mat_z(:,:,:)
+      TYPE(twin_matrix), dimension(:), INTENT(IN) :: mat_z
 
       REAL(DP) :: ht(3,3), htm(3,3), htvel(3,3), gvel(3,3)
       INTEGER  :: nk = 1, ispin, i, ib
@@ -375,7 +375,8 @@
       REAL(DP) :: ekincm
       REAL(DP) :: xnhh0(3,3),xnhhm(3,3),vnhh(3,3),velh(3,3)
       REAL(DP), INTENT(OUT) :: tps
-      REAL(DP), INTENT(INOUT) :: mat_z(:,:,:), occ_f(:)
+      REAL(DP), INTENT(INOUT) :: occ_f(:)
+      TYPE(twin_matrix), DIMENSION(:) :: mat_z
       !
       REAL(DP) :: ht(3,3), htm(3,3), htvel(3,3), gvel(3,3)
       integer :: nk = 1, ispin, i, ib

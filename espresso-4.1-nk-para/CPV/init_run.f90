@@ -326,7 +326,7 @@ SUBROUTINE init_run()
      !gvn22 !change readfile?
      CALL readfile( i, h, hold, nfi, c0, cm, taus,   &
                     tausm, vels, velsm, acc, lambda, lambdam, xnhe0, xnhem, &
-                    vnhe, xnhp0, xnhpm, vnhp,nhpcl,nhpdim,ekincm, xnhh0, xnhhm,&
+                    vnhe, xnhp0, xnhpm, vnhp, nhpcl, nhpdim, ekincm, xnhh0, xnhhm,&
                     vnhh, velh, fion, tps, z0t, f )
      !
      CALL from_restart( )

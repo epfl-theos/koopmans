@@ -71,6 +71,7 @@
       USE ions_positions, ONLY: tau0
       USE mp,             ONLY: mp_sum,mp_bcast
       use cp_interfaces,  only: rhoofr, dforce
+      USE twin_types !added:giovanni
 
       !
       IMPLICIT NONE

@@ -183,6 +183,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   REAL(DP),  ALLOCATABLE :: fmat0_repl(:,:)
   COMPLEX(DP),  ALLOCATABLE :: fmat0_repl_c(:,:)
   LOGICAL :: lgam
+  COMPLEX(DP), PARAMETER :: c_zero = CMPLX(0.d0,0.d0)
 
 !$$
   LOGICAL :: ttest
@@ -225,11 +226,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   write(6,*) "size hamilt", size(hamilt)
   !
   DO iss=1,size(hamilt)
-    if(.not. hamilt(iss)%iscmplx) then
-      hamilt(iss)%rvec = 0.0d0
-    else
-      hamilt(iss)%cvec = CMPLX(0.0d0,0.d0)
-    endif
+    call set_twin(hamilt(iss), c_zero)
   END DO
   !
   !======================================================================
@@ -739,7 +736,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
          !
          !CALL inner_loop_smear( c0, bec, rhos, psihpsi )
          DO iss=1,nspin
-            psihpsi(:,:,iss) = lambda(iss)%rvec(:,:)
+            call copy_twin(psihpsi(iss),lambda(iss))
          END DO
          !
          CALL inner_loop_diag( c0, bec%rvec, psihpsi, z0t, e0 )
@@ -770,7 +767,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
          ! recompute the proper density matrix, once z0t is given
          ! and store its diagonal components
          !
-         call calcmt( f, z0t, fmat0, .false. )
+         call calcmt_twin( f, z0t, fmat0, .false. )
          !
          DO iss = 1, nspin
              !
@@ -793,7 +790,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
 	      !
 	      DO  i = 1, nupdwn(iss)
 		  !
-		  fmat0_diag( i+iupdwn(iss)-1 ) = fmat0_repl(i,i)
+		  fmat0_diag( i+iupdwn(iss)-1 ) = fmat0_repl_c(i,i)
 		  !
 	      ENDDO
 	      !

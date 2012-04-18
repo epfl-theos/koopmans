@@ -810,7 +810,8 @@ MODULE wannier_subroutines
     REAL(DP)    :: xnhh0(:,:), xnhhm(:,:), vnhh(:,:)
     REAL(DP)    :: ecut, ecutw, delt, celldm(:)
     REAL(DP)    :: fion(:,:), tps
-    REAL(DP)    :: mat_z(:,:,:), occ_f(:), rho(:,:)
+    REAL(DP)    :: occ_f(:), rho(:,:)
+    TYPE(twin_matrix), dimension(:) :: mat_z
     !
     CALL start_clock('wf_close_opt')
     !
