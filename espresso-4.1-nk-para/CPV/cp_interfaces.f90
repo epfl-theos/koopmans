@@ -1556,7 +1556,7 @@
    END INTERFACE
 
    INTERFACE protate
-      SUBROUTINE protate_x ( c0, bec, c0rot, becrot, ngwl, nss, noff, lambda, nrl, &
+      SUBROUTINE protate_real_x ( c0, bec, c0rot, becrot, ngwl, nss, noff, lambda, nrl, &
                            na, nsp, ish, nh, np_rot, me_rot, comm_rot  )
          USE kinds,            ONLY: DP
          IMPLICIT NONE
@@ -1568,6 +1568,19 @@
          REAL(DP), INTENT(IN) :: lambda(:,:)
          REAL(DP), INTENT(IN) :: bec(:,:)
          REAL(DP), INTENT(OUT) :: becrot(:,:)
+      END SUBROUTINE
+      SUBROUTINE protate_cmplx_x ( c0, bec, c0rot, becrot, ngwl, nss, noff, lambda, nrl, &
+                           na, nsp, ish, nh, np_rot, me_rot, comm_rot  )
+         USE kinds,            ONLY: DP
+         IMPLICIT NONE
+         INTEGER, INTENT(IN) :: ngwl, nss, nrl, noff
+         INTEGER, INTENT(IN) :: na(:), nsp, ish(:), nh(:)
+         INTEGER, INTENT(IN) :: np_rot, me_rot, comm_rot  
+         COMPLEX(DP), INTENT(IN) :: c0(:,:)
+         COMPLEX(DP), INTENT(OUT) :: c0rot(:,:)
+         COMPLEX(DP), INTENT(IN) :: lambda(:,:)
+         COMPLEX(DP), INTENT(IN) :: bec(:,:)
+         COMPLEX(DP), INTENT(OUT) :: becrot(:,:)
       END SUBROUTINE
 
    END INTERFACE

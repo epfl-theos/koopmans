@@ -3624,15 +3624,15 @@ MODULE cp_restart
       CALL mp_bcast( occ0, ionode_id, intra_image_comm )
       CALL mp_bcast( occm, ionode_id, intra_image_comm )
       !
-      IF ( PRESENT( mat_z ) ) THEN
-	DO iss=1,nspin
-	  IF(.not.mat_z(iss)%iscmplx) THEN  
-	    CALL mp_bcast( mat_z(iss)%rvec(:,:), ionode_id, intra_image_comm )
-          ELSE
-	    CALL mp_bcast( mat_z(iss)%cvec(:,:), ionode_id, intra_image_comm )
-          ENDIF
-	ENDDO
-      ENDIF
+!       IF ( PRESENT( mat_z ) ) THEN !warning:giovanni this part is a bug???
+! 	DO iss=1,nspin
+! 	  IF(.not.mat_z(iss)%iscmplx) THEN  
+! 	    CALL mp_bcast( mat_z(iss)%rvec(:,:), ionode_id, intra_image_comm )
+!           ELSE
+! 	    CALL mp_bcast( mat_z(iss)%cvec(:,:), ionode_id, intra_image_comm )
+!           ENDIF
+! 	ENDDO
+!       ENDIF
       !
       IF ( ionode ) &
          CALL iotk_close_read( iunpun )

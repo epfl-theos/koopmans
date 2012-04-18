@@ -245,12 +245,15 @@
       USE cp_main_variables, ONLY: descla, nlax, nrlx
       USE descriptors,       ONLY: la_npc_ , la_npr_ , la_comm_ , la_me_ , la_nrl_
       USE cp_interfaces,     ONLY: protate
+      USE twin_types
 
       implicit none
       integer iss, nss, istart
       integer :: np_rot, me_rot, nrl, comm_rot
-      real(kind=DP)    z0( nrlx, nudx, nspin )
-      real(kind=DP)    bec( nhsa, n ), becdiag( nhsa, n )
+!       real(kind=DP)    z0( nrlx, nudx, nspin )
+!       real(kind=DP)    bec( nhsa, n ), becdiag( nhsa, n )
+      type(twin_matrix), dimension(nspin) :: z0
+      type(twin_matrix) :: bec, becdiag
       complex(kind=DP) c0( ngw, nx ), c0diag( ngw, nx )
       logical firstiter
   
@@ -263,8 +266,13 @@
          me_rot   = descla( la_me_   , iss )
          nrl      = descla( la_nrl_  , iss )
          comm_rot = descla( la_comm_ , iss )
-         CALL protate ( c0, bec, c0diag, becdiag, ngw, nss, istart, z0(:,:,iss), nrl, &
+         IF(.not.z0(iss)%iscmplx) THEN
+	  CALL protate ( c0, bec%rvec, c0diag, becdiag%rvec, ngw, nss, istart, z0(iss)%rvec, nrl, &
                         na, nsp, ish, nh, np_rot, me_rot, comm_rot )
+         ELSE
+	  CALL protate ( c0, bec%cvec, c0diag, becdiag%cvec, ngw, nss, istart, z0(iss)%cvec, nrl, &
+                        na, nsp, ish, nh, np_rot, me_rot, comm_rot )
+         ENDIF
       END DO
 
       CALL stop_clock( 'rotate' )

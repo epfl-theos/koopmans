@@ -131,7 +131,7 @@
 
 
 !=----------------------------------------------------------------------------=!
-   SUBROUTINE protate_x ( c0, bec, c0rot, becrot, ngwl, nss, noff, lambda, nrl, &
+   SUBROUTINE protate_real_x ( c0, bec, c0rot, becrot, ngwl, nss, noff, lambda, nrl, &
                         na, nsp, ish, nh, np_rot, me_rot, comm_rot  )
 !=----------------------------------------------------------------------------=!
 
@@ -233,9 +233,112 @@
       CALL stop_clock('protate')
 
       RETURN
-   END SUBROUTINE protate_x
+   END SUBROUTINE protate_real_x
+
+!=----------------------------------------------------------------------------=!
+   SUBROUTINE protate_cmplx_x ( c0, bec, c0rot, becrot, ngwl, nss, noff, lambda, nrl, &
+                        na, nsp, ish, nh, np_rot, me_rot, comm_rot  )
+!=----------------------------------------------------------------------------=!
+
+      !  this routine rotates the wave functions using the matrix lambda
+      !  it works with a block-like distributed matrix
+      !  of the Lagrange multipliers ( lambda ).
+      !  no replicated data are used, allowing scalability for large problems.
+      !  the layout of lambda is as follows :
+      !
+      !  (PE 0)                 (PE 1)               ..  (PE NPE-1)
+      !  lambda(1      ,1:nx)   lambda(2      ,1:nx) ..  lambda(NPE      ,1:nx)
+      !  lambda(1+  NPE,1:nx)   lambda(2+  NPE,1:nx) ..  lambda(NPE+  NPE,1:nx)
+      !  lambda(1+2*NPE,1:nx)   lambda(2+2*NPE,1:nx) ..  lambda(NPE+2*NPE,1:nx)
+      !
+      !  distributes lambda's rows across processors with a blocking factor
+      !  of 1, ( row 1 to PE 1, row 2 to PE 2, .. row nproc_image+1 to PE 1 and
+      !  so on).
+      !  nrl = local number of rows
+      !  ----------------------------------------------
+
+      ! ... declare modules
+
+      USE kinds,            ONLY: DP
+      USE mp,               ONLY: mp_bcast
+      USE mp_global,        ONLY: nproc_image, me_image, intra_image_comm
+      USE dspev_module,     ONLY: pdspev_drv, dspev_drv
+
+      IMPLICIT NONE
+
+      ! ... declare subroutine arguments
+
+      INTEGER, INTENT(IN) :: ngwl, nss, nrl, noff
+      INTEGER, INTENT(IN) :: na(:), nsp, ish(:), nh(:)
+      INTEGER, INTENT(IN) :: np_rot, me_rot, comm_rot 
+      COMPLEX(DP), INTENT(IN) :: c0(:,:)
+      COMPLEX(DP), INTENT(OUT) :: c0rot(:,:)
+      COMPLEX(DP), INTENT(IN) :: lambda(:,:)
+      COMPLEX(DP), INTENT(IN) :: bec(:,:)
+      COMPLEX(DP), INTENT(OUT) :: becrot(:,:)
+
+      ! ... declare other variables
+      INTEGER   :: i, j, k, ip
+      INTEGER   :: jl, nrl_ip, is, ia, jv, jnl, nj
+      COMPLEX(DP), ALLOCATABLE :: uu(:,:)
+
+      IF( nss < 1 ) THEN
+        RETURN
+      END IF
+
+      CALL start_clock('protate')
+
+      DO i = 1, nss
+         c0rot( :, i+noff-1 ) = 0.0d0
+         becrot(:,i+noff-1 ) = 0.0d0
+      END DO
 
 
+
+!      becrot = 0.0d0
+!      c0rot  = 0.0d0
+
+         DO ip = 1, np_rot
+
+            nrl_ip = nss / np_rot
+            IF( (ip-1) < mod( nss, np_rot ) ) THEN
+              nrl_ip = nrl_ip + 1
+            END IF
+ 
+            ALLOCATE( uu( nrl_ip, nss ) )
+            IF( me_rot .EQ. (ip-1) ) THEN
+              uu = lambda( 1:nrl_ip, 1:nss )
+            END IF
+            CALL mp_bcast( uu, (ip-1), intra_image_comm)
+ 
+            j      = ip
+            DO jl = 1, nrl_ip
+              DO i = 1, nss
+                CALL ZAXPY(ngwl,CONJG(uu(jl,i)),c0(1,j+noff-1),1,c0rot(1,i+noff-1),1)
+              END DO
+
+              do is=1,nsp
+                 do jv=1,nh(is)
+                    do ia=1,na(is)
+                       jnl=ish(is)+(jv-1)*na(is)+ia
+                       do i = 1, nss
+                          becrot(jnl,i+noff-1) = becrot(jnl,i+noff-1)+ CONJG(uu(jl, i)) * bec( jnl, j+noff-1 )
+                       end do
+                    end do
+                 end do
+              end do
+
+              j = j + np_rot
+            END DO
+
+            DEALLOCATE(uu)
+ 
+         END DO
+
+      CALL stop_clock('protate')
+
+      RETURN
+   END SUBROUTINE protate_cmplx_x
 
 !=----------------------------------------------------------------------------=!
    SUBROUTINE crot_gamma2_real ( c0rot, c0, ngw, n, noffr, noff, lambda, nx, eig )
