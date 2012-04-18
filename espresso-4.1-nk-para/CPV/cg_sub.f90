@@ -670,12 +670,14 @@
               hpsi(1:ngw,i+1)=c3(1:ngw)
           endif
           !
-          if (ng0.eq.2) then
-              hpsi(1,  i)=CMPLX(DBLE(hpsi(1,  i)), 0.d0)
-              if(i+1 <= nbsp) then
-                  hpsi(1,i+1)=CMPLX(DBLE(hpsi(1,i+1)), 0.d0)
-              endif
-          endif
+          IF(lgam) THEN
+	    if (ng0.eq.2) then
+		hpsi(1,  i)=CMPLX(DBLE(hpsi(1,  i)), 0.d0)
+		if(i+1 <= nbsp) then
+		    hpsi(1,i+1)=CMPLX(DBLE(hpsi(1,i+1)), 0.d0)
+		endif
+	    endif
+          ENDIF
           !
         enddo
 
@@ -763,12 +765,18 @@
         
         if(.not.tens) then
            do i=1,nbsp
-              do ig=1,ngw
-                 gamma=gamma+2.d0*DBLE(CONJG(gi(ig,i))*hpsi(ig,i))
-              enddo
-              if (ng0.eq.2) then
-                 gamma=gamma-DBLE(CONJG(gi(1,i))*hpsi(1,i))
-              endif
+              IF(lgam) THEN
+		do ig=1,ngw
+		  gamma=gamma+2.d0*DBLE(CONJG(gi(ig,i))*hpsi(ig,i))
+		enddo
+		if (ng0.eq.2) then
+		  gamma=gamma-DBLE(CONJG(gi(1,i))*hpsi(1,i))
+		endif
+              ELSE
+		do ig=1,ngw
+		  gamma=gamma+CONJG(gi(ig,i))*hpsi(ig,i)
+		enddo
+              ENDIF
            enddo
            
            call mp_sum( gamma, intra_image_comm )
@@ -798,7 +806,7 @@
 			    do ia=1,na(is)
 			      inl=ish(is)+(iv-1)*na(is)+ia
 			      jnl=ish(is)+(jv-1)*na(is)+ia
-			      gamma=gamma+ qq(iv,jv,is)*becm%cvec(inl,i)*bec0%cvec(jnl,i)
+			      gamma=gamma+ qq(iv,jv,is)*becm%cvec(inl,i)*CONJG(bec0%cvec(jnl,i)) !warning:giovanni CONJG
 			    end do
 			end do
 		      end do
@@ -848,11 +856,8 @@
 		      jj = ip
 		      do j=1,nrl
 			do ig=1,ngw
-			    gamma=gamma+2.d0*DBLE(CONJG(gi(ig,i+istart-1))*hpsi(ig,jj+istart-1))*fmat_c_(j,i)
+			    gamma=gamma+CONJG(gi(ig,i+istart-1))*hpsi(ig,jj+istart-1)*fmat_c_(j,i)
 			enddo
-			if (ng0.eq.2) then
-			    gamma=gamma-DBLE(CONJG(gi(1,i+istart-1))*hpsi(1,jj+istart-1))*fmat_c_(j,i)
-			endif
 			jj = jj + np_rot
 		      enddo
 		  enddo
@@ -975,13 +980,19 @@
 
         dene0=0.
         if(.not.tens) then
-          do i=1,nbsp              
-            do ig=1,ngw
-              dene0=dene0-4.d0*DBLE(CONJG(hi(ig,i))*hpsi0(ig,i))
-            enddo
-            if (ng0.eq.2) then
-              dene0=dene0+2.d0*DBLE(CONJG(hi(1,i))*hpsi0(1,i))
-            endif
+          do i=1,nbsp
+            IF(lgam) THEN              
+	      do ig=1,ngw
+		dene0=dene0-4.d0*DBLE(CONJG(hi(ig,i))*hpsi0(ig,i))
+	      enddo
+	      if (ng0.eq.2) then
+		dene0=dene0+2.d0*DBLE(CONJG(hi(1,i))*hpsi0(1,i))
+	      endif
+            ELSE
+	      do ig=1,ngw
+		dene0=dene0-2.d0*CONJG(hi(ig,i))*hpsi0(ig,i)
+	      enddo
+            ENDIF
           end do
 !$$ We need the following because n for spin 2 is double that for spin 1!
           dene0 = dene0 *2.d0/nspin
@@ -1032,13 +1043,9 @@
 		    jj = ip
 		    do j=1,nrl
 		      do ig=1,ngw
-			  dene0=dene0-2.d0*DBLE(CONJG(hi(ig,i+istart-1))*hpsi0(ig,jj+istart-1))*fmat_c_(j,i)
-			  dene0=dene0-2.d0*DBLE(CONJG(hpsi0(ig,i+istart-1))*hi(ig,jj+istart-1))*fmat_c_(j,i)
+			  dene0=dene0-CONJG(hi(ig,i+istart-1))*hpsi0(ig,jj+istart-1)*fmat_c_(j,i)
+			  dene0=dene0-CONJG(hpsi0(ig,i+istart-1))*hi(ig,jj+istart-1)*fmat_c_(j,i)
 		      enddo
-		      if (ng0.eq.2) then
-			  dene0=dene0+DBLE(CONJG(hi(1,i+istart-1))*hpsi0(1,jj+istart-1))*fmat_c_(j,i)
-			  dene0=dene0+DBLE(CONJG(hpsi0(1,i+istart-1))*hi(1,jj+istart-1))*fmat_c_(j,i)
-		      end if
 		      jj = jj + np_rot
 		    enddo
 		enddo
@@ -1181,7 +1188,7 @@
 !$$   ! I do not know why the following 3 lines 
       ! were not in the original code (CHP)
       !
-      if(ng0 == 2)  cm(1,:)=0.5d0*(cm(1,:)+CONJG(cm(1,:)))
+      if(lgam.and.ng0 == 2)  cm(1,:)=0.5d0*(cm(1,:)+CONJG(cm(1,:)))
 !$$
 
       !orthonormalize
@@ -1276,7 +1283,7 @@
 
         cm(1:ngw,1:nbsp) = c0(1:ngw,1:nbsp) +spasso*passo*hi(1:ngw,1:nbsp)
         !
-        if( ng0 == 2 )  cm(1,:) = 0.5d0*(cm(1,:)+CONJG(cm(1,:)))
+        if(lgam.and. ng0 == 2 )  cm(1,:) = 0.5d0*(cm(1,:)+CONJG(cm(1,:)))
 
         call calbec(1,nsp,eigr,cm,becm)
         call gram(betae,becm,nhsa,cm,ngw,nbsp)
@@ -1739,7 +1746,7 @@
             if(i+1 <= nbsp) gi(ig,i+1)=c3(ig)
          enddo
          !
-         if (ng0.eq.2) then
+         if (lgam.and.ng0.eq.2) then
             gi(1,  i)=CMPLX(DBLE(gi(1,  i)),0.d0)
             if(i+1 <= nbsp) gi(1,i+1)=CMPLX(DBLE(gi(1,i+1)),0.d0)
          endif
@@ -1782,13 +1789,9 @@
 		ELSE
 		    do ig = 1, ngw
 			lambda_repl_c( i, j ) = lambda_repl_c( i, j ) - &
-			  2.d0 * DBLE( CONJG( c0( ig, ii ) ) * gi( ig, jj) )
+			  CONJG( c0( ig, ii ) ) * gi( ig, jj)
 		    enddo
-		    if( ng0 == 2 ) then
-			lambda_repl_c( i, j ) = lambda_repl_c( i, j ) + &
-			  DBLE( CONJG( c0( 1, ii ) ) * gi( 1, jj ) )
-		    endif
-		    lambda_repl_c( j, i ) = lambda_repl_c( i, j )
+		    lambda_repl_c( j, i ) = CONJG(lambda_repl_c( i, j ))
                  ENDIF
               enddo
            enddo
