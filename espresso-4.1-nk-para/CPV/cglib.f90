@@ -542,7 +542,7 @@ subroutine pc2(a,beca,b,becb)
     end subroutine pc2
 
 
-    subroutine pcdaga2(a,as ,b )
+    subroutine pcdaga2(a,as ,b, lgam )
 
 ! this function applies the operator Pc
 
@@ -565,14 +565,14 @@ subroutine pc2(a,beca,b,becb)
       use uspp_param, only: nh
       use uspp, only :nhsa=>nkb
 
-
       implicit none
 
       complex(dp) a(ngw,n), b(ngw,n), as(ngw,n)
+      logical :: lgam
       ! local variables
       integer is, iv, jv, ia, inl, jnl, i, j,ig
-      real(dp) sca
-      real(DP), allocatable:: scar(:)
+      complex(dp) sca
+      complex(DP), allocatable:: scar(:)
       !
       call start_clock('pcdaga2')
       allocate(scar(n))
@@ -580,28 +580,34 @@ subroutine pc2(a,beca,b,becb)
          do i=1,n
             sca=0.0d0
             if(ispin(i) == ispin(j)) then
-               if (ng0.eq.2) b(1,i) = cmplx(dble(b(1,i)),0.0d0)
-               do  ig=1,ngw           !loop on g vectors
-                  sca=sca+DBLE(CONJG(a(ig,j))*b(ig,i))
-               enddo
-               sca = sca*2.0d0  !2. for real weavefunctions
-               if (ng0.eq.2) sca = sca - dble(a(1,j))*dble(b(1,i))
+               IF(lgam) THEN
+		if (ng0.eq.2) b(1,i) = CMPLX(DBLE(b(1,i)),0.0d0)
+		do  ig=1,ngw           !loop on g vectors
+		    sca=sca+DBLE(CONJG(a(ig,j))*b(ig,i))
+		enddo
+		sca = sca*2.0d0  !2. for real weavefunctions
+		if (ng0.eq.2) sca = sca - dble(a(1,j))*dble(b(1,i))
+               ELSE
+		do  ig=1,ngw           !loop on g vectors
+		    sca=sca+CONJG(a(ig,j))*b(ig,i)
+		enddo
+               ENDIF
             endif
             scar(i) = sca
          enddo
-         
-          
+                   
          call mp_sum( scar, intra_image_comm )
-
 
          do i=1,n
             if(ispin(i) == ispin(j)) then
                sca = scar(i)
-               do ig=1,ngw
-                  b(ig,i)=b(ig,i)-sca*as(ig,j)
-               enddo
-               ! this to prevent numerical errors
-               if (ng0.eq.2) b(1,i) = cmplx(dble(b(1,i)),0.0d0)
+	       do ig=1,ngw
+		  b(ig,i)=b(ig,i)-sca*as(ig,j)
+	       enddo
+		! this to prevent numerical errors
+               IF(lgam) THEN
+		if (ng0.eq.2) b(1,i) = cmplx(dble(b(1,i)),0.0d0)
+               ENDIF
             endif
          enddo
       enddo
@@ -611,7 +617,7 @@ subroutine pc2(a,beca,b,becb)
       end subroutine pcdaga2
 
 !$$
-    subroutine pc3(a,b)
+    subroutine pc3(a,b, lgam)
 
 ! this function applies the modified Pc operator which is
 ! equivalent to Lowdin orthonormalization of the revised wavefunctions.
@@ -633,6 +639,7 @@ subroutine pc2(a,beca,b,becb)
       implicit none
 
       complex(dp) a(ngw,n), b(ngw,n), bold(ngw,n)
+      logical :: lgam
       ! local variables
       integer i, j,ig
       real(dp) sca
@@ -796,6 +803,182 @@ subroutine pc2(a,beca,b,becb)
       call stop_clock('set_x_minus1')
       return
     end subroutine set_x_minus1
+
+     subroutine set_x_minus1_twin(betae,m_minus1,ema0bg,use_ema)
+
+! this function calculates the factors for the inverse of the US K  matrix
+! it takes care of the preconditioning
+
+      use kinds, only: dp
+      use ions_base, only: na, nsp
+      use io_global, only: stdout
+      use mp_global, only: intra_image_comm
+      use cvan
+      use gvecw, only: ngw
+      use constants, only: pi, fpi
+      use control_flags, only: iprint, iprsta
+      use reciprocal_vectors, only: ng0 => gstart
+      use mp, only: mp_sum, mp_bcast
+      use electrons_base, only: n => nbsp, ispin
+      use uspp_param, only: nh
+      use uspp, only :nhsa=>nkb,qq,nhsavb=>nkbus
+      use io_global, ONLY: ionode, ionode_id
+      use twin_types
+
+      implicit none
+
+      complex(DP) :: betae(ngw,nhsa)
+!       real(DP)    :: m_minus1(nhsavb,nhsavb)
+      type(twin_matrix) :: m_minus1
+      real(DP)    :: ema0bg(ngw)
+      logical     :: use_ema
+
+
+! local variables
+      real(DP),allocatable :: q_matrix(:,:), b_matrix(:,:),c_matrix(:,:)
+      complex(DP), allocatable :: q_matrix_c(:,:), b_matrix_c(:,:),c_matrix_c(:,:)
+      integer is, iv, jv, ia, inl, jnl, i, j, k,ig, js, ja
+      complex(DP) sca
+      integer info, lwork
+      integer, allocatable :: ipiv(:)
+      real(dp),allocatable :: work(:)
+      complex(dp), parameter :: c_zero=CMPLX(0.d0,0.d0), c_one=CMPLX(1.d0,0.d0)
+      complex(dp), parameter :: c_mone=CMPLX(-1.d0,0.d0)
+
+      call start_clock('set_x_minus1')
+      allocate(ipiv(nhsavb))
+      allocate(work(nhsavb))
+
+      lwork=nhsavb
+
+      IF(.not.m_minus1%iscmplx) THEN
+	allocate(q_matrix(nhsavb,nhsavb),c_matrix(nhsavb,nhsavb))
+      ELSE
+	allocate(q_matrix_c(nhsavb,nhsavb),c_matrix_c(nhsavb,nhsavb))
+      ENDIF
+!construct q matrix
+      IF(.not.m_minus1%iscmplx) THEN
+	q_matrix(:,:) = 0.d0
+
+	do is=1,nvb
+	  do iv=1,nh(is)
+	      do jv=1,nh(is)
+		do ia=1,na(is)
+		      inl=ish(is)+(iv-1)*na(is)+ia
+		      jnl=ish(is)+(jv-1)*na(is)+ia
+		      q_matrix(inl,jnl)= qq(iv,jv,is)
+		enddo
+	      enddo
+	  enddo
+	enddo
+      ELSE
+	q_matrix_c(:,:) = CMPLX(0.d0,0.d0)
+
+	do is=1,nvb
+	  do iv=1,nh(is)
+	      do jv=1,nh(is)
+		do ia=1,na(is)
+		      inl=ish(is)+(iv-1)*na(is)+ia
+		      jnl=ish(is)+(jv-1)*na(is)+ia
+		      q_matrix_c(inl,jnl)= qq(iv,jv,is)
+		enddo
+	      enddo
+	  enddo
+	enddo
+      ENDIF
+
+!construct b matrix
+! m_minus1 used to be b matrix
+      m_minus1(:,:) = 0.d0
+      do is=1,nvb
+         do ia=1,na(is)
+            do iv=1,nh(is)
+               do js=1,nvb
+                  do ja=1,na(js)
+                     do jv=1,nh(js)
+                        inl=ish(is)+(iv-1)*na(is)+ia
+                        jnl=ish(js)+(jv-1)*na(js)+ja
+                        sca=0.d0
+                        if (use_ema) then
+			    ! k_minus case
+			  IF(.not.m_minus1%iscmplx) THEN
+			    do  ig=1,ngw           !loop on g vectors
+			      sca=sca+ema0bg(ig)*DBLE(CONJG(betae(ig,inl))*betae(ig,jnl))
+			    enddo
+			    sca = sca*2.0d0  !2. for real weavefunctions
+			    if (ng0.eq.2) sca = sca - ema0bg(1)*DBLE(CONJG(betae(1,inl))*betae(1,jnl))
+			  ELSE
+			    do  ig=1,ngw           !loop on g vectors
+			      sca=sca+ema0bg(ig)*CONJG(betae(ig,inl))*betae(ig,jnl)
+			    enddo
+			  ENDIF
+                        else
+                           ! s_minus case
+			  IF(.not.m_minus1%iscmplx) THEN
+			    do  ig=1,ngw           !loop on g vectors
+			      sca=sca+DBLE(CONJG(betae(ig,inl))*betae(ig,jnl))
+			    enddo
+			    sca = sca*2.0d0  !2. for real weavefunctions
+			    if (ng0.eq.2) sca = sca - DBLE(CONJG(betae(1,inl))*betae(1,jnl))
+                          ELSE
+			    do  ig=1,ngw           !loop on g vectors
+			      sca=sca+CONJG(betae(ig,inl))*betae(ig,jnl)
+			    enddo
+                          ENDIF
+                        endif
+                        call set_twin(m_minus1,inl,jnl,sca)
+                     enddo
+                  enddo
+               enddo
+            enddo
+         enddo
+      enddo
+
+      call twin_mp_sum( m_minus1, intra_image_comm )
+
+!calculate -(1+QB)**(-1) * Q
+      IF(.not.m_minus1%iscmplx) THEN
+	CALL DGEMM('N','N',nhsavb,nhsavb,nhsavb,1.0d0,q_matrix,nhsavb,m_minus1%rvec,nhsavb,0.0d0,c_matrix,nhsavb)
+      ELSE
+	CALL ZGEMM('C','N',nhsavb,nhsavb,nhsavb,c_one,q_matrix_c,nhsavb,m_minus1%cvec,nhsavb,c_zero,c_matrix_c,nhsavb) !warning:giovanni conjugate?
+      ENDIF
+
+      do i=1,nhsavb
+         c_matrix(i,i)=c_matrix(i,i)+1.d0
+      enddo
+
+      if(ionode) then
+	IF(.not.m_minus1%iscmplx) THEN
+	  call dgetrf(nhsavb,nhsavb,c_matrix,nhsavb,ipiv,info)
+	  if(info .ne. 0) write(stdout,*) 'set_k_minus1 Problem with dgetrf :', info
+	  call dgetri(nhsavb,c_matrix,nhsavb,ipiv,work,lwork,info)
+	  if(info .ne. 0) write(stdout,*) 'set_k_minus1 Problem with dgetri :', info
+        ELSE
+	  call zgetrf(nhsavb,nhsavb,c_matrix_c,nhsavb,ipiv,info)
+	  if(info .ne. 0) write(stdout,*) 'set_k_minus1 Problem with dgetrf :', info
+	  call zgetri(nhsavb,c_matrix_c,nhsavb,ipiv,work,lwork,info)
+	  if(info .ne. 0) write(stdout,*) 'set_k_minus1 Problem with dgetri :', info
+        ENDIF
+      endif
+
+      IF(.not.m_minus1%iscmplx) THEN
+	call mp_bcast( c_matrix, ionode_id, intra_image_comm )
+	CALL DGEMM('N','N',nhsavb,nhsavb,nhsavb,-1.0d0,c_matrix,nhsavb,q_matrix,nhsavb,0.0d0,m_minus1%rvec,nhsavb) 
+      ELSE
+	call mp_bcast( c_matrix_c, ionode_id, intra_image_comm )
+	CALL ZGEMM('C','N',nhsavb,nhsavb,nhsavb,c_mone,c_matrix_c,nhsavb,q_matrix_c,nhsavb,c_zero,m_minus1%cvec,nhsavb) !warning:giovanni put a conjugate?
+      ENDIF
+
+      IF(.not.m_minus1%iscmplx) THEN
+	deallocate(q_matrix,c_matrix)
+      ELSE
+	deallocate(q_matrix_c,c_matrix_c)
+      ENDIF
+
+      deallocate(ipiv,work)
+      call stop_clock('set_x_minus1')
+      return
+    end subroutine set_x_minus1_twin
 !
       subroutine xminus1(c0,betae,ema0bg,beck,m_minus1,do_k)
 ! if (do_k) then
@@ -913,6 +1096,144 @@ subroutine pc2(a,beca,b,becb)
       call stop_clock('xminus1')
       return
      end subroutine xminus1
+
+!
+      subroutine xminus1_twin(c0,betae,ema0bg,beck,m_minus1,do_k)
+! if (do_k) then
+!-----------------------------------------------------------------------
+!     input: c0 , bec=<c0|beta>, betae=|beta>
+!     computes the matrix phi (with the old positions)
+!       where  |phi> = K^{-1}|c0>
+! else
+!-----------------------------------------------------------------------
+!     input: c0 , bec=<c0|beta>, betae=|beta>
+!     computes the matrix phi (with the old positions)
+!       where  |phi> = s^{-1}|c0> 
+! endif
+      use kinds, only: dp
+      use ions_base, only: na, nsp
+      use io_global, only: stdout
+!$$
+      use io_global, only: ionode
+!$$
+      use mp_global, only: intra_image_comm
+      use cvan
+      use uspp_param, only: nh
+      use uspp, only :nhsa=>nkb, nhsavb=>nkbus, qq
+      use electrons_base, only: n => nbsp
+      use gvecw, only: ngw
+      use constants, only: pi, fpi
+      use control_flags, only: iprint, iprsta
+      use mp, only: mp_sum
+      use reciprocal_vectors, only: ng0 => gstart
+      use twin_types
+!
+      implicit none
+      complex(dp) c0(ngw,n), betae(ngw,nhsa)
+      real(dp)     ema0bg(ngw)
+      type(twin_matrix) :: beck
+      real(DP)    :: m_minus1(nhsavb,nhsavb)
+      logical :: do_k
+! local variables
+      complex(dp), allocatable :: phi(:,:)
+      real(dp) , allocatable   :: qtemp(:,:)
+      real(dp) , allocatable   :: qtemp_c(:,:)
+      integer is, iv, jv, ia, inl, jnl, i, j, js, ja,ig
+      real(dp) becktmp
+      complex(dp) becktmp_c      
+      logical :: mat_par=.true.!if true uses parallel routines      
+
+      call start_clock('xminus1')
+!$$
+!      if(ionode) write(700,*) 'nvb is',nvb
+!$$
+      if (nvb.gt.0) then
+!calculates beck
+         if (do_k) then
+            call set_twin(beck,CMPLX(0.d0,0.d0))
+            do is=1,nvb
+               do iv=1,nh(is)
+                  do ia=1,na(is)
+                     inl=ish(is)+(iv-1)*na(is)+ia
+                     do i=1,n
+                        IF(.not.beck%iscmplx) THEN
+			  becktmp = 0.0d0
+			  do ig=1,ngw
+			    becktmp=becktmp+ema0bg(ig)*DBLE(CONJG(betae(ig,inl))*c0(ig,i))
+			  enddo
+			  becktmp = becktmp*2.0d0
+			  if (ng0.eq.2) becktmp = becktmp-ema0bg(1)*DBLE(CONJG(betae(1,inl))*c0(1,i)) 
+			  beck%rvec(inl,i) = beck%rvec(inl,i) + becktmp
+                        ELSE
+			  becktmp_c = CMPLX(0.0d0, 0.d0)
+			  do ig=1,ngw
+			    becktmp_c=becktmp_c+ema0bg(ig)*(CONJG(betae(ig,inl))*c0(ig,i))
+			  enddo
+			  beck%cvec(inl,i) = beck%cvec(inl,i) + becktmp_c
+                        ENDIF
+                     enddo
+                  enddo
+               enddo
+            enddo
+	    call twin_mp_sum( beck, intra_image_comm )
+         endif
+!
+!
+      allocate(phi(ngw,n))
+      phi(1:ngw,1:n) = 0.0d0
+      IF(.not.m_minus1%iscmplx) THEN
+	allocate(qtemp(nhsavb,n))
+	qtemp(:,:) = 0.0d0
+      ELSE
+	allocate(qtemp_c(nhsavb,n))
+	qtemp_c(:,:) = CMPLX(0.0d0, 0.d0)
+      ENDIF
+
+      if(.not.mat_par) then
+	IF(.not.m_minus1%iscmplx) THEN
+	  call dgemm( 'N', 'N', nhsavb, n, nhsavb, 1.0d0, m_minus1,nhsavb ,    &
+		      beck%rvec, nhsa, 0.0d0, qtemp,nhsavb )
+	ELSE
+	  call dgemm( 'N', 'N', nhsavb, n, nhsavb, c_one, m_minus1,nhsavb ,    &
+		      beck%cvec, nhsa, c_zero, qtemp_c, nhsavb )
+	ENDIF
+      else
+         call para_dgemm( 'N', 'N', nhsavb, n, nhsavb, 1.0d0, m_minus1,nhsavb ,    &
+                    beck, nhsa, 0.0d0, qtemp,nhsavb,intra_image_comm )
+      endif
+
+!NB  nhsavb is the total number of US projectors
+!    it works because the first pseudos are the vanderbilt's ones
+
+         CALL DGEMM( 'N', 'N', 2*ngw, n, nhsavb, 1.0d0, betae, 2*ngw,    &
+                    qtemp, nhsavb, 0.0d0, phi, 2*ngw )
+         if (do_k) then
+            do j=1,n
+               do ig=1,ngw
+                  c0(ig,j)=(phi(ig,j)+c0(ig,j))*ema0bg(ig)
+               end do
+            end do
+         else
+            do j=1,n
+               do i=1,ngw
+                  c0(i,j)=(phi(i,j)+c0(i,j))
+               end do
+            end do
+         endif
+      deallocate(qtemp,phi)
+
+      else
+         if (do_k) then
+            do j=1,n
+               do ig=1,ngw
+                  c0(ig,j)=c0(ig,j)*ema0bg(ig)
+               end do
+            end do
+         endif
+      endif
+      call stop_clock('xminus1')
+      return
+     end subroutine xminus1_twin
 
       SUBROUTINE emass_precond_tpa( ema0bg, tpiba2, emaec )
        use kinds, ONLY : dp

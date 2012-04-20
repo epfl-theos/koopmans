@@ -22,7 +22,7 @@ MODULE twin_types
   END INTERFACE
   
   INTERFACE set_twin
-    MODULE PROCEDURE set_twin_matrix, set_twin_tensor
+    MODULE PROCEDURE set_twin_matrix, set_twin_tensor, set_index_twin_matrix, set_index_twin_tensor
   END INTERFACE
 
   INTERFACE copy_twin
@@ -36,7 +36,10 @@ MODULE twin_types
   INTERFACE deallocate_twin
     MODULE PROCEDURE deallocate_twin_matrix, deallocate_twin_tensor
   END INTERFACE
-!   SAVE
+
+  INTERFACE twin_mp_sum
+    MODULE PROCEDURE tmatrix_mp_sum, ttensor_mp_sum
+  END INTERFACE
 
   TYPE :: twin_matrix
 
@@ -93,6 +96,21 @@ MODULE twin_types
    return
   END SUBROUTINE set_twin_matrix
 
+  SUBROUTINE set_index_twin_matrix(tmatrix,i,j, value)
+
+   type(twin_matrix)   :: tmatrix
+   COMPLEX(DP), INTENT(IN) :: value
+   INTEGER, INTENT(IN) :: i,j
+
+   IF(tmatrix%iscmplx) THEN
+     tmatrix%cvec(i,j)=value
+   ELSE
+     tmatrix%rvec(i,j) = DBLE(value)
+   ENDIF
+   
+   return
+  END SUBROUTINE set_index_twin_matrix
+
   SUBROUTINE init_twin_tensor(ttensor, lgam)
 
    type(twin_tensor)   :: ttensor
@@ -113,6 +131,21 @@ MODULE twin_types
      ttensor%cvec=value
    ELSE
      ttensor%rvec = DBLE(value)
+   ENDIF
+   
+   return
+  END SUBROUTINE set_twin_tensor
+
+  SUBROUTINE set_index_twin_tensor(ttensor,i,j,k, value)
+
+   type(twin_tensor)   :: ttensor
+   COMPLEX(DP), INTENT(IN) :: value
+   INTEGER, INTENT(IN) :: i,j,k
+
+   IF(ttensor%iscmplx) THEN
+     ttensor%cvec(i,j,k)=value
+   ELSE
+     ttensor%rvec(i,j,k) = DBLE(value)
    ENDIF
    
    return
@@ -297,5 +330,39 @@ MODULE twin_types
 
     return
   END SUBROUTINE deallocate_twin_tensor
+
+  SUBROUTINE tmatrix_mp_sum(tmatrix)
+
+    use mp, only: mp_sum, mp_bcast
+    use mp_global,                ONLY : intra_image_comm
+    
+    IMPLICIT NONE
+
+    type(twin_matrix) :: tmatrix    
+
+    IF(.not.tmatrix%iscmplx) THEN
+      call mp_sum(tmatrix%rvec, intra_image_comm)
+    ELSE
+      call mp_sum(tmatrix%cvec, intra_image_comm)
+    ENDIF
+   
+  END SUBROUTINE tmatrix_mp_sum
+
+  SUBROUTINE ttensor_mp_sum(ttensor)
+
+    use mp, only: mp_sum, mp_bcast
+    use mp_global,                ONLY : intra_image_comm
+    
+    IMPLICIT NONE
+
+    type(twin_tensor) :: ttensor
+
+    IF(.not.ttensor%iscmplx) THEN
+      call mp_sum(ttensor%rvec, intra_image_comm)
+    ELSE
+      call mp_sum(ttensor%cvec, intra_image_comm)
+    ENDIF
+   
+  END SUBROUTINE ttensor_mp_sum
 
 END MODULE twin_types

@@ -10,7 +10,7 @@
 !====================================================================
    SUBROUTINE inner_loop( nfi, tfirst, tlast, eigr,  irb, eigrb, &
                           rhor, rhog, rhos, rhoc, ei1, ei2, ei3, &
-                          sfac, c0, bec, firstiter, vpot )
+                          sfac, c0, bec, firstiter, vpot, lgam )
 !====================================================================
       !
       ! minimizes the total free energy with respect to the
@@ -97,6 +97,8 @@
       COMPLEX(DP)            :: ei2( nr2:nr2, nat )
       COMPLEX(DP)            :: ei3( nr3:nr3, nat )
       COMPLEX(DP)            :: sfac( ngs, nsp )
+      LOGICAL                 :: lgam
+
       INTEGER                :: i
       INTEGER                :: j
       INTEGER                :: ig
@@ -120,10 +122,12 @@
       REAL(DP)               :: xinit
       INTEGER                :: ii,jj,kk,nrot
       REAL(kind=DP), ALLOCATABLE :: ztmp(:,:), dval(:), ex(:), dx(:)
-      REAL(kind=DP), ALLOCATABLE :: fion2(:,:),c0hc0(:,:,:), z1(:,:,:), zx(:,:,:), zxt(:,:,:), zaux(:,:,:)
+      REAL(kind=DP), ALLOCATABLE :: fion2(:,:)
+      type(twin_matrix), dimension(:), allocatable :: c0hc0, z1, zx, zxt, zaux
       COMPLEX(kind=DP), ALLOCATABLE :: h0c0(:,:)
-      REAL(kind=DP), ALLOCATABLE :: f0(:),f1(:),fx(:), faux(:), fmat1(:,:,:),fmatx(:,:,:)
-      REAL(kind=DP), ALLOCATABLE :: dfmat(:,:,:), epsi0(:,:,:)
+      REAL(kind=DP), ALLOCATABLE :: f0(:),f1(:),fx(:), faux(:)
+      type(twin_matrix), dimension(:), allocatable :: fmat1, fmatx, dfmat
+      REAL(kind=DP), ALLOCATABLE :: epsi0(:,:,:)
       REAL(kind=DP) :: atot0,atot1,atotmin,etot0,etot1, ef1, enocc
       REAL(kind=DP) :: dadx1,dedx1,dentdx1,eqa,eqb,eqc, etot2, entropy2
       REAL(kind=DP) :: f2,x,xmin
@@ -134,19 +138,37 @@
       CALL start_clock( 'inner_loop' )
       ! initializes variables
       allocate(fion2(3,nat))
-      allocate(c0hc0(nudx,nudx,nspin))
       allocate(h0c0(ngw,nx))
-      allocate(z1(nudx,nudx,nspin),zx(nudx,nudx,nspin),zxt(nudx,nudx,nspin),zaux(nudx,nudx,nspin))
       allocate(dval(nx),ex(nx),dx(nx),f0(nx),f1(nx),fx(nx),faux(nx))
-      allocate(fmat1(nudx,nudx,nspin),fmatx(nudx,nudx,nspin),dfmat(nudx,nudx,nspin))
+      allocate(z1(nspin),zx(nspin),zxt(nspin),zaux(nspin))
+      allocate(fmat1(nspin),fmatx(nspin),dfmat(nspin))
       allocate(epsi0(nudx,nudx,nspin))
+! 
+      do is=1,nspin
+	call init_twin(z1(is),lgam)
+        call allocate_twin(z1(is),nudx,nudx,lgam)
+	call init_twin(zx(is),lgam)
+        call allocate_twin(zx(is),nudx,nudx,lgam)
+	call init_twin(zxt(is),lgam)
+        call allocate_twin(zxt(is),nudx,nudx,lgam)
+	call init_twin(zaux(is),lgam)
+        call allocate_twin(zaux(is),nudx,nudx,lgam)
+	call init_twin(c0hc0(is),lgam)
+        call allocate_twin(c0hc0(is),nudx,nudx,lgam)
 
+	call init_twin(fmat1(is),lgam)
+        call allocate_twin(fmat1(is),nudx,nudx,lgam)
+	call init_twin(fmatx(is),lgam)
+        call allocate_twin(fmatx(is),nudx,nudx,lgam)
+	call init_twin(dfmat(is),lgam)
+        call allocate_twin(dfmat(is),nudx,nudx,lgam)
+      enddo
+! 
       fion2( :, : )= 0.D0
       npt=10
       deltaxmin=1.D-8
       ! calculates the initial free energy if necessary
       IF( .not. ene_ok ) THEN
-
         ! calculates the overlaps bec between the wavefunctions c0
         ! and the beta functions
         CALL calbec( 1, nsp, eigr, c0, bec )
@@ -196,25 +218,40 @@
           END DO
         
         ! calculates the Hamiltonian matrix in the basis {c0}           
-        c0hc0(:,:,:)=0.d0
+        DO is=1,nspin
+          call set_twin(c0hc0(is), CMPLX(0.d0,0.d0))
+        ENDDO        
+
         DO is= 1, nspin
           nss= nupdwn( is )
           istart= iupdwn( is )
             DO i= 1, nss
               DO k= 1, nss
-                DO ig= 1, ngw
-                  c0hc0( k, i, is )= c0hc0( k, i, is ) &
-                    - 2.0d0*DBLE( CONJG( c0( ig,k+istart-1 ) ) &
-                    * h0c0( ig, i+istart-1 ) )
-                END DO
-                IF( ng0 .eq. 2 ) THEN
-                  c0hc0( k, i, is )= c0hc0( k, i, is ) &
-                    + DBLE( CONJG( c0( 1, k+istart-1 ) ) &
-                    * h0c0( 1, i+istart-1 ) )
-                END IF
+                IF(.not.c0hc0(is)%iscmplx) THEN
+		  DO ig= 1, ngw
+		    c0hc0(is)%rvec(k,i)= c0hc0(is)%rvec(k,i) &
+		      - 2.0d0*DBLE( CONJG( c0( ig,k+istart-1 ) ) &
+		      * h0c0( ig, i+istart-1 ) )
+		  END DO
+		  IF( ng0 .eq. 2 ) THEN
+		    c0hc0(is)%rvec(k,i)= c0hc0(is)%rvec(k,i) &
+		      + DBLE( CONJG( c0( 1, k+istart-1 ) ) &
+		      * h0c0( 1, i+istart-1 ) )
+		  END IF
+                ELSE
+                  DO ig= 1, ngw
+		    c0hc0(is)%cvec(k,i)= c0hc0(is)%cvec(k,i) &
+		      - ( CONJG( c0( ig,k+istart-1 ) ) &
+		      * h0c0( ig, i+istart-1 ) )
+		  END DO
+                ENDIF
               END DO
             END DO
-            CALL mp_sum( c0hc0( 1:nss, 1:nss, is ), intra_image_comm )
+            IF(.not.c0hc0(is)%iscmplx) THEN
+	      CALL mp_sum( c0hc0(is)%rvec( 1:nss, 1:nss), intra_image_comm )
+            ELSE
+	      CALL mp_sum( c0hc0(is)%cvec( 1:nss, 1:nss), intra_image_comm )
+            ENDIF
         END DO
  
         DO is= 1, nspin
@@ -293,8 +330,7 @@
               END DO
             END DO
         END DO
-           
- 
+
         ! updates f
         f( 1:n )= fx( 1:n )
 
@@ -447,12 +483,21 @@
         ! calculates the occupation matrix at xmin
         DO is= 1, nspin
           nss= nupdwn( is )
-            DO i= 1, nss
-              DO j= 1, nss
-                fmatx( i, j, is )= fmat0( i, j, is ) &
-                                   + xmin * dfmat( i, j, is )
-              END DO
-            END DO
+            IF(.not.fmat0(is)%iscmplx) THEN
+	      DO i= 1, nss
+		DO j= 1, nss
+		  fmatx( i, j, is )= fmat0(is)%rvec( i, j) &
+				    + xmin * dfmat( i, j, is )
+		END DO
+	      END DO
+            ELSE
+	      DO i= 1, nss
+		DO j= 1, nss
+		  fmatx_c( i, j, is )= fmat0(is)%cvec( i, j) &
+				    + xmin * dfmat_c( i, j, is )
+		END DO
+	      END DO
+            ENDIF
         END DO
                
         ! diagonalizes the occupation matrix at xmin
@@ -483,11 +528,19 @@
         ! updates z0t
         DO is= 1, nspin
           nss= nupdwn( is )
-          DO i= 1, nss
-            DO k= 1, nss
-              z0t( k, i, is )= zx( k, i, is )
-            END DO
-          END DO
+          if(.not.z0t(is)%iscmplx) THEN
+	    DO i= 1, nss
+	      DO k= 1, nss
+		z0t(is)%rvec( k, i)= zx( k, i, is )
+	      END DO
+	    END DO
+          ELSE
+	    DO i= 1, nss
+	      DO k= 1, nss
+		z0t(is)%cvec( k, i)= zx_c( k, i, is )
+	      END DO
+	    END DO
+          ENDIF
         END DO
         
         ! calculates the total free energy

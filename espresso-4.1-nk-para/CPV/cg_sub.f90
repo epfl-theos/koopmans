@@ -103,12 +103,15 @@
       integer     :: i, j, ig, k, is, iss,ia, iv, jv, il, ii, jj, kk, ip
       integer     :: inl, jnl, niter, istart, nss, nrl, me_rot, np_rot , comm
       real(dp)    :: enb, enbi, x
-      real(dp)    :: gamma, entmp, sta
+      real(dp)    :: entmp, sta
+      complex(dp) :: gamma_c  !warning_giovanni, is it real anyway?
       complex(dp), allocatable :: c2(:)
       complex(dp), allocatable :: c3(:)
       complex(dp), allocatable :: hpsi(:,:), hpsi0(:,:), gi(:,:), hi(:,:)
-      real(DP),    allocatable :: s_minus1(:,:)    !factors for inverting US S matrix
-      real(DP),    allocatable :: k_minus1(:,:)    !factors for inverting US preconditioning matrix 
+!       real(DP),    allocatable :: s_minus1(:,:)    !factors for inverting US S matrix
+!       real(DP),    allocatable :: k_minus1(:,:)    !factors for inverting US preconditioning matrix
+      type(twin_matrix) :: s_minus1(:,:)    !factors for inverting US S matrix
+      type(twin_matrix) :: k_minus1(:,:)    !factors for inverting US preconditioning matrix
       real(DP),    allocatable :: lambda_repl(:,:) ! replicated copy of lambda
       real(DP),    allocatable :: lambda_dist(:,:) ! replicated copy of lambda
       complex(DP),    allocatable :: lambda_repl_c(:,:) ! replicated copy of lambda
@@ -250,8 +253,12 @@
       !
       if ( nvb > 0 ) then
           !
-          allocate( s_minus1(nhsavb,nhsavb))
-          allocate( k_minus1(nhsavb,nhsavb))
+          call set_twin(s_minus1,lgam)
+          call allocate_twin(s_minus1, nhsavb, nhsavb, lgam)
+          call set_twin(k_minus1,lgam)
+          call allocate_twin(k_minus1, nhsavb, nhsavb, lgam)
+!           allocate( s_minus1(nhsavb,nhsavb))
+!           allocate( k_minus1(nhsavb,nhsavb))
           call  set_x_minus1(betae,s_minus1,dumm,.false.)
           call  set_x_minus1(betae,k_minus1,ema0bg,.true.)
           !
@@ -761,25 +768,26 @@
         call calbec(1,nsp,eigr,hpsi,bec0) 
 
 !  calculates gamma
-        gamma=0.d0
+        gamma_c=CMPLX(0.d0,0.d0)
         
         if(.not.tens) then
            do i=1,nbsp
               IF(lgam) THEN
 		do ig=1,ngw
-		  gamma=gamma+2.d0*DBLE(CONJG(gi(ig,i))*hpsi(ig,i))
+		  gamma_c=gamma_c+2.d0*DBLE(CONJG(gi(ig,i))*hpsi(ig,i))
 		enddo
 		if (ng0.eq.2) then
-		  gamma=gamma-DBLE(CONJG(gi(1,i))*hpsi(1,i))
+		  gamma_c=gamma_c-DBLE(CONJG(gi(1,i))*hpsi(1,i))
 		endif
               ELSE
 		do ig=1,ngw
-		  gamma=gamma+CONJG(gi(ig,i))*hpsi(ig,i)
+		  gamma_c=gamma_c+CONJG(gi(ig,i))*hpsi(ig,i)
 		enddo
               ENDIF
            enddo
            
-           call mp_sum( gamma, intra_image_comm )
+
+	  call mp_sum( gamma_c, intra_image_comm )
            
            if(.not.becm%iscmplx) then
 	    if (nvb.gt.0) then
@@ -790,7 +798,7 @@
 			    do ia=1,na(is)
 			      inl=ish(is)+(iv-1)*na(is)+ia
 			      jnl=ish(is)+(jv-1)*na(is)+ia
-			      gamma=gamma+ qq(iv,jv,is)*becm%rvec(inl,i)*bec0%rvec(jnl,i)
+			      gamma_c=gamma_c+ qq(iv,jv,is)*becm%rvec(inl,i)*bec0%rvec(jnl,i)
 			    end do
 			end do
 		      end do
@@ -806,7 +814,7 @@
 			    do ia=1,na(is)
 			      inl=ish(is)+(iv-1)*na(is)+ia
 			      jnl=ish(is)+(jv-1)*na(is)+ia
-			      gamma=gamma+ qq(iv,jv,is)*becm%cvec(inl,i)*CONJG(bec0%cvec(jnl,i)) !warning:giovanni CONJG
+			      gamma_c=gamma_c+ qq(iv,jv,is)*becm%cvec(inl,i)*CONJG(bec0%cvec(jnl,i)) !warning:giovanni CONJG
 			    end do
 			end do
 		      end do
@@ -834,10 +842,10 @@
 		      jj = ip
 		      do j=1,nrl
 			do ig=1,ngw
-			    gamma=gamma+2.d0*DBLE(CONJG(gi(ig,i+istart-1))*hpsi(ig,jj+istart-1))*fmat_(j,i)
+			    gamma_c=gamma_c+2.d0*DBLE(CONJG(gi(ig,i+istart-1))*hpsi(ig,jj+istart-1))*fmat_(j,i)
 			enddo
 			if (ng0.eq.2) then
-			    gamma=gamma-DBLE(CONJG(gi(1,i+istart-1))*hpsi(1,jj+istart-1))*fmat_(j,i)
+			    gamma_c=gamma_c-DBLE(CONJG(gi(1,i+istart-1))*hpsi(1,jj+istart-1))*fmat_(j,i)
 			endif
 			jj = jj + np_rot
 		      enddo
@@ -856,7 +864,7 @@
 		      jj = ip
 		      do j=1,nrl
 			do ig=1,ngw
-			    gamma=gamma+CONJG(gi(ig,i+istart-1))*hpsi(ig,jj+istart-1)*fmat_c_(j,i)
+			    gamma_c=gamma_c+CONJG(gi(ig,i+istart-1))*hpsi(ig,jj+istart-1)*fmat_c_(j,i)
 			enddo
 			jj = jj + np_rot
 		      enddo
@@ -889,7 +897,7 @@
 				    do ia=1,na(is)
 					inl=ish(is)+(iv-1)*na(is)+ia
 					jnl=ish(is)+(jv-1)*na(is)+ia
-					gamma=gamma+ qq(iv,jv,is)*becm%rvec(inl,i+istart-1)*bec0%rvec(jnl,jj+istart-1)*fmat_(j,i)
+					gamma_c=gamma_c+ qq(iv,jv,is)*becm%rvec(inl,i+istart-1)*bec0%rvec(jnl,jj+istart-1)*fmat_(j,i)
 				    end do
 				  end do
 			      end do
@@ -917,7 +925,7 @@
 				    do ia=1,na(is)
 					inl=ish(is)+(iv-1)*na(is)+ia
 					jnl=ish(is)+(jv-1)*na(is)+ia
-					gamma=gamma+ qq(iv,jv,is)*becm%cvec(inl,i+istart-1)*bec0%cvec(jnl,jj+istart-1)*fmat_c_(j,i)
+					gamma_c=gamma_c+ qq(iv,jv,is)*becm%cvec(inl,i+istart-1)*bec0%cvec(jnl,jj+istart-1)*fmat_c_(j,i)
 				    end do
 				  end do
 			      end do
@@ -930,7 +938,7 @@
                  endif
               enddo
            endif
-           call mp_sum( gamma, intra_image_comm )
+	    call mp_sum( gamma_c, intra_image_comm )
         endif
         !case of first iteration
 
@@ -943,18 +951,19 @@
 !$$$$          passof=passop
 
           hi(1:ngw,1:nbsp)=gi(1:ngw,1:nbsp)!hi is the search direction
-          esse=gamma
+
+          esse=REAL(gamma_c)
 
         else
 
           !find direction hi for general case 
           !calculates gamma for general case, not using Polak Ribiere
           
-          essenew=gamma
-          gamma=gamma/esse
+          essenew=REAL(gamma_c)
+          gamma_c=gamma_c/esse
           esse=essenew
 
-          hi(1:ngw,1:nbsp)=gi(1:ngw,1:nbsp)+gamma*hi(1:ngw,1:nbsp)
+          hi(1:ngw,1:nbsp)=gi(1:ngw,1:nbsp)+gamma_c*hi(1:ngw,1:nbsp)
 
         endif
 !note that hi, is saved  on gi, because we need it before projection on conduction states
