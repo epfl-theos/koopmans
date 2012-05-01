@@ -981,13 +981,19 @@ end subroutine nksic_newd
       real(dp),    allocatable :: grhoraux(:,:,:)
       real(dp),    allocatable :: orb_grhor(:,:,:)
       real(dp),    allocatable :: haux(:,:,:)
-      logical :: lgam
+      logical :: lgam !!added:giovanni
+      real(dp) :: icoeff
       !
       !==================
       ! main body
       !==================
       !
-      lgam=gamma_only.and..not.do_wf_cmplx
+      lgam=gamma_only.and..not.do_wf_cmplx !added:giovanni
+      if(lgam) then
+        icoeff=2.d0
+      else
+        icoeff=1.d0
+      endif
 
       if( ibnd > nknmax .and. nknmax > 0 ) return
       !
@@ -1079,8 +1085,8 @@ end subroutine nksic_newd
       !
       !ehele=0.5_dp * sum(dble(vhaux(1:nnrx))*rhoele(1:nnrx,ispin))
       !
-      ehele = 2.0_dp * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm,1)))
-      if ( gstart == 2 ) ehele = ehele -DBLE ( CONJG( vtmp(1) ) * rhogaux(1,1) )
+      ehele = icoeff * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm,1)))
+      if ( gstart == 2 ) ehele = ehele - (2.d0-icoeff)*DBLE ( CONJG( vtmp(1) ) * rhogaux(1,1) )
       !
       ! the f * (2.0d0 * fref-f) term is added here
       ehele = 0.5_dp * f * (2.0_dp * fref-f) * ehele * omega / fact
