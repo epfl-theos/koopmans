@@ -710,9 +710,9 @@
 !$$        call pcdaga2(c0,phi,hpsi)
 !$$
         if(.not.do_orbdep) then
-          call pcdaga2(c0,phi,hpsi)
+          call pcdaga2(c0,phi,hpsi, lgam)
         else
-          call pc3(c0,hpsi)
+          call pc3(c0,hpsi, lgam)
         endif
 !$$
 
@@ -739,9 +739,9 @@
 !$$        call pc2(c0,bec,hpsi,becm)
 !$$     
         if(.not.do_orbdep) then
-          call pc2(c0,bec,hpsi,becm)
+          call pc2(c0,bec,hpsi,becm, lgam)
         else
-          call pc3(c0,hpsi)
+          call pc3(c0,hpsi, lgam)
         endif
 !$$
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -756,13 +756,12 @@
 !$$        call pc2(c0,bec,gi,becm)
 !$$     
         if(.not.do_orbdep) then
-          call pc2(c0,bec,gi,becm)
+          call pc2(c0,bec,gi,becm, lgam)
         else
-          call pc3(c0,gi)
+          call pc3(c0,gi, lgam)
         endif
 !$$
 
-        
         if(tens) call calcmt( f, z0t, fmat0, .false. )
 
         call calbec(1,nsp,eigr,hpsi,bec0) 
@@ -976,9 +975,9 @@
 !$$        call pc2(c0,bec,hi,bec0)
 !$$     
         if(.not.do_orbdep) then
-          call pc2(c0,bec,hi,bec0)
+          call pc2(c0,bec,hi,bec0, lgam)
         else
-          call pc3(c0,hi)
+          call pc3(c0,hi, lgam)
         endif
 !$$
         

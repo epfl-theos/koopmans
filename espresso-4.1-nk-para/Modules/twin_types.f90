@@ -149,7 +149,7 @@ MODULE twin_types
    ENDIF
    
    return
-  END SUBROUTINE set_twin_tensor
+  END SUBROUTINE set_index_twin_tensor
 
   SUBROUTINE copy_twin_matrix(tmatrix1,tmatrix2)
 
@@ -364,5 +364,33 @@ MODULE twin_types
     ENDIF
    
   END SUBROUTINE ttensor_mp_sum
+
+  complex(DP) FUNCTION scalar_twin(vec1,vec2,sizevec,gstart,lgam)
+
+   complex(DP), dimension(:) :: vec1,vec2
+   integer :: gstart
+   logical :: lgam
+   integer :: sizevec
+   character(len=12) :: subname="scalar_twin"
+
+   complex(DP) :: aid
+
+   if((size(vec1).ne.sizevec) .or. (size(vec2).ne.sizevec)) then
+     call errore(subname,"inconsistent vector size", 1)
+   endif
+
+   aid=CMPLX(0.d0,0.d0)
+   if(lgam) then
+     aid=2.d0*DBLE(DOT_PRODUCT(vec1(1:sizevec),vec2(1:sizevec)))
+     if(gstart == 2) then
+       aid=aid - DBLE(CONJG(vec1(1))*vec2(1))
+     endif
+   else
+     aid=DOT_PRODUCT(CONJG(vec1(1:sizevec)),vec2(1:sizevec))
+   endif
+   
+   scalar_twin=aid   
+
+  END FUNCTION scalar_twin
 
 END MODULE twin_types
