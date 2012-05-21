@@ -121,7 +121,8 @@
       REAL(DP)               :: deltaxmin
       REAL(DP)               :: xinit
       INTEGER                :: ii,jj,kk,nrot
-      REAL(kind=DP), ALLOCATABLE :: ztmp(:,:), dval(:), ex(:), dx(:)
+      REAL(kind=DP), ALLOCATABLE :: dval(:), ex(:)!, ztmp(:,:)
+      COMPLEX(DP), ALLOCATABLE :: dx_c(:)
       REAL(kind=DP), ALLOCATABLE :: fion2(:,:)
       type(twin_matrix), dimension(:), allocatable :: c0hc0, z1, zx, zxt, zaux
       COMPLEX(kind=DP), ALLOCATABLE :: h0c0(:,:)
@@ -131,6 +132,7 @@
       type(twin_matrix), dimension(:), allocatable :: epsi0
       REAL(kind=DP) :: atot0,atot1,atotmin,etot0,etot1, ef1, enocc
       REAL(kind=DP) :: dadx1,dedx1,dentdx1,eqa,eqb,eqc, etot2, entropy2
+      COMPLEX(DP) :: dentdx1_c, dedx1_c, dadx1_c
       REAL(kind=DP) :: f2,x,xmin
       INTEGER ::  niter,nss,istart,il
 
@@ -140,7 +142,7 @@
       ! initializes variables
       allocate(fion2(3,nat))
       allocate(h0c0(ngw,nx))
-      allocate(dval(nx),ex(nx),dx(nx),f0(nx),f1(nx),fx(nx),faux(nx))
+      allocate(dval(nx),ex(nx),dx_c(nx),f0(nx),f1(nx),fx(nx),faux(nx))
       allocate(z1(nspin),zx(nspin),zxt(nspin),zaux(nspin))
       allocate(fmat1(nspin),fmatx(nspin),dfmat(nspin))
       allocate(c0hc0(nspin), epsi0(nspin))
@@ -269,11 +271,16 @@
           istart= iupdwn( is )
           nss= nupdwn( is ) 
             IF( ionode ) THEN
-              CALL ddiag( nss, nss, epsi0(1,1,is), dval(1), &
-                          z1(1,1,is), 1 )
+              if(epsi0(is)%iscmplx) then
+		CALL ddiag( nss, nss, epsi0(is)%rvec(1,1), dval(1), &
+                          z1(is)%rvec(1,1), 1 )
+              else
+		CALL ddiag( nss, nss, epsi0(is)%cvec(1,1), dval(1), &
+                          z1(is)%cvec(1,1), 1 )
+              endif
             END IF
             CALL mp_bcast( dval, ionode_id, intra_image_comm )
-            CALL mp_bcast( z1(:,:,is), ionode_id, intra_image_comm )
+            CALL twin_mp_bcast( z1(is), ionode_id)
             DO i= 1, nss
               e0( i+istart-1 )= dval( i )
             END DO
@@ -292,8 +299,13 @@
         ! ( dfmat defines the search direction in occupation space)
         DO is= 1, nspin
           nss= nupdwn( is )
-            dfmat( 1:nss, 1:nss, is )= - fmat0( 1:nss, 1:nss, is ) &
-                                       + fmat1( 1:nss, 1:nss, is )
+          if(.not.dfmat(is)%iscmplx) then
+            dfmat(is)%rvec(1:nss,1:nss) = - fmat0(is)%rvec(1:nss,1:nss) &
+                                       + fmat1(is)%rvec(1:nss,1:nss)
+          else
+            dfmat(is)%cvec(1:nss,1:nss) = - fmat0(is)%cvec(1:nss,1:nss) &
+                                       + fmat1(is)%cvec(1:nss,1:nss)
+          endif
         END DO
             
         ! 
@@ -304,8 +316,13 @@
         x=1.D0
         DO is= 1, nspin
           nss= nupdwn( is )
-            fmatx( 1:nss, 1:nss, is)= fmat0( 1:nss, 1:nss, is) &
-                                    + x * dfmat( 1:nss, 1:nss, is )
+          IF(.not.fmatx(is)%iscmplx) THEN
+            fmatx(is)%rvec(1:nss,1:nss) = fmat0(is)%rvec(1:nss,1:nss) &
+                                    + x * dfmat(is)%rvec( 1:nss, 1:nss)
+          ELSE
+            fmatx(is)%cvec(1:nss,1:nss) = fmat0(is)%cvec(1:nss,1:nss) &
+                                    + x * dfmat(is)%cvec(1:nss,1:nss)
+          ENDIF
         END DO
                       
         ! diagonalizes fmatx 
@@ -314,25 +331,44 @@
           nss= nupdwn( is )
           istart= iupdwn( is )
             IF( ionode ) THEN
-              CALL ddiag( nss, nss, fmatx(1,1,is), dval(1), &
-                          zaux(1,1,is), 1 )
+              if(lgam) then
+		CALL ddiag( nss, nss, fmatx(is)%rvec(1,1), dval(1), &
+                          zaux(is)%rvec(1,1), 1 )
+              else
+		CALL zdiag( nss, nss, fmatx(is)%cvec(1,1), dval(1), &
+                          zaux(is)%cvec(1,1), 1 )
+              endif
             END IF
             CALL mp_bcast( dval, ionode_id, intra_image_comm )
-            CALL mp_bcast( zaux(:,:,is), ionode_id, intra_image_comm )
+            CALL twin_mp_bcast( zaux(is), ionode_id)
             DO i= 1, nss
               faux( i+istart-1 )= dval( i )
             END DO
             DO i= 1, nss
               fx( i+istart-1 )= faux( nss-i+istart )
-              DO j=1, nss
-                zx( i, j, is )= zaux( i, nss-j+1, is )
-              END DO
+              IF(.not.zx(is)%iscmplx) then
+		DO j=1, nss
+		  zx(is)%rvec( i, j)= zaux(is)%rvec( i, nss-j+1 )
+		END DO
+              ELSE
+		DO j=1, nss
+		  zx(is)%cvec( i, j )= zaux(is)%cvec( i, nss-j+1)
+		END DO
+              ENDIF
             END DO
-            DO i= 1, nss
-              DO k= 1, nss
-                zxt( k, i, is )= zx( i, k, is )
-              END DO
-            END DO
+            IF(.not.zxt(is)%iscmplx) then
+	      DO i= 1, nss
+		DO k= 1, nss
+		  zxt(is)%rvec( k, i)= zx(is)%rvec( i, k )
+		END DO
+	      END DO
+            ELSE
+	      DO i= 1, nss
+		DO k= 1, nss
+		  zxt(is)%cvec(k, i)= zx(is)%cvec(i, k)
+		END DO
+	      END DO
+            ENDIF
         END DO
 
         ! updates f
@@ -365,32 +401,43 @@
             CALL dforce( i, bec, betae, c0, h0c0(:,i), h0c0(:,i+1), rhos, nnrsx, ispin, f, n, nspin )
           END DO
         
-        c0hc0(:,:,:)=0.d0
+        do is=1,nspin
+	  call set_twin(c0hc0(is), CMPLX(0.d0,0.d0))
+        enddo
+!         c0hc0(:,:,:)=0.d0
 
         DO is= 1, nspin
           nss= nupdwn( is )
           istart= iupdwn( is )
             DO i= 1, nss
               DO k= 1, nss
-                DO ig= 1, ngw
-                  c0hc0( k, i, is )= c0hc0( k, i, is ) &
-                    - 2.0d0*DBLE( CONJG( c0( ig,k+istart-1 ) ) &
-                    * h0c0( ig, i+istart-1 ) )
-                END DO
-                IF( ng0 .eq. 2 ) THEN
-                  c0hc0( k, i, is )= c0hc0( k, i, is ) &
-                    + DBLE( CONJG( c0( 1, k+istart-1 ) ) &
-                    * h0c0( 1, i+istart-1 ) )
-                END IF
+                IF(lgam) THEN
+		  DO ig= 1, ngw
+		    c0hc0(is)%rvec( k, i)= c0hc0(is)%rvec(k, i) &
+		      - 2.0d0*DBLE( CONJG( c0( ig,k+istart-1 ) ) &
+		      * h0c0( ig, i+istart-1 ) )
+		  END DO
+		  IF( ng0 .eq. 2 ) THEN
+		    c0hc0(is)%rvec( k, i ) = c0hc0(is)%rvec(k, i) &
+		      + DBLE(CONJG(c0( 1, k+istart-1)) &
+		      * h0c0(1, i+istart-1))
+		  END IF
+                ELSE
+		  DO ig= 1, ngw
+		    c0hc0(is)%cvec( k, i)= c0hc0(is)%cvec(k, i) &
+		      - ( CONJG( c0( ig,k+istart-1 ) ) &
+		      * h0c0( ig, i+istart-1 ) )
+		  END DO
+                ENDIF
               END DO
             END DO
-            CALL mp_sum( c0hc0( 1:nss, 1:nss, is ), intra_image_comm )
+            CALL twin_mp_sum( c0hc0(is))
       ENDDO
 
 
         DO is= 1, nspin
           nss= nupdwn( is )
-          epsi0( 1:nss, 1:nss, is )= c0hc0( 1:nss, 1:nss, is )
+          call copy_twin(epsi0(is), c0hc0(is))
         END DO
                    
         !     calculates 
@@ -403,46 +450,62 @@
         !           instead of as
         !           [(zt)_jk (ex)_j (zt)_ji] (dfmat)_ik )
         !     (3) the free energy derivative
-        dedx1= 0.D0
-        dentdx1= 0.D0
+        dedx1_c= CMPLX(0.D0,0.d0)
+        dentdx1_c= CMPLX(0.D0, 0.d0)
         DO is= 1,nspin
           nss= nupdwn( is )
           istart= iupdwn( is )
             DO i= 1, nss
-              dx( i+istart-1 )= 0.D0
-              DO k= 1, nss
-                DO j= 1, nss
-                  dx( i+istart-1 )= dx( i+istart-1 ) &
-                                  - zxt(i,k,is) * fmat0(k,j,is) &
-                                  * zxt(i,j,is)
-                END DO
-              END DO
-              dx( i+istart-1 )= dx( i+istart-1 ) + fx( i+istart-1 )
+              dx_c( i+istart-1 )= CMPLX(0.D0,0.D0)
+              IF(zxt(is)%iscmplx) THEN
+		DO k= 1, nss
+		  DO j= 1, nss
+		    dx_c( i+istart-1 )= dx_c( i+istart-1 ) &
+				    - zxt(is)%rvec(i,k) * fmat0(is)%rvec(k,j) &
+				    * zxt(is)%rvec(i,j)
+		  END DO
+		END DO
+              ELSE
+		DO k= 1, nss
+		  DO j= 1, nss
+		    dx_c( i+istart-1 )= dx_c( i+istart-1 ) &
+				    - zxt(is)%cvec(i,k) * fmat0(is)%cvec(k,j) &
+				    * CONJG(zxt(is)%cvec(i,j))
+		  END DO
+		END DO
+              ENDIF
+              dx_c( i+istart-1 )= dx_c( i+istart-1 ) + fx( i+istart-1 )
             END DO
         END DO
         DO is= 1, nspin
           nss= nupdwn( is )
           istart= iupdwn( is )
             DO i= 1, nss
-              dentdx1= dentdx1 - etemp * dx( i+istart-1 ) &
+              dentdx1_c= dentdx1_c - etemp * dx_c( i+istart-1 ) &
                        * ex(i+istart-1)
-              DO k= 1, nss
-                dedx1= dedx1 + dfmat( i, k, is ) * epsi0( k, i, is )
-              END DO
+              IF(.not.dfmat(is)%iscmplx) THEN
+		DO k= 1, nss
+		  dedx1_c= dedx1_c + dfmat(is)%rvec(i, k) * epsi0(is)%rvec(k, i)
+		END DO
+              ELSE
+		DO k= 1, nss
+		  dedx1_c= dedx1_c + dfmat(is)%cvec(i, k) * epsi0(is)%cvec(k, i)
+		END DO
+              ENDIF
             END DO
         END DO
-        dadx1 = dedx1 + dentdx1
+        dadx1_c = dedx1_c + dentdx1_c
                    
         ! performs the line minimization
         ! (a) the energy contribution is approximated 
         !     by a second order polynomial
-        ! (b) the entropic term is approcimated by a function 
+        ! (b) the entropic term is approximated by a function 
         !     of the form \sum_i s(a_i*x**2+b_i*x+c_i)
         !    (where s(f)=-f*ln(f)-(1-f)*ln(1-f) ).
         !    The coefficients a_i, b_i and c_i are calculated
         !    by first-order perturbation
         eqc= etot0
-        eqa= dedx1 - etot1 + etot0
+        eqa= dedx1_c - etot1 + etot0 !note that we expect dedx1_c to be real
         eqb= etot1 - etot0 - eqa
         atotmin= atot0
         xmin= 0.D0
@@ -457,8 +520,8 @@
               nss= nupdwn( is )
               istart= iupdwn( is )
               DO i= 1, nss
-                f2= fx( i+istart-1 ) + ( x-1 ) * dx( i+istart-1 ) &
-                  + ( - fx( i+istart-1 ) + dx( i+istart-1 ) + &
+                f2= fx( i+istart-1 ) + ( x-1 ) * dx_c( i+istart-1 ) &
+                  + ( - fx( i+istart-1 ) + dx_c( i+istart-1 ) + &
                   f0( i+istart-1 ) ) * ( x-1 )**2
                 CALL compute_entropy( entmp, f2, nspin )
                 entropy2 = entropy2 + entmp
@@ -490,15 +553,15 @@
             IF(.not.fmat0(is)%iscmplx) THEN
 	      DO i= 1, nss
 		DO j= 1, nss
-		  fmatx( i, j, is )= fmat0(is)%rvec( i, j) &
-				    + xmin * dfmat( i, j, is )
+		  fmatx(is)%rvec( i, j )= fmat0(is)%rvec( i, j) &
+				    + xmin * dfmat(is)%rvec( i, j)
 		END DO
 	      END DO
             ELSE
 	      DO i= 1, nss
 		DO j= 1, nss
-		  fmatx_c( i, j, is )= fmat0(is)%cvec( i, j) &
-				    + xmin * dfmat_c( i, j, is )
+		  fmatx(is)%cvec( i, j )= fmat0(is)%cvec( i, j) &
+				    + xmin * dfmat(is)%cvec( i, j )
 		END DO
 	      END DO
             ENDIF
@@ -509,18 +572,31 @@
         DO is= 1, nspin
           nss= nupdwn( is ) 
           istart= iupdwn( is )
-            IF(ionode) CALL ddiag( nss, nss, fmatx(1,1,is), &
-                                 dval(1), zaux(1,1,is), 1 )  
+! 
+            IF(lgam) THEN
+	      IF(ionode) CALL ddiag( nss, nss, fmatx(is)%rvec(1,1), &
+                                dval(1), zaux(is)%rvec(1,1), 1 )  
+            ELSE
+	      IF(ionode) CALL ddiag( nss, nss, fmatx(is)%cvec(1,1), &
+                                dval(1), zaux(is)%cvec(1,1), 1 )  
+            ENDIF
+! 
             CALL mp_bcast( dval, ionode_id, intra_image_comm )
-            CALL mp_bcast( zaux(:,:,is), ionode_id, intra_image_comm )
+            CALL twin_mp_bcast( zaux(is), ionode_id)
             DO i= 1, n
               faux( i+istart-1 )= dval( i )
             END DO
             DO i= 1, nss
               fx( i+istart-1 )= faux( nss-i+istart )
-              DO j= 1, nss
-                zx( i, j, is )= zaux( i, nss-j+1, is )
-              END DO
+              IF(.not.zx(is)%iscmplx) THEN
+		DO j= 1, nss
+		  zx(is)%rvec( i, j ) = zaux(is)%rvec( i, nss-j+1 )
+		END DO
+              ELSE
+		DO j= 1, nss
+		  zx(is)%cvec( i, j) = zaux(is)%cvec( i, nss-j+1 )
+		END DO
+              ENDIF
             END DO
         END DO
     
@@ -535,13 +611,13 @@
           if(.not.z0t(is)%iscmplx) THEN
 	    DO i= 1, nss
 	      DO k= 1, nss
-		z0t(is)%rvec( k, i)= zx( k, i, is )
+		z0t(is)%rvec(k, i)= zx(is)%rvec(k, i)
 	      END DO
 	    END DO
           ELSE
 	    DO i= 1, nss
 	      DO k= 1, nss
-		z0t(is)%cvec( k, i)= zx_c( k, i, is )
+		z0t(is)%cvec(k, i)= zx(is)%cvec(k, i)
 	      END DO
 	    END DO
           ENDIF
@@ -568,11 +644,24 @@
         enever=etot
         if(xmin==0.d0) exit 
      END DO INNERLOOP
+! 
+     do is=1,nspin
+      call deallocate_twin(z1(is))
+      call deallocate_twin(zx(is))
+      call deallocate_twin(zxt(is))
+      call deallocate_twin(zaux(is))
+      call deallocate_twin(c0hc0(is))
+      call deallocate_twin(epsi0(is))
+      call deallocate_twin(fmat1(is))
+      call deallocate_twin(fmatx(is))
+      call deallocate_twin(dfmat(is))
+     enddo
 
      deallocate(fion2,c0hc0,h0c0,z1)
-     deallocate(zx,zxt,zaux,dval,ex,dx)
-     deallocate(f0,f1,fx,faux,fmat1,fmatx)
+     deallocate(zx,zxt,zaux,dval,ex,dx_c)
+     deallocate(f0,f1,fx,faux)
      deallocate(dfmat,epsi0)
+! 
      CALL stop_clock( 'inner_loop' )
      return
 !====================================================================      

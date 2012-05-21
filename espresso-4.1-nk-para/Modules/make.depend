@@ -262,6 +262,8 @@ task_groups.o : parallel_include.o
 timestep.o : kind.o
 twin_types.o : control_flags.o
 twin_types.o : kind.o
+twin_types.o : mp.o
+twin_types.o : mp_global.o
 upf.o : ../iotk/src/iotk_module.o
 upf.o : kind.o
 upf.o : pseudo_types.o

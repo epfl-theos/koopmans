@@ -298,6 +298,7 @@ CONTAINS
       call allocate_twin(becdiag,nhsa,n, lgam)
       allocate(fmat0(nspin))
       allocate(psihpsi(nspin))
+
       do ispin=1,nspin
 	call init_twin(fmat0(ispin), lgam)
 	call allocate_twin(fmat0(ispin),nrlx,nudx, lgam)
@@ -312,8 +313,6 @@ CONTAINS
     RETURN
   END SUBROUTINE allocate_ensemble_dft
 
-
-
   SUBROUTINE deallocate_ensemble_dft( )
     IMPLICIT NONE
     INTEGER :: ispin
@@ -326,6 +325,9 @@ CONTAINS
       call deallocate_twin(psihpsi(ispin))
       call deallocate_twin(z0t(ispin))
     enddo
+    IF( ALLOCATED( fmat0 ) )             deallocate(fmat0 )
+    IF( ALLOCATED( psihpsi ) )             deallocate(psihpsi )
+    IF( ALLOCATED( z0t ) )             deallocate(z0t )
     !end_modified:giovanni
     IF( ALLOCATED( e0 ) )             deallocate(e0 )
     IF( ALLOCATED( fmat0_diag ) )     deallocate(fmat0_diag )

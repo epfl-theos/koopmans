@@ -61,6 +61,7 @@ cglib.o : ../Modules/mp.o
 cglib.o : ../Modules/mp_global.o
 cglib.o : ../Modules/ptoolkit.o
 cglib.o : ../Modules/recvec.o
+cglib.o : ../Modules/twin_types.o
 cglib.o : ../Modules/uspp.o
 cglib.o : ../Modules/zhpev_drv.o
 cglib.o : cp_interfaces.o
@@ -607,6 +608,7 @@ inner_loop.o : ../Modules/kind.o
 inner_loop.o : ../Modules/mp.o
 inner_loop.o : ../Modules/mp_global.o
 inner_loop.o : ../Modules/recvec.o
+inner_loop.o : ../Modules/twin_types.o
 inner_loop.o : ../Modules/uspp.o
 inner_loop.o : cg.o
 inner_loop.o : cp_interfaces.o

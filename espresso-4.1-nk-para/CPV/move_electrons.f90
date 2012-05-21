@@ -379,7 +379,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
      ! ... calphi calculates phi
      ! ... the electron mass rises with g**2
      !
-     CALL calphi( c0, ngw, bec, nkb, vkb, phi, nbsp, ema0bg, lgam )
+     CALL calphi( c0, ngw, bec, nkb, vkb, phi, nbsp, lgam, ema0bg )
 !      write(6,*) "calphi", phi
      !
      ! ... begin try and error loop (only one step!)

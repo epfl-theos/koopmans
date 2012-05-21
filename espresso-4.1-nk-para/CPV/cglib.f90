@@ -1797,3 +1797,34 @@ SUBROUTINE para_dgemm( transa, transb, m, n, k, &
   RETURN
   !
 END SUBROUTINE para_dgemm
+
+SUBROUTINE para_zgemm( transa, transb, m, n, k, &
+                       alpha, a, lda, b, ldb, beta, c, ldc, comm )
+  !----------------------------------------------------------------------------
+  !
+  ! ... trivial parallelization (splitting matrix B by columns) of DGEMM 
+  !
+  USE kinds, ONLY : DP
+  USE parallel_toolkit
+  !
+  IMPLICIT NONE
+  !
+  CHARACTER(LEN=1), INTENT(IN)    :: transa, transb
+  INTEGER,          INTENT(IN)    :: m, n, k
+  COMPLEX(DP),         INTENT(IN)    :: alpha, beta
+  INTEGER,          INTENT(IN)    :: lda, ldb, ldc
+  COMPLEX(DP),         INTENT(INOUT) :: a(lda,*), b(ldb,*), c(ldc,*)
+  INTEGER,          INTENT(IN)    :: comm
+  !
+  ! ... quick return if possible
+  !
+  IF ( m == 0 .OR. n == 0 .OR. &
+       ( ( alpha == 0.0_DP .OR. k == 0 ) .AND. beta == 1.0_DP ) ) RETURN
+  !
+!write(*,*) 'DEBUG: para_dgemm'
+  !
+  CALL zrep_matmul_drv( transa, transb, m, n, k, &
+                       alpha, a, lda, b, ldb, beta, c, ldc, comm )
+  RETURN
+  !
+END SUBROUTINE para_zgemm

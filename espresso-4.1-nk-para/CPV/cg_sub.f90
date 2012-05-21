@@ -745,7 +745,7 @@
         if(.not.do_orbdep) then
           call pc2(c0,bec,hpsi,becm, lgam)
         else
-          call pc3(c0,bec,hpsi,becm, lgam)
+          call pc3us(c0,bec,hpsi,becm, lgam)
         endif
 !$$
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -762,7 +762,7 @@
         if(.not.do_orbdep) then
           call pc2(c0,bec,gi,becm, lgam)
         else
-          call pc3(c0,bec, gi,becm, lgam)
+          call pc3us(c0,bec, gi,becm, lgam)
         endif
 !$$
 
@@ -981,7 +981,7 @@
         if(.not.do_orbdep) then
           call pc2(c0,bec,hi,bec0, lgam)
         else
-          call pc3(c0,hi, lgam)
+          call pc3us(c0,bec,hi,bec0, lgam)
         endif
 !$$
         

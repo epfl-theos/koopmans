@@ -109,6 +109,7 @@
       REAL(kind=DP), ALLOCATABLE :: fion2(:,:)
       type(twin_matrix), dimension(:), allocatable :: c0hc0(:)!modified:giovanni
       REAL(kind=DP), ALLOCATABLE :: mtmp(:,:)
+      COMPLEX(kind=DP), ALLOCATABLE :: mtmp_c(:,:)
       COMPLEX(kind=DP), ALLOCATABLE :: h0c0(:,:)
       INTEGER :: niter
       INTEGER :: i,k, is, nss, istart, ig, iss
@@ -126,7 +127,7 @@
       lgam=gamma_only.and..not.do_wf_cmplx !added:giovanni
       !
       allocate(fion2(3,nat))
-      allocate(c0hc0(nlax,nlax,nspin))
+!       allocate(c0hc0(nlax,nlax,nspin))
       allocate(h0c0(ngw,nx))
       !begin_added:giovanni
       allocate(c0hc0(nspin))
@@ -216,31 +217,38 @@
                   !
                   root = root * leg_ortho
 
-                  ALLOCATE( mtmp( nr, nc ) )
-                  mtmp = 0.0d0
-
-                  CALL DGEMM( 'T', 'N', nr, nc, 2*ngw, - 2.0d0, c0( 1, istart + ir - 1 ), 2*ngw, &
+                  IF(.not.c0hc0(iss)%iscmplx) THEN
+		    ALLOCATE( mtmp( nr, nc ) )
+		    mtmp = 0.0d0
+		    CALL DGEMM( 'T', 'N', nr, nc, 2*ngw, - 2.0d0, c0( 1, istart + ir - 1 ), 2*ngw, &
                               h0c0( 1, istart + ic - 1 ), 2*ngw, 0.0d0, mtmp, nr )
-
-                  IF (gstart == 2) THEN
-                     DO jj = 1, nc
-                        DO ii = 1, nr
-                           i = ii + ir - 1
-                           j = jj + ic - 1
-                           mtmp(ii,jj) = mtmp(ii,jj) + DBLE( c0( 1, i + istart - 1 ) ) * DBLE( h0c0( 1, j + istart - 1 ) )
-                        END DO
-                     END DO
-                  END IF
-
-                  CALL mp_root_sum( mtmp, c0hc0(1:nr,1:nc,is), root, intra_image_comm )
-
+		    IF (gstart == 2) THEN
+		      DO jj = 1, nc
+			  DO ii = 1, nr
+			    i = ii + ir - 1
+			    j = jj + ic - 1
+			    mtmp(ii,jj) = mtmp(ii,jj) + DBLE( c0( 1, i + istart - 1 ) ) * DBLE( h0c0( 1, j + istart - 1 ) )
+			  END DO
+		      END DO
+		    END IF
+                  ELSE
+		    ALLOCATE( mtmp_c( nr, nc ) )
+		    mtmp_c = CMPLX(0.0d0,0.d0)
+		    CALL ZGEMM( 'C', 'N', nr, nc, ngw, CMPLX(- 1.0d0,0.d0), c0( 1, istart + ir - 1 ),ngw, &
+                              h0c0( 1, istart + ic - 1 ), ngw, CMPLX(0.0d0,0.d0), mtmp_c, nr )
+                  ENDIF
+                  
+                  IF(.not.c0hc0(is)%iscmplx) THEN
+		    CALL mp_root_sum( mtmp, c0hc0(is)%rvec(1:nr,1:nc), root, intra_image_comm )
+		    DEALLOCATE( mtmp )
+                  ELSE
+		    CALL mp_root_sum( mtmp_c, c0hc0(is)%cvec(1:nr,1:nc), root, intra_image_comm )
+		    DEALLOCATE( mtmp_c )
+                  ENDIF
 !                  IF( coor_ip(1) == descla( la_myr_ , is ) .AND. &
 !                      coor_ip(2) == descla( la_myc_ , is ) .AND. descla( lambda_node_ , is ) > 0 ) THEN
 !                     c0hc0(1:nr,1:nc,is) = mtmp
 !                  END IF
-
-                  DEALLOCATE( mtmp )
-
                END DO
             END DO
          END DO
@@ -271,9 +279,15 @@
 
          ! calculates the new matrix psihpsi
          
-         DO is= 1, nspin
-            psihpsi(:,:,is) = (1.d0-lambda) * psihpsi(:,:,is) + lambda * c0hc0(:,:,is)
-         END DO
+         IF(lgam) THEN
+	    DO is= 1, nspin
+		psihpsi(is)%rvec(:,:) = (1.d0-lambda) * psihpsi(is)%rvec(:,:) + lambda * c0hc0(is)%rvec(:,:)
+	    END DO
+         ELSE
+	    DO is= 1, nspin
+		psihpsi(is)%cvec(:,:) = (1.d0-lambda) * psihpsi(is)%cvec(:,:) + lambda * c0hc0(is)%cvec(:,:)
+	    END DO
+         ENDIF
 
          ! diagonalize and calculates energies
          
@@ -323,7 +337,9 @@
 !the following is of capital importance
       ene_ok= .TRUE.
 !but it would be better to avoid it
-
+      do is=1,nspin
+       call deallocate_twin(c0hc0(is))
+      enddo
 
       DEALLOCATE(fion2)
       DEALLOCATE(c0hc0)

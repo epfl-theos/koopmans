@@ -372,7 +372,7 @@
               orb_rhos(1) = sa1 * ( DBLE(psis(ir)) )**2 
               orb_rhos(2) = sa1 * ( AIMAG(psis(ir)) )**2 
               !
-              psis( ir )  = cmplx( orb_rhos(1), orb_rhos(2) ) 
+              psis( ir )  = CMPLX( orb_rhos(1), orb_rhos(2) ) 
           enddo
           !
           ! orbital charges are taken to the G space
@@ -383,16 +383,16 @@
               !
               fp=psis(nps(ig))+psis(nms(ig))
               fm=psis(nps(ig))-psis(nms(ig))
-              orb_rhog(ig,1)=0.5d0*cmplx(dble(fp),aimag(fm))
-              orb_rhog(ig,2)=0.5d0*cmplx(aimag(fp),-dble(fm))
+              orb_rhog(ig,1)=0.5d0*CMPLX(DBLE(fp),AIMAG(fm))
+              orb_rhog(ig,2)=0.5d0*CMPLX(AIMAG(fp),-DBLE(fm))
               !
           enddo
           !
           psi (:) = (0.d0, 0.d0)
           do ig=1,ngs
               !
-              psi(nm(ig)) = conjg( orb_rhog(ig,1) ) &
-                            +ci*conjg( orb_rhog(ig,2) )
+              psi(nm(ig)) = CONJG( orb_rhog(ig,1) ) &
+                            +ci*CONJG( orb_rhog(ig,2) )
               psi(np(ig)) = orb_rhog(ig,1) +ci*orb_rhog(ig,2)
               !
           enddo
@@ -401,8 +401,8 @@
           !
           do ir=1,nnrx
               !
-              orb_rhor(ir,1) =  dble(psi(ir))
-              orb_rhor(ir,2) = aimag(psi(ir))
+              orb_rhor(ir,1) = DBLE(psi(ir))
+              orb_rhor(ir,2) = AIMAG(psi(ir))
           enddo
     
           deallocate( psis )
@@ -839,7 +839,7 @@ end subroutine nksic_get_orbitalrho_twin
           allocate( rhobarg(ngm,2) )
           allocate( psi(nnrx) )
           !
-          psi(:) = cmplx ( rhobar_(:,1), rhobar_(:,2) )
+          psi(:) = CMPLX ( rhobar_(:,1), rhobar_(:,2) )
           !
           call fwfft('Dense',psi,dfftp )
           !
@@ -847,8 +847,8 @@ end subroutine nksic_get_orbitalrho_twin
               fp = psi( np(ig) ) +psi( nm(ig) )
               fm = psi( np(ig) ) -psi( nm(ig) )
               !
-              rhobarg(ig,1) = 0.5d0 *cmplx( dble(fp),aimag(fm))
-              rhobarg(ig,2) = 0.5d0 *cmplx(aimag(fp),-dble(fm))
+              rhobarg(ig,1) = 0.5d0 *CMPLX( DBLE(fp),AIMAG(fm))
+              rhobarg(ig,2) = 0.5d0 *CMPLX(AIMAG(fp),-DBLE(fm))
           enddo
           !
           call fillgrad( 2, rhobarg, grhobar_, lgam )
@@ -2160,8 +2160,8 @@ end subroutine nksic_correction_pz
 		fp = psi1(nps(ig))+psi1(nms(ig))
 		fm = psi1(nps(ig))-psi1(nms(ig))
 		!
-		vsicpsi(ig,1)=0.5d0*CMPLX(dble(fp),aimag(fm))
-		vsicpsi(ig,2)=0.5d0*CMPLX(aimag(fp),-dble(fm))
+		vsicpsi(ig,1)=0.5d0*CMPLX(DBLE(fp),AIMAG(fm))
+		vsicpsi(ig,2)=0.5d0*CMPLX(aimag(fp),-DBLE(fm))
 		!
 	    enddo
          else
@@ -2352,7 +2352,7 @@ CONTAINS
           psis=0.d0
           if(lgam) then
 	      do ig=1,ngw
-		  psis(nms(ig))=conjg(c(ig,j))
+		  psis(nms(ig))=CONJG(c(ig,j))
 		  psis(nps(ig))=c(ig,j)
 	      end do
           else
@@ -2370,12 +2370,12 @@ CONTAINS
           if(lgam) then
 	      do ig=1,ngs
 		  vsics(nps(ig))=vsicg(np(ig))
-		  vsics(nms(ig))=conjg(vsicg(np(ig)))
+		  vsics(nms(ig))=CONJG(vsicg(np(ig)))
 	      end do
           else
 	    do ig=1,ngs
 		  vsics(nps(ig))=vsicg(np(ig))
-		  vsics(nms(ig))=conjg(vsicg(np(ig)))
+		  vsics(nms(ig))=CONJG(vsicg(np(ig)))
 	      end do
           endif
           !
@@ -2384,12 +2384,12 @@ CONTAINS
           vsicpsis=0.0_dp
           if(lgam) then
 	      do ir = 1, nnrsx
-		  vsicpsis(ir)=cmplx(dble(vsics(ir))*dble(psis(ir)),0.0_dp)
+		  vsicpsis(ir)=CMPLX(DBLE(vsics(ir))*DBLE(psis(ir)),0.0_dp)
 	      enddo
           else
 	      do ir = 1, nnrsx
-		  vsicpsis(ir)=cmplx(dble(vsics(ir))*dble(psis(ir)), &
-                                        dble(vsics(ir))*aimag(psis(ir)))
+		  vsicpsis(ir)=CMPLX(DBLE(vsics(ir))*DBLE(psis(ir)), &
+                                        DBLE(vsics(ir))*AIMAG(psis(ir)))
 	      enddo
           endif
           !

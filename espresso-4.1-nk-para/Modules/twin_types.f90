@@ -41,6 +41,10 @@ MODULE twin_types
     MODULE PROCEDURE tmatrix_mp_sum, ttensor_mp_sum
   END INTERFACE
 
+  INTERFACE twin_mp_bcast
+    MODULE PROCEDURE tmatrix_mp_bcast, ttensor_mp_bcast
+  END INTERFACE
+
   TYPE :: twin_matrix
 
     REAL(DP), DIMENSION(:,:), POINTER :: rvec
@@ -347,6 +351,42 @@ MODULE twin_types
     ENDIF
    
   END SUBROUTINE tmatrix_mp_sum
+
+  SUBROUTINE tmatrix_mp_bcast(tmatrix, node)
+
+    use mp, only: mp_sum, mp_bcast
+    use mp_global,                ONLY : intra_image_comm
+    
+    IMPLICIT NONE
+
+    type(twin_matrix) :: tmatrix    
+    integer :: node
+
+    IF(.not.tmatrix%iscmplx) THEN
+      call mp_bcast(tmatrix%rvec, node, intra_image_comm)
+    ELSE
+      call mp_bcast(tmatrix%cvec, node, intra_image_comm)
+    ENDIF
+   
+  END SUBROUTINE tmatrix_mp_bcast
+
+  SUBROUTINE ttensor_mp_bcast(ttensor, node)
+
+    use mp, only: mp_sum, mp_bcast
+    use mp_global,                ONLY : intra_image_comm
+    
+    IMPLICIT NONE
+
+    type(twin_tensor) :: ttensor
+    integer :: node
+
+    IF(.not.ttensor%iscmplx) THEN
+      call mp_bcast(ttensor%rvec, node, intra_image_comm)
+    ELSE
+      call mp_bcast(ttensor%cvec, node, intra_image_comm)
+    ENDIF
+   
+  END SUBROUTINE ttensor_mp_bcast
 
   SUBROUTINE ttensor_mp_sum(ttensor)
 

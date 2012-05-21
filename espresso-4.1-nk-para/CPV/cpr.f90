@@ -134,6 +134,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   USE step_constraint
   USE small_box,                ONLY : ainvb
   USE descriptors,          ONLY: descla_siz_
+  USE twin_types
   !
   IMPLICIT NONE
   !
