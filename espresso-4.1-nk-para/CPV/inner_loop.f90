@@ -127,7 +127,8 @@
       COMPLEX(kind=DP), ALLOCATABLE :: h0c0(:,:)
       REAL(kind=DP), ALLOCATABLE :: f0(:),f1(:),fx(:), faux(:)
       type(twin_matrix), dimension(:), allocatable :: fmat1, fmatx, dfmat
-      REAL(kind=DP), ALLOCATABLE :: epsi0(:,:,:)
+!       REAL(kind=DP), ALLOCATABLE :: epsi0(:,:,:)
+      type(twin_matrix), dimension(:), allocatable :: epsi0
       REAL(kind=DP) :: atot0,atot1,atotmin,etot0,etot1, ef1, enocc
       REAL(kind=DP) :: dadx1,dedx1,dentdx1,eqa,eqb,eqc, etot2, entropy2
       REAL(kind=DP) :: f2,x,xmin
@@ -142,7 +143,8 @@
       allocate(dval(nx),ex(nx),dx(nx),f0(nx),f1(nx),fx(nx),faux(nx))
       allocate(z1(nspin),zx(nspin),zxt(nspin),zaux(nspin))
       allocate(fmat1(nspin),fmatx(nspin),dfmat(nspin))
-      allocate(epsi0(nudx,nudx,nspin))
+      allocate(c0hc0(nspin), epsi0(nspin))
+!       allocate(epsi0(nudx,nudx,nspin))
 ! 
       do is=1,nspin
 	call init_twin(z1(is),lgam)
@@ -155,7 +157,8 @@
         call allocate_twin(zaux(is),nudx,nudx,lgam)
 	call init_twin(c0hc0(is),lgam)
         call allocate_twin(c0hc0(is),nudx,nudx,lgam)
-
+	call init_twin(epsi0(is),lgam)
+        call allocate_twin(epsi0(is),nudx,nudx,lgam)
 	call init_twin(fmat1(is),lgam)
         call allocate_twin(fmat1(is),nudx,nudx,lgam)
 	call init_twin(fmatx(is),lgam)
@@ -256,7 +259,8 @@
  
         DO is= 1, nspin
           nss= nupdwn( is )
-          epsi0( 1:nss, 1:nss, is )= c0hc0( 1:nss, 1:nss, is ) ! ATTENZIONE
+          call copy_twin(epsi0(is), c0hc0(is))
+!           epsi0( 1:nss, 1:nss, is )= c0hc0( 1:nss, 1:nss, is ) ! ATTENZIONE
         END DO
           
         ! diagonalizes the Hamiltonian matrix

@@ -425,13 +425,12 @@
     end subroutine minparabola
 
 
-subroutine pc2(a,beca,b,becb, do_odd, lgam)      
+subroutine pc2(a,beca,b,becb, lgam)      
                
 ! this function applies the operator Pc
             
 !    this subroutine applies the Pc operator
 !    a input :unperturbed wavefunctions
-!    b output:b_i =b_i - S|a_j><a_j|b_i>
 !    b input :first order wavefunctions
 !    b output:b_i =b_i-a_j><a_j|S|b_i>
     
@@ -450,6 +449,7 @@ subroutine pc2(a,beca,b,becb, do_odd, lgam)
       use uspp, only :nhsa=>nkb
       use uspp, only :qq
       use parallel_toolkit, only : rep_matmul_drv
+      use twin_types ! added:giovanni
       
                            
       implicit none        
@@ -457,6 +457,7 @@ subroutine pc2(a,beca,b,becb, do_odd, lgam)
       complex(kind=DP) a(ngw,n), b(ngw,n)
                      
       type(twin_matrix) ::   beca,becb!(nhsa,n) !modified:giovanni
+      logical :: lgam
 ! local variables
       integer is, iv, jv, ia, inl, jnl, i, j,ig
       real(kind=DP) sca
@@ -492,7 +493,7 @@ subroutine pc2(a,beca,b,becb, do_odd, lgam)
 	    do j=1,nss
 		do i=1,nss
 		  bectmp(i,j)=2.d0*dble(zbectmp(i,j))
-		  if(ng0.eq.2) bectmp(i,j)=bectmp(i,j)-DBLE(a(1,j))*DBLE(b(1,i)
+		  if(ng0.eq.2) bectmp(i,j)=bectmp(i,j)-DBLE(a(1,j))*DBLE(b(1,i))
 		enddo
 	    enddo
 	    call mp_sum( bectmp(:,:), intra_image_comm)
@@ -559,12 +560,12 @@ subroutine pc2(a,beca,b,becb, do_odd, lgam)
             else
 		if( nhsa > 0 .and. .not. mat_par)  then
 		  call zgemm('N','N',nl_max,nss,nl_max,(1.d0,0.d0),qq_tmp_c,nl_max,becb%cvec(:,istart),nhsa,(0.d0,0.d0), qqb_tmp_c,nl_max)
-		  call zgemm('C','N',nss,nss,nl_max,(1.d0,0.d0),beca%cvec(:,istart),nhsa,qqb_tmp_c,nl_max,(1.d0,0.d0),bectmp%cvec,nss)
+		  call zgemm('C','N',nss,nss,nl_max,(1.d0,0.d0),beca%cvec(:,istart),nhsa,qqb_tmp_c,nl_max,(1.d0,0.d0),bectmp_c,nss)
 		else if ( nhsa > 0 ) then
 		  call para_zgemm ('N','N',nl_max,nss,nl_max,(1.d0,0.d0),qq_tmp_c,nl_max,&
 				    becb%cvec(:,istart),nhsa,(0.d0,0.d0),qqb_tmp_c,nl_max, intra_image_comm)
 		  call para_zgemm ('C','N',nss,nss,nl_max,(1.d0,0.d0),beca%cvec(:,istart),nhsa, &
-				    qqb_tmp_c,nl_max,(1.d0,0.d0),bectmp%cvec,nss, intra_image_comm)
+				    qqb_tmp_c,nl_max,(1.d0,0.d0),bectmp_c,nss, intra_image_comm)
 		endif
                deallocate(qq_tmp_c,qqb_tmp_c)
             endif   
@@ -581,7 +582,7 @@ subroutine pc2(a,beca,b,becb, do_odd, lgam)
          else
 	    do i=1,nss
 		do j=1,nss
-		  zbectmp_c(i,j)=bectmp_c(i,j)
+		  zbectmp(i,j)=bectmp_c(i,j)
 		enddo
 	    enddo
          endif
@@ -682,8 +683,271 @@ subroutine pc2(a,beca,b,becb, do_odd, lgam)
       return
       end subroutine pcdaga2
 
+    subroutine pcdaga3(a,as ,b, lgam )
+
+! this function applies the operator Pc ! For LOWDIN orthogonalization
+
+!    this subroutine applies the Pc^dagerr operator
+!    a input :unperturbed wavefunctions
+!    b input :first order wavefunctions
+!    b output:b_i =b_i - S|a_j>(<a_j|b_i>+<a_i|b_j>)/2
+
+      use kinds
+      use ions_base, only: na, nsp
+      use io_global, only: stdout
+      use mp_global, only: intra_image_comm
+      use cvan
+      use gvecw, only: ngw
+      use constants, only: pi, fpi
+      use control_flags, only: iprint, iprsta
+      use reciprocal_vectors, only: ng0 => gstart
+      use mp, only: mp_sum
+      use electrons_base, only: n => nbsp, ispin
+      use uspp_param, only: nh
+      use uspp, only :nhsa=>nkb
+
+      implicit none
+
+      complex(dp) a(ngw,n), b(ngw,n), as(ngw,n)
+      logical :: lgam
+      ! local variables
+      integer is, iv, jv, ia, inl, jnl, i, j,ig
+      complex(dp) sca
+      complex(DP), allocatable:: scar(:)
+      !
+      call start_clock('pcdaga2')
+      allocate(scar(n))
+      do j=1,n
+         do i=1,n
+            sca=0.0d0
+            if(ispin(i) == ispin(j)) then
+               IF(lgam) THEN
+		  if (ng0.eq.2) b(1,i) = CMPLX(DBLE(b(1,i)),0.0d0)
+		  do  ig=1,ngw           !loop on g vectors
+		      sca=sca+DBLE(CONJG(a(ig,j))*b(ig,i)+CONJG(a(ig,i))*b(ig,j))
+		  enddo
+		  sca = sca*2.0d0  !2. for real weavefunctions
+		  if (ng0.eq.2) sca = sca - DBLE(a(1,j))*DBLE(b(1,i))-DBLE(a(1,i))*DBLE(b(1,j))
+               ELSE
+		  do  ig=1,ngw           !loop on g vectors
+		      sca=sca+CONJG(a(ig,j))*b(ig,i)+CONJG(a(ig,i))*b(ig,j)
+		  enddo
+               ENDIF
+            endif
+            scar(i) = sca*0.5d0
+         enddo
+                   
+         call mp_sum( scar, intra_image_comm )
+
+         do i=1,n
+            if(ispin(i) == ispin(j)) then
+               sca = scar(i)
+	       do ig=1,ngw
+		  b(ig,i)=b(ig,i)-sca*as(ig,j)
+	       enddo
+		! this to prevent numerical errors
+               IF(lgam) THEN
+		  if (ng0.eq.2) b(1,i) = CMPLX(DBLE(b(1,i)),0.0d0)
+               ENDIF
+            endif
+         enddo
+      enddo
+      deallocate(scar)
+      call stop_clock('pcdaga2')
+      return
+      end subroutine pcdaga3
+
 !$$
-    subroutine pc3(a,b, lgam)
+    subroutine pc3us(a,beca,b,becb, lgam)
+
+! this function applies the modified Pc operator which is
+! equivalent to Lowdin orthonormalization of the revised wavefunctions.
+! currently implemented only for norm-conserving pseudopotentials. 
+               
+! this function applies the operator Pc
+            
+!    this subroutine applies the Pc operator
+!    a input :unperturbed wavefunctions
+!    b input :first order wavefunctions
+!    b output:b_i =b_i-a_j><a_j|S|b_i>
+    
+      use kinds, only: dp 
+      use ions_base, only: na, nsp
+      use io_global, only: stdout
+      use mp_global, only: intra_image_comm, mpime
+      use cvan 
+      use gvecw, only: ngw
+      use constants, only: pi, fpi
+      use control_flags, only: iprint, iprsta
+      use reciprocal_vectors, only: ng0 => gstart
+      use mp, only: mp_sum
+      use electrons_base, only: n => nbsp, ispin,  nupdwn, iupdwn, nspin
+      use uspp_param, only: nh
+      use uspp, only :nhsa=>nkb
+      use uspp, only :qq
+      use parallel_toolkit, only : rep_matmul_drv
+      use twin_types      
+                           
+      implicit none        
+                           
+      complex(kind=DP) a(ngw,n), b(ngw,n)
+                     
+      type(twin_matrix) ::   beca,becb!(nhsa,n) !modified:giovanni
+      logical :: lgam
+! local variables
+      integer is, iv, jv, ia, inl, jnl, i, j,ig
+      real(kind=DP) sca
+      real(DP), allocatable :: bectmp(:,:)
+      complex(DP), allocatable :: bectmp_c(:,:)
+      real(DP), allocatable :: qq_tmp(:,:), qqb_tmp(:,:)
+      complex(DP), allocatable :: qqb_tmp_c(:,:), qq_tmp_c(:,:)
+      complex(DP), allocatable :: zbectmp(:,:)
+      integer :: nl_max
+      integer :: nss,iss, istart
+
+      logical :: mat_par=.true.!if true uses parallel routines
+
+      CALL start_clock( 'pc2' )
+
+      do iss= 1, nspin
+         nss= nupdwn( iss )
+         istart= iupdwn( iss )
+
+         if(lgam) then
+	    allocate(bectmp(nss,nss))
+	    bectmp(:,:)=0.d0
+         else
+	    allocate(bectmp_c(nss,nss))
+	    bectmp(:,:)=CMPLX(0.d0,0.d0)
+         endif
+! 
+         allocate(zbectmp(nss,nss))
+
+         call zgemm('C','N',nss,nss,ngw,(1.d0,0.d0),a(:,istart),ngw,b(:,istart),ngw,(0.d0,0.d0),zbectmp,nss)
+
+         if(lgam) then
+	    do j=1,nss
+		do i=1,nss
+		  bectmp(i,j)=2.d0*dble(zbectmp(i,j))
+		  if(ng0.eq.2) bectmp(i,j)=bectmp(i,j)-DBLE(a(1,j))*DBLE(b(1,i))
+		enddo
+	    enddo
+	    call mp_sum( bectmp(:,:), intra_image_comm)
+         else
+	    do j=1,nss
+		do i=1,nss
+		  bectmp_c(i,j)=zbectmp(i,j)
+		enddo
+	    enddo
+	    call mp_sum( bectmp_c(:,:), intra_image_comm)
+         endif
+         deallocate(zbectmp)
+
+         if(nvb >= 0) then
+
+            nl_max=0
+            do is=1,nvb
+               nl_max=nl_max+nh(is)*na(is)
+            enddo
+            if(lgam) then
+		allocate (qqb_tmp(nl_max,nss))
+		allocate (qq_tmp(nl_max,nl_max))
+		qq_tmp(:,:)=0.d0
+		do is=1,nvb
+		  do iv=1,nh(is)
+		      do jv=1,nh(is)
+			do ia=1,na(is)
+			    inl=ish(is)+(iv-1)*na(is)+ia
+			    jnl=ish(is)+(jv-1)*na(is)+ia
+			    qq_tmp(inl,jnl)=qq(iv,jv,is)
+			enddo
+		      enddo
+		  enddo
+		enddo
+            else
+		allocate (qqb_tmp_c(nl_max,nss))
+		allocate (qq_tmp_c(nl_max,nl_max))
+		qq_tmp_c(:,:)=CMPLX(0.d0,0.d0)
+		do is=1,nvb
+		  do iv=1,nh(is)
+		      do jv=1,nh(is)
+			do ia=1,na(is)
+			    inl=ish(is)+(iv-1)*na(is)+ia
+			    jnl=ish(is)+(jv-1)*na(is)+ia
+			    qq_tmp_c(inl,jnl)=CMPLX(qq(iv,jv,is),0.d0)
+			enddo
+		      enddo
+		  enddo
+		enddo
+            endif
+
+            !
+            if(lgam) then
+		if( nhsa > 0 .and. .not. mat_par)  then
+		  call dgemm('N','N',nl_max,nss,nl_max,1.d0,qq_tmp,nl_max,becb%rvec(:,istart),nhsa,0.d0,qqb_tmp,nl_max)
+		  call dgemm('T','N',nss,nss,nl_max,1.d0,beca%rvec(:,istart),nhsa,qqb_tmp,nl_max,1.d0,bectmp,nss)
+		else if ( nhsa > 0 ) then
+		  call para_dgemm ('N','N',nl_max,nss,nl_max,1.d0,qq_tmp,nl_max,&
+				    becb%rvec(:,istart),nhsa,0.d0,qqb_tmp,nl_max, intra_image_comm)
+		  call para_dgemm ('T','N',nss,nss,nl_max,1.d0,beca%rvec(:,istart),nhsa, &
+				    qqb_tmp,nl_max,1.d0,bectmp,nss, intra_image_comm)
+		endif
+               deallocate(qq_tmp,qqb_tmp)
+            else
+		if( nhsa > 0 .and. .not. mat_par)  then
+		  call zgemm('N','N',nl_max,nss,nl_max,(1.d0,0.d0),qq_tmp_c,nl_max,becb%cvec(:,istart),nhsa,(0.d0,0.d0), qqb_tmp_c,nl_max)
+		  call zgemm('C','N',nss,nss,nl_max,(1.d0,0.d0),beca%cvec(:,istart),nhsa,qqb_tmp_c,nl_max,(1.d0,0.d0),bectmp_c,nss)
+		else if ( nhsa > 0 ) then
+		  call para_zgemm ('N','N',nl_max,nss,nl_max,(1.d0,0.d0),qq_tmp_c,nl_max,&
+				    becb%cvec(:,istart),nhsa,(0.d0,0.d0),qqb_tmp_c,nl_max, intra_image_comm)
+		  call para_zgemm ('C','N',nss,nss,nl_max,(1.d0,0.d0),beca%cvec(:,istart),nhsa, &
+				    qqb_tmp_c,nl_max,(1.d0,0.d0),bectmp_c,nss, intra_image_comm)
+		endif
+               deallocate(qq_tmp_c,qqb_tmp_c)
+            endif   
+            !
+         endif
+
+         allocate(zbectmp(nss,nss))
+
+         if(lgam) then
+	    do i=1,nss
+		do j=1,nss
+		  zbectmp(i,j)=0.5d0*(CMPLX(bectmp(i,j),0.d0) + CMPLX(bectmp(j,i),0.d0))
+		enddo
+	    enddo
+           bectmp(:,:) = DBLE(zbectmp(:,:))
+         else
+	    do i=1,nss
+		do j=1,nss
+		  zbectmp(i,j)=0.5d0*(bectmp_c(i,j)+bectmp_c(j,i))
+		enddo
+	    enddo
+           bectmp_c(:,:) = zbectmp(:,:)
+         endif
+
+         call zgemm('N','N',ngw,nss,nss,(-1.d0,0.d0),a(:,istart),ngw,zbectmp,nss,(1.d0,0.d0),b(:,istart),ngw)
+         deallocate(zbectmp)
+
+         ! this computes the new bec
+         if(lgam) then
+	    if ( nhsa > 0 ) then
+		call dgemm('N','N',nhsa,nss,nss,1.0d0,beca%rvec(:,istart),nhsa,bectmp,nss,1.0d0,becb%rvec(:,istart),nhsa)
+	    endif
+	    deallocate(bectmp)
+         else
+	    if ( nhsa > 0 ) then
+		call zgemm('N','N',nhsa,nss,nss,(1.0d0,0.d0),beca%cvec(:,istart),nhsa,bectmp_c,nss,(1.0d0,0.d0),becb%cvec(:,istart),nhsa)
+	    endif
+	    deallocate(bectmp_c)
+         endif
+         !
+      enddo!on spin
+      CALL stop_clock( 'pc2' )
+      return
+      end subroutine pc3us
+
+    subroutine pc3nc(a,b, lgam)
 
 ! this function applies the modified Pc operator which is
 ! equivalent to Lowdin orthonormalization of the revised wavefunctions.
@@ -725,7 +989,9 @@ subroutine pc2(a,beca,b,becb, do_odd, lgam)
          do i=1,n
 	    sca_c=0.0d0
 	      if(ispin(i) == ispin(j)) then
-		if(lgam) then if (ng0.eq.2) bold(1,i) = cmplx(dble(bold(1,i)),0.0d0)
+		if(lgam) then
+                 if (ng0.eq.2) bold(1,i) = CMPLX(DBLE(bold(1,i)),0.0d0)
+               endif
 		do  ig=1,ngw           !loop on g vectors
 		    sca_c=sca_c+CONJG(a(ig,j))*bold(ig,i)
 		    sca_c=sca_c+CONJG(a(ig,i))*bold(ig,j)
@@ -733,11 +999,10 @@ subroutine pc2(a,beca,b,becb, do_odd, lgam)
 		!sca = sca*2.0d0  !2. for real weavefunctions
 		!$$ not necessary: sca = sca*2.0d0  !2. for real weavefunctions
                if(lgam) then
-		  if (ng0.eq.2) sca_c = sca_c - 0.5*(dble(a(1,j))*dble(bold(1,i))+dble(a(1,i))*dble(bold(1,j)))
+		  if (ng0.eq.2) sca_c = DBLE(sca_c) - 0.5*(DBLE(a(1,j))*DBLE(bold(1,i))+DBLE(a(1,i))*DBLE(bold(1,j)))
                else
                  sca_c=0.5*sca_c
                endif
-	      endif
 	      scar_c(i) = sca_c
             endif
          enddo
@@ -751,15 +1016,16 @@ subroutine pc2(a,beca,b,becb, do_odd, lgam)
                   b(ig,i)=b(ig,i)-sca_c*a(ig,j)
                enddo
                ! this to prevent numerical errors
-               if(lgam) then if (ng0.eq.2) b(1,i) = cmplx(dble(b(1,i)),0.0d0)
+               if(lgam) then 
+                if (ng0.eq.2) b(1,i) = CMPLX(DBLE(b(1,i)),0.0d0)
+               endif
             endif
          enddo
       enddo
       deallocate(scar_c)
       call stop_clock('pc3')
       return
-      end subroutine pc3
-
+      end subroutine pc3nc
 
      subroutine set_x_minus1(betae,m_minus1,ema0bg,use_ema)
 
@@ -964,7 +1230,8 @@ subroutine pc2(a,beca,b,becb, do_odd, lgam)
 
 !construct b matrix
 ! m_minus1 used to be b matrix
-      m_minus1(:,:) = 0.d0
+      call set_twin(m_minus1, CMPLX(0.d0,0.d0))
+!       m_minus1(:,:) = 0.d0
       do is=1,nvb
          do ia=1,na(is)
             do iv=1,nh(is)
@@ -1009,7 +1276,7 @@ subroutine pc2(a,beca,b,becb, do_odd, lgam)
          enddo
       enddo
 
-      call twin_mp_sum( m_minus1, intra_image_comm )
+      call twin_mp_sum( m_minus1)
 
 !calculate -(1+QB)**(-1) * Q
       IF(.not.m_minus1%iscmplx) THEN
@@ -1207,7 +1474,8 @@ subroutine pc2(a,beca,b,becb, do_odd, lgam)
       complex(dp) c0(ngw,n), betae(ngw,nhsa)
       real(dp)     ema0bg(ngw)
       type(twin_matrix) :: beck
-      real(DP)    :: m_minus1(nhsavb,nhsavb)
+!       complex(DP)    :: m_minus1(nhsavb,nhsavb)
+      type(twin_matrix)    :: m_minus1 !(nhsavb,nhsavb)
       logical :: do_k
 ! local variables
       complex(dp), allocatable :: phi(:,:)
@@ -1216,7 +1484,9 @@ subroutine pc2(a,beca,b,becb, do_odd, lgam)
       integer is, iv, jv, ia, inl, jnl, i, j, js, ja,ig
       real(dp) becktmp
       complex(dp) becktmp_c      
-      logical :: mat_par=.true.!if true uses parallel routines      
+      logical :: mat_par=.true.!if true uses parallel routines
+      complex(DP), parameter :: c_one=CMPLX(1.d0,0.d0)
+      complex(DP), parameter :: c_zero=CMPLX(0.d0,0.d0)
 
       call start_clock('xminus1')
 !$$
@@ -1250,7 +1520,7 @@ subroutine pc2(a,beca,b,becb, do_odd, lgam)
                   enddo
                enddo
             enddo
-	    call twin_mp_sum( beck, intra_image_comm )
+	    call twin_mp_sum( beck )
          endif
 !
 !

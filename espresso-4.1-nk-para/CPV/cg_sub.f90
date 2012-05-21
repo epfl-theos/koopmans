@@ -110,8 +110,8 @@
       complex(dp), allocatable :: hpsi(:,:), hpsi0(:,:), gi(:,:), hi(:,:)
 !       real(DP),    allocatable :: s_minus1(:,:)    !factors for inverting US S matrix
 !       real(DP),    allocatable :: k_minus1(:,:)    !factors for inverting US preconditioning matrix
-      type(twin_matrix) :: s_minus1(:,:)    !factors for inverting US S matrix
-      type(twin_matrix) :: k_minus1(:,:)    !factors for inverting US preconditioning matrix
+      type(twin_matrix) :: s_minus1!(:,:)    !factors for inverting US S matrix
+      type(twin_matrix) :: k_minus1!(:,:)    !factors for inverting US preconditioning matrix
       real(DP),    allocatable :: lambda_repl(:,:) ! replicated copy of lambda
       real(DP),    allocatable :: lambda_dist(:,:) ! replicated copy of lambda
       complex(DP),    allocatable :: lambda_repl_c(:,:) ! replicated copy of lambda
@@ -253,9 +253,9 @@
       !
       if ( nvb > 0 ) then
           !
-          call set_twin(s_minus1,lgam)
+          call init_twin(s_minus1,lgam)
           call allocate_twin(s_minus1, nhsavb, nhsavb, lgam)
-          call set_twin(k_minus1,lgam)
+          call init_twin(k_minus1,lgam)
           call allocate_twin(k_minus1, nhsavb, nhsavb, lgam)
 !           allocate( s_minus1(nhsavb,nhsavb))
 !           allocate( k_minus1(nhsavb,nhsavb))
@@ -264,8 +264,12 @@
           !
       else
           !
-          allocate( s_minus1(1,1))
-          allocate( k_minus1(1,1))
+          call init_twin(s_minus1,lgam)
+          call allocate_twin(s_minus1, 1, 1, lgam)
+          call init_twin(k_minus1,lgam)
+          call allocate_twin(k_minus1, 1, 1, lgam)
+!           allocate( s_minus1(1,1))
+!           allocate( k_minus1(1,1))
           !
       endif  
       !
@@ -712,7 +716,7 @@
         if(.not.do_orbdep) then
           call pcdaga2(c0,phi,hpsi, lgam)
         else
-          call pc3(c0,hpsi, lgam)
+          call pcdaga3(c0,phi,hpsi, lgam)
         endif
 !$$
 
@@ -741,7 +745,7 @@
         if(.not.do_orbdep) then
           call pc2(c0,bec,hpsi,becm, lgam)
         else
-          call pc3(c0,hpsi, lgam)
+          call pc3(c0,bec,hpsi,becm, lgam)
         endif
 !$$
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -758,7 +762,7 @@
         if(.not.do_orbdep) then
           call pc2(c0,bec,gi,becm, lgam)
         else
-          call pc3(c0,gi, lgam)
+          call pc3(c0,bec, gi,becm, lgam)
         endif
 !$$
 
@@ -813,7 +817,7 @@
 			    do ia=1,na(is)
 			      inl=ish(is)+(iv-1)*na(is)+ia
 			      jnl=ish(is)+(jv-1)*na(is)+ia
-			      gamma_c=gamma_c+ qq(iv,jv,is)*becm%cvec(inl,i)*CONJG(bec0%cvec(jnl,i)) !warning:giovanni CONJG
+			      gamma_c=gamma_c+ qq(iv,jv,is)*CONJG(becm%cvec(inl,i))*(bec0%cvec(jnl,i)) !warning:giovanni CONJG
 			    end do
 			end do
 		      end do
@@ -1277,7 +1281,7 @@
 
         call minparabola(ene0,spasso*dene0,ene1,passof,passo,enesti)
 
-        if( ionode .and. iprsta > 1 ) write(stdout,"(6f20.12)") ene0,dene0,ene1,passo, gamma, esse
+        if( ionode .and. iprsta > 1 ) write(stdout,"(6f20.12)") ene0,dene0,ene1,passo, DBLE(gamma_c), esse
 
         !set new step
 
@@ -1897,7 +1901,8 @@
         endif
         deallocate(hpsi0,hpsi,gi,hi)
         deallocate(hitmp)
-        deallocate( s_minus1,k_minus1)
+        call deallocate_twin(s_minus1)
+        call deallocate_twin(k_minus1)
 
 #ifdef __DEBUG
         !
