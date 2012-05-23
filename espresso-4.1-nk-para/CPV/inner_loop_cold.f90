@@ -148,7 +148,7 @@
         ! rotates the wavefunctions c0 and the overlaps bec
         ! (the occupation matrix f_ij becomes diagonal f_i)      
 
-        CALL rotate( z0t, c0, bec, c0diag, becdiag, .false. )
+        CALL rotate_twin( z0t, c0, bec, c0diag, becdiag, .false. )
   
         ! calculates the electronic charge density
         CALL rhoofr( nfi, c0diag, irb, eigrb, becdiag, rhovan, &

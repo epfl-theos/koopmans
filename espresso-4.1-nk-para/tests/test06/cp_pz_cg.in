@@ -25,11 +25,12 @@
              do_ee =.true.
              which_orbdep='pz'
              nkscalfact = 1.0
+             do_wf_cmplx=.true.
           /
           &ELECTRONS
              electron_dynamics='cg',
              passop=0.5,
-             maxiter = 10000,
+             maxiter = 1000,
              conv_thr=1.d-8
           /
           &IONS

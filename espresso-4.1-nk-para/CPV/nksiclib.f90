@@ -250,7 +250,7 @@
       ENDIF
       ! 
       ! 
-      CALL stop_clock( 'nk_drv' )
+      CALL stop_clock( 'nksic_drv' )
       return
       !
 !-----------------------------------------------------------------------
@@ -805,7 +805,7 @@ end subroutine nksic_get_orbitalrho_twin
       ! main body
       !
       lgam=gamma_only.and..not.do_wf_cmplx
-      call stop_clock( 'nksic_rhoref' )
+      call start_clock( 'nksic_get_rhoref' )
       !
       ! define rhobar_i = rho - f_i * rho_i
       !
@@ -858,7 +858,7 @@ end subroutine nksic_get_orbitalrho_twin
           !
       endif
       !
-      call stop_clock( 'nk_rhoref' )
+      call stop_clock( 'nksic_get_rhoref' )
       return
       !
 !---------------------------------------------------------------

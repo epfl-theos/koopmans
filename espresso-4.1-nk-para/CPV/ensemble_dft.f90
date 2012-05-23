@@ -293,11 +293,13 @@ CONTAINS
 !       allocate(becdiag(nhsa,n))
       allocate(e0(nx))
       allocate(fmat0_diag(nx))
-      !begin_added:giovanni
+
       call init_twin(becdiag, lgam)
       call allocate_twin(becdiag,nhsa,n, lgam)
+
       allocate(fmat0(nspin))
       allocate(psihpsi(nspin))
+      allocate(z0t(nspin))
 
       do ispin=1,nspin
 	call init_twin(fmat0(ispin), lgam)
@@ -314,15 +316,28 @@ CONTAINS
   END SUBROUTINE allocate_ensemble_dft
 
   SUBROUTINE deallocate_ensemble_dft( )
+    use io_global, only: ionode
     IMPLICIT NONE
     INTEGER :: ispin
     IF( ALLOCATED( c0diag ) )         deallocate(c0diag )
 !     IF( ALLOCATED( z0t ) )            deallocate(z0t )
     !begin_modified:giovanni
+    IF(ionode) THEN
+      write(6,*) "debug0"
+    ENDIF
     call deallocate_twin(becdiag)
+    IF(ionode) THEN
+      write(6,*) "debug1"
+    ENDIF
     do ispin=1,size(fmat0)
       call deallocate_twin(fmat0(ispin))
+    IF(ionode) THEN
+      write(6,*) "debug2"
+    ENDIF
       call deallocate_twin(psihpsi(ispin))
+    IF(ionode) THEN
+      write(6,*) "debug3"
+    ENDIF
       call deallocate_twin(z0t(ispin))
     enddo
     IF( ALLOCATED( fmat0 ) )             deallocate(fmat0 )

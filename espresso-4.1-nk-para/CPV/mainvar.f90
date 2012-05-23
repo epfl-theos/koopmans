@@ -288,6 +288,7 @@ MODULE cp_main_variables
     !
     !------------------------------------------------------------------------
     SUBROUTINE deallocate_mainvar()
+      use io_global, only: ionode
       IMPLICIT NONE
 
       INTEGER :: iss
@@ -313,38 +314,53 @@ MODULE cp_main_variables
       IF( ALLOCATED( taub ) )    DEALLOCATE( taub )
       IF( ALLOCATED( descla ) )  DEALLOCATE( descla )
       !added:giovanni -- deallocation of structured types -- the check is inside deallocate
+      return
+if(ionode) then
+!       write(0,*) "debug1"
+endif
       CALL deallocate_twin(bec)
       CALL deallocate_twin(becp)
       CALL deallocate_twin(becdr) 
       CALL deallocate_twin(bephi)
-
+if(ionode) then
+! write(0,*) "debug2"
+endif
       IF(allocated(hamilt)) THEN 
 	  DO iss=1, size(hamilt)
 	      CALL deallocate_twin(hamilt(iss))
 	  END DO
           DEALLOCATE(hamilt)
       ENDIF
-
+if(ionode) then
+! write(0,*) "debug3"
+endif
       IF(allocated(lambda)) THEN 
 	  DO iss=1, size(lambda)
 	      CALL deallocate_twin(lambda(iss))
 	  END DO
           DEALLOCATE(lambda)
       ENDIF
-
+! if(ionode) then
+! write(0,*) "debug4"
+! endif
       IF(allocated(lambdam)) THEN 
 	  DO iss=1, size(lambdam)
 	      CALL deallocate_twin(lambdam(iss))
 	  END DO
           DEALLOCATE(lambdam)
       ENDIF
-
+! if(ionode) then
+! write(0,*) "debug5"
+! endif
       IF(allocated(lambdap)) THEN 
 	  DO iss=1, size(lambdap)
 	      CALL deallocate_twin(lambdap(iss))
 	  END DO
           DEALLOCATE(lambdap)
       ENDIF
+! if(ionode) then
+! write(0,*) "debug6"
+! endif
       ! -- deallocation of structured types -------------------------------------------------------------
       RETURN
       !

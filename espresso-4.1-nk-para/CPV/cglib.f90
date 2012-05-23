@@ -1027,7 +1027,7 @@ subroutine pc2(a,beca,b,becb, lgam)
       return
       end subroutine pc3nc
 
-     subroutine set_x_minus1(betae,m_minus1,ema0bg,use_ema)
+     subroutine set_x_minus1_real(betae,m_minus1,ema0bg,use_ema)
 
 ! this function calculates the factors for the inverse of the US K  matrix
 ! it takes care of the preconditioning
@@ -1143,7 +1143,7 @@ subroutine pc2(a,beca,b,becb, lgam)
       deallocate(ipiv,work)
       call stop_clock('set_x_minus1')
       return
-    end subroutine set_x_minus1
+    end subroutine set_x_minus1_real
 
      subroutine set_x_minus1_twin(betae,m_minus1,ema0bg,use_ema)
 
@@ -1281,13 +1281,15 @@ subroutine pc2(a,beca,b,becb, lgam)
 !calculate -(1+QB)**(-1) * Q
       IF(.not.m_minus1%iscmplx) THEN
 	CALL DGEMM('N','N',nhsavb,nhsavb,nhsavb,1.0d0,q_matrix,nhsavb,m_minus1%rvec,nhsavb,0.0d0,c_matrix,nhsavb)
+	do i=1,nhsavb
+         c_matrix(i,i)=c_matrix(i,i)+1.d0
+	enddo
       ELSE
 	CALL ZGEMM('C','N',nhsavb,nhsavb,nhsavb,c_one,q_matrix_c,nhsavb,m_minus1%cvec,nhsavb,c_zero,c_matrix_c,nhsavb) !warning:giovanni conjugate?
+	do i=1,nhsavb
+         c_matrix_c(i,i)=c_matrix_c(i,i)+1.d0
+	enddo
       ENDIF
-
-      do i=1,nhsavb
-         c_matrix(i,i)=c_matrix(i,i)+1.d0
-      enddo
 
       if(ionode) then
 	IF(.not.m_minus1%iscmplx) THEN
@@ -1322,7 +1324,7 @@ subroutine pc2(a,beca,b,becb, lgam)
       return
     end subroutine set_x_minus1_twin
 !
-      subroutine xminus1(c0,betae,ema0bg,beck,m_minus1,do_k)
+      subroutine xminus1_real(c0,betae,ema0bg,beck,m_minus1,do_k)
 ! if (do_k) then
 !-----------------------------------------------------------------------
 !     input: c0 , bec=<c0|beta>, betae=|beta>
@@ -1437,7 +1439,7 @@ subroutine pc2(a,beca,b,becb, lgam)
       endif
       call stop_clock('xminus1')
       return
-     end subroutine xminus1
+     end subroutine xminus1_real
 
 !
       subroutine xminus1_twin(c0,betae,ema0bg,beck,m_minus1,do_k)
@@ -1472,7 +1474,7 @@ subroutine pc2(a,beca,b,becb, lgam)
 !
       implicit none
       complex(dp) c0(ngw,n), betae(ngw,nhsa)
-      real(dp)     ema0bg(ngw)
+      real(dp) ::    ema0bg(ngw)
       type(twin_matrix) :: beck
 !       complex(DP)    :: m_minus1(nhsavb,nhsavb)
       type(twin_matrix)    :: m_minus1 !(nhsavb,nhsavb)
@@ -1524,48 +1526,62 @@ subroutine pc2(a,beca,b,becb, lgam)
          endif
 !
 !
-      allocate(phi(ngw,n))
-      phi(1:ngw,1:n) = 0.0d0
-      IF(.not.m_minus1%iscmplx) THEN
-	allocate(qtemp(nhsavb,n))
-	qtemp(:,:) = 0.0d0
-      ELSE
-	allocate(qtemp_c(nhsavb,n))
-	qtemp_c(:,:) = CMPLX(0.0d0, 0.d0)
-      ENDIF
+	  allocate(phi(ngw,n))
+	  phi(1:ngw,1:n) = 0.0d0
+	  IF(.not.m_minus1%iscmplx) THEN
+	    allocate(qtemp(nhsavb,n))
+	    qtemp(:,:) = 0.0d0
+	  ELSE
+	    allocate(qtemp_c(nhsavb,n))
+	    qtemp_c(:,:) = CMPLX(0.0d0, 0.d0)
+	  ENDIF
 
-      if(.not.mat_par) then
-	IF(.not.m_minus1%iscmplx) THEN
-	  call dgemm( 'N', 'N', nhsavb, n, nhsavb, 1.0d0, m_minus1,nhsavb ,    &
-		      beck%rvec, nhsa, 0.0d0, qtemp,nhsavb )
-	ELSE
-	  call dgemm( 'N', 'N', nhsavb, n, nhsavb, c_one, m_minus1,nhsavb ,    &
-		      beck%cvec, nhsa, c_zero, qtemp_c, nhsavb )
-	ENDIF
-      else
-         call para_dgemm( 'N', 'N', nhsavb, n, nhsavb, 1.0d0, m_minus1,nhsavb ,    &
-                    beck, nhsa, 0.0d0, qtemp,nhsavb,intra_image_comm )
-      endif
+	  if(.not.mat_par) then
+	    IF(.not.m_minus1%iscmplx) THEN
+	      call dgemm( 'N', 'N', nhsavb, n, nhsavb, 1.0d0, m_minus1%rvec,nhsavb ,    &
+			  beck%rvec, nhsa, 0.0d0, qtemp,nhsavb )
+	    ELSE
+	      call zgemm( 'N', 'N', nhsavb, n, nhsavb, c_one, m_minus1%cvec,nhsavb ,    &
+			  beck%cvec, nhsa, c_zero, qtemp_c, nhsavb )
+	    ENDIF
+	  else
+	  IF(.not.m_minus1%iscmplx) THEN
+	    call para_dgemm( 'N', 'N', nhsavb, n, nhsavb, (1.0d0,0.d0), m_minus1%rvec,nhsavb ,    &
+			beck%rvec, nhsa, (0.0d0,0.d0), qtemp,nhsavb,intra_image_comm )
+	  ELSE
+	    call para_zgemm( 'N', 'N', nhsavb, n, nhsavb, (1.0d0,0.d0), m_minus1%cvec,nhsavb ,    &
+			beck%cvec, nhsa, (0.0d0,0.d0), qtemp_c,nhsavb,intra_image_comm )
+	  ENDIF
+	  endif
 
 !NB  nhsavb is the total number of US projectors
 !    it works because the first pseudos are the vanderbilt's ones
-
-         CALL DGEMM( 'N', 'N', 2*ngw, n, nhsavb, 1.0d0, betae, 2*ngw,    &
-                    qtemp, nhsavb, 0.0d0, phi, 2*ngw )
-         if (do_k) then
+	  IF(.not.m_minus1%iscmplx) THEN
+	    CALL DGEMM( 'N', 'N', 2*ngw, n, nhsavb, 1.0d0, betae, 2*ngw,    &
+			qtemp, nhsavb, 0.0d0, phi, 2*ngw )
+	  ELSE
+	    CALL ZGEMM( 'C', 'N', ngw, n, nhsavb, (1.0d0,0.d0), betae, ngw,    &
+			qtemp_c, nhsavb, (0.0d0,0.d0), phi, ngw ) !warning:giovanni is it like this??
+	  ENDIF
+          if (do_k) then
             do j=1,n
                do ig=1,ngw
                   c0(ig,j)=(phi(ig,j)+c0(ig,j))*ema0bg(ig)
                end do
             end do
-         else
+          else
             do j=1,n
                do i=1,ngw
                   c0(i,j)=(phi(i,j)+c0(i,j))
                end do
             end do
-         endif
-      deallocate(qtemp,phi)
+          endif
+	  deallocate(phi)
+	  IF(.not.m_minus1%iscmplx) THEN
+	    deallocate(qtemp)
+	  ELSE
+	    deallocate(qtemp_c)
+	  ENDIF
 
       else
          if (do_k) then

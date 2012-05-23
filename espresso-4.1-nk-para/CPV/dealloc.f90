@@ -58,6 +58,7 @@ SUBROUTINE deallocate_modules_var()
   USE nksic,                ONLY : deallocate_nksic
   USE hfmod,                ONLY : deallocate_hf
   USE eecp_mod,             ONLY : deallocate_ee
+  USE io_global,           ONLY : ionode
   !
   IMPLICIT NONE
   !
@@ -71,7 +72,11 @@ SUBROUTINE deallocate_modules_var()
   IF ( ALLOCATED( dqgb ) )     DEALLOCATE( dqgb )
   IF ( ALLOCATED( dbeta ) )    DEALLOCATE( dbeta )
   !
+
   CALL deallocate_mainvar()
+!   if(ionode) then 
+!   write(0,*) "deallocated_mainvar"
+!   endif
   CALL deallocate_ions_positions()
   CALL deallocate_cvan()
   CALL deallocate_efield( )

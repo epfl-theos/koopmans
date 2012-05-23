@@ -134,7 +134,7 @@ MODULE cp_restart
       INTEGER,               INTENT(IN) :: iupdwn_tot(:)! 
       INTEGER,               INTENT(IN) :: nupdwn_tot(:)! 
 !       REAL(DP),    OPTIONAL, INTENT(IN) :: mat_z(:,:,:) ! 
-      TYPE(twin_matrix), DIMENSION(:), INTENT(IN), OPTIONAL :: mat_z
+      TYPE(twin_matrix), DIMENSION(:), OPTIONAL, INTENT(IN) :: mat_z
       !
       LOGICAL               :: write_charge_density
       CHARACTER(LEN=20)     :: dft_name
@@ -968,9 +968,10 @@ MODULE cp_restart
                !
             END IF
             !
-	    IF(.not.mat_z(iss)%iscmplx) THEN
+	    IF(allocated(mrepl)) THEN
 	      DEALLOCATE( mrepl )
-            ELSE
+            ENDIF
+            IF(allocated(mrepl_c)) THEN
 	      DEALLOCATE( mrepl_c )
             ENDIF
             !

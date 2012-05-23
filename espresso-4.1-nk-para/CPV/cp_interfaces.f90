@@ -131,6 +131,124 @@
    PUBLIC :: grabec
    PUBLIC :: smooth_csv
    PUBLIC :: bec_csv
+   PUBLIC :: set_x_minus1
+   PUBLIC :: xminus1
+
+    INTERFACE set_x_minus1
+
+      subroutine set_x_minus1_real(betae,m_minus1,ema0bg,use_ema)
+
+	  use kinds, only: dp
+! 	  use ions_base, only: na, nsp
+! 	  use io_global, only: stdout
+! 	  use mp_global, only: intra_image_comm
+! 	  use cvan
+! 	  use gvecw, only: ngw
+! 	  use constants, only: pi, fpi
+! 	  use control_flags, only: iprint, iprsta
+! 	  use reciprocal_vectors, only: ng0 => gstart
+! 	  use mp, only: mp_sum, mp_bcast
+! 	  use electrons_base, only: n => nbsp, ispin
+! 	  use uspp_param, only: nh
+! 	  use uspp, only :nhsa=>nkb,qq,nhsavb=>nkbus
+! 	  use io_global, ONLY: ionode, ionode_id
+
+	  implicit none
+
+	  complex(DP) :: betae(:,:)
+	  real(DP)    :: m_minus1(:,:)
+	  real(DP)    :: ema0bg(:)
+	  logical     :: use_ema
+
+      end subroutine set_x_minus1_real
+
+      subroutine set_x_minus1_twin(betae,m_minus1,ema0bg,use_ema)
+
+	  use kinds, only: dp
+! 	  use ions_base, only: na, nsp
+! 	  use io_global, only: stdout
+! 	  use mp_global, only: intra_image_comm
+! 	  use cvan
+! 	  use gvecw, only: ngw
+! 	  use constants, only: pi, fpi
+! 	  use control_flags, only: iprint, iprsta
+! 	  use reciprocal_vectors, only: ng0 => gstart
+! 	  use mp, only: mp_sum, mp_bcast
+! 	  use electrons_base, only: n => nbsp, ispin
+! 	  use uspp_param, only: nh
+! 	  use uspp, only :nhsa=>nkb,qq,nhsavb=>nkbus
+! 	  use io_global, ONLY: ionode, ionode_id
+	  use twin_types
+
+	  implicit none
+
+	  complex(DP) :: betae(:,:)
+	  type(twin_matrix) :: m_minus1
+	  real(DP)    :: ema0bg(:)
+	  logical     :: use_ema
+
+      end subroutine set_x_minus1_twin
+
+    END INTERFACE
+
+    INTERFACE xminus1
+
+      subroutine xminus1_real(c0,betae,ema0bg,beck,m_minus1,do_k)
+
+	use kinds, only: dp
+! 	use ions_base, only: na, nsp
+! 	use io_global, only: stdout
+!   !$$
+! 	use io_global, only: ionode
+!   !$$
+! 	use mp_global, only: intra_image_comm
+! 	use cvan
+! 	use uspp_param, only: nh
+! 	use uspp, only :nhsa=>nkb, nhsavb=>nkbus, qq
+! 	use electrons_base, only: n => nbsp
+! 	use gvecw, only: ngw
+! 	use constants, only: pi, fpi
+! 	use control_flags, only: iprint, iprsta
+! 	use mp, only: mp_sum
+! 	use reciprocal_vectors, only: ng0 => gstart
+  !
+	implicit none
+	complex(dp) c0(:,:), betae(:,:)
+	real(dp)    beck(:,:), ema0bg(:)
+	real(DP)    :: m_minus1(:,:)
+	logical :: do_k
+
+      end subroutine xminus1_real
+
+      subroutine xminus1_twin(c0,betae,ema0bg,beck,m_minus1,do_k)	
+! 	use ions_base, only: na, nsp
+! 	use io_global, only: stdout
+!   !$$
+! 	use io_global, only: ionode
+!   !$$
+! 	use mp_global, only: intra_image_comm
+! 	use cvan
+! 	use uspp_param, only: nh
+! 	use uspp, only :nhsa=>nkb, nhsavb=>nkbus, qq
+! 	use electrons_base, only: n => nbsp
+! 	use gvecw, only: ngw
+! 	use constants, only: pi, fpi
+! 	use control_flags, only: iprint, iprsta
+! 	use mp, only: mp_sum
+! 	use reciprocal_vectors, only: ng0 => gstart
+	use twin_types
+	use kinds, only: DP
+
+	implicit none
+	complex(DP) :: c0(:,:), betae(:,:)
+	real(DP)  ::   ema0bg(:)
+	type(twin_matrix) :: beck
+  !       complex(DP)    :: m_minus1(nhsavb,nhsavb)
+	type(twin_matrix)    :: m_minus1 !(nhsavb,nhsavb)
+	logical :: do_k
+      end subroutine xminus1_twin
+
+    END INTERFACE
 
     INTERFACE smooth_csv
       SUBROUTINE smooth_csv_real( c, v, ngwx, csv, n )

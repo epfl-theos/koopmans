@@ -840,9 +840,9 @@ MODULE input
 
       IF(do_wf_cmplx_) THEN !warning:giovanni not yet implemented
 ! 
-	  IF(tcg) THEN
-	    CALL errore(' iosys ',' conjugate-gradient minimization not implemented with complex wavefunctions', 1 )
-	  ENDIF
+! 	  IF(tcg) THEN
+! 	    CALL errore(' iosys ',' conjugate-gradient minimization not implemented with complex wavefunctions', 1 )
+! 	  ENDIF
 ! 
 	  IF(tfor_  .or. tprnfor_ .or. thdyn_ .or. tpre_) THEN
 	    CALL errore(' iosys ',' stress or force calculation may not work with complex wavefunctions', 1 )

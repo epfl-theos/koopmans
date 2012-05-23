@@ -205,7 +205,7 @@
 
       ! calculates the occupation matrix 
       ! fmat_ij = \sum_k z_ki * f_k * z_kj
-      CALL calcmt( f, z0t, fmat0,firstiter )
+      CALL calcmt_twin( f, z0t, fmat0,firstiter )
    
       ! calculateas the energy contribution associated with 
       ! the augmentation charges and the 
@@ -375,7 +375,7 @@
         f( 1:n )= fx( 1:n )
 
         ! re-calculates fmatx
-        CALL calcmt( f, zxt, fmatx, firstiter)
+        CALL calcmt_twin( f, zxt, fmatx, firstiter)
               
         ! calculates the entropy and its derivatives with respect
         ! to each occupation at x
@@ -624,7 +624,7 @@
         END DO
         
         ! calculates the total free energy
-        CALL calcmt( f, z0t, fmat0, firstiter)
+        CALL calcmt_twin( f, z0t, fmat0, firstiter)
         CALL rotate( z0t, c0(:,:), bec, c0diag, becdiag, firstiter )
         CALL rhoofr( nfi, c0diag, irb, eigrb, becdiag, &
                      rhovan, rhor, rhog, rhos, enl, denl, ekin, dekin6 ) 

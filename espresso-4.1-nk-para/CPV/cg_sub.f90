@@ -62,7 +62,7 @@
       use mp,                       only : mp_sum, mp_bcast
       use cp_electronic_mass,       ONLY : emass_cutoff
       use orthogonalize_base,       ONLY : calphi
-      use cp_interfaces,            ONLY : rhoofr, dforce, compute_stress, nlfl
+      use cp_interfaces,            ONLY : rhoofr, dforce, compute_stress, nlfl, set_x_minus1, xminus1
       USE cp_main_variables,        ONLY : nlax, collect_lambda, distribute_lambda, descla, nrlx, nlam
       USE descriptors,              ONLY : la_npc_ , la_npr_ , la_comm_ , la_me_ , la_nrl_ , ldim_cyclic
       USE mp_global,                ONLY : me_image,my_image_id
@@ -131,7 +131,7 @@
       ! 
       logical     :: pre_state!if .true. does preconditioning state by state
       !
-      real(DP)    :: esse,essenew !factors in c.g.
+      complex(DP)    :: esse_c,essenew_c !factors in c.g.
       logical     :: ltresh!flag for convergence on energy
       real(DP)    :: passo!step to minimum
       real(DP)    :: etotnew, etotold!energies
@@ -174,12 +174,12 @@
       call allocate_twin(becm, nhsa, nbsp, lgam)
       call init_twin(becdrdiag, lgam)
       call allocate_twin(becdrdiag, nhsa, nspin*nlax,3, lgam)
-      do iss=1,nspin
-	call init_twin(lambda(iss), lgam)
-	call allocate_twin(lambda(iss), nlam, nlam, lgam)
-	call init_twin(lambdap(iss), lgam)
-	call allocate_twin(lambdap(iss), nlam, nlam, lgam)
-      enddo
+!       do iss=1,nspin
+! 	call init_twin(lambda(iss), lgam)
+! 	call allocate_twin(lambda(iss), nlam, nlam, lgam)
+! 	call init_twin(lambdap(iss), lgam)
+! 	call allocate_twin(lambdap(iss), nlam, nlam, lgam)
+!       enddo
       !end_added:giovanni
 
       call start_clock('runcg_uspp')
@@ -332,7 +332,7 @@
             endif
             !     calculation of the rotated quantities
 
-            call rotate( z0t, c0(:,:), bec, c0diag, becdiag, .false. )
+            call rotate_twin( z0t, c0(:,:), bec, c0diag, becdiag, .false. )
             !     calculation of rho corresponding to the rotated wavefunctions
             call rhoofr(nfi,c0diag,irb,eigrb,becdiag                        &
                      &                    ,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
@@ -346,7 +346,7 @@
           !
           if( tens .and. mod(itercg,niter_cg_restart) ==1 .and. itercg >= 2 ) then
               !
-              call rotate( z0t, c0(:,:), bec, c0diag, becdiag, .false. )
+              call rotate_twin( z0t, c0(:,:), bec, c0diag, becdiag, .false. )
               c0(:,:)=c0diag(:,:)
               call copy_twin(bec,becdiag) !modified:giovanni
 !               bec(:,:)=becdiag(:,:)
@@ -659,7 +659,7 @@
               !
               ! faux takes into account spin multiplicity.
               !
-              CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi )
+              CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi, lgam )
               !
               c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
               !
@@ -716,7 +716,8 @@
         if(.not.do_orbdep) then
           call pcdaga2(c0,phi,hpsi, lgam)
         else
-          call pcdaga3(c0,phi,hpsi, lgam)
+          call pc3nc(c0,hpsi,lgam)
+!           call pcdaga3(c0,phi,hpsi, lgam)
         endif
 !$$
 
@@ -734,7 +735,7 @@
         gi(1:ngw,1:nbsp)    = hpsi(1:ngw,1:nbsp)
         
         call calbec(1,nsp,eigr,hpsi,becm)
-        call xminus1(hpsi,betae,dumm,becm,s_minus1,.false.)
+        call xminus1_twin(hpsi,betae,dumm,becm,s_minus1,.false.)
 !        call sminus1(hpsi,becm,betae)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -745,16 +746,16 @@
         if(.not.do_orbdep) then
           call pc2(c0,bec,hpsi,becm, lgam)
         else
-          call pc3us(c0,bec,hpsi,becm, lgam)
+          call pc3nc(c0,hpsi,lgam)
+!           call pc3us(c0,bec,hpsi,becm, lgam)
         endif
 !$$
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 !        call kminus1(gi,betae,ema0bg)
         if(.not.pre_state) then
-           call xminus1(gi,betae,ema0bg,becm,k_minus1,.true.)
+           call xminus1_twin(gi,betae,ema0bg,becm,k_minus1,.true.)
         else
-           call xminus1_state(gi,betae,ema0bg,becm,k_minus1,.true.,ave_ene)
+           call xminus1_state(gi,betae,ema0bg,becm,k_minus1,.true.,ave_ene) !warning:giovanni not yet implemented
         endif
         call calbec(1,nsp,eigr,gi,becm)
 !$$        call pc2(c0,bec,gi,becm)
@@ -762,11 +763,12 @@
         if(.not.do_orbdep) then
           call pc2(c0,bec,gi,becm, lgam)
         else
-          call pc3us(c0,bec, gi,becm, lgam)
+          call pc3nc(c0,gi, lgam)
+!           call pc3us(c0,bec, gi,becm, lgam)
         endif
 !$$
 
-        if(tens) call calcmt( f, z0t, fmat0, .false. )
+        if(tens) call calcmt_twin( f, z0t, fmat0, .false. )
 
         call calbec(1,nsp,eigr,hpsi,bec0) 
 
@@ -817,7 +819,7 @@
 			    do ia=1,na(is)
 			      inl=ish(is)+(iv-1)*na(is)+ia
 			      jnl=ish(is)+(jv-1)*na(is)+ia
-			      gamma_c=gamma_c+ qq(iv,jv,is)*CONJG(becm%cvec(inl,i))*(bec0%cvec(jnl,i)) !warning:giovanni CONJG
+			      gamma_c=gamma_c+ qq(iv,jv,is)*(becm%cvec(inl,i))*CONJG(bec0%cvec(jnl,i)) !warning:giovanni CONJG
 			    end do
 			end do
 		      end do
@@ -914,7 +916,7 @@
 		  allocate( fmat_c_ ( nrlx, nudx ) )
 		  do ip = 1, np_rot
 		      if( me_rot == ( ip - 1 ) ) then
-			fmat_c_ = fmat0(iss)%cvec(:,:)
+			fmat_c_(:,:) = fmat0(iss)%cvec(:,:)
 		      end if
 		      nrl = ldim_cyclic( nss, np_rot, ip - 1 )
 		      CALL mp_bcast( fmat_c_ , ip - 1 , intra_image_comm )
@@ -928,7 +930,8 @@
 				    do ia=1,na(is)
 					inl=ish(is)+(iv-1)*na(is)+ia
 					jnl=ish(is)+(jv-1)*na(is)+ia
-					gamma_c=gamma_c+ qq(iv,jv,is)*becm%cvec(inl,i+istart-1)*bec0%cvec(jnl,jj+istart-1)*fmat_c_(j,i)
+					gamma_c=gamma_c+ qq(iv,jv,is)*(becm%cvec(inl,i+istart-1)) &
+                                  *CONJG(bec0%cvec(jnl,jj+istart-1))*fmat_c_(j,i)
 				    end do
 				  end do
 			      end do
@@ -955,16 +958,16 @@
 
           hi(1:ngw,1:nbsp)=gi(1:ngw,1:nbsp)!hi is the search direction
 
-          esse=REAL(gamma_c)
+          esse_c=gamma_c
 
         else
 
           !find direction hi for general case 
           !calculates gamma for general case, not using Polak Ribiere
           
-          essenew=REAL(gamma_c)
-          gamma_c=gamma_c/esse
-          esse=essenew
+          essenew_c=gamma_c
+          gamma_c=gamma_c/esse_c
+          esse_c=essenew_c
 
           hi(1:ngw,1:nbsp)=gi(1:ngw,1:nbsp)+gamma_c*hi(1:ngw,1:nbsp)
 
@@ -981,7 +984,8 @@
         if(.not.do_orbdep) then
           call pc2(c0,bec,hi,bec0, lgam)
         else
-          call pc3us(c0,bec,hi,bec0, lgam)
+          call pc3nc(c0,hi,lgam)
+!           call pc3us(c0,bec,hi,bec0, lgam)
         endif
 !$$
         
@@ -1002,7 +1006,7 @@
 	      endif
             ELSE
 	      do ig=1,ngw
-		dene0=dene0-2.d0*CONJG(hi(ig,i))*hpsi0(ig,i)
+		dene0=dene0-2.d0*DBLE(CONJG(hi(ig,i))*hpsi0(ig,i))
 	      enddo
             ENDIF
           end do
@@ -1013,7 +1017,7 @@
         else
           !in the ensamble case the derivative is Sum_ij (<hi|H|Psi_j>+ <Psi_i|H|hj>)*f_ji
           !     calculation of the kinetic energy x=xmin      
-         call calcmt( f, z0t, fmat0, .false. )
+         call calcmt_twin( f, z0t, fmat0, .false. )
          do iss = 1, nspin
             nss    = nupdwn(iss)
             istart = iupdwn(iss)
@@ -1023,7 +1027,7 @@
 	      allocate( fmat_ ( nrlx, nudx ) )
 	      do ip = 1, np_rot
 		if( me_rot == ( ip - 1 ) ) then
-		    fmat_ = fmat0(iss)%rvec(:,:)
+		    fmat_(:,:) = fmat0(iss)%rvec(:,:)
 		end if
 		nrl = ldim_cyclic( nss, np_rot, ip - 1 )
 		CALL mp_bcast( fmat_ , ip - 1 , intra_image_comm )
@@ -1047,7 +1051,7 @@
 	      allocate( fmat_c_ ( nrlx, nudx ) )
 	      do ip = 1, np_rot
 		if( me_rot == ( ip - 1 ) ) then
-		    fmat_c_ = fmat0(iss)%cvec(:,:)
+		    fmat_c_(:,:) = fmat0(iss)%cvec(:,:)
 		end if
 		nrl = ldim_cyclic( nss, np_rot, ip - 1 )
 		CALL mp_bcast( fmat_ , ip - 1 , intra_image_comm )
@@ -1220,7 +1224,7 @@
           endif
 
           !     calculation of the rotated quantities
-          call rotate( z0t, cm(:,:), becm, c0diag, becdiag, .false. )
+          call rotate_twin( z0t, cm(:,:), becm, c0diag, becdiag, .false. )
           !     calculation of rho corresponding to the rotated wavefunctions
           call rhoofr(nfi,c0diag,irb,eigrb,becdiag,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
         endif
@@ -1281,7 +1285,7 @@
 
         call minparabola(ene0,spasso*dene0,ene1,passof,passo,enesti)
 
-        if( ionode .and. iprsta > 1 ) write(stdout,"(6f20.12)") ene0,dene0,ene1,passo, DBLE(gamma_c), esse
+        if( ionode .and. iprsta > 1 ) write(stdout,"(6f20.12)") ene0,dene0,ene1,passo, DBLE(gamma_c), esse_c
 
         !set new step
 
@@ -1311,7 +1315,7 @@
                       rhor, rhog, rhos, rhoc, ei1, ei2, ei3, sfac,cm,becm,.false., vpot  )
           endif
           !     calculation of the rotated quantities
-          call rotate( z0t, cm(:,:), becm, c0diag, becdiag, .false. )
+          call rotate_twin( z0t, cm(:,:), becm, c0diag, becdiag, .false. )
           !     calculation of rho corresponding to the rotated wavefunctions
           call rhoofr(nfi,c0diag,irb,eigrb,becdiag,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
         endif
@@ -1462,7 +1466,7 @@
                           rhor, rhog, rhos, rhoc, ei1, ei2, ei3, sfac,cm,becm,.false., vpot  )
               endif
               !     calculation of the rotated quantities
-              call rotate( z0t, cm(:,:), becm, c0diag, becdiag, .false. )
+              call rotate_twin( z0t, cm(:,:), becm, c0diag, becdiag, .false. )
               !     calculation of rho corresponding to the rotated wavefunctions
               call rhoofr(nfi,c0diag,irb,eigrb,becdiag,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
             endif
@@ -1624,7 +1628,7 @@
          else
              !
              !     calculation of the rotated quantities
-             call rotate( z0t, c0(:,:), bec, c0diag, becdiag, .false. )
+             call rotate_twin( z0t, c0(:,:), bec, c0diag, becdiag, .false. )
              !
              !     calculation of rho corresponding to the rotated wavefunctions
              call caldbec( ngw, nhsa, nbsp, 1, nsp, eigr, c0diag, dbec )
@@ -1678,7 +1682,7 @@
      endif
 
 
-     call calcmt( f, z0t, fmat0, .false. )
+     call calcmt_twin( f, z0t, fmat0, .false. )
 
      call newd(vpot,irb,eigrb,rhovan,fion)
      if (.not.tens) then
@@ -1737,7 +1741,7 @@
              !
              ! faux takes into account spin multiplicity.
              !
-             CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi )
+             CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi, lgam )
              !
              c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
              !
@@ -1843,7 +1847,7 @@
               IF(.not.lambdap(iss)%iscmplx) THEN
 		CALL cyc2blk_redist( nss, fmat0(iss)%rvec(1,1), nrlx, SIZE(fmat0(iss)%rvec,2), lambda_dist, nlam, nlam, descla(1,iss) )
               ELSE
-		CALL cyc2blk_zredist( nss, fmat0(iss)%cvec(1,1), nrlx, SIZE(fmat0(iss)%cvec,2), lambda_dist, nlam, nlam, descla(1,iss) )
+		CALL cyc2blk_zredist( nss, fmat0(iss)%cvec(1,1), nrlx, SIZE(fmat0(iss)%cvec,2), lambda_dist_c, nlam, nlam, descla(1,iss) )
               ENDIF
               !
               ! Perform lambdap = lambda * fmat0
@@ -1852,7 +1856,7 @@
 		CALL sqr_mm_cannon( 'N', 'N', nss, 1.0d0, lambda(iss)%rvec(1,1), nlam, lambda_dist, nlam, &
                                   0.0d0, lambdap(iss)%rvec(1,1), nlam, descla(1,iss) )
               ELSE
-		CALL sqr_zmm_cannon( 'C', 'N', nss, 1.0d0, lambda(iss)%cvec(1,1), nlam, lambda_dist, nlam, &
+		CALL sqr_zmm_cannon( 'N', 'N', nss, 1.0d0, lambda(iss)%cvec(1,1), nlam, lambda_dist_c, nlam, &
                                   0.0d0, lambdap(iss)%cvec(1,1), nlam, descla(1,iss) ) !warning:giovanni C or N?
               ENDIF
               !
@@ -1868,7 +1872,7 @@
               IF(.not.lambdap(iss)%iscmplx) THEN
                 lambdap(iss)%rvec(:,:) = lambda_dist(:,:)
               ELSE
-                lambda(iss)%cvec(:,:) = lambda_dist_c(:,:)
+                lambdap(iss)%cvec(:,:) = lambda_dist_c(:,:)
               ENDIF
               !end_modified:giovanni
               !
@@ -1920,10 +1924,10 @@
         call deallocate_twin(becm)
         call deallocate_twin(becdrdiag)
         !
-        do i=1,nspin
-	  call deallocate_twin(lambda(i))
-	  call deallocate_twin(lambdap(i))
-        enddo
+!         do i=1,nspin
+! 	  call deallocate_twin(lambda(i))
+! 	  call deallocate_twin(lambdap(i))
+!         enddo
         !
         !end_modified:giovanni
 

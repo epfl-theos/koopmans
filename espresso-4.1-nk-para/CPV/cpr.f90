@@ -708,6 +708,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
                 WRITE( stdout, '(10F9.6)' ) ( f(i), i = 1, nbspx )  
             END IF
             !
+            write(0,*) lambdap(1)%iscmplx, lambdap(1)%rvec(:,:)
             CALL eigs( nfi, lambdap, lambda )
 !$$
 !            do iss=1,nspin

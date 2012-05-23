@@ -117,9 +117,9 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   lgam=gamma_only.and..not. do_wf_cmplx
   electron_dynamic: IF ( tcg ) THEN
 ! 
-     CALL runcg_uspp( nfi, tfirst, tlast, eigr, bec%rvec, irb, eigrb, &
+     CALL runcg_uspp( nfi, tfirst, tlast, eigr, bec, irb, eigrb, &
                       rhor, rhog, rhos, rhoc, ei1, ei2, ei3, sfac, &
-                      fion, ema0bg, becdr%rvec, lambdap, lambda, vpot  )
+                      fion, ema0bg, becdr, lambdap, lambda, vpot  )
      !
      CALL compute_stress( stress, detot, h, omega )
      !
@@ -152,7 +152,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
          ! rotates the wavefunctions c0 and the overlaps bec
          ! (the occupation matrix f_ij becomes diagonal f_i)
          !
-         CALL rotate( z0t, c0, bec%rvec, c0diag, becdiag, .false. )
+         CALL rotate( z0t, c0, bec, c0diag, becdiag, .false. )
          !
          CALL rhoofr( nfi, c0diag, irb, eigrb, becdiag, &
                          becsum, rhor, rhog, rhos, enl, denl, ekin, dekin6 )
