@@ -120,8 +120,10 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
      CALL runcg_uspp( nfi, tfirst, tlast, eigr, bec, irb, eigrb, &
                       rhor, rhog, rhos, rhoc, ei1, ei2, ei3, sfac, &
                       fion, ema0bg, becdr, lambdap, lambda, vpot  )
+     write(6,*) "exiting runcg"
      !
      CALL compute_stress( stress, detot, h, omega )
+     write(6,*) "exiting stress"
      !
   ELSE
 

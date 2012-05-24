@@ -819,7 +819,7 @@
 			    do ia=1,na(is)
 			      inl=ish(is)+(iv-1)*na(is)+ia
 			      jnl=ish(is)+(jv-1)*na(is)+ia
-			      gamma_c=gamma_c+ qq(iv,jv,is)*(becm%cvec(inl,i))*CONJG(bec0%cvec(jnl,i)) !warning:giovanni CONJG
+			      gamma_c=gamma_c+ qq(iv,jv,is)*CONJG(becm%cvec(inl,i))*(bec0%cvec(jnl,i)) !warning:giovanni CONJG
 			    end do
 			end do
 		      end do
@@ -930,8 +930,8 @@
 				    do ia=1,na(is)
 					inl=ish(is)+(iv-1)*na(is)+ia
 					jnl=ish(is)+(jv-1)*na(is)+ia
-					gamma_c=gamma_c+ qq(iv,jv,is)*(becm%cvec(inl,i+istart-1)) &
-                                  *CONJG(bec0%cvec(jnl,jj+istart-1))*fmat_c_(j,i)
+					gamma_c=gamma_c+ qq(iv,jv,is)*CONJG(becm%cvec(inl,i+istart-1)) &
+                                  *(bec0%cvec(jnl,jj+istart-1))*fmat_c_(j,i)
 				    end do
 				  end do
 			      end do
@@ -969,7 +969,7 @@
           gamma_c=gamma_c/esse_c
           esse_c=essenew_c
 
-          hi(1:ngw,1:nbsp)=gi(1:ngw,1:nbsp)+gamma_c*hi(1:ngw,1:nbsp)
+          hi(1:ngw,1:nbsp)=gi(1:ngw,1:nbsp)+DBLE(gamma_c)*hi(1:ngw,1:nbsp)
 
         endif
 !note that hi, is saved  on gi, because we need it before projection on conduction states
@@ -1290,9 +1290,9 @@
         !set new step
 
         passov=passof
-!$$$$        passof=2.d0*passo
+        passof=2.d0*passo
 !$$ doing the following makes the convergence better...
-        passof=passo
+!         passof=passo
 !$$$$
               
         !calculates wave-functions at minimum

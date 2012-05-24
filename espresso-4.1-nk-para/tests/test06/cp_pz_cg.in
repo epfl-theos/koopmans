@@ -29,8 +29,8 @@
           /
           &ELECTRONS
              electron_dynamics='cg',
-             passop=0.5,
-             maxiter = 1000,
+             passop=0.8,
+             maxiter = 2000,
              conv_thr=1.d-8
           /
           &IONS

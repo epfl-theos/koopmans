@@ -977,7 +977,7 @@ subroutine pc2(a,beca,b,becb, lgam)
 !       real(dp) sca
       complex(DP) :: sca_c
       real(DP), allocatable:: scar(:)
-      real(DP), allocatable:: scar_c(:)
+      complex(DP), allocatable:: scar_c(:)
       !
       call start_clock('pc3')
 
@@ -987,21 +987,25 @@ subroutine pc2(a,beca,b,becb, lgam)
 
       do j=1,n
          do i=1,n
-	    sca_c=0.0d0
-	      if(ispin(i) == ispin(j)) then
+	    sca_c=CMPLX(0.0d0,0.d0)
+	    if(ispin(i) == ispin(j)) then
 		if(lgam) then
                  if (ng0.eq.2) bold(1,i) = CMPLX(DBLE(bold(1,i)),0.0d0)
                endif
 		do  ig=1,ngw           !loop on g vectors
 		    sca_c=sca_c+CONJG(a(ig,j))*bold(ig,i)
-		    sca_c=sca_c+CONJG(a(ig,i))*bold(ig,j)
+		    sca_c=sca_c+(a(ig,i))*CONJG(bold(ig,j))
 		enddo
 		!sca = sca*2.0d0  !2. for real weavefunctions
 		!$$ not necessary: sca = sca*2.0d0  !2. for real weavefunctions
                if(lgam) then
-		  if (ng0.eq.2) sca_c = DBLE(sca_c) - 0.5*(DBLE(a(1,j))*DBLE(bold(1,i))+DBLE(a(1,i))*DBLE(bold(1,j)))
+		  if (ng0.eq.2) then
+                   sca_c = DBLE(sca_c) - 0.5d0*(DBLE(a(1,j))*DBLE(bold(1,i))+DBLE(a(1,i))*DBLE(bold(1,j)))
+                 else
+                   sca_c = DBLE(sca_c)
+                 endif
                else
-                 sca_c=0.5*sca_c
+                 sca_c=0.5d0*sca_c
                endif
 	      scar_c(i) = sca_c
             endif
@@ -1251,7 +1255,7 @@ subroutine pc2(a,beca,b,becb, lgam)
 			    if (ng0.eq.2) sca = sca - ema0bg(1)*DBLE(CONJG(betae(1,inl))*betae(1,jnl))
 			  ELSE
 			    do  ig=1,ngw           !loop on g vectors
-			      sca=sca+ema0bg(ig)*CONJG(betae(ig,inl))*betae(ig,jnl)
+			      sca=sca+ema0bg(ig)*CONJG(betae(ig,inl))*(betae(ig,jnl))
 			    enddo
 			  ENDIF
                         else
@@ -1264,7 +1268,7 @@ subroutine pc2(a,beca,b,becb, lgam)
 			    if (ng0.eq.2) sca = sca - DBLE(CONJG(betae(1,inl))*betae(1,jnl))
                           ELSE
 			    do  ig=1,ngw           !loop on g vectors
-			      sca=sca+CONJG(betae(ig,inl))*betae(ig,jnl)
+			      sca=sca+CONJG(betae(ig,inl))*(betae(ig,jnl))
 			    enddo
                           ENDIF
                         endif
@@ -1285,9 +1289,9 @@ subroutine pc2(a,beca,b,becb, lgam)
          c_matrix(i,i)=c_matrix(i,i)+1.d0
 	enddo
       ELSE
-	CALL ZGEMM('C','N',nhsavb,nhsavb,nhsavb,c_one,q_matrix_c,nhsavb,m_minus1%cvec,nhsavb,c_zero,c_matrix_c,nhsavb) !warning:giovanni conjugate?
+	CALL ZGEMM('N','N',nhsavb,nhsavb,nhsavb,c_one,q_matrix_c,nhsavb,m_minus1%cvec,nhsavb,c_zero,c_matrix_c,nhsavb) !warning:giovanni conjugate?
 	do i=1,nhsavb
-         c_matrix_c(i,i)=c_matrix_c(i,i)+1.d0
+         c_matrix_c(i,i)=c_matrix_c(i,i)+CMPLX(1.d0,0.d0)
 	enddo
       ENDIF
 
@@ -1310,7 +1314,7 @@ subroutine pc2(a,beca,b,becb, lgam)
 	CALL DGEMM('N','N',nhsavb,nhsavb,nhsavb,-1.0d0,c_matrix,nhsavb,q_matrix,nhsavb,0.0d0,m_minus1%rvec,nhsavb) 
       ELSE
 	call mp_bcast( c_matrix_c, ionode_id, intra_image_comm )
-	CALL ZGEMM('C','N',nhsavb,nhsavb,nhsavb,c_mone,c_matrix_c,nhsavb,q_matrix_c,nhsavb,c_zero,m_minus1%cvec,nhsavb) !warning:giovanni put a conjugate?
+	CALL ZGEMM('N','N',nhsavb,nhsavb,nhsavb,c_mone,c_matrix_c,nhsavb,q_matrix_c,nhsavb,c_zero,m_minus1%cvec,nhsavb) !warning:giovanni put a conjugate?
       ENDIF
 
       IF(.not.m_minus1%iscmplx) THEN

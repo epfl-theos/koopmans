@@ -1086,7 +1086,7 @@ end subroutine nksic_newd
       !ehele=0.5_dp * sum(dble(vhaux(1:nnrx))*rhoele(1:nnrx,ispin))
       !
       ehele = icoeff * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm,1)))
-      if ( gstart == 2 ) ehele = ehele - (2.d0-icoeff)*DBLE ( CONJG( vtmp(1) ) * rhogaux(1,1) )
+      if ( gstart == 2 ) ehele = ehele + (1.d0-icoeff)*DBLE ( CONJG( vtmp(1) ) * rhogaux(1,1) )
       !
       ! the f * (2.0d0 * fref-f) term is added here
       ehele = 0.5_dp * f * (2.0_dp * fref-f) * ehele * omega / fact
