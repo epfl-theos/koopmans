@@ -2553,7 +2553,7 @@ end subroutine nksic_dmxc_spin_cp
 
 
 !-----------------------------------------------------------------------
-      subroutine nksic_rot_emin(nouter,ninner,etot,Omattot)
+      subroutine nksic_rot_emin(nouter,ninner,etot,Omattot, lgam)
 !-----------------------------------------------------------------------
 !
 ! ... Finds the orthogonal rotation matrix Omattot that minimizes
@@ -2583,6 +2583,7 @@ end subroutine nksic_dmxc_spin_cp
       use wavefunctions_module,       only : c0, cm
       use control_flags,              only : esic_conv_thr
       use cg_module,                  only : tcg
+      use twin_types
       !
       implicit none
       !
@@ -2591,8 +2592,8 @@ end subroutine nksic_dmxc_spin_cp
       integer                  :: ninner
       integer,     intent(in)  :: nouter
       real(dp),    intent(in)  :: etot
-      real(dp)                 :: Omattot(nbspx,nbspx)
-
+      complex(dp)                 :: Omattot(nbspx,nbspx)
+      logical :: lgam
 
       !
       ! local variables
@@ -2606,15 +2607,16 @@ end subroutine nksic_dmxc_spin_cp
       integer     :: nfile
       logical     :: do_nonvar,lstopinner
       !
-      real(dp),    allocatable :: Omat1tot(:,:)
+      complex(dp),    allocatable :: Omat1tot(:,:)
       complex(dp), allocatable :: Umatbig(:,:)
       real(dp),    allocatable :: Heigbig(:)
       complex(dp), allocatable :: wfc_ctmp(:,:)
       complex(dp), allocatable :: Umat(:,:)
       real(dp),    allocatable :: Heig(:)
-      real(dp),    allocatable :: vsicah(:,:)
+      complex(dp),    allocatable :: vsicah(:,:)
       real(dp),    allocatable :: vsic1(:,:)
-      real(dp),    allocatable :: bec1(:,:)
+      type(twin_matrix) :: bec1
+!       real(dp),    allocatable :: bec1(:,:)
       real(dp),    allocatable :: pink1(:)
       !
       integer,  save :: npassofail=0
@@ -2640,7 +2642,10 @@ end subroutine nksic_dmxc_spin_cp
       allocate( wfc_ctmp(ngw,nbspx) )
       allocate( vsic1(nnrx,nbspx) )
       allocate( pink1(nbspx) )
-      allocate( bec1(nkb,nbsp) )
+
+      call init_twin(bec1,lgam)
+      call allocate_twin(bec1,nkb,nbsp,lgam)
+!       allocate( bec1(nkb,nbsp) )
       !
       Umatbig(:,:)=(0.d0,0.d0)
       Heigbig(:)=0.d0
@@ -2713,7 +2718,7 @@ end subroutine nksic_dmxc_spin_cp
             allocate( Heig(nupdwn(isp)) )
             allocate( vsicah(nupdwn(isp), nupdwn(isp)) )
             !
-            call nksic_getvsicah_new2( isp, vsicah, vsicah2sum)
+            call nksic_getvsicah_new2( isp, vsicah, vsicah2sum, lgam)
             !
             call nksic_getHeigU(  isp, vsicah, Heig, Umat)
 
@@ -2763,7 +2768,7 @@ end subroutine nksic_dmxc_spin_cp
 
         dalpha = passoprod/dmaxeig
         !
-        call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfc_ctmp,Omat1tot,bec1,vsic1,pink1,dtmp)
+        call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfc_ctmp,Omat1tot,bec1,vsic1,pink1,dtmp, lgam)
 
         !
         ! deal with non-variational functionals, 
@@ -2816,7 +2821,8 @@ end subroutine nksic_dmxc_spin_cp
         !
         pink(:)    = pink1(:)
         vsic(:,:)  = vsic1(:,:)
-        bec%rvec(:,:)   = bec1(:,:)
+        call copy_twin(bec, bec1)
+!         bec%rvec(:,:)   = bec1(:,:)
         c0(:,:)    = wfc_ctmp(:,:)
         esic_old   = esic
 
@@ -2853,7 +2859,7 @@ end subroutine nksic_dmxc_spin_cp
       deallocate( Heigbig )
       deallocate( wfc_ctmp )
       deallocate( vsic1 )
-      deallocate( bec1 )
+      call deallocate_twin(bec1)
       deallocate( pink1 )
       !
       call stop_clock( "nk_rot_cm" )
@@ -2981,7 +2987,7 @@ end subroutine nksic_rot_test
 
 
 !-----------------------------------------------------------------------
-      subroutine nksic_rot_emin_cg(nouter,ninner,etot,Omattot)
+      subroutine nksic_rot_emin_cg(nouter,ninner,etot,Omattot, lgam)
 !-----------------------------------------------------------------------
 !
 ! ... Finds the orthogonal rotation matrix Omattot that minimizes
@@ -3010,6 +3016,7 @@ end subroutine nksic_rot_test
       use wavefunctions_module,       only : c0, cm
       use control_flags,              only : esic_conv_thr
       use cg_module,                  only : tcg
+      use twin_types
       !
       implicit none
       !
@@ -3018,7 +3025,8 @@ end subroutine nksic_rot_test
       integer                  :: ninner
       integer,     intent(in)  :: nouter
       real(dp),    intent(in)  :: etot
-      real(dp)                 :: Omattot(nbspx,nbspx)
+      complex(dp)          :: Omattot(nbspx,nbspx)
+      logical               :: lgam
         
       ! 
       ! local variables for cg routine
@@ -3035,17 +3043,17 @@ end subroutine nksic_rot_test
       real(dp)    :: dPI,dalpha,dmaxeig,deigrms
       real(dp)    :: pinksumprev,passoprod
       !
-      real(dp),    allocatable :: Omat1tot(:,:), Omat2tot(:,:)
+      complex(dp),    allocatable :: Omat1tot(:,:), Omat2tot(:,:)
       real(dp),    allocatable :: Heigbig(:)
       complex(dp), allocatable :: Umatbig(:,:)
       complex(dp), allocatable :: wfc_ctmp(:,:), wfc_ctmp2(:,:)
-      real(dp),    allocatable :: gi(:,:), hi(:,:)
+      complex(dp),    allocatable :: gi(:,:), hi(:,:)
       !
       complex(dp), allocatable :: Umat(:,:)
       real(dp),    allocatable :: Heig(:)
-      real(dp),    allocatable :: vsicah(:,:)
+      complex(dp),    allocatable :: vsicah(:,:)
       real(dp),    allocatable :: vsic1(:,:), vsic2(:,:)
-      real(dp),    allocatable :: bec1(:,:), bec2(:,:)
+      type(twin_matrix)       :: bec1,bec2
       real(dp),    allocatable :: pink1(:), pink2(:)
 
       !
@@ -3069,7 +3077,10 @@ end subroutine nksic_rot_test
       allocate( gi(nbsp,nbsp) )
       allocate( pink1(nbspx), pink2(nbspx) )
       allocate( vsic1(nnrx,nbspx), vsic2(nnrx,nbspx) )
-      allocate( bec1(nkb,nbsp), bec2(nkb,nbsp) )
+      call init_twin(bec1, lgam)
+      call allocate_twin(bec1,nkb,nbsp,lgam)
+      call init_twin(bec2,lgam)
+      call allocate_twin(bec2,nkb,nbsp,lgam)
       !
       Umatbig(:,:)=(0.d0,0.d0)
       Heigbig(:)=0.d0
@@ -3079,7 +3090,7 @@ end subroutine nksic_rot_test
 
       Omattot(:,:)=0.d0
       do nbnd1=1,nbspx
-          Omattot(nbnd1,nbnd1)=1.d0
+          Omattot(nbnd1,nbnd1)=CMPLX(1.d0,0.d0)
       enddo
 
       ninner = 0
@@ -3168,7 +3179,7 @@ end subroutine nksic_rot_test
             !
             allocate(vsicah(nupdwn(isp),nupdwn(isp)))
             !
-            call nksic_getvsicah_new2(isp,vsicah,dtmp)
+            call nksic_getvsicah_new2(isp,vsicah,dtmp, lgam)
             !
             gi( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp), &
                 iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = vsicah(:,:)
@@ -3260,7 +3271,11 @@ end subroutine nksic_rot_test
                 !
                 nidx1 = nbnd1-1+iupdwn(isp)
                 nidx2 = nbnd2-1+iupdwn(isp)
-                dene0 = dene0 -gi(nidx1,nidx2)*hi(nidx1,nidx2)
+                IF(nidx1.ne.nidx2) THEN
+                  dene0 = dene0 -CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2)
+                ELSE
+                  dene0 = dene0 -0.5d0*CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2)
+                ENDIF
                 !
             enddo
             enddo
@@ -3273,7 +3288,7 @@ end subroutine nksic_rot_test
         ! Be careful, the following is correct because A_ji = - A_ij, i.e., the number of
         ! linearly independent variables is half the number of total variables!
         !
-        dene0 = dene0 * 1.d0/nspin
+        dene0 = dene0 * 2.d0/nspin
         !
         spasso = 1.d0
         if( dene0 > 0.d0) spasso = -1.d0
@@ -3281,7 +3296,7 @@ end subroutine nksic_rot_test
         dalpha = spasso*passof
         !
         call nksic_getOmattot( dalpha, Heigbig, Umatbig, c0, wfc_ctmp, &
-                               Omat1tot, bec1, vsic1, pink1, ene1)
+                               Omat1tot, bec1, vsic1, pink1, ene1, lgam)
         call minparabola( ene0, spasso*dene0, ene1, passof, passo, enesti)
 
         !
@@ -3304,7 +3319,7 @@ end subroutine nksic_rot_test
 !        if(ninner.ge.15) dalpha = spasso*passo*0.00001
 !$$
         call nksic_getOmattot( dalpha, Heigbig, Umatbig, c0, wfc_ctmp2, &
-                               Omat2tot, bec2, vsic2, pink2, enever)
+                               Omat2tot, bec2, vsic2, pink2, enever, lgam)
 
 #ifdef __DEBUG
         if(ionode) then
@@ -3342,7 +3357,8 @@ end subroutine nksic_rot_test
             pink(:)   = pink2(:)
             vsic(:,:) = vsic2(:,:)
             c0(:,:)   = wfc_ctmp2(:,:)
-            bec%rvec(:,:)  = bec2(:,:)
+            call copy_twin(bec,bec2)
+!             bec%rvec(:,:)  = bec2(:,:)
             Omattot   = MATMUL( Omattot, Omat2tot)
             !
         else
@@ -3350,7 +3366,7 @@ end subroutine nksic_rot_test
             pink(:)   = pink1(:)
             vsic(:,:) = vsic1(:,:)
             c0(:,:)   = wfc_ctmp(:,:)
-            bec%rvec(:,:)  = bec1(:,:)
+            call copy_twin(bec,bec1)
             Omattot   = MATMUL( Omattot, Omat1tot)
             !
 #ifdef __DEBUG
@@ -3389,7 +3405,7 @@ end subroutine nksic_rot_test
               !
               do nbnd1=1,nbspx
               do nbnd2=1,nbspx
-                  wfc_ctmp(:,nbnd1)=wfc_ctmp(:,nbnd1) + cm(:,nbnd2) * Omattot(nbnd2,nbnd1)
+                  wfc_ctmp(:,nbnd1)=wfc_ctmp(:,nbnd1) + cm(:,nbnd2) * Omattot(nbnd2,nbnd1) !warning:giovanni CONJUGATE?
                   ! XXX (we can think to use a blas, here, and split over spins)
               enddo
               enddo
@@ -3411,7 +3427,9 @@ end subroutine nksic_rot_test
       deallocate( gi )
       deallocate( pink1, pink2 )
       deallocate( vsic1, vsic2 )
-      deallocate( bec1, bec2 )
+      call deallocate_twin(bec1)
+      call deallocate_twin(bec2)
+!       deallocate( bec1, bec2 )
 
 
       CALL stop_clock( 'nk_rot_emin' )
@@ -3422,7 +3440,7 @@ end subroutine nksic_rot_emin_cg
 !---------------------------------------------------------------
 
 !---------------------------------------------------------------
-      subroutine nksic_getOmattot(dalpha,Heigbig,Umatbig,wfc0,wfc1,Omat1tot,bec1,vsic1,pink1,ene1)!warning:giovanni bec1 here needs to be a twin!
+      subroutine nksic_getOmattot(dalpha,Heigbig,Umatbig,wfc0,wfc1,Omat1tot,bec1,vsic1,pink1,ene1, lgam)!warning:giovanni bec1 here needs to be a twin!
 !---------------------------------------------------------------
 !
 ! ... This routine rotates the wavefunction wfc0 into wfc1 according to
@@ -3452,7 +3470,7 @@ end subroutine nksic_rot_emin_cg
       complex(dp),        intent(in) :: wfc0(ngw,nbspx)
       !
       complex(dp)                    :: wfc1(ngw,nbspx)
-      real(dp)                       :: Omat1tot(nbspx,nbspx)
+      complex(dp)                       :: Omat1tot(nbspx,nbspx)
       type(twin_matrix)     :: bec1 !(nkb,nbsp) !modified:giovanni
       real(dp)                       :: vsic1(nnrx,nbspx)
       real(dp)                       :: pink1(nbspx)
@@ -3464,19 +3482,16 @@ end subroutine nksic_rot_emin_cg
       !
       integer    :: isp, nbnd1
       real(dp)   :: dmaxeig
-      real(dp),    allocatable :: Omat1(:,:)
+      complex(dp),    allocatable :: Omat1(:,:)
       complex(dp), allocatable :: Umat(:,:)
       real(dp),    allocatable :: Heig(:)
 
       !
       call start_clock( "nk_getOmattot" )
       !
-      
-
-      lgam=gamma_only.and. .not. do_wf_cmplx
-
-      call init_twin(bec1,lgam)
-      call allocate_twin(bec1,nkb,nbsp, lgam)
+     
+!       call init_twin(bec1,lgam)
+!       call allocate_twin(bec1,nkb,nbsp, lgam)
 
       Omat1tot(:,:) = 0.d0
       do nbnd1=1,nbspx
@@ -3527,7 +3542,7 @@ end subroutine nksic_rot_emin_cg
 
       ene1=sum(pink1(:))
 
-      call deallocate_twin(bec1)
+!       call deallocate_twin(bec1)
 
       !
       call stop_clock( "nk_getOmattot" )
@@ -3556,7 +3571,7 @@ end subroutine nksic_getOmattot
       ! in/out vars
       !
       integer,     intent(in)  :: isp
-      real(dp),    intent(in)  :: Omat1(nupdwn(isp),nupdwn(isp))
+      complex(dp),    intent(in)  :: Omat1(nupdwn(isp),nupdwn(isp))
       complex(dp), intent(in)  :: wfc1(ngw,nbspx)
       complex(dp)              :: wfc2(ngw,nbspx)
 
@@ -3576,7 +3591,7 @@ end subroutine nksic_getOmattot
       do nbnd2=1,nupdwn(isp)
           !
           wfc2(:,iupdwn(isp)-1 + nbnd1)=wfc2(:,iupdwn(isp)-1 + nbnd1) &
-              + wfc1(:,iupdwn(isp)-1 + nbnd2) * Omat1(nbnd2,nbnd1)
+              + wfc1(:,iupdwn(isp)-1 + nbnd2) * (Omat1(nbnd2,nbnd1))
           !
       enddo
       enddo
@@ -3613,7 +3628,7 @@ end subroutine nksic_rotwfn
       integer,     intent(in)  :: isp
       real(dp)     :: Heig(nupdwn(isp))
       complex(dp)  :: Umat(nupdwn(isp),nupdwn(isp))
-      real(dp)     :: vsicah(nupdwn(isp),nupdwn(isp))
+      complex(dp)     :: vsicah(nupdwn(isp),nupdwn(isp))
 
 
       !
@@ -3625,7 +3640,7 @@ end subroutine nksic_rotwfn
       ci = (0.d0,1.d0)
 
 !$$ Now this part diagonalizes Hmat = iWmat
-      Hmat(:,:) = ci * vsicah(:,:)
+      Hmat(:,:) = -ci * vsicah(:,:)
 !$$ diagonalize Hmat
 !      if(ionode) then
       CALL zdiag(nupdwn(isp),nupdwn(isp),Hmat(1,1),Heig(1),Umat(1,1),1)
@@ -3956,7 +3971,7 @@ end subroutine nksic_getvsicah_new1
 
 
 !-----------------------------------------------------------------------
-      subroutine nksic_getvsicah_new2( isp, vsicah, vsicah2sum)
+      subroutine nksic_getvsicah_new2( isp, vsicah, vsicah2sum, lgam)
 !-----------------------------------------------------------------------
 !
 ! ... Calculates the anti-hermitian part of the SIC hamiltonian, vsicah.
@@ -3982,8 +3997,9 @@ end subroutine nksic_getvsicah_new1
       ! in/out vars
       ! 
       integer,     intent(in)  :: isp
-      real(dp)                 :: vsicah( nupdwn(isp),nupdwn(isp))
+      complex(dp)                 :: vsicah( nupdwn(isp),nupdwn(isp))
       real(dp)                 :: vsicah2sum
+      logical                  :: lgam
 
       !
       ! local variables
@@ -3993,7 +4009,7 @@ end subroutine nksic_getvsicah_new1
       integer         :: i, j1, jj1, j2, jj2
       !
       !complex(dp), allocatable :: vsicpsi(:,:)
-      real(dp),    allocatable :: hmat(:,:)
+      complex(dp),    allocatable :: hmat(:,:)
 
     
       CALL start_clock('nk_get_vsicah')
@@ -4012,7 +4028,7 @@ end subroutine nksic_getvsicah_new1
           !
           j1 = nbnd1+iupdwn(isp)-1
           CALL nksic_eforce( j1, nbsp, nbspx, vsic, &
-                             deeq_sic, bec, ngw, c0(:,j1), c0(:,j1+1), vsicpsi )
+                             deeq_sic, bec, ngw, c0(:,j1), c0(:,j1+1), vsicpsi, lgam )
           !
           do jj1 = 1, 2
               !
@@ -4021,12 +4037,16 @@ end subroutine nksic_getvsicah_new1
               do nbnd2 = 1, nupdwn(isp)
                   !
                   j2 = nbnd2+iupdwn(isp)-1
-                  hmat(nbnd2,nbnd1+jj1-1) = 2.000*dot_product( c0(:,j2), vsicpsi(:,jj1))
-                  !
-                  if ( gstart == 2 ) then
-                       hmat(nbnd2,nbnd1+jj1-1) = hmat(nbnd2,nbnd1+jj1-1) - &
-                                                 dble( c0(1,j2) * vsicpsi(1,jj1) )
-                  endif
+                  IF(lgam) THEN
+		      hmat(nbnd2,nbnd1+jj1-1) = 2.d0*dot_product( c0(:,j2), vsicpsi(:,jj1))
+		      !
+		      if ( gstart == 2 ) then
+			  hmat(nbnd2,nbnd1+jj1-1) = hmat(nbnd2,nbnd1+jj1-1) - &
+						    dble( c0(1,j2) * vsicpsi(1,jj1) )
+		      endif
+                  ELSE
+		      hmat(nbnd2,nbnd1+jj1-1) = dot_product( c0(:,j2), vsicpsi(:,jj1))
+                  ENDIF
                   ! 
               enddo
               !
@@ -4046,9 +4066,14 @@ end subroutine nksic_getvsicah_new1
       do nbnd1 = 1, nupdwn(isp)
       do nbnd2 = 1, nbnd1-1
           !
-          vsicah( nbnd2, nbnd1) = hmat(nbnd2,nbnd1) -hmat(nbnd1,nbnd2)
-          vsicah( nbnd1, nbnd2) = hmat(nbnd1,nbnd2) -hmat(nbnd2,nbnd1)
-          vsicah2sum            =  vsicah2sum + 2.0d0*vsicah(nbnd2,nbnd1)*vsicah(nbnd2,nbnd1)
+          IF(lgam) THEN
+	    vsicah( nbnd2, nbnd1) = DBLE(hmat(nbnd2,nbnd1) -CONJG(hmat(nbnd1,nbnd2)))
+	    vsicah( nbnd1, nbnd2) = DBLE(hmat(nbnd1,nbnd2) -CONJG(hmat(nbnd2,nbnd1)))
+          ELSE
+	    vsicah( nbnd2, nbnd1) = hmat(nbnd2,nbnd1) -CONJG(hmat(nbnd1,nbnd2))
+	    vsicah( nbnd1, nbnd2) = hmat(nbnd1,nbnd2) -CONJG(hmat(nbnd2,nbnd1))
+          ENDIF
+          vsicah2sum            =  vsicah2sum + 2.0d0*CONJG(vsicah(nbnd2,nbnd1))*vsicah(nbnd2,nbnd1)
           !
       enddo
       enddo
@@ -4083,7 +4108,7 @@ end subroutine nksic_getvsicah_new2
       real(dp),     intent(in) :: Heig(nupdwn(isp))
       complex(dp),  intent(in) :: Umat(nupdwn(isp),nupdwn(isp))
       real(dp),     intent(in) :: passof
-      real(dp)                 :: Omat1(nupdwn(isp),nupdwn(isp))
+      complex(dp)                 :: Omat1(nupdwn(isp),nupdwn(isp))
 
       !
       ! local variables
@@ -4104,15 +4129,16 @@ end subroutine nksic_getvsicah_new2
             
           do nbnd1=1,nupdwn(isp)
             dtmp =  passof * Heig(nbnd1)
-            exp_iHeig(nbnd1) = cos(dtmp) + ci*sin(dtmp)
+            exp_iHeig(nbnd1) = cos(dtmp) - ci*sin(dtmp)
           enddo
             
 !$$ Cmattmp = exp(i * passof * Heig) * Umat^dagger   ; Omat = Umat * Cmattmp
           do nbnd1=1,nupdwn(isp)
-            Cmattmp(:,nbnd1) = Umat(:,nbnd1) * exp_iHeig(nbnd1)
+            Cmattmp(nbnd1,:) = exp_iHeig(nbnd1)*CONJG(Umat(:,nbnd1))
           enddo
 
-          Omat1 = dble ( MATMUL(Cmattmp, conjg(transpose(Umat)) ) )
+!           Omat1 = MATMUL( CONJG(TRANSPOSE(Umat)), Cmattmp) !modified:giovanni
+          Omat1 = MATMUL( Umat, Cmattmp) !modified:giovanni
 
       call stop_clock ( "nk_getOmat1" )
 

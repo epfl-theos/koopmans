@@ -26,6 +26,7 @@
              innerloop_cg_nsd=20
              innerloop_cg_nreset=10
              innerloop_nmax = 5
+             do_wf_cmplx=.false.
           /
           &ELECTRONS
              electron_dynamics='cg',

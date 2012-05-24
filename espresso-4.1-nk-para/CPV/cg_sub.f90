@@ -148,7 +148,7 @@
       complex(DP), allocatable :: hitmp(:,:)
       integer     :: ninner,nbnd1,nbnd2,itercgeff
       real(DP)    :: esic
-      real(DP)    :: Omattot(nbspx,nbspx)
+      complex(DP)    :: Omattot(nbspx,nbspx)
       complex(DP) :: hi_tmp(ngw,nbsp)
       real(DP)    :: dtmp
       real(dp),    allocatable :: vsicah(:,:)
@@ -455,9 +455,9 @@
              ninner  = 0
 
              if(.not.do_innerloop_cg) then
-                 call nksic_rot_emin(itercg,ninner,etot,Omattot)
+                 call nksic_rot_emin(itercg,ninner,etot,Omattot, lgam)
              else
-                 call nksic_rot_emin_cg(itercg,ninner,etot,Omattot)
+                 call nksic_rot_emin_cg(itercg,ninner,etot,Omattot,lgam)
              endif
 
 !$$ Now rotate hi(:,:) according to Omattot!
@@ -1290,9 +1290,9 @@
         !set new step
 
         passov=passof
-        passof=2.d0*passo
+!         passof=2.d0*passo
 !$$ doing the following makes the convergence better...
-!         passof=passo
+        passof=passo
 !$$$$
               
         !calculates wave-functions at minimum
