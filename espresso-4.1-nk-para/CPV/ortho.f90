@@ -214,6 +214,7 @@ SUBROUTINE ortho_m_twin(c0, cp, lambda, descla, ccc, nupdwn, iupdwn, nspin)
                                     nlax_ , la_comm_ , descla_siz_
       USE mp_global,          ONLY: nproc_image, me_image, intra_image_comm
       USE mp,                 ONLY: mp_sum
+      USE parallel_toolkit,            ONLY: sqr_tr_cannon
 
       IMPLICIT  NONE
 
@@ -292,7 +293,7 @@ SUBROUTINE ortho_m_twin(c0, cp, lambda, descla, ccc, nupdwn, iupdwn, nspin)
          !    distributed array rhos contains "rho", 
          !    now transpose rhos and store the result in distributed array rhot
          !
-         CALL sqr_tr_cannon_real( nss, rhos, nlam, rhot, nlam, descla ) !modified:giovanni
+         CALL sqr_tr_cannon( nss, rhos, nlam, rhot, nlam, descla ) !modified:giovanni
          !
          !  Compute the symmetric part of rho
          !
@@ -441,6 +442,7 @@ SUBROUTINE ortho_m_twin(c0, cp, lambda, descla, ccc, nupdwn, iupdwn, nspin)
                                     nlax_ , la_comm_ , descla_siz_
       USE mp_global,          ONLY: nproc_image, me_image, intra_image_comm
       USE mp,                 ONLY: mp_sum
+      USE parallel_toolkit,      ONLY: sqr_tr_cannon
 
       IMPLICIT  NONE
 
@@ -529,7 +531,7 @@ SUBROUTINE ortho_m_twin(c0, cp, lambda, descla, ccc, nupdwn, iupdwn, nspin)
          !    distributed array rhos contains "rho", 
          !    now transpose rhos and store the result in distributed array rhot
          !
-         CALL sqr_tr_cannon_cmplx( nss, rhos, nlam, rhot, nlam, descla )
+         CALL sqr_tr_cannon( nss, rhos, nlam, rhot, nlam, descla )
          !
          !  Compute the symmetric part of rho
          !

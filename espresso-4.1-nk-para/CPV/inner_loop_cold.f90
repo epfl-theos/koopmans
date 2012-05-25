@@ -352,9 +352,6 @@
 !====================================================================
 
 
-
-
-
    SUBROUTINE inner_loop_lambda( nfi, tfirst, tlast, eigr,  irb, eigrb, &
                           rhor, rhog, rhos, rhoc, ei1, ei2, ei3, &
                           sfac, c0, bec, firstiter,c0hc0,c1hc1,lambda,  &

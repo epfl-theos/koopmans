@@ -620,7 +620,7 @@
 !$$
 
         do i=1,nbsp,2
-!$$
+!$$  FIRST CALL TO DFORCE
           CALL start_clock( 'dforce1' )
 !$$          call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin,f,n,nspin)
           call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin, faux, nbsp, nspin)
@@ -712,7 +712,7 @@
         if(pre_state) call ave_kin(c0,SIZE(c0,1),nbsp,ave_ene)
 
 !$$        call pcdaga2(c0,phi,hpsi)
-!$$
+!$$     HPSI IS ORTHOGONALIZED TO C0
         if(.not.do_orbdep) then
           call pcdaga2(c0,phi,hpsi, lgam)
         else
@@ -730,10 +730,11 @@
 !          write(701,*)
 !        endif
 !$$
-
+        !TWO VECTORS INITIALIZED TO HPSI
         hpsi0(1:ngw,1:nbsp) = hpsi(1:ngw,1:nbsp)
         gi(1:ngw,1:nbsp)    = hpsi(1:ngw,1:nbsp)
-        
+
+	!COMPUTES ULTRASOFT-PRECONDITIONED HPSI, non kinetic-preconditioned
         call calbec(1,nsp,eigr,hpsi,becm)
         call xminus1_twin(hpsi,betae,dumm,becm,s_minus1,.false.)
 !        call sminus1(hpsi,becm,betae)
@@ -742,7 +743,7 @@
 !look if the following two lines are really needed
         call calbec(1,nsp,eigr,hpsi,becm)
 !$$        call pc2(c0,bec,hpsi,becm)
-!$$     
+!$$     THIS ORTHOGONALIZED PRECONDITIONED VECTOR HPSI
         if(.not.do_orbdep) then
           call pc2(c0,bec,hpsi,becm, lgam)
         else
@@ -751,6 +752,7 @@
         endif
 !$$
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!       COMPUTES ULTRASOFT+KINETIC-preconditioned GI
 !        call kminus1(gi,betae,ema0bg)
         if(.not.pre_state) then
            call xminus1_twin(gi,betae,ema0bg,becm,k_minus1,.true.)
@@ -759,7 +761,7 @@
         endif
         call calbec(1,nsp,eigr,gi,becm)
 !$$        call pc2(c0,bec,gi,becm)
-!$$     
+!$$     !ORTHOGONALIZES GI to c0
         if(.not.do_orbdep) then
           call pc2(c0,bec,gi,becm, lgam)
         else
@@ -769,9 +771,7 @@
 !$$
 
         if(tens) call calcmt_twin( f, z0t, fmat0, .false. )
-
         call calbec(1,nsp,eigr,hpsi,bec0) 
-
 !  calculates gamma
         gamma_c=CMPLX(0.d0,0.d0)
         

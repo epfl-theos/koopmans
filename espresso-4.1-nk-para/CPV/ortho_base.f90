@@ -819,6 +819,7 @@ END SUBROUTINE diagonalize_parallel_cmplx
       USE control_flags,     ONLY: ortho_eps, ortho_max
       USE mp_global,         ONLY: intra_image_comm, me_image, nproc_image
       USE mp,                ONLY: mp_sum, mp_max
+      USE parallel_toolkit,    ONLY: sqr_tr_cannon
       USE descriptors,       ONLY: nlar_ , nlac_ , ilar_ , ilac_ , lambda_node_ , &
                                    la_myr_ , la_myc_ , la_comm_ , descla_siz_ , nlax_
 
@@ -907,7 +908,7 @@ END SUBROUTINE diagonalize_parallel_cmplx
 
         CALL sqr_mm_cannon( 'N', 'N', nss, 1.0d0, xloc, nx0, rhor, ldx, 0.0d0, tmp2, ldx, desc)
 
-        CALL sqr_tr_cannon_real( nss, tmp2, ldx, tmp1, ldx, desc )
+        CALL sqr_tr_cannon( nss, tmp2, ldx, tmp1, ldx, desc )
 
         DO J=1,nc
           DO I=1,nr

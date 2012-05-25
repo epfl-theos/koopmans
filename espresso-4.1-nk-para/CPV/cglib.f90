@@ -1549,13 +1549,13 @@ subroutine pc2(a,beca,b,becb, lgam)
 			  beck%cvec, nhsa, c_zero, qtemp_c, nhsavb )
 	    ENDIF
 	  else
-	  IF(.not.m_minus1%iscmplx) THEN
-	    call para_dgemm( 'N', 'N', nhsavb, n, nhsavb, (1.0d0,0.d0), m_minus1%rvec,nhsavb ,    &
-			beck%rvec, nhsa, (0.0d0,0.d0), qtemp,nhsavb,intra_image_comm )
-	  ELSE
-	    call para_zgemm( 'N', 'N', nhsavb, n, nhsavb, (1.0d0,0.d0), m_minus1%cvec,nhsavb ,    &
-			beck%cvec, nhsa, (0.0d0,0.d0), qtemp_c,nhsavb,intra_image_comm )
-	  ENDIF
+	    IF(.not.m_minus1%iscmplx) THEN
+	      call para_dgemm( 'N', 'N', nhsavb, n, nhsavb, (1.0d0,0.d0), m_minus1%rvec,nhsavb ,    &
+			  beck%rvec, nhsa, (0.0d0,0.d0), qtemp,nhsavb,intra_image_comm )
+	    ELSE
+	      call para_zgemm( 'N', 'N', nhsavb, n, nhsavb, (1.0d0,0.d0), m_minus1%cvec,nhsavb ,    &
+			  beck%cvec, nhsa, (0.0d0,0.d0), qtemp_c,nhsavb,intra_image_comm )
+	    ENDIF
 	  endif
 
 !NB  nhsavb is the total number of US projectors
