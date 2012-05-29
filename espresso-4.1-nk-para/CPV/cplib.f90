@@ -1596,8 +1596,6 @@ END FUNCTION
       !
       aold(:,:)=a(:,:)
 
-      s(:,:)=0.d0
-
       do isp=1,nspin
 
         ndim=nupdwn(isp)

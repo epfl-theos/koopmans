@@ -948,6 +948,10 @@
         endif
         !case of first iteration
 
+	IF(lgam) THEN
+	  gamma_c=CMPLX(DBLE(gamma_c),0.d0)
+	ENDIF
+
 !$$        if(itercg==1.or.(mod(itercg,niter_cg_restart).eq.1).or.restartcg) then
         if( itercg==1 .or. mod(itercg,niter_cg_restart)==0 .or. restartcg) then
 !$$
@@ -964,9 +968,7 @@
 
           !find direction hi for general case 
           !calculates gamma for general case, not using Polak Ribiere
-          IF(lgam) THEN
-            gamma_c=CMPLX(DBLE(gamma_c),0.d0)
-          ENDIF
+
 
           essenew_c=gamma_c
           gamma_c=gamma_c/esse_c
@@ -1130,31 +1132,31 @@
 !$$$$
 
 
-
-!!$$$$ Calculates wavefunction at very close to c0.
-!    if(.false.) then
+! open(file="~/marzari/debug.txt", unit=8000)
+!$$$$ Calculates wavefunction at very close to c0.
+!    if(.true.) then
 !      tmppasso=1.d-4
 !      !
-!#ifdef __DEBUG
-!      if(ionode) write(8000,*) itercg
-!#endif
+! #ifdef __DEBUG
+!      if(ionode) write(6,*) "debug", itercg
+! #endif
 !      do i=1,5
 !        cm(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso * tmppasso * hi(1:ngw,1:nbsp)
 !        if(ng0.eq.2) then
 !          cm(1,:)=0.5d0*(cm(1,:)+CONJG(cm(1,:)))
 !        endif
-!
+! 
 !        call lowdin(cm)
 !        call calbec(1,nsp,eigr,cm,becm)
-!
+! 
 !        call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
 !        vpot = rhor
-!
+! 
 !        call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
 !                    &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
-!
+! 
 !        ene_save2(i)=etot
-!
+! 
 !        if(do_orbdep) then
 !            !
 !            call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
@@ -1174,27 +1176,28 @@
 !            !
 !        endif
 !        !
-!#ifdef __DEBUG
+! #ifdef __DEBUG
 !        if(ionode) then
-!            write(8000,'(2e30.20,3e20.10)')  ene0,etot,dene0,tmppasso,(etot-ene0)/tmppasso/dene0
+!            write(6,'(2e30.20,3e20.10)')  ene0,etot,dene0,tmppasso,(etot-ene0)/tmppasso/dene0
 !        endif
-!#endif
+! #endif
 !        !if(ionode) then
 !        !    write(stdout,'(2e30.20,3e20.10)')  ene0,etot,dene0,tmppasso,(etot-ene0)/tmppasso/dene0
 !        !endif
-!
+! 
 !        ene_save(i)=etot
-!
+! 
 !        tmppasso=tmppasso*0.1d0
 !        !
 !      enddo
-!
-!#ifdef __DEBUG
-!      if(ionode) write(8000,*)
-!#endif
+! 
+! #ifdef __DEBUG
+!      if(ionode) write(6,*) "debug"
+! #endif
 !      !
 !    endif
-!!$$$$
+! close(8000)
+!$$$$
 
 
 
