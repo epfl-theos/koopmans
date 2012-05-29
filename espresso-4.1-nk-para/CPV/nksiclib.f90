@@ -4542,215 +4542,215 @@ end subroutine nksic_getvsicah_new1
 end subroutine nksic_getvsicah_new2
 !---------------------------------------------------------------
 
-!-----------------------------------------------------------------------
-      subroutine nksic_getvsicah_twin( vsicah, vsicah2sum, nlam, descla, lgam)
-!-----------------------------------------------------------------------
-! warning:giovanni IMPLEMENT without spin, call spin-by-spin initialize vsicah outside
-!IT IS JUST LIKE LAMBDA MATRIX, NEED NO FURTHER DESCLA INITIALIZATION!!.. DO AS
-! IN ORTHO_GAMMA... PASS DESCLA MATRIX
-! ... Calculates the anti-hermitian part of the SIC hamiltonian, vsicah.
-!     makes use of nksic_eforce to compute   h_i | phi_i >
-!     and then computes   < phi_j | h_i | phi_i >  in reciprocal space.
-!
-      use kinds,                      only : dp
-      use grid_dimensions,            only : nr1x, nr2x, nr3x, nnrx
-      use gvecw,                      only : ngw
-      use reciprocal_vectors,         only : gstart
-      USE mp,             ONLY: mp_sum,mp_bcast, mp_root_sum
-      use mp_global,                  only : intra_image_comm, leg_ortho
-      use electrons_base,             only : nspin, iupdwn, nupdwn, nbsp,nbspx
-      use cp_interfaces,              only : invfft
-      use fft_base,                   only : dfftp
-      use nksic,                      only : vsic, fsic, vsicpsi, &
-                                             deeq_sic  ! to be passed directly
-      use wavefunctions_module,       only : c0
-      use cp_main_variables,          only : bec  ! to be passed directly
-      use twin_types
-!       USE cp_main_variables,        ONLY : collect_lambda, distribute_lambda, descla, nrlx
-      USE descriptors,       ONLY: lambda_node_ , la_npc_ , la_npr_ , descla_siz_ , &
-                                   descla_init , la_comm_ , ilar_ , ilac_ , nlar_ , &
-                                   nlac_ , la_myr_ , la_myc_ , la_nx_ , la_n_ , la_me_ , la_nrl_, nlax_
-      !
-      implicit none
-      !
-      ! in/out vars
-      ! 
-!       integer,     intent(in)  :: nspin
-      type(twin_matrix), dimension(nspin) :: vsicah!( nupdwn(isp),nupdwn(isp))
-      real(dp)                 :: vsicah2sum
-      logical                  :: lgam
-      INTEGER     :: descla( descla_siz_ )
-      INTEGER :: np_rot, me_rot, comm_rot, nrl
-      !
-      ! local variables
-      !     
-      real(dp)        :: cost
-      integer         :: nbnd1,nbnd2,isp
-      integer         :: i, j1, jj1, j2, jj2, nss, istart, is
-      INTEGER :: np(2), coor_ip(2), ipr, ipc, nr, nc, ir, ic, ii, jj, root, j, nlam, nlax
-      INTEGER :: desc_ip( descla_siz_ )
-      LOGICAL :: la_proc
-      !
-      !complex(dp), allocatable :: vsicpsi(:,:)
-      real(dp), allocatable :: mtmp(:,:)
-      complex(dp),    allocatable :: h0c0(:,:), mtmp_c(:,:)
-!       type(twin_matrix) :: c0hc0(nspin)!modified:giovanni
-    
-      CALL start_clock('nk_get_vsicah')
-
-      nlax    = descla( nlax_ )
-      la_proc = ( descla( lambda_node_ ) > 0 )
-      nlam    = 1
-      if ( la_proc ) nlam = nlax_
-      !
-      !
-      ! warning:giovanni:put a check on dimensions here?? (like in ortho_base/ortho)
-      ! this check should be on dimensionality of vsicah
-      !
-      cost     = dble( nspin ) * 2.0d0
-      !
-      !allocate( vsicpsi(npw,2) )
-!       allocate(c0hc0(nspin))
-      allocate(h0c0(ngw,nbspx))
-
-!       do is=1,nspin
-! 	call init_twin(c0hc0(is),lgam)
-! 	call allocate_twin(c0hc0(is),nlam,nlam,lgam)
-!       enddo
-
-      !
-      ! compute < phi_j | Delta h_i | phi_i > 
-      !
-! 
-      do j1 = 1, nbsp, 2
-          !
-          ! NOTE: USPP not implemented
-          !
-          CALL nksic_eforce( j1, nbsp, nbspx, vsic, &
-                             deeq_sic, bec, ngw, c0(:,j1), c0(:,j1+1), h0c0(:,j1:j1+1), lgam )
-          !
-      enddo
-
-      DO is= 1, nspin
-
-	nss= nupdwn( is )
-	istart= iupdwn( is )
-
-	np(1) = descla( la_npr_ , is )
-	np(2) = descla( la_npc_ , is )
-
-	DO ipc = 1, np(2)
-	    DO ipr = 1, np(1)
-
-	      coor_ip(1) = ipr - 1
-	      coor_ip(2) = ipc - 1
-	      CALL descla_init( desc_ip, descla( la_n_ , is ), descla( la_nx_ , is ), np, coor_ip, descla( la_comm_ , is ), 1 )
-
-	      nr = desc_ip( nlar_ )
-	      nc = desc_ip( nlac_ )
-	      ir = desc_ip( ilar_ )
-	      ic = desc_ip( ilac_ )
-
-	      CALL GRID2D_RANK( 'R', desc_ip( la_npr_ ), desc_ip( la_npc_ ), &
-				desc_ip( la_myr_ ), desc_ip( la_myc_ ), root )
-	      !
-	      root = root * leg_ortho
-
-	      IF(.not.c0hc0(is)%iscmplx) THEN
-		ALLOCATE( mtmp( nr, nc ) )
-		mtmp = 0.0d0
-		CALL DGEMM( 'T', 'N', nr, nc, 2*ngw, - 2.0d0, c0( 1, istart + ir - 1 ), 2*ngw, &
-			  h0c0( 1, istart + ic - 1 ), 2*ngw, 0.0d0, mtmp, nr )
-		IF (gstart == 2) THEN
-		  DO jj = 1, nc
-		      DO ii = 1, nr
-			i = ii + ir - 1
-			j = jj + ic - 1
-			mtmp(ii,jj) = mtmp(ii,jj) + DBLE( c0( 1, i + istart - 1 ) ) * DBLE( h0c0( 1, j + istart - 1 ) )
-		      END DO
-		  END DO
-		END IF
-		mtmp=mtmp*cost
-	      ELSE
-		ALLOCATE( mtmp_c( nr, nc ) )
-		mtmp_c = CMPLX(0.0d0,0.d0)
-		CALL ZGEMM( 'C', 'N', nr, nc, ngw, CMPLX(- 1.0d0,0.d0), c0( 1, istart + ir - 1 ),ngw, &
-			  h0c0( 1, istart + ic - 1 ), ngw, CMPLX(0.0d0,0.d0), mtmp_c, nr )
-	      ENDIF
-	      mtmp_c=mtmp_c*cost
-	      IF(.not.c0hc0(is)%iscmplx) THEN
-		CALL mp_root_sum( mtmp, vsicah(is)%rvec(1:nr,1:nc), root, intra_image_comm )
-		DEALLOCATE( mtmp )
-	      ELSE
-		CALL mp_root_sum( mtmp_c, vsicah(is)%cvec(1:nr,1:nc), root, intra_image_comm )
-		DEALLOCATE( mtmp_c )
-	      ENDIF
-!                  IF( coor_ip(1) == descla( la_myr_ , is ) .AND. &
-!                      coor_ip(2) == descla( la_myc_ , is ) .AND. descla( lambda_node_ , is ) > 0 ) THEN
-!                     c0hc0(1:nr,1:nc,is) = mtmp
-!                  END IF
-	    END DO
-	END DO
-! 
-! fill mtmp or mtmp_c with hermitian conjugate of vsicah
-! and
-! antisymmetrize vsicah
-	IF(lgam) THEN
-          allocate(mtmp(nlam,nlam))
-          mtmp=0.d0
-          CALL sqr_tr_cannon( nupdw(is), vsicah(is)%rvec, nlam, mtmp, nlam, descla )
-	  DO i=1,nr
-	      DO j=1,nc
-		vsicah(is)%rvec(i,j) = vsicah(is)%rvec(i,j)-mtmp(i,j)
-	      END DO
-	  END DO
-         deallocate(mtmp)
-	ELSE
-          allocate(mtmp_c(nlam,nlam))
-          mtmp_c=0.d0
-          CALL sqr_tr_cannon( nupdw(is), vsicah(is)%cvec, nlam, mtmp_c, nlam, descla )
-	  DO i=1,nr
-	      DO j=1,nc
-		vsicah(is)%cvec(i,j) = vsicah(is)%cvec(i,j)-mtmp(i,j)
-	      END DO
-	  END DO
-          deallocate(mtmp_c)
-        ENDIF
-
-      END DO
-
-      !
-      ! Imposing Pederson condition
-      !
-      
-!       vsicah(:,:) = 0.d0
-!       vsicah2sum = 0.0d0
+! !-----------------------------------------------------------------------
+!       subroutine nksic_getvsicah_twin( vsicah, vsicah2sum, nlam, descla, lgam)
+! !-----------------------------------------------------------------------
+! ! warning:giovanni IMPLEMENT without spin, call spin-by-spin initialize vsicah outside
+! !IT IS JUST LIKE LAMBDA MATRIX, NEED NO FURTHER DESCLA INITIALIZATION!!.. DO AS
+! ! IN ORTHO_GAMMA... PASS DESCLA MATRIX
+! ! ... Calculates the anti-hermitian part of the SIC hamiltonian, vsicah.
+! !     makes use of nksic_eforce to compute   h_i | phi_i >
+! !     and then computes   < phi_j | h_i | phi_i >  in reciprocal space.
+! !
+!       use kinds,                      only : dp
+!       use grid_dimensions,            only : nr1x, nr2x, nr3x, nnrx
+!       use gvecw,                      only : ngw
+!       use reciprocal_vectors,         only : gstart
+!       USE mp,             ONLY: mp_sum,mp_bcast, mp_root_sum
+!       use mp_global,                  only : intra_image_comm, leg_ortho
+!       use electrons_base,             only : nspin, iupdwn, nupdwn, nbsp,nbspx
+!       use cp_interfaces,              only : invfft
+!       use fft_base,                   only : dfftp
+!       use nksic,                      only : vsic, fsic, vsicpsi, &
+!                                              deeq_sic  ! to be passed directly
+!       use wavefunctions_module,       only : c0
+!       use cp_main_variables,          only : bec  ! to be passed directly
+!       use twin_types
+! !       USE cp_main_variables,        ONLY : collect_lambda, distribute_lambda, descla, nrlx
+!       USE descriptors,       ONLY: lambda_node_ , la_npc_ , la_npr_ , descla_siz_ , &
+!                                    descla_init , la_comm_ , ilar_ , ilac_ , nlar_ , &
+!                                    nlac_ , la_myr_ , la_myc_ , la_nx_ , la_n_ , la_me_ , la_nrl_, nlax_
 !       !
-!       do nbnd1 = 1, nupdwn(isp)
-!       do nbnd2 = 1, nbnd1-1
+!       implicit none
+!       !
+!       ! in/out vars
+!       ! 
+! !       integer,     intent(in)  :: nspin
+!       type(twin_matrix), dimension(nspin) :: vsicah!( nupdwn(isp),nupdwn(isp))
+!       real(dp)                 :: vsicah2sum
+!       logical                  :: lgam
+!       INTEGER     :: descla( descla_siz_ )
+!       INTEGER :: np_rot, me_rot, comm_rot, nrl
+!       !
+!       ! local variables
+!       !     
+!       real(dp)        :: cost
+!       integer         :: nbnd1,nbnd2,isp
+!       integer         :: i, j1, jj1, j2, jj2, nss, istart, is
+!       INTEGER :: np(2), coor_ip(2), ipr, ipc, nr, nc, ir, ic, ii, jj, root, j, nlam, nlax
+!       INTEGER :: desc_ip( descla_siz_ )
+!       LOGICAL :: la_proc
+!       !
+!       !complex(dp), allocatable :: vsicpsi(:,:)
+!       real(dp), allocatable :: mtmp(:,:)
+!       complex(dp),    allocatable :: h0c0(:,:), mtmp_c(:,:)
+! !       type(twin_matrix) :: c0hc0(nspin)!modified:giovanni
+!     
+!       CALL start_clock('nk_get_vsicah')
+! 
+!       nlax    = descla( nlax_ )
+!       la_proc = ( descla( lambda_node_ ) > 0 )
+!       nlam    = 1
+!       if ( la_proc ) nlam = nlax_
+!       !
+!       !
+!       ! warning:giovanni:put a check on dimensions here?? (like in ortho_base/ortho)
+!       ! this check should be on dimensionality of vsicah
+!       !
+!       cost     = dble( nspin ) * 2.0d0
+!       !
+!       !allocate( vsicpsi(npw,2) )
+! !       allocate(c0hc0(nspin))
+!       allocate(h0c0(ngw,nbspx))
+! 
+! !       do is=1,nspin
+! ! 	call init_twin(c0hc0(is),lgam)
+! ! 	call allocate_twin(c0hc0(is),nlam,nlam,lgam)
+! !       enddo
+! 
+!       !
+!       ! compute < phi_j | Delta h_i | phi_i > 
+!       !
+! ! 
+!       do j1 = 1, nbsp, 2
 !           !
-!           IF(lgam) THEN
-! 	    vsicah( nbnd2, nbnd1) = DBLE(hmat(nbnd2,nbnd1) -CONJG(hmat(nbnd1,nbnd2)))
-! 	    vsicah( nbnd1, nbnd2) = DBLE(hmat(nbnd1,nbnd2) -CONJG(hmat(nbnd2,nbnd1)))
-!           ELSE
-! 	    vsicah( nbnd2, nbnd1) = hmat(nbnd2,nbnd1) -CONJG(hmat(nbnd1,nbnd2))
-! 	    vsicah( nbnd1, nbnd2) = hmat(nbnd1,nbnd2) -CONJG(hmat(nbnd2,nbnd1))
-!           ENDIF
-!           vsicah2sum            =  vsicah2sum + 2.0d0*CONJG(vsicah(nbnd2,nbnd1))*vsicah(nbnd2,nbnd1)
+!           ! NOTE: USPP not implemented
+!           !
+!           CALL nksic_eforce( j1, nbsp, nbspx, vsic, &
+!                              deeq_sic, bec, ngw, c0(:,j1), c0(:,j1+1), h0c0(:,j1:j1+1), lgam )
 !           !
 !       enddo
-!       enddo
-      !
-      deallocate( h0c0 )
-
-      !
-      call stop_clock('nk_get_vsicah')
-      !
-      return
-      !
-!---------------------------------------------------------------
-end subroutine nksic_getvsicah_twin
-!---------------------------------------------------------------
+! 
+!       DO is= 1, nspin
+! 
+! 	nss= nupdwn( is )
+! 	istart= iupdwn( is )
+! 
+! 	np(1) = descla( la_npr_ , is )
+! 	np(2) = descla( la_npc_ , is )
+! 
+! 	DO ipc = 1, np(2)
+! 	    DO ipr = 1, np(1)
+! 
+! 	      coor_ip(1) = ipr - 1
+! 	      coor_ip(2) = ipc - 1
+! 	      CALL descla_init( desc_ip, descla( la_n_ , is ), descla( la_nx_ , is ), np, coor_ip, descla( la_comm_ , is ), 1 )
+! 
+! 	      nr = desc_ip( nlar_ )
+! 	      nc = desc_ip( nlac_ )
+! 	      ir = desc_ip( ilar_ )
+! 	      ic = desc_ip( ilac_ )
+! 
+! 	      CALL GRID2D_RANK( 'R', desc_ip( la_npr_ ), desc_ip( la_npc_ ), &
+! 				desc_ip( la_myr_ ), desc_ip( la_myc_ ), root )
+! 	      !
+! 	      root = root * leg_ortho
+! 
+! 	      IF(.not.c0hc0(is)%iscmplx) THEN
+! 		ALLOCATE( mtmp( nr, nc ) )
+! 		mtmp = 0.0d0
+! 		CALL DGEMM( 'T', 'N', nr, nc, 2*ngw, - 2.0d0, c0( 1, istart + ir - 1 ), 2*ngw, &
+! 			  h0c0( 1, istart + ic - 1 ), 2*ngw, 0.0d0, mtmp, nr )
+! 		IF (gstart == 2) THEN
+! 		  DO jj = 1, nc
+! 		      DO ii = 1, nr
+! 			i = ii + ir - 1
+! 			j = jj + ic - 1
+! 			mtmp(ii,jj) = mtmp(ii,jj) + DBLE( c0( 1, i + istart - 1 ) ) * DBLE( h0c0( 1, j + istart - 1 ) )
+! 		      END DO
+! 		  END DO
+! 		END IF
+! 		mtmp=mtmp*cost
+! 	      ELSE
+! 		ALLOCATE( mtmp_c( nr, nc ) )
+! 		mtmp_c = CMPLX(0.0d0,0.d0)
+! 		CALL ZGEMM( 'C', 'N', nr, nc, ngw, CMPLX(- 1.0d0,0.d0), c0( 1, istart + ir - 1 ),ngw, &
+! 			  h0c0( 1, istart + ic - 1 ), ngw, CMPLX(0.0d0,0.d0), mtmp_c, nr )
+! 	      ENDIF
+! 	      mtmp_c=mtmp_c*cost
+! 	      IF(.not.c0hc0(is)%iscmplx) THEN
+! 		CALL mp_root_sum( mtmp, vsicah(is)%rvec(1:nr,1:nc), root, intra_image_comm )
+! 		DEALLOCATE( mtmp )
+! 	      ELSE
+! 		CALL mp_root_sum( mtmp_c, vsicah(is)%cvec(1:nr,1:nc), root, intra_image_comm )
+! 		DEALLOCATE( mtmp_c )
+! 	      ENDIF
+! !                  IF( coor_ip(1) == descla( la_myr_ , is ) .AND. &
+! !                      coor_ip(2) == descla( la_myc_ , is ) .AND. descla( lambda_node_ , is ) > 0 ) THEN
+! !                     c0hc0(1:nr,1:nc,is) = mtmp
+! !                  END IF
+! 	    END DO
+! 	END DO
+! ! 
+! ! fill mtmp or mtmp_c with hermitian conjugate of vsicah
+! ! and
+! ! antisymmetrize vsicah
+! 	IF(lgam) THEN
+!           allocate(mtmp(nlam,nlam))
+!           mtmp=0.d0
+!           CALL sqr_tr_cannon( nupdw(is), vsicah(is)%rvec, nlam, mtmp, nlam, descla )
+! 	  DO i=1,nr
+! 	      DO j=1,nc
+! 		vsicah(is)%rvec(i,j) = vsicah(is)%rvec(i,j)-mtmp(i,j)
+! 	      END DO
+! 	  END DO
+!          deallocate(mtmp)
+! 	ELSE
+!           allocate(mtmp_c(nlam,nlam))
+!           mtmp_c=0.d0
+!           CALL sqr_tr_cannon( nupdw(is), vsicah(is)%cvec, nlam, mtmp_c, nlam, descla )
+! 	  DO i=1,nr
+! 	      DO j=1,nc
+! 		vsicah(is)%cvec(i,j) = vsicah(is)%cvec(i,j)-mtmp(i,j)
+! 	      END DO
+! 	  END DO
+!           deallocate(mtmp_c)
+!         ENDIF
+! 
+!       END DO
+! 
+!       !
+!       ! Imposing Pederson condition
+!       !
+!       
+! !       vsicah(:,:) = 0.d0
+! !       vsicah2sum = 0.0d0
+! !       !
+! !       do nbnd1 = 1, nupdwn(isp)
+! !       do nbnd2 = 1, nbnd1-1
+! !           !
+! !           IF(lgam) THEN
+! ! 	    vsicah( nbnd2, nbnd1) = DBLE(hmat(nbnd2,nbnd1) -CONJG(hmat(nbnd1,nbnd2)))
+! ! 	    vsicah( nbnd1, nbnd2) = DBLE(hmat(nbnd1,nbnd2) -CONJG(hmat(nbnd2,nbnd1)))
+! !           ELSE
+! ! 	    vsicah( nbnd2, nbnd1) = hmat(nbnd2,nbnd1) -CONJG(hmat(nbnd1,nbnd2))
+! ! 	    vsicah( nbnd1, nbnd2) = hmat(nbnd1,nbnd2) -CONJG(hmat(nbnd2,nbnd1))
+! !           ENDIF
+! !           vsicah2sum            =  vsicah2sum + 2.0d0*CONJG(vsicah(nbnd2,nbnd1))*vsicah(nbnd2,nbnd1)
+! !           !
+! !       enddo
+! !       enddo
+!       !
+!       deallocate( h0c0 )
+! 
+!       !
+!       call stop_clock('nk_get_vsicah')
+!       !
+!       return
+!       !
+! !---------------------------------------------------------------
+! end subroutine nksic_getvsicah_twin
+! !---------------------------------------------------------------
 
 !-----------------------------------------------------------------------
       subroutine nksic_getOmat1(isp,Heig,Umat,passof,Omat1)

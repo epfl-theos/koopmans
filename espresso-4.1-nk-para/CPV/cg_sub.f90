@@ -964,12 +964,15 @@
 
           !find direction hi for general case 
           !calculates gamma for general case, not using Polak Ribiere
-          
+          IF(lgam) THEN
+            gamma_c=CMPLX(DBLE(gamma_c),0.d0)
+          ENDIF
+
           essenew_c=gamma_c
           gamma_c=gamma_c/esse_c
           esse_c=essenew_c
 
-          hi(1:ngw,1:nbsp)=gi(1:ngw,1:nbsp)+DBLE(gamma_c)*hi(1:ngw,1:nbsp)
+          hi(1:ngw,1:nbsp)=gi(1:ngw,1:nbsp)+(gamma_c)*hi(1:ngw,1:nbsp)
 
         endif
 !note that hi, is saved  on gi, because we need it before projection on conduction states
