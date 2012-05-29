@@ -3088,7 +3088,7 @@ end subroutine nksic_rot_test
       hi(:,:) = 0.d0
       gi(:,:) = 0.d0
 
-      Omattot(:,:)=0.d0
+      Omattot(:,:)=CMPLX(0.d0,0.d0)
       do nbnd1=1,nbspx
           Omattot(nbnd1,nbnd1)=CMPLX(1.d0,0.d0)
       enddo
@@ -3272,9 +3272,9 @@ end subroutine nksic_rot_test
                 nidx1 = nbnd1-1+iupdwn(isp)
                 nidx2 = nbnd2-1+iupdwn(isp)
                 IF(nidx1.ne.nidx2) THEN
-                  dene0 = dene0 -CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2)
+                  dene0 = dene0 -0.5d0*DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2))
                 ELSE
-                  dene0 = dene0 -0.5d0*CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2)
+                  dene0 = dene0 -DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2))
                 ENDIF
                 !
             enddo
@@ -3725,10 +3725,10 @@ end subroutine nksic_rot_emin_cg
                 !
                 nidx1 = nbnd1-1+iupdwn(isp)
                 nidx2 = nbnd2-1+iupdwn(isp)
-                IF(nidx1.ne.nidx2) THEN
-                  dene0 = dene0 -CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2)
+                IF(nidx1.eq.nidx2) THEN
+                  dene0 = dene0 -DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2))
                 ELSE
-                  dene0 = dene0 -0.5d0*CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2)
+                  dene0 = dene0 -0.5d0*DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2))
                 ENDIF
                 !
             enddo
@@ -3971,6 +3971,9 @@ end subroutine nksic_rot_emin_cg_descla
         Heig(:) = Heigbig(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp))
 
         call nksic_getOmat1(isp,Heig,Umat,dalpha,Omat1)
+        IF(lgam) THEN
+          Omat1(:,:) = CMPLX(DBLE(Omat1(:,:)),0.d0)
+        ENDIF
 
 !$$ Wavefunction wfc0 is rotated into wfc0 using Omat1
         call nksic_rotwfn(isp,Omat1,wfc0,wfc1)
@@ -4094,7 +4097,7 @@ end subroutine nksic_rotwfn
       ci = (0.d0,1.d0)
 
 !$$ Now this part diagonalizes Hmat = iWmat
-      Hmat(:,:) = -ci * vsicah(:,:)
+      Hmat(:,:) = ci * vsicah(:,:)
 !$$ diagonalize Hmat
 !      if(ionode) then
       CALL zdiag(nupdwn(isp),nupdwn(isp),Hmat(1,1),Heig(1),Umat(1,1),1)
@@ -4492,11 +4495,11 @@ end subroutine nksic_getvsicah_new1
                   !
                   j2 = nbnd2+iupdwn(isp)-1
                   IF(lgam) THEN
-		      hmat(nbnd2,nbnd1+jj1-1) = 2.d0*dot_product( c0(:,j2), vsicpsi(:,jj1))
+		      hmat(nbnd2,nbnd1+jj1-1) = 2.d0*DBLE(DOT_PRODUCT( c0(:,j2), vsicpsi(:,jj1)))
 		      !
 		      if ( gstart == 2 ) then
 			  hmat(nbnd2,nbnd1+jj1-1) = hmat(nbnd2,nbnd1+jj1-1) - &
-						    dble( c0(1,j2) * vsicpsi(1,jj1) )
+						    DBLE( c0(1,j2) * vsicpsi(1,jj1) )
 		      endif
                   ELSE
 		      hmat(nbnd2,nbnd1+jj1-1) = dot_product( c0(:,j2), vsicpsi(:,jj1))
@@ -4792,7 +4795,7 @@ end subroutine nksic_getvsicah_new2
             
           do nbnd1=1,nupdwn(isp)
             dtmp =  passof * Heig(nbnd1)
-            exp_iHeig(nbnd1) = cos(dtmp) - ci*sin(dtmp)
+            exp_iHeig(nbnd1) = cos(dtmp) + ci*sin(dtmp)
           enddo
             
 !$$ Cmattmp = exp(i * passof * Heig) * Umat^dagger   ; Omat = Umat * Cmattmp

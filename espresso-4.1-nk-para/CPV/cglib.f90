@@ -653,7 +653,7 @@ subroutine pc2(a,beca,b,becb, lgam)
 		      sca=sca+DBLE(CONJG(a(ig,j))*b(ig,i))
 		  enddo
 		  sca = sca*2.0d0  !2. for real weavefunctions
-		  if (ng0.eq.2) sca = sca - dble(a(1,j))*dble(b(1,i))
+		  if (ng0.eq.2) sca = sca - DBLE(a(1,j))*DBLE(b(1,i))
                ELSE
 		  do  ig=1,ngw           !loop on g vectors
 		      sca=sca+CONJG(a(ig,j))*b(ig,i)
