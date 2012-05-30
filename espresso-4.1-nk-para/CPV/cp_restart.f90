@@ -934,6 +934,8 @@ MODULE cp_restart
             !
             IF(allocated(mrepl_c)) THEN
                 DEALLOCATE( mrepl_c )
+            ELSE IF(allocated(mrepl)) THEN
+                DEALLOCATE( mrepl )
             ENDIF
 	    ! 
 	    ! 
