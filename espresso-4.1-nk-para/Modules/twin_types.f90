@@ -214,7 +214,6 @@ MODULE twin_types
    character(len=24)   :: subname="allocate_twin_matrix"
    INTEGER             :: ierr
 
-   !write(6,*) "allocating twin matrix"
    IF(tmatrix%isalloc) THEN
      call deallocate_twin(tmatrix)
    ENDIF
@@ -250,18 +249,20 @@ MODULE twin_types
     INTEGER           :: ierr
 
     IF(.not.tmatrix%iscmplx) THEN
-       !write(6,*) "deallocating rvec"
-       deallocate(tmatrix%rvec, STAT=ierr)
-       nullify(tmatrix%rvec)
-       IF(ierr/=0) call errore(subname,"deallocating twin_matrix rvec", abs(ierr))
+       IF(associated(tmatrix%rvec)) THEN
+	  deallocate(tmatrix%rvec, STAT=ierr)
+         nullify(tmatrix%rvec)
+         IF(ierr/=0) call errore(subname,"deallocating twin_matrix rvec", abs(ierr))       
+       ENDIF
     ENDIF
 
     IF(tmatrix%iscmplx) THEN
        !write(6,*) "deallocating cvec", tmatrix%xdim, tmatrix%ydim, tmatrix%iscmplx, tmatrix%isalloc, associated(tmatrix%rvec)
-       deallocate(tmatrix%cvec, STAT=ierr)
-       !write(6,*) "deallocating cvec", ierr
-       nullify(tmatrix%cvec)
-       IF(ierr/=0) call errore(subname,"deallocating twin_matrix cvec", abs(ierr))
+       IF(associated(tmatrix%cvec)) THEN
+	  deallocate(tmatrix%cvec, STAT=ierr)
+          nullify(tmatrix%cvec)
+          IF(ierr/=0) call errore(subname,"deallocating twin_matrix cvec", abs(ierr))
+       ENDIF
     ENDIF
 
     tmatrix%xdim=0
@@ -314,13 +315,19 @@ MODULE twin_types
     INTEGER :: ierr
 
     IF(.not.ttensor%iscmplx) THEN
-       DEALLOCATE(ttensor%rvec, STAT=ierr)
-       IF(ierr/=0) call errore(subname,"deallocating twin_tensor rvec", abs(ierr))
+       IF(associated(ttensor%rvec)) THEN
+	  DEALLOCATE(ttensor%rvec, STAT=ierr)
+	  nullify(ttensor%rvec)
+	  IF(ierr/=0) call errore(subname,"deallocating twin_tensor rvec", abs(ierr))
+       ENDIF
     ENDIF
     
     IF(ttensor%iscmplx) THEN
-       DEALLOCATE(ttensor%cvec, STAT=ierr)
-       IF(ierr/=0) call errore(subname,"deallocating twin_tensor cvec", abs(ierr))
+       IF(associated(ttensor%cvec)) THEN
+	  DEALLOCATE(ttensor%cvec, STAT=ierr)
+	  nullify(ttensor%cvec)
+	  IF(ierr/=0) call errore(subname,"deallocating twin_tensor cvec", abs(ierr))
+       ENDIF
     ENDIF
 
     ttensor%xdim=0

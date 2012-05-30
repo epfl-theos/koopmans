@@ -288,6 +288,7 @@ CONTAINS
     !
     INTEGER :: ispin
     !
+!     write(6,*) "allocating ensemble_dft", lgam
       allocate(c0diag(ngw,nx))
 !       allocate(z0t(nrlx,nudx,nspin))
 !       allocate(becdiag(nhsa,n))
@@ -323,7 +324,7 @@ CONTAINS
 !     IF( ALLOCATED( z0t ) )            deallocate(z0t )
     !begin_modified:giovanni
     IF(ionode) THEN
-      write(6,*) "debug0"
+      write(6,*) "debug0", becdiag%iscmplx
     ENDIF
     call deallocate_twin(becdiag)
     IF(ionode) THEN
@@ -331,13 +332,13 @@ CONTAINS
     ENDIF
     do ispin=1,size(fmat0)
       call deallocate_twin(fmat0(ispin))
-    IF(ionode) THEN
-      write(6,*) "debug2"
-    ENDIF
+      IF(ionode) THEN
+        write(6,*) "debug2"
+      ENDIF
       call deallocate_twin(psihpsi(ispin))
-    IF(ionode) THEN
-      write(6,*) "debug3"
-    ENDIF
+      IF(ionode) THEN
+        write(6,*) "debug3"
+      ENDIF
       call deallocate_twin(z0t(ispin))
     enddo
     IF( ALLOCATED( fmat0 ) )             deallocate(fmat0 )
