@@ -3509,6 +3509,7 @@ MODULE cp_restart
 		CALL mp_bcast( mrepl, ionode_id, intra_image_comm )
 
 		CALL distribute_lambda( mrepl, lambdam(iss)%rvec(:,:), descla(:,iss) )
+               DEALLOCATE(mrepl)
 		!
             ELSE
                   WRITE( stdout, * ) 'here should be iotk first error'
@@ -3535,7 +3536,7 @@ MODULE cp_restart
 		! 
 		CALL mp_bcast( mrepl_c, ionode_id, intra_image_comm )
 		CALL distribute_lambda( mrepl_c, lambdam(iss)%cvec(:,:), descla(:,iss) )
-                DEALLOCATE(mrepl_c)
+               DEALLOCATE(mrepl_c)
 
             ENDIF
 
