@@ -932,25 +932,25 @@ MODULE cp_restart
                !
             END IF
             !
-            IF(allocated(mrepl_c)) THEN
-                DEALLOCATE( mrepl_c )
-            ELSE IF(allocated(mrepl)) THEN
-                DEALLOCATE( mrepl )
-            ENDIF
+!             IF(allocated(mrepl_c)) THEN
+!                 DEALLOCATE( mrepl_c )
+!             ELSE IF(allocated(mrepl)) THEN
+!                 DEALLOCATE( mrepl )
+!             ENDIF
 	    ! 
 	    ! 
             IF( PRESENT( mat_z ) ) THEN
                !
                IF(.not.mat_z(iss)%iscmplx) THEN
-		IF(.not.allocated(mrepl)) THEN
-		  ALLOCATE( mrepl( nudx, nudx ) )
-		ENDIF
-		CALL collect_zmat( mrepl, mat_z(iss)%rvec(:,:), descla(:,iss) )
+		  IF(.not.allocated(mrepl)) THEN
+		    ALLOCATE( mrepl( nudx, nudx ) )
+		  ENDIF
+		  CALL collect_zmat( mrepl, mat_z(iss)%rvec(:,:), descla(:,iss) )
                ELSE
-		IF(.not.allocated(mrepl_c)) THEN
-		  ALLOCATE( mrepl_c( nudx, nudx ) )
-		ENDIF
-		CALL collect_zmat( mrepl_c, mat_z(iss)%cvec(:,:), descla(:,iss) )
+		  IF(.not.allocated(mrepl_c)) THEN
+		    ALLOCATE( mrepl_c( nudx, nudx ) )
+		  ENDIF
+		  CALL collect_zmat( mrepl_c, mat_z(iss)%cvec(:,:), descla(:,iss) )
                ENDIF
                !
                IF ( ionode ) THEN
@@ -968,14 +968,15 @@ MODULE cp_restart
                   !
                END IF
                !
+
             END IF
             !
 	    IF(allocated(mrepl)) THEN
 	      DEALLOCATE( mrepl )
-            ENDIF
-            IF(allocated(mrepl_c)) THEN
+	    ENDIF
+	    IF(allocated(mrepl_c)) THEN
 	      DEALLOCATE( mrepl_c )
-            ENDIF
+	    ENDIF
             !
          END DO
          !
@@ -3542,18 +3543,12 @@ MODULE cp_restart
 
             IF ( PRESENT( mat_z ) ) THEN
                !
-               IF(.not.(mat_z(iss)%iscmplx)) THEN
-                 IF(.not.allocated(mrepl)) THEN
-                  ALLOCATE(mrepl(nudx,nudx))
-                 ENDIF
-               ELSE
-                 IF(.not.allocated(mrepl_c)) THEN
-                  ALLOCATE(mrepl_c(nudx,nudx))
-                 ENDIF
-               ENDIF
 
                IF( ionode ) THEN
                   IF(.not.mat_z(iss)%iscmplx) THEN
+		    IF(.not.allocated(mrepl)) THEN
+		      ALLOCATE(mrepl(nudx,nudx))
+		    ENDIF
 		    CALL iotk_scan_dat( iunpun, "MAT_Z" // TRIM( iotk_index( iss ) ), mrepl, FOUND = found )
 		    IF( .NOT. found ) THEN
 		      WRITE( stdout, * ) 'WARNING mat_z not read from restart file'
@@ -3563,6 +3558,9 @@ MODULE cp_restart
 		    CALL distribute_zmat( mrepl, mat_z(iss)%rvec(:,:), descla(:,iss) )
 		    DEALLOCATE(mrepl)
                   ELSE
+                   IF(.not.allocated(mrepl_c)) THEN
+                    ALLOCATE(mrepl_c(nudx,nudx))
+                   ENDIF
 		    CALL iotk_scan_dat( iunpun, "MAT_Z" // TRIM( iotk_index( iss ) ), mrepl_c, FOUND = found )
 		    IF( .NOT. found ) THEN
 		      WRITE( stdout, * ) 'WARNING mat_z not read from restart file'
