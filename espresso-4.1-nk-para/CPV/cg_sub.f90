@@ -149,13 +149,11 @@
       integer     :: ninner,nbnd1,nbnd2,itercgeff
       real(DP)    :: esic
       complex(DP)    :: Omattot(nbspx,nbspx)
-      complex(DP) :: hi_tmp(ngw,nbsp)
       real(DP)    :: dtmp
-      real(dp),    allocatable :: vsicah(:,:)
-      real(dp)    :: vsicah2sum
       real(dp)    :: tmppasso, ene_save(100), ene_save2(100), ene_lda
       !
       logical :: lgam
+      integer :: ierr
       !
       lgam=gamma_only.and..not.do_wf_cmplx
       !
@@ -413,12 +411,12 @@
 
           if(tefield  ) then!just in this case calculates elfield stuff at zeo field-->to be bettered
             
-             call berry_energy( enb, enbi, bec, c0(:,:), fion )
+             call berry_energy( enb, enbi, bec%rvec, c0(:,:), fion )
              etot=etot+enb+enbi
           endif
           if(tefield2  ) then!just in this case calculates elfield stuff at zeo field-->to be bettered
 
-             call berry_energy2( enb, enbi, bec, c0(:,:), fion )
+             call berry_energy2( enb, enbi, bec%rvec, c0(:,:), fion )
              etot=etot+enb+enbi
           endif
 
@@ -628,16 +626,16 @@
 !$$
 
           if(tefield .and. (evalue.ne.0.d0)) then
-            call dforceb(c0, i, betae, ipolp, bec ,ctabin(1,1,ipolp), gqq, gqqm, qmat, deeq, df)
+            call dforceb(c0, i, betae, ipolp, bec%rvec ,ctabin(1,1,ipolp), gqq, gqqm, qmat, deeq, df)
             c2(1:ngw)=c2(1:ngw)+evalue*df(1:ngw)
-            call dforceb(c0, i+1, betae, ipolp, bec ,ctabin(1,1,ipolp), gqq, gqqm, qmat, deeq, df)
+            call dforceb(c0, i+1, betae, ipolp, bec%rvec ,ctabin(1,1,ipolp), gqq, gqqm, qmat, deeq, df)
             c3(1:ngw)=c3(1:ngw)+evalue*df(1:ngw)
           endif
           !
           if(tefield2 .and. (evalue2.ne.0.d0)) then
-            call dforceb(c0, i, betae, ipolp2, bec ,ctabin2(1,1,ipolp2), gqq2, gqqm2, qmat2, deeq, df)
+            call dforceb(c0, i, betae, ipolp2, bec%rvec ,ctabin2(1,1,ipolp2), gqq2, gqqm2, qmat2, deeq, df)
             c2(1:ngw)=c2(1:ngw)+evalue2*df(1:ngw)
-            call dforceb(c0, i+1, betae, ipolp2, bec ,ctabin2(1,1,ipolp2), gqq2, gqqm2, qmat2, deeq, df)
+            call dforceb(c0, i+1, betae, ipolp2, bec%rvec ,ctabin2(1,1,ipolp2), gqq2, gqqm2, qmat2, deeq, df)
             c3(1:ngw)=c3(1:ngw)+evalue2*df(1:ngw)
           endif
 
@@ -1910,7 +1908,9 @@
            call bforceion(fion,tfor.or.tprnfor,ipolp2, qmat2,bec,becdr,gqq2,evalue2)
         endif
         deallocate(hpsi0,hpsi,gi,hi)
-        deallocate(hitmp)
+        deallocate(hitmp, STAT=ierr)
+        write(6,*) "deallocated hitmp", ierr
+!        
         call deallocate_twin(s_minus1)
         call deallocate_twin(k_minus1)
 
