@@ -309,7 +309,7 @@ SUBROUTINE from_scratch( )
          ENDIF
          !
          !
-         if ( ttforce ) CALL nlfl( bec, becdr, lambda, fion, lgam ) !warning:giovanni may not work
+         if ( ttforce ) CALL nlfl_twin( bec, becdr, lambda, fion, lgam ) !warning:giovanni may not work
 
          if ( iprsta >= 3 ) CALL print_lambda( lambda, nbsp, 9, ccc )
 

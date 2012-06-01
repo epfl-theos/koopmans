@@ -333,7 +333,7 @@
 
 	    TYPE(twin_matrix) :: bec
 	    TYPE(twin_tensor) :: becdr
-	    TYPE(twin_matrix), dimension(:) :: lambda!(nlam,nlam,nspin)
+	    TYPE(twin_matrix), dimension(nspin) :: lambda!(nlam,nlam,nspin)
 	    REAL(DP) fion(:,:)
             LOGICAL :: lgam
           END SUBROUTINE

@@ -388,7 +388,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
      !
      ! ... nlfl and nlfh need: lambda (guessed) becdr
      !
-     IF ( tfor .OR. tprnfor ) CALL nlfl( bec, becdr, lambda, fion, lgam )
+     IF ( tfor .OR. tprnfor ) CALL nlfl_twin( bec, becdr, lambda, fion, lgam )
      !
   END IF electron_dynamic
   !

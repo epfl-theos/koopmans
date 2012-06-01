@@ -1893,7 +1893,7 @@
         !
   
         !
-        call nlfl(bec,becdr,lambda,fion, lgam)
+        call nlfl_twin(bec,becdr,lambda,fion, lgam)
           
         ! bforceion adds the force term due to electronic berry phase
         ! only in US-case
