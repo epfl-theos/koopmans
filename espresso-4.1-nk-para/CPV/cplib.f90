@@ -2422,7 +2422,7 @@ END FUNCTION
       END SUBROUTINE nlfl_real
 
 !-------------------------------------------------------------------------
-      SUBROUTINE nlfl_twin(bec,becdr,lambda,fion, lgam2)
+      SUBROUTINE nlfl_twin(bec,becdr,lambda,fion, lgam)
 !-----------------------------------------------------------------------
 !     contribution to fion due to the orthonormality constraint
 ! 
@@ -2447,18 +2447,16 @@ END FUNCTION
       REAL(DP) fion(3,nat)
       TYPE(twin_matrix) :: bec
       TYPE(twin_tensor) :: becdr
-      LOGICAL :: lgam2
+      LOGICAL :: lgam
 !
       INTEGER :: k, is, ia, iv, jv, i, j, inl, isa, iss, nss, istart, ir, ic, nr, nc
       REAL(DP), ALLOCATABLE :: temp(:,:), tmpbec(:,:),tmpdr(:,:)
       COMPLEX(DP), ALLOCATABLE :: temp_c(:,:), tmpbec_c(:,:), tmpdr_c(:,:)
       REAL(DP), ALLOCATABLE :: fion_tmp(:,:)
-      LOGICAL :: lgam
       COMPLEX(DP), PARAMETER :: c_one=CMPLX(1.d0,0.d0), c_zero=CMPLX(0.d0,0.d0)
       !
       CALL start_clock( 'nlfl' )
       !
-      lgam=lgam2.or..not.bec%iscmplx
       ALLOCATE( fion_tmp( 3, nat ) )
       !
       fion_tmp = 0.0d0
@@ -2581,7 +2579,7 @@ END FUNCTION
 			    CALL ZGEMM( 'C', 'N', nr, nc, nh(is), c_one, tmpdr_c, nlax, tmpbec_c, nhm, c_zero, temp_c, nlax ) !warning:giovanni:check C
 			    DO j = 1, nc
 			      DO i = 1, nr
-				  fion_tmp(k,isa) = fion_tmp(k,isa) + 2D0 * DBLE(temp_c( i, j )) * lambda(iss)%cvec( i, j )
+				  fion_tmp(k,isa) = fion_tmp(k,isa) + 2D0 * DBLE(temp_c( i, j ) * lambda(iss)%cvec( i, j ))
 			      END DO
 			    END DO
 			END IF

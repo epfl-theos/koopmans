@@ -792,8 +792,8 @@
 
 	  call mp_sum( gamma_c, intra_image_comm )
            
-           if(.not.becm%iscmplx) then
-	    if (nvb.gt.0) then
+	   if (nvb.gt.0) then
+            if(.not.becm%iscmplx) then
 		do i=1,nbsp
 		  do is=1,nvb
 		      do iv=1,nh(is)
@@ -807,9 +807,7 @@
 		      end do
 		  end do
 		enddo
-	    endif
-          else
-	    if (nvb.gt.0) then
+            else
 		do i=1,nbsp
 		  do is=1,nvb
 		      do iv=1,nh(is)
@@ -1865,7 +1863,7 @@
               ENDIF
               !
               !begin_modified:giovanni
-              IF(.not.lambda(iss)%iscmplx) THEN
+              IF(.not.lambdap(iss)%iscmplx) THEN
                 lambda_dist(:,:) = lambda(iss)%rvec(:,:)
               ELSE
                 lambda_dist_c(:,:) = lambda(iss)%cvec(:,:)
@@ -1889,7 +1887,7 @@
            ENDIF
 
            !
-           call nlsm2(ngw,nhsa,nbsp,nspin,eigr,c0(:,:),becdr)
+           call nlsm2(ngw,nhsa,nbsp,nspin,eigr,c0(:,:),becdr, lgam)
            !
         endif
         !

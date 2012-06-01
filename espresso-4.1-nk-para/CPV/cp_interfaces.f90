@@ -321,11 +321,11 @@
 	    REAL(DP) bec(:,:), becdr(:,:,:), lambda(:,:,:)
 	    REAL(DP) fion(:,:)
           END SUBROUTINE
-	  SUBROUTINE nlfl_twin(bec,becdr,lambda,fion, lgam)
+	  SUBROUTINE nlfl_twin(bec,becdr,lambda,fion, lgam) !warning, why is this interface not working
 	    USE kinds,             ONLY: DP
 ! 	    USE ions_base,         ONLY: na, nsp, nat
 ! 	    USE uspp,              ONLY: nhsa=>nkb, qq
-! 	    USE electrons_base,    ONLY: nbspx, nbsp, nudx, nspin, iupdwn, nupdwn
+	    USE electrons_base,    ONLY: nspin
 ! 	    USE cp_main_variables, ONLY: nlam, nlax, descla, la_proc
             USE twin_types
 !
