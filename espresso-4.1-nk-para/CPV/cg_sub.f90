@@ -153,6 +153,7 @@
       real(dp)    :: tmppasso, ene_save(100), ene_save2(100), ene_lda
       !
       logical :: lgam
+      complex(DP) :: phase
       integer :: ierr
       !
       lgam=gamma_only.and..not.do_wf_cmplx
@@ -1301,7 +1302,12 @@
 
         cm(1:ngw,1:nbsp) = c0(1:ngw,1:nbsp) +spasso*passo*hi(1:ngw,1:nbsp)
         !
-        if(lgam.and. ng0 == 2 )  cm(1,:) = 0.5d0*(cm(1,:)+CONJG(cm(1,:)))
+        if(lgam.and. ng0 == 2 )  THEN
+          cm(1,:) = 0.5d0*(cm(1,:)+CONJG(cm(1,:)))
+        ELSE IF(ng0 == 2 ) THEN
+          phase = cm(1,1)/(abs(cm(1,1))+1.d-10)
+          cm(:,:) = cm(:,:)*CONJG(phase)
+        ENDIF
 
         call calbec(1,nsp,eigr,cm,becm)
         call gram(betae,becm,nhsa,cm,ngw,nbsp)
