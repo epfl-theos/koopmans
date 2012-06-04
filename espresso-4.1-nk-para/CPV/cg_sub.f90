@@ -944,9 +944,9 @@
         endif
         !case of first iteration
 
-	IF(lgam) THEN
+! 	IF(lgam) THEN
 	  gamma_c=CMPLX(DBLE(gamma_c),0.d0)
-	ENDIF
+! 	ENDIF
 
 !$$        if(itercg==1.or.(mod(itercg,niter_cg_restart).eq.1).or.restartcg) then
         if( itercg==1 .or. mod(itercg,niter_cg_restart)==0 .or. restartcg) then
@@ -1414,11 +1414,11 @@
           ene_ok=.true.
         elseif( (enever.ge.ene1) .and. (enever.lt.ene0)) then
           if(ionode) then
-             write(stdout,"(2x,a,i5)") 'cg_sub: missed minimum, case 1, iteration',itercg
+             write(stdout,"(2x,a,i5,i5)") 'cg_sub: missed minimum, case 1, iteration',itercg, passof
           endif
           c0(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
 !$$
-          passof=1.d0*passov
+          passof=1.414d0*passov
 !$$
           restartcg=.true.
           call calbec(1,nsp,eigr,c0,bec)
@@ -1448,7 +1448,7 @@
           iter3=0
           do while(enever.ge.ene0 .and. iter3.lt.maxiter3)
             iter3=iter3+1
-            passov=passov*0.5d0
+            passov=passov*0.717d0
             cm(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
 !$$
             passof=1.d0*passov
