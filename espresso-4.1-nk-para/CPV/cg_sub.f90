@@ -1426,7 +1426,7 @@
           endif
           c0(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
 !$$
-          passof=1.414d0*passov
+          passof=1.d0*passov
 !$$
           restartcg=.true.
           call calbec(1,nsp,eigr,c0,bec)
@@ -1456,7 +1456,7 @@
           iter3=0
           do while(enever.ge.ene0 .and. iter3.lt.maxiter3)
             iter3=iter3+1
-            passov=passov*0.717d0
+            passov=passov*0.5d0
             cm(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
 !$$
             passof=1.d0*passov

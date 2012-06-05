@@ -3970,10 +3970,7 @@ end subroutine nksic_rot_emin_cg_descla
         Umat(:,:) = Umatbig(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp),iupdwn(isp):iupdwn(isp)-1+nupdwn(isp))
         Heig(:) = Heigbig(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp))
 
-        call nksic_getOmat1(isp,Heig,Umat,dalpha,Omat1)
-        IF(lgam) THEN
-          Omat1(:,:) = CMPLX(DBLE(Omat1(:,:)),0.d0)
-        ENDIF
+        call nksic_getOmat1(isp,Heig,Umat,dalpha,Omat1, lgam)
 
 !$$ Wavefunction wfc0 is rotated into wfc0 using Omat1
         call nksic_rotwfn(isp,Omat1,wfc0,wfc1)
@@ -4039,7 +4036,7 @@ end subroutine nksic_getOmattot
 
       CALL start_clock('nk_rotwfn')
       !
-      wfc2(:,iupdwn(isp):iupdwn(isp)-1+nupdwn(isp))=(0.d0,0.d0)
+      wfc2(:,iupdwn(isp):iupdwn(isp)-1+nupdwn(isp))=CMPLX(0.d0,0.d0)
 
       !
       ! a blas could be used here XXX
@@ -4471,7 +4468,7 @@ end subroutine nksic_getvsicah_new1
     
       CALL start_clock('nk_get_vsicah')
       !
-      cost     = dble( nspin ) * 2.0d0
+      cost     = DBLE( nspin ) * 2.0d0
       !
       !allocate( vsicpsi(npw,2) )
       allocate( hmat(nupdwn(isp),nupdwn(isp)) )
@@ -4502,7 +4499,7 @@ end subroutine nksic_getvsicah_new1
 						    DBLE( c0(1,j2) * vsicpsi(1,jj1) )
 		      endif
                   ELSE
-		      hmat(nbnd2,nbnd1+jj1-1) = dot_product( c0(:,j2), vsicpsi(:,jj1))
+		      hmat(nbnd2,nbnd1+jj1-1) = DOT_PRODUCT( c0(:,j2), vsicpsi(:,jj1))
                   ENDIF
                   ! 
               enddo
@@ -4756,7 +4753,7 @@ end subroutine nksic_getvsicah_new2
 ! !---------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-      subroutine nksic_getOmat1(isp,Heig,Umat,passof,Omat1)
+      subroutine nksic_getOmat1(isp,Heig,Umat,passof,Omat1,lgam)
 !-----------------------------------------------------------------------
 !
 ! ... Obtains the rotation matrix from the force-related matrices Heig and Umat
@@ -4775,7 +4772,7 @@ end subroutine nksic_getvsicah_new2
       complex(dp),  intent(in) :: Umat(nupdwn(isp),nupdwn(isp))
       real(dp),     intent(in) :: passof
       complex(dp)                 :: Omat1(nupdwn(isp),nupdwn(isp))
-
+      logical :: lgam
       !
       ! local variables
       !
@@ -4804,7 +4801,11 @@ end subroutine nksic_getvsicah_new2
           enddo
 
 !           Omat1 = MATMUL( CONJG(TRANSPOSE(Umat)), Cmattmp) !modified:giovanni
-          Omat1 = MATMUL( Umat, Cmattmp) !modified:giovanni
+          IF(lgam) THEN
+            Omat1 = DBLE(MATMUL( Umat, Cmattmp)) !modified:giovanni
+          ELSE
+            Omat1 = MATMUL( Umat, Cmattmp) !modified:giovanni
+          ENDIF
 
       call stop_clock ( "nk_getOmat1" )
 
