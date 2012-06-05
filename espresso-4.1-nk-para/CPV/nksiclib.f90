@@ -3082,7 +3082,7 @@ end subroutine nksic_rot_test
       call init_twin(bec2,lgam)
       call allocate_twin(bec2,nkb,nbsp,lgam)
       !
-      Umatbig(:,:)=(0.d0,0.d0)
+      Umatbig(:,:)=CMPLX(0.d0,0.d0)
       Heigbig(:)=0.d0
       deigrms = 0.d0
       hi(:,:) = 0.d0
@@ -3273,7 +3273,7 @@ end subroutine nksic_rot_test
                 nidx2 = nbnd2-1+iupdwn(isp)
                 IF(nidx1.ne.nidx2) THEN
                   dene0 = dene0 -0.5d0*DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2))
-                ELSE
+                ELSE IF(.not. lgam) THEN !warning:giovanni: do we need this condition
                   dene0 = dene0 -DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2))
                 ENDIF
                 !
@@ -3952,7 +3952,7 @@ end subroutine nksic_rot_emin_cg_descla
         Omat1tot(nbnd1,nbnd1)=1.d0
       enddo
 
-      wfc1(:,:) = (0.d0,0.d0)
+      wfc1(:,:) = CMPLX(0.d0,0.d0)
 
       dmaxeig = max( abs(Heigbig(iupdwn(1))), abs(Heigbig(iupdwn(1)+nupdwn(1)-1)) )
       do isp=2,nspin
@@ -4094,7 +4094,7 @@ end subroutine nksic_rotwfn
       complex(dp)              :: Hmat(nupdwn(isp),nupdwn(isp))
       complex(dp)              :: ci
 
-      ci = (0.d0,1.d0)
+      ci = CMPLX(0.d0,1.d0)
 
 !$$ Now this part diagonalizes Hmat = iWmat
       Hmat(:,:) = ci * vsicah(:,:)
