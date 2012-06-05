@@ -473,7 +473,7 @@
 !              hi(:,:) = hitmp(:,:)
 !            endif
 !$$
-
+             write(6,*) "etotSIC", etot, esic
              esic    = sum(pink(1:nbsp))
              etot    = etot + esic
              etotnew = etotnew + esic
@@ -1305,10 +1305,10 @@
         if(lgam.and. ng0 == 2 )  THEN
           cm(1,:) = 0.5d0*(cm(1,:)+CONJG(cm(1,:)))
         ELSE IF(ng0 == 2 ) THEN
-!           do i=1,nbsp
-!           phase = cm(1,i)/(abs(cm(1,i))+1.d-10)
-!           cm(:,i) = cm(:,i)*CONJG(phase)
-!           enddo
+          !do i=1,nbsp
+          !phase = cm(1,i)/(abs(cm(1,i))+1.d-10)
+          !cm(:,i) = cm(:,i)*CONJG(phase)
+          !enddo
         ENDIF
 
         call calbec(1,nsp,eigr,cm,becm)

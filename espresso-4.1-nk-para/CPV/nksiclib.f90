@@ -113,7 +113,7 @@
           !
           ! note: iupdwn(2) is set to zero if nspin = 1
           !
-          focc=f_diag(i)*dble(nspin)/2.0d0
+          focc=f_diag(i)*DBLE(nspin)/2.0d0
           !
           ! define rhoref and rhobar
           !
@@ -670,8 +670,8 @@ end subroutine nksic_get_orbitalrho_real
 !           if(lgam) then !!!### uncomment for k points
 	      do ig=1,ngs
 		  !
-		  psi1(nm(ig)) = conjg( orb_rhog(ig,1) ) &
-				+ci*conjg( orb_rhog(ig,2) )
+		  psi1(nm(ig)) = CONJG( orb_rhog(ig,1) ) &
+				+ci*CONJG( orb_rhog(ig,2) )
 		  psi1(np(ig)) = orb_rhog(ig,1) +ci*orb_rhog(ig,2)
 		  !
 	      enddo
@@ -1001,7 +1001,7 @@ end subroutine nksic_newd
       CALL start_clock( 'nk_corr_h' )
 
       !
-      fact=omega/dble(nr1*nr2*nr3)
+      fact=omega/DBLE(nr1*nr2*nr3)
       !
       allocate(rhoele(nnrx,2))
       allocate(rhogaux(ngm,1))
@@ -1057,7 +1057,7 @@ end subroutine nksic_newd
 	  do ig=1,ngm
 	      !
 	      vhaux(np(ig)) = vtmp(ig)
-	      vhaux(nm(ig)) = conjg(vtmp(ig))
+	      vhaux(nm(ig)) = CONJG(vtmp(ig))
 	      !
 	  enddo
 !       ELSE !!!### uncomment for k points
@@ -1076,7 +1076,7 @@ end subroutine nksic_newd
       ! this is just the self-hartree potential 
       ! (to be multiplied by fref later on)
       !
-      wrefsic(1:nnrx) = dble( vhaux(1:nnrx) )
+      wrefsic(1:nnrx) = DBLE( vhaux(1:nnrx) )
       
 
       !
@@ -1094,7 +1094,7 @@ end subroutine nksic_newd
       !
       ! fref-f has to be included explicitly in rhoele
       !
-      vsic(1:nnrx)=(fref-f)*dble(vhaux(1:nnrx)) 
+      vsic(1:nnrx)=(fref-f)*DBLE(vhaux(1:nnrx)) 
 
       deallocate(vtmp)
       deallocate(vcorr)
@@ -1335,7 +1335,7 @@ end subroutine nksic_newd
       CALL start_clock( 'nk_corr_h' )
 
       !
-      fact=omega/dble(nr1*nr2*nr3)
+      fact=omega/DBLE(nr1*nr2*nr3)
       !
       allocate(rhoelef(nnrx,2))
       allocate(rhogaux(ngm,1))
@@ -1383,7 +1383,7 @@ end subroutine nksic_newd
 	  do ig=1,ngm
 	      !
 	      vhaux(np(ig)) = vtmp(ig)
-	      vhaux(nm(ig)) = conjg(vtmp(ig))
+	      vhaux(nm(ig)) = CONJG(vtmp(ig))
 	      !
 	  enddo
 !       else !!!### uncomment for k points
@@ -1398,8 +1398,8 @@ end subroutine nksic_newd
       !
       ! init vsic
       !
-      vsic(1:nnrx) =  -dble( vhaux(1:nnrx) )
-      ehele        =   0.5_dp * sum( dble( vhaux(1:nnrx) ) &
+      vsic(1:nnrx) =  -DBLE( vhaux(1:nnrx) )
+      ehele        =   0.5_dp * sum( DBLE( vhaux(1:nnrx) ) &
                               * rhoelef(1:nnrx,ispin) )
       
       !
@@ -1531,7 +1531,7 @@ end subroutine nksic_correction_pz
       CALL start_clock( 'nk_corr_h' )
       !
       lgam = gamma_only.and..not.do_wf_cmplx
-      fact=omega/dble(nr1*nr2*nr3)
+      fact=omega/DBLE(nr1*nr2*nr3)
       !
       allocate(wxdsic(nnrx,2))
       allocate(rhoele(nnrx,2))
@@ -1584,7 +1584,7 @@ end subroutine nksic_correction_pz
 	  do ig=1,ngm
 	    !
 	    vhaux(np(ig)) = vtmp(ig)
-	    vhaux(nm(ig)) = conjg(vtmp(ig))
+	    vhaux(nm(ig)) = CONJG(vtmp(ig))
 	    !
 	  enddo
 !       ELSE !!!### uncomment for k points
@@ -1603,11 +1603,11 @@ end subroutine nksic_correction_pz
       ! this is just the self-hartree potential 
       ! (to be multiplied by fref later on)
       !
-      wrefsic(1:nnrx)=dble(vhaux(1:nnrx))
+      wrefsic(1:nnrx)=DBLE(vhaux(1:nnrx))
       !
       ! the term - fref has to be included explicitly in rhoele
       !
-      vsic(1:nnrx)=-fref*dble(vhaux(1:nnrx)) 
+      vsic(1:nnrx)=-fref*DBLE(vhaux(1:nnrx)) 
       !
       deallocate(vtmp)
       deallocate(vcorr)
@@ -1781,7 +1781,7 @@ end subroutine nksic_correction_pz
       CALL start_clock( 'nk_corr_h' )
 
       !
-      fact=omega/dble(nr1*nr2*nr3)
+      fact=omega/DBLE(nr1*nr2*nr3)
       !
       allocate(rhoele(nnrx,2))
       allocate(rhogaux(ngm,1))
@@ -1833,7 +1833,7 @@ end subroutine nksic_correction_pz
 	  do ig=1,ngm
 	      !
 	      vhaux(np(ig)) = vtmp(ig)
-	      vhaux(nm(ig)) = conjg(vtmp(ig))
+	      vhaux(nm(ig)) = CONJG(vtmp(ig))
 	      !
 	  enddo
 !       ELSE !!!### uncomment for k points
@@ -1851,7 +1851,7 @@ end subroutine nksic_correction_pz
       !
       ! this is just the self-hartree potential 
       !
-      vsic(1:nnrx) = (1.0_dp-f) * dble( vhaux(1:nnrx) )
+      vsic(1:nnrx) = (1.0_dp-f) * DBLE( vhaux(1:nnrx) )
       
 
       !
@@ -2161,7 +2161,7 @@ end subroutine nksic_correction_pz
 		fm = psi1(nps(ig))-psi1(nms(ig))
 		!
 		vsicpsi(ig,1)=0.5d0*CMPLX(DBLE(fp),AIMAG(fm))
-		vsicpsi(ig,2)=0.5d0*CMPLX(aimag(fp),-DBLE(fm))
+		vsicpsi(ig,2)=0.5d0*CMPLX(AIMAG(fp),-DBLE(fm))
 		!
 	    enddo
          else
@@ -4046,7 +4046,7 @@ end subroutine nksic_getOmattot
       do nbnd2=1,nupdwn(isp)
           !
           wfc2(:,iupdwn(isp)-1 + nbnd1)=wfc2(:,iupdwn(isp)-1 + nbnd1) &
-              + wfc1(:,iupdwn(isp)-1 + nbnd2) * (Omat1(nbnd2,nbnd1))
+              + wfc1(:,iupdwn(isp)-1 + nbnd2) * Omat1(nbnd2,nbnd1)
           !
       enddo
       enddo
@@ -4144,7 +4144,7 @@ end subroutine nksic_getHeigU
       integer                  :: i,nbnd1,nbnd2
       real(dp)                 :: dwfnnorm
 
-      dwfnnorm = 1.0/(dble(nr1x)*dble(nr2x)*dble(nr3x))
+      dwfnnorm = 1.0/(DBLE(nr1x)*DBLE(nr2x)*DBLE(nr3x))
 
       vsicah(:,:) = 0.d0
       overlap(:,:) = 0.d0
@@ -4167,10 +4167,10 @@ end subroutine nksic_getHeigU
             do i=1,nnrx
 !$$ Imposing Pederson condition
               vsicahtmp = vsicahtmp &
-                  + 2.d0 * dble( conjg(psi1(i)) * (vsic(i,nbnd2)  &
+                  + 2.d0 * DBLE( CONJG(psi1(i)) * (vsic(i,nbnd2)  &
                   - vsic(i,nbnd1) ) * psi2(i) ) * dwfnnorm
 !$$ The following two lines give exactly the same results: checked
-              overlaptmp = overlaptmp + dble( conjg(psi1(i)) * psi2(i) ) * dwfnnorm
+              overlaptmp = overlaptmp + DBLE( CONJG(psi1(i)) * psi2(i) ) * dwfnnorm
 !              overlaptmp = overlaptmp + dble(psi1(i)) * dble(psi2(i)) * dwfnnorm
             enddo
 
@@ -4240,8 +4240,8 @@ end subroutine nksic_printoverlap
     
       CALL start_clock('nk_get_vsicah')
       !
-      dwfnnorm = 1.0d0/(dble(nr1x)*dble(nr2x)*dble(nr3x))
-      cost     = 2.0d0 * dble( nspin ) * 0.5d0 * dwfnnorm
+      dwfnnorm = 1.0d0/(DBLE(nr1x)*DBLE(nr2x)*DBLE(nr3x))
+      cost     = 2.0d0 * DBLE( nspin ) * 0.5d0 * dwfnnorm
       !
       vsicah(:,:) = 0.d0
       vsicah2sum  = 0.d0
@@ -4268,7 +4268,7 @@ end subroutine nksic_printoverlap
               do i=1,nnrx
                   !
                   vsicahtmp = vsicahtmp + &
-                              dble( conjg(psi1(i)) * psi2(i) &
+                              DBLE( CONJG(psi1(i)) * psi2(i) &
                                    * ( vsic(i, j2 ) * fsic( j2 ) &
                                      - vsic(i, j1 ) * fsic( j1 ) ) )
                   !
@@ -4340,8 +4340,8 @@ end subroutine nksic_getvsicah
     
       CALL start_clock('nk_get_vsicah')
       !
-      dwfnnorm = 1.0d0/(dble(nr1x)*dble(nr2x)*dble(nr3x))
-      cost     = 2.0d0 * dble( nspin ) * 0.5d0 * dwfnnorm
+      dwfnnorm = 1.0d0/(DBLE(nr1x)*DBLE(nr2x)*DBLE(nr3x))
+      cost     = 2.0d0 * DBLE( nspin ) * 0.5d0 * dwfnnorm
       !
       allocate( wfc1(nnrx, 2) )
       allocate( wfc2(nnrx, 2) )
@@ -4360,8 +4360,8 @@ end subroutine nksic_getvsicah
           CALL c2psi( psi1, nnrx, c0(:,j1), c0(:,j1+1), ngw, 2)
           CALL invfft('Dense', psi1, dfftp )
           !
-          wfc1(:,1) =  dble ( psi1(:) )
-          wfc1(:,2) = aimag ( psi1(:) )
+          wfc1(:,1) =  DBLE ( psi1(:) )
+          wfc1(:,2) = AIMAG ( psi1(:) )
           !
           do jj1 = 1, 2
               !
@@ -4375,8 +4375,8 @@ end subroutine nksic_getvsicah
                   CALL c2psi( psi2, nnrx, c0(:,j2), c0(:,j2+1), ngw, 2 )
                   CALL invfft('Dense', psi2, dfftp )
                   !
-                  wfc2(:,1) =  dble ( psi2(:) )
-                  wfc2(:,2) = aimag ( psi2(:) )
+                  wfc2(:,1) =  DBLE ( psi2(:) )
+                  wfc2(:,2) = AIMAG ( psi2(:) )
                   !
                   do jj2 = 1, 2
                       !
@@ -4387,7 +4387,7 @@ end subroutine nksic_getvsicah
                       do i=1,nnrx
                           !
                           vsicahtmp = vsicahtmp + &
-                                cost * dble( wfc1(i,jj1) * wfc2(i,jj2) &
+                                cost * DBLE( wfc1(i,jj1) * wfc2(i,jj2) &
                                      * ( vsic(i, j2+jj2-1 ) * fsic( j2+jj2-1 ) &
                                       -  vsic(i, j1+jj1-1 ) * fsic( j1+jj1-1 ) ) )
                           !

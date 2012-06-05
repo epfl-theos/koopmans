@@ -492,7 +492,7 @@ subroutine pc2(a,beca,b,becb, lgam)
          if(lgam) then
 	    do j=1,nss
 		do i=1,nss
-		  bectmp(i,j)=2.d0*dble(zbectmp(i,j))
+		  bectmp(i,j)=2.d0*DBLE(zbectmp(i,j))
 		  if(ng0.eq.2) bectmp(i,j)=bectmp(i,j)-DBLE(a(1,j))*DBLE(b(1,i))
 		enddo
 	    enddo
@@ -673,7 +673,7 @@ subroutine pc2(a,beca,b,becb, lgam)
 	       enddo
 		! this to prevent numerical errors
                IF(lgam) THEN
-		  if (ng0.eq.2) b(1,i) = cmplx(dble(b(1,i)),0.0d0)
+		  if (ng0.eq.2) b(1,i) = CMPLX(DBLE(b(1,i)),0.0d0)
                ENDIF
             endif
          enddo
@@ -828,7 +828,7 @@ subroutine pc2(a,beca,b,becb, lgam)
          if(lgam) then
 	    do j=1,nss
 		do i=1,nss
-		  bectmp(i,j)=2.d0*dble(zbectmp(i,j))
+		  bectmp(i,j)=2.d0*DBLE(zbectmp(i,j))
 		  if(ng0.eq.2) bectmp(i,j)=bectmp(i,j)-DBLE(a(1,j))*DBLE(b(1,i))
 		enddo
 	    enddo
