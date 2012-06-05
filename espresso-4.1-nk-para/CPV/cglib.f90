@@ -104,7 +104,7 @@
       real(DP) ::  fdiag( nx )
                   !  NOTE: zmat and fmat are distributed by row across processors
                   !        fdiag is replicated
-      type(twin_matrix), dimension(nspin) :: zmat, fmat
+      type(twin_matrix) :: zmat(:), fmat(:)
 
       integer  :: iss, nss, istart, i, j, k, ii, jj, kk
       integer  :: np_rot, me_rot, nrl, comm_rot, ip, nrl_ip
@@ -252,7 +252,7 @@
       integer :: np_rot, me_rot, nrl, comm_rot
 !       real(kind=DP)    z0( nrlx, nudx, nspin )
 !       real(kind=DP)    bec( nhsa, n ), becdiag( nhsa, n )
-      type(twin_matrix), dimension(nspin) :: z0
+      type(twin_matrix) :: z0(:)
       type(twin_matrix) :: bec, becdiag
       complex(kind=DP) c0( ngw, nx ), c0diag( ngw, nx )
       logical firstiter

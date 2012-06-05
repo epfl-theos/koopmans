@@ -353,7 +353,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
           c0(:,iupdwn(2):nbsp)       =     c0(:,1:nupdwn(2))
           cm(:,iupdwn(2):nbsp)       =     cm(:,1:nupdwn(2))
          phi(:,iupdwn(2):nbsp)       =    phi(:,1:nupdwn(2))
-!begin_modified:giovanni
+!begin_modified:giovanni warning: is nspin=2?
          IF(.not.lambda(1)%iscmplx) THEN
               lambda(2)%rvec(:,:) = lambda(1)%rvec(:,:)
          ELSE

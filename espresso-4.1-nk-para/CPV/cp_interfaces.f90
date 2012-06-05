@@ -318,8 +318,8 @@
 ! 	    USE cp_main_variables, ONLY: nlam, nlax, descla, la_proc
 !
 	    IMPLICIT NONE
-	    REAL(DP) bec(:,:), becdr(:,:,:), lambda(:,:,:)
-	    REAL(DP) fion(:,:)
+	    REAL(DP) :: bec(:,:), becdr(:,:,:), lambda(:,:,:)
+	    REAL(DP) :: fion(:,:)
           END SUBROUTINE
 	  SUBROUTINE nlfl_twin(bec,becdr,lambda,fion, lgam) !warning, why is this interface not working
 	    USE kinds,             ONLY: DP
@@ -331,10 +331,10 @@
 !
 	    IMPLICIT NONE
 
+	    TYPE(twin_matrix) :: lambda(:)!(nlam,nlam,nspin)
+	    REAL(DP) :: fion(:,:)
 	    TYPE(twin_matrix) :: bec
 	    TYPE(twin_tensor) :: becdr
-	    TYPE(twin_matrix), dimension(nspin) :: lambda!(nlam,nlam,nspin)
-	    REAL(DP) fion(:,:)
             LOGICAL :: lgam
           END SUBROUTINE
     END INTERFACE
@@ -1650,7 +1650,7 @@
          REAL(DP), INTENT(INOUT) :: stress(3,3) 
          type(twin_matrix) :: bec
          REAL(DP), INTENT(IN) :: dbec( :, :, :, : )
-         type(twin_matrix), dimension(:), INTENT(IN)    :: lambda ! ( :, :, : )
+         type(twin_matrix), INTENT(IN)    :: lambda(:) ! ( :, :, : )
       END SUBROUTINE
    END INTERFACE
 
@@ -1667,7 +1667,7 @@
         USE twin_types
 	IMPLICIT NONE
 	real(DP), intent(in) :: ccc
-        type(twin_matrix), dimension(:) :: lambda
+        type(twin_matrix), intent(in) :: lambda(:)
 	integer, intent(in) :: n, nshow
 	integer, intent(in), optional :: iunit
     END SUBROUTINE

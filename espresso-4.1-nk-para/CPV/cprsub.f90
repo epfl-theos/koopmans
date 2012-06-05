@@ -911,7 +911,7 @@ SUBROUTINE print_lambda_x_twin( lambda, n, nshow, ccc, iunit )
     USE twin_types
     IMPLICIT NONE
     real(DP), intent(in) :: ccc
-    type(twin_matrix), dimension(:) :: lambda 
+    type(twin_matrix), intent(in) :: lambda(:) 
     integer, intent(in) :: n, nshow
     integer, intent(in), optional :: iunit
     !

@@ -2443,8 +2443,8 @@ END FUNCTION
 !
       IMPLICIT NONE
 
-      type(twin_matrix), dimension(nspin) :: lambda
-      REAL(DP) fion(3,nat)
+      type(twin_matrix) :: lambda(nspin)
+      REAL(DP) :: fion(3,nat)
       TYPE(twin_matrix) :: bec
       TYPE(twin_tensor) :: becdr
       LOGICAL :: lgam

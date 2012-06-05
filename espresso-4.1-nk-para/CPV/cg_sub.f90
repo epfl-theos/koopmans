@@ -1305,10 +1305,10 @@
         if(lgam.and. ng0 == 2 )  THEN
           cm(1,:) = 0.5d0*(cm(1,:)+CONJG(cm(1,:)))
         ELSE IF(ng0 == 2 ) THEN
-          do i=1,nbsp
-          phase = cm(1,i)/(abs(cm(1,i))+1.d-10)
-          cm(:,i) = cm(:,i)*CONJG(phase)
-          enddo
+!           do i=1,nbsp
+!           phase = cm(1,i)/(abs(cm(1,i))+1.d-10)
+!           cm(:,i) = cm(:,i)*CONJG(phase)
+!           enddo
         ENDIF
 
         call calbec(1,nsp,eigr,cm,becm)
@@ -1422,7 +1422,7 @@
           ene_ok=.true.
         elseif( (enever.ge.ene1) .and. (enever.lt.ene0)) then
           if(ionode) then
-             write(stdout,"(2x,a,i5,i5)") 'cg_sub: missed minimum, case 1, iteration',itercg, passof
+             write(stdout,"(2x,a,i5,f20.12)") 'cg_sub: missed minimum, case 1, iteration',itercg, passof
           endif
           c0(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
 !$$
@@ -1692,7 +1692,7 @@
      endif
 
 
-     call calcmt_twin( f, z0t, fmat0, .false. )
+     if(tens) call calcmt_twin( f, z0t, fmat0, .false. )
 
      call newd(vpot,irb,eigrb,rhovan,fion)
      if (.not.tens) then
@@ -1901,7 +1901,7 @@
         !
   
         !
-        call nlfl_twin(bec,becdr,lambda,fion, lgam)
+        call nlfl(bec,becdr,lambda,fion, lgam) !warning:giovanni this may cause BUGS
           
         ! bforceion adds the force term due to electronic berry phase
         ! only in US-case
