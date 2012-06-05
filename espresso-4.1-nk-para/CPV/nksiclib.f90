@@ -3273,7 +3273,7 @@ end subroutine nksic_rot_test
                 nidx2 = nbnd2-1+iupdwn(isp)
                 IF(nidx1.ne.nidx2) THEN
                   dene0 = dene0 -0.5d0*DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2))
-                ELSE IF(.not. lgam) THEN !warning:giovanni: do we need this condition
+                ELSE  !warning:giovanni: do we need this condition
                   dene0 = dene0 -DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2))
                 ENDIF
                 !
@@ -3401,7 +3401,7 @@ end subroutine nksic_rot_test
           !
           if( ninner >= 2 ) then
               !
-              wfc_ctmp(:,:) = (0.d0,0.d0)
+              wfc_ctmp(:,:) = CMPLX(0.d0,0.d0)
               !
               do nbnd1=1,nbspx
               do nbnd2=1,nbspx
@@ -4533,7 +4533,7 @@ end subroutine nksic_getvsicah_new1
       enddo
           IF(.not.lgam) THEN
             vsicah( nbnd1, nbnd1) = hmat(nbnd1,nbnd1) -CONJG(hmat(nbnd1,nbnd1))
-            vsicah2sum =  vsicah2sum + DBLE(CONJG(vsicah(nbnd1,nbnd1))*vsicah(nbnd1,nbnd1))
+            vsicah2sum =  vsicah2sum + 2.d0*DBLE(CONJG(vsicah(nbnd1,nbnd1))*vsicah(nbnd1,nbnd1))
           ENDIF
       enddo
       !

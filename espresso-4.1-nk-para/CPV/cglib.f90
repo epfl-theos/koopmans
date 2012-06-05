@@ -1000,9 +1000,9 @@ subroutine pc2(a,beca,b,becb, lgam)
 		!$$ not necessary: sca = sca*2.0d0  !2. for real weavefunctions
                if(lgam) then
 		  if (ng0.eq.2) then
-                   sca_c = DBLE(sca_c) - 0.5d0*(DBLE(a(1,j))*DBLE(bold(1,i))+DBLE(a(1,i))*DBLE(bold(1,j)))
+                   sca_c = CMPLX(DBLE(sca_c),0.d0) - 0.5d0*DBLE(CONJG(a(1,j))*(bold(1,i))+(a(1,i))*CONJG(bold(1,j)))
                  else
-                   sca_c = DBLE(sca_c)
+                   sca_c = CMPLX(DBLE(sca_c), 0.d0)
                  endif
                else
                  sca_c=0.5d0*sca_c
