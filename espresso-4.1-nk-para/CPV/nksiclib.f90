@@ -3232,11 +3232,11 @@ end subroutine nksic_rot_test
         if(ionode) write(stdout,'(10x,2i5,3F21.13)') ninner, nouter, etot, ene0, deigrms
         !
         !
-        dmaxeig = max( abs(Heigbig(iupdwn(1))), abs(Heigbig(iupdwn(1)+nupdwn(1)-1)) )
+        dmaxeig = max( dabs(Heigbig(iupdwn(1))), dabs(Heigbig(iupdwn(1)+nupdwn(1)-1)) )
         !
         do isp = 2, nspin
-            dmaxeig = max(dmaxeig,abs(Heigbig(iupdwn(isp))))
-            dmaxeig = max(dmaxeig,abs(Heigbig(iupdwn(isp)+nupdwn(isp)-1)))
+            dmaxeig = max(dmaxeig,dabs(Heigbig(iupdwn(isp))))
+            dmaxeig = max(dmaxeig,dabs(Heigbig(iupdwn(isp)+nupdwn(isp)-1)))
         enddo
         !
         passomax=passoprod/dmaxeig
@@ -3407,6 +3407,7 @@ end subroutine nksic_rot_test
               do nbnd2=1,nbspx
                   wfc_ctmp(:,nbnd1)=wfc_ctmp(:,nbnd1) + cm(:,nbnd2) * Omattot(nbnd2,nbnd1) !warning:giovanni CONJUGATE?
                   ! XXX (we can think to use a blas, here, and split over spins)
+                  !does not seem we need to make it conjugate
               enddo
               enddo
               !
@@ -4527,9 +4528,13 @@ end subroutine nksic_getvsicah_new1
 	    vsicah( nbnd2, nbnd1) = hmat(nbnd2,nbnd1) -CONJG(hmat(nbnd1,nbnd2))
 	    vsicah( nbnd1, nbnd2) = hmat(nbnd1,nbnd2) -CONJG(hmat(nbnd2,nbnd1))
           ENDIF
-          vsicah2sum            =  vsicah2sum + 2.0d0*CONJG(vsicah(nbnd2,nbnd1))*vsicah(nbnd2,nbnd1)
+          vsicah2sum =  vsicah2sum + 2.d0*DBLE(CONJG(vsicah(nbnd2,nbnd1))*vsicah(nbnd2,nbnd1))
           !
       enddo
+          IF(.not.lgam) THEN
+            vsicah( nbnd1, nbnd1) = hmat(nbnd1,nbnd1) -CONJG(hmat(nbnd1,nbnd1))
+            vsicah2sum =  vsicah2sum + DBLE(CONJG(vsicah(nbnd1,nbnd1))*vsicah(nbnd1,nbnd1))
+          ENDIF
       enddo
       !
       deallocate( hmat )
@@ -4792,7 +4797,7 @@ end subroutine nksic_getvsicah_new2
             
           do nbnd1=1,nupdwn(isp)
             dtmp =  passof * Heig(nbnd1)
-            exp_iHeig(nbnd1) = cos(dtmp) + ci*sin(dtmp)
+            exp_iHeig(nbnd1) = DCOS(dtmp) + ci*DSIN(dtmp)
           enddo
             
 !$$ Cmattmp = exp(i * passof * Heig) * Umat^dagger   ; Omat = Umat * Cmattmp
