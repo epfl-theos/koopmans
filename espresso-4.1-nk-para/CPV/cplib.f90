@@ -1615,12 +1615,12 @@ END FUNCTION
               s(i,j)=s(j,i)
             else
               sca=0.0d0
-              if (ng0.eq.2) aold(1,nbnd1) = cmplx(dble(a(1,nbnd1)),0.0d0)
+              if (ng0.eq.2) aold(1,nbnd1) = CMPLX(DBLE(a(1,nbnd1)),0.0d0)
               do  ig=1,ngw           !loop on g vectors
                 sca=sca+DBLE(CONJG(a(ig,nbnd2))*a(ig,nbnd1))
               enddo
               sca = sca*2.0d0  !2. for real weavefunctions
-              if (ng0.eq.2) sca = sca - dble(a(1,nbnd2))*dble(a(1,nbnd1))
+              if (ng0.eq.2) sca = sca - DBLE(a(1,nbnd2))*DBLE(a(1,nbnd1))
               s(i,j) = sca
             endif
           enddo
@@ -1633,7 +1633,7 @@ END FUNCTION
           if(seig(i).lt.0.d0.and.ionode) write(*,*) 'seig is negative ',seig(:)
         enddo
 
-        sqrt_seig(:)=1.d0/sqrt(seig(:))
+        sqrt_seig(:)=1.d0/DSQRT(seig(:))
 
         sqrt_s(:,:)=0.d0
         do i=1,ndim
@@ -1653,7 +1653,7 @@ END FUNCTION
         do i=1,ndim
           nbnd1=iupdwn(isp)-1+i
 
-          a(:,nbnd1) = cmplx(0.d0,0.d0)
+          a(:,nbnd1) = CMPLX(0.d0,0.d0)
 
           do j=1,ndim
             nbnd2=iupdwn(isp)-1+j
@@ -1707,8 +1707,8 @@ END FUNCTION
 
         do i=1,ndim
           nbnd1=iupdwn(isp)-1+i
-          if (ng0.eq.2) a(1,nbnd1) = cmplx(dble(a(1,nbnd1)),0.0d0)
-          if (ng0.eq.2) b(1,nbnd1) = cmplx(dble(b(1,nbnd1)),0.0d0)
+          if (ng0.eq.2) a(1,nbnd1) = CMPLX(DBLE(a(1,nbnd1)),0.0d0)
+          if (ng0.eq.2) b(1,nbnd1) = CMPLX(DBLE(b(1,nbnd1)),0.0d0)
         enddo
 
         do i=1,ndim
@@ -1720,7 +1720,7 @@ END FUNCTION
               sca=sca+DBLE(CONJG(a(ig,nbnd1))*b(ig,nbnd2))
             enddo
             sca = sca*2.0d0  !2. for real weavefunctions
-            if (ng0.eq.2) sca = sca - dble(a(1,nbnd1))*dble(b(1,nbnd2))
+            if (ng0.eq.2) sca = sca - DBLE(a(1,nbnd1))*DBLE(b(1,nbnd2))
             s(i,j) = sca
           enddo
         enddo
@@ -1731,7 +1731,6 @@ END FUNCTION
             s(i,j) = s(i,j)*s(i,j)
           enddo
         enddo
-
 
         if(ionode) then
           write(1235,*) 'spin ',isp,', sum ',sum(s(:,:))/ndim

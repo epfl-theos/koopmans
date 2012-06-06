@@ -41,7 +41,7 @@
       real(DP)  :: signre, signim, arg
       real(DP), allocatable :: becps( :, : )
       complex(DP), allocatable :: wrk2( :, : )
-      complex(DP), parameter :: c_one=cmplx(1.d0,0.d0), c_zero=CMPLX(0.d0,0.d0)
+      complex(DP), parameter :: c_one=CMPLX(1.d0,0.d0), c_zero=CMPLX(0.d0,0.d0)
       complex(DP), parameter :: ci=CMPLX(0.d0,1.d0)
       complex(DP) :: cl, arg_c
       !
@@ -198,7 +198,7 @@
       real(DP), allocatable :: becps( :, : )
       complex(DP), allocatable :: becps_c( :, : )
       complex(DP), allocatable :: wrk2_c( :, : )
-      complex(DP), parameter :: c_one=cmplx(1.d0,0.d0), c_zero=CMPLX(0.d0,0.d0)
+      complex(DP), parameter :: c_one=CMPLX(1.d0,0.d0), c_zero=CMPLX(0.d0,0.d0)
       complex(DP), parameter :: ci=CMPLX(0.d0,1.d0)
       complex(DP) :: cl, arg_c
       logical :: lgam!added:giovanni
@@ -293,7 +293,7 @@
 	      do ia=1,na(is)
                 !
 		do ig = 1, ngw
-		    arg_c = cl*cmplx(beta(ig,iv,is),0.d0, kind=DP)
+		    arg_c = cl*CMPLX(beta(ig,iv,is),0.d0)
 		    wrk2_c( ig, ia ) = (arg_c*eigr(ig,ia+isa))
 		end do
 		!
@@ -669,7 +669,7 @@
 	      do ia=1,na(is)
                 !
 		do ig = 1, ngw
-		    arg_c = cl*cmplx(beta(ig,iv,is),0.d0, kind=DP)
+		    arg_c = cl*CMPLX(beta(ig,iv,is),0.d0)
 		    wrk2_c( ig, ia ) = arg_c*eigr(ig,ia+isa)
 		end do
 		!
@@ -811,7 +811,7 @@
       integer   :: ig, is, iv, ia, k, l, ixr, ixi, inl, isa, i
       real(DP) :: signre, signim, arg
       logical :: lgam ! added:giovanni
-      complex(DP), parameter :: c_one=cmplx(1.d0,0.d0), c_zero=CMPLX(0.d0,0.d0)
+      complex(DP), parameter :: c_one=CMPLX(1.d0,0.d0), c_zero=CMPLX(0.d0,0.d0)
       complex(DP), parameter :: ci=CMPLX(0.d0,1.d0) !added:giovanni
       complex(DP) :: cl, arg_c !added:giovanni
       real(DP) :: fact
@@ -1120,19 +1120,19 @@
 		    inl = ish(is)+(iv-1)*na(is)+ia
 		    jnl = ish(is)+(jv-1)*na(is)+ia
 		    isat = isa+ia
-		    sums_c = cmplx(0.d0,0.d0, DP)
+		    sums_c = CMPLX(0.d0,0.d0)
 		    do i = 1, n
 		      iss = ispin(i)
-		      sums_c(iss) = sums_c(iss) + cmplx(f(i),0.d0, DP)  &
+		      sums_c(iss) = sums_c(iss) + CMPLX(f(i),0.d0)  &
          &             * (bec%cvec(inl,i)) * CONJG(bec%cvec(jnl,i))
 		    end do
-		    sumt_c = cmplx(0.d0,0.d0, DP)
+		    sumt_c = CMPLX(0.d0,0.d0)
 		    do iss = 1, nspin
 		      rhovan( ijv, isat, iss ) = DBLE(sums_c( iss ))
 		      sumt_c = sumt_c + sums_c( iss )
 		    end do
-		    if( iv .ne. jv ) sumt_c = cmplx(2.d0,0.d0, DP) * sumt_c
-		    ennl_tc = ennl_tc + sumt_c * cmplx(dvan( jv, iv, is),0.d0, DP)
+		    if( iv .ne. jv ) sumt_c = CMPLX(2.d0,0.d0) * sumt_c
+		    ennl_tc = ennl_tc + sumt_c * CMPLX(dvan( jv, iv, is),0.d0)
 		end do
   !$omp end do
 	      end do

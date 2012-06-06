@@ -576,7 +576,7 @@ subroutine pc2(a,beca,b,becb, lgam)
          if(lgam) then
 	    do i=1,nss
 		do j=1,nss
-		  zbectmp(i,j)=cmplx(bectmp(i,j),0.d0)
+		  zbectmp(i,j)=CMPLX(bectmp(i,j),0.d0)
 		enddo
 	    enddo
          else
@@ -995,12 +995,13 @@ subroutine pc2(a,beca,b,becb, lgam)
 		do  ig=1,ngw           !loop on g vectors
 		    sca_c=sca_c+CONJG(a(ig,j))*bold(ig,i)
 		    sca_c=sca_c+(a(ig,i))*CONJG(bold(ig,j))
+		    !sca_c=sca_c+CONJG(a(ig,i))*(bold(ig,j))
 		enddo
 		!sca = sca*2.0d0  !2. for real weavefunctions
 		!$$ not necessary: sca = sca*2.0d0  !2. for real weavefunctions
                if(lgam) then
 		  if (ng0.eq.2) then
-                   sca_c = CMPLX(DBLE(sca_c),0.d0) - 0.5d0*DBLE(CONJG(a(1,j))*(bold(1,i))+(a(1,i))*CONJG(bold(1,j)))
+                   sca_c = CMPLX(DBLE(sca_c),0.d0) - CMPLX(0.5d0*DBLE(CONJG(a(1,j))*(bold(1,i))+(a(1,i))*CONJG(bold(1,j))),0.d0)
                  else
                    sca_c = CMPLX(DBLE(sca_c), 0.d0)
                  endif

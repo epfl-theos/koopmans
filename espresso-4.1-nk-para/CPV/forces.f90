@@ -592,8 +592,8 @@
                DO ig=1,ngw
                   fp= psi(nps(ig)+eig_offset) +  psi(nms(ig)+eig_offset)
                   fm= psi(nps(ig)+eig_offset) -  psi(nms(ig)+eig_offset)
-                  df(ig+igno-1)= fi *(tpiba2 * ggp(ig) * c(ig,idx+i-1)+cmplx(real (fp), aimag(fm)))
-                  da(ig+igno-1)= fip*(tpiba2 * ggp(ig) * c(ig,idx+i  )+cmplx(aimag(fp),-real (fm)))
+                  df(ig+igno-1)= fi *(tpiba2 * ggp(ig) * c(ig,idx+i-1)+CMPLX(DBLE (fp), AIMAG(fm)))
+                  da(ig+igno-1)= fip*(tpiba2 * ggp(ig) * c(ig,idx+i  )+CMPLX(AIMAG(fp),-DBLE (fm)))
                END DO
 !$omp end parallel do
                igno = igno + ngw

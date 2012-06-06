@@ -149,7 +149,7 @@
       integer     :: ninner,nbnd1,nbnd2,itercgeff
       real(DP)    :: esic
       complex(DP)    :: Omattot(nbspx,nbspx)
-      real(DP)    :: dtmp
+      real(DP)    :: dtmp, temp
       real(dp)    :: tmppasso, ene_save(100), ene_save2(100), ene_lda
       !
       logical :: lgam
@@ -507,7 +507,7 @@
             !
         endif
 !$$
-
+ 
         if( abs(etotnew-etotold) < conv_thr ) then
            numok=numok+1
         else 
@@ -719,6 +719,18 @@
 !           call pcdaga3(c0,phi,hpsi, lgam)
         endif
 !$$
+
+!begin_added:giovanni debug, check orthonormality
+!        temp=0.d0
+!        do ig=1,ngw
+!        temp=temp+2.d0*DBLE(CONJG(c0(ig,1)+hpsi(ig,1))*(c0(ig,1)+hpsi(ig,1)))
+!        enddo
+!        if(ng0==2.and.lgam) then
+!        temp=temp-DBLE(CONJG((c0(1,1)+hpsi(1,1)))*(c0(1,1)+hpsi(1,1)))
+!        endif
+!        call mp_sum(temp,intra_image_comm)
+!        write(6,*) "debug", temp
+!end_added:giovanni
 
 !$$
 !        if(ionode) then
@@ -1304,11 +1316,16 @@
         !
         if(lgam.and. ng0 == 2 )  THEN
           cm(1,:) = 0.5d0*(cm(1,:)+CONJG(cm(1,:)))
-        ELSE IF(ng0 == 2 ) THEN
-          !do i=1,nbsp
-          !phase = cm(1,i)/(abs(cm(1,i))+1.d-10)
-          !cm(:,i) = cm(:,i)*CONJG(phase)
-          !enddo
+        ELSE !warning:giovanni this would fix the phase of the new position.. should
+             !        not influence the calculation
+        ! do i=1,nbsp
+        !  phase=0.d0
+        !  IF(ng0 == 2 ) THEN
+        !   phase = cm(1,i)/(abs(cm(1,i))+1.d-10)
+        !  ENDIF
+        !  call mp_sum(phase, intra_image_comm)
+        !  cm(:,i) = cm(:,i)*CONJG(phase)
+        ! enddo
         ENDIF
 
         call calbec(1,nsp,eigr,cm,becm)
@@ -1426,7 +1443,7 @@
           endif
           c0(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
 !$$
-          passof=1.d0*passov
+          passof=passov
 !$$
           restartcg=.true.
           call calbec(1,nsp,eigr,c0,bec)
@@ -1456,6 +1473,7 @@
           iter3=0
           do while(enever.ge.ene0 .and. iter3.lt.maxiter3)
             iter3=iter3+1
+
             passov=passov*0.5d0
             cm(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
 !$$

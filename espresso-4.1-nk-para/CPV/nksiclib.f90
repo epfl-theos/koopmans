@@ -3272,9 +3272,9 @@ end subroutine nksic_rot_test
                 nidx1 = nbnd1-1+iupdwn(isp)
                 nidx2 = nbnd2-1+iupdwn(isp)
                 IF(nidx1.ne.nidx2) THEN
-                  dene0 = dene0 -0.5d0*DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2))
+                  dene0 = dene0 - DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2))
                 ELSE  !warning:giovanni: do we need this condition
-                  dene0 = dene0 -DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2))
+                  !dene0 = dene0 -DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2))
                 ENDIF
                 !
             enddo
@@ -3288,7 +3288,7 @@ end subroutine nksic_rot_test
         ! Be careful, the following is correct because A_ji = - A_ij, i.e., the number of
         ! linearly independent variables is half the number of total variables!
         !
-        dene0 = dene0 * 2.d0/nspin
+        dene0 = dene0 * 1.d0/nspin
         !
         spasso = 1.d0
         if( dene0 > 0.d0) spasso = -1.d0
@@ -4528,13 +4528,13 @@ end subroutine nksic_getvsicah_new1
 	    vsicah( nbnd2, nbnd1) = hmat(nbnd2,nbnd1) -CONJG(hmat(nbnd1,nbnd2))
 	    vsicah( nbnd1, nbnd2) = hmat(nbnd1,nbnd2) -CONJG(hmat(nbnd2,nbnd1))
           ENDIF
-          vsicah2sum =  vsicah2sum + 2.d0*DBLE(CONJG(vsicah(nbnd2,nbnd1))*vsicah(nbnd2,nbnd1))
+          vsicah2sum =  vsicah2sum + DBLE(CONJG(vsicah(nbnd2,nbnd1))*vsicah(nbnd2,nbnd1))
           !
       enddo
-          IF(.not.lgam) THEN
-            vsicah( nbnd1, nbnd1) = hmat(nbnd1,nbnd1) -CONJG(hmat(nbnd1,nbnd1))
-            vsicah2sum =  vsicah2sum + 2.d0*DBLE(CONJG(vsicah(nbnd1,nbnd1))*vsicah(nbnd1,nbnd1))
-          ENDIF
+          !IF(.not.lgam) THEN
+          !  vsicah( nbnd1, nbnd1) = hmat(nbnd1,nbnd1) -CONJG(hmat(nbnd1,nbnd1))
+          !  vsicah2sum =  vsicah2sum + 2.d0*DBLE(CONJG(vsicah(nbnd1,nbnd1))*vsicah(nbnd1,nbnd1))
+          !ENDIF
       enddo
       !
       deallocate( hmat )
