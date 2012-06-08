@@ -3272,7 +3272,7 @@ end subroutine nksic_rot_test
                 nidx1 = nbnd1-1+iupdwn(isp)
                 nidx2 = nbnd2-1+iupdwn(isp)
                 IF(nidx1.ne.nidx2) THEN
-                  dene0 = dene0 - DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2))
+                  dene0 = dene0 - DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2)) 
                 ELSE  !warning:giovanni: do we need this condition
                   !dene0 = dene0 -DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2))
                 ENDIF
