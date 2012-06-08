@@ -464,11 +464,15 @@ MODULE input_parameters
         ! This variable overwrites the ones above
         CHARACTER(80)     :: which_orbdep=" "
         CHARACTER(LEN=80) :: which_orbdep_allowed(12)
+        CHARACTER(LEN=80) :: which_orbdep_allowed_cmplx(7)
         !
         DATA which_orbdep_allowed &
           / "none", "nk", "non-koopmans", "nk0", "nki", &
             "perdew-zunger", "pz", "pznk", "nkpz" ,     &
             "hf", "b3lyp", "pbe0" /
+        DATA which_orbdep_allowed_cmplx &
+          / "none", "nk", "non-koopmans", "nk0", "nki", &
+            "perdew-zunger", "pz"/
         !
         LOGICAL     :: do_spinsym  = .false.
         INTEGER     :: nknmax = -1

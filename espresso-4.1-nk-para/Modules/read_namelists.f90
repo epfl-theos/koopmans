@@ -1500,6 +1500,15 @@ MODULE read_namelists_module
            IF( .NOT. allowed ) &
                CALL errore( sub_name, ' which_orbdep '''// &
                           & TRIM(which_orbdep)//''' not allowed ',1)
+
+           IF(do_wf_cmplx) THEN
+	      DO i = 1, SIZE( which_orbdep_allowed_cmplx )
+		  IF( TRIM(which_orbdep) == which_orbdep_allowed_cmplx(i) ) allowed = .TRUE.
+	      END DO
+	      IF( .NOT. allowed ) &
+		  CALL errore( sub_name, ' which_orbdep '''// &
+			      & TRIM(which_orbdep)//''' not allowed with complex wavefunctions',1)
+            ENDIF
            !
        ENDIF
        !

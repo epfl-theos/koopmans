@@ -309,7 +309,7 @@ MODULE input
         orthogonalization, electron_velocities, nat, if_pos, phase_space,      &
         tefield, epol, efield, tefield2, epol2, efield2, remove_rigid_rot,     &
         iesr_inp, vhrmax_inp, vhrmin_inp, tvhmean_inp, vhasse_inp, saverho,    &
-        ortho_para, rd_for, do_wf_cmplx, empty_states_nbnd !added:giovanni do_wf_cmplx, empty_states_nbnd
+        ortho_para, rd_for, do_wf_cmplx, empty_states_nbnd, which_orbdep !added:giovanni do_wf_cmplx, empty_states_nbnd
      !
      IMPLICIT NONE
      !
@@ -852,6 +852,9 @@ MODULE input
              CALL errore(' iosys ','FPMD not working with complex wavefunctions', 1 )
           ENDIF
 
+!           IF ( which_orbdep .ne. 'or' ) THEN
+!              CALL errore(' iosys ','hf not working with complex wavefunctions', 1 )
+!           ENDIF
 ! 	  IF(empty_states_nbnd>0) THEN
 ! 	    CALL errore(' iosys ',' empty states not yet implemented with complex wavefunctions', 1 )
 ! 	  ENDIF
