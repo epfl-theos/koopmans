@@ -967,7 +967,8 @@
 
           restartcg=.false.
 !$$  We do not have to reset passof every exception of CG!
-!$$$$          passof=passop
+!warning:giovanni if we do not reset we may have fake convergences!!!!
+          passof=passop
 
           hi(1:ngw,1:nbsp)=gi(1:ngw,1:nbsp)!hi is the search direction
 
