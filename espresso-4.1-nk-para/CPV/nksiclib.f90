@@ -1211,11 +1211,11 @@ end subroutine nksic_newd
       !
       if( do_wref .or. do_wxd ) then
           !  
-          ! note that vxd and wref are updated 
+          ! note that vxd and wref are updated
           ! (and not overwritten) by the next call
           !
           call nksic_dmxc_spin_cp_update( nnrx, rhoref, f, ispin, rhoele, &
-                                   vanishing_rho_w, wrefsic, wxdsic )!modified:linh
+                                   vanishing_rho_w, wrefsic, wxdsic ) !modified:linh
           !
           !
           if ( do_wref ) then

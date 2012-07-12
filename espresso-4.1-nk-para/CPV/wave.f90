@@ -127,9 +127,6 @@
     return
   end subroutine elec_fakekine_x
 
-
-
-
 !=----------------------------------------------------------------------------=!
    SUBROUTINE protate_real_x ( c0, bec, c0rot, becrot, ngwl, nss, noff, lambda, nrl, &
                         na, nsp, ish, nh, np_rot, me_rot, comm_rot  )
