@@ -1335,17 +1335,17 @@
             v( ig ) = ( 0.0d0, 0.0d0 )
          end do
 !$omp do
-         if(lgam) then
+!         if(lgam) then !!! uncomment for k-points
 	    do ig=1,ngm
 		v(np(ig))=      ci*tpiba*gx(1,ig)*rhog(ig,iss)
 		v(nm(ig))=CONJG(ci*tpiba*gx(1,ig)*rhog(ig,iss))
 	    end do
-         else
-	    do ig=1,ngm
-		v(np(ig))=      ci*tpiba*gx(1,ig)*rhog(ig,iss)
-! 		v(nm(ig))=CONJG(ci*tpiba*gx(1,ig)*rhog(ig,iss))
-	    end do
-         endif
+!         else  !!! uncomment for k-points
+!	    do ig=1,ngm  !!! uncomment for k-pointvs
+!		v(np(ig))=      ci*tpiba*gx(1,ig)*rhog(ig,iss) !!! uncomment for k-pointvs
+! 		v(nm(ig))=CONJG(ci*tpiba*gx(1,ig)*rhog(ig,iss)) !!! uncomment for k-pointvs
+!	    end do !!! uncomment for k-pointvs
+ !        endif !!! uncomment for k-pointvs
 !$omp end parallel
          !
          call invfft( 'Dense', v, dfftp )
@@ -1360,21 +1360,21 @@
             v(ig)=(0.0d0,0.0d0)
          end do
 !$omp do
-         if(lgam) then
+!         if(lgam) then
 	    do ig=1,ngm
 		v(np(ig))= tpiba*(      ci*gx(2,ig)*rhog(ig,iss)-           &
 	&                                 gx(3,ig)*rhog(ig,iss) )
 		v(nm(ig))= tpiba*(CONJG(ci*gx(2,ig)*rhog(ig,iss)+           &
 	&                                 gx(3,ig)*rhog(ig,iss)))
 	    end do
-         else
-	    do ig=1,ngm
-		v(np(ig))= tpiba*(      ci*gx(2,ig)*rhog(ig,iss)-           &
-	&                                 gx(3,ig)*rhog(ig,iss) )
-! 		v(nm(ig))= tpiba*(CONJG(ci*gx(2,ig)*rhog(ig,iss)+           &
-! 	&                                 gx(3,ig)*rhog(ig,iss)))
-	    end do
-         endif
+!         else
+!	    do ig=1,ngm
+!		v(np(ig))= tpiba*(      ci*gx(2,ig)*rhog(ig,iss)-           &
+!	&                                 gx(3,ig)*rhog(ig,iss) )
+!! 		v(nm(ig))= tpiba*(CONJG(ci*gx(2,ig)*rhog(ig,iss)+           &
+!! 	&                                 gx(3,ig)*rhog(ig,iss)))
+!	    end do
+!         endif
 !$omp end parallel
          !
          call invfft( 'Dense', v, dfftp )
