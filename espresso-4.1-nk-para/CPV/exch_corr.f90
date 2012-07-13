@@ -399,7 +399,7 @@
             self_exc = sic_alpha * (exc - self_exc)
             exc = exc - self_exc
          END IF
-!
+         !
       end if
 
       call mp_sum( exc, intra_image_comm )
@@ -554,6 +554,8 @@
       use cp_main_variables, only: drhog
       USE cp_interfaces, ONLY: fwfft, invfft
       USE fft_base,      ONLY: dfftp
+      !USE nksic,         ONLY: do_orbdep !added:giovanni to avoid calculation of dexc ... 
+                                          !but this probably does not speed up the calculation
 !                 
       implicit none  
 ! input                   
