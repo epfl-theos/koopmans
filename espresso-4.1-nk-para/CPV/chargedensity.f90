@@ -1360,21 +1360,21 @@
             v(ig)=(0.0d0,0.0d0)
          end do
 !$omp do
-!         if(lgam) then
+!         if(lgam) then !!! uncomment for k-points
 	    do ig=1,ngm
 		v(np(ig))= tpiba*(      ci*gx(2,ig)*rhog(ig,iss)-           &
 	&                                 gx(3,ig)*rhog(ig,iss) )
 		v(nm(ig))= tpiba*(CONJG(ci*gx(2,ig)*rhog(ig,iss)+           &
 	&                                 gx(3,ig)*rhog(ig,iss)))
 	    end do
-!         else
-!	    do ig=1,ngm
-!		v(np(ig))= tpiba*(      ci*gx(2,ig)*rhog(ig,iss)-           &
-!	&                                 gx(3,ig)*rhog(ig,iss) )
-!! 		v(nm(ig))= tpiba*(CONJG(ci*gx(2,ig)*rhog(ig,iss)+           &
-!! 	&                                 gx(3,ig)*rhog(ig,iss)))
-!	    end do
-!         endif
+!         else !!! uncomment for k-points
+!	    do ig=1,ngm !!! uncomment for k-points
+!		v(np(ig))= tpiba*(      ci*gx(2,ig)*rhog(ig,iss)-           & !!! uncomment for k-points
+!	&                                 gx(3,ig)*rhog(ig,iss) ) !!! uncomment for k-points
+!! 		v(nm(ig))= tpiba*(CONJG(ci*gx(2,ig)*rhog(ig,iss)+           & !!! uncomment for k-points
+!! 	&                                 gx(3,ig)*rhog(ig,iss))) !!! uncomment for k-points
+!	    end do !!! uncomment for k-points
+!         endif !!! uncomment for k-points
 !$omp end parallel
          !
          call invfft( 'Dense', v, dfftp )

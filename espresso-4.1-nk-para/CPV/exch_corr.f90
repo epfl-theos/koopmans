@@ -607,7 +607,7 @@
          end do
          call fwfft('Dense',v, dfftp )
 !
-         IF(lgam) THEN
+!         IF(lgam) THEN  !!!uncomment for k-points
 	    do ig=1,ng
 		fp=v(np(ig))+v(nm(ig))
 		fm=v(np(ig))-v(nm(ig))
@@ -616,19 +616,19 @@
 		x(ig) = x(ig) +                                             &
 	&           ci*tpiba*gx(3,ig)*0.5d0*CMPLX(AIMAG(fp),-DBLE(fm))
 	    end do
-         ELSE
-           do ig=1,ng
-		fp=v(np(ig))
-		fm=v(np(ig))!-v(nm(ig))
-		x(ig) = x(ig) +                                             &
-	&           ci*tpiba*gx(2,ig)*0.5d0*CMPLX( DBLE(fp),AIMAG(fm))
-		x(ig) = x(ig) +                                             &
-	&           ci*tpiba*gx(3,ig)*0.5d0*CMPLX(AIMAG(fp),-DBLE(fm))
-	   end do
-         ENDIF
+!         ELSE !!!uncomment for k-points
+!           do ig=1,ng !!!uncomment for k-points
+!		fp=v(np(ig)) !!!uncomment for k-points
+!		fm=v(np(ig))!-v(nm(ig)) !!!uncomment for k-points
+!		x(ig) = x(ig) +                                             & !!!uncomment for k-points
+!	&           ci*tpiba*gx(2,ig)*0.5d0*CMPLX( DBLE(fp),AIMAG(fm)) !!!uncomment for k-points
+!		x(ig) = x(ig) +                                             & !!!uncomment for k-points
+!	&           ci*tpiba*gx(3,ig)*0.5d0*CMPLX(AIMAG(fp),-DBLE(fm)) !!!uncomment for k-points
+!	   end do !!!uncomment for k-points
+!         ENDIF !!!uncomment for k-points
 !
          if(tpre) then
-	    IF(lgam) THEN
+!	    IF(lgam) THEN !!!uncomment for k-points
 		do i=1,3
 		  do j=1,3
 		      do ig=1,ng
@@ -645,24 +645,24 @@
 		      dexc(i,j) = dexc(i,j) + 2.0d0*DBLE(SUM(vtemp))
 		  end do
 		end do
-	    ELSE
-		do i=1,3
-		  do j=1,3
-		      do ig=1,ng
-			fp=v(np(ig))!+v(nm(ig))
-			fm=v(np(ig))!-v(nm(ig))
-			vtemp(ig) = omega*ci*                              &
-	&                    (0.5d0*CMPLX(DBLE(fp),-AIMAG(fm))*              &
-	&                    tpiba*(-rhog(ig,iss)*gx(i,ig)*ainv(j,2)+      &
-	&                    gx(2,ig)*drhog(ig,iss,i,j))+                  &
-	&                    0.5d0*CMPLX(AIMAG(fp),DBLE(fm))*tpiba*          &
-	&                    (-rhog(ig,iss)*gx(i,ig)*ainv(j,3)+            &
-	&                    gx(3,ig)*drhog(ig,iss,i,j)))
-		      end do
-		      dexc(i,j) = dexc(i,j) + 2.0d0*DBLE(SUM(vtemp))
-		  end do
-		end do
-	    ENDIF
+!	    ELSE !!!uncomment for k-points
+!		do i=1,3 !!!uncomment for k-points
+!		  do j=1,3 !!!uncomment for k-points
+!		      do ig=1,ng !!!uncomment for k-points
+!			fp=v(np(ig))!+v(nm(ig)) !!!uncomment for k-points
+!			fm=v(np(ig))!-v(nm(ig)) !!!uncomment for k-points
+!			vtemp(ig) = omega*ci*                              & !!!uncomment for k-points
+!	&                    (0.5d0*CMPLX(DBLE(fp),-AIMAG(fm))*              & !!!uncomment for k-points
+!	&                    tpiba*(-rhog(ig,iss)*gx(i,ig)*ainv(j,2)+      & !!!uncomment for k-points
+!	&                    gx(2,ig)*drhog(ig,iss,i,j))+                  & !!!uncomment for k-points
+!	&                    0.5d0*CMPLX(AIMAG(fp),DBLE(fm))*tpiba*          & !!!uncomment for k-points
+!	&                    (-rhog(ig,iss)*gx(i,ig)*ainv(j,3)+            & !!!uncomment for k-points
+!	&                    gx(3,ig)*drhog(ig,iss,i,j))) !!!uncomment for k-points
+!		      end do !!!uncomment for k-points
+!		      dexc(i,j) = dexc(i,j) + 2.0d0*DBLE(SUM(vtemp)) !!!uncomment for k-points
+!		  end do !!!uncomment for k-points
+!		end do !!!uncomment for k-points
+!	    ENDIF !!!uncomment for k-points
          endif
 !     _________________________________________________________________
 !     second part xc-potential: 1 inverse fft
@@ -670,17 +670,17 @@
          do ig=1,nnr
             v(ig)=(0.0d0,0.0d0)
          end do
-         IF(lgam) THEN
+!         IF(lgam) THEN !!!uncomment for k-points
 	    do ig=1,ng
 		v(np(ig))=x(ig)
 		v(nm(ig))=CONJG(x(ig))
 	    end do
-         ELSE
-	    do ig=1,ng
-		v(np(ig))=x(ig)
-    !             v(nm(ig))=CONJG(x(ig))
-	    end do
-         ENDIF
+!         ELSE !!!uncomment for k-points
+!	    do ig=1,ng !!!uncomment for k-points
+!		v(np(ig))=x(ig) !!!uncomment for k-points
+!    !             v(nm(ig))=CONJG(x(ig)) !!!uncomment for k-points
+!	    end do !!!uncomment for k-points
+!         ENDIF !!!uncomment for k-points
          call invfft('Dense',v, dfftp )
          do ir=1,nnr
             rhor(ir,iss)=rhor(ir,iss)-DBLE(v(ir))
