@@ -1514,7 +1514,7 @@ end subroutine nksic_newd
 
 !$$ This is for screened pz functional; apparently, I should have used a different variable name.
       !
-      !   rescale contributions with the nkscalfact parameter
+      !   rescale contribuitions with the nkscalfact parameter
       !   take care of non-variational formulations
       !
       pink = pink * nkscalfact
