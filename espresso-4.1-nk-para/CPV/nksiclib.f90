@@ -803,7 +803,7 @@ end subroutine nksic_get_orbitalrho_twin
       real(dp),      intent(in)  :: orb_rhor(nnrx)
       real(dp),      intent(out) :: rhoref_(nnrx,2)
       real(dp),      intent(out) :: rhobar_(nnrx,2)
-      complex(dp)                :: rhobarg(ngm,2)
+      complex(dp),   intent(out) :: rhobarg(ngm,2)
       real(dp),      intent(out) :: grhobar_(nnrx,3,2)
       !
       integer      :: ig
@@ -1124,11 +1124,11 @@ end subroutine nksic_newd
       if ( dft_is_gradient() ) then
            !
            allocate(grhoraux(nnrx,3,2))
-           allocate(orb_grhor(nnrx,3,1))
+           allocate(orb_grhor(nnrx,3,2))
            allocate(haux(nnrx,2,2))
            !
            ! compute the gradient of n_i(r)
-           call fillgrad( 1, rhogaux, orb_grhor(:,:,1:1), lgam )
+           call fillgrad( 2, rhogaux, orb_grhor, lgam )
            !
       else
            allocate(grhoraux(1,1,1))
@@ -1137,7 +1137,6 @@ end subroutine nksic_newd
            !
       endif
       !
-      deallocate(rhogaux)
       !   
       allocate(vxc0(nnrx,2))
       allocate(vxcref(nnrx,2))
@@ -1152,7 +1151,7 @@ end subroutine nksic_newd
           !
           grhoraux(:,:,1:2)   = grhobar(:,:,1:2)
           grhoraux(:,:,ispin) = grhobar(:,:,ispin) &
-                              + fref * orb_grhor(:,:,1)
+                              + fref * orb_grhor(:,:,ispin)
       endif    
       !
       !call exch_corr_wrapper(nnrx,2,grhoraux,rhoref,etxcref,vxcref,haux)
@@ -1194,7 +1193,7 @@ end subroutine nksic_newd
               !
               grhoraux(:,:,1:2)   = grhobar(:,:,1:2)
               grhoraux(:,:,ispin) = grhobar(:,:,ispin) &
-                                  + f * orb_grhor(:,:,1)
+                                  + f * orb_grhor(:,:,ispin)
           endif
           !
           !call exch_corr_wrapper(nnrx,2,grhoraux,rhoraux,etxc,vxc,haux)
@@ -1317,6 +1316,7 @@ end subroutine nksic_newd
       deallocate(vxcref)
       deallocate(rhoele)
       !
+      deallocate(rhogaux)
       deallocate(grhoraux)
       deallocate(haux)
       !
