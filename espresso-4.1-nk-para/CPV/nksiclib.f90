@@ -1047,7 +1047,7 @@ end subroutine nksic_newd
       call fwfft('Dense',vhaux,dfftp )
       !
       do ig=1,ngm
-          rhogaux(ig,1) = vhaux( np(ig) )
+          rhogaux(ig,ispin) = vhaux( np(ig) )
       enddo
 
       !    
@@ -1055,14 +1055,14 @@ end subroutine nksic_newd
       !
       if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
       do ig=gstart,ngm
-          vtmp(ig) = rhogaux(ig,1) * fpi/( tpiba2*g(ig) )
+          vtmp(ig) = rhogaux(ig,ispin) * fpi/( tpiba2*g(ig) )
       enddo
       !
       ! compute periodic corrections
       !
       if( do_comp ) then
           !
-          call calc_tcc_potential( vcorr, rhogaux(:,1) ) !warning:giovanni it seems tcc1d is not implemented here, it assumes tcc only! hydrogen chains are doubly wrong then
+          call calc_tcc_potential( vcorr, rhogaux(:,ispin) ) !warning:giovanni it seems tcc1d is not implemented here, it assumes tcc only! hydrogen chains are doubly wrong then
           vtmp(:) = vtmp(:) + vcorr(:)
           !
       endif
@@ -1098,8 +1098,8 @@ end subroutine nksic_newd
       !
       !ehele=0.5_dp * sum(dble(vhaux(1:nnrx))*rhoele(1:nnrx,ispin))
       !
-      ehele = icoeff * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm,1)))
-      if ( gstart == 2 ) ehele = ehele + (1.d0-icoeff)*DBLE ( CONJG( vtmp(1) ) * rhogaux(1,1) )
+      ehele = icoeff * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm,ispin)))
+      if ( gstart == 2 ) ehele = ehele + (1.d0-icoeff)*DBLE ( CONJG( vtmp(1) ) * rhogaux(1,ispin) )
       !
       ! the f * (2.0d0 * fref-f) term is added here
       ehele = 0.5_dp * f * (2.0_dp * fref-f) * ehele * omega / fact
@@ -1378,6 +1378,7 @@ end subroutine nksic_newd
       !==================
       !
       lgam=gamma_only.and..not.do_wf_cmplx
+      
       vsic=0.0_dp
       pink=0.0_dp
       !
@@ -1472,7 +1473,7 @@ end subroutine nksic_newd
           ! note: rhogaux contains the occupation
           !
           grhoraux=0.0_dp
-          call fillgrad( 2, rhogaux, grhoraux(:,:,:), lgam ) 
+          call fillgrad( 2, rhogaux, grhoraux, lgam ) 
       else
           allocate(grhoraux(1,1,1))
           allocate(haux(1,1,1))

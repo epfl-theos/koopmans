@@ -1444,7 +1444,7 @@
           endif
           c0(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
 !$$
-          passof=passov
+          passof=2.d0*passov
 !$$
           restartcg=.true.
           call calbec(1,nsp,eigr,c0,bec)
@@ -1560,17 +1560,22 @@
 !$$
 
 !$$
-          if(.not.do_orbdep) then
-              if(iter3 == maxiter3) write(stdout,"(2x,a)") 'missed minimun: iter3 = maxiter3'
-              c0(:,:)=cm(:,:)
-          endif
+          !if(.not.do_orbdep) then
+              if(iter3 == maxiter3) then
+                write(stdout,"(2x,a)") 'missed minimun: iter3 = maxiter3'
+              else
+                c0(:,:)=cm(:,:)
+              endif
+          !endif
 !$$
 
           restartcg=.true.
           ene_ok=.false.
 
 !$$
-          if(iter3 == maxiter3) passof=passop
+          if(iter3 == maxiter3) then
+            passof=passop
+          endif
 !$$
         end if
         
