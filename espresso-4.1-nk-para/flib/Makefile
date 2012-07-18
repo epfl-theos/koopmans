@@ -31,7 +31,8 @@ date_and_tim.o \
 sort_gvec.o \
 volume.o \
 dylmr2.o \
-ylmr2.o
+ylmr2.o \
+cryst_to_car.o
 
 POBJS = \
 flush_unit.o \

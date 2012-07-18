@@ -42,8 +42,8 @@
 
         REAL(DP), ALLOCATABLE :: ei(:,:)
         REAL(DP), ALLOCATABLE :: ei_emp(:,:)
-        REAL(DP), ALLOCATABLE :: wfc_centers(:) !added:giovanni wfc_centers
-        REAL(DP), ALLOCATABLE :: wfc_spreads(:) !added:giovanni wfc_spreads
+        REAL(DP), ALLOCATABLE :: wfc_centers(:,:) !added:giovanni wfc_centers
+        REAL(DP), ALLOCATABLE :: wfc_spreads(:,:) !added:giovanni wfc_spreads
 
 !  ...  Fourier acceleration
 
@@ -57,7 +57,7 @@
         PUBLIC :: print_eigenvalues
         PUBLIC :: max_emp, ethr_emp
         PUBLIC :: empty_print_info, empty_init
- 
+        PUBLIC :: wfc_centers, wfc_spreads !added:giovanni 
 
 !
 !  end of module-scope declarations
@@ -189,16 +189,14 @@
 
 !begin_added:giovanni
      IF( ALLOCATED( wfc_centers ) ) DEALLOCATE( wfc_centers )
-       ALLOCATE( wfc_centers( nudx, nspin ), STAT=ierr)
-       IF( ierr/=0 ) CALL errore( ' electrons ',' allocating wfc_centers ',ierr)
-       wfc_centers = 0.0_DP
-     END IF
+     ALLOCATE( wfc_centers( nudx, nspin ), STAT=ierr)
+     IF( ierr/=0 ) CALL errore( ' electrons ',' allocating wfc_centers ',ierr)
+     wfc_centers = 0.0_DP
 
      IF( ALLOCATED( wfc_centers ) ) DEALLOCATE( wfc_spreads )
-       ALLOCATE( wfc_spreads( nudx, nspin ), STAT=ierr)
-       IF( ierr/=0 ) CALL errore( ' electrons ',' allocating wfc_spreads ',ierr)
-       wfc_spreads = 0.0_DP
-     END IF
+     ALLOCATE( wfc_spreads( nudx, nspin ), STAT=ierr)
+     IF( ierr/=0 ) CALL errore( ' electrons ',' allocating wfc_spreads ',ierr)
+     wfc_spreads = 0.0_DP
 !end_added:giovanni
 
      ecutmass = ecutmass_inp

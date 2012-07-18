@@ -29,6 +29,10 @@ MODULE twin_types
     MODULE PROCEDURE copy_twin_matrix, copy_twin_tensor
   END INTERFACE
 
+  INTERFACE zaxpy_twin
+    MODULE PROCEDURE zaxpy_twin_matrix, zaxpy_twin_tensor
+  END INTERFACE
+
   INTERFACE allocate_twin
     MODULE PROCEDURE allocate_twin_matrix, allocate_twin_tensor
   END INTERFACE
@@ -158,7 +162,12 @@ MODULE twin_types
   SUBROUTINE copy_twin_matrix(tmatrix1,tmatrix2)
 
    type(twin_matrix)   :: tmatrix1,tmatrix2
+
    character(len=17)   :: subname="copy_twin_tensor"
+
+   IF(tmatrix1%xdim.ne.tmatrix2%xdim .OR. tmatrix1%ydim.ne.tmatrix2%ydim) THEN
+      call errore(subname,"copying twin matrices with incompatible size", 1)
+   ENDIF
 !    COMPLEX(DP), INTENT(IN) :: value
 
    IF(tmatrix1%iscmplx) THEN
@@ -180,11 +189,46 @@ MODULE twin_types
    return
   END SUBROUTINE copy_twin_matrix
 
+  SUBROUTINE zaxpy_twin_matrix(tmatrix1,tmatrix2, coef)
+
+   type(twin_matrix)   :: tmatrix1,tmatrix2
+   COMPLEX(DP)    :: coef
+   character(len=17)   :: subname="copy_twin_tensor"
+!    COMPLEX(DP), INTENT(IN) :: value
+
+   IF(tmatrix1%xdim.ne.tmatrix2%xdim .OR. tmatrix1%ydim.ne.tmatrix2%ydim) THEN
+      call errore(subname,"copying twin matrices with incompatible size", 1)
+   ENDIF
+
+   IF(tmatrix1%iscmplx) THEN
+     IF(tmatrix2%iscmplx) THEN
+      tmatrix1%cvec(:,:)=tmatrix2%cvec(:,:)+coef*tmatrix1%cvec(:,:)
+     ELSE
+      call errore(subname,"copying real tensor into complex tensor", 1)
+      tmatrix1%cvec(:,:)=tmatrix2%rvec(:,:)+DBLE(coef*tmatrix1%cvec(:,:))
+     ENDIF
+   ELSE
+     IF(.not.tmatrix2%iscmplx) THEN
+      tmatrix1%rvec(:,:)=tmatrix2%rvec(:,:)+DBLE(coef)*tmatrix1%rvec(:,:)
+     ELSE
+      call errore(subname,"copying complex tensor into real tensor", 1)
+      tmatrix1%rvec(:,:)=tmatrix2%cvec(:,:)+coef*tmatrix1%rvec(:,:)
+     ENDIF
+   ENDIF
+   
+   return
+  END SUBROUTINE zaxpy_twin_matrix
+
   SUBROUTINE copy_twin_tensor(ttensor1,ttensor2)
 
    type(twin_tensor)   :: ttensor1, ttensor2
    character(len=17)   :: subname="copy_twin_tensor"
 !    COMPLEX(DP), INTENT(IN) :: value
+
+   IF(ttensor1%xdim.ne.ttensor2%xdim .OR. ttensor1%ydim.ne.ttensor2%ydim &
+     .OR. ttensor1%zdim.ne.ttensor2%zdim) THEN
+      call errore(subname,"copying twin tensors with incompatible size", 1)
+   ENDIF
 
    IF(ttensor1%iscmplx) THEN
      IF(ttensor2%iscmplx) THEN
@@ -204,6 +248,37 @@ MODULE twin_types
    
    return
   END SUBROUTINE copy_twin_tensor
+
+  SUBROUTINE zaxpy_twin_tensor(ttensor1,ttensor2, coef)
+
+   type(twin_tensor)   :: ttensor1,ttensor2
+   COMPLEX(DP)    :: coef
+   character(len=17)   :: subname="copy_twin_tensor"
+!    COMPLEX(DP), INTENT(IN) :: value
+
+   IF(ttensor1%xdim.ne.ttensor2%xdim .OR. ttensor1%ydim.ne.ttensor2%ydim &
+     .OR. ttensor1%zdim.ne.ttensor2%zdim) THEN
+      call errore(subname,"copying twin tensors with incompatible size", 1)
+   ENDIF
+
+   IF(ttensor1%iscmplx) THEN
+     IF(ttensor2%iscmplx) THEN
+      ttensor1%cvec(:,:,:)=ttensor2%cvec(:,:,:)+coef*ttensor1%cvec(:,:,:)
+     ELSE
+      call errore(subname,"copying real tensor into complex tensor", 1)
+      ttensor1%cvec(:,:,:)=ttensor2%rvec(:,:,:)+DBLE(coef*ttensor1%cvec(:,:,:))
+     ENDIF
+   ELSE
+     IF(.not.ttensor2%iscmplx) THEN
+      ttensor1%rvec(:,:,:)=ttensor2%rvec(:,:,:)+DBLE(coef)*ttensor1%rvec(:,:,:)
+     ELSE
+      call errore(subname,"copying complex tensor into real tensor", 1)
+      ttensor1%rvec(:,:,:)=ttensor2%cvec(:,:,:)+coef*ttensor1%rvec(:,:,:)
+     ENDIF
+   ENDIF
+   
+   return
+  END SUBROUTINE zaxpy_twin_tensor
 
   SUBROUTINE allocate_twin_matrix(tmatrix,xlen,ylen,doreal)
    

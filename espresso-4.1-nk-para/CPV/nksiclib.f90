@@ -102,7 +102,12 @@
         !
         call nksic_get_orbitalrho( ngw, nnrx, bec, ispin, nbsp, &
                                    c(:,j), c(:,j+1), orb_rhor, j, j+1, lgam) !warning:giovanni need modification
-
+        
+!begin_added:giovanni
+          !compute centers and spreads of nksic or pz minimizing orbitals
+          !  call compute_nksic_centers(nnrx, ispin, nbsp, orb_rhor, j, j+1)
+          !
+!end_added:giovanni
         !
         ! compute orbital potentials
         !
@@ -5059,13 +5064,18 @@ end subroutine nksic_getOmat1
 end subroutine nksic_dmxc_spin_cp_update
 !---------------------------------------------------------------
 
-!subroutine nksic_get_wfc_centers_spread(c0, centers, cspread)
+subroutine compute_nksic_centers(ngw, nbsp, nbspx, c0)
+   
+   use kinds,              ONLY: dp   
+   use electrons_module,   ONLY: wfc_centers, wfc_spreads
 
-
+   integer, intent(IN)      :: nbsp, nbspx
+   complex(dp), intent(in)  :: c0(ngw,nbspx)
+   
 !compute the fft of each wavefunction
 ! sum over nnrx times the vector r (where do I find it?)
 
 !no need to fft back if use supplementary variable
 
-!end subroutine nksic_get_wfc_centers_spread
+end subroutine compute_nksic_centers
 

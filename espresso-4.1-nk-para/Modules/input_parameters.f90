@@ -509,6 +509,7 @@ MODULE input_parameters
              sic, sic_epsilon, force_pairing, sic_alpha,                      &
              tot_charge, multiplicity, tot_magnetization,                     &
              spline_ps, london, london_s6, london_rcut,                       &
+!=-----BEGIN nksic input variables
              do_ee, do_nk, do_pz, do_nki, do_nkpz, do_hf,                     &
              do_wref, do_wxd, fref, rhobarfact, ampfield, do_efield,          &
              do_hf, nknmax, do_spinsym, f_cutoff,                             &
@@ -516,6 +517,7 @@ MODULE input_parameters
              do_innerloop, do_innerloop_cg, innerloop_dd_nstep,                 &
              innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax,          &
              do_wf_cmplx !added:giovanni do_wf_cmplx
+!=----END nksic input variables
 !
 !=----------------------------------------------------------------------------=!
 !  EE Namelist Input Parameters
