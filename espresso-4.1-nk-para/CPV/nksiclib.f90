@@ -5058,3 +5058,14 @@ end subroutine nksic_getOmat1
 !---------------------------------------------------------------
 end subroutine nksic_dmxc_spin_cp_update
 !---------------------------------------------------------------
+
+!subroutine nksic_get_wfc_centers_spread(c0, centers, cspread)
+
+
+!compute the fft of each wavefunction
+! sum over nnrx times the vector r (where do I find it?)
+
+!no need to fft back if use supplementary variable
+
+!end subroutine nksic_get_wfc_centers_spread
+

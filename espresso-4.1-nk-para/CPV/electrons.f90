@@ -42,6 +42,8 @@
 
         REAL(DP), ALLOCATABLE :: ei(:,:)
         REAL(DP), ALLOCATABLE :: ei_emp(:,:)
+        REAL(DP), ALLOCATABLE :: wfc_centers(:) !added:giovanni wfc_centers
+        REAL(DP), ALLOCATABLE :: wfc_spreads(:) !added:giovanni wfc_spreads
 
 !  ...  Fourier acceleration
 
@@ -184,6 +186,20 @@
        IF( ierr/=0 ) CALL errore( ' electrons ',' allocating ei_emp ',ierr)
        ei_emp = 0.0_DP
      END IF
+
+!begin_added:giovanni
+     IF( ALLOCATED( wfc_centers ) ) DEALLOCATE( wfc_centers )
+       ALLOCATE( wfc_centers( nudx, nspin ), STAT=ierr)
+       IF( ierr/=0 ) CALL errore( ' electrons ',' allocating wfc_centers ',ierr)
+       wfc_centers = 0.0_DP
+     END IF
+
+     IF( ALLOCATED( wfc_centers ) ) DEALLOCATE( wfc_spreads )
+       ALLOCATE( wfc_spreads( nudx, nspin ), STAT=ierr)
+       IF( ierr/=0 ) CALL errore( ' electrons ',' allocating wfc_spreads ',ierr)
+       wfc_spreads = 0.0_DP
+     END IF
+!end_added:giovanni
 
      ecutmass = ecutmass_inp
      emass    = emass_inp
