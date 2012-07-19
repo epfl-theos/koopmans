@@ -5091,13 +5091,14 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
    !
    IF(icompute_spread) THEN
       !
-      write(6,*) "computing spread"
       !
       myspin1=ispin(j)
       myspin2=ispin(k)
       !
       mybnd1=j-iupdwn(myspin1)+1
       mybnd2=k-iupdwn(myspin2)+1
+      
+      write(6,*) "computing spread",mybnd1,myspin1,mybnd2,myspin2
       !
       r0=0.d0
       !
