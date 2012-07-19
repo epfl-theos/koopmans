@@ -193,7 +193,7 @@
      IF( ierr/=0 ) CALL errore( ' electrons ',' allocating wfc_centers ',ierr)
      wfc_centers = 0.0_DP
 
-     IF( ALLOCATED( wfc_centers ) ) DEALLOCATE( wfc_spreads )
+     IF( ALLOCATED( wfc_spreads ) ) DEALLOCATE( wfc_spreads )
      ALLOCATE( wfc_spreads( nudx, nspin ), STAT=ierr)
      IF( ierr/=0 ) CALL errore( ' electrons ',' allocating wfc_spreads ',ierr)
      wfc_spreads = 0.0_DP

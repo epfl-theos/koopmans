@@ -105,7 +105,7 @@
         
 !begin_added:giovanni
           !compute centers and spreads of nksic or pz minimizing orbitals
-          !  call compute_nksic_centers(nnrx, nspin, orb_rhor, j, j+1)
+          call compute_nksic_centers(nnrx, ispin, orb_rhor, j, j+1)
           !
 !end_added:giovanni
         !
@@ -5076,12 +5076,15 @@ subroutine compute_nksic_centers(nnrx, ispin, orb_rhor,j,k)
    complex(dp), intent(in)  :: orb_rhor(nnrx,2)
    !
    integer :: myspin1, myspin2, mybnd1, mybnd2
-
+   real(dp):: r0(3)
+   
    myspin1=ispin(j)
    myspin2=ispin(k)
 
    mybnd1=j-iupdwn(myspin1)+1
-   mybnd1=k-iupdwn(myspin2)+1
+   mybnd2=k-iupdwn(myspin2)+1
+
+   r0=0.d0
 
    call compute_dipole( nnrx, nspin, orb_rhor(1,1), r0, wfc_centers(:, mybnd1, myspin1), wfc_spreads(mybnd1, myspin1))
    call compute_dipole( nnrx, nspin, orb_rhor(1,2), r0, wfc_centers(:, mybnd2, myspin2), wfc_spreads(mybnd2, myspin2))
