@@ -105,7 +105,7 @@
         
 !begin_added:giovanni
           !compute centers and spreads of nksic or pz minimizing orbitals
-          !  call compute_nksic_centers(nnrx, ispin, nbsp, orb_rhor, j, j+1)
+          !  call compute_nksic_centers(nnrx, nspin, orb_rhor, j, j+1)
           !
 !end_added:giovanni
         !
@@ -5064,14 +5064,28 @@ end subroutine nksic_getOmat1
 end subroutine nksic_dmxc_spin_cp_update
 !---------------------------------------------------------------
 
-subroutine compute_nksic_centers(ngw, nbsp, nbspx, c0)
+          !  call compute_nksic_centers(nnrx, ispin, nbsp, orb_rhor, j, j+1)
+subroutine compute_nksic_centers(nnrx, ispin, orb_rhor,j,k)
    
    use kinds,              ONLY: dp   
    use electrons_module,   ONLY: wfc_centers, wfc_spreads
+   use electrons_base,     ONLY: nbsp, nbspx, nspin, iupdwn, nupdwn
 
-   integer, intent(IN)      :: nbsp, nbspx
-   complex(dp), intent(in)  :: c0(ngw,nbspx)
-   
+
+   integer, intent(IN)      :: ispin(nbspx),j,k
+   complex(dp), intent(in)  :: orb_rhor(nnrx,2)
+   !
+   integer :: myspin1, myspin2, mybnd1, mybnd2
+
+   myspin1=ispin(j)
+   myspin2=ispin(k)
+
+   mybnd1=j-iupdwn(myspin1)+1
+   mybnd1=k-iupdwn(myspin2)+1
+
+   call compute_dipole( nnrx, nspin, orb_rhor(1,1), r0, wfc_centers(:, mybnd1, myspin1), wfc_spreads(mybnd1, myspin1))
+   call compute_dipole( nnrx, nspin, orb_rhor(1,2), r0, wfc_centers(:, mybnd2, myspin2), wfc_spreads(mybnd2, myspin2))
+ 
 !compute the fft of each wavefunction
 ! sum over nnrx times the vector r (where do I find it?)
 

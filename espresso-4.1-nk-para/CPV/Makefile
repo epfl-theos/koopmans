@@ -179,7 +179,8 @@ MODULES = \
 ../Modules/xml_io_base.o \
 ../Modules/zhpev_drv.o \
 ../Modules/wannier_new.o \
-../Modules/wrappers.o
+../Modules/wrappers.o \
+../Modules/compute_dipole.o
 
 TLDEPS= bindir mods libs libiotk
 
