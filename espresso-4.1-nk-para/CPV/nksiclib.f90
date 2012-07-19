@@ -105,7 +105,8 @@
         
 !begin_added:giovanni
           !compute centers and spreads of nksic or pz minimizing orbitals
-          call compute_nksic_centers(nnrx, ispin, orb_rhor, j, j+1)
+          call compute_nksic_centers(nnrx, nx, ispin, orb_rhor, j, j+1)
+
           !
 !end_added:giovanni
         !
@@ -5065,34 +5066,53 @@ end subroutine nksic_dmxc_spin_cp_update
 !---------------------------------------------------------------
 
           !  call compute_nksic_centers(nnrx, ispin, nbsp, orb_rhor, j, j+1)
-subroutine compute_nksic_centers(nnrx, ispin, orb_rhor,j,k)
+SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
    
-   use kinds,              ONLY: dp   
-   use electrons_module,   ONLY: wfc_centers, wfc_spreads
-   use electrons_base,     ONLY: nbsp, nbspx, nspin, iupdwn, nupdwn
+   USE kinds,              ONLY: DP   
+   USE electrons_module,   ONLY: wfc_centers, wfc_spreads, &
+                                 icompute_spread
+   USE electrons_base,     ONLY: nbsp, nspin, iupdwn, nupdwn
 
-
-   integer, intent(IN)      :: ispin(nbspx),j,k
-   complex(dp), intent(in)  :: orb_rhor(nnrx,2)
+   !INPUT VARIABLES
    !
-   integer :: myspin1, myspin2, mybnd1, mybnd2
-   real(dp):: r0(3)
+   INTEGER, INTENT(IN)      :: ispin(nx),nx,j,k
+   !ispin is 1 or 2 for each band (listed as in c0), 
+   !nx is nudx, j and k the two bands involved in the
+   !spread calculation
+   REAL(DP), INTENT(in)  :: orb_rhor(nnrx,2)
+   !orbital densities of two orbitals
+   !
+   !INTERNAL VARIABLES
+   !
+   INTEGER :: myspin1, myspin2, mybnd1, mybnd2
+   REAL(DP):: r0(3)
+   REAL(DP), external :: ddot
    
-   myspin1=ispin(j)
-   myspin2=ispin(k)
+   !
+   IF(icompute_spread) THEN
+      !
+      write(6,*) "computing spread"
+      !
+      myspin1=ispin(j)
+      myspin2=ispin(k)
+      !
+      mybnd1=j-iupdwn(myspin1)+1
+      mybnd2=k-iupdwn(myspin2)+1
+      !
+      r0=0.d0
+      !
+      call compute_dipole( nnrx, 1, orb_rhor(1,1), r0, wfc_centers(1:4, mybnd1, myspin1), wfc_spreads(mybnd1, myspin1))
+      wfc_spreads(mybnd1,myspin1) = wfc_spreads(mybnd1,myspin1) - ddot(3, wfc_centers(2:4,mybnd1,myspin1), 1, wfc_centers(2:4,mybnd1,myspin1), 1)
+      call compute_dipole( nnrx, 1, orb_rhor(1,2), r0, wfc_centers(1:4, mybnd2, myspin2), wfc_spreads(mybnd2, myspin2))
+      wfc_spreads(mybnd2,myspin2) = wfc_spreads(mybnd2,myspin2) - ddot(3, wfc_centers(2:4,mybnd2,myspin2), 1, wfc_centers(2:4,mybnd2,myspin2), 1)
+      !
+      IF(k.ge.nbsp) THEN
+         icompute_spread=.false.
+      ENDIF
+      !
+   ENDIF
 
-   mybnd1=j-iupdwn(myspin1)+1
-   mybnd2=k-iupdwn(myspin2)+1
-
-   r0=0.d0
-
-   call compute_dipole( nnrx, nspin, orb_rhor(1,1), r0, wfc_centers(:, mybnd1, myspin1), wfc_spreads(mybnd1, myspin1))
-   call compute_dipole( nnrx, nspin, orb_rhor(1,2), r0, wfc_centers(:, mybnd2, myspin2), wfc_spreads(mybnd2, myspin2))
+   RETURN
  
-!compute the fft of each wavefunction
-! sum over nnrx times the vector r (where do I find it?)
-
-!no need to fft back if use supplementary variable
-
-end subroutine compute_nksic_centers
+END SUBROUTINE compute_nksic_centers
 

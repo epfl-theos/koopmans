@@ -43,6 +43,7 @@ cg_sub.o : cg.o
 cg_sub.o : cp_emass.o
 cg_sub.o : cp_interfaces.o
 cg_sub.o : efield.o
+cg_sub.o : electrons.o
 cg_sub.o : ensemble_dft.o
 cg_sub.o : ions_positions.o
 cg_sub.o : mainvar.o

@@ -45,6 +45,8 @@
         REAL(DP), ALLOCATABLE :: wfc_centers(:,:,:) !added:giovanni wfc_centers
         REAL(DP), ALLOCATABLE :: wfc_spreads(:,:) !added:giovanni wfc_spreads
 
+        LOGICAL :: icompute_spread=.false. !added:giovanni 
+
 !  ...  Fourier acceleration
 
         LOGICAL :: toccrd = .FALSE.  ! read occupation number from standard input
@@ -54,10 +56,10 @@
         PUBLIC :: deallocate_electrons
         PUBLIC :: n_emp, ei_emp, n_emp_l, ib_owner, ib_local, nb_l
         PUBLIC :: ei, nupdwn_emp, iupdwn_emp
-        PUBLIC :: print_eigenvalues
+        PUBLIC :: print_eigenvalues, print_centers_spreads
         PUBLIC :: max_emp, ethr_emp
         PUBLIC :: empty_print_info, empty_init
-        PUBLIC :: wfc_centers, wfc_spreads !added:giovanni 
+        PUBLIC :: wfc_centers, wfc_spreads, icompute_spread !added:giovanni 
 
 !
 !  end of module-scope declarations
@@ -189,7 +191,7 @@
 
 !begin_added:giovanni
      IF( ALLOCATED( wfc_centers ) ) DEALLOCATE( wfc_centers )
-     ALLOCATE( wfc_centers(3,nudx,nspin ), STAT=ierr)
+     ALLOCATE( wfc_centers(4,nudx,nspin ), STAT=ierr)
      IF( ierr/=0 ) CALL errore( ' electrons ',' allocating wfc_centers ',ierr)
      wfc_centers = 0.0_DP
 
@@ -270,6 +272,7 @@
          IF( tstdout ) THEN
             WRITE( stdout,1002) ik, j
             WRITE( stdout,1004) ( ei( i, j ) * autoev, i = 1, nupdwn(j) )
+
             !
             IF ( tens .OR. tsmear ) THEN
                 WRITE( stdout,1082) ik, j
@@ -300,10 +303,14 @@
       !
   30  FORMAT(2X,'STEP:',I7,1X,F10.2)
  1002 FORMAT(/,3X,'Eigenvalues (eV), kp = ',I3, ' , spin = ',I2,/)
+ 1022 FORMAT(/,3X,'Centers (Bohr), kp = ',I3, ' , spin = ',I2,/)
+ 1222 FORMAT(/,3X,'Spreads (Bohr^2), kp = ',I3, ' , spin = ',I2,/)
  1082 FORMAT(/,3X,'Occupations,      kp = ',I3, ' , spin = ',I2,/)
  1092 FORMAT(/,3X,'DensityMat diag,  kp = ',I3, ' , spin = ',I2,/)
  1005 FORMAT(/,3X,'Empty States Eigenvalues (eV), kp = ',I3, ' , spin = ',I2,/)
  1004 FORMAT(10F8.2)
+ 1044 FORMAT(4F8.2)
+ 1444 FORMAT(1F8.2)
  1084 FORMAT(10F8.4)
  1006 FORMAT(/,3X,'Electronic Gap (eV) = ',F8.2,/)
  1010 FORMAT(3X,'Eigenvalues (eV), kp = ',I3, ' , spin = ',I2)
@@ -315,6 +322,49 @@
       RETURN
    END SUBROUTINE print_eigenvalues
 
+   SUBROUTINE print_centers_spreads( spread_unit, tfile, tstdout, nfi, tps )
+      !
+      use constants,      only : autoev 
+      USE io_global,      ONLY : stdout, ionode
+      USE ensemble_dft,   ONLY : tens, tsmear
+      !
+      INTEGER,  INTENT(IN) :: spread_unit
+      LOGICAL,  INTENT(IN) :: tfile, tstdout
+      INTEGER,  INTENT(IN) :: nfi
+      REAL(DP), INTENT(IN) :: tps
+      !
+      INTEGER :: i, j, ik
+      !
+      !
+      ik = 1
+      !
+      DO j = 1, nspin
+         !
+         IF( tstdout ) THEN
+            
+            WRITE( stdout,1222) ik, j
+            WRITE( stdout,1444) ( wfc_centers(1:4, i, j ),  wfc_spreads( i, j ) , i = 1, nupdwn(j) )
+
+            !
+            IF( n_emp .GT. 0 ) THEN
+!               WRITE( stdout,1005) ik, j
+!               WRITE( stdout,1004) ( ei_emp( i, j ) * autoev , i = 1, n_emp )
+!               WRITE( stdout,1006) ( ei_emp( 1, j ) - ei( nupdwn(j), j ) ) * autoev
+            END IF
+         END IF
+         !
+         !
+      END DO
+      !
+  30  FORMAT(2X,'STEP:',I7,1X,F10.2)
+ 1022 FORMAT(/,3X,'Centers (Bohr), kp = ',I3, ' , spin = ',I2,/)
+ 1222 FORMAT(/,3X,'Charge  ---   Centers xyz (Bohr)  ---  Spreads (Bohr^2), kp = ',I3, ' , spin = ',I2,/)
+ 1005 FORMAT(/,3X,'Empty States Eigenvalues (eV), kp = ',I3, ' , spin = ',I2,/)
+ 1444 FORMAT(F8.2,'   ---',3F8.2,'   ---',F8.2)
+ 1084 FORMAT(10F8.4)
+      !
+      RETURN
+   END SUBROUTINE print_centers_spreads
 
 
 !  ----------------------------------------------

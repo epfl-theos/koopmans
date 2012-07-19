@@ -29,7 +29,7 @@
                                     tefield2, pberryel2, pberryion2
       USE cg_module,         ONLY : tcg, itercg
       USE sic_module,        ONLY : self_interaction, sic_alpha, sic_epsilon
-      USE electrons_module,  ONLY : print_eigenvalues
+      USE electrons_module,  ONLY : print_eigenvalues, print_centers_spreads !added:giovanni print_centers_spreads
       USE electrons_base,    ONLY : nspin
       USE pres_ai_mod,       ONLY : P_ext, Surf_t, volclu, surfclu, abivol, &
                                     abisur, pvar, n_ele
@@ -116,6 +116,9 @@
                CALL print_energies( tsic, sic_alpha = sic_alpha, sic_epsilon = sic_epsilon, textfor = textfor )
             !
             CALL print_eigenvalues( 31, tfile, tstdout, nfi, tps )
+            !
+            CALL print_centers_spreads( 31, tfile, tstdout, nfi, tps )
+            !
             !
             IF(tstdout) WRITE( stdout, * )
             !
@@ -374,7 +377,7 @@
                                     tefield2, pberryel2, pberryion2
       USE cg_module,         ONLY : tcg, itercg
       USE sic_module,        ONLY : self_interaction, sic_alpha, sic_epsilon
-      USE electrons_module,  ONLY : print_eigenvalues
+      USE electrons_module,  ONLY : print_eigenvalues, print_centers_spreads !added:giovanni print_centers_spreads
       USE electrons_base,    ONLY : nspin
       USE pres_ai_mod,       ONLY : P_ext, Surf_t, volclu, surfclu, abivol, &
                                     abisur, pvar, n_ele
@@ -465,6 +468,8 @@
                CALL print_energies( tsic, sic_alpha = sic_alpha, sic_epsilon = sic_epsilon, textfor = textfor )
             !
             CALL print_eigenvalues( 31, tfile, tstdout, nfi, tps )
+            !
+            CALL print_centers_spreads( 31, tfile, tstdout, nfi, tps )
             !
             IF(tstdout) WRITE( stdout, * )
             !

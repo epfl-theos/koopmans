@@ -25,6 +25,7 @@
                                            atot, entropy, egrand
       use electrons_base,           only : f, nspin, nel, iupdwn, nupdwn, nudx, nelt, &
                                            nbspx, nbsp, ispin
+      use electrons_module,         only : icompute_spread !added:giovanni
       use ensemble_dft,             only : tens, tsmear,   ef,  z0t, c0diag,  &
                                            becdiag, fmat0, fmat0_diag, e0,  id_matrix_init
       !---
@@ -516,11 +517,14 @@
         !
         if( numok >= 4 ) ltresh=.true.
         !
+        if(ltresh.or.itercg==maxiter-1) icompute_spread=.true.
+        !
         etotold=etotnew
         ene0=etot
         !
         if( tens .and. newscheme ) ene0=ene0+entropy
-
+        
+        
 
 !$$$$ For a test: Calculates wavefunctions very close to c0.
 !    if(.false.) then
