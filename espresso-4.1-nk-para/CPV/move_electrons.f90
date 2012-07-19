@@ -53,7 +53,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   USE cell_base,            ONLY : omega, ibrav, h, press, a1, a2, a3
   use grid_dimensions,      only : nr1, nr2, nr3, nr1x, nr2x, nr3x, nnrx
   USE uspp,                 ONLY : becsum, vkb, nkb
-  USE energies,             ONLY : ekin, enl, entropy, etot
+  USE energies,             ONLY : ekin, enl, entropy, etot, eodd
   USE grid_dimensions,      ONLY : nnrx
   USE electrons_base,       ONLY : nbsp, nbspx, nspin, f, nudx
   USE core,                 ONLY : nlcc_any, rhoc
@@ -105,7 +105,6 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   INTEGER :: ninner
   REAL(DP)                   :: Omattot(nbspx,nbspx)
   INTEGER , save             ::  nouter = 0
-  REAL(DP)                   :: ene0
   LOGICAL :: lgam !added:giovanni
   INTEGER :: iss !added:giovanni
   COMPLEX(DP), DIMENSION(nbsp, nbsp) :: csc !added:giovanni:debug
@@ -195,7 +194,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
          !
 !$$ We should update etot only once at the end of this do_orbdep routine
 
-         ene0 = sum(pink(1:nbsp))
+         eodd = sum(pink(1:nbsp))
          !
 
          nouter = nouter + 1
@@ -241,7 +240,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
                  call nksic_rot_emin_cg(nouter,ninner,etot,Omattot)
              endif
              !
-             ene0 = sum(pink(:))
+             eodd = sum(pink(:))
              !
          endif
 
@@ -253,7 +252,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
 #endif
 !$$
          !
-         etot = etot + ene0
+         etot = etot + eodd
          !
 !$$
 !         if(nouter.eq.1.and.ionode) then

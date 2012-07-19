@@ -41,6 +41,7 @@
           REAL(DP)  :: EGRAND   ! Ensamble DFT
           REAL(DP)  :: VAVE   ! Ensamble DFT
           REAL(DP)  :: EEXTFOR   ! Energy of the external forces
+          REAL(DP)  :: EODD !added:giovanni EODD
         END TYPE
 
         REAL(DP)  :: EHTE = 0.0_DP
@@ -66,6 +67,7 @@
         REAL(DP)  :: EGRAND = 0.0_DP
         REAL(DP)  :: VAVE = 0.0_DP    ! average potential
         REAL(DP)  :: EEXTFOR = 0.0_DP  ! Energy of the external forces
+        REAL(DP)  :: EODD = 0.0_DP  ! Energy of the external forces
         
         REAL(DP) :: enthal = 0.0_DP, ekincm
 
@@ -78,6 +80,7 @@
         PUBLIC :: atot, entropy, egrand, enthal, vave
 
         PUBLIC :: eextfor
+        PUBLIC :: eodd !added:giovanni
 
       CONTAINS
 
@@ -102,8 +105,9 @@
           self_vxc   = edft%self_vxc
           exc        = edft%exc
           eht        = edft%eht
+          eodd       = edft%eodd
 
-          etot  = ekin + eht + epseu + enl + exc + evdw - ent
+          etot  = ekin + eht + epseu + enl + exc + evdw - ent + eodd
           !
           edft%etot = etot
 
@@ -171,7 +175,7 @@
              !   WRITE( stdout,100) etot, ekin, eht, esr, eself, epseu, enl, exc, vave
              !ENDIF
              !
-             WRITE( stdout,100) etot, ekin, eht, esr, eself, epseu, enl, exc, vave
+             WRITE( stdout,100) etot, ekin, eht, esr, eself, epseu, enl, exc, vave, eodd
              !
           END IF
           !
@@ -219,7 +223,8 @@
      &         '      pseudopotential energy = ',f18.10,' Hartree a.u.'/ &
      &         '  n-l pseudopotential energy = ',f18.10,' Hartree a.u.'/ &
      &         ' exchange-correlation energy = ',f18.10,' Hartree a.u.'/ &
-     &         '           average potential = ',f18.10,' Hartree a.u.'//)
+     &         '           average potential = ',f18.10,' Hartree a.u.'/ &
+     &         '                  odd energy = ',f18.10,' Hartree a.u.'//)
 
   101 format(//'                total energy = ',f18.10,' Hartree a.u.'/ &
      &         '              kinetic energy = ',f18.10,' Hartree a.u.'/ &

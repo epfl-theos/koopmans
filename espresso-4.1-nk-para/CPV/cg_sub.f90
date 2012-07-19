@@ -22,7 +22,7 @@
       use core,                     only : nlcc_any
       !---ensemble-DFT
       use energies,                 only : eht, epseu, exc, etot, eself, enl, ekin,&
-                                           atot, entropy, egrand
+                                           atot, entropy, egrand, eodd
       use electrons_base,           only : f, nspin, nel, iupdwn, nupdwn, nudx, nelt, &
                                            nbspx, nbsp, ispin
       use electrons_module,         only : icompute_spread !added:giovanni
@@ -148,7 +148,6 @@
       complex(DP), allocatable :: hpsinosic(:,:)
       complex(DP), allocatable :: hitmp(:,:)
       integer     :: ninner,nbnd1,nbnd2,itercgeff
-      real(DP)    :: esic
       complex(DP)    :: Omattot(nbspx,nbspx)
       real(DP)    :: dtmp, temp
       real(dp)    :: tmppasso, ene_save(100), ene_save2(100), ene_lda
@@ -390,8 +389,8 @@
               call nksic_potential( nbsp, nbspx, c0, fsic, bec, rhovan, deeq_sic, &
                                     ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
 
-              esic=sum(pink(1:nbsp))
-              etot = etot + esic
+              eodd=sum(pink(1:nbsp))
+              etot = etot + eodd
               !
           endif
 !$$
@@ -439,7 +438,7 @@
 
 #ifdef __DEBUG
           if( ionode .and. itercg == 1 ) then
-             write(1032,'(2I10,2F24.13)') 0,0,etot-esic,esic
+             write(1032,'(2I10,2F24.13)') 0,0,etot-eodd,eodd
           endif
 #endif
 
@@ -449,9 +448,9 @@
              !
              !call start_clock( "inner_loop" )
              !
-             esic    = sum(pink(1:nbsp))
-             etot    = etot - esic
-             etotnew = etotnew - esic
+             eodd    = sum(pink(1:nbsp))
+             etot    = etot - eodd
+             etotnew = etotnew - eodd
              ninner  = 0
 
              if(.not.do_innerloop_cg) then
@@ -474,10 +473,9 @@
 !              hi(:,:) = hitmp(:,:)
 !            endif
 !$$
-             write(6,*) "etotSIC", etot, esic
-             esic    = sum(pink(1:nbsp))
-             etot    = etot + esic
-             etotnew = etotnew + esic
+             eodd    = sum(pink(1:nbsp))
+             etot    = etot + eodd
+             etotnew = etotnew + eodd
              !call stop_clock( "inner_loop" )
              !
            endif
@@ -501,9 +499,9 @@
 !$$ to see the outer loop energy convergence
         if (do_orbdep) then
             !
-            esic = sum(pink(1:nbsp))
+            eodd = sum(pink(1:nbsp))
 #ifdef __DEBUG
-            if(ionode) write(1032,'(2I10,2F24.13)') ninner,itercg,etot-esic,esic
+            if(ionode) write(1032,'(2I10,2F24.13)') ninner,itercg,etot-eodd,eodd
 #endif
             !
         endif
@@ -1273,7 +1271,8 @@
             call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
                                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
             !
-            etot = etot + sum(pink(1:nbsp))
+            eodd=sum(pink(1:nbsp))
+            etot = etot + eodd
             !
         endif
 !$$
@@ -1384,7 +1383,8 @@
             !
             call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
                                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
-            etot = etot + sum(pink(1:nbsp))
+            eodd = sum(pink(1:nbsp))
+            etot = etot + eodd
             !
         endif
 !$$ 
@@ -1540,7 +1540,8 @@
                 call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
                                       ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
                 !
-                etot = etot + sum(pink(1:nbsp))
+                eodd = sum(pink(1:nbsp))
+                etot = etot + eodd
                 !
             endif
 !$$
@@ -1703,7 +1704,8 @@
              !
              call nksic_potential( nbsp, nbspx, c0, fsic, bec, rhovan, deeq_sic, &
                                    ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
-             etot = etot + sum(pink(1:nbsp))
+             eodd = sum(pink(1:nbsp))
+             etot = etot + eodd
              !
          endif
 !$$

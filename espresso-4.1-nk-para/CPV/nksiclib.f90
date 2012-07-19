@@ -5088,24 +5088,32 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
    REAL(DP):: r0(3)
    REAL(DP), external :: ddot
    
+   write(6,*) nbsp, "computing perfinta spread",j,k
    !
    IF(icompute_spread) THEN
       !
       !
       myspin1=ispin(j)
-      myspin2=ispin(k)
       !
       mybnd1=j-iupdwn(myspin1)+1
-      mybnd2=k-iupdwn(myspin2)+1
       
-      write(6,*) "computing spread",mybnd1,myspin1,mybnd2,myspin2
+      write(6,*) "computing davvero spread",mybnd1,myspin1
       !
       r0=0.d0
       !
       call compute_dipole( nnrx, 1, orb_rhor(1,1), r0, wfc_centers(1:4, mybnd1, myspin1), wfc_spreads(mybnd1, myspin1))
       wfc_spreads(mybnd1,myspin1) = wfc_spreads(mybnd1,myspin1) - ddot(3, wfc_centers(2:4,mybnd1,myspin1), 1, wfc_centers(2:4,mybnd1,myspin1), 1)
-      call compute_dipole( nnrx, 1, orb_rhor(1,2), r0, wfc_centers(1:4, mybnd2, myspin2), wfc_spreads(mybnd2, myspin2))
-      wfc_spreads(mybnd2,myspin2) = wfc_spreads(mybnd2,myspin2) - ddot(3, wfc_centers(2:4,mybnd2,myspin2), 1, wfc_centers(2:4,mybnd2,myspin2), 1)
+      !
+      IF(k.le.nbsp) THEN
+         
+         myspin2=ispin(k)
+         mybnd2=k-iupdwn(myspin2)+1
+
+         write(6,*) "computing davvero spread",mybnd2,myspin2
+
+         call compute_dipole( nnrx, 1, orb_rhor(1,2), r0, wfc_centers(1:4, mybnd2, myspin2), wfc_spreads(mybnd2, myspin2))
+         wfc_spreads(mybnd2,myspin2) = wfc_spreads(mybnd2,myspin2) - ddot(3, wfc_centers(2:4,mybnd2,myspin2), 1, wfc_centers(2:4,mybnd2,myspin2), 1)
+      ENDIF
       !
       IF(k.ge.nbsp) THEN
          icompute_spread=.false.
