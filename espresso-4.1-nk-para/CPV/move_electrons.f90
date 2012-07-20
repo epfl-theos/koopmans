@@ -48,7 +48,8 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   USE cg_module,            ONLY : tcg
   USE cp_main_variables,    ONLY : eigr, bec, irb, eigrb, rhog, rhos, rhor, &
                                    ei1, ei2, ei3, sfac, ema0bg, becdr, &
-                                   taub, lambda, lambdam, lambdap, vpot
+                                   taub, lambda, lambdam, lambdap, vpot,&
+                                   iprint_stdout !added:giovanni iprint_stdout
   USE wavefunctions_module, ONLY : c0, cm, phi => cp
   USE cell_base,            ONLY : omega, ibrav, h, press, a1, a2, a3
   use grid_dimensions,      only : nr1, nr2, nr3, nr1x, nr2x, nr3x, nnrx
@@ -85,6 +86,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   USE nksic,                ONLY : do_pz, do_innerloop,do_innerloop_cg, innerloop_dd_nstep
   use ions_base,            only : nsp
   use electrons_base,       only : nel, nelt
+  use electrons_module,     ONLY : icompute_spread
   !
   IMPLICIT NONE
   !
@@ -188,7 +190,10 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
              fsic = f
          endif
          !
-
+         IF(MOD(nfi,iprint_stdout)==0.or.tlast) THEN
+            icompute_spread=.true.
+            write(6,*) "tlast", tlast, iprint_stdout, nfi
+         ENDIF
          call nksic_potential( nbsp, nbspx, c0, fsic, bec, becsum, deeq_sic, &
                     ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
          !
