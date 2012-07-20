@@ -121,7 +121,7 @@ SUBROUTINE compute_dipole( nnr, nspin, rho, r0, dipole, quadrupole )
 !----------------------------------------------------------------------------
 
 !--------------------------------------------------------------------
-SUBROUTINE compute_wan_properties( nnr, nspin, rho, r0, dipole, quadrupole )
+SUBROUTINE compute_wan_multipoles( nnr, nspin, rho, r0, dipole, quadrupole )
 !--------------------------------------------------------------------
   USE kinds,            ONLY : DP
   USE cell_base,        ONLY : at, bg, alat, omega
@@ -138,12 +138,12 @@ SUBROUTINE compute_wan_properties( nnr, nspin, rho, r0, dipole, quadrupole )
   INTEGER,  INTENT(IN)  :: nnr, nspin
   REAL(DP), INTENT(IN)  :: rho( nnr, nspin )
   REAL(DP), INTENT(IN)  :: r0(3)
-  REAL(DP), INTENT(OUT) :: dipole(0:3), quadrupole
+  REAL(DP), INTENT(OUT) :: dipole(0:3), quadrupole(1:3,1:3)
   !
   ! ... Local variables
   !
   REAL(DP) :: r(3), rhoir
-  INTEGER  :: i, j, k, ip, ir, ir_end, index, index0
+  INTEGER  :: i, j, k, ip, ipp, ir, ir_end, index, index0
   REAL(DP) :: inv_nr1, inv_nr2, inv_nr3
   !
   ! ... Initialization
@@ -207,7 +207,12 @@ SUBROUTINE compute_wan_properties( nnr, nspin, rho, r0, dipole, quadrupole )
      DO ip = 1, 3
         !
         dipole(ip) = dipole(ip) + rhoir*r(ip)
-        quadrupole = quadrupole + rhoir*r(ip)**2
+        !
+        DO ipp = 1, ip
+           !
+           quadrupole(ipp,ip) = quadrupole(ipp,ip) + rhoir*r(ip)*r(ipp)
+           !
+        ENDDO
         !
      END DO
      !
@@ -216,16 +221,28 @@ SUBROUTINE compute_wan_properties( nnr, nspin, rho, r0, dipole, quadrupole )
   CALL mp_sum(  dipole(0:3) , intra_image_comm )
   CALL mp_sum(  quadrupole  , intra_image_comm )
   !
+  ! Divinding by the unit of volume and setting the units for dipole
+  !
   dipole(0) = dipole(0)*omega / DBLE( dfftp%nr1*dfftp%nr2*dfftp%nr3 )
   !
   DO ip = 1, 3
      dipole(ip) = dipole(ip)*omega / DBLE( dfftp%nr1*dfftp%nr2*dfftp%nr3 ) * alat
   END DO
   !
-  quadrupole = quadrupole*omega / DBLE( dfftp%nr1*dfftp%nr2*dfftp%nr3 ) * alat**2
+  ! Symmetrizing, dividing by the unit of volume, centering, and setting the units for quadrupole
+  !
+  DO ip = 1, 3
+     DO ipp = 1, ip
+        !
+        quadrupole(ipp,ip) = quadrupole(ipp,ip)*omega / DBLE( dfftp%nr1*dfftp%nr2*dfftp%nr3 ) * alat**2 &
+              -dipole(ipp)*dipole(ip)
+        quadrupole(ip,ipp) = quadrupole(ipp,ip)
+        !
+     ENDDO
+  ENDDO
   !
   RETURN
   !
 !----------------------------------------------------------------------------
-  END SUBROUTINE compute_wan_properties
+  END SUBROUTINE compute_wan_multipoles
 !----------------------------------------------------------------------------
