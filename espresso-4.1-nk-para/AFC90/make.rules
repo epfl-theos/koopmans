@@ -1,0 +1,10 @@
+.SUFFIXES :
+.SUFFIXES : .o  .f .f90
+
+.f90.o:
+	gfortran -O3 -x f95-cpp-input -c -I/usr/include/ $<
+
+.f.o:
+	gfortran -O3 -c $<
+
+

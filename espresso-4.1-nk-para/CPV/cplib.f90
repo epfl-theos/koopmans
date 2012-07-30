@@ -168,7 +168,6 @@ END FUNCTION
       ENDIF
 !!!end_added:giovanni
 !
-!
       ALLOCATE(temp(ngw))
 
       DO ig=1,ngw

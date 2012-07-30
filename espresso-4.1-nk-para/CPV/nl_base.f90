@@ -1084,7 +1084,7 @@
 		do ism = 1, is - 1
 		    isa = isa + na(ism)
 		end do
-  !$omp do
+!$omp do
 		do ia = 1, na(is)
 		    inl = ish(is)+(iv-1)*na(is)+ia
 		    jnl = ish(is)+(jv-1)*na(is)+ia
@@ -1102,7 +1102,7 @@
 		    if( iv .ne. jv ) sumt = 2.d0 * sumt
 		    ennl_t = ennl_t + sumt * dvan( jv, iv, is)
 		end do
-  !$omp end do
+!$omp end do
 	      end do
 	  end do
 	end do
@@ -1115,7 +1115,7 @@
 		do ism = 1, is - 1
 		    isa = isa + na(ism)
 		end do
-  !$omp do
+!$omp do
 		do ia = 1, na(is)
 		    inl = ish(is)+(iv-1)*na(is)+ia
 		    jnl = ish(is)+(jv-1)*na(is)+ia
@@ -1134,7 +1134,7 @@
 		    if( iv .ne. jv ) sumt_c = CMPLX(2.d0,0.d0) * sumt_c
 		    ennl_tc = ennl_tc + sumt_c * CMPLX(dvan( jv, iv, is),0.d0)
 		end do
-  !$omp end do
+!$omp end do
 	      end do
 	  end do
 	end do
