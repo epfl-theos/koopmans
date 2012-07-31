@@ -36,6 +36,11 @@ cp : bindir mods libs libiotk
 	( cd CPV ; if test "$(MAKE)" = "" ; then make $(MFLAGS) TLDEPS= cp ; \
 	else $(MAKE) $(MFLAGS) TLDEPS= cp ; fi ) ; fi
 
+afc90 :
+	if test -d AFC90 ; then \
+	( cd AFC90 ; if test "$(MAKE)" = "" ; then make $(MFLAGS) TLDEPS= all ; \
+	else $(MAKE) $(MFLAGS) TLDEPS= all ; fi ) ; fi
+
 ph : bindir mods libs pw
 	if test -d PH ; then \
 	( cd PH ; if test "$(MAKE)" = "" ; then make $(MFLAGS) TLDEPS= all ; \
