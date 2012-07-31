@@ -47,15 +47,15 @@ function phi3d(s,a,npt)
       real(8), dimension(3,3) :: reciprocal
     end function
     !
-    function volume(a)
+    function volume1(a)
       real(8), intent(in), dimension(3,3) :: a
-      real(8) :: volume
+      real(8) :: volume1
     end function
     !
   end interface
   !
   b=reciprocal(a)
-  omega=volume(a)
+  omega=volume1(a)
   !
   do i=1,npt(1)
     m=nfft(i,npt(1))

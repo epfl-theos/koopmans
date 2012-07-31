@@ -14,22 +14,23 @@
 ! along with this program. See GPL/gpl-3.0.txt. 
 ! If not, see <http://www.gnu.org/licenses/>.
 !
-function volume(a)
-  !
-  implicit none
-  !
-  real(8), intent(in), dimension(3,3) :: a
-  real(8) :: volume
-  !
-  interface
-    !
-    function vectorproduct(u,v)
-      real(8), intent(in), dimension(3) :: u,v
-      real(8), dimension(3) :: vectorproduct
-    end function
-    !
-  end interface 
-  !
-  volume=abs(sum(vectorproduct(a(1:3,1),a(1:3,2))*a(1:3,3)))
-  !
-end function volume
+real(8) function volume1(a)
+   !
+   implicit none
+   !
+   real(8), intent(IN) :: a(3,3)
+   real(8) :: tmp(3)=0.d0
+
+ interface
+   function vectorproduct(u,v)
+     real(8), intent(in), dimension(3) :: u,v
+     real(8), dimension(3) :: vectorproduct
+   end function
+ end interface
+
+   tmp=vectorproduct(a(1:3,1),a(1:3,2))
+   !volume1=1.000
+   volume1=abs(dot_product(tmp,a(1:3,3)))
+   return
+   !
+end function volume1

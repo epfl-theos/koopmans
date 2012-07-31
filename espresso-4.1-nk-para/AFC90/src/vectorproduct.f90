@@ -25,4 +25,5 @@ function vectorproduct(u,v)
   vectorproduct(2)=u(3)*v(1)-u(1)*v(3)
   vectorproduct(3)=u(1)*v(2)-u(2)*v(1)
   !
+  return
 end function vectorproduct

@@ -21,9 +21,9 @@ function steprk(sigma)
   real(8), intent(in) :: sigma
   real(8) :: steprk
   real(8), parameter :: x=exp(-20.d0)
-  real(8), parameter :: tol=1.d-3
-  real(8), parameter :: dt0=1.d-2
-  integer, parameter :: nmax=5
+  real(8), parameter :: tol=1.d-3 !afcmodified:giovanni 1.d-3
+  real(8), parameter :: dt0=1.d-2 !afcmodified:giovanni 1.d-2
+  integer, parameter :: nmax=5  !afcmodified:giovanni 5
   real(8) :: logslope,dy,dt,y
   integer :: n
   !

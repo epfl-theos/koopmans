@@ -40,8 +40,7 @@ vectorproduct.o \
 volume.o \
 ydot.o
 
-AFCFILES= \
-besseli.o
+AFCFILES= $(OBJS)
 
 all : $(OBJS) libafc90.a
 

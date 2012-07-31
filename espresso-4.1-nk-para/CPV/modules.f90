@@ -519,6 +519,8 @@ module eecp_mod
   complex(dp), allocatable :: gcorr_fft(:)
   real(dp), allocatable :: gcorr1d(:)
   complex(dp), allocatable :: gcorr1d_fft(:)
+  real(dp), allocatable :: gcorr2d(:)
+  complex(dp), allocatable :: gcorr2d_fft(:)
   real(dp), allocatable :: vcorr(:)
   complex(dp), allocatable :: vcorr_fft(:)
   character (len=256) :: which_compensation
@@ -534,6 +536,8 @@ contains
   allocate(gcorr_fft(nnrx))
   allocate(gcorr1d(nnrx))
   allocate(gcorr1d_fft(nnrx))
+  allocate(gcorr2d(nnrx))
+  allocate(gcorr2d_fft(nnrx))
   allocate(vcorr(nnrx))
   allocate(vcorr_fft(ngm))
   end subroutine
@@ -543,6 +547,8 @@ contains
   if(allocated(gcorr_fft)) deallocate(gcorr_fft)
   if(allocated(gcorr1d)) deallocate(gcorr1d)
   if(allocated(gcorr1d_fft)) deallocate(gcorr1d_fft)
+  if(allocated(gcorr2d)) deallocate(gcorr2d)
+  if(allocated(gcorr2d_fft)) deallocate(gcorr2d_fft)
   if(allocated(vcorr)) deallocate(vcorr)
   if(allocated(vcorr_fft)) deallocate(vcorr_fft)
   end subroutine

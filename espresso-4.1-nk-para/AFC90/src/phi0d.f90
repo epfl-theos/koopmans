@@ -34,9 +34,9 @@ function phi0d(s,a,npt)
       integer :: nfft
     end function
     !
-    function volume(a)
+    function volume1(a)
       real(8), intent(in), dimension(3,3) :: a
-      real(8) :: volume
+      real(8) :: volume1
     end function
     !
   end interface

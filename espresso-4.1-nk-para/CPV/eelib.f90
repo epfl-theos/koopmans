@@ -30,57 +30,47 @@
       use cp_interfaces,      only : fwfft, invfft
       use eecp_mod,           only : gcorr,gcorr_fft
       use mp_global,          only : me_image
-      use control_flags,      only : gamma_only, do_wf_cmplx !added:giovanni
       !
       implicit none
       !
       type(boxdimensions), intent(in) :: box
       !
-      real(dp),      parameter :: sigma=2.0_dp
+      real(dp),      parameter :: sigma=2.0_dp !afcmodified:giovanni 2.d0
       real(dp),      parameter :: vanishing_dist=1.0e-3_dp
       !
       complex(dp), allocatable :: vtemp(:)
       real(dp),    allocatable :: vtempr(:)
+      real(dp) :: aux(dfftp%nr1,dfftp%nr2,dfftp%nr3)
       !
       integer             :: ig, ir1, ir2, ir3, ir, i, j, k
       real(dp)            :: sv(3), lv(3) ,dist
+      real(dp)            :: a(3,3)
+      integer             :: npt(3)
+      logical             :: tperiodic(3)
       real(dp),  external :: qe_erf
-      logical :: lgam !added:giovanni
-
+      !
+      interface 
+        !
+        function afc(a,npt,tperiodic,spreadopt)
+          !
+          real(8), intent(in), optional :: spreadopt
+          real(8), intent(in), dimension(3,3) :: a
+          integer, intent(in), dimension(3) :: npt
+          logical, intent(in), dimension(3) :: tperiodic
+          real(8) :: afc(npt(1),npt(2),npt(3))
+          !
+       end function
+       !
+      end interface
       !
       ! main body
       !
-      lgam=gamma_only.and..not.do_wf_cmplx !added:giovanni
-
       allocate(vtemp(nnrx))
       allocate(vtempr(nnrx))
       ! 
       vtemp=0.0_dp
       vtempr=0.0_dp
       gcorr=0.0_dp
-      !
-      if(gstart==2) vtemp(np(1))=-pi*sigma**2/omega
-      !
-      IF(lgam) THEN
-	do ig=gstart,ngm
-	    vtemp(np(ig))=exp(-0.25_dp*tpiba2*g(ig)*sigma**2) &
-			/omega*fpi/(tpiba2*g(ig))
-	    vtemp(nm(ig))=exp(-0.25_dp*tpiba2*g(ig)*sigma**2) &
-			/omega*fpi/(tpiba2*g(ig))
-	enddo
-      ELSE
-        do ig=gstart,ngm
-	    vtemp(np(ig))=exp(-0.25_dp*tpiba2*g(ig)*sigma**2) &
-			/omega*fpi/(tpiba2*g(ig))
-	enddo
-      ENDIF
-      !
-      call invfft('Dense',vtemp,dfftp)
-      !
-      vtempr=dble(vtemp)
-      gcorr =-vtempr
-      !
-      call writetofile(vtempr,nnrx,'vg3d0d.dat',dfftp, 'az')
       !
       ir1=1
       ir2=1
@@ -89,46 +79,31 @@
         ir3=ir3+dfftp%npp(k)
       enddo      
       !
-      vtempr=0.0_dp
+      npt(1)=dfftp%nr1
+      npt(2)=dfftp%nr2
+      npt(3)=dfftp%nr3
+      tperiodic=.false.
+      a(1:3,1)=a1(1:3)
+      a(1:3,2)=a2(1:3)
+      a(1:3,3)=a3(1:3)
+      aux=afc(a,npt,tperiodic,sigma)
       do k=1,nr3l
         do j=1,nr2l
           do i=1,nr1l
             !
-            sv(1)=dble((i-1)+(ir1-1))/nr1 
-            sv(2)=dble((j-1)+(ir2-1))/nr2
-            sv(3)=dble((k-1)+(ir3-1))/nr3
-            !
-            if(sv(1)>0.5_dp) sv(1)=sv(1)-1.0_dp
-            if(sv(2)>0.5_dp) sv(2)=sv(2)-1.0_dp
-            if(sv(3)>0.5_dp) sv(3)=sv(3)-1.0_dp
-            !
-            call s_to_r(sv,lv,box%hmat)
-            !
-            dist=sqrt(dot_product(lv,lv)) 
-            !
             ir=i+(j-1)*dfftp%nr1x+(k-1)*dfftp%nr1x*dfftp%nr2x
             !
-            if(dist > vanishing_dist ) then
-              vtempr(ir)=qe_erf(dist/sigma)/dist
-            else
-              vtempr(ir)=2.0_dp/sqrt(pi)/sigma
-            end if
+            gcorr(ir)=aux(i+ir1-1,j+ir2-1,k+ir3-1)
             !
           end do
         end do
       end do
-      !
-      gcorr=gcorr+vtempr
+      !call writetofile(gcorr,nnrx,'afc0d.dat',dfftp,'az')
       vtemp=gcorr
-      !
       call fwfft('Dense',vtemp,dfftp)
-      !
       do ig=1,ngm
         gcorr_fft(ig)=vtemp(np(ig))
       enddo
-      !
-      call writetofile(vtempr,nnrx,'vg0d0d.dat',dfftp, 'az')
-      call writetofile(gcorr,nnrx,'gcorr0d.dat',dfftp, 'az')
       !
       deallocate(vtempr)
       deallocate(vtemp)
@@ -159,7 +134,6 @@
       use cp_interfaces,      only : fwfft, invfft
       use eecp_mod,           only : gcorr1d,gcorr1d_fft
       use mp_global,          only : me_image
-      use control_flags,      only : gamma_only, do_wf_cmplx !added:giovanni
       !
       implicit none
       !
@@ -172,17 +146,33 @@
       !
       complex(dp), allocatable :: vtemp(:)
       real(dp),    allocatable :: vtempr(:)
+      real(dp) :: aux(dfftp%nr1,dfftp%nr2,dfftp%nr3)
       !
       integer                  :: ig, ir1, ir2, ir3, ir, i, j, k
       real(dp)                 :: sv(3), lv(3), dist
+      real(dp)            :: a(3,3)
+      integer             :: npt(3)
+      logical             :: tperiodic(3)
       !
       real(dp),       external :: qe_erf
       real(dp),       external :: eimlmg
-      logical :: lgam !added:giovanni
+      !
+      interface 
+        !
+        function afc(a,npt,tperiodic,spreadopt)
+          !
+          real(8), intent(in), optional :: spreadopt
+          real(8), intent(in), dimension(3,3) :: a
+          integer, intent(in), dimension(3) :: npt
+          logical, intent(in), dimension(3) :: tperiodic
+          real(8) :: afc(npt(1),npt(2),npt(3))
+          !
+        end function
+        !
+      end interface
       !
       ! main body
       !
-      lgam=gamma_only.and..not. do_wf_cmplx
       allocate(vtemp(nnrx))
       allocate(vtempr(nnrx))
       ! 
@@ -190,82 +180,40 @@
       vtempr=0.0_dp
       gcorr1d=0.0_dp
       !
-      if(gstart==2) then
-        !
-        ! contribution of the shift to be added (ID)
-        !
-      endif
-      !
-      IF(lgam) THEN
-	do ig=gstart,ngm
-	  if(abs(gx(3,ig))<vanishing_g) then
-	    vtemp(np(ig))=exp(-0.25_dp*tpiba2*g(ig)*sigma**2) &
-			/omega*fpi/(tpiba2*g(ig))
-	    vtemp(nm(ig))=exp(-0.25_dp*tpiba2*g(ig)*sigma**2) &
-			/omega*fpi/(tpiba2*g(ig))
-	  endif
-	end do
-      ELSE
-	do ig=gstart,ngm
-	  if(abs(gx(3,ig))<vanishing_g) then
-	    vtemp(np(ig))=exp(-0.25_dp*tpiba2*g(ig)*sigma**2) &
-			/omega*fpi/(tpiba2*g(ig))
-	  endif
-	end do
-      ENDIF
-      !
-      call invfft('Dense',vtemp,dfftp)
-      vtempr=dble(vtemp)
-      gcorr1d=-vtempr
-      !
-      call writetofile(vtempr,nnrx,'vg3d1dz.dat',dfftp, 'az')
-      call writetofile(vtempr,nnrx,'vg3d1dx.dat',dfftp, 'ax')
-      !
       ir1=1
       ir2=1
       ir3=1
       do k=1,me_image
         ir3=ir3+dfftp%npp(k)
-      end do
-      !
-      vtempr=0.0_dp
-      !
+      enddo
+      !      
+      npt(1)=dfftp%nr1
+      npt(2)=dfftp%nr2
+      npt(3)=dfftp%nr3
+      tperiodic(1)=.false.
+      tperiodic(2)=.false.
+      tperiodic(3)=.true.
+      a(1:3,1)=a1(1:3)
+      a(1:3,2)=a2(1:3)
+      a(1:3,3)=a3(1:3)
+      aux=afc(a,npt,tperiodic,sigma)
       do k=1,nr3l
         do j=1,nr2l
           do i=1,nr1l
             !
-            sv(1)=dble((i-1)+(ir1-1))/nr1 
-            sv(2)=dble((j-1)+(ir2-1))/nr2
-            sv(3)=0.0
-            !
-            if(sv(1)>0.5_dp) sv(1) = sv(1)-1.0_dp
-            if(sv(2)>0.5_dp) sv(2) = sv(2)-1.0_dp
-            !
-            call s_to_r(sv,lv,box%hmat)
-            !
-            dist=sqrt(dot_product(lv,lv))     
-            !
             ir=i+(j-1)*dfftp%nr1x+(k-1)*dfftp%nr1x*dfftp%nr2x
-            !
-            vtempr(ir)=1.0_dp/a3(3)*(eimlmg(-dist**2/sigma**2) &
-                      +euler_gamma)
+            gcorr1d(ir)=aux(i+ir1-1,j+ir2-1,k+ir3-1)
             !
           end do
         end do
       end do
+      call writetofile(gcorr1d,nnrx,'afc1d.dat',dfftp, 'ax')
       !
-      gcorr1d=gcorr1d+vtempr
       vtemp=gcorr1d
-      !
       call fwfft('Dense',vtemp,dfftp)
       do ig=1,ngm
         gcorr1d_fft(ig)=vtemp(np(ig))
-      end do
-      !
-      call writetofile(vtempr,nnrx,'vg0d1dz.dat',dfftp, 'az')
-      call writetofile(vtempr,nnrx,'vg0d1dx.dat',dfftp, 'ax')
-      call writetofile(gcorr1d,nnrx,'gcorr1dz.dat',dfftp, 'az')
-      call writetofile(gcorr1d,nnrx,'gcorr1dx.dat',dfftp, 'ax')
+      enddo
       !
       deallocate(vtempr)
       deallocate(vtemp)
@@ -274,6 +222,116 @@
       !
 !-----------------------------------------------------------------------
       end subroutine ee_green_1d_init
+!-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
+      subroutine ee_green_2d_init(box)
+!-----------------------------------------------------------------------
+!
+! ... initialize Green's functions for periodic-image correction
+! ... for 2D setttings (e.g., surface, thin film)
+!
+      use kinds,              only : dp
+      use cell_base,          only : a1, a2, a3, omega, tpiba2, s_to_r, &
+                                     boxdimensions
+      use constants,          only : fpi, pi
+      use io_global,          only : stdout
+      use grid_dimensions,    only : nnrx, nr1, nr2, nr3, nr1x, nr2x, nr3x, &
+                                           nr1l, nr2l, nr3l
+      use recvecs_indexes,    only : np, nm
+      use reciprocal_vectors, only : gstart, g, gx
+      use gvecp,              only : ngm
+      use fft_base,           only : dfftp
+      use cp_interfaces,      only : fwfft, invfft
+      use eecp_mod,           only : gcorr2d,gcorr2d_fft
+      use mp_global,          only : me_image
+      !
+      implicit none
+      !
+      type(boxdimensions), intent(in) :: box
+      !
+      real(dp),      parameter :: sigma=2.0_dp
+      real(dp),      parameter :: vanishing_dist=1.0e-3_dp
+      real(dp),      parameter :: vanishing_g=1.0e-3_dp
+      real(dp),      parameter :: euler_gamma=0.57721566490153286061d0
+      !
+      complex(dp), allocatable :: vtemp(:)
+      real(dp),    allocatable :: vtempr(:)
+      real(dp) :: aux(dfftp%nr1,dfftp%nr2,dfftp%nr3)
+      !
+      integer                  :: ig, ir1, ir2, ir3, ir, i, j, k
+      real(dp)                 :: sv(3), lv(3), dist
+      real(dp)            :: a(3,3)
+      integer             :: npt(3)
+      logical             :: tperiodic(3)
+      !
+      real(dp),       external :: qe_erf
+      real(dp),       external :: eimlmg
+      !
+      interface 
+        !
+        function afc(a,npt,tperiodic,spreadopt)
+          !
+          real(8), intent(in), optional :: spreadopt
+          real(8), intent(in), dimension(3,3) :: a
+          integer, intent(in), dimension(3) :: npt
+          logical, intent(in), dimension(3) :: tperiodic
+          real(8) :: afc(npt(1),npt(2),npt(3))
+          !
+        end function
+        !
+      end interface
+      !
+      ! main body
+      !
+      allocate(vtemp(nnrx))
+      allocate(vtempr(nnrx))
+      ! 
+      vtemp=0.0_dp
+      vtempr=0.0_dp
+      gcorr2d=0.0_dp
+      !
+      ir1=1
+      ir2=1
+      ir3=1
+      do k=1,me_image
+        ir3=ir3+dfftp%npp(k)
+      enddo
+      !   
+      npt(1)=dfftp%nr1
+      npt(2)=dfftp%nr2
+      npt(3)=dfftp%nr3
+      tperiodic(1)=.true.
+      tperiodic(2)=.true.
+      tperiodic(3)=.false.
+      a(1:3,1)=a1(1:3)
+      a(1:3,2)=a2(1:3)
+      a(1:3,3)=a3(1:3)
+      aux=afc(a,npt,tperiodic,sigma)
+      do k=1,nr3l
+        do j=1,nr2l
+          do i=1,nr1l
+            !
+            ir=i+(j-1)*dfftp%nr1x+(k-1)*dfftp%nr1x*dfftp%nr2x
+            gcorr2d(ir)=aux(i+ir1-1,j+ir2-1,k+ir3-1)
+            !
+          end do
+        end do
+      end do
+      call writetofile(gcorr2d,nnrx,'afc2d.dat',dfftp, 'ax')
+      !
+      vtemp=gcorr2d
+      call fwfft('Dense',vtemp,dfftp)
+      do ig=1,ngm
+        gcorr2d_fft(ig)=vtemp(np(ig))
+      enddo
+      !
+      deallocate(vtempr)
+      deallocate(vtemp)
+      !
+      return
+      !
+!-----------------------------------------------------------------------
+      end subroutine ee_green_2d_init
 !-----------------------------------------------------------------------
 !-----------------------------------------------------------------------
       subroutine calc_tcc_potential(vcorr_fft,rho_fft)
@@ -330,7 +388,34 @@
       end subroutine calc_tcc1d_potential
 !-----------------------------------------------------------------------
 !-----------------------------------------------------------------------
-      subroutine calc_tcc_energy(ecomp,vcorr_fft,rho_fft, lgam)
+      subroutine calc_tcc2d_potential(vcorr_fft,rho_fft)
+!-----------------------------------------------------------------------
+!
+! ... calculate the truncated countercharge (TCC) 
+! ... periodic-image correction potential in
+! ... reciprocal space for 2D settings
+!
+      use kinds,              only: dp
+      use gvecp,              only: ngm
+      use eecp_mod,           only: gcorr2d_fft
+      use cell_base,          only: omega
+      !
+      implicit none
+      complex(dp) :: rho_fft(ngm)
+      complex(dp) :: vcorr_fft(ngm)
+      integer :: ig
+      !
+      do ig=1,ngm
+        vcorr_fft(ig)=omega*gcorr2d_fft(ig)*rho_fft(ig)
+      end do
+      !
+      return
+!
+!-----------------------------------------------------------------------
+      end subroutine calc_tcc2d_potential
+!-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
+      subroutine calc_tcc_energy(ecomp,vcorr_fft,rho_fft)
 !-----------------------------------------------------------------------
 !
 ! ... calculate the truncated countercharge (TCC) 
@@ -349,7 +434,6 @@
       real(dp),    intent(out) :: ecomp
       complex(dp), intent(in)  :: rho_fft(ngm)
       complex(dp), intent(in)  :: vcorr_fft(ngm)
-      logical :: lgam
       !
       complex(dp), allocatable :: aux(:)
       integer      :: ig
@@ -364,15 +448,9 @@
         aux(1)=0.5d0*omega*vcorr_fft(1)*conjg(rho_fft(1))
       end if
       !
-      IF(lgam) THEN
-	  do ig=gstart,ngm
-	    aux(ig)=0.5d0*wz*omega*vcorr_fft(ig)*conjg(rho_fft(ig))
-	  end do
-      ELSE
-	  do ig=gstart,ngm
-	    aux(ig)=0.5d0*omega*vcorr_fft(ig)*conjg(rho_fft(ig))
-	  end do
-      ENDIF
+      do ig=gstart,ngm
+        aux(ig)=0.5d0*wz*omega*vcorr_fft(ig)*conjg(rho_fft(ig))
+      end do
       !
       zh=0.0_dp
       do ig=1,ngm
@@ -389,7 +467,6 @@
 !-----------------------------------------------------------------------
       end subroutine calc_tcc_energy
 !-----------------------------------------------------------------------
-
 !-----------------------------------------------------------------------
       subroutine ee_efieldpot_init(box)
 !-----------------------------------------------------------------------
@@ -1080,3 +1157,5 @@
 !--------------------------------------------------------------------
       end subroutine calc_fcorr
 !--------------------------------------------------------------------
+
+

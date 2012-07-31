@@ -115,7 +115,10 @@ function gaussiank(sigma,x)
   else
     !
     dt=steprk(sigma)
+    write(6,*) dt, "time"
+    write(0,*) "entering logslope"
     logslope=cylharmslope(1.d-10,dt,sigma)
+!     stop
     !
     x1=max(minval(x),xthr)
     t1=log(x1)

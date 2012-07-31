@@ -91,9 +91,9 @@ program main
       real(8), dimension(npt(1),npt(2),npt(3)) :: phi3d
     end function
     !
-    function volume(a)
+    function volume1(a)
       real(8), intent(in), dimension(3,3) :: a
-      real(8) :: volume
+      real(8) :: volume1
     end function
     !
   end interface
@@ -106,8 +106,8 @@ program main
   print *, '#',a(1:3,1)
   print *, '#',a(1:3,2)
   print *, '#',a(1:3,3)
-  print *, '#volume'
-  print *, '#',volume(a)
+  print *, '#volume1'
+  print *, '#',volume1(a)
   print *, '#periodicity'
   print *, '#',tperiodic(1:3)
   print *, '#grid'
@@ -136,7 +136,7 @@ program main
     allocate(phi3(npt(1),npt(2),npt(3)))
     phi0=phi0d(spread,a,npt)
     phi3=phi3d(spread,a,npt)
-    afc=phi0-phi3+pi/volume(a)*spread*spread
+    afc=phi0-phi3+pi/volume1(a)*spread*spread
     print *, '#phi0(0)', phi0(1,1,1)
     print *, '#phi3(0)', phi3(1,1,1)
     print *, '#afc(0)', afc(1,1,1)
@@ -170,7 +170,7 @@ program main
       enddo
     enddo
     phi3=phi3d(spread,a,npt)
-    afc=phi1-phi3+pi/volume(a)*spread*spread
+    afc=phi1-phi3+pi/volume1(a)*spread*spread
     print *, '#phi1(0)', phi1(1,1,1)
     print *, '#phi3(0)', phi3(1,1,1)
     print *, '#afc(0)', afc(1,1,1)+2.d0*log(l(i(1)))-2.d0*log(spread)
@@ -222,7 +222,7 @@ program main
       enddo
     enddo
     phi3=phi3d(spread,a,npt)
-    afc=phi2-phi3+pi/volume(a)*spread*spread
+    afc=phi2-phi3+pi/volume1(a)*spread*spread
     print *, '#phi2(0)', phi2(1,1,1)
     print *, '#phi3(0)', phi3(1,1,1)
     print *, '#afc(0)', afc(1,1,1)

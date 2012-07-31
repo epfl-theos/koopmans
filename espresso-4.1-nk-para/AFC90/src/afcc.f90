@@ -39,6 +39,7 @@ function afc(a,npt,tperiodic,spreadopt)
   integer :: nperiodic,n,m,p
   real(8), parameter :: pi=3.141592653589793d0
   !
+  !
   interface 
     !
     function fft1d(in,sign)
@@ -93,9 +94,9 @@ function afc(a,npt,tperiodic,spreadopt)
       real(8), dimension(npt(1),npt(2),npt(3)) :: phi3d
     end function
     !
-    function volume(a)
+    function volume1(a)
       real(8), intent(in), dimension(3,3) :: a
-      real(8) :: volume
+      real(8) :: volume1
     end function
     !
   end interface
@@ -119,8 +120,9 @@ function afc(a,npt,tperiodic,spreadopt)
   print *, '#',a(1:3,1)
   print *, '#',a(1:3,2)
   print *, '#',a(1:3,3)
-  print *, '#volume'
-  print *, '#',volume(a)
+  print *, '#volume1'
+  write(6,*) volume1(a), "volume1", a, lbound(a), ubound(a)
+  !print *, '#',volume1(a)
   print *, '#periodicity'
   print *, '#',tperiodic(1:3)
   print *, '#grid'
@@ -140,10 +142,11 @@ function afc(a,npt,tperiodic,spreadopt)
     allocate(phi3(npt(1),npt(2),npt(3)))
     phi0=phi0d(spread,a,npt)
     phi3=phi3d(spread,a,npt)
-    afc=phi0-phi3+pi/volume(a)*spread*spread
+    afc=phi0-phi3+pi/volume1(a)*spread*spread
     print *, '#phi3(0)', phi3(1,1,1)
     print *, '#phi0(0)', phi0(1,1,1)
     print *, '#afc(0)', afc(1,1,1)
+    print *, 'npt', npt
     deallocate(phi0,phi3)
     !
   elseif (nperiodic.eq.1) then
@@ -159,9 +162,11 @@ function afc(a,npt,tperiodic,spreadopt)
     allocate(phi3(npt(1),npt(2),npt(3)))
     do n=1,3
       aaux(1:3,n)=a(1:3,i(n))
+      write(6,*) "done", n
       nptaux(n)=npt(i(n))
     enddo
     phi3=phi1d(spread,aaux,nptaux)
+    write(6,*) "done phi3", n
     do m=1,npt(i(1))
       do n=1,npt(i(2))
         do p=1,npt(i(3))
@@ -173,7 +178,7 @@ function afc(a,npt,tperiodic,spreadopt)
       enddo
     enddo
     phi3=phi3d(spread,a,npt)
-    afc=phi1-phi3+pi/volume(a)*spread*spread
+    afc=phi1-phi3+pi/volume1(a)*spread*spread
     print *, '#phi1(0)', phi1(1,1,1)
     print *, '#phi3(0)', phi3(1,1,1)
     print *, '#afc(0)', afc(1,1,1)+2.d0*log(l(i(1)))-2.d0*log(spread)
@@ -206,7 +211,7 @@ function afc(a,npt,tperiodic,spreadopt)
       enddo
     enddo
     phi3=phi3d(spread,a,npt)
-    afc=phi2-phi3+pi/volume(a)*spread*spread
+    afc=phi2-phi3+pi/volume1(a)*spread*spread
     print *, '#phi2(0)', phi2(1,1,1)
     print *, '#phi3(0)', phi3(1,1,1)
     print *, '#afc(0)', afc(1,1,1)
@@ -214,14 +219,14 @@ function afc(a,npt,tperiodic,spreadopt)
     !
   endif
   !
-  do m=1,npt(1)
-    do n=1,npt(2)
-      do p=1,npt(3)
-        !
-        print *, afc(m,n,p)
-        !
-      enddo
-    enddo
-  enddo
+!   do m=1,npt(1)
+!     do n=1,npt(2)
+!       do p=1,npt(3)
+!         !
+!         print *, afc(m,n,p)
+!         !
+!       enddo
+!     enddo
+!   enddo
   !
 end function afc

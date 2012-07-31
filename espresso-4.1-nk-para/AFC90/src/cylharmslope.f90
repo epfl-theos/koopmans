@@ -20,7 +20,7 @@ function cylharmslope(tol,dt,sigma)
   !
   real(8), intent(in) :: tol,dt,sigma
   real(8) :: cylharmslope
-  integer, parameter :: nmax=100
+  integer, parameter :: nmax=100 !afcmodified:giovanni 100
   real(8) :: t,x,dlogslope
   integer :: n
   !

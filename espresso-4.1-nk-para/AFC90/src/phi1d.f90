@@ -102,6 +102,7 @@ function phi1d(s,a,npt)
         aux1(k)=phi(i+npt(1)*(j-1),k)*cmplx(cos(phase),sin(phase))
       enddo
       aux1=fft1d(aux1,1)
+      !aux1=0.d0
       phi1d(i,j,1:npt(3))=aux1(1:npt(3))
     enddo
   enddo
