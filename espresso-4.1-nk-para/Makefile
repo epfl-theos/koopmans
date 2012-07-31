@@ -31,7 +31,7 @@ pw : bindir mods libs libiotk eelib
 	( cd PW ; if test "$(MAKE)" = "" ; then make $(MFLAGS) TLDEPS= all ; \
 	else $(MAKE) $(MFLAGS) TLDEPS= all ; fi ) ; fi
 
-cp : bindir mods libs libiotk
+cp : bindir mods libs libiotk afclib
 	if test -d CPV ; then \
 	( cd CPV ; if test "$(MAKE)" = "" ; then make $(MFLAGS) TLDEPS= cp ; \
 	else $(MAKE) $(MFLAGS) TLDEPS= cp ; fi ) ; fi
@@ -117,6 +117,12 @@ all   : pwall cp ld1 upf
 mods : libiotk
 	( cd Modules ; if test "$(MAKE)" = "" ; then make $(MFLAGS) TLDEPS= all ; \
 	else $(MAKE) $(MFLAGS) TLDEPS= all ; fi )
+
+afclib:
+	( if test -d AFC90/src; then cd AFC90/src ; \
+        if test "$(MAKE)" = "" ; then make $(MFLAGS) TLDEPS= libafc90.a ;\
+        else $(MAKE) $(MFLAGS) TLDEPS= libafc90.a ; fi; fi )
+
 libs : mods
 	( cd clib ; if test "$(MAKE)" = "" ; then make $(MFLAGS) TLDEPS= all ; \
 	else $(MAKE) $(MFLAGS) TLDEPS= all ; fi )

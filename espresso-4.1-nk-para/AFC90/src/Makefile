@@ -40,7 +40,14 @@ vectorproduct.o \
 volume.o \
 ydot.o
 
-all : $(OBJS) 
+AFCFILES= \
+besseli.o
+
+all : $(OBJS) libafc90.a
+
+libafc90.a: $(AFCFILES)
+	$(AR) $(ARFLAGS) $@ $?
+	$(RANLIB) $@
 
 clean :
 	- /bin/rm -f cppp.x *.o *.mod

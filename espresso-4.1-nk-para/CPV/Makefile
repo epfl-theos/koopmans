@@ -182,14 +182,16 @@ MODULES = \
 ../Modules/wrappers.o \
 ../Modules/compute_dipole.o
 
-TLDEPS= bindir mods libs libiotk
+AFCLIB=../AFC90/src/libafc90.a
+
+TLDEPS= bindir mods libs libiotk afclib
 
 all : cp
 cp : tldeps libcp.a cp.x cppp.x
 
-cp.x : cprstart.o libcp.a $(LIBOBJS)
+cp.x : cprstart.o libcp.a $(LIBOBJS) $(AFCLIB)
 	$(LD) $(LDFLAGS) -o cp.x \
-		cprstart.o $(MODULES) libcp.a $(LIBOBJS) $(LIBS)
+		cprstart.o $(MODULES) libcp.a $(LIBOBJS) $(AFCLIB) $(LIBS)
 	- ( cd ../bin ; ln -fs ../CPV/cp.x . )
 
 cp_test : tldeps libcp.a cp_test.x cppp.x
