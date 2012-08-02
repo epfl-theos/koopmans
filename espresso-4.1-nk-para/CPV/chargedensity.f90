@@ -1327,12 +1327,12 @@
 !
       allocate( v( nnrx ) ) 
       !
-      ci = ( 0.0d0, 1.0d0 )
+      ci = CMPLX( 0.0d0, 1.0d0 )
       do iss = 1, nspin
 !$omp parallel default(shared), private(ig)
 !$omp do
          do ig = 1, nnrx
-            v( ig ) = ( 0.0d0, 0.0d0 )
+            v( ig ) = CMPLX( 0.0d0, 0.0d0 )
          end do
 !$omp do
 !         if(lgam) then !!! uncomment for k-points
@@ -1357,7 +1357,7 @@
          end do
 !$omp do
          do ig=1,nnrx
-            v(ig)=(0.0d0,0.0d0)
+            v(ig)=CMPLX(0.0d0,0.0d0)
          end do
 !$omp do
 !         if(lgam) then !!! uncomment for k-points
