@@ -54,7 +54,7 @@ subroutine qmatrixd(c0, bec0,ctable, gqq, qmat, detq, ipol, lgam)
   complex(DP), allocatable :: sndbuf(:,:,:),rcvbuf(:,:,:)
 
 
-  qmat(:,:)=(0.d0,0.d0)
+  qmat(:,:)=CMPLX(0.d0,0.d0)
 
   ALLOCATE( ipiv( nx, nx ), work( nx ) )
 
@@ -63,7 +63,7 @@ subroutine qmatrixd(c0, bec0,ctable, gqq, qmat, detq, ipol, lgam)
 
 ! first the local part
 
-        sca=(0.d0,0.d0)
+        sca=CMPLX(0.d0,0.d0)
         if(ispin(ix) == ispin(jx) ) then
        
            do ig=1,ngw
@@ -184,7 +184,7 @@ subroutine qmatrixd(c0, bec0,ctable, gqq, qmat, detq, ipol, lgam)
        
        !  now the non local vanderbilt part
        
-       sca =(0.d0,0.d0)
+       sca = CMPLX(0.d0,0.d0)
        if(ispin(ix)==ispin(jx)) then
           if(.not.bec0%iscmplx) then
 	    do is=1,nvb!loop on vanderbilt species
@@ -292,7 +292,7 @@ subroutine qmatrixd_old(c0, bec0,ctable, gqq, qmat, detq, ipol)
   complex(DP), allocatable :: sndbuf(:,:,:),rcvbuf(:,:,:)
 
 
-  qmat(:,:)=(0.d0,0.d0)
+  qmat(:,:)=CMPLX(0.d0,0.d0)
 
   ALLOCATE( ipiv( nx, nx ), work( nx ) )
 
@@ -301,7 +301,7 @@ subroutine qmatrixd_old(c0, bec0,ctable, gqq, qmat, detq, ipol)
 
 ! first the local part
 
-        sca=(0.d0,0.d0)
+        sca=CMPLX(0.d0,0.d0)
         if(ispin(ix) == ispin(jx) ) then
        
            do ig=1,ngw
@@ -422,7 +422,7 @@ subroutine qmatrixd_old(c0, bec0,ctable, gqq, qmat, detq, ipol)
        
        !  now the non local vanderbilt part
        
-       sca =(0.d0,0.d0)
+       sca = CMPLX(0.d0,0.d0)
        if(ispin(ix)==ispin(jx)) then
           do is=1,nvb!loop on vanderbilt species
              do ia=1,na(is)!loop on atoms

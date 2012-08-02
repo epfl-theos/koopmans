@@ -172,7 +172,7 @@
 
       rhor = 0.d0
       rhos = 0.d0
-      rhog = (0.d0, 0.d0)
+      rhog = CMPLX(0.d0, 0.d0)
       !
       !  calculation of kinetic energy ekin
       !
@@ -420,7 +420,7 @@
             !     case nspin=1
             ! 
             iss=1
-            psi (:) = (0.d0, 0.d0)
+            psi (:) = CMPLX(0.d0, 0.d0)
 !             IF(lgam) then !added:giovanni !!!### uncomment for k points
 	      DO ig=1,ngs  
 		psi(nm(ig))=CONJG(rhog(ig,iss))
@@ -446,7 +446,7 @@
 !             IF(lgam) then !added:giovanni !!!### uncomment for k points
 	      isup=1
 	      isdw=2
-	      psi (:) = (0.d0, 0.d0)
+	      psi (:) = CMPLX(0.d0, 0.d0)
 	      DO ig=1,ngs
 	      psi(nm(ig))=CONJG(rhog(ig,isup))+ci*CONJG(rhog(ig,isdw))
 		psi(np(ig))=rhog(ig,isup)+ci*rhog(ig,isdw)
@@ -591,7 +591,7 @@
             !
 !$omp do
             do ig = 1, SIZE(psis)
-               psis (ig) = (0.d0, 0.d0)
+               psis (ig) = CMPLX(0.d0, 0.d0)
             end do
             !
             !  Loop for all local g-vectors (ngw)
@@ -832,7 +832,7 @@
 
       rhor = 0.d0
       rhos = 0.d0
-      rhog = (0.d0, 0.d0)
+      rhog = CMPLX(0.d0, 0.d0)
       !
       !  calculation of kinetic energy ekin
       !
@@ -1011,7 +1011,7 @@
             !     case nspin=1
             ! 
             iss=1
-            psi (:) = (0.d0, 0.d0)
+            psi (:) = CMPLX(0.d0, 0.d0)
             DO ig=1,ngs
                psi(nm(ig))=CONJG(rhog(ig,iss))
                psi(np(ig))=      rhog(ig,iss)
@@ -1027,7 +1027,7 @@
             !
             isup=1
             isdw=2
-            psi (:) = (0.d0, 0.d0)
+            psi (:) = CMPLX(0.d0, 0.d0)
             DO ig=1,ngs
                psi(nm(ig))=CONJG(rhog(ig,isup))+ci*CONJG(rhog(ig,isdw))
                psi(np(ig))=rhog(ig,isup)+ci*rhog(ig,isdw)
@@ -1157,7 +1157,7 @@
             !
 !$omp do
             do ig = 1, SIZE(psis)
-               psis (ig) = (0.d0, 0.d0)
+               psis (ig) = CMPLX(0.d0, 0.d0)
             end do
             !
             !  Loop for all local g-vectors (ngw)
@@ -1544,7 +1544,7 @@
         END DO
         IF( gzero ) THEN
           rhoout(1) = rho(1,1)
-          rr(1,1)   = (0.d0,0.d0)
+          rr(1,1)   = CMPLX(0.d0,0.d0)
         END IF
         IF( daamax /= 1 )THEN
           rsc = scalw(gzero, rr(:,1), rr(:,1), metric)
@@ -1566,7 +1566,7 @@
           rr(ig,ism) = rhoout(ig) - rho(ig,ism)
         END DO
         IF(gzero) THEN
-          rr(1,ism) = (0.d0, 0.d0)
+          rr(1,ism) = CMPLX(0.d0, 0.d0)
         END IF
 
 ! ...   Allocate the new A matrix
@@ -1597,7 +1597,7 @@
         IF( ierr /= 0 ) CALL errore(' newrho ', ' deallocating aa ', ierr)
 
         DO ig = gstart, ngm
-          rhoout(ig) = (0.d0,0.d0)
+          rhoout(ig) = CMPLX(0.d0,0.d0)
           DO i = 1, dimaa
             rhoout(ig) = rhoout(ig) + alpha(i) * ( rho(ig,i) + chmix(ig) * rr(ig,i) )
           END DO
@@ -1731,7 +1731,7 @@ SUBROUTINE drhov(irb,eigrb,rhovan,rhog,rhor,drhog,drhor)
          DO i=1,3
             DO j=1,3
 
-               v(:) = (0.d0, 0.d0)
+               v(:) = CMPLX(0.d0, 0.d0)
 
                iss=1
                isa=1
@@ -1745,7 +1745,7 @@ SUBROUTINE drhov(irb,eigrb,rhovan,rhog,rhor,drhog,drhor)
                   DO ia=1,na(is),2
                      nfft=2
 #endif
-                     dqgbt(:,:) = (0.d0, 0.d0) 
+                     dqgbt(:,:) = CMPLX(0.d0, 0.d0) 
                      IF (ia.EQ.na(is)) nfft=1
                      !
                      !  nfft=2 if two ffts at the same time are performed
@@ -1771,7 +1771,7 @@ SUBROUTINE drhov(irb,eigrb,rhovan,rhog,rhor,drhog,drhor)
                      !     
                      ! add structure factor
                      !
-                     qv(:) = (0.d0, 0.d0)
+                     qv(:) = CMPLX(0.d0, 0.d0)
                      IF(nfft.EQ.2) THEN
                         DO ig=1,ngb
                            qv(npb(ig)) = eigrb(ig,isa   )*dqgbt(ig,1)  &
@@ -1824,7 +1824,7 @@ SUBROUTINE drhov(irb,eigrb,rhovan,rhog,rhor,drhog,drhor)
          isdw=2
          DO i=1,3
             DO j=1,3
-               v(:) = (0.d0, 0.d0)
+               v(:) = CMPLX(0.d0, 0.d0)
                isa=1
                DO is=1,nvb
                   DO ia=1,na(is)
@@ -1832,7 +1832,7 @@ SUBROUTINE drhov(irb,eigrb,rhovan,rhog,rhor,drhog,drhor)
                      IF ( dfftb%np3( isa ) <= 0 ) go to 25
 #endif
                      DO iss=1,2
-                        dqgbt(:,iss) = (0.d0, 0.d0)
+                        dqgbt(:,iss) = CMPLX(0.d0, 0.d0)
                         DO iv= 1,nh(is)
                            DO jv=iv,nh(is)
                               ijv = (jv-1)*jv/2 + iv
@@ -1853,7 +1853,7 @@ SUBROUTINE drhov(irb,eigrb,rhovan,rhog,rhor,drhog,drhor)
                      !     
                      ! add structure factor
                      !
-                     qv(:) = (0.d0, 0.d0)
+                     qv(:) = CMPLX(0.d0, 0.d0)
                      DO ig=1,ngb
                         qv(npb(ig))= eigrb(ig,isa)*dqgbt(ig,1)        &
      &                    + ci*      eigrb(ig,isa)*dqgbt(ig,2)
@@ -1953,12 +1953,12 @@ SUBROUTINE rhov(irb,eigrb,rhovan,rhog,rhor, lgam) !added:giovanni lgam
       IF ( nvb == 0 ) RETURN
 
       CALL start_clock( 'rhov' )
-      ci=(0.d0,1.d0)
+      ci=CMPLX(0.d0,1.d0)
 !
 !
       ALLOCATE( v( nnr ) )
       ALLOCATE( qv( nnrb ) )
-      v (:) = (0.d0, 0.d0)
+      v (:) = CMPLX(0.d0, 0.d0)
       ALLOCATE( qgbt( ngb, 2 ) )
 
       IF(lgam) THEN
@@ -1994,7 +1994,7 @@ SUBROUTINE rhov(irb,eigrb,rhovan,rhog,rhor, lgam) !added:giovanni lgam
                !  nfft=2 if two ffts at the same time are performed
                !
                DO ifft=1,nfft
-                  qgbt(:,ifft) = (0.d0, 0.d0)
+                  qgbt(:,ifft) = CMPLX(0.d0, 0.d0)
                   DO iv= 1,nh(is)
                      DO jv=iv,nh(is)
                         ijv = (jv-1)*jv/2 + iv
@@ -2009,7 +2009,7 @@ SUBROUTINE rhov(irb,eigrb,rhovan,rhog,rhor, lgam) !added:giovanni lgam
                !
                ! add structure factor
                !
-               qv(:) = (0.d0, 0.d0)
+               qv(:) = CMPLX(0.d0, 0.d0)
                IF(nfft.EQ.2)THEN
 !                   IF(lgam) THEN
 		      DO ig=1,ngb
@@ -2122,7 +2122,7 @@ SUBROUTINE rhov(irb,eigrb,rhovan,rhog,rhor, lgam) !added:giovanni lgam
                IF ( dfftb%np3( isa ) <= 0 ) go to 25
 #endif
                DO iss=1,2
-                  qgbt(:,iss) = (0.d0, 0.d0)
+                  qgbt(:,iss) = CMPLX(0.d0, 0.d0)
                   DO iv=1,nh(is)
                      DO jv=iv,nh(is)
                         ijv = (jv-1)*jv/2 + iv
@@ -2137,7 +2137,7 @@ SUBROUTINE rhov(irb,eigrb,rhovan,rhog,rhor, lgam) !added:giovanni lgam
 !     
 ! add structure factor
 !
-               qv(:) = (0.d0, 0.d0)
+               qv(:) = CMPLX(0.d0, 0.d0)
 !                IF(lgam) THEN
 		  DO ig=1,ngb
 		      qv(npb(ig)) =    eigrb(ig,isa)*qgbt(ig,1)           &

@@ -76,7 +76,7 @@
                lm = l**2 + m
                DO ia = 1 + isa, na(is) + isa
                   natwfc = natwfc + 1
-                  wfc(:,natwfc) = (0.d0,1.d0)**l * eigr(:,ia)* ylm(:,lm)*chiq(:)
+                  wfc(:,natwfc) = CMPLX(0.d0,1.d0)**l * eigr(:,ia)* ylm(:,lm)*chiq(:)
                ENDDO
             ENDDO
          ENDDO
@@ -3311,7 +3311,7 @@ END FUNCTION
 !$omp parallel default(shared), private(ig,is)
 !$omp do
       DO ig = 1, SIZE(vtemp)
-         vtemp(ig)=(0.d0,0.d0)
+         vtemp(ig)=CMPLX(0.d0,0.d0)
       END DO
       DO is=1,nsp
 !$omp do
@@ -3419,7 +3419,7 @@ END FUNCTION
       !
       !     calculation hartree + local pseudo potential
       !
-      IF (gstart == 2) vtemp(1)=(0.d0,0.d0)
+      IF (gstart == 2) vtemp(1)=CMPLX(0.d0,0.d0)
 
 !$omp parallel default(shared), private(ig,is)
 !$omp do
@@ -4395,7 +4395,7 @@ end function set_Hubbard_l
 !
 !      Calculate the potential and forces on wavefunctions due to U
 !
-      hpsi(:,:)=(0.d0,0.d0)
+      hpsi(:,:)=CMPLX(0.d0,0.d0)
       iat=0
       do is = 1, nsp
          do ia=1, na(is)
@@ -4656,7 +4656,7 @@ end function set_Hubbard_l
                   lm = l**2 + m
 !                  call ylmr2b(lm,ngw,ngw,gxn,ylm)
                   natwfc = natwfc + 1
-                  atwfc(:,natwfc) = (0.d0,1.d0)**l * ylm(:,lm)*chiq(:)
+                  atwfc(:,natwfc) = CMPLX(0.d0,1.d0)**l * ylm(:,lm)*chiq(:)
                enddo
             enddo
          end do
@@ -5048,7 +5048,7 @@ end function set_Hubbard_l
                   lm = l**2 + m
                   !DO ia = 1 + isa, na(is) + isa
                   natwfc = natwfc + 1
-                  wfc(:,natwfc) = (0.d0,1.d0)**l * eigr(:,ia)* ylm(:,lm)*chiq(:)
+                  wfc(:,natwfc) = CMPLX(0.d0,1.d0)**l * eigr(:,ia)* ylm(:,lm)*chiq(:)
                   !ENDDO
                ENDDO
             ENDDO

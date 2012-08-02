@@ -173,7 +173,7 @@
 ! of the ions
 
       allocate(rhotmp(ngm,nspin))
-      rhotmp = (0.d0,0.d0)
+      rhotmp = CMPLX(0.d0,0.d0)
 
       if (nspin.eq.1) then
          do ig = 1,ngm
@@ -254,7 +254,7 @@
       if (abisur)                                                       &
      &   call gradrho(nspin,rhotmp,drho,d2rho,dxdyrho,dxdzrho,dydzrho)
 
-      psi = (0.d0,0.d0)
+      psi = CMPLX(0.d0,0.d0)
       if (nspin.eq.1) then
          do ig = 1,ngm
             psi(np(ig)) = rhotmp(ig,1)

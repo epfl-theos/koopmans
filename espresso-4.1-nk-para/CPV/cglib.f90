@@ -330,7 +330,7 @@
 
       ndim=(n*(n+1))/2
       allocate(ap(ndim))
-      ap(:)=(0.d0,0.d0)
+      ap(:)=CMPLX(0.d0,0.d0)
 
       k=0
       do j=1,n

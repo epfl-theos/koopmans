@@ -281,11 +281,11 @@
       allocate( gi(ngw,nbsp), hi(ngw,nbsp) )
       !
       allocate(hitmp(ngw,nbsp))
-      hitmp(:,:) = (0.d0,0.d0)
+      hitmp(:,:) = CMPLX(0.d0,0.d0)
       ! allocate(hpsinosic(ngw,n))
       !
-      gi(:,:)=(0.d0,0.d0)
-      hi(:,:)=(0.d0,0.d0)
+      gi(:,:)=CMPLX(0.d0,0.d0)
+      hi(:,:)=CMPLX(0.d0,0.d0)
 
 
       !=======================================================================
@@ -464,7 +464,7 @@
 !$$ So, we do not perform the following routine.
 !$$
 !            if(ninner.ge.2) then
-!              hitmp(:,:) = (0.d0,0.d0)
+!              hitmp(:,:) = CMPLX(0.d0,0.d0)
 !              do nbnd1=1,n
 !                do nbnd2=1,n
 !                  hitmp(:,nbnd1)=hitmp(:,nbnd1) + hi(:,nbnd2) * Omattot(nbnd2,nbnd1)

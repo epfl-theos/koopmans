@@ -404,7 +404,7 @@
               !
           enddo
           !
-          psi (:) = (0.d0, 0.d0)
+          psi (:) = CMPLX(0.d0, 0.d0)
           do ig=1,ngs
               !
               psi(nm(ig)) = CONJG( orb_rhog(ig,1) ) &
@@ -1059,7 +1059,7 @@ end subroutine nksic_newd
       !    
       ! compute hartree-like potential
       !
-      if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
+      if( gstart == 2 ) vtmp(1)=CMPLX(0.d0,0.d0)
       do ig=gstart,ngm
           vtmp(ig) = rhogaux(ig,ispin) * fpi/( tpiba2*g(ig) )
       enddo
@@ -1424,7 +1424,7 @@ end subroutine nksic_newd
       !    
       ! compute hartree-like potential
       !
-      if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
+      if( gstart == 2 ) vtmp(1)=CMPLX(0.d0,0.d0)
       do ig=gstart,ngm
           vtmp(ig) = rhogaux(ig,ispin) * fpi/( tpiba2*g(ig) )
       enddo
@@ -1633,7 +1633,7 @@ end subroutine nksic_correction_pz
       !    
       ! compute hartree-like potential
       !
-      if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
+      if( gstart == 2 ) vtmp(1)=CMPLX(0.d0,0.d0)
       do ig=gstart,ngm
         vtmp(ig)=rhogaux(ig,1)*fpi/(tpiba2*g(ig))
       enddo
@@ -1882,7 +1882,7 @@ end subroutine nksic_correction_pz
       !    
       ! compute hartree-like potential
       !
-      if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
+      if( gstart == 2 ) vtmp(1)=CMPLX(0.d0,0.d0)
       do ig=gstart,ngm
           vtmp(ig) = rhogaux(ig,1) * fpi/( tpiba2*g(ig) )
       enddo
@@ -2715,7 +2715,7 @@ end subroutine nksic_dmxc_spin_cp
       call allocate_twin(bec1,nkb,nbsp,lgam)
 !       allocate( bec1(nkb,nbsp) )
       !
-      Umatbig(:,:)=(0.d0,0.d0)
+      Umatbig(:,:)=CMPLX(0.d0,0.d0)
       Heigbig(:)=0.d0
       deigrms = 0.d0
 
@@ -2776,7 +2776,7 @@ end subroutine nksic_dmxc_spin_cp
         ! This part calculates the anti-hermitian part of the hamiltonian
         ! vsicah and see whether a convergence has been achieved
         !
-        wfc_ctmp(:,:) = (0.d0,0.d0)
+        wfc_ctmp(:,:) = CMPLX(0.d0,0.d0)
         deigrms = 0.d0
 
         spin_loop: &
@@ -2907,7 +2907,7 @@ end subroutine nksic_dmxc_spin_cp
           !
           if( ninner >= 2 ) then
               !
-              wfc_ctmp(:,:) = (0.d0,0.d0)
+              wfc_ctmp(:,:) = CMPLX(0.d0,0.d0)
               !
               do nbnd1=1,nbspx
               do nbnd2=1,nbspx
@@ -2995,7 +2995,7 @@ end subroutine nksic_rot_emin
       CALL start_clock( 'nk_rot_test' )
 
 
-      Umatbig(:,:) = (0.d0,0.d0)
+      Umatbig(:,:) = CMPLX(0.d0,0.d0)
       Heigbig(:)   = 0.d0
       deigrms      = 0.d0
 
@@ -3605,7 +3605,7 @@ end subroutine nksic_rot_emin_cg
       call init_twin(bec2,lgam)
       call allocate_twin(bec2,nkb,nbsp,lgam)
       !
-      Umatbig(:,:)=(0.d0,0.d0)
+      Umatbig(:,:)=CMPLX(0.d0,0.d0)
       Heigbig(:)=0.d0
       deigrms = 0.d0
       hi(:,:) = 0.d0
@@ -3924,7 +3924,7 @@ end subroutine nksic_rot_emin_cg
           !
           if( ninner >= 2 ) then
               !
-              wfc_ctmp(:,:) = (0.d0,0.d0)
+              wfc_ctmp(:,:) = CMPLX(0.d0,0.d0)
               !
               do nbnd1=1,nbspx
               do nbnd2=1,nbspx
@@ -4218,7 +4218,7 @@ end subroutine nksic_getHeigU
       overlap(:,:) = 0.d0
 
       do nbnd1=1,nbspx
-        CALL c2psi( psi1, nnrx, c0(:,nbnd1), (0.d0,0.d0), ngw, 1)
+        CALL c2psi( psi1, nnrx, c0(:,nbnd1), CMPLX(0.d0,0.d0), ngw, 1)
         CALL invfft('Dense', psi1, dfftp )
 
         do nbnd2=1,nbspx
@@ -4226,7 +4226,7 @@ end subroutine nksic_getHeigU
             vsicahtmp = -vsicah(nbnd2,nbnd1)
             overlaptmp = overlap(nbnd2,nbnd1)
           else
-            CALL c2psi( psi2, nnrx, c0(:,nbnd2), (0.d0,0.d0), ngw, 1)
+            CALL c2psi( psi2, nnrx, c0(:,nbnd2), CMPLX(0.d0,0.d0), ngw, 1)
             CALL invfft('Dense', psi2, dfftp )
 
             vsicahtmp = 0.d0
@@ -4321,14 +4321,14 @@ end subroutine nksic_printoverlap
           !
           j1 = iupdwn(isp)-1 + nbnd1
           !
-          CALL c2psi( psi1, nnrx, c0(:,j1), (0.d0,0.d0), ngw, 1)
+          CALL c2psi( psi1, nnrx, c0(:,j1), CMPLX(0.d0,0.d0), ngw, 1)
           CALL invfft('Dense', psi1, dfftp )
 
           do nbnd2 = 1, nbnd1-1
               !
               j2 = iupdwn(isp)-1 + nbnd2
               !
-              CALL c2psi( psi2, nnrx, c0(:,j2), (0.0d0,0.0d0), ngw, 1 )
+              CALL c2psi( psi2, nnrx, c0(:,j2), CMPLX(0.0d0,0.0d0), ngw, 1 )
               CALL invfft('Dense', psi2, dfftp )
               !
               vsicahtmp = 0.d0
