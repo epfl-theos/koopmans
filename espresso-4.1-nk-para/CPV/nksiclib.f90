@@ -4166,7 +4166,9 @@ end subroutine nksic_rotwfn
       Hmat(:,:) = ci * vsicah(:,:)
 !$$ diagonalize Hmat
 !      if(ionode) then
-      CALL zdiag(nupdwn(isp),nupdwn(isp),Hmat(1,1),Heig(1),Umat(1,1),1)
+      IF(nupdwn(isp)>0) THEN
+         CALL zdiag(nupdwn(isp),nupdwn(isp),Hmat(1,1),Heig(1),Umat(1,1),1)
+      ENDIF
 !      endif
 
 !      CALL mp_bcast(Umat, ionode_id, intra_image_comm)
@@ -5088,7 +5090,7 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
    REAL(DP):: r0(3)
    REAL(DP), external :: ddot
    
-   write(6,*) nbsp, "computing perfinta spread",j,k
+   !write(6,*) nbsp, "computing perfinta spread",j,k !debug:giovanni
    !
    IF(icompute_spread) THEN
       !

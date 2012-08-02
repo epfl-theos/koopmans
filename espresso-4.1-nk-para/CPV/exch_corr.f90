@@ -573,7 +573,7 @@
       allocate(x(ng))
       allocate(vtemp(ng))
       !
-      ci=(0.0d0,1.0d0)
+      ci=CMPLX(0.0d0,1.0d0)
       !
       dexc = 0.0d0
       !
@@ -668,7 +668,7 @@
 !     second part xc-potential: 1 inverse fft
 !
          do ig=1,nnr
-            v(ig)=(0.0d0,0.0d0)
+            v(ig)=CMPLX(0.0d0,0.0d0)
          end do
 !         IF(lgam) THEN !!!uncomment for k-points
 	    do ig=1,ng
