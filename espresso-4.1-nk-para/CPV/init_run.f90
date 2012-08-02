@@ -84,6 +84,7 @@ SUBROUTINE init_run()
   use efield_mod,               ONLY : do_efield
   USE nksic,                    ONLY : do_orbdep
   USE twin_types !added:giovanni
+  USE input_parameters,         ONLY : which_compensation
   !
   IMPLICIT NONE
   !
@@ -274,8 +275,11 @@ SUBROUTINE init_run()
   ! 
   IF( do_comp ) THEN
       !
-      CALL ee_green_1d_init( ht0 )
-      CALL ee_green_0d_init( ht0 )
+      IF(which_compensation=='tcc1d') THEN
+         CALL ee_green_1d_init( ht0 )
+      ELSE
+         CALL ee_green_0d_init( ht0 )
+      ENDIF
       !
   ENDIF
   !
