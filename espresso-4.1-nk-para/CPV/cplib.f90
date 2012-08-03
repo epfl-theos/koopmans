@@ -2419,6 +2419,118 @@ END FUNCTION
 
       END SUBROUTINE nlfl_real
 
+      !-------------------------------------------------------------------------
+      SUBROUTINE nlfl_cmplx(bec,becdr,lambda,fion)
+!-----------------------------------------------------------------------
+!     contribution to fion due to the orthonormality constraint
+! 
+!
+      USE kinds,             ONLY: DP
+      USE io_global,         ONLY: stdout
+      USE ions_base,         ONLY: na, nsp, nat
+      USE uspp,              ONLY: nhsa=>nkb, qq
+      USE uspp_param,        ONLY: nhm, nh
+      USE cvan,              ONLY: ish, nvb
+      USE electrons_base,    ONLY: nbspx, nbsp, nudx, nspin, iupdwn, nupdwn
+      USE constants,         ONLY: pi, fpi
+      USE cp_main_variables, ONLY: nlam, nlax, descla, la_proc
+      USE descriptors,       ONLY: nlar_ , nlac_ , ilar_ , ilac_ 
+      USE mp,                ONLY: mp_sum
+      USE mp_global,         ONLY: intra_image_comm
+!
+      IMPLICIT NONE
+      COMPLEX(DP) bec(nhsa,nbsp), becdr(nhsa,nspin*nlax,3), lambda(nlam,nlam,nspin)
+      REAL(DP) fion(3,nat)
+!
+      INTEGER :: k, is, ia, iv, jv, i, j, inl, isa, iss, nss, istart, ir, ic, nr, nc
+      COMPLEX(DP), ALLOCATABLE :: temp(:,:), tmpbec(:,:),tmpdr(:,:) 
+      REAL(DP), ALLOCATABLE :: fion_tmp(:,:)
+      !
+      CALL start_clock( 'nlfl' )
+      !
+      ALLOCATE( fion_tmp( 3, nat ) )
+      !
+      fion_tmp = 0.0d0
+      !
+
+      ALLOCATE( temp( nlax, nlax ), tmpbec( nhm, nlax ), tmpdr( nlax, nhm ) )
+
+      DO k=1,3
+         isa = 0
+         DO is=1,nvb
+            DO ia=1,na(is)
+               isa = isa + 1
+               !
+               DO iss = 1, nspin
+                  !
+                  nss = nupdwn( iss )
+                  istart = iupdwn( iss )
+                  !
+                  tmpbec = 0.d0
+                  tmpdr  = 0.d0
+!
+                  IF( la_proc ) THEN
+                     ! tmpbec distributed by columns
+                     ic = descla( ilac_ , iss )
+                     nc = descla( nlac_ , iss )
+                     DO iv=1,nh(is)
+                        DO jv=1,nh(is)
+                           inl=ish(is)+(jv-1)*na(is)+ia
+                           IF(ABS(qq(iv,jv,is)).GT.1.e-5) THEN
+                              DO i=1,nc
+                                 tmpbec(iv,i)=tmpbec(iv,i) + qq(iv,jv,is)*bec(inl,i+istart-1+ic-1)
+                              END DO
+                           ENDIF
+                        END DO
+                     END DO
+                     ! tmpdr distributed by rows
+                     ir = descla( ilar_ , iss )
+                     nr = descla( nlar_ , iss )
+                     DO iv=1,nh(is)
+                        inl=ish(is)+(iv-1)*na(is)+ia
+                        DO i=1,nr
+                           tmpdr(i,iv)=becdr(inl,i+(iss-1)*nlax,k)
+                        END DO
+                     END DO
+                  END IF
+!
+                  IF(nh(is).GT.0)THEN
+                     !
+                     IF( la_proc ) THEN
+                        ir = descla( ilar_ , iss )
+                        ic = descla( ilac_ , iss )
+                        nr = descla( nlar_ , iss )
+                        nc = descla( nlac_ , iss )
+                        CALL ZGEMM( 'N', 'N', nr, nc, nh(is), (1.0d0,0.d0), tmpdr, nlax, tmpbec, nhm, (0.0d0,0.d0), temp, nlax )
+                        DO j = 1, nc
+                           DO i = 1, nr
+                              fion_tmp(k,isa) = fion_tmp(k,isa) + DBLE(2D0 * temp( i, j ) * lambda( i, j, iss ))
+                           END DO
+                        END DO
+                     END IF
+!
+                  ENDIF
+
+               END DO
+!
+            END DO
+         END DO
+      END DO
+      !
+      DEALLOCATE( temp, tmpbec, tmpdr )
+      !
+      CALL mp_sum( fion_tmp, intra_image_comm )
+      !
+      fion = fion + fion_tmp
+      !
+      DEALLOCATE( fion_tmp )
+      !
+      CALL stop_clock( 'nlfl' )
+      !
+      RETURN
+
+      END SUBROUTINE nlfl_cmplx
+      
 !-------------------------------------------------------------------------
       SUBROUTINE nlfl_twin(bec,becdr,lambda,fion, lgam)
 !-----------------------------------------------------------------------
@@ -2455,6 +2567,7 @@ END FUNCTION
       !
       CALL start_clock( 'nlfl' )
       !
+      write(6,*) ubound(bec%rvec), "ubound", ubound(becdr%rvec)
       ALLOCATE( fion_tmp( 3, nat ) )
       !
       fion_tmp = 0.0d0
@@ -2475,53 +2588,55 @@ END FUNCTION
 		  DO iss = 1, nspin
 		      !
 		      nss = nupdwn( iss )
-		      istart = iupdwn( iss )
-		      !
-		      tmpbec = 0.d0
-		      tmpdr  = 0.d0
-    !
-		      IF( la_proc ) THEN
-			! tmpbec distributed by columns
-			ic = descla( ilac_ , iss )
-			nc = descla( nlac_ , iss )
-			DO iv=1,nh(is)
-			    DO jv=1,nh(is)
-			      inl=ish(is)+(jv-1)*na(is)+ia
-			      IF(ABS(qq(iv,jv,is)).GT.1.e-5) THEN
-				  DO i=1,nc
-				    tmpbec(iv,i)=tmpbec(iv,i) + qq(iv,jv,is)*bec%rvec(inl,i+istart-1+ic-1)
-				  END DO
-			      ENDIF
-			    END DO
-			END DO
-			! tmpdr distributed by rows
-			ir = descla( ilar_ , iss )
-			nr = descla( nlar_ , iss )
-			DO iv=1,nh(is)
-			    inl=ish(is)+(iv-1)*na(is)+ia
-			    DO i=1,nr
-			      tmpdr(i,iv)=becdr%rvec(inl,i+(iss-1)*nlax,k)
-			    END DO
-			END DO
-		      END IF
-    !
-		      IF(nh(is).GT.0)THEN
-			!
-			IF( la_proc ) THEN
-			    ir = descla( ilar_ , iss )
-			    ic = descla( ilac_ , iss )
-			    nr = descla( nlar_ , iss )
-			    nc = descla( nlac_ , iss )
-			    CALL DGEMM( 'N', 'N', nr, nc, nh(is), 1.0d0, tmpdr, nlax, tmpbec, nhm, 0.0d0, temp, nlax )
-			    DO j = 1, nc
-			      DO i = 1, nr
-				  fion_tmp(k,isa) = fion_tmp(k,isa) + 2D0 * temp( i, j ) * lambda(iss)%rvec( i, j )
-			      END DO
-			    END DO
-			END IF
-    !
-		      ENDIF
-
+		      write(6,*) "nss", nss, iupdwn(iss), ubound(lambda(1)%rvec)
+		      IF(nss>0) THEN
+                         istart = iupdwn( iss )
+                         !
+                         tmpbec = 0.d0
+                         tmpdr  = 0.d0
+       !
+                         IF( la_proc ) THEN
+                           ! tmpbec distributed by columns
+                           ic = descla( ilac_ , iss )
+                           nc = descla( nlac_ , iss )
+                           DO iv=1,nh(is)
+                               DO jv=1,nh(is)
+                                 inl=ish(is)+(jv-1)*na(is)+ia
+                                 IF(ABS(qq(iv,jv,is)).GT.1.e-5) THEN
+                                     DO i=1,nc
+                                       tmpbec(iv,i)=tmpbec(iv,i) + qq(iv,jv,is)*bec%rvec(inl,i+istart-1+ic-1)
+                                     END DO
+                                 ENDIF
+                               END DO
+                           END DO
+                           ! tmpdr distributed by rows
+                           ir = descla( ilar_ , iss )
+                           nr = descla( nlar_ , iss )
+                           DO iv=1,nh(is)
+                               inl=ish(is)+(iv-1)*na(is)+ia
+                               DO i=1,nr
+                                 tmpdr(i,iv)=becdr%rvec(inl,i+(iss-1)*nlax,k)
+                               END DO
+                           END DO
+                         END IF
+       !
+                         IF(nh(is).GT.0)THEN
+                           !
+                           IF( la_proc ) THEN
+                               ir = descla( ilar_ , iss )
+                               ic = descla( ilac_ , iss )
+                               nr = descla( nlar_ , iss )
+                               nc = descla( nlac_ , iss )
+                               CALL DGEMM( 'N', 'N', nr, nc, nh(is), 1.0d0, tmpdr, nlax, tmpbec, nhm, 0.0d0, temp, nlax )
+                               DO j = 1, nc
+                                 DO i = 1, nr
+                                     fion_tmp(k,isa) = fion_tmp(k,isa) + 2D0 * temp( i, j ) * lambda(iss)%rvec( i, j )
+                                 END DO
+                               END DO
+                           END IF
+       !
+                         ENDIF
+                      ENDIF
 		  END DO
     !
 		END DO

@@ -152,7 +152,7 @@
       real(DP)    :: dtmp, temp
       real(dp)    :: tmppasso, ene_save(100), ene_save2(100), ene_lda
       !
-      logical :: lgam
+      logical :: lgam, switch=.true.
       complex(DP) :: phase
       integer :: ierr
       !
@@ -244,7 +244,7 @@
       !call calbec(1,nsp,eigr,c0,bec)
 
       ! calculates phi for pcdaga
-
+write(6,*) "computing calphi"
       !call calphiid(c0,bec,betae,phi)
       CALL calphi( c0, SIZE(c0,1), bec, nhsa, betae, phi, nbsp, lgam)
       !
@@ -258,7 +258,10 @@
           call allocate_twin(k_minus1, nhsavb, nhsavb, lgam)
 !           allocate( s_minus1(nhsavb,nhsavb))
 !           allocate( k_minus1(nhsavb,nhsavb))
+write(6,*) "sminus1calc"
           call  set_x_minus1(betae,s_minus1,dumm,.false.)
+write(6,*) "sminus1"
+! write(6,*) ubound(betae), "betae",betae
           call  set_x_minus1(betae,k_minus1,ema0bg,.true.)
           !
       else
@@ -619,7 +622,7 @@
         faux(1:nbspx)=0.d0
         faux(1:nbsp) = max(f_cutoff,f(1:nbsp)) * DBLE( nspin ) / 2.0d0
 !$$
-
+write(6,*) "going to dforce"
         do i=1,nbsp,2
 !$$  FIRST CALL TO DFORCE
           CALL start_clock( 'dforce1' )
@@ -692,7 +695,7 @@
           ENDIF
           !
         enddo
-
+write(6,*) "end going to dforce", hpsi(1,1), hpsi(2,1)
 !$$
 !        if(.not.tens) then
 !          do i=1,n
@@ -714,7 +717,8 @@
 
 !$$        call pcdaga2(c0,phi,hpsi)
 !$$     HPSI IS ORTHOGONALIZED TO C0
-        if(.not.do_orbdep) then
+write(6,*) "going to pcdaga2"
+        if(switch.or.(.not.do_orbdep)) then
           call pcdaga2(c0,phi,hpsi, lgam)
         else
           call pc3nc(c0,hpsi,lgam)
@@ -749,6 +753,7 @@
 
 	!COMPUTES ULTRASOFT-PRECONDITIONED HPSI, non kinetic-preconditioned
         call calbec(1,nsp,eigr,hpsi,becm)
+write(6,*) "going to xminus1_twin"
         call xminus1_twin(hpsi,betae,dumm,becm,s_minus1,.false.)
 !        call sminus1(hpsi,becm,betae)
 
@@ -757,7 +762,8 @@
         call calbec(1,nsp,eigr,hpsi,becm)
 !$$        call pc2(c0,bec,hpsi,becm)
 !$$     THIS ORTHOGONALIZED PRECONDITIONED VECTOR HPSI
-        if(.not.do_orbdep) then
+write(6,*) "going to pc2_twin"
+        if(switch.or.(.not.do_orbdep)) then
           call pc2(c0,bec,hpsi,becm, lgam)
         else
           call pc3nc(c0,hpsi,lgam)
@@ -767,6 +773,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !       COMPUTES ULTRASOFT+KINETIC-preconditioned GI
 !        call kminus1(gi,betae,ema0bg)
+write(6,*) "going to xminus1_twin"
         if(.not.pre_state) then
            call xminus1_twin(gi,betae,ema0bg,becm,k_minus1,.true.)
         else
@@ -775,14 +782,15 @@
         call calbec(1,nsp,eigr,gi,becm)
 !$$        call pc2(c0,bec,gi,becm)
 !$$     !ORTHOGONALIZES GI to c0
-        if(.not.do_orbdep) then
+write(6,*) "going to pc2ribis"
+        if(switch.or.(.not.do_orbdep)) then
           call pc2(c0,bec,gi,becm, lgam)
         else
           call pc3nc(c0,gi, lgam)
 !           call pc3us(c0,bec, gi,becm, lgam)
         endif
 !$$
-
+write(6,*) "going to calcmt_twinbis"
         if(tens) call calcmt_twin( f, z0t, fmat0, .false. )
         call calbec(1,nsp,eigr,hpsi,bec0) 
 !  calculates gamma
@@ -998,7 +1006,8 @@
         call calbec(1,nsp,eigr,hi,bec0)
 !$$        call pc2(c0,bec,hi,bec0)
 !$$     
-        if(.not.do_orbdep) then
+write(6,*) "going to pc2bis"
+        if(switch.or.(.not.do_orbdep)) then
           call pc2(c0,bec,hi,bec0, lgam)
         else
           call pc3nc(c0,hi,lgam)
@@ -1033,11 +1042,12 @@
 !$$
         else
           !in the ensamble case the derivative is Sum_ij (<hi|H|Psi_j>+ <Psi_i|H|hj>)*f_ji
-          !     calculation of the kinetic energy x=xmin      
+          !     calculation of the kinetic energy x=xmin    
+write(6,*) "going to calcmt_twin"  
          call calcmt_twin( f, z0t, fmat0, .false. )
          do iss = 1, nspin
             nss    = nupdwn(iss)
-            istart = iupdwn(iss)
+            istart = iupdwn(iss)!warning:giovanni this is a bug for a fully polarized system
             me_rot = descla( la_me_ , iss )
             np_rot = descla( la_npc_ , iss ) * descla( la_npr_ , iss )
             if(.not. fmat0(iss)%iscmplx) then
@@ -1338,6 +1348,7 @@
         !test on energy: check the energy has really diminished
 
         !call calbec(1,nsp,eigr,cm,becm)
+write(6,*) "going to rhoofr"
         if(.not.tens) then
           call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
         else
@@ -1896,8 +1907,8 @@
 		CALL sqr_mm_cannon( 'N', 'N', nss, 1.0d0, lambda(iss)%rvec(1,1), nlam, lambda_dist, nlam, &
                                   0.0d0, lambdap(iss)%rvec(1,1), nlam, descla(1,iss) )
               ELSE
-		CALL sqr_zmm_cannon( 'N', 'N', nss, 1.0d0, lambda(iss)%cvec(1,1), nlam, lambda_dist_c, nlam, &
-                                  0.0d0, lambdap(iss)%cvec(1,1), nlam, descla(1,iss) ) !warning:giovanni C or N?
+		CALL sqr_zmm_cannon( 'N', 'N', nss, (1.0d0,0.d0), lambda(iss)%cvec(1,1), nlam, lambda_dist_c, nlam, &
+                                  (0.0d0,0.d0), lambdap(iss)%cvec(1,1), nlam, descla(1,iss) ) !warning:giovanni C or N?
               ENDIF
               !
               !begin_modified:giovanni
@@ -1929,10 +1940,8 @@
            !
         endif
         !
-  
-        !
-        call nlfl(bec,becdr,lambda,fion, lgam) !warning:giovanni this may cause BUGS
-          
+
+        call nlfl(bec,becdr,lambda,fion, lgam)
         ! bforceion adds the force term due to electronic berry phase
         ! only in US-case
           

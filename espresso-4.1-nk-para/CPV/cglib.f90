@@ -475,134 +475,140 @@ subroutine pc2(a,beca,b,becb, lgam)
 
       do iss= 1, nspin
          nss= nupdwn( iss )
-         istart= iupdwn( iss )
+!          write(6,*) "nupdwn", iss, nupdwn(iss), iupdwn(iss)
+         if(nss>0) THEN
+            
+            istart= iupdwn( iss )
 
-         if(lgam) then
-	    allocate(bectmp(nss,nss))
-	    bectmp(:,:)=0.d0
-         else
-	    allocate(bectmp_c(nss,nss))
-	    bectmp(:,:)=CMPLX(0.d0,0.d0)
-         endif
-! 
-         allocate(zbectmp(nss,nss))
-
-         call zgemm('C','N',nss,nss,ngw,(1.d0,0.d0),a(:,istart),ngw,b(:,istart),ngw,(0.d0,0.d0),zbectmp,nss)
-
-         if(lgam) then
-	    do j=1,nss
-		do i=1,nss
-		  bectmp(i,j)=2.d0*DBLE(zbectmp(i,j))
-		  if(ng0.eq.2) bectmp(i,j)=bectmp(i,j)-DBLE(a(1,j))*DBLE(b(1,i))
-		enddo
-	    enddo
-	    call mp_sum( bectmp(:,:), intra_image_comm)
-         else
-	    do j=1,nss
-		do i=1,nss
-		  bectmp_c(i,j)=zbectmp(i,j)
-		enddo
-	    enddo
-	    call mp_sum( bectmp_c(:,:), intra_image_comm)
-         endif
-         deallocate(zbectmp)
-
-         if(nvb >= 0) then
-
-            nl_max=0
-            do is=1,nvb
-               nl_max=nl_max+nh(is)*na(is)
-            enddo
             if(lgam) then
-		allocate (qqb_tmp(nl_max,nss))
-		allocate (qq_tmp(nl_max,nl_max))
-		qq_tmp(:,:)=0.d0
-		do is=1,nvb
-		  do iv=1,nh(is)
-		      do jv=1,nh(is)
-			do ia=1,na(is)
-			    inl=ish(is)+(iv-1)*na(is)+ia
-			    jnl=ish(is)+(jv-1)*na(is)+ia
-			    qq_tmp(inl,jnl)=qq(iv,jv,is)
-			enddo
-		      enddo
-		  enddo
-		enddo
+               allocate(bectmp(nss,nss))
+               bectmp(:,:)=0.d0
             else
-		allocate (qqb_tmp_c(nl_max,nss))
-		allocate (qq_tmp_c(nl_max,nl_max))
-		qq_tmp_c(:,:)=CMPLX(0.d0,0.d0)
-		do is=1,nvb
-		  do iv=1,nh(is)
-		      do jv=1,nh(is)
-			do ia=1,na(is)
-			    inl=ish(is)+(iv-1)*na(is)+ia
-			    jnl=ish(is)+(jv-1)*na(is)+ia
-			    qq_tmp_c(inl,jnl)=CMPLX(qq(iv,jv,is),0.d0)
-			enddo
-		      enddo
-		  enddo
-		enddo
+               allocate(bectmp_c(nss,nss))
+               bectmp_c(:,:)=CMPLX(0.d0,0.d0)
             endif
+   ! 
+            allocate(zbectmp(nss,nss))
+write(6,*) "inside pc2 0"
+            call zgemm('C','N',nss,nss,ngw,(1.d0,0.d0),a(:,istart),ngw,b(:,istart),ngw,(0.d0,0.d0),zbectmp,nss)
 
-            !
             if(lgam) then
-		if( nhsa > 0 .and. .not. mat_par)  then
-		  call dgemm('N','N',nl_max,nss,nl_max,1.d0,qq_tmp,nl_max,becb%rvec(:,istart),nhsa,0.d0,qqb_tmp,nl_max)
-		  call dgemm('T','N',nss,nss,nl_max,1.d0,beca%rvec(:,istart),nhsa,qqb_tmp,nl_max,1.d0,bectmp,nss)
-		else if ( nhsa > 0 ) then
-		  call para_dgemm ('N','N',nl_max,nss,nl_max,1.d0,qq_tmp,nl_max,&
-				    becb%rvec(:,istart),nhsa,0.d0,qqb_tmp,nl_max, intra_image_comm)
-		  call para_dgemm ('T','N',nss,nss,nl_max,1.d0,beca%rvec(:,istart),nhsa, &
-				    qqb_tmp,nl_max,1.d0,bectmp,nss, intra_image_comm)
-		endif
-               deallocate(qq_tmp,qqb_tmp)
+               do j=1,nss
+                   do i=1,nss
+                     bectmp(i,j)=2.d0*DBLE(zbectmp(i,j))
+                     if(ng0.eq.2) bectmp(i,j)=bectmp(i,j)-DBLE(a(1,j))*DBLE(b(1,i))
+                   enddo
+               enddo
+               call mp_sum( bectmp(:,:), intra_image_comm)
             else
-		if( nhsa > 0 .and. .not. mat_par)  then
-		  call zgemm('N','N',nl_max,nss,nl_max,(1.d0,0.d0),qq_tmp_c,nl_max,becb%cvec(:,istart),nhsa,(0.d0,0.d0), qqb_tmp_c,nl_max)
-		  call zgemm('C','N',nss,nss,nl_max,(1.d0,0.d0),beca%cvec(:,istart),nhsa,qqb_tmp_c,nl_max,(1.d0,0.d0),bectmp_c,nss)
-		else if ( nhsa > 0 ) then
-		  call para_zgemm ('N','N',nl_max,nss,nl_max,(1.d0,0.d0),qq_tmp_c,nl_max,&
-				    becb%cvec(:,istart),nhsa,(0.d0,0.d0),qqb_tmp_c,nl_max, intra_image_comm)
-		  call para_zgemm ('C','N',nss,nss,nl_max,(1.d0,0.d0),beca%cvec(:,istart),nhsa, &
-				    qqb_tmp_c,nl_max,(1.d0,0.d0),bectmp_c,nss, intra_image_comm)
-		endif
-               deallocate(qq_tmp_c,qqb_tmp_c)
-            endif   
+               do j=1,nss
+                   do i=1,nss
+                     bectmp_c(i,j)=zbectmp(i,j)
+                   enddo
+               enddo
+               call mp_sum( bectmp_c(:,:), intra_image_comm)
+            endif
+            deallocate(zbectmp)
+write(6,*) "inside pc2 1"
+            if(nvb >= 0) then
+
+               nl_max=0
+               do is=1,nvb
+                  nl_max=nl_max+nh(is)*na(is)
+               enddo
+               if(lgam) then
+                   allocate (qqb_tmp(nl_max,nss))
+                   allocate (qq_tmp(nl_max,nl_max))
+                   qq_tmp(:,:)=0.d0
+                   do is=1,nvb
+                     do iv=1,nh(is)
+                         do jv=1,nh(is)
+                           do ia=1,na(is)
+                               inl=ish(is)+(iv-1)*na(is)+ia
+                               jnl=ish(is)+(jv-1)*na(is)+ia
+                               qq_tmp(inl,jnl)=qq(iv,jv,is)
+                           enddo
+                         enddo
+                     enddo
+                   enddo
+               else
+                   allocate (qqb_tmp_c(nl_max,nss))
+                   allocate (qq_tmp_c(nl_max,nl_max))
+                   qq_tmp_c(:,:)=CMPLX(0.d0,0.d0)
+                   do is=1,nvb
+                     do iv=1,nh(is)
+                         do jv=1,nh(is)
+                           do ia=1,na(is)
+                               inl=ish(is)+(iv-1)*na(is)+ia
+                               jnl=ish(is)+(jv-1)*na(is)+ia
+                               qq_tmp_c(inl,jnl)=CMPLX(qq(iv,jv,is),0.d0)
+                           enddo
+                         enddo
+                     enddo
+                   enddo
+               endif
+write(6,*) "inside pc2 2", nss, nl_max
+               !
+               if(lgam) then
+                   if( nhsa > 0 .and. .not. mat_par)  then
+                     call dgemm('N','N',nl_max,nss,nl_max,1.d0,qq_tmp,nl_max,becb%rvec(:,istart),nhsa,0.d0,qqb_tmp,nl_max)
+                     call dgemm('T','N',nss,nss,nl_max,1.d0,beca%rvec(:,istart),nhsa,qqb_tmp,nl_max,1.d0,bectmp,nss)
+                   else if ( nhsa > 0 ) then
+                     call para_dgemm ('N','N',nl_max,nss,nl_max,1.d0,qq_tmp,nl_max,&
+                                       becb%rvec(:,istart),nhsa,0.d0,qqb_tmp,nl_max, intra_image_comm)
+                     call para_dgemm ('T','N',nss,nss,nl_max,1.d0,beca%rvec(:,istart),nhsa, &
+                                       qqb_tmp,nl_max,1.d0,bectmp,nss, intra_image_comm)
+                   endif
+                  deallocate(qq_tmp,qqb_tmp)
+               else
+                   if( nhsa > 0 .and. .not. mat_par)  then
+                     call zgemm('N','N',nl_max,nss,nl_max,(1.d0,0.d0),qq_tmp_c,nl_max,becb%cvec(:,istart),nhsa,(0.d0,0.d0), qqb_tmp_c,nl_max)
+                     call zgemm('C','N',nss,nss,nl_max,(1.d0,0.d0),beca%cvec(:,istart),nhsa,qqb_tmp_c,nl_max,(1.d0,0.d0),bectmp_c,nss)
+                   else if ( nhsa > 0 ) then
+                     call para_zgemm ('N','N',nl_max,nss,nl_max,(1.d0,0.d0),qq_tmp_c,nl_max,&
+                                       becb%cvec(:,istart),nhsa,(0.d0,0.d0),qqb_tmp_c,nl_max, intra_image_comm)
+write(6,*) "inside pc2 3split"
+                     call para_zgemm ('C','N',nss,nss,nl_max,(1.d0,0.d0),beca%cvec(:,istart),nhsa, &
+                                       qqb_tmp_c,nl_max,(1.d0,0.d0),bectmp_c,nss, intra_image_comm)
+                   endif
+                  deallocate(qq_tmp_c,qqb_tmp_c)
+               endif   
+               !
+            endif
+write(6,*) "inside pc2 3"
+            allocate(zbectmp(nss,nss))
+            if(lgam) then
+               do i=1,nss
+                   do j=1,nss
+                     zbectmp(i,j)=CMPLX(bectmp(i,j),0.d0)
+                   enddo
+               enddo
+            else
+               do i=1,nss
+                   do j=1,nss
+                     zbectmp(i,j)=bectmp_c(i,j)
+                   enddo
+               enddo
+            endif
+write(6,*) "inside pc2 4"
+            call zgemm('N','N',ngw,nss,nss,(-1.d0,0.d0),a(:,istart),ngw,zbectmp,nss,(1.d0,0.d0),b(:,istart),ngw)
+            deallocate(zbectmp)
+
+            ! this computes the new bec
+            if(lgam) then
+               if ( nhsa > 0 ) then
+                   call dgemm('N','N',nhsa,nss,nss,1.0d0,beca%rvec(:,istart),nhsa,bectmp,nss,1.0d0,becb%rvec(:,istart),nhsa)
+               endif
+               deallocate(bectmp)
+            else
+               if ( nhsa > 0 ) then
+                   call zgemm('N','N',nhsa,nss,nss,(1.0d0,0.d0),beca%cvec(:,istart),nhsa,bectmp_c,nss,(1.0d0,0.d0),becb%cvec(:,istart),nhsa)
+               endif
+               deallocate(bectmp_c)
+            endif
+write(6,*) "inside pc2 5"
             !
-         endif
-
-         allocate(zbectmp(nss,nss))
-         if(lgam) then
-	    do i=1,nss
-		do j=1,nss
-		  zbectmp(i,j)=CMPLX(bectmp(i,j),0.d0)
-		enddo
-	    enddo
-         else
-	    do i=1,nss
-		do j=1,nss
-		  zbectmp(i,j)=bectmp_c(i,j)
-		enddo
-	    enddo
-         endif
-
-         call zgemm('N','N',ngw,nss,nss,(-1.d0,0.d0),a(:,istart),ngw,zbectmp,nss,(1.d0,0.d0),b(:,istart),ngw)
-         deallocate(zbectmp)
-
-         ! this computes the new bec
-         if(lgam) then
-	    if ( nhsa > 0 ) then
-		call dgemm('N','N',nhsa,nss,nss,1.0d0,beca%rvec(:,istart),nhsa,bectmp,nss,1.0d0,becb%rvec(:,istart),nhsa)
-	    endif
-	    deallocate(bectmp)
-         else
-	    if ( nhsa > 0 ) then
-		call zgemm('N','N',nhsa,nss,nss,(1.0d0,0.d0),beca%cvec(:,istart),nhsa,bectmp_c,nss,(1.0d0,0.d0),becb%cvec(:,istart),nhsa)
-	    endif
-	    deallocate(bectmp_c)
-         endif
-         !
+         ENDIF
       enddo!on spin
       CALL stop_clock( 'pc2' )
       return
@@ -1184,23 +1190,26 @@ subroutine pc2(a,beca,b,becb, lgam)
       real(DP),allocatable :: q_matrix(:,:), b_matrix(:,:),c_matrix(:,:)
       complex(DP), allocatable :: q_matrix_c(:,:), b_matrix_c(:,:),c_matrix_c(:,:)
       integer is, iv, jv, ia, inl, jnl, i, j, k,ig, js, ja
-      complex(DP) sca
+      complex(DP) :: sca
       integer info, lwork
       integer, allocatable :: ipiv(:)
       real(dp),allocatable :: work(:)
+      complex(dp),allocatable :: work_c(:)
       complex(dp), parameter :: c_zero=CMPLX(0.d0,0.d0), c_one=CMPLX(1.d0,0.d0)
       complex(dp), parameter :: c_mone=CMPLX(-1.d0,0.d0)
 
       call start_clock('set_x_minus1')
       allocate(ipiv(nhsavb))
-      allocate(work(nhsavb))
+
 
       lwork=nhsavb
 
       IF(.not.m_minus1%iscmplx) THEN
-	allocate(q_matrix(nhsavb,nhsavb),c_matrix(nhsavb,nhsavb))
+         allocate(q_matrix(nhsavb,nhsavb),c_matrix(nhsavb,nhsavb))
+         allocate(work(nhsavb))
       ELSE
-	allocate(q_matrix_c(nhsavb,nhsavb),c_matrix_c(nhsavb,nhsavb))
+	 allocate(q_matrix_c(nhsavb,nhsavb),c_matrix_c(nhsavb,nhsavb))
+	 allocate(work_c(nhsavb))
       ENDIF
 !construct q matrix
       IF(.not.m_minus1%iscmplx) THEN
@@ -1226,13 +1235,13 @@ subroutine pc2(a,beca,b,becb, lgam)
 		do ia=1,na(is)
 		      inl=ish(is)+(iv-1)*na(is)+ia
 		      jnl=ish(is)+(jv-1)*na(is)+ia
-		      q_matrix_c(inl,jnl)= qq(iv,jv,is)
+		      q_matrix_c(inl,jnl)= CMPLX(qq(iv,jv,is),0.d0)
 		enddo
 	      enddo
 	  enddo
 	enddo
       ENDIF
-
+write(6,*) "dentro a sminus0"
 !construct b matrix
 ! m_minus1 used to be b matrix
       call set_twin(m_minus1, CMPLX(0.d0,0.d0))
@@ -1245,7 +1254,7 @@ subroutine pc2(a,beca,b,becb, lgam)
                      do jv=1,nh(js)
                         inl=ish(is)+(iv-1)*na(is)+ia
                         jnl=ish(js)+(jv-1)*na(js)+ja
-                        sca=0.d0
+                        sca=CMPLX(0.d0,0.d0)
                         if (use_ema) then
 			    ! k_minus case
 			  IF(.not.m_minus1%iscmplx) THEN
@@ -1274,6 +1283,7 @@ subroutine pc2(a,beca,b,becb, lgam)
                           ENDIF
                         endif
                         call set_twin(m_minus1,inl,jnl,sca)
+!                         write(6,*) "sca", sca, ema0bg(1), use_ema, betae(3,1)
                      enddo
                   enddo
                enddo
@@ -1282,7 +1292,7 @@ subroutine pc2(a,beca,b,becb, lgam)
       enddo
 
       call twin_mp_sum( m_minus1)
-
+write(6,*) "dentro a sminus1"
 !calculate -(1+QB)**(-1) * Q
       IF(.not.m_minus1%iscmplx) THEN
 	CALL DGEMM('N','N',nhsavb,nhsavb,nhsavb,1.0d0,q_matrix,nhsavb,m_minus1%rvec,nhsavb,0.0d0,c_matrix,nhsavb)
@@ -1295,7 +1305,7 @@ subroutine pc2(a,beca,b,becb, lgam)
          c_matrix_c(i,i)=c_matrix_c(i,i)+CMPLX(1.d0,0.d0)
 	enddo
       ENDIF
-
+write(6,*) "dentro a sminus2"
       if(ionode) then
 	IF(.not.m_minus1%iscmplx) THEN
 	  call dgetrf(nhsavb,nhsavb,c_matrix,nhsavb,ipiv,info)
@@ -1305,11 +1315,11 @@ subroutine pc2(a,beca,b,becb, lgam)
         ELSE
 	  call zgetrf(nhsavb,nhsavb,c_matrix_c,nhsavb,ipiv,info)
 	  if(info .ne. 0) write(stdout,*) 'set_k_minus1 Problem with dgetrf :', info
-	  call zgetri(nhsavb,c_matrix_c,nhsavb,ipiv,work,lwork,info)
+	  call zgetri(nhsavb,c_matrix_c,nhsavb,ipiv,work_c,lwork,info)
 	  if(info .ne. 0) write(stdout,*) 'set_k_minus1 Problem with dgetri :', info
         ENDIF
       endif
-
+write(6,*) "dentro a sminus3"
       IF(.not.m_minus1%iscmplx) THEN
 	call mp_bcast( c_matrix, ionode_id, intra_image_comm )
 	CALL DGEMM('N','N',nhsavb,nhsavb,nhsavb,-1.0d0,c_matrix,nhsavb,q_matrix,nhsavb,0.0d0,m_minus1%rvec,nhsavb) 
@@ -1317,14 +1327,14 @@ subroutine pc2(a,beca,b,becb, lgam)
 	call mp_bcast( c_matrix_c, ionode_id, intra_image_comm )
 	CALL ZGEMM('N','N',nhsavb,nhsavb,nhsavb,c_mone,c_matrix_c,nhsavb,q_matrix_c,nhsavb,c_zero,m_minus1%cvec,nhsavb) !warning:giovanni put a conjugate?
       ENDIF
-
+write(6,*) "dentro a sminus4"
       IF(.not.m_minus1%iscmplx) THEN
-	deallocate(q_matrix,c_matrix)
+	deallocate(q_matrix,c_matrix, work)
       ELSE
-	deallocate(q_matrix_c,c_matrix_c)
+	deallocate(q_matrix_c,c_matrix_c, work_c)
       ENDIF
 
-      deallocate(ipiv,work)
+      deallocate(ipiv)
       call stop_clock('set_x_minus1')
       return
     end subroutine set_x_minus1_twin
@@ -1487,7 +1497,7 @@ subroutine pc2(a,beca,b,becb, lgam)
 ! local variables
       complex(dp), allocatable :: phi(:,:)
       real(dp) , allocatable   :: qtemp(:,:)
-      real(dp) , allocatable   :: qtemp_c(:,:)
+      complex(dp) , allocatable   :: qtemp_c(:,:)
       integer is, iv, jv, ia, inl, jnl, i, j, js, ja,ig
       real(dp) becktmp
       complex(dp) becktmp_c      
@@ -1540,7 +1550,7 @@ subroutine pc2(a,beca,b,becb, lgam)
 	    allocate(qtemp_c(nhsavb,n))
 	    qtemp_c(:,:) = CMPLX(0.0d0, 0.d0)
 	  ENDIF
-
+write(6,*) "inside xminus10"
 	  if(.not.mat_par) then
 	    IF(.not.m_minus1%iscmplx) THEN
 	      call dgemm( 'N', 'N', nhsavb, n, nhsavb, 1.0d0, m_minus1%rvec,nhsavb ,    &
@@ -1558,16 +1568,17 @@ subroutine pc2(a,beca,b,becb, lgam)
 			  beck%cvec, nhsa, (0.0d0,0.d0), qtemp_c,nhsavb,intra_image_comm )
 	    ENDIF
 	  endif
-
+write(6,*) "inside xminus1"
 !NB  nhsavb is the total number of US projectors
 !    it works because the first pseudos are the vanderbilt's ones
 	  IF(.not.m_minus1%iscmplx) THEN
 	    CALL DGEMM( 'N', 'N', 2*ngw, n, nhsavb, 1.0d0, betae, 2*ngw,    &
 			qtemp, nhsavb, 0.0d0, phi, 2*ngw )
 	  ELSE
-	    CALL ZGEMM( 'C', 'N', ngw, n, nhsavb, (1.0d0,0.d0), betae, ngw,    &
+	    CALL ZGEMM( 'N', 'N', ngw, n, nhsavb, (1.0d0,0.d0), betae, ngw,    &
 			qtemp_c, nhsavb, (0.0d0,0.d0), phi, ngw ) !warning:giovanni is it like this??
 	  ENDIF
+write(6,*) "inside xminus1_bis"
           if (do_k) then
             do j=1,n
                do ig=1,ngw
@@ -1581,13 +1592,14 @@ subroutine pc2(a,beca,b,becb, lgam)
                end do
             end do
           endif
+write(6,*) "inside xminus1_bisbis"
 	  deallocate(phi)
 	  IF(.not.m_minus1%iscmplx) THEN
 	    deallocate(qtemp)
 	  ELSE
 	    deallocate(qtemp_c)
 	  ENDIF
-
+write(6,*) "inside xminus1_bisbis3"
       else
          if (do_k) then
             do j=1,n

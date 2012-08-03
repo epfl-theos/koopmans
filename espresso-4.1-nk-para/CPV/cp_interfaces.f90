@@ -169,20 +169,20 @@
 ! 	  use io_global, only: stdout
 ! 	  use mp_global, only: intra_image_comm
 ! 	  use cvan
-! 	  use gvecw, only: ngw
+	  use gvecw, only: ngw
 ! 	  use constants, only: pi, fpi
 ! 	  use control_flags, only: iprint, iprsta
 ! 	  use reciprocal_vectors, only: ng0 => gstart
 ! 	  use mp, only: mp_sum, mp_bcast
 ! 	  use electrons_base, only: n => nbsp, ispin
 ! 	  use uspp_param, only: nh
-! 	  use uspp, only :nhsa=>nkb,qq,nhsavb=>nkbus
+	  use uspp, only :nkb
 ! 	  use io_global, ONLY: ionode, ionode_id
 	  use twin_types
 
 	  implicit none
 
-	  complex(DP) :: betae(:,:)
+	  complex(DP) :: betae(ngw, nkb)
 	  type(twin_matrix) :: m_minus1
 	  real(DP)    :: ema0bg(:)
 	  logical     :: use_ema
@@ -321,6 +321,17 @@
 	    REAL(DP) :: bec(:,:), becdr(:,:,:), lambda(:,:,:)
 	    REAL(DP) :: fion(:,:)
           END SUBROUTINE
+          SUBROUTINE nlfl_cmplx(bec,becdr,lambda,fion)
+            USE kinds,             ONLY: DP
+!           USE ions_base,         ONLY: na, nsp, nat
+!           USE uspp,              ONLY: nhsa=>nkb, qq
+!           USE electrons_base,    ONLY: nbspx, nbsp, nudx, nspin, iupdwn, nupdwn
+!           USE cp_main_variables, ONLY: nlam, nlax, descla, la_proc
+!
+            IMPLICIT NONE
+            COMPLEX(DP) :: bec(:,:), becdr(:,:,:), lambda(:,:,:)
+            REAL(DP) :: fion(:,:)
+          END SUBROUTINE
 	  SUBROUTINE nlfl_twin(bec,becdr,lambda,fion, lgam) !warning, why is this interface not working
 	    USE kinds,             ONLY: DP
 ! 	    USE ions_base,         ONLY: na, nsp, nat
@@ -331,7 +342,7 @@
 !
 	    IMPLICIT NONE
 
-	    TYPE(twin_matrix) :: lambda(:)!(nlam,nlam,nspin)
+	    TYPE(twin_matrix) :: lambda(nspin)!(nlam,nlam,nspin)
 	    REAL(DP) :: fion(:,:)
 	    TYPE(twin_matrix) :: bec
 	    TYPE(twin_tensor) :: becdr

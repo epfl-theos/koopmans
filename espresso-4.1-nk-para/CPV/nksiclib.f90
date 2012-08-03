@@ -435,7 +435,7 @@
         !
         if ( nspin == 2 ) then 
             !
-            if ( i2 <= nbsp ) then
+            if ( i1 <= nbsp ) then
                 call calrhovan(rhovanaux,bec,i1)
                 rhovan(:,:,1)=rhovanaux(:,:,ispin(i1))
             endif
@@ -448,7 +448,7 @@
             call rhov(irb,eigrb,rhovan,orb_rhog,orb_rhor, .true.)
         else
             !
-            if ( i2 <= nbsp ) then
+            if ( i1 <= nbsp ) then
                 call calrhovan(rhovanaux,bec,i1)
                 rhovan(:,:,1)=rhovanaux(:,:,ispin(i1))
                 !
@@ -727,7 +727,7 @@ end subroutine nksic_get_orbitalrho_real
         !
         if ( nspin == 2 ) then 
             !
-            if ( i2 <= nbsp ) then
+            if ( i1 <= nbsp ) then
                 call calrhovan(rhovanaux,bec,i1)
                 rhovan(:,:,1)=rhovanaux(:,:,ispin(i1))
             endif
@@ -740,7 +740,7 @@ end subroutine nksic_get_orbitalrho_real
             call rhov(irb,eigrb,rhovan,orb_rhog,orb_rhor, lgam)
         else
             !
-            if ( i2 <= nbsp ) then
+            if ( i1 <= nbsp ) then
                 call calrhovan(rhovanaux,bec,i1)
                 rhovan(:,:,1)=rhovanaux(:,:,ispin(i1))
                 !
