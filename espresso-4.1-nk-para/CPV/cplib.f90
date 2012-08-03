@@ -2567,7 +2567,6 @@ END FUNCTION
       !
       CALL start_clock( 'nlfl' )
       !
-      write(6,*) ubound(bec%rvec), "ubound", ubound(becdr%rvec)
       ALLOCATE( fion_tmp( 3, nat ) )
       !
       fion_tmp = 0.0d0
@@ -2588,7 +2587,6 @@ END FUNCTION
 		  DO iss = 1, nspin
 		      !
 		      nss = nupdwn( iss )
-		      write(6,*) "nss", nss, iupdwn(iss), ubound(lambda(1)%rvec)
 		      IF(nss>0) THEN
                          istart = iupdwn( iss )
                          !

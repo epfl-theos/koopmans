@@ -684,6 +684,7 @@
          call invfft('Dense',v, dfftp )
          do ir=1,nnr
             rhor(ir,iss)=rhor(ir,iss)-DBLE(v(ir))
+             !supercalifragilistichespiralidoso
          end do
       end do
 !
@@ -726,6 +727,7 @@ subroutine exch_corr_wrapper(nnr, nspin, grhor, rhor, etxc, v, h)
   real(DP) :: v2cup, v2cdw, v2cud
   integer :: neg(3)
   real(DP), parameter :: epsr = 1.0d-10, epsg = 1.0d-10
+  real(DP), parameter :: epsr2 = 1.0d-30
   logical :: debug_xc = .false.
   logical :: igcc_is_lyp
 
@@ -741,7 +743,7 @@ subroutine exch_corr_wrapper(nnr, nspin, grhor, rhor, etxc, v, h)
      do ir = 1, nnr
         rhox = rhor (ir, nspin)
         arhox = abs (rhox)
-        if (arhox.gt.1.d-30) then
+        if (arhox.gt.epsr2) then
            CALL xc( arhox, ex, ec, vx(1), vc(1) )
            v(ir,nspin) = e2 * (vx(1) + vc(1) )
            etxc = etxc + e2 * (ex + ec) * rhox
@@ -757,10 +759,16 @@ subroutine exch_corr_wrapper(nnr, nspin, grhor, rhor, etxc, v, h)
      neg (2) = 0
      neg (3) = 0
      do ir = 1, nnr
-        rhox = rhor(ir,1) + rhor(ir,2)
+        rup=rhor(ir,1)
+        rdw=rhor(ir,2)
+        !
+        IF(rup.lt.epsr2) rup=0.d0
+        IF(rdw.lt.epsr2) rdw=0.d0
+        !
+        rhox = rup+rdw
         arhox = abs(rhox)
-        if (arhox.gt.1.d-30) then
-           zeta = ( rhor(ir,1) - rhor(ir,2) ) / arhox
+        if (arhox.gt.epsr2) then
+           zeta = ( rup - rdw ) / arhox
            if (abs(zeta) .gt.1.d0) then
               neg(3) = neg(3) + 1
               zeta = sign(1.d0,zeta)
@@ -788,7 +796,7 @@ subroutine exch_corr_wrapper(nnr, nspin, grhor, rhor, etxc, v, h)
 
   ! now come the corrections
 
-  if( dft_is_gradient() ) then
+  if( dft_is_gradient() .and. .true.) then !supercalifragilistichespiralidoso
 
     if (nspin == 1) then
        !
@@ -825,17 +833,23 @@ subroutine exch_corr_wrapper(nnr, nspin, grhor, rhor, etxc, v, h)
        !
        !    spin-polarised case
        !
+!        do k=100,150
+!           write(6,*) dlog((rhor(k,1)-rhor(k,2))/(rhor(k,1)+rhor(k,2))), "rhor"
+!        enddo
        do k = 1, nnr
           do is = 1, nspin
              grho2 (is) = grhor(k, 1, is)**2 + grhor(k, 2, is)**2 + grhor(k, 3, is)**2
           enddo
           rup = rhor (k, 1)
-          rdw = rhor (k, 2)
+          rdw = rhor (k, 2) !!supercalifragilistichespiralidoso
+          !
+          IF(rup.lt.epsr) rup=0.d0
+          IF(rdw.lt.epsr) rdw=0.d0
           call gcx_spin ( rup, rdw, grho2 (1), grho2 (2), sx, v1xup, v1xdw, v2xup, v2xdw)
           !
-          rh = rhor (k, 1) + rhor (k, 2)
+          rh = rup+rdw !rhor (k, 1) + rhor (k, 2)
           !
-          if (rh.gt.epsr) then
+          if (rh.gt.epsr) then !supercalifragilistichespiralidoso
              if( igcc_is_lyp ) then
                 grhoup = grhor(k,1,1)**2 + grhor(k,2,1)**2 + grhor(k,3,1)**2
                 grhodw = grhor(k,1,2)**2 + grhor(k,2,2)**2 + grhor(k,3,2)**2
@@ -845,7 +859,7 @@ subroutine exch_corr_wrapper(nnr, nspin, grhor, rhor, etxc, v, h)
                 call gcc_spin_more(rup, rdw, grhoup, grhodw, grhoud, sc, &
                      v1cup, v1cdw, v2cup, v2cdw, v2cud)
              else
-                zeta = (rhor (k, 1) - rhor (k, 2) ) / rh
+                zeta = (rup-rdw) / rh
                 !
                 grh2 = (grhor (k, 1, 1) + grhor (k, 1, 2) ) **2 + &
                        (grhor (k, 2, 1) + grhor (k, 2, 2) ) **2 + &
@@ -864,18 +878,25 @@ subroutine exch_corr_wrapper(nnr, nspin, grhor, rhor, etxc, v, h)
              v2cdw = 0.0d0
              v2cud = 0.0d0
           endif
+!              sc = 0.d0
+!              v1cup = 0.d0
+             !v1cdw = 0.d0
+!              v2c = 0.d0
+!              v2cup = 0.0d0
+             !v2cdw = 0.0d0
+!              v2cud = 0.0d0
           !
           ! first term of the gradient correction : D(rho*Exc)/D(rho)
           !
           v (k, 1) = v (k, 1) + e2 * (v1xup + v1cup)
-          v (k, 2) = v (k, 2) + e2 * (v1xdw + v1cdw)
+          v (k, 2) = v (k, 2) + e2 * (v1xdw + v1cdw) !
           !
           ! HERE h contains D(rho*Exc)/D(|grad rho|) / |grad rho|
           !
           h (k, 1, 1) = e2 * (v2xup + v2cup)  ! Spin UP-UP
           h (k, 1, 2) = e2 *          v2cud   ! Spin UP-DW
           h (k, 2, 1) = e2 *          v2cud   ! Spin DW-UP
-          h (k, 2, 2) = e2 * (v2xdw + v2cdw)  ! Spin DW-DW
+          h (k, 2, 2) = e2 * (v2xdw + v2cdw)  ! Spin DW-DW 
           !
           etxc = etxc + e2 * (sx + sc)
           !

@@ -489,7 +489,6 @@ subroutine pc2(a,beca,b,becb, lgam)
             endif
    ! 
             allocate(zbectmp(nss,nss))
-write(6,*) "inside pc2 0"
             call zgemm('C','N',nss,nss,ngw,(1.d0,0.d0),a(:,istart),ngw,b(:,istart),ngw,(0.d0,0.d0),zbectmp,nss)
 
             if(lgam) then
@@ -509,7 +508,6 @@ write(6,*) "inside pc2 0"
                call mp_sum( bectmp_c(:,:), intra_image_comm)
             endif
             deallocate(zbectmp)
-write(6,*) "inside pc2 1"
             if(nvb >= 0) then
 
                nl_max=0
@@ -547,7 +545,6 @@ write(6,*) "inside pc2 1"
                      enddo
                    enddo
                endif
-write(6,*) "inside pc2 2", nss, nl_max
                !
                if(lgam) then
                    if( nhsa > 0 .and. .not. mat_par)  then
@@ -567,7 +564,6 @@ write(6,*) "inside pc2 2", nss, nl_max
                    else if ( nhsa > 0 ) then
                      call para_zgemm ('N','N',nl_max,nss,nl_max,(1.d0,0.d0),qq_tmp_c,nl_max,&
                                        becb%cvec(:,istart),nhsa,(0.d0,0.d0),qqb_tmp_c,nl_max, intra_image_comm)
-write(6,*) "inside pc2 3split"
                      call para_zgemm ('C','N',nss,nss,nl_max,(1.d0,0.d0),beca%cvec(:,istart),nhsa, &
                                        qqb_tmp_c,nl_max,(1.d0,0.d0),bectmp_c,nss, intra_image_comm)
                    endif
@@ -575,7 +571,6 @@ write(6,*) "inside pc2 3split"
                endif   
                !
             endif
-write(6,*) "inside pc2 3"
             allocate(zbectmp(nss,nss))
             if(lgam) then
                do i=1,nss
@@ -590,7 +585,6 @@ write(6,*) "inside pc2 3"
                    enddo
                enddo
             endif
-write(6,*) "inside pc2 4"
             call zgemm('N','N',ngw,nss,nss,(-1.d0,0.d0),a(:,istart),ngw,zbectmp,nss,(1.d0,0.d0),b(:,istart),ngw)
             deallocate(zbectmp)
 
@@ -606,7 +600,6 @@ write(6,*) "inside pc2 4"
                endif
                deallocate(bectmp_c)
             endif
-write(6,*) "inside pc2 5"
             !
          ENDIF
       enddo!on spin
@@ -1241,7 +1234,6 @@ write(6,*) "inside pc2 5"
 	  enddo
 	enddo
       ENDIF
-write(6,*) "dentro a sminus0"
 !construct b matrix
 ! m_minus1 used to be b matrix
       call set_twin(m_minus1, CMPLX(0.d0,0.d0))
@@ -1292,7 +1284,6 @@ write(6,*) "dentro a sminus0"
       enddo
 
       call twin_mp_sum( m_minus1)
-write(6,*) "dentro a sminus1"
 !calculate -(1+QB)**(-1) * Q
       IF(.not.m_minus1%iscmplx) THEN
 	CALL DGEMM('N','N',nhsavb,nhsavb,nhsavb,1.0d0,q_matrix,nhsavb,m_minus1%rvec,nhsavb,0.0d0,c_matrix,nhsavb)
@@ -1305,7 +1296,6 @@ write(6,*) "dentro a sminus1"
          c_matrix_c(i,i)=c_matrix_c(i,i)+CMPLX(1.d0,0.d0)
 	enddo
       ENDIF
-write(6,*) "dentro a sminus2"
       if(ionode) then
 	IF(.not.m_minus1%iscmplx) THEN
 	  call dgetrf(nhsavb,nhsavb,c_matrix,nhsavb,ipiv,info)
@@ -1319,7 +1309,6 @@ write(6,*) "dentro a sminus2"
 	  if(info .ne. 0) write(stdout,*) 'set_k_minus1 Problem with dgetri :', info
         ENDIF
       endif
-write(6,*) "dentro a sminus3"
       IF(.not.m_minus1%iscmplx) THEN
 	call mp_bcast( c_matrix, ionode_id, intra_image_comm )
 	CALL DGEMM('N','N',nhsavb,nhsavb,nhsavb,-1.0d0,c_matrix,nhsavb,q_matrix,nhsavb,0.0d0,m_minus1%rvec,nhsavb) 
@@ -1327,7 +1316,6 @@ write(6,*) "dentro a sminus3"
 	call mp_bcast( c_matrix_c, ionode_id, intra_image_comm )
 	CALL ZGEMM('N','N',nhsavb,nhsavb,nhsavb,c_mone,c_matrix_c,nhsavb,q_matrix_c,nhsavb,c_zero,m_minus1%cvec,nhsavb) !warning:giovanni put a conjugate?
       ENDIF
-write(6,*) "dentro a sminus4"
       IF(.not.m_minus1%iscmplx) THEN
 	deallocate(q_matrix,c_matrix, work)
       ELSE
@@ -1550,7 +1538,6 @@ write(6,*) "dentro a sminus4"
 	    allocate(qtemp_c(nhsavb,n))
 	    qtemp_c(:,:) = CMPLX(0.0d0, 0.d0)
 	  ENDIF
-write(6,*) "inside xminus10"
 	  if(.not.mat_par) then
 	    IF(.not.m_minus1%iscmplx) THEN
 	      call dgemm( 'N', 'N', nhsavb, n, nhsavb, 1.0d0, m_minus1%rvec,nhsavb ,    &
@@ -1568,7 +1555,6 @@ write(6,*) "inside xminus10"
 			  beck%cvec, nhsa, (0.0d0,0.d0), qtemp_c,nhsavb,intra_image_comm )
 	    ENDIF
 	  endif
-write(6,*) "inside xminus1"
 !NB  nhsavb is the total number of US projectors
 !    it works because the first pseudos are the vanderbilt's ones
 	  IF(.not.m_minus1%iscmplx) THEN
@@ -1578,7 +1564,6 @@ write(6,*) "inside xminus1"
 	    CALL ZGEMM( 'N', 'N', ngw, n, nhsavb, (1.0d0,0.d0), betae, ngw,    &
 			qtemp_c, nhsavb, (0.0d0,0.d0), phi, ngw ) !warning:giovanni is it like this??
 	  ENDIF
-write(6,*) "inside xminus1_bis"
           if (do_k) then
             do j=1,n
                do ig=1,ngw
@@ -1592,14 +1577,12 @@ write(6,*) "inside xminus1_bis"
                end do
             end do
           endif
-write(6,*) "inside xminus1_bisbis"
 	  deallocate(phi)
 	  IF(.not.m_minus1%iscmplx) THEN
 	    deallocate(qtemp)
 	  ELSE
 	    deallocate(qtemp_c)
 	  ENDIF
-write(6,*) "inside xminus1_bisbis3"
       else
          if (do_k) then
             do j=1,n

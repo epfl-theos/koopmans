@@ -232,14 +232,14 @@ subroutine pw_spin (rs, zeta, ec, vcup, vcdw)
   zeta2 = zeta * zeta
   zeta3 = zeta2 * zeta
   zeta4 = zeta3 * zeta
-  rs12 = sqrt (rs)
+  rs12 = dsqrt (rs)
   rs32 = rs * rs12
   rs2 = rs**2
   ! unpolarised
   om = 2.d0 * a * (b1 * rs12 + b2 * rs + b3 * rs32 + b4 * rs2)
   dom = 2.d0 * a * (0.5d0 * b1 * rs12 + b2 * rs + 1.5d0 * b3 * rs32 &
        + 2.d0 * b4 * rs2)
-  olog = log (1.d0 + 1.0d0 / om)
+  olog = dlog (1.d0 + 1.0d0 / om)
   epwc = - 2.d0 * a * (1.d0 + a1 * rs) * olog
   vpwc = - 2.d0 * a * (1.d0 + 2.d0 / 3.d0 * a1 * rs) * olog - 2.d0 / &
        3.d0 * a * (1.d0 + a1 * rs) * dom / (om * (om + 1.d0) )
@@ -247,7 +247,7 @@ subroutine pw_spin (rs, zeta, ec, vcup, vcdw)
   omp = 2.d0 * ap * (b1p * rs12 + b2p * rs + b3p * rs32 + b4p * rs2)
   domp = 2.d0 * ap * (0.5d0 * b1p * rs12 + b2p * rs + 1.5d0 * b3p * &
        rs32 + 2.d0 * b4p * rs2)
-  ologp = log (1.d0 + 1.0d0 / omp)
+  ologp = dlog (1.d0 + 1.0d0 / omp)
   epwcp = - 2.d0 * ap * (1.d0 + a1p * rs) * ologp
   vpwcp = - 2.d0 * ap * (1.d0 + 2.d0 / 3.d0 * a1p * rs) * ologp - &
        2.d0 / 3.d0 * ap * (1.d0 + a1p * rs) * domp / (omp * (omp + 1.d0) &
@@ -256,7 +256,7 @@ subroutine pw_spin (rs, zeta, ec, vcup, vcdw)
   oma = 2.d0 * aa * (b1a * rs12 + b2a * rs + b3a * rs32 + b4a * rs2)
   doma = 2.d0 * aa * (0.5d0 * b1a * rs12 + b2a * rs + 1.5d0 * b3a * &
        rs32 + 2.d0 * b4a * rs2)
-  ologa = log (1.d0 + 1.0d0 / oma)
+  ologa = dlog (1.d0 + 1.0d0 / oma)
   alpha = 2.d0 * aa * (1.d0 + a1a * rs) * ologa
   vpwca = + 2.d0 * aa * (1.d0 + 2.d0 / 3.d0 * a1a * rs) * ologa + &
        2.d0 / 3.d0 * aa * (1.d0 + a1a * rs) * doma / (oma * (oma + 1.d0) &
@@ -475,7 +475,7 @@ subroutine pbec_spin (rho, zeta, grho, iflag, sc, v1cup, v1cdw, v2c)
   rs = pi34 / rho**third
   call pw_spin (rs, zeta, ec, vcup, vcdw)
   kf = xkf / rs
-  ks = xks * sqrt (kf)
+  ks = xks * dsqrt (kf)
   fz = 0.5d0 * ( (1.d0 + zeta) ** (2.d0 / 3.d0) + (1.d0 - zeta) ** ( &
        2.d0 / 3.d0) )
   fz2 = fz * fz
@@ -483,8 +483,8 @@ subroutine pbec_spin (rho, zeta, grho, iflag, sc, v1cup, v1cdw, v2c)
   fz4 = fz3 * fz
   dfz = ( (1.d0 + zeta) ** ( - 1.d0 / 3.d0) - (1.d0 - zeta) ** ( - &
        1.d0 / 3.d0) ) / 3.d0
-  t = sqrt (grho) / (2.d0 * fz * ks * rho)
-  expe = exp ( - ec / (fz3 * ga) )
+  t = dsqrt (grho) / (2.d0 * fz * ks * rho)
+  expe = dexp ( - ec / (fz3 * ga) )
   af = be(iflag) / ga * (1.d0 / (expe-1.d0) )
   bfup = expe * (vcup - ec) / fz3
   bfdw = expe * (vcdw - ec) / fz3
@@ -492,7 +492,7 @@ subroutine pbec_spin (rho, zeta, grho, iflag, sc, v1cup, v1cdw, v2c)
   xy = (1.d0 + y) / (1.d0 + y + y * y)
   qy = y * y * (2.d0 + y) / (1.d0 + y + y * y) **2
   s1 = 1.d0 + be(iflag) / ga * t * t * xy
-  h0 = fz3 * ga * log (s1)
+  h0 = fz3 * ga * dlog (s1)
   dh0up = be(iflag) * t * t * fz3 / s1 * ( - 7.d0 / 3.d0 * xy - qy * &
        (af * bfup / be(iflag)-7.d0 / 3.d0) )
   dh0dw = be(iflag) * t * t * fz3 / s1 * ( - 7.d0 / 3.d0 * xy - qy * &
