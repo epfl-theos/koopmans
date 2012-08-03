@@ -2687,7 +2687,7 @@ END FUNCTION
 			    ic = descla( ilac_ , iss )
 			    nr = descla( nlar_ , iss )
 			    nc = descla( nlac_ , iss )
-			    CALL ZGEMM( 'C', 'N', nr, nc, nh(is), c_one, tmpdr_c, nlax, tmpbec_c, nhm, c_zero, temp_c, nlax ) !warning:giovanni:check C
+			    CALL ZGEMM( 'N', 'N', nr, nc, nh(is), c_one, tmpdr_c, nlax, tmpbec_c, nhm, c_zero, temp_c, nlax ) !warning:giovanni:check C
 			    DO j = 1, nc
 			      DO i = 1, nr
 				  fion_tmp(k,isa) = fion_tmp(k,isa) + 2D0 * DBLE(temp_c( i, j ) * lambda(iss)%cvec( i, j ))

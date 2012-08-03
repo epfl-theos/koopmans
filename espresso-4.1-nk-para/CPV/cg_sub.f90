@@ -152,7 +152,7 @@
       real(DP)    :: dtmp, temp
       real(dp)    :: tmppasso, ene_save(100), ene_save2(100), ene_lda
       !
-      logical :: lgam, switch=.true.
+      logical :: lgam, switch=.false.
       complex(DP) :: phase
       integer :: ierr
       !
@@ -1560,7 +1560,7 @@
           !if(.not.do_orbdep) then
               if(iter3 == maxiter3) then
                 write(stdout,"(2x,a)") 'missed minimun: iter3 = maxiter3'
-              else
+              else if(enever.le.ene0) then
                 c0(:,:)=cm(:,:)
               endif
           !endif
@@ -1916,12 +1916,13 @@
 	    DEALLOCATE( lambda_dist_c )
            ENDIF
 
+write(6,*) "nlsm2"
            !
            call nlsm2(ngw,nhsa,nbsp,nspin,eigr,c0(:,:),becdr, lgam)
            !
         endif
         !
-
+write(6,*) "nlfl_twin"
         call nlfl_twin(bec,becdr,lambda,fion, lgam)
         ! bforceion adds the force term due to electronic berry phase
         ! only in US-case
