@@ -726,7 +726,7 @@ subroutine exch_corr_wrapper(nnr, nspin, grhor, rhor, etxc, v, h)
   real(DP) :: grhoup, grhodw, grhoud
   real(DP) :: v2cup, v2cdw, v2cud
   integer :: neg(3)
-  real(DP), parameter :: epsr = 1.0d-12, epsg = 1.0d-12
+  real(DP), parameter :: epsr = 1.0d-10, epsg = 1.0d-10
   real(DP), parameter :: epsr2 = 1.0d-30
   logical :: debug_xc = .false.
   logical :: igcc_is_lyp
