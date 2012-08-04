@@ -102,7 +102,11 @@
         !
         call nksic_get_orbitalrho( ngw, nnrx, bec, ispin, nbsp, &
                                    c(:,j), c(:,j+1), orb_rhor, j, j+1, lgam) !warning:giovanni need modification
-
+!begin_added:giovanni
+          !compute centers and spreads of nksic or pz minimizing orbitals
+          call compute_nksic_centers(nnrx, nx, ispin, orb_rhor, j, j+1)
+          !
+!end_added:giovanni
         !
         ! compute orbital potentials
         !
@@ -3046,7 +3050,6 @@ end subroutine nksic_rot_emin
 end subroutine nksic_rot_test
 !---------------------------------------------------------------
 
-
 !-----------------------------------------------------------------------
       subroutine nksic_rot_emin_cg(nouter,ninner,etot,Omattot, lgam)
 !-----------------------------------------------------------------------
@@ -3116,12 +3119,20 @@ end subroutine nksic_rot_test
       real(dp),    allocatable :: vsic1(:,:), vsic2(:,:)
       type(twin_matrix)       :: bec1,bec2
       real(dp),    allocatable :: pink1(:), pink2(:)
+      logical :: restartcg_innerloop, ene_ok_innerloop, ltresh
+      integer :: iter3
+      integer :: maxiter3,numok
+      real(dp) :: signalpha
 
       !
       ! main body
       !
       CALL start_clock( 'nk_rot_emin' )
       !
+      !
+      maxiter3=4
+      restartcg_innerloop = .true.
+      ene_ok_innerloop = .false.
       !
       pinksumprev=1.d8
       dPI = 2.0_DP * asin(1.0_DP)
@@ -3211,7 +3222,15 @@ end subroutine nksic_rot_test
         !
         ! test convergence
         !
-        if( abs(ene0-pinksumprev) < esic_conv_thr) then
+        if( abs(ene0-pinksumprev) < esic_conv_thr ) then
+           numok=numok+1
+        else 
+           numok=0
+        endif
+        !
+        if( numok >= 3 ) ltresh=.true.
+        !
+        if( ltresh ) then
             !
 #ifdef __DEBUG
             if(ionode) then
@@ -3254,7 +3273,10 @@ end subroutine nksic_rot_test
         if( ninner /= 1 ) dtmp = vsicah2sum/vsicah2sum_prev
         !
         if( ninner <= innerloop_cg_nsd .or. &
-            mod(ninner,innerloop_cg_nreset) ==0 ) then
+            mod(ninner,innerloop_cg_nreset) ==0 .or. &
+            restartcg_innerloop ) then
+            !
+            restartcg_innerloop=.false.
             !
             hi(:,:) = gi(:,:)
         else
@@ -3398,23 +3420,51 @@ end subroutine nksic_rot_test
 #endif
 
         if(ene0 < ene1 .and. ene0 < enever) then !missed minimum case 3
+            write(6,'("# WARNING: innerloop missed minimum, case 3",/)') 
             !
+            iter3=0
+            signalpha=1.d0
+            restartcg_innerloop=.true.
+            !
+            do while(enever.ge.ene0 .and. iter3.lt.maxiter3)
+               !
+               iter3=iter3+1
+               !
+               signalpha=signalpha*(-0.717d0)
+               dalpha = spasso*passo*signalpha
+               !
+               call nksic_getOmattot( dalpha, Heigbig, Umatbig, c0, wfc_ctmp2, Omat2tot, bec2, vsic2, pink2, enever, lgam)
+               !
+            enddo
+            
+            IF(enever.lt.ene0) THEN
+               !
+               pink(:)   = pink2(:)
+               vsic(:,:) = vsic2(:,:)
+               c0(:,:)   = wfc_ctmp2(:,:)
+               call copy_twin(bec,bec2)
+   !             bec%rvec(:,:)  = bec2(:,:)
+               Omattot   = MATMUL( Omattot, Omat2tot)
+               write(6,'("# WARNING: innerloop case 3 interations",3I/)') iter3 
+               !
+            ELSE
+               !
+               write(6,'("# WARNING: innerloop not converged, exit",/)') 
+               ninner = ninner + 1
+               call stop_clock( "nk_innerloop" )
+               !
+               exit
+               !
+            ENDIF
 #ifdef __DEBUG
             if(ionode) then
                 write(1037,'("# ene0<ene1 and ene0<enever, exit",/)')
                 write(1031,'("# innerloop NOT converged, exit",/)') 
             endif
 #endif
-            !
-            write(6,'("# WARNING: innerloop missed minimum, case 3, exit",/)') 
-            ninner = ninner + 1
-            call stop_clock( "nk_innerloop" )
-            !
-            exit
-            !
-        endif
 
-        if( ene1 >= enever ) then !found minimum
+            !
+        else if( ene1 >= enever ) then !found minimum
             !
             pink(:)   = pink2(:)
             vsic(:,:) = vsic2(:,:)
@@ -3430,6 +3480,7 @@ end subroutine nksic_rot_test
             c0(:,:)   = wfc_ctmp(:,:)
             call copy_twin(bec,bec1)
             Omattot   = MATMUL( Omattot, Omat1tot)
+            restartcg_innerloop = .true.
             !
 #ifdef __DEBUG
             if(ionode) then
@@ -3467,11 +3518,11 @@ end subroutine nksic_rot_test
               wfc_ctmp(:,:) = CMPLX(0.d0,0.d0)
               !
               do nbnd1=1,nbspx
-              do nbnd2=1,nbspx
-                  wfc_ctmp(:,nbnd1)=wfc_ctmp(:,nbnd1) + cm(:,nbnd2) * Omattot(nbnd2,nbnd1) !warning:giovanni CONJUGATE?
+                 do nbnd2=1,nbspx
+                    wfc_ctmp(:,nbnd1)=wfc_ctmp(:,nbnd1) + cm(:,nbnd2) * Omattot(nbnd2,nbnd1) !warning:giovanni CONJUGATE?
                   ! XXX (we can think to use a blas, here, and split over spins)
                   !does not seem we need to make it conjugate
-              enddo
+                 enddo
               enddo
               !
               cm(:,1:nbspx) = wfc_ctmp(:,1:nbspx)
@@ -5059,3 +5110,62 @@ end subroutine nksic_getOmat1
 !---------------------------------------------------------------
 end subroutine nksic_dmxc_spin_cp_update
 !---------------------------------------------------------------
+
+SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
+   
+   USE kinds,              ONLY: DP   
+   USE electrons_module,   ONLY: wfc_centers, wfc_spreads, &
+                                 icompute_spread
+   USE electrons_base,     ONLY: nbsp, nspin, iupdwn, nupdwn
+
+   !INPUT VARIABLES
+   !
+   INTEGER, INTENT(IN)      :: ispin(nx),nx,j,k
+   !ispin is 1 or 2 for each band (listed as in c0), 
+   !nx is nudx, j and k the two bands involved in the
+   !spread calculation
+   REAL(DP), INTENT(in)  :: orb_rhor(nnrx,2)
+   !orbital densities of two orbitals
+   !
+   !INTERNAL VARIABLES
+   !
+   INTEGER :: myspin1, myspin2, mybnd1, mybnd2
+   REAL(DP):: r0(3)
+   REAL(DP), external :: ddot
+   
+   !write(6,*) nbsp, "computing perfinta spread",j,k !debug:giovanni
+   !
+   IF(icompute_spread) THEN
+      !
+      !
+      myspin1=ispin(j)
+      !
+      mybnd1=j-iupdwn(myspin1)+1
+      
+      write(6,*) "computing davvero spread",mybnd1,myspin1
+      !
+      r0=0.d0
+      !
+      call compute_dipole( nnrx, 1, orb_rhor(1,1), r0, wfc_centers(1:4, mybnd1, myspin1), wfc_spreads(mybnd1, myspin1))
+      wfc_spreads(mybnd1,myspin1) = wfc_spreads(mybnd1,myspin1) - ddot(3, wfc_centers(2:4,mybnd1,myspin1), 1, wfc_centers(2:4,mybnd1,myspin1), 1)
+      !
+      IF(k.le.nbsp) THEN
+         
+         myspin2=ispin(k)
+         mybnd2=k-iupdwn(myspin2)+1
+
+         write(6,*) "computing davvero spread",mybnd2,myspin2
+
+         call compute_dipole( nnrx, 1, orb_rhor(1,2), r0, wfc_centers(1:4, mybnd2, myspin2), wfc_spreads(mybnd2, myspin2))
+         wfc_spreads(mybnd2,myspin2) = wfc_spreads(mybnd2,myspin2) - ddot(3, wfc_centers(2:4,mybnd2,myspin2), 1, wfc_centers(2:4,mybnd2,myspin2), 1)
+      ENDIF
+      !
+      IF(k.ge.nbsp) THEN
+         icompute_spread=.false.
+      ENDIF
+      !
+   ENDIF
+
+   RETURN
+ 
+END SUBROUTINE compute_nksic_centers
