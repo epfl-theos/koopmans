@@ -428,6 +428,7 @@
       use reciprocal_vectors, only : gstart
       use mp,                 only : mp_sum
       use mp_global,          only : intra_image_comm
+      use control_flags,      only : gamma_only, do_wf_cmplx!added:giovanni
       !
       implicit none
       !
@@ -438,7 +439,16 @@
       complex(dp), allocatable :: aux(:)
       integer      :: ig
       complex(dp)  :: zh
-      real(dp), parameter :: wz=2.0_dp
+      real(dp) :: wz
+      logical      :: lgam
+      !
+      lgam = gamma_only.and..not.do_wf_cmplx
+      !
+      IF(lgam) THEN
+         wz=2.d0
+      ELSE
+         wz=1.d0
+      ENDIF
       !
       allocate(aux(ngm))
       !
