@@ -102,13 +102,7 @@
         !
         call nksic_get_orbitalrho( ngw, nnrx, bec, ispin, nbsp, &
                                    c(:,j), c(:,j+1), orb_rhor, j, j+1, lgam) !warning:giovanni need modification
-        
-!begin_added:giovanni
-          !compute centers and spreads of nksic or pz minimizing orbitals
-          call compute_nksic_centers(nnrx, nx, ispin, orb_rhor, j, j+1)
 
-          !
-!end_added:giovanni
         !
         ! compute orbital potentials
         !
@@ -404,7 +398,7 @@
               !
           enddo
           !
-          psi (:) = CMPLX(0.d0, 0.d0)
+          psi (:) = (0.d0, 0.d0)
           do ig=1,ngs
               !
               psi(nm(ig)) = CONJG( orb_rhog(ig,1) ) &
@@ -809,7 +803,7 @@ end subroutine nksic_get_orbitalrho_twin
       real(dp),      intent(in)  :: orb_rhor(nnrx)
       real(dp),      intent(out) :: rhoref_(nnrx,2)
       real(dp),      intent(out) :: rhobar_(nnrx,2)
-      complex(dp),   intent(out) :: rhobarg(ngm,2)
+      complex(dp)                :: rhobarg(ngm,2)
       real(dp),      intent(out) :: grhobar_(nnrx,3,2)
       !
       integer      :: ig
@@ -1053,22 +1047,22 @@ end subroutine nksic_newd
       call fwfft('Dense',vhaux,dfftp )
       !
       do ig=1,ngm
-          rhogaux(ig,ispin) = vhaux( np(ig) )
+          rhogaux(ig,1) = vhaux( np(ig) )
       enddo
 
       !    
       ! compute hartree-like potential
       !
-      if( gstart == 2 ) vtmp(1)=CMPLX(0.d0,0.d0)
+      if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
       do ig=gstart,ngm
-          vtmp(ig) = rhogaux(ig,ispin) * fpi/( tpiba2*g(ig) )
+          vtmp(ig) = rhogaux(ig,1) * fpi/( tpiba2*g(ig) )
       enddo
       !
       ! compute periodic corrections
       !
       if( do_comp ) then
           !
-          call calc_tcc_potential( vcorr, rhogaux(:,ispin) ) !warning:giovanni it seems tcc1d is not implemented here, it assumes tcc only! hydrogen chains are doubly wrong then
+          call calc_tcc_potential( vcorr, rhogaux(:,1) ) !warning:giovanni it seems tcc1d is not implemented here, it assumes tcc only! hydrogen chains are doubly wrong then
           vtmp(:) = vtmp(:) + vcorr(:)
           !
       endif
@@ -1104,8 +1098,8 @@ end subroutine nksic_newd
       !
       !ehele=0.5_dp * sum(dble(vhaux(1:nnrx))*rhoele(1:nnrx,ispin))
       !
-      ehele = icoeff * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm,ispin)))
-      if ( gstart == 2 ) ehele = ehele + (1.d0-icoeff)*DBLE ( CONJG( vtmp(1) ) * rhogaux(1,ispin) )
+      ehele = icoeff * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm,1)))
+      if ( gstart == 2 ) ehele = ehele + (1.d0-icoeff)*DBLE ( CONJG( vtmp(1) ) * rhogaux(1,1) )
       !
       ! the f * (2.0d0 * fref-f) term is added here
       ehele = 0.5_dp * f * (2.0_dp * fref-f) * ehele * omega / fact
@@ -1130,11 +1124,11 @@ end subroutine nksic_newd
       if ( dft_is_gradient() ) then
            !
            allocate(grhoraux(nnrx,3,2))
-           allocate(orb_grhor(nnrx,3,2))
+           allocate(orb_grhor(nnrx,3,1))
            allocate(haux(nnrx,2,2))
            !
            ! compute the gradient of n_i(r)
-           call fillgrad( 2, rhogaux, orb_grhor, lgam )
+           call fillgrad( 1, rhogaux, orb_grhor(:,:,1:1), lgam )
            !
       else
            allocate(grhoraux(1,1,1))
@@ -1143,6 +1137,7 @@ end subroutine nksic_newd
            !
       endif
       !
+      deallocate(rhogaux)
       !   
       allocate(vxc0(nnrx,2))
       allocate(vxcref(nnrx,2))
@@ -1157,7 +1152,7 @@ end subroutine nksic_newd
           !
           grhoraux(:,:,1:2)   = grhobar(:,:,1:2)
           grhoraux(:,:,ispin) = grhobar(:,:,ispin) &
-                              + fref * orb_grhor(:,:,ispin)
+                              + fref * orb_grhor(:,:,1)
       endif    
       !
       !call exch_corr_wrapper(nnrx,2,grhoraux,rhoref,etxcref,vxcref,haux)
@@ -1199,7 +1194,7 @@ end subroutine nksic_newd
               !
               grhoraux(:,:,1:2)   = grhobar(:,:,1:2)
               grhoraux(:,:,ispin) = grhobar(:,:,ispin) &
-                                  + f * orb_grhor(:,:,ispin)
+                                  + f * orb_grhor(:,:,1)
           endif
           !
           !call exch_corr_wrapper(nnrx,2,grhoraux,rhoraux,etxc,vxc,haux)
@@ -1322,7 +1317,6 @@ end subroutine nksic_newd
       deallocate(vxcref)
       deallocate(rhoele)
       !
-      deallocate(rhogaux)
       deallocate(grhoraux)
       deallocate(haux)
       !
@@ -1384,7 +1378,6 @@ end subroutine nksic_newd
       !==================
       !
       lgam=gamma_only.and..not.do_wf_cmplx
-      
       vsic=0.0_dp
       pink=0.0_dp
       !
@@ -1424,7 +1417,7 @@ end subroutine nksic_newd
       !    
       ! compute hartree-like potential
       !
-      if( gstart == 2 ) vtmp(1)=CMPLX(0.d0,0.d0)
+      if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
       do ig=gstart,ngm
           vtmp(ig) = rhogaux(ig,ispin) * fpi/( tpiba2*g(ig) )
       enddo
@@ -1479,7 +1472,7 @@ end subroutine nksic_newd
           ! note: rhogaux contains the occupation
           !
           grhoraux=0.0_dp
-          call fillgrad( 2, rhogaux, grhoraux, lgam ) 
+          call fillgrad( 2, rhogaux, grhoraux(:,:,:), lgam ) 
       else
           allocate(grhoraux(1,1,1))
           allocate(haux(1,1,1))
@@ -1521,7 +1514,7 @@ end subroutine nksic_newd
 
 !$$ This is for screened pz functional; apparently, I should have used a different variable name.
       !
-      !   rescale contribuitions with the nkscalfact parameter
+      !   rescale contributions with the nkscalfact parameter
       !   take care of non-variational formulations
       !
       pink = pink * nkscalfact
@@ -1633,7 +1626,7 @@ end subroutine nksic_correction_pz
       !    
       ! compute hartree-like potential
       !
-      if( gstart == 2 ) vtmp(1)=CMPLX(0.d0,0.d0)
+      if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
       do ig=gstart,ngm
         vtmp(ig)=rhogaux(ig,1)*fpi/(tpiba2*g(ig))
       enddo
@@ -1882,7 +1875,7 @@ end subroutine nksic_correction_pz
       !    
       ! compute hartree-like potential
       !
-      if( gstart == 2 ) vtmp(1)=CMPLX(0.d0,0.d0)
+      if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
       do ig=gstart,ngm
           vtmp(ig) = rhogaux(ig,1) * fpi/( tpiba2*g(ig) )
       enddo
@@ -2715,7 +2708,7 @@ end subroutine nksic_dmxc_spin_cp
       call allocate_twin(bec1,nkb,nbsp,lgam)
 !       allocate( bec1(nkb,nbsp) )
       !
-      Umatbig(:,:)=CMPLX(0.d0,0.d0)
+      Umatbig(:,:)=(0.d0,0.d0)
       Heigbig(:)=0.d0
       deigrms = 0.d0
 
@@ -2776,7 +2769,7 @@ end subroutine nksic_dmxc_spin_cp
         ! This part calculates the anti-hermitian part of the hamiltonian
         ! vsicah and see whether a convergence has been achieved
         !
-        wfc_ctmp(:,:) = CMPLX(0.d0,0.d0)
+        wfc_ctmp(:,:) = (0.d0,0.d0)
         deigrms = 0.d0
 
         spin_loop: &
@@ -2907,7 +2900,7 @@ end subroutine nksic_dmxc_spin_cp
           !
           if( ninner >= 2 ) then
               !
-              wfc_ctmp(:,:) = CMPLX(0.d0,0.d0)
+              wfc_ctmp(:,:) = (0.d0,0.d0)
               !
               do nbnd1=1,nbspx
               do nbnd2=1,nbspx
@@ -2995,7 +2988,7 @@ end subroutine nksic_rot_emin
       CALL start_clock( 'nk_rot_test' )
 
 
-      Umatbig(:,:) = CMPLX(0.d0,0.d0)
+      Umatbig(:,:) = (0.d0,0.d0)
       Heigbig(:)   = 0.d0
       deigrms      = 0.d0
 
@@ -3404,7 +3397,7 @@ end subroutine nksic_rot_test
         endif
 #endif
 
-        if(ene0 < ene1 .and. ene0 < enever) then
+        if(ene0 < ene1 .and. ene0 < enever) then !missed minimum case 3
             !
 #ifdef __DEBUG
             if(ionode) then
@@ -3413,6 +3406,7 @@ end subroutine nksic_rot_test
             endif
 #endif
             !
+            write(6,'("# WARNING: innerloop missed minimum, case 3, exit",/)') 
             ninner = ninner + 1
             call stop_clock( "nk_innerloop" )
             !
@@ -3420,7 +3414,7 @@ end subroutine nksic_rot_test
             !
         endif
 
-        if( ene1 >= enever ) then
+        if( ene1 >= enever ) then !found minimum
             !
             pink(:)   = pink2(:)
             vsic(:,:) = vsic2(:,:)
@@ -3429,7 +3423,7 @@ end subroutine nksic_rot_test
 !             bec%rvec(:,:)  = bec2(:,:)
             Omattot   = MATMUL( Omattot, Omat2tot)
             !
-        else
+        else !missed minimum, case 1 or 2
             !
             pink(:)   = pink1(:)
             vsic(:,:) = vsic1(:,:)
@@ -3443,6 +3437,7 @@ end subroutine nksic_rot_test
                 write(1037,*)
             endif
 #endif
+            write(6,'("# WARNING: innerloop missed minimum case 1 or 2",/)') 
             !
 ! =======
 !           pink(:) = pink1(:)
@@ -3605,7 +3600,7 @@ end subroutine nksic_rot_emin_cg
       call init_twin(bec2,lgam)
       call allocate_twin(bec2,nkb,nbsp,lgam)
       !
-      Umatbig(:,:)=CMPLX(0.d0,0.d0)
+      Umatbig(:,:)=(0.d0,0.d0)
       Heigbig(:)=0.d0
       deigrms = 0.d0
       hi(:,:) = 0.d0
@@ -3924,7 +3919,7 @@ end subroutine nksic_rot_emin_cg
           !
           if( ninner >= 2 ) then
               !
-              wfc_ctmp(:,:) = CMPLX(0.d0,0.d0)
+              wfc_ctmp(:,:) = (0.d0,0.d0)
               !
               do nbnd1=1,nbspx
               do nbnd2=1,nbspx
@@ -4166,9 +4161,7 @@ end subroutine nksic_rotwfn
       Hmat(:,:) = ci * vsicah(:,:)
 !$$ diagonalize Hmat
 !      if(ionode) then
-      IF(nupdwn(isp)>0) THEN
-         CALL zdiag(nupdwn(isp),nupdwn(isp),Hmat(1,1),Heig(1),Umat(1,1),1)
-      ENDIF
+      CALL zdiag(nupdwn(isp),nupdwn(isp),Hmat(1,1),Heig(1),Umat(1,1),1)
 !      endif
 
 !      CALL mp_bcast(Umat, ionode_id, intra_image_comm)
@@ -4220,7 +4213,7 @@ end subroutine nksic_getHeigU
       overlap(:,:) = 0.d0
 
       do nbnd1=1,nbspx
-        CALL c2psi( psi1, nnrx, c0(:,nbnd1), CMPLX(0.d0,0.d0), ngw, 1)
+        CALL c2psi( psi1, nnrx, c0(:,nbnd1), (0.d0,0.d0), ngw, 1)
         CALL invfft('Dense', psi1, dfftp )
 
         do nbnd2=1,nbspx
@@ -4228,7 +4221,7 @@ end subroutine nksic_getHeigU
             vsicahtmp = -vsicah(nbnd2,nbnd1)
             overlaptmp = overlap(nbnd2,nbnd1)
           else
-            CALL c2psi( psi2, nnrx, c0(:,nbnd2), CMPLX(0.d0,0.d0), ngw, 1)
+            CALL c2psi( psi2, nnrx, c0(:,nbnd2), (0.d0,0.d0), ngw, 1)
             CALL invfft('Dense', psi2, dfftp )
 
             vsicahtmp = 0.d0
@@ -4323,14 +4316,14 @@ end subroutine nksic_printoverlap
           !
           j1 = iupdwn(isp)-1 + nbnd1
           !
-          CALL c2psi( psi1, nnrx, c0(:,j1), CMPLX(0.d0,0.d0), ngw, 1)
+          CALL c2psi( psi1, nnrx, c0(:,j1), (0.d0,0.d0), ngw, 1)
           CALL invfft('Dense', psi1, dfftp )
 
           do nbnd2 = 1, nbnd1-1
               !
               j2 = iupdwn(isp)-1 + nbnd2
               !
-              CALL c2psi( psi2, nnrx, c0(:,j2), CMPLX(0.0d0,0.0d0), ngw, 1 )
+              CALL c2psi( psi2, nnrx, c0(:,j2), (0.0d0,0.0d0), ngw, 1 )
               CALL invfft('Dense', psi2, dfftp )
               !
               vsicahtmp = 0.d0
@@ -5066,64 +5059,3 @@ end subroutine nksic_getOmat1
 !---------------------------------------------------------------
 end subroutine nksic_dmxc_spin_cp_update
 !---------------------------------------------------------------
-
-          !  call compute_nksic_centers(nnrx, ispin, nbsp, orb_rhor, j, j+1)
-SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
-   
-   USE kinds,              ONLY: DP   
-   USE electrons_module,   ONLY: wfc_centers, wfc_spreads, &
-                                 icompute_spread
-   USE electrons_base,     ONLY: nbsp, nspin, iupdwn, nupdwn
-
-   !INPUT VARIABLES
-   !
-   INTEGER, INTENT(IN)      :: ispin(nx),nx,j,k
-   !ispin is 1 or 2 for each band (listed as in c0), 
-   !nx is nudx, j and k the two bands involved in the
-   !spread calculation
-   REAL(DP), INTENT(in)  :: orb_rhor(nnrx,2)
-   !orbital densities of two orbitals
-   !
-   !INTERNAL VARIABLES
-   !
-   INTEGER :: myspin1, myspin2, mybnd1, mybnd2
-   REAL(DP):: r0(3)
-   REAL(DP), external :: ddot
-   
-   !write(6,*) nbsp, "computing perfinta spread",j,k !debug:giovanni
-   !
-   IF(icompute_spread) THEN
-      !
-      !
-      myspin1=ispin(j)
-      !
-      mybnd1=j-iupdwn(myspin1)+1
-      
-      write(6,*) "computing davvero spread",mybnd1,myspin1
-      !
-      r0=0.d0
-      !
-      call compute_dipole( nnrx, 1, orb_rhor(1,1), r0, wfc_centers(1:4, mybnd1, myspin1), wfc_spreads(mybnd1, myspin1))
-      wfc_spreads(mybnd1,myspin1) = wfc_spreads(mybnd1,myspin1) - ddot(3, wfc_centers(2:4,mybnd1,myspin1), 1, wfc_centers(2:4,mybnd1,myspin1), 1)
-      !
-      IF(k.le.nbsp) THEN
-         
-         myspin2=ispin(k)
-         mybnd2=k-iupdwn(myspin2)+1
-
-         write(6,*) "computing davvero spread",mybnd2,myspin2
-
-         call compute_dipole( nnrx, 1, orb_rhor(1,2), r0, wfc_centers(1:4, mybnd2, myspin2), wfc_spreads(mybnd2, myspin2))
-         wfc_spreads(mybnd2,myspin2) = wfc_spreads(mybnd2,myspin2) - ddot(3, wfc_centers(2:4,mybnd2,myspin2), 1, wfc_centers(2:4,mybnd2,myspin2), 1)
-      ENDIF
-      !
-      IF(k.ge.nbsp) THEN
-         icompute_spread=.false.
-      ENDIF
-      !
-   ENDIF
-
-   RETURN
- 
-END SUBROUTINE compute_nksic_centers
-
