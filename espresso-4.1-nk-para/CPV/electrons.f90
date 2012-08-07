@@ -43,7 +43,7 @@
         REAL(DP), ALLOCATABLE :: ei(:,:)
         REAL(DP), ALLOCATABLE :: ei_emp(:,:)
         REAL(DP), ALLOCATABLE :: wfc_centers(:,:,:) !added:giovanni wfc_centers
-        REAL(DP), ALLOCATABLE :: wfc_spreads(:,:) !added:giovanni wfc_spreads
+        REAL(DP), ALLOCATABLE :: wfc_spreads(:,:,:) !added:giovanni wfc_spreads
 
         LOGICAL :: icompute_spread=.false. !added:giovanni 
 
@@ -196,7 +196,7 @@
      wfc_centers = 0.0_DP
 
      IF( ALLOCATED( wfc_spreads ) ) DEALLOCATE( wfc_spreads )
-     ALLOCATE( wfc_spreads( nudx, nspin ), STAT=ierr)
+     ALLOCATE( wfc_spreads( nudx, nspin, 2 ), STAT=ierr)
      IF( ierr/=0 ) CALL errore( ' electrons ',' allocating wfc_spreads ',ierr)
      wfc_spreads = 0.0_DP
 !end_added:giovanni
@@ -343,7 +343,7 @@
          IF( tstdout ) THEN
             
             WRITE( stdout,1222) ik, j
-            WRITE( stdout,1444) ( wfc_centers(1:4, i, j ),  wfc_spreads( i, j ) , i = 1, nupdwn(j) )
+            WRITE( stdout,1444) ( wfc_centers(1:4, i, j ),  wfc_spreads( i, j , 1), wfc_spreads( i, j, 2), i = 1, nupdwn(j) )
 
             !
             IF( n_emp .GT. 0 ) THEN
@@ -360,7 +360,7 @@
  1022 FORMAT(/,3X,'Centers (Bohr), kp = ',I3, ' , spin = ',I2,/)
  1222 FORMAT(/,3X,'Charge  ---   Centers xyz (Bohr)  ---  Spreads (Bohr^2), kp = ',I3, ' , spin = ',I2,/)
  1005 FORMAT(/,3X,'Empty States Eigenvalues (eV), kp = ',I3, ' , spin = ',I2,/)
- 1444 FORMAT(F8.2,'   ---',3F8.2,'   ---',F8.2)
+ 1444 FORMAT(F8.2,'   ---',3F8.2,'   ---',2F8.2)
  1084 FORMAT(10F8.4)
       !
       RETURN

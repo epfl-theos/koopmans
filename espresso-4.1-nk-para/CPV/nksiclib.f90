@@ -1355,6 +1355,9 @@ end subroutine nksic_newd
       use mp,                   only : mp_sum
       use mp_global,            only : intra_image_comm
       use control_flags,        only : gamma_only, do_wf_cmplx
+      use electrons_module,     only: wfc_centers, wfc_spreads, &
+                                 icompute_spread
+
       !
       implicit none
       integer,     intent(in)  :: ispin, ibnd
@@ -1458,6 +1461,12 @@ end subroutine nksic_newd
       vsic(1:nnrx) =  -DBLE( vhaux(1:nnrx) )
       ehele        =   0.5_dp * sum( DBLE( vhaux(1:nnrx) ) &
                               * rhoelef(1:nnrx,ispin) )
+      !
+      ! set ehele as measure of spread
+      !
+      !IF(icompute_spread) THEN
+         wfc_spreads(ibnd,ispin,2)=abs(ehele)*100.d0
+      !ENDIF
       !
       ! partial cleanup
       !
@@ -3123,6 +3132,7 @@ end subroutine nksic_rot_test
       integer :: iter3
       integer :: maxiter3,numok
       real(dp) :: signalpha
+      character(len=4) :: marker
 
       !
       ! main body
@@ -3130,9 +3140,11 @@ end subroutine nksic_rot_test
       CALL start_clock( 'nk_rot_emin' )
       !
       !
+      marker="   "
       maxiter3=4
       restartcg_innerloop = .true.
       ene_ok_innerloop = .false.
+      ltresh=.false.
       !
       pinksumprev=1.d8
       dPI = 2.0_DP * asin(1.0_DP)
@@ -3286,24 +3298,30 @@ end subroutine nksic_rot_test
         spin_loop: &
         do isp=1,nspin
             !
-            allocate( vsicah(nupdwn(isp),nupdwn(isp)) )
-            allocate( Umat(nupdwn(isp),nupdwn(isp)) )
-            allocate( Heig(nupdwn(isp)) )
+            IF(nupdwn(isp).gt.0) THEN
+               allocate( vsicah(nupdwn(isp),nupdwn(isp)) )
+               allocate( Umat(nupdwn(isp),nupdwn(isp)) )
+               allocate( Heig(nupdwn(isp)) )
 
-            vsicah(:,:) = hi( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp), &
+               vsicah(:,:) = hi( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp), &
                               iupdwn(isp):iupdwn(isp)-1+nupdwn(isp) )
 
-            call nksic_getHeigU(isp,vsicah,Heig,Umat)
-            !
-            deigrms = deigrms + sum(Heig(:)**2)
-            !
-            Umatbig( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp), &
-                     iupdwn(isp):iupdwn(isp)-1+nupdwn(isp) ) = Umat(:,:)
-            Heigbig( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp) ) = Heig(:)
-            !
-            deallocate(vsicah)
-            deallocate(Umat)
-            deallocate(Heig)
+               call nksic_getHeigU(isp,vsicah,Heig,Umat)
+               !
+               deigrms = deigrms + sum(Heig(:)**2)
+               !
+               Umatbig( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp), &
+                        iupdwn(isp):iupdwn(isp)-1+nupdwn(isp) ) = Umat(:,:)
+               Heigbig( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp) ) = Heig(:)
+               !
+               deallocate(vsicah)
+               deallocate(Umat)
+               deallocate(Heig)
+            ELSE
+               Umatbig( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp), &
+                        iupdwn(isp):iupdwn(isp)-1+nupdwn(isp) ) = 1.d0
+               Heigbig( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp) ) = 0.d0
+            ENDIF
             !
         enddo spin_loop
 
@@ -3312,7 +3330,7 @@ end subroutine nksic_rot_test
 #ifdef __DEBUG
         if(ionode) write(1031,'(2I10,3F24.13)') ninner, nouter,etot,ene0,deigrms
 #endif
-        if(ionode) write(stdout,'(10x,2i5,3F21.13)') ninner, nouter, etot, ene0, deigrms
+        if(ionode) write(stdout,'(10x,A3,2i5,3F21.13)') marker, ninner, nouter, etot, ene0, deigrms
         !
         !
         dmaxeig = max( dabs(Heigbig(iupdwn(1))), dabs(Heigbig(iupdwn(1)+nupdwn(1)-1)) )
@@ -3420,7 +3438,7 @@ end subroutine nksic_rot_test
 #endif
 
         if(ene0 < ene1 .and. ene0 < enever) then !missed minimum case 3
-            write(6,'("# WARNING: innerloop missed minimum, case 3",/)') 
+            !write(6,'("# WARNING: innerloop missed minimum, case 3",/)') 
             !
             iter3=0
             signalpha=1.d0
@@ -3445,7 +3463,9 @@ end subroutine nksic_rot_test
                call copy_twin(bec,bec2)
    !             bec%rvec(:,:)  = bec2(:,:)
                Omattot   = MATMUL( Omattot, Omat2tot)
-               write(6,'("# WARNING: innerloop case 3 interations",3I/)') iter3 
+               !write(6,'("# WARNING: innerloop case 3 interations",3I/)') iter3 
+               write(marker,'(i1)') iter3
+               marker = '*'//marker//'*'
                !
             ELSE
                !
@@ -3472,6 +3492,7 @@ end subroutine nksic_rot_test
             call copy_twin(bec,bec2)
 !             bec%rvec(:,:)  = bec2(:,:)
             Omattot   = MATMUL( Omattot, Omat2tot)
+            marker="   "
             !
         else !missed minimum, case 1 or 2
             !
@@ -3481,6 +3502,11 @@ end subroutine nksic_rot_test
             call copy_twin(bec,bec1)
             Omattot   = MATMUL( Omattot, Omat1tot)
             restartcg_innerloop = .true.
+            IF(enever<ene0) THEN
+               marker="*  "
+            ELSE
+               marker="** "
+            ENDIF
             !
 #ifdef __DEBUG
             if(ionode) then
@@ -3488,7 +3514,7 @@ end subroutine nksic_rot_test
                 write(1037,*)
             endif
 #endif
-            write(6,'("# WARNING: innerloop missed minimum case 1 or 2",/)') 
+            !write(6,'("# WARNING: innerloop missed minimum case 1 or 2",/)') 
             !
 ! =======
 !           pink(:) = pink1(:)
@@ -4077,26 +4103,32 @@ end subroutine nksic_rot_emin_cg_descla
 
       spin_loop: &
       do isp=1,nspin
+        !
+        IF(nupdwn(isp).gt.0) THEN
+           !
+           allocate(Umat(nupdwn(isp),nupdwn(isp)))
+           allocate(Heig(nupdwn(isp)))
+           allocate(Omat1(nupdwn(isp),nupdwn(isp)))
 
-        allocate(Umat(nupdwn(isp),nupdwn(isp)))
-        allocate(Heig(nupdwn(isp)))
-        allocate(Omat1(nupdwn(isp),nupdwn(isp)))
+           Umat(:,:) = Umatbig(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp),iupdwn(isp):iupdwn(isp)-1+nupdwn(isp))
+           Heig(:) = Heigbig(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp))
 
-        Umat(:,:) = Umatbig(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp),iupdwn(isp):iupdwn(isp)-1+nupdwn(isp))
-        Heig(:) = Heigbig(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp))
-
-        call nksic_getOmat1(isp,Heig,Umat,dalpha,Omat1, lgam)
+           call nksic_getOmat1(isp,Heig,Umat,dalpha,Omat1, lgam)
 
 !$$ Wavefunction wfc0 is rotated into wfc0 using Omat1
-        call nksic_rotwfn(isp,Omat1,wfc0,wfc1)
+           call nksic_rotwfn(isp,Omat1,wfc0,wfc1)
 
 ! Assigning the rotation matrix for a specific spin isp
-        Omat1tot(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp),iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Omat1(:,:)
+           Omat1tot(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp),iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Omat1(:,:)
 
-        deallocate(Umat)
-        deallocate(Heig)
-        deallocate(Omat1)
-
+           deallocate(Umat)
+           deallocate(Heig)
+           deallocate(Omat1)
+           !
+        ELSE
+           Omat1tot(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp),iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = 1.d0
+        ENDIF
+        !
       enddo spin_loop
 
       !
@@ -5146,8 +5178,8 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
       !
       r0=0.d0
       !
-      call compute_dipole( nnrx, 1, orb_rhor(1,1), r0, wfc_centers(1:4, mybnd1, myspin1), wfc_spreads(mybnd1, myspin1))
-      wfc_spreads(mybnd1,myspin1) = wfc_spreads(mybnd1,myspin1) - ddot(3, wfc_centers(2:4,mybnd1,myspin1), 1, wfc_centers(2:4,mybnd1,myspin1), 1)
+      call compute_dipole( nnrx, 1, orb_rhor(1,1), r0, wfc_centers(1:4, mybnd1, myspin1), wfc_spreads(mybnd1, myspin1, 1))
+      wfc_spreads(mybnd1,myspin1,1) = wfc_spreads(mybnd1,myspin1,1) - ddot(3, wfc_centers(2:4,mybnd1,myspin1), 1, wfc_centers(2:4,mybnd1,myspin1), 1)
       !
       IF(k.le.nbsp) THEN
          
@@ -5156,8 +5188,8 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
 
          write(6,*) "computing davvero spread",mybnd2,myspin2
 
-         call compute_dipole( nnrx, 1, orb_rhor(1,2), r0, wfc_centers(1:4, mybnd2, myspin2), wfc_spreads(mybnd2, myspin2))
-         wfc_spreads(mybnd2,myspin2) = wfc_spreads(mybnd2,myspin2) - ddot(3, wfc_centers(2:4,mybnd2,myspin2), 1, wfc_centers(2:4,mybnd2,myspin2), 1)
+         call compute_dipole( nnrx, 1, orb_rhor(1,2), r0, wfc_centers(1:4, mybnd2, myspin2), wfc_spreads(mybnd2, myspin2,1))
+         wfc_spreads(mybnd2,myspin2,1) = wfc_spreads(mybnd2,myspin2,1) - ddot(3, wfc_centers(2:4,mybnd2,myspin2), 1, wfc_centers(2:4,mybnd2,myspin2), 1)
       ENDIF
       !
       IF(k.ge.nbsp) THEN

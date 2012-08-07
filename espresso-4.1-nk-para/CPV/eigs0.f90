@@ -215,7 +215,6 @@
 
 
       do iss = 1, nspin_eig
-
          IF( nudx < nupdwn(iss) ) THEN 
             WRITE( msg, 100 ) nudx, SIZE( ei, 1 ), nupdwn(iss)
 100         FORMAT( ' wrong dimension array ei = ', 3I10 )
@@ -227,6 +226,8 @@
          ELSE
             n = nupdwn(iss)
          END IF
+
+         IF(n.gt.0) THEN
 
          allocate( wr( n ) )
 
@@ -315,7 +316,9 @@
          ! WRITE( stdout,14) ( wr( i ) * autoev / 2.0d0, i = 1, nupdwn(iss) ) ! debug
 
          deallocate( wr )
-
+         ELSE
+            ei( 1:n, iss ) = 0.d0
+         ENDIF
       end do
       !
       !
