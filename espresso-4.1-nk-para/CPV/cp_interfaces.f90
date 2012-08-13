@@ -133,7 +133,93 @@
    PUBLIC :: bec_csv
    PUBLIC :: set_x_minus1
    PUBLIC :: xminus1
+   PUBLIC :: projwfc_hub
+   PUBLIC :: s_wfc
 
+    INTERFACE s_wfc
+       !
+       SUBROUTINE s_wfc_real(n_atomic_wfc1,becwfc,betae,wfc,swfc)
+         !
+         USE kinds, ONLY: DP
+         USE ions_base, ONLY: na
+         USE cvan, ONLY: nvb, ish
+         USE uspp, ONLY: nkb
+         USE uspp_param, ONLY: nh
+         USE gvecw, ONLY: ngw
+         IMPLICIT NONE
+   ! input
+         INTEGER, INTENT(in)         :: n_atomic_wfc1
+         COMPLEX(DP), INTENT(in) :: betae(ngw,nkb), wfc(ngw,n_atomic_wfc1)
+         REAL(DP), INTENT(in)    :: becwfc(nkb,n_atomic_wfc1)
+   ! output
+         COMPLEX(DP), INTENT(out):: swfc(ngw,n_atomic_wfc1)
+       END SUBROUTINE s_wfc_real
+       !
+       SUBROUTINE s_wfc_twin(n_atomic_wfc1,becwfc,betae,wfc,swfc, lgam) 
+   !
+         USE kinds, ONLY: DP
+         USE ions_base, ONLY: na
+         USE cvan, ONLY: nvb, ish
+         USE uspp, ONLY: nkb, nhsavb=>nkbus, qq
+         USE uspp_param, ONLY: nh
+         USE gvecw, ONLY: ngw
+         USE twin_types
+         !
+         IMPLICIT NONE
+   ! input
+         INTEGER, INTENT(in)         :: n_atomic_wfc1
+         COMPLEX(DP), INTENT(in) :: betae(ngw,nkb), wfc(ngw,n_atomic_wfc1)
+         TYPE(twin_matrix) :: becwfc
+         LOGICAL :: lgam
+   ! output
+         COMPLEX(DP), INTENT(out):: swfc(ngw,n_atomic_wfc1)
+       END SUBROUTINE s_wfc_twin
+    END INTERFACE
+    !
+    INTERFACE projwfc_hub
+       !
+       SUBROUTINE projwfc_hub_real( c, nx, eigr, betae, n, n_atomic_wfc,  &
+        & wfc, becwfc, swfc, proj)
+
+         USE kinds,              ONLY: DP
+         USE gvecw,              ONLY: ngw
+         USE ions_base,          ONLY: nsp, na, nat
+         USE uspp,               ONLY: nkb
+         !
+         IMPLICIT NONE
+         INTEGER,     INTENT(IN) :: nx, n, n_atomic_wfc
+         COMPLEX(DP), INTENT(IN) :: c( ngw, nx ), eigr(ngw,nat), betae(ngw,nkb)
+         COMPLEX(DP), INTENT(OUT):: wfc(ngw,n_atomic_wfc),    &
+        & swfc( ngw, n_atomic_wfc )
+         real(DP), intent(out):: becwfc(nkb,n_atomic_wfc) !DEBUG
+         REAL(DP) :: proj(n,n_atomic_wfc)
+         !
+       end subroutine projwfc_hub_real
+       !
+       SUBROUTINE projwfc_hub_twin( c, nx, eigr, betae, n, n_atomic_wfc,  &
+        & wfc, becwfc, swfc, proj, lgam)
+
+         USE kinds,              ONLY: DP
+         USE gvecw,              ONLY: ngw
+         USE ions_base,          ONLY: nsp, na, nat
+         USE uspp,               ONLY: nkb
+         USE twin_types !added:giovanni
+         !
+         IMPLICIT NONE
+         INTEGER,     INTENT(IN) :: nx, n, n_atomic_wfc
+         COMPLEX(DP), INTENT(IN) :: c( ngw, nx ), eigr(ngw,nat), betae(ngw,nkb)
+         LOGICAL :: lgam
+   !
+         COMPLEX(DP), INTENT(OUT):: wfc(ngw,n_atomic_wfc),    &
+        & swfc( ngw, n_atomic_wfc )
+   !       real(DP), intent(out):: becwfc(nhsa,n_atomic_wfc) !DEBUG
+         type(twin_matrix) :: becwfc!(nhsa,n_atomic_wfc) !DEBUG
+         REAL(DP) :: proj(n,n_atomic_wfc)
+         !
+       end SUBROUTINE projwfc_hub_twin
+       !
+    END INTERFACE
+   
     INTERFACE set_x_minus1
 
       subroutine set_x_minus1_real(betae,m_minus1,ema0bg,use_ema)

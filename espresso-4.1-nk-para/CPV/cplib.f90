@@ -2818,7 +2818,7 @@ END FUNCTION
       USE uspp,               ONLY: nhsa => nkb
       USE uspp_param,         ONLY: upf
       USE twin_types !added:giovanni
-      USE cp_interfaces,   ONLY: nlsm1 !added:giovanni
+      USE cp_interfaces,   ONLY: nlsm1, s_wfc !added:giovanni
 !
       IMPLICIT NONE
       INTEGER,     INTENT(IN) :: nx, n
@@ -3024,7 +3024,7 @@ END FUNCTION
 !
 !
 !-------------------------------------------------------------------------
-      SUBROUTINE s_wfc(n_atomic_wfc1,becwfc,betae,wfc,swfc) !@@@@ Changed n_atomic_wfc to n_atomic_wfc1
+      SUBROUTINE s_wfc_real(n_atomic_wfc1,becwfc,betae,wfc,swfc) !@@@@ Changed n_atomic_wfc to n_atomic_wfc1
 !-----------------------------------------------------------------------
 !
 !     input: wfc, becwfc=<wfc|beta>, betae=|beta>
@@ -3079,8 +3079,97 @@ END FUNCTION
 !      swfc=swfc+wfc
 !
       RETURN
-      END SUBROUTINE s_wfc
+      END SUBROUTINE s_wfc_real
 
+!-------------------------------------------------------------------------
+      SUBROUTINE s_wfc_twin(n_atomic_wfc1,becwfc,betae,wfc,swfc, lgam) !@@@@ Changed n_atomic_wfc to n_atomic_wfc1
+!-----------------------------------------------------------------------
+!
+!     input: wfc, becwfc=<wfc|beta>, betae=|beta>
+!     output: swfc=S|wfc>
+!
+      USE kinds, ONLY: DP
+      USE ions_base, ONLY: na
+      USE cvan, ONLY: nvb, ish
+      USE uspp, ONLY: nhsa => nkb, nhsavb=>nkbus, qq
+      USE uspp_param, ONLY: nh
+      USE gvecw, ONLY: ngw
+      USE constants, ONLY: pi, fpi
+      USE twin_types
+      !
+      IMPLICIT NONE
+! input
+      INTEGER, INTENT(in)         :: n_atomic_wfc1
+      COMPLEX(DP), INTENT(in) :: betae(ngw,nhsa),                   &
+     &                               wfc(ngw,n_atomic_wfc1)
+      TYPE(twin_matrix) :: becwfc
+      LOGICAL :: lgam
+! output
+      COMPLEX(DP), INTENT(out):: swfc(ngw,n_atomic_wfc1)
+! local
+      INTEGER is, iv, jv, ia, inl, jnl, i
+      REAL(DP), ALLOCATABLE :: qtemp(:,:)
+      COMPLEX(DP), ALLOCATABLE :: qtemp_c(:,:)
+!
+      swfc = wfc
+!
+      IF (nvb.GT.0) THEN
+         IF(lgam) THEN
+            allocate(qtemp(nhsavb,n_atomic_wfc1))
+            qtemp=0.d0
+            DO is=1,nvb
+               DO iv=1,nh(is)
+                  DO jv=1,nh(is)
+                     IF(ABS(qq(iv,jv,is)).GT.1.e-5) THEN
+                        DO ia=1,na(is)
+                           inl=ish(is)+(iv-1)*na(is)+ia
+                           jnl=ish(is)+(jv-1)*na(is)+ia
+                           DO i=1,n_atomic_wfc1
+                              qtemp(inl,i) = qtemp(inl,i) +                &
+        &                                 qq(iv,jv,is)*becwfc%rvec(jnl,i)
+                           END DO
+                        END DO
+                     ENDIF
+                  END DO
+               END DO
+            END DO
+   !
+            CALL DGEMM &
+                 ('N','N',2*ngw,n_atomic_wfc1,nhsavb,1.0d0,betae,2*ngw,&
+                  qtemp,nhsavb,1.0d0,swfc,2*ngw)
+            deallocate(qtemp)
+         ELSE
+            allocate(qtemp(nhsavb,n_atomic_wfc1))
+            qtemp_c=CMPLX(0.d0,0.d0)
+            DO is=1,nvb
+               DO iv=1,nh(is)
+                  DO jv=1,nh(is)
+                     IF(ABS(qq(iv,jv,is)).GT.1.e-5) THEN
+                        DO ia=1,na(is)
+                           inl=ish(is)+(iv-1)*na(is)+ia
+                           jnl=ish(is)+(jv-1)*na(is)+ia
+                           DO i=1,n_atomic_wfc1
+                              qtemp(inl,i) = qtemp(inl,i) +                &
+        &                                    qq(iv,jv,is)*becwfc%cvec(jnl,i)
+                           END DO
+                        END DO
+                     ENDIF
+                  END DO
+               END DO
+            END DO
+   !
+            CALL ZGEMM &
+                 ('N','N',ngw,n_atomic_wfc1,nhsavb,(1.0d0,0.d0),betae,ngw,&
+                  qtemp_c,nhsavb,(1.0d0,0.d0),swfc,ngw)
+            deallocate(qtemp_c)
+         ENDIF
+      END IF
+!
+!      swfc=swfc+wfc
+!
+      RETURN
+      END SUBROUTINE s_wfc_twin
+      
 !-----------------------------------------------------------------------
       SUBROUTINE spinsq (c,bec,rhor)
 !-----------------------------------------------------------------------
@@ -4395,7 +4484,7 @@ end function set_Hubbard_l
       use electrons_base,     only: nspin, n => nbsp, nx => nbspx, ispin, f
       USE ldaU,               ONLY: lda_plus_u, Hubbard_U, Hubbard_l
       USE ldaU,               ONLY: n_atomic_wfc, ns, e_hubbard
-      USE cp_interfaces, ONLY: nlsm1 !added:giovanni
+      USE cp_interfaces, ONLY: nlsm1, projwfc_hub, s_wfc !added:giovanni
 !
       implicit none
 #ifdef __PARA
@@ -5024,8 +5113,8 @@ end function set_Hubbard_l
       end subroutine stepfn
 !
 !-----------------------------------------------------------------------
-      SUBROUTINE projwfc_hub( c, nx, eigr, betae, n, n_atomic_wfc,  &
-     & wfc, becwfc, swfc, proj )
+      SUBROUTINE projwfc_hub_real( c, nx, eigr, betae, n, n_atomic_wfc,  &
+     & wfc, becwfc, swfc, proj)
 !-----------------------------------------------------------------------
       !
       ! Projection on atomic wavefunctions
@@ -5040,7 +5129,7 @@ end function set_Hubbard_l
       USE reciprocal_vectors, ONLY: gstart
       USE ions_base,          ONLY: nsp, na, nat
       USE uspp,               ONLY: nhsa => nkb
-      USE cp_interfaces, ONLY: nlsm1 !added:giovanni
+      USE cp_interfaces, ONLY: nlsm1, projwfc_hub, s_wfc !added:giovanni
 !
       IMPLICIT NONE
       INTEGER,     INTENT(IN) :: nx, n, n_atomic_wfc
@@ -5086,7 +5175,75 @@ end function set_Hubbard_l
       CALL mp_sum( proj, intra_image_comm )
 !
       RETURN
-      END SUBROUTINE projwfc_hub
+      END SUBROUTINE projwfc_hub_real
+!
+!-----------------------------------------------------------------------
+      SUBROUTINE projwfc_hub_twin( c, nx, eigr, betae, n, n_atomic_wfc,  &
+     & wfc, becwfc, swfc, proj, lgam)
+!-----------------------------------------------------------------------
+      !
+      ! Projection on atomic wavefunctions
+      ! Atomic wavefunctions are not orthogonized
+      !
+      USE kinds,              ONLY: DP
+      USE constants,          ONLY: autoev
+      USE io_global,          ONLY: stdout
+      USE mp_global,          ONLY: intra_image_comm
+      USE mp,                 ONLY: mp_sum
+      USE gvecw,              ONLY: ngw
+      USE reciprocal_vectors, ONLY: gstart
+      USE ions_base,          ONLY: nsp, na, nat
+      USE uspp,               ONLY: nhsa => nkb
+      USE cp_interfaces, ONLY: nlsm1, s_wfc !added:giovanni
+      USE twin_types !added:giovanni
+!
+      IMPLICIT NONE
+      INTEGER,     INTENT(IN) :: nx, n, n_atomic_wfc
+      COMPLEX(DP), INTENT(IN) :: c( ngw, nx ), eigr(ngw,nat), betae(ngw,nhsa)
+      LOGICAL :: lgam
+!
+      COMPLEX(DP), INTENT(OUT):: wfc(ngw,n_atomic_wfc),    &
+     & swfc( ngw, n_atomic_wfc )
+!       real(DP), intent(out):: becwfc(nhsa,n_atomic_wfc) !DEBUG
+      type(twin_matrix) :: becwfc!(nhsa,n_atomic_wfc) !DEBUG
+      REAL(DP),    ALLOCATABLE :: overlap(:,:), e(:), z(:,:)
+      REAL(DP),    ALLOCATABLE :: temp(:)
+      REAL(DP)                 :: somma, proj(n,n_atomic_wfc)
+      INTEGER :: is, ia, nb, l, m, k, i
+      !
+      ! calculate number of atomic states
+      !
+      !
+      IF ( n_atomic_wfc .EQ. 0 ) RETURN
+      !
+      !
+      ! calculate wfc = atomic states
+      !
+      CALL atomic_wfc_northo( eigr, n_atomic_wfc, wfc )
+      !
+      ! calculate bec = <beta|wfc>
+      !
+      CALL nlsm1( n_atomic_wfc, 1, nsp, eigr, wfc, becwfc, 1, lgam )
+      !
+      ! calculate swfc = S|wfc>
+      !
+      CALL s_wfc( n_atomic_wfc, becwfc, betae, wfc, swfc, lgam )
+      !
+      ! calculate proj = <c|S|wfc>
+      !
+      ALLOCATE(temp(ngw))
+      DO m=1,n
+         DO l=1,n_atomic_wfc
+            temp(:)=DBLE(CONJG(c(:,m))*swfc(:,l)) !@@@@
+            proj(m,l)=2.d0*SUM(temp)
+            IF (gstart == 2) proj(m,l)=proj(m,l)-temp(1)
+         END DO
+      END DO
+      DEALLOCATE(temp)
+      CALL mp_sum( proj, intra_image_comm )
+!
+      RETURN
+      END SUBROUTINE projwfc_hub_twin
 !
 !-----------------------------------------------------------------------
       SUBROUTINE atomic_wfc_northo( eigr, n_atomic_wfc, wfc )

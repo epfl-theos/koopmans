@@ -188,7 +188,7 @@
           if ( do_nki ) then
               !
               call nksic_correction_nki( focc, ispin(i), orb_rhor(:,jj), &
-                                         rhor, rhoref, rhobar, grhobar, &
+                                         rhor, rhoref, rhobar, rhobarg, grhobar, &
                                          vsic(:,i), wxdsic, pink(i), ibnd)
               !
               ! here information is accumulated over states
@@ -998,6 +998,7 @@ end subroutine nksic_newd
       !
       real(dp),    allocatable :: grhoraux(:,:,:)
       real(dp),    allocatable :: orb_grhor(:,:,:)
+      complex(dp), allocatable :: orb_rhog(:,:)
       real(dp),    allocatable :: haux(:,:,:)
       logical :: lgam !!added:giovanni
       real(dp) :: icoeff
@@ -1024,6 +1025,7 @@ end subroutine nksic_newd
       !
       allocate(rhoele(nnrx,2))
       allocate(rhogaux(ngm,2))
+      allocate(orb_rhog(ngm,1))
       allocate(vtmp(ngm))
       allocate(vcorr(ngm))
       allocate(vhaux(nnrx))
@@ -1039,19 +1041,20 @@ end subroutine nksic_newd
       !
       ! Compute self-hartree contributions
       !
-      rhogaux=0.0_dp
+      orb_rhog=0.0_dp
       !
       ! rhoele has no occupation
       !
       ! f-fref is NOT included here in vhaux
       ! (will be added afterwards)
       !
+      vhaux=0.d0
       vhaux(:) = rhoele(:,ispin)
       !
       call fwfft('Dense',vhaux,dfftp )
       !
       do ig=1,ngm
-          rhogaux(ig,1) = vhaux( np(ig) )
+          orb_rhog(ig,1) = vhaux( np(ig) )
       enddo
 
       !    
@@ -1059,14 +1062,14 @@ end subroutine nksic_newd
       !
       if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
       do ig=gstart,ngm
-          vtmp(ig) = rhogaux(ig,1) * fpi/( tpiba2*g(ig) )
+          vtmp(ig) = orb_rhog(ig,1) * fpi/( tpiba2*g(ig) )
       enddo
       !
       ! compute periodic corrections
       !
       if( do_comp ) then
           !
-          call calc_tcc_potential( vcorr, rhogaux(:,1) ) !warning:giovanni it seems tcc1d is not implemented here, it assumes tcc only! hydrogen chains are doubly wrong then
+          call calc_tcc_potential( vcorr, orb_rhog(:,1) ) !warning:giovanni it seems tcc1d is not implemented here, it assumes tcc only! hydrogen chains are doubly wrong then
           vtmp(:) = vtmp(:) + vcorr(:)
           !
       endif
@@ -1102,8 +1105,8 @@ end subroutine nksic_newd
       !
       !ehele=0.5_dp * sum(dble(vhaux(1:nnrx))*rhoele(1:nnrx,ispin))
       !
-      ehele = icoeff * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm,1)))
-      if ( gstart == 2 ) ehele = ehele + (1.d0-icoeff)*DBLE ( CONJG( vtmp(1) ) * rhogaux(1,1) )
+      ehele = icoeff * DBLE ( DOT_PRODUCT( vtmp(1:ngm), orb_rhog(1:ngm,1)))
+      if ( gstart == 2 ) ehele = ehele + (1.d0-icoeff)*DBLE ( CONJG( vtmp(1) ) * orb_rhog(1,1) )
       !
       ! the f * (2.0d0 * fref-f) term is added here
       ehele = 0.5_dp * f * (2.0_dp * fref-f) * ehele * omega / fact
@@ -1123,8 +1126,6 @@ end subroutine nksic_newd
       !
       !   add self-xc contributions
       !
-
-
       if ( dft_is_gradient() ) then
            !
            allocate(grhoraux(nnrx,3,2))
@@ -1132,7 +1133,7 @@ end subroutine nksic_newd
            allocate(haux(nnrx,2,2))
            !
            ! compute the gradient of n_i(r)
-           call fillgrad( 1, rhogaux, orb_grhor(:,:,1:1), lgam )
+           call fillgrad( 1, orb_rhog, orb_grhor(:,:,1:1), lgam )
            !
       else
            allocate(grhoraux(1,1,1))
@@ -1141,14 +1142,12 @@ end subroutine nksic_newd
            !
       endif
       !
-      deallocate(rhogaux)
       !   
       allocate(vxc0(nnrx,2))
       allocate(vxcref(nnrx,2))
       !
       etxcref=0.0_dp
       vxcref=0.0_dp
-
       !
       !rhoraux = rhoref
       !
@@ -1157,6 +1156,10 @@ end subroutine nksic_newd
           grhoraux(:,:,1:2)   = grhobar(:,:,1:2)
           grhoraux(:,:,ispin) = grhobar(:,:,ispin) &
                               + fref * orb_grhor(:,:,1)
+          !                    
+          rhogaux(:,1:2) = rhobarg(:,1:2)
+          rhogaux(:,ispin) = rhobarg(:,ispin) + fref * orb_rhog(:,1)
+
       endif    
       !
       !call exch_corr_wrapper(nnrx,2,grhoraux,rhoref,etxcref,vxcref,haux)
@@ -1173,6 +1176,8 @@ end subroutine nksic_newd
          !  grhoraux(nnr,3,nspin)?yes; rhogaux(ng,nspin)? rhoref(nnr, nspin) 
          !
       end if
+      !
+
 !end_added:giovanni fixing PBE potential
 
       !
@@ -1199,13 +1204,17 @@ end subroutine nksic_newd
               grhoraux(:,:,1:2)   = grhobar(:,:,1:2)
               grhoraux(:,:,ispin) = grhobar(:,:,ispin) &
                                   + f * orb_grhor(:,:,1)
+              !
+              rhogaux(:,1:2) = rhobarg(:,1:2)
+              rhogaux(:,ispin) = rhobarg(:,ispin) + f * orb_rhog(:,1)  
+                                  
           endif
           !
           !call exch_corr_wrapper(nnrx,2,grhoraux,rhoraux,etxc,vxc,haux)
           vxc=rhoraux
-          CALL exch_corr_cp(nnrx, 2, grhoraux, vxc, etxc) !proposed:giovanni warning rhobar is overwritten with vxc0, check array dimensions
+          CALL exch_corr_cp(nnrx, 2, grhoraux, vxc, etxc) !proposed:giovanni warning rhoraix is overwritten with vxc, check array dimensions
           !NB grhoraux(nnr,3,nspin)? rhoraux(nnr,nspin)?
-!begin_added:giovanni fixing PBE potential      
+         !begin_added:giovanni fixing PBE potential      
          if (dft_is_gradient()) then
          !
          !  Add second part of the xc-potential to rhor
@@ -1215,12 +1224,15 @@ end subroutine nksic_newd
          !  grhoraux(nnr,3,nspin)? rhogaux(ng,nspin)? rhoraux(nnr, nspin) 
          !
          end if
-!end_added:giovanni fixing PBE potential
+         !end_added:giovanni fixing PBE potential
           !
           deallocate( rhoraux )
           !
       endif
-
+      !
+      deallocate(rhogaux)
+      deallocate(orb_rhog)
+      !
       etxc0=0.0_dp
       vxc0=0.0_dp
       !
@@ -1485,7 +1497,7 @@ end subroutine nksic_newd
           ! note: rhogaux contains the occupation
           !
           grhoraux=0.0_dp
-          call fillgrad( 2, rhogaux, grhoraux(:,:,:), lgam ) 
+          call fillgrad( 1, rhogaux, grhoraux(:,:,ispin:ispin), lgam ) 
       else
           allocate(grhoraux(1,1,1))
           allocate(haux(1,1,1))
@@ -1600,6 +1612,7 @@ end subroutine nksic_correction_pz
       complex(dp), allocatable :: rhogaux(:,:)
       complex(dp), allocatable :: vtmp(:)
       logical :: lgam
+      real(dp) :: dexc_dummy(3,3)
       !
       CALL start_clock( 'nk_corr' )
       CALL start_clock( 'nk_corr_h' )
@@ -1610,7 +1623,7 @@ end subroutine nksic_correction_pz
       allocate(wxdsic(nnrx,2))
       allocate(rhoele(nnrx,2))
       allocate(rhoref(nnrx,2))
-      allocate(rhogaux(ngm,1))
+      allocate(rhogaux(ngm,2))
       allocate(vtmp(ngm))
       allocate(vcorr(ngm))
       allocate(vhaux(nnrx))
@@ -1634,21 +1647,21 @@ end subroutine nksic_correction_pz
       call fwfft('Dense',vhaux,dfftp )
       !
       do ig=1,ngm
-        rhogaux(ig,1) = vhaux( np(ig) )
+        rhogaux(ig,ispin) = vhaux( np(ig) )
       enddo
       !    
       ! compute hartree-like potential
       !
       if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
       do ig=gstart,ngm
-        vtmp(ig)=rhogaux(ig,1)*fpi/(tpiba2*g(ig))
+        vtmp(ig)=rhogaux(ig,ispin)*fpi/(tpiba2*g(ig))
       enddo
       !
       ! compute periodic corrections
       !
       if( do_comp ) then
         !
-        call calc_tcc_potential( vcorr, rhogaux(:,1))
+        call calc_tcc_potential( vcorr, rhogaux(:,ispin))
         vtmp(:) = vtmp(:) + vcorr(:)
         !
       endif
@@ -1708,7 +1721,6 @@ end subroutine nksic_correction_pz
          grhoraux=0.0_dp
       endif
       !   
-      deallocate(rhogaux)
 
 
       allocate(vxcref(nnrx,2))
@@ -1716,7 +1728,23 @@ end subroutine nksic_correction_pz
       etxcref=0.0_dp
       vxcref=0.0_dp
       !
-      call exch_corr_wrapper(nnrx,2,grhoraux,rhoref,etxcref,vxcref,haux)
+      vxcref=rhoref
+      !
+      CALL exch_corr_cp(nnrx, 2, grhoraux, vxcref, etxcref) !proposed:giovanni fixing PBE, warning, rhoref overwritten with vxcref, check array dimensions
+      !
+      !begin_added:giovanni fixing PBE potential      
+      if (dft_is_gradient()) then
+         !
+         !  Add second part of the xc-potential to rhor
+         !  Compute contribution to the stress dexc
+         !  Need a dummy dexc here, need to cross-check gradh! dexc should be dexc(3,3), is lgam a variable here?
+         call gradh( 2, grhoraux, rhogaux, vxcref, dexc_dummy, lgam)
+         !  grhoraux(nnr,3,nspin)?yes; rhogaux(ng,nspin)? rhoref(nnr, nspin) 
+         !
+      end if
+!end_added:giovanni fixing PBE potential
+      deallocate(rhogaux)
+!       call exch_corr_wrapper(nnrx,2,grhoraux,rhoref,etxcref,vxcref,haux)
       !
       ! update vsic pot 
       ! 
@@ -1782,7 +1810,7 @@ end subroutine nksic_correction_pz
 
 !---------------------------------------------------------------
       subroutine nksic_correction_nki( f, ispin, orb_rhor, rhor, &
-                                       rhoref, rhobar, grhobar,  &
+                                       rhoref, rhobar, rhobarg, grhobar,&
                                        vsic, wxdsic, pink, ibnd ) 
 !---------------------------------------------------------------
 !
@@ -1818,6 +1846,7 @@ end subroutine nksic_correction_pz
       real(dp),    intent(in)  :: rhor(nnrx,nspin)
       real(dp),    intent(in)  :: rhoref(nnrx,2)
       real(dp),    intent(in)  :: rhobar(nnrx,2)
+      complex(dp),    intent(in)  :: rhobarg(ngm,2)
       real(dp),    intent(in)  :: grhobar(nnrx,3,2)
       real(dp),    intent(out) :: vsic(nnrx)
       real(dp),    intent(out) :: wxdsic(nnrx,2)
@@ -1839,9 +1868,10 @@ end subroutine nksic_correction_pz
       !
       real(dp),    allocatable :: grhoraux(:,:,:)
       real(dp),    allocatable :: orb_grhor(:,:,:)
+      complex(dp), allocatable :: orb_rhog(:,:)
       real(dp),    allocatable :: haux(:,:,:)
       logical :: lgam
-
+      real(dp) :: dexc_dummy(3,3)
       !
       !==================
       ! main body
@@ -1860,6 +1890,7 @@ end subroutine nksic_correction_pz
       allocate(rhoele(nnrx,2))
       allocate(rhogaux(ngm,1))
       allocate(vtmp(ngm))
+      allocate(orb_rhog(ngm,1))
       allocate(vcorr(ngm))
       allocate(vhaux(nnrx))
       !
@@ -1873,7 +1904,7 @@ end subroutine nksic_correction_pz
       !
       ! Compute self-hartree contributions
       !
-      rhogaux=0.0_dp
+      orb_rhog=0.0_dp
       !
       ! rhoele has no occupation
       !
@@ -1882,7 +1913,7 @@ end subroutine nksic_correction_pz
       call fwfft('Dense',vhaux,dfftp )
       !
       do ig=1,ngm
-          rhogaux(ig,1) = vhaux( np(ig) )
+          orb_rhog(ig,1) = vhaux( np(ig) )
       enddo
 
       !    
@@ -1890,14 +1921,14 @@ end subroutine nksic_correction_pz
       !
       if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
       do ig=gstart,ngm
-          vtmp(ig) = rhogaux(ig,1) * fpi/( tpiba2*g(ig) )
+          vtmp(ig) = orb_rhog(ig,1) * fpi/( tpiba2*g(ig) )
       enddo
       !
       ! compute periodic corrections
       !
       if( do_comp ) then
           !
-          call calc_tcc_potential( vcorr, rhogaux(:,1))
+          call calc_tcc_potential( vcorr, orb_rhog(:,1))
           vtmp(:) = vtmp(:) + vcorr(:)
           !
       endif
@@ -1934,8 +1965,8 @@ end subroutine nksic_correction_pz
       !
       !ehele=0.5_dp * sum(dble(vhaux(1:nnrx))*rhoele(1:nnrx,ispin))
       !
-      ehele = 2.0_dp * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm,1)))
-      if ( gstart == 2 ) ehele = ehele -DBLE ( CONJG( vtmp(1) ) * rhogaux(1,1) )
+      ehele = 2.0_dp * DBLE ( DOT_PRODUCT( vtmp(1:ngm), orb_rhog(1:ngm,1)))
+      if ( gstart == 2 ) ehele = ehele -DBLE ( CONJG( vtmp(1) ) * orb_rhog(1,1) )
       !
       ! -self-hartree energy to be added to the vsic potential
       w2cst = -0.5_dp * ehele * omega 
@@ -1965,7 +1996,7 @@ end subroutine nksic_correction_pz
            allocate(haux(nnrx,2,2))
            !
            ! compute the gradient of n_i(r)
-           call fillgrad( 1, rhogaux, orb_grhor(:,:,1:1), lgam )
+           call fillgrad( 1, orb_rhog, orb_grhor(:,:,1:1), lgam )
            !
       else
            allocate(grhoraux(1,1,1))
@@ -2000,13 +2031,31 @@ end subroutine nksic_correction_pz
               grhoraux(:,:,1:2)   = grhobar(:,:,1:2)
               grhoraux(:,:,ispin) = grhobar(:,:,ispin) &
                                   + f * orb_grhor(:,:,1)
+              !
+              rhogaux(:,1:2) = rhobarg(:,1:2)
+              rhogaux(:,ispin) = rhobarg(:,ispin) + f * orb_rhog(:,1)
+              !
           endif
           !
           allocate( rhoraux(nnrx, 2) )
           !
           rhoraux = rhobar + f*rhoele
-          call exch_corr_wrapper(nnrx,2,grhoraux,rhoraux,etxc,vxc,haux)
+          vxc=rhoraux
           !
+          CALL exch_corr_cp(nnrx, 2, grhoraux, vxc, etxc) !proposed:giovanni warning rhoraux is overwritten with vxc, check array dimensions
+!           call exch_corr_wrapper(nnrx,2,grhoraux,rhoraux,etxc,vxc,haux)
+          !
+          !begin_added:giovanni fixing PBE potential      
+            if (dft_is_gradient()) then
+            !
+            !  Add second part of the xc-potential to rhor
+            !  Compute contribution to the stress dexc
+            !  Need a dummy dexc here, need to cross-check gradh! dexc should be dexc(3,3), is lgam a variable here?
+               call gradh( 2, grhoraux, rhogaux, vxc, dexc_dummy, lgam)
+            !  grhoraux(nnr,3,nspin)? rhogaux(ng,nspin)? rhoraux(nnr, nspin) 
+            !
+            end if
+!end_added:giovanni fixing PBE potential
           deallocate( rhoraux )
           !
       endif
@@ -2029,9 +2078,27 @@ end subroutine nksic_correction_pz
               grhoraux(:,:,1:2)   = grhobar(:,:,1:2)
               grhoraux(:,:,ispin) = grhobar(:,:,ispin) &
                                   + fref * orb_grhor(:,:,1)
+              !
+              rhogaux(:,1:2) = rhobarg(:,1:2)
+              rhogaux(:,ispin) = rhobarg(:,ispin) + fref * orb_rhog(:,1)
+              !
           endif
           !
-          call exch_corr_wrapper(nnrx,2,grhoraux,rhoref,etxcref,vxcref,haux)
+          vxcref=rhoref
+          CALL exch_corr_cp(nnrx, 2, grhoraux, vxcref, etxcref) !proposed:giovanni warning rhoraux is overwritten with vxc, check array dimensions
+
+!           call exch_corr_wrapper(nnrx,2,grhoraux,rhoref,etxcref,vxcref,haux)
+          !begin_added:giovanni fixing PBE potential      
+             if (dft_is_gradient()) then
+               !
+               !  Add second part of the xc-potential to rhor
+               !  Compute contribution to the stress dexc
+               !  Need a dummy dexc here, need to cross-check gradh! dexc should be dexc(3,3), is lgam a variable here?
+               call gradh(2, grhoraux, rhogaux, vxcref, dexc_dummy, lgam)
+               !  grhobar(nnr,3,nspin)? rhogbar(ng,nspin)? rhor(nnr, nspin) 
+               !
+             end if
+          !end_added:giovanni fixing PBE potential
           !
       endif
 
@@ -2042,8 +2109,21 @@ end subroutine nksic_correction_pz
       etxc0=0.0_dp
       vxc0=0.0_dp
       !
-      call exch_corr_wrapper(nnrx,2,grhobar,rhobar,etxc0,vxc0,haux)
-
+      vxc0=rhobar
+      CALL exch_corr_cp(nnrx, 2, grhobar, vxc0, etxc0) !proposed:giovanni
+      !
+!       call exch_corr_wrapper(nnrx,2,grhobar,rhobar,etxc0,vxc0,haux)
+      !begin_added:giovanni fixing PBE potential      
+      if (dft_is_gradient()) then
+         !
+         !  Add second part of the xc-potential to rhor
+         !  Compute contribution to the stress dexc
+         !  Need a dummy dexc here, need to cross-check gradh! dexc should be dexc(3,3), is lgam a variable here?
+         call gradh(2, grhobar, rhobarg, vxc0, dexc_dummy, lgam)
+         !  grhobar(nnr,3,nspin)? rhogbar(ng,nspin)? rhor(nnr, nspin) 
+         !
+      end if
+      !end_added:giovanni fixing PBE potential
       !
       ! update potential (including other constant terms)
       ! and define pink
