@@ -17,7 +17,7 @@
                                   rhor, rhog, wtot, vsic, pink)
 !-----------------------------------------------------------------------
 !
-! ... calculate orbital dependent potentials, 
+!  .. calculate orbital dependent potentials, 
 !     following the Non-Koopmans' (NK) scheme, 
 !     but also Perdew-Zunger (PZ),
 !     Non-Koopmans' integral definition (NKI),
