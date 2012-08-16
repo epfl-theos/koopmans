@@ -47,7 +47,7 @@ CONTAINS
   ! check on the number of bands: we need to include empty bands in order to allow
   ! to write the transitions
   !
-  IF ( REAL(nbnd, DP)  <= nelec / 2.0_DP ) CALL errore('epsilon', 'ban band number', 1)
+  ! IF ( REAL(nbnd, DP)  <= nelec / 2.0_DP ) CALL errore('epsilon', 'ban band number', 1)
 
   !
   ! spin is not implemented
@@ -153,12 +153,14 @@ PROGRAM epsilon
   ! input variables
   !
   INTEGER                 :: nw,nbndmin,nbndmax
-  REAL(DP)                :: intersmear,intrasmear,wmax,wmin,shift
+  REAL(DP)                :: intersmear,intrasmear,wmax,wmin,shift, & 
+                             ekin_eout, ekin_error
   CHARACTER(10)           :: calculation,smeartype
   LOGICAL                 :: metalcalc
   !
   NAMELIST / inputpp / prefix, outdir, calculation
-  NAMELIST / energy_grid / smeartype,intersmear,intrasmear,wmax,wmin,nbndmin,nbndmax,nw,shift  
+  NAMELIST / energy_grid / smeartype,intersmear,intrasmear,wmax,wmin, & 
+                           nbndmin,nbndmax,nw,shift,ekin_eout,ekin_error
   
   !
   ! local variables
@@ -191,8 +193,9 @@ PROGRAM epsilon
   nw           = 600
   smeartype    = 'gauss'
   intrasmear   = 0.0d0 
-  metalcalc    = .FALSE.  
- 
+  metalcalc    = .FALSE. 
+  ekin_eout    = 30.0d0 
+  ekin_error   = 1.0d0
   !
   ! this routine allows the user to redirect the input using -input 
   ! instead of <  
@@ -238,6 +241,8 @@ PROGRAM epsilon
   CALL mp_bcast( nw, ionode_id ) 
   CALL mp_bcast( nbndmin, ionode_id ) 
   CALL mp_bcast( nbndmax, ionode_id ) 
+  CALL mp_bcast( ekin_eout, ionode_id ) 
+  CALL mp_bcast( ekin_error, ionode_id ) 
 
   !
   ! read PW simulation parameters from prefix.save/data-file.xml 
@@ -278,6 +283,10 @@ PROGRAM epsilon
   CASE ( 'jdos' )
       !
       CALL jdos_calc ( smeartype,intersmear,nw,wmax,wmin,nbndmin,nbndmax,shift,nspin )
+      !
+  CASE ( 'photospec' )
+      !
+      CALL photoemission_spectr_pw ( smeartype,intersmear,nw,wmax,wmin,nbndmin,nbndmax,shift,nspin,metalcalc,ekin_eout,ekin_error )
       !
   CASE ( 'offdiag' )
       !
@@ -1114,6 +1123,418 @@ ENDIF
 
 END SUBROUTINE jdos_calc
 
+!----------------------------------------------------------------------------------------
+SUBROUTINE photoemission_spectr ( smeartype,intersmear,nw,wmax,wmin,nbndmin,nbndmax,shift,nspin, metalcalc )
+  !--------------------------------------------------------------------------------------
+  !
+  USE kinds,                ONLY : DP
+  USE constants,            ONLY : PI, RYTOEV
+  USE cell_base,            ONLY : tpiba2
+  USE wvfct,                ONLY : nbnd, et
+  USE klist,                ONLY : nks
+  USE io_global,            ONLY : ionode, stdout
+  USE grid_module,          ONLY : alpha, focc, wgrid, grid_build, grid_destroy                
+  ! 
+  IMPLICIT NONE
+
+  !
+  ! input variables
+  !
+  INTEGER,         INTENT(IN) :: nw,nbndmin,nbndmax,nspin
+  REAL(DP),        INTENT(IN) :: wmax, wmin, intersmear, shift
+  CHARACTER(*),    INTENT(IN) :: smeartype
+  LOGICAL,         INTENT(IN) :: metalcalc
+  !
+  ! local variables
+  !
+  INTEGER       :: ik, is, iband1, iband2, ipol 
+  INTEGER       :: iw, ierr
+  REAL(DP)      :: etrans, w, renorm, count, srcount(0:1), renormzero,renormuno
+  !
+  REAL(DP), ALLOCATABLE    :: photospec(:), srphotospec(:,:)
+  REAL(DP), ALLOCATABLE    :: dipole_2(:,:)
+  COMPLEX(DP),ALLOCATABLE  :: dipole_aux(:,:,:)
+!
+!--------------------------
+! main routine body
+!--------------------------
+!
+! No wavefunctions are needed in order to compute jdos, only eigenvalues, 
+! they are distributed to each task so
+! no mpi calls are necessary in this routine
+  !
+  ! perform some consistency checks, calculate occupation numbers and setup w grid
+  !
+  CALL grid_build(nw, wmax, wmin )
+
+!
+! spin unresolved calculation
+!
+IF (nspin == 1) THEN 
+  !
+  ! allocate main spectral and auxiliary quantities
+  !
+  ALLOCATE( photospec(nw), STAT=ierr )
+      IF (ierr/=0) CALL errore('epsilon','allocating photoemission_spectr',ABS(ierr))
+  !   
+  ALLOCATE( dipole_2(nbnd, nbnd), STAT=ierr )
+  IF (ierr/=0) CALL errore('epsilon','allocating dipole', ABS(ierr) )
+  !
+  ALLOCATE( dipole_aux(3, nbnd, nbnd), STAT=ierr )
+  IF (ierr/=0) CALL errore('epsilon','allocating dipole_aux', ABS(ierr) )
+  !
+  ! initialize jdos
+  !
+  photospec(:)=0.0_DP
+
+  ! Initialising a counter for the number of transition
+  count=0.0_DP
+
+  !
+  ! main kpt loop
+  !
+
+  IF (smeartype=='lorentz') THEN
+
+    kpt_lor: &
+    DO ik = 1, nks
+       !
+       ! For every single k-point: order k+G for
+       !                           read and distribute wavefunctions
+       !                           compute dipole matrix 3 x nbnd x nbnd parallel over g 
+       !                           recover g parallelism getting the total dipole matrix
+       ! 
+       CALL dipole_calc( ik, dipole_aux, metalcalc, nbndmin, nbndmax)
+       !
+       dipole_2(:,:) = 0.0_DP
+       DO ipol = 1, 3  
+         dipole_2(:,:) = dipole_2(:,:) + tpiba2 * REAL( dipole_aux(ipol,:,:) * CONJG(dipole_aux(ipol,:,:)), DP )
+       ENDDO
+       !
+       !dipole(:,:,:)= tpiba2 * REAL( dipole_aux(:,:,:) * CONJG(dipole_aux(:,:,:)), DP ) 
+       !
+       ! Calculation of photoemission spectra
+       ! 'intersmear' is the brodening parameter
+       !
+       DO iband2 = 1,nbnd
+           IF ( focc(iband2,ik) <  2.0d0) THEN
+       DO iband1 = 1,nbnd
+           !
+           IF ( focc(iband1,ik) >= 1.0d-4 ) THEN
+                 !
+                 ! transition energy
+                 !
+                 etrans = ( et(iband2,ik) -et(iband1,ik) ) * RYTOEV  + shift
+                 !
+                 IF( etrans < 1.0d-10 ) CYCLE
+
+                 count = count + (focc(iband1,ik)-focc(iband2,ik))
+                 !
+                 ! loop over frequencies
+                 !
+                 DO iw = 1, nw
+                     !
+                     w = wgrid(iw)
+                     !
+                     photospec(iw) = photospec(iw) + intersmear * dipole_2(iband1,iband2) * (focc(iband1,ik)-focc(iband2,ik)) &
+                                  / ( PI * ( (etrans -w )**2 + (intersmear)**2 ) )
+
+                 ENDDO
+
+           ENDIF
+       ENDDO
+           ENDIF
+       ENDDO
+
+    ENDDO kpt_lor
+
+  ELSE IF (smeartype=='gauss') THEN
+
+    kpt_gauss: &
+    DO ik = 1, nks
+       !
+       ! For every single k-point: order k+G for
+       !                           read and distribute wavefunctions
+       !                           compute dipole matrix 3 x nbnd x nbnd parallel over g 
+       !                           recover g parallelism getting the total dipole matrix
+       ! 
+       CALL dipole_calc( ik, dipole_aux, metalcalc, nbndmin, nbndmax)
+       !
+       dipole_2(:,:) = 0.0_DP
+       DO ipol = 1, 3
+         dipole_2(:,:) = dipole_2(:,:) + tpiba2 * REAL( dipole_aux(ipol,:,:) * CONJG(dipole_aux(ipol,:,:)), DP )
+       ENDDO
+       !
+!!!! test
+!       DO iband2 = 1,nbnd
+!       DO iband1 = 1,nbnd
+!          write(stdout,*) iband1, iband2,  dipole_2(iband1,iband2)
+!       enddo
+!       enddo
+!!!!   
+       ! Calculation of joint density of states
+       ! 'intersmear' is the brodening parameter
+       !
+       DO iband2 = 1,nbnd
+       DO iband1 = 1,nbnd
+           !
+           IF ( focc(iband2,ik) <  2.0d0) THEN
+           IF ( focc(iband1,ik) >= 1.0d-4 ) THEN
+                 !
+                 ! transition energy
+                 !
+                 etrans = ( et(iband2,ik) -et(iband1,ik) ) * RYTOEV  + shift
+                 !
+                 IF( etrans < 1.0d-10 ) CYCLE
+
+                 ! loop over frequencies
+                 !
+
+                 count=count+ (focc(iband1,ik)-focc(iband2,ik))
+
+                 DO iw = 1, nw
+                     !
+                     w = wgrid(iw)
+                     !
+                     !photospec(iw) = photospec(iw) +  dipole_2(iband1,iband2) * (focc(iband1,ik)-focc(iband2,ik)) * &
+                     !photospec(iw) = photospec(iw) +  dipole_2(iband1,iband2) * &
+                     photospec(iw) = photospec(iw) + &
+                                EXP(-(etrans-w)**2/intersmear**2) &
+                                  / (intersmear * SQRT(PI))
+
+                 ENDDO
+
+           ENDIF
+           ENDIF
+       ENDDO
+       ENDDO
+       
+       
+      
+    ENDDO kpt_gauss
+
+  ELSE
+
+    CALL errore('epsilon', 'invalid SMEARTYPE = '//TRIM(smeartype), 1)
+
+  ENDIF
+
+  !
+  ! jdos normalizzation
+  !
+
+  !photospec(:)=photospec(:)/count
+
+  !
+  ! check jdos normalization
+  !
+
+  renorm = alpha * SUM( photospec(:) )
+  !
+  ! write results on data files
+  !
+  IF (ionode) THEN
+     WRITE(stdout,"(/,5x, 'Integration over photospectra gives: ',f15.9,' instead of 1.0d0' )") renorm
+     WRITE(stdout,"(/,5x, 'Writing output on file...' )")
+                                               
+     OPEN (30, FILE='photospectra.dat', FORM='FORMATTED' )
+     !
+     WRITE(30, "(2x,'# energy grid [eV]     photospectra [ab.] ')" )
+     !
+     DO iw =1, nw
+         !
+         WRITE(30,"(4f15.6)") wgrid(iw), photospec(iw)
+         !
+     ENDDO
+     !
+     CLOSE(30)
+  ENDIF
+  !
+  ! local cleaning
+  !
+  DEALLOCATE ( photospec )
+
+!
+! collinear spin calculation
+!
+ELSE IF(nspin==2) THEN
+  !
+  ! allocate main spectral and auxiliary quantities
+  !
+  ALLOCATE( srphotospec(0:1,nw), STAT=ierr )
+      IF (ierr/=0) CALL errore('epsilon','allocating spin resolved photospectra',ABS(ierr))
+  !
+  ! initialize jdos
+  !
+  srphotospec(:,:)=0.0_DP
+
+  ! Initialising a counter for the number of transition
+  srcount(:)=0.0_DP
+
+  !
+  ! main kpt loop
+  !
+
+  IF (smeartype=='lorentz') THEN
+
+  DO is=0,1
+    ! if nspin=2 the number of nks must be even (even if the calculation 
+    ! is performed at gamma point only), so nks must be always a multiple of 2
+    DO ik = 1 + is * INT(nks/2), INT(nks/2) +  is * INT(nks/2)
+	!
+	! For every single k-point: order k+G for
+	!                           read and distribute wavefunctions
+	!                           compute dipole matrix 3 x nbnd x nbnd parallel over g 
+	!                           recover g parallelism getting the total dipole matrix
+	! 
+	CALL dipole_calc( ik, dipole_aux, metalcalc , nbndmin, nbndmax)
+	!
+       dipole_2(:,:) = 0.0_DP
+       DO ipol = 1, 3
+         dipole_2(:,:) = dipole_2(:,:) + tpiba2 * REAL( dipole_aux(ipol,:,:) * CONJG(dipole_aux(ipol,:,:)), DP )
+       ENDDO
+       !
+       ! Calculation of joint density of states
+       ! 'intersmear' is the brodening parameter
+       !
+       DO iband2 = 1,nbnd
+           IF ( focc(iband2,ik) <  2.0d0) THEN
+       DO iband1 = 1,nbnd
+           !
+           IF ( focc(iband1,ik) >= 1.0d-4 ) THEN
+                 !
+                 ! transition energy
+                 !
+                 etrans = ( et(iband2,ik) -et(iband1,ik) ) * RYTOEV  + shift
+                 !
+                 IF( etrans < 1.0d-10 ) CYCLE
+
+                 ! loop over frequencies
+                 !
+                 srcount(is)=srcount(is)+ (focc(iband1,ik)-focc(iband2,ik))
+
+                 DO iw = 1, nw
+                     !
+                     w = wgrid(iw)
+                     !
+                     srphotospec(is,iw) = srphotospec(is,iw) + intersmear * dipole_2(iband1,iband2) * (focc(iband1,ik)-focc(iband2,ik)) &
+                                  / ( PI * ( (etrans -w )**2 + (intersmear)**2 ) )
+
+                 ENDDO
+
+           ENDIF
+       ENDDO
+           ENDIF
+       ENDDO
+
+    ENDDO 
+ ENDDO
+
+  ELSE IF (smeartype=='gauss') THEN
+
+  DO is=0,1
+    ! if nspin=2 the number of nks must be even (even if the calculation 
+    ! is performed at gamma point only), so nks must be always a multiple of 2
+    DO ik = 1 + is * INT(nks/2), INT(nks/2) +  is * INT(nks/2)
+	!
+	! For every single k-point: order k+G for
+	!                           read and distribute wavefunctions
+	!                           compute dipole matrix 3 x nbnd x nbnd parallel over g 
+	!                           recover g parallelism getting the total dipole matrix
+	! 
+	CALL dipole_calc( ik, dipole_aux, metalcalc , nbndmin, nbndmax)
+	!
+       dipole_2(:,:) = 0.0_DP
+       DO ipol = 1, 3
+         dipole_2(:,:) = dipole_2(:,:) + tpiba2 * REAL( dipole_aux(ipol,:,:) * CONJG(dipole_aux(ipol,:,:)), DP )
+       ENDDO
+       !
+       ! Calculation of joint density of states
+       ! 'intersmear' is the brodening parameter
+       !
+       DO iband2 = 1,nbnd
+       DO iband1 = 1,nbnd
+           !
+           IF ( focc(iband2,ik) <  2.0d0) THEN
+           IF ( focc(iband1,ik) >= 1.0d-4 ) THEN
+                 !
+                 ! transition energy
+                 !
+                 etrans = ( et(iband2,ik) -et(iband1,ik) ) * RYTOEV  + shift
+                 !
+                 IF( etrans < 1.0d-10 ) CYCLE
+
+                 ! loop over frequencies
+                 !
+
+                 srcount(is)=srcount(is)+ (focc(iband1,ik)-focc(iband2,ik))
+
+                 DO iw = 1, nw
+                     !
+                     w = wgrid(iw)
+                     !
+                     srphotospec(is,iw) = srphotospec(is,iw) + dipole_2(iband1,iband2) * (focc(iband1,ik)-focc(iband2,ik)) * &
+                                EXP(-(etrans-w)**2/intersmear**2) &
+                                  / (intersmear * SQRT(PI))
+
+                 ENDDO
+
+           ENDIF
+           ENDIF
+       ENDDO
+       ENDDO
+
+    ENDDO 
+ ENDDO
+
+  ELSE
+
+    CALL errore('epsilon', 'invalid SMEARTYPE = '//TRIM(smeartype), 1)
+
+  ENDIF
+
+  !
+  ! jdos normalizzation
+  !
+  DO is = 0,1
+    srphotospec(is,:)=srphotospec(is,:)/srcount(is)
+  ENDDO
+  !
+  ! check jdos normalization
+  !
+
+  renormzero = alpha * SUM( srphotospec(0,:) )
+  renormuno  = alpha * SUM( srphotospec(1,:) )
+  !
+  ! write results on data files
+  !
+  IF (ionode) THEN
+     WRITE(stdout,"(/,5x, 'Integration over spin UP photospectra gives: ',f15.9,' instead of 1.0d0' )") renormzero
+     WRITE(stdout,"(/,5x, 'Integration over spin DOWN photospectra gives: ',f15.9,' instead of 1.0d0' )") renormuno
+     WRITE(stdout,"(/,5x, 'Writing output on file...' )")
+                                               
+     OPEN (30, FILE='photospectra.dat', FORM='FORMATTED' )
+     !
+     WRITE(30, "(2x,'# energy grid [eV]     Uphotospectra [ab.]      Dphotospectra[ab.]')" )
+     !
+     DO iw =1, nw
+         !
+         WRITE(30,"(4f15.6)") wgrid(iw), srphotospec(0,iw), srphotospec(1,iw)
+         !
+     ENDDO
+     !
+     CLOSE(30)
+  ENDIF
+
+  DEALLOCATE ( srphotospec )
+ENDIF
+  !
+  ! local cleaning
+  !
+  CALL grid_destroy()
+
+END SUBROUTINE photoemission_spectr
+
 !-----------------------------------------------------------------------------
 SUBROUTINE offdiag_calc ( intersmear,intrasmear, nw, wmax, wmin, nbndmin, nbndmax,&
                           shift, metalcalc, nspin )
@@ -1457,3 +1878,494 @@ SUBROUTINE occ_calc ()
   CALL errore('grid_destroy','deallocating grid stuff',ABS(ierr))
 
 END SUBROUTINE occ_calc
+
+!----------------------------------------------------------------------------------------
+SUBROUTINE photoemission_spectr_pw ( smeartype,intersmear,nw,wmax,wmin,nbndmin,nbndmax,shift,nspin, metalcalc, ekin_eout, ekin_error)
+  !--------------------------------------------------------------------------------------
+  !
+  USE kinds,                ONLY : DP
+  USE constants,            ONLY : PI, RYTOEV
+  USE wvfct,                ONLY : npw, nbnd, igk, g2kin
+  USE cell_base,            ONLY : tpiba2
+  USE wvfct,                ONLY : nbnd, et
+  USE klist,                ONLY : nks
+  USE io_global,            ONLY : ionode, stdout
+  USE grid_module,          ONLY : alpha, focc, wgrid, grid_build, grid_destroy               
+  USE mp_global,            ONLY : intra_pool_comm
+  USE mp,                   ONLY : mp_sum
+  ! 
+  IMPLICIT NONE
+
+  !
+  ! input variables
+  !
+  INTEGER,         INTENT(IN) :: nw,nbndmin,nbndmax,nspin
+  REAL(DP),        INTENT(IN) :: wmax, wmin, intersmear, shift, & 
+                                 ekin_eout, ekin_error
+  CHARACTER(*),    INTENT(IN) :: smeartype
+  LOGICAL,         INTENT(IN) :: metalcalc
+  !
+  ! local variables
+  !
+  INTEGER       :: ik, is, iband1, iband2, ipol, ig
+  INTEGER       :: iw, ierr
+  REAL(DP)      :: etrans, w, renorm, count, srcount(0:1), renormzero,renormuno
+  REAL(DP)      :: ekin_plus, ekin_minus
+  !
+  REAL(DP), ALLOCATABLE    :: photospec(:), srphotospec(:,:)
+  REAL(DP), ALLOCATABLE    :: dipole_2(:,:)
+  COMPLEX(DP),ALLOCATABLE  :: dipole_aux(:,:,:)
+  !
+  !--------------------------
+  ! main routine body
+  !--------------------------
+  !
+  ! No wavefunctions are needed in order to compute jdos, only eigenvalues, 
+  ! they are distributed to each task so
+  ! no mpi calls are necessary in this routine
+  !
+  ! perform some consistency checks, calculate occupation numbers and setup w grid
+  !
+  CALL grid_build(nw, wmax, wmin )
+  !
+  ! spin unresolved calculation
+  !
+IF (nspin == 1) THEN
+  !
+  ! allocate main spectral and auxiliary quantities
+  !
+  ALLOCATE( photospec(nw), STAT=ierr )
+      IF (ierr/=0) CALL errore('epsilon','allocating photoemission_spectr',ABS(ierr))
+  !   
+  ALLOCATE( dipole_2(nbndmax, npw), STAT=ierr )
+  IF (ierr/=0) CALL errore('epsilon','allocating dipole', ABS(ierr) )
+  !
+  ALLOCATE( dipole_aux(3, nbndmax, npw), STAT=ierr )
+  IF (ierr/=0) CALL errore('epsilon','allocating dipole_aux', ABS(ierr) )
+  !
+  ! initialize  photoemission
+  !
+  ekin_plus  = ( ekin_eout + ekin_error )/13.6056923
+  ekin_minus = ( ekin_eout - ekin_error )/13.6056923
+  !
+  photospec(:)=0.0_DP
+
+  ! Initialising a counter for the number of transition
+  count=0.0_DP
+  !
+  ! main kpt loop
+  !
+
+  IF (smeartype=='lorentz') THEN
+
+    kpt_lor: &
+    DO ik = 1, nks
+       !
+       ! For every single k-point: order k+G for
+       !                           read and distribute wavefunctions
+       !                           compute dipole matrix 3 x nbnd x nbnd parallel over g 
+       !                           recover g parallelism getting the total dipole matrix
+       ! 
+       CALL dipole_calc_pw( ik, dipole_aux, metalcalc, nbndmin, nbndmax, ekin_eout, ekin_error)
+       !
+       dipole_2(:,:) = 0.0_DP
+       DO ipol = 1, 3  
+         dipole_2(:,:) = dipole_2(:,:) + tpiba2 * REAL( dipole_aux(ipol,:,:) * CONJG(dipole_aux(ipol,:,:)), DP )
+       ENDDO
+       !
+       ! Calculation of photoemission spectra
+       ! 'intersmear' is the brodening parameter
+       !
+       DO iband1 = 1, nbndmax 
+          !
+          IF ( focc(iband1,ik) >= 1.0d-4 ) THEN
+             !
+             DO ig = 1, npw
+                !
+		IF( ( ekin_minus .le. (g2kin(ig)*tpiba2) ) .and.( (g2kin(ig)*tpiba2) .le. ekin_plus ) )  THEN        
+                  !  
+                  ! transition energy 
+                  !
+                  etrans = (0.0d0 - et(iband1, ik) ) * RYTOEV  + shift ! g2kin were called in the dipole_pw routine
+                  !
+                  IF( etrans < 1.0d-10 ) CYCLE
+                  !
+                  ! loop over frequencies
+                  !
+                  DO iw = 1, nw
+                    !
+                    w = wgrid(iw)
+                    !
+                    photospec(iw) = photospec(iw) + intersmear * dipole_2(iband1, ig) &
+                                 / ( PI * ( (etrans - w )**2 + (intersmear)**2 ) )
+                    ! 
+                  ENDDO
+                  ! 
+                ENDIF
+                !  
+             ENDDO 
+             !
+          ENDIF
+          !
+       ENDDO
+       !  
+    ENDDO kpt_lor
+
+  ELSE IF (smeartype=='gauss') THEN
+
+    kpt_gauss: &
+    DO ik = 1, nks
+       !
+       ! For every single k-point: order k+G for
+       !                           read and distribute wavefunctions
+       !                           compute dipole matrix 3 x nbnd x nbnd parallel over g 
+       !                           recover g parallelism getting the total dipole matrix
+       ! 
+       CALL dipole_calc_pw( ik, dipole_aux, metalcalc, nbndmin, nbndmax, ekin_eout, ekin_error)
+       !
+       dipole_2(:,:) = 0.0_DP
+       DO ipol = 1, 3
+         dipole_2(:,:) = dipole_2(:,:) + tpiba2 * REAL( dipole_aux(ipol,:,:) * CONJG(dipole_aux(ipol,:,:)), DP )
+       ENDDO
+       !
+       ! Calculation of photoemission spectra
+       ! 'intersmear' is the brodening parameter
+       !
+       DO iband1 = 1, nbndmax
+          !
+          IF ( focc(iband1,ik) >= 1.0d-4 ) THEN
+             !
+             DO ig = 1, npw
+                !
+                IF( ( ekin_minus .le. (g2kin(ig)*tpiba2) ) .and.( (g2kin(ig)*tpiba2) .le. ekin_plus ) )  THEN
+                  !  
+                  ! transition energy 
+                  !
+                  etrans = (0.0d0 - et(iband1, ik) ) * RYTOEV  + shift ! g2kin were called in the dipole_pw routine
+                  !
+                  IF( etrans < 1.0d-10 ) CYCLE
+                  !
+                  ! loop over frequencies
+                  !
+                  DO iw = 1, nw
+                    !
+                    w = wgrid(iw)
+                    !
+                    photospec(iw) = photospec(iw) +  dipole_2(iband1,ig) * &
+                                EXP(-(etrans-w)**2/intersmear**2) &
+                                  / (intersmear * SQRT(PI))
+                    ! 
+                  ENDDO
+                  ! 
+                ENDIF
+                !  
+             ENDDO
+             !
+          ENDIF
+          !
+       ENDDO
+       !  
+    ENDDO kpt_gauss
+    !  
+  ELSE
+    !
+    CALL errore('epsilon', 'invalid SMEARTYPE = '//TRIM(smeartype), 1)
+    !
+  ENDIF
+  !
+  ! recover over G parallelization (intra_pool)
+  !
+  CALL mp_sum( photospec(:), intra_pool_comm )
+  !
+  ! write results on data files
+  !
+  IF (ionode) THEN
+     WRITE(stdout,"(/,5x, 'Writing output on file...' )")
+                                               
+     OPEN (30, FILE='photospectra.dat', FORM='FORMATTED' )
+     !
+     WRITE(30, "(2x,'# energy grid [eV]     photospectra [ab.] ')" )
+     !
+     DO iw =1, nw
+         !
+         WRITE(30,"(4f15.6)") wgrid(iw), photospec(iw)
+         !
+     ENDDO
+     !
+     CLOSE(30)
+  ENDIF
+  !
+  ! local cleaning
+  !
+  DEALLOCATE ( photospec , dipole_2, dipole_aux)
+
+!
+! collinear spin calculation
+!
+ELSE IF(nspin==2) THEN
+  !
+  ! allocate main spectral and auxiliary quantities
+  !
+  ALLOCATE( srphotospec(0:1,nw), STAT=ierr )
+      IF (ierr/=0) CALL errore('epsilon','allocating spin resolved photospectra',ABS(ierr))
+  !
+  ALLOCATE( dipole_2(nbndmax, npw), STAT=ierr )
+  IF (ierr/=0) CALL errore('epsilon','allocating dipole', ABS(ierr) )
+  !
+  ALLOCATE( dipole_aux(3, nbndmax, npw), STAT=ierr )
+  IF (ierr/=0) CALL errore('epsilon','allocating dipole_aux', ABS(ierr) )
+
+  ! initialize photoemission
+  !
+  ekin_plus  = ( ekin_eout + ekin_error )/13.6056923
+  ekin_minus = ( ekin_eout - ekin_error )/13.6056923
+  !
+  srphotospec(:,:)=0.0_DP
+  !
+  ! Initialising a counter for the number of transition
+  srcount(:)=0.0_DP
+
+  !
+  ! main kpt loop
+  !
+  IF (smeartype=='lorentz') THEN
+
+  DO is=0,1
+    ! if nspin=2 the number of nks must be even (even if the calculation 
+    ! is performed at gamma point only), so nks must be always a multiple of 2
+    DO ik = 1 + is * INT(nks/2), INT(nks/2) +  is * INT(nks/2)
+       !
+       ! For every single k-point: order k+G for
+       !                           read and distribute wavefunctions
+       !                           compute dipole matrix 3 x nbnd x nbnd parallel over g 
+       !                           recover g parallelism getting the total dipole matrix
+       ! 
+       CALL dipole_calc_pw( ik, dipole_aux, metalcalc, nbndmin, nbndmax, ekin_eout, ekin_error)
+       !
+       dipole_2(:,:) = 0.0_DP
+       DO ipol = 1, 3
+         dipole_2(:,:) = dipole_2(:,:) + tpiba2 * REAL( dipole_aux(ipol,:,:) * CONJG(dipole_aux(ipol,:,:)), DP )
+       ENDDO
+       !
+       ! Calculation of photoemission spectra
+       ! 'intersmear' is the brodening parameter
+       !
+       DO iband1 = 1,nbnd
+          !
+          write(stdout,*) "hello", is, iband1
+          IF ( focc(iband1,ik) >= 1.0d-4 ) THEN
+             !
+             DO ig = 1, npw
+                !
+                IF( ( ekin_minus .le. (g2kin(ig)*tpiba2) ) .and.( (g2kin(ig)*tpiba2) .le. ekin_plus ) )  THEN
+                  !  
+                  ! transition energy 
+                  !
+                  etrans = (0.0d0 - et(iband1, ik) ) * RYTOEV  + shift ! g2kin were called in the dipole_pw routine
+                  !
+                  IF( etrans < 1.0d-10 ) CYCLE
+                  !
+                  ! loop over frequencies
+                  !
+                  DO iw = 1, nw
+                    !
+                    w = wgrid(iw)
+                    !
+                    srphotospec(is,iw) = srphotospec(is,iw) + intersmear * dipole_2(iband1, ig) &
+                                 / ( PI * ( (etrans - w )**2 + (intersmear)**2 ) )
+                    ! 
+                  ENDDO
+                  ! 
+                ENDIF
+                !  
+             ENDDO
+             !
+          ENDIF
+          !
+       ENDDO 
+       !
+    ENDDO  
+  ENDDO
+
+  ELSE IF (smeartype=='gauss') THEN
+
+  DO is=0,1
+    ! if nspin=2 the number of nks must be even (even if the calculation 
+    ! is performed at gamma point only), so nks must be always a multiple of 2
+    DO ik = 1 + is * INT(nks/2), INT(nks/2) +  is * INT(nks/2)
+      !
+       ! For every single k-point: order k+G for
+       !                           read and distribute wavefunctions
+       !                           compute dipole matrix 3 x nbnd x nbnd parallel over g 
+       !                           recover g parallelism getting the total dipole matrix
+       ! 
+       CALL dipole_calc_pw( ik, dipole_aux, metalcalc, nbndmin, nbndmax, ekin_eout, ekin_error)
+       !
+       dipole_2(:,:) = 0.0_DP
+       DO ipol = 1, 3
+         dipole_2(:,:) = dipole_2(:,:) + tpiba2 * REAL( dipole_aux(ipol,:,:) * CONJG(dipole_aux(ipol,:,:)), DP )
+       ENDDO
+       !
+       ! Calculation of photoemission spectra
+       ! 'intersmear' is the brodening parameter
+       !
+       DO iband1 = 1,nbnd
+          !
+          IF ( focc(iband1,ik) >= 1.0d-4 ) THEN
+             !
+             DO ig = 1, npw
+                !
+                IF( ( ekin_minus .le. (g2kin(ig)*tpiba2) ) .and.( (g2kin(ig)*tpiba2) .le. ekin_plus ) )  THEN
+                  !  
+                  ! transition energy 
+                  !
+                  etrans = (0.0d0 - et(iband1, ik) ) * RYTOEV  + shift ! g2kin were called in the dipole_pw routine
+                  !
+                  IF( etrans < 1.0d-10 ) CYCLE
+                  !
+                  ! loop over frequencies
+                  !
+                  DO iw = 1, nw
+                    !
+                    w = wgrid(iw)
+                    !
+                    srphotospec(is,iw) = srphotospec(is,iw)  +  dipole_2(iband1,ig) * &
+                                EXP(-(etrans-w)**2/intersmear**2) &
+                                  / (intersmear * SQRT(PI))
+                    ! 
+                  ENDDO
+                  ! 
+                ENDIF
+                !  
+             ENDDO
+             !
+          ENDIF
+          !
+       ENDDO
+       !
+    ENDDO
+  ENDDO
+  ELSE
+
+    CALL errore('epsilon', 'invalid SMEARTYPE = '//TRIM(smeartype), 1)
+
+  ENDIF
+  !
+  !
+  DO is = 0,1
+  !
+  ! recover over G parallelization (intra_pool)
+  !
+  CALL mp_sum( srphotospec(is,:), intra_pool_comm )
+  !
+  ENDDO
+  !
+  ! write results on data files
+  !
+  IF (ionode) THEN
+     WRITE(stdout,"(/,5x, 'Writing output on file...' )")
+
+     OPEN (30, FILE='photospectra.dat', FORM='FORMATTED' )
+     !
+     WRITE(30, "(2x,'# energy grid [eV]     Uphotospectra [ab.]      Dphotospectra[ab.]')" )
+     !
+     DO iw =1, nw
+         !
+         WRITE(30,"(4f15.6)") wgrid(iw), srphotospec(0,iw), srphotospec(1,iw)
+         !
+     ENDDO
+     !
+     CLOSE(30)
+  ENDIF
+  !
+  ! local cleaning
+  !
+  DEALLOCATE ( srphotospec , dipole_2, dipole_aux)
+  !
+ENDIF
+  !
+  ! local cleaning
+  !
+  CALL grid_destroy()
+  !
+  return
+END SUBROUTINE photoemission_spectr_pw
+
+
+!--------------------------------------------------------------------
+SUBROUTINE dipole_calc_pw( ik, dipole_aux, metalcalc, nbndmin, nbndmax, ekin_eout, ekin_error)
+  !------------------------------------------------------------------
+  USE kinds,                ONLY : DP
+  USE wvfct,                ONLY : npw, nbnd, igk, g2kin, et
+  USE wavefunctions_module, ONLY : evc
+  USE klist,                ONLY : xk
+  USE cell_base,            ONLY : tpiba2
+  USE gvect,                ONLY : ngm, g, ecutwfc
+  USE io_files,             ONLY : nwordwfc, iunwfc
+  USE grid_module,          ONLY : focc
+  USE mp_global,            ONLY : intra_pool_comm
+  USE mp,                   ONLY : mp_sum
+  USE io_global,            ONLY : ionode, stdout
+
+IMPLICIT NONE
+  !
+  ! global variables
+  INTEGER, INTENT(IN)        :: ik,nbndmin, nbndmax
+  REAL(DP),INTENT(IN)        :: ekin_eout, ekin_error
+  COMPLEX(DP), INTENT(INOUT) :: dipole_aux(3, nbndmax, npw)
+  LOGICAL, INTENT(IN)        :: metalcalc
+  !
+  ! local variables
+  INTEGER :: iband1,ig
+  COMPLEX(DP) :: caux 
+  REAL(DP):: ekin_plus, ekin_minus
+  !
+  ! Routine Body
+  ! 
+  CALL start_clock( 'dipole_calc' )
+  !
+  ekin_plus  = ( ekin_eout + ekin_error )/13.6056923 
+  ekin_minus = ( ekin_eout - ekin_error )/13.6056923 
+  !
+  ! setup k+G grids for each kpt
+  !
+  CALL gk_sort (xk (1, ik), ngm, g, ecutwfc / tpiba2, npw, igk, g2kin)  
+  !
+  ! read wfc for the given kpt
+  !
+  CALL davcio (evc, nwordwfc, iunwfc, ik, - 1) 
+  !
+  ! compute matrix elements
+  !
+  dipole_aux(:,:,:) = (0.0_DP,0.0_DP)
+  !
+  DO iband1 = nbndmin, nbndmax 
+      !
+      IF( focc(iband1,ik) >= 1e-4 ) THEN
+        !
+        DO ig = 1, npw
+          !
+          IF( ( ekin_minus .le. (g2kin(ig)*tpiba2) ) .and. ( (g2kin(ig)*tpiba2) .le. ekin_plus) )  THEN  
+            !
+            caux = evc(ig,iband1)
+            !
+            dipole_aux(:,iband1,ig) = dipole_aux(:,iband1,ig) + ( g(:,igk(ig)) ) * caux
+            !
+          ELSE 
+            !
+            dipole_aux(:,iband1,ig) = (0.0_DP,0.0_DP) 
+            ! 
+          ENDIF
+          !
+        ENDDO
+        ! 
+      ENDIF
+      !
+  ENDDO
+  !
+  CALL stop_clock( 'dipole_calc' )
+  !
+  return
+  !
+END SUBROUTINE dipole_calc_pw
+
