@@ -684,7 +684,7 @@ subroutine pc2(a,beca,b,becb, lgam)
 
     subroutine pcdaga3(a,as ,b, lgam )
 
-! this function applies the operator Pc ! For LOWDIN orthogonalization
+ !For LOWDIN orthogonalization
 
 !    this subroutine applies the Pc^dagerr operator
 !    a input :unperturbed wavefunctions
@@ -712,10 +712,13 @@ subroutine pc2(a,beca,b,becb, lgam)
       ! local variables
       integer is, iv, jv, ia, inl, jnl, i, j,ig
       complex(dp) sca
+      complex(DP) :: bold(ngw,n)
       complex(DP), allocatable:: scar(:)
       !
       call start_clock('pcdaga2')
       allocate(scar(n))
+      bold(:,:) = b(:,:)
+      !
       do j=1,n
          do i=1,n
             sca=0.0d0
@@ -723,13 +726,13 @@ subroutine pc2(a,beca,b,becb, lgam)
                IF(lgam) THEN
 		  if (ng0.eq.2) b(1,i) = CMPLX(DBLE(b(1,i)),0.0d0)
 		  do  ig=1,ngw           !loop on g vectors
-		      sca=sca+DBLE(CONJG(a(ig,j))*b(ig,i)+CONJG(a(ig,i))*b(ig,j))
+		      sca=sca+DBLE( CONJG(a(ig,j))*bold(ig,i)+a(ig,i)*CONJG(bold(ig,j)))
 		  enddo
 		  sca = sca*2.0d0  !2. for real weavefunctions
-		  if (ng0.eq.2) sca = sca - DBLE(a(1,j))*DBLE(b(1,i))-DBLE(a(1,i))*DBLE(b(1,j))
+		  if (ng0.eq.2) sca = sca - DBLE(CONJG(a(1,j))*bold(1,i)+a(1,i)*CONJG(bold(1,j)))
                ELSE
 		  do  ig=1,ngw           !loop on g vectors
-		      sca=sca+CONJG(a(ig,j))*b(ig,i)+CONJG(a(ig,i))*b(ig,j)
+		      sca=sca+CONJG(a(ig,j))*bold(ig,i)+a(ig,i)*CONJG(bold(ig,j))
 		  enddo
                ENDIF
             endif
@@ -768,7 +771,7 @@ subroutine pc2(a,beca,b,becb, lgam)
 !    this subroutine applies the Pc operator
 !    a input :unperturbed wavefunctions
 !    b input :first order wavefunctions
-!    b output:b_i =b_i-a_j><a_j|S|b_i>
+!    b output:b_i =b_i-a_j>(<a_j|S|b_i>+<b_j|S|a_i>)
     
       use kinds, only: dp 
       use ions_base, only: na, nsp
@@ -806,7 +809,7 @@ subroutine pc2(a,beca,b,becb, lgam)
 
       logical :: mat_par=.true.!if true uses parallel routines
 
-      CALL start_clock( 'pc2' )
+      CALL start_clock( 'pc3us' )
 
       do iss= 1, nspin
          nss= nupdwn( iss )
@@ -817,7 +820,7 @@ subroutine pc2(a,beca,b,becb, lgam)
 	    bectmp(:,:)=0.d0
          else
 	    allocate(bectmp_c(nss,nss))
-	    bectmp(:,:)=CMPLX(0.d0,0.d0)
+	    bectmp_c(:,:)=CMPLX(0.d0,0.d0)
          endif
 ! 
          allocate(zbectmp(nss,nss))
@@ -828,7 +831,7 @@ subroutine pc2(a,beca,b,becb, lgam)
 	    do j=1,nss
 		do i=1,nss
 		  bectmp(i,j)=2.d0*DBLE(zbectmp(i,j))
-		  if(ng0.eq.2) bectmp(i,j)=bectmp(i,j)-DBLE(a(1,j))*DBLE(b(1,i))
+		  if(ng0.eq.2) bectmp(i,j)=bectmp(i,j)-DBLE(CONJG(a(1,j))*(b(1,i)))
 		enddo
 	    enddo
 	    call mp_sum( bectmp(:,:), intra_image_comm)
@@ -919,10 +922,10 @@ subroutine pc2(a,beca,b,becb, lgam)
          else
 	    do i=1,nss
 		do j=1,nss
-		  zbectmp(i,j)=0.5d0*(bectmp_c(i,j)+bectmp_c(j,i))
+		  zbectmp(i,j)=0.5d0*(bectmp_c(i,j)+CONJG(bectmp_c(j,i)))
 		enddo
 	    enddo
-           bectmp_c(:,:) = zbectmp(:,:)
+           bectmp_c(:,:) = CONJG(zbectmp(:,:))
          endif
 
          call zgemm('N','N',ngw,nss,nss,(-1.d0,0.d0),a(:,istart),ngw,zbectmp,nss,(1.d0,0.d0),b(:,istart),ngw)
@@ -942,7 +945,7 @@ subroutine pc2(a,beca,b,becb, lgam)
          endif
          !
       enddo!on spin
-      CALL stop_clock( 'pc2' )
+      CALL stop_clock( 'pc3us' )
       return
       end subroutine pc3us
 
@@ -955,8 +958,7 @@ subroutine pc2(a,beca,b,becb, lgam)
 !    this subroutine applies the modified Pc operator
 !    a input :unperturbed wavefunctions
 !    b input :first order wavefunctions
-!    b output:b_i =b_i - |a_j>(<a_j|b_i>+<a_i|b_j>)/2
-!    for ultrasoft b_i=b_i - |a_j>(<a_j|S|b_i>+<a_i|S|b_j>)/2
+!    b output:b_i =b_i - |a_j>(<a_j|b_i>+<b_j|a_i>)/2
 
       use kinds
       use io_global, only: stdout
@@ -994,12 +996,11 @@ subroutine pc2(a,beca,b,becb, lgam)
 		do  ig=1,ngw           !loop on g vectors
 		    sca_c=sca_c+CONJG(a(ig,j))*bold(ig,i)
 		    sca_c=sca_c+(a(ig,i))*CONJG(bold(ig,j))
-		    !sca_c=sca_c+CONJG(a(ig,i))*(bold(ig,j))
 		enddo
 		!sca = sca*2.0d0  !2. for real weavefunctions
 		!$$ not necessary: sca = sca*2.0d0  !2. for real weavefunctions
                if(lgam) then
-		  if (ng0.eq.2) then
+		if (ng0.eq.2) then
                    sca_c = CMPLX(DBLE(sca_c),0.d0) - CMPLX(0.5d0*DBLE(CONJG(a(1,j))*(bold(1,i))+(a(1,i))*CONJG(bold(1,j))),0.d0)
                  else
                    sca_c = CMPLX(DBLE(sca_c), 0.d0)
@@ -1321,8 +1322,10 @@ subroutine pc2(a,beca,b,becb, lgam)
       ELSE
 	deallocate(q_matrix_c,c_matrix_c, work_c)
       ENDIF
-
+      !
       deallocate(ipiv)
+      !
+!       call set_twin(m_minus1,CMPLX(0.d0,0.d0))
       call stop_clock('set_x_minus1')
       return
     end subroutine set_x_minus1_twin

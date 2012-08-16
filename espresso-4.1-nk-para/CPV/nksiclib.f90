@@ -1353,7 +1353,7 @@ end subroutine nksic_newd
 ! ... calculate the non-Koopmans potential from the orbital density
 !
       use kinds,                only : dp
-      use constants,            only : e2, fpi
+      use constants,            only : e2, fpi, hartree_si, electronvolt_si
       use cell_base,            only : tpiba2,omega
       use nksic,                only : etxc => etxc_sic, vxc => vxc_sic, nknmax, nkscalfact
       use grid_dimensions,      only : nnrx, nr1, nr2, nr3
@@ -1477,7 +1477,7 @@ end subroutine nksic_newd
       ! set ehele as measure of spread
       !
       !IF(icompute_spread) THEN
-         wfc_spreads(ibnd,ispin,2)=abs(ehele)*100.d0
+         wfc_spreads(ibnd,ispin,2)=abs(ehele)*fact*hartree_si/electronvolt_si
       !ENDIF
       !
       ! partial cleanup
@@ -1807,6 +1807,255 @@ end subroutine nksic_correction_pz
       end subroutine nksic_correction_nkpz
 !---------------------------------------------------------------
 
+!---------------------------------------------------------------
+      subroutine nksic_correction_nkipz( f, orb_rhor, vsic, wrefsic, pink, ibnd, ispin ) 
+!---------------------------------------------------------------
+!
+! ... calculate the non-Koopmans-I potential on top of Perdew-Zunger, 
+!     from the orbital densities
+!
+      use kinds,                only : dp
+      use constants,            only : e2, fpi
+      use cell_base,            only : tpiba2,omega
+      use nksic,                only : fref, nkscalfact, &
+                                       do_wref, vanishing_rho_w
+      use grid_dimensions,      only : nnrx, nr1, nr2, nr3
+      use gvecp,                only : ngm
+      use recvecs_indexes,      only : np, nm
+      use reciprocal_vectors,   only : gstart, g
+      use eecp_mod,             only : do_comp
+      use cp_interfaces,        only : fwfft, invfft, fillgrad
+      use fft_base,             only : dfftp
+      use funct,                only : dmxc_spin, dft_is_gradient
+      use mp_global,            only : intra_image_comm
+      use mp,                   only : mp_sum
+      use control_flags,  only : gamma_only, do_wf_cmplx
+
+      !
+      implicit none
+      real(dp),    intent(in)  :: f, orb_rhor(nnrx)
+      integer,     intent(in)  :: ispin, ibnd
+      real(dp),    intent(out) :: vsic(nnrx), wrefsic(nnrx)
+      real(dp),    intent(out) :: pink
+      !
+      integer     :: ig, ir
+      real(dp)    :: fact, etxcref, ehele
+      real(dp)    :: w2cst
+      !
+      real(dp),    allocatable :: rhoele(:,:)
+      real(dp),    allocatable :: rhoref(:,:)
+      real(dp),    allocatable :: vxcref(:,:)
+      real(dp),    allocatable :: wxdsic(:,:)
+      real(dp),    allocatable :: grhoraux(:,:,:)
+      real(dp),    allocatable :: haux(:,:,:)
+      complex(dp), allocatable :: vhaux(:)
+      complex(dp), allocatable :: vcorr(:)
+      complex(dp), allocatable :: rhogaux(:,:)
+      complex(dp), allocatable :: vtmp(:)
+      logical :: lgam
+      real(dp) :: icoeff
+      real(dp) :: dexc_dummy(3,3)
+      !
+      CALL start_clock( 'nk_corr' )
+      CALL start_clock( 'nk_corr_h' )
+      !
+      lgam = gamma_only.and..not.do_wf_cmplx
+      if(lgam) then
+        icoeff=2.d0
+      else
+        icoeff=1.d0
+      endif
+      
+      fact=omega/DBLE(nr1*nr2*nr3)
+      !
+      allocate(wxdsic(nnrx,2))
+      allocate(rhoele(nnrx,2))
+      allocate(rhoref(nnrx,2))
+      allocate(rhogaux(ngm,2))
+      allocate(vtmp(ngm))
+      allocate(vcorr(ngm))
+      allocate(vhaux(nnrx))
+      !
+      rhoele=0.0d0
+      rhoele(:,ispin)=orb_rhor(:)
+      !
+      vsic=0.0_dp
+      wrefsic=0.0_dp
+      wxdsic=0.0_dp
+      pink=0.0_dp
+      !
+      ! compute self-hartree contributions
+      !
+      rhogaux=0.0_dp
+      !
+      ! rhoele has no occupation
+      !
+      vhaux(:) = rhoele(:,ispin)
+      !
+      call fwfft('Dense',vhaux,dfftp )
+      !
+      do ig=1,ngm
+        rhogaux(ig,ispin) = vhaux( np(ig) )
+      enddo
+      !    
+      ! compute hartree-like potential
+      !
+      if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
+      do ig=gstart,ngm
+        vtmp(ig)=rhogaux(ig,ispin)*fpi/(tpiba2*g(ig))
+      enddo
+      !
+      ! compute periodic corrections
+      !
+      if( do_comp ) then
+        !
+        call calc_tcc_potential( vcorr, rhogaux(:,ispin))
+        vtmp(:) = vtmp(:) + vcorr(:)
+        !
+      endif
+      !
+      vhaux=0.0_dp
+!       IF(lgam) THEN  !!!### uncomment for k points
+          do ig=1,ngm
+            !
+            vhaux(np(ig)) = vtmp(ig)
+            vhaux(nm(ig)) = CONJG(vtmp(ig))
+            !
+          enddo
+!       ELSE !!!### uncomment for k points
+!         do ig=1,ngm !!!### uncomment for k points
+            !
+!           vhaux(np(ig)) = vtmp(ig) !!!### uncomment for k points
+!           vhaux(nm(ig)) = conjg(vtmp(ig))
+            !
+!         enddo !!!### uncomment for k points
+!       ENDIF !!!### uncomment for k points
+      !
+      call invfft('Dense',vhaux,dfftp)
+      !
+      ! init here wref sic to save some memory
+      !
+      ! this is just the self-hartree potential 
+      ! (to be multiplied by fref later on)
+      !
+      wrefsic(1:nnrx)=DBLE(vhaux(1:nnrx))
+      !
+      ! 
+      !
+      vsic(1:nnrx)=-0.5d0*DBLE(vhaux(1:nnrx)) 
+      !
+      deallocate(vtmp)
+      deallocate(vcorr)
+      deallocate(vhaux)
+      !
+      call stop_clock( 'nk_corr_h' )
+      call start_clock( 'nk_corr_vxc' )
+      !
+      !   add self-xc contributions
+      !
+      rhoref=fref*rhoele
+      !
+      if ( dft_is_gradient() ) then
+         allocate(grhoraux(nnrx,3,2))
+         allocate(haux(nnrx,2,2))
+         !
+         grhoraux=0.0_dp
+         call fillgrad( 1, rhogaux, grhoraux(:,:,ispin:ispin), lgam ) 
+         !
+         grhoraux(:,:,ispin) = grhoraux(:,:,ispin) * fref
+      else
+         allocate(grhoraux(1,1,1))
+         allocate(haux(1,1,1))
+         grhoraux=0.0_dp
+      endif
+      !   
+
+
+      allocate(vxcref(nnrx,2))
+      !
+      etxcref=0.0_dp
+      vxcref=0.0_dp
+      !
+      vxcref=rhoref
+      !
+      CALL exch_corr_cp(nnrx, 2, grhoraux, vxcref, etxcref) !proposed:giovanni fixing PBE, warning, rhoref overwritten with vxcref, check array dimensions
+      !
+      !begin_added:giovanni fixing PBE potential      
+      if (dft_is_gradient()) then
+         !
+         !  Add second part of the xc-potential to rhor
+         !  Compute contribution to the stress dexc
+         !  Need a dummy dexc here, need to cross-check gradh! dexc should be dexc(3,3), is lgam a variable here?
+         call gradh( 2, grhoraux, rhogaux, vxcref, dexc_dummy, lgam)
+         !  grhoraux(nnr,3,nspin)?yes; rhogaux(ng,nspin)? rhoref(nnr, nspin) 
+         !
+      end if
+!end_added:giovanni fixing PBE potential
+      deallocate(rhogaux)
+!       call exch_corr_wrapper(nnrx,2,grhoraux,rhoref,etxcref,vxcref,haux)
+      !
+      ! update vsic pot 
+      ! 
+      vsic(1:nnrx)=vsic(1:nnrx)-vxcref(1:nnrx,ispin)
+      !
+      ! define pink
+      !
+      pink=f*sum(vsic(1:nnrx)*rhoele(1:nnrx,ispin))*fact
+      call mp_sum(pink,intra_image_comm)
+      !
+      call stop_clock( 'nk_corr_vxc' )
+      !
+      !   calculate wref
+      !
+      CALL start_clock( 'nk_corr_fxc' )
+      !
+      if( do_wref ) then
+          !  
+          ! note that wxd and wref are updated 
+          ! (and not overwritten) by the next call
+          !
+          call nksic_dmxc_spin_cp_update(nnrx,rhoref,f,ispin,rhoele, &
+                                  vanishing_rho_w,wrefsic,wxdsic)!modified:linh
+          !
+          w2cst=sum(wrefsic(1:nnrx)*rhoele(1:nnrx,ispin))*fact
+          !
+          call mp_sum(w2cst,intra_image_comm)
+          !
+          do ir=1,nnrx
+            wrefsic(ir)=-fref*(wrefsic(ir)-w2cst)
+          enddo
+          !
+      endif
+      !
+      CALL stop_clock( 'nk_corr_fxc' )
+      !
+      !   rescale contributions with the nkscalfact parameter
+      !   take care of non-variational formulations
+      !
+      pink = pink * nkscalfact
+      vsic = vsic * nkscalfact
+      !
+      if( do_wref ) then
+          wrefsic = wrefsic * nkscalfact
+      else
+          wrefsic = 0.d0
+      endif
+      !
+      deallocate(wxdsic)
+      deallocate(vxcref)
+      deallocate(rhoele)
+      deallocate(rhoref)
+      deallocate(grhoraux)
+      deallocate(haux)
+      !
+      CALL stop_clock( 'nk_corr' )
+      return
+      !
+!---------------------------------------------------------------
+      end subroutine nksic_correction_nkipz
+!---------------------------------------------------------------
+
+
 
 !---------------------------------------------------------------
       subroutine nksic_correction_nki( f, ispin, orb_rhor, rhor, &
@@ -1871,6 +2120,7 @@ end subroutine nksic_correction_pz
       complex(dp), allocatable :: orb_rhog(:,:)
       real(dp),    allocatable :: haux(:,:,:)
       logical :: lgam
+      real(dp) :: icoeff
       real(dp) :: dexc_dummy(3,3)
       !
       !==================
@@ -1878,7 +2128,12 @@ end subroutine nksic_correction_pz
       !==================
       !
       lgam = gamma_only.and..not.do_wf_cmplx
-
+      if(lgam) then
+        icoeff=2.d0
+      else
+        icoeff=1.d0
+      endif
+      
       if( ibnd > nknmax .and. nknmax > 0 ) return
       !
       CALL start_clock( 'nk_corr' )
@@ -1965,8 +2220,8 @@ end subroutine nksic_correction_pz
       !
       !ehele=0.5_dp * sum(dble(vhaux(1:nnrx))*rhoele(1:nnrx,ispin))
       !
-      ehele = 2.0_dp * DBLE ( DOT_PRODUCT( vtmp(1:ngm), orb_rhog(1:ngm,1)))
-      if ( gstart == 2 ) ehele = ehele -DBLE ( CONJG( vtmp(1) ) * orb_rhog(1,1) )
+      ehele = icoeff * DBLE ( DOT_PRODUCT( vtmp(1:ngm), orb_rhog(1:ngm,1)))
+      if ( gstart == 2 ) ehele = ehele + (1.d0-icoeff)*DBLE ( CONJG( vtmp(1) ) * orb_rhog(1,1) )
       !
       ! -self-hartree energy to be added to the vsic potential
       w2cst = -0.5_dp * ehele * omega 
@@ -3208,8 +3463,8 @@ end subroutine nksic_rot_test
       real(dp),    allocatable :: vsic1(:,:), vsic2(:,:)
       type(twin_matrix)       :: bec1,bec2
       real(dp),    allocatable :: pink1(:), pink2(:)
-      logical :: restartcg_innerloop, ene_ok_innerloop, ltresh
-      integer :: iter3
+      logical :: restartcg_innerloop, ene_ok_innerloop, ltresh, setpassomax
+      integer :: iter3, nfail
       integer :: maxiter3,numok
       real(dp) :: signalpha
       character(len=4) :: marker
@@ -3225,10 +3480,12 @@ end subroutine nksic_rot_test
       restartcg_innerloop = .true.
       ene_ok_innerloop = .false.
       ltresh=.false.
+      setpassomax=.false.
+      nfail=0
       !
       pinksumprev=1.d8
       dPI = 2.0_DP * asin(1.0_DP)
-      passoprod = (0.3d0/dPI)*dPI
+      passoprod = 0.3d0
 
       !
       ! local workspace
@@ -3369,6 +3626,7 @@ end subroutine nksic_rot_test
             restartcg_innerloop ) then
             !
             restartcg_innerloop=.false.
+            setpassomax=.false.
             !
             hi(:,:) = gi(:,:)
         else
@@ -3422,8 +3680,9 @@ end subroutine nksic_rot_test
         !
         passomax=passoprod/dmaxeig
         !
-        if( ninner == 1 ) then
+        if( ninner == 1 .or. setpassomax) then
             passof = passomax
+            setpassomax=.false.
 #ifdef __DEBUG
             if(ionode) write(1031,*) '# passof set to passomax'
 #endif
@@ -3545,15 +3804,26 @@ end subroutine nksic_rot_test
                Omattot   = MATMUL( Omattot, Omat2tot)
                !write(6,'("# WARNING: innerloop case 3 interations",3I/)') iter3 
                write(marker,'(i1)') iter3
-               marker = '*'//marker//'*'
+               marker = '*'//marker
+               passof=passo*abs(signalpha)
+               nfail=0
                !
             ELSE
                !
-               write(6,'("# WARNING: innerloop not converged, exit",/)') 
+               marker = '***'
                ninner = ninner + 1
-               call stop_clock( "nk_innerloop" )
+               nfail=nfail+1
+               numok=0
+               passof=passo*abs(signalpha)
                !
-               exit
+               IF(nfail>2) THEN
+                  write(6,'("# WARNING: innerloop not converged, exit",/)') 
+                  call stop_clock( "nk_innerloop" )
+                  exit
+               ENDIF
+!                ELSE
+!                   nfail=0
+!                ENDIF
                !
             ENDIF
 #ifdef __DEBUG
@@ -3573,6 +3843,7 @@ end subroutine nksic_rot_test
 !             bec%rvec(:,:)  = bec2(:,:)
             Omattot   = MATMUL( Omattot, Omat2tot)
             marker="   "
+            nfail=0
             !
         else !missed minimum, case 1 or 2
             !
@@ -3584,9 +3855,12 @@ end subroutine nksic_rot_test
             restartcg_innerloop = .true.
             IF(enever<ene0) THEN
                marker="*  "
+               passof=min(1.5d0*passov,passomax)
             ELSE
                marker="** "
+               passof=passov
             ENDIF
+            nfail=0
             !
 #ifdef __DEBUG
             if(ionode) then

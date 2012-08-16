@@ -239,9 +239,9 @@
 
                !  matrix is distributed
                IF(.not.lambda(iss)%iscmplx) THEN
-                   CALL qe_pdsyevd( .false., n, desc(1:,iss), lambda(iss)%rvec(1:,1:), SIZE(lambda(iss)%rvec,1), wr )
+                   CALL qe_pdsyevd( .false., n, desc(1,iss), lambda(iss)%rvec(1,1), SIZE(lambda(iss)%rvec,1), wr )
                ELSE
-                   CALL qe_pzheevd( .false., n, desc(1:,iss), lambda(iss)%cvec(1:,1:), SIZE(lambda(iss)%cvec,1), wr )
+                   CALL qe_pzheevd( .false., n, desc(1,iss), lambda(iss)%cvec(1,1), SIZE(lambda(iss)%cvec,1), wr )
                ENDIF
             ELSE
 

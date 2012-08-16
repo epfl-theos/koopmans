@@ -1575,7 +1575,7 @@ END FUNCTION
 
 !$$
 !----------------------------------------------------------------------
-     SUBROUTINE lowdin(a)
+     SUBROUTINE lowdin(a, lgam)
 !----------------------------------------------------------------------
 
       use kinds
@@ -1590,8 +1590,11 @@ END FUNCTION
 
       complex(dp) a(ngw,n), aold(ngw,n)
       integer i, j,k,ig, isp,ndim,nbnd1,nbnd2
-      real(dp) sca,sqrt_seig(n)
-      real(DP), allocatable :: s(:,:),omat(:,:),seig(:),sqrt_s(:,:)
+      real(dp) sqrt_seig(n)
+      complex(DP) :: sca
+      real(DP), allocatable :: seig(:)
+      complex(DP), allocatable :: s(:,:), omat(:,:), sqrt_s(:,:)
+      logical :: lgam
       !
       aold(:,:)=a(:,:)
 
@@ -1604,29 +1607,38 @@ END FUNCTION
         allocate(seig(ndim))
         allocate(sqrt_s(ndim,ndim))
 
-        s(:,:)=0.d0
+        s(:,:)=CMPLX(0.d0,0.d0)
 
         do i=1,ndim
           nbnd1=iupdwn(isp)-1+i
-          do j=1,ndim
+          do j=1,i
             nbnd2=iupdwn(isp)-1+j
-            if(j.lt.i) then
-              s(i,j)=s(j,i)
-            else
-              sca=0.0d0
-              if (ng0.eq.2) aold(1,nbnd1) = CMPLX(DBLE(a(1,nbnd1)),0.0d0)
-              do  ig=1,ngw           !loop on g vectors
-                sca=sca+DBLE(CONJG(a(ig,nbnd2))*a(ig,nbnd1))
-              enddo
-              sca = sca*2.0d0  !2. for real weavefunctions
-              if (ng0.eq.2) sca = sca - DBLE(a(1,nbnd2))*DBLE(a(1,nbnd1))
-              s(i,j) = sca
-            endif
+!             if(j.lt.i) then
+!               s(i,j)=s(j,i)
+!             else
+              sca=CMPLX(0.0d0,0.d0)
+              IF(lgam) THEN
+                 if (ng0.eq.2) aold(1,nbnd1) = CMPLX(DBLE(a(1,nbnd1)),0.0d0)
+                 do  ig=1,ngw           !loop on g vectors
+                   sca=sca+DBLE(CONJG(a(ig,nbnd2))*a(ig,nbnd1))
+                 enddo
+                 sca = sca*2.0d0  !2. for real weavefunctions
+                 if (ng0.eq.2) sca = sca - DBLE(CONJG(a(1,nbnd2))*a(1,nbnd1))
+                 s(i,j) = CMPLX(DBLE(sca),0.d0)
+                 s(j,i) = s(i,j)
+              ELSE
+                 do  ig=1,ngw           !loop on g vectors
+                   sca=sca+CONJG(a(ig,nbnd2))*a(ig,nbnd1)
+                   s(i,j) = sca
+                   s(j,i) = CONJG(sca)
+                 enddo
+              ENDIF
+!             endif
           enddo
         enddo
+        
         call mp_sum( s, intra_image_comm )
-
-        call ddiag(ndim,ndim,s,seig,omat,1)
+        call zdiag(ndim,ndim,s,seig,omat,1)
 
         do i=1,ndim
           if(seig(i).lt.0.d0.and.ionode) write(*,*) 'seig is negative ',seig(:)
@@ -1634,18 +1646,19 @@ END FUNCTION
 
         sqrt_seig(:)=1.d0/DSQRT(seig(:))
 
-        sqrt_s(:,:)=0.d0
+        sqrt_s(:,:)=CMPLX(0.d0,0.d0)
         do i=1,ndim
-          do j=1,ndim
-            if(j.lt.i) then
-              sqrt_s(i,j)=sqrt_s(j,i)
-            else
+          do j=1,i
+!             if(j.lt.i) then
+!               sqrt_s(i,j)=sqrt_s(j,i)
+!             else
               sca=0.d0
               do k=1,ndim
-                sca=sca+sqrt_seig(k) * omat(i,k)*omat(j,k)
+                sca=sca+sqrt_seig(k) * omat(i,k)*CONJG(omat(j,k))
               enddo
               sqrt_s(i,j) = sca
-            endif
+              sqrt_s(j,i) = CONJG(sca)
+!             endif
           enddo
         enddo
 

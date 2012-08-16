@@ -152,7 +152,7 @@
       real(DP)    :: dtmp, temp
       real(dp)    :: tmppasso, ene_save(100), ene_save2(100), ene_lda
       !
-      logical :: lgam, switch=.false.
+      logical :: lgam, switch=.false., ortho_switch=.false.
       complex(DP) :: phase
       integer :: ierr
       !
@@ -237,10 +237,13 @@
 !$$
 
       !orthonormalize c0
-      call calbec(1,nsp,eigr,c0,bec)
-
-      call gram(betae,bec,nhsa,c0,ngw,nbsp)
-
+      IF(do_orbdep.and.ortho_switch) THEN
+         call lowdin(c0, lgam)
+         call calbec(1,nsp,eigr,c0,bec)
+      ELSE
+         call calbec(1,nsp,eigr,c0,bec)
+         call gram(betae,bec,nhsa,c0,ngw,nbsp)
+      ENDIF
       !call calbec(1,nsp,eigr,c0,bec)
 
       ! calculates phi for pcdaga
@@ -385,6 +388,7 @@
                                     ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
 
               eodd=sum(pink(1:nbsp))
+!               write(6,*) eodd, etot, "EODD0", etot+eodd
               etot = etot + eodd
               !
           endif
@@ -469,8 +473,10 @@
 !            endif
 !$$
              eodd    = sum(pink(1:nbsp))
+!              write(6,*) eodd, etot, "EODD_inn", etot+eodd
              etot    = etot + eodd
              etotnew = etotnew + eodd
+
              !call stop_clock( "inner_loop" )
              !
            endif
@@ -710,7 +716,9 @@
         if(switch.or.(.not.do_orbdep)) then
           call pcdaga2(c0,phi,hpsi, lgam)
         else
+!           call calbec(1,nsp,eigr,hpsi,becm)
           call pc3nc(c0,hpsi,lgam)
+!           call pc3us(c0,bec,hpsi,becm,lgam)
 !           call pcdaga3(c0,phi,hpsi, lgam)
         endif
 !$$
@@ -997,7 +1005,6 @@
 !           call pc3us(c0,bec,hi,bec0, lgam)
         endif
 !$$
-        
 
         !do quadratic minimization
         !             
@@ -1219,12 +1226,17 @@
 
       !orthonormalize
 
-      call calbec(1,nsp,eigr,cm,becm)
-      call gram(betae,becm,nhsa,cm,ngw,nbsp)
-
+      !
+      if(do_orbdep.and.ortho_switch) then
+         call lowdin(cm, lgam)
+         call calbec(1,nsp,eigr,cm,becm)
+      else
+         call calbec(1,nsp,eigr,cm,becm)
+         call gram(betae,becm,nhsa,cm,ngw,nbsp)
+      endif
         !call calbec(1,nsp,eigr,cm,becm)
 
-        !calculate energy
+        !****calculate energy ene1
         if(.not.tens) then
           call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
         else
@@ -1264,6 +1276,7 @@
                                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
             !
             eodd=sum(pink(1:nbsp))
+!             write(6,*) eodd, etot, "EODD2", etot+eodd !debug:giovanni
             etot = etot + eodd
             !
         endif
@@ -1324,8 +1337,13 @@
         ! enddo
         ENDIF
 
-        call calbec(1,nsp,eigr,cm,becm)
-        call gram(betae,becm,nhsa,cm,ngw,nbsp)
+        if(do_orbdep.and.ortho_switch) THEN
+           call lowdin(cm, lgam)
+           call calbec(1,nsp,eigr,cm,becm)
+        ELSE
+           call calbec(1,nsp,eigr,cm,becm)
+           call gram(betae,becm,nhsa,cm,ngw,nbsp)
+        ENDIF
 
         !test on energy: check the energy has really diminished
 
@@ -1376,6 +1394,7 @@
             call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
                                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
             eodd = sum(pink(1:nbsp))
+!             write(6,*) eodd, etot,"EODD3", etot+eodd
             etot = etot + eodd
             !
         endif
@@ -1443,9 +1462,15 @@
           passof=2.d0*passov
 !$$
           restartcg=.true.
-          call calbec(1,nsp,eigr,c0,bec)
-          call gram(betae,bec,nhsa,c0,ngw,nbsp)
-
+          !
+          IF(do_orbdep.and.ortho_switch) THEN
+             call lowdin(c0, lgam)
+             call calbec(1,nsp,eigr,c0,bec)
+          ELSE
+             call calbec(1,nsp,eigr,c0,bec)
+             call gram(betae,bec,nhsa,c0,ngw,nbsp)
+          ENDIF
+          !
           ene_ok=.false.
           !if  ene1 << energy <  ene0; go to  ene1
         else if( (enever.ge.ene0).and.(ene0.gt.ene1)) then
@@ -1457,9 +1482,15 @@
           passof=1.d0*passov
 !$$
           restartcg=.true.!ATTENZIONE
-          call calbec(1,nsp,eigr,c0,bec)
-          call gram(betae,bec,nhsa,c0,ngw,nbsp)
-
+          !
+          IF(do_orbdep.and.ortho_switch) THEN
+             call lowdin(c0, lgam)
+             call calbec(1,nsp,eigr,c0,bec)
+          ELSE
+             call calbec(1,nsp,eigr,c0,bec)
+             call gram(betae,bec,nhsa,c0,ngw,nbsp)
+          ENDIF
+          !
           !if ene > ene0,en1 do a steepest descent step
           ene_ok=.false.
         else if((enever.ge.ene0).and.(ene0.le.ene1)) then
@@ -1479,9 +1510,14 @@
 !$$
             ! chenge the searching direction
             spasso=spasso*(-1.d0)
-            call calbec(1,nsp,eigr,cm,becm)
-            call gram(betae,bec,nhsa,cm,ngw,nbsp)
-            call calbec(1,nsp,eigr,cm,becm)
+            
+            IF(do_orbdep.and.ortho_switch) THEN
+               call lowdin(cm, lgam)
+               call calbec(1,nsp,eigr,cm,becm)
+            ELSE
+               call calbec(1,nsp,eigr,cm,becm)
+               call gram(betae,bec,nhsa,cm,ngw,nbsp)
+            ENDIF
 
             if(.not.tens) then
               call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
@@ -1533,6 +1569,7 @@
                                       ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
                 !
                 eodd = sum(pink(1:nbsp))
+!                 write(6,*) eodd, etot, "EODD4", etot+eodd
                 etot = etot + eodd
                 !
             endif
@@ -1558,11 +1595,14 @@
 
 !$$
           !if(.not.do_orbdep) then
-              if(iter3 == maxiter3) then
+              if(iter3 == maxiter3 .and. enever.gt.ene0) then
                 write(stdout,"(2x,a)") 'missed minimun: iter3 = maxiter3'
+                write(stdout,*) enever, ene0
               else if(enever.le.ene0) then
                 c0(:,:)=cm(:,:)
+                call copy_twin(bec,becm)
               endif
+
           !endif
 !$$
 
@@ -1697,6 +1737,7 @@
              call nksic_potential( nbsp, nbspx, c0, fsic, bec, rhovan, deeq_sic, &
                                    ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
              eodd = sum(pink(1:nbsp))
+!              write(6,*) eodd, etot, "EODD5", etot+eodd
              etot = etot + eodd
              !
          endif
