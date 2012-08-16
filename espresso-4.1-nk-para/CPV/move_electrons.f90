@@ -137,11 +137,13 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
          !
          ! std implementation
          !
-        csc=CMPLX(0.d0,0.d0) !added:giovanni:debug
+        csc=CMPLX(0.d0,0.d0) 
+!begin_added:giovanni:debug
 !        call scalar_us(bec, nkb, vkb, c0, ngw, nbsp, csc, nbsp, lgam)
 !        write(6,*) nbsp, "csc-ortho-before", csc, lgam
 !        call scalar_character(c0, nbsp, ngw, csc, lgam) !added:giovanni:debug
 !        write(6,*) nbsp, "csc-phase", csc
+!end_added:giovanni:debug
 
          CALL rhoofr( nfi, c0, irb, eigrb, bec, &
                          becsum, rhor, rhog, rhos, enl, denl, ekin, dekin6 )
@@ -161,7 +163,6 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
                          becsum, rhor, rhog, rhos, enl, denl, ekin, dekin6 )
          !
      ENDIF
-
      !
      ! ... put core charge (if present) in rhoc(r)
      !
