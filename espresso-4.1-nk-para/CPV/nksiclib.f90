@@ -205,14 +205,14 @@
 
           if( do_nkipz ) then
               !
-              write(6,*) "silvestro", ubound(ispin), ubound(orb_rhor), ubound(vsicpz)
+              !write(6,*) "silvestro", ubound(ispin), ubound(orb_rhor), ubound(vsicpz)
               call nksic_correction_nkipz( focc, ispin(i), orb_rhor(:,jj), vsicpz, &
                                            pinkpz, ibnd )
               !
-              write(6,*) "silvestro", ubound(ispin), ubound(orb_rhor), ubound(vsicpz)
-              vsic(1:nnrx,i) = vsic(1:nnrx,i) + vsicpz(1:nnrx)
+              !write(6,*) "silvestro", ubound(ispin), ubound(orb_rhor), ubound(vsicpz)
+               vsic(1:nnrx,i) = vsic(1:nnrx,i) + vsicpz(1:nnrx)
               !
-              pink(i) = pink(i) +pinkpz
+               pink(i) = pink(i) +pinkpz
               !
           endif
 
@@ -1832,7 +1832,7 @@ end subroutine nksic_correction_pz
       use kinds,                only : dp
       use constants,            only : e2, fpi, hartree_si, electronvolt_si
       use cell_base,            only : tpiba2,omega
-      use nksic,                only : etxc => etxc_sic, vxc => vxc_sic, nknmax, nkscalfact
+      use nksic,                only : nknmax, nkscalfact
       use grid_dimensions,      only : nnrx, nr1, nr2, nr3
       use gvecp,                only : ngm
       use recvecs_indexes,      only : np, nm
@@ -1856,9 +1856,10 @@ end subroutine nksic_correction_pz
       !
       !character(19) :: subname='nksic_correction_pz'
       integer       :: ig
-      real(dp)      :: ehele, fact, w2cst, etmp
+      real(dp)      :: ehele, fact, w2cst, etmp, etxc_
       !
       real(dp),    allocatable :: rhoele(:,:)
+      real(dp),    allocatable :: vxc_(:,:)
       complex(dp), allocatable :: rhogaux(:,:)
       complex(dp), allocatable :: vhaux(:)
       complex(dp), allocatable :: vcorr(:)
@@ -1888,14 +1889,13 @@ end subroutine nksic_correction_pz
       !
       CALL start_clock( 'nk_corr' )
       CALL start_clock( 'nk_corr_h' )
-
-              write(6,*) "silvestro", ubound(orb_rhor), ubound(vsic)
       !
       fact=omega/DBLE(nr1*nr2*nr3)
       !
       allocate(rhogaux(ngm,2))
       allocate(vtmp(ngm))
       allocate(vcorr(ngm))
+      allocate(vxc_(nnrx,2))
       allocate(vhaux(nnrx))
       !
       ! Compute self-hartree contributions
@@ -1985,35 +1985,35 @@ end subroutine nksic_correction_pz
       endif
       !
       !
-      vxc=0.0_dp
-      etxc=0.0_dp
+      vxc_=0.0_dp
+      etxc_=0.0_dp
       !
-      vxc(:,ispin)=orb_rhor(:)
+      vxc_(:,ispin)=orb_rhor(:)
       ! call exch_corr_wrapper(nnrx,2,grhoraux,rhoelef,etxc,vxc,haux)
-      CALL exch_corr_cp(nnrx, 2, grhoraux, vxc, etxc) !proposed:giovanni fixing PBE, warning, check array dimensions
+      CALL exch_corr_cp(nnrx, 2, grhoraux, vxc_, etxc_) !proposed:giovanni fixing PBE, warning, check array dimensions
       !
       if (dft_is_gradient()) then
          !
          !  Add second part of the xc-potential to rhor
          !  Compute contribution to the stress dexc
          !  Need a dummy dexc here, need to cross-check gradh! dexc should be dexc(3,3), is lgam a variable here?
-         call gradh( 2, grhoraux, rhogaux, vxc, dexc_dummy, lgam)
+         call gradh( 2, grhoraux, rhogaux, vxc_, dexc_dummy, lgam)
          !  grhoraux(nnr,3,nspin)?yes; rhogaux(ng,nspin)? rhoref(nnr, nspin) 
          !
       end if
 
-      etmp  = sum( vxc(1:nnrx,ispin) * orb_rhor(1:nnrx) )
-      w2cst = -etxc + etmp
+      etmp  = sum( vxc_(1:nnrx,ispin) * orb_rhor(1:nnrx) )
+      w2cst = -etxc_ + etmp
       w2cst = w2cst * fact
       !
       call mp_sum(w2cst,intra_image_comm)
       !
-      pink = -f*(etxc + ehele)
+      pink = -f*(etxc_ + ehele)
       pink = pink*fact
       !
       call mp_sum(pink,intra_image_comm)
 !$$
-      vsic(1:nnrx) =  vsic(1:nnrx) - vxc(1:nnrx,ispin) + w2cst
+      vsic(1:nnrx) =  vsic(1:nnrx) - vxc_(1:nnrx,ispin) + w2cst
 !      vsic(1:nnrx) = -vxc(1:nnrx,ispin)
 
       pink = pink * nkscalfact
@@ -2021,9 +2021,10 @@ end subroutine nksic_correction_pz
 
       deallocate( grhoraux )
       deallocate( rhogaux )
+      deallocate( vxc_ )
       !
       CALL stop_clock( 'nk_corr' )
-      !
+      
       return
       !
 !---------------------------------------------------------------
