@@ -1484,7 +1484,7 @@ end subroutine nksic_newd
       ! init vsic
       !
       vsic(1:nnrx) =  -DBLE( vhaux(1:nnrx) )
-      ehele        =   0.5_dp * sum( DBLE( vhaux(1:nnrx) ) &
+      ehele        =   f*0.5_dp * sum( DBLE( vhaux(1:nnrx) ) &
                               * orb_rhor(1:nnrx) )
       !
       ! set ehele as measure of spread
@@ -1523,7 +1523,7 @@ end subroutine nksic_newd
       haux=0.0_dp
       etxc=0.0_dp
       !
-      vxc(:,ispin)=orb_rhor(:)
+      vxc(:,ispin)=f*orb_rhor(:)
       ! call exch_corr_wrapper(nnrx,2,grhoraux,rhoelef,etxc,vxc,haux)
       CALL exch_corr_cp(nnrx, 2, grhoraux, vxc, etxc) !proposed:giovanni fixing PBE, warning, check array dimensions
       !
@@ -2105,7 +2105,7 @@ end subroutine nksic_correction_nkipz
       else
         icoeff=1.d0
       endif
-      
+
       if( ibnd > nknmax .and. nknmax > 0 ) return
       !
       CALL start_clock( 'nk_corr' )
@@ -2192,8 +2192,8 @@ end subroutine nksic_correction_nkipz
       !
       !ehele=0.5_dp * sum(dble(vhaux(1:nnrx))*rhoele(1:nnrx,ispin))
       !
-      ehele = icoeff * DBLE ( DOT_PRODUCT( vtmp(1:ngm), orb_rhog(1:ngm,1)))
-      if ( gstart == 2 ) ehele = ehele + (1.d0-icoeff)*DBLE ( CONJG( vtmp(1) ) * orb_rhog(1,1) )
+      ehele = icoeff * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm,1)))
+      if ( gstart == 2 ) ehele = ehele +(1.d0-icoeff)*DBLE ( CONJG( vtmp(1) ) * rhogaux(1,1) )
       !
       ! -self-hartree energy to be added to the vsic potential
       w2cst = -0.5_dp * ehele * omega 
