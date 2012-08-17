@@ -224,6 +224,7 @@ MODULE read_namelists_module
        do_pz = .false.      ! main switch of PZ SIC
        do_nki = .false.     ! main switch of NKI (non-Koopmans, integral ref)
        do_nkpz = .false.    ! main switch of NK (non-Koopmans) on top of PZ
+       do_nkipz = .false.    ! main switch of NK (non-Koopmans) on top of PZ
 !$$
        do_innerloop = .false. ! main switch of inner loop minimization
        do_innerloop_cg = .false. ! main switch of cg inner loop minimization
@@ -860,6 +861,7 @@ MODULE read_namelists_module
        CALL mp_bcast( do_pz,                      ionode_id )
        CALL mp_bcast( do_nki,                     ionode_id )
        CALL mp_bcast( do_nkpz,                    ionode_id )
+       CALL mp_bcast( do_nkipz,                   ionode_id )
 !$$
        CALL mp_bcast( do_innerloop,               ionode_id )
        CALL mp_bcast( do_innerloop_cg,            ionode_id )

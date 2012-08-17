@@ -448,6 +448,7 @@ MODULE input_parameters
         LOGICAL :: do_pz  = .false.
         LOGICAL :: do_nki  = .false.
         LOGICAL :: do_nkpz  = .false.
+        LOGICAL :: do_nkipz  = .false.
         LOGICAL :: do_wref = .true.
         LOGICAL :: do_wxd = .true.
         LOGICAL :: do_hf  = .false.
@@ -463,16 +464,16 @@ MODULE input_parameters
         !
         ! This variable overwrites the ones above
         CHARACTER(80)     :: which_orbdep=" "
-        CHARACTER(LEN=80) :: which_orbdep_allowed(12)
-        CHARACTER(LEN=80) :: which_orbdep_allowed_cmplx(7)
+        CHARACTER(LEN=80) :: which_orbdep_allowed(14)
+        CHARACTER(LEN=80) :: which_orbdep_allowed_cmplx(9)
         !
         DATA which_orbdep_allowed &
           / "none", "nk", "non-koopmans", "nk0", "nki", &
-            "perdew-zunger", "pz", "pznk", "nkpz" ,     &
+            "perdew-zunger", "pz", "pznk", "nkpz" ,"nkipz", "pznki", &
             "hf", "b3lyp", "pbe0" /
         DATA which_orbdep_allowed_cmplx &
           / "none", "nk", "non-koopmans", "nk0", "nki", &
-            "perdew-zunger", "pz"/
+            "perdew-zunger", "pz", "nkipz", "pznki"/
         !
         LOGICAL     :: do_spinsym  = .false.
         INTEGER     :: nknmax = -1
@@ -510,7 +511,7 @@ MODULE input_parameters
              tot_charge, multiplicity, tot_magnetization,                     &
              spline_ps, london, london_s6, london_rcut,                       &
 !=-----BEGIN nksic input variables
-             do_ee, do_nk, do_pz, do_nki, do_nkpz, do_hf,                     &
+             do_ee, do_nk, do_pz, do_nki, do_nkpz, do_nkipz, do_hf,           &
              do_wref, do_wxd, fref, rhobarfact, ampfield, do_efield,          &
              do_hf, nknmax, do_spinsym, f_cutoff,                             &
              nkscalfact, hfscalfact, vanishing_rho_w, which_orbdep,           &

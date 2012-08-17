@@ -357,6 +357,7 @@ module nksic
   logical :: do_nk
   logical :: do_pz
   logical :: do_nkpz
+  logical :: do_nkipz
   logical :: do_nki
   logical :: do_spinsym
   logical :: do_wxd
@@ -403,10 +404,10 @@ contains
       if ( do_nk .or. do_nkpz ) then
           allocate( wxdsic(nnrx,2) )
           allocate( wrefsic(nnrx) )
-      else if ( do_nki ) then
+      else if ( do_nki .or. do_nkipz) then
           allocate( wxdsic(nnrx,2) )
       endif
-      if ( do_nk .or. do_nkpz .or. do_nki ) then
+      if ( do_nk .or. do_nkpz .or. do_nki .or. do_nkipz) then
           allocate(wtot(nnrx,2))
       else
           allocate(wtot(1,2))

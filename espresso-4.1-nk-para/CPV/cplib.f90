@@ -4162,7 +4162,7 @@ END FUNCTION
       !
       ! this routine is called anyway, even if do_nk=F
       !
-      use nksic,            ONLY : do_orbdep, do_nk, do_nkpz, do_pz, do_nki, &
+      use nksic,            ONLY : do_orbdep, do_nk, do_nkipz, do_nkpz, do_pz, do_nki, &
                                    do_wref, do_wxd, fref, rhobarfact, &
                                    vanishing_rho_w, &
                                    nknmax, do_spinsym, f_cutoff, &
@@ -4175,6 +4175,7 @@ END FUNCTION
                                    do_pz_ => do_pz, &
                                    do_nki_ => do_nki, &
                                    do_nkpz_ => do_nkpz, &
+                                   do_nkipz_ => do_nkipz, &
                                    which_orbdep_ => which_orbdep, &
                                    fref_ => fref, &
                                    rhobarfact_ => rhobarfact, &
@@ -4214,6 +4215,7 @@ END FUNCTION
       do_pz   = do_pz_
       do_nki  = do_nki_
       do_nkpz = do_nkpz_
+      do_nkipz = do_nkipz_
       !
       do_wxd  = do_wxd_
       do_wref = do_wref_
@@ -4253,21 +4255,24 @@ END FUNCTION
          do_pz   = .TRUE.
       CASE ( "nkpz", "pznk" )
          do_nkpz = .TRUE.
+      CASE ( "nkipz", "pznki" )
+         do_nkipz = .TRUE.
       CASE DEFAULT
          call errore(subname,"invalid which_orbdep = "//TRIM(which_orbdep_),10)
       END SELECT
       !
-      do_orbdep = do_nk .or. do_pz .or. do_nki .or. do_nkpz
+      do_orbdep = do_nk .or. do_pz .or. do_nki .or. do_nkpz .or. do_nkipz
 
       !
       ! check only one orbital dependent scheme is used
       !
       found = .FALSE.
       !
-      if ( do_nk   .and. (do_pz .or. do_nki .or. do_nkpz ) ) found=.TRUE.
-      if ( do_nki  .and. (do_pz .or. do_nk  .or. do_nkpz ) ) found=.TRUE.
-      if ( do_pz   .and. (do_nk .or. do_nki .or. do_nkpz ) ) found=.TRUE.
-      if ( do_nkpz .and. (do_nk .or. do_nki .or. do_pz   ) ) found=.TRUE.
+      if ( do_nk   .and. (do_pz .or. do_nki .or. do_nkpz .or. do_nkipz ) ) found=.TRUE.
+      if ( do_nki  .and. (do_pz .or. do_nk  .or. do_nkpz .or. do_nkipz ) ) found=.TRUE.
+      if ( do_pz   .and. (do_nk .or. do_nki .or. do_nkpz .or. do_nkipz) ) found=.TRUE.
+      if ( do_nkpz .and. (do_nk .or. do_nki .or. do_pz .or. do_nkipz  ) ) found=.TRUE.
+      if ( do_nkipz .and. (do_nk .or. do_nki .or. do_pz .or. do_nkpz  ) ) found=.TRUE.
       !
       if ( found ) CALL errore(subname,'more than one orb-dependent schme used',1)
 
@@ -4286,7 +4291,7 @@ END FUNCTION
           write(stdout,2004) rhobarfact, nkscalfact
       else if ( do_pz .and. meta_ionode ) then
           write(stdout,2001) do_pz
-      else if ( do_nki .and. meta_ionode ) then
+      else if ( (do_nki .or. do_nkipz) .and. meta_ionode ) then
           write(stdout,2002) do_nki
           write(stdout,2004) rhobarfact, nkscalfact
       endif
