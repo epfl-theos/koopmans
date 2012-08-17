@@ -163,7 +163,7 @@
           if( do_nkpz ) then
               !
               call nksic_correction_nkpz( focc, orb_rhor(:,jj), vsicpz, &
-                                          wrefsic, pinkpz, ibnd, ispin)
+                                          wrefsic, pinkpz, ibnd, ispin(i))
               !
               vsic(1:nnrx,i) = vsic(1:nnrx,i) + vsicpz(1:nnrx) &
                              + wrefsic(1:nnrx)
@@ -205,9 +205,11 @@
 
           if( do_nkipz ) then
               !
-              call nksic_correction_nkipz( focc, ispin, orb_rhor(:,jj), vsicpz, &
+              write(6,*) "silvestro", ubound(ispin), ubound(orb_rhor), ubound(vsicpz)
+              call nksic_correction_nkipz( focc, ispin(i), orb_rhor(:,jj), vsicpz, &
                                            pinkpz, ibnd )
               !
+              write(6,*) "silvestro", ubound(ispin), ubound(orb_rhor), ubound(vsicpz)
               vsic(1:nnrx,i) = vsic(1:nnrx,i) + vsicpz(1:nnrx)
               !
               pink(i) = pink(i) +pinkpz
@@ -219,7 +221,7 @@
           !
           pink(i) = f_diag(i) * pink(i)
           !
-          if ( do_nk .or. do_nkpz .or. do_nki ) then
+          if ( do_nk .or. do_nkpz .or. do_nki .or. do_nkipz) then
               !
               if( nspin== 1 ) then
                   !
@@ -237,7 +239,7 @@
       !
       ! now wtot is completely built and can be added to vsic
       !
-      if ( do_nk .or. do_nkpz .or. do_nki ) then
+      if ( do_nk .or. do_nkpz .or. do_nki .or. do_nkipz ) then
           !
           do i = 1, nbsp
               !
@@ -267,7 +269,7 @@
           !
           DO i = 1, nbsp
               !
-              CALL nksic_newd( i, nnrx, ispin, nspin, vsic(:,i), nat, nhm, &
+              CALL nksic_newd( i, nnrx, ispin(i), nspin, vsic(:,i), nat, nhm, &
                                becsum, fion_sic, deeq_sic(:,:,:,i) ) !this is for ultrasoft! watch out! warning:giovanni this has to be modified in order to run ultrasoft
               !
           ENDDO
@@ -1887,6 +1889,7 @@ end subroutine nksic_correction_pz
       CALL start_clock( 'nk_corr' )
       CALL start_clock( 'nk_corr_h' )
 
+              write(6,*) "silvestro", ubound(orb_rhor), ubound(vsic)
       !
       fact=omega/DBLE(nr1*nr2*nr3)
       !
@@ -1956,7 +1959,7 @@ end subroutine nksic_correction_pz
       !
       vsic  = vsic + w2cst
       !
-      ehele = 0.5_dp * ehele * omega / fact
+      ehele = 0.5d0 * ehele * omega / fact
       !
       ! partial cleanup
       !
@@ -2115,7 +2118,7 @@ end subroutine nksic_correction_nkipz
       fact=omega/DBLE(nr1*nr2*nr3)
       !
       allocate(rhoele(nnrx,2))
-      allocate(rhogaux(ngm,1))
+      allocate(rhogaux(ngm,2))
       allocate(vtmp(ngm))
       allocate(orb_rhog(ngm,1))
       allocate(vcorr(ngm))
@@ -2192,8 +2195,8 @@ end subroutine nksic_correction_nkipz
       !
       !ehele=0.5_dp * sum(dble(vhaux(1:nnrx))*rhoele(1:nnrx,ispin))
       !
-      ehele = icoeff * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm,1)))
-      if ( gstart == 2 ) ehele = ehele +(1.d0-icoeff)*DBLE ( CONJG( vtmp(1) ) * rhogaux(1,1) )
+      ehele = icoeff * DBLE ( DOT_PRODUCT( vtmp(1:ngm), orb_rhog(1:ngm,1)))
+      if ( gstart == 2 ) ehele = ehele +(1.d0-icoeff)*DBLE ( CONJG( vtmp(1) ) * orb_rhog(1,1) )
       !
       ! -self-hartree energy to be added to the vsic potential
       w2cst = -0.5_dp * ehele * omega 
@@ -2232,8 +2235,6 @@ end subroutine nksic_correction_nkipz
            !
       endif
       !
-      deallocate(rhogaux)
-
 
       allocate(vxc0(nnrx,2))
       allocate(vxcref(nnrx,2))
@@ -2405,6 +2406,7 @@ end subroutine nksic_correction_nkipz
       !
       deallocate(grhoraux)
       deallocate(haux)
+      deallocate(rhogaux)
       !
       if ( allocated(orb_grhor) ) deallocate(orb_grhor)
       !

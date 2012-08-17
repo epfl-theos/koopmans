@@ -380,7 +380,6 @@ CONTAINS
                ENDIF
                NI1 = NRL - I1 + 1          ! N-I
                IF ( NI1 > 0 ) THEN
-                  write(6,*) half, taui, taul(1)
                   ALPHA = -HALF*TAUI*ZDOTC(NI1,TAUL(1),1,AP(I1,I),1)
                ELSE
                   ALPHA = 0.0_DP

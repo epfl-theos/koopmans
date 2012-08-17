@@ -4257,6 +4257,8 @@ END FUNCTION
          do_nkpz = .TRUE.
       CASE ( "nkipz", "pznki" )
          do_nkipz = .TRUE.
+         do_wxd  = .TRUE.
+         fref    = 1.0
       CASE DEFAULT
          call errore(subname,"invalid which_orbdep = "//TRIM(which_orbdep_),10)
       END SELECT
