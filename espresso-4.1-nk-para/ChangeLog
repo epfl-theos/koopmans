@@ -4,7 +4,6 @@
 =======================================================
 
 
-
 Apr 16 2012     devel_innerloop branch created. (AF)
 
 Mar 22 2012     bug fixed in nksiclib (routine nksic_rot_emin), when performing
