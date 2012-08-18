@@ -1886,6 +1886,7 @@ end subroutine nksic_correction_pz
       pink=0.0_dp
       !
       if ( ibnd > nknmax .and. nknmax > 0 ) return
+      !if ( f < 1.0d-6 ) return
       !
       CALL start_clock( 'nk_corr' )
       CALL start_clock( 'nk_corr_h' )
