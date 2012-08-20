@@ -46,6 +46,7 @@ inner_loop.o \
 inner_loop_cold.o \
 inner_loop_smear.o \
 input.o \
+io_pot_sic_xml.o \
 ions_positions.o \
 ksstates.o \
 main.o \
@@ -93,7 +94,9 @@ waveinit.o \
 wave.o \
 wave_types.o \
 wf.o \
-writetofile.o 
+writetofile.o \
+setup_gga.o \
+dgradcorr.o 
 
 LOBJS = \
 adjef.o \

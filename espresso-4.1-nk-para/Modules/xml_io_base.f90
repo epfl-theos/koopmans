@@ -32,6 +32,8 @@ MODULE xml_io_base
   !
   LOGICAL,       PARAMETER :: rho_binary = .TRUE.
   !
+  LOGICAL,       PARAMETER :: pot_binary = .TRUE.
+  !
   CHARACTER(iotk_attlenx)  :: attr
   !
   !
@@ -39,6 +41,8 @@ MODULE xml_io_base
   PUBLIC :: current_fmt_version
   !
   PUBLIC :: rho_binary
+  PUBLIC :: pot_binary
+  !
   PUBLIC :: attr
   !
   PUBLIC :: create_directory, kpoint_dir, wfc_filename, copy_file,       &
@@ -51,7 +55,7 @@ MODULE xml_io_base
             write_efield, write_spin, write_magnetization, write_xc,     &
             write_occ, write_bz,     &
             write_phonon, write_rho_xml, write_wfc, write_wfc_cmplx, write_eig, &
-            read_wfc, read_rho_xml
+            read_wfc, read_rho_xml,  write_pot_xml, read_pot_xml
   !
        INTERFACE write_wfc
 	    module procedure write_wfc_real, write_wfc_cmplx
@@ -1493,6 +1497,307 @@ MODULE xml_io_base
       RETURN
     END SUBROUTINE write_q
     !
+    ! ... methods to write and read effective_potential
+    !
+    !------------------------------------------------------------------------
+    SUBROUTINE write_pot_xml( pot_file_base, pot, &
+                              nr1, nr2, nr3, nr1x, nr2x, ipp, npp, &
+                              ionode, intra_group_comm, inter_group_comm )
+      !------------------------------------------------------------------------
+      !
+      ! ... Writes effective-potential pot, one plane at a time.
+      ! ... If ipp and npp are specified, planes are collected one by one from
+      ! ... all processors, avoiding an overall collect of the effective-potential
+      ! ... on a single proc.
+      !
+      USE mp,        ONLY : mp_get, mp_sum, mp_rank, mp_size
+      !
+      IMPLICIT NONE
+      !
+      CHARACTER(LEN=*),  INTENT(IN) :: pot_file_base
+      REAL(DP),          INTENT(IN) :: pot(:)
+      INTEGER,           INTENT(IN) :: nr1, nr2, nr3
+      INTEGER,           INTENT(IN) :: nr1x, nr2x
+      INTEGER,           INTENT(IN) :: ipp(:)
+      INTEGER,           INTENT(IN) :: npp(:)
+      LOGICAL,           INTENT(IN) :: ionode
+      INTEGER,           INTENT(IN) :: intra_group_comm, inter_group_comm
+      !
+      INTEGER               :: ierr, i, j, k, kk, ldr, ip
+      CHARACTER(LEN=256)    :: pot_file
+      CHARACTER(LEN=10)     :: pot_extension
+      REAL(DP), ALLOCATABLE :: pot_plane(:)
+      INTEGER,  ALLOCATABLE :: kowner(:)
+      INTEGER               :: my_group_id, me_group, nproc_group, io_group_id, io_group
+      !
+      INTEGER,    PARAMETER :: potunit = 19
+      !
+      me_group    = mp_rank( intra_group_comm )
+      nproc_group = mp_size( intra_group_comm )
+      my_group_id = mp_rank( inter_group_comm )
+      !
+      pot_extension = '.dat'
+      IF ( .NOT. pot_binary ) pot_extension = '.xml'
+      !
+      pot_file = TRIM( pot_file_base ) // TRIM( pot_extension )
+      !
+      IF ( ionode ) THEN 
+         CALL iotk_open_write( potunit, FILE = pot_file,  BINARY = pot_binary, IERR = ierr )
+         CALL errore( 'write_pot_xml', 'cannot open' // TRIM( pot_file ) // ' file for writing', ierr )
+      END IF 
+      !
+      IF ( ionode ) THEN
+         !
+         CALL iotk_write_begin( potunit, "EFFECTIVE-POTENTIAL" )
+         !
+         CALL iotk_write_attr( attr, "nr1", nr1, FIRST = .TRUE. )
+         CALL iotk_write_attr( attr, "nr2", nr2 )
+         CALL iotk_write_attr( attr, "nr3", nr3 )
+         !
+         CALL iotk_write_empty( potunit, "INFO", attr )
+         !
+      END IF
+      !
+      ALLOCATE( pot_plane( nr1*nr2 ) )
+      ALLOCATE( kowner( nr3 ) )
+      !
+      ! ... find the index of the group (pool) that will write potential
+      !
+      io_group_id = 0
+      !
+      IF ( ionode ) io_group_id = my_group_id
+      !
+      CALL mp_sum( io_group_id, intra_group_comm )
+      CALL mp_sum( io_group_id, inter_group_comm )
+      !
+      ! ... find the index of the ionode within its own group (pool)
+      !
+      io_group = 0
+      !
+      IF ( ionode ) io_group = me_group
+      !
+      CALL mp_sum( io_group, intra_group_comm )
+      !
+      ! ... find out the owner of each "z" plane
+      !
+      DO ip = 1, nproc_group
+         !
+         kowner( (ipp(ip)+1):(ipp(ip)+npp(ip)) ) = ip - 1
+         !
+      END DO
+      !
+      ldr = nr1x*nr2x
+      !
+      DO k = 1, nr3
+         !
+         !  Only one subgroup write the effective-potential
+         !
+         IF( ( kowner(k) == me_group ) .AND. ( my_group_id == io_group_id ) ) THEN
+            !
+            kk = k - ipp( me_group + 1 )
+            ! 
+            DO j = 1, nr2
+               !
+               DO i = 1, nr1
+                  !
+                  pot_plane(i+(j-1)*nr1) = pot(i+(j-1)*nr1x+(kk-1)*ldr)
+                  !
+               END DO
+               !
+            END DO
+            !
+         END IF
+         !
+         IF ( kowner(k) /= io_group .AND. my_group_id == io_group_id ) &
+            CALL mp_get( pot_plane, pot_plane, me_group, io_group, kowner(k), k, intra_group_comm )
+         !
+         IF ( ionode ) &
+            CALL iotk_write_dat( potunit, "z" // iotk_index( k ), pot_plane )
+         !
+      END DO
+      !
+      DEALLOCATE( pot_plane )
+      DEALLOCATE( kowner )
+      !
+      IF ( ionode ) THEN
+         !
+         CALL iotk_write_end( potunit, "EFFECTIVE-POTENTIAL" )
+         !
+         CALL iotk_close_write( potunit )
+         !
+      END IF
+      !
+      RETURN
+      !
+    END SUBROUTINE write_pot_xml
+    !
+    !------------------------------------------------------------------------
+    SUBROUTINE read_pot_xml( pot_file_base, pot, &
+                             nr1, nr2, nr3, nr1x, nr2x, ipp, npp, &
+                             ionode, intra_group_comm, inter_group_comm )
+      !------------------------------------------------------------------------
+      !
+      ! ... Reads effective-potential pot, one plane at a time.
+      ! ... If ipp and npp are specified, planes are collected one by one from
+      ! ... all processors, avoiding an overall collect of the effective-potential
+      ! ... on a single proc.
+      !
+      USE mp,        ONLY : mp_put, mp_sum, mp_rank, mp_size
+      !
+      IMPLICIT NONE
+      !
+      CHARACTER(LEN=*),  INTENT(IN)  :: pot_file_base
+      INTEGER,           INTENT(IN)  :: nr1, nr2, nr3
+      INTEGER,           INTENT(IN)  :: nr1x, nr2x
+      REAL(DP),          INTENT(OUT) :: pot(:)
+      INTEGER, OPTIONAL, INTENT(IN)  :: ipp(:)
+      INTEGER, OPTIONAL, INTENT(IN)  :: npp(:)
+      LOGICAL,           INTENT(IN)  :: ionode
+      INTEGER,           INTENT(IN)  :: intra_group_comm, inter_group_comm
+      !
+      INTEGER               :: ierr, i, j, k, kk, ldr, ip
+      INTEGER               :: nr( 3 )
+      CHARACTER(LEN=256)    :: pot_file
+      REAL(DP), ALLOCATABLE :: pot_plane(:)
+      INTEGER,  ALLOCATABLE :: kowner(:)
+      LOGICAL               :: exst
+      INTEGER               :: ngroup, my_group_id, me_group, nproc_group, io_group_id, io_group
+      !
+      INTEGER,   PARAMETER  :: potunit = 19      
+      !
+      me_group    = mp_rank( intra_group_comm )
+      nproc_group = mp_size( intra_group_comm )
+      my_group_id = mp_rank( inter_group_comm )
+      ngroup      = mp_size( inter_group_comm )
+      !
+      pot_file = TRIM( pot_file_base ) // ".dat"
+      exst = check_file_exst( TRIM(pot_file) ) 
+      !
+      IF ( .NOT. exst ) THEN
+          !
+          pot_file = TRIM( pot_file_base ) // ".xml"
+          exst = check_file_exst( TRIM(pot_file) ) 
+          !
+      ENDIF
+      ! 
+      IF ( .NOT. exst ) CALL errore('read_pot_xml', 'searching for '//TRIM(pot_file), 10)
+      !
+      IF ( ionode ) THEN
+         CALL iotk_open_read( potunit, FILE = pot_file, IERR = ierr )
+         CALL errore( 'read_pot_xml', 'cannot open ' // TRIM( pot_file ) // ' file for reading', ierr )
+      END IF
+      !
+      IF ( ionode ) THEN
+         !
+         CALL iotk_scan_begin( potunit, "EFFECTIVE-POTENTIAL" )
+         !
+         CALL iotk_scan_empty( potunit, "INFO", attr )
+         !
+         CALL iotk_scan_attr( attr, "nr1", nr(1) )
+         CALL iotk_scan_attr( attr, "nr2", nr(2) )
+         CALL iotk_scan_attr( attr, "nr3", nr(3) )
+         !
+         IF ( nr1 /= nr(1) .OR. nr2 /= nr(2) .OR. nr3 /= nr(3) ) &
+            CALL errore( 'read_pot_xml', 'dimensions do not match', 1 )
+         !
+      END IF
+      !
+      ALLOCATE( pot_plane( nr1*nr2 ) )
+      ALLOCATE( kowner( nr3 ) )
+      !
+      ! ... find the index of the pool that will write pot
+      !
+      io_group_id = 0
+      !
+      IF ( ionode ) io_group_id = my_group_id
+      !
+      CALL mp_sum( io_group_id, intra_group_comm )
+      CALL mp_sum( io_group_id, inter_group_comm )
+      !
+      ! ... find the index of the ionode within its own pool
+      !
+      io_group = 0
+      !
+      IF ( ionode ) io_group = me_group
+      !
+      CALL mp_sum( io_group, intra_group_comm )
+      CALL mp_sum( io_group, inter_group_comm )
+      !
+      ! ... find out the owner of each "z" plane
+      !
+      DO ip = 1, nproc_group
+         !
+         kowner((ipp(ip)+1):(ipp(ip)+npp(ip))) = ip - 1
+         !
+      END DO
+      !
+      ldr = nr1x*nr2x
+      !
+      ! ... explicit initialization to zero is needed because the physical
+      ! ... dimensions pot may exceed the true size of the FFT grid 
+      !
+      pot(:) = 0.0_DP
+      !
+      DO k = 1, nr3
+         !
+         ! ... only ionode reads the potential planes
+         !
+         IF ( ionode ) &
+            CALL iotk_scan_dat( potunit, "z" // iotk_index( k ), pot_plane )
+         !
+         ! ... planes are sent to the destination processor
+         !
+         IF( ngroup > 1 ) THEN
+            !
+            !  send to all proc/pools
+            !
+            IF( io_group_id == my_group_id ) THEN
+               CALL mp_bcast( pot_plane, io_group, intra_group_comm )
+            END IF
+            CALL mp_bcast( pot_plane, io_group_id, inter_group_comm )
+            !
+         ELSE
+            !
+            !  send to the destination proc
+            !
+            IF ( kowner(k) /= io_group ) &
+               CALL mp_put( pot_plane, pot_plane, me_group, io_group, kowner(k), k, intra_group_comm )
+            !
+         END IF
+         !
+         IF( kowner(k) == me_group ) THEN
+            !
+            kk = k - ipp( me_group + 1 )
+            ! 
+            DO j = 1, nr2
+               !
+               DO i = 1, nr1
+                  !
+                  pot(i+(j-1)*nr1x+(kk-1)*ldr) = pot_plane(i+(j-1)*nr1)
+                  !
+               END DO
+               !
+            END DO
+            !
+         END IF
+         !
+      END DO
+      !
+      DEALLOCATE( pot_plane )
+      DEALLOCATE( kowner )
+      !
+      IF ( ionode ) THEN
+         !
+         CALL iotk_scan_end( potunit, "EFFECTIVE-POTENTIAL" )
+         !
+         CALL iotk_close_read( potunit )
+         !
+      END IF
+      !
+      RETURN
+      !
+    END SUBROUTINE read_pot_xml   
+    !
     ! ... methods to write and read charge_density
     !
     !------------------------------------------------------------------------
@@ -2147,6 +2452,5 @@ MODULE xml_io_base
       ENDIF
       !
     END SUBROUTINE write_eig
-         
-
+    ! 
 END MODULE xml_io_base

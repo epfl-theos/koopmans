@@ -39,8 +39,9 @@ MODULE control_flags
             trane,dt_old,ampre, tranp, amprp, tdipole, t_diis, t_diis_simple,&
             t_diis_rot, tnosee, tnosep, tnoseh, tcp, tcap, tdamp, tdampions, &
             tconvthrs, tolp, convergence_criteria, tionstep, nstepe,         &
-            tsteepdesc, tatomicwfc, tscreen, do_wf_cmplx, gamma_only,         & !added:giovanni do_wf_cmplx
-            force_pairing, tchi2, do_ee
+            tsteepdesc, tatomicwfc, tscreen, do_wf_cmplx, gamma_only,        & !added:giovanni do_wf_cmplx
+            force_pairing, tchi2, do_ee,                                     &
+            draw_pot, pot_number                                               !added:linh draw vsic potentials   
 !$$
   PUBLIC :: do_innerloop, do_innerloop_cg, innerloop_dd_nstep,&
             innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax
@@ -90,6 +91,9 @@ MODULE control_flags
   LOGICAL :: force_pairing = .FALSE. ! Force pairing
   LOGICAL :: tchi2         = .FALSE. ! Compute Chi^2
   LOGICAL :: do_ee         = .FALSE. ! Compute periodi-image correction
+!$$ 
+  LOGICAL :: draw_pot      = .FALSE. ! added:linh draw vsic potentials  
+  INTEGER :: pot_number    =  1      ! added:linh draw vsic potentials 
 !$$
   LOGICAL :: do_innerloop  = .FALSE. ! Do inner loop minimization in case do_orbdep
   LOGICAL :: do_innerloop_cg  = .FALSE. ! Do cg inner loop minimization with parabolic minimization in case do_orbdep

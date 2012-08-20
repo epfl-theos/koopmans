@@ -250,6 +250,9 @@ MODULE read_namelists_module
        do_efield = .false.
        ampfield = 0.0_dp
        !
+       draw_pot = .false. !added:linh draw vsic potentials
+       pot_number  = 1    !added:linh draw vsic potentials 
+       !
        RETURN
        !
      END SUBROUTINE
@@ -869,6 +872,8 @@ MODULE read_namelists_module
        CALL mp_bcast( innerloop_cg_nsd,           ionode_id )
        CALL mp_bcast( innerloop_cg_nreset,        ionode_id )
        CALL mp_bcast( innerloop_nmax,             ionode_id )
+       CALL mp_bcast( draw_pot,                   ionode_id )
+       CALL mp_bcast( pot_number,                   ionode_id )
 !$$
        CALL mp_bcast( nknmax,                     ionode_id )
        CALL mp_bcast( nkscalfact,                 ionode_id )

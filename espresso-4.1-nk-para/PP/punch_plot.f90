@@ -58,6 +58,7 @@ SUBROUTINE punch_plot (filplot, plot_num, sample_bias, z, dz, &
   USE noncollin_module, ONLY : noncolin
   USE fft_base,         ONLY : grid_gather
   USE paw_postproc,     ONLY : PAW_make_ae_charge
+  USE io_pot_sic_xml,   ONLY : read_pot_sic 
 
   IMPLICIT NONE
   CHARACTER(len=*) :: filplot
@@ -262,6 +263,12 @@ SUBROUTINE punch_plot (filplot, plot_num, sample_bias, z, dz, &
          CALL DSCAL (nrxx, 0.5d0 * nspin, raux, 1)
       ENDIF
 
+  ELSEIF (plot_num == 18) THEN
+     !
+     raux(:) = 0.0_DP
+     !
+     CALL read_pot_sic( raux(:) )
+     !
   ELSE
 
      CALL infomsg ('punch_plot', 'plot_num not implemented')

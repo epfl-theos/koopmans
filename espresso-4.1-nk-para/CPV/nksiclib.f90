@@ -39,6 +39,9 @@
       use uspp_param,                 only: nhm
       use cp_interfaces,         only: nksic_get_orbitalrho !added:giovanni
       use twin_types !added:giovanni
+      use input_parameters,      only: draw_pot, pot_number  !added:linh draw vsic potentials
+      use io_pot_sic_xml,        only: write_pot_sic  !added:linh draw vsic potentials
+      USE io_global,             ONLY: stdout
       !
       implicit none
       !
@@ -248,6 +251,17 @@
           enddo
           !
       endif
+      !
+      if (draw_pot) then !added:linh draw vsic potentials
+         !
+         write(stdout,*) "I am writing out vsic", nbsp
+         do i =1, nbsp
+           ! 
+           if (i == pot_number) call write_pot_sic ( vsic(:, i) ) 
+           !  
+         enddo
+         !
+      endif !added:linh draw vsic potentials
       !
       if ( allocated(vsicpz) ) deallocate(vsicpz)
       
@@ -2105,6 +2119,7 @@ end subroutine nksic_correction_nkipz
       !==================
       !
       lgam = gamma_only.and..not.do_wf_cmplx
+
       if(lgam) then
         icoeff=2.d0
       else

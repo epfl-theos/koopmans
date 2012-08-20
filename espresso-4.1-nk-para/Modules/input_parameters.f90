@@ -475,6 +475,10 @@ MODULE input_parameters
           / "none", "nk", "non-koopmans", "nk0", "nki", &
             "perdew-zunger", "pz", "nkipz", "pznki"/
         !
+! 
+        LOGICAL :: draw_pot = .false. !added:linh draw vsic potentials
+        INTEGER :: pot_number  = 1    !added:linh draw vsic potentials 
+        !
         LOGICAL     :: do_spinsym  = .false.
         INTEGER     :: nknmax = -1
         !
@@ -511,6 +515,7 @@ MODULE input_parameters
              tot_charge, multiplicity, tot_magnetization,                     &
              spline_ps, london, london_s6, london_rcut,                       &
 !=-----BEGIN nksic input variables
+             draw_pot, pot_number,                                            & !added:linh draw vsic potentials 
              do_ee, do_nk, do_pz, do_nki, do_nkpz, do_nkipz, do_hf,           &
              do_wref, do_wxd, fref, rhobarfact, ampfield, do_efield,          &
              do_hf, nknmax, do_spinsym, f_cutoff,                             &

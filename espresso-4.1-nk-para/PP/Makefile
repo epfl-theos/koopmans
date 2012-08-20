@@ -23,6 +23,7 @@ d_matrix_so.o \
 elf.o \
 ggen1d.o \
 hexspinsym.o \
+io_pot_sic_xml.o \
 local_dos.o \
 local_dos_mag.o \
 local_dos1d.o \
