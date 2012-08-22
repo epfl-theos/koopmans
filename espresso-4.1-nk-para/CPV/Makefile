@@ -94,9 +94,10 @@ waveinit.o \
 wave.o \
 wave_types.o \
 wf.o \
-writetofile.o \
-setup_gga.o \
-dgradcorr.o 
+writetofile.o
+
+# dgradcorr.o 
+# setup_gga.o
 
 LOBJS = \
 adjef.o \
