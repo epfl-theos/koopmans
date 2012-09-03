@@ -267,6 +267,22 @@
       !
       ik = 1
       !
+      IF(nspin==1) THEN
+         WRITE( stdout,1101) 
+         WRITE( stdout, 1444) MAXVAL(ei(:,1)*autoev, nupdwn(1))
+      ELSE
+         WRITE( stdout,1101) 
+         WRITE( stdout, 1444) MAX(MAXVAL(ei(:,1)*autoev, nupdwn(1)), MAXVAL(ei(:,2)*autoev, nupdwn(2)))
+      ENDIF
+ 
+      IF(nspin==1) THEN
+         WRITE( stdout,1201) 
+         WRITE( stdout, 1444) MAXVAL(ei_emp(:,1)*autoev, nupdwn(1))
+      ELSE
+         WRITE( stdout,1201) 
+         WRITE( stdout, 1444) MAX(MAXVAL(ei_emp(:,1)*autoev, nupdwn(1)), MAXVAL(ei_emp(:,2)*autoev, nupdwn(2)))
+      ENDIF
+
       DO j = 1, nspin
          !
          IF( tstdout ) THEN
@@ -303,11 +319,13 @@
       !
   30  FORMAT(2X,'STEP:',I7,1X,F10.2)
  1002 FORMAT(/,3X,'Eigenvalues (eV), kp = ',I3, ' , spin = ',I2,/)
- 1022 FORMAT(/,3X,'Centers (Bohr), kp = ',I3, ' , spin = ',I2,/)
- 1222 FORMAT(/,3X,'Spreads (Bohr^2), kp = ',I3, ' , spin = ',I2,/)
+ 1101 FORMAT(/,3X,'HOMO Eigenvalue (eV)',/) !added_giovanni
+ 1022 FORMAT(/,3X,'Centers (Bohr), kp = ',I3, ' , spin = ',I2,/) !added_giovanni
+ 1222 FORMAT(/,3X,'Spreads (Bohr^2), kp = ',I3, ' , spin = ',I2,/) !added_giovanni
  1082 FORMAT(/,3X,'Occupations,      kp = ',I3, ' , spin = ',I2,/)
  1092 FORMAT(/,3X,'DensityMat diag,  kp = ',I3, ' , spin = ',I2,/)
  1005 FORMAT(/,3X,'Empty States Eigenvalues (eV), kp = ',I3, ' , spin = ',I2,/)
+ 1201 FORMAT(/,3X,'LUMO Eigenvalue (eV)',/) !added_giovanni
  1004 FORMAT(10F8.2)
  1044 FORMAT(4F8.2)
  1444 FORMAT(1F8.2)

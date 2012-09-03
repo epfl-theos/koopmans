@@ -93,7 +93,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
                                        surfclu, Surf_t, abivol, abisur
   USE wavefunctions_module,     ONLY : c0, cm, phi => cp
   USE wannier_module,           ONLY : allocate_wannier
-  USE cp_interfaces,            ONLY : printout_new, move_electrons, rhoofr
+  USE cp_interfaces,            ONLY : printout_new, move_electrons, rhoofr, new_ns
   USE printout_base,            ONLY : printout_base_open, &
                                        printout_base_close, &
                                        printout_pos, printout_cell, &

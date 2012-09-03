@@ -135,6 +135,7 @@
    PUBLIC :: xminus1
    PUBLIC :: projwfc_hub
    PUBLIC :: s_wfc
+   PUBLIC :: new_ns
 
     INTERFACE s_wfc
        !
@@ -174,6 +175,49 @@
    ! output
          COMPLEX(DP), INTENT(out):: swfc(ngw,n_atomic_wfc1)
        END SUBROUTINE s_wfc_twin
+    END INTERFACE
+    !
+    INTERFACE new_ns
+      !
+      subroutine new_ns_real(c,eigr,betae,hpsi,hpsi_con,forceh)
+
+       use kinds,              ONLY: DP        
+       use ions_base,          only: na, nat, nsp
+       use electrons_base,     only: nspin, nbsp, nbspx, ispin, f
+       use gvecw,              only: ngw
+       USE uspp,               ONLY: nkb
+       implicit none
+#ifdef __PARA
+       include 'mpif.h'
+#endif
+       integer, parameter :: ldmx = 7
+       complex(DP), intent(in) :: c(ngw,nbspx), eigr(ngw,nat),      &
+     &                               betae(ngw,nkb)
+       complex(DP), intent(out) :: hpsi(ngw,nbspx), hpsi_con(1,1)
+       real(DP) forceh(3,nat)
+       !
+      end subroutine new_ns_real
+      !
+      subroutine new_ns_twin(c,eigr,betae,hpsi,hpsi_con,forceh,lgam)
+
+       use kinds,              ONLY: DP        
+       use ions_base,          only: na, nat, nsp
+       use electrons_base,     only: nspin, nbsp, nbspx, ispin, f
+       use gvecw,              only: ngw
+       USE uspp,               ONLY: nkb
+       implicit none
+#ifdef __PARA
+       include 'mpif.h'
+#endif
+       integer, parameter :: ldmx = 7
+       complex(DP), intent(in) :: c(ngw,nbspx), eigr(ngw,nat),      &
+     &                               betae(ngw,nkb)
+       complex(DP), intent(out) :: hpsi(ngw,nbspx), hpsi_con(1,1)
+       real(DP) forceh(3,nat)
+       logical :: lgam
+       !
+      end subroutine new_ns_twin
+      !
     END INTERFACE
     !
     INTERFACE projwfc_hub
