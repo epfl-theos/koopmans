@@ -270,19 +270,19 @@
       IF(tstdout) THEN
          IF(nspin==1) THEN
             WRITE( stdout,1101) 
-            WRITE( stdout, 1444) MAXVAL(ei(:,1)*autoev, nupdwn(1))
+            WRITE( stdout, 1444) MAXVAL(ei(1:nupdwn(1),1)*autoev, nupdwn(1))
          ELSE
             WRITE( stdout,1101) 
-            WRITE( stdout, 1444) MAX(MAXVAL(ei(:,1)*autoev, nupdwn(1)), MAXVAL(ei(:,2)*autoev, nupdwn(2)))
+            WRITE( stdout, 1444) MAX(MAXVAL(ei(1:nupdwn(1),1)*autoev, nupdwn(1)), MAXVAL(ei(1:nupdwn(2),2)*autoev, nupdwn(2)))
          ENDIF
       
          IF(n_emp.gt.0) THEN 
             IF(nspin==1) THEN
                WRITE( stdout,1201) 
-               WRITE( stdout, 1444) MAXVAL(ei_emp(:,1)*autoev, nupdwn(1))
+               WRITE( stdout, 1444) MAXVAL(ei_emp(1:n_emp,1)*autoev, n_emp)
             ELSE
                WRITE( stdout,1201) 
-               WRITE( stdout, 1444) MAX(MAXVAL(ei_emp(:,1)*autoev, nupdwn(1)), MAXVAL(ei_emp(:,2)*autoev, nupdwn(2)))
+               WRITE( stdout, 1444) MAX(MAXVAL(ei_emp(1:n_emp,1)*autoev, n_emp), MAXVAL(ei_emp(1:n_emp,2)*autoev, n_emp))
             ENDIF
          ENDIF
       ENDIF
