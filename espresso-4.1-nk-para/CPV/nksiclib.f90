@@ -1097,7 +1097,7 @@ end subroutine nksic_newd
       !
       if( do_comp ) then
           !
-          call calc_tcc_potential( vcorr, orb_rhog(:,1) ) !warning:giovanni it seems tcc1d is not implemented here, it assumes tcc only! hydrogen chains are doubly wrong then
+          call calc_compensation_potential( vcorr, orb_rhog(:,1) ) !warning:giovanni it seems tcc1d is not implemented here, it assumes tcc only! hydrogen chains are doubly wrong then
           vtmp(:) = vtmp(:) + vcorr(:)
           !
       endif

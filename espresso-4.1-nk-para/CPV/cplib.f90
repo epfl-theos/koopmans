@@ -3651,25 +3651,7 @@ END FUNCTION
       !
       if(do_comp) then
         !
-        select case(trim(which_compensation))
-          !
-        case('tcc')
-          !
-          call calc_tcc_potential(vcorr_fft,rhotmp, lgam)
-          !
-        case('tcc1d')
-          !
-          call calc_tcc1d_potential(vcorr_fft,rhotmp)
-          !
-        case('none')
-          !
-          continue
-          !
-        case default
-          !
-          call errore('vofrho','Invalid correction: '//TRIM(which_compensation), 10)
-          !
-        end select
+        call calc_compensation_potential(vcorr_fft,rhotmp)
         !
         call calc_tcc_energy(ecomp,vcorr_fft,rhotmp, lgam)
         !

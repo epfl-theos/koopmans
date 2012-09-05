@@ -333,6 +333,52 @@
 !-----------------------------------------------------------------------
       end subroutine ee_green_2d_init
 !-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+      subroutine calc_compensation_potential(vcorr_fft,rho_fft)
+!-----------------------------------------------------------------------
+!
+! ... driver for calculating the truncated countercharge (TCC) 
+! ... for 0,1,2d periodicity
+!
+      use kinds,              only: dp
+      use gvecp,              only: ngm
+      use eecp_mod,           only: gcorr_fft
+      use cell_base,          only: omega
+      use input_parameters,   only: which_compensation
+
+      implicit none
+      complex(dp) :: rho_fft(ngm)
+      complex(dp) :: vcorr_fft(ngm)
+      integer :: ig
+
+      select case(trim(which_compensation))
+          !
+        case('tcc')
+          !
+          call calc_tcc_potential(vcorr_fft,rho_fft)
+          !
+        case('tcc1d')
+          !
+          call calc_tcc1d_potential(vcorr_fft,rho_fft)
+          !
+        case('tcc2d')
+          !
+          call calc_tcc2d_potential(vcorr_fft,rho_fft)
+          !
+        case('none')
+          !
+          continue
+          !
+        case default
+          !
+          call errore('vofrho','Invalid correction: '//TRIM(which_compensation), 10)
+          !
+        end select
+!-----------------------------------------------------------------------
+      end subroutine calc_compensation_potential
+!-----------------------------------------------------------------------
+!
 !-----------------------------------------------------------------------
       subroutine calc_tcc_potential(vcorr_fft,rho_fft)
 !-----------------------------------------------------------------------

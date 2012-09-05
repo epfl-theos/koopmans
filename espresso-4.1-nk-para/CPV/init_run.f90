@@ -277,6 +277,8 @@ SUBROUTINE init_run()
       !
       IF(which_compensation=='tcc1d') THEN
          CALL ee_green_1d_init( ht0 )
+      ELSE IF(which_compensation=='tcc2d') THEN
+         CALL ee_green_2d_init( ht0 )
       ELSE
          CALL ee_green_0d_init( ht0 )
       ENDIF
