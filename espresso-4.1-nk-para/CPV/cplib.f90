@@ -3651,7 +3651,7 @@ END FUNCTION
       !
       if(do_comp) then
         !
-        call calc_compensation_potential(vcorr_fft,rhotmp)
+        call calc_compensation_potential(vcorr_fft,rhotmp,.false.)
         !
         call calc_tcc_energy(ecomp,vcorr_fft,rhotmp, lgam)
         !

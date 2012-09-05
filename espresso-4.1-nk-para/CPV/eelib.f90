@@ -335,7 +335,7 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-      subroutine calc_compensation_potential(vcorr_fft,rho_fft)
+      subroutine calc_compensation_potential(vcorr_fft,rho_fft,odd_flag)
 !-----------------------------------------------------------------------
 !
 ! ... driver for calculating the truncated countercharge (TCC) 
@@ -345,12 +345,13 @@
       use gvecp,              only: ngm
       use eecp_mod,           only: gcorr_fft
       use cell_base,          only: omega
-      use input_parameters,   only: which_compensation
+      use input_parameters,   only: which_compensation, tcc_odd
 
       implicit none
       complex(dp) :: rho_fft(ngm)
       complex(dp) :: vcorr_fft(ngm)
-      integer :: ig
+      logical :: odd_flag !true if compensation is being computed
+                          !for self-interaction correction
 
       select case(trim(which_compensation))
           !
@@ -360,11 +361,19 @@
           !
         case('tcc1d')
           !
-          call calc_tcc1d_potential(vcorr_fft,rho_fft)
+          IF((.not.odd_flag).or.(.not.tcc_odd)) THEN
+            call calc_tcc1d_potential(vcorr_fft,rho_fft)
+          ELSE IF(odd_flag.and.tcc_odd) THEN
+            call calc_tcc_potential(vcorr_fft,rho_fft)
+          ENDIF
           !
         case('tcc2d')
           !
-          call calc_tcc2d_potential(vcorr_fft,rho_fft)
+          IF((.not.odd_flag).or.(.not.tcc_odd)) THEN
+            call calc_tcc2d_potential(vcorr_fft,rho_fft)
+          ELSE IF(odd_flag.and.tcc_odd) THEN
+            call calc_tcc_potential(vcorr_fft,rho_fft)
+          ENDIF
           !
         case('none')
           !
