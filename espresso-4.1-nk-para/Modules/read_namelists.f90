@@ -292,6 +292,7 @@ MODULE read_namelists_module
        comp_thr =  1.D-4
 !         multipole = 'dipole'
        which_compensation = 'none'
+       tcc_odd=.true.
 !       poisson_maxiter = 5000
 !       poisson_thr = 1.D-6
 !       comp_thr = 1.D-2
@@ -923,6 +924,7 @@ MODULE read_namelists_module
        CALL mp_bcast( mr2,                        ionode_id )
        CALL mp_bcast( mr3,                        ionode_id )
        CALL mp_bcast( which_compensation,         ionode_id )
+       CALL mp_bcast( tcc_odd,                    ionode_id )
        CALL mp_bcast( cellmin,                    ionode_id )
        CALL mp_bcast( cellmax,                    ionode_id )
 

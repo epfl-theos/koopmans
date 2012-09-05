@@ -4395,9 +4395,11 @@ END FUNCTION
       subroutine ee_init
 !-----------------------------------------------------------------------
 !
-      use eecp_mod,             only : do_comp, which_compensation, allocate_ee
+      use eecp_mod,             only : do_comp, which_compensation, allocate_ee, &
+                                       tcc_odd
       use input_parameters,     only : do_ee, &
-                                       which_compensation_ => which_compensation 
+                                       which_compensation_ => which_compensation, &
+                                       tcc_odd_=> tcc_odd
       use io_global,            only : meta_ionode, stdout
       use grid_dimensions,      only : nnrx
       use reciprocal_vectors,   only : ngm
@@ -4406,6 +4408,7 @@ END FUNCTION
       !
       do_comp = do_ee
       which_compensation = which_compensation_
+      tcc_odd=tcc_odd_
       if( do_comp .and. meta_ionode ) write(stdout,2010) which_compensation
       !
 2010  format( 3X,'EE with periodic-image correction method = ',a20)

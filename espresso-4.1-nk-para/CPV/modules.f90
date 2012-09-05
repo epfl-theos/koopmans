@@ -526,6 +526,7 @@ module eecp_mod
   complex(dp), allocatable :: vcorr_fft(:)
   character (len=256) :: which_compensation
   logical :: do_comp
+  logical :: tcc_odd
   real(dp) :: ecomp
 contains
   !

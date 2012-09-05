@@ -175,7 +175,7 @@
              !   WRITE( stdout,100) etot, ekin, eht, esr, eself, epseu, enl, exc, vave
              !ENDIF
              !
-             WRITE( stdout,100) etot, ekin, eht, esr, eself, epseu, enl, exc, vave, eodd
+             WRITE( stdout,100) etot, ekin, eht, esr, eself, epseu, enl, exc, vave, eodd, evdw-ent
              !
           END IF
           !
@@ -224,7 +224,8 @@
      &         '  n-l pseudopotential energy = ',f18.10,' Hartree a.u.'/ &
      &         ' exchange-correlation energy = ',f18.10,' Hartree a.u.'/ &
      &         '           average potential = ',f18.10,' Hartree a.u.'/ &
-     &         '                  odd energy = ',f18.10,' Hartree a.u.'//)
+     &         '                  odd energy = ',f18.10,' Hartree a.u.'/ &
+     &         '        van der waals energy = ',f18.10,' Hartree a.u.'//)
 
   101 format(//'                total energy = ',f18.10,' Hartree a.u.'/ &
      &         '              kinetic energy = ',f18.10,' Hartree a.u.'/ &

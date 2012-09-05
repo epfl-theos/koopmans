@@ -80,11 +80,10 @@ SUBROUTINE init_run()
   USE step_constraint,          ONLY : step_con
   USE ions_base,                ONLY : ions_reference_positions, cdmi, taui
   USE ldau
-  use eecp_mod,                 ONLY : do_comp
+  use eecp_mod,                 ONLY : do_comp, which_compensation, tcc_odd
   use efield_mod,               ONLY : do_efield
   USE nksic,                    ONLY : do_orbdep
   USE twin_types !added:giovanni
-  USE input_parameters,         ONLY : which_compensation, tcc_odd
   !
   IMPLICIT NONE
   !
@@ -275,12 +274,13 @@ SUBROUTINE init_run()
   ! 
   IF( do_comp ) THEN
       !
-      IF(which_compensation=='tcc1d') THEN
+      write(*,*) "USING TCC FOR ODD", tcc_odd
+      IF(trim(which_compensation)=='tcc1d') THEN
          CALL ee_green_1d_init( ht0 )
          IF(tcc_odd) THEN
            CALL ee_green_0d_init( ht0 )
          ENDIF
-      ELSE IF(which_compensation=='tcc2d') THEN
+      ELSE IF(trim(which_compensation)=='tcc2d') THEN
          CALL ee_green_2d_init( ht0 )
          IF(tcc_odd) THEN
            CALL ee_green_0d_init( ht0 )

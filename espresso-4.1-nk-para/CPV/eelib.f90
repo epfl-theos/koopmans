@@ -35,7 +35,7 @@
       !
       type(boxdimensions), intent(in) :: box
       !
-      real(dp),      parameter :: sigma=2.0_dp !afcmodified:giovanni 2.d0
+      real(dp),      parameter :: sigma=4.0_dp !afcmodified:giovanni 2.d0
       real(dp),      parameter :: vanishing_dist=1.0e-3_dp
       !
       complex(dp), allocatable :: vtemp(:)
@@ -343,9 +343,8 @@
 !
       use kinds,              only: dp
       use gvecp,              only: ngm
-      use eecp_mod,           only: gcorr_fft
+      use eecp_mod,           only: gcorr_fft, which_compensation, tcc_odd
       use cell_base,          only: omega
-      use input_parameters,   only: which_compensation, tcc_odd
 
       implicit none
       complex(dp) :: rho_fft(ngm)

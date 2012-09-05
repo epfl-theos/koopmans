@@ -94,7 +94,6 @@
       !
       pink=0.0_dp
       vsic=0.0_dp
-
       !
       ! loop over bands (2 ffts at the same time)
       !
@@ -104,7 +103,7 @@
         ! n odd => c(:,n+1) is already set to zero
         !
         call nksic_get_orbitalrho( ngw, nnrx, bec, ispin, nbsp, &
-                                   c(:,j), c(:,j+1), orb_rhor, j, j+1, lgam) !warning:giovanni need modification
+                     c(:,j), c(:,j+1), orb_rhor, j, j+1, lgam) !warning:giovanni need modification
 !begin_added:giovanni
           !compute centers and spreads of nksic or pz minimizing orbitals
           call compute_nksic_centers(nnrx, nx, ispin, orb_rhor, j, j+1)
