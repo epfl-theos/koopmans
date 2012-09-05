@@ -279,10 +279,10 @@
          IF(n_emp.gt.0) THEN 
             IF(nspin==1) THEN
                WRITE( stdout,1201) 
-               WRITE( stdout, 1444) MAXVAL(ei_emp(1:n_emp,1)*autoev, n_emp)
+               WRITE( stdout, 1444) MINVAL(ei_emp(1:n_emp,1)*autoev, n_emp)
             ELSE
                WRITE( stdout,1201) 
-               WRITE( stdout, 1444) MAX(MAXVAL(ei_emp(1:n_emp,1)*autoev, n_emp), MAXVAL(ei_emp(1:n_emp,2)*autoev, n_emp))
+               WRITE( stdout, 1444) MAX(MINVAL(ei_emp(1:n_emp,1)*autoev, n_emp), MINVAL(ei_emp(1:n_emp,2)*autoev, n_emp))
             ENDIF
          ENDIF
       ENDIF
