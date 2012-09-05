@@ -282,7 +282,7 @@
                WRITE( stdout, 1444) MINVAL(ei_emp(1:n_emp,1)*autoev, n_emp)
             ELSE
                WRITE( stdout,1201) 
-               WRITE( stdout, 1444) MAX(MINVAL(ei_emp(1:n_emp,1)*autoev, n_emp), MINVAL(ei_emp(1:n_emp,2)*autoev, n_emp))
+               WRITE( stdout, 1444) MIN(MINVAL(ei_emp(1:n_emp,1)*autoev, n_emp), MINVAL(ei_emp(1:n_emp,2)*autoev, n_emp))
             ENDIF
          ENDIF
       ENDIF
