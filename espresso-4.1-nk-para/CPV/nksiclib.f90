@@ -1976,6 +1976,8 @@ end subroutine nksic_correction_pz
       !
       ehele = 0.5d0 * ehele * omega / fact
       !
+      wfc_spreads(ibnd,ispin,2)=abs(ehele)*f*fact*hartree_si/electronvolt_si
+      !
       ! partial cleanup
       !
       deallocate( vtmp )
