@@ -531,6 +531,7 @@ MODULE input_parameters
 !
 ! type of electrostatic embedding used
         CHARACTER( LEN = 256 ) :: which_compensation = 'none'
+        logical :: tcc_odd = .true.
 ! kinetic energy cutoff for the coarse (MultiGrid) grid
         REAL(DP) :: ecutcoarse = 100.0d0
 ! amount of "new" correction introduced when mixing 
@@ -562,11 +563,11 @@ MODULE input_parameters
 
         REAL(DP) :: cellmax( 3 ) = 1.D0
 
-        NAMELIST / ee / which_compensation,comp_thr,    &
-             ncompx,n_charge_compensation,              &
-             ncompy, ncompz,mixing_charge_compensation, &
-             mr1, mr2, mr3, ecutcoarse,                 &
-             errtol, nlev, itmax, whichbc,              &
+        NAMELIST / ee / which_compensation,tcc_odd, comp_thr,    &
+             ncompx,n_charge_compensation,                       &
+             ncompy, ncompz,mixing_charge_compensation,          &
+             mr1, mr2, mr3, ecutcoarse,                          &
+             errtol, nlev, itmax, whichbc,                       &
              cellmin, cellmax                                                
 
 !=----------------------------------------------------------------------------=!
