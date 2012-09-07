@@ -723,6 +723,8 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
         ELSE
             !   
             WRITE( stdout, '(6x,"NOTE: eigenvalues are not computed without ortho")' )
+            !
+            CALL empty_cp ( nfi, c0, rhos )
             ! 
         ENDIF
         !

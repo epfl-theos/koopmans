@@ -17,7 +17,8 @@
 ! manyfolds is performed. 
 !
       USE kinds,                ONLY : DP
-      USE control_flags,        ONLY : iprsta, tsde, program_name, gamma_only, do_wf_cmplx
+      USE control_flags,        ONLY : iprsta, tsde, program_name, gamma_only, do_wf_cmplx, &
+                                           tortho
       USE io_global,            ONLY : ionode, stdout
       USE cp_main_variables,    ONLY : eigr, ema0bg, collect_lambda, &
                                        rhor, rhog
@@ -471,9 +472,18 @@
          CALL calphi( c0_emp, ngw, bec_emp, nkb, vkb, phi_emp, n_emps, lgam, ema0bg )
          !
          write(6,*) "check_dimensions ", ubound(eigr), ubound(cm_emp), lambda_emp(1)%iscmplx, ubound(lambda_emp(1)%cvec) !added:giovanni:debug
-         CALL ortho_cp_twin( eigr(1:ngw,1:nat), cm_emp(1:ngw,1:n_emps), phi_emp(1:ngw,1:n_emps), ngw, lambda_emp(1:nspin), desc_emp(1:descla_siz_,1:nspin), &
+         !
+         IF( tortho ) THEN
+            !
+            CALL ortho_cp_twin( eigr(1:ngw,1:nat), cm_emp(1:ngw,1:n_emps), phi_emp(1:ngw,1:n_emps), ngw, lambda_emp(1:nspin), desc_emp(1:descla_siz_,1:nspin), &
                         bigr, iter_ortho, ccc, bephi_emp, becp_emp, n_emps, nspin, &
                         nupdwn_emp, iupdwn_emp )
+            !
+         ELSE
+            !
+            CALL gram( vkb, bec_emp, nkb, cm_emp, ngw, n_emps )
+            !
+         ENDIF
          !
          write(6,*) "check_dimensions2 ", ubound(eigr), ubound(cm_emp), lambda_emp(1)%iscmplx, ubound(lambda_emp(1)%cvec) !added:giovanni:debug
          DO iss = 1, nspin
