@@ -18,7 +18,7 @@
                                            tfor, taurdr, tprnfor, gamma_only, do_wf_cmplx !added:giovanni gamma_only, do_wf_cmplx
       use control_flags,            only : ndr, ndw, nbeg, nomore, tsde, tortho, tnosee, &
                                            tnosep, trane, tranp, tsdp, tcp, tcap, ampre, &
-                                           amprp, tnoseh
+                                           amprp, tnoseh, non_ortho
       use core,                     only : nlcc_any
       !---ensemble-DFT
       use energies,                 only : eht, epseu, exc, etot, eself, enl, ekin,&

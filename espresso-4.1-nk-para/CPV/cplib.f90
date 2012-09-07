@@ -489,11 +489,89 @@ END FUNCTION
       !
       RETURN
    END SUBROUTINE dotcsv
-
-
 !
+
 !-----------------------------------------------------------------------
-   FUNCTION enkin( c, ngwx, f, n, lgam ) !added:giovanni
+   SUBROUTINE compute_overlap( c, ngwx, n, ss) !added:giovanni
+!-----------------------------------------------------------------------
+!
+!  computes overlap matrix for the non-orthogonal case
+!  
+!
+      USE kinds,              ONLY: DP
+      USE constants,          ONLY: pi, fpi
+      USE gvecw,              ONLY: ngw
+      USE reciprocal_vectors, ONLY: gstart
+      USE gvecw,              ONLY: ggp
+      USE mp,                 ONLY: mp_sum
+      USE mp_global,          ONLY: intra_image_comm
+      USE cell_base,          ONLY: tpiba2
+      USE control_flags,      ONLY: gamma_only, do_wf_cmplx, non_ortho
+      USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
+
+      INTEGER,     INTENT(IN) :: ngwx, n
+      COMPLEX(DP), INTENT(IN) :: c( ngwx, n )
+      COMPLEX(DP), INTENT(OUT) :: ss(nudx,nudx,nspin)
+
+      LOGICAL :: lgam
+      INTEGER :: ig, i, j, isp
+
+      lgam=gamma_only.and..not.do_wf_cmplx
+
+      IF(lgam) THEN
+         icoeff=2.d0
+      ELSE
+         icoeff=1.d0
+      ENDIF
+ 
+      ss=CMPLX(0.d0,0.d0)
+      !
+      DO isp=1,nspin
+         !
+         DO i=1,nupdwn(isp)
+            !
+            DO j=1,i-1
+               !
+               DO ig=gstart,ngw
+                  !
+                  ss(j,i,isp)=ss(j,i,isp)+icoeff*CONJG(c(ig,iupdwn(isp)+j-1))*&
+                           c(ig,iupdwn(isp)+i-1)
+                  !
+               END DO
+               !
+               IF(gstart==2) THEN
+                  ss(j,i,isp)=ss(j,i,isp)+CONJG(c(1,iupdwn(isp)+j-1))* &
+                           c(1,iupdwn(isp)+i-1)
+               ENDIF
+               !
+               ss(i,j,isp) = CONJG(ss(j,i,isp))
+               !
+            END DO
+            !
+            DO ig=gstart,ngw
+               !
+               ss(i,i,isp)=ss(i,i,isp)+icoeff*DBLE(CONJG(c(ig,iupdwn(isp)+i-1))* &
+                        c(ig,iupdwn(isp)+i-1))
+               !
+            END DO
+               !
+            IF(gstart==2) THEN
+               !
+               ss(i,i,isp)=ss(i,i,isp)+CONJG(c(1,iupdwn(isp)+i-1))* &
+                           c(1,iupdwn(isp)+i-1)
+               !
+            ENDIF
+            !
+         END DO
+         !
+      END DO
+      !
+      CALL mp_sum( ss(1:nudx,1:nudx,1:nspin), intra_image_comm )
+      !         
+   END SUBROUTINE compute_overlap
+
+!-----------------------------------------------------------------------
+   FUNCTION enkin( c, ngwx, f, n)
 !-----------------------------------------------------------------------
       !
       ! calculation of kinetic energy term
@@ -506,6 +584,9 @@ END FUNCTION
       USE mp,                 ONLY: mp_sum
       USE mp_global,          ONLY: intra_image_comm
       USE cell_base,          ONLY: tpiba2
+      USE control_flags,      ONLY: gamma_only, do_wf_cmplx, non_ortho
+      USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
+      USE cp_main_variables,  ONLY: kk => kinetic_mat
 
       IMPLICIT NONE
 
@@ -519,10 +600,12 @@ END FUNCTION
       !
       ! local
 
-      INTEGER  :: ig, i
+      INTEGER  :: ig, i, j, isp
       REAL(DP) :: sk(n)  ! automatic array
       LOGICAL :: lgam !added:giovanni
       REAL(DP) :: icoeff
+
+      lgam=gamma_only.and..not.do_wf_cmplx
 
       IF(lgam) THEN
          icoeff=1.d0
@@ -530,19 +613,57 @@ END FUNCTION
          icoeff=0.5d0
       ENDIF
       !
-      DO i=1,n
-         sk(i)=0.0d0
-         DO ig=gstart,ngw
-            sk(i)=sk(i)+DBLE(CONJG(c(ig,i))*c(ig,i))*ggp(ig)
+      ! matrix kk should be a global object, to allocate at the beginning
+      !
+      !
+      IF(non_ortho) THEN
+         !
+         ! compute the kinetic matrix kk, to contract with the
+         ! inverse overlap matrix
+         !
+         kk=CMPLX(0.d0,0.d0)
+         !
+         DO isp=1,nspin
+            !
+            DO i=1,nupdwn(isp)
+               DO j=1,i-1
+                  DO ig=gstart,ngw
+                     kk(j,i,isp)=kk(j,i,isp)+CONJG(c(ig,iupdwn(isp)+j-1))* &
+                              c(ig,iupdwn(isp)+i-1)*ggp(ig)
+                  END DO
+                  kk(i,j,isp) = CONJG(kk(j,i,isp))
+               END DO
+               !
+               DO ig=gstart,ngw
+                  kk(i,i,isp)=kk(i,i,isp)+DBLE(CONJG(c(ig,iupdwn(isp)+i-1))* &
+                           c(ig,iupdwn(isp)+i-1))*ggp(ig)
+               END DO
+               !
+            END DO
+            !
          END DO
-      END DO
-
-      CALL mp_sum( sk(1:n), intra_image_comm )
-
-      enkin=0.0d0
-      DO i=1,n
-         enkin=enkin+f(i)*sk(i)
-      END DO
+         !
+         CALL mp_sum( kk(1:nudx,1:nudx,1:nspin), intra_image_comm )
+         !
+         kk=kk*icoeff
+         !
+      ELSE
+         !
+         DO i=1,n
+            sk(i)=0.0d0
+            DO ig=gstart,ngw
+               sk(i)=sk(i)+DBLE(CONJG(c(ig,i))*c(ig,i))*ggp(ig)
+            END DO
+         END DO
+         !
+         CALL mp_sum( sk(1:n), intra_image_comm )
+         !
+         enkin=0.0d0
+         DO i=1,n
+            enkin=enkin+f(i)*sk(i)
+         END DO
+         !
+      ENDIF
 
       ! ... reciprocal-space vectors are in units of alat/(2 pi) so a
       ! ... multiplicative factor (2 pi/alat)**2 is required

@@ -226,6 +226,7 @@ MODULE input
                                tatomicwfc_ => tatomicwfc, &
                                printwfc_   => printwfc, &
                                tortho_     => tortho,   &
+                               non_ortho_  => non_ortho, &
                                nstep_      => nstep
      USE control_flags, ONLY : tsde_          => tsde, &
                                tsteepdesc_    => tsteepdesc, &
@@ -539,6 +540,9 @@ MODULE input
          tortho_ = .FALSE.
       CASE ('ortho')
          tortho_ = .TRUE.
+      CASE ('non_ortho')
+         tortho_ = .FALSE.
+         non_ortho_ = .TRUE.
       CASE DEFAULT
          CALL errore(' iosys ',' unknown orthogonalization '//&
               TRIM(orthogonalization), 1 )

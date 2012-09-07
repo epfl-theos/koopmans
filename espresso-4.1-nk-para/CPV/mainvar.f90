@@ -63,6 +63,13 @@ MODULE cp_main_variables
   TYPE(twin_matrix), ALLOCATABLE :: lambdam(:)
   TYPE(twin_matrix), ALLOCATABLE :: lambdap(:)
   !
+  ! For non-orthogonal SIC, naive implementation :giovanni
+  !
+  COMPLEX(DP), ALLOCATABLE :: overlap(:,:,:)
+  COMPLEX(DP), ALLOCATABLE :: ioverlap(:,:,:)
+  COMPLEX(DP), ALLOCATABLE :: kinetic_mat(:,:,:)
+  COMPLEX(DP), ALLOCATABLE :: pseudopot_mat(:,:,:)
+  !
   ! ... mass preconditioning
   !
   REAL(DP), ALLOCATABLE :: ema0bg(:)
@@ -152,7 +159,7 @@ MODULE cp_main_variables
                              me_image, ortho_comm_id
       USE mp,          ONLY: mp_max, mp_min
       USE descriptors, ONLY: descla_siz_ , descla_init , nlax_ , la_nrlx_ , lambda_node_
-      USE control_flags, ONLY: do_wf_cmplx, gamma_only! added:giovanni
+      USE control_flags, ONLY: do_wf_cmplx, gamma_only, non_ortho! added:giovanni
       USE twin_types
       !
       INTEGER,           INTENT(IN) :: ngw, ngwt, ngb, ngs, ng, nr1, nr2, nr3, &
@@ -256,6 +263,11 @@ MODULE cp_main_variables
           call init_twin(lambdam(iss), lgam)
           call allocate_twin(lambdam(iss), nlam, nlam, lgam)
       ENDDO
+      
+      IF(non_ortho) THEN
+         allocate(overlap(nudx,nudx,nspin), kinetic_mat(nudx,nudx,nspin), &
+         pseudopot_mat(nudx,nudx,nspin))
+      ENDIF
 !!!! end_modified:giovanni
       !
       ! becdr, distributed over row processors of the ortho group
@@ -358,10 +370,28 @@ endif
 	  END DO
           DEALLOCATE(lambdap)
       ENDIF
+
 ! if(ionode) then
 ! write(0,*) "debug6"
 ! endif
       ! -- deallocation of structured types -------------------------------------------------------------
+      
+      IF(allocated(overlap)) THEN
+         deallocate(overlap)
+      ENDIF
+
+      IF(allocated(ioverlap)) THEN
+         deallocate(ioverlap)
+      ENDIF
+
+      IF(allocated(kinetic_mat)) THEN
+         deallocate(kinetic_mat)
+      ENDIF
+
+      IF(allocated(pseudopot_mat)) THEN
+         deallocate(pseudopot_mat)
+      ENDIF
+
       RETURN
       !
     END SUBROUTINE deallocate_mainvar

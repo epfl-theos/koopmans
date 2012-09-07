@@ -176,7 +176,7 @@
       !
       !  calculation of kinetic energy ekin
       !
-      ekin = enkin( c, ngw, f, n, lgam)!added:giovanni lgam
+      ekin = enkin( c, ngw, f, n)
 !       write(6,*) "ekin", ekin ! added:giovanni:debug
       !
       IF( ttstress ) THEN
@@ -836,7 +836,7 @@
       !
       !  calculation of kinetic energy ekin
       !
-      ekin = enkin( c, ngw, f, n, .true.)!added:giovanni true
+      ekin = enkin( c, ngw, f, n)
       !
       IF( ttstress ) THEN
          !
