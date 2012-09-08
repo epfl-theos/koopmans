@@ -571,36 +571,39 @@ END FUNCTION
    END SUBROUTINE compute_overlap
 
 !-----------------------------------------------------------------------
-   SUBROUTINE invert_overlap( ss,iss, iflag) !added:giovanni
+   SUBROUTINE invert_overlap(ss,iss,iflag) !added:giovanni
 !-----------------------------------------------------------------------
 !
 !  contracs part of hamiltonian matrix with inverse overlap matrix
 !  
 !
       USE kinds,              ONLY: DP
-      USE constants,          ONLY: pi, fpi
-      USE gvecw,              ONLY: ngw
-      USE reciprocal_vectors, ONLY: gstart
-      USE gvecw,              ONLY: ggp
-      USE mp,                 ONLY: mp_sum
-      USE mp_global,          ONLY: intra_image_comm
-      USE cell_base,          ONLY: tpiba2
-      USE control_flags,      ONLY: gamma_only, do_wf_cmplx, non_ortho
       USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
 
       COMPLEX(DP), INTENT(IN) :: ss(nudx,nudx,nspin)
-      COMPLEX(DP), INTENT(IN) :: iss(nudx,nudx,nspin)
+      COMPLEX(DP), INTENT(OUT) :: iss(nudx,nudx,nspin)
       INTEGER, INTENT(IN) :: iflag
+      INTEGER, dimension(:), allocatable :: ipiv
+      COMPLEX, DIMENSION(:), allocatable :: work
 
-      INTEGER :: i, j, isp
-
-      lgam=gamma_only.and..not.do_wf_cmplx
-
+      INTEGER :: i, j, isp, info, lwork
+      !
+      lwork=nudx*nudx
+      allocate(ipiv(nudx))
+      allocate(work(lwork))
+      iss=ss
+      do isp=1,nspin
+         call zgetrf(nupdwn(isp),nupdwn(isp),iss(1,1,isp),nudx,ipiv,info)
+         call zgetri(nupdwn(isp),iss(1,1,isp),nudx,ipiv,work,lwork,info)
+      enddo
+      !
+      deallocate(ipiv)
+      deallocate(work)
       !         
    END SUBROUTINE invert_overlap
 
 !-----------------------------------------------------------------------
-   SUBROUTINE compute_duals( c, ss, cd, n, iflag) !added:giovanni
+   SUBROUTINE compute_duals( c, cd, n, iflag) !added:giovanni
 !-----------------------------------------------------------------------
 !
 !  contracs part of hamiltonian matrix with inverse overlap matrix
@@ -616,8 +619,8 @@ END FUNCTION
       USE cell_base,          ONLY: tpiba2
       USE control_flags,      ONLY: gamma_only, do_wf_cmplx, non_ortho
       USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
+      USE cp_main_variables,  ONLY: ss=>overlap, iss=>ioverlap
 
-      COMPLEX(DP), INTENT(IN) :: ss(nudx,nudx,nspin)
       COMPLEX(DP), INTENT(IN) :: c(ngw,n)
       COMPLEX(DP), INTENT(OUT) :: cd(ngw,n)
       INTEGER, INTENT(IN) :: iflag
@@ -625,6 +628,9 @@ END FUNCTION
       INTEGER :: i, j, isp, cdindex
 
       lgam=gamma_only.and..not.do_wf_cmplx
+      !
+      call compute_overlap(c,ngw,nbsp,ss)
+      call invert_overlap(ss,iss,iflag)
       !
       cd=CMPLX(0.d0,0.d0)
       !
@@ -656,7 +662,8 @@ END FUNCTION
       USE control_flags,      ONLY: gamma_only, do_wf_cmplx, non_ortho
       USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
       USE cp_main_variables,  ONLY: kk => kinetic_mat
-
+      USE wavefunctions_module, ONLY : cdual
+      
       IMPLICIT NONE
 
       REAL(DP)                :: enkin
@@ -686,6 +693,7 @@ END FUNCTION
       !
       !
       IF(non_ortho) THEN
+#ifdef __DEBUG_NONORTHO
          !
          ! compute the kinetic matrix kk, to contract with the
          ! inverse overlap matrix
@@ -715,6 +723,22 @@ END FUNCTION
          CALL mp_sum( kk(1:nudx,1:nudx,1:nspin), intra_image_comm )
          !
          kk=kk*icoeff
+         !
+#endif
+         !
+         DO i=1,n
+            sk(i)=0.0d0
+            DO ig=gstart,ngw
+               sk(i)=sk(i)+DBLE(CONJG(cdual(ig,i))*c(ig,i))*ggp(ig)
+            END DO
+         END DO
+         !
+         CALL mp_sum( sk(1:n), intra_image_comm )
+         !
+         enkin=0.0d0
+         DO i=1,n
+            enkin=enkin+f(i)*sk(i)
+         END DO
          !
       ELSE
          !

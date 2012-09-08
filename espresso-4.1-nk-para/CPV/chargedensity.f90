@@ -130,6 +130,8 @@
       USE wannier_base,       ONLY: iwf
       USE cell_base,          ONLY: a1, a2, a3
       USE twin_types !added:giovanni
+      USE control_flags,      ONLY: non_ortho
+      USE wavefunctions_module, ONLY: cdual
 !
       IMPLICIT NONE
       INTEGER nfi
@@ -155,7 +157,7 @@
       REAL(DP), EXTERNAL :: dnrm2, ddot
 !       COMPLEX, EXTERNAL :: cdotu
       COMPLEX(DP) :: ci,fp,fm
-      COMPLEX(DP), ALLOCATABLE :: psi(:), psis(:)
+      COMPLEX(DP), ALLOCATABLE :: psi(:), psis(:), psis2(:)
 
       LOGICAL, SAVE :: first = .TRUE.
       LOGICAL :: ttstress
@@ -197,7 +199,7 @@
          !
          !     calculation of non-local energy
          !
-         enl = ennl( rhovan, bec, lgam )
+         enl = ennl( rhovan, bec )
 !          write(6,*) "enl", enl !added:giovanni:debug
 !          write(6,*) "bec%cvec" , bec%cvec !added:giovanni:debug
          !
@@ -299,15 +301,24 @@
             !
          ELSE
             !
-            ALLOCATE( psis( nnrsx ) ) 
+            ALLOCATE( psis( nnrsx ) )
+            IF(non_ortho) THEN
+               ALLOCATE( psis2(nnrsx) )
+            ENDIF 
             !
             DO i = 1, n, 2
                !
                IF(lgam) THEN !added:giovanni
-
+                  !
 		  CALL c2psi( psis, nnrsx, c( 1, i ), c( 1, i+1 ), ngw, 2 )
-
 		  CALL invfft('Wave',psis, dffts )
+                  !
+                  IF(non_ortho) THEN
+                    !
+		    CALL c2psi( psis2, nnrsx, cdual( 1, i ), cdual( 1, i+1 ), ngw, 2 )
+		    CALL invfft('Wave',psis2, dffts )
+                    !
+                  ENDIF
 		  !
 		  iss1 = ispin(i)
 		  sa1  = f(i) / omega
@@ -319,16 +330,30 @@
 		      sa2  = 0.0d0
 		  END IF
 		  !
-		  DO ir = 1, nnrsx
-		      rhos(ir,iss1) = rhos(ir,iss1) + sa1 * ( DBLE(psis(ir)))**2
-		      rhos(ir,iss2) = rhos(ir,iss2) + sa2 * (AIMAG(psis(ir)))**2
-		  END DO
+                  IF(non_ortho) THEN
+		     DO ir = 1, nnrsx
+		        rhos(ir,iss1) = rhos(ir,iss1) + sa1 * DBLE(psis2(ir))*DBLE(psis(ir))
+		        rhos(ir,iss2) = rhos(ir,iss2) + sa2 * AIMAG(psis2(ir))*AIMAG(psis(ir))
+		     END DO
+                  ELSE
+		     DO ir = 1, nnrsx
+		        rhos(ir,iss1) = rhos(ir,iss1) + sa1 * ( DBLE(psis(ir)))**2
+		        rhos(ir,iss2) = rhos(ir,iss2) + sa2 * (AIMAG(psis(ir)))**2
+		     END DO
+                  ENDIF
 		  !
 !!!!!begin_added:giovanni
                ELSE
 		  CALL c2psi( psis, nnrsx, c( 1, i ), c( 1, i ), ngw, 0 )
 
 		  CALL invfft('Wave',psis, dffts )
+                  !
+                  IF(non_ortho) THEN
+                    !
+		    CALL c2psi( psis2, nnrsx, cdual( 1, i ), cdual( 1, i ), ngw, 0 )
+		    CALL invfft('Wave',psis2, dffts )
+                    !
+                  ENDIF
 		  !
 		  iss1 = ispin(i)
 		  sa1  = f(i) / omega
@@ -340,18 +365,28 @@
 ! 		      sa2  = 0.0d0
 ! 		  END IF
 		  !
-		  DO ir = 1, nnrsx
-		      rhos(ir,iss1) = rhos(ir,iss1) + sa1 *(ABS(psis(ir))**2)
-! 		      rhos(ir,iss2) = rhos(ir,iss2) + sa2 * (AIMAG(psis(ir)))**2
-		  END DO
-
+                  IF(non_ortho) THEN
+		     DO ir = 1, nnrsx
+		        rhos(ir,iss1) = rhos(ir,iss1) + sa1 * DBLE(CONJG(psis2(ir))*psis(ir))
+		     END DO
+                  ELSE
+		     DO ir = 1, nnrsx
+		        rhos(ir,iss1) = rhos(ir,iss1) + sa1 *(ABS(psis(ir))**2)
+		     END DO
+                  ENDIF
+                  !
                   IF(i.ne.n) then
   
 		    CALL c2psi( psis, nnrsx, c( 1, i+1 ), c( 1, i+1 ), ngw, 0 )
 
 		    CALL invfft('Wave',psis, dffts )
+                    IF(non_ortho) THEN
+                       !
+   		       CALL c2psi( psis2, nnrsx, cdual( 1, i+1 ), cdual( 1, i+1 ), ngw, 0 )
+		       CALL invfft('Wave',psis2, dffts )
+                       !
+                    ENDIF
 		  !
-
 		    iss1 = ispin(i+1)
 		    sa1  = f(i+1) / omega
 ! 		  IF ( i .NE. n ) THEN
@@ -361,11 +396,15 @@
 ! 		      iss2 = iss1
 ! 		      sa2  = 0.0d0
 ! 		  END IF
-		  !
-		    DO ir = 1, nnrsx
-			rhos(ir,iss1) = rhos(ir,iss1) + sa1 *( abs(psis(ir))**2)
-  ! 		      rhos(ir,iss2) = rhos(ir,iss2) + sa2 * (AIMAG(psis(ir)))**2
-		    END DO
+		    IF(non_ortho) THEN
+		       DO ir = 1, nnrsx
+		          rhos(ir,iss1) = rhos(ir,iss1) + sa1 * DBLE(CONJG(psis2(ir))*psis(ir))
+		       END DO
+                    ELSE
+		       DO ir = 1, nnrsx
+		          rhos(ir,iss1) = rhos(ir,iss1) + sa1 *( abs(psis(ir))**2)
+		       END DO
+                    ENDIF
                   ENDIF
                ENDIF
 !!!!end_added:giovanni
@@ -856,7 +895,7 @@
          !
          !     calculation of nocentro gulliver modenan-local energy
          !
-         enl = ennl( rhovan, bec, .true.)
+         enl = ennl( rhovan, bec )
          call mp_sum(enl)
          !
       END IF

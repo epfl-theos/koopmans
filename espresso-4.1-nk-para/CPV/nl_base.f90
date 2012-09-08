@@ -1041,7 +1041,7 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-   real(8) function ennl( rhovan, bec, lgam )!added:giovanni lgam
+   real(8) function ennl( rhovan, bec )!added:giovanni lgam
 !-----------------------------------------------------------------------
       !
       ! calculation of nonlocal potential energy term and array rhovan
@@ -1053,7 +1053,8 @@
       use electrons_base, only : n => nbsp, nspin, ispin, f
       use ions_base,      only : nsp, nat, na
       use twin_types
-      use cp_main_variables, only : ioverlap
+      use control_flags,  only : non_ortho, gamma_only, do_wf_cmplx
+      use cp_main_variables, only : becdual
       !
       implicit none
       !
@@ -1061,16 +1062,18 @@
       !
       type(twin_matrix) :: bec!( nkb, n )!modified:giovanni
       real(DP) :: rhovan( nhm*(nhm+1)/2, nat, nspin )
-      logical :: lgam!added:giovanni lgam
       !
       ! local
       !
       real(DP) :: sumt, sums(2), ennl_t
       complex(DP) :: sumt_c, sums_c(2), ennl_tc
       integer  :: is, iv, jv, ijv, inl, jnl, isa, isat, ism, ia, iss, i
+      logical :: lgam!added:giovanni lgam
+      !
+      lgam=gamma_only.and..not.do_wf_cmplx
       !
       ennl_t = 0.d0 
-       ennl_tc = CMPLX(0.d0,0.d0) 
+      ennl_tc = CMPLX(0.d0,0.d0) 
       !
       !  xlf does not like name of function used for OpenMP reduction
       !
@@ -1091,10 +1094,17 @@
 		    jnl = ish(is)+(jv-1)*na(is)+ia
 		    isat = isa+ia
 		    sums = 0.d0
-		    do i = 1, n
-		      iss = ispin(i)
-		      sums(iss) = sums(iss) + f(i) * bec%rvec(inl,i) * bec%rvec(jnl,i)
-		    end do
+                    IF(non_ortho) THEN
+		       do i = 1, n
+		         iss = ispin(i)
+		         sums(iss) = sums(iss) + f(i) * becdual%rvec(inl,i) * bec%rvec(jnl,i)
+		       end do
+                    ELSE
+		       do i = 1, n
+		         iss = ispin(i)
+		         sums(iss) = sums(iss) + f(i) * bec%rvec(inl,i) * bec%rvec(jnl,i)
+		       end do
+                    ENDIF
 		    sumt = 0.d0
 		    do iss = 1, nspin
 		      rhovan( ijv, isat, iss ) = sums( iss )
@@ -1122,11 +1132,18 @@
 		    jnl = ish(is)+(jv-1)*na(is)+ia
 		    isat = isa+ia
 		    sums_c = CMPLX(0.d0,0.d0)
-		    do i = 1, n
-		      iss = ispin(i)
-		      sums_c(iss) = sums_c(iss) + CMPLX(f(i),0.d0)  &
-         &             * (bec%cvec(inl,i)) * CONJG(bec%cvec(jnl,i))
-		    end do
+                    IF(non_ortho) THEN
+		       do i = 1, n
+		         iss = ispin(i)
+		         sums(iss) = sums(iss) + f(i) * becdual%rvec(inl,i) * bec%rvec(jnl,i)
+		       end do
+                    ELSE
+	               do i = 1, n
+		         iss = ispin(i)
+		         sums_c(iss) = sums_c(iss) + CMPLX(f(i),0.d0)  &
+         &                * (bec%cvec(inl,i)) * CONJG(becdual%cvec(jnl,i))
+		       end do
+                    ENDIF
 		    sumt_c = CMPLX(0.d0,0.d0)
 		    do iss = 1, nspin
 		      rhovan( ijv, isat, iss ) = DBLE(sums_c( iss ))

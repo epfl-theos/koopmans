@@ -55,7 +55,7 @@
       use cg_module,                only : ene_ok,  maxiter,niter_cg_restart, &
                                            conv_thr, passop, enever, itercg
       use ions_positions,           only : tau0
-      use wavefunctions_module,     only : c0, cm, phi => cp
+      use wavefunctions_module,     only : c0, cm, phi => cp, cdual
       use efield_module,            only : tefield, evalue, ctable, qmat, detq, ipolp, &
                                            berry_energy, ctabin, gqq, gqqm, df, pberryel, &
                                            tefield2, evalue2, ctable2, qmat2, detq2, ipolp2, &
@@ -73,7 +73,8 @@
                                            vsicpsi, vsic, wtot, fsic, fion_sic, deeq_sic, f_cutoff, pink
       use hfmod,                    only : do_hf, vxxpsi, exx
       use twin_types !added:giovanni
-
+      use control_flags,            only : non_ortho
+      use cp_main_variables,        only : becdual
 !
       implicit none
 !
@@ -319,6 +320,10 @@
 
           call calbec(1,nsp,eigr,c0,bec)
           if(.not.tens) then
+             if(non_ortho) then
+                call compute_duals(c0,cdual,nbsp,1)
+                call calbec(1,nsp,eigr,cdual,becdual)
+             endif
              call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
           else
 
@@ -330,6 +335,10 @@
             !     calculation of the rotated quantities
 
             call rotate_twin( z0t, c0(:,:), bec, c0diag, becdiag, .false. )
+            if(non_ortho) then
+               call compute_duals(c0,cdual,nbsp,1)
+               call calbec(1,nsp,eigr,cdual,becdual)
+            endif
             !     calculation of rho corresponding to the rotated wavefunctions
             call rhoofr(nfi,c0diag,irb,eigrb,becdiag                        &
                      &                    ,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
@@ -713,14 +722,18 @@
 
 !$$        call pcdaga2(c0,phi,hpsi)
 !$$     HPSI IS ORTHOGONALIZED TO C0
-        if(switch.or.(.not.do_orbdep)) then
-          call pcdaga2(c0,phi,hpsi, lgam)
-        else
+        IF(.not.non_ortho) THEN
+           !
+           if(switch.or.(.not.do_orbdep)) then
+             call pcdaga2(c0,phi,hpsi, lgam)
+           else
 !           call calbec(1,nsp,eigr,hpsi,becm)
-          call pc3nc(c0,hpsi,lgam)
+             call pc3nc(c0,hpsi,lgam)
 !           call pc3us(c0,bec,hpsi,becm,lgam)
 !           call pcdaga3(c0,phi,hpsi, lgam)
-        endif
+           endif
+           !
+        ENDIF
 !$$
 
 !begin_added:giovanni debug, check orthonormality
@@ -758,12 +771,14 @@
         call calbec(1,nsp,eigr,hpsi,becm)
 !$$        call pc2(c0,bec,hpsi,becm)
 !$$     THIS ORTHOGONALIZED PRECONDITIONED VECTOR HPSI
-        if(switch.or.(.not.do_orbdep)) then
-          call pc2(c0,bec,hpsi,becm, lgam)
-        else
-          call pc3nc(c0,hpsi,lgam)
+        IF(.not.non_ortho) THEN
+           if(switch.or.(.not.do_orbdep)) then
+             call pc2(c0,bec,hpsi,becm, lgam)
+           else
+             call pc3nc(c0,hpsi,lgam)
 !           call pc3us(c0,bec,hpsi,becm, lgam)
-        endif
+           endif
+        ENDIF
 !$$
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !       COMPUTES ULTRASOFT+KINETIC-preconditioned GI
@@ -776,12 +791,14 @@
         call calbec(1,nsp,eigr,gi,becm)
 !$$        call pc2(c0,bec,gi,becm)
 !$$     !ORTHOGONALIZES GI to c0
-        if(switch.or.(.not.do_orbdep)) then
-          call pc2(c0,bec,gi,becm, lgam)
-        else
-          call pc3nc(c0,gi, lgam)
+        IF(.not.non_ortho) THEN
+           if(switch.or.(.not.do_orbdep)) then
+             call pc2(c0,bec,gi,becm, lgam)
+           else
+             call pc3nc(c0,gi, lgam)
 !           call pc3us(c0,bec, gi,becm, lgam)
-        endif
+           endif
+        ENDIF
 !$$
         if(tens) call calcmt_twin( f, z0t, fmat0, .false. )
         call calbec(1,nsp,eigr,hpsi,bec0) 
@@ -998,14 +1015,15 @@
         call calbec(1,nsp,eigr,hi,bec0)
 !$$        call pc2(c0,bec,hi,bec0)
 !$$
-        if(switch.or.(.not.do_orbdep)) then
-          call pc2(c0,bec,hi,bec0, lgam)
-        else
-          call pc3nc(c0,hi,lgam)
+        IF(.not.non_ortho) THEN
+           if(switch.or.(.not.do_orbdep)) then
+              call pc2(c0,bec,hi,bec0, lgam)
+           else
+              call pc3nc(c0,hi,lgam)
 !           call pc3us(c0,bec,hi,bec0, lgam)
-        endif
+           endif
+        ENDIF
 !$$
-
         !do quadratic minimization
         !             
         !calculate derivative with respect to  lambda along direction hi
@@ -1238,7 +1256,11 @@
 
         !****calculate energy ene1
         if(.not.tens) then
-          call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
+           if(non_ortho) then
+              call compute_duals(cm,cdual,nbsp,1)
+              call calbec(1,nsp,eigr,cdual,becdual)
+           endif
+           call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
         else
           if(newscheme) then 
               call  inner_loop_cold( nfi, tfirst, tlast, eigr,  irb, eigrb, &
@@ -1248,6 +1270,10 @@
           !     calculation of the rotated quantities
           call rotate_twin( z0t, cm(:,:), becm, c0diag, becdiag, .false. )
           !     calculation of rho corresponding to the rotated wavefunctions
+          if(non_ortho) then
+             call compute_duals(c0diag,cdual,nbsp,1)
+             call calbec(1,nsp,eigr,cdual,becdual)
+          endif
           call rhoofr(nfi,c0diag,irb,eigrb,becdiag,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
         endif
 
@@ -1336,19 +1362,25 @@
         !  cm(:,i) = cm(:,i)*CONJG(phase)
         ! enddo
         ENDIF
-
-        if(do_orbdep.and.ortho_switch) THEN
-           call lowdin(cm, lgam)
-           call calbec(1,nsp,eigr,cm,becm)
-        ELSE
-           call calbec(1,nsp,eigr,cm,becm)
-           call gram(betae,becm,nhsa,cm,ngw,nbsp)
+      
+        IF(non_ortho) THEN
+           IF(do_orbdep.and.ortho_switch) THEN
+              call lowdin(cm, lgam)
+              call calbec(1,nsp,eigr,cm,becm)
+           ELSE
+              call calbec(1,nsp,eigr,cm,becm)
+              call gram(betae,becm,nhsa,cm,ngw,nbsp)
+           ENDIF
         ENDIF
 
         !test on energy: check the energy has really diminished
 
         !call calbec(1,nsp,eigr,cm,becm)
         if(.not.tens) then
+          if(non_ortho) then
+             call compute_duals(cm,cdual,nbsp,1)
+             call calbec(1,nsp,eigr,cdual,becdual)
+          endif
           call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
         else
           if(newscheme)  then
@@ -1358,6 +1390,10 @@
           !     calculation of the rotated quantities
           call rotate_twin( z0t, cm(:,:), becm, c0diag, becdiag, .false. )
           !     calculation of rho corresponding to the rotated wavefunctions
+          if(non_ortho) then
+             call compute_duals(c0diag,cdual,nbsp,1)
+             call calbec(1,nsp,eigr,cdual,becdual)
+          endif
           call rhoofr(nfi,c0diag,irb,eigrb,becdiag,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
         endif
 
@@ -1520,6 +1556,10 @@
             ENDIF
 
             if(.not.tens) then
+              if(non_ortho) then
+                 call compute_duals(cm,cdual,nbsp,1)
+                 call calbec(1,nsp,eigr,cdual,becdual)
+              endif
               call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
             else
               if(newscheme)  then
@@ -1529,6 +1569,10 @@
               !     calculation of the rotated quantities
               call rotate_twin( z0t, cm(:,:), becm, c0diag, becdiag, .false. )
               !     calculation of rho corresponding to the rotated wavefunctions
+              if(non_ortho) then
+                 call compute_duals(c0diag,cdual,nbsp,1)
+                 call calbec(1,nsp,eigr,cdual,becdual)
+              endif
               call rhoofr(nfi,c0diag,irb,eigrb,becdiag,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
             endif
   
@@ -1695,6 +1739,10 @@
          !
          if(.not.tens) then
              call  caldbec( ngw, nhsa, nbsp, 1, nsp, eigr, c0, dbec )
+             if(non_ortho) then
+                call compute_duals(c0,cdual,nbsp,1)
+                call calbec(1,nsp,eigr,cdual,becdual)
+             endif
              call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
          else
              !
@@ -1703,6 +1751,10 @@
              !
              !     calculation of rho corresponding to the rotated wavefunctions
              call caldbec( ngw, nhsa, nbsp, 1, nsp, eigr, c0diag, dbec )
+             if(non_ortho) then
+                call compute_duals(c0diag,cdual,nbsp,1)
+                call calbec(1,nsp,eigr,cdual,becdual)
+             endif
              call rhoofr( nfi, c0diag, irb, eigrb, becdiag,      &
                           rhovan, rhor, rhog, rhos, enl, denl, ekin, dekin6)
              !
