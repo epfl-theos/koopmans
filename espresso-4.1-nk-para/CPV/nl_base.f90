@@ -1053,6 +1053,7 @@
       use electrons_base, only : n => nbsp, nspin, ispin, f
       use ions_base,      only : nsp, nat, na
       use twin_types
+      use cp_main_variables, only : ioverlap
       !
       implicit none
       !

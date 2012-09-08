@@ -571,6 +571,75 @@ END FUNCTION
    END SUBROUTINE compute_overlap
 
 !-----------------------------------------------------------------------
+   SUBROUTINE invert_overlap( ss,iss, iflag) !added:giovanni
+!-----------------------------------------------------------------------
+!
+!  contracs part of hamiltonian matrix with inverse overlap matrix
+!  
+!
+      USE kinds,              ONLY: DP
+      USE constants,          ONLY: pi, fpi
+      USE gvecw,              ONLY: ngw
+      USE reciprocal_vectors, ONLY: gstart
+      USE gvecw,              ONLY: ggp
+      USE mp,                 ONLY: mp_sum
+      USE mp_global,          ONLY: intra_image_comm
+      USE cell_base,          ONLY: tpiba2
+      USE control_flags,      ONLY: gamma_only, do_wf_cmplx, non_ortho
+      USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
+
+      COMPLEX(DP), INTENT(IN) :: ss(nudx,nudx,nspin)
+      COMPLEX(DP), INTENT(IN) :: iss(nudx,nudx,nspin)
+      INTEGER, INTENT(IN) :: iflag
+
+      INTEGER :: i, j, isp
+
+      lgam=gamma_only.and..not.do_wf_cmplx
+
+      !         
+   END SUBROUTINE invert_overlap
+
+!-----------------------------------------------------------------------
+   SUBROUTINE compute_duals( c, ss, cd, n, iflag) !added:giovanni
+!-----------------------------------------------------------------------
+!
+!  contracs part of hamiltonian matrix with inverse overlap matrix
+!  
+!
+      USE kinds,              ONLY: DP
+      USE constants,          ONLY: pi, fpi
+      USE gvecw,              ONLY: ngw
+      USE reciprocal_vectors, ONLY: gstart
+      USE gvecw,              ONLY: ggp
+      USE mp,                 ONLY: mp_sum
+      USE mp_global,          ONLY: intra_image_comm
+      USE cell_base,          ONLY: tpiba2
+      USE control_flags,      ONLY: gamma_only, do_wf_cmplx, non_ortho
+      USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
+
+      COMPLEX(DP), INTENT(IN) :: ss(nudx,nudx,nspin)
+      COMPLEX(DP), INTENT(IN) :: c(ngw,n)
+      COMPLEX(DP), INTENT(OUT) :: cd(ngw,n)
+      INTEGER, INTENT(IN) :: iflag
+
+      INTEGER :: i, j, isp, cdindex
+
+      lgam=gamma_only.and..not.do_wf_cmplx
+      !
+      cd=CMPLX(0.d0,0.d0)
+      !
+      do isp=1,nspin
+         do i=1,nupdwn(isp)
+            cdindex=iupdwn(isp)+i-1
+            do j=1,nupdwn(isp)
+               cd(:, cdindex)=cd(:,cdindex) + ss(i,j,ispin)*c(:,iupdwn(isp)+j-1)
+            enddo
+         enddo
+      enddo 
+      !         
+   END SUBROUTINE compute_duals
+
+!-----------------------------------------------------------------------
    FUNCTION enkin( c, ngwx, f, n)
 !-----------------------------------------------------------------------
       !

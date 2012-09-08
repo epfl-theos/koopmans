@@ -692,6 +692,13 @@ input.o : pres_ai_mod.o
 input.o : read_pseudo.o
 input.o : turbo.o
 input.o : wannier_base.o
+io_pot_sic_xml.o : ../Modules/control_flags.o
+io_pot_sic_xml.o : ../Modules/fft_base.o
+io_pot_sic_xml.o : ../Modules/io_files.o
+io_pot_sic_xml.o : ../Modules/io_global.o
+io_pot_sic_xml.o : ../Modules/kind.o
+io_pot_sic_xml.o : ../Modules/mp_global.o
+io_pot_sic_xml.o : ../Modules/xml_io_base.o
 ions_positions.o : ../Modules/cell_base.o
 ions_positions.o : ../Modules/io_global.o
 ions_positions.o : ../Modules/kind.o
@@ -785,6 +792,7 @@ move_electrons.o : ../Modules/wavefunctions.o
 move_electrons.o : cg.o
 move_electrons.o : cp_interfaces.o
 move_electrons.o : efield.o
+move_electrons.o : electrons.o
 move_electrons.o : ensemble_dft.o
 move_electrons.o : ions_positions.o
 move_electrons.o : mainvar.o
@@ -798,6 +806,7 @@ nksiclib.o : ../Modules/electrons_base.o
 nksiclib.o : ../Modules/fft_base.o
 nksiclib.o : ../Modules/functionals.o
 nksiclib.o : ../Modules/griddim.o
+nksiclib.o : ../Modules/input_parameters.o
 nksiclib.o : ../Modules/io_global.o
 nksiclib.o : ../Modules/ions_base.o
 nksiclib.o : ../Modules/kind.o
@@ -810,6 +819,7 @@ nksiclib.o : ../Modules/wavefunctions.o
 nksiclib.o : cg.o
 nksiclib.o : cp_interfaces.o
 nksiclib.o : electrons.o
+nksiclib.o : io_pot_sic_xml.o
 nksiclib.o : mainvar.o
 nksiclib.o : modules.o
 nl_base.o : ../Modules/cell_base.o

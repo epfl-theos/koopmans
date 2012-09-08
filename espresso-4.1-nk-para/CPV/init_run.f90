@@ -17,7 +17,8 @@ SUBROUTINE init_run()
   USE kinds,                    ONLY : DP
   USE control_flags,            ONLY : nbeg, nomore, lwf, iprsta, iprint, &
                                        ndr, tfor, tprnfor, tpre, program_name, &
-                                       force_pairing, newnfi, tnewnfi, ndw
+                                       force_pairing, newnfi, tnewnfi, ndw, non_ortho
+                                       !above, added:giovanni non_ortho
   USE cp_electronic_mass,       ONLY : emass, emass_cutoff
   USE ions_base,                ONLY : na, nax, nat, nsp, iforce, pmass, ityp, cdms
   USE ions_positions,           ONLY : tau0, taum, taup, taus, tausm, tausp, &
@@ -35,7 +36,7 @@ SUBROUTINE init_run()
   USE uspp,                     ONLY : nkb, vkb, deeq, becsum,nkbus
   USE core,                     ONLY : rhoc
   USE smooth_grid_dimensions,   ONLY : nnrsx
-  USE wavefunctions_module,     ONLY : c0, cm, cp
+  USE wavefunctions_module,     ONLY : c0, cm, cp, cdual
   USE cdvan,                    ONLY : dbec, drhovan
   USE ensemble_dft,             ONLY : tens, z0t, tsmear
   USE cg_module,                ONLY : tcg
@@ -147,6 +148,9 @@ SUBROUTINE init_run()
   !gvn23 ALLOCATE(cmi(ngw, nbspx))
   ALLOCATE( cp( ngw, nbspx ) )
   !gvn23 ALLOCATE(cpi(ngw, nbspx))
+  IF(non_ortho) THEN
+     ALLOCATE(cdual(ngw, nbsp))
+  ENDIF
   !
   IF ( iprsta > 2 ) THEN
      !
