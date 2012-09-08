@@ -238,12 +238,14 @@
 !$$
 
       !orthonormalize c0
-      IF(do_orbdep.and.ortho_switch) THEN
-         call lowdin(c0, lgam)
-         call calbec(1,nsp,eigr,c0,bec)
-      ELSE
-         call calbec(1,nsp,eigr,c0,bec)
-         call gram(betae,bec,nhsa,c0,ngw,nbsp)
+      IF(.not. non_ortho) THEN
+         IF(do_orbdep.and.ortho_switch) THEN
+            call lowdin(c0, lgam)
+            call calbec(1,nsp,eigr,c0,bec)
+         ELSE
+            call calbec(1,nsp,eigr,c0,bec)
+            call gram(betae,bec,nhsa,c0,ngw,nbsp)
+         ENDIF
       ENDIF
       !call calbec(1,nsp,eigr,c0,bec)
 
@@ -1245,13 +1247,15 @@
       !orthonormalize
 
       !
-      if(do_orbdep.and.ortho_switch) then
-         call lowdin(cm, lgam)
-         call calbec(1,nsp,eigr,cm,becm)
-      else
-         call calbec(1,nsp,eigr,cm,becm)
-         call gram(betae,becm,nhsa,cm,ngw,nbsp)
-      endif
+      IF(.not. non_ortho) THEN
+         if(do_orbdep.and.ortho_switch) then
+            call lowdin(cm, lgam)
+            call calbec(1,nsp,eigr,cm,becm)
+         else
+            call calbec(1,nsp,eigr,cm,becm)
+            call gram(betae,becm,nhsa,cm,ngw,nbsp)
+         endif
+      ENDIF
         !call calbec(1,nsp,eigr,cm,becm)
 
         !****calculate energy ene1
@@ -1499,12 +1503,14 @@
 !$$
           restartcg=.true.
           !
-          IF(do_orbdep.and.ortho_switch) THEN
-             call lowdin(c0, lgam)
-             call calbec(1,nsp,eigr,c0,bec)
-          ELSE
-             call calbec(1,nsp,eigr,c0,bec)
-             call gram(betae,bec,nhsa,c0,ngw,nbsp)
+          IF(.not.non_ortho) THEN
+             IF(do_orbdep.and.ortho_switch) THEN
+                call lowdin(c0, lgam)
+                call calbec(1,nsp,eigr,c0,bec)
+             ELSE
+                call calbec(1,nsp,eigr,c0,bec)
+                call gram(betae,bec,nhsa,c0,ngw,nbsp)
+             ENDIF
           ENDIF
           !
           ene_ok=.false.
@@ -1519,12 +1525,14 @@
 !$$
           restartcg=.true.!ATTENZIONE
           !
-          IF(do_orbdep.and.ortho_switch) THEN
-             call lowdin(c0, lgam)
-             call calbec(1,nsp,eigr,c0,bec)
-          ELSE
-             call calbec(1,nsp,eigr,c0,bec)
-             call gram(betae,bec,nhsa,c0,ngw,nbsp)
+          IF(.not.non_ortho) THEN
+             IF(do_orbdep.and.ortho_switch) THEN
+                call lowdin(c0, lgam)
+                call calbec(1,nsp,eigr,c0,bec)
+             ELSE
+                call calbec(1,nsp,eigr,c0,bec)
+                call gram(betae,bec,nhsa,c0,ngw,nbsp)
+             ENDIF
           ENDIF
           !
           !if ene > ene0,en1 do a steepest descent step
@@ -1546,13 +1554,15 @@
 !$$
             ! chenge the searching direction
             spasso=spasso*(-1.d0)
-            
-            IF(do_orbdep.and.ortho_switch) THEN
-               call lowdin(cm, lgam)
-               call calbec(1,nsp,eigr,cm,becm)
-            ELSE
-               call calbec(1,nsp,eigr,cm,becm)
-               call gram(betae,bec,nhsa,cm,ngw,nbsp)
+
+            IF(.not.non_ortho) THEN 
+               IF(do_orbdep.and.ortho_switch) THEN
+                  call lowdin(cm, lgam)
+                  call calbec(1,nsp,eigr,cm,becm)
+               ELSE
+                  call calbec(1,nsp,eigr,cm,becm)
+                  call gram(betae,bec,nhsa,cm,ngw,nbsp)
+               ENDIF
             ENDIF
 
             if(.not.tens) then
