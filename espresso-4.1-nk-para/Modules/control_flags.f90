@@ -34,8 +34,8 @@ MODULE control_flags
   !
   PUBLIC :: tbeg, nomore, nbeg, isave, iprint, tv0rd, nv0rd, tzeroc, tzerop, &
             newnfi, tnewnfi, tfor, tpre, tzeroe, tsde, tsdp, tsdc, taurdr,   &
-            ndr, ndw, tortho, ortho_eps, ortho_max, tstress, tprnfor,        &
-            timing, memchk, tprnsfac, tcarpar,                               &
+            ndr, ndw, tortho, non_ortho, ortho_eps, ortho_max, tstress,      &
+            tprnfor, timing, memchk, tprnsfac, tcarpar,                      &
             trane,dt_old,ampre, tranp, amprp, tdipole, t_diis, t_diis_simple,&
             t_diis_rot, tnosee, tnosep, tnoseh, tcp, tcap, tdamp, tdampions, &
             tconvthrs, tolp, convergence_criteria, tionstep, nstepe,         &
@@ -76,6 +76,7 @@ MODULE control_flags
   LOGICAL :: tzeroc        = .FALSE. ! set to zero the cell geometry velocities
   LOGICAL :: tstress       = .FALSE. ! print stress to standard output
   LOGICAL :: tortho        = .FALSE. ! use iterative orthogonalization
+  LOGICAL :: non_ortho     = .FALSE. ! non-orthogonal cp
   LOGICAL :: tconjgrad     = .FALSE. ! use conjugate gradient electronic minimization
   LOGICAL :: timing        = .FALSE. ! print out timing information
   LOGICAL :: memchk        = .FALSE. ! check for memory leakage
