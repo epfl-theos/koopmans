@@ -1135,13 +1135,14 @@
                     IF(non_ortho) THEN
 		       do i = 1, n
 		         iss = ispin(i)
-		         sums(iss) = sums(iss) + f(i) * becdual%rvec(inl,i) * bec%rvec(jnl,i)
+		         sums_c(iss) = sums_c(iss) + CMPLX(f(i),0.d0)  &
+         &                * (bec%cvec(inl,i)) * CONJG(becdual%cvec(jnl,i))
 		       end do
                     ELSE
 	               do i = 1, n
 		         iss = ispin(i)
 		         sums_c(iss) = sums_c(iss) + CMPLX(f(i),0.d0)  &
-         &                * (bec%cvec(inl,i)) * CONJG(becdual%cvec(jnl,i))
+         &                * (bec%cvec(inl,i)) * CONJG(bec%cvec(jnl,i))
 		       end do
                     ENDIF
 		    sumt_c = CMPLX(0.d0,0.d0)

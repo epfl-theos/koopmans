@@ -595,6 +595,8 @@ END FUNCTION
       do isp=1,nspin
          call zgetrf(nupdwn(isp),nupdwn(isp),iss(1,1,isp),nudx,ipiv,info)
          call zgetri(nupdwn(isp),iss(1,1,isp),nudx,ipiv,work,lwork,info)
+         !write(6,*) "inverted?", matmul(ss(:,:,isp),iss(:,:,isp))
+         write(6,*) "overlap", ss(1,1,1)
       enddo
       !
       deallocate(ipiv)
@@ -629,7 +631,7 @@ END FUNCTION
 
       lgam=gamma_only.and..not.do_wf_cmplx
       !
-      call compute_overlap(c,ngw,nbsp,ss)
+      call compute_overlap(c,ngw,n,ss)
       call invert_overlap(ss,iss,iflag)
       !
       cd=CMPLX(0.d0,0.d0)
@@ -638,7 +640,7 @@ END FUNCTION
          do i=1,nupdwn(isp)
             cdindex=iupdwn(isp)+i-1
             do j=1,nupdwn(isp)
-               cd(:, cdindex)=cd(:,cdindex) + ss(i,j,ispin)*c(:,iupdwn(isp)+j-1)
+               cd(:, cdindex)=cd(:,cdindex) + iss(i,j,isp)*c(:,iupdwn(isp)+j-1)
             enddo
          enddo
       enddo 

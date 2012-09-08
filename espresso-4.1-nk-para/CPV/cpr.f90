@@ -20,7 +20,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
                                        tortho, tnosee, tnosep, trane, tranp,   &
                                        tsdp, tcp, tcap, ampre, amprp, tnoseh,  &
                                        tolp, ortho_eps, ortho_max, printwfc,   &
-                                       tprojwfc, textfor
+                                       tprojwfc, textfor, non_ortho
   USE core,                     ONLY : nlcc_any, rhoc
   USE uspp_param,               ONLY : nhm, nh
   USE cvan,                     ONLY : nvb, ish
@@ -551,7 +551,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
                                                  lambda(1:nspin), descla(1:descla_siz_ , 1:nspin) &
                                                  , bigr, iter, ccc, bephi, becp, nbsp, nspin, nupdwn, iupdwn )
            !
-        ELSE
+        ELSE IF(.not.non_ortho) THEN
            !
            CALL gram( vkb, bec, nkb, cm, ngw, nbsp )
            !

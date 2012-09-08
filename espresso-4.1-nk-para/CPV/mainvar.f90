@@ -265,7 +265,8 @@ MODULE cp_main_variables
       ENDDO
       
       IF(non_ortho) THEN
-         allocate(overlap(nudx,nudx,nspin), kinetic_mat(nudx,nudx,nspin), &
+         allocate(ioverlap(nudx,nudx,nspin), &
+           overlap(nudx,nudx,nspin), kinetic_mat(nudx,nudx,nspin), &
          pseudopot_mat(nudx,nudx,nspin))
       ENDIF
 !!!! end_modified:giovanni

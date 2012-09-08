@@ -12,7 +12,7 @@ SUBROUTINE from_scratch( )
     USE kinds,                ONLY : DP
     USE control_flags,        ONLY : tranp, trane, iprsta, tpre, tcarpar,  &
                                      tzeroc, tzerop, tzeroe, tfor, thdyn, &
-                                     lwf, tprnfor, tortho, amprp, ampre,  &
+                                     lwf, tprnfor, non_ortho, tortho, amprp, ampre,  &
                                      tsde, ortho_eps, ortho_max, program_name, &
                                      force_pairing, use_task_groups, gamma_only, do_wf_cmplx!added:giovanni gamma_only, do_wf_cmplx
     USE ions_positions,       ONLY : taus, tau0, tausm, vels, fion, fionm, atoms0
@@ -53,13 +53,13 @@ SUBROUTINE from_scratch( )
     USE orthogonalize_base,   ONLY : updatc, calphi 
     USE atoms_type_module,    ONLY : atoms_type
     USE wave_base,            ONLY : wave_steepest
-    USE wavefunctions_module, ONLY : c0, cm, phi => cp
+    USE wavefunctions_module, ONLY : c0, cm, phi => cp, cdual
     USE grid_dimensions,      ONLY : nr1, nr2, nr3
     USE time_step,            ONLY : delt
     USE cp_main_variables,    ONLY : setval_lambda, descla, bephi, becp, becdr, nfi, &
                                      sfac, eigr, ei1, ei2, ei3, bec, taub, irb, eigrb, &
                                      lambda, lambdam, lambdap, ema0bg, rhog, rhor, rhos, &
-                                     vpot, ht0, edft, nlax
+                                     vpot, ht0, edft, nlax, becdual
     USE mp_global,            ONLY : np_ortho, me_ortho, ortho_comm
     USE small_box,            ONLY : ainvb
     USE cdvan,                ONLY : dbec
@@ -215,6 +215,11 @@ SUBROUTINE from_scratch( )
        !
        if ( tstress ) CALL caldbec( ngw, nkb, nbsp, 1, nsp, eigr, cm, dbec ) !warning:giovanni still to be modified
        !
+       IF(non_ortho) THEN
+          call compute_duals(cm,cdual,nbsp,1)
+          call calbec(1,nsp,eigr,cdual,becdual)
+       ENDIF
+       !
        CALL rhoofr ( nfi, cm(:,:), irb, eigrb, bec, becsum, rhor, rhog, rhos, enl, denl, ekin, dekin6 )
        !
        edft%enl  = enl
@@ -302,7 +307,7 @@ SUBROUTINE from_scratch( )
          IF( tortho ) THEN
             CALL ortho( eigr, c0, phi, ngw, lambda, descla, &
                         bigr, iter, ccc, bephi, becp, nbsp, nspin, nupdwn, iupdwn )
-         ELSE
+         ELSE IF(.not.non_ortho) THEN
             !
             CALL gram( vkb, bec, nkb, c0, ngw, nbsp )
             !
@@ -407,7 +412,7 @@ SUBROUTINE from_scratch( )
           !
           CALL ortho( cm, c0, lambda, descla, ccc, nupdwn, iupdwn, nspin )
           !
-       ELSE
+       ELSE IF(.not. non_ortho) THEN
           !
           DO iss = 1, nspin_wfc
             !

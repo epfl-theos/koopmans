@@ -1367,7 +1367,7 @@
         ! enddo
         ENDIF
       
-        IF(non_ortho) THEN
+        IF(.not.non_ortho) THEN
            IF(do_orbdep.and.ortho_switch) THEN
               call lowdin(cm, lgam)
               call calbec(1,nsp,eigr,cm,becm)

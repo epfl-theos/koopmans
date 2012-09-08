@@ -35,7 +35,7 @@
       !
       type(boxdimensions), intent(in) :: box
       !
-      real(dp),      parameter :: sigma=4.0_dp !afcmodified:giovanni 2.d0
+      real(dp),      parameter :: sigma=2.0_dp !afcmodified:giovanni 2.d0
       real(dp),      parameter :: vanishing_dist=1.0e-3_dp
       !
       complex(dp), allocatable :: vtemp(:)
