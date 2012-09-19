@@ -510,7 +510,7 @@ END FUNCTION
       USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
 
       INTEGER,     INTENT(IN) :: ngwx, n
-      COMPLEX(DP), INTENT(IN) :: c( ngwx, n )
+      COMPLEX(DP), INTENT(INOUT) :: c( ngwx, n )
       COMPLEX(DP), INTENT(OUT) :: ss(nudx,nudx,nspin)
 
       LOGICAL :: lgam
@@ -530,9 +530,23 @@ END FUNCTION
          !
          DO i=1,nupdwn(isp)
             !
-            DO j=1,i-1
+!             DO ig=1,ngw
+!                !
+!                ss(i,i,isp)=ss(i,i,isp)+icoeff*DBLE(CONJG(c(ig,iupdwn(isp)+i-1))* &
+!                         c(ig,iupdwn(isp)+i-1))
+!                !
+!             END DO
+!             !
+!             IF(gstart==2) THEN
+!                !
+!                ss(i,i,isp)=ss(i,i,isp)-(icoeff-1.d0)*DBLE(CONJG(c(1,iupdwn(isp)+i-1))* &
+!                            c(1,iupdwn(isp)+i-1))
+!                !
+!             ENDIF
+            !
+            DO j=1,nupdwn(isp)
                !
-               DO ig=gstart,ngw
+               DO ig=1,ngw
                   !
                   ss(j,i,isp)=ss(j,i,isp)+icoeff*CONJG(c(ig,iupdwn(isp)+j-1))*&
                            c(ig,iupdwn(isp)+i-1)
@@ -540,33 +554,31 @@ END FUNCTION
                END DO
                !
                IF(gstart==2) THEN
-                  ss(j,i,isp)=ss(j,i,isp)+CONJG(c(1,iupdwn(isp)+j-1))* &
+                  ss(j,i,isp)=ss(j,i,isp)-(icoeff-1.d0)*CONJG(c(1,iupdwn(isp)+j-1))* &
                            c(1,iupdwn(isp)+i-1)
                ENDIF
                !
-               ss(i,j,isp) = CONJG(ss(j,i,isp))
+               !ss(i,j,isp) = CONJG(ss(j,i,isp))
                !
             END DO
-            !
-            DO ig=gstart,ngw
-               !
-               ss(i,i,isp)=ss(i,i,isp)+icoeff*DBLE(CONJG(c(ig,iupdwn(isp)+i-1))* &
-                        c(ig,iupdwn(isp)+i-1))
-               !
-            END DO
-               !
-            IF(gstart==2) THEN
-               !
-               ss(i,i,isp)=ss(i,i,isp)+CONJG(c(1,iupdwn(isp)+i-1))* &
-                           c(1,iupdwn(isp)+i-1)
-               !
-            ENDIF
             !
          END DO
          !
+         !
+         !DO i=1,nupdwn(isp)
+         !   c(:,iupdwn(isp)+i-1) = c(:,iupdwn(isp)+i-1)/sqrt(abs(ss(i,i,isp)))
+         !   DO j=1,i-1
+         !      ss(j,i,isp) = ss(j,i,isp)/sqrt(abs(ss(i,i,isp)))
+         !      ss(i,j,isp) = CONJG(ss(j,i,isp))
+         !   ENDDO
+         !   ss(i,i,isp)=CMPLX(1.d0,0.d0)
+         !ENDDO
       END DO
       !
-      CALL mp_sum( ss(1:nudx,1:nudx,1:nspin), intra_image_comm )
+         CALL mp_sum( ss(1:nudx,1:nudx,1:nspin), intra_image_comm )
+         if(lgam) THEN
+            ss(1:nudx,1:nudx,1:nspin) = DBLE(ss(1:nudx,1:nudx,1:nspin))
+         ENDIF
       !         
    END SUBROUTINE compute_overlap
 
@@ -579,6 +591,7 @@ END FUNCTION
 !
       USE kinds,              ONLY: DP
       USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
+      USE io_global,          ONLY: ionode
 
       COMPLEX(DP), INTENT(IN) :: ss(nudx,nudx,nspin)
       COMPLEX(DP), INTENT(OUT) :: iss(nudx,nudx,nspin)
@@ -588,15 +601,20 @@ END FUNCTION
 
       INTEGER :: i, j, isp, info, lwork
       !
-      lwork=nudx*nudx
+      lwork=nudx*nudx+10
       allocate(ipiv(nudx))
       allocate(work(lwork))
-      iss=ss
+      iss=CMPLX(0.d0,0.d0)
+      iss(1:nudx,1:nudx,1:nspin)=ss(1:nudx,1:nudx,1:nspin)
       do isp=1,nspin
          call zgetrf(nupdwn(isp),nupdwn(isp),iss(1,1,isp),nudx,ipiv,info)
          call zgetri(nupdwn(isp),iss(1,1,isp),nudx,ipiv,work,lwork,info)
-         !write(6,*) "inverted?", matmul(ss(:,:,isp),iss(:,:,isp))
-         write(6,*) "overlap", ss(1,1,1)
+         if(ionode) THEN
+         write(6,*) "inverted?", matmul(ss(1:nupdwn(isp),1:nupdwn(isp),isp), &
+          iss(1:nupdwn(isp),1:nupdwn(isp),isp))
+         write(6,*) "overlap", ss(1:nupdwn(isp),1:nupdwn(isp),isp)
+         write(6,*) "inverse_overlap", iss(1:nupdwn(isp),1:nupdwn(isp),isp)
+         ENDIF
       enddo
       !
       deallocate(ipiv)
@@ -621,32 +639,205 @@ END FUNCTION
       USE cell_base,          ONLY: tpiba2
       USE control_flags,      ONLY: gamma_only, do_wf_cmplx, non_ortho
       USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
-      USE cp_main_variables,  ONLY: ss=>overlap, iss=>ioverlap
 
       COMPLEX(DP), INTENT(IN) :: c(ngw,n)
       COMPLEX(DP), INTENT(OUT) :: cd(ngw,n)
       INTEGER, INTENT(IN) :: iflag
+      COMPLEX(DP) :: temp1,temp2
+      COMPLEX(DP), allocatable :: ss(:,:,:), iss(:,:,:)
 
       INTEGER :: i, j, isp, cdindex
 
       lgam=gamma_only.and..not.do_wf_cmplx
       !
+      allocate(ss(nudx,nudx,nspin), iss(nudx,nudx,nspin))
+      ss=0.d0
+      iss=0.d0
+      !
       call compute_overlap(c,ngw,n,ss)
       call invert_overlap(ss,iss,iflag)
       !
-      cd=CMPLX(0.d0,0.d0)
+      cd(1:ngw,1:n)=CMPLX(0.d0,0.d0)
       !
       do isp=1,nspin
          do i=1,nupdwn(isp)
             cdindex=iupdwn(isp)+i-1
             do j=1,nupdwn(isp)
-               cd(:, cdindex)=cd(:,cdindex) + iss(i,j,isp)*c(:,iupdwn(isp)+j-1)
+               cd(1:ngw, cdindex)=cd(1:ngw,cdindex) + CONJG(iss(i,j,isp))*c(1:ngw,iupdwn(isp)+j-1)
             enddo
          enddo
-      enddo 
-      !         
+      enddo
+      !
+      temp1=0.d0
+      temp2=0.d0
+      !
+      do i=1,ngw
+         temp1=temp1+2.d0*CONJG(cd(i,1))*c(i,1)
+         temp2=temp2+2.d0*CONJG(cd(i,2))*c(i,1)
+      enddo
+      if(gstart==2) THEN
+      temp1=temp1-CONJG(cd(1,1))*c(1,1)
+      temp2=temp2-CONJG(cd(1,2))*c(1,1)
+      ENDIF 
+      call mp_sum(temp1,intra_image_comm)
+      call mp_sum(temp2,intra_image_comm)
+!       write(6,*) "checkdiag", temp1, temp2
+      deallocate(ss, iss)
    END SUBROUTINE compute_duals
 
+!-----------------------------------------------------------------------
+   SUBROUTINE times_overlap(c, cin, cd, n, iflag) !added:giovanni
+!-----------------------------------------------------------------------
+!
+!  contracs part of hamiltonian matrix with inverse overlap matrix
+!  
+!
+      USE kinds,              ONLY: DP
+      USE constants,          ONLY: pi, fpi
+      USE gvecw,              ONLY: ngw
+      USE reciprocal_vectors, ONLY: gstart
+      USE gvecw,              ONLY: ggp
+      USE mp,                 ONLY: mp_sum
+      USE mp_global,          ONLY: intra_image_comm
+      USE cell_base,          ONLY: tpiba2
+      USE control_flags,      ONLY: gamma_only, do_wf_cmplx, non_ortho
+      USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
+
+      COMPLEX(DP), INTENT(IN) :: c(ngw,n), cin(ngw,n)
+      COMPLEX(DP), intent(OUT) :: cd(ngw,n)
+!       COMPLEX(DP) :: ss(nudx,nudx,nspin)
+      COMPLEX(DP), allocatable :: ss(:,:,:), iss(:,:,:)
+      INTEGER, INTENT(IN) :: iflag
+
+
+      INTEGER :: i, j, isp, cdindex
+
+      lgam=gamma_only.and..not.do_wf_cmplx
+      !
+      allocate(ss(nudx,nudx,nspin), iss(nudx,nudx,nspin))
+      ss=0.d0
+      iss=0.d0
+      !
+      call compute_overlap(c,ngw,n,ss)
+!       call invert_overlap(ss,iss,iflag)
+      !
+      cd(1:ngw,1:n)=CMPLX(0.d0,0.d0)
+      !
+      do isp=1,nspin
+         do i=1,nupdwn(isp)
+            cdindex=iupdwn(isp)+i-1
+            do j=1,nupdwn(isp)
+               cd(1:ngw, cdindex)=cd(1:ngw,cdindex) + (ss(i,j,isp))*cin(1:ngw,iupdwn(isp)+j-1)
+            enddo
+         enddo
+      enddo
+      !
+!       write(6,*) "checkdiag", temp1, temp2
+      deallocate(ss, iss)
+   END SUBROUTINE times_overlap
+   
+!-----------------------------------------------------------------------
+   FUNCTION enkin_non_ortho( c, cdual, ngwx, f, n)
+!-----------------------------------------------------------------------
+      !
+      ! calculation of kinetic energy term
+      !
+      USE kinds,              ONLY: DP
+      USE constants,          ONLY: pi, fpi
+      USE gvecw,              ONLY: ngw
+      USE reciprocal_vectors, ONLY: gstart
+      USE gvecw,              ONLY: ggp
+      USE mp,                 ONLY: mp_sum
+      USE mp_global,          ONLY: intra_image_comm
+      USE cell_base,          ONLY: tpiba2
+      USE control_flags,      ONLY: gamma_only, do_wf_cmplx
+      USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
+      USE cp_main_variables,  ONLY: kk => kinetic_mat
+      
+      IMPLICIT NONE
+
+      REAL(DP)                :: enkin_non_ortho
+
+      ! input
+
+      INTEGER,     INTENT(IN) :: ngwx, n
+      COMPLEX(DP), INTENT(IN) :: c( ngwx, n ), cdual( ngwx, n )
+      REAL(DP),    INTENT(IN) :: f( n )
+      !
+      ! local
+
+      INTEGER  :: ig, i, j, isp
+      REAL(DP) :: sk(n)  ! automatic array
+      LOGICAL :: lgam !added:giovanni
+      REAL(DP) :: icoeff
+
+      lgam=gamma_only.and..not.do_wf_cmplx
+
+      IF(lgam) THEN
+         icoeff=1.d0
+      ELSE
+         icoeff=0.5d0
+      ENDIF
+      !
+      ! matrix kk should be a global object, to allocate at the beginning
+      !
+      !
+#ifdef __DEBUG_NONORTHO
+      !
+      ! compute the kinetic matrix kk, to contract with the
+      ! inverse overlap matrix
+      !
+      kk=CMPLX(0.d0,0.d0)
+      !
+      DO isp=1,nspin
+         !
+         DO i=1,nupdwn(isp)
+            DO j=1,i-1
+               DO ig=gstart,ngw
+                  kk(j,i,isp)=kk(j,i,isp)+CONJG(c(ig,iupdwn(isp)+j-1))* &
+                           c(ig,iupdwn(isp)+i-1)*ggp(ig)
+               END DO
+               kk(i,j,isp) = CONJG(kk(j,i,isp))
+            END DO
+            !
+            DO ig=gstart,ngw
+               kk(i,i,isp)=kk(i,i,isp)+DBLE(CONJG(c(ig,iupdwn(isp)+i-1))* &
+                        c(ig,iupdwn(isp)+i-1))*ggp(ig)
+            END DO
+            !
+         END DO
+         !
+      END DO
+      !
+      CALL mp_sum( kk(1:nudx,1:nudx,1:nspin), intra_image_comm )
+      !
+      kk=kk*icoeff
+      !
+#endif
+      !
+      DO i=1,n
+         sk(i)=0.0d0
+         DO ig=gstart,ngw
+            sk(i)=sk(i)+DBLE(CONJG(cdual(ig,i))*c(ig,i))*ggp(ig)
+         END DO
+      END DO
+      !
+      CALL mp_sum( sk(1:n), intra_image_comm )
+      !
+      enkin_non_ortho=0.0d0
+      DO i=1,n
+         enkin_non_ortho=enkin_non_ortho+f(i)*sk(i)
+      END DO
+      !
+
+      ! ... reciprocal-space vectors are in units of alat/(2 pi) so a
+      ! ... multiplicative factor (2 pi/alat)**2 is required
+
+      enkin_non_ortho = enkin_non_ortho * tpiba2 * icoeff
+!
+      RETURN
+   END FUNCTION enkin_non_ortho
+   
 !-----------------------------------------------------------------------
    FUNCTION enkin( c, ngwx, f, n)
 !-----------------------------------------------------------------------
@@ -661,10 +852,9 @@ END FUNCTION
       USE mp,                 ONLY: mp_sum
       USE mp_global,          ONLY: intra_image_comm
       USE cell_base,          ONLY: tpiba2
-      USE control_flags,      ONLY: gamma_only, do_wf_cmplx, non_ortho
+      USE control_flags,      ONLY: gamma_only, do_wf_cmplx
       USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
       USE cp_main_variables,  ONLY: kk => kinetic_mat
-      USE wavefunctions_module, ONLY : cdual
       
       IMPLICIT NONE
 
@@ -694,72 +884,21 @@ END FUNCTION
       ! matrix kk should be a global object, to allocate at the beginning
       !
       !
-      IF(non_ortho) THEN
-#ifdef __DEBUG_NONORTHO
-         !
-         ! compute the kinetic matrix kk, to contract with the
-         ! inverse overlap matrix
-         !
-         kk=CMPLX(0.d0,0.d0)
-         !
-         DO isp=1,nspin
-            !
-            DO i=1,nupdwn(isp)
-               DO j=1,i-1
-                  DO ig=gstart,ngw
-                     kk(j,i,isp)=kk(j,i,isp)+CONJG(c(ig,iupdwn(isp)+j-1))* &
-                              c(ig,iupdwn(isp)+i-1)*ggp(ig)
-                  END DO
-                  kk(i,j,isp) = CONJG(kk(j,i,isp))
-               END DO
-               !
-               DO ig=gstart,ngw
-                  kk(i,i,isp)=kk(i,i,isp)+DBLE(CONJG(c(ig,iupdwn(isp)+i-1))* &
-                           c(ig,iupdwn(isp)+i-1))*ggp(ig)
-               END DO
-               !
-            END DO
-            !
+      !
+      DO i=1,n
+         sk(i)=0.0d0
+         DO ig=gstart,ngw
+            sk(i)=sk(i)+DBLE(CONJG(c(ig,i))*c(ig,i))*ggp(ig)
          END DO
-         !
-         CALL mp_sum( kk(1:nudx,1:nudx,1:nspin), intra_image_comm )
-         !
-         kk=kk*icoeff
-         !
-#endif
-         !
-         DO i=1,n
-            sk(i)=0.0d0
-            DO ig=gstart,ngw
-               sk(i)=sk(i)+DBLE(CONJG(cdual(ig,i))*c(ig,i))*ggp(ig)
-            END DO
-         END DO
-         !
-         CALL mp_sum( sk(1:n), intra_image_comm )
-         !
-         enkin=0.0d0
-         DO i=1,n
-            enkin=enkin+f(i)*sk(i)
-         END DO
-         !
-      ELSE
-         !
-         DO i=1,n
-            sk(i)=0.0d0
-            DO ig=gstart,ngw
-               sk(i)=sk(i)+DBLE(CONJG(c(ig,i))*c(ig,i))*ggp(ig)
-            END DO
-         END DO
-         !
-         CALL mp_sum( sk(1:n), intra_image_comm )
-         !
-         enkin=0.0d0
-         DO i=1,n
-            enkin=enkin+f(i)*sk(i)
-         END DO
-         !
-      ENDIF
-
+      END DO
+      !
+      CALL mp_sum( sk(1:n), intra_image_comm )
+      !
+      enkin=0.0d0
+      DO i=1,n
+         enkin=enkin+f(i)*sk(i)
+      END DO
+      !
       ! ... reciprocal-space vectors are in units of alat/(2 pi) so a
       ! ... multiplicative factor (2 pi/alat)**2 is required
 

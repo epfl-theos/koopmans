@@ -508,7 +508,7 @@
    END INTERFACE
 
    INTERFACE nksic_get_orbitalrho
-         subroutine nksic_get_orbitalrho_real( ngw, nnrx, bec, ispin, nbsp, &
+      subroutine nksic_get_orbitalrho_real( ngw, nnrx, bec, ispin, nbsp, &
                                        c1, c2, orb_rhor, i1, i2 )
       use kinds,                      only: dp
       use twin_types
@@ -521,11 +521,27 @@
       complex(dp), intent(in) :: c1(ngw),c2(ngw)
       real(dp),   intent(out) :: orb_rhor(nnrx,2)
       END SUBROUTINE nksic_get_orbitalrho_real
-!-----------------------------------------------------------------------
+
+      SUBROUTINE nksic_get_orbitalrho_twin_non_ortho( ngw, nnrx, bec, &
+                                       becdual, ispin, nbsp, &
+                                       c1, c2, c1dual, c2dual, orb_rhor, &
+                                       i1, i2, lgam )
+          use kinds,                   only: dp
+          use twin_types
+          !
+          implicit none
+          integer,     intent(in) :: ngw,nnrx,i1,i2
+          integer,     intent(in) :: nbsp, ispin(nbsp)
+          type(twin_matrix) :: bec,becdual !(nkb, nbsp)
+          complex(dp), intent(in) :: c1(ngw),c2(ngw),c1dual(ngw),c2dual(ngw)
+          real(dp),   intent(out) :: orb_rhor(nnrx,2) 
+          logical :: lgam
+      END SUBROUTINE nksic_get_orbitalrho_twin_non_ortho
+            
       SUBROUTINE nksic_get_orbitalrho_twin( ngw, nnrx, bec, ispin, nbsp, &
                                        c1, c2, orb_rhor, i1, i2, lgam )
-!-----------------------------------------------------------------------
-	  use kinds,                      only: dp
+
+                                       	  use kinds,                      only: dp
 	  use twin_types
 	  !
 	  implicit none
@@ -535,7 +551,8 @@
 	  complex(dp), intent(in) :: c1(ngw),c2(ngw)
 	  real(dp),   intent(out) :: orb_rhor(nnrx,2) 
 	  logical :: lgam
-      END SUBROUTINE
+      END SUBROUTINE nksic_get_orbitalrho_twin
+      
    END INTERFACE
 
    INTERFACE bessel2
@@ -706,7 +723,29 @@
    END INTERFACE
   
    INTERFACE rhoofr
-      SUBROUTINE rhoofr_cp &
+      !
+      SUBROUTINE rhoofr_cp_non_ortho &
+         ( nfi, c, cdual, irb, eigrb, bec, becdual, rhovan, rhor, rhog, rhos, enl, denl, ekin, dekin, tstress, ndwwf )
+         USE kinds,      ONLY: DP
+         USE twin_types
+         
+         IMPLICIT NONE
+         INTEGER nfi
+         COMPLEX(DP) c( :, : ), cdual( :, : )
+         INTEGER irb( :, : )
+         COMPLEX(DP) eigrb( :, : )
+         type(twin_matrix) :: bec, becdual!(:,:)!modified:giovanni
+         REAL(DP) rhovan(:, :, : )
+         REAL(DP) rhor(:,:)
+         COMPLEX(DP) rhog( :, : )
+         REAL(DP) rhos(:,:)
+         REAL(DP) enl, ekin
+         REAL(DP) denl(3,3), dekin(6)
+         LOGICAL, OPTIONAL, INTENT(IN) :: tstress
+         INTEGER, OPTIONAL, INTENT(IN) :: ndwwf
+      END SUBROUTINE rhoofr_cp_non_ortho
+      !
+      SUBROUTINE rhoofr_cp_ortho &
          ( nfi, c, irb, eigrb, bec, rhovan, rhor, rhog, rhos, enl, denl, ekin, dekin, tstress, ndwwf )
          USE kinds,      ONLY: DP
          USE twin_types
@@ -725,8 +764,8 @@
          REAL(DP) denl(3,3), dekin(6)
          LOGICAL, OPTIONAL, INTENT(IN) :: tstress
          INTEGER, OPTIONAL, INTENT(IN) :: ndwwf
-      END SUBROUTINE rhoofr_cp
-
+      END SUBROUTINE rhoofr_cp_ortho
+      !
       SUBROUTINE rhoofr_cp_old &
          ( nfi, c, irb, eigrb, bec, rhovan, rhor, rhog, rhos, enl, denl, ekin, dekin, tstress, ndwwf )
          USE kinds,      ONLY: DP

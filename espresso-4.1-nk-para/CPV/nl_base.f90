@@ -1041,6 +1041,120 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
+   real(8) function ennl_non_ortho( rhovan, bec, becdual )!added:giovanni lgam
+!-----------------------------------------------------------------------
+      !
+      ! calculation of nonlocal potential energy term and array rhovan
+      !
+      use kinds,          only : DP
+      use cvan,           only : ish
+      use uspp_param,     only : nhm, nh
+      use uspp,           only : nkb, dvan
+      use electrons_base, only : n => nbsp, nspin, ispin, f
+      use ions_base,      only : nsp, nat, na
+      use twin_types
+      use control_flags,  only : gamma_only, do_wf_cmplx
+      !
+      implicit none
+      !
+      ! input
+      !
+      type(twin_matrix) :: bec, becdual!( nkb, n )!modified:giovanni
+      real(DP) :: rhovan( nhm*(nhm+1)/2, nat, nspin )
+      !
+      ! local
+      !
+      real(DP) :: sumt, sums(2), ennl_t
+      complex(DP) :: sumt_c, sums_c(2), ennl_tc
+      integer  :: is, iv, jv, ijv, inl, jnl, isa, isat, ism, ia, iss, i
+      logical :: lgam!added:giovanni lgam
+      !
+      lgam=gamma_only.and..not.do_wf_cmplx
+      !
+      ennl_t = 0.d0 
+      ennl_tc = CMPLX(0.d0,0.d0) 
+      !
+      !  xlf does not like name of function used for OpenMP reduction
+      !
+!$omp parallel default(shared), &
+!$omp private(is,iv,jv,ijv,isa,isat,ism,ia,inl,jnl,sums,i,iss,sumt), reduction(+:ennl_t)
+      if(.not.bec%iscmplx) then
+        do is = 1, nsp
+          do iv = 1, nh(is)
+              do jv = iv, nh(is)
+                ijv = (jv-1)*jv/2 + iv
+                isa = 0
+                do ism = 1, is - 1
+                    isa = isa + na(ism)
+                end do
+!$omp do
+                do ia = 1, na(is)
+                    inl = ish(is)+(iv-1)*na(is)+ia
+                    jnl = ish(is)+(jv-1)*na(is)+ia
+                    isat = isa+ia
+                    sums = 0.d0
+                    do i = 1, n
+                      iss = ispin(i)
+                      sums(iss) = sums(iss) + 0.5d0*f(i) * (becdual%rvec(inl,i) * bec%rvec(jnl,i) +becdual%rvec(jnl,i) * bec%rvec(inl,i))
+                    end do
+                    sumt = 0.d0
+                    do iss = 1, nspin
+                      rhovan( ijv, isat, iss ) = sums( iss )
+                      sumt = sumt + sums( iss )
+                    end do
+                    if( iv .ne. jv ) sumt = 2.d0 * sumt
+                    ennl_t = ennl_t + sumt * dvan( jv, iv, is)
+                end do
+!$omp end do
+              end do
+          end do
+        end do
+      else
+        do is = 1, nsp
+          do iv = 1, nh(is)
+              do jv = iv, nh(is)
+                ijv = (jv-1)*jv/2 + iv
+                isa = 0
+                do ism = 1, is - 1
+                    isa = isa + na(ism)
+                end do
+!$omp do
+                do ia = 1, na(is)
+                    inl = ish(is)+(iv-1)*na(is)+ia
+                    jnl = ish(is)+(jv-1)*na(is)+ia
+                    isat = isa+ia
+                    sums_c = CMPLX(0.d0,0.d0)
+                    do i = 1, n
+                      iss = ispin(i)
+                      sums_c(iss) = sums_c(iss) + CMPLX(0.5d0*f(i),0.d0)  &
+      &                * (bec%cvec(inl,i) * CONJG(becdual%cvec(jnl,i))+bec%cvec(jnl,i) * CONJG(becdual%cvec(inl,i)))
+                    end do
+                    sumt_c = CMPLX(0.d0,0.d0)
+                    do iss = 1, nspin
+                      rhovan( ijv, isat, iss ) = DBLE(sums_c( iss ))
+                      sumt_c = sumt_c + sums_c( iss )
+                    end do
+                    if( iv .ne. jv ) sumt_c = CMPLX(2.d0,0.d0) * sumt_c
+                    ennl_tc = ennl_tc + sumt_c * CMPLX(dvan( jv, iv, is),0.d0)
+                end do
+!$omp end do
+              end do
+          end do
+        end do
+      endif
+!$omp end parallel
+      !
+      if(.not.bec%iscmplx) then
+        ennl_non_ortho = ennl_t
+      else
+        ennl_non_ortho = DBLE(ennl_tc)
+      endif
+      !
+      return
+   end function ennl_non_ortho
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
    real(8) function ennl( rhovan, bec )!added:giovanni lgam
 !-----------------------------------------------------------------------
       !
@@ -1053,8 +1167,7 @@
       use electrons_base, only : n => nbsp, nspin, ispin, f
       use ions_base,      only : nsp, nat, na
       use twin_types
-      use control_flags,  only : non_ortho, gamma_only, do_wf_cmplx
-      use cp_main_variables, only : becdual
+      use control_flags,  only : gamma_only, do_wf_cmplx
       !
       implicit none
       !
@@ -1080,39 +1193,32 @@
 !$omp parallel default(shared), &
 !$omp private(is,iv,jv,ijv,isa,isat,ism,ia,inl,jnl,sums,i,iss,sumt), reduction(+:ennl_t)
       if(.not.bec%iscmplx) then
-	do is = 1, nsp
-	  do iv = 1, nh(is)
-	      do jv = iv, nh(is)
-		ijv = (jv-1)*jv/2 + iv
-		isa = 0
-		do ism = 1, is - 1
-		    isa = isa + na(ism)
-		end do
+        do is = 1, nsp
+           do iv = 1, nh(is)
+              do jv = iv, nh(is)
+                 ijv = (jv-1)*jv/2 + iv
+                 isa = 0
+                 do ism = 1, is - 1
+                    isa = isa + na(ism)
+                 end do
 !$omp do
-		do ia = 1, na(is)
-		    inl = ish(is)+(iv-1)*na(is)+ia
-		    jnl = ish(is)+(jv-1)*na(is)+ia
-		    isat = isa+ia
-		    sums = 0.d0
-                    IF(non_ortho) THEN
-		       do i = 1, n
-		         iss = ispin(i)
-		         sums(iss) = sums(iss) + f(i) * becdual%rvec(inl,i) * bec%rvec(jnl,i)
-		       end do
-                    ELSE
-		       do i = 1, n
-		         iss = ispin(i)
-		         sums(iss) = sums(iss) + f(i) * bec%rvec(inl,i) * bec%rvec(jnl,i)
-		       end do
-                    ENDIF
-		    sumt = 0.d0
-		    do iss = 1, nspin
-		      rhovan( ijv, isat, iss ) = sums( iss )
-		      sumt = sumt + sums( iss )
-		    end do
-		    if( iv .ne. jv ) sumt = 2.d0 * sumt
-		    ennl_t = ennl_t + sumt * dvan( jv, iv, is)
-		end do
+                 do ia = 1, na(is)
+                    inl = ish(is)+(iv-1)*na(is)+ia
+                    jnl = ish(is)+(jv-1)*na(is)+ia
+                    isat = isa+ia
+                    sums = 0.d0
+                    do i = 1, n
+                      iss = ispin(i)
+                      sums(iss) = sums(iss) + f(i) * bec%rvec(inl,i) * bec%rvec(jnl,i)
+                    end do
+                    sumt = 0.d0
+                    do iss = 1, nspin
+                       rhovan( ijv, isat, iss ) = sums( iss )
+                       sumt = sumt + sums( iss )
+                    end do
+                    if( iv .ne. jv ) sumt = 2.d0 * sumt
+                    ennl_t = ennl_t + sumt * dvan( jv, iv, is)
+                 end do
 !$omp end do
 	      end do
 	  end do
@@ -1132,19 +1238,11 @@
 		    jnl = ish(is)+(jv-1)*na(is)+ia
 		    isat = isa+ia
 		    sums_c = CMPLX(0.d0,0.d0)
-                    IF(non_ortho) THEN
-		       do i = 1, n
-		         iss = ispin(i)
-		         sums_c(iss) = sums_c(iss) + CMPLX(f(i),0.d0)  &
-         &                * (bec%cvec(inl,i)) * CONJG(becdual%cvec(jnl,i))
-		       end do
-                    ELSE
-	               do i = 1, n
-		         iss = ispin(i)
-		         sums_c(iss) = sums_c(iss) + CMPLX(f(i),0.d0)  &
-         &                * (bec%cvec(inl,i)) * CONJG(bec%cvec(jnl,i))
-		       end do
-                    ENDIF
+	            do i = 1, n
+		      iss = ispin(i)
+		      sums_c(iss) = sums_c(iss) + CMPLX(f(i),0.d0)  &
+                      * ((bec%cvec(inl,i)) * CONJG(bec%cvec(jnl,i)))
+		    end do
 		    sumt_c = CMPLX(0.d0,0.d0)
 		    do iss = 1, nspin
 		      rhovan( ijv, isat, iss ) = DBLE(sums_c( iss ))
@@ -1232,6 +1330,9 @@
       use electrons_base, only : n => nbsp, nspin, ispin, f
       use ions_base,      only : nsp, nat, na
       use twin_types
+      use cp_main_variables, only : becdual
+      use control_flags,     only : non_ortho
+      use wavefunctions_module, only : cdual
       !
       implicit none
       !
@@ -1259,7 +1360,11 @@
 		      jnl = ish(is)+(jv-1)*na(is)+ia
 		      isa = isa+1
 		      iss = ispin(iwf)
-		      rhovan( ijv, isa, iss ) = f(iwf) * bec%rvec(inl,iwf) * bec%rvec(jnl,iwf)
+		      IF(non_ortho) THEN
+		         rhovan( ijv, isa, iss ) = f(iwf) * becdual%rvec(inl,iwf) * bec%rvec(jnl,iwf)
+		      ELSE
+		         rhovan( ijv, isa, iss ) = f(iwf) * bec%rvec(inl,iwf) * bec%rvec(jnl,iwf)
+		      ENDIF
 		  end do
 		end do
 	    end do
@@ -1278,8 +1383,12 @@
 		      jnl = ish(is)+(jv-1)*na(is)+ia
 		      isa = isa+1
 		      iss = ispin(iwf)
-		      rhovan( ijv, isa, iss ) = f(iwf) * DBLE(CONJG(bec%cvec(inl,iwf)) * &
+		      IF(non_ortho) THEN
+                          rhovan( ijv, isa, iss ) = f(iwf) * DBLE(CONJG(becdual%cvec(inl,iwf)) * &                                                        (bec%cvec(jnl,iwf)))
+		      ELSE
+                          rhovan( ijv, isa, iss ) = f(iwf) * DBLE(CONJG(bec%cvec(inl,iwf)) * &
                                                               (bec%cvec(jnl,iwf)))
+                       ENDIF
 		  end do
 		end do
 	    end do

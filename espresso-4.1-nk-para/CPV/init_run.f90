@@ -36,7 +36,7 @@ SUBROUTINE init_run()
   USE uspp,                     ONLY : nkb, vkb, deeq, becsum,nkbus
   USE core,                     ONLY : rhoc
   USE smooth_grid_dimensions,   ONLY : nnrsx
-  USE wavefunctions_module,     ONLY : c0, cm, cp, cdual
+  USE wavefunctions_module,     ONLY : c0, cm, cp, cdual, cmdual
   USE cdvan,                    ONLY : dbec, drhovan
   USE ensemble_dft,             ONLY : tens, z0t, tsmear
   USE cg_module,                ONLY : tcg
@@ -149,7 +149,8 @@ SUBROUTINE init_run()
   ALLOCATE( cp( ngw, nbspx ) )
   !gvn23 ALLOCATE(cpi(ngw, nbspx))
   IF(non_ortho) THEN
-     ALLOCATE(cdual(ngw, nbsp))
+     ALLOCATE(cdual(ngw, nbspx))
+     ALLOCATE(cmdual(ngw, nbspx))
   ENDIF
   !
   IF ( iprsta > 2 ) THEN

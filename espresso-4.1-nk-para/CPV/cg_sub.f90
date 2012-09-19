@@ -55,7 +55,7 @@
       use cg_module,                only : ene_ok,  maxiter,niter_cg_restart, &
                                            conv_thr, passop, enever, itercg
       use ions_positions,           only : tau0
-      use wavefunctions_module,     only : c0, cm, phi => cp, cdual
+      use wavefunctions_module,     only : c0, cm, phi => cp, cdual, cmdual
       use efield_module,            only : tefield, evalue, ctable, qmat, detq, ipolp, &
                                            berry_energy, ctabin, gqq, gqqm, df, pberryel, &
                                            tefield2, evalue2, ctable2, qmat2, detq2, ipolp2, &
@@ -74,7 +74,7 @@
       use hfmod,                    only : do_hf, vxxpsi, exx
       use twin_types !added:giovanni
       use control_flags,            only : non_ortho
-      use cp_main_variables,        only : becdual
+      use cp_main_variables,        only : becdual, becmdual
 !
       implicit none
 !
@@ -174,6 +174,7 @@
       call allocate_twin(becm, nhsa, nbsp, lgam)
       call init_twin(becdrdiag, lgam)
       call allocate_twin(becdrdiag, nhsa, nspin*nlax,3, lgam)
+
 !       do iss=1,nspin
 ! 	call init_twin(lambda(iss), lgam)
 ! 	call allocate_twin(lambda(iss), nlam, nlam, lgam)
@@ -238,7 +239,11 @@
 !$$
 
       !orthonormalize c0
-      IF(.not. non_ortho) THEN
+      IF(non_ortho) THEN
+         call calbec(1,nsp,eigr,c0,bec)
+         call compute_duals(c0,cdual,nbspx,1)
+         call calbec(1,nsp,eigr,cdual,becdual)
+      ELSE
          IF(do_orbdep.and.ortho_switch) THEN
             call lowdin(c0, lgam)
             call calbec(1,nsp,eigr,c0,bec)
@@ -248,10 +253,11 @@
          ENDIF
       ENDIF
       !call calbec(1,nsp,eigr,c0,bec)
-
-      ! calculates phi for pcdaga
-      !call calphiid(c0,bec,betae,phi)
-      CALL calphi( c0, SIZE(c0,1), bec, nhsa, betae, phi, nbsp, lgam)
+      IF(non_ortho) THEN
+         CALL calphi( c0, SIZE(c0,1), bec, nhsa, betae, phi, nbsp, lgam)
+      ELSE
+         CALL calphi( c0, SIZE(c0,1), bec, nhsa, betae, phi, nbsp, lgam)
+      ENDIF
       !
       ! calculates the factors for S and K inversion in US case
       !
@@ -321,12 +327,19 @@
         if(.not. ene_ok ) then
 
           call calbec(1,nsp,eigr,c0,bec)
+          IF(non_ortho) THEN
+             call calbec(1,nsp,eigr,cdual,becdual)
+          ENDIF
+          
           if(.not.tens) then
+             !
              if(non_ortho) then
-                call compute_duals(c0,cdual,nbsp,1)
-                call calbec(1,nsp,eigr,cdual,becdual)
+                write(6,*) "checkdual23", cdual(1:2,1)
+                call rhoofr(nfi,c0(:,:),cdual,irb,eigrb,bec,becdual,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
+             else
+                write(6,*) "checkwave23", c0(1:2,1)
+                call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
              endif
-             call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
           else
 
             if(newscheme.or.firstiter) then 
@@ -337,10 +350,6 @@
             !     calculation of the rotated quantities
 
             call rotate_twin( z0t, c0(:,:), bec, c0diag, becdiag, .false. )
-            if(non_ortho) then
-               call compute_duals(c0,cdual,nbsp,1)
-               call calbec(1,nsp,eigr,cdual,becdual)
-            endif
             !     calculation of rho corresponding to the rotated wavefunctions
             call rhoofr(nfi,c0diag,irb,eigrb,becdiag                        &
                      &                    ,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
@@ -395,8 +404,14 @@
                   fsic = f
               endif
               !
-              call nksic_potential( nbsp, nbspx, c0, fsic, bec, rhovan, deeq_sic, &
+              IF(non_ortho) THEN
+                 call nksic_potential_non_ortho( nbsp, nbspx, c0, cdual, fsic, bec, becdual, &
+                                    rhovan, deeq_sic, &
                                     ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+              ELSE
+                 call nksic_potential( nbsp, nbspx, c0, fsic, bec, rhovan, deeq_sic, &
+                                    ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+              ENDIF
 
               eodd=sum(pink(1:nbsp))
 !               write(6,*) eodd, etot, "EODD0", etot+eodd
@@ -504,6 +519,7 @@
 #endif
         if ( ionode ) write(stdout,'(5x,"iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14)')&
             itercg, itercgeff, etotnew
+
         if ( ionode .and. mod(itercg,10) == 0 ) write(stdout,"()" )
 !$$
 
@@ -635,7 +651,11 @@
 !$$  FIRST CALL TO DFORCE
           CALL start_clock( 'dforce1' )
 !$$          call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin,f,n,nspin)
-          call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin, faux, nbsp, nspin)
+          IF(non_ortho) THEN
+             call dforce( i, becdual, betae, cdual,c2,c3,rhos, nnrsx, ispin, faux, nbsp, nspin)
+          ELSE
+             call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin, faux, nbsp, nspin)
+          ENDIF
           CALL stop_clock( 'dforce1' )
 !$$
 
@@ -671,7 +691,11 @@
               !
               ! faux takes into account spin multiplicity.
               !
-              CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi, lgam )
+              IF(non_ortho) THEN
+                 CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, becdual, ngw, cdual(:,i), cdual(:,i+1), vsicpsi, lgam )
+              ELSE
+                 CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi, lgam )
+              ENDIF
               !
               c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
               !
@@ -723,9 +747,11 @@
         if(pre_state) call ave_kin(c0,SIZE(c0,1),nbsp,ave_ene)
 
 !$$        call pcdaga2(c0,phi,hpsi)
-!$$     HPSI IS ORTHOGONALIZED TO C0
-        IF(.not.non_ortho) THEN
-           !
+!$$     HPSI IS ORTHOGONALIZED TO  c0
+        IF(non_ortho) THEN
+           call pcdaga2(c0,cdual,hpsi, lgam)
+!            call pc2_non_ortho(c0,cdual,bec,becdual,hpsi,becm,lgam)
+        ELSE
            if(switch.or.(.not.do_orbdep)) then
              call pcdaga2(c0,phi,hpsi, lgam)
            else
@@ -760,10 +786,17 @@
 !        endif
 !$$
         !TWO VECTORS INITIALIZED TO HPSI
-        hpsi0(1:ngw,1:nbsp) = hpsi(1:ngw,1:nbsp)
-        gi(1:ngw,1:nbsp)    = hpsi(1:ngw,1:nbsp)
+        IF(non_ortho) THEN
+!            gi(1:ngw,1:nbsp)    = hpsi(1:ngw,1:nbsp)
+           call times_overlap(c0, hpsi, hpsi0, nbsp, 1)
+           gi(1:ngw,1:nbsp) = hpsi0(1:ngw,1:nbsp)
+           hpsi(1:ngw,1:nbsp)    = hpsi0(1:ngw,1:nbsp)
+        ELSE
+           hpsi0(1:ngw,1:nbsp) = hpsi(1:ngw,1:nbsp)
+           gi(1:ngw,1:nbsp)    = hpsi(1:ngw,1:nbsp)
+        ENDIF
 
-	!COMPUTES ULTRASOFT-PRECONDITIONED HPSI, non kinetic-preconditioned
+	!COMPUTES ULTRASOFT-PRECONDITIONED HPSI, non kinetic-preconditioned, is the subsequent reorthogonalization necessary in the norm conserving case???: giovanni
         call calbec(1,nsp,eigr,hpsi,becm)
         call xminus1_twin(hpsi,betae,dumm,becm,s_minus1,.false.)
 !        call sminus1(hpsi,becm,betae)
@@ -773,7 +806,10 @@
         call calbec(1,nsp,eigr,hpsi,becm)
 !$$        call pc2(c0,bec,hpsi,becm)
 !$$     THIS ORTHOGONALIZED PRECONDITIONED VECTOR HPSI
-        IF(.not.non_ortho) THEN
+
+        IF(non_ortho) THEN
+            call pc2_non_ortho(c0,cdual,bec,becdual,hpsi,becm,lgam)
+        ELSE
            if(switch.or.(.not.do_orbdep)) then
              call pc2(c0,bec,hpsi,becm, lgam)
            else
@@ -793,7 +829,9 @@
         call calbec(1,nsp,eigr,gi,becm)
 !$$        call pc2(c0,bec,gi,becm)
 !$$     !ORTHOGONALIZES GI to c0
-        IF(.not.non_ortho) THEN
+        IF(non_ortho) THEN
+           call pc2_non_ortho(c0,cdual,bec,becdual,gi,becm,lgam)
+        ELSE
            if(switch.or.(.not.do_orbdep)) then
              call pc2(c0,bec,gi,becm, lgam)
            else
@@ -1017,7 +1055,9 @@
         call calbec(1,nsp,eigr,hi,bec0)
 !$$        call pc2(c0,bec,hi,bec0)
 !$$
-        IF(.not.non_ortho) THEN
+        IF(non_ortho) THEN
+           call pc2_non_ortho(c0, cdual, bec, becdual, hi, bec0, lgam)
+        ELSE
            if(switch.or.(.not.do_orbdep)) then
               call pc2(c0,bec,hi,bec0, lgam)
            else
@@ -1236,7 +1276,6 @@
       ! calculates wave-functions on a point on direction hi
       !
       cm(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passof*hi(1:ngw,1:nbsp)
-
       !
 !$$   ! I do not know why the following 3 lines 
       ! were not in the original code (CHP)
@@ -1247,7 +1286,12 @@
       !orthonormalize
 
       !
-      IF(.not. non_ortho) THEN
+      IF(non_ortho) THEN
+         call calbec(1,nsp,eigr,cm,becm)
+         call compute_duals(cm,cmdual,nbspx,1)
+         call calbec(1,nsp,eigr,cmdual,becmdual)
+         write(6,*) "checkdual", cdual(1:2,1)
+      ELSE
          if(do_orbdep.and.ortho_switch) then
             call lowdin(cm, lgam)
             call calbec(1,nsp,eigr,cm,becm)
@@ -1261,10 +1305,11 @@
         !****calculate energy ene1
         if(.not.tens) then
            if(non_ortho) then
-              call compute_duals(cm,cdual,nbsp,1)
-              call calbec(1,nsp,eigr,cdual,becdual)
+              call rhoofr(nfi,cm(:,:),cmdual, irb,eigrb,becm,becmdual,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
+           else
+              write(6,*) "checkwave", cm(1:2,1)
+              call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
            endif
-           call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
         else
           if(newscheme) then 
               call  inner_loop_cold( nfi, tfirst, tlast, eigr,  irb, eigrb, &
@@ -1274,10 +1319,6 @@
           !     calculation of the rotated quantities
           call rotate_twin( z0t, cm(:,:), becm, c0diag, becdiag, .false. )
           !     calculation of rho corresponding to the rotated wavefunctions
-          if(non_ortho) then
-             call compute_duals(c0diag,cdual,nbsp,1)
-             call calbec(1,nsp,eigr,cdual,becdual)
-          endif
           call rhoofr(nfi,c0diag,irb,eigrb,becdiag,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
         endif
 
@@ -1301,9 +1342,14 @@
 
 !$$
         if( do_orbdep ) then
-            !
-            call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
+            !warning:giovanni don't we need becm down here??? otherwise problems with ultrasoft!!
+            IF(non_ortho) THEN
+               call nksic_potential_non_ortho( nbsp, nbspx, cm, cmdual, fsic, bec, becdual, rhovan, deeq_sic, &
                                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+            ELSE
+               call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
+                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+            ENDIF
             !
             eodd=sum(pink(1:nbsp))
 !             write(6,*) eodd, etot, "EODD2", etot+eodd !debug:giovanni
@@ -1367,7 +1413,11 @@
         ! enddo
         ENDIF
       
-        IF(.not.non_ortho) THEN
+        IF(non_ortho) THEN
+           call calbec(1,nsp,eigr,cm,becm)
+           call compute_duals(cm,cmdual,nbspx,1)
+           call calbec(1,nsp,eigr,cmdual,becmdual)
+        ELSE
            IF(do_orbdep.and.ortho_switch) THEN
               call lowdin(cm, lgam)
               call calbec(1,nsp,eigr,cm,becm)
@@ -1381,11 +1431,13 @@
 
         !call calbec(1,nsp,eigr,cm,becm)
         if(.not.tens) then
+          !
           if(non_ortho) then
-             call compute_duals(cm,cdual,nbsp,1)
-             call calbec(1,nsp,eigr,cdual,becdual)
+             call rhoofr(nfi,cm(:,:),cmdual,irb,eigrb,becm,becmdual,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
+          else
+             call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
           endif
-          call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
+          !
         else
           if(newscheme)  then
               call  inner_loop_cold( nfi, tfirst, tlast, eigr,  irb, eigrb, &
@@ -1394,10 +1446,6 @@
           !     calculation of the rotated quantities
           call rotate_twin( z0t, cm(:,:), becm, c0diag, becdiag, .false. )
           !     calculation of rho corresponding to the rotated wavefunctions
-          if(non_ortho) then
-             call compute_duals(c0diag,cdual,nbsp,1)
-             call calbec(1,nsp,eigr,cdual,becdual)
-          endif
           call rhoofr(nfi,c0diag,irb,eigrb,becdiag,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
         endif
 
@@ -1430,9 +1478,14 @@
 
 !$$
         if(do_orbdep) then
-            !
-            call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
+            !warning:giovanni... don't we need becm down here?? otherwise problem with ultrasoft!!
+            IF(non_ortho) THEN
+               call nksic_potential_non_ortho( nbsp, nbspx, cm, cmdual, fsic, becm, becmdual, rhovan, deeq_sic, &
                                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+            ELSE
+               call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
+                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+            ENDIF
             eodd = sum(pink(1:nbsp))
 !             write(6,*) eodd, etot,"EODD3", etot+eodd
             etot = etot + eodd
@@ -1490,20 +1543,31 @@
         !
         if( ((enever.lt.ene0) .and. (enever.lt.ene1)).or.(tefield.or.tefield2)) then
           c0(:,:)=cm(:,:)
-!           bec(:,:)=becm(:,:)
           call copy_twin(bec,becm) !modified:giovanni
           ene_ok=.true.
+          if(non_ortho) then
+             cdual(:,:)=cmdual(:,:)
+             call copy_twin(becdual,becmdual)
+             write(6,*) "checkdual", cdual(1:2,1)
+          endif
         elseif( (enever.ge.ene1) .and. (enever.lt.ene0)) then
           if(ionode) then
              write(stdout,"(2x,a,i5,f20.12)") 'cg_sub: missed minimum, case 1, iteration',itercg, passof
+             write(6,*) "checkenergies",ene0,enever,ene1
           endif
           c0(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
+                write(6,*) "checkwave", c0(1:2,1)
 !$$
           passof=2.d0*passov
 !$$
           restartcg=.true.
           !
-          IF(.not.non_ortho) THEN
+          IF(non_ortho) THEN
+             call calbec(1,nsp,eigr,c0,bec)
+             call compute_duals(c0,cdual,nbspx,1)
+             call calbec(1,nsp,eigr,cdual,becdual)
+             write(6,*) "checkdual", cdual(1:2,1)          
+          ELSE
              IF(do_orbdep.and.ortho_switch) THEN
                 call lowdin(c0, lgam)
                 call calbec(1,nsp,eigr,c0,bec)
@@ -1512,12 +1576,15 @@
                 call gram(betae,bec,nhsa,c0,ngw,nbsp)
              ENDIF
           ENDIF
+
+          write(6,*) "checkwave", cm(1:2,1)
           !
           ene_ok=.false.
           !if  ene1 << energy <  ene0; go to  ene1
         else if( (enever.ge.ene0).and.(ene0.gt.ene1)) then
           if(ionode) then
              write(stdout,"(2x,a,i5)") 'cg_sub: missed minimum, case 2, iteration',itercg
+             write(6,*) "checkenergies",ene0,enever,ene1
           endif  
           c0(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
 !$$
@@ -1525,7 +1592,12 @@
 !$$
           restartcg=.true.!ATTENZIONE
           !
-          IF(.not.non_ortho) THEN
+          IF(non_ortho) THEN
+             call calbec(1,nsp,eigr,c0,bec)
+             call compute_duals(c0,cdual,nbspx,1)
+             call calbec(1,nsp,eigr,cdual,becdual)
+             write(6,*) "checkdual", cdual(1:2,1)
+          ELSE
              IF(do_orbdep.and.ortho_switch) THEN
                 call lowdin(c0, lgam)
                 call calbec(1,nsp,eigr,c0,bec)
@@ -1540,6 +1612,7 @@
         else if((enever.ge.ene0).and.(ene0.le.ene1)) then
           if(ionode) then
              write(stdout,"(2x,a,i5)") 'cg_sub: missed minimum, case 3, iteration',itercg
+             write(6,*) "checkenergies",ene0,enever,ene1
           endif
 
           iter3=0
@@ -1555,7 +1628,11 @@
             ! chenge the searching direction
             spasso=spasso*(-1.d0)
 
-            IF(.not.non_ortho) THEN 
+            IF(non_ortho) THEN 
+                 call calbec(1,nsp,eigr,cm,becm)
+                 call compute_duals(cm,cmdual,nbspx,1)
+                 call calbec(1,nsp,eigr,cmdual,becmdual)
+            ELSE
                IF(do_orbdep.and.ortho_switch) THEN
                   call lowdin(cm, lgam)
                   call calbec(1,nsp,eigr,cm,becm)
@@ -1567,10 +1644,10 @@
 
             if(.not.tens) then
               if(non_ortho) then
-                 call compute_duals(cm,cdual,nbsp,1)
-                 call calbec(1,nsp,eigr,cdual,becdual)
+                 call rhoofr(nfi,cm(:,:),cmdual,irb,eigrb,becm,becmdual,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
+              else
+                 call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
               endif
-              call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
             else
               if(newscheme)  then
                   call  inner_loop_cold( nfi, tfirst, tlast, eigr,  irb, eigrb, &
@@ -1579,10 +1656,6 @@
               !     calculation of the rotated quantities
               call rotate_twin( z0t, cm(:,:), becm, c0diag, becdiag, .false. )
               !     calculation of rho corresponding to the rotated wavefunctions
-              if(non_ortho) then
-                 call compute_duals(c0diag,cdual,nbsp,1)
-                 call calbec(1,nsp,eigr,cdual,becdual)
-              endif
               call rhoofr(nfi,c0diag,irb,eigrb,becdiag,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
             endif
   
@@ -1618,9 +1691,14 @@
 
 !$$
             if(do_orbdep) then
-                !
-                call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
+                !warning:giovanni don't we need becm down here??? otherwise problems with ultrasoft
+                IF(non_ortho) THEN
+                   call nksic_potential_non_ortho( nbsp, nbspx, cm,cmdual, fsic, becm,becmdual, rhovan, deeq_sic, &
                                       ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+                ELSE
+                   call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
+                                      ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+                ENDIF
                 !
                 eodd = sum(pink(1:nbsp))
 !                 write(6,*) eodd, etot, "EODD4", etot+eodd
@@ -1650,11 +1728,21 @@
 !$$
           !if(.not.do_orbdep) then
               if(iter3 == maxiter3 .and. enever.gt.ene0) then
-                write(stdout,"(2x,a)") 'missed minimun: iter3 = maxiter3'
+                write(stdout,"(2x,a)") 'missed minimum: iter3 = maxiter3'
                 write(stdout,*) enever, ene0
+!                 if(non_ortho) then
+!                    call compute_duals(c0,cdual,nbspx,1)
+!                    call calbec(1,nsp,eigr,cdual,becdual)
+!                    write(6,*) "checkdual", cdual(1:2,1)
+!                 endif
               else if(enever.le.ene0) then
                 c0(:,:)=cm(:,:)
                 call copy_twin(bec,becm)
+                if(non_ortho) then
+                   cdual(:,:)=cmdual(:,:)
+                   call copy_twin(becdual,becmdual)
+                   write(6,*) "checkdual", cdual(1:2,1)
+                 endif
               endif
 
           !endif
@@ -1675,7 +1763,11 @@
         if(.not. ene_ok) call calbec (1,nsp,eigr,c0,bec)
 
         !calculates phi for pc_daga
-        CALL calphi( c0, SIZE(c0,1), bec, nhsa, betae, phi, nbsp, lgam )
+        IF(non_ortho) THEN
+           CALL calphi( c0, SIZE(c0,1), bec, nhsa, betae, phi, nbsp, lgam )
+        ELSE
+           CALL calphi( c0, SIZE(c0,1), bec, nhsa, betae, phi, nbsp, lgam )
+        ENDIF
   
         !=======================================================================
         !
@@ -1750,10 +1842,12 @@
          if(.not.tens) then
              call  caldbec( ngw, nhsa, nbsp, 1, nsp, eigr, c0, dbec )
              if(non_ortho) then
-                call compute_duals(c0,cdual,nbsp,1)
+                call compute_duals(c0,cdual,nbspx,1)
                 call calbec(1,nsp,eigr,cdual,becdual)
+                call rhoofr(nfi,c0(:,:),cdual,irb,eigrb,bec,becdual,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
+             else
+                call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
              endif
-             call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
          else
              !
              !     calculation of the rotated quantities
@@ -1761,10 +1855,6 @@
              !
              !     calculation of rho corresponding to the rotated wavefunctions
              call caldbec( ngw, nhsa, nbsp, 1, nsp, eigr, c0diag, dbec )
-             if(non_ortho) then
-                call compute_duals(c0diag,cdual,nbsp,1)
-                call calbec(1,nsp,eigr,cdual,becdual)
-             endif
              call rhoofr( nfi, c0diag, irb, eigrb, becdiag,      &
                           rhovan, rhor, rhog, rhos, enl, denl, ekin, dekin6)
              !
@@ -1796,8 +1886,14 @@
 !$$
          if(do_orbdep) then
              !
-             call nksic_potential( nbsp, nbspx, c0, fsic, bec, rhovan, deeq_sic, &
+             IF(non_ortho) THEN
+                call nksic_potential_non_ortho( nbsp, nbspx, c0, cdual, fsic, bec, becdual, rhovan, &
+                                   deeq_sic, &
                                    ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+             ELSE
+                call nksic_potential( nbsp, nbspx, c0, fsic, bec, rhovan, deeq_sic, &
+                                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+             ENDIF
              eodd = sum(pink(1:nbsp))
 !              write(6,*) eodd, etot, "EODD5", etot+eodd
              etot = etot + eodd
@@ -1838,7 +1934,12 @@
 !$$
          CALL start_clock( 'dforce2' )
 !$$          call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin,f,n,nspin)
-         call dforce(i,bec,betae,c0,c2,c3,rhos,nnrsx,ispin,faux,nbsp,nspin)
+         IF(non_ortho) THEN
+            call dforce(i,becdual,betae,cdual,c2,c3,rhos,nnrsx,ispin,faux,nbsp,nspin)
+         ELSE
+            call dforce(i,bec,betae,c0,c2,c3,rhos,nnrsx,ispin,faux,nbsp,nspin)
+         ENDIF
+         !
          CALL start_clock( 'dforce2' )
 !$$
          if(tefield.and.(evalue .ne. 0.d0)) then
@@ -1876,7 +1977,11 @@
              !
              ! faux takes into account spin multiplicity.
              !
-             CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi, lgam )
+             IF(non_ortho) THEN
+                CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, becdual, ngw, cdual(:,i), cdual(:,i+1), vsicpsi, lgam )
+             ELSE
+                CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi, lgam )
+             ENDIF
              !
              c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
              !

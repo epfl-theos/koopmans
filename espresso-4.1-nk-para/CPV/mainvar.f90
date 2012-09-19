@@ -58,7 +58,7 @@ MODULE cp_main_variables
   !
   type(twin_tensor) :: becdr!(:,:,:)!,bec(:,:) !modified:giovanni
 !   REAL(DP), ALLOCATABLE :: bephi(:,:)!, becp(:,:) !removed:giovanni
-  TYPE(twin_matrix)     :: bec, becp, bephi, becdual !added:giovanni
+  TYPE(twin_matrix)     :: bec, becp, bephi, becdual, becmdual !added:giovanni
   TYPE(twin_matrix), ALLOCATABLE :: lambda(:)
   TYPE(twin_matrix), ALLOCATABLE :: lambdam(:)
   TYPE(twin_matrix), ALLOCATABLE :: lambdap(:)
@@ -290,6 +290,8 @@ MODULE cp_main_variables
       IF(non_ortho) THEN
          call init_twin(becdual, lgam)
          call allocate_twin(becdual,nhsa_l,n, lgam)!added:giovanni
+         call init_twin(becmdual, lgam)
+         call allocate_twin(becmdual,nhsa_l,n, lgam)!added:giovanni
       ENDIF
 !       ALLOCATE( bec( nhsa_l,n ) )!removed:giovanni
       !
@@ -341,6 +343,7 @@ endif
       CALL deallocate_twin(bephi)
       ! for non orthogonal case
       CALL deallocate_twin(becdual)
+      CALL deallocate_twin(becmdual)
 
 if(ionode) then
 ! write(0,*) "debug2"

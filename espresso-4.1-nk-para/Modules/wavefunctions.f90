@@ -32,6 +32,8 @@
 
      ! below dual wavefunctions, allocated only in the non orthogonal case
      COMPLEX(DP), ALLOCATABLE :: cdual(:,:)  ! dual wave functions at time t
+     COMPLEX(DP), ALLOCATABLE :: cmdual(:,:)  ! dual wave functions at time t
+
 
    CONTAINS
 
@@ -43,6 +45,7 @@
        IF( ALLOCATED( psic ) ) DEALLOCATE( psic )
        IF( ALLOCATED( evc ) ) DEALLOCATE( evc )
        IF( ALLOCATED( cdual ) ) DEALLOCATE( cdual )
+       IF( ALLOCATED( cmdual ) ) DEALLOCATE( cmdual )
      END SUBROUTINE deallocate_wavefunctions
 
 !=----------------------------------------------------------------------------=!
