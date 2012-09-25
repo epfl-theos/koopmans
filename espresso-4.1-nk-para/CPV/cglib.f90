@@ -1287,6 +1287,174 @@ subroutine pc2(a,beca,b,becb, lgam)
       return
       end subroutine pc3nc
 
+      subroutine pc3nc_non_ortho(a,adual, b, lgam)
+
+! this function applies the modified Pc operator which is
+! equivalent to Lowdin orthonormalization of the revised wavefunctions.
+! currently implemented only for norm-conserving pseudopotentials. 
+
+!    this subroutine applies the modified Pc operator
+!    a input :unperturbed wavefunctions
+!    b input :first order wavefunctions
+!    b output:b_i =b_i - |adual_j>(<a_j|b_i>+<b_j|a_i>)/2
+
+      use kinds
+      use io_global, only: stdout
+      use mp_global, only: intra_image_comm
+      use gvecw, only: ngw
+      use reciprocal_vectors, only: ng0 => gstart
+      use mp, only: mp_sum
+      use electrons_base, only: n => nbsp, ispin
+
+      implicit none
+
+      complex(dp) a(ngw,n), adual(ngw,n), b(ngw,n)
+      logical :: lgam
+      ! local variables
+      complex(DP) :: bold(ngw,n)
+      integer i, j,ig
+!       real(dp) sca
+      complex(DP) :: sca_c
+      real(DP), allocatable:: scar(:)
+      complex(DP), allocatable:: scar_c(:)
+      !
+      call start_clock('pc3')
+
+      allocate(scar_c(n))
+
+      bold(:,:)=b(:,:)
+
+      do j=1,n
+         do i=1,n
+            sca_c=CMPLX(0.0d0,0.d0)
+            if(ispin(i) == ispin(j)) then
+                if(lgam) then
+                 if (ng0.eq.2) bold(1,i) = CMPLX(DBLE(bold(1,i)),0.0d0)
+               endif
+                do  ig=1,ngw           !loop on g vectors
+                    sca_c=sca_c+CONJG(a(ig,j))*bold(ig,i)
+                    sca_c=sca_c+(a(ig,i))*CONJG(bold(ig,j))
+                enddo
+                !sca = sca*2.0d0  !2. for real weavefunctions
+                !$$ not necessary: sca = sca*2.0d0  !2. for real weavefunctions
+               if(lgam) then
+                if (ng0.eq.2) then
+                   sca_c = CMPLX(DBLE(sca_c),0.d0) - CMPLX(0.5d0*DBLE(CONJG(a(1,j))*(bold(1,i))+(a(1,i))*CONJG(bold(1,j))),0.d0)
+                 else
+                   sca_c = CMPLX(DBLE(sca_c), 0.d0)
+                 endif
+               else
+                 sca_c=0.5d0*sca_c
+               endif
+              scar_c(i) = sca_c
+            endif
+         enddo
+
+         call mp_sum( scar_c, intra_image_comm )
+
+         do i=1,n
+            if(ispin(i) == ispin(j)) then
+               sca_c = scar_c(i)
+               do ig=1,ngw
+                  b(ig,i)=b(ig,i)-sca_c*adual(ig,j)
+               enddo
+               ! this to prevent numerical errors
+               if(lgam) then 
+                if (ng0.eq.2) b(1,i) = CMPLX(DBLE(b(1,i)),0.0d0)
+               endif
+            endif
+         enddo
+      enddo
+      deallocate(scar_c)
+      call stop_clock('pc3')
+      return
+      end subroutine pc3nc_non_ortho
+      
+      subroutine pc4nc_non_ortho(c, a, adual, b, lgam)
+
+! this function applies the modified Pc operator which is
+! equivalent to Lowdin orthonormalization of the revised wavefunctions.
+! currently implemented only for norm-conserving pseudopotentials. 
+
+!    this subroutine applies the modified Pc operator
+!    a input :unperturbed wavefunctions
+!    b input :first order wavefunctions
+!    b output:c_i = - |adual_i>(<a_i|b_i>)
+
+      use kinds
+      use io_global, only: stdout
+      use mp_global, only: intra_image_comm
+      use gvecw, only: ngw
+      use reciprocal_vectors, only: ng0 => gstart
+      use mp, only: mp_sum
+      use electrons_base, only: n => nbsp, ispin
+
+      implicit none
+
+      complex(dp) a(ngw,n), adual(ngw,n), b(ngw,n), c(ngw,n)
+      logical :: lgam
+      ! local variables
+      complex(DP) :: bold(ngw,n)
+      integer i, j,ig
+!       real(dp) sca
+      complex(DP) :: sca_c
+      real(DP), allocatable:: scar(:)
+      complex(DP), allocatable:: scar_c(:)
+      !
+      call start_clock('pc4')
+
+      allocate(scar_c(n))
+
+      bold(:,:)=b(:,:)
+
+!       do j=1,n
+         do i=1,n
+            j=i
+            sca_c=CMPLX(0.0d0,0.d0)
+            if(ispin(i) == ispin(j)) then
+                if(lgam) then
+                 if (ng0.eq.2) bold(1,i) = CMPLX(DBLE(bold(1,i)),0.0d0)
+               endif
+                do  ig=1,ngw           !loop on g vectors
+                    sca_c=sca_c+CONJG(a(ig,j))*bold(ig,i)
+                    sca_c=sca_c+(a(ig,i))*CONJG(bold(ig,j))
+                enddo
+                !sca = sca*2.0d0  !2. for real weavefunctions
+                !$$ not necessary: sca = sca*2.0d0  !2. for real weavefunctions
+               if(lgam) then
+                if (ng0.eq.2) then
+                   sca_c = CMPLX(DBLE(sca_c),0.d0) - CMPLX(0.5d0*DBLE(CONJG(a(1,j))*(bold(1,i))+(a(1,i))*CONJG(bold(1,j))),0.d0)
+                 else
+                   sca_c = CMPLX(DBLE(sca_c), 0.d0)
+                 endif
+               else
+                 sca_c=0.5d0*sca_c
+               endif
+              scar_c(i) = sca_c
+            endif
+         enddo
+
+         call mp_sum( scar_c, intra_image_comm )
+
+         do i=1,n
+            j=i
+            if(ispin(i) == ispin(j)) then
+               sca_c = scar_c(i)
+               do ig=1,ngw
+                  c(ig,i)=-sca_c*adual(ig,j)
+               enddo
+               ! this to prevent numerical errors
+               if(lgam) then 
+                if (ng0.eq.2) c(1,i) = CMPLX(DBLE(c(1,i)),0.0d0)
+               endif
+            endif
+         enddo
+!       enddo
+      deallocate(scar_c)
+      call stop_clock('pc4')
+      return
+      end subroutine pc4nc_non_ortho
+      
      subroutine set_x_minus1_real(betae,m_minus1,ema0bg,use_ema)
 
 ! this function calculates the factors for the inverse of the US K  matrix

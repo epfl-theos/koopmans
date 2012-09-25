@@ -728,6 +728,7 @@ subroutine exch_corr_wrapper(nnr, nspin, grhor, rhor, etxc, v, h)
   integer :: neg(3)
   real(DP), parameter :: epsr = 1.0d-10, epsg = 1.0d-10
   real(DP), parameter :: epsr2 = 1.0d-30
+  real(DP) :: signrho
   logical :: debug_xc = .false.
   logical :: igcc_is_lyp
 
@@ -745,8 +746,8 @@ subroutine exch_corr_wrapper(nnr, nspin, grhor, rhor, etxc, v, h)
         arhox = abs (rhox)
         if (arhox.gt.epsr2) then
            CALL xc( arhox, ex, ec, vx(1), vc(1) )
-           v(ir,nspin) = e2 * (vx(1) + vc(1) )
-           etxc = etxc + e2 * (ex + ec) * rhox
+           v(ir,nspin) = e2 * (vx(1) + vc(1))!modified:giovanni sign
+           etxc = etxc + e2 * (ex + ec) * rhox !modified:giovanni rhox->arhox
         endif
      enddo
 !$omp end parallel do
@@ -759,16 +760,18 @@ subroutine exch_corr_wrapper(nnr, nspin, grhor, rhor, etxc, v, h)
      neg (2) = 0
      neg (3) = 0
      do ir = 1, nnr
+        !
         rup=rhor(ir,1)
         rdw=rhor(ir,2)
         !
-        IF(rup.lt.epsr2) rup=0.d0
-        IF(rdw.lt.epsr2) rdw=0.d0
+        IF(abs(rup).lt.epsr2) rup=0.d0 !added:giovanni
+        IF(abs(rdw).lt.epsr2) rdw=0.d0 !added:giovanni
         !
-        rhox = rup+rdw
+        rhox=rup+rdw 
         arhox = abs(rhox)
+        !
         if (arhox.gt.epsr2) then
-           zeta = ( rup - rdw ) / arhox
+           zeta = ( rup - rdw ) / (arhox) !modified:giovanni abs(rup+rdw)-> abs(rup) + abs(rdw)
            if (abs(zeta) .gt.1.d0) then
               neg(3) = neg(3) + 1
               zeta = sign(1.d0,zeta)
@@ -778,9 +781,9 @@ subroutine exch_corr_wrapper(nnr, nspin, grhor, rhor, etxc, v, h)
            if (rhor(ir,2) < 0.d0) neg(2) = neg(2) + 1
            call xc_spin (arhox, zeta, ex, ec, vx(1), vx(2), vc(1), vc(2) )
            do is = 1, nspin
-              v(ir,is) = e2 * (vx(is) + vc(is) )
+              v(ir,is) = e2 * (vx(is) + vc(is)) !modified:giovanni sign
            enddo
-           etxc = etxc + e2 * (ex + ec) * rhox
+           etxc = etxc + e2 * (ex + ec) * rhox !modified:giovanni rhox->arhox
         endif
      enddo
   endif

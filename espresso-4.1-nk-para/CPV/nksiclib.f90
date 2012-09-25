@@ -29,7 +29,7 @@
       use gvecp,                      only: ngm
       use gvecw,                      only: ngw
       use grid_dimensions,            only: nnrx
-      use electrons_base,             only: nspin
+      use electrons_base,             only: nspin, nudx
       use funct,                      only : dft_is_gradient
       use nksic,                      only: orb_rhor, wxdsic, &
                                             wrefsic, rhoref, rhobar, &
@@ -70,6 +70,7 @@
       real(dp), allocatable :: vsicpz(:)
       complex(dp), allocatable :: rhobarg(:,:)
       logical :: lgam
+      complex(dp), dimension(nudx,nudx,nspin) :: overlap_
       !
       ! main body
       !
@@ -99,6 +100,7 @@
       !
       ! loop over bands (2 ffts at the same time)
       !
+!       call compute_overlap(c, ngw, nbsp, overlap_)
       !
       do j=1,nbsp,2
         !
@@ -107,8 +109,10 @@
         !
         call nksic_get_orbitalrho( ngw, nnrx, bec, becdual, ispin, nbsp, &
                      c(:,j), c(:,j+1), cdual(:,j), cdual(:,j+1), orb_rhor, &
-                     j, j+1, lgam) !warning:giovanni need modification
+                     j, j+1, lgam) !note:giovanni change here for non-orthogonality flavour
 !begin_added:giovanni
+!            orb_rhor(:,1) = orb_rhor(:,1)/overlap_(j+1-iupdwn(ispin(j)),j+1-iupdwn(ispin(j)),ispin(j))
+!            orb_rhor(:,2) = orb_rhor(:,2)/overlap_(j+2-iupdwn(ispin(j+1)),j+2-iupdwn(ispin(j+1)),ispin(j+1))
           !compute centers and spreads of nksic or pz minimizing orbitals
           call compute_nksic_centers(nnrx, nx, ispin, orb_rhor, j, j+1)
           !
@@ -1103,6 +1107,12 @@ end subroutine nksic_get_orbitalrho_real
           deallocate(rhovan)
           deallocate(rhovanaux)
       endif
+      !
+      do ir=1,nnrx
+         if(orb_rhor(ir,1).lt.-1.d-3.or. orb_rhor(ir,2).lt.-1.d-3) then
+            write(6,*) "warning, negative density", orb_rhor(ir,1), orb_rhor(ir,2)
+         endif
+      enddo
       !
       call stop_clock('nksic_orbrho')
       !

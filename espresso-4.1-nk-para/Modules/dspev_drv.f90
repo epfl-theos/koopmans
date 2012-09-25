@@ -15,7 +15,7 @@ MODULE dspev_module
     SAVE
     PRIVATE
 
-    PUBLIC :: pdspev_drv, dspev_drv
+    PUBLIC :: pdspev_drv, dspev_drv, dgeev_drv
 
 #if defined __SCALAPACK
     PUBLIC :: pdsyevd_drv
@@ -615,7 +615,36 @@ CONTAINS
 
      RETURN
    END SUBROUTINE pdspev_drv
+
+!==----------------------------------------------==!
+
+      SUBROUTINE dgeev_drv( JOBVL, JOBVR, N, A, LDA, WR, WI, VL, LDVL, VR, LDVR )
+        !
+        USE kinds,     ONLY : DP
+        IMPLICIT NONE
+        CHARACTER ::       JOBVL, JOBVR
+        INTEGER   ::       IOPT, INFO, LDA, LDVR, LDVL, N
+        REAL(DP) ::  WI( * ), WR( * ), VR( LDVR, * ), VL( LDVL , * ), A( LDA, * )
+        !
+        REAL(DP), ALLOCATABLE :: WORK(:)
+        INTEGER :: LWORK
+
+        IF( n < 1 ) RETURN
+
+        LWORK=4*n
+        ALLOCATE( work( LWORK ) )
+
+        CALL DGEEV(jobvl, jobvr, n, a(1,1), lda, wr(1), wi(1), vl(1,1), ldvl, vr(1,1), ldvr, work, lwork, info)
+        IF( info .NE. 0 ) THEN
+           CALL errore( ' dgeev_drv ', ' diagonalization failed ',info )
+        END IF
+
+        DEALLOCATE( work )
  
+        RETURN
+        !
+      END SUBROUTINE dgeev_drv
+   
 !==----------------------------------------------==!
 
       SUBROUTINE dspev_drv( JOBZ, UPLO, N, AP, W, Z, LDZ )

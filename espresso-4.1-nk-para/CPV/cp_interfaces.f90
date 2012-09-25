@@ -57,6 +57,7 @@
    PUBLIC :: fwfft
 
    PUBLIC :: eigs
+   PUBLIC :: eigs_non_ortho
    PUBLIC :: fermi_energy
    PUBLIC :: packgam
 
@@ -1081,7 +1082,6 @@
       END SUBROUTINE
    END INTERFACE
 
-
    INTERFACE eigs
       SUBROUTINE cp_eigs_real_x( nfi, lambdap, lambda )
          USE kinds,            ONLY: DP
@@ -1099,6 +1099,17 @@
       END SUBROUTINE
    END INTERFACE
 
+   INTERFACE eigs_non_ortho
+     SUBROUTINE cp_eigs_twin_non_ortho_x( nfi, lambdap, lambda )
+         USE kinds,            ONLY: DP
+         use electrons_base,    only: nspin
+         USE twin_types
+         IMPLICIT NONE
+         INTEGER :: nfi
+         type(twin_matrix), dimension(nspin) :: lambda, lambdap
+      END SUBROUTINE
+   END INTERFACE
+   
    INTERFACE fermi_energy
       SUBROUTINE fermi_energy_x(eig, occ, wke, ef, qtot, temp, sume)
          USE kinds,            ONLY: DP

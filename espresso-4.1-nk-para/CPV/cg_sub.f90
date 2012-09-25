@@ -74,7 +74,8 @@
       use hfmod,                    only : do_hf, vxxpsi, exx
       use twin_types !added:giovanni
       use control_flags,            only : non_ortho
-      use cp_main_variables,        only : becdual, becmdual
+      use cp_main_variables,        only : becdual, becmdual, overlap, ioverlap
+      use electrons_module,         only : wfc_spreads
 !
       implicit none
 !
@@ -107,8 +108,7 @@
       real(dp)    :: enb, enbi, x
       real(dp)    :: entmp, sta
       complex(dp) :: gamma_c  !warning_giovanni, is it real anyway?
-      complex(dp), allocatable :: c2(:)
-      complex(dp), allocatable :: c3(:)
+      complex(dp), allocatable :: c2(:), c3(:)
       complex(dp), allocatable :: hpsi(:,:), hpsi0(:,:), gi(:,:), hi(:,:)
 !       real(DP),    allocatable :: s_minus1(:,:)    !factors for inverting US S matrix
 !       real(DP),    allocatable :: k_minus1(:,:)    !factors for inverting US preconditioning matrix
@@ -155,15 +155,27 @@
       !
       logical :: lgam, switch=.false., ortho_switch=.false.
       complex(DP) :: phase
-      integer :: ierr
+      integer :: ierr, northo_flavor
+      real(DP) :: sic_coeff1, sic_coeff2 !coefficients which may change according to the flavour of SIC
       !
-      lgam=gamma_only.and..not.do_wf_cmplx
+      lgam = gamma_only.and..not.do_wf_cmplx
+      !
+      northo_flavor=1
+      !
+      IF(northo_flavor==2) THEN
+         !
+         sic_coeff1=1.d0
+         sic_coeff2=1.d0
+         !
+      ELSE
+         !
+         sic_coeff1=0.5d0
+         sic_coeff2=0.5d0
+         !
+      ENDIF
       !
       allocate (faux(nbspx))
-      !allocate(hpsinorm(n))
-      !allocate(hpsinosicnorm(n))
       !
-!       allocate (bec0(nhsa,nbsp),becm(nhsa,nbsp), becdrdiag(nhsa,nspin*nlax,3))
       allocate (ave_ene(nbsp))
       allocate (c2(ngw),c3(ngw))
 
@@ -647,15 +659,23 @@
         faux(1:nbspx)=0.d0
         faux(1:nbsp) = max(f_cutoff,f(1:nbsp)) * DBLE( nspin ) / 2.0d0
 !$$
+        IF(non_ortho) THEN
+           !
+           hpsi0(:,:) = CMPLX(0.d0,0.d0)
+           hitmp(:,:) = CMPLX(0.d0,0.d0)
+           !
+        ENDIF
+        !
         do i=1,nbsp,2
 !$$  FIRST CALL TO DFORCE
           CALL start_clock( 'dforce1' )
 !$$          call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin,f,n,nspin)
           IF(non_ortho) THEN
-             call dforce( i, becdual, betae, cdual,c2,c3,rhos, nnrsx, ispin, faux, nbsp, nspin)
+             call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin, faux, nbsp, nspin)
           ELSE
              call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin, faux, nbsp, nspin)
           ENDIF
+          !
           CALL stop_clock( 'dforce1' )
 !$$
 
@@ -692,14 +712,55 @@
               ! faux takes into account spin multiplicity.
               !
               IF(non_ortho) THEN
-                 CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, becdual, ngw, cdual(:,i), cdual(:,i+1), vsicpsi, lgam )
+                 !
+                 IF(northo_flavor==2) THEN
+                    CALL compute_overlap( c0, ngw, nbsp, overlap)
+                    !FLAVOUR2_NONORTHO_SIC
+                 ENDIF
+                 !
+                 CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi, lgam )
+                 !
               ELSE
                  CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi, lgam )
               ENDIF
-              !
-              c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
-              !
-              if( i+1 <= nbsp )   c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1)
+
+              IF(non_ortho) THEN
+                 !
+                 IF(northo_flavor==1) THEN
+                    !
+                    c2(:) = c2(:) - 0.5d0 * vsicpsi(:,1) * faux(i)
+                    !
+                    if( i+1 <= nbsp )   c3(:) = c3(:) - 0.5d0 * vsicpsi(:,2) * faux(i+1)
+                    !
+                    CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, becdual, ngw, cdual(:,i), cdual(:,i+1), vsicpsi, lgam )
+                    !
+                 ELSE IF(northo_flavor==2) THEN
+                    !
+                    vsicpsi(:,1) = vsicpsi(:,1)/overlap(i-iupdwn(ispin(i))+1,i-iupdwn(ispin(i))+1,ispin(i))!FLAVOUR2_NONORTHO_SIC
+                    !
+                 ENDIF
+                 !
+                 hitmp(:,i) = hitmp(:,i) - sic_coeff1 * vsicpsi(:,1) * faux(i)
+                 !
+                 if( i+1 <= nbsp ) then
+                    !
+                    IF(northo_flavor==2) THEN
+                       !
+                       vsicpsi(:,2) = vsicpsi(:,2)/overlap(i-iupdwn(ispin(i+1))+2,i-iupdwn(ispin(i+1))+2,ispin(i+1))!FLAVOUR2_NONORTHO_SIC
+                       !
+                    ENDIF
+                    !
+                    hitmp(:,i+1) = hitmp(:,i+1) - sic_coeff1 * vsicpsi(:,2) * faux(i+1)
+                    !
+                 endif
+                 !
+              ELSE
+                 !
+                 c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
+                 !
+                 if( i+1 <= nbsp )   c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1)
+                 !
+              ENDIF
               !
           endif
 !$$
@@ -727,6 +788,34 @@
           ENDIF
           !
         enddo
+        
+        IF(non_ortho) THEN
+           !
+           IF(northo_flavor==1) THEN
+              !
+              call times_overlap(c0, hitmp, gi, nbsp, 1)
+              hpsi(:,:) = hpsi(:,:)+gi(:,:)
+              call pc3nc_non_ortho(c0,cdual,hpsi, lgam)
+              !
+           ELSE IF(northo_flavor==2) THEN
+              !
+              call pc4nc_non_ortho(gi,c0,c0,hitmp,lgam)
+              !
+              do i=1,nbsp
+                 !
+                 gi(:,i) = gi(:,i)/overlap(i-iupdwn(ispin(i))+1,i-iupdwn(ispin(i))+1,ispin(i))
+                 !
+              enddo
+              !
+              hitmp(:,:) = hitmp(:,:)+gi(:,:)
+              call times_overlap(c0, hitmp, hpsi0, nbsp, 1)
+!             !
+              call pc3nc_non_ortho(c0,cdual,hpsi, lgam)
+              !
+              hpsi(:,:) = hpsi(:,:)+hpsi0(:,:)
+           ENDIF
+           !
+        ENDIF
 !$$
 !        if(.not.tens) then
 !          do i=1,n
@@ -749,7 +838,8 @@
 !$$        call pcdaga2(c0,phi,hpsi)
 !$$     HPSI IS ORTHOGONALIZED TO  c0
         IF(non_ortho) THEN
-           call pcdaga2(c0,cdual,hpsi, lgam)
+!            call pcdaga2(c0,cdual,hpsi, lgam)
+!            call pc3nc_non_ortho(c0,cdual,hpsi, lgam)
 !            call pc2_non_ortho(c0,cdual,bec,becdual,hpsi,becm,lgam)
         ELSE
            if(switch.or.(.not.do_orbdep)) then
@@ -787,9 +877,13 @@
 !$$
         !TWO VECTORS INITIALIZED TO HPSI
         IF(non_ortho) THEN
-!            gi(1:ngw,1:nbsp)    = hpsi(1:ngw,1:nbsp)
-           call times_overlap(c0, hpsi, hpsi0, nbsp, 1)
-           gi(1:ngw,1:nbsp) = hpsi0(1:ngw,1:nbsp)
+
+!            call times_overlap(c0, hpsi, hpsi0, nbsp, 1)
+!            gi(1:ngw,1:nbsp) = hpsi(1:ngw,1:nbsp)
+!            hpsi(1:ngw,1:nbsp)    = hpsi0(1:ngw,1:nbsp)
+!            call pc3nc_non_ortho(c0,cdual,hpsi,lgam)          
+           call times_overlap(c0, hpsi, hpsi0, nbsp, -1)
+           gi(1:ngw,1:nbsp)    = hpsi0(1:ngw,1:nbsp)
            hpsi(1:ngw,1:nbsp)    = hpsi0(1:ngw,1:nbsp)
         ELSE
            hpsi0(1:ngw,1:nbsp) = hpsi(1:ngw,1:nbsp)
@@ -798,7 +892,11 @@
 
 	!COMPUTES ULTRASOFT-PRECONDITIONED HPSI, non kinetic-preconditioned, is the subsequent reorthogonalization necessary in the norm conserving case???: giovanni
         call calbec(1,nsp,eigr,hpsi,becm)
-        call xminus1_twin(hpsi,betae,dumm,becm,s_minus1,.false.)
+        IF(non_ortho) THEN
+        !
+        ELSE
+           call xminus1_twin(hpsi,betae,dumm,becm,s_minus1,.false.)
+        ENDIF
 !        call sminus1(hpsi,becm,betae)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -808,7 +906,8 @@
 !$$     THIS ORTHOGONALIZED PRECONDITIONED VECTOR HPSI
 
         IF(non_ortho) THEN
-            call pc2_non_ortho(c0,cdual,bec,becdual,hpsi,becm,lgam)
+!             call pc2_non_ortho(c0,cdual,bec,becdual,hpsi,becm,lgam)
+!             call pc3nc_non_ortho(cdual,c0,hpsi,lgam)
         ELSE
            if(switch.or.(.not.do_orbdep)) then
              call pc2(c0,bec,hpsi,becm, lgam)
@@ -821,16 +920,33 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !       COMPUTES ULTRASOFT+KINETIC-preconditioned GI
 !        call kminus1(gi,betae,ema0bg)
-        if(.not.pre_state) then
+        IF(do_orbdep) THEN
+           !
+           do i=1,nbsp
+              gi(:,i) = gi(:,i)/(1.d0+sqrt(wfc_spreads(1+i-iupdwn(ispin(i)),ispin(i),2)))
+           enddo
+           !
+        ENDIF
+        !
+        IF(non_ortho) THEN
+           call calbec(1,nsp,eigr,gi,becm)
            call xminus1_twin(gi,betae,ema0bg,becm,k_minus1,.true.)
-        else
-           call xminus1_state(gi,betae,ema0bg,becm,k_minus1,.true.,ave_ene) !warning:giovanni not yet implemented
-        endif
+           call times_overlap(c0, gi, cmdual, nbsp, 1)
+           gi(:,:)=cmdual(:,:)
+        ELSE
+           if(.not.pre_state) then
+              call xminus1_twin(gi,betae,ema0bg,becm,k_minus1,.true.)
+           else
+              call xminus1_state(gi,betae,ema0bg,becm,k_minus1,.true.,ave_ene) !warning:giovanni not yet implemented
+           endif
+        ENDIF
+        !
         call calbec(1,nsp,eigr,gi,becm)
 !$$        call pc2(c0,bec,gi,becm)
 !$$     !ORTHOGONALIZES GI to c0
         IF(non_ortho) THEN
-           call pc2_non_ortho(c0,cdual,bec,becdual,gi,becm,lgam)
+!            call pc2_non_ortho(c0,cdual,bec,becdual,gi,becm,lgam)
+!            call pc3nc_non_ortho(c0,cdual,gi,lgam)
         ELSE
            if(switch.or.(.not.do_orbdep)) then
              call pc2(c0,bec,gi,becm, lgam)
@@ -1018,6 +1134,7 @@
 
 ! 	IF(lgam) THEN
 	  gamma_c=CMPLX(DBLE(gamma_c),0.d0)
+	  write(6,*) "gamma", gamma_c
 ! 	ENDIF
 
 !$$        if(itercg==1.or.(mod(itercg,niter_cg_restart).eq.1).or.restartcg) then
@@ -1056,7 +1173,8 @@
 !$$        call pc2(c0,bec,hi,bec0)
 !$$
         IF(non_ortho) THEN
-           call pc2_non_ortho(c0, cdual, bec, becdual, hi, bec0, lgam)
+!            call pc2_non_ortho(c0, cdual, bec, becdual, hi, bec0, lgam)
+!            call pc3nc_non_ortho(c0,cdual,hi, lgam)
         ELSE
            if(switch.or.(.not.do_orbdep)) then
               call pc2(c0,bec,hi,bec0, lgam)
@@ -1088,6 +1206,7 @@
           end do
 !$$ We need the following because n for spin 2 is double that for spin 1!
           dene0 = dene0 *2.d0/nspin
+          write(6,*) "dene0", dene0
 !$$          dene0 = dene0 *4.d0/nspin
 !$$
         else
@@ -1929,13 +2048,16 @@
      faux(1:nbsp) = max(f_cutoff,f(1:nbsp)) * DBLE( nspin ) / 2.0d0
      !
 !$$
-
+     IF(non_ortho) THEN
+        hpsi0(:,:)=CMPLX(0.d0,0.d0)
+     ENDIF
+     !
      do i=1,nbsp,2
 !$$
          CALL start_clock( 'dforce2' )
 !$$          call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin,f,n,nspin)
          IF(non_ortho) THEN
-            call dforce(i,becdual,betae,cdual,c2,c3,rhos,nnrsx,ispin,faux,nbsp,nspin)
+            call dforce(i,bec,betae,c0,c2,c3,rhos,nnrsx,ispin,faux,nbsp,nspin)
          ELSE
             call dforce(i,bec,betae,c0,c2,c3,rhos,nnrsx,ispin,faux,nbsp,nspin)
          ENDIF
@@ -1978,14 +2100,31 @@
              ! faux takes into account spin multiplicity.
              !
              IF(non_ortho) THEN
-                CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, becdual, ngw, cdual(:,i), cdual(:,i+1), vsicpsi, lgam )
+                CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi, lgam )
              ELSE
                 CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi, lgam )
              ENDIF
              !
-             c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
-             !
-             if( i+1 <= nbsp )   c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1)
+             IF(non_ortho) THEN
+                !
+                c2(:) = c2(:) - 0.5d0 * vsicpsi(:,1) * faux(i)
+                !
+                if( i+1 <= nbsp )   c3(:) = c3(:) - 0.5d0 * vsicpsi(:,2) * faux(i+1)
+                !
+                CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, becdual, ngw, cdual(:,i), cdual(:,i+1), vsicpsi, lgam )
+                hpsi0(:,i) = hpsi0(:,i) - 0.5d0 * vsicpsi(:,1) * faux(i)
+                !
+                IF(i+1<=nbsp) THEN
+                   hpsi0(:,i+1) = hpsi0(:,i+1) - 0.5d0 * vsicpsi(:,2)*faux(i+1)
+                ENDIF
+                !
+             ELSE
+                !
+                c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
+                !
+                if( i+1 <= nbsp )   c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1)
+                !
+             ENDIF
              !
          endif
 !$$
@@ -2007,175 +2146,213 @@
             if(i+1 <= nbsp) gi(1,i+1)=CMPLX(DBLE(gi(1,i+1)),0.d0)
          endif
 
-        enddo
+     enddo
+     
+     IF(non_ortho) THEN
+        call times_overlap(c0, hpsi0, hpsi, nbsp, 1)
+        gi(:,:) = gi(:,:)+hpsi(:,:)
+!         call pc3nc_non_ortho(c0,cdual,gi, lgam)
+     ENDIF
 
-        IF(.not.lambda(1)%iscmplx) THEN
-	  allocate(lambda_repl(nudx,nudx))
-        ELSE
-	  allocate(lambda_repl_c(nudx,nudx))
-        ENDIF
-
+     IF(.not.lambda(1)%iscmplx) THEN
+        allocate(lambda_repl(nudx,nudx))
+     ELSE
+        allocate(lambda_repl_c(nudx,nudx))
+     ENDIF
+     !
+     IF(non_ortho) THEN
+        hitmp(:,:) = cdual(:,:)
+     ELSE
+        hitmp(:,:) = c0(:,:)
+     ENDIF
+     !
+     do is = 1, nspin
         !
-        do is = 1, nspin
-           !
-           nss = nupdwn(is)
-           istart = iupdwn(is)
+        nss = nupdwn(is)
+        istart = iupdwn(is)
            
-           IF(.not.lambda(1)%iscmplx) THEN
-	      lambda_repl = 0.d0
-           ELSE
-              lambda_repl_c = CMPLX(0.d0,0.d0)
-           ENDIF
+        IF(.not.lambda(1)%iscmplx) THEN
+           lambda_repl = 0.d0
+        ELSE
+           lambda_repl_c = CMPLX(0.d0,0.d0)
+        ENDIF
+        !
+        !
+        IF(non_ortho) THEN
            !
+           do i = 1, nss
+              do j = 1, nss
+                 ii = i + istart - 1
+                 jj = j + istart - 1
+                 IF(.not.lambda(1)%iscmplx) THEN
+                    do ig = 1, ngw
+                       lambda_repl( i, j ) = lambda_repl( i, j ) - &
+                       2.d0 * DBLE( CONJG( hitmp( ig, ii ) ) * gi( ig, jj) )
+                    enddo
+                    if( ng0 == 2 ) then
+                       lambda_repl( i, j ) = lambda_repl( i, j ) + &
+                       DBLE( CONJG( hitmp( 1, ii ) ) * gi( 1, jj ) )
+                    endif
+                 ELSE
+                    do ig = 1, ngw
+                       lambda_repl_c( i, j ) = lambda_repl_c( i, j ) - &
+                       CONJG( hitmp( ig, ii ) ) * gi( ig, jj)
+                    enddo
+                 ENDIF
+              enddo
+           enddo
+           !
+        ELSE
            !
            do i = 1, nss
               do j = i, nss
                  ii = i + istart - 1
                  jj = j + istart - 1
                  IF(.not.lambda(1)%iscmplx) THEN
-		    do ig = 1, ngw
-			lambda_repl( i, j ) = lambda_repl( i, j ) - &
-			  2.d0 * DBLE( CONJG( c0( ig, ii ) ) * gi( ig, jj) )
-		    enddo
-		    if( ng0 == 2 ) then
-			lambda_repl( i, j ) = lambda_repl( i, j ) + &
-			  DBLE( CONJG( c0( 1, ii ) ) * gi( 1, jj ) )
-		    endif
-		    lambda_repl( j, i ) = lambda_repl( i, j )
-		ELSE
-		    do ig = 1, ngw
-			lambda_repl_c( i, j ) = lambda_repl_c( i, j ) - &
-			  CONJG( c0( ig, ii ) ) * gi( ig, jj)
-		    enddo
-		    lambda_repl_c( j, i ) = CONJG(lambda_repl_c( i, j ))
+                    do ig = 1, ngw
+                       lambda_repl( i, j ) = lambda_repl( i, j ) - &
+                       2.d0 * DBLE( CONJG( hitmp( ig, ii ) ) * gi( ig, jj) )
+                    enddo
+                    if( ng0 == 2 ) then
+                       lambda_repl( i, j ) = lambda_repl( i, j ) + &
+                       DBLE( CONJG( hitmp( 1, ii ) ) * gi( 1, jj ) )
+                    endif
+                    lambda_repl( j, i ) = lambda_repl( i, j )
+                 ELSE
+                    do ig = 1, ngw
+                       lambda_repl_c( i, j ) = lambda_repl_c( i, j ) - &
+                       CONJG( hitmp( ig, ii ) ) * gi( ig, jj)
+                    enddo
+                    lambda_repl_c( j, i ) = CONJG(lambda_repl_c( i, j ))
                  ENDIF
               enddo
            enddo
            !
-           IF(.not.lambda(1)%iscmplx) THEN
-	      CALL mp_sum( lambda_repl, intra_image_comm )
-	      CALL distribute_lambda( lambda_repl, lambda(is)%rvec( :, :), descla( :, is ) )
+         ENDIF
+        !
+        IF(.not.lambda(1)%iscmplx) THEN
+           CALL mp_sum( lambda_repl, intra_image_comm )
+           CALL distribute_lambda( lambda_repl, lambda(is)%rvec( :, :), descla( :, is ) )
+        ELSE
+           CALL mp_sum( lambda_repl_c, intra_image_comm )
+           CALL distribute_lambda( lambda_repl_c, lambda(is)%cvec( :, :), descla( :, is ) )
+        ENDIF
+        !
+        !
+     end do
+
+     IF(.not.lambda(1)%iscmplx) THEN
+        DEALLOCATE( lambda_repl )
+     ELSE
+        DEALLOCATE( lambda_repl_c )
+     ENDIF
+  
+     if ( tens ) then
+        !
+        ! in the ensemble case matrix labda must be multiplied with f
+        IF(.not.lambda(1)%iscmplx) THEN
+           ALLOCATE( lambda_dist( nlam, nlam ) )
+        ELSE
+           ALLOCATE( lambda_dist_c( nlam, nlam ) )
+        ENDIF
+
+        do iss = 1, nspin
+           !
+           nss    = nupdwn( iss )
+           !
+           call set_twin(lambdap(iss), CMPLX(0.d0,0.d0)) !modified:giovanni
+           !
+           IF(.not.lambdap(iss)%iscmplx) THEN
+              CALL cyc2blk_redist( nss, fmat0(iss)%rvec(1,1), nrlx, SIZE(fmat0(iss)%rvec,2), lambda_dist, nlam, nlam, descla(1,iss) )
            ELSE
-	      CALL mp_sum( lambda_repl_c, intra_image_comm )
-	      CALL distribute_lambda( lambda_repl_c, lambda(is)%cvec( :, :), descla( :, is ) )
+              CALL cyc2blk_zredist( nss, fmat0(iss)%cvec(1,1), nrlx, SIZE(fmat0(iss)%cvec,2), lambda_dist_c, nlam, nlam, descla(1,iss) )
            ENDIF
            !
+           ! Perform lambdap = lambda * fmat0
+           !
+           IF(.not. lambdap(iss)%iscmplx) then !modified:giovanni
+              CALL sqr_mm_cannon( 'N', 'N', nss, 1.0d0, lambda(iss)%rvec(1,1), nlam, lambda_dist, nlam, &
+                                  0.0d0, lambdap(iss)%rvec(1,1), nlam, descla(1,iss) )
+           ELSE
+              CALL sqr_zmm_cannon( 'N', 'N', nss, (1.0d0,0.d0), lambda(iss)%cvec(1,1), nlam, lambda_dist_c, nlam, &
+                                  (0.0d0,0.d0), lambdap(iss)%cvec(1,1), nlam, descla(1,iss) ) !warning:giovanni C or N?
+           ENDIF
+           !
+           !begin_modified:giovanni
+           IF(.not.lambdap(iss)%iscmplx) THEN
+             lambda_dist(:,:) = lambda(iss)%rvec(:,:)
+           ELSE
+             lambda_dist_c(:,:) = lambda(iss)%cvec(:,:)
+           ENDIF
+
+           call copy_twin(lambda(iss), lambdap(iss))
+
+           IF(.not.lambdap(iss)%iscmplx) THEN
+              lambdap(iss)%rvec(:,:) = lambda_dist(:,:)
+           ELSE
+              lambdap(iss)%cvec(:,:) = lambda_dist_c(:,:)
+           ENDIF
+           !end_modified:giovanni
            !
         end do
-
-        IF(.not.lambda(1)%iscmplx) THEN
-	  DEALLOCATE( lambda_repl )
+        !
+        IF(.not.lambdap(iss)%iscmplx) THEN
+           DEALLOCATE( lambda_dist )
         ELSE
-	  DEALLOCATE( lambda_repl_c )
+          DEALLOCATE( lambda_dist_c )
         ENDIF
-  
-        if ( tens ) then
-           !
-           ! in the ensemble case matrix labda must be multiplied with f
-	   IF(.not.lambda(1)%iscmplx) THEN
-	    ALLOCATE( lambda_dist( nlam, nlam ) )
-           ELSE
-	    ALLOCATE( lambda_dist_c( nlam, nlam ) )
-           ENDIF
- 
-           do iss = 1, nspin
-              !
-              nss    = nupdwn( iss )
-              !
-              call set_twin(lambdap(iss), CMPLX(0.d0,0.d0)) !modified:giovanni
-              !
-              IF(.not.lambdap(iss)%iscmplx) THEN
-		CALL cyc2blk_redist( nss, fmat0(iss)%rvec(1,1), nrlx, SIZE(fmat0(iss)%rvec,2), lambda_dist, nlam, nlam, descla(1,iss) )
-              ELSE
-		CALL cyc2blk_zredist( nss, fmat0(iss)%cvec(1,1), nrlx, SIZE(fmat0(iss)%cvec,2), lambda_dist_c, nlam, nlam, descla(1,iss) )
-              ENDIF
-              !
-              ! Perform lambdap = lambda * fmat0
-              !
-              IF(.not. lambdap(iss)%iscmplx) then !modified:giovanni
-		CALL sqr_mm_cannon( 'N', 'N', nss, 1.0d0, lambda(iss)%rvec(1,1), nlam, lambda_dist, nlam, &
-                                  0.0d0, lambdap(iss)%rvec(1,1), nlam, descla(1,iss) )
-              ELSE
-		CALL sqr_zmm_cannon( 'N', 'N', nss, (1.0d0,0.d0), lambda(iss)%cvec(1,1), nlam, lambda_dist_c, nlam, &
-                                  (0.0d0,0.d0), lambdap(iss)%cvec(1,1), nlam, descla(1,iss) ) !warning:giovanni C or N?
-              ENDIF
-              !
-              !begin_modified:giovanni
-              IF(.not.lambdap(iss)%iscmplx) THEN
-                lambda_dist(:,:) = lambda(iss)%rvec(:,:)
-              ELSE
-                lambda_dist_c(:,:) = lambda(iss)%cvec(:,:)
-              ENDIF
-
-              call copy_twin(lambda(iss), lambdap(iss))
-
-              IF(.not.lambdap(iss)%iscmplx) THEN
-                lambdap(iss)%rvec(:,:) = lambda_dist(:,:)
-              ELSE
-                lambdap(iss)%cvec(:,:) = lambda_dist_c(:,:)
-              ENDIF
-              !end_modified:giovanni
-              !
-           end do
-           !
-	   IF(.not.lambdap(iss)%iscmplx) THEN
-	    DEALLOCATE( lambda_dist )
-           ELSE
-	    DEALLOCATE( lambda_dist_c )
-           ENDIF
 
 write(6,*) "nlsm2"
-           !
-           call nlsm2(ngw,nhsa,nbsp,nspin,eigr,c0(:,:),becdr, lgam)
-           !
-        endif
+        !
+        call nlsm2(ngw,nhsa,nbsp,nspin,eigr,c0(:,:),becdr, lgam)
+        !
+     endif
         !
 write(6,*) "nlfl_twin"
-        call nlfl_twin(bec,becdr,lambda,fion, lgam)
-        ! bforceion adds the force term due to electronic berry phase
-        ! only in US-case
+     call nlfl_twin(bec,becdr,lambda,fion, lgam)
+     ! bforceion adds the force term due to electronic berry phase
+     ! only in US-case
           
-        if( tefield.and.(evalue .ne. 0.d0) ) then
-           call bforceion(fion,tfor.or.tprnfor,ipolp, qmat,bec,becdr,gqq,evalue)
-
-        endif
-        if( tefield2.and.(evalue2 .ne. 0.d0) ) then
-           call bforceion(fion,tfor.or.tprnfor,ipolp2, qmat2,bec,becdr,gqq2,evalue2)
-        endif
-        deallocate(hpsi0,hpsi,gi,hi)
-        deallocate(hitmp, STAT=ierr)
-        write(6,*) "deallocated hitmp", ierr
-!        
-        call deallocate_twin(s_minus1)
-        call deallocate_twin(k_minus1)
-
+     if( tefield.and.(evalue .ne. 0.d0) ) then
+        call bforceion(fion,tfor.or.tprnfor,ipolp, qmat,bec,becdr,gqq,evalue)
+     endif
+     !
+     if( tefield2.and.(evalue2 .ne. 0.d0) ) then
+        call bforceion(fion,tfor.or.tprnfor,ipolp2, qmat2,bec,becdr,gqq2,evalue2)
+     endif
+     deallocate(hpsi0,hpsi,gi,hi)
+     deallocate(hitmp, STAT=ierr)
+     write(6,*) "deallocated hitmp", ierr
+     !        
+     call deallocate_twin(s_minus1)
+     call deallocate_twin(k_minus1)
 #ifdef __DEBUG
-        !
-        !for debug and tuning purposes
-        !
-        if(ionode) close(37)
-        if(ionode) close(1037)
+     !
+     !for debug and tuning purposes
+     !
+     if(ionode) close(37)
+     if(ionode) close(1037)
 #endif
-        call stop_clock('runcg_uspp')
+     call stop_clock('runcg_uspp')
 
 !         deallocate(bec0,becm,becdrdiag)
 
-        !begin_modified:giovanni
-        call deallocate_twin(bec0)
-        call deallocate_twin(becm)
-        call deallocate_twin(becdrdiag)
-        !
+     !begin_modified:giovanni
+     call deallocate_twin(bec0)
+     call deallocate_twin(becm)
+     call deallocate_twin(becdrdiag)
+     !
 !         do i=1,nspin
 ! 	  call deallocate_twin(lambda(i))
 ! 	  call deallocate_twin(lambdap(i))
 !         enddo
-        !
-        !end_modified:giovanni
+     !
+     !end_modified:giovanni
 
-        deallocate(ave_ene)
-        deallocate(c2,c3)
+     deallocate(ave_ene)
+     deallocate(c2,c3)
 
-        return
+     return
 
      END SUBROUTINE runcg_uspp
 

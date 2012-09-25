@@ -14,7 +14,7 @@ MODULE zhpev_module
 
    PRIVATE
 
-   PUBLIC :: pzhpev_drv, zhpev_drv
+   PUBLIC :: pzhpev_drv, zhpev_drv, zgeev_drv
 #if defined __SCALAPACK
    PUBLIC :: pzheevd_drv
 #endif
@@ -1426,6 +1426,42 @@ CONTAINS
         RETURN
    END SUBROUTINE zhpev_drv
 
+!==----------------------------------------------==!
+
+   SUBROUTINE zgeev_drv( JOBVL, JOBVR, N, A, LDA, WR, WI, VL, LDVL, VR, LDVR )
+     !
+     USE kinds,     ONLY : DP
+     IMPLICIT NONE
+     CHARACTER ::       JOBVL, JOBVR
+     INTEGER   ::       IOPT, INFO, LDA, LDVR, LDVL, N
+     COMPLEX(DP) :: VR( LDVR, * ), VL( LDVL , * ), A( LDA, * )
+     REAL(DP) :: WI( * ), WR( * )
+     !
+     COMPLEX(DP), ALLOCATABLE :: WORK(:), WW(:)
+     REAL(DP), ALLOCATABLE :: RWORK(:)
+     INTEGER :: LWORK, i
+
+     IF( n < 1 ) RETURN
+
+     LWORK=3*n
+     ALLOCATE( work( LWORK ), rwork(2*n), ww(n) )
+
+     CALL ZGEEV(jobvl, jobvr, n, a, lda, ww, vl, ldvl, vr, ldvr, work, lwork, rwork, info)
+     IF( info .NE. 0 ) THEN
+        CALL errore( ' dgeev_drv ', ' diagonalization failed ',info )
+     END IF
+     
+     DO i=1,n
+        wr(i) = DBLE(ww(i))
+        wi(i) = AIMAG(ww(i))
+     ENDDO
+     
+     DEALLOCATE( work, rwork, ww )
+
+     RETURN
+     !
+   END SUBROUTINE zgeev_drv
+   
 !==----------------------------------------------==!
 
    SUBROUTINE pzhpev_drv( jobz, ap, lda, w, z, ldz, &

@@ -118,7 +118,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   USE cell_base,                ONLY : s_to_r, r_to_s
   USE wannier_subroutines,      ONLY : wannier_startup, wf_closing_options, &
                                        ef_enthalpy
-  USE cp_interfaces,            ONLY : readfile, writefile, eigs, strucf, phfacs
+  USE cp_interfaces,            ONLY : readfile, writefile, eigs, strucf, phfacs, eigs_non_ortho
   USE cp_interfaces,            ONLY : empty_cp, ortho, elec_fakekine, print_projwfc
   USE constraints_module,       ONLY : check_constraint, remove_constr_force
   USE metadyn_base,             ONLY : set_target, mean_force
@@ -709,7 +709,11 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
             END IF
             !
 !             write(0,*) lambdap(1)%iscmplx, lambdap(1)%rvec(:,:)
-            CALL eigs( nfi, lambdap, lambda )
+            IF(non_ortho) THEN
+               CALL eigs_non_ortho( nfi, lambdap, lambda )
+            ELSE
+               CALL eigs( nfi, lambdap, lambda )
+            ENDIF
 !$$
 !            do iss=1,nspin
 !              if(ionode) write(101,*) 'eigenvalues for spin',iss,'are',(13.6056923 * ei(i,iss),i=1,nupdwn(iss))

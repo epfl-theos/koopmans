@@ -719,7 +719,10 @@ END FUNCTION
       iss=0.d0
       !
       call compute_overlap(c,ngw,n,ss)
-!       call invert_overlap(ss,iss,iflag)
+      IF(iflag.lt.0) THEN
+         call invert_overlap(ss,iss,iflag)
+         ss=CONJG(iss)
+      ENDIF
       !
       cd(1:ngw,1:n)=CMPLX(0.d0,0.d0)
       !
