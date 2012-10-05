@@ -921,7 +921,7 @@
 !-----------------------------------------------------------------------
 
 !-------------------------------------------------------------------------
-   subroutine nlsm2_repl( ngw, nkb, n, eigr, c, becdr )
+   subroutine nlsm2_repl( ngw, nkb, n, eigr, c, becdr, lgam )
 !-----------------------------------------------------------------------
 
       !     computes: the array becdr
@@ -942,24 +942,34 @@
       use mp,         only : mp_sum
       use mp_global,  only : nproc_image, intra_image_comm
       use reciprocal_vectors, only : gx, gstart
+      use twin_types !added:giovanni
 !
       implicit none
     
       integer,  intent(in)  :: ngw, nkb, n
-      real(DP), intent(in)  :: eigr(2,ngw,nat), c(2,ngw,n)
-      real(DP), intent(out) :: becdr(nkb,n,3)
+      complex(DP), intent(in)  :: eigr(ngw,nat), c(ngw,n)
+      type(twin_tensor)     :: becdr
+!      real(DP), intent(out) :: becdr(nkb,n,3)
+      logical :: lgam
       !
       real(DP), allocatable :: gk(:)
-      real(DP), allocatable :: wrk2(:,:,:)
+      complex(DP), allocatable :: wrk2_c(:,:)
       !
       integer   :: ig, is, iv, ia, k, l, ixr, ixi, inl, isa, i
-      real(DP) :: signre, signim, arg
-!
+      real(DP) :: fact
+      complex(DP), parameter :: c_one=CMPLX(1.d0,0.d0), c_zero=CMPLX(0.d0,0.d0)
+      complex(DP), parameter :: ci=CMPLX(0.d0,1.d0) !added:giovanni
+      complex(DP) :: cl, arg_c !added:giovanni
+      !
       call start_clock( 'nlsm2' )
 
       allocate( gk( ngw ) )
 
-      becdr = 0.d0
+      IF(lgam) THEN
+         becdr%rvec = 0.d0
+      ELSE
+         becdr%cvec = c_zero
+      ENDIF
 !
       do k = 1, 3
 
@@ -971,64 +981,56 @@
 
          do is=1,nsp
 
-            allocate( wrk2( 2, ngw, na( is ) ) )
-
+            allocate( wrk2_c( ngw, na( is ) ) )
+            !
+            IF(lgam) THEN 
+                fact=2.d0
+            ELSE
+                fact=1.d0
+            ENDIF
+            !
             do iv=1,nh(is)
                !
                !     order of states:  s_1  p_x1  p_z1  p_y1  s_2  p_x2  p_z2  p_y2
                !
 !$omp parallel default(shared), private(l,ixr,ixi,signre,signim,ig,arg,ia)
                l=nhtol(iv,is)
-               if (l.eq.0) then
-                  ixr = 2
-                  ixi = 1
-                  signre =  1.0d0
-                  signim = -1.0d0
-               else if (l.eq.1) then
-                  ixr = 1
-                  ixi = 2
-                  signre = -1.0d0
-                  signim = -1.0d0
-               else if (l.eq.2) then
-                  ixr = 2
-                  ixi = 1
-                  signre = -1.0d0
-                  signim =  1.0d0
-               else if (l == 3) then
-                  ixr = 1
-                  ixi = 2
-                  signre =  1.0d0
-                  signim =  1.0d0
-               endif
+               cl=(-ci)**(l+1)
 !    
 !$omp do
                do ia=1,na(is)
                   !    q = 0   component (with weight 1.0)
                   if (gstart == 2) then
-                     wrk2(1,1,ia) = signre*gk(1)*beta(1,iv,is)*eigr(ixr,1,ia+isa)
-                     wrk2(2,1,ia) = signim*gk(1)*beta(1,iv,is)*eigr(ixi,1,ia+isa)
+                     wrk2_c(1,ia) = cl*CMPLX(gk(1)*beta(1,iv,is),0.d0)*eigr(1,ia+isa)
                   end if
                   !    q > 0   components (with weight 2.0)
                   do ig=gstart,ngw
-                     arg = 2.0d0*gk(ig)*beta(ig,iv,is)
-                     wrk2(1,ig,ia) = signre*arg*eigr(ixr,ig,ia+isa)
-                     wrk2(2,ig,ia) = signim*arg*eigr(ixi,ig,ia+isa)
+                     arg_c = CMPLX(fact*gk(ig)*beta(ig,iv,is),0.d0)
+                     wrk2_c(ig,ia) = arg_c*eigr(ig,ia+isa)
                   end do
                end do
 !$omp end do
 !$omp end parallel 
                inl=ish(is)+(iv-1)*na(is)+1
-               CALL DGEMM( 'T', 'N', na(is), n, 2*ngw, 1.0d0, wrk2, 2*ngw, c, 2*ngw, 0.0d0, becdr( inl, 1, k ), nkb )
+               IF(lgam) THEN
+                  CALL DGEMM( 'T', 'N', na(is), n, 2*ngw, 1.0d0, wrk2_c, 2*ngw, c, 2*ngw, 0.0d0, becdr%rvec( inl, 1, k ), nkb )
+               ELSE
+                  CALL ZGEMM( 'C', 'N', na(is), n, ngw, c_one, wrk2_c, ngw, c, ngw, c_zero, becdr%cvec( inl, 1, k ), nkb )
+               ENDIF
             end do
 
-            deallocate( wrk2 )
+            deallocate( wrk2_c )
 
             isa = isa + na(is)
 
          end do
 
          IF( nproc_image > 1 ) THEN
-            CALL mp_sum( becdr(:,:,k), intra_image_comm )
+            IF(lgam) THEN
+               CALL mp_sum( becdr%rvec(:,:,k), intra_image_comm )
+            ELSE
+               CALL mp_sum( becdr%cvec(:,:,k), intra_image_comm )
+            ENDIF
          END IF
       end do
 

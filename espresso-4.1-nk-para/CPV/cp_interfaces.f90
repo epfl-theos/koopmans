@@ -258,8 +258,7 @@
          COMPLEX(DP), INTENT(OUT):: wfc(ngw,n_atomic_wfc),    &
         & swfc( ngw, n_atomic_wfc )
    !       real(DP), intent(out):: becwfc(nhsa,n_atomic_wfc) !DEBUG
-         type(twin_matrix) :: becwfc!(nhsa,n_atomic_wfc) !DEBUG
-         REAL(DP) :: proj(n,n_atomic_wfc)
+         type(twin_matrix) :: becwfc, proj!(nhsa,n_atomic_wfc) !DEBUG
          !
        end SUBROUTINE projwfc_hub_twin
        !

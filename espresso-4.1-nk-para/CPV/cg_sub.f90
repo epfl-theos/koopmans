@@ -76,6 +76,7 @@
       use control_flags,            only : non_ortho
       use cp_main_variables,        only : becdual, becmdual, overlap, ioverlap
       use electrons_module,         only : wfc_spreads
+      use ldau,                     only : lda_plus_u, vupsi
 !
       implicit none
 !
@@ -692,6 +693,22 @@
             call dforceb(c0, i+1, betae, ipolp2, bec%rvec ,ctabin2(1,1,ipolp2), gqq2, gqqm2, qmat2, deeq, df)
             c3(1:ngw)=c3(1:ngw)+evalue2*df(1:ngw)
           endif
+          
+          IF ( lda_plus_u ) THEN
+               !
+               IF ( tens .OR. tsmear ) THEN
+                   !
+                   c2(:) = c2(:) - vupsi(:,i) 
+                   if( i+1 <= nbsp ) c3(:) = c3(:) - vupsi(:,i+1) 
+                   !
+               ELSE
+                   !
+                   c2(:) = c2(:) - vupsi(:,i) * faux(i)
+                   if( i+1 <= nbsp ) c3(:) = c3(:) - vupsi(:,i+1) * faux(i+1)
+                   !
+               ENDIF
+               !
+           ENDIF
 
 !$$
 !          hpsinosic(1:ngw,  i)=c2(1:ngw)

@@ -4440,20 +4440,22 @@ END FUNCTION
 !
       USE constants,        ONLY: autoev
       use ldaU,             ONLY: n_atomic_wfc, atomwfc,lda_plus_u, Hubbard_U
-      use ldaU,             ONLY: Hubbard_lmax, Hubbard_l, ns, vupsi
+      use ldaU,             ONLY: Hubbard_lmax, Hubbard_l, ns, ns_c, vupsi
       use input_parameters, ONLY: atom_label, lda_plus_u_ => lda_plus_u
       use input_parameters, ONLY: Hubbard_U_ => Hubbard_U
       use ions_base,        only: na, nsp, nat
       use gvecw,            only: ngw
       use electrons_base,   only: nspin, nx => nbspx
       USE uspp_param,       ONLY: upf
+      USE control_flags,    ONLY: gamma_only, do_wf_cmplx
       !
       implicit none
       integer is, nb, l
       integer, external :: set_Hubbard_l
+      logical :: lgam
 
+      lgam=gamma_only.and..not.do_wf_cmplx
 ! allocate vupsi
-
       lda_plus_u = lda_plus_u_
 
       allocate(vupsi(ngw,nx))
@@ -4491,7 +4493,13 @@ END FUNCTION
      &        ('setup','lda_plus_u calculation but Hubbard_l not set',1)
       end if
       l = 2 * Hubbard_lmax + 1
-      allocate(ns(nat,nspin,l,l))
+      !
+      IF(lgam) THEN
+         allocate(ns(nat,nspin,l,l))
+      ELSE
+         allocate(ns_c(nat,nspin,l,l))
+      ENDIF
+      !
       return
       end subroutine ldaU_init
 !
@@ -5004,7 +5012,7 @@ end function set_Hubbard_l
          do alpha_a = 1, na(alpha_s)
             alpha=alpha+1
             do ipol = 1,3
-               call dndtau(alpha_a,alpha_s,becwfc,spsi,bp,dbp,wdb,      &
+               call dndtau_real(alpha_a,alpha_s,becwfc,spsi,bp,dbp,wdb,      &
      &                    offset,c,wfc,eigr,betae,proj,ipol,dns)
                iat=0
                do is = 1, nsp
@@ -5056,8 +5064,9 @@ end function set_Hubbard_l
       USE uspp_param,         ONLY: upf
       use electrons_base,     only: nspin, n => nbsp, nx => nbspx, ispin, f
       USE ldaU,               ONLY: lda_plus_u, Hubbard_U, Hubbard_l
-      USE ldaU,               ONLY: n_atomic_wfc, ns, e_hubbard
+      USE ldaU,               ONLY: n_atomic_wfc, ns, ns_c, e_hubbard
       USE cp_interfaces, ONLY: nlsm1, projwfc_hub, s_wfc !added:giovanni
+      USE twin_types
 !
       implicit none
 #ifdef __PARA
@@ -5072,11 +5081,14 @@ end function set_Hubbard_l
 !
       complex(DP), allocatable:: wfc(:,:), swfc(:,:),dphi(:,:,:),   &
      &                               spsi(:,:)
-      real(DP), allocatable   :: becwfc(:,:), bp(:,:),              &
-     &                               dbp(:,:,:), wdb(:,:,:)
+      type(twin_matrix) :: bp
+      type(twin_tensor) :: dbp, wdb
+      type(twin_matrix)       :: becwfc
       real(DP), allocatable   :: dns(:,:,:,:)
+      complex(DP), allocatable   :: dns_c(:,:,:,:)
       real(DP), allocatable   :: e(:), z(:,:),                      &
-     &                               proj(:,:), temp(:)
+     &                                temp(:)
+      type(twin_matrix)       :: proj
       real(DP), allocatable   :: ftemp1(:), ftemp2(:)
       real(DP)                :: lambda(ldmx), somma, ntot, nsum,   &
      &                           nsuma, x_value, g_value, step_value
@@ -5097,7 +5109,8 @@ end function set_Hubbard_l
 !
 ! calculate bec = <beta|wfc>
 !
-      allocate(becwfc(nhsa,n_atomic_wfc))
+      call init_twin(becwfc, lgam)
+      call allocate_twin(becwfc, nhsa, n_atomic_wfc, lgam)
 !!!      call nlsm1 (n_atomic_wfc,1,nsp,eigr,wfc,becwfc)
 !
       allocate(swfc(ngw,n_atomic_wfc))
@@ -5105,9 +5118,11 @@ end function set_Hubbard_l
 !
 ! calculate proj = <c|S|wfc>
 !
-      allocate(proj(n,n_atomic_wfc))
+      call init_twin(proj,lgam)
+      call allocate_twin(proj,n,n_atomic_wfc,lgam)
+      
       CALL projwfc_hub( c, nx, eigr, betae, n, n_atomic_wfc,            &
-     & wfc, becwfc, swfc, proj ) !@@
+     & wfc, becwfc, swfc, proj, lgam ) !@@
 !
       allocate(offset(nsp,nat))
       counter = 0
@@ -5131,20 +5146,38 @@ end function set_Hubbard_l
                k = offset(is,ia)
                do m1 = 1, 2*Hubbard_l(is) + 1
                   do m2 = m1, 2*Hubbard_l(is) + 1
-                     do i = 1,n
-!                      write(6,*) i,ispin(i),f(i)
-                      ns(iat,ispin(i),m1,m2) = ns(iat,ispin(i),m1,m2) + &
-     &                               f(i) * proj(i,k+m2) * proj(i,k+m1)
-                     end do
+                     IF(lgam) THEN
+                        do i = 1,n
+   !                      write(6,*) i,ispin(i),f(i)
+                         ns(iat,ispin(i),m1,m2) = ns(iat,ispin(i),m1,m2) + &
+        &                               f(i) * proj%rvec(i,k+m2) * proj%rvec(i,k+m1)
+                        end do
 !                     ns(iat,:,m2,m1) = ns(iat,:,m1,m2)
-                     ns(iat,1,m2,m1) = ns(iat,1,m1,m2)
-                     ns(iat,2,m2,m1) = ns(iat,2,m1,m2)
+                        ns(iat,1,m2,m1) = ns(iat,1,m1,m2)
+                        ns(iat,2,m2,m1) = ns(iat,2,m1,m2)
+                     ELSE
+                        do i = 1,n
+   !                      write(6,*) i,ispin(i),f(i)
+                         ns_c(iat,ispin(i),m1,m2) = ns_c(iat,ispin(i),m1,m2) + &
+        &                               f(i) * proj%cvec(i,k+m2) * &
+                                        CONJG(proj%cvec(i,k+m1))
+                        end do
+!                     ns(iat,:,m2,m1) = ns(iat,:,m1,m2)
+                        ns_c(iat,1,m2,m1) = CONJG(ns_c(iat,1,m1,m2))
+                        ns(iat,2,m2,m1) = CONJG(ns_c(iat,2,m1,m2))
+                     ENDIF
                   end do
                end do
             end if
          end do
       end do
-      if (nspin.eq.1) ns = 0.5d0 * ns
+      if (nspin.eq.1) THEN
+         IF(lgam) THEN
+            ns = 0.5d0 * ns
+         ELSE
+            ns_c = 0.5d0 * ns_c         
+         ENDIF
+      ENDIF
 ! Contributions to total energy
       e_hubbard = 0.d0
       iat = 0
@@ -5154,14 +5187,25 @@ end function set_Hubbard_l
             if (Hubbard_U(is).ne.0.d0) then
                 k = offset(is,ia)
                 do isp = 1,nspin
-                   do m1 = 1, 2*Hubbard_l(is) + 1
-                     e_hubbard = e_hubbard + 0.5d0 * Hubbard_U(is) *    &
-     &                           ns(iat,isp,m1,m1)
-                     do m2 = 1, 2*Hubbard_l(is) + 1
-                        e_hubbard = e_hubbard - 0.5d0 * Hubbard_U(is) * &
-     &                              ns(iat,isp,m1,m2) * ns(iat,isp,m2,m1)
-                     end do
-                   end do
+                   IF(lgam) THEN
+                      do m1 = 1, 2*Hubbard_l(is) + 1
+                        e_hubbard = e_hubbard + 0.5d0 * Hubbard_U(is) *    &
+        &                           ns(iat,isp,m1,m1)
+                        do m2 = 1, 2*Hubbard_l(is) + 1
+                           e_hubbard = e_hubbard - 0.5d0 * Hubbard_U(is) * &
+        &                              ns(iat,isp,m1,m2) * ns(iat,isp,m2,m1)
+                        end do
+                      end do
+                   ELSE
+                      do m1 = 1, 2*Hubbard_l(is) + 1
+                        e_hubbard = e_hubbard + 0.5d0 * Hubbard_U(is) *    &
+        &                           DBLE(ns_c(iat,isp,m1,m1))
+                        do m2 = 1, 2*Hubbard_l(is) + 1
+                           e_hubbard = e_hubbard - 0.5d0 * Hubbard_U(is) * &
+        &                             DBLE( ns_c(iat,isp,m1,m2) * ns_c(iat,isp,m2,m1))
+                        end do
+                      end do
+                   ENDIF
                 end do
              end if
          end do
@@ -5177,18 +5221,33 @@ end function set_Hubbard_l
          do ia=1, na(is)
             iat = iat + 1
             if (Hubbard_U(is).ne.0.d0) then
-               do i=1, n
-                  do m1 = 1, 2 * Hubbard_l(is) + 1
-                     tempsi = proj (i,offset(is,ia)+m1)
-                     do m2 = 1, 2 * Hubbard_l(is) + 1
-                        tempsi = tempsi - 2.d0 * ns(iat,ispin(i),m1,m2)*&
-     &                                proj (i,offset(is,ia)+m2)
+               IF(lgam) THEN
+                  do i=1, n
+                     do m1 = 1, 2 * Hubbard_l(is) + 1
+                        tempsi = proj%rvec (i,offset(is,ia)+m1)
+                        do m2 = 1, 2 * Hubbard_l(is) + 1
+                           tempsi = tempsi - 2.d0 * ns(iat,ispin(i),m1,m2)*&
+        &                                proj%rvec (i,offset(is,ia)+m2)
+                        enddo
+                        tempsi = tempsi * Hubbard_U(is)/2.d0*f(i)
+                        call ZAXPY (ngw,tempsi,swfc(1,offset(is,ia)+m1),1, &
+        &                           hpsi(1,i),1)
                      enddo
-                     tempsi = tempsi * Hubbard_U(is)/2.d0*f(i)
-                     call ZAXPY (ngw,tempsi,swfc(1,offset(is,ia)+m1),1, &
-     &                           hpsi(1,i),1)
                   enddo
-               enddo
+               ELSE
+                  do i=1, n
+                     do m1 = 1, 2 * Hubbard_l(is) + 1
+                        tempsi = proj%cvec (i,offset(is,ia)+m1)
+                        do m2 = 1, 2 * Hubbard_l(is) + 1
+                           tempsi = tempsi - 2.d0 * ns_c(iat,ispin(i),m1,m2)*&
+        &                                proj%cvec (i,offset(is,ia)+m2)
+                        enddo
+                        tempsi = tempsi * Hubbard_U(is)/2.d0*f(i)
+                        call ZAXPY (ngw,tempsi,swfc(1,offset(is,ia)+m1),1, &
+        &                           hpsi(1,i),1)
+                     enddo
+                  enddo               
+               ENDIF
             endif
          enddo
       enddo
@@ -5201,12 +5260,23 @@ end function set_Hubbard_l
 !
       forceh=0.d0
       if ((tfor).or.(tprnfor)) then
-        allocate (bp(nhsa,n), dbp(nhsa,n,3), wdb(nhsa,n_atomic_wfc,3))
-        allocate(dns(nat,nspin,ldmx,ldmx))
+        call init_twin(bp,lgam)
+        call allocate_twin(bp,nhsa,n,lgam)
+        call init_twin(dbp,lgam)
+        call allocate_twin(dbp,nhsa,n,3,lgam)
+        call init_twin(wdb,lgam)
+        call allocate_twin(wdb,nhsa,n_atomic_wfc,3,lgam)
+
+        IF(lgam) THEN
+           allocate(dns(nat,nspin,ldmx,ldmx))
+        ELSE
+           allocate(dns_c(nat,nspin,ldmx,ldmx))
+        ENDIF
+        !
         allocate (spsi(ngw,n))
 !
-        call nlsm1 (n,1,nsp,eigr,c,bp)
-        call s_wfc(n,bp,betae,c,spsi)
+        call nlsm1 (n,1,nsp,eigr,c,bp,1,lgam)
+        call s_wfc(n,bp,betae,c,spsi, lgam)
         call nlsm2_repl(ngw,nhsa,n,eigr,c,dbp)
         call nlsm2_repl(ngw,nhsa,n_atomic_wfc,eigr,wfc,wdb)
 !
@@ -5215,23 +5285,40 @@ end function set_Hubbard_l
          do alpha_a = 1, na(alpha_s)
             alpha=alpha+1
             do ipol = 1,3
-               call dndtau(alpha_a,alpha_s,becwfc,spsi,bp,dbp,wdb,      &
-     &                    offset,c,wfc,eigr,betae,proj,ipol,dns)
+               IF(lgam) THEN
+                  call dndtau_real(alpha_a,alpha_s,becwfc%rvec,spsi,bp%rvec,dbp%rvec,wdb%rvec,      &
+     &                    offset,c,wfc,eigr,betae,proj%rvec,ipol,dns)
+               ELSE
+                  call dndtau_cmplx(alpha_a,alpha_s,becwfc%cvec,spsi,bp%cvec,dbp%cvec,wdb%cvec,      &
+     &                    offset,c,wfc,eigr,betae,proj%cvec,ipol,dns_c)
+               ENDIF
                iat=0
                do is = 1, nsp
                   do ia=1, na(is)
                      iat = iat + 1
                      if (Hubbard_U(is).ne.0.d0) then
                         do isp = 1,nspin
-                           do m2 = 1,2*Hubbard_l(is) + 1
-                              forceh(ipol,alpha) = forceh(ipol,alpha) -            &
-     &                        Hubbard_U(is) * 0.5d0 * dns(iat,isp,m2,m2)
-                              do m1 = 1,2*Hubbard_l(is) + 1
-                                 forceh(ipol,alpha) = forceh(ipol,alpha) +         &
-     &                           Hubbard_U(is)*ns(iat,isp,m2,m1)*       &
-     &                           dns(iat,isp,m1,m2)
+                           IF(lgam) THEN
+                              do m2 = 1,2*Hubbard_l(is) + 1
+                                 forceh(ipol,alpha) = forceh(ipol,alpha) -            &
+        &                        Hubbard_U(is) * 0.5d0 * dns(iat,isp,m2,m2)
+                                 do m1 = 1,2*Hubbard_l(is) + 1
+                                    forceh(ipol,alpha) = forceh(ipol,alpha) +         &
+        &                           Hubbard_U(is)*ns(iat,isp,m2,m1)*       &
+        &                           dns(iat,isp,m1,m2)
+                                 end do
                               end do
-                           end do
+                           ELSE
+                              do m2 = 1,2*Hubbard_l(is) + 1
+                                 forceh(ipol,alpha) = forceh(ipol,alpha) -            &
+        &                        Hubbard_U(is) * 0.5d0 * DBLE(dns_c(iat,isp,m2,m2))
+                                 do m1 = 1,2*Hubbard_l(is) + 1
+                                    forceh(ipol,alpha) = forceh(ipol,alpha) +         &
+        &                           Hubbard_U(is)*DBLE(ns_c(iat,isp,m2,m1)*       &
+        &                           dns_c(iat,isp,m1,m2))
+                                 end do
+                              end do
+                           ENDIF
                         end do
                      end if
 ! Occupation constraint add here
@@ -5244,7 +5331,17 @@ end function set_Hubbard_l
            forceh = 2.d0 * forceh
         end if
 !
-        deallocate ( wfc, becwfc, spsi, proj, offset, swfc, dns, bp, dbp, wdb)
+        deallocate ( wfc, spsi, offset, swfc )
+        
+        call deallocate_twin(becwfc)
+        call deallocate_twin(proj)
+        call deallocate_twin(bp)
+        call deallocate_twin(dbp)
+        call deallocate_twin(wdb)
+        
+        IF(allocated(dns)) deallocate(dns)
+        IF(allocated(dns_c)) deallocate(dns_c)
+        !
       end if
       return
       end subroutine new_ns_twin
@@ -5454,7 +5551,7 @@ end function set_Hubbard_l
       end subroutine genatwfc
 !
 !-------------------------------------------------------------------------
-      subroutine dndtau(alpha_a,alpha_s,becwfc,spsi,bp,dbp,wdb,         &
+      subroutine dndtau_real(alpha_a,alpha_s,becwfc,spsi,bp,dbp,wdb,         &
      &                  offset,c,wfc,                                   &
      &                  eigr,betae,                                     &
      &                  proj,ipol,dns)
@@ -5478,7 +5575,7 @@ end function set_Hubbard_l
 ! input
       integer,      intent(in) :: offset(nsp,nat)
       integer,      intent(in) :: alpha_a,alpha_s,ipol
-      real(DP),     intent(in) :: wfc(ngw,n_atomic_wfc),  c(2,ngw,nx),  &
+      real(DP),     intent(in) :: wfc(2,ngw,n_atomic_wfc),  c(2,ngw,nx),  &
      &                            eigr(2,ngw,nat),betae(2,ngw,nhsa),    &
      &                            becwfc(nhsa,n_atomic_wfc),            &
      &                            bp(nhsa,n), dbp(nhsa,n,3), wdb(nhsa,n_atomic_wfc,3)
@@ -5497,7 +5594,7 @@ end function set_Hubbard_l
 !
       dns(:,:,:,:) = 0.d0
 !
-          call dprojdtau(c,wfc,becwfc,spsi,bp,dbp,wdb,eigr,alpha_a,     &
+          call dprojdtau_real(c,wfc,becwfc,spsi,bp,dbp,wdb,eigr,alpha_a,     &
      &                   alpha_s,ipol,offset(alpha_s,alpha_a),dproj)
 !
 ! compute the derivative of occupation numbers (the quantities dn(m1,m2))
@@ -5528,11 +5625,89 @@ end function set_Hubbard_l
 !
       deallocate (dproj)
       return
-      end subroutine dndtau
+      end subroutine dndtau_real
+!
+!
+!-------------------------------------------------------------------------
+      subroutine dndtau_cmplx(alpha_a,alpha_s,becwfc,spsi,bp,dbp,wdb,         &
+     &                  offset,c,wfc,                                   &
+     &                  eigr,betae,                                     &
+     &                  proj,ipol,dns_c)
+!-----------------------------------------------------------------------
+!
+! This routine computes the derivative of the ns with respect to the ionic
+! displacement tau(alpha,ipol) used to obtain the Hubbard contribution to the
+! atomic forces.
+!
+      use ions_base, only: na, nat, nsp
+      use gvecw, only: ngw
+      use electrons_base, only: nspin, n => nbsp, nx => nbspx, ispin, f
+      USE uspp,           ONLY: nhsa=>nkb
+      USE ldaU,           ONLY: Hubbard_U, Hubbard_l
+      USE ldaU,           ONLY: n_atomic_wfc, ns_c
+      USE kinds,          ONLY: DP
+!
+      implicit none
+      integer, parameter :: ldmx = 7
+      integer ibnd,is,i,ia,counter, m1,m2, l, iat, alpha, ldim
+! input
+      integer,      intent(in) :: offset(nsp,nat)
+      integer,      intent(in) :: alpha_a,alpha_s,ipol
+      complex(DP),     intent(in) :: wfc(ngw,n_atomic_wfc),  c(ngw,nx),  &
+     &                            eigr(ngw,nat),betae(ngw,nhsa),    &
+     &                            becwfc(nhsa,n_atomic_wfc),            &
+     &                            bp(nhsa,n), dbp(nhsa,n,3), wdb(nhsa,n_atomic_wfc,3)
+      complex(DP),     intent(in) :: proj(n,n_atomic_wfc)
+      complex (DP), intent(in) :: spsi(ngw,n)
+! output
+      complex (DP),   intent(out) :: dns_c(nat,nspin,ldmx,ldmx)
+!
+!     dns !derivative of ns(:,:,:,:) w.r.t. tau
+!
+      complex (DP),   allocatable :: dproj(:,:)
+!
+!     dproj(n,n_atomic_wfc) ! derivative of proj(:,:) w.r.t. tau 
+!
+      allocate (dproj(n,n_atomic_wfc) )
+!
+      dns_c(:,:,:,:) = 0.d0
+!
+          call dprojdtau_cmplx(c,wfc,becwfc,spsi,bp,dbp,wdb,eigr,alpha_a,     &
+     &                   alpha_s,ipol,offset(alpha_s,alpha_a),dproj)
+!
+! compute the derivative of occupation numbers (the quantities dn(m1,m2))
+! of the atomic orbitals. They are real quantities as well as n(m1,m2)
+!
+      iat=0
+      do is=1,nsp
+         do ia = 1,na(is)
+            iat=iat+1
+            if (Hubbard_U(is).ne.0.d0) then
+               ldim = 2*Hubbard_l(is) + 1
+               do m1 = 1, ldim
+                  do m2 = m1, ldim
+                     do ibnd = 1,n
+                        dns_c(iat,ispin(ibnd),m1,m2) =                    &
+     &                  dns_c(iat,ispin(ibnd),m1,m2) +                    &
+     &                   f(ibnd)*(  proj(ibnd,offset(is,ia)+m1) *   &
+     &                   (dproj(ibnd,offset(is,ia)+m2))  +              &
+     &                         dproj(ibnd,offset(is,ia)+m1)  *          &
+     &                         (proj(ibnd,offset(is,ia)+m2)) )
+                     end do
+                     dns_c(iat,:,m2,m1) = CONJG(dns_c(iat,:,m1,m2))
+                  end do
+               end do
+            end if
+         end do
+      end do
+!
+      deallocate (dproj)
+      return
+      end subroutine dndtau_cmplx
 !
 !
 !-----------------------------------------------------------------------
-      subroutine dprojdtau(c,wfc,becwfc,spsi,bp,dbp,wdb,eigr,alpha_a,    &
+      subroutine dprojdtau_real(c,wfc,becwfc,spsi,bp,dbp,wdb,eigr,alpha_a,    &
      &                     alpha_s,ipol,offset,dproj)
 !-----------------------------------------------------------------------
 !
@@ -5652,7 +5827,128 @@ end function set_Hubbard_l
       deallocate (wfcbeta)
       deallocate (wfcdbeta)
       return
-      end subroutine dprojdtau
+      end subroutine dprojdtau_real
+!
+!-----------------------------------------------------------------------
+      subroutine dprojdtau_cmplx(c,wfc,becwfc,spsi,bp,dbp,wdb,eigr,alpha_a,    &
+     &                     alpha_s,ipol,offset,dproj)
+!-----------------------------------------------------------------------
+!
+! This routine computes the first derivative of the projection
+! <\fi^{at}_{I,m1}|S|\psi_{k,v,s}> with respect to the atomic displacement
+! u(alpha,ipol) (we remember that ns_{I,s,m1,m2} = \sum_{k,v}
+! f_{kv} <\fi^{at}_{I,m1}|S|\psi_{k,v,s}><\psi_{k,v,s}|S|\fi^{at}_{I,m2}>)
+!
+      use ions_base, only: na, nat
+      use gvecw, only: ngw
+      use reciprocal_vectors, only: g, gx, ng0 => gstart
+      use electrons_base, only: n => nbsp, nx => nbspx
+!      use gvec
+!      use constants
+      USE uspp,           ONLY: nhsa=>nkb, qq
+      use cvan,           ONLY: ish
+      USE ldaU,           ONLY: Hubbard_U, Hubbard_l
+      USE ldaU,           ONLY: n_atomic_wfc
+      use cell_base,      ONLY: tpiba
+      USE uspp_param,     only: nh !@@@@
+      use mp_global,      only: intra_image_comm
+      use mp,             only: mp_sum
+      USE kinds,          ONLY: DP
+!
+       implicit none
+       integer, parameter :: ldmx = 7
+       integer alpha_a, alpha_s,ipol, offset
+! input: the displaced atom
+! input: the component of displacement
+! input: the offset of the wfcs of the atom "alpha_a,alpha_s"
+       complex (DP), intent(in) :: spsi(ngw,n),                     &
+     &                  c(ngw,nx), eigr(ngw,nat)
+! input: the atomic wfc
+! input: S|evc>
+       complex(DP), intent(in) ::becwfc(nhsa,n_atomic_wfc),            &
+     &                            wfc(ngw,n_atomic_wfc),              &
+     &            bp(nhsa,n), dbp(nhsa,n,3), wdb(nhsa,n_atomic_wfc,3)
+       complex(DP), intent(out) :: dproj(n,n_atomic_wfc)
+! output: the derivative of the projection
+!
+      integer i,ig,m1,ibnd,iwf,ia,is,iv,jv,ldim,alpha,l,m,k,inl
+!
+      real (DP)  a1, a2
+      real(kind=8), allocatable :: gk(:)
+!
+      complex (DP), allocatable :: dwfc(:,:)
+      complex (DP), allocatable :: betapsi(:,:),                       &
+     &                              dbetapsi(:,:),                      &
+     &                              wfcbeta(:,:),wfcdbeta(:,:),temp(:)
+!      dwfc(ngw,ldmx),             ! the derivative of the atomic d wfc
+!      betapsi(nh,n),              ! <beta|evc>
+!      dbetapsi(nh,n),             ! <dbeta|evc>
+!      wfcbeta(n_atomic_wfc,nh),   ! <wfc|beta>
+!      wfcdbeta(n_atomic_wfc,nh),  ! <wfc|dbeta>
+      ldim = 2 * Hubbard_l(alpha_s) + 1
+      allocate ( dwfc(ngw,ldmx),betapsi(nh(alpha_s),n))
+      allocate ( dbetapsi(nh(alpha_s),n),                               &
+     &           wfcbeta(n_atomic_wfc,nh(alpha_s)))
+      allocate (wfcdbeta(n_atomic_wfc,nh(alpha_s)) )
+      dproj(:,:)=0.d0
+!
+! At first the derivative of the atomic wfc is computed
+!
+!
+      allocate(gk(ngw))
+      allocate(temp(ngw))
+!
+      if (Hubbard_U(alpha_s).ne.0.d0) then
+!
+         do ig=1,ngw
+            gk(ig)=gx(ipol,ig)*tpiba 
+!
+            do m1=1,ldim
+                  dwfc(ig,m1) = (0.d0,-1.d0)*gk(ig)*wfc(ig,offset+m1)
+            end do
+         end do
+!
+         do ibnd=1,n
+            do m1=1,ldim
+               temp(:)=conjg(dwfc(:,m1))*spsi(:,ibnd)
+               dproj(ibnd,offset+m1)=SUM(temp) 
+            end do
+         end do
+         call mp_sum( dproj, intra_image_comm )
+      end if
+      do iv=1,nh(alpha_s)
+         inl=ish(alpha_s)+(iv-1)*na(alpha_s)+alpha_a
+         do i=1,n
+            betapsi(iv,i)=bp(inl,i)
+            dbetapsi(iv,i)=dbp(inl,i,ipol)
+         end do
+         do m=1,n_atomic_wfc
+!                 do m1=1,2**Hubbard_l(is) + 1
+            wfcbeta(m,iv)=becwfc(inl,m)
+            wfcdbeta(m,iv)=wdb(inl,m,ipol)
+         end do
+      end do
+      do ibnd=1,n
+         do iv=1,nh(alpha_s)
+            do jv=1,nh(alpha_s)
+               do m=1,n_atomic_wfc
+!                       do m1=1,2**Hubbard_l(is) + 1
+                  dproj(ibnd,m) =                                       &
+     &                        dproj(ibnd,m) + qq(iv,jv,alpha_s) *       &
+     &                         ( wfcdbeta(m,iv)*betapsi(jv,ibnd) +      &
+     &                           wfcbeta(m,iv)*dbetapsi(jv,ibnd) )
+               end do
+            end do
+         end do
+      end do
+      deallocate(temp, gk)
+      deallocate (betapsi)
+      deallocate (dwfc)
+      deallocate (dbetapsi)
+      deallocate (wfcbeta)
+      deallocate (wfcdbeta)
+      return
+      end subroutine dprojdtau_cmplx
 !
 !
 !-----------------------------------------------------------------------
@@ -5775,13 +6071,16 @@ end function set_Hubbard_l
       COMPLEX(DP), INTENT(IN) :: c( ngw, nx ), eigr(ngw,nat), betae(ngw,nhsa)
       LOGICAL :: lgam
 !
-      COMPLEX(DP), INTENT(OUT):: wfc(ngw,n_atomic_wfc),    &
-     & swfc( ngw, n_atomic_wfc )
+      COMPLEX(DP), INTENT(OUT):: wfc(ngw,n_atomic_wfc), &
+      swfc( ngw, n_atomic_wfc )
 !       real(DP), intent(out):: becwfc(nhsa,n_atomic_wfc) !DEBUG
       type(twin_matrix) :: becwfc!(nhsa,n_atomic_wfc) !DEBUG
       REAL(DP),    ALLOCATABLE :: overlap(:,:), e(:), z(:,:)
       REAL(DP),    ALLOCATABLE :: temp(:)
-      REAL(DP)                 :: somma, proj(n,n_atomic_wfc)
+      COMPLEX(DP),    ALLOCATABLE :: temp_c(:)
+      REAL(DP)                 :: somma
+      COMPLEX(DP)              :: somma_c
+      TYPE(twin_matrix)        :: proj
       INTEGER :: is, ia, nb, l, m, k, i
       !
       ! calculate number of atomic states
@@ -5804,20 +6103,37 @@ end function set_Hubbard_l
       !
       ! calculate proj = <c|S|wfc>
       !
-      ALLOCATE(temp(ngw))
+      IF(lgam) THEN
+         ALLOCATE(temp(ngw))
+      ELSE
+         ALLOCATE(temp_c(ngw))
+      ENDIF
+      !
       DO m=1,n
-         DO l=1,n_atomic_wfc
-            temp(:)=DBLE(CONJG(c(:,m))*swfc(:,l)) !@@@@
-            if(lgam) then
-               proj(m,l)=2.d0*SUM(temp)
-               IF (gstart == 2) proj(m,l)=proj(m,l)-temp(1)
-            else
-               proj(m,l)=SUM(temp)
-            endif
-         END DO
+         !
+         IF(lgam) THEN
+            DO l=1,n_atomic_wfc
+               temp(:)=DBLE(CONJG(c(:,m))*swfc(:,l)) !@@@@
+               proj%rvec(m,l)=2.d0*DBLE(SUM(temp))
+               IF (gstart == 2) proj%rvec(m,l)=proj%rvec(m,l)-temp(1)
+            END DO
+         ELSE
+            !
+            DO l=1,n_atomic_wfc
+               temp_c(:)=CONJG(c(:,m))*swfc(:,l) !@@@@
+               proj%cvec(m,l)=SUM(temp_c)
+            END DO
+            !
+         ENDIF
       END DO
-      DEALLOCATE(temp)
-      CALL mp_sum( proj, intra_image_comm )
+      !
+      IF(lgam) THEN
+         DEALLOCATE(temp)
+         CALL mp_sum( proj%rvec, intra_image_comm )
+      ELSE
+         DEALLOCATE(temp_c)
+         CALL mp_sum( proj%cvec, intra_image_comm )
+      ENDIF
 !
       RETURN
       END SUBROUTINE projwfc_hub_twin

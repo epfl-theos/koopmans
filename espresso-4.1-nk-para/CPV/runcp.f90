@@ -41,7 +41,7 @@
       USE cp_main_variables,   ONLY : hamilt, iprint_stdout
       USE cp_interfaces,       ONLY : dforce
       USE task_groups,         ONLY : tg_gather
-      USE ldaU
+      USE ldaU,                ONLY : vupsi, lda_plus_u
       use hfmod,               only : do_hf, vxxpsi
       use nksic,               only : do_orbdep, vsic, vsicpsi, deeq_sic, f_cutoff
       use ensemble_dft,        only : tens, tsmear

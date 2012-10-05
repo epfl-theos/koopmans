@@ -339,6 +339,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
         vupsi=(0.0d0,0.0d0)
         ! vpsi_con  ! potentials on electrons due to occupation constraints ...not yet implemented...
         vpsi_con=(0.0d0,0.0d0)
+        !
         CALL new_ns(c0,eigr,vkb,vupsi,vpsi_con,forceh)
         if ( mod(nfi,iprint).eq.0 ) call write_ns
      endif

@@ -305,6 +305,7 @@ module ldaU
      & Hubbard_alpha(nsx)
   real(DP) :: e_hubbard = 0.d0, e_lambda = 0.d0
   real(DP), allocatable :: ns(:,:,:,:)
+  complex(DP), allocatable :: ns_c(:,:,:,:)
   integer :: Hubbard_l(nsx), Hubbard_lmax=0, n_atomic_wfc
   logical lda_plus_u
   COMPLEX(DP), allocatable::  vupsi(:,:) !@@@@
@@ -315,6 +316,7 @@ contains
      IF( ALLOCATED( atomwfc ) ) DEALLOCATE( atomwfc )
      IF( ALLOCATED( swfcatom ) ) DEALLOCATE( swfcatom )
      IF( ALLOCATED( ns ) ) DEALLOCATE( ns )
+     IF( ALLOCATED( ns_c ) ) DEALLOCATE( ns_c )
      IF( ALLOCATED( vupsi ) ) DEALLOCATE( vupsi )
      !
      !
