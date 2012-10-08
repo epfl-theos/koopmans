@@ -142,6 +142,8 @@
       USE mp,               ONLY: mp_bcast
       USE mp_global,        ONLY: root_image, intra_image_comm
       USE control_flags,    ONLY: tksw, ndw
+      USE electrons_module, ONLY: wfc_spreads
+      USE nksic,            ONLY: do_orbdep
       USE twin_types
 !
       implicit none
@@ -203,6 +205,16 @@
       !  Sincronize lambdas, whose replicas could diverge on
       !  different processors
       !
+      IF(do_orbdep) THEN !Sort wavefunctions with respect to spread !!added:giovanni
+         !
+         IF(allocated(wfc_spreads)) THEN
+            !
+            call spread_sort(c0, nspin, nbsp, nupdwn, iupdwn, wfc_spreads)
+            !
+         ENDIF
+         !
+      ENDIF
+
       IF( tens ) THEN
         !
         CALL cp_writefile( ndw, outdir, .TRUE., nfi, tps, acc, nk, xk, wk,   &

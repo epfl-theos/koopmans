@@ -6111,6 +6111,9 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
    USE electrons_module,   ONLY: wfc_centers, wfc_spreads, &
                                  icompute_spread
    USE electrons_base,     ONLY: nbsp, nspin, iupdwn, nupdwn
+   USE ions_positions,     ONLY: taus
+   USE ions_base,          ONLY: ions_cofmass, pmass, na, nsp
+   USE cell_base,          ONLY: h, s_to_r
 
    !INPUT VARIABLES
    !
@@ -6124,7 +6127,7 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
    !INTERNAL VARIABLES
    !
    INTEGER :: myspin1, myspin2, mybnd1, mybnd2
-   REAL(DP):: r0(3)
+   REAL(DP):: r0(3), rs(3)
    REAL(DP), external :: ddot
    
    !write(6,*) nbsp, "computing perfinta spread",j,k !debug:giovanni
@@ -6138,20 +6141,32 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
       
       write(6,*) "computing davvero spread",mybnd1,myspin1
       !
-      r0=0.d0
+      ! compute ionic center of mass
+      !
+      CALL ions_cofmass(taus, pmass, na, nsp, rs)
+      ! and use it as reference position
+      !r0=0.d0
+      CALL s_to_r(rs, r0, h)
       !
       call compute_dipole( nnrx, 1, orb_rhor(1,1), r0, wfc_centers(1:4, mybnd1, myspin1), wfc_spreads(mybnd1, myspin1, 1))
       wfc_spreads(mybnd1,myspin1,1) = wfc_spreads(mybnd1,myspin1,1) - ddot(3, wfc_centers(2:4,mybnd1,myspin1), 1, wfc_centers(2:4,mybnd1,myspin1), 1)
       !
+      ! now shift wavefunction centers by r0
+      !
+      wfc_centers(2:4, mybnd1, myspin1) = wfc_centers(2:4, mybnd1, myspin1) + r0(1:3)
+      !
       IF(k.le.nbsp) THEN
-         
+         !
          myspin2=ispin(k)
          mybnd2=k-iupdwn(myspin2)+1
-
-         write(6,*) "computing davvero spread",mybnd2,myspin2
-
+         !
          call compute_dipole( nnrx, 1, orb_rhor(1,2), r0, wfc_centers(1:4, mybnd2, myspin2), wfc_spreads(mybnd2, myspin2,1))
          wfc_spreads(mybnd2,myspin2,1) = wfc_spreads(mybnd2,myspin2,1) - ddot(3, wfc_centers(2:4,mybnd2,myspin2), 1, wfc_centers(2:4,mybnd2,myspin2), 1)
+         !
+         ! now shift wavefunction centers by r0
+         !
+         wfc_centers(2:4, mybnd2, myspin2) = wfc_centers(2:4, mybnd2, myspin2) + r0(1:3)
+         !
       ENDIF
       !
       IF(k.ge.nbsp) THEN
@@ -6163,3 +6178,139 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
    RETURN
  
 END SUBROUTINE compute_nksic_centers
+!
+SUBROUTINE spread_sort(c0, ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads)
+
+      USE kinds,  ONLY: DP
+
+      IMPLICIT NONE
+
+      COMPLEX(DP) :: c0(ngw, nbsp)
+      INTEGER :: ngw, nspin, nbsp, nudx, nupdwn(nspin), iupdwn(nspin)
+      REAL(DP) :: tempspreads(nudx, nspin, 2)
+      !
+      INTEGER :: isp,j,k,refnum
+      INTEGER, ALLOCATABLE :: aidarray(:,:)
+      !REAL(DP), ALLOCATABLE :: tempspreads(:,:,:)
+      COMPLEX(DP), ALLOCATABLE :: tempwfc(:)
+      !
+      !allocate(tempspreads(nudx,nspin,2))
+      allocate(aidarray(nudx,2), tempwfc(ngw))
+      !
+      !tempspreads(:,:,:) = wfc_spreads(:,:,:)
+      !
+      do isp=1,nspin
+         !
+         do j=1,nupdwn(isp) !initialize sort-decodification array
+            !
+            aidarray(j,1) = j
+            aidarray(j,2) = 0
+            !
+         enddo
+         !
+         do j=1,nupdwn(isp) !bubble-sort the decodification array
+            !
+            do k=nupdwn(isp),j+1,-1
+               !
+               IF(tempspreads(k,isp,2).lt.tempspreads(k-1,isp,2)) THEN
+                  !
+                  call swap_real(tempspreads(k,isp,2),tempspreads(k-1,isp,2))
+                  call swap_integer(aidarray(k,1),aidarray(k-1,1))
+                  !
+               ENDIF
+               !
+            enddo
+            !
+         enddo
+         !
+         j=1
+         k=1
+         refnum=0
+         !
+         do while(k.le.nupdwn(isp))
+            !
+            IF(aidarray(j,2)==0.and.j/=aidarray(j,1)) THEN
+               !
+               IF(aidarray(j,1)/=refnum) THEN
+                  !
+                  IF(refnum==0) THEN
+                     !
+                     tempwfc(:) = c0(:,iupdwn(isp)+j)
+                     refnum=j
+                     !
+                  ENDIF
+                  !
+                  c0(:,iupdwn(isp)+j-1) = c0(:,iupdwn(isp)+aidarray(j,1)-1)
+                  aidarray(j,2)=1
+                  j=aidarray(j,1)
+                  !
+               ELSE
+                  !
+                  c0(:,iupdwn(isp)+j-1) = tempwfc(:)
+                  aidarray(j,2)=1
+                  j=refnum+1
+                  refnum=0
+                  !
+               ENDIF
+               k=k+1
+               !
+            ELSE
+               !
+               IF(j==aidarray(j,1)) THEN
+                  !
+                  k=k+1
+                  !
+               ENDIF
+               !
+               j=j+1
+               cycle
+               !
+            ENDIF
+            !
+         enddo
+         !
+      enddo
+      !
+      deallocate(tempwfc, aidarray)
+      !deallocate(tempspreads)
+      !
+      return
+
+contains
+
+   subroutine swap_integer(a,b)
+      
+      use kinds, ONLY: DP
+
+      implicit none
+
+      INTEGER :: a,b
+      INTEGER :: c
+
+      c=a
+      a=b
+      b=c
+
+      return
+
+   end subroutine swap_integer
+
+   subroutine swap_real(a,b)
+      
+      use kinds, ONLY: DP
+
+      implicit none
+
+      REAL(DP) :: a,b
+      REAL(DP) :: c
+
+      c=a
+      a=b
+      b=c
+
+      return
+
+   end subroutine swap_real
+
+END SUBROUTINE spread_sort
+
