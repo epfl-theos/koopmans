@@ -1249,14 +1249,15 @@ subroutine pc2(a,beca,b,becb, lgam)
                  if (ng0.eq.2) bold(1,i) = CMPLX(DBLE(bold(1,i)),0.0d0)
                endif
 		do  ig=1,ngw           !loop on g vectors
-		    sca_c=sca_c+CONJG(a(ig,j))*bold(ig,i)
-		    sca_c=sca_c+(a(ig,i))*CONJG(bold(ig,j))
+		    sca_c=sca_c+CONJG(a(ig,j))*bold(ig,i) !uncomment this for lowdin ortho
+		    sca_c=sca_c+(a(ig,i))*CONJG(bold(ig,j)) !remove the 2.d0 for lowdin ortho
 		enddo
 		!sca = sca*2.0d0  !2. for real weavefunctions
 		!$$ not necessary: sca = sca*2.0d0  !2. for real weavefunctions
                if(lgam) then
 		if (ng0.eq.2) then
-                   sca_c = CMPLX(DBLE(sca_c),0.d0) - CMPLX(0.5d0*DBLE(CONJG(a(1,j))*(bold(1,i))+(a(1,i))*CONJG(bold(1,j))),0.d0)
+                   sca_c = CMPLX(DBLE(sca_c),0.d0) - CMPLX(0.5d0*DBLE(CONJG(a(1,j))*(bold(1,i))+(a(1,i))*CONJG(bold(1,j))),0.d0) !use this one for lowdin ortho
+                   !sca_c = CMPLX(DBLE(sca_c),0.d0) - CMPLX(DBLE((a(1,i))*CONJG(bold(1,j))),0.d0) !comment this one for lowdin ortho
                  else
                    sca_c = CMPLX(DBLE(sca_c), 0.d0)
                  endif
@@ -1286,6 +1287,91 @@ subroutine pc2(a,beca,b,becb, lgam)
       call stop_clock('pc3')
       return
       end subroutine pc3nc
+
+    subroutine pc4nc(a,b, lgam)
+
+! this function applies the modified Pc operator which is
+! equivalent to Lowdin orthonormalization of the revised wavefunctions.
+! currently implemented only for norm-conserving pseudopotentials. 
+
+!    this subroutine applies the modified Pc operator
+!    a input :unperturbed wavefunctions
+!    b input :first order wavefunctions
+!    b output:b_i =b_i - |a_j>(<b_j|a_i>)
+
+      use kinds
+      use io_global, only: stdout
+      use mp_global, only: intra_image_comm
+      use gvecw, only: ngw
+      use reciprocal_vectors, only: ng0 => gstart
+      use mp, only: mp_sum
+      use electrons_base, only: n => nbsp, ispin
+
+      implicit none
+
+      complex(dp) a(ngw,n), b(ngw,n)
+      logical :: lgam
+      ! local variables
+      complex(DP) :: bold(ngw,n)
+      integer i, j,ig
+!       real(dp) sca
+      complex(DP) :: sca_c
+      real(DP), allocatable:: scar(:)
+      complex(DP), allocatable:: scar_c(:)
+      !
+      call start_clock('pc3')
+
+      allocate(scar_c(n))
+
+      bold(:,:)=b(:,:)
+
+      do j=1,n
+         do i=1,n
+	    sca_c=CMPLX(0.0d0,0.d0)
+	    if(ispin(i) == ispin(j)) then
+		if(lgam) then
+                 if (ng0.eq.2) bold(1,i) = CMPLX(DBLE(bold(1,i)),0.0d0)
+               endif
+		do  ig=1,ngw           !loop on g vectors
+		    !sca_c=sca_c+CONJG(a(ig,j))*bold(ig,i) !uncomment this for lowdin ortho
+		    sca_c=sca_c+2.d0*(a(ig,i))*CONJG(bold(ig,j)) !remove the 2.d0 for lowdin ortho
+		enddo
+		!sca = sca*2.0d0  !2. for real weavefunctions
+		!$$ not necessary: sca = sca*2.0d0  !2. for real weavefunctions
+               if(lgam) then
+		if (ng0.eq.2) then
+                   !sca_c = CMPLX(DBLE(sca_c),0.d0) - CMPLX(0.5d0*DBLE(CONJG(a(1,j))*(bold(1,i))+(a(1,i))*CONJG(bold(1,j))),0.d0) !use this one for lowdin ortho
+                   sca_c = CMPLX(DBLE(sca_c),0.d0) - CMPLX(DBLE((a(1,i))*CONJG(bold(1,j))),0.d0) !comment this one for lowdin ortho
+                 else
+                   sca_c = CMPLX(DBLE(sca_c), 0.d0)
+                 endif
+               else
+                 sca_c=0.5d0*sca_c
+               endif
+	      scar_c(i) = sca_c
+            endif
+         enddo
+
+         call mp_sum( scar_c, intra_image_comm )
+
+         do i=1,n
+            if(ispin(i) == ispin(j)) then
+               sca_c = scar_c(i)
+               do ig=1,ngw
+                  b(ig,i)=b(ig,i)-sca_c*a(ig,j)
+               enddo
+               ! this to prevent numerical errors
+               if(lgam) then 
+                if (ng0.eq.2) b(1,i) = CMPLX(DBLE(b(1,i)),0.0d0)
+               endif
+            endif
+         enddo
+      enddo
+      deallocate(scar_c)
+      call stop_clock('pc3')
+      return
+      end subroutine pc4nc
+
 
       subroutine pc3nc_non_ortho(a,adual, b, lgam)
 

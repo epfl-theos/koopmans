@@ -135,7 +135,7 @@
       USE cell_base,        ONLY: s_to_r
       USE cp_restart,       ONLY: cp_writefile
       USE cp_interfaces,    ONLY: set_evtot, set_eitot
-      USE electrons_base,   ONLY: nspin, nbnd, nbsp, iupdwn, nupdwn
+      USE electrons_base,   ONLY: nspin, nbnd, nbsp, iupdwn, nupdwn, nudx
       USE electrons_module, ONLY: ei, ei_emp, n_emp, iupdwn_emp, nupdwn_emp
       USE io_files,         ONLY: outdir
       USE ensemble_dft,     ONLY: tens, tsmear
@@ -145,6 +145,7 @@
       USE electrons_module, ONLY: wfc_spreads
       USE nksic,            ONLY: do_orbdep
       USE twin_types
+      use gvecw,            ONLY: ngw
 !
       implicit none
       integer, INTENT(IN) ::  nfi
@@ -209,7 +210,7 @@
          !
          IF(allocated(wfc_spreads)) THEN
             !
-            call spread_sort(c0, nspin, nbsp, nupdwn, iupdwn, wfc_spreads)
+            call spread_sort(c0, ngw, nspin, nbsp, nudx, nupdwn, iupdwn, wfc_spreads)
             !
          ENDIF
          !

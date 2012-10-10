@@ -863,7 +863,7 @@
              call pcdaga2(c0,phi,hpsi, lgam)
            else
 !           call calbec(1,nsp,eigr,hpsi,becm)
-             call pc3nc(c0,hpsi,lgam)
+            call pc3nc(c0,hpsi,lgam)
 !           call pc3us(c0,bec,hpsi,becm,lgam)
 !           call pcdaga3(c0,phi,hpsi, lgam)
            endif
@@ -937,11 +937,11 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !       COMPUTES ULTRASOFT+KINETIC-preconditioned GI
 !        call kminus1(gi,betae,ema0bg)
-        IF(do_orbdep) THEN
+        IF(do_orbdep) THEN ! preconditioning with respect to spreads.. the gradient along wavefunctions with the largest localization is a bit shortened
            !
-           do i=1,nbsp
-              gi(:,i) = gi(:,i)/(1.d0+sqrt(wfc_spreads(1+i-iupdwn(ispin(i)),ispin(i),2)))
-           enddo
+           !do i=1,nbsp
+           !   gi(:,i) = gi(:,i)*(1.d0+1.d0/sqrt(wfc_spreads(1+i-iupdwn(ispin(i)),ispin(i),2)))
+           !enddo
            !
         ENDIF
         !

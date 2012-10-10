@@ -30,7 +30,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
                                        ekincm, print_energies, debug_energies
   USE electrons_base,           ONLY : nbspx, nbsp, ispin, f, nspin
   USE electrons_base,           ONLY : nel, nelt, iupdwn, nupdwn, nudx
-  USE electrons_module,         ONLY : ei
+  USE electrons_module,         ONLY : ei, wfc_spreads, wfc_centers
   USE efield_module,            ONLY : efield, epol, tefield, allocate_efield, &
                                        efield_update, ipolp, qmat, gqq, evalue,&
                                        berry_energy, pberryel, pberryion,      &
@@ -863,6 +863,17 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      !
      ! CALL debug_energies()
      !
+     IF(do_orbdep) THEN !Sort wavefunctions with respect to spread !!added:giovanni
+        !
+        IF(allocated(wfc_spreads)) THEN
+           !
+           call spread_sort(c0, ngw, nspin, nbsp, nudx, nupdwn, iupdwn, &
+              wfc_spreads, wfc_centers)
+           !
+        ENDIF
+        !
+     ENDIF
+
      CALL printout_new( nfi, tfirst, tfile, tstdout, ttprint, tps, hold, stress, &
                         tau0, vels, fion, ekinc, temphc, tempp, temps, etot, &
                         enthal, econs, econt, vnhh, xnhh0, vnhp, xnhp0, atot, &

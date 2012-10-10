@@ -6179,20 +6179,27 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
  
 END SUBROUTINE compute_nksic_centers
 !
-SUBROUTINE spread_sort(c0, ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads)
+SUBROUTINE spread_sort(c0, ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, wfc_centers)
 
       USE kinds,  ONLY: DP
+      use input_parameters,      only: draw_pot  !added:linh draw vsic potentials
 
       IMPLICIT NONE
 
       COMPLEX(DP) :: c0(ngw, nbsp)
       INTEGER :: ngw, nspin, nbsp, nudx, nupdwn(nspin), iupdwn(nspin)
       REAL(DP) :: tempspreads(nudx, nspin, 2)
+      REAL(DP), optional :: wfc_centers(4,nudx,nspin)
       !
-      INTEGER :: isp,j,k,refnum
+      INTEGER :: isp,j,k,refnum,i
       INTEGER, ALLOCATABLE :: aidarray(:,:)
       !REAL(DP), ALLOCATABLE :: tempspreads(:,:,:)
       COMPLEX(DP), ALLOCATABLE :: tempwfc(:)
+
+      ! do nothing if one is drawing the potential: to avoid mismatch between potential and orbital
+      IF(draw_pot) THEN
+         return
+      ENDIF
       !
       !allocate(tempspreads(nudx,nspin,2))
       allocate(aidarray(nudx,2), tempwfc(ngw))
@@ -6208,13 +6215,19 @@ SUBROUTINE spread_sort(c0, ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads)
             !
          enddo
          !
-         do j=1,nupdwn(isp) !bubble-sort the decodification array
+         do j=1,nupdwn(isp)-1 !bubble-sort the decodification array
             !
             do k=nupdwn(isp),j+1,-1
                !
                IF(tempspreads(k,isp,2).lt.tempspreads(k-1,isp,2)) THEN
                   !
                   call swap_real(tempspreads(k,isp,2),tempspreads(k-1,isp,2))
+                  call swap_real(tempspreads(k,isp,1),tempspreads(k-1,isp,1))
+                  IF(present(wfc_centers)) THEN
+                     do i=1,4
+                        call swap_real(wfc_centers(i,k,isp),wfc_centers(i,k-1,isp))
+                     enddo
+                  ENDIF
                   call swap_integer(aidarray(k,1),aidarray(k-1,1))
                   !
                ENDIF
@@ -6223,19 +6236,22 @@ SUBROUTINE spread_sort(c0, ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads)
             !
          enddo
          !
+         write(6,*) "aidarray", aidarray(:,1)
          j=1
          k=1
          refnum=0
+         write(6,*) "before", c0(2,:)
          !
          do while(k.le.nupdwn(isp))
             !
+            write(6,*) j,aidarray(j,2), aidarray(j,1), refnum
             IF(aidarray(j,2)==0.and.j/=aidarray(j,1)) THEN
                !
                IF(aidarray(j,1)/=refnum) THEN
                   !
                   IF(refnum==0) THEN
                      !
-                     tempwfc(:) = c0(:,iupdwn(isp)+j)
+                     tempwfc(:) = c0(:,iupdwn(isp)+j-1)
                      refnum=j
                      !
                   ENDIF
@@ -6263,12 +6279,18 @@ SUBROUTINE spread_sort(c0, ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads)
                ENDIF
                !
                j=j+1
-               cycle
+               !
+               if(j.gt.nupdwn(isp)) THEN
+                  exit
+               ELSE
+                  cycle
+               ENDIF
                !
             ENDIF
             !
          enddo
          !
+         write(6,*) "after", c0(2,:)
       enddo
       !
       deallocate(tempwfc, aidarray)

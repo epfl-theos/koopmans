@@ -5164,7 +5164,7 @@ end function set_Hubbard_l
                         end do
 !                     ns(iat,:,m2,m1) = ns(iat,:,m1,m2)
                         ns_c(iat,1,m2,m1) = CONJG(ns_c(iat,1,m1,m2))
-                        ns(iat,2,m2,m1) = CONJG(ns_c(iat,2,m1,m2))
+                        ns_c(iat,2,m2,m1) = CONJG(ns_c(iat,2,m1,m2))
                      ENDIF
                   end do
                end do
