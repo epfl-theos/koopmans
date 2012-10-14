@@ -160,6 +160,7 @@
       real(DP) :: deltae,sic_coeff1, sic_coeff2 !coefficients which may change according to the flavour of SIC
       !
       lgam = gamma_only.and..not.do_wf_cmplx
+      deltae = 2.d0*conv_thr
       !
       northo_flavor=1
       !
@@ -494,7 +495,7 @@
              if(.not.do_innerloop_cg) then
                  call nksic_rot_emin(itercg,ninner,etot,Omattot, lgam)
              else
-                 call nksic_rot_emin_cg(itercg,ninner,etot,Omattot,deltae*1.d-1,lgam)
+                 call nksic_rot_emin_cg(itercg,ninner,etot,Omattot,deltae*3.d-2,lgam)
              endif
 
 !$$ Now rotate hi(:,:) according to Omattot!

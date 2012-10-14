@@ -4193,7 +4193,7 @@ end subroutine nksic_rot_test
            numok=0
         endif
         !
-        if( numok >= 3 ) ltresh=.true.
+        if( numok >= 2 ) ltresh=.true.
         !
         if( ltresh ) then
             !
@@ -6154,14 +6154,15 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
       CALL ions_cofmass(taus, pmass, na, nsp, rs)
       ! and use it as reference position
       !r0=0.d0
+      write(6,*) "real coordinates", rs, r0
       CALL s_to_r(rs, r0, h)
       !
       call compute_dipole( nnrx, 1, orb_rhor(1,1), r0, wfc_centers(1:4, mybnd1, myspin1), wfc_spreads(mybnd1, myspin1, 1))
-      wfc_spreads(mybnd1,myspin1,1) = wfc_spreads(mybnd1,myspin1,1) - ddot(3, wfc_centers(2:4,mybnd1,myspin1), 1, wfc_centers(2:4,mybnd1,myspin1), 1)
       !
       ! now shift wavefunction centers by r0
       !
       wfc_centers(2:4, mybnd1, myspin1) = wfc_centers(2:4, mybnd1, myspin1) + r0(1:3)
+      wfc_spreads(mybnd1,myspin1,1) = wfc_spreads(mybnd1,myspin1,1) - ddot(3, wfc_centers(2:4,mybnd1,myspin1), 1, wfc_centers(2:4,mybnd1,myspin1), 1)
       !
       IF(k.le.nbsp) THEN
          !
@@ -6169,11 +6170,11 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
          mybnd2=k-iupdwn(myspin2)+1
          !
          call compute_dipole( nnrx, 1, orb_rhor(1,2), r0, wfc_centers(1:4, mybnd2, myspin2), wfc_spreads(mybnd2, myspin2,1))
-         wfc_spreads(mybnd2,myspin2,1) = wfc_spreads(mybnd2,myspin2,1) - ddot(3, wfc_centers(2:4,mybnd2,myspin2), 1, wfc_centers(2:4,mybnd2,myspin2), 1)
          !
          ! now shift wavefunction centers by r0
          !
          wfc_centers(2:4, mybnd2, myspin2) = wfc_centers(2:4, mybnd2, myspin2) + r0(1:3)
+         wfc_spreads(mybnd2,myspin2,1) = wfc_spreads(mybnd2,myspin2,1) - ddot(3, wfc_centers(2:4,mybnd2,myspin2), 1, wfc_centers(2:4,mybnd2,myspin2), 1)
          !
       ENDIF
       !
@@ -6259,18 +6260,18 @@ SUBROUTINE spread_sort(c0, ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, 
                   !
                   IF(refnum==0) THEN
                      !
-                     tempwfc(:) = c0(:,iupdwn(isp)+j-1)
+                     tempwfc(1:ngw) = c0(1:ngw,iupdwn(isp)+j-1)
                      refnum=j
                      !
                   ENDIF
                   !
-                  c0(:,iupdwn(isp)+j-1) = c0(:,iupdwn(isp)+aidarray(j,1)-1)
+                  c0(1:ngw,iupdwn(isp)+j-1) = c0(1:ngw,iupdwn(isp)+aidarray(j,1)-1)
                   aidarray(j,2)=1
                   j=aidarray(j,1)
                   !
                ELSE
                   !
-                  c0(:,iupdwn(isp)+j-1) = tempwfc(:)
+                  c0(1:ngw,iupdwn(isp)+j-1) = tempwfc(1:ngw)
                   aidarray(j,2)=1
                   j=refnum+1
                   refnum=0
