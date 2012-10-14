@@ -4003,7 +4003,7 @@ end subroutine nksic_rot_test
 !---------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-      subroutine nksic_rot_emin_cg(nouter,ninner,etot,Omattot, lgam)
+      subroutine nksic_rot_emin_cg(nouter,ninner,etot,Omattot, rot_threshold, lgam)
 !-----------------------------------------------------------------------
 !
 ! ... Finds the orthogonal rotation matrix Omattot that minimizes
@@ -4042,6 +4042,7 @@ end subroutine nksic_rot_test
       integer,     intent(in)  :: nouter
       real(dp),    intent(in)  :: etot
       complex(dp)          :: Omattot(nbspx,nbspx)
+      real(dp), intent(in)  :: rot_threshold
       logical               :: lgam
         
       ! 
@@ -4076,6 +4077,8 @@ end subroutine nksic_rot_test
       integer :: maxiter3,numok
       real(dp) :: signalpha
       character(len=4) :: marker
+      real(dp) :: conv_thr
+      integer, parameter :: nouter0=2
 
       !
       ! main body
@@ -4090,6 +4093,11 @@ end subroutine nksic_rot_test
       ltresh=.false.
       setpassomax=.false.
       nfail=0
+      if(nouter<nouter0) THEN
+         conv_thr=esic_conv_thr
+      ELSE
+         conv_thr=rot_threshold
+      ENDIF
       !
       pinksumprev=1.d8
       dPI = 2.0_DP * asin(1.0_DP)
@@ -4179,7 +4187,7 @@ end subroutine nksic_rot_test
         !
         ! test convergence
         !
-        if( abs(ene0-pinksumprev) < esic_conv_thr ) then
+        if( abs(ene0-pinksumprev) < conv_thr ) then
            numok=numok+1
         else 
            numok=0

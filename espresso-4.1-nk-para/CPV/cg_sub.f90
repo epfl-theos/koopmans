@@ -157,7 +157,7 @@
       logical :: lgam, switch=.false., ortho_switch=.false.
       complex(DP) :: phase
       integer :: ierr, northo_flavor
-      real(DP) :: sic_coeff1, sic_coeff2 !coefficients which may change according to the flavour of SIC
+      real(DP) :: deltae,sic_coeff1, sic_coeff2 !coefficients which may change according to the flavour of SIC
       !
       lgam = gamma_only.and..not.do_wf_cmplx
       !
@@ -494,7 +494,7 @@
              if(.not.do_innerloop_cg) then
                  call nksic_rot_emin(itercg,ninner,etot,Omattot, lgam)
              else
-                 call nksic_rot_emin_cg(itercg,ninner,etot,Omattot,lgam)
+                 call nksic_rot_emin_cg(itercg,ninner,etot,Omattot,deltae*1.d-1,lgam)
              endif
 
 !$$ Now rotate hi(:,:) according to Omattot!
@@ -547,8 +547,9 @@
             !
         endif
 !$$
- 
-        if( abs(etotnew-etotold) < conv_thr ) then
+        deltae=abs(etotnew-etotold) 
+        !
+        if( deltae < conv_thr ) then
            numok=numok+1
         else 
            numok=0
