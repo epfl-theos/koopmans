@@ -871,6 +871,8 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
               wfc_spreads, wfc_centers)
            !
         ENDIF
+        write(6,*) "wspreads", wfc_spreads(:,1,1)
+        write(6,*) "wspreads", wfc_spreads(:,2,1)
         !
      ENDIF
 
