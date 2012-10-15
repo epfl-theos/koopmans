@@ -210,7 +210,7 @@
          !
          IF(allocated(wfc_spreads)) THEN
             !
-            call spread_sort(c0, ngw, nspin, nbsp, nudx, nupdwn, iupdwn, wfc_spreads)
+            !call spread_sort(c0, ngw, nspin, nbsp, nudx, nupdwn, iupdwn, wfc_spreads)
             !
          ENDIF
          !

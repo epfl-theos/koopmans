@@ -6122,6 +6122,7 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
    USE ions_positions,     ONLY: taus
    USE ions_base,          ONLY: ions_cofmass, pmass, na, nsp
    USE cell_base,          ONLY: h, s_to_r
+   USE cell_base,          ONLY : at, bg, alat, omega
 
    !INPUT VARIABLES
    !
@@ -6155,14 +6156,14 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
       ! and use it as reference position
       !r0=0.d0
       write(6,*) "real coordinates", rs, r0
-      CALL s_to_r(rs, r0, h)
+      !CALL s_to_r(rs, r0, h)
       !
       call compute_dipole( nnrx, 1, orb_rhor(1,1), r0, wfc_centers(1:4, mybnd1, myspin1), wfc_spreads(mybnd1, myspin1, 1))
+      wfc_spreads(mybnd1,myspin1,1) = wfc_spreads(mybnd1,myspin1,1) - ddot(3, wfc_centers(2:4,mybnd1,myspin1), 1, wfc_centers(2:4,mybnd1,myspin1), 1)
       !
       ! now shift wavefunction centers by r0
       !
       wfc_centers(2:4, mybnd1, myspin1) = wfc_centers(2:4, mybnd1, myspin1) + r0(1:3)
-      wfc_spreads(mybnd1,myspin1,1) = wfc_spreads(mybnd1,myspin1,1) - ddot(3, wfc_centers(2:4,mybnd1,myspin1), 1, wfc_centers(2:4,mybnd1,myspin1), 1)
       !
       IF(k.le.nbsp) THEN
          !
@@ -6170,11 +6171,11 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
          mybnd2=k-iupdwn(myspin2)+1
          !
          call compute_dipole( nnrx, 1, orb_rhor(1,2), r0, wfc_centers(1:4, mybnd2, myspin2), wfc_spreads(mybnd2, myspin2,1))
+         wfc_spreads(mybnd2,myspin2,1) = wfc_spreads(mybnd2,myspin2,1) - ddot(3, wfc_centers(2:4,mybnd2,myspin2), 1, wfc_centers(2:4,mybnd2,myspin2), 1)
          !
          ! now shift wavefunction centers by r0
          !
          wfc_centers(2:4, mybnd2, myspin2) = wfc_centers(2:4, mybnd2, myspin2) + r0(1:3)
-         wfc_spreads(mybnd2,myspin2,1) = wfc_spreads(mybnd2,myspin2,1) - ddot(3, wfc_centers(2:4,mybnd2,myspin2), 1, wfc_centers(2:4,mybnd2,myspin2), 1)
          !
       ENDIF
       !
@@ -6188,14 +6189,15 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
  
 END SUBROUTINE compute_nksic_centers
 !
-SUBROUTINE spread_sort(c0, ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, wfc_centers)
+SUBROUTINE spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, wfc_centers)
 
       USE kinds,  ONLY: DP
-      use input_parameters,      only: draw_pot  !added:linh draw vsic potentials
+      USE input_parameters,      only: draw_pot  !added:linh draw vsic potentials
+      USE wavefunctions_module,  only: c0,cm
 
       IMPLICIT NONE
 
-      COMPLEX(DP) :: c0(ngw, nbsp)
+      !COMPLEX(DP) :: c0(ngw, nbsp), cm(ngw,nbsp)
       INTEGER :: ngw, nspin, nbsp, nudx, nupdwn(nspin), iupdwn(nspin)
       REAL(DP) :: tempspreads(nudx, nspin, 2)
       REAL(DP), optional :: wfc_centers(4,nudx,nspin)
@@ -6203,7 +6205,7 @@ SUBROUTINE spread_sort(c0, ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, 
       INTEGER :: isp,j,k,refnum,i
       INTEGER, ALLOCATABLE :: aidarray(:,:)
       !REAL(DP), ALLOCATABLE :: tempspreads(:,:,:)
-      COMPLEX(DP), ALLOCATABLE :: tempwfc(:)
+      COMPLEX(DP), ALLOCATABLE :: tempwfc(:,:)
 
       ! do nothing if one is drawing the potential: to avoid mismatch between potential and orbital
       IF(draw_pot) THEN
@@ -6211,7 +6213,7 @@ SUBROUTINE spread_sort(c0, ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, 
       ENDIF
       !
       !allocate(tempspreads(nudx,nspin,2))
-      allocate(aidarray(nudx,2), tempwfc(ngw))
+      allocate(aidarray(nudx,2), tempwfc(ngw,2))
       !
       !tempspreads(:,:,:) = wfc_spreads(:,:,:)
       !
@@ -6260,18 +6262,22 @@ SUBROUTINE spread_sort(c0, ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, 
                   !
                   IF(refnum==0) THEN
                      !
-                     tempwfc(1:ngw) = c0(1:ngw,iupdwn(isp)+j-1)
+                     tempwfc(:,1) = c0(:,iupdwn(isp)+j-1)
+                     tempwfc(:,2) = cm(:,iupdwn(isp)+j-1)
                      refnum=j
                      !
                   ENDIF
                   !
                   c0(1:ngw,iupdwn(isp)+j-1) = c0(1:ngw,iupdwn(isp)+aidarray(j,1)-1)
+                  cm(1:ngw,iupdwn(isp)+j-1) = cm(1:ngw,iupdwn(isp)+aidarray(j,1)-1)
+                  !
                   aidarray(j,2)=1
                   j=aidarray(j,1)
                   !
                ELSE
                   !
-                  c0(1:ngw,iupdwn(isp)+j-1) = tempwfc(1:ngw)
+                  c0(:,iupdwn(isp)+j-1) = tempwfc(:,1)
+                  cm(:,iupdwn(isp)+j-1) = tempwfc(:,2)
                   aidarray(j,2)=1
                   j=refnum+1
                   refnum=0

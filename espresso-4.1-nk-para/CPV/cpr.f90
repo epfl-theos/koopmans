@@ -867,7 +867,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
         !
         IF(allocated(wfc_spreads)) THEN
            !
-           call spread_sort(c0, ngw, nspin, nbsp, nudx, nupdwn, iupdwn, &
+           call spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, &
               wfc_spreads, wfc_centers)
            !
         ENDIF
