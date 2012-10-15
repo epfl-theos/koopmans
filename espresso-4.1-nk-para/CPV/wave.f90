@@ -536,8 +536,73 @@
         RETURN
    END SUBROUTINE proj_gamma
 
+!=----------------------------------------------------------------------------=!
+   SUBROUTINE wave_atom_init_x( cm, n, noff )
+!=----------------------------------------------------------------------------=!
 
+      !  this routine sets the initial wavefunctions at random
 
+! ... declare modules
+      USE kinds,              ONLY: DP
+      USE mp,                 ONLY: mp_sum
+      USE mp_wave,            ONLY: splitwf
+      USE mp_global,          ONLY: me_image, nproc_image, root_image, intra_image_comm
+      USE reciprocal_vectors, ONLY: ig_l2g, ngw, ngwt, gzero
+      USE io_global,          ONLY: stdout
+      USE random_numbers,     ONLY: randy
+      
+      IMPLICIT NONE
+
+      ! ... declare subroutine arguments 
+      INTEGER,     INTENT(IN)  :: n, noff
+      COMPLEX(DP), INTENT(OUT) :: cm(:,:)
+
+      ! ... declare other variables
+      INTEGER :: ntest, ig, ib
+      REAL(DP) ::  rranf1, rranf2, ampre
+      COMPLEX(DP), ALLOCATABLE :: pwt( : )
+
+      ! ... Check array dimensions
+      IF( SIZE( cm, 1 ) < ngw ) THEN 
+        CALL errore(' wave_rand_init ', ' wrong dimensions ', 3)
+      END IF
+
+      ! ... Reset them to zero
+ 
+      cm( :, noff : noff + n - 1 ) = 0.0d0
+
+      ! ... initialize the wave functions in such a way that the values
+      ! ... of the components are independent on the number of processors
+
+      ampre = 0.01d0
+      ALLOCATE( pwt( ngwt ) )
+
+      ntest = ngwt / 4
+      IF( ntest < SIZE( cm, 2 ) ) THEN
+         ntest = ngwt
+      END IF
+      !
+      ! ... assign random values to wave functions
+      !
+      DO ib = noff, noff + n - 1
+        pwt( : ) = 0.0d0
+        DO ig = 3, ntest
+          rranf1 = 0.5d0 - randy()
+          rranf2 = randy()
+          pwt( ig ) = ampre * CMPLX(rranf1, rranf2)
+        END DO
+        DO ig = 1, ngw
+          cm( ig, ib ) = pwt( ig_l2g( ig ) )
+        END DO
+      END DO
+      IF ( gzero ) THEN
+        cm( 1, noff : noff + n - 1 ) = (0.0d0, 0.0d0)
+      END IF
+
+      DEALLOCATE( pwt )
+
+      RETURN
+    END SUBROUTINE wave_atom_init_x
 
 !=----------------------------------------------------------------------------=!
    SUBROUTINE wave_rand_init_x( cm, n, noff )

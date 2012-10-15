@@ -6144,7 +6144,7 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
    REAL(DP):: r0(3), rs(3)
    REAL(DP), external :: ddot
    
-   !write(6,*) nbsp, "computing perfinta spread",j,k !debug:giovanni
+     !write(6,*) nbsp, "computing perfinta spread",j,k !debug:giovanni
    !
    IF(icompute_spread) THEN
       !
@@ -6160,8 +6160,8 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
       CALL ions_cofmass(taus, pmass, na, nsp, rs)
       ! and use it as reference position
       !r0=0.d0
-      write(6,*) "real coordinates", rs, r0
-      !CALL s_to_r(rs, r0, h)
+      !write(6,*) "real coordinates", rs, r0
+      !!CALL s_to_r(rs, r0, h)
       !
       call compute_dipole( nnrx, 1, orb_rhor(1,1), r0, wfc_centers(1:4, mybnd1, myspin1), wfc_spreads(mybnd1, myspin1, 1))
       wfc_spreads(mybnd1,myspin1,1) = wfc_spreads(mybnd1,myspin1,1) - ddot(3, wfc_centers(2:4,mybnd1,myspin1), 1, wfc_centers(2:4,mybnd1,myspin1), 1)
@@ -6185,7 +6185,7 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
       ENDIF
       !
       write(*,*) mpime, "myspreads", wfc_spreads(:,1,2)
-      write(*,*) mpime, "myspreads", wfc_spreads(:,2,2)
+      !write(*,*) mpime, "myspreads", wfc_spreads(:,2,2)
       !call mp_bcast(wfc_centers, intra_image_comm)
       !call mp_bcast(wfc_spreads, intra_image_comm)
       !
@@ -6230,7 +6230,7 @@ SUBROUTINE spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, wfc_
       !
       !tempspreads(:,:,:) = wfc_spreads(:,:,:)
       !
-      !write(*,*) mpime, "spreads", tempspreads(:,1,2)
+      write(*,*) mpime, "spreads", tempspreads(:,1,2)
       !write(*,*) mpime, "spreads", tempspreads(:,2,2)
       !
       do isp=1,nspin
@@ -6270,11 +6270,11 @@ SUBROUTINE spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, wfc_
          !call mp_bcast(wfc_centers, ionode_id, intra_image_comm)
          !
          !
-         write(*,*) mpime, "aidarray", aidarray(:,1)
+         !write(*,*) mpime, "aidarray", aidarray(:,1)
          j=1
          k=1
          refnum=0
-         write(*,*) mpime, "before", c0(2,:)
+         !write(*,*) mpime, "before", c0(2,:)
          !
          do while(k.le.nupdwn(isp))
             !
@@ -6341,7 +6341,7 @@ SUBROUTINE spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, wfc_
             !
          enddo
          !
-         write(*,*) mpime, "after", c0(2,:)
+         !write(*,*) mpime, "after", c0(2,:)
       enddo
       !
       deallocate(tempwfc, aidarray)

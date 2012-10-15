@@ -495,7 +495,7 @@
              if(.not.do_innerloop_cg) then
                  call nksic_rot_emin(itercg,ninner,etot,Omattot, lgam)
              else
-                 call nksic_rot_emin_cg(itercg,ninner,etot,Omattot,deltae*3.d-2,lgam)
+                 call nksic_rot_emin_cg(itercg,ninner,etot,Omattot,deltae*1.d-2,lgam)
              endif
 
 !$$ Now rotate hi(:,:) according to Omattot!
@@ -531,8 +531,8 @@
         if ( ionode ) write(1037,'("iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14)')&
             itercg, itercgeff, etotnew 
 #endif
-        if ( ionode ) write(stdout,'(5x,"iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14)')&
-            itercg, itercgeff, etotnew
+        if ( ionode ) write(stdout,'(5x,"iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14," delta_E=",E22.14)')&
+            itercg, itercgeff, etotnew, deltae
 
         if ( ionode .and. mod(itercg,10) == 0 ) write(stdout,"()" )
 !$$
