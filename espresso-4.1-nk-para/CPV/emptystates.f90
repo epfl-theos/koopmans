@@ -40,7 +40,8 @@
       USE time_step,            ONLY : delt
       USE check_stop,           ONLY : check_stop_now
       USE cp_interfaces,        ONLY : writeempty, readempty, gram_empty, ortho, &
-                                       wave_rand_init, elec_fakekine, crot, dforce, nlsm1, grabec, &
+                                       wave_rand_init, wave_atom_init, elec_fakekine, &
+                                       crot, dforce, nlsm1, grabec, &
                                        bec_csv
       USE mp,                   ONLY : mp_comm_split, mp_comm_free, mp_sum
       USE mp_global,            ONLY : intra_image_comm, me_image
@@ -48,6 +49,7 @@
       USE nksic,                ONLY : do_spinsym
       USE hfmod,                ONLY : do_hf, vxxpsi
       USE twin_types !added:giovanni
+      USE control_flags,        ONLY : tatomicwfc, trane
       !
       IMPLICIT NONE
       !
@@ -239,14 +241,30 @@
          !
          IF ( .NOT. do_spinsym .OR. nspin == 1 ) THEN
              !
-             CALL wave_rand_init( c0_emp, n_emps, 1 )
+             IF(tatomicwfc) THEN
+                !
+                call wave_atom_init( c0_emp, n_emps, 1 )
+                !
+             ELSE
+                !
+                CALL wave_rand_init( c0_emp, n_emps, 1 )
+                !
+             ENDIF
              !
          ELSE
              !  
              IF ( nupdwn_emp(1) < nupdwn_emp(2) ) CALL errore('empty_cp','unexpec emp nupdwn(1) < nupdwn(2)',10)
-             !
-             CALL wave_rand_init( c0_emp, nupdwn_emp(1) , 1 )
-             !
+                !
+                IF(tatomicwfc) THEN
+                   !
+                   call wave_atom_init( c0_emp, nupdwn_emp(1), 1 )
+                   !
+                ELSE
+                   !
+                   CALL wave_rand_init( c0_emp, nupdwn_emp(1) , 1 )
+                   !
+                ENDIF
+                !
              DO i = 1, MIN(nupdwn_emp(1),nupdwn_emp(2))
                  !
                  j=i+iupdwn_emp(2)-1

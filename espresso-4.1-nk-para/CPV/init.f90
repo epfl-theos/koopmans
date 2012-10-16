@@ -31,7 +31,7 @@
       USE grid_subroutines,         ONLY: realspace_grids_init, realspace_grids_para
       USE reciprocal_vectors,       ONLY: mill_g, g2_g, bi1, bi2, bi3
       USE recvecs_subroutines,      ONLY: recvecs_init
-      use gvecw,                    only: gcutw, gkcut
+      use gvecw,                    only: gcutw, gkcut, ngw
       use gvecp,                    only: ecut => ecutp, gcut => gcutp
       use gvecs,                    only: gcuts
       use gvecb,                    only: gcutb
@@ -140,7 +140,6 @@
       !     NOTE in a parallel run ngm_ , ngw_ , ngs_ here are the 
       !     local number of reciprocal vectors
       !
-      CALL recvecs_init( ngm_ , ngw_ , ngs_ )
       !
       !
       ! ... Initialize (local) real space dimensions
@@ -151,7 +150,10 @@
       ! ... generate g-space
       !
       call ggencp( b1, b2, b3, nr1, nr2, nr3, nr1s, nr2s, nr3s, gcut, gcuts, gkcut, lgam) !added:giovanni do_wf_cmplx
-
+      !
+      ngw_=ngw !dirtyfix:giovanni
+      CALL recvecs_init( ngm_ , ngw_ , ngs_ ) !dirtyfix:giovanni
+      !write(6,*) "init_recvecs", ngw_
       ! 
       !  Allocate index required to compute polarizability
       !

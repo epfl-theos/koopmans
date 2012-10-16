@@ -46,7 +46,7 @@ SUBROUTINE from_scratch( )
     USE cp_interfaces,        ONLY : runcp_uspp, runcp_uspp_force_pairing, &
                                      strucf, phfacs, nlfh, nlfl
     USE cp_interfaces,        ONLY : rhoofr, ortho, wave_rand_init, elec_fakekine, &
-                                     wave_sine_init
+                                     wave_sine_init, wave_atom_init
     USE cp_interfaces,        ONLY : vofrhos, compute_stress
     USE cp_interfaces,        ONLY : printout, print_lambda
     USE printout_base,        ONLY : printout_pos
@@ -65,6 +65,7 @@ SUBROUTINE from_scratch( )
     USE cdvan,                ONLY : dbec
     USE nksic,                ONLY : do_spinsym
     USE mp_global,      ONLY : mpime !added:giovanni:debug
+    USE control_flags,        ONLY : tatomicwfc, trane
     !
     IMPLICIT NONE
     !
@@ -131,7 +132,15 @@ SUBROUTINE from_scratch( )
     !
     IF ( .NOT. do_spinsym .OR. nspin == 1 ) then
         !
-        CALL wave_rand_init( cm, nbsp, 1 )!modified:giovanni
+        IF(tatomicwfc) THEN
+           !
+           call wave_atom_init( cm, nbsp, 1 )
+           !
+        ELSE
+           !
+           CALL wave_rand_init( cm, nbsp, 1 )!modified:giovanni
+           !
+        ENDIF
 ! !begin_added:giovanni:debug
 !         DO i=1,size(cm(:,1))
 !             write(201+mpime,'(5((F18.12)5x))') gx(1:3,i), cm(i,1) 

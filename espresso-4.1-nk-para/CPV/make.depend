@@ -847,6 +847,7 @@ nksiclib.o : cg.o
 nksiclib.o : cp_interfaces.o
 nksiclib.o : electrons.o
 nksiclib.o : io_pot_sic_xml.o
+nksiclib.o : ions_positions.o
 nksiclib.o : mainvar.o
 nksiclib.o : modules.o
 nl_base.o : ../Modules/cell_base.o
@@ -1112,6 +1113,7 @@ restart.o : electrons.o
 restart.o : ensemble_dft.o
 restart.o : ksstates.o
 restart.o : mainvar.o
+restart.o : modules.o
 restart_sub.o : ../Modules/cell_base.o
 restart_sub.o : ../Modules/control_flags.o
 restart_sub.o : ../Modules/electrons_base.o
@@ -1221,7 +1223,10 @@ wannier.o : wannier_base.o
 wannier_base.o : ../Modules/kind.o
 wave.o : ../Modules/control_flags.o
 wave.o : ../Modules/dspev_drv.o
+wave.o : ../Modules/electrons_base.o
+wave.o : ../Modules/input_parameters.o
 wave.o : ../Modules/io_global.o
+wave.o : ../Modules/ions_base.o
 wave.o : ../Modules/kind.o
 wave.o : ../Modules/mp.o
 wave.o : ../Modules/mp_global.o
@@ -1229,9 +1234,11 @@ wave.o : ../Modules/mp_wave.o
 wave.o : ../Modules/random_numbers.o
 wave.o : ../Modules/recvec.o
 wave.o : ../Modules/twin_types.o
+wave.o : ../Modules/uspp.o
 wave.o : ../Modules/wave_base.o
 wave.o : ../Modules/zhpev_drv.o
 wave.o : electrons.o
+wave.o : mainvar.o
 wave_types.o : ../Modules/kind.o
 waveinit.o : ../Modules/kind.o
 wf.o : ../Modules/cell_base.o

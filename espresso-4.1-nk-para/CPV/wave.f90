@@ -550,21 +550,30 @@
       USE reciprocal_vectors, ONLY: ig_l2g, ngw, ngwt, gzero
       USE io_global,          ONLY: stdout
       USE random_numbers,     ONLY: randy
-      
+      USE control_flags,      ONLY: ampre, tatomicwfc, trane
+      USE uspp_param,         ONLY: n_atom_wfc
+      USE electrons_base,     ONLY: nbsp
+      USE ions_base,          ONLY: nat, nsp, ityp
+      USE cp_main_variables,  ONLY: eigr
+      USE reciprocal_vectors, ONLY: ig_l2g, ngw, ngwt, gzero, gx, ngwx
+      USE constants,          ONLY: tpi      
+
       IMPLICIT NONE
 
       ! ... declare subroutine arguments 
       INTEGER,     INTENT(IN)  :: n, noff
-      COMPLEX(DP), INTENT(OUT) :: cm(:,:)
+      COMPLEX(DP), INTENT(INOUT) :: cm(:,:)
 
       ! ... declare other variables
-      INTEGER :: ntest, ig, ib
-      REAL(DP) ::  rranf1, rranf2, ampre
-      COMPLEX(DP), ALLOCATABLE :: pwt( : )
+      INTEGER :: ntest, ig, ib, natomwfc, ik
+      REAL(DP) ::  rranf1, rranf2, rr, arg
+      COMPLEX(DP), ALLOCATABLE :: wfcatom(:,:) ! atomic wfcs for initialization
+      INTEGER :: ibnd, n_starting_wfc, n_starting_atomic_wfc
+      CHARACTER(len=15) :: subname="wave_atom_init"
 
       ! ... Check array dimensions
       IF( SIZE( cm, 1 ) < ngw ) THEN 
-        CALL errore(' wave_rand_init ', ' wrong dimensions ', 3)
+        CALL errore(' wave_atom_init ', ' wrong dimensions ', 3)
       END IF
 
       ! ... Reset them to zero
@@ -575,33 +584,82 @@
       ! ... of the components are independent on the number of processors
 
       ampre = 0.01d0
-      ALLOCATE( pwt( ngwt ) )
+      write(6,*) "computing n_atom_wfc"
+      natomwfc = n_atom_wfc(nat, ityp, .false.) ! third value is noncolin, which is not yet implemented
+      !
+      IF ( tatomicwfc ) THEN
+         !
+         n_starting_wfc = MAX( natomwfc, n )
+         n_starting_atomic_wfc = natomwfc
+         !
+      ENDIF
 
-      ntest = ngwt / 4
-      IF( ntest < SIZE( cm, 2 ) ) THEN
-         ntest = ngwt
-      END IF
-      !
-      ! ... assign random values to wave functions
-      !
-      DO ib = noff, noff + n - 1
-        pwt( : ) = 0.0d0
-        DO ig = 3, ntest
-          rranf1 = 0.5d0 - randy()
-          rranf2 = randy()
-          pwt( ig ) = ampre * CMPLX(rranf1, rranf2)
-        END DO
-        DO ig = 1, ngw
-          cm( ig, ib ) = pwt( ig_l2g( ig ) )
-        END DO
+      ALLOCATE( wfcatom( ngwx, n_starting_wfc ) )
+
+      IF ( tatomicwfc ) THEN
+         !
+      write(6,*) "calling atomic_wfc"
+         CALL atomic_wfc( eigr, n_starting_atomic_wfc, wfcatom(:,1:n_starting_atomic_wfc) )
+      write(6,*) "called atomic_wfc"
+         !
+         IF ( trane .AND. &
+            n_starting_wfc == n_starting_atomic_wfc ) THEN
+            !
+            ! ... in this case, introduce a small randomization of wavefunctions
+            ! ... to prevent possible "loss of states"
+            !
+            DO ibnd = 1, n_starting_atomic_wfc
+               !
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(ig, rr, arg)
+               DO ig = 1, ngw
+                  !           
+                  rr  = randy()
+                  arg = tpi * randy()
+                  !
+                  wfcatom(ig,ibnd) = wfcatom(ig,ibnd) * &
+                     ( 1.0_DP + 0.05_DP * CMPLX( rr*COS(arg), rr*SIN(arg)) )
+                  !
+               END DO
+!$OMP END PARALLEL DO
+               !
+            END DO
+            !
+         END IF
+         !
+      END IF 
+      !      
+      ! ... if not enough atomic wfc are available,
+      ! ... fill missing wfcs with random numbers
+      !      
+      DO ibnd = n_starting_atomic_wfc + 1, n_starting_wfc
+         !      
+         !      
+         wfcatom(:,ibnd) = (0.0_dp, 0.0_dp)
+         !      
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(ig, rr, arg)
+         DO ig = 1, ngw
+            !      
+            rr  = randy()
+            arg = tpi * randy()
+            !
+            wfcatom(ig,ibnd) = &
+                CMPLX( rr*COS( arg ), rr*SIN( arg ) ) / &
+                       ( ( gx(1,ig_l2g(ig)) )**2 + &
+                         ( gx(2,ig_l2g(ig)) )**2 + &
+                         ( gx(3,ig_l2g(ig)) )**2 + 1.0_DP )
+         END DO
+!$OMP END PARALLEL DO
+         !
       END DO
-      IF ( gzero ) THEN
-        cm( 1, noff : noff + n - 1 ) = (0.0d0, 0.0d0)
-      END IF
 
-      DEALLOCATE( pwt )
+      IF(n_starting_wfc.lt.n) THEN
+         call errore(subname, "warning: wavefunction not fully initialized", 1)
+      ENDIF
+      cm( :, noff : noff + min(n,n_starting_wfc) - 1 ) = wfcatom(:,1:min(n,n_starting_wfc))
+      deallocate(wfcatom)
 
       RETURN
+
     END SUBROUTINE wave_atom_init_x
 
 !=----------------------------------------------------------------------------=!

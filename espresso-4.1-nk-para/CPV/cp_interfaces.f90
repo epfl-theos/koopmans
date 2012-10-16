@@ -84,6 +84,7 @@
    PUBLIC :: update_lambda
    PUBLIC :: elec_fakekine
    PUBLIC :: wave_rand_init
+   PUBLIC :: wave_atom_init
    PUBLIC :: crot
    PUBLIC :: proj
 
@@ -1409,6 +1410,15 @@
 
    INTERFACE wave_rand_init
       SUBROUTINE wave_rand_init_x( cm, n, noff )
+         USE kinds,              ONLY: DP
+         IMPLICIT NONE
+         INTEGER,     INTENT(IN)  :: n, noff
+         COMPLEX(DP), INTENT(OUT) :: cm(:,:)
+      END SUBROUTINE
+   END INTERFACE
+
+   INTERFACE wave_atom_init
+      SUBROUTINE wave_atom_init_x( cm, n, noff )
          USE kinds,              ONLY: DP
          IMPLICIT NONE
          INTEGER,     INTENT(IN)  :: n, noff

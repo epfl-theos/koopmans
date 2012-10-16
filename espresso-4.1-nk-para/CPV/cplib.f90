@@ -16,7 +16,7 @@
 !
       USE kinds,              ONLY: DP
       USE gvecw,              ONLY: ngw
-      USE reciprocal_vectors, ONLY: gstart, g, gx
+      USE reciprocal_vectors, ONLY: gstart, g, gx, ig_l2g
       USE ions_base,          ONLY: nsp, na, nat
       USE cell_base,          ONLY: tpiba
       USE atom,               ONLY: rgrid
@@ -25,10 +25,11 @@
       IMPLICIT NONE
       INTEGER,     INTENT(in) :: n_atomic_wfc
       COMPLEX(DP), INTENT(in) :: eigr( ngw, nat )
-      COMPLEX(DP), INTENT(out):: wfc( ngw, n_atomic_wfc )
+      COMPLEX(DP), INTENT(inout):: wfc( ngw, n_atomic_wfc )
 !
-      INTEGER :: natwfc, ndm, is, ia, ir, nb, l, m, lm, i, lmax_wfc, isa
+      INTEGER :: natwfc, ndm, is, ia, ir, nb, l, m, lm, i, lmax_wfc, isa, ig
       REAL(DP), ALLOCATABLE ::  ylm(:,:), q(:), jl(:), vchi(:), chiq(:)
+      COMPLEX(DP), allocatable :: lg(:), lgx(:,:)
 !
 ! calculate max angular momentum required in wavefunctions
 !
@@ -42,16 +43,28 @@
       !
       ALLOCATE(ylm(ngw,(lmax_wfc+1)**2))
       !
+      write(6,*) "calling ylmr2", ubound(g), ubound(gx)
       CALL ylmr2 ((lmax_wfc+1)**2, ngw, gx, g, ylm)
+      write(6,*) "called ylmr2"
       ndm = MAXVAL(rgrid(1:nsp)%mesh)
       !
       ALLOCATE(jl(ndm), vchi(ndm))
       ALLOCATE(q(ngw), chiq(ngw))
 !
       DO i=1,ngw
-         q(i) = SQRT(g(i))*tpiba
+         write(6,*)
+         q(i) = SQRT(g(ig_l2g(i)))*tpiba
+         write(6,*) q(i), "qqqqq"
       END DO
 !
+      !DEALLOCATE(ylm)
+      !DEALLOCATE(vchi, jl)
+      !write(6,*) ngw,ndm,"deallocating", ubound(q), ubound(chiq), ubound(jl), ubound(ylm), ubound(vchi)
+      !DEALLOCATE(chiq)
+      !write(6,*) ngw,ndm,"deallocating", ubound(q), ubound(chiq), ubound(jl), ubound(ylm), ubound(vchi)
+      !DEALLOCATE(q)
+      !stop
+
       natwfc=0
       isa   = 0
       DO is=1,nsp
@@ -59,6 +72,7 @@
          !   radial fourier transform of the chi functions
          !   NOTA BENE: chi is r times the radial part of the atomic wavefunction
          !
+         write(6,*) "upf", rgrid(is)%mesh
          DO nb = 1,upf(is)%nwfc
             l = upf(is)%lchi(nb)
             DO i=1,ngw
@@ -76,18 +90,33 @@
                lm = l**2 + m
                DO ia = 1 + isa, na(is) + isa
                   natwfc = natwfc + 1
-                  wfc(:,natwfc) = CMPLX(0.d0,1.d0)**l * eigr(:,ia)* ylm(:,lm)*chiq(:)
+      write(6,*) "filling wfc", l, m, n_atomic_wfc, ubound(wfc), natwfc, is, nsp, ubound(eigr), ia
+                  do ig=1,ngw
+                     wfc(ig,natwfc) = CMPLX(0.d0,1.d0)**l * eigr(ig,ia)* ylm(ig,lm)*chiq(ig)
+                  enddo
+      write(6,*) "filled wfc", nb, upf(is)%nwfc
                ENDDO
+
+      write(6,*) "outdo1"
             ENDDO
+      write(6,*) "outdo2"
          ENDDO
+      write(6,*) "outdo3"
          isa = isa + na(is)
       ENDDO
+      write(6,*) "outdo4", natwfc, n_atomic_wfc
 !
       IF (natwfc.NE.n_atomic_wfc)                                       &
      &     CALL errore('atomic_wfc','unexpected error',natwfc)
 !
-      DEALLOCATE(q, chiq, vchi, jl, ylm)
+      write(6,*) ngw,ndm,"deallocating", ubound(q), ubound(chiq), ubound(jl), ubound(ylm), ubound(vchi)
+      DEALLOCATE(ylm)
+      write(6,*) ngw,ndm,"deallocating", ubound(q), ubound(chiq), ubound(jl), ubound(ylm), ubound(vchi)
+      DEALLOCATE(q, chiq)
+      write(6,*) ngw,ndm,"deallocating", ubound(q), ubound(chiq), ubound(jl), ubound(ylm), ubound(vchi)
+      DEALLOCATE(vchi, jl)
 !
+      write(6,*) "exiting atomic_wfc"
       RETURN
       END SUBROUTINE atomic_wfc
 !

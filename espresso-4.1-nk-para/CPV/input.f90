@@ -528,6 +528,9 @@ MODULE input
          trane_ = .TRUE.
        CASE ('atomic')
          tatomicwfc_ = .TRUE.
+       CASE ('atomic+random')
+         tatomicwfc_ = .TRUE.
+         trane_ = .TRUE.
        CASE DEFAULT
          CALL errore(' control_flags ',' unknown startingwfc '//TRIM(startingwfc), 1 )
      END SELECT
