@@ -232,6 +232,8 @@ MODULE read_namelists_module
        innerloop_cg_nsd = 20 ! number of initial steepest-descent steps in cg inner loop minimization
        innerloop_cg_nreset = 10 ! number of cg steps after which the search direction is set to the steepest-descent direction in inner loop minimization
        innerloop_nmax = 10000 ! maximum number of inner loop steps
+       innerloop_cg_ratio = 1.d-3
+       innerloop_init_n = innerloop_nmax
 !$$
        nkscalfact = 1.0_DP  ! NK coeffcient 
        hfscalfact = 1.0_DP  ! HF coefficient
@@ -873,8 +875,10 @@ MODULE read_namelists_module
        CALL mp_bcast( innerloop_cg_nsd,           ionode_id )
        CALL mp_bcast( innerloop_cg_nreset,        ionode_id )
        CALL mp_bcast( innerloop_nmax,             ionode_id )
+       CALL mp_bcast( innerloop_init_n,           ionode_id )
+       CALL mp_bcast( innerloop_cg_ratio,         ionode_id )
        CALL mp_bcast( draw_pot,                   ionode_id )
-       CALL mp_bcast( pot_number,                   ionode_id )
+       CALL mp_bcast( pot_number,                 ionode_id )
 !$$
        CALL mp_bcast( nknmax,                     ionode_id )
        CALL mp_bcast( nkscalfact,                 ionode_id )

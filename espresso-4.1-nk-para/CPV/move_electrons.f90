@@ -83,12 +83,13 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   USE hfmod,                ONLY : do_hf, vxxpsi, exx
   USE nksic,                ONLY : do_orbdep, vsic, wtot, fsic, fion_sic, deeq_sic, pink
   !
-  USE nksic,                ONLY : do_pz, do_innerloop,do_innerloop_cg, innerloop_dd_nstep
+  USE nksic,                ONLY : do_pz, do_innerloop,do_innerloop_cg, innerloop_dd_nstep, &
+                                   innerloop_init_n
   use ions_base,            only : nsp
   use electrons_base,       only : nel, nelt
-  use electrons_module,     ONLY : icompute_spread
+  use electrons_module,     ONLY : icompute_spread, wfc_centers, wfc_spreads
   use cp_main_variables,    ONLY : becdual
-  use control_flags,        ONLY : non_ortho
+  use control_flags,        ONLY : non_ortho, esic_conv_thr
   !
   IMPLICIT NONE
   !
@@ -204,11 +205,14 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
          endif
          !
          IF(MOD(nfi,iprint_stdout)==0.or.tlast) THEN
+            !
             icompute_spread=.true.
-            write(6,*) "tlast", tlast, iprint_stdout, nfi
+            !
          ENDIF
+         !
          call nksic_potential( nbsp, nbspx, c0, fsic, bec, becsum, deeq_sic, &
-                    ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+                    ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx, &
+                    wfc_centers, wfc_spreads, icompute_spread)
          !
 !$$ We should update etot only once at the end of this do_orbdep routine
 
@@ -255,7 +259,8 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
              if(.not.do_innerloop_cg) then
                  call nksic_rot_emin(nouter,ninner,etot,Omattot)
              else
-                 call nksic_rot_emin_cg(nouter,ninner,etot,Omattot)
+                 call nksic_rot_emin_cg(nouter, innerloop_init_n, ninner, etot, &
+                  esic_conv_thr, Omattot, lgam)
              endif
              !
              eodd = sum(pink(:))

@@ -456,6 +456,8 @@ MODULE input_parameters
         LOGICAL :: do_innerloop  = .false.
         LOGICAL :: do_innerloop_cg  = .false.
         INTEGER :: innerloop_dd_nstep  = 50
+        INTEGER :: innerloop_init_n = 10000
+        REAL(DP) :: innerloop_cg_ratio = 1.d-3 
         INTEGER :: innerloop_cg_nsd  = 20
         INTEGER :: innerloop_cg_nreset  = 10
         INTEGER :: innerloop_nmax  = 10000
@@ -520,9 +522,9 @@ MODULE input_parameters
              do_wref, do_wxd, fref, rhobarfact, ampfield, do_efield,          &
              do_hf, nknmax, do_spinsym, f_cutoff,                             &
              nkscalfact, hfscalfact, vanishing_rho_w, which_orbdep,           &
-             do_innerloop, do_innerloop_cg, innerloop_dd_nstep,                 &
-             innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax,          &
-             do_wf_cmplx !added:giovanni do_wf_cmplx
+             do_innerloop, do_innerloop_cg, innerloop_dd_nstep,               &
+             innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax,           &
+             do_wf_cmplx, innerloop_init_n, innerloop_cg_ratio !added:giovanni do_wf_cmplx
 !=----END nksic input variables
 !
 !=----------------------------------------------------------------------------=!

@@ -44,7 +44,8 @@ MODULE control_flags
             draw_pot, pot_number                                               !added:linh draw vsic potentials   
 !$$
   PUBLIC :: do_innerloop, do_innerloop_cg, innerloop_dd_nstep,&
-            innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax
+            innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax, &
+            innerloop_init_n, innerloop_cg_ratio
 !$$
   !
   PUBLIC :: fix_dependencies, check_flags
@@ -102,6 +103,8 @@ MODULE control_flags
   INTEGER :: innerloop_cg_nsd  = 20 ! Number of steepest-descent steps in doing conjugate-gradient inner loop minimization
   INTEGER :: innerloop_cg_nreset  = 10 ! Number of steps to reset the search direction to be the steepest-descent direction in inner loop minimization
   INTEGER :: innerloop_nmax = 10000 ! Maximum number of inner loop minimization
+  INTEGER :: innerloop_init_n = 10000 ! Innerloop iterations with fixed threshold
+  REAL(DP) :: innerloop_cg_ratio = 1.d-3 ! Innerloop ratio between the CG outerloop step and the innerloop threshold
 !$$
   !
   TYPE (convergence_criteria) :: tconvthrs

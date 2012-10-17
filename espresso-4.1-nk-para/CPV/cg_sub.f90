@@ -25,7 +25,6 @@
                                            atot, entropy, egrand, eodd
       use electrons_base,           only : f, nspin, nel, iupdwn, nupdwn, nudx, nelt, &
                                            nbspx, nbsp, ispin
-      use electrons_module,         only : icompute_spread !added:giovanni
       use ensemble_dft,             only : tens, tsmear,   ef,  z0t, c0diag,  &
                                            becdiag, fmat0, fmat0_diag, e0,  id_matrix_init
       !---
@@ -69,13 +68,13 @@
       USE mp_global,                ONLY : me_image,my_image_id
       !
       use nksic,                    only : do_orbdep, do_innerloop, do_innerloop_cg, innerloop_cg_nsd, &
-                                           innerloop_cg_nreset, &
+                                           innerloop_cg_nreset, innerloop_init_n, innerloop_cg_ratio, &
                                            vsicpsi, vsic, wtot, fsic, fion_sic, deeq_sic, f_cutoff, pink
       use hfmod,                    only : do_hf, vxxpsi, exx
       use twin_types !added:giovanni
       use control_flags,            only : non_ortho
       use cp_main_variables,        only : becdual, becmdual, overlap, ioverlap
-      use electrons_module,         only : wfc_spreads
+      use electrons_module,         only : wfc_spreads, wfc_centers, icompute_spread
       use ldau,                     only : lda_plus_u, vupsi
 !
       implicit none
@@ -421,10 +420,12 @@
               IF(non_ortho) THEN
                  call nksic_potential_non_ortho( nbsp, nbspx, c0, cdual, fsic, bec, becdual, &
                                     rhovan, deeq_sic, &
-                                    ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+                                    ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx, wfc_centers, &
+                                    wfc_spreads, icompute_spread )
               ELSE
                  call nksic_potential( nbsp, nbspx, c0, fsic, bec, rhovan, deeq_sic, &
-                                    ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+                                    ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx, wfc_centers, &
+                                    wfc_spreads, icompute_spread )
               ENDIF
 
               eodd=sum(pink(1:nbsp))
@@ -495,7 +496,7 @@
              if(.not.do_innerloop_cg) then
                  call nksic_rot_emin(itercg,ninner,etot,Omattot, lgam)
              else
-                 call nksic_rot_emin_cg(itercg,ninner,etot,Omattot,deltae*1.d-2,lgam)
+                 call nksic_rot_emin_cg(itercg,innerloop_init_n,ninner,etot,Omattot,deltae*innerloop_cg_ratio,lgam)
              endif
 
 !$$ Now rotate hi(:,:) according to Omattot!
@@ -1483,10 +1484,14 @@
             !warning:giovanni don't we need becm down here??? otherwise problems with ultrasoft!!
             IF(non_ortho) THEN
                call nksic_potential_non_ortho( nbsp, nbspx, cm, cmdual, fsic, bec, becdual, rhovan, deeq_sic, &
-                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx,&
+                                  wfc_centers, wfc_spreads, &
+                                  icompute_spread)
             ELSE
                call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
-                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx, &
+                                  wfc_centers, wfc_spreads, &
+                                  icompute_spread)
             ENDIF
             !
             eodd=sum(pink(1:nbsp))
@@ -1619,10 +1624,14 @@
             !warning:giovanni... don't we need becm down here?? otherwise problem with ultrasoft!!
             IF(non_ortho) THEN
                call nksic_potential_non_ortho( nbsp, nbspx, cm, cmdual, fsic, becm, becmdual, rhovan, deeq_sic, &
-                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx,&
+                                  wfc_centers, wfc_spreads, &
+                                  icompute_spread)
             ELSE
                call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
-                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx,&
+                                  wfc_centers, wfc_spreads, &
+                                  icompute_spread)
             ENDIF
             eodd = sum(pink(1:nbsp))
 !             write(6,*) eodd, etot,"EODD3", etot+eodd
@@ -1832,10 +1841,14 @@
                 !warning:giovanni don't we need becm down here??? otherwise problems with ultrasoft
                 IF(non_ortho) THEN
                    call nksic_potential_non_ortho( nbsp, nbspx, cm,cmdual, fsic, becm,becmdual, rhovan, deeq_sic, &
-                                      ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+                                      ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx, &
+                                      wfc_centers, wfc_spreads, &
+                                      icompute_spread)
                 ELSE
                    call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
-                                      ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+                                      ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx, &
+                                      wfc_centers, wfc_spreads, &
+                                      icompute_spread)
                 ENDIF
                 !
                 eodd = sum(pink(1:nbsp))
@@ -2027,10 +2040,14 @@
              IF(non_ortho) THEN
                 call nksic_potential_non_ortho( nbsp, nbspx, c0, cdual, fsic, bec, becdual, rhovan, &
                                    deeq_sic, &
-                                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+                                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx, &
+                                   wfc_centers, wfc_spreads, &
+                                   icompute_spread)
              ELSE
                 call nksic_potential( nbsp, nbspx, c0, fsic, bec, rhovan, deeq_sic, &
-                                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+                                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx, &
+                                   wfc_centers, wfc_spreads, &
+                                   icompute_spread)
              ENDIF
              eodd = sum(pink(1:nbsp))
 !              write(6,*) eodd, etot, "EODD5", etot+eodd
@@ -2370,7 +2387,8 @@ write(6,*) "nlfl_twin"
 
      deallocate(ave_ene)
      deallocate(c2,c3)
-
+     write(6,*) "wfcenters", wfc_centers
+     write(6,*) "wfspreads", wfc_spreads
      return
 
      END SUBROUTINE runcg_uspp

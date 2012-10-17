@@ -371,6 +371,8 @@ module nksic
   integer :: innerloop_cg_nsd
   integer :: innerloop_cg_nreset
   integer :: innerloop_nmax
+  integer :: innerloop_init_n
+  real(DP) :: innerloop_cg_ratio
 !$$
 
 contains

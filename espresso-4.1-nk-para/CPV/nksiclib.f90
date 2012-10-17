@@ -16,7 +16,9 @@
       subroutine nksic_potential_non_ortho( nbsp, nx, c, cdual, f_diag, &
                                   bec, becdual, becsum, &
                                   deeq_sic, ispin, iupdwn, nupdwn, &
-                                  rhor, rhog, wtot, vsic, pink)
+                                  rhor, rhog, wtot, vsic, pink, nudx, &
+                                  wfc_centers, wfc_spreads, &
+                                  icompute_spread)
 !-----------------------------------------------------------------------
 !
 ! ....calculate orbital dependent potentials, 
@@ -29,7 +31,7 @@
       use gvecp,                      only: ngm
       use gvecw,                      only: ngw
       use grid_dimensions,            only: nnrx
-      use electrons_base,             only: nspin, nudx
+      use electrons_base,             only: nspin
       use funct,                      only : dft_is_gradient
       use nksic,                      only: orb_rhor, wxdsic, &
                                             wrefsic, rhoref, rhobar, &
@@ -49,7 +51,7 @@
       !
       ! in/out vars
       !
-      integer,     intent(in)  :: nbsp, nx
+      integer,     intent(in)  :: nbsp, nx, nudx
       complex(dp), intent(in)  :: c(ngw,nx), cdual(ngw,nx)
       type(twin_matrix),    intent(in)  :: bec, becdual!(nkb,nbsp) !modified:giovanni
       real(dp),    intent(in)  :: becsum( nhm*(nhm+1)/2, nat, nspin)
@@ -61,12 +63,15 @@
       real(dp),    intent(out) :: vsic(nnrx,nx), wtot(nnrx,2)
       real(dp),    intent(out) :: deeq_sic(nhm,nhm,nat,nx)
       real(dp),    intent(out) :: pink(nx)
+      logical                  :: icompute_spread
+      real(DP) :: wfc_centers(4,nudx,nspin)
+      real(DP) :: wfc_spreads(nudx,nspin,2)
 
       !
       ! local variables
       !
       integer  :: i,j,jj,ibnd
-      real(dp) :: focc,pinkpz
+      real(dp) :: focc,pinkpz,shart
       real(dp), allocatable :: vsicpz(:)
       complex(dp), allocatable :: rhobarg(:,:)
       logical :: lgam
@@ -114,9 +119,16 @@
 !            orb_rhor(:,1) = orb_rhor(:,1)/overlap_(j+1-iupdwn(ispin(j)),j+1-iupdwn(ispin(j)),ispin(j))
 !            orb_rhor(:,2) = orb_rhor(:,2)/overlap_(j+2-iupdwn(ispin(j+1)),j+2-iupdwn(ispin(j+1)),ispin(j+1))
           !compute centers and spreads of nksic or pz minimizing orbitals
-          call compute_nksic_centers(nnrx, nx, ispin, orb_rhor, j, j+1)
+        IF(icompute_spread) THEN
+          !
+          call compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
+                    nupdwn, ispin, orb_rhor, wfc_centers, wfc_spreads, j, j+1)
+          !
+        ENDIF
           !
 !end_added:giovanni
+        !
+        shart=0.d0
         !
         ! compute orbital potentials
         !
@@ -189,7 +201,9 @@
           if ( do_pz ) then 
               !
               call nksic_correction_pz ( focc, ispin(i), orb_rhor(:,jj), &
-                                         vsic(:,i), pink(i), ibnd )
+                                         vsic(:,i), pink(i), ibnd, shart)
+              !
+              wfc_spreads(ibnd, ispin(i), 2) = shart
               !
           endif
 
@@ -217,12 +231,13 @@
               !
               !write(6,*) "silvestro", ubound(ispin), ubound(orb_rhor), ubound(vsicpz)
               call nksic_correction_nkipz( focc, ispin(i), orb_rhor(:,jj), vsicpz, &
-                                           pinkpz, ibnd )
+                                           pinkpz, ibnd, shart)
               !
-              !write(6,*) "silvestro", ubound(ispin), ubound(orb_rhor), ubound(vsicpz)
-               vsic(1:nnrx,i) = vsic(1:nnrx,i) + vsicpz(1:nnrx)
+              vsic(1:nnrx,i) = vsic(1:nnrx,i) + vsicpz(1:nnrx)
               !
-               pink(i) = pink(i) +pinkpz
+              pink(i) = pink(i) +pinkpz
+              !
+              wfc_spreads(ibnd, ispin(i), 2) = shart
               !
           endif
 
@@ -246,6 +261,14 @@
         !
       enddo
 
+      !
+      ! Switch off the icompute_spread flag if present
+      !
+      IF(icompute_spread) THEN
+         !
+         icompute_spread=.false.
+         !
+      ENDIF
       !
       ! now wtot is completely built and can be added to vsic
       !
@@ -310,7 +333,9 @@
 !-----------------------------------------------------------------------
       subroutine nksic_potential( nbsp, nx, c, f_diag, bec, becsum, &
                                   deeq_sic, ispin, iupdwn, nupdwn, &
-                                  rhor, rhog, wtot, vsic, pink)
+                                  rhor, rhog, wtot, vsic, pink, nudx, &
+                                  wfc_centers, wfc_spreads, &
+                                  icompute_spread)
 !-----------------------------------------------------------------------
 !
 ! ....calculate orbital dependent potentials, 
@@ -323,7 +348,7 @@
       use gvecp,                      only: ngm
       use gvecw,                      only: ngw
       use grid_dimensions,            only: nnrx
-      use electrons_base,             only: nspin
+      USE electrons_base,             ONLY: nspin
       use funct,                      only : dft_is_gradient
       use nksic,                      only: orb_rhor, wxdsic, &
                                             wrefsic, rhoref, rhobar, &
@@ -343,7 +368,7 @@
       !
       ! in/out vars
       !
-      integer,     intent(in)  :: nbsp, nx
+      integer,     intent(in)  :: nbsp, nx, nudx
       complex(dp), intent(in)  :: c(ngw,nx)
       type(twin_matrix),    intent(in)  :: bec!(nkb,nbsp) !modified:giovanni
       real(dp),    intent(in)  :: becsum( nhm*(nhm+1)/2, nat, nspin)
@@ -355,12 +380,14 @@
       real(dp),    intent(out) :: vsic(nnrx,nx), wtot(nnrx,2)
       real(dp),    intent(out) :: deeq_sic(nhm,nhm,nat,nx)
       real(dp),    intent(out) :: pink(nx)
-
+      logical  :: icompute_spread
+      real(DP) :: wfc_centers(4,nudx,nspin)
+      real(DP) :: wfc_spreads(nudx,nspin,2)
       !
       ! local variables
       !
       integer  :: i,j,jj,ibnd
-      real(dp) :: focc,pinkpz
+      real(dp) :: focc,pinkpz, shart
       real(dp), allocatable :: vsicpz(:)
       complex(dp), allocatable :: rhobarg(:,:)
       logical :: lgam
@@ -403,9 +430,20 @@
                      c(:,j), c(:,j+1), orb_rhor, j, j+1, lgam) !warning:giovanni need modification
 !begin_added:giovanni
           !compute centers and spreads of nksic or pz minimizing orbitals
-          call compute_nksic_centers(nnrx, nx, ispin, orb_rhor, j, j+1)
+        IF(icompute_spread) THEN
+          !
+          write(6,*) "computed0 center", wfc_spreads(:,:,2)
+          write(6,*) "computed0 center", wfc_spreads(:,:,1)
+          call compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
+                    nupdwn, ispin, orb_rhor, wfc_centers, wfc_spreads, j, j+1)
+          write(6,*) "computed center", wfc_spreads(:,:,2)
+          write(6,*) "computed center", wfc_spreads(:,:,1)
+          !
+        ENDIF
           !
 !end_added:giovanni
+        !
+        shart=0.d0
         !
         ! compute orbital potentials
         !
@@ -478,7 +516,9 @@
           if ( do_pz ) then 
               !
               call nksic_correction_pz ( focc, ispin(i), orb_rhor(:,jj), &
-                                         vsic(:,i), pink(i), ibnd )
+                                         vsic(:,i), pink(i), ibnd, shart )
+              !
+              wfc_spreads(ibnd, ispin(i), 2) = shart
               !
           endif
 
@@ -506,12 +546,14 @@
               !
               !write(6,*) "silvestro", ubound(ispin), ubound(orb_rhor), ubound(vsicpz)
               call nksic_correction_nkipz( focc, ispin(i), orb_rhor(:,jj), vsicpz, &
-                                           pinkpz, ibnd )
+                                           pinkpz, ibnd, shart )
               !
               !write(6,*) "silvestro", ubound(ispin), ubound(orb_rhor), ubound(vsicpz)
                vsic(1:nnrx,i) = vsic(1:nnrx,i) + vsicpz(1:nnrx)
               !
                pink(i) = pink(i) +pinkpz
+              !
+              wfc_spreads(ibnd, ispin(i), 2) = shart
               !
           endif
 
@@ -534,7 +576,14 @@
         enddo inner_loop
         !
       enddo
-
+      !
+      ! Switch off the icompute_spread flag if present
+      !
+      IF(icompute_spread) THEN
+         !
+         icompute_spread=.false.
+         !
+      ENDIF
       !
       ! now wtot is completely built and can be added to vsic
       !
@@ -1990,7 +2039,7 @@ end subroutine nksic_newd
 
 !---------------------------------------------------------------
       subroutine nksic_correction_pz( f, ispin, orb_rhor, &
-                                      vsic, pink, ibnd ) 
+                                      vsic, pink, ibnd, shart) 
 !---------------------------------------------------------------
 !
 ! ... calculate the non-Koopmans potential from the orbital density
@@ -2010,15 +2059,12 @@ end subroutine nksic_newd
       use mp,                   only : mp_sum
       use mp_global,            only : intra_image_comm
       use control_flags,        only : gamma_only, do_wf_cmplx
-      use electrons_module,     only: wfc_centers, wfc_spreads, &
-                                 icompute_spread
-
       !
       implicit none
       integer,     intent(in)  :: ispin, ibnd
       real(dp),    intent(in)  :: f, orb_rhor(nnrx)
       real(dp),    intent(out) :: vsic(nnrx)
-      real(dp),    intent(out) :: pink
+      real(dp),    intent(out) :: pink, shart
       !
       !character(19) :: subname='nksic_correction_pz'
       integer       :: ig
@@ -2121,8 +2167,8 @@ end subroutine nksic_newd
       ! set ehele as measure of spread
       !
       !IF(icompute_spread) THEN
-         wfc_spreads(ibnd,ispin,2)=abs(ehele)*fact*hartree_si/electronvolt_si
-         call mp_sum(wfc_spreads(ibnd,ispin,2), intra_image_comm)
+         shart=abs(ehele)*fact*hartree_si/electronvolt_si
+         call mp_sum(shart, intra_image_comm)
       !ENDIF
       !
       ! partial cleanup
@@ -2454,7 +2500,7 @@ end subroutine nksic_correction_pz
 
 !---------------------------------------------------------------
       subroutine nksic_correction_nkipz( f, ispin, orb_rhor, &
-                                      vsic, pink, ibnd ) 
+                                      vsic, pink, ibnd, shart ) 
 !---------------------------------------------------------------
 !
 ! ... calculate the non-Koopmans potential from the orbital density
@@ -2474,15 +2520,12 @@ end subroutine nksic_correction_pz
       use mp,                   only : mp_sum
       use mp_global,            only : intra_image_comm
       use control_flags,        only : gamma_only, do_wf_cmplx
-      use electrons_module,     only: wfc_centers, wfc_spreads, &
-                                 icompute_spread
-
       !
       implicit none
       integer,     intent(in)  :: ispin, ibnd
       real(dp),    intent(in)  :: f, orb_rhor(nnrx)
       real(dp),    intent(out) :: vsic(nnrx)
-      real(dp),    intent(out) :: pink
+      real(dp),    intent(out) :: pink, shart
       !
       !character(19) :: subname='nksic_correction_pz'
       integer       :: ig
@@ -2592,8 +2635,8 @@ end subroutine nksic_correction_pz
       !
       ehele = 0.5d0 * ehele * omega / fact
       !
-      wfc_spreads(ibnd,ispin,2)=abs(ehele)*f*fact*hartree_si/electronvolt_si
-      call mp_sum(wfc_spreads(ibnd,ispin,2), intra_image_comm)
+      shart=abs(ehele)*f*fact*hartree_si/electronvolt_si
+      call mp_sum(shart, intra_image_comm)
       !
       ! partial cleanup
       !
@@ -4005,7 +4048,7 @@ end subroutine nksic_rot_test
 !---------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-      subroutine nksic_rot_emin_cg(nouter,ninner,etot,Omattot, rot_threshold, lgam)
+      subroutine nksic_rot_emin_cg(nouter,init_n, ninner,etot,Omattot, rot_threshold, lgam)
 !-----------------------------------------------------------------------
 !
 ! ... Finds the orthogonal rotation matrix Omattot that minimizes
@@ -4041,6 +4084,7 @@ end subroutine nksic_rot_test
       ! in/out vars
       ! 
       integer                  :: ninner
+      integer                  :: init_n
       integer,     intent(in)  :: nouter
       real(dp),    intent(in)  :: etot
       complex(dp)          :: Omattot(nbspx,nbspx)
@@ -4080,7 +4124,6 @@ end subroutine nksic_rot_test
       real(dp) :: signalpha
       character(len=4) :: marker
       real(dp) :: conv_thr
-      integer, parameter :: nouter0=2
 
       !
       ! main body
@@ -4095,7 +4138,7 @@ end subroutine nksic_rot_test
       ltresh=.false.
       setpassomax=.false.
       nfail=0
-      if(nouter<nouter0) THEN
+      if(nouter<init_n) THEN
          conv_thr=esic_conv_thr
       ELSE
          conv_thr=rot_threshold
@@ -5019,13 +5062,15 @@ end subroutine nksic_rot_emin_cg_descla
       use grid_dimensions,            only : nnrx
       use gvecw,                      only : ngw
       use electrons_base,             only : nbsp, nbspx, nspin, ispin, &
-                                             iupdwn, nupdwn
+                                             iupdwn, nupdwn, nudx
       use ions_base,                  only : nsp
       use uspp,                       only : becsum,nkb
       use cp_main_variables,          only : eigr, rhor, rhog
       use nksic,                      only : deeq_sic, wtot, fsic
       use control_flags,         only : gamma_only, do_wf_cmplx
       use twin_types
+      use electrons_module,        only : wfc_centers, wfc_spreads, &
+                                        icompute_spread
       !
       implicit none
       !
@@ -5110,9 +5155,11 @@ end subroutine nksic_rot_emin_cg_descla
 
       vsic1(:,:) = 0.d0
       pink1(:) = 0.d0
+      !
       call nksic_potential( nbsp, nbspx, wfc1, fsic, bec1, becsum, deeq_sic, &
-                 ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic1, pink1 )
-
+                 ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic1, pink1, nudx, wfc_centers, &
+                 wfc_spreads, icompute_spread )
+      !
       ene1=sum(pink1(:))
 
 !       call deallocate_twin(bec1)
@@ -6115,12 +6162,10 @@ end subroutine nksic_getOmat1
 end subroutine nksic_dmxc_spin_cp_update
 !---------------------------------------------------------------
 
-SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
+SUBROUTINE compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, & 
+              nupdwn, ispin, orb_rhor, wfc_centers, wfc_spreads, j,k)
    
    USE kinds,              ONLY: DP   
-   USE electrons_module,   ONLY: wfc_centers, wfc_spreads, &
-                                 icompute_spread
-   USE electrons_base,     ONLY: nbsp, nspin, iupdwn, nupdwn
    USE ions_positions,     ONLY: taus
    USE ions_base,          ONLY: ions_cofmass, pmass, na, nsp
    USE cell_base,          ONLY: h, s_to_r
@@ -6131,11 +6176,14 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
 
    !INPUT VARIABLES
    !
-   INTEGER, INTENT(IN)      :: ispin(nx),nx,j,k
-   !ispin is 1 or 2 for each band (listed as in c0), 
-   !nx is nudx, j and k the two bands involved in the
-   !spread calculation
+   INTEGER, INTENT(IN)      :: ispin(nx),nx,j,k,nspin, nbsp, &
+                               nupdwn(nspin), iupdwn(nspin)
+     !ispin is 1 or 2 for each band (listed as in c0), 
+     !nx is nudx, j and k the two bands involved in the
+     !spread calculation
    REAL(DP), INTENT(in)  :: orb_rhor(nnrx,2)
+   REAL(DP) :: wfc_centers(4,nudx,nspin)
+   REAL(DP) :: wfc_spreads(nudx,nspin,2)
    !orbital densities of two orbitals
    !
    !INTERNAL VARIABLES
@@ -6144,16 +6192,10 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
    REAL(DP):: r0(3), rs(3)
    REAL(DP), external :: ddot
    
-     !write(6,*) nbsp, "computing perfinta spread",j,k !debug:giovanni
    !
-   IF(icompute_spread) THEN
-      !
-      !
       myspin1=ispin(j)
       !
       mybnd1=j-iupdwn(myspin1)+1
-      
-      write(6,*) "computing davvero spread",mybnd1,myspin1
       !
       ! compute ionic center of mass
       !
@@ -6184,17 +6226,6 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, ispin, orb_rhor,j,k)
          !
       ENDIF
       !
-      write(*,*) mpime, "myspreads", wfc_spreads(:,1,2)
-      !write(*,*) mpime, "myspreads", wfc_spreads(:,2,2)
-      !call mp_bcast(wfc_centers, intra_image_comm)
-      !call mp_bcast(wfc_spreads, intra_image_comm)
-      !
-      IF(k.ge.nbsp) THEN
-         icompute_spread=.false.
-      ENDIF
-      !
-   ENDIF
-
    RETURN
  
 END SUBROUTINE compute_nksic_centers

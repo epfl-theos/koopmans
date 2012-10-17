@@ -4546,7 +4546,8 @@ END FUNCTION
                                    nkscalfact,  nksic_memusage, allocate_nksic
 !$$
       use nksic,            only : do_innerloop, do_innerloop_cg, innerloop_dd_nstep, &
-                                   innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax
+                                   innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax, &
+                                   innerloop_cg_ratio, innerloop_init_n
 !$$
       use input_parameters, ONLY : do_nk_ => do_nk, &
                                    do_pz_ => do_pz, &
@@ -4569,7 +4570,9 @@ END FUNCTION
                                    innerloop_dd_nstep_ => innerloop_dd_nstep, &
                                    innerloop_cg_nsd_ => innerloop_cg_nsd, &
                                    innerloop_cg_nreset_ => innerloop_cg_nreset, &
-                                   innerloop_nmax_ => innerloop_nmax
+                                   innerloop_nmax_ => innerloop_nmax, &
+                                   innerloop_init_n_ => innerloop_init_n, &
+                                   innerloop_cg_ratio_ => innerloop_cg_ratio
 !$$
       USE io_global,        ONLY : meta_ionode, stdout
       use electrons_base,   ONLY : nspin, nbspx
@@ -4605,6 +4608,8 @@ END FUNCTION
       innerloop_cg_nsd    = innerloop_cg_nsd_
       innerloop_cg_nreset = innerloop_cg_nreset_
       innerloop_nmax      = innerloop_nmax_
+      innerloop_init_n    = innerloop_init_n_
+      innerloop_cg_ratio      = innerloop_cg_ratio_
 !$$
       !
       ! use the collective var which_orbdep

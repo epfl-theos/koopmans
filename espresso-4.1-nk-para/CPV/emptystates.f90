@@ -28,7 +28,7 @@
       USE uspp_param,           ONLY : nhm
       USE grid_dimensions,      ONLY : nnrx
       USE electrons_base,       ONLY : nbsp, nbspx, ispin, nspin, f, nudx, iupdwn, nupdwn
-      USE electrons_module,     ONLY : iupdwn_emp, nupdwn_emp, n_emp, ei_emp, &
+      USE electrons_module,     ONLY : iupdwn_emp, nupdwn_emp, n_emp, ei_emp,  &
                                        max_emp, ethr_emp
       USE ions_base,            ONLY : nat, nsp
       USE gvecw,                ONLY : ngw
@@ -50,6 +50,7 @@
       USE hfmod,                ONLY : do_hf, vxxpsi
       USE twin_types !added:giovanni
       USE control_flags,        ONLY : tatomicwfc, trane
+      USE electrons_module,     ONLY : wfc_centers_emp, wfc_spreads_emp, icompute_spread
       !
       IMPLICIT NONE
       !
@@ -93,6 +94,7 @@
       INTEGER, SAVE :: desc_emp( descla_siz_ , 2 )
       LOGICAL, SAVE :: first = .true.
       LOGICAL :: lgam !added:giovanni
+      LOGICAL :: done_extra !added:giovanni
       COMPLEX(DP), PARAMETER :: c_zero=CMPLX(0.d0,0.d0)
 
       lgam=gamma_only.and..not.do_wf_cmplx
@@ -382,6 +384,7 @@
                         & /,3x,'nfi         dekinc         ekinc' )")
       ENDIF
       !
+      done_extra=.false.
       !
       ITERATIONS: DO iter = 1, max_emp
 
@@ -398,10 +401,18 @@
              do_wxd_ = do_wxd
              do_wxd  = .FALSE.
              !
+             IF(done_extra.or.iter==max_emp) THEN
+                !
+                icompute_spread=.true.
+                !
+             ENDIF
+             !
              call nksic_potential( n_emps, n_empx, c0_emp, fsic_emp, &
                                    bec_emp, becsum_emp, deeq_sic_emp, &
                                    ispin_emp, iupdwn_emp, nupdwn_emp, rhor, rhog, &
-                                   wtot, vsic_emp, pink_emp)
+                                   wtot, vsic_emp, pink_emp, nudx_emp, &
+                                   wfc_centers_emp, wfc_spreads_emp, &
+                                   icompute_spread)
              !
              do_wxd = do_wxd_
              !
@@ -489,7 +500,6 @@
          !
          CALL calphi( c0_emp, ngw, bec_emp, nkb, vkb, phi_emp, n_emps, lgam, ema0bg )
          !
-         write(6,*) "check_dimensions ", ubound(eigr), ubound(cm_emp), lambda_emp(1)%iscmplx, ubound(lambda_emp(1)%cvec) !added:giovanni:debug
          !
          IF( tortho ) THEN
             !
@@ -503,7 +513,6 @@
             !
          ENDIF
          !
-         write(6,*) "check_dimensions2 ", ubound(eigr), ubound(cm_emp), lambda_emp(1)%iscmplx, ubound(lambda_emp(1)%cvec) !added:giovanni:debug
          DO iss = 1, nspin
              !
              IF(.not.lambda_emp(iss)%iscmplx) THEN
@@ -536,8 +545,12 @@
          ! ...   check for convergence
          !     
          IF( ( ekinc <  ethr_emp ) .AND. ( iter > 3 ) ) THEN
-             IF( ionode ) WRITE( stdout,112)
-             EXIT ITERATIONS
+             IF(done_extra) THEN
+                IF( ionode ) WRITE( stdout,112)
+                EXIT ITERATIONS
+             ELSE
+                done_extra=.true.
+             ENDIF
          ENDIF
       
          ekinc_old = ekinc
