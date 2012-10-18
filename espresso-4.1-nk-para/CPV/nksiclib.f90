@@ -6230,7 +6230,7 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
  
 END SUBROUTINE compute_nksic_centers
 !
-SUBROUTINE spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, wfc_centers)
+SUBROUTINE spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, wfc_centers, sort_spreads)
 
       USE kinds,  ONLY: DP
       USE input_parameters,      only: draw_pot  !added:linh draw vsic potentials
@@ -6245,6 +6245,7 @@ SUBROUTINE spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, wfc_
       INTEGER :: ngw, nspin, nbsp, nudx, nupdwn(nspin), iupdwn(nspin)
       REAL(DP) :: tempspreads(nudx, nspin, 2)
       REAL(DP) :: wfc_centers(4,nudx,nspin)
+      INTEGER :: sort_spreads(nudx,nspin)
       !
       INTEGER :: isp,j,k,refnum,i, ig
       INTEGER, ALLOCATABLE :: aidarray(:,:)
@@ -6373,7 +6374,8 @@ SUBROUTINE spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, wfc_
             !
          enddo
          !
-         !write(*,*) mpime, "after", c0(2,:)
+         sort_spreads(:,isp) = aidarray(:,1)
+         !
       enddo
       !
       deallocate(tempwfc, aidarray)

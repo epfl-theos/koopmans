@@ -30,7 +30,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
                                        ekincm, print_energies, debug_energies
   USE electrons_base,           ONLY : nbspx, nbsp, ispin, f, nspin
   USE electrons_base,           ONLY : nel, nelt, iupdwn, nupdwn, nudx
-  USE electrons_module,         ONLY : ei, wfc_spreads, wfc_centers
+  USE electrons_module,         ONLY : ei, sort_spreads, wfc_spreads, wfc_centers
   USE efield_module,            ONLY : efield, epol, tefield, allocate_efield, &
                                        efield_update, ipolp, qmat, gqq, evalue,&
                                        berry_energy, pberryel, pberryion,      &
@@ -869,10 +869,8 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
         !
         IF(allocated(wfc_spreads)) THEN
            !
-           write(6,*) "centers,debug0", wfc_centers
            call spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, &
-              wfc_spreads, wfc_centers)
-           write(6,*) "centers,debug", wfc_centers
+              wfc_spreads, wfc_centers, sort_spreads)
            !
         ENDIF
         !

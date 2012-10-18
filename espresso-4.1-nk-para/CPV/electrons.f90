@@ -48,6 +48,7 @@
         REAL(DP), ALLOCATABLE :: wfc_centers_emp(:,:,:) !added:giovanni wfc_centers_emp
         REAL(DP), ALLOCATABLE :: wfc_spreads(:,:,:) !added:giovanni wfc_spreads
         REAL(DP), ALLOCATABLE :: wfc_spreads_emp(:,:,:) !added:giovanni wfc_spreads_emp
+        INTEGER, ALLOCATABLE  :: sort_spreads(:,:) !added:giovanni wfc_spreads_emp
 
         LOGICAL :: icompute_spread=.false. !added:giovanni 
 
@@ -63,7 +64,7 @@
         PUBLIC :: print_eigenvalues, print_centers_spreads
         PUBLIC :: max_emp, ethr_emp
         PUBLIC :: empty_print_info, empty_init
-        PUBLIC :: wfc_centers, wfc_spreads, icompute_spread !added:giovanni 
+        PUBLIC :: sort_spreads, wfc_centers, wfc_spreads, icompute_spread !added:giovanni 
         PUBLIC :: wfc_centers_emp, wfc_spreads_emp !added:giovanni 
 
 !
@@ -196,6 +197,13 @@
      END IF
 
 !begin_added:giovanni
+     IF( ALLOCATED( wfc_centers ) ) DEALLOCATE( wfc_centers )
+     IF(nudx > 0) THEN
+        ALLOCATE( sort_spreads(nudx,nspin ), STAT=ierr)
+        IF( ierr/=0 ) CALL errore( ' electrons ',' allocating sort_spreads ',ierr)
+        sort_spreads = 0.0_DP
+     ENDIF
+
      IF( ALLOCATED( wfc_centers ) ) DEALLOCATE( wfc_centers )
      IF(nudx > 0) THEN
         ALLOCATE( wfc_centers(4,nudx,nspin ), STAT=ierr)
@@ -420,7 +428,7 @@
  1022 FORMAT(/,3X,'Centers (Bohr), kp = ',I3, ' , spin = ',I2,/)
  1222 FORMAT(/,3X,'Charge  ---   Centers xyz (Bohr)  ---  Spreads (Bohr^2) - SH(eV), kp = ',I3, ' , spin = ',I2,/)
  1005 FORMAT(/,3X,'Empty States Eigenvalues (eV), kp = ',I3, ' , spin = ',I2,/)
- 1444 FORMAT(F8.2,'   ---',3F8.2,'   ---',3F8.2)
+ 1444 FORMAT(F8.2,'   ---',3F8.2,'   ---',3F8.3)
  1445 FORMAT(F8.2,'   ---',3F8.2,'   ---',2F8.2)
  1121 FORMAT(/3X,'Manifold complexification index = ',2F8.4/)
  1084 FORMAT(10F8.4)
@@ -448,6 +456,10 @@
       IF(ALLOCATED(ib_local)) THEN
             DEALLOCATE(ib_local, STAT=ierr)
             IF( ierr/=0 ) CALL errore( ' deallocate_electrons ',' deallocating ib_local ',ierr )
+      END IF
+      IF(ALLOCATED(sort_spreads))       THEN
+            DEALLOCATE(sort_spreads, STAT=ierr)
+            IF( ierr/=0 ) CALL errore( ' deallocate_electrons ',' deallocating sort_spreads ',ierr )
       END IF
       IF(ALLOCATED(wfc_centers))       THEN
             DEALLOCATE(wfc_centers, STAT=ierr)
