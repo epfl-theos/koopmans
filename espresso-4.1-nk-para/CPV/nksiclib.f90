@@ -1353,14 +1353,14 @@ end subroutine nksic_get_orbitalrho_twin_non_ortho
 !           ENDIF !!!### uncomment for k points
           !
 ! 	  IF(lgam) then !!!### uncomment for k points
-	      do ig = 1, ngs
-		  !
-		  fp=psis1(nps(ig))+psis1(nms(ig))
-		  fm=psis1(nps(ig))-psis1(nms(ig))
-		  orb_rhog(ig,1)=0.5d0*CMPLX(DBLE(fp),AIMAG(fm))
-		  orb_rhog(ig,2)=0.5d0*CMPLX(AIMAG(fp),-DBLE(fm))
-		  !
-	      enddo
+              do ig = 1, ngs
+                  !
+                  fp=psis1(nps(ig))+psis1(nms(ig))
+                  fm=psis1(nps(ig))-psis1(nms(ig))
+                  orb_rhog(ig,1)=0.5d0*CMPLX(DBLE(fp),AIMAG(fm))
+                  orb_rhog(ig,2)=0.5d0*CMPLX(AIMAG(fp),-DBLE(fm))
+                  !
+              enddo
 !           else !!!### uncomment for k points
 ! 	      do ig = 1, ngs !!!### uncomment for k points
 		  !
@@ -6262,6 +6262,7 @@ SUBROUTINE spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, wfc_
       !tempspreads(:,:,:) = wfc_spreads(:,:,:)
       !
       write(*,*) mpime, "spreads", tempspreads(:,1,2)
+      write(*,*) mpime, "centers", wfc_centers(:,1,1)
       !write(*,*) mpime, "spreads", tempspreads(:,2,2)
       !
       do isp=1,nspin
@@ -6418,3 +6419,87 @@ contains
 
 END SUBROUTINE spread_sort
 
+
+SUBROUTINE compute_complexification_index(ngw, nnrx, nbsp, nbspx, nspin, ispin, iupdwn, nupdwn, c0, bec,&
+                   complexification_index)
+      !
+      ! Here the overlap between the wavefunction manifold and its conjugate is calculated
+      !
+      ! As it is now, this routine works only with Norm Conserving Pseudopotentials
+      !
+      USE kinds,  ONLY : DP
+      USE twin_types
+      USE mp,             ONLY: mp_sum
+      USE mp_global,      ONLY: intra_image_comm
+      use cell_base,                  only: omega
+      use cp_interfaces,              only: fwfft, invfft
+      use fft_base,                   only: dffts, dfftp
+
+      IMPLICIT NONE
+
+      INTEGER, INTENT(IN) :: ngw, nnrx, nbsp, nbspx, nspin, &
+               iupdwn(nspin), nupdwn(nspin), ispin(nbspx)
+      type(twin_matrix) :: bec
+      COMPLEX(DP) :: c0(ngw, nbsp), complexification_index      
+
+      INTEGER :: i,j,k, ir
+      COMPLEX(DP), allocatable :: temp_array(:, :), psi1(:), psi2(:)
+      REAL(DP) :: sa1
+      
+      sa1 = 1.0d0 / omega 
+      allocate(temp_array(nbsp, nbsp), psi1(nnrx), psi2(nnrx))
+      temp_array=CMPLX(0.d0,0.d0)
+      
+      do i=1,nbsp
+         !
+         do j=1,i
+            !
+            IF(ispin(i) == ispin(j)) THEN
+               !
+               call c2psi(psi1,nnrx,c0(:,i), c0(:,j), ngw, 0)
+               call c2psi(psi2,nnrx,c0(:,j), c0(:,i), ngw, 0)
+               !
+               CALL invfft('Dense', psi1, dfftp )
+               CALL invfft('Dense', psi2, dfftp )
+               !
+               do ir=1, nnrx
+                  !
+                  temp_array(i,j) = temp_array(i,j) + psi1(ir)*psi2(ir)
+                  !
+               enddo
+               !
+            ENDIF
+            !
+         enddo
+         ! 
+         !
+      enddo
+      !
+      call mp_sum(temp_array, intra_image_comm)
+      !
+      temp_array = temp_array / DBLE( dfftp%nr1*dfftp%nr2*dfftp%nr3 )
+      complexification_index=0.d0
+      !
+      do i=1,nbsp
+         !
+         do j=1,i-1
+            !
+            IF(ispin(j) == ispin(i)) THEN
+               !
+               complexification_index=complexification_index+2.d0*abs(temp_array(i,j))**2
+               !
+            ENDIF
+            !
+         enddo
+         !
+         complexification_index=complexification_index+abs(temp_array(i,i))**2
+         !
+      enddo
+      !
+      complexification_index=(1.d0-complexification_index/nbsp)*100.d0
+      !
+      deallocate(temp_array)
+      !
+      return
+
+END subroutine compute_complexification_index

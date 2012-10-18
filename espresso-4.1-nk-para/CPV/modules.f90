@@ -353,6 +353,7 @@ module nksic
   real(dp),    allocatable :: wtot(:,:)
   !
   complex(dp), allocatable :: vsicpsi(:,:)
+  complex(dp) :: complexification_index
   !
   integer :: nknmax
   logical :: do_orbdep

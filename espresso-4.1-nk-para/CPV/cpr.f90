@@ -130,7 +130,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   USE mp_global,                ONLY : root_image, intra_image_comm, np_ortho, me_ortho, ortho_comm, &
                                        me_image
   USE ldaU,                     ONLY : lda_plus_u, vupsi
-  USE nksic,                    ONLY : do_orbdep, pink
+  USE nksic,                    ONLY : do_orbdep, pink, complexification_index
   USE step_constraint
   USE small_box,                ONLY : ainvb
   USE descriptors,          ONLY: descla_siz_
@@ -863,16 +863,27 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      !
      ! CALL debug_energies()
      !
-     IF(do_orbdep) THEN !Sort wavefunctions with respect to spread !!added:giovanni
+     IF(do_orbdep) THEN
+        ! 
+        !Sort wavefunctions with respect to spread !!added:giovanni
         !
         IF(allocated(wfc_spreads)) THEN
            !
+           write(6,*) "centers,debug0", wfc_centers
            call spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, &
               wfc_spreads, wfc_centers)
+           write(6,*) "centers,debug", wfc_centers
            !
         ENDIF
-        write(6,*) "wspreads", wfc_spreads(:,1,1)
-        write(6,*) "wspreads", wfc_spreads(:,2,1)
+        !
+        IF(do_wf_cmplx) THEN
+           !
+           ! Compute complexification index
+           !
+           call compute_complexification_index(ngw, nnrsx, nbsp, nbspx, nspin, ispin, &
+             iupdwn, nupdwn, c0, bec, complexification_index)
+           !
+        ENDIF
         !
      ENDIF
 

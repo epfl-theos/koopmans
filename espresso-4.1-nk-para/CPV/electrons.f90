@@ -16,6 +16,7 @@
                                       nudx
         USE ensemble_dft,       ONLY: fmat0_diag
         USE cp_electronic_mass, ONLY: ecutmass => emass_cutoff, emass, emass_precond
+        use constants,            only : e2, fpi, hartree_si, electronvolt_si
 
         IMPLICIT NONE
         SAVE
@@ -374,6 +375,7 @@
       use constants,      only : autoev 
       USE io_global,      ONLY : stdout, ionode
       USE ensemble_dft,   ONLY : tens, tsmear
+      use nksic,          ONLY : complexification_index, pink, do_orbdep
       !
       INTEGER,  INTENT(IN) :: spread_unit
       LOGICAL,  INTENT(IN) :: tfile, tstdout
@@ -390,8 +392,12 @@
          IF( tstdout ) THEN
             
             WRITE( stdout,1222) ik, j
-            WRITE( stdout,1444) ( wfc_centers(1:4, i, j ),  wfc_spreads( i, j , 1), wfc_spreads( i, j, 2), i = 1, nupdwn(j) )
-
+            !
+            IF(do_orbdep) THEN
+               WRITE( stdout,1444) ( wfc_centers(1:4, i, j ),  wfc_spreads( i, j , 1), wfc_spreads( i, j, 2), pink(iupdwn(j)-1+i)*hartree_si/electronvolt_si, i = 1, nupdwn(j) )
+            ELSE
+               WRITE( stdout,1445) ( wfc_centers(1:4, i, j ),  wfc_spreads( i, j , 1), wfc_spreads( i, j, 2), i = 1, nupdwn(j) )
+            ENDIF
             !
             IF( n_emp .GT. 0 ) THEN
 !               WRITE( stdout,1005) ik, j
@@ -403,11 +409,20 @@
          !
       END DO
       !
+      IF(tstdout) THEN
+         !
+         WRITE(stdout, *) " Complexification index "
+         WRITE(stdout, *) complexification_index
+         !
+      ENDIF
+      !
   30  FORMAT(2X,'STEP:',I7,1X,F10.2)
  1022 FORMAT(/,3X,'Centers (Bohr), kp = ',I3, ' , spin = ',I2,/)
- 1222 FORMAT(/,3X,'Charge  ---   Centers xyz (Bohr)  ---  Spreads (Bohr^2)  ---  SH(eV), kp = ',I3, ' , spin = ',I2,/)
+ 1222 FORMAT(/,3X,'Charge  ---   Centers xyz (Bohr)  ---  Spreads (Bohr^2) - SH(eV), kp = ',I3, ' , spin = ',I2,/)
  1005 FORMAT(/,3X,'Empty States Eigenvalues (eV), kp = ',I3, ' , spin = ',I2,/)
- 1444 FORMAT(F8.2,'   ---',3F8.2,'   ---',2F8.2)
+ 1444 FORMAT(F8.2,'   ---',3F8.2,'   ---',3F8.2)
+ 1445 FORMAT(F8.2,'   ---',3F8.2,'   ---',2F8.2)
+ 1121 FORMAT(/3X,'Manifold complexification index = ',2F8.4/)
  1084 FORMAT(10F8.4)
       !
       RETURN
