@@ -314,7 +314,7 @@
           DO i = 1, nbsp
               !
               CALL nksic_newd( i, nnrx, ispin(i), nspin, vsic(:,i), nat, nhm, &
-                               becsum, fion_sic, deeq_sic(:,:,:,i) ) !this is for ultrasoft! watch out! warning:giovanni this has to be modified in order to run ultrasoft
+                               becsum, fion_sic, deeq_sic(:,:,:,i) ) 
               !
           ENDDO
           !

@@ -259,8 +259,8 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
              if(.not.do_innerloop_cg) then
                  call nksic_rot_emin(nouter,ninner,etot,Omattot)
              else
-                 call nksic_rot_emin_cg(nouter, innerloop_init_n, ninner, etot, &
-                  esic_conv_thr, Omattot, lgam)
+                 call nksic_rot_emin_cg(nouter, innerloop_init_n, ninner, etot, Omattot, &
+                  esic_conv_thr, lgam)
              endif
              !
              eodd = sum(pink(:))

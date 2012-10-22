@@ -835,7 +835,7 @@
          IF(lgam) then
 	    becdr_repl = 0.d0
          ELSE
-	    becdr_repl = CMPLX(0.d0,0.d0)
+	    becdr_repl_c = CMPLX(0.d0,0.d0)
          ENDIF
 
          do ig=1,ngw
@@ -872,7 +872,7 @@
 		  !    q > 0   components (with weight 2.0)
 		  do ig=gstart,ngw
 		    arg_c = CMPLX(fact*gk(ig)*beta(ig,iv,is),0.d0)
-		    wrk2_c(ig,ia) = arg_c*eigr(ig,ia+isa)
+		    wrk2_c(ig,ia) = cl*arg_c*eigr(ig,ia+isa)
 		  end do
 	      end do
 !$omp end do
@@ -1006,7 +1006,7 @@
                   !    q > 0   components (with weight 2.0)
                   do ig=gstart,ngw
                      arg_c = CMPLX(fact*gk(ig)*beta(ig,iv,is),0.d0)
-                     wrk2_c(ig,ia) = arg_c*eigr(ig,ia+isa)
+                     wrk2_c(ig,ia) = cl*arg_c*eigr(ig,ia+isa)
                   end do
                end do
 !$omp end do
@@ -1866,7 +1866,7 @@ subroutine nlfq( c, eigr, bec, becdr, fion, lgam2)
                  ELSE
 		    do i=1,nr
 			do iv=1,nh(is)
-			  tmpdr_c(iv,i)=tmpdr_c(iv,i)*tmpbec_c(iv,i)
+			  tmpdr_c(iv,i)=tmpdr_c(iv,i)*CONJG(tmpbec_c(iv,i))
 			end do
 		    end do
                  ENDIF

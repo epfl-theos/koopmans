@@ -1712,7 +1712,7 @@
 
    INTERFACE force_loc
       SUBROUTINE force_loc_x( tscreen, rhoeg, fion, rhops, vps, ei1, ei2, ei3, &
-                        sfac, omega, screen_coul )
+                        sfac, omega, screen_coul, lgam )
          USE kinds,              ONLY: DP
          USE grid_dimensions,    ONLY: nr1, nr2, nr3
          USE ions_base,          ONLY: nat
@@ -1727,6 +1727,7 @@
          COMPLEX(DP) :: ei3(-nr3:nr3,nat)
          REAL(DP)    :: omega
          COMPLEX(DP) :: screen_coul(:)
+         LOGICAL :: lgam
       END SUBROUTINE
    END INTERFACE
  

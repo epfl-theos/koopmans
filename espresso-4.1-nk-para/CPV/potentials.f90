@@ -361,7 +361,7 @@
       IF( tforce ) THEN
          !
          CALL force_loc( tscreen, rhog, fion, rhops, vps, &
-                         ei1, ei2, ei3, sfac, box%deth, screen_coul )
+                         ei1, ei2, ei3, sfac, box%deth, screen_coul, lgam )
          !
       END IF
 
@@ -1006,7 +1006,7 @@
 
 
   SUBROUTINE force_loc_x( tscreen, rhoeg, fion, rhops, vps, ei1, ei2, ei3, &
-                        sfac, omega, screen_coul )
+                        sfac, omega, screen_coul, lgam )
 
       !  this routine computes:
       !
@@ -1048,16 +1048,27 @@
       COMPLEX(DP) :: ei3(-nr3:nr3,nat)
       REAL(DP)    :: omega
       COMPLEX(DP) :: screen_coul(:)
+      LOGICAL :: lgam
 
       ! ... Locals
 
       INTEGER     :: is, ia, isa, ig, ig1, ig2, ig3
-      REAL(DP)    :: fpibg
+      REAL(DP)    :: fpibg, fact
       COMPLEX(DP) :: cxc, rhet, rhog, vp, rp, gxc, gyc, gzc
       COMPLEX(DP) :: teigr, cnvg, cvn, tx, ty, tz
       COMPLEX(DP), ALLOCATABLE :: ftmp(:,:)
 
       ! ... Subroutine body ...
+
+      IF(lgam) THEN
+         !
+         fact=2.d0
+         !
+      ELSE
+         !
+         fact=1.d0
+         !
+      ENDIF     
 
       ALLOCATE( ftmp( 3, SIZE( fion, 2 ) ) )
       
@@ -1103,7 +1114,7 @@
 
       END DO
       !
-      fion = fion + DBLE(ftmp) * 2.D0 * omega * tpiba
+      fion = fion + DBLE(ftmp) * fact * omega * tpiba
 
       DEALLOCATE( ftmp )
        

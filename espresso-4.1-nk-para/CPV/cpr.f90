@@ -870,7 +870,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
         IF(allocated(wfc_spreads)) THEN
            !
            call spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, &
-              wfc_spreads, wfc_centers, sort_spreads)
+                wfc_spreads, wfc_centers, sort_spreads)
            !
         ENDIF
         !
@@ -878,8 +878,8 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
            !
            ! Compute complexification index
            !
-           call compute_complexification_index(ngw, nnrsx, nbsp, nbspx, nspin, ispin, &
-             iupdwn, nupdwn, c0, bec, complexification_index)
+             call compute_complexification_index(ngw, nnrsx, nbsp, nbspx, nspin, ispin, &
+              iupdwn, nupdwn, c0, bec, complexification_index)
            !
         ENDIF
         !
