@@ -224,8 +224,6 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   !
   tprint_ham = do_orbdep .AND. ( iprsta > 1 ) 
   !
-  write(6,*) "size hamilt", size(hamilt)
-  !
   DO iss=1,size(hamilt)
     call set_twin(hamilt(iss), c_zero)
   END DO
@@ -863,7 +861,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      !
      ! CALL debug_energies()
      !
-     IF(do_orbdep) THEN
+     IF(do_orbdep.and.(tstdout.or.(MOD(nfi,iprint_stdout)==0))) THEN
         ! 
         !Sort wavefunctions with respect to spread !!added:giovanni
         !

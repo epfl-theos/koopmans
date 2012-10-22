@@ -432,12 +432,8 @@
           !compute centers and spreads of nksic or pz minimizing orbitals
         IF(icompute_spread) THEN
           !
-          write(6,*) "computed0 center", wfc_spreads(:,:,2)
-          write(6,*) "computed0 center", wfc_spreads(:,:,1)
           call compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
                     nupdwn, ispin, orb_rhor, wfc_centers, wfc_spreads, j, j+1)
-          write(6,*) "computed center", wfc_spreads(:,:,2)
-          write(6,*) "computed center", wfc_spreads(:,:,1)
           !
         ENDIF
           !
@@ -6262,8 +6258,6 @@ SUBROUTINE spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, wfc_
       !
       !tempspreads(:,:,:) = wfc_spreads(:,:,:)
       !
-      write(*,*) mpime, "spreads", tempspreads(:,1,2)
-      write(*,*) mpime, "centers", wfc_centers(:,1,1)
       !write(*,*) mpime, "spreads", tempspreads(:,2,2)
       !
       do isp=1,nspin
