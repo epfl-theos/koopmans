@@ -69,7 +69,7 @@
       !
       use nksic,                    only : do_orbdep, do_innerloop, do_innerloop_cg, innerloop_cg_nsd, &
                                            innerloop_cg_nreset, innerloop_init_n, innerloop_cg_ratio, &
-                                           vsicpsi, vsic, wtot, fsic, fion_sic, deeq_sic, f_cutoff, pink
+                                           vsicpsi, vsic, wtot, fsic, fion_sic, deeq_sic, f_cutoff, pink, do_wxd
       use hfmod,                    only : do_hf, vxxpsi, exx
       use twin_types !added:giovanni
       use control_flags,            only : non_ortho
@@ -420,11 +420,11 @@
               IF(non_ortho) THEN
                  call nksic_potential_non_ortho( nbsp, nbspx, c0, cdual, fsic, bec, becdual, &
                                     rhovan, deeq_sic, &
-                                    ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx, wfc_centers, &
+                                    ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, do_wxd, pink, nudx, wfc_centers, &
                                     wfc_spreads, icompute_spread )
               ELSE
                  call nksic_potential( nbsp, nbspx, c0, fsic, bec, rhovan, deeq_sic, &
-                                    ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx, wfc_centers, &
+                                    ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, do_wxd, pink, nudx, wfc_centers, &
                                     wfc_spreads, icompute_spread )
               ENDIF
 
@@ -1484,12 +1484,12 @@
             !warning:giovanni don't we need becm down here??? otherwise problems with ultrasoft!!
             IF(non_ortho) THEN
                call nksic_potential_non_ortho( nbsp, nbspx, cm, cmdual, fsic, bec, becdual, rhovan, deeq_sic, &
-                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx,&
+                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, do_wxd, pink, nudx,&
                                   wfc_centers, wfc_spreads, &
                                   icompute_spread)
             ELSE
                call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
-                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx, &
+                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, do_wxd, pink, nudx, &
                                   wfc_centers, wfc_spreads, &
                                   icompute_spread)
             ENDIF
@@ -1624,12 +1624,12 @@
             !warning:giovanni... don't we need becm down here?? otherwise problem with ultrasoft!!
             IF(non_ortho) THEN
                call nksic_potential_non_ortho( nbsp, nbspx, cm, cmdual, fsic, becm, becmdual, rhovan, deeq_sic, &
-                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx,&
+                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, do_wxd, pink, nudx,&
                                   wfc_centers, wfc_spreads, &
                                   icompute_spread)
             ELSE
                call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
-                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx,&
+                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, do_wxd, pink, nudx,&
                                   wfc_centers, wfc_spreads, &
                                   icompute_spread)
             ENDIF
@@ -1841,12 +1841,12 @@
                 !warning:giovanni don't we need becm down here??? otherwise problems with ultrasoft
                 IF(non_ortho) THEN
                    call nksic_potential_non_ortho( nbsp, nbspx, cm,cmdual, fsic, becm,becmdual, rhovan, deeq_sic, &
-                                      ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx, &
+                                      ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, do_wxd, pink, nudx, &
                                       wfc_centers, wfc_spreads, &
                                       icompute_spread)
                 ELSE
                    call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
-                                      ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx, &
+                                      ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, do_wxd, pink, nudx, &
                                       wfc_centers, wfc_spreads, &
                                       icompute_spread)
                 ENDIF
@@ -2040,12 +2040,12 @@
              IF(non_ortho) THEN
                 call nksic_potential_non_ortho( nbsp, nbspx, c0, cdual, fsic, bec, becdual, rhovan, &
                                    deeq_sic, &
-                                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx, &
+                                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, do_wxd, pink, nudx, &
                                    wfc_centers, wfc_spreads, &
                                    icompute_spread)
              ELSE
                 call nksic_potential( nbsp, nbspx, c0, fsic, bec, rhovan, deeq_sic, &
-                                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx, &
+                                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, do_wxd, pink, nudx, &
                                    wfc_centers, wfc_spreads, &
                                    icompute_spread)
              ENDIF
@@ -2396,7 +2396,9 @@ write(6,*) "nlfl_twin"
 !=======================================================================
    subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
                           n_emps, iupdwn_emp, nupdwn_emp, phi_emp, lambda_emp, &
-                          maxiter_emp, &
+                          maxiter_emp, wxd_emp, pink_emp, nnrx, rhovan_emp, &
+                          deeq_sic_emp, nudx_emp, eodd_emp, etot_emp, &
+                          filledstates_potential, &
                           nfi, tfirst, tlast, eigr, bec, irb, eigrb, &
                           rhor, rhog, rhos, rhoc, ei1, ei2, ei3, sfac, &
                           fion, ema0bg, becdr, lambdap, lambda, vpot  )
@@ -2458,14 +2460,17 @@ write(6,*) "nlfl_twin"
       !
       use nksic,                    only : do_orbdep, do_innerloop, do_innerloop_cg, innerloop_cg_nsd, &
                                            innerloop_cg_nreset, innerloop_init_n, innerloop_cg_ratio, &
-                                           vsicpsi, vsic, wtot, fsic, fion_sic, deeq_sic, f_cutoff, pink
+                                           vsicpsi, vsic, wtot, fsic, fion_sic, deeq_sic, f_cutoff, pink, &
+                                           do_wxd
       use hfmod,                    only : do_hf, vxxpsi, exx
       use twin_types !added:giovanni
       use control_flags,            only : non_ortho
       use cp_main_variables,        only : becdual, becmdual, overlap, ioverlap
-      use electrons_module,         only : wfc_spreads, wfc_centers, icompute_spread
+      use electrons_module,         only : wfc_spreads_emp, wfc_centers_emp, icompute_spread, &
+                                           wfc_centers, wfc_spreads
       use ldau,                     only : lda_plus_u, vupsi
       use cp_interfaces,            only : gram_empty, nlsm1
+      use uspp_param,               only : nhm
 !
       implicit none
 !
@@ -2491,8 +2496,12 @@ write(6,*) "nlfl_twin"
       real(dp)    :: ema0bg(ngw)
       type(twin_matrix), dimension(nspin)    :: lambdap!(nlam,nlam,nspin) !modified:giovanni
       type(twin_matrix), dimension(nspin)    :: lambda!(nlam,nlam,nspin)   !modified:giovanni
-      integer :: n_emps, n_empx, iupdwn_emp(nspin), nupdwn_emp(nspin), maxiter_emp
-      real(dp) :: f_emp(n_empx), fsic_emp(n_empx)
+      integer :: n_emps, n_empx, iupdwn_emp(nspin), nupdwn_emp(nspin), maxiter_emp, nnrx, &
+                 nudx_emp, ispin_emp(n_empx)
+      real(dp) :: f_emp(n_empx), fsic_emp(n_empx), wxd_emp(nnrx,2), vsic_emp(nnrx, n_empx), &
+                  pink_emp(n_empx), rhovan_emp(nhm*(nhm+1)/2 , nat, nspin), &
+                  deeq_sic_emp(nhm,nhm,nat,n_empx), eodd_emp, etot_emp, & 
+                  filledstates_potential(:,:)
       complex(dp) :: c0_emp(ngw, n_empx), cm_emp(ngw, n_empx), phi_emp(ngw, n_empx)
       type(twin_matrix) :: bec_emp, lambda_emp      
 
@@ -2680,13 +2689,10 @@ write(6,*) "nlfl_twin"
         ENERGY_CHECK: &
         if(.not. ene_ok ) then
 
-          call calbec(1,nsp,eigr,c0,bec)
-          IF(non_ortho) THEN
-             call calbec(1,nsp,eigr,cdual,becdual)
-          ENDIF
+          !call calbec(1,nsp,eigr,c0,bec)
+          CALL nlsm1 ( n_emps, 1, nvb, eigr, c0_emp, bec_emp, 1, lgam )
           
-                write(6,*) "checkwave23", c0(1:2,1)
-                call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
+          !call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
            
           !
           ! when cycle is restarted go to diagonal representation
@@ -2700,20 +2706,20 @@ write(6,*) "nlfl_twin"
           !
           !     put core charge (if present) in rhoc(r)
           !
-          if (nlcc_any) call set_cc(irb,eigrb,rhoc)
+          !if (nlcc_any) call set_cc(irb,eigrb,rhoc) !warning:I comment this for core charge, for the moment
 
           !
           !---ensemble-DFT
 
-          vpot = rhor
+          !vpot = rhor
 
 !$$
-          CALL start_clock( 'vofrho1' )
+          !CALL start_clock( 'vofrho1' )
 !$$
-          call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
-                 &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
+          !call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
+          !       &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
 
-          ene_lda = etot
+          !ene_lda = etot
 !$$
           CALL stop_clock( 'vofrho1' )
 !$$
@@ -2721,19 +2727,14 @@ write(6,*) "nlfl_twin"
 !$$
           if( do_orbdep ) then
               !
-              if ( tens .or. tsmear) then
-                  fsic = fmat0_diag
-              else
-                  fsic = f
-              endif
-              !
-                 call nksic_potential( nbsp, nbspx, c0, fsic, bec, rhovan, deeq_sic, &
-                                    ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx, wfc_centers, &
-                                    wfc_spreads, icompute_spread )
+                 call nksic_potential( n_emps, n_empx, c0_emp, fsic_emp, bec_emp, rhovan_emp, deeq_sic_emp, &
+                                    ispin_emp, iupdwn_emp, nupdwn_emp, rhor, rhog, wtot, vsic_emp, do_wxd, & 
+                                    pink_emp, nudx_emp, wfc_centers_emp, &
+                                    wfc_spreads_emp, icompute_spread )
 
-              eodd=sum(pink(1:nbsp))
+              eodd_emp=sum(pink_emp(1:n_empx))
 !               write(6,*) eodd, etot, "EODD0", etot+eodd
-              etot = etot + eodd
+              etot_emp = etot_emp + eodd_emp
               !
           endif
 !$$
@@ -2743,26 +2744,11 @@ write(6,*) "nlfl_twin"
                                  nbsp, nbspx, c0, f, ispin, iupdwn, nupdwn, &
                                  rhor, rhog, vxxpsi, exx)
               !
-              etot = etot + sum(exx(1:nbsp))
+              etot_emp = etot_emp + sum(exx(1:nbsp))
               !
           endif
 
-          if (.not.tens) then
               etotnew=etot
-          else
-              etotnew=etot+entropy
-          end if
-
-          if(tefield  ) then!just in this case calculates elfield stuff at zeo field-->to be bettered
-            
-             call berry_energy( enb, enbi, bec%rvec, c0(:,:), fion )
-             etot=etot+enb+enbi
-          endif
-          if(tefield2  ) then!just in this case calculates elfield stuff at zeo field-->to be bettered
-
-             call berry_energy2( enb, enbi, bec%rvec, c0(:,:), fion )
-             etot=etot+enb+enbi
-          endif
 
         else
 
@@ -2785,9 +2771,9 @@ write(6,*) "nlfl_twin"
              !
              !call start_clock( "inner_loop" )
              !
-             eodd    = sum(pink(1:nbsp))
-             etot    = etot - eodd
-             etotnew = etotnew - eodd
+             eodd_emp    = sum(pink_emp(1:nbsp))
+             etot_emp    = etot_emp - eodd_emp
+             etotnew = etotnew - eodd_emp
              ninner  = 0
 
              if(.not.do_innerloop_cg) then
@@ -2810,10 +2796,10 @@ write(6,*) "nlfl_twin"
 !              hi(:,:) = hitmp(:,:)
 !            endif
 !$$
-             eodd    = sum(pink(1:nbsp))
+             eodd_emp    = sum(pink_emp(1:nbsp))
 !              write(6,*) eodd, etot, "EODD_inn", etot+eodd
-             etot    = etot + eodd
-             etotnew = etotnew + eodd
+             etot_emp    = etot_emp + eodd_emp
+             etotnew = etotnew + eodd_emp
 
              !call stop_clock( "inner_loop" )
              !
@@ -3183,7 +3169,7 @@ write(6,*) "nlfl_twin"
         if( do_orbdep ) then
             !warning:giovanni don't we need becm down here??? otherwise problems with ultrasoft!!
                call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
-                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx, &
+                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, do_wxd, pink, nudx, &
                                   wfc_centers, wfc_spreads, &
                                   icompute_spread)
             !
@@ -3271,7 +3257,7 @@ write(6,*) "nlfl_twin"
         if(do_orbdep) then
             !warning:giovanni... don't we need becm down here?? otherwise problem with ultrasoft!!
                call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
-                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx,&
+                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, do_wxd, pink, nudx,&
                                   wfc_centers, wfc_spreads, &
                                   icompute_spread)
             eodd = sum(pink(1:nbsp))
@@ -3408,7 +3394,7 @@ write(6,*) "nlfl_twin"
             if(do_orbdep) then
                 !warning:giovanni don't we need becm down here??? otherwise problems with ultrasoft
                    call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
-                                      ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx, &
+                                      ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, do_wxd, pink, nudx, &
                                       wfc_centers, wfc_spreads, &
                                       icompute_spread)
                 !
@@ -3544,7 +3530,7 @@ write(6,*) "nlfl_twin"
          if(do_orbdep) then
              !
                 call nksic_potential( nbsp, nbspx, c0, fsic, bec, rhovan, deeq_sic, &
-                                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx, &
+                                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, do_wxd, pink, nudx, &
                                    wfc_centers, wfc_spreads, &
                                    icompute_spread)
              eodd = sum(pink(1:nbsp))

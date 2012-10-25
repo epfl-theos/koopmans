@@ -398,8 +398,9 @@
              !
              fsic_emp(:) = 0.0
              !
-             do_wxd_ = do_wxd
-             do_wxd  = .FALSE.
+             ! the two lines below were removed by Giovanni, passing do_wxd as input to nksic_potential
+             !do_wxd_ = do_wxd
+             !do_wxd  = .FALSE.
              !
              IF(done_extra.or.iter==max_emp) THEN
                 !
@@ -410,11 +411,11 @@
              call nksic_potential( n_emps, n_empx, c0_emp, fsic_emp, &
                                    bec_emp, becsum_emp, deeq_sic_emp, &
                                    ispin_emp, iupdwn_emp, nupdwn_emp, rhor, rhog, &
-                                   wtot, vsic_emp, pink_emp, nudx_emp, &
+                                   wtot, vsic_emp, .false., pink_emp, nudx_emp, &
                                    wfc_centers_emp, wfc_spreads_emp, &
                                    icompute_spread)
-             !
-             do_wxd = do_wxd_
+             ! line below removed by Giovanni, introduced do_wxd=.false. into call to nksic_potential
+             !do_wxd = do_wxd_
              !
              DO i = 1, n_emps
                  vsic_emp(:,i) = vsic_emp(:,i) + wxd_emp(:, ispin_emp(i) )

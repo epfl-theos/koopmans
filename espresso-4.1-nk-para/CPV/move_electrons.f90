@@ -81,7 +81,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   USE fft_base,             ONLY : dfftp
   USE io_global,            ONLY : ionode, ionode_id
   USE hfmod,                ONLY : do_hf, vxxpsi, exx
-  USE nksic,                ONLY : do_orbdep, vsic, wtot, fsic, fion_sic, deeq_sic, pink
+  USE nksic,                ONLY : do_orbdep, vsic, wtot, fsic, fion_sic, deeq_sic, pink, do_wxd
   !
   USE nksic,                ONLY : do_pz, do_innerloop,do_innerloop_cg, innerloop_dd_nstep, &
                                    innerloop_init_n
@@ -211,7 +211,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
          ENDIF
          !
          call nksic_potential( nbsp, nbspx, c0, fsic, bec, becsum, deeq_sic, &
-                    ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink, nudx, &
+                    ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, do_wxd, pink, nudx, &
                     wfc_centers, wfc_spreads, icompute_spread)
          !
 !$$ We should update etot only once at the end of this do_orbdep routine

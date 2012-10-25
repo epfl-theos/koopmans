@@ -16,7 +16,7 @@
       subroutine nksic_potential_non_ortho( nbsp, nx, c, cdual, f_diag, &
                                   bec, becdual, becsum, &
                                   deeq_sic, ispin, iupdwn, nupdwn, &
-                                  rhor, rhog, wtot, vsic, pink, nudx, &
+                                  rhor, rhog, wtot, vsic, do_wxd_, pink, nudx, &
                                   wfc_centers, wfc_spreads, &
                                   icompute_spread)
 !-----------------------------------------------------------------------
@@ -62,6 +62,7 @@
       complex(dp), intent(in)  :: rhog(ngm,nspin)
       real(dp),    intent(out) :: vsic(nnrx,nx), wtot(nnrx,2)
       real(dp),    intent(out) :: deeq_sic(nhm,nhm,nat,nx)
+      logical,     intent(in)  :: do_wxd_
       real(dp),    intent(out) :: pink(nx)
       logical                  :: icompute_spread
       real(DP) :: wfc_centers(4,nudx,nspin)
@@ -163,7 +164,7 @@
               !
               call nksic_correction_nk( focc, ispin(i), orb_rhor(:,jj), &
                                         rhor, rhoref, rhobar, rhobarg, grhobar, &
-                                        vsic(:,i), wxdsic, wrefsic, &
+                                        vsic(:,i), wxdsic, wrefsic, do_wxd_, &
                                         pink(i), ibnd)
 
               !
@@ -214,7 +215,7 @@
               !
               call nksic_correction_nki( focc, ispin(i), orb_rhor(:,jj), &
                                          rhor, rhoref, rhobar, rhobarg, grhobar, &
-                                         vsic(:,i), wxdsic, pink(i), ibnd)
+                                         vsic(:,i), wxdsic, do_wxd_, pink(i), ibnd)
               !
               ! here information is accumulated over states
               ! (wtot is added in the next loop)
@@ -333,9 +334,9 @@
 !-----------------------------------------------------------------------
       subroutine nksic_potential( nbsp, nx, c, f_diag, bec, becsum, &
                                   deeq_sic, ispin, iupdwn, nupdwn, &
-                                  rhor, rhog, wtot, vsic, pink, nudx, &
+                                  rhor, rhog, wtot, vsic, do_wxd_, pink, nudx, &
                                   wfc_centers, wfc_spreads, &
-                                  icompute_spread)
+                                  icompute_spread, is_empty)
 !-----------------------------------------------------------------------
 !
 ! ....calculate orbital dependent potentials, 
@@ -379,10 +380,12 @@
       complex(dp), intent(in)  :: rhog(ngm,nspin)
       real(dp),    intent(out) :: vsic(nnrx,nx), wtot(nnrx,2)
       real(dp),    intent(out) :: deeq_sic(nhm,nhm,nat,nx)
+      logical,     intent(in)  :: do_wxd_
       real(dp),    intent(out) :: pink(nx)
       logical  :: icompute_spread
       real(DP) :: wfc_centers(4,nudx,nspin)
       real(DP) :: wfc_spreads(nudx,nspin,2)
+      logical, optional, intent(in) :: is_empty
       !
       ! local variables
       !
@@ -390,12 +393,22 @@
       real(dp) :: focc,pinkpz, shart
       real(dp), allocatable :: vsicpz(:)
       complex(dp), allocatable :: rhobarg(:,:)
-      logical :: lgam
+      logical :: lgam, is_empty_
       !
       ! main body
       !
       CALL start_clock( 'nksic_drv' )
       lgam = gamma_only.and..not.do_wf_cmplx
+      !
+      IF(present(is_empty)) THEN
+         !
+         is_empty_=is_empty
+         !
+      ELSE
+         !
+         is_empty_=.false.
+         !
+      ENDIF
       !
       ! compute potentials
       !
@@ -474,7 +487,7 @@
               !
               call nksic_correction_nk( focc, ispin(i), orb_rhor(:,jj), &
                                         rhor, rhoref, rhobar, rhobarg, grhobar, &
-                                        vsic(:,i), wxdsic, wrefsic, &
+                                        vsic(:,i), wxdsic, wrefsic, do_wxd_, &
                                         pink(i), ibnd)
 
               !
@@ -525,7 +538,7 @@
               !
               call nksic_correction_nki( focc, ispin(i), orb_rhor(:,jj), &
                                          rhor, rhoref, rhobar, rhobarg, grhobar, &
-                                         vsic(:,i), wxdsic, pink(i), ibnd)
+                                         vsic(:,i), wxdsic, do_wxd_, pink(i), ibnd, is_empty_)
               !
               ! here information is accumulated over states
               ! (wtot is added in the next loop)
@@ -542,7 +555,7 @@
               !
               !write(6,*) "silvestro", ubound(ispin), ubound(orb_rhor), ubound(vsicpz)
               call nksic_correction_nkipz( focc, ispin(i), orb_rhor(:,jj), vsicpz, &
-                                           pinkpz, ibnd, shart )
+                                           pinkpz, ibnd, shart, is_empty_ )
               !
               !write(6,*) "silvestro", ubound(ispin), ubound(orb_rhor), ubound(vsicpz)
                vsic(1:nnrx,i) = vsic(1:nnrx,i) + vsicpz(1:nnrx)
@@ -1633,7 +1646,7 @@ end subroutine nksic_newd
 !---------------------------------------------------------------
       subroutine nksic_correction_nk( f, ispin, orb_rhor, rhor, &
                                       rhoref, rhobar, rhobarg, grhobar,  &
-                                      vsic, wxdsic, wrefsic, pink, ibnd ) 
+                                      vsic, wxdsic, wrefsic, do_wxd_, pink, ibnd ) 
 !---------------------------------------------------------------
 !
 ! ... calculate the non-Koopmans potential from the orbital density
@@ -1643,7 +1656,7 @@ end subroutine nksic_newd
       use cell_base,            only : tpiba2,omega
       use nksic,                only : fref, rhobarfact, nknmax, &
                                        vanishing_rho_w, &
-                                       nkscalfact, do_wref, do_wxd, &
+                                       nkscalfact, do_wref, &
                                        etxc => etxc_sic, vxc => vxc_sic
       use grid_dimensions,      only : nnrx, nr1, nr2, nr3
       use gvecp,                only : ngm
@@ -1668,6 +1681,7 @@ end subroutine nksic_newd
       real(dp),    intent(in)  :: grhobar(nnrx,3,2)
       real(dp),    intent(out) :: vsic(nnrx), wrefsic(nnrx)
       real(dp),    intent(out) :: wxdsic(nnrx,2)
+      logical,     intent(in)  :: do_wxd_
       real(dp),    intent(out) :: pink
       !
       !character(19) :: subname='nksic_correction_nk'
@@ -1965,7 +1979,7 @@ end subroutine nksic_newd
       !
       wxdsic(:,:) = 0.0d0
       !
-      if( do_wref .or. do_wxd ) then
+      if( do_wref .or. do_wxd_ ) then
           !  
           ! note that vxd and wref are updated
           ! (and not overwritten) by the next call
@@ -1986,7 +2000,7 @@ end subroutine nksic_newd
               !
           endif
           !
-          if ( do_wxd ) then
+          if ( do_wxd_ ) then
               !
               wxdsic(:,1:2)= rhobarfact *( wxdsic(:,1:2) &
                                          + vxc0(:,1:2) -vxc(:,1:2) )
@@ -2004,7 +2018,7 @@ end subroutine nksic_newd
       pink = pink * nkscalfact
       vsic = vsic * nkscalfact
       !
-      if( do_wxd ) then 
+      if( do_wxd_ ) then 
           wxdsic = wxdsic * nkscalfact
       else
           wxdsic = 0.d0
@@ -2496,7 +2510,7 @@ end subroutine nksic_correction_pz
 
 !---------------------------------------------------------------
       subroutine nksic_correction_nkipz( f, ispin, orb_rhor, &
-                                      vsic, pink, ibnd, shart ) 
+                                      vsic, pink, ibnd, shart, is_empty) 
 !---------------------------------------------------------------
 !
 ! ... calculate the non-Koopmans potential from the orbital density
@@ -2522,6 +2536,7 @@ end subroutine nksic_correction_pz
       real(dp),    intent(in)  :: f, orb_rhor(nnrx)
       real(dp),    intent(out) :: vsic(nnrx)
       real(dp),    intent(out) :: pink, shart
+      logical, optional, intent(in) :: is_empty
       !
       !character(19) :: subname='nksic_correction_pz'
       integer       :: ig
@@ -2539,6 +2554,7 @@ end subroutine nksic_correction_pz
       logical :: lgam
       real(dp) :: icoeff
       real(dp) :: dexc_dummy(3,3)
+      logical :: is_empty_
       !
       !==================
       ! main body
@@ -2550,6 +2566,16 @@ end subroutine nksic_correction_pz
       else
         icoeff=1.d0
       endif
+      !
+      IF(present(is_empty)) THEN
+         !
+         is_empty_ = is_empty
+         !
+      ELSE
+         !
+         is_empty_ = .false.
+         !
+      ENDIF
       !
       vsic=0.0_dp
       pink=0.0_dp
@@ -2624,14 +2650,19 @@ end subroutine nksic_correction_pz
       ehele = icoeff * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm,ispin)))
       if ( gstart == 2 ) ehele = ehele + (1.d0-icoeff)*DBLE ( CONJG( vtmp(1) ) * rhogaux(1,ispin) )
       !
-      w2cst = 0.5_dp * ehele * omega 
-      call mp_sum(w2cst,intra_image_comm)
-      !
-      vsic  = vsic + w2cst
+      IF(.not.is_empty_) THEN
+         !
+         w2cst = 0.5_dp * ehele * omega 
+         call mp_sum(w2cst,intra_image_comm)
+         !
+         vsic  = vsic + w2cst
+         !
+      ENDIF
       !
       ehele = 0.5d0 * ehele * omega / fact
       !
       shart=abs(ehele)*f*fact*hartree_si/electronvolt_si
+      !
       call mp_sum(shart, intra_image_comm)
       !
       ! partial cleanup
@@ -2674,14 +2705,26 @@ end subroutine nksic_correction_pz
          !  grhoraux(nnr,3,nspin)?yes; rhogaux(ng,nspin)? rhoref(nnr, nspin) 
          !
       end if
-
-      etmp  = sum( vxc_(1:nnrx,ispin) * orb_rhor(1:nnrx) )
-      w2cst = -etxc_ + etmp
-      w2cst = w2cst * fact
+      
+      IF(.not.is_empty_) THEN
+         !
+         etmp  = sum( vxc_(1:nnrx,ispin) * orb_rhor(1:nnrx) )
+         !
+         w2cst = -etxc_ + etmp
+         w2cst = w2cst * fact
+         !
+         call mp_sum(w2cst,intra_image_comm)
+         !
+         pink = -f*(etxc_ + ehele)
+         !
+      ELSE
+         !
+         w2cst=0.d0
+         !
+         pink = -(etxc_ + ehele)
+         !
+      ENDIF
       !
-      call mp_sum(w2cst,intra_image_comm)
-      !
-      pink = -f*(etxc_ + ehele)
       pink = pink*fact
       !
       call mp_sum(pink,intra_image_comm)
@@ -2704,12 +2747,10 @@ end subroutine nksic_correction_pz
 end subroutine nksic_correction_nkipz
 !---------------------------------------------------------------
 
-
-
 !---------------------------------------------------------------
       subroutine nksic_correction_nki( f, ispin, orb_rhor, rhor, &
                                        rhoref, rhobar, rhobarg, grhobar,&
-                                       vsic, wxdsic, pink, ibnd ) 
+                                       vsic, wxdsic, do_wxd_, pink, ibnd, is_empty ) 
 !---------------------------------------------------------------
 !
 ! ... calculate the non-Koopmans (integrated, NKI) 
@@ -2723,7 +2764,7 @@ end subroutine nksic_correction_nkipz
       use constants,            only : e2, fpi
       use cell_base,            only : tpiba2,omega
       use nksic,                only : fref, rhobarfact, nknmax, &
-                                       nkscalfact, do_wxd, &
+                                       nkscalfact, &
                                        etxc => etxc_sic, vxc => vxc_sic
       use grid_dimensions,      only : nnrx, nr1, nr2, nr3
       use gvecp,                only : ngm
@@ -2748,7 +2789,9 @@ end subroutine nksic_correction_nkipz
       real(dp),    intent(in)  :: grhobar(nnrx,3,2)
       real(dp),    intent(out) :: vsic(nnrx)
       real(dp),    intent(out) :: wxdsic(nnrx,2)
+      logical,     intent(in)  :: do_wxd_
       real(dp),    intent(out) :: pink
+      logical, optional, intent(in) :: is_empty
       !
       !character(20) :: subname='nksic_correction_nki'
       integer       :: ig
@@ -2768,7 +2811,7 @@ end subroutine nksic_correction_nkipz
       real(dp),    allocatable :: orb_grhor(:,:,:)
       complex(dp), allocatable :: orb_rhog(:,:)
       real(dp),    allocatable :: haux(:,:,:)
-      logical :: lgam
+      logical :: lgam, is_empty_
       real(dp) :: icoeff
       real(dp) :: dexc_dummy(3,3)
       !
@@ -2777,12 +2820,22 @@ end subroutine nksic_correction_nkipz
       !==================
       !
       lgam = gamma_only.and..not.do_wf_cmplx
-
+      !
       if(lgam) then
         icoeff=2.d0
       else
         icoeff=1.d0
       endif
+      !
+      IF(present(is_empty)) THEN
+         !
+         is_empty_=is_empty
+         !
+      ELSE
+         !
+         is_empty_=.false.
+         !
+      ENDIF
 
       if( ibnd > nknmax .and. nknmax > 0 ) return
       !
@@ -2874,13 +2927,28 @@ end subroutine nksic_correction_nkipz
       if ( gstart == 2 ) ehele = ehele +(1.d0-icoeff)*DBLE ( CONJG( vtmp(1) ) * orb_rhog(1,1) )
       !
       ! -self-hartree energy to be added to the vsic potential
-      w2cst = -0.5_dp * ehele * omega 
-      call mp_sum(w2cst,intra_image_comm)
       !
-      vsic  = vsic +w2cst
+      IF(.not.is_empty_) THEN ! scalar potential is not added for empty states
+         !
+         w2cst = -0.5_dp * ehele * omega 
+         !
+         call mp_sum(w2cst,intra_image_comm)
+         !
+         vsic  = vsic +w2cst
+         !
+      ENDIF
       !
       ! the f * (1-f) term is added here
-      ehele = 0.5_dp * f * (1.0_dp-f) * ehele * omega / fact
+      !
+      IF(.not.is_empty_) THEN
+         !
+         ehele = 0.5_dp * f * (1.0_dp-f) * ehele * omega / fact
+         !
+      ELSE !this is for the fake functional for empty states
+         !
+         ehele = 0.5_dp * ehele * omega / fact
+         !
+      ENDIF
 
 
       deallocate(vtmp)
@@ -3004,8 +3072,6 @@ end subroutine nksic_correction_nkipz
           !end_added:giovanni fixing PBE potential
           !
       endif
-
-
       !
       !rhoraux = rhobar
       !
@@ -3031,19 +3097,36 @@ end subroutine nksic_correction_nkipz
       ! update potential (including other constant terms)
       ! and define pink
       !
-      etmp  = sum( vxcref(1:nnrx,ispin) * rhoele(1:nnrx,ispin) )
-      w2cst = ( etxcref-etxc0 ) -etmp
-      w2cst = w2cst * fact
-      !
-      call mp_sum(w2cst,intra_image_comm)
-      !
-      pink = (1.0_dp-f)*etxc0 -etxc + f*etxcref + ehele
-      pink = pink*fact
+      IF(.not.is_empty_) THEN
+         !
+         etmp  = sum( vxcref(1:nnrx,ispin) * rhoele(1:nnrx,ispin) )
+         w2cst = ( etxcref-etxc0 ) -etmp
+         w2cst = w2cst * fact
+         !
+         call mp_sum(w2cst,intra_image_comm)
+         !
+         pink = (1.0_dp-f)*etxc0 -etxc + f*etxcref + ehele
+         pink = pink*fact
+         !
+      ELSE
+         !
+         etmp  = sum( vxc(1:nnrx,ispin) * rhoele(1:nnrx,ispin) )
+         !
+         pink = etxcref-etxc-etmp+ehele
+         pink = pink*fact 
+         !
+      ENDIF
       !
       call mp_sum(pink,intra_image_comm)
       !
       !
       ! update vsic pot 
+      !
+      IF(is_empty_) THEN ! this might not be necessary in case of emptystates, w2cst should be already zero
+         !
+         w2cst=0.d0
+         !
+      ENDIF
       ! 
       vsic(1:nnrx) = vsic(1:nnrx) &
                    + vxcref(1:nnrx,ispin) -vxc(1:nnrx,ispin) + w2cst
@@ -3053,7 +3136,7 @@ end subroutine nksic_correction_nkipz
       !
       wxdsic(:,:) = 0.0d0
       !
-      if( do_wxd ) then
+      if( do_wxd_ ) then
           !
           wxdsic(:,1:2)= (1.0_dp-f)*vxc0(:,1:2) -vxc(:,1:2) +f*vxcref(:,1:2)
           !
@@ -3068,10 +3151,14 @@ end subroutine nksic_correction_nkipz
       pink = pink * nkscalfact
       vsic = vsic * nkscalfact
       !
-      if( do_wxd ) then 
-          wxdsic = wxdsic * nkscalfact
+      if( do_wxd_ ) then
+         ! 
+         wxdsic = wxdsic * nkscalfact
+         !
       else
-          wxdsic = 0.d0
+         !
+         wxdsic = 0.d0
+         !
       endif
 
       !
@@ -4044,7 +4131,8 @@ end subroutine nksic_rot_test
 !---------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-      subroutine nksic_rot_emin_cg(nouter,init_n, ninner,etot,Omattot, rot_threshold, lgam)
+      subroutine nksic_rot_emin_cg(nouter,init_n, ninner,etot,Omattot, &
+                  rot_threshold, lgam)
 !-----------------------------------------------------------------------
 !
 ! ... Finds the orthogonal rotation matrix Omattot that minimizes
