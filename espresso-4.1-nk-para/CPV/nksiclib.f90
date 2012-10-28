@@ -4131,6 +4131,556 @@ end subroutine nksic_rot_test
 !---------------------------------------------------------------
 
 !-----------------------------------------------------------------------
+      subroutine nksic_rot_emin_cg_new(nouter, init_n, ninner,etot,Omattot, &
+                  rot_threshold, nbsp, nbspx, nspin, iupdwn, &
+                  nupdwn, pink, lgam)
+!-----------------------------------------------------------------------
+!
+! ... Finds the orthogonal rotation matrix Omattot that minimizes
+!     the orbital-dependent and hence the total energy, and then
+!     rotate the wavefunction c0 accordingly using cg minimization.
+!     We may need Omattot for further rotation of the gradient for outer loop CG.
+!     Right now we do not do that because we set resetcg=.true. after inner loop
+!     minimization routine, i.e., setting the search direction to be gradient direction.
+!     (Ultrasoft pseudopotential case is not implemented.)
+!
+      use kinds,                      only : dp
+      use grid_dimensions,            only : nnrx
+      use gvecw,                      only : ngw
+      use io_global,                  only : stdout, ionode
+      use cp_interfaces,              only : invfft
+      use fft_base,                   only : dfftp
+      use ions_base,                  only : nsp, nat
+      use uspp_param,                 only : nhm
+      use nksic,                      only : vsic,  &
+                                             innerloop_cg_nsd, innerloop_cg_nreset,&
+                                             innerloop_nmax
+      use uspp,                       only : nkb
+      use cp_main_variables,          only : bec
+      use wavefunctions_module,       only : c0, cm
+      use control_flags,              only : esic_conv_thr
+      use cg_module,                  only : tcg
+      use twin_types
+      !
+      implicit none
+      !
+      ! in/out vars
+      ! 
+      integer                  :: ninner,nbsp,nbspx,nspin
+      integer                  :: init_n
+      integer,     intent(in)  :: nouter
+      integer,     intent(in)  :: iupdwn(nspin), nupdwn(nspin)
+      real(dp),    intent(in)  :: etot
+      complex(dp)          :: Omattot(nbspx,nbspx)
+      real(dp), intent(in)  :: rot_threshold
+      real(dp), intent(inout) :: pink(nbsp)
+      logical               :: lgam
+        
+      ! 
+      ! local variables for cg routine
+      ! 
+      integer     :: nbnd1,nbnd2
+      integer     :: isp
+      logical     :: ldotest
+      integer     :: nfile
+      real(dp)    :: dtmp
+      real(dp)    :: ene0,ene1,enesti,enever,dene0
+      real(dp)    :: passo,passov,passof,passomax,spasso
+      real(dp)    :: vsicah2sum,vsicah2sum_prev
+      integer     :: nidx1,nidx2
+      real(dp)    :: dPI,dalpha,dmaxeig,deigrms
+      real(dp)    :: pinksumprev,passoprod
+      !
+      complex(dp),    allocatable :: Omat1tot(:,:), Omat2tot(:,:)
+      real(dp),    allocatable :: Heigbig(:)
+      complex(dp), allocatable :: Umatbig(:,:)
+      complex(dp), allocatable :: wfc_ctmp(:,:), wfc_ctmp2(:,:)
+      complex(dp),    allocatable :: gi(:,:), hi(:,:)
+      !
+      complex(dp), allocatable :: Umat(:,:)
+      real(dp),    allocatable :: Heig(:)
+      complex(dp),    allocatable :: vsicah(:,:)
+      real(dp),    allocatable :: vsic1(:,:), vsic2(:,:)
+      type(twin_matrix)       :: bec1,bec2
+      real(dp),    allocatable :: pink1(:), pink2(:)
+      logical :: restartcg_innerloop, ene_ok_innerloop, ltresh, setpassomax
+      integer :: iter3, nfail
+      integer :: maxiter3,numok
+      real(dp) :: signalpha
+      character(len=4) :: marker
+      real(dp) :: conv_thr
+
+      !
+      ! main body
+      !
+      CALL start_clock( 'nk_rot_emin' )
+      !
+      !
+      marker="   "
+      maxiter3=4
+      restartcg_innerloop = .true.
+      ene_ok_innerloop = .false.
+      ltresh=.false.
+      setpassomax=.false.
+      nfail=0
+      if(nouter<init_n) THEN
+         conv_thr=esic_conv_thr
+      ELSE
+         conv_thr=rot_threshold
+      ENDIF
+      !
+      pinksumprev=1.d8
+      dPI = 2.0_DP * asin(1.0_DP)
+      passoprod = 0.3d0
+
+      !
+      ! local workspace
+      !
+      allocate( Omat1tot(nbspx,nbspx), Omat2tot(nbspx,nbspx) )
+      allocate( Umatbig(nbspx,nbspx) )
+      allocate( Heigbig(nbspx) )
+      allocate( wfc_ctmp(ngw,nbspx), wfc_ctmp2(ngw,nbspx) )
+      allocate( hi(nbsp,nbsp) )
+      allocate( gi(nbsp,nbsp) )
+      allocate( pink1(nbspx), pink2(nbspx) )
+      allocate( vsic1(nnrx,nbspx), vsic2(nnrx,nbspx) )
+      call init_twin(bec1, lgam)
+      call allocate_twin(bec1,nkb,nbsp,lgam)
+      call init_twin(bec2,lgam)
+      call allocate_twin(bec2,nkb,nbsp,lgam)
+      !
+      Umatbig(:,:)=CMPLX(0.d0,0.d0)
+      Heigbig(:)=0.d0
+      deigrms = 0.d0
+      hi(:,:) = 0.d0
+      gi(:,:) = 0.d0
+
+      Omattot(:,:)=CMPLX(0.d0,0.d0)
+      do nbnd1=1,nbspx
+          Omattot(nbnd1,nbnd1)=CMPLX(1.d0,0.d0)
+      enddo
+
+      ninner = 0
+      ldotest=.false.
+
+      if (ionode) write(stdout, "(14x,'# iter',6x,'etot',17x,'esic',&
+                                  & 17x,'deigrms')")
+
+      ! 
+      ! main loop 
+      !
+      inner_loop: &
+      do while (.true.)
+
+        call start_clock( "nk_innerloop" )
+        !
+        ninner = ninner + 1
+
+        if( ninner > innerloop_nmax ) then
+            !
+#ifdef __DEBUG
+            if(ionode) write(1031,*) '# innerloop_nmax reached.'
+            if(ionode) write(1031,*)
+#endif
+            if(ionode) then
+                write(stdout,"(14x,'# innerloop_nmax reached.',/)")
+            endif
+            !
+            call stop_clock( "nk_innerloop" )
+            exit inner_loop
+            !
+        endif
+
+#ifdef __DEBUG
+         !
+         ! call nksic_printoverlap(ninner,nouter)
+
+!        if(mod(ninner,10).eq.1.or.ninner.le.5) ldotest=.true.
+        if(ninner.eq.31.or.ninner.eq.61.or.ninner.eq.91) ldotest=.true.
+!        if(ninner.le.10.and.nouter.eq.1) ldotest=.true.
+!         ldotest=.true.
+!        if(ninner.ge.25) ldotest=.true.
+        ! Now do the test
+        if(ldotest) then
+!          dtmp = 1.0d0*3.141592d0
+          dtmp = 4.d0*3.141592d0
+!          call nksic_rot_test(dtmp,201,nouter,ninner,etot)
+          ldotest=.false.
+        endif
+#endif
+
+        !
+        !print out ESIC part & other total energy
+        !
+        ene0 = sum( pink(1:nbsp) )
+ 
+        !
+        ! test convergence
+        !
+        if( abs(ene0-pinksumprev) < conv_thr ) then
+           numok=numok+1
+        else 
+           numok=0
+        endif
+        !
+        if( numok >= 2 ) ltresh=.true.
+        !
+        if( ltresh ) then
+            !
+#ifdef __DEBUG
+            if(ionode) then
+                 write(1037,"(a,/)") '# inner-loop converged.'
+                 write(1031,"(a,/)") '# inner-loop converged.'
+            endif
+#endif
+            if(ionode) write(stdout,"(14x,'# innerloop converged',/)")
+            !
+            call stop_clock( "nk_innerloop" )
+            exit inner_loop
+            !
+        endif
+        !
+        pinksumprev=ene0
+
+        !
+        ! This part calculates the anti-hermitian part of the Hamiltonian vsicah
+        ! and see whether a convergence has been achieved
+        !
+        ! For this run, we obtain the gradient
+        !
+        vsicah2sum = 0.0d0
+        !
+        do isp=1,nspin
+            !
+            allocate(vsicah(nupdwn(isp),nupdwn(isp)))
+            !
+            call nksic_getvsicah_new2(isp,vsicah,dtmp, lgam)
+            !
+            gi( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp), &
+                iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = vsicah(:,:)
+            !
+            vsicah2sum = vsicah2sum + dtmp
+            !
+            deallocate(vsicah)
+            !
+        enddo
+        !
+        if( ninner /= 1 ) dtmp = vsicah2sum/vsicah2sum_prev
+        !
+        if( ninner <= innerloop_cg_nsd .or. &
+            mod(ninner,innerloop_cg_nreset) ==0 .or. &
+            restartcg_innerloop ) then
+            !
+            restartcg_innerloop=.false.
+            setpassomax=.false.
+            !
+            hi(:,:) = gi(:,:)
+        else
+            hi(:,:) = gi(:,:) + dtmp*hi(:,:)
+        endif
+        !
+        spin_loop: &
+        do isp=1,nspin
+            !
+            IF(nupdwn(isp).gt.0) THEN
+               allocate( vsicah(nupdwn(isp),nupdwn(isp)) )
+               allocate( Umat(nupdwn(isp),nupdwn(isp)) )
+               allocate( Heig(nupdwn(isp)) )
+
+               vsicah(:,:) = hi( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp), &
+                              iupdwn(isp):iupdwn(isp)-1+nupdwn(isp) )
+
+               call nksic_getHeigU(isp,vsicah,Heig,Umat)
+               !
+               deigrms = deigrms + sum(Heig(:)**2)
+               !
+               Umatbig( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp), &
+                        iupdwn(isp):iupdwn(isp)-1+nupdwn(isp) ) = Umat(:,:)
+               Heigbig( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp) ) = Heig(:)
+               !
+               deallocate(vsicah)
+               deallocate(Umat)
+               deallocate(Heig)
+            ELSE
+               Umatbig( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp), &
+                        iupdwn(isp):iupdwn(isp)-1+nupdwn(isp) ) = 1.d0
+               Heigbig( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp) ) = 0.d0
+            ENDIF
+            !
+        enddo spin_loop
+
+        ! how severe the transform is
+        deigrms = sqrt(deigrms/nbsp)
+#ifdef __DEBUG
+        if(ionode) write(1031,'(2I10,3F24.13)') ninner, nouter,etot,ene0,deigrms
+#endif
+        if(ionode) write(stdout,'(10x,A3,2i5,3F21.13)') marker, ninner, nouter, etot, ene0, deigrms
+        !
+        !
+        dmaxeig = max( dabs(Heigbig(iupdwn(1))), dabs(Heigbig(iupdwn(1)+nupdwn(1)-1)) )
+        !
+        do isp = 2, nspin
+            dmaxeig = max(dmaxeig,dabs(Heigbig(iupdwn(isp))))
+            dmaxeig = max(dmaxeig,dabs(Heigbig(iupdwn(isp)+nupdwn(isp)-1)))
+        enddo
+        !
+        passomax=passoprod/dmaxeig
+        !
+        if( ninner == 1 .or. setpassomax) then
+            passof = passomax
+            setpassomax=.false.
+#ifdef __DEBUG
+            if(ionode) write(1031,*) '# passof set to passomax'
+#endif
+        endif
+
+!$$$$        if(passof .gt. passomax*2.d0) then
+!$$$$          passof = passomax*2.d0
+!$$$$          if(ionode) write(1031,*) '# passof > twice passomax'
+!$$$$        endif
+
+!        if(ionode) then
+!          write(1037,*)'# deigrms = ',deigrms
+!          write(1037,*)'# vsicah2sum = ',vsicah2sum
+!          if(ninner.ne.1) write(1037,*)'# vsicah2sum/vsicah2sum_prev = ',dtmp
+!        endif
+
+
+        vsicah2sum_prev = vsicah2sum
+        !
+        dene0 = 0.d0
+        !
+        do isp = 1, nspin
+            !
+            do nbnd1 = 1, nupdwn(isp)
+            do nbnd2 = 1, nupdwn(isp)
+                !
+                nidx1 = nbnd1-1+iupdwn(isp)
+                nidx2 = nbnd2-1+iupdwn(isp)
+                IF(nidx1.ne.nidx2) THEN
+                  dene0 = dene0 - DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2)) 
+                ELSE  !warning:giovanni: do we need this condition
+                  !dene0 = dene0 -DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2))
+                ENDIF
+                !
+            enddo
+            enddo
+            !
+        enddo
+
+        !$$
+        !$$ dene0 = dene0 * 2.d0/nspin
+        !
+        ! Be careful, the following is correct because A_ji = - A_ij, i.e., the number of
+        ! linearly independent variables is half the number of total variables!
+        !
+        dene0 = dene0 * 1.d0/nspin
+        !
+        spasso = 1.d0
+        if( dene0 > 0.d0) spasso = -1.d0
+        !
+        dalpha = spasso*passof
+        !
+        call nksic_getOmattot( dalpha, Heigbig, Umatbig, c0, wfc_ctmp, &
+                               Omat1tot, bec1, vsic1, pink1, ene1, lgam)
+        call minparabola( ene0, spasso*dene0, ene1, passof, passo, enesti)
+
+        !
+        ! We neglect this step for paper writing purposes
+        !
+        if( passo > passomax ) then
+            passo = passomax
+#ifdef __DEBUG
+            if(ionode) write(1031,*) '# passo > passomax'
+#endif
+            !
+        endif
+
+        passov = passof
+        passof = 2.d0*passo
+
+        dalpha = spasso*passo
+        !
+!$$ The following line is for dene0 test
+!        if(ninner.ge.15) dalpha = spasso*passo*0.00001
+!$$
+        call nksic_getOmattot( dalpha, Heigbig, Umatbig, c0, wfc_ctmp2, &
+                               Omat2tot, bec2, vsic2, pink2, enever, lgam)
+
+#ifdef __DEBUG
+        if(ionode) then
+            !
+            write(1037,*) ninner, nouter
+            write(1037,'("ene0,ene1,enesti,enever")')
+            write(1037,'(a3,4f20.10)') 'CG1',ene0,ene1,enesti,enever
+            write(1037,'("spasso,passov,passo,passomax,dene0,&
+                         & (enever-ene0)/passo/dene0")')
+            write(1037,'(a3,4f12.7,e20.10,f12.7)')  &
+                  'CG2',spasso,passov,passo,passomax,dene0,(enever-ene0)/passo/dene0
+            write(1037,*)
+            !
+        endif
+#endif
+
+        if(ene0 < ene1 .and. ene0 < enever) then !missed minimum case 3
+            !write(6,'("# WARNING: innerloop missed minimum, case 3",/)') 
+            !
+            iter3=0
+            signalpha=1.d0
+            restartcg_innerloop=.true.
+            !
+            do while(enever.ge.ene0 .and. iter3.lt.maxiter3)
+               !
+               iter3=iter3+1
+               !
+               signalpha=signalpha*(-0.717d0)
+               dalpha = spasso*passo*signalpha
+               !
+               call nksic_getOmattot( dalpha, Heigbig, Umatbig, c0, wfc_ctmp2, Omat2tot, bec2, vsic2, pink2, enever, lgam)
+               !
+            enddo
+            
+            IF(enever.lt.ene0) THEN
+               !
+               pink(:)   = pink2(:)
+               vsic(:,:) = vsic2(:,:)
+               c0(:,:)   = wfc_ctmp2(:,:)
+               call copy_twin(bec,bec2)
+   !             bec%rvec(:,:)  = bec2(:,:)
+               Omattot   = MATMUL( Omattot, Omat2tot)
+               !write(6,'("# WARNING: innerloop case 3 interations",3I/)') iter3 
+               write(marker,'(i1)') iter3
+               marker = '*'//marker
+               passof=passo*abs(signalpha)
+               nfail=0
+               !
+            ELSE
+               !
+               marker = '***'
+               ninner = ninner + 1
+               nfail=nfail+1
+               numok=0
+               passof=passo*abs(signalpha)
+               !
+               IF(nfail>2) THEN
+                  write(6,'("# WARNING: innerloop not converged, exit",/)') 
+                  call stop_clock( "nk_innerloop" )
+                  exit
+               ENDIF
+!                ELSE
+!                   nfail=0
+!                ENDIF
+               !
+            ENDIF
+#ifdef __DEBUG
+            if(ionode) then
+                write(1037,'("# ene0<ene1 and ene0<enever, exit",/)')
+                write(1031,'("# innerloop NOT converged, exit",/)') 
+            endif
+#endif
+
+            !
+        else if( ene1 >= enever ) then !found minimum
+            !
+            pink(:)   = pink2(:)
+            vsic(:,:) = vsic2(:,:)
+            c0(:,:)   = wfc_ctmp2(:,:)
+            call copy_twin(bec,bec2)
+!             bec%rvec(:,:)  = bec2(:,:)
+            Omattot   = MATMUL( Omattot, Omat2tot)
+            marker="   "
+            nfail=0
+            !
+        else !missed minimum, case 1 or 2
+            !
+            pink(:)   = pink1(:)
+            vsic(:,:) = vsic1(:,:)
+            c0(:,:)   = wfc_ctmp(:,:)
+            call copy_twin(bec,bec1)
+            Omattot   = MATMUL( Omattot, Omat1tot)
+            restartcg_innerloop = .true.
+            IF(enever<ene0) THEN
+               marker="*  "
+               passof=min(1.5d0*passov,passomax)
+            ELSE
+               marker="** "
+               passof=passov
+            ENDIF
+            nfail=0
+            !
+#ifdef __DEBUG
+            if(ionode) then
+                write(1037,'("# It happened that ene1 < enever!!")')
+                write(1037,*)
+            endif
+#endif
+            !write(6,'("# WARNING: innerloop missed minimum case 1 or 2",/)') 
+            !
+! =======
+!           pink(:) = pink1(:)
+!           vsic(:,:) = vsic1(:,:)
+!           c0(:,:) = wfn_ctmp(:,:)
+!           bec%rvec(:,:) = bec1(:,:)
+!           Omattot = MATMUL(Omattot,Omat1tot)
+!           if(ionode) then
+!             write(1037,'("# It happened that ene1 < enever!!")')
+!             write(1037,*)
+!           endif
+! 1.28.2.14
+        endif
+        !
+        call stop_clock( "nk_innerloop" )
+        !
+      enddo  inner_loop
+
+      !
+      ! Wavefunction cm rotation according to Omattot
+      ! We need this because outer loop could be damped dynamics.
+      !
+      if ( .not. tcg ) then
+          !
+          if( ninner >= 2 ) then
+              !
+              wfc_ctmp(:,:) = CMPLX(0.d0,0.d0)
+              !
+              do nbnd1=1,nbspx
+                 do nbnd2=1,nbspx
+                    wfc_ctmp(:,nbnd1)=wfc_ctmp(:,nbnd1) + cm(:,nbnd2) * Omattot(nbnd2,nbnd1) !warning:giovanni CONJUGATE?
+                  ! XXX (we can think to use a blas, here, and split over spins)
+                  !does not seem we need to make it conjugate
+                 enddo
+              enddo
+              !
+              cm(:,1:nbspx) = wfc_ctmp(:,1:nbspx)
+              !
+          endif
+          !
+      endif
+
+      !
+      ! clean local workspace
+      !
+      deallocate( Omat1tot, Omat2tot )
+      deallocate( Umatbig )
+      deallocate( Heigbig )
+      deallocate( wfc_ctmp, wfc_ctmp2 )
+      deallocate( hi )
+      deallocate( gi )
+      deallocate( pink1, pink2 )
+      deallocate( vsic1, vsic2 )
+      call deallocate_twin(bec1)
+      call deallocate_twin(bec2)
+!       deallocate( bec1, bec2 )
+
+
+      CALL stop_clock( 'nk_rot_emin' )
+      return
+      !
+!---------------------------------------------------------------
+end subroutine nksic_rot_emin_cg_new
+!---------------------------------------------------------------
+
+!-----------------------------------------------------------------------
       subroutine nksic_rot_emin_cg(nouter,init_n, ninner,etot,Omattot, &
                   rot_threshold, lgam)
 !-----------------------------------------------------------------------
