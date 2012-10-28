@@ -2528,7 +2528,7 @@ write(6,*) "nlfl_twin"
       !
 !       real(kind=DP), allocatable :: bec0(:,:), becm(:,:), becdrdiag(:,:,:)
       type(twin_tensor) :: becdrdiag !modified:giovanni
-      type(twin_matrix) :: bec0, becm !modified:giovanni
+      type(twin_matrix) :: bec0_emp, becm_emp !modified:giovanni
       real(kind=DP), allocatable :: ave_ene(:)!average kinetic energy for preconditioning
       real(kind=DP), allocatable :: fmat_(:,:)!average kinetic energy for preconditioning
       complex(kind=DP), allocatable :: fmat_c_(:,:)!average kinetic energy for preconditioning
@@ -2551,7 +2551,7 @@ write(6,*) "nlfl_twin"
       complex(DP), allocatable :: hpsinosic(:,:)
       complex(DP), allocatable :: hitmp(:,:)
       integer     :: ninner,nbnd1,nbnd2,itercgeff
-      complex(DP)    :: Omattot(nbspx,nbspx)
+      complex(DP)    :: Omattot(n_empx,n_empx)
       real(DP)    :: dtmp, temp
       real(dp)    :: tmppasso, ene_save(100), ene_save2(100), ene_lda
       !
@@ -2563,15 +2563,14 @@ write(6,*) "nlfl_twin"
       lgam = gamma_only.and..not.do_wf_cmplx
       deltae = 2.d0*conv_thr
       !
-      allocate (faux(nbspx))
+      allocate (faux(n_empx))
       !
-      allocate (ave_ene(nbsp))
       allocate (c2(ngw),c3(ngw))
 
-      call init_twin(bec0, lgam)
-      call allocate_twin(bec0, nhsa, nbsp, lgam)
-      call init_twin(becm, lgam)
-      call allocate_twin(becm, nhsa, nbsp, lgam)
+      call init_twin(bec0_emp, lgam)
+      call allocate_twin(bec0_emp, nhsa, n_emps, lgam)
+      call init_twin(becm_emp, lgam)
+      call allocate_twin(becm_emp, nhsa, n_emps, lgam)
       
       !
       ! prototype call to gram_empty: use throughout the coding
@@ -2779,7 +2778,10 @@ write(6,*) "nlfl_twin"
              if(.not.do_innerloop_cg) then
                  call nksic_rot_emin(itercg,ninner,etot,Omattot, lgam)
              else
-                 call nksic_rot_emin_cg(itercg,innerloop_init_n,ninner,etot,Omattot,deltae*innerloop_cg_ratio,lgam)
+                 call nksic_rot_emin_cg_new(c0_emp, cm_emp, vsic_emp, ngw, nnrx, &
+                      bec_emp, itercg, innerloop_init_n, ninner, etot, Omattot, &
+                      deltae*innerloop_cg_ratio, n_empx, nudx_emp, nspin, iupdwn_emp, &
+                      nupdwn_emp, pink_emp, wfc_centers_emp, wfc_spreads_emp, lgam)
              endif
 
 !$$ Now rotate hi(:,:) according to Omattot!
@@ -2819,7 +2821,7 @@ write(6,*) "nlfl_twin"
 !$$ to see the outer loop energy convergence
         if (do_orbdep) then
             !
-            eodd = sum(pink(1:nbsp))
+            eodd_emp = sum(pink_emp(1:n_empx))
             !
         endif
 !$$
@@ -2836,7 +2838,7 @@ write(6,*) "nlfl_twin"
         if(ltresh.or.itercg==maxiter-1) icompute_spread=.true.
         !
         etotold=etotnew
-        ene0=etot
+        ene0=etot_emp
         !
 
        !update d
@@ -2852,7 +2854,7 @@ write(6,*) "nlfl_twin"
         faux(1:nbsp) = max(f_cutoff,f(1:nbsp)) * DBLE( nspin ) / 2.0d0
 !$$
         !
-        do i=1,nbsp,2
+        do i=1, n_empx, 2
 !$$  FIRST CALL TO DFORCE
           CALL start_clock( 'dforce1' )
 !$$          call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin,f,n,nspin)
@@ -2937,20 +2939,20 @@ write(6,*) "nlfl_twin"
            gi(1:ngw,1:nbsp)    = hpsi(1:ngw,1:nbsp)
 
 	!COMPUTES ULTRASOFT-PRECONDITIONED HPSI, non kinetic-preconditioned, is the subsequent reorthogonalization necessary in the norm conserving case???: giovanni
-        call calbec(1,nsp,eigr,hpsi,becm)
-           call xminus1_twin(hpsi,betae,dumm,becm,s_minus1,.false.)
+        call calbec(1,nsp,eigr,hpsi,becm_emp) !warning:giovanni substitute with nlsm2
+        call xminus1_twin(hpsi,betae,dumm,becm_emp,s_minus1,.false.)
 !        call sminus1(hpsi,becm,betae)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !look if the following two lines are really needed
-        call calbec(1,nsp,eigr,hpsi,becm)
+        call calbec(1,nsp,eigr,hpsi,becm_emp) !warning:giovanni substitute with nlsm2
 !$$        call pc2(c0,bec,hpsi,becm)
 !$$     THIS ORTHOGONALIZED PRECONDITIONED VECTOR HPSI
 
            if(switch.or.(.not.do_orbdep)) then
-             call pc2(c0,bec,hpsi,becm, lgam)
+             call pc2(c0_emp,bec_emp,hpsi,becm_emp, lgam)
            else
-             call pc3nc(c0,hpsi,lgam)
+             call pc3nc(c0_emp,hpsi,lgam)
 !           call pc3us(c0,bec,hpsi,becm, lgam)
            endif
 !$$
@@ -2966,22 +2968,22 @@ write(6,*) "nlfl_twin"
         ENDIF
         !
            if(.not.pre_state) then
-              call xminus1_twin(gi,betae,ema0bg,becm,k_minus1,.true.)
+              call xminus1_twin(gi,betae,ema0bg,becm_emp,k_minus1,.true.)
            else
-              call xminus1_state(gi,betae,ema0bg,becm,k_minus1,.true.,ave_ene) !warning:giovanni not yet implemented
+              call xminus1_state(gi,betae,ema0bg,becm_emp,k_minus1,.true.,ave_ene) !warning:giovanni not yet implemented
            endif
         !
-        call calbec(1,nsp,eigr,gi,becm)
+        call calbec(1,nsp,eigr,gi,becm_emp) !warning:giovanni substitute with nlsm1
 !$$        call pc2(c0,bec,gi,becm)
 !$$     !ORTHOGONALIZES GI to c0
            if(switch.or.(.not.do_orbdep)) then
-             call pc2(c0,bec,gi,becm, lgam)
+             call pc2(c0_emp,bec_emp,gi,becm_emp, lgam)
            else
-             call pc3nc(c0,gi, lgam)
+             call pc3nc(c0_emp,gi, lgam)
 !           call pc3us(c0,bec, gi,becm, lgam)
            endif
 !$$
-        call calbec(1,nsp,eigr,hpsi,bec0) 
+        call calbec(1,nsp,eigr,hpsi,bec0_emp) !warning:giovanni substitute with nlsm1
 !  calculates gamma
         gamma_c=CMPLX(0.d0,0.d0)
         
@@ -3004,7 +3006,7 @@ write(6,*) "nlfl_twin"
 	  call mp_sum( gamma_c, intra_image_comm )
            
 	   if (nvb.gt.0) then
-            if(.not.becm%iscmplx) then
+            if(.not.becm_emp%iscmplx) then
 		do i=1,nbsp
 		  do is=1,nvb
 		      do iv=1,nh(is)
@@ -3012,7 +3014,7 @@ write(6,*) "nlfl_twin"
 			    do ia=1,na(is)
 			      inl=ish(is)+(iv-1)*na(is)+ia
 			      jnl=ish(is)+(jv-1)*na(is)+ia
-			      gamma_c=gamma_c+ qq(iv,jv,is)*becm%rvec(inl,i)*bec0%rvec(jnl,i)
+			      gamma_c=gamma_c+ qq(iv,jv,is)*becm_emp%rvec(inl,i)*bec0_emp%rvec(jnl,i)
 			    end do
 			end do
 		      end do
@@ -3026,7 +3028,7 @@ write(6,*) "nlfl_twin"
 			    do ia=1,na(is)
 			      inl=ish(is)+(iv-1)*na(is)+ia
 			      jnl=ish(is)+(jv-1)*na(is)+ia
-			      gamma_c=gamma_c+ qq(iv,jv,is)*CONJG(becm%cvec(inl,i))*(bec0%cvec(jnl,i)) !warning:giovanni CONJG
+			      gamma_c=gamma_c+ qq(iv,jv,is)*CONJG(becm_emp%cvec(inl,i))*(bec0_emp%cvec(jnl,i)) !warning:giovanni CONJG
 			    end do
 			end do
 		      end do
@@ -3074,13 +3076,13 @@ write(6,*) "nlfl_twin"
 
         !project hi on conduction sub-space
 
-        call calbec(1,nsp,eigr,hi,bec0)
+        call calbec(1,nsp,eigr,hi,bec0_emp)
 !$$        call pc2(c0,bec,hi,bec0)
 !$$
            if(switch.or.(.not.do_orbdep)) then
-              call pc2(c0,bec,hi,bec0, lgam)
+              call pc2(c0_emp,bec_emp,hi,bec0_emp, lgam)
            else
-              call pc3nc(c0,hi,lgam)
+              call pc3nc(c0_emp,hi,lgam)
 !           call pc3us(c0,bec,hi,bec0, lgam)
            endif
 !$$
@@ -3120,33 +3122,28 @@ write(6,*) "nlfl_twin"
       !
       ! calculates wave-functions on a point on direction hi
       !
-      cm(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passof*hi(1:ngw,1:nbsp)
+      cm_emp(1:ngw,1:nbsp)=c0_emp(1:ngw,1:nbsp)+spasso*passof*hi(1:ngw,1:nbsp)
       !
 !$$   ! I do not know why the following 3 lines 
       ! were not in the original code (CHP)
       !
-      if(lgam.and.ng0 == 2)  cm(1,:)=0.5d0*(cm(1,:)+CONJG(cm(1,:)))
+      if(lgam.and.ng0 == 2)  cm_emp(1,:)=0.5d0*(cm_emp(1,:)+CONJG(cm_emp(1,:)))
 !$$
 
       !orthonormalize
 
       !
          if(do_orbdep.and.ortho_switch) then
-            call lowdin(cm, lgam)
-            call calbec(1,nsp,eigr,cm,becm)
+            call lowdin(cm_emp, lgam)
+            call calbec(1,nsp,eigr,cm_emp,becm_emp) !warning:giovanni substitute with nlsm1
          else
-            call calbec(1,nsp,eigr,cm,becm)
-            call gram(betae,becm,nhsa,cm,ngw,nbsp)
+            call calbec(1,nsp,eigr,cm_emp,becm_emp) !warning:giovanni substitute with nlsm1
+            call gram(betae,becm_emp,nhsa,cm_emp,ngw,n_emps)
          endif
         !call calbec(1,nsp,eigr,cm,becm)
 
         !****calculate energy ene1
-           if(non_ortho) then
-              call rhoofr(nfi,cm(:,:),cmdual, irb,eigrb,becm,becmdual,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
-           else
-              write(6,*) "checkwave", cm(1:2,1)
-              call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
-           endif
+        call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
         !calculate potential
         !
         !     put core charge (if present) in rhoc(r)
@@ -3173,9 +3170,9 @@ write(6,*) "nlfl_twin"
                                   wfc_centers, wfc_spreads, &
                                   icompute_spread)
             !
-            eodd=sum(pink(1:nbsp))
+            eodd_emp=sum(pink_emp(1:n_emps))
 !             write(6,*) eodd, etot, "EODD2", etot+eodd !debug:giovanni
-            etot = etot + eodd
+            etot_emp = etot_emp + eodd_emp
             !
         endif
 !$$
@@ -3208,31 +3205,27 @@ write(6,*) "nlfl_twin"
               
         !calculates wave-functions at minimum
 
-        cm(1:ngw,1:nbsp) = c0(1:ngw,1:nbsp) +spasso*passo*hi(1:ngw,1:nbsp)
+        cm_emp(1:ngw,1:nbsp) = c0_emp(1:ngw,1:nbsp) +spasso*passo*hi(1:ngw,1:nbsp)
         !
         if(lgam.and. ng0 == 2 )  THEN
-          cm(1,:) = 0.5d0*(cm(1,:)+CONJG(cm(1,:)))
+          cm_emp(1,:) = 0.5d0*(cm_emp(1,:)+CONJG(cm_emp(1,:)))
         ELSE !warning:giovanni this would fix the phase of the new position.. should
              !        not influence the calculation
         ENDIF
       
            IF(do_orbdep.and.ortho_switch) THEN
-              call lowdin(cm, lgam)
-              call calbec(1,nsp,eigr,cm,becm)
+              call lowdin(cm_emp, lgam)
+              call calbec(1,nsp,eigr,cm_emp,becm_emp) !warning:giovanni substitute with nlsm1
            ELSE
-              call calbec(1,nsp,eigr,cm,becm)
-              call gram(betae,becm,nhsa,cm,ngw,nbsp)
+              call calbec(1,nsp,eigr,cm_emp,becm_emp)  !warning:giovanni substitute with nlsm1
+              call gram(betae,becm_emp,nhsa,cm_emp,ngw,n_emps)
            ENDIF
 
         !test on energy: check the energy has really diminished
 
         !call calbec(1,nsp,eigr,cm,becm)
           !
-          if(non_ortho) then
-             call rhoofr(nfi,cm(:,:),cmdual,irb,eigrb,becm,becmdual,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
-          else
-             call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
-          endif
+          call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
           !
 
         !calculates the potential
@@ -3290,20 +3283,15 @@ write(6,*) "nlfl_twin"
         !if the energy has diminished with respect to  ene0 and ene1 , everything ok
         !
         if( ((enever.lt.ene0) .and. (enever.lt.ene1)).or.(tefield.or.tefield2)) then
-          c0(:,:)=cm(:,:)
-          call copy_twin(bec,becm) !modified:giovanni
+          c0_emp(:,:) = cm_emp(:,:)
+          call copy_twin(bec_emp, becm_emp) !modified:giovanni
           ene_ok=.true.
-          if(non_ortho) then
-             cdual(:,:)=cmdual(:,:)
-             call copy_twin(becdual,becmdual)
-             write(6,*) "checkdual", cdual(1:2,1)
-          endif
         elseif( (enever.ge.ene1) .and. (enever.lt.ene0)) then
           if(ionode) then
              write(stdout,"(2x,a,i5,f20.12)") 'cg_sub: missed minimum, case 1, iteration',itercg, passof
              write(6,*) "checkenergies",ene0,enever,ene1
           endif
-          c0(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
+          c0_emp(1:ngw,1:n_emps)=c0_emp(1:ngw,1:n_emps)+spasso*passov*hi(1:ngw,1:n_emps)
                 write(6,*) "checkwave", c0(1:2,1)
 !$$
           passof=2.d0*passov
@@ -3361,18 +3349,15 @@ write(6,*) "nlfl_twin"
             spasso=spasso*(-1.d0)
 
                IF(do_orbdep.and.ortho_switch) THEN
-                  call lowdin(cm, lgam)
-                  call calbec(1,nsp,eigr,cm,becm)
+                  call lowdin(cm_emp, lgam)
+                  call calbec(1, nsp, eigr, cm_emp, becm_emp)
                ELSE
-                  call calbec(1,nsp,eigr,cm,becm)
-                  call gram(betae,bec,nhsa,cm,ngw,nbsp)
+                  call calbec(1, nsp, eigr, cm_emp, becm_emp)
+                  call gram(betae, bec_emp, nhsa, cm_emp, ngw, n_emps)
                ENDIF
 
-              if(non_ortho) then
-                 call rhoofr(nfi,cm(:,:),cmdual,irb,eigrb,becm,becmdual,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
-              else
-                 call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
-              endif
+               call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
+              
             !calculates the potential
             !
             !     put core charge (if present) in rhoc(r)
@@ -3434,8 +3419,8 @@ write(6,*) "nlfl_twin"
 !                    write(6,*) "checkdual", cdual(1:2,1)
 !                 endif
               else if(enever.le.ene0) then
-                c0(:,:)=cm(:,:)
-                call copy_twin(bec,becm)
+                c0_emp(:,:)=cm_emp(:,:)
+                call copy_twin(bec_emp,becm_emp)
               endif
 
           !endif
@@ -3529,13 +3514,13 @@ write(6,*) "nlfl_twin"
 !$$
          if(do_orbdep) then
              !
-                call nksic_potential( nbsp, nbspx, c0, fsic, bec, rhovan, deeq_sic, &
-                                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, do_wxd, pink, nudx, &
-                                   wfc_centers, wfc_spreads, &
+                call nksic_potential( n_emps, n_empx, c0_emp, fsic_emp, bec_emp, rhovan_emp, deeq_sic_emp, &
+                                   ispin_emp, iupdwn_emp, nupdwn_emp, rhor, rhog, wtot, vsic_emp, do_wxd, &
+                                   pink_emp, nudx_emp, wfc_centers_emp, wfc_spreads_emp, &
                                    icompute_spread)
-             eodd = sum(pink(1:nbsp))
+             eodd_emp = sum(pink_emp(1:n_empx))
 !              write(6,*) eodd, etot, "EODD5", etot+eodd
-             etot = etot + eodd
+             etot_emp = etot_emp + eodd_emp
              !
          endif
 !$$
@@ -3689,8 +3674,8 @@ write(6,*) "nlfl_twin"
 !         deallocate(bec0,becm,becdrdiag)
 
      !begin_modified:giovanni
-     call deallocate_twin(bec0)
-     call deallocate_twin(becm)
+     call deallocate_twin(bec0_emp)
+     call deallocate_twin(becm_emp)
      call deallocate_twin(becdrdiag)
      !
 !         do i=1,nspin
