@@ -433,7 +433,6 @@
              CALL hf_potential( nbsp,   nbspx,  c0,     f, ispin, iupdwn, nupdwn, &
                                 n_emps, n_empx, c0_emp, fsic_emp, ispin_emp, &
                                 iupdwn_emp, nupdwn_emp, rhor, rhog, vxxpsi_emp, exx_emp )
-
              !
          ENDIF
 

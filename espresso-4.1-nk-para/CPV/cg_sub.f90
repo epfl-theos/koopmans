@@ -2559,8 +2559,12 @@ write(6,*) "nlfl_twin"
       complex(DP) :: phase
       integer :: ierr, northo_flavor
       real(DP) :: deltae,sic_coeff1, sic_coeff2 !coefficients which may change according to the flavour of SIC
+      real(DP) :: ekin_emp, enl_emp, dekin_emp(3,3), denl_emp(3,3), epot_emp
+      real(DP), allocatable :: rhor_emp(:,:), rhos_emp(:,:), rhoc_emp(:)
+      complex(DP), allocatable :: rhog_emp(:,:)
       !
       lgam = gamma_only.and..not.do_wf_cmplx
+      !
       deltae = 2.d0*conv_thr
       !
       allocate (faux(n_empx))
@@ -2571,7 +2575,13 @@ write(6,*) "nlfl_twin"
       call allocate_twin(bec0_emp, nhsa, n_emps, lgam)
       call init_twin(becm_emp, lgam)
       call allocate_twin(becm_emp, nhsa, n_emps, lgam)
-      
+      allocate(rhor_emp(nnr,nspin), rhos_emp(nnr,nspin), rhog_emp(ngm,nspin))
+      !
+      if(nlcc_any) then
+         !
+         allocate(rhoc_emp(nnr))
+         !
+      endif
       !
       ! prototype call to gram_empty: use throughout the coding
       !
@@ -2660,11 +2670,11 @@ write(6,*) "nlfl_twin"
       !
       numok = 0
 
-      allocate( hpsi(ngw,nbsp) )
-      allocate( hpsi0(ngw,nbsp) )
-      allocate( gi(ngw,nbsp), hi(ngw,nbsp) )
+      allocate( hpsi(ngw,n_emps) )
+      allocate( hpsi0(ngw,n_emps) )
+      allocate( gi(ngw,n_emps), hi(ngw,n_emps) )
       !
-      allocate(hitmp(ngw,nbsp))
+      allocate(hitmp(ngw,n_emps))
       hitmp(:,:) = CMPLX(0.d0,0.d0)
       ! allocate(hpsinosic(ngw,n))
       !
@@ -2686,10 +2696,19 @@ write(6,*) "nlfl_twin"
 !$$$$
 
         ENERGY_CHECK: &
+        !
         if(.not. ene_ok ) then
 
           !call calbec(1,nsp,eigr,c0,bec)
           CALL nlsm1 ( n_emps, 1, nvb, eigr, c0_emp, bec_emp, 1, lgam )
+          !
+          call rhoofr_cp_ortho_new &
+          ( n_empx, n_emps, nudx_emp, f_emp, ispin_emp, iupdwn_emp, &
+          nupdwn_emp, nspin, nfi, c0_emp, irb, eigrb, bec_emp, &
+          rhovan_emp, rhor_emp, rhog_emp, rhos_emp, enl_emp, denl_emp, &
+          ekin_emp, dekin)
+          
+!           call v_times_rho(filledstates_potential, rhor_emp, epot_emp) ! potential energy of filled states times density of empty states
           
           !call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
            
@@ -3143,7 +3162,11 @@ write(6,*) "nlfl_twin"
         !call calbec(1,nsp,eigr,cm,becm)
 
         !****calculate energy ene1
-        call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
+       call rhoofr_cp_ortho_new &
+       ( n_empx, n_emps, nudx_emp, f_emp, ispin_emp, iupdwn_emp, &
+         nupdwn_emp, nspin, nfi, c0_emp, irb, eigrb, bec_emp, &
+         rhovan_emp, rhor_emp, rhog_emp, rhos_emp, enl_emp, denl_emp, &
+         ekin_emp, dekin)
         !calculate potential
         !
         !     put core charge (if present) in rhoc(r)
@@ -3677,7 +3700,13 @@ write(6,*) "nlfl_twin"
      call deallocate_twin(bec0_emp)
      call deallocate_twin(becm_emp)
      call deallocate_twin(becdrdiag)
+     deallocate(rhor_emp, rhos_emp, rhog_emp)
      !
+     if(allocated(rhoc_emp)) then
+        !
+        deallocate(rhoc_emp)
+        !
+     endif
 !         do i=1,nspin
 ! 	  call deallocate_twin(lambda(i))
 ! 	  call deallocate_twin(lambdap(i))
@@ -3689,5 +3718,19 @@ write(6,*) "nlfl_twin"
      deallocate(c2,c3)
      return
 
+!      contains
+     
+!      subroutine v_times_rho(v, rhor_emp, epot_emp)
+!      
+!         use kinds, only: DP
+!      
+!         implicit none
+!         
+!         
+!         
+!         return
+!      
+!      end subroutine v_times_rho
+     
      END SUBROUTINE runcg_uspp_emp
 

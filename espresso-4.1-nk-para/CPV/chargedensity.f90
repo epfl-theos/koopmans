@@ -1401,6 +1401,673 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
+   SUBROUTINE rhoofr_cp_ortho_new &
+      ( nx, n, nudx, f, ispin, iupdwn, nupdwn, nspin, nfi, c, irb, &
+       eigrb, bec, &
+       rhovan, rhor, rhog, rhos, enl, denl, ekin, dekin, tstress, ndwwf )
+!-----------------------------------------------------------------------
+!
+!  this routine computes:
+!  rhor  = normalized electron density in real space
+!  ekin  = kinetic energy
+!  dekin = kinetic energy term of QM stress
+!
+!    rhor(r) = (sum over ib) fi(ib) |psi(r,ib)|^2
+!
+!    Using quantities in scaled space
+!    rhor(r) = rhor(s) / Omega
+!    rhor(s) = (sum over ib) fi(ib) |psi(s,ib)|^2 
+!
+!    fi(ib) = occupation numbers
+!    psi(r,ib) = psi(s,ib) / SQRT( Omega ) 
+!    psi(s,ib) = INV_FFT (  c0(ig,ib)  )
+!
+!    ib = index of band
+!    ig = index of G vector
+!  ----------------------------------------------
+!     the normalized electron density rhor in real space
+!     the kinetic energy ekin
+!     subroutine uses complex fft so it computes two ft's
+!     simultaneously
+!
+!     rho_i,ij = sum_n < beta_i,i | psi_n >< psi_n | beta_i,j >
+!     < psi_n | beta_i,i > = c_n(0) beta_i,i(0) +
+!                   2 sum_g> re(c_n*(g) (-i)**l beta_i,i(g) e^-ig.r_i)
+!
+!     e_v = sum_i,ij rho_i,ij d^ion_is,ji
+!
+      USE kinds,              ONLY: DP
+      USE control_flags,      ONLY: iprint, iprsta, thdyn, tpre, trhor, use_task_groups, program_name, &
+                             &          gamma_only, do_wf_cmplx !added:giovanni gamma_only, do_wf_cmplx
+      USE ions_base,          ONLY: nat
+      USE gvecp,              ONLY: ngm
+      USE gvecs,              ONLY: ngs, nps, nms
+      USE gvecb,              ONLY: ngb
+      USE gvecw,              ONLY: ngw
+      USE recvecs_indexes,    ONLY: np, nm
+      USE reciprocal_vectors, ONLY: gstart
+      USE uspp,               ONLY: nkb
+      USE uspp_param,         ONLY: nh, nhm
+      USE grid_dimensions,    ONLY: nr1, nr2, nr3, &
+                                    nr1x, nr2x, nr3x, nnrx
+      USE cell_base,          ONLY: omega
+      USE smooth_grid_dimensions, ONLY: nr1s, nr2s, nr3s, &
+                                        nr1sx, nr2sx, nr3sx, nnrsx
+      USE constants,          ONLY: pi, fpi
+      USE mp,                 ONLY: mp_sum
+      USE io_global,          ONLY: stdout, ionode
+      USE mp_global,          ONLY: intra_image_comm, nogrp, me_image, ogrp_comm, nolist
+      USE funct,              ONLY: dft_is_meta
+      USE cg_module,          ONLY: tcg
+      USE cp_interfaces,      ONLY: fwfft, invfft, stress_kin
+      USE fft_base,           ONLY: dffts, dfftp
+      USE cp_interfaces,      ONLY: checkrho, calrhovan
+      USE cdvan,              ONLY: dbec, drhovan
+      USE cp_main_variables,  ONLY: iprint_stdout, drhor, drhog
+      USE wannier_base,       ONLY: iwf
+      USE cell_base,          ONLY: a1, a2, a3
+      USE twin_types !added:giovanni
+!
+      IMPLICIT NONE
+      INTEGER nfi, n, nx, nspin, ispin(n), &
+              iupdwn(nspin), nupdwn(nspin), nudx
+      type(twin_matrix) :: bec!(:,:)
+      REAL(DP) rhovan(:, :, : )
+      REAL(DP) rhor(:,:), f(:)
+      REAL(DP) rhos(:,:)
+      REAL(DP) enl, ekin
+      REAL(DP) denl(3,3), dekin(6)
+      COMPLEX(DP) eigrb( :, : )
+      COMPLEX(DP) rhog( :, : )
+      COMPLEX(DP) c( :, : )
+      INTEGER irb( :, : )
+      LOGICAL, OPTIONAL, INTENT(IN) :: tstress
+      INTEGER, OPTIONAL, INTENT(IN) :: ndwwf
+
+      ! local variables
+
+      INTEGER  :: iss, isup, isdw, iss1, iss2, ios, i, ir, ig, j !added:giovanni j
+      REAL(DP) :: rsumr(2), rsumg(2), sa1, sa2, detmp(6), mtmp(3,3)
+      REAL(DP) :: rnegsum, rmin, rmax, rsum
+      REAL(DP), EXTERNAL :: enkin_new, ennl_new
+      REAL(DP), EXTERNAL :: dnrm2, ddot
+!       COMPLEX, EXTERNAL :: cdotu
+      COMPLEX(DP) :: ci,fp,fm
+      COMPLEX(DP), ALLOCATABLE :: psi(:), psis(:)
+
+      LOGICAL, SAVE :: first = .TRUE.
+      LOGICAL :: ttstress
+      LOGICAL :: lgam
+      !
+
+      CALL start_clock( 'rhoofr' )
+      
+      lgam=gamma_only.and..not.do_wf_cmplx
+      ttstress = tpre
+      IF( PRESENT( tstress ) ) ttstress = tstress
+
+      ci = ( 0.0d0, 1.0d0 )
+
+      rhor = 0.d0
+      rhos = 0.d0
+      rhog = CMPLX(0.d0, 0.d0)
+      !
+      !  calculation of kinetic energy ekin
+      !
+      ekin = enkin_new( c, ngw, f, n, nspin, nudx, iupdwn, nupdwn)
+!       write(6,*) "ekin", ekin ! added:giovanni:debug
+      !
+      IF( ttstress ) THEN
+         !
+         ! ... compute kinetic energy contribution
+         !
+         CALL stress_kin( dekin, c, f )
+         !
+      END IF
+
+      IF( PRESENT( ndwwf ) ) THEN
+         !
+         !     called from WF, compute only of rhovan
+         !
+         CALL calrhovan( rhovan, bec, iwf )
+         !
+      ELSE
+         !
+         !     calculation of non-local energy
+         !
+         enl = ennl_new( n, nspin, ispin, f, rhovan, bec )
+!          write(6,*) "enl", enl !added:giovanni:debug
+!          write(6,*) "bec%cvec" , bec%cvec !added:giovanni:debug
+         !
+      END IF
+      !
+      IF( ttstress ) THEN
+         !
+         CALL dennl( bec%rvec, dbec, drhovan, denl ) 
+         !
+      END IF
+      !    
+      !    warning! trhor and thdyn are not compatible yet!   
+      !
+      COMPUTE_CHARGE: IF( trhor .AND. ( .NOT. thdyn ) ) THEN
+         !
+         !   non self-consistent calculation  
+         !   charge density is read from unit 47
+         !
+         CALL read_rho( nspin, rhor )
+
+         ALLOCATE( psi( nnrx ) )
+!
+         IF(nspin.EQ.1)THEN
+            iss=1
+            DO ir=1,nnrx
+               psi(ir)=CMPLX(rhor(ir,iss),0.d0)
+            END DO
+            CALL fwfft('Dense', psi, dfftp )
+            DO ig=1,ngm
+               rhog(ig,iss)=psi(np(ig))
+            END DO
+         ELSE !IF(lgam) THEN !!!### uncomment for k points
+            isup=1
+            isdw=2
+            DO ir=1,nnrx
+               psi(ir)=CMPLX(rhor(ir,isup),rhor(ir,isdw))
+            END DO
+            CALL fwfft('Dense', psi, dfftp )
+            DO ig=1,ngm
+               fp=psi(np(ig))+psi(nm(ig))
+               fm=psi(np(ig))-psi(nm(ig))
+               rhog(ig,isup)=0.5d0*CMPLX( DBLE(fp),AIMAG(fm))
+               rhog(ig,isdw)=0.5d0*CMPLX(AIMAG(fp),-DBLE(fm))
+            END DO
+!          ELSE IF(.not.lgam) THEN !!!### uncomment for k points
+!          DO iss=1,2 !!!### uncomment for k points
+!             DO ir=1,nnrx !!!### uncomment for k points
+!               psi(ir)=CMPLX(rhor(ir,iss),0.d0) !!!### uncomment for k points
+!             END DO !!!### uncomment for k points
+!             CALL fwfft('Dense', psi, dfftp ) !!!### uncomment for k points
+!             DO ig=1,ngm !!!### uncomment for k points
+!               rhog(ig,iss) = psi(np(ig)) !!!### uncomment for k points
+!             END DO !!!### uncomment for k points
+!            ENDDO !!!### uncomment for k points
+         ENDIF
+
+         DEALLOCATE( psi )
+!
+      ELSE
+         !     ==================================================================
+         !     self-consistent charge
+         !     ==================================================================
+         !
+         !     important: if n is odd then nx must be .ge.n+1 and c(*,n+1)=0.
+         ! 
+
+         IF ( MOD( n, 2 ) /= 0 ) THEN
+            !
+            IF( SIZE( c, 2 ) < n+1 ) &
+               CALL errore( ' rhoofr ', ' c second dimension too small ', SIZE( c, 2 ) )
+            !
+            c( :, n+1 ) = ( 0.d0, 0.d0 )
+            !
+         ENDIF
+         !
+         IF( PRESENT( ndwwf ) ) THEN
+            !
+            ! Wannier function, charge density from state iwf
+            !
+            i = iwf
+            !
+            psis = 0.D0
+            DO ig=1,ngw
+               psis(nms(ig))=CONJG(c(ig,i))
+               psis(nps(ig))=c(ig,i)
+            END DO
+            !
+            CALL invfft('Wave',psis, dffts )
+            !
+            iss1=1
+            sa1=f(i)/omega
+            DO ir=1,nnrsx
+               rhos(ir,iss1)=rhos(ir,iss1) + sa1*( DBLE(psis(ir)))**2
+            END DO
+            !
+         ELSE IF( use_task_groups ) THEN
+            !
+            CALL loop_over_states_tg()
+            !
+         ELSE
+            !
+            ALLOCATE( psis( nnrsx ) )
+            !
+            DO i = 1, n, 2
+               !
+               IF(lgam) THEN !added:giovanni
+                  !
+                  CALL c2psi( psis, nnrsx, c( 1, i ), c( 1, i+1 ), ngw, 2 )
+                  CALL invfft('Wave',psis, dffts )
+                  !
+                  !
+                  iss1 = ispin(i)
+                  sa1  = f(i) / omega
+                  IF ( i .NE. n ) THEN
+                      iss2 = ispin(i+1)
+                      sa2  = f(i+1) / omega
+                  ELSE
+                      iss2 = iss1
+                      sa2  = 0.0d0
+                  END IF
+                  !
+
+                  DO ir = 1, nnrsx
+                     rhos(ir,iss1) = rhos(ir,iss1) + sa1 * ( DBLE(psis(ir)))**2
+                     rhos(ir,iss2) = rhos(ir,iss2) + sa2 * (AIMAG(psis(ir)))**2
+                  END DO
+                  !
+!!!!!begin_added:giovanni
+               ELSE
+                  CALL c2psi( psis, nnrsx, c( 1, i ), c( 1, i ), ngw, 0 )
+
+                  CALL invfft('Wave',psis, dffts )
+                  !
+                  !
+                  iss1 = ispin(i)
+                  sa1  = f(i) / omega
+!                 IF ( i .NE. n ) THEN
+!                     iss2 = ispin(i+1)
+!                     sa2  = f(i+1) / omega
+!                 ELSE
+!                     iss2 = iss1
+!                     sa2  = 0.0d0
+!                 END IF
+                  !
+
+                  DO ir = 1, nnrsx
+                     rhos(ir,iss1) = rhos(ir,iss1) + sa1 *(ABS(psis(ir))**2)
+                  END DO
+                  !
+                  IF(i.ne.n) then
+  
+                    CALL c2psi( psis, nnrsx, c( 1, i+1 ), c( 1, i+1 ), ngw, 0 )
+
+                    CALL invfft('Wave',psis, dffts )
+
+                    !
+                    iss1 = ispin(i+1)
+                    sa1  = f(i+1) / omega
+!                 IF ( i .NE. n ) THEN
+!                     iss2 = ispin(i+1)
+!                     sa2  = f(i+1) / omega
+!                 ELSE
+!                     iss2 = iss1
+!                     sa2  = 0.0d0
+!                 END IF
+
+                    DO ir = 1, nnrsx
+                       rhos(ir,iss1) = rhos(ir,iss1) + sa1 *( abs(psis(ir))**2)
+                    END DO
+                  ENDIF
+               ENDIF
+!!!!end_added:giovanni
+            END DO
+            !
+            DEALLOCATE( psis )
+            !
+         END IF
+         !
+         !     smooth charge in g-space is put into rhog(ig)
+         !
+         ALLOCATE( psis( nnrsx ) ) 
+         !
+         IF(nspin.EQ.1)THEN
+            iss=1
+            DO ir=1,nnrsx
+               psis(ir)=CMPLX(rhos(ir,iss),0.d0)
+            END DO
+            CALL fwfft('Smooth', psis, dffts )
+            DO ig=1,ngs
+               rhog(ig,iss)=psis(nps(ig))
+            END DO
+         ELSE !IF(lgam) THEN !!!### uncomment for k points
+            isup=1
+            isdw=2
+             DO ir=1,nnrsx
+               psis(ir)=CMPLX(rhos(ir,isup),rhos(ir,isdw))
+            END DO
+            CALL fwfft('Smooth',psis, dffts )
+            DO ig=1,ngs
+               fp= psis(nps(ig)) + psis(nms(ig))
+               fm= psis(nps(ig)) - psis(nms(ig))
+               rhog(ig,isup)=0.5d0*CMPLX( DBLE(fp),AIMAG(fm))
+               rhog(ig,isdw)=0.5d0*CMPLX(AIMAG(fp),-DBLE(fm))
+            END DO
+!          ELSE IF(.not.lgam) THEN !!!### uncomment for k points
+!             DO iss=1,2 !!!### uncomment for k points
+!             DO ir=1,nnrsx !!!### uncomment for k points
+!               psis(ir)=CMPLX(rhos(ir,iss),0.d0) !!!### uncomment for k points
+!             END DO !!!### uncomment for k points
+!             CALL fwfft('Smooth', psis, dffts ) !!!### uncomment for k points
+!             DO ig=1,ngs !!!### uncomment for k points
+!               rhog(ig,iss)=psis(nps(ig)) !!!### uncomment for k points
+!             END DO !!!### uncomment for k points
+!             ENDDO !!!### uncomment for k points
+         ENDIF
+         !
+         ALLOCATE( psi( nnrx ) )
+         !
+         IF( nspin .EQ. 1 ) THEN
+            ! 
+            !     case nspin=1
+            ! 
+            iss=1
+            psi (:) = CMPLX(0.d0, 0.d0)
+!             IF(lgam) then !added:giovanni !!!### uncomment for k points
+              DO ig=1,ngs  
+                psi(nm(ig))=CONJG(rhog(ig,iss))
+                psi(np(ig))=      rhog(ig,iss)
+              END DO
+!!!!!begin_added:giovanni
+!             ELSE !!!### uncomment for k points
+!               DO ig=1,ngs  !!!### uncomment for k points
+! !             psi(nm(ig))=CONJG(rhog(ig,iss)) !!!### uncomment for k points
+!               psi(np(ig))=      rhog(ig,iss) !!!### uncomment for k points
+!             END DO !!!### uncomment for k points
+!             ENDIF !!!### uncomment for k points
+!!!!!end_added:giovanni
+            CALL invfft('Dense',psi, dfftp )
+            DO ir=1,nnrx
+               rhor(ir,iss)=DBLE(psi(ir))
+            END DO
+            !
+         ELSE 
+            !
+            !     case nspin=2
+            !
+!             IF(lgam) then !added:giovanni !!!### uncomment for k points
+              isup=1
+              isdw=2
+              psi (:) = CMPLX(0.d0, 0.d0)
+              DO ig=1,ngs
+              psi(nm(ig))=CONJG(rhog(ig,isup))+ci*CONJG(rhog(ig,isdw))
+                psi(np(ig))=rhog(ig,isup)+ci*rhog(ig,isdw)
+              END DO
+              CALL invfft('Dense',psi, dfftp )
+              DO ir=1,nnrx
+                rhor(ir,isup)= DBLE(psi(ir))
+                rhor(ir,isdw)=AIMAG(psi(ir))
+              END DO
+!!!!!begin_added:giovanni
+!             ELSE !!!### uncomment for k points
+!               DO iss=1, 2 !!!### uncomment for k points
+!               psi (:) = (0.d0, 0.d0) !!!### uncomment for k points
+!               DO ig=1,ngs !!!### uncomment for k points
+!                 psi(np(ig))=rhog(ig,iss) !!!### uncomment for k points
+!               END DO !!!### uncomment for k points
+!               CALL invfft('Dense',psi, dfftp ) !!!### uncomment for k points
+!               DO ir=1,nnrx !!!### uncomment for k points
+!                 rhor(ir,iss)= DBLE(psi(ir)) !!!### uncomment for k points
+!   !           rhor(ir,isdw)=AIMAG(psi(ir)) !!!### uncomment for k points
+!               END DO !!!### uncomment for k points
+!               ENDDO !!!### uncomment for k points
+!             ENDIF !!!### uncomment for k points
+!!!!!end_added:giovanni
+         ENDIF
+         !
+         IF ( dft_is_meta() ) CALL kedtauofr_meta( c, psi, SIZE( psi ), psis, SIZE( psis ) ) ! METAGGA
+         !
+         DEALLOCATE( psi ) 
+         DEALLOCATE( psis ) 
+         !
+         !     add vanderbilt contribution to the charge density
+         !     drhov called before rhov because input rho must be the smooth part
+         !
+         !
+         IF ( ttstress .AND. program_name == 'CP90' ) &
+            CALL drhov( irb, eigrb, rhovan, rhog, rhor, drhog, drhor )
+         !
+         CALL rhov( irb, eigrb, rhovan, rhog, rhor, lgam )
+
+      ENDIF COMPUTE_CHARGE
+!
+      IF( PRESENT( ndwwf ) ) THEN
+         !
+         CALL old_write_rho( ndwwf, nspin, rhor, a1, a2, a3 )
+         !
+      END IF
+!
+!     here to check the integral of the charge density
+!
+      IF( ( iprsta >= 2 ) .OR. ( nfi == 0 ) .OR. &
+          ( MOD(nfi, iprint_stdout) == 0 ) .AND. ( .NOT. tcg ) ) THEN
+
+         IF( iprsta >= 2 ) THEN
+            CALL checkrho( nnrx, nspin, rhor, rmin, rmax, rsum, rnegsum )
+            rnegsum = rnegsum * omega / DBLE(nr1*nr2*nr3)
+            rsum    = rsum    * omega / DBLE(nr1*nr2*nr3)
+            WRITE( stdout,'(a,4(1x,f12.6))')                                     &
+     &     ' rhoofr: rmin rmax rnegsum rsum  ',rmin,rmax,rnegsum,rsum
+         END IF
+
+         CALL sum_charge( rsumg, rsumr )
+
+         IF ( nspin == 1 ) THEN
+           WRITE( stdout, 10) rsumg(1), rsumr(1)
+         ELSE
+           WRITE( stdout, 20) rsumg(1), rsumr(1), rsumg(2), rsumr(2)
+         ENDIF
+
+      ENDIF
+
+10    FORMAT( /, 3X, 'from rhoofr: total integrated electronic density', &
+            & /, 3X, 'in g-space = ', f11.6, 3x, 'in r-space =', f11.6 )
+20    FORMAT( /, 3X, 'from rhoofr: total integrated electronic density', &
+            & /, 3X, 'spin up', &
+            & /, 3X, 'in g-space = ', f11.6, 3x, 'in r-space =', f11.6 , &
+            & /, 3X, 'spin down', &
+            & /, 3X, 'in g-space = ', f11.6, 3x, 'in r-space =', f11.6 )
+!
+      CALL stop_clock( 'rhoofr' )
+
+!
+      RETURN
+
+
+   CONTAINS   
+      !
+      !
+      SUBROUTINE sum_charge( rsumg, rsumr )
+         !
+         REAL(DP), INTENT(OUT) :: rsumg( : )
+         REAL(DP), INTENT(OUT) :: rsumr( : )
+         INTEGER :: iss
+         !
+         DO iss=1,nspin
+            rsumg(iss)=omega*DBLE(rhog(1,iss))
+            rsumr(iss)=SUM(rhor(:,iss),1)*omega/DBLE(nr1*nr2*nr3)
+         END DO
+
+         IF (gstart.NE.2) THEN
+            ! in the parallel case, only one processor has G=0 !
+            DO iss=1,nspin
+               rsumg(iss)=0.0d0
+            END DO
+         END IF
+
+         CALL mp_sum( rsumg( 1:nspin ), intra_image_comm )
+         CALL mp_sum( rsumr( 1:nspin ), intra_image_comm )
+
+         RETURN
+      END SUBROUTINE
+
+      !
+      !
+
+      SUBROUTINE loop_over_states_tg
+         !
+         USE parallel_include
+         !
+         !        MAIN LOOP OVER THE EIGENSTATES
+         !           - This loop is also parallelized within the task-groups framework
+         !           - Each group works on a number of eigenstates in parallel
+         !
+         IMPLICIT NONE
+         !
+         INTEGER :: from, ii, eig_index, eig_offset
+         REAL(DP), ALLOCATABLE :: tmp_rhos(:,:)
+
+         ALLOCATE( psis( dffts%nnrx * nogrp ) ) 
+         !
+         ALLOCATE( tmp_rhos ( nr1sx * nr2sx * dffts%tg_npp( me_image + 1 ), nspin ) )
+         !
+         tmp_rhos = 0_DP
+
+         do i = 1, n, 2*nogrp
+            !
+            !  Initialize wave-functions in Fourier space (to be FFTed)
+            !  The size of psis is nnr: which is equal to the total number
+            !  of local fourier coefficients.
+            !
+!$omp parallel default(shared), private(eig_offset, ig, eig_index )
+            !
+!$omp do
+            do ig = 1, SIZE(psis)
+               psis (ig) = CMPLX(0.d0, 0.d0)
+            end do
+            !
+            !  Loop for all local g-vectors (ngw)
+            !  c: stores the Fourier expansion coefficients
+            !     the i-th column of c corresponds to the i-th state
+            !  nms and nps matrices: hold conversion indices form 3D to
+            !     1-D vectors. Columns along the z-direction are stored contigiously
+            !
+            !  The outer loop goes through i : i + 2*NOGRP to cover
+            !  2*NOGRP eigenstates at each iteration
+            !
+            eig_offset = 0
+
+            do eig_index = 1, 2*nogrp, 2   
+               !
+               !  here we pack 2*nogrp electronic states in the psis array
+               !
+               IF ( ( i + eig_index - 1 ) <= n ) THEN
+                  !
+                  !  Outer loop for eigenvalues
+                  !  The  eig_index loop is executed only ONCE when NOGRP=1.
+                  !  Equivalent to the case with no task-groups
+                  !  dfft%nsw(me) holds the number of z-sticks for the current processor per wave-function
+                  !  We can either send these in the group with an mpi_allgather...or put the
+                  !  in the PSIS vector (in special positions) and send them with them.
+                  !  Otherwise we can do this once at the beginning, before the loop.
+                  !  we choose to do the latter one.
+
+!$omp do
+                  do ig=1,ngw
+                     psis(nms(ig)+eig_offset*dffts%nnrx)=conjg(c(ig,i+eig_index-1))+ci*conjg(c(ig,i+eig_index))
+                     psis(nps(ig)+eig_offset*dffts%nnrx)=c(ig,i+eig_index-1)+ci*c(ig,i+eig_index)
+                  end do
+                  !
+                  eig_offset = eig_offset + 1
+                  !
+               ENDIF
+               !
+            end do
+!$omp end parallel
+
+            !  2*NOGRP are trasformed at the same time
+            !  psis: holds the fourier coefficients of the current proccesor
+            !        for eigenstates i and i+2*NOGRP-1
+            !
+            CALL invfft( 'Wave', psis, dffts )
+            !
+            ! Now the first proc of the group holds the first two bands
+            ! of the 2*nogrp bands that we are processing at the same time,
+            ! the second proc. holds the third and fourth band
+            ! and so on
+            !
+            ! Compute the proper factor for each band
+            !
+            DO ii = 1, nogrp
+               IF( nolist( ii ) == me_image ) EXIT
+            END DO
+            !
+            ! Remember two bands are packed in a single array :
+            ! proc 0 has bands ibnd   and ibnd+1
+            ! proc 1 has bands ibnd+2 and ibnd+3
+            ! ....
+            !
+            ii = 2 * ii - 1
+
+            IF( ii + i - 1 < n ) THEN
+               iss1=ispin( ii + i - 1 )
+               sa1 =f( ii + i - 1 )/omega
+               iss2=ispin( ii + i )
+               sa2 =f( ii + i )/omega
+            ELSE IF( ii + i - 1 == n ) THEN
+               iss1=ispin( ii + i - 1 )
+               sa1 =f( ii + i - 1 )/omega
+               iss2=iss1
+               sa2=0.0d0
+            ELSE
+               iss1=ispin( n )
+               sa1 = 0.0d0
+               iss2=iss1
+               sa2 =0.0d0
+            END IF
+            !
+            !Compute local charge density
+            !
+            !This is the density within each orbital group...so it
+            !coresponds to 1 eignestate for each group and there are
+            !NOGRP such groups. Thus, during the loop across all
+            !occupied eigenstates, the total charge density must me
+            !accumulated across all different orbital groups.
+            !
+
+            !This loop goes through all components of charge density that is local
+            !to each processor. In the original code this is nnrsx. In the task-groups
+            !code this should be equal to the total number of planes
+            !
+
+            IF( nr1sx * nr2sx * dffts%tg_npp( me_image + 1 ) > SIZE( psis ) ) &
+               CALL errore( ' rhoofr ', ' psis size too low ', nr1sx * nr2sx * dffts%tg_npp( me_image + 1 ) )
+
+!$omp parallel do default(shared)
+            do ir = 1, nr1sx * nr2sx * dffts%tg_npp( me_image + 1 )
+               tmp_rhos(ir,iss1) = tmp_rhos(ir,iss1) + sa1*( real(psis(ir)))**2
+               tmp_rhos(ir,iss2) = tmp_rhos(ir,iss2) + sa2*(aimag(psis(ir)))**2
+            end do
+            !
+         END DO
+
+         IF ( nogrp > 1 ) THEN
+            CALL mp_sum( tmp_rhos, gid = ogrp_comm )
+         ENDIF
+         !
+         !BRING CHARGE DENSITY BACK TO ITS ORIGINAL POSITION
+         !
+         !If the current processor is not the "first" processor in its
+         !orbital group then does a local copy (reshuffling) of its data
+         !
+         from = 1
+         DO ii = 1, nogrp
+            IF ( nolist( ii ) == me_image ) EXIT !Exit the loop
+            from = from +  nr1sx*nr2sx*dffts%npp( nolist( ii ) + 1 )! From where to copy initially
+         ENDDO
+         !
+         DO ir = 1, nspin
+            CALL dcopy( nr1sx*nr2sx*dffts%npp(me_image+1), tmp_rhos(from,ir), 1, rhos(1,ir), 1)
+         ENDDO
+
+         DEALLOCATE( tmp_rhos )
+         DEALLOCATE( psis ) 
+
+         RETURN
+      END SUBROUTINE loop_over_states_tg
+
+!-----------------------------------------------------------------------
+   END SUBROUTINE rhoofr_cp_ortho_new
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
    SUBROUTINE rhoofr_cp_old &
       ( nfi, c, irb, eigrb, bec, rhovan, rhor, rhog, rhos, enl, denl, ekin, dekin, tstress, ndwwf )
 !-----------------------------------------------------------------------

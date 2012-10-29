@@ -1270,6 +1270,120 @@
    end function ennl
 !-----------------------------------------------------------------------
 
+!-----------------------------------------------------------------------
+   real(8) function ennl_new( n, nspin, ispin, f, rhovan, bec )!added:giovanni lgam
+!-----------------------------------------------------------------------
+      !
+      ! calculation of nonlocal potential energy term and array rhovan
+      !
+      use kinds,          only : DP
+      use cvan,           only : ish
+      use uspp_param,     only : nhm, nh
+      use uspp,           only : nkb, dvan
+      use ions_base,      only : nsp, nat, na
+      use twin_types
+      use control_flags,  only : gamma_only, do_wf_cmplx
+      !
+      implicit none
+      !
+      ! input
+      !
+      integer, intent(in) :: n, nspin, ispin(n), f(n)
+      type(twin_matrix) :: bec!( nkb, n )!modified:giovanni
+      real(DP) :: rhovan( nhm*(nhm+1)/2, nat, nspin )
+      !
+      ! local
+      !
+      real(DP) :: sumt, sums(2), ennl_t
+      complex(DP) :: sumt_c, sums_c(2), ennl_tc
+      integer  :: is, iv, jv, ijv, inl, jnl, isa, isat, ism, ia, iss, i
+      logical :: lgam!added:giovanni lgam
+      !
+      lgam=gamma_only.and..not.do_wf_cmplx
+      !
+      ennl_t = 0.d0 
+      ennl_tc = CMPLX(0.d0,0.d0) 
+      !
+      !  xlf does not like name of function used for OpenMP reduction
+      !
+!$omp parallel default(shared), &
+!$omp private(is,iv,jv,ijv,isa,isat,ism,ia,inl,jnl,sums,i,iss,sumt), reduction(+:ennl_t)
+      if(.not.bec%iscmplx) then
+        do is = 1, nsp
+           do iv = 1, nh(is)
+              do jv = iv, nh(is)
+                 ijv = (jv-1)*jv/2 + iv
+                 isa = 0
+                 do ism = 1, is - 1
+                    isa = isa + na(ism)
+                 end do
+!$omp do
+                 do ia = 1, na(is)
+                    inl = ish(is)+(iv-1)*na(is)+ia
+                    jnl = ish(is)+(jv-1)*na(is)+ia
+                    isat = isa+ia
+                    sums = 0.d0
+                    do i = 1, n
+                      iss = ispin(i)
+                      sums(iss) = sums(iss) + f(i) * bec%rvec(inl,i) * bec%rvec(jnl,i)
+                    end do
+                    sumt = 0.d0
+                    do iss = 1, nspin
+                       rhovan( ijv, isat, iss ) = sums( iss )
+                       sumt = sumt + sums( iss )
+                    end do
+                    if( iv .ne. jv ) sumt = 2.d0 * sumt
+                    ennl_t = ennl_t + sumt * dvan( jv, iv, is)
+                 end do
+!$omp end do
+              end do
+          end do
+        end do
+      else
+        do is = 1, nsp
+          do iv = 1, nh(is)
+              do jv = iv, nh(is)
+                ijv = (jv-1)*jv/2 + iv
+                isa = 0
+                do ism = 1, is - 1
+                    isa = isa + na(ism)
+                end do
+!$omp do
+                do ia = 1, na(is)
+                    inl = ish(is)+(iv-1)*na(is)+ia
+                    jnl = ish(is)+(jv-1)*na(is)+ia
+                    isat = isa+ia
+                    sums_c = CMPLX(0.d0,0.d0)
+                    do i = 1, n
+                      iss = ispin(i)
+                      sums_c(iss) = sums_c(iss) + CMPLX(f(i),0.d0)  &
+                      * ((bec%cvec(inl,i)) * CONJG(bec%cvec(jnl,i)))
+                    end do
+                    sumt_c = CMPLX(0.d0,0.d0)
+                    do iss = 1, nspin
+                      rhovan( ijv, isat, iss ) = DBLE(sums_c( iss ))
+                      sumt_c = sumt_c + sums_c( iss )
+                    end do
+                    if( iv .ne. jv ) sumt_c = CMPLX(2.d0,0.d0) * sumt_c
+                    ennl_tc = ennl_tc + sumt_c * CMPLX(dvan( jv, iv, is),0.d0)
+                end do
+!$omp end do
+              end do
+          end do
+        end do
+      endif
+!$omp end parallel
+      !
+      if(.not.bec%iscmplx) then
+        ennl_new = ennl_t
+      else
+        ennl_new = DBLE(ennl_tc)
+      endif
+      !
+      return
+   end function ennl_new
+!-----------------------------------------------------------------------
+
 
 !-----------------------------------------------------------------------
    subroutine calrhovan_real( rhovan, bec, iwf )

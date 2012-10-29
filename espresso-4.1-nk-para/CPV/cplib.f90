@@ -923,6 +923,77 @@ END FUNCTION
       RETURN
    END FUNCTION enkin
 !
+!-----------------------------------------------------------------------
+   FUNCTION enkin_new( c, ngwx, f, n, nspin, nudx, iupdwn, nupdwn)
+!-----------------------------------------------------------------------
+      !
+      ! calculation of kinetic energy term
+      !
+      USE kinds,              ONLY: DP
+      USE constants,          ONLY: pi, fpi
+      USE gvecw,              ONLY: ngw
+      USE reciprocal_vectors, ONLY: gstart
+      USE gvecw,              ONLY: ggp
+      USE mp,                 ONLY: mp_sum
+      USE mp_global,          ONLY: intra_image_comm
+      USE cell_base,          ONLY: tpiba2
+      USE control_flags,      ONLY: gamma_only, do_wf_cmplx
+!       USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
+      USE cp_main_variables,  ONLY: kk => kinetic_mat
+      
+      IMPLICIT NONE
+
+      REAL(DP)                :: enkin_new
+
+      ! input
+
+      INTEGER,     INTENT(IN) :: ngwx, n, nudx, nspin
+      INTEGER,     INTENT(IN) :: iupdwn(nspin), nupdwn(nspin)
+      COMPLEX(DP), INTENT(IN) :: c( ngwx, n )
+      REAL(DP),    INTENT(IN) :: f( n )
+      !
+      ! local
+
+      INTEGER  :: ig, i, j, isp
+      REAL(DP) :: sk(n)  ! automatic array
+      LOGICAL :: lgam !added:giovanni
+      REAL(DP) :: icoeff
+
+      lgam=gamma_only.and..not.do_wf_cmplx
+
+      IF(lgam) THEN
+         icoeff=1.d0
+      ELSE
+         icoeff=0.5d0
+      ENDIF
+      !
+      ! matrix kk should be a global object, to allocate at the beginning
+      !
+      !
+      !
+      DO i=1,n
+         sk(i)=0.0d0
+         DO ig=gstart,ngw
+            sk(i)=sk(i)+DBLE(CONJG(c(ig,i))*c(ig,i))*ggp(ig)
+         END DO
+      END DO
+      !
+      CALL mp_sum( sk(1:n), intra_image_comm )
+      !
+      enkin_new=0.0d0
+      DO i=1,n
+         enkin_new=enkin_new+f(i)*sk(i)
+      END DO
+      !
+      ! ... reciprocal-space vectors are in units of alat/(2 pi) so a
+      ! ... multiplicative factor (2 pi/alat)**2 is required
+
+      enkin_new = enkin_new * tpiba2 * icoeff
+!
+      RETURN
+   END FUNCTION enkin_new
+!
+
 !
 !-----------------------------------------------------------------------
       SUBROUTINE gausin(eigr,cm)
