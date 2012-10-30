@@ -16,7 +16,7 @@
       subroutine nksic_potential_non_ortho( nbsp, nx, c, cdual, f_diag, &
                                   bec, becdual, becsum, &
                                   deeq_sic, ispin, iupdwn, nupdwn, &
-                                  rhor, rhog, wtot, vsic, do_wxd_, pink, nudx, &
+                                  rhor, rhog, wtot, sizwtot, vsic, do_wxd_, pink, nudx, &
                                   wfc_centers, wfc_spreads, &
                                   icompute_spread)
 !-----------------------------------------------------------------------
@@ -51,7 +51,7 @@
       !
       ! in/out vars
       !
-      integer,     intent(in)  :: nbsp, nx, nudx
+      integer,     intent(in)  :: nbsp, nx, nudx, sizwtot
       complex(dp), intent(in)  :: c(ngw,nx), cdual(ngw,nx)
       type(twin_matrix),    intent(in)  :: bec, becdual!(nkb,nbsp) !modified:giovanni
       real(dp),    intent(in)  :: becsum( nhm*(nhm+1)/2, nat, nspin)
@@ -60,7 +60,7 @@
       real(dp),    intent(in)  :: f_diag(nx)
       real(dp),    intent(in)  :: rhor(nnrx,nspin)
       complex(dp), intent(in)  :: rhog(ngm,nspin)
-      real(dp),    intent(out) :: vsic(nnrx,nx), wtot(nnrx,2)
+      real(dp),    intent(out) :: vsic(nnrx,nx), wtot(sizwtot,2)
       real(dp),    intent(out) :: deeq_sic(nhm,nhm,nat,nx)
       logical,     intent(in)  :: do_wxd_
       real(dp),    intent(out) :: pink(nx)
@@ -334,7 +334,7 @@
 !-----------------------------------------------------------------------
       subroutine nksic_potential( nbsp, nx, c, f_diag, bec, becsum, &
                                   deeq_sic, ispin, iupdwn, nupdwn, &
-                                  rhor, rhog, wtot, vsic, do_wxd_, pink, nudx, &
+                                  rhor, rhog, wtot, sizwtot, vsic, do_wxd_, pink, nudx, &
                                   wfc_centers, wfc_spreads, &
                                   icompute_spread, is_empty)
 !-----------------------------------------------------------------------
@@ -369,7 +369,7 @@
       !
       ! in/out vars
       !
-      integer,     intent(in)  :: nbsp, nx, nudx
+      integer,     intent(in)  :: nbsp, nx, nudx, sizwtot
       complex(dp), intent(in)  :: c(ngw,nx)
       type(twin_matrix),    intent(in)  :: bec!(nkb,nbsp) !modified:giovanni
       real(dp),    intent(in)  :: becsum( nhm*(nhm+1)/2, nat, nspin)
@@ -378,14 +378,14 @@
       real(dp),    intent(in)  :: f_diag(nx)
       real(dp),    intent(in)  :: rhor(nnrx,nspin)
       complex(dp), intent(in)  :: rhog(ngm,nspin)
-      real(dp),    intent(out) :: vsic(nnrx,nx), wtot(nnrx,2)
-      real(dp),    intent(out) :: deeq_sic(nhm,nhm,nat,nx)
+      real(dp),    intent(out) :: vsic(nnrx,nx), wtot(sizwtot,2)
+      real(dp),    intent(out) :: deeq_sic(max(nhm,1),max(nhm,1),nat,nx)
       logical,     intent(in)  :: do_wxd_
       real(dp),    intent(out) :: pink(nx)
       logical  :: icompute_spread
       real(DP) :: wfc_centers(4,nudx,nspin)
       real(DP) :: wfc_spreads(nudx,nspin,2)
-      logical, optional, intent(in) :: is_empty
+      logical :: is_empty
       !
       ! local variables
       !
@@ -397,18 +397,27 @@
       !
       ! main body
       !
+!                        write(6,*) "checkbounds", ubound(c)
+!                  write(6,*) "checkbounds", ubound(f_diag)
+!                  write(6,*) "checkbounds", ubound(becsum)
+!                  write(6,*) "checkbounds", ubound(wfc_centers), nudx
+!                  write(6,*) "checkbounds", ubound(wfc_spreads)
+!                                   write(6,*) "checkbounds", ubound(deeq_sic)
+!                  write(6,*) "checkbounds", ubound(ispin)
+!                  write(6,*) "checkbounds", ubound(iupdwn)
+!                  write(6,*) "checkbounds", ubound(nupdwn)
+!                  write(6,*) "checkbounds", ubound(rhor), "rhor"
+!                  write(6,*) "checkbounds", ubound(rhog), "rhog"
+!                  write(6,*) "checkbounds", ubound(wtot), "wtot"
+!                  write(6,*) "checkbounds", ubound(vsic), "vsic"
+!                  write(6,*) "checkbounds", ubound(pink), "pink", nudx
+
       CALL start_clock( 'nksic_drv' )
       lgam = gamma_only.and..not.do_wf_cmplx
-      !
-      IF(present(is_empty)) THEN
+      !      !
          !
          is_empty_=is_empty
          !
-      ELSE
-         !
-         is_empty_=.false.
-         !
-      ENDIF
       !
       ! compute potentials
       !
@@ -528,6 +537,7 @@
                                          vsic(:,i), pink(i), ibnd, shart )
               !
               wfc_spreads(ibnd, ispin(i), 2) = shart
+              write(6,*) "pinkpz", pink
               !
           endif
 
@@ -3280,15 +3290,15 @@ end subroutine nksic_correction_nkipz
 		!
 	    enddo
          else
-	    do ir = 1, nnrx
-		!
-		wfc_c(1)    = psi1(ir)
-		wfc_c(2)    = psi2(ir)
-		!
-		psi1( ir ) = wfc_c(1) * vsic(ir,i)
-                psi2(ir) = wfc_c(2) * vsic(ir,i+1) 
-		!
-	    enddo
+            do ir = 1, nnrx
+                 !
+                 wfc_c(1)    = psi1(ir)
+                 wfc_c(2)    = psi2(ir)
+                 !
+                 psi1( ir ) = wfc_c(1) * vsic(ir,i)
+                 psi2(ir) = wfc_c(2) * vsic(ir,i+1) 
+                 !
+            enddo
          endif
          !
 
@@ -5689,7 +5699,7 @@ end subroutine nksic_rot_emin_cg_descla
       subroutine nksic_getOmattot_new(nbsp,nbspx,nudx,nspin,ispin, &
                    iupdwn,nupdwn,wfc_centers,wfc_spreads, &
                    dalpha,Heigbig,Umatbig,wfc0, &
-                   wfc1,Omat1tot,bec1,vsic1,pink1,ene1,lgam)!warning:giovanni bec1 here needs to be a twin!
+                   wfc1,Omat1tot,bec1,vsic1,pink1,ene1,lgam, is_empty)!warning:giovanni bec1 here needs to be a twin!
 !---------------------------------------------------------------
 !
 ! ... This routine rotates the wavefunction wfc0 into wfc1 according to
@@ -5702,7 +5712,7 @@ end subroutine nksic_rot_emin_cg_descla
       use ions_base,                  only : nsp
       use uspp,                       only : becsum,nkb
       use cp_main_variables,          only : eigr, rhor, rhog
-      use nksic,                      only : deeq_sic, wtot, fsic
+      use nksic,                      only : deeq_sic, wtot, fsic, sizwtot
       use control_flags,         only : gamma_only, do_wf_cmplx
       use twin_types
       use electrons_module,        only : icompute_spread
@@ -5726,7 +5736,7 @@ end subroutine nksic_rot_emin_cg_descla
       real(dp)                       :: vsic1(nnrx,nbspx)
       real(dp)                       :: pink1(nbspx)
       real(dp)                       :: ene1
-      logical :: lgam
+      logical :: lgam, is_empty
 
       !
       ! local variables for cg routine
@@ -5796,8 +5806,8 @@ end subroutine nksic_rot_emin_cg_descla
       pink1(:) = 0.d0
       !
       call nksic_potential( nbsp, nbspx, wfc1, fsic, bec1, becsum, deeq_sic, &
-                 ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic1, pink1, nudx, wfc_centers, &
-                 wfc_spreads, icompute_spread )
+                 ispin, iupdwn, nupdwn, rhor, rhog, wtot, sizwtot, vsic1, pink1, nudx, wfc_centers, &
+                 wfc_spreads, icompute_spread, is_empty )
       !
       ene1=sum(pink1(:))
 
@@ -5829,7 +5839,7 @@ end subroutine nksic_getOmattot_new
       use ions_base,                  only : nsp
       use uspp,                       only : becsum,nkb
       use cp_main_variables,          only : eigr, rhor, rhog
-      use nksic,                      only : deeq_sic, wtot, fsic
+      use nksic,                      only : deeq_sic, wtot, fsic, sizwtot, do_wxd
       use control_flags,         only : gamma_only, do_wf_cmplx
       use twin_types
       use electrons_module,        only : wfc_centers, wfc_spreads, &
@@ -5920,8 +5930,8 @@ end subroutine nksic_getOmattot_new
       pink1(:) = 0.d0
       !
       call nksic_potential( nbsp, nbspx, wfc1, fsic, bec1, becsum, deeq_sic, &
-                 ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic1, pink1, nudx, wfc_centers, &
-                 wfc_spreads, icompute_spread )
+                 ispin, iupdwn, nupdwn, rhor, rhog, wtot, sizwtot, vsic1, do_wxd, pink1, nudx, wfc_centers, &
+                 wfc_spreads, icompute_spread, .false. )
       !
       ene1=sum(pink1(:))
 

@@ -296,21 +296,21 @@ MODULE twin_types
    IF(.not.doreal) THEN
    !write(6,*) "TWIN:allocating complex matrix", xlen, ylen
 !      nullify(tmatrix%cvec)
-     ALLOCATE(tmatrix%cvec(xlen,ylen), STAT=ierr)
+     ALLOCATE(tmatrix%cvec(max(1,xlen),max(1,ylen)), STAT=ierr)
      IF(ierr/=0) call errore(subname,"allocating twin_matrix cvec", abs(ierr))
      tmatrix%iscmplx=.true.
      tmatrix%cvec=CMPLX(0.d0,0.d0)
    ELSE
    !write(6,*) "TWIN:allocating real matrix", xlen, ylen
 !      nullify(tmatrix%rvec)
-     allocate(tmatrix%rvec(xlen,ylen), STAT=ierr)
+     allocate(tmatrix%rvec(max(1,xlen),max(1,ylen)), STAT=ierr)
      IF(ierr/=0) call errore(subname,"allocating twin_matrix rvec", abs(ierr))
      tmatrix%iscmplx=.false.
      tmatrix%rvec=0.d0
    ENDIF
 
-   tmatrix%xdim=xlen
-   tmatrix%ydim=ylen
+   tmatrix%xdim=max(1,xlen)
+   tmatrix%ydim=max(1,ylen)
    tmatrix%isalloc=.true.
    return
 
@@ -363,20 +363,20 @@ MODULE twin_types
    nullify(ttensor%cvec)
 
    IF(.not.doreal) THEN
-     ALLOCATE(ttensor%cvec(xlen,ylen,zlen), STAT=ierr)
+     ALLOCATE(ttensor%cvec(max(1,xlen),max(1,ylen),max(1,zlen)), STAT=ierr)
      IF(ierr/=0) call errore(subname,"allocating twin_tensor cvec", abs(ierr))
      ttensor%iscmplx=.true.
      ttensor%cvec=CMPLX(0.d0,0.d0)
    ELSE
-     ALLOCATE(ttensor%rvec(xlen,ylen,zlen), STAT=ierr)
+     ALLOCATE(ttensor%rvec(max(1,xlen),max(1,ylen),max(1,zlen)), STAT=ierr)
      IF(ierr/=0) call errore(subname,"allocating twin_tensor rvec", abs(ierr))
      ttensor%iscmplx=.false.
      ttensor%rvec=0.d0
    ENDIF
 
-   ttensor%xdim=xlen
-   ttensor%ydim=ylen
-   ttensor%ydim=zlen
+   ttensor%xdim=max(1,xlen)
+   ttensor%ydim=max(1,ylen)
+   ttensor%ydim=max(1,zlen)
    ttensor%isalloc=.true.
    return
 

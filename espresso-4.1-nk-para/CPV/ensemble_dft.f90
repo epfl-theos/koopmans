@@ -328,22 +328,41 @@ CONTAINS
     ENDIF
     call deallocate_twin(becdiag)
     IF(ionode) THEN
-      write(6,*) "debug1"
+      write(6,*) "debug1", allocated(fmat0), size(fmat0)
     ENDIF
-    do ispin=1,size(fmat0)
-      call deallocate_twin(fmat0(ispin))
-      IF(ionode) THEN
-        write(6,*) "debug2"
-      ENDIF
-      call deallocate_twin(psihpsi(ispin))
-      IF(ionode) THEN
-        write(6,*) "debug3"
-      ENDIF
-      call deallocate_twin(z0t(ispin))
-    enddo
-    IF( ALLOCATED( fmat0 ) )             deallocate(fmat0 )
-    IF( ALLOCATED( psihpsi ) )             deallocate(psihpsi )
-    IF( ALLOCATED( z0t ) )             deallocate(z0t )
+    !
+    IF(allocated(fmat0)) THEN
+       !
+       do ispin=1,size(fmat0)
+          !
+          call deallocate_twin(fmat0(ispin))
+          IF(ionode) THEN
+             write(6,*) "debug2"
+          ENDIF
+          !
+       enddo
+       !
+       deallocate(fmat0)
+       !
+    ENDIF
+      !
+    IF(allocated(psihpsi)) THEN
+       !
+       do ispin=1,size(psihpsi)
+          !
+          call deallocate_twin(psihpsi(ispin))
+          call deallocate_twin(z0t(ispin))
+          !
+          IF(ionode) THEN
+             write(6,*) "debug3"
+          ENDIF
+          !
+       enddo
+       !
+       deallocate(psihpsi)
+       deallocate(z0t)
+       !
+    ENDIF
     !end_modified:giovanni
     IF( ALLOCATED( e0 ) )             deallocate(e0 )
     IF( ALLOCATED( fmat0_diag ) )     deallocate(fmat0_diag )

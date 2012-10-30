@@ -721,7 +721,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
             !
             ! ... Compute empty states
             !
-            CALL empty_cp ( nfi, c0, rhos )
+            CALL empty_cp ( nfi, c0, rhos, tcg )
             !
         ELSE
             !   

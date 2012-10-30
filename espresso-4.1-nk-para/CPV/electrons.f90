@@ -37,7 +37,7 @@
         INTEGER :: n_emp_l(nspinx) =  0
         !
         INTEGER  :: max_emp = 0    !  maximum number of iterations for empty states
-        REAL(DP) :: ethr_emp       !  threshold for convergence
+        REAL(DP) :: ethr_emp, etot_emp, eodd_emp !  threshold for convergence
         !
         INTEGER, ALLOCATABLE :: ib_owner(:)
         INTEGER, ALLOCATABLE :: ib_local(:)
@@ -49,6 +49,7 @@
         REAL(DP), ALLOCATABLE :: wfc_spreads(:,:,:) !added:giovanni wfc_spreads
         REAL(DP), ALLOCATABLE :: wfc_spreads_emp(:,:,:) !added:giovanni wfc_spreads_emp
         INTEGER, ALLOCATABLE  :: sort_spreads(:,:) !added:giovanni wfc_spreads_emp
+        INTEGER, ALLOCATABLE  :: sort_spreads_emp(:,:) !added:giovanni wfc_spreads_emp
 
         LOGICAL :: icompute_spread=.false. !added:giovanni 
 
@@ -64,8 +65,10 @@
         PUBLIC :: print_eigenvalues, print_centers_spreads
         PUBLIC :: max_emp, ethr_emp
         PUBLIC :: empty_print_info, empty_init
-        PUBLIC :: sort_spreads, wfc_centers, wfc_spreads, icompute_spread !added:giovanni 
+        PUBLIC :: sort_spreads, sort_spreads_emp,wfc_centers, wfc_spreads, icompute_spread !added:giovanni 
         PUBLIC :: wfc_centers_emp, wfc_spreads_emp !added:giovanni 
+        PUBLIC :: etot_emp, eodd_emp !added:giovanni 
+
 
 !
 !  end of module-scope declarations
@@ -167,7 +170,7 @@
      IMPLICIT NONE
      INTEGER, INTENT(IN) :: n_emp_
      REAL(DP),  INTENT(IN) :: emass_inp, ecutmass_inp
-     INTEGER :: ierr, i
+     INTEGER :: ierr, i,j
  
 
      IF( .NOT. telectrons_base_initval ) &
@@ -197,13 +200,28 @@
      END IF
 
 !begin_added:giovanni
-     IF( ALLOCATED( wfc_centers ) ) DEALLOCATE( wfc_centers )
+     IF( ALLOCATED( sort_spreads ) ) DEALLOCATE( sort_spreads )
      IF(nudx > 0) THEN
         ALLOCATE( sort_spreads(nudx,nspin ), STAT=ierr)
         IF( ierr/=0 ) CALL errore( ' electrons ',' allocating sort_spreads ',ierr)
-        sort_spreads = 0.0_DP
+        do j=1,nspin
+           do i=1,size(sort_spreads(:,j))
+              sort_spreads(i,j)=i
+           enddo
+        enddo
      ENDIF
 
+     IF( ALLOCATED( sort_spreads_emp ) ) DEALLOCATE( sort_spreads_emp )
+     IF(nudx_emp > 0) THEN
+        ALLOCATE( sort_spreads_emp(nudx_emp,nspin ), STAT=ierr)
+        IF( ierr/=0 ) CALL errore( ' electrons ',' allocating sort_spreads_emp ',ierr)
+        do j=1,nspin
+           do i=1,size(sort_spreads_emp(:,j))
+              sort_spreads_emp(i,j)=i
+           enddo
+        enddo
+     ENDIF
+     
      IF( ALLOCATED( wfc_centers ) ) DEALLOCATE( wfc_centers )
      IF(nudx > 0) THEN
         ALLOCATE( wfc_centers(4,nudx,nspin ), STAT=ierr)
@@ -222,14 +240,14 @@
 !begin_added:giovanni
      IF( ALLOCATED( wfc_centers_emp ) ) DEALLOCATE( wfc_centers_emp )
      IF( nudx_emp > 0 ) THEN
-        ALLOCATE( wfc_centers_emp(4,nudx_emp,nspin ), STAT=ierr)
+        ALLOCATE( wfc_centers_emp(4, nudx_emp,nspin ), STAT=ierr)
         IF( ierr/=0 ) CALL errore( ' electrons ',' allocating wfc_centers_emp ',ierr)
         wfc_centers_emp = 0.0_DP
      ENDIF
 
      IF( ALLOCATED( wfc_spreads_emp ) ) DEALLOCATE( wfc_spreads_emp )
      IF( nudx_emp > 0 ) THEN
-        ALLOCATE( wfc_spreads( nudx_emp, nspin, 2 ), STAT=ierr)
+        ALLOCATE( wfc_spreads_emp( nudx_emp, nspin, 2 ), STAT=ierr)
         IF( ierr/=0 ) CALL errore( ' electrons ',' allocating wfc_spreads_emp ',ierr)
         wfc_spreads_emp = 0.0_DP
      ENDIF
@@ -339,6 +357,7 @@
             IF( n_emp .GT. 0 ) THEN
                WRITE( stdout,1005) ik, j
                WRITE( stdout,1004) ( ei_emp( i, j ) * autoev , i = 1, n_emp )
+               IF(nupdwn(j)>0) &
                WRITE( stdout,1006) ( ei_emp( 1, j ) - ei( nupdwn(j), j ) ) * autoev
             END IF
          END IF
@@ -349,7 +368,8 @@
             IF( n_emp .GT. 0 ) THEN
                WRITE(ei_unit,1011) ik, j
                WRITE(ei_unit,1020) ( ei_emp( i, j ) * autoev , i = 1, n_emp )
-               WRITE(ei_unit,1021) ( ei_emp( 1, j ) - ei( nupdwn(j), j ) ) * autoev
+               IF(nupdwn(j)>0) &
+                WRITE(ei_unit,1021) (( ei_emp( 1, j ) - ei( nupdwn(j), j ) ) * autoev)
             END IF
          END IF
          !
@@ -383,7 +403,7 @@
       use constants,      only : autoev 
       USE io_global,      ONLY : stdout, ionode
       USE ensemble_dft,   ONLY : tens, tsmear
-      use nksic,          ONLY : complexification_index, pink, do_orbdep
+      use nksic,          ONLY : complexification_index, pink, pink_emp, do_orbdep
       !
       INTEGER,  INTENT(IN) :: spread_unit
       LOGICAL,  INTENT(IN) :: tfile, tstdout
@@ -408,9 +428,16 @@
             ENDIF
             !
             IF( n_emp .GT. 0 ) THEN
+               WRITE( stdout,12224) ik, j
 !               WRITE( stdout,1005) ik, j
-!               WRITE( stdout,1004) ( ei_emp( i, j ) * autoev , i = 1, n_emp )
-!               WRITE( stdout,1006) ( ei_emp( 1, j ) - ei( nupdwn(j), j ) ) * autoev
+               IF(do_orbdep) THEN
+                  !
+                  WRITE( stdout,1444) ( wfc_centers_emp(1:4, i, j ),  wfc_spreads_emp( i, j , 1), wfc_spreads_emp( i, j, 2), pink_emp(iupdwn_emp(j)-1+sort_spreads_emp(i,j))*hartree_si/electronvolt_si, i = 1, nupdwn_emp(j) )
+                  !
+               ELSE
+                  WRITE( stdout,1445) ( wfc_centers(1:4, i, j ),  wfc_spreads( i, j , 1), wfc_spreads( i, j, 2), i = 1, nupdwn(j) )
+               ENDIF
+               
             END IF
          END IF
          !
@@ -427,6 +454,7 @@
   30  FORMAT(2X,'STEP:',I7,1X,F10.2)
  1022 FORMAT(/,3X,'Centers (Bohr), kp = ',I3, ' , spin = ',I2,/)
  1222 FORMAT(/,3X,'Charge  ---   Centers xyz (Bohr)  ---  Spreads (Bohr^2) - SH(eV), kp = ',I3, ' , spin = ',I2,/)
+ 12224 FORMAT(/,3X,'Empty Charge  ---   Centers xyz (Bohr)  ---  Spreads (Bohr^2) - SH(eV), kp = ',I3, ' , spin = ',I2,/)
  1005 FORMAT(/,3X,'Empty States Eigenvalues (eV), kp = ',I3, ' , spin = ',I2,/)
  1444 FORMAT(F8.2,'   ---',3F8.2,'   ---',3F8.3)
  1445 FORMAT(F8.2,'   ---',3F8.2,'   ---',2F8.2)
@@ -461,6 +489,10 @@
             DEALLOCATE(sort_spreads, STAT=ierr)
             IF( ierr/=0 ) CALL errore( ' deallocate_electrons ',' deallocating sort_spreads ',ierr )
       END IF
+      IF(ALLOCATED(sort_spreads_emp))       THEN
+            DEALLOCATE(sort_spreads_emp, STAT=ierr)
+            IF( ierr/=0 ) CALL errore( ' deallocate_electrons ',' deallocating sort_spreads ',ierr )
+      END IF
       IF(ALLOCATED(wfc_centers))       THEN
             DEALLOCATE(wfc_centers, STAT=ierr)
             IF( ierr/=0 ) CALL errore( ' deallocate_electrons ',' deallocating wfc_centers ',ierr )
@@ -469,14 +501,18 @@
             DEALLOCATE(wfc_spreads, STAT=ierr)
             IF( ierr/=0 ) CALL errore( ' deallocate_electrons ',' deallocating wfc_spreads ',ierr )
       END IF
+!       write(6,*) "deallocating empty", ubound(wfc_centers_emp), ubound(wfc_spreads_emp)
       IF(ALLOCATED(wfc_centers_emp))       THEN
+!       write(6,*) "deallocating wfc_centers_emp"
             DEALLOCATE(wfc_centers_emp, STAT=ierr)
+!       write(6,*) "deallocated wfc_centers_emp"
             IF( ierr/=0 ) CALL errore( ' deallocate_electrons ',' deallocating wfc_centers_emp ',ierr )
       END IF
       IF(ALLOCATED(wfc_spreads_emp))       THEN
             DEALLOCATE(wfc_spreads_emp, STAT=ierr)
             IF( ierr/=0 ) CALL errore( ' deallocate_electrons ',' deallocating wfc_spreads_emp ',ierr )
       END IF
+!             write(6,*) "deallocated empty"
 
       RETURN
    END SUBROUTINE deallocate_electrons

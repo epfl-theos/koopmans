@@ -343,6 +343,7 @@ module nksic
   real(dp),    allocatable :: fion_sic(:,:)
   real(dp),    allocatable :: deeq_sic(:,:,:,:)
   real(dp),    allocatable :: pink(:)
+  real(dp),    allocatable :: pink_emp(:)
   real(dp),    allocatable :: vxc_sic(:,:)
   real(dp),    allocatable :: wxdsic(:,:)
   real(dp),    allocatable :: orb_rhor(:,:)
@@ -375,9 +376,20 @@ module nksic
   integer :: innerloop_init_n
   real(DP) :: innerloop_cg_ratio
 !$$
+  integer :: sizwtot
 
 contains
   !
+  subroutine allocate_nksic_empty( n_emps)
+
+  integer :: n_emps
+  
+  allocate(pink_emp(n_emps))
+  
+  return
+  
+  end subroutine allocate_nksic_empty
+  
   subroutine allocate_nksic( nnrx, ngw, nspin, nx, nat)
       !
       use funct,          only : dft_is_gradient
@@ -414,8 +426,10 @@ contains
       endif
       if ( do_nk .or. do_nkpz .or. do_nki .or. do_nkipz) then
           allocate(wtot(nnrx,2))
+          sizwtot=nnrx
       else
           allocate(wtot(1,2))
+          sizwtot=1
       endif
       wtot=0.0_dp
       !
@@ -479,6 +493,7 @@ contains
       if(allocated(grhobar))     deallocate(grhobar)
       if(allocated(rhobar))      deallocate(rhobar)
       if(allocated(rhoref))      deallocate(rhoref)
+      if(allocated(pink_emp))      deallocate(pink_emp)
       !
   end subroutine deallocate_nksic
   !

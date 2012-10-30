@@ -81,6 +81,7 @@ SUBROUTINE deallocate_modules_var()
   CALL deallocate_cvan()
   CALL deallocate_efield( )
   CALL deallocate_ensemble_dft()
+!   write(6,*) "deallocated ensemble_dft"
   CALL deallocate_cg( )
   CALL deallocate_core()
   CALL deallocate_uspp()
@@ -93,6 +94,7 @@ SUBROUTINE deallocate_modules_var()
   CALL deallocate_cdvan()
   CALL deallocate_dqrad_mod()
   CALL deallocate_betax()
+!      write(6,*) "deallocated betax"
   !
   CALL fft_dlay_deallocate( dfftp )
   CALL fft_dlay_deallocate( dffts )
@@ -100,16 +102,21 @@ SUBROUTINE deallocate_modules_var()
   CALL sticks_deallocate()
   !
   CALL deallocate_ions_base()
+!          write(6,*) "deallocated ions_base"
   !
   CALL deallocate_wavefunctions()
   CALL deallocate_wannier()
   !
+!              write(6,*) "deallocated wannier"
   CALL deallocate_elct()
+!                write(6,*) "deallocated elct"
   CALL deallocate_electrons()
+!            write(6,*) "deallocated electrons"
   CALL deallocate_polarization()
   CALL deallocate_pseudopotential()
   CALL deallocate_turbo()
   !
+!        write(6,*) "deallocated turbo"
   CALL deallocate_charge_mix()
   CALL deallocate_chi2()
   !
@@ -122,6 +129,7 @@ SUBROUTINE deallocate_modules_var()
   CALL deallocate_ee()
   CALL deallocate_nksic()
   CALL deallocate_hf()
+!    write(6,*) "end of deallocate"
   !
   RETURN
   !

@@ -1049,12 +1049,13 @@
 
 
    INTERFACE empty_cp
-      SUBROUTINE empty_cp_twin_x ( nfi, c0, v )
+      SUBROUTINE empty_cp_twin_x ( nfi, c0, v, tcg)
          USE kinds,             ONLY: DP
          IMPLICIT NONE
          INTEGER,    INTENT(IN) :: nfi
          COMPLEX(DP)            :: c0(:,:)
          REAL(DP)               :: v(:,:)
+         LOGICAL, OPTIONAL, INTENT(IN) :: tcg
       END SUBROUTINE
    END INTERFACE
 

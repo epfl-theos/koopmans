@@ -9,7 +9,7 @@
 
 
 !-----------------------------------------------------------------------
-   SUBROUTINE empty_cp_twin_x ( nfi, c0, v )
+   SUBROUTINE empty_cp_twin_x ( nfi, c0, v, tcg )
 !-----------------------------------------------------------------------
 !
 ! Performs the minimization on the empty state subspace keeping the
@@ -21,15 +21,15 @@
                                            tortho
       USE io_global,            ONLY : ionode, stdout
       USE cp_main_variables,    ONLY : eigr, ema0bg, collect_lambda, &
-                                       rhor, rhog
+                                       rhor, rhog, rhos, eigr, eigrb, irb, bec
       USE descriptors,          ONLY : descla_siz_ , descla_init, nlax_, lambda_node_
       USE cell_base,            ONLY : omega
-      USE uspp,                 ONLY : vkb, nkb
+      USE uspp,                 ONLY : vkb, nkb, okvan
       USE uspp_param,           ONLY : nhm
       USE grid_dimensions,      ONLY : nnrx
       USE electrons_base,       ONLY : nbsp, nbspx, ispin, nspin, f, nudx, iupdwn, nupdwn
       USE electrons_module,     ONLY : iupdwn_emp, nupdwn_emp, n_emp, ei_emp,  &
-                                       max_emp, ethr_emp
+                                       max_emp, ethr_emp, etot_emp, eodd_emp
       USE ions_base,            ONLY : nat, nsp
       USE gvecw,                ONLY : ngw
       USE orthogonalize_base,   ONLY : calphi, updatc
@@ -45,8 +45,8 @@
                                        bec_csv
       USE mp,                   ONLY : mp_comm_split, mp_comm_free, mp_sum
       USE mp_global,            ONLY : intra_image_comm, me_image
-      USE nksic,                ONLY : do_orbdep, do_pz, do_wxd, vsicpsi, wtot
-      USE nksic,                ONLY : do_spinsym
+      USE nksic,                ONLY : do_orbdep, do_pz, do_wxd, vsicpsi, wtot, sizwtot
+      USE nksic,                ONLY : do_spinsym, pink_emp, allocate_nksic_empty
       USE hfmod,                ONLY : do_hf, vxxpsi
       USE twin_types !added:giovanni
       USE control_flags,        ONLY : tatomicwfc, trane
@@ -57,11 +57,12 @@
       INTEGER,    INTENT(IN) :: nfi
       COMPLEX(DP)            :: c0(:,:)
       REAL(DP)               :: v(:,:)
+      logical, optional, intent(IN) :: tcg
       !
       INTEGER  :: i, iss, j, in, in_emp, iter, iter_ortho
       INTEGER  :: n_occs, n_emps, n_empx, nudx_emp, issw, n
       INTEGER  :: nlax_emp, nlam_emp
-      LOGICAL  :: exst, do_wxd_
+      LOGICAL  :: exst, do_wxd_, tcg_
       !
       REAL(DP) :: fccc, ccc, csv, dt2bye, bigr
       REAL(DP) :: verl1, verl2, verl3
@@ -88,7 +89,8 @@
       REAL(DP),    ALLOCATABLE :: deeq_sic_emp(:,:,:,:)
       COMPLEX(DP), ALLOCATABLE :: vxxpsi_emp(:,:)
       REAL(DP),    ALLOCATABLE :: exx_emp(:)
-      REAL(DP),    ALLOCATABLE :: pink_emp(:)
+!       REAL(DP),    ALLOCATABLE :: pink_emp(:)
+      REAL(DP),    ALLOCATABLE :: rhovan_emp(:,:,:)
       !
       INTEGER, SAVE :: np_emp(2), me_emp(2), emp_comm, color
       INTEGER, SAVE :: desc_emp( descla_siz_ , 2 )
@@ -98,6 +100,22 @@
       COMPLEX(DP), PARAMETER :: c_zero=CMPLX(0.d0,0.d0)
 
       lgam=gamma_only.and..not.do_wf_cmplx
+      !
+      if(present(tcg)) THEN
+         !
+         tcg_=tcg
+         !
+      ELSE
+         !
+         tcg_=.false.
+         !
+      ENDIF
+      !       
+      if( okvan.and. tcg_) THEN
+         !
+         allocate(rhovan_emp(nhm*(nhm+1)/2,nat,nspin))
+         !
+      ENDIF
       !
       ! ...  quick exit if empty states have not to be computed
       !
@@ -140,7 +158,7 @@
       n_emps = nupdwn_emp( 1 )
       IF( nspin == 2 ) n_emps = n_emps + nupdwn_emp( 2 )
       !
-      nudx_emp = nupdwn_emp( 1 ) + MOD( nupdwn_emp( 1 ), 2)
+      nudx_emp = nupdwn_emp( 1 ) !+ MOD( nupdwn_emp( 1 ), 2)
       IF( nspin == 2 ) nudx_emp = MAX( nudx_emp, nupdwn_emp( 2 ) )
       !
       n_empx = nupdwn_emp( 1 )
@@ -205,7 +223,8 @@
           ALLOCATE( wxd_emp (nnrx, 2) )
           ALLOCATE( deeq_sic_emp (nhm,nhm,nat,n_empx) )
           ALLOCATE( becsum_emp( nhm*(nhm+1)/2, nat, nspin ) )
-          ALLOCATE( pink_emp( n_empx ) )
+          call allocate_nksic_empty(n_empx)
+!           ALLOCATE( pink_emp( n_empx ) )
           !
           fsic_emp = 0.0d0
           vsic_emp = 0.0d0
@@ -291,8 +310,12 @@
             !
             issw   = iupdwn( iss )
             !
-            CALL gram_empty( .false. , eigr, vkb, bec_emp, bec_occ, nkb, &
-                             c0_emp( :, in_emp: ), c0( :, issw: ), ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, in )
+            if(nupdwn(iss)>0.and. nupdwn_emp(iss)>0) THEN
+               !
+               CALL gram_empty( .false. , eigr, vkb, bec_emp, bec_occ, nkb, &
+                c0_emp( :, in_emp: ), c0( :, issw: ), ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, in )
+               !
+            ENDIF
             !
          END DO
          !
@@ -383,180 +406,202 @@
           WRITE( stdout, "(/,3X,'Empty states minimization starting ', &
                         & /,3x,'nfi         dekinc         ekinc' )")
       ENDIF
-      !
-      done_extra=.false.
-      !
-      ITERATIONS: DO iter = 1, max_emp
-
-         IF ( do_orbdep ) THEN 
-             !
-             ! In the nksic case, we do not need to compute wxd here, 
-             ! because no contribution comes from empty states.
-             !
-             ! Instead, wxd from all occupied states is already computed
-             ! by the previous calls to nksic_potentials, and stored wxe_emp
-             !
-             fsic_emp(:) = 0.0
-             !
-             ! the two lines below were removed by Giovanni, passing do_wxd as input to nksic_potential
-             !do_wxd_ = do_wxd
-             !do_wxd  = .FALSE.
-             !
-             IF(done_extra.or.iter==max_emp) THEN
-                !
-                icompute_spread=.true.
-                !
-             ENDIF
-             !
-             call nksic_potential( n_emps, n_empx, c0_emp, fsic_emp, &
-                                   bec_emp, becsum_emp, deeq_sic_emp, &
-                                   ispin_emp, iupdwn_emp, nupdwn_emp, rhor, rhog, &
-                                   wtot, vsic_emp, .false., pink_emp, nudx_emp, &
-                                   wfc_centers_emp, wfc_spreads_emp, &
-                                   icompute_spread)
-             ! line below removed by Giovanni, introduced do_wxd=.false. into call to nksic_potential
-             !do_wxd = do_wxd_
-             !
-             DO i = 1, n_emps
-                 vsic_emp(:,i) = vsic_emp(:,i) + wxd_emp(:, ispin_emp(i) )
-             ENDDO
-             !
-             !
-         ENDIF
-         !
-         ! HF contribution
-         !
-         IF ( do_hf ) THEN
-             !
-             vxxpsi_emp = 0.0d0
-             !
-             CALL hf_potential( nbsp,   nbspx,  c0,     f, ispin, iupdwn, nupdwn, &
-                                n_emps, n_empx, c0_emp, fsic_emp, ispin_emp, &
-                                iupdwn_emp, nupdwn_emp, rhor, rhog, vxxpsi_emp, exx_emp )
-             !
-         ENDIF
-
-         !
-         ! std terms
-         !
-         DO i = 1, n_emps, 2
-             !
-             CALL dforce( i, bec_emp, vkb, c0_emp, c2, c3, v, SIZE(v,1), ispin_emp, f_emp, n_emps, nspin )
-
-             !
-             ! ODD terms
-             !
-             IF ( do_orbdep ) THEN
-                 !
-                 CALL nksic_eforce( i, n_emps, n_empx, vsic_emp, deeq_sic_emp, bec_emp, ngw, &
-                                    c0_emp(:,i), c0_emp(:,i+1), vsicpsi, lgam )
-                 !
-                 c2(:) = c2(:) - vsicpsi(:,1) * f_emp(i)
-                 c3(:) = c3(:) - vsicpsi(:,2) * f_emp(i+1)
-                 !
-             ENDIF
-             !
-             ! HF terms
-             !
-             IF ( do_hf ) THEN
-                 !
-                 c2(:) = c2(:) - vxxpsi_emp(:,i)   * f_emp(i)
-                 c3(:) = c3(:) - vxxpsi_emp(:,i+1) * f_emp(i+1)
-                 !
-             ENDIF
-
-
-             IF( tsde ) THEN
-                CALL wave_steepest( cm_emp(:, i  ), c0_emp(:, i  ), emaver, c2 )
-                CALL wave_steepest( cm_emp(:, i+1), c0_emp(:, i+1), emaver, c3 )
-             ELSE
-               CALL wave_verlet( cm_emp(:, i  ), c0_emp(:, i  ), verl1, verl2, emaver, c2 )
-               CALL wave_verlet( cm_emp(:, i+1), c0_emp(:, i+1), verl1, verl2, emaver, c3 )
-             END IF
-             !
-             IF(lgam) THEN
-		IF ( gstart == 2) THEN
-		    cm_emp(1,  i)=CMPLX(DBLE(cm_emp(1,  i)),0.d0)
-		    cm_emp(1,i+1)=CMPLX(DBLE(cm_emp(1,i+1)),0.d0)
-		ENDIF
-             ENDIF
-             !
-         ENDDO
-
-         DO iss = 1, nspin
-             !
-             in     = iupdwn(iss)
-             in_emp = iupdwn_emp(iss)
-             !
-             issw   = iupdwn( iss )
-             !
-             CALL gram_empty( .true. , eigr, vkb, bec_emp, bec_occ, nkb, &
-                         cm_emp( :, in_emp: ), c0( :, issw: ), ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, in )
-             !
-         ENDDO
-
-         ! ... calphi calculates phi
-         ! ... the electron mass rises with g**2
-         !
-         CALL calphi( c0_emp, ngw, bec_emp, nkb, vkb, phi_emp, n_emps, lgam, ema0bg )
-         !
-         !
-         IF( tortho ) THEN
-            !
-            CALL ortho_cp_twin( eigr(1:ngw,1:nat), cm_emp(1:ngw,1:n_emps), phi_emp(1:ngw,1:n_emps), ngw, lambda_emp(1:nspin), desc_emp(1:descla_siz_,1:nspin), &
-                        bigr, iter_ortho, ccc, bephi_emp, becp_emp, n_emps, nspin, &
-                        nupdwn_emp, iupdwn_emp )
-            !
-         ELSE
-            !
-            CALL gram( vkb, bec_emp, nkb, cm_emp, ngw, n_emps )
-            !
-         ENDIF
-         !
-         DO iss = 1, nspin
-             !
-             IF(.not.lambda_emp(iss)%iscmplx) THEN
-		CALL updatc( ccc, n_emps, lambda_emp(iss)%rvec(:,:), SIZE(lambda_emp(iss)%rvec,1), &
-                              phi_emp, ngw, bephi_emp%rvec, nkb, becp_emp%rvec, bec_emp%rvec, &
-			      cm_emp, nupdwn_emp(iss), iupdwn_emp(iss), desc_emp(:,iss) )
-             ELSE
-                CALL updatc( ccc, n_emps, lambda_emp(iss)%cvec(:,:), SIZE(lambda_emp(iss)%cvec,1), & 
-                              phi_emp, ngw, bephi_emp%cvec(:,:), nkb, becp_emp%cvec(:,:), bec_emp%cvec(:,:), &
-			      cm_emp, nupdwn_emp(iss), iupdwn_emp(iss), desc_emp(:,iss) )
-             ENDIF
-             !
-         ENDDO
-         !
-         CALL nlsm1 ( n_emps, 1, nsp, eigr, cm_emp, bec_emp, 1, lgam )
-         !
-         CALL elec_fakekine( ekinc, ema0bg, emass, c0_emp, cm_emp, ngw, n_emps, 1, delt )
-         !
-         CALL dswap( 2*SIZE( c0_emp ), c0_emp, 1, cm_emp, 1 )
-
-         dek = ekinc - ekinc_old
-         IF( ionode ) WRITE( stdout,113) ITER, dek, ekinc
       
-         ! ...   check for exit
-         !
-         IF ( check_stop_now() ) THEN
-             EXIT ITERATIONS
-         ENDIF
+      IF(tcg_) THEN ! compute empty states with conjugate gradient
       
-         ! ...   check for convergence
-         !     
-         IF( ( ekinc <  ethr_emp ) .AND. ( iter > 3 ) ) THEN
-             IF(done_extra) THEN
-                IF( ionode ) WRITE( stdout,112)
+         call runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
+                          n_emps, iupdwn_emp, nupdwn_emp, phi_emp, lambda_emp, &
+                          max_emp, wxd_emp, pink_emp, nnrx, rhovan_emp, &
+                          deeq_sic_emp, nudx_emp, eodd_emp, etot_emp, v, &
+                          nfi, .true., .true., eigr, bec, irb, eigrb, &
+                          rhor, rhog, rhos, ema0bg)
+      
+      ELSE ! compute empty states with damped dynamics
+      !
+         done_extra=.false.
+         !
+         ITERATIONS: DO iter = 1, max_emp
+
+            IF ( do_orbdep ) THEN 
+                !
+                ! In the nksic case, we do not need to compute wxd here, 
+                ! because no contribution comes from empty states.
+                !
+                ! Instead, wxd from all occupied states is already computed
+                ! by the previous calls to nksic_potentials, and stored wxe_emp
+                !
+                fsic_emp(:) = 0.0
+                !
+                ! the two lines below were removed by Giovanni, passing do_wxd as input to nksic_potential
+                !do_wxd_ = do_wxd
+                !do_wxd  = .FALSE.
+                !
+                IF(done_extra.or.iter==max_emp) THEN
+                   !
+                   icompute_spread=.true.
+                   !
+                ENDIF
+!                 !
+!                 write(6,*) "checkbounds", ubound(wfc_centers_emp), ubound(wfc_spreads_emp), nudx_emp, nspin
+                !
+                call nksic_potential( n_emps, n_empx, c0_emp, fsic_emp, &
+                                      bec_emp, becsum_emp, deeq_sic_emp, &
+                                      ispin_emp, iupdwn_emp, nupdwn_emp, rhor, rhog, &
+                                      wtot, sizwtot, vsic_emp, .false., pink_emp, nudx_emp, &
+                                      wfc_centers_emp, wfc_spreads_emp, &
+                                      icompute_spread, .false.)
+!                                                       write(6,*) "checkbounds", ubound(wfc_centers_emp), ubound(wfc_spreads_emp), nudx_emp, nspin
+
+                ! line below removed by Giovanni, introduced do_wxd=.false. into call to nksic_potential
+                !do_wxd = do_wxd_
+                !
+                DO i = 1, n_emps
+                    vsic_emp(:,i) = vsic_emp(:,i) + wxd_emp(:, ispin_emp(i) )
+                ENDDO
+                !
+                !
+            ENDIF
+            !
+            ! HF contribution
+            !
+            IF ( do_hf ) THEN
+                !
+                vxxpsi_emp = 0.0d0
+                !
+                CALL hf_potential( nbsp,   nbspx,  c0,     f, ispin, iupdwn, nupdwn, &
+                                   n_emps, n_empx, c0_emp, fsic_emp, ispin_emp, &
+                                   iupdwn_emp, nupdwn_emp, rhor, rhog, vxxpsi_emp, exx_emp )
+                !
+            ENDIF
+
+            !
+            ! std terms
+            !
+            DO i = 1, n_emps, 2
+                !
+                CALL dforce( i, bec_emp, vkb, c0_emp, c2, c3, v, SIZE(v,1), ispin_emp, f_emp, n_emps, nspin )
+
+                !
+                ! ODD terms
+                !
+                IF ( do_orbdep ) THEN
+                    !
+                    CALL nksic_eforce( i, n_emps, n_empx, vsic_emp, deeq_sic_emp, bec_emp, ngw, &
+                                       c0_emp(:,i), c0_emp(:,i+1), vsicpsi, lgam )
+                    !
+                    c2(:) = c2(:) - vsicpsi(:,1) * f_emp(i)
+                    c3(:) = c3(:) - vsicpsi(:,2) * f_emp(i+1)
+                    !
+                ENDIF
+                !
+                ! HF terms
+                !
+                IF ( do_hf ) THEN
+                    !
+                    c2(:) = c2(:) - vxxpsi_emp(:,i)   * f_emp(i)
+                    c3(:) = c3(:) - vxxpsi_emp(:,i+1) * f_emp(i+1)
+                    !
+                ENDIF
+
+
+                IF( tsde ) THEN
+                   CALL wave_steepest( cm_emp(:, i  ), c0_emp(:, i  ), emaver, c2 )
+                   CALL wave_steepest( cm_emp(:, i+1), c0_emp(:, i+1), emaver, c3 )
+                ELSE
+                  CALL wave_verlet( cm_emp(:, i  ), c0_emp(:, i  ), verl1, verl2, emaver, c2 )
+                  CALL wave_verlet( cm_emp(:, i+1), c0_emp(:, i+1), verl1, verl2, emaver, c3 )
+                END IF
+                !
+                IF(lgam) THEN
+                   IF ( gstart == 2) THEN
+                       cm_emp(1,  i)=CMPLX(DBLE(cm_emp(1,  i)),0.d0)
+                       cm_emp(1,i+1)=CMPLX(DBLE(cm_emp(1,i+1)),0.d0)
+                   ENDIF
+                ENDIF
+                !
+            ENDDO
+
+            DO iss = 1, nspin
+                !
+                in     = iupdwn(iss)
+                in_emp = iupdwn_emp(iss)
+                !
+                issw   = iupdwn( iss )
+                !
+                IF(nupdwn(iss)>0.and.nupdwn_emp(iss)>0) THEN
+                   !
+                   CALL gram_empty( .true. , eigr, vkb, bec_emp, bec_occ, nkb, &
+                            cm_emp( :, in_emp: ), c0( :, issw: ), ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, in )
+                   !
+                ENDIF
+                !
+            ENDDO
+
+            ! ... calphi calculates phi
+            ! ... the electron mass rises with g**2
+            !
+            CALL calphi( c0_emp, ngw, bec_emp, nkb, vkb, phi_emp, n_emps, lgam, ema0bg )
+            !
+            !
+            IF( tortho ) THEN
+               !
+               write(6,*) "n_emps", n_emps
+               CALL ortho_cp_twin( eigr(1:ngw,1:nat), cm_emp(1:ngw,1:n_emps), phi_emp(1:ngw,1:n_emps), ngw, lambda_emp(1:nspin), desc_emp(1:descla_siz_,1:nspin), &
+                           bigr, iter_ortho, ccc, bephi_emp, becp_emp, n_emps, nspin, &
+                           nupdwn_emp, iupdwn_emp )
+               !
+            ELSE
+               !
+               CALL gram( vkb, bec_emp, nkb, cm_emp, ngw, n_emps )
+               !
+            ENDIF
+            !
+            DO iss = 1, nspin
+                !
+                IF(.not.lambda_emp(iss)%iscmplx) THEN
+                   CALL updatc( ccc, n_emps, lambda_emp(iss)%rvec(:,:), SIZE(lambda_emp(iss)%rvec,1), &
+                                 phi_emp, ngw, bephi_emp%rvec, nkb, becp_emp%rvec, bec_emp%rvec, &
+                                 cm_emp, nupdwn_emp(iss), iupdwn_emp(iss), desc_emp(:,iss) )
+                ELSE
+                   CALL updatc( ccc, n_emps, lambda_emp(iss)%cvec(:,:), SIZE(lambda_emp(iss)%cvec,1), & 
+                                 phi_emp, ngw, bephi_emp%cvec(:,:), nkb, becp_emp%cvec(:,:), bec_emp%cvec(:,:), &
+                                 cm_emp, nupdwn_emp(iss), iupdwn_emp(iss), desc_emp(:,iss) )
+                ENDIF
+                !
+            ENDDO
+            !
+            CALL nlsm1 ( n_emps, 1, nsp, eigr, cm_emp, bec_emp, 1, lgam )
+            !
+            CALL elec_fakekine( ekinc, ema0bg, emass, c0_emp, cm_emp, ngw, n_emps, 1, delt )
+            !
+            CALL dswap( 2*SIZE( c0_emp ), c0_emp, 1, cm_emp, 1 )
+
+            dek = ekinc - ekinc_old
+            IF( ionode ) WRITE( stdout,113) ITER, dek, ekinc
+         
+            ! ...   check for exit
+            !
+            IF ( check_stop_now() ) THEN
                 EXIT ITERATIONS
-             ELSE
-                done_extra=.true.
-             ENDIF
-         ENDIF
-      
-         ekinc_old = ekinc
+            ENDIF
+         
+            ! ...   check for convergence
+            !     
+            IF( ( ekinc <  ethr_emp ) .AND. ( iter > 3 ) ) THEN
+                IF(done_extra) THEN
+                   IF( ionode ) WRITE( stdout,112)
+                   EXIT ITERATIONS
+                ELSE
+                   done_extra=.true.
+                ENDIF
+            ENDIF
+         
+            ekinc_old = ekinc
 
 
-      ENDDO ITERATIONS
+         ENDDO ITERATIONS
+         
+      ENDIF !if clause to choose between cg and damped dynamics
       !
       IF ( ionode ) WRITE( stdout, "()")
 
@@ -610,6 +655,9 @@
       DO iss=1,nspin
          CALL deallocate_twin(lambda_emp(iss))
       ENDDO
+      IF(allocated(rhovan_emp)) THEN
+         deallocate(rhovan_emp)
+      ENDIF
       !
       IF ( do_orbdep ) THEN
           DEALLOCATE( fsic_emp ) 
@@ -617,7 +665,7 @@
           DEALLOCATE( wxd_emp ) 
           DEALLOCATE( deeq_sic_emp )
           DEALLOCATE( becsum_emp )
-          DEALLOCATE( pink_emp )
+!           DEALLOCATE( pink_emp )
       ENDIF
       !
       IF ( do_hf ) THEN
