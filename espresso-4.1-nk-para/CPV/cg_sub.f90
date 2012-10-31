@@ -2531,8 +2531,8 @@ write(6,*) "nlfl_twin"
       real(dp)    :: ema0bg(ngw)
       integer :: n_emps, n_empx, iupdwn_emp(nspin), nupdwn_emp(nspin), maxiter_emp, nnrx, &
                  nudx_emp, ispin_emp(n_empx)
-      real(dp) :: f_emp(n_empx), fsic_emp(:), wxd_emp(:,:), vsic_emp(:, :), &
-                  pink_emp(:), rhovan_emp(max(1,nhm*(nhm+1)/2) , nat, nspin), &
+      real(dp) :: f_emp(n_empx), fsic_emp(n_empx), wxd_emp(nnrx,2), vsic_emp(nnrx, n_empx), &
+                  pink_emp(n_empx), rhovan_emp(max(1,nhm*(nhm+1)/2) , nat, nspin), &
                   deeq_sic_emp(max(1,nhm),max(1,nhm),nat,n_empx), eodd_emp, etot_emp, & 
                   filledstates_potential(nnrsx,nspin)
       complex(dp) :: c0_emp(ngw, n_empx), cm_emp(ngw, n_empx), phi_emp(ngw, n_empx)
@@ -2804,6 +2804,20 @@ write(6,*) "nlfl_twin"
 !$$
           if( do_orbdep ) then
               !
+                               write(6,*) "checkbounds", ubound(c0_emp)
+                 write(6,*) "checkbounds", ubound(fsic_emp)
+                 write(6,*) "checkbounds", ubound(rhovan_emp)
+                 write(6,*) "checkbounds", ubound(wfc_centers_emp), nudx_emp
+                 write(6,*) "checkbounds", ubound(wfc_spreads_emp)
+                 write(6,*) "checkbounds", ubound(deeq_sic_emp)
+                 write(6,*) "checkbounds", ubound(ispin_emp)
+                 write(6,*) "checkbounds", ubound(iupdwn_emp)
+                 write(6,*) "checkbounds", ubound(nupdwn_emp)
+                 write(6,*) "checkbounds", ubound(rhor), "rhor"
+                 write(6,*) "checkbounds", ubound(rhog), "rhog"
+                 write(6,*) "checkbounds", ubound(wtot), "wtot"
+                 write(6,*) "checkbounds", ubound(vsic_emp), "vsic"
+                 write(6,*) "checkbounds", ubound(pink_emp), "pink", nudx_emp
                  call nksic_potential( n_emps, n_empx, c0_emp, fsic_emp, bec_emp, rhovan_emp, deeq_sic_emp, &
                  ispin_emp, iupdwn_emp, nupdwn_emp, rhor, rhog, wtot, sizwtot, vsic_emp, do_wxd, & 
                  pink_emp, nudx_emp, wfc_centers_emp, wfc_spreads_emp, icompute_spread, .true. )

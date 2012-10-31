@@ -397,20 +397,20 @@
       !
       ! main body
       !
-!                        write(6,*) "checkbounds", ubound(c)
-!                  write(6,*) "checkbounds", ubound(f_diag)
-!                  write(6,*) "checkbounds", ubound(becsum)
-!                  write(6,*) "checkbounds", ubound(wfc_centers), nudx
-!                  write(6,*) "checkbounds", ubound(wfc_spreads)
-!                                   write(6,*) "checkbounds", ubound(deeq_sic)
-!                  write(6,*) "checkbounds", ubound(ispin)
-!                  write(6,*) "checkbounds", ubound(iupdwn)
-!                  write(6,*) "checkbounds", ubound(nupdwn)
-!                  write(6,*) "checkbounds", ubound(rhor), "rhor"
-!                  write(6,*) "checkbounds", ubound(rhog), "rhog"
-!                  write(6,*) "checkbounds", ubound(wtot), "wtot"
-!                  write(6,*) "checkbounds", ubound(vsic), "vsic"
-!                  write(6,*) "checkbounds", ubound(pink), "pink", nudx
+                       write(6,*) "checkbounds", ubound(c)
+                 write(6,*) "checkbounds", ubound(f_diag)
+                 write(6,*) "checkbounds", ubound(becsum)
+                 write(6,*) "checkbounds", ubound(wfc_centers), nudx
+                 write(6,*) "checkbounds", ubound(wfc_spreads)
+                                  write(6,*) "checkbounds", ubound(deeq_sic)
+                 write(6,*) "checkbounds", ubound(ispin)
+                 write(6,*) "checkbounds", ubound(iupdwn)
+                 write(6,*) "checkbounds", ubound(nupdwn)
+                 write(6,*) "checkbounds", ubound(rhor), "rhor"
+                 write(6,*) "checkbounds", ubound(rhog), "rhog"
+                 write(6,*) "checkbounds", ubound(wtot), "wtot"
+                 write(6,*) "checkbounds", ubound(vsic), "vsic"
+                 write(6,*) "checkbounds", ubound(pink), "pink", nudx
 
       CALL start_clock( 'nksic_drv' )
       lgam = gamma_only.and..not.do_wf_cmplx
