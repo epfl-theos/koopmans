@@ -2108,6 +2108,158 @@ subroutine pc2(a,beca,b,becb, lgam)
       return
      end subroutine xminus1_twin
 
+      subroutine xminus1_twin_new(c0,n,betae,ema0bg,beck,m_minus1,do_k)
+! if (do_k) then
+!-----------------------------------------------------------------------
+!     input: c0 , bec=<c0|beta>, betae=|beta>
+!     computes the matrix phi (with the old positions)
+!       where  |phi> = K^{-1}|c0>
+! else
+!-----------------------------------------------------------------------
+!     input: c0 , bec=<c0|beta>, betae=|beta>
+!     computes the matrix phi (with the old positions)
+!       where  |phi> = s^{-1}|c0> 
+! endif
+      use kinds, only: dp
+      use ions_base, only: na, nsp
+      use io_global, only: stdout
+!$$
+      use io_global, only: ionode
+!$$
+      use mp_global, only: intra_image_comm
+      use cvan
+      use uspp_param, only: nh
+      use uspp, only :nhsa=>nkb, nhsavb=>nkbus, qq
+      use gvecw, only: ngw
+      use constants, only: pi, fpi
+      use control_flags, only: iprint, iprsta
+      use mp, only: mp_sum
+      use reciprocal_vectors, only: ng0 => gstart
+      use twin_types
+!
+      implicit none
+      !
+      integer, intent(IN) :: n
+      complex(dp) c0(ngw,n), betae(ngw,nhsa)
+      real(dp) ::    ema0bg(ngw)
+      type(twin_matrix) :: beck
+!       complex(DP)    :: m_minus1(nhsavb,nhsavb)
+      type(twin_matrix)    :: m_minus1 !(nhsavb,nhsavb)
+      logical :: do_k
+! local variables
+      complex(dp), allocatable :: phi(:,:)
+      real(dp) , allocatable   :: qtemp(:,:)
+      complex(dp) , allocatable   :: qtemp_c(:,:)
+      integer is, iv, jv, ia, inl, jnl, i, j, js, ja,ig
+      real(dp) becktmp
+      complex(dp) becktmp_c      
+      logical :: mat_par=.true.!if true uses parallel routines
+      complex(DP), parameter :: c_one=CMPLX(1.d0,0.d0)
+      complex(DP), parameter :: c_zero=CMPLX(0.d0,0.d0)
+
+      call start_clock('xminus1')
+!$$
+!      if(ionode) write(700,*) 'nvb is',nvb
+!$$
+      if (nvb.gt.0) then
+!calculates beck
+         if (do_k) then
+            call set_twin(beck,CMPLX(0.d0,0.d0))
+            do is=1,nvb
+               do iv=1,nh(is)
+                  do ia=1,na(is)
+                     inl=ish(is)+(iv-1)*na(is)+ia
+                     do i=1,n
+                        IF(.not.beck%iscmplx) THEN
+                          becktmp = 0.0d0
+                          do ig=1,ngw
+                            becktmp=becktmp+ema0bg(ig)*DBLE(CONJG(betae(ig,inl))*c0(ig,i))
+                          enddo
+                          becktmp = becktmp*2.0d0
+                          if (ng0.eq.2) becktmp = becktmp-ema0bg(1)*DBLE(CONJG(betae(1,inl))*c0(1,i)) 
+                          beck%rvec(inl,i) = beck%rvec(inl,i) + becktmp
+                        ELSE
+                          becktmp_c = CMPLX(0.0d0, 0.d0)
+                          do ig=1,ngw
+                            becktmp_c=becktmp_c+ema0bg(ig)*(CONJG(betae(ig,inl))*c0(ig,i))
+                          enddo
+                          beck%cvec(inl,i) = beck%cvec(inl,i) + becktmp_c
+                        ENDIF
+                     enddo
+                  enddo
+               enddo
+            enddo
+            call twin_mp_sum( beck )
+         endif
+!
+!
+          allocate(phi(ngw,n))
+          phi(1:ngw,1:n) = 0.0d0
+          IF(.not.m_minus1%iscmplx) THEN
+            allocate(qtemp(nhsavb,n))
+            qtemp(:,:) = 0.0d0
+          ELSE
+            allocate(qtemp_c(nhsavb,n))
+            qtemp_c(:,:) = CMPLX(0.0d0, 0.d0)
+          ENDIF
+          if(.not.mat_par) then
+            IF(.not.m_minus1%iscmplx) THEN
+              call dgemm( 'N', 'N', nhsavb, n, nhsavb, 1.0d0, m_minus1%rvec,nhsavb ,    &
+                          beck%rvec, nhsa, 0.0d0, qtemp,nhsavb )
+            ELSE
+              call zgemm( 'N', 'N', nhsavb, n, nhsavb, c_one, m_minus1%cvec,nhsavb ,    &
+                          beck%cvec, nhsa, c_zero, qtemp_c, nhsavb )
+            ENDIF
+          else
+            IF(.not.m_minus1%iscmplx) THEN
+              call para_dgemm( 'N', 'N', nhsavb, n, nhsavb, (1.0d0,0.d0), m_minus1%rvec,nhsavb ,    &
+                          beck%rvec, nhsa, (0.0d0,0.d0), qtemp,nhsavb,intra_image_comm )
+            ELSE
+              call para_zgemm( 'N', 'N', nhsavb, n, nhsavb, (1.0d0,0.d0), m_minus1%cvec,nhsavb ,    &
+                          beck%cvec, nhsa, (0.0d0,0.d0), qtemp_c,nhsavb,intra_image_comm )
+            ENDIF
+          endif
+!NB  nhsavb is the total number of US projectors
+!    it works because the first pseudos are the vanderbilt's ones
+          IF(.not.m_minus1%iscmplx) THEN
+            CALL DGEMM( 'N', 'N', 2*ngw, n, nhsavb, 1.0d0, betae, 2*ngw,    &
+                        qtemp, nhsavb, 0.0d0, phi, 2*ngw )
+          ELSE
+            CALL ZGEMM( 'N', 'N', ngw, n, nhsavb, (1.0d0,0.d0), betae, ngw,    &
+                        qtemp_c, nhsavb, (0.0d0,0.d0), phi, ngw ) !warning:giovanni is it like this??
+          ENDIF
+          if (do_k) then
+            do j=1,n
+               do ig=1,ngw
+                  c0(ig,j)=(phi(ig,j)+c0(ig,j))*ema0bg(ig)
+               end do
+            end do
+          else
+            do j=1,n
+               do i=1,ngw
+                  c0(i,j)=(phi(i,j)+c0(i,j))
+               end do
+            end do
+          endif
+          deallocate(phi)
+          IF(.not.m_minus1%iscmplx) THEN
+            deallocate(qtemp)
+          ELSE
+            deallocate(qtemp_c)
+          ENDIF
+      else
+         if (do_k) then
+            do j=1,n
+               do ig=1,ngw
+                  c0(ig,j)=c0(ig,j)*ema0bg(ig)
+               end do
+            end do
+         endif
+      endif
+      call stop_clock('xminus1')
+      return
+     end subroutine xminus1_twin_new     
+     
       SUBROUTINE emass_precond_tpa( ema0bg, tpiba2, emaec )
        use kinds, ONLY : dp
        use gvecw, ONLY : ggp,ngw

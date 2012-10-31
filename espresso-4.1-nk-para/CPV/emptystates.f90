@@ -90,7 +90,6 @@
       COMPLEX(DP), ALLOCATABLE :: vxxpsi_emp(:,:)
       REAL(DP),    ALLOCATABLE :: exx_emp(:)
 !       REAL(DP),    ALLOCATABLE :: pink_emp(:)
-      REAL(DP),    ALLOCATABLE :: rhovan_emp(:,:,:)
       !
       INTEGER, SAVE :: np_emp(2), me_emp(2), emp_comm, color
       INTEGER, SAVE :: desc_emp( descla_siz_ , 2 )
@@ -108,12 +107,6 @@
       ELSE
          !
          tcg_=.false.
-         !
-      ENDIF
-      !       
-      if( okvan.and. tcg_) THEN
-         !
-         allocate(rhovan_emp(nhm*(nhm+1)/2,nat,nspin))
          !
       ENDIF
       !
@@ -219,10 +212,11 @@
       IF ( do_orbdep ) THEN
           !
           ALLOCATE( fsic_emp( n_empx ) )
+!           n_empx_odd=n_empx
           ALLOCATE( vsic_emp(nnrx, n_empx) )
           ALLOCATE( wxd_emp (nnrx, 2) )
-          ALLOCATE( deeq_sic_emp (nhm,nhm,nat,n_empx) )
-          ALLOCATE( becsum_emp( nhm*(nhm+1)/2, nat, nspin ) )
+          ALLOCATE( deeq_sic_emp (max(1,nhm),max(1,nhm),nat,n_empx) )
+          ALLOCATE( becsum_emp( max(1,nhm*(nhm+1)/2), nat, nspin ) )
           call allocate_nksic_empty(n_empx)
 !           ALLOCATE( pink_emp( n_empx ) )
           !
@@ -231,6 +225,16 @@
           wxd_emp  = 0.0d0
           pink_emp = 0.0d0
           ! 
+      ELSE
+          !
+          ALLOCATE( fsic_emp( 1 ) )
+!           n_empx_odd=1
+          ALLOCATE( vsic_emp(1, 1) )
+          ALLOCATE( wxd_emp (1, 2) )
+          ALLOCATE( deeq_sic_emp (1,1,1,1) )
+          ALLOCATE( becsum_emp( 1,1, 1 ) )
+          call allocate_nksic_empty(1)
+          !
       ENDIF
       !
       IF ( do_hf ) THEN
@@ -410,8 +414,8 @@
       IF(tcg_) THEN ! compute empty states with conjugate gradient
       
          call runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
-                          n_emps, iupdwn_emp, nupdwn_emp, phi_emp, lambda_emp, &
-                          max_emp, wxd_emp, pink_emp, nnrx, rhovan_emp, &
+                          n_emps, ispin_emp, iupdwn_emp, nupdwn_emp, phi_emp, lambda_emp, &
+                          max_emp, wxd_emp, vsic_emp, pink_emp, nnrx, becsum_emp, &
                           deeq_sic_emp, nudx_emp, eodd_emp, etot_emp, v, &
                           nfi, .true., .true., eigr, bec, irb, eigrb, &
                           rhor, rhog, rhos, ema0bg)
@@ -655,9 +659,7 @@
       DO iss=1,nspin
          CALL deallocate_twin(lambda_emp(iss))
       ENDDO
-      IF(allocated(rhovan_emp)) THEN
-         deallocate(rhovan_emp)
-      ENDIF
+
       !
       IF ( do_orbdep ) THEN
           DEALLOCATE( fsic_emp ) 
@@ -839,6 +841,13 @@
 
       lgam=gamma_only.and..not.do_wf_cmplx
 
+      !Quick return if there are either no filled or no empty states with this spin (no need to orthogonalize them)
+      IF(n_emp.le.0.or.n_occ.le.0) THEN
+         !
+         return
+         !
+      ENDIF
+      
       call init_twin(csc_emp, lgam)
       call allocate_twin(csc_emp, n_emp, 1, lgam)
 

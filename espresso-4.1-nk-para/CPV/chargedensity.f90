@@ -1472,17 +1472,17 @@
       INTEGER nfi, n, nx, nspin, ispin(n), &
               iupdwn(nspin), nupdwn(nspin), nudx
       type(twin_matrix) :: bec!(:,:)
-      REAL(DP) rhovan(:, :, : )
-      REAL(DP) rhor(:,:), f(:)
-      REAL(DP) rhos(:,:)
+      REAL(DP) rhovan(max(1,nhm*(nhm+1)/2), nat, nspin )
+      REAL(DP) rhor(nnrx,nspin), f(nx)
+      REAL(DP) rhos(nnrsx,nspin)
       REAL(DP) enl, ekin
       REAL(DP) denl(3,3), dekin(6)
-      COMPLEX(DP) eigrb( :, : )
-      COMPLEX(DP) rhog( :, : )
-      COMPLEX(DP) c( :, : )
-      INTEGER irb( :, : )
-      LOGICAL, OPTIONAL, INTENT(IN) :: tstress
-      INTEGER, OPTIONAL, INTENT(IN) :: ndwwf
+      COMPLEX(DP) eigrb( ngb, nat )
+      COMPLEX(DP) rhog( ngm, 2 )
+      COMPLEX(DP) c( ngw, n )
+      INTEGER irb( 3, nat )
+      LOGICAL, INTENT(IN) :: tstress
+      INTEGER, INTENT(IN) :: ndwwf
 
       ! local variables
 
@@ -1504,8 +1504,18 @@
       
       lgam=gamma_only.and..not.do_wf_cmplx
       ttstress = tpre
-      IF( PRESENT( tstress ) ) ttstress = tstress
+      ttstress = tstress
 
+!       write(6,*) "checkbounds", ubound(f)
+!           write(6,*) "checkbounds", ubound(ispin), ispin
+!           write(6,*) "checkbounds", ubound(iupdwn)
+!           write(6,*) "checkbounds", ubound(nupdwn)
+!           write(6,*) "checkbounds", ubound(c)
+!           write(6,*) "checkbounds", ubound(bec%cvec)
+!                     write(6,*) "checkbounds", ubound(rhor)
+!           write(6,*) "checkbounds", ubound(rhog)
+!           write(6,*) "checkbounds", ubound(rhos)
+      
       ci = ( 0.0d0, 1.0d0 )
 
       rhor = 0.d0
@@ -1525,7 +1535,7 @@
          !
       END IF
 
-      IF( PRESENT( ndwwf ) ) THEN
+      IF( ndwwf>0 ) THEN
          !
          !     called from WF, compute only of rhovan
          !
@@ -1611,7 +1621,7 @@
             !
          ENDIF
          !
-         IF( PRESENT( ndwwf ) ) THEN
+         IF( ndwwf>0 ) THEN
             !
             ! Wannier function, charge density from state iwf
             !
@@ -1828,7 +1838,7 @@
 
       ENDIF COMPUTE_CHARGE
 !
-      IF( PRESENT( ndwwf ) ) THEN
+      IF( ndwwf>0 ) THEN
          !
          CALL old_write_rho( ndwwf, nspin, rhor, a1, a2, a3 )
          !
