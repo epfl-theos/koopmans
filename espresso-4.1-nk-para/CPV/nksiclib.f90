@@ -410,7 +410,7 @@
                  write(6,*) "checkbounds", ubound(rhog), "rhog"
                  write(6,*) "checkbounds", ubound(wtot), "wtot"
                  write(6,*) "checkbounds", ubound(vsic), "vsic"
-                 write(6,*) "checkbounds", ubound(pink), "pink", nudx
+                 write(6,*) "checkbounds", ubound(pink), "pink", nudx, is_empty
 
       CALL start_clock( 'nksic_drv' )
       lgam = gamma_only.and..not.do_wf_cmplx
@@ -549,6 +549,7 @@
               call nksic_correction_nki( focc, ispin(i), orb_rhor(:,jj), &
                                          rhor, rhoref, rhobar, rhobarg, grhobar, &
                                          vsic(:,i), wxdsic, do_wxd_, pink(i), ibnd, is_empty_)
+                                                                                  write(6,*) "check2pink", pink(i)
               !
               ! here information is accumulated over states
               ! (wtot is added in the next loop)
@@ -579,7 +580,11 @@
           !
           ! take care of spin symmetry
           !
-          pink(i) = f_diag(i) * pink(i)
+          IF(.not.is_empty_) THEN
+             pink(i) = f_diag(i) * pink(i)
+          ELSE
+             pink(i) = 2.d0* pink(i)/nspin
+          ENDIF
           !
           if ( do_nk .or. do_nkpz .or. do_nki .or. do_nkipz) then
               !
@@ -2577,6 +2582,8 @@ end subroutine nksic_correction_pz
         icoeff=1.d0
       endif
       !
+      write(6,*) "present", present(is_empty), is_empty
+      !
       IF(present(is_empty)) THEN
          !
          is_empty_ = is_empty
@@ -2660,18 +2667,18 @@ end subroutine nksic_correction_pz
       ehele = icoeff * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm,ispin)))
       if ( gstart == 2 ) ehele = ehele + (1.d0-icoeff)*DBLE ( CONJG( vtmp(1) ) * rhogaux(1,ispin) )
       !
-      IF(.not.is_empty_) THEN
+!       IF(.not.is_empty_) THEN
          !
          w2cst = 0.5_dp * ehele * omega 
          call mp_sum(w2cst,intra_image_comm)
          !
          vsic  = vsic + w2cst
          !
-      ENDIF
+!       ENDIF
       !
       ehele = 0.5d0 * ehele * omega / fact
       !
-      shart=abs(ehele)*f*fact*hartree_si/electronvolt_si
+      shart=abs(ehele)*fact*hartree_si/electronvolt_si
       !
       call mp_sum(shart, intra_image_comm)
       !
@@ -2728,6 +2735,13 @@ end subroutine nksic_correction_pz
          pink = -f*(etxc_ + ehele)
          !
       ELSE
+         !
+!          etmp  = sum( vxc_(1:nnrx,ispin) * orb_rhor(1:nnrx) )
+!          !
+!          w2cst = -etxc_ + etmp
+!          w2cst = w2cst * fact
+!          !
+!          call mp_sum(w2cst,intra_image_comm)
          !
          w2cst=0.d0
          !
@@ -3119,10 +3133,17 @@ end subroutine nksic_correction_nkipz
          pink = pink*fact
          !
       ELSE
+!                etmp  = sum( vxcref(1:nnrx,ispin) * rhoele(1:nnrx,ispin) )
+!          w2cst = ( etxcref-etxc0 ) -etmp
+!          w2cst = w2cst * fact
+!          !
+!          call mp_sum(w2cst,intra_image_comm)
          !
          etmp  = sum( vxc(1:nnrx,ispin) * rhoele(1:nnrx,ispin) )
          !
-         pink = etxcref-etxc-etmp+ehele
+         write(6,*) "checkpink", etxcref, -etxc0, -etmp, ehele
+         !
+         pink = etxcref-etxc0-etmp+ehele
          pink = pink*fact 
          !
       ENDIF
@@ -3170,7 +3191,7 @@ end subroutine nksic_correction_nkipz
          wxdsic = 0.d0
          !
       endif
-
+         write(6,*) "checkpink", pink
       !
       deallocate(vxc0)
       deallocate(vxcref)

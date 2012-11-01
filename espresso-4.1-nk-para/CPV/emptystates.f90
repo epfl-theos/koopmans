@@ -418,7 +418,7 @@
                           max_emp, wxd_emp, vsic_emp, pink_emp, nnrx, becsum_emp, &
                           deeq_sic_emp, nudx_emp, eodd_emp, etot_emp, v, &
                           nfi, .true., .true., eigr, bec, irb, eigrb, &
-                          rhor, rhog, rhos, ema0bg)
+                          rhor, rhog, rhos, ema0bg, desc_emp)
       
       ELSE ! compute empty states with damped dynamics
       !

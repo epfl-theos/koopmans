@@ -2444,7 +2444,7 @@ write(6,*) "nlfl_twin"
                           deeq_sic_emp, nudx_emp, eodd_emp, etot_emp, &
                           filledstates_potential, &
                           nfi, tfirst, tlast, eigr, bec, irb, eigrb, &
-                          rhor, rhog, rhos, ema0bg)
+                          rhor, rhog, rhos, ema0bg, desc_emp)
 !=======================================================================
 
       use kinds,                    only : dp
@@ -2514,6 +2514,7 @@ write(6,*) "nlfl_twin"
       use ldau,                     only : lda_plus_u, vupsi
       use cp_interfaces,            only : gram_empty, nlsm1
       use uspp_param,               only : nhm
+      USE descriptors,          ONLY : descla_siz_
 !
       implicit none
 !
@@ -2537,7 +2538,10 @@ write(6,*) "nlfl_twin"
                   filledstates_potential(nnrsx,nspin)
       complex(dp) :: c0_emp(ngw, n_empx), cm_emp(ngw, n_empx), phi_emp(ngw, n_empx)
       type(twin_matrix) :: bec_emp, lambda_emp(nspin)
-
+      integer :: desc_emp(descla_siz_, 2)
+      !
+      ! local variables
+      !
       integer     :: i, j, ig, k, is, iss,ia, iv, jv, il, ii, jj, kk, ip
       integer     :: inl, jnl, niter, istart, nss, nrl, me_rot, np_rot , comm
       real(dp)    :: enb, enbi, x
@@ -2594,13 +2598,16 @@ write(6,*) "nlfl_twin"
       real(DP) :: ekin_emp, enl_emp, dekin_emp(6), denl_emp(3,3), epot_emp
       real(DP), allocatable :: rhor_emp(:,:), rhos_emp(:,:), rhoc_emp(:)
       complex(DP), allocatable :: rhog_emp(:,:)
+      real(DP), allocatable :: faux_emp(:)
       integer :: ndwwf=0
       !
       lgam = gamma_only.and..not.do_wf_cmplx
       !
       deltae = 2.d0*conv_thr
       !
-      allocate (faux(n_empx))
+      allocate (faux(n_empx), faux_emp(n_empx))
+      !
+      faux_emp=0.d0
       !
       allocate (c2(ngw),c3(ngw))
 
@@ -2804,7 +2811,7 @@ write(6,*) "nlfl_twin"
 !$$
           if( do_orbdep ) then
               !
-                               write(6,*) "checkbounds", ubound(c0_emp)
+                               write(6,*) "check1bounds", ubound(c0_emp)
                  write(6,*) "checkbounds", ubound(fsic_emp)
                  write(6,*) "checkbounds", ubound(rhovan_emp)
                  write(6,*) "checkbounds", ubound(wfc_centers_emp), nudx_emp
@@ -2818,12 +2825,12 @@ write(6,*) "nlfl_twin"
                  write(6,*) "checkbounds", ubound(wtot), "wtot"
                  write(6,*) "checkbounds", ubound(vsic_emp), "vsic"
                  write(6,*) "checkbounds", ubound(pink_emp), "pink", nudx_emp
-                 call nksic_potential( n_emps, n_empx, c0_emp, fsic_emp, bec_emp, rhovan_emp, deeq_sic_emp, &
-                 ispin_emp, iupdwn_emp, nupdwn_emp, rhor, rhog, wtot, sizwtot, vsic_emp, do_wxd, & 
+                 call nksic_potential( n_emps, n_empx, c0_emp, faux_emp, bec_emp, rhovan_emp, deeq_sic_emp, &
+                 ispin_emp, iupdwn_emp, nupdwn_emp, rhor, rhog, wtot, sizwtot, vsic_emp, .false., & 
                  pink_emp, nudx_emp, wfc_centers_emp, wfc_spreads_emp, icompute_spread, .true. )
 
               eodd_emp=sum(pink_emp(1:n_empx))
-!               write(6,*) eodd, etot, "EODD0", etot+eodd
+              write(6,*) eodd_emp, etot_emp, "EODD0", pink_emp
               etot_emp = etot_emp + eodd_emp
               !
           endif
@@ -3298,14 +3305,14 @@ write(6,*) "nlfl_twin"
 !$$
         if( do_orbdep ) then
             !warning:giovanni don't we need becm down here??? otherwise problems with ultrasoft!!
-               call nksic_potential( n_emps, n_empx, cm_emp, fsic_emp, becm_emp, &
+               call nksic_potential( n_emps, n_empx, cm_emp, faux_emp, becm_emp, &
                                   rhovan_emp, deeq_sic, ispin_emp, iupdwn_emp, &
-                                  nupdwn_emp, rhor, rhog, wtot, sizwtot, vsic_emp, do_wxd, &
+                                  nupdwn_emp, rhor, rhog, wtot, sizwtot, vsic_emp, .false., &
                                   pink_emp, nudx_emp, wfc_centers_emp, &
                                   wfc_spreads_emp, icompute_spread, .true.)
             !
             eodd_emp=sum(pink_emp(1:n_emps))
-!             write(6,*) eodd, etot, "EODD2", etot+eodd !debug:giovanni
+            write(6,*) eodd_emp, etot_emp, "EODD2", pink_emp !debug:giovanni
             etot_emp = etot_emp + eodd_emp
             !
         endif
@@ -3394,8 +3401,8 @@ write(6,*) "nlfl_twin"
 !$$
         if(do_orbdep) then
             !warning:giovanni... don't we need becm down here?? otherwise problem with ultrasoft!!
-            call nksic_potential( n_emps, n_empx, cm_emp, fsic_emp, becm_emp, rhovan_emp, deeq_sic_emp, &
-            ispin_emp, iupdwn_emp, nupdwn_emp, rhor, rhog, wtot, sizwtot, vsic_emp, do_wxd, & 
+            call nksic_potential( n_emps, n_empx, cm_emp, faux_emp, becm_emp, rhovan_emp, deeq_sic_emp, &
+            ispin_emp, iupdwn_emp, nupdwn_emp, rhor, rhog, wtot, sizwtot, vsic_emp, .false., & 
             pink_emp, nudx_emp, wfc_centers_emp, &
             wfc_spreads_emp, icompute_spread, .true. )
             
@@ -3404,7 +3411,7 @@ write(6,*) "nlfl_twin"
 !                                   wfc_centers, wfc_spreads, &
 !                                   icompute_spread)
             eodd_emp = sum(pink_emp(1:n_emps))
-!             write(6,*) eodd, etot,"EODD3", etot+eodd
+            write(6,*) eodd_emp, etot_emp,"EODD3", pink_emp
             etot_emp = etot_emp + eodd_emp
             !
         endif
@@ -3542,8 +3549,8 @@ write(6,*) "nlfl_twin"
 !$$
             if(do_orbdep) then
                 !warning:giovanni don't we need becm down here??? otherwise problems with ultrasoft
-                call nksic_potential( n_emps, n_empx, cm_emp, fsic_emp, becm_emp, rhovan_emp, deeq_sic_emp, &
-                ispin_emp, iupdwn_emp, nupdwn_emp, rhor, rhog, wtot, sizwtot, vsic_emp, do_wxd, & 
+                call nksic_potential( n_emps, n_empx, cm_emp, faux_emp, becm_emp, rhovan_emp, deeq_sic_emp, &
+                ispin_emp, iupdwn_emp, nupdwn_emp, rhor, rhog, wtot, sizwtot, vsic_emp, .false., & 
                 pink_emp, nudx_emp, wfc_centers_emp, &
                 wfc_spreads_emp, icompute_spread, .true. )
 !                    call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
@@ -3552,7 +3559,7 @@ write(6,*) "nlfl_twin"
 !                                       icompute_spread)
                 !
                 eodd_emp = sum(pink_emp(1:n_emps))
-!                 write(6,*) eodd, etot, "EODD4", etot+eodd
+                write(6,*) eodd_emp, etot_emp, "EODD4", pink_emp
                 etot_emp = etot_emp + eodd_emp
                 !
             endif
@@ -3683,12 +3690,12 @@ write(6,*) "nlfl_twin"
 ! !$$
          if(do_orbdep) then
 !              !
-                call nksic_potential( n_emps, n_empx, c0_emp, fsic_emp, bec_emp, rhovan_emp, deeq_sic_emp, &
-                                   ispin_emp, iupdwn_emp, nupdwn_emp, rhor, rhog, wtot, sizwtot, vsic_emp, do_wxd, &
+                call nksic_potential( n_emps, n_empx, c0_emp, faux_emp, bec_emp, rhovan_emp, deeq_sic_emp, &
+                                   ispin_emp, iupdwn_emp, nupdwn_emp, rhor, rhog, wtot, sizwtot, vsic_emp, .false., &
                                    pink_emp, nudx_emp, wfc_centers_emp, wfc_spreads_emp, &
                                    icompute_spread, .false.)
              eodd_emp = sum(pink_emp(1:n_empx))
-! !              write(6,*) eodd, etot, "EODD5", etot+eodd
+             write(6,*) eodd_emp, etot_emp, "EODD5", pink_emp
              etot_emp = etot_emp + eodd_emp
 !              !
          endif
@@ -3785,7 +3792,9 @@ write(6,*) "nlfl_twin"
         !
         nss = nupdwn_emp(is)
         istart = iupdwn_emp(is)
-           
+        write(6,*) "checknss", gi(1:5,is)
+        write(6,*) "checknss2", hitmp(1:5,is)
+        
         IF(.not.lambda_emp(1)%iscmplx) THEN
            lambda_repl = 0.d0
         ELSE
@@ -3818,18 +3827,22 @@ write(6,*) "nlfl_twin"
               enddo
            enddo
            !
+           
         !
         IF(.not.lambda_emp(1)%iscmplx) THEN
            CALL mp_sum( lambda_repl, intra_image_comm )
-           CALL distribute_lambda( lambda_repl, lambda_emp(is)%rvec( :, :), descla( :, is ) )
+           CALL distribute_lambda( lambda_repl, lambda_emp(is)%rvec( :, :), desc_emp( :, is ) )
         ELSE
            CALL mp_sum( lambda_repl_c, intra_image_comm )
-           CALL distribute_lambda( lambda_repl_c, lambda_emp(is)%cvec( :, :), descla( :, is ) )
+           write(6,*) "checknss3", lambda_repl_c
+           CALL distribute_lambda( lambda_repl_c, lambda_emp(is)%cvec( :, :), desc_emp( :, is ) )
         ENDIF
         !
         !
      end do
 
+     write(6,*) lambda_emp(1)%cvec, "ldambdaemp", lambda_emp(2)%cvec
+     
      IF(.not.lambda_emp(1)%iscmplx) THEN
         DEALLOCATE( lambda_repl )
      ELSE
@@ -3872,7 +3885,7 @@ write(6,*) "nlfl_twin"
      !end_modified:giovanni
 
 !      deallocate(ave_ene)
-     deallocate(c2,c3)
+     deallocate(c2,c3, faux, faux_emp)
 
           return
 
