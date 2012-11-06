@@ -379,7 +379,7 @@
       real(dp),    intent(in)  :: rhor(nnrx,nspin)
       complex(dp), intent(in)  :: rhog(ngm,nspin)
       real(dp),    intent(out) :: vsic(nnrx,nx), wtot(sizwtot,2)
-      real(dp),    intent(out) :: deeq_sic(max(nhm,1),max(nhm,1),nat,nx)
+      real(dp),    intent(out) :: deeq_sic(nhm,nhm,nat,nx)
       logical,     intent(in)  :: do_wxd_
       real(dp),    intent(out) :: pink(nx)
       logical  :: icompute_spread
@@ -397,20 +397,20 @@
       !
       ! main body
       !
-                       write(6,*) "checkbounds", ubound(c)
-                 write(6,*) "checkbounds", ubound(f_diag)
-                 write(6,*) "checkbounds", ubound(becsum)
-                 write(6,*) "checkbounds", ubound(wfc_centers), nudx
-                 write(6,*) "checkbounds", ubound(wfc_spreads)
-                                  write(6,*) "checkbounds", ubound(deeq_sic)
-                 write(6,*) "checkbounds", ubound(ispin)
-                 write(6,*) "checkbounds", ubound(iupdwn)
-                 write(6,*) "checkbounds", ubound(nupdwn)
-                 write(6,*) "checkbounds", ubound(rhor), "rhor"
-                 write(6,*) "checkbounds", ubound(rhog), "rhog"
-                 write(6,*) "checkbounds", ubound(wtot), "wtot"
-                 write(6,*) "checkbounds", ubound(vsic), "vsic"
-                 write(6,*) "checkbounds", ubound(pink), "pink", nudx, is_empty
+!                        write(6,*) "checkbounds", ubound(c)
+!                  write(6,*) "checkbounds", ubound(f_diag)
+!                  write(6,*) "checkbounds", ubound(becsum)
+!                  write(6,*) "checkbounds", ubound(wfc_centers), nudx
+!                  write(6,*) "checkbounds", ubound(wfc_spreads)
+!                                   write(6,*) "checkbounds", ubound(deeq_sic)
+!                  write(6,*) "checkbounds", ubound(ispin)
+!                  write(6,*) "checkbounds", ubound(iupdwn)
+!                  write(6,*) "checkbounds", ubound(nupdwn)
+!                  write(6,*) "checkbounds", ubound(rhor), "rhor"
+!                  write(6,*) "checkbounds", ubound(rhog), "rhog"
+!                  write(6,*) "checkbounds", ubound(wtot), "wtot"
+!                  write(6,*) "checkbounds", ubound(vsic), "vsic"
+!                  write(6,*) "checkbounds", ubound(pink), "pink", nudx, is_empty
 
       CALL start_clock( 'nksic_drv' )
       lgam = gamma_only.and..not.do_wf_cmplx
@@ -537,7 +537,7 @@
                                          vsic(:,i), pink(i), ibnd, shart )
               !
               wfc_spreads(ibnd, ispin(i), 2) = shart
-              write(6,*) "pinkpz", pink
+!               write(6,*) "pinkpz", pink
               !
           endif
 
@@ -549,7 +549,7 @@
               call nksic_correction_nki( focc, ispin(i), orb_rhor(:,jj), &
                                          rhor, rhoref, rhobar, rhobarg, grhobar, &
                                          vsic(:,i), wxdsic, do_wxd_, pink(i), ibnd, is_empty_)
-                                                                                  write(6,*) "check2pink", pink(i)
+!                                                                                   write(6,*) "check2pink", pink(i)
               !
               ! here information is accumulated over states
               ! (wtot is added in the next loop)
@@ -2582,7 +2582,7 @@ end subroutine nksic_correction_pz
         icoeff=1.d0
       endif
       !
-      write(6,*) "present", present(is_empty), is_empty
+!       write(6,*) "present", present(is_empty), is_empty
       !
       IF(present(is_empty)) THEN
          !
@@ -3141,7 +3141,7 @@ end subroutine nksic_correction_nkipz
          !
          etmp  = sum( vxc(1:nnrx,ispin) * rhoele(1:nnrx,ispin) )
          !
-         write(6,*) "checkpink", etxcref, -etxc0, -etmp, ehele
+!          write(6,*) "checkpink", etxcref, -etxc0, -etmp, ehele
          !
          pink = etxcref-etxc0-etmp+ehele
          pink = pink*fact 
@@ -3191,7 +3191,7 @@ end subroutine nksic_correction_nkipz
          wxdsic = 0.d0
          !
       endif
-         write(6,*) "checkpink", pink
+!          write(6,*) "checkpink", pink
       !
       deallocate(vxc0)
       deallocate(vxcref)

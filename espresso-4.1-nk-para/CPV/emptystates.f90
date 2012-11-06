@@ -215,10 +215,9 @@
 !           n_empx_odd=n_empx
           ALLOCATE( vsic_emp(nnrx, n_empx) )
           ALLOCATE( wxd_emp (nnrx, 2) )
-          ALLOCATE( deeq_sic_emp (max(1,nhm),max(1,nhm),nat,n_empx) )
-          ALLOCATE( becsum_emp( max(1,nhm*(nhm+1)/2), nat, nspin ) )
-          call allocate_nksic_empty(n_empx)
-!           ALLOCATE( pink_emp( n_empx ) )
+          ALLOCATE( deeq_sic_emp (nhm,nhm,nat,n_empx) )
+          ALLOCATE( becsum_emp(nhm*(nhm+1)/2,nat,nspin))
+          CALL allocate_nksic_empty(n_empx)
           !
           fsic_emp = 0.0d0
           vsic_emp = 0.0d0
@@ -314,7 +313,7 @@
             !
             issw   = iupdwn( iss )
             !
-            if(nupdwn(iss)>0.and. nupdwn_emp(iss)>0) THEN
+            if(nupdwn(iss)>0.and.nupdwn_emp(iss)>0) THEN
                !
                CALL gram_empty( .false. , eigr, vkb, bec_emp, bec_occ, nkb, &
                 c0_emp( :, in_emp: ), c0( :, issw: ), ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, in )
@@ -413,7 +412,7 @@
       
       IF(tcg_) THEN ! compute empty states with conjugate gradient
       
-         call runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
+         call runcg_uspp_emp(c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
                           n_emps, ispin_emp, iupdwn_emp, nupdwn_emp, phi_emp, lambda_emp, &
                           max_emp, wxd_emp, vsic_emp, pink_emp, nnrx, becsum_emp, &
                           deeq_sic_emp, nudx_emp, eodd_emp, etot_emp, v, &
@@ -549,7 +548,7 @@
             !
             IF( tortho ) THEN
                !
-               write(6,*) "n_emps", n_emps
+!                write(6,*) "n_emps", n_emps
                CALL ortho_cp_twin( eigr(1:ngw,1:nat), cm_emp(1:ngw,1:n_emps), phi_emp(1:ngw,1:n_emps), ngw, lambda_emp(1:nspin), desc_emp(1:descla_siz_,1:nspin), &
                            bigr, iter_ortho, ccc, bephi_emp, becp_emp, n_emps, nspin, &
                            nupdwn_emp, iupdwn_emp )

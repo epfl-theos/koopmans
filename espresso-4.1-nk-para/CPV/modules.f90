@@ -384,7 +384,11 @@ contains
 
   integer :: n_emps
   
-  allocate(pink_emp(n_emps))
+  IF(.not.allocated(pink_emp)) THEN
+     !
+     allocate(pink_emp(n_emps))
+     !
+  ENDIF
   
   return
   
@@ -493,7 +497,7 @@ contains
       if(allocated(grhobar))     deallocate(grhobar)
       if(allocated(rhobar))      deallocate(rhobar)
       if(allocated(rhoref))      deallocate(rhoref)
-      if(allocated(pink_emp))      deallocate(pink_emp)
+      if(allocated(pink_emp))    deallocate(pink_emp)
       !
   end subroutine deallocate_nksic
   !
@@ -601,7 +605,6 @@ contains
   !
 end module efield_mod
 !
-!
 ! Occupation constraint ...to be implemented...
 !
 module step_constraint
@@ -614,4 +617,3 @@ module step_constraint
   ! complex(DP), allocatable:: vpsi_con(:,:)
   complex(DP) :: vpsi_con(1,1)
 end module step_constraint
-
