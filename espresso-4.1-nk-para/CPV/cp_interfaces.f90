@@ -399,7 +399,7 @@
       INTEGER, INTENT(IN) :: ngwx, n
       COMPLEX(DP)    :: c( ngwx )
       COMPLEX(DP)    :: v( ngwx, n )
-      type(twin_matrix)    :: csv
+      type(twin_matrix) :: csv
       END SUBROUTINE
     END INTERFACE
 

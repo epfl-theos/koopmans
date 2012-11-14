@@ -160,6 +160,8 @@
       !
       lgam = gamma_only.and..not.do_wf_cmplx
       deltae = 2.d0*conv_thr
+      etotnew=0.d0
+      etotold=0.d0
       !
       northo_flavor=1
       !
@@ -2440,7 +2442,7 @@ write(6,*) "nlfl_twin"
 !=======================================================================
    subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
                           n_emps, ispin_emp, iupdwn_emp, nupdwn_emp, phi_emp, lambda_emp, &
-                          maxiter_emp, wxd_emp, vsic_emp, pink_emp, nnrx, rhovan_emp, &
+                          maxiter_emp, wxd_emp, vsic_emp, sizvsic_emp, pink_emp, nnrx, rhovan_emp, &
                           deeq_sic_emp, nudx_emp, eodd_emp, etot_emp, &
                           filledstates_potential, &
                           nfi, tfirst, tlast, eigr, bec, irb, eigrb, &
@@ -2522,6 +2524,7 @@ write(6,*) "nlfl_twin"
       CHARACTER(LEN=6), EXTERNAL :: int_to_char
       integer     :: nfi
       logical     :: tfirst , tlast
+      integer :: sizvsic_emp
       complex(dp) :: eigr(ngw,nat)
       type(twin_matrix)    :: bec !modified:giovanni
       integer     :: irb(3,nat)
@@ -2532,13 +2535,14 @@ write(6,*) "nlfl_twin"
       real(dp)    :: ema0bg(ngw)
       integer :: n_emps, n_empx, iupdwn_emp(nspin), nupdwn_emp(nspin), maxiter_emp, nnrx, &
                  nudx_emp, ispin_emp(n_empx)
-      real(dp) :: f_emp(n_empx), fsic_emp(n_empx), wxd_emp(nnrx,2), vsic_emp(nnrx, n_empx), &
-                  pink_emp(n_empx), rhovan_emp(max(1,nhm*(nhm+1)/2) , nat, nspin), &
-                  deeq_sic_emp(max(1,nhm),max(1,nhm),nat,n_empx), eodd_emp, etot_emp, & 
+      real(dp) :: f_emp(n_empx), fsic_emp(n_empx), wxd_emp(sizvsic_emp,2), vsic_emp(sizvsic_emp, n_empx), &
+                  pink_emp(n_empx), rhovan_emp(nhm*(nhm+1)/2, nat, nspin), &
+                  deeq_sic_emp(nhm,nhm,nat,n_empx), eodd_emp, etot_emp, & 
                   filledstates_potential(nnrsx,nspin)
       complex(dp) :: c0_emp(ngw, n_empx), cm_emp(ngw, n_empx), phi_emp(ngw, n_empx)
       type(twin_matrix) :: bec_emp, lambda_emp(nspin)
       integer :: desc_emp(descla_siz_, 2)
+
       !
       ! local variables
       !
@@ -2599,7 +2603,7 @@ write(6,*) "nlfl_twin"
       real(DP), allocatable :: rhor_emp(:,:), rhos_emp(:,:), rhoc_emp(:)
       complex(DP), allocatable :: rhog_emp(:,:)
       real(DP), allocatable :: faux_emp(:)
-      integer :: ndwwf=0
+      integer :: ndwwf=0, in, in_emp, issw
       !
       lgam = gamma_only.and..not.do_wf_cmplx
       !
@@ -2668,18 +2672,24 @@ write(6,*) "nlfl_twin"
 !$$
       itercgeff = 1
 !$$
-      CALL nlsm1 ( n_emps, 1, nvb, eigr, c0_emp, bec_emp, 1, lgam )
-
+      CALL nlsm1 ( n_emps, 1, nsp, eigr, c0_emp, bec_emp, 1, lgam )
+      write(6,*) "checkbec", bec_emp%cvec
       !orthonormalize c0
       do iss=1,nspin
          !
+         in     = iupdwn(iss)
+         in_emp = iupdwn_emp(iss)
+         !
+         issw   = iupdwn( iss )
+         !
          if(nupdwn(iss)>0.and. nupdwn_emp(iss)>0) &
-         CALL gram_empty(.false. , eigr, betae, bec_emp, bec, nhsa, &
-                             c0_emp( :, iupdwn_emp(iss): ), c0( :, iupdwn(iss): ), ngw, nupdwn_emp(iss), nupdwn(iss), iupdwn_emp(iss), iupdwn(iss))
+         CALL gram_empty(.true. , eigr, betae, bec_emp, bec, nhsa, &
+                             c0_emp( :, in_emp:in_emp-1+nupdwn_emp(iss)), c0( :, in:in-1+nupdwn(iss) ), ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, issw)
          !
       enddo
-      
-      CALL nlsm1 ( n_emps, 1, nvb, eigr, c0_emp, bec_emp, 1, lgam )
+      write(6,*) "checkbec2", bec_emp%cvec, nsp, n_emps
+      CALL nlsm1 ( n_emps, 1, nsp, eigr, c0_emp, bec_emp, 1, lgam )
+      write(6,*) "checkbec3", bec_emp%cvec
       !
 !          IF(do_orbdep.and.ortho_switch) THEN
 !             !
@@ -2749,7 +2759,8 @@ write(6,*) "nlfl_twin"
         if(.not. ene_ok ) then
 
           !call calbec(1,nsp,eigr,c0,bec)
-          CALL nlsm1 ( n_emps, 1, nvb, eigr, c0_emp, bec_emp, 1, lgam )
+          CALL nlsm1 ( n_emps, 1, nsp, eigr, c0_emp, bec_emp, 1, lgam )
+                write(6,*) "checkbec3b", bec_emp%cvec
           !
 !           write(6,*) "checkbounds", ubound(f_emp)
 !           write(6,*) "checkbounds", ubound(ispin_emp), ispin_emp
@@ -2762,7 +2773,8 @@ write(6,*) "nlfl_twin"
 !           write(6,*) "checkbounds", ubound(rhog_emp)
 !           write(6,*) "checkbounds", ubound(rhos_emp)
 
-          !           
+          !
+          write(6,*) "femppppppppp", f_emp, n_empx, n_emps
           call rhoofr_cp_ortho_new &
           ( n_empx, n_emps, nudx_emp, f_emp, ispin_emp, iupdwn_emp, &
           nupdwn_emp, nspin, nfi, c0_emp, irb, eigrb, bec_emp, &
@@ -2772,6 +2784,7 @@ write(6,*) "nlfl_twin"
           call v_times_rho(filledstates_potential, nspin, rhos_emp, epot_emp) 
           
           etot_emp=epot_emp+enl_emp+ekin_emp
+          write(6,*) "etot", etot_emp, "epot", epot_emp, "enl_emp", enl_emp, "ekin", ekin_emp
           
           ! potential energy of filled states times density of empty states
           
@@ -2811,26 +2824,26 @@ write(6,*) "nlfl_twin"
 !$$
           if( do_orbdep ) then
               !
-                               write(6,*) "check1bounds", ubound(c0_emp)
-                 write(6,*) "checkbounds", ubound(fsic_emp)
-                 write(6,*) "checkbounds", ubound(rhovan_emp)
-                 write(6,*) "checkbounds", ubound(wfc_centers_emp), nudx_emp
-                 write(6,*) "checkbounds", ubound(wfc_spreads_emp)
-                 write(6,*) "checkbounds", ubound(deeq_sic_emp)
-                 write(6,*) "checkbounds", ubound(ispin_emp)
-                 write(6,*) "checkbounds", ubound(iupdwn_emp)
-                 write(6,*) "checkbounds", ubound(nupdwn_emp)
-                 write(6,*) "checkbounds", ubound(rhor), "rhor"
-                 write(6,*) "checkbounds", ubound(rhog), "rhog"
-                 write(6,*) "checkbounds", ubound(wtot), "wtot"
-                 write(6,*) "checkbounds", ubound(vsic_emp), "vsic"
-                 write(6,*) "checkbounds", ubound(pink_emp), "pink", nudx_emp
+!                                write(6,*) "check1bounds", ubound(c0_emp)
+!                  write(6,*) "checkbounds", ubound(fsic_emp)
+!                  write(6,*) "checkbounds", ubound(rhovan_emp)
+!                  write(6,*) "checkbounds", ubound(wfc_centers_emp), nudx_emp
+!                  write(6,*) "checkbounds", ubound(wfc_spreads_emp)
+!                  write(6,*) "checkbounds", ubound(deeq_sic_emp)
+!                  write(6,*) "checkbounds", ubound(ispin_emp)
+!                  write(6,*) "checkbounds", ubound(iupdwn_emp)
+!                  write(6,*) "checkbounds", ubound(nupdwn_emp)
+!                  write(6,*) "checkbounds", ubound(rhor), "rhor"
+!                  write(6,*) "checkbounds", ubound(rhog), "rhog"
+!                  write(6,*) "checkbounds", ubound(wtot), "wtot"
+!                  write(6,*) "checkbounds", ubound(vsic_emp), "vsic"
+!                  write(6,*) "checkbounds", ubound(pink_emp), "pink", nudx_emp
                  call nksic_potential( n_emps, n_empx, c0_emp, faux_emp, bec_emp, rhovan_emp, deeq_sic_emp, &
                  ispin_emp, iupdwn_emp, nupdwn_emp, rhor, rhog, wtot, sizwtot, vsic_emp, .false., & 
                  pink_emp, nudx_emp, wfc_centers_emp, wfc_spreads_emp, icompute_spread, .true. )
 
               eodd_emp=sum(pink_emp(1:n_empx))
-              write(6,*) eodd_emp, etot_emp, "EODD0", pink_emp
+!               write(6,*) eodd_emp, etot_emp, "EODD0", pink_emp
               etot_emp = etot_emp + eodd_emp
               !
           endif
@@ -2940,19 +2953,18 @@ write(6,*) "nlfl_twin"
 !         call newd(vpot,irb,eigrb,rhovan,fion) !warning:giovanni I comment this
 
         call prefor(eigr,betae)!ATTENZIONE
-
 !$$
         ! faux takes into account spin multiplicity.
         !
-!         faux(1:nbspx)=0.d0
-!         faux(1:nbsp) = max(f_cutoff,f(1:nbsp)) * DBLE( nspin ) / 2.0d0
+        faux(1:n_empx)=0.d0
+        faux(1:n_empx) = f_emp(1:n_empx) * DBLE( nspin ) / 2.0d0
 !$$
         !
         do i=1, n_emps, 2
 !$$  FIRST CALL TO DFORCE
           CALL start_clock( 'dforce1' )
 !$$          call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin,f,n,nspin)
-             call dforce( i, bec_emp, betae, c0_emp, c2, c3, filledstates_potential, nnrsx, ispin_emp, f_emp, n_emps, nspin)
+             call dforce( i, bec_emp, betae, c0_emp, c2, c3, filledstates_potential, nnrsx, ispin_emp, faux, n_emps, nspin)
           !
           CALL stop_clock( 'dforce1' )
 !$$
@@ -2980,9 +2992,9 @@ write(6,*) "nlfl_twin"
               !
                  CALL nksic_eforce( i, n_emps, n_empx, vsic_emp, deeq_sic_emp, bec_emp, ngw, c0_emp(:,i), c0_emp(:,i+1), vsicpsi, lgam )
                  !
-                 c2(:) = c2(:) - vsicpsi(:,1) * f_emp(i)
+                 c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
                  !
-                 if( i+1 <= n_emps )   c3(:) = c3(:) - vsicpsi(:,2) * f_emp(i+1)
+                 if( i+1 <= n_emps )   c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1)
                  !
               !
           endif
@@ -2994,7 +3006,6 @@ write(6,*) "nlfl_twin"
 !               if( i+1 <= n_emps )   c3(:) = c3(:) - vxxpsi(:,i+1) * faux(i+1)
 !               !
 !           endif
-
 
           hpsi(1:ngw,  i)=c2(1:ngw)
           if(i+1 <= n_emps) then
@@ -3018,26 +3029,30 @@ write(6,*) "nlfl_twin"
 
 !$$        call pcdaga2(c0,phi,hpsi)
 !$$     HPSI IS ORTHOGONALIZED TO the filled manifold and to c0
-        CALL nlsm1 ( n_emps, 1, nvb, eigr, hpsi, becm_emp, 1, lgam )
+        CALL nlsm1 ( n_emps, 1, nsp, eigr, hpsi, becm_emp, 1, lgam )
 
         do iss=1,nspin
            !
+           in     = iupdwn(iss)
+           in_emp = iupdwn_emp(iss)
+           !
+           issw   = iupdwn( iss )
+           !
            CALL gram_empty(.true. , eigr, betae, becm_emp, bec, nhsa, &
-                             hpsi( :, iupdwn_emp(iss): ), c0( :, iupdwn(iss): ), &
-                             ngw, nupdwn_emp(iss), nupdwn(iss), iupdwn_emp(iss), iupdwn(iss))
+                             hpsi( :, in_emp:in_emp-1+nupdwn_emp(iss) ), c0( :, in:in-1+nupdwn(iss) ), &
+                             ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, issw)
            !
         enddo
-
+        
            if(switch.or.(.not.do_orbdep)) then
-             call pcdaga2(c0_emp,phi_emp,hpsi, lgam)
+             call pcdaga2_new(c0_emp,phi_emp,hpsi,n_emps, ispin_emp ,lgam)
            else
 !           call calbec(1,nsp,eigr,hpsi,becm)
-            call pc3nc(c0_emp,hpsi,lgam)
+            call pc3nc_new(c0_emp,hpsi,n_empx, ispin_emp,lgam)
 !           call pc3us(c0,bec,hpsi,becm,lgam)
 !           call pcdaga3(c0,phi,hpsi, lgam)
            endif
 !$$
-
         !TWO VECTORS INITIALIZED TO HPSI
            hpsi0(1:ngw,1:n_emps) = hpsi(1:ngw,1:n_emps)
            gi(1:ngw,1:n_emps)    = hpsi(1:ngw,1:n_emps)
@@ -3052,22 +3067,28 @@ write(6,*) "nlfl_twin"
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !look if the following two lines are really needed
 !         call calbec(1,nsp,eigr,hpsi,becm_emp) !warning:giovanni substitute with nlsm1
-        CALL nlsm1 ( n_emps, 1, nvb, eigr, hpsi, becm_emp, 1, lgam )
+        CALL nlsm1 ( n_emps, 1, nsp, eigr, hpsi, becm_emp, 1, lgam )
+        write(6,*) "becm_emp", becm_emp%cvec
 !$$        call pc2(c0,bec,hpsi,becm)
 !$$     THIS ORTHOGONALIZES PRECONDITIONED VECTOR HPSI again to filled states and to c0
-
         do iss=1,nspin
            !
+           in     = iupdwn(iss)
+           in_emp = iupdwn_emp(iss)
+           !
+           issw   = iupdwn( iss )
+           !
            CALL gram_empty(.true. , eigr, betae, becm_emp, bec, nhsa, &
-                             hpsi( :, iupdwn_emp(iss): ), c0( :, iupdwn(iss): ), &
-                             ngw, nupdwn_emp(iss), nupdwn(iss), iupdwn_emp(iss), iupdwn(iss))
+                             hpsi( :, in_emp:in_emp-1+nupdwn_emp(iss) ), c0( :, in:in+nupdwn(iss) -1), &
+                             ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, issw)
            !
         enddo
 
            if(switch.or.(.not.do_orbdep)) then
-             call pc2(c0_emp,bec_emp,hpsi,becm_emp, lgam)
+             call pc2_new(c0_emp,bec_emp,hpsi,becm_emp, n_emps, &
+                      nupdwn_emp, iupdwn_emp, ispin_emp, lgam)
            else
-             call pc3nc(c0_emp,hpsi,lgam)
+             call pc3nc_new(c0_emp,hpsi,n_emps,ispin_emp, lgam)
 !           call pc3us(c0,bec,hpsi,becm, lgam)
            endif
 !$$
@@ -3082,7 +3103,7 @@ write(6,*) "nlfl_twin"
            !
         ENDIF
         !
-        CALL nlsm1 ( n_emps, 1, nvb, eigr, gi, bec0_emp, 1, lgam )
+        CALL nlsm1 ( n_emps, 1, nsp, eigr, gi, bec0_emp, 1, lgam )
         
            if(.not.pre_state) then
               call xminus1_twin_new(gi,n_emps, betae,ema0bg,bec0_emp,k_minus1,.true.)
@@ -3091,22 +3112,28 @@ write(6,*) "nlfl_twin"
            endif
         !
 !         call calbec(1,nsp,eigr,gi,becm_emp) !warning:giovanni substitute with nlsm1
-        CALL nlsm1 ( n_emps, 1, nvb, eigr, gi, bec0_emp, 1, lgam )
+        CALL nlsm1 ( n_emps, 1, nsp, eigr, gi, bec0_emp, 1, lgam )
 !$$        call pc2(c0,bec,gi,becm)
 !$$     !ORTHOGONALIZES GI to filled states and to c0 ... check if bec0_emp is computed correctly
 
         do iss=1,nspin
            !
+           in     = iupdwn(iss)
+           in_emp = iupdwn_emp(iss)
+           !
+           issw   = iupdwn( iss )
+           !
            CALL gram_empty(.true. , eigr, betae, bec0_emp, bec, nhsa, &
-                             gi( :, iupdwn_emp(iss): ), c0( :, iupdwn(iss): ), &
-                             ngw, nupdwn_emp(iss), nupdwn(iss), iupdwn_emp(iss), iupdwn(iss))
+                             gi( :, in_emp:in_emp+nupdwn_emp(iss)-1 ), c0( :, in:in+nupdwn(iss) -1), &
+                             ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, issw)
            !
         enddo
 
            if(switch.or.(.not.do_orbdep)) then
-             call pc2(c0_emp,bec_emp,gi,bec0_emp, lgam)
+             call pc2_new(c0_emp,bec_emp,gi,bec0_emp,n_emps, &
+                       nupdwn_emp, iupdwn_emp, ispin_emp, lgam)
            else
-             call pc3nc(c0_emp,gi, lgam)
+             call pc3nc_new(c0_emp,gi, n_empx,ispin_emp, lgam)
 !           call pc3us(c0,bec, gi,becm, lgam)
            endif
 !$$
@@ -3190,7 +3217,6 @@ write(6,*) "nlfl_twin"
           !find direction hi for general case 
           !calculates gamma for general case, not using Polak Ribiere
 
-
           essenew_c=gamma_c
           gamma_c=gamma_c/esse_c
           esse_c=essenew_c
@@ -3205,14 +3231,16 @@ write(6,*) "nlfl_twin"
         !project hi on conduction sub-space
 
 !         call calbec(1,nsp,eigr,hi,bec0_emp)
-        CALL nlsm1 ( n_emps, 1, nvb, eigr, hi, bec0_emp, 1, lgam )
+        CALL nlsm1 ( n_emps, 1, nsp, eigr, hi, bec0_emp, 1, lgam )
+        write(6,*) "bec0", bec0_emp%cvec
 
 !$$        call pc2(c0,bec,hi,bec0)
 !$$
            if(switch.or.(.not.do_orbdep)) then
-              call pc2(c0_emp,bec_emp,hi,bec0_emp, lgam)
+              call pc2_new(c0_emp,bec_emp,hi,bec0_emp,n_emps, &
+                      nupdwn_emp, iupdwn_emp, ispin_emp, lgam)
            else
-              call pc3nc(c0_emp,hi,lgam)
+              call pc3nc_new(c0_emp,hi,n_emps,ispin_emp, lgam)
 !           call pc3us(c0,bec,hi,bec0, lgam)
            endif
 !$$
@@ -3247,7 +3275,6 @@ write(6,*) "nlfl_twin"
       else
          spasso=1.d0
       endif
-
       !
       ! calculates wave-functions on a point on direction hi
       !
@@ -3263,26 +3290,32 @@ write(6,*) "nlfl_twin"
 
       !
          if(do_orbdep.and.ortho_switch) then
+            !
             call lowdin(cm_emp, lgam)
 !             call calbec(1,nsp,eigr,cm_emp,becm_emp) !warning:giovanni substitute with nlsm1
-            CALL nlsm1 ( n_emps, 1, nvb, eigr, cm_emp, becm_emp, 1, lgam )
+            CALL nlsm1 ( n_emps, 1, nsp, eigr, cm_emp, becm_emp, 1, lgam )
+            !
          else
+            !
 !             call calbec(1,nsp,eigr,cm_emp,becm_emp) !warning:giovanni substitute with nlsm1
-            CALL nlsm1 ( n_emps, 1, nvb, eigr, cm_emp, becm_emp, 1, lgam )
+            CALL nlsm1 ( n_emps, 1, nsp, eigr, cm_emp, becm_emp, 1, lgam )
+            !
             call gram(betae,becm_emp,nhsa,cm_emp,ngw,n_emps)
+            !
          endif
-        !call calbec(1,nsp,eigr,cm,becm)
-
+            !call calbec(1,nsp,eigr,cm,becm)
+            !
         !****calculate energy ene1
        call rhoofr_cp_ortho_new &
        ( n_empx, n_emps, nudx_emp, f_emp, ispin_emp, iupdwn_emp, &
          nupdwn_emp, nspin, nfi, cm_emp, irb, eigrb, becm_emp, &
          rhovan_emp, rhor_emp, rhog_emp, rhos_emp, enl_emp, denl_emp, &
          ekin_emp, dekin_emp, tstress, ndwwf)
-         
+
        call v_times_rho(filledstates_potential, nspin, rhos_emp, epot_emp)
        
        etot_emp=epot_emp+enl_emp+ekin_emp
+                 write(6,*) "etotm", etot_emp, "epot", epot_emp, "enl_emp", enl_emp, "ekin", ekin_emp
 
         !calculate potential
         !
@@ -3312,7 +3345,7 @@ write(6,*) "nlfl_twin"
                                   wfc_spreads_emp, icompute_spread, .true.)
             !
             eodd_emp=sum(pink_emp(1:n_emps))
-            write(6,*) eodd_emp, etot_emp, "EODD2", pink_emp !debug:giovanni
+!             write(6,*) eodd_emp, etot_emp, "EODD2", pink_emp !debug:giovanni
             etot_emp = etot_emp + eodd_emp
             !
         endif
@@ -3356,10 +3389,10 @@ write(6,*) "nlfl_twin"
            IF(do_orbdep.and.ortho_switch) THEN
               call lowdin(cm_emp, lgam)
 !               call calbec(1,nsp,eigr,cm_emp,becm_emp) !warning:giovanni substitute with nlsm1
-              CALL nlsm1 ( n_emps, 1, nvb, eigr, cm_emp, becm_emp, 1, lgam )
+              CALL nlsm1 ( n_emps, 1, nsp, eigr, cm_emp, becm_emp, 1, lgam )
            ELSE
 !               call calbec(1,nsp,eigr,cm_emp,becm_emp)  !warning:giovanni substitute with nlsm1
-              CALL nlsm1 ( n_emps, 1, nvb, eigr, cm_emp, becm_emp, 1, lgam )
+              CALL nlsm1 ( n_emps, 1, nsp, eigr, cm_emp, becm_emp, 1, lgam )
               call gram(betae,becm_emp,nhsa,cm_emp,ngw,n_emps)
            ENDIF
 
@@ -3376,6 +3409,7 @@ write(6,*) "nlfl_twin"
           call v_times_rho(filledstates_potential, nspin, rhos_emp, epot_emp) 
           
           etot_emp=epot_emp+enl_emp+ekin_emp
+          write(6,*) "etotm", etot_emp, "epot", epot_emp, "enl_emp", enl_emp, "ekin", ekin_emp
           
 !           call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
           !
@@ -3411,7 +3445,7 @@ write(6,*) "nlfl_twin"
 !                                   wfc_centers, wfc_spreads, &
 !                                   icompute_spread)
             eodd_emp = sum(pink_emp(1:n_emps))
-            write(6,*) eodd_emp, etot_emp,"EODD3", pink_emp
+            write(6,*) eodd_emp, etot_emp,"EODD3"
             etot_emp = etot_emp + eodd_emp
             !
         endif
@@ -3425,7 +3459,6 @@ write(6,*) "nlfl_twin"
 !             etot = etot + sum(exx(1:nbsp))
 !             !
 !         endif
-
         enever=etot_emp
         !
         !
@@ -3459,10 +3492,10 @@ write(6,*) "nlfl_twin"
              IF(do_orbdep.and.ortho_switch) THEN
                 call lowdin(c0_emp, lgam)
 !                 call calbec(1,nsp,eigr,c0_emp,bec_emp)
-                CALL nlsm1 ( n_emps, 1, nvb, eigr, c0_emp, bec_emp, 1, lgam )
+                CALL nlsm1 ( n_emps, 1, nsp, eigr, c0_emp, bec_emp, 1, lgam )
              ELSE
 !                 call calbec(1,nsp,eigr,c0_emp,bec_emp)
-                CALL nlsm1 ( n_emps, 1, nvb, eigr, c0_emp, bec_emp, 1, lgam )
+                CALL nlsm1 ( n_emps, 1, nsp, eigr, c0_emp, bec_emp, 1, lgam )
                 call gram(betae,bec_emp,nhsa,c0_emp,ngw,n_emps)
              ENDIF
           !
@@ -3482,10 +3515,10 @@ write(6,*) "nlfl_twin"
              IF(do_orbdep.and.ortho_switch) THEN
                 call lowdin(c0, lgam)
 !                 call calbec(1,nsp,eigr,c0_emp,bec_emp)
-                CALL nlsm1 ( n_emps, 1, nvb, eigr, c0_emp, bec_emp, 1, lgam )
+                CALL nlsm1 ( n_emps, 1, nsp, eigr, c0_emp, bec_emp, 1, lgam )
              ELSE
 !                 call calbec(1,nsp,eigr,c0,bec)
-                CALL nlsm1 ( n_emps, 1, nvb, eigr, c0_emp, bec_emp, 1, lgam )
+                CALL nlsm1 ( n_emps, 1, nsp, eigr, c0_emp, bec_emp, 1, lgam )
                 call gram(betae,bec_emp,nhsa,c0_emp,ngw,n_emps)
              ENDIF
           !
@@ -3513,11 +3546,11 @@ write(6,*) "nlfl_twin"
                IF(do_orbdep.and.ortho_switch) THEN
                   call lowdin(cm_emp, lgam)
 !                   call calbec(1, nsp, eigr, cm_emp, becm_emp)
-                  CALL nlsm1 ( n_emps, 1, nvb, eigr, cm_emp, becm_emp, 1, lgam )
+                  CALL nlsm1 ( n_emps, 1, nsp, eigr, cm_emp, becm_emp, 1, lgam )
                ELSE
 !                   call calbec(1, nsp, eigr, cm_emp, becm_emp)
-                  CALL nlsm1 ( n_emps, 1, nvb, eigr, cm_emp, becm_emp, 1, lgam )
-                  call gram(betae, bec_emp, nhsa, cm_emp, ngw, n_emps)
+                  CALL nlsm1 ( n_emps, 1, nsp, eigr, cm_emp, becm_emp, 1, lgam )
+                  call gram(betae, becm_emp, nhsa, cm_emp, ngw, n_emps)
                ENDIF
                
                call rhoofr_cp_ortho_new &
@@ -3529,6 +3562,7 @@ write(6,*) "nlfl_twin"
           call v_times_rho(filledstates_potential, nspin, rhos_emp, epot_emp) 
           
           etot_emp=epot_emp+enl_emp+ekin_emp
+          write(6,*) "etotm", etot_emp, "epot", epot_emp, "enl_emp", enl_emp, "ekin", ekin_emp
             !calculates the potential
             !
             !     put core charge (if present) in rhoc(r)
@@ -3559,7 +3593,7 @@ write(6,*) "nlfl_twin"
 !                                       icompute_spread)
                 !
                 eodd_emp = sum(pink_emp(1:n_emps))
-                write(6,*) eodd_emp, etot_emp, "EODD4", pink_emp
+!                 write(6,*) eodd_emp, etot_emp, "EODD4", pink_emp
                 etot_emp = etot_emp + eodd_emp
                 !
             endif
@@ -3612,7 +3646,7 @@ write(6,*) "nlfl_twin"
  
         if(.not. ene_ok) THEN
 !         call calbec (1,nsp,eigr,c0,bec)
-           CALL nlsm1 ( n_emps, 1, nvb, eigr, c0_emp, bec_emp, 1, lgam )
+           CALL nlsm1 ( n_emps, 1, nsp, eigr, c0_emp, bec_emp, 1, lgam )
         ENDIF
 
         !calculates phi for pc_daga
@@ -3636,7 +3670,6 @@ write(6,*) "nlfl_twin"
         !=======================================================================
   
         itercg=itercg+1
-
 !$$
         itercgeff=itercgeff+1
 !$$
@@ -3721,7 +3754,7 @@ write(6,*) "nlfl_twin"
 !$$
      ! faux takes into account spin multiplicity.
      !
-!      faux(1:nbsp) = max(f_cutoff,f(1:nbsp)) * DBLE( nspin ) / 2.0d0
+     faux(1:n_empx) = f_emp(1:n_empx) * DBLE( nspin ) / 2.0d0
      !
 !$$
      !
@@ -3729,7 +3762,7 @@ write(6,*) "nlfl_twin"
 !$$
          CALL start_clock( 'dforce2' )
 !$$          call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin,f,n,nspin)
-            call dforce(i,bec_emp,betae,c0_emp,c2,c3,filledstates_potential,nnrsx,ispin_emp,f_emp,n_emps,nspin)
+         call dforce(i,bec_emp,betae,c0_emp,c2,c3,filledstates_potential,nnrsx,ispin_emp,faux,n_emps,nspin)
          !
          CALL start_clock( 'dforce2' )
 !$$
@@ -3743,9 +3776,9 @@ write(6,*) "nlfl_twin"
 !                 CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi, lgam )
              !
                 !
-                c2(:) = c2(:) - vsicpsi(:,1) * f_emp(i)
+                c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
                 !
-                if( i+1 <= n_emps )   c3(:) = c3(:) - vsicpsi(:,2) * f_emp(i+1)
+                if( i+1 <= n_emps )   c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1)
                 !
              !
          endif
@@ -3770,14 +3803,19 @@ write(6,*) "nlfl_twin"
 
      enddo
 
-     CALL nlsm1 ( n_emps, 1, nvb, eigr, gi, becm_emp, 1, lgam )
+     CALL nlsm1 ( n_emps, 1, nsp, eigr, gi, becm_emp, 1, lgam )
 
      do iss=1,nspin
         !
-        CALL gram_empty(.true. , eigr, betae, becm_emp, bec, nhsa, &
-                          gi( :, iupdwn_emp(iss): ), c0( :, iupdwn(iss): ), &
-                          ngw, nupdwn_emp(iss), nupdwn(iss), iupdwn_emp(iss), iupdwn(iss))
+        in     = iupdwn(iss)
+        in_emp = iupdwn_emp(iss)
         !
+        issw   = iupdwn( iss )
+        !
+        CALL gram_empty(.true. , eigr, betae, becm_emp, bec, nhsa, &
+                          gi( :, in_emp:in_emp+nupdwn_emp(iss)-1 ), c0( :, in:in-1+nupdwn(iss) ), &
+                          ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, issw)
+        
      enddo
           
      IF(.not.lambda_emp(1)%iscmplx) THEN
@@ -3792,8 +3830,6 @@ write(6,*) "nlfl_twin"
         !
         nss = nupdwn_emp(is)
         istart = iupdwn_emp(is)
-        write(6,*) "checknss", gi(1:5,is)
-        write(6,*) "checknss2", hitmp(1:5,is)
         
         IF(.not.lambda_emp(1)%iscmplx) THEN
            lambda_repl = 0.d0
@@ -3834,7 +3870,6 @@ write(6,*) "nlfl_twin"
            CALL distribute_lambda( lambda_repl, lambda_emp(is)%rvec( :, :), desc_emp( :, is ) )
         ELSE
            CALL mp_sum( lambda_repl_c, intra_image_comm )
-           write(6,*) "checknss3", lambda_repl_c
            CALL distribute_lambda( lambda_repl_c, lambda_emp(is)%cvec( :, :), desc_emp( :, is ) )
         ENDIF
         !

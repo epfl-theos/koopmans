@@ -1472,7 +1472,7 @@
       INTEGER nfi, n, nx, nspin, ispin(n), &
               iupdwn(nspin), nupdwn(nspin), nudx
       type(twin_matrix) :: bec!(:,:)
-      REAL(DP) rhovan(max(1,nhm*(nhm+1)/2), nat, nspin )
+      REAL(DP) rhovan(nhm*(nhm+1)/2, nat, nspin )
       REAL(DP) rhor(nnrx,nspin), f(nx)
       REAL(DP) rhos(nnrsx,nspin)
       REAL(DP) enl, ekin
@@ -1506,12 +1506,12 @@
       ttstress = tpre
       ttstress = tstress
 
-!       write(6,*) "checkbounds", ubound(f)
-!           write(6,*) "checkbounds", ubound(ispin), ispin
+      write(6,*) "checkbounds", ubound(f), f
+          write(6,*) "checkbounds", ubound(rhovan)
 !           write(6,*) "checkbounds", ubound(iupdwn)
 !           write(6,*) "checkbounds", ubound(nupdwn)
 !           write(6,*) "checkbounds", ubound(c)
-!           write(6,*) "checkbounds", ubound(bec%cvec)
+          write(6,*) "checkbounds", ubound(bec%cvec)
 !                     write(6,*) "checkbounds", ubound(rhor)
 !           write(6,*) "checkbounds", ubound(rhog)
 !           write(6,*) "checkbounds", ubound(rhos)
@@ -1525,7 +1525,7 @@
       !  calculation of kinetic energy ekin
       !
       ekin = enkin_new( c, ngw, f, n, nspin, nudx, iupdwn, nupdwn)
-!       write(6,*) "ekin", ekin ! added:giovanni:debug
+      write(6,*) "ekin", f ! added:giovanni:debug
       !
       IF( ttstress ) THEN
          !
@@ -1545,8 +1545,9 @@
          !
          !     calculation of non-local energy
          !
+         write(6,*) f,"before", ispin !added:giovanni:debug
          enl = ennl_new( n, nspin, ispin, f, rhovan, bec )
-!          write(6,*) "enl", enl !added:giovanni:debug
+         write(6,*) f,"enlafter", enl !added:giovanni:debug
 !          write(6,*) "bec%cvec" , bec%cvec !added:giovanni:debug
          !
       END IF
@@ -1847,7 +1848,7 @@
 !     here to check the integral of the charge density
 !
       IF( ( iprsta >= 2 ) .OR. ( nfi == 0 ) .OR. &
-          ( MOD(nfi, iprint_stdout) == 0 ) .AND. ( .NOT. tcg ) ) THEN
+          ( MOD(nfi, iprint_stdout) == 0 ) .AND. ( .NOT. tcg ) ) THEN !
 
          IF( iprsta >= 2 ) THEN
             CALL checkrho( nnrx, nspin, rhor, rmin, rmax, rsum, rnegsum )
@@ -1875,6 +1876,7 @@
             & /, 3X, 'spin down', &
             & /, 3X, 'in g-space = ', f11.6, 3x, 'in r-space =', f11.6 )
 !
+     
       CALL stop_clock( 'rhoofr' )
 
 !

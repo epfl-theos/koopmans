@@ -371,6 +371,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
         !
      END IF
      !
+     write(6,*) "calling move_electrons", nfi, tfirst, tlast
      !
      CALL move_electrons( nfi, tfirst, tlast, b1, b2, b3, fion, &
                           enthal, enb, enbi, fccc, ccc, dt2bye, stress, &

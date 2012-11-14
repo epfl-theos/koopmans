@@ -97,6 +97,7 @@
       LOGICAL :: lgam !added:giovanni
       LOGICAL :: done_extra !added:giovanni
       COMPLEX(DP), PARAMETER :: c_zero=CMPLX(0.d0,0.d0)
+      INTEGER :: sizvsic_emp
 
       lgam=gamma_only.and..not.do_wf_cmplx
       !
@@ -218,21 +219,22 @@
           ALLOCATE( deeq_sic_emp (nhm,nhm,nat,n_empx) )
           ALLOCATE( becsum_emp(nhm*(nhm+1)/2,nat,nspin))
           CALL allocate_nksic_empty(n_empx)
+          sizvsic_emp=nnrx
           !
           fsic_emp = 0.0d0
           vsic_emp = 0.0d0
           wxd_emp  = 0.0d0
-          pink_emp = 0.0d0
           ! 
       ELSE
           !
-          ALLOCATE( fsic_emp( 1 ) )
+          ALLOCATE( fsic_emp( n_empx ) )
 !           n_empx_odd=1
-          ALLOCATE( vsic_emp(1, 1) )
+          ALLOCATE( vsic_emp(1, n_empx) )
           ALLOCATE( wxd_emp (1, 2) )
-          ALLOCATE( deeq_sic_emp (1,1,1,1) )
-          ALLOCATE( becsum_emp( 1,1, 1 ) )
-          call allocate_nksic_empty(1)
+          ALLOCATE( deeq_sic_emp (nhm,nhm,nat,n_empx) )
+          ALLOCATE( becsum_emp(nhm*(nhm+1)/2,nat,nspin) )
+          call allocate_nksic_empty(n_empx)
+          sizvsic_emp=1
           !
       ENDIF
       !
@@ -411,10 +413,10 @@
       ENDIF
       
       IF(tcg_) THEN ! compute empty states with conjugate gradient
-      
+            write(6,*) "checkbec", bec_emp%cvec
          call runcg_uspp_emp(c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
                           n_emps, ispin_emp, iupdwn_emp, nupdwn_emp, phi_emp, lambda_emp, &
-                          max_emp, wxd_emp, vsic_emp, pink_emp, nnrx, becsum_emp, &
+                          max_emp, wxd_emp, vsic_emp, sizvsic_emp, pink_emp, nnrx, becsum_emp, &
                           deeq_sic_emp, nudx_emp, eodd_emp, etot_emp, v, &
                           nfi, .true., .true., eigr, bec, irb, eigrb, &
                           rhor, rhog, rhos, ema0bg, desc_emp)
@@ -852,7 +854,6 @@
 
       call init_twin(csc_occ, lgam)
       call allocate_twin(csc_occ, n_occ, 1, lgam)
-
       !
       ! orthogonalize empty states to the occupied one and among each other
       !
@@ -860,11 +861,11 @@
          !
          call set_twin(csc_emp, CMPLX(0.d0,0.d0))
          call set_twin(csc_occ, CMPLX(0.d0,0.d0))
-
          !
          ! compute scalar product csc_occ(k) = <c_emp(i)|c_occ(k)> .. is it <k,i>? Yes! watch out!
          !
-         CALL smooth_csv( c_emp(1:ngwx,i), c_occ(1:,1:), ngwx, csc_occ, n_occ )
+         CALL smooth_csv( c_emp(1:ngwx,i), c_occ(1:ngwx,1:n_occ), ngwx, csc_occ, n_occ )
+         !
          !
          IF( .NOT. tortho ) THEN
            !
@@ -873,17 +874,17 @@
            CALL smooth_csv( c_emp(1:,i), c_emp(1:,1:), ngwx, csc_emp, i-1 )
            !
            IF(.not.csc_emp%iscmplx) THEN
-	      CALL mp_sum( csc_emp%rvec, intra_image_comm )
+	      CALL mp_sum( csc_emp%rvec(1:n_emp,1:1), intra_image_comm )
            ELSE
-	      CALL mp_sum( csc_emp%cvec, intra_image_comm )
+	      CALL mp_sum( csc_emp%cvec(1:n_emp,1:1), intra_image_comm )
            ENDIF
            !
          END IF
          !
 	IF(.not.csc_occ%iscmplx) THEN
-	  CALL mp_sum( csc_occ%rvec, intra_image_comm )
+	  CALL mp_sum( csc_occ%rvec(1:n_occ,1:1), intra_image_comm )
 	ELSE
-	  CALL mp_sum( csc_occ%cvec, intra_image_comm )
+	  CALL mp_sum( csc_occ%cvec(1:n_occ, 1:1), intra_image_comm )
 	ENDIF
          !
          IF( nvb > 1 ) THEN
@@ -979,7 +980,7 @@
          END IF
          !
       END DO
-
+      !
       call deallocate_twin( csc_emp )
       call deallocate_twin( csc_occ )
       !

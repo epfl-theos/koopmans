@@ -1288,7 +1288,8 @@
       !
       ! input
       !
-      integer, intent(in) :: n, nspin, ispin(n), f(n)
+      integer, intent(in) :: n, nspin, ispin(n)
+      real(DP) :: f(n)
       type(twin_matrix) :: bec!( nkb, n )!modified:giovanni
       real(DP) :: rhovan( nhm*(nhm+1)/2, nat, nspin )
       !
@@ -1302,7 +1303,9 @@
       lgam=gamma_only.and..not.do_wf_cmplx
       !
       ennl_t = 0.d0 
-      ennl_tc = CMPLX(0.d0,0.d0) 
+      ennl_tc = CMPLX(0.d0,0.d0)
+      write(6,*) f, "effe", ispin
+      write(6,*) n,"bec_inside", bec%cvec, bec%iscmplx
       !
       !  xlf does not like name of function used for OpenMP reduction
       !
@@ -1365,6 +1368,7 @@
                       sumt_c = sumt_c + sums_c( iss )
                     end do
                     if( iv .ne. jv ) sumt_c = CMPLX(2.d0,0.d0) * sumt_c
+                    write(6,*) f, "sumtc", sumt_c, dvan(jv,iv,is), iv, jv
                     ennl_tc = ennl_tc + sumt_c * CMPLX(dvan( jv, iv, is),0.d0)
                 end do
 !$omp end do

@@ -2186,7 +2186,7 @@ end subroutine nksic_newd
       ! init vsic
       !
       vsic(1:nnrx) =  -DBLE( vhaux(1:nnrx) )
-      ehele        =   f*0.5_dp * sum( DBLE( vhaux(1:nnrx) ) &
+      ehele        =   0.5_dp * sum( DBLE( vhaux(1:nnrx) ) &
                               * orb_rhor(1:nnrx) )
       !
       ! set ehele as measure of spread
@@ -2195,6 +2195,7 @@ end subroutine nksic_newd
          shart=abs(ehele)*fact*hartree_si/electronvolt_si
          call mp_sum(shart, intra_image_comm)
       !ENDIF
+      ehele=ehele*f
       !
       ! partial cleanup
       !
@@ -2667,14 +2668,14 @@ end subroutine nksic_correction_pz
       ehele = icoeff * DBLE ( DOT_PRODUCT( vtmp(1:ngm), rhogaux(1:ngm,ispin)))
       if ( gstart == 2 ) ehele = ehele + (1.d0-icoeff)*DBLE ( CONJG( vtmp(1) ) * rhogaux(1,ispin) )
       !
-!       IF(.not.is_empty_) THEN
-         !
+      IF(.not.is_empty_) THEN
+         
          w2cst = 0.5_dp * ehele * omega 
          call mp_sum(w2cst,intra_image_comm)
-         !
+         
          vsic  = vsic + w2cst
-         !
-!       ENDIF
+         
+      ENDIF
       !
       ehele = 0.5d0 * ehele * omega / fact
       !
