@@ -140,8 +140,11 @@ function afc(a,npt,tperiodic,spreadopt)
     !
     allocate(phi0(npt(1),npt(2),npt(3)))
     allocate(phi3(npt(1),npt(2),npt(3)))
+    write(6,*) "allocated phi0phi3"
     phi0=phi0d(spread,a,npt)
+    write(6,*) "called phi0"
     phi3=phi3d(spread,a,npt)
+    write(6,*) "called phi3"
     afc=phi0-phi3+pi/volume1(a)*spread*spread
     print *, '#phi3(0)', phi3(1,1,1)
     print *, '#phi0(0)', phi0(1,1,1)
