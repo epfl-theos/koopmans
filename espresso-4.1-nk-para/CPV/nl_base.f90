@@ -1305,7 +1305,7 @@
       ennl_t = 0.d0 
       ennl_tc = CMPLX(0.d0,0.d0)
       write(6,*) f, "effe", ispin
-      write(6,*) n,"bec_inside", bec%cvec, bec%iscmplx
+      !write(6,*) n,"bec_inside", bec%cvec, bec%iscmplx
       !
       !  xlf does not like name of function used for OpenMP reduction
       !

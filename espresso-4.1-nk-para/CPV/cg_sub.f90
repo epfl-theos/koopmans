@@ -2673,7 +2673,7 @@ write(6,*) "nlfl_twin"
       itercgeff = 1
 !$$
       CALL nlsm1 ( n_emps, 1, nsp, eigr, c0_emp, bec_emp, 1, lgam )
-      write(6,*) "checkbec", bec_emp%cvec
+      !write(6,*) "checkbec", bec_emp%cvec
       !orthonormalize c0
       do iss=1,nspin
          !
@@ -2687,9 +2687,9 @@ write(6,*) "nlfl_twin"
                              c0_emp( :, in_emp:in_emp-1+nupdwn_emp(iss)), c0( :, in:in-1+nupdwn(iss) ), ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, issw)
          !
       enddo
-      write(6,*) "checkbec2", bec_emp%cvec, nsp, n_emps
+      !write(6,*) "checkbec2", bec_emp%cvec, nsp, n_emps
       CALL nlsm1 ( n_emps, 1, nsp, eigr, c0_emp, bec_emp, 1, lgam )
-      write(6,*) "checkbec3", bec_emp%cvec
+      !write(6,*) "checkbec3", bec_emp%cvec
       !
 !          IF(do_orbdep.and.ortho_switch) THEN
 !             !
@@ -2760,7 +2760,7 @@ write(6,*) "nlfl_twin"
 
           !call calbec(1,nsp,eigr,c0,bec)
           CALL nlsm1 ( n_emps, 1, nsp, eigr, c0_emp, bec_emp, 1, lgam )
-                write(6,*) "checkbec3b", bec_emp%cvec
+                !write(6,*) "checkbec3b", bec_emp%cvec
           !
 !           write(6,*) "checkbounds", ubound(f_emp)
 !           write(6,*) "checkbounds", ubound(ispin_emp), ispin_emp
@@ -3068,7 +3068,7 @@ write(6,*) "nlfl_twin"
 !look if the following two lines are really needed
 !         call calbec(1,nsp,eigr,hpsi,becm_emp) !warning:giovanni substitute with nlsm1
         CALL nlsm1 ( n_emps, 1, nsp, eigr, hpsi, becm_emp, 1, lgam )
-        write(6,*) "becm_emp", becm_emp%cvec
+        !write(6,*) "becm_emp", becm_emp%cvec
 !$$        call pc2(c0,bec,hpsi,becm)
 !$$     THIS ORTHOGONALIZES PRECONDITIONED VECTOR HPSI again to filled states and to c0
         do iss=1,nspin
@@ -3232,7 +3232,7 @@ write(6,*) "nlfl_twin"
 
 !         call calbec(1,nsp,eigr,hi,bec0_emp)
         CALL nlsm1 ( n_emps, 1, nsp, eigr, hi, bec0_emp, 1, lgam )
-        write(6,*) "bec0", bec0_emp%cvec
+        !write(6,*) "bec0", bec0_emp%cvec
 
 !$$        call pc2(c0,bec,hi,bec0)
 !$$
@@ -3876,7 +3876,7 @@ write(6,*) "nlfl_twin"
         !
      end do
 
-     write(6,*) lambda_emp(1)%cvec, "ldambdaemp", lambda_emp(2)%cvec
+!     write(6,*) lambda_emp(1)%cvec, "ldambdaemp", lambda_emp(2)%cvec
      
      IF(.not.lambda_emp(1)%iscmplx) THEN
         DEALLOCATE( lambda_repl )
