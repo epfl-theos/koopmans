@@ -15,7 +15,7 @@
 !
 !----------------------------------------------------------------------------
 SUBROUTINE wf( clwf, c, bec, eigr, eigrb, taub, irb, &
-               b1, b2, b3, Uall, what1, wfc, jw, ibrav )
+               b1, b2, b3, Uall, what1, wfc, jw, ibrav, nbspx, nbsp, nupdwn, iupdwn )
   !----------------------------------------------------------------------------
   !
   ! ... this routine calculates overlap matrices
@@ -27,12 +27,12 @@ SUBROUTINE wf( clwf, c, bec, eigr, eigrb, taub, irb, &
   USE ions_base,                ONLY : nsp, na, nax, nat
   USE cvan,                     ONLY : nvb, ish
   USE cell_base,                ONLY : omega, a1, a2, a3, alat, h, ainv
-  USE electrons_base,           ONLY : nbspx, nbsp, nupdwn, iupdwn, nspin
+  USE electrons_base,           ONLY :  nspin
   USE gvecb,                    ONLY : npb, nmb, ngb
   USE gvecw,                    ONLY : ngw
   USE reciprocal_vectors,       ONLY : gstart
   USE smooth_grid_dimensions,   ONLY : nnrsx
-  USE control_flags,            ONLY : iprsta
+  USE control_flags,            ONLY : iprsta, do_wf_cmplx, gamma_only
   USE qgb_mod,                  ONLY : qgb
   USE wannier_base,             ONLY : wfg, nw, weight, indexplus, indexplusz, &
                                        indexminus, indexminusz, tag, tagp,     &
@@ -50,10 +50,12 @@ SUBROUTINE wf( clwf, c, bec, eigr, eigrb, taub, irb, &
   USE printout_base,            ONLY : printout_base_open, printout_base_unit, &
                                        printout_base_close
   USE parallel_include
+  USE twin_types
   !
   IMPLICIT NONE
   !
   INTEGER,     INTENT(IN)    :: irb(3,nat), jw, ibrav, clwf
+!   TYPE(twin_matrix)          :: bec
   REAL(DP),    INTENT(INOUT) :: bec(nkb,nbsp)
   REAL(DP),    INTENT(IN)    :: b1(3), b2(3), b3(3), taub(3,nax)
   COMPLEX(DP), INTENT(INOUT) :: c(ngw,nbspx)
@@ -61,6 +63,7 @@ SUBROUTINE wf( clwf, c, bec, eigr, eigrb, taub, irb, &
   REAL(DP),    INTENT(INOUT) :: Uall(nbsp,nbsp)
   LOGICAL,     INTENT(IN)    :: what1
   REAL(DP),    INTENT(OUT)   :: wfc(3,nbsp)
+  INTEGER, INTENT(IN) :: nbspx, nbsp, nupdwn(nspin), iupdwn(nspin)
   !
   REAL(DP),    ALLOCATABLE :: becwf(:,:), temp3(:,:)
   COMPLEX(DP), ALLOCATABLE :: cwf(:,:), bec2(:), bec3(:), bec2up(:)
@@ -91,6 +94,7 @@ SUBROUTINE wf( clwf, c, bec, eigr, eigrb, taub, irb, &
   INTEGER     :: iunit
   
   COMPLEX(DP), EXTERNAL :: boxdotgridcplx
+  LOGICAL :: lgam
   !
 #if defined (__PARA)
   !
@@ -107,6 +111,7 @@ SUBROUTINE wf( clwf, c, bec, eigr, eigrb, taub, irb, &
   !
   CALL start_clock('wf_1')
   !
+  lgam=gamma_only.and..not.do_wf_cmplx
   me = me_image + 1
   !
   ALLOCATE( becwf(nkb,nbsp), temp3(nkb,nbsp), U2(nbsp,nbsp) )

@@ -87,6 +87,7 @@
       a(1:3,2)=a2(1:3)
       a(1:3,3)=a3(1:3)
       aux=afc(a,npt,tperiodic,sigma)
+      !
       do k=1,nr3l
         do j=1,nr2l
           do i=1,nr1l
