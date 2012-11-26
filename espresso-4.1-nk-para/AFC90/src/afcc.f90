@@ -39,6 +39,8 @@ function afc(a,npt,tperiodic,spreadopt)
   integer :: nperiodic,n,m,p
   real(8), parameter :: pi=3.141592653589793d0
   !
+  integer :: ierr
+  CHARACTER(len=5) :: subname="afcc"
   !
   interface 
     !
@@ -185,7 +187,8 @@ function afc(a,npt,tperiodic,spreadopt)
     print *, '#phi1(0)', phi1(1,1,1)
     print *, '#phi3(0)', phi3(1,1,1)
     print *, '#afc(0)', afc(1,1,1)+2.d0*log(l(i(1)))-2.d0*log(spread)
-    deallocate(phi1,phi3)
+    deallocate(phi1,phi3, STAT=ierr)
+    IF(ierr/=0) call errore(subname,"deallocating phi1,phi3", abs(ierr))
     !
   elseif (nperiodic.eq.2) then
     !
