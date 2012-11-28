@@ -109,7 +109,6 @@
     logical :: lgam!added:giovanni
 
     lgam=gamma_only.and..not.do_wf_cmplx!added:giovanni
-
     ALLOCATE( emainv( ngw ) )
     emainv = 1.0d0 / ema0bg
     ftmp = 1.0d0

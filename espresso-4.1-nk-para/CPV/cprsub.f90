@@ -618,7 +618,7 @@ subroutine nlinit
          WRITE( stdout,*)
          WRITE( stdout,'(20x,a)') '    dion '
          do iv = 1, upf(is)%nbeta
-            WRITE( stdout,'(8f9.4)') ( fac*upf(is)%dion(iv,jv), jv = 1, upf(is)%nbeta )
+            WRITE( stdout,'(8f20.12)') ( fac*upf(is)%dion(iv,jv), jv = 1, upf(is)%nbeta )
          end do
          !
       end do

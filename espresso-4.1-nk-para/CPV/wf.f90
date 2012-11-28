@@ -15,7 +15,7 @@
 !
 !----------------------------------------------------------------------------
 SUBROUTINE wf( clwf, c, bec, eigr, eigrb, taub, irb, &
-               b1, b2, b3, Uall, what1, wfc, jw, ibrav, nbspx, nbsp, nupdwn, iupdwn )
+               b1, b2, b3, Uall, what1, wfc, jw, ibrav )
   !----------------------------------------------------------------------------
   !
   ! ... this routine calculates overlap matrices
@@ -27,7 +27,7 @@ SUBROUTINE wf( clwf, c, bec, eigr, eigrb, taub, irb, &
   USE ions_base,                ONLY : nsp, na, nax, nat
   USE cvan,                     ONLY : nvb, ish
   USE cell_base,                ONLY : omega, a1, a2, a3, alat, h, ainv
-  USE electrons_base,           ONLY :  nspin
+  USE electrons_base,           ONLY :  nspin, nbspx, nbsp, nupdwn, iupdwn
   USE gvecb,                    ONLY : npb, nmb, ngb
   USE gvecw,                    ONLY : ngw
   USE reciprocal_vectors,       ONLY : gstart
@@ -63,7 +63,7 @@ SUBROUTINE wf( clwf, c, bec, eigr, eigrb, taub, irb, &
   REAL(DP),    INTENT(INOUT) :: Uall(nbsp,nbsp)
   LOGICAL,     INTENT(IN)    :: what1
   REAL(DP),    INTENT(OUT)   :: wfc(3,nbsp)
-  INTEGER, INTENT(IN) :: nbspx, nbsp, nupdwn(nspin), iupdwn(nspin)
+!   INTEGER, INTENT(IN) :: nbspx, nbsp, nupdwn(nspin), iupdwn(nspin)
   !
   REAL(DP),    ALLOCATABLE :: becwf(:,:), temp3(:,:)
   COMPLEX(DP), ALLOCATABLE :: cwf(:,:), bec2(:), bec3(:), bec2up(:)
@@ -757,6 +757,750 @@ COMB:   DO k=3**nw-1,0,-1
   !
 END SUBROUTINE wf
 !
+! !----------------------------------------------------------------------------
+! SUBROUTINE wf_new( clwf, c, bec, eigr, eigrb, taub, irb, &
+!                b1, b2, b3, Uall, what1, wfc, jw, ibrav, nbspx, nbsp, nupdwn, iupdwn )
+!   !----------------------------------------------------------------------------
+!   !
+!   ! ... this routine calculates overlap matrices
+!   !
+!   ! ... routine makes use of c(-g)=c*(g)  and  beta(-g)=beta*(g)
+!   !
+!   USE kinds,                    ONLY : DP
+!   USE constants,                ONLY : pi, tpi
+!   USE ions_base,                ONLY : nsp, na, nax, nat
+!   USE cvan,                     ONLY : nvb, ish
+!   USE cell_base,                ONLY : omega, a1, a2, a3, alat, h, ainv
+!   USE electrons_base,           ONLY :  nspin
+!   USE gvecb,                    ONLY : npb, nmb, ngb
+!   USE gvecw,                    ONLY : ngw
+!   USE reciprocal_vectors,       ONLY : gstart
+!   USE smooth_grid_dimensions,   ONLY : nnrsx
+!   USE control_flags,            ONLY : iprsta, do_wf_cmplx, gamma_only
+!   USE qgb_mod,                  ONLY : qgb
+!   USE wannier_base,             ONLY : wfg, nw, weight, indexplus, indexplusz, &
+!                                        indexminus, indexminusz, tag, tagp,     &
+!                                        expo, wfsd
+!   USE grid_dimensions,          ONLY : nr1, nr2, nr3
+!   USE smallbox_grid_dimensions, ONLY : nnrbx
+!   USE uspp_param,               ONLY : nh, nhm
+!   USE uspp,                     ONLY : nkb
+!   USE io_global,                ONLY : ionode, stdout
+!   USE mp,                       ONLY : mp_barrier, mp_sum
+!   USE mp_wave,                  ONLY : redistwf
+!   USE mp_global,                ONLY : nproc_image, me_image, root_image, intra_image_comm
+!   USE cp_interfaces,            ONLY : invfft
+!   USE fft_base,                 ONLY : dfftp, dfftb
+!   USE printout_base,            ONLY : printout_base_open, printout_base_unit, &
+!                                        printout_base_close
+!   USE parallel_include
+!   USE twin_types
+!   !
+!   IMPLICIT NONE
+!   !
+!   INTEGER,     INTENT(IN)    :: irb(3,nat), jw, ibrav, clwf
+!   TYPE(twin_matrix)          :: bec
+! !   REAL(DP),    INTENT(INOUT) :: bec(nkb,nbsp)
+!   REAL(DP),    INTENT(IN)    :: b1(3), b2(3), b3(3), taub(3,nax)
+!   COMPLEX(DP), INTENT(INOUT) :: c(ngw,nbspx)
+!   COMPLEX(DP), INTENT(IN)    :: eigr(ngw,nat), eigrb(ngb,nat)
+!   REAL(DP),    INTENT(INOUT) :: Uall(nbsp,nbsp)
+!   LOGICAL,     INTENT(IN)    :: what1
+!   REAL(DP),    INTENT(OUT)   :: wfc(3,nbsp)
+!   INTEGER, INTENT(IN) :: nbspx, nbsp, nupdwn(nspin), iupdwn(nspin)
+!   !
+!   REAL(DP),    ALLOCATABLE :: becwf(:,:), temp3(:,:)
+!   COMPLEX(DP), ALLOCATABLE :: cwf(:,:), bec2(:), bec3(:), bec2up(:)
+!   COMPLEX(DP), ALLOCATABLE :: bec2dw(:), bec3up(:), bec3dw(:)
+!   COMPLEX(DP), ALLOCATABLE :: c_m(:,:), c_p(:,:), c_psp(:,:)
+!   COMPLEX(DP), ALLOCATABLE :: c_msp(:,:)
+!   INTEGER,     ALLOCATABLE :: tagz(:)
+!   REAL(DP),    ALLOCATABLE :: Uspin(:,:)
+!   COMPLEX(DP), ALLOCATABLE :: X(:,:), Xsp(:,:), X2(:,:), X3(:,:)
+!   COMPLEX(DP), ALLOCATABLE :: O(:,:,:), Ospin(:,:,:), Oa(:,:,:)
+!   COMPLEX(DP), ALLOCATABLE :: qv(:)
+!   REAL(DP),    ALLOCATABLE :: gr(:,:), mt(:), mt0(:), wr(:), W(:,:), EW(:,:)
+!   INTEGER,     ALLOCATABLE :: f3(:), f4(:)
+!   COMPLEX(DP), ALLOCATABLE :: U2(:,:)
+!   !
+!   INTEGER           :: inl, jnl, iss, isa, is, ia, ijv, i, j, k, l, ig, &
+!                        ierr, ti, tj, tk, iv, jv, inw, iqv, ibig1, ibig2, &
+!                        ibig3, ir1, ir2, ir3, ir, m,  &
+!                        ib, jb, total, nstat, jj, ngpww, irb3
+!   REAL(DP)    :: t1, t2, t3, taup(3)
+!   REAL(DP)    :: wrsq, wrsqmin
+!   COMPLEX(DP) :: qvt
+!   REAL (DP)   :: temp_vec(3)
+!   INTEGER           :: adjust,ini, ierr1,nnn, me
+!   INTEGER           :: igx, igy, igz
+!   REAL(DP)    :: wfcx, wfcy, wfcz
+!   REAL(DP)    :: te(6)
+!   INTEGER     :: iunit
+!   
+!   COMPLEX(DP), EXTERNAL :: boxdotgridcplx
+!   LOGICAL :: lgam
+!   !
+! #if defined (__PARA)
+!   !
+!   INTEGER :: proc, ntot, ncol, mc, ngpwpp(nproc_image)
+!   INTEGER :: ncol1,nz1, nz_1 
+!   INTEGER :: nmin(3), nmax(3), n1,n2,nzx,nz,nz_
+!   INTEGER :: nmin1(3), nmax1(3)
+!   !
+!   COMPLEX(DP), ALLOCATABLE :: psitot(:,:), psitot_pl(:,:)
+!   COMPLEX(DP), ALLOCATABLE :: psitot_mi(:,:)
+!   INTEGER,     ALLOCATABLE :: ns(:)
+!   !
+! #endif
+!   !
+!   CALL start_clock('wf_1')
+!   !
+!   lgam=gamma_only.and..not.do_wf_cmplx
+!   me = me_image + 1
+!   !
+!   ALLOCATE( becwf(nkb,nbsp), temp3(nkb,nbsp), U2(nbsp,nbsp) )
+!   ALLOCATE( cwf(ngw,nbspx), bec2(nbsp), bec3(nbsp), bec2up(nupdwn(1)) )
+!   ALLOCATE( bec3up( nupdwn(1) ) )
+!   IF( nspin == 2 ) THEN
+!      ALLOCATE( bec2dw( nupdwn(2) ), bec3dw( nupdwn(2) ) )
+!   ENDIF
+!   ! 
+!   te = 0.D0
+!   !
+!   ALLOCATE( tagz( nw ))
+!   !
+!   tagz(:) = 1
+!   tagz(3) = 0
+!   !
+!   ! ... set up matrix O
+!   !
+!   ALLOCATE( O( nw, nbsp, nbsp ), X( nbsp, nbsp ), Oa( nw, nbsp, nbsp ) )
+!   !
+!   IF ( nspin == 2 .AND. nvb > 0 ) THEN
+!      !
+!      ALLOCATE( X2( nupdwn(1), nupdwn(1) ) )
+!      ALLOCATE( X3( nupdwn(2), nupdwn(2) ) )
+!      !
+!   END IF
+!   !
+! #if defined (__PARA)
+!   !
+!   ! Compute the number of states to each processor
+!   !
+!   ALLOCATE( ns( nproc_image ) )
+!   ns = nbsp / nproc_image
+!   DO j = 1, nbsp
+!      IF( (j-1) < MOD( nbsp, nproc_image ) ) ns( j ) = ns( j ) + 1 
+!   END DO
+!   IF(iprsta.GT.4) THEN
+!      DO j=1,nproc_image
+!         WRITE( stdout, * ) ns(j)
+!      END DO
+!   END IF
+!   !
+!   nstat = ns( me )
+! 
+!   total = 0   
+!   DO proc=1,nproc_image
+!      ngpwpp(proc)=(dfftp%nwl(proc)+1)/2
+!      total=total+ngpwpp(proc)
+!      IF(iprsta.GT.4) THEN
+!         WRITE( stdout, * ) "I am proceessor", proc, "and i have ",ns(me)," states."
+!      END IF
+!   END DO
+!   !
+!   ALLOCATE(psitot(total,nstat))
+!   ALLOCATE(psitot_pl(total,nstat))
+!   ALLOCATE(psitot_mi(total,nstat))
+! 
+!   ALLOCATE(c_p(ngw,nbspx))
+!   ALLOCATE(c_m(ngw,nbspx))
+!   IF(iprsta.GT.4) THEN
+!      WRITE( stdout, * ) "All allocations done"
+!   END IF
+!   !
+!   ! ... Step 1. Communicate to all Procs so that each proc has all
+!   ! ... G-vectors and some states instead of all states and some
+!   ! ... G-vectors. This information is stored in the 1-d array 
+!   ! ... psitot1.
+!   !
+!   !   Step 2. Convert the 1-d array psitot1 into a 2-d array consistent with the
+!   !   original notation c(ngw,nbsp). Psitot contains ntot = SUM_Procs(ngw) G-vecs
+!   !   and nstat states instead of all nbsp states
+!   !
+!   !
+!   CALL redistwf( c, psitot, ngpwpp, ns, intra_image_comm, 1 )
+!   !
+! #endif   
+! 
+!   IF( clwf .EQ. 5 ) THEN
+!      !
+!      CALL write_psi( c, jw )
+!      !
+!   END IF
+!   !
+!   !
+! #if defined (__PARA)
+!   !
+!   !   Step 3. do the translation of the 2-d array to get the transtalted
+!   !   arrays psitot_pl and psittot_mi, corresponding to G+G' and -G+G'
+!   !   
+!   DO inw=1,nw   
+!    !
+!    !   Intermediate Check. If the translation is only along the z-direction
+!    !   no interprocessor communication and data rearrangement is required 
+!    !   because each processor contains all the G- components in the z-dir.
+!    !
+!    IF(tagz(inw).EQ.0) THEN
+!      DO i=1,nbsp
+!         DO ig=1,ngw
+!            IF(indexplusz(ig).EQ.-1) THEN
+!               c_p(ig,i)=(0.D0,0.D0)
+!            ELSE
+!               c_p(ig,i)=c(indexplusz(ig),i)
+!            END IF
+!            IF(indexminusz(ig).EQ.-1) THEN
+!               c_m(ig,i)=(0.D0,0.D0)
+!            ELSE
+!               c_m(ig,i)=CONJG(c(indexminusz(ig),i))
+!            END IF
+!         END DO
+!      END DO
+!    ELSE
+!      DO i=1,ns(me)
+!         DO ig=1,total
+!            IF(indexplus(ig,inw).EQ.-1) THEN
+!               psitot_pl(ig,i)=(0.D0,0.D0)
+!            ELSE   
+!               IF(tagp(ig,inw).EQ.1) THEN
+!                  psitot_pl(ig,i)=CONJG(psitot(indexplus(ig,inw),i))
+!               ELSE
+!                  psitot_pl(ig,i)=psitot(indexplus(ig,inw),i)
+!               END IF
+!            END IF
+!            IF(indexminus(ig,inw).EQ.-1) THEN
+!               psitot_mi(ig,i)=(0.D0,0.D0)
+!            ELSE
+!               IF(tag(ig,inw).EQ.1) THEN
+!                  psitot_mi(ig,i)=CONJG(psitot(indexminus(ig,inw),i))
+!               ELSE
+!                  psitot_mi(ig,i)=psitot(indexminus(ig,inw),i)
+!               END IF
+!            END IF
+!         END DO
+!      END DO
+!      IF(iprsta.GT.4) THEN
+!         WRITE( stdout, * ) "Step 3. do the translation of the 2-d array...Done, wf"
+!      END IF
+!      !
+!      !   Step 4. Convert the 2-d arrays psitot_p and psitot_m into 1-d
+!      !   arrays
+!      !
+!      !   Step 5. Redistribute among processors. The result is stored in 2-d
+!      !   arrays c_p and c_m consistent with the notation c(ngw,nbsp), such that
+!      !   c_p(j,i) contains the coeffiCIent for c(j,i) corresponding to G+G'
+!      !       and c_m(j,i) contains the coeffiCIent for c(j,i) corresponding to -G+G'
+!      !
+!      c_p = 0.D0
+!      CALL redistwf( c_p, psitot_pl, ngpwpp, ns, intra_image_comm, -1 )
+!      !
+!      c_m = 0.D0
+!      CALL redistwf( c_m, psitot_mi, ngpwpp, ns, intra_image_comm, -1 )
+!      !
+!   END IF
+!     !
+! #else
+!     !
+!   ALLOCATE(c_p(ngw,nbspx))
+!   ALLOCATE(c_m(ngw,nbspx))
+!   DO inw=1,nw
+!      IF(tagz(inw).EQ.0) THEN
+!         DO i=1,nbsp
+!            DO ig=1,ngw
+!               IF(indexplusz(ig).EQ.-1) THEN
+!                  c_p(ig,i)=(0.D0,0.D0)
+!               ELSE
+!                  c_p(ig,i)=c(indexplusz(ig),i)
+!               END IF
+!               IF(indexminusz(ig).EQ.-1) THEN
+!                  c_m(ig,i)=(0.D0,0.D0)
+!               ELSE
+!                  c_m(ig,i)=CONJG(c(indexminusz(ig),i))
+!               END IF
+!            END DO
+!         END DO
+!      ELSE
+!         DO i=1,nbsp
+!            DO ig=1,ngw
+!               IF(indexplus(ig,inw).EQ.-1) THEN
+!                  c_p(ig,i)=(0.D0,0.D0)
+!               ELSE
+!                  IF(tagp(ig,inw).EQ.1) THEN
+!                     c_p(ig,i)=CONJG(c(indexplus(ig,inw),i))
+!                  ELSE
+!                     c_p(ig,i)=c(indexplus(ig,inw),i)
+!                  END IF
+!               END IF
+!               IF(indexminus(ig,inw).EQ.-1) THEN
+!                  c_m(ig,i)=(0.D0,0.D0)
+!               ELSE
+!                  IF(tag(ig,inw).EQ.1) THEN
+!                     c_m(ig,i)=CONJG(c(indexminus(ig,inw),i))
+!                  ELSE
+!                     c_m(ig,i)=c(indexminus(ig,inw),i)
+!                  END IF
+!               END IF
+!            END DO
+!         END DO
+!      END IF
+!     !
+! #endif
+!      !
+!      ! ... Step 6. Calculate Overlaps
+!      !
+!      ! ... Augmentation Part first
+!      !
+!      ALLOCATE( qv( nnrbx ) )
+!      !
+!      X = ZERO
+!      !
+!      isa = 1
+!      DO is = 1, nvb
+!         DO ia =1, na(is)
+!            DO iv = 1, nh(is)
+!               inl = ish(is) + (iv-1)*na(is) + ia
+!               jv = iv 
+!               ijv=(jv-1)*jv/2 + iv
+!               qv( 1 : nnrbx ) = 0.D0 
+!               DO ig=1,ngb
+!                  qv(npb(ig))=eigrb(ig,isa)*qgb(ig,ijv,is)
+!                  qv(nmb(ig))=CONJG(eigrb(ig,isa)*qgb(ig,ijv,is))
+!               END DO
+! #ifdef __PARA
+!               irb3=irb(3,isa)
+! #endif
+!               CALL invfft('Box',qv,dfftb,isa)
+!               iqv=1
+!               qvt=(0.D0,0.D0)
+!               qvt=boxdotgridcplx(irb(1,isa),qv,expo(1,inw))
+! 
+! #ifdef __PARA
+!               CALL mp_sum( qvt, intra_image_comm )
+! #endif
+!               !
+!               IF (nspin.EQ.1) THEN
+!                  bec2(1:nbsp)=(0.D0,0.D0)
+!                  bec2(1:nbsp)=bec(inl,1:nbsp)*ONE
+!                  CALL ZSYRK('U','T',nbsp,1,qvt,bec2,1,ONE,X,nbsp)
+!               ELSE
+!                  X2=(0.D0,0.D0)
+!                  X3=(0.D0,0.D0)
+!                  bec2up(1:nupdwn(1))=(0.D0,0.D0)
+!                  bec2up(1:nupdwn(1))=bec(inl,1:nupdwn(1))
+!                  CALL ZSYRK('U','T',nupdwn(1),1,qvt,bec2up,1,ONE,X2,nupdwn(1))
+!                  bec2dw(1:nupdwn(2))=(0.D0,0.D0)
+!                  bec2dw(1:nupdwn(2))=bec(inl,iupdwn(2):nbsp)
+!                  CALL ZSYRK('U','T',nupdwn(2),1,qvt,bec2dw,1,ONE,X3,nupdwn(2))
+!                  DO i = 1, nupdwn(1)
+!                     DO j=i, nupdwn(1)
+!                        X(i,j)=X(i,j)+X2(i,j)
+!                     END DO
+!                  END DO
+!                  DO i = 1,nupdwn(2)
+!                     DO j=i,nupdwn(2)
+!                        X(i+nupdwn(1),j+nupdwn(1)) =X(i+nupdwn(1),j+nupdwn(1)) + X3(i,j)
+!                     END DO
+!                  END DO
+!               END IF
+!               DO jv = iv+1, nh(is)
+!                  jnl = ish(is) + (jv-1)*na(is) + ia
+!                  ijv = (jv-1)*jv/2 + iv
+!                  qv( 1:nnrbx ) = 0.D0
+!                  DO ig=1,ngb
+!                     qv(npb(ig))=eigrb(ig,isa)*qgb(ig,ijv,is)
+!                     qv(nmb(ig))=CONJG(eigrb(ig,isa)*qgb(ig,ijv,is))
+!                  END DO
+!                  CALL invfft('Box',qv,dfftb,isa)
+!                  iqv=1
+!                  qvt=0.D0
+!                  qvt=boxdotgridcplx(irb(1,isa),qv,expo(1,inw))
+! #ifdef __PARA
+!                  CALL mp_sum( qvt, intra_image_comm )
+! #endif
+!                  !
+!                  IF (nspin.EQ.1) THEN
+!                     bec2(1:nbsp)=(0.D0,0.D0)
+!                     bec3(1:nbsp)=(0.D0,0.D0)
+!                     bec2(1:nbsp)=bec(inl,1:nbsp)*ONE
+!                     bec3(1:nbsp)=bec(jnl,1:nbsp)*ONE
+!                     CALL ZSYR2K('U','T',nbsp,1,qvt,bec2,1,bec3,1,ONE,X,nbsp)
+!                  ELSE
+!                     X2=(0.D0,0.D0)
+!                     X3=(0.D0,0.D0)
+!                     bec2up(1:nupdwn(1))=(0.D0,0.D0)
+!                     bec3up(1:nupdwn(1))=(0.D0,0.D0)
+!                     bec2up(1:nupdwn(1))=bec(inl,1:nupdwn(1))*ONE
+!                     bec3up(1:nupdwn(1))=bec(jnl,1:nupdwn(1))*ONE
+!                     CALL ZSYR2K('U','T',nupdwn(1),1,qvt,bec2up,1,bec3up,1,ONE,X2,nupdwn(1))
+!                     bec2dw(1:nupdwn(2))=(0.D0,0.D0)
+!                     bec3dw(1:nupdwn(2))=(0.D0,0.D0)
+!                     bec2dw(1:nupdwn(2))=bec(inl,iupdwn(2):nbsp)*ONE
+!                     bec3dw(1:nupdwn(2))=bec(jnl,iupdwn(2):nbsp)*ONE
+!                     CALL ZSYR2K('U','T',nupdwn(2),1,qvt,bec2dw,1,bec3dw,1,ONE,X3,nupdwn(2))
+!                     DO i = 1, nupdwn(1)
+!                        DO j=i, nupdwn(1)
+!                           X(i,j)=X(i,j)+X2(i,j)
+!                        END DO
+!                     END DO
+!                     DO i = 1,nupdwn(2)
+!                        DO j=i,nupdwn(2)
+!                           X(i+nupdwn(1),j+nupdwn(1)) =X(i+nupdwn(1),j+nupdwn(1)) + X3(i,j)
+!                        END DO
+!                     END DO
+!                  END IF
+!               END DO
+!            END DO
+!            isa = isa + 1
+!         END DO
+!      END DO
+!      t1=omega/DBLE(nr1*nr2*nr3)
+!      X=X*t1
+!      DO i=1, nbsp
+!         DO j=i+1, nbsp
+!            X(j, i)=X(i, j)
+!         END DO
+!      END DO
+!      Oa(inw, :, :)=X(:, :)
+!      IF(iprsta.GT.4) THEN
+!         WRITE( stdout, * ) "Augmentation Part Done"
+!      END IF
+! 
+!      DEALLOCATE( qv )
+! 
+! 
+!      !   Then Soft Part
+!      IF( nspin == 1 ) THEN
+!         !   Spin Unpolarized calculation
+!         X=0.D0   
+!         IF( gstart == 2 ) THEN
+!            c_m(1,:)=0.D0
+!         END IF
+!         !           cwf(:,:)=ZERO
+!         !           cwf(:,:)=c(:,:)
+!         CALL ZGEMM('C','N',nbsp,nbsp,ngw,ONE,c,ngw,c_p,ngw,ONE,X,nbsp)
+!         CALL ZGEMM('T','N',nbsp,nbsp,ngw,ONE,c,ngw,c_m,ngw,ONE,X,nbsp)
+! 
+!         CALL mp_sum ( X, intra_image_comm )
+! 
+!         O(inw,:,:)=Oa(inw,:,:)+X(:,:)
+! 
+!         IF(iprsta.GT.4) THEN
+!            WRITE( stdout, * ) "Soft Part Done"
+!         END IF
+! 
+!      ELSE
+!         !   Spin Polarized case
+!         !   Up Spin First
+!         ALLOCATE(Xsp(nbsp,nupdwn(1)))
+!         ALLOCATE(c_psp(ngw,nupdwn(1)))
+!         ALLOCATE(c_msp(ngw,nupdwn(1)))
+!         Xsp=0.D0
+!         c_psp=0.D0 
+!         c_msp=0.D0
+!         DO i=1,nupdwn(1)
+!            c_psp(:,i)=c_p(:,i)
+!            c_msp(:,i)=c_m(:,i)
+!         END DO
+!         IF(gstart.EQ.2) THEN
+!            c_msp(1,:)=0.D0
+!         END IF
+!         !           cwf(:,:)=ZERO
+!         !           cwf(:,:)=c(:,:,1,1)
+!         CALL ZGEMM('C','N',nbsp,nupdwn(1),ngw,ONE,c,ngw,c_psp,ngw,ONE,Xsp,nbsp)
+!         CALL ZGEMM('T','N',nbsp,nupdwn(1),ngw,ONE,c,ngw,c_msp,ngw,ONE,Xsp,nbsp)
+! #ifdef __PARA
+!         CALL mp_sum ( Xsp, intra_image_comm )
+! #endif
+!         DO i=1,nupdwn(1)
+!            DO j=1,nbsp
+!               X(j,i)=Xsp(j,i)
+!            END DO
+!         END DO
+!         DEALLOCATE(Xsp,c_psp,c_msp)
+!         !    Then Down Spin
+!         ALLOCATE(Xsp(nbsp,iupdwn(2):nbsp))
+!         ALLOCATE(c_psp(ngw,iupdwn(2):nbsp))
+!         ALLOCATE(c_msp(ngw,iupdwn(2):nbsp))
+!         Xsp=0.D0
+!         c_psp=0.D0
+!         c_msp=0.D0
+!         DO i=iupdwn(2),nbsp
+!            c_psp(:,i)=c_p(:,i)
+!            c_msp(:,i)=c_m(:,i)
+!         END DO
+!         IF(gstart.EQ.2) THEN
+!            c_msp(1,:)=0.D0
+!         END IF
+!         !           cwf(:,:)=ZERO
+!         !           cwf(:,:)=c(:,:,1,1)
+!         CALL ZGEMM('C','N',nbsp,nupdwn(2),ngw,ONE,c,ngw,c_psp,ngw,ONE,Xsp,nbsp)
+!         CALL ZGEMM('T','N',nbsp,nupdwn(2),ngw,ONE,c,ngw,c_msp,ngw,ONE,Xsp,nbsp)
+! #ifdef __PARA
+!         CALL mp_sum ( Xsp, intra_image_comm )
+! #endif
+!         DO i=iupdwn(2),nbsp
+!            DO j=1,nbsp
+!               X(j,i)=Xsp(j,i)
+!            END DO
+!         END DO
+!         DEALLOCATE(Xsp,c_psp,c_msp)
+!         O(inw,:,:)=Oa(inw,:,:)+X(:,:)
+!      END IF
+! 
+! 
+!   END DO
+! 
+! #ifdef __PARA
+!   DEALLOCATE(ns)
+! #endif
+! 
+!   CALL stop_clock('wf_1')
+! 
+!   DEALLOCATE( X )
+!   IF ( ALLOCATED( X2 ) )  DEALLOCATE( X2 )
+!   IF ( ALLOCATED( X3 ) )  DEALLOCATE( X3 )
+!   !
+! 
+!   CALL start_clock('wf_2')
+! 
+! 
+!   IF(clwf.EQ.2) THEN
+!      !    output the overlap matrix to fort.38
+!      IF(me.EQ.1) THEN
+!         REWIND 38
+!         WRITE(38, '(i5, 2i2, i3, f9.5)') nbsp, nw, nspin, ibrav, alat
+!         IF (nspin.EQ.2) THEN
+!            WRITE(38, '(i5)') nupdwn(1)
+!         END IF
+!         WRITE(38, *) a1
+!         WRITE(38, *) a2
+!         WRITE(38, *) a3
+!         WRITE(38, *) b1
+!         WRITE(38, *) b2
+!         WRITE(38, *) b3
+!         DO inw=1, nw
+!            WRITE(38, *) wfg(inw, :), weight(inw)
+!         END DO
+!         DO inw=1, nw
+!            DO i=1, nbsp
+!               DO j=1, nbsp
+!                  WRITE(38, *) O(inw, i, j)
+!               END DO
+!            END DO
+!         END DO
+!         DO i=1, nbsp
+!            DO j=1, nbsp
+!               WRITE(38, *) Uall(i, j)
+!            END DO
+!         END DO
+!         CLOSE(38)
+!      END IF
+!      CALL stop_run( .TRUE. )
+!   END IF
+! 
+!   IF(clwf.EQ.3.OR.clwf.EQ.4) THEN
+!      IF(nspin.EQ.1) THEN
+!         IF(.NOT.what1) THEN
+!            IF(wfsd==1) THEN
+!               CALL ddyn(nbsp,O,Uall,b1,b2,b3)
+!            ELSE IF(wfsd==2) THEN
+!               CALL wfsteep(nbsp,O,Uall,b1,b2,b3)
+!            ELSE IF(wfsd==3) THEN
+!               CALL jacobi_rotation(nbsp,O,Uall,b1,b2,b3)
+!            END IF
+!         END IF
+!         IF(iprsta.GT.4) THEN
+!            WRITE( stdout, * ) "Out from DDYN"
+!         END IF
+!      ELSE
+!         ALLOCATE(Uspin(nupdwn(1), nupdwn(1)), Ospin(nw, nupdwn(1), nupdwn(1)))
+!         DO i=1, nupdwn(1)
+!            DO j=1, nupdwn(1)
+!               Uspin(i, j)=Uall(i, j)
+!               Ospin(:, i, j)=O(:, i, j)
+!            END DO
+!         END DO
+!         IF(.NOT.what1) THEN
+!            IF(wfsd==1) THEN
+!              CALL ddyn(nupdwn(1), Ospin, Uspin,b1,b2,b3)
+!            ELSE IF (wfsd==2) THEN
+!              CALL wfsteep(nupdwn(1), Ospin, Uspin,b1,b2,b3)
+!            ELSE
+!             CALL jacobi_rotation(nupdwn(1), Ospin, Uspin,b1,b2,b3)
+!            END IF
+!         END IF
+!         DO i=1, nupdwn(1)
+!            DO j=1, nupdwn(1)
+!               Uall(i, j)=Uspin(i, j)
+!               O(:,i,j)  =Ospin(:,i,j)
+!            END DO
+!         END DO
+!         DEALLOCATE(Uspin, Ospin)
+!         ALLOCATE(Uspin(nupdwn(2), nupdwn(2)), Ospin(nw, nupdwn(2), nupdwn(2)))
+!         DO i=1, nupdwn(2)
+!            DO j=1, nupdwn(2)
+!               Uspin(i, j)=Uall(i+nupdwn(1), j+nupdwn(1))
+!               Ospin(:, i, j)=O(:, i+nupdwn(1), j+nupdwn(1))
+!            END DO
+!         END DO
+!         IF(.NOT.what1) THEN
+!            IF(wfsd==1) THEN
+!               CALL ddyn(nupdwn(2), Ospin, Uspin,b1,b2,b3)
+!            ELSE IF (wfsd==2) THEN
+!               CALL wfsteep(nupdwn(2), Ospin, Uspin,b1,b2,b3)
+!            ELSE
+!               CALL jacobi_rotation(nupdwn(2), Ospin, Uspin,b1,b2,b3)
+!            END IF
+!         END IF
+!         DO i=1, nupdwn(2)
+!            DO j=1, nupdwn(2)
+!               Uall(i+nupdwn(1), j+nupdwn(1))=Uspin(i, j)
+!               O(:,i+nupdwn(1),j+nupdwn(1))=Ospin(:,i,j)
+!            END DO
+!         END DO
+!         DEALLOCATE(Uspin, Ospin)
+!      END IF
+!   END IF
+! 
+!   !       Update C and bec
+!   cwf=ZERO
+!   !        cwf(:,:)=c(:,:,1,1)
+!   becwf=0.0d0
+!   U2=Uall*ONE
+!   CALL ZGEMM('N','N',ngw,nbsp,nbsp,ONE,c,ngw,U2,nbsp,ZERO,cwf,ngw)
+!   !           call ZGEMM('nbsp','nbsp',ngw,nbsp,nbsp,ONE,cwf,ngw,U2,nbsp,ZERO,cwf,ngw)
+!   CALL DGEMM('N','N',nkb,nbsp,nbsp,ONE,bec,nkb,Uall,nbsp,ZERO,becwf,nkb)
+!   U2=ZERO
+!   IF(iprsta.GT.4) THEN
+!      WRITE( stdout, * ) "Updating Wafefunctions and Bec"
+!   END IF
+! 
+!   c(:,:)=cwf(:,:)
+!   bec(:,:)=becwf(:,:)
+! 
+!   IF(iprsta.GT.4) THEN
+!      WRITE( stdout, * ) "Wafefunctions and Bec Updated"
+!   END IF
+!   !
+!   ! calculate wannier-function centers
+!   !
+!   ALLOCATE( wr(nw), W(nw,nw), gr(nw,3), EW(nw,nw), f3(nw), f4(nw), mt0(nw), mt(nw) )
+!   !
+!   DO inw=1, nw
+!      gr(inw, :)=wfg(inw,1)*b1(:)+wfg(inw,2)*b2(:)+wfg(inw,3)*b3(:)
+!   END DO
+!   !
+!   ! set up a matrix with the element (i,j) is G_i·G_j·weight(j)
+!   ! to check the correctness of choices on G vectors
+!   !
+!   DO i=1, nw
+!      DO j=1, nw
+!         W(i,j)=DOT_PRODUCT(gr(i,:),gr(j,:))*weight(j)
+!      END DO
+!   END DO
+!   !
+!   EW = W
+!   DO i=1,nw
+!      EW(i,i) = EW(i,i)-1.D0
+!   END DO
+!   !
+!   ! ... balance the phase factor if necessary
+!   !
+!   ! adjust mt : very inefficient routine added by Young-Su -> must be improved
+!   DO i=1, nbsp
+!      mt0(:) = -AIMAG(LOG(O(:,i,i)))/tpi
+!      wr = MATMUL(EW,mt0)
+!      wrsq = SUM(wr(:)**2)
+!      IF ( wrsq .lt. 1.D-6 ) THEN
+!         mt = mt0
+!      ELSE
+!         wrsqmin = 100.D0
+! COMB:   DO k=3**nw-1,0,-1
+!            tk=k
+!            DO j=nw,1,-1
+!               f3(j)=tk/3**(j-1)
+!               tk=tk-f3(j)*3**(j-1)
+!            END DO
+!            mt(:)=mt0(:)+f3(:)-1
+!            wr = MATMUL(EW,mt)
+!            wrsq = SUM(wr(:)**2)
+!            IF ( wrsq .lt. wrsqmin ) THEN
+!               wrsqmin = wrsq
+!               f4(:)=f3(:)-1
+!            END IF
+!         END DO COMB
+!         mt = mt0 + f4
+!      END IF
+!      !
+!      wfc(1, i) = SUM(mt*weight(:)*gr(:,1))*alat
+!      wfc(2, i) = SUM(mt*weight(:)*gr(:,2))*alat
+!      wfc(3, i) = SUM(mt*weight(:)*gr(:,3))*alat
+!      !
+!   END DO
+!   !
+!   IF ( ionode ) THEN
+!      !
+!      iunit = printout_base_unit( "wfc" )
+!      CALL printout_base_open( "wfc" )
+!      IF ( .NOT. what1 ) THEN
+!         !
+!         ! ... pbc are imposed here in the range [0,1]
+!         !
+!         DO i = 1, nbsp
+!            !
+!            temp_vec(:) = MATMUL( ainv(:,:), wfc(:,i) )
+!            !
+!            temp_vec(:) = temp_vec(:) - floor (temp_vec(:))
+!            !
+!            temp_vec(:) = MATMUL( h(:,:), temp_vec(:) )
+!            !
+!            WRITE( iunit, '(3f20.14)' ) temp_vec(:)
+!            !
+!         END DO
+!         !
+!      END IF
+!      CALL printout_base_close( "wfc" )
+!      !
+!   END IF
+!   !
+!   !
+!   !
+!   DEALLOCATE( wr, W, gr, EW, f3, f4, mt0, mt )
+!   !
+! #if defined (__PARA)
+!   !
+!   DEALLOCATE( psitot )
+!   DEALLOCATE( psitot_pl )
+!   DEALLOCATE( psitot_mi )
+!   !
+! #endif
+!   !
+!   DEALLOCATE( c_p, c_m )
+!   !
+!   DEALLOCATE( O )
+!   DEALLOCATE( Oa )
+!   DEALLOCATE( tagz )
+!   DEALLOCATE( becwf, temp3, U2 )
+!   DEALLOCATE( cwf, bec2, bec3, bec2up, bec3up )
+!   IF( ALLOCATED( bec2dw ) ) DEALLOCATE( bec2dw )
+!   IF( ALLOCATED( bec3dw ) ) DEALLOCATE( bec3dw )
+! 
+!   CALL stop_clock('wf_2')
+!   !
+!   RETURN
+!   !
+! END SUBROUTINE wf_new
+! !
 !----------------------------------------------------------------------------
 SUBROUTINE ddyn( m, Omat, Umat, b1, b2, b3 )
   !----------------------------------------------------------------------------

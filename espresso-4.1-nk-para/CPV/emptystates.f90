@@ -322,11 +322,10 @@
                !
             ENDIF
             !
+            !
          END DO
          !
       END IF
-
-       
       !
       !WRITE(stdout,*) '------- filled filled -------'
       !DO i = 1, nupdwn( 1 )
