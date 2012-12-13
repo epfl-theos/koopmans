@@ -96,7 +96,12 @@ SUBROUTINE init_run()
   CALL start_clock( 'initialize' )
   !
   lgam = gamma_only.and..not.do_wf_cmplx
+  !
   ! ... initialize directories
+  !
+  IF( nbeg < 0 ) THEN
+     CALL create_directory( outdir )
+  END IF 
   !
   CALL printout_base_init( outdir, prefix )
   !
