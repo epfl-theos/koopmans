@@ -36,7 +36,8 @@
       use nksic,                      only: orb_rhor, wxdsic, &
                                             wrefsic, rhoref, rhobar, &
                                             do_nk, do_nki, do_pz, do_nkpz, &
-                                            do_nkipz, grhobar, fion_sic
+                                            do_nkipz, grhobar, fion_sic, pzalpha=>alpha, do_pz_renorm, edens, &
+                                            tauw,taukin, upsilonkin, upsilonw, kfact
       use ions_base,                  only: nat
       use control_flags,         only: gamma_only, do_wf_cmplx !added:giovanni
       use uspp,                       only: nkb
@@ -71,7 +72,7 @@
       !
       ! local variables
       !
-      integer  :: i,j,jj,ibnd
+      integer  :: i,j,jj,ibnd,isp
       real(dp) :: focc,pinkpz,shart
       real(dp), allocatable :: vsicpz(:)
       complex(dp), allocatable :: rhobarg(:,:)
@@ -103,6 +104,14 @@
       !
       pink=0.0_dp
       vsic=0.0_dp
+      !
+      ! if using pz_renorm factors, compute here tauw and upsilonw
+      !
+      do isp=1,nspin
+         !
+         call nksic_get_taukin_pz( 1.d0, nspin, isp, rhor(1,isp), tauw, 1)
+         !
+      enddo      
       !
       ! loop over bands (2 ffts at the same time)
       !
@@ -149,6 +158,16 @@
           ! note: iupdwn(2) is set to zero if nspin = 1
           !
           focc=f_diag(i)*DBLE(nspin)/2.0d0
+          !
+          ! compute parameters needed for PZ-renormalization
+          !
+          IF(do_pz_renorm) THEN
+             !     
+             call nksic_get_taukin_pz( focc, nspin, ispin(i), orb_rhor(:,jj), &
+                                      taukin, ibnd)
+             !                         
+          ENDIF
+          !
           !
           ! define rhoref and rhobar
           !
@@ -202,9 +221,15 @@
           if ( do_pz ) then 
               !
               call nksic_correction_pz ( focc, ispin(i), orb_rhor(:,jj), &
-                                         vsic(:,i), pink(i), ibnd, shart)
+                                         vsic(:,i), pink(i), pzalpha(i), ibnd, shart)
               !
               wfc_spreads(ibnd, ispin(i), 2) = shart
+              !
+              if(do_pz_renorm) then
+                 !
+                 edens(:,ispin(i)) = edens(:,ispin(i)) + pink(i)*orb_rhor(:,jj)
+                 !
+              endif
               !
           endif
 
@@ -241,7 +266,6 @@
               wfc_spreads(ibnd, ispin(i), 2) = shart
               !
           endif
-
           !
           ! take care of spin symmetry
           !
@@ -282,6 +306,40 @@
           enddo
           !
       endif
+      !
+      ! if pz is renormalized, here we compute the potential, and multiply here pink by renormalization factor
+      !
+      if ( do_pz_renorm ) then
+          !
+          do j=1,nbsp,2
+             !
+             call nksic_get_orbitalrho( ngw, nnrx, bec, ispin, nbsp, &
+                     c(:,j), c(:,j+1), orb_rhor, j, j+1, lgam)
+             !
+             inner_loop_renorm: do jj=1,2
+                !
+                i=j+jj-1        
+                if ( i > nbsp ) exit inner_loop_renorm
+                !
+                ibnd=i
+                focc=f_diag(i)*DBLE(nspin)/2.0d0
+                !
+                if( nspin==2 ) then
+                    if ( i >= iupdwn(2) ) ibnd=i-iupdwn(2)+1
+                endif
+                !
+                call nksic_get_pz_factor( nspin, ispin(i), orb_rhor(1,jj), &
+                                         taukin, tauw, pzalpha(i), ibnd, kfact)
+                !
+                call nksic_get_pzfactor_potential(focc, nspin, ispin(i), rhor, orb_rhor(1,jj), &
+                                      pink(i), taukin, tauw, edens, upsilonkin, upsilonw, vsic(1,i), pzalpha(i), ibnd, kfact)
+                !
+             enddo inner_loop_renorm
+             !
+          enddo
+          !
+      endif
+      !
       !
       if (draw_pot) then !added:linh draw vsic potentials
          !
@@ -330,7 +388,6 @@
       end subroutine nksic_potential_non_ortho
 !-----------------------------------------------------------------------
 
-
 !-----------------------------------------------------------------------
       subroutine nksic_potential( nbsp, nx, c, f_diag, bec, becsum, &
                                   deeq_sic, ispin, iupdwn, nupdwn, &
@@ -354,7 +411,10 @@
       use nksic,                      only: orb_rhor, wxdsic, &
                                             wrefsic, rhoref, rhobar, &
                                             do_nk, do_nki, do_pz, do_nkpz, &
-                                            do_nkipz, grhobar, fion_sic
+                                            do_nkipz, do_pz_renorm, &
+                                            grhobar, fion_sic, pzalpha => alpha, &
+                                            kfact, upsilonkin, upsilonw, edens,&
+                                            taukin, tauw
       use ions_base,                  only: nat
       use control_flags,         only: gamma_only, do_wf_cmplx !added:giovanni
       use uspp,                       only: nkb
@@ -482,6 +542,15 @@
           !
           focc=f_diag(i)*DBLE(nspin)/2.0d0
           !
+          ! compute parameters needed for PZ-renormalization
+          !
+          IF(do_pz_renorm) THEN
+             !     
+             call nksic_get_taukin_pz( focc, nspin, ispin(i), orb_rhor(:,jj), &
+                                      taukin, ibnd)
+             !                         
+          ENDIF
+          !
           ! define rhoref and rhobar
           !
           !write(6,*) ubound(rhobarg)
@@ -525,18 +594,22 @@
               !
               pink(i) = pink(i) +pinkpz
               !
-          endif
-
-          
+          endif     
           !
           ! compute pz potentials and energy
           !
           if ( do_pz ) then 
               !
               call nksic_correction_pz ( focc, ispin(i), orb_rhor(:,jj), &
-                                         vsic(:,i), pink(i), ibnd, shart )
+                                         vsic(:,i), pink(i), pzalpha(i), ibnd, shart )
               !
               wfc_spreads(ibnd, ispin(i), 2) = shart
+              !
+              if(do_pz_renorm) then
+                 !
+                 edens(:,ispin(i)) = edens(:,ispin(i)) + pink(i)*orb_rhor(:,jj)
+                 !checkcheck
+              endif
 !               write(6,*) "pinkpz", pink
               !
           endif
@@ -617,6 +690,37 @@
               !
               vsic(1:nnrx,i) = vsic(1:nnrx,i) + wtot( 1:nnrx, ispin(i) ) 
               ! 
+          enddo
+          !
+      endif
+      !
+      if ( do_pz_renorm ) then
+          !
+          do j=1,nbsp,2
+             !
+             call nksic_get_orbitalrho( ngw, nnrx, bec, ispin, nbsp, &
+                     c(:,j), c(:,j+1), orb_rhor, j, j+1, lgam)
+             !
+             inner_loop_renorm: do jj=1,2
+                !
+                i=j+jj-1        
+                if ( i > nbsp ) exit inner_loop_renorm
+                !
+                ibnd=i
+                focc=f_diag(i)*DBLE(nspin)/2.0d0
+                !
+                if( nspin==2 ) then
+                    if ( i >= iupdwn(2) ) ibnd=i-iupdwn(2)+1
+                endif
+                !
+                call nksic_get_pz_factor( nspin, ispin(i), orb_rhor(1,jj), &
+                                         taukin, tauw, pzalpha(i), ibnd, kfact)
+                !
+                call nksic_get_pzfactor_potential(focc, nspin, ispin(i), rhor, orb_rhor(1,jj), &
+                                      pink(i), taukin, tauw, edens, upsilonkin, upsilonw, vsic(1,i), pzalpha(i), ibnd, kfact)
+                !
+             enddo inner_loop_renorm
+             !
           enddo
           !
       endif
@@ -2063,8 +2167,308 @@ end subroutine nksic_newd
 !---------------------------------------------------------------
 
 !---------------------------------------------------------------
+      subroutine nksic_get_pz_factor( nspin, ispin, orb_rhor, &
+                                      taukin, tauw, alpha, ibnd, kfact) 
+!---------------------------------------------------------------
+!
+! ... sum up the kinetic energy-density taukin ... this works both for summing
+!     the orbital-resolved kinetic energy densities, and for the Weizsacker kinetic
+!     energy density (involving the total density).
+!
+      use kinds,                only : dp
+      use cell_base,            only : tpiba2,omega
+      use grid_dimensions,      only : nnrx, nr1, nr2, nr3
+      use gvecp,                only : ngm
+      use recvecs_indexes,      only : np, nm
+      use cp_interfaces,        only : fwfft, invfft, fillgrad
+      use fft_base,             only : dfftp
+      use funct,                only : dft_is_gradient
+      use mp,                   only : mp_sum
+      use mp_global,            only : intra_image_comm
+      use control_flags,        only : gamma_only, do_wf_cmplx
+      !
+      implicit none
+      !
+      integer,     intent(in)  :: ispin, ibnd, nspin
+      real(dp),    intent(in)  :: orb_rhor(nnrx), taukin(nnrx,nspin), tauw(nnrx,nspin)
+      real(dp), intent(out)    :: alpha
+      real(dp), intent(in)    :: kfact
+      !
+      INTEGER :: ir
+      LOGICAL :: lgam
+      real(dp) :: fact, temp
+      real(dp), parameter :: epsi=1.d-9
+      !
+      lgam=gamma_only.and..not.do_wf_cmplx
+      fact=omega/DBLE(nr1*nr2*nr3)
+      !
+      temp=0.d0
+      !
+      do ir=1,nnrx
+         !
+         IF(tauw(ir,ispin).gt.epsi) THEN
+            !
+            temp = temp+orb_rhor(ir)*(tauw(ir,ispin)/taukin(ir,ispin))**kfact
+            !
+         ENDIF
+         !
+      enddo
+      !
+      call mp_sum(temp,intra_image_comm)
+      !
+      temp=temp*fact
+      !
+      alpha=temp
+      !
+      end subroutine nksic_get_pz_factor
+      
+!---------------------------------------------------------------
+      subroutine nksic_get_pzfactor_potential(f, nspin, ispin, rhor, orb_rhor, &
+                                      pink, taukin, tauw, edens, upsilonkin, upsilonw, vsic, alpha, ibnd, kfact) 
+!---------------------------------------------------------------
+!
+! ... sum up the kinetic energy-density taukin ... this works both for summing
+!     the orbital-resolved kinetic energy densities, and for the Weizsacker kinetic
+!     energy density (involving the total density).
+!
+      use kinds,                only : dp
+      use cell_base,            only : tpiba2,omega
+      use grid_dimensions,      only : nnrx, nr1, nr2, nr3
+      use gvecp,                only : ngm
+      use recvecs_indexes,      only : np, nm
+      use cp_interfaces,        only : fwfft, invfft, fillgrad
+      use fft_base,             only : dfftp
+      use funct,                only : dft_is_gradient
+      use mp,                   only : mp_sum
+      use mp_global,            only : intra_image_comm
+      use control_flags,        only : gamma_only, do_wf_cmplx
+      !
+      implicit none
+      !
+      integer,     intent(in)  :: ispin, ibnd, nspin
+      real(dp),    intent(in)  :: kfact, f, orb_rhor(nnrx), taukin(nnrx,nspin), tauw(nnrx,nspin), edens(nnrx,nspin), rhor(nnrx,nspin)
+      real(dp), intent(inout) :: upsilonkin(nnrx,3,nspin), upsilonw(nnrx,3,nspin)
+      real(dp), intent(in)    :: alpha
+      real(dp), intent(inout) :: pink
+      real(dp), intent(out)   :: vsic(nnrx)
+      !
+      INTEGER :: ir,j
+      LOGICAL :: lgam
+      real(dp) :: fact, temp, tempw, dexc_dummy(3,3)
+      complex(dp), allocatable :: rhog_dummy(:,:)
+      real(dp), allocatable :: upsilonh(:,:,:), vsicaux(:,:)
+      real(dp), parameter :: epsi=1.d-9
+      !
+      lgam=gamma_only.and..not.do_wf_cmplx
+      fact=omega/DBLE(nr1*nr2*nr3)
+      !
+      allocate(upsilonh(nnrx,3,nspin))
+      allocate(vsicaux(nnrx,nspin))
+      allocate(rhog_dummy(1,1))
+      !
+      upsilonh=0.d0
+      !
+      vsicaux=0.d0
+      !
+      call nksic_get_upsilon_pz( f, nspin, ispin, orb_rhor, &
+                                      upsilonkin, ibnd)
+      if(ibnd==1) THEN !compute also upsilonw
+         !
+         call nksic_get_upsilon_pz( 1.d0, nspin, ispin, rhor, &
+                                      upsilonw, ibnd)
+         !
+      ENDIF                                      
+      !
+      upsilonh=0.d0
+      !
+      vsicaux(:,ispin)=vsicaux(:,ispin)-alpha*pink/f
+      !
+      do ir=1,nnrx
+         !
+         temp=0.d0
+         tempw=0.d0
+         !
+         do j=1,3
+            !
+            temp=temp+upsilonkin(ir,j,ispin)**2.
+            tempw=tempw+upsilonw(ir,j,ispin)**2.
+            !
+         enddo
+         !
+         IF(tauw(ir,ispin).gt.epsi) THEN
+            !
+            vsicaux(ir,ispin) = vsicaux(ir,ispin)+pink/(f)*(tauw(ir,ispin)/taukin(ir,ispin))**kfact
+            !
+            vsicaux(ir,ispin) = vsicaux(ir,ispin)+kfact*edens(ir,ispin)*(tauw(ir,ispin)/taukin(ir,ispin))**kfact/2.*(temp/(taukin(ir,ispin))-tempw/tauw(ir,ispin))
+            !
+            do j=1,3
+               !
+               upsilonh(ir,j,ispin) = upsilonh(ir,j,ispin) + kfact*edens(ir,ispin)*(tauw(ir,ispin)/taukin(ir,ispin))**kfact/2.*(upsilonkin(ir,j,ispin)/(taukin(ir,ispin))-upsilonw(ir,j,ispin)/tauw(ir,ispin))
+               !
+            enddo
+            !
+         ENDIF
+         !
+      enddo
+      !
+      ! Now we need to use fft's to add the gradient part to vsic... check the sign of this expression
+      !
+      call gradh( nspin, upsilonh, rhog_dummy, vsicaux, dexc_dummy, lgam )
+      !
+      do ir=1,nnrx
+         !
+         vsic(ir) = vsic(ir) - vsicaux(ir,ispin)
+         !
+      enddo
+      !
+      ! Now rescale pink with scaling factor
+      !
+      pink=pink*alpha
+      !
+      deallocate(upsilonh, vsicaux, rhog_dummy)
+      !
+      end subroutine nksic_get_pzfactor_potential
+      
+!---------------------------------------------------------------
+      subroutine nksic_get_taukin_pz( f, nspin, ispin, orb_rhor, &
+                                      taukin, ibnd) 
+!---------------------------------------------------------------
+!
+! ... sum up the kinetic energy-density taukin ... this works both for summing
+!     the orbital-resolved kinetic energy densities, and for the Weizsacker kinetic
+!     energy density (involving the total density).
+!
+      use kinds,                only : dp
+      use nksic,                only : add_up_taukin
+      use grid_dimensions,      only : nnrx, nr1, nr2, nr3
+      use gvecp,                only : ngm
+      use recvecs_indexes,      only : np, nm
+      use cp_interfaces,        only : fwfft, invfft, fillgrad
+      use fft_base,             only : dfftp
+      use funct,                only : dft_is_gradient
+      use control_flags,        only : gamma_only, do_wf_cmplx
+      !
+      implicit none
+      !
+      integer,     intent(in)  :: ispin, ibnd, nspin
+      real(dp),    intent(in)  :: f, orb_rhor(nnrx)
+      real(dp), intent(inout) :: taukin(nnrx,nspin)
+      !
+      INTEGER :: ig
+      complex(dp), allocatable :: rhogaux(:,:)
+      real(dp), allocatable :: grhoraux(:,:,:)
+      complex(dp), allocatable :: vhaux(:)
+      LOGICAL :: lgam
+      !
+      lgam=gamma_only.and..not.do_wf_cmplx
+      !
+      allocate(rhogaux(ngm,2))
+      allocate(vhaux(nnrx))
+      !
+      IF(ibnd==1) THEN !first band: initialize taukin for this spin_loop
+         !
+         taukin(1:nnrx,ispin)=0.d0
+         !
+      ENDIF
+      !
+      rhogaux=0.0_dp
+      !
+      vhaux(:) = orb_rhor(:)
+      !
+      call fwfft('Dense',vhaux,dfftp )
+      !
+      do ig=1,ngm
+          rhogaux(ig,ispin) = vhaux( np(ig) )
+      enddo
+      !
+      allocate(grhoraux(nnrx,3,2))
+      !
+      grhoraux=0.0_dp
+      !
+      call fillgrad( 1, rhogaux(:,ispin:ispin), grhoraux(:,:,ispin:ispin), lgam )
+      !
+      call add_up_taukin(nnrx, taukin(1:nnrx,ispin), grhoraux(1:nnrx,1:3,ispin), orb_rhor, f)
+      !
+      deallocate(vhaux,rhogaux,grhoraux)
+      !
+      end subroutine nksic_get_taukin_pz
+
+!---------------------------------------------------------------
+      subroutine nksic_get_upsilon_pz( f, nspin, ispin, orb_rhor, &
+                                      upsilon, ibnd) 
+!---------------------------------------------------------------
+!
+! ... sum up the kinetic energy-density taukin ... this works both for summing
+!     the orbital-resolved kinetic energy densities, and for the Weizsacker kinetic
+!     energy density (involving the total density).
+!
+      use kinds,                only : dp
+      use nksic,                only : add_up_taukin
+      use grid_dimensions,      only : nnrx, nr1, nr2, nr3
+      use gvecp,                only : ngm
+      use recvecs_indexes,      only : np, nm
+      use cp_interfaces,        only : fwfft, invfft, fillgrad
+      use fft_base,             only : dfftp
+      use funct,                only : dft_is_gradient
+      use control_flags,        only : gamma_only, do_wf_cmplx
+      !
+      implicit none
+      !
+      integer,     intent(in)  :: ispin, ibnd, nspin
+      real(dp),    intent(in)  :: f, orb_rhor(nnrx)
+      real(dp), intent(out) :: upsilon(nnrx,3,nspin)
+      !
+      INTEGER :: ig,ir,j
+      complex(dp), allocatable :: rhogaux(:,:)
+      real(dp), allocatable :: grhoraux(:,:,:)
+      complex(dp), allocatable :: vhaux(:)
+      real(dp), parameter :: epsi=1.d-9
+      LOGICAL :: lgam
+      !
+      lgam=gamma_only.and..not.do_wf_cmplx
+      !
+      allocate(rhogaux(ngm,2))
+      allocate(vhaux(nnrx))
+      !
+      rhogaux=0.0_dp
+      !
+      vhaux(:) = orb_rhor(:)
+      !
+      call fwfft('Dense',vhaux,dfftp )
+      !
+      do ig=1,ngm
+          rhogaux(ig,ispin) = vhaux( np(ig) )
+      enddo
+      !
+      allocate(grhoraux(nnrx,3,2))
+      !
+      grhoraux=0.0_dp
+      !
+      call fillgrad( 1, rhogaux(:,ispin:ispin), grhoraux(:,:,ispin:ispin), lgam )
+      !
+      upsilon(1:nnrx,1:3,ispin)=0.d0
+      !
+      do ir=1,nnrx
+         !
+         IF(orb_rhor(ir).gt.epsi) THEN
+            !
+            do j=1,3
+               !
+               upsilon(ir,j,ispin) = grhoraux(ir,j,ispin)/(2.*orb_rhor(ir))
+               !
+            enddo
+            !
+         ENDIF
+         !
+      enddo
+      !
+      deallocate(vhaux,rhogaux,grhoraux)
+      !
+      end subroutine nksic_get_upsilon_pz
+      
+!---------------------------------------------------------------
       subroutine nksic_correction_pz( f, ispin, orb_rhor, &
-                                      vsic, pink, ibnd, shart) 
+                                      vsic, pink, pzalpha, ibnd, shart) 
 !---------------------------------------------------------------
 !
 ! ... calculate the non-Koopmans potential from the orbital density
@@ -2072,7 +2476,8 @@ end subroutine nksic_newd
       use kinds,                only : dp
       use constants,            only : e2, fpi, hartree_si, electronvolt_si
       use cell_base,            only : tpiba2,omega
-      use nksic,                only : etxc => etxc_sic, vxc => vxc_sic, nknmax, nkscalfact
+      use nksic,                only : etxc => etxc_sic, vxc => vxc_sic, nknmax, &
+                                      nkscalfact, do_pz_renorm
       use grid_dimensions,      only : nnrx, nr1, nr2, nr3
       use gvecp,                only : ngm
       use recvecs_indexes,      only : np, nm
@@ -2087,7 +2492,7 @@ end subroutine nksic_newd
       !
       implicit none
       integer,     intent(in)  :: ispin, ibnd
-      real(dp),    intent(in)  :: f, orb_rhor(nnrx)
+      real(dp),    intent(in)  :: f, orb_rhor(nnrx), pzalpha
       real(dp),    intent(out) :: vsic(nnrx)
       real(dp),    intent(out) :: pink, shart
       !
@@ -2119,7 +2524,6 @@ end subroutine nksic_newd
       !
       CALL start_clock( 'nk_corr' )
       CALL start_clock( 'nk_corr_h' )
-
       !
       fact=omega/DBLE(nr1*nr2*nr3)
       !
@@ -2131,7 +2535,6 @@ end subroutine nksic_newd
       !
       !rhoelef=0.0d0
       !rhoelef(:,ispin) = f * orb_rhor(:)
-
       !
       ! Compute self-hartree contributions
       !
@@ -2207,14 +2610,18 @@ end subroutine nksic_newd
       !
       ! Compute xc-contributions
       !
-      if ( dft_is_gradient() ) then
+      if ( dft_is_gradient()) then
+          !
           allocate(grhoraux(nnrx,3,2))
+          !
           allocate(haux(nnrx,2,2))
           !
           ! note: rhogaux contains the occupation
           !
           grhoraux=0.0_dp
-          call fillgrad( 1, rhogaux(:,ispin:ispin), grhoraux(:,:,ispin:ispin), lgam ) 
+          call fillgrad( 1, rhogaux(:,ispin:ispin), grhoraux(:,:,ispin:ispin), lgam )
+          !
+          !
       else
           allocate(grhoraux(1,1,1))
           allocate(haux(1,1,1))
@@ -2259,8 +2666,17 @@ end subroutine nksic_newd
       !   rescale contributions with the nkscalfact parameter
       !   take care of non-variational formulations
       !
-      pink = pink * nkscalfact
-      vsic = vsic * nkscalfact
+      IF(.not.do_pz_renorm) THEN
+         !
+         pink = pink * nkscalfact
+         vsic = vsic * nkscalfact
+         !
+      ELSE
+         !
+!          pink = pink * pzalpha
+!          vsic = vsic * pzalpha
+         !
+      ENDIF
       !
 !$$
 

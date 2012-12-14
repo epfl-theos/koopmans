@@ -4594,13 +4594,15 @@ END FUNCTION
       !
       ! this routine is called anyway, even if do_nk=F
       !
-      use nksic,            ONLY : do_orbdep, do_nk, do_nkipz, do_nkpz, do_pz, do_nki, &
+      use nksic,            ONLY : do_orbdep, do_nk, do_nkipz, do_nkpz, do_pz, &
+                                   do_nki, do_pz_renorm, &
                                    do_wref, do_wxd, fref, rhobarfact, &
                                    vanishing_rho_w, &
                                    nknmax, do_spinsym, f_cutoff, &
                                    nkscalfact,  nksic_memusage, allocate_nksic
 !$$
-      use nksic,            only : do_innerloop, do_innerloop_cg, innerloop_dd_nstep, &
+      use nksic,            only : do_innerloop, do_innerloop_cg, &
+                                   innerloop_dd_nstep, &
                                    innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax, &
                                    innerloop_cg_ratio, innerloop_init_n
 !$$
@@ -4618,7 +4620,8 @@ END FUNCTION
                                    do_spinsym_ => do_spinsym, &
                                    nkscalfact_ => nkscalfact, &
                                    nknmax_ => nknmax, &
-                                   f_cutoff_ => f_cutoff
+                                   f_cutoff_ => f_cutoff, &
+                                   do_orbdep_=> do_orbdep
 !$$
       use input_parameters, only : do_innerloop_ => do_innerloop, &
                                    do_innerloop_cg_ => do_innerloop_cg, &
@@ -4627,7 +4630,8 @@ END FUNCTION
                                    innerloop_cg_nreset_ => innerloop_cg_nreset, &
                                    innerloop_nmax_ => innerloop_nmax, &
                                    innerloop_init_n_ => innerloop_init_n, &
-                                   innerloop_cg_ratio_ => innerloop_cg_ratio
+                                   innerloop_cg_ratio_ => innerloop_cg_ratio, &
+                                   do_pz_renorm_=>do_pz_renorm
 !$$
       USE io_global,        ONLY : meta_ionode, stdout
       use electrons_base,   ONLY : nspin, nbspx
@@ -4654,6 +4658,7 @@ END FUNCTION
       !
       do_wxd  = do_wxd_
       do_wref = do_wref_
+      do_pz_renorm=do_pz_renorm_
       !
       fref    = fref_
 !$$
@@ -4664,7 +4669,7 @@ END FUNCTION
       innerloop_cg_nreset = innerloop_cg_nreset_
       innerloop_nmax      = innerloop_nmax_
       innerloop_init_n    = innerloop_init_n_
-      innerloop_cg_ratio      = innerloop_cg_ratio_
+      innerloop_cg_ratio  = innerloop_cg_ratio_
 !$$
       !
       ! use the collective var which_orbdep
@@ -4700,8 +4705,20 @@ END FUNCTION
          call errore(subname,"invalid which_orbdep = "//TRIM(which_orbdep_),10)
       END SELECT
       !
-      do_orbdep = do_nk .or. do_pz .or. do_nki .or. do_nkpz .or. do_nkipz
+!       do_orbdep = do_nk .or. do_pz .or. do_nki .or. do_nkpz .or. do_nkipz
+      do_orbdep= do_orbdep_
 
+      !
+      found = .FALSE.
+      !
+      IF(do_orbdep) THEN
+         !
+         if((do_nk.or.do_pz.or.do_nki.or.do_nkpz.or.do_nkipz)) found=.true.
+         !
+         if (.not. found ) CALL errore(subname,'no compatible orbital-dependent scheme specified',1)
+         !
+      ENDIF
+      !
       !
       ! check only one orbital dependent scheme is used
       !
@@ -4714,7 +4731,6 @@ END FUNCTION
       if ( do_nkipz .and. (do_nk .or. do_nki .or. do_pz .or. do_nkpz  ) ) found=.TRUE.
       !
       if ( found ) CALL errore(subname,'more than one orb-dependent schme used',1)
-
       !
       do_spinsym    = do_spinsym_
       vanishing_rho_w = vanishing_rho_w_

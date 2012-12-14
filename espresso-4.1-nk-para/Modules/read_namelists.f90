@@ -93,9 +93,6 @@ MODULE read_namelists_module
        max_seconds   = 1.E+7_DP
        ekin_conv_thr = 1.E-6_DP
        etot_conv_thr = 1.E-4_DP
-!$$
-       esic_conv_thr = 1.E-5_DP
-!$$
        forc_conv_thr = 1.E-3_DP
        disk_io  = 'default'
        dipfield = .FALSE.
@@ -218,8 +215,39 @@ MODULE read_namelists_module
        london_s6   = 0.75_DP
        london_rcut = 200.00_DP
        !
+       !
+       do_efield = .false.
+       ampfield = 0.0_dp
+       !
+       draw_pot = .false. !added:linh draw vsic potentials
+       pot_number  = 1    !added:linh draw vsic potentials 
+       !
+       do_orbdep=.false.
+       !
 ! DCC
        do_ee = .false.      ! main switch of EE (electrostatic embedding)
+       !
+       RETURN
+       !
+     END SUBROUTINE
+     !
+     !=----------------------------------------------------------------------=!
+     !
+     !  Variables initialization for Namelist NKSIC
+     !
+     !=----------------------------------------------------------------------=!
+     !
+     !-----------------------------------------------------------------------
+     SUBROUTINE nksic_defaults( prog )
+       !-----------------------------------------------------------------------
+       !
+       IMPLICIT NONE
+       !
+       CHARACTER(LEN=2) :: prog   ! ... specify the calling program
+       !
+!$$
+       esic_conv_thr = 1.E-5_DP
+!$$
        do_nk = .false.      ! main switch of NK (non-Koopmans, fref)
        do_pz = .false.      ! main switch of PZ SIC
        do_nki = .false.     ! main switch of NKI (non-Koopmans, integral ref)
@@ -243,20 +271,15 @@ MODULE read_namelists_module
        do_wref = .true.     ! include reference variational terms
        do_spinsym = .false. ! whether to apply spin up-down symmmetry 
        do_wf_cmplx = .false.!added:giovanni
+       do_pz_renorm = .false.
        fref = 0.5_DP
        rhobarfact = 1.0_DP
        vanishing_rho_w = 1.0e-12_DP
        which_orbdep = " "
        f_cutoff = 0.1_DP
        !
-       do_efield = .false.
-       ampfield = 0.0_dp
-       !
-       draw_pot = .false. !added:linh draw vsic potentials
-       pot_number  = 1    !added:linh draw vsic potentials 
-       !
        RETURN
-       !
+       
      END SUBROUTINE
 ! DCC
      !=----------------------------------------------------------------------=!
@@ -745,9 +768,6 @@ MODULE read_namelists_module
        CALL mp_bcast( max_seconds,   ionode_id )
        CALL mp_bcast( ekin_conv_thr, ionode_id )
        CALL mp_bcast( etot_conv_thr, ionode_id )
-!$$
-       CALL mp_bcast( esic_conv_thr, ionode_id )
-!$$
        CALL mp_bcast( forc_conv_thr, ionode_id )
        CALL mp_bcast( pseudo_dir,    ionode_id )
        CALL mp_bcast( refg,          ionode_id )
@@ -857,11 +877,36 @@ MODULE read_namelists_module
        CALL mp_bcast( assume_isolated, ionode_id )
        CALL mp_bcast( spline_ps,       ionode_id )
        !
+       CALL mp_bcast( do_efield,                  ionode_id )
+       CALL mp_bcast( ampfield,                   ionode_id )
+       !
        CALL mp_bcast( london,          ionode_id )
        CALL mp_bcast( london_s6,       ionode_id )
        CALL mp_bcast( london_rcut,     ionode_id )
        !
        CALL mp_bcast( do_ee,                      ionode_id )
+       CALL mp_bcast( do_orbdep,                  ionode_id )
+       !
+       RETURN
+       !
+     END SUBROUTINE
+     !
+     !=----------------------------------------------------------------------=!
+     !
+     !  Broadcast variables values for Namelist NKSIC
+     !
+     !=----------------------------------------------------------------------=!
+     !
+     !-----------------------------------------------------------------------
+     SUBROUTINE nksic_bcast()
+     !-----------------------------------------------------------------------
+       !
+       USE io_global, ONLY : ionode_id
+       USE mp,        ONLY : mp_bcast
+       !
+!$$
+       CALL mp_bcast( esic_conv_thr, ionode_id )
+!$$
        CALL mp_bcast( which_orbdep,               ionode_id )
        CALL mp_bcast( do_nk,                      ionode_id )
        CALL mp_bcast( do_pz,                      ionode_id )
@@ -891,13 +936,12 @@ MODULE read_namelists_module
        CALL mp_bcast( f_cutoff,                   ionode_id )
        CALL mp_bcast( do_spinsym,                 ionode_id )
        CALL mp_bcast( rhobarfact,                 ionode_id )
-       CALL mp_bcast( do_efield,                  ionode_id )
-       CALL mp_bcast( ampfield,                   ionode_id )
+       CALL mp_bcast( do_pz_renorm,               ionode_id )
        CALL mp_bcast( do_wf_cmplx,                ionode_id )!added:giovanni
-       !
-       RETURN
-       !
-     END SUBROUTINE
+     
+      RETURN
+      !
+     END SUBROUTINE nksic_bcast 
      !=----------------------------------------------------------------------=!
      !
      !  Broadcast variables values for Namelist EE
@@ -1356,10 +1400,6 @@ MODULE read_namelists_module
 
        IF( etot_conv_thr < 0.0_DP ) &
           CALL errore( sub_name,' etot_conv_thr out of range ', 1 )
-!$$
-       IF( esic_conv_thr < 0.0_DP ) &
-          CALL errore( sub_name,' esic_conv_thr out of range ', 1 )
-!$$
        IF( forc_conv_thr < 0.0_DP ) &
           CALL errore( sub_name,' forc_conv_thr out of range ', 1 )
        IF( prog == 'CP' ) THEN
@@ -1470,7 +1510,7 @@ MODULE read_namelists_module
              CALL errore( sub_name ,' cg not allowed with noncolin ', 1 )
           !
        END IF
-       !
+              !
        ! ... control on SIC variables
        !
        IF ( sic /= 'none' ) THEN
@@ -1503,8 +1543,35 @@ MODULE read_namelists_module
           !
        ENDIF
        !
+       RETURN
+       !
+     END SUBROUTINE
+     !
+     !=----------------------------------------------------------------------=!
+     !
+     !  Check input values for Namelist NKSIC
+     !
+     !=----------------------------------------------------------------------=!
+     !
+     !-----------------------------------------------------------------------
+     SUBROUTINE nksic_checkin( prog )
+       !-----------------------------------------------------------------------
+       !
+       IMPLICIT NONE
+       !
+       CHARACTER(LEN=2)  :: prog   ! ... specify the calling program
+       CHARACTER(LEN=20) :: sub_name = ' system_checkin '
+       INTEGER           :: i
+       LOGICAL           :: allowed = .FALSE.   
+     
+
+       !
        ! ... control on NKSIC (and orbital dependent) variables
        !
+!$$
+       IF( esic_conv_thr < 0.0_DP ) &
+          CALL errore( sub_name,' esic_conv_thr out of range ', 1 )
+!$$
        IF ( LEN_TRIM( which_orbdep ) > 0 ) THEN
            !
            DO i = 1, SIZE( which_orbdep_allowed )
@@ -1515,19 +1582,19 @@ MODULE read_namelists_module
                           & TRIM(which_orbdep)//''' not allowed ',1)
 
            IF(do_wf_cmplx) THEN
-	      DO i = 1, SIZE( which_orbdep_allowed_cmplx )
-		  IF( TRIM(which_orbdep) == which_orbdep_allowed_cmplx(i) ) allowed = .TRUE.
-	      END DO
-	      IF( .NOT. allowed ) &
-		  CALL errore( sub_name, ' which_orbdep '''// &
-			      & TRIM(which_orbdep)//''' not allowed with complex wavefunctions',1)
+              DO i = 1, SIZE( which_orbdep_allowed_cmplx )
+                  IF( TRIM(which_orbdep) == which_orbdep_allowed_cmplx(i) ) allowed = .TRUE.
+              END DO
+              IF( .NOT. allowed ) &
+                  CALL errore( sub_name, ' which_orbdep '''// &
+                              & TRIM(which_orbdep)//''' not allowed with complex wavefunctions',1)
             ENDIF
            !
-       ENDIF
-       !
-       RETURN
-       !
-     END SUBROUTINE
+      ENDIF
+      !
+     RETURN
+     
+     END SUBROUTINE nksic_checkin
      !
      !=----------------------------------------------------------------------=!
      !
@@ -2003,6 +2070,7 @@ MODULE read_namelists_module
        !
        CALL control_defaults( prog )
        CALL system_defaults( prog )
+       CALL nksic_defaults( prog )
        CALL electrons_defaults( prog )
        CALL ions_defaults( prog )
        CALL cell_defaults( prog )
@@ -2048,6 +2116,26 @@ MODULE read_namelists_module
        CALL system_checkin( prog )
        !
        CALL allocate_input_ions( ntyp, nat )
+       !
+       ! ... NKSIC namelist
+       !
+       IF(do_orbdep) THEN
+          !
+          ios = 0
+          IF( ionode ) THEN
+             READ( 5, nksic, iostat = ios )
+          END IF
+          CALL mp_bcast( ios, ionode_id )
+          IF( ios /= 0 ) THEN
+             CALL errore( ' read_namelists ', &
+                        & ' reading namelist nksic ', ABS(ios) )
+          END IF
+          !
+          CALL nksic_bcast( )       
+          !
+          CALL nksic_checkin( prog )
+          !
+       ENDIF
        !
        ! ... ELECTRONS namelist
        !

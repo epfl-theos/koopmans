@@ -54,6 +54,12 @@ MODULE input_parameters
 !       .......
 !       sistem_parameter_Lastone
 !     /
+!     &NKSIC
+!       sistem_parameter_1,
+!       sistem_parameter_2,
+!       .......
+!       sistem_parameter_Lastone
+!     /
 !     &ELECTRONS
 !       electrons_parameter_1,
 !       electrons_parameter_2,
@@ -184,15 +190,7 @@ MODULE input_parameters
           ! this criterion is met when "etot(n+1)-etot(n) < etot_conv_thr", 
           ! where "n" is the step index, "etot" the DFT energy
           ! convergence is achieved when all criteria are met
-
-!$$
-        REAL(DP) :: esic_conv_thr = 1.0E-5_DP
-          ! convergence criterion for self-interaction correction minimization
-          ! this criterion is met when "esic(n+1)-esic(n) < esic_conv_thr",
-          ! where "n" is the step index, "esic" the SIC energy
-          ! convergence is achieved when all criteria are met
-!$$
-
+          
         REAL(DP) :: forc_conv_thr = 1.0E-3_DP
           ! convergence criterion for ion minimization
           ! this criterion is met when "MAXVAL(fion) < forc_conv_thr",
@@ -258,9 +256,6 @@ MODULE input_parameters
         NAMELIST / control / title, calculation, verbosity, restart_mode, &
           nstep, iprint, isave, tstress, tprnfor, dt, ndr, ndw, outdir,   &
           prefix, wfcdir, max_seconds, ekin_conv_thr, etot_conv_thr,      &
-!$$
-          esic_conv_thr,                                                  &
-!$$
           forc_conv_thr, pseudo_dir, disk_io, tefield, dipfield, lberry,  &
           gdir, nppstr, wf_collect, printwfc, lelfield, nberrycyc, refg,  &
           tefield2, saverho, tabps, lkpoint_dir, use_wannier
@@ -438,12 +433,50 @@ MODULE input_parameters
 
         LOGICAL :: spline_ps = .false.
           ! use spline interpolation for pseudopotential
-
+        LOGICAL :: do_orbdep  = .false.
 ! DCC
         ! add electrostatic embedding part (details in the EE namelist)
         LOGICAL :: do_ee  = .false.
-        
+                ! add efield parameters
+        LOGICAL     :: do_efield  = .false.
+        REAL ( DP ) :: ampfield(3)  = 0.0_DP
+!
+        LOGICAL   :: london = .false.
+          ! if .true. compute semi-empirical dispersion term ( C6_ij / R_ij**6 ) 
+          ! other DFT-D parameters ( see PW/mm_dispersion.f90 )
+        REAL ( DP ) :: london_s6   =   0.75_DP , & ! default global scaling parameter for PBE
+                       london_rcut = 200.00_DP
+!
+        NAMELIST / system / ibrav, celldm, a, b, c, cosab, cosac, cosbc, nat, &
+             ntyp, nbnd, nelec, ecutwfc, ecutrho, nr1, nr2, nr3, nr1s, nr2s,  &
+             nr3s, nr1b, nr2b, nr3b, nosym, nosym_evc, noinv,                 &
+             force_symmorphic, starting_magnetization,                        &
+             occupations, degauss, nelup, neldw, nspin, ecfixed,              &
+             qcutz, q2sigma, lda_plus_U, Hubbard_U, Hubbard_alpha,            &
+             edir, emaxpos, eopreg, eamp, smearing, starting_ns_eigenvalue,   &
+             U_projection_type, input_dft, la2F, assume_isolated,             &
+#if defined (EXX)
+             x_gamma_extrapolation, nqx1, nqx2, nqx3,                         &
+#endif
+             noncolin, lspinorb, lambda, angle1, angle2, report,              &
+             constrained_magnetization, B_field, fixed_magnetization,         &
+             sic, sic_epsilon, force_pairing, sic_alpha,                      &
+             tot_charge, multiplicity, tot_magnetization,                     &
+             spline_ps, london, london_s6, london_rcut, do_orbdep, do_ee
+!
+!=----------------------------------------------------------------------------=!
+!  NKSIC Namelist Input Parameters
+!=----------------------------------------------------------------------------=!
+!        
         ! add non-Koopmans self-interaction correction parameters
+        
+!$$
+        REAL(DP) :: esic_conv_thr = 1.0E-5_DP
+          ! convergence criterion for self-interaction correction minimization
+          ! this criterion is met when "esic(n+1)-esic(n) < esic_conv_thr",
+          ! where "n" is the step index, "esic" the SIC energy
+          ! convergence is achieved when all criteria are met
+!$$
         LOGICAL :: do_nk  = .false.
         LOGICAL :: do_pz  = .false.
         LOGICAL :: do_nki  = .false.
@@ -452,6 +485,7 @@ MODULE input_parameters
         LOGICAL :: do_wref = .true.
         LOGICAL :: do_wxd = .true.
         LOGICAL :: do_hf  = .false.
+        LOGICAL :: do_pz_renorm  = .false.
         !
         LOGICAL :: do_innerloop  = .false.
         LOGICAL :: do_innerloop_cg  = .false.
@@ -490,41 +524,18 @@ MODULE input_parameters
         REAL ( DP ) :: hfscalfact = 1.0_DP
         REAL ( DP ) :: vanishing_rho_w = 1.0e-7_DP
         REAL ( DP ) :: f_cutoff = 0.1_DP
-        ! add efield parameters
-        LOGICAL     :: do_efield  = .false.
-        REAL ( DP ) :: ampfield(3)  = 0.0_DP
-!
-        LOGICAL   :: london = .false.
-          ! if .true. compute semi-empirical dispersion term ( C6_ij / R_ij**6 ) 
-          ! other DFT-D parameters ( see PW/mm_dispersion.f90 )
-        REAL ( DP ) :: london_s6   =   0.75_DP , & ! default global scaling parameter for PBE
-                       london_rcut = 200.00_DP
-!
-        NAMELIST / system / ibrav, celldm, a, b, c, cosab, cosac, cosbc, nat, &
-             ntyp, nbnd, nelec, ecutwfc, ecutrho, nr1, nr2, nr3, nr1s, nr2s,  &
-             nr3s, nr1b, nr2b, nr3b, nosym, nosym_evc, noinv,                 &
-             force_symmorphic, starting_magnetization,                        &
-             occupations, degauss, nelup, neldw, nspin, ecfixed,              &
-             qcutz, q2sigma, lda_plus_U, Hubbard_U, Hubbard_alpha,            &
-             edir, emaxpos, eopreg, eamp, smearing, starting_ns_eigenvalue,   &
-             U_projection_type, input_dft, la2F, assume_isolated,             &
-#if defined (EXX)
-             x_gamma_extrapolation, nqx1, nqx2, nqx3,                         &
-#endif
-             noncolin, lspinorb, lambda, angle1, angle2, report,              &
-             constrained_magnetization, B_field, fixed_magnetization,         &
-             sic, sic_epsilon, force_pairing, sic_alpha,                      &
-             tot_charge, multiplicity, tot_magnetization,                     &
-             spline_ps, london, london_s6, london_rcut,                       &
+        !                    
 !=-----BEGIN nksic input variables
-             draw_pot, pot_number,                                            & !added:linh draw vsic potentials 
-             do_ee, do_nk, do_pz, do_nki, do_nkpz, do_nkipz, do_hf,           &
+        NAMELIST / nksic /  draw_pot, pot_number,                             & !added:linh draw vsic potentials 
+             do_nk, do_pz, do_nki, do_nkpz, do_nkipz, do_hf,           &
              do_wref, do_wxd, fref, rhobarfact, ampfield, do_efield,          &
              do_hf, nknmax, do_spinsym, f_cutoff,                             &
              nkscalfact, hfscalfact, vanishing_rho_w, which_orbdep,           &
              do_innerloop, do_innerloop_cg, innerloop_dd_nstep,               &
              innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax,           &
-             do_wf_cmplx, innerloop_init_n, innerloop_cg_ratio !added:giovanni do_wf_cmplx
+             do_wf_cmplx, innerloop_init_n, innerloop_cg_ratio, do_pz_renorm, &
+             esic_conv_thr !added:giovanni do_wf_cmplx
+
 !=----END nksic input variables
 !
 !=----------------------------------------------------------------------------=!

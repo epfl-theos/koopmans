@@ -2684,7 +2684,7 @@ write(6,*) "nlfl_twin"
          !
          if(nupdwn(iss)>0.and. nupdwn_emp(iss)>0) &
          CALL gram_empty(.true. , eigr, betae, bec_emp, bec, nhsa, &
-                             c0_emp( :, in_emp:in_emp-1+nupdwn_emp(iss)), c0( :, in:in-1+nupdwn(iss) ), ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, issw)
+                             c0_emp( :, in_emp:), c0( :, issw: ), ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, issw)
          !
       enddo
       !write(6,*) "checkbec2", bec_emp%cvec, nsp, n_emps
@@ -2774,7 +2774,6 @@ write(6,*) "nlfl_twin"
 !           write(6,*) "checkbounds", ubound(rhos_emp)
 
           !
-          write(6,*) "femppppppppp", f_emp, n_empx, n_emps
           call rhoofr_cp_ortho_new &
           ( n_empx, n_emps, nudx_emp, f_emp, ispin_emp, iupdwn_emp, &
           nupdwn_emp, nspin, nfi, c0_emp, irb, eigrb, bec_emp, &
@@ -3039,7 +3038,7 @@ write(6,*) "nlfl_twin"
            issw   = iupdwn( iss )
            !
            CALL gram_empty(.true. , eigr, betae, becm_emp, bec, nhsa, &
-                             hpsi( :, in_emp:in_emp-1+nupdwn_emp(iss) ), c0( :, in:in-1+nupdwn(iss) ), &
+                             hpsi( :, in_emp: ), c0( :, issw: ), &
                              ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, issw)
            !
         enddo
@@ -3079,7 +3078,7 @@ write(6,*) "nlfl_twin"
            issw   = iupdwn( iss )
            !
            CALL gram_empty(.true. , eigr, betae, becm_emp, bec, nhsa, &
-                             hpsi( :, in_emp:in_emp-1+nupdwn_emp(iss) ), c0( :, in:in+nupdwn(iss) -1), &
+                             hpsi( :, in_emp: ), c0( :, issw: ), &
                              ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, issw)
            !
         enddo
@@ -3124,7 +3123,7 @@ write(6,*) "nlfl_twin"
            issw   = iupdwn( iss )
            !
            CALL gram_empty(.true. , eigr, betae, bec0_emp, bec, nhsa, &
-                             gi( :, in_emp:in_emp+nupdwn_emp(iss)-1 ), c0( :, in:in+nupdwn(iss) -1), &
+                             gi( :, in_emp: ), c0( :, issw:), &
                              ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, issw)
            !
         enddo
@@ -3813,7 +3812,7 @@ write(6,*) "nlfl_twin"
         issw   = iupdwn( iss )
         !
         CALL gram_empty(.true. , eigr, betae, becm_emp, bec, nhsa, &
-                          gi( :, in_emp:in_emp+nupdwn_emp(iss)-1 ), c0( :, in:in-1+nupdwn(iss) ), &
+                          gi( :, in_emp: ), c0( :, issw: ), &
                           ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, issw)
         
      enddo

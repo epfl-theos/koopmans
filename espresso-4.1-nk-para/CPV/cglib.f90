@@ -1628,6 +1628,159 @@ subroutine pc2(a,beca,b,becb, lgam)
       call stop_clock('pc3')
       return
       end subroutine pc3nc_new
+
+    subroutine pc3nc_both(a, b, n_emp, c0, n, ispin_emp, ispin, lgam)
+
+! this function applies the modified Pc operator which is
+! equivalent to Lowdin orthonormalization of the revised wavefunctions.
+! currently implemented only for norm-conserving pseudopotentials. 
+
+!    this subroutine applies the modified Pc operator
+!    a input :unperturbed wavefunctions
+!    b input :first order wavefunctions
+!    b output:b_i =b_i - |a_j>(<a_j|b_i>+<b_j|a_i>)/2
+
+      use kinds
+      use io_global, only: stdout
+      use mp_global, only: intra_image_comm
+      use gvecw, only: ngw
+      use reciprocal_vectors, only: ng0 => gstart
+      use mp, only: mp_sum
+
+      implicit none
+
+      integer, intent(in) :: n_emp, ispin_emp(n_emp), n, ispin(n)
+      complex(dp) :: a(ngw,n_emp), b(ngw,n_emp), c0(ngw,n)
+      logical :: lgam
+      ! local variables
+      complex(DP) :: bold(ngw,n_emp)
+      integer i, j, ig, ispin_tot(n+n_emp)
+      complex(DP) :: sca_c
+      real(DP), allocatable:: scar(:)
+      complex(DP), allocatable:: scar_c(:)
+      !
+      call start_clock('pc3')
+
+      allocate(scar_c(n_emp))
+      !
+      ispin_tot(1:n_emp) = ispin_emp(1:n_emp)
+      ispin_tot(n_emp+1:n_emp+n) = ispin(n)
+      !
+      bold(:,:)=b(:,:)
+      !
+      do j=1,n_emp+n
+         !
+         do i=1,n_emp
+            !
+            sca_c=CMPLX(0.0d0,0.d0)
+            !
+            if(ispin_tot(i) == ispin_tot(j)) then
+               !
+               if(lgam) then
+                  !
+                  if (ng0.eq.2) bold(1,i) = CMPLX(DBLE(bold(1,i)),0.0d0)
+                  !
+               endif
+               !
+               IF(j<=n_emp) THEN
+                  !
+                  do  ig=1,ngw
+                     !
+                     sca_c=sca_c+CONJG(a(ig,j))*bold(ig,i) !uncomment this for lowdin ortho
+                     sca_c=sca_c+(a(ig,i))*CONJG(bold(ig,j)) !remove the 2.d0 for lowdin ortho
+                     !
+                  enddo
+                  !
+               ELSE
+                  !
+                  do  ig=1,ngw
+                     !
+                     sca_c=sca_c+CONJG(c0(ig,j-n_emp))*bold(ig,i) !uncomment this for lowdin ortho
+!                      sca_c=sca_c+(a(ig,i))*CONJG(bold(ig,j)) !remove the 2.d0 for lowdin ortho
+                     !
+                  enddo
+                  !
+               ENDIF
+                !sca = sca*2.0d0  !2. for real weavefunctions
+                !$$ not necessary: sca = sca*2.0d0  !2. for real weavefunctions
+               IF(lgam) then
+                  !
+                  IF (ng0.eq.2) then
+                     !
+                     IF(j<=n_emp) THEN
+                        !
+                        sca_c = CMPLX(DBLE(sca_c),0.d0) - CMPLX(0.5d0*DBLE(CONJG(a(1,j))*(bold(1,i))+(a(1,i))*CONJG(bold(1,j))),0.d0) !use this one for lowdin ortho
+                        !
+                     ELSE
+                        !
+                        sca_c = CMPLX(DBLE(sca_c),0.d0) - CMPLX(0.5d0*DBLE(CONJG(c0(1,j-n_emp))*(bold(1,i))),0.d0) !use this one for lowdin ortho
+                        !
+                     ENDIF
+                     !
+                   !sca_c = CMPLX(DBLE(sca_c),0.d0) - CMPLX(DBLE((a(1,i))*CONJG(bold(1,j))),0.d0) !comment this one for lowdin ortho
+                  ELSE
+                     !
+                     sca_c = CMPLX(DBLE(sca_c), 0.d0)
+                     !
+                  ENDIF
+                 !
+               ELSE
+                  !
+                  sca_c=0.5d0*sca_c
+                  !
+               ENDIF
+               !
+               scar_c(i) = sca_c
+               !
+            ENDIF
+            !
+         ENDDO
+
+         call mp_sum( scar_c, intra_image_comm )
+
+         do i=1,n_emp
+            !
+            if(ispin_tot(i) == ispin_tot(j)) then
+            
+               sca_c = scar_c(i)
+               !
+               IF(j<=n_emp) THEN
+                  !
+                  do ig=1,ngw
+                     !
+                     b(ig,i)=b(ig,i)-sca_c*a(ig,j)
+                     !
+                  enddo
+                  !
+               ELSE
+                  !
+                  do ig=1,ngw
+                     !
+                     b(ig,i)=b(ig,i)-sca_c*c0(ig,j-n_emp)
+                     !
+                  enddo
+                  !
+               ENDIF
+               ! this to prevent numerical errors
+               IF(lgam) THEN
+                  !
+                  if (ng0.eq.2) b(1,i) = CMPLX(DBLE(b(1,i)),0.0d0)
+                  !
+               ENDIF
+               !
+            ENDIF
+            !
+         ENDDO
+         !
+      ENDDO
+      !
+      deallocate(scar_c)
+      !
+      call stop_clock('pc3')
+      !
+      return
+      !
+    end subroutine pc3nc_both
       
     subroutine pc4nc(a,b, lgam)
 

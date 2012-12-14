@@ -333,6 +333,7 @@ module nksic
   real(dp) :: fref
   real(dp) :: rhobarfact
   real(dp) :: nkscalfact
+  real(dp) :: kfact
   real(dp) :: vanishing_rho_w
   real(dp) :: f_cutoff
   !
@@ -343,7 +344,14 @@ module nksic
   real(dp),    allocatable :: fion_sic(:,:)
   real(dp),    allocatable :: deeq_sic(:,:,:,:)
   real(dp),    allocatable :: pink(:)
+  real(dp),    allocatable :: alpha(:) !added:giovanni for alpha renormalization
+  real(dp),    allocatable :: taukin(:,:) !added:giovanni for alpha renormalization
+  real(dp),    allocatable :: tauw(:,:) !added:giovanni for alpha renormalization
+  real(dp),    allocatable :: edens(:,:) !added:giovanni for alpha renormalization
+  real(dp),    allocatable :: upsilonkin(:,:) !added:giovanni for alpha renormalization
+  real(dp),    allocatable :: upsilonw(:,:) !added:giovanni for alpha renormalization
   real(dp),    allocatable :: pink_emp(:)
+  real(dp),    allocatable :: alpha_emp(:) !added:giovanni for alpha renormalization
   real(dp),    allocatable :: vxc_sic(:,:)
   real(dp),    allocatable :: wxdsic(:,:)
   real(dp),    allocatable :: orb_rhor(:,:)
@@ -360,6 +368,7 @@ module nksic
   logical :: do_orbdep
   logical :: do_nk
   logical :: do_pz
+  logical :: do_pz_renorm
   logical :: do_nkpz
   logical :: do_nkipz
   logical :: do_nki
@@ -388,6 +397,10 @@ contains
      !
      allocate(pink_emp(n_emps))
      !
+  ENDIF
+  
+  IF(.not.allocated(alpha_emp) .and. do_pz_renorm) THEN
+     allocate(alpha_emp(n_emps))
   ENDIF
   
   return
@@ -443,6 +456,15 @@ contains
           allocate( grhobar(1,1,1) )
       endif
       !
+      IF( do_pz_renorm) THEN
+         allocate( alpha(nx) )
+         allocate(taukin(nnrx,nspin))
+         allocate(tauw(nnrx,nspin))
+         allocate(edens(nnrx,nspin))
+         allocate(upsilonkin(nnrx,nspin))
+         allocate(upsilonw(nnrx,nspin))
+      ENDIF
+      !
       fsic     = 0.0d0
       pink     = 0.0d0
       vsic     = 0.0d0
@@ -488,6 +510,12 @@ contains
       if(allocated(fion_sic))    deallocate(fion_sic)
       if(allocated(deeq_sic))    deallocate(deeq_sic)
       if(allocated(pink))        deallocate(pink)
+      if(allocated(alpha))       deallocate(alpha)
+      if(allocated(taukin))      deallocate(taukin)
+      if(allocated(tauw))        deallocate(tauw)
+      if(allocated(edens))       deallocate(edens)
+      if(allocated(upsilonkin))  deallocate(upsilonkin)
+      if(allocated(upsilonw))    deallocate(upsilonw)
       if(allocated(wxdsic))      deallocate(wxdsic)
       if(allocated(vxc_sic))     deallocate(vxc_sic)
       if(allocated(vsicpsi))     deallocate(vsicpsi)
@@ -498,8 +526,35 @@ contains
       if(allocated(rhobar))      deallocate(rhobar)
       if(allocated(rhoref))      deallocate(rhoref)
       if(allocated(pink_emp))    deallocate(pink_emp)
+      if(allocated(alpha_emp))   deallocate(alpha_emp)
       !
   end subroutine deallocate_nksic
+  !
+  subroutine add_up_taukin(nnrx, taukin, grhoraux, orb_rhor, f)
+     !
+     INTEGER, INTENT(IN) :: nnrx
+     REAL(DP) :: taukin(nnrx), orb_rhor(nnrx), f, grhoraux(nnrx,3)
+     !
+     REAL(DP) :: temp_gradient, temp_rho
+     REAL(DP), PARAMETER :: epsi=1.e-9
+     INTEGER :: ir
+     !
+  
+     do ir=1,nnrx
+        !
+        temp_gradient =  grhoraux(ir,1)**2+grhoraux(ir,2)**2+grhoraux(ir,3)**2
+        temp_rho=orb_rhor(ir)
+        
+        IF(temp_rho.lt.epsi.or.temp_gradient.lt.epsi) THEN
+           temp_gradient=0.d0
+!            temp_rho=1.d0
+        ELSE
+           taukin(ir) = taukin(ir)+1./(8.) * temp_gradient/orb_rhor(ir)
+        ENDIF
+        !
+     enddo
+  
+  end subroutine add_up_taukin
   !
 end module nksic
 

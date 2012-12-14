@@ -99,6 +99,7 @@ SUBROUTINE init_run()
   !
   ! ... initialize directories
   !
+  write(6,*) "nbeg", nbeg
   IF( nbeg < 0 ) THEN
      CALL create_directory( outdir )
   END IF 

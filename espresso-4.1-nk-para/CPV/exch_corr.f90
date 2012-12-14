@@ -684,7 +684,6 @@
          call invfft('Dense',v, dfftp )
          do ir=1,nnr
             rhor(ir,iss)=rhor(ir,iss)-DBLE(v(ir))
-             !supercalifragilistichespiralidoso
          end do
       end do
 !

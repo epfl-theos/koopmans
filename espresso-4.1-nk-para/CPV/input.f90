@@ -872,7 +872,7 @@ MODULE input
      !-------------------------------------------------------------------------
      !
      USE control_flags,    ONLY : program_name, lconstrain, lneb, lmetadyn, &
-                                  tpre, thdyn, tksw
+                                  tpre, thdyn, tksw, nbeg
 
      USE constants,        ONLY : amu_au, pi
      !
@@ -954,6 +954,7 @@ MODULE input
      !
      USE wannier_base,       ONLY : wannier_init
      USE efield_module,      ONLY : tefield
+     USE xml_io_base,        ONLY : create_directory
      !
      IMPLICIT NONE
      !
@@ -1025,6 +1026,13 @@ MODULE input
      nr3s_ = nr3s
      !
      CALL turbo_init( tturbo_inp, nturbo_inp )
+     !
+     write(6,*) "nbeg", nbeg
+     !
+     if(nbeg<0) THEN
+        call create_directory(outdir)
+     ENDIF
+     !
 
      IF ( .NOT. lneb ) &
         CALL printout_base_init( outdir, prefix )

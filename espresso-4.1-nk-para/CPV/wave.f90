@@ -539,7 +539,7 @@
    SUBROUTINE wave_atom_init_x( cm, n, noff )
 !=----------------------------------------------------------------------------=!
 
-      !  this routine sets the initial wavefunctions at random
+      !  this routine sets the initial atomic wavefunctions
 
 ! ... declare modules
       USE kinds,              ONLY: DP
@@ -643,9 +643,9 @@
             !
             wfcatom(ig,ibnd) = &
                 CMPLX( rr*COS( arg ), rr*SIN( arg ) ) / &
-                       ( ( gx(1,ig_l2g(ig)) )**2 + &
-                         ( gx(2,ig_l2g(ig)) )**2 + &
-                         ( gx(3,ig_l2g(ig)) )**2 + 1.0_DP )
+                       ( ( gx(1,ig) )**2 + &
+                         ( gx(2,ig) )**2 + &
+                         ( gx(3,ig) )**2 + 1.0_DP )
          END DO
 !$OMP END PARALLEL DO
          !
