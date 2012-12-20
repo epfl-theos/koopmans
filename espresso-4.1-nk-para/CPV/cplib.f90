@@ -993,7 +993,61 @@ END FUNCTION
       RETURN
    END FUNCTION enkin_new
 !
+!-----------------------------------------------------------------------
+   SUBROUTINE enkin_dens( c, ngwx, f)
+!-----------------------------------------------------------------------
+      !
+      ! calculation of kinetic energy term
+      !
+      USE kinds,              ONLY: DP
+      USE constants,          ONLY: pi, fpi
+!       USE gvecw,              ONLY: ngw
+      USE reciprocal_vectors, ONLY: gstart, gx
+!       USE gvecw,              ONLY: ggp
+      USE gvecp,              only: ng => ngm
+      USE mp,                 ONLY: mp_sum
+      USE mp_global,          ONLY: intra_image_comm
+      USE cell_base,          ONLY: tpiba2
+      USE control_flags,      ONLY: gamma_only, do_wf_cmplx
+!       USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
+      USE cp_main_variables,  ONLY: kk => kinetic_mat
+      
+      IMPLICIT NONE
 
+      ! input
+
+      INTEGER,     INTENT(IN) :: ngwx
+      COMPLEX(DP), INTENT(INOUT) :: c(ngwx)
+      REAL(DP),    INTENT(IN) :: f
+      !
+      ! local
+
+      INTEGER  :: ig, i, j, isp
+!       COMPLEX(DP), allocatable :: sk(:)  ! automatic array
+      LOGICAL :: lgam !added:giovanni
+      REAL(DP) :: icoeff, aidg
+
+      lgam=gamma_only.and..not.do_wf_cmplx
+
+      IF(lgam) THEN
+         icoeff=1.d0
+      ELSE
+         icoeff=0.5d0
+      ENDIF
+      !
+      ! matrix kk should be a global object, to allocate at the beginning
+      !
+      !
+!       allocate(sk(ngwx))
+      !
+      DO ig=1,ng
+         !
+         c(ig)=DBLE(CONJG(c(ig))*c(ig))*(gx(1,ig)**2+gx(2,ig)**2+gx(3,ig)**2)
+         !
+      END DO
+      !
+      RETURN
+   END SUBROUTINE enkin_dens
 !
 !-----------------------------------------------------------------------
       SUBROUTINE gausin(eigr,cm)
@@ -4595,7 +4649,7 @@ END FUNCTION
       ! this routine is called anyway, even if do_nk=F
       !
       use nksic,            ONLY : do_orbdep, do_nk, do_nkipz, do_nkpz, do_pz, &
-                                   do_nki, do_pz_renorm, &
+                                   do_nki, do_pz_renorm, kfact, &
                                    do_wref, do_wxd, fref, rhobarfact, &
                                    vanishing_rho_w, &
                                    nknmax, do_spinsym, f_cutoff, &
@@ -4631,7 +4685,8 @@ END FUNCTION
                                    innerloop_nmax_ => innerloop_nmax, &
                                    innerloop_init_n_ => innerloop_init_n, &
                                    innerloop_cg_ratio_ => innerloop_cg_ratio, &
-                                   do_pz_renorm_=>do_pz_renorm
+                                   do_pz_renorm_=>do_pz_renorm, &
+                                   kfact_=> kfact
 !$$
       USE io_global,        ONLY : meta_ionode, stdout
       use electrons_base,   ONLY : nspin, nbspx
@@ -4659,6 +4714,7 @@ END FUNCTION
       do_wxd  = do_wxd_
       do_wref = do_wref_
       do_pz_renorm=do_pz_renorm_
+      kfact=kfact_
       !
       fref    = fref_
 !$$

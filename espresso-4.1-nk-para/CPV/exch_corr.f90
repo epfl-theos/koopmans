@@ -682,9 +682,11 @@
 !	    end do !!!uncomment for k-points
 !         ENDIF !!!uncomment for k-points
          call invfft('Dense',v, dfftp )
+         !
          do ir=1,nnr
             rhor(ir,iss)=rhor(ir,iss)-DBLE(v(ir))
          end do
+         !
       end do
 !
       deallocate(vtemp)

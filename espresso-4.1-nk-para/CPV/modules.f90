@@ -334,6 +334,8 @@ module nksic
   real(dp) :: rhobarfact
   real(dp) :: nkscalfact
   real(dp) :: kfact
+  real(dp) :: epsi_cutoff_renorm=1.d-6
+  real(dp) :: epsi2_cutoff_renorm=1.d-4
   real(dp) :: vanishing_rho_w
   real(dp) :: f_cutoff
   !
@@ -348,8 +350,8 @@ module nksic
   real(dp),    allocatable :: taukin(:,:) !added:giovanni for alpha renormalization
   real(dp),    allocatable :: tauw(:,:) !added:giovanni for alpha renormalization
   real(dp),    allocatable :: edens(:,:) !added:giovanni for alpha renormalization
-  real(dp),    allocatable :: upsilonkin(:,:) !added:giovanni for alpha renormalization
-  real(dp),    allocatable :: upsilonw(:,:) !added:giovanni for alpha renormalization
+  real(dp),    allocatable :: upsilonkin(:,:,:) !added:giovanni for alpha renormalization
+  real(dp),    allocatable :: upsilonw(:,:,:) !added:giovanni for alpha renormalization
   real(dp),    allocatable :: pink_emp(:)
   real(dp),    allocatable :: alpha_emp(:) !added:giovanni for alpha renormalization
   real(dp),    allocatable :: vxc_sic(:,:)
@@ -399,7 +401,7 @@ contains
      !
   ENDIF
   
-  IF(.not.allocated(alpha_emp) .and. do_pz_renorm) THEN
+  IF(.not.allocated(alpha_emp)) THEN
      allocate(alpha_emp(n_emps))
   ENDIF
   
@@ -456,13 +458,13 @@ contains
           allocate( grhobar(1,1,1) )
       endif
       !
+      allocate( alpha(nx) )
       IF( do_pz_renorm) THEN
-         allocate( alpha(nx) )
          allocate(taukin(nnrx,nspin))
          allocate(tauw(nnrx,nspin))
          allocate(edens(nnrx,nspin))
-         allocate(upsilonkin(nnrx,nspin))
-         allocate(upsilonw(nnrx,nspin))
+         allocate(upsilonkin(nnrx,3,nspin))
+         allocate(upsilonw(nnrx,3,nspin))
       ENDIF
       !
       fsic     = 0.0d0
@@ -529,32 +531,6 @@ contains
       if(allocated(alpha_emp))   deallocate(alpha_emp)
       !
   end subroutine deallocate_nksic
-  !
-  subroutine add_up_taukin(nnrx, taukin, grhoraux, orb_rhor, f)
-     !
-     INTEGER, INTENT(IN) :: nnrx
-     REAL(DP) :: taukin(nnrx), orb_rhor(nnrx), f, grhoraux(nnrx,3)
-     !
-     REAL(DP) :: temp_gradient, temp_rho
-     REAL(DP), PARAMETER :: epsi=1.e-9
-     INTEGER :: ir
-     !
-  
-     do ir=1,nnrx
-        !
-        temp_gradient =  grhoraux(ir,1)**2+grhoraux(ir,2)**2+grhoraux(ir,3)**2
-        temp_rho=orb_rhor(ir)
-        
-        IF(temp_rho.lt.epsi.or.temp_gradient.lt.epsi) THEN
-           temp_gradient=0.d0
-!            temp_rho=1.d0
-        ELSE
-           taukin(ir) = taukin(ir)+1./(8.) * temp_gradient/orb_rhor(ir)
-        ENDIF
-        !
-     enddo
-  
-  end subroutine add_up_taukin
   !
 end module nksic
 

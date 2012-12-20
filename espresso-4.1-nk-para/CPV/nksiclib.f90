@@ -13,382 +13,6 @@
 !
 
 !-----------------------------------------------------------------------
-      subroutine nksic_potential_non_ortho( nbsp, nx, c, cdual, f_diag, &
-                                  bec, becdual, becsum, &
-                                  deeq_sic, ispin, iupdwn, nupdwn, &
-                                  rhor, rhog, wtot, sizwtot, vsic, do_wxd_, pink, nudx, &
-                                  wfc_centers, wfc_spreads, &
-                                  icompute_spread)
-!-----------------------------------------------------------------------
-!
-! ....calculate orbital dependent potentials, 
-!     following the Non-Koopmans' (NK) scheme, 
-!     but also Perdew-Zunger (PZ),
-!     Non-Koopmans' integral definition (NKI),
-!     Non-Joopmans on Perdew Zunger (PZNK)
-!
-      use kinds,                      only: dp
-      use gvecp,                      only: ngm
-      use gvecw,                      only: ngw
-      use grid_dimensions,            only: nnrx
-      use electrons_base,             only: nspin
-      use funct,                      only : dft_is_gradient
-      use nksic,                      only: orb_rhor, wxdsic, &
-                                            wrefsic, rhoref, rhobar, &
-                                            do_nk, do_nki, do_pz, do_nkpz, &
-                                            do_nkipz, grhobar, fion_sic, pzalpha=>alpha, do_pz_renorm, edens, &
-                                            tauw,taukin, upsilonkin, upsilonw, kfact
-      use ions_base,                  only: nat
-      use control_flags,         only: gamma_only, do_wf_cmplx !added:giovanni
-      use uspp,                       only: nkb
-      use uspp_param,                 only: nhm
-      use cp_interfaces,         only: nksic_get_orbitalrho !added:giovanni
-      use twin_types !added:giovanni
-      use input_parameters,      only: draw_pot, pot_number  !added:linh draw vsic potentials
-      use io_pot_sic_xml,        only: write_pot_sic  !added:linh draw vsic potentials
-      USE io_global,             ONLY: stdout
-      !
-      implicit none
-      !
-      ! in/out vars
-      !
-      integer,     intent(in)  :: nbsp, nx, nudx, sizwtot
-      complex(dp), intent(in)  :: c(ngw,nx), cdual(ngw,nx)
-      type(twin_matrix),    intent(in)  :: bec, becdual!(nkb,nbsp) !modified:giovanni
-      real(dp),    intent(in)  :: becsum( nhm*(nhm+1)/2, nat, nspin)
-      integer,     intent(in)  :: ispin(nx)
-      integer,     intent(in)  :: iupdwn(nspin), nupdwn(nspin)
-      real(dp),    intent(in)  :: f_diag(nx)
-      real(dp),    intent(in)  :: rhor(nnrx,nspin)
-      complex(dp), intent(in)  :: rhog(ngm,nspin)
-      real(dp),    intent(out) :: vsic(nnrx,nx), wtot(sizwtot,2)
-      real(dp),    intent(out) :: deeq_sic(nhm,nhm,nat,nx)
-      logical,     intent(in)  :: do_wxd_
-      real(dp),    intent(out) :: pink(nx)
-      logical                  :: icompute_spread
-      real(DP) :: wfc_centers(4,nudx,nspin)
-      real(DP) :: wfc_spreads(nudx,nspin,2)
-
-      !
-      ! local variables
-      !
-      integer  :: i,j,jj,ibnd,isp
-      real(dp) :: focc,pinkpz,shart
-      real(dp), allocatable :: vsicpz(:)
-      complex(dp), allocatable :: rhobarg(:,:)
-      logical :: lgam
-      complex(dp), dimension(nudx,nudx,nspin) :: overlap_
-      !
-      ! main body
-      !
-      CALL start_clock( 'nksic_drv' )
-      lgam = gamma_only.and..not.do_wf_cmplx
-      !
-      ! compute potentials
-      !
-      if (dft_is_gradient()) then
-         allocate(rhobarg(ngm,2))
-         !write(6,*) "allocated rhobarg"
-      else
-         allocate(rhobarg(1,1))
-      endif
-
-      if ( do_nk .or. do_nkpz .or. do_nki .or. do_nkipz ) then
-          wtot=0.0_dp
-      endif
-      !
-      if ( do_nkpz .or. do_nkipz) then
-          allocate(vsicpz(nnrx))
-          vsicpz=0.0_dp
-      endif
-      !
-      pink=0.0_dp
-      vsic=0.0_dp
-      !
-      ! if using pz_renorm factors, compute here tauw and upsilonw
-      !
-      do isp=1,nspin
-         !
-         call nksic_get_taukin_pz( 1.d0, nspin, isp, rhor(1,isp), tauw, 1)
-         !
-      enddo      
-      !
-      ! loop over bands (2 ffts at the same time)
-      !
-!       call compute_overlap(c, ngw, nbsp, overlap_)
-      !
-      do j=1,nbsp,2
-        !
-        ! compute orbital densities
-        ! n odd => c(:,n+1) is already set to zero
-        !
-        call nksic_get_orbitalrho( ngw, nnrx, bec, becdual, ispin, nbsp, &
-                     c(:,j), c(:,j+1), cdual(:,j), cdual(:,j+1), orb_rhor, &
-                     j, j+1, lgam) !note:giovanni change here for non-orthogonality flavour
-!begin_added:giovanni
-!            orb_rhor(:,1) = orb_rhor(:,1)/overlap_(j+1-iupdwn(ispin(j)),j+1-iupdwn(ispin(j)),ispin(j))
-!            orb_rhor(:,2) = orb_rhor(:,2)/overlap_(j+2-iupdwn(ispin(j+1)),j+2-iupdwn(ispin(j+1)),ispin(j+1))
-          !compute centers and spreads of nksic or pz minimizing orbitals
-        IF(icompute_spread) THEN
-          !
-          call compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
-                    nupdwn, ispin, orb_rhor, wfc_centers, wfc_spreads, j, j+1)
-          !
-        ENDIF
-          !
-!end_added:giovanni
-        !
-        shart=0.d0
-        !
-        ! compute orbital potentials
-        !
-        inner_loop: do jj=1,2
-          ! 
-          i=j+jj-1
-          !
-          ! this condition is important when n is odd
-          !
-          if ( i > nbsp ) exit inner_loop
-          !
-          ibnd=i
-          if( nspin==2 ) then
-              if ( i >= iupdwn(2) ) ibnd=i-iupdwn(2)+1
-          endif
-          !
-          ! note: iupdwn(2) is set to zero if nspin = 1
-          !
-          focc=f_diag(i)*DBLE(nspin)/2.0d0
-          !
-          ! compute parameters needed for PZ-renormalization
-          !
-          IF(do_pz_renorm) THEN
-             !     
-             call nksic_get_taukin_pz( focc, nspin, ispin(i), orb_rhor(:,jj), &
-                                      taukin, ibnd)
-             !                         
-          ENDIF
-          !
-          !
-          ! define rhoref and rhobar
-          !
-          !write(6,*) ubound(rhobarg)
-          call nksic_get_rhoref( i, nnrx, ispin(i), nspin,  &
-                                 focc, rhor, orb_rhor(:,jj), &
-                                 rhoref, rhobar, rhobarg, grhobar )
-
-          !
-          ! compute nk pieces to build the potentials and the energy
-          !
-          if ( do_nk .or. do_nkpz ) then
-              !
-              call nksic_correction_nk( focc, ispin(i), orb_rhor(:,jj), &
-                                        rhor, rhoref, rhobar, rhobarg, grhobar, &
-                                        vsic(:,i), wxdsic, wrefsic, do_wxd_, &
-                                        pink(i), ibnd)
-
-              !
-              ! here information is accumulated over states
-              ! (wtot is added in the next loop)
-              !
-              wtot(1:nnrx,1:2) = wtot(1:nnrx,1:2) + wxdsic(1:nnrx,1:2)
-              !
-              ! ths sic potential is partly updated here to save some memory
-              !
-              vsic(1:nnrx,i) = vsic(1:nnrx,i) + wrefsic(1:nnrx) &
-                             - wxdsic( 1:nnrx, ispin(i) )
-              !
-          endif
-
-          ! 
-          ! compute nkpz pieces to build the potential and the energy
-          !
-          if( do_nkpz ) then
-              !
-              call nksic_correction_nkpz( focc, orb_rhor(:,jj), vsicpz, &
-                                          wrefsic, pinkpz, ibnd, ispin(i))
-              !
-              vsic(1:nnrx,i) = vsic(1:nnrx,i) + vsicpz(1:nnrx) &
-                             + wrefsic(1:nnrx)
-              !
-              pink(i) = pink(i) +pinkpz
-              !
-          endif
-
-          
-          !
-          ! compute pz potentials and energy
-          !
-          if ( do_pz ) then 
-              !
-              call nksic_correction_pz ( focc, ispin(i), orb_rhor(:,jj), &
-                                         vsic(:,i), pink(i), pzalpha(i), ibnd, shart)
-              !
-              wfc_spreads(ibnd, ispin(i), 2) = shart
-              !
-              if(do_pz_renorm) then
-                 !
-                 edens(:,ispin(i)) = edens(:,ispin(i)) + pink(i)*orb_rhor(:,jj)
-                 !
-              endif
-              !
-          endif
-
-          !
-          ! compute nki pieces to build the potentials and the energy
-          !
-          if ( do_nki .or. do_nkipz) then
-              !
-              call nksic_correction_nki( focc, ispin(i), orb_rhor(:,jj), &
-                                         rhor, rhoref, rhobar, rhobarg, grhobar, &
-                                         vsic(:,i), wxdsic, do_wxd_, pink(i), ibnd)
-              !
-              ! here information is accumulated over states
-              ! (wtot is added in the next loop)
-              !
-              wtot(1:nnrx,1:2) = wtot(1:nnrx,1:2) + wxdsic(1:nnrx,1:2)
-              !
-              ! ths sic potential is partly updated here to save some memory
-              !
-              vsic(1:nnrx,i) = vsic(1:nnrx,i) - wxdsic( 1:nnrx, ispin(i) )
-              !
-          endif
-
-          if( do_nkipz ) then
-              !
-              !write(6,*) "silvestro", ubound(ispin), ubound(orb_rhor), ubound(vsicpz)
-              call nksic_correction_nkipz( focc, ispin(i), orb_rhor(:,jj), vsicpz, &
-                                           pinkpz, ibnd, shart)
-              !
-              vsic(1:nnrx,i) = vsic(1:nnrx,i) + vsicpz(1:nnrx)
-              !
-              pink(i) = pink(i) +pinkpz
-              !
-              wfc_spreads(ibnd, ispin(i), 2) = shart
-              !
-          endif
-          !
-          ! take care of spin symmetry
-          !
-          pink(i) = f_diag(i) * pink(i)
-          !
-          if ( do_nk .or. do_nkpz .or. do_nki .or. do_nkipz) then
-              !
-              if( nspin== 1 ) then
-                  !
-                  wtot(1:nnrx,1) = wtot(1:nnrx,1) + wxdsic(1:nnrx,2)
-                  wtot(1:nnrx,2) = wtot(1:nnrx,2) + wxdsic(1:nnrx,1)
-                  !
-              endif
-              !
-          endif
-          !
-        enddo inner_loop
-        !
-      enddo
-
-      !
-      ! Switch off the icompute_spread flag if present
-      !
-      IF(icompute_spread) THEN
-         !
-         icompute_spread=.false.
-         !
-      ENDIF
-      !
-      ! now wtot is completely built and can be added to vsic
-      !
-      if ( do_nk .or. do_nkpz .or. do_nki .or. do_nkipz ) then
-          !
-          do i = 1, nbsp
-              !
-              vsic(1:nnrx,i) = vsic(1:nnrx,i) + wtot( 1:nnrx, ispin(i) ) 
-              ! 
-          enddo
-          !
-      endif
-      !
-      ! if pz is renormalized, here we compute the potential, and multiply here pink by renormalization factor
-      !
-      if ( do_pz_renorm ) then
-          !
-          do j=1,nbsp,2
-             !
-             call nksic_get_orbitalrho( ngw, nnrx, bec, ispin, nbsp, &
-                     c(:,j), c(:,j+1), orb_rhor, j, j+1, lgam)
-             !
-             inner_loop_renorm: do jj=1,2
-                !
-                i=j+jj-1        
-                if ( i > nbsp ) exit inner_loop_renorm
-                !
-                ibnd=i
-                focc=f_diag(i)*DBLE(nspin)/2.0d0
-                !
-                if( nspin==2 ) then
-                    if ( i >= iupdwn(2) ) ibnd=i-iupdwn(2)+1
-                endif
-                !
-                call nksic_get_pz_factor( nspin, ispin(i), orb_rhor(1,jj), &
-                                         taukin, tauw, pzalpha(i), ibnd, kfact)
-                !
-                call nksic_get_pzfactor_potential(focc, nspin, ispin(i), rhor, orb_rhor(1,jj), &
-                                      pink(i), taukin, tauw, edens, upsilonkin, upsilonw, vsic(1,i), pzalpha(i), ibnd, kfact)
-                !
-             enddo inner_loop_renorm
-             !
-          enddo
-          !
-      endif
-      !
-      !
-      if (draw_pot) then !added:linh draw vsic potentials
-         !
-         write(stdout,*) "I am writing out vsic", nbsp
-         do i =1, nbsp
-           ! 
-           if (i == pot_number) call write_pot_sic ( vsic(:, i) ) 
-           !  
-         enddo
-         !
-      endif !added:linh draw vsic potentials
-      !
-      if ( allocated(vsicpz) ) deallocate(vsicpz)
-      
-      !
-      ! USPP:
-      ! compute corrections to the D coefficients of the pseudopots
-      ! due to vsic(r, i) in the case of orbital dependent functionals.
-      ! The corresponding contributions to the forces are computed.
-      !
-      ! IMPORTANT: the following call makes use of newd. 
-      !            It must be done before we call newd for the
-      !            total potentials, because deeq is overwritten at every call
-      !
-      fion_sic(:,:)     = 0.0d0
-      !
-      IF ( nhm > 0 ) then
-          !
-          deeq_sic(:,:,:,:) = 0.0d0
-          !
-          DO i = 1, nbsp
-              !
-              CALL nksic_newd( i, nnrx, ispin(i), nspin, vsic(:,i), nat, nhm, &
-                               becsum, fion_sic, deeq_sic(:,:,:,i) ) 
-              !
-          ENDDO
-          !
-      ENDIF
-      ! 
-      deallocate(rhobarg)
-      ! 
-      CALL stop_clock( 'nksic_drv' )
-      return
-      !
-!-----------------------------------------------------------------------
-      end subroutine nksic_potential_non_ortho
-!-----------------------------------------------------------------------
-
-!-----------------------------------------------------------------------
       subroutine nksic_potential( nbsp, nx, c, f_diag, bec, becsum, &
                                   deeq_sic, ispin, iupdwn, nupdwn, &
                                   rhor, rhog, wtot, sizwtot, vsic, do_wxd_, pink, nudx, &
@@ -424,6 +48,8 @@
       use input_parameters,      only: draw_pot, pot_number  !added:linh draw vsic potentials
       use io_pot_sic_xml,        only: write_pot_sic  !added:linh draw vsic potentials
       USE io_global,             ONLY: stdout
+      use nksic,                only : epsi3=> epsi_cutoff_renorm, epsi2=> epsi2_cutoff_renorm
+
       !
       implicit none
       !
@@ -449,7 +75,7 @@
       !
       ! local variables
       !
-      integer  :: i,j,jj,ibnd
+      integer  :: i,j,jj,ibnd,isp,ir
       real(dp) :: focc,pinkpz, shart
       real(dp), allocatable :: vsicpz(:)
       complex(dp), allocatable :: rhobarg(:,:)
@@ -500,6 +126,17 @@
       pink=0.0_dp
       vsic=0.0_dp
       !
+      !
+      ! if using pz_renorm factors, compute here tauw and upsilonw
+      !
+      if(do_pz_renorm) THEN
+         !
+         edens=0.d0  
+         taukin=0.d0
+         tauw=0.d0
+         !
+      ENDIF
+      !
       ! loop over bands (2 ffts at the same time)
       !
       !
@@ -548,6 +185,22 @@
              !     
              call nksic_get_taukin_pz( focc, nspin, ispin(i), orb_rhor(:,jj), &
                                       taukin, ibnd)
+             !
+             IF(ibnd==1) THEN
+                !
+                IF(nspin==1) THEN
+                   !
+                   call nksic_get_taukin_pz( 0.5d0, nspin, ispin(i), &
+                                      rhor(:,1), tauw, ibnd)
+                   !
+                ELSE IF(nspin==2) THEN
+                   !
+                   call nksic_get_taukin_pz( 1.d0, nspin, ispin(i), &
+                                      rhor(:,ispin(i)), tauw, ibnd)
+                   !
+                ENDIF
+                !
+             ENDIF
              !                         
           ENDIF
           !
@@ -607,13 +260,15 @@
               !
               if(do_pz_renorm) then
                  !
-                 edens(:,ispin(i)) = edens(:,ispin(i)) + pink(i)*orb_rhor(:,jj)
-                 !checkcheck
+                 do ir=1,nnrx
+                    !
+                    edens(ir,ispin(i)) = edens(ir,ispin(i)) + pink(i)*(orb_rhor(ir,jj)+epsi2)**(kfact+1.)
+                    !
+                 enddo
+                 !
               endif
-!               write(6,*) "pinkpz", pink
               !
           endif
-
           !
           ! compute nki pieces to build the potentials and the energy
           !
@@ -694,6 +349,14 @@
           !
       endif
       !
+            do ir=1,nnrx
+         !
+!          IF(tauw(ir,1)/taukin(ir,1).gt.1.d0) THEN
+!          write(6,*) j, "taukin", taukin(ir,1), tauw(ir,1)
+!          ENDIF
+         !
+      enddo
+      !
       if ( do_pz_renorm ) then
           !
           do j=1,nbsp,2
@@ -713,11 +376,20 @@
                     if ( i >= iupdwn(2) ) ibnd=i-iupdwn(2)+1
                 endif
                 !
-                call nksic_get_pz_factor( nspin, ispin(i), orb_rhor(1,jj), &
+                call nksic_get_pz_factor( nspin, ispin(i), orb_rhor(:,jj), rhor,&
                                          taukin, tauw, pzalpha(i), ibnd, kfact)
                 !
-                call nksic_get_pzfactor_potential(focc, nspin, ispin(i), rhor, orb_rhor(1,jj), &
-                                      pink(i), taukin, tauw, edens, upsilonkin, upsilonw, vsic(1,i), pzalpha(i), ibnd, kfact)
+                write(6,*) "this pzalpha", pzalpha(i)
+                !
+                ! update vsic with factor here: it works for pz, will it work for 
+                ! nk-type functionals?
+                !
+                vsic(1:nnrx,i) = vsic(1:nnrx,i)*pzalpha(i)
+                !
+                call nksic_get_pzfactor_potential(focc, nspin, ispin(i), rhor, orb_rhor(:,jj), &
+                                      pink(i), taukin, tauw, edens, upsilonkin, upsilonw, vsic(:,i), pzalpha(i), ibnd, kfact)
+                !
+                pink(i) = pink(i)*pzalpha(i)
                 !
              enddo inner_loop_renorm
              !
@@ -2167,7 +1839,7 @@ end subroutine nksic_newd
 !---------------------------------------------------------------
 
 !---------------------------------------------------------------
-      subroutine nksic_get_pz_factor( nspin, ispin, orb_rhor, &
+      subroutine nksic_get_pz_factor( nspin, ispin, orb_rhor, rhor,  &
                                       taukin, tauw, alpha, ibnd, kfact) 
 !---------------------------------------------------------------
 !
@@ -2186,37 +1858,58 @@ end subroutine nksic_newd
       use mp,                   only : mp_sum
       use mp_global,            only : intra_image_comm
       use control_flags,        only : gamma_only, do_wf_cmplx
+      use nksic,                only : epsi3=> epsi_cutoff_renorm, epsi2=> epsi2_cutoff_renorm
       !
       implicit none
       !
       integer,     intent(in)  :: ispin, ibnd, nspin
-      real(dp),    intent(in)  :: orb_rhor(nnrx), taukin(nnrx,nspin), tauw(nnrx,nspin)
+      real(dp),    intent(in)  :: orb_rhor(nnrx), taukin(nnrx,nspin), tauw(nnrx,nspin), rhor(nnrx,nspin)
       real(dp), intent(out)    :: alpha
       real(dp), intent(in)    :: kfact
       !
       INTEGER :: ir
       LOGICAL :: lgam
-      real(dp) :: fact, temp
-      real(dp), parameter :: epsi=1.d-9
+      real(dp) :: fact, temp, aidfract, norm
+!       real(dp), parameter :: epsi=1.d-3
       !
       lgam=gamma_only.and..not.do_wf_cmplx
       fact=omega/DBLE(nr1*nr2*nr3)
       !
       temp=0.d0
+      norm=0.d0
       !
       do ir=1,nnrx
          !
-         IF(tauw(ir,ispin).gt.epsi) THEN
+!          IF((tauw(ir,ispin)**2+taukin(ir,ispin)**2.gt.epsi2**4)) THEN !
+         IF(rhor(ir,ispin).gt.epsi2) THEN !
             !
-            temp = temp+orb_rhor(ir)*(tauw(ir,ispin)/taukin(ir,ispin))**kfact
+!             aidfract=((tauw(ir,ispin)+epsi2)/(taukin(ir,ispin)+epsi2))**kfact
+            aidfract=((orb_rhor(ir)+epsi2)/(rhor(ir,ispin)+epsi2))**kfact
+            !
+            IF(1.d0-abs(aidfract).lt.epsi2**2) THEN
+               !
+               aidfract=1.d0
+               !
+            ENDIF
+            !
+            temp = temp+orb_rhor(ir)*aidfract
+            !
+         ELSE
+            !
+            temp = temp+orb_rhor(ir)
             !
          ENDIF
+         !
+         norm=norm+orb_rhor(ir)
          !
       enddo
       !
       call mp_sum(temp,intra_image_comm)
+      call mp_sum(norm,intra_image_comm)
       !
       temp=temp*fact
+      norm=norm*fact
+      write(6,*) "checknorm", norm
       !
       alpha=temp
       !
@@ -2242,6 +1935,8 @@ end subroutine nksic_newd
       use mp,                   only : mp_sum
       use mp_global,            only : intra_image_comm
       use control_flags,        only : gamma_only, do_wf_cmplx
+      use nksic,                only : epsi3=> epsi_cutoff_renorm, epsi2=> epsi2_cutoff_renorm
+
       !
       implicit none
       !
@@ -2254,10 +1949,10 @@ end subroutine nksic_newd
       !
       INTEGER :: ir,j
       LOGICAL :: lgam
-      real(dp) :: fact, temp, tempw, dexc_dummy(3,3)
+      real(dp) :: fact, temp, tempw, dexc_dummy(3,3), aidtau, aidfrac
       complex(dp), allocatable :: rhog_dummy(:,:)
       real(dp), allocatable :: upsilonh(:,:,:), vsicaux(:,:)
-      real(dp), parameter :: epsi=1.d-9
+!       real(dp), parameter :: epsi=1.d-3
       !
       lgam=gamma_only.and..not.do_wf_cmplx
       fact=omega/DBLE(nr1*nr2*nr3)
@@ -2269,19 +1964,21 @@ end subroutine nksic_newd
       upsilonh=0.d0
       !
       vsicaux=0.d0
+!       write(6,*) "checkall", ibnd, ispin
       !
       call nksic_get_upsilon_pz( f, nspin, ispin, orb_rhor, &
                                       upsilonkin, ibnd)
       if(ibnd==1) THEN !compute also upsilonw
          !
-         call nksic_get_upsilon_pz( 1.d0, nspin, ispin, rhor, &
+         call nksic_get_upsilon_pz( 1.d0, nspin, ispin, rhor(:,ispin), &
                                       upsilonw, ibnd)
          !
       ENDIF                                      
       !
+      !
       upsilonh=0.d0
       !
-      vsicaux(:,ispin)=vsicaux(:,ispin)-alpha*pink/f
+!       vsicaux(:,ispin)=vsicaux(:,ispin)
       !
       do ir=1,nnrx
          !
@@ -2295,17 +1992,59 @@ end subroutine nksic_newd
             !
          enddo
          !
-         IF(tauw(ir,ispin).gt.epsi) THEN
+         !
+!          temp=sqrt(abs(temp))
+!          tempw=sqrt(abs(tempw))
+!                              write(6,*) "checktau", taukin(ir,ispin),tauw(ir,ispin),ispin
+         !
+!          IF((tauw(ir,ispin)**2+taukin(ir,ispin)**2.gt.epsi2**4)) THEN
+        IF((rhor(ir,ispin).gt.epsi2)) THEN !
+ ! THEN
             !
-            vsicaux(ir,ispin) = vsicaux(ir,ispin)+pink/(f)*(tauw(ir,ispin)/taukin(ir,ispin))**kfact
+!             aidtau=0.5d0*(temp/(taukin(ir,ispin)+epsi2)-tempw/(tauw(ir,ispin)+epsi2))
+            aidtau=-edens(ir,ispin)/(rhor(ir,ispin)+epsi2)**(kfact+1.)
             !
-            vsicaux(ir,ispin) = vsicaux(ir,ispin)+kfact*edens(ir,ispin)*(tauw(ir,ispin)/taukin(ir,ispin))**kfact/2.*(temp/(taukin(ir,ispin))-tempw/tauw(ir,ispin))
+!             aidfrac=((tauw(ir,ispin)+epsi2)/(taukin(ir,ispin)+epsi2))**kfact
+            aidfrac=((orb_rhor(ir)+epsi2)/(rhor(ir,ispin)+epsi2))**kfact
+            
+            !
+            IF(1.d0-abs(aidfrac).lt.epsi2**2) THEN
+               !
+               aidfrac=1.d0
+               aidtau=0.d0
+               !
+            ENDIF
+! ! !             !
+            IF(abs(aidtau).lt.epsi2**2) THEN
+               !
+               aidtau=0.d0
+               !
+            ENDIF
+            !
+            vsicaux(ir,ispin) = vsicaux(ir,ispin) &
+                                +pink/f*(-alpha+aidfrac)
+            !
+!             vsicaux(ir,ispin) = vsicaux(ir,ispin)+kfact*edens(ir,ispin)*aidfrac*aidtau
+            vsicaux(ir,ispin) = vsicaux(ir,ispin)+kfact*aidfrac*pink/f+aidtau*kfact
             !
             do j=1,3
                !
-               upsilonh(ir,j,ispin) = upsilonh(ir,j,ispin) + kfact*edens(ir,ispin)*(tauw(ir,ispin)/taukin(ir,ispin))**kfact/2.*(upsilonkin(ir,j,ispin)/(taukin(ir,ispin))-upsilonw(ir,j,ispin)/tauw(ir,ispin))
+               aidtau=0.5d0*(upsilonkin(ir,j,ispin)/(taukin(ir,ispin)+epsi2)-upsilonw(ir,j,ispin)/(tauw(ir,ispin)+epsi2))
+               !
+               IF(abs(aidfrac-1.d0).lt.epsi2) THEN !abs(aidtau).lt.epsi2**2
+                  !
+                  aidtau=0.d0
+                  !
+               ENDIF
+               !
+               upsilonh(ir,j,ispin) = upsilonh(ir,j,ispin) - kfact*edens(ir,ispin)*aidfrac*aidtau
                !
             enddo
+            !
+         ELSE IF(abs(1.d0-alpha).gt.epsi2**2) THEN
+            !
+            vsicaux(ir,ispin) = vsicaux(ir,ispin) &
+            +pink/f*(-alpha+1.d0)
             !
          ENDIF
          !
@@ -2313,21 +2052,49 @@ end subroutine nksic_newd
       !
       ! Now we need to use fft's to add the gradient part to vsic... check the sign of this expression
       !
-      call gradh( nspin, upsilonh, rhog_dummy, vsicaux, dexc_dummy, lgam )
+!       call gradh( 1, upsilonh(:,:,ispin:ispin), rhog_dummy, vsicaux(:,ispin:ispin), dexc_dummy, lgam )
       !
       do ir=1,nnrx
          !
-         vsic(ir) = vsic(ir) - vsicaux(ir,ispin)
+         vsic(ir) = vsic(ir) + vsicaux(ir,ispin)
          !
       enddo
-      !
-      ! Now rescale pink with scaling factor
-      !
-      pink=pink*alpha
       !
       deallocate(upsilonh, vsicaux, rhog_dummy)
       !
       end subroutine nksic_get_pzfactor_potential
+      
+!---------------------------------------------------------------
+      subroutine add_up_taukin(nnrx, taukin, grhoraux, orb_rhor, f)
+!---------------------------------------------------------------
+        !
+        USE kinds, only: DP
+        use nksic,                only : epsi=> epsi_cutoff_renorm, epsi2_cutoff_renorm
+
+        !
+        INTEGER, INTENT(IN) :: nnrx
+        REAL(DP) :: taukin(nnrx), orb_rhor(nnrx), f, grhoraux(nnrx,3)
+        !
+        REAL(DP) :: temp_gradient, temp_rho
+!         REAL(DP), PARAMETER :: epsi2=1.e-11
+        INTEGER :: ir
+        !
+     
+        do ir=1,nnrx
+           !
+           temp_gradient =  grhoraux(ir,1)**2+grhoraux(ir,2)**2+grhoraux(ir,3)**2
+           temp_rho=orb_rhor(ir)
+           
+           IF ((temp_gradient.lt.epsi**2)) THEN!(temp_rho.lt.epsi.or.temp_gradient.lt.epsi**2) THEN
+              temp_gradient=0.d0
+              temp_rho=1.d0
+           ELSE
+              taukin(ir) = taukin(ir)+f/(2.) * temp_gradient
+           ENDIF
+           !
+        enddo
+     
+      end subroutine add_up_taukin
       
 !---------------------------------------------------------------
       subroutine nksic_get_taukin_pz( f, nspin, ispin, orb_rhor, &
@@ -2339,7 +2106,7 @@ end subroutine nksic_newd
 !     energy density (involving the total density).
 !
       use kinds,                only : dp
-      use nksic,                only : add_up_taukin
+!       use nksic,                only : add_up_taukin
       use grid_dimensions,      only : nnrx, nr1, nr2, nr3
       use gvecp,                only : ngm
       use recvecs_indexes,      only : np, nm
@@ -2347,6 +2114,8 @@ end subroutine nksic_newd
       use fft_base,             only : dfftp
       use funct,                only : dft_is_gradient
       use control_flags,        only : gamma_only, do_wf_cmplx
+      use nksic,                only : epsi=> epsi_cutoff_renorm, epsi2_cutoff_renorm
+
       !
       implicit none
       !
@@ -2354,7 +2123,7 @@ end subroutine nksic_newd
       real(dp),    intent(in)  :: f, orb_rhor(nnrx)
       real(dp), intent(inout) :: taukin(nnrx,nspin)
       !
-      INTEGER :: ig
+      INTEGER :: ig,ir
       complex(dp), allocatable :: rhogaux(:,:)
       real(dp), allocatable :: grhoraux(:,:,:)
       complex(dp), allocatable :: vhaux(:)
@@ -2373,7 +2142,11 @@ end subroutine nksic_newd
       !
       rhogaux=0.0_dp
       !
-      vhaux(:) = orb_rhor(:)
+      do ir=1,nnrx
+         !
+         vhaux(ir) = sqrt(orb_rhor(ir))
+         !
+      enddo
       !
       call fwfft('Dense',vhaux,dfftp )
       !
@@ -2381,13 +2154,28 @@ end subroutine nksic_newd
           rhogaux(ig,ispin) = vhaux( np(ig) )
       enddo
       !
+      call enkin_dens( rhogaux(:,ispin), ngm, f)
+      !
       allocate(grhoraux(nnrx,3,2))
       !
-      grhoraux=0.0_dp
+!       grhoraux=0.0_dp
       !
-      call fillgrad( 1, rhogaux(:,ispin:ispin), grhoraux(:,:,ispin:ispin), lgam )
+!       call fillgrad( 1, rhogaux(:,ispin:ispin), grhoraux(:,:,ispin:ispin), lgam )
       !
-      call add_up_taukin(nnrx, taukin(1:nnrx,ispin), grhoraux(1:nnrx,1:3,ispin), orb_rhor, f)
+      !       call add_up_taukin(nnrx, taukin(:,ispin), grhoraux(:,:,ispin), orb_rhor(:), f)
+      vhaux=0.d0
+      do ig=1,ngm
+          vhaux( np(ig) )= rhogaux(ig,ispin)
+          vhaux( nm(ig) )= CONJG(rhogaux(ig,ispin))
+      enddo
+      !
+      call invfft('Dense',vhaux,dfftp )
+      !
+      do ir=1,nnrx
+         !
+          taukin(ir,ispin) = DBLE(vhaux(ir))
+         !
+      enddo
       !
       deallocate(vhaux,rhogaux,grhoraux)
       !
@@ -2403,7 +2191,6 @@ end subroutine nksic_newd
 !     energy density (involving the total density).
 !
       use kinds,                only : dp
-      use nksic,                only : add_up_taukin
       use grid_dimensions,      only : nnrx, nr1, nr2, nr3
       use gvecp,                only : ngm
       use recvecs_indexes,      only : np, nm
@@ -2411,6 +2198,7 @@ end subroutine nksic_newd
       use fft_base,             only : dfftp
       use funct,                only : dft_is_gradient
       use control_flags,        only : gamma_only, do_wf_cmplx
+      use nksic,                only : epsi=> epsi_cutoff_renorm, epsi2_cutoff_renorm
       !
       implicit none
       !
@@ -2422,7 +2210,8 @@ end subroutine nksic_newd
       complex(dp), allocatable :: rhogaux(:,:)
       real(dp), allocatable :: grhoraux(:,:,:)
       complex(dp), allocatable :: vhaux(:)
-      real(dp), parameter :: epsi=1.d-9
+      real(dp) :: temp(3), tempnorm
+!       real(dp), parameter :: epsi=1.d-3
       LOGICAL :: lgam
       !
       lgam=gamma_only.and..not.do_wf_cmplx
@@ -2450,13 +2239,22 @@ end subroutine nksic_newd
       !
       do ir=1,nnrx
          !
-         IF(orb_rhor(ir).gt.epsi) THEN
+         IF(.true.) THEN
+            !
+            tempnorm=0.d0
             !
             do j=1,3
                !
-               upsilon(ir,j,ispin) = grhoraux(ir,j,ispin)/(2.*orb_rhor(ir))
+               temp(j) = grhoraux(ir,j,ispin)/(2.*(orb_rhor(ir)+epsi))
+               tempnorm=tempnorm+temp(j)**2
                !
             enddo
+            !
+            IF(.true.) THEN
+               !
+               upsilon(ir,:,ispin)=temp(:)
+               !
+            ENDIF
             !
          ENDIF
          !
@@ -7877,3 +7675,394 @@ SUBROUTINE compute_complexification_index(ngw, nnrx, nbsp, nbspx, nspin, ispin, 
       return
 
 END subroutine compute_complexification_index
+
+
+!-----------------------------------------------------------------------
+      subroutine nksic_potential_non_ortho( nbsp, nx, c, cdual, f_diag, &
+                                  bec, becdual, becsum, &
+                                  deeq_sic, ispin, iupdwn, nupdwn, &
+                                  rhor, rhog, wtot, sizwtot, vsic, do_wxd_, pink, nudx, &
+                                  wfc_centers, wfc_spreads, &
+                                  icompute_spread)
+!-----------------------------------------------------------------------
+!
+! ....calculate orbital dependent potentials, 
+!     following the Non-Koopmans' (NK) scheme, 
+!     but also Perdew-Zunger (PZ),
+!     Non-Koopmans' integral definition (NKI),
+!     Non-Joopmans on Perdew Zunger (PZNK)
+!
+      use kinds,                      only: dp
+      use gvecp,                      only: ngm
+      use gvecw,                      only: ngw
+      use grid_dimensions,            only: nnrx
+      use electrons_base,             only: nspin
+      use funct,                      only : dft_is_gradient
+      use nksic,                      only: orb_rhor, wxdsic, &
+                                            wrefsic, rhoref, rhobar, &
+                                            do_nk, do_nki, do_pz, do_nkpz, &
+                                            do_nkipz, grhobar, fion_sic, &
+                                            pzalpha=>alpha, do_pz_renorm, edens, &
+                                            tauw,taukin, upsilonkin, upsilonw, kfact
+      use ions_base,                  only: nat
+      use control_flags,         only: gamma_only, do_wf_cmplx !added:giovanni
+      use uspp,                       only: nkb
+      use uspp_param,                 only: nhm
+      use cp_interfaces,         only: nksic_get_orbitalrho !added:giovanni
+      use twin_types !added:giovanni
+      use input_parameters,      only: draw_pot, pot_number  !added:linh draw vsic potentials
+      use io_pot_sic_xml,        only: write_pot_sic  !added:linh draw vsic potentials
+      USE io_global,             ONLY: stdout
+      !
+      implicit none
+      !
+      ! in/out vars
+      !
+      integer,     intent(in)  :: nbsp, nx, nudx, sizwtot
+      complex(dp), intent(in)  :: c(ngw,nx), cdual(ngw,nx)
+      type(twin_matrix),    intent(in)  :: bec, becdual!(nkb,nbsp) !modified:giovanni
+      real(dp),    intent(in)  :: becsum( nhm*(nhm+1)/2, nat, nspin)
+      integer,     intent(in)  :: ispin(nx)
+      integer,     intent(in)  :: iupdwn(nspin), nupdwn(nspin)
+      real(dp),    intent(in)  :: f_diag(nx)
+      real(dp),    intent(in)  :: rhor(nnrx,nspin)
+      complex(dp), intent(in)  :: rhog(ngm,nspin)
+      real(dp),    intent(out) :: vsic(nnrx,nx), wtot(sizwtot,2)
+      real(dp),    intent(out) :: deeq_sic(nhm,nhm,nat,nx)
+      logical,     intent(in)  :: do_wxd_
+      real(dp),    intent(out) :: pink(nx)
+      logical                  :: icompute_spread
+      real(DP) :: wfc_centers(4,nudx,nspin)
+      real(DP) :: wfc_spreads(nudx,nspin,2)
+
+      !
+      ! local variables
+      !
+      integer  :: i,j,jj,ibnd,isp
+      real(dp) :: focc,pinkpz,shart
+      real(dp), allocatable :: vsicpz(:)
+      complex(dp), allocatable :: rhobarg(:,:)
+      logical :: lgam
+      complex(dp), dimension(nudx,nudx,nspin) :: overlap_
+      !
+      ! main body
+      !
+      CALL start_clock( 'nksic_drv' )
+      lgam = gamma_only.and..not.do_wf_cmplx
+      !
+      ! compute potentials
+      !
+      if (dft_is_gradient()) then
+         allocate(rhobarg(ngm,2))
+         !write(6,*) "allocated rhobarg"
+      else
+         allocate(rhobarg(1,1))
+      endif
+
+      if ( do_nk .or. do_nkpz .or. do_nki .or. do_nkipz ) then
+          wtot=0.0_dp
+      endif
+      !
+      if ( do_nkpz .or. do_nkipz) then
+          allocate(vsicpz(nnrx))
+          vsicpz=0.0_dp
+      endif
+      !
+      pink=0.0_dp
+      vsic=0.0_dp
+      !
+      ! if using pz_renorm factors, compute here tauw and upsilonw
+      !
+      if(do_pz_renorm) THEN
+         !
+         edens=0.d0
+         !
+         do isp=1,nspin
+            !
+            call nksic_get_taukin_pz( 1.d0, nspin, isp, rhor(1,isp), tauw, 1)
+            !
+         enddo      
+         !
+      ENDIF
+      !
+      ! loop over bands (2 ffts at the same time)
+      !
+!       call compute_overlap(c, ngw, nbsp, overlap_)
+      !
+      do j=1,nbsp,2
+        !
+        ! compute orbital densities
+        ! n odd => c(:,n+1) is already set to zero
+        !
+        call nksic_get_orbitalrho( ngw, nnrx, bec, becdual, ispin, nbsp, &
+                     c(:,j), c(:,j+1), cdual(:,j), cdual(:,j+1), orb_rhor, &
+                     j, j+1, lgam) !note:giovanni change here for non-orthogonality flavour
+!begin_added:giovanni
+!            orb_rhor(:,1) = orb_rhor(:,1)/overlap_(j+1-iupdwn(ispin(j)),j+1-iupdwn(ispin(j)),ispin(j))
+!            orb_rhor(:,2) = orb_rhor(:,2)/overlap_(j+2-iupdwn(ispin(j+1)),j+2-iupdwn(ispin(j+1)),ispin(j+1))
+          !compute centers and spreads of nksic or pz minimizing orbitals
+        IF(icompute_spread) THEN
+          !
+          call compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
+                    nupdwn, ispin, orb_rhor, wfc_centers, wfc_spreads, j, j+1)
+          !
+        ENDIF
+          !
+!end_added:giovanni
+        !
+        shart=0.d0
+        !
+        ! compute orbital potentials
+        !
+        inner_loop: do jj=1,2
+          ! 
+          i=j+jj-1
+          !
+          ! this condition is important when n is odd
+          !
+          if ( i > nbsp ) exit inner_loop
+          !
+          ibnd=i
+          if( nspin==2 ) then
+              if ( i >= iupdwn(2) ) ibnd=i-iupdwn(2)+1
+          endif
+          !
+          ! note: iupdwn(2) is set to zero if nspin = 1
+          !
+          focc=f_diag(i)*DBLE(nspin)/2.0d0
+          !
+          ! compute parameters needed for PZ-renormalization
+          !
+          IF(do_pz_renorm) THEN
+             !     
+             call nksic_get_taukin_pz( focc, nspin, ispin(i), orb_rhor(:,jj), &
+                                      taukin, ibnd)
+             !                         
+          ENDIF
+          !
+          !
+          ! define rhoref and rhobar
+          !
+          !write(6,*) ubound(rhobarg)
+          call nksic_get_rhoref( i, nnrx, ispin(i), nspin,  &
+                                 focc, rhor, orb_rhor(:,jj), &
+                                 rhoref, rhobar, rhobarg, grhobar )
+
+          !
+          ! compute nk pieces to build the potentials and the energy
+          !
+          if ( do_nk .or. do_nkpz ) then
+              !
+              call nksic_correction_nk( focc, ispin(i), orb_rhor(:,jj), &
+                                        rhor, rhoref, rhobar, rhobarg, grhobar, &
+                                        vsic(:,i), wxdsic, wrefsic, do_wxd_, &
+                                        pink(i), ibnd)
+
+              !
+              ! here information is accumulated over states
+              ! (wtot is added in the next loop)
+              !
+              wtot(1:nnrx,1:2) = wtot(1:nnrx,1:2) + wxdsic(1:nnrx,1:2)
+              !
+              ! ths sic potential is partly updated here to save some memory
+              !
+              vsic(1:nnrx,i) = vsic(1:nnrx,i) + wrefsic(1:nnrx) &
+                             - wxdsic( 1:nnrx, ispin(i) )
+              !
+          endif
+
+          ! 
+          ! compute nkpz pieces to build the potential and the energy
+          !
+          if( do_nkpz ) then
+              !
+              call nksic_correction_nkpz( focc, orb_rhor(:,jj), vsicpz, &
+                                          wrefsic, pinkpz, ibnd, ispin(i))
+              !
+              vsic(1:nnrx,i) = vsic(1:nnrx,i) + vsicpz(1:nnrx) &
+                             + wrefsic(1:nnrx)
+              !
+              pink(i) = pink(i) +pinkpz
+              !
+          endif
+
+          
+          !
+          ! compute pz potentials and energy
+          !
+          if ( do_pz ) then 
+              !
+              call nksic_correction_pz ( focc, ispin(i), orb_rhor(:,jj), &
+                                         vsic(:,i), pink(i), pzalpha(i), ibnd, shart)
+              !
+              wfc_spreads(ibnd, ispin(i), 2) = shart
+              !
+              if(do_pz_renorm) then
+                 !
+                 edens(:,ispin(i)) = edens(:,ispin(i)) + pink(i)*orb_rhor(:,jj)
+                 !
+              endif
+              !
+          endif
+
+          !
+          ! compute nki pieces to build the potentials and the energy
+          !
+          if ( do_nki .or. do_nkipz) then
+              !
+              call nksic_correction_nki( focc, ispin(i), orb_rhor(:,jj), &
+                                         rhor, rhoref, rhobar, rhobarg, grhobar, &
+                                         vsic(:,i), wxdsic, do_wxd_, pink(i), ibnd)
+              !
+              ! here information is accumulated over states
+              ! (wtot is added in the next loop)
+              !
+              wtot(1:nnrx,1:2) = wtot(1:nnrx,1:2) + wxdsic(1:nnrx,1:2)
+              !
+              ! ths sic potential is partly updated here to save some memory
+              !
+              vsic(1:nnrx,i) = vsic(1:nnrx,i) - wxdsic( 1:nnrx, ispin(i) )
+              !
+          endif
+
+          if( do_nkipz ) then
+              !
+              !write(6,*) "silvestro", ubound(ispin), ubound(orb_rhor), ubound(vsicpz)
+              call nksic_correction_nkipz( focc, ispin(i), orb_rhor(:,jj), vsicpz, &
+                                           pinkpz, ibnd, shart)
+              !
+              vsic(1:nnrx,i) = vsic(1:nnrx,i) + vsicpz(1:nnrx)
+              !
+              pink(i) = pink(i) +pinkpz
+              !
+              wfc_spreads(ibnd, ispin(i), 2) = shart
+              !
+          endif
+          !
+          ! take care of spin symmetry
+          !
+          pink(i) = f_diag(i) * pink(i)
+          !
+          if ( do_nk .or. do_nkpz .or. do_nki .or. do_nkipz) then
+              !
+              if( nspin== 1 ) then
+                  !
+                  wtot(1:nnrx,1) = wtot(1:nnrx,1) + wxdsic(1:nnrx,2)
+                  wtot(1:nnrx,2) = wtot(1:nnrx,2) + wxdsic(1:nnrx,1)
+                  !
+              endif
+              !
+          endif
+          !
+        enddo inner_loop
+        !
+      enddo
+
+      !
+      ! Switch off the icompute_spread flag if present
+      !
+      IF(icompute_spread) THEN
+         !
+         icompute_spread=.false.
+         !
+      ENDIF
+      !
+      ! now wtot is completely built and can be added to vsic
+      !
+      if ( do_nk .or. do_nkpz .or. do_nki .or. do_nkipz ) then
+          !
+          do i = 1, nbsp
+              !
+              vsic(1:nnrx,i) = vsic(1:nnrx,i) + wtot( 1:nnrx, ispin(i) ) 
+              ! 
+          enddo
+          !
+      endif
+      !
+      ! if pz is renormalized, here we compute the potential, and multiply here pink by renormalization factor
+      !
+      if ( do_pz_renorm ) then
+          !
+          do j=1,nbsp,2
+             !
+             call nksic_get_orbitalrho( ngw, nnrx, bec, ispin, nbsp, &
+                     c(:,j), c(:,j+1), orb_rhor, j, j+1, lgam)
+             !
+             inner_loop_renorm: do jj=1,2
+                !
+                i=j+jj-1        
+                if ( i > nbsp ) exit inner_loop_renorm
+                !
+                ibnd=i
+                focc=f_diag(i)*DBLE(nspin)/2.0d0
+                !
+                if( nspin==2 ) then
+                    if ( i >= iupdwn(2) ) ibnd=i-iupdwn(2)+1
+                endif
+                !
+                call nksic_get_pz_factor( nspin, ispin(i), orb_rhor(:,jj), &
+                                         taukin, tauw, pzalpha(i), ibnd, kfact)
+                !
+                ! update vsic with factor here: it works for pz, will it work for 
+                ! nk-type functionals?
+                !
+!                 vsic(:,i) = vsic(:,i)*pzalpha(i)
+!                 pink(i) = pink(i)*pzalpha(i)
+                !
+                !
+!                 call nksic_get_pzfactor_potential(focc, nspin, ispin(i), rhor, orb_rhor(:,jj), &
+!                                       pink(i), taukin, tauw, edens, upsilonkin, upsilonw, vsic(:,i), pzalpha(i), ibnd, kfact)
+                !
+             enddo inner_loop_renorm
+             !
+          enddo
+          !
+      endif
+      !
+      !
+      if (draw_pot) then !added:linh draw vsic potentials
+         !
+         write(stdout,*) "I am writing out vsic", nbsp
+         do i =1, nbsp
+           ! 
+           if (i == pot_number) call write_pot_sic ( vsic(:, i) ) 
+           !  
+         enddo
+         !
+      endif !added:linh draw vsic potentials
+      !
+      if ( allocated(vsicpz) ) deallocate(vsicpz)
+      
+      !
+      ! USPP:
+      ! compute corrections to the D coefficients of the pseudopots
+      ! due to vsic(r, i) in the case of orbital dependent functionals.
+      ! The corresponding contributions to the forces are computed.
+      !
+      ! IMPORTANT: the following call makes use of newd. 
+      !            It must be done before we call newd for the
+      !            total potentials, because deeq is overwritten at every call
+      !
+      fion_sic(:,:)     = 0.0d0
+      !
+      IF ( nhm > 0 ) then
+          !
+          deeq_sic(:,:,:,:) = 0.0d0
+          !
+          DO i = 1, nbsp
+              !
+              CALL nksic_newd( i, nnrx, ispin(i), nspin, vsic(:,i), nat, nhm, &
+                               becsum, fion_sic, deeq_sic(:,:,:,i) ) 
+              !
+          ENDDO
+          !
+      ENDIF
+      ! 
+      deallocate(rhobarg)
+      ! 
+      CALL stop_clock( 'nksic_drv' )
+      return
+      !
+!-----------------------------------------------------------------------
+      end subroutine nksic_potential_non_ortho
+!-----------------------------------------------------------------------
