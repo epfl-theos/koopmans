@@ -403,7 +403,7 @@
       use constants,      only : autoev 
       USE io_global,      ONLY : stdout, ionode
       USE ensemble_dft,   ONLY : tens, tsmear
-      use nksic,          ONLY : complexification_index, pink, pink_emp, do_orbdep
+      use nksic,          ONLY : complexification_index, pink, pink_emp, do_orbdep, pzalpha=> alpha
       !
       INTEGER,  INTENT(IN) :: spread_unit
       LOGICAL,  INTENT(IN) :: tfile, tstdout
@@ -422,7 +422,7 @@
             WRITE( stdout,1222) ik, j
             !
             IF(do_orbdep) THEN
-               WRITE( stdout,1444) ( wfc_centers(1:4, i, j ),  wfc_spreads( i, j , 1), wfc_spreads( i, j, 2), pink(iupdwn(j)-1+sort_spreads(i,j))*hartree_si/electronvolt_si, i = 1, nupdwn(j) )
+               WRITE( stdout,1444) ( wfc_centers(1:4, i, j ),  wfc_spreads( i, j , 1), wfc_spreads( i, j, 2), pink(iupdwn(j)-1+sort_spreads(i,j))*hartree_si/electronvolt_si, pzalpha(iupdwn(j)-1+sort_spreads(i,j)), i = 1, nupdwn(j) )
             ELSE
                WRITE( stdout,1445) ( wfc_centers(1:4, i, j ),  wfc_spreads( i, j , 1), wfc_spreads( i, j, 2), i = 1, nupdwn(j) )
             ENDIF
@@ -456,7 +456,7 @@
  1222 FORMAT(/,3X,'Charge  ---   Centers xyz (Bohr)  ---  Spreads (Bohr^2) - SH(eV), kp = ',I3, ' , spin = ',I2,/)
  12224 FORMAT(/,3X,'Empty Charge  ---   Centers xyz (Bohr)  ---  Spreads (Bohr^2) - SH(eV), kp = ',I3, ' , spin = ',I2,/)
  1005 FORMAT(/,3X,'Empty States Eigenvalues (eV), kp = ',I3, ' , spin = ',I2,/)
- 1444 FORMAT(F8.2,'   ---',3F8.2,'   ---',3F8.3)
+ 1444 FORMAT(F8.2,'   ---',3F8.2,'   ---',4F8.3)
  1445 FORMAT(F8.2,'   ---',3F8.2,'   ---',2F8.2)
  1121 FORMAT(/3X,'Manifold complexification index = ',2F8.4/)
  1084 FORMAT(10F8.4)

@@ -223,6 +223,7 @@ MODULE read_namelists_module
        pot_number  = 1    !added:linh draw vsic potentials 
        !
        do_orbdep=.false.
+       do_wf_cmplx = .false.!added:giovanni
        !
 ! DCC
        do_ee = .false.      ! main switch of EE (electrostatic embedding)
@@ -270,8 +271,8 @@ MODULE read_namelists_module
        do_wxd = .true.      ! include cross-terms in NK potential
        do_wref = .true.     ! include reference variational terms
        do_spinsym = .false. ! whether to apply spin up-down symmmetry 
-       do_wf_cmplx = .false.!added:giovanni
        do_pz_renorm = .false.
+       kfact=0.d0
        fref = 0.5_DP
        rhobarfact = 1.0_DP
        vanishing_rho_w = 1.0e-12_DP
@@ -886,6 +887,7 @@ MODULE read_namelists_module
        !
        CALL mp_bcast( do_ee,                      ionode_id )
        CALL mp_bcast( do_orbdep,                  ionode_id )
+       CALL mp_bcast( do_wf_cmplx,                ionode_id )!added:giovanni
        !
        RETURN
        !
@@ -937,8 +939,8 @@ MODULE read_namelists_module
        CALL mp_bcast( do_spinsym,                 ionode_id )
        CALL mp_bcast( rhobarfact,                 ionode_id )
        CALL mp_bcast( do_pz_renorm,               ionode_id )
-       CALL mp_bcast( do_wf_cmplx,                ionode_id )!added:giovanni
-     
+       CALL mp_bcast( kfact,                      ionode_id )
+            
       RETURN
       !
      END SUBROUTINE nksic_bcast 
@@ -2117,26 +2119,6 @@ MODULE read_namelists_module
        !
        CALL allocate_input_ions( ntyp, nat )
        !
-       ! ... NKSIC namelist
-       !
-       IF(do_orbdep) THEN
-          !
-          ios = 0
-          IF( ionode ) THEN
-             READ( 5, nksic, iostat = ios )
-          END IF
-          CALL mp_bcast( ios, ionode_id )
-          IF( ios /= 0 ) THEN
-             CALL errore( ' read_namelists ', &
-                        & ' reading namelist nksic ', ABS(ios) )
-          END IF
-          !
-          CALL nksic_bcast( )       
-          !
-          CALL nksic_checkin( prog )
-          !
-       ENDIF
-       !
        ! ... ELECTRONS namelist
        !
        ios = 0
@@ -2226,6 +2208,27 @@ MODULE read_namelists_module
                                     & ' reading namelist ee ', ABS(ios) )
        END IF
        CALL ee_bcast()
+       !
+       ! ... NKSIC namelist
+       !
+       IF(do_orbdep) THEN
+          !
+          ios = 0
+          IF( ionode ) THEN
+             READ( 5, nksic, iostat = ios )
+          END IF
+          CALL mp_bcast( ios, ionode_id )
+          IF( ios /= 0 ) THEN
+             CALL errore( ' read_namelists ', &
+                        & ' reading namelist nksic ', ABS(ios) )
+          END IF
+          !
+          CALL nksic_bcast( )       
+          !
+          CALL nksic_checkin( prog )
+          !
+       ENDIF
+
        !
        ! ... PHONON namelist
        !

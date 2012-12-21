@@ -184,19 +184,19 @@
           IF(do_pz_renorm) THEN
              !     
              call nksic_get_taukin_pz( focc, nspin, ispin(i), orb_rhor(:,jj), &
-                                      taukin, ibnd)
+                                      taukin, ibnd, 1)
              !
              IF(ibnd==1) THEN
                 !
                 IF(nspin==1) THEN
                    !
                    call nksic_get_taukin_pz( 0.5d0, nspin, ispin(i), &
-                                      rhor(:,1), tauw, ibnd)
+                                      rhor(:,1), tauw, ibnd, nupdwn(ispin(i)))
                    !
                 ELSE IF(nspin==2) THEN
                    !
                    call nksic_get_taukin_pz( 1.d0, nspin, ispin(i), &
-                                      rhor(:,ispin(i)), tauw, ibnd)
+                                      rhor(:,ispin(i)), tauw, ibnd, nupdwn(ispin(i)))
                    !
                 ENDIF
                 !
@@ -263,6 +263,7 @@
                  do ir=1,nnrx
                     !
                     edens(ir,ispin(i)) = edens(ir,ispin(i)) + pink(i)*(orb_rhor(ir,jj)+epsi2)**(kfact+1.)
+! ! !                     edens(ir,ispin(i)) = edens(ir,ispin(i)) + pink(i)*(orb_rhor(ir,jj))
                     !
                  enddo
                  !
@@ -277,7 +278,6 @@
               call nksic_correction_nki( focc, ispin(i), orb_rhor(:,jj), &
                                          rhor, rhoref, rhobar, rhobarg, grhobar, &
                                          vsic(:,i), wxdsic, do_wxd_, pink(i), ibnd, is_empty_)
-!                                                                                   write(6,*) "check2pink", pink(i)
               !
               ! here information is accumulated over states
               ! (wtot is added in the next loop)
@@ -292,11 +292,9 @@
 
           if( do_nkipz ) then
               !
-              !write(6,*) "silvestro", ubound(ispin), ubound(orb_rhor), ubound(vsicpz)
               call nksic_correction_nkipz( focc, ispin(i), orb_rhor(:,jj), vsicpz, &
                                            pinkpz, ibnd, shart, is_empty_ )
               !
-              !write(6,*) "silvestro", ubound(ispin), ubound(orb_rhor), ubound(vsicpz)
                vsic(1:nnrx,i) = vsic(1:nnrx,i) + vsicpz(1:nnrx)
               !
                pink(i) = pink(i) +pinkpz
@@ -379,7 +377,7 @@
                 call nksic_get_pz_factor( nspin, ispin(i), orb_rhor(:,jj), rhor,&
                                          taukin, tauw, pzalpha(i), ibnd, kfact)
                 !
-                write(6,*) "this pzalpha", pzalpha(i)
+!                 write(6,*) "this pzalpha", pzalpha(i)
                 !
                 ! update vsic with factor here: it works for pz, will it work for 
                 ! nk-type functionals?
@@ -1880,13 +1878,13 @@ end subroutine nksic_newd
       !
       do ir=1,nnrx
          !
-!          IF((tauw(ir,ispin)**2+taukin(ir,ispin)**2.gt.epsi2**4)) THEN !
+! ! !          IF((tauw(ir,ispin)**2+taukin(ir,ispin)**2.gt.epsi2**4)) THEN !
          IF(rhor(ir,ispin).gt.epsi2) THEN !
             !
-!             aidfract=((tauw(ir,ispin)+epsi2)/(taukin(ir,ispin)+epsi2))**kfact
+! ! !             aidfract=((tauw(ir,ispin)+epsi2)/(taukin(ir,ispin)+epsi2))**kfact
             aidfract=((orb_rhor(ir)+epsi2)/(rhor(ir,ispin)+epsi2))**kfact
             !
-            IF(1.d0-abs(aidfract).lt.epsi2**2) THEN
+            IF(1.d0-abs(aidfract).lt.epsi2) THEN
                !
                aidfract=1.d0
                !
@@ -1900,16 +1898,16 @@ end subroutine nksic_newd
             !
          ENDIF
          !
-         norm=norm+orb_rhor(ir)
+!          norm=norm+orb_rhor(ir)
          !
       enddo
       !
       call mp_sum(temp,intra_image_comm)
-      call mp_sum(norm,intra_image_comm)
+!       call mp_sum(norm,intra_image_comm)
       !
       temp=temp*fact
-      norm=norm*fact
-      write(6,*) "checknorm", norm
+!       norm=norm*fact
+!       write(6,*) "checknorm", norm
       !
       alpha=temp
       !
@@ -1966,12 +1964,12 @@ end subroutine nksic_newd
       vsicaux=0.d0
 !       write(6,*) "checkall", ibnd, ispin
       !
-      call nksic_get_upsilon_pz( f, nspin, ispin, orb_rhor, &
-                                      upsilonkin, ibnd)
+! ! !       call nksic_get_upsilon_pz( f, nspin, ispin, orb_rhor, &
+! ! !                                       upsilonkin, ibnd)
       if(ibnd==1) THEN !compute also upsilonw
          !
-         call nksic_get_upsilon_pz( 1.d0, nspin, ispin, rhor(:,ispin), &
-                                      upsilonw, ibnd)
+! !          call nksic_get_upsilon_pz( 1.d0, nspin, ispin, rhor(:,ispin), &
+!                                       upsilonw, ibnd)
          !
       ENDIF                                      
       !
@@ -1997,25 +1995,25 @@ end subroutine nksic_newd
 !          tempw=sqrt(abs(tempw))
 !                              write(6,*) "checktau", taukin(ir,ispin),tauw(ir,ispin),ispin
          !
-!          IF((tauw(ir,ispin)**2+taukin(ir,ispin)**2.gt.epsi2**4)) THEN
+! ! !          IF((tauw(ir,ispin)**2+taukin(ir,ispin)**2.gt.epsi2**4)) THEN
         IF((rhor(ir,ispin).gt.epsi2)) THEN !
  ! THEN
             !
-!             aidtau=0.5d0*(temp/(taukin(ir,ispin)+epsi2)-tempw/(tauw(ir,ispin)+epsi2))
+! ! !             aidtau=0.5d0*(temp/(taukin(ir,ispin)+epsi2)-tempw/(tauw(ir,ispin)+epsi2))
             aidtau=-edens(ir,ispin)/(rhor(ir,ispin)+epsi2)**(kfact+1.)
             !
-!             aidfrac=((tauw(ir,ispin)+epsi2)/(taukin(ir,ispin)+epsi2))**kfact
+! ! !             aidfrac=((tauw(ir,ispin)+epsi2)/(taukin(ir,ispin)+epsi2))**kfact
             aidfrac=((orb_rhor(ir)+epsi2)/(rhor(ir,ispin)+epsi2))**kfact
             
             !
-            IF(1.d0-abs(aidfrac).lt.epsi2**2) THEN
-               !
+            IF(1.d0-abs(aidfrac).lt.epsi2) THEN
+!                !
                aidfrac=1.d0
                aidtau=0.d0
                !
             ENDIF
-! ! !             !
-            IF(abs(aidtau).lt.epsi2**2) THEN
+! !             !
+            IF(abs(aidtau).lt.epsi2) THEN
                !
                aidtau=0.d0
                !
@@ -2024,7 +2022,7 @@ end subroutine nksic_newd
             vsicaux(ir,ispin) = vsicaux(ir,ispin) &
                                 +pink/f*(-alpha+aidfrac)
             !
-!             vsicaux(ir,ispin) = vsicaux(ir,ispin)+kfact*edens(ir,ispin)*aidfrac*aidtau
+! ! !             vsicaux(ir,ispin) = vsicaux(ir,ispin)+kfact*edens(ir,ispin)*aidfrac*aidtau
             vsicaux(ir,ispin) = vsicaux(ir,ispin)+kfact*aidfrac*pink/f+aidtau*kfact
             !
             do j=1,3
@@ -2098,7 +2096,7 @@ end subroutine nksic_newd
       
 !---------------------------------------------------------------
       subroutine nksic_get_taukin_pz( f, nspin, ispin, orb_rhor, &
-                                      taukin, ibnd) 
+                                      taukin, ibnd, mult) 
 !---------------------------------------------------------------
 !
 ! ... sum up the kinetic energy-density taukin ... this works both for summing
@@ -2119,7 +2117,7 @@ end subroutine nksic_newd
       !
       implicit none
       !
-      integer,     intent(in)  :: ispin, ibnd, nspin
+      integer,     intent(in)  :: ispin, ibnd, nspin, mult
       real(dp),    intent(in)  :: f, orb_rhor(nnrx)
       real(dp), intent(inout) :: taukin(nnrx,nspin)
       !
@@ -2144,7 +2142,7 @@ end subroutine nksic_newd
       !
       do ir=1,nnrx
          !
-         vhaux(ir) = sqrt(orb_rhor(ir))
+         vhaux(ir) = sqrt(abs(orb_rhor(ir)+mult*epsi))
          !
       enddo
       !
@@ -2154,28 +2152,28 @@ end subroutine nksic_newd
           rhogaux(ig,ispin) = vhaux( np(ig) )
       enddo
       !
-      call enkin_dens( rhogaux(:,ispin), ngm, f)
+!       call enkin_dens( rhogaux(:,ispin), ngm, f)
       !
       allocate(grhoraux(nnrx,3,2))
-      !
-!       grhoraux=0.0_dp
-      !
-!       call fillgrad( 1, rhogaux(:,ispin:ispin), grhoraux(:,:,ispin:ispin), lgam )
-      !
-      !       call add_up_taukin(nnrx, taukin(:,ispin), grhoraux(:,:,ispin), orb_rhor(:), f)
-      vhaux=0.d0
-      do ig=1,ngm
-          vhaux( np(ig) )= rhogaux(ig,ispin)
-          vhaux( nm(ig) )= CONJG(rhogaux(ig,ispin))
-      enddo
-      !
-      call invfft('Dense',vhaux,dfftp )
-      !
-      do ir=1,nnrx
-         !
-          taukin(ir,ispin) = DBLE(vhaux(ir))
-         !
-      enddo
+      
+      grhoraux=0.0_dp
+      
+      call fillgrad( 1, rhogaux(:,ispin:ispin), grhoraux(:,:,ispin:ispin), lgam )
+      
+            call add_up_taukin(nnrx, taukin(:,ispin), grhoraux(:,:,ispin), orb_rhor(:), f)
+!       vhaux=0.d0
+!       do ig=1,ngm
+!           vhaux( np(ig) )= rhogaux(ig,ispin)
+!           vhaux( nm(ig) )= CONJG(rhogaux(ig,ispin))
+!       enddo
+!       !
+!       call invfft('Dense',vhaux,dfftp )
+!       !
+!       do ir=1,nnrx
+!          !
+!           taukin(ir,ispin) = DBLE(vhaux(ir))
+!          !
+!       enddo
       !
       deallocate(vhaux,rhogaux,grhoraux)
       !
@@ -2221,7 +2219,11 @@ end subroutine nksic_newd
       !
       rhogaux=0.0_dp
       !
-      vhaux(:) = orb_rhor(:)
+      do ir=1,nnrx
+         !
+         vhaux(ir) = log(abs(orb_rhor(ir)))
+         !
+      enddo
       !
       call fwfft('Dense',vhaux,dfftp )
       !
@@ -2245,12 +2247,12 @@ end subroutine nksic_newd
             !
             do j=1,3
                !
-               temp(j) = grhoraux(ir,j,ispin)/(2.*(orb_rhor(ir)+epsi))
+               temp(j) = grhoraux(ir,j,ispin)!/(2.*(orb_rhor(ir)+epsi))
                tempnorm=tempnorm+temp(j)**2
                !
             enddo
             !
-            IF(.true.) THEN
+            IF(tempnorm.gt.epsi) THEN
                !
                upsilon(ir,:,ispin)=temp(:)
                !

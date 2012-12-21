@@ -334,8 +334,8 @@ module nksic
   real(dp) :: rhobarfact
   real(dp) :: nkscalfact
   real(dp) :: kfact
-  real(dp) :: epsi_cutoff_renorm=1.d-6
-  real(dp) :: epsi2_cutoff_renorm=1.d-4
+  real(dp) :: epsi_cutoff_renorm=1.d-7
+  real(dp) :: epsi2_cutoff_renorm=1.d-6
   real(dp) :: vanishing_rho_w
   real(dp) :: f_cutoff
   !

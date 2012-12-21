@@ -446,6 +446,8 @@ MODULE input_parameters
           ! other DFT-D parameters ( see PW/mm_dispersion.f90 )
         REAL ( DP ) :: london_s6   =   0.75_DP , & ! default global scaling parameter for PBE
                        london_rcut = 200.00_DP
+        !
+        LOGICAL :: do_wf_cmplx = .false. !added_giovanni
 !
         NAMELIST / system / ibrav, celldm, a, b, c, cosab, cosac, cosbc, nat, &
              ntyp, nbnd, nelec, ecutwfc, ecutrho, nr1, nr2, nr3, nr1s, nr2s,  &
@@ -462,7 +464,8 @@ MODULE input_parameters
              constrained_magnetization, B_field, fixed_magnetization,         &
              sic, sic_epsilon, force_pairing, sic_alpha,                      &
              tot_charge, multiplicity, tot_magnetization,                     &
-             spline_ps, london, london_s6, london_rcut, do_orbdep, do_ee
+             spline_ps, london, london_s6, london_rcut, do_orbdep, do_ee,     &
+             do_wf_cmplx
 !
 !=----------------------------------------------------------------------------=!
 !  NKSIC Namelist Input Parameters
@@ -486,6 +489,7 @@ MODULE input_parameters
         LOGICAL :: do_wxd = .true.
         LOGICAL :: do_hf  = .false.
         LOGICAL :: do_pz_renorm  = .false.
+        REAL(DP) :: kfact = 1.d0
         !
         LOGICAL :: do_innerloop  = .false.
         LOGICAL :: do_innerloop_cg  = .false.
@@ -495,8 +499,6 @@ MODULE input_parameters
         INTEGER :: innerloop_cg_nsd  = 20
         INTEGER :: innerloop_cg_nreset  = 10
         INTEGER :: innerloop_nmax  = 10000
-        !
-        LOGICAL :: do_wf_cmplx = .false. !added_giovanni
         !
         ! This variable overwrites the ones above
         CHARACTER(80)     :: which_orbdep=" "
@@ -533,8 +535,8 @@ MODULE input_parameters
              nkscalfact, hfscalfact, vanishing_rho_w, which_orbdep,           &
              do_innerloop, do_innerloop_cg, innerloop_dd_nstep,               &
              innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax,           &
-             do_wf_cmplx, innerloop_init_n, innerloop_cg_ratio, do_pz_renorm, &
-             esic_conv_thr !added:giovanni do_wf_cmplx
+             innerloop_init_n, innerloop_cg_ratio, do_pz_renorm, kfact, &
+             esic_conv_thr
 
 !=----END nksic input variables
 !
