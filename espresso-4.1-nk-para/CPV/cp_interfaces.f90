@@ -865,9 +865,9 @@
 
    INTERFACE writefile
       SUBROUTINE writefile_cp_real &
-      &     ( h,hold,nfi,c0,cm,taus,tausm,vels,velsm,acc,           &
-      &       lambda,lambdam,xnhe0,xnhem,vnhe,xnhp0,xnhpm,vnhp,nhpcl,nhpdim,ekincm,&
-      &       xnhh0,xnhhm,vnhh,velh, fion, tps, mat_z, occ_f, rho )
+             ( h,hold,nfi,c0,cm,taus,tausm,vels,velsm,acc,           &
+              lambda,lambdam,xnhe0,xnhem,vnhe,xnhp0,xnhpm,vnhp,nhpcl,nhpdim,ekincm,&
+              xnhh0,xnhhm,vnhh,velh, fion, tps, mat_z, occ_f, rho )
          USE kinds,            ONLY: DP
          implicit none
          integer, INTENT(IN) :: nfi
@@ -887,7 +887,7 @@
       END SUBROUTINE writefile_cp_real
       SUBROUTINE writefile_cp_twin &
       &     ( h,hold,nfi,c0,cm,taus,tausm,vels,velsm,acc,           &
-      &       lambda,lambdam,xnhe0,xnhem,vnhe,xnhp0,xnhpm,vnhp,nhpcl,nhpdim,ekincm,&
+      &       lambda,lambdam,lambda_bare, xnhe0,xnhem,vnhe,xnhp0,xnhpm,vnhp,nhpcl,nhpdim,ekincm,&
       &       xnhh0,xnhhm,vnhh,velh, fion, tps, mat_z, occ_f, rho )
          USE kinds,            ONLY: DP
          USE twin_types
@@ -898,7 +898,7 @@
          REAL(DP), INTENT(IN) :: tausm(:,:), taus(:,:), fion(:,:)
          REAL(DP), INTENT(IN) :: vels(:,:), velsm(:,:)
          REAL(DP), INTENT(IN) :: acc(:)
-         TYPE(twin_matrix), DIMENSION(:), INTENT(IN) :: lambda, lambdam
+         TYPE(twin_matrix), DIMENSION(:), INTENT(IN) :: lambda, lambdam, lambda_bare
          REAL(DP), INTENT(IN) :: xnhe0, xnhem, vnhe, ekincm
          REAL(DP), INTENT(IN) :: xnhp0(:), xnhpm(:), vnhp(:)
          integer,      INTENT(in) :: nhpcl, nhpdim

@@ -48,7 +48,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   USE cg_module,            ONLY : tcg
   USE cp_main_variables,    ONLY : eigr, bec, irb, eigrb, rhog, rhos, rhor, &
                                    ei1, ei2, ei3, sfac, ema0bg, becdr, &
-                                   taub, lambda, lambdam, lambdap, vpot,&
+                                   taub, lambda, lambdam, lambdap, lambda_bare, vpot,&
                                    iprint_stdout !added:giovanni iprint_stdout
   USE wavefunctions_module, ONLY : c0, cm, phi => cp, cdual
   USE cell_base,            ONLY : omega, ibrav, h, press, a1, a2, a3
@@ -123,11 +123,9 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
 ! 
      CALL runcg_uspp( nfi, tfirst, tlast, eigr, bec, irb, eigrb, &
                       rhor, rhog, rhos, rhoc, ei1, ei2, ei3, sfac, &
-                      fion, ema0bg, becdr, lambdap, lambda, vpot  )
-     write(6,*) "exiting runcg"
+                      fion, ema0bg, becdr, lambdap, lambda, lambda_bare, vpot  )
      !
      CALL compute_stress( stress, detot, h, omega )
-     write(6,*) "exiting stress"
      !
   ELSE
 

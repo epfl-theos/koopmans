@@ -4649,7 +4649,7 @@ END FUNCTION
       ! this routine is called anyway, even if do_nk=F
       !
       use nksic,            ONLY : do_orbdep, do_nk, do_nkipz, do_nkpz, do_pz, &
-                                   do_nki, do_pz_renorm, kfact, &
+                                   do_nki, do_bare_eigs, do_pz_renorm, kfact, &
                                    do_wref, do_wxd, fref, rhobarfact, &
                                    vanishing_rho_w, &
                                    nknmax, do_spinsym, f_cutoff, &
@@ -4686,6 +4686,7 @@ END FUNCTION
                                    innerloop_init_n_ => innerloop_init_n, &
                                    innerloop_cg_ratio_ => innerloop_cg_ratio, &
                                    do_pz_renorm_=>do_pz_renorm, &
+                                   do_bare_eigs_=>do_bare_eigs, &
                                    kfact_=> kfact
 !$$
       USE io_global,        ONLY : meta_ionode, stdout
@@ -4714,6 +4715,7 @@ END FUNCTION
       do_wxd  = do_wxd_
       do_wref = do_wref_
       do_pz_renorm=do_pz_renorm_
+      do_bare_eigs=do_bare_eigs_
       kfact=kfact_
       !
       fref    = fref_

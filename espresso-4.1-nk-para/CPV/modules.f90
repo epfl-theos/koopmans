@@ -327,6 +327,7 @@ end module ldaU
 module nksic
   !
   use kinds
+  use twin_types
   implicit none
   save
   !
@@ -371,6 +372,7 @@ module nksic
   logical :: do_nk
   logical :: do_pz
   logical :: do_pz_renorm
+  logical :: do_bare_eigs
   logical :: do_nkpz
   logical :: do_nkipz
   logical :: do_nki
@@ -420,6 +422,9 @@ contains
       integer, intent(in):: ngw
       integer, intent(in):: nnrx
       !
+      integer :: ispin
+      logical :: lgam
+      !
       allocate( fsic(nx) )
       allocate( vsic(nnrx,nx) )
       allocate( fion_sic(3,nat) )
@@ -466,6 +471,7 @@ contains
          allocate(upsilonkin(nnrx,3,nspin))
          allocate(upsilonw(nnrx,3,nspin))
       ENDIF
+      !
       !
       fsic     = 0.0d0
       pink     = 0.0d0

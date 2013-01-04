@@ -183,20 +183,20 @@
           !
           IF(do_pz_renorm) THEN
              !     
-             call nksic_get_taukin_pz( focc, nspin, ispin(i), orb_rhor(:,jj), &
-                                      taukin, ibnd, 1)
+             !call nksic_get_taukin_pz( focc, nspin, ispin(i), orb_rhor(:,jj), &
+                                      !taukin, ibnd, 1)
              !
              IF(ibnd==1) THEN
                 !
                 IF(nspin==1) THEN
                    !
-                   call nksic_get_taukin_pz( 0.5d0, nspin, ispin(i), &
-                                      rhor(:,1), tauw, ibnd, nupdwn(ispin(i)))
+                   !call nksic_get_taukin_pz( 0.5d0, nspin, ispin(i), &
+                   !                   rhor(:,1), tauw, ibnd, nupdwn(ispin(i)))
                    !
                 ELSE IF(nspin==2) THEN
                    !
-                   call nksic_get_taukin_pz( 1.d0, nspin, ispin(i), &
-                                      rhor(:,ispin(i)), tauw, ibnd, nupdwn(ispin(i)))
+                   !call nksic_get_taukin_pz( 1.d0, nspin, ispin(i), &
+                   !                   rhor(:,ispin(i)), tauw, ibnd, nupdwn(ispin(i)))
                    !
                 ENDIF
                 !
@@ -2024,6 +2024,7 @@ end subroutine nksic_newd
             aidtau=-edens(ir,ispin)/(aidspin*rhor(ir,ispin)+epsi2)**(kfact+1.d0)
             !
 ! ! !             aidfrac=((tauw(ir,ispin)+epsi2)/(taukin(ir,ispin)+epsi2))**kfact
+            aidfrac=((orb_rhor(ir)+epsi2)/(aidspin*rhor(ir,ispin)+epsi2))**kfact
             
             !
             IF(1.d0-abs(aidfrac).lt.epsi2) THEN
@@ -2043,19 +2044,19 @@ end subroutine nksic_newd
                                 +pink/f*(-alpha+aidfrac)
             !
 ! ! !             vsicaux(ir,ispin) = vsicaux(ir,ispin)+kfact*edens(ir,ispin)*aidfrac*aidtau
-            vsicaux(ir,ispin) = vsicaux(ir,ispin)+kfact*aidfrac*pink/f+aidfrac*aidtau*kfact
+            vsicaux(ir,ispin) = vsicaux(ir,ispin)+kfact*aidfrac*pink/f+aidtau*kfact
             !
             do j=1,3
                !
-               aidtau=0.5d0*(upsilonkin(ir,j,ispin)/(taukin(ir,ispin)+epsi2)-upsilonw(ir,j,ispin)/(tauw(ir,ispin)+epsi2))
+               !aidtau=0.5d0*(upsilonkin(ir,j,ispin)/(taukin(ir,ispin)+epsi2)-upsilonw(ir,j,ispin)/(tauw(ir,ispin)+epsi2))
                !
                IF(abs(aidfrac-1.d0).lt.epsi2) THEN !abs(aidtau).lt.epsi2**2
                   !
-                  aidtau=0.d0
+                  !aidtau=0.d0
                   !
                ENDIF
                !
-               upsilonh(ir,j,ispin) = upsilonh(ir,j,ispin) - kfact*edens(ir,ispin)*aidfrac*aidtau
+               !upsilonh(ir,j,ispin) = upsilonh(ir,j,ispin) - kfact*edens(ir,ispin)*aidfrac*aidtau
                !
             enddo
             !

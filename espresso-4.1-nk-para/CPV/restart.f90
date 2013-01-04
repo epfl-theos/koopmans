@@ -94,7 +94,7 @@
         CALL cp_writefile( ndw, outdir, .TRUE., nfi, tps, acc, nk, xk, wk,   &
              ht, htm, htvel, gvel, xnhh0, xnhhm, vnhh, taui, cdmi , taus,        &
              vels, tausm, velsm, fion, vnhp, xnhp0, xnhpm, nhpcl,nhpdim, occ_f , &
-             occ_f , lambda, lambdam, xnhe0, xnhem, vnhe, ekincm, ei,            &
+             occ_f , lambda, lambdam, xnhe0, xnhem, vnhe, ekincm, ei,&
              rho, c0, cm, ctot, iupdwn, nupdwn, iupdwn, nupdwn, mat_z = mat_z  )
         !
       ELSE IF ( tsmear ) THEN
@@ -102,7 +102,7 @@
         CALL cp_writefile( ndw, outdir, .TRUE., nfi, tps, acc, nk, xk, wk,      &
              ht, htm, htvel, gvel, xnhh0, xnhhm, vnhh, taui, cdmi , taus,        &
              vels, tausm, velsm, fion, vnhp, xnhp0, xnhpm, nhpcl,nhpdim, occ_f , &
-             occ_f , lambda, lambdam, xnhe0, xnhem, vnhe, ekincm, eitot,          &
+             occ_f , lambda, lambdam, xnhe0, xnhem, vnhe, ekincm, eitot,&
              rho, c0, cm, ctot, iupdwn, nupdwn, iupdwn_tot, nupdwn_tot, mat_z = mat_z )
         !
       ELSE
@@ -110,7 +110,7 @@
         CALL cp_writefile( ndw, outdir, .TRUE., nfi, tps, acc, nk, xk, wk,      &
              ht, htm, htvel, gvel, xnhh0, xnhhm, vnhh, taui, cdmi , taus,        &
              vels, tausm, velsm, fion, vnhp, xnhp0, xnhpm, nhpcl,nhpdim, occ_f , &
-             occ_f , lambda, lambdam, xnhe0, xnhem, vnhe, ekincm, eitot,          &
+             occ_f , lambda, lambdam, xnhe0, xnhem, vnhe, ekincm, eitot,&
              rho, c0, cm, ctot, iupdwn, nupdwn, iupdwn_tot, nupdwn_tot )
         !
       END IF
@@ -124,7 +124,8 @@
 
    SUBROUTINE writefile_cp_twin                                         &
      &     ( h,hold,nfi,c0,cm,taus,tausm,vels,velsm,acc,           &
-     &       lambda,lambdam,xnhe0,xnhem,vnhe,xnhp0,xnhpm,vnhp,nhpcl,nhpdim,ekincm,&
+     &       lambda,lambdam,lambda_bare,xnhe0,xnhem,vnhe,xnhp0,xnhpm,vnhp,& 
+     &       nhpcl,nhpdim,ekincm,&
      &       xnhh0,xnhhm,vnhh,velh, fion, tps, mat_z, occ_f, rho )
 !-----------------------------------------------------------------------
 !
@@ -154,7 +155,7 @@
       REAL(DP), INTENT(IN) :: tausm(:,:), taus(:,:), fion(:,:)
       REAL(DP), INTENT(IN) :: vels(:,:), velsm(:,:)
       REAL(DP), INTENT(IN) :: acc(:)
-      TYPE(twin_matrix), dimension(:), INTENT(IN) :: lambda, lambdam
+      TYPE(twin_matrix), dimension(:), INTENT(IN) :: lambda, lambdam, lambda_bare
       REAL(DP), INTENT(IN) :: xnhe0, xnhem, vnhe, ekincm
       REAL(DP), INTENT(IN) :: xnhp0(:), xnhpm(:), vnhp(:)
       integer,      INTENT(in) :: nhpcl, nhpdim
@@ -221,7 +222,7 @@
         CALL cp_writefile( ndw, outdir, .TRUE., nfi, tps, acc, nk, xk, wk,   &
              ht, htm, htvel, gvel, xnhh0, xnhhm, vnhh, taui, cdmi , taus,        &
              vels, tausm, velsm, fion, vnhp, xnhp0, xnhpm, nhpcl,nhpdim, occ_f , &
-             occ_f , lambda, lambdam, xnhe0, xnhem, vnhe, ekincm, ei,            &
+             occ_f , lambda, lambdam, lambda_bare, xnhe0, xnhem, vnhe, ekincm, ei,&
              rho, c0, cm, ctot, iupdwn, nupdwn, iupdwn, nupdwn, mat_z = mat_z  )
         !
       ELSE IF ( tsmear ) THEN
@@ -229,7 +230,7 @@
         CALL cp_writefile( ndw, outdir, .TRUE., nfi, tps, acc, nk, xk, wk,      &
              ht, htm, htvel, gvel, xnhh0, xnhhm, vnhh, taui, cdmi , taus,        &
              vels, tausm, velsm, fion, vnhp, xnhp0, xnhpm, nhpcl,nhpdim, occ_f , &
-             occ_f , lambda, lambdam, xnhe0, xnhem, vnhe, ekincm, eitot,          &
+             occ_f , lambda, lambdam, lambda_bare, xnhe0, xnhem, vnhe, ekincm, eitot,&
              rho, c0, cm, ctot, iupdwn, nupdwn, iupdwn_tot, nupdwn_tot, mat_z = mat_z )
         !
       ELSE
@@ -237,7 +238,7 @@
         CALL cp_writefile( ndw, outdir, .TRUE., nfi, tps, acc, nk, xk, wk,      &
              ht, htm, htvel, gvel, xnhh0, xnhhm, vnhh, taui, cdmi , taus,        &
              vels, tausm, velsm, fion, vnhp, xnhp0, xnhpm, nhpcl,nhpdim, occ_f , &
-             occ_f , lambda, lambdam, xnhe0, xnhem, vnhe, ekincm, eitot,          &
+             occ_f , lambda, lambdam, lambda_bare, xnhe0, xnhem, vnhe, ekincm, eitot,&
              rho, c0, cm, ctot, iupdwn, nupdwn, iupdwn_tot, nupdwn_tot )
         !
       END IF

@@ -107,7 +107,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   USE gvecp,                    ONLY : ecutp
   USE time_step,                ONLY : delt, tps, dt2, dt2by2, twodelt
   USE cp_interfaces,            ONLY : cp_print_rho, nlfh, print_lambda
-  USE cp_main_variables,        ONLY : acc, bec, lambda, lambdam, lambdap, &
+  USE cp_main_variables,        ONLY : acc, bec, lambda, lambdam, lambdap, lambda_bare, &
                                        ema0bg, sfac, eigr, ei1, ei2, ei3,  &
                                        irb, becdr, taub, eigrb, rhog, rhos, &
                                        rhor, bephi, becp, nfi, descla, iprint_stdout, &
@@ -960,14 +960,14 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
         IF ( tcg ) THEN
           !
           CALL writefile( h, hold ,nfi, c0, c0old, taus, tausm,  &
-                          vels, velsm, acc, lambda, lambdam, xnhe0, xnhem,     &
+                          vels, velsm, acc, lambda, lambdam, lambda_bare, xnhe0, xnhem,&
                           vnhe, xnhp0, xnhpm, vnhp, nhpcl,nhpdim,ekincm, xnhh0,&
                           xnhhm, vnhh, velh, fion, tps, z0t, f, rhor )
            !
         ELSE
            !
            CALL writefile( h, hold, nfi, c0, cm, taus,  &
-                           tausm, vels, velsm, acc,  lambda, lambdam, xnhe0,   &
+                           tausm, vels, velsm, acc,  lambda, lambdam, lambda_bare, xnhe0,&
                            xnhem, vnhe, xnhp0, xnhpm, vnhp, nhpcl, nhpdim, ekincm,&
                            xnhh0, xnhhm, vnhh, velh, fion, tps, z0t, f, rhor )
            !
@@ -1051,7 +1051,8 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      IF ( lwf ) &
         CALL wf_closing_options( nfi, c0, cm, bec, eigr, eigrb, taub, &
                                  irb, ibrav, b1, b2, b3, taus, tausm, vels, &
-                                 velsm, acc, lambda, lambdam, xnhe0, xnhem, &
+                                 velsm, acc, lambda, lambdam, lambda_bare, xnhe0, &
+                                 xnhem, &
                                  vnhe, xnhp0, xnhpm, vnhp, nhpcl, nhpdim, &
                                  ekincm, xnhh0, xnhhm, vnhh, velh, ecutp, &
                                  ecutw, delt, celldm, fion, tps, z0t, f, rhor )
@@ -1097,7 +1098,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   IF ( tcg ) cm = c0old
   !
   CALL writefile( h, hold, nfi, c0, cm, taus, tausm, &
-                  vels, velsm, acc, lambda, lambdam, xnhe0, xnhem, vnhe,    &
+                  vels, velsm, acc, lambda, lambdam, lambda_bare, xnhe0, xnhem, vnhe, &
                   xnhp0, xnhpm, vnhp, nhpcl,nhpdim,ekincm, xnhh0, xnhhm,    &
                   vnhh, velh, fion, tps, z0t, f, rhor )
   !

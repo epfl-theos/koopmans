@@ -272,6 +272,7 @@ MODULE read_namelists_module
        do_wref = .true.     ! include reference variational terms
        do_spinsym = .false. ! whether to apply spin up-down symmmetry 
        do_pz_renorm = .false.
+       do_bare_eigs = .false.
        kfact=0.d0
        fref = 0.5_DP
        rhobarfact = 1.0_DP
@@ -939,6 +940,7 @@ MODULE read_namelists_module
        CALL mp_bcast( do_spinsym,                 ionode_id )
        CALL mp_bcast( rhobarfact,                 ionode_id )
        CALL mp_bcast( do_pz_renorm,               ionode_id )
+       CALL mp_bcast( do_bare_eigs,               ionode_id )
        CALL mp_bcast( kfact,                      ionode_id )
             
       RETURN

@@ -50,8 +50,8 @@ MODULE cp_restart
                              wk, ht, htm, htvel, gvel, xnhh0, xnhhm, vnhh,   &
                              taui, cdmi, stau0, svel0, staum, svelm, force,  &
                              vnhp, xnhp0, xnhpm, nhpcl, nhpdim, occ0, occm,  &
-                             lambda0,lambdam, xnhe0, xnhem, vnhe, ekincm,    &
-                             et, rho, c02, cm2, ctot, iupdwn, nupdwn,        &
+                             lambda0,lambdam,lambda_bare, xnhe0, xnhem, vnhe,&
+                             ekincm, et, rho, c02, cm2, ctot, iupdwn, nupdwn,&
                              iupdwn_tot, nupdwn_tot, mat_z )
       !------------------------------------------------------------------------
       !
@@ -83,6 +83,7 @@ MODULE cp_restart
       USE cp_main_variables,        ONLY : collect_lambda, descla, collect_zmat
       USE twin_types !added:giovanni
       USE electrons_base,       ONLY : nbsp !added:giovanni
+      USE nksic,                ONLY : do_bare_eigs !added:giovanni
       !
       IMPLICIT NONE
       !
@@ -118,6 +119,7 @@ MODULE cp_restart
       REAL(DP),              INTENT(IN) :: occm(:)      ! 
       TYPE(twin_matrix), DIMENSION(:), INTENT(IN) :: lambda0
       TYPE(twin_matrix), DIMENSION(:), INTENT(IN) :: lambdam
+      TYPE(twin_matrix), DIMENSION(:), INTENT(IN) :: lambda_bare
 !       REAL(DP),              INTENT(IN) :: lambda0(:,:,:) ! !removed:giovanni
 !       REAL(DP),              INTENT(IN) :: lambdam(:,:,:) ! !removed:giovanni
       REAL(DP),              INTENT(IN) :: xnhe0        ! 
@@ -905,9 +907,45 @@ MODULE cp_restart
 					"HAMILTONIAN" // TRIM( cspin ), mrepl_c )
                ENDIF
                !
+            ENDIF
+ 
+            IF(do_bare_eigs) THEN
+               !
+               IF(.not. lambda_bare(1)%iscmplx) THEN
+                  mrepl=0.d0
+                  CALL collect_lambda( mrepl, lambda_bare(iss)%rvec(:,:), descla(:,iss) )
+               ELSE
+                  mrepl_c=0.d0
+                  CALL collect_lambda( mrepl_c, lambda_bare(iss)%cvec(:,:), descla(:,iss))
+               ENDIF
+               !
+               IF(ionode) THEN
+                  !
+                  IF ( nspin == 1 ) THEN
+                      !
+                      filename = TRIM( wfc_filename( ".", 'hamiltonian0', ik, EXTENSION='xml' ) )
+                      !
+                  ELSE
+                      !
+                      filename = TRIM( wfc_filename( ".", 'hamiltonian0', ik, iss, EXTENSION='xml' ) )
+                      !
+                  ENDIF
+                  !
+                  CALL iotk_link( iunpun, "HAMILTONIAN0" // TRIM( cspin ), &
+                               filename, CREATE = .TRUE., BINARY = .FALSE. )
+                  !
+                  IF(allocated(mrepl)) THEN
+		     CALL iotk_write_dat( iunpun, &
+					"HAMILTONIAN0" // TRIM( cspin ), mrepl )
+                  ELSE IF(allocated(mrepl_c)) THEN
+                     CALL iotk_write_dat( iunpun, &
+					"HAMILTONIAN0" // TRIM( cspin ), mrepl_c )
+                  ENDIF
+                  !
+               ENDIF
+               !
             END IF
             !
-!             CALL collect_lambda( mrepl, lambdam(:,:,iss), descla(:,iss) )
             IF(.not. lambdam(1)%iscmplx) THEN
                 CALL collect_lambda( mrepl, lambdam(iss)%rvec(:,:), descla(:,iss) )
             ELSE
@@ -932,12 +970,6 @@ MODULE cp_restart
                !
             END IF
             !
-!             IF(allocated(mrepl_c)) THEN
-!                 DEALLOCATE( mrepl_c )
-!             ELSE IF(allocated(mrepl)) THEN
-!                 DEALLOCATE( mrepl )
-!             ENDIF
-	    ! 
 	    ! 
             IF( PRESENT( mat_z ) ) THEN
                !

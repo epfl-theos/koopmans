@@ -489,6 +489,7 @@ MODULE input_parameters
         LOGICAL :: do_wxd = .true.
         LOGICAL :: do_hf  = .false.
         LOGICAL :: do_pz_renorm  = .false.
+        LOGICAL :: do_bare_eigs  = .false.
         REAL(DP) :: kfact = 1.d0
         !
         LOGICAL :: do_innerloop  = .false.
@@ -536,7 +537,7 @@ MODULE input_parameters
              do_innerloop, do_innerloop_cg, innerloop_dd_nstep,               &
              innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax,           &
              innerloop_init_n, innerloop_cg_ratio, do_pz_renorm, kfact, &
-             esic_conv_thr
+             esic_conv_thr, do_bare_eigs
 
 !=----END nksic input variables
 !

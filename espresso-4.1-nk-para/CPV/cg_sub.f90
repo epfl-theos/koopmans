@@ -10,7 +10,7 @@
 !=======================================================================
    subroutine runcg_uspp( nfi, tfirst, tlast, eigr, bec, irb, eigrb, &
                           rhor, rhog, rhos, rhoc, ei1, ei2, ei3, sfac, &
-                          fion, ema0bg, becdr, lambdap, lambda, vpot  )
+                          fion, ema0bg, becdr, lambdap, lambda, lambda_bare, vpot  )
 !=======================================================================
 
       use kinds,                    only : dp
@@ -69,7 +69,8 @@
       !
       use nksic,                    only : do_orbdep, do_innerloop, do_innerloop_cg, innerloop_cg_nsd, &
                                            innerloop_cg_nreset, innerloop_init_n, innerloop_cg_ratio, &
-                                           vsicpsi, vsic, wtot, fsic, fion_sic, deeq_sic, f_cutoff, pink, do_wxd, sizwtot
+                                           vsicpsi, vsic, wtot, fsic, fion_sic, deeq_sic, f_cutoff, & 
+                                           pink, do_wxd, sizwtot, do_bare_eigs
       use hfmod,                    only : do_hf, vxxpsi, exx
       use twin_types !added:giovanni
       use control_flags,            only : non_ortho
@@ -99,8 +100,9 @@
       complex(dp) :: sfac( ngs, nsp )
       real(dp)    :: fion(3,nat)
       real(dp)    :: ema0bg(ngw)
-      type(twin_matrix), dimension(nspin)    :: lambdap!(nlam,nlam,nspin) !modified:giovanni
-      type(twin_matrix), dimension(nspin)    :: lambda!(nlam,nlam,nspin)   !modified:giovanni
+      type(twin_matrix) :: lambdap(nspin)!(nlam,nlam,nspin) !modified:giovanni
+      type(twin_matrix) :: lambda(nspin)!(nlam,nlam,nspin)   !modified:giovanni
+      type(twin_matrix) :: lambda_bare(nspin)     !(nlam,nlam,nspin)   !modified:giovanni
 !
 !
       integer     :: i, j, ig, k, is, iss,ia, iv, jv, il, ii, jj, kk, ip
@@ -108,8 +110,8 @@
       real(dp)    :: enb, enbi, x
       real(dp)    :: entmp, sta
       complex(dp) :: gamma_c  !warning_giovanni, is it real anyway?
-      complex(dp), allocatable :: c2(:), c3(:)
-      complex(dp), allocatable :: hpsi(:,:), hpsi0(:,:), gi(:,:), hi(:,:)
+      complex(dp), allocatable :: c2(:), c3(:), c2_bare(:), c3_bare(:)
+      complex(dp), allocatable :: hpsi(:,:), hpsi0(:,:), gi(:,:), hi(:,:), gi_bare(:,:)
 !       real(DP),    allocatable :: s_minus1(:,:)    !factors for inverting US S matrix
 !       real(DP),    allocatable :: k_minus1(:,:)    !factors for inverting US preconditioning matrix
       type(twin_matrix) :: s_minus1!(:,:)    !factors for inverting US S matrix
@@ -2120,6 +2122,16 @@
         hpsi0(:,:)=CMPLX(0.d0,0.d0)
      ENDIF
      !
+     IF(do_bare_eigs) THEN
+        !
+        allocate(c2_bare(ngw), c3_bare(ngw))
+        allocate(gi_bare(ngw,nbsp))
+        c2_bare=0.d0
+        c3_bare=0.d0
+        gi_bare=0.d0
+        !
+     ENDIF
+     !
      do i=1,nbsp,2
 !$$
          CALL start_clock( 'dforce2' )
@@ -2162,6 +2174,12 @@
 
          endif
 
+         IF(do_bare_eigs) THEN
+            !
+            c2_bare(:) = c2(:)
+            c3_bare(:) = c3(:)
+            !
+         ENDIF
 !$$
          if ( do_orbdep ) then
              !
@@ -2219,7 +2237,7 @@
              if( i+1 <= nbsp )   c3(:) = c3(:) - vxxpsi(:,i+1) * faux(i+1)
              !
          endif
-
+ 
          do ig=1,ngw
             gi(ig,  i)=c2(ig)
             if(i+1 <= nbsp) gi(ig,i+1)=c3(ig)
@@ -2229,6 +2247,20 @@
             gi(1,  i)=CMPLX(DBLE(gi(1,  i)),0.d0)
             if(i+1 <= nbsp) gi(1,i+1)=CMPLX(DBLE(gi(1,i+1)),0.d0)
          endif
+         
+         IF(do_bare_eigs) THEN
+            !
+            do ig=1,ngw
+               gi_bare(ig,  i)=c2_bare(ig)
+               if(i+1 <= nbsp) gi_bare(ig,i+1)=c3_bare(ig)
+            enddo
+            !
+            if (lgam.and.ng0.eq.2) then
+               gi_bare(1,  i)=CMPLX(DBLE(gi_bare(1,  i)),0.d0)
+               if(i+1 <= nbsp) gi_bare(1,i+1)=CMPLX(DBLE(gi_bare(1,i+1)),0.d0)
+            endif
+            !
+         ENDIF
 
      enddo
      
@@ -2260,7 +2292,6 @@
         ELSE
            lambda_repl_c = CMPLX(0.d0,0.d0)
         ENDIF
-        !
         !
         IF(non_ortho) THEN
            !
@@ -2325,6 +2356,8 @@
         !
      end do
 
+     IF(do_bare_eigs) call compute_lambda_bare()
+
      IF(.not.lambda(1)%iscmplx) THEN
         DEALLOCATE( lambda_repl )
      ELSE
@@ -2385,14 +2418,11 @@
         ELSE
           DEALLOCATE( lambda_dist_c )
         ENDIF
-
-write(6,*) "nlsm2"
         !
         call nlsm2(ngw,nhsa,nbsp,nspin,eigr,c0(:,:),becdr, lgam)
         !
      endif
-        !
-write(6,*) "nlfl_twin"
+     !
      call nlfl_twin(bec,becdr,lambda,fion, lgam)
      ! bforceion adds the force term due to electronic berry phase
      ! only in US-case
@@ -2435,7 +2465,99 @@ write(6,*) "nlfl_twin"
 
      deallocate(ave_ene)
      deallocate(c2,c3)
+     IF(allocated(c2_bare)) deallocate(c2_bare)
+     IF(allocated(c3_bare)) deallocate(c3_bare)
+     IF(allocated(gi_bare)) deallocate(gi_bare)
+     !
      return
+
+     contains
+
+     subroutine compute_lambda_bare()
+     
+        IF(non_ortho) THEN
+           hitmp(:,:) = cdual(:,:)
+        ELSE
+           hitmp(:,:) = c0(:,:)
+        ENDIF
+
+        do is = 1, nspin
+           !
+           nss = nupdwn(is)
+           istart = iupdwn(is)
+
+           IF(.not.lambda(1)%iscmplx) THEN
+              lambda_repl = 0.d0
+           ELSE
+              lambda_repl_c = CMPLX(0.d0,0.d0)
+           ENDIF
+           !
+           IF(non_ortho) THEN
+              !
+              do i = 1, nss
+                 do j = 1, nss
+                    ii = i + istart - 1
+                    jj = j + istart - 1
+                    IF(.not.lambda(1)%iscmplx) THEN
+                       do ig = 1, ngw
+                          lambda_repl( i, j ) = lambda_repl( i, j ) - &
+                          2.d0 * DBLE( CONJG( hitmp( ig, ii ) ) * gi_bare( ig, jj) )
+                       enddo
+                       if( ng0 == 2 ) then
+                          lambda_repl( i, j ) = lambda_repl( i, j ) + &
+                          DBLE( CONJG( hitmp( 1, ii ) ) * gi_bare( 1, jj ) )
+                       endif
+                    ELSE
+                       do ig = 1, ngw
+                          lambda_repl_c( i, j ) = lambda_repl_c( i, j ) - &
+                          CONJG( hitmp( ig, ii ) ) * gi_bare( ig, jj)
+                       enddo
+                    ENDIF
+                 enddo
+              enddo
+              !
+           ELSE
+              !
+              do i = 1, nss
+                 do j = i, nss
+                    ii = i + istart - 1
+                    jj = j + istart - 1
+                    IF(.not.lambda(1)%iscmplx) THEN
+                       do ig = 1, ngw
+                          lambda_repl( i, j ) = lambda_repl( i, j ) - &
+                          2.d0 * DBLE( CONJG( hitmp( ig, ii ) ) * gi_bare( ig, jj) )
+                       enddo
+                       if( ng0 == 2 ) then
+                          lambda_repl( i, j ) = lambda_repl( i, j ) + &
+                          DBLE( CONJG( hitmp( 1, ii ) ) * gi_bare( 1, jj ) )
+                       endif
+                       lambda_repl( j, i ) = lambda_repl( i, j )
+                    ELSE
+                       do ig = 1, ngw
+                          lambda_repl_c( i, j ) = lambda_repl_c( i, j ) - &
+                          CONJG( hitmp( ig, ii ) ) * gi_bare( ig, jj)
+                       enddo
+                       lambda_repl_c( j, i ) = CONJG(lambda_repl_c( i, j ))
+                    ENDIF
+                 enddo
+              enddo
+              !
+           ENDIF
+           !
+           IF(.not.lambda_bare(1)%iscmplx) THEN
+              CALL mp_sum( lambda_repl, intra_image_comm )
+              CALL distribute_lambda( lambda_repl, lambda_bare(is)%rvec( :, :), descla( :, is ) )
+           ELSE
+              CALL mp_sum( lambda_repl_c, intra_image_comm )
+              CALL distribute_lambda( lambda_repl_c, lambda_bare(is)%cvec( :, :), descla( :, is ) )
+           ENDIF
+           !
+           !
+        end do
+
+     return
+     !
+     end subroutine compute_lambda_bare
 
      END SUBROUTINE runcg_uspp
 !

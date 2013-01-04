@@ -20,6 +20,7 @@ MODULE cp_main_variables
   USE energies,          ONLY : dft_energy_type
   USE pres_ai_mod,       ONLY : abivol, abisur, jellium, t_gauss, rho_gaus, &
                                 v_vol, posv, f_vol
+  USE input_parameters,  ONLY : do_bare_eigs
   USE twin_types
   !
   IMPLICIT NONE
@@ -37,6 +38,7 @@ MODULE cp_main_variables
   !
   ! ... structure factors (summed over atoms of the same kind)
   !
+
   ! S( s, G ) = sum_(I in s) exp( i G dot R_(s,I) )
   ! s       = index of the atomic specie
   ! R_(s,I) = position of the I-th atom of the "s" specie
@@ -62,6 +64,7 @@ MODULE cp_main_variables
   TYPE(twin_matrix), ALLOCATABLE :: lambda(:)
   TYPE(twin_matrix), ALLOCATABLE :: lambdam(:)
   TYPE(twin_matrix), ALLOCATABLE :: lambdap(:)
+  TYPE(twin_matrix), ALLOCATABLE :: lambda_bare(:)
   !
   ! For non-orthogonal SIC, naive implementation :giovanni
   !
@@ -263,7 +266,19 @@ MODULE cp_main_variables
           call init_twin(lambdam(iss), lgam)
           call allocate_twin(lambdam(iss), nlam, nlam, lgam)
       ENDDO
-      
+      !
+      !
+      ALLOCATE( lambda_bare(nspin) )
+      !
+      IF(do_bare_eigs) THEN
+         !
+         do iss=1,nspin
+            call init_twin(lambda_bare(iss), lgam)
+            call allocate_twin(lambda_bare(iss), nlam, nlam, lgam)
+         enddo
+         !
+      ENDIF
+      ! 
       IF(non_ortho) THEN
          allocate(ioverlap(nudx,nudx,nspin), &
            overlap(nudx,nudx,nspin), kinetic_mat(nudx,nudx,nspin), &
@@ -372,19 +387,22 @@ endif
 	  END DO
           DEALLOCATE(lambdam)
       ENDIF
-! if(ionode) then
-! write(0,*) "debug5"
-! endif
+      !
       IF(allocated(lambdap)) THEN 
 	  DO iss=1, size(lambdap)
 	      CALL deallocate_twin(lambdap(iss))
 	  END DO
           DEALLOCATE(lambdap)
       ENDIF
-
-! if(ionode) then
-! write(0,*) "debug6"
-! endif
+      !
+      IF(allocated(lambda_bare)) THEN
+          IF(do_bare_eigs) THEN 
+	     DO iss=1, size(lambda_bare)
+	        CALL deallocate_twin(lambda_bare(iss))
+	     END DO
+          ENDIF
+          DEALLOCATE(lambda_bare)
+      ENDIF
       ! -- deallocation of structured types -------------------------------------------------------------
       
       IF(allocated(overlap)) THEN
