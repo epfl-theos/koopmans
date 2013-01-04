@@ -2024,7 +2024,6 @@ end subroutine nksic_newd
             aidtau=-edens(ir,ispin)/(aidspin*rhor(ir,ispin)+epsi2)**(kfact+1.d0)
             !
 ! ! !             aidfrac=((tauw(ir,ispin)+epsi2)/(taukin(ir,ispin)+epsi2))**kfact
-            aidfrac=((orb_rhor(ir)+epsi2)/(aidspin*rhor(ir,ispin)+epsi2))**kfact
             
             !
             IF(1.d0-abs(aidfrac).lt.epsi2) THEN
@@ -2044,7 +2043,7 @@ end subroutine nksic_newd
                                 +pink/f*(-alpha+aidfrac)
             !
 ! ! !             vsicaux(ir,ispin) = vsicaux(ir,ispin)+kfact*edens(ir,ispin)*aidfrac*aidtau
-            vsicaux(ir,ispin) = vsicaux(ir,ispin)+kfact*aidfrac*pink/f+aidtau*kfact
+            vsicaux(ir,ispin) = vsicaux(ir,ispin)+kfact*aidfrac*pink/f+aidfrac*aidtau*kfact
             !
             do j=1,3
                !
