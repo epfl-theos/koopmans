@@ -306,10 +306,14 @@
           !
           ! take care of spin symmetry
           !
-          IF(.not.is_empty_) THEN
-             pink(i) = f_diag(i) * pink(i)
-          ELSE
-             pink(i) = 2.d0* pink(i)/nspin
+          IF(.not.do_pz_renorm) THEN
+             !
+             IF(.not.is_empty_) THEN
+                pink(i) = f_diag(i) * pink(i)
+             ELSE
+                pink(i) = 2.d0* pink(i)/nspin
+             ENDIF
+             !
           ENDIF
           !
           if ( do_nk .or. do_nkpz .or. do_nki .or. do_nkipz) then
@@ -388,6 +392,12 @@
                                       pink(i), taukin, tauw, edens, upsilonkin, upsilonw, vsic(:,i), pzalpha(i), ibnd, kfact)
                 !
                 pink(i) = pink(i)*pzalpha(i)
+                !                 
+                IF(.not.is_empty_) THEN
+                   pink(i) = f_diag(i) * pink(i)
+                ELSE
+                   pink(i) = 2.d0* pink(i)/nspin
+                ENDIF
                 !
              enddo inner_loop_renorm
              !
@@ -1867,7 +1877,7 @@ end subroutine nksic_newd
       !
       INTEGER :: ir
       LOGICAL :: lgam
-      real(dp) :: fact, temp, aidfract, norm
+      real(dp) :: fact, temp, aidfract, norm, aidspin
 !       real(dp), parameter :: epsi=1.d-3
       !
       lgam=gamma_only.and..not.do_wf_cmplx
@@ -1876,13 +1886,19 @@ end subroutine nksic_newd
       temp=0.d0
       norm=0.d0
       !
+      IF(nspin==1) THEN
+         aidspin=0.5d0
+      ELSE
+         aidspin=1.d0
+      ENDIF
+      !
       do ir=1,nnrx
          !
 ! ! !          IF((tauw(ir,ispin)**2+taukin(ir,ispin)**2.gt.epsi2**4)) THEN !
-         IF(rhor(ir,ispin).gt.epsi2) THEN !
+         IF(aidspin*rhor(ir,ispin).gt.epsi2) THEN !
             !
 ! ! !             aidfract=((tauw(ir,ispin)+epsi2)/(taukin(ir,ispin)+epsi2))**kfact
-            aidfract=((orb_rhor(ir)+epsi2)/(rhor(ir,ispin)+epsi2))**kfact
+            aidfract=((orb_rhor(ir)+epsi2)/(aidspin*rhor(ir,ispin)+epsi2))**kfact
             !
             IF(1.d0-abs(aidfract).lt.epsi2) THEN
                !
@@ -1947,7 +1963,7 @@ end subroutine nksic_newd
       !
       INTEGER :: ir,j
       LOGICAL :: lgam
-      real(dp) :: fact, temp, tempw, dexc_dummy(3,3), aidtau, aidfrac
+      real(dp) :: fact, temp, tempw, dexc_dummy(3,3), aidtau, aidfrac, aidspin
       complex(dp), allocatable :: rhog_dummy(:,:)
       real(dp), allocatable :: upsilonh(:,:,:), vsicaux(:,:)
 !       real(dp), parameter :: epsi=1.d-3
@@ -1962,6 +1978,12 @@ end subroutine nksic_newd
       upsilonh=0.d0
       !
       vsicaux=0.d0
+      !
+      IF(nspin==1) THEN
+         aidspin=0.5d0
+      ELSE
+         aidspin=1.d0
+      ENDIF
 !       write(6,*) "checkall", ibnd, ispin
       !
 ! ! !       call nksic_get_upsilon_pz( f, nspin, ispin, orb_rhor, &
@@ -1996,14 +2018,13 @@ end subroutine nksic_newd
 !                              write(6,*) "checktau", taukin(ir,ispin),tauw(ir,ispin),ispin
          !
 ! ! !          IF((tauw(ir,ispin)**2+taukin(ir,ispin)**2.gt.epsi2**4)) THEN
-        IF((rhor(ir,ispin).gt.epsi2)) THEN !
- ! THEN
+        IF((aidspin*rhor(ir,ispin).gt.epsi2)) THEN ! ! THEN
             !
 ! ! !             aidtau=0.5d0*(temp/(taukin(ir,ispin)+epsi2)-tempw/(tauw(ir,ispin)+epsi2))
-            aidtau=-edens(ir,ispin)/(rhor(ir,ispin)+epsi2)**(kfact+1.)
+            aidtau=-edens(ir,ispin)/(aidspin*rhor(ir,ispin)+epsi2)**(kfact+1.d0)
             !
 ! ! !             aidfrac=((tauw(ir,ispin)+epsi2)/(taukin(ir,ispin)+epsi2))**kfact
-            aidfrac=((orb_rhor(ir)+epsi2)/(rhor(ir,ispin)+epsi2))**kfact
+            aidfrac=((orb_rhor(ir)+epsi2)/(aidspin*rhor(ir,ispin)+epsi2))**kfact
             
             !
             IF(1.d0-abs(aidfrac).lt.epsi2) THEN
