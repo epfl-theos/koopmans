@@ -249,6 +249,62 @@
    END SUBROUTINE core_charge_forces_x
 !=----------------------------------------------------------------------------=!
 
+!-----------------------------------------------------------------------
+      subroutine add_cc_rspace( rhoc, rhor )
+!-----------------------------------------------------------------------
+!
+! add core correction to the charge density for exch-corr calculation
+! this subroutine performs the addition in r-space only
+!
+      USE kinds,              ONLY: DP
+      use electrons_base,     only: nspin
+      use control_flags,      only: iprsta
+      use io_global,          only: stdout
+      use mp_global,          only: intra_image_comm
+      use cell_base,          only: omega
+      use recvecs_indexes,    only: np
+      USE mp,                 ONLY: mp_sum
+
+      ! this isn't really needed, but if I remove it, ifc 7.1
+      ! gives an "internal compiler error"
+      use reciprocal_vectors, only: gstart
+      use gvecp,              only: ngm
+      use grid_dimensions,    only: nr1, nr2, nr3, &
+                                    nr1x, nr2x, nr3x, nnrx
+      USE cp_interfaces,      ONLY: fwfft
+      USE fft_base,           ONLY: dfftp
+!
+      implicit none
+      !
+      REAL(DP),    INTENT(IN)   :: rhoc( nnrx )
+      REAL(DP),    INTENT(INOUT):: rhor( nnrx, nspin )
+      !
+!
+      integer :: ig, ir, iss, isup, isdw
+      REAL(DP) :: rsum
+      !
+      IF( iprsta > 2 ) THEN
+         rsum = SUM( rhoc ) * omega / DBLE(nr1*nr2*nr3)
+         CALL mp_sum( rsum, intra_image_comm )
+         WRITE( stdout, 10 ) rsum 
+10       FORMAT( 3X, 'Core Charge = ', D14.6 )
+      END IF
+      !
+      ! In r-space:
+      !
+      if ( nspin .eq. 1 ) then
+         iss=1
+         call DAXPY(nnrx,1.d0,rhoc,1,rhor(1,iss),1)
+      else
+         isup=1
+         isdw=2
+         call DAXPY(nnrx,0.5d0,rhoc,1,rhor(1,isup),1)
+         call DAXPY(nnrx,0.5d0,rhoc,1,rhor(1,isdw),1)
+      end if 
+!
+      return
+      end subroutine add_cc_rspace
+
 
 
 

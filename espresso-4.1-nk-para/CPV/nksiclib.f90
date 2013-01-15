@@ -15,7 +15,7 @@
 !-----------------------------------------------------------------------
       subroutine nksic_potential( nbsp, nx, c, f_diag, bec, becsum, &
                                   deeq_sic, ispin, iupdwn, nupdwn, &
-                                  rhor, rhog, wtot, sizwtot, vsic, do_wxd_, pink, nudx, &
+                                  rhor, rhoc, wtot, sizwtot, vsic, do_wxd_, pink, nudx, &
                                   wfc_centers, wfc_spreads, &
                                   icompute_spread, is_empty)
 !-----------------------------------------------------------------------
@@ -48,6 +48,7 @@
       use input_parameters,      only: draw_pot, pot_number  !added:linh draw vsic potentials
       use io_pot_sic_xml,        only: write_pot_sic  !added:linh draw vsic potentials
       USE io_global,             ONLY: stdout
+      use core,                  ONLY: nlcc_any
       use nksic,                only : epsi3=> epsi_cutoff_renorm, epsi2=> epsi2_cutoff_renorm
 
       !
@@ -62,8 +63,8 @@
       integer,     intent(in)  :: ispin(nx)
       integer,     intent(in)  :: iupdwn(nspin), nupdwn(nspin)
       real(dp),    intent(in)  :: f_diag(nx)
-      real(dp),    intent(in)  :: rhor(nnrx,nspin)
-      complex(dp), intent(in)  :: rhog(ngm,nspin)
+      real(dp)                 :: rhor(nnrx,nspin)
+      real(dp),    intent(in)  :: rhoc(nnrx)
       real(dp),    intent(out) :: vsic(nnrx,nx), wtot(sizwtot,2)
       real(dp),    intent(out) :: deeq_sic(nhm,nhm,nat,nx)
       logical,     intent(in)  :: do_wxd_
@@ -77,7 +78,7 @@
       !
       integer  :: i,j,jj,ibnd,isp,ir
       real(dp) :: focc,pinkpz, shart
-      real(dp), allocatable :: vsicpz(:)
+      real(dp), allocatable :: vsicpz(:), rhor_nocc(:,:)
       complex(dp), allocatable :: rhobarg(:,:)
       logical :: lgam, is_empty_
       !
@@ -113,7 +114,18 @@
       else
          allocate(rhobarg(1,1))
       endif
-
+      !
+      if (nlcc_any) then
+         !
+         allocate(rhor_nocc(nnrx,nspin))
+         rhor_nocc(:,:) = rhor(:,:)
+         !
+         ! add core charge
+         !
+         call add_cc_rspace(rhoc, rhor)
+         !
+      endif
+      !
       if ( do_nk .or. do_nkpz .or. do_nki .or. do_nkipz ) then
           wtot=0.0_dp
       endif
@@ -444,6 +456,13 @@
       ENDIF
       ! 
       deallocate(rhobarg)
+      !
+      if (nlcc_any) then
+         !
+         rhor(:,:)=rhor_nocc(:,:)
+         deallocate(rhor_nocc)
+         !
+      endif
       ! 
       CALL stop_clock( 'nksic_drv' )
       return
@@ -5970,11 +5989,12 @@ end subroutine nksic_rot_emin_cg_descla
       use gvecw,                      only : ngw
       use ions_base,                  only : nsp
       use uspp,                       only : becsum,nkb
-      use cp_main_variables,          only : eigr, rhor, rhog
+      use cp_main_variables,          only : eigr, rhor
       use nksic,                      only : deeq_sic, wtot, fsic, sizwtot
       use control_flags,         only : gamma_only, do_wf_cmplx
       use twin_types
       use electrons_module,        only : icompute_spread
+      use core,                    only : rhoc
       !
       implicit none
       !
@@ -6065,7 +6085,7 @@ end subroutine nksic_rot_emin_cg_descla
       pink1(:) = 0.d0
       !
       call nksic_potential( nbsp, nbspx, wfc1, fsic, bec1, becsum, deeq_sic, &
-                 ispin, iupdwn, nupdwn, rhor, rhog, wtot, sizwtot, vsic1, pink1, nudx, wfc_centers, &
+                 ispin, iupdwn, nupdwn, rhor, rhoc, wtot, sizwtot, vsic1, pink1, nudx, wfc_centers, &
                  wfc_spreads, icompute_spread, is_empty )
       !
       ene1=sum(pink1(:))
@@ -6097,12 +6117,13 @@ end subroutine nksic_getOmattot_new
                                              iupdwn, nupdwn, nudx
       use ions_base,                  only : nsp
       use uspp,                       only : becsum,nkb
-      use cp_main_variables,          only : eigr, rhor, rhog
+      use cp_main_variables,          only : eigr, rhor
       use nksic,                      only : deeq_sic, wtot, fsic, sizwtot, do_wxd
       use control_flags,         only : gamma_only, do_wf_cmplx
       use twin_types
       use electrons_module,        only : wfc_centers, wfc_spreads, &
                                         icompute_spread
+      use core,                    only : rhoc
       !
       implicit none
       !
@@ -6189,7 +6210,7 @@ end subroutine nksic_getOmattot_new
       pink1(:) = 0.d0
       !
       call nksic_potential( nbsp, nbspx, wfc1, fsic, bec1, becsum, deeq_sic, &
-                 ispin, iupdwn, nupdwn, rhor, rhog, wtot, sizwtot, vsic1, do_wxd, pink1, nudx, wfc_centers, &
+                 ispin, iupdwn, nupdwn, rhor, rhoc, wtot, sizwtot, vsic1, do_wxd, pink1, nudx, wfc_centers, &
                  wfc_spreads, icompute_spread, .false. )
       !
       ene1=sum(pink1(:))
@@ -7704,7 +7725,7 @@ END subroutine compute_complexification_index
       subroutine nksic_potential_non_ortho( nbsp, nx, c, cdual, f_diag, &
                                   bec, becdual, becsum, &
                                   deeq_sic, ispin, iupdwn, nupdwn, &
-                                  rhor, rhog, wtot, sizwtot, vsic, do_wxd_, pink, nudx, &
+                                  rhor, rhoc, wtot, sizwtot, vsic, do_wxd_, pink, nudx, &
                                   wfc_centers, wfc_spreads, &
                                   icompute_spread)
 !-----------------------------------------------------------------------
@@ -7714,6 +7735,11 @@ END subroutine compute_complexification_index
 !     but also Perdew-Zunger (PZ),
 !     Non-Koopmans' integral definition (NKI),
 !     Non-Joopmans on Perdew Zunger (PZNK)
+!
+!     subroutine writte for non-orthogonal functions
+!     note that non-linear core correction is not working
+!     in this particular subroutine
+!
 !
       use kinds,                      only: dp
       use gvecp,                      only: ngm
@@ -7749,7 +7775,7 @@ END subroutine compute_complexification_index
       integer,     intent(in)  :: iupdwn(nspin), nupdwn(nspin)
       real(dp),    intent(in)  :: f_diag(nx)
       real(dp),    intent(in)  :: rhor(nnrx,nspin)
-      complex(dp), intent(in)  :: rhog(ngm,nspin)
+      real(dp),    intent(in)  :: rhoc(nnrx)
       real(dp),    intent(out) :: vsic(nnrx,nx), wtot(sizwtot,2)
       real(dp),    intent(out) :: deeq_sic(nhm,nhm,nat,nx)
       logical,     intent(in)  :: do_wxd_

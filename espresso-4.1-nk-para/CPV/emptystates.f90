@@ -51,6 +51,7 @@
       USE twin_types !added:giovanni
       USE control_flags,        ONLY : tatomicwfc, trane
       USE electrons_module,     ONLY : wfc_centers_emp, wfc_spreads_emp, icompute_spread
+      USE core,                 ONLY : nlcc_any, rhoc
       !
       IMPLICIT NONE
       !
@@ -450,7 +451,7 @@
                 !
                 call nksic_potential( n_emps, n_empx, c0_emp, fsic_emp, &
                                       bec_emp, becsum_emp, deeq_sic_emp, &
-                                      ispin_emp, iupdwn_emp, nupdwn_emp, rhor, rhog, &
+                                      ispin_emp, iupdwn_emp, nupdwn_emp, rhor, rhoc, &
                                       wtot, sizwtot, vsic_emp, .false., pink_emp, nudx_emp, &
                                       wfc_centers_emp, wfc_spreads_emp, &
                                       icompute_spread, .false.)

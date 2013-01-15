@@ -209,7 +209,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
          ENDIF
          !
          call nksic_potential( nbsp, nbspx, c0, fsic, bec, becsum, deeq_sic, &
-                    ispin, iupdwn, nupdwn, rhor, rhog, wtot, sizwtot, vsic, do_wxd, pink, nudx, &
+                    ispin, iupdwn, nupdwn, rhor, rhoc, wtot, sizwtot, vsic, do_wxd, pink, nudx, &
                     wfc_centers, wfc_spreads, icompute_spread, .false.)
          !
 !$$ We should update etot only once at the end of this do_orbdep routine
