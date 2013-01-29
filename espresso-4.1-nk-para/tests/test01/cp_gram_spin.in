@@ -23,7 +23,6 @@
              ecutwfc=35.0,
              nspin=2
              do_ee=.TRUE.
-             do_spinsym = .TRUE.
           /
           &ELECTRONS
              electron_dynamics = 'damp'
@@ -37,6 +36,9 @@
           &IONS
              ion_dynamics='none',
              ion_radius(1)=1.0,
+          /
+          &NKSIC
+             do_spinsym = .TRUE.
           /
           &EE
              which_compensation="tcc"

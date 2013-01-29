@@ -7,10 +7,10 @@
              prefix='job_spin',
              pseudo_dir = '../../pseudo/',
              outdir = './SCRATCH/'
-             nstep=100
+             nstep=200
              iprint=1
-             ndr=94
-             ndw=95
+             ndr=91
+             ndw=92
              ekin_conv_thr=1.0d-5
              etot_conv_thr=1.0d-6
              dt=15.0
@@ -23,6 +23,7 @@
              ecutwfc=35.0,
              nspin=2
              do_ee=.TRUE.
+             do_spinsym = .TRUE.
           /
           &ELECTRONS
              electron_dynamics = 'damp'
@@ -35,10 +36,6 @@
           &IONS
              ion_dynamics='none',
              ion_radius(1)=1.0,
-          /
-          &NKSIC
-             which_orbdep='pz'
-             do_spinsym = .TRUE.
           /
           &EE
              which_compensation="tcc"
