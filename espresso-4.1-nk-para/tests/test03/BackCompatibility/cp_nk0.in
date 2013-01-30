@@ -2,10 +2,10 @@
     prefix='benzene'
     calculation='cp',
     restart_mode='restart',
-    nstep=100, 
+    nstep=200, 
     iprint=1, 
-    ndr=93
-    ndw=94
+    ndr=92
+    ndw=93
     dt=15.0,
     pseudo_dir='../../pseudo/',
     outdir='./SCRATCH',
@@ -19,7 +19,8 @@
     nat = 12
     ntyp = 2
     do_ee =.true.
-    do_orbdep =.true.
+    which_orbdep='nk0'
+    nkscalfact=0.57
 /
 &ELECTRONS
     electron_dynamics='damp', 
@@ -35,11 +36,7 @@
 /
 &EE
     which_compensation ='tcc'
-/
-&NKSIC
-    which_orbdep='nk'
-    nkscalfact=0.57
-/
+ /
 ATOMIC_SPECIES
 H     1.0079    H.pz-vbc.UPF
 C    12.011     C.pz-vbc.UPF

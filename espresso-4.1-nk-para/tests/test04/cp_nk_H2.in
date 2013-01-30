@@ -23,9 +23,7 @@
              ecutwfc=35.0,
              nspin=2
              do_ee=.TRUE.
-             do_nk=.TRUE.
-             fref=0.5
-             rhobarfact=1.0
+             do_orbdep=.TRUE.
              nr1b = 24
              nr2b = 24
              nr3b = 24
@@ -44,6 +42,11 @@
           /
           &EE
              which_compensation="tcc"
+          /
+          &NKSIC
+             do_nk=.TRUE.
+             fref=0.5
+             rhobarfact=1.0
           /
     
     ATOMIC_SPECIES

@@ -1,5 +1,5 @@
 &CONTROL
-    prefix='benzene'
+    prefix='benzene_US'
     calculation='cp',
     restart_mode='restart',
     nstep=100, 
@@ -13,13 +13,18 @@
     etot_conv_thr = 1.0e-6
 /
 &SYSTEM
-    ecutwfc = 40.0 
+    ecutwfc = 25.0
+    ecutrho = 200.0
     ibrav = 1
     celldm(1) = 25.0
     nat = 12
     ntyp = 2
     do_ee =.true.
-    do_orbdep =.true.
+    nr1b=24
+    nr2b=24
+    nr3b=24
+    which_orbdep='nk'
+    nkscalfact=0.57
 /
 &ELECTRONS
     electron_dynamics='damp', 
@@ -35,14 +40,10 @@
 /
 &EE
     which_compensation ='tcc'
-/
-&NKSIC
-    which_orbdep='nk'
-    nkscalfact=0.57
-/
+ /
 ATOMIC_SPECIES
+C    12.011     C.pz-rrkjus.UPF
 H     1.0079    H.pz-vbc.UPF
-C    12.011     C.pz-vbc.UPF
 ATOMIC_POSITIONS (angstrom)
 C           1.401699340       0.000000000       0.000000000
 C          -1.401699340       0.000000000       0.000000000

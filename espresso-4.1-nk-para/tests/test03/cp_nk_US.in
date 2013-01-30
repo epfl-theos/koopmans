@@ -20,11 +20,10 @@
     nat = 12
     ntyp = 2
     do_ee =.true.
+    do_orbdep =.true.
     nr1b=24
     nr2b=24
     nr3b=24
-    which_orbdep='nk'
-    nkscalfact=0.57
 /
 &ELECTRONS
     electron_dynamics='damp', 
@@ -40,7 +39,11 @@
 /
 &EE
     which_compensation ='tcc'
- /
+/
+&NKSIC
+    which_orbdep='nk'
+    nkscalfact=0.57
+/
 ATOMIC_SPECIES
 C    12.011     C.pz-rrkjus.UPF
 H     1.0079    H.pz-vbc.UPF

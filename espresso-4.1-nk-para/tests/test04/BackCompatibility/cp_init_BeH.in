@@ -7,10 +7,10 @@
              prefix='job_BeH',
              pseudo_dir = '../../pseudo/',
              outdir = './SCRATCH/'
-             nstep=10
+             nstep=1
              iprint=1
-             ndr=90
-             ndw=91
+             ndr=89
+             ndw=90
              ekin_conv_thr=1.0d-5
              etot_conv_thr=1.0d-6
              dt=15.0
@@ -23,7 +23,9 @@
              ecutwfc=35.0,
              nspin=2
              do_ee=.TRUE.
-             do_orbdep=.TRUE.
+             do_nk=.TRUE.
+             fref=0.5
+             rhobarfact=1.0
              nr1b = 24
              nr2b = 24
              nr3b = 24
@@ -44,14 +46,9 @@
           &EE
              which_compensation="tcc"
           /
-          &NKSIC
-             do_nk=.TRUE.
-             fref=0.5
-             rhobarfact=1.0
-          /
     
-    ATOMIC_SPECIES
-      H     1.0    H.pz-vbc.UPF
+    ATOMIC_SPECIES 
+      H     1.0    H.pz-vbc.UPF 
       Be    9.01   Be.pz-n-vbc.UPF
     ATOMIC_POSITIONS {angstrom}
 H      0.000000000     0.000000000     -1.078616

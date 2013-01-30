@@ -19,7 +19,7 @@
     nat = 12
     ntyp = 2
     do_ee =.true.
-    which_orbdep='pz'
+    do_orbdep =.true.
 /
 &ELECTRONS
     electron_dynamics='damp', 
@@ -35,7 +35,10 @@
 /
 &EE
     which_compensation ='tcc'
- /
+/
+&NKSIC
+    which_orbdep='pz'
+/
 ATOMIC_SPECIES
 H     1.0079    H.pz-vbc.UPF
 C    12.011     C.pz-vbc.UPF
