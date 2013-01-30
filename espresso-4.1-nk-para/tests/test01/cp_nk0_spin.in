@@ -24,6 +24,7 @@
              nspin=2
              do_ee=.TRUE.
              do_orbdep=.TRUE.
+             do_spinsym = .TRUE.
           /
           &ELECTRONS
              electron_dynamics = 'damp'
@@ -42,7 +43,6 @@
           /
           &NKSIC
              which_orbdep='nk0'
-             do_spinsym = .TRUE.
           /
     ATOMIC_SPECIES 
       H     1.0    H.pz-vbc.UPF 

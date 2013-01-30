@@ -24,6 +24,7 @@
              nspin=2
              do_ee=.TRUE.
              do_orbdep=.TRUE.
+             do_spinsym = .TRUE.
           /
           &ELECTRONS
              electron_dynamics = 'damp'
@@ -41,7 +42,6 @@
              which_compensation="tcc"
           /
           &NKSIC
-             do_spinsym = .TRUE.
              which_orbdep='hf'
           /
     
