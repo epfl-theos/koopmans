@@ -8,8 +8,8 @@
              outdir = './SCRATCH'
              nstep=100
              iprint=1
-             ndr=94
-             ndw=96
+             ndr=93
+             ndw=94
              ekin_conv_thr=1.0d-5
              etot_conv_thr=1.0d-6
              dt=15.0
@@ -24,7 +24,7 @@
              ntyp=1,
              ecutwfc=25.0,
              do_ee=.TRUE.
-             do_orbdep=.TRUE.
+             which_orbdep='nk'
           /
           &ELECTRONS
              electron_dynamics = 'damp'
@@ -42,9 +42,6 @@
           /
           &EE
              which_compensation="tcc"
-          /
-          &NKSIC
-             which_orbdep='hf'
           /
     
     ATOMIC_SPECIES 

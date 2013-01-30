@@ -25,7 +25,7 @@
              nspin=2
              ecutwfc=25.0,
              do_ee=.TRUE.
-             do_hf=.TRUE.
+             do_orbdep=.TRUE.
           /
           &ELECTRONS
              electron_dynamics = 'damp'
@@ -43,6 +43,9 @@
           /
           &EE
              which_compensation="tcc"
+          /
+          &NKSIC
+             do_hf=.TRUE.
           /
     
     ATOMIC_SPECIES 

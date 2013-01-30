@@ -24,7 +24,7 @@
              ntyp=1,
              ecutwfc=25.0,
              do_ee=.TRUE.
-             which_orbdep='pz'
+             do_orbdep=.TRUE.
           /
           &ELECTRONS
              electron_dynamics = 'damp'
@@ -42,6 +42,9 @@
           /
           &EE
              which_compensation="tcc"
+          /
+          &NKSIC
+             which_orbdep='pz'
           /
     
     ATOMIC_SPECIES 

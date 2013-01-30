@@ -25,11 +25,7 @@
              nspin=2
              ecutwfc=25.0,
              do_ee=.TRUE.
-             do_nk=.TRUE.
-             fref=0.5
-             do_nkmix=.TRUE.
-             nkmixfact=1.0
-             rhobarfact=1.0
+             do_orbdep=.TRUE.
           /
           &ELECTRONS
              electron_dynamics = 'damp'
@@ -47,6 +43,13 @@
           /
           &EE
              which_compensation="tcc"
+          /
+          &NKSIC
+             do_nk=.TRUE.
+             fref=0.5
+             do_nkmix=.TRUE.
+             nkmixfact=1.0
+             rhobarfact=1.0
           /
     
     ATOMIC_SPECIES 
