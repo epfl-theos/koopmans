@@ -31,7 +31,7 @@
       use gvecw,                      only: ngw
       use grid_dimensions,            only: nnrx
       USE electrons_base,             ONLY: nspin
-      use funct,                      only : dft_is_gradient
+      use funct,                      only: dft_is_gradient
       use nksic,                      only: orb_rhor, wxdsic, &
                                             wrefsic, rhoref, rhobar, &
                                             do_nk, do_nki, do_pz, do_nkpz, &
@@ -39,17 +39,17 @@
                                             grhobar, fion_sic, pzalpha => alpha, &
                                             kfact, upsilonkin, upsilonw, edens,&
                                             taukin, tauw
+      use nksic,                      only: epsi3=> epsi_cutoff_renorm, epsi2=> epsi2_cutoff_renorm
       use ions_base,                  only: nat
-      use control_flags,         only: gamma_only, do_wf_cmplx !added:giovanni
+      use control_flags,              only: gamma_only, do_wf_cmplx
       use uspp,                       only: nkb
       use uspp_param,                 only: nhm
-      use cp_interfaces,         only: nksic_get_orbitalrho !added:giovanni
-      use twin_types !added:giovanni
-      use input_parameters,      only: draw_pot, pot_number  !added:linh draw vsic potentials
-      use io_pot_sic_xml,        only: write_pot_sic  !added:linh draw vsic potentials
-      USE io_global,             ONLY: stdout
-      use core,                  ONLY: nlcc_any
-      use nksic,                only : epsi3=> epsi_cutoff_renorm, epsi2=> epsi2_cutoff_renorm
+      use cp_interfaces,              only: nksic_get_orbitalrho
+      use input_parameters,           only: draw_pot, pot_number  !added:linh draw vsic potentials
+      use io_pot_sic_xml,             only: write_pot_sic  !added:linh draw vsic potentials
+      USE io_global,                  ONLY: stdout
+      use core,                       ONLY: nlcc_any
+      use twin_types
 
       !
       implicit none
@@ -72,24 +72,24 @@
       logical  :: icompute_spread
       real(DP) :: wfc_centers(4,nudx,nspin)
       real(DP) :: wfc_spreads(nudx,nspin,2)
-      logical :: is_empty
+      logical  :: is_empty
       !
       ! local variables
       !
       integer  :: i,j,jj,ibnd,isp,ir
       real(dp) :: focc,pinkpz, shart
-      real(dp), allocatable :: vsicpz(:), rhor_nocc(:,:)
+      real(dp),    allocatable :: vsicpz(:), rhor_nocc(:,:)
       complex(dp), allocatable :: rhobarg(:,:)
-      logical :: lgam, is_empty_
+      logical  :: lgam, is_empty_
       !
       ! main body
       !
-!                        write(6,*) "checkbounds", ubound(c)
+!                  write(6,*) "checkbounds", ubound(c)
 !                  write(6,*) "checkbounds", ubound(f_diag)
 !                  write(6,*) "checkbounds", ubound(becsum)
 !                  write(6,*) "checkbounds", ubound(wfc_centers), nudx
 !                  write(6,*) "checkbounds", ubound(wfc_spreads)
-!                                   write(6,*) "checkbounds", ubound(deeq_sic)
+!                  write(6,*) "checkbounds", ubound(deeq_sic)
 !                  write(6,*) "checkbounds", ubound(ispin)
 !                  write(6,*) "checkbounds", ubound(iupdwn)
 !                  write(6,*) "checkbounds", ubound(nupdwn)
@@ -101,10 +101,9 @@
 
       CALL start_clock( 'nksic_drv' )
       lgam = gamma_only.and..not.do_wf_cmplx
-      !      !
-         !
-         is_empty_=is_empty
-         !
+      !
+      is_empty_=is_empty
+
       !
       ! compute potentials
       !

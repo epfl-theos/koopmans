@@ -591,6 +591,7 @@
       USE electrons_module,  ONLY: nupdwn_emp, ei, ei_emp, n_emp, iupdwn_emp
       USE cp_interfaces,     ONLY: readempty, crot
       USE cp_main_variables, ONLY: collect_lambda, descla
+      USE control_flags,     ONLY: ndw
       !
       IMPLICIT NONE
       !
@@ -626,7 +627,7 @@
           !
           ALLOCATE( cemp( SIZE( c0, 1 ), n_emp * nspin ) )
           cemp = 0.0d0
-          t_emp = readempty( cemp, n_emp * nspin )
+          t_emp = readempty( cemp, n_emp * nspin, ndw )
           !
       END IF
       !
@@ -654,6 +655,7 @@
       USE electrons_module,  ONLY: nupdwn_emp, ei, ei_emp, n_emp, iupdwn_emp
       USE cp_interfaces,     ONLY: readempty, crot
       USE cp_main_variables, ONLY: collect_lambda, descla
+      USE control_flags,     ONLY: ndw
       USE twin_types
       !
       IMPLICIT NONE
@@ -676,30 +678,30 @@
       !
       IF(.not.lambda(1)%iscmplx) THEN
           ALLOCATE( lambda_repl( nudx, nudx ) )
-	  CALL collect_lambda( lambda_repl, lambda(1)%rvec(:,:), descla(:,1) )
+          CALL collect_lambda( lambda_repl, lambda(1)%rvec(:,:), descla(:,1) )
           CALL crot( ctot, c0, SIZE( c0, 1 ), nupdwn(1), iupdwn_tot(1), iupdwn(1), lambda_repl, nudx, eitmp )
       ELSE
           ALLOCATE( lambda_repl_c( nudx, nudx ) )
-	  CALL collect_lambda( lambda_repl_c, lambda(1)%cvec(:,:), descla(:,1) )
+          CALL collect_lambda( lambda_repl_c, lambda(1)%cvec(:,:), descla(:,1) )
           CALL crot( ctot, c0, SIZE( c0, 1 ), nupdwn(1), iupdwn_tot(1), iupdwn(1), lambda_repl_c, nudx, eitmp )
       ENDIF
       !
 
       !
       IF( nspin == 2 ) THEN
-	  IF(.not.lambda(1)%iscmplx) THEN
-	      CALL collect_lambda( lambda_repl, lambda(2)%rvec(:,:), descla(:,2) )
-	      CALL crot( ctot, c0, SIZE( c0, 1 ), nupdwn(2), iupdwn_tot(2), iupdwn(2), lambda_repl, nudx, eitmp )
-	  ELSE
-	      CALL collect_lambda( lambda_repl_c, lambda(2)%cvec(:,:), descla(:,2) )
-	      CALL crot( ctot, c0, SIZE( c0, 1 ), nupdwn(2), iupdwn_tot(2), iupdwn(2), lambda_repl_c, nudx, eitmp )
-	  ENDIF
+          IF(.not.lambda(1)%iscmplx) THEN
+              CALL collect_lambda( lambda_repl, lambda(2)%rvec(:,:), descla(:,2) )
+              CALL crot( ctot, c0, SIZE( c0, 1 ), nupdwn(2), iupdwn_tot(2), iupdwn(2), lambda_repl, nudx, eitmp )
+          ELSE
+              CALL collect_lambda( lambda_repl_c, lambda(2)%cvec(:,:), descla(:,2) )
+              CALL crot( ctot, c0, SIZE( c0, 1 ), nupdwn(2), iupdwn_tot(2), iupdwn(2), lambda_repl_c, nudx, eitmp )
+          ENDIF
       END IF
       !
       IF(.not.lambda(1)%iscmplx) THEN
-	  DEALLOCATE( lambda_repl )
+          DEALLOCATE( lambda_repl )
       ELSE
-	  DEALLOCATE( lambda_repl_c )
+          DEALLOCATE( lambda_repl_c )
       ENDIF
 
       !
@@ -709,7 +711,7 @@
           !
           ALLOCATE( cemp( SIZE( c0, 1 ), n_emp * nspin ) )
           cemp = 0.0d0
-          t_emp = readempty( cemp, n_emp * nspin )
+          t_emp = readempty( cemp, n_emp * nspin, ndw )
           !
       END IF
       !

@@ -994,21 +994,23 @@
 
 
    INTERFACE readempty
-      LOGICAL FUNCTION readempty_x( c_emp, ne )
+      LOGICAL FUNCTION readempty_x( c_emp, ne, ndi )
          USE kinds,             ONLY: DP
          IMPLICIT NONE
          COMPLEX(DP), INTENT(OUT) :: c_emp(:,:)
          INTEGER,     INTENT(IN)    :: ne
+         INTEGER,     INTENT(IN)    :: ndi
       END FUNCTION
    END INTERFACE
 
 
    INTERFACE writeempty
-      SUBROUTINE writeempty_x( c_emp, ne )
+      SUBROUTINE writeempty_x( c_emp, ne, ndi )
          USE kinds,             ONLY: DP
          IMPLICIT NONE
          COMPLEX(DP), INTENT(IN) :: c_emp(:,:)
          INTEGER,     INTENT(IN) :: ne
+         INTEGER,     INTENT(IN) :: ndi
       END SUBROUTINE
    END INTERFACE
 

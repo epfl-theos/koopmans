@@ -1,4 +1,4 @@
-!
+        
 ! Copyright (C) 2002-2005 FPMD-CPV groups
 ! This file is distributed under the terms of the
 ! GNU General Public License. See the file `License'
@@ -49,7 +49,7 @@
       USE nksic,                ONLY : do_spinsym, pink_emp, allocate_nksic_empty
       USE hfmod,                ONLY : do_hf, vxxpsi
       USE twin_types !added:giovanni
-      USE control_flags,        ONLY : tatomicwfc, trane
+      USE control_flags,        ONLY : tatomicwfc, trane, ndr, ndw
       USE electrons_module,     ONLY : wfc_centers_emp, wfc_spreads_emp, icompute_spread
       USE core,                 ONLY : nlcc_any, rhoc
       !
@@ -73,7 +73,7 @@
       REAL(DP),    ALLOCATABLE :: emaver(:)
       COMPLEX(DP), ALLOCATABLE :: c2(:), c3(:)
       COMPLEX(DP), ALLOCATABLE :: c0_emp(:,:), cm_emp(:,:), phi_emp(:,:)
-!       REAL(DP),    ALLOCATABLE :: bec_emp(:,:)
+!      REAL(DP),    ALLOCATABLE :: bec_emp(:,:)
       type(twin_matrix) :: bec_emp !modified:giovanni
       REAL(DP),    ALLOCATABLE :: becsum_emp(:,:,:)
       type(twin_matrix) :: bephi_emp! !modified:giovanni
@@ -82,7 +82,7 @@
       type(twin_matrix), dimension(:),  ALLOCATABLE :: lambda_emp !(:,:,:) !, 
       REAL(DP),    ALLOCATABLE :: f_emp(:)
       REAL(DP),    ALLOCATABLE :: lambda_rep(:,:)
-      COMPLEX(DP),    ALLOCATABLE :: lambda_rep_c(:,:)
+      COMPLEX(DP), ALLOCATABLE :: lambda_rep_c(:,:)
       INTEGER,     ALLOCATABLE :: ispin_emp(:)
       REAL(DP),    ALLOCATABLE :: fsic_emp(:)
       REAL(DP),    ALLOCATABLE :: vsic_emp(:,:)
@@ -90,7 +90,7 @@
       REAL(DP),    ALLOCATABLE :: deeq_sic_emp(:,:,:,:)
       COMPLEX(DP), ALLOCATABLE :: vxxpsi_emp(:,:)
       REAL(DP),    ALLOCATABLE :: exx_emp(:)
-!       REAL(DP),    ALLOCATABLE :: pink_emp(:)
+!      REAL(DP),    ALLOCATABLE :: pink_emp(:)
       !
       INTEGER, SAVE :: np_emp(2), me_emp(2), emp_comm, color
       INTEGER, SAVE :: desc_emp( descla_siz_ , 2 )
@@ -99,6 +99,7 @@
       LOGICAL :: done_extra !added:giovanni
       COMPLEX(DP), PARAMETER :: c_zero=CMPLX(0.d0,0.d0)
       INTEGER :: sizvsic_emp
+      INTEGER :: ndr_loc, ndw_loc
 
       lgam=gamma_only.and..not.do_wf_cmplx
       !
@@ -115,6 +116,18 @@
       ! ...  quick exit if empty states have not to be computed
       !
       IF( n_emp < 1 ) RETURN
+   
+      !
+      ! restart directories
+      !
+      IF ( first ) THEN
+          ndr_loc = ndr
+          ndw_loc = ndw
+      ELSE
+          ndr_loc = ndw
+          ndw_loc = ndw
+      ENDIF
+
       !
       !  Here set the group of processors for empty states
       !
@@ -182,10 +195,10 @@
       call allocate_twin(bephi_emp, nkb, n_emps, lgam)
 
       ALLOCATE(lambda_emp(nspin))
-! 
+      ! 
       DO iss=1,nspin
-	call init_twin(lambda_emp(iss), lgam)
-	call allocate_twin(lambda_emp(iss), nlam_emp, nlam_emp, lgam)
+          CALL init_twin(lambda_emp(iss), lgam)
+          CALL allocate_twin(lambda_emp(iss), nlam_emp, nlam_emp, lgam)
       ENDDO
 
       ALLOCATE( f_emp( n_empx ) )
@@ -200,6 +213,7 @@
       call set_twin(bec_occ,c_zero)
       call set_twin(bephi_emp,c_zero)
       call set_twin(becp_emp,c_zero)
+      !
       DO iss=1,nspin
          call set_twin(lambda_emp(iss),c_zero)
       ENDDO
@@ -214,7 +228,7 @@
       IF ( do_orbdep ) THEN
           !
           ALLOCATE( fsic_emp( n_empx ) )
-!           n_empx_odd=n_empx
+          ! n_empx_odd=n_empx
           ALLOCATE( vsic_emp(nnrx, n_empx) )
           ALLOCATE( wxd_emp (nnrx, 2) )
           ALLOCATE( deeq_sic_emp (nhm,nhm,nat,n_empx) )
@@ -229,11 +243,12 @@
       ELSE
           !
           ALLOCATE( fsic_emp( n_empx ) )
-!           n_empx_odd=1
+          ! n_empx_odd=1
           ALLOCATE( vsic_emp(1, n_empx) )
           ALLOCATE( wxd_emp (1, 2) )
           ALLOCATE( deeq_sic_emp (nhm,nhm,nat,n_empx) )
           ALLOCATE( becsum_emp(nhm*(nhm+1)/2,nat,nspin) )
+          !
           call allocate_nksic_empty(n_empx)
           sizvsic_emp=1
           !
@@ -241,11 +256,11 @@
       !
       IF ( do_hf ) THEN
           !
-          ALLOCATE( fsic_emp(n_empx ) )
+          !ALLOCATE( fsic_emp(n_empx ) )
           ALLOCATE( vxxpsi_emp( ngw, n_empx) )
           ALLOCATE( exx_emp( n_empx ) )
           !
-          fsic_emp   = 0.0d0
+          !fsic_emp   = 0.0d0
           vxxpsi_emp = 0.0d0
           exx_emp    = 0.0d0
           !
@@ -253,7 +268,7 @@
       !
       ! init wfcs
       !
-      exst = readempty( c0_emp, n_empx )
+      exst = readempty( c0_emp, n_empx, ndr_loc )
       !
       CALL prefor( eigr, vkb )
       !
@@ -319,7 +334,7 @@
             if(nupdwn(iss)>0.and.nupdwn_emp(iss)>0) THEN
                !
                CALL gram_empty( .false. , eigr, vkb, bec_emp, bec_occ, nkb, &
-                c0_emp( :, in_emp: ), c0( :, issw: ), ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, in )
+                                c0_emp( :, in_emp: ), c0( :, issw: ), ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, in )
                !
             ENDIF
             !
@@ -446,8 +461,8 @@
                    icompute_spread=.true.
                    !
                 ENDIF
-!                 !
-!                 write(6,*) "checkbounds", ubound(wfc_centers_emp), ubound(wfc_spreads_emp), nudx_emp, nspin
+                !
+                ! write(6,*) "checkbounds", ubound(wfc_centers_emp), ubound(wfc_spreads_emp), nudx_emp, nspin
                 !
                 call nksic_potential( n_emps, n_empx, c0_emp, fsic_emp, &
                                       bec_emp, becsum_emp, deeq_sic_emp, &
@@ -455,7 +470,7 @@
                                       wtot, sizwtot, vsic_emp, .false., pink_emp, nudx_emp, &
                                       wfc_centers_emp, wfc_spreads_emp, &
                                       icompute_spread, .false.)
-!                                                       write(6,*) "checkbounds", ubound(wfc_centers_emp), ubound(wfc_spreads_emp), nudx_emp, nspin
+                !write(6,*) "checkbounds", ubound(wfc_centers_emp), ubound(wfc_spreads_emp), nudx_emp, nspin
 
                 ! line below removed by Giovanni, introduced do_wxd=.false. into call to nksic_potential
                 !do_wxd = do_wxd_
@@ -510,12 +525,12 @@
 
 
                 IF( tsde ) THEN
-                   CALL wave_steepest( cm_emp(:, i  ), c0_emp(:, i  ), emaver, c2 )
-                   CALL wave_steepest( cm_emp(:, i+1), c0_emp(:, i+1), emaver, c3 )
+                    CALL wave_steepest( cm_emp(:, i  ), c0_emp(:, i  ), emaver, c2 )
+                    CALL wave_steepest( cm_emp(:, i+1), c0_emp(:, i+1), emaver, c3 )
                 ELSE
-                  CALL wave_verlet( cm_emp(:, i  ), c0_emp(:, i  ), verl1, verl2, emaver, c2 )
-                  CALL wave_verlet( cm_emp(:, i+1), c0_emp(:, i+1), verl1, verl2, emaver, c3 )
-                END IF
+                    CALL wave_verlet( cm_emp(:, i  ), c0_emp(:, i  ), verl1, verl2, emaver, c2 )
+                    CALL wave_verlet( cm_emp(:, i+1), c0_emp(:, i+1), verl1, verl2, emaver, c3 )
+                ENDIF
                 !
                 IF(lgam) THEN
                    IF ( gstart == 2) THEN
@@ -550,10 +565,11 @@
             !
             IF( tortho ) THEN
                !
-!                write(6,*) "n_emps", n_emps
-               CALL ortho_cp_twin( eigr(1:ngw,1:nat), cm_emp(1:ngw,1:n_emps), phi_emp(1:ngw,1:n_emps), ngw, lambda_emp(1:nspin), desc_emp(1:descla_siz_,1:nspin), &
-                           bigr, iter_ortho, ccc, bephi_emp, becp_emp, n_emps, nspin, &
-                           nupdwn_emp, iupdwn_emp )
+               ! write(6,*) "n_emps", n_emps
+               CALL ortho_cp_twin( eigr(1:ngw,1:nat), cm_emp(1:ngw,1:n_emps), phi_emp(1:ngw,1:n_emps), &
+                                   ngw, lambda_emp(1:nspin), desc_emp(1:descla_siz_,1:nspin), &
+                                   bigr, iter_ortho, ccc, bephi_emp, becp_emp, n_emps, nspin, &
+                                   nupdwn_emp, iupdwn_emp )
                !
             ELSE
                !
@@ -565,12 +581,12 @@
                 !
                 IF(.not.lambda_emp(iss)%iscmplx) THEN
                    CALL updatc( ccc, n_emps, lambda_emp(iss)%rvec(:,:), SIZE(lambda_emp(iss)%rvec,1), &
-                                 phi_emp, ngw, bephi_emp%rvec, nkb, becp_emp%rvec, bec_emp%rvec, &
-                                 cm_emp, nupdwn_emp(iss), iupdwn_emp(iss), desc_emp(:,iss) )
+                                phi_emp, ngw, bephi_emp%rvec, nkb, becp_emp%rvec, bec_emp%rvec, &
+                                cm_emp, nupdwn_emp(iss), iupdwn_emp(iss), desc_emp(:,iss) )
                 ELSE
                    CALL updatc( ccc, n_emps, lambda_emp(iss)%cvec(:,:), SIZE(lambda_emp(iss)%cvec,1), & 
-                                 phi_emp, ngw, bephi_emp%cvec(:,:), nkb, becp_emp%cvec(:,:), bec_emp%cvec(:,:), &
-                                 cm_emp, nupdwn_emp(iss), iupdwn_emp(iss), desc_emp(:,iss) )
+                                phi_emp, ngw, bephi_emp%cvec(:,:), nkb, becp_emp%cvec(:,:), bec_emp%cvec(:,:), &
+                                cm_emp, nupdwn_emp(iss), iupdwn_emp(iss), desc_emp(:,iss) )
                 ENDIF
                 !
             ENDDO
@@ -613,36 +629,37 @@
       ! ...  Compute eigenvalues and bring wave functions on Kohn-Sham orbitals
 
       IF(.not.lambda_emp(1)%iscmplx) THEN
-	  ALLOCATE( lambda_rep( nudx_emp, nudx_emp ) )
+          ALLOCATE( lambda_rep( nudx_emp, nudx_emp ) )
       ELSE
-	  ALLOCATE( lambda_rep_c( nudx_emp, nudx_emp ) )
+          ALLOCATE( lambda_rep_c( nudx_emp, nudx_emp ) )
       ENDIF
       !
       DO iss = 1, nspin
           !
           i = iupdwn_emp(iss)
           n = nupdwn_emp(iss)
+          !
           IF(.not.lambda_emp(iss)%iscmplx) THEN
-	      CALL collect_lambda( lambda_rep, lambda_emp(iss)%rvec(:,:), desc_emp( :, iss ) )
-	      CALL crot( cm_emp, c0_emp, ngw, n, i, i, lambda_rep, nudx_emp, ei_emp(:,iss) )
+              CALL collect_lambda( lambda_rep, lambda_emp(iss)%rvec(:,:), desc_emp( :, iss ) )
+              CALL crot( cm_emp, c0_emp, ngw, n, i, i, lambda_rep, nudx_emp, ei_emp(:,iss) )
           ELSE
-	      CALL collect_lambda( lambda_rep_c, lambda_emp(iss)%cvec(:,:), desc_emp( :, iss ) )
-	      CALL crot( cm_emp, c0_emp, ngw, n, i, i, lambda_rep_c, nudx_emp, ei_emp(:,iss) )
+              CALL collect_lambda( lambda_rep_c, lambda_emp(iss)%cvec(:,:), desc_emp( :, iss ) )
+              CALL crot( cm_emp, c0_emp, ngw, n, i, i, lambda_rep_c, nudx_emp, ei_emp(:,iss) )
           ENDIF
           ei_emp( 1:n, iss ) = ei_emp( 1:n, iss ) / f_emp( i : i + n - 1 )
           !
       ENDDO
       !
       IF(.not.lambda_emp(1)%iscmplx) THEN
-	  DEALLOCATE( lambda_rep)
+          DEALLOCATE( lambda_rep)
       ELSE
-	  DEALLOCATE( lambda_rep_c)
+          DEALLOCATE( lambda_rep_c)
       ENDIF
 
 
       ! ...   Save emptystates to disk
 
-      CALL writeempty( cm_emp, n_empx )
+      CALL writeempty( cm_emp, n_empx, ndw_loc )
       ! 
       DEALLOCATE( ispin_emp )
       DEALLOCATE( f_emp )
@@ -653,26 +670,26 @@
       DEALLOCATE( c0_emp )
       DEALLOCATE( cm_emp )
       DEALLOCATE( phi_emp )
+      !
       CALL deallocate_twin(bec_emp)
       CALL deallocate_twin(bec_occ)
       CALL deallocate_twin(bephi_emp)
       CALL deallocate_twin(becp_emp)
+      !
       DO iss=1,nspin
          CALL deallocate_twin(lambda_emp(iss))
       ENDDO
-
+      !
+      DEALLOCATE( fsic_emp ) 
       !
       IF ( do_orbdep ) THEN
-          DEALLOCATE( fsic_emp ) 
           DEALLOCATE( vsic_emp ) 
           DEALLOCATE( wxd_emp ) 
           DEALLOCATE( deeq_sic_emp )
           DEALLOCATE( becsum_emp )
-!           DEALLOCATE( pink_emp )
       ENDIF
       !
       IF ( do_hf ) THEN
-          DEALLOCATE( fsic_emp ) 
           DEALLOCATE( vxxpsi_emp )
           DEALLOCATE( exx_emp )
       ENDIF
@@ -868,33 +885,33 @@
          !
          !
          IF( .NOT. tortho ) THEN
-           !
-           ! compute scalar product csc_emp(k) = <c_emp(i)|c_emp(k)>
-           !
-           CALL smooth_csv( c_emp(1:,i), c_emp(1:,1:), ngwx, csc_emp, i-1 )
-           !
-           IF(.not.csc_emp%iscmplx) THEN
-	      CALL mp_sum( csc_emp%rvec(1:n_emp,1:1), intra_image_comm )
-           ELSE
-	      CALL mp_sum( csc_emp%cvec(1:n_emp,1:1), intra_image_comm )
-           ENDIF
-           !
-         END IF
+             !
+             ! compute scalar product csc_emp(k) = <c_emp(i)|c_emp(k)>
+             !
+             CALL smooth_csv( c_emp(1:,i), c_emp(1:,1:), ngwx, csc_emp, i-1 )
+             !
+             IF(.not.csc_emp%iscmplx) THEN
+                 CALL mp_sum( csc_emp%rvec(1:n_emp,1:1), intra_image_comm )
+             ELSE
+                 CALL mp_sum( csc_emp%cvec(1:n_emp,1:1), intra_image_comm )
+             ENDIF
+             !
+         ENDIF
          !
-	IF(.not.csc_occ%iscmplx) THEN
-	  CALL mp_sum( csc_occ%rvec(1:n_occ,1:1), intra_image_comm )
-	ELSE
-	  CALL mp_sum( csc_occ%cvec(1:n_occ, 1:1), intra_image_comm )
-	ENDIF
+         IF(.not.csc_occ%iscmplx) THEN
+             CALL mp_sum( csc_occ%rvec(1:n_occ,1:1), intra_image_comm )
+         ELSE
+             CALL mp_sum( csc_occ%cvec(1:n_occ, 1:1), intra_image_comm )
+         ENDIF
          !
          IF( nvb > 1 ) THEN
             !
             CALL grabec( bec_emp, nkbx, betae, c_emp(1:,i:), ngwx,i )
             !
             IF(.not. bec_emp%iscmplx) THEN
-		CALL mp_sum( bec_emp%rvec(1:nkbus,i), intra_image_comm )
+                CALL mp_sum( bec_emp%rvec(1:nkbus,i), intra_image_comm )
             ELSE
-		CALL mp_sum( bec_emp%cvec(1:nkbus,i), intra_image_comm )
+                CALL mp_sum( bec_emp%cvec(1:nkbus,i), intra_image_comm )
             ENDIF
             !
             CALL bec_csv( bec_emp, bec_occ, nkbx, csc_occ, n_occ, i  )
@@ -904,32 +921,36 @@
             END IF
             !
             IF(.not.bec_emp%iscmplx) THEN
-	      DO k = 1, n_occ
-		DO inl = 1, nkbx
-		    bec_emp%rvec( inl, i ) = bec_emp%rvec( inl, i ) - csc_occ%rvec(k,1) * bec_occ%rvec( inl, k )
-		END DO
-	      END DO
+                !
+                DO k = 1, n_occ
+                DO inl = 1, nkbx
+                    bec_emp%rvec( inl, i ) = bec_emp%rvec( inl, i ) - csc_occ%rvec(k,1) * bec_occ%rvec( inl, k )
+                ENDDO
+                ENDDO
+                !
             ELSE
-	      DO k = 1, n_occ
-		DO inl = 1, nkbx
-		    bec_emp%cvec( inl, i ) = bec_emp%cvec( inl, i ) - CONJG(csc_occ%cvec(k,1)) * bec_occ%cvec( inl, k )
-		END DO
-	      END DO
+                !
+                DO k = 1, n_occ
+                DO inl = 1, nkbx
+                    bec_emp%cvec( inl, i ) = bec_emp%cvec( inl, i ) - CONJG(csc_occ%cvec(k,1)) * bec_occ%cvec( inl, k )
+                ENDDO
+                ENDDO
+                !
             ENDIF
             !
             IF( .NOT. tortho ) THEN
                IF(.not.bec_emp%iscmplx) THEN
-		  DO k = 1, i-1
-		      DO inl = 1, nkbx
-			bec_emp%rvec( inl, i ) = bec_emp%rvec( inl, i ) - csc_emp%rvec(k,1) * bec_emp%rvec( inl, k )
-		      END DO
-		  END DO
+                  DO k = 1, i-1
+                      DO inl = 1, nkbx
+                        bec_emp%rvec( inl, i ) = bec_emp%rvec( inl, i ) - csc_emp%rvec(k,1) * bec_emp%rvec( inl, k )
+                      END DO
+                  END DO
                ELSE
-		  DO k = 1, i-1
-		      DO inl = 1, nkbx
-			bec_emp%cvec( inl, i ) = bec_emp%cvec( inl, i ) - CONJG(csc_emp%cvec(k,1)) * bec_emp%cvec( inl, k )
-		      END DO
-		  END DO
+                  DO k = 1, i-1
+                      DO inl = 1, nkbx
+                        bec_emp%cvec( inl, i ) = bec_emp%cvec( inl, i ) - CONJG(csc_emp%cvec(k,1)) * bec_emp%cvec( inl, k )
+                      END DO
+                  END DO
                ENDIF
             END IF
             !
@@ -939,43 +960,43 @@
          !                          c_emp(i) : |c_emp(i)> = |c_emp(i)> - SUM_k<i  csv(k)|c_emp(k)>
          !
          IF(.not.csc_occ%iscmplx) THEN
-	    DO k = 1, n_occ
-		CALL DAXPY( 2*ngw, -csc_occ%rvec(k,1), c_occ(1,k), 1, c_emp(1,i), 1 )!warning:giovanni tochange
-	    END DO
-	    IF( .NOT. tortho ) THEN
-		DO k = 1, i - 1
-		  CALL DAXPY( 2*ngw, -csc_emp%rvec(k,1), c_emp(1,k), 1, c_emp(1,i), 1 )!warning:giovanni tochange
-		END DO
-	    END IF
+            DO k = 1, n_occ
+                CALL DAXPY( 2*ngw, -csc_occ%rvec(k,1), c_occ(1,k), 1, c_emp(1,i), 1 )!warning:giovanni tochange
+            END DO
+            IF( .NOT. tortho ) THEN
+                DO k = 1, i - 1
+                  CALL DAXPY( 2*ngw, -csc_emp%rvec(k,1), c_emp(1,k), 1, c_emp(1,i), 1 )!warning:giovanni tochange
+                END DO
+            END IF
          ELSE
-	    DO k = 1, n_occ
-		CALL ZAXPY( ngw, -csc_occ%cvec(k,1), c_occ(1,k), 1, c_emp(1,i), 1 )
-	    END DO
-	    IF( .NOT. tortho ) THEN
-		DO k = 1, i - 1
-		  CALL ZAXPY( ngw, -csc_emp%cvec(k,1), c_emp(1,k), 1, c_emp(1,i), 1 )
-		END DO
-	    END IF
+            DO k = 1, n_occ
+                CALL ZAXPY( ngw, -csc_occ%cvec(k,1), c_occ(1,k), 1, c_emp(1,i), 1 )
+            END DO
+            IF( .NOT. tortho ) THEN
+                DO k = 1, i - 1
+                  CALL ZAXPY( ngw, -csc_emp%cvec(k,1), c_emp(1,k), 1, c_emp(1,i), 1 )
+                END DO
+            END IF
          ENDIF
          !
          !
          IF( .NOT. tortho ) THEN
-	    anorm = cscnorm( bec_emp, nkbx, c_emp, ngwx, i, n_emp, lgam)
+            anorm = cscnorm( bec_emp, nkbx, c_emp, ngwx, i, n_emp, lgam)
             IF(.not.bec_emp%iscmplx) THEN
-	      !
-	      CALL DSCAL( 2*ngw, 1.0d0/anorm, c_emp(1,i), 1 )
-	      !
-	      IF( nvb > 1 ) THEN
-		CALL DSCAL( nkbx, 1.0d0/anorm, bec_emp%rvec(1,i), 1 )
-	      END IF
+              !
+              CALL DSCAL( 2*ngw, 1.0d0/anorm, c_emp(1,i), 1 )
+              !
+              IF( nvb > 1 ) THEN
+                CALL DSCAL( nkbx, 1.0d0/anorm, bec_emp%rvec(1,i), 1 )
+              END IF
             ELSE
 ! 	      anorm = cscnorm( bec_emp, nkbx, c_emp, ngwx, i, n_emp, lgam)
-	      !
-	      CALL ZSCAL( ngw, CMPLX(1.0d0/anorm,0.d0), c_emp(1,i), 1 )
-	      !
-	      IF( nvb > 1 ) THEN
-		CALL ZSCAL( nkbx, CMPLX(1.0d0/anorm,0.d0), bec_emp%cvec(1,i), 1 )
-	      END IF
+              !
+              CALL ZSCAL( ngw, CMPLX(1.0d0/anorm,0.d0), c_emp(1,i), 1 )
+              !
+              IF( nvb > 1 ) THEN
+                CALL ZSCAL( nkbx, CMPLX(1.0d0/anorm,0.d0), bec_emp%cvec(1,i), 1 )
+              END IF
             ENDIF
          END IF
          !
@@ -988,7 +1009,7 @@
    END SUBROUTINE gram_empty_twin_x
 
 !-----------------------------------------------------------------------
-   LOGICAL FUNCTION readempty_x( c_emp, ne )
+   LOGICAL FUNCTION readempty_x( c_emp, ne, ndi )
 !-----------------------------------------------------------------------
 
         ! ...   This subroutine reads empty states from unit emptyunit
@@ -1002,18 +1023,21 @@
         USE io_files,           ONLY: empty_file, emptyunit
         USE reciprocal_vectors, ONLY: ig_l2g
         USE gvecw,              ONLY: ngw
+        !USE control_flags,      ONLY: ndr
+        USE xml_io_base,        ONLY: restart_dir, wfc_filename
 
         IMPLICIT none
 
         COMPLEX(DP), INTENT(OUT) :: c_emp(:,:)
-        INTEGER,     INTENT(IN)    :: ne
+        INTEGER,     INTENT(IN)  :: ne
+        INTEGER,     INTENT(IN)  :: ndi
 
         LOGICAL :: exst
         INTEGER :: ierr, ig, i, iss
         INTEGER :: ngw_rd, ne_rd, ngw_l
         INTEGER :: ngw_g
 
-        CHARACTER(LEN=256) :: fileempty
+        CHARACTER(LEN=256) :: fileempty, dirname
 
         COMPLEX(DP), ALLOCATABLE :: ctmp(:)
         !
@@ -1026,13 +1050,16 @@
         !
         ALLOCATE( ctmp(ngw_g) )
         !
-        empty_file = TRIM(prefix) // '.emp'
+        dirname   = restart_dir( outdir, ndi )
+        fileempty = TRIM( wfc_filename( dirname, 'evc0_empty', 1 ) )
         !
-        IF( LEN( TRIM( outdir ) ) > 1 ) THEN
-          fileempty = TRIM( outdir ) // '/' // TRIM( empty_file )
-        ELSE
-          fileempty = TRIM( empty_file )
-        END IF
+        !empty_file = TRIM(prefix) // '.emp'
+        !
+        !IF( LEN( TRIM( outdir ) ) > 1 ) THEN
+        !    fileempty = TRIM( outdir ) // '/' // TRIM( empty_file )
+        !ELSE
+        !    fileempty = TRIM( empty_file )
+        !ENDIF
 
         IF ( ionode ) THEN
 
@@ -1088,12 +1115,11 @@
 
 
 !-----------------------------------------------------------------------
-   SUBROUTINE writeempty_x( c_emp, ne )
+   SUBROUTINE writeempty_x( c_emp, ne, ndi )
 !-----------------------------------------------------------------------
 
         ! ...   This subroutine writes empty states to unit emptyunit
 
-        USE xml_io_base
         USE kinds,              ONLY: DP
         USE mp_global,          ONLY: me_image, nproc_image, intra_image_comm
         USE mp_wave,            ONLY: mergewf
@@ -1102,14 +1128,20 @@
         USE io_global,          ONLY: ionode, ionode_id, stdout
         USE reciprocal_vectors, ONLY: ig_l2g
         USE gvecw,              ONLY: ngw
+        !USE control_flags,      ONLY: ndw
+        USE xml_io_base,        ONLY: restart_dir, wfc_filename
+        USE wrappers,           ONLY: f_mkdir
+        !
+        IMPLICIT NONE
 
         COMPLEX(DP), INTENT(IN) :: c_emp(:,:)
         INTEGER,     INTENT(IN) :: ne
+        INTEGER,     INTENT(IN) :: ndi
 
         INTEGER :: ig, i, ngw_g, iss, ngw_l
-        LOGICAL :: exst
+        LOGICAL :: exst, ierr
         COMPLEX(DP), ALLOCATABLE :: ctmp(:)
-        CHARACTER(LEN=256) :: fileempty
+        CHARACTER(LEN=256) :: fileempty, dirname
         !
         ! ... Subroutine Body
         !
@@ -1120,13 +1152,19 @@
         !
         ALLOCATE( ctmp( ngw_g ) )
         !
-        empty_file = TRIM(prefix) // '.emp'
+        dirname   = restart_dir( outdir, ndi )
+        fileempty = TRIM( wfc_filename( dirname, 'evc0_empty', 1 ) )
         !
-        IF( LEN( TRIM( outdir ) ) > 1  ) THEN
-          fileempty = TRIM( outdir ) // '/' // TRIM( empty_file )
-        ELSE
-          fileempty = TRIM( empty_file )
-        END IF
+        ierr = f_mkdir( TRIM(dirname)//"/K00001" )
+        !
+        !empty_file = TRIM(prefix) // '.emp'
+        !!
+        !IF( LEN( TRIM( outdir ) ) > 1  ) THEN
+        !  fileempty = TRIM( outdir ) // '/' // TRIM( empty_file )
+        !ELSE
+        !  fileempty = TRIM( empty_file )
+        !END IF
+        !
 
         IF( ionode ) THEN
           OPEN( UNIT = emptyunit, FILE = TRIM(fileempty), status = 'unknown', FORM = 'UNFORMATTED' )

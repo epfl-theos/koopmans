@@ -440,7 +440,7 @@ MODULE input_parameters
                 ! add efield parameters
         LOGICAL     :: do_efield  = .false.
         REAL ( DP ) :: ampfield(3)  = 0.0_DP
-!
+        !
         LOGICAL   :: london = .false.
           ! if .true. compute semi-empirical dispersion term ( C6_ij / R_ij**6 ) 
           ! other DFT-D parameters ( see PW/mm_dispersion.f90 )
@@ -448,7 +448,9 @@ MODULE input_parameters
                        london_rcut = 200.00_DP
         !
         LOGICAL :: do_wf_cmplx = .false. !added_giovanni
-!
+        !
+        LOGICAL :: do_spinsym  = .false.
+        !
         NAMELIST / system / ibrav, celldm, a, b, c, cosab, cosac, cosbc, nat, &
              ntyp, nbnd, nelec, ecutwfc, ecutrho, nr1, nr2, nr3, nr1s, nr2s,  &
              nr3s, nr1b, nr2b, nr3b, nosym, nosym_evc, noinv,                 &
@@ -465,7 +467,7 @@ MODULE input_parameters
              sic, sic_epsilon, force_pairing, sic_alpha,                      &
              tot_charge, multiplicity, tot_magnetization,                     &
              spline_ps, london, london_s6, london_rcut, do_orbdep, do_ee,     &
-             do_wf_cmplx
+             do_wf_cmplx, do_spinsym
 !
 !=----------------------------------------------------------------------------=!
 !  NKSIC Namelist Input Parameters
@@ -518,7 +520,6 @@ MODULE input_parameters
         LOGICAL :: draw_pot = .false. !added:linh draw vsic potentials
         INTEGER :: pot_number  = 1    !added:linh draw vsic potentials 
         !
-        LOGICAL     :: do_spinsym  = .false.
         INTEGER     :: nknmax = -1
         !
         REAL ( DP ) :: fref  = 0.5_DP
@@ -530,13 +531,13 @@ MODULE input_parameters
         !                    
 !=-----BEGIN nksic input variables
         NAMELIST / nksic /  draw_pot, pot_number,                             & !added:linh draw vsic potentials 
-             do_nk, do_pz, do_nki, do_nkpz, do_nkipz, do_hf,           &
+             do_nk, do_pz, do_nki, do_nkpz, do_nkipz, do_hf,                  &
              do_wref, do_wxd, fref, rhobarfact, ampfield, do_efield,          &
-             do_hf, nknmax, do_spinsym, f_cutoff,                             &
+             do_hf, nknmax, f_cutoff,                                         &
              nkscalfact, hfscalfact, vanishing_rho_w, which_orbdep,           &
              do_innerloop, do_innerloop_cg, innerloop_dd_nstep,               &
              innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax,           &
-             innerloop_init_n, innerloop_cg_ratio, do_pz_renorm, kfact, &
+             innerloop_init_n, innerloop_cg_ratio, do_pz_renorm, kfact,       &
              esic_conv_thr, do_bare_eigs
 
 !=----END nksic input variables

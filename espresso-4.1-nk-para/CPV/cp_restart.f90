@@ -12,8 +12,8 @@ MODULE cp_restart
   ! ... restart a calculation from the disk  
   !
   USE iotk_module
-  USE xml_io_base
   USE xml_io_base, ONLY : default_fmt_version => fmt_version
+  USE xml_io_base
   !
   USE kinds,       ONLY : DP
   USE io_global,   ONLY : ionode, ionode_id, stdout
@@ -1724,7 +1724,7 @@ MODULE cp_restart
                   ELSE
                      !
                      filename = TRIM( wfc_filename( dirname, 'evc', ik, iss ) )
-                  !
+                     !
                   END IF
                   !
                END IF

@@ -227,6 +227,7 @@ MODULE read_namelists_module
        !
 ! DCC
        do_ee = .false.      ! main switch of EE (electrostatic embedding)
+       do_spinsym = .false. ! whether to apply spin up-down symmmetry 
        !
        RETURN
        !
@@ -270,7 +271,6 @@ MODULE read_namelists_module
        do_hf = .false.      ! main switch for HF calculations
        do_wxd = .true.      ! include cross-terms in NK potential
        do_wref = .true.     ! include reference variational terms
-       do_spinsym = .false. ! whether to apply spin up-down symmmetry 
        do_pz_renorm = .false.
        do_bare_eigs = .false.
        kfact=0.d0
@@ -876,19 +876,20 @@ MODULE read_namelists_module
        CALL mp_bcast( fixed_magnetization,       ionode_id )
        CALL mp_bcast( lambda,                    ionode_id )
        !
-       CALL mp_bcast( assume_isolated, ionode_id )
-       CALL mp_bcast( spline_ps,       ionode_id )
+       CALL mp_bcast( assume_isolated,           ionode_id )
+       CALL mp_bcast( spline_ps,                 ionode_id )
        !
-       CALL mp_bcast( do_efield,                  ionode_id )
-       CALL mp_bcast( ampfield,                   ionode_id )
+       CALL mp_bcast( do_efield,                 ionode_id )
+       CALL mp_bcast( ampfield,                  ionode_id )
        !
-       CALL mp_bcast( london,          ionode_id )
-       CALL mp_bcast( london_s6,       ionode_id )
-       CALL mp_bcast( london_rcut,     ionode_id )
+       CALL mp_bcast( london,                    ionode_id )
+       CALL mp_bcast( london_s6,                 ionode_id )
+       CALL mp_bcast( london_rcut,               ionode_id )
        !
-       CALL mp_bcast( do_ee,                      ionode_id )
-       CALL mp_bcast( do_orbdep,                  ionode_id )
-       CALL mp_bcast( do_wf_cmplx,                ionode_id )!added:giovanni
+       CALL mp_bcast( do_ee,                     ionode_id )
+       CALL mp_bcast( do_orbdep,                 ionode_id )
+       CALL mp_bcast( do_wf_cmplx,               ionode_id )
+       CALL mp_bcast( do_spinsym,                ionode_id )
        !
        RETURN
        !
@@ -937,7 +938,6 @@ MODULE read_namelists_module
        CALL mp_bcast( vanishing_rho_w,            ionode_id )
        CALL mp_bcast( fref,                       ionode_id )
        CALL mp_bcast( f_cutoff,                   ionode_id )
-       CALL mp_bcast( do_spinsym,                 ionode_id )
        CALL mp_bcast( rhobarfact,                 ionode_id )
        CALL mp_bcast( do_pz_renorm,               ionode_id )
        CALL mp_bcast( do_bare_eigs,               ionode_id )

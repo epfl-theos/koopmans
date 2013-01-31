@@ -4665,6 +4665,7 @@ END FUNCTION
                                    do_nki_ => do_nki, &
                                    do_nkpz_ => do_nkpz, &
                                    do_nkipz_ => do_nkipz, &
+                                   do_hf_ => do_hf, &
                                    which_orbdep_ => which_orbdep, &
                                    fref_ => fref, &
                                    rhobarfact_ => rhobarfact, &
@@ -4697,7 +4698,7 @@ END FUNCTION
       !
       implicit none
       !
-      logical       :: found
+      logical       :: found, do_hybrid=.FALSE.
       integer       :: i
       character(10) :: subname='nksic_init'
       character(1), external :: lowercase
@@ -4714,9 +4715,9 @@ END FUNCTION
       !
       do_wxd  = do_wxd_
       do_wref = do_wref_
-      do_pz_renorm=do_pz_renorm_
-      do_bare_eigs=do_bare_eigs_
-      kfact=kfact_
+      do_pz_renorm = do_pz_renorm_
+      do_bare_eigs = do_bare_eigs_
+      kfact   = kfact_
       !
       fref    = fref_
 !$$
@@ -4737,8 +4738,10 @@ END FUNCTION
       ENDDO
       !
       SELECT CASE ( TRIM(which_orbdep_) )
-      CASE ( "", "hf", "b3lyp", 'pbe0', "none" )
+      CASE ( "", "none" )
          ! do nothing
+      CASE ( "hf", "b3lyp", "pbe0" )
+         do_hybrid = .TRUE.
       CASE ( "nk", "non-koopmans" )
          do_nk   = .TRUE.
          do_wref = .TRUE.
@@ -4763,15 +4766,16 @@ END FUNCTION
          call errore(subname,"invalid which_orbdep = "//TRIM(which_orbdep_),10)
       END SELECT
       !
-!       do_orbdep = do_nk .or. do_pz .or. do_nki .or. do_nkpz .or. do_nkipz
-      do_orbdep= do_orbdep_
+      IF ( .NOT. do_hybrid .AND. do_hf_ ) do_hybrid = .TRUE.
+      ! 
+      do_orbdep = do_orbdep_ .and. .not. do_hybrid
 
-      !
+
       found = .FALSE.
       !
       IF(do_orbdep) THEN
          !
-         if((do_nk.or.do_pz.or.do_nki.or.do_nkpz.or.do_nkipz)) found=.true.
+         if( do_nk .or. do_pz .or. do_nki .or. do_nkpz .or. do_nkipz .or. do_hybrid ) found=.true.
          !
          if (.not. found ) CALL errore(subname,'no compatible orbital-dependent scheme specified',1)
          !
@@ -4782,11 +4786,11 @@ END FUNCTION
       !
       found = .FALSE.
       !
-      if ( do_nk   .and. (do_pz .or. do_nki .or. do_nkpz .or. do_nkipz ) ) found=.TRUE.
-      if ( do_nki  .and. (do_pz .or. do_nk  .or. do_nkpz .or. do_nkipz ) ) found=.TRUE.
-      if ( do_pz   .and. (do_nk .or. do_nki .or. do_nkpz .or. do_nkipz) ) found=.TRUE.
-      if ( do_nkpz .and. (do_nk .or. do_nki .or. do_pz .or. do_nkipz  ) ) found=.TRUE.
-      if ( do_nkipz .and. (do_nk .or. do_nki .or. do_pz .or. do_nkpz  ) ) found=.TRUE.
+      if ( do_nk     .and. ( do_pz .or. do_nki .or. do_nkpz .or. do_nkipz ) ) found=.TRUE.
+      if ( do_nki    .and. ( do_pz .or. do_nk  .or. do_nkpz .or. do_nkipz ) ) found=.TRUE.
+      if ( do_pz     .and. ( do_nk .or. do_nki .or. do_nkpz .or. do_nkipz ) ) found=.TRUE.
+      if ( do_nkpz   .and. ( do_nk .or. do_nki .or. do_pz   .or. do_nkipz ) ) found=.TRUE.
+      if ( do_nkipz  .and. ( do_nk .or. do_nki .or. do_pz   .or. do_nkpz  ) ) found=.TRUE.
       !
       if ( found ) CALL errore(subname,'more than one orb-dependent schme used',1)
       !
@@ -4809,13 +4813,13 @@ END FUNCTION
           write(stdout,2004) rhobarfact, nkscalfact
       endif
       !
-      if( do_orbdep ) call allocate_nksic( nnrx, ngw, nspin, nbspx, nat)
+      if( do_orbdep .and. .not. do_hybrid ) call allocate_nksic( nnrx, ngw, nspin, nbspx, nat)
       !
       if( (do_nk .or. do_nkpz ) .and. meta_ionode ) then
           write(stdout,2010) do_wxd, do_wref, do_nkpz
       endif
       !
-      if( do_orbdep .and. meta_ionode ) then
+      if( do_orbdep .and. meta_ionode .and. .not. do_hybrid ) then
           !
           write(stdout,2005) vanishing_rho_w
           if( nknmax > 0 ) write(stdout,2030) nknmax
@@ -4882,19 +4886,21 @@ END FUNCTION
           !
           do_hf = .TRUE.
           hfscalfact = 0.20
-          ishybrid = .TRUE.
           !
       CASE ( "pbe0" )
           !
           do_hf = .TRUE.
           hfscalfact = 0.25
-          ishybrid = .TRUE.
           !
       END SELECT
+      !
+      IF ( do_hf ) ishybrid = .TRUE.
       !
       IF ( ishybrid ) THEN
           !
           dft_name = TRIM( which_orbdep_ )
+          IF ( LEN_TRIM( dft_name ) == 0 .AND. do_hf ) dft_name="hf"
+          !
           CALL set_dft_from_name( dft_name )
           !
           IF ( meta_ionode ) &
