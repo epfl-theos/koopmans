@@ -19,7 +19,7 @@
     nat = 2
     ntyp = 1
     do_ee =.true.
-    which_orbdep='pz'
+    do_orbdep =.true.
 /
 &ELECTRONS
     electron_dynamics='damp', 
@@ -35,7 +35,10 @@
 /
 &EE
     which_compensation ='tcc'
- /
+/
+&NKSIC
+    which_orbdep='pz'
+/
 ATOMIC_SPECIES
 Cl    35.45     Cl.pz-bhs.UPF
 ATOMIC_POSITIONS (angstrom)

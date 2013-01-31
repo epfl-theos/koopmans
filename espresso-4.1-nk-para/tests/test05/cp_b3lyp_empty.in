@@ -20,7 +20,7 @@
     ntyp = 1
     nbnd = 7
     do_ee =.true.
-    which_orbdep='b3lyp'
+    do_orbdep =.true.
 /
 &ELECTRONS
     empty_states_nbnd = 3
@@ -38,7 +38,10 @@
 /
 &EE
     which_compensation ='tcc'
- /
+/
+&NKSIC
+    which_orbdep='b3lyp'
+/
 ATOMIC_SPECIES
 Cl    35.45     Cl.pz-bhs.UPF
 ATOMIC_POSITIONS (angstrom)

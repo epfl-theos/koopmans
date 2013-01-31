@@ -21,8 +21,7 @@
     nbnd = 7
     nspin = 2
     do_ee =.true.
-    which_orbdep='nk0'
-    nkscalfact = 0.8
+    do_orbdep =.true.
     do_spinsym = T
 /
 &ELECTRONS
@@ -41,7 +40,11 @@
 /
 &EE
     which_compensation ='tcc'
- /
+/
+&NKSIC
+    which_orbdep='nk0'
+    nkscalfact = 0.8
+/
 ATOMIC_SPECIES
 Cl    35.45     Cl.pz-bhs.UPF
 ATOMIC_POSITIONS (angstrom)

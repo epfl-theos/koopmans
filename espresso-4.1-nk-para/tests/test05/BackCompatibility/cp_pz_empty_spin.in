@@ -2,10 +2,10 @@
     prefix='clorine_spin'
     calculation='cp',
     restart_mode='restart',
-    nstep=1
+    nstep=3, 
     iprint=1, 
-    ndr=96
-    ndw=196
+    ndr=95
+    ndw=195
     dt=3.0,
     pseudo_dir='../../pseudo/',
     outdir='./SCRATCH',
@@ -21,12 +21,12 @@
     nbnd = 7
     nspin = 2
     do_ee =.true.
-    do_orbdep =.true.
+    which_orbdep='pz'
     do_spinsym = T
 /
 &ELECTRONS
     empty_states_nbnd = 3
-    empty_states_maxstep = 140
+    empty_states_maxstep = 150
     electron_dynamics='damp', 
     electron_damping=0.05,
     emass=1000., 
@@ -40,10 +40,7 @@
 /
 &EE
     which_compensation ='tcc'
-/
-&NKSIC
-    which_orbdep='hf'
-/
+ /
 ATOMIC_SPECIES
 Cl    35.45     Cl.pz-bhs.UPF
 ATOMIC_POSITIONS (angstrom)

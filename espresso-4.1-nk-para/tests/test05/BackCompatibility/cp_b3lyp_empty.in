@@ -1,11 +1,11 @@
 &CONTROL
-    prefix='clorine_spin'
+    prefix='clorine'
     calculation='cp',
     restart_mode='restart',
     nstep=1
     iprint=1, 
-    ndr=96
-    ndw=196
+    ndr=98
+    ndw=198
     dt=3.0,
     pseudo_dir='../../pseudo/',
     outdir='./SCRATCH',
@@ -19,10 +19,8 @@
     nat = 2
     ntyp = 1
     nbnd = 7
-    nspin = 2
     do_ee =.true.
-    do_orbdep =.true.
-    do_spinsym = T
+    which_orbdep='b3lyp'
 /
 &ELECTRONS
     empty_states_nbnd = 3
@@ -40,10 +38,7 @@
 /
 &EE
     which_compensation ='tcc'
-/
-&NKSIC
-    which_orbdep='hf'
-/
+ /
 ATOMIC_SPECIES
 Cl    35.45     Cl.pz-bhs.UPF
 ATOMIC_POSITIONS (angstrom)

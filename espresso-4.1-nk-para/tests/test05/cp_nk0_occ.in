@@ -19,8 +19,7 @@
     nat = 2
     ntyp = 1
     do_ee =.true.
-    which_orbdep='nk0'
-    nkscalfact = 0.8
+    do_orbdep =.true.
     nbnd = 8
     occupations='from_input'
 /
@@ -38,7 +37,11 @@
 /
 &EE
     which_compensation ='tcc'
- /
+/
+&NKSIC
+    which_orbdep='nk0'
+    nkscalfact = 0.8
+/
 ATOMIC_SPECIES
 Cl    35.45     Cl.pz-bhs.UPF
 ATOMIC_POSITIONS (angstrom)
