@@ -351,10 +351,8 @@
           if(.not.tens) then
              !
              if(non_ortho) then
-                write(6,*) "checkdual23", cdual(1:2,1)
                 call rhoofr(nfi,c0(:,:),cdual,irb,eigrb,bec,becdual,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
              else
-!                 write(6,*) "checkwave23", c0(1:2,1)
                 call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
              endif
           else
@@ -548,7 +546,6 @@
 !            endif
 !$$
              eodd    = sum(pink(1:nbsp))
-!              write(6,*) eodd, etot, "EODD_inn", etot+eodd
              etot    = etot + eodd
              etotnew = etotnew + eodd
 
@@ -1188,7 +1185,6 @@
 
 ! 	IF(lgam) THEN
 	  gamma_c=CMPLX(DBLE(gamma_c),0.d0)
-	  write(6,*) "gamma", gamma_c
 ! 	ENDIF
 
 !$$        if(itercg==1.or.(mod(itercg,niter_cg_restart).eq.1).or.restartcg) then
@@ -1260,7 +1256,6 @@
           end do
 !$$ We need the following because n for spin 2 is double that for spin 1!
           dene0 = dene0 *2.d0/nspin
-          write(6,*) "dene0", dene0
 !$$          dene0 = dene0 *4.d0/nspin
 !$$
         else
@@ -1480,7 +1475,6 @@
            if(non_ortho) then
               call rhoofr(nfi,cm(:,:),cmdual, irb,eigrb,becm,becmdual,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
            else
-              write(6,*) "checkwave", cm(1:2,1)
               call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
            endif
         else
@@ -1668,7 +1662,6 @@
                                   icompute_spread, .false.)
             ENDIF
             eodd = sum(pink(1:nbsp))
-            write(6,*) nudx, "nudx"
             etot = etot + eodd
             !
         endif
@@ -1729,15 +1722,12 @@
           if(non_ortho) then
              cdual(:,:)=cmdual(:,:)
              call copy_twin(becdual,becmdual)
-             write(6,*) "checkdual", cdual(1:2,1)
           endif
         elseif( (enever.ge.ene1) .and. (enever.lt.ene0)) then
           if(ionode) then
              write(stdout,"(2x,a,i5,f20.12)") 'cg_sub: missed minimum, case 1, iteration',itercg, passof
-             write(6,*) "checkenergies",ene0,enever,ene1
           endif
           c0(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
-                write(6,*) "checkwave", c0(1:2,1)
 !$$
           passof=2.d0*passov
 !$$
@@ -1747,7 +1737,6 @@
              call calbec(1,nsp,eigr,c0,bec)
              call compute_duals(c0,cdual,nbspx,1)
              call calbec(1,nsp,eigr,cdual,becdual)
-             write(6,*) "checkdual", cdual(1:2,1)          
           ELSE
              IF(do_orbdep.and.ortho_switch) THEN
                 call lowdin(c0, lgam)
@@ -1757,15 +1746,12 @@
                 call gram(betae,bec,nhsa,c0,ngw,nbsp)
              ENDIF
           ENDIF
-
-          write(6,*) "checkwave", cm(1:2,1)
           !
           ene_ok=.false.
           !if  ene1 << energy <  ene0; go to  ene1
         else if( (enever.ge.ene0).and.(ene0.gt.ene1)) then
           if(ionode) then
              write(stdout,"(2x,a,i5)") 'cg_sub: missed minimum, case 2, iteration',itercg
-             write(6,*) "checkenergies",ene0,enever,ene1
           endif  
           c0(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
 !$$
@@ -1777,7 +1763,6 @@
              call calbec(1,nsp,eigr,c0,bec)
              call compute_duals(c0,cdual,nbspx,1)
              call calbec(1,nsp,eigr,cdual,becdual)
-             write(6,*) "checkdual", cdual(1:2,1)
           ELSE
              IF(do_orbdep.and.ortho_switch) THEN
                 call lowdin(c0, lgam)
@@ -1793,7 +1778,6 @@
         else if((enever.ge.ene0).and.(ene0.le.ene1)) then
           if(ionode) then
              write(stdout,"(2x,a,i5)") 'cg_sub: missed minimum, case 3, iteration',itercg
-             write(6,*) "checkenergies",ene0,enever,ene1
           endif
 
           iter3=0
@@ -1886,7 +1870,6 @@
                 ENDIF
                 !
                 eodd = sum(pink(1:nbsp))
-                write(6,*) nudx, "nudx2"
                 etot = etot + eodd
                 !
             endif
@@ -1926,7 +1909,6 @@
                 if(non_ortho) then
                    cdual(:,:)=cmdual(:,:)
                    call copy_twin(becdual,becmdual)
-                   write(6,*) "checkdual", cdual(1:2,1)
                  endif
               endif
 
@@ -2084,7 +2066,6 @@
                                    icompute_spread, .false.)
              ENDIF
              eodd = sum(pink(1:nbsp))
-             write(6,*) nudx, "nudx"
              etot = etot + eodd
              !
          endif
@@ -2436,7 +2417,6 @@
      endif
      deallocate(hpsi0,hpsi,gi,hi)
      deallocate(hitmp, STAT=ierr)
-     write(6,*) "deallocated hitmp", ierr
      !        
      call deallocate_twin(s_minus1)
      call deallocate_twin(k_minus1)
@@ -3605,7 +3585,6 @@
 !              write(6,*) "checkenergies",ene0,enever,ene1
           endif
           c0_emp(1:ngw,1:n_emps)=c0_emp(1:ngw,1:n_emps)+spasso*passov*hi(1:ngw,1:n_emps)
-!                 write(6,*) "checkwave", c0(1:2,1)
 !$$
           passof=2.d0*passov
 !$$

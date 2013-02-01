@@ -464,7 +464,7 @@ contains
       endif
       !
       allocate( odd_alpha(nx) )
-      odd_alpha(:)=1.d0
+      odd_alpha(:)=0.d0
       IF( do_pz_renorm) THEN
          allocate(taukin(nnrx,nspin))
          allocate(tauw(nnrx,nspin))

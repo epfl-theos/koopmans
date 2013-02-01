@@ -1534,7 +1534,7 @@ end subroutine nksic_newd
         icoeff=1.d0
       endif
 
-      if( ibnd > nknmax .and. nknmax > 0 ) return
+      if( ibnd > nknmax .and. nknmax .ge. 0 ) return
       !
       CALL start_clock( 'nk_corr' )
       CALL start_clock( 'nk_corr_h' )
@@ -2358,7 +2358,7 @@ end subroutine nksic_newd
       vsic=0.0_dp
       pink=0.0_dp
       !
-      if ( ibnd > nknmax .and. nknmax > 0 ) return
+      if ( ibnd > nknmax .and. nknmax .ge. 0 ) return
       if ( f < 1.0d-6 ) return
       !
       CALL start_clock( 'nk_corr' )
@@ -2853,7 +2853,7 @@ end subroutine nksic_correction_pz
       vsic=0.0_dp
       pink=0.0_dp
       !
-      if ( ibnd > nknmax .and. nknmax > 0 ) return
+      if ( ibnd > nknmax .and. nknmax .ge. 0 ) return
       !if ( f < 1.0d-6 ) return
       !
       CALL start_clock( 'nk_corr' )
@@ -3117,7 +3117,7 @@ end subroutine nksic_correction_nkipz
          !
       ENDIF
 
-      if( ibnd > nknmax .and. nknmax > 0 ) return
+      if( ibnd > nknmax .and. nknmax .ge. 0 ) return
       !
       CALL start_clock( 'nk_corr' )
       CALL start_clock( 'nk_corr_h' )
