@@ -371,8 +371,6 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
         !
      END IF
      !
-     write(6,*) "calling move_electrons", nfi, tfirst, tlast
-     !
      CALL move_electrons( nfi, tfirst, tlast, b1, b2, b3, fion, &
                           enthal, enb, enbi, fccc, ccc, dt2bye, stress, &
                           tprint_ham = tprint_ham )
@@ -546,7 +544,6 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
         !
         IF ( tortho ) THEN
            !
-!            write(6,*) "calling ortho_cp_twin", phi !added:giovanni:debug
            CALL ortho_cp_twin( eigr(1:ngw,1:nat), cm(1:ngw,1:nbsp), phi(1:ngw,1:nbsp), ngw, &
                                                  lambda(1:nspin), descla(1:descla_siz_ , 1:nspin) &
                                                  , bigr, iter, ccc, bephi, becp, nbsp, nspin, nupdwn, iupdwn )

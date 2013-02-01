@@ -4653,7 +4653,7 @@ END FUNCTION
                                    do_wref, do_wxd, fref, rhobarfact, &
                                    vanishing_rho_w, &
                                    nknmax, do_spinsym, f_cutoff, &
-                                   nkscalfact,  nksic_memusage, allocate_nksic
+                                   nkscalfact,  nksic_memusage, allocate_nksic, odd_alpha
 !$$
       use nksic,            only : do_innerloop, do_innerloop_cg, &
                                    innerloop_dd_nstep, &
@@ -4814,6 +4814,8 @@ END FUNCTION
       endif
       !
       if( do_orbdep .and. .not. do_hybrid ) call allocate_nksic( nnrx, ngw, nspin, nbspx, nat)
+      !
+      if(do_orbdep) odd_alpha(:)=1.d0
       !
       if( (do_nk .or. do_nkpz ) .and. meta_ionode ) then
           write(stdout,2010) do_wxd, do_wref, do_nkpz

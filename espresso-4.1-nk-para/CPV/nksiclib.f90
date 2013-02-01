@@ -36,7 +36,7 @@
                                             wrefsic, rhoref, rhobar, &
                                             do_nk, do_nki, do_pz, do_nkpz, &
                                             do_nkipz, do_pz_renorm, &
-                                            grhobar, fion_sic, pzalpha => alpha, &
+                                            grhobar, fion_sic, pzalpha => odd_alpha, &
                                             kfact, upsilonkin, upsilonw, edens,&
                                             taukin, tauw
       use nksic,                      only: epsi3=> epsi_cutoff_renorm, epsi2=> epsi2_cutoff_renorm
@@ -2511,9 +2511,9 @@ end subroutine nksic_newd
          vsic = vsic * nkscalfact
          !
       ELSE
-         !
-!          pink = pink * pzalpha
-!          vsic = vsic * pzalpha
+         !I do not renormalize here, I will do it outside the subroutine 
+         !pink = pink * pzalpha
+         !vsic = vsic * pzalpha
          !
       ENDIF
       !
@@ -7448,7 +7448,7 @@ END SUBROUTINE compute_nksic_centers
 SUBROUTINE spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, wfc_centers, sort_spreads)
 
       USE kinds,  ONLY: DP
-      USE input_parameters,      only: draw_pot  !added:linh draw vsic potentials
+      USE input_parameters,      only: draw_pot, sortwfc_spread !added:linh draw vsic potentials
       USE wavefunctions_module,  only: c0,cm
       USE mp_global,             only: mpime, intra_image_comm
       USE mp,                    only: mp_bcast
@@ -7507,92 +7507,87 @@ SUBROUTINE spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, wfc_
             enddo
             !
          enddo
-         !endif
-         !
-         !call mp_bcast(aidarray, ionode_id, intra_image_comm)
-         !call mp_bcast(tempspreads, ionode_id, intra_image_comm)
-         !
-         !
-         !call mp_bcast(wfc_centers, ionode_id, intra_image_comm)
-         !
-         !
          !write(*,*) mpime, "aidarray", aidarray(:,1)
          j=1
          k=1
          refnum=0
          !write(*,*) mpime, "before", c0(2,:)
          !
-         do while(k.le.nupdwn(isp))
+         if(sortwfc_spread) then
             !
-            write(6,*) j,aidarray(j,2), aidarray(j,1), refnum
-            IF(aidarray(j,2)==0.and.j/=aidarray(j,1)) THEN
+            do while(k.le.nupdwn(isp))
                !
-               IF(aidarray(j,1)/=refnum) THEN
+               write(6,*) j,aidarray(j,2), aidarray(j,1), refnum
+               IF(aidarray(j,2)==0.and.j/=aidarray(j,1)) THEN
                   !
-                  IF(refnum==0) THEN
+                  IF(aidarray(j,1)/=refnum) THEN
+                     !
+                     IF(refnum==0) THEN
+                        !
+                        do ig=1,ngw
+                           !
+                           tempwfc(ig,1) = c0(ig,iupdwn(isp)+j-1)
+                           tempwfc(ig,2) = cm(ig,iupdwn(isp)+j-1)
+                           !
+                        enddo
+                        refnum=j
+                        !
+                     ENDIF
                      !
                      do ig=1,ngw
                         !
-                        tempwfc(ig,1) = c0(ig,iupdwn(isp)+j-1)
-                        tempwfc(ig,2) = cm(ig,iupdwn(isp)+j-1)
+                        c0(ig,iupdwn(isp)+j-1) = c0(ig,iupdwn(isp)+aidarray(j,1)-1)
+                        cm(ig,iupdwn(isp)+j-1) = cm(ig,iupdwn(isp)+aidarray(j,1)-1)
                         !
                      enddo
-                     refnum=j
+                     !
+                     aidarray(j,2)=1
+                     j=aidarray(j,1)
+                     !
+                  ELSE
+                     !
+                     do ig=1,ngw
+                        !
+                        c0(ig,iupdwn(isp)+j-1) = tempwfc(ig,1)
+                        cm(ig,iupdwn(isp)+j-1) = tempwfc(ig,2)
+                        !
+                     enddo
+                     !
+                     aidarray(j,2)=1
+                     j=refnum+1
+                     refnum=0
+                     !
+                  ENDIF
+                  k=k+1
+                  !
+               ELSE
+                  !
+                  IF(j==aidarray(j,1)) THEN
+                     !
+                     k=k+1
                      !
                   ENDIF
                   !
-                  do ig=1,ngw
-                     !
-                     c0(ig,iupdwn(isp)+j-1) = c0(ig,iupdwn(isp)+aidarray(j,1)-1)
-                     cm(ig,iupdwn(isp)+j-1) = cm(ig,iupdwn(isp)+aidarray(j,1)-1)
-                     !
-                  enddo
+                  j=j+1
                   !
-                  aidarray(j,2)=1
-                  j=aidarray(j,1)
-                  !
-               ELSE
-                  !
-                  do ig=1,ngw
-                     !
-                     c0(ig,iupdwn(isp)+j-1) = tempwfc(ig,1)
-                     cm(ig,iupdwn(isp)+j-1) = tempwfc(ig,2)
-                     !
-                  enddo
-                  !
-                  aidarray(j,2)=1
-                  j=refnum+1
-                  refnum=0
-                  !
-               ENDIF
-               k=k+1
-               !
-            ELSE
-               !
-               IF(j==aidarray(j,1)) THEN
-                  !
-                  k=k+1
+                  if(j.gt.nupdwn(isp)) THEN
+                     exit
+                  ELSE
+                     cycle
+                  ENDIF
                   !
                ENDIF
                !
-               j=j+1
-               !
-               if(j.gt.nupdwn(isp)) THEN
-                  exit
-               ELSE
-                  cycle
-               ENDIF
-               !
-            ENDIF
-            !
-         enddo
+            enddo
+         endif
          !
          sort_spreads(:,isp) = aidarray(:,1)
          !
       enddo
+
       !
-      deallocate(tempwfc, aidarray)
-      !deallocate(tempspreads)
+      if(allocated(tempwfc)) deallocate(tempwfc)
+      deallocate(aidarray)
       !
       return
 
@@ -7750,7 +7745,7 @@ END subroutine compute_complexification_index
                                             wrefsic, rhoref, rhobar, &
                                             do_nk, do_nki, do_pz, do_nkpz, &
                                             do_nkipz, grhobar, fion_sic, &
-                                            pzalpha=>alpha, do_pz_renorm, edens, &
+                                            pzalpha=>odd_alpha, do_pz_renorm, edens, &
                                             tauw,taukin, upsilonkin, upsilonw, kfact
       use ions_base,                  only: nat
       use control_flags,         only: gamma_only, do_wf_cmplx !added:giovanni

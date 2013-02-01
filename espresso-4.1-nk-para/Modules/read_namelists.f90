@@ -220,6 +220,7 @@ MODULE read_namelists_module
        ampfield = 0.0_dp
        !
        draw_pot = .false. !added:linh draw vsic potentials
+       sortwfc_spread = .false.
        pot_number  = 1    !added:linh draw vsic potentials 
        !
        do_orbdep=.false.
@@ -927,6 +928,7 @@ MODULE read_namelists_module
        CALL mp_bcast( innerloop_init_n,           ionode_id )
        CALL mp_bcast( innerloop_cg_ratio,         ionode_id )
        CALL mp_bcast( draw_pot,                   ionode_id )
+       CALL mp_bcast( sortwfc_spread,             ionode_id )
        CALL mp_bcast( pot_number,                 ionode_id )
 !$$
        CALL mp_bcast( nknmax,                     ionode_id )

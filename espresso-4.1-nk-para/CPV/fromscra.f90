@@ -66,6 +66,8 @@ SUBROUTINE from_scratch( )
     USE nksic,                ONLY : do_spinsym
     USE mp_global,      ONLY : mpime !added:giovanni:debug
     USE control_flags,        ONLY : tatomicwfc, trane
+    USE descriptors,          ONLY: descla_siz_
+
     !
     IMPLICIT NONE
     !
@@ -314,7 +316,7 @@ SUBROUTINE from_scratch( )
 
 
          IF( tortho ) THEN
-            CALL ortho( eigr, c0, phi, ngw, lambda, descla, &
+            CALL ortho_cp_twin( eigr(1:ngw,1:nat), c0(1:ngw,1:nbsp), phi(1:ngw,1:nbsp), ngw, lambda, descla(1:descla_siz_ , 1:nspin), &
                         bigr, iter, ccc, bephi, becp, nbsp, nspin, nupdwn, iupdwn )
          ELSE IF(.not.non_ortho) THEN
             !
@@ -334,11 +336,11 @@ SUBROUTINE from_scratch( )
                i1 = (iss-1)*nlax+1
                i2 = iss*nlax
                IF(.not.bec%iscmplx) THEN
-		    CALL updatc( ccc, nbsp, lambda(iss)%rvec, SIZE(lambda,1), phi, SIZE(phi,1), &
+		    CALL updatc( ccc, nbsp, lambda(iss)%rvec, SIZE(lambda(iss)%rvec,1), phi, SIZE(phi,1), &
 				  bephi%rvec(:,i1:i2), SIZE(bephi%rvec,1), becp%rvec, bec%rvec, c0, nupdwn(iss), iupdwn(iss), &
 				  descla(:,iss) )
                ELSE
-		    CALL updatc( ccc, nbsp, lambda(iss)%cvec, SIZE(lambda,1), phi, SIZE(phi,1), &
+		    CALL updatc( ccc, nbsp, lambda(iss)%cvec, SIZE(lambda(iss)%cvec,1), phi, SIZE(phi,1), &
 				  bephi%cvec(:,i1:i2), SIZE(bephi%cvec,1), becp%cvec, bec%cvec, c0, nupdwn(iss), iupdwn(iss), &
 				  descla(:,iss) )
                ENDIF

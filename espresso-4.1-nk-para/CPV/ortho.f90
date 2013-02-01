@@ -933,6 +933,7 @@ SUBROUTINE ortho_m_twin(c0, cp, lambda, descla, ccc, nupdwn, iupdwn, nspin)
       la_proc = ( descla( lambda_node_ , 1) > 0 )
       nlam    = 1
       if ( la_proc ) nlam = nlax
+      write(6,*) "nx0", nx0, nlam, x0(1)%iscmplx
       IF( nx0 /= nlam ) THEN
          CALL errore( " ortho_cp_twin ", " inconsistent dimensions for x0 ", nx0 )
       ENDIF

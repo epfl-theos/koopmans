@@ -518,6 +518,8 @@ MODULE input_parameters
         !
 ! 
         LOGICAL :: draw_pot = .false. !added:linh draw vsic potentials
+        LOGICAL :: sortwfc_spread = .false. !added:sort nksic minimizing orbitals &
+        ! according to their Culomb spreads
         INTEGER :: pot_number  = 1    !added:linh draw vsic potentials 
         !
         INTEGER     :: nknmax = -1
@@ -538,7 +540,7 @@ MODULE input_parameters
              do_innerloop, do_innerloop_cg, innerloop_dd_nstep,               &
              innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax,           &
              innerloop_init_n, innerloop_cg_ratio, do_pz_renorm, kfact,       &
-             esic_conv_thr, do_bare_eigs
+             esic_conv_thr, do_bare_eigs, sortwfc_spread
 
 !=----END nksic input variables
 !

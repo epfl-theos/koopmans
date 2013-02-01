@@ -347,14 +347,14 @@ module nksic
   real(dp),    allocatable :: fion_sic(:,:)
   real(dp),    allocatable :: deeq_sic(:,:,:,:)
   real(dp),    allocatable :: pink(:)
-  real(dp),    allocatable :: alpha(:) !added:giovanni for alpha renormalization
+  real(dp),    allocatable :: odd_alpha(:) !added:giovanni for alpha renormalization
   real(dp),    allocatable :: taukin(:,:) !added:giovanni for alpha renormalization
   real(dp),    allocatable :: tauw(:,:) !added:giovanni for alpha renormalization
   real(dp),    allocatable :: edens(:,:) !added:giovanni for alpha renormalization
   real(dp),    allocatable :: upsilonkin(:,:,:) !added:giovanni for alpha renormalization
   real(dp),    allocatable :: upsilonw(:,:,:) !added:giovanni for alpha renormalization
   real(dp),    allocatable :: pink_emp(:)
-  real(dp),    allocatable :: alpha_emp(:) !added:giovanni for alpha renormalization
+  real(dp),    allocatable :: odd_alpha_emp(:) !added:giovanni for alpha renormalization
   real(dp),    allocatable :: vxc_sic(:,:)
   real(dp),    allocatable :: wxdsic(:,:)
   real(dp),    allocatable :: orb_rhor(:,:)
@@ -403,8 +403,8 @@ contains
      !
   ENDIF
   
-  IF(.not.allocated(alpha_emp)) THEN
-     allocate(alpha_emp(n_emps))
+  IF(.not.allocated(odd_alpha_emp)) THEN
+     allocate(odd_alpha_emp(n_emps))
   ENDIF
   
   return
@@ -463,7 +463,8 @@ contains
           allocate( grhobar(1,1,1) )
       endif
       !
-      allocate( alpha(nx) )
+      allocate( odd_alpha(nx) )
+      odd_alpha(:)=1.d0
       IF( do_pz_renorm) THEN
          allocate(taukin(nnrx,nspin))
          allocate(tauw(nnrx,nspin))
@@ -518,7 +519,7 @@ contains
       if(allocated(fion_sic))    deallocate(fion_sic)
       if(allocated(deeq_sic))    deallocate(deeq_sic)
       if(allocated(pink))        deallocate(pink)
-      if(allocated(alpha))       deallocate(alpha)
+      if(allocated(odd_alpha))   deallocate(odd_alpha)
       if(allocated(taukin))      deallocate(taukin)
       if(allocated(tauw))        deallocate(tauw)
       if(allocated(edens))       deallocate(edens)
@@ -534,7 +535,7 @@ contains
       if(allocated(rhobar))      deallocate(rhobar)
       if(allocated(rhoref))      deallocate(rhoref)
       if(allocated(pink_emp))    deallocate(pink_emp)
-      if(allocated(alpha_emp))   deallocate(alpha_emp)
+      if(allocated(odd_alpha_emp))   deallocate(odd_alpha_emp)
       !
   end subroutine deallocate_nksic
   !
