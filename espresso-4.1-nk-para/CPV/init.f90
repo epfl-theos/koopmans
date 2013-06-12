@@ -31,7 +31,7 @@
       USE grid_subroutines,         ONLY: realspace_grids_init, realspace_grids_para
       USE reciprocal_vectors,       ONLY: mill_g, g2_g, bi1, bi2, bi3
       USE recvecs_subroutines,      ONLY: recvecs_init
-      use gvecw,                    only: gcutw, gkcut, ngw, ngm, ngs
+      use gvecw,                    only: gcutw, gkcut, ngw
       use gvecp,                    only: ecut => ecutp, gcut => gcutp, ngm
       use gvecs,                    only: gcuts, ngs
       use gvecb,                    only: gcutb

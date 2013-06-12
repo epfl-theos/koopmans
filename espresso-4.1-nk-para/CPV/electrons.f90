@@ -419,12 +419,12 @@
          !
          IF( tstdout ) THEN
             
-            WRITE( stdout,1222) ik, j
+            WRITE(stdout,1222) ik, j
             !
             IF(do_orbdep) THEN
-               WRITE( stdout,1444) ( wfc_centers(1:4, i, j ),  wfc_spreads( i, j , 1), wfc_spreads( i, j, 2), pink(iupdwn(j)-1+sort_spreads(i,j))*hartree_si/electronvolt_si, pzalpha(iupdwn(j)-1+sort_spreads(i,j)), i = 1, nupdwn(j) )
+               WRITE(stdout,1444) ( wfc_centers(1:4, i, j), wfc_spreads( i, j , 1), wfc_spreads( i, j, 2), pink(iupdwn(j)-1+sort_spreads(i,j))*hartree_si/electronvolt_si, pzalpha(iupdwn(j)-1+sort_spreads(i,j)), i = 1, nupdwn(j) )
             ELSE
-               WRITE( stdout,1445) ( wfc_centers(1:4, i, j ),  wfc_spreads( i, j , 1), wfc_spreads( i, j, 2), i = 1, nupdwn(j) )
+               WRITE(stdout,1445) ( wfc_centers(1:4,i,j), wfc_spreads( i, j , 1), wfc_spreads( i, j, 2), i = 1, nupdwn(j) )
             ENDIF
             !
             IF( n_emp .GT. 0 ) THEN
