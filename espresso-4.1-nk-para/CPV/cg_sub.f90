@@ -2258,9 +2258,9 @@
      ENDIF
      !
      IF(non_ortho) THEN
-        hitmp(:,:) = cdual(:,:)
+        hitmp(1:ngw,1:nbsp) = cdual(1:ngw,1:nbsp)
      ELSE
-        hitmp(:,:) = c0(:,:)
+        hitmp(1:ngw,1:nbsp) = c0(1:ngw,1:nbsp)
      ENDIF
      !
      do is = 1, nspin
