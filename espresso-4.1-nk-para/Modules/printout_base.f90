@@ -17,7 +17,7 @@ MODULE printout_base
   CHARACTER(LEN=75) :: title
   ! ...  title of the simulation
 
-  CHARACTER(LEN=256) :: fort_unit(30:43)
+  CHARACTER(LEN=256) :: fort_unit(30:45)
   ! ...  fort_unit = fortran units for saving physical quantity
 
   CHARACTER(LEN=256) :: pprefix
@@ -70,11 +70,19 @@ CONTAINS
         fort_unit(41) = trim(pprefix)//'.spr'  ! wannier spread
         fort_unit(42) = trim(pprefix)//'.wfc'  ! wannier function
         fort_unit(43) = trim(pprefix)//'.ham'  ! norm of the ham matrices
+        fort_unit(44) = trim(pprefix)//'.sha'  ! self-hartree !added:giovanni
+        fort_unit(45) = trim(pprefix)//'.ovp'  ! manifold overlap !added:giovanni
         !
         DO iunit = LBOUND( fort_unit, 1 ), UBOUND( fort_unit, 1 )
-           OPEN(UNIT=iunit, FILE=fort_unit(iunit), &
-               STATUS='unknown', POSITION='append', IOSTAT = ierr )
-           CLOSE( iunit )
+           IF(iunit.le.43) THEN
+              OPEN(UNIT=iunit, FILE=fort_unit(iunit), &
+                 STATUS='unknown', POSITION='append', IOSTAT = ierr )
+              CLOSE( iunit )
+           ELSE
+              OPEN(UNIT=iunit, FILE=fort_unit(iunit), &
+                 STATUS='unknown', ACCESS='sequential', ACTION='write', IOSTAT = ierr )
+              CLOSE( iunit )
+           ENDIF
         END DO
      END IF
 

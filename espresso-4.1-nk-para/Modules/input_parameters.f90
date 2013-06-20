@@ -502,6 +502,8 @@ MODULE input_parameters
         INTEGER :: innerloop_cg_nsd  = 20
         INTEGER :: innerloop_cg_nreset  = 10
         INTEGER :: innerloop_nmax  = 10000
+        INTEGER :: iprint_spreads=-1 !prints spread every nth step, -1 does not print spread !!added:giovanni
+        INTEGER :: iprint_manifold_overlap=-1 !prints manifold overlap with initial wavefunctions (random or from restart), when -1, no overlap is printed
         !
         ! This variable overwrites the ones above
         CHARACTER(80)     :: which_orbdep=" "
@@ -540,7 +542,8 @@ MODULE input_parameters
              do_innerloop, do_innerloop_cg, innerloop_dd_nstep,               &
              innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax,           &
              innerloop_init_n, innerloop_cg_ratio, do_pz_renorm, kfact,       &
-             esic_conv_thr, do_bare_eigs, sortwfc_spread
+             esic_conv_thr, do_bare_eigs, sortwfc_spread, iprint_spreads,     &
+             iprint_manifold_overlap
 
 !=----END nksic input variables
 !

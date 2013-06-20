@@ -48,6 +48,7 @@
         REAL(DP), ALLOCATABLE :: wfc_centers_emp(:,:,:) !added:giovanni wfc_centers_emp
         REAL(DP), ALLOCATABLE :: wfc_spreads(:,:,:) !added:giovanni wfc_spreads
         REAL(DP), ALLOCATABLE :: wfc_spreads_emp(:,:,:) !added:giovanni wfc_spreads_emp
+        COMPLEX(DP), ALLOCATABLE :: manifold_overlap(:) !added:giovanni wfc_spreads_emp
         INTEGER, ALLOCATABLE  :: sort_spreads(:,:) !added:giovanni wfc_spreads_emp
         INTEGER, ALLOCATABLE  :: sort_spreads_emp(:,:) !added:giovanni wfc_spreads_emp
 
@@ -67,6 +68,7 @@
         PUBLIC :: empty_print_info, empty_init
         PUBLIC :: sort_spreads, sort_spreads_emp,wfc_centers, wfc_spreads, icompute_spread !added:giovanni 
         PUBLIC :: wfc_centers_emp, wfc_spreads_emp !added:giovanni 
+        PUBLIC :: manifold_overlap !added:giovanni 
         PUBLIC :: etot_emp, eodd_emp !added:giovanni 
 
 
@@ -235,6 +237,14 @@
         IF( ierr/=0 ) CALL errore( ' electrons ',' allocating wfc_spreads ',ierr)
         wfc_spreads = 0.0_DP
      ENDIF
+
+     IF( ALLOCATED( manifold_overlap ) ) DEALLOCATE( manifold_overlap )
+     IF(nspin > 0) THEN
+        ALLOCATE( manifold_overlap( nspin ), STAT=ierr)
+        IF( ierr/=0 ) CALL errore( ' electrons ',' allocating manifold_overlap ',ierr)
+        manifold_overlap = 0.0_DP
+     ENDIF
+
 !end_added:giovanni
 
 !begin_added:giovanni
@@ -500,6 +510,10 @@
       IF(ALLOCATED(wfc_spreads))       THEN
             DEALLOCATE(wfc_spreads, STAT=ierr)
             IF( ierr/=0 ) CALL errore( ' deallocate_electrons ',' deallocating wfc_spreads ',ierr )
+      END IF
+      IF(ALLOCATED(manifold_overlap))       THEN
+            DEALLOCATE(manifold_overlap, STAT=ierr)
+            IF( ierr/=0 ) CALL errore( ' deallocate_electrons ',' deallocating manifold_overlap ',ierr )
       END IF
 !       write(6,*) "deallocating empty", ubound(wfc_centers_emp), ubound(wfc_spreads_emp)
       IF(ALLOCATED(wfc_centers_emp))       THEN

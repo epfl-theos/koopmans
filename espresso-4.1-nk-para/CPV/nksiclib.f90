@@ -7650,7 +7650,7 @@ SUBROUTINE compute_complexification_index(ngw, nnrx, nbsp, nbspx, nspin, ispin, 
       INTEGER, INTENT(IN) :: ngw, nnrx, nbsp, nbspx, nspin, &
                iupdwn(nspin), nupdwn(nspin), ispin(nbspx)
       type(twin_matrix) :: bec
-      COMPLEX(DP) :: c0(ngw, nbsp), complexification_index      
+      COMPLEX(DP) :: c0(ngw, nbspx), complexification_index      
 
       INTEGER :: i,j,k, ir
       COMPLEX(DP), allocatable :: temp_array(:, :), psi1(:), psi2(:)
@@ -7713,7 +7713,6 @@ SUBROUTINE compute_complexification_index(ngw, nnrx, nbsp, nbspx, nspin, ispin, 
       return
 
 END subroutine compute_complexification_index
-
 
 !-----------------------------------------------------------------------
       subroutine nksic_potential_non_ortho( nbsp, nx, c, cdual, f_diag, &

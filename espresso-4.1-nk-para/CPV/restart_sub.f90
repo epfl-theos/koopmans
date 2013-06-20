@@ -12,10 +12,11 @@ SUBROUTINE from_restart( )
    USE kinds,                 ONLY : DP
    USE control_flags,         ONLY : program_name, tbeg, taurdr, tfor, tsdp, tv0rd, &
                                      iprsta, tsde, tzeroe, tzerop, nbeg, tranp, amprp, &
-                                     tzeroc, force_pairing, trhor, ampre, trane, tpre, dt_old
-   USE wavefunctions_module,  ONLY : c0, cm, phi => cp
+                                     tzeroc, force_pairing, trhor, ampre, trane, tpre, dt_old, &
+                                     iprint_manifold_overlap !added:giovanni iprint_manifold_overlap
+   USE wavefunctions_module,  ONLY : c0, cm, phi => cp, cstart
    USE electrons_module,      ONLY : occn_info
-   USE electrons_base,        ONLY : nspin, iupdwn, nupdwn, f, nbsp
+   USE electrons_base,        ONLY : nspin, iupdwn, nupdwn, f, nbsp, nbspx
    USE io_global,             ONLY : ionode, ionode_id, stdout
    USE cell_base,             ONLY : ainv, h, hold, deth, r_to_s, s_to_r, boxdimensions, &
                                      velh, a1, a2, a3
@@ -38,10 +39,11 @@ SUBROUTINE from_restart( )
    USE uspp,                  ONLY : okvan, vkb, nkb
    USE core,                  ONLY : nlcc_any
    USE cp_main_variables,     ONLY : ht0, htm, lambdap, lambda, lambdam, ei1, ei2, ei3, eigr, &
-                                     sfac, bec, taub, irb, eigrb, edft
+                                     sfac, bec, taub, irb, eigrb, edft, becstart
    USE cdvan,                 ONLY : dbec
    USE time_step,             ONLY : delt
    USE atoms_type_module,     ONLY : atoms_type
+   USE twin_types
    !
    IMPLICIT NONE
    !
@@ -236,6 +238,13 @@ SUBROUTINE from_restart( )
       xnhpm = xnhp0 - (xnhp0-xnhpm)*delt/dt_old
       WRITE( stdout, '(" tausm & xnhpm were rescaled ")' )
    endif
+   !
+   IF(iprint_manifold_overlap>0) THEN !added:giovanni
+      !
+      cstart(1:ngw,1:nbspx) = c0(1:ngw,1:nbspx)
+      call copy_twin(becstart, bec) 
+      !
+   ENDIF
    !
    RETURN
    !

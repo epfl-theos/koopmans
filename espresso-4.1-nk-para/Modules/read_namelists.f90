@@ -281,6 +281,9 @@ MODULE read_namelists_module
        which_orbdep = " "
        f_cutoff = 0.1_DP
        !
+       iprint_spreads=-1
+       iprint_manifold_overlap=-1
+       !
        RETURN
        
      END SUBROUTINE
@@ -944,7 +947,10 @@ MODULE read_namelists_module
        CALL mp_bcast( do_pz_renorm,               ionode_id )
        CALL mp_bcast( do_bare_eigs,               ionode_id )
        CALL mp_bcast( kfact,                      ionode_id )
-            
+       !
+       CALL mp_bcast( iprint_spreads,             ionode_id )
+       CALL mp_bcast( iprint_manifold_overlap,    ionode_id )
+       !     
       RETURN
       !
      END SUBROUTINE nksic_bcast 

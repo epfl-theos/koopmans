@@ -14,7 +14,8 @@ SUBROUTINE from_scratch( )
                                      tzeroc, tzerop, tzeroe, tfor, thdyn, &
                                      lwf, tprnfor, non_ortho, tortho, amprp, ampre,  &
                                      tsde, ortho_eps, ortho_max, program_name, &
-                                     force_pairing, use_task_groups, gamma_only, do_wf_cmplx!added:giovanni gamma_only, do_wf_cmplx
+                                     force_pairing, use_task_groups, gamma_only, &
+                                     do_wf_cmplx, iprint_manifold_overlap !added:giovanni gamma_only, do_wf_cmplx
     USE ions_positions,       ONLY : taus, tau0, tausm, vels, fion, fionm, atoms0
     USE ions_base,            ONLY : na, nsp, randpos, zv, ions_vel, pmass
     USE ions_base,            ONLY : taui, cdmi, nat, iforce

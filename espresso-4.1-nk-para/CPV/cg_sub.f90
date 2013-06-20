@@ -31,7 +31,7 @@
       use gvecp,                    only : ngm
       use gvecs,                    only : ngs
       use gvecb,                    only : ngb
-      use gvecw,                    only : ngw
+      use gvecw,                    only : ngw, ngwx
       use reciprocal_vectors,       only : ng0 => gstart
       use cvan,                     only : nvb, ish
       use ions_base,                only : na, nat, pmass, nax, nsp, rcmax
@@ -54,7 +54,7 @@
       use cg_module,                only : ene_ok,  maxiter,niter_cg_restart, &
                                            conv_thr, passop, enever, itercg
       use ions_positions,           only : tau0
-      use wavefunctions_module,     only : c0, cm, phi => cp, cdual, cmdual
+      use wavefunctions_module,     only : c0, cm, phi => cp, cdual, cmdual, cstart
       use efield_module,            only : tefield, evalue, ctable, qmat, detq, ipolp, &
                                            berry_energy, ctabin, gqq, gqqm, df, pberryel, &
                                            tefield2, evalue2, ctable2, qmat2, detq2, ipolp2, &
@@ -65,7 +65,7 @@
       use cp_interfaces,            ONLY : rhoofr, dforce, compute_stress, nlfl, set_x_minus1, xminus1
       USE cp_main_variables,        ONLY : nlax, collect_lambda, distribute_lambda, descla, nrlx, nlam
       USE descriptors,              ONLY : la_npc_ , la_npr_ , la_comm_ , la_me_ , la_nrl_ , ldim_cyclic
-      USE mp_global,                ONLY : me_image,my_image_id
+      USE mp_global,                ONLY : me_image, my_image_id
       !
       use nksic,                    only : do_orbdep, do_innerloop, do_innerloop_cg, innerloop_cg_nsd, &
                                            innerloop_cg_nreset, innerloop_init_n, innerloop_cg_ratio, &
@@ -74,9 +74,12 @@
       use hfmod,                    only : do_hf, vxxpsi, exx
       use twin_types !added:giovanni
       use control_flags,            only : non_ortho
-      use cp_main_variables,        only : becdual, becmdual, overlap, ioverlap
-      use electrons_module,         only : wfc_spreads, wfc_centers, icompute_spread
+      use cp_main_variables,        only : becdual, becmdual, overlap, ioverlap, becstart
+      use electrons_module,         only : wfc_spreads, wfc_centers, icompute_spread, manifold_overlap
       use ldau,                     only : lda_plus_u, vupsi
+      use printout_base,            only : printout_base_open, printout_base_unit, &
+                                       printout_base_close
+      use control_flags,            only : iprint_manifold_overlap, iprint_spreads
 !
       implicit none
 !
@@ -105,7 +108,7 @@
       type(twin_matrix) :: lambda_bare(nspin)     !(nlam,nlam,nspin)   !modified:giovanni
 !
 !
-      integer     :: i, j, ig, k, is, iss,ia, iv, jv, il, ii, jj, kk, ip
+      integer     :: i, j, ig, k, is, iss,ia, iv, jv, il, ii, jj, kk, ip, isp
       integer     :: inl, jnl, niter, istart, nss, nrl, me_rot, np_rot , comm
       real(dp)    :: enb, enbi, x
       real(dp)    :: entmp, sta
@@ -159,11 +162,23 @@
       complex(DP) :: phase
       integer :: ierr, northo_flavor
       real(DP) :: deltae,sic_coeff1, sic_coeff2 !coefficients which may change according to the flavour of SIC
+      integer :: me, iunit_manifold_overlap, iunit_spreads
       !
+      ! Initialize some basic variables
+      me = me_image+1
       lgam = gamma_only.and..not.do_wf_cmplx
       deltae = 2.d0*conv_thr
       etotnew=0.d0
       etotold=0.d0
+      ! Initialize printing
+      IF( ionode ) THEN
+         iunit_spreads = printout_base_unit( "sha" )
+         CALL printout_base_open( "sha" )
+         WRITE(iunit_spreads, *) " "
+         iunit_manifold_overlap = printout_base_unit( "ovp" )
+         CALL printout_base_open( "ovp" )
+         WRITE(iunit_manifold_overlap, *) " "
+      ENDIF
       !
       northo_flavor=1
       !
@@ -567,6 +582,44 @@
             itercg, itercgeff, etotnew, deltae
 
         if ( ionode .and. mod(itercg,10) == 0 ) write(stdout,"()" )
+
+        IF(iprint_spreads>0) THEN
+           !
+           IF ( ionode .and. mod(itercg, iprint_spreads)==0) THEN
+              !
+              WRITE( iunit_spreads, '(A3,400f20.14)') 'up', wfc_spreads(:,1,2)               
+              !
+              IF(nspin==2) THEN
+                 !
+                 WRITE( iunit_spreads, '(A3,400f20.14)') 'dw', wfc_spreads(:,2,2)
+                 !
+              ENDIF
+              !
+           ENDIF
+           !
+        ENDIF
+
+        IF(iprint_manifold_overlap>0) THEN
+           !
+           IF(mod(itercg, iprint_manifold_overlap)==0) THEN
+              !
+              CALL compute_manifold_overlap( cstart, c0, becstart, bec, ngwx, nbspx, manifold_overlap ) !added:giovanni
+              !
+              IF ( ionode ) THEN
+                 !
+                 WRITE( iunit_manifold_overlap, '(A3,2f20.14)') "up", manifold_overlap(1)
+                 IF(nspin==2) THEN
+                    !
+                    WRITE( iunit_manifold_overlap, '(A3,2f20.14)') "dw", manifold_overlap(2)
+                    !
+                 ENDIF
+                 !
+              ENDIF
+              !
+           ENDIF
+           !
+        ENDIF
+
 !$$
 
 
@@ -2448,6 +2501,13 @@
      IF(allocated(c2_bare)) deallocate(c2_bare)
      IF(allocated(c3_bare)) deallocate(c3_bare)
      IF(allocated(gi_bare)) deallocate(gi_bare)
+     !
+     IF(ionode) THEN
+        ! 
+        CALL printout_base_close( "sha" )
+        CALL printout_base_close( "ovp" )
+        !
+     ENDIF
      !
      return
 

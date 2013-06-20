@@ -17,8 +17,9 @@ SUBROUTINE init_run()
   USE kinds,                    ONLY : DP
   USE control_flags,            ONLY : nbeg, nomore, lwf, iprsta, iprint, &
                                        ndr, tfor, tprnfor, tpre, program_name, &
-                                       force_pairing, newnfi, tnewnfi, ndw, non_ortho
-                                       !above, added:giovanni non_ortho
+                                       force_pairing, newnfi, tnewnfi, ndw, non_ortho, &
+                                       iprint_manifold_overlap
+                                       !above, added:giovanni non_ortho, iprint_manifold_overlap
   USE cp_electronic_mass,       ONLY : emass, emass_cutoff
   USE ions_base,                ONLY : na, nax, nat, nsp, iforce, pmass, ityp, cdms
   USE ions_positions,           ONLY : tau0, taum, taup, taus, tausm, tausp, &
@@ -36,7 +37,7 @@ SUBROUTINE init_run()
   USE uspp,                     ONLY : nkb, vkb, deeq, becsum,nkbus
   USE core,                     ONLY : rhoc
   USE smooth_grid_dimensions,   ONLY : nnrsx
-  USE wavefunctions_module,     ONLY : c0, cm, cp, cdual, cmdual
+  USE wavefunctions_module,     ONLY : c0, cm, cp, cdual, cmdual, cstart
   USE cdvan,                    ONLY : dbec, drhovan
   USE ensemble_dft,             ONLY : tens, z0t, tsmear
   USE cg_module,                ONLY : tcg
@@ -154,6 +155,10 @@ SUBROUTINE init_run()
   !gvn23 ALLOCATE(cmi(ngw, nbspx))
   ALLOCATE( cp( ngw, nbspx ) )
   !gvn23 ALLOCATE(cpi(ngw, nbspx))
+  IF(iprint_manifold_overlap>0) THEN
+     ALLOCATE(cstart(ngw, nbspx))
+  ENDIF
+  !
   IF(non_ortho) THEN
      ALLOCATE(cdual(ngw, nbspx))
      ALLOCATE(cmdual(ngw, nbspx))

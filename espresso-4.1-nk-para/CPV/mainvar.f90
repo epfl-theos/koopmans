@@ -60,7 +60,7 @@ MODULE cp_main_variables
   !
   type(twin_tensor) :: becdr!(:,:,:)!,bec(:,:) !modified:giovanni
 !   REAL(DP), ALLOCATABLE :: bephi(:,:)!, becp(:,:) !removed:giovanni
-  TYPE(twin_matrix)     :: bec, becp, bephi, becdual, becmdual !added:giovanni
+  TYPE(twin_matrix)     :: bec, becp, bephi, becdual, becmdual, becstart !added:giovanni
   TYPE(twin_matrix), ALLOCATABLE :: lambda(:)
   TYPE(twin_matrix), ALLOCATABLE :: lambdam(:)
   TYPE(twin_matrix), ALLOCATABLE :: lambdap(:)
@@ -162,7 +162,8 @@ MODULE cp_main_variables
                              me_image, ortho_comm_id
       USE mp,          ONLY: mp_max, mp_min
       USE descriptors, ONLY: descla_siz_ , descla_init , nlax_ , la_nrlx_ , lambda_node_
-      USE control_flags, ONLY: do_wf_cmplx, gamma_only, non_ortho! added:giovanni
+      USE control_flags, ONLY: do_wf_cmplx, gamma_only, non_ortho, &
+          iprint_manifold_overlap ! added:giovanni
       USE twin_types
       !
       INTEGER,           INTENT(IN) :: ngw, ngwt, ngb, ngs, ng, nr1, nr2, nr3, &
@@ -308,6 +309,11 @@ MODULE cp_main_variables
          call init_twin(becmdual, lgam)
          call allocate_twin(becmdual,nhsa_l,n, lgam)!added:giovanni
       ENDIF
+      !
+      IF(iprint_manifold_overlap>0) THEN
+         call init_twin(becstart, lgam)
+         call allocate_twin(becstart,nhsa_l,n,lgam)!added:giovanni
+      ENDIF
 !       ALLOCATE( bec( nhsa_l,n ) )!removed:giovanni
       !
 !       ALLOCATE( bephi( nhsa_l, nspin*nlax ) ) !removed:giovanni
@@ -359,6 +365,7 @@ endif
       ! for non orthogonal case
       CALL deallocate_twin(becdual)
       CALL deallocate_twin(becmdual)
+      CALL deallocate_twin(becstart)
 
 if(ionode) then
 ! write(0,*) "debug2"

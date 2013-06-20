@@ -432,7 +432,7 @@ END FUNCTION
 
 
 !-----------------------------------------------------------------------
-   SUBROUTINE dotcsv( csv, eigr, c, v, ngw )
+   SUBROUTINE dotcsv( csv, nbspx, nbsp, c, bec, v, bev, ngw, ibnd1, ibnd2, lgam)
 !-----------------------------------------------------------------------
 !
       USE kinds,              ONLY: DP
@@ -444,65 +444,140 @@ END FUNCTION
       USE uspp_param,         ONLY: nh
       USE mp,                 ONLY: mp_sum
       USE mp_global,          ONLY: intra_image_comm
+      USE twin_types
 !
       IMPLICIT NONE
 !
-      INTEGER, INTENT(IN) :: ngw
-      COMPLEX(DP) ::  eigr(ngw,nat), c(ngw), v(ngw)
-      REAL(DP), INTENT(OUT) ::  csv
+      INTEGER, INTENT(IN) :: ngw,nbsp,nbspx,ibnd1,ibnd2
+      COMPLEX(DP) ::  c(ngw, nbspx), v(ngw, nbspx)
+      COMPLEX(DP), INTENT(OUT) ::  csv
+      type(twin_matrix) :: bec, bev 
+      LOGICAL :: lgam
 
       ! local variables
       COMPLEX(DP) temp(ngw) ! automatic array
  
-      REAL(DP), ALLOCATABLE ::  bec(:), bev(:)
       INTEGER ig,is,ia,iv,jv,inl,jnl
+      REAL(DP) :: icoeff
 
-      INTERFACE nlsm1_local
-        subroutine nlsm1_real( n, nspmn, nspmx, eigr, c, becp ) !addded:giovanni
-          USE kinds,   ONLY : DP
+      IF(lgam) THEN
+         icoeff=2.d0
+      ELSE
+         icoeff=1.d0
+      ENDIF
 
-          implicit none
-
-	  integer,   intent(in)  :: n, nspmn, nspmx
-	  complex(DP), intent(in)  :: eigr( :, : ), c( :)
-	  real(DP) :: becp( : )
-        end subroutine
-      END INTERFACE
-!
-      ALLOCATE(bec(nkb))
-      ALLOCATE(bev(nkb))
+!      write(6,*) ubound(c), lbound(c), ubound(v), lbound(v)
 !
 !     < beta | c > is real. only the i lowest:
 !
-      CALL nlsm1_local(1,1,nvb,eigr,c,bec)
-      CALL nlsm1_local(1,1,nvb,eigr,v,bev)
-!
       DO ig=1,ngw
-         temp(ig)=CONJG(c(ig))*v(ig)
+         !
+         temp(ig)=CONJG(c(ig,ibnd1))*v(ig,ibnd2)
+         !
       END DO
-      csv = 2.0d0 * DBLE(SUM(temp))
-      IF (gstart == 2) csv = csv - DBLE(temp(1))
+      csv = icoeff * DBLE(SUM(temp))
+      IF (gstart == 2 .and. lgam) csv = csv - DBLE(temp(1))
 
       CALL mp_sum( csv, intra_image_comm )
 
-      DO is=1,nvb
-         DO iv=1,nh(is)
-            DO jv=1,nh(is)
-               DO ia=1,na(is)
-                  inl=ish(is)+(iv-1)*na(is)+ia
-                  jnl=ish(is)+(jv-1)*na(is)+ia
-                  csv = csv + qq(iv,jv,is)*bec(inl)*bev(jnl)
+      IF(lgam) THEN
+         DO is=1,nvb
+            DO iv=1,nh(is)
+               DO jv=1,nh(is)
+                  DO ia=1,na(is)
+                     inl=ish(is)+(iv-1)*na(is)+ia
+                     jnl=ish(is)+(jv-1)*na(is)+ia
+                     csv = csv + qq(iv,jv,is)*bec%rvec(inl,ibnd1)*bev%rvec(jnl,ibnd2)
+                  END DO
                END DO
             END DO
          END DO
-      END DO
-      !
-      DEALLOCATE(bec)
-      DEALLOCATE(bev)
+      ELSE
+         DO is=1,nvb
+            DO iv=1,nh(is)
+               DO jv=1,nh(is)
+                  DO ia=1,na(is)
+                     inl=ish(is)+(iv-1)*na(is)+ia
+                     jnl=ish(is)+(jv-1)*na(is)+ia
+                     csv = csv + qq(iv,jv,is)*bec%cvec(inl,ibnd1)*CONJG(bev%cvec(jnl,ibnd2))
+                  END DO
+               END DO
+            END DO
+         END DO
+      ENDIF
       !
       RETURN
    END SUBROUTINE dotcsv
 !
+
+!-----------------------------------------------------------------------
+   SUBROUTINE compute_manifold_overlap( cstart, c, becstart, bec, ngwx, n, sss) !added:giovanni
+!-----------------------------------------------------------------------
+!
+!  computes overlap between the manifold represented by cstart and that of c0
+!  useful to check how far we are from the starting guess, during functional oprimization
+!  Might even provide a convergence criterion. 
+!
+      USE kinds,              ONLY: DP
+      USE constants,          ONLY: pi, fpi
+      USE gvecw,              ONLY: ngw
+      USE reciprocal_vectors, ONLY: gstart
+      USE gvecw,              ONLY: ggp
+      USE mp,                 ONLY: mp_sum
+      USE mp_global,          ONLY: intra_image_comm
+      USE cell_base,          ONLY: tpiba2
+      USE control_flags,      ONLY: gamma_only, do_wf_cmplx, non_ortho
+      USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx, nbspx
+      USE twin_types
+
+      INTEGER,     INTENT(IN) :: ngwx, n
+      COMPLEX(DP), INTENT(INOUT) :: cstart( ngwx, nbspx ), c( ngwx, nbspx )
+      COMPLEX(DP), INTENT(OUT) :: sss(nspin)
+      TYPE(twin_matrix) :: becstart, bec
+
+      COMPLEX(DP) :: ss(nudx,nudx,nspin)
+      LOGICAL :: lgam
+      INTEGER :: ig, i, j, isp
+      
+      lgam=gamma_only.and..not.do_wf_cmplx
+      !write(6,*) ubound(c), lbound(c), ubound(cstart), lbound(cstart)
+      ss=CMPLX(0.d0,0.d0)
+      !
+      DO isp=1,nspin
+         !
+         DO i=1,nupdwn(isp)
+            !
+            DO j=1,nupdwn(isp)
+               !
+               call dotcsv( ss(j,i,isp), nbspx, nbsp, cstart(1:ngwx,1:nbspx), becstart, c(1:ngwx,1:nbspx), bec, ngwx, iupdwn(isp)+j-1, iupdwn(isp)+i-1, lgam)
+               !
+            END DO
+            !
+         END DO
+         !
+      END DO
+      !
+      DO isp=1,nspin
+         !
+         sss(isp)=0.
+         !
+         DO j=1,nupdwn(isp)
+            !
+            DO i=1,nupdwn(isp)
+               !
+               sss(isp)=sss(isp)+CONJG(ss(i,j,isp))*ss(i,j,isp)
+               !
+            ENDDO
+            !
+         ENDDO
+         !
+         ! renormalize by number of electrons of that spin
+         sss(isp)=sss(isp)/nupdwn(isp)
+         !
+      ENDDO
+      !
+   END SUBROUTINE compute_manifold_overlap
+
 
 !-----------------------------------------------------------------------
    SUBROUTINE compute_overlap( c, ngwx, n, ss) !added:giovanni

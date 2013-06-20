@@ -227,7 +227,9 @@ MODULE input
                                printwfc_   => printwfc, &
                                tortho_     => tortho,   &
                                non_ortho_  => non_ortho, &
-                               nstep_      => nstep
+                               nstep_      => nstep, &
+                               iprint_manifold_overlap_ => iprint_manifold_overlap, &
+                               iprint_spreads_ => iprint_spreads
      USE control_flags, ONLY : tsde_          => tsde, &
                                tsteepdesc_    => tsteepdesc, &
                                tzeroe_        => tzeroe, &
@@ -310,7 +312,8 @@ MODULE input
         orthogonalization, electron_velocities, nat, if_pos, phase_space,      &
         tefield, epol, efield, tefield2, epol2, efield2, remove_rigid_rot,     &
         iesr_inp, vhrmax_inp, vhrmin_inp, tvhmean_inp, vhasse_inp, saverho,    &
-        ortho_para, rd_for, do_wf_cmplx, empty_states_nbnd, which_orbdep !added:giovanni do_wf_cmplx, empty_states_nbnd
+        ortho_para, rd_for, do_wf_cmplx, empty_states_nbnd, which_orbdep,      & !added:giovanni do_wf_cmplx, empty_states_nbnd
+        iprint_manifold_overlap, iprint_spreads !added:giovanni print spreads and manifold overlap
      !
      IMPLICIT NONE
      !
@@ -334,6 +337,8 @@ MODULE input
 !$$
      esic_conv_thr_ = esic_conv_thr
 !$$
+     iprint_manifold_overlap_=iprint_manifold_overlap !added:giovanni spreads and manifold overlap
+     iprint_spreads_=iprint_spreads
      forc_conv_thr_ = forc_conv_thr
      ekin_maxiter_  = electron_maxstep
      iesr           = iesr_inp
@@ -437,6 +442,13 @@ MODULE input
           trane_  = ( startingwfc == 'random' )
           !
           IF ( ampre_ == 0.D0 ) ampre_ = 0.02D0
+          !
+          IF(iprint_manifold_overlap>0) THEN
+             !
+             WRITE(6,*) "Setting control flags, it makes no sense to print manifold overlap if I start from scratch, I exit"
+             stop
+             !
+          ENDIF
           !
        CASE( 'reset_counters' )
           !
