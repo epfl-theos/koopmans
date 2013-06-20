@@ -549,7 +549,7 @@ END FUNCTION
             !
             DO j=1,nupdwn(isp)
                !
-               call dotcsv( ss(j,i,isp), nbspx, nbsp, cstart(1:ngwx,1:nbspx), becstart, c(1:ngwx,1:nbspx), bec, ngwx, iupdwn(isp)+j-1, iupdwn(isp)+i-1, lgam)
+               call dotcsv( ss(j,i,isp), nbspx, nbsp, cstart, becstart, c, bec, ngw, iupdwn(isp)+j-1, iupdwn(isp)+i-1, lgam)
                !
             END DO
             !
