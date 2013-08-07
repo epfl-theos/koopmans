@@ -118,6 +118,7 @@ function afc(a,npt,tperiodic,spreadopt)
   !
   nperiodic=count(tperiodic)
   !
+#ifdef __AFC90_DEBUG
   print *, '#lattice vectors'
   print *, '#',a(1:3,1)
   print *, '#',a(1:3,2)
@@ -137,21 +138,24 @@ function afc(a,npt,tperiodic,spreadopt)
   print *, '#',e(1:3,1)
   print *, '#',e(1:3,2)
   print *, '#',e(1:3,3)
+#endif
   !
   if (nperiodic.eq.0) then
     !
     allocate(phi0(npt(1),npt(2),npt(3)))
     allocate(phi3(npt(1),npt(2),npt(3)))
-    write(6,*) "allocated phi0phi3"
+    !write(6,*) "allocated phi0phi3"
     phi0=phi0d(spread,a,npt)
-    write(6,*) "called phi0"
+    !write(6,*) "called phi0"
     phi3=phi3d(spread,a,npt)
-    write(6,*) "called phi3"
+    !write(6,*) "called phi3"
     afc=phi0-phi3+pi/volume1(a)*spread*spread
+#ifdef __AFC90_DEBUG
     print *, '#phi3(0)', phi3(1,1,1)
     print *, '#phi0(0)', phi0(1,1,1)
     print *, '#afc(0)', afc(1,1,1)
     print *, 'npt', npt
+#endif
     deallocate(phi0,phi3)
     !
   elseif (nperiodic.eq.1) then
@@ -161,17 +165,19 @@ function afc(a,npt,tperiodic,spreadopt)
     enddo
     i(1)=mod(i(3),3)+1
     i(2)=mod(i(1),3)+1
+#ifdef __AFC90_DEBUG
     print *, '#re-indexing'
     print *, '#',i
+#endif
     allocate(phi1(npt(1),npt(2),npt(3)))
     allocate(phi3(npt(1),npt(2),npt(3)))
     do n=1,3
       aaux(1:3,n)=a(1:3,i(n))
-      write(6,*) "done", n
+      !write(6,*) "done", n
       nptaux(n)=npt(i(n))
     enddo
     phi3=phi1d(spread,aaux,nptaux)
-    write(6,*) "done phi3", n
+    !write(6,*) "done phi3", n
     do m=1,npt(i(1))
       do n=1,npt(i(2))
         do p=1,npt(i(3))
@@ -184,9 +190,11 @@ function afc(a,npt,tperiodic,spreadopt)
     enddo
     phi3=phi3d(spread,a,npt)
     afc=phi1-phi3+pi/volume1(a)*spread*spread
+#ifdef __AFC90_DEBUG
     print *, '#phi1(0)', phi1(1,1,1)
     print *, '#phi3(0)', phi3(1,1,1)
     print *, '#afc(0)', afc(1,1,1)+2.d0*log(l(i(1)))-2.d0*log(spread)
+#endif
     deallocate(phi1,phi3, STAT=ierr)
     IF(ierr/=0) call errore(subname,"deallocating phi1,phi3", abs(ierr))
     !
@@ -197,8 +205,10 @@ function afc(a,npt,tperiodic,spreadopt)
     enddo
     i(1)=mod(i(3),3)+1
     i(2)=mod(i(1),3)+1
+#ifdef __AFC90_DEBUG
     print *, '#re-indexing'
     print *, '#',i
+#endif
     allocate(phi2(npt(1),npt(2),npt(3)))
     allocate(phi3(npt(1),npt(2),npt(3)))
     do n=1,3
@@ -218,9 +228,11 @@ function afc(a,npt,tperiodic,spreadopt)
     enddo
     phi3=phi3d(spread,a,npt)
     afc=phi2-phi3+pi/volume1(a)*spread*spread
+#ifdef __AFC90_DEBUG
     print *, '#phi2(0)', phi2(1,1,1)
     print *, '#phi3(0)', phi3(1,1,1)
     print *, '#afc(0)', afc(1,1,1)
+#endif
     deallocate(phi2,phi3)
     !
   endif

@@ -115,8 +115,10 @@ function gaussiank(sigma,x)
   else
     !
     dt=steprk(sigma)
+#ifdef __AFC90_DEBUG
     write(6,*) dt, "time"
     write(0,*) "entering logslope"
+#endif
     logslope=cylharmslope(1.d-10,dt,sigma)
 !     stop
     !
