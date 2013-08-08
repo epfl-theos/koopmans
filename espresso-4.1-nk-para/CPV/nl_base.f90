@@ -792,7 +792,7 @@
       use cell_base,  only : tpiba
       use mp,         only : mp_sum
       use mp_global,  only : nproc_image, intra_image_comm
-      use cp_main_variables,  only : nlax, descla, distribute_bec
+      use cp_main_variables,  only : nlax, descla, distribute_bec_real, distribute_bec_cmplx
       use reciprocal_vectors, only : gx, gstart
       use twin_types !added:giovanni
 !
@@ -824,10 +824,10 @@
 
       IF(lgam) THEN
          becdr%rvec = 0.d0
-         allocate( becdr_repl( nkb, n ) )
+         allocate( becdr_repl( max(nkb,1), n ) )
       ELSE
          becdr%cvec = c_zero
-         allocate( becdr_repl_c( nkb, n ) )
+         allocate( becdr_repl_c( max(nkb,1), n ) )
       ENDIF
 !
       do k = 1, 3
@@ -879,9 +879,9 @@
 !$omp end parallel 
 	      inl=ish(is)+(iv-1)*na(is)+1
               IF(lgam) THEN
-	         CALL DGEMM( 'T', 'N', na(is), n, 2*ngw, 1.0d0, wrk2_c, 2*ngw, c, 2*ngw, 0.0d0, becdr_repl( inl, 1 ), nkb )
+	         CALL DGEMM( 'T', 'N', na(is), n, 2*ngw, 1.0d0, wrk2_c, 2*ngw, c, 2*ngw, 0.0d0, becdr_repl( inl, 1 ), max(nkb,1) )
               ELSE
-                 CALL ZGEMM( 'C', 'N', na(is), n, ngw, c_one, wrk2_c, ngw, c, ngw, c_zero, becdr_repl_c( inl, 1 ), nkb )
+                 CALL ZGEMM( 'C', 'N', na(is), n, ngw, c_one, wrk2_c, ngw, c, ngw, c_zero, becdr_repl_c( inl, 1 ), max(nkb,1) )
               ENDIF
 	    end do
 
@@ -900,9 +900,10 @@
          END IF
 
          IF(lgam) THEN
-	    CALL distribute_bec( becdr_repl, becdr%rvec(:,:,k), descla, nspin )
+	    CALL distribute_bec_real( becdr_repl(:,:), becdr%rvec(:,:,k), descla, nspin )
          ELSE
-            CALL distribute_bec((becdr_repl_c(:,:)), becdr%cvec(:,:,k), descla, nspin )
+            write(6,*) ubound(becdr_repl_c), ubound(becdr%cvec)
+            CALL distribute_bec_cmplx((becdr_repl_c(:,:)), becdr%cvec(:,:,k), descla, nspin )
          ENDIF
 
       end do
