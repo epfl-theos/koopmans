@@ -377,7 +377,11 @@
           !
         case('none')
           !
-          continue
+          IF((.not.odd_flag).or.(.not.tcc_odd)) THEN
+            continue
+          ELSE IF(odd_flag.and.tcc_odd) THEN
+            call calc_tcc_potential(vcorr_fft,rho_fft)
+          ENDIF
           !
         case default
           !
