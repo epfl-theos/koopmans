@@ -142,6 +142,7 @@
       logical     :: ltresh!flag for convergence on energy
       real(DP)    :: passo!step to minimum
       real(DP)    :: etotnew, etotold!energies
+      real(DP)    :: eoddnew, eoddold!odd energies
       real(DP)    :: spasso!sign of small step
       logical     :: restartcg!if .true. restart again the CG algorithm, performing a SD step
       integer     :: numok!counter on converged iterations
@@ -170,6 +171,8 @@
       deltae = 2.d0*conv_thr
       etotnew=0.d0
       etotold=0.d0
+      eoddnew=0.d0
+      eoddold=0.d0
       ! Initialize printing
       IF( ionode ) THEN
          iunit_spreads = printout_base_unit( "sha" )
@@ -262,6 +265,7 @@
       ltresh    = .false.
       itercg    = 1
       etotold   = 1.d8
+      eoddold   = 1.d8
       restartcg = .true.
       passof = passop
       ene_ok = .false.
@@ -563,6 +567,7 @@
              eodd    = sum(pink(1:nbsp))
              etot    = etot + eodd
              etotnew = etotnew + eodd
+             eoddnew = eodd
 
              !call stop_clock( "inner_loop" )
              !
@@ -634,6 +639,9 @@
         endif
 !$$
         deltae=abs(etotnew-etotold) 
+        if(do_orbdep) then
+           deltae=deltae+abs(eoddnew-eoddold)
+        endif
         !
         if( deltae < conv_thr ) then
            numok=numok+1
@@ -646,6 +654,7 @@
         if(ltresh.or.itercg==maxiter-1) icompute_spread=.true.
         !
         etotold=etotnew
+        eoddold=eoddnew
         ene0=etot
         !
         if( tens .and. newscheme ) ene0=ene0+entropy
