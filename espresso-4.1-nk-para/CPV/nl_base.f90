@@ -593,7 +593,7 @@
       end do
 
       IF(nproc_image==1.and.(.not.lgam)) THEN
-	ALLOCATE( becps_c( nkb, n ))
+	ALLOCATE( becps_c( max(1,nkb), n ))
 	becps_c = CMPLX(0.0d0,0.d0)
       ENDIF
 
@@ -760,7 +760,7 @@
 !       write(0,*) "inloop_giovanni", nproc_image==1.and.(.not.lgam).and.(.not.becp%iscmplx)
 !begin_added:giovanni
       IF(nproc_image==1.and.(.not.lgam)) THEN
-	  becp%cvec=(becps_c)
+	  becp%cvec(:,:)=(becps_c(:,:))
 	  DEALLOCATE(becps_c)
       ENDIF
 
