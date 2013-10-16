@@ -307,7 +307,7 @@ MODULE input
         tapos, tavel, ecutwfc, emass, emass_cutoff, taspc, trd_ht, ibrav,      &
         ortho_eps, ortho_max, ntyp, tolp, tchi2_inp, calculation, disk_io, dt, &
         tcg, ndr, ndw, iprint, isave, tstress, k_points, tprnfor, verbosity,   &
-        tdipole_card, tnewnfi_card, newnfi_card,                               &
+        tdipole_card, tnewnfi_card, newnfi_card, occupations,                  & ! added:giovanni occupations
         ampre, nstep, restart_mode, ion_positions, startingwfc, printwfc,      &
         orthogonalization, electron_velocities, nat, if_pos, phase_space,      &
         tefield, epol, efield, tefield2, epol2, efield2, remove_rigid_rot,     &
@@ -598,6 +598,9 @@ MODULE input
              tortho_ = .FALSE.
           ELSE
              CALL errore(' control_flags ',' conjugate gradient not yet implemented in FPMD ', 1 )
+          ENDIF
+          IF( occupations == 'from_input') THEN
+             CALL errore(' control_flags ',' conjugate gradient does not work with occupations=from_input ', 1 )
           ENDIF
         CASE ('damp')
           tsde_   = .FALSE.
