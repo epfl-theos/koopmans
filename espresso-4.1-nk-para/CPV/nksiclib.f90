@@ -320,7 +320,8 @@
           IF(.not.do_pz_renorm) THEN
              !
              IF(.not.is_empty_) THEN
-                pink(i) = f_diag(i) * pink(i)
+             !   pink(i) = f_diag(i) * pink(i)
+                pink(i) = 2.d0 * pink(i)/nspin
              ELSE
                 pink(i) = 2.d0* pink(i)/nspin
              ENDIF
