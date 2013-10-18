@@ -116,7 +116,7 @@
                !
             end do
 !$omp end do
-            
+
 !$omp end parallel
             !
             IF( nproc_image > 1 ) THEN
@@ -206,7 +206,7 @@
       !
       lgam=lgam2
       call start_clock( 'nlsm1' )
-      ! isa 
+      ! isa
       isa = 0
       do is = 1, nspmn - 1
         isa = isa + na(is)
@@ -229,7 +229,7 @@
          !
          IF( nproc_image > 1 ) THEN
             nhx = nh( is ) * na( is )
-            IF( MOD( nhx, 2 ) /= 0 ) nhx = nhx + 1 
+            IF( MOD( nhx, 2 ) /= 0 ) nhx = nhx + 1
             IF(lgam) THEN
 	      ALLOCATE( becps( nhx, n ) )
 	      becps = 0.0d0
@@ -269,7 +269,7 @@
 		!
 	      end do
   !$omp end do
-	      
+
   !$omp end parallel
 	      !
 	      IF( nproc_image > 1 ) THEN
@@ -277,7 +277,7 @@
 		CALL DGEMM( 'T', 'N', na(is), n, 2*ngw, 1.0d0, wrk2_c, 2*ngw, c, 2*ngw, 0.0d0, becps( inl, 1 ), nhx )
 	      ELSE
                 inl=ish(is)+(iv-1)*na(is)+1
-                CALL DGEMM( 'T', 'N', na(is), n, 2*ngw, 1.0d0, wrk2_c, 2*ngw, c, 2*ngw, 0.0d0, becp%rvec( inl, lbound_bec ), nkb )		
+                CALL DGEMM( 'T', 'N', na(is), n, 2*ngw, 1.0d0, wrk2_c, 2*ngw, c, 2*ngw, 0.0d0, becp%rvec( inl, lbound_bec ), nkb )
 	      END IF
 
 	  end do
@@ -316,7 +316,7 @@
 
          deallocate( wrk2_c )
 
-	 IF(nproc_image>1) THEN 
+	 IF(nproc_image>1) THEN
 
 	      inl = ish(is) + 1
 
@@ -354,11 +354,11 @@
 !begin_added:giovanni
       IF(nproc_image==1.and.(.not.lgam)) THEN
           becp%cvec(1:nkb,lbound_bec:lbound_bec + n-1)=(becps_c(1:nkb,1:n))
-          deallocate(becps_c)         
+          deallocate(becps_c)
       endif
 !end_added:giovanni
       call stop_clock( 'nlsm1' )
-      
+
       return
    end subroutine nlsm1_twin
 !-----------------------------------------------------------------------
@@ -366,9 +366,9 @@
 !-----------------------------------------------------------------------
    subroutine nlsm1_dist_real ( n, nspmn, nspmx, eigr, c, becp, nlax, nspin, desc )
 !-----------------------------------------------------------------------
-      !  
-      ! This version is for becp distributed over procs  
-      !  
+      !
+      ! This version is for becp distributed over procs
+      !
       !     computes: the array becp
       !     becp(ia,n,iv,is)=
       !         = sum_g [(-i)**l beta(g,iv,is) e^(-ig.r_ia)]^* c(g,n)
@@ -474,9 +474,9 @@
                !
             end do
 !$omp end do
-            
+
 !$omp end parallel
-            
+
             !
             IF( nproc_image > 1 ) THEN
                inl=(iv-1)*na(is)+1
@@ -538,9 +538,9 @@
 !-----------------------------------------------------------------------
    subroutine nlsm1_dist_twin ( n, nspmn, nspmx, eigr, c, becp, nlax, nspin, desc, lgam2 )
 !-----------------------------------------------------------------------
-      !  
-      ! This version is for becp distributed over procs  
-      !  
+      !
+      ! This version is for becp distributed over procs
+      !
       !     computes: the array becp
       !     becp(ia,n,iv,is)=
       !         = sum_g [(-i)**l beta(g,iv,is) e^(-ig.r_ia)]^* c(g,n)
@@ -586,7 +586,7 @@
       !
       lgam=lgam2
       call start_clock( 'nlsm1' )
-      ! isa 
+      ! isa
       isa = 0
       do is = 1, nspmn - 1
         isa = isa + na(is)
@@ -609,7 +609,7 @@
          !
          IF( nproc_image > 1 ) THEN
             nhx = nh( is ) * na( is )
-            IF( MOD( nhx, 2 ) /= 0 ) nhx = nhx + 1 
+            IF( MOD( nhx, 2 ) /= 0 ) nhx = nhx + 1
             IF(lgam) THEN
 	      ALLOCATE( becps( nhx, n ) )
 	      becps = 0.0d0
@@ -645,7 +645,7 @@
 		!
 	      end do
   !$omp end do
-	      
+
   !$omp end parallel
 	      !
 	      IF( nproc_image > 1 ) THEN
@@ -653,7 +653,7 @@
 		CALL DGEMM( 'T', 'N', na(is), n, 2*ngw, 1.0d0, wrk2_c, 2*ngw, c, 2*ngw, 0.0d0, becps( inl, 1 ), nhx )
 	      ELSE
                 inl=ish(is)+(iv-1)*na(is)+1
-                CALL DGEMM( 'T', 'N', na(is), n, 2*ngw, 1.0d0, wrk2_c, 2*ngw, c, 2*ngw, 0.0d0, becp%rvec( inl, 1 ), nkb )		
+                CALL DGEMM( 'T', 'N', na(is), n, 2*ngw, 1.0d0, wrk2_c, 2*ngw, c, 2*ngw, 0.0d0, becp%rvec( inl, 1 ), nkb )
 	      END IF
 	  end do
 
@@ -748,7 +748,7 @@
 		      end do
 		    end do
 		END IF
-	      END IF            
+	      END IF
 
               DEALLOCATE( becps_c )
             ENDIF
@@ -783,7 +783,7 @@
       !     input : eigr, c
       !     output: becdr
       !
- 
+
       USE kinds,      ONLY : DP
       use ions_base,  only : nsp, na, nat
       use uspp,       only : nhtol, beta  !, nkb
@@ -797,7 +797,7 @@
       use twin_types !added:giovanni
 !
       implicit none
-    
+
       integer,  intent(in)  :: ngw, nkb, n, nspin
       complex(DP), intent(in)  :: eigr(ngw,nat), c(ngw,n)
       type(twin_tensor), intent(out) :: becdr!(nkb,nspin*nlax,3) !modified:giovanni
@@ -848,8 +848,8 @@
 
             allocate( wrk2_c( ngw, na( is ) ) )
             wrk2_c=CMPLX(0.d0,0.d0)
-            
-            IF(lgam) THEN 
+
+            IF(lgam) THEN
                 fact=2.d0
             ELSE
                 fact=1.d0
@@ -862,7 +862,7 @@
 !$omp parallel default(shared), private(l,ixr,ixi,signre,signim,ig,arg,ia)
 	      l=nhtol(iv,is)
 	      cl=(-ci)**(l+1)
-!    
+!
 !$omp do
 	      do ia=1,na(is)
 		  !    q = 0   component (with weight 1.0)
@@ -876,7 +876,7 @@
 		  end do
 	      end do
 !$omp end do
-!$omp end parallel 
+!$omp end parallel
 	      inl=ish(is)+(iv-1)*na(is)+1
               IF(lgam) THEN
 	         CALL DGEMM( 'T', 'N', na(is), n, 2*ngw, 1.0d0, wrk2_c, 2*ngw, c, 2*ngw, 0.0d0, becdr_repl( inl, 1 ), max(nkb,1) )
@@ -933,7 +933,7 @@
       !     input : eigr, c
       !     output: becdr
       !
- 
+
       USE kinds,      ONLY : DP
       use ions_base,  only : nsp, na, nat
       use uspp,       only : nhtol, beta  !, nkb
@@ -946,7 +946,7 @@
       use twin_types !added:giovanni
 !
       implicit none
-    
+
       integer,  intent(in)  :: ngw, nkb, n
       complex(DP), intent(in)  :: eigr(ngw,nat), c(ngw,n)
       type(twin_tensor)     :: becdr
@@ -984,7 +984,7 @@
 
             allocate( wrk2_c( ngw, na( is ) ) )
             !
-            IF(lgam) THEN 
+            IF(lgam) THEN
                 fact=2.d0
             ELSE
                 fact=1.d0
@@ -997,7 +997,7 @@
 !$omp parallel default(shared), private(l,ixr,ixi,signre,signim,ig,arg,ia)
                l=nhtol(iv,is)
                cl=(-ci)**(l+1)
-!    
+!
 !$omp do
                do ia=1,na(is)
                   !    q = 0   component (with weight 1.0)
@@ -1011,7 +1011,7 @@
                   end do
                end do
 !$omp end do
-!$omp end parallel 
+!$omp end parallel
                inl=ish(is)+(iv-1)*na(is)+1
                IF(lgam) THEN
                   CALL DGEMM( 'T', 'N', na(is), n, 2*ngw, 1.0d0, wrk2_c, 2*ngw, c, 2*ngw, 0.0d0, becdr%rvec( inl, 1, k ), nkb )
@@ -1074,8 +1074,8 @@
       !
       lgam=gamma_only.and..not.do_wf_cmplx
       !
-      ennl_t = 0.d0 
-      ennl_tc = CMPLX(0.d0,0.d0) 
+      ennl_t = 0.d0
+      ennl_tc = CMPLX(0.d0,0.d0)
       !
       !  xlf does not like name of function used for OpenMP reduction
       !
@@ -1188,8 +1188,8 @@
       !
       lgam=gamma_only.and..not.do_wf_cmplx
       !
-      ennl_t = 0.d0 
-      ennl_tc = CMPLX(0.d0,0.d0) 
+      ennl_t = 0.d0
+      ennl_tc = CMPLX(0.d0,0.d0)
       !
       !  xlf does not like name of function used for OpenMP reduction
       !
@@ -1303,7 +1303,7 @@
       !
       lgam=gamma_only.and..not.do_wf_cmplx
       !
-      ennl_t = 0.d0 
+      ennl_t = 0.d0
       ennl_tc = CMPLX(0.d0,0.d0)
       write(6,*) f, "effe", ispin
       !write(6,*) n,"bec_inside", bec%cvec, bec%iscmplx
@@ -1505,7 +1505,8 @@
 		      isa = isa+1
 		      iss = ispin(iwf)
 		      IF(non_ortho) THEN
-                          rhovan( ijv, isa, iss ) = f(iwf) * DBLE(CONJG(becdual%cvec(inl,iwf)) * &                                                        (bec%cvec(jnl,iwf)))
+                          rhovan( ijv, isa, iss ) = f(iwf) * DBLE(CONJG(becdual%cvec(inl,iwf)) * &
+                                                              (bec%cvec(jnl,iwf)))
 		      ELSE
                           rhovan( ijv, isa, iss ) = f(iwf) * DBLE(CONJG(bec%cvec(inl,iwf)) * &
                                                               (bec%cvec(jnl,iwf)))
@@ -1523,7 +1524,7 @@
 !-----------------------------------------------------------------------
    subroutine calbec ( nspmn, nspmx, eigr, c, bec)
 !-----------------------------------------------------------------------
-      
+
       !     this routine calculates array bec
       !
       !        < psi_n | beta_i,i > = c_n(0) beta_i,i(0) +
@@ -1531,7 +1532,7 @@
       !
       !     routine makes use of c(-g)=c*(g)  and  beta(-g)=beta*(g)
       !
-      
+
       USE kinds,          ONLY : DP
       use ions_base,      only : na, nat
       use io_global,      only : stdout
@@ -1849,7 +1850,7 @@ subroutine nlfq( c, eigr, bec, becdr, fion, lgam2)
   !
   implicit none
   !
-  type(twin_matrix) :: bec!(nkb,n) !modified:giovanni 
+  type(twin_matrix) :: bec!(nkb,n) !modified:giovanni
   complex(DP) :: c(ngw, n) !modified:giovanni
   type(twin_tensor) :: becdr!( nkb, nspin*nlax, 3 ) !modified:giovanni
   complex(DP), intent(in)  :: eigr( ngw, nat )
@@ -1860,13 +1861,13 @@ subroutine nlfq( c, eigr, bec, becdr, fion, lgam2)
   real(DP) :: temp
   !
   real(DP), allocatable :: tmpbec(:,:), tmpdr(:,:)
-  complex(DP), allocatable :: tmpbec_c(:,:), tmpdr_c(:,:) 
+  complex(DP), allocatable :: tmpbec_c(:,:), tmpdr_c(:,:)
   real(DP), allocatable :: fion_loc(:,:)
   logical :: lgam !added:giovanni:debug
   character(len=5) :: subname = "nlfq"
-#ifdef __OPENMP 
+#ifdef __OPENMP
   INTEGER :: mytid, ntids, omp_get_thread_num, omp_get_num_threads
-#endif  
+#endif
   !
   call start_clock( 'nlfq' )
   !
@@ -1911,7 +1912,7 @@ subroutine nlfq( c, eigr, bec, becdr, fion, lgam2)
            ! distribute atoms round robin to threads
            !
            IF( MOD( isa, ntids ) /= mytid ) CYCLE
-#endif  
+#endif
            DO iss = 1, nspin
 
               nss = nupdwn( iss )
@@ -1935,7 +1936,7 @@ subroutine nlfq( c, eigr, bec, becdr, fion, lgam2)
                  nr = descla( nlar_ , iss )
 
                  ioff = istart-1+ir-1
-                 
+
                  IF(lgam) THEN
 		    do iv=1,nh(is)
 			do jv=1,nh(is)
@@ -1998,7 +1999,7 @@ subroutine nlfq( c, eigr, bec, becdr, fion, lgam2)
            END DO
         END DO
      END DO
-     
+
      IF(lgam) THEN
         deallocate (tmpbec, tmpdr)
      ELSE
