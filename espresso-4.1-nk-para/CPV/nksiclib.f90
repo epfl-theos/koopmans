@@ -6,9 +6,9 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 ! Non-Koopmans method
-! Developed and implemented by I. Dabo 
+! Developed and implemented by I. Dabo
 !      (Universite Paris-Est, Ecole des Ponts, ParisTech)
-! Further developed and optimized by Andrea Ferretti 
+! Further developed and optimized by Andrea Ferretti
 !      (MIT, University of Oxford)
 !
 
@@ -20,8 +20,8 @@
                                   icompute_spread, is_empty)
 !-----------------------------------------------------------------------
 !
-! ....calculate orbital dependent potentials, 
-!     following the Non-Koopmans' (NK) scheme, 
+! ....calculate orbital dependent potentials,
+!     following the Non-Koopmans' (NK) scheme,
 !     but also Perdew-Zunger (PZ),
 !     Non-Koopmans' integral definition (NKI),
 !     Non-Joopmans on Perdew Zunger (PZNK)
@@ -54,6 +54,77 @@
       !
       implicit none
       !
+
+      ! -- add N. Poilvert, define explicit interface to
+      ! nksic_correction_nkipz
+      INTERFACE
+          subroutine nksic_correction_nkipz( f, ispin, orb_rhor, &
+                                          vsic, pink, ibnd, shart, is_empty)
+
+              use kinds,                only : dp
+              use constants,            only : e2, fpi, hartree_si, electronvolt_si
+              use cell_base,            only : tpiba2,omega
+              use nksic,                only : nknmax, nkscalfact
+              use grid_dimensions,      only : nnrx, nr1, nr2, nr3
+              use gvecp,                only : ngm
+              use recvecs_indexes,      only : np, nm
+              use reciprocal_vectors,   only : gstart, g
+              use eecp_mod,             only : do_comp
+              use cp_interfaces,        only : fwfft, invfft, fillgrad
+              use fft_base,             only : dfftp
+              use funct,                only : dft_is_gradient
+              use mp,                   only : mp_sum
+              use mp_global,            only : intra_image_comm
+              use control_flags,        only : gamma_only, do_wf_cmplx
+
+              integer,     intent(in)  :: ispin, ibnd
+              real(dp),    intent(in)  :: f, orb_rhor(nnrx)
+              real(dp),    intent(out) :: vsic(nnrx)
+              real(dp),    intent(out) :: pink, shart
+              logical, optional, intent(in) :: is_empty
+          end subroutine nksic_correction_nkipz
+      END INTERFACE
+      ! -- add N. Poilvert, define explicit interface to
+      ! nksic_correction_nki
+      INTERFACE
+          subroutine nksic_correction_nki( f, ispin, orb_rhor, rhor, &
+                                           rhoref, rhobar, rhobarg, grhobar,&
+                                           vsic, wxdsic, do_wxd_, pink, ibnd, is_empty )
+
+              use kinds,                only : dp
+              use constants,            only : e2, fpi
+              use cell_base,            only : tpiba2,omega
+              use nksic,                only : fref, rhobarfact, nknmax, &
+                                               nkscalfact, &
+                                               etxc => etxc_sic, vxc => vxc_sic
+              use grid_dimensions,      only : nnrx, nr1, nr2, nr3
+              use gvecp,                only : ngm
+              use recvecs_indexes,      only : np, nm
+              use reciprocal_vectors,   only : gstart, g
+              use eecp_mod,             only : do_comp
+              use cp_interfaces,        only : fwfft, invfft, fillgrad
+              use fft_base,             only : dfftp
+              use funct,                only : dmxc_spin, dft_is_gradient
+              use mp,                   only : mp_sum
+              use mp_global,            only : intra_image_comm
+              use electrons_base,       only : nspin
+              use control_flags,          only : gamma_only, do_wf_cmplx
+
+              integer,     intent(in)  :: ispin, ibnd
+              real(dp),    intent(in)  :: f, orb_rhor(nnrx)
+              real(dp),    intent(in)  :: rhor(nnrx,nspin)
+              real(dp),    intent(in)  :: rhoref(nnrx,2)
+              real(dp),    intent(in)  :: rhobar(nnrx,2)
+              complex(dp),    intent(in)  :: rhobarg(ngm,2)
+              real(dp),    intent(in)  :: grhobar(nnrx,3,2)
+              real(dp),    intent(out) :: vsic(nnrx)
+              real(dp),    intent(out) :: wxdsic(nnrx,2)
+              logical,     intent(in)  :: do_wxd_
+              real(dp),    intent(out) :: pink
+              logical, optional, intent(in) :: is_empty
+          end subroutine nksic_correction_nki
+      END INTERFACE
+
       ! in/out vars
       !
       integer,     intent(in)  :: nbsp, nx, nudx, sizwtot
@@ -142,7 +213,7 @@
       !
       if(do_pz_renorm) THEN
          !
-         edens=0.d0  
+         edens=0.d0
          taukin=0.d0
          tauw=0.d0
          !
@@ -174,7 +245,7 @@
         ! compute orbital potentials
         !
         inner_loop: do jj=1,2
-          ! 
+          !
           i=j+jj-1
           !
           ! this condition is important when n is odd
@@ -193,7 +264,7 @@
           ! compute parameters needed for PZ-renormalization
           !
           IF(do_pz_renorm) THEN
-             !     
+             !
              !call nksic_get_taukin_pz( focc, nspin, ispin(i), orb_rhor(:,jj), &
                                       !taukin, ibnd, 1)
              !
@@ -212,7 +283,7 @@
                 ENDIF
                 !
              ENDIF
-             !                         
+             !
           ENDIF
           !
           ! define rhoref and rhobar
@@ -245,7 +316,7 @@
               !
           endif
 
-          ! 
+          !
           ! compute nkpz pieces to build the potential and the energy
           !
           if( do_nkpz ) then
@@ -258,11 +329,11 @@
               !
               pink(i) = pink(i) +pinkpz
               !
-          endif     
+          endif
           !
           ! compute pz potentials and energy
           !
-          if ( do_pz ) then 
+          if ( do_pz ) then
               !
               call nksic_correction_pz ( focc, ispin(i), orb_rhor(:,jj), &
                                          vsic(:,i), pink(i), pzalpha(i), ibnd, shart )
@@ -357,8 +428,8 @@
           !
           do i = 1, nbsp
               !
-              vsic(1:nnrx,i) = vsic(1:nnrx,i) + wtot( 1:nnrx, ispin(i) ) 
-              ! 
+              vsic(1:nnrx,i) = vsic(1:nnrx,i) + wtot( 1:nnrx, ispin(i) )
+              !
           enddo
           !
       endif
@@ -380,7 +451,7 @@
              !
              inner_loop_renorm: do jj=1,2
                 !
-                i=j+jj-1        
+                i=j+jj-1
                 if ( i > nbsp ) exit inner_loop_renorm
                 !
                 ibnd=i
@@ -395,7 +466,7 @@
                 !
 !                 write(6,*) "this pzalpha", pzalpha(i)
                 !
-                ! update vsic with factor here: it works for pz, will it work for 
+                ! update vsic with factor here: it works for pz, will it work for
                 ! nk-type functionals?
                 !
                 vsic(1:nnrx,i) = vsic(1:nnrx,i)*pzalpha(i)
@@ -404,7 +475,7 @@
                                       pink(i), taukin, tauw, edens, upsilonkin, upsilonw, vsic(:,i), pzalpha(i), ibnd, kfact)
                 !
                 pink(i) = pink(i)*pzalpha(i)
-                !                 
+                !
                 IF(.not.is_empty_) THEN
                    pink(i) = f_diag(i) * pink(i)
                 ELSE
@@ -421,22 +492,22 @@
          !
          write(stdout,*) "I am writing out vsic", nbsp
          do i =1, nbsp
-           ! 
-           if (i == pot_number) call write_pot_sic ( vsic(:, i) ) 
-           !  
+           !
+           if (i == pot_number) call write_pot_sic ( vsic(:, i) )
+           !
          enddo
          !
       endif !added:linh draw vsic potentials
       !
       if ( allocated(vsicpz) ) deallocate(vsicpz)
-      
+
       !
       ! USPP:
       ! compute corrections to the D coefficients of the pseudopots
       ! due to vsic(r, i) in the case of orbital dependent functionals.
       ! The corresponding contributions to the forces are computed.
       !
-      ! IMPORTANT: the following call makes use of newd. 
+      ! IMPORTANT: the following call makes use of newd.
       !            It must be done before we call newd for the
       !            total potentials, because deeq is overwritten at every call
       !
@@ -454,7 +525,7 @@
           ENDDO
           !
       ENDIF
-      ! 
+      !
       deallocate(rhobarg)
       !
       if (nlcc_any) then
@@ -463,7 +534,7 @@
          deallocate(rhor_nocc)
          !
       endif
-      ! 
+      !
       CALL stop_clock( 'nksic_drv' )
       return
       !
@@ -502,7 +573,7 @@
       integer,     intent(in) :: nbsp, ispin(nbsp)
       real(dp),    intent(in) :: bec(nkb, nbsp)
       complex(dp), intent(in) :: c1(ngw),c2(ngw)
-      real(dp),   intent(out) :: orb_rhor(nnrx,2) 
+      real(dp),   intent(out) :: orb_rhor(nnrx,2)
 
       !
       ! local vars
@@ -539,11 +610,11 @@
       allocate(orb_rhog(ngm,2),stat=ierr)
       if ( ierr/=0 ) call errore(subname,'allocating orb_rhog',abs(ierr))
 
-      sa1 = 1.0d0 / omega 
+      sa1 = 1.0d0 / omega
 
 
       !
-      ! check whether it is necessary to 
+      ! check whether it is necessary to
       ! deal with the smooth and dense grids separately
       !
       if ( nnrsx == nnrx ) then
@@ -558,14 +629,14 @@
           !
           do ir = 1, nnrx
               !
-              orb_rhor(ir,1) = sa1 * ( DBLE(psi(ir)) )**2 
-              orb_rhor(ir,2) = sa1 * ( AIMAG(psi(ir)) )**2 
+              orb_rhor(ir,1) = sa1 * ( DBLE(psi(ir)) )**2
+              orb_rhor(ir,2) = sa1 * ( AIMAG(psi(ir)) )**2
               !
           enddo
           !
       else
           !
-          ! this is the general case, 
+          ! this is the general case,
           ! normally used with USPP
           !
 
@@ -578,15 +649,15 @@
           !
           CALL invfft('Wave',psis, dffts )
           !
-          ! computing the orbital charge 
+          ! computing the orbital charge
           ! in real space on the smooth grid
           !
           do ir = 1, nnrsx
               !
-              orb_rhos(1) = sa1 * ( DBLE(psis(ir)) )**2 
-              orb_rhos(2) = sa1 * ( AIMAG(psis(ir)) )**2 
+              orb_rhos(1) = sa1 * ( DBLE(psis(ir)) )**2
+              orb_rhos(2) = sa1 * ( AIMAG(psis(ir)) )**2
               !
-              psis( ir )  = CMPLX( orb_rhos(1), orb_rhos(2) ) 
+              psis( ir )  = CMPLX( orb_rhos(1), orb_rhos(2) )
           enddo
           !
           ! orbital charges are taken to the G space
@@ -618,7 +689,7 @@
               orb_rhor(ir,1) = DBLE(psi(ir))
               orb_rhor(ir,2) = AIMAG(psi(ir))
           enddo
-    
+
           deallocate( psis )
           deallocate( orb_rhos )
 
@@ -631,7 +702,7 @@
         !
         rhovan(:,:,:) = 0.0d0
         !
-        if ( nspin == 2 ) then 
+        if ( nspin == 2 ) then
             !
             if ( i1 <= nbsp ) then
                 call calrhovan(rhovanaux,bec,i1)
@@ -712,7 +783,7 @@ end subroutine nksic_get_orbitalrho_real
       integer,     intent(in) :: nbsp, ispin(nbsp)
       type(twin_matrix) :: bec, becdual !(nkb, nbsp)
       complex(dp), intent(in) :: c1(ngw),c2(ngw), c1dual(ngw), c2dual(ngw)
-      real(dp),   intent(out) :: orb_rhor(nnrx,2) 
+      real(dp),   intent(out) :: orb_rhor(nnrx,2)
       logical :: lgam
       !
       ! local vars
@@ -762,7 +833,7 @@ end subroutine nksic_get_orbitalrho_real
       if ( ierr/=0 ) call errore(subname,'allocating orb_rhog',abs(ierr))
       sa1 = 1.0d0 / omega
       !
-      ! check whether it is necessary to 
+      ! check whether it is necessary to
       ! deal with the smooth and dense grids separately
       !
       if ( nnrsx == nnrx ) then
@@ -808,7 +879,7 @@ end subroutine nksic_get_orbitalrho_real
           !
       else
           !
-          ! this is the general case, 
+          ! this is the general case,
           ! normally used with USPP
           !
 
@@ -829,14 +900,14 @@ end subroutine nksic_get_orbitalrho_real
               CALL c2psi( psis2, nnrsx, c2, c1, ngw, 0 )
           endif
           !
-       
+
           CALL invfft('Wave',psis1, dffts )
           !
           if(.not. lgam) then
               CALL invfft('Wave',psis2, dffts )
           endif
           !
-          ! computing the orbital charge 
+          ! computing the orbital charge
           ! in real space on the smooth grid
           !
           if(lgam) then
@@ -845,7 +916,7 @@ end subroutine nksic_get_orbitalrho_real
                   orb_rhos(1) = sa1 * (( DBLE(psis1(ir)) )**2 )
                   orb_rhos(2) = sa1 * (( AIMAG(psis1(ir)) )**2 )
                   !
-                  psis1( ir )  = CMPLX( orb_rhos(1), orb_rhos(2) ) 
+                  psis1( ir )  = CMPLX( orb_rhos(1), orb_rhos(2) )
               enddo
           else
               do ir = 1, nnrsx
@@ -914,11 +985,11 @@ end subroutine nksic_get_orbitalrho_real
               orb_rhor(ir,1) =  DBLE(psi1(ir))
               orb_rhor(ir,2) = AIMAG(psi1(ir))
           enddo
-    
+
           deallocate( psis1 )
           if(.not.lgam) then
               deallocate(psis2)
-          endif 
+          endif
 
           deallocate( orb_rhos )
 
@@ -931,7 +1002,7 @@ end subroutine nksic_get_orbitalrho_real
         !
         rhovan(:,:,:) = 0.0d0
         !
-        if ( nspin == 2 ) then 
+        if ( nspin == 2 ) then
             !
             if ( i1 <= nbsp ) then
                 call calrhovan(rhovanaux,bec,i1)
@@ -1030,7 +1101,7 @@ end subroutine nksic_get_orbitalrho_twin_non_ortho
       integer,     intent(in) :: nbsp, ispin(nbsp)
       type(twin_matrix) :: bec !(nkb, nbsp)
       complex(dp), intent(in) :: c1(ngw),c2(ngw)
-      real(dp),   intent(out) :: orb_rhor(nnrx,2) 
+      real(dp),   intent(out) :: orb_rhor(nnrx,2)
       logical :: lgam
       !
       ! local vars
@@ -1075,11 +1146,11 @@ end subroutine nksic_get_orbitalrho_twin_non_ortho
       allocate(orb_rhog(ngm,2),stat=ierr)
       if ( ierr/=0 ) call errore(subname,'allocating orb_rhog',abs(ierr))
 
-      sa1 = 1.0d0 / omega 
+      sa1 = 1.0d0 / omega
 
 
       !
-      ! check whether it is necessary to 
+      ! check whether it is necessary to
       ! deal with the smooth and dense grids separately
       !
       if ( nnrsx == nnrx ) then
@@ -1119,7 +1190,7 @@ end subroutine nksic_get_orbitalrho_twin_non_ortho
           !
       else
           !
-          ! this is the general case, 
+          ! this is the general case,
           ! normally used with USPP
           !
 
@@ -1140,14 +1211,14 @@ end subroutine nksic_get_orbitalrho_twin_non_ortho
 	      CALL c2psi( psis2, nnrsx, c2, c1, ngw, 0 )
           endif
           !
-       
+
           CALL invfft('Wave',psis1, dffts )
           !
           if(.not. lgam) then
 	      CALL invfft('Wave',psis2, dffts )
           endif
           !
-          ! computing the orbital charge 
+          ! computing the orbital charge
           ! in real space on the smooth grid
           !
           if(lgam) then
@@ -1156,7 +1227,7 @@ end subroutine nksic_get_orbitalrho_twin_non_ortho
 		  orb_rhos(1) = sa1 * (( DBLE(psis1(ir)) )**2 )
 		  orb_rhos(2) = sa1 * (( AIMAG(psis1(ir)) )**2 )
 		  !
-		  psis1( ir )  = CMPLX( orb_rhos(1), orb_rhos(2) ) 
+		  psis1( ir )  = CMPLX( orb_rhos(1), orb_rhos(2) )
 	      enddo
           else
 	      do ir = 1, nnrsx
@@ -1225,11 +1296,11 @@ end subroutine nksic_get_orbitalrho_twin_non_ortho
               orb_rhor(ir,1) =  DBLE(psi1(ir))
               orb_rhor(ir,2) = AIMAG(psi1(ir))
           enddo
-    
+
           deallocate( psis1 )
           if(.not.lgam) then
               deallocate(psis2)
-          endif 
+          endif
 
           deallocate( orb_rhos )
 
@@ -1242,7 +1313,7 @@ end subroutine nksic_get_orbitalrho_twin_non_ortho
         !
         rhovan(:,:,:) = 0.0d0
         !
-        if ( nspin == 2 ) then 
+        if ( nspin == 2 ) then
             !
             if ( i1 <= nbsp ) then
                 call calrhovan(rhovanaux,bec,i1)
@@ -1356,7 +1427,7 @@ end subroutine nksic_get_orbitalrho_twin
       rhobar_(:,ispin) = rhobar_(:,ispin) -f * orb_rhor(:)
       !
       ! probably obsolete
-      if ( rhobarfact < 1.0d0 ) then 
+      if ( rhobarfact < 1.0d0 ) then
           rhobar_ = rhobar_ * rhobarfact
       endif
 
@@ -1367,7 +1438,7 @@ end subroutine nksic_get_orbitalrho_twin
       rhoref_(:,1:2)   = rhobar_(:,1:2)
       rhoref_(:,ispin) = rhoref_(:,ispin) + fref * orb_rhor(:)
       !
- 
+
       !
       ! compute the gradient of rhobar if needed
       !
@@ -1421,9 +1492,9 @@ end subroutine nksic_get_rhoref
       integer,       intent(in)    :: i, nnrx, nat, nhm
       integer,       intent(in)    :: ispin, nspin
       real(dp),      intent(in)    :: vsic(nnrx)
-      real(dp),      intent(in)    :: becsum(nhm*(nhm+1)/2,nat,nspin) 
+      real(dp),      intent(in)    :: becsum(nhm*(nhm+1)/2,nat,nspin)
       real(dp),      intent(inout) :: fion(3,nat)
-      real(dp),      intent(out)   :: deeq_sic(nhm,nhm,nat) 
+      real(dp),      intent(out)   :: deeq_sic(nhm,nhm,nat)
       !
       ! local vars
       !
@@ -1432,7 +1503,7 @@ end subroutine nksic_get_rhoref
       !
       ! main body
       !
-      if ( .not. okvan ) then 
+      if ( .not. okvan ) then
           deeq_sic(:,:,:) = 0.0d0
           return
       endif
@@ -1464,7 +1535,7 @@ end subroutine nksic_newd
 !---------------------------------------------------------------
       subroutine nksic_correction_nk( f, ispin, orb_rhor, rhor, &
                                       rhoref, rhobar, rhobarg, grhobar,  &
-                                      vsic, wxdsic, wrefsic, do_wxd_, pink, ibnd ) 
+                                      vsic, wxdsic, wrefsic, do_wxd_, pink, ibnd )
 !---------------------------------------------------------------
 !
 ! ... calculate the non-Koopmans potential from the orbital density
@@ -1577,7 +1648,7 @@ end subroutine nksic_newd
           orb_rhog(ig,1) = vhaux( np(ig) )
       enddo
 
-      !    
+      !
       ! compute hartree-like potential
       !
       if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
@@ -1593,7 +1664,7 @@ end subroutine nksic_newd
           vtmp(:) = vtmp(:) + vcorr(:)
           !
       endif
-      
+
       vhaux=0.0_dp
 !       IF(lgam) THEN !!!### uncomment for k points
 	  do ig=1,ngm
@@ -1615,7 +1686,7 @@ end subroutine nksic_newd
       !
       ! init here wref sic to save some memory
       !
-      ! this is just the self-hartree potential 
+      ! this is just the self-hartree potential
       ! (to be multiplied by fref later on)
       !
       wrefsic(1:nnrx) = DBLE( vhaux(1:nnrx) )
@@ -1634,7 +1705,7 @@ end subroutine nksic_newd
       !
       ! fref-f has to be included explicitly in rhoele
       !
-      vsic(1:nnrx)=(fref-f)*DBLE(vhaux(1:nnrx)) 
+      vsic(1:nnrx)=(fref-f)*DBLE(vhaux(1:nnrx))
 
       deallocate(vtmp)
       deallocate(vcorr)
@@ -1662,7 +1733,7 @@ end subroutine nksic_newd
            !
       endif
       !
-      !   
+      !
       allocate(vxc0(nnrx,2))
       allocate(vxcref(nnrx,2))
       !
@@ -1676,24 +1747,24 @@ end subroutine nksic_newd
           grhoraux(:,:,1:2)   = grhobar(:,:,1:2)
           grhoraux(:,:,ispin) = grhobar(:,:,ispin) &
                               + fref * orb_grhor(:,:,1)
-          !                    
+          !
           rhogaux(:,1:2) = rhobarg(:,1:2)
           rhogaux(:,ispin) = rhobarg(:,ispin) + fref * orb_rhog(:,1)
 
-      endif    
+      endif
       !
       !call exch_corr_wrapper(nnrx,2,grhoraux,rhoref,etxcref,vxcref,haux)
        vxcref=rhoref
        CALL exch_corr_cp(nnrx, 2, grhoraux, vxcref, etxcref) !proposed:giovanni fixing PBE, warning, rhoref overwritten with vxcref, check array dimensions
       !NB grhoaux(nnr,3,nspin)? yes; rhoref(nnr,nspin)? yes
-!begin_added:giovanni fixing PBE potential      
+!begin_added:giovanni fixing PBE potential
       if (dft_is_gradient()) then
          !
          !  Add second part of the xc-potential to rhor
          !  Compute contribution to the stress dexc
          !  Need a dummy dexc here, need to cross-check gradh! dexc should be dexc(3,3), is lgam a variable here?
          call gradh( 2, grhoraux, rhogaux, vxcref, dexc_dummy, lgam)
-         !  grhoraux(nnr,3,nspin)?yes; rhogaux(ng,nspin)? rhoref(nnr, nspin) 
+         !  grhoraux(nnr,3,nspin)?yes; rhogaux(ng,nspin)? rhoref(nnr, nspin)
          !
       end if
       !
@@ -1709,9 +1780,9 @@ end subroutine nksic_newd
           etxc=0.0_dp
           vxc=0.0_dp
           !
-          ! some meory can be same in the nspin-2 case, 
+          ! some meory can be same in the nspin-2 case,
           ! considering that rhobar + f*rhoele is identical to rho
-          ! when rhobarfact == 1 
+          ! when rhobarfact == 1
           !
           ! call exch_corr_wrapper(nnrx,2,grhoraux,rhor,etxc,vxc,haux)
           !
@@ -1726,22 +1797,22 @@ end subroutine nksic_newd
                                   + f * orb_grhor(:,:,1)
               !
               rhogaux(:,1:2) = rhobarg(:,1:2)
-              rhogaux(:,ispin) = rhobarg(:,ispin) + f * orb_rhog(:,1)  
-                                  
+              rhogaux(:,ispin) = rhobarg(:,ispin) + f * orb_rhog(:,1)
+
           endif
           !
           !call exch_corr_wrapper(nnrx,2,grhoraux,rhoraux,etxc,vxc,haux)
           vxc=rhoraux
           CALL exch_corr_cp(nnrx, 2, grhoraux, vxc, etxc) !proposed:giovanni warning rhoraix is overwritten with vxc, check array dimensions
           !NB grhoraux(nnr,3,nspin)? rhoraux(nnr,nspin)?
-         !begin_added:giovanni fixing PBE potential      
+         !begin_added:giovanni fixing PBE potential
          if (dft_is_gradient()) then
          !
          !  Add second part of the xc-potential to rhor
          !  Compute contribution to the stress dexc
          !  Need a dummy dexc here, need to cross-check gradh! dexc should be dexc(3,3), is lgam a variable here?
             call gradh( 2, grhoraux, rhogaux, vxc, dexc_dummy, lgam)
-         !  grhoraux(nnr,3,nspin)? rhogaux(ng,nspin)? rhoraux(nnr, nspin) 
+         !  grhoraux(nnr,3,nspin)? rhogaux(ng,nspin)? rhoraux(nnr, nspin)
          !
          end if
          !end_added:giovanni fixing PBE potential
@@ -1762,20 +1833,20 @@ end subroutine nksic_newd
       vxc0=rhobar
       CALL exch_corr_cp(nnrx, 2, grhobar, vxc0, etxc0) !proposed:giovanni warning rhobar is overwritten with vxc0, check array dimensions
       !NB grhobar(nnr,3,nspin)? rhobar(nnr,nspin)?
-!begin_added:giovanni fixing PBE potential      
+!begin_added:giovanni fixing PBE potential
       if (dft_is_gradient()) then
          !
          !  Add second part of the xc-potential to rhor
          !  Compute contribution to the stress dexc
          !  Need a dummy dexc here, need to cross-check gradh! dexc should be dexc(3,3), is lgam a variable here?
          call gradh(2, grhobar, rhobarg, vxc0, dexc_dummy, lgam)
-         !  grhobar(nnr,3,nspin)? rhogbar(ng,nspin)? rhor(nnr, nspin) 
+         !  grhobar(nnr,3,nspin)? rhogbar(ng,nspin)? rhor(nnr, nspin)
          !
       end if
 !end_added:giovanni fixing PBE potential
       !
-      ! update vsic pot 
-      ! 
+      ! update vsic pot
+      !
       vsic(1:nnrx) = vsic(1:nnrx) &
                    + vxcref(1:nnrx,ispin)-vxc(1:nnrx,ispin)
       !
@@ -1798,7 +1869,7 @@ end subroutine nksic_newd
       wxdsic(:,:) = 0.0d0
       !
       if( do_wref .or. do_wxd_ ) then
-          !  
+          !
           ! note that vxd and wref are updated
           ! (and not overwritten) by the next call
           !
@@ -1836,7 +1907,7 @@ end subroutine nksic_newd
       pink = pink * nkscalfact
       vsic = vsic * nkscalfact
       !
-      if( do_wxd_ ) then 
+      if( do_wxd_ ) then
           wxdsic = wxdsic * nkscalfact
       else
           wxdsic = 0.d0
@@ -1867,7 +1938,7 @@ end subroutine nksic_newd
 
 !---------------------------------------------------------------
       subroutine nksic_get_pz_factor( nspin, ispin, orb_rhor, rhor,  &
-                                      taukin, tauw, alpha, ibnd, kfact) 
+                                      taukin, tauw, alpha, ibnd, kfact)
 !---------------------------------------------------------------
 !
 ! ... sum up the kinetic energy-density taukin ... this works both for summing
@@ -1947,10 +2018,10 @@ end subroutine nksic_newd
       alpha=temp
       !
       end subroutine nksic_get_pz_factor
-      
+
 !---------------------------------------------------------------
       subroutine nksic_get_pzfactor_potential(f, nspin, ispin, rhor, orb_rhor, &
-                                      pink, taukin, tauw, edens, upsilonkin, upsilonw, vsic, alpha, ibnd, kfact) 
+                                      pink, taukin, tauw, edens, upsilonkin, upsilonw, vsic, alpha, ibnd, kfact)
 !---------------------------------------------------------------
 !
 ! ... sum up the kinetic energy-density taukin ... this works both for summing
@@ -2012,7 +2083,7 @@ end subroutine nksic_newd
 ! !          call nksic_get_upsilon_pz( 1.d0, nspin, ispin, rhor(:,ispin), &
 !                                       upsilonw, ibnd)
          !
-      ENDIF                                      
+      ENDIF
       !
       !
       upsilonh=0.d0
@@ -2044,7 +2115,7 @@ end subroutine nksic_newd
             !
 ! ! !             aidfrac=((tauw(ir,ispin)+epsi2)/(taukin(ir,ispin)+epsi2))**kfact
             aidfrac=((orb_rhor(ir)+epsi2)/(aidspin*rhor(ir,ispin)+epsi2))**kfact
-            
+
             !
             IF(1.d0-abs(aidfrac).lt.epsi2) THEN
 !                !
@@ -2101,7 +2172,7 @@ end subroutine nksic_newd
       deallocate(upsilonh, vsicaux, rhog_dummy)
       !
       end subroutine nksic_get_pzfactor_potential
-      
+
 !---------------------------------------------------------------
       subroutine add_up_taukin(nnrx, taukin, grhoraux, orb_rhor, f)
 !---------------------------------------------------------------
@@ -2117,12 +2188,12 @@ end subroutine nksic_newd
 !         REAL(DP), PARAMETER :: epsi2=1.e-11
         INTEGER :: ir
         !
-     
+
         do ir=1,nnrx
            !
            temp_gradient =  grhoraux(ir,1)**2+grhoraux(ir,2)**2+grhoraux(ir,3)**2
            temp_rho=orb_rhor(ir)
-           
+
            IF ((temp_gradient.lt.epsi**2)) THEN!(temp_rho.lt.epsi.or.temp_gradient.lt.epsi**2) THEN
               temp_gradient=0.d0
               temp_rho=1.d0
@@ -2131,12 +2202,12 @@ end subroutine nksic_newd
            ENDIF
            !
         enddo
-     
+
       end subroutine add_up_taukin
-      
+
 !---------------------------------------------------------------
       subroutine nksic_get_taukin_pz( f, nspin, ispin, orb_rhor, &
-                                      taukin, ibnd, mult) 
+                                      taukin, ibnd, mult)
 !---------------------------------------------------------------
 !
 ! ... sum up the kinetic energy-density taukin ... this works both for summing
@@ -2195,11 +2266,11 @@ end subroutine nksic_newd
 !       call enkin_dens( rhogaux(:,ispin), ngm, f)
       !
       allocate(grhoraux(nnrx,3,2))
-      
+
       grhoraux=0.0_dp
-      
+
       call fillgrad( 1, rhogaux(:,ispin:ispin), grhoraux(:,:,ispin:ispin), lgam )
-      
+
             call add_up_taukin(nnrx, taukin(:,ispin), grhoraux(:,:,ispin), orb_rhor(:), f)
 !       vhaux=0.d0
 !       do ig=1,ngm
@@ -2221,7 +2292,7 @@ end subroutine nksic_newd
 
 !---------------------------------------------------------------
       subroutine nksic_get_upsilon_pz( f, nspin, ispin, orb_rhor, &
-                                      upsilon, ibnd) 
+                                      upsilon, ibnd)
 !---------------------------------------------------------------
 !
 ! ... sum up the kinetic energy-density taukin ... this works both for summing
@@ -2305,10 +2376,10 @@ end subroutine nksic_newd
       deallocate(vhaux,rhogaux,grhoraux)
       !
       end subroutine nksic_get_upsilon_pz
-      
+
 !---------------------------------------------------------------
       subroutine nksic_correction_pz( f, ispin, orb_rhor, &
-                                      vsic, pink, pzalpha, ibnd, shart) 
+                                      vsic, pink, pzalpha, ibnd, shart)
 !---------------------------------------------------------------
 !
 ! ... calculate the non-Koopmans potential from the orbital density
@@ -2391,7 +2462,7 @@ end subroutine nksic_newd
           rhogaux(ig,ispin) = vhaux( np(ig) )
       enddo
 
-      !    
+      !
       ! compute hartree-like potential
       !
       if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
@@ -2407,7 +2478,7 @@ end subroutine nksic_newd
           vtmp(:) = vtmp(:) + vcorr(:)
           !
       endif
-      ! 
+      !
       vhaux=0.0_dp
 !       if(lgam) then  !!!### uncomment for k points
 	  do ig=1,ngm
@@ -2484,7 +2555,7 @@ end subroutine nksic_newd
          !  Compute contribution to the stress dexc
          !  Need a dummy dexc here, need to cross-check gradh! dexc should be dexc(3,3), is lgam a variable here?
          call gradh( 2, grhoraux, rhogaux, vxc, dexc_dummy, lgam)
-         !  grhoraux(nnr,3,nspin)?yes; rhogaux(ng,nspin)? rhoref(nnr, nspin) 
+         !  grhoraux(nnr,3,nspin)?yes; rhogaux(ng,nspin)? rhoref(nnr, nspin)
          !
       end if
 !$$
@@ -2512,7 +2583,7 @@ end subroutine nksic_newd
          vsic = vsic * nkscalfact
          !
       ELSE
-         !I do not renormalize here, I will do it outside the subroutine 
+         !I do not renormalize here, I will do it outside the subroutine
          !pink = pink * pzalpha
          !vsic = vsic * pzalpha
          !
@@ -2521,7 +2592,7 @@ end subroutine nksic_newd
 !$$
 
       call mp_sum(pink,intra_image_comm)
-      
+
       !
       ! cleanup
       !
@@ -2540,10 +2611,10 @@ end subroutine nksic_correction_pz
 
 
 !---------------------------------------------------------------
-      subroutine nksic_correction_nkpz( f, orb_rhor, vsic, wrefsic, pink, ibnd, ispin ) 
+      subroutine nksic_correction_nkpz( f, orb_rhor, vsic, wrefsic, pink, ibnd, ispin )
 !---------------------------------------------------------------
 !
-! ... calculate the non-Koopmans potential on top of Perdew-Zunger, 
+! ... calculate the non-Koopmans potential on top of Perdew-Zunger,
 !     from the orbital densities
 !
       use kinds,                only : dp
@@ -2622,7 +2693,7 @@ end subroutine nksic_correction_pz
       do ig=1,ngm
         rhogaux(ig,ispin) = vhaux( np(ig) )
       enddo
-      !    
+      !
       ! compute hartree-like potential
       !
       if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
@@ -2660,14 +2731,14 @@ end subroutine nksic_correction_pz
       !
       ! init here wref sic to save some memory
       !
-      ! this is just the self-hartree potential 
+      ! this is just the self-hartree potential
       ! (to be multiplied by fref later on)
       !
       wrefsic(1:nnrx)=DBLE(vhaux(1:nnrx))
       !
       ! the term - fref has to be included explicitly in rhoele
       !
-      vsic(1:nnrx)=-fref*DBLE(vhaux(1:nnrx)) 
+      vsic(1:nnrx)=-fref*DBLE(vhaux(1:nnrx))
       !
       deallocate(vtmp)
       deallocate(vcorr)
@@ -2685,7 +2756,7 @@ end subroutine nksic_correction_pz
          allocate(haux(nnrx,2,2))
          !
          grhoraux=0.0_dp
-         call fillgrad( 1, rhogaux, grhoraux(:,:,ispin:ispin), lgam ) 
+         call fillgrad( 1, rhogaux, grhoraux(:,:,ispin:ispin), lgam )
          !
          grhoraux(:,:,ispin) = grhoraux(:,:,ispin) * fref
       else
@@ -2693,7 +2764,7 @@ end subroutine nksic_correction_pz
          allocate(haux(1,1,1))
          grhoraux=0.0_dp
       endif
-      !   
+      !
 
 
       allocate(vxcref(nnrx,2))
@@ -2705,22 +2776,22 @@ end subroutine nksic_correction_pz
       !
       CALL exch_corr_cp(nnrx, 2, grhoraux, vxcref, etxcref) !proposed:giovanni fixing PBE, warning, rhoref overwritten with vxcref, check array dimensions
       !
-      !begin_added:giovanni fixing PBE potential      
+      !begin_added:giovanni fixing PBE potential
       if (dft_is_gradient()) then
          !
          !  Add second part of the xc-potential to rhor
          !  Compute contribution to the stress dexc
          !  Need a dummy dexc here, need to cross-check gradh! dexc should be dexc(3,3), is lgam a variable here?
          call gradh( 2, grhoraux, rhogaux, vxcref, dexc_dummy, lgam)
-         !  grhoraux(nnr,3,nspin)?yes; rhogaux(ng,nspin)? rhoref(nnr, nspin) 
+         !  grhoraux(nnr,3,nspin)?yes; rhogaux(ng,nspin)? rhoref(nnr, nspin)
          !
       end if
 !end_added:giovanni fixing PBE potential
       deallocate(rhogaux)
 !       call exch_corr_wrapper(nnrx,2,grhoraux,rhoref,etxcref,vxcref,haux)
       !
-      ! update vsic pot 
-      ! 
+      ! update vsic pot
+      !
       vsic(1:nnrx)=vsic(1:nnrx)-vxcref(1:nnrx,ispin)
       !
       ! define pink
@@ -2735,8 +2806,8 @@ end subroutine nksic_correction_pz
       CALL start_clock( 'nk_corr_fxc' )
       !
       if( do_wref ) then
-          !  
-          ! note that wxd and wref are updated 
+          !
+          ! note that wxd and wref are updated
           ! (and not overwritten) by the next call
           !
           call nksic_dmxc_spin_cp_update(nnrx,rhoref,f,ispin,rhoele, &
@@ -2782,7 +2853,7 @@ end subroutine nksic_correction_pz
 
 !---------------------------------------------------------------
       subroutine nksic_correction_nkipz( f, ispin, orb_rhor, &
-                                      vsic, pink, ibnd, shart, is_empty) 
+                                      vsic, pink, ibnd, shart, is_empty)
 !---------------------------------------------------------------
 !
 ! ... calculate the non-Koopmans potential from the orbital density
@@ -2882,7 +2953,7 @@ end subroutine nksic_correction_pz
           rhogaux(ig,ispin) = vhaux( np(ig) )
       enddo
 
-      !    
+      !
       ! compute hartree-like potential
       !
       if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
@@ -2898,7 +2969,7 @@ end subroutine nksic_correction_pz
           vtmp(:) = vtmp(:) + vcorr(:)
           !
       endif
-      ! 
+      !
       vhaux=0.0_dp
 !       if(lgam) then  !!!### uncomment for k points
           do ig=1,ngm
@@ -2925,12 +2996,12 @@ end subroutine nksic_correction_pz
       if ( gstart == 2 ) ehele = ehele + (1.d0-icoeff)*DBLE ( CONJG( vtmp(1) ) * rhogaux(1,ispin) )
       !
       IF(.not.is_empty_) THEN
-         
-         w2cst = 0.5_dp * ehele * omega 
+
+         w2cst = 0.5_dp * ehele * omega
          call mp_sum(w2cst,intra_image_comm)
-         
+
          vsic  = vsic + w2cst
-         
+
       ENDIF
       !
       ehele = 0.5d0 * ehele * omega / fact
@@ -2955,7 +3026,7 @@ end subroutine nksic_correction_pz
           ! note: rhogaux does not contain the occupation
           !
           grhoraux=0.0_dp
-          call fillgrad( 1, rhogaux(:,ispin:ispin), grhoraux(:,:,ispin:ispin), lgam ) 
+          call fillgrad( 1, rhogaux(:,ispin:ispin), grhoraux(:,:,ispin:ispin), lgam )
       else
           allocate(grhoraux(1,1,1))
           !
@@ -2976,10 +3047,10 @@ end subroutine nksic_correction_pz
          !  Compute contribution to the stress dexc
          !  Need a dummy dexc here, need to cross-check gradh! dexc should be dexc(3,3), is lgam a variable here?
          call gradh( 2, grhoraux, rhogaux, vxc_, dexc_dummy, lgam)
-         !  grhoraux(nnr,3,nspin)?yes; rhogaux(ng,nspin)? rhoref(nnr, nspin) 
+         !  grhoraux(nnr,3,nspin)?yes; rhogaux(ng,nspin)? rhoref(nnr, nspin)
          !
       end if
-      
+
       IF(.not.is_empty_) THEN
          !
          etmp  = sum( vxc_(1:nnrx,ispin) * orb_rhor(1:nnrx) )
@@ -3021,7 +3092,7 @@ end subroutine nksic_correction_pz
       deallocate( vxc_ )
       !
       CALL stop_clock( 'nk_corr' )
-      
+
       return
       !
 !---------------------------------------------------------------
@@ -3031,10 +3102,10 @@ end subroutine nksic_correction_nkipz
 !---------------------------------------------------------------
       subroutine nksic_correction_nki( f, ispin, orb_rhor, rhor, &
                                        rhoref, rhobar, rhobarg, grhobar,&
-                                       vsic, wxdsic, do_wxd_, pink, ibnd, is_empty ) 
+                                       vsic, wxdsic, do_wxd_, pink, ibnd, is_empty )
 !---------------------------------------------------------------
 !
-! ... calculate the non-Koopmans (integrated, NKI) 
+! ... calculate the non-Koopmans (integrated, NKI)
 !     potential from the orbital density
 !
 !     note that fref=1.0 when performing NKI (i.e. it has a diff meaning)
@@ -3155,7 +3226,7 @@ end subroutine nksic_correction_nkipz
           orb_rhog(ig,1) = vhaux( np(ig) )
       enddo
 
-      !    
+      !
       ! compute hartree-like potential
       !
       if( gstart == 2 ) vtmp(1)=(0.d0,0.d0)
@@ -3171,7 +3242,7 @@ end subroutine nksic_correction_nkipz
           vtmp(:) = vtmp(:) + vcorr(:)
           !
       endif
-      
+
       vhaux=0.0_dp
 !       IF(lgam) THEN !!!### uncomment for k points
 	  do ig=1,ngm
@@ -3193,10 +3264,10 @@ end subroutine nksic_correction_nkipz
       !
       ! init here vsic to save some memory
       !
-      ! this is just the self-hartree potential 
+      ! this is just the self-hartree potential
       !
       vsic(1:nnrx) = (1.0_dp-f) * DBLE( vhaux(1:nnrx) )
-      
+
 
       !
       ! self-hartree contrib to pink
@@ -3211,7 +3282,7 @@ end subroutine nksic_correction_nkipz
       !
       IF(.not.is_empty_) THEN ! scalar potential is not added for empty states
          !
-         w2cst = -0.5_dp * ehele * omega 
+         w2cst = -0.5_dp * ehele * omega
          !
          call mp_sum(w2cst,intra_image_comm)
          !
@@ -3272,9 +3343,9 @@ end subroutine nksic_correction_nkipz
           etxc=0.0_dp
           vxc=0.0_dp
           !
-          ! some meory can be same in the nspin-2 case, 
+          ! some meory can be same in the nspin-2 case,
           ! considering that rhobar + f*rhoele is identical to rho
-          ! when rhobarfact == 1 
+          ! when rhobarfact == 1
           !
           ! call exch_corr_wrapper(nnrx,2,grhoraux,rhor,etxc,vxc,haux)
           !
@@ -3297,14 +3368,14 @@ end subroutine nksic_correction_nkipz
           CALL exch_corr_cp(nnrx, 2, grhoraux, vxc, etxc) !proposed:giovanni warning rhoraux is overwritten with vxc, check array dimensions
 !           call exch_corr_wrapper(nnrx,2,grhoraux,rhoraux,etxc,vxc,haux)
           !
-          !begin_added:giovanni fixing PBE potential      
+          !begin_added:giovanni fixing PBE potential
             if (dft_is_gradient()) then
             !
             !  Add second part of the xc-potential to rhor
             !  Compute contribution to the stress dexc
             !  Need a dummy dexc here, need to cross-check gradh! dexc should be dexc(3,3), is lgam a variable here?
                call gradh( 2, grhoraux, rhogaux, vxc, dexc_dummy, lgam)
-            !  grhoraux(nnr,3,nspin)? rhogaux(ng,nspin)? rhoraux(nnr, nspin) 
+            !  grhoraux(nnr,3,nspin)? rhogaux(ng,nspin)? rhoraux(nnr, nspin)
             !
             end if
 !end_added:giovanni fixing PBE potential
@@ -3340,14 +3411,14 @@ end subroutine nksic_correction_nkipz
           CALL exch_corr_cp(nnrx, 2, grhoraux, vxcref, etxcref) !proposed:giovanni warning rhoraux is overwritten with vxc, check array dimensions
 
 !           call exch_corr_wrapper(nnrx,2,grhoraux,rhoref,etxcref,vxcref,haux)
-          !begin_added:giovanni fixing PBE potential      
+          !begin_added:giovanni fixing PBE potential
              if (dft_is_gradient()) then
                !
                !  Add second part of the xc-potential to rhor
                !  Compute contribution to the stress dexc
                !  Need a dummy dexc here, need to cross-check gradh! dexc should be dexc(3,3), is lgam a variable here?
                call gradh(2, grhoraux, rhogaux, vxcref, dexc_dummy, lgam)
-               !  grhobar(nnr,3,nspin)? rhogbar(ng,nspin)? rhor(nnr, nspin) 
+               !  grhobar(nnr,3,nspin)? rhogbar(ng,nspin)? rhor(nnr, nspin)
                !
              end if
           !end_added:giovanni fixing PBE potential
@@ -3363,14 +3434,14 @@ end subroutine nksic_correction_nkipz
       CALL exch_corr_cp(nnrx, 2, grhobar, vxc0, etxc0) !proposed:giovanni
       !
 !       call exch_corr_wrapper(nnrx,2,grhobar,rhobar,etxc0,vxc0,haux)
-      !begin_added:giovanni fixing PBE potential      
+      !begin_added:giovanni fixing PBE potential
       if (dft_is_gradient()) then
          !
          !  Add second part of the xc-potential to rhor
          !  Compute contribution to the stress dexc
          !  Need a dummy dexc here, need to cross-check gradh! dexc should be dexc(3,3), is lgam a variable here?
          call gradh(2, grhobar, rhobarg, vxc0, dexc_dummy, lgam)
-         !  grhobar(nnr,3,nspin)? rhogbar(ng,nspin)? rhor(nnr, nspin) 
+         !  grhobar(nnr,3,nspin)? rhogbar(ng,nspin)? rhor(nnr, nspin)
          !
       end if
       !end_added:giovanni fixing PBE potential
@@ -3401,21 +3472,21 @@ end subroutine nksic_correction_nkipz
 !          write(6,*) "checkpink", etxcref, -etxc0, -etmp, ehele
          !
          pink = etxcref-etxc0-etmp+ehele
-         pink = pink*fact 
+         pink = pink*fact
          !
       ENDIF
       !
       call mp_sum(pink,intra_image_comm)
       !
       !
-      ! update vsic pot 
+      ! update vsic pot
       !
       IF(is_empty_) THEN ! this might not be necessary in case of emptystates, w2cst should be already zero
          !
          w2cst=0.d0
          !
       ENDIF
-      ! 
+      !
       vsic(1:nnrx) = vsic(1:nnrx) &
                    + vxcref(1:nnrx,ispin) -vxc(1:nnrx,ispin) + w2cst
 
@@ -3440,7 +3511,7 @@ end subroutine nksic_correction_nkipz
       vsic = vsic * nkscalfact
       !
       if( do_wxd_ ) then
-         ! 
+         !
          wxdsic = wxdsic * nkscalfact
          !
       else
@@ -3471,7 +3542,7 @@ end subroutine nksic_correction_nkipz
       subroutine nksic_eforce( i, nbsp, nx, vsic, deeq_sic, bec, ngw, c1, c2, vsicpsi, lgam ) !added:giovanni lgam !recheck this subroutine and eforce_std
 !-----------------------------------------------------------------------
 !
-! Compute vsic potential for orbitals i and i+1 (c1 and c2) 
+! Compute vsic potential for orbitals i and i+1 (c1 and c2)
 !
       use kinds,                    only : dp
       use cp_interfaces,            only : fwfft, invfft
@@ -3532,7 +3603,7 @@ end subroutine nksic_correction_nkipz
       !
       vsicpsi(:,:) = 0.0d0
       !
-      ! take advantage of the smooth and the dense grids 
+      ! take advantage of the smooth and the dense grids
       ! being equal (NCPP case)
       !
       if ( nnrsx == nnrx ) then !waring:giovanni we are not using ultrasoft
@@ -3552,7 +3623,7 @@ end subroutine nksic_correction_nkipz
          if(.not. lgam) then
              CALL invfft('Dense', psi2, dfftp )
          endif
-    
+
          !
          ! computing the orbital wfcs
          ! and the potentials in real space on the full grid
@@ -3564,7 +3635,7 @@ end subroutine nksic_correction_nkipz
 		wfc(2)    = AIMAG( psi1(ir) )
 		!
 		psi1( ir ) = CMPLX( wfc(1) * vsic(ir,i), &
-				    wfc(2) * vsic(ir,i+1), DP ) 
+				    wfc(2) * vsic(ir,i+1), DP )
 		!
 	    enddo
          else
@@ -3574,7 +3645,7 @@ end subroutine nksic_correction_nkipz
                  wfc_c(2)    = psi2(ir)
                  !
                  psi1( ir ) = wfc_c(1) * vsic(ir,i)
-                 psi2(ir) = wfc_c(2) * vsic(ir,i+1) 
+                 psi2(ir) = wfc_c(2) * vsic(ir,i+1)
                  !
             enddo
          endif
@@ -3611,7 +3682,7 @@ end subroutine nksic_correction_nkipz
 
       else
           !
-          ! here we take properly into account the 
+          ! here we take properly into account the
           ! smooth and the dense grids
           ! typically, USPP case
           !
@@ -3625,15 +3696,15 @@ end subroutine nksic_correction_nkipz
       endif
 
       !
-      ! add USPP non-local contribution 
-      ! to the potantial 
+      ! add USPP non-local contribution
+      ! to the potantial
       ! (this comes from the orbital-dependent piece of
       ! the potential)
       !
       if( nkb > 0 ) then
           !
           !     aa_i,i,n = sum_j d_i,ij <beta_i,j|c_n>
-          ! 
+          !
 	  if(.not.bec%iscmplx) then
 	      allocate( aa( nkb, 2 ) )
 	      !
@@ -3652,41 +3723,41 @@ end subroutine nksic_correction_nkipz
 		      !
 		      ivoff = ish(is)+(iv-1)*na(is)
 		      jvoff = ish(is)+(jv-1)*na(is)
-		      ! 
+		      !
 		      if( i /= nbsp ) then
-			  ! 
+			  !
 			  do ia=1,na(is)
 			      inl = ivoff + ia
 			      jnl = jvoff + ia
 			      isa = isa + 1
 			      !
-			      dd  = deeq_sic(iv,jv,isa,i) 
+			      dd  = deeq_sic(iv,jv,isa,i)
 			      aa(inl,1) = aa(inl,1) +dd * bec%rvec(jnl,i)
 			      !
-			      dd  = deeq_sic(iv,jv,isa,i+1) 
+			      dd  = deeq_sic(iv,jv,isa,i+1)
 			      aa(inl,2) = aa(inl,2) +dd * bec%rvec(jnl,i+1)
 			      !
 			  enddo
-			  ! 
+			  !
 		      else
-			  ! 
+			  !
 			  do ia=1,na(is)
 			      inl = ivoff + ia
 			      jnl = jvoff + ia
 			      isa = isa + 1
 			      !
-			      dd  = deeq_sic(iv,jv,isa,i) 
+			      dd  = deeq_sic(iv,jv,isa,i)
 			      aa(inl,1) = aa(inl,1) +dd * bec%rvec(jnl,i)
 			      !
 			  enddo
-			  ! 
+			  !
 		      endif
-		      ! 
+		      !
 		  enddo
 		  enddo
 		  !
 	      enddo
-	      ! 
+	      !
 	      call DGEMM ( 'N', 'N', 2*ngw, 2, nkb, 1.0d0, &
 			  vkb, 2*ngw, aa, nkb, 1.0d0, vsicpsi(:,:), 2*ngw)
 	      !
@@ -3710,36 +3781,36 @@ end subroutine nksic_correction_nkipz
 		      !
 		      ivoff = ish(is)+(iv-1)*na(is)
 		      jvoff = ish(is)+(jv-1)*na(is)
-		      ! 
+		      !
 		      if( i /= nbsp ) then
-			  ! 
+			  !
 			  do ia=1,na(is)
 			      inl = ivoff + ia
 			      jnl = jvoff + ia
 			      isa = isa + 1
 			      !
-			      dd  = deeq_sic(iv,jv,isa,i) 
+			      dd  = deeq_sic(iv,jv,isa,i)
 			      aa_c(inl,1) = aa_c(inl,1) +dd * bec%cvec(jnl,i) !warning:giovanni or conjg?
 			      !
-			      dd  = deeq_sic(iv,jv,isa,i+1) 
+			      dd  = deeq_sic(iv,jv,isa,i+1)
 			      aa_c(inl,2) = aa_c(inl,2) +dd * bec%cvec(jnl,i+1) !warning:giovanni or conjg?
 			      !
 			  enddo
-			  ! 
+			  !
 		      else
-			  ! 
+			  !
 			  do ia=1,na(is)
 			      inl = ivoff + ia
 			      jnl = jvoff + ia
 			      isa = isa + 1
 			      !
-			      dd  = deeq_sic(iv,jv,isa,i) 
+			      dd  = deeq_sic(iv,jv,isa,i)
 			      aa_c(inl,1) = aa_c(inl,1) +dd * bec%cvec(jnl,i) !warning:giovanni or conjg?
 			      !
 			  enddo
-			  ! 
+			  !
 		      endif
-		      ! 
+		      !
 		  enddo
 		  enddo
 		  !
@@ -3756,9 +3827,9 @@ end subroutine nksic_correction_nkipz
 
       call stop_clock( 'nk_eforce' )
       return
-     
+
 !
-! implementation to deal with both 
+! implementation to deal with both
 ! the smooth and the dense grids
 !
 CONTAINS
@@ -3768,9 +3839,9 @@ CONTAINS
       use smooth_grid_dimensions,     only : nnrsx
       use recvecs_indexes,            only : np
       implicit none
-      
+
       logical, intent(IN) :: lgam
-      !     
+      !
       complex(dp) :: c(ngw,2)
       complex(dp) :: psis(nnrsx), psis2(nnrsx)
       complex(dp) :: vsicg(nnrx)
@@ -3847,9 +3918,9 @@ end subroutine nksic_eforce
 !---------------------------------------------------------------
 !
 ! the derivative of the xc potential with respect to the local density
-! is computed. 
-! In order to save time, the loop over space coordinates is performed 
-! inside this routine (inlining). 
+! is computed.
+! In order to save time, the loop over space coordinates is performed
+! inside this routine (inlining).
 !
 ! NOTE: wref and wsic are UPDATED and NOT OVERWRITTEN by this subroutine
 !
@@ -3898,7 +3969,7 @@ end subroutine nksic_eforce
       ! main loop
       !
       do ir = 1, nnrx
-          ! 
+          !
           dmuxc(:,:)=0.0_dp
           !
           rhoup  = rhoref(ir,1)
@@ -3949,20 +4020,20 @@ end subroutine nksic_eforce
           dmuxc(1,2) = dmuxc(1,2) +(vcupp-vcupm) * fact
           dmuxc(2,1) = dmuxc(2,1) +(vcdwp-vcdwm) * fact
           dmuxc(2,2) = dmuxc(2,2) +(vcdwp-vcdwm) * fact
-  
+
           dz=1.e-6_dp
           dzp=min(1.0,zeta+dz)-zeta
           dzm=-max(-1.0,zeta-dz)+zeta
           !
           fact = 1.0d0 / ( rhotot * (dzp+dzm) )
-          ! 
+          !
           !call xc_spin(rhotot,zeta-dzm,ex,ec,vxupm,vxdwm,vcupm,vcdwm)
           !call xc_spin(rhotot,zeta+dzp,ex,ec,vxupp,vxdwp,vcupp,vcdwp)
           !
           rs = pi34 / (rhotot)**third
           call pz_spin (rs, zeta-dzm, ec, vcupm, vcdwm)
           call pz_spin (rs, zeta+dzp, ec, vcupp, vcdwp)
-          
+
           dmuxc(1,1) = dmuxc(1,1) +(vcupp-vcupm)*(1.0_dp-zeta)*fact
           dmuxc(1,2) = dmuxc(1,2) -(vcupp-vcupm)*(1.0_dp+zeta)*fact
           dmuxc(2,1) = dmuxc(2,1) +(vcdwp-vcdwm)*(1.0_dp-zeta)*fact
@@ -3973,9 +4044,9 @@ end subroutine nksic_eforce
           !
           wxd(ir,1) = wxd(ir,1) + dmuxc(1,ispin) * rhoele(ir,ispin)*f
           wxd(ir,2) = wxd(ir,2) + dmuxc(2,ispin) * rhoele(ir,ispin)*f
-          !   
+          !
           wref(ir)  = wref(ir)  + dmuxc(ispin,ispin)*rhoele(ir,ispin)
-          !   
+          !
       enddo
 
       return
@@ -4059,7 +4130,7 @@ end subroutine nksic_dmxc_spin_cp
       ! variables for test calculations - along gradient line direction
       !
       logical :: ldotest
-      
+
       !
       ! main body
       !
@@ -4088,7 +4159,7 @@ end subroutine nksic_dmxc_spin_cp
       do nbnd1=1,nbspx
           Omattot(nbnd1,nbnd1)=1.d0
       enddo
-           
+
       ninner = 0
       ldotest=.false.
 
@@ -4097,8 +4168,8 @@ end subroutine nksic_dmxc_spin_cp
       if (ionode) write(stdout, "(14x,'# iter',6x,'etot',17x,'esic',&
                                   & 17x,'deigrms')")
 
-      ! 
-      ! main loop 
+      !
+      ! main loop
       !
       inner_loop: &
       do while (.true.)
@@ -4113,7 +4184,7 @@ end subroutine nksic_dmxc_spin_cp
             if(ionode) write(1031,*) '# innerloop_nmax reached.'
             if(ionode) write(1031,*)
 #endif
-            if(ionode) then 
+            if(ionode) then
                 write(stdout,"(14x,'# innerloop_nmax reached.',/)")
             endif
             !
@@ -4121,7 +4192,7 @@ end subroutine nksic_dmxc_spin_cp
             exit inner_loop
             !
         endif
-        
+
 #ifdef __DEBUG
         !
 !$$     ! Now do the test
@@ -4160,7 +4231,7 @@ end subroutine nksic_dmxc_spin_cp
             Heigbig( iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Heig(:)
 
             !!
-            !! CHP: The following file prints out 
+            !! CHP: The following file prints out
             !! the eigenvalues of the force matrix for debugging
             !
             !if (ionode) then
@@ -4204,8 +4275,8 @@ end subroutine nksic_dmxc_spin_cp
         call nksic_getOmattot(dalpha,Heigbig,Umatbig,c0,wfc_ctmp,Omat1tot,bec1,vsic1,pink1,dtmp, lgam)
 
         !
-        ! deal with non-variational functionals, 
-        ! such as NK0 
+        ! deal with non-variational functionals,
+        ! such as NK0
         !
         do_nonvar = ( do_nk .and. ( .not. do_wref .or. .not. do_wxd) )
         !
@@ -4230,7 +4301,7 @@ end subroutine nksic_dmxc_spin_cp
             if(ionode) write(stdout,'(14x, "# procedure  ",I4," / ",I4, &
                                     & " is finished.",/)') npassofail,npassofailmax
             !
-            ! if we reach at the maximum allowed npassofail number, 
+            ! if we reach at the maximum allowed npassofail number,
             ! we exit without further update
             !
             if( npassofail >= npassofailmax ) then
@@ -4262,7 +4333,7 @@ end subroutine nksic_dmxc_spin_cp
         call stop_clock( "nk_innerloop" )
         !
       enddo inner_loop
- 
+
       !
       ! Wavefunction cm rotation according to Omattot
       ! cm is relevant only for damped dynamics
@@ -4373,8 +4444,8 @@ end subroutine nksic_rot_emin
         call nksic_getvsicah(isp,vsicah,vsicah2sum)
         call nksic_getHeigU(isp,vsicah,Heig,Umat)
 
-        Umatbig(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp),iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Umat(:,:)      
-        Heigbig(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Heig(:)      
+        Umatbig(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp),iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Umat(:,:)
+        Heigbig(iupdwn(isp):iupdwn(isp)-1+nupdwn(isp)) = Heig(:)
 
         deigrms = deigrms + sum(Heig(:)**2)
 
@@ -4450,7 +4521,7 @@ end subroutine nksic_rot_test
       implicit none
       !
       ! in/out vars
-      ! 
+      !
       integer                  :: ninner,nbsp,nbspx,nspin, nudx, nnrx
       integer                  :: init_n, ngw, ispin(nbspx)
       integer,     intent(in)  :: nouter
@@ -4462,10 +4533,10 @@ end subroutine nksic_rot_test
                       wfc_centers(4,nudx,nspin), wfc_spreads(nudx, nspin, 2)
       logical               :: lgam
       type(twin_matrix)     :: bec
-        
-      ! 
+
+      !
       ! local variables for cg routine
-      ! 
+      !
       integer     :: nbnd1,nbnd2
       integer     :: isp
       logical     :: ldotest
@@ -4553,8 +4624,8 @@ end subroutine nksic_rot_test
       if (ionode) write(stdout, "(14x,'# iter',6x,'etot',17x,'esic',&
                                   & 17x,'deigrms')")
 
-      ! 
-      ! main loop 
+      !
+      ! main loop
       !
       inner_loop: &
       do while (.true.)
@@ -4600,13 +4671,13 @@ end subroutine nksic_rot_test
         !print out ESIC part & other total energy
         !
         ene0 = sum( pink(1:nbsp) )
- 
+
         !
         ! test convergence
         !
         if( abs(ene0-pinksumprev) < conv_thr ) then
            numok=numok+1
-        else 
+        else
            numok=0
         endif
         !
@@ -4746,7 +4817,7 @@ end subroutine nksic_rot_test
                 nidx1 = nbnd1-1+iupdwn(isp)
                 nidx2 = nbnd2-1+iupdwn(isp)
                 IF(nidx1.ne.nidx2) THEN
-                  dene0 = dene0 - DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2)) 
+                  dene0 = dene0 - DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2))
                 ELSE  !warning:giovanni: do we need this condition
                   !dene0 = dene0 -DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2))
                 ENDIF
@@ -4813,7 +4884,7 @@ end subroutine nksic_rot_test
 #endif
 
         if(ene0 < ene1 .and. ene0 < enever) then !missed minimum case 3
-            !write(6,'("# WARNING: innerloop missed minimum, case 3",/)') 
+            !write(6,'("# WARNING: innerloop missed minimum, case 3",/)')
             !
             iter3=0
             signalpha=1.d0
@@ -4829,7 +4900,7 @@ end subroutine nksic_rot_test
                call nksic_getOmattot( dalpha, Heigbig, Umatbig, c0, wfc_ctmp2, Omat2tot, bec2, vsic2, pink2, enever, lgam)
                !
             enddo
-            
+
             IF(enever.lt.ene0) THEN
                !
                pink(:)   = pink2(:)
@@ -4838,7 +4909,7 @@ end subroutine nksic_rot_test
                call copy_twin(bec,bec2)
    !             bec%rvec(:,:)  = bec2(:,:)
                Omattot   = MATMUL( Omattot, Omat2tot)
-               !write(6,'("# WARNING: innerloop case 3 interations",3I/)') iter3 
+               !write(6,'("# WARNING: innerloop case 3 interations",3I/)') iter3
                write(marker,'(i1)') iter3
                marker = '*'//marker
                passof=passo*abs(signalpha)
@@ -4853,7 +4924,7 @@ end subroutine nksic_rot_test
                passof=passo*abs(signalpha)
                !
                IF(nfail>2) THEN
-                  write(6,'("# WARNING: innerloop not converged, exit",/)') 
+                  write(6,'("# WARNING: innerloop not converged, exit",/)')
                   call stop_clock( "nk_innerloop" )
                   exit
                ENDIF
@@ -4865,7 +4936,7 @@ end subroutine nksic_rot_test
 #ifdef __DEBUG
             if(ionode) then
                 write(1037,'("# ene0<ene1 and ene0<enever, exit",/)')
-                write(1031,'("# innerloop NOT converged, exit",/)') 
+                write(1031,'("# innerloop NOT converged, exit",/)')
             endif
 #endif
 
@@ -4904,7 +4975,7 @@ end subroutine nksic_rot_test
                 write(1037,*)
             endif
 #endif
-            !write(6,'("# WARNING: innerloop missed minimum case 1 or 2",/)') 
+            !write(6,'("# WARNING: innerloop missed minimum case 1 or 2",/)')
             !
 ! =======
 !           pink(:) = pink1(:)
@@ -5006,7 +5077,7 @@ end subroutine nksic_rot_emin_cg_new
       implicit none
       !
       ! in/out vars
-      ! 
+      !
       integer                  :: ninner
       integer                  :: init_n
       integer,     intent(in)  :: nouter
@@ -5014,10 +5085,10 @@ end subroutine nksic_rot_emin_cg_new
       complex(dp)          :: Omattot(nbspx,nbspx)
       real(dp), intent(in)  :: rot_threshold
       logical               :: lgam
-        
-      ! 
+
+      !
       ! local variables for cg routine
-      ! 
+      !
       integer     :: nbnd1,nbnd2
       integer     :: isp
       logical     :: ldotest
@@ -5105,8 +5176,8 @@ end subroutine nksic_rot_emin_cg_new
       if (ionode) write(stdout, "(14x,'# iter',6x,'etot',17x,'esic',&
                                   & 17x,'deigrms')")
 
-      ! 
-      ! main loop 
+      !
+      ! main loop
       !
       inner_loop: &
       do while (.true.)
@@ -5152,13 +5223,13 @@ end subroutine nksic_rot_emin_cg_new
         !print out ESIC part & other total energy
         !
         ene0 = sum( pink(1:nbsp) )
- 
+
         !
         ! test convergence
         !
         if( abs(ene0-pinksumprev) < conv_thr ) then
            numok=numok+1
-        else 
+        else
            numok=0
         endif
         !
@@ -5297,7 +5368,7 @@ end subroutine nksic_rot_emin_cg_new
                 nidx1 = nbnd1-1+iupdwn(isp)
                 nidx2 = nbnd2-1+iupdwn(isp)
                 IF(nidx1.ne.nidx2) THEN
-                  dene0 = dene0 - DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2)) 
+                  dene0 = dene0 - DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2))
                 ELSE  !warning:giovanni: do we need this condition
                   !dene0 = dene0 -DBLE(CONJG(gi(nidx1,nidx2))*hi(nidx1,nidx2))
                 ENDIF
@@ -5362,7 +5433,7 @@ end subroutine nksic_rot_emin_cg_new
 #endif
 
         if(ene0 < ene1 .and. ene0 < enever) then !missed minimum case 3
-            !write(6,'("# WARNING: innerloop missed minimum, case 3",/)') 
+            !write(6,'("# WARNING: innerloop missed minimum, case 3",/)')
             !
             iter3=0
             signalpha=1.d0
@@ -5378,7 +5449,7 @@ end subroutine nksic_rot_emin_cg_new
                call nksic_getOmattot( dalpha, Heigbig, Umatbig, c0, wfc_ctmp2, Omat2tot, bec2, vsic2, pink2, enever, lgam)
                !
             enddo
-            
+
             IF(enever.lt.ene0) THEN
                !
                pink(:)   = pink2(:)
@@ -5387,7 +5458,7 @@ end subroutine nksic_rot_emin_cg_new
                call copy_twin(bec,bec2)
    !             bec%rvec(:,:)  = bec2(:,:)
                Omattot   = MATMUL( Omattot, Omat2tot)
-               !write(6,'("# WARNING: innerloop case 3 interations",3I/)') iter3 
+               !write(6,'("# WARNING: innerloop case 3 interations",3I/)') iter3
                write(marker,'(i1)') iter3
                marker = '*'//marker
                passof=passo*abs(signalpha)
@@ -5402,7 +5473,7 @@ end subroutine nksic_rot_emin_cg_new
                passof=passo*abs(signalpha)
                !
                IF(nfail>2) THEN
-                  write(6,'("# WARNING: innerloop not converged, exit",/)') 
+                  write(6,'("# WARNING: innerloop not converged, exit",/)')
                   call stop_clock( "nk_innerloop" )
                   exit
                ENDIF
@@ -5414,7 +5485,7 @@ end subroutine nksic_rot_emin_cg_new
 #ifdef __DEBUG
             if(ionode) then
                 write(1037,'("# ene0<ene1 and ene0<enever, exit",/)')
-                write(1031,'("# innerloop NOT converged, exit",/)') 
+                write(1031,'("# innerloop NOT converged, exit",/)')
             endif
 #endif
 
@@ -5453,7 +5524,7 @@ end subroutine nksic_rot_emin_cg_new
                 write(1037,*)
             endif
 #endif
-            !write(6,'("# WARNING: innerloop missed minimum case 1 or 2",/)') 
+            !write(6,'("# WARNING: innerloop missed minimum case 1 or 2",/)')
             !
 ! =======
 !           pink(:) = pink1(:)
@@ -5555,16 +5626,16 @@ end subroutine nksic_rot_emin_cg
       implicit none
       !
       ! in/out vars
-      ! 
+      !
       integer                  :: ninner
       integer,     intent(in)  :: nouter
       real(dp),    intent(in)  :: etot
       complex(dp)          :: Omattot(nbspx,nbspx)
       logical               :: lgam
-        
-      ! 
+
+      !
       ! local variables for cg routine
-      ! 
+      !
       integer     :: nbnd1,nbnd2
       integer     :: isp
       logical     :: ldotest
@@ -5633,8 +5704,8 @@ end subroutine nksic_rot_emin_cg
       if (ionode) write(stdout, "(14x,'# iter',6x,'etot',17x,'esic',&
                                   & 17x,'deigrms')")
 
-      ! 
-      ! main loop 
+      !
+      ! main loop
       !
       inner_loop: &
       do while (.true.)
@@ -5680,7 +5751,7 @@ end subroutine nksic_rot_emin_cg
         !print out ESIC part & other total energy
         !
         ene0 = sum( pink(1:nbsp) )
- 
+
         !
         ! test convergence
         !
@@ -5875,7 +5946,7 @@ end subroutine nksic_rot_emin_cg
 #ifdef __DEBUG
             if(ionode) then
                 write(1037,'("# ene0<ene1 and ene0<enever, exit",/)')
-                write(1031,'("# innerloop NOT converged, exit",/)') 
+                write(1031,'("# innerloop NOT converged, exit",/)')
             endif
 #endif
             !
@@ -6029,7 +6100,7 @@ end subroutine nksic_rot_emin_cg_descla
       !
       call start_clock( "nk_getOmattot" )
       !
-     
+
 !       call init_twin(bec1,lgam)
 !       call allocate_twin(bec1,nkb,nbsp, lgam)
 
@@ -6154,7 +6225,7 @@ end subroutine nksic_getOmattot_new
       !
       call start_clock( "nk_getOmattot" )
       !
-     
+
 !       call init_twin(bec1,lgam)
 !       call allocate_twin(bec1,nkb,nbsp, lgam)
 
@@ -6483,21 +6554,21 @@ end subroutine nksic_printoverlap
       implicit none
       !
       ! in/out vars
-      ! 
+      !
       integer,     intent(in)  :: isp
       real(dp)                 :: vsicah( nupdwn(isp),nupdwn(isp))
       real(dp)                 :: vsicah2sum
 
       !
       ! local variables
-      !     
+      !
       complex(dp)     :: psi1(nnrx), psi2(nnrx)
       real(dp)        :: vsicahtmp, cost
       real(dp)        :: dwfnnorm
       integer         :: nbnd1,nbnd2
       integer         :: i, j1, j2
 
-    
+
       CALL start_clock('nk_get_vsicah')
       !
       dwfnnorm = 1.0d0/(DBLE(nr1x)*DBLE(nr2x)*DBLE(nr3x))
@@ -6505,7 +6576,7 @@ end subroutine nksic_printoverlap
       !
       vsicah(:,:) = 0.d0
       vsicah2sum  = 0.d0
-      
+
       !
       ! Imposing Pederson condition
       !
@@ -6581,23 +6652,23 @@ end subroutine nksic_getvsicah
       implicit none
       !
       ! in/out vars
-      ! 
+      !
       integer,     intent(in)  :: isp
       real(dp)                 :: vsicah( nupdwn(isp),nupdwn(isp))
       real(dp)                 :: vsicah2sum
 
       !
       ! local variables
-      !     
+      !
       real(dp)        :: vsicahtmp, cost
       real(dp)        :: dwfnnorm
       integer         :: nbnd1,nbnd2
       integer         :: i, j1, jj1, j2, jj2
       !
-      complex(dp), allocatable :: psi1(:), psi2(:) 
+      complex(dp), allocatable :: psi1(:), psi2(:)
       real(dp),    allocatable :: wfc1(:,:), wfc2(:,:)
 
-    
+
       CALL start_clock('nk_get_vsicah')
       !
       dwfnnorm = 1.0d0/(DBLE(nr1x)*DBLE(nr2x)*DBLE(nr3x))
@@ -6707,7 +6778,7 @@ end subroutine nksic_getvsicah_new1
       implicit none
       !
       ! in/out vars
-      ! 
+      !
       integer,     intent(in)  :: isp, nspin, ngw, nbsp, nbspx, &
                                   nupdwn(nspin), iupdwn(nspin)
       complex(dp)              :: vsicah( nupdwn(isp),nupdwn(isp)), c0(ngw, nbsp)
@@ -6717,7 +6788,7 @@ end subroutine nksic_getvsicah_new1
 
       !
       ! local variables
-      !     
+      !
       real(dp)        :: vsicahtmp, cost
       integer         :: nbnd1,nbnd2
       integer         :: i, j1, jj1, j2, jj2
@@ -6725,7 +6796,7 @@ end subroutine nksic_getvsicah_new1
       !complex(dp), allocatable :: vsicpsi(:,:)
       complex(dp),    allocatable :: hmat(:,:)
 
-    
+
       CALL start_clock('nk_get_vsicah')
       !
       cost     = DBLE( nspin ) * 2.0d0
@@ -6734,7 +6805,7 @@ end subroutine nksic_getvsicah_new1
       allocate( hmat(nupdwn(isp),nupdwn(isp)) )
 
       !
-      ! compute < phi_j | Delta h_i | phi_i > 
+      ! compute < phi_j | Delta h_i | phi_i >
       !
       do nbnd1 = 1, nupdwn(isp), 2
           !
@@ -6761,7 +6832,7 @@ end subroutine nksic_getvsicah_new1
                   ELSE
 		      hmat(nbnd2,nbnd1+jj1-1) = DOT_PRODUCT( c0(:,j2), vsicpsi(:,jj1))
                   ENDIF
-                  ! 
+                  !
               enddo
               !
           enddo
@@ -6769,7 +6840,7 @@ end subroutine nksic_getvsicah_new1
       !
       call mp_sum( hmat, intra_image_comm )
       hmat = hmat * cost
-      
+
 
       !
       ! Imposing Pederson condition
@@ -6831,7 +6902,7 @@ end subroutine nksic_getvsicah_new3
       implicit none
       !
       ! in/out vars
-      ! 
+      !
       integer,     intent(in)  :: isp
       complex(dp)                 :: vsicah( nupdwn(isp),nupdwn(isp))
       real(dp)                 :: vsicah2sum
@@ -6839,7 +6910,7 @@ end subroutine nksic_getvsicah_new3
 
       !
       ! local variables
-      !     
+      !
       real(dp)        :: vsicahtmp, cost
       integer         :: nbnd1,nbnd2
       integer         :: i, j1, jj1, j2, jj2
@@ -6847,7 +6918,7 @@ end subroutine nksic_getvsicah_new3
       !complex(dp), allocatable :: vsicpsi(:,:)
       complex(dp),    allocatable :: hmat(:,:)
 
-    
+
       CALL start_clock('nk_get_vsicah')
       !
       cost     = DBLE( nspin ) * 2.0d0
@@ -6856,7 +6927,7 @@ end subroutine nksic_getvsicah_new3
       allocate( hmat(nupdwn(isp),nupdwn(isp)) )
 
       !
-      ! compute < phi_j | Delta h_i | phi_i > 
+      ! compute < phi_j | Delta h_i | phi_i >
       !
       do nbnd1 = 1, nupdwn(isp), 2
           !
@@ -6883,7 +6954,7 @@ end subroutine nksic_getvsicah_new3
                   ELSE
 		      hmat(nbnd2,nbnd1+jj1-1) = DOT_PRODUCT( c0(:,j2), vsicpsi(:,jj1))
                   ENDIF
-                  ! 
+                  !
               enddo
               !
           enddo
@@ -6891,7 +6962,7 @@ end subroutine nksic_getvsicah_new3
       !
       call mp_sum( hmat, intra_image_comm )
       hmat = hmat * cost
-      
+
 
       !
       ! Imposing Pederson condition
@@ -6960,7 +7031,7 @@ end subroutine nksic_getvsicah_new2
 !       implicit none
 !       !
 !       ! in/out vars
-!       ! 
+!       !
 ! !       integer,     intent(in)  :: nspin
 !       type(twin_matrix), dimension(nspin) :: vsicah!( nupdwn(isp),nupdwn(isp))
 !       real(dp)                 :: vsicah2sum
@@ -6969,7 +7040,7 @@ end subroutine nksic_getvsicah_new2
 !       INTEGER :: np_rot, me_rot, comm_rot, nrl
 !       !
 !       ! local variables
-!       !     
+!       !
 !       real(dp)        :: cost
 !       integer         :: nbnd1,nbnd2,isp
 !       integer         :: i, j1, jj1, j2, jj2, nss, istart, is
@@ -6981,9 +7052,9 @@ end subroutine nksic_getvsicah_new2
 !       real(dp), allocatable :: mtmp(:,:)
 !       complex(dp),    allocatable :: h0c0(:,:), mtmp_c(:,:)
 ! !       type(twin_matrix) :: c0hc0(nspin)!modified:giovanni
-!     
+!
 !       CALL start_clock('nk_get_vsicah')
-! 
+!
 !       nlax    = descla( nlax_ )
 !       la_proc = ( descla( lambda_node_ ) > 0 )
 !       nlam    = 1
@@ -6998,16 +7069,16 @@ end subroutine nksic_getvsicah_new2
 !       !allocate( vsicpsi(npw,2) )
 ! !       allocate(c0hc0(nspin))
 !       allocate(h0c0(ngw,nbspx))
-! 
+!
 ! !       do is=1,nspin
 ! ! 	call init_twin(c0hc0(is),lgam)
 ! ! 	call allocate_twin(c0hc0(is),nlam,nlam,lgam)
 ! !       enddo
-! 
+!
 !       !
-!       ! compute < phi_j | Delta h_i | phi_i > 
+!       ! compute < phi_j | Delta h_i | phi_i >
 !       !
-! ! 
+! !
 !       do j1 = 1, nbsp, 2
 !           !
 !           ! NOTE: USPP not implemented
@@ -7016,32 +7087,32 @@ end subroutine nksic_getvsicah_new2
 !                              deeq_sic, bec, ngw, c0(:,j1), c0(:,j1+1), h0c0(:,j1:j1+1), lgam )
 !           !
 !       enddo
-! 
+!
 !       DO is= 1, nspin
-! 
+!
 ! 	nss= nupdwn( is )
 ! 	istart= iupdwn( is )
-! 
+!
 ! 	np(1) = descla( la_npr_ , is )
 ! 	np(2) = descla( la_npc_ , is )
-! 
+!
 ! 	DO ipc = 1, np(2)
 ! 	    DO ipr = 1, np(1)
-! 
+!
 ! 	      coor_ip(1) = ipr - 1
 ! 	      coor_ip(2) = ipc - 1
 ! 	      CALL descla_init( desc_ip, descla( la_n_ , is ), descla( la_nx_ , is ), np, coor_ip, descla( la_comm_ , is ), 1 )
-! 
+!
 ! 	      nr = desc_ip( nlar_ )
 ! 	      nc = desc_ip( nlac_ )
 ! 	      ir = desc_ip( ilar_ )
 ! 	      ic = desc_ip( ilac_ )
-! 
+!
 ! 	      CALL GRID2D_RANK( 'R', desc_ip( la_npr_ ), desc_ip( la_npc_ ), &
 ! 				desc_ip( la_myr_ ), desc_ip( la_myc_ ), root )
 ! 	      !
 ! 	      root = root * leg_ortho
-! 
+!
 ! 	      IF(.not.c0hc0(is)%iscmplx) THEN
 ! 		ALLOCATE( mtmp( nr, nc ) )
 ! 		mtmp = 0.0d0
@@ -7077,7 +7148,7 @@ end subroutine nksic_getvsicah_new2
 ! !                  END IF
 ! 	    END DO
 ! 	END DO
-! ! 
+! !
 ! ! fill mtmp or mtmp_c with hermitian conjugate of vsicah
 ! ! and
 ! ! antisymmetrize vsicah
@@ -7102,13 +7173,13 @@ end subroutine nksic_getvsicah_new2
 ! 	  END DO
 !           deallocate(mtmp_c)
 !         ENDIF
-! 
+!
 !       END DO
-! 
+!
 !       !
 !       ! Imposing Pederson condition
 !       !
-!       
+!
 ! !       vsicah(:,:) = 0.d0
 ! !       vsicah2sum = 0.0d0
 ! !       !
@@ -7128,7 +7199,7 @@ end subroutine nksic_getvsicah_new2
 ! !       enddo
 !       !
 !       deallocate( h0c0 )
-! 
+!
 !       !
 !       call stop_clock('nk_get_vsicah')
 !       !
@@ -7146,7 +7217,7 @@ end subroutine nksic_getvsicah_new2
 !     and also from the step size (passof).
 !
       use kinds,                      only : dp
-      use constants,                  only : ci 
+      use constants,                  only : ci
       use electrons_base,             only : nupdwn
       !
       implicit none
@@ -7175,12 +7246,12 @@ end subroutine nksic_getvsicah_new2
 !$$ of the wavevector with largest eigenvalue upon rotation is fixed
 !          passof = passoprod/max(abs(Heig(1)),abs(Heig(nupdwn(isp))))
 !$$ Now the above step is done outside.
-            
+
           do nbnd1=1,nupdwn(isp)
             dtmp =  passof * Heig(nbnd1)
             exp_iHeig(nbnd1) = DCOS(dtmp) + ci*DSIN(dtmp)
           enddo
-            
+
 !$$ Cmattmp = exp(i * passof * Heig) * Umat^dagger   ; Omat = Umat * Cmattmp
           do nbnd1=1,nupdwn(isp)
             Cmattmp(nbnd1,:) = exp_iHeig(nbnd1)*CONJG(Umat(:,nbnd1))
@@ -7207,9 +7278,9 @@ end subroutine nksic_getOmat1
 !---------------------------------------------------------------
 
 ! the derivative of the xc potential with respect to the local density
-! is computed. 
-! In order to save time, the loop over space coordinates is performed 
-! inside this routine (inlining). 
+! is computed.
+! In order to save time, the loop over space coordinates is performed
+! inside this routine (inlining).
 !
 ! NOTE: wref and wsic are UPDATED and NOT OVERWRITTEN by this subroutine
 !
@@ -7242,7 +7313,7 @@ end subroutine nksic_getOmat1
    if ( get_iexch() == 1 .and. get_icorr() == 1 ) THEN
       !
       do ir = 1, nnrx
-          ! 
+          !
           dmuxc(:,:)=0.0_dp
           !
           rhoup  = rhoref(ir,1)
@@ -7298,7 +7369,7 @@ end subroutine nksic_getOmat1
           dzm=-max(-1.0,zeta-dz)+zeta
           !
           fact = 1.0d0 / ( rhotot * (dzp+dzm) )
-          ! 
+          !
           !call xc_spin(rhotot,zeta-dzm,ex,ec,vxupm,vxdwm,vcupm,vcdwm)
           !call xc_spin(rhotot,zeta+dzp,ex,ec,vxupp,vxdwp,vcupp,vcdwp)
           !
@@ -7316,15 +7387,15 @@ end subroutine nksic_getOmat1
           !
           wxd(ir,1) = wxd(ir,1) + dmuxc(1,ispin) * rhoele(ir,ispin)*f
           wxd(ir,2) = wxd(ir,2) + dmuxc(2,ispin) * rhoele(ir,ispin)*f
-          !   
+          !
           wref(ir)  = wref(ir)  + dmuxc(ispin,ispin)*rhoele(ir,ispin)
-          !   
+          !
       enddo
       !
    else
       !
       do ir = 1, nnrx
-          ! 
+          !
           dmuxc(:,:)=0.0_dp
           !
           rhoup  = rhoref(ir,1)
@@ -7342,7 +7413,7 @@ end subroutine nksic_getOmat1
           call xc_spin (rhotot - dr, zeta, ex, ec, vxupm, vxdwm, vcupm, vcdwm)
           call xc_spin (rhotot + dr, zeta, ex, ec, vxupp, vxdwp, vcupp, vcdwp)
           !
-          dmuxc(1,1) = dmuxc(1,1) + (vxupp + vcupp - vxupm - vcupm)*fact 
+          dmuxc(1,1) = dmuxc(1,1) + (vxupp + vcupp - vxupm - vcupm)*fact
           dmuxc(1,2) = dmuxc(1,2) + (vxupp + vcupp - vxupm - vcupm)*fact
           dmuxc(2,1) = dmuxc(2,1) + (vxdwp + vcdwp - vxdwm - vcdwm)*fact
           dmuxc(2,2) = dmuxc(2,2) + (vxdwp + vcdwp - vxdwm - vcdwm)*fact
@@ -7365,23 +7436,23 @@ end subroutine nksic_getOmat1
           !
           wxd(ir,1) = wxd(ir,1) + dmuxc(1,ispin) * rhoele(ir,ispin)*f
           wxd(ir,2) = wxd(ir,2) + dmuxc(2,ispin) * rhoele(ir,ispin)*f
-          !   
+          !
           wref(ir)  = wref(ir)  + dmuxc(ispin,ispin)*rhoele(ir,ispin)
           !
       enddo
-      ! 
+      !
   endif
-  
+
   return
 
 !---------------------------------------------------------------
 end subroutine nksic_dmxc_spin_cp_update
 !---------------------------------------------------------------
 
-SUBROUTINE compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, & 
+SUBROUTINE compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
               nupdwn, ispin, orb_rhor, wfc_centers, wfc_spreads, j,k)
-   
-   USE kinds,              ONLY: DP   
+
+   USE kinds,              ONLY: DP
    USE ions_positions,     ONLY: taus
    USE ions_base,          ONLY: ions_cofmass, pmass, na, nsp
    USE cell_base,          ONLY: h, s_to_r
@@ -7394,7 +7465,7 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
    !
    INTEGER, INTENT(IN)      :: ispin(nx),nx,j,k,nspin, nbsp, &
                                nupdwn(nspin), iupdwn(nspin)
-     !ispin is 1 or 2 for each band (listed as in c0), 
+     !ispin is 1 or 2 for each band (listed as in c0),
      !nx is nudx, j and k the two bands involved in the
      !spread calculation
    REAL(DP), INTENT(in)  :: orb_rhor(nnrx,2)
@@ -7407,7 +7478,7 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
    INTEGER :: myspin1, myspin2, mybnd1, mybnd2
    REAL(DP):: r0(3), rs(3)
    REAL(DP), external :: ddot
-   
+
    !
       myspin1=ispin(j)
       !
@@ -7443,7 +7514,7 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
       ENDIF
       !
    RETURN
- 
+
 END SUBROUTINE compute_nksic_centers
 !
 SUBROUTINE spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, wfc_centers, sort_spreads)
@@ -7595,7 +7666,7 @@ SUBROUTINE spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, wfc_
 contains
 
    subroutine swap_integer(a,b)
-      
+
       use kinds, ONLY: DP
 
       implicit none
@@ -7612,7 +7683,7 @@ contains
    end subroutine swap_integer
 
    subroutine swap_real(a,b)
-      
+
       use kinds, ONLY: DP
 
       implicit none
@@ -7651,16 +7722,16 @@ SUBROUTINE compute_complexification_index(ngw, nnrx, nbsp, nbspx, nspin, ispin, 
       INTEGER, INTENT(IN) :: ngw, nnrx, nbsp, nbspx, nspin, &
                iupdwn(nspin), nupdwn(nspin), ispin(nbspx)
       type(twin_matrix) :: bec
-      COMPLEX(DP) :: c0(ngw, nbspx), complexification_index      
+      COMPLEX(DP) :: c0(ngw, nbspx), complexification_index
 
       INTEGER :: i,j,k, ir
       COMPLEX(DP), allocatable :: temp_array(:, :), psi1(:), psi2(:)
       REAL(DP) :: sa1
-      
-      sa1 = 1.0d0 / omega 
+
+      sa1 = 1.0d0 / omega
       allocate(temp_array(nbsp, nbsp), psi1(nnrx), psi2(nnrx))
       temp_array=CMPLX(0.d0,0.d0)
-      
+
       do i=1,nbsp
          !
          do j=1,i
@@ -7682,7 +7753,7 @@ SUBROUTINE compute_complexification_index(ngw, nnrx, nbsp, nbspx, nspin, ispin, 
             ENDIF
             !
          enddo
-         ! 
+         !
          !
       enddo
       !
@@ -7724,8 +7795,8 @@ END subroutine compute_complexification_index
                                   icompute_spread)
 !-----------------------------------------------------------------------
 !
-! ....calculate orbital dependent potentials, 
-!     following the Non-Koopmans' (NK) scheme, 
+! ....calculate orbital dependent potentials,
+!     following the Non-Koopmans' (NK) scheme,
 !     but also Perdew-Zunger (PZ),
 !     Non-Koopmans' integral definition (NKI),
 !     Non-Joopmans on Perdew Zunger (PZNK)
@@ -7756,8 +7827,81 @@ END subroutine compute_complexification_index
       use input_parameters,      only: draw_pot, pot_number  !added:linh draw vsic potentials
       use io_pot_sic_xml,        only: write_pot_sic  !added:linh draw vsic potentials
       USE io_global,             ONLY: stdout
+
       !
       implicit none
+      !
+
+      ! -- add N. Poilvert, define explicit interface to
+      ! nksic_correction_nkipz
+      INTERFACE
+          subroutine nksic_correction_nkipz( f, ispin, orb_rhor, &
+                                          vsic, pink, ibnd, shart, is_empty)
+
+              use kinds,                only : dp
+              use constants,            only : e2, fpi, hartree_si, electronvolt_si
+              use cell_base,            only : tpiba2,omega
+              use nksic,                only : nknmax, nkscalfact
+              use grid_dimensions,      only : nnrx, nr1, nr2, nr3
+              use gvecp,                only : ngm
+              use recvecs_indexes,      only : np, nm
+              use reciprocal_vectors,   only : gstart, g
+              use eecp_mod,             only : do_comp
+              use cp_interfaces,        only : fwfft, invfft, fillgrad
+              use fft_base,             only : dfftp
+              use funct,                only : dft_is_gradient
+              use mp,                   only : mp_sum
+              use mp_global,            only : intra_image_comm
+              use control_flags,        only : gamma_only, do_wf_cmplx
+
+              integer,     intent(in)  :: ispin, ibnd
+              real(dp),    intent(in)  :: f, orb_rhor(nnrx)
+              real(dp),    intent(out) :: vsic(nnrx)
+              real(dp),    intent(out) :: pink, shart
+              logical, optional, intent(in) :: is_empty
+          end subroutine nksic_correction_nkipz
+      END INTERFACE
+      ! -- add N. Poilvert, define explicit interface to
+      ! nksic_correction_nki
+      INTERFACE
+          subroutine nksic_correction_nki( f, ispin, orb_rhor, rhor, &
+                                           rhoref, rhobar, rhobarg, grhobar,&
+                                           vsic, wxdsic, do_wxd_, pink, ibnd, is_empty )
+
+              use kinds,                only : dp
+              use constants,            only : e2, fpi
+              use cell_base,            only : tpiba2,omega
+              use nksic,                only : fref, rhobarfact, nknmax, &
+                                               nkscalfact, &
+                                               etxc => etxc_sic, vxc => vxc_sic
+              use grid_dimensions,      only : nnrx, nr1, nr2, nr3
+              use gvecp,                only : ngm
+              use recvecs_indexes,      only : np, nm
+              use reciprocal_vectors,   only : gstart, g
+              use eecp_mod,             only : do_comp
+              use cp_interfaces,        only : fwfft, invfft, fillgrad
+              use fft_base,             only : dfftp
+              use funct,                only : dmxc_spin, dft_is_gradient
+              use mp,                   only : mp_sum
+              use mp_global,            only : intra_image_comm
+              use electrons_base,       only : nspin
+              use control_flags,          only : gamma_only, do_wf_cmplx
+
+              integer,     intent(in)  :: ispin, ibnd
+              real(dp),    intent(in)  :: f, orb_rhor(nnrx)
+              real(dp),    intent(in)  :: rhor(nnrx,nspin)
+              real(dp),    intent(in)  :: rhoref(nnrx,2)
+              real(dp),    intent(in)  :: rhobar(nnrx,2)
+              complex(dp),    intent(in)  :: rhobarg(ngm,2)
+              real(dp),    intent(in)  :: grhobar(nnrx,3,2)
+              real(dp),    intent(out) :: vsic(nnrx)
+              real(dp),    intent(out) :: wxdsic(nnrx,2)
+              logical,     intent(in)  :: do_wxd_
+              real(dp),    intent(out) :: pink
+              logical, optional, intent(in) :: is_empty
+          end subroutine nksic_correction_nki
+      END INTERFACE
+
       !
       ! in/out vars
       !
@@ -7824,7 +7968,7 @@ END subroutine compute_complexification_index
             !
             call nksic_get_taukin_pz( 1.d0, nspin, isp, rhor(1,isp), tauw, 1)
             !
-         enddo      
+         enddo
          !
       ENDIF
       !
@@ -7858,7 +8002,7 @@ END subroutine compute_complexification_index
         ! compute orbital potentials
         !
         inner_loop: do jj=1,2
-          ! 
+          !
           i=j+jj-1
           !
           ! this condition is important when n is odd
@@ -7877,10 +8021,10 @@ END subroutine compute_complexification_index
           ! compute parameters needed for PZ-renormalization
           !
           IF(do_pz_renorm) THEN
-             !     
+             !
              call nksic_get_taukin_pz( focc, nspin, ispin(i), orb_rhor(:,jj), &
                                       taukin, ibnd)
-             !                         
+             !
           ENDIF
           !
           !
@@ -7914,7 +8058,7 @@ END subroutine compute_complexification_index
               !
           endif
 
-          ! 
+          !
           ! compute nkpz pieces to build the potential and the energy
           !
           if( do_nkpz ) then
@@ -7929,11 +8073,11 @@ END subroutine compute_complexification_index
               !
           endif
 
-          
+
           !
           ! compute pz potentials and energy
           !
-          if ( do_pz ) then 
+          if ( do_pz ) then
               !
               call nksic_correction_pz ( focc, ispin(i), orb_rhor(:,jj), &
                                          vsic(:,i), pink(i), pzalpha(i), ibnd, shart)
@@ -8016,8 +8160,8 @@ END subroutine compute_complexification_index
           !
           do i = 1, nbsp
               !
-              vsic(1:nnrx,i) = vsic(1:nnrx,i) + wtot( 1:nnrx, ispin(i) ) 
-              ! 
+              vsic(1:nnrx,i) = vsic(1:nnrx,i) + wtot( 1:nnrx, ispin(i) )
+              !
           enddo
           !
       endif
@@ -8033,7 +8177,7 @@ END subroutine compute_complexification_index
              !
              inner_loop_renorm: do jj=1,2
                 !
-                i=j+jj-1        
+                i=j+jj-1
                 if ( i > nbsp ) exit inner_loop_renorm
                 !
                 ibnd=i
@@ -8046,7 +8190,7 @@ END subroutine compute_complexification_index
                 call nksic_get_pz_factor( nspin, ispin(i), orb_rhor(:,jj), &
                                          taukin, tauw, pzalpha(i), ibnd, kfact)
                 !
-                ! update vsic with factor here: it works for pz, will it work for 
+                ! update vsic with factor here: it works for pz, will it work for
                 ! nk-type functionals?
                 !
 !                 vsic(:,i) = vsic(:,i)*pzalpha(i)
@@ -8067,22 +8211,22 @@ END subroutine compute_complexification_index
          !
          write(stdout,*) "I am writing out vsic", nbsp
          do i =1, nbsp
-           ! 
-           if (i == pot_number) call write_pot_sic ( vsic(:, i) ) 
-           !  
+           !
+           if (i == pot_number) call write_pot_sic ( vsic(:, i) )
+           !
          enddo
          !
       endif !added:linh draw vsic potentials
       !
       if ( allocated(vsicpz) ) deallocate(vsicpz)
-      
+
       !
       ! USPP:
       ! compute corrections to the D coefficients of the pseudopots
       ! due to vsic(r, i) in the case of orbital dependent functionals.
       ! The corresponding contributions to the forces are computed.
       !
-      ! IMPORTANT: the following call makes use of newd. 
+      ! IMPORTANT: the following call makes use of newd.
       !            It must be done before we call newd for the
       !            total potentials, because deeq is overwritten at every call
       !
@@ -8095,14 +8239,14 @@ END subroutine compute_complexification_index
           DO i = 1, nbsp
               !
               CALL nksic_newd( i, nnrx, ispin(i), nspin, vsic(:,i), nat, nhm, &
-                               becsum, fion_sic, deeq_sic(:,:,:,i) ) 
+                               becsum, fion_sic, deeq_sic(:,:,:,i) )
               !
           ENDDO
           !
       ENDIF
-      ! 
+      !
       deallocate(rhobarg)
-      ! 
+      !
       CALL stop_clock( 'nksic_drv' )
       return
       !
