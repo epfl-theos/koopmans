@@ -445,7 +445,9 @@ MODULE input
           !
           IF(iprint_manifold_overlap>0) THEN
              !
+             WRITE(6,*) "****************************   ERROR   ***********************************************************"
              WRITE(6,*) "Setting control flags, it makes no sense to print manifold overlap if I start from scratch, I exit"
+             WRITE(6,*) "****************************   ERROR   ***********************************************************"
              stop
              !
           ENDIF

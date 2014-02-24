@@ -592,11 +592,13 @@
            !
            IF ( ionode .and. mod(itercg, iprint_spreads)==0) THEN
               !
-              WRITE( iunit_spreads, '(A3,400f20.14)') 'up', wfc_spreads(:,1,2)               
-              !
-              IF(nspin==2) THEN
+              IF(nspin==1) THEN
                  !
-                 WRITE( iunit_spreads, '(A3,400f20.14)') 'dw', wfc_spreads(:,2,2)
+                 WRITE( iunit_spreads, '(400f20.14)') wfc_spreads(:,1,2)               
+                 !
+              ELSE IF(nspin==2) THEN
+                 !
+                 WRITE( iunit_spreads, '(2(400f20.14)(3x))') wfc_spreads(:,1,2), wfc_spreads(:,2,2)
                  !
               ENDIF
               !
@@ -612,10 +614,13 @@
               !
               IF ( ionode ) THEN
                  !
-                 WRITE( iunit_manifold_overlap, '(A3,2f20.14)') "up", manifold_overlap(1)
-                 IF(nspin==2) THEN
+                 IF(nspin==1) THEN
                     !
-                    WRITE( iunit_manifold_overlap, '(A3,2f20.14)') "dw", manifold_overlap(2)
+                    WRITE( iunit_manifold_overlap, '(2f20.14)') manifold_overlap(1)
+                    !
+                 ELSE IF(nspin==2) THEN
+                    !
+                    WRITE( iunit_manifold_overlap, '(2(2f20.14)(3x))') manifold_overlap(1), manifold_overlap(2)
                     !
                  ENDIF
                  !

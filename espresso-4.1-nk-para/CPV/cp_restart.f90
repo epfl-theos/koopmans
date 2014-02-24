@@ -2439,7 +2439,9 @@ MODULE cp_restart
             !
             IF ( ( nel(1) /= nel_(1) ) .OR. ( nel(2) /= nel_(2) ) .OR. ( NINT( nelec_ ) /= nelt ) ) THEN
                attr = "electrons do not match"
-               ierr = 33
+               write(0,*) "from cp_readfile warning: electrons do not match"
+               write(6,*) "from cp_readfile warning: electrons do not match"
+               !ierr = 33
                GOTO 90
             END IF
             !
@@ -3301,7 +3303,9 @@ MODULE cp_restart
             !
             IF ( ( nel(1) /= nel_(1) ) .OR. ( nel(2) /= nel_(2) ) .OR. ( NINT( nelec_ ) /= nelt ) ) THEN
                attr = "electrons do not match"
-               ierr = 33
+               write(0,*) "from cp_readfile warning: electrons do not match"
+               write(6,*) "from cp_readfile warning: electrons do not match"
+               !ierr = 33
                GOTO 90
             END IF
             !

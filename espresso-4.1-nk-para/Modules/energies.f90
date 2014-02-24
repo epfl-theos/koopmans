@@ -105,8 +105,9 @@
           self_vxc   = edft%self_vxc
           exc        = edft%exc
           eht        = edft%eht
-          eodd       = edft%eodd
+          !eodd       = edft%eodd
 
+          !etot  = ekin + eht + epseu + enl + exc + evdw - ent + eodd
           etot  = ekin + eht + epseu + enl + exc + evdw - ent + eodd
           !
           edft%etot = etot
