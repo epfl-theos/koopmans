@@ -499,7 +499,7 @@ END FUNCTION
                   DO ia=1,na(is)
                      inl=ish(is)+(iv-1)*na(is)+ia
                      jnl=ish(is)+(jv-1)*na(is)+ia
-                     csv = csv + qq(iv,jv,is)*bec%cvec(inl,ibnd1)*CONJG(bev%cvec(jnl,ibnd2))
+                     csv = csv + qq(iv,jv,is)*CONJG(bec%cvec(inl,ibnd1))*(bev%cvec(jnl,ibnd2))
                   END DO
                END DO
             END DO
@@ -565,7 +565,7 @@ END FUNCTION
             !
             DO i=1,nupdwn(isp)
                !
-               sss(isp)=sss(isp)+CONJG(ss(i,j,isp))*ss(i,j,isp)
+               sss(isp)=sss(isp)+(ss(i,j,isp)*ss(j,i,isp))
                !
             ENDDO
             !
@@ -575,6 +575,7 @@ END FUNCTION
          sss(isp)=sss(isp)/nupdwn(isp)
          !
       ENDDO
+      write(*,*) ss(:,:,1)-CONJG(ss(:,:,1))
       !
    END SUBROUTINE compute_manifold_overlap
 
