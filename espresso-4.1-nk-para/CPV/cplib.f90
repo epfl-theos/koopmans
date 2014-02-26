@@ -4910,7 +4910,7 @@ END FUNCTION
       !
       if( do_orbdep .and. innerloop_until<1) then
          !
-         innerloop_until=2*innerloop_nmax
+         innerloop_until=-1
          !
       endif
       !

@@ -197,6 +197,12 @@
          !
       ENDIF
       !
+      if(innerloop_until<0) then
+         !
+         innerloop_until=2*maxiter
+         !
+      endif
+      !
       allocate (faux(nbspx))
       !
       allocate (ave_ene(nbsp))
