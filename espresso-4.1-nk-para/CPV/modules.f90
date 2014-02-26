@@ -387,6 +387,7 @@ module nksic
   integer :: innerloop_cg_nreset
   integer :: innerloop_nmax
   integer :: innerloop_init_n
+  integer :: innerloop_until
   real(DP) :: innerloop_cg_ratio
 !$$
   integer :: sizwtot

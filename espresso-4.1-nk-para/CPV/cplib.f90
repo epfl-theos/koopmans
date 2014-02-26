@@ -499,7 +499,7 @@ END FUNCTION
                   DO ia=1,na(is)
                      inl=ish(is)+(iv-1)*na(is)+ia
                      jnl=ish(is)+(jv-1)*na(is)+ia
-                     csv = csv + qq(iv,jv,is)*CONJG(bec%cvec(inl,ibnd1))*(bev%cvec(jnl,ibnd2))
+                     csv = csv + qq(iv,jv,is)*(bec%cvec(inl,ibnd1))*CONJG(bev%cvec(jnl,ibnd2))
                   END DO
                END DO
             END DO
@@ -565,7 +565,8 @@ END FUNCTION
             !
             DO i=1,nupdwn(isp)
                !
-               sss(isp)=sss(isp)+(ss(i,j,isp)*ss(j,i,isp))
+               sss(isp)=sss(isp)+abs(ss(i,j,isp))**2
+!               write(*,*) ss(i,j,isp)-CONJG(ss(j,i,isp))
                !
             ENDDO
             !
@@ -575,7 +576,6 @@ END FUNCTION
          sss(isp)=sss(isp)/nupdwn(isp)
          !
       ENDDO
-      write(*,*) ss(:,:,1)-CONJG(ss(:,:,1))
       !
    END SUBROUTINE compute_manifold_overlap
 
@@ -4734,7 +4734,7 @@ END FUNCTION
       use nksic,            only : do_innerloop, do_innerloop_cg, &
                                    innerloop_dd_nstep, &
                                    innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax, &
-                                   innerloop_cg_ratio, innerloop_init_n
+                                   innerloop_cg_ratio, innerloop_init_n, innerloop_until
 !$$
       use input_parameters, ONLY : do_nk_ => do_nk, &
                                    do_pz_ => do_pz, &
@@ -4762,6 +4762,7 @@ END FUNCTION
                                    innerloop_nmax_ => innerloop_nmax, &
                                    innerloop_init_n_ => innerloop_init_n, &
                                    innerloop_cg_ratio_ => innerloop_cg_ratio, &
+                                   innerloop_until_ => innerloop_until, &
                                    do_pz_renorm_=>do_pz_renorm, &
                                    do_bare_eigs_=>do_bare_eigs, &
                                    kfact_=> kfact
@@ -4805,6 +4806,7 @@ END FUNCTION
       innerloop_nmax      = innerloop_nmax_
       innerloop_init_n    = innerloop_init_n_
       innerloop_cg_ratio  = innerloop_cg_ratio_
+      innerloop_until     = innerloop_until_
 !$$
       !
       ! use the collective var which_orbdep
@@ -4904,6 +4906,12 @@ END FUNCTION
           !
           write( stdout, "(3x, 'NK memusage = ', f10.3, ' MB', /)" ) &
                nksic_memusage( )
+      endif
+      !
+      if( do_orbdep .and. innerloop_until<1) then
+         !
+         innerloop_until=2*innerloop_nmax
+         !
       endif
       !
       if( meta_ionode ) then

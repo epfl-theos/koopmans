@@ -70,7 +70,7 @@
       use nksic,                    only : do_orbdep, do_innerloop, do_innerloop_cg, innerloop_cg_nsd, &
                                            innerloop_cg_nreset, innerloop_init_n, innerloop_cg_ratio, &
                                            vsicpsi, vsic, wtot, fsic, fion_sic, deeq_sic, f_cutoff, & 
-                                           pink, do_wxd, sizwtot, do_bare_eigs
+                                           pink, do_wxd, sizwtot, do_bare_eigs, innerloop_until
       use hfmod,                    only : do_hf, vxxpsi, exx
       use twin_types !added:giovanni
       use control_flags,            only : non_ortho
@@ -533,7 +533,7 @@
           endif
 #endif
 
-          if(do_innerloop) then
+          if(do_innerloop .and. innerloop_until>=itercgeff) then
 !$$$$          if(do_innerloop.and.itercg.le.20) then
 !$$$$
              !

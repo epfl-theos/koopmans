@@ -42,7 +42,7 @@ MODULE control_flags
             tsteepdesc, tatomicwfc, tscreen, do_wf_cmplx, gamma_only,        & !added:giovanni do_wf_cmplx
             force_pairing, tchi2, do_ee,                                     &
             draw_pot, pot_number,                                            & !added:linh draw vsic potentials   
-            iprint_spreads, iprint_manifold_overlap                !added:giovanni print spreads and manifold overlaps
+            iprint_spreads, iprint_manifold_overlap, innerloop_until           !added:giovanni print spreads and manifold overlaps
 !$$
   PUBLIC :: do_innerloop, do_innerloop_cg, innerloop_dd_nstep,&
             innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax, &
@@ -100,6 +100,7 @@ MODULE control_flags
 !$$
   INTEGER :: iprint_spreads=-1
   INTEGER :: iprint_manifold_overlap=-1
+  INTEGER :: innerloop_until=-1
   LOGICAL :: do_innerloop  = .FALSE. ! Do inner loop minimization in case do_orbdep
   LOGICAL :: do_innerloop_cg  = .FALSE. ! Do cg inner loop minimization with parabolic minimization in case do_orbdep
   INTEGER :: innerloop_dd_nstep = 50 ! Number of outer loop damped dynamics steps before each inner loop minimization

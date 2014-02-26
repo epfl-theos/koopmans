@@ -265,6 +265,7 @@ MODULE read_namelists_module
        innerloop_nmax = 10000 ! maximum number of inner loop steps
        innerloop_cg_ratio = 1.d-3
        innerloop_init_n = innerloop_nmax
+       innerloop_until = -1
 !$$
        nkscalfact = 1.0_DP  ! NK coeffcient 
        hfscalfact = 1.0_DP  ! HF coefficient
@@ -930,6 +931,7 @@ MODULE read_namelists_module
        CALL mp_bcast( innerloop_nmax,             ionode_id )
        CALL mp_bcast( innerloop_init_n,           ionode_id )
        CALL mp_bcast( innerloop_cg_ratio,         ionode_id )
+       CALL mp_bcast( innerloop_until,            ionode_id )
        CALL mp_bcast( draw_pot,                   ionode_id )
        CALL mp_bcast( sortwfc_spread,             ionode_id )
        CALL mp_bcast( pot_number,                 ionode_id )
