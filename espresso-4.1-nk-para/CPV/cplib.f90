@@ -475,7 +475,7 @@ END FUNCTION
          temp(ig)=CONJG(c(ig,ibnd1))*v(ig,ibnd2)
          !
       END DO
-      csv = icoeff * DBLE(SUM(temp))
+      csv = icoeff * (SUM(temp))
       IF (gstart == 2 .and. lgam) csv = csv - DBLE(temp(1))
 
       CALL mp_sum( csv, intra_image_comm )
