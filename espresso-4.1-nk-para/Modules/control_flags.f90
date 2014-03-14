@@ -50,7 +50,7 @@ MODULE control_flags
 !$$
   !
   PUBLIC :: fix_dependencies, check_flags
-  PUBLIC :: tksw, trhor, thdyn, iprsta, trhow
+  PUBLIC :: tksw, evc_restart, trhor, thdyn, iprsta, trhow
   PUBLIC :: twfcollect, printwfc
   PUBLIC :: lkpoint_dir
   PUBLIC :: program_name
@@ -63,6 +63,7 @@ MODULE control_flags
   LOGICAL :: trhor     = .FALSE. ! read rho from unit 47 (only cp, seldom used)
   LOGICAL :: trhow     = .FALSE. ! CP code, write rho to restart dir
   LOGICAL :: tksw      = .FALSE. ! CP: write Kohn-Sham states to restart dir
+  LOGICAL :: evc_restart = .FALSE. ! CP: write Kohn-Sham eigenstates as restart wavefunctions
   !
   LOGICAL :: tsde          = .FALSE. ! electronic steepest descent
   LOGICAL :: tzeroe        = .FALSE. ! set to zero the electronic velocities

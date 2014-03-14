@@ -56,6 +56,7 @@ MODULE cp_restart
       !------------------------------------------------------------------------
       !
       USE control_flags,            ONLY : do_wf_cmplx, gamma_only, force_pairing, trhow, tksw !added:giovanni do_wf_cmplx!
+      USE control_flags,            ONLY : evc_restart !added:giovanni evc_restart
       USE io_files,                 ONLY : psfile, pseudo_dir
       USE mp_global,                ONLY : intra_image_comm, me_image, nproc_image
       USE printout_base,            ONLY : title
@@ -811,9 +812,17 @@ MODULE cp_restart
 !	    ENDDO
             ib = iupdwn(iss_wfc)
             !
-            CALL write_wfc( iunout, ik_eff, nk*nspin, kunit, iss, nspin,     &
+            IF(.not. evc_restart) then
+               CALL write_wfc( iunout, ik_eff, nk*nspin, kunit, iss, nspin, &
                             c02( :, ib : ib + nbnd_ - 1 ), ngwt, do_wf_cmplx, & !added:giovanni do_wf_cmplx
                             gamma_only, nbnd_, ig_l2g, ngw, filename, scalef)
+            ELSE
+               WRITE(*,*) "Careful: I am writing Kohn-Sham eigenstates as restart wavefunctions"
+               WRITE(*,*) "Errors may happen"
+               CALL write_wfc( iunout, ik_eff, nk*nspin, kunit, iss, nspin, &
+                            ctot( :, ib : ib + nbnd_ - 1 ), ngwt, do_wf_cmplx, & !added:giovanni do_wf_cmplx
+                            gamma_only, nbnd_, ig_l2g, ngw, filename, scalef)
+            ENDIF
             !
             !  Save wave function at time t - dt
             !

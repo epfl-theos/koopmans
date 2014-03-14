@@ -237,6 +237,7 @@ MODULE input
                                trhor_         => trhor, &
                                trhow_         => trhow, &
                                tksw_          => tksw,  &
+                               evc_restart_   => evc_restart, &
                                ortho_eps_     => ortho_eps, &
                                ortho_max_     => ortho_max, &
                                tnosee_        => tnosee
@@ -314,6 +315,7 @@ MODULE input
         iesr_inp, vhrmax_inp, vhrmin_inp, tvhmean_inp, vhasse_inp, saverho,    &
         ortho_para, rd_for, do_wf_cmplx, empty_states_nbnd, which_orbdep,      & !added:giovanni do_wf_cmplx, empty_states_nbnd
         iprint_manifold_overlap, iprint_spreads !added:giovanni print spreads and manifold overlap
+     USE input_parameters,   ONLY : evc_restart 
      !
      IMPLICIT NONE
      !
@@ -384,6 +386,7 @@ MODULE input
      trhor_ = ( TRIM( calculation ) == 'nscf' )
      trhow_ = saverho
      tksw_  = ( TRIM( disk_io ) == 'high' )
+     evc_restart_ = evc_restart
      !
      SELECT CASE( TRIM( verbosity ) )
        CASE( 'minimal' )
@@ -1173,7 +1176,7 @@ MODULE input
       orthogonalization
 
     USE control_flags, ONLY:  program_name, tortho, tnosee, trane, ampre, &
-                              trhor, tksw, tfor, tnosep, iprsta, &
+                              trhor, tksw, evc_restart, tfor, tnosep, iprsta, &
                               thdyn, tnoseh
     !
     USE electrons_nose,       ONLY: electrons_nose_info
@@ -1243,6 +1246,9 @@ MODULE input
       IF( tksw )THEN
          WRITE( stdout,722)
       ENDIF
+      IF( evc_restart )THEN
+         WRITE( stdout,7222)
+      ENDIF
       !
       IF( tfor .AND. tnosep ) fricp = 0.0d0
       !
@@ -1289,6 +1295,7 @@ MODULE input
 700 FORMAT( /,3X, 'Verbosity: iprsta = ',i2,/)
 720 FORMAT(   3X, 'charge density is read from file')
 722 FORMAT(   3X, 'Wavefunctions will be written to file as Kohn-Sham states')
+7222 FORMAT(   3X, 'Kohn-Sham eigenfunctions will be written as restart wavefunctions')
     !
   END SUBROUTINE modules_info
   !

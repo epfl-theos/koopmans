@@ -200,6 +200,9 @@ MODULE input_parameters
         CHARACTER(LEN=80) :: disk_io = 'default'
           ! Specify the amount of I/O activities
 
+        LOGICAL :: evc_restart = .FALSE.
+          ! Whether to write KS eigenstates as restart wavefunction
+
         LOGICAL :: tefield  = .FALSE.
           ! if .TRUE. a sawtooth potential simulating a finite electric field
           ! is added to the local potential = only used in PW
@@ -258,7 +261,7 @@ MODULE input_parameters
           prefix, wfcdir, max_seconds, ekin_conv_thr, etot_conv_thr,      &
           forc_conv_thr, pseudo_dir, disk_io, tefield, dipfield, lberry,  &
           gdir, nppstr, wf_collect, printwfc, lelfield, nberrycyc, refg,  &
-          tefield2, saverho, tabps, lkpoint_dir, use_wannier
+          tefield2, saverho, tabps, lkpoint_dir, use_wannier, evc_restart
 
 !
 !=----------------------------------------------------------------------------=!

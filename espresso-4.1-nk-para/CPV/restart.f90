@@ -28,7 +28,7 @@
       USE ensemble_dft,     ONLY: tens, tsmear
       USE mp,               ONLY: mp_bcast
       USE mp_global,        ONLY: root_image, intra_image_comm
-      USE control_flags,    ONLY: tksw, ndw
+      USE control_flags,    ONLY: tksw, ndw, evc_restart
 !
       implicit none
       integer, INTENT(IN) ::  nfi
@@ -78,7 +78,7 @@
       !
       CALL set_eitot( eitot )
       !
-      IF( tksw ) THEN
+      IF( tksw .or. evc_restart ) THEN
          !
          ALLOCATE( ctot( SIZE( c0, 1 ), nupdwn_tot(1) * nspin ) )
          !
@@ -117,7 +117,7 @@
 
       DEALLOCATE( eitot )
       !
-      IF( tksw ) DEALLOCATE( ctot )
+      IF( tksw .or. evc_restart ) DEALLOCATE( ctot )
 
       return
       end subroutine writefile_cp_real
@@ -142,7 +142,7 @@
       USE ensemble_dft,     ONLY: tens, tsmear
       USE mp,               ONLY: mp_bcast
       USE mp_global,        ONLY: root_image, intra_image_comm
-      USE control_flags,    ONLY: tksw, ndw
+      USE control_flags,    ONLY: tksw, ndw, evc_restart
       USE electrons_module, ONLY: wfc_spreads
       USE nksic,            ONLY: do_orbdep
       USE twin_types
@@ -196,7 +196,7 @@
       !
       CALL set_eitot( eitot )
       !
-      IF( tksw ) THEN
+      IF( tksw .or. evc_restart ) THEN
          !
          ALLOCATE( ctot( SIZE( c0, 1 ), nupdwn_tot(1) * nspin ) )
          !
@@ -245,7 +245,7 @@
 
       DEALLOCATE( eitot )
       !
-      IF( tksw ) DEALLOCATE( ctot )
+      IF( tksw .or. evc_restart ) DEALLOCATE( ctot )
 
       return
       end subroutine writefile_cp_twin
@@ -468,7 +468,7 @@
         USE kinds,             ONLY: DP
         USE cell_base,         ONLY: boxdimensions, r_to_s
         USE control_flags,     ONLY: ndw, do_wf_cmplx, gamma_only !added:giovanni do_wf_cmplx
-        USE control_flags,     ONLY: twfcollect, force_pairing, tksw
+        USE control_flags,     ONLY: twfcollect, force_pairing, tksw, evc_restart
         USE atoms_type_module, ONLY: atoms_type
         USE io_global,         ONLY: ionode, ionode_id
         USE io_global,         ONLY: stdout
@@ -523,7 +523,7 @@
         !
         CALL set_eitot( eitot )
 
-        IF( tksw ) THEN
+        IF( tksw .or. evc_restart ) THEN
            !
            ALLOCATE( ctot( SIZE( c0, 1 ), nupdwn_tot(1) * nspin ) )
            !
@@ -542,7 +542,7 @@
 
         DEALLOCATE( eitot )
 
-        IF( tksw ) DEALLOCATE( ctot )
+        IF( tksw .or. evc_restart ) DEALLOCATE( ctot )
 
      RETURN 
    END SUBROUTINE writefile_fpmd

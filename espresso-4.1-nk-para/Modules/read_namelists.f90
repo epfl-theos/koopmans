@@ -95,6 +95,7 @@ MODULE read_namelists_module
        etot_conv_thr = 1.E-4_DP
        forc_conv_thr = 1.E-3_DP
        disk_io  = 'default'
+       evc_restart  = .FALSE.
        dipfield = .FALSE.
        lberry   = .FALSE.
        gdir     = 0
@@ -779,6 +780,7 @@ MODULE read_namelists_module
        CALL mp_bcast( pseudo_dir,    ionode_id )
        CALL mp_bcast( refg,          ionode_id )
        CALL mp_bcast( disk_io,       ionode_id )
+       CALL mp_bcast( evc_restart,   ionode_id )
        CALL mp_bcast( tefield,       ionode_id )
        CALL mp_bcast( tefield2,      ionode_id )
        CALL mp_bcast( dipfield,      ionode_id )
