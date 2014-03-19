@@ -589,8 +589,15 @@
         if ( ionode ) write(1037,'("iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14)')&
             itercg, itercgeff, etotnew 
 #endif
-        if ( ionode ) write(stdout,'(5x,"iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14," delta_E=",E22.14)')&
-            itercg, itercgeff, etotnew, deltae
+        if ( ionode ) then
+            if (itercg>2) then
+               write(stdout,'(5x,"iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14," delta_E=",E22.14)')&
+               itercg, itercgeff, etotnew, deltae
+            else
+               write(stdout,'(5x,"iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14)')&
+               itercg, itercgeff, etotnew, deltae
+            endif
+        endif
 
         if ( ionode .and. mod(itercg,10) == 0 ) write(stdout,"()" )
 
