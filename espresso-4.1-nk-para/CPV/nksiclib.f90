@@ -301,8 +301,9 @@
               call nksic_correction_nk( focc, ispin(i), orb_rhor(:,jj), &
                                         rhor, rhoref, rhobar, rhobarg, grhobar, &
                                         vsic(:,i), wxdsic, wrefsic, do_wxd_, &
-                                        pink(i), ibnd)
-
+                                        pink(i), ibnd, shart)
+              !
+              wfc_spreads(ibnd, ispin(i), 2) = shart
               !
               ! here information is accumulated over states
               ! (wtot is added in the next loop)
@@ -1534,14 +1535,15 @@ end subroutine nksic_newd
 
 !---------------------------------------------------------------
       subroutine nksic_correction_nk( f, ispin, orb_rhor, rhor, &
-                                      rhoref, rhobar, rhobarg, grhobar,  &
-                                      vsic, wxdsic, wrefsic, do_wxd_, pink, ibnd )
+                                      rhoref, rhobar, rhobarg, grhobar,&
+                                      vsic, wxdsic, wrefsic, do_wxd_,&
+                                      pink, ibnd, shart) 
 !---------------------------------------------------------------
 !
 ! ... calculate the non-Koopmans potential from the orbital density
 !
       use kinds,                only : dp
-      use constants,            only : e2, fpi
+      use constants,            only : e2, fpi, hartree_si, electronvolt_si
       use cell_base,            only : tpiba2,omega
       use nksic,                only : fref, rhobarfact, nknmax, &
                                        vanishing_rho_w, &
@@ -1594,6 +1596,7 @@ end subroutine nksic_newd
       logical :: lgam !!added:giovanni
       real(dp) :: icoeff
       real(dp) :: dexc_dummy(3,3)
+      real(dp) :: shart
       !
       !==================
       ! main body
@@ -1699,8 +1702,12 @@ end subroutine nksic_newd
       ehele = icoeff * DBLE ( DOT_PRODUCT( vtmp(1:ngm), orb_rhog(1:ngm,1)))
       if ( gstart == 2 ) ehele = ehele + (1.d0-icoeff)*DBLE ( CONJG( vtmp(1) ) * orb_rhog(1,1) )
       !
+      shart = 0.5_dp * ehele * omega * hartree_si/electronvolt_si
+      call mp_sum(shart, intra_image_comm)
+      
       ! the f * (2.0d0 * fref-f) term is added here
       ehele = 0.5_dp * f * (2.0_dp * fref-f) * ehele * omega / fact
+      !shart = 0.5_dp * ehele * omega / fact
 
       !
       ! fref-f has to be included explicitly in rhoele
@@ -2400,6 +2407,7 @@ end subroutine nksic_newd
       use mp,                   only : mp_sum
       use mp_global,            only : intra_image_comm
       use control_flags,        only : gamma_only, do_wf_cmplx
+      use control_flags,        only : hartree_only_sic
       !
       implicit none
       integer,     intent(in)  :: ispin, ibnd
@@ -2506,10 +2514,11 @@ end subroutine nksic_newd
       ! set ehele as measure of spread
       !
       !IF(icompute_spread) THEN
-         shart=abs(ehele)*fact*hartree_si/electronvolt_si
-         call mp_sum(shart, intra_image_comm)
+      shart=abs(ehele)*fact*hartree_si/electronvolt_si
+      call mp_sum(shart, intra_image_comm)
       !ENDIF
-      ehele=ehele*f
+      !
+      ehele=ehele*f !this is to make ehele quadratic in f (check this)
       !
       ! partial cleanup
       !
@@ -2521,45 +2530,53 @@ end subroutine nksic_newd
       !
       ! Compute xc-contributions
       !
-      if ( dft_is_gradient()) then
-          !
-          allocate(grhoraux(nnrx,3,2))
-          !
-          allocate(haux(nnrx,2,2))
-          !
-          ! note: rhogaux contains the occupation
-          !
-          grhoraux=0.0_dp
-          call fillgrad( 1, rhogaux(:,ispin:ispin), grhoraux(:,:,ispin:ispin), lgam )
-          !
-          !
-      else
-          allocate(grhoraux(1,1,1))
-          allocate(haux(1,1,1))
-          !
-          grhoraux=0.0_dp
-      endif
-      !
-      !
-      vxc=0.0_dp
-      haux=0.0_dp
-      etxc=0.0_dp
-      !
-      vxc(:,ispin)=f*orb_rhor(:)
-      ! call exch_corr_wrapper(nnrx,2,grhoraux,rhoelef,etxc,vxc,haux)
-      CALL exch_corr_cp(nnrx, 2, grhoraux, vxc, etxc) !proposed:giovanni fixing PBE, warning, check array dimensions
-      !
-      if (dft_is_gradient()) then
+      if (.not.hartree_only_sic) then
          !
-         !  Add second part of the xc-potential to rhor
-         !  Compute contribution to the stress dexc
-         !  Need a dummy dexc here, need to cross-check gradh! dexc should be dexc(3,3), is lgam a variable here?
-         call gradh( 2, grhoraux, rhogaux, vxc, dexc_dummy, lgam)
-         !  grhoraux(nnr,3,nspin)?yes; rhogaux(ng,nspin)? rhoref(nnr, nspin)
+         if ( dft_is_gradient()) then
+             !
+             allocate(grhoraux(nnrx,3,2))
+             !
+             allocate(haux(nnrx,2,2))
+             !
+             ! note: rhogaux contains the occupation
+             !
+             grhoraux=0.0_dp
+             call fillgrad( 1, rhogaux(:,ispin:ispin), grhoraux(:,:,ispin:ispin), lgam )
+             !
+             !
+         else
+             allocate(grhoraux(1,1,1))
+             allocate(haux(1,1,1))
+             !
+             grhoraux=0.0_dp
+         endif
          !
-      end if
+         !
+         vxc=0.0_dp
+         haux=0.0_dp
+         etxc=0.0_dp
+         !
+         vxc(:,ispin)=f*orb_rhor(:)
+         ! call exch_corr_wrapper(nnrx,2,grhoraux,rhoelef,etxc,vxc,haux)
+         CALL exch_corr_cp(nnrx, 2, grhoraux, vxc, etxc) !proposed:giovanni fixing PBE, warning, check array dimensions
+         !
+         if (dft_is_gradient()) then
+            !
+            !  Add second part of the xc-potential to rhor
+            !  Compute contribution to the stress dexc
+            !  Need a dummy dexc here, need to cross-check gradh! dexc should be dexc(3,3), is lgam a variable here?
+            call gradh( 2, grhoraux, rhogaux, vxc, dexc_dummy, lgam)
+            !  grhoraux(nnr,3,nspin)?yes; rhogaux(ng,nspin)? rhoref(nnr, nspin) 
+            !
+         end if
 !$$
-      vsic(1:nnrx) =  vsic(1:nnrx) -vxc(1:nnrx,ispin)
+         vsic(1:nnrx) =  vsic(1:nnrx) -vxc(1:nnrx,ispin)
+      
+      else
+         !
+         etxc=0.
+         !
+      endif
 !      vsic(1:nnrx) = -vxc(1:nnrx,ispin)
 !$$
       !
@@ -2589,14 +2606,8 @@ end subroutine nksic_newd
          !
       ENDIF
       !
-!$$
-
       call mp_sum(pink,intra_image_comm)
-
       !
-      ! cleanup
-      !
-      !deallocate( rhoelef )
       deallocate( grhoraux )
       deallocate( rhogaux )
       deallocate( haux )
@@ -8043,8 +8054,9 @@ END subroutine compute_complexification_index
               call nksic_correction_nk( focc, ispin(i), orb_rhor(:,jj), &
                                         rhor, rhoref, rhobar, rhobarg, grhobar, &
                                         vsic(:,i), wxdsic, wrefsic, do_wxd_, &
-                                        pink(i), ibnd)
-
+                                        pink(i), ibnd, shart)
+              !
+              wfc_spreads(ibnd, ispin(i), 2) = shart
               !
               ! here information is accumulated over states
               ! (wtot is added in the next loop)

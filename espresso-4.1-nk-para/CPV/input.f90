@@ -229,6 +229,7 @@ MODULE input
                                non_ortho_  => non_ortho, &
                                nstep_      => nstep, &
                                iprint_manifold_overlap_ => iprint_manifold_overlap, &
+                               hartree_only_sic_ => hartree_only_sic, &
                                iprint_spreads_ => iprint_spreads
      USE control_flags, ONLY : tsde_          => tsde, &
                                tsteepdesc_    => tsteepdesc, &
@@ -314,7 +315,7 @@ MODULE input
         tefield, epol, efield, tefield2, epol2, efield2, remove_rigid_rot,     &
         iesr_inp, vhrmax_inp, vhrmin_inp, tvhmean_inp, vhasse_inp, saverho,    &
         ortho_para, rd_for, do_wf_cmplx, empty_states_nbnd, which_orbdep,      & !added:giovanni do_wf_cmplx, empty_states_nbnd
-        iprint_manifold_overlap, iprint_spreads !added:giovanni print spreads and manifold overlap
+        iprint_manifold_overlap, iprint_spreads, hartree_only_sic
      USE input_parameters,   ONLY : evc_restart 
      !
      IMPLICIT NONE
@@ -339,6 +340,7 @@ MODULE input
 !$$
      esic_conv_thr_ = esic_conv_thr
 !$$
+     hartree_only_sic_=hartree_only_sic
      iprint_manifold_overlap_=iprint_manifold_overlap !added:giovanni spreads and manifold overlap
      iprint_spreads_=iprint_spreads
      forc_conv_thr_ = forc_conv_thr

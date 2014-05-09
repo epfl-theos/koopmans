@@ -404,14 +404,10 @@
             igrp = igrp + 1
 
          END DO
-!
-         CALL ZGEMM ( 'N', 'N', ngw, nogrp_ , nhsa, c_one, (vkb), ngw, (af), nhsa, c_one, df, ngw)
-
+         !
+         CALL ZGEMM ( 'N', 'N', ngw, nogrp_ , nhsa, c_one, (vkb), ngw, (af), nhsa, c_one, df, ngw) !df=df+beta*af !!! beta_j*af_jk= beta_j> d_ij <beta_i|c_k>
+         !
          CALL ZGEMM ( 'N', 'N', ngw, nogrp_ , nhsa, c_one, (vkb), ngw, (aa), nhsa, c_one, da, ngw)
-
-!          CALL DGEMM ( 'N', 'N', 2*ngw, nogrp_ , nhsa, 1.0d0, vkb, 2*ngw, af, nhsa, 1.0d0, df, 2*ngw)
-
-!          CALL DGEMM ( 'N', 'N', 2*ngw, nogrp_ , nhsa, 1.0d0, vkb, 2*ngw, aa, nhsa, 1.0d0, da, 2*ngw)
          !
          DEALLOCATE( aa, af )
          !

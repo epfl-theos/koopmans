@@ -285,6 +285,7 @@ MODULE read_namelists_module
        !
        iprint_spreads=-1
        iprint_manifold_overlap=-1
+       hartree_only_sic=.false.
        !
        RETURN
        
@@ -954,6 +955,7 @@ MODULE read_namelists_module
        !
        CALL mp_bcast( iprint_spreads,             ionode_id )
        CALL mp_bcast( iprint_manifold_overlap,    ionode_id )
+       CALL mp_bcast( hartree_only_sic,           ionode_id )
        !     
       RETURN
       !
