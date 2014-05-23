@@ -501,6 +501,7 @@ MODULE input_parameters
         LOGICAL :: do_innerloop_cg  = .false.
         INTEGER :: innerloop_dd_nstep  = 50
         INTEGER :: innerloop_init_n = 10000
+        INTEGER :: innerloop_atleast = 0
         REAL(DP) :: innerloop_cg_ratio = 1.d-3 
         INTEGER :: innerloop_cg_nsd  = 20
         INTEGER :: innerloop_cg_nreset  = 10
@@ -548,7 +549,8 @@ MODULE input_parameters
              innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax,           &
              innerloop_init_n, innerloop_cg_ratio, do_pz_renorm, kfact,       &
              esic_conv_thr, do_bare_eigs, sortwfc_spread, iprint_spreads,     &
-             iprint_manifold_overlap, innerloop_until, hartree_only_sic
+             iprint_manifold_overlap, innerloop_until, innerloop_atleast,     &
+             hartree_only_sic
 
 !=----END nksic input variables
 !

@@ -4321,7 +4321,6 @@ END FUNCTION
 !
       CALL exch_corr_h( nspin, rhog, rhor, rhoc, sfac, exc, dxc, self_exc )
       call writetofile(rhor, nnr,'vxc.dat', dfftp, 'az')
-
       !
       ! correction for traditional use of HF without
       ! reference to the EXX implementation 
@@ -4334,8 +4333,6 @@ END FUNCTION
           self_exc  = self_exc  * ( 1.0d0 -hfscalfact )
           !
       ENDIF
-
-
 !
 !     rhor contains the xc potential in r-space
 !
@@ -4736,7 +4733,8 @@ END FUNCTION
       use nksic,            only : do_innerloop, do_innerloop_cg, &
                                    innerloop_dd_nstep, &
                                    innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax, &
-                                   innerloop_cg_ratio, innerloop_init_n, innerloop_until
+                                   innerloop_cg_ratio, innerloop_init_n, innerloop_until, &
+                                   innerloop_atleast
 !$$
       use input_parameters, ONLY : do_nk_ => do_nk, &
                                    do_pz_ => do_pz, &
@@ -4763,6 +4761,7 @@ END FUNCTION
                                    innerloop_cg_nreset_ => innerloop_cg_nreset, &
                                    innerloop_nmax_ => innerloop_nmax, &
                                    innerloop_init_n_ => innerloop_init_n, &
+                                   innerloop_atleast_ => innerloop_atleast, &
                                    innerloop_cg_ratio_ => innerloop_cg_ratio, &
                                    innerloop_until_ => innerloop_until, &
                                    do_pz_renorm_=>do_pz_renorm, &
@@ -4807,6 +4806,7 @@ END FUNCTION
       innerloop_cg_nreset = innerloop_cg_nreset_
       innerloop_nmax      = innerloop_nmax_
       innerloop_init_n    = innerloop_init_n_
+      innerloop_atleast   = innerloop_atleast_
       innerloop_cg_ratio  = innerloop_cg_ratio_
       innerloop_until     = innerloop_until_
 !$$
@@ -4941,6 +4941,12 @@ END FUNCTION
 !-----------------------------------------------------------------------
       subroutine hf_init
 !-----------------------------------------------------------------------
+!     subroutine introduced by Giovanni Borghi and Andrea Ferretti,
+!     following Li, Y. and Dabo, I. 
+!     Electronic levels and electrical response of 
+!     periodic molecular structures from plane-wave 
+!     orbital-dependent calculations. 
+!     Physical Review B 84, 155127 (2011)
 !
       use hfmod,              only : do_hf, hfscalfact, allocate_hf
       use nksic,              only : f_cutoff

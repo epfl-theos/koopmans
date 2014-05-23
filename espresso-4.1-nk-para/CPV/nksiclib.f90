@@ -4523,7 +4523,8 @@ end subroutine nksic_rot_test
       use uspp_param,                 only : nhm
       use nksic,                      only : innerloop_cg_nsd, &
                                              innerloop_cg_nreset,&
-                                             innerloop_nmax
+                                             innerloop_nmax, &
+                                             innerloop_atleast
       use uspp,                       only : nkb
       use control_flags,              only : esic_conv_thr
       use cg_module,                  only : tcg
@@ -4574,7 +4575,7 @@ end subroutine nksic_rot_test
       real(dp),    allocatable :: pink1(:), pink2(:)
       logical :: restartcg_innerloop, ene_ok_innerloop, ltresh, setpassomax
       integer :: iter3, nfail
-      integer :: maxiter3,numok
+      integer :: maxiter3, numok, minsteps
       real(dp) :: signalpha
       character(len=4) :: marker
       real(dp) :: conv_thr
@@ -4587,6 +4588,7 @@ end subroutine nksic_rot_test
       !
       marker="   "
       maxiter3=4
+      minsteps=2
       restartcg_innerloop = .true.
       ene_ok_innerloop = .false.
       ltresh=.false.
@@ -4692,7 +4694,7 @@ end subroutine nksic_rot_test
            numok=0
         endif
         !
-        if( numok >= 2 ) ltresh=.true.
+        if( numok >= minsteps .and. ninner>=innerloop_atleast) ltresh=.true.
         !
         if( ltresh ) then
             !
@@ -4702,7 +4704,11 @@ end subroutine nksic_rot_test
                  write(1031,"(a,/)") '# inner-loop converged.'
             endif
 #endif
-            if(ionode) write(stdout,"(14x,'# innerloop converged',/)")
+            if(ionode .and. numok<minsteps) then
+               write(stdout,"(14x,'# innerloop nstep reached',/)")
+            else
+               write(stdout,"(14x,'# innerloop converged',/)")
+            endif
             !
             call stop_clock( "nk_innerloop" )
             exit inner_loop
@@ -4856,7 +4862,6 @@ end subroutine nksic_rot_test
                                dalpha, Heigbig, Umatbig, c0, wfc_ctmp, &
                                Omat1tot, bec1, vsic1, pink1, ene1, lgam)
         call minparabola( ene0, spasso*dene0, ene1, passof, passo, enesti)
-
         !
         ! We neglect this step for paper writing purposes
         !
@@ -4878,7 +4883,6 @@ end subroutine nksic_rot_test
 !$$
         call nksic_getOmattot( dalpha, Heigbig, Umatbig, c0, wfc_ctmp2, &
                                Omat2tot, bec2, vsic2, pink2, enever, lgam)
-
 #ifdef __DEBUG
         if(ionode) then
             !
@@ -4893,7 +4897,6 @@ end subroutine nksic_rot_test
             !
         endif
 #endif
-
         if(ene0 < ene1 .and. ene0 < enever) then !missed minimum case 3
             !write(6,'("# WARNING: innerloop missed minimum, case 3",/)')
             !
@@ -5028,7 +5031,6 @@ end subroutine nksic_rot_test
           endif
           !
       endif
-
       !
       ! clean local workspace
       !
@@ -5042,8 +5044,6 @@ end subroutine nksic_rot_test
       deallocate( vsic1, vsic2 )
       call deallocate_twin(bec1)
       call deallocate_twin(bec2)
-!       deallocate( bec1, bec2 )
-
 
       CALL stop_clock( 'nk_rot_emin' )
       return
@@ -5077,7 +5077,8 @@ end subroutine nksic_rot_emin_cg_new
       use uspp_param,                 only : nhm
       use nksic,                      only : vsic, pink, &
                                              innerloop_cg_nsd, innerloop_cg_nreset,&
-                                             innerloop_nmax
+                                             innerloop_nmax, &
+                                             innerloop_atleast
       use uspp,                       only : nkb
       use cp_main_variables,          only : bec
       use wavefunctions_module,       only : c0, cm
@@ -5244,7 +5245,7 @@ end subroutine nksic_rot_emin_cg_new
            numok=0
         endif
         !
-        if( numok >= 2 ) ltresh=.true.
+        if( numok >= 2 .and. ninner>=innerloop_atleast) ltresh=.true.
         !
         if( ltresh ) then
             !
