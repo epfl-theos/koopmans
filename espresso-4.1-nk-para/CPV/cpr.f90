@@ -1202,7 +1202,7 @@ SUBROUTINE terminate_run()
   IF ( tcg ) THEN
      !
      CALL print_clock( 'outer_loop' )
-     !CALL print_clock( 'inner_loop' )
+     CALL print_clock( 'inner_loop' )
      call print_clock_tcg()
      !
   ENDIF

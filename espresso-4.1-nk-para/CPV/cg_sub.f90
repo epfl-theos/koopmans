@@ -85,6 +85,7 @@
 !
       CHARACTER(LEN=80) :: uname
       CHARACTER(LEN=6), EXTERNAL :: int_to_char
+      integer, EXTERNAL :: get_clock
       integer     :: nfi
       logical     :: tfirst , tlast
       complex(dp) :: eigr(ngw,nat)
@@ -164,6 +165,7 @@
       integer :: ierr, northo_flavor
       real(DP) :: deltae,sic_coeff1, sic_coeff2 !coefficients which may change according to the flavour of SIC
       integer :: me, iunit_manifold_overlap, iunit_spreads
+      character(len=10) :: tcpu_cg_here
       !
       ! Initialize some basic variables
       me = me_image+1
@@ -387,6 +389,7 @@
                       rhor, rhog, rhos, rhoc, ei1, ei2, ei3, sfac,c0,bec,firstiter,vpot)
                firstiter=.false.
             endif
+            
             !     calculation of the rotated quantities
 
             call rotate_twin( z0t, c0(:,:), bec, c0diag, becdiag, .false. )
@@ -543,7 +546,7 @@
 !$$$$          if(do_innerloop.and.itercg.le.20) then
 !$$$$
              !
-             !call start_clock( "inner_loop" )
+             call start_clock( "inner_loop" )
              !
              eodd    = sum(pink(1:nbsp))
              etot    = etot - eodd
@@ -575,7 +578,7 @@
              etotnew = etotnew + eodd
              eoddnew = eodd
 
-             !call stop_clock( "inner_loop" )
+             call stop_clock( "inner_loop" )
              !
            endif
            !
@@ -589,13 +592,16 @@
         if ( ionode ) write(1037,'("iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14)')&
             itercg, itercgeff, etotnew 
 #endif
+!         tcpu_cg_here=get_clock('nk_corr')
+        call print_clock('CP')
+!       #
         if ( ionode ) then
             if (itercg>2) then
                write(stdout,'(5x,"iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14," delta_E=",E22.14)')&
                itercg, itercgeff, etotnew, deltae
             else
                write(stdout,'(5x,"iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14)')&
-               itercg, itercgeff, etotnew, deltae
+               itercg, itercgeff, etotnew
             endif
         endif
 
@@ -2025,7 +2031,7 @@
         !
         if(tens.and. .not.newscheme) then
             !
-            call start_clock( "inner_loop" )
+!             call start_clock( "inner_loop" )
             !
             call  inner_loop_cold( nfi, tfirst, tlast, eigr,  irb, eigrb, &
                                    rhor, rhog, rhos, rhoc, ei1, ei2, ei3, sfac, &
@@ -2033,7 +2039,7 @@
             ! the following sets up the new energy
             enever=etot
             !
-            call stop_clock( "inner_loop" )
+!             call stop_clock( "inner_loop" )
             !
         endif
         ! 
