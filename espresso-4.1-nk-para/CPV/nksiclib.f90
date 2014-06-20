@@ -720,16 +720,18 @@
             !
             if ( i1 <= nbsp ) then
                 call calrhovan(rhovanaux,bec,i1)
-                rhovan(:,:,1)=rhovanaux(:,:,ispin(i1))
+                rhovan(:,:,1)=rhovanaux(:,:,ispin(i1))*0.5d0 ! 1/2 factor since rhovanaux is counted twice in the case nspin=2
                 !
                 call rhov(irb,eigrb,rhovan,orb_rhog(:,1),orb_rhor(:,1), .true.)
+                !
             endif
             !
             if ( i2 <= nbsp ) then
                 call calrhovan(rhovanaux,bec,i2)
-                rhovan(:,:,1)=rhovanaux(:,:,ispin(i2))
+                rhovan(:,:,1)=rhovanaux(:,:,ispin(i2))*0.5d0 ! 1/2 factor since rhovanaux is counted twice in the case nspin=2
                 !
                 call rhov(irb,eigrb,rhovan,orb_rhog(:,2),orb_rhor(:,2), .true.)
+                !
             endif
             !
         endif
@@ -1094,7 +1096,6 @@ end subroutine nksic_get_orbitalrho_twin_non_ortho
       use twin_types
       !
       implicit none
-
       !
       ! input/output vars
       !
@@ -1136,8 +1137,6 @@ end subroutine nksic_get_orbitalrho_twin_non_ortho
       !
       allocate(psi1(nnrx),stat=ierr)
       if ( ierr/=0 ) call errore(subname,'allocating psi1',abs(ierr))
-
-
       !
       if(.not.lgam) then
          allocate(psi2(nnrx),stat=ierr)
@@ -1148,8 +1147,6 @@ end subroutine nksic_get_orbitalrho_twin_non_ortho
       if ( ierr/=0 ) call errore(subname,'allocating orb_rhog',abs(ierr))
 
       sa1 = 1.0d0 / omega
-
-
       !
       ! check whether it is necessary to
       ! deal with the smooth and dense grids separately
@@ -1331,14 +1328,14 @@ end subroutine nksic_get_orbitalrho_twin_non_ortho
             !
             if ( i1 <= nbsp ) then
                 call calrhovan(rhovanaux,bec,i1)
-                rhovan(:,:,1)=rhovanaux(:,:,ispin(i1))
+                rhovan(:,:,1)=rhovanaux(:,:,ispin(i1))*0.5d0 ! 0.5 to divide the factor f=2 which accounts for spin multiplicity inside calrhovan
                 !
                 call rhov(irb,eigrb,rhovan,orb_rhog(:,1),orb_rhor(:,1), lgam)
             endif
             !
             if ( i2 <= nbsp ) then
                 call calrhovan(rhovanaux,bec,i2)
-                rhovan(:,:,1)=rhovanaux(:,:,ispin(i2))
+                rhovan(:,:,1)=rhovanaux(:,:,ispin(i2))*0.5d0 ! 0.5 to divide the factor f=2 which accounts for spin multiplicity inside calrhovan
                 !
                 call rhov(irb,eigrb,rhovan,orb_rhog(:,2),orb_rhor(:,2), lgam)
             endif
@@ -7714,7 +7711,7 @@ contains
 END SUBROUTINE spread_sort
 
 
-SUBROUTINE compute_complexification_index(ngw, nnrx, nbsp, nbspx, nspin, ispin, iupdwn, nupdwn, c0, bec,&
+SUBROUTINE compute_complexification_index(ngw, nnrx, nnrsx, nbsp, nbspx, nspin, ispin, iupdwn, nupdwn, c0, bec,&
                    complexification_index)
       !
       ! Here the overlap between the wavefunction manifold and its conjugate is calculated
@@ -7728,10 +7725,11 @@ SUBROUTINE compute_complexification_index(ngw, nnrx, nbsp, nbspx, nspin, ispin, 
       use cell_base,                  only: omega
       use cp_interfaces,              only: fwfft, invfft
       use fft_base,                   only: dffts, dfftp
+      use uspp,           ONLY: okvan, nkb
 
       IMPLICIT NONE
 
-      INTEGER, INTENT(IN) :: ngw, nnrx, nbsp, nbspx, nspin, &
+      INTEGER, INTENT(IN) :: ngw, nnrx, nnrsx, nbsp, nbspx, nspin, &
                iupdwn(nspin), nupdwn(nspin), ispin(nbspx)
       type(twin_matrix) :: bec
       COMPLEX(DP) :: c0(ngw, nbspx), complexification_index
@@ -7741,33 +7739,44 @@ SUBROUTINE compute_complexification_index(ngw, nnrx, nbsp, nbspx, nspin, ispin, 
       REAL(DP) :: sa1
 
       sa1 = 1.0d0 / omega
-      allocate(temp_array(nbsp, nbsp), psi1(nnrx), psi2(nnrx))
+      !
+      allocate(temp_array(nbsp, nbsp))
+      !
       temp_array=CMPLX(0.d0,0.d0)
-
-      do i=1,nbsp
+      !
+      if ( nnrsx == nnrx ) then
          !
-         do j=1,i
+         allocate( psi1(nnrx), psi2(nnrx) )
+         !
+         do i=1,nbsp
             !
-            IF(ispin(i) == ispin(j)) THEN
+            do j=1,i
                !
-               call c2psi(psi1,nnrx,c0(:,i), c0(:,j), ngw, 0)
-               call c2psi(psi2,nnrx,c0(:,j), c0(:,i), ngw, 0)
-               !
-               CALL invfft('Dense', psi1, dfftp )
-               CALL invfft('Dense', psi2, dfftp )
-               !
-               do ir=1, nnrx
+               IF(ispin(i) == ispin(j)) THEN
                   !
-                  temp_array(i,j) = temp_array(i,j) + psi1(ir)*psi2(ir)
+                  call c2psi(psi1,nnrx,c0(:,i), c0(:,j), ngw, 0)
+                  call c2psi(psi2,nnrx,c0(:,j), c0(:,i), ngw, 0)
                   !
-               enddo
+                  CALL invfft('Dense', psi1, dfftp )
+                  CALL invfft('Dense', psi2, dfftp )
+                  !
+                  do ir=1, nnrx
+                     !
+                     temp_array(i,j) = temp_array(i,j) + psi1(ir)*psi2(ir)
+                     !
+                  enddo
+                  !
+               ENDIF
                !
-            ENDIF
+            enddo
             !
          enddo
          !
+      else !if using uspp
          !
-      enddo
+         ! for the moment: do nothing         
+         !
+      endif
       !
       call mp_sum(temp_array, intra_image_comm)
       !
@@ -7790,9 +7799,11 @@ SUBROUTINE compute_complexification_index(ngw, nnrx, nbsp, nbspx, nspin, ispin, 
          !
       enddo
       !
-      complexification_index=(1.d0-complexification_index/nbsp)*100.d0
+      complexification_index=(1.d0-complexification_index/nbsp)*100.d0 ! the index is in percentage
       !
       deallocate(temp_array)
+      deallocate(psi1)
+      deallocate(psi2)
       !
       return
 

@@ -859,6 +859,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      !
      ! CALL debug_energies()
      !
+     write(6,*) "check10"
      IF(do_orbdep.and.(tstdout.or.(MOD(nfi,iprint_stdout)==0))) THEN
         ! 
         !Sort wavefunctions with respect to spread !!added:giovanni
@@ -870,17 +871,19 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
            !
         ENDIF
         !
+             write(6,*) "check12"
         IF(do_wf_cmplx) THEN
            !
            ! Compute complexification index
            !
-             call compute_complexification_index(ngw, nnrsx, nbsp, nbspx, nspin, ispin, &
+             call compute_complexification_index(ngw, nnrx, nnrsx, nbsp, nbspx, nspin, ispin, &
               iupdwn, nupdwn, c0, bec, complexification_index)
            !
         ENDIF
         !
      ENDIF
-
+     !
+     write(6,*) "check11"
      CALL printout_new( nfi, tfirst, tfile, tstdout, ttprint, tps, hold, stress, &
                         tau0, vels, fion, ekinc, temphc, tempp, temps, etot, &
                         enthal, econs, econt, vnhh, xnhh0, vnhp, xnhp0, atot, &

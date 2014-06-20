@@ -274,7 +274,6 @@ SUBROUTINE from_scratch( )
 
          CALL newd( vpot, irb, eigrb, becsum, fion )
          !
-         !
          IF( force_pairing ) THEN
             !
             CALL runcp_uspp_force_pairing( nfi, fccc, ccc, ema0bg, dt2bye, rhos, bec%rvec, cm, &

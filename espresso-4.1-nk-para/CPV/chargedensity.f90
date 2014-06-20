@@ -1403,8 +1403,8 @@
 !-----------------------------------------------------------------------
    SUBROUTINE rhoofr_cp_ortho_new &
       ( nx, n, nudx, f, ispin, iupdwn, nupdwn, nspin, nfi, c, irb, &
-       eigrb, bec, &
-       rhovan, rhor, rhog, rhos, enl, denl, ekin, dekin, tstress, ndwwf )
+       eigrb, bec, rhovan, rhor, rhog, rhos, enl, denl, ekin, dekin, & 
+       tstress, ndwwf )
 !-----------------------------------------------------------------------
 !
 !  this routine computes:

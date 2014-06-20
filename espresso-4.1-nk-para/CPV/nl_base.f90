@@ -157,7 +157,6 @@
       return
    end subroutine nlsm1_real
 !--------------------------------------------------------l---------------
-!
 
 !-----------------------------------------------------------------------
    subroutine nlsm1_twin(n, nspmn, nspmx, eigr, c, becp, lbound_bec, lgam2)!added:giovanni lgam
@@ -1226,7 +1225,7 @@
 	      end do
 	  end do
 	end do
-      else
+      else ! if bec%iscmplx
         do is = 1, nsp
 	  do iv = 1, nh(is)
 	      do jv = iv, nh(is)

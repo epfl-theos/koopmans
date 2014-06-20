@@ -101,14 +101,11 @@
       !
       vxxpsi=0.0_dp
       exx=0.0_dp
-
-  
       !
       ! main loop over states
       !
       outer_loop: &
       do i = 1, nbsp2
-
           !
           ! psi_i on the smooth grid
           !
@@ -118,8 +115,6 @@
               psis2(nps(ig))=c2(ig,i)
           enddo
           call invfft('Wave',psis2,dffts)
-
-
           !
           ! inner loop
           !
@@ -149,7 +144,6 @@
               !
               !if ( faux_j < 1.0e-6 ) cycle
               !if ( faux_i < 1.0e-6 ) cycle
-
               !
               ! allocate mem
               !
@@ -157,7 +151,6 @@
               allocate(orbitalrhos(nnrsx,2))
               allocate(orbitalrhor(nnrx,2))
               !
-
               orbitalrhog(1:ngw,1) = c1(1:ngw, j)
               !
               if ( j+1 <= iend ) then
@@ -173,8 +166,6 @@
                                         orbitalrhog(:,2), ngw, 2)
               !
               call invfft('Wave', psis1, dffts)
-          
-
               !
               ! psi_i * psi_j on the smooth grid
               ! psis2 <=  psi_i

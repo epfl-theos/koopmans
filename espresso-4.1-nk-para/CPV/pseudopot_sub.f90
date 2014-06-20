@@ -1406,10 +1406,10 @@
             lmin = ABS (upf(is)%lll(jv) - upf(is)%lll(iv)) + 1
             lmax = upf(is)%lll(jv) + upf(is)%lll(iv) + 1
 
-            ! WRITE( stdout, * ) 'QRL is, jv, iv = ', is, jv, iv
-            ! WRITE( stdout, * ) 'QRL lll jv, iv = ', upf(is)%lll(jv), upf(is)%lll(iv)
-            ! WRITE( stdout, * ) 'QRL lmin, lmax = ', lmin, lmax
-            ! WRITE( stdout, * ) '---------------- '
+            WRITE( stdout, * ) 'QRL is, jv, iv = ', is, jv, iv
+            WRITE( stdout, * ) 'QRL lll jv, iv = ', upf(is)%lll(jv), upf(is)%lll(iv)
+            WRITE( stdout, * ) 'QRL lmin, lmax = ', lmin, lmax
+            WRITE( stdout, * ) '---------------- '
 
             IF ( lmin < 1 .OR. lmax > dim3) THEN
                  WRITE( stdout, * ) ' lmin, lmax = ', lmin, lmax
@@ -1419,16 +1419,23 @@
 
              do l = lmin, lmax
                do ir = 1, upf(is)%kkbeta
-                  if ( rgrid(is)%r(ir) >= upf(is)%rinner(l) ) then
-                     qrl(ir,ijv,l)=upf(is)%qfunc(ir,ijv)
-                  else
-                     qrl(ir,ijv,l)=upf(is)%qfcoef(1,l,iv,jv)
-                     do i = 2, upf(is)%nqf
-                        qrl(ir,ijv,l)=qrl(ir,ijv,l) +      &
-                             upf(is)%qfcoef(i,l,iv,jv)*rgrid(is)%r(ir)**(2*i-2)
-                     end do
-                     qrl(ir,ijv,l) = qrl(ir,ijv,l) * rgrid(is)%r(ir)**(l+1)
-                  end if
+                  IF( upf(is)%q_with_l ) THEN
+                       ! BEWARE: index l in upf%qfuncl(l) runs from 0 to lmax,
+                       !          not from 1 to lmax+1
+                       qrl(ir,ijv,l)=upf(is)%qfuncl(ir,ijv,l-1)
+                  ELSE
+                     !
+                     if ( rgrid(is)%r(ir) >= upf(is)%rinner(l) ) then
+                        qrl(ir,ijv,l)=upf(is)%qfunc(ir,ijv)
+                     else
+                        qrl(ir,ijv,l)=upf(is)%qfcoef(1,l,iv,jv)
+                        do i = 2, upf(is)%nqf
+                           qrl(ir,ijv,l)=qrl(ir,ijv,l) +      &
+                                upf(is)%qfcoef(i,l,iv,jv)*rgrid(is)%r(ir)**(2*i-2)
+                        end do
+                        qrl(ir,ijv,l) = qrl(ir,ijv,l) * rgrid(is)%r(ir)**(l+1)
+                     end if
+                  ENDIF
                end do
             end do
          end do
