@@ -160,104 +160,14 @@
       real(DP)    :: dtmp, temp
       real(dp)    :: tmppasso, ene_save(100), ene_save2(100), ene_lda
       !
-      logical :: lgam, switch=.false., ortho_switch=.false.
+      logical :: lgam, switch=.false., ortho_switch=.false., okvan
       complex(DP) :: phase
       integer :: ierr, northo_flavor
       real(DP) :: deltae,sic_coeff1, sic_coeff2 !coefficients which may change according to the flavour of SIC
       integer :: me, iunit_manifold_overlap, iunit_spreads
       character(len=10) :: tcpu_cg_here
       
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !
-      ! INITIALIZATION PART (variables, allocation of arrays, minimization parameters)
-      !
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !
-      !!! Initialize some basic variables
-      !
-      me = me_image+1
-      lgam = gamma_only.and..not.do_wf_cmplx
-      !
-      deltae = 2.d0*conv_thr
-      etotnew=0.d0
-      etotold=0.d0
-      eoddnew=0.d0
-      eoddold=0.d0
-      !
-      !!! Initialize printing
-      !
-      IF( ionode ) THEN
-         !
-         iunit_spreads = printout_base_unit( "sha" )
-         CALL printout_base_open( "sha" )
-         WRITE(iunit_spreads, *) " "
-         iunit_manifold_overlap = printout_base_unit( "ovp" )
-         CALL printout_base_open( "ovp" )
-         WRITE(iunit_manifold_overlap, *) " "
-         !
-      ENDIF
-      !
-      northo_flavor=1
-      !
-      IF(northo_flavor==2) THEN
-         !
-         sic_coeff1=1.d0
-         sic_coeff2=1.d0
-         !
-      ELSE
-         !
-         sic_coeff1=0.5d0
-         sic_coeff2=0.5d0
-         !
-      ENDIF
-      !
-      if(innerloop_until<0) then
-         !
-         innerloop_until=2*maxiter
-         !
-      endif
-      !
-      allocate (faux(nbspx))
-      !
-      allocate (ave_ene(nbsp))
-      allocate (c2(ngw),c3(ngw))
-      !
-      ! Allocation of twin-type variables
-      !
-      call init_twin(bec0, lgam)
-      call allocate_twin(bec0, nhsa, nbsp, lgam)
-      
-      call init_twin(becm, lgam)
-      call allocate_twin(becm, nhsa, nbsp, lgam)
-      
-      call init_twin(becdrdiag, lgam)
-      call allocate_twin(becdrdiag, nhsa, nspin*nlax,3, lgam)
-
-      !
-      ! initializing variables for checking iterations and convergence
-      !
-      
-      newscheme=.false.
-      firstiter=.true.
-
-      pre_state=.false.!normally is disabled
-
-      maxiter3=12
-!$$
-      if(do_orbdep) maxiter3=10
-!$$
-      ninner=0
-
-      ltresh    = .false.
-      itercg    = 1
-      etotold   = 1.d8
-      eoddold   = 1.d8
-      restartcg = .true.
-      passof = passop
-      ene_ok = .false.
-      !$$
-      itercgeff = 1
-      !$$
+      call do_allocation_initialization()
       
       !
       ! Initializing clock for minimization
@@ -291,16 +201,17 @@
          !call calbec(1,nsp,eigr,c0,bec)
          
       !
-      ! recompute phi from the new c0
+      ! recompute phi (the augmented wave function) from the new c0
       !
       
       CALL calphi( c0, SIZE(c0,1), bec, nhsa, betae, phi, nbsp, lgam)
       
       !
-      ! calculates the factors for S and K inversion in US case
+      ! calculates the factors for S and K inversion in US case -- they are important for preconditioning
+      ! see paper by Hasnip and Pickard, Computer Physics Communications 174 (2006) 24–29
       !
       
-      if ( nvb > 0 ) then
+      if ( okvan ) then
           !
           call init_twin(s_minus1,lgam)
           call allocate_twin(s_minus1, nhsavb, nhsavb, lgam)
@@ -332,8 +243,6 @@
       !
       gi(:,:)=CMPLX(0.d0,0.d0)
       hi(:,:)=CMPLX(0.d0,0.d0)
-
-
       !=======================================================================
       !                 begin of the main loop
       !=======================================================================
@@ -343,24 +252,6 @@
         !
         call start_clock( "outer_loop" )
 
-!$$$$
-!$$$$        if(itercg.ge.10) do_innerloop=.false.
-!$$$$
-
-!$$
-#ifdef __DEBUG
-        if( do_orbdep .and. ionode .and.( itercg == 1) ) then
-
-          open(1032,file='convg_outer.dat',status='unknown')
-          write(1032,'("#   ninner    nouter     non-sic energy (Ha)         sic energy (Ha)")')
-
-          if(do_innerloop) then
-            open(1031,file='convg_inner.dat',status='unknown')
-            write(1031,'("#   ninner    nouter     non-sic energy (Ha)         sic energy (Ha)    RMS force eigenvalue")')
-          endif
-        endif
-#endif
-!$$
 
         ENERGY_CHECK: &
         if(.not. ene_ok ) then
@@ -368,16 +259,6 @@
           call calbec(1,nsp,eigr,c0,bec)
           
           call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
-           
-          !
-          ! when cycle is restarted go to diagonal representation
-          !
-          ! CHP: do we need to do the following even if when we do not use ensemble dft?
-          !      I have added this additional constraint.
-          !
-        
-          !
-          ! calculates the potential
           !
           !     put core charge (if present) in rhoc(r)
           !
@@ -436,208 +317,21 @@
 
         end if ENERGY_CHECK
 
-!$$
         if( do_orbdep ) then
 
-#ifdef __DEBUG
-          if( ionode .and. itercg == 1 ) then
-             write(1032,'(2I10,2F24.13)') 0,0,etot-eodd,eodd
-          endif
-#endif
-
-          if(do_innerloop .and. innerloop_until>=itercgeff) then
-!$$$$          if(do_innerloop.and.itercg.le.20) then
-!$$$$
-             !
-             call start_clock( "inner_loop" )
-             !
-             eodd    = sum(pink(1:nbsp))
-             etot    = etot - eodd
-             etotnew = etotnew - eodd
-             ninner  = 0
-
-             if(.not.do_innerloop_cg) then
-                 call nksic_rot_emin(itercg,ninner,etot,Omattot, lgam)
-             else
-                 call nksic_rot_emin_cg(itercg,innerloop_init_n,ninner,etot,Omattot,deltae*innerloop_cg_ratio,lgam)
-             endif
-
-             eodd    = sum(pink(1:nbsp))
-             etot    = etot + eodd
-             etotnew = etotnew + eodd
-             eoddnew = eodd
-
-             call stop_clock( "inner_loop" )
-             !
-           endif
-           !
+           call do_innerloop_subroutine()
+        
         endif
-!$$
-
-!$$     
-#ifdef __DEBUG
-        ! for debug and tuning purposes
-        if ( ionode ) write(37,*)itercg, itercgeff, etotnew
-        if ( ionode ) write(1037,'("iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14)')&
-            itercg, itercgeff, etotnew 
-#endif
-!         tcpu_cg_here=get_clock('nk_corr')
-        call print_clock('CP')
-!       #
-        if ( ionode ) then
-            if (itercg>2) then
-               write(stdout,'(5x,"iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14," delta_E=",E22.14)')&
-               itercg, itercgeff, etotnew, deltae
-            else
-               write(stdout,'(5x,"iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14)')&
-               itercg, itercgeff, etotnew
-            endif
-        endif
-
-        if ( ionode .and. mod(itercg,10) == 0 ) write(stdout,"()" )
-
-        IF(iprint_spreads>0) THEN
-           !
-           IF ( ionode .and. mod(itercg, iprint_spreads)==0) THEN
-              !
-              IF(nspin==1) THEN
-                 !
-                 WRITE( iunit_spreads, '(400f20.14)') wfc_spreads(:,1,2)               
-                 !
-              ELSE IF(nspin==2) THEN
-                 !
-                 WRITE( iunit_spreads, '(2(400f20.14)(3x))') wfc_spreads(:,1,2), wfc_spreads(:,2,2)
-                 !
-              ENDIF
-              !
-           ENDIF
-           !
-        ENDIF
-
-        IF(iprint_manifold_overlap>0) THEN
-           !
-           IF(mod(itercg, iprint_manifold_overlap)==0) THEN
-              !
-              CALL compute_manifold_overlap( cstart, c0, becstart, bec, ngwx, nbspx, manifold_overlap ) !added:giovanni
-              !
-              IF ( ionode ) THEN
-                 !
-                 IF(nspin==1) THEN
-                    !
-                    WRITE( iunit_manifold_overlap, '(2f20.14)') manifold_overlap(1)
-                    !
-                 ELSE IF(nspin==2) THEN
-                    !
-                    WRITE( iunit_manifold_overlap, '(2(2f20.14)(3x))') manifold_overlap(1), manifold_overlap(2)
-                    !
-                 ENDIF
-                 !
-              ENDIF
-              !
-           ENDIF
-           !
-        ENDIF
-
-!$$
-
-
-!$$ to see the outer loop energy convergence
-        if (do_orbdep) then
-            !
-            eodd = sum(pink(1:nbsp))
-#ifdef __DEBUG
-            if(ionode) write(1032,'(2I10,2F24.13)') ninner,itercg,etot-eodd,eodd
-#endif
-            !
-        endif
-!$$
-        deltae=abs(etotnew-etotold) 
-        if(do_orbdep) then
-           deltae=deltae+abs(eoddnew-eoddold)
-        endif
+        
+        call print_out_observables()
+        
+        call check_convergence_cg()
+        
         !
-        if( deltae < conv_thr ) then
-           numok=numok+1
-        else 
-           numok=0
-        endif
-        !
-        if( numok >= 4 ) ltresh=.true.
-        !
-        if(ltresh.or.itercg==maxiter-1) icompute_spread=.true.
-        !
-        etotold=etotnew
-        eoddold=eoddnew
-        ene0=etot
-        !
-
         call newd(vpot,irb,eigrb,rhovan,fion)
         call prefor(eigr,betae)!ATTENZIONE
-
 !$$
-        ! faux takes into account spin multiplicity.
-        !
-        faux(1:nbspx)=0.d0
-        faux(1:nbsp) = max(f_cutoff,f(1:nbsp)) * DBLE( nspin ) / 2.0d0
-        !
-        do i=1,nbsp,2
-!$$  FIRST CALL TO DFORCE
-          CALL start_clock( 'dforce1' )
-!$$          call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin,f,n,nspin)
-          call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin, faux, nbsp, nspin)
-          !
-          CALL stop_clock( 'dforce1' )
-!$$
-
-          IF ( lda_plus_u ) THEN
-               !
-               !
-               c2(:) = c2(:) - vupsi(:,i) * faux(i)
-               if( i+1 <= nbsp ) c3(:) = c3(:) - vupsi(:,i+1) * faux(i+1)
-               !               
-               !
-           ENDIF
-
-!$$
-          if ( do_orbdep ) then
-              !
-              ! faux takes into account spin multiplicity.
-              !
-              CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi, lgam )
-              !
-              !
-              c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
-              !
-              if( i+1 <= nbsp )   c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1)
-              !
-              
-              !
-          endif
-!$$
-          if ( do_hf ) then
-              !
-              c2(:) = c2(:) - vxxpsi(:,i) * faux(i)
-              !
-              if( i+1 <= nbsp )   c3(:) = c3(:) - vxxpsi(:,i+1) * faux(i+1)
-              !
-          endif
-
-
-          hpsi(1:ngw,  i)=c2(1:ngw)
-          if(i+1 <= nbsp) then
-              hpsi(1:ngw,i+1)=c3(1:ngw)
-          endif
-          !
-          IF(lgam) THEN
-	    if (ng0.eq.2) then
-		hpsi(1,  i)=CMPLX(DBLE(hpsi(1,  i)), 0.d0)
-		if(i+1 <= nbsp) then
-		    hpsi(1,i+1)=CMPLX(DBLE(hpsi(1,i+1)), 0.d0)
-		endif
-	    endif
-          ENDIF
-          !
-        enddo
+        call compute_hpsi()
 
         if(pre_state) call ave_kin(c0,SIZE(c0,1),nbsp,ave_ene)
 
@@ -647,6 +341,7 @@
           call pcdaga2(c0,phi,hpsi, lgam)
         else
 !           call calbec(1,nsp,eigr,hpsi,becm)
+! call pcdaga2(c0,phi,hpsi, lgam)
          call pc3nc(c0,hpsi,lgam)
 !           call pc3us(c0,bec,hpsi,becm,lgam)
 !           call pcdaga3(c0,phi,hpsi, lgam)
@@ -659,23 +354,13 @@
 
 	!COMPUTES ULTRASOFT-PRECONDITIONED HPSI, non kinetic-preconditioned, is the subsequent reorthogonalization necessary in the norm conserving case???: giovanni
         call calbec(1,nsp,eigr,hpsi,becm)
-        call xminus1_twin(hpsi,betae,dumm,becm,s_minus1,.false.)
-        
+!         call xminus1_twin(hpsi,betae,dumm,becm,s_minus1,.false.)
 !        call sminus1(hpsi,becm,betae)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !look if the following two lines are really needed
-        call calbec(1,nsp,eigr,hpsi,becm)
-!$$        call pc2(c0,bec,hpsi,becm)
-!$$     THIS ORTHOGONALIZED PRECONDITIONED VECTOR HPSI
+        call orthogonalize(c0,hpsi,becm,bec)
 
-
-        if(switch.or.(.not.do_orbdep)) then
-          call pc2(c0,bec,hpsi,becm, lgam)
-        else
-          call pc3nc(c0,hpsi,lgam)
-!           call pc3us(c0,bec,hpsi,becm, lgam)
-        endif
 !$$
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !       COMPUTES ULTRASOFT+KINETIC-preconditioned GI
@@ -694,22 +379,15 @@
            call xminus1_state(gi,betae,ema0bg,becm,k_minus1,.true.,ave_ene) !warning:giovanni not yet implemented
         endif
         !
-        call calbec(1,nsp,eigr,gi,becm)
-!$$        call pc2(c0,bec,gi,becm)
-!$$     !ORTHOGONALIZES GI to c0
-        if(switch.or.(.not.do_orbdep)) then
-          call pc2(c0,bec,gi,becm, lgam)
-        else
-          call pc3nc(c0,gi, lgam)
-!           call pc3us(c0,bec, gi,becm, lgam)
-        endif
-        
+        call orthogonalize(c0,gi,becm,bec)
 !$$
         call calbec(1,nsp,eigr,hpsi,bec0) 
-!  calculates gamma
-        gamma_c=CMPLX(0.d0,0.d0)
-        
-        do i=1,nbsp
+         !        
+         !  calculates gamma
+         !
+         gamma_c=CMPLX(0.d0,0.d0)
+
+         do i=1,nbsp
            IF(lgam) THEN
              do ig=1,ngw
                gamma_c=gamma_c+2.d0*DBLE(CONJG(gi(ig,i))*hpsi(ig,i))
@@ -722,7 +400,7 @@
                gamma_c=gamma_c+CONJG(gi(ig,i))*hpsi(ig,i)
              enddo
            ENDIF
-        enddo
+         enddo
         
 
        call mp_sum( gamma_c, intra_image_comm )
@@ -761,7 +439,7 @@
         !case of first iteration
 
 ! 	IF(lgam) THEN
-	  gamma_c=CMPLX(DBLE(gamma_c),0.d0)
+	gamma_c=CMPLX(DBLE(gamma_c),0.d0)
 ! 	ENDIF
 
 !$$        if(itercg==1.or.(mod(itercg,niter_cg_restart).eq.1).or.restartcg) then
@@ -781,8 +459,6 @@
 
           !find direction hi for general case 
           !calculates gamma for general case, not using Polak Ribiere
-
-
           essenew_c=gamma_c
           gamma_c=gamma_c/esse_c
           esse_c=essenew_c
@@ -796,16 +472,8 @@
 
         !project hi on conduction sub-space
 
-        call calbec(1,nsp,eigr,hi,bec0)
-!$$        call pc2(c0,bec,hi,bec0)
-!$$
-        if(switch.or.(.not.do_orbdep)) then
-           call pc2(c0,bec,hi,bec0, lgam)
-        else
-           call pc3nc(c0,hi,lgam)
-!           call pc3us(c0,bec,hi,bec0, lgam)
-        endif
-!$$
+        call orthogonalize(c0,hi,bec0,bec)
+        
         !do quadratic minimization
         !             
         !calculate derivative with respect to  lambda along direction hi
@@ -1422,51 +1090,364 @@
      ! bforceion adds the force term due to electronic berry phase
      ! only in US-case          
      !
-     deallocate(hpsi0,hpsi,gi,hi)
-     deallocate(hitmp, STAT=ierr)
-     !        
-     call deallocate_twin(s_minus1)
-     call deallocate_twin(k_minus1)
-#ifdef __DEBUG
-     !
-     !for debug and tuning purposes
-     !
-     if(ionode) close(37)
-     if(ionode) close(1037)
-#endif
-     call stop_clock('runcg_uspp')
-
-!         deallocate(bec0,becm,becdrdiag)
-
-     !begin_modified:giovanni
-     call deallocate_twin(bec0)
-     call deallocate_twin(becm)
-     call deallocate_twin(becdrdiag)
-     !
-!         do i=1,nspin
-! 	  call deallocate_twin(lambda(i))
-! 	  call deallocate_twin(lambdap(i))
-!         enddo
-     !
-     !end_modified:giovanni
-
-     deallocate(ave_ene)
-     deallocate(c2,c3)
-     IF(allocated(c2_bare)) deallocate(c2_bare)
-     IF(allocated(c3_bare)) deallocate(c3_bare)
-     IF(allocated(gi_bare)) deallocate(gi_bare)
-     !
-     IF(ionode) THEN
-        ! 
-        CALL printout_base_close( "sha" )
-        CALL printout_base_close( "ovp" )
-        !
-     ENDIF
+     call do_deallocation()
      !
      return
 
      contains
 
+     subroutine do_allocation_initialization()
+     
+         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         !
+         ! INITIALIZATION PART (variables, allocation of arrays, minimization parameters)
+         !
+         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         !
+         !!! Initialize some basic variables
+         !
+         me = me_image+1
+         lgam = gamma_only.and..not.do_wf_cmplx
+         okvan=(nvb>0)
+         !
+         deltae = 2.d0*conv_thr
+         etotnew=0.d0
+         etotold=0.d0
+         eoddnew=0.d0
+         eoddold=0.d0
+         !
+         !!! Initialize printing
+         !
+         IF( ionode ) THEN
+            !
+            iunit_spreads = printout_base_unit( "sha" )
+            CALL printout_base_open( "sha" )
+            WRITE(iunit_spreads, *) " "
+            iunit_manifold_overlap = printout_base_unit( "ovp" )
+            CALL printout_base_open( "ovp" )
+            WRITE(iunit_manifold_overlap, *) " "
+            !
+         ENDIF
+         !
+         northo_flavor=1
+         !
+         IF(northo_flavor==2) THEN
+            !
+            sic_coeff1=1.d0
+            sic_coeff2=1.d0
+            !
+         ELSE
+            !
+            sic_coeff1=0.5d0
+            sic_coeff2=0.5d0
+            !
+         ENDIF
+         !
+         if(innerloop_until<0) then
+            !
+            innerloop_until=2*maxiter
+            !
+         endif
+         !
+         allocate (faux(nbspx))
+         !
+         allocate (ave_ene(nbsp))
+         allocate (c2(ngw),c3(ngw))
+         !
+         ! Allocation of twin-type variables
+         !
+         call init_twin(bec0, lgam)
+         call allocate_twin(bec0, nhsa, nbsp, lgam)
+
+         call init_twin(becm, lgam)
+         call allocate_twin(becm, nhsa, nbsp, lgam)
+
+         call init_twin(becdrdiag, lgam)
+         call allocate_twin(becdrdiag, nhsa, nspin*nlax,3, lgam)
+
+         !
+         ! initializing variables for checking iterations and convergence
+         !
+
+         newscheme=.false.
+         firstiter=.true.
+
+         pre_state=.false.!normally is disabled
+
+         maxiter3=12
+         !$$
+         if(do_orbdep) maxiter3=10
+         !$$
+         ninner=0
+
+         ltresh    = .false.
+         itercg    = 1
+         etotold   = 1.d8
+         eoddold   = 1.d8
+         restartcg = .true.
+         passof = passop
+         ene_ok = .false.
+         !$$
+         itercgeff = 1
+         !$$
+     
+     end subroutine do_allocation_initialization
+     
+     subroutine do_deallocation()
+     
+        deallocate(hpsi0,hpsi,gi,hi)
+        deallocate(hitmp, STAT=ierr)
+        !        
+        call deallocate_twin(s_minus1)
+        call deallocate_twin(k_minus1)
+#ifdef __DEBUG
+        !
+        !for debug and tuning purposes
+        !
+        if(ionode) close(37)
+        if(ionode) close(1037)
+#endif
+        call stop_clock('runcg_uspp')
+
+   !         deallocate(bec0,becm,becdrdiag)
+
+        !begin_modified:giovanni
+        call deallocate_twin(bec0)
+        call deallocate_twin(becm)
+        call deallocate_twin(becdrdiag)
+        !
+   !         do i=1,nspin
+   !         call deallocate_twin(lambda(i))
+   !         call deallocate_twin(lambdap(i))
+   !         enddo
+        !
+        !end_modified:giovanni
+
+        deallocate(ave_ene)
+        deallocate(c2,c3)
+        IF(allocated(c2_bare)) deallocate(c2_bare)
+        IF(allocated(c3_bare)) deallocate(c3_bare)
+        IF(allocated(gi_bare)) deallocate(gi_bare)
+        !
+        IF(ionode) THEN
+           ! 
+           CALL printout_base_close( "sha" )
+           CALL printout_base_close( "ovp" )
+           !
+        ENDIF
+     
+     end subroutine do_deallocation
+     
+     subroutine do_innerloop_subroutine()
+
+      if(do_innerloop .and. innerloop_until>=itercgeff) then
+!$$$$          if(do_innerloop.and.itercg.le.20) then
+!$$$$
+         !
+         call start_clock( "inner_loop" )
+         !
+         eodd    = sum(pink(1:nbsp))
+         etot    = etot - eodd
+         etotnew = etotnew - eodd
+         ninner  = 0
+
+         if(.not.do_innerloop_cg) then
+           call nksic_rot_emin(itercg,ninner,etot,Omattot, lgam)
+         else
+           call nksic_rot_emin_cg(itercg,innerloop_init_n,ninner,etot,Omattot,deltae*innerloop_cg_ratio,lgam)
+         endif
+
+         eodd    = sum(pink(1:nbsp))
+         etot    = etot + eodd
+         etotnew = etotnew + eodd
+         eoddnew = eodd
+
+         call stop_clock( "inner_loop" )
+         !
+      endif
+      !
+      eodd = sum(pink(1:nbsp))
+      
+     end subroutine do_innerloop_subroutine
+
+     subroutine print_out_observables()
+     
+#ifdef __DEBUG
+        ! for debug and tuning purposes
+        if ( ionode ) write(37,*)itercg, itercgeff, etotnew
+        if ( ionode ) write(1037,'("iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14)')&
+            itercg, itercgeff, etotnew 
+#endif
+!         tcpu_cg_here=get_clock('nk_corr')
+        call print_clock('CP')
+!       #
+        if ( ionode ) then
+            if (itercg>2) then
+               write(stdout,'(5x,"iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14," delta_E=",E22.14)')&
+               itercg, itercgeff, etotnew, deltae
+            else
+               write(stdout,'(5x,"iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14)')&
+               itercg, itercgeff, etotnew
+            endif
+        endif
+
+        if ( ionode .and. mod(itercg,10) == 0 ) write(stdout,"()" )
+
+        IF(iprint_spreads>0) THEN
+           !
+           IF ( ionode .and. mod(itercg, iprint_spreads)==0) THEN
+              !
+              IF(nspin==1) THEN
+                 !
+                 WRITE( iunit_spreads, '(400f20.14)') wfc_spreads(:,1,2)               
+                 !
+              ELSE IF(nspin==2) THEN
+                 !
+                 WRITE( iunit_spreads, '(2(400f20.14)(3x))') wfc_spreads(:,1,2), wfc_spreads(:,2,2)
+                 !
+              ENDIF
+              !
+           ENDIF
+           !
+        ENDIF
+
+        IF(iprint_manifold_overlap>0) THEN
+           !
+           IF(mod(itercg, iprint_manifold_overlap)==0) THEN
+              !
+              CALL compute_manifold_overlap( cstart, c0, becstart, bec, ngwx, nbspx, manifold_overlap ) !added:giovanni
+              !
+              IF ( ionode ) THEN
+                 !
+                 IF(nspin==1) THEN
+                    !
+                    WRITE( iunit_manifold_overlap, '(2f20.14)') manifold_overlap(1)
+                    !
+                 ELSE IF(nspin==2) THEN
+                    !
+                    WRITE( iunit_manifold_overlap, '(2(2f20.14)(3x))') manifold_overlap(1), manifold_overlap(2)
+                    !
+                 ENDIF
+                 !
+              ENDIF
+              !
+           ENDIF
+           !
+        ENDIF
+!$$
+     
+     end subroutine print_out_observables
+
+     subroutine check_convergence_cg()
+        !
+        deltae=abs(etotnew-etotold)
+        !
+        if(do_orbdep) then
+           deltae=deltae+abs(eoddnew-eoddold)
+        endif
+        !
+        if( deltae < conv_thr ) then
+           numok=numok+1
+        else 
+           numok=0
+        endif
+        !
+        if( numok >= 4 ) ltresh=.true.
+        !
+        if(ltresh.or.itercg==maxiter-1) icompute_spread=.true.
+        !
+        etotold=etotnew
+        eoddold=eoddnew
+        ene0=etot
+        !
+     end subroutine check_convergence_cg
+
+     subroutine compute_hpsi()
+     
+             ! faux takes into account spin multiplicity.
+        !
+        faux(1:nbspx)=0.d0
+        faux(1:nbsp) = max(f_cutoff,f(1:nbsp)) * DBLE( nspin ) / 2.0d0
+        !
+        do i=1,nbsp,2
+!$$  FIRST CALL TO DFORCE
+          CALL start_clock( 'dforce1' )
+!$$          call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin,f,n,nspin)
+          call dforce( i, bec, betae, c0,c2,c3,rhos, nnrsx, ispin, faux, nbsp, nspin)
+          !
+          CALL stop_clock( 'dforce1' )
+!$$
+
+          IF ( lda_plus_u ) THEN
+               !
+               !
+               c2(:) = c2(:) - vupsi(:,i) * faux(i)
+               if( i+1 <= nbsp ) c3(:) = c3(:) - vupsi(:,i+1) * faux(i+1)
+               !               
+               !
+           ENDIF
+
+!$$
+          if ( do_orbdep ) then
+              !
+              ! faux takes into account spin multiplicity.
+              !
+              CALL nksic_eforce( i, nbsp, nbspx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi, lgam )
+              !
+              !
+              c2(:) = c2(:) - vsicpsi(:,1) * faux(i)
+              !
+              if( i+1 <= nbsp )   c3(:) = c3(:) - vsicpsi(:,2) * faux(i+1)
+              !
+              
+              !
+          endif
+!$$
+          if ( do_hf ) then
+              !
+              c2(:) = c2(:) - vxxpsi(:,i) * faux(i)
+              !
+              if( i+1 <= nbsp )   c3(:) = c3(:) - vxxpsi(:,i+1) * faux(i+1)
+              !
+          endif
+
+
+          hpsi(1:ngw,  i)=c2(1:ngw)
+          if(i+1 <= nbsp) then
+              hpsi(1:ngw,i+1)=c3(1:ngw)
+          endif
+          !
+          IF(lgam) THEN
+            if (ng0.eq.2) then
+                hpsi(1,  i)=CMPLX(DBLE(hpsi(1,  i)), 0.d0)
+                if(i+1 <= nbsp) then
+                    hpsi(1,i+1)=CMPLX(DBLE(hpsi(1,i+1)), 0.d0)
+                endif
+            endif
+          ENDIF
+          !
+        enddo
+     
+     end subroutine compute_hpsi
+
+     subroutine orthogonalize(wfc0,wfc,bec0,becwfc)
+     
+        type(twin_matrix) :: becwfc, bec0
+        complex(DP) :: wfc(:,:), wfc0(:,:)
+        
+        call calbec(1,nsp,eigr,wfc,bec0)
+!$$        call pc2(c0,bec,hi,bec0)
+!$$
+        if(switch.or.(.not.do_orbdep)) then
+           call pc2(wfc0,becwfc,wfc,bec0, lgam)
+        else
+!            call pc2(wfc0,becwfc,wfc,bec0, lgam)
+           call pc3nc(wfc0,wfc,lgam)
+!           call pc3us(c0,bec,hi,bec0, lgam)
+        endif
+     
+     end subroutine orthogonalize
+                         
      subroutine compute_lambda_bare()
      
         hitmp(:,:) = c0(:,:)

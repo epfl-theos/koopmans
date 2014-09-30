@@ -7744,7 +7744,7 @@ SUBROUTINE compute_complexification_index(ngw, nnrx, nnrsx, nbsp, nbspx, nspin, 
       !
       temp_array=CMPLX(0.d0,0.d0)
       !
-      if ( nnrsx == nnrx ) then
+      if ( nnrsx == nnrx ) then ! warning this is a bad way to say we are using ultrasoft
          !
          allocate( psi1(nnrx), psi2(nnrx) )
          !
@@ -7773,6 +7773,8 @@ SUBROUTINE compute_complexification_index(ngw, nnrx, nnrsx, nbsp, nbspx, nspin, 
          enddo
          !
       else !if using uspp
+         !
+         allocate( psi1(nnrx), psi2(nnrx) )
          !
          ! for the moment: do nothing         
          !

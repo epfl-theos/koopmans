@@ -2036,9 +2036,11 @@ subroutine pc2(a,beca,b,becb, lgam)
       end subroutine pc4nc_non_ortho
       
      subroutine set_x_minus1_real(betae,m_minus1,ema0bg,use_ema)
-
-! this function calculates the factors for the inverse of the US K  matrix
-! it takes care of the preconditioning
+     !
+     ! this function calculates the factors for the inverse of the US K  matrix
+     ! it takes care of the preconditioning
+     ! see paper by Hasnip and Pickard, Computer Physics Communications 174 (2006) 24–29
+     !
 
       use kinds, only: dp
       use ions_base, only: na, nsp
@@ -2093,8 +2095,8 @@ subroutine pc2(a,beca,b,becb, lgam)
          enddo
       enddo
 
-!construct b matrix
-! m_minus1 used to be b matrix
+!construct C matrix
+! m_minus1 used to be C matrix
       m_minus1(:,:) = 0.d0
       do is=1,nvb
          do ia=1,na(is)
@@ -2106,19 +2108,19 @@ subroutine pc2(a,beca,b,becb, lgam)
                         jnl=ish(js)+(jv-1)*na(js)+ja
                         sca=0.d0
                         if (use_ema) then
-                           ! k_minus case
-                        do  ig=1,ngw           !loop on g vectors
-                           sca=sca+ema0bg(ig)*DBLE(CONJG(betae(ig,inl))*betae(ig,jnl))
-                        enddo
-                        sca = sca*2.0d0  !2. for real weavefunctions
-                        if (ng0.eq.2) sca = sca - ema0bg(1)*DBLE(CONJG(betae(1,inl))*betae(1,jnl))
-                        else
-                           ! s_minus case
-                        do  ig=1,ngw           !loop on g vectors
-                           sca=sca+DBLE(CONJG(betae(ig,inl))*betae(ig,jnl))
-                        enddo
-                        sca = sca*2.0d0  !2. for real weavefunctions
-                        if (ng0.eq.2) sca = sca - DBLE(CONJG(betae(1,inl))*betae(1,jnl))
+                              ! k_minus case
+                           do  ig=1,ngw           !loop on g vectors
+                              sca=sca+ema0bg(ig)*DBLE(CONJG(betae(ig,inl))*betae(ig,jnl))
+                           enddo
+                           sca = sca*2.0d0  !2. for real weavefunctions
+                           if (ng0.eq.2) sca = sca - ema0bg(1)*DBLE(CONJG(betae(1,inl))*betae(1,jnl))
+                           else
+                              ! s_minus case
+                           do  ig=1,ngw           !loop on g vectors
+                              sca=sca+DBLE(CONJG(betae(ig,inl))*betae(ig,jnl))
+                           enddo
+                           sca = sca*2.0d0  !2. for real weavefunctions
+                           if (ng0.eq.2) sca = sca - DBLE(CONJG(betae(1,inl))*betae(1,jnl))
                         endif
                         m_minus1(inl,jnl)=sca
                      enddo
@@ -2129,7 +2131,7 @@ subroutine pc2(a,beca,b,becb, lgam)
       enddo
       call mp_sum( m_minus1, intra_image_comm )
 
-!calculate -(1+QB)**(-1) * Q
+!calculate -(1+QC)**(-1) * Q
       CALL DGEMM('N','N',nhsavb,nhsavb,nhsavb,1.0d0,q_matrix,nhsavb,m_minus1,nhsavb,0.0d0,c_matrix,nhsavb)
 
       do i=1,nhsavb
@@ -2151,12 +2153,18 @@ subroutine pc2(a,beca,b,becb, lgam)
       deallocate(ipiv,work)
       call stop_clock('set_x_minus1')
       return
+      
     end subroutine set_x_minus1_real
 
      subroutine set_x_minus1_twin(betae,m_minus1,ema0bg,use_ema)
 
-! this function calculates the factors for the inverse of the US K  matrix
-! it takes care of the preconditioning
+     !
+     ! this function calculates the factors for the inverse of the US K  matrix
+     ! it takes care of the preconditioning
+     ! see paper by Hasnip and Pickard, Computer Physics Communications 174 (2006) 24–29
+     !
+     ! this subroutine stores in m_mins1 the matrix R of the above paper
+     !
 
       use kinds, only: dp
       use ions_base, only: na, nsp
@@ -2252,18 +2260,26 @@ subroutine pc2(a,beca,b,becb, lgam)
                         jnl=ish(js)+(jv-1)*na(js)+ja
                         sca=CMPLX(0.d0,0.d0)
                         if (use_ema) then
-			    ! k_minus case
-			  IF(.not.m_minus1%iscmplx) THEN
-			    do  ig=1,ngw           !loop on g vectors
-			      sca=sca+ema0bg(ig)*DBLE(CONJG(betae(ig,inl))*betae(ig,jnl))
-			    enddo
-			    sca = sca*2.0d0  !2. for real weavefunctions
-			    if (ng0.eq.2) sca = sca - ema0bg(1)*DBLE(CONJG(betae(1,inl))*betae(1,jnl))
-			  ELSE
-			    do  ig=1,ngw           !loop on g vectors
-			      sca=sca+ema0bg(ig)*CONJG(betae(ig,inl))*(betae(ig,jnl))
-			    enddo
-			  ENDIF
+                           !k_minus case
+                           IF(.not.m_minus1%iscmplx) THEN
+                              !
+                              do  ig=1,ngw           !loop on g vectors
+                                 sca=sca+ema0bg(ig)*DBLE(CONJG(betae(ig,inl))*betae(ig,jnl))
+                              enddo
+                              !
+                              sca = sca*2.0d0  !2. for real weavefunctions
+                              !
+                              if (ng0.eq.2) sca = sca - ema0bg(1)*DBLE(CONJG(betae(1,inl))*betae(1,jnl))
+                              !
+                           ELSE
+                              !
+                              do  ig=1,ngw           !loop on g vectors
+                                 !
+                                 sca=sca+ema0bg(ig)*CONJG(betae(ig,inl))*(betae(ig,jnl))
+                                 !
+                              enddo
+                              !
+                           ENDIF
                         else
                            ! s_minus case
 			  IF(.not.m_minus1%iscmplx) THEN
@@ -2278,6 +2294,7 @@ subroutine pc2(a,beca,b,becb, lgam)
 			    enddo
                           ENDIF
                         endif
+                        !
                         call set_twin(m_minus1,inl,jnl,sca)
 !                         write(6,*) "sca", sca, ema0bg(1), use_ema, betae(3,1)
                      enddo
@@ -2754,10 +2771,16 @@ subroutine pc2(a,beca,b,becb, lgam)
       return
      end subroutine xminus1_twin_new     
      
-      SUBROUTINE emass_precond_tpa( ema0bg, tpiba2, emaec )
+     SUBROUTINE emass_precond_tpa( ema0bg, tpiba2, emaec )
+       !
+       ! kinetic energy preconditioning is computed here:
+       ! (1+T')^{-1}
+       !
        use kinds, ONLY : dp
        use gvecw, ONLY : ggp,ngw
+       
        IMPLICIT NONE
+       
        REAL(DP), INTENT(OUT) :: ema0bg(ngw)
        REAL(DP), INTENT(IN) ::  tpiba2, emaec
        INTEGER :: i
@@ -2766,13 +2789,16 @@ subroutine pc2(a,beca,b,becb, lgam)
 
        call start_clock('emass_p_tpa')
        do i = 1, ngw
-
+          !
           x=0.5d0*tpiba2*ggp(i)/emaec
           ema0bg(i) = 1.d0/(1.d0+(16.d0*x**4)/(27.d0+18.d0*x+12.d0*x**2+8.d0*x**3))
+          !
        end do
        call stop_clock('emass_p_tpa')
-      RETURN
-      END SUBROUTINE emass_precond_tpa
+       
+     RETURN
+     
+     END SUBROUTINE emass_precond_tpa
 
       subroutine ave_kin( c, ngwx, n, ene_ave )
 !this subroutine calculates the average kinetic energy of
