@@ -292,7 +292,6 @@ MODULE cp_main_variables
       ! AF: this avoids problems when nhsa, i.e. nkb, is zero
       !nhsa_l = MAX( nhsa, 1) 
       nhsa_l = nhsa
-      write(6,*) nhsa_l, "is it zero?"
       !
       call init_twin(becdr, lgam)
       call allocate_twin(becdr, nhsa_l, nspin*nlax, 3, lgam) !added:giovanni

@@ -99,6 +99,7 @@ SUBROUTINE read_upf_v2(u, upf, grid, ierr)             !
       CALL iotk_scan_dat(u, 'PP_LOCAL', upf%vloc)
    ENDIF
    ! Read nonlocal components: projectors, augmentation, hamiltonian elements
+   write(6,*) "read_nonlocal" !!!ddebug
    CALL read_nonlocal(u, upf)
    ! Read initial pseudo wavefunctions
    ! (usually only wfcs with occupancy > 0)
@@ -304,6 +305,7 @@ SUBROUTINE read_upf_v2(u, upf, grid, ierr)             !
       !
       ALLOCATE( upf%rinner( upf%nqlc ) )
       ALLOCATE( upf%qqq   ( upf%nbeta, upf%nbeta ) )
+      write(6,*) "q_with_l", upf%q_with_l, upf%mesh, upf%nbeta
       IF ( upf%q_with_l ) THEN
         ALLOCATE( upf%qfuncl ( upf%mesh, upf%nbeta*(upf%nbeta+1)/2, 0:2*upf%lmax ) )
         upf%qfuncl=0._dp

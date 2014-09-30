@@ -259,6 +259,55 @@ SUBROUTINE print_clock( label )
   !
 END SUBROUTINE print_clock
 !
+! !----------------------------------------------------------------------------
+! SUBROUTINE print_clock_to_myfile( label )
+!   !----------------------------------------------------------------------------
+!   !
+!   USE kinds,     ONLY : DP
+!   USE io_global, ONLY : stdout
+!   USE mytime,    ONLY : nclock, clock_label
+!   !
+!   IMPLICIT NONE
+!   !
+!   CHARACTER(LEN=*) :: label
+!   !
+!   CHARACTER(LEN=12) :: label_
+!   INTEGER          :: n
+!   !
+!   open(unit=40,file='aida.times',access = 'append')
+!   IF ( label == ' ' ) THEN
+!      !
+!      WRITE( stdout, * )
+!      !
+!      DO n = 1, nclock
+!         !
+!         CALL print_this_clock( n )
+!         !
+!      END DO
+!      !
+!   ELSE
+!      !
+!      ! ... prevent trouble if label is longer than 12 characters 
+!      !
+!      label_ = TRIM ( label ) 
+!      !
+!      DO n = 1, nclock
+!         !
+!         IF ( clock_label(n) == label_ ) THEN
+!            !
+!            CALL print_this_clock( n )
+!            !
+!            EXIT
+!            !
+!         END IF
+!         !
+!      END DO
+!      !
+!   END IF
+!   !
+!   RETURN
+!   !
+! END SUBROUTINE print_clock_to_myfile
 !----------------------------------------------------------------------------
 SUBROUTINE print_this_clock( n )
   !----------------------------------------------------------------------------

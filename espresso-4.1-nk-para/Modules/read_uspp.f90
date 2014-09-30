@@ -290,6 +290,8 @@ CONTAINS
     ALLOCATE ( upf%lll(upf%nbeta) )
     ALLOCATE ( upf%beta(upf%mesh,upf%nbeta) )
     ALLOCATE ( upf%dion(upf%nbeta,upf%nbeta), upf%qqq(upf%nbeta,upf%nbeta) )
+!     write(6,*) "allocating qfunc", upf%mesh
+!     stop
     ALLOCATE ( upf%qfunc(upf%mesh,upf%nbeta*(upf%nbeta+1)/2) )
     ALLOCATE ( upf%qfcoef(upf%nqf, upf%nqlc, upf%nbeta, upf%nbeta) )
     ALLOCATE ( eee(upf%nbeta), ddd(upf%nbeta,upf%nbeta) )
