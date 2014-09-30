@@ -425,31 +425,13 @@
               !
           endif
 
-          if (.not.tens) then
-              etotnew=etot
-          else
-              etotnew=etot+entropy
-          end if
-
-          if(tefield  ) then!just in this case calculates elfield stuff at zeo field-->to be bettered
-            
-             call berry_energy( enb, enbi, bec%rvec, c0(:,:), fion )
-             etot=etot+enb+enbi
-          endif
-          if(tefield2  ) then!just in this case calculates elfield stuff at zeo field-->to be bettered
-
-             call berry_energy2( enb, enbi, bec%rvec, c0(:,:), fion )
-             etot=etot+enb+enbi
-          endif
+          etotnew=etot
 
         else
 
           etot=enever
-          if(.not.tens) then 
-             etotnew=etot
-          else
-             etotnew=etot+entropy
-          endif
+          
+          etotnew=etot
           ene_ok=.false.
 
         end if ENERGY_CHECK
@@ -609,17 +591,10 @@
 
           IF ( lda_plus_u ) THEN
                !
-               IF ( tens .OR. tsmear ) THEN
-                   !
-                   c2(:) = c2(:) - vupsi(:,i) 
-                   if( i+1 <= nbsp ) c3(:) = c3(:) - vupsi(:,i+1) 
-                   !
-               ELSE
-                   !
-                   c2(:) = c2(:) - vupsi(:,i) * faux(i)
-                   if( i+1 <= nbsp ) c3(:) = c3(:) - vupsi(:,i+1) * faux(i+1)
-                   !
-               ENDIF
+               !
+               c2(:) = c2(:) - vupsi(:,i) * faux(i)
+               if( i+1 <= nbsp ) c3(:) = c3(:) - vupsi(:,i+1) * faux(i+1)
+               !               
                !
            ENDIF
 
@@ -933,8 +908,6 @@
         endif
 
         ene1=etot
-        if( tens .and. newscheme) ene1=ene1+entropy
-              
             
         !find the minimum
 
@@ -1155,7 +1128,6 @@
             !
             enever=etot
             !
-            if( tens .and. newscheme) enever=enever+entropy
             !
           enddo
 !$$
@@ -1289,15 +1261,8 @@
          !
      endif
 
-
-     if(tens) call calcmt_twin( f, z0t, fmat0, .false. )
-
      call newd(vpot,irb,eigrb,rhovan,fion)
-     if (.not.tens) then
-        if (tfor .or. tprnfor) call nlfq(c0,eigr,bec,becdr,fion, lgam)
-     else
-        if (tfor .or. tprnfor) call nlfq(c0diag,eigr,becdiag,becdrdiag,fion)
-     endif
+     if (tfor .or. tprnfor) call nlfq(c0,eigr,bec,becdr,fion, lgam)
   
      call prefor(eigr,betae)
 !$$
@@ -1325,35 +1290,6 @@
          !
          CALL start_clock( 'dforce2' )
 !$$
-         if(tefield.and.(evalue .ne. 0.d0)) then
-
-            call dforceb &
-               (c0, i, betae, ipolp, bec ,ctabin(1,1,ipolp), gqq, gqqm, qmat, deeq, df)
-            do ig=1,ngw
-              c2(ig)=c2(ig)+evalue*df(ig)
-            enddo
-            call dforceb &
-               (c0, i+1, betae, ipolp, bec ,ctabin(1,1,ipolp), gqq, gqqm, qmat, deeq, df)
-            do ig=1,ngw
-              c3(ig)=c3(ig)+evalue*df(ig)
-            enddo
-            !
-         endif
-
-         if(tefield2.and.(evalue2 .ne. 0.d0)) then
-
-            call dforceb &
-               (c0, i, betae, ipolp2, bec ,ctabin2(1,1,ipolp2), gqq2, gqqm2, qmat2, deeq, df)
-            do ig=1,ngw
-              c2(ig)=c2(ig)+evalue2*df(ig)
-            enddo
-            call dforceb &
-               (c0, i+1, betae, ipolp2, bec ,ctabin2(1,1,ipolp2), gqq2, gqqm2, qmat2, deeq, df)
-            do ig=1,ngw
-              c3(ig)=c3(ig)+evalue2*df(ig)
-            enddo
-
-         endif
 
          IF(do_bare_eigs) THEN
             !
@@ -1378,17 +1314,10 @@
 !$$
           IF ( lda_plus_u ) THEN
                !
-               IF ( tens .OR. tsmear ) THEN
-                   !
-                   c2(:) = c2(:) - vupsi(:,i) 
-                   if( i+1 <= nbsp ) c3(:) = c3(:) - vupsi(:,i+1) 
-                   !
-               ELSE
-                   !
-                   c2(:) = c2(:) - vupsi(:,i) * faux(i)
-                   if( i+1 <= nbsp ) c3(:) = c3(:) - vupsi(:,i+1) * faux(i+1)
-                   !
-               ENDIF
+               !
+               c2(:) = c2(:) - vupsi(:,i) * faux(i)
+               if( i+1 <= nbsp ) c3(:) = c3(:) - vupsi(:,i+1) * faux(i+1)
+               !
                !
            ENDIF
 
@@ -1488,77 +1417,11 @@
      ELSE
         DEALLOCATE( lambda_repl_c )
      ENDIF
-  
-     if ( tens ) then
-        !
-        ! in the ensemble case matrix labda must be multiplied with f
-        IF(.not.lambda(1)%iscmplx) THEN
-           ALLOCATE( lambda_dist( nlam, nlam ) )
-        ELSE
-           ALLOCATE( lambda_dist_c( nlam, nlam ) )
-        ENDIF
-
-        do iss = 1, nspin
-           !
-           nss    = nupdwn( iss )
-           !
-           call set_twin(lambdap(iss), CMPLX(0.d0,0.d0)) !modified:giovanni
-           !
-           IF(.not.lambdap(iss)%iscmplx) THEN
-              CALL cyc2blk_redist( nss, fmat0(iss)%rvec(1,1), nrlx, SIZE(fmat0(iss)%rvec,2), lambda_dist, nlam, nlam, descla(1,iss) )
-           ELSE
-              CALL cyc2blk_zredist( nss, fmat0(iss)%cvec(1,1), nrlx, SIZE(fmat0(iss)%cvec,2), lambda_dist_c, nlam, nlam, descla(1,iss) )
-           ENDIF
-           !
-           ! Perform lambdap = lambda * fmat0
-           !
-           IF(.not. lambdap(iss)%iscmplx) then !modified:giovanni
-              CALL sqr_mm_cannon( 'N', 'N', nss, 1.0d0, lambda(iss)%rvec(1,1), nlam, lambda_dist, nlam, &
-                                  0.0d0, lambdap(iss)%rvec(1,1), nlam, descla(1,iss) )
-           ELSE
-              CALL sqr_zmm_cannon( 'N', 'N', nss, (1.0d0,0.d0), lambda(iss)%cvec(1,1), nlam, lambda_dist_c, nlam, &
-                                  (0.0d0,0.d0), lambdap(iss)%cvec(1,1), nlam, descla(1,iss) ) !warning:giovanni C or N?
-           ENDIF
-           !
-           !begin_modified:giovanni
-           IF(.not.lambdap(iss)%iscmplx) THEN
-             lambda_dist(:,:) = lambda(iss)%rvec(:,:)
-           ELSE
-             lambda_dist_c(:,:) = lambda(iss)%cvec(:,:)
-           ENDIF
-
-           call copy_twin(lambda(iss), lambdap(iss))
-
-           IF(.not.lambdap(iss)%iscmplx) THEN
-              lambdap(iss)%rvec(:,:) = lambda_dist(:,:)
-           ELSE
-              lambdap(iss)%cvec(:,:) = lambda_dist_c(:,:)
-           ENDIF
-           !end_modified:giovanni
-           !
-        end do
-        !
-        IF(.not.lambdap(iss)%iscmplx) THEN
-           DEALLOCATE( lambda_dist )
-        ELSE
-          DEALLOCATE( lambda_dist_c )
-        ENDIF
-        !
-        call nlsm2(ngw,nhsa,nbsp,nspin,eigr,c0(:,:),becdr, lgam)
-        !
-     endif
      !
      call nlfl_twin(bec,becdr,lambda,fion, lgam)
      ! bforceion adds the force term due to electronic berry phase
-     ! only in US-case
-          
-     if( tefield.and.(evalue .ne. 0.d0) ) then
-        call bforceion(fion,tfor.or.tprnfor,ipolp, qmat,bec,becdr,gqq,evalue)
-     endif
+     ! only in US-case          
      !
-     if( tefield2.and.(evalue2 .ne. 0.d0) ) then
-        call bforceion(fion,tfor.or.tprnfor,ipolp2, qmat2,bec,becdr,gqq2,evalue2)
-     endif
      deallocate(hpsi0,hpsi,gi,hi)
      deallocate(hitmp, STAT=ierr)
      !        
@@ -1606,7 +1469,6 @@
 
      subroutine compute_lambda_bare()
      
-
         hitmp(:,:) = c0(:,:)
 
         do is = 1, nspin
