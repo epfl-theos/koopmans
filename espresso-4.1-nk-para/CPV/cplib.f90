@@ -1994,10 +1994,10 @@ END FUNCTION
       !
       !     on output: bec(i) is recalculated
       !
-      USE uspp,           ONLY : nkb, nhsavb=>nkbus
-      USE gvecw,          ONLY: ngw
-      USE kinds,          ONLY: DP
-      USE reciprocal_vectors, ONLY: gstart
+      USE uspp,                 ONLY : nkb, nhsavb=>nkbus
+      USE gvecw,                ONLY : ngw
+      USE kinds,                ONLY : DP
+      USE reciprocal_vectors,   ONLY : gstart
       USE twin_types
 !
       IMPLICIT NONE
@@ -2008,29 +2008,29 @@ END FUNCTION
       COMPLEX(DP)    ::  c( 1, ngwx )
       type(twin_matrix) :: becc !( nkbx ),
       INTEGER     :: ig, inl
-      REAL(DP), ALLOCATABLE :: temp(:)
+      REAL(DP),    ALLOCATABLE :: temp(:)
       COMPLEX(DP), ALLOCATABLE :: temp_c(:) 
       !
       !
       !     calculate becc=<c|beta>
       !
       IF(.not.becc%iscmplx) THEN
-	ALLOCATE( temp( ngw ) )
-	DO inl=1,nhsavb
-	  DO ig=1,ngw
-	      temp(ig)=DBLE(CONJG(c(1,ig))* betae(ig,inl))
-	  END DO
-	  becc%rvec(inl,l2_bec)=2.d0*SUM(temp)
-	  IF (gstart == 2) becc%rvec(inl, l2_bec)= becc%rvec(inl, l2_bec)-temp(1)
-	END DO
-	DEALLOCATE( temp )
+        ALLOCATE( temp( ngw ) )
+        DO inl=1,nhsavb
+          DO ig=1,ngw
+              temp(ig)=DBLE(CONJG(c(1,ig))* betae(ig,inl))
+          END DO
+          becc%rvec(inl,l2_bec)=2.d0*SUM(temp)
+          IF (gstart == 2) becc%rvec(inl, l2_bec)= becc%rvec(inl, l2_bec)-temp(1)
+        END DO
+        DEALLOCATE( temp )
       ELSE
- 	ALLOCATE( temp_c( ngw ) )
-	DO inl=1,nhsavb
-	  DO ig=1,ngw
-	      temp_c(ig)=CONJG(c(1,ig))*betae(ig,inl)
-	  END DO
-	  becc%cvec(inl,l2_bec)=SUM(temp_c)
+        ALLOCATE( temp_c( ngw ) )
+        DO inl=1,nhsavb
+          DO ig=1,ngw
+              temp_c(ig)=CONJG(c(1,ig))*betae(ig,inl)
+          END DO
+          becc%cvec(inl,l2_bec)=SUM(temp_c)
         END DO
         DEALLOCATE( temp_c )
       ENDIF

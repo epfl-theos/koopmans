@@ -246,23 +246,25 @@
 !$omp end parallel do
                igno = igno + ngw
             ELSE
-!$omp parallel do private( fp, fm )
                IF(lgam) THEN 
+!$omp parallel do private( fp, fm )
 		DO ig=1,ngw
 		    fp= psi(nps(ig)) + psi(nms(ig))
 		    fm= psi(nps(ig)) - psi(nms(ig))
 		    df(ig)= fi*(tpiba2*ggp(ig)* c(ig,idx+i-1)+CMPLX(DBLE(fp), AIMAG(fm)))
 		    da(ig)=fip*(tpiba2*ggp(ig)* c(ig,idx+i  )+CMPLX(AIMAG(fp),-DBLE(fm)))
 		END DO
+!$omp end parallel do
 	       ELSE
+!$omp parallel do private( fp, fm )
 		DO ig=1,ngw
-		    fp= psi(nps(ig)) !+ psi(nms(ig))
+		    fp= psi(nps(ig))  !+ psi(nms(ig))
 		    fm= psi2(nps(ig)) !- psi(nms(ig))
 		    df(ig)= fi*(tpiba2*ggp(ig)* c(ig,idx+i-1)+2.d0*fp)
 		    da(ig)=fip*(tpiba2*ggp(ig)* c(ig,idx+i  )+2.d0*fm)
 		END DO
-               ENDIF
 !$omp end parallel do
+               ENDIF
             END IF
          END IF
 

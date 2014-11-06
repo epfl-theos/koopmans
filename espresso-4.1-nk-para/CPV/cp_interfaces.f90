@@ -1918,86 +1918,86 @@
    END INTERFACE
 
    INTERFACE nlsm1
-	SUBROUTINE nlsm1_real ( n, nspmn, nspmx, eigr, c, becp )
+        SUBROUTINE nlsm1_real ( n, nspmn, nspmx, eigr, c, becp )
       !-----------------------------------------------------------------------
-	    USE kinds,      ONLY : DP
-	    !
-	    USE reciprocal_vectors, ONLY : gstart
+            USE kinds,      ONLY : DP
+            !
+            USE reciprocal_vectors, ONLY : gstart
       !
-	    implicit none
+            implicit none
 
-	    integer,   intent(in)  :: n, nspmn, nspmx
-	    complex(DP), intent(in)  :: eigr( :, : ), c( :, : )
+            integer,   intent(in)  :: n, nspmn, nspmx
+            complex(DP), intent(in)  :: eigr( :, : ), c( :, : )
 	    real(DP), intent(out) :: becp( :, : )
         END SUBROUTINE
       !-----------------------------------------------------------------------
-	SUBROUTINE nlsm1_twin(n, nspmn, nspmx, eigr, c, becp, lbound_bec, lgam2)!added:giovanni lgam
+        SUBROUTINE nlsm1_twin(n, nspmn, nspmx, eigr, c, becp, lbound_bec, lgam2)!added:giovanni lgam
 
-	    USE kinds,      ONLY : DP
-	    USE twin_types !added:giovanni
-	    USE ions_base,  only : na, nat
-	    USE gvecw,      only : ngw
-	    !
-	    USE reciprocal_vectors, ONLY : gstart, gx !added:giovanni:debug gx
+            USE kinds,      ONLY : DP
+            USE twin_types !added:giovanni
+            USE ions_base,  only : na, nat
+            USE gvecw,      only : ngw
+            !
+            USE reciprocal_vectors, ONLY : gstart, gx !added:giovanni:debug gx
       !
-	    implicit none
+            implicit none
 
-	    integer,   intent(in)  :: n, nspmn, nspmx, lbound_bec
-	    complex(DP), intent(in) :: eigr(ngw,nat), c(ngw, n )!modified:giovanni
+            integer,   intent(in)  :: n, nspmn, nspmx, lbound_bec
+            complex(DP), intent(in) :: eigr(ngw,nat), c(ngw, n )!modified:giovanni
       !       real(DP), intent(out) :: becp
-	    type(twin_matrix) :: becp!( nkb, n ) !modified:giovanni
+            type(twin_matrix) :: becp!( nkb, n ) !modified:giovanni
 	    logical :: lgam2!added:giovanni
-	END SUBROUTINE
+        END SUBROUTINE
    END INTERFACE
 
    INTERFACE nlsm1_dist
-	SUBROUTINE nlsm1_dist_real ( n, nspmn, nspmx, eigr, c, becp, nlax, nspin, desc )
+        SUBROUTINE nlsm1_dist_real ( n, nspmn, nspmx, eigr, c, becp, nlax, nspin, desc )
 
-	    USE kinds,      ONLY : DP
+            USE kinds,      ONLY : DP
 ! 	    USE mp,         ONLY : mp_sum
 ! 	    USE mp_global,  ONLY : nproc_image, intra_image_comm
-	    USE ions_base,  only : na, nat
-	    USE gvecw,      only : ngw
-	    USE uspp,       only : nkb, nhtol, beta
+            USE ions_base,  only : na, nat
+            USE gvecw,      only : ngw
+            USE uspp,       only : nkb, nhtol, beta
 ! 	    USE cvan,       only : ish
 ! 	    USE uspp_param, only : nh
-	    !
+            !
 ! 	    USE reciprocal_vectors, ONLY : gstart
-	    USE descriptors,        ONLY : descla_siz_ , lambda_node_ , nlar_ , ilar_ , la_n_
+            USE descriptors,        ONLY : descla_siz_ , lambda_node_ , nlar_ , ilar_ , la_n_
       !
-	    implicit none
+            implicit none
 
-	    integer,  intent(in)  :: n, nspmn, nspmx, nlax, nspin
-	    integer,  intent(in)  :: desc( descla_siz_ , nspin )
-	    complex(DP), intent(in)  :: eigr( :, :), c( :, : )
+            integer,  intent(in)  :: n, nspmn, nspmx, nlax, nspin
+            integer,  intent(in)  :: desc( descla_siz_ , nspin )
+            complex(DP), intent(in)  :: eigr( :, :), c( :, : )
 	    real(DP), intent(out) :: becp( nkb, nlax*nspin )
-	END SUBROUTINE
-	subroutine nlsm1_dist_twin ( n, nspmn, nspmx, eigr, c, becp, nlax, nspin, desc, lgam2 )
+        END SUBROUTINE
+        subroutine nlsm1_dist_twin ( n, nspmn, nspmx, eigr, c, becp, nlax, nspin, desc, lgam2 )
 
-	    USE kinds,      ONLY : DP
+            USE kinds,      ONLY : DP
 ! 	    USE mp,         ONLY : mp_sum
 ! 	    USE mp_global,  ONLY : nproc_image, intra_image_comm
-	    USE ions_base,  only : na, nat
-	    USE gvecw,      only : ngw
-	    USE uspp,       only : nkb, nhtol, beta
-	    USE ions_base,  only : na, nat
-	    USE gvecw,      only : ngw
+            USE ions_base,  only : na, nat
+            USE gvecw,      only : ngw
+            USE uspp,       only : nkb, nhtol, beta
+            USE ions_base,  only : na, nat
+            USE gvecw,      only : ngw
 ! 	    USE cvan,       only : ish
 ! 	    USE uspp_param, only : nh
 ! 	    !
 ! 	    USE reciprocal_vectors, ONLY : gstart
-	    USE descriptors,        ONLY : descla_siz_ , lambda_node_ , nlar_ , ilar_ , la_n_
-	    USE twin_types
+            USE descriptors,        ONLY : descla_siz_ , lambda_node_ , nlar_ , ilar_ , la_n_
+            USE twin_types
       !
-	    implicit none
+            implicit none
 
-	    integer,  intent(in)  :: n, nspmn, nspmx, nlax, nspin
-	    integer,  intent(in)  :: desc( descla_siz_ , nspin )
-	    complex(DP), intent(in)  :: eigr( ngw, nat ), c( ngw, n )
+            integer,  intent(in)  :: n, nspmn, nspmx, nlax, nspin
+            integer,  intent(in)  :: desc( descla_siz_ , nspin )
+            complex(DP), intent(in)  :: eigr( ngw, nat ), c( ngw, n )
 ! 	    complex(DP), intent(in)  :: eigr( :, : ), c( :, : )
-	    type(twin_matrix), intent(out) :: becp !( nkb, nlax*nspin )
+            type(twin_matrix), intent(out) :: becp !( nkb, nlax*nspin )
 	    logical, intent(IN) :: lgam2
-	END SUBROUTINE
+        END SUBROUTINE
    END INTERFACE
 
 
@@ -2005,26 +2005,26 @@
       SUBROUTINE grabec_real( becc, nkbx, betae, c, ngwx )
 ! 	USE uspp,           ONLY : nkb, nhsavb=>nkbus
 ! 	USE gvecw,          ONLY: ngw
-	USE kinds,          ONLY: DP
+        USE kinds,          ONLY: DP
 ! 	USE reciprocal_vectors, ONLY: gstart
   !
-	IMPLICIT NONE
-  !
-	INTEGER, INTENT(IN) :: nkbx, ngwx
-	COMPLEX(DP) :: betae( :,: )
+        IMPLICIT NONE
+          
+        INTEGER, INTENT(IN) :: nkbx, ngwx
+        COMPLEX(DP) :: betae( :,: )
 	REAL(DP)    :: becc(: )
         COMPLEX(DP) :: c( :, : )
       END SUBROUTINE
       SUBROUTINE grabec_twin( becc, nkbx, betae, c, ngwx, l2_bec)
-	USE kinds,          ONLY: DP
-	USE twin_types
-	IMPLICIT NONE
+        USE kinds,          ONLY: DP
+        USE twin_types
+        IMPLICIT NONE
   !
-	INTEGER, INTENT(IN) :: nkbx, ngwx, l2_bec
-	COMPLEX(DP) :: betae( :, : )
+        INTEGER, INTENT(IN) :: nkbx, ngwx, l2_bec
+        COMPLEX(DP) :: betae( :, : )
 	LOGICAL :: lgam
-	COMPLEX(DP)    ::  c( :, : )
-	type(twin_matrix) :: becc !( nkbx ),
+        COMPLEX(DP)    ::  c( :, : )
+        type(twin_matrix) :: becc !( nkbx ),
       END SUBROUTINE
    END INTERFACE
 !---------- END INTERFACES FOR COMPLEX IMPLEMENTATION

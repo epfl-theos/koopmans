@@ -1014,7 +1014,7 @@
 ! 		  END IF
 		  !
 
-                   DO ir = 1, nnrsx
+                  DO ir = 1, nnrsx
                       rhos(ir,iss1) = rhos(ir,iss1) + sa1 *(ABS(psis(ir))**2)
 		  END DO
                   !
