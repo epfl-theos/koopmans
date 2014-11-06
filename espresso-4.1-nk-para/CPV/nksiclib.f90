@@ -620,10 +620,11 @@
       !
       if ( nnrsx == nnrx ) then
           !
-          ! This case should be the one when using NCPP
+          ! This case should be the case when using NCPP
           !
           CALL c2psi( psi, nnrx, c1, c2, ngw, 2 )
           !
+          !CALL invfft('Wave', psi, dffts )
           CALL invfft('Dense', psi, dfftp )
           !
           ! computing the orbital charge in real space on the full grid
@@ -640,7 +641,6 @@
           ! this is the general case,
           ! normally used with USPP
           !
-
           allocate( psis(nnrsx), stat=ierr )
           if ( ierr/=0 ) call errore(subname,'allocating psis',abs(ierr))
           allocate( orb_rhos(2), stat=ierr )
@@ -677,9 +677,8 @@
           psi (:) = (0.d0, 0.d0)
           do ig=1,ngs
               !
-              psi(nm(ig)) = CONJG( orb_rhog(ig,1) ) &
-                            +ci*CONJG( orb_rhog(ig,2) )
-              psi(np(ig)) = orb_rhog(ig,1) +ci*orb_rhog(ig,2)
+              psi(nm(ig)) = CONJG(orb_rhog(ig,1)) +ci*CONJG(orb_rhog(ig,2))
+              psi(np(ig)) = orb_rhog(ig,1)        +ci*orb_rhog(ig,2)
               !
           enddo
           !
@@ -3547,7 +3546,7 @@ end subroutine nksic_correction_nkipz
 !---------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-      subroutine nksic_eforce( i, nbsp, nx, vsic, deeq_sic, bec, ngw, c1, c2, vsicpsi, lgam ) !added:giovanni lgam !recheck this subroutine and eforce_std
+      subroutine nksic_eforce( i, nbsp, nx, vsic, deeq_sic, bec, ngw, c1, c2, vsicpsi, lgam )
 !-----------------------------------------------------------------------
 !
 ! Compute vsic potential for orbitals i and i+1 (c1 and c2)
@@ -3562,7 +3561,7 @@ end subroutine nksic_correction_nkipz
       use uspp_param,               only : nhm, nh
       use cvan,                     only : ish
       use ions_base,                only : nsp, na, nat
-      use twin_types !added:giovanni
+      use twin_types
       !
       implicit none
 
@@ -3869,7 +3868,6 @@ CONTAINS
 	      end do
           else
 	      do ig=1,ngw
-! 		  psis(nms(ig))=conjg(c(ig,j))
 		  psis(nps(ig))=c(ig,j)
 	      end do
           endif

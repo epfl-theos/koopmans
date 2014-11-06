@@ -211,9 +211,9 @@
         isa = isa + na(is)
       end do
 
-      IF((.not.lgam).and.nproc_image==1) THEN
-	ALLOCATE( becps_c( nkb, n ))
-	becps_c = CMPLX(0.0d0,0.d0)
+      IF ((.not.lgam).and.nproc_image==1) THEN
+          ALLOCATE( becps_c( nkb, n ))
+          becps_c = CMPLX(0.0d0,0.d0)
       ENDIF
 
       do is = nspmn, nspmx
@@ -230,122 +230,121 @@
             nhx = nh( is ) * na( is )
             IF( MOD( nhx, 2 ) /= 0 ) nhx = nhx + 1
             IF(lgam) THEN
-	      ALLOCATE( becps( nhx, n ) )
-	      becps = 0.0d0
-	    ELSE
-	      ALLOCATE( becps_c( nhx, n ) )
-	      becps_c = CMPLX(0.0d0,0.d0)
-	    ENDIF
+              ALLOCATE( becps( nhx, n ) )
+              becps = 0.0d0
+            ELSE
+              ALLOCATE( becps_c( nhx, n ) )
+              becps_c = CMPLX(0.0d0,0.d0)
+            ENDIF
          END IF
 
 
          !
          IF(lgam) THEN !added:giovanni
-	  do iv = 1, nh( is )
-	      !
+          do iv = 1, nh( is )
+              !
   !$omp parallel default(shared), private(l,ixr,ixi,signre,signim,ig,arg,ia)
-	      l = nhtol( iv, is )
+              l = nhtol( iv, is )
 !               write(6,*) "check_l_giovanni", l, iv, is
               cl =(-ci)**l
 ! 	      write(6,'(2((F20.13)(3x)))') cl
-	      !
+              !
   !
   !$omp do
-	      do ia=1,na(is)
-		!
-		!  q = 0   component (with weight 1.0)
-		!
-		if (gstart == 2) then
-		    wrk2_c( 1, ia ) = CMPLX(beta(1,iv,is),0.d0)*cl*eigr(1,ia+isa)
-		end if
-		!
-		!   q > 0   components (with weight 2.0)
-		!
-		do ig = gstart, ngw
-		    arg_c = CMPLX(2.0d0*beta(ig,iv,is), 0.d0)*cl
-		    wrk2_c( ig, ia ) = arg_c*eigr(ig,ia+isa)
-		end do
-		!
-	      end do
+              do ia=1,na(is)
+                !
+                !  q = 0   component (with weight 1.0)
+                !
+                if (gstart == 2) then
+                    wrk2_c( 1, ia ) = CMPLX(beta(1,iv,is),0.d0)*cl*eigr(1,ia+isa)
+                end if
+                !
+                !   q > 0   components (with weight 2.0)
+                !
+                do ig = gstart, ngw
+                    arg_c = CMPLX(2.0d0*beta(ig,iv,is), 0.d0)*cl
+                    wrk2_c( ig, ia ) = arg_c*eigr(ig,ia+isa)
+                end do
+                !
+              end do
   !$omp end do
-
   !$omp end parallel
-	      !
-	      IF( nproc_image > 1 ) THEN
-		inl=(iv-1)*na(is)+1
-		CALL DGEMM( 'T', 'N', na(is), n, 2*ngw, 1.0d0, wrk2_c, 2*ngw, c, 2*ngw, 0.0d0, becps( inl, 1 ), nhx )
-	      ELSE
+              !
+              IF( nproc_image > 1 ) THEN
+                inl=(iv-1)*na(is)+1
+                CALL DGEMM( 'T', 'N', na(is), n, 2*ngw, 1.0d0, wrk2_c, 2*ngw, c, 2*ngw, 0.0d0, becps( inl, 1 ), nhx )
+              ELSE
                 inl=ish(is)+(iv-1)*na(is)+1
                 CALL DGEMM( 'T', 'N', na(is), n, 2*ngw, 1.0d0, wrk2_c, 2*ngw, c, 2*ngw, 0.0d0, becp%rvec( inl, lbound_bec ), nkb )
-	      END IF
+              ENDIF
 
-	  end do
+          end do
          ELSE
 !begin_added:giovanni
-	  do iv = 1, nh( is )
-	      !
+          do iv = 1, nh( is )
+              !
   !$omp parallel default(shared), private(l,ixr,ixi,signre,signim,ig,arg,ia)
-	      l = nhtol( iv, is )
+              l = nhtol( iv, is )
               cl=(-ci)**l
   !
   !$omp do
-	      do ia=1,na(is)
+              do ia=1,na(is)
                 !
-		do ig = 1, ngw
-		    arg_c = cl*CMPLX(beta(ig,iv,is),0.d0)
-		    wrk2_c( ig, ia ) = (arg_c*eigr(ig,ia+isa))
-		end do
-		!
-	      end do
+                do ig = 1, ngw
+                    arg_c = cl*CMPLX(beta(ig,iv,is),0.d0)
+                    wrk2_c( ig, ia ) = (arg_c*eigr(ig,ia+isa))
+                end do
+                !
+              end do
   !$omp end do
 
   !$omp end parallel
-	      !
-	      IF( nproc_image > 1 ) THEN
-		inl=(iv-1)*na(is)+1
-		CALL ZGEMM( 'C', 'N', na(is), n, ngw, c_one, wrk2_c, ngw, c, ngw, c_zero, becps_c( inl, 1 ), nhx )
-	      ELSE
-		inl=ish(is)+(iv-1)*na(is)+1
-		CALL ZGEMM( 'C', 'N', na(is), n, ngw, c_one, wrk2_c, ngw, c, ngw,c_zero, becps_c( inl, lbound_bec ), nkb)
-	      END IF
-
-	  end do
+              !
+              IF( nproc_image > 1 ) THEN
+                inl=(iv-1)*na(is)+1
+                CALL ZGEMM( 'C', 'N', na(is), n, ngw, c_one, wrk2_c, ngw, c, ngw, c_zero, becps_c( inl, 1 ), nhx )
+              ELSE
+                inl=ish(is)+(iv-1)*na(is)+1
+                CALL ZGEMM( 'C', 'N', na(is), n, ngw, c_one, wrk2_c, ngw, c, ngw,c_zero, becps_c( inl, lbound_bec ), nkb)
+              END IF
+        
+          end do
 !end_added:giovanni
          ENDIF
 
          deallocate( wrk2_c )
 
-	 IF(nproc_image>1) THEN
+         IF(nproc_image>1) THEN 
 
-	      inl = ish(is) + 1
+              inl = ish(is) + 1
 
-	      IF(lgam) THEN
-		  !
-		  CALL mp_sum( becps, intra_image_comm )
+              IF(lgam) THEN
+                  !
+                  CALL mp_sum( becps, intra_image_comm )
 
-		  do i = 1, n
-		    do iv = inl , ( inl + na(is) * nh(is) - 1 )
-			becp%rvec( iv, i +lbound_bec -1) = becps( iv - inl + 1, i )
-		    end do
-		  end do
+                  do i = 1, n
+                    do iv = inl , ( inl + na(is) * nh(is) - 1 )
+                        becp%rvec( iv, i +lbound_bec -1) = becps( iv - inl + 1, i )
+                    end do
+                  end do
+        
+                  DEALLOCATE( becps )
+                !
+              ELSE IF(.not.lgam) THEN
 
-		  DEALLOCATE( becps )
-		!
-	      ELSE IF(.not.lgam) THEN
+                CALL mp_sum( becps_c, intra_image_comm )
+        
+                    do i = 1, n
+                      do iv = inl , ( inl + na(is) * nh(is) - 1 )
+                          becp%cvec( iv, i +lbound_bec -1) = (becps_c( iv - inl + 1, i ))
+                      end do
+                    end do
 
-		CALL mp_sum( becps_c, intra_image_comm )
+                DEALLOCATE( becps_c )
 
-		    do i = 1, n
-		      do iv = inl , ( inl + na(is) * nh(is) - 1 )
-			  becp%cvec( iv, i +lbound_bec -1) = (becps_c( iv - inl + 1, i ))
-		      end do
-		    end do
+            ENDIF
 
-		DEALLOCATE( becps_c )
-
-	    ENDIF
-
-	 END IF
+         END IF
 
          isa = isa + na(is)
 
