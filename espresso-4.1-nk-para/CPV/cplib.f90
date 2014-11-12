@@ -2149,119 +2149,6 @@ END FUNCTION
 
 !$$
 !----------------------------------------------------------------------
-     SUBROUTINE lowdin(a, lgam)
-!----------------------------------------------------------------------
-
-      use kinds
-      use io_global, only: stdout,ionode
-      use mp_global, only: intra_image_comm
-      use gvecw, only: ngw
-      use reciprocal_vectors, only: ng0 => gstart
-      use mp, only: mp_sum
-      use electrons_base, only: n => nbsp, ispin, nspin,nupdwn,iupdwn
-
-      implicit none
-
-      complex(dp) a(ngw,n), aold(ngw,n)
-      integer i, j,k,ig, isp,ndim,nbnd1,nbnd2
-      real(dp) sqrt_seig(n)
-      complex(DP) :: sca
-      real(DP), allocatable :: seig(:)
-      complex(DP), allocatable :: s(:,:), omat(:,:), sqrt_s(:,:)
-      logical :: lgam
-      !
-      aold(:,:)=a(:,:)
-
-      do isp=1,nspin
-
-        ndim=nupdwn(isp)
-
-        allocate(s(ndim,ndim))
-        allocate(omat(ndim,ndim))
-        allocate(seig(ndim))
-        allocate(sqrt_s(ndim,ndim))
-
-        s(:,:)=CMPLX(0.d0,0.d0)
-
-        do i=1,ndim
-          nbnd1=iupdwn(isp)-1+i
-          do j=1,i
-            nbnd2=iupdwn(isp)-1+j
-!             if(j.lt.i) then
-!               s(i,j)=s(j,i)
-!             else
-              sca=CMPLX(0.0d0,0.d0)
-              IF(lgam) THEN
-                 if (ng0.eq.2) aold(1,nbnd1) = CMPLX(DBLE(a(1,nbnd1)),0.0d0)
-                 do  ig=1,ngw           !loop on g vectors
-                   sca=sca+DBLE(CONJG(a(ig,nbnd2))*a(ig,nbnd1))
-                 enddo
-                 sca = sca*2.0d0  !2. for real weavefunctions
-                 if (ng0.eq.2) sca = sca - DBLE(CONJG(a(1,nbnd2))*a(1,nbnd1))
-                 s(i,j) = CMPLX(DBLE(sca),0.d0)
-                 s(j,i) = s(i,j)
-              ELSE
-                 do  ig=1,ngw           !loop on g vectors
-                   sca=sca+CONJG(a(ig,nbnd2))*a(ig,nbnd1)
-                   s(i,j) = sca
-                   s(j,i) = CONJG(sca)
-                 enddo
-              ENDIF
-!             endif
-          enddo
-        enddo
-        
-        call mp_sum( s, intra_image_comm )
-        call zdiag(ndim,ndim,s,seig,omat,1)
-
-        do i=1,ndim
-          if(seig(i).lt.0.d0.and.ionode) write(*,*) 'seig is negative ',seig(:)
-        enddo
-
-        sqrt_seig(:)=1.d0/DSQRT(seig(:))
-
-        sqrt_s(:,:)=CMPLX(0.d0,0.d0)
-        do i=1,ndim
-          do j=1,i
-!             if(j.lt.i) then
-!               sqrt_s(i,j)=sqrt_s(j,i)
-!             else
-              sca=0.d0
-              do k=1,ndim
-                sca=sca+sqrt_seig(k) * omat(i,k)*CONJG(omat(j,k))
-              enddo
-              sqrt_s(i,j) = sca
-              sqrt_s(j,i) = CONJG(sca)
-!             endif
-          enddo
-        enddo
-
-        do i=1,ndim
-          nbnd1=iupdwn(isp)-1+i
-
-          a(:,nbnd1) = CMPLX(0.d0,0.d0)
-
-          do j=1,ndim
-            nbnd2=iupdwn(isp)-1+j
-
-            a(:,nbnd1) = a(:,nbnd1) + sqrt_s(i,j) * aold(:,nbnd2)
-          enddo
-        enddo
-
-        deallocate(s)
-        deallocate(omat)
-        deallocate(seig)
-        deallocate(sqrt_s)
-
-      enddo
-
-     END SUBROUTINE lowdin
-!$$
-
-
-
-!$$
-!----------------------------------------------------------------------
      SUBROUTINE calc_wfnoverlap(a,b)
 !----------------------------------------------------------------------
 
@@ -4149,7 +4036,8 @@ END FUNCTION
       DO is=1,nsp
 !$omp do
          DO ig=1,ngs
-            rhotmp(ig)=rhotmp(ig)+sfac(ig,is)*rhops(ig,is)
+            rhotmp(ig)=rhotmp(ig)+sfac(ig,is)*rhops(ig,is) !JUST-FOR-NOW
+            !rhotmp(ig)=rhotmp(ig)
          END DO
       END DO
       !
@@ -4219,7 +4107,7 @@ END FUNCTION
       DO is=1,nsp
 !$omp do
          DO ig=1,ngs
-            vtemp(ig)=vtemp(ig)+sfac(ig,is)*vps(ig,is)
+            vtemp(ig)=vtemp(ig)+sfac(ig,is)*vps(ig,is)  !JUST-FOR-NOW I do not consider the pseudopotential part
          END DO
       END DO
       !
