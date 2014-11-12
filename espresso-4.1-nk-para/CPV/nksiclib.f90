@@ -11,6 +11,7 @@
 ! Further developed and optimized by Andrea Ferretti
 !      (MIT, University of Oxford)
 !
+#include "f_defs.h"
 
 !-----------------------------------------------------------------------
       subroutine nksic_potential( nbsp, nx, c, f_diag, bec, becsum, &
@@ -155,21 +156,6 @@
       !
       ! main body
       !
-!                  write(6,*) "checkbounds", ubound(c)
-!                  write(6,*) "checkbounds", ubound(f_diag)
-!                  write(6,*) "checkbounds", ubound(becsum)
-!                  write(6,*) "checkbounds", ubound(wfc_centers), nudx
-!                  write(6,*) "checkbounds", ubound(wfc_spreads)
-!                  write(6,*) "checkbounds", ubound(deeq_sic)
-!                  write(6,*) "checkbounds", ubound(ispin)
-!                  write(6,*) "checkbounds", ubound(iupdwn)
-!                  write(6,*) "checkbounds", ubound(nupdwn)
-!                  write(6,*) "checkbounds", ubound(rhor), "rhor"
-!                  write(6,*) "checkbounds", ubound(rhog), "rhog"
-!                  write(6,*) "checkbounds", ubound(wtot), "wtot"
-!                  write(6,*) "checkbounds", ubound(vsic), "vsic"
-!                  write(6,*) "checkbounds", ubound(pink), "pink", nudx, is_empty
-
       CALL start_clock( 'nksic_drv' )
       lgam = gamma_only.and..not.do_wf_cmplx
       !
@@ -229,6 +215,7 @@
         !
         call nksic_get_orbitalrho( ngw, nnrx, bec, ispin, nbsp, &
                      c(:,j), c(:,j+1), orb_rhor, j, j+1, lgam) !warning:giovanni need modification
+!         write(127,*) "orb_rhor", ubound(orb_rhor), orb_rhor(1:10,1) !JUST-FOR-NOW
 !begin_added:giovanni
           !compute centers and spreads of nksic or pz minimizing orbitals
         IF(icompute_spread) THEN
@@ -1170,92 +1157,109 @@ end subroutine nksic_get_orbitalrho_twin_non_ortho
           ! computing the orbital charge in real space on the full grid
           !
           if(lgam) then
+             !
              do ir = 1, nnrx
                 !
                 orb_rhor(ir,1) = sa1 * (( DBLE(psi1(ir)) )**2 )
                 orb_rhor(ir,2) = sa1 * (( AIMAG(psi1(ir)) )**2 )
                 !
              enddo
+             !
           else
+             !
              do ir = 1, nnrx
                 !
-                orb_rhor(ir,1) = sa1 * (( DBLE(psi1(ir)) )**2 + ( AIMAG(psi1(ir)) )**2)
-                orb_rhor(ir,2) = sa1 * (( DBLE(psi2(ir)) )**2 + ( AIMAG(psi2(ir)) )**2)
+                orb_rhor(ir,1) = sa1 * (( abs(psi1(ir)) ))**2
+                orb_rhor(ir,2) = sa1 * (( abs(psi2(ir)) ))**2
                 !
              enddo
+             !
           endif
           !
       else
-          !
-          ! this is the general case,
-          ! normally used with USPP
-          !
+         !
+         ! this is the general case,
+         ! normally used with USPP
+         !
 
-          allocate( psis1(nnrsx), stat=ierr )
-          if ( ierr/=0 ) call errore(subname,'allocating psis1',abs(ierr))
-          if(.not.lgam) then
-	      allocate( psis2(nnrsx), stat=ierr )
-	      if ( ierr/=0 ) call errore(subname,'allocating psis2',abs(ierr))
-          endif
-
-          allocate( orb_rhos(2), stat=ierr )
-          if ( ierr/=0 ) call errore(subname,'allocating orb_rhos',abs(ierr))
-          !
-          if(lgam) then
-	      CALL c2psi( psis1, nnrsx, c1, c2, ngw, 2 )
-          else
-	      CALL c2psi( psis1, nnrsx, c1, c2, ngw, 0 )
-	      CALL c2psi( psis2, nnrsx, c2, c1, ngw, 0 )
-          endif
-          !
-
-          CALL invfft('Wave',psis1, dffts )
-          !
-          if(.not. lgam) then
-	      CALL invfft('Wave',psis2, dffts )
-          endif
-          !
-          ! computing the orbital charge
-          ! in real space on the smooth grid
-          !
-          if(lgam) then
-	      do ir = 1, nnrsx
-		  !
-		  orb_rhos(1) = sa1 * (( DBLE(psis1(ir)) )**2 )
-		  orb_rhos(2) = sa1 * (( AIMAG(psis1(ir)) )**2 )
-		  !
-		  psis1( ir )  = CMPLX( orb_rhos(1), orb_rhos(2) )
-	      enddo
-          else
-	      do ir = 1, nnrsx
-		  !
-		  orb_rhos(1) = sa1 * (( DBLE(psis1(ir)) )**2 +( AIMAG(psis1(ir)) )**2)
-		  orb_rhos(2) = sa1 * (( DBLE(psis2(ir)) )**2 +( AIMAG(psis2(ir)) )**2)
-		  !
-		  psis1( ir )  = CMPLX(orb_rhos(1), orb_rhos(2)) !!!### comment for k points
-!  		  psis1( ir )  = cmplx( orb_rhos(1), 0.d0) !!!### uncomment for k points
-!  		  psis2( ir )  = cmplx( orb_rhos(2), 0.d0) !!!### uncomment for k points
-	      enddo
-          endif
+         allocate( psis1(nnrsx), stat=ierr )
+         if ( ierr/=0 ) call errore(subname,'allocating psis1',abs(ierr))
+         if(.not.lgam) then
+            !
+            allocate( psis2(nnrsx), stat=ierr )
+            if ( ierr/=0 ) call errore(subname,'allocating psis2',abs(ierr))
+            !
+         endif
+         !
+         allocate( orb_rhos(2), stat=ierr )
+         !
+         if ( ierr/=0 ) call errore(subname,'allocating orb_rhos',abs(ierr))
+         !
+         if(lgam) then
+            !
+            CALL c2psi( psis1, nnrsx, c1, c2, ngw, 2 )
+            !
+         else
+            !
+            CALL c2psi( psis1, nnrsx, c1, c2, ngw, 0 )
+            CALL c2psi( psis2, nnrsx, c2, c1, ngw, 0 )
+            !
+         endif
+         !
+         CALL invfft('Wave',psis1, dffts )
+         !
+         if(.not. lgam) then
+            !
+            CALL invfft('Wave',psis2, dffts )
+            !
+         endif
+         !
+         ! computing the orbital charge
+         ! in real space on the smooth grid
+         !
+         if(lgam) then
+            !
+            do ir = 1, nnrsx
+               !
+               orb_rhos(1) = sa1 * (( DBLE(psis1(ir)) )**2 )
+               orb_rhos(2) = sa1 * (( AIMAG(psis1(ir)) )**2 )
+               !
+               psis1( ir )  = CMPLX( orb_rhos(1), orb_rhos(2) )
+               !
+            enddo
+            !
+         else
+            !
+            do ir = 1, nnrsx
+               !
+               orb_rhos(1) = sa1 * ( abs(psis1(ir)))**2
+               orb_rhos(2) = sa1 * ( abs(psis2(ir)))**2
+               !
+               psis1( ir )  = CMPLX(orb_rhos(1), orb_rhos(2)) !!!### comment for k points
+               !psis1( ir )  = cmplx( orb_rhos(1), 0.d0) !!!### uncomment for k points
+               !psis2( ir )  = cmplx( orb_rhos(2), 0.d0) !!!### uncomment for k points
+            enddo
+            !
+         endif
 !           write(6,*) "psis", psis1 !added:giovanni:debug
           !
           ! orbital charges are taken to the G space
           !
 
-	  CALL fwfft('Smooth',psis1, dffts )
+         CALL fwfft('Smooth',psis1, dffts )
 !           IF(.not.lgam) THEN !  !!!### uncomment for k points
 !               CALL fwfft('Smooth',psis2, dffts ) !!!### uncomment for k points
 !           ENDIF !!!### uncomment for k points
           !
 ! 	  IF(lgam) then !!!### uncomment for k points
-              do ig = 1, ngs
-                  !
-                  fp=psis1(nps(ig))+psis1(nms(ig))
-                  fm=psis1(nps(ig))-psis1(nms(ig))
-                  orb_rhog(ig,1)=0.5d0*CMPLX(DBLE(fp),AIMAG(fm))
-                  orb_rhog(ig,2)=0.5d0*CMPLX(AIMAG(fp),-DBLE(fm))
-                  !
-              enddo
+         do ig = 1, ngs
+            !
+            fp=psis1(nps(ig))+psis1(nms(ig))
+            fm=psis1(nps(ig))-psis1(nms(ig))
+            orb_rhog(ig,1)=0.5d0*CMPLX(DBLE(fp),AIMAG(fm))
+            orb_rhog(ig,2)=0.5d0*CMPLX(AIMAG(fp),-DBLE(fm))
+            !
+         enddo
 !           else !!!### uncomment for k points
 ! 	      do ig = 1, ngs !!!### uncomment for k points
 		  !
@@ -1267,14 +1271,14 @@ end subroutine nksic_get_orbitalrho_twin_non_ortho
 ! 	      enddo !!!### uncomment for k points
 !           endif !!!### uncomment for k points
           !
-          psi1 (:) = CMPLX(0.d0, 0.d0)
+         psi1 = CMPLX(0.d0, 0.d0)
 !           if(lgam) then !!!### uncomment for k points
 	      do ig=1,ngs
-		  !
-		  psi1(nm(ig)) = CONJG( orb_rhog(ig,1) ) &
-				+ci*CONJG( orb_rhog(ig,2) )
-		  psi1(np(ig)) = orb_rhog(ig,1) +ci*orb_rhog(ig,2)
-		  !
+            !
+            psi1(nm(ig)) = CONJG( orb_rhog(ig,1) ) &
+               +ci*CONJG( orb_rhog(ig,2) )
+            psi1(np(ig)) = orb_rhog(ig,1) +ci*orb_rhog(ig,2)
+            !
 	      enddo
 !           else !!!### uncomment for k points
 ! 	      do ig=1,ngs !!!### uncomment for k points
@@ -1286,20 +1290,24 @@ end subroutine nksic_get_orbitalrho_twin_non_ortho
 ! 	      enddo !!!### uncomment for k points
 !           endif !!!### uncomment for k points
           !
-          call invfft('Dense',psi1,dfftp)
+         call invfft('Dense',psi1,dfftp)
           !
-          do ir=1,nnrx
-              !
-              orb_rhor(ir,1) =  DBLE(psi1(ir))
-              orb_rhor(ir,2) = AIMAG(psi1(ir))
-          enddo
+         do ir=1,nnrx
+            !
+            orb_rhor(ir,1) =  DBLE(psi1(ir))
+            orb_rhor(ir,2) = AIMAG(psi1(ir))
+            !
+         enddo
 
-          deallocate( psis1 )
-          if(.not.lgam) then
-              deallocate(psis2)
-          endif
+         deallocate( psis1 )
+         
+         if(.not.lgam) then
+            !
+            deallocate(psis2)
+            !
+         endif
 
-          deallocate( orb_rhos )
+         deallocate( orb_rhos )
 
       endif
 !       write(6,*) "orb_rhog", orb_rhog !added:giovanni:debug
@@ -1313,48 +1321,63 @@ end subroutine nksic_get_orbitalrho_twin_non_ortho
         if ( nspin == 2 ) then
             !
             if ( i1 <= nbsp ) then
+                !
                 call calrhovan(rhovanaux,bec,i1)
                 rhovan(:,:,1)=rhovanaux(:,:,ispin(i1))
+                !
             endif
             !
             if ( i2 <= nbsp ) then
+                !
                 call calrhovan(rhovanaux,bec,i2)
                 rhovan(:,:,2)=rhovanaux(:,:,ispin(i2))
+                !
             endif
             !
-            call rhov(irb,eigrb,rhovan,orb_rhog,orb_rhor, lgam)
+            call rhov(irb,eigrb,rhovan,orb_rhog,orb_rhor, lgam) 
+            !
         else
             !
             if ( i1 <= nbsp ) then
-                call calrhovan(rhovanaux,bec,i1)
-                rhovan(:,:,1)=rhovanaux(:,:,ispin(i1))*0.5d0 ! 0.5 to divide the factor f=2 which accounts for spin multiplicity inside calrhovan
                 !
-                call rhov(irb,eigrb,rhovan,orb_rhog(:,1),orb_rhor(:,1), lgam)
+                call calrhovan(rhovanaux,bec,i1)
+                rhovan(:,:,1)=rhovanaux(:,:,ispin(i1)) ! 0.5 to divide the factor f=2 which accounts for spin multiplicity inside calrhovan
+                !
+                write(6,*) "calling rhov inside nksic_get_orbitalrho"
+                call rhov(irb,eigrb,rhovan,orb_rhog(:,1),orb_rhor(:,1), lgam) !JUST-FOR-NOW ... do we need a factor of 0.5?
+                !
             endif
             !
             if ( i2 <= nbsp ) then
-                call calrhovan(rhovanaux,bec,i2)
-                rhovan(:,:,1)=rhovanaux(:,:,ispin(i2))*0.5d0 ! 0.5 to divide the factor f=2 which accounts for spin multiplicity inside calrhovan
                 !
-                call rhov(irb,eigrb,rhovan,orb_rhog(:,2),orb_rhor(:,2), lgam)
+                call calrhovan(rhovanaux,bec,i2)
+                rhovan(:,:,1)=rhovanaux(:,:,ispin(i2)) ! 0.5 to divide the factor f=2 which accounts for spin multiplicity inside calrhovan
+                !
+                call rhov(irb,eigrb,rhovan,orb_rhog(:,2),orb_rhor(:,2), lgam) !JUST-FOR-NOW ... do we need a factor of 0.5?
+                !
             endif
             !
         endif
         !
       endif
       !
-!       write(6,*) "rhovan", rhovan(:,:,1) !added:giovanni:debug
+!       if(okvan) write(131,*) "rhovan-calrhovan", rhovan(:,:,1) !added:giovanni:debug
 !       stop
       deallocate(psi1)
+      !
       if(allocated(psi2)) then
+         !
          deallocate(psi2)
+         !
       endif
 
       deallocate(orb_rhog)
       !
       if ( okvan ) then
+          !
           deallocate(rhovan)
           deallocate(rhovanaux)
+          !
       endif
       !
       call stop_clock('nksic_orbrho')
@@ -3642,7 +3665,7 @@ end subroutine nksic_correction_nkipz
 		wfc(2)    = AIMAG( psi1(ir) )
 		!
 		psi1( ir ) = CMPLX( wfc(1) * vsic(ir,i), &
-				    wfc(2) * vsic(ir,i+1), DP )
+				    wfc(2) * vsic(ir,i+1))
 		!
 	    enddo
          else
@@ -3739,10 +3762,10 @@ end subroutine nksic_correction_nkipz
 			      isa = isa + 1
 			      !
 			      dd  = deeq_sic(iv,jv,isa,i)
-			      aa(inl,1) = aa(inl,1) +dd * bec%rvec(jnl,i)
+			      aa(inl,1) = aa(inl,1) + dd * bec%rvec(jnl,i)
 			      !
 			      dd  = deeq_sic(iv,jv,isa,i+1)
-			      aa(inl,2) = aa(inl,2) +dd * bec%rvec(jnl,i+1)
+			      aa(inl,2) = aa(inl,2) + dd * bec%rvec(jnl,i+1)
 			      !
 			  enddo
 			  !
@@ -3754,7 +3777,7 @@ end subroutine nksic_correction_nkipz
 			      isa = isa + 1
 			      !
 			      dd  = deeq_sic(iv,jv,isa,i)
-			      aa(inl,1) = aa(inl,1) +dd * bec%rvec(jnl,i)
+			      aa(inl,1) = aa(inl,1) + dd * bec%rvec(jnl,i)
 			      !
 			  enddo
 			  !
@@ -3765,6 +3788,9 @@ end subroutine nksic_correction_nkipz
 		  !
 	      enddo
 	      !
+              write(6,*) "deeq_sic"
+              write(6,*) deeq_sic
+              !
 	      call DGEMM ( 'N', 'N', 2*ngw, 2, nkb, 1.0d0, &
 			  vkb, 2*ngw, aa, nkb, 1.0d0, vsicpsi(:,:), 2*ngw)
 	      !
@@ -3797,10 +3823,10 @@ end subroutine nksic_correction_nkipz
 			      isa = isa + 1
 			      !
 			      dd  = deeq_sic(iv,jv,isa,i)
-			      aa_c(inl,1) = aa_c(inl,1) +dd * bec%cvec(jnl,i) !warning:giovanni or conjg?
+			      aa_c(inl,1) = aa_c(inl,1) + dd * bec%cvec(jnl,i) !warning:giovanni or conjg?
 			      !
 			      dd  = deeq_sic(iv,jv,isa,i+1)
-			      aa_c(inl,2) = aa_c(inl,2) +dd * bec%cvec(jnl,i+1) !warning:giovanni or conjg?
+			      aa_c(inl,2) = aa_c(inl,2) + dd * bec%cvec(jnl,i+1) !warning:giovanni or conjg?
 			      !
 			  enddo
 			  !
@@ -3812,7 +3838,7 @@ end subroutine nksic_correction_nkipz
 			      isa = isa + 1
 			      !
 			      dd  = deeq_sic(iv,jv,isa,i)
-			      aa_c(inl,1) = aa_c(inl,1) +dd * bec%cvec(jnl,i) !warning:giovanni or conjg?
+			      aa_c(inl,1) = aa_c(inl,1) + dd * bec%cvec(jnl,i) !warning:giovanni or conjg?
 			      !
 			  enddo
 			  !
@@ -7467,8 +7493,8 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
    USE mp_global,          ONLY : intra_image_comm, mpime
    USE io_global,          ONLY : ionode_id
    USE mp,                 ONLY : mp_bcast
-
-   !INPUT VARIABLES
+   !
+   !   INPUT VARIABLES
    !
    INTEGER, INTENT(IN)      :: ispin(nx),nx,j,k,nspin, nbsp, &
                                nupdwn(nspin), iupdwn(nspin)
@@ -7476,9 +7502,11 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
      !nx is nudx, j and k the two bands involved in the
      !spread calculation
    REAL(DP), INTENT(in)  :: orb_rhor(nnrx,2)
-   REAL(DP) :: wfc_centers(4,nudx,nspin)
+   REAL(DP) :: wfc_centers(4,nudx,nspin) !in position 1 we &
+   !have the integrated charge
    REAL(DP) :: wfc_spreads(nudx,nspin,2)
-   !orbital densities of two orbitals
+   !orbital spreads: both wannier(1) and self-hartree(2)
+   !self-hartree is stored separately, within nksic subroutines
    !
    !INTERNAL VARIABLES
    !
@@ -7496,8 +7524,6 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
       CALL ions_cofmass(taus, pmass, na, nsp, rs)
       ! and use it as reference position
       !r0=0.d0
-      !write(6,*) "real coordinates", rs, r0
-      !!CALL s_to_r(rs, r0, h)
       !
       call compute_dipole( nnrx, 1, orb_rhor(1,1), r0, wfc_centers(1:4, mybnd1, myspin1), wfc_spreads(mybnd1, myspin1, 1))
       wfc_spreads(mybnd1,myspin1,1) = wfc_spreads(mybnd1,myspin1,1) - ddot(3, wfc_centers(2:4,mybnd1,myspin1), 1, wfc_centers(2:4,mybnd1,myspin1), 1)
@@ -8012,10 +8038,10 @@ END subroutine compute_complexification_index
 !            orb_rhor(:,2) = orb_rhor(:,2)/overlap_(j+2-iupdwn(ispin(j+1)),j+2-iupdwn(ispin(j+1)),ispin(j+1))
           !compute centers and spreads of nksic or pz minimizing orbitals
         IF(icompute_spread) THEN
-          !
-          call compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
+           !
+           call compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
                     nupdwn, ispin, orb_rhor, wfc_centers, wfc_spreads, j, j+1)
-          !
+           !
         ENDIF
           !
 !end_added:giovanni
