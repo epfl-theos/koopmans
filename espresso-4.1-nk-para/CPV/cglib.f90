@@ -7,7 +7,6 @@
 !
 #include "f_defs.h"
 
-
 !-----------------------------------------------------------------------
    subroutine calcmt( fdiag, zmat, fmat, firstiter)
 !-----------------------------------------------------------------------
@@ -1272,11 +1271,11 @@ subroutine pc2(a,beca,b,becb, lgam)
       end subroutine pcdaga3
 
 !$$
-    subroutine pc3us(a,beca,b,becb, lgam)
+    subroutine pc3us(a, beca, b, becb, lgam)
 
 ! this function applies the modified Pc operator which is
 ! equivalent to Lowdin orthonormalization of the revised wavefunctions.
-! currently implemented only for norm-conserving pseudopotentials. 
+! this subroutine works for pseudopotentials. 
                
 ! this function applies the operator Pc
             
@@ -1324,100 +1323,159 @@ subroutine pc2(a,beca,b,becb, lgam)
       CALL start_clock( 'pc3us' )
 
       do iss= 1, nspin
+         !
          nss= nupdwn( iss )
          istart= iupdwn( iss )
 
          if(lgam) then
-	    allocate(bectmp(nss,nss))
-	    bectmp(:,:)=0.d0
+            !
+            allocate(bectmp(nss,nss))
+            bectmp(:,:)=0.d0
+            !
          else
-	    allocate(bectmp_c(nss,nss))
-	    bectmp_c(:,:)=CMPLX(0.d0,0.d0)
+            !
+            allocate(bectmp_c(nss,nss))
+            bectmp_c(:,:)=CMPLX(0.d0,0.d0)
+            !
          endif
-! 
+         !
          allocate(zbectmp(nss,nss))
-
+         !
          call zgemm('C','N',nss,nss,ngw,(1.d0,0.d0),a(:,istart),ngw,b(:,istart),ngw,(0.d0,0.d0),zbectmp,nss)
 
          if(lgam) then
-	    do j=1,nss
-		do i=1,nss
-		  bectmp(i,j)=2.d0*DBLE(zbectmp(i,j))
-		  if(ng0.eq.2) bectmp(i,j)=bectmp(i,j)-DBLE(CONJG(a(1,j))*(b(1,i)))
-		enddo
-	    enddo
-	    call mp_sum( bectmp(:,:), intra_image_comm)
-         else
-	    do j=1,nss
-		do i=1,nss
-		  bectmp_c(i,j)=zbectmp(i,j)
-		enddo
-	    enddo
-	    call mp_sum( bectmp_c(:,:), intra_image_comm)
-         endif
-         deallocate(zbectmp)
-
-         if(nvb >= 0) then
-
-            nl_max=0
-            do is=1,nvb
-               nl_max=nl_max+nh(is)*na(is)
+            !
+            do j=1,nss
+               !
+               do i=1,nss
+                  !
+                  bectmp(i,j)=2.d0*DBLE(zbectmp(i,j))
+                  if(ng0.eq.2) bectmp(i,j)=bectmp(i,j)-DBLE(CONJG(a(1,j))*(b(1,i)))
+                  !
+               enddo
+               !
             enddo
-            if(lgam) then
-		allocate (qqb_tmp(nl_max,nss))
-		allocate (qq_tmp(nl_max,nl_max))
-		qq_tmp(:,:)=0.d0
-		do is=1,nvb
-		  do iv=1,nh(is)
-		      do jv=1,nh(is)
-			do ia=1,na(is)
-			    inl=ish(is)+(iv-1)*na(is)+ia
-			    jnl=ish(is)+(jv-1)*na(is)+ia
-			    qq_tmp(inl,jnl)=qq(iv,jv,is)
-			enddo
-		      enddo
-		  enddo
-		enddo
-            else
-		allocate (qqb_tmp_c(nl_max,nss))
-		allocate (qq_tmp_c(nl_max,nl_max))
-		qq_tmp_c(:,:)=CMPLX(0.d0,0.d0)
-		do is=1,nvb
-		  do iv=1,nh(is)
-		      do jv=1,nh(is)
-			do ia=1,na(is)
-			    inl=ish(is)+(iv-1)*na(is)+ia
-			    jnl=ish(is)+(jv-1)*na(is)+ia
-			    qq_tmp_c(inl,jnl)=CMPLX(qq(iv,jv,is),0.d0)
-			enddo
-		      enddo
-		  enddo
-		enddo
-            endif
-
+            !
+            call mp_sum( bectmp(:,:), intra_image_comm)
+            !
+         else
+            !
+            do j=1,nss
+               !
+               do i=1,nss
+                  !
+                  bectmp_c(i,j)=zbectmp(i,j)
+                  !
+               enddo
+               !
+            enddo
+            !
+            call mp_sum( bectmp_c(:,:), intra_image_comm)
+            !
+         endif
+         !
+         deallocate(zbectmp)
+         !
+         if(nvb >= 0) then
+            !
+            nl_max=0
+            !
+            do is=1,nvb
+               !
+               nl_max=nl_max+nh(is)*na(is)
+               !
+            enddo
             !
             if(lgam) then
-		if( nhsa > 0 .and. .not. mat_par)  then
-		  call dgemm('N','N',nl_max,nss,nl_max,1.d0,qq_tmp,nl_max,becb%rvec(:,istart),nhsa,0.d0,qqb_tmp,nl_max)
-		  call dgemm('T','N',nss,nss,nl_max,1.d0,beca%rvec(:,istart),nhsa,qqb_tmp,nl_max,1.d0,bectmp,nss)
-		else if ( nhsa > 0 ) then
-		  call para_dgemm ('N','N',nl_max,nss,nl_max,1.d0,qq_tmp,nl_max,&
-				    becb%rvec(:,istart),nhsa,0.d0,qqb_tmp,nl_max, intra_image_comm)
-		  call para_dgemm ('T','N',nss,nss,nl_max,1.d0,beca%rvec(:,istart),nhsa, &
-				    qqb_tmp,nl_max,1.d0,bectmp,nss, intra_image_comm)
-		endif
-               deallocate(qq_tmp,qqb_tmp)
+               !
+               allocate (qqb_tmp(nl_max,nss))
+               allocate (qq_tmp(nl_max,nl_max))
+               qq_tmp(:,:)=0.d0
+               !
+               do is=1,nvb
+                  !
+                  do iv=1,nh(is)
+                     !
+                     do jv=1,nh(is)
+                        !
+                        do ia=1,na(is)
+                           !
+                           inl=ish(is)+(iv-1)*na(is)+ia
+                           jnl=ish(is)+(jv-1)*na(is)+ia
+                           qq_tmp(inl,jnl)=qq(iv,jv,is)
+                           !
+                        enddo
+                        !
+                     enddo
+                     !
+                  enddo
+                  !
+               enddo
+               !
             else
-		if( nhsa > 0 .and. .not. mat_par)  then
-		  call zgemm('N','N',nl_max,nss,nl_max,(1.d0,0.d0),qq_tmp_c,nl_max,becb%cvec(:,istart),nhsa,(0.d0,0.d0), qqb_tmp_c,nl_max)
-		  call zgemm('C','N',nss,nss,nl_max,(1.d0,0.d0),beca%cvec(:,istart),nhsa,qqb_tmp_c,nl_max,(1.d0,0.d0),bectmp_c,nss)
-		else if ( nhsa > 0 ) then
-		  call para_zgemm ('N','N',nl_max,nss,nl_max,(1.d0,0.d0),qq_tmp_c,nl_max,&
-				    becb%cvec(:,istart),nhsa,(0.d0,0.d0),qqb_tmp_c,nl_max, intra_image_comm)
-		  call para_zgemm ('C','N',nss,nss,nl_max,(1.d0,0.d0),beca%cvec(:,istart),nhsa, &
-				    qqb_tmp_c,nl_max,(1.d0,0.d0),bectmp_c,nss, intra_image_comm)
-		endif
+               !
+               allocate (qqb_tmp_c(nl_max,nss))
+               allocate (qq_tmp_c(nl_max,nl_max))
+               qq_tmp_c(:,:)=CMPLX(0.d0,0.d0)
+               !
+               do is=1,nvb
+                  !
+                  do iv=1,nh(is)
+                     !
+                     do jv=1,nh(is)
+                        !
+                        do ia=1,na(is)
+                           !
+                           inl=ish(is)+(iv-1)*na(is)+ia
+                           jnl=ish(is)+(jv-1)*na(is)+ia
+                           qq_tmp_c(inl,jnl)=CMPLX(qq(iv,jv,is),0.d0)
+                           !
+                        enddo
+                        !
+                     enddo
+                     !
+                  enddo
+                  !
+               enddo
+               !
+            endif
+            !
+            if(lgam) then
+               !
+               if( nhsa > 0 .and. .not. mat_par)  then
+                  !
+                  call dgemm('N','N',nl_max,nss,nl_max,1.d0,qq_tmp,nl_max,becb%rvec(:,istart),nhsa,0.d0,qqb_tmp,nl_max)
+                  call dgemm('T','N',nss,nss,nl_max,1.d0,beca%rvec(:,istart),nhsa,qqb_tmp,nl_max,1.d0,bectmp,nss)
+                  !
+               else if ( nhsa > 0 ) then
+                  !
+                  call para_dgemm ('N','N',nl_max,nss,nl_max,1.d0,qq_tmp,nl_max,&
+                  becb%rvec(:,istart),nhsa,0.d0,qqb_tmp,nl_max, intra_image_comm)
+                  call para_dgemm ('T','N',nss,nss,nl_max,1.d0,beca%rvec(:,istart),nhsa, &
+                  qqb_tmp,nl_max,1.d0,bectmp,nss, intra_image_comm)
+                  !
+               endif
+               !
+               deallocate(qq_tmp,qqb_tmp)
+               !
+            else
+               !
+               if( nhsa > 0 .and. .not. mat_par)  then
+                  !
+                  call zgemm('N','N',nl_max,nss,nl_max,(1.d0,0.d0),qq_tmp_c,nl_max,becb%cvec(:,istart),nhsa,(0.d0,0.d0), qqb_tmp_c,nl_max)
+                  call zgemm('C','N',nss,nss,nl_max,(1.d0,0.d0),beca%cvec(:,istart),nhsa,qqb_tmp_c,nl_max,(1.d0,0.d0),bectmp_c,nss)
+                  !
+               else if ( nhsa > 0 ) then
+                  !
+                  call para_zgemm ('N','N',nl_max,nss,nl_max,(1.d0,0.d0),qq_tmp_c,nl_max,&
+                  becb%cvec(:,istart),nhsa,(0.d0,0.d0),qqb_tmp_c,nl_max, intra_image_comm)
+                  call para_zgemm ('C','N',nss,nss,nl_max,(1.d0,0.d0),beca%cvec(:,istart),nhsa, &
+                  qqb_tmp_c,nl_max,(1.d0,0.d0),bectmp_c,nss, intra_image_comm)
+                  !
+               endif
+               !
                deallocate(qq_tmp_c,qqb_tmp_c)
+               !
             endif   
             !
          endif
@@ -1425,19 +1483,33 @@ subroutine pc2(a,beca,b,becb, lgam)
          allocate(zbectmp(nss,nss))
 
          if(lgam) then
-	    do i=1,nss
-		do j=1,nss
-		  zbectmp(i,j)=0.5d0*(CMPLX(bectmp(i,j),0.d0) + CMPLX(bectmp(j,i),0.d0))
-		enddo
-	    enddo
-           bectmp(:,:) = DBLE(zbectmp(:,:))
+            !
+            do i=1,nss
+               !
+               do j=1,nss
+                  !
+                  zbectmp(i,j)=0.5d0*(CMPLX(bectmp(i,j),0.d0) + CMPLX(bectmp(j,i),0.d0))
+                  !
+               enddo
+               !
+            enddo
+            !
+            bectmp(:,:) = DBLE(zbectmp(:,:))
+            !
          else
-	    do i=1,nss
-		do j=1,nss
-		  zbectmp(i,j)=0.5d0*(bectmp_c(i,j)+CONJG(bectmp_c(j,i)))
-		enddo
-	    enddo
-           bectmp_c(:,:) = CONJG(zbectmp(:,:))
+            !
+            do i=1,nss
+               !
+               do j=1,nss
+                  !
+                  zbectmp(i,j)=0.5d0*(bectmp_c(i,j)+CONJG(bectmp_c(j,i)))
+                  !
+               enddo
+               !
+            enddo
+            !
+            bectmp_c(:,:) = CONJG(zbectmp(:,:))
+            !
          endif
 
          call zgemm('N','N',ngw,nss,nss,(-1.d0,0.d0),a(:,istart),ngw,zbectmp,nss,(1.d0,0.d0),b(:,istart),ngw)
@@ -1445,20 +1517,33 @@ subroutine pc2(a,beca,b,becb, lgam)
 
          ! this computes the new bec
          if(lgam) then
-	    if ( nhsa > 0 ) then
-		call dgemm('N','N',nhsa,nss,nss,1.0d0,beca%rvec(:,istart),nhsa,bectmp,nss,1.0d0,becb%rvec(:,istart),nhsa)
-	    endif
-	    deallocate(bectmp)
+            !
+            if ( nhsa > 0 ) then
+               !
+               call dgemm('N','N',nhsa,nss,nss,1.0d0,beca%rvec(:,istart),nhsa,bectmp,nss,1.0d0,becb%rvec(:,istart),nhsa)
+               !
+            endif
+            !
+            deallocate(bectmp)
+            !
          else
-	    if ( nhsa > 0 ) then
-		call zgemm('N','N',nhsa,nss,nss,(1.0d0,0.d0),beca%cvec(:,istart),nhsa,bectmp_c,nss,(1.0d0,0.d0),becb%cvec(:,istart),nhsa)
-	    endif
-	    deallocate(bectmp_c)
+            !
+            if ( nhsa > 0 ) then
+               !
+               call zgemm('N','N',nhsa,nss,nss,(1.0d0,0.d0),beca%cvec(:,istart),nhsa,bectmp_c,nss,(1.0d0,0.d0),becb%cvec(:,istart),nhsa)
+               !
+            endif
+            !
+            deallocate(bectmp_c)
+            !
          endif
          !
       enddo!on spin
+      !
       CALL stop_clock( 'pc3us' )
+      !
       return
+      !
       end subroutine pc3us
 
     subroutine pc3nc(a,b, lgam)
@@ -1499,47 +1584,77 @@ subroutine pc2(a,beca,b,becb, lgam)
       bold(:,:)=b(:,:)
 
       do j=1,n
+         !
          do i=1,n
-	    sca_c=CMPLX(0.0d0,0.d0)
-	    if(ispin(i) == ispin(j)) then
-		if(lgam) then
-                 if (ng0.eq.2) bold(1,i) = CMPLX(DBLE(bold(1,i)),0.0d0)
+            !
+            sca_c=CMPLX(0.0d0,0.d0)
+            !
+            if(ispin(i) == ispin(j)) then
+               !
+               if(lgam) then
+                  !
+                  if (ng0.eq.2) bold(1,i) = CMPLX(DBLE(bold(1,i)),0.0d0)
+                  !
                endif
-		do  ig=1,ngw           !loop on g vectors
-		    sca_c=sca_c+CONJG(a(ig,j))*bold(ig,i) !uncomment this for lowdin ortho
-		    sca_c=sca_c+(a(ig,i))*CONJG(bold(ig,j)) !remove the 2.d0 for lowdin ortho
-		enddo
+               !
+               do  ig=1,ngw           !loop on g vectors
+                  !
+                  sca_c=sca_c+CONJG(a(ig,j))*bold(ig,i) !uncomment this for lowdin ortho
+                  sca_c=sca_c+(a(ig,i))*CONJG(bold(ig,j)) !remove the 2.d0 for lowdin ortho
+                  !
+               enddo
 		!sca = sca*2.0d0  !2. for real weavefunctions
 		!$$ not necessary: sca = sca*2.0d0  !2. for real weavefunctions
                if(lgam) then
-		if (ng0.eq.2) then
-                   sca_c = CMPLX(DBLE(sca_c),0.d0) - CMPLX(0.5d0*DBLE(CONJG(a(1,j))*(bold(1,i))+(a(1,i))*CONJG(bold(1,j))),0.d0) !use this one for lowdin ortho
+                  !
+                  if (ng0.eq.2) then
+                     !
+                     sca_c = CMPLX(DBLE(sca_c),0.d0) - CMPLX(0.5d0*DBLE(CONJG(a(1,j))*(bold(1,i))+(a(1,i))*CONJG(bold(1,j))),0.d0) !use this one for lowdin ortho
                    !sca_c = CMPLX(DBLE(sca_c),0.d0) - CMPLX(DBLE((a(1,i))*CONJG(bold(1,j))),0.d0) !comment this one for lowdin ortho
-                 else
-                   sca_c = CMPLX(DBLE(sca_c), 0.d0)
-                 endif
+                  else
+                     !
+                     sca_c = CMPLX(DBLE(sca_c), 0.d0)
+                     !
+                  endif
+                  !
                else
-                 sca_c=0.5d0*sca_c
+                  !
+                  sca_c=0.5d0*sca_c
+                  !
                endif
-	      scar_c(i) = sca_c
+               !
+	            scar_c(i) = sca_c
+               !
             endif
+            !
          enddo
 
          call mp_sum( scar_c, intra_image_comm )
 
          do i=1,n
+            !
             if(ispin(i) == ispin(j)) then
+               !
                sca_c = scar_c(i)
+               !
                do ig=1,ngw
+                  !
                   b(ig,i)=b(ig,i)-sca_c*a(ig,j)
+                  !
                enddo
                ! this to prevent numerical errors
-               if(lgam) then 
-                if (ng0.eq.2) b(1,i) = CMPLX(DBLE(b(1,i)),0.0d0)
+               if(lgam) then
+                  ! 
+                  if (ng0.eq.2) b(1,i) = CMPLX(DBLE(b(1,i)),0.0d0)
+                  !
                endif
+               !
             endif
+            !
          enddo
+         !
       enddo
+      !
       deallocate(scar_c)
       call stop_clock('pc3')
       return
@@ -1583,47 +1698,77 @@ subroutine pc2(a,beca,b,becb, lgam)
       bold(:,:)=b(:,:)
 
       do j=1,n
+         !
          do i=1,n
+            !
             sca_c=CMPLX(0.0d0,0.d0)
+            !
             if(ispin(i) == ispin(j)) then
+                !
                 if(lgam) then
-                 if (ng0.eq.2) bold(1,i) = CMPLX(DBLE(bold(1,i)),0.0d0)
-               endif
-                do  ig=1,ngw           !loop on g vectors
+                   !
+                   if (ng0.eq.2) bold(1,i) = CMPLX(DBLE(bold(1,i)),0.0d0)
+                   !
+                endif
+                !
+                do  ig=1,ngw
+                    !
                     sca_c=sca_c+CONJG(a(ig,j))*bold(ig,i) !uncomment this for lowdin ortho
                     sca_c=sca_c+(a(ig,i))*CONJG(bold(ig,j)) !remove the 2.d0 for lowdin ortho
+                    !
                 enddo
                 !sca = sca*2.0d0  !2. for real weavefunctions
                 !$$ not necessary: sca = sca*2.0d0  !2. for real weavefunctions
-               if(lgam) then
-                if (ng0.eq.2) then
-                   sca_c = CMPLX(DBLE(sca_c),0.d0) - CMPLX(0.5d0*DBLE(CONJG(a(1,j))*(bold(1,i))+(a(1,i))*CONJG(bold(1,j))),0.d0) !use this one for lowdin ortho
+                if(lgam) then
+                   !
+                   if (ng0.eq.2) then
+                      !
+                      sca_c = CMPLX(DBLE(sca_c),0.d0) - CMPLX(0.5d0*DBLE(CONJG(a(1,j))*(bold(1,i))+(a(1,i))*CONJG(bold(1,j))),0.d0) !use this one for lowdin ortho
                    !sca_c = CMPLX(DBLE(sca_c),0.d0) - CMPLX(DBLE((a(1,i))*CONJG(bold(1,j))),0.d0) !comment this one for lowdin ortho
-                 else
-                   sca_c = CMPLX(DBLE(sca_c), 0.d0)
-                 endif
-               else
-                 sca_c=0.5d0*sca_c
-               endif
-              scar_c(i) = sca_c
+                   else
+                      !
+                      sca_c = CMPLX(DBLE(sca_c), 0.d0)
+                      !
+                   endif
+                   !
+                else
+                   !
+                   sca_c=0.5d0*sca_c
+                   !
+                endif
+                !
+                scar_c(i) = sca_c
+                !
             endif
+            !
          enddo
-
+         !
          call mp_sum( scar_c, intra_image_comm )
-
+         !
          do i=1,n
+            !
             if(ispin(i) == ispin(j)) then
+               !
                sca_c = scar_c(i)
+               !
                do ig=1,ngw
+                  !
                   b(ig,i)=b(ig,i)-sca_c*a(ig,j)
+                  !
                enddo
                ! this to prevent numerical errors
-               if(lgam) then 
-                if (ng0.eq.2) b(1,i) = CMPLX(DBLE(b(1,i)),0.0d0)
+               if(lgam) then
+                  ! 
+                  if (ng0.eq.2) b(1,i) = CMPLX(DBLE(b(1,i)),0.0d0)
+                  !
                endif
+               !
             endif
+            !
          enddo
+         !
       enddo
+      !
       deallocate(scar_c)
       call stop_clock('pc3')
       return
