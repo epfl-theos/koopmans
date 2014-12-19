@@ -1395,7 +1395,7 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-   SUBROUTINE rhoofr_cp_ortho_new &
+   SUBROUTINE rhoofr_cp_ortho_new & !this subroutine works with empty states
       ( nx, n, nudx, f, ispin, iupdwn, nupdwn, nspin, nfi, c, irb, &
        eigrb, bec, rhovan, rhor, rhog, rhos, enl, denl, ekin, dekin, & 
        tstress, ndwwf )

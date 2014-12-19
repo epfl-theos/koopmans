@@ -379,7 +379,6 @@
           IF(.not.do_pz_renorm) THEN
              !
              IF(.not.is_empty_) THEN
-             !   pink(i) = f_diag(i) * pink(i)
                 pink(i) = 2.d0 * pink(i)/nspin
              ELSE
                 pink(i) = 2.d0* pink(i)/nspin
@@ -3711,6 +3710,7 @@ end subroutine nksic_correction_nkipz
          endif
 
       else
+          write(6,*) "WARNING, WE ARE USING USPP"
           !
           ! here we take properly into account the
           ! smooth and the dense grids
@@ -3732,6 +3732,7 @@ end subroutine nksic_correction_nkipz
       ! the potential)
       !
       if( nkb > 0 ) then
+!               write(6,*) "WE ARE USING USPP --- WARNING"
           !
           !     aa_i,i,n = sum_j d_i,ij <beta_i,j|c_n>
           !

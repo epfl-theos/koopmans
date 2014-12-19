@@ -1422,119 +1422,119 @@
          spasso=1.d0
       endif
 
-!$$$$ Calculates wavefunction at very close to c0.
-!    if(.false.) then
-!      tmppasso=0.d-8
-!      if(ionode) write(8000,*) itercg
-!      do i=1,5
-!        cm(1:ngw,1:n)=c0(1:ngw,1:n)+spasso * tmppasso * hi(1:ngw,1:n)
+! $$$$ Calculates wavefunction at very close to c0.
+   if(.true.) then
+     tmppasso=1.d-8
+     if(ionode) write(8000,*) itercg
+     do i=1,5
+       cm(1:ngw,1:n)=c0(1:ngw,1:n)+spasso * tmppasso * hi(1:ngw,1:n)
 !        if(ng0.eq.2) then
 !          cm(1,:)=0.5d0*(cm(1,:)+CONJG(cm(1,:)))
 !        endif
-!
-!        call lowdin(cm)
-!        call calbec(1,nsp,eigr,cm,becm)
-!
-!        call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
-!        vpot = rhor
-!
-!        call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
-!                    &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
-!
-!        ene_save2(i)=etot
-!
-!        if(do_orbdep) then
-!          call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
-!                   ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
-!          etot = etot + sum(pink(:))
-!        endif
-!
-!        if(ionode) then
-!          write(8000,'(2e30.20,3e20.10)')  ene0,etot,dene0,tmppasso,((etot-ene0)+1.d-10)/(tmppasso+1.d-10)/dene0
-!        endif
-!
-!        ene_save(i)=etot
-!
-!        tmppasso=tmppasso+1.d-8
-!      enddo
-!
-!      if(ionode) then
-!        write(8000,'(2e30.20,3e20.10)')  ene_save(1),ene_save(2),dene0,1.d-8,(ene_save(2)-ene_save(1))/(1.d-8)/dene0
-!        write(8000,*)
-!        write(9000,'(3e30.20)')  ene_lda,ene_save2(1), ene_lda-ene_save2(1)
-!        write(9000,*)
-!      endif
-!
-!    endif
-!$$$$
+
+       call lowdin(cm)
+       call calbec(1,nsp,eigr,cm,becm)
+
+       call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
+       vpot = rhor
+
+       call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
+                   &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
+
+       ene_save2(i)=etot
+
+       if(do_orbdep) then
+         call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
+                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+         etot = etot + sum(pink(:))
+       endif
+
+       if(ionode) then
+         write(8000,'(2e30.20,3e20.10)')  ene0,etot,dene0,tmppasso,((etot-ene0)+1.d-10)/(tmppasso+1.d-10)/dene0
+       endif
+
+       ene_save(i)=etot
+
+       tmppasso=tmppasso+1.d-8
+     enddo
+
+     if(ionode) then
+       write(8000,'(2e30.20,3e20.10)')  ene_save(1),ene_save(2),dene0,1.d-8,(ene_save(2)-ene_save(1))/(1.d-8)/dene0
+       write(8000,*)
+       write(9000,'(3e30.20)')  ene_lda,ene_save2(1), ene_lda-ene_save2(1)
+       write(9000,*)
+     endif
+
+   endif
+! $$$$
 
 
-! open(file="~/marzari/debug.txt", unit=8000)
-!$$$$ Calculates wavefunction at very close to c0.
-!    if(.true.) then
-!      tmppasso=1.d-4
-!      !
-! #ifdef __DEBUG
-!      if(ionode) write(6,*) "debug", itercg
-! #endif
-!      do i=1,5
-!        cm(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso * tmppasso * hi(1:ngw,1:nbsp)
-!        if(ng0.eq.2) then
-!          cm(1,:)=0.5d0*(cm(1,:)+CONJG(cm(1,:)))
-!        endif
-! 
-!        call lowdin(cm)
-!        call calbec(1,nsp,eigr,cm,becm)
-! 
-!        call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
-!        vpot = rhor
-! 
-!        call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
-!                    &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
-! 
-!        ene_save2(i)=etot
-! 
-!        if(do_orbdep) then
-!            !
-!            call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
-!                                  ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
-!            !
-!            etot = etot + sum(pink(1:nbsp))
-!            !
-!        endif
-!        !
-!        if( do_hf ) then
-!            !
-!            call hf_potential( nbsp, nbspx, cm, f, ispin, iupdwn, nupdwn, &
-!                               nbsp, nbspx, cm, f, ispin, iupdwn, nupdwn, &
-!                               rhor, rhog, vxxpsi, exx)
-!            !
-!            etot = etot + sum(exx(1:nbsp))
-!            !
-!        endif
-!        !
-! #ifdef __DEBUG
-!        if(ionode) then
-!            write(6,'(2e30.20,3e20.10)')  ene0,etot,dene0,tmppasso,(etot-ene0)/tmppasso/dene0
-!        endif
-! #endif
-!        !if(ionode) then
-!        !    write(stdout,'(2e30.20,3e20.10)')  ene0,etot,dene0,tmppasso,(etot-ene0)/tmppasso/dene0
-!        !endif
-! 
-!        ene_save(i)=etot
-! 
-!        tmppasso=tmppasso*0.1d0
-!        !
-!      enddo
-! 
-! #ifdef __DEBUG
-!      if(ionode) write(6,*) "debug"
-! #endif
-!      !
-!    endif
-! close(8000)
-!$$$$
+open(file="~/marzari/koopmans_tests2014/debug.txt", unit=8000)
+! $$$$ Calculates wavefunction at very close to c0.
+   if(.true.) then
+     tmppasso=1.d-4
+     !
+#ifdef __DEBUG
+     if(ionode) write(6,*) "debug", itercg
+#endif
+     do i=1,5
+       cm(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso * tmppasso * hi(1:ngw,1:nbsp)
+       if(ng0.eq.2) then
+         cm(1,:)=0.5d0*(cm(1,:)+CONJG(cm(1,:)))
+       endif
+
+       call lowdin(cm)
+       call calbec(1,nsp,eigr,cm,becm)
+
+       call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
+       vpot = rhor
+
+       call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
+                   &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
+
+       ene_save2(i)=etot
+
+       if(do_orbdep) then
+           !
+           call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
+                                 ispin, iupdwn, nupdwn, rhor, rhog, wtot, vsic, pink )
+           !
+           etot = etot + sum(pink(1:nbsp))
+           !
+       endif
+       !
+       if( do_hf ) then
+           !
+           call hf_potential( nbsp, nbspx, cm, f, ispin, iupdwn, nupdwn, &
+                              nbsp, nbspx, cm, f, ispin, iupdwn, nupdwn, &
+                              rhor, rhog, vxxpsi, exx)
+           !
+           etot = etot + sum(exx(1:nbsp))
+           !
+       endif
+       !
+#ifdef __DEBUG
+       if(ionode) then
+           write(6,'(2e30.20,3e20.10)')  ene0,etot,dene0,tmppasso,(etot-ene0)/tmppasso/dene0
+       endif
+#endif
+       !if(ionode) then
+       !    write(stdout,'(2e30.20,3e20.10)')  ene0,etot,dene0,tmppasso,(etot-ene0)/tmppasso/dene0
+       !endif
+
+       ene_save(i)=etot
+
+       tmppasso=tmppasso*0.1d0
+       !
+     enddo
+
+#ifdef __DEBUG
+     if(ionode) write(6,*) "debug"
+#endif
+     !
+   endif
+close(8000)
+! $$$$
 
 
 

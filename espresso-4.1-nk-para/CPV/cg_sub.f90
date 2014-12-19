@@ -182,8 +182,8 @@
       !set tpa mass preconditioning
       !
       
-      call  emass_precond_tpa( ema0bg, tpiba2, emass_cutoff )
-     
+      call emass_precond_tpa( ema0bg, tpiba2, emass_cutoff )
+      ! 
       call prefor(eigr,betae) 
       
       !
@@ -256,6 +256,7 @@
       !
       gi(:,:)=CMPLX(0.d0,0.d0)
       hi(:,:)=CMPLX(0.d0,0.d0)
+      ene_ok=.false.
       !=======================================================================
       !                 begin of the main loop
       !=======================================================================
@@ -280,7 +281,6 @@
           !---ensemble-DFT
 
           vpot = rhor
-
 !$$
           CALL start_clock( 'vofrho1' )
 !$$
@@ -291,7 +291,6 @@
 !$$
           CALL stop_clock( 'vofrho1' )
 !$$
-
 !$$
           if( do_orbdep ) then
               !
@@ -304,7 +303,7 @@
 
               eodd=sum(pink(1:nbsp))
 !               write(6,*) eodd, etot, "EODD0", etot+eodd
-              etot = etot + eodd
+              etot=etot + eodd
               !
           endif
 !$$
@@ -344,8 +343,6 @@
          write(132,*) "original c0", c0(1:4,1)
 !          write(132,*) "original bec", bec%rvec(1:2,1:2)
         call newd(vpot,irb,eigrb,rhovan,fion)
-         write(132,*) "original rhovan", rhovan
-         write(132,*) "original energy", etot, eodd, etot-eodd
         call prefor(eigr,betae)!ATTENZIONE
 !$$
         call compute_hpsi()
@@ -355,15 +352,14 @@
 !$$        call pcdaga2(c0,phi,hpsi)
 !$$     HPSI IS ORTHOGONALIZED TO  c0
         if(switch.or.(.not.do_orbdep)) then
-          call pcdaga2(c0,phi,hpsi, lgam)
+           !
+           call pcdaga2(c0,phi,hpsi, lgam)
+           !
         else
-!           call calbec(1,nsp,eigr,hpsi,becm)
-! call pcdaga2(c0,phi,hpsi, lgam)
          if(.not.okvan) then
            call pc3nc(c0,hpsi,lgam)
          else
            call pc3us(c0,bec,hpsi,becm,lgam)
-           !call pcdaga3(c0,phi,hpsi, lgam)
          endif
         endif
 !$$
@@ -375,7 +371,6 @@
 	!COMPUTES ULTRASOFT-PRECONDITIONED HPSI, non kinetic-preconditioned, is the subsequent reorthogonalization necessary in the norm conserving case???: giovanni
         call calbec(1,nsp,eigr,hpsi,becm)
         call xminus1_twin(hpsi,betae,dumm,becm,s_minus1,.false.)
-!         call sminus1(hpsi,becm,betae)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !look if the following two lines are really needed
@@ -607,7 +602,6 @@ open(file="~/marzari/koopmans_tests2014/debug.txt", unit=8000)
 !    if(itercg)
 ! close(8000)
 ! $$$$
-      
       !
       ! calculates wave-functions on a point on direction hi
       !
