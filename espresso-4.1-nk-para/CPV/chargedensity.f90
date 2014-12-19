@@ -4,15 +4,13 @@
 ! GNU General Public License. See the file `License'
 ! in the root directory of the present distribution,
 ! or http://www.gnu.org/copyleft/gpl.txt .
-!
+! 
 
 !  ----------------------------------------------
 !  AB INITIO COSTANT PRESSURE MOLECULAR DYNAMICS
 !  ----------------------------------------------
 
 #include "f_defs.h"
-
-
 
 !=----------------------------------------------------------------------=!
     FUNCTION dft_total_charge_x( c, ngw, fi, n )
@@ -839,7 +837,7 @@
       ttstress = tpre
       IF( PRESENT( tstress ) ) ttstress = tstress
 
-      ci = ( 0.0d0, 1.0d0 )
+      ci = CMPLX( 0.0d0, 1.0d0 )
 
       rhor = 0.d0
       rhos = 0.d0
@@ -848,7 +846,6 @@
       !  calculation of kinetic energy ekin
       !
       ekin = enkin( c, ngw, f, n)
-!       write(6,*) "ekin", ekin ! added:giovanni:debug
       !
       IF( ttstress ) THEN
          !
@@ -869,8 +866,6 @@
          !     calculation of non-local energy
          !
          enl = ennl( rhovan, bec )
-!          write(6,*) "enl", enl !added:giovanni:debug
-!          write(6,*) "bec%cvec" , bec%cvec !added:giovanni:debug
          !
       END IF
       !
@@ -940,7 +935,7 @@
             IF( SIZE( c, 2 ) < n+1 ) &
                CALL errore( ' rhoofr ', ' c second dimension too small ', SIZE( c, 2 ) )
             !
-            c( :, n+1 ) = ( 0.d0, 0.d0 )
+            c( :, n+1 ) = CMPLX( 0.d0, 0.d0 )
             !
          ENDIF
          !
@@ -976,69 +971,60 @@
                !
                IF(lgam) THEN !added:giovanni
                   !
-		  CALL c2psi( psis, nnrsx, c( 1, i ), c( 1, i+1 ), ngw, 2 )
-		  CALL invfft('Wave',psis, dffts )
+                  CALL c2psi( psis, nnrsx, c( 1, i ), c( 1, i+1 ), ngw, 2 )
+                  CALL invfft('Wave',psis, dffts )
                   !
-		  !
-		  iss1 = ispin(i)
-		  sa1  = f(i) / omega
-		  IF ( i .NE. n ) THEN
-		      iss2 = ispin(i+1)
-		      sa2  = f(i+1) / omega
-		  ELSE
-		      iss2 = iss1
-		      sa2  = 0.0d0
-		  END IF
-		  !
-
-		  DO ir = 1, nnrsx
-		     rhos(ir,iss1) = rhos(ir,iss1) + sa1 * ( DBLE(psis(ir)))**2
-		     rhos(ir,iss2) = rhos(ir,iss2) + sa2 * (AIMAG(psis(ir)))**2
-		  END DO
-		  !
-!!!!!begin_added:giovanni
-               ELSE
-		  CALL c2psi( psis, nnrsx, c( 1, i ), c( 1, i ), ngw, 0 )
-
-		  CALL invfft('Wave',psis, dffts )
                   !
-		  !
-		  iss1 = ispin(i)
-		  sa1  = f(i) / omega
-! 		  IF ( i .NE. n ) THEN
-! 		      iss2 = ispin(i+1)
-! 		      sa2  = f(i+1) / omega
-! 		  ELSE
-! 		      iss2 = iss1
-! 		      sa2  = 0.0d0
-! 		  END IF
-		  !
-
+                  iss1 = ispin(i)
+                  sa1  = f(i) / omega
+                  IF ( i .NE. n ) THEN
+                     iss2 = ispin(i+1)
+                     sa2  = f(i+1) / omega
+                  ELSE
+                     iss2 = iss1
+                     sa2  = 0.0d0
+                  END IF
+                  !
                   DO ir = 1, nnrsx
-                      rhos(ir,iss1) = rhos(ir,iss1) + sa1 *(ABS(psis(ir))**2)
-		  END DO
+                     rhos(ir,iss1) = rhos(ir,iss1) + sa1 * ( DBLE(psis(ir)))**2
+                     rhos(ir,iss2) = rhos(ir,iss2) + sa2 * (AIMAG(psis(ir)))**2
+                  END DO
+                  !
+               ELSE
+                  !
+                  CALL c2psi( psis, nnrsx, c( 1, i ), c( 1, i ), ngw, 0 )
+                  !
+                  CALL invfft('Wave',psis, dffts )
+                  !
+                  !
+                  iss1 = ispin(i)
+                  sa1  = f(i) / omega
+                  !
+!                   DO ir = 1, nnrsx
+!                       rhos(ir,iss1) = rhos(ir,iss1) + sa1 *(ABS(psis(ir))**2)
+!                   END DO
+                  !
+                  DO ir = 1, nnrsx
+                      rhos(ir,iss1) = rhos(ir,iss1) + sa1 *(DBLE(psis(ir))**2+AIMAG(psis(ir))**2)
+                  END DO
                   !
                   IF(i.ne.n) then
-  
-		    CALL c2psi( psis, nnrsx, c( 1, i+1 ), c( 1, i+1 ), ngw, 0 )
+                     !
+                     CALL c2psi( psis, nnrsx, c( 1, i+1 ), c( 1, i+1 ), ngw, 0 )
+                     CALL invfft('Wave',psis, dffts )
+                     !
+                     !
+                     iss1 = ispin(i+1)
+                     sa1  = f(i+1) / omega
+                     !
+                     DO ir = 1, nnrsx
+                        !
+                        rhos(ir,iss1) = rhos(ir,iss1) + sa1 *( (DBLE(psis(ir))**2+AIMAG(psis(ir))**2))
+                        !
+                     END DO
 
-		    CALL invfft('Wave',psis, dffts )
-
-		    !
-		    iss1 = ispin(i+1)
-		    sa1  = f(i+1) / omega
-! 		  IF ( i .NE. n ) THEN
-! 		      iss2 = ispin(i+1)
-! 		      sa2  = f(i+1) / omega
-! 		  ELSE
-! 		      iss2 = iss1
-! 		      sa2  = 0.0d0
-! 		  END IF
-
-		    DO ir = 1, nnrsx
-		       rhos(ir,iss1) = rhos(ir,iss1) + sa1 *( abs(psis(ir))**2)
-		    END DO
                   ENDIF
+
                ENDIF
 !!!!end_added:giovanni
             END DO
@@ -1094,10 +1080,10 @@
             iss=1
             psi (:) = CMPLX(0.d0, 0.d0)
 !             IF(lgam) then !added:giovanni !!!### uncomment for k points
-	      DO ig=1,ngs  
-		psi(nm(ig))=CONJG(rhog(ig,iss))
-		psi(np(ig))=      rhog(ig,iss)
-	      END DO
+            DO ig=1,ngs  
+               psi(nm(ig))=CONJG(rhog(ig,iss))
+               psi(np(ig))=      rhog(ig,iss)
+            END DO
 !!!!!begin_added:giovanni
 !             ELSE !!!### uncomment for k points
 !               DO ig=1,ngs  !!!### uncomment for k points
@@ -1116,18 +1102,25 @@
             !     case nspin=2
             !
 !             IF(lgam) then !added:giovanni !!!### uncomment for k points
-	      isup=1
-	      isdw=2
-	      psi (:) = CMPLX(0.d0, 0.d0)
-	      DO ig=1,ngs
-	      psi(nm(ig))=CONJG(rhog(ig,isup))+ci*CONJG(rhog(ig,isdw))
-		psi(np(ig))=rhog(ig,isup)+ci*rhog(ig,isdw)
-	      END DO
-	      CALL invfft('Dense',psi, dfftp )
-	      DO ir=1,nnrx
-		rhor(ir,isup)= DBLE(psi(ir))
-		rhor(ir,isdw)=AIMAG(psi(ir))
-	      END DO
+            isup=1
+            isdw=2
+            psi (:) = CMPLX(0.d0, 0.d0)
+            !
+            DO ig=1,ngs
+               !
+               psi(nm(ig))=CONJG(rhog(ig,isup))+ci*CONJG(rhog(ig,isdw))
+               psi(np(ig))=rhog(ig,isup)+ci*rhog(ig,isdw)
+               !
+            END DO
+            !
+            CALL invfft('Dense',psi, dfftp )
+            !
+            DO ir=1,nnrx
+               !
+               rhor(ir,isup)= DBLE(psi(ir))
+               rhor(ir,isdw)=AIMAG(psi(ir))
+               !
+            END DO
 !!!!!begin_added:giovanni
 !             ELSE !!!### uncomment for k points
 !               DO iss=1, 2 !!!### uncomment for k points
@@ -1157,7 +1150,8 @@
          IF ( ttstress .AND. program_name == 'CP90' ) &
             CALL drhov( irb, eigrb, rhovan, rhog, rhor, drhog, drhor )
          !
-         CALL rhov( irb, eigrb, rhovan, rhog, rhor, lgam )
+         CALL rhov( irb, eigrb, rhovan, rhog, rhor, lgam ) 
+         write(131,*) "rhovan", rhovan(:,:,1) !added:giovanni:debug
 
       ENDIF COMPUTE_CHARGE
 !
@@ -1741,7 +1735,7 @@
          ELSE !IF(lgam) THEN !!!### uncomment for k points
             isup=1
             isdw=2
-             DO ir=1,nnrsx
+            DO ir=1,nnrsx
                psis(ir)=CMPLX(rhos(ir,isup),rhos(ir,isdw))
             END DO
             CALL fwfft('Smooth',psis, dffts )
@@ -2648,7 +2642,6 @@
 !=----------------------------------------------------------------------=!
    SUBROUTINE fillgrad_x( nspin, rhog, gradr, lgam )
 !=----------------------------------------------------------------------=!
-
       !
       !     calculates gradient of charge density for gradient corrections
       !     in: charge density on G-space    out: gradient in R-space
@@ -2674,7 +2667,6 @@
       complex(DP), allocatable :: v(:)
       complex(DP) :: ci
       integer     :: iss, ig, ir
-!
 !
       allocate( v( nnrx ) ) 
       !
