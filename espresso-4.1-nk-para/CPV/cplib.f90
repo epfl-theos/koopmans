@@ -317,8 +317,6 @@ END FUNCTION
       RETURN
       END SUBROUTINE denlcc
 
-
-
 !-----------------------------------------------------------------------
       SUBROUTINE dotcsc( eigr, cp, ngw, n, lgam )!added:giovanni lgam
 !-----------------------------------------------------------------------
@@ -429,7 +427,6 @@ END FUNCTION
 !
       RETURN
       END SUBROUTINE dotcsc
-
 
 !-----------------------------------------------------------------------
    SUBROUTINE dotcsv( csv, nbspx, nbsp, c, bec, v, bev, ngw, ibnd1, ibnd2, lgam)
