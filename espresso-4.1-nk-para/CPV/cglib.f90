@@ -1281,6 +1281,7 @@ subroutine pc2(a,beca,b,becb, lgam)
       use gvecw, only: ngw
       use reciprocal_vectors, only: ng0 => gstart
       use mp, only: mp_sum
+      use cvan, only: nvb, ish
       use electrons_base, only: n => nbsp, ispin, nspin,nupdwn,iupdwn
 
       implicit none
@@ -1291,8 +1292,9 @@ subroutine pc2(a,beca,b,becb, lgam)
       complex(DP) :: sca
       real(DP), allocatable :: seig(:)
       complex(DP), allocatable :: s(:,:), omat(:,:), sqrt_s(:,:)
-      logical :: lgam
+      logical :: lgam, okvan
       !
+      okvan=nvb>0
       aold(:,:)=a(:,:)
 
       do isp=1,nspin
@@ -1307,12 +1309,12 @@ subroutine pc2(a,beca,b,becb, lgam)
         s(:,:)=CMPLX(0.d0,0.d0)
 
         do i=1,ndim
-          !
-          nbnd1=iupdwn(isp)-1+i
-          !
-          do j=1,i
-            !
-            nbnd2=iupdwn(isp)-1+j
+           !
+           nbnd1=iupdwn(isp)-1+i
+           !
+           do j=1,i
+              !
+              nbnd2=iupdwn(isp)-1+j
               !
               sca=CMPLX(0.0d0,0.d0)
               !
@@ -1342,7 +1344,9 @@ subroutine pc2(a,beca,b,becb, lgam)
                  enddo
                  !
               ENDIF
-          enddo
+              !
+           enddo
+           !
         enddo
         
         call mp_sum( s, intra_image_comm )
@@ -1399,6 +1403,124 @@ subroutine pc2(a,beca,b,becb, lgam)
       enddo
 
      END SUBROUTINE lowdin
+!$$
+
+!----------------------------------------------------------------------
+     SUBROUTINE lowdin_uspp(a, beca, lgam)
+!----------------------------------------------------------------------
+
+      use kinds
+      use io_global, only: stdout,ionode
+      use mp_global, only: intra_image_comm
+      use gvecw, only: ngw
+      use reciprocal_vectors, only: ng0 => gstart
+      use mp, only: mp_sum
+      use cvan, only: nvb, ish
+      use uspp, only: betae => vkb
+      use twin_types
+      use ions_base, only: nsp, nat
+      use electrons_base, only: n => nbsp, nbspx, ispin, nspin,nupdwn,iupdwn
+
+      implicit none
+
+      complex(dp) a(ngw,n), aold(ngw,n)
+      integer i, j,k,ig, isp,ndim,nbnd1,nbnd2
+      real(dp) sqrt_seig(n)
+      complex(DP) :: sca
+      type(twin_matrix) :: beca
+      real(DP), allocatable :: seig(:)
+      complex(DP), allocatable :: s(:,:), omat(:,:), sqrt_s(:,:)
+      logical :: lgam, okvan
+      complex(dp) :: eigr(ngw,nat) !!debug
+      !
+      okvan=nvb>0
+      aold(:,:)=a(:,:)
+
+      do isp=1,nspin
+
+        ndim=nupdwn(isp)
+
+         if (ndim>0) then
+            allocate(s(ndim,ndim))
+            allocate(omat(ndim,ndim))
+            allocate(seig(ndim))
+            allocate(sqrt_s(ndim,ndim))
+
+            s(:,:)=CMPLX(0.d0,0.d0)
+
+            do i=1,ndim
+               !
+               nbnd1=iupdwn(isp)-1+i
+               !
+               do j=1,i
+                  !
+                  nbnd2=iupdwn(isp)-1+j
+                  !
+                  call dotcsv( s(j,i), nbspx, n, a, beca, a, beca, ngw, iupdwn(isp)+j-1, iupdwn(isp)+i-1, lgam)
+                  s(i,j)=CONJG(s(j,i))
+                  !
+               enddo
+               !
+            enddo
+            do i=1,ndim
+               write(111,*) s(i,:)
+               write(111,*) i
+            enddo
+               write(111,*) "END"
+            !         call mp_sum( s, intra_image_comm )
+            call zdiag(ndim,ndim,s,seig,omat,1)
+
+            do i=1,ndim
+               !
+               if(seig(i).lt.0.d0.and.ionode) write(*,*) 'seig is negative ',seig(:)
+               !
+            enddo
+
+            sqrt_seig(:)=1.d0/DSQRT(seig(:))
+
+            sqrt_s(:,:)=CMPLX(0.d0,0.d0)
+
+            do i=1,ndim
+               !
+               do j=1,i
+                  !
+                  sca=0.d0
+                  do k=1,ndim
+                     !
+                     sca=sca+sqrt_seig(k) * omat(i,k)*CONJG(omat(j,k))
+                     !
+                  enddo
+                  sqrt_s(i,j) = sca
+                  sqrt_s(j,i) = CONJG(sca)
+                  !
+               enddo
+               !
+            enddo
+
+            do i=1,ndim
+               !
+               nbnd1=iupdwn(isp)-1+i
+               a(:,nbnd1) = CMPLX(0.d0,0.d0)
+               !
+               do j=1,ndim
+                  !
+                  nbnd2=iupdwn(isp)-1+j
+                  a(:,nbnd1) = a(:,nbnd1) + sqrt_s(j,i) * aold(:,nbnd2)
+                  !
+               enddo
+               !
+            enddo
+
+            deallocate(s)
+            deallocate(omat)
+            deallocate(seig)
+            deallocate(sqrt_s)
+            !
+         endif
+
+      enddo
+
+     END SUBROUTINE lowdin_uspp
 !$$
 
 !$$

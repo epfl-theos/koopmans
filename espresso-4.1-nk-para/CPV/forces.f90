@@ -407,6 +407,9 @@
 
          END DO
          !
+!          write(6,*) "deeq"
+!          write(6,*) deeq
+         !
          CALL ZGEMM ( 'N', 'N', ngw, nogrp_ , nhsa, c_one, (vkb), ngw, (af), nhsa, c_one, df, ngw) !df=df+beta*af !!! beta_j*af_jk= beta_j> d_ij <beta_i|c_k>
          !
          CALL ZGEMM ( 'N', 'N', ngw, nogrp_ , nhsa, c_one, (vkb), ngw, (aa), nhsa, c_one, da, ngw)

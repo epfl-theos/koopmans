@@ -160,7 +160,7 @@
       real(DP)    :: dtmp, temp
       real(dp)    :: tmppasso, ene_save(100), ene_save2(100), ene_lda
       !
-      logical :: lgam, switch=.false., ortho_switch=.false., okvan
+      logical :: lgam, switch=.true., ortho_switch=.false., okvan, steepest=.false.
       complex(DP) :: phase
       integer :: ierr, northo_flavor
       real(DP) :: deltae,sic_coeff1, sic_coeff2 !coefficients which may change according to the flavour of SIC
@@ -189,14 +189,27 @@
       !
       !orthonormalize c0
       !
-
-      IF(do_orbdep.and.ortho_switch) THEN
-         call lowdin(c0, lgam)
-         call calbec(1,nsp,eigr,c0,bec)
-      ELSE
-         call calbec(1,nsp,eigr,c0,bec)
-         call gram(betae,bec,nhsa,c0,ngw,nbsp)
-      ENDIF
+      call orthogonalize_wfc_only(c0,bec)
+!       IF(do_orbdep.and.ortho_switch) THEN
+!          !
+!          if (.not. okvan) then
+!             !
+!             call lowdin(c0, lgam)
+!             !
+!          else
+!             !
+!             call lowdin_uspp(c0, bec, lgam)
+!             !
+!          endif
+!          !
+!          call calbec(1,nsp,eigr,c0,bec)
+!          !
+!       ELSE
+!          !
+!          call calbec(1,nsp,eigr,c0,bec)
+!          call gram(betae,bec,nhsa,c0,ngw,nbsp)
+!          !
+!       ENDIF
 
          !call calbec(1,nsp,eigr,c0,bec)
          
@@ -257,7 +270,6 @@
         if(.not. ene_ok ) then
 
           call calbec(1,nsp,eigr,c0,bec)
-          
           call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
           !
           !     put core charge (if present) in rhoc(r)
@@ -324,11 +336,16 @@
         endif
         
         call print_out_observables()
-        
-        call check_convergence_cg()
-        
         !
+        ! here we store the etot in ene0, to keep track of the energy of the initial point
+        !
+        call check_convergence_cg()        
+        !
+         write(132,*) "original c0", c0(1:4,1)
+!          write(132,*) "original bec", bec%rvec(1:2,1:2)
         call newd(vpot,irb,eigrb,rhovan,fion)
+         write(132,*) "original rhovan", rhovan
+         write(132,*) "original energy", etot, eodd, etot-eodd
         call prefor(eigr,betae)!ATTENZIONE
 !$$
         call compute_hpsi()
@@ -342,9 +359,12 @@
         else
 !           call calbec(1,nsp,eigr,hpsi,becm)
 ! call pcdaga2(c0,phi,hpsi, lgam)
-         call pc3nc(c0,hpsi,lgam)
-!           call pc3us(c0,bec,hpsi,becm,lgam)
-!           call pcdaga3(c0,phi,hpsi, lgam)
+         if(.not.okvan) then
+           call pc3nc(c0,hpsi,lgam)
+         else
+           call pc3us(c0,bec,hpsi,becm,lgam)
+           !call pcdaga3(c0,phi,hpsi, lgam)
+         endif
         endif
 !$$
 
@@ -354,8 +374,8 @@
 
 	!COMPUTES ULTRASOFT-PRECONDITIONED HPSI, non kinetic-preconditioned, is the subsequent reorthogonalization necessary in the norm conserving case???: giovanni
         call calbec(1,nsp,eigr,hpsi,becm)
-!         call xminus1_twin(hpsi,betae,dumm,becm,s_minus1,.false.)
-!        call sminus1(hpsi,becm,betae)
+        call xminus1_twin(hpsi,betae,dumm,becm,s_minus1,.false.)
+!         call sminus1(hpsi,becm,betae)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !look if the following two lines are really needed
@@ -381,7 +401,7 @@
         !
         call orthogonalize(c0,gi,becm,bec)
 !$$
-        call calbec(1,nsp,eigr,hpsi,bec0) 
+!         call calbec(1,nsp,eigr,hpsi,bec0) 
          !        
          !  calculates gamma
          !
@@ -429,10 +449,10 @@
                            inl=ish(is)+(iv-1)*na(is)+ia
                            jnl=ish(is)+(jv-1)*na(is)+ia
                            gamma_c=gamma_c+ qq(iv,jv,is)*CONJG(becm%cvec(inl,i))*(bec0%cvec(jnl,i)) !warning:giovanni CONJG
-                         end do
-                     end do
-                   end do
-               end do
+                         enddo
+                     enddo
+                   enddo
+               enddo
              enddo
          endif
        endif
@@ -441,7 +461,9 @@
 ! 	IF(lgam) THEN
 	gamma_c=CMPLX(DBLE(gamma_c),0.d0)
 ! 	ENDIF
-
+       if(steepest) then
+          gamma_c=0.d0 ! steepest descent
+       endif
 !$$        if(itercg==1.or.(mod(itercg,niter_cg_restart).eq.1).or.restartcg) then
         if( itercg==1 .or. mod(itercg,niter_cg_restart)==0 .or. restartcg) then
 !$$
@@ -459,9 +481,14 @@
 
           !find direction hi for general case 
           !calculates gamma for general case, not using Polak Ribiere
-          essenew_c=gamma_c
-          gamma_c=gamma_c/esse_c
-          esse_c=essenew_c
+          if(.not.steepest) then
+             essenew_c=gamma_c
+             gamma_c=gamma_c/esse_c
+             esse_c=essenew_c
+          else
+             esse_c=0.d0
+             essenew_c=0.d0
+          endif
 
           hi(1:ngw,1:nbsp)=gi(1:ngw,1:nbsp)+(gamma_c)*hi(1:ngw,1:nbsp)
 
@@ -507,6 +534,80 @@
          spasso=1.d0
       endif
 
+      if(itercg==1) then
+open(file="~/marzari/koopmans_tests2014/debug.txt", unit=8000)
+      endif
+! $$$$ Calculates wavefunction at very close to c0.
+   if(.true.) then
+     tmppasso=1.d-4
+     !
+#ifdef __DEBUG
+     if(ionode) write(6,*) "debug", itercg
+#endif
+     do i=1,5
+       cm(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso * tmppasso * hi(1:ngw,1:nbsp)
+       write(132,*) "next c0", c0(1:4,1)
+!        if(ng0.eq.2) then
+!          cm(1,:)=0.5d0*(cm(1,:)+CONJG(cm(1,:)))
+!        endif
+       call orthogonalize_wfc_only(cm, becm)
+       write(132,*) "next2 c0", cm(1:4,1)
+!        write(132,*) "next2 bec", becm%rvec(1:2,1:2)
+
+       call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6) !right one
+       write(127,*) "rhor", itercg, i, rhor(1:10,1) !JUST-FOR-NOW
+       vpot = rhor
+       write(132,*) "next2 rhovan", rhovan
+
+       call vofrho(nfi,vpot,rhog,rhos,rhoc,tfirst,tlast,             &
+                   &        ei1,ei2,ei3,irb,eigrb,sfac,tau0,fion)
+       write(123,*) "vpot", itercg, i, vpot(1:10,1) !JUST-FOR-NOW
+
+       ene_save2(i)=etot
+
+       if(do_orbdep) then
+           !
+           call nksic_potential( nbsp, nbspx, cm, fsic, becm, rhovan, deeq_sic, &
+                                 ispin, iupdwn, nupdwn, rhor, rhoc, wtot, sizwtot, vsic, do_wxd, pink, nudx, wfc_centers, wfc_spreads, icompute_spread, .false. ) !--- right one
+           write(125,*) "vsic", itercg, i, vsic(1:10,1) !JUST-FOR-NOW
+           !
+           eodd = sum(pink(1:nbsp))
+           etot = etot + eodd
+           !
+       endif
+       !
+       write(132,*) "next2 energy", etot, eodd, etot-eodd
+!        if( do_hf ) then
+!            !
+!            call hf_potential( nbsp, nbspx, cm, f, ispin, iupdwn, nupdwn, &
+!                               nbsp, nbspx, cm, f, ispin, iupdwn, nupdwn, &
+!                               rhor, rhog, vxxpsi, exx)
+!            !
+!            etot = etot + sum(exx(1:nbsp))
+!            !
+!        endif
+       !
+! #ifdef __DEBUG
+       if(ionode) then
+           write(8000,'(2e25.15,4e20.10)')  ene0,etot,(etot-ene0)/tmppasso,dene0,tmppasso,(etot-ene0)/tmppasso/dene0
+       endif
+! #endif
+
+       ene_save(i)=etot
+
+       tmppasso=tmppasso*0.1d0
+       !
+     enddo
+
+#ifdef __DEBUG
+     if(ionode) write(6,*) "debug"
+#endif
+     !
+   endif
+!    if(itercg)
+! close(8000)
+! $$$$
+      
       !
       ! calculates wave-functions on a point on direction hi
       !
@@ -520,14 +621,27 @@
 
       !orthonormalize
 
-      !
-        if(do_orbdep.and.ortho_switch) then
-           call lowdin(cm, lgam)
-           call calbec(1,nsp,eigr,cm,becm)
-        else
-           call calbec(1,nsp,eigr,cm,becm)
-           call gram(betae,becm,nhsa,cm,ngw,nbsp)
-        endif
+      call orthogonalize_wfc_only(cm,becm)
+!       if(do_orbdep.and.ortho_switch) then
+!          !
+!          if(.not.okvan) then
+!             !
+!             call lowdin(cm, lgam)
+!             !
+!          else
+!             !
+!             call lowdin_uspp(cm, becm, lgam)
+!             !
+!          endif
+!          !
+!          call calbec(1,nsp,eigr,cm,becm)
+!          !
+!       else
+!          !
+!          call calbec(1,nsp,eigr,cm,becm)
+!          call gram(betae,becm,nhsa,cm,ngw,nbsp)
+!          !
+!       endif
         !call calbec(1,nsp,eigr,cm,becm)
 
         !****calculate energy ene1
@@ -554,7 +668,7 @@
 !$$
         if( do_orbdep ) then
             !warning:giovanni don't we need becm down here??? otherwise problems with ultrasoft!!
-            call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
+            call nksic_potential( nbsp, nbspx, cm, fsic, becm, rhovan, deeq_sic, &
                                ispin, iupdwn, nupdwn, rhor, rhoc, wtot, sizwtot, vsic, do_wxd, pink, nudx, &
                                wfc_centers, wfc_spreads, &
                                icompute_spread, .false.)
@@ -609,13 +723,27 @@
         ! enddo
         ENDIF
       
-        IF(do_orbdep.and.ortho_switch) THEN
-           call lowdin(cm, lgam)
-           call calbec(1,nsp,eigr,cm,becm)
-        ELSE
-           call calbec(1,nsp,eigr,cm,becm)
-           call gram(betae,becm,nhsa,cm,ngw,nbsp)
-        ENDIF
+        call orthogonalize_wfc_only(cm, becm)
+!         IF(do_orbdep.and.ortho_switch) THEN
+!            !
+!            if(.not. okvan) then
+!               !
+!               call lowdin(cm, lgam)
+!               !
+!            else
+!               !
+!               call lowdin_uspp(cm, lgam)
+!               !
+!            endif
+!            !
+!            call calbec(1,nsp,eigr,cm,becm)
+!            !
+!         ELSE
+!            !       
+!            call calbec(1,nsp,eigr,cm,becm)
+!            call gram(betae,becm,nhsa,cm,ngw,nbsp)
+!            !
+!         ENDIF
 
         !test on energy: check the energy has really diminished
 
@@ -646,7 +774,7 @@
 !$$
         if(do_orbdep) then
             !warning:giovanni... don't we need becm down here?? otherwise problem with ultrasoft!!
-            call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
+            call nksic_potential( nbsp, nbspx, cm, fsic, becm, rhovan, deeq_sic, &
                                   ispin, iupdwn, nupdwn, rhor, rhoc, wtot, sizwtot, vsic, do_wxd, pink, nudx,&
                                   wfc_centers, wfc_spreads, &
                                   icompute_spread, .false.)
@@ -695,13 +823,14 @@
 !$$
           restartcg=.true.
           !
-          IF(do_orbdep.and.ortho_switch) THEN
-             call lowdin(c0, lgam)
-             call calbec(1,nsp,eigr,c0,bec)
-          ELSE
-             call calbec(1,nsp,eigr,c0,bec)
-             call gram(betae,bec,nhsa,c0,ngw,nbsp)
-          ENDIF
+          call orthogonalize_wfc_only(c0,bec)
+!           IF(do_orbdep.and.ortho_switch) THEN
+!              call lowdin(c0, lgam)
+!              call calbec(1,nsp,eigr,c0,bec)
+!           ELSE
+!              call calbec(1,nsp,eigr,c0,bec)
+!              call gram(betae,bec,nhsa,c0,ngw,nbsp)
+!           ENDIF
           !
           ene_ok=.false.
           !if  ene1 << energy <  ene0; go to  ene1
@@ -715,13 +844,14 @@
 !$$
           restartcg=.true.!ATTENZIONE
           !
-          IF(do_orbdep.and.ortho_switch) THEN
-             call lowdin(c0, lgam)
-             call calbec(1,nsp,eigr,c0,bec)
-          ELSE
-             call calbec(1,nsp,eigr,c0,bec)
-             call gram(betae,bec,nhsa,c0,ngw,nbsp)
-          ENDIF
+          call orthogonalize_wfc_only(c0,bec)
+!           IF(do_orbdep.and.ortho_switch) THEN
+!              call lowdin(c0, lgam)
+!              call calbec(1,nsp,eigr,c0,bec)
+!           ELSE
+!              call calbec(1,nsp,eigr,c0,bec)
+!              call gram(betae,bec,nhsa,c0,ngw,nbsp)
+!           ENDIF
           !
           !if ene > ene0,en1 do a steepest descent step
           ene_ok=.false.
@@ -743,17 +873,18 @@
 !$$
             ! chenge the searching direction
             spasso=spasso*(-1.d0)
-
-            IF(do_orbdep.and.ortho_switch) THEN
-               call lowdin(cm, lgam)
-               call calbec(1,nsp,eigr,cm,becm)
-            ELSE
-               call calbec(1,nsp,eigr,cm,becm)
-               call gram(betae,bec,nhsa,cm,ngw,nbsp)
-            ENDIF
+            call orthogonalize_wfc_only(cm,becm)
+            !
+!             IF(do_orbdep.and.ortho_switch) THEN
+!                call lowdin(cm, lgam)
+!                call calbec(1,nsp,eigr,cm,becm)
+!             ELSE
+!                call calbec(1,nsp,eigr,cm,becm)
+!                call gram(betae,bec,nhsa,cm,ngw,nbsp)
+!             ENDIF
 
             call rhoofr(nfi,cm(:,:),irb,eigrb,becm,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
-  
+
             !calculates the potential
             !
             !     put core charge (if present) in rhoc(r)
@@ -774,7 +905,7 @@
             if(do_orbdep) then
                 !warning:giovanni don't we need becm down here??? otherwise problems with ultrasoft
 
-                call nksic_potential( nbsp, nbspx, cm, fsic, bec, rhovan, deeq_sic, &
+                call nksic_potential( nbsp, nbspx, cm, fsic, becm, rhovan, deeq_sic, &
                                       ispin, iupdwn, nupdwn, rhor, rhoc, wtot, sizwtot, vsic, do_wxd, pink, nudx, &
                                       wfc_centers, wfc_spreads, &
                                       icompute_spread, .false.)
@@ -1430,25 +1561,90 @@
      
      end subroutine compute_hpsi
 
-     subroutine orthogonalize(wfc0,wfc,bec0,becwfc)
+     subroutine orthogonalize(wfc0,wfc,becwfc,bec0)
      
         type(twin_matrix) :: becwfc, bec0
         complex(DP) :: wfc(:,:), wfc0(:,:)
         
-        call calbec(1,nsp,eigr,wfc,bec0)
+        call calbec(1,nsp,eigr,wfc,becwfc)
+!         call calbec(1,nsp,eigr,wfc0,bec0)
 !$$        call pc2(c0,bec,hi,bec0)
 !$$
         if(switch.or.(.not.do_orbdep)) then
-           call pc2(wfc0,becwfc,wfc,bec0, lgam)
+           call pc2(wfc0,bec0,wfc,becwfc, lgam)
         else
-!            call pc2(wfc0,becwfc,wfc,bec0, lgam)
-           call pc3nc(wfc0,wfc,lgam)
-!           call pc3us(c0,bec,hi,bec0, lgam)
+!          call pc2(wfc0,becwfc,wfc,bec0, lgam)
+           if(.not.okvan) then
+               call pc3nc(wfc0,wfc,lgam)
+           else
+               call pc3us(wfc0,bec0,wfc,becwfc, lgam)
+           endif
+           !
         endif
      
      end subroutine orthogonalize
+
+      subroutine orthogonalize_wfc_only(wfc,becwfc)
+         !
+         type(twin_matrix) :: becwfc
+         complex(DP) :: wfc(:,:)
+         complex(DP) :: s(nbspx,nbspx)
+         integer :: nbnd1,nbnd2,ndim,i,j,isp
+         !
+         call calbec(1,nsp,eigr,wfc,becwfc)
+         !
+         IF(do_orbdep.and.ortho_switch) THEN
+            !            
+            if(.not. okvan) then
+               !
+               call lowdin(wfc, lgam)
+               !
+            else
+               !
+               call lowdin_uspp(wfc,becwfc,lgam)
+               !
+            endif
+            !
+         ELSE
+            !
+            call gram(betae,becwfc,nhsa,wfc,ngw,nbsp)
+            !
+         ENDIF
+         !
+         call calbec(1,nsp,eigr,wfc,becwfc)
+         !
+!       THIS LAST PART IS FOR DEBUG
+!         call prefor(eigr,betae)
+!         call calbec(1,nsp,eigr,a,beca)
+      s(:,:)=CMPLX(0.d0,0.d0)
+
+      do isp=1,nspin
+         ndim=nupdwn(isp)
+         do i=1,ndim
+            !
+            nbnd1=iupdwn(isp)-1+i
+            !
+            do j=1,i
+               !
+               nbnd2=iupdwn(isp)-1+j
+               !
+               call dotcsv( s(j,i), nbspx, nbsp, wfc, becwfc, wfc, becwfc, ngw, iupdwn(isp)+j-1, iupdwn(isp)+i-1, lgam)
+               s(i,j)=CONJG(s(j,i))
+               !
+            enddo
+            !
+         enddo
+            write(111,*) "begin debug"
+         do i=1,ndim
+            write(111,*) s(i,:)
+            write(111,*) i
+         enddo
+            write(111,*) "end debug"
+      enddo
+!     END DEBUG
+      end subroutine orthogonalize_wfc_only
                          
-     subroutine compute_lambda_bare()
+      subroutine compute_lambda_bare()
      
         hitmp(:,:) = c0(:,:)
 

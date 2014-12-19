@@ -3788,8 +3788,8 @@ end subroutine nksic_correction_nkipz
 		  !
 	      enddo
 	      !
-              write(6,*) "deeq_sic"
-              write(6,*) deeq_sic
+!               write(6,*) "deeq_sic"
+!               write(6,*) deeq_sic
               !
 	      call DGEMM ( 'N', 'N', 2*ngw, 2, nkb, 1.0d0, &
 			  vkb, 2*ngw, aa, nkb, 1.0d0, vsicpsi(:,:), 2*ngw)
