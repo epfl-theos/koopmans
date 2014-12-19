@@ -119,6 +119,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
 !   write(6,*) "inside move-electrons" !added:giovanni debug
   !
   lgam=gamma_only.and..not. do_wf_cmplx
+
   electron_dynamic: IF ( tcg ) THEN
 ! 
      CALL runcg_uspp( nfi, tfirst, tlast, eigr, bec, irb, eigrb, &
@@ -150,7 +151,6 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
             call compute_duals(c0,cdual,nbsp,1)
             call calbec(1,nsp,eigr,cdual,becdual)
          ENDIF
-
          CALL rhoofr( nfi, c0, irb, eigrb, bec, &
                          becsum, rhor, rhog, rhos, enl, denl, ekin, dekin6 )
          !
