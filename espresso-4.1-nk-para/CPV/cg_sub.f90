@@ -292,6 +292,14 @@
           CALL stop_clock( 'vofrho1' )
 !$$
 !$$
+           if( tefield  ) then
+             ! 
+             call berry_energy( enb, enbi, bec, c0(:,:), fion )
+             !
+             etot=etot+enb+enbi
+             !
+           endif
+
           if( do_orbdep ) then
               !
               fsic = f
@@ -658,6 +666,13 @@ open(file="~/marzari/koopmans_tests2014/debug.txt", unit=8000)
 !$$
         CALL stop_clock( 'vofrho2' )
 !$$
+        if( tefield  ) then
+          !
+          call berry_energy( enb, enbi, becm, cm(:,:), fion )
+          ! 
+          etot=etot+enb+enbi
+          ! 
+        endif
 
 !$$
         if( do_orbdep ) then
@@ -764,6 +779,13 @@ open(file="~/marzari/koopmans_tests2014/debug.txt", unit=8000)
 !$$
         CALL stop_clock( 'vofrho3' )
 !$$
+        if( tefield  ) then
+          ! 
+          call berry_energy( enb, enbi, becm, cm(:,:), fion )
+          !  
+          etot=etot+enb+enbi
+          !
+        endif
 
 !$$
         if(do_orbdep) then
@@ -895,6 +917,11 @@ open(file="~/marzari/koopmans_tests2014/debug.txt", unit=8000)
 !$$
             CALL stop_clock( 'vofrho4' )
 !$$
+            if( tefield  ) then!to be bettered
+              call berry_energy( enb, enbi, becm, cm(:,:), fion )
+              etot=etot+enb+enbi
+            endif
+
 !$$
             if(do_orbdep) then
                 !warning:giovanni don't we need becm down here??? otherwise problems with ultrasoft
@@ -1091,6 +1118,20 @@ open(file="~/marzari/koopmans_tests2014/debug.txt", unit=8000)
             !
          ENDIF
 !$$
+        if(tefield.and.(evalue .ne. 0.d0)) then
+            !
+            call dforceb &
+               (c0, i, betae, ipolp, bec ,ctabin(1,1,ipolp), gqq, gqqm, qmat, deeq, df)
+            !
+            c2(:)=c2(:)+evalue*df(:)
+            !
+            call dforceb &
+               (c0, i+1, betae, ipolp, bec ,ctabin(1,1,ipolp), gqq, gqqm, qmat, deeq, df)
+            !
+            c3(:)=c3(:)+evalue*df(:)
+            !
+        endif
+
          if ( do_orbdep ) then
              !
              ! faux takes into account spin multiplicity.
@@ -1214,6 +1255,10 @@ open(file="~/marzari/koopmans_tests2014/debug.txt", unit=8000)
      call nlfl_twin(bec,becdr,lambda,fion, lgam)
      ! bforceion adds the force term due to electronic berry phase
      ! only in US-case          
+      if( tefield.and.(evalue .ne. 0.d0) ) then
+           call bforceion(fion,tfor.or.tprnfor,ipolp, qmat,bec,becdr,gqq,evalue)
+      endif
+
      !
      call do_deallocation()
      !
@@ -1502,6 +1547,17 @@ open(file="~/marzari/koopmans_tests2014/debug.txt", unit=8000)
           !
           CALL stop_clock( 'dforce1' )
 !$$
+          if ( tefield .and. (evalue.ne.0.d0)) then
+             !
+             call dforceb(c0, i, betae, ipolp, bec ,ctabin(1,1,ipolp), gqq, gqqm, qmat, deeq, df)
+             !
+             c2(:)=c2(:) + evalue*df(:)
+             !  
+             call dforceb(c0, i+1, betae, ipolp, bec ,ctabin(1,1,ipolp), gqq, gqqm, qmat, deeq, df)
+             !
+             c3(:)=c3(:) + evalue*df(:)
+             !
+          endif
 
           IF ( lda_plus_u ) THEN
                !
