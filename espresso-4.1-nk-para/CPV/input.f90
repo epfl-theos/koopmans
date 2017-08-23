@@ -606,9 +606,9 @@ MODULE input
           ELSE
              CALL errore(' control_flags ',' conjugate gradient not yet implemented in FPMD ', 1 )
           ENDIF
-          IF( occupations == 'from_input') THEN
-             CALL errore(' control_flags ',' conjugate gradient does not work with occupations=from_input ', 1 )
-          ENDIF
+          !IF( occupations == 'from_input') THEN
+          !   CALL errore(' control_flags ',' conjugate gradient does not work with occupations=from_input ', 1 )
+          !ENDIF
         CASE ('damp')
           tsde_   = .FALSE.
           tdamp_  = .TRUE.
