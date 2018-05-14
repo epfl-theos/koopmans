@@ -57,7 +57,7 @@ pod2usage(1) if $help;
 
 # Handle --verison.
 if ($version) {
-    my ($rev) = '$Revision$';
+    my ($rev) = '$Revision: 1.1.1.1 $';
     $rev = $1 if $rev =~ m/Revision: (\S+) /;
     print "cl2html $rev\n";
     print "\n";

@@ -45,7 +45,7 @@ MODULE control_flags
             iprint_spreads, iprint_manifold_overlap, innerloop_until,        &
             hartree_only_sic           !added:giovanni print spreads and manifold overlaps, and hartree-only sic
 !$$
-  PUBLIC :: do_innerloop, do_innerloop_cg, innerloop_dd_nstep,&
+  PUBLIC :: do_innerloop, do_innerloop_empty, do_innerloop_cg, innerloop_dd_nstep,&
             innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax, &
             innerloop_init_n, innerloop_cg_ratio, innerloop_atleast
 !$$
@@ -105,6 +105,7 @@ MODULE control_flags
   LOGICAL :: hartree_only_sic=.false.
   INTEGER :: innerloop_until=-1
   LOGICAL :: do_innerloop  = .FALSE. ! Do inner loop minimization in case do_orbdep
+  LOGICAL :: do_innerloop_empty = .FALSE. ! Do inner loop minimization in case do_orbdep
   LOGICAL :: do_innerloop_cg  = .FALSE. ! Do cg inner loop minimization with parabolic minimization in case do_orbdep
   INTEGER :: innerloop_dd_nstep = 50 ! Number of outer loop damped dynamics steps before each inner loop minimization
   INTEGER :: innerloop_cg_nsd  = 20 ! Number of steepest-descent steps in doing conjugate-gradient inner loop minimization
@@ -302,9 +303,13 @@ MODULE control_flags
   !
   LOGICAL, PUBLIC :: &
     remove_rigid_rot = .FALSE.  ! if .TRUE. the total torque acting on the atoms is
-                                ! removed
+     
   LOGICAL, PUBLIC :: &
-    assume_isolated = .FALSE.   ! if .TRUE. the system is assumed to be an
+    do_makov_payne = .FALSE.   ! if .TRUE. makov-payne correction for isolated
+                               ! system is used
+                           ! removed
+  !LOGICAL, PUBLIC :: &
+  !  assume_isolated = .FALSE.   ! if .TRUE. the system is assumed to be an
                                 ! isolated molecule or cluster (in a supercell)
   !
   INTEGER  :: ortho_max = 0      ! maximum number of iterations in routine ortho

@@ -202,151 +202,186 @@
       INTEGER :: ir, ic, nr, nc, nrl, nrlx, comm, np, me
       logical :: tsic
       CHARACTER(LEN=80) :: msg
-!
+      !
       tsic = ( ABS( self_interaction) /= 0 )
-
-      IF( tsic ) THEN
+      ! 
+      IF ( tsic ) THEN
          nspin_eig = 1
          npaired   = nupdwn(2)
       ELSE
          nspin_eig = nspin
          npaired   = 0
-      END IF
-
-
+      ENDIF
+      !
       do iss = 1, nspin_eig
-         IF( nudx < nupdwn(iss) ) THEN 
+         !
+         IF ( nudx < nupdwn(iss) ) THEN 
+            ! 
             WRITE( msg, 100 ) nudx, SIZE( ei, 1 ), nupdwn(iss)
 100         FORMAT( ' wrong dimension array ei = ', 3I10 )
             CALL errore( ' eigs0 ', msg, 1 )
-         END IF
-
+            !
+         ENDIF
+         !
          IF( tsic ) THEN
             n = npaired
          ELSE
             n = nupdwn(iss)
          END IF
-
-         IF(n.gt.0) THEN
-
-         allocate( wr( n ) )
-
-         IF( la_proc ) THEN
-
-            np = desc( la_npc_ , iss ) * desc( la_npr_ , iss )
-
-            IF( np > 1 ) THEN
-
-               !  matrix is distributed
-               IF(.not.lambda(iss)%iscmplx) THEN
-                   write(6,*) "sizlambda", size(lambda(iss)%rvec,1), lambda(iss)%xdim
-                   CALL qe_pdsyevd( .false., n, desc(1,iss), lambda(iss)%rvec(1,1), SIZE(lambda(iss)%rvec,1), wr )
-               ELSE
-                   write(6,*) "sizlambda", size(lambda(iss)%cvec,1), lambda(iss)%xdim
-                   CALL qe_pzheevd( .false., n, desc(1,iss), lambda(iss)%cvec(1,1), SIZE(lambda(iss)%cvec,1), wr )
-               ENDIF
-            ELSE
-
-               !!  matrix is not distributed
-               IF(.not.lambda(1)%iscmplx) THEN
-		  allocate( ap( n * ( n + 1 ) / 2 ) )
-
-		  k = 0
-		  do i = 1, n
-		      do j = i, n
-			k = k + 1
-			ap( k ) = lambda(iss)%rvec( j, i)
-		      end do
-		  end do
-
-		  CALL dspev_drv( 'N', 'L', n, ap, wr, zr, 1 )
-		  deallocate( ap )
-               ELSE
-		  allocate( ap_c( n * ( n + 1 ) / 2 ) )
-		  k = 0
-		  do i = 1, n
-		      do j = i, n
-			k = k + 1
-			ap_c( k ) = lambda(iss)%cvec( j, i)
-		      end do
-		  end do
-
-		  CALL zhpev_drv( 'N', 'L', n, ap_c, wr, zr_c, 1 )
-		  deallocate( ap_c )
-               ENDIF
-
-            END IF
-
-         END IF
-
-         call mp_bcast( wr, root_image, intra_image_comm )
-
-         if( lf ) then
-            do i = 1, n
-              wr(i)=wr(i)/max(f(iupdwn(iss)-1+i),f_cutoff)
-            end do
-         end if
          !
-         !     store eigenvalues
-         !
-         ei( 1:n, iss ) = wr( 1:n )
-
-         IF( tsic ) THEN
+         IF (n.gt.0) THEN
+            ! 
+            allocate( wr( n ) )
+            !  
+            IF ( la_proc ) THEN
+               !  
+               np = desc( la_npc_ , iss ) * desc( la_npr_ , iss )
+               !
+               IF ( np > 1 ) THEN
+                  ! 
+                  ! matrix is distributed
+                  !  
+                  IF (.not.lambda(iss)%iscmplx) THEN
+                     !
+                     write(6,*) "sizlambda", size(lambda(iss)%rvec,1), lambda(iss)%xdim
+                     CALL qe_pdsyevd( .false., n, desc(1,iss), lambda(iss)%rvec(1,1), SIZE(lambda(iss)%rvec,1), wr )
+                     !
+                  ELSE
+                     !
+                     write(6,*) "sizlambda", size(lambda(iss)%cvec,1), lambda(iss)%xdim
+                     CALL qe_pzheevd( .false., n, desc(1,iss), lambda(iss)%cvec(1,1), SIZE(lambda(iss)%cvec,1), wr )
+                     !
+                  ENDIF
+                  !   
+               ELSE
+                  !
+                  !!  matrix is not distributed
+                  !    
+                  IF (.not.lambda(1)%iscmplx) THEN
+                     ! 
+		     allocate( ap( n * ( n + 1 ) / 2 ) )
+                     !
+		     k = 0
+		     do i = 1, n
+		        do j = i, n
+		           k = k + 1
+			   ap( k ) = lambda(iss)%rvec( j, i)
+		        enddo
+		     enddo
+                     !   
+		     CALL dspev_drv( 'N', 'L', n, ap, wr, zr, 1 )
+                     !  
+		     deallocate( ap )
+                     !
+                  ELSE
+                     !
+		     allocate( ap_c( n * ( n + 1 ) / 2 ) )
+                     !
+		     k = 0
+		     do i = 1, n
+		        do j = i, n
+			   k = k + 1
+			   ap_c( k ) = lambda(iss)%cvec( j, i)
+		        enddo
+		     enddo
+                     !
+		     CALL zhpev_drv( 'N', 'L', n, ap_c, wr, zr_c, 1 )
+                     !   
+		     deallocate( ap_c )
+                     !  
+                  ENDIF
+                  ! 
+               ENDIF
+               ! 
+            ENDIF
             !
-            !  store unpaired state
-            !
-            ei( 1:n,       1 ) = ei( 1:n, 1 ) / 2.0d0
-            ei( nupdwn(1), 1 ) = 0.0d0
-            if( la_proc ) then
-               IF( desc( la_myc_ , iss ) == desc( la_myr_ , iss ) ) THEN
-                  ir = desc( ilar_ , iss )
-                  nr = desc( nlar_ , iss )
-                  IF( nupdwn(1) >= ir .AND. nupdwn(1) < ir + nr ) then
-                     IF(.not.lambda(1)%iscmplx) THEN
-                        ei( nupdwn(1), 1 ) = lambda(1)%rvec( nupdwn(1)-ir+1, nupdwn(1)-ir+1)
-                     ELSE
-                        ei( nupdwn(1), 1 ) = DBLE(lambda(1)%cvec( nupdwn(1)-ir+1, nupdwn(1)-ir+1))
-                     ENDIF
-                  end if
-               END IF
+            call mp_bcast( wr, root_image, intra_image_comm )
+            !  
+            if ( lf ) then
+               do i = 1, n
+                  wr(i)=wr(i)/max(f(iupdwn(iss)-1+i),f_cutoff)
+               end do
             endif
-            call mp_sum( ei( nupdwn(1), 1 ), intra_image_comm )
             !
-         END IF
-
-         ! WRITE( stdout,*)  '---- DEBUG ----' ! debug
-         ! WRITE( stdout,14) ( wr( i ) * autoev / 2.0d0, i = 1, nupdwn(iss) ) ! debug
-
-         deallocate( wr )
+            !  store eigenvalues
+            !
+            ei( 1:n, iss ) = wr( 1:n )
+            ! 
+            IF ( tsic ) THEN
+               !
+               !  store unpaired state
+               !
+               ei( 1:n,       1 ) = ei( 1:n, 1 ) / 2.0d0
+               ei( nupdwn(1), 1 ) = 0.0d0
+               ! 
+               IF ( la_proc ) THEN
+                  ! 
+                  IF ( desc( la_myc_ , iss ) == desc( la_myr_ , iss ) ) THEN
+                     !
+                     ir = desc( ilar_ , iss )
+                     nr = desc( nlar_ , iss )
+                     !
+                     IF ( nupdwn(1) >= ir .AND. nupdwn(1) < ir + nr ) then
+                        !
+                        IF (.not.lambda(1)%iscmplx) THEN
+                           !
+                           ei( nupdwn(1), 1 ) = lambda(1)%rvec( nupdwn(1)-ir+1, nupdwn(1)-ir+1)
+                           !
+                        ELSE
+                           ! 
+                           ei( nupdwn(1), 1 ) = DBLE(lambda(1)%cvec( nupdwn(1)-ir+1, nupdwn(1)-ir+1))
+                           !  
+                        ENDIF
+                        ! 
+                     ENDIF
+                     !
+                  ENDIF
+                  !
+               ENDIF
+               ! 
+               call mp_sum( ei( nupdwn(1), 1 ), intra_image_comm )
+               !
+            ENDIF
+            !  
+            ! WRITE( stdout,*)  '---- DEBUG ----' ! debug
+            ! WRITE( stdout,14) ( wr( i ) * autoev / 2.0d0, i = 1, nupdwn(iss) ) ! debug
+            ! 
+            deallocate( wr )
+            ! 
          ELSE
+            ! 
             ei( 1:n, iss ) = 0.d0
+            !
          ENDIF
-      end do
+         !
+      ENDDO
       !
-      !
-      do iss = 1, nspin
-
-         IF( tsic .AND. iss == 2 ) THEN
+      DO iss = 1, nspin
+         ! 
+         IF ( tsic .AND. iss == 2 ) THEN
+            !
             ei( 1:npaired, 2 ) = ei( 1:npaired, 1 )
-         END IF
-
-         IF( tprint ) THEN
+            !
+         ENDIF
+         !
+         IF ( tprint ) THEN
             !
             !     print out eigenvalues
             !
             WRITE( stdout,12) 0.d0, 0.d0, 0.d0
             WRITE( stdout,14) ( ei( i, iss ) * autoev, i = 1, nupdwn(iss) )
-
+            !
          ENDIF
-
-      end do
-
+         !
+      ENDDO
+      ! 
       IF( tprint ) WRITE( stdout,*)
-
+      !  
    12 format(//' eigenvalues at k-point: ',3f6.3)
    14 format(10f8.2)
-!
+      ! 
       return
+      !
    end subroutine eigs0_twin
 
 !-----------------------------------------------------------------------
@@ -388,155 +423,162 @@
       INTEGER :: ir, ic, nr, nc, nrl, nrlx, comm, np, me
       logical :: tsic
       CHARACTER(LEN=80) :: msg
-!
+      !
       tsic = ( ABS( self_interaction) /= 0 )
-
-      IF( tsic ) THEN
+      ! 
+      IF ( tsic ) THEN
          nspin_eig = 1
          npaired   = nupdwn(2)
       ELSE
          nspin_eig = nspin
          npaired   = 0
-      END IF
-
-
+      ENDIF
+      !
       do iss = 1, nspin_eig
+         !
          IF( nudx < nupdwn(iss) ) THEN 
             WRITE( msg, 100 ) nudx, SIZE( ei, 1 ), nupdwn(iss)
 100         FORMAT( ' wrong dimension array ei = ', 3I10 )
             CALL errore( ' eigs0 ', msg, 1 )
          END IF
-
+         !
          IF( tsic ) THEN
             n = npaired
          ELSE
             n = nupdwn(iss)
          END IF
-
-         IF(n.gt.0) THEN
-
-         allocate( wr( n ), wi( n ) )
-
-         IF( la_proc ) THEN
-
-            np = desc( la_npc_ , iss ) * desc( la_npr_ , iss )
-
-            IF( np > 1 ) THEN
-
-               !  matrix is distributed
-               IF(.not.lambda(iss)%iscmplx) THEN
-                   write(6,*) "sizlambda", size(lambda(iss)%rvec,1), lambda(iss)%xdim
-                   CALL qe_pdsyevd( .false., n, desc(1,iss), lambda(iss)%rvec(1,1), SIZE(lambda(iss)%rvec,1), wr )
+         !
+         IF (n.gt.0) THEN
+            !  
+            allocate( wr( n ), wi( n ) )
+            !
+            IF ( la_proc ) THEN
+               ! 
+               np = desc( la_npc_ , iss ) * desc( la_npr_ , iss )
+               !
+               IF ( np > 1 ) THEN
+                  !
+                  !  matrix is distributed
+                  !
+                  IF (.not.lambda(iss)%iscmplx) THEN
+                     !
+                     write(6,*) "sizlambda", size(lambda(iss)%rvec,1), lambda(iss)%xdim
+                     CALL qe_pdsyevd( .false., n, desc(1,iss), lambda(iss)%rvec(1,1), SIZE(lambda(iss)%rvec,1), wr )
+                     ! 
+                  ELSE
+                     ! 
+                     write(6,*) "sizlambda", size(lambda(iss)%cvec,1), lambda(iss)%xdim
+                     CALL qe_pzheevd( .false., n, desc(1,iss), lambda(iss)%cvec(1,1), SIZE(lambda(iss)%cvec,1), wr )
+                     !
+                  ENDIF
+                  !
                ELSE
-                   write(6,*) "sizlambda", size(lambda(iss)%cvec,1), lambda(iss)%xdim
-                   CALL qe_pzheevd( .false., n, desc(1,iss), lambda(iss)%cvec(1,1), SIZE(lambda(iss)%cvec,1), wr )
-               ENDIF
-            ELSE
-
-               !!  matrix is not distributed
-               IF(.not.lambda(1)%iscmplx) THEN
-                  allocate( ap( n, n ) )
-
-!                   k = 0
-                  do i = 1, n
+                  !
+                  !!  matrix is not distributed
+                  !
+                 IF (.not.lambda(1)%iscmplx) THEN
+                    !  
+                    allocate( ap( n, n ) )
+                    !      
+                    do i = 1, n
+                       do j = 1, n
+                         ap( j, i ) = lambda(iss)%rvec( j, i)
+                       end do
+                    enddo
+                    !
+                    CALL dgeev_drv( 'N', 'N', n, ap, n, wr, wi, zr, 1, zr, 1)
+                    ! 
+                    deallocate( ap )
+                    !
+                 ELSE
+                    !
+                    allocate( ap_c( n , n ))
+                    do i = 1, n
                       do j = 1, n
-!                         k = k + 1
-                        ap( j, i ) = lambda(iss)%rvec( j, i)
-                      end do
-                  end do
-
-                  CALL dgeev_drv( 'N', 'N', n, ap, n, wr, wi, zr, 1, zr, 1)
-                  deallocate( ap )
-               ELSE
-                  allocate( ap_c( n , n ))
-!                   k = 0
-                  do i = 1, n
-                      do j = 1, n
-!                         k = k + 1
                         ap_c( j, i ) = lambda(iss)%cvec( j, i)
                       end do
-                  end do
-
-                  CALL zgeev_drv( 'N', 'N', n, ap_c, n, wr, wi, zr_c, 1, zr_c, 1)
-
-                  deallocate( ap_c )
+                    enddo
+                    ! 
+                    CALL zgeev_drv( 'N', 'N', n, ap_c, n, wr, wi, zr_c, 1, zr_c, 1)
+                    ! 
+                    deallocate( ap_c )
+                    !
+                 ENDIF
+                 !
                ENDIF
-
-            END IF
-
-         END IF
-
-         call mp_bcast( wr, root_image, intra_image_comm )
-
-         !
-         if( lf ) then
-            do i = 1, n
-              wr(i)=wr(i)/max(f(iupdwn(iss)-1+i),f_cutoff)
-            end do
-         end if
-         !
-         !     store eigenvalues
-         !
-         ei( 1:n, iss ) = wr( 1:n )
-         !
-         IF( tsic ) THEN
+               !
+            ENDIF
             !
-            !  store unpaired state
+            call mp_bcast( wr, root_image, intra_image_comm )
             !
-            ei( 1:n,       1 ) = ei( 1:n, 1 ) / 2.0d0
-            ei( nupdwn(1), 1 ) = 0.0d0
-            if( la_proc ) then
-               IF( desc( la_myc_ , iss ) == desc( la_myr_ , iss ) ) THEN
-                  ir = desc( ilar_ , iss )
-                  nr = desc( nlar_ , iss )
-                  IF( nupdwn(1) >= ir .AND. nupdwn(1) < ir + nr ) then
-                     IF(.not.lambda(1)%iscmplx) THEN
-                        ei( nupdwn(1), 1 ) = lambda(1)%rvec( nupdwn(1)-ir+1, nupdwn(1)-ir+1)
-                     ELSE
-                        ei( nupdwn(1), 1 ) = DBLE(lambda(1)%cvec( nupdwn(1)-ir+1, nupdwn(1)-ir+1))
-                     ENDIF
-                  end if
-               END IF
+            !
+            if ( lf ) then
+               do i = 1, n
+                  wr(i)=wr(i)/max(f(iupdwn(iss)-1+i),f_cutoff)
+               enddo
             endif
-            call mp_sum( ei( nupdwn(1), 1 ), intra_image_comm )
             !
-         END IF
-
-         ! WRITE( stdout,*)  '---- DEBUG ----' ! debug
-         ! WRITE( stdout,14) ( wr( i ) * autoev / 2.0d0, i = 1, nupdwn(iss) ) ! debug
-
-         deallocate( wr )
-         deallocate( wi )
-         
+            ! store eigenvalues
+            !
+            ei( 1:n, iss ) = wr( 1:n )
+            !
+            IF ( tsic ) THEN
+               !
+               ! store unpaired state
+               !
+               ei( 1:n, 1 ) = ei( 1:n, 1 ) / 2.0d0
+               ei( nupdwn(1), 1 ) = 0.0d0
+               if ( la_proc ) then
+                  IF ( desc( la_myc_ , iss ) == desc( la_myr_ , iss ) ) THEN
+                     ir = desc( ilar_ , iss )
+                     nr = desc( nlar_ , iss )
+                     IF ( nupdwn(1) >= ir .AND. nupdwn(1) < ir + nr ) then
+                        IF (.not.lambda(1)%iscmplx) THEN
+                           ei( nupdwn(1), 1 ) = lambda(1)%rvec( nupdwn(1)-ir+1, nupdwn(1)-ir+1)
+                        ELSE
+                           ei( nupdwn(1), 1 ) = DBLE(lambda(1)%cvec( nupdwn(1)-ir+1, nupdwn(1)-ir+1))
+                        ENDIF
+                    endif
+                  ENDIF
+               endif
+               call mp_sum( ei( nupdwn(1), 1 ), intra_image_comm )
+               !
+            ENDIF
+            !
+            deallocate( wr )
+            deallocate( wi )
+            ! 
          ELSE
+            !
             ei( 1:n, iss ) = 0.d0
+            !
          ENDIF
-      end do
-      !
+         !  
+      enddo
       !
       do iss = 1, nspin
-
+         !
          IF( tsic .AND. iss == 2 ) THEN
             ei( 1:npaired, 2 ) = ei( 1:npaired, 1 )
          END IF
-
+         !
          IF( tprint ) THEN
             !
             !     print out eigenvalues
             !
             WRITE( stdout,12) 0.d0, 0.d0, 0.d0
             WRITE( stdout,14) ( ei( i, iss ) * autoev, i = 1, nupdwn(iss) )
-
+            !
          ENDIF
-
-      end do
-
+         !
+      enddo
+      !
       IF( tprint ) WRITE( stdout,*)
-
    12 format(//' eigenvalues at k-point: ',3f6.3)
    14 format(10f8.2)
-!
+      !
       return
+      !  
    end subroutine eigs0_twin_non_ortho
 
 !-----------------------------------------------------------------------

@@ -133,8 +133,9 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   USE nksic,                    ONLY : do_orbdep, pink, complexification_index
   USE step_constraint
   USE small_box,                ONLY : ainvb
-  USE descriptors,          ONLY: descla_siz_
+  USE descriptors,              ONLY : descla_siz_
   USE twin_types
+  USE input_parameters,         ONLY: fixed_state, fixed_band
   !
   IMPLICIT NONE
   !
@@ -542,39 +543,53 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      !
      IF ( .NOT. tcg ) THEN
         !
-        IF ( tortho ) THEN
+        IF (fixed_state) THEN
            !
-           CALL ortho_cp_twin( eigr(1:ngw,1:nat), cm(1:ngw,1:nbsp), phi(1:ngw,1:nbsp), ngw, &
-                                                 lambda(1:nspin), descla(1:descla_siz_ , 1:nspin) &
-                                                 , bigr, iter, ccc, bephi, becp, nbsp, nspin, nupdwn, iupdwn )
+           CALL gram_swap( vkb, bec, nkb, cm, ngw, nbsp )
+           !  
+        ELSE
            !
-        ELSE IF(.not.non_ortho) THEN
+           IF ( tortho ) THEN
+              !
+              CALL ortho_cp_twin( eigr(1:ngw,1:nat), cm(1:ngw,1:nbsp), phi(1:ngw,1:nbsp), ngw, &
+                                                     lambda(1:nspin), descla(1:descla_siz_ , 1:nspin), &
+                                                     bigr, iter, ccc, bephi, becp, nbsp, nspin, nupdwn, iupdwn )
+              !
+           ELSEIF(.not.non_ortho) THEN
+              !
+              CALL gram( vkb, bec, nkb, cm, ngw, nbsp )
+              !
+              IF ( iprsta > 4 ) CALL dotcsc( eigr, cm, ngw, nbsp, lgam )!added:giovanni lgam
+              !
+           ENDIF
            !
-           CALL gram( vkb, bec, nkb, cm, ngw, nbsp )
+           !  correction to displacement of ions
            !
-           IF ( iprsta > 4 ) CALL dotcsc( eigr, cm, ngw, nbsp, lgam )!added:giovanni lgam
-           !
-        END IF
-        !
-        !  correction to displacement of ions
-        !
-        !IF ( iprsta >= 3 ) CALL print_lambda( lambda, nbsp, 9, 1.D0 )
-        !
-        IF ( tortho ) THEN
-           DO iss = 1, nspin_sub
-              i1 = (iss-1)*nlax+1
-              i2 = iss*nlax
-              IF(.not.lambda(iss)%iscmplx) THEN
-		  CALL updatc( ccc, nbsp, lambda(iss)%rvec, SIZE(lambda(iss)%rvec,1),  &
-			    phi, SIZE(phi,1),bephi%rvec(:,i1:i2), SIZE(bephi%rvec,1), becp%rvec,  &
+           IF ( tortho ) THEN
+              !
+              DO iss = 1, nspin_sub
+                 i1 = (iss-1)*nlax+1
+                 i2 = iss*nlax
+                 !
+                 IF (.not.lambda(iss)%iscmplx) THEN
+                    ! 
+		    CALL updatc( ccc, nbsp, lambda(iss)%rvec, SIZE(lambda(iss)%rvec,1),  &
+		            phi, SIZE(phi,1),bephi%rvec(:,i1:i2), SIZE(bephi%rvec,1), becp%rvec,  &
 			    bec%rvec, cm, nupdwn(iss), iupdwn(iss), descla(:,iss) )
-              ELSE
-		  CALL updatc( ccc, nbsp, lambda(iss)%cvec, SIZE(lambda(iss)%cvec,1), &
+                    !
+                 ELSE
+                    !
+		    CALL updatc( ccc, nbsp, lambda(iss)%cvec, SIZE(lambda(iss)%cvec,1), &
 			    phi, SIZE(phi,1), bephi%cvec(:,i1:i2), SIZE(bephi%cvec,1), becp%cvec, &
-			     bec%cvec, cm, nupdwn(iss), iupdwn(iss), descla(:,iss) )
-              ENDIF
-           END DO
-        END IF
+		            bec%cvec, cm, nupdwn(iss), iupdwn(iss), descla(:,iss) )
+                    !
+                 ENDIF
+                 !
+              ENDDO
+              !
+           ENDIF
+           !
+        ENDIF
         !
         IF( force_pairing ) THEN
               c0(:,iupdwn(2):nbsp)       =     c0(:,1:nupdwn(2))
@@ -682,13 +697,11 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      !
      IF ( MOD( nfi, iprint ) == 0 .OR. tlast ) THEN
         !
-!$$        IF ( tortho ) THEN
-!$$ In order to calculate the eigenvalues for CG case
+        ! In order to calculate the eigenvalues for CG case
+        ! 
         IF ( tortho .or. tcg ) THEN
-!$$
-
-!$$ test orthonormality of wavefunctions here
-!$$
+            !
+            ! test orthonormality of wavefunctions here
             !
             IF( force_pairing )  THEN
              IF(.not.lambda(1)%iscmplx) THEN
@@ -705,17 +718,11 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
                 WRITE( stdout, '(10F9.6)' ) ( f(i), i = 1, nbspx )  
             END IF
             !
-!             write(0,*) lambdap(1)%iscmplx, lambdap(1)%rvec(:,:)
             IF(non_ortho) THEN
                CALL eigs_non_ortho( nfi, lambdap, lambda )
             ELSE
                CALL eigs( nfi, lambdap, lambda )
             ENDIF
-!$$
-!            do iss=1,nspin
-!              if(ionode) write(101,*) 'eigenvalues for spin',iss,'are',(13.6056923 * ei(i,iss),i=1,nupdwn(iss))
-!            enddo
-!$$
             !
             ! ... Compute empty states
             !
@@ -749,25 +756,6 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
          CALL efermi( nelt, nbsp, degauss, 1, f, ef, e0, entropy, ismear, nspin )
          !
          fmat0_diag_set = .TRUE.
-
-         !!
-         !! recompute rho
-         !!
-         !CALL rhoofr( nfi, c0diag, irb, eigrb, becdiag, &
-         !             becsum, rhor, rhog, rhos, enl, denl, ekin, dekin6 )
-         !!
-         !IF(nlcc_any) CALL set_cc( irb, eigrb, rhoc )
-         
-         !!
-         !! calculates the SCF potential, the total energy
-         !! and the ionic forces
-         !!
-         !vpot = rhor
-         !!
-         !CALL vofrho( nfi, vpot, rhog, rhos, rhoc, tfirst, &
-         !            tlast, ei1, ei2, ei3, irb, eigrb, sfac, &
-         !            tau0, fion )         
-         
          !
          ! recompute the proper density matrix, once z0t is given
          ! and store its diagonal components
@@ -865,8 +853,11 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
         !
         IF(allocated(wfc_spreads)) THEN
            !
-           call spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, &
-                wfc_spreads, wfc_centers, sort_spreads)
+           ! Here Linh comment the below routine, to make sure orbitals,
+           ! and their spreads are consistent.
+           !
+           !call spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, &
+           !     wfc_spreads, wfc_centers, sort_spreads)
            !
         ENDIF
         !
@@ -963,14 +954,14 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
            !
         ELSE
            !
-           CALL writefile( h, hold, nfi, c0, cm, taus,  &
-                           tausm, vels, velsm, acc,  lambda, lambdam, lambda_bare, xnhe0,&
-                           xnhem, vnhe, xnhp0, xnhpm, vnhp, nhpcl, nhpdim, ekincm,&
-                           xnhh0, xnhhm, vnhh, velh, fion, tps, z0t, f, rhor )
+           CALL writefile( h, hold, nfi, c0, cm  , taus, tausm,  &
+                           vels, velsm, acc,  lambda, lambdam, lambda_bare, xnhe0, xnhem,&
+                           vnhe, xnhp0, xnhpm, vnhp, nhpcl, nhpdim, ekincm, xnhh0,& 
+                           xnhhm, vnhh, velh, fion, tps, z0t, f, rhor )
            !
-        END IF
+        ENDIF
         !
-     END IF
+     ENDIF
      !
      epre = enow
      enow = etot
@@ -986,12 +977,9 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
      delta_etot = ABS( epre - enow )
      !
      tstop = check_stop_now() .OR. tlast
-!$$
+     !
      ttest = check_stop_now()
      tstop = ttest .OR. tlast
-!     if(ionode) write(137,*) 'check_stop_now tlast', ttest,tlast
-!     if(ionode) write(137,*) 'nfi nomore', nfi,nomore
-!$$
      !
      tconv = .FALSE.
      !
@@ -1012,14 +1000,6 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
         END IF
         !
      END IF
-!$$
-!     if(ionode) write(1111,'("etot=",F20.13," delta_etot=",F20.13," conv=",F20.13)') enow,delta_etot,tconvthrs%derho
-     !if(ionode) write(1111,*) 'tconvthrs%active,tconv,ttest,tlast,tstop,tfor'
-     !if(ionode) write(1111,*) tconvthrs%active,tconv,ttest,tlast,tstop,tfor
-!$$$$
-!     if(nfi.lt.10000) tconv=.false.
-!$$$$
-!$$
      !
      ! ... in the case cp-wf the check on convergence is done starting
      ! ... from the second step 
@@ -1053,13 +1033,9 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
                                  vnhe, xnhp0, xnhpm, vnhp, nhpcl, nhpdim, &
                                  ekincm, xnhh0, xnhhm, vnhh, velh, ecutp, &
                                  ecutw, delt, celldm, fion, tps, z0t, f, rhor )
-!$$
-!     if(ionode) write(137,*) 'tconv', tconv
-!$$
      !
-!$$
-!$$     exit main_loop
-!$$
+     ! exit main_loop
+     !
      IF ( tstop ) EXIT main_loop
      !
   END DO main_loop
@@ -1101,7 +1077,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   !
   IF( tprojwfc ) CALL print_projwfc( c0, lambda, eigr, vkb )
   !
-  IF( iprsta > 1 ) CALL print_lambda( lambda, nbsp, nbsp, 1.D0 )
+  IF( iprsta > 1 .OR. fixed_state ) CALL print_lambda( lambda, nbsp, nbsp, 1.D0 )
   !
   IF (lda_plus_u) DEALLOCATE( forceh )
   !

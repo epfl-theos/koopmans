@@ -43,9 +43,11 @@
       USE task_groups,         ONLY : tg_gather
       USE ldaU,                ONLY : vupsi, lda_plus_u
       use hfmod,               only : do_hf, vxxpsi
-      use nksic,               only : do_orbdep, vsic, vsicpsi, deeq_sic, f_cutoff
+      use nksic,               only : do_orbdep, vsic, vsicpsi, deeq_sic, & 
+                                      f_cutoff, valpsi
       use ensemble_dft,        only : tens, tsmear
       use twin_types !added:giovanni
+      use input_parameters,    only : odd_nkscalfact 
       !
       IMPLICIT NONE
       !
@@ -251,6 +253,22 @@
            !
            IF ( do_orbdep ) THEN
                !
+               IF ( odd_nkscalfact ) THEN
+                   !
+                   IF ( tens .OR. tsmear ) THEN
+                      !
+                      c2(:) = c2(:) - valpsi(i, :)
+                      c3(:) = c3(:) - valpsi(i+1, :)
+                      !
+                   ELSE
+                      !
+                      c2(:) = c2(:) - valpsi(i,:)   * faux(i)
+                      c3(:) = c3(:) - valpsi(i+1, :) * faux(i+1)
+                      !
+                   ENDIF
+                   !
+               ENDIF
+               !
                ! faux takes into account spin multiplicity.
                !
                CALL nksic_eforce( i, n, nx, vsic, deeq_sic, bec, ngw, c0(:,i), c0(:,i+1), vsicpsi, lgam )
@@ -293,12 +311,12 @@
                            !
                            IF(.not.hamilt(isp)%iscmplx) THEN
 			      hamilt(isp)%rvec(j0, i0) = 2.0d0 * DOT_PRODUCT( c0(:,jj), vsicpsi(:,ii+1) )
-                           !
+                              !
 			      IF ( gstart == 2 ) THEN
 				  hamilt(isp)%rvec( j0, i0) =  hamilt(isp)%rvec( j0, i0) -c0(1,jj)*vsicpsi(1,ii+1) 
 			      ENDIF
                            ELSE
-				  hamilt(isp)%cvec(j0, i0) = DOT_PRODUCT( c0(:,jj), vsicpsi(:,ii+1) ) !warning:giovanni put conjugate??
+			      hamilt(isp)%cvec(j0, i0) = DOT_PRODUCT( c0(:,jj), vsicpsi(:,ii+1) ) !warning:giovanni put conjugate??
                            ENDIF
                            !
                        ENDDO
@@ -348,16 +366,11 @@
                  END IF
               ENDDO
            END IF
-
-!begin_added:giovanni:debug --------- STEEPEST
-!            write(6,*) "cm, debug, before steepest"
-!            write(6,*) cm(1,i), cm(2,i), cm(3,i), iflag,i
-!            write(6,*) emaver(1), emaver(2), emaver(3)
-!end_added:giovanni:debug --------- STEEPEST
+           ! 
            idx_in = 1
            DO idx = 1, incr, 2
               IF( i + idx - 1 <= n ) THEN
-                 IF (tsde) THEN
+                 IF (tsde) THEN 
                     CALL wave_steepest( cm(:, i+idx-1 ), c0(:, i+idx-1 ), emaver, c2, ngw, idx_in )
                     CALL wave_steepest( cm(:, i+idx   ), c0(:, i+idx   ), emaver, c3, ngw, idx_in )
                  ELSE
@@ -375,11 +388,7 @@
               idx_in = idx_in + 1
               !
            END DO
-!begin_added:giovanni:debug --------- STEEPEST
-!            write(6,*) "cm, debug, after steepest"
-!            write(6,*) cm(1,i), cm(2,i), cm(3,i), iflag, i
-!end_added:giovanni:debug --------- STEEPEST
-
+           ! 
         end do
 
         DEALLOCATE( c2 )

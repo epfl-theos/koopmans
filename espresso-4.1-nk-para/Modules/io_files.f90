@@ -74,6 +74,12 @@ MODULE io_files
   !
   INTEGER :: rhounit     = 17
   INTEGER :: emptyunit   = 19
+  !
+  INTEGER :: emptyunitc0   = 119 ! by linh, unit for restart empty run 
+                                 ! from evc0_empty
+  INTEGER :: emptyunitc0fixed  = 129  ! by linh, unit for saving the 
+                                      ! fixed ref. wfc in empty_run
+  !
   INTEGER :: crashunit   = 15
   INTEGER :: stopunit    = 7
   INTEGER :: ksunit      = 18

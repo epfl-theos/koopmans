@@ -394,11 +394,11 @@
  1092 FORMAT(/,3X,'DensityMat diag,  kp = ',I3, ' , spin = ',I2,/)
  1005 FORMAT(/,3X,'Empty States Eigenvalues (eV), kp = ',I3, ' , spin = ',I2,/)
  1201 FORMAT(/,3X,'LUMO Eigenvalue (eV)',/) !added_giovanni
- 1004 FORMAT(10F8.2)
+ 1004 FORMAT(10F10.4)
  1044 FORMAT(4F8.2)
- 1444 FORMAT(1F8.2)
+ 1444 FORMAT(1F10.4)
  1084 FORMAT(10F8.4)
- 1006 FORMAT(/,3X,'Electronic Gap (eV) = ',F8.2,/)
+ 1006 FORMAT(/,3X,'Electronic Gap (eV) = ',F10.4,/)
  1010 FORMAT(3X,'Eigenvalues (eV), kp = ',I3, ' , spin = ',I2)
  1011 FORMAT(3X,'Empty States Eigenvalues (eV), kp = ',I3, ' , spin = ',I2)
  1020 FORMAT(10F8.2)
@@ -428,28 +428,27 @@
       DO j = 1, nspin
          !
          IF( tstdout ) THEN
-            
+
             WRITE(stdout,1222) ik, j
             !
             IF(do_orbdep) THEN
-               WRITE(stdout,1444) ( wfc_centers(1:4, i, j), wfc_spreads( i, j , 1), wfc_spreads( i, j, 2), pink(iupdwn(j)-1+sort_spreads(i,j))*hartree_si/electronvolt_si, pzalpha(iupdwn(j)-1+sort_spreads(i,j)), i = 1, nupdwn(j) )
+               WRITE(stdout,1444) ( i, wfc_centers(1:4, i, j), wfc_spreads( i, j, 1), wfc_spreads( i, j, 2), &
+                                    pink(iupdwn(j)-1+sort_spreads(i,j))*hartree_si/electronvolt_si, &
+                                    pzalpha(iupdwn(j)-1+sort_spreads(i,j)), i = 1, nupdwn(j) )
             ELSE
-               WRITE(stdout,1445) ( wfc_centers(1:4,i,j), wfc_spreads( i, j , 1), wfc_spreads( i, j, 2), i = 1, nupdwn(j) )
+               WRITE(stdout,1445) ( i, wfc_centers(1:4,i,j), wfc_spreads( i, j , 1), wfc_spreads( i, j, 2), i = 1, nupdwn(j) ) 
             ENDIF
             !
             IF( n_emp .GT. 0 ) THEN
-               WRITE( stdout,12224) ik, j
-!               WRITE( stdout,1005) ik, j
-               IF(do_orbdep) THEN
-                  !
-                  WRITE( stdout,1444) ( wfc_centers_emp(1:4, i, j ),  wfc_spreads_emp( i, j , 1), wfc_spreads_emp( i, j, 2), pink_emp(iupdwn_emp(j)-1+sort_spreads_emp(i,j))*hartree_si/electronvolt_si, i = 1, nupdwn_emp(j) )
-                  !
-               ELSE
-                  WRITE( stdout,1445) ( wfc_centers(1:4, i, j ),  wfc_spreads( i, j , 1), wfc_spreads( i, j, 2), i = 1, nupdwn(j) )
-               ENDIF
-               
-            END IF
-         END IF
+               WRITE( stdout,1333) ik, j
+               !
+               WRITE( stdout,1446) ( i, wfc_centers_emp(1:4, i, j ), wfc_spreads_emp( i, j , 1), wfc_spreads_emp( i, j, 2), &
+                                     pink_emp(iupdwn_emp(j)-1+sort_spreads_emp(i,j))*hartree_si/electronvolt_si, &
+                                     pzalpha_emp(iupdwn_emp(j)-1+sort_spreads_emp(i,j)), i = 1, nupdwn_emp(j))
+               !  
+            ENDIF
+            !  
+         ENDIF
          !
          !
       END DO
@@ -463,11 +462,12 @@
       !
   30  FORMAT(2X,'STEP:',I7,1X,F10.2)
  1022 FORMAT(/,3X,'Centers (Bohr), kp = ',I3, ' , spin = ',I2,/)
- 1222 FORMAT(/,3X,'Charge  ---   Centers xyz (Bohr)  ---  Spreads (Bohr^2) - SH(eV), kp = ',I3, ' , spin = ',I2,/)
- 12224 FORMAT(/,3X,'Empty Charge  ---   Centers xyz (Bohr)  ---  Spreads (Bohr^2) - SH(eV), kp = ',I3, ' , spin = ',I2,/)
+ 1222 FORMAT(/,3X,'Orb -- Charge  ---   Centers xyz (Bohr)  ---  Spreads (Bohr^2) - SH(eV), kp = ',I3, ' , spin = ',I2,/)
+ 1333 FORMAT(/,3X,'Orb -- Empty Charge  ---   Centers xyz (Bohr)  ---  Spreads (Bohr^2) - SH(eV), kp = ',I3, ' , spin = ',I2,/)
  1005 FORMAT(/,3X,'Empty States Eigenvalues (eV), kp = ',I3, ' , spin = ',I2,/)
- 1444 FORMAT(F8.2,'   ---',3F8.2,'   ---',4F8.3)
- 1445 FORMAT(F8.2,'   ---',3F8.2,'   ---',2F8.2)
+ 1444 FORMAT('OCC', I5, ' --',F8.2,'   ---',3F8.2,'   ---',4F8.3)
+ 1446 FORMAT('EMP', I5, ' --',F8.2,'   ---',3F8.2,'   ---',4F8.3)
+ 1445 FORMAT('OCC', I5, ' --',F8.2,'   ---',3F8.2,'   ---',2F8.2)
  1121 FORMAT(/3X,'Manifold complexification index = ',2F8.4/)
  1084 FORMAT(10F8.4)
       !

@@ -28,7 +28,7 @@
 #include "iotk_auxmacros.h"
 >##############################################################################
 
-> REVISION='$Revision$'
+> REVISION='$Revision: 1.1.1.1 $'
 > REVISION="${REVISION//${dol}/}"
 
 subroutine iotk_stream_read_x(unit,header,setpos,getpos,ierr)

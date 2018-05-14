@@ -94,7 +94,16 @@ waveinit.o \
 wave.o \
 wave_types.o \
 wf.o \
-writetofile.o
+writetofile.o \
+gram_swap.o \
+odd_alpha.o \
+cg_empty_sub.o \
+wave_init_wannier.o \
+inner_loop_generalize.o \
+makov_payne.o \
+pc3nc_fixed.o \
+empty_koopmans_pp.o \
+perturbing_pot.o \
 
 # dgradcorr.o 
 # setup_gga.o
@@ -195,7 +204,8 @@ cp : tldeps libcp.a cp.x cppp.x
 
 cp.x : cprstart.o libcp.a $(LIBOBJS) $(AFCLIB)
 	$(LD) $(LDFLAGS) -o cp.x \
-		cprstart.o $(MODULES) libcp.a $(LIBOBJS) $(AFCLIB) $(LIBS)
+		cprstart.o $(MODULES) libcp.a \
+                $(LIBOBJS) $(AFCLIB) $(LIBS)
 	- ( cd ../bin ; ln -fs ../CPV/cp.x . )
 
 cp_test : tldeps libcp.a cp_test.x cppp.x
@@ -212,7 +222,7 @@ cp_bad_sd.x : cprstart.o libcp.a $(LIBOBJS)
 		cprstart.o $(MODULES) libcp.a $(LIBOBJS) $(LIBS)
 	- ( cd ../bin ; ln -fs ../CPV/cp_bad_sd.x . )
 
-libcp.a : $(FOBJS) $(LOBJS) 
+libcp.a : $(FOBJS) $(WAN90) $(LOBJS) 
 	 $(AR) $(ARFLAGS) $@ $?
 	 $(RANLIB) $@
 

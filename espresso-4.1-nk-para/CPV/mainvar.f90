@@ -20,7 +20,7 @@ MODULE cp_main_variables
   USE energies,          ONLY : dft_energy_type
   USE pres_ai_mod,       ONLY : abivol, abisur, jellium, t_gauss, rho_gaus, &
                                 v_vol, posv, f_vol
-  USE input_parameters,  ONLY : do_bare_eigs
+  USE input_parameters,  ONLY : do_bare_eigs, odd_nkscalfact
   USE twin_types
   !
   IMPLICIT NONE
@@ -61,6 +61,7 @@ MODULE cp_main_variables
   type(twin_tensor) :: becdr!(:,:,:)!,bec(:,:) !modified:giovanni
 !   REAL(DP), ALLOCATABLE :: bephi(:,:)!, becp(:,:) !removed:giovanni
   TYPE(twin_matrix)     :: bec, becp, bephi, becdual, becmdual, becstart !added:giovanni
+  TYPE(twin_matrix)     :: bec_emp
   TYPE(twin_matrix), ALLOCATABLE :: lambda(:)
   TYPE(twin_matrix), ALLOCATABLE :: lambdam(:)
   TYPE(twin_matrix), ALLOCATABLE :: lambdap(:)
@@ -79,7 +80,6 @@ MODULE cp_main_variables
   !
   ! ... constraints (lambda at t, lambdam at t-dt, lambdap at t+dt)
   !
-!   REAL(DP), ALLOCATABLE :: hamilt(:,:,:) !removed:giovanni
   type(twin_matrix), dimension(:), allocatable :: hamilt(:)
   !
   INTEGER,  ALLOCATABLE :: descla(:,:) ! descriptor of the lambda distribution
@@ -113,7 +113,9 @@ MODULE cp_main_variables
   !
   COMPLEX(DP), ALLOCATABLE :: drhog(:,:,:,:)
   REAL(DP),    ALLOCATABLE :: drhor(:,:,:,:)
-
+  !
+  TYPE(twin_matrix)     :: becwfc_fixed, swfc_fixed
+  !
   TYPE (wave_descriptor) :: wfill     ! wave function descriptor for filled
   !
   TYPE(dft_energy_type) :: edft

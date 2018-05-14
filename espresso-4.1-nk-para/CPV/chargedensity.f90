@@ -173,7 +173,6 @@
       !  calculation of kinetic energy ekin
       !
       ekin = enkin_non_ortho( c, cdual, ngw, f, n)
-      write(6,*) "ekin", ekin, enkin( c, ngw, f, n) ! added:giovanni:debug
       !
       IF( ttstress ) THEN
          !
@@ -885,7 +884,7 @@
          CALL read_rho( nspin, rhor )
 
          ALLOCATE( psi( nnrx ) )
-!
+         !
          IF(nspin.EQ.1)THEN
             iss=1
             DO ir=1,nnrx
@@ -908,20 +907,10 @@
                rhog(ig,isup)=0.5d0*CMPLX( DBLE(fp),AIMAG(fm))
                rhog(ig,isdw)=0.5d0*CMPLX(AIMAG(fp),-DBLE(fm))
             END DO
-!          ELSE IF(.not.lgam) THEN !!!### uncomment for k points
-! 	   DO iss=1,2 !!!### uncomment for k points
-! 	      DO ir=1,nnrx !!!### uncomment for k points
-! 		psi(ir)=CMPLX(rhor(ir,iss),0.d0) !!!### uncomment for k points
-! 	      END DO !!!### uncomment for k points
-! 	      CALL fwfft('Dense', psi, dfftp ) !!!### uncomment for k points
-! 	      DO ig=1,ngm !!!### uncomment for k points
-! 		rhog(ig,iss) = psi(np(ig)) !!!### uncomment for k points
-! 	      END DO !!!### uncomment for k points
-!            ENDDO !!!### uncomment for k points
          ENDIF
-
+         !
          DEALLOCATE( psi )
-!
+         !
       ELSE
          !     ==================================================================
          !     self-consistent charge
@@ -1151,8 +1140,6 @@
             CALL drhov( irb, eigrb, rhovan, rhog, rhor, drhog, drhor )
          !
          CALL rhov( irb, eigrb, rhovan, rhog, rhor, lgam ) 
-         write(131,*) "rhovan", rhovan(:,:,1) !added:giovanni:debug
-
       ENDIF COMPUTE_CHARGE
 !
       IF( PRESENT( ndwwf ) ) THEN
@@ -1472,14 +1459,13 @@
       REAL(DP) enl, ekin
       REAL(DP) denl(3,3), dekin(6)
       COMPLEX(DP) eigrb( ngb, nat )
-      COMPLEX(DP) rhog( ngm, 2 )
-      COMPLEX(DP) c( ngw, n )
+      COMPLEX(DP) rhog( ngm, nspin )
+      COMPLEX(DP) c( ngw, nx )
       INTEGER irb( 3, nat )
       LOGICAL, INTENT(IN) :: tstress
       INTEGER, INTENT(IN) :: ndwwf
 
       ! local variables
-
       INTEGER  :: iss, isup, isdw, iss1, iss2, ios, i, ir, ig, j !added:giovanni j
       REAL(DP) :: rsumr(2), rsumg(2), sa1, sa2, detmp(6), mtmp(3,3)
       REAL(DP) :: rnegsum, rmin, rmax, rsum
@@ -1493,25 +1479,14 @@
       LOGICAL :: ttstress
       LOGICAL :: lgam
       !
-
       CALL start_clock( 'rhoofr' )
-      
+      !  
       lgam=gamma_only.and..not.do_wf_cmplx
       ttstress = tpre
       ttstress = tstress
-
-      write(6,*) "checkbounds", ubound(f), f
-          write(6,*) "checkbounds", ubound(rhovan)
-!           write(6,*) "checkbounds", ubound(iupdwn)
-!           write(6,*) "checkbounds", ubound(nupdwn)
-!           write(6,*) "checkbounds", ubound(c)
-          write(6,*) "checkbounds", ubound(bec%cvec)
-!                     write(6,*) "checkbounds", ubound(rhor)
-!           write(6,*) "checkbounds", ubound(rhog)
-!           write(6,*) "checkbounds", ubound(rhos)
-      
+      !
       ci = ( 0.0d0, 1.0d0 )
-
+      !
       rhor = 0.d0
       rhos = 0.d0
       rhog = CMPLX(0.d0, 0.d0)
@@ -1519,7 +1494,6 @@
       !  calculation of kinetic energy ekin
       !
       ekin = enkin_new( c, ngw, f, n, nspin, nudx, iupdwn, nupdwn)
-      write(6,*) "ekin", f ! added:giovanni:debug
       !
       IF( ttstress ) THEN
          !
@@ -1539,10 +1513,7 @@
          !
          !     calculation of non-local energy
          !
-         write(6,*) f,"before", ispin !added:giovanni:debug
          enl = ennl_new( n, nspin, ispin, f, rhovan, bec )
-         write(6,*) f,"enlafter", enl !added:giovanni:debug
-!          write(6,*) "bec%cvec" , bec%cvec !added:giovanni:debug
          !
       END IF
       !
@@ -1560,9 +1531,9 @@
          !   charge density is read from unit 47
          !
          CALL read_rho( nspin, rhor )
-
+         !
          ALLOCATE( psi( nnrx ) )
-!
+         !
          IF(nspin.EQ.1)THEN
             iss=1
             DO ir=1,nnrx
@@ -1585,20 +1556,10 @@
                rhog(ig,isup)=0.5d0*CMPLX( DBLE(fp),AIMAG(fm))
                rhog(ig,isdw)=0.5d0*CMPLX(AIMAG(fp),-DBLE(fm))
             END DO
-!          ELSE IF(.not.lgam) THEN !!!### uncomment for k points
-!          DO iss=1,2 !!!### uncomment for k points
-!             DO ir=1,nnrx !!!### uncomment for k points
-!               psi(ir)=CMPLX(rhor(ir,iss),0.d0) !!!### uncomment for k points
-!             END DO !!!### uncomment for k points
-!             CALL fwfft('Dense', psi, dfftp ) !!!### uncomment for k points
-!             DO ig=1,ngm !!!### uncomment for k points
-!               rhog(ig,iss) = psi(np(ig)) !!!### uncomment for k points
-!             END DO !!!### uncomment for k points
-!            ENDDO !!!### uncomment for k points
          ENDIF
-
+         !
          DEALLOCATE( psi )
-!
+         !
       ELSE
          !     ==================================================================
          !     self-consistent charge
@@ -1606,7 +1567,6 @@
          !
          !     important: if n is odd then nx must be .ge.n+1 and c(*,n+1)=0.
          ! 
-
          IF ( MOD( n, 2 ) /= 0 ) THEN
             !
             IF( SIZE( c, 2 ) < n+1 ) &
@@ -1651,7 +1611,6 @@
                   CALL c2psi( psis, nnrsx, c( 1, i ), c( 1, i+1 ), ngw, 2 )
                   CALL invfft('Wave',psis, dffts )
                   !
-                  !
                   iss1 = ispin(i)
                   sa1  = f(i) / omega
                   IF ( i .NE. n ) THEN
@@ -1668,7 +1627,6 @@
                      rhos(ir,iss2) = rhos(ir,iss2) + sa2 * (AIMAG(psis(ir)))**2
                   END DO
                   !
-!!!!!begin_added:giovanni
                ELSE
                   CALL c2psi( psis, nnrsx, c( 1, i ), c( 1, i ), ngw, 0 )
 
@@ -1677,42 +1635,25 @@
                   !
                   iss1 = ispin(i)
                   sa1  = f(i) / omega
-!                 IF ( i .NE. n ) THEN
-!                     iss2 = ispin(i+1)
-!                     sa2  = f(i+1) / omega
-!                 ELSE
-!                     iss2 = iss1
-!                     sa2  = 0.0d0
-!                 END IF
                   !
-
                   DO ir = 1, nnrsx
                      rhos(ir,iss1) = rhos(ir,iss1) + sa1 *(ABS(psis(ir))**2)
                   END DO
                   !
                   IF(i.ne.n) then
-  
+                    !    
                     CALL c2psi( psis, nnrsx, c( 1, i+1 ), c( 1, i+1 ), ngw, 0 )
-
+                    !
                     CALL invfft('Wave',psis, dffts )
-
                     !
                     iss1 = ispin(i+1)
                     sa1  = f(i+1) / omega
-!                 IF ( i .NE. n ) THEN
-!                     iss2 = ispin(i+1)
-!                     sa2  = f(i+1) / omega
-!                 ELSE
-!                     iss2 = iss1
-!                     sa2  = 0.0d0
-!                 END IF
-
+                    ! 
                     DO ir = 1, nnrsx
                        rhos(ir,iss1) = rhos(ir,iss1) + sa1 *( abs(psis(ir))**2)
                     END DO
                   ENDIF
                ENDIF
-!!!!end_added:giovanni
             END DO
             !
             DEALLOCATE( psis )
@@ -1732,7 +1673,7 @@
             DO ig=1,ngs
                rhog(ig,iss)=psis(nps(ig))
             END DO
-         ELSE !IF(lgam) THEN !!!### uncomment for k points
+         ELSE 
             isup=1
             isdw=2
             DO ir=1,nnrsx
@@ -1745,16 +1686,6 @@
                rhog(ig,isup)=0.5d0*CMPLX( DBLE(fp),AIMAG(fm))
                rhog(ig,isdw)=0.5d0*CMPLX(AIMAG(fp),-DBLE(fm))
             END DO
-!          ELSE IF(.not.lgam) THEN !!!### uncomment for k points
-!             DO iss=1,2 !!!### uncomment for k points
-!             DO ir=1,nnrsx !!!### uncomment for k points
-!               psis(ir)=CMPLX(rhos(ir,iss),0.d0) !!!### uncomment for k points
-!             END DO !!!### uncomment for k points
-!             CALL fwfft('Smooth', psis, dffts ) !!!### uncomment for k points
-!             DO ig=1,ngs !!!### uncomment for k points
-!               rhog(ig,iss)=psis(nps(ig)) !!!### uncomment for k points
-!             END DO !!!### uncomment for k points
-!             ENDDO !!!### uncomment for k points
          ENDIF
          !
          ALLOCATE( psi( nnrx ) )
@@ -1765,56 +1696,30 @@
             ! 
             iss=1
             psi (:) = CMPLX(0.d0, 0.d0)
-!             IF(lgam) then !added:giovanni !!!### uncomment for k points
-              DO ig=1,ngs  
-                psi(nm(ig))=CONJG(rhog(ig,iss))
-                psi(np(ig))=      rhog(ig,iss)
-              END DO
-!!!!!begin_added:giovanni
-!             ELSE !!!### uncomment for k points
-!               DO ig=1,ngs  !!!### uncomment for k points
-! !             psi(nm(ig))=CONJG(rhog(ig,iss)) !!!### uncomment for k points
-!               psi(np(ig))=      rhog(ig,iss) !!!### uncomment for k points
-!             END DO !!!### uncomment for k points
-!             ENDIF !!!### uncomment for k points
-!!!!!end_added:giovanni
+            DO ig=1,ngs  
+               psi(nm(ig))=CONJG(rhog(ig,iss))
+               psi(np(ig))=      rhog(ig,iss)
+            END DO
             CALL invfft('Dense',psi, dfftp )
             DO ir=1,nnrx
                rhor(ir,iss)=DBLE(psi(ir))
             END DO
             !
-         ELSE 
-            !
-            !     case nspin=2
-            !
-!             IF(lgam) then !added:giovanni !!!### uncomment for k points
-              isup=1
-              isdw=2
-              psi (:) = CMPLX(0.d0, 0.d0)
-              DO ig=1,ngs
-              psi(nm(ig))=CONJG(rhog(ig,isup))+ci*CONJG(rhog(ig,isdw))
-                psi(np(ig))=rhog(ig,isup)+ci*rhog(ig,isdw)
-              END DO
-              CALL invfft('Dense',psi, dfftp )
-              DO ir=1,nnrx
-                rhor(ir,isup)= DBLE(psi(ir))
-                rhor(ir,isdw)=AIMAG(psi(ir))
-              END DO
-!!!!!begin_added:giovanni
-!             ELSE !!!### uncomment for k points
-!               DO iss=1, 2 !!!### uncomment for k points
-!               psi (:) = (0.d0, 0.d0) !!!### uncomment for k points
-!               DO ig=1,ngs !!!### uncomment for k points
-!                 psi(np(ig))=rhog(ig,iss) !!!### uncomment for k points
-!               END DO !!!### uncomment for k points
-!               CALL invfft('Dense',psi, dfftp ) !!!### uncomment for k points
-!               DO ir=1,nnrx !!!### uncomment for k points
-!                 rhor(ir,iss)= DBLE(psi(ir)) !!!### uncomment for k points
-!   !           rhor(ir,isdw)=AIMAG(psi(ir)) !!!### uncomment for k points
-!               END DO !!!### uncomment for k points
-!               ENDDO !!!### uncomment for k points
-!             ENDIF !!!### uncomment for k points
-!!!!!end_added:giovanni
+         ELSE
+            !  
+            isup=1
+            isdw=2
+            psi (:) = CMPLX(0.d0, 0.d0)
+            DO ig=1,ngs
+               psi(nm(ig))=CONJG(rhog(ig,isup))+ci*CONJG(rhog(ig,isdw))
+               psi(np(ig))=rhog(ig,isup)+ci*rhog(ig,isdw)
+            END DO
+            CALL invfft('Dense',psi, dfftp )
+            DO ir=1,nnrx
+               rhor(ir,isup)= DBLE(psi(ir))
+               rhor(ir,isdw)=AIMAG(psi(ir))
+            END DO
+           !
          ENDIF
          !
          IF ( dft_is_meta() ) CALL kedtauofr_meta( c, psi, SIZE( psi ), psis, SIZE( psis ) ) ! METAGGA
@@ -1822,9 +1727,8 @@
          DEALLOCATE( psi ) 
          DEALLOCATE( psis ) 
          !
-         !     add vanderbilt contribution to the charge density
-         !     drhov called before rhov because input rho must be the smooth part
-         !
+         ! add vanderbilt contribution to the charge density
+         ! drhov called before rhov because input rho must be the smooth part
          !
          IF ( ttstress .AND. program_name == 'CP90' ) &
             CALL drhov( irb, eigrb, rhovan, rhog, rhor, drhog, drhor )
@@ -1832,15 +1736,15 @@
          CALL rhov( irb, eigrb, rhovan, rhog, rhor, lgam )
 
       ENDIF COMPUTE_CHARGE
-!
+      !
       IF( ndwwf>0 ) THEN
          !
          CALL old_write_rho( ndwwf, nspin, rhor, a1, a2, a3 )
          !
       END IF
-!
-!     here to check the integral of the charge density
-!
+      !
+      ! here to check the integral of the charge density
+      !
       IF( ( iprsta >= 2 ) .OR. ( nfi == 0 ) .OR. &
           ( MOD(nfi, iprint_stdout) == 0 ) .AND. ( .NOT. tcg ) ) THEN !
 

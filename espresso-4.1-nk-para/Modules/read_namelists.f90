@@ -204,7 +204,7 @@ MODULE read_namelists_module
        angle2 = 0.0_DP
        report = 1
        !
-       assume_isolated = .FALSE.
+       assume_isolated = 'none'
        !
        spline_ps = .false.
        ! 
@@ -224,12 +224,29 @@ MODULE read_namelists_module
        sortwfc_spread = .false.
        pot_number  = 1    !added:linh draw vsic potentials 
        !
+       odd_nkscalfact = .false. !added:linh orbital dependent alpha
+       odd_nkscalfact_empty = .false. !added:linh orbital dependent alpha
+       restart_odd_nkscalfact=.false. !added:linh orbital dependent alpha
+       wo_odd_in_empty_run = .false. 
+       aux_empty_nbnd = 0 
+       restart_from_wannier_cp = .false.
+       which_file_wannier = " "
+       wannier_empty_only = .false. 
+       print_evc0_occ_empty=.false. ! added:linh to save empty wfc. 
+       print_wfc_anion=.false. ! added:linh to constructe anion output 
+       index_empty_to_save = 1 ! added:linh to constructe anion output
+       !
        do_orbdep=.false.
        do_wf_cmplx = .false.!added:giovanni
        !
 ! DCC
        do_ee = .false.      ! main switch of EE (electrostatic embedding)
        do_spinsym = .false. ! whether to apply spin up-down symmmetry 
+       !
+       f_cutoff = 0.01_DP
+       fixed_state = .false.
+       fixed_band  = 1
+       restart_from_wannier_pwscf = .false.
        !
        RETURN
        !
@@ -259,6 +276,7 @@ MODULE read_namelists_module
        do_nkipz = .false.    ! main switch of NK (non-Koopmans) on top of PZ
 !$$
        do_innerloop = .false. ! main switch of inner loop minimization
+       do_innerloop_empty = .false. ! main switch of inner loop minimization
        do_innerloop_cg = .false. ! main switch of cg inner loop minimization
        innerloop_dd_nstep = 50 ! number of outer loop damped dynamics steps between each inner loop minimization
        innerloop_cg_nsd = 20 ! number of initial steepest-descent steps in cg inner loop minimization
@@ -282,11 +300,14 @@ MODULE read_namelists_module
        rhobarfact = 1.0_DP
        vanishing_rho_w = 1.0e-12_DP
        which_orbdep = " "
-       f_cutoff = 0.1_DP
        !
        iprint_spreads=-1
        iprint_manifold_overlap=-1
        hartree_only_sic=.false.
+       one_innerloop_only = .FALSE. 
+       !
+       finite_field_introduced = .FALSE. 
+       finite_field_for_empty_state = .FALSE.
        !
        RETURN
        
@@ -900,6 +921,11 @@ MODULE read_namelists_module
        CALL mp_bcast( do_wf_cmplx,               ionode_id )
        CALL mp_bcast( do_spinsym,                ionode_id )
        !
+       CALL mp_bcast( f_cutoff,                   ionode_id )
+       CALL mp_bcast( fixed_band,                 ionode_id )
+       CALL mp_bcast( fixed_state,                ionode_id )
+       CALL mp_bcast( restart_from_wannier_pwscf, ionode_id )
+       !
        RETURN
        !
      END SUBROUTINE
@@ -928,6 +954,7 @@ MODULE read_namelists_module
        CALL mp_bcast( do_nkipz,                   ionode_id )
 !$$
        CALL mp_bcast( do_innerloop,               ionode_id )
+       CALL mp_bcast( do_innerloop_empty,               ionode_id )
        CALL mp_bcast( do_innerloop_cg,            ionode_id )
        CALL mp_bcast( innerloop_dd_nstep,         ionode_id )
        CALL mp_bcast( innerloop_cg_nsd,           ionode_id )
@@ -940,7 +967,6 @@ MODULE read_namelists_module
        CALL mp_bcast( draw_pot,                   ionode_id )
        CALL mp_bcast( sortwfc_spread,             ionode_id )
        CALL mp_bcast( pot_number,                 ionode_id )
-!$$
        CALL mp_bcast( nknmax,                     ionode_id )
        CALL mp_bcast( nkscalfact,                 ionode_id )
        CALL mp_bcast( hfscalfact,                 ionode_id )
@@ -949,7 +975,17 @@ MODULE read_namelists_module
        CALL mp_bcast( do_wxd,                     ionode_id )
        CALL mp_bcast( vanishing_rho_w,            ionode_id )
        CALL mp_bcast( fref,                       ionode_id )
-       CALL mp_bcast( f_cutoff,                   ionode_id )
+       CALL mp_bcast( odd_nkscalfact,             ionode_id )
+       CALL mp_bcast( odd_nkscalfact_empty,       ionode_id )
+       CALL mp_bcast( restart_odd_nkscalfact,     ionode_id )
+       CALL mp_bcast( wo_odd_in_empty_run,     ionode_id )
+       CALL mp_bcast( aux_empty_nbnd,          ionode_id )
+       CALL mp_bcast( restart_from_wannier_cp, ionode_id )
+       CALL mp_bcast( which_file_wannier,         ionode_id )
+       CALL mp_bcast( wannier_empty_only,         ionode_id )
+       CALL mp_bcast( print_evc0_occ_empty,           ionode_id )
+       CALL mp_bcast( print_wfc_anion,            ionode_id )
+       CALL mp_bcast( index_empty_to_save,            ionode_id )
        CALL mp_bcast( rhobarfact,                 ionode_id )
        CALL mp_bcast( do_pz_renorm,               ionode_id )
        CALL mp_bcast( do_bare_eigs,               ionode_id )
@@ -958,6 +994,9 @@ MODULE read_namelists_module
        CALL mp_bcast( iprint_spreads,             ionode_id )
        CALL mp_bcast( iprint_manifold_overlap,    ionode_id )
        CALL mp_bcast( hartree_only_sic,           ionode_id )
+       CALL mp_bcast( one_innerloop_only,         ionode_id )
+       CALL mp_bcast( finite_field_introduced,    ionode_id )
+       CALL mp_bcast( finite_field_for_empty_state,   ionode_id )
        !     
       RETURN
       !

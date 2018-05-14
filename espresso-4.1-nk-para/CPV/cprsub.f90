@@ -872,6 +872,8 @@ SUBROUTINE print_lambda_x_real( lambda, n, nshow, ccc, iunit )
     USE io_global,         ONLY: stdout, ionode
     USE cp_main_variables, ONLY: collect_lambda, descla
     USE electrons_base,    ONLY: nudx
+    USE input_parameters,  ONLY: fixed_state, fixed_band
+    USE nksic,             ONLY: f_cutoff
     IMPLICIT NONE
     real(DP), intent(in) :: lambda(:,:,:), ccc
     integer, intent(in) :: n, nshow
@@ -891,10 +893,13 @@ SUBROUTINE print_lambda_x_real( lambda, n, nshow, ccc, iunit )
        CALL collect_lambda( lambda_repl, lambda(:,:,is), descla(:,is) )
        IF( ionode ) THEN
           WRITE( un,3370) '    lambda   nudx, spin = ', nudx, is
-          IF( nnn < n ) WRITE( un,3370) '    print only first ', nnn
-          DO i=1,nnn
-             WRITE( un,3380) (lambda_repl(i,j)*ccc,j=1,nnn)
-          END DO
+          !IF( nnn < n ) WRITE( un,3370) '    print only first ', nnn
+          !DO i=1,nnn
+          !   WRITE( un,3380) (lambda_repl(i,j)*ccc,j=1,nnn)
+          !END DO
+          !
+          IF (fixed_state .AND. (is==1)) &
+                   WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl(fixed_band,fixed_band)*ccc/f_cutoff)
        END IF
     END DO
     DEALLOCATE( lambda_repl )
@@ -909,6 +914,8 @@ SUBROUTINE print_lambda_x_twin( lambda, n, nshow, ccc, iunit )
     USE cp_main_variables, ONLY: collect_lambda, descla
     USE electrons_base,    ONLY: nudx
     USE twin_types
+    USE input_parameters,  ONLY: fixed_state, fixed_band
+    USE nksic,             ONLY: f_cutoff
     IMPLICIT NONE
     real(DP), intent(in) :: ccc
     type(twin_matrix), intent(in) :: lambda(:) 
@@ -933,10 +940,13 @@ SUBROUTINE print_lambda_x_twin( lambda, n, nshow, ccc, iunit )
 	  CALL collect_lambda( lambda_repl, lambda(is)%rvec(:,:), descla(:,is) )
 	  IF( ionode ) THEN
 	      WRITE( un,3370) '    lambda   nudx, spin = ', nudx, is
-	      IF( nnn < n ) WRITE( un,3370) '    print only first ', nnn
-	      DO i=1,nnn
-		WRITE( un,3380) (lambda_repl(i,j)*ccc,j=1,nnn)
-	      END DO
+	      !IF( nnn < n ) WRITE( un,3370) '    print only first ', nnn
+	      !DO i=1,nnn
+	      !WRITE( un,3380) (lambda_repl(i,j)*ccc,j=1,nnn)
+	      !END DO
+              !
+              IF (fixed_state .AND. (is==1)) &
+                 WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl(fixed_band,fixed_band)*ccc/f_cutoff)              
 	  END IF
 	END DO
         DEALLOCATE( lambda_repl )
@@ -947,17 +957,20 @@ SUBROUTINE print_lambda_x_twin( lambda, n, nshow, ccc, iunit )
 	  CALL collect_lambda( lambda_repl_c, lambda(is)%cvec(:,:), descla(:,is) )
 	  IF( ionode ) THEN
 	      WRITE( un,3370) '    lambda   nudx, spin = ', nudx, is
-	      IF( nnn < n ) WRITE( un,3370) '    print only first ', nnn
-	      DO i=1,nnn
-		WRITE( un,3390) (lambda_repl_c(i,j)*ccc,j=1,nnn)
-	      END DO
+	      !IF( nnn < n ) WRITE( un,3370) '    print only first ', nnn
+	      !DO i=1,nnn
+	      ! WRITE( un,3390) (lambda_repl_c(i,j)*ccc,j=1,nnn)
+	      !END DO
+              !
+              IF (fixed_state .AND. (is==1)) &
+                 WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl_c(fixed_band,fixed_band)*ccc/f_cutoff)
 	  END IF
 	END DO
         DEALLOCATE( lambda_repl_c )
     ENDIF
 
 3370   FORMAT(26x,a,2i4)
-3380   FORMAT(100f8.4)
-3390   FORMAT(100(2((f8.4)(4x))))
+3380   FORMAT(10f8.4)
+3390   FORMAT(10(2((f8.4)(4x))))
     RETURN
 END SUBROUTINE print_lambda_x_twin

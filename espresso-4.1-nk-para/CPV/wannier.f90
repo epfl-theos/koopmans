@@ -789,6 +789,8 @@ MODULE wannier_subroutines
     USE cp_interfaces,  ONLY : writefile
     USE twin_types
     !
+    USE uspp,           ONLY : nkb
+    !
     IMPLICIT NONE
     !
     INTEGER           :: nfi
@@ -814,6 +816,10 @@ MODULE wannier_subroutines
     REAL(DP)    :: occ_f(:), rho(:,:)
     TYPE(twin_matrix), dimension(:) :: mat_z
     !
+    ! ... workaround for wf to work (we do not have win type in there...)  
+    ! 
+    REAL(DP) bec_tmp(nkb, nbsp)
+    !
     CALL start_clock('wf_close_opt')
     !
     ! ... More Wannier Function Options
@@ -822,12 +828,21 @@ MODULE wannier_subroutines
        !
        jwf = 1
        !
-       CALL wf( calwf, c0, bec, eigr, eigrb, taub, irb, &
+       ! ... workaround for wf to work (we do not have win type in there...)  
+       !
+       bec_tmp(:,:) = 0.0
+       bec_tmp(:,:) = bec%rvec(:,:)
+       ! 
+       !CALL wf( calwf, c0, bec, eigr, eigrb, taub, irb, &
+       !         b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
+       CALL wf( calwf, c0, bec_tmp, eigr, eigrb, taub, irb, &
                 b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
        !
        IF ( nvb == 0 ) THEN
           !
-          CALL wf( calwf, cm, bec, eigr, eigrb, taub, irb, &
+          !CALL wf( calwf, cm, bec, eigr, eigrb, taub, irb, &
+          !         b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
+          CALL wf( calwf, cm, bec_tmp, eigr, eigrb, taub, irb, &
                    b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
           !
        ELSE

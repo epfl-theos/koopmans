@@ -86,6 +86,7 @@ zhpev_drv.o \
 wannier_new.o \
 wrappers.o\
 read_cards.o \
+read_oddalpha_file.o \
 compute_dipole.o #added by giovanni, from trunk version July 2012 
 
 all : $(MODULES)

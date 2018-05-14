@@ -48,7 +48,9 @@
 
    PUBLIC :: newrho
 
+   PUBLIC :: readempty_twin
    PUBLIC :: readempty
+   PUBLIC :: writeempty_twin
    PUBLIC :: writeempty
    PUBLIC :: gram_empty
    PUBLIC :: empty_cp
@@ -992,6 +994,27 @@
       END SUBROUTINE
    END INTERFACE
 
+   INTERFACE readempty_twin
+      LOGICAL FUNCTION reademptytwin_x( c_emp, ne, ndi )
+         USE kinds,             ONLY: DP
+         IMPLICIT NONE
+         COMPLEX(DP), INTENT(OUT) :: c_emp(:,:)
+         INTEGER,     INTENT(IN)  :: ne
+         INTEGER,     INTENT(IN)  :: ndi
+      END FUNCTION
+   END INTERFACE
+
+
+   INTERFACE writeempty_twin
+      SUBROUTINE writeemptytwin_x( c_emp, ne, ndi, restart_from_evc0)
+         USE kinds,             ONLY: DP
+         IMPLICIT NONE
+         COMPLEX(DP), INTENT(IN) :: c_emp(:,:)
+         INTEGER,     INTENT(IN) :: ne
+         INTEGER,     INTENT(IN) :: ndi
+         LOGICAL,     INTENT(IN) :: restart_from_evc0
+      END SUBROUTINE
+   END INTERFACE
 
    INTERFACE readempty
       LOGICAL FUNCTION readempty_x( c_emp, ne, ndi )

@@ -938,7 +938,6 @@ SUBROUTINE ortho_m_twin(c0, cp, lambda, descla, ccc, nupdwn, iupdwn, nspin)
          CALL errore( " ortho_cp_twin ", " inconsistent dimensions for x0 ", nx0 )
       ENDIF
       !
-      !
       !     calculation of becp and bephi
       !
       CALL start_clock( 'ortho' )
@@ -954,10 +953,11 @@ SUBROUTINE ortho_m_twin(c0, cp, lambda, descla, ccc, nupdwn, iupdwn, nspin)
          ALLOCATE( qbephi( nkbx, nx0, nspin ) )
       ELSE
          ALLOCATE( qbephi_c( nkbx, nx0, nspin ) )
-       ENDIF
+      ENDIF
       !
       IF( nvb > 0 ) THEN
       !begin_modified:giovanni
+         ! 
          IF(.not.becp%iscmplx) THEN
             ALLOCATE( bephi_c ( nkbx, nlax*nspin ) )
             CALL redist_row2col_real( nupdwn(1), bephi%rvec(1:nkbx,1:nlax), bephi_c, nkbx, nlax, descla(1,1) )
@@ -965,6 +965,7 @@ SUBROUTINE ortho_m_twin(c0, cp, lambda, descla, ccc, nupdwn, iupdwn, nspin)
             ALLOCATE( bephi_c_c ( nkbx, nlax*nspin ) )
             CALL redist_row2col_cmplx( nupdwn(1), bephi%cvec(1:nkbx,1:nlax), bephi_c_c, nkbx, nlax, descla(1,1) )
          ENDIF
+         !
          IF( nspin == 2 ) THEN
 	    IF(.not.becp%iscmplx) THEN
 		CALL redist_row2col_real( nupdwn(2), bephi%rvec(1:nkbx, &!warning:giovanni ... need to conform to interface
@@ -982,6 +983,7 @@ SUBROUTINE ortho_m_twin(c0, cp, lambda, descla, ccc, nupdwn, iupdwn, nspin)
 !                  nlax+1:ubound(bephi_c_c,2)), nkbx, nlax, descla(1,2) )
 	    ENDIF
          END IF
+         !
       END IF
 !end_modified:giovanni
      ! write(6,*) "bephi_cc", bephi_c_c !added:giovanni:debug

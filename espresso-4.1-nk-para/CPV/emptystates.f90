@@ -54,9 +54,9 @@
       USE control_flags,        ONLY : tatomicwfc, trane, ndr, ndw
       USE electrons_module,     ONLY : wfc_centers_emp, wfc_spreads_emp, icompute_spread
       USE core,                 ONLY : nlcc_any, rhoc
-      USE input_parameters,     ONLY : odd_nkscalfact_empty,  &
+      USE input_parameters,     ONLY : odd_nkscalfact_empty, &
                                        restart_from_wannier_cp, wannier_empty_only, &
-                                       print_wfc_anion, wo_odd_in_empty_run, &
+                                       fixed_band, print_wfc_anion, wo_odd_in_empty_run, &
                                        odd_nkscalfact, index_empty_to_save
       USE wavefunctions_module, ONLY : c0fixed_emp
       !

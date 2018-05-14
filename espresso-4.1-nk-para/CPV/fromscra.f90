@@ -134,16 +134,16 @@ SUBROUTINE from_scratch( )
        WRITE( stdout, fmt = '(//,3X, "Wave Initialization: random initial wave-functions" )' )
     !
     IF ( .NOT. do_spinsym .OR. nspin == 1 ) then
-        !
-        IF(tatomicwfc) THEN
-           !
-           call wave_atom_init( cm, nbsp, 1 )
-           !
-        ELSE
-           !
-           CALL wave_rand_init( cm, nbsp, 1 )!modified:giovanni
-           !
-        ENDIF
+       !
+       IF(tatomicwfc) THEN
+          !
+          call wave_atom_init( cm, nbsp, 1 )
+          !
+       ELSE
+          !
+          CALL wave_rand_init( cm, nbsp, 1 )!modified:giovanni
+          !
+       ENDIF
 ! !begin_added:giovanni:debug
 !         DO i=1,size(cm(:,1))
 !             write(201+mpime,'(5((F18.12)5x))') gx(1:3,i), cm(i,1) 
@@ -316,8 +316,9 @@ SUBROUTINE from_scratch( )
 
 
          IF( tortho ) THEN
-            CALL ortho_cp_twin( eigr(1:ngw,1:nat), c0(1:ngw,1:nbsp), phi(1:ngw,1:nbsp), ngw, lambda, descla(1:descla_siz_ , 1:nspin), &
-                        bigr, iter, ccc, bephi, becp, nbsp, nspin, nupdwn, iupdwn )
+            CALL ortho_cp_twin( eigr(1:ngw,1:nat), c0(1:ngw,1:nbsp), & 
+                                phi(1:ngw,1:nbsp), ngw, lambda, descla(1:descla_siz_ , 1:nspin), &
+                                bigr, iter, ccc, bephi, becp, nbsp, nspin, nupdwn, iupdwn )
          ELSE IF(.not.non_ortho) THEN
             !
             CALL gram( vkb, bec, nkb, c0, ngw, nbsp )

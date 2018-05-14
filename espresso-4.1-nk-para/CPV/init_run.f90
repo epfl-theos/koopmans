@@ -85,6 +85,10 @@ SUBROUTINE init_run()
   use eecp_mod,                 ONLY : do_comp, which_compensation, tcc_odd
   use efield_mod,               ONLY : do_efield
   USE nksic,                    ONLY : do_orbdep
+  use input_parameters,         ONLY : odd_nkscalfact, restart_odd_nkscalfact, restart_mode, &
+                                       restart_from_wannier_cp, wannier_empty_only, &
+                                       restart_from_wannier_pwscf
+  use wavefunctions_module,     ONLY : c0_fixed
   USE twin_types !added:giovanni
   !
   IMPLICIT NONE
@@ -158,6 +162,8 @@ SUBROUTINE init_run()
   IF(iprint_manifold_overlap>0) THEN
      ALLOCATE(cstart(ngw, nbspx))
   ENDIF
+  ! 
+  IF ( odd_nkscalfact ) ALLOCATE(c0_fixed(ngw, nbspx))
   !
   IF(non_ortho) THEN
      ALLOCATE(cdual(ngw, nbspx))
@@ -260,6 +266,7 @@ SUBROUTINE init_run()
   cp = ( 0.D0, 0.D0 )
   !gvn23 cpi = (0.D0, 0.D0)
   !
+  IF ( odd_nkscalfact ) c0_fixed = (0.D0, 0.D0)
   !
   IF ( tens .OR. tsmear ) then
       !
@@ -290,7 +297,8 @@ SUBROUTINE init_run()
   ! 
   IF( do_comp ) THEN
       !
-      write(*,*) "USING TCC FOR ODD", tcc_odd
+      write(stdout,*) "USING TCC FOR ODD", tcc_odd
+      ! 
       IF(trim(which_compensation)=='tcc1d') THEN
          CALL ee_green_1d_init( ht0 )
          IF(tcc_odd) THEN
@@ -391,6 +399,41 @@ SUBROUTINE init_run()
      !
   END IF
   !
+  ! here we provide an option to restart wfc from wannier orbitals 
+  ! for occupied many-folds
+  ! 
+  IF (restart_from_wannier_cp .or. restart_from_wannier_pwscf .and. .not. wannier_empty_only) THEN
+     !
+     write(stdout, *) "in init_run from wannier start Linh"
+     !
+     IF ( TRIM( restart_mode ) == "from_scratch" ) THEN
+        !
+        CALL errore( 'init_run ', 'A restart from wannier orbitals needs restart_mode = restart', 1 )         
+        ! 
+     ENDIF 
+     !
+     IF ( restart_from_wannier_cp .and. restart_from_wannier_pwscf ) THEN
+        !
+        CALL errore( 'init_run ', 'choose either restart_from_wannier_pwscf or restart_from_wannier_cp == true' ,1)
+        ! 
+     ENDIF
+     !
+     IF (restart_from_wannier_pwscf) CALL wave_init_wannier_pwscf (c0, nbspx)
+     !
+     IF (restart_from_wannier_cp)    CALL wave_init_wannier_cp (c0, ngw, nbspx, .True.) 
+     !
+     write(stdout, *) "in init_run from wannier end Linh"
+     !
+  ENDIF
+  !
+  IF ( odd_nkscalfact ) THEN
+     !
+     IF (.not. restart_odd_nkscalfact) then
+        c0_fixed (:,:) = c0 (:,:)
+     ENDIF
+     ! 
+  ENDIF
+  !  
   CALL stop_clock( 'initialize' )
   !
   RETURN

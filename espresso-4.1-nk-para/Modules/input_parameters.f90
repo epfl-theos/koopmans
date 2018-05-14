@@ -432,8 +432,8 @@ MODULE input_parameters
         LOGICAL   :: force_pairing = .FALSE.
           ! Parameters for SIC calculation
 
-        LOGICAL :: assume_isolated = .FALSE.
-
+        CHARACTER(LEN=80) :: assume_isolated = 'none'
+        !
         LOGICAL :: spline_ps = .false.
           ! use spline interpolation for pseudopotential
         LOGICAL :: do_orbdep  = .false.
@@ -454,6 +454,11 @@ MODULE input_parameters
         !
         LOGICAL :: do_spinsym  = .false.
         !
+        REAL ( DP ) :: f_cutoff = 0.01_DP
+        LOGICAL :: fixed_state = .false.
+        INTEGER :: fixed_band  = 1
+        LOGICAL :: restart_from_wannier_pwscf= .false. !added by linh, to start KIPZ calculations using
+        !
         NAMELIST / system / ibrav, celldm, a, b, c, cosab, cosac, cosbc, nat, &
              ntyp, nbnd, nelec, ecutwfc, ecutrho, nr1, nr2, nr3, nr1s, nr2s,  &
              nr3s, nr1b, nr2b, nr3b, nosym, nosym_evc, noinv,                 &
@@ -470,7 +475,8 @@ MODULE input_parameters
              sic, sic_epsilon, force_pairing, sic_alpha,                      &
              tot_charge, multiplicity, tot_magnetization,                     &
              spline_ps, london, london_s6, london_rcut, do_orbdep, do_ee,     &
-             do_wf_cmplx, do_spinsym
+             do_wf_cmplx, do_spinsym, f_cutoff, fixed_state, fixed_band,      &
+             restart_from_wannier_pwscf
 !
 !=----------------------------------------------------------------------------=!
 !  NKSIC Namelist Input Parameters
@@ -498,6 +504,7 @@ MODULE input_parameters
         REAL(DP) :: kfact = 1.d0
         !
         LOGICAL :: do_innerloop  = .false.
+        LOGICAL :: do_innerloop_empty  = .false.
         LOGICAL :: do_innerloop_cg  = .false.
         INTEGER :: innerloop_dd_nstep  = 50
         INTEGER :: innerloop_init_n = 10000
@@ -524,7 +531,29 @@ MODULE input_parameters
           / "none", "nk", "non-koopmans", "nk0", "nki", &
             "perdew-zunger", "pz", "nkipz", "pznki"/
         !
-! 
+        ! 
+        ! ---------------- 
+        LOGICAL :: odd_nkscalfact= .false. !added by linh, to compute different alphas 
+        LOGICAL :: odd_nkscalfact_empty= .false. !added by linh, to compute different alphas for empty
+        LOGICAL :: restart_odd_nkscalfact= .false. !added: when you are running with odd_nkscalfact=.true.,
+        ! you needs to set restart_odd_nkscalfact=.true. if you needs to restart the calculation.
+        LOGICAL :: wo_odd_in_empty_run = .false. !added: by linh, othorgnal empty manyfolds without computing ODD energy
+        INTEGER :: aux_empty_nbnd = 0 
+        !
+        LOGICAL :: restart_from_wannier_cp= .false. !added by linh, to start KIPZ calculations using
+        ! wannier orbitals as starting.
+        CHARACTER(80) :: which_file_wannier=" " ! added by linh, name of the *.chk file which stores information 
+        ! of wannier90 output.
+        !
+        LOGICAL :: wannier_empty_only = .false. !added by linh, set wannier_empty_only if you want to start empty KIPZ calculation
+        ! and to use wannier orbitals as starting
+        !
+        LOGICAL :: print_evc0_occ_empty= .false. !added:linh to save evc0 of occ and empty in xml_format
+        !
+        LOGICAL :: print_wfc_anion = .false. !added by linh, to save the anion format N+1 systems.
+        INTEGER :: index_empty_to_save = 1       !added by linh, to save the anion format N+1 systems.
+        ! ---------------
+        !
         LOGICAL :: draw_pot = .false. !added:linh draw vsic potentials
         LOGICAL :: sortwfc_spread = .false. !added:sort nksic minimizing orbitals &
         ! according to their Culomb spreads
@@ -537,20 +566,37 @@ MODULE input_parameters
         REAL ( DP ) :: nkscalfact = 1.0_DP
         REAL ( DP ) :: hfscalfact = 1.0_DP
         REAL ( DP ) :: vanishing_rho_w = 1.0e-7_DP
-        REAL ( DP ) :: f_cutoff = 0.1_DP
-        !                    
+        !
+        ! NsC : do innerloop only without touching the input density (NO outern loop)
+        LOGICAL :: one_innerloop_only = .FALSE. 
+        !
+        ! Linh: finite field
+        LOGICAL :: finite_field_introduced = .FALSE.
+        LOGICAL :: finite_field_for_empty_state = .FALSE.
+        !
+        !
 !=-----BEGIN nksic input variables
         NAMELIST / nksic /  draw_pot, pot_number,                             & !added:linh draw vsic potentials 
              do_nk, do_pz, do_nki, do_nkpz, do_nkipz, do_hf,                  &
              do_wref, do_wxd, fref, rhobarfact, ampfield, do_efield,          &
-             do_hf, nknmax, f_cutoff,                                         &
+             do_hf, nknmax,                                                   &    
+             !    
+             odd_nkscalfact,               & !added:linh compute odd alpha 
+             restart_odd_nkscalfact, print_evc0_occ_empty, wo_odd_in_empty_run,    & !added:linh compute odd alpha
+             print_wfc_anion, index_empty_to_save, restart_from_wannier_cp,   & 
+             which_file_wannier, wannier_empty_only, odd_nkscalfact_empty,    &
+             !
              nkscalfact, hfscalfact, vanishing_rho_w, which_orbdep,           &
-             do_innerloop, do_innerloop_cg, innerloop_dd_nstep,               &
+             do_innerloop, do_innerloop_empty, do_innerloop_cg, innerloop_dd_nstep,               &
              innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax,           &
              innerloop_init_n, innerloop_cg_ratio, do_pz_renorm, kfact,       &
              esic_conv_thr, do_bare_eigs, sortwfc_spread, iprint_spreads,     &
              iprint_manifold_overlap, innerloop_until, innerloop_atleast,     &
-             hartree_only_sic
+             hartree_only_sic, aux_empty_nbnd, one_innerloop_only,            &
+             !
+             finite_field_introduced, finite_field_for_empty_state
+             !
+!             lgroup !NsC 
 
 !=----END nksic input variables
 !

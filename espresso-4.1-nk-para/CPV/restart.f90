@@ -25,6 +25,7 @@
       USE electrons_base,   ONLY: nspin, nbnd, nbsp, iupdwn, nupdwn
       USE electrons_module, ONLY: ei, ei_emp, n_emp, iupdwn_emp, nupdwn_emp
       USE io_files,         ONLY: outdir
+      USE io_global,        ONLY: stdout 
       USE ensemble_dft,     ONLY: tens, tsmear
       USE mp,               ONLY: mp_bcast
       USE mp_global,        ONLY: root_image, intra_image_comm
@@ -72,7 +73,7 @@
       
       nupdwn_tot = nupdwn + nupdwn_emp
       iupdwn_tot(1) = iupdwn(1)
-      iupdwn_tot(2) = nupdwn(1) + 1
+      iupdwn_tot(2) = nupdwn_tot(1) + 1  !! NlN check if it's correct through all the routine
       !
       ALLOCATE( eitot( nupdwn_tot(1), nspin ) )
       !
@@ -139,6 +140,7 @@
       USE electrons_base,   ONLY: nspin, nbnd, nbsp, iupdwn, nupdwn, nudx
       USE electrons_module, ONLY: ei, ei_emp, n_emp, iupdwn_emp, nupdwn_emp
       USE io_files,         ONLY: outdir
+      USE io_global,        ONLY: stdout
       USE ensemble_dft,     ONLY: tens, tsmear
       USE mp,               ONLY: mp_bcast
       USE mp_global,        ONLY: root_image, intra_image_comm
@@ -190,7 +192,7 @@
       
       nupdwn_tot = nupdwn + nupdwn_emp
       iupdwn_tot(1) = iupdwn(1)
-      iupdwn_tot(2) = nupdwn(1) + 1
+      iupdwn_tot(2) = nupdwn_tot(1) + 1  !! NlN check if it's correct through all the routine
       !
       ALLOCATE( eitot( nupdwn_tot(1), nspin ) )
       !
@@ -517,7 +519,8 @@
         !
         nupdwn_tot = nupdwn + nupdwn_emp
         iupdwn_tot(1) = iupdwn(1)
-        iupdwn_tot(2) = nupdwn(1) + 1
+!        iupdwn_tot(2) = nupdwn(1) + 1
+        iupdwn_tot(2) = nupdwn_tot(1) + 1  !! NlN check if it's correct through all the routine
         !
         ALLOCATE( eitot( nupdwn_tot(1), nspin ) )
         !
@@ -589,9 +592,11 @@
       USE kinds,             ONLY: DP
       USE electrons_base,    ONLY: nupdwn, nspin, iupdwn, nudx
       USE electrons_module,  ONLY: nupdwn_emp, ei, ei_emp, n_emp, iupdwn_emp
-      USE cp_interfaces,     ONLY: readempty, crot
+      USE cp_interfaces,     ONLY: readempty, crot, readempty_twin
       USE cp_main_variables, ONLY: collect_lambda, descla
       USE control_flags,     ONLY: ndw
+      USE input_parameters,  ONLY: print_evc0_occ_empty 
+      USE wavefunctions_module, ONLY: c0_occ_emp_aux
       !
       IMPLICIT NONE
       !
@@ -641,6 +646,31 @@
       !
       IF( n_emp > 0 ) DEALLOCATE( cemp )
       !
+      ! print evc0 of occ and empty in xml_io format
+      ! 
+      IF (print_evc0_occ_empty .and. (n_emp > 0)) THEN
+         !
+         ALLOCATE( c0_occ_emp_aux( SIZE( c0, 1 ), nupdwn_tot(1) * nspin ) )
+         !
+         t_emp = .FALSE.
+         !
+         ALLOCATE( cemp( SIZE( c0, 1 ), n_emp * nspin ) )
+         cemp = 0.0d0
+         t_emp = readempty_twin( cemp,  n_emp * nspin, ndw )
+         !
+         IF (t_emp) THEN
+            c0_occ_emp_aux(:, iupdwn_tot(1) : nupdwn(1)) = c0(:, iupdwn(1):nupdwn(1))
+            c0_occ_emp_aux(:, nupdwn( 1 )+1 : nupdwn_tot(1)) = cemp( :, 1:nupdwn_emp(1)) 
+            IF ( nspin == 2 ) THEN
+               c0_occ_emp_aux(:, iupdwn_tot(2) : iupdwn_tot(2) + nupdwn(2) -1 ) = c0(:, iupdwn(2):iupdwn(2) + nupdwn(2)-1)
+               c0_occ_emp_aux(:, iupdwn_tot(2) + nupdwn(2) : iupdwn_tot(2) + nupdwn_tot(2) - 1 ) = &
+               cemp( :, iupdwn_emp(2) : iupdwn_emp(2) + nupdwn_emp(2) - 1 )
+            ENDIF
+         ENDIF
+         !
+         DEALLOCATE( cemp )
+      ENDIF
+      ! 
       DEALLOCATE( eitmp )
       !
       RETURN
@@ -653,9 +683,11 @@
       USE kinds,             ONLY: DP
       USE electrons_base,    ONLY: nupdwn, nspin, iupdwn, nudx
       USE electrons_module,  ONLY: nupdwn_emp, ei, ei_emp, n_emp, iupdwn_emp
-      USE cp_interfaces,     ONLY: readempty, crot
+      USE cp_interfaces,     ONLY: readempty, crot, readempty_twin
       USE cp_main_variables, ONLY: collect_lambda, descla
       USE control_flags,     ONLY: ndw
+      USE input_parameters,  ONLY: print_evc0_occ_empty
+      USE wavefunctions_module, ONLY: c0_occ_emp_aux
       USE twin_types
       !
       IMPLICIT NONE
@@ -672,7 +704,6 @@
       LOGICAL                  :: t_emp
       !
       ALLOCATE( eitmp( nudx ) )
-
       !
       ctot = 0.0d0
       !
@@ -685,8 +716,6 @@
           CALL collect_lambda( lambda_repl_c, lambda(1)%cvec(:,:), descla(:,1) )
           CALL crot( ctot, c0, SIZE( c0, 1 ), nupdwn(1), iupdwn_tot(1), iupdwn(1), lambda_repl_c, nudx, eitmp )
       ENDIF
-      !
-
       !
       IF( nspin == 2 ) THEN
           IF(.not.lambda(1)%iscmplx) THEN
@@ -703,7 +732,6 @@
       ELSE
           DEALLOCATE( lambda_repl_c )
       ENDIF
-
       !
       t_emp = .FALSE.
       !
@@ -726,6 +754,32 @@
       IF( n_emp > 0 ) DEALLOCATE( cemp )
       !
       DEALLOCATE( eitmp )
+      !
+      ! print evc0 of occ and empty in xml_io format
+      ! 
+      IF (print_evc0_occ_empty .and. (n_emp > 0)) THEN
+         !
+         ALLOCATE( c0_occ_emp_aux( SIZE( c0, 1 ), nupdwn_tot(1) * nspin ) )
+         !
+         t_emp = .FALSE.
+         !
+         ALLOCATE( cemp( SIZE( c0, 1 ), n_emp * nspin ) )
+         cemp = 0.0d0
+         t_emp = readempty_twin( cemp,  n_emp * nspin, ndw )
+         !
+         IF (t_emp) THEN
+            c0_occ_emp_aux(:, iupdwn_tot(1) : nupdwn(1)) = c0(:, iupdwn(1):nupdwn(1))
+            c0_occ_emp_aux(:, nupdwn( 1 )+1 : nupdwn_tot(1)) = cemp( :, 1:nupdwn_emp(1))
+            IF ( nspin == 2 ) THEN
+               c0_occ_emp_aux(:, iupdwn_tot(2) : iupdwn_tot(2) + nupdwn(2) -1 ) = c0(:, iupdwn(2):iupdwn(2)+ nupdwn(2)-1)
+               c0_occ_emp_aux(:, iupdwn_tot(2) + nupdwn(2) : iupdwn_tot(2) + nupdwn_tot(2) - 1 ) = &
+                                    cemp( :, iupdwn_emp(2) : iupdwn_emp(2) + nupdwn_emp(2) - 1 )
+            ENDIF
+         ENDIF
+         !
+         DEALLOCATE( cemp )
+         !  
+      ENDIF
       !
       RETURN
 

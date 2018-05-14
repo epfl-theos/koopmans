@@ -31,7 +31,7 @@
 >include iotk_mangen.sh
 >##############################################################################
 
-> REVISION='$Revision$'
+> REVISION='$Revision: 1.1.1.1 $'
 > REVISION="${REVISION//${dol}/}"
 
 >PROCEDURE=iotk_tool

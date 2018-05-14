@@ -636,6 +636,7 @@
       REAL(DP), INTENT(IN) ::  dt2m(:)
       INTEGER, OPTIONAL, INTENT(IN) :: ngw, idx
       !
+      !
       IF( PRESENT( ngw ) .AND. PRESENT( idx ) ) THEN
          CP( : )  = C0( : )  + dt2m(:) * grad( (idx-1)*ngw+1 : idx*ngw )
       ELSE

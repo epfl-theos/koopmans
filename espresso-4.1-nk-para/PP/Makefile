@@ -40,7 +40,11 @@ sym_band.o \
 work_function.o \
 write_p_avg.o \
 xsf.o \
-wannier_hamiltonians.o 
+wannier_hamiltonians.o	\
+read_wannier_files.o \
+wannier2odd.o 	\
+pw2cp_empty.o  
+
 
 MODULES = \
 ../Modules/atom.o \

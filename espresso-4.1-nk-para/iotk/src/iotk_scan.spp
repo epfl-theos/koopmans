@@ -32,7 +32,7 @@
 ! Implementation of RAW I/O should be improved
 !
 
-> REVISION='$Revision$'
+> REVISION='$Revision: 1.1.1.1 $'
 > REVISION="${REVISION//${dol}/}"
 
 >PROCEDURE=iotk_scan_begin

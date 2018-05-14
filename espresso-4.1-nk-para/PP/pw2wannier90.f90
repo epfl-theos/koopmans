@@ -26,13 +26,15 @@ program pw2wannier90
   !
   implicit none
   integer :: ios
+  integer :: nbnd_empty_to_save, empty_start_index
   CHARACTER(LEN=4) :: spin_component
   CHARACTER(len=256) :: outdir
+  logical :: split_orbital_twofiles
 
   ! these are in wannier module.....-> integer :: ispinw, ikstart, ikstop, iknum
   namelist / inputpp / outdir, prefix, spin_component, wan_mode, &
        seedname, write_unk, write_amn, write_mmn, write_spn, &
-       wvfn_formatted, reduce_unk
+       wvfn_formatted, reduce_unk, nbnd_empty_to_save, empty_start_index, split_orbital_twofiles
   !
   call start_postproc (nd_nmbr)
   !
@@ -58,6 +60,9 @@ program pw2wannier90
      write_mmn = .true.
      write_spn = .false.
      reduce_unk= .false.
+     nbnd_empty_to_save = 1
+     split_orbital_twofiles =  .false.
+     empty_start_index = 1 
      !
      !     reading the namelist inputpp
      !
@@ -86,6 +91,9 @@ program pw2wannier90
   call mp_bcast(write_mmn,ionode_id)
   call mp_bcast(write_spn,ionode_id)
   call mp_bcast(reduce_unk,ionode_id)
+  call mp_bcast(nbnd_empty_to_save,ionode_id)
+  call mp_bcast(split_orbital_twofiles, ionode_id)
+  call mp_bcast(empty_start_index,ionode_id)
   !
   !   Now allocate space for pwscf variables, read and check them.
   !
@@ -221,6 +229,24 @@ program pw2wannier90
      !
      call read_nnkp
      call wan2sic
+     !
+  endif
+  !
+  if(wan_mode.eq.'wannier2odd') then
+     !
+     write(stdout, *) nspin
+     call read_nnkp
+     call openfil_pp
+     call wan2odd( seedname, nbnd_empty_to_save, iknum, ikstart, split_orbital_twofiles )
+     call stop_pp
+     !
+  endif
+  !
+  if(wan_mode.eq.'pw2cp_empty') then
+     !
+     call openfil_pp
+     call pw2cp_empty ( seedname, iknum, ikstart, empty_start_index, nbnd_empty_to_save )
+     call stop_pp
      !
   endif
   !
@@ -1214,13 +1240,15 @@ subroutine compute_amn
    use mp_global,       only : intra_pool_comm
    use mp,              only : mp_sum
    USE noncollin_module,ONLY : noncolin, npol
+   use lsda_mod,   ONLY : nspin, isk
 
    implicit none
 
    complex(DP) :: amn, ZDOTC
    real(DP):: DDOT
    complex(DP), allocatable :: sgf(:,:)
-   integer :: ik, ibnd, ibnd1, iw,i, ikevc, nt, ipol
+   complex(DP), allocatable :: c0_tmp_to_save(:,:)
+   integer :: ik, ibnd, ibnd1, iw,i, ikevc, nt, ipol, counter
    character (len=9)  :: cdate,ctime
    character (len=60) :: header
    logical            :: any_uspp
@@ -1267,6 +1295,7 @@ subroutine compute_amn
       CALL init_us_1
    end if
    !
+      write(stdout, *) 'Linh test, print Amn' 
    write(stdout,'(a,i8)') ' iknum = ',iknum
    do ik=1,iknum
       write (stdout,'(i8)') ik
@@ -1331,6 +1360,12 @@ subroutine compute_amn
                end if
                call mp_sum(amn, intra_pool_comm)
                ibnd1=ibnd1+1
+      ! NLN, print test
+if (ibnd1==1) then
+         write(stdout, *) 'Linh, ', iw, real(amn), aimag(amn)
+endif
+      !NLN, done print test
+
                if (wan_mode.eq.'standalone') then
                   if (ionode) write(iun_amn,'(3i5,2f18.12)') ibnd1, iw, ik, amn
                elseif (wan_mode.eq.'library') then
@@ -1342,6 +1377,56 @@ subroutine compute_amn
          end do
       end if
    end do  ! k-points
+   !
+   !
+!!!! NLN test for saving the projected_wfc
+   !
+   if (nspin == 2) then
+      allocate (c0_tmp_to_save (npw, n_proj*2) )
+   else
+      allocate (c0_tmp_to_save (npw, n_proj) )
+   endif
+   !
+   c0_tmp_to_save(:,:) = (0.0, 0.0)
+   !
+   do iw=1, n_proj
+      !
+      ! Normalization
+      !
+      if (gamma_only) then
+         amn = 2.0_dp*DDOT(2*npw,sgf(1,iw),1,sgf(1,iw),1)
+         if (gstart==2) amn = amn - real(conjg(sgf(1,iw))*sgf(1,iw))
+      else
+         amn = ZDOTC(npw,sgf(1,iw),1,sgf(1,iw),1)
+      end if
+      call mp_sum(amn, intra_pool_comm)
+      !
+      amn = sqrt(amn)
+      c0_tmp_to_save (:, iw) = sgf (:, iw)/amn
+      !
+   enddo
+   !
+   if (nspin == 2) then
+      !
+      counter = 0
+      !
+      do iw=n_proj+1, n_proj*2
+         !
+         counter = counter + 1
+         c0_tmp_to_save (:, iw) = c0_tmp_to_save (:, counter)
+         ! 
+      enddo
+      !
+      call writeempty_state(c0_tmp_to_save, n_proj*2, 'evc0_empty_proj.dat')
+      !
+   else
+      !  
+      call writeempty_state(c0_tmp_to_save, n_proj, 'evc0_empty_proj.dat')
+      !
+   endif
+   !
+   deallocate ( c0_tmp_to_save )
+
    deallocate (sgf,csph)
    if(any_uspp) then 
      if (gamma_only) then 
@@ -1355,7 +1440,7 @@ subroutine compute_amn
    
    write(stdout,*)
    write(stdout,*) ' AMN calculated'
-
+   !   
    return
 end subroutine compute_amn
 !

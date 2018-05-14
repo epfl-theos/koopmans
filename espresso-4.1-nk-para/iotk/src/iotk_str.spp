@@ -28,7 +28,7 @@
 #include "iotk_auxmacros.h"
 >##############################################################################
 
-> REVISION='$Revision$'
+> REVISION='$Revision: 1.1.1.1 $'
 > REVISION="${REVISION//${dol}/}"
 
 function iotk_toupper_x(str)

@@ -6,7 +6,7 @@
 ###                                                        ###
 ##############################################################
 
-### $Revision$, $Date$, $Author$ ###
+### $Revision: 1.1.1.1 $, $Date: 2010/04/21 09:20:15 $, $Author: daboi $ ###
 
 ##   (C) 2001,2002,2003,2004 Martyn J. Pearce <fluffy@cpan.org>, under the GNU GPL.
 ##   (C) 1999 Karl Fogel <kfogel@red-bean.com>, under the GNU GPL.
@@ -141,7 +141,7 @@ use User::pwent    qw( getpwnam );
 # Globals --------------------------------------------------------------------
 
 # In case we have to print it out:
-my $VERSION = '$Revision$';
+my $VERSION = '$Revision: 1.1.1.1 $';
 $VERSION =~ s/\S+\s+(\S+)\s+\S+/$1/;
 
 ## Vars set by options:

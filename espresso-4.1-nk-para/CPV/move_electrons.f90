@@ -75,13 +75,14 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   USE control_flags,        ONLY : force_pairing, gamma_only, do_wf_cmplx !added:giovanni
   USE cp_interfaces,        ONLY : rhoofr, compute_stress, invfft
   USE electrons_base,       ONLY : ispin, iupdwn, nupdwn 
-  USE mp_global,            ONLY : me_image, intra_image_comm
+  USE mp_global,            ONLY : me_image, intra_image_comm, mpime
   USE mp,                   ONLY : mp_sum, mp_bcast
   USE efield_mod,           ONLY : do_efield
   USE fft_base,             ONLY : dfftp
   USE io_global,            ONLY : ionode, ionode_id
   USE hfmod,                ONLY : do_hf, vxxpsi, exx
-  USE nksic,                ONLY : do_orbdep, vsic, wtot, fsic, fion_sic, deeq_sic, pink, do_wxd, sizwtot
+  USE nksic,                ONLY : do_orbdep, vsic, wtot, fsic, fion_sic, deeq_sic, pink, do_wxd, sizwtot, &
+                                   f_cutoff, valpsi, odd_alpha 
   !
   USE nksic,                ONLY : do_pz, do_innerloop,do_innerloop_cg, innerloop_dd_nstep, &
                                    innerloop_init_n
@@ -90,6 +91,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   use electrons_module,     ONLY : icompute_spread, wfc_centers, wfc_spreads
   use cp_main_variables,    ONLY : becdual
   use control_flags,        ONLY : non_ortho, esic_conv_thr
+  use input_parameters,     ONLY : odd_nkscalfact
   !
   IMPLICIT NONE
   !
@@ -113,15 +115,13 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   LOGICAL :: lgam !added:giovanni
   INTEGER :: iss !added:giovanni
   COMPLEX(DP), DIMENSION(nbsp, nbsp) :: csc !added:giovanni:debug
-!$$
   !
-  !
-!   write(6,*) "inside move-electrons" !added:giovanni debug
   !
   lgam=gamma_only.and..not. do_wf_cmplx
 
   electron_dynamic: IF ( tcg ) THEN
-! 
+     ! 
+     WRITE(*,*) mpime, 'call to runcg_uspp in move_electrons.f90'
      CALL runcg_uspp( nfi, tfirst, tlast, eigr, bec, irb, eigrb, &
                       rhor, rhog, rhos, rhoc, ei1, ei2, ei3, sfac, &
                       fion, ema0bg, becdr, lambdap, lambda, lambda_bare, vpot  )
@@ -129,28 +129,22 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
      CALL compute_stress( stress, detot, h, omega )
      !
   ELSE
-
-     !
+     ! 
      IF ( lwf ) &
           CALL get_wannier_center( tfirst, cm, bec%rvec, eigr, &
                                    eigrb, taub, irb, ibrav, b1, b2, b3 )
      !
      IF ( .NOT. tsmear ) THEN
          !
-         ! std implementation
+         ! standard implementation
          !
-        csc=CMPLX(0.d0,0.d0) 
-!begin_added:giovanni:debug
-!        call scalar_us(bec, nkb, vkb, c0, ngw, nbsp, csc, nbsp, lgam)
-!        write(6,*) nbsp, "csc-ortho-before", csc, lgam
-!        call scalar_character(c0, nbsp, ngw, csc, lgam) !added:giovanni:debug
-!        write(6,*) nbsp, "csc-phase", csc
-!end_added:giovanni:debug
-
+         csc=CMPLX(0.d0,0.d0) 
+         !
          IF(non_ortho) THEN
             call compute_duals(c0,cdual,nbsp,1)
             call calbec(1,nsp,eigr,cdual,becdual)
          ENDIF
+         !
          CALL rhoofr( nfi, c0, irb, eigrb, bec, &
                          becsum, rhor, rhog, rhos, enl, denl, ekin, dekin6 )
          !
@@ -190,12 +184,24 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
      !
      CALL vofrho( nfi, vpot, rhog, rhos, rhoc, tfirst, tlast, &
                   ei1, ei2, ei3, irb, eigrb, sfac, tau0, fion )
-
      !
      ! compute auxiliary potentials
      !
      if( do_orbdep ) then
          !
+         !
+         !
+         if (odd_nkscalfact) then
+            !
+            valpsi(:,:) = (0.0_DP, 0.0_DP)
+            odd_alpha(:) = 0.0_DP
+            !
+            call odd_alpha_routine(c0, nbsp, nbspx, lgam, .false.)
+            ! 
+         endif
+         !
+         !
+         ! 
          if ( tens .or. tsmear) then
              fsic = fmat0_diag
          else
@@ -315,6 +321,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
         etot = etot + enb + enbi
         !
      END IF
+     !
      IF( tefield2 )  THEN
         !
         CALL berry_energy2( enb, enbi, bec%rvec, c0, fion )
@@ -354,10 +361,8 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
         !
      ELSE
         !
-!         write(6,*) "lambdasize before runcp" !added:giovanni:debug
         CALL runcp_uspp( nfi, fccc, ccc, ema0bg, dt2bye, rhos, bec, c0, cm, &
                          tprint_ham = tprint_ham )
-!         write(6,*) "lambdasize after runcp" !added:giovanni:debug
         !
      ENDIF
      !
@@ -376,10 +381,10 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
      !
      IF( force_pairing ) THEN
         IF(.not. lambda(2)%iscmplx) THEN
-	    lambda(2)%rvec(:,:) =  lambda(1)%rvec(:,:)
+	    lambda(2)%rvec(:,:)  =  lambda(1)%rvec(:,:)
 	    lambdam(2)%rvec(:,:) =  lambdam(1)%rvec(:,:)
         ELSE
-	    lambda(2)%cvec(:,:) =  lambda(1)%cvec(:,:)
+	    lambda(2)%cvec(:,:)  =  lambda(1)%cvec(:,:)
 	    lambdam(2)%cvec(:,:) =  lambdam(1)%cvec(:,:)
         ENDIF
      ENDIF
@@ -387,8 +392,9 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
      IF ( tfor .OR. thdyn ) then
         CALL interpolate_lambda( lambdap, lambda, lambdam )
      ELSE
+        !
         ! take care of the otherwise uninitialized lambdam
-!         write(6,*) "lambdam initialization", ubound(lambda(1)%cvec)
+        ! 
         DO iss=1,nspin
             IF(.not.lambda(iss)%iscmplx) THEN
                lambdam(iss)%rvec = lambda(iss)%rvec
@@ -396,13 +402,13 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
                lambdam(iss)%cvec = lambda(iss)%cvec
             ENDIF
         ENDDO
+        !
      END IF
      !
      ! ... calphi calculates phi
      ! ... the electron mass rises with g**2
      !
      CALL calphi( c0, ngw, bec, nkb, vkb, phi, nbsp, lgam, ema0bg )
-!      write(6,*) "calphi", phi
      !
      ! ... begin try and error loop (only one step!)
      !
@@ -412,7 +418,6 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
      !
   END IF electron_dynamic
   !
-!   write(6,*) "end of move-electrons" !added:giovanni:debug
   RETURN
   !
 END SUBROUTINE move_electrons_x

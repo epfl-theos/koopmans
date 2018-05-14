@@ -228,6 +228,9 @@ read_ncpp.o : functionals.o
 read_ncpp.o : kind.o
 read_ncpp.o : parameters.o
 read_ncpp.o : pseudo_types.o
+read_oddalpha_file.o : io_global.o
+read_oddalpha_file.o : kind.o
+read_oddalpha_file.o : mp.o
 read_upf_v1.o : kind.o
 read_upf_v1.o : pseudo_types.o
 read_upf_v1.o : radial_grids.o

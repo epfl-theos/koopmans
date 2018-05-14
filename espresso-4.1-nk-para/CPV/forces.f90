@@ -49,7 +49,7 @@
       IMPLICIT NONE
 !
       INTEGER,     INTENT(IN)    :: i
-      type(twin_matrix)                :: bec !(:,:)!modified:giovanni
+      type(twin_matrix)          :: bec !(:,:)!modified:giovanni
       COMPLEX(DP)                :: vkb(:,:)
       COMPLEX(DP)                :: c(:,:)
       COMPLEX(DP)                :: df(:), da(:)
@@ -68,7 +68,6 @@
       INTEGER     :: idx, eig_offset, eig_index, nogrp_
       REAL(DP)    :: fi, fip, dd, dv
       COMPLEX(DP) :: fp, fm, ci
-!       REAL(DP),    ALLOCATABLE :: af( :, : ), aa( :, : )
       COMPLEX(DP), ALLOCATABLE :: af( :, : ), aa( :, : ) !modified:giovanni
       COMPLEX(DP), ALLOCATABLE :: psi(:), psi2(:)
       LOGICAL :: lgam !added:giovanni
@@ -78,9 +77,9 @@
       CALL start_clock( 'dforce' )
       !
       lgam=gamma_only.and..not.do_wf_cmplx
-
-       nwav=2
-
+      !
+      nwav=2
+      !
       IF( use_task_groups ) THEN
          nogrp_ = nogrp
          ALLOCATE( psi( dffts%nnrx * nogrp ) )
@@ -94,12 +93,12 @@
       ci = CMPLX( 0.0d0, 1.0d0 )
       !
       psi( : ) = CMPLX(0.d0, 0.d0)
-
+      !
       IF(.not.lgam) psi2( : ) = CMPLX(0.d0, 0.d0)
-
+      !
       igoff = 0
-
-      DO idx = 1, nwav*nogrp_ , nwav !warning:giovanni:parallel
+      !
+      DO idx = 1, nwav*nogrp_, nwav !warning:giovanni:parallel
          !
          !  This loop is executed only ONCE when NOGRP=1.
          !  Equivalent to the case with no task-groups
@@ -111,10 +110,8 @@
          !
          !  important: if n is odd => c(*,n+1)=0.
          ! 
-         IF ( ( idx + i - 1 ) == n ) THEN
-            c( : , idx + i ) = CMPLX(0.0d0,0.d0)
-         ENDIF
-
+         IF ( ( idx + i - 1 ) == n ) c( : , idx + i ) = CMPLX(0.0d0,0.d0)
+         ! 
          IF( idx + i - 1 <= n ) THEN
             IF(lgam) THEN
 	      DO ig=1,ngw
@@ -123,16 +120,16 @@
 	      END DO
             ELSE
 	      DO ig=1,ngw
-		psi(nps(ig)+igoff) =        c(ig,idx+i-1)
+		psi(nps(ig)+igoff)  =      c(ig,idx+i-1)
                 psi2(nps(ig)+igoff) =      c(ig,idx+i)
 	      END DO
             ENDIF
          END IF
-
+         !
          igoff = igoff + dffts%nnrx
-
-      END DO
-
+         !
+      ENDDO
+      !
       CALL invfft( 'Wave', psi, dffts )
       IF (.not.lgam) CALL invfft( 'Wave', psi2, dffts )
       !
@@ -156,7 +153,7 @@
 	    END DO
          ELSE !warning:giovanni:parallel
 	    DO ir = 1, nr1sx * nr2sx * dffts%tg_npp( me_image + 1 )
-		psi(ir) = v(ir,iss1) * psi(ir)
+		psi(ir)  = v(ir,iss1) * psi(ir)
 		psi2(ir) = v(ir,iss2) * psi2(ir)
 	    END DO
          ENDIF
@@ -172,7 +169,7 @@
 		END DO
             ELSE
                 DO ir=1,nnrsx
-		  psi(ir)=v(ir,iss1)* psi(ir)
+		  psi(ir) =v(ir,iss1) * psi(ir)
 		  psi2(ir)=v1(ir,iss2)* psi2(ir)
 		END DO
             ENDIF
@@ -206,9 +203,9 @@
       !
       eig_offset = 0
       igno = 1
-
+      !
       DO idx = 1, nwav*nogrp_ , nwav !warning:giovanni:parallel
-
+         !  
          IF( idx + i - 1 <= n ) THEN
             !
             if ( tens .or. tsmear ) then
@@ -222,10 +219,7 @@
                fi = -0.5d0*f(i+idx-1)
                fip = -0.5d0*f(i+idx)
             endif
-!             IF(.not.lgam) then
-!                fi=2*fi
-!                fip=2*fip
-!             ENDIF
+            !
             IF( use_task_groups ) THEN
 !$omp parallel do private( fp, fm )
                IF(lgam) THEN
@@ -265,39 +259,33 @@
 		END DO
 !$omp end parallel do
                ENDIF
-            END IF
-         END IF
-
+            ENDIF
+         ENDIF
+         !
          eig_offset = eig_offset + nr3sx * dffts%nsw(me_image+1)
          ! We take into account the number of elements received from other members of the orbital group
-
+         !
       ENDDO
-
       !
       IF(dft_is_meta()) THEN
-!          IF(lgam) THEN
-!            CALL dforce_meta(c(1,i),c(1,i+1),df,da,psi,iss1,iss2,fi,fip) !METAGGA
-!          ELSE
            CALL dforce_meta_new(c(1,i),c(1,i+1),df,da,psi,psi2,iss1,iss2,fi,fip) !METAGGA !modified:giovanni
-!          ENDIF
       END IF
-
-
+      ! 
       IF( nhsa > 0 ) THEN
          !
          !     aa_i,i,n = sum_j d_i,ij <beta_i,j|c_n>
          ! 
          ALLOCATE( af( nhsa, nogrp_ ), aa( nhsa, nogrp_ ) )
-
+         !
          af = CMPLX(0.0d0, 0.d0)
          aa = CMPLX(0.0d0, 0.d0)
          !
          igrp = 1
-
+         !
          DO idx = 1, 2*nogrp_ , 2
-
-            IF( idx + i - 1 <= n ) THEN
-
+            !
+            IF ( idx + i - 1 <= n ) THEN
+               !
                IF ( tens .or. tsmear ) THEN
                   fi = 1.0d0
                   fip= 1.0d0
@@ -308,15 +296,11 @@
                   !
                   fi = f(i+idx-1)
                   fip= f(i+idx)
-               END IF
-               !
-!                IF(.not.lgam) THEN
-!                   fi=2*fi
-!                   fip=2*fip
-!                ENDIF
-!$omp parallel default(shared), private(iv,jv,ivoff,jvoff,dd,dv,inl,jnl,is,isa,ism)
+                  !
+               ENDIF
                !
                DO is = 1, nsp
+                  !  
                   DO iv = 1, nh(is)
                      IF( program_name == 'FPMD' ) THEN !warning:giovanni:fpmd not implemented
                         ivoff = ish(is) + (iv-1) * na(is)
@@ -398,21 +382,17 @@
                      END IF
                   END DO
                END DO
-
+               !
 !$omp end parallel
       
-            END IF
-
+            ENDIF
+            !
             igrp = igrp + 1
-
-         END DO
+            !
+         ENDDO
          !
-!          write(6,*) "deeq"
-!          write(6,*) deeq
-         !
-         CALL ZGEMM ( 'N', 'N', ngw, nogrp_ , nhsa, c_one, (vkb), ngw, (af), nhsa, c_one, df, ngw) !df=df+beta*af !!! beta_j*af_jk= beta_j> d_ij <beta_i|c_k>
-         !
-         CALL ZGEMM ( 'N', 'N', ngw, nogrp_ , nhsa, c_one, (vkb), ngw, (aa), nhsa, c_one, da, ngw)
+         CALL ZGEMM ( 'N', 'N', ngw, nogrp_ , nhsa, c_one, vkb, ngw, af, nhsa, c_one, df, ngw) !df=df+beta*af !!! beta_j*af_jk= beta_j> d_ij <beta_i|c_k>
+         CALL ZGEMM ( 'N', 'N', ngw, nogrp_ , nhsa, c_one, vkb, ngw, aa, nhsa, c_one, da, ngw)
          !
          DEALLOCATE( aa, af )
          !
@@ -511,16 +491,16 @@
          !  important: if n is odd => c(*,n+1)=0.
          ! 
          IF ( ( idx + i - 1 ) == n ) c( : , idx + i ) = 0.0d0
-
+         !
          IF( idx + i - 1 <= n ) THEN
             DO ig=1,ngw
                psi(nms(ig)+igoff) = conjg( c(ig,idx+i-1) - ci * c(ig,idx+i) )
                psi(nps(ig)+igoff) =        c(ig,idx+i-1) + ci * c(ig,idx+i)
             END DO
          END IF
-
+         ! 
          igoff = igoff + dffts%nnrx
-
+         !
       END DO
 
       CALL invfft( 'Wave', psi, dffts )
@@ -627,16 +607,16 @@
          !     aa_i,i,n = sum_j d_i,ij <beta_i,j|c_n>
          ! 
          ALLOCATE( af( nhsa, nogrp_ ), aa( nhsa, nogrp_ ) )
-
+         !
          af = 0.0d0
          aa = 0.0d0
          !
          igrp = 1
-
+         !  
          DO idx = 1, 2*nogrp_ , 2
-
-            IF( idx + i - 1 <= n ) THEN
-
+            !
+            IF ( idx + i - 1 <= n ) THEN
+               !
                IF ( tens .or. tsmear ) THEN
                   fi = 1.0d0
                   fip= 1.0d0
@@ -647,7 +627,8 @@
                   !
                   fi = f(i+idx-1)
                   fip= f(i+idx)
-               END IF
+                  !
+               ENDIF
                !
 !$omp parallel default(shared), private(iv,jv,ivoff,jvoff,dd,dv,inl,jnl,is,isa,ism)
                !

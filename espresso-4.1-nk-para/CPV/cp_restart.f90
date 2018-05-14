@@ -67,7 +67,7 @@ MODULE cp_restart
       USE gvecs,                    ONLY : ngs, ngst, ecuts, gcuts, dual
       USE gvecw,                    ONLY : ngw, ngwt, ecutw, gcutw
       USE reciprocal_vectors,       ONLY : ig_l2g, mill_l
-      USE electrons_base,           ONLY : nspin, nelt, nel, nudx
+      USE electrons_base,           ONLY : nspin, nelt, nel, nudx, nbspx
       USE cell_base,                ONLY : ibrav, alat, celldm, &
                                            symm_type, s_to_r
       USE ions_base,                ONLY : nsp, nat, na, atm, zv, &
@@ -83,8 +83,11 @@ MODULE cp_restart
       USE global_version,           ONLY : version_number
       USE cp_main_variables,        ONLY : collect_lambda, descla, collect_zmat
       USE twin_types !added:giovanni
-      USE electrons_base,       ONLY : nbsp !added:giovanni
-      USE nksic,                ONLY : do_bare_eigs !added:giovanni
+      USE electrons_base,           ONLY : nbsp !added:giovanni
+      USE nksic,                    ONLY : do_bare_eigs !added:giovanni
+      USE input_parameters,         ONLY : odd_nkscalfact, restart_odd_nkscalfact, & 
+                                           print_evc0_occ_empty
+      USE wavefunctions_module,     ONLY : c0_fixed, c0_occ_emp_aux
       !
       IMPLICIT NONE
       !
@@ -169,6 +172,12 @@ MODULE cp_restart
       COMPLEX(DP) :: csc(nbsp, nbsp)
       INTEGER:: icsc, icsc2
       !
+      COMPLEX(DP), ALLOCATABLE :: c0_tmp(:,:)
+      COMPLEX(DP), ALLOCATABLE :: cm_tmp(:,:)
+      COMPLEX(DP), ALLOCATABLE :: ctot_tmp(:,:)
+      INTEGER :: nbnd_tmp, nbnd_tot_tmp, start_is
+      !
+      ! 
       write_charge_density = trhow
       !
       IF( nspin > 1 .AND. .NOT. force_pairing ) THEN
@@ -742,26 +751,11 @@ MODULE cp_restart
                !
                ib = iupdwn_tot( iss_wfc )
                !
-               !call scalar_character(ctot, nbsp, ngw, csc, 1, .not. do_wf_cmplx) !added:giovanni:debug
-               !DO icsc=1,nbsp
-               !  DO icsc2=1,nbsp
-	!	    IF(ABS(csc(icsc,icsc2)).gt.1.d-2) THEN
-	!	      write(6,*) "2bloc", icsc,icsc2, csc(icsc,icsc2)!added:giovanni:debug
-         !           ENDIF
-         !        ENDDO
-         !      ENDDO
-	 !      call scalar_character(ctot, nbsp, ngw, csc, 2, .not. do_wf_cmplx) !added:giovanni:debug
-         !      DO icsc=1,nbsp
-         !         DO icsc2=1,nbsp
-!		    IF(ABS(csc(icsc,icsc2)).gt.1.d-2) THEN
-!		      write(6,*) "2bloc", icsc,icsc2, csc(icsc,icsc2)!added:giovanni:debug
- !                   ENDIF
- !                 ENDDO
- !              ENDDO
-
                CALL write_wfc( iunout, ik_eff, nk*nspin, kunit, iss, nspin,         & !added_giovanni do_wf_cmplx
                                ctot( :, ib : ib + nbnd_tot - 1 ), ngwt, do_wf_cmplx, &
                                gamma_only, nbnd_tot, ig_l2g, ngw, filename, scalef)
+               !
+               !
                !
             END IF
             !
@@ -794,22 +788,6 @@ MODULE cp_restart
                !
             END IF
             !
-!	    call scalar_character(c02, nbsp, ngw, csc, 1, .not. do_wf_cmplx) !added:giovanni:debug
-!	    DO icsc=1,nbsp
-!	      DO icsc2=1,nbsp
-!		  IF(ABS(csc(icsc,icsc2)).gt.1.d-2) THEN
-!		    write(6,*) "wan", icsc,icsc2, csc(icsc,icsc2)
-!		  ENDIF !added:giovanni:debug
-!	      ENDDO
-!	    ENDDO
-!	    call scalar_character(c02, nbsp, ngw, csc, 2, .not. do_wf_cmplx) !added:giovanni:debug
-!	    DO icsc=1,nbsp
-!	      DO icsc2=1,nbsp
-!		  IF(ABS(csc(icsc,icsc2)).gt.1.d-2) THEN
-!		    write(6,*) "2wan", icsc,icsc2, csc(icsc,icsc2)
-!		  ENDIF !added:giovanni:debug
-!	      ENDDO
-!	    ENDDO
             ib = iupdwn(iss_wfc)
             !
             IF(.not. evc_restart) then
@@ -859,11 +837,87 @@ MODULE cp_restart
                             cm2( :, ib : ib + nbnd_ - 1 ), ngwt, do_wf_cmplx, & !added:giovanni do_wf_cmplx
                             gamma_only, nbnd_, ig_l2g, ngw, filename, scalef)
             !
+            !  Save fixed wave function
+            !
+            !IF (odd_nkscalfact) THEN
+            IF (.false.) THEN
+               !   
+               IF ( ionode ) THEN
+                  !
+                  IF ( nspin == 1 ) THEN
+                     !
+                     filename = TRIM( wfc_filename( ".", 'evc0fixed', ik ) )
+                     !
+                  ELSE
+                     !
+                     filename = TRIM( wfc_filename( ".", 'evc0fixed', ik, iss ) )
+                     !
+                  END IF
+                  !
+                  CALL iotk_link( iunpun, "WFC0FIXED" // TRIM( iotk_index (iss) ), &
+                                  filename, CREATE = .FALSE., BINARY = .TRUE. )
+                  !
+                  IF ( nspin == 1 ) THEN
+                     !
+                     filename = TRIM( wfc_filename( dirname, 'evc0fixed', ik ) )
+                     !
+                  ELSE
+                     !
+                     filename = TRIM( wfc_filename( dirname, 'evc0fixed', ik, iss ) )
+                     !
+                  END IF
+                  !
+               END IF
+               !
+               ib = iupdwn(iss_wfc)
+               !
+               CALL write_wfc( iunout, ik_eff, nk*nspin, kunit, iss, nspin, &
+                               c0_fixed( :, ib : ib + nbnd_ - 1 ), ngwt, do_wf_cmplx, & !added:giovanni do_wf_cmplx
+                               gamma_only, nbnd_, ig_l2g, ngw, filename, scalef)
+               !
+            ENDIF
+            !
+            IF (print_evc0_occ_empty .and. (nbnd_emp>0) ) THEN
+               !
+               IF ( ionode ) THEN
+                  !
+                  IF ( nspin == 1 ) THEN
+                     !
+                     filename = TRIM( wfc_filename( ".", 'evc0_occ_empty', ik ) )
+                     !
+                  ELSE
+                     !
+                     filename = TRIM( wfc_filename( ".", 'evc0_occ_empty', ik, iss ) )
+                     !
+                  END IF
+                  !
+                  CALL iotk_link( iunpun, "WFC0_OCC_EMPTY" // TRIM( iotk_index (iss) ), &
+                                  filename, CREATE = .FALSE., BINARY = .TRUE. )
+                  !
+                  IF ( nspin == 1 ) THEN
+                     !
+                     filename = TRIM( wfc_filename( dirname, 'evc0_occ_empty', ik ) )
+                     !
+                  ELSE
+                     !
+                     filename = TRIM( wfc_filename( dirname, 'evc0_occ_empty', ik, iss ) )
+                     !
+                  END IF
+                  !
+               END IF
+               !
+               ib = iupdwn_tot( iss_wfc )
+               !
+               CALL write_wfc( iunout, ik_eff, nk*nspin, kunit, iss, nspin,         & !added_giovanni do_wf_cmplx
+                               c0_occ_emp_aux( :, ib : ib + nbnd_tot - 1 ), ngwt, do_wf_cmplx, &
+                               gamma_only, nbnd_tot, ig_l2g, ngw, filename, scalef)
+               !
+            ENDIF
+            !
             cspin = iotk_index( iss )
             !
             ! ... write matrix lambda to file
             !
-            
             IF(.not. lambda0(1)%iscmplx) THEN
                 ALLOCATE( mrepl( nudx, nudx ) )    
                 CALL collect_lambda( mrepl, lambda0(iss)%rvec(:,:), descla(:,iss) )
@@ -872,7 +926,6 @@ MODULE cp_restart
                 CALL collect_lambda( mrepl_c, lambda0(iss)%cvec(:,:), descla(:,iss))
             ENDIF
             !
-
             !
             IF ( ionode ) THEN
                !
@@ -1074,7 +1127,7 @@ MODULE cp_restart
       USE gvecs,                    ONLY : ngs, ngst, ecuts, gcuts, dual
       USE gvecw,                    ONLY : ngw, ngwt, ecutw, gcutw
       USE reciprocal_vectors,       ONLY : ig_l2g, mill_l
-      USE electrons_base,           ONLY : nspin, nelt, nel, nudx
+      USE electrons_base,           ONLY : nspin, nelt, nel, nudx, nbspx
       USE cell_base,                ONLY : ibrav, alat, celldm, &
                                            symm_type, s_to_r
       USE ions_base,                ONLY : nsp, nat, na, atm, zv, &
@@ -1089,6 +1142,9 @@ MODULE cp_restart
       USE cp_interfaces,            ONLY : n_atom_wfc
       USE global_version,           ONLY : version_number
       USE cp_main_variables,        ONLY : collect_lambda, descla, collect_zmat
+      USE input_parameters,     ONLY : odd_nkscalfact, restart_odd_nkscalfact, &
+                                       print_evc0_occ_empty
+      USE wavefunctions_module, ONLY : c0_fixed, c0_occ_emp_aux
       !
       IMPLICIT NONE
       !
@@ -1166,6 +1222,11 @@ MODULE cp_restart
       INTEGER               :: nbnd_
       REAL(DP), ALLOCATABLE :: mrepl(:,:)
       !
+      COMPLEX(DP), ALLOCATABLE :: c0_tmp(:,:)
+      COMPLEX(DP), ALLOCATABLE :: cm_tmp(:,:)
+      COMPLEX(DP), ALLOCATABLE :: ctot_tmp(:,:)
+      INTEGER :: nbnd_tmp, nbnd_tot_tmp, start_is
+      !
       write_charge_density = trhow
       !
       IF( nspin > 1 .AND. .NOT. force_pairing ) THEN
@@ -1183,6 +1244,7 @@ MODULE cp_restart
       nbnd_    = nupdwn(1) 
       nbnd_tot = MAX( nupdwn(1), nupdwn_tot(1) )
       nbnd_emp = MAX( 0, nupdwn_tot(1) - nupdwn(1) )
+      !
       !
       IF ( ionode ) THEN
          !
@@ -1744,6 +1806,8 @@ MODULE cp_restart
                                ctot( :, ib : ib + nbnd_tot - 1 ), ngwt, do_wf_cmplx, gamma_only,& !added:giovanni do_wf_cmplx
                                nbnd_tot, ig_l2g, ngw, filename, scalef )
                !
+               !
+               !  
             END IF
             !
             !  Save wave function at time t
@@ -1815,6 +1879,83 @@ MODULE cp_restart
             CALL write_wfc( iunout, ik_eff, nk*nspin, kunit, iss, nspin,     &
                             cm2( :, ib : ib + nbnd_ - 1 ), ngwt, do_wf_cmplx, gamma_only, &
                             nbnd_, ig_l2g, ngw, filename, scalef )
+            !
+            !  Save fixed wave function
+            !
+            !IF (odd_nkscalfact) THEN
+            IF (.false.) THEN
+               !   
+               IF ( ionode ) THEN
+                  !
+                  IF ( nspin == 1 ) THEN
+                     !
+                     filename = TRIM( wfc_filename( ".", 'evc0fixed', ik ) )
+                     !
+                  ELSE
+                     !
+                     filename = TRIM( wfc_filename( ".", 'evc0fixed', ik, iss ) )
+                     !
+                  END IF
+                  !
+                  CALL iotk_link( iunpun, "WFC0FIXED" // TRIM( iotk_index (iss) ), &
+                                  filename, CREATE = .FALSE., BINARY = .TRUE. )
+                  !
+                  IF ( nspin == 1 ) THEN
+                     !
+                     filename = TRIM( wfc_filename( dirname, 'evc0fixed', ik ) )
+                     !
+                  ELSE
+                     !
+                     filename = TRIM( wfc_filename( dirname, 'evc0fixed', ik, iss ) )
+                     !
+                  END IF
+                  !
+               END IF
+               !
+               ib = iupdwn(iss_wfc)
+               !
+               CALL write_wfc( iunout, ik_eff, nk*nspin, kunit, iss, nspin, &
+                               c0_fixed( :, ib : ib + nbnd_ - 1 ), ngwt, do_wf_cmplx, & !added:giovanni do_wf_cmplx
+                               gamma_only, nbnd_, ig_l2g, ngw, filename, scalef)
+               !
+            ENDIF
+            !
+            IF (print_evc0_occ_empty .and. (nbnd_emp>0) ) THEN
+               !
+               IF ( ionode ) THEN
+                  !
+                  IF ( nspin == 1 ) THEN
+                     !
+                     filename = TRIM( wfc_filename( ".", 'evc0_occ_empty', ik ) )
+                     !
+                  ELSE
+                     !
+                     filename = TRIM( wfc_filename( ".", 'evc0_occ_empty', ik, iss ) )
+                     !
+                  END IF
+                  !
+                  CALL iotk_link( iunpun, "WFC0_OCC_EMPTY" // TRIM( iotk_index (iss) ), &
+                                  filename, CREATE = .FALSE., BINARY = .TRUE. )
+                  !
+                  IF ( nspin == 1 ) THEN
+                     !
+                     filename = TRIM( wfc_filename( dirname, 'evc0_occ_empty', ik ) )
+                     !
+                  ELSE
+                     !
+                     filename = TRIM( wfc_filename( dirname, 'evc0_occ_empty', ik, iss ) )
+                     !
+                  END IF
+                  !
+               END IF
+               !
+               ib = iupdwn_tot( iss_wfc )
+               !
+               CALL write_wfc( iunout, ik_eff, nk*nspin, kunit, iss, nspin, &
+                               c0_occ_emp_aux( :, ib : ib + nbnd_tot - 1 ), ngwt, do_wf_cmplx, & !added:giovanni do_wf_cmplx
+                               gamma_only, nbnd_emp, ig_l2g, ngw, filename, scalef)
+               !
+            ENDIF
             !
             cspin = iotk_index( iss )
             !
@@ -1956,6 +2097,10 @@ MODULE cp_restart
       USE mp_global,                ONLY : intra_image_comm
       USE parameters,               ONLY : ntypx
       USE constants,                ONLY : eps8, angstrom_au, pi
+      USE input_parameters,     ONLY : odd_nkscalfact, restart_odd_nkscalfact,&
+                                       restart_from_wannier_cp, restart_from_wannier_pwscf, wannier_empty_only
+      USE wavefunctions_module, ONLY : c0_fixed, ctot_aux
+      USE electrons_module,     ONLY : nupdwn_emp
       !
       IMPLICIT NONE
       !
@@ -2043,6 +2188,8 @@ MODULE cp_restart
       CHARACTER(LEN=80)     :: pos_unit
       REAL(DP)              :: s1, s0, cclock
       REAL(DP), ALLOCATABLE :: mrepl(:,:) 
+      INTEGER  :: nupdwn_tot( 2 ), iupdwn_tot( 2 ), nbnd_tot_tmp
+
       !
       ! ... look for an empty unit
       !
@@ -2583,6 +2730,61 @@ MODULE cp_restart
          END IF
          !
          DO iss = 1, nspin
+            ! 
+            ! by linh, here is read evc from file for restarting with wannier orbitals.
+            !  
+            IF (restart_from_wannier_cp .and. .not. wannier_empty_only .and. .not. restart_from_wannier_pwscf) THEN
+               !
+               nupdwn_tot(:) = nupdwn(:) + nupdwn_emp(:)
+               iupdwn_tot(1) = iupdwn(1)
+               iupdwn_tot(2) = nupdwn_tot(1) + 1
+               nbnd_tot_tmp = MAX( nupdwn(1), nupdwn_tot(1) )
+               !
+               IF (.NOT. allocated(ctot_aux) ) ALLOCATE( ctot_aux( SIZE( c02, 1 ), nupdwn_tot(1) * nspin ) )                !   
+               ! 
+               IF ( ionode ) THEN
+                  ! 
+                  IF( nspin == 2 ) THEN
+                     !
+                     CALL iotk_scan_begin( iunpun, "WFC" // TRIM( iotk_index (iss) ), FOUND = found )
+                     filename = "WFC" // TRIM( iotk_index (iss) )
+                     !
+                  ELSE
+                     ! 
+                     CALL iotk_scan_begin( iunpun, "WFC", FOUND = found )
+                     filename = "WFC"
+                     !
+                  ENDIF
+                  !
+               ENDIF
+               !
+               CALL mp_bcast( found, ionode_id, intra_image_comm )
+               !
+               IF ( .NOT. found ) &
+                  CALL errore( " readfile ", " wave functions not found! ", 1 )
+               !
+               IF ( .NOT. ( iss > 1 .AND. force_pairing ) ) THEN
+                  !
+                  ! Only WF with spin 1 are needed when force_pairing is active
+                  !
+                  ib = iupdwn_tot(iss)
+                  nb = nupdwn_tot(iss)
+                  !
+                  ! filename is not needed we are following the link!
+                  !
+                  CALL read_wfc( iunpun, ik_eff , nk, kunit, iss_, nspin_, &
+                                 ctot_aux( :, ib:ib+nb-1 ), ngwt_, nbnd_tot_tmp, ig_l2g, ngw, &
+                                 filename, scalef_, .TRUE. )
+                  !
+               ENDIF
+               !
+               IF ( ionode ) &
+                  CALL iotk_scan_end( iunpun, TRIM(filename) )
+               ! 
+            ENDIF
+            !
+            ! by linh, done
+            ! 
             IF ( ionode ) THEN
                !
                CALL iotk_scan_begin( iunpun, "WFC0" // TRIM( iotk_index (iss) ), FOUND = found )
@@ -2659,6 +2861,43 @@ MODULE cp_restart
                cm2 = c02
                !
             END IF
+            !
+            !IF (odd_nkscalfact .and. restart_odd_nkscalfact) THEN
+            IF (.false.) THEN
+               ! 
+               IF ( ionode ) THEN
+                  !
+                  CALL iotk_scan_begin( iunpun, "WFC0FIXED" // TRIM( iotk_index (iss) ), FOUND = found )
+                  !
+                  filename = "WFC0FIXED" // TRIM( iotk_index (iss) )
+                  !
+               END IF
+               !
+               CALL mp_bcast( found, ionode_id, intra_image_comm )
+               !
+               IF( .NOT. found ) &
+                  CALL errore( " readfile ", " wave functions evc0fixed not found! ", 1 )
+               !
+               IF( .NOT. ( iss > 1 .AND. force_pairing ) ) THEN
+                  !
+                  ! Only WF with spin 1 are needed when force_pairing is active
+                  !
+                  ib = iupdwn(iss)
+                  nb = nupdwn(iss)
+                  !
+                  ! filename is not needed we are following the link!
+                  !
+                  CALL read_wfc( iunpun, ik_eff , nk, kunit, iss_, nspin_, &
+                                 c0_fixed( :, ib:ib+nb-1 ), ngwt_, nbnd_, ig_l2g, ngw, &
+                                 filename, scalef_, .TRUE. )
+                  !
+               END IF
+               !
+               !
+               IF ( ionode ) &
+                  CALL iotk_scan_end( iunpun, TRIM(filename) )
+               ! 
+            ENDIF
             !
          END DO
          !
@@ -2817,6 +3056,11 @@ MODULE cp_restart
       USE parameters,               ONLY : ntypx
       USE constants,                ONLY : eps8, angstrom_au, pi
       USE twin_types
+      USE input_parameters,     ONLY : odd_nkscalfact, restart_odd_nkscalfact, &
+                                       restart_from_wannier_cp, wannier_empty_only, &
+                                       restart_from_wannier_pwscf
+      USE wavefunctions_module, ONLY : c0_fixed, ctot_aux
+      USE electrons_module,     ONLY : nupdwn_emp
       !
       IMPLICIT NONE
       !
@@ -2907,6 +3151,7 @@ MODULE cp_restart
       REAL(DP)              :: s1, s0, cclock
       REAL(DP), ALLOCATABLE :: mrepl(:,:) 
       COMPLEX(DP), ALLOCATABLE :: mrepl_c(:,:) 
+      INTEGER  :: nupdwn_tot( 2 ), iupdwn_tot( 2 ), nbnd_tot_tmp
       !
       ! ... look for an empty unit
       !
@@ -3447,6 +3692,62 @@ MODULE cp_restart
          END IF
          !
          DO iss = 1, nspin
+            ! 
+            ! by linh, here is read evc from file for restarting with wannier orbitals.
+            !  
+            IF (restart_from_wannier_cp .and. .not. wannier_empty_only .and. .not. restart_from_wannier_pwscf) THEN
+               !
+               nupdwn_tot(:) = nupdwn(:) + nupdwn_emp(:)
+               iupdwn_tot(1) = iupdwn(1)
+               iupdwn_tot(2) = nupdwn_tot(1) + 1
+               nbnd_tot_tmp = MAX( nupdwn(1), nupdwn_tot(1) )
+               !
+               IF (.NOT. allocated(ctot_aux) ) ALLOCATE( ctot_aux( SIZE( c02, 1 ), nupdwn_tot(1) * nspin ) )                !   
+               ! 
+               IF ( ionode ) THEN
+                  ! 
+                  IF( nspin == 2 ) THEN
+                     !
+                     CALL iotk_scan_begin( iunpun, "WFC" // TRIM( iotk_index (iss) ), FOUND = found )
+                     filename = "WFC" // TRIM( iotk_index (iss) )
+                     !
+                  ELSE
+                     ! 
+                     CALL iotk_scan_begin( iunpun, "WFC", FOUND = found )
+                     filename = "WFC"
+                     !
+                  ENDIF
+                  !
+               ENDIF
+               !
+               CALL mp_bcast( found, ionode_id, intra_image_comm )
+               !
+               IF ( .NOT. found ) &
+                  CALL errore( " readfile ", " wave functions not found! ", 1 )
+               !
+               IF ( .NOT. ( iss > 1 .AND. force_pairing ) ) THEN
+                  !
+                  ! Only WF with spin 1 are needed when force_pairing is active
+                  !
+                  ib = iupdwn_tot(iss)
+                  nb = nupdwn_tot(iss)
+                  !
+                  ! filename is not needed we are following the link!
+                  !
+                  CALL read_wfc( iunpun, ik_eff , nk, kunit, iss_, nspin_, &
+                                 ctot_aux( :, ib:ib+nb-1 ), ngwt_, nbnd_tot_tmp, ig_l2g, ngw, &
+                                 filename, scalef_, .TRUE. )
+                  !
+               ENDIF
+               !
+               IF ( ionode ) &
+                  CALL iotk_scan_end( iunpun, TRIM(filename) )
+               ! 
+            ENDIF
+            !
+            ! by linh, done
+            ! 
+
             IF ( ionode ) THEN
                !
                CALL iotk_scan_begin( iunpun, "WFC0" // TRIM( iotk_index (iss) ), FOUND = found )
@@ -3523,6 +3824,42 @@ MODULE cp_restart
                cm2 = c02
                !
             END IF
+            !
+            !IF (odd_nkscalfact .and. restart_odd_nkscalfact) THEN
+            IF (.false.) THEN
+               !
+               IF ( ionode ) THEN
+                  !
+                  CALL iotk_scan_begin( iunpun, "WFC0FIXED" // TRIM( iotk_index (iss) ), FOUND = found )
+                  !
+                  filename = "WFC0FIXED" // TRIM( iotk_index (iss) )
+                  !
+               END IF
+               !
+               CALL mp_bcast( found, ionode_id, intra_image_comm )
+               !
+               IF( .NOT. found ) &
+                  CALL errore( " readfile ", " wave functions evc0fixed not found! ", 1 )
+               !
+               IF( .NOT. ( iss > 1 .AND. force_pairing ) ) THEN
+                  !
+                  ! Only WF with spin 1 are needed when force_pairing is active
+                  !
+                  ib = iupdwn(iss)
+                  nb = nupdwn(iss)
+                  !
+                  ! filename is not needed we are following the link!
+                  !
+                  CALL read_wfc( iunpun, ik_eff , nk, kunit, iss_, nspin_, &
+                                 c0_fixed( :, ib:ib+nb-1 ), ngwt_, nbnd_, ig_l2g, ngw, &
+                                 filename, scalef_, .TRUE. )
+                  !
+               END IF
+               !
+               IF ( ionode ) &
+                  CALL iotk_scan_end( iunpun, TRIM(filename) )
+               !
+            ENDIF
             !
          END DO
          !

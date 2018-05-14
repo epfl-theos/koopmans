@@ -30,6 +30,11 @@
      COMPLEX(DP), ALLOCATABLE :: cm(:,:)  ! wave functions at time t-delta t
      COMPLEX(DP), ALLOCATABLE :: cp(:,:)  ! wave functions at time t+delta t
      COMPLEX(DP), ALLOCATABLE :: cstart(:,:)  ! wave functions at start
+     COMPLEX(DP), ALLOCATABLE :: c0_fixed(:,:) ! wave functions at start fixed
+     COMPLEX(DP), ALLOCATABLE :: c0fixed_emp(:,:) ! empty wave functions at start fixed
+     COMPLEX(DP), ALLOCATABLE :: c0_occ_emp_aux(:,:) ! empty wave functions to saved
+     COMPLEX(DP), ALLOCATABLE :: c0fixed_aux(:,:) ! empty wave functions to saved
+     COMPLEX(DP), ALLOCATABLE :: ctot_aux(:,:)
 
      ! below dual wavefunctions, allocated only in the non orthogonal case
      COMPLEX(DP), ALLOCATABLE :: cdual(:,:)  ! dual wave functions at time t
@@ -48,6 +53,9 @@
        IF( ALLOCATED( cdual ) ) DEALLOCATE( cdual )
        IF( ALLOCATED( cmdual ) ) DEALLOCATE( cmdual )
        IF( ALLOCATED( cstart ) ) DEALLOCATE( cstart )
+       IF( ALLOCATED( c0_fixed ) ) DEALLOCATE( c0_fixed )
+       IF( ALLOCATED( c0_occ_emp_aux ) ) DEALLOCATE( c0_occ_emp_aux )
+       IF( ALLOCATED( c0fixed_aux ) ) DEALLOCATE( c0fixed_aux )
      END SUBROUTINE deallocate_wavefunctions
 
 !=----------------------------------------------------------------------------=!

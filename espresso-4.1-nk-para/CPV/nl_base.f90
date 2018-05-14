@@ -186,11 +186,10 @@
 !
       implicit none
 
-      integer,   intent(in)  :: n, nspmn, nspmx, lbound_bec
-      complex(DP), intent(in) :: eigr(ngw,nat),c(ngw, n )!modified:giovanni
-!       real(DP), intent(out) :: becp
-      type(twin_matrix) :: becp!( nkb, n ) !modified:giovanni
-      logical :: lgam2!added:giovanni
+      integer,     intent(in)  :: n, nspmn, nspmx, lbound_bec
+      complex(DP), intent(in)  :: eigr(ngw,nat),c(ngw, n )!modified:giovanni
+      type(twin_matrix) :: becp ! modified:giovanni
+      logical :: lgam2 ! added:giovanni
       !
       integer   :: isa, ig, is, iv, ia, l, ixr, ixi, inl, i, nhx
       real(DP)  :: signre, signim, arg
@@ -279,6 +278,7 @@
               ENDIF
 
           end do
+          
          ELSE
 !begin_added:giovanni
           do iv = 1, nh( is )
@@ -351,7 +351,7 @@
       end do
 !begin_added:giovanni
       IF(nproc_image==1.and.(.not.lgam)) THEN
-          becp%cvec(1:nkb,lbound_bec:lbound_bec + n-1)=(becps_c(1:nkb,1:n))
+          becp%cvec(:,:) = becps_c(:,:)
           deallocate(becps_c)
       endif
 !end_added:giovanni
@@ -1096,7 +1096,8 @@
                     sums = 0.d0
                     do i = 1, n
                       iss = ispin(i)
-                      sums(iss) = sums(iss) + 0.5d0*f(i) * (becdual%rvec(inl,i) * bec%rvec(jnl,i) +becdual%rvec(jnl,i) * bec%rvec(inl,i))
+                      sums(iss) = sums(iss) + 0.5d0*f(i) * (becdual%rvec(inl,i) * bec%rvec(jnl,i) &
+                                  +becdual%rvec(jnl,i) * bec%rvec(inl,i))
                     end do
                     sumt = 0.d0
                     do iss = 1, nspin
@@ -1303,8 +1304,6 @@
       !
       ennl_t = 0.d0
       ennl_tc = CMPLX(0.d0,0.d0)
-      write(6,*) f, "effe", ispin
-      !write(6,*) n,"bec_inside", bec%cvec, bec%iscmplx
       !
       !  xlf does not like name of function used for OpenMP reduction
       !
@@ -1367,7 +1366,6 @@
                       sumt_c = sumt_c + sums_c( iss )
                     end do
                     if( iv .ne. jv ) sumt_c = CMPLX(2.d0,0.d0) * sumt_c
-                    write(6,*) f, "sumtc", sumt_c, dvan(jv,iv,is), iv, jv
                     ennl_tc = ennl_tc + sumt_c * CMPLX(dvan( jv, iv, is),0.d0)
                 end do
 !$omp end do

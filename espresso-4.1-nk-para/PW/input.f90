@@ -154,7 +154,6 @@ SUBROUTINE iosys()
   !
   USE control_flags, ONLY : isolve, max_cg_iter, david, tr2, imix, &
                             nmix, iverbosity, niter, pot_order, wfc_order, &
-                            assume_isolated_  => assume_isolated, &
                             remove_rigid_rot_ => remove_rigid_rot, &
                             diago_full_acc_   => diago_full_acc, &
                             tolp_             => tolp, &
@@ -1268,8 +1267,6 @@ SUBROUTINE iosys()
   angle2_   = angle2
   report_   = report
   lambda_   = lambda
-  !
-  assume_isolated_ = assume_isolated
   !
   spline_ps_ = spline_ps
   !

@@ -2242,16 +2242,16 @@ END FUNCTION
       INTEGER :: i,k
       LOGICAL :: lgam !added:giovanni
       EXTERNAL cscnorm
-
+      ! 
       lgam=gamma_only.and..not.do_wf_cmplx !added:giovanni
-      
-!
+      !
       CALL start_clock( 'gram' )
 !       write(6,*) bec%rvec !added:giovanni:debug
 !       stop
       ALLOCATE( csc( n ) )
+      ! 
       csc=CMPLX(0.d0,0.d0)
-!
+      !
       DO i = 1, n
          !
          CALL gracsc( bec, nkbx, betae, cp, ngwx, i, csc, n, lgam )!added:giovanni lgam
@@ -2264,9 +2264,7 @@ END FUNCTION
          anorm = cscnorm( bec, nkbx, cp, ngwx, i, n, lgam)
          CALL ZSCAL( ngw, CMPLX(1.0d0/anorm,0.d0) , cp(1,i), 1 )
          !
-
-         !
-         !         these are the final bec's
+         ! these are the final bec's
          !
          IF (nkbx > 0 ) THEN
             IF(.not.bec%iscmplx) THEN
@@ -2275,9 +2273,9 @@ END FUNCTION
               CALL ZSCAL( nkbx, CMPLX(1.0d0/anorm,0.d0) , bec%cvec(1:nkbx,i), 1 )!added:giovanni
             ENDIF
          ENDIF
-
+         !
       END DO
-!
+      !
 !       write(6,*) "csc_giovanni_debug", csc !added:giovanni:debug
       DEALLOCATE( csc )
 
@@ -4615,7 +4613,7 @@ END FUNCTION
                                    nknmax, do_spinsym, f_cutoff, &
                                    nkscalfact,  nksic_memusage, allocate_nksic, odd_alpha
 !$$
-      use nksic,            only : do_innerloop, do_innerloop_cg, &
+      use nksic,            only : do_innerloop,do_innerloop_empty, do_innerloop_cg, &
                                    innerloop_dd_nstep, &
                                    innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax, &
                                    innerloop_cg_ratio, innerloop_init_n, innerloop_until, &
@@ -4640,6 +4638,7 @@ END FUNCTION
                                    do_orbdep_=> do_orbdep
 !$$
       use input_parameters, only : do_innerloop_ => do_innerloop, &
+                                   do_innerloop_empty_ => do_innerloop_empty, &
                                    do_innerloop_cg_ => do_innerloop_cg, &
                                    innerloop_dd_nstep_ => innerloop_dd_nstep, &
                                    innerloop_cg_nsd_ => innerloop_cg_nsd, &
@@ -4685,6 +4684,7 @@ END FUNCTION
       fref    = fref_
 !$$
       do_innerloop        = do_innerloop_
+      do_innerloop_empty  = do_innerloop_empty_
       do_innerloop_cg     = do_innerloop_cg_
       innerloop_dd_nstep  = innerloop_dd_nstep_
       innerloop_cg_nsd    = innerloop_cg_nsd_
@@ -4778,9 +4778,15 @@ END FUNCTION
           write(stdout,2004) rhobarfact, nkscalfact
       endif
       !
+      ! read referece alpha from file, if any | linh
+      ! wherein, the information of n_evc0_fixed, ref_alpha0,
+      ! broadening of orbitals will be readed.   
+      ! 
+      ! call readfile_refalpha()
+      ! 
       if( do_orbdep .and. .not. do_hybrid ) call allocate_nksic( nnrx, ngw, nspin, nbspx, nat)
       !
-      if(do_orbdep) odd_alpha(:)=1.d0
+      if(do_orbdep) odd_alpha(:) = 1.d0
       !
       if( (do_nk .or. do_nkpz ) .and. meta_ionode ) then
           write(stdout,2010) do_wxd, do_wref, do_nkpz

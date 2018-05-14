@@ -276,6 +276,7 @@ MODULE input
      USE control_flags, ONLY : iesr, tvhmean, vhrmin, vhrmax, vhasse
      USE control_flags, ONLY : tprojwfc
      USE control_flags, ONLY : textfor
+     USE control_flags, ONLY : do_makov_payne
      !
      ! ...  Other modules
      !
@@ -315,7 +316,8 @@ MODULE input
         tefield, epol, efield, tefield2, epol2, efield2, remove_rigid_rot,     &
         iesr_inp, vhrmax_inp, vhrmin_inp, tvhmean_inp, vhasse_inp, saverho,    &
         ortho_para, rd_for, do_wf_cmplx, empty_states_nbnd, which_orbdep,      & !added:giovanni do_wf_cmplx, empty_states_nbnd
-        iprint_manifold_overlap, iprint_spreads, hartree_only_sic
+        iprint_manifold_overlap, iprint_spreads, hartree_only_sic,             &
+        assume_isolated
      USE input_parameters,   ONLY : evc_restart 
      !
      IMPLICIT NONE
@@ -353,6 +355,23 @@ MODULE input
      vhasse  = vhasse_inp
      !
      remove_rigid_rot_ = remove_rigid_rot
+     !
+     ! Options for isolated system
+     SELECT CASE( TRIM( assume_isolated ) )
+         !
+       CASE( 'makov-payne', 'm-p', 'mp' )
+         !
+         do_makov_payne = .TRUE.
+         !
+       CASE( 'none' )
+         !
+         do_makov_payne = .FALSE.
+         !
+       CASE DEFAULT
+         !
+         do_makov_payne = .FALSE.
+         !
+     END SELECT
      !
      tefield_  = tefield
      epol_     = epol

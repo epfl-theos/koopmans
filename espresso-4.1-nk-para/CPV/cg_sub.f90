@@ -71,7 +71,7 @@
                                            innerloop_cg_nreset, innerloop_init_n, innerloop_cg_ratio, &
                                            vsicpsi, vsic, wtot, fsic, fion_sic, deeq_sic, f_cutoff, & 
                                            pink, do_wxd, sizwtot, do_bare_eigs, innerloop_until, &
-                                           valpsi, odd_alpha  
+                                           valpsi, odd_alpha
       use hfmod,                    only : do_hf, vxxpsi, exx
       use twin_types !added:giovanni
       use control_flags,            only : non_ortho
@@ -81,7 +81,7 @@
       use printout_base,            only : printout_base_open, printout_base_unit, &
                                            printout_base_close
       use control_flags,            only : iprint_manifold_overlap, iprint_spreads
-      use input_parameters,         only : fixed_state, fixed_band, odd_nkscalfact, &
+      use input_parameters,         only : fixed_state, fixed_band, odd_nkscalfact, one_innerloop_only, &
                                            finite_field_introduced, finite_field_for_empty_state
       !
       implicit none
@@ -300,7 +300,7 @@
               !
           endif
           !
-          if (do_hf ) then
+          if( do_hf ) then
               !
               call hf_potential( nbsp, nbspx, c0, f, ispin, iupdwn, nupdwn, &
                                  nbsp, nbspx, c0, f, ispin, iupdwn, nupdwn, &
@@ -338,10 +338,12 @@
                   !
               endif
               !
+#ifdef __TOBE_FIXED
               ! compute int dvpot rhor 
               call compute_effective_energy(dvpot, rhor, eff_finite_field)
               !
               etot = etot + eff_finite_field
+#endif
               !
           endif
           ! 
@@ -359,6 +361,11 @@
         if( do_orbdep ) then
            !
            call do_innerloop_subroutine()
+           !
+           IF ( one_innerloop_only ) THEN 
+              !do_orbdep=.FALSE. !!! TEMPORARY FOR DEBUG
+              EXIT OUTER_LOOP !! NsC: Exit Just after the first IL without touching the input density
+           ENDIF
            ! 
         endif
         !
@@ -744,15 +751,16 @@
                  !
               endif
               !
+#ifdef __TOBE_FIXED
               if (finite_field_introduced) then
                  !
                  ! compute int dvpot rhor 
                  call compute_effective_energy(dvpot, rhor, eff_finite_field)
                  !
-                 write(stdout, *) "eff_finite_field linh", eff_finite_field
                  etot = etot + eff_finite_field
                  !
               endif
+#endif
               !
               write(stdout,*) "etot: ", i, "=", etot
               !
@@ -762,8 +770,10 @@
           enddo
           !
           write(stdout,*) "here is numerical derivative vs analytic derivative at step", itercg
-          write(stdout,*) "(etot_emp_tmp1-etot_emp_tmp2)/tmppasso, dene0, tmppasso, ((etot_emp-etot_emp_tmp2)/(2*tmppasso)/dene0)"
-          write(stdout,'(2e25.15,4e20.10)') (etot_tmp1-etot_tmp2)/(2.0*tmppasso), dene0, tmppasso, ((etot_tmp1 -etot_tmp2)/(2.0*tmppasso)/dene0)
+          write(stdout,*) "(etot_emp_tmp1-etot_emp_tmp2)/tmppasso, dene0, tmppasso,  &
+                           ((etot_emp-etot_emp_tmp2)/(2*tmppasso)/dene0)"
+          write(stdout,'(2e25.15,4e20.10)') (etot_tmp1-etot_tmp2)/(2.0*tmppasso), dene0, &
+                tmppasso, ((etot_tmp1 -etot_tmp2)/(2.0*tmppasso)/dene0)
           !
         endif
         !
@@ -842,6 +852,7 @@
            !
         endif
         !
+#ifdef __TOBE_FIXED
         if (finite_field_introduced) then
            !
            ! compute int dvpot rhor 
@@ -850,6 +861,7 @@
            etot = etot + eff_finite_field
            !
         endif
+#endif
         !
         ene1=etot
         !    
@@ -932,6 +944,7 @@
             !
         endif
         !
+#ifdef __TOBE_FIXED
         if (finite_field_introduced) then
            !
            ! compute int dvpot rhor 
@@ -941,6 +954,7 @@
            etot = etot + eff_finite_field
            !
         endif
+#endif
         !
         enever=etot
         !
@@ -1087,15 +1101,16 @@
                 !
              endif
              !
+#ifdef __TOBE_FIXED
              if (finite_field_introduced) then
                 !
                 ! compute int dvpot rhor 
                 call compute_effective_energy(dvpot, rhor, eff_finite_field)
                 !
-           write(stdout,*) "eff_finite_field", eff_finite_field
                 etot = etot + eff_finite_field
                 !
              endif
+#endif
              !
              enever=etot
              !
@@ -1228,18 +1243,20 @@
              !
          endif
          !
+#ifdef __TOBE_FIXED
          if (finite_field_introduced) then
             !
             ! compute int dvpot rhor 
             call compute_effective_energy(dvpot, rhor, eff_finite_field)
             !
-           write(stdout,*) "eff_finite_field", eff_finite_field
             etot = etot + eff_finite_field
             !
          endif
+#endif
          !
      endif
      !
+#ifdef __TOBE_FIXED
      if (finite_field_introduced) then
         !
         ! 1) compute drho = rho_final - rho_init
@@ -1257,6 +1274,7 @@
         deallocate(rho_init)
         ! 
      endif
+#endif
      !
      call newd(vpot,irb,eigrb,rhovan,fion)
      !
@@ -1349,6 +1367,7 @@
              !
          endif
 !$$
+#ifdef __TOBE_FIXED
          if (finite_field_introduced) then
             !
             ! faux takes into account spin multiplicity.
@@ -1360,6 +1379,7 @@
             if( i+1 <= nbsp )   c3(:) = c3(:) + dvpotpsi(:,2) * faux(i+1)
             !
          endif
+#endif
          ! 
          do ig=1,ngw
             gi(ig,  i)=c2(ig)
@@ -1817,6 +1837,7 @@
           endif
 !$$
 
+#ifdef __TOBE_FIXED
           if (finite_field_introduced) then
              !
              ! faux takes into account spin multiplicity.
@@ -1828,6 +1849,7 @@
              if( i+1 <= nbsp )   c3(:) = c3(:) - dvpotpsi(:,2) * faux(i+1)
              !
           endif
+#endif
 
           hpsi(1:ngw,  i)=c2(1:ngw)
           if(i+1 <= nbsp) then

@@ -55,7 +55,7 @@ shift
 # Inside sprep, the library is loaded into an exported variable and can
 # be sourced simple with 'eval "$SPREP_LIBRARY"'
 
-SPREP_VERSION_WITH_DOLLARS='$Revision$ $Date$ (EXPERIMENTAL)'
+SPREP_VERSION_WITH_DOLLARS='$Revision: 1.1.1.1 $ $Date: 2010/04/21 09:20:57 $ (EXPERIMENTAL)'
 SPREP_LIBRARY="$(
 # first the dynamic parts, which needs the evaluation of some variables
 cat << END_OF_SPREP_LIBRARY_DYN

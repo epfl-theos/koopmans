@@ -35,7 +35,7 @@
  *  
  */
 
-/* $Id$ */
+/* $Id: konst.h,v 1.1.1.1 2010/04/21 09:20:38 daboi Exp $ */
 
 /*
  * this file contains many floating-point constants in with 40 digits

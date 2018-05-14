@@ -57,7 +57,7 @@ CONTAINS
   !
   ! USPP are not implemented (dipole matrix elements are not trivial at all)
   !
-  IF ( okvan ) CALL errore('grid_build','USPP are not implemented',1)
+  !IF ( okvan ) CALL errore('grid_build','USPP are not implemented',1)
 
   ALLOCATE ( focc( nbnd, nks), STAT=ierr )
   IF (ierr/=0) CALL errore('grid_build','allocating focc', ABS(ierr))
@@ -1728,7 +1728,7 @@ IF (nspin == 1) THEN
                    !
                    IF (wfc_real) then 
                       !
-                      photospec(iw) = photospec(iw) + 2.0D0 * intersmear * dipole_2(iband1, ig) & 
+                      photospec(iw) = photospec(iw) + 2.0D0 * module_k * intersmear * dipole_2(iband1, ig) & 
                                      / ( PI * ( (etrans - w )**2 + (intersmear)**2 )  ) * delta_ecut_G
                       !
                    ENDIF
@@ -1938,12 +1938,12 @@ ELSEIF (nspin==2) THEN
 		  !
 		  IF (wfc_real) THEN  
 		    !
-		    srphotospec(is, iw) = srphotospec(is, iw) + 2.0D0 * intersmear * dipole_2(iband1, ig) * delta_ecut_G &
+		    srphotospec(is, iw) = srphotospec(is, iw) + 2.0D0 * module_k* intersmear * dipole_2(iband1, ig) * delta_ecut_G &
 					  / ( PI * ( (etrans - w )**2 + (intersmear)**2 )  ) 
 		    !
 		  ELSE
 		    !
-		    srphotospec(is, iw) = srphotospec(is, iw) + intersmear * dipole_2(iband1, ig) * delta_ecut_G &
+		    srphotospec(is, iw) = srphotospec(is, iw) + module_k * intersmear * dipole_2(iband1, ig) * delta_ecut_G &
 					/ ( PI * ( (etrans - w )**2 + (intersmear)**2 )  ) 
 		    !
 		  ENDIF
