@@ -1,17 +1,7 @@
-CPV/*.mod
-CPV/*.x
 CPV/cpver.h
-EE/*.mod
-EE/*.x
 EE/cpver.h
-Modules/*.mod
-Modules/*.x
 Modules/cpver.h
-PP/*.mod
-PP/*.x
 PP/cpver.h
-PW/*.mod
-PW/*.x
 PW/cpver.h
 include/iotk_config.h
 include/configure.h
@@ -23,4 +13,8 @@ config.log
 config.status
 configure.msg
 make.sys
-
+*.o
+*.x
+*.mod
+*.a
+bin/
