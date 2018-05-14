@@ -19,3 +19,8 @@ include/c_defs.h
 include/f_defs.h
 include/fft_defs.h
 include/build_date.h
+config.log
+config.status
+configure.msg
+make.sys
+
