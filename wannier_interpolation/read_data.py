@@ -5,7 +5,7 @@ import sys
 
 # Find the k-mesh from wannier input file of the PC
 def read_wannier_pcell(dirname,seedname):
-	ifile = open(dirname+seedname+'.win','r')
+	ifile = open(dirname+'/'+seedname+'.win','r')
 	lines = ifile.readlines()
 	ifile.close()
 	check_kpoints = False
@@ -33,7 +33,7 @@ def read_wannier_pcell(dirname,seedname):
 
 # Find num_wann, primitive lattice vectors and WFs from wannier input/output files of the SC
 def read_wannier_scell(dirname,seedname):
-	ifile = open(dirname+seedname+'.win','r')
+	ifile = open(dirname+'/'+seedname+'.win','r')
 	lines = ifile.readlines()
 	ifile.close()
 	
@@ -45,7 +45,7 @@ def read_wannier_scell(dirname,seedname):
 	try:		num_wann
 	except:		sys.exit('\nCannot find num_wann !\n')
 	
-	ifile = open(dirname+seedname+'.wout','r')
+	ifile = open(dirname+'/'+seedname+'.wout','r')
 	lines = ifile.readlines()
 	ifile.close()
 	check_latt = 0
@@ -82,7 +82,7 @@ def read_wannier_scell(dirname,seedname):
 
 # Read wannier Hamiltonian 
 def read_hr(dirname,seedname,num_wann):
-	ifile = open(dirname+seedname+'_hr.dat','r')
+	ifile = open(dirname+'/'+seedname+'_hr.dat','r')
 	lines = ifile.readlines()
 	ifile.close()
 	hr = np.zeros((num_wann,num_wann),dtype=complex)

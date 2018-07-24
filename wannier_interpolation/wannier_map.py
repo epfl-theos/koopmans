@@ -14,7 +14,7 @@ dir_wann_sc = '/scratch/degennaro/wannier_interpolation/Si/scell/wannier-occ/'		
 seedname = 'Si'				# seedname as in wannier input file
 nktot = 8				# number of kpoints in the scf mesh
 cutoff = 1E-4				# cutoff on the calculation of WFs distances
-interpolation = True			# if True the bands are interpolated along the following path
+interpolation = False			# if True the bands are interpolated along the following path
 
 # If interpolation = True, k-path in PC crystal coordinates
 k_path = np.array(((0,0,0),(0.175,0,0),(0.25,0,0),(0.375,0,0),			
