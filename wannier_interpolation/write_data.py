@@ -2,7 +2,9 @@ import numpy as np
 from datetime import datetime as dt
 
 
-# Write eigenvalues E_k in the output file eigk.dat
+# Write eigenvalues E_k.
+# In case of interpolation the output file is called bands_interpolated.dat
+# With no interpolation the ouput file is called eigk.dat
 def write_output_eigk(eig_k,order,dirname,*k_path):
 
 	if order == 'band':		# Group eigenvalues with same band index
