@@ -49,4 +49,4 @@ def ws_distance(nk1,nk2,nk3,latt_vec,kvec,cutoff,wann,wann_ref):
 	
 	Tnn = np.array(Tnn)
 	phase_factor = np.sum(np.exp(1j*2*np.pi*np.dot(Tnn,kvec))) / len(Tnn)
-	return phase_factor
+	return phase_factor,Tnn
