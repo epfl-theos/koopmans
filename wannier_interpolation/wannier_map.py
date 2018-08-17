@@ -9,15 +9,14 @@ from modules import *
 
 ###################### BEGIN INPUT ######################
 
-dir_wann_pc = '/scratch/degennar/wannier_interpolation/1D_chain/pcell_411/wannier-occ'		# path to the wannier input file of the PC
-dir_wann_sc = '/scratch/degennar/wannier_interpolation/1D_chain/scell_411/wannier-occ'		# path to the wannier output file of the SC
-seedname = '1Dchain'				# seedname as in wannier input file
+dir_wann_pc = '/scratch/degennar/wannier_interpolation/Si/pcell/wannier-occ'		# path to the wannier input file of the PC
+dir_wann_sc = '/scratch/degennar/wannier_interpolation/Si/scell/wannier-occ'		# path to the wannier output file of the SC
+seedname = 'Si'				# seedname as in wannier input file
 cutoff = 1E-4				# cutoff on the calculation of WFs distances
 interpolation = True			# if True the bands are interpolated along the following path
 
 # If interpolation = True, k-path in PC crystal coordinates
-#k_path = np.array(((0,0,0),(0.125,0,0),(0.25,0,0),(0.375,0,0),(0.5,0,0),(0.5,0,0.125),(0.5,0,0.25),(0.5,0,0.375),(0.5,0,0.5),(0.375,0,0.375),(0.25,0,0.25),(0.125,0,0.125),(0,0,0)))
-k_path = np.array(((0.00000000,0.00000000,0.00000000),(0.06250000,0.00000000,0.00000000),(0.12500000,0.00000000,0.00000000),(0.18750000,0.00000000,0.00000000),(0.25000000,0.00000000,0.00000000),(0.31250000,0.00000000,0.00000000),(0.37500000,0.00000000,0.00000000),(0.43750000,0.00000000,0.00000000),(0.50000000,0.00000000,0.00000000),(0.56250000,0.00000000,0.00000000),(0.62500000,0.00000000,0.00000000),(0.68750000,0.00000000,0.00000000),(0.75000000,0.00000000,0.00000000),(0.81250000,0.00000000,0.00000000),(0.87500000,0.00000000,0.00000000),(0.93750000,0.00000000,0.00000000)))
+k_path = np.array(((0,0,0),(0.125,0,0),(0.25,0,0),(0.375,0,0),(0.5,0,0),(0.5,0,0.125),(0.5,0,0.25),(0.5,0,0.375),(0.5,0,0.5),(0.375,0,0.375),(0.25,0,0.25),(0.125,0,0.125),(0,0,0)))
 
 ####################### END INPUT #######################
 
@@ -92,21 +91,11 @@ if interpolation:
 	hk = np.zeros((k_path.shape[0],num_wann/nktot,num_wann/nktot),dtype=complex)
 	for kn in range(k_path.shape[0]):
 		k = k_path[kn]
-		if kn==1:	print '\nk = ',k
 		for m in range(num_wann/nktot):
 			for n in range(num_wann/nktot):
 				for i in range(nktot):
 					phase_factor,Tnn = ws_distance(nk1,nk2,nk3,latt_vec_sc,k,cutoff,wann_pc[i,n,1:],wann_pc[0,m,1:])
 					hk[kn,m,n] = hk[kn,m,n] + np.exp(1j*2*np.pi*np.dot(k,R[i])) * phase_factor * hr_new[0,i,m,n]	# Hmn(k) = sum_R e^(-ikR) * ( sum_Tnn e^(-ikTnn) ) * <0m|H|Rn>
-					if kn==1:
-						print '\nFor <R0,%d|H|R%d,%d> :' %(m,i,n)
-						print 'R = ',R[i],'\tT = ',Tnn
-						print 'R + T = ',R[i]+Tnn
-						print 'exp(ikR) = ',np.exp(1j*2*np.pi*np.dot(k,R[i]))
-						print 'phase_factor = ',phase_factor
-						print 'exp(ikR)*phase_factor = ',np.exp(1j*2*np.pi*np.dot(k,R[i]))*phase_factor
-						print 'Hmn(R) = ',hr_new[0,i,m,n]
-						print 'hk(partial) = ',hk[kn,:,:]
 		eig_k.append(np.linalg.eigvalsh(hk[kn,:,:]))
 
 else:	# else the Hamiltonian is calculated over the k-mesh
