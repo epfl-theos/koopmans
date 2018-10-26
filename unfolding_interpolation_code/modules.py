@@ -1,6 +1,17 @@
 import numpy as np
 
 
+# Definition of the Monkhorst-Pack k-mesh (in crystal coordinates) of the PC commensurate to the SC
+def MP_mesh(nk1,nk2,nk3):
+	k_mesh = []
+	for i in range(nk1):
+		for j in range(nk2):
+			for k in range(nk3):
+				k_mesh.append(np.array((i,j,k),dtype=float))
+	k_mesh = np.array(k_mesh) / np.array((nk1,nk2,nk3))
+	return k_mesh
+
+
 # Calculate the nktot R-vectors in crystal coordinates
 def Rvec(nk1,nk2,nk3):
 	Rvec = []
@@ -13,11 +24,13 @@ def Rvec(nk1,nk2,nk3):
 
 
 # Compare two WFs in the SC and return True if they differ just by a primitive lattice vector (of the primitive cell)
-def wann_match(wann,wann_ref,latt_vec,cutoff):
-	dist = wann - wann_ref
+def wann_match(centers,spreads,signatures,wann_ref,latt_vec,cutoff):
+	dist = centers - wann_ref[:3]
 	x = np.linalg.solve(latt_vec,dist)
 	if np.linalg.norm(abs(x-np.round(x))) < cutoff:
-		return True
+		if abs(wann_ref[3]-spreads) < cutoff:
+			if (abs(wann_ref[4:]-signatures)<cutoff*np.ones(20)).all():
+				return True
 	else:
 		return False
 
