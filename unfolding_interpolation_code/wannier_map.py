@@ -1,12 +1,13 @@
 import numpy as np
 import math
 import re
-import sys,time
-from inputfile import *
+import sys,time,os
 from read_data import *
 from write_data import *
 from modules import *
 
+sys.path.append(os.getcwd())
+from inputfile import *
 
 
 try:
@@ -21,8 +22,8 @@ reset = time.time()
 k_mesh = MP_mesh(nk1,nk2,nk3)
 nktot = nk1*nk2*nk3
 
-num_wann,latt_vec_sc,centers,spreads,signatures = read_wannier_scell(dir_wann,seedname)
-#num_wann,latt_vec_sc,centers = read_koopmans_output(dir_wann)
+num_wann,latt_vec_sc,centers,spreads,signatures = read_wannier_scell(seedname)
+#num_wann,latt_vec_sc,centers = read_koopmans_output()
 
 print '\nReading input in:\t\t\t\t\t%.3f sec' %(time.time()-reset)
 reset = time.time()
@@ -145,10 +146,11 @@ if DOS:
 
 
 # Write the output
-if interpolation:	write_output_eigk(eig_k,'band',outdir,k_path)
-else:			write_output_eigk(eig_k,'kvec',outdir)
-if DOS:			write_dos(outdir,gaussian,Emin,deltaE)
+if interpolation:	write_output_eigk(eig_k,'band',k_path)
+else:			write_output_eigk(eig_k,'kvec')
+if DOS:			write_dos(gaussian,Emin,deltaE)
 
 print 'Writing the output in:\t\t\t\t\t%.3f sec' %(time.time()-reset)
 print '\nTotal time:\t\t\t\t\t\t%.3f sec\n' %(time.time()-start)
 
+os.remove('inputfile.pyc')

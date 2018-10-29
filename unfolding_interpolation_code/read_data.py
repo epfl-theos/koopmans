@@ -4,8 +4,8 @@ import sys
 
 
 # Find num_wann, primitive lattice vectors and WFs centers from Koopmans output
-def read_koopmans_output(dirname):
-	ifile = open(dirname+'/313.out','r')
+def read_koopmans_output():
+	ifile = open('313.out','r')
 	lines = ifile.readlines()
 	ifile.close()
 	
@@ -33,8 +33,8 @@ def read_koopmans_output(dirname):
 	return num_wann,latt_vec,centers
 
 
-def read_wannier_scell(dirname,seedname):
-        ifile = open(dirname+'/'+seedname+'.win','r')
+def read_wannier_scell(seedname):
+        ifile = open(seedname+'.win','r')
         lines = ifile.readlines()
         ifile.close()
 
@@ -46,7 +46,7 @@ def read_wannier_scell(dirname,seedname):
         try:            num_wann
         except:         sys.exit('\nCannot find num_wann !\n')
 
-        ifile = open(dirname+'/'+seedname+'.wout','r')
+        ifile = open(seedname+'.wout','r')
         lines = ifile.readlines()
         ifile.close()
         check_latt = 0

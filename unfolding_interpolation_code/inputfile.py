@@ -2,12 +2,9 @@ import numpy as np
 from modules import MP_mesh
 
 
-
-dir_wann = '/scratch/degennar/wannier_interpolation/Si/scell/wannier-occ'	# path either to Wannier or Koopmans output (to read all the infos about the WFs and the lattice vectors)
-outdir = '/scratch/degennar/wannier_interpolation/Si/scell/wannier-occ'			# path to the output directory		
-file_hr = '/scratch/degennar/wannier_interpolation/Si/scell/wannier-occ/Si_hr.dat'	# file with the real-space Hamiltonian H(R)
-hr_type = 'wannier'				# write 'koopmans' if H(R) is taken from a Koopmans calculation, or 'wannier' if H(R) is taken from Wannier90
-seedname = 'Si'					# seedname as in Koopmans or Wannier calculation
+file_hr = 'Si_hr.dat'			# file with the real-space Hamiltonian H(R)
+hr_type = 'wannier'			# write 'koopmans' if H(R) is taken from a Koopmans calculation, or 'wannier' if H(R) is taken from Wannier90
+seedname = 'Si'				# seedname as in Koopmans or Wannier calculation
 
 cutoff = 1.E-3				# cutoff on the calculation of WFs distances
 nk1,nk2,nk3 = 2,2,2			# dimensions of the supercell
