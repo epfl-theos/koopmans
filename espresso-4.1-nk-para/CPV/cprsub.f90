@@ -871,7 +871,7 @@ SUBROUTINE print_lambda_x_real( lambda, n, nshow, ccc, iunit )
     USE kinds, ONLY : DP
     USE io_global,         ONLY: stdout, ionode
     USE cp_main_variables, ONLY: collect_lambda, descla
-    USE electrons_base,    ONLY: nudx
+    USE electrons_base,    ONLY: nudx, nupdwn
     USE input_parameters,  ONLY: fixed_state, fixed_band
     USE nksic,             ONLY: f_cutoff
     IMPLICIT NONE
@@ -879,7 +879,7 @@ SUBROUTINE print_lambda_x_real( lambda, n, nshow, ccc, iunit )
     integer, intent(in) :: n, nshow
     integer, intent(in), optional :: iunit
     !
-    integer :: nnn, j, un, i, is
+    integer :: nnn, j, un, i, is, fixed_band_aux
     real(DP), allocatable :: lambda_repl(:,:)
     if( present( iunit ) ) then
       un = iunit
@@ -898,8 +898,15 @@ SUBROUTINE print_lambda_x_real( lambda, n, nshow, ccc, iunit )
           !   WRITE( un,3380) (lambda_repl(i,j)*ccc,j=1,nnn)
           !END DO
           !
-          IF (fixed_state .AND. (is==1)) &
-                   WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl(fixed_band,fixed_band)*ccc/f_cutoff)
+!          IF (fixed_state .AND. (is==1)) &
+!                   WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl(fixed_band,fixed_band)*ccc/f_cutoff)
+          IF (fixed_state .AND. (fixed_band .le. nupdwn(1)) ) THEN
+              WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl(fixed_band,fixed_band)*ccc/f_cutoff)
+          ELSE
+              fixed_band_aux = fixed_band-nupdwn(1)
+              WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl(fixed_band_aux,fixed_band_aux)*ccc/f_cutoff)
+          ENDIF
+           
        END IF
     END DO
     DEALLOCATE( lambda_repl )
@@ -912,7 +919,7 @@ SUBROUTINE print_lambda_x_twin( lambda, n, nshow, ccc, iunit )
     USE kinds, ONLY : DP
     USE io_global,         ONLY: stdout, ionode
     USE cp_main_variables, ONLY: collect_lambda, descla
-    USE electrons_base,    ONLY: nudx
+    USE electrons_base,    ONLY: nudx, nupdwn
     USE twin_types
     USE input_parameters,  ONLY: fixed_state, fixed_band
     USE nksic,             ONLY: f_cutoff
@@ -922,7 +929,7 @@ SUBROUTINE print_lambda_x_twin( lambda, n, nshow, ccc, iunit )
     integer, intent(in) :: n, nshow
     integer, intent(in), optional :: iunit
     !
-    integer :: nnn, j, un, i, is
+    integer :: nnn, j, un, i, is, fixed_band_aux
     real(DP), allocatable :: lambda_repl(:,:)
     complex(DP), allocatable :: lambda_repl_c(:,:)
     !
@@ -945,8 +952,14 @@ SUBROUTINE print_lambda_x_twin( lambda, n, nshow, ccc, iunit )
 	      !WRITE( un,3380) (lambda_repl(i,j)*ccc,j=1,nnn)
 	      !END DO
               !
-              IF (fixed_state .AND. (is==1)) &
-                 WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl(fixed_band,fixed_band)*ccc/f_cutoff)              
+!              IF (fixed_state .AND. (is==1)) &
+!                 WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl(fixed_band,fixed_band)*ccc/f_cutoff)              
+              IF (fixed_state .AND. (fixed_band .le. nupdwn(1)) ) THEN
+                 WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl(fixed_band,fixed_band)*ccc/f_cutoff)
+              ELSE
+                 fixed_band_aux = fixed_band-nupdwn(1)
+                 WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl(fixed_band_aux,fixed_band_aux)*ccc/f_cutoff)
+             ENDIF
 	  END IF
 	END DO
         DEALLOCATE( lambda_repl )
@@ -962,8 +975,14 @@ SUBROUTINE print_lambda_x_twin( lambda, n, nshow, ccc, iunit )
 	      ! WRITE( un,3390) (lambda_repl_c(i,j)*ccc,j=1,nnn)
 	      !END DO
               !
-              IF (fixed_state .AND. (is==1)) &
-                 WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl_c(fixed_band,fixed_band)*ccc/f_cutoff)
+!              IF (fixed_state .AND. (is==1)) &
+!                 WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl_c(fixed_band,fixed_band)*ccc/f_cutoff)
+              IF (fixed_state .AND. (fixed_band .le. nupdwn(1)) ) THEN
+                  WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl_c(fixed_band,fixed_band)*ccc/f_cutoff)
+              ELSE
+                 fixed_band_aux = fixed_band-nupdwn(1)
+                 WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl_c(fixed_band_aux,fixed_band_aux)*ccc/f_cutoff)
+             ENDIF
 	  END IF
 	END DO
         DEALLOCATE( lambda_repl_c )

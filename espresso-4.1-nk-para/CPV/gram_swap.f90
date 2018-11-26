@@ -12,6 +12,7 @@ SUBROUTINE gram_swap( betae, bec, nkbx, cp, ngwx, n, fixed_index )
       USE gvecw,          ONLY : ngw
       USE kinds,          ONLY : DP
       USE control_flags,  ONLY : gamma_only, do_wf_cmplx !added:giovanni
+      USE electrons_base,  ONLY : ispin
       USE twin_types !added:giovanni
       !
       IMPLICIT NONE
@@ -22,7 +23,7 @@ SUBROUTINE gram_swap( betae, bec, nkbx, cp, ngwx, n, fixed_index )
       !
       REAL(DP) :: anorm, cscnorm
       COMPLEX(DP), ALLOCATABLE :: csc( : ) !modified:giovanni
-      INTEGER :: i,k
+      INTEGER :: i,k, ispin_aux
       LOGICAL :: lgam !i added:giovanni
       EXTERNAL cscnorm
       !
@@ -34,7 +35,12 @@ SUBROUTINE gram_swap( betae, bec, nkbx, cp, ngwx, n, fixed_index )
       ! 
       csc=CMPLX(0.d0,0.d0)
       !
+      WRITE(*,*) "NICOLA in gram_swap fixed_inex=", fixed_index
       CALL dswap( 2*ngw*1, cp(:,fixed_index), 1, cp(:,1), 1 ) 
+      ! NsC Exchange the spin indeces as well
+      ispin_aux = ispin(fixed_index) ! Store the original spin 
+      ispin(1) = ispin(fixed_index)
+      ispin(fixed_index) = 1
       !
       DO i = 1, n
          !
@@ -69,6 +75,9 @@ SUBROUTINE gram_swap( betae, bec, nkbx, cp, ngwx, n, fixed_index )
       DEALLOCATE( csc )
       !
       CALL dswap( 2*ngw*1, cp(:,1), 1, cp(:,fixed_index), 1 ) 
+      ! Nsc
+      ispin(1) = 1
+      ispin(fixed_index) = ispin_aux
       !
       CALL stop_clock( 'gram_swap' )
       !
