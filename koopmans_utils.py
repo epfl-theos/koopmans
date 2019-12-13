@@ -1,378 +1,457 @@
 #!/usr/bin/python3
 
 from ase.io import espresso_cp as cp_io
-from ase.calculators.espresso_cp import Espresso_cp 
+from ase.calculators.espresso_cp import Espresso_cp
 import os
 import warnings
 import copy
-   
+
+
 class Extended_Espresso_cp(Espresso_cp):
 
-   '''
-   An extension of the ASE Espresso_cp calculator class where we can access 
-   the input parameters as attributes.
+    '''
+    An extension of the ASE Espresso_cp calculator class where we can access 
+    the input parameters as attributes.
 
-   e.g. 
-   >>> calc.results
-   will return calc.results
-   >>> calc.nkscalfact
-   will return calc.parameters['input_data']['nksic']['nkscalfact']
+    e.g. 
+    >>> calc.results
+    will return calc.results
+    >>> calc.nkscalfact
+    will return calc.parameters['input_data']['nksic']['nkscalfact']
 
-   I have not incorporated this directly into the ASE Espresso_cp module as 
-   I imagine they won't be comfortable with overriding the __getattr__ and 
-   __setattr__ methods
-   '''
+    I have not incorporated this directly into the ASE Espresso_cp module as 
+    I imagine they won't be comfortable with overriding the __getattr__ and 
+    __setattr__ methods
+    '''
 
-   def __init__(self, calc=None):
-      # Optionally initialise using an existing ASE calculator
-      if calc is None:
-         super().__init__()
-      else:
-         super().__init__(label=calc.label, atoms=calc.atoms)
-         self.results = calc.results
-         self.parameters = calc.parameters
-         self.command = calc.command
-         self.calc = calc.calc
+    def __init__(self, calc=None):
+        # Optionally initialise using an existing ASE calculator
+        if calc is None:
+            super().__init__()
+        else:
+            super().__init__(label=calc.label, atoms=calc.atoms)
+            self.results = calc.results
+            self.parameters = calc.parameters
+            self.command = calc.command
+            self.calc = calc.calc
 
-   def __getattr__(self, name: str):
+    def __getattr__(self, name: str):
+        '''
+        When getting an attribute, also search self.parameters['input_data']
+        Important notes:
+          1. this routine is only called if self.__getattribute__ fails
+          2. this routine will return 'None' rather than returning an AttributeError
+             if the calculator does not possess the attribute AND if 'name' is a 
+             recognised QE keyword
+        '''
 
-      '''
-      When getting an attribute, also search self.parameters['input_data']
-      Important notes:
-        1. this routine is only called if self.__getattribute__ fails
-        2. this routine will return 'None' rather than returning an AttributeError
-           if the calculator does not possess the attribute AND if 'name' is a 
-           recognised QE keyword
-      '''
+        parameters = self.__dict__.get('parameters', None)
 
-      parameters = self.__dict__.get('parameters', None)
+        # Return calc.parameters['input_data'][block][name] if it exists
+        if parameters is not None and 'input_data' in parameters:
+            flattened_input_data = {k: v for block in parameters['input_data'].values()
+                                    for k, v in block.items()}
+            if name in flattened_input_data:
+                return flattened_input_data[name]
 
-      # Return calc.parameters['input_data'][block][name] if it exists
-      if parameters is not None and 'input_data' in parameters:
-         flattened_input_data = {k : v for block in parameters['input_data'].values() 
-              for k, v in block.items()}
-         if name in flattened_input_data:
-            return flattened_input_data[name]
-
-      # Else return None if name is a recognised QE keyword
-      for keywords in cp_io.KEYS.values():
-         if name in keywords:
-            return None
-
-      # Else raise an AttributeError
-      raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
-
-   def __setattr__(self, name, value):
-
-      # Set as self.parameters['input_data'] ahead of self.__dict__
-
-      parameters = self.__dict__.get('parameters', None)
-
-      if parameters is not None and 'input_data' in parameters:
-         for block, keywords in cp_io.KEYS.items():
+        # Else return None if name is a recognised QE keyword
+        for keywords in cp_io.KEYS.values():
             if name in keywords:
+                return None
 
-               # print(f'Setting {name} as a QE variable')
-               self.parameters['input_data'][block][name] = value
+        # Else raise an AttributeError
+        raise AttributeError(
+            f"'{self.__class__.__name__}' object has no attribute '{name}'")
 
-               # If keyword is also an attribute (e.g. as in the case of 'prefix')
-               # set that too.
-               if name in self.__dict__:
-                  self.__dict__[name] = value
-               return
+    def __setattr__(self, name, value):
 
-      # print(f'Setting {name} as attribute')
-      self.__dict__[name] = value
+        # Set as self.parameters['input_data'] ahead of self.__dict__
 
-   def setattr_only(self, name, value):
-      # If 'name' is both a QE parameter and an attribute of calc,
-      # modify the attribute and leave the QE parameter unchanged
+        parameters = self.__dict__.get('parameters', None)
 
-      parameters = self.__dict__.get('parameters', None)
+        if parameters is not None and 'input_data' in parameters:
+            for block, keywords in cp_io.KEYS.items():
+                if name in keywords:
 
-      if parameters is not None and 'input_data' in parameters:
-         for block, keywords in cp_io.KEYS.items():
-            if name in keywords:
-               old_value = parameters['input_data'][block][name]
-               break
+                    # print(f'Setting {name} as a QE variable')
+                    self.parameters['input_data'][block][name] = value
 
-      setattr(self, name, value)
-      parameters['input_data'][block][name] = old_value
+                    # If keyword is also an attribute (e.g. as in the case of 'prefix')
+                    # set that too.
+                    if name in self.__dict__:
+                        self.__dict__[name] = value
+                    return
+
+        # print(f'Setting {name} as attribute')
+        self.__dict__[name] = value
+
+    def setattr_only(self, name, value):
+        # If 'name' is both a QE parameter and an attribute of calc,
+        # modify the attribute and leave the QE parameter unchanged
+
+        parameters = self.__dict__.get('parameters', None)
+
+        if parameters is not None and 'input_data' in parameters:
+            for block, keywords in cp_io.KEYS.items():
+                if name in keywords:
+                    old_value = parameters['input_data'][block][name]
+                    break
+
+        setattr(self, name, value)
+        parameters['input_data'][block][name] = old_value
+
 
 def run_cp(calc, silent=True):
+    '''
+    Runs calc.calculate with optional printing of status
+    '''
 
-   '''
-   Runs calc.calculate with optional printing of status
-   '''
+    if not silent:
+        print('Running {}/{}...'.format(calc.directory,
+                                        calc.prefix), end='', flush=True)
 
-   if not silent:
-      print('Running {}/{}...'.format(calc.directory, calc.prefix), end='', flush=True)
+    calc.calculate()
 
-   calc.calculate()
+    if not silent:
+        print(' done')
 
-   if not silent:
-      print(' done')
+    return
 
-   return
 
-def calculate_alpha(calcs, filled=True):
-   
-   """
-   Calculates alpha via equation 10 of Nguyen et. al (2018) 10.1103/PhysRevX.8.021051
-   If the band is filled, use s = 1; if the band is empty, use s = 0
-   """
+def calculate_alpha(calcs, filled=True, kipz=False):
+    '''
+    Calculates alpha via equation 10 of Nguyen et. al (2018) 10.1103/PhysRevX.8.021051
+    If the band is filled, use s = 1; if the band is empty, use s = 0
 
-   # PBE(N)
-   if filled:
-      [pbe] = [c.results for c in calcs if c.restart_mode == 'restart' 
-               and not c.do_orbdep and c.f_cutoff == 1.0]
-   else:
-      [pbe] = [c.results for c in calcs if c.restart_mode == 'restart' 
-               and not c.do_orbdep and c.f_cutoff < 0.001]
+    Arguments:
+        calcs  -- a list of calculations
+        filled -- True if the orbital for which we're calculating alpha is filled
+        kipz   -- True if KIPZ; False if KI
+    '''
 
-   # KI^a0(N)
-   if filled:
-      [ki_calc] = [c for c in calcs if c.do_orbdep and c.which_orbdep == 'nki' and c.f_cutoff == 1.0]
-   else:
-      [ki_calc] = [c for c in calcs if c.do_orbdep and c.which_orbdep == 'nki' and c.f_cutoff < 0.001]
-   ki = ki_calc.results
+    if kipz and filled:
+        # KIPZ N
+        [alpha_calc] = [c for c in calcs if c.which_orbdep == 'nkipz'
+                        and c.do_orbdep and c.f_cutoff == 1.0]
+        kipz = alpha_calc.results
 
-   if filled:
-      # PBE(N-1)
-      [modified_pbe] = [c.results for c in calcs if c.restart_mode == 'restart' 
-                 and not c.do_orbdep and c.f_cutoff < 0.001]
-   else:
-      # PBE(N+1)
-      [modified_pbe] = [c.results for c in calcs if c.restart_mode == 'restart' 
-                 and not c.do_orbdep and c.f_cutoff == 1]
-   
-   # Check total energy is unchanged
-   dE_check = abs(ki['energy'] - pbe['energy'])
-   if dE_check > 1e-5:
-      warnings.warn('KI and PBE differ by {:.5f} eV'.format(dE_check))
+        # KIPZ N-1
+        [kipz_m1] = [c.results for c in calcs if c.which_orbdep == 'nkipz'
+                     and c.do_orbdep and c.f_cutoff < 0.0001]
 
-   # Energy difference between s = 1 and s = 0
-   if filled:
-      # E(N) - E_i(N - 1)
-      dE = pbe['energy'] - modified_pbe['energy']
-   else:
-      # E_i(N + 1) - E(N)
-      dE = modified_pbe['energy'] - pbe['energy']
+        # PBE N
+        [pbe] = [c.results for c in calcs if not c.do_orbdep
+                 and c.restart_mode == 'restart' and c.f_cutoff == 1.0]
 
-   # Obtaining alpha
-   if (ki_calc.odd_nkscalfact and filled) or (ki_calc.odd_nkscalfact_empty and not filled):
-      alpha_guesses = read_alpharef(ki_calc)
-      alpha_guess = alpha_guesses[ki_calc.fixed_band - 1]
-   else:
-      alpha_guess = ki_calc.nkscalfact
+        dE = kipz['energy'] - kipz_m1['energy']
+        lambda_a = kipz['lambda_ii']
+        lambda_0 = pbe['lambda_ii']
 
-   alpha = alpha_guess*(dE - pbe['lambda_ii']) / (ki['lambda_ii'] - pbe['lambda_ii'])
+    elif kipz and not filled:
+        # KIPZ N+1-1
+        [alpha_calc] = [c for c in calcs if c.which_orbdep == 'nkipz'
+                        and c.do_orbdep and c.f_cutoff < 0.0001]
+        kipz = alpha_calc.results
 
-   # The error is lambda^alpha(1) - lambda^alpha_i(1)
-   error = dE - ki['lambda_ii']
+        # KIPZ N+1
+        [kipz_p1] = [c.results for c in calcs if c.which_orbdep == 'nkipz'
+                     and c.do_orbdep and c.f_cutoff == 1.0]
 
-   return alpha, error
+        # PBE N+1-1
+        [pbe] = [c.results for c in calcs if not c.do_orbdep
+                 and c.restart_mode == 'restart' and c.f_cutoff < 0.0001]
+
+        dE = kipz_p1['energy'] - kipz['energy']
+        lambda_a = kipz['lambda_ii']
+        lambda_0 = pbe['lambda_ii']
+
+    elif not kipz and filled:
+        # KI N
+        [alpha_calc] = [c for c in calcs if c.which_orbdep == 'nki'
+                        and c.do_orbdep and c.f_cutoff == 1.0]
+        ki = alpha_calc.results
+
+        # PBE N-1
+        [pbe_m1] = [c.results for c in calcs if not c.do_orbdep
+                    and c.restart_mode == 'restart' and c.f_cutoff < 0.0001]
+
+        # PBE N
+        [pbe] = [c.results for c in calcs if not c.do_orbdep
+                 and c.restart_mode == 'restart' and c.f_cutoff == 1.0]
+
+        dE = pbe['energy'] - pbe_m1['energy']
+        lambda_a = ki['lambda_ii']
+        lambda_0 = pbe['lambda_ii']
+
+    else:
+        # KI N+1-1
+        [alpha_calc] = [c for c in calcs if c.which_orbdep == 'nkipz'
+                        and c.do_orbdep and c.f_cutoff < 0.0001]
+        ki = alpha_calc.results
+
+        # PBE N+1
+        [pbe_p1] = [c.results for c in calcs if not c.do_orbdep
+                    and c.restart_mode == 'restart' and c.f_cutoff == 1.0]
+
+        # PBE N+1-1
+        [pbe] = [c.results for c in calcs if not c.do_orbdep
+                 and c.restart_mode == 'restart' and c.f_cutoff < 0.0001]
+
+        dE = pbe_p1['energy'] - pbe['energy']
+        lambda_a = ki['lambda_ii']
+        lambda_0 = pbe['lambda_ii']
+
+    if not kipz:
+        # Check total energy is unchanged
+        dE_check = abs(ki['energy'] - pbe['energy'])
+        if dE_check > 1e-5:
+            warnings.warn('KI and PBE differ by {:.5f} eV'.format(dE_check))
+
+    # Obtaining alpha
+    if (alpha_calc.odd_nkscalfact and filled) or (alpha_calc.odd_nkscalfact_empty and not filled):
+        alpha_guesses = read_alpharef(alpha_calc)
+        alpha_guess = alpha_guesses[alpha_calc.fixed_band - 1]
+    else:
+        alpha_guess = alpha_calc.nkscalfact
+
+    alpha = alpha_guess*(dE - lambda_0) / (lambda_a - lambda_0)
+
+    # The error is lambda^alpha(1) - lambda^alpha_i(1)
+    error = dE - lambda_a
+
+    return alpha, error
+
 
 def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
+    """
+    Generates a new ASE calculator based on a template ASE calculator, modifying
+    the appropriate settings to match the chosen calc_type, and altering any 
+    Quantum Espresso keywords specified as kwargs
 
-   """
-   Generates a new ASE calculator based on a template ASE calculator, modifying
-   the appropriate settings to match the chosen calc_type, and altering any 
-   Quantum Espresso keywords specified as kwargs
+    Arguments:
 
-   Arguments:
-   
-      calc: an template ASE calculator. N.B. this object is not modified by
-            this routine
+        calc: an template ASE calculator. N.B. this object is not modified by
+              this routine
 
-      calc_type: the calculation type; must be one of
-         Initialisation
-         'pbe_init' PBE calculation from scratch
-         'pz'       PZ calculaion starting from PBE restart
-         For calculating alpha_i for filled orbitals
-         'pbe'      PBE calculation starting from restart
-         'pbe_n-1'  PBE calculation with N-1 electrons via fixed_orbital
-         'ki'       KI calculation
-         For calculating alpha_i for empty orbitals
-         'pz_print_wavefunctions' PZ calculation that generates evcempty_fixed.dat file
-         'pbe_n+1_dummy'          PBE dummy calculation that generates store files of
-                                  the correct dimensions
-         'pbe_n+1'                PBE calculation with N+1 electrons
-         'pbe_n+1-1'              PBE calculation with N electrons, starting from N+1 
-                                  but with f_cutoff = 0.00001
-         'ki_n+1-1'               KI calculation with N electrons, starting from N+1 
-                                  but with f_cutoff = 0.00001
+        calc_type: the calculation type; must be one of
+            Initialisation
+            'pbe_init'  PBE calculation from scratch
+            'pz'        PZ calculaion starting from PBE restart
+            'kipz_init' KIPZ starting from PBE restart
+            For calculating alpha_i for filled orbitals
+            'pbe'      PBE calculation starting from restart
+            'pbe_n-1'  PBE calculation with N-1 electrons via fixed_state
+            'kipz_n-1' KIPZ calculation with N-1 electrons via fixed_state
+            'ki'       KI calculation with N electrons
+            'kipz'       KIPZ calculation with N electrons
+            For calculating alpha_i for empty orbitals
+            'pz_print_wavefunctions' PZ calculation that generates evcempty_fixed.dat file
+            'kipz_print'             KIPZ calculation that generates evcempty_fixed.dat file
+            'pbe_n+1_dummy'          PBE dummy calculation that generates store files of
+                                     the correct dimensions
+            'pbe_n+1'                PBE calculation with N+1 electrons
+            'pbe_n+1-1'              PBE calculation with N electrons, starting from N+1 
+                                     but with f_cutoff = 0.00001
+            'ki_n+1-1'               KI calculation with N electrons, starting from N+1 
+                                     but with f_cutoff = 0.00001
+            'kipz_n+1-1'             KIPZ calculation with N electrons, starting from N+1 
+                                     but with f_cutoff = 0.00001
 
-      **kwargs: accepts any Quantum Espresso keywords as an argument, and will
-                apply these options to the returned ASE calculator
 
-   Returns: a new ASE calculator object
+       **kwargs: accepts any Quantum Espresso keywords as an argument, and will
+                 apply these options to the returned ASE calculator
 
-   TODO:
-      - adjust the extensive conv_thr automatically based on the total 
-        number of electrons
-      - adjust esic_conv_thr to be alpha*10E-8?
-   """
+    Returns: a new ASE calculator object
 
-   # Avoid modifying the master calculator
-   calc = copy.deepcopy(calc)
+    TODO:
+       - adjust the extensive conv_thr automatically based on the total 
+         number of electrons
+       - adjust esic_conv_thr to be alpha*10E-8?
+    """
 
-   # Set up read/write indexes
-   if calc_type == 'pbe_init':
-      ndr = 50
-      ndw = 50
-   elif calc_type == 'pz':
-      ndr = 50
-      ndw = 51
-   elif calc_type == 'pbe':
-      ndr = 51
-      ndw = 52
-   elif calc_type == 'pbe_n-1':
-      ndr = 51
-      ndw = 53
-   elif calc_type == 'ki':
-      ndr = 51
-      ndw = 54
-   elif calc_type == 'pz_print_wavefunctions':
-      ndr = 51
-      ndw = 55
-   elif calc_type == 'pbe_n+1_dummy':
-      ndr = 56
-      ndw = 56
-   elif calc_type == 'pbe_n+1':
-      ndr = 56
-      ndw = 57
-   elif calc_type == 'pbe_n+1-1':
-      ndr = 56
-      ndw = 58
-   elif calc_type == 'ki_n+1-1':
-      ndr = 56
-      ndw = 59
-   else:
-      raise ValueError('Invalid calc_type "{}"'.format(calc_type))
+    # Avoid modifying the master calculator
+    calc = copy.deepcopy(calc)
 
-   # Pseudopotentials
+    # Set up read/write indexes
+    if calc_type == 'pbe_init':
+        ndr = 50
+        ndw = 50
+    elif calc_type == 'pz':
+        ndr = 50
+        ndw = 51
+    elif calc_type == 'ki':
+        ndr = 51
+        ndw = 52
+    elif calc_type == 'pbe':
+        ndr = 51
+        ndw = 53
+    elif calc_type == 'pbe_n-1':
+        ndr = 51
+        ndw = 54
+    elif calc_type == 'pz_print_wavefunctions':
+        ndr = 51
+        ndw = 55
+    elif calc_type == 'pbe_n+1_dummy':
+        ndr = 56
+        ndw = 56
+    elif calc_type == 'pbe_n+1-1':
+        ndr = 56
+        ndw = 57
+    elif calc_type == 'pbe_n+1':
+        ndr = 56
+        ndw = 58
+    elif calc_type == 'ki_n+1-1':
+        ndr = 56
+        ndw = 59
+    elif calc_type == 'kipz_init':
+        ndr = 50
+        ndw = 51
+    elif calc_type == 'kipz':
+        ndr = 51
+        ndw = 60
+    elif calc_type == 'kipz_n-1':
+        ndr = 51
+        ndw = 70
+    elif calc_type == 'kipz print':
+        ndr = 51
+        ndw = 55
+    elif calc_type == 'kipz_n+1':
+        ndr = 56
+        ndw = 80
+    elif calc_type == 'kipz_n+1-1':
+        ndr = 56
+        ndw = 90
+    else:
+        raise ValueError('Invalid calc_type "{}"'.format(calc_type))
 
-   # This script will...
-   #  1. try to locating the directory as currently specified by the calculator
-   #  2. if that fails, it will check if $ESPRESSO_PSEUDO is set
-   #  3. if that fails, it will raise an OS error
+    # Pseudopotentials
 
-   # Therefore, if you want to use a pseudo directory that is different to your
-   # $PSEUDO_DIR, reset pseudo_dir for the template calc object before entering 
-   # this routine.
+    # This script will...
+    #  1. try to locating the directory as currently specified by the calculator
+    #  2. if that fails, it will check if $ESPRESSO_PSEUDO is set
+    #  3. if that fails, it will raise an OS error
 
-   if calc.pseudo_dir is None or not os.path.isdir(calc.pseudo_dir):
-      try:
-         calc.pseudo_dir = os.environ.get('ESPRESSO_PSEUDO')
-      except:
-         raise OSError('Directory for pseudopotentials not found. Please define ' \
-            'the enviroment variable ESPRESSO_PSEUDO or provide the function run_cp ' \
-            'with a pseudo_dir argument')
+    # Therefore, if you want to use a pseudo directory that is different to your
+    # $PSEUDO_DIR, reset pseudo_dir for the template calc object before entering
+    # this routine.
 
-   # CP options
-   # control
-   calc.setattr_only('prefix', calc_type)
-   calc.ndw = ndw
-   calc.ndr = ndr
-   if calc.prefix in ['pbe_init', 'pbe_n+1_dummy']:
-      calc.restart_mode = 'from_scratch' 
-   else:
-      calc.restart_mode = 'restart' 
+    if calc.pseudo_dir is None or not os.path.isdir(calc.pseudo_dir):
+        try:
+            calc.pseudo_dir = os.environ.get('ESPRESSO_PSEUDO')
+        except:
+            raise OSError('Directory for pseudopotentials not found. Please define '
+                          'the enviroment variable ESPRESSO_PSEUDO or provide the function run_cp '
+                          'with a pseudo_dir argument')
 
-   # system
-   calc.nspin = 2
-   if 'pz' in calc.prefix or 'ki' in calc.prefix:
-      calc.do_orbdep = True
-   else:
-      calc.do_orbdep = False
-   if calc.prefix in ['pbe_init', 'pz_print_wavefunctions', 'pbe_n+1_dummy', 'pz']:
-      calc.fixed_state = False
-   else:
-      calc.fixed_state = True
-      if '-1' in calc.prefix:
-         calc.f_cutoff = 1e-5
-      else:
-         calc.f_cutoff = 1.0
-   if 'n+1' in calc.prefix:
-      calc.nelec += 1
-      calc.nelup += 1
-   if calc.prefix in ['pbe_n+1', 'pbe_n+1-1', 'ki_n+1-1']:
-      calc.restart_from_wannier_pwscf = True
+    # CP options
+    # control
+    calc.setattr_only('prefix', calc_type)
+    calc.ndw = ndw
+    calc.ndr = ndr
+    if calc.prefix in ['pbe_init', 'pbe_n+1_dummy']:
+        calc.restart_mode = 'from_scratch'
+    else:
+        calc.restart_mode = 'restart'
 
-   # electrons
-   calc.empty_states_maxstep = 300
-   if 'pz' in calc.prefix or 'ki' in calc.prefix:
-      calc.maxiter = 2
-   else:
-      calc.maxiter = 200
+    # system
+    calc.nspin = 2
+    if 'pz' in calc.prefix or 'ki' in calc.prefix:
+        calc.do_orbdep = True
+    else:
+        calc.do_orbdep = False
+    if calc.prefix in ['pbe_init', 'pz_print_wavefunctions', 'pbe_n+1_dummy', 'pz', 'kipz_init']:
+        calc.fixed_state = False
+    else:
+        calc.fixed_state = True
+        if '-1' in calc.prefix:
+            calc.f_cutoff = 1e-5
+        else:
+            calc.f_cutoff = 1.0
+    if 'n+1' in calc.prefix:
+        calc.nelec += 1
+        calc.nelup += 1
+    if calc.prefix in ['pbe_n+1', 'pbe_n+1-1', 'ki_n+1-1', 'kipz_n+1-1', 'kipz_n+1']:
+        calc.restart_from_wannier_pwscf = True
 
-   # nksic
-   calc.do_innerloop_cg = True
-   if 'pz' in calc.prefix:
-      calc.do_innerloop = True
-      calc.one_innerloop_only = True
-   else:
-      calc.do_innerloop = False
-      calc.one_innerloop_only = False
-   if 'pz' in calc.prefix:
-      calc.which_orbdep = 'pz'
-   elif 'ki' in calc.prefix:
-      calc.which_orbdep = 'nki'
-   if calc.prefix == 'pz_print_wavefunctions':
-      calc.print_wfc_anion = True
+    # electrons
+    calc.empty_states_maxstep = 300
+    if ('pz' in calc.prefix or 'ki' in calc.prefix) and 'kipz' not in calc.prefix:
+        calc.maxiter = 2
+    else:
+        calc.maxiter = 200
 
-   # Handle any keywords provided by kwargs
-   # Note that since this is performed after the above logic this can (deliberately 
-   # or accidentally) overwrite the above settings
+    # nksic
+    calc.do_innerloop_cg = True
+    if calc.prefix[:2] == 'pz':
+        calc.do_innerloop = True
+        calc.one_innerloop_only = True
+    else:
+        calc.do_innerloop = False
+        calc.one_innerloop_only = False
+    if 'kipz' in calc.prefix:
+        calc.which_orbdep = 'nkipz'
+    elif calc.prefix == 'pz':
+        calc.which_orbdep = 'pz'
+    elif 'ki' in calc.prefix:
+        calc.which_orbdep = 'nki'
+    if 'print' in calc.prefix:
+        calc.print_wfc_anion = True
 
-   for keyword, value in kwargs.items():
-      setattr(calc, keyword, value)
+    # Handle any keywords provided by kwargs
+    # Note that since this is performed after the above logic this can (deliberately
+    # or accidentally) overwrite the above settings
 
-   # Sanity checking
-   if calc.print_wfc_anion and calc.index_empty_to_save is None:
-      raise ValueError('Error: print_wfc_anion is set to true but you have not selected ' \
-                       ' an index_empty_to_save. Provide this as an argument to set_calculator')
+    for keyword, value in kwargs.items():
+        setattr(calc, keyword, value)
 
-   if calc.fixed_band > calc.nelup + 1:
-      warnings.warn('calc.fixed_band is higher than the LUMO; this should not happen')
+    # Sanity checking
+    if calc.print_wfc_anion and calc.index_empty_to_save is None:
+        raise ValueError('Error: print_wfc_anion is set to true but you have not selected '
+                         ' an index_empty_to_save. Provide this as an argument to set_calculator')
 
-   return calc
+    if calc.fixed_band > calc.nelup + 1:
+        warnings.warn(
+            'calc.fixed_band is higher than the LUMO; this should not happen')
+
+    return calc
+
 
 def write_alpharef(alphas, filling, directory='.'):
-   '''
-   Generates file_alpharef.txt and file_alpharef_empty.txt from a list of alpha values
+    '''
+    Generates file_alpharef.txt and file_alpharef_empty.txt from a list of alpha values
 
-   Arguments:
-      alphas    -- a list of alpha values (floats)
-      filling   -- a list of booleans; true if the corresponding orbital is filled
-      directory -- the directory within which to write the files
-   '''
+    Arguments:
+       alphas    -- a list of alpha values (floats)
+       filling   -- a list of booleans; true if the corresponding orbital is filled
+       directory -- the directory within which to write the files
+    '''
 
-   a_filled = [a for a, f in zip(alphas, filling) if f]
-   a_empty = [a for a, f in zip(alphas, filling) if not f]
-   for alphas, suffix in zip([a_filled, a_empty], ['', '_empty']):
-      with open(f'{directory}/file_alpharef{suffix}.txt', 'w') as fd:
-         fd.write('{}\n'.format(2*len(alphas)))
-         fd.writelines(['{} {} 1.0\n'.format(i+1, a) for i, a in enumerate(alphas)])
-         fd.writelines(['{} {} 1.0\n'.format(i+1+len(alphas), a) for i, a in enumerate(alphas)])
+    a_filled = [a for a, f in zip(alphas, filling) if f]
+    a_empty = [a for a, f in zip(alphas, filling) if not f]
+    for alphas, suffix in zip([a_filled, a_empty], ['', '_empty']):
+        with open(f'{directory}/file_alpharef{suffix}.txt', 'w') as fd:
+            fd.write('{}\n'.format(2*len(alphas)))
+            fd.writelines(['{} {} 1.0\n'.format(i+1, a)
+                           for i, a in enumerate(alphas)])
+            fd.writelines(['{} {} 1.0\n'.format(i+1+len(alphas), a)
+                           for i, a in enumerate(alphas)])
+
 
 def read_alpharef(calc):
-   '''
-   Reads in file_alpharef.txt and file_alpharef_empty.txt from a calculation's directory
+    '''
+    Reads in file_alpharef.txt and file_alpharef_empty.txt from a calculation's directory
 
-   Arguments:
-      calc -- an ASE calculator
+    Arguments:
+       calc -- an ASE calculator
 
-   Output:
-      alphas -- a list of alpha values (1 per orbital)
-   '''
-   directory = calc.label.rsplit('/', 1)[0]
-   alphas = []
-   for suffix in ['', '_empty']:
-      with open(f'{directory}/file_alpharef{suffix}.txt', 'r') as fd:
-         flines = fd.readlines()
-         n_orbs = int(flines[0]) // 2
-         alphas += [float(line.split()[1]) for line in flines[1:n_orbs + 1]]
-   return alphas
-      
+    Output:
+       alphas -- a list of alpha values (1 per orbital)
+    '''
+    directory = calc.label.rsplit('/', 1)[0]
+    alphas = []
+    for suffix in ['', '_empty']:
+        with open(f'{directory}/file_alpharef{suffix}.txt', 'r') as fd:
+            flines = fd.readlines()
+            n_orbs = int(flines[0]) // 2
+            alphas += [float(line.split()[1]) for line in flines[1:n_orbs + 1]]
+    return alphas
