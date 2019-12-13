@@ -7,7 +7,7 @@ Make sure you have the following python modules installed:
  * ``pandas``
  * ``pickle``
  * ``warnings``
- * Edward's modified ASE installation (contact to be given access)
+ * a modified version of ASE (``https://github.com/elinscott/ase_koopmans``; contact to be given access)
 
 Add the following to your ~/.bashrc:
 
