@@ -185,7 +185,7 @@ def calculate_alpha(calcs, filled=True, kipz=False):
 
     else:
         # KI N+1-1
-        [alpha_calc] = [c for c in calcs if c.which_orbdep == 'nkipz'
+        [alpha_calc] = [c for c in calcs if c.which_orbdep == 'nki'
                         and c.do_orbdep and c.f_cutoff < 0.0001]
         ki = alpha_calc.results
 
@@ -205,7 +205,8 @@ def calculate_alpha(calcs, filled=True, kipz=False):
         # Check total energy is unchanged
         dE_check = abs(ki['energy'] - pbe['energy'])
         if dE_check > 1e-5:
-            warnings.warn('KI and PBE differ by {:.5f} eV'.format(dE_check))
+            warnings.warn(
+                'KI and PBE energies differ by {:.5f} eV'.format(dE_check))
 
     # Obtaining alpha
     if (alpha_calc.odd_nkscalfact and filled) or (alpha_calc.odd_nkscalfact_empty and not filled):
@@ -236,26 +237,26 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
         calc_type: the calculation type; must be one of
             Initialisation
             'pbe_init'  PBE calculation from scratch
-            'pz'        PZ calculaion starting from PBE restart
+            'pz'        PZ calculation starting from PBE restart
             'kipz_init' KIPZ starting from PBE restart
             For calculating alpha_i for filled orbitals
             'pbe'      PBE calculation starting from restart
             'pbe_n-1'  PBE calculation with N-1 electrons via fixed_state
             'kipz_n-1' KIPZ calculation with N-1 electrons via fixed_state
             'ki'       KI calculation with N electrons
-            'kipz'       KIPZ calculation with N electrons
+            'kipz'     KIPZ calculation with N electrons
             For calculating alpha_i for empty orbitals
-            'pz_print_wavefunctions' PZ calculation that generates evcempty_fixed.dat file
-            'kipz_print'             KIPZ calculation that generates evcempty_fixed.dat file
-            'pbe_n+1_dummy'          PBE dummy calculation that generates store files of
-                                     the correct dimensions
-            'pbe_n+1'                PBE calculation with N+1 electrons
-            'pbe_n+1-1'              PBE calculation with N electrons, starting from N+1 
-                                     but with f_cutoff = 0.00001
-            'ki_n+1-1'               KI calculation with N electrons, starting from N+1 
-                                     but with f_cutoff = 0.00001
-            'kipz_n+1-1'             KIPZ calculation with N electrons, starting from N+1 
-                                     but with f_cutoff = 0.00001
+            'pz_print' PZ calculation that generates evcempty_fixed.dat file
+            'kipz_print'    KIPZ calculation that generates evcempty_fixed.dat file
+            'pbe_n+1_dummy' PBE dummy calculation that generates store files of
+                            the correct dimensions
+            'pbe_n+1'       PBE calculation with N+1 electrons
+            'pbe_n+1-1'     PBE calculation with N electrons, starting from N+1 
+                            but with f_cutoff = 0.00001
+            'ki_n+1-1'      KI calculation with N electrons, starting from N+1 
+                            but with f_cutoff = 0.00001
+            'kipz_n+1-1'    KIPZ calculation with N electrons, starting from N+1 
+                            but with f_cutoff = 0.00001
 
 
        **kwargs: accepts any Quantum Espresso keywords as an argument, and will
@@ -288,7 +289,7 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
     elif calc_type == 'pbe_n-1':
         ndr = 51
         ndw = 54
-    elif calc_type == 'pz_print_wavefunctions':
+    elif calc_type == 'pz_print':
         ndr = 51
         ndw = 55
     elif calc_type == 'pbe_n+1_dummy':
@@ -359,7 +360,7 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
         calc.do_orbdep = True
     else:
         calc.do_orbdep = False
-    if calc.prefix in ['pbe_init', 'pz_print_wavefunctions', 'pbe_n+1_dummy', 'pz', 'kipz_init']:
+    if calc.prefix in ['pbe_init', 'pz_print', 'pbe_n+1_dummy', 'pz', 'kipz_init']:
         calc.fixed_state = False
     else:
         calc.fixed_state = True

@@ -20,11 +20,9 @@ def run_ki(master_cpi, alpha_guess=0.6, n_max_sc_steps=1):
     This function runs the KI workflow from start to finish
 
     Arguments:
-       master_cpi -- the path to the master cp.x input file from which to take
-                     all settings from
-
-       alpha_guess -- the initial guess for alpha
-
+       master_cpi     -- the path to the master cp.x input file from which to take
+                         all settings from
+       alpha_guess    -- the initial guess for alpha
        n_max_sc_steps -- the maximum number of self-consistent steps for 
                          determining {alpha_i}
 
@@ -105,17 +103,22 @@ def run_ki(master_cpi, alpha_guess=0.6, n_max_sc_steps=1):
                 continue
 
             # Write/update the alpharef files in the work directory
-            write_alpharef(alpha_df.loc[i_sc], band_filling, directory)
+            # Make sure to include the fixed band alpha in file_alpharef.txt
+            # rather than file_alpharef_empty.txt
+            band_filled_or_fixed = [
+                b or i == fixed_band - 1 for i, b in enumerate(band_filling)]
+            write_alpharef(alpha_df.loc[i_sc], band_filled_or_fixed, directory)
 
             # Perform the fixed-band-dependent calculations: PBE, PBE_N-1/PBE_N+1, and KI
             if filled:
                 calc_types = ['pbe', 'pbe_n-1', 'ki']
             else:
-                calc_types = ['pz_print_wavefunctions', 'pbe_n+1_dummy', 'pbe_n+1',
+                calc_types = ['pz_print', 'pbe_n+1_dummy', 'pbe_n+1',
                               'pbe_n+1-1', 'ki_n+1-1']
 
             for calc_type in calc_types:
-                # Only the KI calculations change with alpha; we don't need to redo any of the others
+                # Only the KI calculations change with alpha; we don't need to
+                # redo any of the others
                 if i_sc > 1 and 'ki' not in calc_type:
                     continue
 
@@ -165,7 +168,7 @@ def run_ki(master_cpi, alpha_guess=0.6, n_max_sc_steps=1):
 
                 # Copying of evcfixed_empty.dat to evc_occupied.dat
                 prefix = calc.parameters['input_data']['control']['prefix']
-                if calc_type == 'pz_print_wavefunctions':
+                if calc_type == 'pz_print':
                     evcempty_dir = f'fix_orbital_{fixed_band}/{calc.outdir}/' \
                                    f'{prefix}_{calc.ndw}.save/K00001/'
                 elif calc_type == 'pbe_n+1_dummy':
@@ -234,13 +237,13 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
         description='Perform a KI calculation using cp.x')
-    parser.add_argument('template', metavar='template.cpi', type=str, nargs=1,
+    parser.add_argument('template', metavar='template.cpi', type=str,
                         help='a template cp input file')
-    parser.add_argument('-a', '--alpha', nargs=1, default=0.6,
+    parser.add_argument('-a', '--alpha', default=0.6, type=float,
                         help='Starting guess for alpha')
-    parser.add_argument('-i', '--maxit', nargs=1, default=1,
+    parser.add_argument('-i', '--maxit', default=1, type=int,
                         help='Maximum number of self-consistent iterations')
 
     args = parser.parse_args()
 
-    run_ki(args.template[0], args.alpha, args.maxit)
+    run_ki(args.template, args.alpha, args.maxit)
