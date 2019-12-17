@@ -438,17 +438,24 @@ def write_alpharef(alphas, filling, directory='.'):
                            for i, a in enumerate(alphas)])
 
 
-def read_alpharef(calc):
+def read_alpharef(calc=None, directory=None):
     '''
     Reads in file_alpharef.txt and file_alpharef_empty.txt from a calculation's directory
 
     Arguments:
-       calc -- an ASE calculator
+       calc      -- an ASE calculator
+       directory -- a directory
 
     Output:
        alphas -- a list of alpha values (1 per orbital)
     '''
-    directory = calc.label.rsplit('/', 1)[0]
+
+    if calc is not None:
+        directory = calc.label.rsplit('/', 1)[0]
+    elif directory is None:
+        raise ValueError(
+            'read_alpharef called without a calculator or a directory. Please provide at least one.')
+
     alphas = []
     for suffix in ['', '_empty']:
         with open(f'{directory}/file_alpharef{suffix}.txt', 'r') as fd:

@@ -1,5 +1,5 @@
 #### Example calculation for ki.py
-To perform a calculation on water, run `$ ../ki.py h2o-template.cpi -i 3`
+To perform a calculation on water, run `$ python3 ../ki.py h2o-template.cpi -i 3`
 
 The calculation should converge within two steps and you should obtain the following alpha values for each orbital: `0.667182  0.699768  0.699794  0.667177`
 

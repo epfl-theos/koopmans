@@ -1,28 +1,28 @@
-#!/usr/bin/python3
-
 import argparse
 import os
 import subprocess
 import pickle
 import pandas as pd
 from ase.io import espresso_cp as cp_io
-from koopmans_utils import run_cp, calculate_alpha, set_up_calculator, Extended_Espresso_cp, write_alpharef
+from koopmans_utils import run_cp, calculate_alpha, set_up_calculator, \
+    Extended_Espresso_cp, write_alpharef, read_alpharef
 
 '''
 Perform KIPZ calculations
 '''
 
 
-def run_kipz(master_cpi, alpha_guess=0.6, n_max_sc_steps=1):
+def run_kipz(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1):
     '''
     This function runs the KIPZ workflow from start to finish
 
     Arguments:
-        master_cpi     -- the path to the master cp.x input file from which to take
-                          all settings from
-        alpha_guess    -- the initial guess for alpha
-        n_max_sc_steps -- the maximum number of self-consistent steps for 
-                          determining {alpha_i}
+        master_cpi      -- the path to the master cp.x input file from which to take
+                           all settings from
+        alpha_guess     -- the initial guess for alpha (a single float for all orbitals)
+        alpha_from_file -- read alpha from pre-existing file_alpharef.txt
+        n_max_sc_steps  -- the maximum number of self-consistent steps for 
+                           determining {alpha_i}
 
     Running this function will generate a number of files:
         init/                -- the PBE and PZ calculations for initialisation
@@ -63,7 +63,11 @@ def run_kipz(master_cpi, alpha_guess=0.6, n_max_sc_steps=1):
     run_cp(calc, silent=False)
 
     # KIPZ reading in PBE to define manifold
-    alpha_df.loc[1] = [alpha_guess for _ in range(n_bands)]
+    if alpha_from_file:
+        print(r'Reading alpha values from file')
+        alpha_df.loc[1] = read_alpharef(directory='.')
+    else:
+        alpha_df.loc[1] = [alpha_guess for _ in range(n_bands)]
     calc = set_up_calculator(master_calc, 'kipz_init',
                              odd_nkscalfact=True, odd_nkscalfact_empty=True)
     calc.directory = 'init'
@@ -241,10 +245,12 @@ if __name__ == '__main__':
     parser.add_argument('template', metavar='template.cpi', type=str,
                         help='a template cp input file')
     parser.add_argument('-a', '--alpha', default=0.6, type=float,
-                        help='Starting guess for alpha')
+                        help='starting guess for alpha as a single float')
+    parser.add_argument('-f', '--alpha_from_file', action='store_true',
+                        help='read in starting guess for alpha from file')
     parser.add_argument('-i', '--maxit', default=1, type=int,
-                        help='Maximum number of self-consistent iterations')
+                        help='maximum number of self-consistent iterations')
 
     args = parser.parse_args()
 
-    run_kipz(args.template, args.alpha, args.maxit)
+    run_kipz(args.template, args.alpha, args.alpha_from_file, args.maxit)
