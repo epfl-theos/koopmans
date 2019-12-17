@@ -78,7 +78,6 @@ def run_kipz(master_cpi, alpha_guess=0.6, n_max_sc_steps=1):
 
     converged = False
     i_sc = 0
-    pbe_calcs = []
 
     while not converged and i_sc < n_max_sc_steps:
         i_sc += 1
@@ -104,7 +103,11 @@ def run_kipz(master_cpi, alpha_guess=0.6, n_max_sc_steps=1):
             ki_calcs = []
 
             # Write/update the alpharef files in the work directory
-            write_alpharef(alpha_df.loc[i_sc], band_filling, directory)
+            # Make sure to include the fixed band alpha in file_alpharef.txt
+            # rather than file_alpharef_empty.txt
+            band_filled_or_fixed = [
+                b or i == fixed_band - 1 for i, b in enumerate(band_filling)]
+            write_alpharef(alpha_df.loc[i_sc], band_filled_or_fixed, directory)
 
             # Perform the fixed-band-dependent calculations
             if filled:
@@ -114,8 +117,10 @@ def run_kipz(master_cpi, alpha_guess=0.6, n_max_sc_steps=1):
                               'pbe_n+1-1', 'kipz_n+1-1']
 
             for calc_type in calc_types:
-                # Only the KIPZ calculations change with alpha; we don't need to redo any of the others
-                if i_sc > 1 and 'ki' not in calc_type:
+                # No need to repeat the dummy calculation; all other
+                # calculations are dependent on the screening parameters so
+                # will need updating at each step
+                if i_sc > 1 and calc_type == 'pbe_n+1_dummy':
                     continue
 
                 if filled:
@@ -155,12 +160,12 @@ def run_kipz(master_cpi, alpha_guess=0.6, n_max_sc_steps=1):
                 calc.fixed_band = fixed_band
 
                 # Store the result
-                if 'ki' in calc_types:
+                if 'ki' in calc_type:
                     ki_calcs.append(calc)
                     if calc.fixed_band == n_filled_bands:
                         ki_calc_for_final_restart = calc
                 elif 'pbe' in calc_type and 'dummy' not in calc_type:
-                    pbe_calcs.append(calc)
+                    pbe_calc = calc
 
                 # Copying of evcfixed_empty.dat to evc_occupied.dat
                 prefix = calc.parameters['input_data']['control']['prefix']
@@ -172,7 +177,8 @@ def run_kipz(master_cpi, alpha_guess=0.6, n_max_sc_steps=1):
                                  f'{prefix}_{calc.ndr}.save/K00001/'
                     if os.path.isfile(f'{evcempty_dir}/evcfixed_empty.dat'):
                         os.system(
-                            f'cp {evcempty_dir}/evcfixed_empty.dat {evcocc_dir}/evc_occupied.dat')
+                            f'cp {evcempty_dir}/evcfixed_empty.dat {evcocc_dir}'
+                            '/evc_occupied.dat')
                     else:
                         raise OSError(
                             f'Could not find {evcempty_dir}/evcfixed_empty.dat')
@@ -180,9 +186,8 @@ def run_kipz(master_cpi, alpha_guess=0.6, n_max_sc_steps=1):
             # Calculate an updated alpha and a measure of the error
             # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
             # E_i(N + 1) - E(N) - lambda^alpha_ii(0)     (empty)
-            calcs = [c for c in pbe_calcs if c.fixed_band ==
-                     fixed_band] + ki_calcs
-            alpha, error = calculate_alpha(calcs, filled=filled)
+            calcs = [pbe_calc] + ki_calcs
+            alpha, error = calculate_alpha(calcs, filled=filled, kipz=True)
             alpha_df.loc[i_sc + 1, fixed_band] = alpha
             error_df.loc[i_sc, fixed_band] = error
 
@@ -215,7 +220,7 @@ def run_kipz(master_cpi, alpha_guess=0.6, n_max_sc_steps=1):
     os.system(f'mkdir {directory}')
 
     write_alpharef(alpha_df.loc[i_sc + 1], band_filling, directory)
-    calc = set_up_calculator(master_calc, 'ki', odd_nkscalfact=True,
+    calc = set_up_calculator(master_calc, 'kipz', odd_nkscalfact=True,
                              odd_nkscalfact_empty=True, empty_states_nbnd=n_empty_bands,
                              ndr=ki_calc_for_final_restart.ndw,
                              ndw=ki_calc_for_final_restart.ndw + 1)
@@ -233,13 +238,13 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
         description='Perform a KIPZ calculation using cp.x')
-    parser.add_argument('template', metavar='template.cpi', type=str, nargs=1,
+    parser.add_argument('template', metavar='template.cpi', type=str,
                         help='a template cp input file')
-    parser.add_argument('-a', '--alpha', nargs=1, default=0.6,
+    parser.add_argument('-a', '--alpha', default=0.6, type=float,
                         help='Starting guess for alpha')
-    parser.add_argument('-i', '--maxit', nargs=1, default=1,
+    parser.add_argument('-i', '--maxit', default=1, type=int,
                         help='Maximum number of self-consistent iterations')
 
     args = parser.parse_args()
 
-    run_kipz(args.template[0], args.alpha, args.maxit)
+    run_kipz(args.template, args.alpha, args.maxit)
