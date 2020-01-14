@@ -166,7 +166,7 @@ def run_kipz(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=
                 # Store the result
                 if 'ki' in calc_type:
                     ki_calcs.append(calc)
-                    if calc.fixed_band == n_filled_bands:
+                    if calc.fixed_band == n_filled_bands and calc.f_cutoff == 1.00:
                         ki_calc_for_final_restart = calc
                 elif 'pbe' in calc_type and 'dummy' not in calc_type:
                     pbe_calc = calc
