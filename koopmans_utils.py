@@ -277,50 +277,38 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
     if calc_type == 'pbe_init':
         ndr = 50
         ndw = 50
-    elif calc_type == 'pz':
+    elif calc_type in ['pz', 'kipz_init']:
         ndr = 50
         ndw = 51
-    elif calc_type == 'ki':
-        ndr = 51
-        ndw = 52
     elif calc_type == 'pbe':
         ndr = 51
-        ndw = 53
+        ndw = 52
     elif calc_type == 'pbe_n-1':
         ndr = 51
-        ndw = 54
-    elif calc_type == 'pz_print':
+        ndw = 53
+    elif calc_type in ['pz_print', 'kipz_print']:
         ndr = 51
-        ndw = 55
+        ndw = 54
     elif calc_type == 'pbe_n+1_dummy':
-        ndr = 56
-        ndw = 56
+        ndr = 55
+        ndw = 55
     elif calc_type == 'pbe_n+1-1':
-        ndr = 56
-        ndw = 57
+        ndr = 55
+        ndw = 56
     elif calc_type == 'pbe_n+1':
-        ndr = 56
-        ndw = 58
-    elif calc_type == 'ki_n+1-1':
-        ndr = 56
-        ndw = 59
-    elif calc_type == 'kipz_init':
-        ndr = 50
-        ndw = 51
-    elif calc_type == 'kipz':
+        ndr = 55
+        ndw = 57
+    elif calc_type in ['ki', 'kipz']:
         ndr = 51
         ndw = 60
     elif calc_type == 'kipz_n-1':
         ndr = 51
         ndw = 70
-    elif calc_type == 'kipz print':
-        ndr = 51
-        ndw = 55
     elif calc_type == 'kipz_n+1':
-        ndr = 56
+        ndr = 55
         ndw = 80
-    elif calc_type == 'kipz_n+1-1':
-        ndr = 56
+    elif calc_type in ['ki_n+1-1', 'kipz_n+1-1']:
+        ndr = 55
         ndw = 90
     else:
         raise ValueError('Invalid calc_type "{}"'.format(calc_type))
@@ -341,7 +329,7 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
             calc.pseudo_dir = os.environ.get('ESPRESSO_PSEUDO')
         except:
             raise OSError('Directory for pseudopotentials not found. Please define '
-                          'the enviroment variable ESPRESSO_PSEUDO or provide the function run_cp '
+                          'the environment variable ESPRESSO_PSEUDO or provide the function run_cp '
                           'with a pseudo_dir argument')
 
     # CP options
