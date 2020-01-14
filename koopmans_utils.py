@@ -398,7 +398,7 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
         raise ValueError('Error: print_wfc_anion is set to true but you have not selected '
                          ' an index_empty_to_save. Provide this as an argument to set_calculator')
 
-    if calc.fixed_band > calc.nelup + 1:
+    if calc.fixed_band is not None and calc.fixed_band > calc.nelup + 1:
         warnings.warn(
             'calc.fixed_band is higher than the LUMO; this should not happen')
 
