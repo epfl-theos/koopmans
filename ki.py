@@ -52,23 +52,30 @@ def run_ki(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1)
         n_filled_bands)] + [False for _ in range(n_empty_bands)]
     i_bands = range(1, n_bands + 1)
 
+    # Preparing panda dataframes in which to store results
+    alpha_df = pd.DataFrame(columns=i_bands)
+    error_df = pd.DataFrame(columns=i_bands)
+
     print('\nINITIALISATION OF DENSITY AND VARIATIONAL ORBITALS')
     # PBE from scratch
-    calc = set_up_calculator(master_calc, 'pbe_init',
-                             empty_states_nbnd=n_empty_bands)
+    calc = set_up_calculator(master_calc, 'pbe_init')
     calc.directory = 'init'
     run_cp(calc, silent=False)
 
     # PZ reading in PBE to define manifold
+    if alpha_from_file:
+        print(r'Reading alpha values from file')
+        alpha_df.loc[1] = read_alpharef(directory='.')
+    else:
+        alpha_df.loc[1] = [alpha_guess for _ in range(n_bands)]
+    pbe_calcs = []
     calc = set_up_calculator(
         master_calc, 'pz', empty_states_nbnd=n_empty_bands)
     calc.directory = 'init'
+    write_alpharef(alpha_df.loc[1], band_filling, calc.directory)
     run_cp(calc, silent=False)
 
     print('\nDETERMINING ALPHA VALUES')
-    # Preparing panda dataframes in which to store results
-    alpha_df = pd.DataFrame(columns=i_bands)
-    error_df = pd.DataFrame(columns=i_bands)
 
     # Set up directories
     for i_band in i_bands:
@@ -76,12 +83,6 @@ def run_ki(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1)
 
     converged = False
     i_sc = 0
-    if alpha_from_file:
-        print(r'Reading alpha values from file')
-        alpha_df.loc[1] = read_alpharef(directory='.')
-    else:
-        alpha_df.loc[1] = [alpha_guess for _ in range(n_bands)]
-    pbe_calcs = []
 
     while not converged and i_sc < n_max_sc_steps:
         i_sc += 1
