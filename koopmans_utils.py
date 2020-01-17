@@ -5,6 +5,7 @@ from ase.calculators.espresso_cp import Espresso_cp
 import os
 import warnings
 import copy
+import ipdb
 
 
 class Extended_Espresso_cp(Espresso_cp):
@@ -29,7 +30,7 @@ class Extended_Espresso_cp(Espresso_cp):
         if calc is None:
             super().__init__()
         else:
-            super().__init__(label=calc.label, atoms=calc.atoms)
+            super().__init__(label=getattr(calc, 'label', None), atoms=calc.atoms)
             self.results = calc.results
             self.parameters = calc.parameters
             self.command = calc.command
@@ -101,10 +102,47 @@ class Extended_Espresso_cp(Espresso_cp):
         parameters['input_data'][block][name] = old_value
 
 
-def run_cp(calc, silent=True):
+def cpi_diff(calcs):
+
+    # If calcs is a dict, convert it to a list (we only need the values)
+    if isinstance(calcs, dict):
+        calcs = calcs.values()
+
+    diffs = []
+
+    blocks = set([b for c in calcs for b in c.parameters['input_data'].keys()])
+    for block in sorted(blocks):
+        keys = set(
+            [k for c in calcs for k in c.parameters['input_data'].get(block, {}).keys()])
+        for key in sorted(keys):
+            vals = [c.parameters['input_data']
+                    [block].get(key, None) for c in calcs]
+            if len(set(vals)) > 1:
+                print(f'{block}.{key}: ' + ', '.join(map(str, vals)))
+                diffs.append((block, key))
+
+    return diffs
+
+
+def run_cp(calc, silent=True, start_from_scratch=False):
     '''
     Runs calc.calculate with optional printing of status
     '''
+
+    # If an output file already exists, exit immediately
+    # TODO: add check that the settings are identical
+    if not start_from_scratch:
+        calc_file = f'{calc.directory}/{calc.prefix}.cpo'
+        if os.path.isfile(calc_file):
+            old_calc = cp_io.read_espresso_cp_out(calc_file).calc
+            if old_calc.results['job_done']:
+                if not silent:
+                    print(f'Not running {calc_file} as it is already complete')
+                else:
+                    print(f'Rerunning {calc_file}')
+                    diffs = cpi_diff([calc, old_calc])
+                    ipdb.set_trace()
+                return False
 
     if not silent:
         print('Running {}/{}...'.format(calc.directory,
@@ -115,7 +153,7 @@ def run_cp(calc, silent=True):
     if not silent:
         print(' done')
 
-    return
+    return True
 
 
 def calculate_alpha(calcs, filled=True, kipz=False):
