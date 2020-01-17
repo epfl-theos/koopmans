@@ -12,7 +12,7 @@ Perform KI calculations
 '''
 
 
-def run_ki(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1):
+def run_ki(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1, start_from_scratch=False):
     '''
     This function runs the KI workflow from start to finish
 
@@ -34,9 +34,10 @@ def run_ki(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1)
     '''
 
     # Removing old directories
-    os.system('rm -r init 2>/dev/null')
-    os.system('rm -r fix_orbital* 2>/dev/null')
-    os.system('rm -r final 2>/dev/null')
+    if start_from_scratch:
+        os.system('rm -r init 2>/dev/null')
+        os.system('rm -r fix_orbital* 2>/dev/null')
+        os.system('rm -r final 2>/dev/null')
 
     # Reading in template cp input file
     master_atoms = cp_io.read_espresso_cp_in(open(master_cpi, 'r'))
@@ -57,13 +58,17 @@ def run_ki(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1)
     calc = set_up_calculator(master_calc, 'pbe_init',
                              empty_states_nbnd=n_empty_bands)
     calc.directory = 'init'
-    run_cp(calc, silent=False)
+    run_cp(calc, silent=False, start_from_scratch=start_from_scratch)
+
+    # Moving orbitals
+    os.system('cp TMP-CP/pbe_50.save/K00001/evc1.dat TMP-CP/pbe_50.save/K00001/evc01.dat')
+    os.system('cp TMP-CP/pbe_50.save/K00001/evc2.dat TMP-CP/pbe_50.save/K00001/evc02.dat')
 
     # PZ reading in PBE to define manifold
     calc = set_up_calculator(
-        master_calc, 'pz', empty_states_nbnd=n_empty_bands)
+        master_calc, 'pz', empty_states_nbnd=n_empty_bands, start_from_scratch=start_from_scratch)
     calc.directory = 'init'
-    run_cp(calc, silent=False)
+    prev_calc_not_skipped = run_cp(calc, silent=False)
 
     print('\nDETERMINING ALPHA VALUES')
     # Preparing panda dataframes in which to store results
@@ -72,7 +77,8 @@ def run_ki(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1)
 
     # Set up directories
     for i_band in i_bands:
-        os.system('cp -r init fix_orbital_{}'.format(i_band))
+        if not os.path.isdir(f'fix_orbital_{i_band}'):
+            os.system('cp -r init fix_orbital_{}'.format(i_band))
 
     converged = False
     i_sc = 0
@@ -109,7 +115,10 @@ def run_ki(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1)
             # rather than file_alpharef_empty.txt
             band_filled_or_fixed = [
                 b or i == fixed_band - 1 for i, b in enumerate(band_filling)]
-            write_alpharef(alpha_df.loc[i_sc], band_filled_or_fixed, directory)
+
+            if prev_calc_not_skipped:
+                write_alpharef(alpha_df.loc[i_sc],
+                               band_filled_or_fixed, directory)
 
             # Perform the fixed-band-dependent calculations: PBE, PBE_N-1/PBE_N+1, and KI
             if filled:
@@ -152,7 +161,11 @@ def run_ki(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1)
                     calc.setattr_only('prefix', calc.prefix + f'_it{i_sc}')
 
                 # Run cp.x
-                run_cp(calc, silent=False)
+                prev_calc_not_skipped = run_cp(
+                    calc, silent=False, start_from_scratch=start_from_scratch)
+
+                if not prev_calc_not_skipped:
+                    continue
 
                 # Reset the value of 'fixed_band' so we can keep track of which calculation
                 # is which. This is important for empty orbital calculations, where fixed_band
@@ -183,6 +196,9 @@ def run_ki(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1)
                         raise OSError(
                             f'Could not find {evcempty_dir}/evcfixed_empty.dat')
 
+            if not prev_calc_not_skipped:
+                continue
+
             # Calculate an updated alpha and a measure of the error
             # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
             # E_i(N + 1) - E(N) - lambda^alpha_ii(0)     (empty)
@@ -192,13 +208,14 @@ def run_ki(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1)
             alpha_df.loc[i_sc + 1, fixed_band] = alpha
             error_df.loc[i_sc, fixed_band] = error
 
-        # Printing out a progress summary
-        print('\nSummary\nalpha')
-        print(alpha_df)
-        print('\ndelta E - lambda^alpha_ii (eV)')
-        print(error_df)
-        print('')
-        converged = all([abs(e) < 1e-3 for e in error_df.loc[i_sc, :]])
+        if prev_calc_not_skipped:
+            # Printing out a progress summary
+            print('\nSummary\nalpha')
+            print(alpha_df)
+            print('\ndelta E - lambda^alpha_ii (eV)')
+            print(error_df)
+            print('')
+            converged = all([abs(e) < 1e-3 for e in error_df.loc[i_sc, :]])
 
     if converged:
         print('Alpha values have been converged')
@@ -206,30 +223,39 @@ def run_ki(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1)
         print('Alpha values have been determined but are not necessarily converged')
 
     # Writing alphas and errors to python-readable files and generating a .tex table
-    alpha_df.to_pickle('alphas.pkl')
-    error_df.to_pickle('errors.pkl')
-    latex_table = alpha_df.to_latex(column_format='l' + 'd'*n_bands,
-                                    float_format='{:.3f}'.format, escape=False)
-    with open('tab_alpha_values.tex', 'w') as f:
-        f.write(latex_table)
+    if prev_calc_not_skipped:
+        alpha_df.to_pickle('alphas.pkl')
+        error_df.to_pickle('errors.pkl')
+        latex_table = alpha_df.to_latex(column_format='l' + 'd'*n_bands,
+                                        float_format='{:.3f}'.format, escape=False)
+        with open('tab_alpha_values.tex', 'w') as f:
+            f.write(latex_table)
 
     # Final calculation
     print('\nFINAL KI CALCULATION')
 
     directory = 'final'
     calc.directory = directory
-    os.system(f'mkdir {directory}')
+    if not os.path.isdir(directory):
+        os.system(f'mkdir {directory}')
 
-    write_alpharef(alpha_df.loc[i_sc + 1], band_filling, directory)
+    if prev_calc_not_skipped:
+        write_alpharef(alpha_df.loc[i_sc + 1], band_filling, directory)
+        ndr = ki_calc_for_final_restart.ndw,
+        ndw = ki_calc_for_final_restart.ndw + 1
+    else:
+        ndr = None
+        ndw = None
+
     calc = set_up_calculator(master_calc, 'ki', odd_nkscalfact=True,
-                             odd_nkscalfact_empty=True, empty_states_nbnd=n_empty_bands,
-                             ndr=ki_calc_for_final_restart.ndw,
-                             ndw=ki_calc_for_final_restart.ndw + 1)
+                             odd_nkscalfact_empty=True, empty_states_nbnd=n_empty_bands, ndw=ndw, ndr=ndr)
     calc.directory = directory
 
-    os.system(f'mkdir {directory}/{calc.outdir}')
-    os.system(f'cp -r fix_orbital_{n_filled_bands}/{ki_calc_for_final_restart.outdir}'
-              f'/*{ki_calc_for_final_restart.ndw}.save {directory}/{calc.outdir}/')
+    if prev_calc_not_skipped:
+        os.system(f'mkdir {directory}/{calc.outdir}')
+        os.system(f'cp -r fix_orbital_{n_filled_bands}/{ki_calc_for_final_restart.outdir}'
+                  f'/*{ndw}.save {directory}/{calc.outdir}/')
+
     run_cp(calc, silent=False)
 
     print('\nWORKFLOW COMPLETE')
