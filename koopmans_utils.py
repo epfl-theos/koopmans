@@ -5,7 +5,6 @@ from ase.calculators.espresso_cp import Espresso_cp
 import os
 import warnings
 import copy
-import ipdb
 
 
 class Extended_Espresso_cp(Espresso_cp):
@@ -134,7 +133,7 @@ def run_cp(calc, silent=True, start_from_scratch=False):
     if not start_from_scratch:
         calc_file = f'{calc.directory}/{calc.prefix}.cpo'
         if os.path.isfile(calc_file):
-            old_calc = cp_io.read_espresso_cp_out(calc_file).calc
+            old_calc = next(cp_io.read_espresso_cp_out(calc_file)).calc
             if old_calc.results['job_done']:
                 if not silent:
                     print(f'Not running {calc_file} as it is already complete')
