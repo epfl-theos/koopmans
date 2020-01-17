@@ -275,7 +275,9 @@ if __name__ == '__main__':
                         help='read in starting guess for alpha from file')
     parser.add_argument('-i', '--maxit', default=1, type=int,
                         help='maximum number of self-consistent iterations')
+    parser.add_argument('-c', '--cont', action='store_true',
+                        help='continue from a previous calculation')
 
     args = parser.parse_args()
 
-    run_ki(args.template, args.alpha, args.alpha_from_file, args.maxit)
+    run_ki(args.template, args.alpha, args.alpha_from_file, args.maxit, not args.cont)
