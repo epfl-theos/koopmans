@@ -63,9 +63,9 @@ def run_ki(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1,
     calc.directory = 'init'
     run_cp(calc, silent=False, start_from_scratch=start_from_scratch)
 
-    # Moving orbitals
-    os.system('cp TMP-CP/pbe_50.save/K00001/evc1.dat TMP-CP/pbe_50.save/K00001/evc01.dat')
-    os.system('cp TMP-CP/pbe_50.save/K00001/evc2.dat TMP-CP/pbe_50.save/K00001/evc02.dat')
+    # # Moving orbitals
+    # os.system('cp TMP-CP/pbe_50.save/K00001/evc1.dat TMP-CP/pbe_50.save/K00001/evc01.dat')
+    # os.system('cp TMP-CP/pbe_50.save/K00001/evc2.dat TMP-CP/pbe_50.save/K00001/evc02.dat')
 
     # PZ reading in PBE to define manifold
     if alpha_from_file:
@@ -253,10 +253,13 @@ def run_ki(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1,
                              odd_nkscalfact_empty=True, empty_states_nbnd=n_empty_bands, ndw=ndw, ndr=ndr)
     calc.directory = directory
 
-    if prev_calc_not_skipped:
-        os.system(f'mkdir {directory}/{calc.outdir}')
+    outdir = f'{directory}/{calc.outdir}'
+    if not os.path.isdir(outdir):
+        os.system(f'mkdir {outdir}')
+    savedir = f'{directory}/{calc.outdir}/{calc.prefix}_{ndw}.save'
+    if not os.path.isdir(savedir):
         os.system(f'cp -r fix_orbital_{n_filled_bands}/{ki_calc_for_final_restart.outdir}'
-                  f'/*{ndw}.save {directory}/{calc.outdir}/')
+                  f'/*{ndw}.save {savedir}')
 
     run_cp(calc, silent=False)
 
