@@ -123,14 +123,13 @@ def cpi_diff(calcs):
     return diffs
 
 
-def run_cp(calc, silent=True, start_from_scratch=False):
+def run_cp(calc, silent=True, from_scratch=False):
     '''
     Runs calc.calculate with optional printing of status
     '''
 
     # If an output file already exists, exit immediately
-    # TODO: add check that the settings are identical
-    if not start_from_scratch:
+    if not from_scratch:
         calc_file = f'{calc.directory}/{calc.prefix}.cpo'
         if os.path.isfile(calc_file):
             old_cpo = next(cp_io.read_espresso_cp_out(calc_file)).calc
