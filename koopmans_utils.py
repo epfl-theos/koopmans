@@ -118,7 +118,7 @@ def cpi_diff(calcs):
                     [block].get(key, None) for c in calcs]
             if len(set(vals)) > 1:
                 print(f'{block}.{key}: ' + ', '.join(map(str, vals)))
-                diffs.append((block, key))
+                diffs.append(key)
 
     return diffs
 
@@ -133,15 +133,24 @@ def run_cp(calc, silent=True, start_from_scratch=False):
     if not start_from_scratch:
         calc_file = f'{calc.directory}/{calc.prefix}.cpo'
         if os.path.isfile(calc_file):
-            old_calc = next(cp_io.read_espresso_cp_out(calc_file)).calc
-            if old_calc.results['job_done']:
+            old_cpo = next(cp_io.read_espresso_cp_out(calc_file)).calc
+            if old_cpo.results['job_done']:
                 if not silent:
-                    print(f'Not running {calc_file} as it is already complete')
-                else:
-                    print(f'Rerunning {calc_file}')
-                    diffs = cpi_diff([calc, old_calc])
-                    ipdb.set_trace()
+                    print(
+                        f'Not running {calc_file} as it is already complete')
                 return False
+            else:
+                old_cpi = Extended_Espresso_cp(cp_io.read_espresso_cp_in(
+                    calc_file.replace('cpo', 'cpi')).calc)
+                diffs = cpi_diff([calc, old_cpi])
+                if not silent:
+                    print(f'Rerunning {calc_file}')
+                if len(diffs) > 0:
+                    for d in diffs:
+                        old_value = getattr(old_cpi, d)
+                        setattr(calc, d, old_value)
+                        if not silent:
+                            print(f'    Resetting {d}')
 
     if not silent:
         print('Running {}/{}...'.format(calc.directory,
