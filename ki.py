@@ -90,9 +90,10 @@ def run_ki(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1,
     prev_calc_not_skipped = run_cp(calc, silent=False)
 
     if prev_calc_not_skipped:
+        prefix = calc.parameters['input_data']['control']['prefix']
         print('Copying the spin-up variational orbitals over to the spin-down channel')
-        os.system(f'cp {calc.outdir}/{calc.prefix}_{calc.ndw}.save/K00001/evc01.dat '
-                  f'{calc.outdir}/{calc.prefix}_{calc.ndw}.save/K00001/evc02.dat')
+        os.system(f'cp {calc.directory}/{calc.outdir}/{prefix}_{calc.ndw}.save/K00001/evc01.dat '
+                  f'{calc.directory}/{calc.outdir}/{prefix}_{calc.ndw}.save/K00001/evc02.dat')
 
     print('\nDETERMINING ALPHA VALUES')
 
@@ -261,7 +262,7 @@ def run_ki(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1,
     write_alpharef(alpha_df.loc[i_sc + 1], band_filling, directory)
 
     if prev_calc_not_skipped:
-        ndr = ki_calc_for_final_restart.ndw,
+        ndr = ki_calc_for_final_restart.ndw
         ndw = ki_calc_for_final_restart.ndw + 1
     else:
         ndr = None
@@ -275,7 +276,8 @@ def run_ki(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1,
     if prev_calc_not_skipped:
         if not os.path.isdir(outdir):
             os.system(f'mkdir {outdir}')
-        savedir = f'{directory}/{calc.outdir}/{calc.prefix}_{ndr}.save'
+        prefix = calc.parameters['input_data']['control']['prefix']
+        savedir = f'{directory}/{calc.outdir}/{prefix}_{ndr}.save'
         if not os.path.isdir(savedir):
             os.system(f'cp -r fix_orbital_{n_filled_bands}/{ki_calc_for_final_restart.outdir}'
                       f'/*{ki_calc_for_final_restart.ndw}.save {savedir}')

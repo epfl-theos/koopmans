@@ -280,16 +280,19 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
               this routine
 
         calc_type: the calculation type; must be one of
+
             Initialisation
             'pbe_init'  PBE calculation from scratch
             'pz'        PZ calculation starting from PBE restart
             'kipz_init' KIPZ starting from PBE restart
+
             For calculating alpha_i for filled orbitals
             'pbe'      PBE calculation starting from restart
             'pbe_n-1'  PBE calculation with N-1 electrons via fixed_state
             'kipz_n-1' KIPZ calculation with N-1 electrons via fixed_state
             'ki'       KI calculation with N electrons
             'kipz'     KIPZ calculation with N electrons
+
             For calculating alpha_i for empty orbitals
             'pz_print' PZ calculation that generates evcempty_fixed.dat file
             'kipz_print'    KIPZ calculation that generates evcempty_fixed.dat file
@@ -303,16 +306,11 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
             'kipz_n+1-1'    KIPZ calculation with N electrons, starting from N+1 
                             but with f_cutoff = 0.00001
 
-
        **kwargs: accepts any Quantum Espresso keywords as an argument, and will
                  apply these options to the returned ASE calculator
 
     Returns: a new ASE calculator object
 
-    TODO:
-       - adjust the extensive conv_thr automatically based on the total 
-         number of electrons
-       - adjust esic_conv_thr to be alpha*10E-8?
     """
 
     # Avoid modifying the master calculator
@@ -408,6 +406,7 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
         calc.restart_from_wannier_pwscf = True
 
     # electrons
+    calc.conv_thr = calc.nelec*1e-8
     calc.empty_states_maxstep = 300
     if ('pz' in calc.prefix or 'ki' in calc.prefix) and 'kipz' not in calc.prefix:
         calc.maxiter = 2
@@ -415,6 +414,7 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
         calc.maxiter = 200
 
     # nksic
+    calc.esic_conv_thr = calc.nelec*1e-8
     calc.do_innerloop_cg = True
     if calc.prefix[:2] == 'pz':
         calc.do_innerloop = True
