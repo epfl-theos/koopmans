@@ -123,22 +123,40 @@ def cpi_diff(calcs):
     return diffs
 
 
+def print_summary(alpha_df, error_df):
+    # Printing out a progress summary
+    print('\nalpha')
+    print(alpha_df)
+    print('\ndelta E - lambda^alpha_ii (eV)')
+    print(error_df)
+    print('')
+
+
 def run_cp(calc, silent=True, from_scratch=False):
     '''
-    Runs calc.calculate with optional printing of status
+    Runs calc.calculate with additional options:
+
+        silent :       if False, print status
+        from_scratch : if False, check for a pre-existing calculation, and see 
+                       if it has completed. If so, skip this calculation.
+
+    returns True if the calculation was run, and False if the calculation was skipped
     '''
 
-    # If an output file already exists, exit immediately
+    # If an output file already exists, check if the run completed successfully
     if not from_scratch:
         calc_file = f'{calc.directory}/{calc.prefix}.cpo'
         if os.path.isfile(calc_file):
             old_cpo = next(cp_io.read_espresso_cp_out(calc_file)).calc
+
             if old_cpo.results['job_done']:
+                # If it did, exit immediately
                 if not silent:
                     print(
                         f'Not running {calc_file} as it is already complete')
                 return False
             else:
+                # If not, compare our settings with the settings of the preexisting .cpi file
                 old_cpi = Extended_Espresso_cp(cp_io.read_espresso_cp_in(
                     calc_file.replace('cpo', 'cpi')).calc)
                 diffs = cpi_diff([calc, old_cpi])
