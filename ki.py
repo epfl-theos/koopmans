@@ -5,20 +5,11 @@ import pickle
 import pandas as pd
 from ase.io import espresso_cp as cp_io
 from koopmans_utils import run_cp, calculate_alpha, set_up_calculator, \
-    Extended_Espresso_cp, write_alpharef, read_alpharef
+    Extended_Espresso_cp, write_alpharef, read_alpharef, print_summary
 
 '''
 Perform KI calculations
 '''
-
-
-def print_summary(alpha_df, error_df):
-    # Printing out a progress summary
-    print('\nalpha')
-    print(alpha_df)
-    print('\ndelta E - lambda^alpha_ii (eV)')
-    print(error_df)
-    print('')
 
 
 def run_ki(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1, from_scratch=False):

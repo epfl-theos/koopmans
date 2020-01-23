@@ -5,14 +5,14 @@ import pickle
 import pandas as pd
 from ase.io import espresso_cp as cp_io
 from koopmans_utils import run_cp, calculate_alpha, set_up_calculator, \
-    Extended_Espresso_cp, write_alpharef, read_alpharef
+    Extended_Espresso_cp, write_alpharef, read_alpharef, print_summary
 
 '''
 Perform KIPZ calculations
 '''
 
 
-def run_kipz(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1):
+def run_kipz(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1, from_scratch=False):
     '''
     This function runs the KIPZ workflow from start to finish
 
@@ -196,11 +196,7 @@ def run_kipz(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=
             error_df.loc[i_sc, fixed_band] = error
 
         # Printing out a progress summary
-        print('\nSummary\nalpha')
-        print(alpha_df)
-        print('\ndelta E - lambda^alpha_ii (eV)')
-        print(error_df)
-        print('')
+        print_summary(alpha_df, error_df)
         converged = all([abs(e) < 1e-3 for e in error_df.loc[i_sc, :]])
 
     if converged:
@@ -250,7 +246,9 @@ if __name__ == '__main__':
                         help='read in starting guess for alpha from file')
     parser.add_argument('-i', '--maxit', default=1, type=int,
                         help='maximum number of self-consistent iterations')
+    parser.add_argument('-c', '--cont', action='store_true',
+                        help='continue from a previous calculation')
 
     args = parser.parse_args()
 
-    run_kipz(args.template, args.alpha, args.alpha_from_file, args.maxit)
+    run_kipz(args.template, args.alpha, args.alpha_from_file, args.maxit, not args.cont)
