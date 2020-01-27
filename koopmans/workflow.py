@@ -38,7 +38,8 @@ def run(workflow_type, master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max
 
     workflow_type = workflow_type.lower()
     if workflow_type not in ['ki', 'kipz']:
-       raise ValueError(f'Unrecognised calculation type {workflow_type} provided to run_koopmans()')
+        raise ValueError(
+            f'Unrecognised calculation type {workflow_type} provided to run_koopmans()')
 
     # Removing old directories
     if from_scratch:
@@ -71,6 +72,7 @@ def run(workflow_type, master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max
     run_cp(calc, silent=False, from_scratch=from_scratch)
 
     # Moving orbitals
+    print('Overwriting the CP variational orbitals with Kohn-Sham orbitals')
     savedir = f'{calc.directory}/TMP-CP/pbe_50.save/K00001'
     os.system(f'cp {savedir}/evc1.dat {savedir}/evc01.dat')
     os.system(f'cp {savedir}/evc2.dat {savedir}/evc02.dat')
@@ -88,7 +90,7 @@ def run(workflow_type, master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max
             master_calc, 'pz', empty_states_nbnd=n_empty_bands, from_scratch=from_scratch)
     else:
         calc = set_up_calculator(master_calc, 'kipz_init',
-                             odd_nkscalfact=True, odd_nkscalfact_empty=True)
+                                 odd_nkscalfact=True, odd_nkscalfact_empty=True)
 
     calc.directory = 'init'
     write_alpharef(alpha_df.loc[1], band_filling, calc.directory)
@@ -156,17 +158,17 @@ def run(workflow_type, master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max
 
             # Perform the fixed-band-dependent calculations
             if workflow_type == 'ki':
-               if filled:
-                   calc_types = ['pbe', 'pbe_n-1', 'ki']
-               else:
-                   calc_types = ['pz_print', 'pbe_n+1_dummy', 'pbe_n+1',
-                                 'pbe_n+1-1', 'ki_n+1-1']
+                if filled:
+                    calc_types = ['pbe', 'pbe_n-1', 'ki']
+                else:
+                    calc_types = ['pz_print', 'pbe_n+1_dummy', 'pbe_n+1',
+                                  'pbe_n+1-1', 'ki_n+1-1']
             else:
-               if filled:
-                   calc_types = ['kipz', 'pbe', 'kipz_n-1']
-               else:
-                   calc_types = ['kipz_print', 'pbe_n+1_dummy', 'kipz_n+1',
-                                 'pbe_n+1-1', 'kipz_n+1-1']
+                if filled:
+                    calc_types = ['kipz', 'pbe', 'kipz_n-1']
+                else:
+                    calc_types = ['kipz_print', 'pbe_n+1_dummy', 'kipz_n+1',
+                                  'pbe_n+1-1', 'kipz_n+1-1']
 
             for calc_type in calc_types:
                 if workflow_type == 'ki':
@@ -222,7 +224,7 @@ def run(workflow_type, master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max
                 calc.fixed_band = fixed_band
 
                 # Store the result
-                # We store the results in one of two lists: alpha_indep_calcs and 
+                # We store the results in one of two lists: alpha_indep_calcs and
                 # alpha_dep_calcs. The latter is overwritten at each new self-
                 # consistency loop.
                 if 'ki' in calc_type:
@@ -261,7 +263,8 @@ def run(workflow_type, master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max
             # Calculate an updated alpha and a measure of the error
             # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
             # E_i(N + 1) - E(N) - lambda^alpha_ii(0)     (empty)
-            calcs = [c for calc_set in [alpha_dep_calcs, alpha_indep_calcs] for c in calc_set if c.fixed_band == fixed_band]
+            calcs = [c for calc_set in [alpha_dep_calcs, alpha_indep_calcs]
+                     for c in calc_set if c.fixed_band == fixed_band]
             alpha, error = calculate_alpha(calcs, filled=filled)
             alpha_df.loc[i_sc + 1, fixed_band] = alpha
             error_df.loc[i_sc, fixed_band] = error
@@ -318,5 +321,3 @@ def run(workflow_type, master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max
     run_cp(calc, silent=False)
 
     print('\nWORKFLOW COMPLETE')
-
-
