@@ -8,9 +8,11 @@ Written by Edward Linscott Jan 2020
 
 from ase.io import espresso_cp as cp_io
 from ase.calculators.espresso_cp import Espresso_cp
+from koopmans.io import cpi_diff, read_alpharef
 import os
 import warnings
 import copy
+
 
 class Extended_Espresso_cp(Espresso_cp):
 
@@ -441,5 +443,3 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
             'calc.fixed_band is higher than the LUMO; this should not happen')
 
     return calc
-
-
