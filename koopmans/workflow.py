@@ -39,7 +39,7 @@ def run(workflow_type, master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max
     workflow_type = workflow_type.lower()
     if workflow_type not in ['ki', 'kipz']:
         raise ValueError(
-            f'Unrecognised calculation type {workflow_type} provided to run_koopmans()')
+            f'Unrecognised calculation type {workflow_type} provided to koopmans.workflow.run()')
 
     # Removing old directories
     if from_scratch:
@@ -265,7 +265,14 @@ def run(workflow_type, master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max
             # E_i(N + 1) - E(N) - lambda^alpha_ii(0)     (empty)
             calcs = [c for calc_set in [alpha_dep_calcs, alpha_indep_calcs]
                      for c in calc_set if c.fixed_band == fixed_band]
-            alpha, error = calculate_alpha(calcs, filled=filled)
+
+            if workflow_type == 'ki':
+                alpha, error = calculate_alpha(
+                    calcs, filled=filled, kipz=False)
+            else:
+                alpha, error = calculate_alpha(
+                    calcs, filled=filled, kipz=True)
+
             alpha_df.loc[i_sc + 1, fixed_band] = alpha
             error_df.loc[i_sc, fixed_band] = error
 
