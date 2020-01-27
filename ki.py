@@ -63,9 +63,10 @@ def run_ki(master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1,
     calc.directory = 'init'
     run_cp(calc, silent=False, from_scratch=from_scratch)
 
-    # # Moving orbitals
-    # os.system('cp TMP-CP/pbe_50.save/K00001/evc1.dat TMP-CP/pbe_50.save/K00001/evc01.dat')
-    # os.system('cp TMP-CP/pbe_50.save/K00001/evc2.dat TMP-CP/pbe_50.save/K00001/evc02.dat')
+    # Moving orbitals
+    savedir = f'{calc.directory}/TMP-CP/pbe_50.save/K00001'
+    os.system(f'cp {savedir}/evc1.dat {savedir}/evc01.dat')
+    os.system(f'cp {savedir}/evc2.dat {savedir}/evc02.dat')
 
     # PZ reading in PBE to define manifold
     if alpha_from_file:
