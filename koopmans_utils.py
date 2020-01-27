@@ -317,6 +317,7 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
             'pbe_n+1_dummy' PBE dummy calculation that generates store files of
                             the correct dimensions
             'pbe_n+1'       PBE calculation with N+1 electrons
+            'kipz_n+1'      KIPZ calculation with N+1 electrons
             'pbe_n+1-1'     PBE calculation with N electrons, starting from N+1 
                             but with f_cutoff = 0.00001
             'ki_n+1-1'      KI calculation with N electrons, starting from N+1 
