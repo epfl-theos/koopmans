@@ -386,7 +386,7 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
         calc.do_orbdep = True
     else:
         calc.do_orbdep = False
-    if calc.prefix in ['pbe_init', 'pz_print', 'pbe_n+1_dummy', 'pz', 'kipz_init']:
+    if calc.prefix in ['pbe_init', 'pz_print', 'pbe_n+1_dummy', 'pz', 'kipz_init', 'kipz_print']:
         calc.fixed_state = False
     else:
         calc.fixed_state = True
@@ -401,15 +401,16 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
         calc.restart_from_wannier_pwscf = True
 
     # electrons
-    calc.conv_thr = calc.nelec*1e-8
-    calc.empty_states_maxstep = 300
-    if ('pz' in calc.prefix or 'ki' in calc.prefix) and 'kipz' not in calc.prefix:
+    calc.conv_thr = calc.nelec*1e-9
+    if 'print' in calc.prefix or (('pz' in calc.prefix or 'ki' in calc.prefix) and 'kipz' not in calc.prefix):
         calc.maxiter = 2
+        calc.empty_states_maxstep = 1
     else:
         calc.maxiter = 200
+        calc.empty_states_maxstep = 300
 
     # nksic
-    calc.esic_conv_thr = calc.nelec*1e-8
+    calc.esic_conv_thr = calc.nelec*1e-9
     calc.do_innerloop_cg = True
     if calc.prefix[:2] == 'pz':
         calc.do_innerloop = True

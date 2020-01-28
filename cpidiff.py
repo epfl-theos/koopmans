@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import argparse
 from ase.io import espresso_cp as cp_io
-from koopmans_utils import cpi_diff
+from koopmans.io import cpi_diff
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -16,5 +16,3 @@ if __name__ == '__main__':
         calcs[cpi] = cp_io.read_espresso_cp_in(open(cpi, 'r')).calc
 
     cpi_diff(calcs)
-
-

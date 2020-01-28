@@ -6,6 +6,8 @@ Written by Edward Linscott Jan 2020
 
 """
 
+import os
+
 
 def cpi_diff(calcs):
 
@@ -79,7 +81,10 @@ def read_alpharef(calc=None, directory=None):
 
     alphas = []
     for suffix in ['', '_empty']:
-        with open(f'{directory}/file_alpharef{suffix}.txt', 'r') as fd:
+        fname = f'{directory}/file_alpharef{suffix}.txt'
+        if not os.path.isfile(fname):
+            break
+        with open(fname, 'r') as fd:
             flines = fd.readlines()
             n_orbs = int(flines[0]) // 2
             alphas += [float(line.split()[1]) for line in flines[1:n_orbs + 1]]

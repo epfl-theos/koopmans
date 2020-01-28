@@ -152,10 +152,6 @@ def run(workflow_type, master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max
             band_filled_or_fixed = [
                 b or i == fixed_band - 1 for i, b in enumerate(band_filling)]
 
-            if prev_calc_not_skipped:
-                write_alpharef(alpha_df.loc[i_sc],
-                               band_filled_or_fixed, directory)
-
             # Perform the fixed-band-dependent calculations
             if workflow_type == 'ki':
                 if filled:
@@ -182,6 +178,18 @@ def run(workflow_type, master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max
                     # will need updating at each step
                     if i_sc > 1 and calc_type == 'pbe_n+1_dummy':
                         continue
+
+                if prev_calc_not_skipped:
+                    if 'print' in calc_type:
+                        # Note that the 'print' calculations for empty bands do not
+                        # in fact involve the fixing of that band (and thus for the
+                        # 'fixed' band the corresponding alpha should be in
+                        # file_alpharef_empty.txt)
+                        write_alpharef(alpha_df.loc[i_sc],
+                                       band_filling, directory)
+                    else:
+                        write_alpharef(alpha_df.loc[i_sc],
+                                       band_filled_or_fixed, directory)
 
                 if filled:
                     index_empty_to_save = None
