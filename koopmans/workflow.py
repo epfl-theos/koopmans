@@ -235,7 +235,7 @@ def run(workflow_type, master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max
                 # We store the results in one of two lists: alpha_indep_calcs and
                 # alpha_dep_calcs. The latter is overwritten at each new self-
                 # consistency loop.
-                if 'ki' in calc_type:
+                if 'ki' in calc_type and 'print' not in calc_type:
                     alpha_dep_calcs.append(calc)
                     if calc.fixed_band == n_filled_bands and calc.f_cutoff == 1.00:
                         ki_calc_for_final_restart = calc
