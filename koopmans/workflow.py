@@ -215,7 +215,6 @@ def run(workflow_type, master_cpi, alpha_guess=0.6, alpha_from_file=False, n_max
 
                 # Ensure we don't overwrite KI results
                 if 'ki' in calc_type:
-                    calc.ndw += i_sc - 1
                     calc.setattr_only('prefix', calc.prefix + f'_it{i_sc}')
 
                 # Run cp.x
