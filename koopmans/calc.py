@@ -9,9 +9,9 @@ Written by Edward Linscott Jan 2020
 from ase.io import espresso_cp as cp_io
 from ase.calculators.espresso_cp import Espresso_cp
 from koopmans.io import cpi_diff, read_alpharef
+from koopmans.defaults import defaults
 import os
 import warnings
-import copy
 
 
 class Extended_Espresso_cp(Espresso_cp):
@@ -262,185 +262,21 @@ def calculate_alpha(calcs, filled=True, kipz=False):
     return alpha, error
 
 
-def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
-    """
-    Generates a new ASE calculator based on a template ASE calculator, modifying
-    the appropriate settings to match the chosen calc_type, and altering any 
-    Quantum Espresso keywords specified as kwargs
+def calc_from_json(fd):
+    atoms = cp_io.read_espresso_cp_json(fd)
 
-    Arguments:
+    if len(atoms) != 1:
+        raise ValueError(
+            'JSON file appears to contain no or multiple systems. This is not yet implemented')
 
-        calc: an template ASE calculator. N.B. this object is not modified by
-              this routine
+    calc = Extended_Espresso_cp(list(atoms.values())[0].calc)
 
-        calc_type: the calculation type; must be one of
-
-            Initialisation
-            'pbe_init'  PBE calculation from scratch
-            'pz'        PZ calculation starting from PBE restart
-            'kipz_init' KIPZ starting from PBE restart
-
-            For calculating alpha_i for filled orbitals
-            'pbe'      PBE calculation starting from restart
-            'pbe_n-1'  PBE calculation with N-1 electrons via fixed_state
-            'kipz_n-1' KIPZ calculation with N-1 electrons via fixed_state
-            'ki'       KI calculation with N electrons
-            'kipz'     KIPZ calculation with N electrons
-
-            For calculating alpha_i for empty orbitals
-            'pz_print' PZ calculation that generates evcempty_fixed.dat file
-            'kipz_print'    KIPZ calculation that generates evcempty_fixed.dat file
-            'pbe_n+1_dummy' PBE dummy calculation that generates store files of
-                            the correct dimensions
-            'pbe_n+1'       PBE calculation with N+1 electrons
-            'kipz_n+1'      KIPZ calculation with N+1 electrons
-            'pbe_n+1-1'     PBE calculation with N electrons, starting from N+1 
-                            but with f_cutoff = 0.00001
-            'ki_n+1-1'      KI calculation with N electrons, starting from N+1 
-                            but with f_cutoff = 0.00001
-            'kipz_n+1-1'    KIPZ calculation with N electrons, starting from N+1 
-                            but with f_cutoff = 0.00001
-
-       **kwargs: accepts any Quantum Espresso keywords as an argument, and will
-                 apply these options to the returned ASE calculator
-
-    Returns: a new ASE calculator object
-
-    """
-
-    # Avoid modifying the master calculator
-    calc = copy.deepcopy(calc)
-
-    # Set up read/write indexes
-    if calc_type == 'pbe_init':
-        ndr = 50
-        ndw = 50
-    elif calc_type in ['pz', 'kipz_init']:
-        ndr = 50
-        ndw = 51
-    elif calc_type == 'pbe':
-        ndr = 51
-        ndw = 52
-    elif calc_type == 'pbe_n-1':
-        ndr = 51
-        ndw = 53
-    elif calc_type in ['pz_print', 'kipz_print']:
-        ndr = 51
-        ndw = 54
-    elif calc_type == 'pbe_n+1_dummy':
-        ndr = 55
-        ndw = 55
-    elif calc_type == 'pbe_n+1-1':
-        ndr = 55
-        ndw = 56
-    elif calc_type == 'pbe_n+1':
-        ndr = 55
-        ndw = 57
-    elif calc_type in ['ki', 'kipz']:
-        ndr = 51
-        ndw = 60
-    elif calc_type == 'kipz_n-1':
-        ndr = 51
-        ndw = 70
-    elif calc_type == 'kipz_n+1':
-        ndr = 55
-        ndw = 80
-    elif calc_type in ['ki_n+1-1', 'kipz_n+1-1']:
-        ndr = 55
-        ndw = 90
-    else:
-        raise ValueError('Invalid calc_type "{}"'.format(calc_type))
-
-    # Pseudopotentials
-
-    # This script will...
-    #  1. try to locating the directory as currently specified by the calculator
-    #  2. if that fails, it will check if $ESPRESSO_PSEUDO is set
-    #  3. if that fails, it will raise an OS error
-
-    # Therefore, if you want to use a pseudo directory that is different to your
-    # $PSEUDO_DIR, reset pseudo_dir for the template calc object before entering
-    # this routine.
-
-    if calc.pseudo_dir is None or not os.path.isdir(calc.pseudo_dir):
-        try:
-            calc.pseudo_dir = os.environ.get('ESPRESSO_PSEUDO')
-        except:
-            raise OSError('Directory for pseudopotentials not found. Please define '
-                          'the environment variable ESPRESSO_PSEUDO or provide the function run_cp '
-                          'with a pseudo_dir argument')
-
-    # CP options
-    # control
-    calc.setattr_only('prefix', calc_type)
-    calc.ndw = ndw
-    calc.ndr = ndr
-    if calc.prefix in ['pbe_init', 'pbe_n+1_dummy']:
-        calc.restart_mode = 'from_scratch'
-    else:
-        calc.restart_mode = 'restart'
-
-    # system
-    calc.nspin = 2
-    if 'pz' in calc.prefix or 'ki' in calc.prefix:
-        calc.do_orbdep = True
-    else:
-        calc.do_orbdep = False
-    if calc.prefix in ['pbe_init', 'pz_print', 'pbe_n+1_dummy', 'pz', 'kipz_init', 'kipz_print']:
-        calc.fixed_state = False
-    else:
-        calc.fixed_state = True
-        if '-1' in calc.prefix:
-            calc.f_cutoff = 1e-5
+    for key, value in defaults.items():
+        if getattr(calc, key) is not None:
+            # If any key appears in the json file and the defaults, use the value from the json
+            # file and print a warning
+            warnings.warn(f'Default value for {key} is being overwritten')
         else:
-            calc.f_cutoff = 1.0
-    if 'n+1' in calc.prefix:
-        calc.nelec += 1
-        calc.nelup += 1
-    if calc.prefix in ['pbe_n+1', 'pbe_n+1-1', 'ki_n+1-1', 'kipz_n+1-1', 'kipz_n+1']:
-        calc.restart_from_wannier_pwscf = True
-
-    # electrons
-    calc.conv_thr = calc.nelec*1e-9
-    if 'print' in calc.prefix or (('pz' in calc.prefix or 'ki' in calc.prefix) and 'kipz' not in calc.prefix):
-        calc.maxiter = 2
-        calc.empty_states_maxstep = 1
-    else:
-        calc.maxiter = 200
-        calc.empty_states_maxstep = 300
-
-    # nksic
-    calc.esic_conv_thr = calc.nelec*1e-9
-    calc.do_innerloop_cg = True
-    if calc.prefix[:2] == 'pz':
-        calc.do_innerloop = True
-        calc.one_innerloop_only = True
-    else:
-        calc.do_innerloop = False
-        calc.one_innerloop_only = False
-    if 'kipz' in calc.prefix:
-        calc.which_orbdep = 'nkipz'
-    elif calc.prefix == 'pz':
-        calc.which_orbdep = 'pz'
-    elif 'ki' in calc.prefix:
-        calc.which_orbdep = 'nki'
-    if 'print' in calc.prefix:
-        calc.print_wfc_anion = True
-
-    # Handle any keywords provided by kwargs
-    # Note that since this is performed after the above logic this can (deliberately
-    # or accidentally) overwrite the above settings
-
-    for keyword, value in kwargs.items():
-        setattr(calc, keyword, value)
-
-    # Sanity checking
-    if calc.print_wfc_anion and calc.index_empty_to_save is None:
-        raise ValueError('Error: print_wfc_anion is set to true but you have not selected '
-                         ' an index_empty_to_save. Provide this as an argument to set_calculator')
-
-    if calc.fixed_band is not None and calc.fixed_band > calc.nelup + 1:
-        warnings.warn(
-            'calc.fixed_band is higher than the LUMO; this should not happen')
+            setattr(calc, key, value)
 
     return calc
