@@ -12,8 +12,8 @@ if __name__ == '__main__':
         description='Perform a KI/KIPZ calculation using cp.x')
     parser.add_argument('orbdep', metavar='orbdep', type=str,
                         help="choice of orbital-dependent functional; must be one of 'ki'/'kipz'")
-    parser.add_argument('template', metavar='template.cpi', type=str,
-                        help='a template cp input file')
+    parser.add_argument('json', metavar='system.json', type=str,
+                        help='a JSON file containing the atomic positions, number of atoms etc.')
     parser.add_argument('-a', '--alpha', default=0.6, type=float,
                         help='starting guess for alpha as a single float')
     parser.add_argument('-c', '--cont', action='store_true',
@@ -25,5 +25,5 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    workflow.run(args.orbdep, args.template, args.alpha,
-           args.alpha_from_file, args.maxit, not args.cont)
+    workflow.run(args.orbdep, args.json, args.alpha,
+                 args.alpha_from_file, args.maxit, not args.cont)
