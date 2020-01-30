@@ -1,0 +1,50 @@
+{
+    "CALC_PARAM":
+    {
+        "calc_type"             : "ki",             \\ Here we specify: ki,kipz,both,pz
+        "init_manifold"         : "pz",             \\ Guess for variational orbitals: full-pz,oneIL-pz,mlwf,projw
+        "mp_corr"               : "false",
+        "dielectric_constant"   : "1.0"
+    },
+    "CONTROL":
+    {
+        "prefix"                : "kc_calc",
+        "ibrav"                 : "2",
+        "pseudo_dir"            : "${HOME}/pseudo/",
+        "verbosity"             : "low"
+    },
+    "SYSTEM":
+    {
+        "ecutwfc"               : "",           \\ Status REQUIRED
+        "ecutrho"               : "4*ecutwfc",
+        "do_wf_cmplx"           : "true",       \\ Only for CP
+        "input_DFT"             : "read-from-pseudopotential",
+        "ibrav"                 : "0",
+        "celldm(1)"             : "",           \\ Status REQUIRED (if not CELL_PARAMETERS with Ang or Bohr)
+        "nbnd"                  : "nelec/2",    \\ Only for PW (bands for wannierization of emp states)
+        "nspin"                 : "2"
+    },
+    "ELECTRONS":
+    {
+        "empty_states_nbnd"     : "0",
+        "conv_thr"              : "10d-6"
+    },
+    "EE":           \\ Only CP
+    {
+        "which_compensation"    : "none",
+        "tcc_odd"               : "true"
+    },
+    "NKSIC":        \\ we could change the name of this section btw
+    {
+        "nkscalfact"            : "1./dielectric_constant"
+    },
+    "W90":
+    {
+        "dis_win_max"           : "highest_ks_ene",
+        "dis_froz_max"          : "",            \\ Status REQUIRED
+        "dis_num_iter"          : "500",
+        "do_phases"             : "true",
+        "wann_proj_occ"         : "random",
+        "wann_proj_emp"         : "random"
+    }
+}

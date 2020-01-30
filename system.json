@@ -1,0 +1,20 @@
+{
+    "ATOMIC_SPECIES":       \\ Status REQUIRED (check that the n. of atoms in the list matches ntyp)
+    {
+        {"symbol_1","mass_1","pp_name_1"},
+        {"symbol_2","mass_2","pp_name_2"}
+    },
+    "ATOMIC_POSITIONS":
+    {
+        "units"                 : "alat",
+        "positions"             : { {"0.000000","0.000000","0.000000"},
+                                    {"0.500000","0.000000","0.000000"} }
+    },
+    "CELL_PARAMETERS":
+    {
+        "units":                : "alat"
+        "vectors"               : { {"1.000000","0.000000","0.000000"},
+                                    {"0.000000","1.000000","0.000000"},
+                                    {"0.000000","0.000000","1.000000"} }
+    }
+}
