@@ -126,6 +126,7 @@ hr_new = np.zeros((nrtot,nrtot,num_wann/nrtot,num_wann/nrtot),dtype=complex)
 if do_smooth_interpolation:
 	hr_old_smooth = read_hr_scell(file_hr_smooth,hr_type_smooth,num_wann,emp_states_smooth)
 	hr_old = hr_old - hr_old_smooth			# Here we define hr_old as Delta(R) = H_KI(R) - H_PBE(R) and then we interpolate Delta(R)
+#	print np.linalg.eigvalsh(hr_old)
 
 #for i in range(num_wann):
 #	for j in range(num_wann):
@@ -141,6 +142,16 @@ for r1 in range(nrtot):
 				if read_wf_phases:	hr_new[r1,r2,m,n] = hr_old[i,j] * np.conj(wf_phase[i]) * wf_phase[j]
 				else:			hr_new[r1,r2,m,n] = hr_old[i,j]
 
+#auxfile = open('V_ki_matrix.dat','w')
+#for r1 in range(nrtot):
+#	for r2 in range(nrtot):
+#		for m in range(num_wann/nrtot):
+#			for n in range(num_wann/nrtot):
+#				auxfile.write('(R%d,R%d,%d,%d) = %11.8f %11.8f\n' %(r1,r2,m,n,hr_new[r1,r2,m,n].real,hr_new[r1,r2,m,n].imag))
+#				if (abs(hr_new[r1,r2,m,n].real) >= 1.E-6) or (abs(hr_new[r1,r2,m,n].imag) >= 1.E-6):
+#					print '(R%d,R%d,%d,%d) = %11.8f %11.8f' %(r1,r2,m,n,hr_new[r1,r2,m,n].real,hr_new[r1,r2,m,n].imag)
+#
+#auxfile.close()
 
 print 'Mapping the Hamiltonian <i|H|j> --> <Rm|H|R\'n> in:\t%.3f sec' %(time.time()-reset)
 reset = time.time()
