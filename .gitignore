@@ -1,0 +1,12 @@
+*.pyc
+__pycache__/
+.vscode
+
+# Output files for example
+example/init/
+example/calc_alpha/
+example/final/
+example/alphas.pkl
+example/errors.pkl
+example/tab_alpha_values.tex
+
