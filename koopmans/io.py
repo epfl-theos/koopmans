@@ -161,7 +161,12 @@ def read_json(fd):
     for block, dct in bigdct.items():
         block = block.lower()
         if block == 'calc_param':
-            settings = dct
+            settings = {}
+            for k, v in dct.items():
+                try:
+                    settings[k] = json.loads(v)
+                except:
+                    settings[k] = v
         elif block == 'atomic_species':
             calc.parameters['pseudopotentials'] = {
                 l[0]: l[2] for l in dct['species']}

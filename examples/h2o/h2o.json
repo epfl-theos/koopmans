@@ -2,7 +2,8 @@
     "CALC_PARAM":
     {
         "calc_type"             : "ki",
-        "init_manifold"         : "pz"
+        "init_manifold"         : "pz",
+        "n_max_sc_steps"        : "3"
     },
     "SYSTEM":
     {
