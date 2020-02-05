@@ -12,14 +12,15 @@ import pickle
 import pandas as pd
 import warnings
 from ase.io import espresso_cp as cp_io
-from koopmans.io import write_alpharef, read_alpharef, print_summary
-from koopmans.calc import run_cp, calculate_alpha, Extended_Espresso_cp, calc_from_json
+from koopmans.io import write_alpharef, read_alpharef, print_summary, read_json, parse_algebraic_expressions
+from koopmans.calc import run_cp, calculate_alpha, Extended_Espresso_cp
+from koopmans.defaults import load_defaults
 
 
 def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
     """
     Generates a new ASE calculator based on a template ASE calculator, modifying
-    the appropriate settings to match the chosen calc_type, and altering any 
+    the appropriate settings to match the chosen calc_type, and altering any
     Quantum Espresso keywords specified as kwargs
 
     Arguments:
@@ -48,11 +49,11 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
                             the correct dimensions
             'pbe_n+1'       PBE calculation with N+1 electrons
             'kipz_n+1'      KIPZ calculation with N+1 electrons
-            'pbe_n+1-1'     PBE calculation with N electrons, starting from N+1 
+            'pbe_n+1-1'     PBE calculation with N electrons, starting from N+1
                             but with f_cutoff = 0.00001
-            'ki_n+1-1'      KI calculation with N electrons, starting from N+1 
+            'ki_n+1-1'      KI calculation with N electrons, starting from N+1
                             but with f_cutoff = 0.00001
-            'kipz_n+1-1'    KIPZ calculation with N electrons, starting from N+1 
+            'kipz_n+1-1'    KIPZ calculation with N electrons, starting from N+1
                             but with f_cutoff = 0.00001
 
        **kwargs: accepts any Quantum Espresso keywords as an argument, and will
@@ -174,7 +175,7 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
         calc.one_innerloop_only = False
     if 'kipz' in calc.prefix:
         calc.which_orbdep = 'nkipz'
-    elif calc.prefix == 'pz':
+    elif 'pz' in calc.prefix:
         calc.which_orbdep = 'pz'
     elif 'ki' in calc.prefix:
         calc.which_orbdep = 'nki'
@@ -200,18 +201,12 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
     return calc
 
 
-def run(workflow_type, json, alpha_guess=0.6, alpha_from_file=False, n_max_sc_steps=1, from_scratch=False):
+def run(json):
     '''
     This function runs the KI/KIPZ workflow from start to finish
 
     Arguments:
-        workflow_type       -- the workflow type: must be one of 'ki', 'kipz'
-        json                -- the path to the json file containing the system data
-                               (atomic positions, number of atoms etc.)
-        alpha_guess         -- the initial guess for alpha (a single float for all orbitals)
-        alpha_from_file     -- read alpha from pre-existing file_alpharef.txt
-        n_max_sc_steps      -- the maximum number of self-consistent steps for 
-                               determining {alpha_i}
+        json -- the json file containing all the workflow and cp.x settings
 
     Running this function will generate a number of files:
        init/ -- the PBE and PZ calculations for initialisation
@@ -222,7 +217,19 @@ def run(workflow_type, json, alpha_guess=0.6, alpha_from_file=False, n_max_sc_st
        tab_alpha_values.tex -- a latex table of the alpha values
     '''
 
-    workflow_type = workflow_type.lower()
+    # Reading in JSON file
+    master_calc, workflow_settings = read_json(json)
+    master_calc = Extended_Espresso_cp(master_calc)
+    master_calc = load_defaults(master_calc)
+    master_calc = parse_algebraic_expressions(master_calc)
+
+    # Extracting workflow settings
+    workflow_type = workflow_settings.get('calc_type', 'ki').lower()
+    from_scratch = workflow_settings.get('from_scratch', True)
+    alpha_guess = workflow_settings.get('alpha_guess', 0.6)
+    alpha_from_file = workflow_settings.get('alpha_from_file', False)
+    n_max_sc_steps = workflow_settings.get('n_max_sc_steps', 1)
+
     if workflow_type not in ['ki', 'kipz']:
         raise ValueError(
             f'Unrecognised calculation type {workflow_type} provided to koopmans.workflow.run()')
@@ -232,9 +239,6 @@ def run(workflow_type, json, alpha_guess=0.6, alpha_from_file=False, n_max_sc_st
         os.system('rm -r init 2>/dev/null')
         os.system('rm -r calc_alpha 2>/dev/null')
         os.system('rm -r final 2>/dev/null')
-
-    # Reading in JSON file
-    master_calc = calc_from_json(json)
 
     # Counting the number of bands
     n_filled_bands = master_calc.nelup
@@ -258,7 +262,8 @@ def run(workflow_type, json, alpha_guess=0.6, alpha_from_file=False, n_max_sc_st
 
     # Moving orbitals
     print('Overwriting the CP variational orbitals with Kohn-Sham orbitals')
-    savedir = f'{calc.directory}/TMP-CP/pbe_50.save/K00001'
+    prefix = calc.parameters['input_data']['control']['prefix']
+    savedir = f'{calc.directory}/TMP-CP/{prefix}_50.save/K00001'
     os.system(f'cp {savedir}/evc1.dat {savedir}/evc01.dat')
     os.system(f'cp {savedir}/evc2.dat {savedir}/evc02.dat')
 
@@ -270,12 +275,18 @@ def run(workflow_type, json, alpha_guess=0.6, alpha_from_file=False, n_max_sc_st
     else:
         alpha_df.loc[1] = [alpha_guess for _ in range(n_bands)]
 
-    if workflow_type == 'ki':
+    init_manifold = workflow_settings['init_manifold']
+    if init_manifold == 'pz':
         calc = set_up_calculator(
             master_calc, 'pz', empty_states_nbnd=n_empty_bands, from_scratch=from_scratch)
-    else:
+    elif init_manifold == 'kipz':
         calc = set_up_calculator(master_calc, 'kipz_init',
                                  odd_nkscalfact=True, odd_nkscalfact_empty=True)
+    elif init_manifold == 'mlwf':
+        raise ValueError('mlwf initialisation not yet implemented')
+    else:
+        raise ValueError(
+            f'Unrecognised option "{init_manifold}" for init_manifold. Should be one of "pz"/"kipz"/"mlwf"')
 
     calc.directory = 'init'
     write_alpharef(alpha_df.loc[1], band_filling, calc.directory)

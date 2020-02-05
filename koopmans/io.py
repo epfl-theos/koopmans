@@ -1,3 +1,11 @@
+import json
+import numpy as np
+import warnings
+from ase.io.espresso_cp import Espresso_cp, KEYS
+from ase.atoms import Atoms
+from koopmans.defaults import defaults
+import xml.etree.ElementTree as ET
+
 """
 
 I/O module for python_KI
@@ -89,3 +97,165 @@ def read_alpharef(calc=None, directory=None):
             n_orbs = int(flines[0]) // 2
             alphas += [float(line.split()[1]) for line in flines[1:n_orbs + 1]]
     return alphas
+
+
+def parse_algebraic_expression(expr, calc):
+    if not isinstance(expr, str):
+        return expr
+    if all([c.isalpha() for c in expr]):
+        return expr
+
+    expr = expr.replace('/', ' / ').replace('*', ' * ').split()
+    for i, term in enumerate(expr):
+        if term in ['*', '/']:
+            continue
+        elif all([c.isalpha() for c in term]):
+            if getattr(calc, term, None) is None:
+                raise ValueError(f'Failed to parse ' + ''.join(expr))
+            else:
+                expr[i] = getattr(calc, term)
+        else:
+            expr[i] = float(term)
+
+    value = float(expr[0])
+    for op, term in zip(expr[1::2], expr[2::2]):
+        if op == '*':
+            value *= float(term)
+        elif op == '/':
+            value /= float(term)
+        else:
+            raise ValueError('Failed to parse ' +
+                             ''.join([str(e) for e in expr]))
+
+    return value
+
+
+def parse_algebraic_expressions(calc):
+
+    cp_settings = {key: value for block in calc.parameters['input_data'].values()
+                   for key, value in block.items()}
+
+    for key, value in cp_settings.items():
+        if key in ['pseudo_dir', 'outdir']:
+            continue
+        setattr(calc, key, parse_algebraic_expression(value, calc))
+
+    return calc
+
+
+def read_json(fd):
+    '''
+
+    Reads in settings listed in JSON file
+
+    '''
+
+    if isinstance(fd, str):
+        fd = open(fd, 'r')
+
+    bigdct = json.loads(fd.read())
+
+    calc = Espresso_cp()
+    calc.parameters['input_data'] = {k: {} for k in KEYS.keys()}
+
+    for block, dct in bigdct.items():
+        block = block.lower()
+        if block == 'calc_param':
+            settings = dct
+        elif block == 'atomic_species':
+            calc.parameters['pseudopotentials'] = {
+                l[0]: l[2] for l in dct['species']}
+        elif block == 'atomic_positions':
+            pos_array = np.array(dct['positions'])
+            labels = pos_array[:, 0]
+            symbols = [''.join([c for c in label if c.isalpha()])
+                       for label in labels]
+            positions = np.array(pos_array[:, 1:], dtype=float)
+        elif block == 'cell_parameters':
+            cell = dct['vectors']
+        elif block in KEYS:
+            for key, value in dct.items():
+                if len(value) == 0:
+                    continue
+                try:
+                    value = json.loads(value)
+                except:
+                    pass
+                calc.parameters['input_data'][block][key] = value
+        else:
+            warnings.warn(
+                f'The {block} block is not yet implemented and will be ignored')
+
+    # Defining our atoms object and tethering it to the calculator
+    atoms = Atoms(symbols, positions, cell=cell, calculator=calc)
+    atoms.set_array('labels', labels)
+    calc.atoms = atoms
+
+    # If they are missing, fill in nelec and input_dft fields using information
+    # contained in the pseudopotential files
+    if 'input_dft' not in calc.parameters['input_data']['control']:
+        calc.parameters['input_data']['system']['input_dft'] = input_dft_from_pseudos(
+            calc)
+    if 'nelec' not in calc.parameters['input_data']['system']:
+        calc.parameters['input_data']['system']['nelec'] = nelec_from_pseudos(
+            calc)
+    if 'nelup' not in calc.parameters['input_data']['system']:
+        calc.parameters['input_data']['system']['nelup'] = calc.parameters['input_data']['system']['nelec']//2
+    if 'neldw' not in calc.parameters['input_data']['system']:
+        calc.parameters['input_data']['system']['neldw'] = calc.parameters['input_data']['system']['nelec'] - \
+            calc.parameters['input_data']['system']['nelup']
+
+    return calc, settings
+
+
+def read_pseudopotential(fd):
+    '''
+
+    Reads in settings from a .upf file using XML parser
+
+    '''
+
+    upf = ET.parse(fd).getroot()
+
+    return upf
+
+
+def get_pseudo_dir(calc):
+    '''
+    Works out the pseudo directory (pseudo_dir is given precedence over $ESPRESSO_PSEUDO)
+    '''
+
+    if getattr(calc, 'pseudo_dir', None) is not None:
+        return calc.pseudo_dir
+    elif 'ESPRESSO_PSEUDO' in os.environ:
+        return os.environ['ESPRESSO_PSEUDO']
+    else:
+        return './'
+
+
+def nelec_from_pseudos(calc):
+    '''
+    Determines the number of electrons in the system using information from pseudopotential files
+    '''
+
+    directory = get_pseudo_dir(calc)
+    valences_dct = {key: read_pseudopotential(directory + value).find('PP_HEADER').get(
+        'z_valence') for key, value in calc.parameters['pseudopotentials'].items()}
+    valences = [int(float(valences_dct[l]))
+                for l in calc.atoms.get_array('labels')]
+    return sum(valences)
+
+
+def input_dft_from_pseudos(calc):
+    '''
+    Determines input_dft using information from pseudopotential files
+    '''
+
+    directory = get_pseudo_dir(calc)
+    input_dft = list(set([read_pseudopotential(directory + fname).find('PP_HEADER').get('functional')
+                          for fname in calc.parameters['pseudopotentials'].values()]))
+
+    if len(input_dft) != 1:
+        warnings.warn('The listed pseudopotentials do not use the same functional; they are using ' +
+                      ', '.join(input_dft))
+    return input_dft[0]

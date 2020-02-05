@@ -6,17 +6,16 @@ Written by Edward Linscott Jan 2020
 
 """
 
+import warnings
+
 defaults = {'calculation':         'cp',
             'iprint':              1,
             'outdir':              './TMP-CP/',
-            'prefix':              'pbe',
+            'prefix':              'kc',
             'verbosity':           'low',
             'disk_io':             'high',
             'do_ee':               True,
             'do_wf_cmplx':         True,
-            'ecutrho':             260.0,
-            'ecutwfc':             65.0,
-            'ibrav':               0,
             'electron_dynamics':   'cg',
             'ortho_para':          1,
             'passop':              2.0,
@@ -33,3 +32,13 @@ defaults = {'calculation':         'cp',
             'innerloop_init_n':    3,
             'innerloop_nmax':      300,
             'hartree_only_sic':    False}
+
+
+def load_defaults(calc):
+    for key, value in defaults.items():
+        if getattr(calc, key, None) is not None:
+            # If a setting has already been set, keep that value but print a warning
+            warnings.warn(f'Default value for {key} is being overwritten')
+        else:
+            setattr(calc, key, value)
+    return calc

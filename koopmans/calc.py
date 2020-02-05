@@ -8,8 +8,7 @@ Written by Edward Linscott Jan 2020
 
 from ase.io import espresso_cp as cp_io
 from ase.calculators.espresso_cp import Espresso_cp
-from koopmans.io import cpi_diff, read_alpharef
-from koopmans.defaults import defaults
+from koopmans.io import cpi_diff, read_alpharef, read_pseudopotential
 import os
 import warnings
 
@@ -260,23 +259,3 @@ def calculate_alpha(calcs, filled=True, kipz=False):
     error = dE - lambda_a
 
     return alpha, error
-
-
-def calc_from_json(fd):
-    atoms = cp_io.read_espresso_cp_json(fd)
-
-    if len(atoms) != 1:
-        raise ValueError(
-            'JSON file appears to contain no or multiple systems. This is not yet implemented')
-
-    calc = Extended_Espresso_cp(list(atoms.values())[0].calc)
-
-    for key, value in defaults.items():
-        if getattr(calc, key) is not None:
-            # If any key appears in the json file and the defaults, use the value from the json
-            # file and print a warning
-            warnings.warn(f'Default value for {key} is being overwritten')
-        else:
-            setattr(calc, key, value)
-
-    return calc
