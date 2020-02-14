@@ -1,0 +1,110 @@
+
+INITIALISATION OF DENSITY
+Running init/pbe_init... done
+Overwriting the CP variational orbitals with Kohn-Sham orbitals
+
+INITIALISATION OF MANIFOLD
+Running init/pz... done
+Copying the spin-up variational orbitals over to the spin-down channel
+
+DETERMINING ALPHA VALUES
+-- Orbital 1 ------------------------
+Running calc_alpha/orbital_1/pbe... done
+Running calc_alpha/orbital_1/pbe_n-1... done
+Running calc_alpha/orbital_1/ki_it1... done
+-- Orbital 2 ------------------------
+Running calc_alpha/orbital_2/pbe... done
+Running calc_alpha/orbital_2/pbe_n-1... done
+Running calc_alpha/orbital_2/ki_it1... done
+-- Orbital 3 ------------------------
+Running calc_alpha/orbital_3/pbe... done
+Running calc_alpha/orbital_3/pbe_n-1... done
+Running calc_alpha/orbital_3/ki_it1... done
+-- Orbital 4 ------------------------
+Running calc_alpha/orbital_4/pbe... done
+Running calc_alpha/orbital_4/pbe_n-1... done
+Running calc_alpha/orbital_4/ki_it1... done
+-- Orbital 5 ------------------------
+Running calc_alpha/orbital_5/pbe... done
+Running calc_alpha/orbital_5/pbe_n-1... done
+Running calc_alpha/orbital_5/ki_it1... done
+-- Orbital 6 ------------------------
+Running calc_alpha/orbital_6/pbe... done
+Running calc_alpha/orbital_6/pbe_n-1... done
+Running calc_alpha/orbital_6/ki_it1... done
+-- Orbital 7 ------------------------
+Running calc_alpha/orbital_7/pbe... done
+Running calc_alpha/orbital_7/pbe_n-1... done
+Running calc_alpha/orbital_7/ki_it1... done
+-- Orbital 8 ------------------------
+Running calc_alpha/orbital_8/pbe... done
+Running calc_alpha/orbital_8/pbe_n-1... done
+Running calc_alpha/orbital_8/ki_it1... done
+-- Orbital 9 ------------------------
+Running calc_alpha/orbital_9/pz_print... done
+Running calc_alpha/orbital_9/pbe_n+1_dummy... done
+Running calc_alpha/orbital_9/pbe_n+1... done
+Running calc_alpha/orbital_9/pbe_n+1-1... done
+Running calc_alpha/orbital_9/ki_n+1-1_it1... done
+UserWarning: KI and PBE energies differ by 0.00001 eV
+-- Orbital 10 ------------------------
+Running calc_alpha/orbital_10/pz_print... done
+Running calc_alpha/orbital_10/pbe_n+1_dummy... done
+Running calc_alpha/orbital_10/pbe_n+1... done
+Running calc_alpha/orbital_10/pbe_n+1-1... done
+Running calc_alpha/orbital_10/ki_n+1-1_it1... done
+UserWarning: KI and PBE energies differ by 0.00003 eV
+
+alpha
+         1         2        3   ...        8         9         10
+1  0.600000  0.600000  0.60000  ...  0.600000  0.600000  0.600000
+2  0.548701  0.548701  0.63099  ...  0.650035  0.941505  0.751042
+
+[2 rows x 10 columns]
+
+delta E - lambda^alpha_ii (eV)
+         1         2         3   ...        8        9         10
+1  0.508156  0.508149 -0.306003  ... -0.406957  0.63901  0.836388
+
+[1 rows x 10 columns]
+
+Alpha values have been determined but are not necessarily converged
+
+FINAL KI CALCULATION
+Running final/ki... done
+
+QUALITY CONTROL
+<QC> energy -1024.40049954457
+<QC> alpha(0) 0.5487005610121964
+<QC> alpha(1) 0.5487006826746776
+<QC> alpha(2) 0.6309895654668632
+<QC> alpha(3) 0.6500406380259329
+<QC> alpha(4) 0.650035684221045
+<QC> alpha(5) 0.6309949042649521
+<QC> alpha(6) 0.6500408627247657
+<QC> alpha(7) 0.6500350236081546
+<QC> alpha(8) 0.9415050711153959
+<QC> alpha(9) 0.7510416530335751
+<QC> orbital_self_Hartree(orb=0,sigma=0) 11.854
+<QC> orbital_self_Hartree(orb=1,sigma=0) 11.854
+<QC> orbital_self_Hartree(orb=2,sigma=0) 11.512
+<QC> orbital_self_Hartree(orb=3,sigma=0) 9.027
+<QC> orbital_self_Hartree(orb=4,sigma=0) 9.027
+<QC> orbital_self_Hartree(orb=5,sigma=0) 11.512
+<QC> orbital_self_Hartree(orb=6,sigma=0) 9.027
+<QC> orbital_self_Hartree(orb=7,sigma=0) 9.027
+<QC> orbital_self_Hartree(orb=8,sigma=0) 2.491
+<QC> orbital_self_Hartree(orb=9,sigma=0) 6.304
+<QC> orbital_self_Hartree(orb=0,sigma=1) 11.854
+<QC> orbital_self_Hartree(orb=1,sigma=1) 11.854
+<QC> orbital_self_Hartree(orb=2,sigma=1) 11.512
+<QC> orbital_self_Hartree(orb=3,sigma=1) 9.027
+<QC> orbital_self_Hartree(orb=4,sigma=1) 9.027
+<QC> orbital_self_Hartree(orb=5,sigma=1) 11.512
+<QC> orbital_self_Hartree(orb=6,sigma=1) 9.027
+<QC> orbital_self_Hartree(orb=7,sigma=1) 9.027
+<QC> orbital_self_Hartree(orb=8,sigma=1) 2.491
+<QC> orbital_self_Hartree(orb=9,sigma=1) 6.304
+<QC> HOMO -14.433
+
+WORKFLOW COMPLETE

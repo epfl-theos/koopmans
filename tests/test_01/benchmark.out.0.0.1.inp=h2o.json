@@ -1,0 +1,58 @@
+
+INITIALISATION OF DENSITY
+Running init/pbe_init... done
+Overwriting the CP variational orbitals with Kohn-Sham orbitals
+
+INITIALISATION OF MANIFOLD
+Running init/pz... done
+Copying the spin-up variational orbitals over to the spin-down channel
+
+DETERMINING ALPHA VALUES
+-- Orbital 1 ------------------------
+Running calc_alpha/orbital_1/pbe... done
+Running calc_alpha/orbital_1/pbe_n-1... done
+Running calc_alpha/orbital_1/ki_it1... done
+-- Orbital 2 ------------------------
+Running calc_alpha/orbital_2/pbe... done
+Running calc_alpha/orbital_2/pbe_n-1... done
+Running calc_alpha/orbital_2/ki_it1... done
+-- Orbital 3 ------------------------
+Running calc_alpha/orbital_3/pbe... done
+Running calc_alpha/orbital_3/pbe_n-1... done
+Running calc_alpha/orbital_3/ki_it1... done
+-- Orbital 4 ------------------------
+Running calc_alpha/orbital_4/pbe... done
+Running calc_alpha/orbital_4/pbe_n-1... done
+Running calc_alpha/orbital_4/ki_it1... done
+
+alpha
+          1         2         3         4
+1  0.600000  0.600000  0.600000  0.600000
+2  0.643232  0.709729  0.695975  0.695972
+
+delta E - lambda^alpha_ii (eV)
+          1         2         3        4
+1 -0.408582 -0.905687 -0.880791 -0.88078
+
+Alpha values have been determined but are not necessarily converged
+
+FINAL KI CALCULATION
+Running final/ki... done
+
+QUALITY CONTROL
+<QC> energy -466.8272456059707
+<QC> alpha(0) 0.6432321919301377
+<QC> alpha(1) 0.7097287632790409
+<QC> alpha(2) 0.6959745352693514
+<QC> alpha(3) 0.6959717191704164
+<QC> orbital_self_Hartree(orb=0,sigma=0) 10.975
+<QC> orbital_self_Hartree(orb=1,sigma=0) 9.11
+<QC> orbital_self_Hartree(orb=2,sigma=0) 10.826
+<QC> orbital_self_Hartree(orb=3,sigma=0) 10.827
+<QC> orbital_self_Hartree(orb=0,sigma=1) 10.975
+<QC> orbital_self_Hartree(orb=1,sigma=1) 9.11
+<QC> orbital_self_Hartree(orb=2,sigma=1) 10.826
+<QC> orbital_self_Hartree(orb=3,sigma=1) 10.827
+<QC> HOMO -13.3017
+
+WORKFLOW COMPLETE

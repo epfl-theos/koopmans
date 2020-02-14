@@ -3,7 +3,6 @@ import numpy as np
 import warnings
 from ase.io.espresso_cp import Espresso_cp, KEYS
 from ase.atoms import Atoms
-from koopmans.defaults import defaults
 import xml.etree.ElementTree as ET
 
 """
@@ -48,7 +47,7 @@ def print_summary(alpha_df, error_df):
     print('')
 
 
-def write_alpharef(alphas, filling, directory='.'):
+def write_alpharef(alphas, filling, directory='.', duplicate=True):
     '''
     Generates file_alpharef.txt and file_alpharef_empty.txt from a list of alpha values
 
@@ -56,16 +55,17 @@ def write_alpharef(alphas, filling, directory='.'):
        alphas    -- a list of alpha values (floats)
        filling   -- a list of booleans; true if the corresponding orbital is filled
        directory -- the directory within which to write the files
+       duplicate -- if True, use the same result for spin-up and spin-down
     '''
 
     a_filled = [a for a, f in zip(alphas, filling) if f]
     a_empty = [a for a, f in zip(alphas, filling) if not f]
     for alphas, suffix in zip([a_filled, a_empty], ['', '_empty']):
+        if duplicate:
+            alphas += alphas
         with open(f'{directory}/file_alpharef{suffix}.txt', 'w') as fd:
-            fd.write('{}\n'.format(2*len(alphas)))
+            fd.write('{}\n'.format(len(alphas)))
             fd.writelines(['{} {} 1.0\n'.format(i+1, a)
-                           for i, a in enumerate(alphas)])
-            fd.writelines(['{} {} 1.0\n'.format(i+1+len(alphas), a)
                            for i, a in enumerate(alphas)])
 
 
@@ -158,15 +158,29 @@ def read_json(fd):
     calc = Espresso_cp()
     calc.parameters['input_data'] = {k: {} for k in KEYS.keys()}
 
+    symbols = []
+    positions = []
+    cell = None
+    labels = None
+    settings = {}
+
     for block, dct in bigdct.items():
         block = block.lower()
         if block == 'calc_param':
-            settings = {}
             for k, v in dct.items():
-                try:
-                    settings[k] = json.loads(v)
-                except:
-                    settings[k] = v
+                # Deal with bools separately since JSON strictly only will interpret
+                # 'false' as False, while 'False' will be left as a string and
+                # any statement to the effect of 'if param' will evaluate to True if
+                # param = 'False'
+                if isinstance(v, str) and v.lower() in ['f', 'false']:
+                    settings[k] = False
+                elif isinstance(v, str) and v.lower() in ['t', 'true']:
+                    settings[k] = True
+                else:
+                    try:
+                        settings[k] = json.loads(v)
+                    except:
+                        settings[k] = v
         elif block == 'atomic_species':
             calc.parameters['pseudopotentials'] = {
                 l[0]: l[2] for l in dct['species']}
@@ -180,7 +194,7 @@ def read_json(fd):
             cell = dct['vectors']
         elif block in KEYS:
             for key, value in dct.items():
-                if len(value) == 0:
+                if value == "":
                     continue
                 try:
                     value = json.loads(value)
@@ -188,8 +202,7 @@ def read_json(fd):
                     pass
                 calc.parameters['input_data'][block][key] = value
         else:
-            warnings.warn(
-                f'The {block} block is not yet implemented and will be ignored')
+            warn(f'The {block} block is not yet implemented and will be ignored')
 
     # Defining our atoms object and tethering it to the calculator
     atoms = Atoms(symbols, positions, cell=cell, calculator=calc)
@@ -198,19 +211,58 @@ def read_json(fd):
 
     # If they are missing, fill in nelec and input_dft fields using information
     # contained in the pseudopotential files
-    if 'input_dft' not in calc.parameters['input_data']['control']:
-        calc.parameters['input_data']['system']['input_dft'] = input_dft_from_pseudos(
-            calc)
-    if 'nelec' not in calc.parameters['input_data']['system']:
-        calc.parameters['input_data']['system']['nelec'] = nelec_from_pseudos(
-            calc)
-    if 'nelup' not in calc.parameters['input_data']['system']:
-        calc.parameters['input_data']['system']['nelup'] = calc.parameters['input_data']['system']['nelec']//2
-    if 'neldw' not in calc.parameters['input_data']['system']:
-        calc.parameters['input_data']['system']['neldw'] = calc.parameters['input_data']['system']['nelec'] - \
-            calc.parameters['input_data']['system']['nelup']
+    if 'pseudopotentials' in calc.parameters:
+        if 'input_dft' not in calc.parameters['input_data']['control']:
+            calc.parameters['input_data']['system']['input_dft'] = input_dft_from_pseudos(
+                calc)
+        if 'nelec' not in calc.parameters['input_data']['system']:
+            calc.parameters['input_data']['system']['nelec'] = nelec_from_pseudos(
+                calc)
+        if 'nelup' not in calc.parameters['input_data']['system']:
+            calc.parameters['input_data']['system']['nelup'] = calc.parameters['input_data']['system']['nelec']//2
+        if 'neldw' not in calc.parameters['input_data']['system']:
+            calc.parameters['input_data']['system']['neldw'] = calc.parameters['input_data']['system']['nelec'] - \
+                calc.parameters['input_data']['system']['nelup']
 
     return calc, settings
+
+
+def write_json(fd, calc, calc_param={}):
+    '''
+
+    Reads in settings listed in JSON file
+
+    '''
+
+    if isinstance(fd, str):
+        fd = open(fd, 'w')
+
+    bigdct = {}
+    bigdct['calc_param'] = calc_param
+
+    for key, block in calc.parameters['input_data'].items():
+        if len(block) > 0:
+            bigdct[key] = dict(block)
+
+    # cell parameters
+    bigdct['cell_parameters'] = {'vectors': [
+        list(row) for row in calc.atoms.cell[:]]}
+
+    # atomic positions
+    try:
+        labels = calc.atoms.get_array('labels')
+    except:
+        labels = calc.atoms.get_chemical_symbols()
+    bigdct['atomic_positions'] = {'positions': [
+        [label] + [str(x) for x in pos] for label, pos in zip(labels, calc.atoms.get_positions())]}
+
+    # atomic species
+    bigdct['atomic_species'] = {'species': [[key, 1.0, val]
+                                            for key, val in calc.parameters.pseudopotentials.items()]}
+
+    json.dump(bigdct, fd, indent=2)
+
+    return
 
 
 def read_pseudopotential(fd):
@@ -261,6 +313,30 @@ def input_dft_from_pseudos(calc):
                           for fname in calc.parameters['pseudopotentials'].values()]))
 
     if len(input_dft) != 1:
-        warnings.warn('The listed pseudopotentials do not use the same functional; they are using ' +
-                      ', '.join(input_dft))
+        warn('The listed pseudopotentials do not use the same functional; they are using ' +
+             ', '.join(input_dft))
     return input_dft[0]
+
+
+def _warning(message, category=UserWarning, filename='', lineno=-1, file=None, line=None):
+    '''
+    Monkey-patching warnings.warn
+    '''
+    print(f'{category.__name__}: {message}')
+
+
+warnings.showwarning = _warning
+
+
+def warn(message):
+    '''
+    Allowing the monkey-patched warnings.warn to be imported as io.warn
+    '''
+    warnings.warn(message)
+
+
+def print_qc(key, value):
+    '''
+    Prints out a quality control message for testcode to evaluate
+    '''
+    print(f'<QC> {key} {value}')

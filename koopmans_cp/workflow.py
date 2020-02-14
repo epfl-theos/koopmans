@@ -10,11 +10,11 @@ import os
 import copy
 import pickle
 import pandas as pd
-import warnings
 from ase.io import espresso_cp as cp_io
-from koopmans.io import write_alpharef, read_alpharef, print_summary, read_json, parse_algebraic_expressions
-from koopmans.calc import run_cp, calculate_alpha, Extended_Espresso_cp
-from koopmans.defaults import load_defaults
+from koopmans_cp.io import write_alpharef, read_alpharef, print_summary, read_json, \
+    parse_algebraic_expressions, warn, print_qc
+from koopmans_cp.defaults import load_defaults
+from koopmans_cp.calc import run_cp, calculate_alpha, Extended_Espresso_cp
 
 
 def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
@@ -163,6 +163,8 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
     else:
         calc.maxiter = 200
         calc.empty_states_maxstep = 300
+    if 'n+1' in calc.prefix:
+        calc.empty_states_nbnd = 0
 
     # nksic
     calc.esic_conv_thr = calc.nelec*1e-9
@@ -195,10 +197,18 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
                          ' an index_empty_to_save. Provide this as an argument to set_calculator')
 
     if calc.fixed_band is not None and calc.fixed_band > calc.nelup + 1:
-        warnings.warn(
-            'calc.fixed_band is higher than the LUMO; this should not happen')
+        warn('calc.fixed_band is higher than the LUMO; this should not happen')
 
     return calc
+
+
+keywords_altered_during_workflow = ['ndw', 'ndr', 'restart_mode', 'nspin', 'nelec', 'nelup',
+                                    'neldw', 'do_orbdep', 'fixed_state', 'f_cutoff',
+                                    'fixed_band', 'conv_thr', 'restart_from_wannier_pwscf',
+                                    'maxiter', 'empty_states_maxstep', 'esic_conv_thr',
+                                    'do_innerloop', 'one_innerloop_only', 'which_orbdep',
+                                    'print_wfc_anion', 'directory', 'prefix', 'odd_nkscalfact',
+                                    'nkscalfact']
 
 
 def run(json):
@@ -232,7 +242,7 @@ def run(json):
 
     if workflow_type not in ['ki', 'kipz']:
         raise ValueError(
-            f'Unrecognised calculation type {workflow_type} provided to koopmans.workflow.run()')
+            f'Unrecognised calculation type {workflow_type} provided to koopmans_cp.workflow.run()')
 
     # Removing old directories
     if from_scratch:
@@ -258,7 +268,8 @@ def run(json):
     # PBE from scratch
     calc = set_up_calculator(master_calc, 'pbe_init')
     calc.directory = 'init'
-    run_cp(calc, silent=False, from_scratch=from_scratch)
+    prev_calc_not_skipped = run_cp(
+        calc, silent=False, from_scratch=from_scratch)
 
     # Moving orbitals
     print('Overwriting the CP variational orbitals with Kohn-Sham orbitals')
@@ -266,6 +277,9 @@ def run(json):
     savedir = f'{calc.directory}/TMP-CP/{prefix}_50.save/K00001'
     os.system(f'cp {savedir}/evc1.dat {savedir}/evc01.dat')
     os.system(f'cp {savedir}/evc2.dat {savedir}/evc02.dat')
+    if calc.empty_states_nbnd is not None and calc.empty_states_nbnd > 0:
+        os.system(f'cp {savedir}/evc_empty1.dat {savedir}/evc0_empty1.dat')
+        os.system(f'cp {savedir}/evc_empty2.dat {savedir}/evc0_empty2.dat')
 
     print('\nINITIALISATION OF MANIFOLD')
     # PZ/KIPZ reading in PBE to define manifold
@@ -278,7 +292,7 @@ def run(json):
     init_manifold = workflow_settings['init_manifold']
     if init_manifold == 'pz':
         calc = set_up_calculator(
-            master_calc, 'pz', empty_states_nbnd=n_empty_bands, from_scratch=from_scratch)
+            master_calc, 'pz', from_scratch=from_scratch)
     elif init_manifold == 'kipz':
         calc = set_up_calculator(master_calc, 'kipz_init',
                                  odd_nkscalfact=True, odd_nkscalfact_empty=True)
@@ -290,13 +304,21 @@ def run(json):
 
     calc.directory = 'init'
     write_alpharef(alpha_df.loc[1], band_filling, calc.directory)
-    prev_calc_not_skipped = run_cp(calc, silent=False)
+    prev_calc_not_skipped = run_cp(
+        calc, silent=False, from_scratch=prev_calc_not_skipped)
+    # Note that by always providing 'from_scratch=prev_calc_not_skipped', the calculations
+    # will skip all calculations until it reaches an incomplete calculation, at which stage
+    # prev_calc_not_skipped will go from False to True and all subsequent calculations will
+    # be run with 'from_scratch = True'
 
     if prev_calc_not_skipped:
         prefix = calc.parameters['input_data']['control']['prefix']
+        savedir = f'{calc.directory}/{calc.outdir}/{prefix}_{calc.ndw}.save/K00001'
         print('Copying the spin-up variational orbitals over to the spin-down channel')
-        os.system(f'cp {calc.directory}/{calc.outdir}/{prefix}_{calc.ndw}.save/K00001/evc01.dat '
-                  f'{calc.directory}/{calc.outdir}/{prefix}_{calc.ndw}.save/K00001/evc02.dat')
+        os.system(f'cp {savedir}/evc01.dat {savedir}/evc02.dat')
+        if calc.empty_states_nbnd is not None and calc.empty_states_nbnd > 0:
+            os.system(
+                f'cp {savedir}/evc0_empty1.dat {savedir}/evc0_empty2.dat')
 
     print('\nDETERMINING ALPHA VALUES')
 
@@ -383,6 +405,13 @@ def run(json):
                         # file_alpharef_empty.txt)
                         write_alpharef(alpha_df.loc[i_sc],
                                        band_filling, directory)
+                    elif not filled:
+                        # In the case of empty orbitals, we gain an extra orbital in
+                        # the spin-up channel
+                        alpha_padded = list(alpha_df.loc[i_sc])
+                        alpha_padded += [alpha_padded[-1]] + alpha_padded
+                        write_alpharef(alpha_padded, band_filled_or_fixed + [False]
+                                       + band_filling, directory, duplicate=False)
                     else:
                         write_alpharef(alpha_df.loc[i_sc],
                                        band_filled_or_fixed, directory)
@@ -403,19 +432,18 @@ def run(json):
                 calc = set_up_calculator(master_calc, calc_type,
                                          odd_nkscalfact=odd_nkscalfact,
                                          odd_nkscalfact_empty=odd_nkscalfact_empty,
-                                         empty_states_nbnd=n_empty_bands,
                                          fixed_band=min(
                                              fixed_band, n_filled_bands + 1),
                                          index_empty_to_save=index_empty_to_save)
                 calc.directory = directory
 
-                # Ensure we don't overwrite KI results
-                if 'ki' in calc_type:
+                # Ensure we don't overwrite varational-orbital-dependent results
+                if workflow_type == 'kipz' or 'ki' in calc_type:
                     calc.setattr_only('prefix', calc.prefix + f'_it{i_sc}')
 
                 # Run cp.x
                 prev_calc_not_skipped = run_cp(
-                    calc, silent=False, from_scratch=from_scratch)
+                    calc, silent=False, from_scratch=prev_calc_not_skipped)
 
                 if not prev_calc_not_skipped:
                     continue
@@ -528,6 +556,17 @@ def run(json):
             os.system(f'cp -r calc_alpha/orbital_{n_filled_bands}/{ki_calc_for_final_restart.outdir}'
                       f'/*{ki_calc_for_final_restart.ndw}.save {savedir}')
 
-    run_cp(calc, silent=False)
+    run_cp(calc, silent=False, from_scratch=prev_calc_not_skipped)
+
+    # Print out data for quality control
+    if workflow_settings.get('print_qc', False):
+        print('\nQUALITY CONTROL')
+        print_qc('energy', calc.results['energy'])
+        for i, alpha in enumerate(alpha_df.loc[i_sc + 1]):
+            print_qc(f'alpha({i})', alpha)
+        for isp, orbs_self_hartree in enumerate(calc.results['orbital_data']['self-Hartree']):
+            for i, orb_sh in enumerate(orbs_self_hartree):
+                print_qc(f'orbital_self_Hartree(orb={i},sigma={isp})', orb_sh)
+        print_qc('HOMO', calc.results['homo_energy'])
 
     print('\nWORKFLOW COMPLETE')

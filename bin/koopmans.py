@@ -1,5 +1,7 @@
+#!/usr/bin/env python3
+
 import argparse
-from koopmans import workflow
+from koopmans_cp import workflow
 
 '''
 Perform KI/KIPZ calculations

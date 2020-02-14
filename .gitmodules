@@ -1,0 +1,3 @@
+[submodule "tests/testcode"]
+	path = tests/testcode
+	url = git@github.com:jsspencer/testcode.git

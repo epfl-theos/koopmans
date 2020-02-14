@@ -3,10 +3,19 @@ __pycache__/
 .vscode
 
 # Output files for example
-example/init/
-example/calc_alpha/
-example/final/
-example/alphas.pkl
-example/errors.pkl
-example/tab_alpha_values.tex
+examples/h2o/init/
+examples/h2o/calc_alpha/
+examples/h2o/final/
+examples/h2o/alphas.pkl
+examples/h2o/errors.pkl
+examples/h2o/tab_alpha_values.tex
 
+# Test code output
+tests/test_??/test.out*
+tests/test_??/test.err*
+tests/test_??/init/
+tests/test_??/calc_alpha/
+tests/test_??/final/
+tests/test_??/alphas.pkl
+tests/test_??/errors.pkl
+tests/test_??/tab_alpha_values.tex

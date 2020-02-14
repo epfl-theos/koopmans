@@ -1,7 +1,8 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
+
 import argparse
 from ase.io import espresso_cp as cp_io
-from koopmans.io import cpi_diff
+from koopmans_cp.io import cpi_diff
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(

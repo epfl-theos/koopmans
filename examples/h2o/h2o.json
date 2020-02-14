@@ -3,13 +3,13 @@
     {
         "calc_type"             : "ki",
         "init_manifold"         : "pz",
-        "n_max_sc_steps"        : "3"
+        "n_max_sc_steps"        : "2",
+        "alpha_from_file"       : "False"
     },
     "SYSTEM":
     {
         "ecutwfc"               : "65.0",
-        "ecutrho"               : "4*ecutwfc",
-        "nspin"                 : "2"
+        "ecutrho"               : "4*ecutwfc"
     },
     "ELECTRONS":
     {

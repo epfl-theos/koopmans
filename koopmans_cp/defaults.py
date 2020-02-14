@@ -6,7 +6,7 @@ Written by Edward Linscott Jan 2020
 
 """
 
-import warnings
+from koopmans_cp.io import warn
 
 defaults = {'calculation':         'cp',
             'iprint':              1,
@@ -17,6 +17,7 @@ defaults = {'calculation':         'cp',
             'do_ee':               True,
             'do_wf_cmplx':         True,
             'electron_dynamics':   'cg',
+            'nspin':               2,
             'ortho_para':          1,
             'passop':              2.0,
             'which_compensation':  'tcc',
@@ -38,7 +39,7 @@ def load_defaults(calc):
     for key, value in defaults.items():
         if getattr(calc, key, None) is not None:
             # If a setting has already been set, keep that value but print a warning
-            warnings.warn(f'Default value for {key} is being overwritten')
+            warn(f'Default value for {key} is being overwritten')
         else:
             setattr(calc, key, value)
     return calc

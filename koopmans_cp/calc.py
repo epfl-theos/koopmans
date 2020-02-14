@@ -8,9 +8,8 @@ Written by Edward Linscott Jan 2020
 
 from ase.io import espresso_cp as cp_io
 from ase.calculators.espresso_cp import Espresso_cp
-from koopmans.io import cpi_diff, read_alpharef, read_pseudopotential
+from koopmans_cp.io import cpi_diff, read_alpharef, read_pseudopotential, warn
 import os
-import warnings
 
 
 class Extended_Espresso_cp(Espresso_cp):
@@ -243,8 +242,7 @@ def calculate_alpha(calcs, filled=True, kipz=False):
         # Check total energy is unchanged
         dE_check = abs(ki['energy'] - pbe['energy'])
         if dE_check > 1e-5:
-            warnings.warn(
-                'KI and PBE energies differ by {:.5f} eV'.format(dE_check))
+            warn('KI and PBE energies differ by {:.5f} eV'.format(dE_check))
 
     # Obtaining alpha
     if (alpha_calc.odd_nkscalfact and filled) or (alpha_calc.odd_nkscalfact_empty and not filled):
