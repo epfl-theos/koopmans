@@ -14,12 +14,19 @@ endif
 
 KEEP_FILES := bench* *.json 
 KEEP_TESTS := $(patsubst %,! -name %,${KEEP_FILES})
+
 CLEAN_FILES := test.out.* test.err.*
 CLEAN_TESTS := $(patsubst %,-o -name %,${CLEAN_FILES})
 
+CLEAN_TEST_DIRS := -name ki -o -name kipz
+
+CLEAN_TEST_SUBDIRS := -name init -o -name calc_alpha -o -name final
+
+
 clean:
 	find test_?? -type f ${KEEP_TESTS} ${CLEAN_TESTS} | xargs -i rm -v {}
-	find -name 'init' -o -name 'calc_alpha' -o -name 'final' | xargs -i rm -vr {}
+	find ${CLEAN_TEST_DIRS} | xargs -i rm -vr {}
+	find ${CLEAN_TEST_SUBDIRS} | xargs -i rm -vr {}
 
 help:
 	@echo ''

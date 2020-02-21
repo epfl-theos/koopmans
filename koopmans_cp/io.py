@@ -1,7 +1,7 @@
 import json
 import numpy as np
 import warnings
-from ase.io.espresso_cp import Espresso_cp, KEYS
+from ase.io.espresso_cp import Espresso_cp, KEYS, ibrav_to_cell
 from ase.atoms import Atoms
 import xml.etree.ElementTree as ET
 
@@ -163,6 +163,7 @@ def read_json(fd):
     cell = None
     labels = None
     settings = {}
+    scale_positions = False
 
     for block, dct in bigdct.items():
         block = block.lower()
@@ -190,6 +191,8 @@ def read_json(fd):
             symbols = [''.join([c for c in label if c.isalpha()])
                        for label in labels]
             positions = np.array(pos_array[:, 1:], dtype=float)
+            if dct.get('units', 'alat') == 'crystal':
+                scale_positions = True
         elif block == 'cell_parameters':
             cell = dct['vectors']
         elif block in KEYS:
@@ -204,8 +207,16 @@ def read_json(fd):
         else:
             warn(f'The {block} block is not yet implemented and will be ignored')
 
+    # Generating cell if it is missing
+    if cell is None:
+        _, cell = ibrav_to_cell(calc.parameters['input_data']['system'])
+
     # Defining our atoms object and tethering it to the calculator
-    atoms = Atoms(symbols, positions, cell=cell, calculator=calc)
+    if scale_positions:
+        atoms = Atoms(symbols, scaled_positions=positions,
+                      cell=cell, calculator=calc)
+    else:
+        atoms = Atoms(symbols, positions, cell=cell, calculator=calc)
     atoms.set_array('labels', labels)
     calc.atoms = atoms
 
@@ -245,16 +256,23 @@ def write_json(fd, calc, calc_param={}):
             bigdct[key] = dict(block)
 
     # cell parameters
-    bigdct['cell_parameters'] = {'vectors': [
-        list(row) for row in calc.atoms.cell[:]]}
+    if calc.parameters['input_data']['system']['ibrav'] == 0:
+        bigdct['cell_parameters'] = {'vectors': [
+            list(row) for row in calc.atoms.cell[:]]}
 
     # atomic positions
     try:
         labels = calc.atoms.get_array('labels')
     except:
         labels = calc.atoms.get_chemical_symbols()
-    bigdct['atomic_positions'] = {'positions': [
-        [label] + [str(x) for x in pos] for label, pos in zip(labels, calc.atoms.get_positions())]}
+    if calc.parameters['input_data']['system']['ibrav'] == 0:
+        bigdct['atomic_positions'] = {'positions': [
+            [label] + [str(x) for x in pos] for label, pos in zip(labels, calc.atoms.get_positions())],
+            'units': 'alat'}
+    else:
+        bigdct['atomic_positions'] = {'positions': [
+            [label] + [str(x) for x in pos] for label, pos in zip(labels, calc.atoms.get_scaled_positions())],
+            'units': 'crystal'}
 
     # atomic species
     bigdct['atomic_species'] = {'species': [[key, 1.0, val]

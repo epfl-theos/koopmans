@@ -24,9 +24,9 @@ Add the following to your ~/.bashrc:
 ``export ESPRESSO_PSEUDO="/path/to/pseudopotential/folder/"`` (optional)
 
 ## Running
-To see a list of options, run ``./koopmans.py --help``
+To see a list of options, run ``koopmans.py --help``
 
 ## Contact
-Written by Edward Linscott, Dec 2019
+Written by Edward Linscott, Feb 2020
 
 For help and feedback email edward.linscott@gmail.com

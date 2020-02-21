@@ -10,7 +10,7 @@ from ase.io import espresso_cp as cp_io
 from ase.calculators.espresso_cp import Espresso_cp
 from koopmans_cp.io import cpi_diff, read_alpharef, read_pseudopotential, warn
 import os
-
+import sys
 
 class Extended_Espresso_cp(Espresso_cp):
 
@@ -148,6 +148,9 @@ def run_cp(calc, silent=True, from_scratch=False):
                                         calc.prefix), end='', flush=True)
 
     calc.calculate()
+
+    if not calc.results['job_done']:
+        sys.exit(1)
 
     if not silent:
         print(' done')

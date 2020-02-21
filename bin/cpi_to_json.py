@@ -37,7 +37,7 @@ def cpi_to_json(cpi, json, to_exclude=['nat', 'ntyp', 'pseudo_dir'], calc_param=
 
     write_json(json, calc_out, calc_param=calc_param)
 
-    return
+    return calc_out
 
 
 if __name__ == '__main__':

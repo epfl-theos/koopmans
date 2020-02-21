@@ -5,9 +5,9 @@ diff = vimdiff
 default_program = koopmans
 
 [koopmans]
-exe = koopmans.py
+exe = ../bin/koopmans.py
 inputs_args = ('*.json', '')
 nprocs = 0
-run_cmd_template = tc.program tc.args tc.input > tc.output 2> tc.error
+run_cmd_template = tc.program tc.args tc.input > tc.output 2> tc.error && cat_cpo.sh >> tc.output
 data_tag = <QC>
-
+tolerance = (2.0e-5, None, None, True)
