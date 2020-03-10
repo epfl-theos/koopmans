@@ -13,7 +13,7 @@
     },
     "SYSTEM":
     {
-        "ecutwfc"               : 65.0,
+        "ecutwfc"               : 40.0,
         "ecutrho"               : "4*ecutwfc"
     },
     "ELECTRONS":

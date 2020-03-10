@@ -12,8 +12,8 @@
   },
   "system": {
     "ibrav": 0,
-    "ecutwfc": 70.0,
-    "ecutrho": 280.0,
+    "ecutwfc": 40.0,
+    "ecutrho": 160.0,
     "input_dft": "PBE",
     "nr1b": 24,
     "nr2b": 24,
