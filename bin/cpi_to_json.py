@@ -9,7 +9,7 @@ import copy
 import textwrap
 
 
-def cpi_to_json(cpi, json, to_exclude=['nat', 'ntyp', 'pseudo_dir'], calc_param={}):
+def cpi_to_json(cpi, json, to_exclude=['nat', 'ntyp', 'pseudo_dir'], calc_param={}, cp_param={}):
     '''
 
     Converts a cpi file to a json file
@@ -21,6 +21,7 @@ def cpi_to_json(cpi, json, to_exclude=['nat', 'ntyp', 'pseudo_dir'], calc_param=
         to_exclude: the keywords included in the .cpi file to exclude from the .json file
         calc_param: the koopmans.py keywords to add to the .json file (these are not
                     included in the .cpi file)
+        cp_param: cp flags to alter
 
     '''
     calc = cp_io.read_espresso_cp_in(open(cpi, 'r')).calc
@@ -34,6 +35,8 @@ def cpi_to_json(cpi, json, to_exclude=['nat', 'ntyp', 'pseudo_dir'], calc_param=
         for key in block:
             if key in to_exclude:
                 del calc_out.parameters['input_data'][blockname][key]
+            if key in cp_param:
+                calc_out.parameters['input_data'][blockname][key] = cp_param[key]
 
     write_json(json, calc_out, calc_param=calc_param)
 
