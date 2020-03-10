@@ -26,7 +26,7 @@ valid_settings = [
             str, 'ki', ('ki', 'kipz', 'both')),
     Setting('init_density',
             'how to initialise the density',
-            str, 'pbe', ('pbe', 'pbe-pw', 'ki')),
+            str, 'pbe', ('pbe', 'pbe-pw', 'pz', 'ki')),
     Setting('init_manifold',
             'how to initialise the variational orbitals',
             str, 'pz', ('pz', 'ki', 'kipz', 'mwlf')),
@@ -103,9 +103,10 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
         calc_type: the calculation type; must be one of
 
             Initialisation
-            'pbe_init'  PBE calculation from scratch
-            'pz_init'   PZ calculation starting from PBE restart
-            'kipz_init' KIPZ starting from PBE restart
+            'pbe_init'            PBE calculation from scratch
+            'pz_init'             PZ calculation starting from PBE restart
+            'pz_innerloop_init'   PZ calculation starting from PBE restart (innerloop only)
+            'kipz_init'           KIPZ starting from PBE restart
 
             For calculating alpha_i for filled orbitals
             'pbe'      PBE calculation starting from restart
@@ -146,38 +147,41 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
     if calc_type == 'pbe_init':
         ndr = 50
         ndw = 50
-    elif calc_type in ['pz_init', 'kipz_init']:
+    elif calc_type == 'pz_init':
         ndr = 50
         ndw = 51
-    elif calc_type == 'pbe':
-        ndr = 51
+    elif calc_type in ['pz_innerloop_init', 'kipz_init']:
+        ndr = 50
         ndw = 52
-    elif calc_type == 'pbe_n-1':
-        ndr = 51
+    elif calc_type == 'pbe':
+        ndr = 52
         ndw = 53
-    elif calc_type in ['pz_print', 'kipz_print']:
-        ndr = 51
+    elif calc_type == 'pbe_n-1':
+        ndr = 52
         ndw = 54
-    elif calc_type == 'pbe_n+1_dummy':
-        ndr = 55
+    elif calc_type in ['pz_print', 'kipz_print']:
+        ndr = 52
         ndw = 55
-    elif calc_type == 'pbe_n+1-1':
-        ndr = 55
+    elif calc_type == 'pbe_n+1_dummy':
+        ndr = 56
         ndw = 56
-    elif calc_type == 'pbe_n+1':
-        ndr = 55
+    elif calc_type == 'pbe_n+1-1':
+        ndr = 56
         ndw = 57
+    elif calc_type == 'pbe_n+1':
+        ndr = 56
+        ndw = 58
     elif calc_type in ['ki', 'kipz', 'ki_final', 'kipz_final']:
-        ndr = 51
+        ndr = 52
         ndw = 60
     elif calc_type == 'kipz_n-1':
-        ndr = 51
+        ndr = 52
         ndw = 70
     elif calc_type == 'kipz_n+1':
-        ndr = 55
+        ndr = 56
         ndw = 80
     elif calc_type in ['ki_n+1-1', 'kipz_n+1-1']:
-        ndr = 55
+        ndr = 56
         ndw = 90
     else:
         raise ValueError('Invalid calc_type "{}"'.format(calc_type))
@@ -218,7 +222,8 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
     else:
         calc.do_orbdep = False
     if calc.prefix in ['pbe_init', 'pz_print', 'pbe_n+1_dummy', 'pz_init',
-                       'kipz_init', 'kipz_print', 'ki_final', 'kipz_final']:
+                       'kipz_init', 'kipz_print', 'ki_final', 'kipz_final',
+                       'pz_innerloop_init']:
         calc.fixed_state = False
     else:
         calc.fixed_state = True
@@ -233,7 +238,8 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
         calc.restart_from_wannier_pwscf = True
 
     # electrons
-    if 'print' in calc.prefix or (('pz' in calc.prefix or 'ki' in calc.prefix) and 'kipz' not in calc.prefix):
+    if 'print' in calc.prefix or (('pz' in calc.prefix or 'ki' in calc.prefix)
+                                  and 'kipz' not in calc.prefix and calc.prefix != 'pz_init'):
         calc.maxiter = 2
         calc.empty_states_maxstep = 1
     else:
@@ -248,10 +254,10 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
 
     # nksic
     calc.do_innerloop_cg = True
-    if calc.prefix[:2] == 'pz':
+    if calc.prefix[:2] == 'pz' and calc.prefix != 'pz_init':
         calc.do_innerloop = True
         calc.one_innerloop_only = True
-    elif 'kipz' in calc.prefix:
+    elif 'kipz' in calc.prefix or calc.prefix == 'pz_init':
         calc.do_innerloop = True
         calc.one_innerloop_only = False
     else:
@@ -440,6 +446,18 @@ def run(master_calc, workflow_settings):
         # PBE using pw.x
         raise ValueError('init_denisty: pbe-pw is not yet implemented')
 
+    elif init_density == 'pz':
+        # PBE from scratch
+        calc = set_up_calculator(master_calc, 'pbe_init')
+        calc.directory = 'init'
+        prev_calc_not_skipped = run_cp(
+            calc, silent=False, from_scratch=prev_calc_not_skipped)
+        # PZ from PBE
+        calc = set_up_calculator(master_calc, 'pz_init')
+        calc.directory = 'init'
+        prev_calc_not_skipped = run_cp(
+            calc, silent=False, from_scratch=prev_calc_not_skipped)
+
     elif init_density == 'ki':
         print('Initialising the density with a pre-existing KI calculation')
         # a pre-existing, complete KI calculation
@@ -477,10 +495,11 @@ def run(master_calc, workflow_settings):
             raise ValueError('init/ki_init.cpo is incomplete so cannot be used '
                              'to initialise the density')
     else:
-        raise ValueError('"init_density" must be one of pbe/pbe-pw/ki')
+        raise ValueError(
+            "Should not arrive here; compare the above code with workflow.valid_settings")
 
     if init_density == 'pbe':
-        # Using CP variational orbitals as KS orbitals
+        # Using KS eigenfunctions as guess variational orbitals
         print('Overwriting the CP variational orbitals with Kohn-Sham orbitals')
         prefix = calc.parameters['input_data']['control']['prefix']
         savedir = f'{calc.directory}/{calc.outdir}/{prefix}_{calc.ndw}.save/K00001'
@@ -501,7 +520,7 @@ def run(master_calc, workflow_settings):
 
     init_manifold = workflow_settings['init_manifold']
     if init_manifold == 'pz':
-        calc = set_up_calculator(master_calc, 'pz_init')
+        calc = set_up_calculator(master_calc, 'pz_innerloop_init')
     elif init_manifold == 'kipz':
         calc = set_up_calculator(master_calc, 'kipz_init',
                                  odd_nkscalfact=True, odd_nkscalfact_empty=True)
