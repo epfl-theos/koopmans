@@ -28,11 +28,11 @@ Running calc_alpha/orbital_4/ki_it1... done
 alpha
           1         2         3         4
 1  0.600000  0.600000  0.600000  0.600000
-2  0.673935  0.703454  0.703497  0.673932
+2  0.673935  0.703454  0.703498  0.673932
 
 delta E - lambda^alpha_ii (eV)
           1         2         3         4
-1 -0.652302 -0.949387 -0.949751 -0.652284
+1 -0.652304 -0.949388 -0.949751 -0.652286
 
 Alpha values have been determined but are not necessarily converged
 
@@ -41,10 +41,10 @@ Running final/ki_final... done
 
 QUALITY CONTROL
 <QC> energy -463.2636273896199
-<QC> alpha(0) 0.6739346704215409
-<QC> alpha(1) 0.7034540199217428
-<QC> alpha(2) 0.7034974921312144
-<QC> alpha(3) 0.6739315321863116
+<QC> alpha(0) 0.6739349135562781
+<QC> alpha(1) 0.703454131166968
+<QC> alpha(2) 0.7034975062844679
+<QC> alpha(3) 0.6739317872300115
 <QC> orbital_self_Hartree(orb=0,sigma=0) 10.099
 <QC> orbital_self_Hartree(orb=1,sigma=0) 10.946
 <QC> orbital_self_Hartree(orb=2,sigma=0) 10.945
@@ -69,7 +69,7 @@ Contents of ./init/pbe_init.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  15:32:47  10Mar2020               
+   This run was started on:  11:43: 2   7May2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -143,7 +143,7 @@ Warning: card K_POINTS GAMMA ignored
     ========================================
     |  CONJUGATE GRADIENT                  |
     ========================================
-    | iterations   =           100         |
+    | iterations   =           300         |
     | conv_thr     = 0.00000000800 a.u.    |
     | passop       =       2.00000 a.u.    |
     | niter_cg_restart =  20      |
@@ -375,160 +375,160 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.44s CPU time,    0.45s wall time
+     CP           :     0.27s CPU time,    0.30s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =     40.95107227446535
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
    40.951072274465  -44.031653421428   13.980134229381    9.215741967622   13.022668801911    1.441478020510    2.000000000000    1.441478020510
-     CP           :     0.60s CPU time,    0.62s wall time
+     CP           :     0.36s CPU time,    0.39s wall time
 
      iteration =   2  eff iteration =   2   Etot (Ha) =     13.02266880191080
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
    13.022668801911  -26.099117311500   -0.960642202570   -1.946479745327   -1.207464659965    1.147099985687    1.441478020510    1.147099985687
-     CP           :     0.76s CPU time,    0.78s wall time
+     CP           :     0.44s CPU time,    0.47s wall time
 
      iteration =   3  eff iteration =   3   Etot (Ha) =     -1.20746465996542 delta_E=  0.27928403472555E+02
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
    -1.207464659965  -35.997454990721   -6.666118774390  -13.103179578306   -8.548991812763    0.660919774546    1.147099985687    0.660919774546
-     CP           :     0.92s CPU time,    0.94s wall time
+     CP           :     0.52s CPU time,    0.56s wall time
 
      iteration =   4  eff iteration =   4   Etot (Ha) =     -8.54899181276336 delta_E=  0.14230133461876E+02
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
    -8.548991812763  -19.038772880088  -12.872887906645  -13.341657555139  -13.077683410281    0.503463723483    0.660919774546    0.503463723483
-     CP           :     1.09s CPU time,    1.11s wall time
+     CP           :     0.61s CPU time,    0.65s wall time
 
      iteration =   5  eff iteration =   5   Etot (Ha) =    -13.07768341028081 delta_E=  0.73415271527979E+01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -13.077683410281   -8.902802786687  -15.458535913031  -15.467827599867  -15.479469126751    0.536941960157    0.503463723483    0.536941960157
-     CP           :     1.25s CPU time,    1.26s wall time
+     CP           :     0.70s CPU time,    0.74s wall time
 
      iteration =   6  eff iteration =   6   Etot (Ha) =    -15.47946912675097 delta_E=  0.45286915975174E+01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.479469126751   -3.331815720325  -16.439302328491  -16.444450888261  -16.446849968792    0.579252781373    0.536941960157    0.579252781373
-     CP           :     1.40s CPU time,    1.42s wall time
+     CP           :     0.78s CPU time,    0.83s wall time
 
      iteration =   7  eff iteration =   7   Etot (Ha) =    -16.44684996879228 delta_E=  0.24017857164702E+01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.446849968792   -1.223716789919  -16.811055606598  -16.811333423005  -16.811465067582    0.595699033003    0.579252781373    0.595699033003
-     CP           :     1.56s CPU time,    1.58s wall time
+     CP           :     0.87s CPU time,    0.91s wall time
 
      iteration =   8  eff iteration =   8   Etot (Ha) =    -16.81146506758220 delta_E=  0.96738084204131E+00
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.811465067582   -0.441442290438  -16.939598369987  -16.939681605802  -16.939672323926    0.580898300852    0.595699033003    0.580898300852
-     CP           :     1.73s CPU time,    1.75s wall time
+     CP           :     0.96s CPU time,    1.00s wall time
 
      iteration =   9  eff iteration =   9   Etot (Ha) =    -16.93967232392567 delta_E=  0.36461509878993E+00
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.939672323926   -0.162056047961  -16.989558314259  -16.989737632356  -16.989738812326    0.617876457682    0.580898300852    0.617876457682
-     CP           :     1.89s CPU time,    1.91s wall time
+     CP           :     1.05s CPU time,    1.09s wall time
 
      iteration =  10  eff iteration =  10   Etot (Ha) =    -16.98973881232589 delta_E=  0.12820725634346E+00
 
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.989738812326   -0.069675821232  -17.010858740969  -17.010866242102  -17.010866871245    0.606449393854    0.617876457682    0.606449393854
-     CP           :     2.05s CPU time,    2.08s wall time
+     CP           :     1.14s CPU time,    1.18s wall time
 
      iteration =  11  eff iteration =  11   Etot (Ha) =    -17.01086687124501 delta_E=  0.50066488400219E-01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.010866871245   -0.026810342929  -17.018947084014  -17.018947381726  -17.018947464082    0.602790535199    0.606449393854    0.602790535199
-     CP           :     2.22s CPU time,    2.25s wall time
+     CP           :     1.22s CPU time,    1.27s wall time
 
      iteration =  12  eff iteration =  12   Etot (Ha) =    -17.01894746408152 delta_E=  0.21128058919125E-01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.018947464082   -0.011110861303  -17.022294106647  -17.022294107986  -17.022294110800    0.602409446575    0.602790535199    0.602409446575
-     CP           :     2.38s CPU time,    2.41s wall time
+     CP           :     1.31s CPU time,    1.35s wall time
 
      iteration =  13  eff iteration =  13   Etot (Ha) =    -17.02229411080010 delta_E=  0.80805928365102E-02
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.022294110800   -0.004365855192  -17.023627476873  -17.023627736553  -17.023627732992    0.610934487743    0.602409446575    0.610934487743
-     CP           :     2.54s CPU time,    2.57s wall time
+     CP           :     1.40s CPU time,    1.44s wall time
 
      iteration =  14  eff iteration =  14   Etot (Ha) =    -17.02362773299193 delta_E=  0.33466467185832E-02
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.023627732992   -0.001910650351  -17.024213624001  -17.024213632707  -17.024213633314    0.613298728742    0.610934487743    0.613298728742
-     CP           :     2.71s CPU time,    2.74s wall time
+     CP           :     1.48s CPU time,    1.53s wall time
 
      iteration =  15  eff iteration =  15   Etot (Ha) =    -17.02421363331367 delta_E=  0.13336221918294E-02
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024213633314   -0.000780893788  -17.024449673079  -17.024449721259  -17.024449720126    0.604660835999    0.613298728742    0.604660835999
-     CP           :     2.86s CPU time,    2.89s wall time
+     CP           :     1.57s CPU time,    1.62s wall time
 
      iteration =  16  eff iteration =  16   Etot (Ha) =    -17.02444972012595 delta_E=  0.58590032173456E-03
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024449720126   -0.000328003896  -17.024550506473  -17.024550533404  -17.024550533450    0.614707808890    0.604660835999    0.614707808890
-     CP           :     3.03s CPU time,    3.06s wall time
+     CP           :     1.66s CPU time,    1.70s wall time
 
      iteration =  17  eff iteration =  17   Etot (Ha) =    -17.02455053344964 delta_E=  0.23608681227927E-03
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024550533450   -0.000139193475  -17.024593278234  -17.024593278265  -17.024593278272    0.614178439414    0.614707808890    0.614178439414
-     CP           :     3.19s CPU time,    3.23s wall time
+     CP           :     1.75s CPU time,    1.79s wall time
 
      iteration =  18  eff iteration =  18   Etot (Ha) =    -17.02459327827222 delta_E=  0.10081332369438E-03
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024593278272   -0.000059270088  -17.024611557194  -17.024611557527  -17.024611557514    0.616812143844    0.614178439414    0.616812143844
-     CP           :     3.35s CPU time,    3.38s wall time
+     CP           :     1.83s CPU time,    1.88s wall time
 
      iteration =  19  eff iteration =  19   Etot (Ha) =    -17.02461155751363 delta_E=  0.42744822579266E-04
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024611557514   -0.000025820901  -17.024619579656  -17.024619580094  -17.024619580090    0.621402025868    0.616812143844    0.621402025868
-     CP           :     3.51s CPU time,    3.55s wall time
+     CP           :     1.92s CPU time,    1.97s wall time
 
      iteration =  20  eff iteration =  20   Etot (Ha) =    -17.02461958009042 delta_E=  0.18279241405850E-04
 
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024619580090   -0.000011282022  -17.024607015882  -17.024623203499  -17.024623203396    0.642333239556    2.000000000000    0.642333239556
-     CP           :     3.66s CPU time,    3.71s wall time
+     CP           :     2.01s CPU time,    2.06s wall time
 
      iteration =  21  eff iteration =  21   Etot (Ha) =    -17.02462320339610 delta_E=  0.80225767966624E-05
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024623203396   -0.000002695467  -17.024624439036  -17.024624715102  -17.024624715096    1.121665269501    0.642333239556    1.121665269501
-     CP           :     3.82s CPU time,    3.86s wall time
+     CP           :     2.10s CPU time,    2.15s wall time
 
      iteration =  22  eff iteration =  22   Etot (Ha) =    -17.02462471509609 delta_E=  0.36233056732726E-05
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024624715096   -0.000001383200  -17.024625359554  -17.024625378557  -17.024625378559    0.959312872352    1.121665269501    0.959312872352
-     CP           :     3.98s CPU time,    4.03s wall time
+     CP           :     2.18s CPU time,    2.23s wall time
 
      iteration =  23  eff iteration =  23   Etot (Ha) =    -17.02462537855865 delta_E=  0.15116999954046E-05
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625378559   -0.000000606575  -17.024625652339  -17.024625653296  -17.024625653296    0.905863845600    0.959312872352    0.905863845600
-     CP           :     4.14s CPU time,    4.19s wall time
+     CP           :     2.27s CPU time,    2.32s wall time
 
      iteration =  24  eff iteration =  24   Etot (Ha) =    -17.02462565329616 delta_E=  0.66346255778171E-06
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625653296   -0.000000201997  -17.024625741980  -17.024625742063  -17.024625742064    0.878897146671    0.905863845600    0.878897146671
-     CP           :     4.30s CPU time,    4.35s wall time
+     CP           :     2.36s CPU time,    2.41s wall time
 
      iteration =  25  eff iteration =  25   Etot (Ha) =    -17.02462574206352 delta_E=  0.27473750918716E-06
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625742064   -0.000000064202  -17.024625771297  -17.024625771335  -17.024625771336    0.911864924249    0.878897146671    0.911864924249
-     CP           :     4.47s CPU time,    4.51s wall time
+     CP           :     2.45s CPU time,    2.50s wall time
 
      iteration =  26  eff iteration =  26   Etot (Ha) =    -17.02462577133553 delta_E=  0.88767361461350E-07
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625771336   -0.000000020418  -17.024625780375  -17.024625780383  -17.024625780383    0.886192053387    0.911864924249    0.886192053387
-     CP           :     4.62s CPU time,    4.67s wall time
+     CP           :     2.53s CPU time,    2.59s wall time
 
      iteration =  27  eff iteration =  27   Etot (Ha) =    -17.02462578038278 delta_E=  0.29272008816861E-07
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625780383   -0.000000006819  -17.024625783153  -17.024625783172  -17.024625783172    0.818084914722    0.886192053387    0.818084914722
-     CP           :     4.78s CPU time,    4.83s wall time
+     CP           :     2.62s CPU time,    2.67s wall time
 
      iteration =  28  eff iteration =  28   Etot (Ha) =    -17.02462578317210 delta_E=  0.90472518365914E-08
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625783172   -0.000000002059  -17.024625784089  -17.024625784096  -17.024625784096    0.897679481974    0.818084914722    0.897679481974
-     CP           :     4.94s CPU time,    5.00s wall time
+     CP           :     2.71s CPU time,    2.76s wall time
 
      iteration =  29  eff iteration =  29   Etot (Ha) =    -17.02462578409641 delta_E=  0.27893207743546E-08
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784096   -0.000000000666  -17.024625784397  -17.024625784397  -17.024625784397    0.903466080129    0.897679481974    0.903466080129
-     CP           :     5.10s CPU time,    5.15s wall time
+     CP           :     2.80s CPU time,    2.85s wall time
 
      iteration =  30  eff iteration =  30   Etot (Ha) =    -17.02462578439742 delta_E=  0.92431307052721E-09
 
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784397   -0.000000000216  -17.024625784489  -17.024625784490  -17.024625784490    0.855530244281    0.903466080129    0.855530244281
-     CP           :     5.26s CPU time,    5.31s wall time
+     CP           :     2.89s CPU time,    2.94s wall time
 
      iteration =  31  eff iteration =  31   Etot (Ha) =    -17.02462578448965 delta_E=  0.30100366643637E-09
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -613,7 +613,7 @@ Step     1       0    -17.02463    -17.02463    -17.02463    32
  tnosep= F thdyn= F
 
    writing restart file: ./TMP-CP//kc_50.save
-   restart file written in    0.136 sec.
+   restart file written in    0.067 sec.
 
 
 
@@ -630,43 +630,43 @@ Step     1       0    -17.02463    -17.02463    -17.02463    32
    volume        :     4410.16474    4410.16474 (AU)
 
 
-     initialize   :     0.34s CPU
-     total_time   :     5.06s CPU
-     formf        :     0.04s CPU
-     rhoofr       :     0.60s CPU (      63 calls,   0.010 s avg)
-     vofrho       :     3.73s CPU (      63 calls,   0.059 s avg)
-     vofrho1      :     0.05s CPU
-     vofrho2      :     1.93s CPU (      31 calls,   0.062 s avg)
-     vofrho3      :     1.74s CPU (      31 calls,   0.056 s avg)
-     dforce       :     0.41s CPU (     128 calls,   0.003 s avg)
-     dforce1      :     0.40s CPU (     124 calls,   0.003 s avg)
-     dforce2      :     0.13s CPU
+     initialize   :     0.21s CPU
+     total_time   :     2.75s CPU
+     formf        :     0.02s CPU
+     rhoofr       :     0.32s CPU (      63 calls,   0.005 s avg)
+     vofrho       :     2.05s CPU (      63 calls,   0.033 s avg)
+     vofrho1      :     0.03s CPU
+     vofrho2      :     1.01s CPU (      31 calls,   0.033 s avg)
+     vofrho3      :     1.01s CPU (      31 calls,   0.033 s avg)
+     dforce       :     0.21s CPU (     128 calls,   0.002 s avg)
+     dforce1      :     0.20s CPU (     124 calls,   0.002 s avg)
+     dforce2      :     0.05s CPU
      calphi       :     0.00s CPU (      32 calls,   0.000 s avg)
-     gram         :     0.02s CPU (      65 calls,   0.000 s avg)
+     gram         :     0.01s CPU (      65 calls,   0.000 s avg)
      newd         :     0.00s CPU (      32 calls,   0.000 s avg)
-     calbec       :     0.19s CPU (     251 calls,   0.001 s avg)
-     prefor       :     0.01s CPU (      34 calls,   0.000 s avg)
+     calbec       :     0.09s CPU (     251 calls,   0.000 s avg)
+     prefor       :     0.00s CPU (      34 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
-     nlsm1        :     0.19s CPU (     251 calls,   0.001 s avg)
-     fft          :     1.11s CPU (    1072 calls,   0.001 s avg)
-     ffts         :     0.13s CPU (     126 calls,   0.001 s avg)
-     fftw         :     0.64s CPU (    1016 calls,   0.001 s avg)
-     cft3s        :     1.88s CPU (    2214 calls,   0.001 s avg)
-     fft_scatter  :     0.61s CPU (    2214 calls,   0.000 s avg)
+     nlsm1        :     0.09s CPU (     251 calls,   0.000 s avg)
+     fft          :     0.58s CPU (    1072 calls,   0.001 s avg)
+     ffts         :     0.07s CPU (     126 calls,   0.001 s avg)
+     fftw         :     0.34s CPU (    1016 calls,   0.000 s avg)
+     cft3s        :     0.98s CPU (    2214 calls,   0.000 s avg)
+     fft_scatter  :     0.30s CPU (    2214 calls,   0.000 s avg)
 
-     outer_loop   :     5.04s CPU (      31 calls,   0.163 s avg)
-     runcg_uspp   :     5.06s CPU
-     pc2          :     0.04s CPU (      93 calls,   0.000 s avg)
+     outer_loop   :     2.74s CPU (      31 calls,   0.089 s avg)
+     runcg_uspp   :     2.75s CPU
+     pc2          :     0.02s CPU (      93 calls,   0.000 s avg)
      pcdaga2      :     0.01s CPU (      31 calls,   0.000 s avg)
      xminus1      :     0.00s CPU (      62 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     5.55s CPU time,    5.62s wall time
+     CP           :     3.02s CPU time,    3.11s wall time
 
  
-   This run was terminated on:  15:32:52  10Mar2020            
+   This run was terminated on:  11:43: 5   7May2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -691,7 +691,7 @@ Contents of ./init/pz_innerloop_init.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  15:32:53  10Mar2020               
+   This run was started on:  11:43: 5   7May2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -909,7 +909,7 @@ Warning: card K_POINTS GAMMA ignored
  
 
    Matrix Multiplication Performances
-   ortho mmul, time for parallel driver      =   0.00001 with    1 procs
+   ortho mmul, time for parallel driver      =   0.00000 with    1 procs
 
    Constraints matrixes will be distributed block like on
    ortho sub-group =    1*   1 procs
@@ -971,7 +971,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: ./TMP-CP//kc_50.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.234 sec.
+   restart file read in    0.149 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            1
@@ -1135,7 +1135,7 @@ Step     2       0    -16.94250    -16.94250    -16.94250     1
  tnosep= F thdyn= F
 
    writing restart file: ./TMP-CP//kc_52.save
-   restart file written in    0.134 sec.
+   restart file written in    0.069 sec.
 
 
 
@@ -1152,50 +1152,50 @@ Step     2       0    -16.94250    -16.94250    -16.94250     1
    volume        :     4410.16474    4410.16474 (AU)
 
 
-     initialize   :     0.44s CPU
-     total_time   :    34.72s CPU
-     formf        :     0.05s CPU
+     initialize   :     0.25s CPU
+     total_time   :    19.17s CPU
+     formf        :     0.02s CPU
      rhoofr       :     0.01s CPU
-     vofrho       :     0.06s CPU
-     vofrho1      :     0.06s CPU
+     vofrho       :     0.03s CPU
+     vofrho1      :     0.03s CPU
      dforce       :     0.01s CPU (       4 calls,   0.002 s avg)
-     dforce2      :     0.18s CPU
+     dforce2      :     0.11s CPU
      calphi       :     0.00s CPU
      gram         :     0.00s CPU
      newd         :     0.00s CPU
-     calbec       :     0.00s CPU (       4 calls,   0.001 s avg)
+     calbec       :     0.00s CPU (       4 calls,   0.000 s avg)
      prefor       :     0.00s CPU (       3 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
-     nlsm1        :     0.07s CPU (      86 calls,   0.001 s avg)
-     fft          :    12.08s CPU (   11354 calls,   0.001 s avg)
+     nlsm1        :     0.03s CPU (      86 calls,   0.000 s avg)
+     fft          :     6.16s CPU (   11354 calls,   0.001 s avg)
      ffts         :     0.00s CPU (       2 calls,   0.001 s avg)
      fftw         :     0.01s CPU (      24 calls,   0.000 s avg)
-     cft3s        :    12.05s CPU (   11380 calls,   0.001 s avg)
-     fft_scatter  :     4.47s CPU (   11380 calls,   0.000 s avg)
+     cft3s        :     6.15s CPU (   11380 calls,   0.001 s avg)
+     fft_scatter  :     2.05s CPU (   11380 calls,   0.000 s avg)
 
-     nk_eforce    :     0.83s CPU (     168 calls,   0.005 s avg)
-     nk_corr      :    27.51s CPU (     664 calls,   0.041 s avg)
-     nk_corr_h    :     2.08s CPU (     664 calls,   0.003 s avg)
+     nk_eforce    :     0.41s CPU (     168 calls,   0.002 s avg)
+     nk_corr      :    15.20s CPU (     664 calls,   0.023 s avg)
+     nk_corr_h    :     1.10s CPU (     664 calls,   0.002 s avg)
 
-     nk_rot_emin  :    34.17s CPU
-     nk_innerloop :    34.17s CPU (      42 calls,   0.814 s avg)
-     nk_get_vsica :     0.83s CPU (      82 calls,   0.010 s avg)
-     nk_getOmatto :    33.30s CPU (      82 calls,   0.406 s avg)
+     nk_rot_emin  :    18.87s CPU
+     nk_innerloop :    18.87s CPU (      42 calls,   0.449 s avg)
+     nk_get_vsica :     0.41s CPU (      82 calls,   0.005 s avg)
+     nk_getOmatto :    18.42s CPU (      82 calls,   0.225 s avg)
      nk_getOmat1  :     0.00s CPU (     164 calls,   0.000 s avg)
      nk_rotwfn    :     0.01s CPU (     164 calls,   0.000 s avg)
 
-     outer_loop   :    34.83s CPU
-     inner_loop   :    34.17s CPU
-     runcg_uspp   :    34.67s CPU
-     inner_loop   :    34.17s CPU
+     outer_loop   :    19.23s CPU
+     inner_loop   :    18.87s CPU
+     runcg_uspp   :    19.15s CPU
+     inner_loop   :    18.87s CPU
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :    35.30s CPU time,   35.63s wall time
+     CP           :    19.50s CPU time,   19.69s wall time
 
  
-   This run was terminated on:  15:33:28  10Mar2020            
+   This run was terminated on:  11:43:25   7May2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -1220,7 +1220,7 @@ Contents of ./calc_alpha/orbital_1/pbe.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  15:33:28  10Mar2020               
+   This run was started on:  11:43:25   7May2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -1296,7 +1296,7 @@ Warning: card K_POINTS GAMMA ignored
     ========================================
     |  CONJUGATE GRADIENT                  |
     ========================================
-    | iterations   =           100         |
+    | iterations   =           300         |
     | conv_thr     = 0.00000080000 a.u.    |
     | passop       =       2.00000 a.u.    |
     | niter_cg_restart =  20      |
@@ -1508,7 +1508,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: ./TMP-CP//kc_52.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.231 sec.
+   restart file read in    0.146 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            2
@@ -1534,27 +1534,27 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.51s CPU time,    0.67s wall time
+     CP           :     0.32s CPU time,    0.41s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -17.02462578451639
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784516   -0.000000000019  -17.024625784507  -17.024625784524  -17.024625784524    0.797595169238    2.000000000000    0.797595169238
-     CP           :     0.67s CPU time,    0.83s wall time
+     CP           :     0.41s CPU time,    0.50s wall time
 
      iteration =   2  eff iteration =   2   Etot (Ha) =    -17.02462578452418
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784524   -0.000000000006  -17.024625784527  -17.024625784528  -17.024625784528    1.139672883705    0.797595169238    1.139672883705
-     CP           :     0.83s CPU time,    0.98s wall time
+     CP           :     0.49s CPU time,    0.58s wall time
 
      iteration =   3  eff iteration =   3   Etot (Ha) =    -17.02462578452779 delta_E=  0.77875483839307E-11
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784528   -0.000000000003  -17.024625784529  -17.024625784530  -17.024625784530    1.012417644189    1.139672883705    1.012417644189
-     CP           :     0.99s CPU time,    1.15s wall time
+     CP           :     0.58s CPU time,    0.67s wall time
 
      iteration =   4  eff iteration =   4   Etot (Ha) =    -17.02462578452952 delta_E=  0.36131098113401E-11
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784530   -0.000000000002  -17.024625784530  -17.024625784530  -17.024625784530    0.870834476780    1.012417644189    0.870834476780
-     CP           :     1.14s CPU time,    1.30s wall time
+     CP           :     0.66s CPU time,    0.76s wall time
 
      iteration =   5  eff iteration =   5   Etot (Ha) =    -17.02462578453031 delta_E=  0.17230661342182E-11
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -1639,7 +1639,7 @@ Step     3       0    -17.02463    -17.02463    -17.02463     6
  tnosep= F thdyn= F
 
    writing restart file: ./TMP-CP//kc_53.save
-   restart file written in    0.139 sec.
+   restart file written in    0.068 sec.
 
  
                               lambda   nudx, spin =    4   1
@@ -1661,42 +1661,42 @@ Step     3       0    -17.02463    -17.02463    -17.02463     6
    volume        :     4410.16474    4410.16474 (AU)
 
 
-     initialize   :     0.42s CPU
-     total_time   :     0.87s CPU
-     formf        :     0.04s CPU
-     rhoofr       :     0.10s CPU (      11 calls,   0.009 s avg)
-     vofrho       :     0.64s CPU (      11 calls,   0.058 s avg)
-     vofrho1      :     0.05s CPU
-     vofrho2      :     0.29s CPU (       5 calls,   0.058 s avg)
-     vofrho3      :     0.29s CPU (       5 calls,   0.059 s avg)
-     dforce       :     0.08s CPU (      24 calls,   0.003 s avg)
-     dforce1      :     0.06s CPU (      20 calls,   0.003 s avg)
-     dforce2      :     0.15s CPU
+     initialize   :     0.25s CPU
+     total_time   :     0.48s CPU
+     formf        :     0.02s CPU
+     rhoofr       :     0.06s CPU (      11 calls,   0.005 s avg)
+     vofrho       :     0.36s CPU (      11 calls,   0.033 s avg)
+     vofrho1      :     0.03s CPU
+     vofrho2      :     0.16s CPU (       5 calls,   0.033 s avg)
+     vofrho3      :     0.16s CPU (       5 calls,   0.032 s avg)
+     dforce       :     0.04s CPU (      24 calls,   0.002 s avg)
+     dforce1      :     0.03s CPU (      20 calls,   0.002 s avg)
+     dforce2      :     0.07s CPU
      calphi       :     0.00s CPU (       6 calls,   0.000 s avg)
      newd         :     0.00s CPU (       6 calls,   0.000 s avg)
-     calbec       :     0.03s CPU (      44 calls,   0.001 s avg)
+     calbec       :     0.02s CPU (      44 calls,   0.000 s avg)
      prefor       :     0.00s CPU (       8 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
-     nlsm1        :     0.03s CPU (      44 calls,   0.001 s avg)
-     fft          :     0.19s CPU (     188 calls,   0.001 s avg)
-     ffts         :     0.02s CPU (      22 calls,   0.001 s avg)
-     fftw         :     0.12s CPU (     184 calls,   0.001 s avg)
-     cft3s        :     0.33s CPU (     394 calls,   0.001 s avg)
-     fft_scatter  :     0.11s CPU (     394 calls,   0.000 s avg)
+     nlsm1        :     0.02s CPU (      44 calls,   0.000 s avg)
+     fft          :     0.10s CPU (     188 calls,   0.001 s avg)
+     ffts         :     0.01s CPU (      22 calls,   0.001 s avg)
+     fftw         :     0.06s CPU (     184 calls,   0.000 s avg)
+     cft3s        :     0.18s CPU (     394 calls,   0.000 s avg)
+     fft_scatter  :     0.05s CPU (     394 calls,   0.000 s avg)
 
-     outer_loop   :     0.85s CPU (       5 calls,   0.169 s avg)
-     runcg_uspp   :     0.87s CPU
-     pc2          :     0.01s CPU (      15 calls,   0.000 s avg)
+     outer_loop   :     0.48s CPU (       5 calls,   0.095 s avg)
+     runcg_uspp   :     0.48s CPU
+     pc2          :     0.00s CPU (      15 calls,   0.000 s avg)
      pcdaga2      :     0.00s CPU (       5 calls,   0.000 s avg)
      xminus1      :     0.00s CPU (      10 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     1.45s CPU time,    1.62s wall time
+     CP           :     0.82s CPU time,    0.93s wall time
 
  
-   This run was terminated on:  15:33:30  10Mar2020            
+   This run was terminated on:  11:43:26   7May2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -1721,7 +1721,7 @@ Contents of ./calc_alpha/orbital_1/pbe_n-1.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  15:33:30  10Mar2020               
+   This run was started on:  11:43:26   7May2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -1797,7 +1797,7 @@ Warning: card K_POINTS GAMMA ignored
     ========================================
     |  CONJUGATE GRADIENT                  |
     ========================================
-    | iterations   =           100         |
+    | iterations   =           300         |
     | conv_thr     = 0.00000080000 a.u.    |
     | passop       =       2.00000 a.u.    |
     | niter_cg_restart =  20      |
@@ -2009,7 +2009,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: ./TMP-CP//kc_52.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.236 sec.
+   restart file read in    0.146 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            2
@@ -2035,72 +2035,72 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.54s CPU time,    0.68s wall time
+     CP           :     0.31s CPU time,    0.40s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -16.31003051443746
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.310030514437   -0.310603654263  -15.998435694742  -16.413455053386  -16.401087994093    0.665958288185    2.000000000000    0.665958288185
-     CP           :     0.69s CPU time,    0.83s wall time
+     CP           :     0.40s CPU time,    0.49s wall time
 
      iteration =   2  eff iteration =   2   Etot (Ha) =    -16.40108799409257
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.401087994093   -0.036802177379  -16.413414384273  -16.413414810193  -16.413414773454    0.669896021293    0.665958288185    0.669896021293
-     CP           :     0.85s CPU time,    1.00s wall time
+     CP           :     0.48s CPU time,    0.58s wall time
 
      iteration =   3  eff iteration =   3   Etot (Ha) =    -16.41341477345370 delta_E=  0.91057479655110E-01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.413414773454   -0.005291650612  -16.415331075539  -16.415343786080  -16.415343918618    0.729077850296    0.669896021293    0.729077850296
-     CP           :     1.00s CPU time,    1.15s wall time
+     CP           :     0.57s CPU time,    0.67s wall time
 
      iteration =   4  eff iteration =   4   Etot (Ha) =    -16.41534391861788 delta_E=  0.12326779361121E-01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.415343918618   -0.000803538099  -16.415631512550  -16.415631607695  -16.415631480905    0.716055846690    0.729077850296    0.716055846690
   cg_sub: missed minimum, case 1, iteration    4      0.716055846690
-     CP           :     1.23s CPU time,    1.38s wall time
+     CP           :     0.70s CPU time,    0.80s wall time
 
      iteration =   5  eff iteration =   5   Etot (Ha) =    -16.41563151255010 delta_E=  0.19291451641870E-02
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.415631512550   -0.000218442201  -16.415306440822  -16.415694136884  -16.415694186875    0.573372119821    2.000000000000    0.573372119821
-     CP           :     1.39s CPU time,    1.55s wall time
+     CP           :     0.79s CPU time,    0.89s wall time
 
      iteration =   6  eff iteration =   6   Etot (Ha) =    -16.41569418687529 delta_E=  0.28759393222089E-03
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.415694186875   -0.000067230891  -16.415721906937  -16.415728494634  -16.415728572233    1.020595104485    0.573372119821    1.020595104485
-     CP           :     1.54s CPU time,    1.70s wall time
+     CP           :     0.88s CPU time,    0.98s wall time
 
      iteration =   7  eff iteration =   7   Etot (Ha) =    -16.41572857223263 delta_E=  0.62674325189249E-04
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.415728572233   -0.000027416138  -16.415736026761  -16.415738107875  -16.415738153713    0.695622589324    1.020595104485    0.695622589324
-     CP           :     1.71s CPU time,    1.86s wall time
+     CP           :     0.97s CPU time,    1.06s wall time
 
      iteration =   8  eff iteration =   8   Etot (Ha) =    -16.41573815371287 delta_E=  0.34385357341904E-04
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.415738153713   -0.000004970833  -16.415739746584  -16.415739756508  -16.415739602800    0.644879913361    0.695622589324    0.644879913361
   cg_sub: missed minimum, case 1, iteration    8      0.644879913361
-     CP           :     1.94s CPU time,    2.10s wall time
+     CP           :     1.09s CPU time,    1.19s wall time
 
      iteration =   9  eff iteration =   9   Etot (Ha) =    -16.41573974658439 delta_E=  0.95814802349992E-05
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.415739746584   -0.000000987709  -16.415738013973  -16.415740009681  -16.415739900938    0.532740690643    2.000000000000    0.532740690643
-     CP           :     2.09s CPU time,    2.25s wall time
+     CP           :     1.18s CPU time,    1.28s wall time
 
      iteration =  10  eff iteration =  10   Etot (Ha) =    -16.41573990093762 delta_E=  0.15928715200175E-05
 
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.415739900938   -0.000000265680  -16.415740029987  -16.415740301943  -16.415739233671    3.018711930192    0.532740690643    3.018711930192
   cg_sub: missed minimum, case 2, iteration   10
-     CP           :     2.32s CPU time,    2.48s wall time
+     CP           :     1.31s CPU time,    1.41s wall time
 
      iteration =  11  eff iteration =  11   Etot (Ha) =    -16.41574002998679 delta_E=  0.15435323419410E-06
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.415740029987   -0.000000065962  -16.415739996854  -16.415740056347  -16.415740077529    0.799264908437    2.000000000000    0.799264908437
-     CP           :     2.48s CPU time,    2.64s wall time
+     CP           :     1.40s CPU time,    1.50s wall time
 
      iteration =  12  eff iteration =  12   Etot (Ha) =    -16.41574007752913 delta_E=  0.12904916246725E-06
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.415740077529   -0.000000038138  -16.415740109995  -16.415740109995  -16.415740109995    0.799264908437    0.799264908437    0.799264908437
   cg_sub: missed minimum, case 1, iteration   12      0.799264908437
-     CP           :     2.71s CPU time,    2.87s wall time
+     CP           :     1.52s CPU time,    1.62s wall time
 
      iteration =  13  eff iteration =  13   Etot (Ha) =    -16.41574010999465 delta_E=  0.47542346948148E-07
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -2185,7 +2185,7 @@ Step     3       0    -16.41574    -16.41574    -16.41574    14
  tnosep= F thdyn= F
 
    writing restart file: ./TMP-CP//kc_54.save
-   restart file written in    0.139 sec.
+   restart file written in    0.068 sec.
 
  
                               lambda   nudx, spin =    4   1
@@ -2207,42 +2207,42 @@ Step     3       0    -16.41574    -16.41574    -16.41574    14
    volume        :     4410.16474    4410.16474 (AU)
 
 
-     initialize   :     0.44s CPU
-     total_time   :     2.41s CPU
-     formf        :     0.04s CPU
-     rhoofr       :     0.27s CPU (      31 calls,   0.009 s avg)
-     vofrho       :     1.81s CPU (      31 calls,   0.058 s avg)
-     vofrho1      :     0.30s CPU (       5 calls,   0.060 s avg)
-     vofrho2      :     0.75s CPU (      13 calls,   0.058 s avg)
-     vofrho3      :     0.76s CPU (      13 calls,   0.058 s avg)
-     dforce       :     0.19s CPU (      56 calls,   0.003 s avg)
-     dforce1      :     0.18s CPU (      52 calls,   0.003 s avg)
-     dforce2      :     0.14s CPU
+     initialize   :     0.24s CPU
+     total_time   :     1.36s CPU
+     formf        :     0.02s CPU
+     rhoofr       :     0.16s CPU (      31 calls,   0.005 s avg)
+     vofrho       :     1.03s CPU (      31 calls,   0.033 s avg)
+     vofrho1      :     0.17s CPU (       5 calls,   0.033 s avg)
+     vofrho2      :     0.43s CPU (      13 calls,   0.033 s avg)
+     vofrho3      :     0.43s CPU (      13 calls,   0.033 s avg)
+     dforce       :     0.09s CPU (      56 calls,   0.002 s avg)
+     dforce1      :     0.09s CPU (      52 calls,   0.002 s avg)
+     dforce2      :     0.06s CPU
      calphi       :     0.00s CPU (      14 calls,   0.000 s avg)
      newd         :     0.00s CPU (      14 calls,   0.000 s avg)
-     calbec       :     0.09s CPU (     124 calls,   0.001 s avg)
+     calbec       :     0.04s CPU (     124 calls,   0.000 s avg)
      prefor       :     0.00s CPU (      16 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
-     nlsm1        :     0.09s CPU (     124 calls,   0.001 s avg)
-     fft          :     0.54s CPU (     528 calls,   0.001 s avg)
-     ffts         :     0.06s CPU (      62 calls,   0.001 s avg)
-     fftw         :     0.29s CPU (     472 calls,   0.001 s avg)
-     cft3s        :     0.89s CPU (    1062 calls,   0.001 s avg)
-     fft_scatter  :     0.29s CPU (    1062 calls,   0.000 s avg)
+     nlsm1        :     0.04s CPU (     124 calls,   0.000 s avg)
+     fft          :     0.29s CPU (     528 calls,   0.001 s avg)
+     ffts         :     0.03s CPU (      62 calls,   0.001 s avg)
+     fftw         :     0.16s CPU (     472 calls,   0.000 s avg)
+     cft3s        :     0.48s CPU (    1062 calls,   0.000 s avg)
+     fft_scatter  :     0.15s CPU (    1062 calls,   0.000 s avg)
 
-     outer_loop   :     2.39s CPU (      13 calls,   0.184 s avg)
-     runcg_uspp   :     2.41s CPU
-     pc2          :     0.02s CPU (      39 calls,   0.000 s avg)
-     pcdaga2      :     0.01s CPU (      13 calls,   0.000 s avg)
+     outer_loop   :     1.35s CPU (      13 calls,   0.104 s avg)
+     runcg_uspp   :     1.36s CPU
+     pc2          :     0.01s CPU (      39 calls,   0.000 s avg)
+     pcdaga2      :     0.00s CPU (      13 calls,   0.000 s avg)
      xminus1      :     0.00s CPU (      26 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     3.01s CPU time,    3.18s wall time
+     CP           :     1.68s CPU time,    1.79s wall time
 
  
-   This run was terminated on:  15:33:33  10Mar2020            
+   This run was terminated on:  11:43:28   7May2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -2267,7 +2267,7 @@ Contents of ./calc_alpha/orbital_1/ki_it1.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  15:33:33  10Mar2020               
+   This run was started on:  11:43:28   7May2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -2330,7 +2330,7 @@ Warning: card K_POINTS GAMMA ignored
     ========================================
     |  CONJUGATE GRADIENT                  |
     ========================================
-    | iterations   =             2         |
+    | iterations   =           300         |
     | conv_thr     = 0.00000080000 a.u.    |
     | passop       =       2.00000 a.u.    |
     | niter_cg_restart =  20      |
@@ -2549,7 +2549,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: ./TMP-CP//kc_52.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.232 sec.
+   restart file read in    0.146 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            2
@@ -2565,17 +2565,17 @@ Warning: card K_POINTS GAMMA ignored
 
  * Physical Quantities at step:     3
            0 call to runcg_uspp in move_electrons.f90
-           3 call to runcg_uspp in move_electrons.f90
-           6 call to runcg_uspp in move_electrons.f90
-           7 call to runcg_uspp in move_electrons.f90
            1 call to runcg_uspp in move_electrons.f90
            2 call to runcg_uspp in move_electrons.f90
+           3 call to runcg_uspp in move_electrons.f90
            4 call to runcg_uspp in move_electrons.f90
            5 call to runcg_uspp in move_electrons.f90
+           6 call to runcg_uspp in move_electrons.f90
+           7 call to runcg_uspp in move_electrons.f90
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     1.04s CPU time,    1.19s wall time
+     CP           :     0.60s CPU time,    0.71s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -17.02462578451639
  norm dgrad           1  2.413944996497751E-012
@@ -2585,22 +2585,62 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
  norm dgrad           1  9.288934339406452E-016
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784516   -0.000000000019  -17.024625784507  -17.024625784524  -17.024625784524    0.798363532181    2.000000000000    0.798363532181
+     CP           :     1.26s CPU time,    1.41s wall time
+
+     iteration =   2  eff iteration =   2   Etot (Ha) =    -17.02462578452422
+ norm dgrad           1  2.082952650440330E-012
+ norm dgrad           2  4.084015822320328E-027
+ norm dgrad           1  4.770426407056702E-031
+ norm dgrad           1  8.123119728653887E-017
+ norm dgrad           1  5.514125337168679E-016
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -17.024625784524   -0.000000000006  -17.024625784528  -17.024625784528  -17.024625784528    1.138122080431    0.798363532181    1.138122080431
+     CP           :     1.94s CPU time,    2.11s wall time
+
+     iteration =   3  eff iteration =   3   Etot (Ha) =    -17.02462578452778 delta_E=  0.78266282343975E-11
+ norm dgrad           1  2.126103117639202E-012
+ norm dgrad           2  1.301564041175047E-026
+ norm dgrad           1  4.835168915753156E-031
+ norm dgrad           1  3.167018608422181E-016
+ norm dgrad           1  8.720469667874435E-017
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -17.024625784528   -0.000000000003  -17.024625784530  -17.024625784530  -17.024625784530    1.024717950876    1.138122080431    1.024717950876
+     CP           :     2.61s CPU time,    2.80s wall time
+
+     iteration =   4  eff iteration =   4   Etot (Ha) =    -17.02462578452952 delta_E=  0.35633718198369E-11
+ norm dgrad           1  2.032863497156002E-012
+ norm dgrad           2  1.753432071037758E-026
+ norm dgrad           1  5.527680353069264E-031
+ norm dgrad           1  2.622058143407555E-016
+ norm dgrad           1  3.296545802556125E-016
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -17.024625784530   -0.000000000002  -17.024625784530  -17.024625784530  -17.024625784530    0.856619930381    1.024717950876    0.856619930381
+     CP           :     3.28s CPU time,    3.50s wall time
+
+     iteration =   5  eff iteration =   5   Etot (Ha) =    -17.02462578453033 delta_E=  0.17408297026122E-11
+ norm dgrad           1  1.903947054244147E-012
+ norm dgrad           2  1.926743209541331E-026
+ norm dgrad           1  5.721736897678891E-031
+ norm dgrad           1  3.578991382407056E-017
+ norm dgrad           1  2.954580929997616E-016
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -17.024625784530   -0.000000000001  -17.024625784530  -17.024625784531  -17.024625784531    0.316553249564    0.856619930381    0.316553249564
  NLN: This is 2nd term in MP formular, computed with localized orbital
  NLN: Use for extended system only where tcc does not have the correction
  Test MP:   1.00000000000000        4410.16473991811     
-   134.351134257660     
+   134.351132451664     
  Makov-Payne 1st energy  -7.890492600178715E-002
- Makov-Payne 2nd energy   6.380359333140007E-002
+ Makov-Payne 2nd energy   6.380359247372913E-002
 
 
                 total energy =     -17.0246257845 Hartree a.u.
-              kinetic energy =      11.9021821721 Hartree a.u.
-        electrostatic energy =     -14.6325891217 Hartree a.u.
+              kinetic energy =      11.9021828621 Hartree a.u.
+        electrostatic energy =     -14.6325891245 Hartree a.u.
                          esr =       0.4683965329 Hartree a.u.
                        eself =      15.1598066553 Hartree a.u.
-      pseudopotential energy =      -9.4799584913 Hartree a.u.
-  n-l pseudopotential energy =      -0.6205174695 Hartree a.u.
- exchange-correlation energy =      -4.1937428741 Hartree a.u.
+      pseudopotential energy =      -9.4799584100 Hartree a.u.
+  n-l pseudopotential energy =      -0.6205181830 Hartree a.u.
+ exchange-correlation energy =      -4.1937429290 Hartree a.u.
            average potential =       0.0000000000 Hartree a.u.
                   odd energy =       0.0000000000 Hartree a.u.
         van der waals energy =       0.0000000000 Hartree a.u.
@@ -2633,9 +2673,9 @@ OCC    2 --    1.00   ---    5.55    1.26    2.69   --- 132.520  10.946   0.000 
 OCC    3 --    1.00   ---   -5.54    1.09    2.69   --- 132.951  10.945   0.000   0.600
 OCC    4 --    1.00   ---   -0.81    3.14    5.34   --- 127.815  10.099   0.000   0.600
   Complexification index 
- (9.159339953157541E-011,0.000000000000000E+000)
+ (-1.523670078995565E-010,0.000000000000000E+000)
  
-   Allocated memory (kb) =     38040
+   Allocated memory (kb) =     38036
  
    CELL_PARAMETERS
     1.79792324E+01    0.00000000E+00    0.00000000E+00
@@ -2667,17 +2707,17 @@ OCC    4 --    1.00   ---   -0.81    3.14    5.34   --- 127.815  10.099   0.000 
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
  
        nfi   tempp            E -T.S-mu.nbsp         +K_p #Iter
-Step     3       0    -17.02463    -17.02463    -17.02463     2
+Step     3       0    -17.02463    -17.02463    -17.02463     6
  tnosep= F thdyn= F
 
    writing restart file: ./TMP-CP//kc_60.save
-   restart file written in    0.137 sec.
+   restart file written in    0.068 sec.
 
  
                               lambda   nudx, spin =    4   1
- fixed_lambda            1           1 -0.584914013856040     
+ fixed_lambda            1           1 -0.584913943673329     
                               lambda   nudx, spin =    4   2
- fixed_lambda            1           1 -0.584914087784873     
+ fixed_lambda            1           1 -0.584914068531493     
 
 
    Averaged Physical Quantities
@@ -2693,46 +2733,46 @@ Step     3       0    -17.02463    -17.02463    -17.02463     2
    volume        :     4410.16474    4410.16474 (AU)
 
 
-     initialize   :     0.44s CPU
-     total_time   :     1.80s CPU
-     formf        :     0.04s CPU
-     rhoofr       :     0.02s CPU (       3 calls,   0.007 s avg)
-     vofrho       :     0.17s CPU (       3 calls,   0.057 s avg)
-     vofrho1      :     0.06s CPU
-     vofrho2      :     0.06s CPU
-     vofrho3      :     0.06s CPU
-     dforce       :     0.03s CPU (       8 calls,   0.004 s avg)
-     dforce1      :     0.02s CPU (       4 calls,   0.004 s avg)
-     dforce2      :     0.19s CPU
-     calphi       :     0.00s CPU (       2 calls,   0.000 s avg)
-     newd         :     0.00s CPU (       2 calls,   0.000 s avg)
-     calbec       :     0.01s CPU (      12 calls,   0.001 s avg)
-     prefor       :     0.00s CPU (       4 calls,   0.000 s avg)
+     initialize   :     0.26s CPU
+     total_time   :     3.73s CPU
+     formf        :     0.02s CPU
+     rhoofr       :     0.06s CPU (      11 calls,   0.005 s avg)
+     vofrho       :     0.35s CPU (      11 calls,   0.032 s avg)
+     vofrho1      :     0.03s CPU
+     vofrho2      :     0.16s CPU (       5 calls,   0.032 s avg)
+     vofrho3      :     0.16s CPU (       5 calls,   0.031 s avg)
+     dforce       :     0.04s CPU (      24 calls,   0.002 s avg)
+     dforce1      :     0.03s CPU (      20 calls,   0.002 s avg)
+     dforce2      :     0.11s CPU
+     calphi       :     0.00s CPU (       6 calls,   0.000 s avg)
+     newd         :     0.00s CPU (       6 calls,   0.000 s avg)
+     calbec       :     0.02s CPU (      44 calls,   0.000 s avg)
+     prefor       :     0.00s CPU (       8 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
-     nlsm1        :     0.01s CPU (      12 calls,   0.001 s avg)
-     fft          :     0.53s CPU (     526 calls,   0.001 s avg)
-     ffts         :     0.01s CPU (       6 calls,   0.001 s avg)
-     fftw         :     0.04s CPU (      56 calls,   0.001 s avg)
-     cft3s        :     0.57s CPU (     588 calls,   0.001 s avg)
-     fft_scatter  :     0.20s CPU (     588 calls,   0.000 s avg)
+     nlsm1        :     0.02s CPU (      44 calls,   0.000 s avg)
+     fft          :     0.99s CPU (    1798 calls,   0.001 s avg)
+     ffts         :     0.01s CPU (      22 calls,   0.001 s avg)
+     fftw         :     0.06s CPU (     184 calls,   0.000 s avg)
+     cft3s        :     1.06s CPU (    2004 calls,   0.001 s avg)
+     fft_scatter  :     0.36s CPU (    2004 calls,   0.000 s avg)
 
-     nk_eforce    :     0.04s CPU (       8 calls,   0.005 s avg)
-     nk_corr      :     1.26s CPU (      24 calls,   0.052 s avg)
-     nk_corr_h    :     0.09s CPU (      24 calls,   0.004 s avg)
-     nk_corr_vxc  :     1.14s CPU (      24 calls,   0.048 s avg)
+     nk_eforce    :     0.06s CPU (      24 calls,   0.002 s avg)
+     nk_corr      :     2.73s CPU (      88 calls,   0.031 s avg)
+     nk_corr_h    :     0.19s CPU (      88 calls,   0.002 s avg)
+     nk_corr_vxc  :     2.49s CPU (      88 calls,   0.028 s avg)
 
 
-     outer_loop   :     1.74s CPU
-     runcg_uspp   :     1.77s CPU
-     xminus1      :     0.00s CPU (       2 calls,   0.000 s avg)
+     outer_loop   :     3.69s CPU (       5 calls,   0.739 s avg)
+     runcg_uspp   :     3.71s CPU
+     xminus1      :     0.00s CPU (      10 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     2.40s CPU time,    2.62s wall time
+     CP           :     4.08s CPU time,    4.33s wall time
 
  
-   This run was terminated on:  15:33:36  10Mar2020            
+   This run was terminated on:  11:43:33   7May2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -2757,7 +2797,7 @@ Contents of ./calc_alpha/orbital_2/pbe.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  15:33:36  10Mar2020               
+   This run was started on:  11:43:33   7May2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -2833,7 +2873,7 @@ Warning: card K_POINTS GAMMA ignored
     ========================================
     |  CONJUGATE GRADIENT                  |
     ========================================
-    | iterations   =           100         |
+    | iterations   =           300         |
     | conv_thr     = 0.00000080000 a.u.    |
     | passop       =       2.00000 a.u.    |
     | niter_cg_restart =  20      |
@@ -3045,7 +3085,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: ./TMP-CP//kc_52.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.243 sec.
+   restart file read in    0.157 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            2
@@ -3061,37 +3101,37 @@ Warning: card K_POINTS GAMMA ignored
 
  * Physical Quantities at step:     3
            0 call to runcg_uspp in move_electrons.f90
-           7 call to runcg_uspp in move_electrons.f90
            1 call to runcg_uspp in move_electrons.f90
            2 call to runcg_uspp in move_electrons.f90
            3 call to runcg_uspp in move_electrons.f90
            4 call to runcg_uspp in move_electrons.f90
            5 call to runcg_uspp in move_electrons.f90
            6 call to runcg_uspp in move_electrons.f90
+           7 call to runcg_uspp in move_electrons.f90
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.55s CPU time,    0.70s wall time
+     CP           :     0.33s CPU time,    0.42s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -17.02462578451640
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784516   -0.000000000019  -17.024625784510  -17.024625784525  -17.024625784525    0.850682416939    2.000000000000    0.850682416939
-     CP           :     0.69s CPU time,    0.85s wall time
+     CP           :     0.41s CPU time,    0.51s wall time
 
      iteration =   2  eff iteration =   2   Etot (Ha) =    -17.02462578452490
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784525   -0.000000000007  -17.024625784529  -17.024625784529  -17.024625784529    1.116970972514    0.850682416939    1.116970972514
-     CP           :     0.85s CPU time,    1.01s wall time
+     CP           :     0.50s CPU time,    0.60s wall time
 
      iteration =   3  eff iteration =   3   Etot (Ha) =    -17.02462578452894 delta_E=  0.85087492607272E-11
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784529   -0.000000000004  -17.024625784529  -17.024625784530  -17.024625784530    0.622432303974    1.116970972514    0.622432303974
-     CP           :     1.01s CPU time,    1.17s wall time
+     CP           :     0.59s CPU time,    0.69s wall time
 
      iteration =   4  eff iteration =   4   Etot (Ha) =    -17.02462578453025 delta_E=  0.40358827391174E-11
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784530   -0.000000000004  -17.024625784531  -17.024625784531  -17.024625784531    0.398747381892    0.622432303974    0.398747381892
-     CP           :     1.16s CPU time,    1.32s wall time
+     CP           :     0.68s CPU time,    0.77s wall time
 
      iteration =   5  eff iteration =   5   Etot (Ha) =    -17.02462578453106 delta_E=  0.13145040611562E-11
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -3176,7 +3216,7 @@ Step     3       0    -17.02463    -17.02463    -17.02463     6
  tnosep= F thdyn= F
 
    writing restart file: ./TMP-CP//kc_53.save
-   restart file written in    0.132 sec.
+   restart file written in    0.068 sec.
 
  
                               lambda   nudx, spin =    4   1
@@ -3198,42 +3238,42 @@ Step     3       0    -17.02463    -17.02463    -17.02463     6
    volume        :     4410.16474    4410.16474 (AU)
 
 
-     initialize   :     0.44s CPU
-     total_time   :     0.87s CPU
-     formf        :     0.04s CPU
-     rhoofr       :     0.09s CPU (      11 calls,   0.009 s avg)
-     vofrho       :     0.64s CPU (      11 calls,   0.058 s avg)
-     vofrho1      :     0.07s CPU
-     vofrho2      :     0.29s CPU (       5 calls,   0.058 s avg)
-     vofrho3      :     0.28s CPU (       5 calls,   0.057 s avg)
-     dforce       :     0.08s CPU (      24 calls,   0.003 s avg)
-     dforce1      :     0.07s CPU (      20 calls,   0.003 s avg)
-     dforce2      :     0.13s CPU
+     initialize   :     0.26s CPU
+     total_time   :     0.49s CPU
+     formf        :     0.02s CPU
+     rhoofr       :     0.06s CPU (      11 calls,   0.005 s avg)
+     vofrho       :     0.36s CPU (      11 calls,   0.033 s avg)
+     vofrho1      :     0.03s CPU
+     vofrho2      :     0.16s CPU (       5 calls,   0.033 s avg)
+     vofrho3      :     0.16s CPU (       5 calls,   0.033 s avg)
+     dforce       :     0.04s CPU (      24 calls,   0.002 s avg)
+     dforce1      :     0.03s CPU (      20 calls,   0.002 s avg)
+     dforce2      :     0.07s CPU
      calphi       :     0.00s CPU (       6 calls,   0.000 s avg)
      newd         :     0.00s CPU (       6 calls,   0.000 s avg)
-     calbec       :     0.03s CPU (      44 calls,   0.001 s avg)
+     calbec       :     0.02s CPU (      44 calls,   0.000 s avg)
      prefor       :     0.00s CPU (       8 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
-     nlsm1        :     0.03s CPU (      44 calls,   0.001 s avg)
-     fft          :     0.19s CPU (     188 calls,   0.001 s avg)
-     ffts         :     0.02s CPU (      22 calls,   0.001 s avg)
-     fftw         :     0.11s CPU (     184 calls,   0.001 s avg)
-     cft3s        :     0.32s CPU (     394 calls,   0.001 s avg)
-     fft_scatter  :     0.10s CPU (     394 calls,   0.000 s avg)
+     nlsm1        :     0.02s CPU (      44 calls,   0.000 s avg)
+     fft          :     0.10s CPU (     188 calls,   0.001 s avg)
+     ffts         :     0.01s CPU (      22 calls,   0.001 s avg)
+     fftw         :     0.06s CPU (     184 calls,   0.000 s avg)
+     cft3s        :     0.18s CPU (     394 calls,   0.000 s avg)
+     fft_scatter  :     0.05s CPU (     394 calls,   0.000 s avg)
 
-     outer_loop   :     0.85s CPU (       5 calls,   0.170 s avg)
-     runcg_uspp   :     0.86s CPU
-     pc2          :     0.01s CPU (      15 calls,   0.000 s avg)
+     outer_loop   :     0.48s CPU (       5 calls,   0.096 s avg)
+     runcg_uspp   :     0.49s CPU
+     pc2          :     0.00s CPU (      15 calls,   0.000 s avg)
      pcdaga2      :     0.00s CPU (       5 calls,   0.000 s avg)
      xminus1      :     0.00s CPU (      10 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     1.45s CPU time,    1.63s wall time
+     CP           :     0.83s CPU time,    0.94s wall time
 
  
-   This run was terminated on:  15:33:38  10Mar2020            
+   This run was terminated on:  11:43:34   7May2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -3258,7 +3298,7 @@ Contents of ./calc_alpha/orbital_2/pbe_n-1.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  15:33:38  10Mar2020               
+   This run was started on:  11:43:34   7May2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -3334,7 +3374,7 @@ Warning: card K_POINTS GAMMA ignored
     ========================================
     |  CONJUGATE GRADIENT                  |
     ========================================
-    | iterations   =           100         |
+    | iterations   =           300         |
     | conv_thr     = 0.00000080000 a.u.    |
     | passop       =       2.00000 a.u.    |
     | niter_cg_restart =  20      |
@@ -3546,7 +3586,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: ./TMP-CP//kc_52.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.235 sec.
+   restart file read in    0.157 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            2
@@ -3572,71 +3612,71 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.55s CPU time,    0.74s wall time
+     CP           :     0.32s CPU time,    0.42s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -16.05138646671696
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.051386466717   -0.295801239433  -15.757973526271  -16.150252962532  -16.139387807214    0.668465730603    2.000000000000    0.668465730603
-     CP           :     0.70s CPU time,    0.90s wall time
+     CP           :     0.41s CPU time,    0.51s wall time
 
      iteration =   2  eff iteration =   2   Etot (Ha) =    -16.13938780721436
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.139387807214   -0.030787876252  -16.149401687780  -16.149408919781  -16.149409094559    0.650977838447    0.668465730603    0.650977838447
-     CP           :     0.86s CPU time,    1.06s wall time
+     CP           :     0.50s CPU time,    0.59s wall time
 
      iteration =   3  eff iteration =   3   Etot (Ha) =    -16.14940909455949 delta_E=  0.88001340497406E-01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.149409094559   -0.004383027165  -16.150992876414  -16.151012331530  -16.151012071140    0.731566066229    0.650977838447    0.731566066229
-     CP           :     1.01s CPU time,    1.21s wall time
+     CP           :     0.59s CPU time,    0.68s wall time
 
      iteration =   4  eff iteration =   4   Etot (Ha) =    -16.15101207114021 delta_E=  0.10021287345129E-01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.151012071140   -0.000770904641  -16.151289669795  -16.151289736946  -16.151289807216    0.720363559768    0.731566066229    0.720363559768
-     CP           :     1.17s CPU time,    1.37s wall time
+     CP           :     0.68s CPU time,    0.77s wall time
 
      iteration =   5  eff iteration =   5   Etot (Ha) =    -16.15128980721615 delta_E=  0.16029765807204E-02
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.151289807216   -0.000201088663  -16.151360766195  -16.151360795417  -16.151360643921    0.706038817483    0.720363559768    0.706038817483
   cg_sub: missed minimum, case 1, iteration    5      0.706038817483
-     CP           :     1.41s CPU time,    1.61s wall time
+     CP           :     0.80s CPU time,    0.90s wall time
 
      iteration =   6  eff iteration =   6   Etot (Ha) =    -16.15136076619546 delta_E=  0.27773607593673E-03
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.151360766195   -0.000048041859  -16.151286204936  -16.151374291470  -16.151374195102    0.563062088999    2.000000000000    0.563062088999
-     CP           :     1.56s CPU time,    1.76s wall time
+     CP           :     0.89s CPU time,    0.99s wall time
 
      iteration =   7  eff iteration =   7   Etot (Ha) =    -16.15137419510232 delta_E=  0.70958979311087E-04
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.151374195102   -0.000013399329  -16.151379295252  -16.151380016507  -16.151380051572    0.868909937240    0.563062088999    0.868909937240
-     CP           :     1.71s CPU time,    1.92s wall time
+     CP           :     0.98s CPU time,    1.07s wall time
 
      iteration =   8  eff iteration =   8   Etot (Ha) =    -16.15138005157239 delta_E=  0.13428906857627E-04
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.151380051572   -0.000005869651  -16.151382300334  -16.151382332179  -16.151382307832    0.777084369727    0.868909937240    0.777084369727
-     CP           :     1.89s CPU time,    2.09s wall time
+     CP           :     1.06s CPU time,    1.16s wall time
 
      iteration =   9  eff iteration =   9   Etot (Ha) =    -16.15138230783196 delta_E=  0.58564700680108E-05
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.151382307832   -0.000001170374  -16.151382598579  -16.151382642045  -16.151382540876    0.571121398820    0.777084369727    0.571121398820
   cg_sub: missed minimum, case 1, iteration    9      0.571121398820
-     CP           :     2.12s CPU time,    2.33s wall time
+     CP           :     1.19s CPU time,    1.29s wall time
 
      iteration =  10  eff iteration =  10   Etot (Ha) =    -16.15138259857931 delta_E=  0.22562595702880E-05
 
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.151382598579   -0.000000362170  -16.151382065429  -16.151382702888  -16.151382734779    0.576020717319    2.000000000000    0.576020717319
-     CP           :     2.28s CPU time,    2.49s wall time
+     CP           :     1.28s CPU time,    1.38s wall time
 
      iteration =  11  eff iteration =  11   Etot (Ha) =    -16.15138273477877 delta_E=  0.29074735152790E-06
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.151382734779   -0.000000101841  -16.151382786699  -16.151382862388  -16.151382711765    2.506055886785    0.576020717319    2.506055886785
   cg_sub: missed minimum, case 2, iteration   11
-     CP           :     2.52s CPU time,    2.72s wall time
+     CP           :     1.41s CPU time,    1.50s wall time
 
      iteration =  12  eff iteration =  12   Etot (Ha) =    -16.15138278669946 delta_E=  0.13619946415133E-06
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.151382786699   -0.000000026159  -16.151382806138  -16.151382807511  -16.151382807511    1.591201857159    2.000000000000    1.591201857159
-     CP           :     2.67s CPU time,    2.87s wall time
+     CP           :     1.50s CPU time,    1.59s wall time
 
      iteration =  13  eff iteration =  13   Etot (Ha) =    -16.15138280751139 delta_E=  0.51920686416906E-07
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -3722,7 +3762,7 @@ Step     3       0    -16.15138    -16.15138    -16.15138    14
  tnosep= F thdyn= F
 
    writing restart file: ./TMP-CP//kc_54.save
-   restart file written in    0.130 sec.
+   restart file written in    0.068 sec.
 
  
                               lambda   nudx, spin =    4   1
@@ -3744,42 +3784,42 @@ Step     3       0    -16.15138    -16.15138    -16.15138    14
    volume        :     4410.16474    4410.16474 (AU)
 
 
-     initialize   :     0.45s CPU
-     total_time   :     2.37s CPU
-     formf        :     0.04s CPU
-     rhoofr       :     0.27s CPU (      30 calls,   0.009 s avg)
-     vofrho       :     1.76s CPU (      30 calls,   0.059 s avg)
-     vofrho1      :     0.24s CPU (       4 calls,   0.061 s avg)
-     vofrho2      :     0.75s CPU (      13 calls,   0.058 s avg)
-     vofrho3      :     0.76s CPU (      13 calls,   0.058 s avg)
-     dforce       :     0.20s CPU (      56 calls,   0.004 s avg)
-     dforce1      :     0.18s CPU (      52 calls,   0.003 s avg)
-     dforce2      :     0.14s CPU
+     initialize   :     0.27s CPU
+     total_time   :     1.31s CPU
+     formf        :     0.02s CPU
+     rhoofr       :     0.15s CPU (      30 calls,   0.005 s avg)
+     vofrho       :     0.98s CPU (      30 calls,   0.033 s avg)
+     vofrho1      :     0.13s CPU (       4 calls,   0.032 s avg)
+     vofrho2      :     0.43s CPU (      13 calls,   0.033 s avg)
+     vofrho3      :     0.43s CPU (      13 calls,   0.033 s avg)
+     dforce       :     0.09s CPU (      56 calls,   0.002 s avg)
+     dforce1      :     0.08s CPU (      52 calls,   0.002 s avg)
+     dforce2      :     0.07s CPU
      calphi       :     0.00s CPU (      14 calls,   0.000 s avg)
      newd         :     0.00s CPU (      14 calls,   0.000 s avg)
-     calbec       :     0.09s CPU (     123 calls,   0.001 s avg)
+     calbec       :     0.04s CPU (     123 calls,   0.000 s avg)
      prefor       :     0.00s CPU (      16 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
-     nlsm1        :     0.09s CPU (     123 calls,   0.001 s avg)
-     fft          :     0.52s CPU (     511 calls,   0.001 s avg)
-     ffts         :     0.06s CPU (      60 calls,   0.001 s avg)
-     fftw         :     0.29s CPU (     464 calls,   0.001 s avg)
-     cft3s        :     0.87s CPU (    1035 calls,   0.001 s avg)
-     fft_scatter  :     0.28s CPU (    1035 calls,   0.000 s avg)
+     nlsm1        :     0.04s CPU (     123 calls,   0.000 s avg)
+     fft          :     0.28s CPU (     511 calls,   0.001 s avg)
+     ffts         :     0.03s CPU (      60 calls,   0.001 s avg)
+     fftw         :     0.15s CPU (     464 calls,   0.000 s avg)
+     cft3s        :     0.47s CPU (    1035 calls,   0.000 s avg)
+     fft_scatter  :     0.14s CPU (    1035 calls,   0.000 s avg)
 
-     outer_loop   :     2.35s CPU (      13 calls,   0.180 s avg)
-     runcg_uspp   :     2.37s CPU
-     pc2          :     0.02s CPU (      39 calls,   0.000 s avg)
-     pcdaga2      :     0.01s CPU (      13 calls,   0.000 s avg)
+     outer_loop   :     1.30s CPU (      13 calls,   0.100 s avg)
+     runcg_uspp   :     1.30s CPU
+     pc2          :     0.01s CPU (      39 calls,   0.000 s avg)
+     pcdaga2      :     0.00s CPU (      13 calls,   0.000 s avg)
      xminus1      :     0.00s CPU (      26 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     2.97s CPU time,    3.19s wall time
+     CP           :     1.65s CPU time,    1.76s wall time
 
  
-   This run was terminated on:  15:33:41  10Mar2020            
+   This run was terminated on:  11:43:36   7May2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -3804,7 +3844,7 @@ Contents of ./calc_alpha/orbital_2/ki_it1.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  15:33:41  10Mar2020               
+   This run was started on:  11:43:36   7May2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -3867,7 +3907,7 @@ Warning: card K_POINTS GAMMA ignored
     ========================================
     |  CONJUGATE GRADIENT                  |
     ========================================
-    | iterations   =             2         |
+    | iterations   =           300         |
     | conv_thr     = 0.00000080000 a.u.    |
     | passop       =       2.00000 a.u.    |
     | niter_cg_restart =  20      |
@@ -4086,7 +4126,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: ./TMP-CP//kc_52.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.235 sec.
+   restart file read in    0.157 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            2
@@ -4112,7 +4152,7 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     1.05s CPU time,    1.18s wall time
+     CP           :     0.61s CPU time,    0.72s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -17.02462578451640
  norm dgrad           1  3.551341102680419E-012
@@ -4122,22 +4162,62 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
  norm dgrad           1  2.367708950832683E-015
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784516   -0.000000000019  -17.024625784510  -17.024625784525  -17.024625784525    0.851487963671    2.000000000000    0.851487963671
+     CP           :     1.28s CPU time,    1.42s wall time
+
+     iteration =   2  eff iteration =   2   Etot (Ha) =    -17.02462578452489
+ norm dgrad           1  1.873774635450559E-012
+ norm dgrad           2  9.719479398607607E-027
+ norm dgrad           1  1.632951609083766E-031
+ norm dgrad           1  1.021895998766697E-015
+ norm dgrad           1  3.514002026010202E-015
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -17.024625784525   -0.000000000007  -17.024625784529  -17.024625784529  -17.024625784529    1.120769537663    0.851487963671    1.120769537663
+     CP           :     1.96s CPU time,    2.11s wall time
+
+     iteration =   3  eff iteration =   3   Etot (Ha) =    -17.02462578452894 delta_E=  0.84945384060120E-11
+ norm dgrad           1  3.794352694572356E-012
+ norm dgrad           2  4.075969105820092E-026
+ norm dgrad           1  1.476602774572614E-031
+ norm dgrad           1  2.188312535782876E-016
+ norm dgrad           1  2.099649512392140E-015
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -17.024625784529   -0.000000000004  -17.024625784529  -17.024625784530  -17.024625784530    0.618359399387    1.120769537663    0.618359399387
+     CP           :     2.62s CPU time,    2.81s wall time
+
+     iteration =   4  eff iteration =   4   Etot (Ha) =    -17.02462578453025 delta_E=  0.40465408801538E-11
+ norm dgrad           1  1.927993222174932E-012
+ norm dgrad           2  4.803016203225033E-026
+ norm dgrad           1  8.958053401920190E-032
+ norm dgrad           1  1.416096196477752E-016
+ norm dgrad           1  8.423379229352407E-016
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -17.024625784530   -0.000000000005  -17.024625784531  -17.024625784531  -17.024625784531    0.404683967917    0.618359399387    0.404683967917
+     CP           :     3.28s CPU time,    3.51s wall time
+
+     iteration =   5  eff iteration =   5   Etot (Ha) =    -17.02462578453108 delta_E=  0.13145040611562E-11
+ norm dgrad           1  3.119903406886804E-012
+ norm dgrad           2  5.053834775384079E-026
+ norm dgrad           1  1.186413465830518E-031
+ norm dgrad           1  1.453688838931360E-016
+ norm dgrad           1  9.921578912090644E-017
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -17.024625784531   -0.000000000002  -17.024625784532  -17.024625784532  -17.024625784532    0.714314401236    0.404683967917    0.714314401236
  NLN: This is 2nd term in MP formular, computed with localized orbital
  NLN: Use for extended system only where tcc does not have the correction
  Test MP:   1.00000000000000        4410.16473991811     
-   132.520171070456     
+   132.520168493601     
  Makov-Payne 1st energy  -7.890492600178715E-002
- Makov-Payne 2nd energy   6.293406564749456E-002
+ Makov-Payne 2nd energy   6.293406442374128E-002
 
 
                 total energy =     -17.0246257845 Hartree a.u.
-              kinetic energy =      11.9021826201 Hartree a.u.
-        electrostatic energy =     -14.6325891150 Hartree a.u.
+              kinetic energy =      11.9021831983 Hartree a.u.
+        electrostatic energy =     -14.6325891136 Hartree a.u.
                          esr =       0.4683965329 Hartree a.u.
                        eself =      15.1598066553 Hartree a.u.
-      pseudopotential energy =      -9.4799587423 Hartree a.u.
-  n-l pseudopotential energy =      -0.6205175674 Hartree a.u.
- exchange-correlation energy =      -4.1937429800 Hartree a.u.
+      pseudopotential energy =      -9.4799584940 Hartree a.u.
+  n-l pseudopotential energy =      -0.6205183822 Hartree a.u.
+ exchange-correlation energy =      -4.1937429930 Hartree a.u.
            average potential =       0.0000000000 Hartree a.u.
                   odd energy =       0.0000000000 Hartree a.u.
         van der waals energy =       0.0000000000 Hartree a.u.
@@ -4170,9 +4250,9 @@ OCC    2 --    1.00   ---    5.55    1.26    2.69   --- 132.520  10.946   0.000 
 OCC    3 --    1.00   ---   -5.54    1.09    2.69   --- 132.951  10.945   0.000   0.600
 OCC    4 --    1.00   ---   -0.81    3.14    5.34   --- 127.815  10.099   0.000   0.600
   Complexification index 
- (2.886579864025407E-011,0.000000000000000E+000)
+ (-2.684741318148554E-010,0.000000000000000E+000)
  
-   Allocated memory (kb) =     38040
+   Allocated memory (kb) =     38036
  
    CELL_PARAMETERS
     1.79792324E+01    0.00000000E+00    0.00000000E+00
@@ -4204,17 +4284,17 @@ OCC    4 --    1.00   ---   -0.81    3.14    5.34   --- 127.815  10.099   0.000 
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
  
        nfi   tempp            E -T.S-mu.nbsp         +K_p #Iter
-Step     3       0    -17.02463    -17.02463    -17.02463     2
+Step     3       0    -17.02463    -17.02463    -17.02463     6
  tnosep= F thdyn= F
 
    writing restart file: ./TMP-CP//kc_60.save
-   restart file written in    0.131 sec.
+   restart file written in    0.068 sec.
 
  
                               lambda   nudx, spin =    4   1
- fixed_lambda            2           2 -0.838353589037733     
+ fixed_lambda            2           2 -0.838353557038296     
                               lambda   nudx, spin =    4   2
- fixed_lambda            2           2 -0.838353622092842     
+ fixed_lambda            2           2 -0.838353506272357     
 
 
    Averaged Physical Quantities
@@ -4230,46 +4310,46 @@ Step     3       0    -17.02463    -17.02463    -17.02463     2
    volume        :     4410.16474    4410.16474 (AU)
 
 
-     initialize   :     0.46s CPU
-     total_time   :     1.85s CPU
-     formf        :     0.04s CPU
-     rhoofr       :     0.03s CPU (       3 calls,   0.011 s avg)
-     vofrho       :     0.18s CPU (       3 calls,   0.059 s avg)
-     vofrho1      :     0.06s CPU
-     vofrho2      :     0.06s CPU
-     vofrho3      :     0.06s CPU
-     dforce       :     0.02s CPU (       8 calls,   0.003 s avg)
-     dforce1      :     0.01s CPU (       4 calls,   0.004 s avg)
-     dforce2      :     0.20s CPU
-     calphi       :     0.00s CPU (       2 calls,   0.000 s avg)
-     newd         :     0.00s CPU (       2 calls,   0.000 s avg)
-     calbec       :     0.01s CPU (      12 calls,   0.001 s avg)
-     prefor       :     0.00s CPU (       4 calls,   0.000 s avg)
+     initialize   :     0.27s CPU
+     total_time   :     3.72s CPU
+     formf        :     0.02s CPU
+     rhoofr       :     0.06s CPU (      11 calls,   0.005 s avg)
+     vofrho       :     0.37s CPU (      11 calls,   0.033 s avg)
+     vofrho1      :     0.03s CPU
+     vofrho2      :     0.17s CPU (       5 calls,   0.033 s avg)
+     vofrho3      :     0.17s CPU (       5 calls,   0.034 s avg)
+     dforce       :     0.04s CPU (      24 calls,   0.002 s avg)
+     dforce1      :     0.04s CPU (      20 calls,   0.002 s avg)
+     dforce2      :     0.10s CPU
+     calphi       :     0.00s CPU (       6 calls,   0.000 s avg)
+     newd         :     0.00s CPU (       6 calls,   0.000 s avg)
+     calbec       :     0.02s CPU (      44 calls,   0.000 s avg)
+     prefor       :     0.00s CPU (       8 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
-     nlsm1        :     0.01s CPU (      12 calls,   0.001 s avg)
-     fft          :     0.56s CPU (     526 calls,   0.001 s avg)
-     ffts         :     0.01s CPU (       6 calls,   0.001 s avg)
-     fftw         :     0.04s CPU (      56 calls,   0.001 s avg)
-     cft3s        :     0.60s CPU (     588 calls,   0.001 s avg)
-     fft_scatter  :     0.22s CPU (     588 calls,   0.000 s avg)
+     nlsm1        :     0.02s CPU (      44 calls,   0.000 s avg)
+     fft          :     0.99s CPU (    1798 calls,   0.001 s avg)
+     ffts         :     0.01s CPU (      22 calls,   0.001 s avg)
+     fftw         :     0.06s CPU (     184 calls,   0.000 s avg)
+     cft3s        :     1.06s CPU (    2004 calls,   0.001 s avg)
+     fft_scatter  :     0.35s CPU (    2004 calls,   0.000 s avg)
 
-     nk_eforce    :     0.04s CPU (       8 calls,   0.005 s avg)
-     nk_corr      :     1.27s CPU (      24 calls,   0.053 s avg)
-     nk_corr_h    :     0.10s CPU (      24 calls,   0.004 s avg)
-     nk_corr_vxc  :     1.16s CPU (      24 calls,   0.048 s avg)
+     nk_eforce    :     0.06s CPU (      24 calls,   0.002 s avg)
+     nk_corr      :     2.68s CPU (      88 calls,   0.030 s avg)
+     nk_corr_h    :     0.19s CPU (      88 calls,   0.002 s avg)
+     nk_corr_vxc  :     2.44s CPU (      88 calls,   0.028 s avg)
 
 
-     outer_loop   :     1.76s CPU
-     runcg_uspp   :     1.79s CPU
-     xminus1      :     0.00s CPU (       2 calls,   0.000 s avg)
+     outer_loop   :     3.68s CPU (       5 calls,   0.736 s avg)
+     runcg_uspp   :     3.70s CPU
+     xminus1      :     0.00s CPU (      10 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     2.45s CPU time,    2.63s wall time
+     CP           :     4.07s CPU time,    4.34s wall time
 
  
-   This run was terminated on:  15:33:44  10Mar2020            
+   This run was terminated on:  11:43:40   7May2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -4294,7 +4374,7 @@ Contents of ./calc_alpha/orbital_3/pbe.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  15:33:44  10Mar2020               
+   This run was started on:  11:43:40   7May2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -4370,7 +4450,7 @@ Warning: card K_POINTS GAMMA ignored
     ========================================
     |  CONJUGATE GRADIENT                  |
     ========================================
-    | iterations   =           100         |
+    | iterations   =           300         |
     | conv_thr     = 0.00000080000 a.u.    |
     | passop       =       2.00000 a.u.    |
     | niter_cg_restart =  20      |
@@ -4582,7 +4662,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: ./TMP-CP//kc_52.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.239 sec.
+   restart file read in    0.147 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            2
@@ -4608,27 +4688,27 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.54s CPU time,    0.69s wall time
+     CP           :     0.32s CPU time,    0.41s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -17.02462578451639
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784516   -0.000000000019  -17.024625784510  -17.024625784524  -17.024625784525    0.850886678497    2.000000000000    0.850886678497
-     CP           :     0.69s CPU time,    0.84s wall time
+     CP           :     0.41s CPU time,    0.50s wall time
 
      iteration =   2  eff iteration =   2   Etot (Ha) =    -17.02462578452474
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784525   -0.000000000008  -17.024625784529  -17.024625784529  -17.024625784529    1.180466884163    0.850886678497    1.180466884163
-     CP           :     0.85s CPU time,    1.01s wall time
+     CP           :     0.49s CPU time,    0.59s wall time
 
      iteration =   3  eff iteration =   3   Etot (Ha) =    -17.02462578452891 delta_E=  0.83524298588600E-11
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784529   -0.000000000005  -17.024625784529  -17.024625784530  -17.024625784530    0.647169072021    1.180466884163    0.647169072021
-     CP           :     1.00s CPU time,    1.16s wall time
+     CP           :     0.58s CPU time,    0.68s wall time
 
      iteration =   4  eff iteration =   4   Etot (Ha) =    -17.02462578453044 delta_E=  0.41673331452330E-11
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784530   -0.000000000005  -17.024625784531  -17.024625784531  -17.024625784531    0.406630088114    0.647169072021    0.406630088114
-     CP           :     1.15s CPU time,    1.31s wall time
+     CP           :     0.67s CPU time,    0.76s wall time
 
      iteration =   5  eff iteration =   5   Etot (Ha) =    -17.02462578453135 delta_E=  0.15276668818842E-11
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -4713,7 +4793,7 @@ Step     3       0    -17.02463    -17.02463    -17.02463     6
  tnosep= F thdyn= F
 
    writing restart file: ./TMP-CP//kc_53.save
-   restart file written in    0.135 sec.
+   restart file written in    0.068 sec.
 
  
                               lambda   nudx, spin =    4   1
@@ -4735,42 +4815,42 @@ Step     3       0    -17.02463    -17.02463    -17.02463     6
    volume        :     4410.16474    4410.16474 (AU)
 
 
-     initialize   :     0.43s CPU
-     total_time   :     0.86s CPU
-     formf        :     0.04s CPU
-     rhoofr       :     0.10s CPU (      11 calls,   0.009 s avg)
-     vofrho       :     0.63s CPU (      11 calls,   0.057 s avg)
-     vofrho1      :     0.06s CPU
-     vofrho2      :     0.29s CPU (       5 calls,   0.057 s avg)
-     vofrho3      :     0.28s CPU (       5 calls,   0.057 s avg)
-     dforce       :     0.07s CPU (      24 calls,   0.003 s avg)
-     dforce1      :     0.06s CPU (      20 calls,   0.003 s avg)
-     dforce2      :     0.12s CPU
+     initialize   :     0.25s CPU
+     total_time   :     0.49s CPU
+     formf        :     0.02s CPU
+     rhoofr       :     0.06s CPU (      11 calls,   0.005 s avg)
+     vofrho       :     0.36s CPU (      11 calls,   0.033 s avg)
+     vofrho1      :     0.03s CPU
+     vofrho2      :     0.16s CPU (       5 calls,   0.033 s avg)
+     vofrho3      :     0.16s CPU (       5 calls,   0.033 s avg)
+     dforce       :     0.04s CPU (      24 calls,   0.002 s avg)
+     dforce1      :     0.03s CPU (      20 calls,   0.002 s avg)
+     dforce2      :     0.07s CPU
      calphi       :     0.00s CPU (       6 calls,   0.000 s avg)
      newd         :     0.00s CPU (       6 calls,   0.000 s avg)
-     calbec       :     0.03s CPU (      44 calls,   0.001 s avg)
+     calbec       :     0.02s CPU (      44 calls,   0.000 s avg)
      prefor       :     0.00s CPU (       8 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
-     nlsm1        :     0.03s CPU (      44 calls,   0.001 s avg)
-     fft          :     0.19s CPU (     188 calls,   0.001 s avg)
-     ffts         :     0.02s CPU (      22 calls,   0.001 s avg)
-     fftw         :     0.11s CPU (     184 calls,   0.001 s avg)
-     cft3s        :     0.32s CPU (     394 calls,   0.001 s avg)
-     fft_scatter  :     0.10s CPU (     394 calls,   0.000 s avg)
+     nlsm1        :     0.02s CPU (      44 calls,   0.000 s avg)
+     fft          :     0.10s CPU (     188 calls,   0.001 s avg)
+     ffts         :     0.01s CPU (      22 calls,   0.001 s avg)
+     fftw         :     0.06s CPU (     184 calls,   0.000 s avg)
+     cft3s        :     0.18s CPU (     394 calls,   0.000 s avg)
+     fft_scatter  :     0.05s CPU (     394 calls,   0.000 s avg)
 
-     outer_loop   :     0.85s CPU (       5 calls,   0.169 s avg)
-     runcg_uspp   :     0.86s CPU
-     pc2          :     0.01s CPU (      15 calls,   0.000 s avg)
+     outer_loop   :     0.48s CPU (       5 calls,   0.096 s avg)
+     runcg_uspp   :     0.49s CPU
+     pc2          :     0.00s CPU (      15 calls,   0.000 s avg)
      pcdaga2      :     0.00s CPU (       5 calls,   0.000 s avg)
      xminus1      :     0.00s CPU (      10 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     1.43s CPU time,    1.62s wall time
+     CP           :     0.83s CPU time,    0.93s wall time
 
  
-   This run was terminated on:  15:33:46  10Mar2020            
+   This run was terminated on:  11:43:41   7May2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -4795,7 +4875,7 @@ Contents of ./calc_alpha/orbital_3/pbe_n-1.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  15:33:46  10Mar2020               
+   This run was started on:  11:43:41   7May2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -4871,7 +4951,7 @@ Warning: card K_POINTS GAMMA ignored
     ========================================
     |  CONJUGATE GRADIENT                  |
     ========================================
-    | iterations   =           100         |
+    | iterations   =           300         |
     | conv_thr     = 0.00000080000 a.u.    |
     | passop       =       2.00000 a.u.    |
     | niter_cg_restart =  20      |
@@ -5083,7 +5163,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: ./TMP-CP//kc_52.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.236 sec.
+   restart file read in    0.147 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            2
@@ -5109,70 +5189,70 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.55s CPU time,    0.67s wall time
+     CP           :     0.32s CPU time,    0.41s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -16.05146249156417
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.051462491564   -0.295773304258  -15.758062267923  -16.150317975682  -16.139454207841    0.668454405418    2.000000000000    0.668454405418
-     CP           :     0.71s CPU time,    0.83s wall time
+     CP           :     0.41s CPU time,    0.50s wall time
 
      iteration =   2  eff iteration =   2   Etot (Ha) =    -16.13945420784089
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.139454207841   -0.030784162787  -16.149467024047  -16.149474238895  -16.149474588399    0.650986101065    0.668454405418    0.650986101065
-     CP           :     0.88s CPU time,    1.00s wall time
+     CP           :     0.50s CPU time,    0.59s wall time
 
      iteration =   3  eff iteration =   3   Etot (Ha) =    -16.14947458839882 delta_E=  0.87991716276719E-01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.149474588399   -0.004382762956  -16.151057644123  -16.151076927638  -16.151077119820    0.731200503110    0.650986101065    0.731200503110
-     CP           :     1.05s CPU time,    1.17s wall time
+     CP           :     0.59s CPU time,    0.67s wall time
 
      iteration =   4  eff iteration =   4   Etot (Ha) =    -16.15107711982027 delta_E=  0.10020380557936E-01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.151077119820   -0.000770334638  -16.151354631040  -16.151354690538  -16.151354650992    0.720649711054    0.731200503110    0.720649711054
-     CP           :     1.22s CPU time,    1.34s wall time
+     CP           :     0.68s CPU time,    0.76s wall time
 
      iteration =   5  eff iteration =   5   Etot (Ha) =    -16.15135465099196 delta_E=  0.16025314214474E-02
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.151354650992   -0.000201053667  -16.151425588636  -16.151425619345  -16.151425620692    0.705964278379    0.720649711054    0.705964278379
-     CP           :     1.37s CPU time,    1.49s wall time
+     CP           :     0.76s CPU time,    0.85s wall time
 
      iteration =   6  eff iteration =   6   Etot (Ha) =    -16.15142562069206 delta_E=  0.27753117169027E-03
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.151425620692   -0.000046048376  -16.151442124979  -16.151442128885  -16.151442205632    0.716993502124    0.705964278379    0.716993502124
-     CP           :     1.54s CPU time,    1.65s wall time
+     CP           :     0.85s CPU time,    0.94s wall time
 
      iteration =   7  eff iteration =   7   Etot (Ha) =    -16.15144220563158 delta_E=  0.70969700100676E-04
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.151442205632   -0.000011027312  -16.151446276664  -16.151446280281  -16.151446185845    0.739010467444    0.716993502124    0.739010467444
   cg_sub: missed minimum, case 1, iteration    7      0.739010467444
-     CP           :     1.76s CPU time,    1.88s wall time
+     CP           :     0.98s CPU time,    1.07s wall time
 
      iteration =   8  eff iteration =   8   Etot (Ha) =    -16.15144627666444 delta_E=  0.16584939515951E-04
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.151446276664   -0.000002953658  -16.151441884945  -16.151447123743  -16.151447132813    0.573579502793    2.000000000000    0.573579502793
-     CP           :     1.92s CPU time,    2.04s wall time
+     CP           :     1.07s CPU time,    1.16s wall time
 
      iteration =   9  eff iteration =   9   Etot (Ha) =    -16.15144713281293 delta_E=  0.40710328583771E-05
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.151447132813   -0.000000950469  -16.151447517378  -16.151447595456  -16.151447489248    0.973504554455    0.573579502793    0.973504554455
   cg_sub: missed minimum, case 1, iteration    9      0.973504554455
-     CP           :     2.14s CPU time,    2.26s wall time
+     CP           :     1.20s CPU time,    1.28s wall time
 
      iteration =  10  eff iteration =  10   Etot (Ha) =    -16.15144751737795 delta_E=  0.85614848899240E-06
 
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.151447517378   -0.000000304034  -16.151447316415  -16.151447631634  -16.151447713192    0.751600221634    2.000000000000    0.751600221634
-     CP           :     2.30s CPU time,    2.42s wall time
+     CP           :     1.28s CPU time,    1.37s wall time
 
      iteration =  11  eff iteration =  11   Etot (Ha) =    -16.15144771319181 delta_E=  0.38456501982864E-06
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.151447713192   -0.000000163935  -16.151447644775  -16.151447732998  -16.151447753803    0.241630890645    0.751600221634    0.241630890645
-     CP           :     2.46s CPU time,    2.58s wall time
+     CP           :     1.37s CPU time,    1.46s wall time
 
      iteration =  12  eff iteration =  12   Etot (Ha) =    -16.15144775380288 delta_E=  0.19581386823120E-06
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.151447753803   -0.000000185508  -16.151447699736  -16.151447758882  -16.151447763964    0.054762016761    0.241630890645    0.054762016761
-     CP           :     2.62s CPU time,    2.73s wall time
+     CP           :     1.46s CPU time,    1.55s wall time
 
      iteration =  13  eff iteration =  13   Etot (Ha) =    -16.15144776396419 delta_E=  0.40611070062369E-07
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -5258,7 +5338,7 @@ Step     3       0    -16.15144    -16.15144    -16.15144    14
  tnosep= F thdyn= F
 
    writing restart file: ./TMP-CP//kc_54.save
-   restart file written in    0.131 sec.
+   restart file written in    0.072 sec.
 
  
                               lambda   nudx, spin =    4   1
@@ -5280,42 +5360,42 @@ Step     3       0    -16.15144    -16.15144    -16.15144    14
    volume        :     4410.16474    4410.16474 (AU)
 
 
-     initialize   :     0.45s CPU
-     total_time   :     2.32s CPU
-     formf        :     0.04s CPU
-     rhoofr       :     0.28s CPU (      29 calls,   0.010 s avg)
-     vofrho       :     1.70s CPU (      29 calls,   0.059 s avg)
-     vofrho1      :     0.17s CPU (       3 calls,   0.058 s avg)
-     vofrho2      :     0.76s CPU (      13 calls,   0.058 s avg)
-     vofrho3      :     0.77s CPU (      13 calls,   0.059 s avg)
-     dforce       :     0.20s CPU (      56 calls,   0.003 s avg)
-     dforce1      :     0.19s CPU (      52 calls,   0.004 s avg)
-     dforce2      :     0.12s CPU
+     initialize   :     0.26s CPU
+     total_time   :     1.28s CPU
+     formf        :     0.02s CPU
+     rhoofr       :     0.15s CPU (      29 calls,   0.005 s avg)
+     vofrho       :     0.96s CPU (      29 calls,   0.033 s avg)
+     vofrho1      :     0.10s CPU (       3 calls,   0.033 s avg)
+     vofrho2      :     0.43s CPU (      13 calls,   0.033 s avg)
+     vofrho3      :     0.43s CPU (      13 calls,   0.033 s avg)
+     dforce       :     0.09s CPU (      56 calls,   0.002 s avg)
+     dforce1      :     0.09s CPU (      52 calls,   0.002 s avg)
+     dforce2      :     0.07s CPU
      calphi       :     0.00s CPU (      14 calls,   0.000 s avg)
      newd         :     0.00s CPU (      14 calls,   0.000 s avg)
-     calbec       :     0.09s CPU (     119 calls,   0.001 s avg)
+     calbec       :     0.04s CPU (     119 calls,   0.000 s avg)
      prefor       :     0.00s CPU (      16 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
-     nlsm1        :     0.09s CPU (     119 calls,   0.001 s avg)
-     fft          :     0.51s CPU (     494 calls,   0.001 s avg)
-     ffts         :     0.06s CPU (      58 calls,   0.001 s avg)
-     fftw         :     0.30s CPU (     456 calls,   0.001 s avg)
-     cft3s        :     0.87s CPU (    1008 calls,   0.001 s avg)
-     fft_scatter  :     0.29s CPU (    1008 calls,   0.000 s avg)
+     nlsm1        :     0.04s CPU (     119 calls,   0.000 s avg)
+     fft          :     0.27s CPU (     494 calls,   0.001 s avg)
+     ffts         :     0.03s CPU (      58 calls,   0.001 s avg)
+     fftw         :     0.15s CPU (     456 calls,   0.000 s avg)
+     cft3s        :     0.46s CPU (    1008 calls,   0.000 s avg)
+     fft_scatter  :     0.14s CPU (    1008 calls,   0.000 s avg)
 
-     outer_loop   :     2.30s CPU (      13 calls,   0.177 s avg)
-     runcg_uspp   :     2.32s CPU
-     pc2          :     0.02s CPU (      39 calls,   0.000 s avg)
-     pcdaga2      :     0.01s CPU (      13 calls,   0.000 s avg)
+     outer_loop   :     1.27s CPU (      13 calls,   0.098 s avg)
+     runcg_uspp   :     1.28s CPU
+     pc2          :     0.01s CPU (      39 calls,   0.000 s avg)
+     pcdaga2      :     0.00s CPU (      13 calls,   0.000 s avg)
      xminus1      :     0.00s CPU (      26 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     2.90s CPU time,    3.05s wall time
+     CP           :     1.62s CPU time,    1.74s wall time
 
  
-   This run was terminated on:  15:33:49  10Mar2020            
+   This run was terminated on:  11:43:43   7May2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -5340,7 +5420,7 @@ Contents of ./calc_alpha/orbital_3/ki_it1.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  15:33:49  10Mar2020               
+   This run was started on:  11:43:43   7May2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -5403,7 +5483,7 @@ Warning: card K_POINTS GAMMA ignored
     ========================================
     |  CONJUGATE GRADIENT                  |
     ========================================
-    | iterations   =             2         |
+    | iterations   =           300         |
     | conv_thr     = 0.00000080000 a.u.    |
     | passop       =       2.00000 a.u.    |
     | niter_cg_restart =  20      |
@@ -5622,7 +5702,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: ./TMP-CP//kc_52.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.234 sec.
+   restart file read in    0.146 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            2
@@ -5648,7 +5728,7 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     1.01s CPU time,    1.18s wall time
+     CP           :     0.59s CPU time,    0.70s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -17.02462578451639
  norm dgrad           1  3.995955104023951E-012
@@ -5658,22 +5738,62 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
  norm dgrad           1  2.073682849266161E-015
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784516   -0.000000000019  -17.024625784510  -17.024625784524  -17.024625784525    0.851778709933    2.000000000000    0.851778709933
+     CP           :     1.26s CPU time,    1.40s wall time
+
+     iteration =   2  eff iteration =   2   Etot (Ha) =    -17.02462578452478
+ norm dgrad           1  1.954842516368709E-012
+ norm dgrad           2  7.999984853199723E-027
+ norm dgrad           1  1.463855220938591E-030
+ norm dgrad           1  9.053617788041918E-016
+ norm dgrad           1  3.127211784330907E-015
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -17.024625784525   -0.000000000008  -17.024625784529  -17.024625784529  -17.024625784529    1.171518690240    0.851778709933    1.171518690240
+     CP           :     1.94s CPU time,    2.10s wall time
+
+     iteration =   3  eff iteration =   3   Etot (Ha) =    -17.02462578452901 delta_E=  0.83915097093268E-11
+ norm dgrad           1  3.844957111647194E-012
+ norm dgrad           2  3.928404014239129E-026
+ norm dgrad           1  3.147249271172542E-030
+ norm dgrad           1  3.998560742019022E-016
+ norm dgrad           1  2.380273199569750E-015
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -17.024625784529   -0.000000000005  -17.024625784530  -17.024625784531  -17.024625784530    0.644332201782    1.171518690240    0.644332201782
+     CP           :     2.60s CPU time,    2.80s wall time
+
+     iteration =   4  eff iteration =   4   Etot (Ha) =    -17.02462578453047 delta_E=  0.42277292777726E-11
+ norm dgrad           1  1.863830688670951E-012
+ norm dgrad           2  4.866901937787036E-026
+ norm dgrad           1  3.342532892729728E-030
+ norm dgrad           1  3.242162243791147E-016
+ norm dgrad           1  1.171785903953251E-015
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -17.024625784530   -0.000000000005  -17.024625784531  -17.024625784531  -17.024625784531    0.415575869258    0.644332201782    0.415575869258
+     CP           :     3.28s CPU time,    3.49s wall time
+
+     iteration =   5  eff iteration =   5   Etot (Ha) =    -17.02462578453139 delta_E=  0.14601653219870E-11
+ norm dgrad           1  3.328743212182647E-012
+ norm dgrad           2  5.145654473739289E-026
+ norm dgrad           1  3.713012264530187E-030
+ norm dgrad           1  2.762493487491392E-016
+ norm dgrad           1  3.772547663027906E-016
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -17.024625784531   -0.000000000002  -17.024625784532  -17.024625784532  -17.024625784532    0.826113272203    0.415575869258    0.826113272203
  NLN: This is 2nd term in MP formular, computed with localized orbital
  NLN: Use for extended system only where tcc does not have the correction
  Test MP:   1.00000000000000        4410.16473991811     
-   132.951152748950     
+   132.951153627017     
  Makov-Payne 1st energy  -7.890492600178715E-002
- Makov-Payne 2nd energy   6.313873961545047E-002
+ Makov-Payne 2nd energy   6.313874003244631E-002
 
 
                 total energy =     -17.0246257845 Hartree a.u.
-              kinetic energy =      11.9021821475 Hartree a.u.
-        electrostatic energy =     -14.6325891220 Hartree a.u.
+              kinetic energy =      11.9021825570 Hartree a.u.
+        electrostatic energy =     -14.6325891214 Hartree a.u.
                          esr =       0.4683965329 Hartree a.u.
                        eself =      15.1598066553 Hartree a.u.
-      pseudopotential energy =      -9.4799584363 Hartree a.u.
-  n-l pseudopotential energy =      -0.6205174773 Hartree a.u.
- exchange-correlation energy =      -4.1937428964 Hartree a.u.
+      pseudopotential energy =      -9.4799582133 Hartree a.u.
+  n-l pseudopotential energy =      -0.6205180988 Hartree a.u.
+ exchange-correlation energy =      -4.1937429079 Hartree a.u.
            average potential =       0.0000000000 Hartree a.u.
                   odd energy =       0.0000000000 Hartree a.u.
         van der waals energy =       0.0000000000 Hartree a.u.
@@ -5706,9 +5826,9 @@ OCC    2 --    1.00   ---    5.55    1.26    2.69   --- 132.520  10.946   0.000 
 OCC    3 --    1.00   ---   -5.54    1.09    2.69   --- 132.951  10.945   0.000   0.600
 OCC    4 --    1.00   ---   -0.81    3.14    5.34   --- 127.815  10.099   0.000   0.600
   Complexification index 
- (2.867706072606779E-011,0.000000000000000E+000)
+ (-2.980726776513620E-010,0.000000000000000E+000)
  
-   Allocated memory (kb) =     38040
+   Allocated memory (kb) =     38036
  
    CELL_PARAMETERS
     1.79792324E+01    0.00000000E+00    0.00000000E+00
@@ -5740,17 +5860,17 @@ OCC    4 --    1.00   ---   -0.81    3.14    5.34   --- 127.815  10.099   0.000 
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
  
        nfi   tempp            E -T.S-mu.nbsp         +K_p #Iter
-Step     3       0    -17.02463    -17.02463    -17.02463     2
+Step     3       0    -17.02463    -17.02463    -17.02463     6
  tnosep= F thdyn= F
 
    writing restart file: ./TMP-CP//kc_60.save
-   restart file written in    0.131 sec.
+   restart file written in    0.068 sec.
 
  
                               lambda   nudx, spin =    4   1
- fixed_lambda            3           3 -0.838282860242022     
+ fixed_lambda            3           3 -0.838282856171275     
                               lambda   nudx, spin =    4   2
- fixed_lambda            3           3 -0.838282934501378     
+ fixed_lambda            3           3 -0.838282971700877     
 
 
    Averaged Physical Quantities
@@ -5766,46 +5886,46 @@ Step     3       0    -17.02463    -17.02463    -17.02463     2
    volume        :     4410.16474    4410.16474 (AU)
 
 
-     initialize   :     0.43s CPU
-     total_time   :     1.81s CPU
-     formf        :     0.04s CPU
-     rhoofr       :     0.03s CPU (       3 calls,   0.009 s avg)
-     vofrho       :     0.18s CPU (       3 calls,   0.059 s avg)
-     vofrho1      :     0.06s CPU
-     vofrho2      :     0.07s CPU
-     vofrho3      :     0.05s CPU
-     dforce       :     0.03s CPU (       8 calls,   0.003 s avg)
-     dforce1      :     0.01s CPU (       4 calls,   0.003 s avg)
-     dforce2      :     0.20s CPU
-     calphi       :     0.00s CPU (       2 calls,   0.000 s avg)
-     newd         :     0.00s CPU (       2 calls,   0.000 s avg)
-     calbec       :     0.01s CPU (      12 calls,   0.001 s avg)
-     prefor       :     0.00s CPU (       4 calls,   0.000 s avg)
+     initialize   :     0.26s CPU
+     total_time   :     3.74s CPU
+     formf        :     0.02s CPU
+     rhoofr       :     0.06s CPU (      11 calls,   0.005 s avg)
+     vofrho       :     0.36s CPU (      11 calls,   0.033 s avg)
+     vofrho1      :     0.03s CPU
+     vofrho2      :     0.16s CPU (       5 calls,   0.032 s avg)
+     vofrho3      :     0.17s CPU (       5 calls,   0.034 s avg)
+     dforce       :     0.04s CPU (      24 calls,   0.002 s avg)
+     dforce1      :     0.03s CPU (      20 calls,   0.002 s avg)
+     dforce2      :     0.10s CPU
+     calphi       :     0.00s CPU (       6 calls,   0.000 s avg)
+     newd         :     0.00s CPU (       6 calls,   0.000 s avg)
+     calbec       :     0.02s CPU (      44 calls,   0.000 s avg)
+     prefor       :     0.00s CPU (       8 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
-     nlsm1        :     0.01s CPU (      12 calls,   0.001 s avg)
-     fft          :     0.55s CPU (     526 calls,   0.001 s avg)
-     ffts         :     0.01s CPU (       6 calls,   0.001 s avg)
-     fftw         :     0.04s CPU (      56 calls,   0.001 s avg)
-     cft3s        :     0.59s CPU (     588 calls,   0.001 s avg)
-     fft_scatter  :     0.21s CPU (     588 calls,   0.000 s avg)
+     nlsm1        :     0.02s CPU (      44 calls,   0.000 s avg)
+     fft          :     1.00s CPU (    1798 calls,   0.001 s avg)
+     ffts         :     0.01s CPU (      22 calls,   0.001 s avg)
+     fftw         :     0.06s CPU (     184 calls,   0.000 s avg)
+     cft3s        :     1.07s CPU (    2004 calls,   0.001 s avg)
+     fft_scatter  :     0.37s CPU (    2004 calls,   0.000 s avg)
 
-     nk_eforce    :     0.04s CPU (       8 calls,   0.005 s avg)
-     nk_corr      :     1.25s CPU (      24 calls,   0.052 s avg)
-     nk_corr_h    :     0.09s CPU (      24 calls,   0.004 s avg)
-     nk_corr_vxc  :     1.14s CPU (      24 calls,   0.047 s avg)
+     nk_eforce    :     0.06s CPU (      24 calls,   0.002 s avg)
+     nk_corr      :     2.70s CPU (      88 calls,   0.031 s avg)
+     nk_corr_h    :     0.19s CPU (      88 calls,   0.002 s avg)
+     nk_corr_vxc  :     2.46s CPU (      88 calls,   0.028 s avg)
 
 
-     outer_loop   :     1.71s CPU
-     runcg_uspp   :     1.76s CPU
-     xminus1      :     0.00s CPU (       2 calls,   0.000 s avg)
+     outer_loop   :     3.70s CPU (       5 calls,   0.739 s avg)
+     runcg_uspp   :     3.71s CPU
+     xminus1      :     0.00s CPU (      10 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     2.38s CPU time,    2.62s wall time
+     CP           :     4.08s CPU time,    4.32s wall time
 
  
-   This run was terminated on:  15:33:52  10Mar2020            
+   This run was terminated on:  11:43:48   7May2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -5830,7 +5950,7 @@ Contents of ./calc_alpha/orbital_4/pbe.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  15:33:52  10Mar2020               
+   This run was started on:  11:43:48   7May2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -5906,7 +6026,7 @@ Warning: card K_POINTS GAMMA ignored
     ========================================
     |  CONJUGATE GRADIENT                  |
     ========================================
-    | iterations   =           100         |
+    | iterations   =           300         |
     | conv_thr     = 0.00000080000 a.u.    |
     | passop       =       2.00000 a.u.    |
     | niter_cg_restart =  20      |
@@ -6118,7 +6238,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: ./TMP-CP//kc_52.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.237 sec.
+   restart file read in    0.147 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            2
@@ -6136,35 +6256,35 @@ Warning: card K_POINTS GAMMA ignored
            0 call to runcg_uspp in move_electrons.f90
            1 call to runcg_uspp in move_electrons.f90
            2 call to runcg_uspp in move_electrons.f90
+           3 call to runcg_uspp in move_electrons.f90
            4 call to runcg_uspp in move_electrons.f90
            5 call to runcg_uspp in move_electrons.f90
            6 call to runcg_uspp in move_electrons.f90
            7 call to runcg_uspp in move_electrons.f90
-           3 call to runcg_uspp in move_electrons.f90
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.52s CPU time,    0.68s wall time
+     CP           :     0.34s CPU time,    0.41s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -17.02462578451639
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784516   -0.000000000020  -17.024625784508  -17.024625784524  -17.024625784525    0.821247676579    2.000000000000    0.821247676579
-     CP           :     0.67s CPU time,    0.83s wall time
+     CP           :     0.43s CPU time,    0.50s wall time
 
      iteration =   2  eff iteration =   2   Etot (Ha) =    -17.02462578452467
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784525   -0.000000000007  -17.024625784528  -17.024625784529  -17.024625784529    1.156576176962    0.821247676579    1.156576176962
-     CP           :     0.83s CPU time,    1.00s wall time
+     CP           :     0.52s CPU time,    0.58s wall time
 
      iteration =   3  eff iteration =   3   Etot (Ha) =    -17.02462578452872 delta_E=  0.82742701579264E-11
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784529   -0.000000000004  -17.024625784531  -17.024625784531  -17.024625784531    0.990232596064    1.156576176962    0.990232596064
-     CP           :     0.98s CPU time,    1.15s wall time
+     CP           :     0.61s CPU time,    0.67s wall time
 
      iteration =   4  eff iteration =   4   Etot (Ha) =    -17.02462578453065 delta_E=  0.40571990211902E-11
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784531   -0.000000000002  -17.024625784532  -17.024625784532  -17.024625784532    0.967823143135    0.990232596064    0.967823143135
-     CP           :     1.13s CPU time,    1.30s wall time
+     CP           :     0.69s CPU time,    0.76s wall time
 
      iteration =   5  eff iteration =   5   Etot (Ha) =    -17.02462578453169 delta_E=  0.19291235275887E-11
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -6249,7 +6369,7 @@ Step     3       0    -17.02463    -17.02463    -17.02463     6
  tnosep= F thdyn= F
 
    writing restart file: ./TMP-CP//kc_53.save
-   restart file written in    0.136 sec.
+   restart file written in    0.068 sec.
 
  
                               lambda   nudx, spin =    4   1
@@ -6271,42 +6391,42 @@ Step     3       0    -17.02463    -17.02463    -17.02463     6
    volume        :     4410.16474    4410.16474 (AU)
 
 
-     initialize   :     0.41s CPU
-     total_time   :     0.86s CPU
-     formf        :     0.04s CPU
-     rhoofr       :     0.10s CPU (      11 calls,   0.009 s avg)
-     vofrho       :     0.63s CPU (      11 calls,   0.058 s avg)
-     vofrho1      :     0.06s CPU
-     vofrho2      :     0.28s CPU (       5 calls,   0.057 s avg)
-     vofrho3      :     0.29s CPU (       5 calls,   0.058 s avg)
-     dforce       :     0.07s CPU (      24 calls,   0.003 s avg)
-     dforce1      :     0.06s CPU (      20 calls,   0.003 s avg)
-     dforce2      :     0.12s CPU
+     initialize   :     0.28s CPU
+     total_time   :     0.49s CPU
+     formf        :     0.02s CPU
+     rhoofr       :     0.06s CPU (      11 calls,   0.005 s avg)
+     vofrho       :     0.36s CPU (      11 calls,   0.033 s avg)
+     vofrho1      :     0.03s CPU
+     vofrho2      :     0.16s CPU (       5 calls,   0.033 s avg)
+     vofrho3      :     0.16s CPU (       5 calls,   0.033 s avg)
+     dforce       :     0.04s CPU (      24 calls,   0.002 s avg)
+     dforce1      :     0.03s CPU (      20 calls,   0.002 s avg)
+     dforce2      :     0.07s CPU
      calphi       :     0.00s CPU (       6 calls,   0.000 s avg)
      newd         :     0.00s CPU (       6 calls,   0.000 s avg)
-     calbec       :     0.03s CPU (      44 calls,   0.001 s avg)
+     calbec       :     0.02s CPU (      44 calls,   0.000 s avg)
      prefor       :     0.00s CPU (       8 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
-     nlsm1        :     0.03s CPU (      44 calls,   0.001 s avg)
-     fft          :     0.19s CPU (     188 calls,   0.001 s avg)
-     ffts         :     0.02s CPU (      22 calls,   0.001 s avg)
-     fftw         :     0.11s CPU (     184 calls,   0.001 s avg)
-     cft3s        :     0.33s CPU (     394 calls,   0.001 s avg)
-     fft_scatter  :     0.11s CPU (     394 calls,   0.000 s avg)
+     nlsm1        :     0.02s CPU (      44 calls,   0.000 s avg)
+     fft          :     0.10s CPU (     188 calls,   0.001 s avg)
+     ffts         :     0.01s CPU (      22 calls,   0.001 s avg)
+     fftw         :     0.06s CPU (     184 calls,   0.000 s avg)
+     cft3s        :     0.18s CPU (     394 calls,   0.000 s avg)
+     fft_scatter  :     0.05s CPU (     394 calls,   0.000 s avg)
 
-     outer_loop   :     0.85s CPU (       5 calls,   0.170 s avg)
-     runcg_uspp   :     0.86s CPU
-     pc2          :     0.01s CPU (      15 calls,   0.000 s avg)
-     pcdaga2      :     0.00s CPU (       5 calls,   0.001 s avg)
+     outer_loop   :     0.48s CPU (       5 calls,   0.096 s avg)
+     runcg_uspp   :     0.49s CPU
+     pc2          :     0.00s CPU (      15 calls,   0.000 s avg)
+     pcdaga2      :     0.00s CPU (       5 calls,   0.000 s avg)
      xminus1      :     0.00s CPU (      10 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     1.42s CPU time,    1.61s wall time
+     CP           :     0.85s CPU time,    0.93s wall time
 
  
-   This run was terminated on:  15:33:53  10Mar2020            
+   This run was terminated on:  11:43:49   7May2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -6331,7 +6451,7 @@ Contents of ./calc_alpha/orbital_4/pbe_n-1.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  15:33:53  10Mar2020               
+   This run was started on:  11:43:49   7May2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -6407,7 +6527,7 @@ Warning: card K_POINTS GAMMA ignored
     ========================================
     |  CONJUGATE GRADIENT                  |
     ========================================
-    | iterations   =           100         |
+    | iterations   =           300         |
     | conv_thr     = 0.00000080000 a.u.    |
     | passop       =       2.00000 a.u.    |
     | niter_cg_restart =  20      |
@@ -6619,7 +6739,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: ./TMP-CP//kc_52.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.233 sec.
+   restart file read in    0.158 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            2
@@ -6645,59 +6765,59 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.54s CPU time,    0.67s wall time
+     CP           :     0.30s CPU time,    0.42s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -16.30995098061097
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.309950980611   -0.310610567382  -15.998355863176  -16.413378557416  -16.401010947741    0.665963026802    2.000000000000    0.665963026802
-     CP           :     0.71s CPU time,    0.84s wall time
+     CP           :     0.39s CPU time,    0.51s wall time
 
      iteration =   2  eff iteration =   2   Etot (Ha) =    -16.40101094774102
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.401010947741   -0.036801520359  -16.413337010743  -16.413337434351  -16.413337311324    0.669890074642    0.665963026802    0.669890074642
-     CP           :     0.86s CPU time,    1.00s wall time
+     CP           :     0.48s CPU time,    0.59s wall time
 
      iteration =   3  eff iteration =   3   Etot (Ha) =    -16.41333731132423 delta_E=  0.91059967130050E-01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.413337311324   -0.005292143219  -16.415253851152  -16.415266576856  -16.415266478924    0.729105563550    0.669890074642    0.729105563550
-     CP           :     1.02s CPU time,    1.15s wall time
+     CP           :     0.56s CPU time,    0.68s wall time
 
      iteration =   4  eff iteration =   4   Etot (Ha) =    -16.41526647892364 delta_E=  0.12326363583206E-01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.415266478924   -0.000803829269  -16.415554429947  -16.415554516754  -16.415554461870    0.716664201122    0.729105563550    0.716664201122
-     CP           :     1.18s CPU time,    1.32s wall time
+     CP           :     0.65s CPU time,    0.77s wall time
 
      iteration =   5  eff iteration =   5   Etot (Ha) =    -16.41555446186970 delta_E=  0.19291675994140E-02
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.415554461870   -0.000210678663  -16.415634172069  -16.415634421598  -16.415634497953    0.759068120429    0.716664201122    0.759068120429
-     CP           :     1.33s CPU time,    1.47s wall time
+     CP           :     0.74s CPU time,    0.86s wall time
 
      iteration =   6  eff iteration =   6   Etot (Ha) =    -16.41563449795325 delta_E=  0.28798294605537E-03
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.415634497953   -0.000056793413  -16.415656207089  -16.415656208199  -16.415656450099    0.764533924507    0.759068120429    0.764533924507
-     CP           :     1.50s CPU time,    1.63s wall time
+     CP           :     0.82s CPU time,    0.95s wall time
 
      iteration =   7  eff iteration =   7   Etot (Ha) =    -16.41565645009914 delta_E=  0.80036083552670E-04
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.415656450099   -0.000014357753  -16.415661473119  -16.415661509509  -16.415661504523    0.704763481586    0.764533924507    0.704763481586
-     CP           :     1.65s CPU time,    1.78s wall time
+     CP           :     0.91s CPU time,    1.03s wall time
 
      iteration =   8  eff iteration =   8   Etot (Ha) =    -16.41566150452342 delta_E=  0.21952145893067E-04
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.415661504523   -0.000003416716  -16.415662716275  -16.415662716325  -16.415662727230    0.709337206001    0.704763481586    0.709337206001
-     CP           :     1.81s CPU time,    1.94s wall time
+     CP           :     1.00s CPU time,    1.12s wall time
 
      iteration =   9  eff iteration =   9   Etot (Ha) =    -16.41566272722951 delta_E=  0.50544242746753E-05
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.415662727230   -0.000000736348  -16.415663041899  -16.415663055688  -16.415662865605    0.892127978924    0.709337206001    0.892127978924
   cg_sub: missed minimum, case 1, iteration    9      0.892127978924
-     CP           :     2.04s CPU time,    2.18s wall time
+     CP           :     1.12s CPU time,    1.25s wall time
 
      iteration =  10  eff iteration =  10   Etot (Ha) =    -16.41566304189892 delta_E=  0.12227060963710E-05
 
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.415663041899   -0.000000166737  -16.415662771066  -16.415663087904  -16.415663107392    0.551829427417    2.000000000000    0.551829427417
-     CP           :     2.20s CPU time,    2.33s wall time
+     CP           :     1.21s CPU time,    1.34s wall time
 
      iteration =  11  eff iteration =  11   Etot (Ha) =    -16.41566310739221 delta_E=  0.31466940342284E-06
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -6709,7 +6829,7 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
            4  3.448933921357431E-002  -16.4156631057212     
            5 -1.724466960678716E-002  -16.4156631082256     
   iter3 =     5
-     CP           :     2.76s CPU time,    2.91s wall time
+     CP           :     1.53s CPU time,    1.66s wall time
 
      iteration =  12  eff iteration =  17   Etot (Ha) =    -16.41566310822563 delta_E=  0.65493296119712E-07
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -6723,7 +6843,7 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
            6  3.125000000000000E-002  -16.4156631067766     
            7 -1.562500000000000E-002  -16.4156631089377     
   iter3 =     7
-     CP           :     3.48s CPU time,    3.62s wall time
+     CP           :     1.93s CPU time,    2.06s wall time
 
      iteration =  13  eff iteration =  25   Etot (Ha) =    -16.41566310893767 delta_E=  0.83341689105509E-09
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -6817,7 +6937,7 @@ Step     3       0    -16.41566    -16.41566    -16.41566    14
  tnosep= F thdyn= F
 
    writing restart file: ./TMP-CP//kc_54.save
-   restart file written in    0.129 sec.
+   restart file written in    0.068 sec.
 
  
                               lambda   nudx, spin =    4   1
@@ -6839,43 +6959,43 @@ Step     3       0    -16.41566    -16.41566    -16.41566    14
    volume        :     4410.16474    4410.16474 (AU)
 
 
-     initialize   :     0.45s CPU
-     total_time   :     3.68s CPU
-     formf        :     0.04s CPU
-     rhoofr       :     0.45s CPU (      49 calls,   0.009 s avg)
-     vofrho       :     2.85s CPU (      49 calls,   0.058 s avg)
-     vofrho1      :     0.23s CPU (       4 calls,   0.056 s avg)
-     vofrho2      :     0.75s CPU (      13 calls,   0.058 s avg)
-     vofrho3      :     0.77s CPU (      13 calls,   0.059 s avg)
-     vofrho4      :     1.11s CPU (      19 calls,   0.058 s avg)
-     dforce       :     0.20s CPU (      56 calls,   0.004 s avg)
-     dforce1      :     0.19s CPU (      52 calls,   0.004 s avg)
-     dforce2      :     0.14s CPU
+     initialize   :     0.25s CPU
+     total_time   :     2.03s CPU
+     formf        :     0.02s CPU
+     rhoofr       :     0.25s CPU (      49 calls,   0.005 s avg)
+     vofrho       :     1.60s CPU (      49 calls,   0.033 s avg)
+     vofrho1      :     0.13s CPU (       4 calls,   0.032 s avg)
+     vofrho2      :     0.42s CPU (      13 calls,   0.033 s avg)
+     vofrho3      :     0.43s CPU (      13 calls,   0.033 s avg)
+     vofrho4      :     0.62s CPU (      19 calls,   0.033 s avg)
+     dforce       :     0.09s CPU (      56 calls,   0.002 s avg)
+     dforce1      :     0.08s CPU (      52 calls,   0.002 s avg)
+     dforce2      :     0.06s CPU
      calphi       :     0.00s CPU (      14 calls,   0.000 s avg)
      newd         :     0.00s CPU (      14 calls,   0.000 s avg)
-     calbec       :     0.11s CPU (     155 calls,   0.001 s avg)
+     calbec       :     0.05s CPU (     155 calls,   0.000 s avg)
      prefor       :     0.00s CPU (      16 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
-     nlsm1        :     0.11s CPU (     155 calls,   0.001 s avg)
-     fft          :     0.85s CPU (     834 calls,   0.001 s avg)
-     ffts         :     0.10s CPU (      98 calls,   0.001 s avg)
-     fftw         :     0.40s CPU (     616 calls,   0.001 s avg)
-     cft3s        :     1.34s CPU (    1548 calls,   0.001 s avg)
-     fft_scatter  :     0.45s CPU (    1548 calls,   0.000 s avg)
+     nlsm1        :     0.05s CPU (     155 calls,   0.000 s avg)
+     fft          :     0.46s CPU (     834 calls,   0.001 s avg)
+     ffts         :     0.05s CPU (      98 calls,   0.001 s avg)
+     fftw         :     0.20s CPU (     616 calls,   0.000 s avg)
+     cft3s        :     0.71s CPU (    1548 calls,   0.000 s avg)
+     fft_scatter  :     0.21s CPU (    1548 calls,   0.000 s avg)
 
-     outer_loop   :     3.66s CPU (      13 calls,   0.282 s avg)
-     runcg_uspp   :     3.68s CPU
-     pc2          :     0.02s CPU (      39 calls,   0.000 s avg)
-     pcdaga2      :     0.01s CPU (      13 calls,   0.000 s avg)
+     outer_loop   :     2.03s CPU (      13 calls,   0.156 s avg)
+     runcg_uspp   :     2.03s CPU
+     pc2          :     0.01s CPU (      39 calls,   0.000 s avg)
+     pcdaga2      :     0.00s CPU (      13 calls,   0.000 s avg)
      xminus1      :     0.00s CPU (      26 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     4.28s CPU time,    4.44s wall time
+     CP           :     2.35s CPU time,    2.50s wall time
 
  
-   This run was terminated on:  15:33:58  10Mar2020            
+   This run was terminated on:  11:43:51   7May2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -6900,7 +7020,7 @@ Contents of ./calc_alpha/orbital_4/ki_it1.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  15:33:58  10Mar2020               
+   This run was started on:  11:43:51   7May2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -6963,7 +7083,7 @@ Warning: card K_POINTS GAMMA ignored
     ========================================
     |  CONJUGATE GRADIENT                  |
     ========================================
-    | iterations   =             2         |
+    | iterations   =           300         |
     | conv_thr     = 0.00000080000 a.u.    |
     | passop       =       2.00000 a.u.    |
     | niter_cg_restart =  20      |
@@ -7182,7 +7302,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: ./TMP-CP//kc_52.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.235 sec.
+   restart file read in    0.146 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            2
@@ -7208,7 +7328,7 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     1.01s CPU time,    1.21s wall time
+     CP           :     0.61s CPU time,    0.71s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -17.02462578451639
  norm dgrad           1  1.993654830381467E-012
@@ -7218,22 +7338,63 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
  norm dgrad           1  7.962135482253101E-016
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -17.024625784516   -0.000000000020  -17.024625784508  -17.024625784524  -17.024625784525    0.822100988269    2.000000000000    0.822100988269
+     CP           :     1.28s CPU time,    1.40s wall time
+
+     iteration =   2  eff iteration =   2   Etot (Ha) =    -17.02462578452464
+ norm dgrad           1  1.669214682325690E-012
+ norm dgrad           2  5.369577889844468E-027
+ norm dgrad           1  3.407035953109545E-032
+ norm dgrad           1  1.471821724841014E-016
+ norm dgrad           1  6.978200688092438E-016
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -17.024625784525   -0.000000000007  -17.024625784528  -17.024625784529  -17.024625784529    1.168904797202    0.822100988269    1.168904797202
+     CP           :     1.97s CPU time,    2.10s wall time
+
+     iteration =   3  eff iteration =   3   Etot (Ha) =    -17.02462578452874 delta_E=  0.82494011621748E-11
+ norm dgrad           1  1.788924277068628E-012
+ norm dgrad           2  2.031565834039577E-026
+ norm dgrad           1  1.832331121512525E-032
+ norm dgrad           1  3.238805015103903E-016
+ norm dgrad           1  2.815358486880634E-016
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -17.024625784529   -0.000000000004  -17.024625784531  -17.024625784531  -17.024625784531    1.008378128918    1.168904797202    1.008378128918
+  cg_sub: missed minimum, case 1, iteration    3      1.008378128918
+     CP           :     2.96s CPU time,    3.14s wall time
+
+     iteration =   4  eff iteration =   4   Etot (Ha) =    -17.02462578453067 delta_E=  0.41033842990146E-11
+ norm dgrad           1  1.699915287387154E-012
+ norm dgrad           2  3.012294332286122E-026
+ norm dgrad           1  2.488820031572045E-032
+ norm dgrad           1  1.560089324950545E-016
+ norm dgrad           1  1.560089324948290E-016
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -17.024625784531   -0.000000000004  -17.024625784526  -17.024625784532  -17.024625784532    0.641394444477    2.000000000000    0.641394444477
+     CP           :     3.64s CPU time,    3.84s wall time
+
+     iteration =   5  eff iteration =   5   Etot (Ha) =    -17.02462578453206 delta_E=  0.19220181002311E-11
+ norm dgrad           1  1.582634454211384E-012
+ norm dgrad           2  3.308361048491150E-026
+ norm dgrad           1  1.032456255482187E-031
+ norm dgrad           1  3.098420415525571E-017
+ norm dgrad           1  9.823927860944762E-017
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -17.024625784532   -0.000000000001  -17.024625784532  -17.024625784532  -17.024625784533    0.710626321313    0.641394444477    0.710626321313
  NLN: This is 2nd term in MP formular, computed with localized orbital
  NLN: Use for extended system only where tcc does not have the correction
  Test MP:   1.00000000000000        4410.16473991811     
-   127.815351842205     
+   127.815350847957     
  Makov-Payne 1st energy  -7.890492600178715E-002
- Makov-Payne 2nd energy   6.069973860295047E-002
+ Makov-Payne 2nd energy   6.069973813078024E-002
 
 
                 total energy =     -17.0246257845 Hartree a.u.
-              kinetic energy =      11.9021822095 Hartree a.u.
-        electrostatic energy =     -14.6325891108 Hartree a.u.
+              kinetic energy =      11.9021829498 Hartree a.u.
+        electrostatic energy =     -14.6325891049 Hartree a.u.
                          esr =       0.4683965329 Hartree a.u.
                        eself =      15.1598066553 Hartree a.u.
-      pseudopotential energy =      -9.4799584741 Hartree a.u.
-  n-l pseudopotential energy =      -0.6205175413 Hartree a.u.
- exchange-correlation energy =      -4.1937428678 Hartree a.u.
+      pseudopotential energy =      -9.4799584056 Hartree a.u.
+  n-l pseudopotential energy =      -0.6205182863 Hartree a.u.
+ exchange-correlation energy =      -4.1937429375 Hartree a.u.
            average potential =       0.0000000000 Hartree a.u.
                   odd energy =       0.0000000000 Hartree a.u.
         van der waals energy =       0.0000000000 Hartree a.u.
@@ -7266,9 +7427,9 @@ OCC    2 --    1.00   ---    5.55    1.26    2.69   --- 132.520  10.946   0.000 
 OCC    3 --    1.00   ---   -5.54    1.09    2.69   --- 132.951  10.945   0.000   0.600
 OCC    4 --    1.00   ---   -0.81    3.14    5.34   --- 127.815  10.099   0.000   0.600
   Complexification index 
- (5.906386491005833E-011,0.000000000000000E+000)
+ (-2.754241279490088E-010,0.000000000000000E+000)
  
-   Allocated memory (kb) =     38040
+   Allocated memory (kb) =     38036
  
    CELL_PARAMETERS
     1.79792324E+01    0.00000000E+00    0.00000000E+00
@@ -7300,17 +7461,17 @@ OCC    4 --    1.00   ---   -0.81    3.14    5.34   --- 127.815  10.099   0.000 
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
  
        nfi   tempp            E -T.S-mu.nbsp         +K_p #Iter
-Step     3       0    -17.02463    -17.02463    -17.02463     2
+Step     3       0    -17.02463    -17.02463    -17.02463     6
  tnosep= F thdyn= F
 
    writing restart file: ./TMP-CP//kc_60.save
-   restart file written in    0.140 sec.
+   restart file written in    0.069 sec.
 
  
                               lambda   nudx, spin =    4   1
- fixed_lambda            4           4 -0.584991696062269     
+ fixed_lambda            4           4 -0.584991622440547     
                               lambda   nudx, spin =    4   2
- fixed_lambda            4           4 -0.584991766055969     
+ fixed_lambda            4           4 -0.584991728516807     
 
 
    Averaged Physical Quantities
@@ -7326,46 +7487,46 @@ Step     3       0    -17.02463    -17.02463    -17.02463     2
    volume        :     4410.16474    4410.16474 (AU)
 
 
-     initialize   :     0.43s CPU
-     total_time   :     1.81s CPU
-     formf        :     0.04s CPU
-     rhoofr       :     0.03s CPU (       3 calls,   0.010 s avg)
-     vofrho       :     0.17s CPU (       3 calls,   0.058 s avg)
-     vofrho1      :     0.05s CPU
-     vofrho2      :     0.07s CPU
-     vofrho3      :     0.06s CPU
-     dforce       :     0.02s CPU (       8 calls,   0.003 s avg)
-     dforce1      :     0.01s CPU (       4 calls,   0.002 s avg)
-     dforce2      :     0.21s CPU
-     calphi       :     0.00s CPU (       2 calls,   0.000 s avg)
-     newd         :     0.00s CPU (       2 calls,   0.000 s avg)
-     calbec       :     0.01s CPU (      12 calls,   0.001 s avg)
-     prefor       :     0.00s CPU (       4 calls,   0.000 s avg)
+     initialize   :     0.27s CPU
+     total_time   :     4.06s CPU
+     formf        :     0.02s CPU
+     rhoofr       :     0.06s CPU (      12 calls,   0.005 s avg)
+     vofrho       :     0.38s CPU (      12 calls,   0.032 s avg)
+     vofrho1      :     0.06s CPU (       2 calls,   0.030 s avg)
+     vofrho2      :     0.16s CPU (       5 calls,   0.032 s avg)
+     vofrho3      :     0.16s CPU (       5 calls,   0.032 s avg)
+     dforce       :     0.04s CPU (      24 calls,   0.002 s avg)
+     dforce1      :     0.03s CPU (      20 calls,   0.002 s avg)
+     dforce2      :     0.10s CPU
+     calphi       :     0.00s CPU (       6 calls,   0.000 s avg)
+     newd         :     0.00s CPU (       6 calls,   0.000 s avg)
+     calbec       :     0.02s CPU (      48 calls,   0.000 s avg)
+     prefor       :     0.00s CPU (       8 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
-     nlsm1        :     0.01s CPU (      12 calls,   0.001 s avg)
-     fft          :     0.55s CPU (     526 calls,   0.001 s avg)
-     ffts         :     0.01s CPU (       6 calls,   0.001 s avg)
-     fftw         :     0.03s CPU (      56 calls,   0.001 s avg)
-     cft3s        :     0.59s CPU (     588 calls,   0.001 s avg)
-     fft_scatter  :     0.21s CPU (     588 calls,   0.000 s avg)
+     nlsm1        :     0.02s CPU (      48 calls,   0.000 s avg)
+     fft          :     1.08s CPU (    1949 calls,   0.001 s avg)
+     ffts         :     0.01s CPU (      24 calls,   0.001 s avg)
+     fftw         :     0.07s CPU (     192 calls,   0.000 s avg)
+     cft3s        :     1.15s CPU (    2165 calls,   0.001 s avg)
+     fft_scatter  :     0.39s CPU (    2165 calls,   0.000 s avg)
 
-     nk_eforce    :     0.03s CPU (       8 calls,   0.004 s avg)
-     nk_corr      :     1.25s CPU (      24 calls,   0.052 s avg)
-     nk_corr_h    :     0.09s CPU (      24 calls,   0.004 s avg)
-     nk_corr_vxc  :     1.14s CPU (      24 calls,   0.047 s avg)
+     nk_eforce    :     0.06s CPU (      24 calls,   0.002 s avg)
+     nk_corr      :     2.97s CPU (      96 calls,   0.031 s avg)
+     nk_corr_h    :     0.21s CPU (      96 calls,   0.002 s avg)
+     nk_corr_vxc  :     2.71s CPU (      96 calls,   0.028 s avg)
 
 
-     outer_loop   :     1.72s CPU
-     runcg_uspp   :     1.76s CPU
-     xminus1      :     0.00s CPU (       2 calls,   0.000 s avg)
+     outer_loop   :     4.02s CPU (       5 calls,   0.803 s avg)
+     runcg_uspp   :     4.04s CPU
+     xminus1      :     0.00s CPU (      10 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     2.39s CPU time,    2.64s wall time
+     CP           :     4.41s CPU time,    4.66s wall time
 
  
-   This run was terminated on:  15:34: 1  10Mar2020            
+   This run was terminated on:  11:43:56   7May2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -7390,7 +7551,7 @@ Contents of ./final/ki_final.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  15:34: 1  10Mar2020               
+   This run was started on:  11:43:56   7May2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -7453,7 +7614,7 @@ Warning: card K_POINTS GAMMA ignored
     ========================================
     |  CONJUGATE GRADIENT                  |
     ========================================
-    | iterations   =             2         |
+    | iterations   =           300         |
     | conv_thr     = 0.00000000800 a.u.    |
     | passop       =       2.00000 a.u.    |
     | niter_cg_restart =  20      |
@@ -7672,7 +7833,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: ./TMP-CP//kc_52.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.235 sec.
+   restart file read in    0.147 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            2
@@ -7688,31 +7849,52 @@ Warning: card K_POINTS GAMMA ignored
 
  * Physical Quantities at step:     3
            0 call to runcg_uspp in move_electrons.f90
+           1 call to runcg_uspp in move_electrons.f90
            2 call to runcg_uspp in move_electrons.f90
            3 call to runcg_uspp in move_electrons.f90
-           6 call to runcg_uspp in move_electrons.f90
-           7 call to runcg_uspp in move_electrons.f90
-           1 call to runcg_uspp in move_electrons.f90
            4 call to runcg_uspp in move_electrons.f90
            5 call to runcg_uspp in move_electrons.f90
+           6 call to runcg_uspp in move_electrons.f90
+           7 call to runcg_uspp in move_electrons.f90
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     1.02s CPU time,    1.18s wall time
+     CP           :     0.60s CPU time,    0.71s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -17.02462578451638
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
-  -17.024625784516   -0.000000000022  -17.024625784491  -17.024625784523  -17.024625784524    0.629535027025    2.000000000000    0.629535027025
+  -17.024625784516   -0.000000000022  -17.024625784491  -17.024625784523  -17.024625784524    0.629502922276    2.000000000000    0.629502922276
+     CP           :     1.27s CPU time,    1.40s wall time
+
+     iteration =   2  eff iteration =   2   Etot (Ha) =    -17.02462578452352
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -17.024625784524   -0.000000000005  -17.024625784526  -17.024625784526  -17.024625784526    0.893038364454    0.629502922276    0.893038364454
+     CP           :     1.93s CPU time,    2.10s wall time
+
+     iteration =   3  eff iteration =   3   Etot (Ha) =    -17.02462578452589 delta_E=  0.71409544943890E-11
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -17.024625784526   -0.000000000002  -17.024625784527  -17.024625784527  -17.024625784527    0.885021857946    0.893038364454    0.885021857946
+  cg_sub: missed minimum, case 1, iteration    3      0.885021857946
+     CP           :     2.94s CPU time,    3.14s wall time
+
+     iteration =   4  eff iteration =   4   Etot (Ha) =    -17.02462578452670 delta_E=  0.23696600237599E-11
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -17.024625784527   -0.000000000001  -17.024625784526  -17.024625784527  -17.024625784527    0.593751670462    2.000000000000    0.593751670462
+     CP           :     3.61s CPU time,    3.83s wall time
+
+     iteration =   5  eff iteration =   5   Etot (Ha) =    -17.02462578452691 delta_E=  0.81001871876651E-12
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -17.024625784527   -0.000000000000  -17.024625784527  -17.024625784527  -17.024625784527    0.305388905194    0.593751670462    0.305388905194
 
 
                 total energy =     -17.0246257845 Hartree a.u.
-              kinetic energy =      11.9021817475 Hartree a.u.
-        electrostatic energy =     -14.6325891189 Hartree a.u.
+              kinetic energy =      11.9021831266 Hartree a.u.
+        electrostatic energy =     -14.6325891132 Hartree a.u.
                          esr =       0.4683965329 Hartree a.u.
                        eself =      15.1598066553 Hartree a.u.
-      pseudopotential energy =      -9.4799581720 Hartree a.u.
-  n-l pseudopotential energy =      -0.6205174444 Hartree a.u.
- exchange-correlation energy =      -4.1937427968 Hartree a.u.
+      pseudopotential energy =      -9.4799584513 Hartree a.u.
+  n-l pseudopotential energy =      -0.6205183731 Hartree a.u.
+ exchange-correlation energy =      -4.1937429736 Hartree a.u.
            average potential =       0.0000000000 Hartree a.u.
                   odd energy =       0.0000000000 Hartree a.u.
         van der waals energy =       0.0000000000 Hartree a.u.
@@ -7745,7 +7927,7 @@ OCC    2 --    1.00   ---    5.55    1.26    2.69   --- 132.520  10.946   0.000 
 OCC    3 --    1.00   ---   -5.54    1.09    2.69   --- 132.951  10.945   0.000   0.703
 OCC    4 --    1.00   ---   -0.81    3.14    5.34   --- 127.815  10.099   0.000   0.674
   Complexification index 
- (1.732169963020169E-010,0.000000000000000E+000)
+ (1.076916333886402E-011,0.000000000000000E+000)
  
    Allocated memory (kb) =     38040
  
@@ -7779,11 +7961,11 @@ OCC    4 --    1.00   ---   -0.81    3.14    5.34   --- 127.815  10.099   0.000 
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
  
        nfi   tempp            E -T.S-mu.nbsp         +K_p #Iter
-Step     3       0    -17.02463    -17.02463    -17.02463     2
+Step     3       0    -17.02463    -17.02463    -17.02463     6
  tnosep= F thdyn= F
 
    writing restart file: ./TMP-CP//kc_60.save
-   restart file written in    0.133 sec.
+   restart file written in    0.069 sec.
 
 
 
@@ -7800,47 +7982,47 @@ Step     3       0    -17.02463    -17.02463    -17.02463     2
    volume        :     4410.16474    4410.16474 (AU)
 
 
-     initialize   :     0.46s CPU
-     total_time   :     1.76s CPU
-     formf        :     0.04s CPU
-     rhoofr       :     0.03s CPU (       3 calls,   0.011 s avg)
-     vofrho       :     0.16s CPU (       3 calls,   0.055 s avg)
-     vofrho1      :     0.06s CPU
-     vofrho2      :     0.06s CPU
-     vofrho3      :     0.05s CPU
-     dforce       :     0.02s CPU (       8 calls,   0.003 s avg)
-     dforce1      :     0.01s CPU (       4 calls,   0.003 s avg)
-     dforce2      :     0.20s CPU
-     calphi       :     0.00s CPU (       2 calls,   0.000 s avg)
-     gram         :     0.00s CPU (       3 calls,   0.000 s avg)
-     newd         :     0.00s CPU (       2 calls,   0.000 s avg)
-     calbec       :     0.01s CPU (      12 calls,   0.001 s avg)
-     prefor       :     0.00s CPU (       4 calls,   0.000 s avg)
+     initialize   :     0.26s CPU
+     total_time   :     4.04s CPU
+     formf        :     0.02s CPU
+     rhoofr       :     0.06s CPU (      12 calls,   0.005 s avg)
+     vofrho       :     0.39s CPU (      12 calls,   0.033 s avg)
+     vofrho1      :     0.07s CPU (       2 calls,   0.035 s avg)
+     vofrho2      :     0.16s CPU (       5 calls,   0.032 s avg)
+     vofrho3      :     0.17s CPU (       5 calls,   0.033 s avg)
+     dforce       :     0.04s CPU (      24 calls,   0.002 s avg)
+     dforce1      :     0.04s CPU (      20 calls,   0.002 s avg)
+     dforce2      :     0.10s CPU
+     calphi       :     0.00s CPU (       6 calls,   0.000 s avg)
+     gram         :     0.00s CPU (      12 calls,   0.000 s avg)
+     newd         :     0.00s CPU (       6 calls,   0.000 s avg)
+     calbec       :     0.02s CPU (      48 calls,   0.000 s avg)
+     prefor       :     0.00s CPU (       8 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
-     nlsm1        :     0.01s CPU (      12 calls,   0.001 s avg)
-     fft          :     0.53s CPU (     526 calls,   0.001 s avg)
-     ffts         :     0.01s CPU (       6 calls,   0.001 s avg)
-     fftw         :     0.03s CPU (      56 calls,   0.001 s avg)
-     cft3s        :     0.56s CPU (     588 calls,   0.001 s avg)
-     fft_scatter  :     0.20s CPU (     588 calls,   0.000 s avg)
+     nlsm1        :     0.02s CPU (      48 calls,   0.000 s avg)
+     fft          :     1.07s CPU (    1949 calls,   0.001 s avg)
+     ffts         :     0.01s CPU (      24 calls,   0.001 s avg)
+     fftw         :     0.07s CPU (     192 calls,   0.000 s avg)
+     cft3s        :     1.15s CPU (    2165 calls,   0.001 s avg)
+     fft_scatter  :     0.39s CPU (    2165 calls,   0.000 s avg)
 
-     nk_eforce    :     0.03s CPU (       8 calls,   0.004 s avg)
-     nk_corr      :     1.21s CPU (      24 calls,   0.051 s avg)
-     nk_corr_h    :     0.09s CPU (      24 calls,   0.004 s avg)
-     nk_corr_vxc  :     1.11s CPU (      24 calls,   0.046 s avg)
+     nk_eforce    :     0.06s CPU (      24 calls,   0.002 s avg)
+     nk_corr      :     2.95s CPU (      96 calls,   0.031 s avg)
+     nk_corr_h    :     0.21s CPU (      96 calls,   0.002 s avg)
+     nk_corr_vxc  :     2.69s CPU (      96 calls,   0.028 s avg)
 
 
-     outer_loop   :     1.68s CPU
-     runcg_uspp   :     1.70s CPU
-     xminus1      :     0.00s CPU (       2 calls,   0.000 s avg)
+     outer_loop   :     4.00s CPU (       5 calls,   0.800 s avg)
+     runcg_uspp   :     4.02s CPU
+     xminus1      :     0.00s CPU (      10 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     2.36s CPU time,    2.60s wall time
+     CP           :     4.38s CPU time,    4.66s wall time
 
  
-   This run was terminated on:  15:34: 3  10Mar2020            
+   This run was terminated on:  11:44: 1   7May2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

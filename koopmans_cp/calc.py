@@ -37,8 +37,10 @@ class Extended_Espresso_cp(Espresso_cp):
             super().__init__(label=getattr(calc, 'label', None), atoms=calc.atoms)
             self.results = calc.results
             self.parameters = calc.parameters
-            self.command = calc.command
-            self.calc = calc.calc
+            if hasattr(calc, 'command'):
+               self.command = calc.command
+            if hasattr(calc, 'calc'):
+               self.calc = calc.calc
 
     def __getattr__(self, name: str):
         '''
@@ -124,7 +126,8 @@ def run_cp(calc, silent=True, from_scratch=False):
             old_cpo = next(cp_io.read_espresso_cp_out(calc_file)).calc
 
             if old_cpo.results['job_done']:
-                # If it did, exit immediately
+                # If it did, load the results, and exit
+                calc.results = old_cpo.results
                 if not silent:
                     print(
                         f'Not running {calc_file} as it is already complete')

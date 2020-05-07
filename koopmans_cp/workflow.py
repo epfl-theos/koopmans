@@ -8,7 +8,6 @@ Written by Edward Linscott Jan 2020
 
 import os
 import copy
-import pickle
 import pandas as pd
 from collections import namedtuple
 from ase.io import espresso_cp as cp_io
@@ -238,13 +237,12 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
         calc.restart_from_wannier_pwscf = True
 
     # electrons
-    if 'print' in calc.prefix or (('pz' in calc.prefix or 'ki' in calc.prefix)
-                                  and 'kipz' not in calc.prefix and calc.prefix != 'pz_init'):
+    if 'print' in calc.prefix or ('pz' in calc.prefix and 'kipz' not in calc.prefix and calc.prefix != 'pz_init'):
         calc.maxiter = 2
         calc.empty_states_maxstep = 1
     else:
-        calc.maxiter = 100
-        calc.empty_states_maxstep = 100
+        calc.maxiter = 300
+        calc.empty_states_maxstep = 300
     # For all calculations calculating alpha, remove the empty states and
     # increase the energy thresholds
     if not any([s in calc.prefix for s in ['init', 'print', 'final']]):
@@ -547,7 +545,7 @@ def run(master_calc, workflow_settings):
     print('\nDETERMINING ALPHA VALUES')
 
     # Set up directories
-    if not os.path.isdir(f'calc_alpha'):
+    if not os.path.isdir('calc_alpha'):
         os.system('mkdir calc_alpha')
     for i_band in i_bands:
         if not os.path.isdir(f'calc_alpha/orbital_{i_band}'):
@@ -557,12 +555,10 @@ def run(master_calc, workflow_settings):
     i_sc = 0
 
     if not prev_calc_not_skipped:
-        # Reloading from file
+        # Reloading alphas and errors from file
+        print('Reloading alpha values from file')
         alpha_df = pd.read_pickle('alphas.pkl')
         error_df = pd.read_pickle('errors.pkl')
-        i_sc = len(error_df)
-        print_summary(alpha_df, error_df)
-        converged = all([abs(e) < 1e-3 for e in error_df.loc[i_sc, :]])
 
     alpha_indep_calcs = []
 
@@ -579,9 +575,11 @@ def run(master_calc, workflow_settings):
             directory = 'calc_alpha/orbital_{}'.format(fixed_band)
 
             # Don't repeat if this particular alpha_i was converged
-            if any([abs(e) < 1e-3 for e in error_df.loc[:, fixed_band]]):
+            if i_sc > 1 and any([abs(e) < 1e-3 for e in 
+                                 error_df.loc[:i_sc - 1,fixed_band]]):
                 print(
-                    'Skipping band {} since this alpha is already converged'.format(fixed_band))
+                    f'Skipping band {fixed_band} since this alpha is already '
+                    'converged')
                 alpha_df.loc[i_sc + 1,
                              fixed_band] = alpha_df.loc[i_sc, fixed_band]
                 error_df.loc[i_sc,
@@ -669,9 +667,6 @@ def run(master_calc, workflow_settings):
                 prev_calc_not_skipped = run_cp(
                     calc, silent=False, from_scratch=prev_calc_not_skipped)
 
-                if not prev_calc_not_skipped:
-                    continue
-
                 # Reset the value of 'fixed_band' so we can keep track of which calculation
                 # is which. This is important for empty orbital calculations, where fixed_band
                 # is always set to the LUMO but in reality we're fixing the band corresponding
@@ -684,8 +679,6 @@ def run(master_calc, workflow_settings):
                 # consistency loop.
                 if 'ki' in calc_type and 'print' not in calc_type:
                     alpha_dep_calcs.append(calc)
-                    if calc.fixed_band == n_filled_bands and calc.f_cutoff == 1.00:
-                        ki_calc_for_final_restart = calc
                 elif 'pbe' in calc_type and 'dummy' not in calc_type:
                     if workflow_type == 'ki':
                         # For KI, the PBE calculations are independent of alpha so
@@ -712,35 +705,32 @@ def run(master_calc, workflow_settings):
                         raise OSError(
                             f'Could not find {evcempty_dir}/evcfixed_empty.dat')
 
-            if not prev_calc_not_skipped:
-                continue
+            if prev_calc_not_skipped:
 
-            # Calculate an updated alpha and a measure of the error
-            # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
-            # E_i(N + 1) - E(N) - lambda^alpha_ii(0)     (empty)
-            calcs = [c for calc_set in [alpha_dep_calcs, alpha_indep_calcs]
-                     for c in calc_set if c.fixed_band == fixed_band]
+                # Calculate an updated alpha and a measure of the error
+                # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
+                # E_i(N + 1) - E(N) - lambda^alpha_ii(0)     (empty)
+                #
+                # Note that we only do this if the calculation has not been skipped
+                # because calculate_alpha reads in alpha values from files which get
+                # overwritten by subsequent calculations
 
-            if workflow_type == 'ki':
-                alpha, error = calculate_alpha(
-                    calcs, filled=filled, kipz=False)
-            else:
-                alpha, error = calculate_alpha(
-                    calcs, filled=filled, kipz=True)
+                calcs = [c for calc_set in [alpha_dep_calcs, alpha_indep_calcs]
+                         for c in calc_set if c.fixed_band == fixed_band]
 
-            alpha_df.loc[i_sc + 1, fixed_band] = alpha
-            error_df.loc[i_sc, fixed_band] = error
+                if workflow_type == 'ki':
+                    alpha, error = calculate_alpha(
+                        calcs, filled=filled, kipz=False)
+                else:
+                    alpha, error = calculate_alpha(
+                        calcs, filled=filled, kipz=True)
 
-        if prev_calc_not_skipped:
-            print_summary(alpha_df, error_df)
+                alpha_df.loc[i_sc + 1, fixed_band] = alpha
+                error_df.loc[i_sc, fixed_band] = error
+                alpha_df.to_pickle('alphas.pkl')
+                error_df.to_pickle('errors.pkl')
 
-            # Writing alphas and errors to python-readable files and generating a .tex table
-            alpha_df.to_pickle('alphas.pkl')
-            error_df.to_pickle('errors.pkl')
-            latex_table = alpha_df.to_latex(column_format='l' + 'd'*n_bands,
-                                            float_format='{:.3f}'.format, escape=False)
-            with open('tab_alpha_values.tex', 'w') as f:
-                f.write(latex_table)
+        print_summary(alpha_df, error_df)
 
         converged = all([abs(e) < 1e-3 for e in error_df.loc[i_sc, :]])
 
@@ -748,6 +738,12 @@ def run(master_calc, workflow_settings):
         print('Alpha values have been converged')
     else:
         print('Alpha values have been determined but are not necessarily converged')
+
+    # Writing alphas to a .tex table
+    latex_table = alpha_df.to_latex(column_format='l' + 'd'*n_bands,
+                                    float_format='{:.3f}'.format, escape=False)
+    with open('tab_alpha_values.tex', 'w') as f:
+        f.write(latex_table)
 
     # Final calculation
     print('\nFINAL KI CALCULATION')
