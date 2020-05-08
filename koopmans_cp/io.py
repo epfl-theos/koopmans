@@ -222,19 +222,29 @@ def read_json(fd):
 
     # If they are missing, fill in nelec and input_dft fields using information
     # contained in the pseudopotential files
+
     if 'pseudopotentials' in calc.parameters:
         if 'input_dft' not in calc.parameters['input_data']['control']:
             calc.parameters['input_data']['system']['input_dft'] = input_dft_from_pseudos(
                 calc)
         if 'nelec' not in calc.parameters['input_data']['system']:
-            calc.parameters['input_data']['system']['nelec'] = nelec_from_pseudos(
-                calc)
+            nelec = nelec_from_pseudos(calc)
+            calc.parameters['input_data']['system']['nelec'] = nelec
+        else:
+            nelec = calc.parameters['input_data']['system']['nelec']
+        if 'tot_charge' in calc.parameters['input_data']['system']:
+            tot_charge = calc.parameters['input_data']['system']['tot_charge']
+            calc.parameters['input_data']['system']['nelec'] -= tot_charge
+            nelec -= tot_charge
+        if 'tot_magnetization' in calc.parameters['input_data']['system']:
+            tot_mag = calc.parameters['input_data']['system']['tot_magnetization']
+        else:
+            tot_mag = nelec%2
+            calc.parameters['input_data']['system']['tot_magnetization'] = tot_mag
         if 'nelup' not in calc.parameters['input_data']['system']:
-            calc.parameters['input_data']['system']['nelup'] = calc.parameters['input_data']['system']['nelec']//2
+            calc.parameters['input_data']['system']['nelup'] = int(nelec/2 + tot_mag/2)
         if 'neldw' not in calc.parameters['input_data']['system']:
-            calc.parameters['input_data']['system']['neldw'] = calc.parameters['input_data']['system']['nelec'] - \
-                calc.parameters['input_data']['system']['nelup']
-
+            calc.parameters['input_data']['system']['neldw'] = int(nelec/2 - tot_mag/2)
     return calc, settings
 
 
