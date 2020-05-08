@@ -10,7 +10,7 @@
   },
   "control": {
     "ekin_conv_thr": 1e-07,
-    "pseudo_dir": "../../../pseudos/"
+    "pseudo_dir": "../../pseudos/"
   },
   "system": {
     "ecutrho": 240,

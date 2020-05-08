@@ -9,7 +9,7 @@
         "from_scratch"          : true
     },
     "CONTROL": {
-        "pseudo_dir"            : "../../../pseudos/"
+        "pseudo_dir"            : "../../pseudos/"
     },
     "SYSTEM":
     {

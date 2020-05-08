@@ -300,8 +300,12 @@ def get_pseudo_dir(calc):
     Works out the pseudo directory (pseudo_dir is given precedence over $ESPRESSO_PSEUDO)
     '''
 
-    if getattr(calc, 'pseudo_dir', None) is not None:
-        return calc.pseudo_dir
+    pseudo_dir = None
+    if 'control' in calc.parameters['input_data']:
+        if 'pseudo_dir' in calc.parameters['input_data']['control']:
+            pseudo_dir = calc.parameters['input_data']['control']['pseudo_dir']
+    if pseudo_dir is not None:
+        return pseudo_dir
     elif 'ESPRESSO_PSEUDO' in os.environ:
         return os.environ['ESPRESSO_PSEUDO']
     else:
@@ -333,6 +337,7 @@ def input_dft_from_pseudos(calc):
     if len(input_dft) != 1:
         warn('The listed pseudopotentials do not use the same functional; they are using ' +
              ', '.join(input_dft))
+
     return input_dft[0]
 
 

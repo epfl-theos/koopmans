@@ -22,7 +22,7 @@ Setting = namedtuple(
 valid_settings = [
     Setting('calc_type',
             'calculation type',
-            str, 'ki', ('ki', 'kipz', 'both')),
+            str, 'ki', ('ki', 'kipz', 'pbe', 'both')),
     Setting('init_density',
             'how to initialise the density',
             str, 'pbe', ('pbe', 'pbe-pw', 'pz', 'ki')),
@@ -251,6 +251,8 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
         calc.esic_conv_thr *= 100
 
     # nksic
+    calc.odd_nkscalfact = calc.do_orbdep
+    calc.odd_nkscalfact_empty = calc.do_orbdep
     calc.do_innerloop_cg = True
     if calc.prefix[:2] == 'pz' and calc.prefix != 'pz_init':
         calc.do_innerloop = True
@@ -419,6 +421,12 @@ def run(master_calc, workflow_settings):
     # Preparing panda dataframes in which to store results
     alpha_df = pd.DataFrame(columns=i_bands)
     error_df = pd.DataFrame(columns=i_bands)
+    if workflow_settings['alpha_from_file']:
+        print(r'Reading alpha values from file')
+        alpha_df.loc[1] = read_alpharef(directory='.')
+    else:
+        alpha_df.loc[1] = [workflow_settings['alpha_guess']
+                           for _ in range(n_bands)]
 
     prev_calc_not_skipped = workflow_settings['from_scratch']
     # Note since we always provide 'from_scratch=prev_calc_not_skipped' to run_cp, if
@@ -431,7 +439,18 @@ def run(master_calc, workflow_settings):
     # prev_calc_not_skipped will remain equal to True throughout the workflow and no
     # calculations will be skipped
 
+    # If workflow_type is PBE, perform PBE and exit immediately
+    if workflow_type == 'pbe':
+        # PBE
+        calc = set_up_calculator(master_calc, 'pbe_init')
+        calc.directory = '.'
+        calc.prefix = 'pbe'
+        prev_calc_not_skipped = run_cp(
+            calc, silent=False, from_scratch=prev_calc_not_skipped)
+        return
+
     print('\nINITIALISATION OF DENSITY')
+
     init_density = workflow_settings.get('init_density', 'pbe').lower()
     if init_density == 'pbe':
         # PBE from scratch
@@ -453,6 +472,7 @@ def run(master_calc, workflow_settings):
         # PZ from PBE
         calc = set_up_calculator(master_calc, 'pz_init')
         calc.directory = 'init'
+        write_alpharef(alpha_df.loc[1], band_filling, calc.directory)
         prev_calc_not_skipped = run_cp(
             calc, silent=False, from_scratch=prev_calc_not_skipped)
 
@@ -508,20 +528,14 @@ def run(master_calc, workflow_settings):
             os.system(f'cp {savedir}/evc_empty2.dat {savedir}/evc0_empty2.dat')
 
     print('\nINITIALISATION OF MANIFOLD')
-    # PZ/KIPZ reading in PBE to define manifold
-    if workflow_settings['alpha_from_file']:
-        print(r'Reading alpha values from file')
-        alpha_df.loc[1] = read_alpharef(directory='.')
-    else:
-        alpha_df.loc[1] = [workflow_settings['alpha_guess']
-                           for _ in range(n_bands)]
 
     init_manifold = workflow_settings['init_manifold']
     if init_manifold == 'pz':
+        write_alpharef(alpha_df.loc[1], band_filling, calc.directory)
         calc = set_up_calculator(master_calc, 'pz_innerloop_init')
     elif init_manifold == 'kipz':
-        calc = set_up_calculator(master_calc, 'kipz_init',
-                                 odd_nkscalfact=True, odd_nkscalfact_empty=True)
+        write_alpharef(alpha_df.loc[1], band_filling, calc.directory)
+        calc = set_up_calculator(master_calc, 'kipz_init')
     elif init_manifold == 'mlwf':
         raise ValueError('mlwf initialisation not yet implemented')
     else:
@@ -643,17 +657,8 @@ def run(master_calc, workflow_settings):
                 else:
                     index_empty_to_save = fixed_band - n_filled_bands
 
-                if 'ki' in calc_type:
-                    odd_nkscalfact = True
-                    odd_nkscalfact_empty = True
-                else:
-                    odd_nkscalfact = False
-                    odd_nkscalfact_empty = False
-
                 # Set up calculator
                 calc = set_up_calculator(master_calc, calc_type,
-                                         odd_nkscalfact=odd_nkscalfact,
-                                         odd_nkscalfact_empty=odd_nkscalfact_empty,
                                          fixed_band=min(
                                              fixed_band, n_filled_bands + 1),
                                          index_empty_to_save=index_empty_to_save)
@@ -755,8 +760,8 @@ def run(master_calc, workflow_settings):
 
     write_alpharef(alpha_df.loc[i_sc + 1], band_filling, directory)
 
-    calc = set_up_calculator(master_calc, workflow_type + '_final', odd_nkscalfact=True,
-                             odd_nkscalfact_empty=True, empty_states_nbnd=n_empty_bands)
+    calc = set_up_calculator(master_calc, workflow_type + '_final',
+                             empty_states_nbnd=n_empty_bands)
     calc.directory = directory
 
     # Read in from (note that if we have empty states only init/ and final/ use the full complement of orbitals)
