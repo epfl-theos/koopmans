@@ -38,21 +38,21 @@ class Parse_Data():
     parse_json reads the input_ui.json and eventully assigns a default
                value (if present) to the missing parameters
 
-    seedname       : as in W90 input
-    alat           : lattice parameter (in BOHR units). Like celldm(1) in QE it refers to a_1
-    nr1            : SC dimension along PC primitive vector a_1
-    nr2            : SC dimension along PC primitive vector a_2
-    nr3            : SC dimension along PC primitive vector a_3
-    ws_distance    : if True the Wigner-Seitz distance between WF centers is used
-    k_path         : k_path for bands interpolation (in crystal units)
-    smooth_int     : if True, smooth interpolation method is used
-    file_hr_pw     : look at documentation (needed when smooth_int=True)
-    file_hr_w90    : look at documentation (needed when smooth_int=True)
-    do_dos         : if True, the density-of-states is calculated    
-    degauss        : gaussian broadening in eV (as in QE except for the units)
-    nstep          : number of steps for DOS plot
-    Emin           : min energy (in eV) for DOS plot
-    Emax           : max energy (in eV) for DOS plot
+    seedname        : as in W90 input
+    alat            : lattice parameter (in BOHR units). Like celldm(1) in QE it refers to a_1
+    nr1             : SC dimension along PC primitive vector a_1
+    nr2             : SC dimension along PC primitive vector a_2
+    nr3             : SC dimension along PC primitive vector a_3
+    use_ws_distance : if True the Wigner-Seitz distance between WF centers is used
+    k_path          : k_path for bands interpolation (in crystal units)
+    smooth_int      : if True, smooth interpolation method is used
+    file_hr_pw      : look at documentation (needed when smooth_int=True)
+    file_hr_w90     : look at documentation (needed when smooth_int=True)
+    do_dos          : if True, the density-of-states is calculated    
+    degauss         : gaussian broadening in eV (as in QE except for the units)
+    nstep           : number of steps for DOS plot
+    Emin            : min energy (in eV) for DOS plot
+    Emax            : max energy (in eV) for DOS plot
     
     """
     def parse_json(self):
@@ -61,7 +61,7 @@ class Parse_Data():
             json_data = json.load(json_file)
 
         # list of available input arguments
-        self.list_of_args = ['seedname', 'alat', 'nr1', 'nr2', 'nr3', 'ws_distance',\
+        self.list_of_args = ['seedname', 'alat', 'nr1', 'nr2', 'nr3', 'use_ws_distance',\
                              'k_path', 'smooth_int', 'file_hr_pw', 'file_hr_w90',\
                              'do_dos', 'degauss', 'nstep', 'Emin', 'Emax']
         
@@ -77,7 +77,7 @@ class Parse_Data():
         self.nr1 = json_data.get("nr1", None)
         self.nr2 = json_data.get("nr2", None)
         self.nr3 = json_data.get("nr3", None)
-        self.ws_distance = json_data.get("ws_distance", True)
+        self.use_ws_distance = json_data.get("use_ws_distance", True)
         self.k_path = json_data.get("k_path", None)
         self.smooth_int = json_data.get("smooth_int", False)
         self.file_hr_pw = json_data.get("file_hr_pw", None)
@@ -100,8 +100,8 @@ class Parse_Data():
             sys.exit('\n\'nr2\' must be a int -> EXIT(%s)' %type(self.nr2))
         if ( type(self.nr3) is not int ):
             sys.exit('\n\'nr3\' must be a int -> EXIT(%s)' %type(self.nr3))
-        if ( type(self.ws_distance) is not bool ):
-            sys.exit('\n\'ws_distance\' must be a bool -> EXIT(%s)' %type(self.ws_distance))
+        if ( type(self.use_ws_distance) is not bool ):
+            sys.exit('\n\'use_ws_distance\' must be a bool -> EXIT(%s)' %type(self.use_ws_distance))
         if ( type(self.k_path) is not list ):
             sys.exit('\nk_path must be a list -> EXIT(%s)' %type(self.k_path))
         if ( type(self.smooth_int) is not bool ):

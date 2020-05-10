@@ -206,7 +206,7 @@ correct_phase calculate the correct phase factor to put in the Fourier transform
               to get the interpolated k-space hamiltonian. The correction consists
               of finding the right distance, i.e. the right R-vector, considering
               also the BVK boundary conditions.
-              if ws_distance=True, the function accounts also for the intracell 
+              if use_ws_distance=True, the function accounts also for the intracell 
               distance between Wannier functions, otherwise only the intercell
               distances are considered.
        
@@ -217,7 +217,7 @@ correct_phase calculate the correct phase factor to put in the Fourier transform
 """
 def correct_phase(center_ref, center, rvect, kvect, data):
 
-    if ( data.ws_distance ):
+    if ( data.use_ws_distance ):
         wf_dist = crys_to_cart(center - center_ref, data.at, +1)
     else:
         wf_dist = crys_to_cart(rvect, data.at, +1)
