@@ -1,0 +1,19 @@
+{
+    "seedname"       : "Si",
+    "alat"           : 41.052407376,
+    "nr1"            : 4,
+    "nr2"            : 4,
+    "nr3"            : 4,
+    "ws_distance"    : true,
+    "k_path"         : [[ 0.0, 0.0, 0.0, 10 ],
+                        [ 0.5, 0.0, 0.0, 10 ],
+                        [ 0.0, 0.0, 0.0,  1 ]],
+    "smooth_int"     : false,
+    "file_hr_pw"     : "",
+    "file_hr_w90"    : "",
+    "do_dos"         : true,
+    "degauss"        : 0.1,
+    "nstep"          : 2000,
+    "Emin"           : -10,
+    "Emax"           : 10
+}

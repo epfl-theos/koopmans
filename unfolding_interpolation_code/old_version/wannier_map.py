@@ -173,12 +173,13 @@ if interpolation:
 			for n in range(num_wann/nrtot):
 				for i in range(nrtot):
 					if not double_R:
-						phase_factor,Tnn = ws_distance(nr1,nr2,nr3,avec_sc,k,cutoff,wann_pc[i,n,1:4],wann_pc[0,m,1:4])
+						phase_factor,Tnn = ws_distance(nr1,nr2,nr3,avec_sc,k,cutoff,wann_pc[i,n,1:4],wann_pc[0,m,1:4],R[i],m,n)
 						hk[kn,m,n] = hk[kn,m,n] + np.exp(1j*2*np.pi*np.dot(k,R[i])) * phase_factor * hr_new[0,i,m,n]	# Hmn(k) = sum_R e^(-ikR) * ( sum_Tnn e^(-ikTnn) ) * <0m|H|Rn>
 					else:
 						for jj in range(nrtot):
                                                         phase_factor,Tnn = ws_distance(nr1,nr2,nr3,avec_sc,k,cutoff,wann_pc[i,n,1:4],wann_pc[jj,m,1:4])
 	                                                hk[kn,m,n] = hk[kn,m,n] + np.exp(1j*2*np.pi*np.dot(k,R[i]-R[jj])) * phase_factor * hr_new[jj,i,m,n] / nrtot     # Hmn(k) = 1/N * sum_{R,R'} e^-ik(R-R')] * <R'm|H|Rn>
+
 				if do_smooth_interpolation:
 					hk_pcell = np.zeros((k_path.shape[0],num_wann/nrtot,num_wann/nrtot),dtype=complex)
 					for rn in range(R_pcell.shape[0]):
@@ -242,4 +243,6 @@ print '\nTotal time:\t\t\t\t\t\t%.3f sec\n' %(time.time()-start)
 print '\tALL DONE.\n'
 
 
-os.remove('input.pyc')
+if (os.path.isfile('input.pyc')):
+	os.remove('input.pyc')
+

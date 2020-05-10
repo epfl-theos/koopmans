@@ -1,0 +1,3 @@
+#!/bin/bash
+
+python3 ../unf_int.py Si_hr.dat

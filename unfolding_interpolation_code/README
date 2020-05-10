@@ -1,6 +1,44 @@
 UNFOLDING and INTERPOLATION of bands from a supercell calculation at Gamma only.
 
-inputfile.py must be in the working directory, that is the directory 
-where the input/output files from Wannier90 or from Koopmans code are present.
 
-DOS calculation must be checked.
+TODO:
+- smooth interpolation
+- parallelization
+
+
+The code has to be run in the directory where the Wannier90 output is
+('seedname.wout' and 'wf_phases.dat'). The 'input_ui.json' file has to be
+the same directory.
+
+The input Koopmans or Wannier90 hamiltoanian is passed as arg:
+
+		python3 ~/path-to-ui-code/unf_int.py file_ham
+
+
+The code can also be run in an interactive way.
+The class Parse_Data in parser.py module allows to define an instance
+having all the important quanities as attributes.
+
+Then the code can be run sequentially as follows:
+
+1)		data = Parse_Data()
+		data.parse_data('file_ham')
+
+Parse_Data defines the instance 'data' and then parse_data calls all the
+functions (parse_json, parse_w90, parse_hr, parse_phases) which assign
+all the input data as attributes of 'data'.
+
+2)		map_wannier(data)
+		calc_bands(data)
+		calc_dos(data)
+
+These three functions:
+ - build the map |i> -> |Rn>
+ - interpolate H(k) and calculate the electron energies
+ - calculate the density-of-states
+respectively.
+
+3)		write_results(data)
+
+Writes the results to file: 'bands_interpolated.dat' and
+'dos_interpolated.dat' in the Quantum Espresso format.	
