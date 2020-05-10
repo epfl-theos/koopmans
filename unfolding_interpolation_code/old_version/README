@@ -1,5 +1,7 @@
 UNFOLDING and INTERPOLATION of bands from a supercell calculation at Gamma only.
 
+IMPORTANT: this is a python2 code
+
 inputfile.py must be in the working directory, that is the directory 
 where the input/output files from Wannier90 or from Koopmans code are present.
 
