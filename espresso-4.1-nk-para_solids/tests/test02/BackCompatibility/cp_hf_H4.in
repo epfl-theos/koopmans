@@ -1,0 +1,53 @@
+
+
+          &CONTROL
+             calculation = 'cp',
+             restart_mode='restart',
+             prefix='h4',
+             pseudo_dir = '../../pseudo/',
+             outdir = './SCRATCH'
+             nstep=100
+             iprint=1
+             ndr=94
+             ndw=96
+             ekin_conv_thr=1.0d-5
+             etot_conv_thr=1.0d-6
+             dt=15.0
+             tefield=.TRUE.
+          / 
+          &SYSTEM
+             ibrav=8,
+             celldm(1)=25.0,
+             celldm(2)=1.0,
+             celldm(3)=2.0,
+             nat=4,
+             ntyp=1,
+             ecutwfc=25.0,
+             do_ee=.TRUE.
+             which_orbdep='hf'
+          /
+          &ELECTRONS
+             electron_dynamics = 'damp'
+             electron_damping = 0.05
+             emass = 1000
+             emass_cutoff=3.,
+             ortho_max=500
+             ortho_para=1
+             efield=0.005
+             epol=3
+          /
+          &IONS
+             ion_dynamics='none',
+             ion_radius(1)=1.0,
+          /
+          &EE
+             which_compensation="tcc"
+          /
+    
+    ATOMIC_SPECIES 
+      H     1.0    H.pz-vbc.UPF 
+    ATOMIC_POSITIONS {bohr}
+H      0.000000000     0.000000000    -3.500000000
+H      0.000000000     0.000000000    -1.500000000
+H      0.000000000     0.000000000     1.500000000
+H      0.000000000     0.000000000     3.500000000

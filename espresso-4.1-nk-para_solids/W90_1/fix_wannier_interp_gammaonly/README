@@ -1,0 +1,10 @@
+A first attempt to fix the problem, in fourier_R_to_k
+It highly work in progress
+Some of the known problems are:
+
+1. if there is a truly periodic system in a small cell and ndegen!=1, the new interpolation routine (used e.g. by geninterp) does the wrong thing
+2. I'm not sure of the matrix conversions from abs to rel coords, double check!
+3. I'm not sure of the various signs that I use to add irshift, etc.
+4. things can be done more efficiently
+5. in the results there are some gap openings, one should understand if it's a problem in the input file or in the code
+

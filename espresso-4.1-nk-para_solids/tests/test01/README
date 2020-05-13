@@ -1,0 +1,16 @@
+
+==============================================================================
+@title@   H2 molecule
+==============================================================================
+  
+  H2 molecule ina box calculated using different methods: 
+  nspin = 1:      LDA, NK0, NK, PZ, HF    (suffix:   none)
+  nspin = 2:      LDA, NK0, NK, PZ, HF    (suffix:  _spin)
+  traditional     LDA, NK0, NK, PZ, HF    (suffix:  _trad)
+
+  The calculations labelled as traditional adopt the traditional
+  input convention (where almost all the variables are set explicitly).
+  Such inputs are suitable to be run with older versions of the code,
+  to have a historical check of the results.
+
+

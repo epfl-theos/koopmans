@@ -1,0 +1,30 @@
+/.cvsignore/1.1/Sat Nov 20 01:07:03 2010//
+/README/1.5/Mon Jan 17 17:27:03 2011//
+/cp_b3lyp.in/1.2/Wed Jan 30 19:03:12 2013//
+/cp_gram.in/1.2/Sun Nov 21 17:16:51 2010//
+/cp_gram_H4.in/1.1/Sun Nov 21 17:16:51 2010//
+/cp_gram_H4_trad.in/1.1/Mon Nov 22 13:05:08 2010//
+/cp_hf.in/1.2/Wed Jan 30 19:03:12 2013//
+/cp_hf_H4.in/1.3/Wed Jan 30 19:03:12 2013//
+/cp_hf_H4_trad.in/1.2/Wed Jan 30 19:03:12 2013//
+/cp_init.in/1.2/Sun Nov 21 17:16:51 2010//
+/cp_init_H4.in/1.1/Sun Nov 21 17:16:51 2010//
+/cp_init_H4_trad.in/1.1/Mon Nov 22 13:05:08 2010//
+/cp_lda.in/1.2/Sun Nov 21 17:16:51 2010//
+/cp_lda_H4.in/1.1/Sun Nov 21 17:16:51 2010//
+/cp_lda_H4_trad.in/1.1/Mon Nov 22 13:05:08 2010//
+/cp_nk.in/1.2/Wed Jan 30 19:03:12 2013//
+/cp_nk0.in/1.3/Wed Jan 30 19:03:12 2013//
+/cp_nk0_H4.in/1.2/Wed Jan 30 19:03:12 2013//
+/cp_nk0_H4_trad.in/1.3/Wed Jan 30 19:03:12 2013//
+/cp_nk_H4.in/1.2/Wed Jan 30 19:03:12 2013//
+/cp_nk_H4_trad.in/1.3/Wed Jan 30 19:03:12 2013//
+/cp_pbe0.in/1.2/Wed Jan 30 19:03:12 2013//
+/cp_pz.in/1.2/Wed Jan 30 19:03:12 2013//
+/cp_pz_H4.in/1.2/Wed Jan 30 19:03:12 2013//
+/cp_pz_H4_trad.in/1.3/Wed Jan 30 19:03:12 2013//
+/run.sh/1.4/Mon Apr 16 17:40:57 2012//
+/run_H4.sh/1.1/Sun Nov 21 17:16:51 2010//
+/run_H4_trad.sh/1.1/Mon Nov 22 13:05:08 2010//
+D/BackCompatibility////
+D/Reference////

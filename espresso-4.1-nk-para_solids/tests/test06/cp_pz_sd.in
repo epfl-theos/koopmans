@@ -1,0 +1,57 @@
+
+!
+! NOTE: not sure the parameters set and used are well chosen
+!       to have the test working. AF
+!
+
+          &CONTROL
+             calculation = 'cp',
+             restart_mode='from_scratch',
+             !verbosity='medium',
+             prefix='CH4_PZ_dd',
+             pseudo_dir = '../../pseudo/',
+             outdir = './SCRATCH'
+             nstep=10000
+             iprint=1
+             ndr=90
+             ndw=91
+             ekin_conv_thr=1.0d-5
+             etot_conv_thr=1.0d-6
+             dt=15.0
+          /
+          &SYSTEM
+             ibrav=1,
+             celldm(1)=25.0,
+             nat=5,
+             ntyp=2,
+             ecutwfc=35.0,
+             nspin=1
+             do_ee =.true.
+             which_orbdep='pz'
+          /
+          &ELECTRONS
+             electron_dynamics = 'sd'
+             passop=0.5
+             maxiter = 10000,
+             conv_thr=1.d-8
+             emass = 1000
+             emass_cutoff=3.,
+             ortho_max=500
+          /
+          &IONS
+             ion_dynamics='none',
+             ion_radius(1)=1.0,
+          /
+          &EE
+             which_compensation="tcc"
+          /
+
+    ATOMIC_SPECIES
+H     1.0079    H.pz-vbc.UPF
+C    12.011     C.pz-vbc.UPF
+    ATOMIC_POSITIONS {bohr}
+C      0.000000000     0.000000000     0.000000000
+H      0.000000000     0.000000000    -2.000000000
+H      0.000000000     0.000000000     2.000000000
+H      0.000000000     2.000000000     0.000000000
+H      0.000000000    -2.000000000     0.000000000

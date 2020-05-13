@@ -1,0 +1,658 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!-- *** FILE AUTOMATICALLY CREATED: DO NOT EDIT, CHANGES WILL BE LOST *** --><meta http-equiv="Content-Style-Type" CONTENT="text/css">
+</head>
+<body style="background-color: white; font-family: arial, helvetica, sans-serif; font-size: 14px; padding-left: 10; width: 700; ">
+<a name="__top__"></a><table style="border-width: 0 width: 100% text-align: left; vertical-align: top; background: #00395a;">
+<tr><th style="margin: 3 3 3 10; background: #00395a; color: #ffffee; ">
+<h1 style="margin: 5 10 10 15; text-align: left;"> Input File Description </h1>
+<h2 style="margin: 5 10 10 15; text-align: left;"> Program: pp.x / PWscf / Quantum Espresso</h2>
+</th></tr>
+<tr><td style="padding: 10 3 3 3; background: #ffffff; color: #222222; ">
+   <blockquote>
+<h3>TABLE OF CONTENTS</h3>
+<blockquote>
+<p><a href="#id1529952">INTRODUCTION</a></p>
+<p><a href="#id1529955">&amp;INPUTPP</a><blockquote>
+<a href="#id1529960">prefix</a> | <a href="#id1530160">outdir</a> | <a href="#id1530172">filplot</a> | <a href="#id1530184">plot_num</a> | <a href="#id1530211">spin_component</a> | <a href="#id1530236">spin_component</a> | <a href="#id1530260">sample_bias</a> | <a href="#id1530272">stm_wfc_matching</a> | <a href="#id1530289">z</a> | <a href="#id1530300">dz</a> | <a href="#id1530322">kpoint</a> | <a href="#id1530335">kband</a> | <a href="#id1530346">lsign</a> | <a href="#id1530358">spin_component</a> | <a href="#id1530380">emin</a> | <a href="#id1530391">emax</a> | <a href="#id1530403">spin_component</a> | <a href="#id1530425">spin_component</a>
+</blockquote></p>
+<p><a href="#id1530448">&amp;PLOT</a><blockquote>
+<a href="#id1530453">nfile</a> | <a href="#id1530473">filepp</a> | <a href="#id1530494">weight</a> | <a href="#id1530520">iflag</a> | <a href="#id1530532">output_format</a> | <a href="#id1530546">fileout</a> | <a href="#id1530572">e1</a> | <a href="#id1530587">x0</a> | <a href="#id1530606">nx</a> | <a href="#id1530635">e1</a> | <a href="#id1530641">e2</a> | <a href="#id1530651">x0</a> | <a href="#id1530675">nx</a> | <a href="#id1530680">ny</a> | <a href="#id1530709">e1</a> | <a href="#id1530714">e2</a> | <a href="#id1530719">e3</a> | <a href="#id1530730">x0</a> | <a href="#id1530753">nx</a> | <a href="#id1530758">ny</a> | <a href="#id1530764">nz</a> | <a href="#id1530798">radius</a> | <a href="#id1530814">nx</a> | <a href="#id1530819">ny</a>
+</blockquote></p>
+</blockquote>
+</blockquote>
+   <blockquote>
+<a name="id1529952"><h3>INTRODUCTION</h3></a><blockquote><pre>
+Purpose of pp.x: data analysis and plotting.
+
+The code performs two steps:
+(1) reads the output file produced by pw.x, extract and calculate
+    the desired quantity (rho, V, ...)
+(2) writes the desired quantity to file in a suitable format for
+    various types of plotting and various plotting programs
+
+The input data of this program are read from standard input
+or from a file and have the following format:
+
+NAMELIST &amp;INPUTPP
+   containing the variables for step (1), followed by
+
+NAMELIST &amp;PLOT
+   containing the variables for step (2)
+
+The two steps can be performed independently. In order to perform
+only step (2), leave namelist &amp;inputpp blank. In order to perform
+only step (1), do not specify namelist &amp;plot
+
+Intermediate results from step 1 can be saved to disk (see
+variable "filplot" in &amp;inputpp) and later read in step 2.
+Since the file with intermediate results is formatted, it
+can be safely transferred to a different machine. This
+also allows plotting of a linear combination (for instance,
+charge differences) by saving two intermediate files and
+combining them (see variables "weight" and "filepp" in &amp;plot)
+   </pre></blockquote>
+</blockquote>
+   <a name="id1529955"><table border="0" width="100%" style="margin-bottom: 20; ">
+<tr><th bgcolor="#ddcba6"><h2 style="margin: 10 10 10 15; text-align: left;"> Namelist: INPUTPP</h2></th></tr>
+<tr><td style="text-align: left; background: #ffebc6; padding: 5 5 5 30; "><table style="border-color: #505087; border-style: solid; border-width: 0; margin-bottom: 10; table-layout: auto; width: 700; "><tbody><tr><td>
+      <a name="id1529960"><a name="prefix"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">prefix</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">CHARATER</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+prefix of files saved by program pw.x
+         </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+      <a name="id1530160"><a name="outdir"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">outdir</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">CHARACTER</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+temporary directory where pw.x files resides
+         </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+      <a name="id1530172"><a name="filplot"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">filplot</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">CHARACTER</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+file "filplot" contains the quantity selected by plot_num
+(can be saved for further processing)
+         </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+      <a name="id1530184"><a name="plot_num"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">plot_num</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">INTEGER</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+selects what to save in filplot:
+
+   0  = charge
+
+   1  = total potential V_bare+V_H + V_xc
+
+   2  = local ionic potential
+
+   3  = local density of states at e_fermi
+
+   4  = local density of electronic entropy
+
+   5  = STM images
+
+   6  = spin polarization (rho(up)-rho(down))
+
+   7  = |psi|^2
+
+   8  = electron localization function (ELF)
+
+   9  = no longer in use
+
+   10 = integrated local density of states (ILDOS)
+        from emin to emax (emin, emax in eV)
+        if emax is not specified, emax=E_fermi
+
+   11 = the V_bare + V_H potential
+
+   12 = the electric field potential
+
+   13 = the noncollinear magnetization.
+         </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+      <table style="border-color: #bb9977; border-style: solid; border-width: 1; margin-bottom: 10; table-layout: auto; width: 100%; padding: 5 5 0 5">
+<tr><td>
+<b>IF </b><em>plot_num=0</em> : <blockquote><table style="border-color: #bb9977; border-style: solid; border-width: 3; margin-bottom: 10; table-layout: auto; background-color: #FFddbb; width: 100%; padding: 5 5 0 30"><tr><td>
+            <b>
+Options for total charge (plot_num=0):
+            </b><p></p>
+            <a name="id1530211"><a name="spin_component"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">spin_component</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">INTEGER</td>
+</tr>
+<tr>
+<td style="text-align: right; vertical-align: top; background: #ffffc3; padding: 2 10 2 10; "><i>Default:</i></td>
+<td style="text-align: left;  vertical-align: top; background: #fff3d9; padding: 2 2 2 5; "> 0
+               </td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+0=total charge (default value),
+1=spin up charge,
+2=spin down charge.
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+         </td></tr></table></blockquote>
+<b>ELSEIF </b><em>plot_num=1</em> : <blockquote><table style="border-color: #bb9977; border-style: solid; border-width: 3; margin-bottom: 10; table-layout: auto; background-color: #FFddbb; width: 100%; padding: 5 5 0 30"><tr><td>
+            <b>
+Options for total potential (plot_num=1):
+            </b><p></p>
+            <a name="id1530236"><a name="spin_component"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">spin_component</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">INTEGER</td>
+</tr>
+<tr>
+<td style="text-align: right; vertical-align: top; background: #ffffc3; padding: 2 10 2 10; "><i>Default:</i></td>
+<td style="text-align: left;  vertical-align: top; background: #fff3d9; padding: 2 2 2 5; "> 0
+               </td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+0=spin averaged potential (default value),
+1=spin up potential,
+2=spin down potential.
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+         </td></tr></table></blockquote>
+<b>ELSEIF </b><em>plot_num=5</em> : <blockquote><table style="border-color: #bb9977; border-style: solid; border-width: 3; margin-bottom: 10; table-layout: auto; background-color: #FFddbb; width: 100%; padding: 5 5 0 30"><tr><td>
+            <b>
+Options for STM images (plot_num=5):
+            </b><p></p>
+            <a name="id1530260"><a name="sample_bias"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">sample_bias</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">REAL</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+the bias of the sample (Ry) in stm images
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+            <a name="id1530272"><a name="stm_wfc_matching"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">stm_wfc_matching</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">LOGICAL</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+if .true. match the wavefunctions to an exponentially
+          vanishing function
+if .true. specify also (in celldm(1) units): z and dz variables
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+            <table style="border-color: #bb9977; border-style: solid; border-width: 3; margin-bottom: 10; table-layout: auto; background-color: #FFddbb; width: 100%; padding: 5 5 0 5"><tr><td>
+<b>IF </b>stm_wfc_matching = .true. : <blockquote>
+               <a name="id1530289"><a name="z"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">z</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">REAL</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+height of matching
+                  </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+               <a name="id1530300"><a name="dz"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">dz</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">REAL</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+distance of next stm image calculation
+                  </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+            </blockquote>
+</td></tr></table>
+         </td></tr></table></blockquote>
+<b>ELSEIF </b><em>plot_num=7</em> : <blockquote><table style="border-color: #bb9977; border-style: solid; border-width: 3; margin-bottom: 10; table-layout: auto; background-color: #FFddbb; width: 100%; padding: 5 5 0 30"><tr><td>
+            <b>
+Options for |psi|^2 (plot_num=7):
+            </b><p></p>
+            <a name="id1530322"><a name="kpoint"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">kpoint</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">INTEGER</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+Unpolarized and noncollinear case:   k-point to be plotted
+LSDA:  k-point and spin polarization to be plotted
+(spin-up and spin-down correspond to different k-points!)
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+            <a name="id1530335"><a name="kband"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">kband</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">INTEGER</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+band to be plotted
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+            <a name="id1530346"><a name="lsign"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">lsign</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">LOGICAL</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+if true and k point is Gamma, save |psi|^2 sign(psi)
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+            <a name="id1530358"><a name="spin_component"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">spin_component</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">INTEGER</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+Noncollinear case only:
+plot the contribution of the given state to the charge
+or to the magnetization along the direction indicated
+by spin_component:
+   0 = charge (default),
+   1 = x,
+   2 = y,
+   3 = z.
+
+Ignored in unpolarized or LSDA case
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+         </td></tr></table></blockquote>
+<b>ELSEIF </b><em>plot_num=10</em> : <blockquote><table style="border-color: #bb9977; border-style: solid; border-width: 3; margin-bottom: 10; table-layout: auto; background-color: #FFddbb; width: 100%; padding: 5 5 0 30"><tr><td>
+            <b>
+Options for ILDOS (plot_num=10):
+            </b><p></p>
+            <a name="id1530380"><a name="emin"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">emin</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">REAL</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+lower energy boundary (in eV)
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+            <a name="id1530391"><a name="emax"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">emax</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">REAL</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+upper energy boundary (in eV), i.e. compute
+ILDOS from emin to emax
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+            <a name="id1530403"><a name="spin_component"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">spin_component</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">INTEGER</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+for LSDA case only: plot the contribution to ILDOS of
+0 = spin-up + spin-down (default)
+1 = spin-up   only
+2 = spin-down only
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+         </td></tr></table></blockquote>
+<b>ELSEIF </b><em>plot_num=13</em> : <blockquote><table style="border-color: #bb9977; border-style: solid; border-width: 3; margin-bottom: 10; table-layout: auto; background-color: #FFddbb; width: 100%; padding: 5 5 0 30"><tr><td>
+            <b>
+Options for noncollinear magnetization (plot_num=13):
+            </b><p></p>
+            <a name="id1530425"><a name="spin_component"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">spin_component</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">INTEGER</td>
+</tr>
+<tr>
+<td style="text-align: right; vertical-align: top; background: #ffffc3; padding: 2 10 2 10; "><i>Default:</i></td>
+<td style="text-align: left;  vertical-align: top; background: #fff3d9; padding: 2 2 2 5; "> 0
+               </td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+0=absolute value (default value)
+1=x component of the magnetization
+2=y component of the magnetization
+3=z component of the magnetization
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+         </td></tr></table></blockquote>
+</td></tr>
+Unfinished and untested option:
+
+plot_num = 14, 15, 16  polarisation along x, y, z resp.
+epsilon  = macroscopic dielectric constant
+         </table>
+   </td></tr></tbody></table></td></tr>
+</table></a>
+   <a name="id1530448"><table border="0" width="100%" style="margin-bottom: 20; ">
+<tr><th bgcolor="#ddcba6"><h2 style="margin: 10 10 10 15; text-align: left;"> Namelist: PLOT</h2></th></tr>
+<tr><td style="text-align: left; background: #ffebc6; padding: 5 5 5 30; "><table style="border-color: #505087; border-style: solid; border-width: 0; margin-bottom: 10; table-layout: auto; width: 700; "><tbody><tr><td>
+      <a name="id1530453"><a name="nfile"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">nfile</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">INTEGER</td>
+</tr>
+<tr>
+<td style="text-align: right; vertical-align: top; background: #ffffc3; padding: 2 10 2 10; "><i>Default:</i></td>
+<td style="text-align: left;  vertical-align: top; background: #fff3d9; padding: 2 2 2 5; "> 1
+         </td>
+</tr>
+<tr>
+<td style="text-align: right; vertical-align: top; background: #ffffc3; padding: 2 10 2 10; "><i>Status:</i></td>
+<td style="text-align: left;  vertical-align: top; background: #fff3d9; padding: 2 2 2 5; "> OPTIONAL
+         </td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+the number of data files
+         </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+      <table style="border-color: #bb9977; border-style: solid; border-width: 3; margin-bottom: 10; table-layout: auto; background-color: #FFddbb; width: 100%; padding: 5 5 0 30"><tr><td>
+         <a name="id1530473"><a name="filepp"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th width="20%" style="white-space: nowrap; text-align: left; vertical-align: top; background: #ffff99; padding: 2 2 2 10; ">filepp(i), i=1,nfile</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">CHARACTER</td>
+</tr>
+<tr>
+<td style="text-align: right; vertical-align: top; background: #ffffc3; padding: 2 10 2 10; "><i>Default:</i></td>
+<td style="text-align: left;  vertical-align: top; background: #fff3d9; padding: 2 2 2 5; "> filepp(1)=filplot
+            </td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+nfile = 1 : file containing the quantity to be plotted
+nfile &gt; 1 : see "weight"
+            </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+         <a name="id1530494"><a name="weight"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th width="20%" style="white-space: nowrap; text-align: left; vertical-align: top; background: #ffff99; padding: 2 2 2 10; ">weight(i), i=1,nfile</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">REAL</td>
+</tr>
+<tr>
+<td style="text-align: right; vertical-align: top; background: #ffffc3; padding: 2 10 2 10; "><i>Default:</i></td>
+<td style="text-align: left;  vertical-align: top; background: #fff3d9; padding: 2 2 2 5; "> weight(1)=1.0
+            </td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+weighing factors: assuming that rho(i) is the quantity
+read from filepp(i), the quantity that will be plotted is:
+weight(1)*rho(1) + weight(2)*rho(2) + weight(3)*rho(3)+...
+            </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+         <pre>
+BEWARE: atomic coordinates are read from the first file;
+if their number is different for different files,
+the first file must have the largest number of atoms
+         </pre>
+      </td></tr></table>
+      <a name="id1530520"><a name="iflag"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">iflag</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">INTEGER</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+0 1D plot of the spherical average
+1 1D plot
+2 2D plot
+3 3D plot
+4 2D polar plot on a sphere
+         </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+      <a name="id1530532"><a name="output_format"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">output_format</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">INTEGER</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+(ignored on 1D plot)
+0  format suitable for gnuplot   (1D)
+1  format suitable for contour.x (2D)
+2  format suitable for plotrho   (2D)
+3  format suitable for XCRYSDEN  (1D, 2D, 3D)
+4  format suitable for gOpenMol  (3D)
+   (formatted: convert to unformatted *.plt)
+5  format suitable for XCRYSDEN  (3D)
+6  format as gaussian cube file  (3D)
+   (can be read by many programs)
+         </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+      <a name="id1530546"><a name="fileout"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">fileout</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">CHARACTER</td>
+</tr>
+<tr>
+<td style="text-align: right; vertical-align: top; background: #ffffc3; padding: 2 10 2 10; "><i>Default:</i></td>
+<td style="text-align: left;  vertical-align: top; background: #fff3d9; padding: 2 2 2 5; "> standard output
+         </td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+name of the file to which the plot is written
+         </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+      <table style="border-color: #bb9977; border-style: solid; border-width: 1; margin-bottom: 10; table-layout: auto; width: 100%; padding: 5 5 0 5"><tr><td>
+<b>IF </b><em>iflag = 0 or 1</em> : <blockquote><table style="border-color: #bb9977; border-style: solid; border-width: 3; margin-bottom: 10; table-layout: auto; background-color: #FFddbb; width: 100%; padding: 5 5 0 30"><tr><td>
+            <b> the following variables are REQUIRED:
+            </b><p></p>
+            <a name="id1530572"><a name="e1"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th width="20%" style="white-space: nowrap; text-align: left; vertical-align: top; background: #ffff99; padding: 2 2 2 10; ">e1(i), i=1,3</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">REAL</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+3D vector which determines the plotting line
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+            <a name="id1530587"><a name="x0"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th width="20%" style="white-space: nowrap; text-align: left; vertical-align: top; background: #ffff99; padding: 2 2 2 10; ">x0(i), i=1,3</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">REAL</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+3D vector, origin of the line
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+            <pre>
+!!! x0 and e1 are in alat units !!!
+            </pre>
+            <a name="id1530606"><a name="nx"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">nx</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">INTEGER</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+number of points in the line:
+rho(i) = rho( x0 + e1 * (i-1)/(nx-1) ), i=1, nx
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+         </td></tr></table></blockquote>
+<b>ELSEIF </b><em>iflag = 2</em> : <blockquote><table style="border-color: #bb9977; border-style: solid; border-width: 3; margin-bottom: 10; table-layout: auto; background-color: #FFddbb; width: 100%; padding: 5 5 0 30"><tr><td>
+            <b> the following variables are REQUIRED:
+            </b><p></p>
+            <table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="white-space: nowrap; background: #ffff99; padding: 2 2 2 10; ">
+<a name="id1530635"><a name="e1">e1(i), 
+		  </a></a><a name="id1530641"><a name="e2">e2(i), 
+		   
+		    i=1,3</a></a>
+</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">REAL</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+3D vectors which determine the plotting plane
+(must be orthogonal)
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div>
+            <a name="id1530651"><a name="x0"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th width="20%" style="white-space: nowrap; text-align: left; vertical-align: top; background: #ffff99; padding: 2 2 2 10; ">x0(i), i=1,3</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">REAL</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+3D vector, origin of the plane
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+            <pre>
+!!! x0, e1, e2 are in alat units !!!
+            </pre>
+            <table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="white-space: nowrap; background: #ffff99; padding: 2 2 2 10; ">
+<a name="id1530675"><a name="nx">nx, </a></a><a name="id1530680"><a name="ny">ny</a></a>
+</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">INTEGER</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+Number of points in the plane:
+
+rho(i,j) = rho( x0 + e1 * (i-1)/(nx-1)
+               + e2 * (j-1)/(ny-1) ), i=1,nx ; j=1,ny
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div>
+         </td></tr></table></blockquote>
+<b>ELSEIF </b><em>iflag = 3</em> : <blockquote><table style="border-color: #bb9977; border-style: solid; border-width: 3; margin-bottom: 10; table-layout: auto; background-color: #FFddbb; width: 100%; padding: 5 5 0 30"><tr><td>
+            <b> the following variables are OPTIONAL:
+            </b><p></p>
+            <table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="white-space: nowrap; background: #ffff99; padding: 2 2 2 10; ">
+<a name="id1530709"><a name="e1">e1(i), 
+		  </a></a><a name="id1530714"><a name="e2">e2(i), 
+		  </a></a><a name="id1530719"><a name="e3">e3(i), 
+		   
+		    i=1,3</a></a>
+</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">REAL</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+3D vectors which determine the plotting parallelepiped
+(if present, must be orthogonal)
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div>
+            <a name="id1530730"><a name="x0"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th width="20%" style="white-space: nowrap; text-align: left; vertical-align: top; background: #ffff99; padding: 2 2 2 10; ">x0(i), i=1,3</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">REAL</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+3D vector, origin of the parallelepiped
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+            <pre>
+!!! x0, e1, e2, e3 are in alat units !!!
+            </pre>
+            <table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="white-space: nowrap; background: #ffff99; padding: 2 2 2 10; ">
+<a name="id1530753"><a name="nx">nx, </a></a><a name="id1530758"><a name="ny">ny, </a></a><a name="id1530764"><a name="nz">nz</a></a>
+</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">INTEGER</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+Number of points in the parallelepiped:
+
+rho(i,j,k) = rho( x0 + e1 * (i-1)/nx
+                     + e2 * (j-1)/ny
+                     + e3 * (k-1)/nz ),
+                i = 1, nx ; j = 1, ny ; k = 1, nz
+
+- If output_format = 3 (XCRYSDEN), the above variables
+are used to determine the grid to plot.
+
+- If output_format = 5 (XCRYSDEN), the above variables
+are ignored, the entire FFT grid is written in the
+XCRYSDEN format - works for any crystal axis (VERY FAST)
+
+- If e1, e2, e3, x0 are present, e1 e2 e3 are parallel
+to xyz and parallel to crystal axis, a subset of the
+FFT grid that approximately covers the parallelepiped
+defined by e1, e2, e3, x0, is written (presently only
+if output_format = 4, i.e. gopenmol format) - works only
+if the crystal axis are parallel to xyz
+
+- Otherwise, the required 3D grid is generated from the
+Fourier components (may be VERY slow)
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div>
+         </td></tr></table></blockquote>
+<b>ELSEIF </b><em>iflag = 4</em> : <blockquote><table style="border-color: #bb9977; border-style: solid; border-width: 3; margin-bottom: 10; table-layout: auto; background-color: #FFddbb; width: 100%; padding: 5 5 0 30"><tr><td>
+            <b> the following variables are REQUIRED:
+            </b><p></p>
+            <a name="id1530798"><a name="radius"><table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="background: #ffff99; padding: 2 2 2 10; ">radius</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">REAL</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+Radius of the sphere (alat units), centered at (0,0,0)
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div></a></a>
+            <table width="100%" style="border-color:   #b5b500; border-style: solid; border-width: 2; margin-bottom: 10; table-layout: auto; background-color: #FFFFFF;">
+<tr>
+<th align="left" valign="top" width="20%" style="white-space: nowrap; background: #ffff99; padding: 2 2 2 10; ">
+<a name="id1530814"><a name="nx">nx, </a></a><a name="id1530819"><a name="ny">ny</a></a>
+</th>
+<td style="text-align: left; vertical-align: top; background: #ffffc3; padding: 2 2 2 5; ">INTEGER</td>
+</tr>
+<tr><td align="left" valign="top" colspan="2"><blockquote><pre>
+Number of points in the polar plane:
+
+    phi(i)   = 2 pi * (i - 1)/(nx-1), i=1, nx
+    theta(j) =   pi * (j - 1)/(ny-1), j=1, ny
+               </pre></blockquote></td></tr>
+</table>
+<div align="right">[<a href="#__top__">Back to Top</a>]</div>
+         </td></tr></table></blockquote>
+</td></tr></table>
+   </td></tr></tbody></table></td></tr>
+</table></a>
+</td></tr>
+</table>
+<blockquote><small>
+	    This file has been created by helpdoc utility.
+	  </small></blockquote>
+</body>
+</html>

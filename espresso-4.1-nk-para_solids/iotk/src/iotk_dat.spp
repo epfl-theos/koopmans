@@ -1,0 +1,794 @@
+! Input/Output Tool Kit (IOTK)
+! Copyright (C) 2004-2006 Giovanni Bussi
+!
+! This library is free software; you can redistribute it and/or
+! modify it under the terms of the GNU Lesser General Public
+! License as published by the Free Software Foundation; either
+! version 2.1 of the License, or (at your option) any later version.
+!
+! This library is distributed in the hope that it will be useful,
+! but WITHOUT ANY WARRANTY; without even the implied warranty of
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+! Lesser General Public License for more details.
+!
+! You should have received a copy of the GNU Lesser General Public
+! License along with this library; if not, write to the Free Software
+! Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+!------------------------------------------------------------------------------!
+! Inclusion of configuration file
+#include "iotk_config.h"
+!------------------------------------------------------------------------------!
+
+>##############################################################################<
+># inclusion of the spp definitions
+>include iotk_include.sh
+>##############################################################################<
+># inclusion of the auxiliary macros
+#include "iotk_auxmacros.h"
+>##############################################################################
+
+> REVISION='$Revision: 1.1.1.1 $'
+> REVISION="${REVISION//${dol}/}"
+
+
+subroutine iotk_dat_dummy()
+  write(0,*)
+end subroutine iotk_dat_dummy
+
+> function SIZE () { if ((rank<1)) ; then echo -n "1" ; else echo -n "size($1)" ; fi ; }
+> for type in $types ; do
+> type_string="\"$type\""
+> for kind in $kinds ; do
+> if [ $type != CHARACTER -o $kind -eq 1 ] ; then
+> for rank in $ranks ; do
+
+> if((rank%3==0)); then
+> auxfile ${type}${kind}_${rank}
+! Input/Output Tool Kit (IOTK)
+! Copyright (C) 2004-2006 Giovanni Bussi
+!
+! This library is free software; you can redistribute it and/or
+! modify it under the terms of the GNU Lesser General Public
+! License as published by the Free Software Foundation; either
+! version 2.1 of the License, or (at your option) any later version.
+!
+! This library is distributed in the hope that it will be useful,
+! but WITHOUT ANY WARRANTY; without even the implied warranty of
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+! Lesser General Public License for more details.
+!
+! You should have received a copy of the GNU Lesser General Public
+! License along with this library; if not, write to the Free Software
+! Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+>fi
+
+
+!------------------------------------------------------------------------------!
+! Inclusion of configuration file
+#include "iotk_config.h"
+!------------------------------------------------------------------------------!
+
+>##############################################################################<
+># inclusion if the auxiliary macros
+#include "iotk_auxmacros.h"
+>##############################################################################
+
+> eval "LENSTAR=\$LENSTAR_$type"
+
+#ifdef __IOTK_${type}${kind}
+#if $rank <= __IOTK_MAXRANK
+>PROCEDURE=iotk_write_dat
+subroutine iotk_write_dat_${type}${kind}_${rank}(unit,name,dat,dummy,attr,columns,sep,fmt,ierr)
+  use iotk_base
+  use iotk_error_interf
+  use iotk_attr_interf, only : iotk_write_attr
+  use iotk_write_interf
+  use iotk_fmt_interf
+  use iotk_str_interf
+  use iotk_unit_interf
+  use iotk_misc_interf
+  implicit none
+  integer, parameter :: this_kind = iotk_${type}${kind}
+  integer,                                    intent(in)  :: unit
+  character(len=*),                           intent(in)  :: name
+  ${type} (kind=this_kind$LENSTAR),           intent(in)  :: dat ${SHAPE[$rank]} 
+  type(iotk_dummytype),             optional              :: dummy
+  character(len=*),                 optional, intent(in)  :: attr
+  integer,                          optional, intent(in)  :: columns
+  character(len=*),                 optional, intent(in)  :: sep
+  character(len=*),                 optional, intent(in)  :: fmt
+  integer,                          optional, intent(out) :: ierr
+  integer :: ierrl,lunit,iostat
+  logical :: binary,raw,stream
+  integer :: lcolumns
+  integer(iotk_header_kind), parameter :: idummy=0
+  character(100) :: lsep
+  character(300) :: usefmt
+  character(iotk_attlenx) :: lattr
+  character(iotk_attlenx) :: attr_tmp
+  type (iotk_unit), pointer :: this
+> if [ "$type" = CHARACTER ] ; then
+  ${type} (kind=this_kind,len=len(dat)),allocatable :: dattmp(:)
+  character(len=iotk_linlenx) :: linetmp
+> else
+  ${type} (kind=this_kind),allocatable :: dattmp(:)
+> fi
+  integer :: itmp
+  ierrl = 0
+  iostat = 0
+  lcolumns = 1
+  lsep(1:2) = " "//iotk_eos
+  if(present(columns)) lcolumns = columns
+  if(present(sep)) then
+    call iotk_strcpy(lsep,sep,ierrl)
+    if(ierrl/=0) then
+      $(ERROR ierrl)
+      goto 1
+    end if
+  end if
+  lunit = iotk_phys_unit(unit)
+  call iotk_unit_get(lunit,pointer=this)
+  raw = .false.
+  if(associated(this)) then
+    raw = this%raw
+  end if
+  call iotk_inquire(lunit,binary,stream,ierrl)
+  if(ierrl/=0) then
+    $(ERROR ierrl)
+    goto 1
+  end if
+  call iotk_strcpy(usefmt,"!",ierrl)
+  if(ierrl/=0) then
+    $(ERROR ierrl)
+    goto 1
+  end if
+  if(present(fmt) .and. .not. raw) call iotk_strcpy(usefmt,iotk_strtrim(fmt),ierrl)
+  if(ierrl/=0) then
+    $(ERROR ierrl)
+    goto 1
+  end if
+  if(iotk_strscan(usefmt,"<>&")/=0) then
+    $(ERROR ierrl 'Special characters (<>&) found in fmt string' unit name='trim(name)' fmt='trim(fmt)')
+    goto 1
+  end if
+  call iotk_write_attr(lattr,"type",iotk_tolower("${type}"),first=.true.,ierr=ierrl)
+  if(ierrl/=0) then
+    $(ERROR ierrl)
+    goto 1
+  end if
+  call iotk_write_attr(lattr,"size",$(SIZE dat),ierr=ierrl)
+  if(ierrl/=0) then
+    $(ERROR ierrl)
+    goto 1
+  end if
+> if [ "$type" = CHARACTER ] ; then
+  call iotk_write_attr(lattr,"len",len(dat),ierr=ierrl)
+  if(ierrl/=0) then
+    $(ERROR ierrl)
+    goto 1
+  end if
+> else
+  if(binary) then
+    call iotk_write_attr(lattr,"kind",kind(dat),ierr=ierrl)
+    if(ierrl/=0) then
+      $(ERROR ierrl)
+      goto 1
+    end if
+  end if
+> fi
+  if(.not.iotk_strcomp(usefmt,"!")) call iotk_write_attr(lattr,"fmt",iotk_strtrim(usefmt),ierr=ierrl)
+  if(ierrl/=0) then
+    $(ERROR ierrl)
+    goto 1
+  end if
+  if(lcolumns/=1) call iotk_write_attr(lattr,"columns",lcolumns,ierr=ierrl)
+  if(ierrl/=0) then
+    $(ERROR ierrl)
+    goto 1
+  end if
+  if(present(attr)) then
+    attr_tmp(1:1)=iotk_eos
+    call iotk_strcpy(attr_tmp,attr,ierr=ierrl)
+    if(ierrl/=0) then
+      $(ERROR ierrl)
+      goto 1
+    end if
+    call iotk_delete_attr(attr_tmp,"type",ierrl)
+    if(ierrl/=0) then
+      $(ERROR ierrl)
+      goto 1
+    end if
+    call iotk_delete_attr(attr_tmp,"kind",ierrl)
+    if(ierrl/=0) then
+      $(ERROR ierrl)
+      goto 1
+    end if
+    call iotk_delete_attr(attr_tmp,"size",ierrl)
+    if(ierrl/=0) then
+      $(ERROR ierrl)
+      goto 1
+    end if
+    call iotk_delete_attr(attr_tmp,"fmt",ierrl)
+    if(ierrl/=0) then
+      $(ERROR ierrl)
+      goto 1
+    end if
+    call iotk_delete_attr(attr_tmp,"columns",ierrl)
+    if(ierrl/=0) then
+      $(ERROR ierrl)
+      goto 1
+    end if
+    call iotk_delete_attr(attr_tmp,"len",ierrl)
+    if(ierrl/=0) then
+      $(ERROR ierrl)
+      goto 1
+    end if
+    if(iotk_strlen_trim(attr_tmp)>0) call iotk_strcat(lattr,iotk_strtrim(attr_tmp),ierr=ierrl)
+  end if
+  if(ierrl/=0) then
+    $(ERROR ierrl)
+    goto 1
+  end if
+  call iotk_write_begin(unit,name,lattr,ierr=ierrl)
+  if(ierrl/=0) then
+    $(ERROR ierrl)
+    goto 1
+  end if
+
+  allocate(dattmp($(SIZE dat)))
+> if [ $rank -eq 0 ] ; then
+     dattmp(1) = dat
+> else
+#if defined(__IOTK_WORKAROUND3) || defined(__IOTK_WORKAROUND4)
+> if [ $type == CHARACTER ] ; then
+     call iotk_private_pack_$type$kind(dattmp,dat,size(dattmp),len(dattmp))
+> else
+     call iotk_private_pack_$type$kind(dattmp,dat,size(dattmp),1)
+> fi
+#else
+     dattmp = pack(dat,mask=.true.)
+#endif
+> fi
+
+  if(binary) then
+    if(raw) then
+      write(lunit,iostat=iostat) (dattmp(itmp),itmp=1,size(dattmp))
+      if(iostat/=0) then
+        $(ERROR ierrl)
+        goto 1
+      end if
+    else
+      write(lunit,iostat=iostat) idummy,(dattmp(itmp),itmp=1,size(dattmp))
+      if(iostat/=0) then
+        $(ERROR ierrl)
+        goto 1
+      end if
+    end if
+  else
+    if(raw) then
+> if [ $type = CHARACTER ] ;then
+      write(lunit,"(a)",iostat=iostat) (dattmp(itmp),itmp=1,size(dattmp))
+> else
+      write(lunit,*,iostat=iostat) (dattmp(itmp),itmp=1,size(dattmp))
+>fi
+      if(iostat/=0) then
+        $(ERROR ierrl)
+        goto 1
+      end if
+    else if(iotk_strcomp(usefmt,"*")) then
+      write(lunit,*,iostat=iostat) (dattmp(itmp),itmp=1,size(dattmp))
+      if(iostat/=0) then
+        $(ERROR ierrl)
+        goto 1
+      end if
+    else if(iotk_strcomp(usefmt,"!")) then
+> if [ $type = CHARACTER ] ;then
+     do itmp = 1 , size(dattmp)
+       call iotk_deescape(linetmp,dattmp(itmp))
+       write(lunit,"(a)",iostat=iostat) linetmp(1:iotk_strlen(linetmp))
+       if(iostat/=0) then
+        $(ERROR ierrl)
+        goto 1
+        end if
+     end do
+> else
+     write(lunit,fmt=trim(iotk_wfmt("${type}",kind(dattmp),lcolumns,-1,lsep)),iostat=iostat) (dattmp(itmp),itmp=1,size(dattmp))
+     if(iostat/=0) then
+      $(ERROR ierrl)
+      goto 1
+     end if
+> fi
+    else
+      write(lunit,fmt=usefmt(1:iotk_strlen(usefmt)),iostat=iostat) (dattmp(itmp),itmp=1,size(dattmp))
+      if(iostat/=0) then
+        $(ERROR ierrl)
+        goto 1
+      end if
+    end if
+  end if
+  call iotk_write_end(unit,name,ierr=ierrl)
+  if(ierrl/=0) then
+    $(ERROR ierrl)
+    goto 1
+  end if
+1 continue
+  if(allocated(dattmp)) deallocate(dattmp)
+  if(present(ierr)) then
+    ierr = ierrl
+  else
+    if(ierrl/=0) call iotk_error_handler(ierrl)
+  end if
+end subroutine iotk_write_dat_${type}${kind}_${rank}
+
+
+> if [ $rank -eq 1 ] ; then
+>PROCEDURE=iotk_scan_dat_aux
+recursive subroutine iotk_scan_dat_aux_${type}${kind}(unit,dat,rkind,rlen,fmt,ierr)
+  use iotk_base
+  use iotk_error_interf
+  use iotk_attr_interf, only: iotk_read
+  use iotk_scan_interf
+  use iotk_str_interf
+  use iotk_unit_interf
+  use iotk_misc_interf
+  use iotk_stream_interf
+  implicit none
+  integer, parameter :: this_kind = iotk_${type}${kind}
+  integer,                         intent(in)  :: unit
+#ifdef __IOTK_WORKAROUND6
+  ${type}(kind=this_kind$LENSTAR)              :: dat (:)
+#else
+  ${type}(kind=this_kind$LENSTAR), intent(out) :: dat (:)
+#endif
+  integer,                         intent(in)  :: rkind
+  integer,                         intent(in)  :: rlen
+  character(len=*),                intent(in)  :: fmt
+  integer,                         intent(out) :: ierr
+  integer(iotk_header_kind) :: idummy
+  logical :: raw,binary,stream
+  integer :: lunit
+> if [ $type != CHARACTER ] ; then
+  integer :: i
+> fi
+#ifdef __IOTK_WORKAROUND3
+  integer :: j
+#endif
+  integer :: index,length,nexttag,iostat,altlength
+  type(iotk_unit), pointer :: this
+  character(len=iotk_linlenx) :: line,altline
+> if [ $type = CHARACTER ] ; then
+  ${type} (kind=this_kind, len=rlen) :: dattmp(ubound(dat,1))
+> else
+>   for altkind in $kinds ; do
+>     if (( $altkind != $kind )) ; then
+#ifdef __IOTK_${type}${altkind}
+  ${type} (kind=iotk_${type}${altkind}), allocatable :: dat${altkind} (:)
+#endif
+>     fi
+>   done
+> fi
+  lunit = iotk_phys_unit(unit)
+  ierr = 0
+  iostat = 0
+  idummy = 0
+  call iotk_unit_get(lunit,pointer=this)
+  raw = .false.
+  if(associated(this)) then
+    raw = this%raw
+  end if
+  call iotk_inquire(lunit,binary,stream,ierr)
+  if(ierr/=0) then
+    $(ERROR ierr)
+    return
+  end if
+> if [ $type = CHARACTER ] ; then
+  if(binary) then
+    if(raw) then
+#ifdef __IOTK_WORKAROUND3
+      read(lunit,iostat=iostat) ( dattmp(j), j=1,ubound(dat,1) )
+#else
+      read(lunit,iostat=iostat) dattmp
+#endif
+      if(iostat/=0) then
+        $(ERROR ierr ' ' iostat)
+        return
+      end if
+    else
+      if(stream) then
+        call iotk_stream_read(lunit,idummy,dattmp,ierr=ierr)
+        if(ierr/=0) then
+          $(ERROR ierr)
+          return
+        end if
+      else
+#ifdef __IOTK_WORKAROUND3
+        read(lunit,iostat=iostat) idummy, ( dattmp(j), j=1,ubound(dat,1) )
+#else
+        read(lunit,iostat=iostat) idummy, dattmp
+#endif
+      end if
+      if(iostat/=0) then
+        $(ERROR ierr ' ' iostat)
+        return
+      end if
+    end if
+  else
+    if(raw) then  
+#ifdef __IOTK_WORKAROUND3
+      read(lunit,"(a)",iostat=iostat) ( dattmp(j), j=1,ubound(dat,1) )
+#else
+      read(lunit,"(a)",iostat=iostat) dattmp
+#endif
+      if(iostat/=0) then
+        $(ERROR ierr ' ' iostat)
+        return
+      end if
+    else if(iotk_strcomp(fmt,"*")) then
+#ifdef __IOTK_WORKAROUND3
+      read(lunit,fmt=*,  iostat=iostat) ( dattmp(j), j=1,ubound(dat,1) )
+#else
+      read(lunit,fmt=*,  iostat=iostat) dattmp
+#endif
+      if(iostat/=0) then
+        $(ERROR ierr ' ' iostat)
+        return
+      end if
+    else if(iotk_strcomp(fmt,"!")) then
+      index = 0
+      iostat = 0
+      do
+        call iotk_getline(lunit,line,length,ierr)
+        if(ierr/=0) then
+          $(ERROR ierr)
+          return
+        end if
+        nexttag = scan(line(1:length),"<")
+        if(nexttag==0) then
+          nexttag = length + 1
+        else
+! adjust the positioning if there is a tag on this line
+! implementation to be improved
+          backspace(lunit,iostat=iostat)
+          if(iostat/=0) then
+            $(ERROR ierr ' ' iostat)
+            return
+          end if
+          call iotk_getline(lunit,altline,altlength,ierr)
+          if(ierr/=0) then
+            $(ERROR ierr)
+            return
+          end if
+          backspace(lunit,iostat=iostat)
+          if(iostat/=0) then
+            $(ERROR ierr ' ' iostat)
+            return
+          end if
+          read(lunit,"(a)",advance="no",iostat=iostat) altline(1:nexttag-1 + altlength - length)
+          if(iostat/=0) then
+            $(ERROR ierr ' ' iostat)
+            return
+          end if
+        end if
+        index = index + 1
+        call iotk_escape(to=dattmp(index),from=line(1:nexttag - 1))
+        if(iotk_strlen(dattmp(index)) < len(dattmp)) dattmp(index)(iotk_strlen(dattmp(index))+1:) = " "
+        if(index == size(dat)) exit
+        if(nexttag/=length + 1) then
+          $(ERROR ierr 'Missing dat')
+          return
+        end if
+      end do
+    else
+#ifdef __IOTK_WORKAROUND3
+      read(lunit,fmt=fmt(1:iotk_strlen(fmt)),iostat=iostat) ( dattmp(j), j=1,ubound(dat,1) )
+#else
+      read(lunit,fmt=fmt(1:iotk_strlen(fmt)),iostat=iostat) dattmp
+#endif
+      if(iostat/=0) then
+        $(ERROR ierr ' ' iostat)
+        return
+      end if
+    end if
+  end if
+  if(len(dattmp) <= len(dat)) then
+    dat (:) = dattmp (:)
+  else
+    dat (:) = dattmp (:) (1:len(dat))
+  end if
+> else
+  if(binary) then
+    select case(rkind)
+    case(kind(dat))
+      if(raw) then
+#ifdef __IOTK_WORKAROUND3
+        read(lunit,iostat=iostat) ( dat(j), j=1,ubound(dat,1) )
+#else
+        read(lunit,iostat=iostat) dat
+#endif
+        if(iostat/=0) then
+          $(ERROR ierr ' ' iostat)
+          return
+        end if
+      else
+        if(stream) then
+          call iotk_stream_read(lunit,idummy,dat,ierr=ierr)
+          if(ierr/=0) then
+            $(ERROR ierr)
+            return
+          end if
+        else
+#ifdef __IOTK_WORKAROUND3
+          read(lunit,iostat=iostat) idummy, ( dat(j), j=1,ubound(dat,1) )
+#else
+          read(lunit,iostat=iostat) idummy, dat
+#endif
+        end if
+        if(iostat/=0) then
+          $(ERROR ierr ' ' iostat)
+          return
+        end if
+      end if
+>   for altkind in $kinds ; do                                                                                                           
+>     if [ $altkind -ne $kind ] ; then
+#ifdef __IOTK_${type}${altkind}
+    case(kind(dat${altkind}))
+      ! for the sake of completeness: if the file is raw, there is no
+      ! information about kind and this line cannot be reached
+      if(raw) then
+        $(ERROR ierr)
+        return
+      end if
+      allocate(dat${altkind}(ubound(dat,1)))
+      if(stream) then
+        call iotk_stream_read(lunit,idummy,dat${altkind},ierr=ierr)
+        if(ierr/=0) then
+          deallocate(dat${altkind})
+          $(ERROR ierr ' ' iostat)
+          return
+        end if
+      else
+        read(lunit,iostat=iostat) idummy,( dat${altkind}(i), i=1,ubound(dat${altkind},1) )
+        if(iostat/=0) then
+          deallocate(dat${altkind})
+          $(ERROR ierr ' ' iostat)
+          return
+        end if
+      end if
+> if [ $type = LOGICAL ] ; then
+#ifdef __IOTK_WORKAROUND2
+      dat  = dat${altkind} .and. .true.
+#else
+      dat = dat${altkind}
+#endif
+> elif [ $type = COMPLEX ] ; then
+      dat = cmplx(dat${altkind},kind=kind(dat))
+> elif [ $type = REAL ] ; then
+      dat = real(dat${altkind},kind=kind(dat))
+> elif [ $type = INTEGER ] ; then
+      dat = int(dat${altkind},kind=kind(dat))
+> fi
+      deallocate(dat${altkind})
+#endif
+>     fi
+>   done
+    case default
+      $(ERROR ierr 'Kind incompatibility' kind=rkind)
+    end select
+  else
+    if(raw) then
+#ifdef __IOTK_WORKAROUND3
+      read(lunit,fmt=*,iostat=iostat) ( dat(j), j=1,ubound(dat,1) )
+#else
+      read(lunit,fmt=*,iostat=iostat) dat
+#endif
+      if(iostat/=0) then
+        $(ERROR ierr ' ' iostat)
+        return
+      end if
+    else if(iotk_strcomp(fmt,"*")) then
+#ifdef __IOTK_WORKAROUND3
+      read(lunit,fmt=*,iostat=iostat) ( dat(j), j=1,ubound(dat,1) )
+#else
+      read(lunit,fmt=*,iostat=iostat) dat
+#endif
+      if(iostat/=0) then
+        $(ERROR ierr ' ' iostat)
+        return
+      end if
+    else if(iotk_strcomp(fmt,"!")) then
+      index = 0
+      do
+        call iotk_getline(lunit,line,length,ierr)
+        if(ierr/=0) then
+          $(ERROR ierr)
+          return
+        end if
+        nexttag = scan(line(1:length),"<")
+        if(nexttag==0) then
+          nexttag = length + 1
+        else
+! adjust the positioning if there is a tag on this line
+! implementation to be improved
+          backspace(lunit,iostat=iostat)
+          if(iostat/=0) then
+            $(ERROR ierr ' ' iostat)
+            return
+          end if
+          call iotk_getline(lunit,altline,altlength,ierr)
+          if(ierr/=0) then
+            $(ERROR ierr)
+            return
+          end if
+          backspace(lunit,iostat=iostat)
+          if(iostat/=0) then
+            $(ERROR ierr ' ' iostat)
+            return
+          end if
+          read(lunit,"(a)",advance="no",iostat=iostat) altline(1:nexttag-1 + altlength - length)
+          if(iostat/=0) then
+            $(ERROR ierr ' ' iostat)
+            return
+          end if
+        end if
+        call iotk_str_clean(line(1:nexttag - 1))
+        call iotk_read(dat,line(1:nexttag - 1),index,ierr)
+        if(ierr/=0) then
+          $(ERROR ierr 'Error reading '${type}' data')
+          return
+        end if
+> if [ $type = COMPLEX ] ; then
+        if(index == 2 * size(dat)) exit
+> else
+        if(index == size(dat)) exit
+> fi
+        if(nexttag/=length + 1) then
+          $(ERROR ierr)
+          return
+        end if
+      end do
+    else
+#ifdef __IOTK_WORKAROUND3
+      read(lunit,fmt=fmt(1:iotk_strlen(fmt)),iostat=iostat) ( dat(j), j=1,ubound(dat,1) )
+#else
+      read(lunit,fmt=fmt(1:iotk_strlen(fmt)),iostat=iostat) dat
+#endif
+      if(iostat/=0) then
+        $(ERROR ierr ' ' iostat)
+        return
+      end if
+    end if
+  end if
+> fi
+  if(idummy/=0) then
+    $(ERROR ierr)
+    return
+  end if
+end subroutine iotk_scan_dat_aux_${type}${kind}
+> fi
+
+>PROCEDURE=iotk_scan_dat
+subroutine iotk_scan_dat_${type}${kind}_${rank}(unit,name,dat,dummy,attr,found,default,ierr)
+  use iotk_base
+  use iotk_error_interf
+  use iotk_dat_interf, only: iotk_scan_dat_aux
+  use iotk_scan_interf
+  use iotk_str_interf
+  use iotk_misc_interf
+  implicit none
+  integer, parameter :: this_kind = iotk_${type}${kind}
+  integer,                                   intent(in)  :: unit
+  character(len=*),                          intent(in)  :: name
+#ifdef __IOTK_WORKAROUND6
+  ${type}(kind=this_kind$LENSTAR)                        :: dat ${SHAPE[$rank]}
+#else
+  ${type}(kind=this_kind$LENSTAR),           intent(out) :: dat ${SHAPE[$rank]}
+#endif
+  type(iotk_dummytype),            optional              :: dummy
+#ifdef __IOTK_WORKAROUND6
+  character(len=*),                optional              :: attr
+#else
+  character(len=*),                optional, intent(out) :: attr
+#endif
+  logical,                         optional, intent(out) :: found
+  ${type}(kind=this_kind$LENSTAR), optional, intent(in)  :: default ${SHAPE[$rank]}
+  integer,                         optional, intent(out) :: ierr
+> if [ $type = CHARACTER ] ; then
+  ${type} (kind=this_kind,len=len(dat)), allocatable :: tmpdat(:)
+> else
+  ${type} (kind=this_kind),              allocatable :: tmpdat(:)
+> fi
+  integer :: ierrl,ierrl2
+  integer :: rkind,rsize,rlen
+  character(iotk_vallenx) :: rtype
+  character(iotk_vallenx) :: fmt
+  character(iotk_attlenx) :: lattr
+  integer :: columns
+  logical :: inside,foundl
+  inside = .false.
+  ierrl = 0
+  ierrl2 = 0
+  foundl=.false.
+  call iotk_scan_begin(unit,name,lattr,found=foundl,ierr=ierrl)
+  if(.not. foundl) goto 1
+  foundl = .true.
+  inside = .true.
+  if(present(attr)) call iotk_strcpy(attr,lattr,ierrl)
+  if(ierrl/=0) then
+    $(ERROR ierrl)
+    goto 1
+  end if
+  call iotk_parse_dat(lattr,rtype,rkind,rsize,rlen,fmt,columns,ierrl)
+! Note that columns is not effectively used
+  if(ierrl/=0) goto 1
+  if(.not. (iotk_strcomp(rtype,iotk_eos) .or. iotk_strcomp(rtype,"${type}") ) ) then
+    $(ERROR ierrl ' ' rtype='rtype(1:iotk_strlen(rtype))' type=$type_string)
+    goto 1
+  end if
+  if(.not. (rsize==-1 .or. rsize==$(SIZE dat)) ) then
+    $(ERROR ierrl)
+    goto 1
+  end if
+  if(rkind==-1) rkind = kind(dat)
+> if [ $type = CHARACTER ] ; then
+  if(rlen ==-1) rlen  = len(dat)
+> fi
+
+  allocate(tmpdat($(SIZE dat)))
+  call iotk_scan_dat_aux(unit,tmpdat,rkind,rlen,fmt(1:iotk_strlen(fmt)),ierrl)
+  if(ierrl/=0) then
+    $(ERROR ierrl 'Error reading data' name rkind rlen)
+    goto 1
+  end if
+> if [ $rank -eq 0 ] ; then
+     dat = tmpdat(1)
+> else
+#if defined(__IOTK_WORKAROUND3) || defined(__IOTK_WORKAROUND4)
+> if [ $type == CHARACTER ] ; then
+     call iotk_private_pack_$type$kind(dat,tmpdat,size(tmpdat),len(tmpdat))
+> else
+     call iotk_private_pack_$type$kind(dat,tmpdat,size(tmpdat),1)
+> fi
+#else
+     dat = reshape(tmpdat,shape(dat))
+#endif
+> fi
+  deallocate(tmpdat)
+1 continue
+  if(inside) then
+    call iotk_scan_end(unit,name,ierr=ierrl2)
+    if(ierrl2/=0) then
+      call iotk_error_clear(ierrl)
+      ierrl=ierrl2
+    end if
+  end if
+  if(ierrl/=0) foundl=.false.
+  if(present(found)) found = foundl
+  if(ierrl==0 .and. .not. present(found) .and. .not. present(default) .and. .not. foundl) then
+    $(ERROR ierrl 'Dat not found' name)
+    ierrl = - ierrl
+  end if 
+  if(present(default) .and. .not. foundl) then
+    dat=default
+  end if
+  if(present(ierr)) then
+    ierr = ierrl
+  else
+    if(ierrl>0 .or. (.not.present(found) .and. .not.present(default))) call iotk_error_handler(ierrl)
+  end if
+end subroutine iotk_scan_dat_${type}${kind}_${rank}
+
+
+#endif
+#endif
+
+subroutine iotk_dat_dummy_${type}${kind}_${rank}
+  write(0,*)
+end subroutine iotk_dat_dummy_${type}${kind}_${rank}
+
+
+> done
+> fi
+> done
+> done
+

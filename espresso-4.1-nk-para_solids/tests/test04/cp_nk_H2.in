@@ -1,0 +1,56 @@
+
+
+          &CONTROL
+             calculation = 'cp',
+             restart_mode='restart',
+             !verbosity='medium',
+             prefix='job_H2',
+             pseudo_dir = '../../pseudo/',
+             outdir = './SCRATCH/'
+             nstep=200
+             iprint=1
+             ndr=91
+             ndw=92
+             ekin_conv_thr=1.0d-5
+             etot_conv_thr=1.0d-6
+             dt=15.0
+          / 
+          &SYSTEM
+             ibrav=1,
+             celldm(1)=25.0,
+             nat=2,
+             ntyp=1,
+             ecutwfc=35.0,
+             nspin=2
+             do_ee=.TRUE.
+             do_orbdep=.TRUE.
+             nr1b = 24
+             nr2b = 24
+             nr3b = 24
+          /
+          &ELECTRONS
+             electron_dynamics = 'damp'
+             electron_damping = 0.05
+             emass = 1000
+             emass_cutoff=3.,
+             ortho_max=500
+             ortho_para=1
+          /
+          &IONS
+             ion_dynamics='none',
+             ion_radius(1)=1.0,
+          /
+          &EE
+             which_compensation="tcc"
+          /
+          &NKSIC
+             do_nk=.TRUE.
+             fref=0.5
+             rhobarfact=1.0
+          /
+    
+    ATOMIC_SPECIES
+      H     1.0    H.pz-vbc.UPF
+    ATOMIC_POSITIONS {angstrom}
+H      0.000000000     0.000000000     -0.37
+H      0.000000000     0.000000000      0.37
