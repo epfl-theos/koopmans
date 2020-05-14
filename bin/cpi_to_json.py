@@ -2,7 +2,7 @@
 
 import argparse
 from ase.io import espresso_cp as cp_io
-from koopmans_cp.io import write_json, read_json
+from koopmans_cp.ase import write_json, read_json
 from koopmans_cp.defaults import defaults
 from koopmans_cp.workflow import keywords_altered_during_workflow
 import copy

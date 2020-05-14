@@ -11,10 +11,11 @@ import copy
 import pandas as pd
 from collections import namedtuple
 from ase.io import espresso_cp as cp_io
-from koopmans_cp.io import write_alpharef, read_alpharef, print_summary, read_json, \
-    parse_algebraic_expressions, warn, print_qc
+from koopmans_cp.utils import warn
+from koopmans_cp.io import write_alpharef, read_alpharef, print_summary, print_qc
+from koopmans_cp.ase import read_json
 from koopmans_cp.defaults import load_defaults
-from koopmans_cp.calc import run_cp, calculate_alpha, Extended_Espresso_cp
+from koopmans_cp.calc import run_cp, calculate_alpha, CP_calc
 
 Setting = namedtuple(
     'Setting', ['name', 'description', 'type', 'default', 'options'])
@@ -90,13 +91,13 @@ def check_settings(settings):
 
 def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
     """
-    Generates a new ASE calculator based on a template ASE calculator, modifying
+    Generates a new calculator based on a template calculator, modifying
     the appropriate settings to match the chosen calc_type, and altering any
     Quantum Espresso keywords specified as kwargs
 
     Arguments:
 
-        calc: an template ASE calculator. N.B. this object is not modified by
+        calc: an template calculator. N.B. this object is not modified by
               this routine
 
         calc_type: the calculation type; must be one of
@@ -206,38 +207,38 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
 
     # CP options
     # control
-    calc.setattr_only('prefix', calc_type)
+    calc.name = calc_type
     calc.ndw = ndw
     calc.ndr = ndr
-    if calc.prefix in ['pbe_init', 'pbe_n+1_dummy']:
+    if calc.name in ['pbe_init', 'pbe_n+1_dummy']:
         calc.restart_mode = 'from_scratch'
     else:
         calc.restart_mode = 'restart'
 
     # system
     calc.nspin = 2
-    if 'pz' in calc.prefix or 'ki' in calc.prefix:
+    if 'pz' in calc.name or 'ki' in calc.name:
         calc.do_orbdep = True
     else:
         calc.do_orbdep = False
-    if calc.prefix in ['pbe_init', 'pz_print', 'pbe_n+1_dummy', 'pz_init',
+    if calc.name in ['pbe_init', 'pz_print', 'pbe_n+1_dummy', 'pz_init',
                        'kipz_init', 'kipz_print', 'ki_final', 'kipz_final',
                        'pz_innerloop_init']:
         calc.fixed_state = False
     else:
         calc.fixed_state = True
-        if '-1' in calc.prefix:
+        if '-1' in calc.name:
             calc.f_cutoff = 1e-5
         else:
             calc.f_cutoff = 1.0
-    if 'n+1' in calc.prefix:
+    if 'n+1' in calc.name:
         calc.nelec += 1
         calc.nelup += 1
-    if calc.prefix in ['pbe_n+1', 'pbe_n+1-1', 'ki_n+1-1', 'kipz_n+1-1', 'kipz_n+1']:
+    if calc.name in ['pbe_n+1', 'pbe_n+1-1', 'ki_n+1-1', 'kipz_n+1-1', 'kipz_n+1']:
         calc.restart_from_wannier_pwscf = True
 
     # electrons
-    if 'print' in calc.prefix or ('pz' in calc.prefix and 'kipz' not in calc.prefix and calc.prefix != 'pz_init'):
+    if 'print' in calc.name or ('pz' in calc.name and 'kipz' not in calc.name and calc.name != 'pz_init'):
         calc.maxiter = 2
         calc.empty_states_maxstep = 1
     else:
@@ -245,31 +246,32 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
         calc.empty_states_maxstep = 300
     # For all calculations calculating alpha, remove the empty states and
     # increase the energy thresholds
-    if not any([s in calc.prefix for s in ['init', 'print', 'final']]):
+    if not any([s in calc.name for s in ['init', 'print', 'final']]):
         calc.empty_states_nbnd = 0
         calc.conv_thr *= 100
         calc.esic_conv_thr *= 100
 
     # nksic
-    calc.odd_nkscalfact = calc.do_orbdep
-    calc.odd_nkscalfact_empty = calc.do_orbdep
+    if calc.do_orbdep:
+        calc.odd_nkscalfact = True
+        calc.odd_nkscalfact_empty = True
     calc.do_innerloop_cg = True
-    if calc.prefix[:2] == 'pz' and calc.prefix != 'pz_init':
+    if calc.name[:2] == 'pz' and calc.name != 'pz_init':
         calc.do_innerloop = True
         calc.one_innerloop_only = True
-    elif 'kipz' in calc.prefix or calc.prefix == 'pz_init':
+    elif 'kipz' in calc.name or calc.name == 'pz_init':
         calc.do_innerloop = True
         calc.one_innerloop_only = False
     else:
         calc.do_innerloop = False
         calc.one_innerloop_only = False
-    if 'kipz' in calc.prefix:
+    if 'kipz' in calc.name:
         calc.which_orbdep = 'nkipz'
-    elif 'pz' in calc.prefix:
+    elif 'pz' in calc.name:
         calc.which_orbdep = 'pz'
-    elif 'ki' in calc.prefix:
+    elif 'ki' in calc.name:
         calc.which_orbdep = 'nki'
-    if 'print' in calc.prefix:
+    if 'print' in calc.name:
         calc.print_wfc_anion = True
 
     # if periodic, set calc.which_compensation = 'none'
@@ -290,6 +292,7 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
     if calc.fixed_band is not None and calc.fixed_band > calc.nelup + 1:
         warn('calc.fixed_band is higher than the LUMO; this should not happen')
 
+
     return calc
 
 
@@ -298,14 +301,14 @@ keywords_altered_during_workflow = ['ndw', 'ndr', 'restart_mode', 'nspin', 'nele
                                     'fixed_band', 'conv_thr', 'restart_from_wannier_pwscf',
                                     'maxiter', 'empty_states_maxstep', 'esic_conv_thr',
                                     'do_innerloop', 'one_innerloop_only', 'which_orbdep',
-                                    'print_wfc_anion', 'directory', 'prefix', 'odd_nkscalfact',
+                                    'print_wfc_anion', 'directory', 'odd_nkscalfact',
                                     'odd_nkscalfact_empty', 'nkscalfact']
 
 
 def run_from_json(json):
     '''
     This function wraps 'run' to allow reading of a json file rather than
-    requiring an ASE calculator object and a workflow settings dictionary
+    requiring a CP calculator object and a workflow settings dictionary
 
     This is kept separate from 'run' to allow for calc_type == "both".
 
@@ -321,14 +324,14 @@ def run_from_json(json):
     # settings with default values
     check_settings(workflow_settings)
 
-    # Convert the master_calc object to a the Extended_Espresso_cp class
-    master_calc = Extended_Espresso_cp(master_calc)
+    # Convert the master_calc object to a the CP_calc class
+    master_calc = CP_calc(master_calc)
 
     # Load cp.x default values from koopmans.defaults
     master_calc = load_defaults(master_calc)
 
     # Parse any algebraic expressions used for cp.x keywords
-    master_calc = parse_algebraic_expressions(master_calc)
+    master_calc.parse_algebraic_settings()
 
     if workflow_settings['calc_type'] == 'both':
         # if 'both', create subdirectories and run
@@ -444,7 +447,7 @@ def run(master_calc, workflow_settings):
         # PBE
         calc = set_up_calculator(master_calc, 'pbe_init')
         calc.directory = '.'
-        calc.prefix = 'pbe'
+        calc.name = 'pbe'
         prev_calc_not_skipped = run_cp(
             calc, silent=False, from_scratch=prev_calc_not_skipped)
         return
@@ -478,16 +481,14 @@ def run(master_calc, workflow_settings):
 
     elif init_density == 'ki':
         print('Initialising the density with a pre-existing KI calculation')
-        # a pre-existing, complete KI calculation
-        prefix = master_calc.parameters['input_data']['control']['prefix']
 
         # Read the .cpi file to work out the value for ndw
         atoms = cp_io.read_espresso_cp_in('init/ki_init.cpi')
         calc = Extended_Espresso_cp(atoms.calc)
 
         # Move the old save directory to correspond to ndw = 50
-        old_savedir = f'init/{master_calc.outdir}/{prefix}_{calc.ndw}.save'
-        savedir = f'init/{master_calc.outdir}/{prefix}_50.save'
+        old_savedir = f'init/{master_calc.outdir}/{master_calc.prefix}_{calc.ndw}.save'
+        savedir = f'init/{master_calc.outdir}/{master_calc.prefix}_50.save'
         if not os.path.isdir(old_savedir):
             raise ValueError(f'{old_savedir} does not exist; a previous '
                              'and complete KI calculation is required '
@@ -519,8 +520,7 @@ def run(master_calc, workflow_settings):
     if init_density == 'pbe':
         # Using KS eigenfunctions as guess variational orbitals
         print('Overwriting the CP variational orbitals with Kohn-Sham orbitals')
-        prefix = calc.parameters['input_data']['control']['prefix']
-        savedir = f'{calc.directory}/{calc.outdir}/{prefix}_{calc.ndw}.save/K00001'
+        savedir = f'{calc.directory}/{calc.outdir}/{calc.prefix}_{calc.ndw}.save/K00001'
         os.system(f'cp {savedir}/evc1.dat {savedir}/evc01.dat')
         os.system(f'cp {savedir}/evc2.dat {savedir}/evc02.dat')
         if calc.empty_states_nbnd is not None and calc.empty_states_nbnd > 0:
@@ -549,8 +549,7 @@ def run(master_calc, workflow_settings):
 
     if prev_calc_not_skipped:
         print('Copying the spin-up variational orbitals over to the spin-down channel')
-        prefix = calc.parameters['input_data']['control']['prefix']
-        savedir = f'{calc.directory}/{calc.outdir}/{prefix}_{calc.ndw}.save/K00001'
+        savedir = f'{calc.directory}/{calc.outdir}/{calc.prefix}_{calc.ndw}.save/K00001'
         os.system(f'cp {savedir}/evc01.dat {savedir}/evc02.dat')
         if calc.empty_states_nbnd is not None and calc.empty_states_nbnd > 0:
             os.system(
@@ -666,7 +665,7 @@ def run(master_calc, workflow_settings):
 
                 # Ensure we don't overwrite varational-orbital-dependent results
                 if workflow_type == 'kipz' or 'ki' in calc_type:
-                    calc.setattr_only('prefix', calc.prefix + f'_it{i_sc}')
+                    calc.name += f'_it{i_sc}'
 
                 # Run cp.x
                 prev_calc_not_skipped = run_cp(
@@ -696,13 +695,12 @@ def run(master_calc, workflow_settings):
                         alpha_dep_calcs.append(calc)
 
                 # Copying of evcfixed_empty.dat to evc_occupied.dat
-                prefix = calc.parameters['input_data']['control']['prefix']
                 if calc_type in ['pz_print', 'kipz_print']:
                     evcempty_dir = f'calc_alpha/orbital_{fixed_band}/{calc.outdir}/' \
-                        f'{prefix}_{calc.ndw}.save/K00001/'
+                        f'{calc.prefix}_{calc.ndw}.save/K00001/'
                 elif calc_type == 'pbe_n+1_dummy':
                     evcocc_dir = f'calc_alpha/orbital_{fixed_band}/{calc.outdir}/' \
-                        f'{prefix}_{calc.ndr}.save/K00001/'
+                        f'{calc.prefix}_{calc.ndr}.save/K00001/'
                     if os.path.isfile(f'{evcempty_dir}/evcfixed_empty.dat'):
                         os.system(
                             f'cp {evcempty_dir}/evcfixed_empty.dat {evcocc_dir}/evc_occupied.dat')
@@ -769,8 +767,7 @@ def run(master_calc, workflow_settings):
     if prev_calc_not_skipped:
         if not os.path.isdir(outdir):
             os.system(f'mkdir {outdir}')
-        prefix = calc.parameters['input_data']['control']['prefix']
-        savedir = f'{calc.outdir}/{prefix}_{calc.ndr}.save'
+        savedir = f'{calc.outdir}/{calc.prefix}_{calc.ndr}.save'
         if not os.path.isdir(savedir):
             os.system(f'cp -r init/{savedir} final/{savedir}')
 
