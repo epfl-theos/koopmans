@@ -715,28 +715,15 @@
           n = nupdwn_emp(iss)
           !
           IF(.not.lambda_emp(iss)%iscmplx) THEN
-!              WRITE(stdout, *) "NICOLA in emptystate.f90 descla", desc_emp( :,iss )
-!              WRITE(stdout,*) "NICOLA size mrepl", SIZE(lambda_rep)
-!              WRITE(stdout,*) "NICOLA size descla", desc_emp(:,iss)
               CALL collect_lambda( lambda_rep, lambda_emp(iss)%rvec(:,:), desc_emp( :, iss ) )
               IF (iss==1) THEN
                 OPEN(27,FILE='hamiltonian_emp.dat',FORM='formatted',status='UNKNOWN')
-!                WRITE(27,*) "NICOLA lambda EMP ispin=", iss
                 WRITE(27,'(1E16.10)') lambda_rep
                 CLOSE(27)
               ENDIF
-              !NsC >>> Print Hamiltonian EMPTY state
-!              WRITE(stdout,'(/,"NICOLA Empty Ham REAL SIZE",2i10, /)'), SIZE(lambda_rep), SIZE(lambda_emp(iss)%rvec)
-!              CALL write_empty_ham_real(lambda_rep, nudx_emp)
-!              !NsC <<<
               CALL crot( cm_emp, c0_emp, ngw, n, i, i, lambda_rep, nudx_emp, ei_emp(:,iss) )
           ELSE
               CALL collect_lambda( lambda_rep_c, lambda_emp(iss)%cvec(:,:), desc_emp( :, iss ) )
-              !NsC >>> Print Hamiltonian EMPTY state
-!              WRITE(stdout,'(/,"NICOLA Empty Ham CMPLX SIZE",i10,/)'), SIZE(lambda_rep_c)
-!              WRITE(stdout,*)  lambda_rep_c
-              !CALL write_empty_ham(lambda_emp, nudx_emp, desc_emp)
-              !NsC <<<
               CALL crot( cm_emp, c0_emp, ngw, n, i, i, lambda_rep_c, nudx_emp, ei_emp(:,iss) )
           ENDIF
           !   
