@@ -131,7 +131,7 @@ class CP_calc:
 
     def _update_settings_dict(self):
         # Updates self._settings based on self._ase_calc
-        for namelist in self._ase_calc.parameters['input_data'].values():
+        for namelist in self._ase_calc.parameters.get('input_data', {}).values():
             for key, val in namelist.items():
                 self._settings[key] = val
 

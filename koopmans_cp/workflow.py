@@ -242,8 +242,10 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
         calc.maxiter = 2
         calc.empty_states_maxstep = 1
     else:
-        calc.maxiter = 300
-        calc.empty_states_maxstep = 300
+        if calc.maxiter is None:
+            calc.maxiter = 300
+        if calc.empty_states_maxstep is None:
+            calc.empty_states_maxstep = 300
     # For all calculations calculating alpha, remove the empty states and
     # increase the energy thresholds
     if not any([s in calc.name for s in ['init', 'print', 'final']]):
