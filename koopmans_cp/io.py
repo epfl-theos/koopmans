@@ -18,7 +18,7 @@ import xml.etree.ElementTree as ET
 import os
 
 
-def cpi_diff(calcs):
+def cpi_diff(calcs, silent=False):
 
     # If calcs is a dict, convert it to a list (we only need the values)
     if isinstance(calcs, dict):
@@ -35,18 +35,20 @@ def cpi_diff(calcs):
         for key in sorted(keys):
             vals = [s[block].get(key, None) for s in settings]
             if len(set(vals)) > 1:
-                print(f'{block}.{key}: ' + ', '.join(map(str, vals)))
+                if not silent:
+                    print(f'{block}.{key}: ' + ', '.join(map(str, vals)))
                 diffs.append(key)
 
     return diffs
 
 
-def print_summary(alpha_df, error_df):
+def print_summary(alpha_df, error_df = None):
     # Printing out a progress summary
     print('\nalpha')
     print(alpha_df)
-    print('\ndelta E - lambda^alpha_ii (eV)')
-    print(error_df)
+    if error_df is not None:
+        print('\ndelta E - lambda^alpha_ii (eV)')
+        print(error_df)
     print('')
 
 

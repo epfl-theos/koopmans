@@ -1,0 +1,12 @@
+test_??/test.out*
+test_??/test.err*
+test_??/init/
+test_??/calc_alpha/
+test_??/final/
+test_??/ki/
+test_??/pkipz/
+test_??/kipz/
+test_??/alphas.pkl
+test_??/errors.pkl
+test_??/tab_alpha_values.tex
+

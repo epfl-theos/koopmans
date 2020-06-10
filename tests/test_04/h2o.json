@@ -1,9 +1,7 @@
 {
     "CALC_PARAM":
     {
-        "calc_type"             : "ki",
-        "init_manifold"         : "pz",
-        "n_max_sc_steps"        : 2,
+        "calc_type"             : "pkipz",
         "alpha_from_file"       : false,
         "print_qc"              : true,
         "from_scratch"          : true

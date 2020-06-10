@@ -11,10 +11,14 @@ May 2020: replaced Extended_Espresso_cp with CP_calc, a calculator class agnosti
 
 from ase.io import espresso_cp as cp_io
 from ase.calculators.espresso_cp import Espresso_cp
+from ase.units import create_units
 from koopmans_cp.io import cpi_diff, read_alpharef, warn
 import os
 import sys
 import copy
+
+# Quantum ESPRESSO uses CODATA 2006 internally
+units = create_units('2006')
 
 class CP_calc:
 
@@ -53,6 +57,9 @@ class CP_calc:
 
     @property
     def calc(self):
+        # First, update the param block
+        self._ase_calc.parameters['input_data'] = self.construct_namelist()
+
         return self._ase_calc
 
     @calc.setter
@@ -137,7 +144,7 @@ class CP_calc:
 
     def construct_namelist(self):
         # Returns a namelist of settings, grouped by their cp.x headings
-        return cp_io.construct_namelist(**self._settings)
+        return cp_io.construct_namelist(**self._settings, warn=True)
 
     def parse_algebraic_setting(self, expr):
         # Checks if self._settings[expr] is defined algebraically, and evaluates them
@@ -152,7 +159,7 @@ class CP_calc:
                 continue
             elif all([c.isalpha() for c in term]):
                 if self._settings.get(term, None) is None:
-                    raise ValueError(f'Failed to parse ' + ''.join(expr))
+                    raise ValueError('Failed to parse ' + ''.join(expr))
                 else:
                     expr[i] = self._settings[term]
             else:
@@ -176,6 +183,19 @@ class CP_calc:
             if key in ['pseudo_dir', 'outdir']:
                 continue
             self._settings[key] = self.parse_algebraic_setting(value)
+
+    def is_converged(self):
+        # Checks convergence of the calculation
+        if self.conv_thr is None:
+            raise ValueError('Cannot check convergence when "conv_thr" is not set')
+        return self._ase_is_converged()
+
+    def _ase_is_converged(self):
+        if 'convergence' not in self.results:
+            raise ValueError('Could not locate calculation details to check convergence')
+        return all([abs(v[-1]['delta_E']) < self.conv_thr*units.Hartree 
+                for v in self.results['convergence'].values()])
+
 
 def run_cp(cp_calc, silent=True, from_scratch=False):
     '''
@@ -209,7 +229,7 @@ def run_cp(cp_calc, silent=True, from_scratch=False):
                     print(f'Rerunning {calc_file}')
                 if len(diffs) > 0:
                     for d in diffs:
-                        old_value = getattr(old_cpi, d)
+                        old_value = getattr(old_cpi, d, None)
                         setattr(cp_calc, d, old_value)
                         if not silent:
                             print(f'    Resetting {d}')
