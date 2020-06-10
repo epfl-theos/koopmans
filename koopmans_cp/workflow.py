@@ -845,8 +845,6 @@ def run(master_calc, workflow_settings):
         final_calc_types = [workflow_type + '_final']
 
     for final_calc_type in final_calc_types:
-        print (final_calc_type)
-
         calc = set_up_calculator(master_calc, final_calc_type,
                                  empty_states_nbnd=n_empty_bands)
         calc.directory = directory
