@@ -449,6 +449,7 @@ def run(master_calc, workflow_settings):
             os.system('rm -r init 2>/dev/null')
         os.system('rm -r calc_alpha 2>/dev/null')
         os.system('rm -r final 2>/dev/null')
+        os.system(f'rm -r {calc.outdir} 2>/dev/null')
 
     # Counting the number of bands
     n_filled_bands = master_calc.nelup
@@ -593,9 +594,8 @@ def run(master_calc, workflow_settings):
         # invariant w.r.t. unitary rotations of the empty states, then the empty manifold need not be minimised
         # In these instances, we can skip the initialisation of the manifold entirely
         print('Skipping the optimisation of the manifold since it is invariant under unitary transformations')
-        prefix = calc.parameters['input_data']['control']['prefix']
-        outdir = f'{calc.directory}/{calc.outdir}'
-        os.system(f'cp -r {outdir}/{prefix}_{calc.ndr}.save {outdir}/{prefix}_{calc.ndw}.save')
+        outdir = f'{calc.directory}/{calc.outdir}/{calc.prefix}'
+        os.system(f'cp -r {outdir}_{calc.ndr}.save {outdir}_{calc.ndw}.save')
     else:
         prev_calc_not_skipped = run_cp(
             calc, silent=False, from_scratch=prev_calc_not_skipped)
