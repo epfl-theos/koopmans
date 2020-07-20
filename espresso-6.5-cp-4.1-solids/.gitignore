@@ -16,6 +16,7 @@
 bin/*
 FoX
 iotk
+CPV/cpver.h
 include/fft_defs.h
 include/configure.h
 include/c_defs.h
