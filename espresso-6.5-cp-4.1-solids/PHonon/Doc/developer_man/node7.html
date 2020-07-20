@@ -1,0 +1,76 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2018 (Released Feb 1, 2018) -->
+<HTML>
+<HEAD>
+<TITLE>4 Parallelization</TITLE>
+<META NAME="description" CONTENT="4 Parallelization">
+<META NAME="keywords" CONTENT="developer_man">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2018">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="developer_man.css">
+
+<LINK REL="next" HREF="node8.html">
+<LINK REL="previous" HREF="node6.html">
+<LINK REL="up" HREF="developer_man.html">
+<LINK REL="next" HREF="node8.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html110"
+  HREF="node8.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html106"
+  HREF="developer_man.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html100"
+  HREF="node6.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html108"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html111"
+  HREF="node8.html">5 Files produced by</A>
+<B> Up:</B> <A NAME="tex2html107"
+  HREF="developer_man.html">User's Guide for the</A>
+<B> Previous:</B> <A NAME="tex2html101"
+  HREF="node6.html">3 GRID parallelization and</A>
+ &nbsp; <B>  <A NAME="tex2html109"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H1><A NAME="SECTION00050000000000000000">
+4 Parallelization</A>
+</H1>
+
+<P>
+The <TT>PHonon</TT> package uses the same parallelization mechanisms of the Q<SMALL>UANTUM </SMALL>ESPRESSO package. See the Developer manual in the <TT>Doc</TT> directory
+two levels above this one for more information.
+It is parallelized on plane-waves, pools, bands, and images.
+The <TT>-ortho</TT> flag is not used. <TT>Scalapack</TT> routines are not 
+used in the <TT>ph.x</TT> code.
+
+<P>
+Each tensor should be collected as soon as it is calculated
+and all processors must have the same tensors. Please avoid to collect
+tensors in routines distant from where they are calculated. There might be
+exception to this rule for efficiency, but please try not to abuse for
+small arrays. Only collected quantities are saved on the <TT>.xml</TT> file,
+so they should not depend on the parallelization level. Note that only ionode
+writes the <TT>.xml</TT> files, so you have different <TT>xml</TT> files only 
+for different images. The variables are then broadcasted to all processors 
+in an image.
+
+<P>
+<BR><HR>
+
+</BODY>
+</HTML>

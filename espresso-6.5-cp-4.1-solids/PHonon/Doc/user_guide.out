@@ -1,0 +1,15 @@
+\BOOKMARK [1][-]{section.1}{Introduction}{}% 1
+\BOOKMARK [1][-]{section.2}{People}{}% 2
+\BOOKMARK [1][-]{section.3}{Installation}{}% 3
+\BOOKMARK [2][-]{subsection.3.1}{Compilation}{section.3}% 4
+\BOOKMARK [1][-]{section.4}{Using PHonon}{}% 5
+\BOOKMARK [2][-]{subsection.4.1}{Single-q calculation}{section.4}% 6
+\BOOKMARK [2][-]{subsection.4.2}{Calculation of interatomic force constants in real space}{section.4}% 7
+\BOOKMARK [2][-]{subsection.4.3}{Calculation of electron-phonon interaction coefficients}{section.4}% 8
+\BOOKMARK [2][-]{subsection.4.4}{DFPT with the tetrahedron method}{section.4}% 9
+\BOOKMARK [2][-]{subsection.4.5}{Calculation of electron-phonon interaction coefficients with the tetrahedron method}{section.4}% 10
+\BOOKMARK [2][-]{subsection.4.6}{Phonons for two-dimensional crystals}{section.4}% 11
+\BOOKMARK [2][-]{subsection.4.7}{Phonons from DFPT+U}{section.4}% 12
+\BOOKMARK [1][-]{section.5}{Parallelism}{}% 13
+\BOOKMARK [1][-]{section.6}{Troubleshooting}{}% 14
+\BOOKMARK [1][-]{appendix.A}{Appendix: Electron-phonon coefficients}{}% 15

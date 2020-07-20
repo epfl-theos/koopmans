@@ -1,0 +1,178 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2018 (Released Feb 1, 2018) -->
+<HTML>
+<HEAD>
+<TITLE>3.1 Compilation</TITLE>
+<META NAME="description" CONTENT="3.1 Compilation">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2018">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="previous" HREF="node4.html">
+<LINK REL="up" HREF="node4.html">
+<LINK REL="next" HREF="node6.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html100"
+  HREF="node6.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html96"
+  HREF="node4.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html92"
+  HREF="node4.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html98"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html101"
+  HREF="node6.html">4 Using PHonon</A>
+<B> Up:</B> <A NAME="tex2html97"
+  HREF="node4.html">3 Installation</A>
+<B> Previous:</B> <A NAME="tex2html93"
+  HREF="node4.html">3 Installation</A>
+ &nbsp; <B>  <A NAME="tex2html99"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H2><A NAME="SECTION00041000000000000000">
+3.1 Compilation</A>
+</H2>
+
+<P>
+Typing <TT>make ph</TT> from the root Q<SMALL>UANTUM </SMALL>ESPRESSO directory, or <TT>make</TT> 
+from the <TT>PHonon</TT> directory, produces the following codes:
+
+<UL>
+<LI><TT>PH/ph.x</TT>: Calculates phonon frequencies and displacement patterns,
+    dielectric tensors, effective charges (uses data produced by <TT>pw.x</TT>). 
+</LI>
+<LI><TT>PH/dynmat.x</TT>: applies various kinds of Acoustic Sum Rule (ASR),
+    calculates LO-TO splitting at <!-- MATH
+ ${\bf q} = 0$
+ -->
+<IMG
+ WIDTH="16" HEIGHT="33" ALIGN="MIDDLE" BORDER="0"
+ SRC="img1.png"
+ ALT="$\bf q$"> = 0 in insulators, IR and Raman
+    cross sections (if the coefficients have been properly calculated),
+    from the dynamical matrix produced by <TT>ph.x</TT>
+</LI>
+<LI><TT>PH/q2r.x</TT>: calculates Interatomic Force Constants (IFC) in real space
+    from dynamical matrices produced by <TT>ph.x</TT> on a regular <B>q</B>-grid 
+</LI>
+<LI><TT>PH/matdyn.x</TT>: produces phonon frequencies at a generic wave vector
+    using the IFC file calculated by <TT>q2r.x</TT>; may also calculate phonon DOS, 
+    the electron-phonon coefficient <IMG
+ WIDTH="16" HEIGHT="17" ALIGN="BOTTOM" BORDER="0"
+ SRC="img3.png"
+ ALT="$\lambda$">, the function <!-- MATH
+ $\alpha^2F(\omega)$
+ -->
+<IMG
+ WIDTH="24" HEIGHT="38" ALIGN="MIDDLE" BORDER="0"
+ SRC="img4.png"
+ ALT="$\alpha^{2}_{}$"><I>F</I>(<IMG
+ WIDTH="17" HEIGHT="17" ALIGN="BOTTOM" BORDER="0"
+ SRC="img5.png"
+ ALT="$\omega$">)
+</LI>
+<LI><TT>PH/lambda.x</TT>: also calculates <IMG
+ WIDTH="16" HEIGHT="17" ALIGN="BOTTOM" BORDER="0"
+ SRC="img3.png"
+ ALT="$\lambda$"> and <!-- MATH
+ $\alpha^2F(\omega)$
+ -->
+<IMG
+ WIDTH="24" HEIGHT="38" ALIGN="MIDDLE" BORDER="0"
+ SRC="img4.png"
+ ALT="$\alpha^{2}_{}$"><I>F</I>(<IMG
+ WIDTH="17" HEIGHT="17" ALIGN="BOTTOM" BORDER="0"
+ SRC="img5.png"
+ ALT="$\omega$">),
+   plus <I>T</I><SUB>c</SUB> for  superconductivity using the McMillan formula
+</LI>
+<LI><TT>PH/alpha2f.x</TT>: also calculates <IMG
+ WIDTH="16" HEIGHT="17" ALIGN="BOTTOM" BORDER="0"
+ SRC="img3.png"
+ ALT="$\lambda$"> and <!-- MATH
+ $\alpha^2F(\omega)$
+ -->
+<IMG
+ WIDTH="24" HEIGHT="38" ALIGN="MIDDLE" BORDER="0"
+ SRC="img4.png"
+ ALT="$\alpha^{2}_{}$"><I>F</I>(<IMG
+ WIDTH="17" HEIGHT="17" ALIGN="BOTTOM" BORDER="0"
+ SRC="img5.png"
+ ALT="$\omega$">).
+  It is used together with the optimized tetrahedron method
+  (<code>occupations="tetrahedra_opt"</code> in <TT>pw.x</TT>) and shifted <I>q</I>-grid
+  (<code>lshiftq=.true.</code> in <TT>ph.x</TT>).
+</LI>
+<LI><TT>PH/fqha.x</TT>: a simple code to calculate vibrational entropy with
+   the quasi-harmonic approximation
+</LI>
+<LI><TT>Gamma/phcg.x</TT>: 
+  a version of <TT>ph.x</TT> that calculates phonons at <!-- MATH
+ ${\bf q} = 0$
+ -->
+<IMG
+ WIDTH="16" HEIGHT="33" ALIGN="MIDDLE" BORDER="0"
+ SRC="img1.png"
+ ALT="$\bf q$"> = 0 using
+  conjugate-gradient minimization of the density functional expanded to
+  second-order. Only the <IMG
+ WIDTH="17" HEIGHT="17" ALIGN="BOTTOM" BORDER="0"
+ SRC="img6.png"
+ ALT="$\Gamma$"> (<!-- MATH
+ ${\bf k} = 0$
+ -->
+<IMG
+ WIDTH="16" HEIGHT="16" ALIGN="BOTTOM" BORDER="0"
+ SRC="img7.png"
+ ALT="$\bf k$"> = 0) point is used for
+  Brillouin zone integration. It is faster and takes less memory than
+  <TT>ph.x</TT>, but does not support spin polarization, USPP and PAW.
+</LI>
+</UL>
+Links to the main Q<SMALL>UANTUM </SMALL>ESPRESSO <TT>bin/</TT> directory are automatically generated.
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html100"
+  HREF="node6.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html96"
+  HREF="node4.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html92"
+  HREF="node4.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html98"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html101"
+  HREF="node6.html">4 Using PHonon</A>
+<B> Up:</B> <A NAME="tex2html97"
+  HREF="node4.html">3 Installation</A>
+<B> Previous:</B> <A NAME="tex2html93"
+  HREF="node4.html">3 Installation</A>
+ &nbsp; <B>  <A NAME="tex2html99"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+
+</BODY>
+</HTML>

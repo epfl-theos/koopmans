@@ -1,0 +1,324 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2018 (Released Feb 1, 2018) -->
+<HTML>
+<HEAD>
+<TITLE>2 General structure of ph.x</TITLE>
+<META NAME="description" CONTENT="2 General structure of ph.x">
+<META NAME="keywords" CONTENT="developer_man">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2018">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="developer_man.css">
+
+<LINK REL="next" HREF="node6.html">
+<LINK REL="previous" HREF="node2.html">
+<LINK REL="up" HREF="developer_man.html">
+<LINK REL="next" HREF="node6.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html86"
+  HREF="node6.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html82"
+  HREF="developer_man.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html76"
+  HREF="node4.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html84"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html87"
+  HREF="node6.html">3 GRID parallelization and</A>
+<B> Up:</B> <A NAME="tex2html83"
+  HREF="developer_man.html">User's Guide for the</A>
+<B> Previous:</B> <A NAME="tex2html77"
+  HREF="node4.html">1.2 Who may read</A>
+ &nbsp; <B>  <A NAME="tex2html85"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H1><A NAME="SECTION00030000000000000000">
+2 General structure of <TT>ph.x</TT></A>
+</H1>
+
+<P>
+The behavior of the <TT>ph.x</TT> code is controlled by a set of flags.
+In a general run when all control flags are <TT>.true.</TT> the phonon 
+code computes the following quantities in the given order:
+
+<P>
+<PRE>
+                              frequency             q        perturbations
+
+polarizability                   iu                 gamma       x,y,z 
+dielectric constant               0                 gamma       x,y,z
+zeu                               0                 gamma       x,y,z  
+electro optic coefficient         0                 gamma       x,y,x 
+raman tensor                      0                 gamma       3 x 3
+dynamical matrix                  0                 all q      all irreps
+zue                               0                 gamma      all irreps
+electron phonon interactions      0                 all q      all irreps
+
+zeu = Born effective charges as derivative of the forces,
+zue = Born effective charges as derivative of the polarization
+</PRE>
+
+<P>
+Two control flags associated to every calculated quantity 
+allow to set/unset the calculation of that quantity independently from 
+the others. One of these flags is an input variable:
+
+<P>
+<PRE>
+fpol,             if .TRUE. computes the frequency dependent polarizability
+epsil,            if .TRUE. computes the dielectric constant
+zeu,              if .TRUE. computes eff. charges as induced forces
+lraman,           if .TRUE. computes the raman tensor
+elop,             if .TRUE. computes the el-optical coefficient
+trans,            if .TRUE. computes the dynamical matrix
+zue,              if .TRUE. computes eff. charges as induced polarization
+elph              if .TRUE. computes the electron phonon coupling
+</PRE>
+
+<P>
+By default, only the <TT>trans</TT> flag is <TT>.true.</TT>.
+The second flag is described in the following Section.
+
+<P>
+The phonon code contains three loops.
+The outer loop is over <B>q</B> points. The other two loops are inside the
+<B>q</B>-point loop, but they are separate and carried out sequentially. 
+There is a loop over the frequencies that calculates the frequency 
+dependent polarizabilities and a loop over the irreducible 
+representations (<TT>irreps</TT>). 
+In addition to this there is the calculation of the response to the electric
+field. The loop over the frequencies and the response to an electric field are 
+calculated only if <B>q</B> is the <IMG
+ WIDTH="17" HEIGHT="17" ALIGN="BOTTOM" BORDER="0"
+ SRC="img2.png"
+ ALT="$\Gamma$"> point. The size of the loops over
+the frequencies and over <B>q</B> points is controlled by input variables.  
+
+<P>
+<PRE>
+nfs               ! number of frequencies
+fiu(nfs)          ! frequencies in Ry
+
+nq1, nq2, nq3     ! the mesh of q points
+or
+xq                ! the coordinates of a q point
+
+start_q           ! initial q to calculate
+last_q            ! last q to calculate
+start_irr         ! initial representation to calculate
+last_irr          ! last representation to calculate
+</PRE>
+
+<P>
+The run can be controlled also in other two ways by the following input
+variables:
+
+<P>
+<PRE>
+nat_todo          ! the number of atoms to move
+atomo(nat_todo)   ! which atoms to move
+
+or
+
+modenum           ! the response to a single mode
+</PRE>
+The first two options limit the calculation to the representations in which
+at least one of a set of atoms (specified by <TT>atomo</TT>) moves.
+The second option calculates only the motion with respect to one 
+vibrational mode.
+
+<P>
+The flow of the code can be summarized as follows:
+
+<P>
+<PRE>
+1) Read input and set the flags of the quantities to compute
+   1.1) Read all the quantities written by pw.x
+   1.2) Read the pseudopotential data
+
+2) Decide what must be calculated.
+   2.1) If not already on disk, compute the grid of q points and 
+        all the modes for all q points and save on disk (SD)
+   2.2) If image parallelization is requested divide the work among images
+
+3) In a recover run check what is already available on the .xml files and
+   sets the appropriate done flags to .TRUE.
+
+4) Start a main loop over the q points:
+
+   4.1) Compute all quantities that do not depend on the response of the system
+   4.2) Check if a band calculation is needed and do it.
+   NB: the following points are executed only when q is Gamma.
+     4.3) Start a loop on the frequencies
+          4.3.1) Compute the polarizability as a function of iu SD
+     4.4) Compute the response to an electric field 
+     4.5) Compute epsilon and SD
+     4.6) Compute zeu and SD
+     4.7) Compute the electro-optic coefficient and SD
+     4.8) Compute the second order response to E
+     4.9) Compute Raman tensor and SD
+   END NB
+
+5) Start a loop over the irreducible representation 
+     5.1) Compute the response to an irreducible representation
+     5.1.1) Accumulate the contribution to electron-phonon SD
+     5.1.2) Accumulate the contribution to the dynamical matrix 
+     5.1.3) Accumulate the contribution to zue 
+     5.1.4) SD this contribution to the dynamical matrix and to zue
+continue the loop 5) until all representations of the current q point
+have been computed
+
+6) diagonalize the dynamical matrix and SD (only if all representations of 
+   this q have been computed)
+
+7) Sum over k and bands the electron-phonon couplings to calculate gamma_mat
+   SD (only if all representations of this q have been computed)
+
+8) continue the loop at point 4 until all q points have been computed
+</PRE>
+
+<P>
+In more detail the quantities calculated by the phonon code and
+the routines where these quantities are calculated are:
+
+<P>
+
+<UL>
+<LI>4.2.1) The polarization as a function of the complex frequency is a
+<TT>3x3</TT> real tensor for each frequency: <TT>polar(3,3,nfs)</TT> 
+(calculated in <TT>polariz</TT>). These quantities are presently written 
+on output.
+
+<P>
+</LI>
+<LI>4.5) The dielectric constant is a real <TT>3x3</TT> tensor: 
+<TT>epsilon</TT> (calculated in <TT>dielec</TT>). 
+
+<P>
+</LI>
+<LI>4.6) Zeu is a real array: <TT>zstareu(3,3,nat)</TT>. The first index is 
+the electric field, while the other two indices give the atom that moves and the
+direction. 
+
+<P>
+</LI>
+<LI>The electro-optic tensor is a three indices tensor <TT>eloptns(3,3,3)</TT>
+that is calculated by the routine <TT>el_opt</TT>. It requires the response
+to the electric field perturbation.
+
+<P>
+</LI>
+<LI>The raman tensor is a real array <TT>ramtns(3,3,3,nat)</TT> that
+gives the derivatives of the dielectric constant when the atom nat moves.
+The third index give the direction of the displacement.
+It requires the first and the second order response of the wavefunctions
+with respect to the electric field perturbation. It is calculated
+by the routine <TT>raman_mat</TT>.
+
+<P>
+</LI>
+<LI>The dynamical matrix is a complex matrix of dimensions
+<TT>(3 * nat, 3 * nat)</TT>. It is calculated by three routines:
+<TT>dynmat0</TT> computes the part that does not require the linear
+response of the system. It has an ion-ion term, a term common to NC, US, and
+PAW scheme and the nonlinear core correction term. 
+The US and PAW schemes have additional parts, 
+one of them calculated inside <TT>dynmat0</TT> with a call to
+<TT>addusdynmat</TT>, and another part calculated in <TT>drho</TT>.
+There is then a contribution that requires the response of the
+wavefunctions calculated in <TT>drhodv</TT> and <TT>drhodvloc</TT>
+which is common to the NC, US, and PAW schemes. The latter two schemes
+have other contributions calculated in <TT>drhodvus</TT>. This
+routine contains also the additional PAW term.
+
+<P>
+</LI>
+<LI>5.1.3 Zue is a real array: <TT>zstarue(3,nat,3)</TT>. The first two indices 
+give the atom that moves and the direction, the third gives the electric 
+field. 
+
+<P>
+</LI>
+<LI>The electron phonon coefficients are explained in the <TT>PHonon</TT> user guide. 
+<TT>ph.x</TT> saves on <TT>.xml</TT> files <!-- MATH
+ $g_{{\bf q},\nu} ({\bf k},i,j)$
+ -->
+<I>g</I><SUB><IMG
+ WIDTH="13" HEIGHT="33" ALIGN="MIDDLE" BORDER="0"
+ SRC="img3.png"
+ ALT="$\scriptstyle \bf q$">,<IMG
+ WIDTH="12" HEIGHT="16" ALIGN="BOTTOM" BORDER="0"
+ SRC="img4.png"
+ ALT="$\scriptstyle \nu$"></SUB>(<IMG
+ WIDTH="16" HEIGHT="16" ALIGN="BOTTOM" BORDER="0"
+ SRC="img5.png"
+ ALT="$\bf k$">, <I>i</I>, <I>j</I>) 
+for all the modes of an irreducible representation. The coefficients are
+saved for each <B>k</B> and for all the perturbations. Each irreducible
+representation is contained in a different file (see below). Note that 
+these quantities are gauge dependent, so if you calculate them on 
+different machines with the GRID parallelization, you can use them only 
+for gauge invariant quantities. Be very careful with it. (still at an 
+experimental stage).
+
+<P>
+</LI>
+</UL>
+
+<P>
+All the quantities calculated by the phonon code are saved in the
+<TT>fildyn</TT> files with the exception of the
+polarization as a function of the complex frequency that is written 
+on output, and of the electron phonon coefficients. The output of the
+code in the latter case is given by the files <TT>a2Fq2r.#.#iq</TT>.
+
+<P>
+The charge density response to the electric field perturbations and
+to the atomic displacements, or the change of the Kohn and Sham
+potential can be saved on disk giving appropriate input variables.
+These quantities are saved on disk by <TT>solve_e</TT> and 
+<TT>solve_linter</TT>.
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html86"
+  HREF="node6.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html82"
+  HREF="developer_man.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html76"
+  HREF="node4.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html84"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html87"
+  HREF="node6.html">3 GRID parallelization and</A>
+<B> Up:</B> <A NAME="tex2html83"
+  HREF="developer_man.html">User's Guide for the</A>
+<B> Previous:</B> <A NAME="tex2html77"
+  HREF="node4.html">1.2 Who may read</A>
+ &nbsp; <B>  <A NAME="tex2html85"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+
+</BODY>
+</HTML>

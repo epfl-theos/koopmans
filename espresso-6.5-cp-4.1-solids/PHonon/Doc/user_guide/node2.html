@@ -1,0 +1,161 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2018 (Released Feb 1, 2018) -->
+<HTML>
+<HEAD>
+<TITLE>1 Introduction</TITLE>
+<META NAME="description" CONTENT="1 Introduction">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2018">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="next" HREF="node3.html">
+<LINK REL="previous" HREF="node1.html">
+<LINK REL="up" HREF="user_guide.html">
+<LINK REL="next" HREF="node3.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html65"
+  HREF="node3.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html61"
+  HREF="user_guide.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html55"
+  HREF="node1.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html63"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html66"
+  HREF="node3.html">2 People</A>
+<B> Up:</B> <A NAME="tex2html62"
+  HREF="user_guide.html">User's Guide for the</A>
+<B> Previous:</B> <A NAME="tex2html56"
+  HREF="node1.html">Contents</A>
+ &nbsp; <B>  <A NAME="tex2html64"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H1><A NAME="SECTION00020000000000000000">
+1 Introduction</A>
+</H1>
+
+<P>
+This guide covers the usage of the <TT>PHonon</TT> package, a
+part of the Q<SMALL>UANTUM </SMALL>ESPRESSO distribution. 
+Further documentation, beyond what is provided 
+in this guide, can be found in the directory
+<TT>PHonon/Doc/</TT>, containing a copy of this guide.
+
+<P>
+<EM>Important notice: due to the lack of time and of manpower, this
+manual is only partially updated and may contain outdated information.</EM>
+
+<P>
+This guide assumes that you know the contents of 
+the general User's Guide for Q<SMALL>UANTUM </SMALL>ESPRESSO and of the User's 
+Guide for <TT>PWscf</TT>. It also assumes that you have
+already installed Q<SMALL>UANTUM </SMALL>ESPRESSO (<TT>PHonon</TT> is not a stand-alone
+package: it requires <TT>PWscf</TT> to be compiled and used).
+If not, please locate the general User's Guide in directory 
+<TT>Doc/</TT> two levels above the one containing this guide,
+and the User's Guide for <TT>PWscf</TT> in <TT>PW/Doc/</TT>;
+or consult the web site:
+<BR><TT>http://www.quantum-espresso.org</TT>.
+It is also assumed that you know the physics behind Q<SMALL>UANTUM </SMALL>ESPRESSO,
+the methods it implements, and in particular the physics
+and the methods of <TT>PHonon</TT>.
+
+<P>
+<TT>PHonon</TT> has the following directory structure,
+contained in a subdirectory <TT>PHonon/</TT>
+of the main Q<SMALL>UANTUM </SMALL>ESPRESSO tree:
+
+<P>
+<TABLE CELLPADDING=3>
+<TR><TD ALIGN="LEFT"><TT>Doc/</TT></TD>
+<TD ALIGN="LEFT">: contains the user_guide and input data description</TD>
+</TR>
+<TR><TD ALIGN="LEFT"><TT>examples/</TT></TD>
+<TD ALIGN="LEFT">: some running examples</TD>
+</TR>
+<TR><TD ALIGN="LEFT"><TT>PH/</TT></TD>
+<TD ALIGN="LEFT">: source files for phonon calculations 
+                   and analysis</TD>
+</TR>
+<TR><TD ALIGN="LEFT"><TT>Gamma/</TT></TD>
+<TD ALIGN="LEFT">: source files for Gamma-only phonon calculation</TD>
+</TR>
+</TABLE>
+<BR><EM>Important Notice:</EM> since v.5.4, many modules and routines that were
+common to all linear-response Q<SMALL>UANTUM </SMALL>ESPRESSO codes are moved into the new 
+<TT>LR_Modules</TT> subdirectory of the main tree. Since v.6.0, the
+<TT>D3</TT> code for anharmonic force constant calculations has been 
+superseded by the <TT>D3Q</TT> coda, available on 
+<TT>http://www.qe-forge.org/gf/project/d3q/</TT>.
+
+<P>
+The codes available in the <TT>PHonon</TT> package can perform the following 
+types of calculations:
+
+<UL>
+<LI>phonon frequencies and eigenvectors at a generic wave vector,
+  using Density-Functional Perturbation Theory;
+</LI>
+<LI>effective charges and dielectric tensors;
+</LI>
+<LI>electron-phonon interaction coefficients for metals;
+</LI>
+<LI>interatomic force constants in real space;
+</LI>
+<LI>Infrared and Raman (nonresonant) cross section.
+</LI>
+</UL>
+
+<P>
+Phonons can be plotted using the <TT>PlotPhon</TT> package.
+Calculations of the vibrational free energy in the Quasi-Harmonic 
+approximations can be performed using the <TT>QHA</TT>  package.
+<EM>Note:</EM> since v.5.4, these two packages are separately distributed
+and no longer bundled with <TT>PHonon</TT>. Their latest version can be 
+found in the tarballs of <TT>PHonon</TT> v.5.3.
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html65"
+  HREF="node3.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html61"
+  HREF="user_guide.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html55"
+  HREF="node1.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html63"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html66"
+  HREF="node3.html">2 People</A>
+<B> Up:</B> <A NAME="tex2html62"
+  HREF="user_guide.html">User's Guide for the</A>
+<B> Previous:</B> <A NAME="tex2html56"
+  HREF="node1.html">Contents</A>
+ &nbsp; <B>  <A NAME="tex2html64"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+
+</BODY>
+</HTML>

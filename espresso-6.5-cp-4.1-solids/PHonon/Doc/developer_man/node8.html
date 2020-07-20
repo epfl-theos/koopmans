@@ -1,0 +1,296 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2018 (Released Feb 1, 2018) -->
+<HTML>
+<HEAD>
+<TITLE>5 Files produced by ph.x</TITLE>
+<META NAME="description" CONTENT="5 Files produced by ph.x">
+<META NAME="keywords" CONTENT="developer_man">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2018">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="developer_man.css">
+
+<LINK REL="next" HREF="node9.html">
+<LINK REL="previous" HREF="node7.html">
+<LINK REL="up" HREF="developer_man.html">
+<LINK REL="next" HREF="node9.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html122"
+  HREF="node9.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html118"
+  HREF="developer_man.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html112"
+  HREF="node7.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html120"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html123"
+  HREF="node9.html">6 The routines of</A>
+<B> Up:</B> <A NAME="tex2html119"
+  HREF="developer_man.html">User's Guide for the</A>
+<B> Previous:</B> <A NAME="tex2html113"
+  HREF="node7.html">4 Parallelization</A>
+ &nbsp; <B>  <A NAME="tex2html121"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H1><A NAME="SECTION00060000000000000000">
+5 Files produced by ph.x</A>
+</H1>
+
+<P>
+The output files of the <TT>pw.x</TT> code are not modified by the <TT>ph.x</TT> code. 
+Each image of <TT>ph.x</TT> creates a new directory called <TT>outdir/_ph#</TT> 
+where it writes its files. <TT>#</TT> is an integer equal to <TT>0</TT> 
+in a calculation with one image or to the image number when the 
+<TT>-nimage</TT> flag is used. 
+There are two sets of files written 
+by <TT>ph.x</TT> in the <TT>outdir/_ph#</TT> directories: unformatted files 
+containing internal arrays, and <TT>.xml</TT> 
+files containing partial results or tensors. The former are in 
+<TT>outdir/_ph#</TT> if the input flag <TT>lqdir=.false.</TT>, or in 
+separate subdirectories <TT>outdir/_ph#/prefix.q_#iq</TT>,
+where <TT>#iq</TT> is the number of the <B>q</B> point. Note that if 
+<TT>lqdir=.false.</TT> (default is <TT>lqdir=elph</TT>)
+the disk occupation is reduced but the files of each <B>q</B> point are
+rewritten by the following <B>q</B> so it is not possible to run an 
+electron-phonon calculation with <TT>trans=.false.</TT> and 
+<TT>ldisp=.true.</TT> after generating the induced potentials for a mesh of 
+<B>q</B> points. 
+The <TT>.xml</TT> files calculated by each image are in the 
+<TT>outdir/_ph#/prefix.phsave</TT> directory for all <B>q</B>-vectors and 
+irreps calculated by that images. Before closing the image calculation 
+the content of all the <TT>outdir/_ph#/prefix.phsave</TT>
+directories are copied into <TT>outdir/_ph0/prefix.phsave</TT> directory, so
+it is possible to recover the calculation without using images.
+The <TT>ph.x</TT> code reads the output of <TT>pw.x</TT> from the <TT>outdir</TT> directory. 
+The wavefunctions are in <TT>outdir/prefix.wfc</TT> files 
+while information on the structure of the solid and on the <TT>pw.x</TT> 
+run are in the <TT>outdir/prefix.save</TT> directory. The wavefunctions are 
+also in this directory if <TT>pw.x</TT> was run with the <TT>wf_collect=.true.</TT> 
+flag. These files are not modified by <TT>ph.x</TT>. 
+At a finite <B>q</B> vector, <TT>ph.x</TT> runs its own instance of <TT>pw.x</TT> to compute the bands and saves the results into 
+the <TT>outdir/_ph#/prefix.q_#iq</TT> directory (<TT>lqdir=.true.</TT>) or
+in <TT>outdir/_ph#</TT>. The charge density is copied inside 
+these directories before calculating the bands. The output of <TT>pw.x</TT> is 
+in files called <TT>outdir/_ph#/prefix.q_#iq/prefix.wfc</TT> and in 
+the directory 
+<TT>outdir/_ph#/prefix.q_#iq/prefix.save</TT> (<TT>lqdir=.true.</TT>),
+or in <TT>outdir/_ph#/prefix.wfc</TT> and in 
+<TT>outdir/_ph#/prefix.save</TT> (<TT>lqdir=.false.</TT>). With
+<TT>lqdir=.false.</TT> <TT>ph.x</TT> saves in 
+<TT>outdir/_ph#/prefix.bar</TT> the
+non self-consistent part of the right hand side of the linear system, 
+in <TT>outdir/_ph#/prefix.dwf</TT> the change of the wavefunctions. 
+The files <TT>outdir/_ph#/</TT> <TT>prefix.igk</TT> contain the <!-- MATH
+ ${\bf k}+{\bf G}$
+ -->
+<IMG
+ WIDTH="16" HEIGHT="16" ALIGN="BOTTOM" BORDER="0"
+ SRC="img5.png"
+ ALT="$\bf k$"> + <IMG
+ WIDTH="22" HEIGHT="17" ALIGN="BOTTOM" BORDER="0"
+ SRC="img6.png"
+ ALT="$\bf G$"> 
+lists as in the <TT>pw.x</TT> run.
+With US or PAW, files called <TT>outdir/_ph#/prefix.prd</TT> 
+contain the induced charge density, for all modes. 
+Only the part that does not depend on the perturbed wavefunctions 
+is contained in these files. With electric field perturbations 
+there are also files called <TT>outdir/_ph#/prefix.com</TT> that 
+contain <!-- MATH
+ $P_c x |\psi\rangle$
+ -->
+<I>P</I><SUB>c</SUB><I>x</I>|<IMG
+ WIDTH="18" HEIGHT="38" ALIGN="MIDDLE" BORDER="0"
+ SRC="img7.png"
+ ALT="$\psi$"><IMG
+ WIDTH="12" HEIGHT="37" ALIGN="MIDDLE" BORDER="0"
+ SRC="img8.png"
+ ALT="$\rangle$"> and are needed for the calculation 
+of the Born effective charges.
+The mixing routine saves its data in files called 
+<TT>outdir/_ph#/prefix.mixd</TT>. 
+The status of <TT>ph.x</TT> is saved at each iteration in files called
+<TT>outdir/_ph#/prefix.recover</TT>. These files can be used 
+to recover the run. All these unformatted files are saved in 
+<TT>outdir/_ph#/prefix.q_#iq</TT> directory when <TT>lqdir=.true.</TT>.
+Using the input flag <TT>reduce_io=.true.</TT> these files can be
+kept in memory and saved only at the end of the run if necessary.
+
+<P>
+In parallel calculations, previous files are split into several files 
+that have a final number. Each number labels the processor that wrote the 
+file. There are as many files as processors per image. 
+
+<P>
+The files with the dynamical matrices are written in the directory in
+which <TT>ph.x</TT> is started and are called <TT>fildyn#iq</TT> where 
+<TT>#iq</TT> is the <B>q</B>-vector number in a dispersion calculation, 
+or is not added in a single-<B>q</B> calculation. Only one copy of this 
+file is written in a parallel run. When the <TT>-nimage</TT> option
+is used some of these files might be empty (if the corresponding <B>q</B>
+point has been divided between two or more images). The results are
+collected running <TT>ph.x</TT> another time (with <TT>recover=.true.</TT>)
+without images.
+
+<P>
+Moreover <TT>ph.x</TT> opens a directory called <TT>outdir/_ph#/prefix.phsave</TT>.
+This directory contains the partial information on the calculation.
+These files can be used to recover a run also when the recover file 
+is corrupted. In the directory <TT>outdir/_ph#/prefix.phsave</TT> the 
+files are in <TT>.xml</TT> format. Note that this directory is
+always in <TT>outdir/_ph#/</TT> also when <TT>lqdir=.true.</TT>.
+There are several files:
+
+<P>
+<TT>control_ph.xml</TT> contains information on the flags that control
+what <TT>ph.x</TT> calculates. The content of this file is used mainly for 
+checking purposes. The code reads these flags in input and does not need
+to reread them from file, but a recover run in which these flags change 
+is not allowed. <TT>control_ph.xml</TT> contains also the mesh of 
+<B>q</B>-vectors and their coordinates. This file is written only in a non 
+recovered calculation from the routine <TT>check_initial_status</TT> after 
+the creation of the <B>q</B>-vector mesh. It is read, if 
+<TT>recover=.true.</TT>, at the beginning of 
+the run by <TT>phq_readin</TT>.
+
+<P>
+<TT>status_run.xml</TT> contains information that tell <TT>ph.x</TT> 
+at which point the code stopped. It has information on the current 
+<B>q</B> vector, the current frequency, and a recover code that tells 
+<TT>ph.x</TT> if it has to expect a recover file and which routine produced this 
+recover file. 
+<TT>status_run.xml</TT> file is rewritten each time the phonon code 
+reaches a point from which a new recover is possible.
+It is read, if <TT>recover=.true.</TT>,
+at the beginning of the run by <TT>phq_readin</TT>.
+
+<P>
+If some routine wrote it, <TT>tensors.xml</TT> contains the tensors that
+have been calculated. Possible tensors are: dielectric constant, 
+Born effective charges calculated as derivative of the forces (EU), 
+Born effective charges calculated as derivative of the polarization (UE), 
+raman tensor, electro-optic coefficient. This file is written by the 
+routines that calculate the tensors. 
+It is read by the routine <TT>phq_recover</TT>, if <TT>recover=.true.</TT> 
+and the <B>q</B> vector is <IMG
+ WIDTH="17" HEIGHT="17" ALIGN="BOTTOM" BORDER="0"
+ SRC="img2.png"
+ ALT="$\Gamma$">.
+
+<P>
+If <TT>polariz</TT> wrote it, <TT>polariz.xml</TT> contains the frequency
+dependent polarizabilities for the frequencies calculated so far. 
+It is read by the routine 
+<TT>phq_recover</TT>, if <TT>recover=.true.</TT> and the <B>q</B> vector
+is <IMG
+ WIDTH="17" HEIGHT="17" ALIGN="BOTTOM" BORDER="0"
+ SRC="img2.png"
+ ALT="$\Gamma$">.
+
+<P>
+<TT>patterns.#iq.xml</TT> are files written for each <B>q</B> vector 
+(<TT>#iq</TT> is its number).
+They contain the information on the displacement patterns that 
+transform according to irreducible representations of the small 
+group of <B>q</B>: number of irreducible representations, their dimensions, 
+the displacement patterns and the name of the irreducible representation 
+to which each mode belongs. It is written in nonrecover runs by the routine 
+<TT>init_representations</TT>.
+It is read for each <B>q</B> vector by <TT>phq_setup</TT>. The routine
+reads the data of the file with <TT>iq=current_iq</TT>.
+
+<P>
+<TT>dynmat.#iq.0.xml</TT> contains the part of the dynamical matrix 
+calculated by <TT>dynmat0</TT> that does not depend on the perturbed 
+wavefunctions. It is written by <TT>dynmat0</TT> and read only in recover runs
+by <TT>phq_recover</TT>.
+
+<P>
+<TT>dynmat.#iq.#irr.xml</TT>
+contains the contribution to the dynamical matrix at the 
+<B>q</B> vector <TT>#iq</TT> of
+the representation <TT>#irr</TT>. 
+Note that these files can be calculated independently even on 
+different machines and collected in a single directory (see the GRID example),
+but it is necessary to calculate the patterns file in a single machine and
+send it to all the machine where the calculation is run to be sure that
+all machines use the same displacement patterns.
+When the files <TT>dynmat.#iq.#irr.xml</TT> are present for all 
+<TT>#irr</TT> of a given <TT>#iq</TT> the dynamical matrix for that 
+<IMG
+ WIDTH="16" HEIGHT="33" ALIGN="MIDDLE" BORDER="0"
+ SRC="img9.png"
+ ALT="$\bf q$"> can be calculated. If all the <TT>#irr</TT> of a given symmetry 
+for a given <TT>#iq</TT> are present, 
+the partial dynamical matrix that can be constructed with this information 
+can be diagonalized and the frequencies of the modes of that symmetry can 
+be calculated (using the <TT>ldiag=.true.</TT> flag).
+These files are written by <TT>phqscf</TT> after calculating the 
+contribution of the representation to the dynamical matrix by 
+<TT>drhodv</TT>. They are read only in recover runs by the routine 
+<TT>phq_recover</TT>.
+
+<P>
+<TT>elph.#iq.#irr.xml</TT> contains the contribution to the electron 
+phonon coefficients 
+at the <B>q</B> vector <TT>#iq</TT> of the representation <TT>#irr</TT>. 
+These files are written by <TT>elphel</TT> and contain the quantities 
+<!-- MATH
+ $g_{{\bf q}\nu} ({\bf k}, i, j)$
+ -->
+<I>g</I><SUB><IMG
+ WIDTH="13" HEIGHT="33" ALIGN="MIDDLE" BORDER="0"
+ SRC="img3.png"
+ ALT="$\scriptstyle \bf q$"><IMG
+ WIDTH="12" HEIGHT="16" ALIGN="BOTTOM" BORDER="0"
+ SRC="img4.png"
+ ALT="$\scriptstyle \nu$"></SUB>(<IMG
+ WIDTH="16" HEIGHT="16" ALIGN="BOTTOM" BORDER="0"
+ SRC="img5.png"
+ ALT="$\bf k$">, <I>i</I>, <I>j</I>) 
+(see User Manual). They are read in recover runs by the routine 
+<TT>phq_recover</TT>.
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html122"
+  HREF="node9.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html118"
+  HREF="developer_man.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html112"
+  HREF="node7.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html120"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html123"
+  HREF="node9.html">6 The routines of</A>
+<B> Up:</B> <A NAME="tex2html119"
+  HREF="developer_man.html">User's Guide for the</A>
+<B> Previous:</B> <A NAME="tex2html113"
+  HREF="node7.html">4 Parallelization</A>
+ &nbsp; <B>  <A NAME="tex2html121"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+
+</BODY>
+</HTML>

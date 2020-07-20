@@ -1,0 +1,9 @@
+No implementation found for style `upquote'
+No implementation found for style `xcolor'
+
+The user_guide.aux file was not found, so sections will not be numbered 
+and cross-references will be shown as icons.
+
+There is no author for this document.
+
+No number for "A<TT>pw.x</TT>inputfileopenedwith<FONTCOLOR="#8a2be2"><TT>pw-mode</TT></FONT>inEmacs.Notethehighlightedelements:namelistsandtheirvariables(blueandbrown),cardsandtheirflags(purpleandgreen),comments(red),stringandlogicalvariablevalues(burgundyandcyan,respectively).Notethatmistypedvariable(i.e.<TT>ibrv</TT>insteadof<TT>ibrav</TT>)isnothighlighted."

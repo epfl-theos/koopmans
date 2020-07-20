@@ -1,0 +1,107 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2018 (Released Feb 1, 2018) -->
+<HTML>
+<HEAD>
+<TITLE>3.2 Data files</TITLE>
+<META NAME="description" CONTENT="3.2 Data files">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2018">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="next" HREF="node10.html">
+<LINK REL="previous" HREF="node8.html">
+<LINK REL="up" HREF="node7.html">
+<LINK REL="next" HREF="node10.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html238"
+  HREF="node10.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html234"
+  HREF="node7.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html228"
+  HREF="node8.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html236"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html239"
+  HREF="node10.html">3.3 Electronic structure calculations</A>
+<B> Up:</B> <A NAME="tex2html235"
+  HREF="node7.html">3 Using PWscf</A>
+<B> Previous:</B> <A NAME="tex2html229"
+  HREF="node8.html">3.1 Input data</A>
+ &nbsp; <B>  <A NAME="tex2html237"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H2><A NAME="SECTION00042000000000000000">
+3.2 Data files</A>
+</H2>
+
+<P>
+The output data files are written in the directory <TT>outdir/prefix.save</TT>,
+as specified in variable <TT>prefix</TT> (a string that is prepended
+to all file names, whose default value is <TT>prefix='pwscf'</TT>).
+<TT>outdir</TT> is specified via environment variable
+<TT>ESPRESSO_TMPDIR</TT>. The usage of variable <TT>outdir</TT> is
+still possible but <EM>deprecated</EM>. The <TT>FoX</TT> library is used
+to write a ``head'' data file in a XML format. This file has a ``schema''
+that can be found on <TT>http://www.quantum-espresso.org/ns/qes/qes-1.0</TT>.
+See the Developer Manual for its contents. The data directory contains
+binary files that are not guaranteed to be readable on different machines.
+If you need file portability, compile the code with HDF5 (see the general
+User Guide).
+
+<P>
+The execution stops if you create an ``EXIT'' file <TT>prefix.EXIT</TT> either
+in the working directory (i.e. where the program is executed), or in
+the  <TT>outdir</TT> directory. Note that with some versions of MPI,
+the working directory  is the directory where the executable is! 
+The advantage of this procedure is that all files are properly closed, 
+whereas  just killing the process may leave data and output files in 
+an unusable state. If you start the execution with the EXIT file already
+in place, the code will stop after initialization. Alternatively:
+set <TT>nstep</TT> to 0 in input. This is useful to have
+a quick check of the correctness of the input. 
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html238"
+  HREF="node10.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html234"
+  HREF="node7.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html228"
+  HREF="node8.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html236"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html239"
+  HREF="node10.html">3.3 Electronic structure calculations</A>
+<B> Up:</B> <A NAME="tex2html235"
+  HREF="node7.html">3 Using PWscf</A>
+<B> Previous:</B> <A NAME="tex2html229"
+  HREF="node8.html">3.1 Input data</A>
+ &nbsp; <B>  <A NAME="tex2html237"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+
+</BODY>
+</HTML>

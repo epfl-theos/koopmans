@@ -1,0 +1,91 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2018 (Released Feb 1, 2018) -->
+<HTML>
+<HEAD>
+<TITLE>4.6 Interfaces to/from other code</TITLE>
+<META NAME="description" CONTENT="4.6 Interfaces to/from other code">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2018">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="next" HREF="node12.html">
+<LINK REL="previous" HREF="node10.html">
+<LINK REL="up" HREF="node5.html">
+<LINK REL="next" HREF="node12.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html179"
+  HREF="node12.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html175"
+  HREF="node5.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html169"
+  HREF="node10.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html177"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html180"
+  HREF="node12.html">4.7 Other tools</A>
+<B> Up:</B> <A NAME="tex2html176"
+  HREF="node5.html">4 Usage</A>
+<B> Previous:</B> <A NAME="tex2html170"
+  HREF="node10.html">4.5 Wannier functions</A>
+ &nbsp; <B>  <A NAME="tex2html178"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H2><A NAME="SECTION00056000000000000000">
+4.6 Interfaces to/from other code</A>
+</H2>
+
+<P>
+Codes <TT>pw2bgw.x</TT> and <TT>bgw2pw.x</TT> convert data files from
+<TT>pw.x</TT> to a format suitable for usage by the Berkeley GW code, and vice
+versa. See files <TT>Doc/INPUT_pw2bgw.*</TT> and <TT>Doc/INPUT_bgw2pw.*</TT>
+for input data documentation. NOTE: <TT>bgw2pw.x</TT> works only with the
+"old" and no longer supported I/O format.
+
+<P>
+Code <TT>pw2gw.x</TT> converts data files from <TT>pw.x</TT> to a format suitable 
+for usage by another GW code, computes optical properties in single-particle 
+approach (Fermi Golden Rule). See file <TT>Doc/INPUT_pw2gw.html</TT>
+for input data documentation, directory <TT>pw2gw_example/</TT>
+for an example of usage.
+
+<P>
+Code <TT>open_grid.x</TT> writes Kohn-Sham orbitals for the complete
+k-point grid (not symetry-independent points only) in real space.
+Useful for further processing. It can be used to generate the
+Kohn-Sham state data required in <TT>pw2wannier.x</TT> and Wannier90
+from the initial SCF calculation, bypassing the non-SCF calculation
+step.
+
+<P>
+Code <TT>pw2critic.x</TT> is an interface to the CRITIC2 code by
+Alberto Otero-de-la-Roza. This program creates a <TT>pwc</TT> file
+containing the Kohn-Sham orbitals from an SCF calculation (or from the
+output of <TT>open_grid.x</TT>). These orbitals are used for
+post-processing in CRITIC2.
+
+<P>
+Code <TT>pw_export.f90</TT>, no longer compiled by default and obsolete,
+is an interface to other codes, documented in <TT>Doc/INPUT_pw_export.*</TT>.
+
+<P>
+<BR><HR>
+
+</BODY>
+</HTML>

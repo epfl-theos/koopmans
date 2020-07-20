@@ -1,0 +1,46 @@
+
+<tex2html_mydb_mark>#1#% BEWARE: don't revert from graphicx for epsfig, because latex2html
+
+<tex2html_mydb_mark>#2#% doesn't handle epsfig commands !!!
+
+<tex2html_mydb_mark>#3#%\def\QEmodes{\texttt{QE-emacs-modes}}
+
+<tex2html_mydb_mark>#4#%\def\prmode{\efn{projwfc-mode}}
+
+<tex2html_mydb_mark>#5#% title
+  
+<tex2html_mydb_mark>#6#% TODO: add infro from the net.
+
+<tex2html_mydb_mark>#7#% \paragraph{Note for non-Unix operating systems:} Given that
+
+<tex2html_mydb_mark>#8#% \texttt{install.sh} is a shell script its execution may fail on
+
+<tex2html_mydb_mark>#9#% non-Unix operating systems. In this case manually copy the \qemodes/
+
+<tex2html_mydb_mark>#10#% subdirectory to appropriate place.
+
+<tex2html_mydb_mark>#11#%
+
+<tex2html_mydb_mark>#12#%\subsubsection{Difference between generic \qemode\ and specific modes}
+
+<tex2html_mydb_mark>#13#%
+
+<tex2html_mydb_mark>#14#
+   ./install.sh
+<tex2html_mydb_mark>#15#
+   (add-to-list 'auto-mode-alist '(;SPMquot;\\(pw\\|scf\\|\\(?:vc-\\)?relax\\).*\\.in\\';SPMquot; . pw-mode))
+<tex2html_mydb_mark>#16#
+   Possible completions are:
+   pw-CELL                              pw-CELL_PARAMETERS
+   pw-CONSTRAINTS                       pw-CONTROL
+<tex2html_mydb_mark>#17#
+   Possible completions are:
+   pw-c                                 pw-calculation
+   pw-cell_dofree                       pw-cell_dynamics
+   pw-cell_factor                       pw-celldm
+   pw-constrained_magnetization         pw-conv_thr
+   pw-conv_thr_init                     pw-conv_thr_multi
+   pw-cosab                             pw-cosac
+   pw-cosbc
+<tex2html_mydb_mark>#18#
+   calculation = ''

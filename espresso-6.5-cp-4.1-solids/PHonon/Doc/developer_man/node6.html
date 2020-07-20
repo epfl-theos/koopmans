@@ -1,0 +1,182 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2018 (Released Feb 1, 2018) -->
+<HTML>
+<HEAD>
+<TITLE>3 GRID parallelization and recover</TITLE>
+<META NAME="description" CONTENT="3 GRID parallelization and recover">
+<META NAME="keywords" CONTENT="developer_man">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2018">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="developer_man.css">
+
+<LINK REL="next" HREF="node7.html">
+<LINK REL="previous" HREF="node5.html">
+<LINK REL="up" HREF="developer_man.html">
+<LINK REL="next" HREF="node7.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html98"
+  HREF="node7.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html94"
+  HREF="developer_man.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html88"
+  HREF="node5.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html96"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html99"
+  HREF="node7.html">4 Parallelization</A>
+<B> Up:</B> <A NAME="tex2html95"
+  HREF="developer_man.html">User's Guide for the</A>
+<B> Previous:</B> <A NAME="tex2html89"
+  HREF="node5.html">2 General structure of</A>
+ &nbsp; <B>  <A NAME="tex2html97"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H1><A NAME="SECTION00040000000000000000">
+3 GRID parallelization and recover</A>
+</H1>
+
+<P>
+The <TT>ph.x</TT> code might start from scratch or recover an interrupted run. 
+In a recover run the input control flags are assumed to coincide with 
+those used in the interrupted run. The required quantities might be
+found in <TT>.xml</TT> recover files and do not need to be recalculated. 
+If the quantities are found on file the following flags become 
+<TT>.TRUE.</TT>.
+
+<P>
+<PRE>
+done_fpol,          if .TRUE. all frequency dependent polarizabilities are known
+done_epsil,         if .TRUE. the dielectric constant is known
+done_start_zstar,   if .TRUE. zstareu0 is known
+done_zeu,           if .TRUE. zeu is known
+done_lraman,        if .TRUE. the raman tensor is known
+done_elop,          if .TRUE. the electron-optical coefficient is known
+done_zue,           if .TRUE. zue is known
+done_elph           if .TRUE. the electron-phonon coupling coefficient is known
+</PRE>
+
+<P>
+The variables that control the grid are:
+
+<P>
+<PRE>
+comp_iq(nqs)=.TRUE.              ! .FALSE. when this q is not computed in 
+                                 ! this run (controlled by start_q, last_q,
+                                 ! or by the image controller)
+
+comp_irr_iq(0:3*nat,nqs)=.TRUE.  ! .FALSE. for the representations that are
+                                 !  not calculated in this run.
+                                 ! (controlled by start_q, last_q, 
+                                 !  start_irr, last_irr, 
+                                 !  or by the image controller)
+
+comp_iu(nfs)=.TRUE.              ! .FALSE. for the frequencies not calculated 
+                                 ! in this run.
+</PRE>
+
+<P>
+These variables are set at the beginning of the run on the basis of
+the input and of the number of images requested by the calculation.
+If this is a recover run some of these quantities might be already
+available on file. The code checks what is already saved on files and
+sets the corresponding flags:
+
+<P>
+<PRE>
+done_iu(nfs)=.FALSE.        ! .TRUE. when the polarization(iu) is available.
+
+done_iq(nqs)=.FALSE.        ! .TRUE. when the dyn. mat. and, if required, the
+                            ! electron-phonon coefficients at the q point 
+                            ! have been calculated
+
+done_bands(nqs)=.FALSE.     ! .TRUE. when the bands for that q are already 
+                            !  on disk
+
+done_irr_iq(0:3*nat,nqs)=.FALSE. ! The representations that have been already 
+                                 ! calculated for each q are set .TRUE.. 
+                                 ! The representation 0 is the part of the
+                                 ! dynamical matrix computed by drho and
+                                 ! dynmat0.
+
+done_elph_iq(3*nat,nqs)=.FALSE.  ! .TRUE. when the electron phonon coefficient 
+                                 ! for this irreducible representation and
+                                 ! this q is available.
+</PRE>
+
+<P>
+The phonon code might stop in the middle of a self-consistent linear response 
+run, or while it is computing the bands. This case is controlled  
+by a single code that is read from the files written on disk.
+This is an integer that tells where the code stopped. This code
+is used in several points to avoid too many flags checks. Saved
+on disk in <TT>.xml</TT> file there is also a string.  
+The codes are the following:
+
+<P>
+<PRE>
+!  rec_code   where_rec     status description
+!
+!    -1000              Nothing has been read. There is no recover file.
+!    -50     init_rep.. All displacement have been written on file.
+!    -40     phq_setup  Only the displacements u have been read from file
+!    -30     phq_init   u and dyn(0) read from file
+!    -25     solve_e_fp all previous. Stopped in solve_e_fpol. There
+!                       should be a recover file.
+!    -20     solve_e    all previous. Stopped within solve_e. There 
+!                       should be a recover file.
+!    -10     solve_e2   epsilon and zstareu are available if requested. 
+!                       Within solve_e2. There should be a recover file.
+!     2      phescf     all previous, raman tensor and elop tensor are
+!                       available if required.
+!     10     solve_linter all previous. Stopped within solve linter. 
+!                       Recover file  should be present.
+!     20     phqscf     all previous dyn_rec(irr) and zstarue0_rec(irr) are
+!                       available.
+!     30     dynmatrix  all previous, dyn and zstarue are available.
+!
+</PRE>
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html98"
+  HREF="node7.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html94"
+  HREF="developer_man.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html88"
+  HREF="node5.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html96"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html99"
+  HREF="node7.html">4 Parallelization</A>
+<B> Up:</B> <A NAME="tex2html95"
+  HREF="developer_man.html">User's Guide for the</A>
+<B> Previous:</B> <A NAME="tex2html89"
+  HREF="node5.html">2 General structure of</A>
+ &nbsp; <B>  <A NAME="tex2html97"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+
+</BODY>
+</HTML>

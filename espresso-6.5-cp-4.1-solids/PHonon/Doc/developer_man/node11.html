@@ -1,0 +1,280 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2018 (Released Feb 1, 2018) -->
+<HTML>
+<HEAD>
+<TITLE>8 File Formats</TITLE>
+<META NAME="description" CONTENT="8 File Formats">
+<META NAME="keywords" CONTENT="developer_man">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2018">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="developer_man.css">
+
+<LINK REL="next" HREF="node12.html">
+<LINK REL="previous" HREF="node10.html">
+<LINK REL="up" HREF="developer_man.html">
+<LINK REL="next" HREF="node12.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html158"
+  HREF="node12.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html154"
+  HREF="developer_man.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html148"
+  HREF="node10.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html156"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html159"
+  HREF="node12.html">9 Bibliography</A>
+<B> Up:</B> <A NAME="tex2html155"
+  HREF="developer_man.html">User's Guide for the</A>
+<B> Previous:</B> <A NAME="tex2html149"
+  HREF="node10.html">7 Suggestion for developers</A>
+ &nbsp; <B>  <A NAME="tex2html157"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H1><A NAME="SECTION00090000000000000000">
+8 File Formats</A>
+</H1>
+<TT>PHonon</TT> recover file specifications:
+
+<P>
+Format name: QEXML 
+<BR>
+Format version: 1.4.0 
+<BR>
+<P>
+The structure of the file <TT>status_run.xml</TT> is:
+
+<P>
+<PRE>
+&lt;Root&gt;
+  &lt;STATUS_PH&gt;
+    &lt;STOPPED_IN&gt;
+     &lt;where_rec&gt;
+    &lt;/STOPPED_IN&gt;
+    &lt;RECOVER_CODE&gt;
+     &lt;rec_code&gt;
+    &lt;/RECOVER_CODE&gt;
+    &lt;CURRENT_Q&gt;
+     &lt;current_iq&gt;
+    &lt;/CURRENT_Q&gt;
+    &lt;CURRENT_IU&gt;
+     &lt;current_iu&gt;
+    &lt;/CURRENT_IU&gt;
+  &lt;/STATUS_PH&gt;
+&lt;/Root&gt;
+</PRE>
+
+<P>
+The structure of the file <TT>control_run.xml</TT> is:
+
+<P>
+<PRE>
+&lt;Root&gt;
+  &lt;HEADER&gt;
+    &lt;FORMAT&gt;
+    &lt;CREATOR&gt;
+  &lt;/HEADER&gt;
+  &lt;CONTROL&gt;
+    &lt;DISPERSION_RUN&gt;
+     &lt;ldisp&gt;
+    &lt;/DISPERSION_RUN&gt;
+    &lt;ELECTRIC_FIELD&gt;
+     &lt;epsil&gt;
+    &lt;/ELECTRIC_FIELD&gt;
+    &lt;PHONON_RUN&gt;
+     &lt;trans&gt;
+    &lt;/PHONON_RUN&gt;
+    &lt;ELECTRON_PHONON&gt;
+     &lt;elph&gt;
+    &lt;/ELECTRON_PHONON&gt;
+    &lt;EFFECTIVE_CHARGE_EU&gt;
+     &lt;zeu&gt;
+    &lt;/EFFECTIVE_CHARGE_EU&gt;
+    &lt;EFFECTIVE_CHARGE_PH&gt;
+    &lt;zue&gt;
+    &lt;/EFFECTIVE_CHARGE_PH&gt;
+    &lt;RAMAN_TENSOR&gt;
+    &lt;lraman&gt;
+    &lt;/RAMAN_TENSOR&gt;
+    &lt;ELECTRO_OPTIC&gt;
+    &lt;elop&gt;
+    &lt;/ELECTRO_OPTIC&gt;
+    &lt;FREQUENCY_DEP_POL&gt;
+    &lt;fpol&gt;
+    &lt;/FREQUENCY_DEP_POL&gt;
+  &lt;/CONTROL&gt;
+  &lt;Q_POINTS&gt;
+    &lt;NUMBER_OF_Q_POINTS&gt;
+     &lt;nqs&gt;
+    &lt;/NUMBER_OF_Q_POINTS&gt;
+    &lt;UNITS_FOR_Q-POINT&gt;
+    &lt;Q-POINT_COORDINATES&gt;
+    &lt;x_q(3,nqs)&gt;
+    &lt;/Q-POINT_COORDINATES&gt;
+  &lt;/Q_POINTS&gt;
+&lt;/Root&gt;
+</PRE>
+
+<P>
+The structure of the file <TT>tensors.xml</TT> is:
+
+<P>
+<PRE>
+&lt;Root&gt;
+  &lt;EF_TENSORS&gt;
+    &lt;DONE_ELECTRIC_FIELD&gt;
+    &lt;done_epsil&gt;
+    &lt;/DONE_ELECTRIC_FIELD&gt;
+    &lt;DONE_START_EFFECTIVE_CHARGE&gt;
+    &lt;done_start_zstar&gt;
+    &lt;/DONE_START_EFFECTIVE_CHARGE&gt;
+    &lt;DONE_EFFECTIVE_CHARGE_EU&gt;
+    &lt;done_zeu&gt;
+    &lt;/DONE_EFFECTIVE_CHARGE_EU&gt;
+    &lt;DONE_EFFECTIVE_CHARGE_PH&gt;
+    &lt;done_zue&gt;
+    &lt;/DONE_EFFECTIVE_CHARGE_PH&gt;
+    &lt;DONE_RAMAN_TENSOR&gt;
+    &lt;done_raman&gt;
+    &lt;/DONE_RAMAN_TENSOR&gt;
+    &lt;DONE_ELECTRO_OPTIC&gt;
+    &lt;done_elop&gt;
+    &lt;/DONE_ELECTRO_OPTIC&gt;
+    &lt;DIELECTRIC_CONSTANT&gt;
+    &lt;epsil&gt;
+    &lt;/DIELECTRIC_CONSTANT&gt;
+    &lt;START_EFFECTIVE_CHARGES&gt;
+    &lt;zstareu0&gt;
+    &lt;/START_EFFECTIVE_CHARGES&gt;
+    &lt;EFFECTIVE_CHARGES_EU&gt;
+    &lt;zstareu&gt;
+    &lt;/EFFECTIVE_CHARGES_EU&gt;
+    &lt;RAMAN_TNS&gt;
+    &lt;ramantns&gt;
+    &lt;/RAMAN_TNS&gt;
+    &lt;ELOP_TNS&gt;
+    &lt;eloptns&gt;
+    &lt;/ELOP_TNS&gt;
+    &lt;EFFECTIVE_CHARGES_UE&gt;
+    &lt;zstarue&gt;
+    &lt;/EFFECTIVE_CHARGES_UE&gt;
+  &lt;/EF_TENSORS&gt;
+&lt;/Root&gt;
+</PRE>
+
+<P>
+The structure of the file <TT>patterns.#iq.xml</TT> is:
+
+<P>
+<PRE>
+&lt;Root&gt;
+  &lt;IRREPS_INFO&gt;
+    &lt;QPOINT_NUMBER&gt;
+      &lt;iq&gt;
+    &lt;/QPOINT_NUMBER&gt;
+    &lt;QPOINT_GROUP_RANK&gt;
+       &lt;nsymq&gt;
+    &lt;/QPOINT_GROUP_RANK&gt;
+    &lt;MINUS_Q_SYM&gt;
+     &lt;minus_q&gt;
+    &lt;/MINUS_Q_SYM&gt;
+    &lt;NUMBER_IRR_REP&gt;
+     &lt;nirr&gt; 
+    &lt;/NUMBER_IRR_REP&gt;
+#for each irr    
+    &lt;REPRESENTION.irr&gt;
+      &lt;NUMBER_OF_PERTURBATIONS&gt;
+        &lt;npert(irr)&gt; 
+      &lt;/NUMBER_OF_PERTURBATIONS&gt;
+#for each ipert
+      &lt;PERTURBATION.ipert&gt;
+        &lt;SYMMETRY_TYPE_CODE&gt;
+         &lt;num_rap_mode&gt;
+        &lt;/SYMMETRY_TYPE_CODE&gt;
+        &lt;SYMMETRY_TYPE&gt;
+         &lt;name_rap_mode&gt;
+        &lt;/SYMMETRY_TYPE&gt;
+        &lt;DISPLACEMENT_PATTERN&gt;
+         &lt;u&gt;
+        &lt;/DISPLACEMENT_PATTERN&gt;
+      &lt;/PERTURBATION.ipert&gt;
+    &lt;/REPRESENTION.irr&gt;
+  &lt;/IRREPS_INFO&gt;
+&lt;/Root&gt;
+</PRE>
+
+<P>
+The structure of the file <TT>dynmat.#iq.#irr.xml</TT> is:
+
+<P>
+<PRE>
+&lt;Root&gt;
+  &lt;PM_HEADER&gt;
+    &lt;DONE_IRR&gt;
+     done_irr(irr)
+    &lt;/DONE_IRR&gt;
+  &lt;/PM_HEADER&gt;
+  &lt;PARTIAL_MATRIX&gt;
+    &lt;PARTIAL_DYN&gt;
+     &lt;dynmat_rec&gt;
+    &lt;/PARTIAL_DYN&gt;
+  &lt;/PARTIAL_MATRIX&gt;
+&lt;/Root&gt;
+</PRE>
+
+<P>
+The structure of the file <TT>elph.#iq.#irr.xml</TT> is:
+
+<P>
+<PRE>
+&lt;Root&gt;
+  &lt;EL_PHON_HEADER&gt;
+    &lt;DONE_ELPH type="logical" size="1"&gt;
+     &lt;done_elph_iq(irr,iq)&gt;
+    &lt;/DONE_ELPH&gt;
+  &lt;/EL_PHON_HEADER&gt;
+  &lt;PARTIAL_EL_PHON&gt;
+    &lt;NUMBER_OF_K&gt;
+      &lt;nksqtot&gt; 
+    &lt;/NUMBER_OF_K&gt;
+    &lt;NUMBER_OF_BANDS&gt;
+        &lt;nbnd&gt; 
+    &lt;/NUMBER_OF_BANDS&gt;
+#for each ik
+    &lt;K_POINT.ik&gt;
+      &lt;COORDINATES_XK&gt;
+       xk(ik)
+      &lt;/COORDINATES_XK&gt;
+      &lt;PARTIAL_ELPH&gt;
+       el_ph_mat_rec_col 
+      &lt;/PARTIAL_ELPH&gt;
+    &lt;/K_POINT.ik&gt;
+#enddo
+  &lt;/PARTIAL_EL_PHON&gt;
+&lt;/Root&gt;
+
+
+&lt;/Root&gt;
+</PRE>
+
+<P>
+<BR><HR>
+
+</BODY>
+</HTML>

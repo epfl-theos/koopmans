@@ -1,0 +1,168 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2018 (Released Feb 1, 2018) -->
+<HTML>
+<HEAD>
+<TITLE>4.3 Calculation of electron-phonon interaction coefficients</TITLE>
+<META NAME="description" CONTENT="4.3 Calculation of electron-phonon interaction coefficients">
+<META NAME="keywords" CONTENT="user_guide">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2018">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="user_guide.css">
+
+<LINK REL="next" HREF="node10.html">
+<LINK REL="previous" HREF="node8.html">
+<LINK REL="up" HREF="node6.html">
+<LINK REL="next" HREF="node10.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html155"
+  HREF="node10.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html151"
+  HREF="node6.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html145"
+  HREF="node8.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html153"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html156"
+  HREF="node10.html">4.4 DFPT with the</A>
+<B> Up:</B> <A NAME="tex2html152"
+  HREF="node6.html">4 Using PHonon</A>
+<B> Previous:</B> <A NAME="tex2html146"
+  HREF="node8.html">4.2 Calculation of interatomic</A>
+ &nbsp; <B>  <A NAME="tex2html154"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H2><A NAME="SECTION00053000000000000000">
+4.3 Calculation of electron-phonon interaction coefficients</A>
+</H2>
+
+<P>
+Since v.5.0, there are two ways of calculating electron-phonon
+coefficients, distinguished according to the value of variable 
+<TT>electron_phonon</TT>. The following holds for the case 
+<TT>electron_phonon=</TT> <TT>'interpolated'</TT> (see also Example 03).
+
+<P>
+The calculation of electron-phonon coefficients in metals is made difficult 
+by the slow convergence of the sum at the Fermi energy. It is convenient to 
+use a coarse <B>k</B>-point grid to calculate phonons on a suitable 
+wavevector grid;
+a dense <B>k</B>-point grid to calculate the sum at the Fermi energy. 
+The calculation
+proceeds in this way:
+
+<OL>
+<LI>a scf calculation for the dense <IMG
+ WIDTH="16" HEIGHT="16" ALIGN="BOTTOM" BORDER="0"
+ SRC="img7.png"
+ ALT="$\bf k$">-point grid (or a scf calculation 
+followed by a non-scf one on the dense <IMG
+ WIDTH="16" HEIGHT="16" ALIGN="BOTTOM" BORDER="0"
+ SRC="img7.png"
+ ALT="$\bf k$">-point grid); specify 
+option <TT>la2f=.true.</TT> to <TT>pw.x</TT> in order to save a file with 
+the eigenvalues on the dense <B>k</B>-point grid. The latter MUST contain 
+all <IMG
+ WIDTH="16" HEIGHT="16" ALIGN="BOTTOM" BORDER="0"
+ SRC="img7.png"
+ ALT="$\bf k$"> and <!-- MATH
+ ${\bf k}+{\bf q}$
+ -->
+<IMG
+ WIDTH="16" HEIGHT="16" ALIGN="BOTTOM" BORDER="0"
+ SRC="img7.png"
+ ALT="$\bf k$"> + <IMG
+ WIDTH="16" HEIGHT="33" ALIGN="MIDDLE" BORDER="0"
+ SRC="img1.png"
+ ALT="$\bf q$"> grid points used in the subsequent 
+electron-phonon 
+calculation. All grids MUST be unshifted, i.e. include <IMG
+ WIDTH="16" HEIGHT="16" ALIGN="BOTTOM" BORDER="0"
+ SRC="img7.png"
+ ALT="$\bf k$"> = 0.
+</LI>
+<LI>a normal scf + phonon dispersion calculation on the coarse <B>k</B>-point
+grid, specifying option <TT>electron_phonon='interpolated'</TT>, and 
+the file name where
+the self-consistent first-order variation of the potential is to be 
+stored: variable <TT>fildvscf</TT>).
+The electron-phonon coefficients are calculated using several
+values of Gaussian broadening (see <TT>PHonon/PH/elphon.f90</TT>) 
+because this quickly
+shows whether results are converged or not with respect to the 
+<B>k</B>-point grid and Gaussian broadening.
+</LI>
+<LI>Finally, you can use <TT>matdyn.x</TT> and <TT>lambda.x</TT> 
+(input documentation in the header of <TT>PHonon/PH/lambda.f90</TT>)
+to get the <!-- MATH
+ $\alpha^2F(\omega)$
+ -->
+<IMG
+ WIDTH="24" HEIGHT="38" ALIGN="MIDDLE" BORDER="0"
+ SRC="img4.png"
+ ALT="$\alpha^{2}_{}$"><I>F</I>(<IMG
+ WIDTH="17" HEIGHT="17" ALIGN="BOTTOM" BORDER="0"
+ SRC="img5.png"
+ ALT="$\omega$">) function, the electron-phonon coefficient
+<IMG
+ WIDTH="16" HEIGHT="17" ALIGN="BOTTOM" BORDER="0"
+ SRC="img3.png"
+ ALT="$\lambda$">, and an estimate of the critical temperature <I>T</I><SUB>c</SUB>.
+</LI>
+</OL>
+
+<P>
+See the appendix for the relevant formulae.
+<B>Important notice</B>: the <!-- MATH
+ $q\rightarrow 0$
+ -->
+<I>q</I> <IMG
+ WIDTH="24" HEIGHT="17" ALIGN="BOTTOM" BORDER="0"
+ SRC="img10.png"
+ ALT="$\rightarrow$"> 0 limit of the contribution 
+to the electron-phonon coefficient diverges for optical modes! please 
+be very careful, consult the relevant literature. . 
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html155"
+  HREF="node10.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html151"
+  HREF="node6.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html145"
+  HREF="node8.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html153"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html156"
+  HREF="node10.html">4.4 DFPT with the</A>
+<B> Up:</B> <A NAME="tex2html152"
+  HREF="node6.html">4 Using PHonon</A>
+<B> Previous:</B> <A NAME="tex2html146"
+  HREF="node8.html">4.2 Calculation of interatomic</A>
+ &nbsp; <B>  <A NAME="tex2html154"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+
+</BODY>
+</HTML>

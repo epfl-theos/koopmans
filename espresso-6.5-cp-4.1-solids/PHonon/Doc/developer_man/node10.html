@@ -1,0 +1,192 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 2018 (Released Feb 1, 2018) -->
+<HTML>
+<HEAD>
+<TITLE>7 Suggestion for developers</TITLE>
+<META NAME="description" CONTENT="7 Suggestion for developers">
+<META NAME="keywords" CONTENT="developer_man">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META NAME="Generator" CONTENT="LaTeX2HTML v2018">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="developer_man.css">
+
+<LINK REL="next" HREF="node11.html">
+<LINK REL="previous" HREF="node9.html">
+<LINK REL="up" HREF="developer_man.html">
+<LINK REL="next" HREF="node11.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html146"
+  HREF="node11.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html142"
+  HREF="developer_man.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html136"
+  HREF="node9.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html144"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html147"
+  HREF="node11.html">8 File Formats</A>
+<B> Up:</B> <A NAME="tex2html143"
+  HREF="developer_man.html">User's Guide for the</A>
+<B> Previous:</B> <A NAME="tex2html137"
+  HREF="node9.html">6 The routines of</A>
+ &nbsp; <B>  <A NAME="tex2html145"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H1><A NAME="SECTION00080000000000000000">
+7 Suggestion for developers</A>
+</H1>
+
+<P>
+If you plan to add something to the <TT>PHonon</TT> package follow these
+simple rules:
+
+<P>
+
+<UL>
+<LI>All quantities that do not require the perturbed wavefunctions, are
+calculated in setup or by calling a separate routine in <TT>phq_init</TT>. 
+
+<P>
+</LI>
+<LI>The quantities that require the perturbed wavefunctions due to an
+electric field are calculated by a separate routine after 
+<TT>solve_e</TT> in the routine <TT>phescf</TT>.
+
+<P>
+</LI>
+<LI>The quantities that require the perturbed wavefunctions due to an
+atomic displacement are accumulated by calling a separate routine
+in phqscf after <TT>solve_linter</TT>. 
+NB: the perturbed wavefunctions are saved in a file that is rewritten at
+each new <TT>irrep</TT>.
+
+<P>
+</LI>
+<LI>After calculating a quantity, it has to be saved in the directory
+<TT>outdir</TT> in an <TT>.xml</TT> file, by adding it to the list 
+of variables in the routine <TT>write_tensors</TT>  
+(preferable), or by writing a routine similar to <TT>write_tensors</TT> 
+that writes a separate file. The same quantity must be read by 
+<TT>read_tensors</TT> or by writing a separate routine.
+
+<P>
+</LI>
+<LI>If you introduce the calculation of a new quantity in the phonon code 
+and save it in the <TT>.xml</TT> file, please add also the associated flags 
+that control the calculation: 
+<TT>lquantity</TT> is read in input and tells <TT>ph.x</TT> that that quantity must be 
+calculated, <TT>done_quantity</TT> tells <TT>ph.x</TT> that that quantity 
+was available in the <TT>.xml</TT> files and should not be recalculated, 
+<TT>comp_quantity</TT> can be introduced if the quantity depends on 
+<B>q</B> or on the frequency and tells <TT>ph.x</TT> that that quantity must be 
+calculated in this run. The image controller can divide the work among images
+by setting the array <TT>comp_quantity</TT>. At each <B>q</B> point and 
+at each frequency the quantity must be saved in the <TT>.xml</TT> file.
+Please update the image controller to add the additional work that the 
+calculation of your quantity involves and make a single image calculate it 
+or divide the work among different images.
+
+<P>
+</LI>
+<LI>Please, try to avoid opening files inside routines.
+Files must be opened in <TT>openfilq</TT> and closed in <TT>close_phq</TT>.
+
+<P>
+</LI>
+<LI>Global variables must be allocated in <TT>allocate_phq</TT>, directly in the 
+routine, or by calling a separate routine that allocates all
+your new variables. The same variables must be deallocated in 
+<TT>deallocate_phq</TT>, by a separate routine or by adding them to the
+list of variables. Note that at each new <B>q</B> point these variables are
+deallocated and reallocated. 
+
+<P>
+</LI>
+<LI>Variables that control the grid should not be deallocated at
+each new <B>q</B> point must be allocated in <TT>allocate_grid_variables</TT> 
+and deallocated in <TT>destroy_status_run</TT>.
+A few arrays that must be read from input are allocated in 
+<TT>phq_readin</TT> after reading their size and deallocated in
+<TT>destroy_status_run</TT>.
+
+<P>
+</LI>
+<LI>Preferably global variables are calculated by in a single routine 
+and used by the other routines. In particular routines are not allowed to 
+modify:
+
+<UL>
+<LI>The variables calculated by <TT>pw.x</TT>.
+</LI>
+<LI>The modes.
+</LI>
+<LI>The variables that describe the symmetry of the small group of <B>q</B>.
+</LI>
+<LI>The variables that describe the response of the ultrasoft quantities
+        (e.g. <TT>int1</TT>, <TT>int2</TT>, ..., <TT>alphasum</TT>, 
+<TT>becsum</TT>, <TT>dpqq</TT>, etc.).
+</LI>
+</UL>
+If you need to modify these quantities, please allocate new variables 
+and copy the variables of the phonon on them.
+
+<P>
+</LI>
+<LI>If you want to establish a new recover point, add the appropriate
+<TT>rec_code</TT> in the list above. The point in which the code stopped 
+is saved in <TT>prefix.phsave/status_run.xml</TT>. 
+
+<P>
+</LI>
+</UL>
+
+<P>
+If you are searching for some interesting project to contribute to the
+<TT>PHonon</TT> package, please read the header of <TT>phonon.f90</TT>
+and implement some feature that is not yet ready. Ideally all quantities
+should be at level [10], presently level [5] is still experimental and
+some quantities are at level [1].
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html146"
+  HREF="node11.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next" SRC="next.png"></A> 
+<A NAME="tex2html142"
+  HREF="developer_man.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up" SRC="up.png"></A> 
+<A NAME="tex2html136"
+  HREF="node9.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous" SRC="prev.png"></A> 
+<A NAME="tex2html144"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html147"
+  HREF="node11.html">8 File Formats</A>
+<B> Up:</B> <A NAME="tex2html143"
+  HREF="developer_man.html">User's Guide for the</A>
+<B> Previous:</B> <A NAME="tex2html137"
+  HREF="node9.html">6 The routines of</A>
+ &nbsp; <B>  <A NAME="tex2html145"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+
+</BODY>
+</HTML>
