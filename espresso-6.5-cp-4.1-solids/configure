@@ -79,8 +79,12 @@ test -e configure.msg     && mv configure.msg ./install/
 # Riccardo: make file for CP4.1 
 cp make.inc make_cp.inc
 sed -i "s/%make.inc/%make_cp.inc/g" make_cp.inc
+# redefining IFLAGS for make_cp.inc (include->include_CP)
 foo=`grep 'IFLAGS         =' make_cp.inc`
 foo=${foo##*opt}; foo=${foo##include*}
-sed -i "/IFLAGS         =/c IFLAGS         = -I\$(TOPDIR)\/include_CP -I/opt${foo}" make_cp.inc 
+sed -i "/IFLAGS         =/c IFLAGS         = -I\$(TOPDIR)\/include_CP -I/opt${foo}" make_cp.inc
+# adding -D_FFTW3 and -D__PARA to DFLAGS
+sed -i "s/-D__DFTI/& -D__FFTW3/" make_cp.inc
+sed -i "s/-D__MPI/& -D__PARA/" make_cp.inc
 
 exit 0
