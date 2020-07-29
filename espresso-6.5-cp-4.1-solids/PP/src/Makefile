@@ -56,6 +56,7 @@ PWOBJS = ../../PW/src/libpw.a
 QEOBJS = ../../Modules/libqemod.a ../../KS_Solvers/libks_solvers.a \
          ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a \
          ../../dft-d3/libdftd3qe.a
+PW2WAN_OBJS = wannier2odd.o
 
 MODULES = $(PWOBJS) $(QEOBJS)
 
@@ -142,9 +143,9 @@ projwfc.x : projwfc.o libpp.a $(MODULES) $(LIBOBJS)
 		projwfc.o libpp.a $(MODULES) $(LIBOBJS) $(QELIBS)
 	- ( cd ../../bin ; ln -fs ../PP/src/$@ . )
 
-pw2wannier90.x : pw2wannier90.o libpp.a $(MODULES) $(LIBOBJS)
+pw2wannier90.x : pw2wannier90.o libpp.a $(PW2WAN_OBJS) $(MODULES) $(LIBOBJS)
 	$(LD) $(LDFLAGS) -o $@ \
-		pw2wannier90.o libpp.a $(MODULES) $(LIBOBJS) $(QELIBS)
+		pw2wannier90.o libpp.a $(PW2WAN_OBJS) $(MODULES) $(LIBOBJS) $(QELIBS)
 	- ( cd ../../bin ; ln -fs ../PP/src/$@ . )
 
 pw2critic.x : pw2critic.o libpp.a $(MODULES) $(LIBOBJS)

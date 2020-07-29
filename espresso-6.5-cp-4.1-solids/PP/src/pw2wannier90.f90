@@ -107,6 +107,7 @@ PROGRAM pw2wannier90
   USE noncollin_module, ONLY : noncolin
   USE control_flags,    ONLY : gamma_only
   USE environment,ONLY : environment_start, environment_end
+  USE wannier2odd,      ONLY : wan2odd
   USE wannier
   !
   IMPLICIT NONE
@@ -468,6 +469,22 @@ PROGRAM pw2wannier90
      !
   ENDIF
   !
+  IF(wan_mode=='wannier2odd') THEN
+     !
+     CALL read_nnkp
+     CALL openfil_pp
+     CALL wan2odd
+     !
+     IF ( ionode ) WRITE( stdout, *  )
+     CALL print_clock( 'init_pw2wan' )
+     CALL print_clock( 'wannier2odd' )
+     CALL environment_end ( 'PW2WANNIER' )
+     IF ( ionode ) WRITE( stdout, *  )
+     !
+     CALL stop_pp
+     !
+  ENDIF
+  !
   STOP
 END PROGRAM pw2wannier90
 !
@@ -531,7 +548,7 @@ SUBROUTINE setup_nnkp
   !    exclude_bands       exclude_bands
   !    atcart              atoms_cart
   !    atsym               atom_symbols
-
+ 
   ALLOCATE( kpt_latt(3,iknum) )
   ALLOCATE( atcart(3,nat), atsym(nat) )
   ALLOCATE( kpb(iknum,num_nnmax), g_kpb(3,iknum,num_nnmax) )

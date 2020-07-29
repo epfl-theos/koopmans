@@ -88,16 +88,5 @@ SUBROUTINE data_structure( gamma_only )
   call gvect_init ( ngm_ , intra_bgrp_comm )
   call gvecs_init ( ngs_ , intra_bgrp_comm )
   !
-  !!! RICCARDO debug >>>
-  WRITE(stdout,'("RICCARDO gcutw = ", F14.8)') gcutw
-  WRITE(stdout,'("RICCARDO gkcut = ", F14.8)') gkcut
-  WRITE(stdout,'("RICCARDO dffts : ", 7I8)') dffts%nr1, dffts%nr2, dffts%nr3, dffts%nnr, &
-                                             dffts%nr1x, dffts%nr2x, dffts%nr3x
-  WRITE(stdout,'("RICCARDO dfftp : ", 7I8)') dfftp%nr1, dfftp%nr2, dfftp%nr3, dfftp%nnr, &
-                                             dfftp%nr1x, dfftp%nr2x, dfftp%nr3x
-  WRITE(stdout,'("RICCARDO ngs = ", I8)') ngs_
-  WRITE(stdout,'("RICCARDO ngm = ", I8)') ngm_
-  !!! RICCARDO debug <<<
-
 END SUBROUTINE data_structure
 

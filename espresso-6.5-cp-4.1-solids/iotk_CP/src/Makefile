@@ -286,9 +286,9 @@ export:
 
 # INFO builds the local library and some utilities
 lib+util: loclib iotk_print_kinds.x iotk.x
-	- ( cd ../../bin ; ln -sf ../iotk_CP/src/iotk_print_kinds.x . )
-	- ( cd ../../bin ; ln -sf ../iotk_CP/src/iotk.x . )
-	- ( cd ../../bin ; ln -sf ../iotk_CP/tools/iotk . )
+#	- ( cd ../../bin ; ln -sf ../iotk_CP/src/iotk_print_kinds.x . )
+#	- ( cd ../../bin ; ln -sf ../iotk_CP/src/iotk.x . )
+#	- ( cd ../../bin ; ln -sf ../iotk_CP/tools/iotk . )
 
 # Special rules for selected files (keyword DEFINITION.filebase)
 # Nothing found

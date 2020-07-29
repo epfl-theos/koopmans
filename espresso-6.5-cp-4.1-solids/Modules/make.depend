@@ -376,6 +376,7 @@ recvec_subs.o : ../FFTXlib/fft_types.o
 recvec_subs.o : ../UtilXlib/mp.o
 recvec_subs.o : constants.o
 recvec_subs.o : kind.o
+recvec_subs.o : mp_world.o
 remove_tot_torque.o : kind.o
 rgen.o : kind.o
 set_hubbard_l.o : io_global.o

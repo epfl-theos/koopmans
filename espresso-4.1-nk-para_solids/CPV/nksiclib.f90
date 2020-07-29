@@ -7506,9 +7506,6 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
      !ispin is 1 or 2 for each band (listed as in c0),
      !nx is nudx, j and k the two bands involved in the
      !spread calculation
-   ! RICCARDO: >>
-   !REAL(DP) :: orb_rhotest(nnrx,2)
-   ! RICCARDO: <<
    REAL(DP), INTENT(in)  :: orb_rhor(nnrx,2)
    REAL(DP) :: wfc_centers(4,nudx,nspin) !in position 1 we &
    !have the integrated charge
@@ -7533,16 +7530,6 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
       ! and use it as reference position
       r0=0.d0
       !
-      ! RICCARDO: >> 
-      !orb_rhotest = 0.D0
-      !orb_rhotest(1001,1) = nnrx / omega
-      !orb_rhotest(1001,2) = nnrx / omega
-      !call compute_dipole( nnrx, 1, orb_rhotest(1,1), r0, wfc_centers(1:4, mybnd1, myspin1), wfc_spreads(mybnd1, myspin1, 1))
-      !wfc_spreads(mybnd1,myspin1,1) = wfc_spreads(mybnd1,myspin1,1) - ddot(3, wfc_centers(2:4,mybnd1,myspin1), 1, wfc_centers(2:4,mybnd1,myspin1), 1)
-      !WRITE(*,*) "NICOLA centers)", wfc_centers(1:4, mybnd1, myspin1)
-      !WRITE(*,*) "NICOLA spreads)", wfc_spreads(mybnd1, myspin1,1)
-      ! RICCARDO: <<
-
       call compute_dipole( nnrx, 1, orb_rhor(1,1), r0, wfc_centers(1:4, mybnd1, myspin1), wfc_spreads(mybnd1, myspin1, 1))
 !      WRITE(stdout,*) "NICOLA centers)", wfc_centers(1:4, mybnd1, myspin1)
 !      WRITE(stdout,*) "NICOLA spreads)", wfc_spreads(mybnd1, myspin1,1)
