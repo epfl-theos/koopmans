@@ -3061,7 +3061,6 @@ end subroutine nksic_correction_pz
       etmp= sum ( vsic(1:nnrx) * orb_rhor(1:nnrx) )
       etmp = etmp * fact *hartree_si/electronvolt_si
       call mp_sum(etmp,intra_image_comm)
-      WRITE(stdout, '("NICOLA Diag correction Hartree KIPZ", i5, 2f15.4)'), ibnd, etmp, shart
       ! NsC <<<
       ! partial cleanup
       !
@@ -3122,7 +3121,6 @@ end subroutine nksic_correction_pz
          call mp_sum(w2cst,intra_image_comm)
          !
          pink = -f*(etxc_ + ehele)
-         !WRITE(stdout,*) "NICOLA", w2cst, ehele*fact, etxc_*fact, vxc_(1:3,1), pink*fact
          !
       ELSE
          !
@@ -3148,7 +3146,6 @@ end subroutine nksic_correction_pz
       etmp= sum ( vsic(1:nnrx) * orb_rhor(1:nnrx) )
       etmp = etmp * fact *hartree_si/electronvolt_si
       call mp_sum(etmp,intra_image_comm)
-      WRITE(stdout, '("NICOLA Diag correction Hxc KIPZ", i5, 2f15.4)'), ibnd, etmp, pink*hartree_si/electronvolt_si
       ! NsC <<<
       !
       pink = pink * nkscalfact
@@ -3343,7 +3340,6 @@ end subroutine nksic_correction_nkipz
       w2cst = -0.5_dp * ehele * omega
       !
       call mp_sum(w2cst,intra_image_comm)
-      !WRITE (stdout,*) "NICOLA in compute_nki, nkipot (hartree)", w2cst*2.D0
       !
       vsic  = vsic + w2cst
       !
@@ -3364,7 +3360,6 @@ end subroutine nksic_correction_nkipz
       etmp= sum ( vsic(1:nnrx) * orb_rhor(1:nnrx) )
       etmp = etmp * fact *hartree_si/electronvolt_si
       call mp_sum(etmp,intra_image_comm)
-      WRITE(stdout, '("NICOLA Diag correction Hartree KI", i5, f15.4)'), ibnd, etmp
       ! NsC <<<
       !
       deallocate(vtmp)
@@ -3522,7 +3517,6 @@ end subroutine nksic_correction_nkipz
          w2cst = w2cst * fact
          !
          call mp_sum(w2cst,intra_image_comm)
-         WRITE(stdout,*) "NICOLA", etxcref*fact*2.0, etxc0*fact*2.0, etmp*fact*2.0
          !
          pink = (1.0_dp - f) * etxc0 - etxc + f * etxcref + ehele
          !
@@ -3562,7 +3556,6 @@ end subroutine nksic_correction_nkipz
       etmp= sum ( vsic(1:nnrx) * orb_rhor(1:nnrx) )
       etmp = etmp * fact *hartree_si/electronvolt_si
       call mp_sum(etmp,intra_image_comm)
-      WRITE(stdout, '("NICOLA Diag correction Hxc KI", i5, 2f15.4)'), ibnd, etmp, pink*hartree_si/electronvolt_si
       ! NsC <<<
       !
       call stop_clock( 'nk_corr_vxc' )
