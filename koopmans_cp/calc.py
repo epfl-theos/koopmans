@@ -5,12 +5,13 @@ Calculator module for python_KI
 Written by Edward Linscott Jan 2020
 
 Major modifications
-May 2020: replaced Extended_Espresso_cp with CP_calc, a calculator class agnostic to the underlying ASE machinery
+May 2020: replaced Extended_Espresso_cp with QE_calc, a calculator class agnostic to the underlying ASE machinery
 
 """
 
+import ase.io as ase_io
 from ase.io import espresso_cp as cp_io
-from ase.calculators.espresso_cp import Espresso_cp
+from ase.io import espresso_cp as pw_io
 from ase.units import create_units
 from koopmans_cp.io import cpi_diff, read_alpharef, warn
 import os
@@ -20,14 +21,14 @@ import copy
 # Quantum ESPRESSO uses CODATA 2006 internally
 units = create_units('2006')
 
-class CP_calc:
+class QE_calc:
 
     '''
-    A cp.x calculator object that...
-     - stores cp.x keywords in self._settings, but can be accessed like direct attributes
+    A quantum espresso calculator object that...
+     - stores cp.x/pw.x keywords in self._settings, but can be accessed like direct attributes
        e.g. self.<keyword> will return self._settings[<keyword>]
-     - runs a cp.x calculation upon self.calculate()
-     - the calculation input/output files are 'self.directory/self.name.cp(i/o)'
+     - runs a cp.x/pw.x calculation upon self.calculate()
+     - the calculation input/output files are 'self.directory/self.name.(cp/pw)(i/o)'
      - stores the results of this calculation in self.results
 
     Under the hood. it uses ASE to manage I/O and executing calculations.
@@ -36,24 +37,32 @@ class CP_calc:
       self.name -> self._ase_calc.prefix
       self.results -> self._ase_calc.results
     This could be changed in the future without affecting the rest of the code
+
+    From this generic class we will later define
+      CP_calc for calculations using cp.x
+      PW_calc for calculations using pw.x
+    These are differentiated by self._io = cp_io or pw_io
     '''
 
-    def __init__(self, calc, **kwargs):
+    def __init__(self, calc, filename=None, **kwargs):
 
         # Initialise the calculator object
         self._ase_calc = calc
 
-        # Initialise a dictionary to store cp.x settings in
+        # Initialise a dictionary to store QE settings in
         self._settings = {}
 
         # Copy over settings from calc object into self._settings
         self._update_settings_dict()
 
-        # Handle any recognised cp.x keywords passed as arguments
+        # Handle any recognised QE keywords passed as arguments
         for key, val in kwargs.items():
-            if key not in self._recognised_cp_keywords:
-                raise ValueError(f'{key} is not a recognised cp.x keyword')
+            if key not in self._recognised_qe_keywords:
+                raise ValueError(f'{key} is not a recognised Quantum Espresso keyword')
             setattr(self, key, val)
+
+    # By default, use cp.x
+    _io = cp_io
 
     @property
     def calc(self):
@@ -90,35 +99,6 @@ class CP_calc:
     def results(self, value):
         self._ase_calc.results = value
 
-    # Adding all cp.x keywords as decorated properties of the CP_calc class.
-    # This means one can set and get cp.x keywords as self.<keyword> but
-    # internally they are stored as self._settings['keyword'] rather than 
-    # self.<keyword>
-    _recognised_cp_keywords = []
-
-    for keywords in cp_io.KEYS.values():
-        for k in keywords: 
-            _recognised_cp_keywords.append(k)
-
-            # We need to use these make_get/set functions so that get/set_k are
-            # evaluated immediately (otherwise we run into late binding and 'k'
-            # is not defined when get/set_k are called)
-            def make_get(key):
-                def get_k(self):
-                    # Return 'None' rather than an error if the keyword has not
-                    # been defined
-                    return self._settings.get(key, None)
-                return get_k
-
-            def make_set(key):
-                def set_k(self, value):
-                    self._settings[key] = value
-                return set_k
-
-            get_k = make_get(k)
-            set_k = make_set(k)
-            locals()[k] = property(get_k, set_k)     
-
     def calculate(self):
         # Generic function for running a calculation
 
@@ -143,8 +123,8 @@ class CP_calc:
                 self._settings[key] = val
 
     def construct_namelist(self):
-        # Returns a namelist of settings, grouped by their cp.x headings
-        return cp_io.construct_namelist(**self._settings, warn=True)
+        # Returns a namelist of settings, grouped by their Quantum Espresso headings
+        return self._io.construct_namelist(**self._settings, warn=True)
 
     def parse_algebraic_setting(self, expr):
         # Checks if self._settings[expr] is defined algebraically, and evaluates them
@@ -185,6 +165,99 @@ class CP_calc:
             self._settings[key] = self.parse_algebraic_setting(value)
 
     def is_converged(self):
+        raise ValueError(f'is_converged() function has not been implemented for {self}')
+
+    def is_complete(self):
+        raise ValueError(f'is_complete() function has not been implemented for {self}')
+
+class PW_calc(QE_calc):
+    # Subclass of QE_calc for performing calculations with pw.x
+
+    # Point to the appropriate ASE IO module
+    _io = pw_io
+
+    # Define the appropriate file extensions
+    ext_in = '.pwi'
+    ext_out = '.pwo'
+
+    # Adding all pw.x keywords as decorated properties of the PW_calc class.
+    # This means one can set and get pw.x keywords as self.<keyword> but
+    # internally they are stored as self._settings['keyword'] rather than 
+    # self.<keyword>
+    _recognised_keywords = []
+
+    for keywords in _io.KEYS.values():
+        for k in keywords: 
+            _recognised_keywords.append(k)
+
+            # We need to use these make_get/set functions so that get/set_k are
+            # evaluated immediately (otherwise we run into late binding and 'k'
+            # is not defined when get/set_k are called)
+            def make_get(key):
+                def get_k(self):
+                    # Return 'None' rather than an error if the keyword has not
+                    # been defined
+                    return self._settings.get(key, None)
+                return get_k
+
+            def make_set(key):
+                def set_k(self, value):
+                    self._settings[key] = value
+                return set_k
+
+            get_k = make_get(k)
+            set_k = make_set(k)
+            locals()[k] = property(get_k, set_k)     
+
+    def is_complete(self):
+        return self.results.get('job done', False)
+
+    def is_converged(self):
+        return self.results.get('energy', None) is not None
+
+class CP_calc(QE_calc):
+    # Subclass of QE_calc for performing calculations with cp.x
+     
+    # Point to the appropriate ASE IO module
+    _io = cp_io
+
+    # Define the appropriate file extensions
+    ext_in = '.cpi'
+    ext_out = '.cpo'
+
+    # Adding all cp.x keywords as decorated properties of the CP_calc class.
+    # This means one can set and get cp.x keywords as self.<keyword> but
+    # internally they are stored as self._settings['keyword'] rather than 
+    # self.<keyword>
+    _recognised_keywords = []
+
+    for keywords in _io.KEYS.values():
+        for k in keywords: 
+            _recognised_keywords.append(k)
+
+            # We need to use these make_get/set functions so that get/set_k are
+            # evaluated immediately (otherwise we run into late binding and 'k'
+            # is not defined when get/set_k are called)
+            def make_get(key):
+                def get_k(self):
+                    # Return 'None' rather than an error if the keyword has not
+                    # been defined
+                    return self._settings.get(key, None)
+                return get_k
+
+            def make_set(key):
+                def set_k(self, value):
+                    self._settings[key] = value
+                return set_k
+
+            get_k = make_get(k)
+            set_k = make_set(k)
+            locals()[k] = property(get_k, set_k)     
+
+    def is_complete(self):
+        return self.results['job_done']
+
+    def is_converged(self):
         # Checks convergence of the calculation
         if self.conv_thr is None:
             raise ValueError('Cannot check convergence when "conv_thr" is not set')
@@ -196,10 +269,9 @@ class CP_calc:
         return all([abs(v[-1]['delta_E']) < self.conv_thr*units.Hartree 
                 for v in self.results['convergence'].values()])
 
-
-def run_cp(cp_calc, silent=True, from_scratch=False):
+def run_qe(qe_calc, silent=True, from_scratch=False):
     '''
-    Runs cp_calc.calculate with additional options:
+    Runs qe_calc.calculate with additional options:
 
         silent :       if False, print status
         from_scratch : if False, check for a pre-existing calculation, and see 
@@ -208,39 +280,47 @@ def run_cp(cp_calc, silent=True, from_scratch=False):
     returns True if the calculation was run, and False if the calculation was skipped
     '''
 
+    ext_in = qe_calc.ext_in
+    ext_out = qe_calc.ext_out
+
     # If an output file already exists, check if the run completed successfully
     if not from_scratch:
-        calc_file = f'{cp_calc.directory}/{cp_calc.name}.cpo'
+        calc_file = f'{qe_calc.directory}/{qe_calc.name}{ext_out}'
         if os.path.isfile(calc_file):
-            old_cpo = next(cp_io.read_espresso_cp_out(calc_file)).calc
+            old_out = ase_io.read(calc_file).calc
 
-            if old_cpo.results['job_done']:
+            if old_out.is_complete():
                 # If it did, load the results, and exit
-                cp_calc.results = old_cpo.results
+                qe_calc.results = old_out.results
                 if not silent:
                     print(
                         f'Not running {calc_file} as it is already complete')
                 return False
             else:
                 # If not, compare our settings with the settings of the preexisting .cpi file
-                old_cpi = CP_calc(cp_io.read_espresso_cp_in(calc_file.replace('cpo', 'cpi')).calc)
-                diffs = cpi_diff([cp_calc, old_cpi])
+                calc_file = calc_file.replace(ext_out, ext_in)
+                if ext_out == '.cpo':
+                    old_in = CP_calc(cp_io.read_espresso_cp_in().calc)
+                    diffs = cpi_diff([qe_calc, old_in])
+                else:
+                    old_in = PW_calc(pw_io.read_espresso_in().calc)
+                    raise Error('pwi_diff needs to be implemented')
                 if not silent:
                     print(f'Rerunning {calc_file}')
                 if len(diffs) > 0:
                     for d in diffs:
-                        old_value = getattr(old_cpi, d, None)
-                        setattr(cp_calc, d, old_value)
+                        old_value = getattr(old_in, d, None)
+                        setattr(qe_calc, d, old_value)
                         if not silent:
                             print(f'    Resetting {d}')
 
     if not silent:
-        print('Running {}/{}...'.format(cp_calc.directory,
-                                        cp_calc.name), end='', flush=True)
+        print('Running {}/{}...'.format(qe_calc.directory,
+                                        qe_calc.name), end='', flush=True)
 
-    cp_calc.calculate()
+    qe_calc.calculate()
 
-    if not cp_calc.results['job_done']:
+    if not qe_calc.is_complete():
         sys.exit(1)
 
     if not silent:

@@ -15,7 +15,7 @@ from koopmans_cp.utils import warn
 from koopmans_cp.io import write_alpharef, read_alpharef, print_summary, print_qc
 from koopmans_cp.ase import read_json
 from koopmans_cp.defaults import load_defaults
-from koopmans_cp.calc import run_cp, calculate_alpha, CP_calc
+from koopmans_cp.calc import run_qe, calculate_alpha, CP_calc
 
 Setting = namedtuple(
     'Setting', ['name', 'description', 'type', 'default', 'options'])
@@ -215,7 +215,7 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
             calc.pseudo_dir = os.environ.get('ESPRESSO_PSEUDO')
         except:
             raise OSError('Directory for pseudopotentials not found. Please define '
-                          'the environment variable ESPRESSO_PSEUDO or provide the function run_cp '
+                          'the environment variable ESPRESSO_PSEUDO or provide the function run_qe '
                           'with a pseudo_dir argument')
 
     # CP options
@@ -449,7 +449,7 @@ def run(master_calc, workflow_settings):
             os.system('rm -r init 2>/dev/null')
         os.system('rm -r calc_alpha 2>/dev/null')
         os.system('rm -r final 2>/dev/null')
-        os.system(f'rm -r {calc.outdir} 2>/dev/null')
+        os.system(f'rm -r {master_calc.outdir} 2>/dev/null')
 
     # Counting the number of bands
     n_filled_bands = master_calc.nelup
@@ -472,7 +472,7 @@ def run(master_calc, workflow_settings):
                            for _ in range(n_bands)]
 
     prev_calc_not_skipped = workflow_settings['from_scratch']
-    # Note since we always provide 'from_scratch=prev_calc_not_skipped' to run_cp, if
+    # Note since we always provide 'from_scratch=prev_calc_not_skipped' to run_qe, if
     # workflow_settings['from_scratch'] is False, the workflow will skip all calculations
     # until it reaches an incomplete calculation, at which stage prev_calc_not_skipped
     # will go from False to True and all subsequent calculations will be run with
@@ -488,7 +488,7 @@ def run(master_calc, workflow_settings):
         calc = set_up_calculator(master_calc, 'pbe_init')
         calc.directory = '.'
         calc.name = 'pbe'
-        prev_calc_not_skipped = run_cp(
+        prev_calc_not_skipped = run_qe(
             calc, silent=False, from_scratch=prev_calc_not_skipped)
         return
 
@@ -499,7 +499,7 @@ def run(master_calc, workflow_settings):
         # PBE from scratch
         calc = set_up_calculator(master_calc, 'pbe_init')
         calc.directory = 'init'
-        prev_calc_not_skipped = run_cp(
+        prev_calc_not_skipped = run_qe(
             calc, silent=False, from_scratch=prev_calc_not_skipped)
 
     elif init_density == 'pbe-pw':
@@ -510,13 +510,13 @@ def run(master_calc, workflow_settings):
         # PBE from scratch
         calc = set_up_calculator(master_calc, 'pbe_init')
         calc.directory = 'init'
-        prev_calc_not_skipped = run_cp(
+        prev_calc_not_skipped = run_qe(
             calc, silent=False, from_scratch=prev_calc_not_skipped)
         # PZ from PBE
         calc = set_up_calculator(master_calc, 'pz_init')
         calc.directory = 'init'
         write_alpharef(alpha_df.loc[1], band_filling, calc.directory)
-        prev_calc_not_skipped = run_cp(
+        prev_calc_not_skipped = run_qe(
             calc, silent=False, from_scratch=prev_calc_not_skipped)
 
     elif init_density == 'ki':
@@ -597,7 +597,7 @@ def run(master_calc, workflow_settings):
         outdir = f'{calc.directory}/{calc.outdir}/{calc.prefix}'
         os.system(f'cp -r {outdir}_{calc.ndr}.save {outdir}_{calc.ndw}.save')
     else:
-        prev_calc_not_skipped = run_cp(
+        prev_calc_not_skipped = run_qe(
             calc, silent=False, from_scratch=prev_calc_not_skipped)
 
     if prev_calc_not_skipped:
@@ -745,7 +745,7 @@ def run(master_calc, workflow_settings):
                         calc.name += f'_it{i_sc}'
 
                     # Run cp.x
-                    prev_calc_not_skipped = run_cp(
+                    prev_calc_not_skipped = run_qe(
                         calc, silent=False, from_scratch=prev_calc_not_skipped)
 
                     # Reset the value of 'fixed_band' so we can keep track of which calculation
@@ -857,7 +857,7 @@ def run(master_calc, workflow_settings):
         if not os.path.isdir(savedir):
             os.system(f'cp -r init/{savedir} final/{savedir}')
 
-        run_cp(calc, silent=False, from_scratch=prev_calc_not_skipped)
+        run_qe(calc, silent=False, from_scratch=prev_calc_not_skipped)
 
     # Print out data for quality control
     if workflow_settings.get('print_qc', False):
