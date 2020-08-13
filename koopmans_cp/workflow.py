@@ -585,6 +585,12 @@ def run(master_calc, workflow_settings):
         raise ValueError(
             f'Unrecognised option "{init_manifold}" for init_manifold. Should be one of "pz"/"kipz"/"mlwf"')
 
+    if init_density == 'pz':
+        # By default, the manifold initialisation calculations read from 50, which is correct for all cases
+        # except in this instance where we have two sub-calculations to initialise the density, with PBE
+        # writing to 50, and PZ 51.
+        calc.ndr = 51
+
     calc.directory = 'init'
     write_alpharef(alpha_df.loc[1], band_filling, calc.directory)
 
