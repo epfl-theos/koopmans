@@ -42,9 +42,21 @@ class QE_calc:
       CP_calc for calculations using cp.x
       PW_calc for calculations using pw.x
     These are differentiated by self._io = cp_io or pw_io
+
+    Arguments:
+        calc       an ASE calculator object to initialize the QE calculation settings
+        filename   an alternative to calc, initialize the settings using a QE input file
+        kwargs     any valid quantum espresso keywords to alter
     '''
 
-    def __init__(self, calc, filename=None, **kwargs):
+    def __init__(self, calc=None, filename=None, **kwargs):
+
+        # If filename provided, use this instead of calc
+        if filename is not None:
+            if calc is None:
+                calc = ase_io.read(filename).calc
+            else:
+                raise ValueError(f'Please only provide either the calc or filename argument to {self.__class__}')
 
         # Initialise the calculator object
         self._ase_calc = calc
@@ -287,7 +299,7 @@ def run_qe(qe_calc, silent=True, from_scratch=False):
     if not from_scratch:
         calc_file = f'{qe_calc.directory}/{qe_calc.name}{ext_out}'
         if os.path.isfile(calc_file):
-            old_out = ase_io.read(calc_file).calc
+            old_out = qe_calc.__class__(filename=calc_file)
 
             if old_out.is_complete():
                 # If it did, load the results, and exit
@@ -299,11 +311,10 @@ def run_qe(qe_calc, silent=True, from_scratch=False):
             else:
                 # If not, compare our settings with the settings of the preexisting .cpi file
                 calc_file = calc_file.replace(ext_out, ext_in)
+                old_in = qe_calc.__class__(filename=calc_file)
                 if ext_out == '.cpo':
-                    old_in = CP_calc(cp_io.read_espresso_cp_in().calc)
                     diffs = cpi_diff([qe_calc, old_in])
                 else:
-                    old_in = PW_calc(pw_io.read_espresso_in().calc)
                     raise Error('pwi_diff needs to be implemented')
                 if not silent:
                     print(f'Rerunning {calc_file}')
