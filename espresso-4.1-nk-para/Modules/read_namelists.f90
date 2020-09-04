@@ -475,7 +475,8 @@ MODULE read_namelists_module
        !
        occupation_constraints = .false.
        !
-       freeze_density = .FALSE.
+       do_outerloop = .TRUE.
+       do_outerloop_empty = .TRUE.
        !
        RETURN
        !
@@ -1107,7 +1108,8 @@ MODULE read_namelists_module
        CALL mp_bcast( sic_epsilon ,         ionode_id )
        CALL mp_bcast( sic_alpha   ,         ionode_id )
        CALL mp_bcast( force_pairing ,       ionode_id )
-       CALL mp_bcast( freeze_density,       ionode_id )
+       CALL mp_bcast( do_outerloop,         ionode_id )
+       CALL mp_bcast( do_outerloop_empty,   ionode_id )
        !
        ! ... ensemble-DFT
        !

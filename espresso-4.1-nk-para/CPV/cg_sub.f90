@@ -81,7 +81,7 @@
       use printout_base,            only : printout_base_open, printout_base_unit, &
                                            printout_base_close
       use control_flags,            only : iprint_manifold_overlap, iprint_spreads
-      use input_parameters,         only : fixed_state, fixed_band, odd_nkscalfact, freeze_density, &
+      use input_parameters,         only : fixed_state, fixed_band, odd_nkscalfact, do_outerloop, &
                                            finite_field_introduced, finite_field_for_empty_state
       !
       implicit none
@@ -366,9 +366,7 @@
         !
         call print_out_observables()
         !
-        IF ( freeze_density ) THEN
-           ! if we are keeping the electronic density frozen, exit the outer loop
-           ! now that all the energy terms have been computed on the original density
+        IF ( .not. do_outerloop ) THEN
            EXIT OUTER_LOOP
         ENDIF
         !

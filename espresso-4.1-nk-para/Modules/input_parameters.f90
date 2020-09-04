@@ -968,9 +968,13 @@ MODULE input_parameters
           ! If true perform CP dynamics with constrained occupations
           ! to be used together with penalty functional ...
 
-        LOGICAL :: freeze_density = .FALSE.
-          ! If true, keep the electronic density fixed. If do_orbdep is
-          ! true, the manifold will still be optimally rotated
+        LOGICAL :: do_outerloop = .TRUE.
+          ! If true, perform the outerloop when optimising the
+          ! filled electronic variational orbitals
+
+        LOGICAL :: do_outerloop_empty = .TRUE.
+          ! If true, perform the outerloop when optimising the
+          ! empty electronic variational orbitals
 
         NAMELIST / electrons / emass, emass_cutoff, orthogonalization, &
           electron_maxstep, ortho_eps, ortho_max, electron_dynamics,   &
@@ -990,7 +994,7 @@ MODULE input_parameters
           efield, epol2, efield2, diago_full_acc,                      &
           occupation_constraints, ortho_para, niter_cg_restart,        &
           niter_cold_restart, lambda_cold, efield_cart, real_space,    &
-          freeze_density
+          do_outerloop, do_outerloop_empty
 
 !
 !=----------------------------------------------------------------------------=!
