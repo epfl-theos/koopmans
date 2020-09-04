@@ -1,0 +1,17 @@
+ &input
+        title='F-',
+        zed=9.0,
+        xmin=-6,
+        rel=0,
+        tr2=1e-20
+        beta=1
+        lsd=1,
+        isic=1,
+        iswitch=1,
+        config='[He] 2s2 2p6',
+        dft='LDA',
+        fref=0.475,
+        rhobarfact=1.0
+        do_unrel =.true.
+        nunrel=6
+ /

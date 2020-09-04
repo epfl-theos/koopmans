@@ -1,0 +1,439 @@
+#! /bin/sh
+
+newline="
+"
+
+MANUAL="\
+usage: $0 [options]"'
+options is:
+--fc=X     (environment:FC)
+  to set the fortran compiler
+  suggested values:
+    "xlf90 -qsuffix=f=f90" "ifort" "g95" "pgf90"
+--fcflags=X     (environment:FCFLAGS)
+  to set the flags for the fortran compiler
+--enable-mpi
+  to enable mpi_abort in error handling
+--disable-mpi
+  to enable mpi_abort in error handling
+--maxrank=N
+  to set the maximum rank to N
+--maxrank-all
+  to compile all ranks (up to nranks in iotk_config.sh)
+--logical-clear
+  to reset the list of kinds for logical
+--integer-clear
+  to reset the list of kinds for integer
+--real-clear
+  to reset the list of kinds for real
+--logical-all
+  to enable logical of any possible kind (repeatable)
+--integer-all
+  to enable logical of any possible kind (repeatable)
+--real-all
+  to enable logical of any possible kind (repeatable)
+--logical-kind=X
+  to enable logical of X kind (repeatable)
+--integer-kind=X
+  to enable integer of X kind (repeatable)
+--real-kind=X
+  to enable real of X kind (repeatable)
+--tmpdir=X
+  to set the temporary directory (default is /tmp/\$\$)
+--target
+  to use in cross-compiling environment
+--no-clean
+  to avoid final cleanup of directory
+NOTE: X can be a string (such as "kind(1.0)" or "selected_int_kind(3)")
+
+Prior to the command line options, the environment variable
+IOTK_CONFIGURE is scanned for a list of newline separated
+options. Single options cannot contain newlines.
+Repeatable options can be repeated adding other kinds.
+Other options override the previously defined values.
+For integers and logicals, the following rule holds:
+if the user specifies at least one kind, the default
+kind (kind(1) or kind(.true.)) is automatically added.
+If no kind is written in the iotk_config.h file,
+the defaults will be included at compilation time.
+'
+
+for OPT
+do
+  LINES=`echo "$OPT" | wc -l`
+  if test "$LINES" -ne 1
+  then
+     echo "An option cannot contain newlines"
+     exit 1
+  fi
+  
+  IOTK_CONFIGURE="$IOTK_CONFIGURE$newline$OPT"
+done
+
+
+
+ENABLE_MPI=
+TRY_INTEGER=
+TRY_LOGICAL=
+TRY_REAL=
+ALLKINDS="1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20"
+MAXRANK=
+NOCLEAN=
+IFSBCK="$IFS"
+IFS="$newline"
+for OPT in $IOTK_CONFIGURE
+do
+  case $OPT in
+  --enable-mpi)   ENABLE_MPI=yes ;;
+  --disable-mpi)   ENABLE_MPI= ;;
+  --maxrank=*) RANK=`echo "$OPT" | sed -n 's/--maxrank=//p'` ;
+               MAXRANK=$RANK ;;
+  --maxrank-all) MAXRANK= ;;
+  --fc=*) FC=`echo "$OPT" | sed -n 's/--fc=//p'` ;;
+  --fcflags=*) FCFLAGS=`echo "$OPT" | sed -n 's/--fcflags=//p'` ;;
+  --logical-clear) TRY_LOGICAL= ;;
+  --logical-all) TRY_LOGICAL="$TRY_LOGICAL$newline$ALLKINDS" ;;
+  --logical-kind=*) ADD=`echo "$OPT" | sed -n 's/--logical-kind=//p'` ;
+                    TRY_LOGICAL="$TRY_LOGICAL$newline$ADD" ;;
+  --real-clear) TRY_REAL= ;;
+  --real-all) TRY_REAL="$TRY_REAL$newline$ALLKINDS" ;;
+  --real-kind=*) ADD=`echo "$OPT" | sed -n 's/--real-kind=//p'` ;
+                    TRY_REAL="$TRY_REAL$newline$ADD" ;;
+  --integer-clear) TRY_INTEGER= ;;
+  --integer-all) TRY_INTEGER="$TRY_INTEGER$newline$ALLKINDS" ;;
+  --integer-kind=*) ADD=`echo "$OPT" | sed -n 's/--integer-kind=//p'` ;
+                    TRY_INTEGER="$TRY_INTEGER$newline$ADD" ;;
+  --help) echo "$MANUAL" ; exit 0 ;;
+  --no-clean) NOCLEAN=true ;;
+  --tmpdir=*) TMPDIR=`echo "$OPT" | sed -n 's/--tmpdir=//p'` ;;
+  --target=*) TARGET=`echo "$OPT" | sed -n 's/--target=//p'` ;;
+  *) echo "Unknown option $OPT${newline}Try: $0 --help" ; exit 1 ;;
+  esac
+done
+IFS="$IFSBCK"
+
+test -n "$TRY_INTEGER" && TRY_INTEGER="kind(1)$newline$TRY_INTEGER"
+test -n "$TRY_LOGICAL" && TRY_LOGICAL="kind(.true.)$newline$TRY_LOGICAL"
+#TRY_REAL="kind(1.0)$newline$TRY_REAL"
+
+
+
+if test -z "$FC"
+then
+  echo "Specify the fortran compiler"
+  echo "Try: $0 --help"
+  exit 1
+fi
+
+if test -n "$TARGET"
+then
+  if test -z $TMPDIR
+  then
+    echo "Specify --tmpdir if --target is defined"
+    exit 1
+  fi
+  EXEC="ssh $TARGET"
+fi
+
+if test -z "$TMPDIR"
+then
+  NUM=$$
+  while echo > /dev/null
+  do
+    TMPDIR=/tmp/$NUM
+    if [ -e $TMPDIR ] ; then
+      NUM=`expr $NUM + 1`
+    else
+      break
+    fi
+  done
+fi
+
+test -e $TMPDIR || mkdir $TMPDIR
+OLDPWD=`pwd`
+cd $TMPDIR
+
+cat << EOF > iotk_config.h
+! Automatically generated config file for iotk
+! Fortran compiler : $FC
+! Fortran compiler options : $FCFLAGS
+#ifndef __IOTK_CONFIG_H
+#define __IOTK_CONFIG_H
+
+EOF
+
+NLIST=
+
+echo "Checking if $FC $FCFLAGS works ..."
+OK=
+cat > tmp.f90 << \EOF
+program test
+write(*,*) "OK"
+end program test
+EOF
+$FC $FCFLAGS tmp.f90 -o tmp.x 2>/dev/null 1>/dev/null
+OUTPUT=`$EXEC $TMPDIR/tmp.x 2>/dev/null`
+echo "$OUTPUT" | grep -q OK && OK=yes
+rm tmp.x 2>/dev/null
+if test -z "$OK"
+then
+  echo "COMPILER DOES NOT WORK"
+  cd $OLDPWD
+  mv $TMPDIR/iotk_config.h .
+  rm -fr $TMPDIR
+  exit 1
+fi
+
+echo "Finding list of available kinds ..."
+for type in INTEGER LOGICAL REAL
+do
+  eval TO_TRY=\"\$TRY_$type\"
+  LIST=
+  IFS="$newline"
+  for kind in $TO_TRY
+  do
+    IFS="$IFSBCK"
+    OK=
+    cat > tmp.f90 << EOF
+program test
+  $type (kind=$kind) :: try
+  if(kind(try)==$kind) then
+    write(*,*) "OK"
+    write(*,"(a,i5)") "KIND",kind(try)
+  end if
+end program test
+EOF
+    $FC $FCFLAGS tmp.f90 -o tmp.x 2>/dev/null 1>/dev/null
+    OUTPUT=`$EXEC $TMPDIR/tmp.x 2>/dev/null`
+    echo "$OUTPUT" | grep -q OK && OK=yes
+    rm tmp.x 2>/dev/null
+    if test -n "$OK" ; then
+      ikind=`echo "$OUTPUT" | sed -n 's/KIND *//p'`
+      echo "$LIST" | grep -q "$type:$ikind" ||
+      LIST="$LIST$type:$ikind$newline"
+    fi
+  done
+  IFS="$IFSBCK"
+  COUNT=0
+  for WORD in $LIST
+  do
+    COUNT=`expr $COUNT + 1`
+    NLIST=$NLIST`echo $WORD | sed "s/:/$COUNT:/"`$newline
+  done
+done
+
+LIST="$NLIST"
+
+echo "$LIST" | grep -v '^$' |
+sed 's/^/#define __IOTK_/
+     s/:/ /' >> iotk_config.h
+echo "$LIST" | grep -v '^$'
+
+####################################################
+echo "Testing for bug 1 (non advancing input) ..."
+cat << \EOF > bug1.f90
+program bug1
+implicit none
+character(10) :: line
+
+open(file="bug1.txt",unit=10)
+write(10,"(a)") "A"
+write(10,"(a)") "B"
+write(10,"(a)") "C"
+close(10)
+
+open(file="bug1.txt",unit=10)
+read(10,*)
+read(10,"(a)",advance="no",eor=1) line
+write(*,*) "FAILED" ! This line should not be reached
+stop
+1 continue
+if(line /= "B") then
+  write(*,*) "FAILED" ! This line should not be reached
+  stop
+end if
+backspace(10)
+read(10,"(a)",advance="no",eor=2) line
+write(*,*) "FAILED" ! This line should not be reached
+stop
+2 continue
+if(line /= "B") then
+  write(*,*) "FAILED" ! This line should not be reached
+  stop
+end if
+close(10)
+write(*,*) "PASSED"
+
+end program bug1
+EOF
+
+$FC $FCFLAGS bug1.f90 -o bug1.x 2>/dev/null 1>/dev/null
+PASSED=
+$EXEC $TMPDIR/bug1.x 2>/dev/null | grep -q "PASSED" && PASSED=yes
+if test -n "$PASSED" 
+then
+  echo "... test passed"
+else
+  echo "... test failed, defining __IOTK_WORKAROUND1"
+  echo '#define __IOTK_WORKAROUND1' >> iotk_config.h
+fi
+####################################################
+DO_TEST2=
+{ echo "$LIST" | grep -q 'LOGICAL.*:2$' ; } &&
+{ echo "$LIST" | grep -q 'LOGICAL.*:8$' ; } &&
+DO_TEST2=yes
+if test -n "$DO_TEST2" ; then
+  echo 'Testing for bug 2 (converting between logical(2) and logical(8)) ...'
+cat << \EOF > bug2.f90
+program main
+implicit none
+logical(2) :: l2
+logical(8) :: l8
+l8 = .true.
+l2 = l8
+write(*,*) l2
+write(*,*) "PASSED"
+end program main
+EOF
+
+$FC $FCFLAGS bug2.f90 -o bug2.x 2>/dev/null 1>/dev/null
+PASSED=
+$EXEC $TMPDIR/bug2.x 2>/dev/null | grep -q "PASSED" && PASSED=yes
+if test -n "$PASSED"
+then
+  echo "... test passed"
+else
+  echo "... test failed, defining __IOTK_WORKAROUND2"
+  echo '#define __IOTK_WORKAROUND2' >> iotk_config.h
+fi
+
+fi
+
+####################################################
+echo 'Testing for bug 3 (pack) ...'
+
+cat << \EOF > bug3.f90
+program bug3
+implicit none
+
+integer, parameter :: size1 = 10000
+integer, parameter :: size2 = 1000
+integer :: out1(size1*size2)
+integer :: out2(size1*size2)
+integer :: in(size1,size2)
+in=1
+call mypack(out1,in,size(in))
+out2=pack(in,mask=.true.)
+if(all(out1==out2)) write(*,*) "PASSED"
+end program bug3
+
+subroutine mypack(out,in,n)
+implicit none
+integer, intent(in)  :: n
+integer, intent(in)  :: in(n)
+integer, intent(out) :: out(n)
+  out = in
+end subroutine mypack
+EOF
+
+$FC $FCFLAGS bug3.f90 -o bug3.x 2>/dev/null 1>/dev/null
+PASSED=
+$EXEC $TMPDIR/bug3.x 2>/dev/null | grep -q "PASSED" && PASSED=yes
+if test -n "$PASSED"
+then
+  echo "... test passed"
+else
+  echo "... test failed, defining __IOTK_WORKAROUND3"
+  echo '#define __IOTK_WORKAROUND3' >> iotk_config.h
+fi
+
+echo 'Testing for bug 4 (pack) ...'
+cat << \EOF > bug4.f90
+program bug4
+implicit none
+call sub((/"a","b","c"/))
+write(*,*) "PASSED"
+contains
+
+subroutine sub(str)
+character(len=*), intent(in) :: str(:)
+write(*,*) pack(str,mask=.true.)
+end subroutine sub
+
+end program bug4
+EOF
+
+$FC $FCFLAGS bug4.f90 -o bug4.x 2>/dev/null 1>/dev/null
+PASSED=
+$EXEC $TMPDIR/bug4.x 2>/dev/null | grep -q "PASSED" && PASSED=yes
+if test -n "$PASSED"
+then
+  echo "... test passed"
+else
+  echo "... test failed, defining __IOTK_WORKAROUND4"
+  echo '#define __IOTK_WORKAROUND4' >> iotk_config.h
+fi
+
+echo 'Testing for bug 5 [huge(1_1) does not compile as a parameter]'
+cat << \EOF > bug5.f90
+program bug5
+integer, parameter :: i=huge(1_1)
+write(*,*) "PASSED",i
+end program bug5
+EOF
+
+$FC $FCFLAGS bug5.f90 -o bug5.x 2>/dev/null 1>/dev/null
+PASSED=
+$EXEC $TMPDIR/bug5.x 2>/dev/null | grep -q "PASSED" && PASSED=yes
+if test -n "$PASSED"
+then
+  echo "... test passed"
+else
+  echo "... test failed, defining __IOTK_WORKAROUND5"
+  echo '#define __IOTK_WORKAROUND5' >> iotk_config.h
+fi
+
+
+if test -n "$ENABLE_MPI"
+then
+  echo                            >> iotk_config.h
+  echo '#define __IOTK_MPI_ABORT' >> iotk_config.h
+fi
+
+if test -n "$MAXRANK"
+then
+  echo                            >> iotk_config.h
+  echo "#define __IOTK_MAXRANK $MAXRANK" >> iotk_config.h
+fi
+
+
+cat << EOF >> iotk_config.h
+
+#endif
+
+EOF
+
+cd $OLDPWD
+mv $TMPDIR/iotk_config.h .
+test -z "$NOCLEAN" && rm -fr $TMPDIR
+
+

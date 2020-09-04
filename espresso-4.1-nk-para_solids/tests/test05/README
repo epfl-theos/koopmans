@@ -1,0 +1,73 @@
+
+==============================================================================
+@title@   Empty states
+==============================================================================
+ 
+  The aim of this test is to show how to compute empty states using cp
+  w/ or w/o  orbital density dependent potentials.
+
+  The calculations work in the following way:
+  - first a normal cp calculation is performed in order to reach
+    a decent description of the GS properties
+
+  - then, additional empty states are included in the minimization.
+    the occupied orbitals are not changed, while the unoccupied ones
+    are kept orthogonal to the first set. The unoccupied ones are
+    minimized as if their occupations were non-zero.
+
+  
+  NOTE: in order to speed up the CPU time required for these calculations,
+        the convergence parameters have been scaled down. In order to have
+        physically converged results (especially the eigenvalues of the 
+        empty states), proper parameters should be used.
+
+        scaled param:     ecutwfc = 50.0 Ry,   celldm = 20.0
+        proper param:     ecutwfc = 80.0 Ry,   celldm = 25.0
+
+
+
+  Here is a table with the converged results
+
+#========================================================
+# G2 set, known data
+#========================================================
+                   IP [eV]       EA [eV]
+LDA    D-scf      -11.49         -2.46
+B3LYP  D-scf      -11.33         -2.70
+HF     D-scf      -11.14         -1.95
+CCSD(T)           -11.43         -2.37
+Ref               -11.50         -2.39
+
+#========================================================
+# MOLPRO results, AVTZ basis
+#========================================================
+                   IP [eV]       EA [eV]      lowest val [eV]
+LDA      eig       -7.49         -4.66           -23.41
+PBE      eig       -7.37         -4.45           -23.34
+PBE0     eig       -8.81         -3.39           -26.04
+B3LYP    eig       -8.44         -3.55           -25.36
+HF       eig      -12.16         +0.50           -32.99
+
+HF     D-scf      -11.41         -0.18
+
+
+#========================================================
+# QE, plane-waves
+#========================================================
+                   IP [eV]       EA [eV]      lowest val [eV]
+LDA cp             -7.45         -4.68           -23.63
+LDA pw             -7.264        -4.49           -23.44
+LDA cp spin        -7.45         -4.68           -23.62
+
+NK0               -13.23                         -30.53
+NK0 alpha         -12.01         -1.19           -29.09    alpha=0.8
+NK
+NK  alpha         -13.24         -1.34           -29.38
+PZ                -13.31         -4.33           -30.52
+HF  cp            -12.26          >0             -33.13
+
+PBE0               -8.82         -3.49           -26.20
+B3LYP              -8.88         -4.03           -25.99    rigid shift ?
+
+
+

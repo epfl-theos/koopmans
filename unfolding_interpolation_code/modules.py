@@ -1,106 +1,121 @@
 import numpy as np
-import copy
+import sys
 
 
-# Definition of the Monkhorst-Pack k-mesh (in crystal coordinates) of the PC commensurate to the SC
-def MP_mesh(nr1,nr2,nr3):
-	k_mesh = []
-	for i in range(nr1):
-		for j in range(nr2):
-			for k in range(nr3):
-				k_mesh.append(np.array((i,j,k),dtype=float))
-	k_mesh = np.array(k_mesh) / np.array((nr1,nr2,nr3))
-	return k_mesh
+"""
+
+Module with some functions used by the unfolding and interpolation code.
+Written by Riccardo De Gennaro 2019 (EPFL)
 
 
-# Calculate the nrtot R-vectors in crystal coordinates
-def Rvec(nr1,nr2,nr3):
-	Rvec = []
-	for i in range(nr1):
-		for j in range(nr2):
-			for k in range(nr3):
-				Rvec.append(np.array((i,j,k)))
-	Rvec = np.array(Rvec)
-	return Rvec
+It contains the following functions:
+ - crys_to_cart
+ - ang_to_bohr
+ - latt_vect
+ - MP_mesh
+ - generate_path
+
+"""
 
 
-# Compare two WFs in the SC and return True if they differ just by a primitive lattice vector (of the primitive cell)
-def wann_match(centers,spreads,signatures,wann_ref,avec,cutoff):
-	dist = centers - wann_ref[:3]
-	x = np.linalg.solve(avec,dist)
-	if np.linalg.norm(abs(x-np.round(x))) < cutoff:
-		if abs(wann_ref[3]-spreads) < cutoff:
-			if (abs(wann_ref[4:]-signatures)<cutoff*np.ones(20)).all():
-				return True
-	else:
-		return False
+"""
+Function to transform the vector coordinates from crystal to cartesian (in alat
+units), or viceversa, as it is done in QE: typ=+1 for crystal-to-cartesian, typ=-1 
+for cartesian-to-crystal.
+For a real space vector trmat in input must be at if typ=+1 and bvec if typ=-1.
+For a k-space vector trmat in input must be bg if typ=+1 and avec if typ=-1.
+"""
+def crys_to_cart(vec, trmat, typ):
+    if ( typ == +1 ):                   # crystal-to-cartesian conversion
+        vec_tr = np.dot(trmat.transpose(),vec)
+    elif ( typ == -1 ):                 # cartesian-to-crystal conversion
+        vec_tr = np.dot(trmat,vec)
+    else:
+        sys.exit('\ntyp in crys_to_cart call must be either +1 or -1 -> EXIT(%s)\n' %typ)
+    return vec_tr
 
 
-def ws_distance(nr1,nr2,nr3,avec,kvec,cutoff,wann,wann_ref):
-	dist_min = np.linalg.norm(wann - wann_ref)
-	Tnn = []		# List of degenerate T-vectors, corresponding to equidistant nn WFs
-	for i in range(-1,2):
-		for j in range(-1,2):
-			for k in range(-1,2):
-				T = i*avec[0] + j*avec[1] + k*avec[2]	# T is a lattice vector of the SC
-				dist = np.linalg.norm(wann - wann_ref + T)		# T-translation of the WF (evaluation of the copies of the given WF)
-				if abs(dist - dist_min) < cutoff:			# The position (in PC crystal coordinates) of the copy of the given WF is accepted	
-					Tnn.append(np.array((i*nr1,j*nr2,k*nr3),dtype=float))	
-				elif dist < dist_min:					# A new nearest neighbor is found	
-					dist_min = dist
-					Tnn = [np.array((i*nr1,j*nr2,k*nr3),dtype=float)]
-				else:
-					continue
-	
-	Tnn = np.array(Tnn)
-	phase_factor = np.sum(np.exp(1j*2*np.pi*np.dot(Tnn,kvec))) / len(Tnn)
-	return phase_factor,Tnn
+"""
+Function for Ang-Bohr conversions
+typ = +1 conversion from Ang to Bohr
+typ = -1 conversion from Bohr to Ang
+"""
+def ang_to_bohr(x, typ):
+    if ( typ == +1 ):
+        return x / 0.52917721067
+    elif ( typ == -1 ):
+        return x * 0.52917721067
+    else:
+        sys.exit('\ntyp in ang_to_bohr call must be either +1 or -1 -> EXIT(%s)\n' %typ)
 
 
-def rec_latt_vec(avec):
-	bvec = np.zeros((3,3))
-	bvec[0] = np.linalg.solve(avec,np.array(([2*np.pi,0,0])))
-	bvec[1] = np.linalg.solve(avec,np.array(([0,2*np.pi,0])))
-	bvec[2] = np.linalg.solve(avec,np.array(([0,0,2*np.pi])))
-	return bvec
+"""
+Function for generating lattice vectors {R} of the primitive cell
+commensurate to the supercell. The R-vectors are given in crystal units.
+"""
+def latt_vect(nr1, nr2, nr3):
+    Rvec = []
+    for i in range(nr1):
+        for j in range(nr2):
+            for k in range(nr3):
+                Rvec.append(np.array([i,j,k]))
+    return Rvec
+    
+
+"""
+Function for generating a regular Monkhorst-Pack mesh of dimension mp1*mp2*mp3
+"""
+def MP_mesh(mp1, mp2, mp3):
+    kmesh = []
+    for i in range(mp1):
+        for j in range(mp2):
+            for k in range(mp3):
+                kmesh.append(np.array((i/mp1, j/mp2, k/mp3), dtype=float))
+    return kmesh
 
 
-def path_to_plot(k_path,bvec,eq_points,point):
-	k_path_tmp = []
+"""
+Function for generating the path for the band structure interpolation.
+The input variable here (taken from the JSON file) must be a list in the
+Quantum Espresso 'crystal_b' format, i.e.:
 
-	if eq_points:
-		point = np.dot(point,bvec)/abs(bvec[0,0])
-		x = 0.
-		check = False
-                for kn in range(k_path.shape[0]):
-			k_path[kn] = np.dot(k_path[kn],bvec)/abs(bvec[0,0])
-			if (k_path[kn-1] == point).all():
-				check = True
-                        if kn > 0 and not (k_path[kn-1] == point).all():      
-				x = x + np.linalg.norm(k_path[kn]-k_path[kn-1])
-                        k_path_tmp.append(x)
-		if not check:	sys.exit('\nDid not find the expected equivalent points.\n')
-	else:
-		x = 0.
-		for kn in range(k_path.shape[0]):
-                        k_path[kn] = np.dot(k_path[kn],bvec)/abs(bvec[0,0])
-			if kn > 0:	x = x + np.linalg.norm(k_path[kn]-k_path[kn-1])
-			k_path_tmp.append(x)
+               [[ X1_1, X1_2, X1_3, N1 ],
+                [ X2_1, X2_2, X2_3, N2 ],
+                [  ***   ***   ***,  * ],
+                [  ***   ***   ***,  * ],
+                [ Xn_1, Xn_2, Xn_3, Nn ]]
 
-	k_path = np.array(k_path_tmp)
-	return k_path
+where Xi_j is the coordinate j of the point i (in crystal units) and Ni
+is the number of points along the line connecting the points i and i+1.
+Nn must be always set to 1.
+"""
+def generate_path(k_path):
 
+    msg = '\n\'k_path\' in generate_path call must be a LIST (in crystal units) as follows:\n\n\
+\t\t[[ X1_1, X1_2, X1_3, N1 ],\n\
+\t\t [ X2_1, X2_2, X2_3, N2 ],\n\
+\t\t [  ***   ***   ***   * ],\n\
+\t\t [  ***   ***   ***   * ],\n\
+\t\t [ Xn_1, Xn_2, Xn_3,  1 ]]\n'
 
-def permute_hr(hr_pcell,permutation):
+    for n in range(len(k_path)):
+        try:
+            kpt = np.array(k_path[n], dtype=float)
+        except ValueError:
+            sys.exit(msg)
 
-	h_tmp = np.zeros((hr_pcell.shape[1],hr_pcell.shape[2]),dtype=complex)
+        if ( len(kpt) != 4 ):    sys.exit(msg)
 
-	for rn in range(hr_pcell.shape[0]):
-		for i in range(len(permutation)):
-			pi = permutation[i]
-			for j in range(len(permutation)):
-				pj = permutation[j]
-				h_tmp[pi,pj] = hr_pcell[rn,i,j]
-		hr_pcell[rn,:,:] = copy.copy(h_tmp)
+    kvec = []
+    for n in range(len(k_path)):
+        if ( n == len(k_path)-1 ):
+            if ( int(k_path[n][3]) != 1 ):    sys.exit(msg)
+            kvec.append(np.array((k_path[n][:3]), dtype=float))
+            break
+        else:
+            npts = int(k_path[n][3])
+            dist = np.array(k_path[n+1][:3]) - np.array(k_path[n][:3])
+            for m in range(k_path[n][3]):
+                kvec.append(np.array(k_path[n][:3]) + dist * m / npts)
 
-	return hr_pcell
+    return kvec

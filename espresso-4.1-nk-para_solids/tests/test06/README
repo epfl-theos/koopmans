@@ -1,0 +1,14 @@
+
+==============================================================================
+@title@   Conjugate gradient minimization
+==============================================================================
+ 
+  The aim of this test is to show how to use the conjugate gradient method
+  to solve the problem with ODD and orbital-dep functionals in general.
+  When the functional is not unitary invariant, a innerloop strategy is also
+  implemented and tested. 
+
+  NOTE: the system studied is not methane but a planar model version of it.
+
+
+

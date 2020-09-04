@@ -1,0 +1,8 @@
+A first attempt to fix the problem
+It highly work in progress
+Some of the known problems are:
+
+1. if there is a truly periodic system in a small cell and ndegen!=1, the new interpolation routine (used e.g. by geninterp) does the wrong thing
+2. I'm not sure of the matrix conversions from abs to rel coords, double check!
+3. things can be done more efficiently
+4. 

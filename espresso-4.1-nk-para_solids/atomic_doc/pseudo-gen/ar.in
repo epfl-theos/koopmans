@@ -1,0 +1,28 @@
+ &input
+     title='Ar',
+     zed=18.0,
+     rel=0,
+     beta=0.5,
+     rlderiv=2.4,
+     eminld=-4.0,
+     emaxld=4.0,
+     deld=0.02d0,
+     nld=3,
+     fref=0.5,
+     rhobarfact=1.0
+     config='[Ne] 3s2 3p6',
+     iswitch=3,
+     dft='LDA',
+ /
+ &inputp
+   pseudotype=2,
+   lloc=-1,
+   rcloc=0.1
+   file_pseudopw='Al.rrkj3',
+ /
+5
+1S  1  1  2.00  0.00  4.0   4.0  
+2S  1  2  2.00  0.00  4.0   4.0
+2P  2  3  6.00  0.00  4.0   4.0
+3S  1  4  2.00  0.00  4.0   4.0
+3P  2  5  6.00  0.00  4.0   4.0

@@ -1,0 +1,107 @@
+*** FILE AUTOMATICALLY CREATED: DO NOT EDIT, CHANGES WILL BE LOST ***
+
+------------------------------------------------------------------------
+INPUT FILE DESCRIPTION
+
+Program: bands.x / PWscf / Quantum Espresso
+------------------------------------------------------------------------
+
+
+Purpose of bands.x:
+    Rewrite the bands ordering them using the overlap
+    of the wave-functions on neighbor k points
+    and calculate properties of each eigen-function.
+
+Presently it can calculate:
+
+   (a) The expectation value of the spin operator on each spinor
+       wave-function.
+   (b) The symmetry properties of each wavefunction. With this option
+       the bands are not ordered according to the overlap.
+
+The input data of this program are read from standard input
+or from a file and have the following format:
+
+
+Structure of the input data:
+============================
+
+   &INPUTPP
+     ...
+   /
+
+
+
+========================================================================
+NAMELIST: &INPUTPP
+
+   +--------------------------------------------------------------------
+   Variable:       prefix
+   
+   Type:           CHARACTER
+   Description:    prefix of files saved by program pw.x
+   +--------------------------------------------------------------------
+   
+   +--------------------------------------------------------------------
+   Variable:       outdir
+   
+   Type:           CHARACTER
+   Description:    temporary directory where pw.x files resides
+   +--------------------------------------------------------------------
+   
+   +--------------------------------------------------------------------
+   Variable:       filband
+   
+   Type:           CHARACTER
+   Description:    file "filband" contains the bands
+   +--------------------------------------------------------------------
+   
+   +--------------------------------------------------------------------
+   Variable:       spin_component
+   
+   Type:           INTEGER
+   Description:    In the lsda case select:
+                   
+                      1 = spin-up
+                      2 = spin-down
+   +--------------------------------------------------------------------
+   
+   +--------------------------------------------------------------------
+   Variable:       lsigma(i)(i), i=1,3
+   
+   Type:           LOGICAL
+   Description:    If true writes a file filband.i with the expectation
+                   values of the spin operator on the spinor wave-functions.
+                   (only in the noncollinear case).
+   +--------------------------------------------------------------------
+   
+   +--------------------------------------------------------------------
+   Variable:       lsym
+   
+   Type:           LOGICAL
+   Description:    If .true. the bands are classified according to the
+                   irreducible representations of the small group of k. A
+                   file "filband".rap with the same format of "filband"
+                   is written.
+   +--------------------------------------------------------------------
+   
+   +--------------------------------------------------------------------
+   Variable:       no_overlap
+   
+   Type:           LOGICAL
+   Default:        .false.
+   Description:    If .true. writes the eigenvalues in the output file
+                   without changing their order.
+   +--------------------------------------------------------------------
+   
+   +--------------------------------------------------------------------
+   Variables:      firstk, lastk
+   
+   Type:           INTEGER
+   Description:    if lsym=.true. makes the symmetry analysis only for k
+                   points between firstk to lastk
+   +--------------------------------------------------------------------
+   
+===END OF NAMELIST======================================================
+
+

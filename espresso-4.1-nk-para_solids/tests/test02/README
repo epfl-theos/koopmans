@@ -1,0 +1,41 @@
+
+==============================================================================
+@title@   Oligoacetylene and H4 molecules, polarizabilities
+==============================================================================
+  
+  Oligoacetylene molecule in a box, calculated using different methods
+  and including an electric field.
+
+  nspin = 1:      LDA, NK0, NK, PZ, HF, PBE0, B3LYP
+
+  The electric field is set to 0.005 Ha-au
+  We can then compute the polarizability as  alpha[Ha-au] = dipole[Ha-au] / efield[Ha-au]
+
+            Dipole [e*bohr]      Alpha [Ha-au]
+  LDA:          0.166408             33.28
+
+  NK:           0.163608             32.72
+  NK0:          0.137097             27.42
+  PZ:           0.147117             29.42
+  HF:           0.164857             32.97
+  PBE0:         0.161690             32.34
+  B3LYP:
+
+======================
+
+  H2-dimer
+
+  nspin = 1:      LDA, NK0, NK, PZ, HF
+  The electric field is set to 0.005 Ha-au
+  Nunit = 2,      H-bond length alternation: 2.0-3.0 bohr
+
+            Dipole [e*bohr]      Alpha/unit [Ha-au]
+  LDA:          0.188407             18.84
+
+  NK:           0.173592             17.36
+  NK0:          0.145735             14.57
+  PZ:           0.166382             16.64
+  HF:           0.160915             16.09
+
+======================
+
