@@ -304,7 +304,6 @@ MODULE read_namelists_module
        iprint_spreads=-1
        iprint_manifold_overlap=-1
        hartree_only_sic=.false.
-       one_innerloop_only = .FALSE. 
        !
        finite_field_introduced = .FALSE. 
        finite_field_for_empty_state = .FALSE.
@@ -475,6 +474,8 @@ MODULE read_namelists_module
        efield_cart(3)=0.d0
        !
        occupation_constraints = .false.
+       !
+       freeze_density = .FALSE.
        !
        RETURN
        !
@@ -994,7 +995,6 @@ MODULE read_namelists_module
        CALL mp_bcast( iprint_spreads,             ionode_id )
        CALL mp_bcast( iprint_manifold_overlap,    ionode_id )
        CALL mp_bcast( hartree_only_sic,           ionode_id )
-       CALL mp_bcast( one_innerloop_only,         ionode_id )
        CALL mp_bcast( finite_field_introduced,    ionode_id )
        CALL mp_bcast( finite_field_for_empty_state,   ionode_id )
        !     
@@ -1107,6 +1107,7 @@ MODULE read_namelists_module
        CALL mp_bcast( sic_epsilon ,         ionode_id )
        CALL mp_bcast( sic_alpha   ,         ionode_id )
        CALL mp_bcast( force_pairing ,       ionode_id )
+       CALL mp_bcast( freeze_density,       ionode_id )
        !
        ! ... ensemble-DFT
        !
