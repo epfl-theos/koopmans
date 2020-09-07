@@ -69,7 +69,7 @@ class QE_calc:
 
         # Handle any recognised QE keywords passed as arguments
         for key, val in kwargs.items():
-            if key not in self._recognised_qe_keywords:
+            if key not in self._recognised_keywords:
                 raise ValueError(f'{key} is not a recognised Quantum Espresso keyword')
             setattr(self, key, val)
 

@@ -28,19 +28,26 @@ if __name__ == '__main__':
 
     os.system('rm -r neutral charged')
 
-    for charge, label in zip([0, 1], ['neutral', 'charged']):
+    for charge, label in zip([0, -1], ['neutral', 'charged']):
+        # Create working directories
         os.system(f'mkdir {label}')
         os.system(f'mkdir {label}/20')
+
+        # Initialize value of epsilon and other system parameters
         epsilon = 20
         calc.restart_mode = 'from_scratch'
         calc.disk_io = 'medium' # checkpointing files will be required for later restarts
         calc.environ_settings['ENVIRON']['environ_restart'] = False
 
+        # Apply the desired charge
+        calc.tot_charge = charge
+        calc.tot_magnetization = -charge
+
         while calc_succeeded:
             calc.directory = f'{label}/{epsilon}'
             calc.environ_settings['ENVIRON']['env_static_permittivity'] = epsilon
             calc.environ_settings['BOUNDARY']['solvent_mode'] = 'ionic'
-            calc.environ_settings['ELECTROSTATIC']['tol'] = 1e-8
+            # calc.environ_settings['ELECTROSTATIC']['tol'] = 1e-8
 
             run_qe(calc, silent=False, from_scratch=True)
             # from_scratch = True means that run_qe won't try and skip this calculation

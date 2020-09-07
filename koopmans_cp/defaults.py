@@ -10,7 +10,7 @@ from koopmans_cp.io import warn
 
 defaults = {'calculation':         'cp',
             'iprint':              1,
-            'outdir':              './TMP-CP/',
+            'outdir':              '../TMP-CP/',
             'prefix':              'kc',
             'verbosity':           'low',
             'disk_io':             'high',
