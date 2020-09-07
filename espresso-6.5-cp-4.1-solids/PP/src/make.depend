@@ -866,6 +866,7 @@ wannier_proj.o : ../../PW/src/pwcom.o
 wannier2odd.o : ../../Modules/kind.o
 wannier2odd.o : ../../Modules/io_global.o
 wannier2odd.o : ../../Modules/io_files.o
+wannier2odd.o : ../../Modules/io_base.o
 wannier2odd.o : ../../Modules/wavefunctions.o
 wannier2odd.o : ../../Modules/fft_base.o
 wannier2odd.o : ../../Modules/mp_bands.o
@@ -875,11 +876,17 @@ wannier2odd.o : ../../Modules/recvec.o
 wannier2odd.o : ../../Modules/recvec_subs.o
 wannier2odd.o : ../../Modules/gvecw.o
 wannier2odd.o : ../../Modules/cell_base.o
+wannier2odd.o : ../../Modules/control_flags.o
+wannier2odd.o : ../../Modules/constants.o
+wannier2odd.o : ../../Modules/noncol.o
 wannier2odd.o : ../../PW/src/pwcom.o
 wannier2odd.o : ../../PW/src/realus.o
 wannier2odd.o : ../../PW/src/symm_base.o
+wannier2odd.o : ../../PW/src/scf_mod.o
+wannier2odd.o : ../../PW/src/buffers.o
 wannier2odd.o : ../../FFTXlib/fft_interfaces.o
 wannier2odd.o : ../../FFTXlib/fft_types.o
+wannier2odd.o : ../../FFTXlib/fft_support.o
 wannier2odd.o : ../../UtilXlib/mp.o
 wfck2r.o : ../../FFTXlib/fft_interfaces.o
 wfck2r.o : ../../FFTXlib/scatter_mod.o

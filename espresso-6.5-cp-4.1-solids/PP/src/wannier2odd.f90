@@ -16,7 +16,6 @@ MODULE wannier2odd
   USE kinds,               ONLY : DP
   USE fft_types,           ONLY : fft_type_descriptor
   USE stick_base,          ONLY : sticks_map, sticks_map_deallocate
-
   !
   !
   IMPLICIT NONE
@@ -30,20 +29,29 @@ MODULE wannier2odd
   TYPE( fft_type_descriptor ) :: dfftcp
   TYPE( sticks_map ) :: smap_cp
   !
-  ! in the following all the G-vectors related quantities
-  ! connected to the dfftcp are defined (TARGET AND PROTECTED IGNORED!!!)
+  REAL(DP) :: at_cp(3,3)
+  REAL(DP) :: bg_cp(3,3)
+  REAL(DP) :: omega_cp
+  LOGICAL :: gamma_only_cp=.false.  ! CHECK ALSO npwxcp WHEN USING GAMMA TRICK
   !
-  INTEGER :: ngcp = 0                       ! eq to ngm (in gvect)
-  INTEGER :: ngcpx = 0                      ! eq to ngmx (in gvect)
-  INTEGER :: ngcp_g = 0                     ! eq to ngm_g (in gvect)
-  INTEGER :: nglcp = 0                      ! eq to ngl (in gvect)
-  INTEGER :: gstart_cp = 2                  ! eq to gstart (in gvect)
+  ! in the following all the G-vectors related quantities
+  ! connected to the dfftcp are defined
+  !
+  INTEGER :: npwxcp = 0                      ! eq to npwx (in gvecw)
+  INTEGER :: ngmcp = 0                       ! eq to ngm (in gvect)
+  INTEGER :: ngmcpx = 0                      ! eq to ngmx (in gvect)
+  INTEGER :: ngmcp_g = 0                     ! eq to ngm_g (in gvect)
+  INTEGER :: nglcp = 0                       ! eq to ngl (in gvect)
+  INTEGER :: gstart_cp = 2                   ! eq to gstart (in gvect)
   REAL(DP), ALLOCATABLE, TARGET :: gg_cp(:)                    ! eq to gg (in gvect)
   REAL(DP), ALLOCATABLE, TARGET :: g_cp(:,:)                   ! eq to g (in gvect)
   REAL(DP), POINTER, PROTECTED :: gl_cp(:)                     ! eq to gl (in gvect)
   INTEGER, ALLOCATABLE, TARGET :: mill_cp(:,:)                 ! eq to mill (in gvect)
   INTEGER, ALLOCATABLE, TARGET :: ig_l2g_cp(:)                 ! eq to ig_l2g (in gvect)
   INTEGER, ALLOCATABLE, TARGET, PROTECTED :: igtongl_cp(:)     ! eq to igtongl (in gvect)
+  !
+  LOGICAL :: check_fft=.false.     ! if .true. dfftcp is built with the same inputs
+                                   ! of dffts. Useful for comparison and to check errors
   !
   ! ...  end of module-scope declarations
   !
@@ -68,30 +76,152 @@ CONTAINS
     ! ...  4) the Wannier functions are finally written in a CP-readable
     ! ...     file
     !
-    USE io_global,           ONLY : stdout
-    USE io_files,            ONLY : nwordwfc, iunwfc
-    USE wavefunctions,       ONLY : evc
+    USE io_global,           ONLY : stdout, ionode
+    USE io_files,            ONLY : nwordwfc, iunwfc, restart_dir
+    USE io_base,             ONLY : write_rhog
+    USE mp_pools,            ONLY : my_pool_id
+    USE mp_bands,            ONLY : my_bgrp_id, root_bgrp_id, &
+                                    root_bgrp, intra_bgrp_comm
+    USE mp,                  ONLY : mp_sum
+    USE wavefunctions,       ONLY : evc, psic
     USE fft_base,            ONLY : dffts
-    USE fft_interfaces,      ONLY : fwfft, invfft
-    USE wannier,             ONLY : iknum, ikstart
+    USE fft_interfaces,      ONLY : invfft, fwfft
+    USE buffers,             ONLY : open_buffer, close_buffer, &
+                                    save_buffer, get_buffer
+    USE lsda_mod,            ONLY : nspin
+    USE klist,               ONLY : xk, ngk, igk_k, nkstot, nelec
+    USE gvect,               ONLY : ngm
+    USE wvfct,               ONLY : nbnd, wg, npwx
+    USE cell_base,           ONLY : tpiba, omega
+    USE control_flags,       ONLY : gamma_only
+    USE constants,           ONLY : eps6
+    USE scf,                 ONLY : rho
+    USE noncollin_module,    ONLY : npol
+    USE wannier,             ONLY : iknum, ikstart, mp_grid
     !
     !
     IMPLICIT NONE
     !
-    INTEGER :: ik, ikevc
+    CHARACTER(LEN=256) :: dirname
+    INTEGER :: ik, ikevc, ibnd 
+    INTEGER :: npw
+    INTEGER :: iunwfcx = 24                  ! unit for supercell wfc file
+    INTEGER :: nwordwfcx                     ! nword for supercell wfc
+    INTEGER :: io_level = 1
+    LOGICAL :: exst
+    COMPLEX(DP), ALLOCATABLE :: evcx(:,:)
+    COMPLEX(DP), ALLOCATABLE :: psicx(:)
+    COMPLEX(DP), ALLOCATABLE :: rhor(:)      ! supercell density in real space
+    COMPLEX(DP), ALLOCATABLE :: rhog(:,:)    ! supercell density in G-space
+    REAL(DP) :: kvec(3)
+    REAL(DP) :: nelec_, charge
     !
     !
     CALL start_clock( 'wannier2odd' )
     CALL setup_scell_fft
     !
+    nwordwfcx = nbnd*npwxcp*npol
+    ALLOCATE( evcx(npwxcp*npol,nbnd) )
+    ALLOCATE( psicx(dfftcp%nnr) )
+    ALLOCATE( rhor(dfftcp%nnr) )
+    ALLOCATE( rhog(ngmcp,nspin) )
+    WRITE(stdout,'(2x, "RICCARDO - check on parallelization - dffts%nnr:", i10)') dffts%nnr
     !
-!    DO ik = 1, iknum
-!      !
-!      ikevc = ik + ikstart - 1
-!      CALL davcio(evc, 2*nwordwfc, iunwfc, ikevc, -1)
-!      CALL invfft('Wave', evc, dffts) 
-!      !
-!    ENDDO
+    rhor(:) = ( 0.D0, 0.D0 )
+    rhog(:,:) = ( 0.D0, 0.D0 )
+    !
+    !
+    ! ... open buffer for IO direct-access to the extended wavefunctions
+    !
+    CALL open_buffer( iunwfcx, 'wfcx', nwordwfcx, io_level, exst )
+    !
+    ! ... loop to read the primitive cell wavefunctions and 
+    ! ... extend them to the supercell. Also the Wannier gauge 
+    ! ... matrices U(k) are read here
+    ! 
+    DO ik = 1, iknum
+      !
+      ikevc = ik + ikstart - 1
+      CALL davcio( evc, 2*nwordwfc, iunwfc, ikevc, -1 )
+      npw = ngk(ik)
+      kvec(:) = xk(:,ik)
+      !
+      DO ibnd = 1, nbnd
+        !
+        psic(:) = (0.D0, 0.D0)
+        psicx(:) = (0.D0, 0.D0)
+        psic( dffts%nl(igk_k(1:npw,ik)) ) = evc(1:npw, ibnd)
+        IF( gamma_only ) psic( dffts%nlm(igk_k(1:npw,ik)) ) = CONJG(evc(1:npw, ibnd))
+        CALL invfft( 'Wave', psic, dffts )
+        !
+        ! ... here we extend the wfc to the whole supercell
+        !
+        ! ... NB: the routine extend_wfc applies also the phase factor
+        ! ...     e^(ikr) so the output wfc (psicx) is a proper Bloch
+        ! ...     function and not just its periodic part
+        !
+        CALL extend_wfc( psic, psicx, dfftcp, kvec )
+        !
+        ! ... now we calculate the total density in the supercell
+        !
+        rhor(:) = rhor(:) + ( DBLE( psicx(:) )**2 + &
+                             AIMAG( psicx(:) )**2 ) * wg(ibnd,ik) / omega
+        !
+        CALL fwfft( 'Wave', psicx, dfftcp )
+        IF ( gamma_only_cp ) THEN
+          evcx(1:npwxcp,ibnd) = psicx( dfftcp%nlm(1:npwxcp) )  ! THIS DOES NOT WORK!!! TO BE FIXED
+        ELSE
+          evcx(1:npwxcp,ibnd) = psicx( dfftcp%nl(1:npwxcp) )
+        ENDIF
+        !
+      ENDDO ! ibnd
+      !
+      ! ... save the extended wavefunctions into the buffer
+      !
+      CALL save_buffer( evcx, nwordwfcx, iunwfcx, ik )
+      !
+    ENDDO ! ik
+    !
+    CALL close_buffer( iunwfcx, 'delete' )
+    !
+    CALL fwfft( 'Rho', rhor, dfftcp )
+    IF ( gamma_only_cp ) THEN
+      rhog(1:ngmcp,1) = rhor( dfftcp%nlm(1:ngmcp) )            ! THIS DOES NOT WORK!!! TO BE FIXED
+    ELSE
+      rhog(1:ngmcp,1) = rhor( dfftcp%nl(1:ngmcp) )
+    ENDIF
+    !
+    ! ... check on the total charge
+    !
+    charge = 0.D0
+    IF ( gstart_cp == 2 ) THEN
+      charge = rhog(1,1) * omega_cp
+    ENDIF
+    CALL mp_sum( charge, intra_bgrp_comm )
+    nelec_ = nelec * PRODUCT( mp_grid )
+    IF ( check_fft ) nelec_ = nelec
+    IF ( ABS( charge - nelec_ ) > 1.D-3 * charge ) &
+         CALL errore( 'wan2odd', 'wrong total charge', 1 )
+    !
+    ! ... check on rho(G) when dfftcp is taken equal to dffts
+    !
+    IF ( check_fft ) THEN
+      DO ik = 1, ngmcp
+        IF ( ABS( DBLE(rhog(ik,1) - rho%of_g(ik,1)) ) .ge. eps6 .or. &
+             ABS( AIMAG(rhog(ik,1) - rho%of_g(ik,1)) ) .ge. eps6 ) THEN
+          CALL errore( 'wan2odd', 'rhog and rho%of_g differ', 1 )
+        ENDIF
+      ENDDO
+    ENDIF
+    !
+    ! ... write G-space density
+    !
+    dirname = restart_dir()
+    IF ( my_pool_id == 0 .AND. my_bgrp_id == root_bgrp_id ) &
+         CALL write_rhog( TRIM(dirname) // "charge-density-x", &
+         root_bgrp, intra_bgrp_comm, &
+         bg_cp(:,1)*tpiba, bg_cp(:,2)*tpiba, bg_cp(:,3)*tpiba, &
+         gamma_only_cp, mill_cp, ig_l2g_cp, rhog(:,:) )
     !
     CALL stop_clock( 'wannier2odd' )
     !
@@ -108,17 +238,20 @@ CONTAINS
     !
     USE wannier,             ONLY : mp_grid
     USE fft_base,            ONLY : smap
-    USE mp_bands,            ONLY : nproc_bgrp, intra_bgrp_comm, nyfft, ntask_groups, nyfft
+    USE mp_bands,            ONLY : nproc_bgrp, intra_bgrp_comm, nyfft, &
+                                    ntask_groups, nyfft
     USE mp_pools,            ONLY : inter_pool_comm
     USE mp,                  ONLY : mp_max
     USE io_global,           ONLY : stdout, ionode
+    USE fft_base,            ONLY : dffts
     USE fft_types,           ONLY : fft_type_init
     USE gvect,               ONLY : gcutm
     USE gvecs,               ONLY : gcutms
-    USE gvecw,               ONLY : gcutw
+    USE gvecw,               ONLY : gcutw, gkcut
     USE recvec_subs,         ONLY : ggen, ggens
     USE klist,               ONLY : nks, xk
-    USE cell_base,           ONLY : at, bg
+    USE control_flags,       ONLY : gamma_only
+    USE cell_base,           ONLY : at, bg, omega
     USE cellmd,              ONLY : lmovecell
     USE realus,              ONLY : real_space
     USE symm_base,           ONLY : fft_fact
@@ -126,12 +259,12 @@ CONTAINS
     !
     IMPLICIT NONE
     !
+    INTEGER, EXTERNAL :: n_plane_waves
     INTEGER :: i, ik
-    INTEGER :: ngcp_
-    LOGICAL :: gamma_only=.false.
+    INTEGER :: ngmcp_
+    INTEGER :: nkscp
+    REAL(DP), ALLOCATABLE :: xkcp(:,:)
     LOGICAL :: lpara
-    REAL(DP) :: at_cp(3,3)
-    REAL(DP) :: bg_cp(3,3)
     !
     !
     CALL get_mp_grid
@@ -140,70 +273,264 @@ CONTAINS
       at_cp(:,i) = at(:,i) * mp_grid(i)
       bg_cp(:,i) = bg(:,i) / mp_grid(i)
     ENDDO
+    omega_cp = omega * PRODUCT(mp_grid)
     !
     lpara =  ( nproc_bgrp > 1 )
+    gkcut = gcutw
     !
-!    ! ... calculate gkcut = max |k+G|^2, in (2pi/a)^2 units
-!    !
-!    IF (nks == 0) THEN
-!      !
-!      ! k-point list not available:
-!      ! use max(bg)/2 as an estimate of the largest k-point
-!      !
-!      gkcut = 0.5d0 * max ( &
-!          sqrt (sum(bg_cp (1:3, 1)**2) ), &
-!          sqrt (sum(bg_cp (1:3, 2)**2) ), &
-!          sqrt (sum(bg_cp (1:3, 3)**2) ) )
-!    ELSE
-!      gkcut = 0.0d0
-!      DO ik = 1, nks
-!        gkcut = max (gkcut, sqrt ( sum(xk (1:3, ik)**2) ) )
-!      ENDDO
-!    ENDIF
-!    gkcut = 0.5d0 * max ( &
-!        sqrt (sum(bg_cp (1:3, 1)**2) ), &
-!        sqrt (sum(bg_cp (1:3, 2)**2) ), &
-!        sqrt (sum(bg_cp (1:3, 3)**2) ) )
-!    gkcut = (sqrt (gcutw) + gkcut)**2
-!    !
-!    ! ... find maximum value among all the processors
-!    !
-!    CALL mp_max (gkcut, inter_pool_comm )
     !
-    ! ... set up fft descriptors, including parallel stuff: sticks, planes, etc.
+    ! ... uncomment the following line in order to realize dfftcp in the
+    ! ... same way of dffts and check possible errors or incosistencies
+    !check_fft = .true.
+    !
+    IF ( check_fft ) THEN
+      ! 
+      gamma_only_cp = gamma_only
+      at_cp(:,:) = at(:,:)
+      bg_cp(:,:) = bg(:,:)
+      omega_cp = omega
+      !
+      nkscp = nks
+      ALLOCATE( xkcp(3,nkscp) )
+      xkcp(:,:) = xk(:,:)
+      !
+      ! ... calculate gkcut = max |k+G|^2, in (2pi/a)^2 units
+      !
+      IF (nks == 0) THEN
+        !
+        ! k-point list not available:
+        ! use max(bg)/2 as an estimate of the largest k-point
+        !
+        gkcut = 0.5d0 * max ( &
+            sqrt (sum(bg_cp (1:3, 1)**2) ), &
+            sqrt (sum(bg_cp (1:3, 2)**2) ), &
+            sqrt (sum(bg_cp (1:3, 3)**2) ) )
+      ELSE
+        gkcut = 0.0d0
+        DO ik = 1, nks
+          gkcut = max (gkcut, sqrt ( sum(xk (1:3, ik)**2) ) )
+        ENDDO
+      ENDIF
+      gkcut = (sqrt (gcutw) + gkcut)**2
+      !
+      ! ... find maximum value among all the processors
+      !
+      CALL mp_max (gkcut, inter_pool_comm )
+      !
+    ELSE
+      !
+      nkscp = 1
+      ALLOCATE( xkcp(3,nkscp) )
+      xkcp(:,1) = (/ 0.D0, 0.D0, 0.D0 /)
+      !
+    ENDIF
+    !
+    ! ... set up the supercell fft descriptor, including parallel 
+    ! ... stuff: sticks, planes, etc.
     !
     ! task group are disabled if real_space calculation of calbec is used
     dfftcp%has_task_groups = (ntask_groups >1) .and. .not. real_space
-    CALL fft_type_init( dfftcp, smap_cp, "wave", gamma_only, lpara, intra_bgrp_comm,&
-                    at_cp, bg_cp, gcutw, gcutms/gcutw, fft_fact, nyfft )
+    CALL fft_type_init( dfftcp, smap_cp, "wave", gamma_only_cp, lpara, intra_bgrp_comm,&
+                    at_cp, bg_cp, gkcut, gcutms/gkcut, fft_fact, nyfft )
     dfftcp%rho_clock_label='ffts' ; dfftcp%wave_clock_label='fftw'
     !
-    ngcp_ = dfftcp%ngl( dfftcp%mype + 1 )
-    IF ( gamma_only ) ngcp_ = ( ngcp_ + 1 ) / 2
-    CALL gveccp_init( ngcp_, intra_bgrp_comm )
+    ngmcp_ = dfftcp%ngl( dfftcp%mype + 1 )
+    IF ( gamma_only_cp ) ngmcp_ = ( ngmcp_ + 1 ) / 2
+    CALL gveccp_init( ngmcp_, intra_bgrp_comm )
     !
     !
     ! Some checks (done normally in allocate_fft)
     !
-    IF (dfftcp%nnr < ngcp) THEN
+    IF (dfftcp%nnr < ngmcp) THEN
       WRITE( stdout, '(/,4x," nr1cp=",i4," nr2cp= ", i4, " nr3cp=",i4, &
-          &" nnrcp= ",i8," ngcp=",i8)') dfftcp%nr1, dfftcp%nr2, dfftcp%nr3, dfftcp%nnr, ngcp
+          &" nnrcp= ",i8," ngmcp=",i8)') dfftcp%nr1, dfftcp%nr2, dfftcp%nr3, dfftcp%nnr, ngmcp
       CALL errore( 'setup_scell_fft', 'the nrs"s are too small!', 1 )
-    ENDIF
+    ENDIF 
     !
-    IF (ngcp  <= 0)      CALL errore( 'setup_scell_fft', 'wrong ngcp' , 1 )
+    IF (ngmcp  <= 0)      CALL errore( 'setup_scell_fft', 'wrong ngmcp' , 1 )
     IF (dfftcp%nnr <= 0) CALL errore( 'setup_scell_fft', 'wrong nnr',  1 )
     !
     ! NB: ggen normally would have dfftp and ggens dffts... here I put dfftcp in both !!!
-    CALL ggen ( dfftcp, gamma_only, at_cp, bg_cp, gcutm, ngcp_g, ngcp, &
+    CALL ggen ( dfftcp, gamma_only_cp, at_cp, bg_cp, gcutm, ngmcp_g, ngmcp, &
          g_cp, gg_cp, mill_cp, ig_l2g_cp, gstart_cp )
-    CALL ggens( dfftcp, gamma_only, at_cp, g_cp, gg_cp, mill_cp, gcutms, ngcp )
+    CALL ggens( dfftcp, gamma_only_cp, at_cp, g_cp, gg_cp, mill_cp, gcutms, ngmcp )
     CALL gshells_cp( lmovecell )
     CALL fftcp_base_info( ionode, stdout )
-    !CALL compare_dfft( dffts, dfftcp )
+    !
+    !
+    ! find the number of PWs for the supercell wfc
+    npwxcp = n_plane_waves( gcutw, nkscp, xkcp, g_cp, ngmcp )
+    !
+    IF ( check_fft ) CALL compare_dfft( dffts, dfftcp )
     !
     !
   END SUBROUTINE setup_scell_fft
+  !
+  !
+  !---------------------------------------------------------------------
+  SUBROUTINE extend_wfc( psic, psicx, dfftx, kvec )
+    !-------------------------------------------------------------------
+    !
+    ! ...  Here we extend in real space the periodic part of the Bloch
+    ! ...  functions from the PW unit cell to the whole extension of 
+    ! ...  BVK boundary conditions (supercell).
+    !
+    ! ...  psic  : input wfc defined on the unit cell
+    ! ...  psicx : output wfc extended to the supercell
+    ! ...  dfftx : fft descriptor of the supercell
+    !
+    USE io_global,           ONLY : stdout
+    USE mp,                  ONLY : mp_sum
+    USE mp_bands,            ONLY : intra_bgrp_comm
+    USE fft_support,         ONLY : good_fft_dimension
+    USE fft_base,            ONLY : dffts
+    USE constants,           ONLY : eps8, tpi
+    !
+    !
+    IMPLICIT NONE
+    !
+    COMPLEX(DP), INTENT(IN) :: psic(:)       ! input pcell wfc
+    COMPLEX(DP), INTENT(OUT) :: psicx(:)     ! output supercell wfc
+    TYPE( fft_type_descriptor ) :: dfftx     ! fft descriptor for the supercell
+    REAL(DP), INTENT(IN) :: kvec(3)          ! k-vector for the phase factor 
+    !
+    COMPLEX(DP), ALLOCATABLE :: psicg(:)     ! global pcell wfc
+    COMPLEX(DP) :: phase                     ! phase factor e^(ikr)
+    INTEGER :: nnrg
+    INTEGER :: i, j, k, ir, ir_end, idx, j0, k0
+    INTEGER :: ip, jp, kp
+    REAL(DP) :: r(3)
+    REAL(DP) :: dot_prod
+    !
+    !
+    ! ... broadcast the unit cell wfc to all the procs 
+    !
+    nnrg = dffts%nnr
+    CALL mp_sum( nnrg, intra_bgrp_comm )
+    ALLOCATE( psicg(nnrg) )
+    CALL bcast_psic( psic, psicg )
+    !
+    !
+#if defined (__MPI)
+    j0 = dfftx%my_i0r2p
+    k0 = dfftx%my_i0r3p
+    IF( dfftx%nr1x == 0 ) dfftx%nr1x = good_fft_dimension( dfftx%nr1 )
+    ir_end = MIN( dfftx%nnr, dfftx%nr1x*dfftx%my_nr2p*dfftx%my_nr3p )
+#else
+    j0 = 0
+    k0 = 0
+    ir_end = dfftx%nnr
+#endif
+    !
+    !
+    DO ir = 1, ir_end
+      !
+      ! ... three dimensional indexes
+      !
+      idx = ir - 1
+      k = idx / ( dfftx%nr1x * dfftx%my_nr2p )
+      idx = idx - ( dfftx%nr1x * dfftx%my_nr2p ) * k
+      k = k + k0
+      IF ( k .GE. dfftx%nr3 ) CYCLE
+      j = idx / dfftx%nr1x
+      idx = idx - dfftx%nr1x * j
+      j = j + j0
+      IF ( j .GE. dfftx%nr2 ) CYCLE
+      i = idx
+      IF ( i .GE. dfftx%nr1 ) CYCLE
+      !
+      ! ... ip, jp and kp represent the indexes folded into the 
+      ! ... reference unit cell
+      !
+      ip = MOD( i, dffts%nr1 )
+      jp = MOD( j, dffts%nr2 )
+      kp = MOD( k, dffts%nr3 )
+      !
+      psicx(ir) = psicg( ip + jp*dffts%nr1x + kp*dffts%nr1x*dffts%my_nr2p + 1 )
+      !
+      ! ... check on psicx when dfftcp is taken equal to dffts
+      !
+      IF ( check_fft ) THEN
+        IF ( ABS( DBLE(psicx(ir) - psic(ir)) ) .ge. eps8 .or. &
+             ABS( AIMAG(psicx(ir) - psic(ir)) ) .ge. eps8 ) THEN
+          CALL errore( 'extend_wfc', 'psicx and psic differ', 1 )
+        ENDIF
+      ENDIF
+      !
+      ! ... calculate the phase factor e^(ikr) and applies it to psicx
+      !
+      r(1) = DBLE(i) / dfftx%nr1
+      r(2) = DBLE(j) / dfftx%nr2
+      r(3) = DBLE(k) / dfftx%nr3
+      !
+      dot_prod = tpi * SUM( kvec(:) * r(:) )
+      phase = CMPLX( COS(dot_prod), SIN(dot_prod), KIND=DP )
+      psicx(ir) = phase * psicx(ir)
+      !
+    ENDDO
+    !
+    !
+  END SUBROUTINE extend_wfc
+  !
+  !
+  !---------------------------------------------------------------------
+  SUBROUTINE bcast_psic( psic, psicg )
+    !-------------------------------------------------------------------
+    !
+    ! ...  This routine broadcasts the local wavefunction (psic)
+    ! ...  to all the procs into a global variable psicg indexed
+    ! ...  following the global ordering of the points in the
+    ! ...  FFT grid
+    !
+    USE fft_support,         ONLY : good_fft_dimension
+    USE fft_base,            ONLY : dffts
+    !
+    !
+    IMPLICIT NONE
+    !
+    COMPLEX(DP), INTENT(IN) :: psic(:)
+    COMPLEX(DP), INTENT(OUT) :: psicg(:)
+    !
+    INTEGER :: i, j, k, ir, ir_end, idx, j0, k0, irg
+    !
+    !
+#if defined (__MPI)
+    j0 = dffts%my_i0r2p
+    k0 = dffts%my_i0r3p
+    IF( dffts%nr1x == 0 ) dffts%nr1x = good_fft_dimension( dffts%nr1 )
+    ir_end = MIN( dffts%nnr, dffts%nr1x*dffts%my_nr2p*dffts%my_nr3p )
+#else
+    j0 = 0
+    k0 = 0
+    ir_end = dffts%nnr
+#endif
+    !
+    !
+    DO ir = 1, ir_end
+      !
+      ! ... three dimensional indexes
+      !
+      idx = ir - 1
+      k = idx / ( dffts%nr1x * dffts%my_nr2p )
+      idx = idx - ( dffts%nr1x * dffts%my_nr2p ) * k
+      k = k + k0
+      IF ( k .GE. dffts%nr3 ) CYCLE
+      j = idx / dffts%nr1x
+      idx = idx - dffts%nr1x * j
+      j = j + j0
+      IF ( j .GE. dffts%nr2 ) CYCLE
+      i = idx
+      IF ( i .GE. dffts%nr1 ) CYCLE
+      !
+      ! ... defining global index and saving psicg
+      !
+      irg = i + j*dffts%nr1x + k*dffts%nr1x*dffts%my_nr2p + 1
+      psicg(irg) = psic(ir)
+      !
+    ENDDO    
+    !
+    !
+  END SUBROUTINE bcast_psic
   !
   !
   !---------------------------------------------------------------------
@@ -239,8 +566,13 @@ CONTAINS
     !
     IF (ionode) THEN
        WRITE( stdout,*)
-       WRITE( stdout, '(5X,"Info about the supercell FFT")')
-       WRITE( stdout, '(5X,"----------------------------")')
+       IF ( check_fft ) THEN
+         WRITE( stdout, '(5X,"Info about the pcell FFT")')
+         WRITE( stdout, '(5X,"------------------------")')
+       ELSE
+         WRITE( stdout, '(5X,"Info about the supercell FFT")')
+         WRITE( stdout, '(5X,"----------------------------")')
+       ENDIF
        WRITE( stdout, '(5X,"sticks:   smooth     PW", &
                       & 5X,"G-vecs:    smooth      PW")')
        IF ( dfftcp%nproc > 1 ) THEN
@@ -256,7 +588,16 @@ CONTAINS
           sum(dfftcp%ngl), sum(dfftcp%nwl)
        WRITE( stdout, '(/5x,"grid: ",i10," G-vectors", 5x, &
        &               "FFT dimensions: (",i4,",",i4,",",i4,")")') &
-       &         ngcp_g, dfftcp%nr1, dfftcp%nr2, dfftcp%nr3
+       &         ngmcp_g, dfftcp%nr1, dfftcp%nr2, dfftcp%nr3
+       IF ( .not. check_fft ) THEN
+         IF ( gamma_only_cp ) THEN
+           WRITE( stdout, '(/5X,"Gamma-only algorithm is used &
+                          --> real wavefunctions")')
+         ELSE
+           WRITE( stdout, '(/5X,"Gamma-only algorithm is not used &
+                          --> complex wavefunctions")')
+         ENDIF
+       ENDIF
     ENDIF
     !
     IF(ionode) WRITE( stdout,*)
@@ -268,7 +609,7 @@ CONTAINS
   !
   !
   !---------------------------------------------------------------------
-  SUBROUTINE gveccp_init( ngcp_ , comm )
+  SUBROUTINE gveccp_init( ngmcp_ , comm )
     !-------------------------------------------------------------------
     !
     ! Set local and global dimensions, allocate arrays
@@ -278,29 +619,29 @@ CONTAINS
     !
     IMPLICIT NONE
     !
-    INTEGER, INTENT(IN) :: ngcp_
+    INTEGER, INTENT(IN) :: ngmcp_
     INTEGER, INTENT(IN) :: comm  ! communicator of the group on which g-vecs are distributed
     !
     !
-    ngcp = ngcp_
+    ngmcp = ngmcp_
     !
     !  calculate maximum over all processors
     !
-    ngcpx = ngcp
-    CALL mp_max( ngcpx, comm )
+    ngmcpx = ngmcp
+    CALL mp_max( ngmcpx, comm )
     !
     !  calculate sum over all processors
     !
-    ngcp_g = ngcp
-    CALL mp_sum( ngcp_g, comm )
+    ngmcp_g = ngmcp
+    CALL mp_sum( ngmcp_g, comm )
     !
     !  allocate arrays - only those that are always kept until the end
     !
-    ALLOCATE( gg_cp(ngcp) )
-    ALLOCATE( g_cp(3, ngcp) )
-    ALLOCATE( mill_cp(3, ngcp) )
-    ALLOCATE( ig_l2g_cp(ngcp) )
-    ALLOCATE( igtongl_cp(ngcp) )
+    ALLOCATE( gg_cp(ngmcp) )
+    ALLOCATE( g_cp(3, ngmcp) )
+    ALLOCATE( mill_cp(3, ngmcp) )
+    ALLOCATE( ig_l2g_cp(ngmcp) )
+    ALLOCATE( igtongl_cp(ngmcp) )
     !
     RETURN
     !
@@ -331,10 +672,10 @@ CONTAINS
       !
       ! in case of a variable cell run each G vector has its shell
       !
-      nglcp = ngcp
+      nglcp = ngmcp
       gl_cp => gg_cp
       !
-      DO ng = 1, ngcp
+      DO ng = 1, ngmcp
         igtongl_cp (ng) = ng
       ENDDO
       !
@@ -345,7 +686,7 @@ CONTAINS
       nglcp = 1
       igtongl_cp (1) = 1
       !
-      DO ng = 2, ngcp
+      DO ng = 2, ngmcp
         IF (gg_cp (ng) > gg_cp (ng - 1) + eps8) THEN
           nglcp = nglcp + 1
         ENDIF
@@ -356,7 +697,7 @@ CONTAINS
       gl_cp (1) = gg_cp (1)
       igl = 1
       !
-      DO ng = 2, ngcp
+      DO ng = 2, ngmcp
         IF (gg_cp (ng) > gg_cp (ng - 1) + eps8) THEN
           igl = igl + 1
           gl_cp (igl) = gg_cp (ng)
@@ -368,7 +709,7 @@ CONTAINS
     ENDIF
     !
     !
-  END SUBROUTINE gshells_cp
+  END SUBROUTINE gshells_cp 
   !
   !
   !---------------------------------------------------------------------
@@ -615,13 +956,13 @@ CONTAINS
       WRITE(stdout,*) "Mismatch in ismap", dfft1%ismap, dfft2%ismap
     ENDIF
     !
-!    IF ( ALL(dfft1%nl .ne. dfft2%nl) ) THEN
-!      WRITE(stdout,*) "Mismatch in nl", dfft1%nl, dfft2%nl
-!    ENDIF
-!    !
-!    IF ( ALL(dfft1%nlm .ne. dfft2%nlm) ) THEN
-!      WRITE(stdout,*) "Mismatch in nlm", dfft1%nlm, dfft2%nlm
-!    ENDIF
+    IF ( ALL(dfft1%nl .ne. dfft2%nl) ) THEN
+      WRITE(stdout,*) "Mismatch in nl", dfft1%nl, dfft2%nl
+    ENDIF
+    !
+    IF ( ALL(dfft1%nlm .ne. dfft2%nlm) ) THEN
+      WRITE(stdout,*) "Mismatch in nlm", dfft1%nlm, dfft2%nlm
+    ENDIF
     !
     IF ( ALL(dfft1%tg_snd .ne. dfft2%tg_snd) ) THEN
       WRITE(stdout,*) "Mismatch in tg_snd", dfft1%tg_snd, dfft2%tg_snd
