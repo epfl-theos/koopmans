@@ -56,7 +56,7 @@ PWOBJS = ../../PW/src/libpw.a
 QEOBJS = ../../Modules/libqemod.a ../../KS_Solvers/libks_solvers.a \
          ../../FFTXlib/libqefft.a ../../LAXlib/libqela.a ../../UtilXlib/libutil.a \
          ../../dft-d3/libdftd3qe.a
-PW2WAN_OBJS = wannier2odd.o
+PW2WAN_OBJS = wannier2odd.o fft_supercell.o scell_wfc.o read_u_wannier.o
 
 MODULES = $(PWOBJS) $(QEOBJS)
 

@@ -107,7 +107,6 @@ PROGRAM pw2wannier90
   USE noncollin_module, ONLY : noncolin
   USE control_flags,    ONLY : gamma_only
   USE environment,ONLY : environment_start, environment_end
-  USE wannier2odd,      ONLY : wan2odd
   USE wannier
   !
   IMPLICIT NONE
@@ -473,7 +472,7 @@ PROGRAM pw2wannier90
      !
      CALL read_nnkp
      CALL openfil_pp
-     CALL wan2odd
+     CALL wannier2odd
      !
      IF ( ionode ) WRITE( stdout, *  )
      CALL print_clock( 'init_pw2wan' )
