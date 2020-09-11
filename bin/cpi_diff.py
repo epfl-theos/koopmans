@@ -3,7 +3,7 @@
 import argparse
 from ase.io import espresso_cp as cp_io
 from koopmans_cp.io import cpi_diff
-from koopmans_cp.calc import CP_calc
+from koopmans_cp.calculators.cp import CP_calc
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(

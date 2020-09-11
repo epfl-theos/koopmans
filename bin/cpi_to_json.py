@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
 import argparse
-from ase.io import espresso_cp as cp_io
 from koopmans_cp.ase import write_json, read_json
 from koopmans_cp.defaults import defaults
+from koopmans_cp.calculators.cp import CP_calc
 from koopmans_cp.workflow import keywords_altered_during_workflow
 import copy
 import textwrap
 
 
-def cpi_to_json(cpi, json, to_exclude=['nat', 'ntyp', 'pseudo_dir'], calc_param={}, cp_param={}):
+def cpi_to_json(cpi, json, to_exclude=['nat', 'ntyp'], workflow_settings={}, cp_param={}):
     '''
 
     Converts a cpi file to a json file
@@ -19,26 +19,24 @@ def cpi_to_json(cpi, json, to_exclude=['nat', 'ntyp', 'pseudo_dir'], calc_param=
         cpi: the name of the .cpi file to read in
         json: the name of the .json file to write out to
         to_exclude: the keywords included in the .cpi file to exclude from the .json file
-        calc_param: the koopmans.py keywords to add to the .json file (these are not
+        workflow_settings: the koopmans.py keywords to add to the .json file (these are not
                     included in the .cpi file)
         cp_param: cp flags to alter
 
     '''
-    calc = cp_io.read_espresso_cp_in(open(cpi, 'r')).calc
+    calc = CP_calc(qe_files=cpi)
 
     to_exclude += keywords_altered_during_workflow
     to_exclude += list(defaults.keys())
 
     calc_out = copy.deepcopy(calc)
 
-    for blockname, block in calc.parameters['input_data'].items():
-        for key in block:
-            if key in to_exclude:
-                del calc_out.parameters['input_data'][blockname][key]
-            if key in cp_param:
-                calc_out.parameters['input_data'][blockname][key] = cp_param[key]
+    for key in to_exclude:
+        setattr(calc_out, key, None)
+    for key, value in cp_param.items():
+        setattr(calc_out, key, value)
 
-    write_json(json, calc_out, calc_param=calc_param)
+    write_json(json, calc_out, workflow_settings=workflow_settings)
 
     return calc_out
 
@@ -49,7 +47,7 @@ if __name__ == '__main__':
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=textwrap.dedent('''\
                additional arguments:
-                 -<keyword>  <value>  Add '<keyword>: <value>' to the calc_params
+                 -<keyword>  <value>  Add '<keyword>: <value>' to the workflow_settingss
                                       block of the JSON file
                  '''))
     parser.add_argument('cpi', metavar='in.cpi', type=str,
@@ -77,4 +75,4 @@ if __name__ == '__main__':
             continue
         settings[arg] = value
 
-    cpi_to_json(args.cpi, args.json, calc_param=settings)
+    cpi_to_json(args.cpi, args.json, workflow_settings=settings)

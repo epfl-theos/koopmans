@@ -1,6 +1,5 @@
 {
-    "CALC_PARAM":
-    {
+    "workflow": {
         "calc_type"             : "kipz",
         "init_density"          : "pz",
         "init_manifold"         : "pz",
@@ -10,36 +9,33 @@
         "from_scratch"          : true,
         "orbital_groups"        : [0, 0, 0, 0, 1]
     },
-    "CONTROL": {
-        "pseudo_dir"            : "../../pseudos/"
-    },
-    "SYSTEM":
-    {
-        "ecutwfc"               : 20.0,
-        "ecutrho"               : "4*ecutwfc"
-    },
-    "ELECTRONS":
-    {
-        "maxiter"               : 300,
-        "empty_states_nbnd"     : 1,
-        "empty_states_maxstep"  : 20
-    },
-    "ATOMIC_SPECIES":
-    {
-        "species" : [["H", 1.0, "H_ONCV_PBE-1.0.upf"],["O", 1.0, "O_ONCV_PBE-1.0.upf"]]
-    },
-    "ATOMIC_POSITIONS":
-    {
-        "units"                 : "alat",
-        "positions"             : [["O", 4.7571, 4.0, 3.902317],
-                                   ["H", 5.5142, 4.0, 4.488417],
-                                   ["H", 4.0, 4.0, 4.488417]]
-    },
-    "CELL_PARAMETERS":
-    {
-        "units"                 : "alat",
-        "vectors"               : [[9.514200, 0.000000, 0.000000],
-                                   [0.000000, 8.000000, 0.000000],
-                                   [0.000000, 0.000000, 8.586100]]
+    "cp": {
+        "control": {
+            "pseudo_dir"            : "../../pseudos/"
+        },
+        "system": {
+            "ecutwfc"               : 20.0,
+            "ecutrho"               : "4*ecutwfc"
+        },
+        "electrons": {
+            "maxiter"               : 300,
+            "empty_states_nbnd"     : 1,
+            "empty_states_maxstep"  : 20
+        },
+        "atomic_species": {
+            "species" : [["H", 1.0, "H_ONCV_PBE-1.0.upf"],["O", 1.0, "O_ONCV_PBE-1.0.upf"]]
+        },
+        "atomic_positions": {
+            "units"                 : "alat",
+            "positions"             : [["O", 4.7571, 4.0, 3.902317],
+                                       ["H", 5.5142, 4.0, 4.488417],
+                                       ["H", 4.0, 4.0, 4.488417]]
+        },
+        "cell_parameters": {
+            "units"                 : "alat",
+            "vectors"               : [[9.514200, 0.000000, 0.000000],
+                                       [0.000000, 8.000000, 0.000000],
+                                       [0.000000, 0.000000, 8.586100]]
+        }
     }
 }

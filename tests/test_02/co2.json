@@ -1,5 +1,5 @@
 {
-  "calc_param": {
+  "workflow": {
     "calc_type": "ki",
     "init_manifold": "pz",
     "n_max_sc_steps": 1,
@@ -7,36 +7,38 @@
     "print_qc": true,
     "from_scratch": true
   },
-  "control": {
-    "pseudo_dir": "../../pseudos/"
-  },
-  "system": {
-    "ibrav": 0,
-    "ecutwfc": 20.0,
-    "ecutrho": 80.0,
-    "input_dft": "PBE",
-    "nr1b": 24,
-    "nr2b": 24,
-    "nr3b": 24
-  },
-  "electrons": {
-    "empty_states_nbnd": 2
-  },
-  "nksic": {
-    "innerloop_cg_ratio": 0.01,
-    "kfact": 2.0
-  },
-  "cell_parameters": {
-    "vectors": [ [ 10.0, 0.0, 0.0 ],
-                 [ 0.0, 10.0, 0.0 ],
-                 [ 0.0, 0.0, 12.32 ] ]
-  },
-  "atomic_positions": {
-    "positions": [ [ "O", 5.0, 5.0, 7.32 ],
-                   [ "C", 5.0, 5.0, 6.16 ],
-                   [ "O", 5.0, 5.0, 5.0  ] ]
-  },
-  "atomic_species": {
-    "species": [ [ "O", 1.0, "O_ONCV_PBE-1.0.upf" ], [ "C", 1.0, "C_ONCV_PBE-1.0.upf" ] ]
+  "cp": {
+    "control": {
+      "pseudo_dir": "../../pseudos/"
+    },
+    "system": {
+      "ibrav": 0,
+      "ecutwfc": 20.0,
+      "ecutrho": 80.0,
+      "input_dft": "PBE",
+      "nr1b": 24,
+      "nr2b": 24,
+      "nr3b": 24
+    },
+    "electrons": {
+      "empty_states_nbnd": 2
+    },
+    "nksic": {
+      "innerloop_cg_ratio": 0.01,
+      "kfact": 2.0
+    },
+    "cell_parameters": {
+      "vectors": [ [ 10.0, 0.0, 0.0 ],
+                   [ 0.0, 10.0, 0.0 ],
+                   [ 0.0, 0.0, 12.32 ] ]
+    },
+    "atomic_positions": {
+      "positions": [ [ "O", 5.0, 5.0, 7.32 ],
+                     [ "C", 5.0, 5.0, 6.16 ],
+                     [ "O", 5.0, 5.0, 5.0  ] ]
+    },
+    "atomic_species": {
+      "species": [ [ "O", 1.0, "O_ONCV_PBE-1.0.upf" ], [ "C", 1.0, "C_ONCV_PBE-1.0.upf" ] ]
+    }
   }
 }

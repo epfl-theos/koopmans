@@ -15,7 +15,8 @@ from koopmans_cp.utils import warn
 from koopmans_cp.io import write_alpharef, read_alpharef, print_summary, print_qc
 from koopmans_cp.ase import read_json
 from koopmans_cp.defaults import load_defaults
-from koopmans_cp.calc import run_qe, calculate_alpha, CP_calc
+from koopmans_cp.calc import run_qe, calculate_alpha
+from koopmans_cp.calculators.cp import CP_calc
 
 Setting = namedtuple(
     'Setting', ['name', 'description', 'type', 'default', 'options'])
@@ -331,7 +332,7 @@ keywords_altered_during_workflow = ['ndw', 'ndr', 'restart_mode', 'nelec', 'nelu
                                     'fixed_band', 'conv_thr', 'restart_from_wannier_pwscf',
                                     'maxiter', 'empty_states_maxstep', 'esic_conv_thr',
                                     'do_innerloop', 'freeze_density', 'which_orbdep',
-                                    'print_wfc_anion', 'directory', 'odd_nkscalfact',
+                                    'print_wfc_anion', 'odd_nkscalfact',
                                     'odd_nkscalfact_empty', 'nkscalfact', 'do_innerloop_empty',
                                     'innerloop_nmax']
 
@@ -349,14 +350,12 @@ def run_from_json(json):
     '''
 
     # Reading in JSON file
-    master_calc, workflow_settings = read_json(json)
+    workflow_settings, calcs_dct = read_json(json)
+    master_calc = calcs_dct['cp']
 
     # Check that the workflow settings are valid and populate missing
     # settings with default values
     check_settings(workflow_settings)
-
-    # Convert the master_calc object to a the CP_calc class
-    master_calc = CP_calc(master_calc)
 
     # Load cp.x default values from koopmans.defaults
     master_calc = load_defaults(master_calc)
@@ -533,7 +532,7 @@ def run(master_calc, workflow_settings):
         print('Copying the density from a pre-existing KI calculation')
 
         # Read the .cpi file to work out the value for ndw
-        calc = CP_calc(filename='init/ki_init.cpi')
+        calc = CP_calc(qe_files='init/ki_init')
 
         # Move the old save directory to correspond to ndw = 50
         old_savedir = f'{outdir}/{calc.prefix}_{calc.ndw}.save'
@@ -558,8 +557,7 @@ def run(master_calc, workflow_settings):
             if not os.path.isfile(fname):
                 raise ValueError(f'Could not find {fname}')
 
-        calc_out = CP_calc(filename='init/ki_init.cpo')
-        if not calc_out.is_complete():
+        if not calc.is_complete():
             raise ValueError('init/ki_init.cpo is incomplete so cannot be used '
                              'to initialise the density')
     else:

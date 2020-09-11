@@ -29,9 +29,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Perform a KI/KIPZ calculation using cp.x',
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="'calc_param' block arguments:" + epilog)
+        epilog="'workflow' block arguments:" + epilog)
     parser.add_argument('json', metavar='system.json', type=str,
-                        help='a single JSON file containing the workflow and cp.x settings')
+                        help='a single JSON file containing the workflow and cp settings')
 
     # Parse arguments
     args = parser.parse_args()

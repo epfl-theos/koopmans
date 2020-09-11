@@ -6,20 +6,16 @@ Written by Edward Linscott Jan 2020
 
 Major modifications
 May 2020: replaced Extended_Espresso_cp with QE_calc, a calculator class agnostic to the underlying ASE machinery
+Sep 2020: moved individual calculators into calculators/
 
 """
 
 import ase.io as ase_io
-from ase.io import espresso_cp as cp_io
-from ase.io import espresso_cp as pw_io
-from ase.units import create_units
+from  ase.io import espresso_cp as cp_io
 from koopmans_cp.io import cpi_diff, read_alpharef, warn
 import os
 import sys
 import copy
-
-# Quantum ESPRESSO uses CODATA 2006 internally
-units = create_units('2006')
 
 class QE_calc:
 
@@ -41,22 +37,40 @@ class QE_calc:
     From this generic class we will later define
       CP_calc for calculations using cp.x
       PW_calc for calculations using pw.x
-    These are differentiated by self._io = cp_io or pw_io
+      ... and others as listed in calculators/
+    These are differentiated by self._io = cp_io/pw_io/...
 
     Arguments:
         calc       an ASE calculator object to initialize the QE calculation settings
-        filename   an alternative to calc, initialize the settings using a QE input file
+        qe_files   an alternative to calc, initialize the settings using qe input file(s)
         kwargs     any valid quantum espresso keywords to alter
     '''
 
-    def __init__(self, calc=None, filename=None, **kwargs):
+    def __init__(self, calc=None, qe_files=[], **kwargs):
 
-        # If filename provided, use this instead of calc
-        if filename is not None:
-            if calc is None:
-                calc = ase_io.read(filename).calc
+        # If qe_input/output_files are provided, use them instead of calc
+        if len(qe_files) > 0 and calc is not None:
+            raise ValueError(f'Please only provide either the calc or qe_files argument to {self.__class__}')
+
+        # Interpreting the qe_files argument
+        if isinstance(qe_files, str):
+            # If no extension is provided, automatically read both input and output files
+            if '.' not in qe_files.split('/')[-1]:
+                qe_files = [qe_files + self.ext_in, qe_files + self.ext_out]
             else:
-                raise ValueError(f'Please only provide either the calc or filename argument to {self.__class__}')
+                qe_files = [qe_files]
+
+        # Read qe input file
+        for qe_file in [f for f in qe_files if self.ext_in in f]:
+            calc = ase_io.read(qe_file).calc
+
+        # Read qe output file
+        for qe_file in [f for f in qe_files if self.ext_out in f]:
+            if calc is None:
+                calc = ase_io.read(qe_file).calc
+            else:
+                # Copy over the results
+                calc.results = ase_io.read(qe_file).calc.results
 
         # Initialise the calculator object
         self._ase_calc = calc
@@ -75,6 +89,10 @@ class QE_calc:
 
     # By default, use cp.x
     _io = cp_io
+
+    # extensions for i/o files
+    ext_out = ''
+    ext_in = ''
 
     @property
     def calc(self):
@@ -177,109 +195,10 @@ class QE_calc:
             self._settings[key] = self.parse_algebraic_setting(value)
 
     def is_converged(self):
-        raise ValueError(f'is_converged() function has not been implemented for {self}')
+        raise ValueError(f'is_converged() function has not been implemented for {self.__class__}')
 
     def is_complete(self):
-        raise ValueError(f'is_complete() function has not been implemented for {self}')
-
-class PW_calc(QE_calc):
-    # Subclass of QE_calc for performing calculations with pw.x
-
-    # Point to the appropriate ASE IO module
-    _io = pw_io
-
-    # Define the appropriate file extensions
-    ext_in = '.pwi'
-    ext_out = '.pwo'
-
-    # Adding all pw.x keywords as decorated properties of the PW_calc class.
-    # This means one can set and get pw.x keywords as self.<keyword> but
-    # internally they are stored as self._settings['keyword'] rather than 
-    # self.<keyword>
-    _recognised_keywords = []
-
-    for keywords in _io.KEYS.values():
-        for k in keywords: 
-            _recognised_keywords.append(k)
-
-            # We need to use these make_get/set functions so that get/set_k are
-            # evaluated immediately (otherwise we run into late binding and 'k'
-            # is not defined when get/set_k are called)
-            def make_get(key):
-                def get_k(self):
-                    # Return 'None' rather than an error if the keyword has not
-                    # been defined
-                    return self._settings.get(key, None)
-                return get_k
-
-            def make_set(key):
-                def set_k(self, value):
-                    self._settings[key] = value
-                return set_k
-
-            get_k = make_get(k)
-            set_k = make_set(k)
-            locals()[k] = property(get_k, set_k)     
-
-    def is_complete(self):
-        return self.results.get('job done', False)
-
-    def is_converged(self):
-        return self.results.get('energy', None) is not None
-
-class CP_calc(QE_calc):
-    # Subclass of QE_calc for performing calculations with cp.x
-     
-    # Point to the appropriate ASE IO module
-    _io = cp_io
-
-    # Define the appropriate file extensions
-    ext_in = '.cpi'
-    ext_out = '.cpo'
-
-    # Adding all cp.x keywords as decorated properties of the CP_calc class.
-    # This means one can set and get cp.x keywords as self.<keyword> but
-    # internally they are stored as self._settings['keyword'] rather than 
-    # self.<keyword>
-    _recognised_keywords = []
-
-    for keywords in _io.KEYS.values():
-        for k in keywords: 
-            _recognised_keywords.append(k)
-
-            # We need to use these make_get/set functions so that get/set_k are
-            # evaluated immediately (otherwise we run into late binding and 'k'
-            # is not defined when get/set_k are called)
-            def make_get(key):
-                def get_k(self):
-                    # Return 'None' rather than an error if the keyword has not
-                    # been defined
-                    return self._settings.get(key, None)
-                return get_k
-
-            def make_set(key):
-                def set_k(self, value):
-                    self._settings[key] = value
-                return set_k
-
-            get_k = make_get(k)
-            set_k = make_set(k)
-            locals()[k] = property(get_k, set_k)     
-
-    def is_complete(self):
-        return self.results['job_done']
-
-    def is_converged(self):
-        # Checks convergence of the calculation
-        if self.conv_thr is None:
-            raise ValueError('Cannot check convergence when "conv_thr" is not set')
-        return self._ase_is_converged()
-
-    def _ase_is_converged(self):
-        if 'convergence' not in self.results:
-            raise ValueError('Could not locate calculation details to check convergence')
-        return all([abs(v[-1]['delta_E']) < self.conv_thr*units.Hartree 
-                for v in self.results['convergence'].values()])
+        raise ValueError(f'is_complete() function has not been implemented for {self.__class__}')
 
 def run_qe(qe_calc, silent=True, from_scratch=False):
     '''
@@ -297,30 +216,28 @@ def run_qe(qe_calc, silent=True, from_scratch=False):
 
     # If an output file already exists, check if the run completed successfully
     if not from_scratch:
-        calc_file = f'{qe_calc.directory}/{qe_calc.name}{ext_out}'
-        if os.path.isfile(calc_file):
-            old_out = qe_calc.__class__(filename=calc_file)
+        calc_file = f'{qe_calc.directory}/{qe_calc.name}'
+        if os.path.isfile(calc_file + ext_out):
+            old_calc = qe_calc.__class__(qe_files=calc_file)
 
-            if old_out.is_complete():
+            if old_calc.is_complete():
                 # If it did, load the results, and exit
-                qe_calc.results = old_out.results
+                qe_calc.results = old_calc.results
                 if not silent:
                     print(
                         f'Not running {calc_file} as it is already complete')
                 return False
             else:
                 # If not, compare our settings with the settings of the preexisting .cpi file
-                calc_file = calc_file.replace(ext_out, ext_in)
-                old_in = qe_calc.__class__(filename=calc_file)
                 if ext_out == '.cpo':
-                    diffs = cpi_diff([qe_calc, old_in])
+                    diffs = cpi_diff([qe_calc, old_calc])
                 else:
                     raise Error('pwi_diff needs to be implemented')
                 if not silent:
                     print(f'Rerunning {calc_file}')
                 if len(diffs) > 0:
                     for d in diffs:
-                        old_value = getattr(old_in, d, None)
+                        old_value = getattr(old_calc, d, None)
                         setattr(qe_calc, d, old_value)
                         if not silent:
                             print(f'    Resetting {d}')
