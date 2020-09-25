@@ -152,8 +152,6 @@ cp_files : ../../Modules/mp_wave.o
 cp_files : ../../Modules/mp_world.o
 cp_files : ../../Modules/noncol.o
 cp_files : ../../UtilXlib/mp.o
-cp_files : fft_supercell.o
-cp_files : read_wannier.o
 cube.o : ../../Modules/cell_base.o
 cube.o : ../../Modules/io_global.o
 cube.o : ../../Modules/kind.o
@@ -736,6 +734,7 @@ read_wannier.o : ../../Modules/kind.o
 read_wannier.o : ../../Modules/mp_global.o
 read_wannier.o : ../../PW/src/pwcom.o
 read_wannier.o : ../../UtilXlib/mp.o
+scell_wfc.o : ../../Modules/cell_base.o
 scell_wfc.o : ../../Modules/constants.o
 scell_wfc.o : ../../Modules/fft_base.o
 scell_wfc.o : ../../Modules/io_global.o
@@ -744,7 +743,6 @@ scell_wfc.o : ../../Modules/mp_bands.o
 scell_wfc.o : ../../FFTXlib/fft_support.o
 scell_wfc.o : ../../FFTXlib/fft_types.o
 scell_wfc.o : ../../UtilXlib/mp.o
-scell_wfc.o : fft_supercell.o
 smallgk.o : ../../Modules/kind.o
 stm.o : ../../FFTXlib/fft_interfaces.o
 stm.o : ../../FFTXlib/scatter_mod.o

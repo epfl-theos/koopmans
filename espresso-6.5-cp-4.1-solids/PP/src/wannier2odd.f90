@@ -95,10 +95,6 @@ MODULE wannier2odd
     REAL(DP) :: kvec(3), rvec(3), gvec(3)
     REAL(DP) :: dot_prod
     COMPLEX(DP) :: phase
-!!! RICCARDO debug >>>
-    COMPLEX(DP), ALLOCATABLE :: ewan_(:)
-    COMPLEX(DP), ALLOCATABLE :: orb(:)
-!!! RICCARDO debug <<<
     !
     !
     CALL start_clock( 'wannier2odd' )
@@ -108,10 +104,6 @@ MODULE wannier2odd
     !
     CALL read_wannier_chk( seedname )
     CALL setup_scell_fft
-!!! RICCARDO debug >>>
-    ALLOCATE( ewan_(dfftcp%nnr) )
-    ALLOCATE( orb(dfftcp%nnr) )
-!!! RICCARDO debug <<<
     !
     !
     nwordwfcx = num_bands*npwxcp*npol
@@ -233,7 +225,6 @@ MODULE wannier2odd
 !          IF ( i==1 .and. j==1 .and. k==1 ) CYCLE
           !
           rvec(:) = (/ i-1, j-1, k-1 /)
-!          CALL cryst_to_cart( 1, rvec, at_cp, 1 )
           CALL cryst_to_cart( 1, rvec, at, 1 )
           !
 !!! RICCARDO debug >>>
@@ -254,15 +245,6 @@ MODULE wannier2odd
               ENDDO
               !
             ENDDO
-!!! RICCARDO debug >>>
-            ewan_(:) = (0.d0,0.d0)
-            ewan_(dfftcp%nl(1:npwxcp)) = ewan(1:npwxcp,iw,ir)
-            call invfft( 'Wave', ewan_, dfftcp )
-            orb(:) = ( DBLE( ewan_(:) )**2 + &
-                      AIMAG( ewan_(:) )**2 ) / omega
-            call fwfft( 'Rho', orb, dfftcp)
-            write(*,*) 'RICCARDO orb', orb(dfftcp%nl(1))
-!!! RICCARDO debug <<<
           ENDDO
 !!! RICCARDO debug <<<
 !          DO ipw = 1, npwxcp
@@ -280,6 +262,8 @@ MODULE wannier2odd
         ENDDO
       ENDDO
     ENDDO
+    !
+    CALL close_buffer( iunwfcx, 'delete' )
     !
 !!! RICCARDO debug >>>
     ALLOCATE( rhor_(dfftcp%nnr) )
@@ -309,15 +293,7 @@ MODULE wannier2odd
     ! ... write the WFs to a CP-Koopmans-readable file
     !
     CALL plot_density( 'single', ewan(:,1,1), 1, 1 )
-!!! RICCARDO debug >>>
-    rhog(:,1) = ewan(:,1,1)
-    IF ( my_pool_id == 0 .AND. my_bgrp_id == root_bgrp_id ) &
-         CALL write_rhog( "wf_0001.xsf", &
-         root_bgrp, intra_bgrp_comm, &
-         bg_cp(:,1)*tpiba, bg_cp(:,2)*tpiba, bg_cp(:,3)*tpiba, &
-         gamma_only_cp, mill_cp, ig_l2g_cp, rhog(:,:) )
-!!! RICCARDO debug <<<
-    CALL write_wannier_cp( ewan, 'occupied' )
+    CALL write_wannier_cp( 'occupied', ewan, npwxcp, num_bands, num_kpts, ig_l2g_cp )
     !
     !
     CALL stop_clock( 'wannier2odd' )

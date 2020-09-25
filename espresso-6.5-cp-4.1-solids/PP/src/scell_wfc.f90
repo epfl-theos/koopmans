@@ -42,8 +42,8 @@ MODULE scell_wfc
     USE mp,                  ONLY : mp_sum
     USE mp_bands,            ONLY : intra_bgrp_comm
     USE fft_types,           ONLY : fft_type_descriptor
+    USE cell_base,           ONLY : at
     USE constants,           ONLY : eps8, tpi
-    USE fft_supercell,       ONLY : at_cp, check_fft
     !
     !
     IMPLICIT NONE
@@ -107,22 +107,14 @@ MODULE scell_wfc
       !
       psicx(ir) = psicg( ip + jp*dffts%nr1x + kp*dffts%nr1x*dffts%my_nr2p + 1 )
       !
-      ! ... check on psicx when dfftcp is taken equal to dffts
-      !
-      IF ( check_fft ) THEN
-        IF ( ABS( DBLE(psicx(ir) - psic(ir)) ) .ge. eps8 .or. &
-             ABS( AIMAG(psicx(ir) - psic(ir)) ) .ge. eps8 ) THEN
-          CALL errore( 'extend_wfc', 'psicx and psic differ', 1 )
-        ENDIF
-      ENDIF
       !
       ! ... calculate the phase factor e^(ikr) and applies it to psicx
       !
-      r(1) = DBLE(i) / dfftx%nr1
-      r(2) = DBLE(j) / dfftx%nr2
-      r(3) = DBLE(k) / dfftx%nr3
+      r(1) = DBLE(i) / dffts%nr1
+      r(2) = DBLE(j) / dffts%nr2
+      r(3) = DBLE(k) / dffts%nr3
       !
-      CALL cryst_to_cart( 1, r, at_cp, 1 )
+      CALL cryst_to_cart( 1, r, at, 1 )
       !
       dot_prod = tpi * SUM( kvec(:) * r(:) )
       phase = CMPLX( COS(dot_prod), SIN(dot_prod), KIND=DP )
