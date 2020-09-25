@@ -10,11 +10,13 @@
 !
 !
 !-----------------------------------------------------------------------
-MODULE fft_supercell
+MODULE wannier2odd
   !---------------------------------------------------------------------
   !
-  ! ...  This module contains all the quantities and routines 
-  ! ...  related to the supercell FFT.
+  ! ...  This module contains the procedure to build the Wannier
+  ! ...  functions from the PW and Wannier90 outputs, extend them
+  ! ...  to the supercell and write them to a file readable by
+  ! ...  the CP-Koopmans code.
   !
   USE kinds,               ONLY : DP
   USE fft_types,           ONLY : fft_type_descriptor
@@ -25,9 +27,9 @@ MODULE fft_supercell
   !
   SAVE
   !
-  PUBLIC
-  !
-  PRIVATE :: fftcp_base_info, gveccp_init, gshells_cp, compare_dfft
+  PRIVATE
+  ! 
+  PUBLIC :: wan2odd
   !
   TYPE( fft_type_descriptor ) :: dfftcp
   TYPE( sticks_map ) :: smap_cp
@@ -36,10 +38,6 @@ MODULE fft_supercell
   REAL(DP) :: bg_cp(3,3)
   REAL(DP) :: omega_cp
   LOGICAL :: gamma_only_cp=.false.  ! CHECK ALSO npwxcp WHEN USING GAMMA TRICK
-  !
-  INTEGER :: nat_cp
-  INTEGER, ALLOCATABLE :: ityp_cp(:)
-  REAL(DP), ALLOCATABLE :: tau_cp(:,:) 
   !
   ! in the following all the G-vectors related quantities
   ! connected to the dfftcp are defined
@@ -65,84 +63,235 @@ MODULE fft_supercell
 CONTAINS
   !
   !---------------------------------------------------------------------
+  SUBROUTINE wan2odd( num_bands, ikstart )
+    !-------------------------------------------------------------------
+    !
+    ! ...  This routine:
+    !
+    ! ...  1) reads the KS states u_nk(G) from PW and the rotation 
+    ! ...     matrices U(k) from Wannier90
+    !
+    ! ...  2) Fourier transforms u_nk to real-space and extends them 
+    ! ...     to the supercell defined by the k-points sampling
+    !
+    ! ...  3) applies the matrices U(k) and realizes the Wannier 
+    ! ...     functions in real space. Then Fourier transforms back
+    ! ...     to G-space
+    !
+    ! ...  4) the Wannier functions are finally written in a CP-readable
+    ! ...     file
+    !
+    USE io_global,           ONLY : stdout, ionode
+    USE io_files,            ONLY : nwordwfc, iunwfc, restart_dir
+    USE io_base,             ONLY : write_rhog
+    USE mp_pools,            ONLY : my_pool_id
+    USE mp_bands,            ONLY : my_bgrp_id, root_bgrp_id, &
+                                    root_bgrp, intra_bgrp_comm
+    USE mp,                  ONLY : mp_sum
+    USE wavefunctions,       ONLY : evc, psic
+    USE fft_base,            ONLY : dffts
+    USE fft_interfaces,      ONLY : invfft, fwfft
+    USE buffers,             ONLY : open_buffer, close_buffer, &
+                                    save_buffer, get_buffer
+    USE lsda_mod,            ONLY : nspin
+    USE klist,               ONLY : xk, ngk, igk_k, nkstot, nelec
+    USE gvect,               ONLY : ngm
+    USE wvfct,               ONLY : wg, npwx
+    USE cell_base,           ONLY : tpiba, omega, at
+    USE control_flags,       ONLY : gamma_only
+    USE constants,           ONLY : eps6
+    USE scf,                 ONLY : rho
+    USE noncollin_module,    ONLY : npol
+    USE input_parameters,    ONLY : nk1, nk2, nk3
+    !USE wannier,             ONLY : iknum, ikstart, num_bands
+    !
+    !
+    IMPLICIT NONE
+    !
+    INTEGER, INTENT(IN) :: num_bands
+    INTEGER, INTENT(IN) :: ikstart
+    !
+    CHARACTER(LEN=256) :: dirname
+    INTEGER :: ik, ikevc, ibnd 
+    INTEGER :: npw
+    INTEGER :: iunwfcx = 24                  ! unit for supercell wfc file
+    INTEGER :: nwordwfcx                     ! nword for supercell wfc
+    INTEGER :: io_level = 1
+    LOGICAL :: exst
+    COMPLEX(DP), ALLOCATABLE :: evcx(:,:)
+    COMPLEX(DP), ALLOCATABLE :: psicx(:)
+    COMPLEX(DP), ALLOCATABLE :: rhor(:)      ! supercell density in real space
+    COMPLEX(DP), ALLOCATABLE :: rhog(:,:)    ! supercell density in G-space
+    REAL(DP) :: kvec(3)
+    REAL(DP) :: nelec_, charge
+    !
+    !
+    CALL start_clock( 'wannier2odd' )
+    CALL setup_scell_fft
+    !
+    nwordwfcx = num_bands*npwxcp*npol
+    ALLOCATE( evcx(npwxcp*npol,num_bands) )
+    ALLOCATE( psicx(dfftcp%nnr) )
+    ALLOCATE( rhor(dfftcp%nnr) )
+    ALLOCATE( rhog(ngmcp,nspin) )
+    WRITE(stdout,'(2x, "RICCARDO - check on parallelization - dffts%nnr:", i10)') dffts%nnr
+    !
+    rhor(:) = ( 0.D0, 0.D0 )
+    rhog(:,:) = ( 0.D0, 0.D0 )
+    !
+    !
+    ! ... open buffer for direct-access to the extended wavefunctions
+    !
+    CALL open_buffer( iunwfcx, 'wfcx', nwordwfcx, io_level, exst )
+    !
+    ! ... loop to read the primitive cell wavefunctions and 
+    ! ... extend them to the supercell. Also the Wannier gauge 
+    ! ... matrices U(k) are read here
+    ! 
+    DO ik = 1, nkstot
+      !
+      ikevc = ik + ikstart - 1
+      CALL davcio( evc, 2*nwordwfc, iunwfc, ikevc, -1 )
+      npw = ngk(ik)
+      kvec(:) = xk(:,ik)
+      !
+      DO ibnd = 1, num_bands     !!! SPIN TO CHECK!!!!
+        !
+        psic(:) = (0.D0, 0.D0)
+        psicx(:) = (0.D0, 0.D0)
+        psic( dffts%nl(igk_k(1:npw,ik)) ) = evc(1:npw, ibnd)
+        IF( gamma_only ) psic( dffts%nlm(igk_k(1:npw,ik)) ) = CONJG(evc(1:npw, ibnd))
+        CALL invfft( 'Wave', psic, dffts )
+        !
+        ! ... here we extend the wfc to the whole supercell
+        !
+        ! ... NB: the routine extend_wfc applies also the phase factor >>> MAYBE THIS IS WRONG!!!
+        ! ...     e^(ikr) so the output wfc (psicx) is a proper Bloch
+        ! ...     function and not just its periodic part
+        !
+        CALL extend_wfc( psic, psicx, dfftcp, kvec )
+        !
+        ! ... now we calculate the total density in the supercell
+        !
+!        rhor(:) = rhor(:) + ( DBLE( psicx(:) )**2 + &
+!                             AIMAG( psicx(:) )**2 ) * wg(ibnd,ik) / omega
+        !
+        CALL fwfft( 'Wave', psicx, dfftcp )
+        IF ( gamma_only_cp ) THEN
+          evcx(1:npwxcp,ibnd) = psicx( dfftcp%nlm(1:npwxcp) )  ! THIS DOES NOT WORK!!! TO BE FIXED
+        ELSE
+          evcx(1:npwxcp,ibnd) = psicx( dfftcp%nl(1:npwxcp) )
+        ENDIF
+        !
+      ENDDO ! ibnd
+      !
+      ! ... save the extended wavefunctions into the buffer
+      !
+      CALL save_buffer( evcx, nwordwfcx, iunwfcx, ik )
+      !
+    ENDDO ! ik
+    !
+    CALL close_buffer( iunwfcx, 'delete' )
+    !
+    CALL fwfft( 'Rho', rhor, dfftcp )
+    IF ( gamma_only_cp ) THEN
+      rhog(1:ngmcp,1) = rhor( dfftcp%nlm(1:ngmcp) )            ! THIS DOES NOT WORK!!! TO BE FIXED
+    ELSE
+      rhog(1:ngmcp,1) = rhor( dfftcp%nl(1:ngmcp) )
+    ENDIF
+    !
+    ! ... check on the total charge
+    !
+    charge = 0.D0
+    IF ( gstart_cp == 2 ) THEN
+      charge = rhog(1,1) * omega_cp
+    ENDIF
+    CALL mp_sum( charge, intra_bgrp_comm )
+    nelec_ = nelec * nkstot
+    IF ( check_fft ) nelec_ = nelec
+    IF ( ABS( charge - nelec_ ) > 1.D-3 * charge ) &
+         CALL errore( 'wan2odd', 'wrong total charge', 1 )
+    !
+    ! ... check on rho(G) when dfftcp is taken equal to dffts
+    !
+    IF ( check_fft ) THEN
+      DO ik = 1, ngmcp
+        IF ( ABS( DBLE(rhog(ik,1) - rho%of_g(ik,1)) ) .ge. eps6 .or. &
+             ABS( AIMAG(rhog(ik,1) - rho%of_g(ik,1)) ) .ge. eps6 ) THEN
+          CALL errore( 'wan2odd', 'rhog and rho%of_g differ', 1 )
+        ENDIF
+      ENDDO
+    ENDIF
+    !
+    ! ... write G-space density
+    !
+    dirname = restart_dir()
+    IF ( my_pool_id == 0 .AND. my_bgrp_id == root_bgrp_id ) &
+         CALL write_rhog( TRIM(dirname) // "charge-density-x", &
+         root_bgrp, intra_bgrp_comm, &
+         bg_cp(:,1)*tpiba, bg_cp(:,2)*tpiba, bg_cp(:,3)*tpiba, &
+         gamma_only_cp, mill_cp, ig_l2g_cp, rhog(:,:) )
+    !
+    CALL stop_clock( 'wannier2odd' )
+    !
+    !
+  END SUBROUTINE wan2odd
+  !
+  !
+  !---------------------------------------------------------------------
   SUBROUTINE setup_scell_fft
     !-------------------------------------------------------------------
     !
     ! ...  Here we set up the fft descriptor (dfftcp) for the supercell
     ! ...  commensurate to the Brillouin zone sampling.
     !
-    USE io_global,           ONLY : stdout, ionode
-    USE fft_base,            ONLY : smap, dffts
-    USE fft_types,           ONLY : fft_type_init
+!    USE wannier,             ONLY : mp_grid
+    USE input_parameters,    ONLY : nk1, nk2, nk3
+    USE fft_base,            ONLY : smap
     USE mp_bands,            ONLY : nproc_bgrp, intra_bgrp_comm, nyfft, &
                                     ntask_groups, nyfft
     USE mp_pools,            ONLY : inter_pool_comm
     USE mp,                  ONLY : mp_max
+    USE io_global,           ONLY : stdout, ionode
+    USE fft_base,            ONLY : dffts
+    USE fft_types,           ONLY : fft_type_init
     USE gvect,               ONLY : gcutm
     USE gvecs,               ONLY : gcutms
     USE gvecw,               ONLY : gcutw, gkcut
-    USE ions_base,           ONLY : nat, tau, ityp
-    USE parameters,          ONLY : ntypx
     USE recvec_subs,         ONLY : ggen, ggens
-    USE klist,               ONLY : nks, xk
+    USE klist,               ONLY : nks, nkstot, xk
     USE control_flags,       ONLY : gamma_only
     USE cell_base,           ONLY : at, bg, omega
     USE cellmd,              ONLY : lmovecell
     USE realus,              ONLY : real_space
     USE symm_base,           ONLY : fft_fact
-    USE read_wannier,        ONLY : num_kpts, kgrid
     !
     !
     IMPLICIT NONE
     !
     INTEGER, EXTERNAL :: n_plane_waves
-    INTEGER :: i, j, k, ir, ik, iat
+    INTEGER :: i, ik
     INTEGER :: ngmcp_
     INTEGER :: nkscp
-    REAL(DP) :: rvec(3)
     REAL(DP), ALLOCATABLE :: xkcp(:,:)
     LOGICAL :: lpara
+    INTEGER :: mp_grid(3)
     !
     !
-    ! ...  we find the supercell lattice vectors and volume
+    !CALL get_mp_grid
     !
+    mp_grid(1)=nk1
+    mp_grid(2)=nk2
+    mp_grid(3)=nk3
+    WRITE(*,*) 'RICCARDO MP_GRID: ', nk1,nk2,nk3
     DO i = 1, 3
-      at_cp(:,i) = at(:,i) * kgrid(i)
-      bg_cp(:,i) = bg(:,i) / kgrid(i)
+      at_cp(:,i) = at(:,i) * mp_grid(i)
+      bg_cp(:,i) = bg(:,i) / mp_grid(i)
     ENDDO
-    omega_cp = omega * num_kpts
+    omega_cp = omega * nkstot
     !
     lpara =  ( nproc_bgrp > 1 )
     gkcut = gcutw
-    !
-    ! ...  determine atomic positions and types in the supercell
-    !
-    nat_cp = nat * num_kpts
-    ALLOCATE( tau_cp(3,nat_cp) )
-    ALLOCATE( ityp_cp(nat_cp) )
-    !
-    ir = 0
-    !
-    DO i = 1, kgrid(1)
-      DO j = 1, kgrid(2)
-        DO k = 1, kgrid(3)
-          !
-          rvec(:) = (/ i-1, j-1, k-1 /)
-          CALL cryst_to_cart( 1, rvec, at, 1 )
-          !
-          DO iat = 1, nat
-            !
-            ityp_cp( ir*nat + iat ) = ityp( iat )
-            !
-            tau_cp(:, ir*nat + iat ) = tau(:,iat) + rvec(:)
-            !
-          ENDDO
-          !
-          ir = ir + 1
-          !
-        ENDDO
-      ENDDO
-    ENDDO
     !
     !
     ! ... uncomment the following line in order to realize dfftcp in the
@@ -231,6 +380,284 @@ CONTAINS
     !
     !
   END SUBROUTINE setup_scell_fft
+  !
+  !
+  !---------------------------------------------------------------------
+  SUBROUTINE extend_wfc( psic, psicx, dfftx, kvec )
+    !-------------------------------------------------------------------
+    !
+    ! ...  Here we extend in real space the periodic part of the Bloch
+    ! ...  functions from the PW unit cell to the whole extension of 
+    ! ...  BVK boundary conditions (supercell).
+    !
+    ! ...  psic  : input wfc defined on the unit cell
+    ! ...  psicx : output wfc extended to the supercell
+    ! ...  dfftx : fft descriptor of the supercell
+    !
+    USE io_global,           ONLY : stdout
+    USE mp,                  ONLY : mp_sum
+    USE mp_bands,            ONLY : intra_bgrp_comm
+    USE fft_support,         ONLY : good_fft_dimension
+    USE fft_base,            ONLY : dffts
+    USE constants,           ONLY : eps8, tpi
+    !
+    !
+    IMPLICIT NONE
+    !
+    COMPLEX(DP), INTENT(IN) :: psic(:)       ! input pcell wfc
+    COMPLEX(DP), INTENT(OUT) :: psicx(:)     ! output supercell wfc
+    TYPE( fft_type_descriptor ) :: dfftx     ! fft descriptor for the supercell
+    REAL(DP), INTENT(IN) :: kvec(3)          ! k-vector for the phase factor 
+    !
+    COMPLEX(DP), ALLOCATABLE :: psicg(:)     ! global pcell wfc
+    COMPLEX(DP) :: phase                     ! phase factor e^(ikr)
+    INTEGER :: nnrg
+    INTEGER :: i, j, k, ir, ir_end, idx, j0, k0
+    INTEGER :: ip, jp, kp
+    REAL(DP) :: r(3)
+    REAL(DP) :: dot_prod
+    !
+    !
+    ! ... broadcast the unit cell wfc to all the procs 
+    !
+    nnrg = dffts%nnr
+    CALL mp_sum( nnrg, intra_bgrp_comm )
+    ALLOCATE( psicg(nnrg) )
+    CALL bcast_psic( psic, psicg )
+    !
+    !
+#if defined (__MPI)
+    j0 = dfftx%my_i0r2p
+    k0 = dfftx%my_i0r3p
+    IF( dfftx%nr1x == 0 ) dfftx%nr1x = good_fft_dimension( dfftx%nr1 )
+    ir_end = MIN( dfftx%nnr, dfftx%nr1x*dfftx%my_nr2p*dfftx%my_nr3p )
+#else
+    j0 = 0
+    k0 = 0
+    ir_end = dfftx%nnr
+#endif
+    !
+    !
+    DO ir = 1, ir_end
+      !
+      ! ... three dimensional indexes
+      !
+      idx = ir - 1
+      k = idx / ( dfftx%nr1x * dfftx%my_nr2p )
+      idx = idx - ( dfftx%nr1x * dfftx%my_nr2p ) * k
+      k = k + k0
+      IF ( k .GE. dfftx%nr3 ) CYCLE
+      j = idx / dfftx%nr1x
+      idx = idx - dfftx%nr1x * j
+      j = j + j0
+      IF ( j .GE. dfftx%nr2 ) CYCLE
+      i = idx
+      IF ( i .GE. dfftx%nr1 ) CYCLE
+      !
+      ! ... ip, jp and kp represent the indexes folded into the 
+      ! ... reference unit cell
+      !
+      ip = MOD( i, dffts%nr1 )
+      jp = MOD( j, dffts%nr2 )
+      kp = MOD( k, dffts%nr3 )
+      !
+      psicx(ir) = psicg( ip + jp*dffts%nr1x + kp*dffts%nr1x*dffts%my_nr2p + 1 )
+      !
+      ! ... check on psicx when dfftcp is taken equal to dffts
+      !
+      IF ( check_fft ) THEN
+        IF ( ABS( DBLE(psicx(ir) - psic(ir)) ) .ge. eps8 .or. &
+             ABS( AIMAG(psicx(ir) - psic(ir)) ) .ge. eps8 ) THEN
+          CALL errore( 'extend_wfc', 'psicx and psic differ', 1 )
+        ENDIF
+      ENDIF
+      !
+      ! ... calculate the phase factor e^(ikr) and applies it to psicx
+      !
+      r(1) = DBLE(i) / dfftx%nr1
+      r(2) = DBLE(j) / dfftx%nr2
+      r(3) = DBLE(k) / dfftx%nr3
+      !
+      CALL cryst_to_cart( 1, r, at_cp, 1 )
+      !
+      dot_prod = tpi * SUM( kvec(:) * r(:) )
+      phase = CMPLX( COS(dot_prod), SIN(dot_prod), KIND=DP )
+      psicx(ir) = phase * psicx(ir)
+      !
+    ENDDO
+    !
+    !
+  END SUBROUTINE extend_wfc
+  !
+  !
+  !---------------------------------------------------------------------
+  SUBROUTINE bcast_psic( psic, psicg )
+    !-------------------------------------------------------------------
+    !
+    ! ...  This routine broadcasts the local wavefunction (psic)
+    ! ...  to all the procs into a global variable psicg indexed
+    ! ...  following the global ordering of the points in the
+    ! ...  FFT grid
+    !
+    USE fft_support,         ONLY : good_fft_dimension
+    USE fft_base,            ONLY : dffts
+    !
+    !
+    IMPLICIT NONE
+    !
+    COMPLEX(DP), INTENT(IN) :: psic(:)
+    COMPLEX(DP), INTENT(OUT) :: psicg(:)
+    !
+    INTEGER :: i, j, k, ir, ir_end, idx, j0, k0, irg
+    !
+    !
+#if defined (__MPI)
+    j0 = dffts%my_i0r2p
+    k0 = dffts%my_i0r3p
+    IF( dffts%nr1x == 0 ) dffts%nr1x = good_fft_dimension( dffts%nr1 )
+    ir_end = MIN( dffts%nnr, dffts%nr1x*dffts%my_nr2p*dffts%my_nr3p )
+#else
+    j0 = 0
+    k0 = 0
+    ir_end = dffts%nnr
+#endif
+    !
+    !
+    DO ir = 1, ir_end
+      !
+      ! ... three dimensional indexes
+      !
+      idx = ir - 1
+      k = idx / ( dffts%nr1x * dffts%my_nr2p )
+      idx = idx - ( dffts%nr1x * dffts%my_nr2p ) * k
+      k = k + k0
+      IF ( k .GE. dffts%nr3 ) CYCLE
+      j = idx / dffts%nr1x
+      idx = idx - dffts%nr1x * j
+      j = j + j0
+      IF ( j .GE. dffts%nr2 ) CYCLE
+      i = idx
+      IF ( i .GE. dffts%nr1 ) CYCLE
+      !
+      ! ... defining global index and saving psicg
+      !
+      irg = i + j*dffts%nr1x + k*dffts%nr1x*dffts%my_nr2p + 1
+      psicg(irg) = psic(ir)
+      !
+    ENDDO    
+    !
+    !
+  END SUBROUTINE bcast_psic
+  !
+  !
+  !---------------------------------------------------------------------
+!  SUBROUTINE read_u_matrix( u_mat, u_mat_opt )
+!    !-------------------------------------------------------------------
+!    ! 
+!    USE io_global            ONLY : ionode
+!    USE wannier,             ONLY : iknum, seedname, mp_grid, &
+!                                    num_wann, num_bands
+!    !
+!    !
+!    IMPLICIT NONE
+!    !
+!    COMPLEX(DP), ALLOCATABLE, INTENT(OUT) :: u_mat(:,:,:)
+!    COMPLEX(DP), ALLOCATABLE, INTENT(OUT) :: u_mat_opt(:,:,:)
+!    !
+!    INTEGER :: chk_unit=124
+!    INTEGER :: i, j, nkp
+!    LOGICAL :: exst
+!    CHARACTER(LEN=33) :: header
+!    INTEGER :: nbands, num_exclude_bands
+!    LOGICAL, ALLOCATABLE :: exclude_bands(:)
+!    REAL(DP) :: at(3,3), bg(3,3)
+!    INTEGER :: num_kpts
+!    INTEGER :: kgrid(3)
+!    REAL(DP), ALLOCATABLE :: kpt_latt(:,:)
+!    INTEGER :: nntot, nwann
+!    LOGICAL :: checkpoint, have_disentangled
+!    REAL(DP) :: omega_invariant           ! disentanglement parameters
+!    LOGICAL, ALLOCATABLE :: lwindow(:,:)  ! disentanglement parameters
+!    INTEGER, ALLOCATABLE :: ndimwin(:)    ! disentanglement parameters 
+!    !
+!    !
+!    IF ( ionode ) THEN
+!      !
+!      INQUIRE( FILE=trim(seedname)//'.chk', EXIST=exst )
+!      IF ( .not. exst ) CALL errore( 'read_u_matrix', 'chk file not found', 1 )
+!      !
+!      OPEN( UNIT=chk_unit, FILE=trim(seedname)//'.chk', STATUS='old', FORM='unformatted' )
+!      !
+!      READ( chk_unit ) header                   ! date and time
+!      READ( chk_unit ) num_bands                ! number of bands
+!      READ( chk_unit ) num_exclude_bands        ! number of excluded bands
+!      !
+!      IF ( nbands .ne. num_bands ) &
+!        CALL  errore( 'read_u_matrix', 'Invalid value for nbands', nbands )
+!      ! 
+!      IF ( num_exclude_bands .lt. 0 ) &
+!        CALL  errore( 'read_u_matrix', 'Invalid value for num_exclude_bands', &
+!                      num_exclude_bands )
+!      !
+!      ALLOCATE( exclude_bands(num_exclude_bands) )
+!      exclude_bands(:) = .FALSE.
+!      !
+!      READ( chk_unit ) ( exclude_bands(i), i=1,num_exclude_bands )   ! excluded bands
+!      READ( chk_unit ) (( at(i,j), i=1,3 ), j=1,3 )                  ! prim real latt vectors
+!      READ( chk_unit ) (( bg(i,j), i=1,3 ), j=1,3 )                  ! prim recip latt vectors
+!      READ( chk_unit ) num_kpts                                      ! num of k-points
+!      !
+!      IF ( num_kpts .ne. iknum ) &
+!        CALL errore( 'read_u_matrix', 'Invalid value for num_kpts', num_kpts )
+!      !
+!      READ( chk_unit ) ( kgrid(i), i=1,3 )                           ! MP grid
+!      !
+!      IF ( ANY( kgrid .ne. mp_grid ) ) &
+!        CALL errore( 'read_u_matrix', 'Invalid value for kgrid', 1 )
+!      !
+!      ALLOCATE( kpt_latt(3,num_kpts) )
+!      !
+!      READ( chk_unit ) (( kpt_latt(i,nkp), i=1,3 ), nkp=1,num_kpts )
+!      READ( chk_unit ) nntot                                         ! nntot
+!      READ( chk_unit ) nwann                                         ! num of WFs
+!      READ( chk_unit ) checkpoint                                    ! checkpoint
+!      READ( chk_unit ) have_disentangled     ! .true. if disentanglement has been performed
+!      !
+!      IF ( nwann .ne. num_wann ) &
+!        CALL errore( 'read_u_matrix', 'Invalid value for nwann', nwann )
+!      !
+!      IF ( have_disentangled ) THEN
+!        !
+!        READ( chk_unit ) omega_invariant                             ! omega invariant
+!        !
+!        ALLOCATE( lwindow(num_bands
+!      !
+!    ENDIF
+!    !
+!    !
+!  END SUBROUTINE read_u_matrix    
+  !
+  !
+  !---------------------------------------------------------------------
+!  SUBROUTINE get_mp_grid
+!    !-------------------------------------------------------------------
+!    !
+!    USE klist,               ONLY : xk
+!    USE cell_base,           ONLY : at
+!    USE wannier,             ONLY : kpt_latt, iknum
+!    !
+!    !
+!    IMPLICIT NONE
+!    !
+!    !
+!    ALLOCATE( kpt_latt(3,iknum) )
+!    kpt_latt = xk(:,1:iknum) 
+!    CALL cryst_to_cart( iknum, kpt_latt, at, -1 )
+!    !
+!    !CALL find_mp_grid
+!    !
+!    !
+!  END SUBROUTINE get_mp_grid
   !
   !
   !---------------------------------------------------------------------
@@ -335,6 +762,7 @@ CONTAINS
     ! index ng = igtongl_cp(ig) that gives the shell index ng for 
     ! (local) G-vector of index ig
     !
+    USE kinds,              ONLY : DP
     USE constants,          ONLY : eps8
     !
     !
@@ -473,15 +901,15 @@ CONTAINS
       WRITE(stdout,*) "Mismatch in mype3", dfft1%mype3, dfft2%mype3
     ENDIF
     !
-    IF ( ANY(dfft1%iproc .ne. dfft2%iproc) ) THEN
+    IF ( ALL(dfft1%iproc .ne. dfft2%iproc) ) THEN
       WRITE(stdout,*) "Mismatch in iproc", dfft1%iproc, dfft2%iproc
     ENDIF
     !
-    IF ( ANY(dfft1%iproc2 .ne. dfft2%iproc2) ) THEN
+    IF ( ALL(dfft1%iproc2 .ne. dfft2%iproc2) ) THEN
       WRITE(stdout,*) "Mismatch in iproc2", dfft1%iproc2, dfft2%iproc2
     ENDIF
     !
-    IF ( ANY(dfft1%iproc3 .ne. dfft2%iproc3) ) THEN
+    IF ( ALL(dfft1%iproc3 .ne. dfft2%iproc3) ) THEN
       WRITE(stdout,*) "Mismatch in iproc3", dfft1%iproc3, dfft2%iproc3
     ENDIF
     !
@@ -501,27 +929,27 @@ CONTAINS
       WRITE(stdout,*) "Mismatch in my_i0r2p", dfft1%my_i0r2p, dfft2%my_i0r2p
     ENDIF
     !
-    IF ( ANY(dfft1%nr3p .ne. dfft2%nr3p) ) THEN
+    IF ( ALL(dfft1%nr3p .ne. dfft2%nr3p) ) THEN
       WRITE(stdout,*) "Mismatch in nr3p", dfft1%nr3p, dfft2%nr3p
     ENDIF
     !
-    IF ( ANY(dfft1%nr3p_offset .ne. dfft2%nr3p_offset) ) THEN
+    IF ( ALL(dfft1%nr3p_offset .ne. dfft2%nr3p_offset) ) THEN
       WRITE(stdout,*) "Mismatch in nr3p_offset", dfft1%nr3p_offset, dfft2%nr3p_offset
     ENDIF
     !
-    IF ( ANY(dfft1%nr2p .ne. dfft2%nr2p) ) THEN
+    IF ( ALL(dfft1%nr2p .ne. dfft2%nr2p) ) THEN
       WRITE(stdout,*) "Mismatch in nr2p", dfft1%nr2p, dfft2%nr2p
     ENDIF
     !
-    IF ( ANY(dfft1%nr2p_offset .ne. dfft2%nr2p_offset) ) THEN
+    IF ( ALL(dfft1%nr2p_offset .ne. dfft2%nr2p_offset) ) THEN
       WRITE(stdout,*) "Mismatch in nr2p_offset", dfft1%nr2p_offset, dfft2%nr2p_offset
     ENDIF
     !
-    IF ( ANY(dfft1%nr1p .ne. dfft2%nr1p) ) THEN
+    IF ( ALL(dfft1%nr1p .ne. dfft2%nr1p) ) THEN
       WRITE(stdout,*) "Mismatch in nr1p", dfft1%nr1p, dfft2%nr1p
     ENDIF
     !
-    IF ( ANY(dfft1%nr1w .ne. dfft2%nr1w) ) THEN
+    IF ( ALL(dfft1%nr1w .ne. dfft2%nr1w) ) THEN
       WRITE(stdout,*) "Mismatch in nr1w", dfft1%nr1w, dfft2%nr1w
     ENDIF
     !
@@ -529,35 +957,35 @@ CONTAINS
       WRITE(stdout,*) "Mismatch in nr1w_tg", dfft1%nr1w_tg, dfft2%nr1w_tg
     ENDIF
     !
-    IF ( ANY(dfft1%i0r3p .ne. dfft2%i0r3p) ) THEN
+    IF ( ALL(dfft1%i0r3p .ne. dfft2%i0r3p) ) THEN
       WRITE(stdout,*) "Mismatch in i0r3p", dfft1%i0r3p, dfft2%i0r3p
     ENDIF
     !
-    IF ( ANY(dfft1%i0r2p .ne. dfft2%i0r2p) ) THEN
+    IF ( ALL(dfft1%i0r2p .ne. dfft2%i0r2p) ) THEN
       WRITE(stdout,*) "Mismatch in i0r2p", dfft1%i0r2p, dfft2%i0r2p
     ENDIF
     !
-    IF ( ANY(dfft1%ir1p .ne. dfft2%ir1p) ) THEN
+    IF ( ALL(dfft1%ir1p .ne. dfft2%ir1p) ) THEN
       WRITE(stdout,*) "Mismatch in ir1p", dfft1%ir1p, dfft2%ir1p
     ENDIF
     !
-    IF ( ANY(dfft1%indp .ne. dfft2%indp) ) THEN
+    IF ( ALL(dfft1%indp .ne. dfft2%indp) ) THEN
       WRITE(stdout,*) "Mismatch in indp", dfft1%indp, dfft2%indp
     ENDIF
     !
-    IF ( ANY(dfft1%ir1w .ne. dfft2%ir1w) ) THEN
+    IF ( ALL(dfft1%ir1w .ne. dfft2%ir1w) ) THEN
       WRITE(stdout,*) "Mismatch in ir1w", dfft1%ir1w, dfft2%ir1w
     ENDIF
     !
-    IF ( ANY(dfft1%indw .ne. dfft2%indw) ) THEN
+    IF ( ALL(dfft1%indw .ne. dfft2%indw) ) THEN
       WRITE(stdout,*) "Mismatch in indw", dfft1%indw, dfft2%indw
     ENDIF
     !
-    IF ( ANY(dfft1%ir1w_tg .ne. dfft2%ir1w_tg) ) THEN
+    IF ( ALL(dfft1%ir1w_tg .ne. dfft2%ir1w_tg) ) THEN
       WRITE(stdout,*) "Mismatch in ir1w_tg", dfft1%ir1w_tg, dfft2%ir1w_tg
     ENDIF
     !
-    IF ( ANY(dfft1%indw_tg .ne. dfft2%indw_tg) ) THEN
+    IF ( ALL(dfft1%indw_tg .ne. dfft2%indw_tg) ) THEN
       WRITE(stdout,*) "Mismatch in indw_tg", dfft1%indw_tg, dfft2%indw_tg
     ENDIF
     !
@@ -565,31 +993,31 @@ CONTAINS
       WRITE(stdout,*) "Mismatch in nst", dfft1%nst, dfft2%nst
     ENDIF
     !
-    IF ( ANY(dfft1%nsp .ne. dfft2%nsp) ) THEN
+    IF ( ALL(dfft1%nsp .ne. dfft2%nsp) ) THEN
       WRITE(stdout,*) "Mismatch in nsp", dfft1%nsp, dfft2%nsp
     ENDIF
     !
-    IF ( ANY(dfft1%nsp_offset .ne. dfft2%nsp_offset) ) THEN
+    IF ( ALL(dfft1%nsp_offset .ne. dfft2%nsp_offset) ) THEN
       WRITE(stdout,*) "Mismatch in nsp_offset", dfft1%nsp_offset, dfft2%nsp_offset
     ENDIF
     !
-    IF ( ANY(dfft1%nsw .ne. dfft2%nsw) ) THEN
+    IF ( ALL(dfft1%nsw .ne. dfft2%nsw) ) THEN
       WRITE(stdout,*) "Mismatch in nsw", dfft1%nsw, dfft2%nsw
     ENDIF
     !
-    IF ( ANY(dfft1%nsw_offset .ne. dfft2%nsw_offset) ) THEN
+    IF ( ALL(dfft1%nsw_offset .ne. dfft2%nsw_offset) ) THEN
       WRITE(stdout,*) "Mismatch in nsw_offset", dfft1%nsw_offset, dfft2%nsw_offset
     ENDIF
     !
-    IF ( ANY(dfft1%nsw_tg .ne. dfft2%nsw_tg) ) THEN
+    IF ( ALL(dfft1%nsw_tg .ne. dfft2%nsw_tg) ) THEN
       WRITE(stdout,*) "Mismatch in nsw_tg", dfft1%nsw_tg, dfft2%nsw_tg
     ENDIF
     !
-    IF ( ANY(dfft1%ngl .ne. dfft2%ngl) ) THEN
+    IF ( ALL(dfft1%ngl .ne. dfft2%ngl) ) THEN
       WRITE(stdout,*) "Mismatch in ngl", dfft1%ngl, dfft2%ngl
     ENDIF
     !
-    IF ( ANY(dfft1%nwl .ne. dfft2%nwl) ) THEN
+    IF ( ALL(dfft1%nwl .ne. dfft2%nwl) ) THEN
       WRITE(stdout,*) "Mismatch in nwl", dfft1%nwl, dfft2%nwl
     ENDIF
     !
@@ -601,11 +1029,11 @@ CONTAINS
       WRITE(stdout,*) "Mismatch in ngw", dfft1%ngw, dfft2%ngw
     ENDIF
     !
-    IF ( ANY(dfft1%iplp .ne. dfft2%iplp) ) THEN
+    IF ( ALL(dfft1%iplp .ne. dfft2%iplp) ) THEN
       WRITE(stdout,*) "Mismatch in iplp", dfft1%iplp, dfft2%iplp
     ENDIF
     !
-    IF ( ANY(dfft1%iplw .ne. dfft2%iplw) ) THEN
+    IF ( ALL(dfft1%iplw .ne. dfft2%iplw) ) THEN
       WRITE(stdout,*) "Mismatch in iplw", dfft1%iplw, dfft2%iplw
     ENDIF
     !
@@ -621,39 +1049,39 @@ CONTAINS
       WRITE(stdout,*) "Mismatch in nnr_tg", dfft1%nnr_tg, dfft2%nnr_tg
     ENDIF
     !
-    IF ( ANY(dfft1%iss .ne. dfft2%iss) ) THEN
+    IF ( ALL(dfft1%iss .ne. dfft2%iss) ) THEN
       WRITE(stdout,*) "Mismatch in iss", dfft1%iss, dfft2%iss
     ENDIF
     !
-    IF ( ANY(dfft1%isind .ne. dfft2%isind) ) THEN
+    IF ( ALL(dfft1%isind .ne. dfft2%isind) ) THEN
       WRITE(stdout,*) "Mismatch in isind", dfft1%isind, dfft2%isind
     ENDIF
     !
-    IF ( ANY(dfft1%ismap .ne. dfft2%ismap) ) THEN
+    IF ( ALL(dfft1%ismap .ne. dfft2%ismap) ) THEN
       WRITE(stdout,*) "Mismatch in ismap", dfft1%ismap, dfft2%ismap
     ENDIF
     !
-    IF ( ANY(dfft1%nl .ne. dfft2%nl) ) THEN
+    IF ( ALL(dfft1%nl .ne. dfft2%nl) ) THEN
       WRITE(stdout,*) "Mismatch in nl", dfft1%nl, dfft2%nl
     ENDIF
     !
-    IF ( ANY(dfft1%nlm .ne. dfft2%nlm) ) THEN
+    IF ( ALL(dfft1%nlm .ne. dfft2%nlm) ) THEN
       WRITE(stdout,*) "Mismatch in nlm", dfft1%nlm, dfft2%nlm
     ENDIF
     !
-    IF ( ANY(dfft1%tg_snd .ne. dfft2%tg_snd) ) THEN
+    IF ( ALL(dfft1%tg_snd .ne. dfft2%tg_snd) ) THEN
       WRITE(stdout,*) "Mismatch in tg_snd", dfft1%tg_snd, dfft2%tg_snd
     ENDIF
     !
-    IF ( ANY(dfft1%tg_rcv .ne. dfft2%tg_rcv) ) THEN
+    IF ( ALL(dfft1%tg_rcv .ne. dfft2%tg_rcv) ) THEN
       WRITE(stdout,*) "Mismatch in tg_rcv", dfft1%tg_rcv, dfft2%tg_rcv
     ENDIF
     !
-    IF ( ANY(dfft1%tg_sdsp .ne. dfft2%tg_sdsp) ) THEN
+    IF ( ALL(dfft1%tg_sdsp .ne. dfft2%tg_sdsp) ) THEN
       WRITE(stdout,*) "Mismatch in tg_sdsp", dfft1%tg_sdsp, dfft2%tg_sdsp
     ENDIF
     !
-    IF ( ANY(dfft1%tg_rdsp .ne. dfft2%tg_rdsp) ) THEN
+    IF ( ALL(dfft1%tg_rdsp .ne. dfft2%tg_rdsp) ) THEN
       WRITE(stdout,*) "Mismatch in tg_rdsp", dfft1%tg_rdsp, dfft2%tg_rdsp
     ENDIF
     !
@@ -677,4 +1105,4 @@ CONTAINS
   END SUBROUTINE compare_dfft
   !
   !
-END MODULE fft_supercell
+END MODULE wannier2odd

@@ -473,7 +473,7 @@ PROGRAM pw2wannier90
      !
      CALL read_nnkp
      CALL openfil_pp
-     CALL wan2odd( seedname, ikstart )
+     CALL wan2odd
      !
      IF ( ionode ) WRITE( stdout, *  )
      CALL print_clock( 'init_pw2wan' )

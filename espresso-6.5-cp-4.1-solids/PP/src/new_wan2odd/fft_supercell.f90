@@ -37,10 +37,6 @@ MODULE fft_supercell
   REAL(DP) :: omega_cp
   LOGICAL :: gamma_only_cp=.false.  ! CHECK ALSO npwxcp WHEN USING GAMMA TRICK
   !
-  INTEGER :: nat_cp
-  INTEGER, ALLOCATABLE :: ityp_cp(:)
-  REAL(DP), ALLOCATABLE :: tau_cp(:,:) 
-  !
   ! in the following all the G-vectors related quantities
   ! connected to the dfftcp are defined
   !
@@ -81,8 +77,6 @@ CONTAINS
     USE gvect,               ONLY : gcutm
     USE gvecs,               ONLY : gcutms
     USE gvecw,               ONLY : gcutw, gkcut
-    USE ions_base,           ONLY : nat, tau, ityp
-    USE parameters,          ONLY : ntypx
     USE recvec_subs,         ONLY : ggen, ggens
     USE klist,               ONLY : nks, xk
     USE control_flags,       ONLY : gamma_only
@@ -90,59 +84,37 @@ CONTAINS
     USE cellmd,              ONLY : lmovecell
     USE realus,              ONLY : real_space
     USE symm_base,           ONLY : fft_fact
-    USE read_wannier,        ONLY : num_kpts, kgrid
+    USE wannier,             ONLY : kpt_latt, iknum, mp_grid
     !
     !
     IMPLICIT NONE
     !
     INTEGER, EXTERNAL :: n_plane_waves
-    INTEGER :: i, j, k, ir, ik, iat
+    INTEGER :: i, ik
     INTEGER :: ngmcp_
     INTEGER :: nkscp
-    REAL(DP) :: rvec(3)
     REAL(DP), ALLOCATABLE :: xkcp(:,:)
     LOGICAL :: lpara
+    !
+    !
+    ! ...  first we find the Monkhorst-Pack grid
+    !
+    ALLOCATE( kpt_latt(3,iknum) )
+    kpt_latt = xk(:,1:iknum) 
+    CALL cryst_to_cart( iknum, kpt_latt, at, -1 )
+    CALL find_mp_grid
     !
     !
     ! ...  we find the supercell lattice vectors and volume
     !
     DO i = 1, 3
-      at_cp(:,i) = at(:,i) * kgrid(i)
-      bg_cp(:,i) = bg(:,i) / kgrid(i)
+      at_cp(:,i) = at(:,i) * mp_grid(i)
+      bg_cp(:,i) = bg(:,i) / mp_grid(i)
     ENDDO
-    omega_cp = omega * num_kpts
+    omega_cp = omega * PRODUCT(mp_grid)
     !
     lpara =  ( nproc_bgrp > 1 )
     gkcut = gcutw
-    !
-    ! ...  determine atomic positions and types in the supercell
-    !
-    nat_cp = nat * num_kpts
-    ALLOCATE( tau_cp(3,nat_cp) )
-    ALLOCATE( ityp_cp(nat_cp) )
-    !
-    ir = 0
-    !
-    DO i = 1, kgrid(1)
-      DO j = 1, kgrid(2)
-        DO k = 1, kgrid(3)
-          !
-          rvec(:) = (/ i-1, j-1, k-1 /)
-          CALL cryst_to_cart( 1, rvec, at, 1 )
-          !
-          DO iat = 1, nat
-            !
-            ityp_cp( ir*nat + iat ) = ityp( iat )
-            !
-            tau_cp(:, ir*nat + iat ) = tau(:,iat) + rvec(:)
-            !
-          ENDDO
-          !
-          ir = ir + 1
-          !
-        ENDDO
-      ENDDO
-    ENDDO
     !
     !
     ! ... uncomment the following line in order to realize dfftcp in the
@@ -335,6 +307,7 @@ CONTAINS
     ! index ng = igtongl_cp(ig) that gives the shell index ng for 
     ! (local) G-vector of index ig
     !
+    USE kinds,              ONLY : DP
     USE constants,          ONLY : eps8
     !
     !
