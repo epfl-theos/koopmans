@@ -8,14 +8,6 @@
 !
 ! Written by Riccardo De Gennaro, EPFL (Sept 2020).
 !
-! >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-! TO DO:
-! 1) move plot_wannier stuff
-! 2) gamma_trick and writing CP file
-! 3) check parallelization
-! 4) check spin
-! 5) check problem with cutoff (36-37Ry)
-! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 !
 !-----------------------------------------------------------------------
 MODULE wannier2odd
@@ -242,28 +234,6 @@ MODULE wannier2odd
     ENDDO
     !
     CALL close_buffer( iunwfcx, 'delete' )
-    !
-!    ! ... re-calculate the total density on the Wannier functions
-!    ! ... and checks that it is correct
-!    !
-!    rhorw(:) = ( 0.D0, 0.D0 )
-!    rhogw(:,:) = ( 0.D0, 0.D0 )
-!    !
-!    DO ir = 1, num_kpts
-!      !
-!      CALL get_buffer( ewan, nwordwfcx, iunwann, ir )
-!      !
-!      DO ibnd = 1, num_bands
-!        !
-!        psicx = (0.d0,0.d0)
-!        psicx( dfftcp%nl(1:npwxcp) ) = ewan(1:npwxcp,ibnd)
-!        CALL invfft( 'Wave', psicx, dfftcp )
-!        !
-!        rhorw(:) = rhorw(:) + ( DBLE( psicx(:) )**2 + &
-!                               AIMAG( psicx(:) )**2 ) / omega
-!        !
-!      ENDDO
-!    ENDDO
     !
     ! ... checks that the density calculated on the WFs did not change
     !

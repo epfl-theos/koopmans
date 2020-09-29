@@ -1,0 +1,7 @@
+TO DO list:
+
+1) move plot_wannier stuff --> DONE
+2) gamma_trick and writing CP file
+3) check parallelization
+4) check spin
+5) check problem with cutoff (36-37Ry)
