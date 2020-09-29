@@ -23,7 +23,7 @@ MODULE cp_files
   CONTAINS
   !
   !-------------------------------------------------------------------
-  SUBROUTINE write_wannier_cp( typ, evc, npwx, nbnd, nktot, ig_l2g )
+  SUBROUTINE write_wannier_cp( typ, iun, nword, npwx, nbnd, nktot, ig_l2g )
     !-----------------------------------------------------------------
     !
     ! ...  This routine takes the Wannier functions in input and 
@@ -39,24 +39,29 @@ MODULE cp_files
     USE mp_world,            ONLY : mpime, nproc
     USE mp,                  ONLY : mp_sum
     USE noncollin_module,    ONLY : npol
+    USE buffers,             ONLY : get_buffer
     !
     !
     IMPLICIT NONE
     !
     CHARACTER(LEN=*), INTENT(IN) :: typ          ! state type
-    COMPLEX(DP), INTENT(IN) :: evc(:,:,:)        ! input wfc
+    INTEGER, INTENT(IN) :: iun                   ! unit to the WFs buffer
+    INTEGER, INTENT(IN) :: nword                 ! record length WF file
     INTEGER, INTENT(IN) :: npwx                  ! num PW evc
     INTEGER, INTENT(IN) :: nbnd                  ! num of bands
     INTEGER, INTENT(IN) :: nktot                 ! num of k-points
     INTEGER, INTENT(IN) :: ig_l2g(:)
     !
     INTEGER :: io_level = 1
-    INTEGER :: cp_unit = 124
-    INTEGER :: npw_g           ! global number of PWs
+    INTEGER :: cp_unit = 125
+    INTEGER :: npw_g                             ! global number of PWs
     INTEGER :: ir, ibnd, ibnd_, ipw
+    COMPLEX(DP), ALLOCATABLE :: evc(:,:)
     COMPLEX(DP), ALLOCATABLE :: evc_g(:)
     CHARACTER(LEN=33) :: filename
     !
+    !
+    ALLOCATE( evc(npwx*npol,nbnd) )
     !
     ! ... defining output file name for occ/emp states
     !
@@ -82,6 +87,9 @@ MODULE cp_files
     ! ... and we write it to file
     !
     DO ir = 1, nktot
+      !
+      CALL get_buffer( evc, nword, iun, ir )
+      !
       DO ibnd = 1, nbnd*2
         !
         ! ... force the spin symmetry (CP wfc will be nspin=2 !!!)
@@ -93,8 +101,8 @@ MODULE cp_files
         ENDIF
         !
         evc_g(:) = ( 0.D0, 0.D0 )
-        CALL mergewf( evc(:,ibnd_,ir), evc_g, npwx, ig_l2g, &
-                      mpime, nproc, ionode_id, intra_bgrp_comm )
+        CALL mergewf( evc(:,ibnd_), evc_g, npwx, ig_l2g, mpime, &
+                      nproc, ionode_id, intra_bgrp_comm )
         !
         IF ( ionode ) THEN
           !

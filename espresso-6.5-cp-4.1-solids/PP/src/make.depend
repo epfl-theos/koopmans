@@ -152,6 +152,7 @@ cp_files : ../../Modules/mp_wave.o
 cp_files : ../../Modules/mp_world.o
 cp_files : ../../Modules/noncol.o
 cp_files : ../../UtilXlib/mp.o
+cp_files : ../../PW/src/buffers.o
 cube.o : ../../Modules/cell_base.o
 cube.o : ../../Modules/io_global.o
 cube.o : ../../Modules/kind.o
@@ -460,6 +461,16 @@ plan_avg.o : ../../PW/src/pwcom.o
 plan_avg.o : ../../UtilXlib/mp.o
 plotband.o : ../../Modules/kind.o
 plotband.o : ../../Modules/parser.o
+plot_wan2odd.o : ../../Modules/cell_base.o
+plot_wan2odd.o : ../../Modules/constants.o
+plot_wan2odd.o : ../../Modules/io_global.o
+plot_wan2odd.o : ../../Modules/ions_base.o
+plot_wan2odd.o : ../../Modules/kind.o
+plot_wan2odd.o : ../../Modules/noncol.o
+plot_wan2odd.o : ../../Modules/parameters.o
+plot_wan2odd.o : ../../FFTXlib/fft_interfaces.o
+plot_wan2odd.o : ../../PW/src/buffers.o
+plot_wan2odd.o : fft_supercell.o
 poormanwannier.o : ../../Modules/becmod.o
 poormanwannier.o : ../../Modules/constants.o
 poormanwannier.o : ../../Modules/control_flags.o
@@ -703,6 +714,7 @@ pw2wannier90.o : ../../PW/src/scf_mod.o
 pw2wannier90.o : ../../PW/src/symm_base.o
 pw2wannier90.o : ../../UtilXlib/mp.o
 pw2wannier90.o : wannier2odd.o
+pw2wannier90.o : plot_wan2odd.o
 pw_export.o : ../../Modules/becmod.o
 pw_export.o : ../../Modules/cell_base.o
 pw_export.o : ../../Modules/control_flags.o

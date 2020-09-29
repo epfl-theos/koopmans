@@ -57,6 +57,9 @@ MODULE fft_supercell
   INTEGER, ALLOCATABLE, TARGET :: ig_l2g_cp(:)                 ! eq to ig_l2g (in gvect)
   INTEGER, ALLOCATABLE, TARGET, PROTECTED :: igtongl_cp(:)     ! eq to igtongl (in gvect)
   !
+  INTEGER :: iunwann=124           ! unit for supercell Wannier functions
+  INTEGER :: nwordwfcx             ! record length for supercell wfcs
+  !
   LOGICAL :: check_fft=.false.     ! if .true. dfftcp is built with the same inputs
                                    ! of dffts. Useful for comparison and to check errors
   !
