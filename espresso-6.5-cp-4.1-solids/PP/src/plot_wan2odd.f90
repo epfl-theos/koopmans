@@ -27,7 +27,7 @@ MODULE plot_wan2odd
     !-------------------------------------------------------------------
     !
     ! ...  This routine generates a XSF file, in a format readable
-    ! ...  by XCrySDen, with the plot of the input Wannier function
+    ! ...  by XCrySDen, with the plot of the Wannier functions in list
     !
     USE kinds,               ONLY : DP
     USE io_global,           ONLY : ionode, stdout
@@ -40,6 +40,9 @@ MODULE plot_wan2odd
     USE parameters,          ONLY : ntypx
     USE fft_supercell,       ONLY : dfftcp, at_cp, nat_cp, tau_cp, ityp_cp, &
                                     ngmcp, npwxcp, iunwann, nwordwfcx
+!!! RICCARDO debug >>>
+    USE fft_supercell, ONLY : gamma_only_cp
+!!! RICCARDO debug <<<
     !
     !
     IMPLICIT NONE
@@ -89,6 +92,9 @@ MODULE plot_wan2odd
         !
         WRITE( filename, 100 ) ir, ibnd
         psic(dfftcp%nl(1:npwxcp)) = evc(1:npwxcp,ibnd) 
+!!! RICCARDO debug >>>
+        IF ( gamma_only_cp ) psic(dfftcp%nlm(1:npwxcp)) = CONJG( evc(1:npwxcp,ibnd) )
+!!! RICCARDO debug <<<
         CALL invfft( 'Wave', psic, dfftcp )
         !
         alang = alat * BOHR_RADIUS_ANGS     ! alat in angstrom

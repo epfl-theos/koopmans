@@ -35,7 +35,7 @@ MODULE fft_supercell
   REAL(DP) :: at_cp(3,3)
   REAL(DP) :: bg_cp(3,3)
   REAL(DP) :: omega_cp
-  LOGICAL :: gamma_only_cp=.false.  ! CHECK ALSO npwxcp WHEN USING GAMMA TRICK
+  LOGICAL :: gamma_only_cp=.true.  ! CHECK ALSO npwxcp WHEN USING GAMMA TRICK
   !
   INTEGER :: nat_cp
   INTEGER, ALLOCATABLE :: ityp_cp(:)
@@ -162,6 +162,13 @@ CONTAINS
       nkscp = nks
       ALLOCATE( xkcp(3,nkscp) )
       xkcp(:,:) = xk(:,:)
+      !
+      nat_cp = nat
+      DEALLOCATE( tau_cp, ityp_cp )
+      ALLOCATE( tau_cp(3,nat_cp) )
+      ALLOCATE( ityp_cp(nat_cp) )
+      ityp_cp(:) = ityp(:)
+      tau_cp(:,:) = tau(:,:)
       !
       ! ... calculate gkcut = max |k+G|^2, in (2pi/a)^2 units
       !

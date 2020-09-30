@@ -39,8 +39,7 @@ MODULE read_wannier
   SUBROUTINE read_wannier_chk( seedname )
     !-------------------------------------------------------------------
     !
-    ! ...  Read from the Wannier90 chk file the matrices U(k) and
-    ! ...  U_opt(k)
+    ! ...  parse the Wannier90 chk file
     !
     USE io_global,           ONLY : ionode, ionode_id
     USE mp_global,           ONLY : intra_image_comm

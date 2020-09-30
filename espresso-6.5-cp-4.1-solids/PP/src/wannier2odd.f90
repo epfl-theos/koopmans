@@ -146,11 +146,7 @@ MODULE wannier2odd
                              AIMAG( psicx(:) )**2 ) * wg(ibnd,ik) / omega
         !
         CALL fwfft( 'Wave', psicx, dfftcp )
-        IF ( gamma_only_cp ) THEN
-          evcx(1:npwxcp,ibnd) = psicx( dfftcp%nlm(1:npwxcp) )
-        ELSE
-          evcx(1:npwxcp,ibnd) = psicx( dfftcp%nl(1:npwxcp) )
-        ENDIF
+        evcx(1:npwxcp,ibnd) = psicx( dfftcp%nl(1:npwxcp) )
         !
       ENDDO ! ibnd
       !
@@ -163,12 +159,7 @@ MODULE wannier2odd
     !
     rhog(:,:) = ( 0.D0, 0.D0 )
     CALL fwfft( 'Rho', rhor, dfftcp )
-    !
-    IF ( gamma_only_cp ) THEN
-      rhog(1:ngmcp,1) = rhor( dfftcp%nlm(1:ngmcp) )
-    ELSE
-      rhog(1:ngmcp,1) = rhor( dfftcp%nl(1:ngmcp) )
-    ENDIF
+    rhog(1:ngmcp,1) = rhor( dfftcp%nl(1:ngmcp) )
     !
     CALL check_rho( rhog )
     !
@@ -220,6 +211,7 @@ MODULE wannier2odd
             !
             psicx = (0.d0,0.d0)
             psicx( dfftcp%nl(1:npwxcp) ) = ewan(1:npwxcp,iw)
+            IF ( gamma_only_cp ) psicx( dfftcp%nlm(1:npwxcp) ) = CONJG( ewan(1:npwxcp,iw) )
             CALL invfft( 'Wave', psicx, dfftcp )
             !
             rhorw(:) = rhorw(:) + ( DBLE( psicx(:) )**2 + &
@@ -239,12 +231,7 @@ MODULE wannier2odd
     !
     rhogw(:,:) = ( 0.D0, 0.D0 )
     CALL fwfft( 'Rho', rhorw, dfftcp )
-    !
-    IF ( gamma_only_cp ) THEN
-      rhogw(1:ngmcp,1) = rhorw( dfftcp%nlm(1:ngmcp) )
-    ELSE
-      rhogw(1:ngmcp,1) = rhorw( dfftcp%nl(1:ngmcp) )
-    ENDIF
+    rhogw(1:ngmcp,1) = rhorw( dfftcp%nl(1:ngmcp) )
     !
     CALL check_rho( rhogw, rhog )
     !
