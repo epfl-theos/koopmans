@@ -1,7 +1,9 @@
 TO DO list:
 
 1) move plot_wannier stuff --> DONE
-2) gamma_trick and writing CP file
-3) check parallelization
-4) check spin
-5) check problem with cutoff (36-37Ry)
+2) gamma_trick --> DONE
+3) write CP file --> DONE
+4) empty states (U_opt)
+5) check parallelization
+6) check spin
+7) check problem with cutoff (36-37Ry)

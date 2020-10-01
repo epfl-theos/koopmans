@@ -23,7 +23,7 @@ MODULE cp_files
   CONTAINS
   !
   !-------------------------------------------------------------------
-  SUBROUTINE write_wannier_cp( typ, iun, nword, npwx, nbnd, nktot, ig_l2g )
+  SUBROUTINE write_wannier_cp( typ, iun, nword, npwx, nbnd, nrtot, ig_l2g )
     !-----------------------------------------------------------------
     !
     ! ...  This routine takes the Wannier functions in input and 
@@ -49,19 +49,22 @@ MODULE cp_files
     INTEGER, INTENT(IN) :: nword                 ! record length WF file
     INTEGER, INTENT(IN) :: npwx                  ! num PW evc
     INTEGER, INTENT(IN) :: nbnd                  ! num of bands
-    INTEGER, INTENT(IN) :: nktot                 ! num of k-points
+    INTEGER, INTENT(IN) :: nrtot                 ! num of k-points
     INTEGER, INTENT(IN) :: ig_l2g(:)
     !
     INTEGER :: io_level = 1
     INTEGER :: cp_unit = 125
     INTEGER :: npw_g                             ! global number of PWs
-    INTEGER :: ir, ibnd, ibnd_, ipw
+    INTEGER :: ir, ibnd, ispin, ipw
+    INTEGER :: nbndx
     COMPLEX(DP), ALLOCATABLE :: evc(:,:)
     COMPLEX(DP), ALLOCATABLE :: evc_g(:)
     CHARACTER(LEN=33) :: filename
     !
     !
     ALLOCATE( evc(npwx*npol,nbnd) )
+    !
+    nbndx = nbnd * nrtot     ! number of bands in the supercell
     !
     ! ... defining output file name for occ/emp states
     !
@@ -80,35 +83,32 @@ MODULE cp_files
     !
     IF ( ionode ) THEN
       OPEN( UNIT=cp_unit, FILE=trim(filename), STATUS='unknown', FORM='unformatted' )
-      WRITE( cp_unit ) npw_g, nbnd*2
+      WRITE( cp_unit ) npw_g, nbndx*2
     ENDIF
     !
     ! ... here we gather the wfc from all the processes
-    ! ... and we write it to file
+    ! ... and we write it to file (nspin=2 in CP-Koopmans)
     !
-    DO ir = 1, nktot
+    DO ispin = 1, 2
       !
-      CALL get_buffer( evc, nword, iun, ir )
-      !
-      DO ibnd = 1, nbnd*2
+      DO ir = 1, nrtot
         !
-        ! ... force the spin symmetry (CP wfc will be nspin=2 !!!)
+        CALL get_buffer( evc, nword, iun, ir )
         !
-        IF ( ibnd .gt. nbnd ) THEN
-          ibnd_ = ibnd - nbnd
-        ELSE
-          ibnd_ = ibnd
-        ENDIF
-        !
-        evc_g(:) = ( 0.D0, 0.D0 )
-        CALL mergewf( evc(:,ibnd_), evc_g, npwx, ig_l2g, mpime, &
-                      nproc, ionode_id, intra_bgrp_comm )
-        !
-        IF ( ionode ) THEN
+        DO ibnd = 1, nbnd
           !
-          WRITE( cp_unit ) ( evc_g(ipw), ipw=1,npw_g )
+          evc_g(:) = ( 0.D0, 0.D0 )
+          CALL mergewf( evc(:,ibnd), evc_g, npwx, ig_l2g, mpime, &
+                        nproc, ionode_id, intra_bgrp_comm )
+  
           !
-        ENDIF
+          IF ( ionode ) THEN
+            !
+            WRITE( cp_unit ) ( evc_g(ipw), ipw=1,npw_g )
+            !
+          ENDIF
+          !
+        ENDDO
         !
       ENDDO
       !
