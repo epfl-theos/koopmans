@@ -37,9 +37,10 @@ default :
 	@echo '  gui          Graphical User Interface'
 	@echo '  examples     fetch from web examples for all core packages'
 	@echo '  test-suite   run semi-automated test-suite for regression testing'
-	@echo '  all          same as "make pwall cp ld1 upf tddfpt hp"'
+	@echo '  all          same as "make pwall cp ld1 upf tddfpt hp kc"'
 	@echo ' '
 	@echo 'where target identifies one or multiple THIRD-PARTIES PACKAGES:'
+	@echo '  kc           Koopmans-compliant functionals'
 	@echo '  gipaw        NMR and EPR spectra'
 	@echo '  w90          Maximally localised Wannier Functions'
 	@echo '  want         Quantum Transport with Wannier functions'
@@ -171,7 +172,7 @@ examples :
 
 pwall : pw neb ph pp pwcond acfdt
 
-all   : pwall cp ld1 upf tddfpt hp xspectra gwl
+all   : pwall cp ld1 upf tddfpt hp xspectra gwl w90
 
 kc    : pw pp cp w90
 
