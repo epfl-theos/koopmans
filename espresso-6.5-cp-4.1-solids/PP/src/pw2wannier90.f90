@@ -492,7 +492,7 @@ PROGRAM pw2wannier90
      CALL get_wannier_to_plot
      CALL openfil_pp
      CALL wan2odd( seedname, ikstart )
-     IF ( wannier_plot ) CALL plot_wann( wann_to_plot, iknum, num_bands )
+     IF ( wannier_plot ) CALL plot_wann( wann_to_plot, iknum, n_wannier )
      !
      IF ( ionode ) WRITE( stdout, *  )
      CALL print_clock( 'init_pw2wan' )

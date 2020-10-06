@@ -23,14 +23,12 @@ MODULE cp_files
   CONTAINS
   !
   !-------------------------------------------------------------------
-  SUBROUTINE write_wannier_cp( typ, iun, nword, npwx, nbnd, nrtot, ig_l2g )
+  SUBROUTINE write_wannier_cp( iun, nword, npwx, nwann, nrtot, ig_l2g )
     !-----------------------------------------------------------------
     !
     ! ...  This routine takes the Wannier functions in input and 
-    ! ...  writes them into a file readable by the CP-Koopmans code
-    ! 
-    ! ...  typ = 'occupied' ---> output file: 'evc_occupied.dat'
-    ! ...  typ = 'empty'    ---> output file: 'evc0_empty.dat'
+    ! ...  writes them into a file, readable by the CP-Koopmans code,
+    ! ...  called 'evcw.dat'
     !
     USE kinds,               ONLY : DP
     USE io_global,           ONLY : ionode, ionode_id
@@ -44,11 +42,10 @@ MODULE cp_files
     !
     IMPLICIT NONE
     !
-    CHARACTER(LEN=*), INTENT(IN) :: typ          ! state type
     INTEGER, INTENT(IN) :: iun                   ! unit to the WFs buffer
     INTEGER, INTENT(IN) :: nword                 ! record length WF file
     INTEGER, INTENT(IN) :: npwx                  ! num PW evc
-    INTEGER, INTENT(IN) :: nbnd                  ! num of bands
+    INTEGER, INTENT(IN) :: nwann                 ! num of (primitive cell) WFs
     INTEGER, INTENT(IN) :: nrtot                 ! num of k-points
     INTEGER, INTENT(IN) :: ig_l2g(:)
     !
@@ -56,25 +53,14 @@ MODULE cp_files
     INTEGER :: cp_unit = 125
     INTEGER :: npw_g                             ! global number of PWs
     INTEGER :: ir, ibnd, ispin, ipw
-    INTEGER :: nbndx
+    INTEGER :: nwannx
     COMPLEX(DP), ALLOCATABLE :: evc(:,:)
     COMPLEX(DP), ALLOCATABLE :: evc_g(:)
-    CHARACTER(LEN=33) :: filename
     !
     !
-    ALLOCATE( evc(npwx*npol,nbnd) )
+    ALLOCATE( evc(npwx*npol,nwann) )
     !
-    nbndx = nbnd * nrtot     ! number of bands in the supercell
-    !
-    ! ... defining output file name for occ/emp states
-    !
-    IF ( trim(typ) .eq. 'occupied' ) THEN
-      filename = 'evc_occupied.dat'
-    ELSE IF ( trim(typ) .eq. 'empty' ) THEN
-      filename = 'evc0_empty.dat'
-    ELSE
-      CALL errore( 'write_wannier_cp', 'Invalid value for input variable typ', 1 )
-    ENDIF
+    nwannx = nwann * nrtot     ! number of bands in the supercell
     !
     !
     npw_g = npwx
@@ -82,8 +68,8 @@ MODULE cp_files
     ALLOCATE( evc_g(npw_g) )
     !
     IF ( ionode ) THEN
-      OPEN( UNIT=cp_unit, FILE=trim(filename), STATUS='unknown', FORM='unformatted' )
-      WRITE( cp_unit ) npw_g, nbndx*2
+      OPEN( UNIT=cp_unit, FILE='evcw.dat', STATUS='unknown', FORM='unformatted' )
+      WRITE( cp_unit ) npw_g, nwannx*2
     ENDIF
     !
     ! ... here we gather the wfc from all the processes
@@ -95,7 +81,7 @@ MODULE cp_files
         !
         CALL get_buffer( evc, nword, iun, ir )
         !
-        DO ibnd = 1, nbnd
+        DO ibnd = 1, nwann
           !
           evc_g(:) = ( 0.D0, 0.D0 )
           CALL mergewf( evc(:,ibnd), evc_g, npwx, ig_l2g, mpime, &

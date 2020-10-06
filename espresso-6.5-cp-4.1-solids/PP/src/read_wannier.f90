@@ -26,12 +26,16 @@ MODULE read_wannier
   !
   ! Remember to mp_bcast possible additions
   !
-  INTEGER, PUBLIC :: num_bands
-  INTEGER, PUBLIC :: num_wann
-  INTEGER, PUBLIC :: num_kpts
-  INTEGER, PUBLIC :: kgrid(3)
+  INTEGER, PUBLIC :: num_bands          ! num of PC bands for wannierization
+  INTEGER, PUBLIC :: num_wann           ! num of PC Wannier functions
+  INTEGER, PUBLIC :: num_kpts           ! num of k-points
+  INTEGER, PUBLIC :: kgrid(3)           ! MP grid
+  LOGICAL, ALLOCATABLE, PUBLIC :: excluded_band(:)
+  LOGICAL, ALLOCATABLE, PUBLIC :: lwindow(:,:)  ! disentanglement parameters
+  INTEGER, ALLOCATABLE, PUBLIC :: ndimwin(:)    ! disentanglement parameters
   COMPLEX(DP), ALLOCATABLE, PUBLIC :: u_mat(:,:,:)
   COMPLEX(DP), ALLOCATABLE, PUBLIC :: u_mat_opt(:,:,:)
+  LOGICAL, PUBLIC :: have_disentangled
   !
   CONTAINS
   !
@@ -47,6 +51,7 @@ MODULE read_wannier
     USE cell_base,           ONLY : bg
     USE constants,           ONLY : eps8
     USE klist,               ONLY : nkstot, xk
+    USE wvfct,               ONLY : nbnd
     USE lsda_mod,            ONLY : nspin
     !
     !
@@ -58,20 +63,18 @@ MODULE read_wannier
     INTEGER :: i, j, nkp, nn
     INTEGER :: chk_unit=124
     INTEGER :: num_exclude_bands, nntot
+    INTEGER, ALLOCATABLE :: exclude_bands(:)
     LOGICAL :: exst
-    LOGICAL :: checkpoint, have_disentangled
-    LOGICAL, ALLOCATABLE :: exclude_bands(:)
+    LOGICAL :: checkpoint
     REAL(DP) :: at_(3,3), bg_(3,3)
     REAL(DP), ALLOCATABLE :: kpt_latt(:,:)
     REAL(DP), ALLOCATABLE :: kaux(:,:)
     REAL(DP), ALLOCATABLE :: centers(:,:)
     REAL(DP), ALLOCATABLE :: spreads(:)
+    REAL(DP) :: omega_invariant
     COMPLEX(DP), ALLOCATABLE :: uu_prod(:,:)
     COMPLEX(DP), ALLOCATABLE :: m_mat(:,:,:,:)
     !
-    REAL(DP) :: omega_invariant           ! disentanglement parameters
-    LOGICAL, ALLOCATABLE :: lwindow(:,:)  ! disentanglement parameters
-    INTEGER, ALLOCATABLE :: ndimwin(:)    ! disentanglement parameters
     !
     !
     IF ( ionode ) THEN
@@ -85,14 +88,19 @@ MODULE read_wannier
       READ( chk_unit ) num_bands                ! number of bands
       READ( chk_unit ) num_exclude_bands        ! number of excluded bands
       !
-      IF ( num_exclude_bands .lt. 0 ) &
+      IF ( num_exclude_bands .lt. 0 .or. num_exclude_bands .ne. (nbnd - num_bands) ) &
         CALL  errore( 'read_wannier_chk', 'Invalid value for num_exclude_bands', &
                       num_exclude_bands )
       !
       ALLOCATE( exclude_bands(num_exclude_bands) )
-      exclude_bands(:) = .FALSE.
+      ALLOCATE( excluded_band(nbnd) )
       !
-      READ( chk_unit ) ( exclude_bands(i), i=1,num_exclude_bands )   ! excluded bands
+      READ( chk_unit ) ( exclude_bands(i), i=1,num_exclude_bands )   ! list of excluded bands
+      excluded_band(:) = .false.
+      DO i = 1, num_exclude_bands
+        excluded_band( exclude_bands(i) ) = .true.
+      ENDDO
+      !
       READ( chk_unit ) (( at_(i,j), i=1,3 ), j=1,3 )                 ! prim real latt vectors
       READ( chk_unit ) (( bg_(i,j), i=1,3 ), j=1,3 )                 ! prim recip latt vectors
       READ( chk_unit ) num_kpts                                      ! num of k-points
@@ -133,7 +141,7 @@ MODULE read_wannier
         READ( chk_unit ) ( ndimwin(nkp), nkp=1,num_kpts )
         !
         ALLOCATE( u_mat_opt(num_bands,num_wann,num_kpts) )
-        READ ( chk_unit ) ((( u_mat_opt(i,j,nkp), i=1,num_wann ), &  ! optimal U-matrix
+        READ ( chk_unit ) ((( u_mat_opt(i,j,nkp), i=1,num_bands ), &  ! optimal U-matrix
                                                   j=1,num_wann ), &
                                                   nkp=1,num_kpts )
         !

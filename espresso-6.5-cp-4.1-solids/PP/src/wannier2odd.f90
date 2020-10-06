@@ -56,18 +56,17 @@ MODULE wannier2odd
     USE lsda_mod,            ONLY : nspin
     USE klist,               ONLY : xk, ngk, igk_k
     USE gvect,               ONLY : ngm
-    USE wvfct,               ONLY : wg, npwx
+    USE wvfct,               ONLY : wg, npwx, nbnd
     USE cell_base,           ONLY : tpiba, omega, at
     USE control_flags,       ONLY : gamma_only
     USE constants,           ONLY : tpi
     USE noncollin_module,    ONLY : npol
     USE scell_wfc,           ONLY : extend_wfc
-    USE read_wannier,        ONLY : read_wannier_chk, num_bands, num_wann, num_kpts, & 
-                                    kgrid, u_mat, u_mat_opt
     USE fft_supercell,       ONLY : dfftcp, setup_scell_fft, bg_cp, at_cp, &
                                     gamma_only_cp, npwxcp, ngmcp, mill_cp, ig_l2g_cp, &
-                                    iunwann, nwordwfcx, check_fft
+                                    iunwann, nwordwann, check_fft
     USE cp_files,            ONLY : write_wannier_cp
+    USE read_wannier
     !
     !
     IMPLICIT NONE
@@ -76,13 +75,17 @@ MODULE wannier2odd
     INTEGER, INTENT(IN) :: ikstart
     !
     CHARACTER(LEN=256) :: dirname
-    INTEGER :: ik, ikevc, ibnd, iw
-    INTEGER :: i, j, k, ir, ipw
+    INTEGER :: ik, ikevc, ibnd, iw, ip
+    INTEGER :: i, j, k, ir, n, counter
+    INTEGER :: num_inc
     INTEGER :: npw
+    INTEGER :: nwordwfcx                                ! record length for supercell wfcs
     INTEGER :: iunwfcx = 24                             ! unit for supercell wfc file
     INTEGER :: io_level = 1
     LOGICAL :: exst
     COMPLEX(DP), ALLOCATABLE :: evcx(:,:)
+    COMPLEX(DP), ALLOCATABLE :: evcx_dis(:,:)
+    COMPLEX(DP), ALLOCATABLE :: evcw(:)
     COMPLEX(DP), ALLOCATABLE :: ewan(:,:)
     COMPLEX(DP), ALLOCATABLE :: psicx(:)
     COMPLEX(DP), ALLOCATABLE :: rhor(:), rhorw(:)       ! real space supercell density
@@ -102,11 +105,15 @@ MODULE wannier2odd
     !
     !
     nwordwfcx = num_bands*npwxcp*npol
+    nwordwann = num_wann*npwxcp*npol
     ALLOCATE( evcx(npwxcp*npol,num_bands) )
-    ALLOCATE( ewan(npwxcp*npol,num_bands) )
+    ALLOCATE( evcw(npwxcp*npol) )
+    ALLOCATE( ewan(npwxcp*npol,num_wann) )
     ALLOCATE( psicx(dfftcp%nnr) )
     ALLOCATE( rhor(dfftcp%nnr), rhorw(dfftcp%nnr) )
     ALLOCATE( rhog(ngmcp,nspin), rhogw(ngmcp,nspin) )
+    !
+    IF ( have_disentangled ) ALLOCATE( evcx_dis(npwxcp*npol,MAXVAL(ndimwin)) )
     !
     !
     ! ... open buffer for direct-access to the extended wavefunctions
@@ -124,7 +131,13 @@ MODULE wannier2odd
       npw = ngk(ik)
       kvec(:) = xk(:,ik)
       !
-      DO ibnd = 1, num_bands
+      counter = 0
+      !
+      DO ibnd = 1, nbnd
+        !
+        IF ( excluded_band(ibnd) ) CYCLE
+        !
+        counter = counter + 1
         !
         psic(:) = ( 0.D0, 0.D0 )
         psicx(:) = ( 0.D0, 0.D0 )
@@ -146,7 +159,7 @@ MODULE wannier2odd
                              AIMAG( psicx(:) )**2 ) * wg(ibnd,ik) / omega
         !
         CALL fwfft( 'Wave', psicx, dfftcp )
-        evcx(1:npwxcp,ibnd) = psicx( dfftcp%nl(1:npwxcp) )
+        evcx(1:npwxcp,counter) = psicx( dfftcp%nl(1:npwxcp) )
         !
       ENDDO ! ibnd
       !
@@ -167,7 +180,7 @@ MODULE wannier2odd
     ! ... here the Wannier functions are realized
     ! w_Rn(G) = sum_k e^(-ikR) sum_m U_mn(k)*psi_km(G) / Nk^(1/2)
     !
-    CALL open_buffer( iunwann, 'wann', nwordwfcx, io_level, exst )
+    CALL open_buffer( iunwann, 'wann', nwordwann, io_level, exst )
     !
     rhorw(:) = ( 0.D0, 0.D0 )
     ir = 0
@@ -182,7 +195,7 @@ MODULE wannier2odd
           rvec(:) = (/ i-1, j-1, k-1 /)
           CALL cryst_to_cart( 1, rvec, at, 1 )
           !
-          DO iw = 1, num_bands
+          DO iw = 1, num_wann
             DO ik = 1, num_kpts
               !
               ! ... phase factor e^(-ikR)
@@ -196,12 +209,42 @@ MODULE wannier2odd
               evcx(:,:) = ( 0.D0, 0.D0 )
               CALL get_buffer( evcx, nwordwfcx, iunwfcx, ik )
               !
-              DO ibnd = 1, num_bands
+              ! ... selecting disentangled bands
+              !
+              IF ( have_disentangled ) THEN
                 !
-                ! ... calculate the Wannier function (ir,iw)
+                num_inc = ndimwin(ik)
+                counter = 0
                 !
-                ewan(:,iw) = ewan(:,iw) + phase * u_mat(ibnd,iw,ik) * &
-                           evcx(:,ibnd) * SQRT( wg(ibnd,ik) ) / SQRT( DBLE(num_kpts) )
+                DO n = 1, num_bands
+                  IF ( lwindow(n,ik) ) THEN
+                    counter = counter + 1
+                    evcx_dis(:,counter) = evcx(:,n)
+                  ENDIF
+                ENDDO
+                !
+                IF ( counter .ne. num_inc ) &
+                  CALL errore( 'wan2odd', 'Wrong number of included bands', counter )
+                !
+              ENDIF
+              !
+              ! ... calculate the Wannier function (ir,iw)
+              !
+              DO ip = 1, num_wann
+                !
+                ! ... applies disentanglement optimal matrix
+                !
+                evcw(:) = ( 0.D0, 0.D0 )
+                IF ( have_disentangled ) THEN
+                  DO n = 1, num_inc
+                    evcw(:) = evcw(:) + u_mat_opt(n,ip,ik) * evcx_dis(:,n)
+                  ENDDO
+                ELSE
+                  evcw(:) = evcx(:,ip)
+                ENDIF
+                !
+                ewan(:,iw) = ewan(:,iw) + phase * u_mat(ip,iw,ik) * &
+                             evcw(:) * SQRT( wg(ip,ik) ) / SQRT( DBLE(num_kpts) )
                 !
               ENDDO
               !
@@ -219,7 +262,7 @@ MODULE wannier2odd
             !
           ENDDO ! iw
           !
-          CALL save_buffer( ewan, nwordwfcx, iunwann, ir )
+          CALL save_buffer( ewan, nwordwann, iunwann, ir )
           !
         ENDDO
       ENDDO
@@ -238,7 +281,7 @@ MODULE wannier2odd
     !
     ! ... write G-space density to file
     !
-    dirname = restart_dir()
+    dirname = './'
     IF ( my_pool_id == 0 .AND. my_bgrp_id == root_bgrp_id ) &
          CALL write_rhog( TRIM(dirname) // "charge-density-x", &
          root_bgrp, intra_bgrp_comm, &
@@ -248,8 +291,8 @@ MODULE wannier2odd
     !
     ! ... write the WFs to a CP-Koopmans-readable file
     !
-    CALL write_wannier_cp( 'occupied', iunwann, nwordwfcx, npwxcp, &
-                                       num_bands, num_kpts, ig_l2g_cp )
+    CALL write_wannier_cp( iunwann, nwordwann, npwxcp, num_wann, &
+                                                  num_kpts, ig_l2g_cp )
     !
     !
     CALL stop_clock( 'wannier2odd' )
@@ -272,7 +315,7 @@ MODULE wannier2odd
     USE scf,                 ONLY : rho
     USE constants,           ONLY : eps6
     USE fft_supercell,       ONLY : gstart_cp, omega_cp, check_fft, ngmcp
-    USE read_wannier,        ONLY : num_kpts
+    USE read_wannier,        ONLY : num_kpts, excluded_band, have_disentangled
     !
     !
     IMPLICIT NONE
@@ -282,37 +325,48 @@ MODULE wannier2odd
     !
     REAL(DP) :: nelec_, charge
     INTEGER :: ik
+    LOGICAL :: empty=.false.
     !
+    !
+    ! ... if any of the occupied bands is excluded, then 
+    ! ... we are dealing with empty states -> no check on total charge
+    !
+    IF ( ANY( excluded_band(1:nelec/2) ) ) empty = .true.
     !
     ! ... check the total charge
     !
-    charge = 0.D0
-    IF ( gstart_cp == 2 ) THEN
-      charge = rhog(1,1) * omega_cp
+    IF ( .not. empty ) THEN 
+      !
+      charge = 0.D0
+      IF ( gstart_cp == 2 ) THEN
+        charge = rhog(1,1) * omega_cp
+      ENDIF
+      !
+      CALL mp_sum( charge, intra_bgrp_comm )
+      nelec_ = nelec * num_kpts
+      IF ( check_fft ) nelec_ = nelec
+      IF ( ABS( charge - nelec_ ) > 1.D-3 * charge ) &
+           CALL errore( 'wan2odd', 'wrong total charge', 1 )
+      !
+      !
+      ! ... check rho(G) when dfftcp is taken equal to dffts
+      !
+      IF ( check_fft ) THEN
+        DO ik = 1, ngmcp
+          IF ( ABS( DBLE(rhog(ik,1) - rho%of_g(ik,1)) ) .ge. eps6 .or. &
+               ABS( AIMAG(rhog(ik,1) - rho%of_g(ik,1)) ) .ge. eps6 ) THEN
+            CALL errore( 'wan2odd', 'rhog and rho%of_g differ', ik )
+          ENDIF
+        ENDDO
+      ENDIF
+      !
     ENDIF
     !
-    CALL mp_sum( charge, intra_bgrp_comm )
-    nelec_ = nelec * num_kpts
-    IF ( check_fft ) nelec_ = nelec
-    IF ( ABS( charge - nelec_ ) > 1.D-3 * charge ) &
-         CALL errore( 'wan2odd', 'wrong total charge', 1 )
     !
+    ! ... when present, rhogref is compared to rhog (when disentanglement
+    ! ... has been performed the comparison is meaningless)
     !
-    ! ... check rho(G) when dfftcp is taken equal to dffts
-    !
-    IF ( check_fft ) THEN
-      DO ik = 1, ngmcp
-        IF ( ABS( DBLE(rhog(ik,1) - rho%of_g(ik,1)) ) .ge. eps6 .or. &
-             ABS( AIMAG(rhog(ik,1) - rho%of_g(ik,1)) ) .ge. eps6 ) THEN
-          CALL errore( 'wan2odd', 'rhog and rho%of_g differ', ik )
-        ENDIF
-      ENDDO
-    ENDIF
-    !
-    !
-    ! ... when present, rhogref is compared to rhog
-    !
-    IF ( PRESENT(rhogref) ) THEN
+    IF ( PRESENT(rhogref) .and. .not. have_disentangled ) THEN
       DO ik = 1, ngmcp
         IF ( ABS( DBLE(rhog(ik,1) - rhogref(ik,1)) ) .ge. eps6 .or. &
              ABS( AIMAG(rhog(ik,1) - rhogref(ik,1)) ) .ge. eps6 ) THEN

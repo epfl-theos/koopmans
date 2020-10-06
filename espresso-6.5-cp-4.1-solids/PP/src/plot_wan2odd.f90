@@ -23,7 +23,7 @@ MODULE plot_wan2odd
   CONTAINS
   !
   !---------------------------------------------------------------------
-  SUBROUTINE plot_wann( list, nrtot, nbnd )
+  SUBROUTINE plot_wann( list, nrtot, nwann )
     !-------------------------------------------------------------------
     !
     ! ...  This routine generates a XSF file, in a format readable
@@ -39,17 +39,14 @@ MODULE plot_wan2odd
     USE noncollin_module,    ONLY : npol
     USE parameters,          ONLY : ntypx
     USE fft_supercell,       ONLY : dfftcp, at_cp, nat_cp, tau_cp, ityp_cp, &
-                                    ngmcp, npwxcp, iunwann, nwordwfcx
-!!! RICCARDO debug >>>
-    USE fft_supercell, ONLY : gamma_only_cp
-!!! RICCARDO debug <<<
+                                    ngmcp, npwxcp, iunwann, nwordwann, gamma_only_cp
     !
     !
     IMPLICIT NONE
     !
     INTEGER, INTENT(IN) :: list(:)        ! list of WFs to plot
     INTEGER, INTENT(IN) :: nrtot          ! number of R-vectors
-    INTEGER, INTENT(IN) :: nbnd           ! number of bands
+    INTEGER, INTENT(IN) :: nwann          ! number of WFs
     !
     CHARACTER(LEN=30) :: filename
     INTEGER :: fileunit=224
@@ -57,7 +54,7 @@ MODULE plot_wan2odd
     INTEGER :: i, j, rr
     REAL(DP) :: alang
     REAL(DP) :: orig(3), dirs(3,3)
-    COMPLEX(DP) :: evc(npwxcp*npol,nbnd)  ! Wannier function to plot (plane waves)
+    COMPLEX(DP) :: evc(npwxcp*npol,nwann)  ! Wannier function to plot (plane waves)
     COMPLEX(DP) :: psic(dfftcp%nnr)
     !
     !
@@ -71,9 +68,9 @@ MODULE plot_wan2odd
     !
     DO ir = 1, nrtot
       !
-      CALL get_buffer( evc, nwordwfcx, iunwann, ir )
+      CALL get_buffer( evc, nwordwann, iunwann, ir )
       !
-      DO ibnd = 1, nbnd
+      DO ibnd = 1, nwann
         !
         iw = iw + 1
         !
@@ -84,7 +81,7 @@ MODULE plot_wan2odd
         CYCLE
         !
         !
-  500   psic(:) = ( 0.D0, 0.D0 )
+500     psic(:) = ( 0.D0, 0.D0 )
         !
         IF ( ionode ) THEN
           WRITE(stdout,'(10x, "Wannier function:", 3I6)') iw, ir, ibnd
@@ -92,9 +89,7 @@ MODULE plot_wan2odd
         !
         WRITE( filename, 100 ) ir, ibnd
         psic(dfftcp%nl(1:npwxcp)) = evc(1:npwxcp,ibnd) 
-!!! RICCARDO debug >>>
         IF ( gamma_only_cp ) psic(dfftcp%nlm(1:npwxcp)) = CONJG( evc(1:npwxcp,ibnd) )
-!!! RICCARDO debug <<<
         CALL invfft( 'Wave', psic, dfftcp )
         !
         alang = alat * BOHR_RADIUS_ANGS     ! alat in angstrom
@@ -131,16 +126,16 @@ MODULE plot_wan2odd
     CALL stop_clock( 'plot_wann' )
     !
     !
-  100 FORMAT( 'WF_R', I4.4, '_B', I4.4, '.xsf' )    ! ex: WF_R1_B2.xsf
+100 FORMAT( 'WF_R', I4.4, '_B', I4.4, '.xsf' )    ! ex: WF_R1_B2.xsf
     !
-  201 FORMAT( 'CRYSTAL', /,'PRIMVEC', /, 3F12.7, /, 3F12.7, /, 3F12.7 )
-  202 FORMAT( 'CONVVEC', /, 3F12.7, /, 3F12.7, /, 3F12.7 )
-  203 FORMAT( 'PRIMCOORD', /, I6, '  1' )
-  204 FORMAT( A2, 3X, 3F12.7 )
-  205 FORMAT( /, 'BEGIN_BLOCK_DATAGRID_3D', /, '3D_field', /, 'BEGIN_DATAGRID_3D_WANNIER' )
-  206 FORMAT( 3I6, /, 3F12.6, /, 3F12.7, /, 3F12.7, /, 3F12.7 )
-  207 FORMAT( 6E13.5 )
-  208 FORMAT( 'END_DATAGRID_3D', /, 'END_BLOCK_DATAGRID_3D' )
+201 FORMAT( 'CRYSTAL', /,'PRIMVEC', /, 3F12.7, /, 3F12.7, /, 3F12.7 )
+202 FORMAT( 'CONVVEC', /, 3F12.7, /, 3F12.7, /, 3F12.7 )
+203 FORMAT( 'PRIMCOORD', /, I6, '  1' )
+204 FORMAT( A2, 3X, 3F12.7 )
+205 FORMAT( /, 'BEGIN_BLOCK_DATAGRID_3D', /, '3D_field', /, 'BEGIN_DATAGRID_3D_WANNIER' )
+206 FORMAT( 3I6, /, 3F12.6, /, 3F12.7, /, 3F12.7, /, 3F12.7 )
+207 FORMAT( 6E13.5 )
+208 FORMAT( 'END_DATAGRID_3D', /, 'END_BLOCK_DATAGRID_3D' )
     !
     !
   END SUBROUTINE plot_wann
