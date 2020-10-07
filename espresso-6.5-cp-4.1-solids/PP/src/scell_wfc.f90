@@ -15,14 +15,14 @@ MODULE scell_wfc
   !
   USE kinds,               ONLY : DP
   USE fft_support,         ONLY : good_fft_dimension
-  USE fft_base,            ONLY : dffts
+  USE fft_types,           ONLY : fft_type_descriptor
   !
   !
   IMPLICIT NONE
   !
   PRIVATE
   !
-  PUBLIC :: extend_wfc
+  PUBLIC :: extend_wfc, bcast_psic
   !
   CONTAINS
   !
@@ -41,7 +41,7 @@ MODULE scell_wfc
     USE io_global,           ONLY : stdout
     USE mp,                  ONLY : mp_sum
     USE mp_bands,            ONLY : intra_bgrp_comm
-    USE fft_types,           ONLY : fft_type_descriptor
+    USE fft_base,            ONLY : dffts
     USE cell_base,           ONLY : at
     USE constants,           ONLY : eps8, tpi
     !
@@ -67,7 +67,7 @@ MODULE scell_wfc
     nnrg = dffts%nnr
     CALL mp_sum( nnrg, intra_bgrp_comm )
     ALLOCATE( psicg(nnrg) )
-    CALL bcast_psic( psic, psicg )
+    CALL bcast_psic( psic, psicg, dffts )
     !
     !
 #if defined (__MPI)
@@ -127,7 +127,7 @@ MODULE scell_wfc
   !
   !
   !---------------------------------------------------------------------
-  SUBROUTINE bcast_psic( psic, psicg )
+  SUBROUTINE bcast_psic( psic, psicg, dfft )
     !-------------------------------------------------------------------
     !
     ! ...  This routine broadcasts the local wavefunction (psic)
@@ -135,24 +135,30 @@ MODULE scell_wfc
     ! ...  following the global ordering of the points in the
     ! ...  FFT grid
     !
+    USE mp,                  ONLY : mp_sum
+    USE mp_bands,            ONLY : intra_bgrp_comm
+    !
     !
     IMPLICIT NONE
     !
     COMPLEX(DP), INTENT(IN) :: psic(:)
     COMPLEX(DP), INTENT(OUT) :: psicg(:)
+    TYPE( fft_type_descriptor ) :: dfft
     !
     INTEGER :: i, j, k, ir, ir_end, idx, j0, k0, irg
     !
     !
+    psicg(:) = ( 0.D0, 0.D0 )
+    !
 #if defined (__MPI)
-    j0 = dffts%my_i0r2p
-    k0 = dffts%my_i0r3p
-    IF( dffts%nr1x == 0 ) dffts%nr1x = good_fft_dimension( dffts%nr1 )
-    ir_end = MIN( dffts%nnr, dffts%nr1x*dffts%my_nr2p*dffts%my_nr3p )
+    j0 = dfft%my_i0r2p
+    k0 = dfft%my_i0r3p
+    IF( dfft%nr1x == 0 ) dfft%nr1x = good_fft_dimension( dfft%nr1 )
+    ir_end = MIN( dfft%nnr, dfft%nr1x*dfft%my_nr2p*dfft%my_nr3p )
 #else
     j0 = 0
     k0 = 0
-    ir_end = dffts%nnr
+    ir_end = dfft%nnr
 #endif
     !
     !
@@ -161,23 +167,25 @@ MODULE scell_wfc
       ! ... three dimensional indexes
       !
       idx = ir - 1
-      k = idx / ( dffts%nr1x * dffts%my_nr2p )
-      idx = idx - ( dffts%nr1x * dffts%my_nr2p ) * k
+      k = idx / ( dfft%nr1x * dfft%my_nr2p )
+      idx = idx - ( dfft%nr1x * dfft%my_nr2p ) * k
       k = k + k0
-      IF ( k .GE. dffts%nr3 ) CYCLE
-      j = idx / dffts%nr1x
-      idx = idx - dffts%nr1x * j
+      IF ( k .GE. dfft%nr3 ) CYCLE
+      j = idx / dfft%nr1x
+      idx = idx - dfft%nr1x * j
       j = j + j0
-      IF ( j .GE. dffts%nr2 ) CYCLE
+      IF ( j .GE. dfft%nr2 ) CYCLE
       i = idx
-      IF ( i .GE. dffts%nr1 ) CYCLE
+      IF ( i .GE. dfft%nr1 ) CYCLE
       !
       ! ... defining global index and saving psicg
       !
-      irg = i + j*dffts%nr1x + k*dffts%nr1x*dffts%my_nr2p + 1
+      irg = i + j*dfft%nr1x + k*dfft%nr1x*dfft%my_nr2p + 1
       psicg(irg) = psic(ir)
       !
-    ENDDO    
+    ENDDO
+    !
+    CALL mp_sum( psicg, intra_bgrp_comm )
     !
     !
   END SUBROUTINE bcast_psic

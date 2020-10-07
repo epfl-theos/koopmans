@@ -31,6 +31,8 @@ MODULE plot_wan2odd
     !
     USE kinds,               ONLY : DP
     USE io_global,           ONLY : ionode, stdout
+    USE mp,                  ONLY : mp_sum
+    USE mp_bands,            ONLY : intra_bgrp_comm
     USE fft_interfaces,      ONLY : invfft
     USE buffers,             ONLY : get_buffer, close_buffer
     USE cell_base,           ONLY : alat, omega, at
@@ -38,6 +40,7 @@ MODULE plot_wan2odd
     USE ions_base,           ONLY : atm
     USE noncollin_module,    ONLY : npol
     USE parameters,          ONLY : ntypx
+    USE scell_wfc,           ONLY : bcast_psic
     USE fft_supercell,       ONLY : dfftcp, at_cp, nat_cp, tau_cp, ityp_cp, &
                                     ngmcp, npwxcp, iunwann, nwordwann, gamma_only_cp
     !
@@ -52,13 +55,19 @@ MODULE plot_wan2odd
     INTEGER :: fileunit=224
     INTEGER :: ir, ibnd, iw
     INTEGER :: i, j, rr
+    INTEGER :: nnrg
     REAL(DP) :: alang
     REAL(DP) :: orig(3), dirs(3,3)
     COMPLEX(DP) :: evc(npwxcp*npol,nwann)  ! Wannier function to plot (plane waves)
     COMPLEX(DP) :: psic(dfftcp%nnr)
+    COMPLEX(DP), ALLOCATABLE :: psicg(:)
     !
     !
     CALL start_clock( 'plot_wann' )
+    !
+    nnrg = dfftcp%nnr
+    CALL mp_sum( nnrg, intra_bgrp_comm )
+    ALLOCATE( psicg(nnrg) )
     !
     IF ( ionode ) THEN
       WRITE(stdout,*) "Plot of Wannier functions:    iw    ir  ibnd"
@@ -91,6 +100,7 @@ MODULE plot_wan2odd
         psic(dfftcp%nl(1:npwxcp)) = evc(1:npwxcp,ibnd) 
         IF ( gamma_only_cp ) psic(dfftcp%nlm(1:npwxcp)) = CONJG( evc(1:npwxcp,ibnd) )
         CALL invfft( 'Wave', psic, dfftcp )
+        CALL bcast_psic( psic, psicg, dfftcp )
         !
         alang = alat * BOHR_RADIUS_ANGS     ! alat in angstrom
         !
@@ -111,7 +121,7 @@ MODULE plot_wan2odd
           WRITE( fileunit, 205 )
           WRITE( fileunit, 206 ) dfftcp%nr1, dfftcp%nr2, dfftcp%nr3, &
                                  orig, dirs(:,1), dirs(:,2), dirs(:,3) 
-          WRITE( fileunit, 207 ) ( REAL(psic(rr)), rr=1,dfftcp%nnr )
+          WRITE( fileunit, 207 ) ( REAL(psicg(rr)), rr=1,nnrg )
           WRITE( fileunit, 208 ) 
           !
           CLOSE( fileunit )

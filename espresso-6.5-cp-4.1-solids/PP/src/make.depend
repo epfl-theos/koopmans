@@ -466,11 +466,14 @@ plot_wan2odd.o : ../../Modules/constants.o
 plot_wan2odd.o : ../../Modules/io_global.o
 plot_wan2odd.o : ../../Modules/ions_base.o
 plot_wan2odd.o : ../../Modules/kind.o
+plot_wan2odd.o : ../../Modules/mp_bands.o
 plot_wan2odd.o : ../../Modules/noncol.o
 plot_wan2odd.o : ../../Modules/parameters.o
 plot_wan2odd.o : ../../FFTXlib/fft_interfaces.o
 plot_wan2odd.o : ../../PW/src/buffers.o
+plot_wan2odd.o : ../../UtilXlib/mp.o
 plot_wan2odd.o : fft_supercell.o
+plot_wan2odd.o : scell_wfc.o
 poormanwannier.o : ../../Modules/becmod.o
 poormanwannier.o : ../../Modules/constants.o
 poormanwannier.o : ../../Modules/control_flags.o

@@ -4,7 +4,7 @@ TO DO list:
 2) gamma_trick --> DONE
 3) write CP file --> DONE
 4) empty states (U_opt) --> DONE
-5) check parallelization
+5) check parallelization --> DONE
 6) check spin
 7) check problem with cutoff (36-37Ry)
 8) check plot Wannier functions max/min ratio

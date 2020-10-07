@@ -24,7 +24,7 @@ MODULE read_wannier
   !
   PUBLIC :: read_wannier_chk
   !
-  ! Remember to mp_bcast possible additions
+  ! Remember to broadcast possible additions
   !
   INTEGER, PUBLIC :: num_bands          ! num of PC bands for wannierization
   INTEGER, PUBLIC :: num_wann           ! num of PC Wannier functions
@@ -43,13 +43,12 @@ MODULE read_wannier
   SUBROUTINE read_wannier_chk( seedname )
     !-------------------------------------------------------------------
     !
-    ! ...  parse the Wannier90 chk file
+    ! ...  parser for the Wannier90 chk file
     !
     USE io_global,           ONLY : ionode, ionode_id
     USE mp_global,           ONLY : intra_image_comm
     USE mp,                  ONLY : mp_bcast
     USE cell_base,           ONLY : bg
-    USE constants,           ONLY : eps8
     USE klist,               ONLY : nkstot, xk
     USE wvfct,               ONLY : nbnd
     USE lsda_mod,            ONLY : nspin
@@ -72,7 +71,6 @@ MODULE read_wannier
     REAL(DP), ALLOCATABLE :: centers(:,:)
     REAL(DP), ALLOCATABLE :: spreads(:)
     REAL(DP) :: omega_invariant
-    COMPLEX(DP), ALLOCATABLE :: uu_prod(:,:)
     COMPLEX(DP), ALLOCATABLE :: m_mat(:,:,:,:)
     !
     !
@@ -92,8 +90,15 @@ MODULE read_wannier
         CALL  errore( 'read_wannier_chk', 'Invalid value for num_exclude_bands', &
                       num_exclude_bands )
       !
-      ALLOCATE( exclude_bands(num_exclude_bands) )
-      ALLOCATE( excluded_band(nbnd) )
+    ENDIF
+    !
+    CALL mp_bcast( num_bands, ionode_id, intra_image_comm )
+    CALL mp_bcast( num_exclude_bands, ionode_id, intra_image_comm )
+    !
+    ALLOCATE( exclude_bands(num_exclude_bands) )
+    ALLOCATE( excluded_band(nbnd) )
+    !
+    IF ( ionode ) THEN 
       !
       READ( chk_unit ) ( exclude_bands(i), i=1,num_exclude_bands )   ! list of excluded bands
       excluded_band(:) = .false.
@@ -115,8 +120,17 @@ MODULE read_wannier
       !
       READ( chk_unit ) ( kgrid(i), i=1,3 )                           ! MP grid
       !
-      ALLOCATE( kpt_latt(3,num_kpts) )
       ALLOCATE( kaux(3,num_kpts) )
+      !
+    ENDIF
+    !
+    CALL mp_bcast( excluded_band, ionode_id, intra_image_comm )
+    CALL mp_bcast( num_kpts, ionode_id, intra_image_comm )
+    CALL mp_bcast( kgrid, ionode_id, intra_image_comm )
+    !
+    ALLOCATE( kpt_latt(3,num_kpts) )
+    !
+    IF ( ionode ) THEN
       !
       READ( chk_unit ) (( kpt_latt(i,nkp), i=1,3 ), nkp=1,num_kpts )
       !
@@ -130,56 +144,51 @@ MODULE read_wannier
       READ( chk_unit ) checkpoint                                    ! checkpoint
       READ( chk_unit ) have_disentangled     ! .true. if disentanglement has been performed
       !
-      IF ( have_disentangled ) THEN 
+    ENDIF
+    !
+    CALL mp_bcast( num_wann, ionode_id, intra_image_comm )
+    CALL mp_bcast( have_disentangled, ionode_id, intra_image_comm )
+    !
+    IF ( have_disentangled ) THEN
+      !
+      ALLOCATE( lwindow(num_bands,num_kpts) )
+      ALLOCATE( ndimwin(num_kpts) )
+      ALLOCATE( u_mat_opt(num_bands,num_wann,num_kpts) )
+      !
+      IF ( ionode ) THEN
         !
-        READ( chk_unit ) omega_invariant                             ! omega invariant
-        !
-        ALLOCATE( lwindow(num_bands,num_kpts) )
-        ALLOCATE( ndimwin(num_kpts) )
-        !
+        READ( chk_unit ) omega_invariant              
         READ( chk_unit ) (( lwindow(i,nkp), i=1,num_bands ), nkp=1,num_kpts )
         READ( chk_unit ) ( ndimwin(nkp), nkp=1,num_kpts )
-        !
-        ALLOCATE( u_mat_opt(num_bands,num_wann,num_kpts) )
-        READ ( chk_unit ) ((( u_mat_opt(i,j,nkp), i=1,num_bands ), &  ! optimal U-matrix
+        READ( chk_unit ) ((( u_mat_opt(i,j,nkp), i=1,num_bands ), &   ! optimal U-matrix
                                                   j=1,num_wann ), &
                                                   nkp=1,num_kpts )
         !
       ENDIF
       !
-      ALLOCATE( u_mat(num_wann,num_wann,num_kpts) )
-      READ ( chk_unit ) ((( u_mat(i,j,nkp), i=1,num_wann ), &        ! U-matrix
+      CALL mp_bcast( lwindow, ionode_id, intra_image_comm )
+      CALL mp_bcast( ndimwin, ionode_id, intra_image_comm )
+      CALL mp_bcast( u_mat_opt, ionode_id, intra_image_comm )
+      !
+    ENDIF
+    !
+    ALLOCATE( u_mat(num_wann,num_wann,num_kpts) )
+    ALLOCATE( m_mat(num_wann,num_wann,nntot,num_kpts) )  
+    ALLOCATE( centers(3,num_wann) )                                ! Wannier centers
+    ALLOCATE( spreads(num_wann) )                                  ! Wannier spreads
+    !
+    IF ( ionode ) THEN
+      !
+      READ ( chk_unit ) ((( u_mat(i,j,nkp), i=1,num_wann ), &         ! U-matrix
                                             j=1,num_wann ), &
                                             nkp=1,num_kpts )
       !
-      ! check that U(k) is unitary for each k
-      ALLOCATE( uu_prod(num_wann,num_wann) )
-      DO nkp = 1, num_kpts
-        uu_prod = MATMUL( u_mat(:,:,nkp), CONJG(TRANSPOSE( u_mat(:,:,nkp) )) )
-        DO i = 1, num_wann
-          DO j = 1, num_wann
-            IF ( i == j ) THEN
-              IF ( ( ABS(DBLE( uu_prod(i,j) - 1 )) .ge. eps8 ) .or. &
-                  ( ABS(AIMAG( uu_prod(i,j) )) .ge. eps8 ) ) &
-                CALL errore( 'read_wannier_chk', 'u_mat is not unitary', nkp )
-            ELSE
-              IF ( ( ABS(DBLE( uu_prod(i,j) )) .ge. eps8 ) .or. &
-                  ( ABS(AIMAG( uu_prod(i,j) )) .ge. eps8 ) ) &
-                CALL errore( 'read_wannier_chk', 'u_mat is not unitary', nkp )
-            ENDIF
-          ENDDO
-        ENDDO
-      ENDDO
-      !
-      ALLOCATE( m_mat(num_wann,num_wann,nntot,num_kpts) )            ! M-matrix
+      CALL check_u_unitary          ! checks u_mat is unitary
       !
       READ( chk_unit ) (((( m_mat(i,j,nn,nkp), i=1,num_wann ), &
                                                j=1,num_wann ), &
                                                nn=1,nntot ), &
                                                nkp=1,num_kpts )
-      !
-      ALLOCATE( centers(3,num_wann) )                                ! Wannier centers
-      ALLOCATE( spreads(num_wann) )                                  ! Wannier spreads
       !
       READ( chk_unit ) (( centers(i,j), i=1,3 ), j=1,num_wann )
       READ( chk_unit ) ( spreads(i), i=1,num_wann )
@@ -188,16 +197,55 @@ MODULE read_wannier
       !
     ENDIF
     !
-    !
-    CALL mp_bcast( num_bands, ionode_id, intra_image_comm )
-    CALL mp_bcast( num_wann, ionode_id, intra_image_comm )
-    CALL mp_bcast( num_kpts, ionode_id, intra_image_comm )
-    CALL mp_bcast( kgrid, ionode_id, intra_image_comm )
     CALL mp_bcast( u_mat, ionode_id, intra_image_comm )
-    CALL mp_bcast( u_mat_opt, ionode_id, intra_image_comm )
     !
     !
   END SUBROUTINE read_wannier_chk
+  !
+  !
+  !---------------------------------------------------------------------
+  SUBROUTINE check_u_unitary
+    !-------------------------------------------------------------------
+    !
+    ! ...  check that u_mat is unitary
+    !
+    USE constants,           ONLY : eps8
+    !
+    !
+    IMPLICIT NONE
+    !
+    INTEGER :: nkp, i, j
+    COMPLEX(DP) :: uu_prod(num_wann,num_wann)
+    !
+    !  
+    DO nkp = 1, num_kpts
+      !
+      uu_prod = MATMUL( u_mat(:,:,nkp), CONJG(TRANSPOSE( u_mat(:,:,nkp) )) )
+      !
+      DO i = 1, num_wann
+        DO j = 1, num_wann
+          !
+          IF ( i == j ) THEN
+            !
+            IF ( ( ABS(DBLE( uu_prod(i,j) - 1 )) .ge. eps8 ) .or. &
+                ( ABS(AIMAG( uu_prod(i,j) )) .ge. eps8 ) ) &
+              CALL errore( 'read_wannier_chk', 'u_mat is not unitary', nkp )
+            !
+          ELSE
+            !
+            IF ( ( ABS(DBLE( uu_prod(i,j) )) .ge. eps8 ) .or. &
+                ( ABS(AIMAG( uu_prod(i,j) )) .ge. eps8 ) ) &
+              CALL errore( 'read_wannier_chk', 'u_mat is not unitary', nkp )
+            !
+          ENDIF
+          !
+        ENDDO
+      ENDDO
+      !
+    ENDDO
+    !
+    !
+  END SUBROUTINE check_u_unitary
   !
   !
 END MODULE read_wannier

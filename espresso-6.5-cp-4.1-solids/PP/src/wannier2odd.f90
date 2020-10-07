@@ -42,7 +42,7 @@ MODULE wannier2odd
     ! ...  4) Wannier functions are finally written in a CP-readable
     ! ...     file
     !
-    USE io_global,           ONLY : stdout, ionode
+    USE io_global,           ONLY : stdout
     USE io_files,            ONLY : nwordwfc, iunwfc, restart_dir
     USE io_base,             ONLY : write_rhog
     USE mp_pools,            ONLY : my_pool_id
