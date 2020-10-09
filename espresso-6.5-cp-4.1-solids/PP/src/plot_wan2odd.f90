@@ -13,6 +13,8 @@
 MODULE plot_wan2odd
   !-------------------------------------------------------------------
   !
+  USE kinds,               ONLY : DP
+  !
   !
   IMPLICIT NONE 
   !
@@ -29,7 +31,6 @@ MODULE plot_wan2odd
     ! ...  This routine generates a XSF file, in a format readable
     ! ...  by XCrySDen, with the plot of the Wannier functions in list
     !
-    USE kinds,               ONLY : DP
     USE io_global,           ONLY : ionode, stdout
     USE mp,                  ONLY : mp_sum
     USE mp_bands,            ONLY : intra_bgrp_comm
@@ -101,6 +102,7 @@ MODULE plot_wan2odd
         IF ( gamma_only_cp ) psic(dfftcp%nlm(1:npwxcp)) = CONJG( evc(1:npwxcp,ibnd) )
         CALL invfft( 'Wave', psic, dfftcp )
         CALL bcast_psic( psic, psicg, dfftcp )
+        CALL real_wann_max_mod( psicg, nnrg )
         !
         alang = alat * BOHR_RADIUS_ANGS     ! alat in angstrom
         !
@@ -149,6 +151,48 @@ MODULE plot_wan2odd
     !
     !
   END SUBROUTINE plot_wann
+  !
+  !
+  !---------------------------------------------------------------------
+  SUBROUTINE real_wann_max_mod( psi, nnr )
+    !-------------------------------------------------------------------
+    !
+    ! ...  This routine normalizes the input Wannier function in 
+    ! ...  order to be real at the point where it has the max.
+    ! ...  modulus
+    !
+    !
+    IMPLICIT NONE
+    !
+    COMPLEX(DP), INTENT(INOUT) :: psi(:)
+    INTEGER, INTENT(IN) :: nnr
+    !
+    INTEGER :: ir
+    COMPLEX(DP) :: wmod
+    REAL(DP) :: tmax, tmax_
+    !
+    !
+    tmax = 0.D0
+    wmod = ( 0.D0, 1.D0 )
+    !
+    DO ir = 1, nnr
+      !
+      tmax_ = DBLE( psi(ir) )**2 + AIMAG( psi(ir) )**2
+      !
+      IF ( tmax_ > tmax ) THEN
+        !
+        tmax = tmax_
+        wmod = psi(ir)
+        !
+      ENDIF
+      ! 
+    ENDDO
+    !
+    wmod = wmod / SQRT( DBLE(wmod)**2 + AIMAG(wmod)**2 )
+    psi(:) = psi(:) / wmod
+    !
+    !
+  END SUBROUTINE real_wann_max_mod
   !
   !
 END MODULE plot_wan2odd

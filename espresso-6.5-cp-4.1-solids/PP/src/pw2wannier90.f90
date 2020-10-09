@@ -491,7 +491,7 @@ PROGRAM pw2wannier90
      CALL read_nnkp
      CALL get_wannier_to_plot
      CALL openfil_pp
-     CALL wan2odd( seedname, ikstart )
+     CALL wan2odd( seedname, ikstart, wannier_plot )
      IF ( wannier_plot ) CALL plot_wann( wann_to_plot, iknum, n_wannier )
      !
      IF ( ionode ) WRITE( stdout, *  )

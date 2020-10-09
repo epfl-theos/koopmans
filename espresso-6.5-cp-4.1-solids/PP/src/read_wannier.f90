@@ -170,6 +170,12 @@ MODULE read_wannier
       CALL mp_bcast( ndimwin, ionode_id, intra_image_comm )
       CALL mp_bcast( u_mat_opt, ionode_id, intra_image_comm )
       !
+    ELSE
+      !
+      IF ( num_wann .ne. num_bands ) &
+        CALL errore( 'read_wannier_chk', 'mismatch between num_bands and num_wann', &
+                                                  num_bands-num_wann )
+      !
     ENDIF
     !
     ALLOCATE( u_mat(num_wann,num_wann,num_kpts) )

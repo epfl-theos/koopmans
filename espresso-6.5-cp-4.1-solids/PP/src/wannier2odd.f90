@@ -25,7 +25,7 @@ MODULE wannier2odd
   CONTAINS
   !
   !---------------------------------------------------------------------
-  SUBROUTINE wan2odd( seedname, ikstart )
+  SUBROUTINE wan2odd( seedname, ikstart, plot )
     !-------------------------------------------------------------------
     !
     ! ...  This routine:
@@ -54,7 +54,7 @@ MODULE wannier2odd
     USE buffers,             ONLY : open_buffer, close_buffer, &
                                     save_buffer, get_buffer
     USE lsda_mod,            ONLY : nspin
-    USE klist,               ONLY : xk, ngk, igk_k
+    USE klist,               ONLY : xk, ngk, igk_k, nelec
     USE gvect,               ONLY : ngm
     USE wvfct,               ONLY : wg, npwx, nbnd
     USE cell_base,           ONLY : tpiba, omega, at
@@ -73,23 +73,25 @@ MODULE wannier2odd
     !
     CHARACTER(LEN=256), INTENT(IN) :: seedname
     INTEGER, INTENT(IN) :: ikstart
+    LOGICAL, INTENT(IN) :: plot
     !
     CHARACTER(LEN=256) :: dirname
     INTEGER :: ik, ikevc, ibnd, iw, ip
     INTEGER :: i, j, k, ir, n, counter
     INTEGER :: num_inc
     INTEGER :: npw
-    INTEGER :: nwordwfcx                                ! record length for supercell wfcs
-    INTEGER :: iunwfcx = 24                             ! unit for supercell wfc file
+    INTEGER :: nwordwfcx                            ! record length for supercell wfcs
+    INTEGER :: iunwfcx = 24                         ! unit for supercell wfc file
     INTEGER :: io_level = 1
     LOGICAL :: exst
+    LOGICAL :: calc_rho=.true.
     COMPLEX(DP), ALLOCATABLE :: evcx(:,:)
     COMPLEX(DP), ALLOCATABLE :: evcx_dis(:,:)
     COMPLEX(DP), ALLOCATABLE :: evcw(:)
     COMPLEX(DP), ALLOCATABLE :: ewan(:,:)
     COMPLEX(DP), ALLOCATABLE :: psicx(:)
-    COMPLEX(DP), ALLOCATABLE :: rhor(:), rhorw(:)       ! real space supercell density
-    COMPLEX(DP), ALLOCATABLE :: rhog(:,:), rhogw(:,:)   ! G-space supercell density
+    COMPLEX(DP), ALLOCATABLE :: rhor(:)             ! real space supercell density
+    COMPLEX(DP), ALLOCATABLE :: rhog(:,:)           ! G-space supercell density
     REAL(DP) :: kvec(3), rvec(3)
     REAL(DP) :: dot_prod
     COMPLEX(DP) :: phase
@@ -104,14 +106,26 @@ MODULE wannier2odd
     CALL setup_scell_fft
     !
     !
+    ! ... if all the occupied states are in, we calculate also
+    ! ... the total density
+    !
+    IF ( ANY(excluded_band(1:nelec/2)) ) calc_rho = .false.
+    !
+    !
     nwordwfcx = num_bands*npwxcp*npol
     nwordwann = num_wann*npwxcp*npol
     ALLOCATE( evcx(npwxcp*npol,num_bands) )
     ALLOCATE( evcw(npwxcp*npol) )
     ALLOCATE( ewan(npwxcp*npol,num_wann) )
     ALLOCATE( psicx(dfftcp%nnr) )
-    ALLOCATE( rhor(dfftcp%nnr), rhorw(dfftcp%nnr) )
-    ALLOCATE( rhog(ngmcp,nspin), rhogw(ngmcp,nspin) )
+    !
+    IF ( calc_rho ) THEN
+      !
+      ALLOCATE( rhor(dfftcp%nnr) )
+      ALLOCATE( rhog(ngmcp,nspin) )
+      rhor(:) = ( 0.D0, 0.D0 )
+      !
+    ENDIF
     !
     IF ( have_disentangled ) ALLOCATE( evcx_dis(npwxcp*npol,MAXVAL(ndimwin)) )
     !
@@ -119,11 +133,10 @@ MODULE wannier2odd
     ! ... open buffer for direct-access to the extended wavefunctions
     !
     CALL open_buffer( iunwfcx, 'wfcx', nwordwfcx, io_level, exst )
-    rhor(:) = ( 0.D0, 0.D0 )
     !
     ! ... loop to read the primitive cell wavefunctions and 
     ! ... extend them to the supercell
-    ! 
+    !
     DO ik = 1, num_kpts
       !
       ikevc = ik + ikstart - 1
@@ -155,13 +168,17 @@ MODULE wannier2odd
         !
         ! ... calculate the total density in the supercell
         !
-        rhor(:) = rhor(:) + ( DBLE( psicx(:) )**2 + &
-                             AIMAG( psicx(:) )**2 ) * wg(ibnd,ik) / omega
+        IF ( calc_rho ) &
+          rhor(:) = rhor(:) + ( DBLE( psicx(:) )**2 + &
+                               AIMAG( psicx(:) )**2 ) * wg(ibnd,ik) / omega
         !
         CALL fwfft( 'Wave', psicx, dfftcp )
         evcx(1:npwxcp,counter) = psicx( dfftcp%nl(1:npwxcp) )
         !
       ENDDO ! ibnd
+      !
+      IF ( counter .ne. num_bands ) &
+        CALL errore( 'wan2odd', 'wrong number of included bands', counter )
       !
       ! ... save the extended wavefunctions into the buffer
       !
@@ -170,11 +187,15 @@ MODULE wannier2odd
     ENDDO ! ik
     !
     !
-    rhog(:,:) = ( 0.D0, 0.D0 )
-    CALL fwfft( 'Rho', rhor, dfftcp )
-    rhog(1:ngmcp,1) = rhor( dfftcp%nl(1:ngmcp) )
-    !
-    CALL check_rho( rhog )
+    IF ( calc_rho ) THEN
+      !
+      rhog(:,:) = ( 0.D0, 0.D0 )
+      CALL fwfft( 'Rho', rhor, dfftcp )
+      rhog(1:ngmcp,1) = rhor( dfftcp%nl(1:ngmcp) )
+      !
+      CALL check_rho( rhog )
+      !
+    ENDIF
     !
     !
     ! ... here the Wannier functions are realized
@@ -182,7 +203,6 @@ MODULE wannier2odd
     !
     CALL open_buffer( iunwann, 'wann', nwordwann, io_level, exst )
     !
-    rhorw(:) = ( 0.D0, 0.D0 )
     ir = 0
     !
     DO i = 1, kgrid(1)
@@ -224,7 +244,8 @@ MODULE wannier2odd
                 ENDDO
                 !
                 IF ( counter .ne. num_inc ) &
-                  CALL errore( 'wan2odd', 'Wrong number of included bands', counter )
+                  CALL errore( 'wan2odd', 'Wrong number of included bands &
+                                           in disentanglement', counter )
                 !
               ENDIF
               !
@@ -243,22 +264,11 @@ MODULE wannier2odd
                   evcw(:) = evcx(:,ip)
                 ENDIF
                 !
-                ewan(:,iw) = ewan(:,iw) + phase * u_mat(ip,iw,ik) * &
-                             evcw(:) * SQRT( wg(ip,ik) ) / SQRT( DBLE(num_kpts) )
+                ewan(:,iw) = ewan(:,iw) + phase * u_mat(ip,iw,ik) * evcw(:) / num_kpts
                 !
               ENDDO
               !
             ENDDO ! ik
-            !
-            ! ... re-calculate the total density on the Wannier functions
-            !
-            psicx = (0.d0,0.d0)
-            psicx( dfftcp%nl(1:npwxcp) ) = ewan(1:npwxcp,iw)
-            IF ( gamma_only_cp ) psicx( dfftcp%nlm(1:npwxcp) ) = CONJG( ewan(1:npwxcp,iw) )
-            CALL invfft( 'Wave', psicx, dfftcp )
-            !
-            rhorw(:) = rhorw(:) + ( DBLE( psicx(:) )**2 + &
-                                   AIMAG( psicx(:) )**2 ) / omega
             !
           ENDDO ! iw
           !
@@ -268,25 +278,21 @@ MODULE wannier2odd
       ENDDO
     ENDDO
     !
+    !
     CALL close_buffer( iunwfcx, 'delete' )
-    !
-    ! ... checks that the density calculated on the WFs did not change
-    !
-    rhogw(:,:) = ( 0.D0, 0.D0 )
-    CALL fwfft( 'Rho', rhorw, dfftcp )
-    rhogw(1:ngmcp,1) = rhorw( dfftcp%nl(1:ngmcp) )
-    !
-    CALL check_rho( rhogw, rhog )
-    !
     !
     ! ... write G-space density to file
     !
-    dirname = './'
-    IF ( my_pool_id == 0 .AND. my_bgrp_id == root_bgrp_id ) &
-         CALL write_rhog( TRIM(dirname) // "charge-density-x", &
-         root_bgrp, intra_bgrp_comm, &
-         bg_cp(:,1)*tpiba, bg_cp(:,2)*tpiba, bg_cp(:,3)*tpiba, &
-         gamma_only_cp, mill_cp, ig_l2g_cp, rhog(:,:) )
+    IF ( calc_rho ) THEN
+      !
+      dirname = './'
+      IF ( my_pool_id == 0 .AND. my_bgrp_id == root_bgrp_id ) &
+           CALL write_rhog( TRIM(dirname) // "charge-density-x", &
+           root_bgrp, intra_bgrp_comm, &
+           bg_cp(:,1)*tpiba, bg_cp(:,2)*tpiba, bg_cp(:,3)*tpiba, &
+           gamma_only_cp, mill_cp, ig_l2g_cp, rhog(:,:) )
+      !
+    ENDIF
     !
     !
     ! ... write the WFs to a CP-Koopmans-readable file
@@ -294,6 +300,7 @@ MODULE wannier2odd
     CALL write_wannier_cp( iunwann, nwordwann, npwxcp, num_wann, &
                                                   num_kpts, ig_l2g_cp )
     !
+    IF ( .not. plot ) CALL close_buffer( iunwann, 'delete' )
     !
     CALL stop_clock( 'wannier2odd' )
     !
@@ -315,7 +322,7 @@ MODULE wannier2odd
     USE scf,                 ONLY : rho
     USE constants,           ONLY : eps6
     USE fft_supercell,       ONLY : gstart_cp, omega_cp, check_fft, ngmcp
-    USE read_wannier,        ONLY : num_kpts, excluded_band, have_disentangled
+    USE read_wannier,        ONLY : num_kpts
     !
     !
     IMPLICIT NONE
@@ -325,48 +332,37 @@ MODULE wannier2odd
     !
     REAL(DP) :: nelec_, charge
     INTEGER :: ik
-    LOGICAL :: empty=.false.
     !
-    !
-    ! ... if any of the occupied bands is excluded, then 
-    ! ... we are dealing with empty states -> no check on total charge
-    !
-    IF ( ANY( excluded_band(1:nelec/2) ) ) empty = .true.
     !
     ! ... check the total charge
     !
-    IF ( .not. empty ) THEN 
-      !
-      charge = 0.D0
-      IF ( gstart_cp == 2 ) THEN
-        charge = rhog(1,1) * omega_cp
-      ENDIF
-      !
-      CALL mp_sum( charge, intra_bgrp_comm )
-      nelec_ = nelec * num_kpts
-      IF ( check_fft ) nelec_ = nelec
-      IF ( ABS( charge - nelec_ ) > 1.D-3 * charge ) &
-           CALL errore( 'wan2odd', 'wrong total charge', 1 )
-      !
-      !
-      ! ... check rho(G) when dfftcp is taken equal to dffts
-      !
-      IF ( check_fft ) THEN
-        DO ik = 1, ngmcp
-          IF ( ABS( DBLE(rhog(ik,1) - rho%of_g(ik,1)) ) .ge. eps6 .or. &
-               ABS( AIMAG(rhog(ik,1) - rho%of_g(ik,1)) ) .ge. eps6 ) THEN
-            CALL errore( 'wan2odd', 'rhog and rho%of_g differ', ik )
-          ENDIF
-        ENDDO
-      ENDIF
-      !
+    charge = 0.D0
+    IF ( gstart_cp == 2 ) THEN
+      charge = rhog(1,1) * omega_cp
+    ENDIF
+    !
+    CALL mp_sum( charge, intra_bgrp_comm )
+    nelec_ = nelec * num_kpts
+    IF ( check_fft ) nelec_ = nelec
+    IF ( ABS( charge - nelec_ ) > 1.D-3 * charge ) &
+         CALL errore( 'wan2odd', 'wrong total charge', 1 )
+    !
+    !
+    ! ... check rho(G) when dfftcp is taken equal to dffts
+    !
+    IF ( check_fft ) THEN
+      DO ik = 1, ngmcp
+        IF ( ABS( DBLE(rhog(ik,1) - rho%of_g(ik,1)) ) .ge. eps6 .or. &
+             ABS( AIMAG(rhog(ik,1) - rho%of_g(ik,1)) ) .ge. eps6 ) THEN
+          CALL errore( 'wan2odd', 'rhog and rho%of_g differ', ik )
+        ENDIF
+      ENDDO
     ENDIF
     !
     !
-    ! ... when present, rhogref is compared to rhog (when disentanglement
-    ! ... has been performed the comparison is meaningless)
+    ! ... when present, rhogref is compared to rhog
     !
-    IF ( PRESENT(rhogref) .and. .not. have_disentangled ) THEN
+    IF ( PRESENT(rhogref) ) THEN
       DO ik = 1, ngmcp
         IF ( ABS( DBLE(rhog(ik,1) - rhogref(ik,1)) ) .ge. eps6 .or. &
              ABS( AIMAG(rhog(ik,1) - rhogref(ik,1)) ) .ge. eps6 ) THEN
