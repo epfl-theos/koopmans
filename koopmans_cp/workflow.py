@@ -59,14 +59,18 @@ valid_settings = [
     Setting('orbital_groups',
             'a list of integers the same length as the total number of bands, '
             'denoting which bands to assign the same screening parameter to',
-            list, None, None)]
+            list, None, None),
+    Setting('enforce_spin_symmetry',
+            'if True -- which it is by default -- the spin-up and spin-down '
+            'wavefunctions will be forced to be the same',
+            bool, True, (True, False))]
 
 valid_settings_dict = {s.name: s for s in valid_settings}
 
 
 def check_settings(settings):
     '''
-    Checks workflow settings against the list of valid settings, populates 
+    Checks workflow settings against the list of valid settings, populates
     missing keywords with their default values, and lowers any uppercases
 
     Arguments:
@@ -164,39 +168,39 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
     # Set up read/write indexes
     if calc_type == 'pbe_init':
         ndr = 50
-        ndw = 50
-    elif calc_type in ['pz_init', 'pz_innerloop_init']:
-        ndr = 50
-        ndw = 51
-    elif calc_type in ['ki', 'kipz']:
-        ndr = 51
         ndw = 52
-    elif calc_type in ['ki_frozen', 'kipz_frozen']:
+    elif calc_type in ['pz_init', 'pz_innerloop_init']:
         ndr = 52
         ndw = 53
-    elif calc_type == 'pbe_frozen':
-        ndr = 52
-        ndw = 54
-    elif calc_type in ['pbe_n-1', 'kipz_n-1']:
-        ndr = 52
-        ndw = 55
-    elif calc_type in ['pz_print', 'kipz_print']:
-        ndr = 52
-        ndw = 56
-    elif calc_type == 'pbe_n+1_dummy':
-        ndr = 57
-        ndw = 57
-    elif calc_type in ['ki_n+1-1_frozen', 'kipz_n+1-1_frozen']:
-        ndr = 57
-        ndw = 58
-    elif calc_type == 'pbe_n+1-1_frozen':
-        ndr = 57
-        ndw = 59
-    elif calc_type in ['pbe_n+1', 'kipz_n+1']:
-        ndr = 57
+    elif calc_type in ['ki', 'kipz']:
+        ndr = 53
         ndw = 60
+    elif calc_type in ['ki_frozen', 'kipz_frozen']:
+        ndr = 60
+        ndw = 61
+    elif calc_type == 'pbe_frozen':
+        ndr = 60
+        ndw = 62
+    elif calc_type in ['pbe_n-1', 'kipz_n-1']:
+        ndr = 60
+        ndw = 63
+    elif calc_type in ['pz_print', 'kipz_print']:
+        ndr = 60
+        ndw = 64
+    elif calc_type == 'pbe_n+1_dummy':
+        ndr = 65
+        ndw = 65
+    elif calc_type in ['ki_n+1-1_frozen', 'kipz_n+1-1_frozen']:
+        ndr = 65
+        ndw = 66
+    elif calc_type == 'pbe_n+1-1_frozen':
+        ndr = 65
+        ndw = 67
+    elif calc_type in ['pbe_n+1', 'kipz_n+1']:
+        ndr = 65
+        ndw = 68
     elif calc_type in ['ki_final', 'kipz_final']:
-        ndr = 52
+        ndr = 60
         ndw = 70
     elif calc_type in ['pkipz_final']:
         ndr = 70
@@ -238,7 +242,7 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
         calc.do_orbdep = True
     else:
         calc.do_orbdep = False
-    if calc.name in ['pbe_init', 'pz_init', 'pz_innerloop_init', 'ki', 
+    if calc.name in ['pbe_init', 'pz_init', 'pz_innerloop_init', 'ki',
                      'kipz', 'pz_print', 'kipz_print', 'pbe_n+1_dummy',
                      'ki_final', 'kipz_final', 'pkipz_final']:
         calc.fixed_state = False
@@ -278,7 +282,6 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
         calc.maxiter = 300
     if calc.empty_states_maxstep is None and calc.do_outerloop_empty:
         calc.empty_states_maxstep = 300
-
 
     # nksic
     if calc.do_orbdep:
@@ -503,13 +506,52 @@ def run(master_calc, workflow_settings):
 
     print('\nINITIALISATION OF DENSITY')
 
-    init_density = workflow_settings.get('init_density', 'pbe').lower()
+    init_density = workflow_settings['init_density']
     if init_density == 'pbe':
-        # PBE from scratch
-        calc = set_up_calculator(master_calc, 'pbe_init')
-        calc.directory = 'init'
-        prev_calc_not_skipped = run_qe(
-            calc, silent=False, from_scratch=prev_calc_not_skipped)
+
+        enforce_ss = workflow_settings['enforce_spin_symmetry']
+
+        if enforce_ss:
+            # PBE from scratch with nspin=1
+            calc = set_up_calculator(master_calc, 'pbe_init')
+            calc.name += '_nspin1'
+            calc.directory = 'init'
+            calc.nspin, calc.nelup, calc.neldw, calc.tot_magnetization = 1, None, None, None
+            calc.ndw = calc.ndr
+            prev_calc_not_skipped = run_qe(
+                calc, silent=False, from_scratch=prev_calc_not_skipped)
+            nspin1_tmpdir = f'{outdir}/{calc.prefix}_{calc.ndw}.save/K00001'
+
+            # PBE from scratch with nspin=2 (dummy run for creating files of appropriate size)
+            calc = set_up_calculator(master_calc, 'pbe_init')
+            calc.name += '_nspin2'
+            calc.directory = 'init'
+            calc.do_outerloop = False
+            calc.do_outerloop_empty = False
+            calc.ndw = calc.ndr + 1
+            prev_calc_not_skipped = run_qe(
+                calc, silent=False, from_scratch=prev_calc_not_skipped)
+            nspin2_tmpdir = f'{outdir}/{calc.prefix}_{calc.ndw}.save/K00001'
+
+            # Copy over nspin=1 wavefunction to nspin=2 tmp directory
+            os.system(
+                f'convert_nspin1_wavefunction_to_nspin2.sh {nspin1_tmpdir} {nspin2_tmpdir}')
+
+            # PBE with nspin=2, reading in the spin-symmetric nspin=1 wavefunction
+            calc = set_up_calculator(master_calc, 'pbe_init')
+            calc.name += '_nspin2_symmetric'
+            calc.directory = 'init'
+            calc.restart_mode = 'restart'
+            calc.ndr += 1
+            prev_calc_not_skipped = run_qe(
+                calc, silent=False, from_scratch=prev_calc_not_skipped)
+
+        else:
+            # PBE from scratch with nspin=2
+            calc = set_up_calculator(master_calc, 'pbe_init')
+            calc.directory = 'init'
+            prev_calc_not_skipped = run_qe(
+                calc, silent=False, from_scratch=prev_calc_not_skipped)
 
     elif init_density == 'pbe-pw':
         # PBE using pw.x
@@ -577,7 +619,7 @@ def run(master_calc, workflow_settings):
     print('\nINITIALISATION OF MANIFOLD')
 
     init_manifold = workflow_settings['init_manifold']
-    # Since nelec is defined automatically, record whether or not the previous calculation had 2 electrons 
+    # Since nelec is defined automatically, record whether or not the previous calculation had 2 electrons
     # before calc gets overwritten
     calc_has_two_electrons = (calc.nelec == 2)
     if init_manifold == 'pz':
@@ -600,22 +642,24 @@ def run(master_calc, workflow_settings):
     if init_manifold == 'ki':
         pass
     elif calc_has_two_electrons and calc.one_innerloop_only and (init_manifold == 'pz' or calc.empty_states_nbnd == 0):
-        # If we only have two electrons, then the filled manifold is trivially invariant under unitary 
-        # transformations. Likewise, if we have no empty states or if we're using a functional which is 
+        # If we only have two electrons, then the filled manifold is trivially invariant under unitary
+        # transformations. Likewise, if we have no empty states or if we're using a functional which is
         # invariant w.r.t. unitary rotations of the empty states, then the empty manifold need not be minimised
         # In these instances, we can skip the initialisation of the manifold entirely
         print('Skipping the optimisation of the manifold since it is invariant under unitary transformations')
         save_prefix = f'{calc.directory}/{calc.outdir}/{calc.prefix}'
-        os.system(f'cp -r {save_prefix}_{calc.ndr}.save {save_prefix}_{calc.ndw}.save')
+        os.system(
+            f'cp -r {save_prefix}_{calc.ndr}.save {save_prefix}_{calc.ndw}.save')
     elif init_manifold == init_density:
         print('Skipping the optimisation of the manifold since it was already optimised during the density initialisation')
         save_prefix = f'{calc.directory}/{calc.outdir}/{calc.prefix}'
-        os.system(f'cp -r {save_prefix}_{calc.ndr}.save {save_prefix}_{calc.ndw}.save')
+        os.system(
+            f'cp -r {save_prefix}_{calc.ndr}.save {save_prefix}_{calc.ndw}.save')
     else:
         prev_calc_not_skipped = run_qe(
             calc, silent=False, from_scratch=prev_calc_not_skipped)
 
-    if prev_calc_not_skipped and init_manifold != 'ki':
+    if prev_calc_not_skipped and init_manifold != 'ki' and workflow_settings['enforce_spin_symmetry']:
         print('Copying the spin-up variational orbitals over to the spin-down channel')
         savedir = f'{outdir}/{calc.prefix}_{calc.ndw}.save/K00001'
         os.system(f'cp {savedir}/evc01.dat {savedir}/evc02.dat')
@@ -638,7 +682,8 @@ def run(master_calc, workflow_settings):
             group = groups[i_band - 1]
             if group not in groups_found:
                 groups_found.add(group)
-                bands_to_solve[i_band] = [i+1 for i, g in enumerate(groups) if g == group]
+                bands_to_solve[i_band] = [i+1 for i,
+                                          g in enumerate(groups) if g == group]
         if groups_found != set(groups):
             raise ValueError('Splitting of orbitals into groups failed')
 
@@ -675,7 +720,8 @@ def run(master_calc, workflow_settings):
             # Do a KI/KIPZ calculation with the updated alpha values
             write_alpharef(alpha_df.loc[i_sc],
                            band_filling, iteration_directory)
-            calc = set_up_calculator(master_calc, calc_type=workflow_type.replace('pkipz', 'ki'))
+            calc = set_up_calculator(
+                master_calc, calc_type=workflow_type.replace('pkipz', 'ki'))
             calc.directory = iteration_directory
             calc.outdir = '../'*(iteration_directory.count('/') + 1) + outdir
             if i_sc == 1:
@@ -697,7 +743,8 @@ def run(master_calc, workflow_settings):
                 # Skip the bands which can copy the screening parameter from another
                 # calculation in the same orbital group
                 if fixed_band not in bands_to_solve:
-                    print(f'Skipping; will use the screening parameter of an equivalent orbital')
+                    print(
+                        f'Skipping; will use the screening parameter of an equivalent orbital')
                     continue
                 all_bands_in_group = bands_to_solve[fixed_band]
 
@@ -710,12 +757,13 @@ def run(master_calc, workflow_settings):
                 # Link tmp files from band-independent calculations
                 if not os.path.isdir(f'calc_alpha/{outdir_band}'):
                     os.system(f'mkdir calc_alpha/{outdir_band}')
-                    os.system(f'ln -sr {outdir}/*.save calc_alpha/{outdir_band}')
+                    os.system(
+                        f'ln -sr {outdir}/*.save calc_alpha/{outdir_band}')
                 outdir_band = '../' * directory.count('/') + outdir_band
 
                 # Don't repeat if this particular alpha_i was converged
-                if i_sc > 1 and any([abs(e) < workflow_settings['alpha_conv_thr'] for e in 
-                                     error_df.loc[:i_sc - 1,fixed_band]]):
+                if i_sc > 1 and any([abs(e) < workflow_settings['alpha_conv_thr'] for e in
+                                     error_df.loc[:i_sc - 1, fixed_band]]):
                     print(
                         f'Skipping band {fixed_band} since this alpha is already '
                         'converged')
@@ -899,7 +947,7 @@ def run(master_calc, workflow_settings):
         run_qe(calc, silent=False, from_scratch=prev_calc_not_skipped)
 
     # Print out data for quality control
-    if workflow_settings.get('print_qc', False):
+    if workflow_settings['print_qc']:
         print('\nQUALITY CONTROL')
         print_qc('energy', calc.results['energy'])
         for i, alpha in enumerate(alpha_df.iloc[-1]):

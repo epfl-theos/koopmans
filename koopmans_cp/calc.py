@@ -11,11 +11,13 @@ Sep 2020: moved individual calculators into calculators/
 """
 
 import ase.io as ase_io
-from  ase.io import espresso_cp as cp_io
+from ase.io import espresso_cp as cp_io
 from koopmans_cp.io import cpi_diff, read_alpharef, warn
 import os
 import sys
 import copy
+import numpy as np
+
 
 class QE_calc:
 
@@ -50,7 +52,8 @@ class QE_calc:
 
         # If qe_input/output_files are provided, use them instead of calc
         if len(qe_files) > 0 and calc is not None:
-            raise ValueError(f'Please only provide either the calc or qe_files argument to {self.__class__}')
+            raise ValueError(
+                f'Please only provide either the calc or qe_files argument to {self.__class__}')
 
         # Interpreting the qe_files argument
         if isinstance(qe_files, str):
@@ -84,7 +87,8 @@ class QE_calc:
         # Handle any recognised QE keywords passed as arguments
         for key, val in kwargs.items():
             if key not in self._recognised_keywords:
-                raise ValueError(f'{key} is not a recognised Quantum Espresso keyword')
+                raise ValueError(
+                    f'{key} is not a recognised Quantum Espresso keyword')
             setattr(self, key, val)
 
     # By default, use cp.x
@@ -195,17 +199,20 @@ class QE_calc:
             self._settings[key] = self.parse_algebraic_setting(value)
 
     def is_converged(self):
-        raise ValueError(f'is_converged() function has not been implemented for {self.__class__}')
+        raise ValueError(
+            f'is_converged() function has not been implemented for {self.__class__}')
 
     def is_complete(self):
-        raise ValueError(f'is_complete() function has not been implemented for {self.__class__}')
+        raise ValueError(
+            f'is_complete() function has not been implemented for {self.__class__}')
+
 
 def run_qe(qe_calc, silent=True, from_scratch=False):
     '''
     Runs qe_calc.calculate with additional options:
 
         silent :       if False, print status
-        from_scratch : if False, check for a pre-existing calculation, and see 
+        from_scratch : if False, check for a pre-existing calculation, and see
                        if it has completed. If so, skip this calculation.
 
     returns True if the calculation was run, and False if the calculation was skipped
@@ -250,6 +257,14 @@ def run_qe(qe_calc, silent=True, from_scratch=False):
 
     if not qe_calc.is_complete():
         sys.exit(1)
+
+    # Check spin-up and spin-down eigenvalues match
+    if qe_calc.is_converged() and qe_calc.do_outerloop and qe_calc.nspin == 2 \
+            and qe_calc.tot_magnetization == 0 and not qe_calc.fixed_state:
+        rms_eigenval_difference = np.sqrt(
+            np.mean(np.diff(qe_calc.results['eigenvalues'], axis=0)**2))
+        if rms_eigenval_difference > 0.05:
+            warn('Spin-up and spin-down eigenvalues differ substantially')
 
     if not silent:
         print(' done')
