@@ -475,8 +475,8 @@ MODULE read_namelists_module
        !
        occupation_constraints = .false.
        !
-       do_outerloop = .TRUE.
-       do_outerloop_empty = .TRUE.
+       do_outerloop = .true.
+       do_outerloop_empty = .true.
        !
        RETURN
        !
