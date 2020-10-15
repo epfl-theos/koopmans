@@ -195,7 +195,7 @@ def write_json(fd, calcs=[], workflow_settings={}):
         calcs = [calcs]
 
     bigdct = {}
-    bigdct['workflow_settings'] = workflow_settings
+    bigdct['workflow'] = workflow_settings
 
     for calc in calcs:
         if isinstance(calc, CP_calc):

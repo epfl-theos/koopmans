@@ -377,6 +377,9 @@ def run_from_json(json):
             if not os.path.isdir(calc_type):
                 os.system(f'mkdir {calc_type}')
 
+        if workflow_settings['alpha_from_file']:
+            os.system('cp file_alpharef*.txt ki/')
+
         for calc_type in calc_types:
             print(f'\n{calc_type.upper()} CALCULATION')
 
