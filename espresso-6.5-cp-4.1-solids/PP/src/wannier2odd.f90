@@ -264,7 +264,7 @@ MODULE wannier2odd
                   evcw(:) = evcx(:,ip)
                 ENDIF
                 !
-                ewan(:,iw) = ewan(:,iw) + phase * u_mat(ip,iw,ik) * evcw(:) / num_kpts
+                ewan(:,iw) = ewan(:,iw) + phase * u_mat(ip,iw,ik) * evcw(:) / SQRT(DBLE(num_kpts))
                 !
               ENDDO
               !
