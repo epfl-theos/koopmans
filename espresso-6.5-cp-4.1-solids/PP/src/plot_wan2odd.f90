@@ -98,7 +98,8 @@ MODULE plot_wan2odd
         ENDIF
         !
         WRITE( filename, 100 ) ir, ibnd
-        psic(dfftcp%nl(1:npwxcp)) = evc(1:npwxcp,ibnd) 
+        evc(:,ibnd) = evc(:,ibnd) / SQRT(DBLE(nrtot))
+        psic(dfftcp%nl(1:npwxcp)) = evc(1:npwxcp,ibnd)
         IF ( gamma_only_cp ) psic(dfftcp%nlm(1:npwxcp)) = CONJG( evc(1:npwxcp,ibnd) )
         CALL invfft( 'Wave', psic, dfftcp )
         CALL bcast_psic( psic, psicg, dfftcp )
@@ -138,7 +139,7 @@ MODULE plot_wan2odd
     CALL stop_clock( 'plot_wann' )
     !
     !
-100 FORMAT( 'WF_R', I4.4, '_B', I4.4, '.xsf' )    ! ex: WF_R1_B2.xsf
+100 FORMAT( 'WF_R', I4.4, '_B', I4.4, '.xsf' )    ! ex: WF_R0001_B0002.xsf
     !
 201 FORMAT( 'CRYSTAL', /,'PRIMVEC', /, 3F12.7, /, 3F12.7, /, 3F12.7 )
 202 FORMAT( 'CONVVEC', /, 3F12.7, /, 3F12.7, /, 3F12.7 )
