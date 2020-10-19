@@ -1,0 +1,135 @@
+#!/bin/bash
+
+
+QE_home='/home/degennar/CODES/koopmans/espresso-6.5-cp-4.1-solids/bin'
+srun='mpirun -np 8'
+
+
+##########################
+### PW-PBE calculation ###
+##########################
+#
+echo 'PW calculation'
+#
+cd PW
+$srun $QE_home/pw.x -in pw_scf.in > pw_scf.out
+$srun $QE_home/pw.x -in pw_nscf.in > pw_nscf.out
+echo '  - scf and nscf DONE.'
+
+
+######################
+### Wannierization ###
+######################
+#
+echo 'Wannierization'
+#
+cd wannier/occ
+$QE_home/wannier90.x -pp Si.win
+$srun $QE_home/pw2wannier90.x -in Si.pw2wan.in > Si.pw2wan.out
+$QE_home/wannier90.x Si.win
+$srun $QE_home/pw2wannier90.x -in Si.wan2odd.in > Si.wan2odd.out
+echo '  - OCC states DONE.'
+cd ../..
+#
+cd wannier/emp
+$QE_home/wannier90.x -pp Si.win
+$srun $QE_home/pw2wannier90.x -in Si.pw2wan.in > Si.pw2wan.out
+$QE_home/wannier90.x Si.win
+srun $QE_home/pw2wannier90.x -in Si.wan2odd.in > Si.wan2odd.out
+echo '  - EMP states DONE.'
+cd ../..
+#
+cd ..
+
+
+############################
+### KI-trial calculation ###
+############################
+#
+echo 'KI-trial calculation'
+#
+cd KI-trial
+#
+if [ ! -d "out" ]; then
+  mkdir out
+fi
+#
+srun $QE_home/cp.x -in cp_fake.in > cp_fake.out
+cp ../PW/wannier/occ/evcw.dat out/Si_50.save/K00001/evc_occupied.dat
+cp ../PW/wannier/emp/evcw.dat out/Si_50.save/K00001/evc0_empty.dat
+srun $QE_home/cp.x -in cp_ki-trial.in > cp_ki-trial.out
+echo '  - KI-trial DONE.'
+cd ..
+
+
+##################################
+### KI-fixed-state calculation ###
+##################################
+#
+echo 'KI-fixed_state calculation'
+#
+cd KI-fixed/orb_1
+if [ -d "out" ]; then
+  rm -r out
+  cp -r ../../KI-trial/out .
+else
+  cp -r ../../KI-trial/out .
+fi
+#
+srun $QE_home/cp.x -in 001.in > 001.out
+srun $QE_home/cp.x -in 002.in > 002.out
+srun $QE_home/cp.x -in 003.in > 003.out
+#
+alpha=`python3 ../../unfolding_interpolation_code/utility/alpha.py occ | awk '{print $3}'`
+echo '512' > ../../KI-final/file_alpharef.txt
+for orb in `seq 1 512`; do
+echo $orb $alpha 1.000 >> ../../KI-final/file_alpharef.txt
+done
+#
+echo "- KI-fixed orb1 DONE."
+cd ..
+cd ..
+#
+cd KI-fixed/orb_257
+if [ -d "out" ]; then
+  rm -r out
+  cp -r ../../KI-trial/out .
+else
+  cp -r ../../KI-trial/out .
+fi
+#
+srun $QE_home/cp.x -in 0000.in > 0000.out
+cp -rf out/Si_50.save/K00001/evcfixed_empty.dat out/Si_50.save/K00001/evc_occupied.dat
+srun $QE_home/cp.x -in 000.in > 000.out
+srun $QE_home/cp.x -in 001.in > 001.out
+srun $QE_home/cp.x -in 002.in > 002.out
+srun $QE_home/cp.x -in 003.in > 003.out
+#
+alpha=`python3 ../../unfolding_interpolation_code/utility/alpha.py emp | awk '{print $3}'`
+echo '512' > ../../KI-final/file_alpharef_empty.txt
+for orb in `seq 1 512`; do
+echo $orb $alpha 1.000 >> ../../KI-final/file_alpharef_empty.txt
+done
+#
+echo "- KI-fixed orb257 DONE."
+cd ..
+cd ..
+
+
+##########################
+### KI-ODD calculation ###
+##########################
+#
+echo 'KI-ODD calculation'
+#
+cd KI-final
+if [ -d "out" ]; then
+  rm -r out
+  cp -r ../KI-trial/out .
+else
+  cp -r ../KI-trial/out .
+fi
+#
+srun $QE_home/cp.x -in cp_ki.in > cp_ki.out
+echo '  - KI-final DONE.'
+cd ..

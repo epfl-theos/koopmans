@@ -1,0 +1,8 @@
+&INPUTPP
+  outdir   = '../../out/'
+  prefix   = 'Si'
+  seedname = 'Si'
+  wan_mode = 'wannier2odd'
+  wannier_plot = .true.
+  wannier_plot_list = '1-3,22,30-32'
+/

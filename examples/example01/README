@@ -1,0 +1,16 @@
+Example01 (KI band structure of bulk Si)
+
+- PW scf and nscf calculation to get the PBE ground 
+  state and the KS states for the occupied and empty
+  states
+
+- Wannier90 calculation to obtain maximally localized
+  Wannier functions for occupied and empty states
+  independently.
+
+- KI-trial calculation using a trial alpha ~0.077
+
+- KI-fixed orbital-dependent calculation to get the
+  optimal screening paramters
+
+- KI-final is the final KI calculation
