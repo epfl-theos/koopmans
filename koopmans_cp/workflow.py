@@ -497,20 +497,15 @@ def run(master_calc, workflow_settings):
     # prev_calc_not_skipped will remain equal to True throughout the workflow and no
     # calculations will be skipped
 
-    # If workflow_type is PBE, perform PBE and exit immediately
-    if workflow_type == 'pbe':
-        # PBE
-        calc = set_up_calculator(master_calc, 'pbe_init')
-        calc.directory = '.'
-        calc.name = 'pbe'
-        prev_calc_not_skipped = run_qe(
-            calc, silent=False, from_scratch=prev_calc_not_skipped)
-        return
-
     print('\nINITIALISATION OF DENSITY')
 
     init_density = workflow_settings['init_density']
-    if init_density == 'pbe':
+    if init_density == 'pbe' or workflow_type == 'pbe':
+
+        if workflow_type == 'pbe':
+            directory = '.'
+        else:
+            directory = 'init'
 
         enforce_ss = workflow_settings['enforce_spin_symmetry']
 
@@ -518,7 +513,7 @@ def run(master_calc, workflow_settings):
             # PBE from scratch with nspin=1
             calc = set_up_calculator(master_calc, 'pbe_init')
             calc.name += '_nspin1'
-            calc.directory = 'init'
+            calc.directory = directory
             calc.nspin, calc.nelup, calc.neldw, calc.tot_magnetization = 1, None, None, None
             calc.ndw = calc.ndr
             prev_calc_not_skipped = run_qe(
@@ -528,7 +523,7 @@ def run(master_calc, workflow_settings):
             # PBE from scratch with nspin=2 (dummy run for creating files of appropriate size)
             calc = set_up_calculator(master_calc, 'pbe_init')
             calc.name += '_nspin2'
-            calc.directory = 'init'
+            calc.directory = directory
             calc.do_outerloop = False
             calc.do_outerloop_empty = False
             calc.ndw = calc.ndr + 1
@@ -543,7 +538,7 @@ def run(master_calc, workflow_settings):
             # PBE with nspin=2, reading in the spin-symmetric nspin=1 wavefunction
             calc = set_up_calculator(master_calc, 'pbe_init')
             calc.name += '_nspin2_symmetric'
-            calc.directory = 'init'
+            calc.directory = directory
             calc.restart_mode = 'restart'
             calc.ndr += 1
             prev_calc_not_skipped = run_qe(
@@ -555,6 +550,10 @@ def run(master_calc, workflow_settings):
             calc.directory = 'init'
             prev_calc_not_skipped = run_qe(
                 calc, silent=False, from_scratch=prev_calc_not_skipped)
+
+        # If workflow_type is PBE, PBE has been performed so exit immediately
+        if workflow_type == 'pbe':
+            return
 
     elif init_density == 'pbe-pw':
         # PBE using pw.x
