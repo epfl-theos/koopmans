@@ -7,6 +7,8 @@ Written by Edward Linscott Jan 2020
 """
 
 import os
+import sys
+import subprocess
 import copy
 import pandas as pd
 from collections import namedtuple
@@ -454,7 +456,11 @@ def run(master_calc, workflow_settings):
     outdir = master_calc.outdir.strip('./')
     if '/' in outdir:
         raise ValueError('"outdir" cannot be a nested directory')
-    master_calc.outdir = '../' + outdir
+
+    if workflow_type == 'pbe':
+        master_calc.outdir = outdir
+    else:
+        master_calc.outdir = '../' + outdir
 
     # Removing old directories
     if workflow_settings['from_scratch']:
@@ -532,8 +538,10 @@ def run(master_calc, workflow_settings):
             nspin2_tmpdir = f'{outdir}/{calc.prefix}_{calc.ndw}.save/K00001'
 
             # Copy over nspin=1 wavefunction to nspin=2 tmp directory
-            os.system(
-                f'convert_nspin1_wavefunction_to_nspin2.sh {nspin1_tmpdir} {nspin2_tmpdir}')
+            ierr = subprocess.call(
+                f'convert_nspin1_wavefunction_to_nspin2.sh {nspin1_tmpdir} {nspin2_tmpdir}', shell=True)
+            if ierr > 0:
+                sys.exit(ierr)
 
             # PBE with nspin=2, reading in the spin-symmetric nspin=1 wavefunction
             calc = set_up_calculator(master_calc, 'pbe_init')

@@ -3,6 +3,16 @@
 nspin1dir=$1
 nspin2dir=$2
 
+if [ ! -d "$nspin1dir" ]; then
+   echo "$nspin1dir does not exist"
+   exit 1
+fi
+
+if [ ! -d "$nspin2dir" ]; then
+   echo "$nspin2dir does not exist"
+   exit 1
+fi
+
 for f in evc0.dat evc0_empty1.dat evcm.dat evc.dat evcm.dat hamiltonian.xml eigenval.xml evc_empty1.dat lambda01.dat
 do
    if [[ $f == *1.* ]]; then

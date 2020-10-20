@@ -198,7 +198,7 @@ def write_json(fd, calcs=[], workflow_settings={}):
     bigdct['workflow'] = workflow_settings
 
     for calc in calcs:
-        if isinstance(calc, CP_calc):
+        if isinstance(calc, cp.CP_calc):
             bigdct['cp'] = {}
             calc = calc._ase_calc
             for key, block in calc.parameters['input_data'].items():
