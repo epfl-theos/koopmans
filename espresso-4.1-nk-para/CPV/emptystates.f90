@@ -455,8 +455,8 @@
             if(allocated(valpsi)) deallocate(valpsi)
             !
             ! reallocate the memory of odd_alpha for empty states
-            allocate (odd_alpha(n_emps)) 
-            allocate (valpsi(n_emps, ngw)) 
+            allocate (odd_alpha(n_empx))
+            allocate (valpsi(n_empx, ngw))
             !
          ENDIF
          !
@@ -722,7 +722,7 @@
               CALL crot( cm_emp, c0_emp, ngw, n, i, i, lambda_rep_c, nudx_emp, ei_emp(:,iss) )
           ENDIF
           !   
-          ei_emp( 1:n, iss ) = ei_emp( 1:n, iss ) / f_emp( i : i + n - 1 )
+          ei_emp( 1:n, iss ) = ei_emp( 1:n, iss )
           !
       ENDDO
       !
