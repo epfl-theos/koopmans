@@ -39,10 +39,12 @@ class Parse_Data():
                value (if present) to the missing parameters
 
     seedname        : as in W90 input
-    alat            : lattice parameter (in BOHR units). Like celldm(1) in QE it refers to a_1
+    alat_sc         : SC lattice parameter (in BOHR units). Like celldm(1) in QE it refers to a_1
     nr1             : SC dimension along PC primitive vector a_1
     nr2             : SC dimension along PC primitive vector a_2
     nr3             : SC dimension along PC primitive vector a_3
+    w90_calc        : type of Wannier90 calculation: 'pc' for PC with k-points, 'sc' for SC Gamma-only
+    do_map          : if True the algorithm to map the WFs from the SC to the PC is activated
     use_ws_distance : if True the Wigner-Seitz distance between WF centers is used
     k_path          : k_path for bands interpolation (in crystal units)
     smooth_int      : if True, smooth interpolation method is used
@@ -61,22 +63,24 @@ class Parse_Data():
             json_data = json.load(json_file)
 
         # list of available input arguments
-        self.list_of_args = ['seedname', 'alat', 'nr1', 'nr2', 'nr3', 'use_ws_distance',\
-                             'k_path', 'smooth_int', 'file_hr_pw', 'file_hr_w90',\
+        self.list_of_args = ['seedname', 'alat_sc', 'nr1', 'nr2', 'nr3', 'w90_calc', 'do_map',\
+                             'use_ws_distance', 'k_path', 'smooth_int', 'file_hr_pw', 'file_hr_w90',\
                              'do_dos', 'degauss', 'nstep', 'Emin', 'Emax']
         
         if 'seedname' not in json_data.keys():    sys.exit('\nMissing \'seedname\' in input -> EXIT\n')
-        if 'alat' not in json_data.keys():        sys.exit('\nMissing \'alat\' in input -> EXIT\n')
+        if 'alat_sc' not in json_data.keys():     sys.exit('\nMissing \'alat_sc\' in input -> EXIT\n')
         if 'nr1' not in json_data.keys():         sys.exit('\nMissing \'nr1\' in input -> EXIT\n')
         if 'nr2' not in json_data.keys():         sys.exit('\nMissing \'nr2\' in input -> EXIT\n')
         if 'nr3' not in json_data.keys():         sys.exit('\nMissing \'nr3\' in input -> EXIT\n')
         
         ### Reading json dictionary and defining defaults ###
         self.seedname = json_data.get("seedname", None)
-        self.alat = json_data.get("alat", None)
+        self.alat_sc = json_data.get("alat_sc", None)
         self.nr1 = json_data.get("nr1", None)
         self.nr2 = json_data.get("nr2", None)
         self.nr3 = json_data.get("nr3", None)
+        self.w90_calc = json_data.get("w90_calc", "pc")
+        self.do_map = json_data.get("do_map", False)
         self.use_ws_distance = json_data.get("use_ws_distance", True)
         self.k_path = json_data.get("k_path", None)
         self.smooth_int = json_data.get("smooth_int", False)
@@ -92,14 +96,18 @@ class Parse_Data():
         # checks on the input arguments
         if ( type(self.seedname) is not str ):
             sys.exit('\n\'seedname\' must be a string -> EXIT(%s)' %type(self.seedname))
-        if ( type(self.alat) is not float and type(self.alat) is not int ):
-            sys.exit('\n\'alat\' must be a float or a int -> EXIT(%s)' %type(self.alat))
+        if ( type(self.alat_sc) is not float and type(self.alat_sc) is not int ):
+            sys.exit('\n\'alat_sc\' must be a float or a int -> EXIT(%s)' %type(self.alat_sc))
         if ( type(self.nr1) is not int ):
             sys.exit('\n\'nr1\' must be a int -> EXIT(%s)' %type(self.nr1))
         if ( type(self.nr2) is not int ):
             sys.exit('\n\'nr2\' must be a int -> EXIT(%s)' %type(self.nr2))
         if ( type(self.nr3) is not int ):
             sys.exit('\n\'nr3\' must be a int -> EXIT(%s)' %type(self.nr3))
+        if ( type(self.w90_calc) is not str ):
+            sys.exit('\n\'w90_calc\' must be a string -> EXIT(%s)' %type(self.w90_calc))
+        if ( type(self.do_map) is not bool ):
+            sys.exit('\n\'do_map\' must be a bool -> EXIT(%s)' %type(self.do_map))
         if ( type(self.use_ws_distance) is not bool ):
             sys.exit('\n\'use_ws_distance\' must be a bool -> EXIT(%s)' %type(self.use_ws_distance))
         if ( type(self.k_path) is not list ):
@@ -125,12 +133,23 @@ class Parse_Data():
             if ( item not in self.list_of_args ):
                 print('\nWARNING: argument \'%s\' is unknown!\n' %item)
        
-        self.alat = ang_to_bohr(self.alat, -1)    # conversion to Ang
+        self.alat_sc = ang_to_bohr(self.alat_sc, -1)    # conversion to Ang
+
+        self.w90_calc = self.w90_calc.lower()
+        if ( self.w90_calc != 'pc' and self.w90_calc != 'sc' ):
+            sys.exit('\n\'w90_calc\' must be \'pc\' or \'sc\' -> EXIT(%s)' %(w90_calc))
+
+        if ( self.w90_calc == 'sc' ):
+            self.w90_input_sc = True
+        else:
+            self.w90_input_sc = False
+            if ( self.do_map ):
+                sys.exit('\n\do_map=True incompatible with w90_calc=\'pc\' -> EXIT\n')
   
         if ( self.k_path == None ):
             self.kvec = MP_mesh(self.nr1,self.nr2,self.nr3)
-            print('\nWARNING: \'k_path\' missing in input, the energies are calculated on a\
- commensurate Monkhorst-Pack mesh\n')
+            print('\nWARNING: \'k_path\' missing in input, the energies are calculated on a \
+commensurate Monkhorst-Pack mesh\n')
         else:
             self.kvec = generate_path(self.k_path)
         
@@ -157,9 +176,9 @@ class Parse_Data():
     parse_w90 gets from the W90 output the lattice vectors, and the centers and spreads
               of the Wannier functions. 
 
-    at      : basis vectors of direct lattice (in alat units)
-    bg      : basis vectors of reciprocal lattice (in 2pi/alat units)
-    centers : centers of WFs (in crystal units)
+    at      : basis vectors of direct lattice (in PC alat units)
+    bg      : basis vectors of reciprocal lattice (in PC 2pi/alat units)
+    centers : centers of WFs (in PC crystal units)
     spreads : spreads of WFs (in Ang^2)
     
     """
@@ -175,32 +194,76 @@ class Parse_Data():
 
         for line in lines:
             if ( 'Number of Wannier Functions' in line ):
-                self.num_wann = int(line.split()[6])
+                num_wann = int(line.split()[6])
             if ( ' a_1 ' in line ):
                 self.at.append(np.array(line.split()[1:], dtype=float))
             if ( ' a_2 ' in line ):
                 self.at.append(np.array(line.split()[1:], dtype=float))
             if ( ' a_3 ' in line ):
                 self.at.append(np.array(line.split()[1:], dtype=float))
-            if ( count > 0 and count <= self.num_wann ):
+            if ( count > 0 and count <= num_wann ):
                 start = line.find('(')
                 end = line.find(')')
                 self.centers.append(np.array(line[start+1:end].replace(',',' ').split(), \
                                                                            dtype=float))
-                #
                 self.spreads.append(float(line.split()[-1]))
-                #
+
                 count += 1
             if ( 'Final State' in line ):
                 count += 1
 
+        # primitive cell lattice parameter
+        self.alat = self.alat_sc / self.nr1
+
         self.at = np.array(self.at, dtype=float).reshape(3,3) / self.alat
         self.bg = np.linalg.inv(self.at).transpose()
+        self.at_sc = np.zeros((3,3))
+        self.bg_sc = np.zeros((3,3))
+        self.Rvec = latt_vect(self.nr1, self.nr2, self.nr3)
         
-        for n in range(self.num_wann):
+        if ( self.w90_input_sc ):
+            self.num_wann_sc = num_wann
+            self.num_wann = int(num_wann / (self.nr1*self.nr2*self.nr3))
+        
+            # converting at and bg from the SC to the PC
+            self.at_sc[0] = self.at[0]
+            self.at_sc[1] = self.at[1]
+            self.at_sc[2] = self.at[2]
+            self.at[0] = self.at[0] / self.nr1
+            self.at[1] = self.at[1] / self.nr2
+            self.at[2] = self.at[2] / self.nr3
+            #
+            self.bg_sc[0] = self.bg[0]
+            self.bg_sc[1] = self.bg[1]
+            self.bg_sc[2] = self.bg[2]
+            self.bg[0] = self.bg[0] * self.nr1
+            self.bg[1] = self.bg[1] * self.nr2
+            self.bg[2] = self.bg[2] * self.nr3
+
+        else:
+            self.num_wann = num_wann
+            self.num_wann_sc = num_wann * (self.nr1*self.nr2*self.nr3)
+
+            self.at_sc[0] = self.at[0] * self.nr1
+            self.at_sc[1] = self.at[1] * self.nr2
+            self.at_sc[2] = self.at[2] * self.nr3
+            #
+            self.bg_sc[0] = self.bg[0] / self.nr1
+            self.bg_sc[1] = self.bg[1] / self.nr2
+            self.bg_sc[2] = self.bg[2] / self.nr3
+
+
+        for n in range(num_wann):
             self.centers[n] = self.centers[n] / self.alat
             self.centers[n] = crys_to_cart(self.centers[n], self.bg, -1)
-       
+        
+        # generate the centers and spreads of all the other (R/=0) WFs
+        if ( not self.w90_input_sc ):
+            for rvect in self.Rvec[1:]:
+                for n in range(self.num_wann):
+                    self.centers.append( self.centers[n] + rvect )
+                    self.spreads.append( self.spreads[n] )
+
         return
     
     
@@ -208,13 +271,13 @@ class Parse_Data():
     parse_hr reads the hamiltonian file passed as sys.argv[1] and it sets it up
              as attribute self.hr
              
-    There are 3 possible types of file:
-      - W90 file normally called seedname_hr.dat
-      - KC_occ file normally called hamiltonian1.xml
-      - KC_emp file normally called hamiltonian_emp.dat
+    there are 3 possible types of file:
+      - w90 file normally called seedname_hr.dat
+      - kc_occ file normally called hamiltonian1.xml
+      - kc_emp file normally called hamiltonian_emp.dat
 
-    NB: KC_emp must be called 'hamiltonian_emp.dat' otherwise the code may crash
-        or misread the matrix elements. If the file name is different the code 
+    nb: kc_emp must be called 'hamiltonian_emp.dat' otherwise the code may crash
+        or misread the matrix elements. if the file name is different the code 
         should be updated.
 
     """
@@ -225,17 +288,37 @@ class Parse_Data():
 
         if ( 'written on' in lines[0] ):                        hr_type = 'w90'
         elif ( 'xml version' in lines[0]):                      hr_type = 'kc_occ'
-        elif ( file_hr[-19:] == 'hamiltonian_emp.dat' ):    hr_type = 'kc_emp'
+        elif ( file_hr[-19:] == 'hamiltonian_emp.dat' ):        hr_type = 'kc_emp'
         else:		sys.exit('\nHamiltonian file not recognised -> EXIT\n')
 
         self.hr = []
 
         if ( hr_type == 'w90' ):
-            for line in lines[4:]:
+
+            if ( self.w90_input_sc ):
+                if ( int(lines[1].split()[0]) != self.num_wann_sc ):
+                    sys.exit('\nIn parse_hr inconsistency in num_wann\n')
+            else:
+                if ( int(lines[1].split()[0]) != self.num_wann ):
+                    sys.exit('\nIn parse_hr inconsistency in num_wann\n')
+            
+            if ( not self.w90_input_sc ): rvect = [] 
+            nrpts = int(lines[2].split()[0])
+            lines_to_skip = 3 + int(nrpts/15)
+            if ( nrpts%15 > 0 ): lines_to_skip += 1
+            counter = 0
+
+            for line in lines[lines_to_skip:]:
                 if ( abs(float(line.split()[6])) > 1.e-6 ):
                     sys.exit('\nThe hamiltonian must be real, found a complex component -> EXIT\n')
+
                 self.hr.append(line.split()[5])
-        
+
+                counter += 1
+                if ( not self.w90_input_sc and counter == self.num_wann**2 ):
+                    rvect.append( np.array(line.split()[0:3], dtype=int) )
+                    counter = 0
+
         if ( hr_type == 'kc_occ' ):
             for line in lines[5:-1]:
                 self.hr.append(line.split()[0])
@@ -244,21 +327,29 @@ class Parse_Data():
             for line in lines:
                 self.hr.append(line.split()[0])
 
-        if ( len(self.hr) != self.num_wann**2 ):
-            sys.exit('\nWrong number of matrix elements for the input hamiltonian -> EXIT(%s)\n' \
+        if ( hr_type == 'w90' and not self.w90_input_sc ):
+            if ( len(self.hr) != nrpts*self.num_wann**2 ):
+                sys.exit('\nWrong number of matrix elements for the input hamiltonian -> EXIT(%s)\n' \
                                                                              %(len(self.hr)))
-
-        self.hr = np.array(self.hr, dtype=float).reshape(self.num_wann,self.num_wann)
+            self.hr = np.array(self.hr, dtype=float).reshape(nrpts,self.num_wann,self.num_wann)
+            self.hr = order_hr(self.hr, rvect, self.nr1, self.nr2, self.nr3)
+            self.hr = self.hr.reshape(self.num_wann_sc,self.num_wann)
+        else:
+            if ( len(self.hr) != self.num_wann_sc**2 ):
+                sys.exit('\nWrong number of matrix elements for the input hamiltonian -> EXIT(%s)\n' \
+                                                                             %(len(self.hr)))
+            self.hr = np.array(self.hr, dtype=float).reshape(self.num_wann_sc,self.num_wann_sc) 
 
         # conversion to eV (hamiltonian from CP Koopmans code is in Hartree)
         if ( hr_type == 'kc_occ' or hr_type == 'kc_emp' ):
             self.hr = self.hr * 27.21138386
 
-        # check the hermiticity of the hamiltonian
-        for m in range (self.num_wann):
-            for n in range(self.num_wann):
-                if ( self.hr[m,n] - self.hr[n,m].conjugate() > 1.e-6 ):
-                    sys.exit('\nHamiltonian matrix not hermitian -> EXIT(%s,%s)\n' %(m,n))
+        # check the hermiticity of the hamiltonian (except for H_R(m,n))
+        if ( not (hr_type == 'w90' and not self.w90_input_sc) ):
+            for m in range (self.num_wann):
+                for n in range(self.num_wann):
+                    if ( self.hr[m,n] - self.hr[n,m].conjugate() > 1.e-6 ):
+                        sys.exit('\nHamiltonian matrix not hermitian -> EXIT(%s,%s)\n' %(m,n))
 
         return
 
@@ -278,7 +369,7 @@ class Parse_Data():
                 lines = ifile.readlines()
         except FileNotFoundError:
             print('\nWARNING: file \'wf_phases.dat\' not found, phases are ignored.\n')
-            self.phases = [1] * self.num_wann
+            self.phases = [1] * self.num_wann_sc
             return
 
         for line in lines:
@@ -323,14 +414,13 @@ class Parse_Data():
             at = self.at
             if ( cell is 'pc' ):
                 cell = 'sc'
-                print('\nPC not available yet. Need to call map_wannier first. \
-Using default \'sc\'\n')
+                print('\nPC not available yet. Using default \'sc\'\n')
 
         if ( units == 'crys' ):
             return self.centers
         else:
             c_tmp = []
-            for n in range(self.num_wann):
+            for n in range(self.num_wann_sc):
                 c_tmp.append(crys_to_cart(self.centers[n], at, +1))
                 if ( units == 'alat' ):
                     continue
@@ -356,7 +446,7 @@ Using default \'sc\'\n')
     def print_centers(self, centers=None):
         if ( centers == None ):
             centers = self.centers
-        for n in range(self.num_wann):
+        for n in range(self.num_wann_sc):
             print(' X  %10.6f  %10.6f  %10.6f' %(centers[n][0],centers[n][1],centers[n][2]))
         return
         

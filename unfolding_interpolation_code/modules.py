@@ -36,6 +36,27 @@ def crys_to_cart(vec, trmat, typ):
 
 
 """
+Function to select the Wannier Hamiltonian only on the primitive cell R-vectors.
+The Hamiltonian coming from a Wannier90 calculation with k-points is indeed
+defined on the Wigner-Seitz lattice vectors.
+"""
+def order_hr(hr, rvect, nr1, nr2, nr3):
+    Rvec = latt_vect(nr1, nr2, nr3)
+    hr_new = np.zeros(( nr1*nr2*nr3, hr.shape[1], hr.shape[2] ))
+
+    for ir in range(len(rvect)):
+        rvect[ir][0] = rvect[ir][0]%nr1 
+        rvect[ir][1] = rvect[ir][1]%nr2
+        rvect[ir][2] = rvect[ir][2]%nr3
+
+        for jr in range(nr1*nr2*nr3):
+            if ( (rvect[ir] == Rvec[jr]).all() ):
+                hr_new[jr,:,:] = hr[ir,:,:]
+
+    return hr_new
+
+
+"""
 Function for Ang-Bohr conversions
 typ = +1 conversion from Ang to Bohr
 typ = -1 conversion from Bohr to Ang

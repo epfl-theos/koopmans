@@ -1,23 +1,22 @@
 UNFOLDING and INTERPOLATION of bands from a supercell calculation at Gamma only.
 
 
-TODO:
-- smooth interpolation
-- parallelization
+The code has to be run in the directory where the Wannier90 output file(s)
+and the input file are. The needed file in the directory are:
+
+  * input_ui.json
+  * seedname.wout
+  * wf_phases.dat (optional)
 
 
-The code has to be run in the directory where the Wannier90 output is
-('seedname.wout' and 'wf_phases.dat'). The 'input_ui.json' file has to be
-the same directory.
+The input Koopmans or Wannier90 hamiltonian is passed as arg:
 
-The input Koopmans or Wannier90 hamiltoanian is passed as arg:
-
-		python3 ~/path-to-ui-code/unf_int.py file_ham
+		python3 path-to-ui-code/unf_int.py file_ham
 
 
 The code can also be run in an interactive way.
 The class Parse_Data in parser.py module allows to define an instance
-having all the important quanities as attributes.
+having all the important quantities as attributes.
 
 Then the code can be run sequentially as follows:
 

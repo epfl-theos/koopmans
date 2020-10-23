@@ -119,7 +119,6 @@ for m in range(num_wann):
 print 'Building the map |m> --> |Rn> in:\t\t\t%.3f sec' %(time.time()-reset)
 reset = time.time()
 
-
 # Read wannier Hamiltonian and rewrite it in terms of the mapped WFs: <i|H|j> --> <Rm|H|R'n> (the translational symmetry is not exploited and all the matrix elements are calculated explicitly!)
 hr_old = read_hr_scell(file_hr,hr_type,num_wann,emp_states)
 hr_new = np.zeros((nrtot,nrtot,num_wann/nrtot,num_wann/nrtot),dtype=complex)
@@ -162,7 +161,6 @@ if interpolation:
 	else:				print '\n\t---> Performing interpolation of bands.\n'
 else:			print '\n\t---> Calculation of the eigenvalues on the original k-mesh.\n'
 
-
 # Calculate H(k) and its eigenvalues
 eig_k = []
 if interpolation:
@@ -174,7 +172,20 @@ if interpolation:
 				for i in range(nrtot):
 					if not double_R:
 						phase_factor,Tnn = ws_distance(nr1,nr2,nr3,avec_sc,k,cutoff,wann_pc[i,n,1:4],wann_pc[0,m,1:4],R[i],m,n)
+
 						hk[kn,m,n] = hk[kn,m,n] + np.exp(1j*2*np.pi*np.dot(k,R[i])) * phase_factor * hr_new[0,i,m,n]	# Hmn(k) = sum_R e^(-ikR) * ( sum_Tnn e^(-ikTnn) ) * <0m|H|Rn>
+### RICCARDO debug >>>
+                                                if ((k==np.array((0.05,0.0,0.0))).all()):
+                                                    print "\ncenters (%d %d, %d): [%8.3f,%8.3f,%8.3f]  [%8.3f,%8.3f,%8.3f]" %(i,m,n,\
+                                                         wann_pc[0,m,1],wann_pc[0,m,2],wann_pc[0,m,3],\
+                                                         wann_pc[i,n,1],wann_pc[i,n,2],wann_pc[i,n,3])
+                                                    ph = np.exp(1j * 2 * np.pi * np.dot(k,R[i]))
+                                                    print "HR = %12.6f" %hr_new[0,i,m,n].real
+                                                    print "phase = %8.4f + %8.4fi" %(ph.real,ph.imag)
+                                                    for n in range(Tnn.shape[0]):
+                                                        print("  T[%d] = [ %d %d %d ]" %(n,Tnn[n,0],Tnn[n,1],Tnn[n,2]))
+                                                    print "phase_corr = %8.4f + %8.4fi" %(phase_factor.real,phase_factor.imag)
+### RICCARDO debug <<<
 					else:
 						for jj in range(nrtot):
                                                         phase_factor,Tnn = ws_distance(nr1,nr2,nr3,avec_sc,k,cutoff,wann_pc[i,n,1:4],wann_pc[jj,m,1:4])
@@ -187,6 +198,9 @@ if interpolation:
 					hk[kn,m,n] = hk[kn,m,n] + hk_pcell[kn,m,n]
 					
 		eig_k.append(np.linalg.eigvalsh(hk[kn,:,:]))
+### RICCARDO debug >>>
+                if ((k==np.array((0.05,0.0,0.0))).all()): print "\nHk = ", hk[kn,:,:]
+### RICCARDO debug <<<
 
 else:	# else the Hamiltonian is calculated over the k-mesh
 	hk = np.zeros((k_mesh.shape[0],num_wann/nrtot,num_wann/nrtot),dtype=complex)
