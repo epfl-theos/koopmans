@@ -14,6 +14,10 @@ The input Koopmans or Wannier90 hamiltonian is passed as arg:
 		python3 path-to-ui-code/unf_int.py file_ham
 
 
+[Type:		python3 path-to-ui-code/unf_int.py --help
+if you want more information about the input file and how to run the code.]
+
+
 The code can also be run in an interactive way.
 The class Parse_Data in parser.py module allows to define an instance
 having all the important quantities as attributes.
