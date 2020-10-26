@@ -157,9 +157,13 @@ calc_dos calculates the density of states using a gaussian smearing. The DOS is 
 """
 def calc_dos(data):
 
+    eigvl = np.array(data.bands, dtype=float).reshape(data.num_wann*len(data.kvec))
+
+    if ( not hasattr(data, "Emin") ): data.Emin = min(eigvl) 
+    if ( not hasattr(data, "Emax") ): data.Emax = max(eigvl)
+ 
     dE = (data.Emax - data.Emin) / data.nstep
     ene = data.Emin
-    eigvl = np.array(data.bands, dtype=float).reshape(data.num_wann*len(data.kvec))
     dos = [ [ene, sum(np.exp( - ((ene - eigvl) / data.degauss)**2 )) / (data.degauss * np.pi**.5)] ]
 
     for n in range(data.nstep):

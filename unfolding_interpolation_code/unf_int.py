@@ -11,15 +11,10 @@ For the moment the code works only with cubic, tetragonal and orthorombic system
 import sys
 from time import time
 
+from manual import args
 from parser import Parse_Data
 from interpolate import interpolate
 from write_results import write_results
-
-
-try:
-    file_hr = sys.argv[1]
-except:
-    sys.exit('\nMissing argument with hamiltonian file -> EXIT\n')
 
 
 start = time()
@@ -38,7 +33,7 @@ print('UNFOLDING & INTERPOLATION\n')
 """
 
 sys_data = Parse_Data()
-sys_data.parse_data(file_hr)
+sys_data.parse_data(args.file_hr)
 
 print('\tParsing input in:\t\t\t%.3f sec' % (time()-reset))
 reset = time()

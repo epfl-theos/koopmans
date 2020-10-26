@@ -48,8 +48,8 @@ class Parse_Data():
     use_ws_distance : if True the Wigner-Seitz distance between WF centers is used
     k_path          : k_path for bands interpolation (in crystal units)
     smooth_int      : if True, smooth interpolation method is used
-    file_hr_pw      : look at documentation (needed when smooth_int=True)
-    file_hr_w90     : look at documentation (needed when smooth_int=True)
+    file_hr_coarse  : look at documentation (needed when smooth_int=True)
+    file_hr_smooth  : look at documentation (needed when smooth_int=True)
     do_dos          : if True, the density-of-states is calculated    
     degauss         : gaussian broadening in eV (as in QE except for the units)
     nstep           : number of steps for DOS plot
@@ -63,9 +63,9 @@ class Parse_Data():
             json_data = json.load(json_file)
 
         # list of available input arguments
-        self.list_of_args = ['seedname', 'alat_sc', 'nr1', 'nr2', 'nr3', 'w90_calc', 'do_map',\
-                             'use_ws_distance', 'k_path', 'smooth_int', 'file_hr_pw', 'file_hr_w90',\
-                             'do_dos', 'degauss', 'nstep', 'Emin', 'Emax']
+        self.list_of_args = [ 'seedname', 'alat_sc', 'nr1', 'nr2', 'nr3', 'w90_calc', 'do_map',\
+                              'use_ws_distance', 'k_path', 'smooth_int', 'file_hr_coarse', \
+                              'file_hr_smooth', 'do_dos', 'degauss', 'nstep', 'Emin', 'Emax' ]
         
         if 'seedname' not in json_data.keys():    sys.exit('\nMissing \'seedname\' in input -> EXIT\n')
         if 'alat_sc' not in json_data.keys():     sys.exit('\nMissing \'alat_sc\' in input -> EXIT\n')
@@ -84,13 +84,13 @@ class Parse_Data():
         self.use_ws_distance = json_data.get("use_ws_distance", True)
         self.k_path = json_data.get("k_path", None)
         self.smooth_int = json_data.get("smooth_int", False)
-        self.file_hr_pw = json_data.get("file_hr_pw", None)
-        self.file_hr_w90 = json_data.get("file_hr_w90", None)
+        self.file_hr_coarse = json_data.get("file_hr_coarse", None)
+        self.file_hr_smooth = json_data.get("file_hr_smooth", None)
         self.do_dos = json_data.get("do_dos", False)
         self.degauss = json_data.get("degauss", 0.05)
         self.nstep = json_data.get("nstep", 1000)
-        self.Emin = json_data.get("Emin", -10)
-        self.Emax = json_data.get("Emax", 10)
+        self.Emin = json_data.get("Emin")
+        self.Emax = json_data.get("Emax")
         ####################################################
 
         # checks on the input arguments
@@ -114,10 +114,10 @@ class Parse_Data():
             sys.exit('\nk_path must be a list -> EXIT(%s)' %type(self.k_path))
         if ( type(self.smooth_int) is not bool ):
             sys.exit('\n\'smooth_int\' must be a bool -> EXIT(%s)' %type(self.smooth_int))
-        if ( type(self.file_hr_pw) is not str ):
-            sys.exit('\n\'file_hr_pw\' must be a string -> EXIT(%s)' %type(self.file_hr_pw))
-        if ( type(self.file_hr_w90) is not str ):
-            sys.exit('\n\'file_hr_w90\' must be a string -> EXIT(%s)' %type(self.file_hr_w90))
+        if ( type(self.file_hr_coarse) is not str ):
+            sys.exit('\n\'file_hr_coarse\' must be a string -> EXIT(%s)' %type(self.file_hr_coarse))
+        if ( type(self.file_hr_smooth) is not str ):
+            sys.exit('\n\'file_hr_smooth\' must be a string -> EXIT(%s)' %type(self.file_hr_smooth))
         if ( type(self.do_dos) is not bool ):
             sys.exit('\n\'do_dos\' must be a bool -> EXIT(%s)' %type(self.do_dos))
         if ( type(self.degauss) is not float and type(self.degauss) is not int ):
@@ -154,10 +154,10 @@ commensurate Monkhorst-Pack mesh\n')
             self.kvec = generate_path(self.k_path)
         
         if ( self.smooth_int ):
-            if ( 'file_hr_pw' not in json_data.keys() ):
-                sys.exit('\nMissing \'file_hr_pw\' for smooth interpolation -> EXIT\n')
-            if ( 'file_hr_w90' not in json_data.keys() ):
-                sys.exit('\nMissing \'file_hr_w90\' for smooth interpolation -> EXIT\n')
+            if ( 'file_hr_coarse' not in json_data.keys() ):
+                sys.exit('\nMissing \'file_hr_coarse\' for smooth interpolation -> EXIT\n')
+            if ( 'file_hr_smooth' not in json_data.keys() ):
+                sys.exit('\nMissing \'file_hr_smooth\' for smooth interpolation -> EXIT\n')
         
         if ( self.do_dos ):
             if 'degauss' not in json_data.keys():
