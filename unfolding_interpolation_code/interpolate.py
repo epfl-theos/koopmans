@@ -174,8 +174,8 @@ def calc_dos(data):
 
     eigvl = np.array(data.bands, dtype=float).reshape(data.num_wann*len(data.kvec))
 
-    if ( not hasattr(data, "Emin") ): data.Emin = min(eigvl) 
-    if ( not hasattr(data, "Emax") ): data.Emax = max(eigvl)
+    if ( data.Emin is None ): data.Emin = min(eigvl) 
+    if ( data.Emax is None ): data.Emax = max(eigvl)
  
     dE = (data.Emax - data.Emin) / data.nstep
     ene = data.Emin

@@ -124,14 +124,14 @@ class Parse_Data():
             sys.exit('\n\'degauss\' must be a float or a int -> EXIT(%s)' %type(degauss))
         if ( type(self.nstep) is not float and type(self.nstep) is not int ):
             sys.exit('\n\'nstep\' must be a float or a int -> EXIT(%s)' %type(self.nstep))
-        if ( type(self.Emin) is not float and type(self.Emin) is not int ):
+        if ( self.Emin is not None and type(self.Emin) is not float and type(self.Emin) is not int ):
             sys.exit('\n\'Emin\' must be a float or a int -> EXIT(%s)' %type(self.Emin))
-        if ( type(self.Emax) is not float and type(self.Emax) is not int ):
+        if ( self.Emax is not None and type(self.Emax) is not float and type(self.Emax) is not int ):
             sys.exit('\n\'Emax\' must be a float or a int -> EXIT(%s)' %type(self.Emax))
            
         for item in json_data.keys():
             if ( item not in self.list_of_args ):
-                print('\nWARNING: argument \'%s\' is unknown!\n' %item)
+                print('WARNING: argument \'%s\' is unknown!' %item)
        
         self.alat_sc = ang_to_bohr(self.alat_sc, -1)    # conversion to Ang
 
@@ -148,8 +148,8 @@ class Parse_Data():
   
         if ( self.k_path == None ):
             self.kvec = MP_mesh(self.nr1,self.nr2,self.nr3)
-            print('\nWARNING: \'k_path\' missing in input, the energies are calculated on a \
-commensurate Monkhorst-Pack mesh\n')
+            print('WARNING: \'k_path\' missing in input, the energies are calculated on a ' +
+                                                    'commensurate Monkhorst-Pack mesh')
         else:
             self.kvec = generate_path(self.k_path)
         
@@ -161,13 +161,13 @@ commensurate Monkhorst-Pack mesh\n')
         
         if ( self.do_dos ):
             if 'degauss' not in json_data.keys():
-                print('\nWARNING: \'degauss\' missing in input, using default value\n')
+                print('WARNING: \'degauss\' missing in input, using default value')
             if 'nstep' not in json_data.keys():
-                print('\nWARNING: \'nstep\' missing in input, using default value\n')
+                print('WARNING: \'nstep\' missing in input, using default value')
             if 'Emin' not in json_data.keys():
-                print('\nWARNING: \'Emin\' missing in input, using default value\n')
+                print('WARNING: \'Emin\' missing in input, using default value')
             if 'Emax' not in json_data.keys():
-                print('\nWARNING: \'Emax\' missing in input, using default value\n')
+                print('WARNING: \'Emax\' missing in input, using default value')
 
         return
 
@@ -443,7 +443,7 @@ commensurate Monkhorst-Pack mesh\n')
 #            hr_smooth = extract_hr(hr_smooth, rvect, self.nr1, self.nr2, self.nr3)
 #            hr_smooth = hr_smooth.reshape(self.num_wann_sc,self.num_wann)
 #            if ( np.max(abs( self.hr_coarse - hr_smooth )) > 1.e-3 ):
-#                print('\nWARNING: hr_coarse and hr_smooth differ. Be careful with the results\n')
+#                print('WARNING: hr_coarse and hr_smooth differ. Be careful with the results')
 
         return
 
@@ -462,8 +462,9 @@ commensurate Monkhorst-Pack mesh\n')
             with open('wf_phases.dat','r') as ifile:
                 lines = ifile.readlines()
         except FileNotFoundError:
-            print('\nWARNING: file \'wf_phases.dat\' not found, phases are ignored.\n')
             self.phases = [1] * self.num_wann_sc
+            if ( self.w90_input_sc ):
+                print('WARNING: file \'wf_phases.dat\' not found, phases are ignored.')
             return
 
         for line in lines:
