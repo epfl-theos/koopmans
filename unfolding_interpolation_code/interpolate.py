@@ -23,8 +23,9 @@ interpolate is the main program in this module and it calls consecutively
 def interpolate(data,start_time):
     
     # Step 1: map the WFs
-    if ( data.do_map ): map_wannier(data)
-    print('\tBuilding the map |i> --> |Rn> in:\t%.3f sec' % (time()-start_time))
+    if ( data.do_map ): 
+        map_wannier(data)
+        print('\tBuilding the map |i> --> |Rn> in:\t%.3f sec' % (time()-start_time))
     reset = time()
 
     # Step 2: calculate the electronic bands along k_path
@@ -121,8 +122,11 @@ calc_bands interpolates the k-space hamiltonian along the input path, by Fourier
 """
 def calc_bands(data):
 
+    # when smooth interpolation is on, we remove the DFT part from hr
+    hr = np.array(data.hr[:,:data.num_wann], dtype=complex)
+    if ( data.smooth_int ):    hr = hr - data.hr_coarse
+
     # renormalize H(R) on the WF phases
-    hr = np.array(data.hr, dtype=complex)
     for m in range(data.num_wann_sc):
         for n in range(data.num_wann):
             hr[m,n] = data.phases[m].conjugate() * hr[m,n] * data.phases[n]
@@ -130,7 +134,9 @@ def calc_bands(data):
     # here we build the interpolated H(k)
     hk = np.zeros((len(data.kvec),data.num_wann,data.num_wann), dtype=complex)
     bands = []
+    print("\n\t\tTotal number of k-points: %6d\n" %len(data.kvec))
     for ik in range(len(data.kvec)):
+        print("\t\t      calculating point # %6d" %(ik+1)) 
         kpt = data.kvec[ik]
         for m in range(data.num_wann):
             for n in range(data.num_wann):
@@ -142,8 +148,17 @@ def calc_bands(data):
                     hk[ik,m,n] = hk[ik,m,n] + np.exp(1j * 2 * np.pi * np.dot(kpt,data.Rvec[ir])) * \
                                               phase * hr[mm,n]
 
+                if ( data.smooth_int ):
+                    hk_smooth = 0
+                    for jr in range(len(data.Rsmooth)):
+                        Rs = data.Rsmooth[jr]
+                        hk_smooth = hk_smooth + np.exp(1j * 2 * np.pi * np.dot(kpt,Rs)) * \
+                                              data.hr_smooth[jr,m,n] / data.wRs[jr]
+                    hk[ik,m,n] = hk[ik,m,n] + hk_smooth
+
         bands.append(np.linalg.eigvalsh(hk[ik]))
 
+    print()
     data.hk = hk
     data.bands = bands
 

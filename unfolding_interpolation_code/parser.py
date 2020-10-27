@@ -283,7 +283,7 @@ commensurate Monkhorst-Pack mesh\n')
     """
     def parse_hr(self, file_hr):
 
-        with open(file_hr,'r') as ifile:
+        with open(file_hr, 'r') as ifile:
             lines = ifile.readlines()
 
         if ( 'written on' in lines[0] ):                        hr_type = 'w90'
@@ -320,7 +320,7 @@ commensurate Monkhorst-Pack mesh\n')
                     counter = 0
 
         if ( hr_type == 'kc_occ' ):
-            for line in lines[5:-1]:
+            for line in lines[5:-2]:
                 self.hr.append(line.split()[0])
 
         if ( hr_type == 'kc_emp' ):
@@ -332,7 +332,7 @@ commensurate Monkhorst-Pack mesh\n')
                 sys.exit('\nWrong number of matrix elements for the input hamiltonian -> EXIT(%s)\n' \
                                                                              %(len(self.hr)))
             self.hr = np.array(self.hr, dtype=float).reshape(nrpts,self.num_wann,self.num_wann)
-            self.hr = order_hr(self.hr, rvect, self.nr1, self.nr2, self.nr3)
+            self.hr = extract_hr(self.hr, rvect, self.nr1, self.nr2, self.nr3)
             self.hr = self.hr.reshape(self.num_wann_sc,self.num_wann)
         else:
             if ( len(self.hr) != self.num_wann_sc**2 ):
@@ -350,6 +350,100 @@ commensurate Monkhorst-Pack mesh\n')
                 for n in range(self.num_wann):
                     if ( self.hr[m,n] - self.hr[n,m].conjugate() > 1.e-6 ):
                         sys.exit('\nHamiltonian matrix not hermitian -> EXIT(%s,%s)\n' %(m,n))
+
+
+        # reading the 2 hamiltonians for the smooth interpolation method
+        if ( self.smooth_int ):
+            self.hr_coarse = []
+            self.hr_smooth = []            
+
+            # parsing hr_coarse
+            with open(self.file_hr_coarse, 'r') as ifile:
+                lines = ifile.readlines()
+
+            if ( self.w90_input_sc ):
+                if ( int(lines[1].split()[0]) != self.num_wann_sc ):
+                    sys.exit('\nIn parse_hr inconsistency in num_wann in hr_coarse\n')
+            else:
+                if ( int(lines[1].split()[0]) != self.num_wann ):
+                    sys.exit('\nIn parse_hr inconsistency in num_wann in hr_coarse\n')
+            
+            if ( not self.w90_input_sc ): rvect = []
+            nrpts = int(lines[2].split()[0])
+            lines_to_skip = 3 + int(nrpts/15)
+            if ( nrpts%15 > 0 ): lines_to_skip += 1
+            counter = 0
+
+            for line in lines[lines_to_skip:]:
+                if ( abs(float(line.split()[6])) > 1.e-6 ):
+                    sys.exit('\nhr_coarse must be real, found a complex component -> EXIT\n')
+
+                self.hr_coarse.append(line.split()[5])
+
+                counter += 1
+                if ( not self.w90_input_sc and counter == self.num_wann**2 ):
+                    rvect.append( np.array(line.split()[0:3], dtype=int) )
+                    counter = 0
+
+            if ( self.w90_input_sc ):
+                if ( len(self.hr_coarse) != self.num_wann_sc**2 ):
+                    sys.exit('\nWrong number of matrix elements for hr_coarse -> EXIT(%s)\n' \
+                                                                             %(len(self.hr_coarse)))
+                self.hr_coarse = np.array(self.hr_coarse, dtype=float)
+                self.hr_coarse = self.hr_coarse.reshape(self.num_wann_sc,self.num_wann_sc)
+                self.hr_coarse = self.hr_coarse[:,:self.num_wann]
+            else:
+                if ( len(self.hr_coarse) != nrpts*self.num_wann**2 ):
+                    sys.exit('\nWrong number of matrix elements for hr_coarse -> EXIT(%s)\n' \
+                                                                             %(len(self.hr_coarse)))
+                self.hr_coarse = np.array(self.hr_coarse, dtype=float)
+                self.hr_coarse = self.hr_coarse.reshape(nrpts,self.num_wann,self.num_wann)
+                self.hr_coarse = extract_hr(self.hr_coarse, rvect, self.nr1, self.nr2, self.nr3)
+                self.hr_coarse = self.hr_coarse.reshape(self.num_wann_sc,self.num_wann)
+
+            # parsing hr_smooth
+            with open(self.file_hr_smooth, 'r') as ifile:
+                lines = ifile.readlines()
+
+            if ( int(lines[1].split()[0]) != self.num_wann ):
+                sys.exit('\nIn parse_hr inconsistency in num_wann in hr_smooth\n')
+            
+            weights = []
+            rvect = []
+            nrpts = int(lines[2].split()[0])
+            lines_to_skip = 3 + int(nrpts/15)
+            if ( nrpts%15 > 0 ): lines_to_skip += 1
+            counter = 0
+
+            for line in lines[3:lines_to_skip]:
+                for n in range(len(line.split())):
+                    weights.append(int(line.split()[n]))
+
+            for line in lines[lines_to_skip:]:
+                if ( abs(float(line.split()[6])) > 1.e-6 ):
+                    sys.exit('\nhr_smooth must be real, found a complex component -> EXIT\n')
+
+                self.hr_smooth.append(line.split()[5])
+
+                counter += 1
+                if ( counter == self.num_wann**2 ):
+                    rvect.append( np.array(line.split()[0:3], dtype=int) )
+                    counter = 0
+
+            if ( len(self.hr_smooth) != nrpts*self.num_wann**2 ):
+                sys.exit('\nWrong number of matrix elements for hr_smooth -> EXIT(%s)\n' \
+                                                                         %(len(self.hr_smooth)))
+            self.wRs = weights
+            self.Rsmooth = rvect
+            self.hr_smooth = np.array(self.hr_smooth, dtype=float)
+            self.hr_smooth = self.hr_smooth.reshape(nrpts,self.num_wann,self.num_wann)
+
+            # check consistency between hr_coarse and hr_smooth
+#            hr_smooth = np.copy(self.hr_smooth)
+#            hr_smooth = extract_hr(hr_smooth, rvect, self.nr1, self.nr2, self.nr3)
+#            hr_smooth = hr_smooth.reshape(self.num_wann_sc,self.num_wann)
+#            if ( np.max(abs( self.hr_coarse - hr_smooth )) > 1.e-3 ):
+#                print('\nWARNING: hr_coarse and hr_smooth differ. Be careful with the results\n')
 
         return
 
@@ -449,5 +543,3 @@ commensurate Monkhorst-Pack mesh\n')
         for n in range(self.num_wann_sc):
             print(' X  %10.6f  %10.6f  %10.6f' %(centers[n][0],centers[n][1],centers[n][2]))
         return
-        
-  

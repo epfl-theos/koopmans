@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser( formatter_class=argparse.RawDescriptionHelpFor
 
 The code must be run from the directory containing:
   * the file 'input_ui.json'
-  * the Wannier90 output file ('seedname.wout')
+  * the Wannier90 output file 'seedname.wout'
   * (optional) the file 'wf_phases.dat'
 
 Input keywords description

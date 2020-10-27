@@ -38,20 +38,34 @@ def crys_to_cart(vec, trmat, typ):
 """
 Function to select the Wannier Hamiltonian only on the primitive cell R-vectors.
 The Hamiltonian coming from a Wannier90 calculation with k-points is indeed
-defined on the Wigner-Seitz lattice vectors.
+defined on the Wigner-Seitz lattice vectors. In the case smooth=True, all the
+matrix elements corresponding to R-vectors exceeding the boundaries of the
+original supercell are ignored.
 """
-def order_hr(hr, rvect, nr1, nr2, nr3):
-    Rvec = latt_vect(nr1, nr2, nr3)
-    hr_new = np.zeros(( nr1*nr2*nr3, hr.shape[1], hr.shape[2] ))
+def extract_hr(hr, rvect, nr1, nr2, nr3):
+    Rvecs = latt_vect(nr1, nr2, nr3)
+    hr_new = []
 
-    for ir in range(len(rvect)):
-        rvect[ir][0] = rvect[ir][0]%nr1 
-        rvect[ir][1] = rvect[ir][1]%nr2
-        rvect[ir][2] = rvect[ir][2]%nr3
+    for R in Rvecs:
+        for ir in range(len(rvect)):
 
-        for jr in range(nr1*nr2*nr3):
-            if ( (rvect[ir] == Rvec[jr]).all() ):
-                hr_new[jr,:,:] = hr[ir,:,:]
+            if ( ( abs(float(rvect[ir][0])/nr1) >= 1 ) or
+                 ( abs(float(rvect[ir][1])/nr2) >= 1 ) or
+                 ( abs(float(rvect[ir][2])/nr3) >= 1 ) ):
+                continue
+    
+            rvect[ir][0] = rvect[ir][0]%nr1 
+            rvect[ir][1] = rvect[ir][1]%nr2
+            rvect[ir][2] = rvect[ir][2]%nr3
+
+            if ( (rvect[ir] == R).all() ):
+                hr_new.append(hr[ir,:,:])
+                break
+
+    if ( len(hr_new) != nr1*nr2*nr3 ):
+        sys.exit('\nwrong number of R-vectors in extract_hr -> EXIT(%s)\n' %len(hr_new))
+
+    hr_new = np.array(hr_new)
 
     return hr_new
 

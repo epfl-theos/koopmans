@@ -1,5 +1,4 @@
 TO DO list:
 
-1) smooth interpolation
-2) update example
-3) parallelization
+1) update example
+2) fix the check on hamiltonians in smooth interpolation method

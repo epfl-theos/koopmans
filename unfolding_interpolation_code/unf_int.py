@@ -28,7 +28,7 @@ print('UNFOLDING & INTERPOLATION\n')
  1) Parse data:
     - calc parameters from the JSON file
     - other parameters from W90 output file
-    - H(R) from the file passed as sys.argv[1]
+    - hamiltonian(s)
     - WFs phases read from file wf_phases.dat
 """
 
@@ -59,7 +59,7 @@ reset = time()
 
 write_results(sys_data)
 
-print('\tPriting output in:\t\t\t%.3f sec' % (time()-reset))
+print('\tPrinting output in:\t\t\t%.3f sec' % (time()-reset))
 print()
 print('\tTotal time:\t\t\t\t%.3f sec' %(time()-start))
 
