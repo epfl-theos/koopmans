@@ -12,11 +12,12 @@ Sep 2020: moved individual calculators into calculators/
 
 import ase.io as ase_io
 from ase.io import espresso_cp as cp_io
-from koopmans_cp.io import cpi_diff, read_alpharef, warn
+from koopmans.io import cpi_diff, read_alpharef, write_alpharef, warn
 import os
 import sys
 import copy
 import numpy as np
+import koopmans.utils as utils
 
 
 class QE_calc:
@@ -152,6 +153,7 @@ class QE_calc:
 
     def _update_settings_dict(self):
         # Updates self._settings based on self._ase_calc
+        self._settings = {}
         for namelist in self._ase_calc.parameters.get('input_data', {}).values():
             for key, val in namelist.items():
                 self._settings[key] = val
@@ -207,7 +209,76 @@ class QE_calc:
             f'is_complete() function has not been implemented for {self.__class__}')
 
 
-def run_qe(qe_calc, silent=True, from_scratch=False):
+def run_qe(master_qe_calc, silent=True, from_scratch=False, enforce_ss=False):
+    '''
+    Wrapper for run_qe_single that manages the optional enforcing of spin symmetry
+    '''
+
+    if enforce_ss:
+        # Create a copy of the calculator object (to avoid modifying the input)
+        qe_calc = copy.deepcopy(master_qe_calc)
+        nspin2_tmpdir = f'{master_qe_calc.outdir}/{master_qe_calc.prefix}_{master_qe_calc.ndw}.save/K00001'
+
+        if master_qe_calc.restart_mode == 'restart':
+            # PBE with nspin=1 dummy
+            qe_calc.name += '_nspin1_dummy'
+            qe_calc.do_outerloop = False
+            qe_calc.do_outerloop_empty = False
+            qe_calc.nspin, qe_calc.nelup, qe_calc.neldw, qe_calc.tot_magnetization = 1, None, None, None
+            qe_calc.ndw, qe_calc.ndr = 98, 98
+            qe_calc.restart_mode = 'from_scratch'
+            if qe_calc.do_orbdep and qe_calc.odd_nkscalfact:
+                # Rewrite alpha file for nspin=1
+                alpha = read_alpharef(qe_calc)
+                write_alpharef(alpha, qe_calc)
+            from_scratch = run_qe_single(qe_calc, silent=silent, from_scratch=from_scratch)
+
+            if from_scratch:
+               # Copy over nspin=2 wavefunction to nspin=1 tmp directory (if it has not been done already)
+               nspin1_tmpdir = f'{qe_calc.outdir}/{qe_calc.prefix}_{qe_calc.ndw}.save/K00001'
+               utils.system_call(f'convert_nspin2_wavefunction_to_nspin1.sh {nspin2_tmpdir} {nspin1_tmpdir}')
+
+        # PBE with nspin=1
+        qe_calc = copy.deepcopy(master_qe_calc)
+        qe_calc.name += '_nspin1'
+        qe_calc.nspin, qe_calc.nelup, qe_calc.neldw, qe_calc.tot_magnetization = 1, None, None, None
+        qe_calc.ndw, qe_calc.ndr = 98, 98
+        nspin1_tmpdir = f'{qe_calc.outdir}/{qe_calc.prefix}_{qe_calc.ndw}.save/K00001'
+        if qe_calc.do_orbdep and qe_calc.odd_nkscalfact and master_qe_calc.restart_mode == 'from_scratch':
+            # Rewrite alpha file for nspin=1
+            alpha = read_alpharef(qe_calc)
+            write_alpharef(alpha, qe_calc)
+        from_scratch = run_qe_single(qe_calc, silent=silent, from_scratch=from_scratch)
+
+        # PBE from scratch with nspin=2 (dummy run for creating files of appropriate size)
+        qe_calc = copy.deepcopy(master_qe_calc)
+        qe_calc.name += '_nspin2_dummy'
+        qe_calc.restart_mode = 'from_scratch'
+        qe_calc.do_outerloop = False
+        qe_calc.do_outerloop_empty = False
+        qe_calc.ndw = 99
+        if qe_calc.do_orbdep and qe_calc.odd_nkscalfact:
+            # Rewrite alpha file for nspin=2
+            alpha = read_alpharef(qe_calc, duplicated=False)
+            write_alpharef(alpha, qe_calc)
+        from_scratch = run_qe_single(qe_calc, silent=silent, from_scratch=from_scratch)
+        nspin2_tmpdir = f'{qe_calc.outdir}/{qe_calc.prefix}_{qe_calc.ndw}.save/K00001'
+
+        # Copy over nspin=1 wavefunction to nspin=2 tmp directory
+        if from_scratch:
+            utils.system_call(
+                f'convert_nspin1_wavefunction_to_nspin2.sh {nspin1_tmpdir} {nspin2_tmpdir}')
+
+        # PBE with nspin=2, reading in the spin-symmetric nspin=1 wavefunction
+        master_qe_calc.name += '_nspin2'
+        master_qe_calc.restart_mode = 'restart'
+        master_qe_calc.ndr = 99
+        return run_qe_single(master_qe_calc, silent=silent, from_scratch=from_scratch)
+
+    else:
+        return run_qe_single(master_qe_calc, silent, from_scratch)
+
+def run_qe_single(qe_calc, silent=True, from_scratch=False):
     '''
     Runs qe_calc.calculate with additional options:
 

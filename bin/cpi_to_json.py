@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 import argparse
-from koopmans_cp.ase import write_json, read_json
-from koopmans_cp.defaults import defaults
-from koopmans_cp.calculators.cp import CP_calc
-from koopmans_cp.workflow import keywords_altered_during_workflow
+from koopmans.ase import write_json, read_json
+from koopmans.defaults import defaults
+from koopmans.calculators.cp import CP_calc
+from koopmans.workflow import keywords_altered_during_workflow
 import copy
 import textwrap
 

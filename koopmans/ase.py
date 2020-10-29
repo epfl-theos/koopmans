@@ -15,9 +15,9 @@ from ase.io.espresso_cp import Espresso_cp, KEYS, ibrav_to_cell
 from ase.io.wannier90 import Wannier90
 from ase.io.pw2wannier import PW2Wannier
 from ase.atoms import Atoms
-from koopmans_cp.utils import warn
-from koopmans_cp.io import input_dft_from_pseudos, nelec_from_pseudos
-from koopmans_cp.calculators import cp, wannier90, pw2wannier
+from koopmans.utils import warn
+from koopmans.io import input_dft_from_pseudos, nelec_from_pseudos
+from koopmans.calculators import cp, wannier90, pw2wannier
 import os
 
 def read_w90_dict(dct):
@@ -195,27 +195,29 @@ def write_json(fd, calcs=[], workflow_settings={}):
         calcs = [calcs]
 
     bigdct = {}
-    bigdct['workflow'] = workflow_settings
+    bigdct['workflow'] = {k: v for k, v in workflow_settings.items() if v is not None}
 
     for calc in calcs:
         if isinstance(calc, cp.CP_calc):
             bigdct['cp'] = {}
+            # Update the ase calculator
+            calc._ase_calc.parameters['input_data'] = calc.construct_namelist()
             calc = calc._ase_calc
             for key, block in calc.parameters['input_data'].items():
                 if len(block) > 0:
                     bigdct['cp'][key] = dict(block)
 
             # cell parameters
-            if calc.parameters['input_data']['system']['ibrav'] == 0:
+            if calc.parameters['input_data']['system'].get('ibrav', None) == 0:
                 bigdct['cp']['cell_parameters'] = {'vectors': [
-                    list(row) for row in calc.atoms.cell[:]]}
+                    list(row) for row in calc.atoms.cell[:]], 'units': 'alat'}
 
             # atomic positions
             try:
                 labels = calc.atoms.get_array('labels')
             except:
                 labels = calc.atoms.get_chemical_symbols()
-            if calc.parameters['input_data']['system']['ibrav'] == 0:
+            if calc.parameters['input_data']['system'].get('ibrav', None) == 0:
                 bigdct['cp']['atomic_positions'] = {'positions': [
                     [label] + [str(x) for x in pos] for label, pos in zip(labels, calc.atoms.get_positions())],
                     'units': 'alat'}

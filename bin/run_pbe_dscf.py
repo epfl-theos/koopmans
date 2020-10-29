@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import argparse
 from ase.io import espresso as pw_io
-from koopmans_cp.environ import Environ_calc
-from koopmans_cp.calc import run_qe
+from koopmans.environ import Environ_calc
+from koopmans.calculators.calculator import run_qe
 import os
 
 '''

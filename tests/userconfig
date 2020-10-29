@@ -1,11 +1,11 @@
 [user]
 benchmark = 0.0.4
-date_fmt = %d%m%y
+date_fmt = %y%m%d
 diff = vimdiff
 default_program = koopmans
 
 [koopmans]
-exe = ../bin/koopmans.py
+exe = ../bin/run_koopmans.py
 inputs_args = ('*.json', '')
 nprocs = 0
 run_cmd_template = tc.program tc.args tc.input > tc.output 2> tc.error && cat_cpo.sh >> tc.output

@@ -6,7 +6,7 @@ Written by Edward Linscott Jan 2020
 
 """
 
-from koopmans_cp.io import warn
+from koopmans.io import warn
 
 defaults = {'calculation':         'cp',
             'iprint':              1,

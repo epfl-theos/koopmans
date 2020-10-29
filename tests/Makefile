@@ -1,5 +1,5 @@
 # List of available tasks
-.PHONY: install tests clean help
+.PHONY: help install tests clean
 
 install:
 	@# install testcode
@@ -9,6 +9,9 @@ install:
 tests:
 ifeq ($(wildcard ./testcode/bin/testcode.py),)
 	@$(MAKE) install
+endif
+ifneq ($(wildcard ./test_06/converged.json),)
+	rm test_06/converged.json 2> /dev/null
 endif
 	testcode/bin/testcode.py $(TC) --verbose
 

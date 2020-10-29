@@ -12,11 +12,14 @@ May 2020: converted the module to use CP_calc rather than an ASE calculator
 import json
 import numpy as np
 from ase.io.espresso_cp import Espresso_cp, KEYS, ibrav_to_cell
+from ase.units import create_units
 from ase.atoms import Atoms
-from koopmans_cp.utils import warn
+from koopmans.utils import warn
 import xml.etree.ElementTree as ET
 import os
 
+# Quantum Espresso -- and python_KI -- uses CODATA 2006 internally
+ase_units = create_units('2006')
 
 def cpi_diff(calcs, silent=False):
 
@@ -52,16 +55,29 @@ def print_summary(alpha_df, error_df = None):
     print('')
 
 
-def write_alpharef(alphas, filling, directory='.', duplicate=True):
+def write_alpharef(alphas, calc=None, filling=None, directory=None, duplicate=True):
     '''
     Generates file_alpharef.txt and file_alpharef_empty.txt from a list of alpha values
 
     Arguments:
+       calc      -- a calculator object
        alphas    -- a list of alpha values (floats)
        filling   -- a list of booleans; true if the corresponding orbital is filled
        directory -- the directory within which to write the files
        duplicate -- if True, use the same result for spin-up and spin-down
     '''
+
+    if calc is not None:
+        directory = calc.directory
+        n_filled_bands = calc.nelec//2
+        n_empty_bands = calc.empty_states_nbnd
+        if n_empty_bands is None:
+            n_empty_bands = 0
+        filling = [True for _ in range(n_filled_bands)] + [False for _ in range(n_empty_bands)]
+        duplicate = (calc.nspin == 2)
+    elif directory is None:
+        raise ValueError(
+            'read_alpharef called without a calculator or a directory. Please provide at least one.')
 
     a_filled = [a for a, f in zip(alphas, filling) if f]
     a_empty = [a for a, f in zip(alphas, filling) if not f]
@@ -74,7 +90,7 @@ def write_alpharef(alphas, filling, directory='.', duplicate=True):
                            for i, a in enumerate(alphas)])
 
 
-def read_alpharef(calc=None, directory=None):
+def read_alpharef(calc=None, directory=None, duplicated=True):
     '''
     Reads in file_alpharef.txt and file_alpharef_empty.txt from a calculation's directory
 
@@ -99,7 +115,9 @@ def read_alpharef(calc=None, directory=None):
             break
         with open(fname, 'r') as fd:
             flines = fd.readlines()
-            n_orbs = int(flines[0]) // 2
+            n_orbs = int(flines[0])
+            if duplicated:
+               n_orbs //= 2
             alphas += [float(line.split()[1]) for line in flines[1:n_orbs + 1]]
     return alphas
 
@@ -167,3 +185,29 @@ def print_qc(key, value):
     Prints out a quality control message for testcode to evaluate
     '''
     print(f'<QC> {key} {value}')
+
+def parse_physical(value):
+    '''
+    Takes in a value that potentially has a unit following a float,
+    converts the value to ASE's default units (Ang, eV), and returns
+    that value
+    '''
+
+    if isinstance(value, float):
+        return value
+    elif isinstance(value, int):
+        return float(value)
+    elif isinstance(value, str):
+        splitline = value.strip().split()
+        if len(splitline) == 1:
+            return float(splitline[0])
+        elif len(splitline) == 2:
+            [value, units] = splitline
+            value = float(value)
+            matching_units = [u for u in ase_units if u.lower() == units.lower()]
+            if len(matching_units) == 1:
+                return value * ase_units[matching_units[0]]
+            elif len(matching_units) > 1:
+                raise ValueError(f'Multiple matches for {units} found; this should not happen')
+            else:
+                raise NotImplementedError(f'{units} not implemented in koopmans.io.parse_physical')

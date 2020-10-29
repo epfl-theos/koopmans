@@ -8,7 +8,7 @@ Written by Edward Linscott Sep 2020
 
 from ase.io import espresso_cp as cp_io
 from ase.units import create_units
-from koopmans_cp.calc import QE_calc
+from koopmans.calculators.calculator import QE_calc
 
 # Quantum ESPRESSO uses CODATA 2006 internally
 units = create_units('2006')

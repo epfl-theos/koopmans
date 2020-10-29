@@ -1,5 +1,5 @@
 import os
-from koopmans_cp.calc import PW_calc
+from koopmans.calculators.pw import PW_calc
 
 _default_settings = {
    'ENVIRON': {

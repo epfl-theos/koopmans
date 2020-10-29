@@ -1,13 +1,11 @@
 {
     "workflow": {
-        "functional"             : "kipz",
-        "init_density"          : "pz",
-        "init_manifold"         : "pz",
+        "functional"            : "all",
         "n_max_sc_steps"        : 3,
         "alpha_from_file"       : false,
         "print_qc"              : true,
         "from_scratch"          : true,
-        "orbital_groups"        : [0, 0, 0, 0, 1]
+        "orbital_groups"        : [0, 0, 0, 0]
     },
     "cp": {
         "control": {
@@ -18,9 +16,7 @@
             "ecutrho"               : "4*ecutwfc"
         },
         "electrons": {
-            "maxiter"               : 300,
-            "empty_states_nbnd"     : 1,
-            "empty_states_maxstep"  : 20
+            "empty_states_nbnd"     : 0
         },
         "atomic_species": {
             "species" : [["H", 1.0, "H_ONCV_PBE-1.0.upf"],["O", 1.0, "O_ONCV_PBE-1.0.upf"]]

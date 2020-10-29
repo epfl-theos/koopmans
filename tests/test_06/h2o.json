@@ -1,37 +1,42 @@
 {
-    "workflow": {
-        "functional"             : "kipz",
-        "init_density"          : "pz",
-        "init_manifold"         : "pz",
-        "n_max_sc_steps"        : 3,
-        "alpha_from_file"       : false,
-        "print_qc"              : true,
-        "from_scratch"          : true,
-        "orbital_groups"        : [0, 0, 0, 0, 1]
+    "workflow":
+    {
+        "functional"               : "pbe",
+        "task"                     : "convergence",
+        "print_qc"                 : true,
+        "from_scratch"             : true,
+        "convergence_observable"   : "homo energy",
+        "convergence_threshold"    : "0.1 eV",
+        "convergence_parameters"   : ["ecutwfc", "cell_size"]
     },
-    "cp": {
-        "control": {
-            "pseudo_dir"            : "../../pseudos/"
+    "cp":
+    {
+        "control":
+        {
+            "pseudo_dir": "../../pseudos/"
         },
-        "system": {
+        "system":
+        {
             "ecutwfc"               : 20.0,
             "ecutrho"               : "4*ecutwfc"
         },
-        "electrons": {
-            "maxiter"               : 300,
-            "empty_states_nbnd"     : 1,
-            "empty_states_maxstep"  : 20
+        "electrons":
+        {
+            "empty_states_nbnd"     : 0
         },
-        "atomic_species": {
+        "atomic_species":
+        {
             "species" : [["H", 1.0, "H_ONCV_PBE-1.0.upf"],["O", 1.0, "O_ONCV_PBE-1.0.upf"]]
         },
-        "atomic_positions": {
+        "atomic_positions":
+        {
             "units"                 : "alat",
             "positions"             : [["O", 4.7571, 4.0, 3.902317],
                                        ["H", 5.5142, 4.0, 4.488417],
                                        ["H", 4.0, 4.0, 4.488417]]
         },
-        "cell_parameters": {
+        "cell_parameters":
+        {
             "units"                 : "alat",
             "vectors"               : [[9.514200, 0.000000, 0.000000],
                                        [0.000000, 8.000000, 0.000000],

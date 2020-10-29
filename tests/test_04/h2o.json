@@ -1,7 +1,7 @@
 {
     "workflow":
     {
-        "calc_type"             : "pkipz",
+        "functional"             : "pkipz",
         "alpha_from_file"       : false,
         "print_qc"              : true,
         "from_scratch"          : true

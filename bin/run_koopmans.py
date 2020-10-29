@@ -2,8 +2,8 @@
 
 import argparse
 import textwrap
-from koopmans_cp import workflow
-
+import os
+import koopmans.workflows.workflow as workflow
 '''
 Perform KI/KIPZ calculations
 '''
@@ -16,8 +16,12 @@ if __name__ == '__main__':
     epilog = ''
     maxlen = max([len(s.name) for s in workflow.valid_settings]) + 2
     for s in workflow.valid_settings:
-        entry = f'  {s.name.ljust(maxlen)}{s.description} ({s.type.__name__}, ' \
-            f'default {s.default}'
+        entry = f'  {s.name.ljust(maxlen)}{s.description} ('
+        if isinstance(s.type, tuple):
+            entry += '/'.join([t.__name__ for t in s.type])
+        else:
+            entry += s.type.__name__
+        entry += f', default {s.default}'
         if s.options is not None and s.type is not bool:
             entry += ', must be ' + '/'.join([str(o) for o in s.options])
         entry += ')'

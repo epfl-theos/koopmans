@@ -1,6 +1,6 @@
 {
   "workflow": {
-    "calc_type": "ki",
+    "functional": "ki",
     "init_manifold": "pz",
     "n_max_sc_steps": 1,
     "alpha_from_file": false,

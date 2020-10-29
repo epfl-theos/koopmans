@@ -1,17 +1,17 @@
 """
 
-wannier90 calculator module for python_KI
+pw2wannier calculator module for python_KI
 
 Written by Edward Linscott Sep 2020
 
 """
 
-from ase.io import wannier90 as w90_io
-from koopmans_cp.calc import QE_calc
+from ase.io import pw2wannier as p2w_io
+from koopmans.calculators.calculator import QE_calc
 
-class W90_calc(QE_calc):
+class PW2Wannier_calc(QE_calc):
     # Link to relevant ase io module
-    _io = w90_io
+    _io = p2w_io
 
     # Define the appropriate file extensions
     ext_in = '.win'
@@ -20,10 +20,8 @@ class W90_calc(QE_calc):
     # This means one can set and get wannier90 keywords as self.<keyword> but
     # internally they are stored as self._settings['keyword'] rather than 
     # self.<keyword>
-    _recognised_keywords = ['atoms_frac', 'bands_plot', 'dis_froz_max', 
-        'dis_num_iter', 'dis_win_max', 'guiding_centres', 'kpoint_path', 'kpoints',
-        'mp_grid', 'num_bands', 'num_iter', 'num_print_cycles', 'num_wann', 
-        'projections', 'unit_cell_cart']
+    _recognised_keywords = ['outdir', 'prefix', 'seedname', 'write_mmn', 
+        'write_amn', 'write_uHu', 'uHu_formatted']
 
     for k in _recognised_keywords:
         # We need to use these make_get/set functions so that get/set_k are
@@ -46,7 +44,7 @@ class W90_calc(QE_calc):
         locals()[k] = property(get_k, set_k)     
 
     def _update_settings_dict(self):
-       self._settings = self._ase_calc.parameters
+       self._settings = self._ase_calc.parameters['inputpp']
 
     def calculate(self):
        self._ase_calc.calculate()
