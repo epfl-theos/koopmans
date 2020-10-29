@@ -166,7 +166,7 @@ class QE_calc:
         # Checks if self._settings[expr] is defined algebraically, and evaluates them
         if not isinstance(expr, str):
             return expr
-        if all([c.isalpha() for c in expr]):
+        if all([c.isalpha() or c in ['_'] for c in expr]):
             return expr
 
         expr = expr.replace('/', ' / ').replace('*', ' * ').split()

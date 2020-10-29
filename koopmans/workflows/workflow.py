@@ -229,8 +229,6 @@ def run_convergence(workflow_settings, cp_master_calc, initial_depth=3):
                     
                 # Create new working directory
                 subdir = f'{param}_{value_str}'.replace(' ', '_').replace('.', 'd')
-                if not os.path.isdir(subdir):
-                    utils.system_call(f'mkdir {subdir}')
                 cp_calc.directory += '/' + subdir
 
                 if param == 'cell_size':
