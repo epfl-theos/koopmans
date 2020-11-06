@@ -310,9 +310,7 @@ def run_qe_single(qe_calc, silent=True, from_scratch=False):
                 if ext_out == '.cpo':
                     diffs = cpi_diff([qe_calc, old_calc])
                 else:
-                    raise Error('pwi_diff needs to be implemented')
-                if not silent:
-                    print(f'Rerunning {calc_file}')
+                    raise ValueError('pwi_diff needs to be implemented')
                 if len(diffs) > 0:
                     for d in diffs:
                         old_value = getattr(old_calc, d, None)

@@ -16,7 +16,7 @@ from collections import namedtuple
 from koopmans import utils, io
 from koopmans.ase import read_json, write_json
 from koopmans.defaults import load_defaults
-from koopmans.workflows import kc_with_cp, pbe_with_cp
+from koopmans.workflows import kc_with_cp, pbe_with_cp, pbe_dscf_with_pw
 
 Setting = namedtuple(
     'Setting', ['name', 'description', 'type', 'default', 'options'])
@@ -24,7 +24,7 @@ Setting = namedtuple(
 valid_settings = [
     Setting('task',
             'Task to perform',
-            str, 'singlepoint', ('singlepoint', 'convergence')),
+            str, 'singlepoint', ('singlepoint', 'convergence', 'environ_dscf')),
     Setting('functional',
             'Orbital-density-dependent-functional/density-functional to use',
             str, 'ki', ('ki', 'kipz', 'pkipz', 'pbe', 'all')),
@@ -76,7 +76,10 @@ valid_settings = [
     Setting('convergence_parameters',
             'The observable of interest will be converged with respect to this/these'
             'simulation parameter(s)',
-            (list, str), ['ecutwfc'], None)]
+            (list, str), ['ecutwfc'], None),
+    Setting('eps_cavity',
+            'a list of epsilon_infinity values for the cavity in dscf calculations',
+            list, [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], None)]
 
 valid_settings_dict = {s.name: s for s in valid_settings}
 
@@ -139,35 +142,39 @@ def run_from_json(json):
 
     # Reading in JSON file
     workflow_settings, calcs_dct = read_json(json)
-    cp_master_calc = calcs_dct['cp']
 
     # Check that the workflow settings are valid and populate missing
     # settings with default values
     check_settings(workflow_settings)
 
-    # Load cp.x default values from koopmans.defaults
-    cp_master_calc = load_defaults(cp_master_calc)
+    if 'cp' in calcs_dct:
+        cp_master_calc = calcs_dct['cp']
+        # Load cp.x default values from koopmans.defaults
+        cp_master_calc = load_defaults(cp_master_calc)
 
-    # Parse any algebraic expressions used for cp.x keywords
-    cp_master_calc.parse_algebraic_settings()
+        # Parse any algebraic expressions used for cp.x keywords
+        cp_master_calc.parse_algebraic_settings()
 
-    # Set up pseudopotentials, by...
-    #  1. trying to locating the directory as currently specified by the calculator
-    #  2. if that fails, checking if $ESPRESSO_PSEUDO is set
-    #  3. if that fails, raising an OS error
-    if cp_master_calc.pseudo_dir is None or not os.path.isdir(cp_master_calc.pseudo_dir):
-        try:
-            cp_master_calc.pseudo_dir = os.environ.get('ESPRESSO_PSEUDO')
-        except:
-            raise NotADirectoryError('Directory for pseudopotentials not found. Please define '
-                          'the environment variable ESPRESSO_PSEUDO or provide a pseudo_dir in '
-                          'the cp block of your json input file.')
+        # Set up pseudopotentials, by...
+        #  1. trying to locating the directory as currently specified by the calculator
+        #  2. if that fails, checking if $ESPRESSO_PSEUDO is set
+        #  3. if that fails, raising an OS error
+        if cp_master_calc.pseudo_dir is None or not os.path.isdir(cp_master_calc.pseudo_dir):
+            try:
+                cp_master_calc.pseudo_dir = os.environ.get('ESPRESSO_PSEUDO')
+            except:
+                raise NotADirectoryError('Directory for pseudopotentials not found. Please define '
+                              'the environment variable ESPRESSO_PSEUDO or provide a pseudo_dir in '
+                              'the cp block of your json input file.')
 
     if workflow_settings['task'] == 'convergence':
         run_convergence(workflow_settings, cp_master_calc)
     elif workflow_settings['task'] == 'singlepoint':
         run_singlepoint(workflow_settings, cp_master_calc)
-
+    elif workflow_settings['task'] == 'environ_dscf':
+        if 'pw' not in calcs_dct:
+            raise ValueError('You need to provide a pw block in your input .json file for task = environ_dscf')
+        pbe_dscf_with_pw.run(workflow_settings, calcs_dct['pw'])
     return
 
 def run_convergence(workflow_settings, cp_master_calc, initial_depth=3):
@@ -202,9 +209,18 @@ def run_convergence(workflow_settings, cp_master_calc, initial_depth=3):
     results = np.empty([initial_depth for _ in param_dict])
     results[:] = np.nan
 
-    # Continue to increment the convergence parameters until convergence in the convergence observable 
+    # Continue to increment the convergence parameters until convergence in the convergence observable
     # is achieved. A lot of the following code is quite obtuse, in order to make it work for an arbitrary
     # number of convergence parameters
+
+    # Record the alpha values for the original calculation
+    provide_alpha = 'empty_states_nbnd' in param_dict and workflow_settings['functional'] in ['ki', 'kipz', 'pkipz', 'all'] \
+             and workflow_settings['alpha_from_file']
+    if provide_alpha:
+        master_alphas = io.read_alpharef(directory = '.')
+        if workflow_settings['orbital_groups'] is None:
+            workflow_settings['orbital_groups'] = list(range(cp_master_calc.nelec // 2 + cp_master_calc.empty_states_nbnd))
+        master_orbital_groups = copy.deepcopy(workflow_settings['orbital_groups'])
 
     while True:
 
@@ -219,6 +235,7 @@ def run_convergence(workflow_settings, cp_master_calc, initial_depth=3):
 
             # For each parameter we're converging wrt...
             header = ''
+            directory = '.'
             for index, param, values in zip(indices, param_dict.keys(), param_dict.values()):
                 value = values[index]
                 if isinstance(value, int):
@@ -229,7 +246,9 @@ def run_convergence(workflow_settings, cp_master_calc, initial_depth=3):
                     
                 # Create new working directory
                 subdir = f'{param}_{value_str}'.replace(' ', '_').replace('.', 'd')
-                cp_calc.directory += '/' + subdir
+                if not os.path.isdir(subdir):
+                    utils.system_call(f'mkdir {subdir}')
+                os.chdir(subdir)
 
                 if param == 'cell_size':
                     cp_calc._ase_calc.atoms.cell *= value
@@ -237,6 +256,14 @@ def run_convergence(workflow_settings, cp_master_calc, initial_depth=3):
                     setattr(cp_calc, param, value)
                 if param == 'ecutwfc':
                     setattr(cp_calc, 'ecutrho', 4*value)
+                
+            if provide_alpha:
+                # Update alpha files and orbitals
+                extra_orbitals = cp_calc.empty_states_nbnd - cp_master_calc.empty_states_nbnd
+                filling = [True] * (cp_calc.nelec // 2) + [False] * cp_calc.empty_states_nbnd
+                alphas = master_alphas + [master_alphas[-1] for _ in range(extra_orbitals)]
+                workflow_settings['orbital_groups'] = master_orbital_groups + [master_orbital_groups[-1] for _ in range(extra_orbitals)]
+                io.write_alpharef(alphas, directory = '.', filling = filling)
 
             print(header.rstrip(', '))
 
@@ -250,6 +277,10 @@ def run_convergence(workflow_settings, cp_master_calc, initial_depth=3):
                 raise ValueError(f'{solved_calc.name} has not returned a value for {obs}')
             result = solved_calc.results[obs]
             results[indices] = result
+
+            # Move back to the base directory:
+            for _ in param_dict:
+               os.chdir('..')
 
             print()
 

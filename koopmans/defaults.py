@@ -38,7 +38,7 @@ defaults = {'calculation':         'cp',
 
 def load_defaults(calc):
     for key, value in defaults.items():
-        if getattr(calc, key, None) is not None:
+        if getattr(calc, key, value) not in [None, value]:
             # If a setting has already been set, keep that value but print a warning
             warn(
                 f'Suggested value for {key} is being overwritten; do this with caution')

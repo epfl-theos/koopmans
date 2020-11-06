@@ -11,14 +11,16 @@ Written by Edward Linscott Jan 2020
 import json
 import numpy as np
 from ase import Atoms
+from ase.io.espresso import Espresso
 from ase.io.espresso_cp import Espresso_cp, KEYS, ibrav_to_cell
 from ase.io.wannier90 import Wannier90
 from ase.io.pw2wannier import PW2Wannier
 from ase.atoms import Atoms
 from koopmans.utils import warn
 from koopmans.io import input_dft_from_pseudos, nelec_from_pseudos
-from koopmans.calculators import cp, wannier90, pw2wannier
+from koopmans.calculators import cp, pw, wannier90, pw2wannier
 import os
+import copy
 
 def read_w90_dict(dct):
     # Setting up ASE atoms and calc objects
@@ -49,13 +51,13 @@ def read_pw2wannier_dict(dct):
     # Return python_KI-type calculator object rather than ASE calculator
     return pw2wannier.PW2Wannier_calc(calc)
 
-def read_cp_dict(dct):
+def read_qe_generic_dict(dct, calc):
     '''
 
-    Reads in dict of cp input file and returns a CP_calc object
+    Reads in dict of cp/pw input file and adds the settings to the provided calc object
 
     '''
-    calc = Espresso_cp()
+
     calc.parameters['input_data'] = {k: {} for k in KEYS.keys()}
 
     symbols = []
@@ -63,6 +65,7 @@ def read_cp_dict(dct):
     cell = None
     labels = None
     scale_positions = False
+    skipped_blocks = []
 
     for block, subdct in dct.items():
         if block == 'atomic_species':
@@ -82,13 +85,22 @@ def read_cp_dict(dct):
             for key, value in subdct.items():
                 if value == "":
                     continue
+
+                # Force pseudo_dir to be an absolute path
+                if key == 'pseudo_dir' and value[0] != 0:
+                    descend_depth = value.count('../')
+                    splitdir = os.getcwd().rsplit('/', descend_depth)
+                    value = splitdir[0] + '/' + value.lstrip('../')
+                    if not os.path.isdir(value):
+                        raise ValueError(f'Could not parse pseudo_dir; {value} is not a directory')
+
                 try:
                     value = json.loads(value)
                 except:
                     pass
                 calc.parameters['input_data'][block][key] = value
         else:
-            warn(f'The {block} block is not yet implemented and will be ignored')
+            skipped_blocks.append(block)
 
     # Generating cell if it is missing
     if cell is None:
@@ -103,13 +115,31 @@ def read_cp_dict(dct):
     atoms.set_array('labels', labels)
     calc.atoms = atoms
 
-    # If they are missing, fill in nelec and input_dft fields using information
-    # contained in the pseudopotential files
-
+    # If it is missing, fill the input_dft field using information contained 
+    # in the pseudopotential files
     if 'pseudopotentials' in calc.parameters:
         if 'input_dft' not in calc.parameters['input_data']['control']:
             calc.parameters['input_data']['system']['input_dft'] = input_dft_from_pseudos(
                 calc)
+
+    return skipped_blocks
+
+def read_cp_dict(dct):
+    '''
+
+    Reads in dict of cp input file and returns a CP_calc object
+
+    '''
+
+    calc = Espresso_cp()
+    skipped_blocks = read_qe_generic_dict(dct, calc)
+
+    for block in skipped_blocks:
+        warn(f'The {block} block is not yet implemented and will be ignored')
+
+    # If they are missing, fill the nelec/nelup/neldw field using information contained 
+    # in the pseudopotential files
+    if 'pseudopotentials' in calc.parameters:
         if 'nelec' not in calc.parameters['input_data']['system']:
             nelec = nelec_from_pseudos(calc)
             calc.parameters['input_data']['system']['nelec'] = nelec
@@ -130,6 +160,35 @@ def read_cp_dict(dct):
             calc.parameters['input_data']['system']['neldw'] = int(nelec/2 - tot_mag/2)
 
     return cp.CP_calc(calc)
+
+def read_pw_dict(dct):
+    '''
+
+    Reads in dict of pw input file and returns a PW_calc object
+
+    '''
+
+    calc = Espresso()
+    skipped_blocks = read_qe_generic_dict(dct, calc)
+
+    for block in skipped_blocks:
+        if block == 'k_points':
+            subdct = dct[block]
+            if subdct['kind'] == 'gamma':
+                kpts = [(1, 1, 1)]
+                koffset = 0
+            elif subdct['kind'] == 'automatic':
+                kpts = subdct['kpts']
+                koffset = subdct['koffset']
+
+            # For some reason calc.set() wipes calc.atoms
+            atoms = copy.deepcopy(calc.atoms)
+            calc.atoms.calc.set(kpts=kpts, koffset=koffset)
+            calc.atoms = atoms
+        else:
+            warn(f'The {block} block is not yet implemented and will be ignored')
+
+    return pw.PW_calc(calc)
 
 def read_workflow_dict(dct):
     '''
@@ -166,7 +225,7 @@ def read_json(fd):
 
     bigdct = json.loads(fd.read())
 
-    readers = {'cp': read_cp_dict, 'w90': read_w90_dict, 'pw2wannier': read_pw2wannier_dict}
+    readers = {'cp': read_cp_dict, 'w90': read_w90_dict, 'pw2wannier': read_pw2wannier_dict, 'pw': read_pw_dict}
     calcs = {}
     for block, dct in bigdct.items():
         block = block.lower()
@@ -198,18 +257,22 @@ def write_json(fd, calcs=[], workflow_settings={}):
     bigdct['workflow'] = {k: v for k, v in workflow_settings.items() if v is not None}
 
     for calc in calcs:
-        if isinstance(calc, cp.CP_calc):
-            bigdct['cp'] = {}
+        if isinstance(calc, (cp.CP_calc, pw.PW_calc)):
+            if isinstance(calc, cp.CP_calc):
+                code = 'cp'
+            else:
+                code = 'pw'
+            bigdct[code] = {}
             # Update the ase calculator
             calc._ase_calc.parameters['input_data'] = calc.construct_namelist()
             calc = calc._ase_calc
             for key, block in calc.parameters['input_data'].items():
                 if len(block) > 0:
-                    bigdct['cp'][key] = dict(block)
+                    bigdct[code][key] = {k: v for k, v in dict(block).items() if v is not None}
 
             # cell parameters
             if calc.parameters['input_data']['system'].get('ibrav', None) == 0:
-                bigdct['cp']['cell_parameters'] = {'vectors': [
+                bigdct[code]['cell_parameters'] = {'vectors': [
                     list(row) for row in calc.atoms.cell[:]], 'units': 'alat'}
 
             # atomic positions
@@ -218,17 +281,27 @@ def write_json(fd, calcs=[], workflow_settings={}):
             except:
                 labels = calc.atoms.get_chemical_symbols()
             if calc.parameters['input_data']['system'].get('ibrav', None) == 0:
-                bigdct['cp']['atomic_positions'] = {'positions': [
+                bigdct[code]['atomic_positions'] = {'positions': [
                     [label] + [str(x) for x in pos] for label, pos in zip(labels, calc.atoms.get_positions())],
                     'units': 'alat'}
             else:
-                bigdct['cp']['atomic_positions'] = {'positions': [
+                bigdct[code]['atomic_positions'] = {'positions': [
                     [label] + [str(x) for x in pos] for label, pos in zip(labels, calc.atoms.get_scaled_positions())],
                     'units': 'crystal'}
 
             # atomic species
-            bigdct['cp']['atomic_species'] = {'species': [[key, 1.0, val]
+            bigdct[code]['atomic_species'] = {'species': [[key, 1.0, val]
                                                 for key, val in calc.parameters.pseudopotentials.items()]}
+
+            # PW-specific blocks
+            if code == 'pw':
+                if 'kpts' in calc.parameters:
+                    kpts = {'kind': 'automatic',
+                            'kpts': calc.parameters['kpts'],
+                            'koffset': calc.parameters['koffset']}
+                else:
+                    kpts = {'kind': 'gamma'}
+                bigdct[code]['k_points'] = kpts
         else:
             raise ValueError(f'Writing of {calc.__class__} with write_json is not yet implemented')
 

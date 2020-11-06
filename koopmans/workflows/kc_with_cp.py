@@ -247,6 +247,7 @@ def run(master_calc, workflow_settings):
             iteration_directory = 'calc_alpha'
             _, outdir = master_calc.outdir.rsplit('/', 1)
             outdir = os.getcwd() + f'/{iteration_directory}/{outdir}'
+
             if not os.path.isdir(outdir):
                 utils.system_call(f'mkdir {outdir}')
 
@@ -464,21 +465,27 @@ def run(master_calc, workflow_settings):
     # Final calculation
     print(f'\nFINAL {functional.upper().replace("PK","pK")} CALCULATION')
 
-    directory = 'final'
+    directory = 'final' 
     if not os.path.isdir(directory):
         utils.system_call(f'mkdir {directory}')
 
-    write_alpharef(alpha_df.iloc[-1], None, band_filling, directory)
-
     if functional == 'pkipz':
-        final_calc_types = ['ki_final', 'pkipz_final']
+        final_calc_types = ['ki', 'pkipz']
     else:
-        final_calc_types = [functional + '_final']
+        final_calc_types = [functional]
 
     for final_calc_type in final_calc_types:
+
+        # If we performed the alpha calculations, direct the calcuator
+        # to restart from them
+        if workflow_settings['calculate_alpha']:
+            final_calc_type += '_final'
+
         calc = set_up_calculator(master_calc, final_calc_type,
                                  empty_states_nbnd=n_empty_bands)
+
         calc.directory = directory
+        write_alpharef(alpha_df.iloc[-1], calc)
 
         run_qe(calc, silent=False, from_scratch=prev_calc_not_skipped)
 
