@@ -49,7 +49,7 @@ MODULE read_wannier
     USE mp_global,           ONLY : intra_image_comm
     USE mp,                  ONLY : mp_bcast
     USE cell_base,           ONLY : bg
-    USE klist,               ONLY : nkstot, xk
+    USE klist,               ONLY : nkstot
     USE wvfct,               ONLY : nbnd
     USE lsda_mod,            ONLY : nspin
     !
@@ -67,7 +67,6 @@ MODULE read_wannier
     LOGICAL :: checkpoint
     REAL(DP) :: at_(3,3), bg_(3,3)
     REAL(DP), ALLOCATABLE :: kpt_latt(:,:)
-    REAL(DP), ALLOCATABLE :: kaux(:,:)
     REAL(DP), ALLOCATABLE :: centers(:,:)
     REAL(DP), ALLOCATABLE :: spreads(:)
     REAL(DP) :: omega_invariant
@@ -120,8 +119,6 @@ MODULE read_wannier
       !
       READ( chk_unit ) ( kgrid(i), i=1,3 )                           ! MP grid
       !
-      ALLOCATE( kaux(3,num_kpts) )
-      !
     ENDIF
     !
     CALL mp_bcast( excluded_band, ionode_id, intra_image_comm )
@@ -133,12 +130,6 @@ MODULE read_wannier
     IF ( ionode ) THEN
       !
       READ( chk_unit ) (( kpt_latt(i,nkp), i=1,3 ), nkp=1,num_kpts )
-      !
-      kaux(:,:) = kpt_latt(:,:)
-      CALL cryst_to_cart( num_kpts, kaux, bg, 1 )
-      IF ( ANY( kaux .ne. xk ) ) &
-        CALL errore( 'read_wannier_chk', 'Invalid value for kpt_latt', 1 )
-      !
       READ( chk_unit ) nntot                                         ! nntot
       READ( chk_unit ) num_wann                                      ! num of WFs
       READ( chk_unit ) checkpoint                                    ! checkpoint

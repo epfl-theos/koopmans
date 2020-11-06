@@ -1,13 +1,7 @@
 TO DO list:
 
-1) move plot_wannier stuff --> DONE
-2) gamma_trick --> DONE
-3) write CP file --> DONE
-4) check parallelization --> DONE
-5) empty states --> DONE
-6) check spin
-7) check problem with cutoff (36-37Ry)
-8) check plot Wannier functions max/min ratio --> DONE
-9) sometimes pw2wannier90.x crashes when parallelizing and then by rerunning it works
-10) cp.x not working in espresso-6.5-cp-4.1-solids
-11) on the cluster I get 'insufficient virtual memory' error
+1) on the cluster I get 'insufficient virtual memory' error
+2) sometimes pw2wannier90.x crashes when parallelizing and then by rerunning it works
+3) cp.x not working in espresso-6.5-cp-4.1-solids
+4) check spin
+5) check problem with cutoff (36-37Ry)

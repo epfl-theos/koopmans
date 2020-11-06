@@ -122,7 +122,7 @@ Quantum Espresso 'crystal_b' format, i.e.:
 
 where Xi_j is the coordinate j of the point i (in crystal units) and Ni
 is the number of points along the line connecting the points i and i+1.
-Nn must be always set to 1.
+NB: Nn must be always set to 1.
 """
 def generate_path(k_path):
 
@@ -149,8 +149,9 @@ def generate_path(k_path):
             break
         else:
             npts = int(k_path[n][3])
+            if ( npts == 0 ): npts = 1
             dist = np.array(k_path[n+1][:3]) - np.array(k_path[n][:3])
-            for m in range(k_path[n][3]):
+            for m in range(npts):
                 kvec.append(np.array(k_path[n][:3]) + dist * m / npts)
 
     return kvec
