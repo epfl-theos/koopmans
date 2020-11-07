@@ -7,9 +7,11 @@ import os
 Workflow for performing delta SCF PBE calculations using pw.x --environ
 '''
 
-def run(workflow_settings, pw_calc):
+def run(workflow_settings, calcs_dct):
+    if 'pw' not in calcs_dct:
+        raise ValueError('You need to provide a pw block in your input .json file for task = environ_dscf')
 
-    pw_calc = Environ_calc(calc = pw_calc._ase_calc)
+    pw_calc = Environ_calc(calc = calcs_dct['pw'])
 
     # Run workflow
     calc_succeeded = True

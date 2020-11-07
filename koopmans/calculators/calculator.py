@@ -77,7 +77,10 @@ class QE_calc:
                 calc.results = ase_io.read(qe_file).calc.results
 
         # Initialise the calculator object
-        self._ase_calc = calc
+        if isinstance(calc, QE_calc):
+            self._ase_calc = calc._ase_calc
+        else:
+            self._ase_calc = calc
 
         # Initialise a dictionary to store QE settings in
         self._settings = {}

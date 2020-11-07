@@ -16,13 +16,13 @@ from koopmans.io import write_alpharef, read_alpharef, print_summary, print_qc
 from koopmans.calculators.calculator import run_qe, calculate_alpha
 from koopmans.calculators.cp import CP_calc
 
-def run(master_calc, workflow_settings):
+def run(workflow_settings, calcs_dct):
     '''
     This function runs the KI/KIPZ workflow from start to finish
 
     Arguments:
-        master_calc       -- the master ASE calculator object containing cp.x settings
         workflow_settings -- a dictionary containing workflow settings
+        calcs_dct         -- a dictionary of calculators (one per code e.g. cp.x, w90, ...)
 
     Running this function will generate a number of files:
         init/                 -- the density and manifold initialisation calculations
@@ -36,6 +36,10 @@ def run(master_calc, workflow_settings):
     '''
 
     functional = workflow_settings['functional']
+
+    if 'cp' not in calcs_dct:
+        raise ValueError('Performing a KC calculation requires a "cp" block in the .json input file')
+    master_calc = copy.deepcopy(calcs_dct['cp'])
 
     # Sanitise outdir
     master_calc.outdir = os.getcwd() + '/' + master_calc.outdir.strip('./')
@@ -167,11 +171,9 @@ def run(master_calc, workflow_settings):
             raise ValueError('Initialising manifold with KI makes no sense unless '
                              'reading from a pre-existing KI calculation')
         print('Copying the density from a pre-existing KI calculation')
-    elif init_manifold == 'mlwf':
-        raise ValueError('mlwf initialisation not yet implemented')
     else:
         raise ValueError(
-            f'Unrecognised option "{init_manifold}" for init_manifold. Should be one of "pz"/"ki"/"mlwf"')
+            f'Unrecognised option "{init_manifold}" for init_manifold. Should be one of "pz"/"ki"/"skip"')
 
     calc.directory = 'init'
     write_alpharef(alpha_df.loc[1], calc)
@@ -187,8 +189,11 @@ def run(master_calc, workflow_settings):
         save_prefix = f'{calc.outdir}/{calc.prefix}'
         utils.system_call(
             f'cp -r {save_prefix}_{calc.ndr}.save {save_prefix}_{calc.ndw}.save')
-    elif init_manifold == init_density:
-        print('Skipping the optimisation of the manifold since it was already optimised during the density initialisation')
+    elif init_manifold in [init_density, 'skip']:
+        if init_manifold == 'skip':
+            print('Skipping the optimisation of the manifold')
+        else:
+            print('Skipping the optimisation of the manifold since it was already optimised during the density initialisation')
         save_prefix = f'{calc.outdir}/{calc.prefix}'
         utils.system_call(
             f'cp -r {save_prefix}_{calc.ndr}.save {save_prefix}_{calc.ndw}.save')
@@ -476,9 +481,9 @@ def run(master_calc, workflow_settings):
 
     for final_calc_type in final_calc_types:
 
-        # If we performed the alpha calculations, direct the calcuator
+        # If we performed the alpha calculations, direct the calculator
         # to restart from them
-        if workflow_settings['calculate_alpha']:
+        if workflow_settings['calculate_alpha'] or final_calc_type == 'pkipz':
             final_calc_type += '_final'
 
         calc = set_up_calculator(master_calc, final_calc_type,

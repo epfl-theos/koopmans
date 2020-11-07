@@ -7,8 +7,12 @@ Written by Edward Linscott Jan 2020
 """
 
 from koopmans.io import warn
+from koopmans.calculators.cp import CP_calc
+from koopmans.calculators.pw import PW_calc
+from koopmans.calculators.wannier90 import W90_calc
+from koopmans.calculators.pw2wannier import PW2Wannier_calc
 
-defaults = {'calculation':         'cp',
+defaults = {CP_calc: {'calculation':  'cp',
             'iprint':              1,
             'outdir':              '../TMP-CP/',
             'prefix':              'kc',
@@ -33,15 +37,21 @@ defaults = {'calculation':         'cp',
             'innerloop_nmax':      100,
             'hartree_only_sic':    False,
             'conv_thr':            '1.0e-9*nelec',
-            'esic_conv_thr':       '1.0e-9*nelec'}
+            'esic_conv_thr':       '1.0e-9*nelec'}}
 
 
 def load_defaults(calc):
-    for key, value in defaults.items():
+    calc_class = calc.__class__
+
+    if calc_class not in defaults:
+        warn(f'No defaults found for {calc_class} calculator')
+        return
+
+    for key, value in defaults[calc_class].items():
         if getattr(calc, key, value) not in [None, value]:
             # If a setting has already been set, keep that value but print a warning
             warn(
                 f'Suggested value for {key} is being overwritten; do this with caution')
         else:
             setattr(calc, key, value)
-    return calc
+    return

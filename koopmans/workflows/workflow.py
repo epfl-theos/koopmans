@@ -9,175 +9,20 @@ KI/pKIPZ/KIPZ moved to kc_with_cp.py Oct 2020
 
 import os
 import copy
-import pandas as pd
 import numpy as np
 import itertools
-from collections import namedtuple
 from koopmans import utils, io
-from koopmans.ase import read_json, write_json
+from koopmans.ase import write_json
 from koopmans.defaults import load_defaults
-from koopmans.workflows import kc_with_cp, pbe_with_cp, pbe_dscf_with_pw
-
-Setting = namedtuple(
-    'Setting', ['name', 'description', 'type', 'default', 'options'])
-
-valid_settings = [
-    Setting('task',
-            'Task to perform',
-            str, 'singlepoint', ('singlepoint', 'convergence', 'environ_dscf')),
-    Setting('functional',
-            'Orbital-density-dependent-functional/density-functional to use',
-            str, 'ki', ('ki', 'kipz', 'pkipz', 'pbe', 'all')),
-    Setting('init_density',
-            'how to initialise the density',
-            str, 'pbe', ('pbe', 'pbe-pw', 'pz', 'ki')),
-    Setting('init_manifold',
-            'how to initialise the variational orbitals',
-            str, 'pz', ('pz', 'ki', 'mwlf')),
-    Setting('n_max_sc_steps',
-            'maximum number of self-consistency steps for calculating alpha',
-            int, 1, None),
-    Setting('alpha_conv_thr',
-            'convergence threshold for |delta E - lambda|; if below this '
-            'threshold, the corresponding alpha value is not updated',
-            (float, str), 1e-3, None),
-    Setting('calculate_alpha',
-            'if True, the screening parameters will be calculated; if False, '
-            'they will be read directly from file',
-            bool, True, (True, False)),
-    Setting('alpha_guess',
-            'starting guess for alpha (overridden if alpha_from_file is true)',
-            float, 0.6, None),
-    Setting('alpha_from_file',
-            'if True, uses the file_alpharef.txt from the base directory as a '
-            'starting guess',
-            bool, False, (True, False)),
-    Setting('print_qc',
-            'if True, prints out strings for the purposes of quality control',
-            bool, False, (True, False)),
-    Setting('from_scratch',
-            'if True, will delete any preexisting workflow and start again; '
-            'if False, will resume a workflow from where it was last up to',
-            bool, False, (True, False)),
-    Setting('orbital_groups',
-            'a list of integers the same length as the total number of bands, '
-            'denoting which bands to assign the same screening parameter to',
-            list, None, None),
-    Setting('enforce_spin_symmetry',
-            'if True, the spin-up and spin-down wavefunctions will be forced '
-            'to be the same',
-            bool, True, (True, False)),
-    Setting('convergence_observable',
-            'System observable of interest which we converge',
-            str, 'total energy', ('homo energy', 'lumo energy', 'total energy')),
-    Setting('convergence_threshold',
-            'Convergence threshold for the system observable of interest',
-            str, None, None),
-    Setting('convergence_parameters',
-            'The observable of interest will be converged with respect to this/these'
-            'simulation parameter(s)',
-            (list, str), ['ecutwfc'], None),
-    Setting('eps_cavity',
-            'a list of epsilon_infinity values for the cavity in dscf calculations',
-            list, [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], None)]
-
-valid_settings_dict = {s.name: s for s in valid_settings}
+from koopmans.workflows import kc_with_cp, pbe_with_cp
 
 
-def check_settings(settings):
-    '''
-    Checks workflow settings against the list of valid settings, populates
-    missing keywords with their default values, and lowers any uppercases
+def run_convergence(workflow_settings, master_calcs_dct, initial_depth=3):
 
-    Arguments:
-        settings -- a dictionary of workflow settings
-
-    '''
-
-    for key, value in settings.items():
-        # Check key is a valid keyword
-        if key in valid_settings_dict:
-            valid_setting = valid_settings_dict[key]
-
-            # Lowers any uppercase strings
-            if isinstance(value, str):
-                settings[key] = value.lower()
-                value = value.lower()
-
-            # Check value is the correct type
-            if not isinstance(value, valid_setting.type) and not value is None:
-                if isinstance(valid_setting.type, tuple):
-                    raise ValueError(
-                        f'{type(value).__name__} is an invalid type for "{key}" (must be '
-                        'one of ' + '/'.join([t.__name__ for t in valid_setting.type]) + ')')
-                else:
-                    raise ValueError(
-                        f'{type(value).__name__} is an invalid type for "{key}" (must be {valid_setting.type.__name__})')
-
-            # Check value is among the valid options
-            if valid_setting.options is not None and value not in valid_setting.options:
-                raise ValueError(
-                    f'"{value}" is an invalid value for "{key}" (options are {"/".join(valid_setting.options)})')
-        else:
-            raise ValueError(f'"{key}" is not a recognised workflow setting')
-
-    # Populate missing settings with the default options
-    for setting in valid_settings:
-        if setting.name not in settings:
-            settings[setting.name] = setting.default
-
-    # Parse physicals
-    for physical in ['alpha_conv_thr', 'convergence_threshold']:
-        settings[physical] = io.parse_physical(settings[physical])
-
-def run_from_json(json):
-    '''
-    This function reads the input json file, checks its contents, and
-    then runs a workflow
-
-    Arguments:
-        json -- the json file containing all the workflow and cp.x settings
-
-    '''
-
-    # Reading in JSON file
-    workflow_settings, calcs_dct = read_json(json)
-
-    # Check that the workflow settings are valid and populate missing
-    # settings with default values
-    check_settings(workflow_settings)
-
-    if 'cp' in calcs_dct:
-        cp_master_calc = calcs_dct['cp']
-        # Load cp.x default values from koopmans.defaults
-        cp_master_calc = load_defaults(cp_master_calc)
-
-        # Parse any algebraic expressions used for cp.x keywords
-        cp_master_calc.parse_algebraic_settings()
-
-        # Set up pseudopotentials, by...
-        #  1. trying to locating the directory as currently specified by the calculator
-        #  2. if that fails, checking if $ESPRESSO_PSEUDO is set
-        #  3. if that fails, raising an OS error
-        if cp_master_calc.pseudo_dir is None or not os.path.isdir(cp_master_calc.pseudo_dir):
-            try:
-                cp_master_calc.pseudo_dir = os.environ.get('ESPRESSO_PSEUDO')
-            except:
-                raise NotADirectoryError('Directory for pseudopotentials not found. Please define '
-                              'the environment variable ESPRESSO_PSEUDO or provide a pseudo_dir in '
-                              'the cp block of your json input file.')
-
-    if workflow_settings['task'] == 'convergence':
-        run_convergence(workflow_settings, cp_master_calc)
-    elif workflow_settings['task'] == 'singlepoint':
-        run_singlepoint(workflow_settings, cp_master_calc)
-    elif workflow_settings['task'] == 'environ_dscf':
-        if 'pw' not in calcs_dct:
-            raise ValueError('You need to provide a pw block in your input .json file for task = environ_dscf')
-        pbe_dscf_with_pw.run(workflow_settings, calcs_dct['pw'])
-    return
-
-def run_convergence(workflow_settings, cp_master_calc, initial_depth=3):
+    if 'cp' in master_calcs_dct:
+        cp_master_calc = master_calcs_dct['cp']
+    else:
+        raise ValueError('run_convergence() has not been generalised beyond cp.x')
 
     increments = {'cell_size': 0.1, 'ecutwfc': 10, 'empty_states_nbnd': 1}
 
@@ -235,7 +80,6 @@ def run_convergence(workflow_settings, cp_master_calc, initial_depth=3):
 
             # For each parameter we're converging wrt...
             header = ''
-            directory = '.'
             for index, param, values in zip(indices, param_dict.keys(), param_dict.values()):
                 value = values[index]
                 if isinstance(value, int):
@@ -268,7 +112,9 @@ def run_convergence(workflow_settings, cp_master_calc, initial_depth=3):
             print(header.rstrip(', '))
 
             # Perform calculation
-            solved_calc = run_singlepoint(workflow_settings, cp_calc)
+            calcs_dct = copy.deepcopy(master_calcs_dct)
+            calcs_dct['cp'] = cp_calc
+            solved_calc = run_singlepoint(workflow_settings, calcs_dct)
 
             # Store the result
             obs = workflow_settings['convergence_observable']
@@ -356,7 +202,7 @@ def run_convergence(workflow_settings, cp_master_calc, initial_depth=3):
             new_results[tuple(new_array_slice)] = results
             results = new_results
 
-def run_singlepoint(workflow_settings, cp_master_calc):
+def run_singlepoint(workflow_settings, calcs_dct):
 
     if workflow_settings['functional'] == 'all':
         # if 'all', create subdirectories and run
@@ -373,11 +219,10 @@ def run_singlepoint(workflow_settings, cp_master_calc):
             utils.system_call('cp file_alpharef*.txt ki/')
 
         for functional in functionals:
-            print(f'\n{functional.upper()} CALCULATION')
+            print(f'\n{functional.upper().replace("PKIPZ", "pKIPZ")} CALCULATION')
 
             # Avoid overwriting defaults
             local_workflow_settings = copy.deepcopy(workflow_settings)
-            cp_calc = copy.deepcopy(cp_master_calc)
 
             local_workflow_settings['functional'] = functional
 
@@ -391,18 +236,11 @@ def run_singlepoint(workflow_settings, cp_master_calc):
                 local_workflow_settings['init_manifold'] = 'ki'
                 local_workflow_settings['alpha_from_file'] = True
 
-            # Check that the workflow settings are valid
-            check_settings(local_workflow_settings)
-
             # Change to relevant subdirectory
             os.chdir(functional)
 
-            # Amend the psuedo dir
-            if isinstance(cp_calc.pseudo_dir, str) and cp_calc.pseudo_dir[0] != '/':
-                cp_calc.pseudo_dir = '../' + cp_calc.pseudo_dir
-
             # Run workflow for this particular functional
-            solved_calc = kc_with_cp.run(cp_calc, local_workflow_settings)
+            solved_calc = kc_with_cp.run(local_workflow_settings, calcs_dct)
 
             # Return to the base directory
             os.chdir('..')
@@ -415,16 +253,16 @@ def run_singlepoint(workflow_settings, cp_master_calc):
 
                 # KIPZ
                 utils.system_call('cp -r ki/final kipz/init')
-                utils.system_call(f'cp -r {cp_calc.outdir} kipz/')
+                utils.system_call(f'cp -r {solved_calc.outdir} kipz/')
                 utils.system_call('mv kipz/init/ki_final.cpi kipz/init/ki_init.cpi')
                 utils.system_call('mv kipz/init/ki_final.cpo kipz/init/ki_init.cpo')
                 utils.system_call('cp -r ki/final/file_alpharef* kipz/')
         return solved_calc
 
     elif workflow_settings['functional'] in ['ki', 'kipz', 'pkipz']:
-        return kc_with_cp.run(cp_master_calc, workflow_settings)
+        return kc_with_cp.run(workflow_settings, calcs_dct)
 
     elif workflow_settings['functional'] == 'pbe':
-        return pbe_with_cp.run(cp_master_calc, workflow_settings)
+        return pbe_with_cp.run(workflow_settings, calcs_dct)
 
     return

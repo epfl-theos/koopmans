@@ -16,6 +16,7 @@ from ase.io.espresso_cp import Espresso_cp, KEYS, ibrav_to_cell
 from ase.io.wannier90 import Wannier90
 from ase.io.pw2wannier import PW2Wannier
 from ase.atoms import Atoms
+from koopmans import defaults
 from koopmans.utils import warn
 from koopmans.io import input_dft_from_pseudos, nelec_from_pseudos
 from koopmans.calculators import cp, pw, wannier90, pw2wannier
@@ -87,7 +88,7 @@ def read_qe_generic_dict(dct, calc):
                     continue
 
                 # Force pseudo_dir to be an absolute path
-                if key == 'pseudo_dir' and value[0] != 0:
+                if key == 'pseudo_dir' and value[0] != '/':
                     descend_depth = value.count('../')
                     splitdir = os.getcwd().rsplit('/', descend_depth)
                     value = splitdir[0] + '/' + value.lstrip('../')
@@ -115,7 +116,20 @@ def read_qe_generic_dict(dct, calc):
     atoms.set_array('labels', labels)
     calc.atoms = atoms
 
-    # If it is missing, fill the input_dft field using information contained 
+    # Set up pseudopotentials, by...
+    #  1. trying to locating the directory as currently specified by the calculator
+    #  2. if that fails, checking if $ESPRESSO_PSEUDO is set
+    #  3. if that fails, raising an error
+    pseudo_dir = calc.parameters['input_data']['control'].get('pseudo_dir', None)
+    if pseudo_dir is None or not os.path.isdir(pseudo_dir):
+        try:
+            calc.parameters['input_data']['control']['pseudo_dir'] = os.environ.get('ESPRESSO_PSEUDO')
+        except:
+            raise NotADirectoryError('Directory for pseudopotentials not found. Please define '
+                         'the environment variable ESPRESSO_PSEUDO or provide a pseudo_dir in '
+                         'the cp block of your json input file.')
+
+    # If it is missing, fill the input_dft field using information contained
     # in the pseudopotential files
     if 'pseudopotentials' in calc.parameters:
         if 'input_dft' not in calc.parameters['input_data']['control']:
@@ -226,18 +240,25 @@ def read_json(fd):
     bigdct = json.loads(fd.read())
 
     readers = {'cp': read_cp_dict, 'w90': read_w90_dict, 'pw2wannier': read_pw2wannier_dict, 'pw': read_pw_dict}
-    calcs = {}
+    calcs_dct = {}
     for block, dct in bigdct.items():
         block = block.lower()
         if block == 'workflow':
             workflow_settings = read_workflow_dict(dct)
         elif block in readers:
-            calcs[block] = readers[block](dct)
+            # Read in the block
+            calcs_dct[block] = readers[block](dct)
+
+            # Load calculator default values from koopmans.defaults
+            defaults.load_defaults(calcs_dct[block])
+
+            # Parse any algebraic expressions used for keywords
+            calcs_dct[block].parse_algebraic_settings()
         else:
             raise ValueError(f'Unrecognised block "{block}" in json input file; '
                             'valid options are workflow/' + '/'.join(readers.keys()))
 
-    return workflow_settings, calcs
+    return workflow_settings, calcs_dct
 
 
 def write_json(fd, calcs=[], workflow_settings={}):
