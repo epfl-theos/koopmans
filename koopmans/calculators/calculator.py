@@ -138,6 +138,18 @@ class QE_calc:
     def results(self, value):
         self._ase_calc.results = value
 
+    @property
+    def preprocessing_flags(self):
+        return self._preprocessing_flags
+
+    @preprocessing_flags.setter
+    def preprocessing_flags(self, value):
+        if not isinstance(value, list):
+            value = [value]
+        self._preprocessing_flags = value
+        before, after = self._ase_calc.command.split(' ', 1)
+        self._ase_calc.command = ' '.join([before] + value + [after])
+
     def calculate(self):
         # Generic function for running a calculation
 

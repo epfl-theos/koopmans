@@ -1,5 +1,6 @@
 import os
 from koopmans.calculators.pw import PW_calc
+import ipdb
 
 _default_settings = {
    'ENVIRON': {
@@ -16,6 +17,10 @@ class Environ_calc(PW_calc):
 
    environ_settings = _default_settings
 
+   def __init__(self, *args, **kwargs):
+      super(Environ_calc, self).__init__(*args, **kwargs)
+      self.preprocessing_flags = '--environ'
+
    def calculate(self):
       # Generic function for running a calculation
 
@@ -27,6 +32,7 @@ class Environ_calc(PW_calc):
       self.write_environ_in()
 
       # Ensure we're using an environ-enabled version of pw.x
+      ipdb.set_trace()
       if '--environ' not in self._ase_calc.command:
           self._ase_calc.command = self._ase_calc.command.replace('pw.x', 'pw.x --environ')
 
