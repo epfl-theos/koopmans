@@ -92,7 +92,7 @@ def read_qe_generic_dict(dct, calc, generic_atoms=Atoms()):
             symbols = [''.join([c for c in label if c.isalpha()])
                        for label in labels]
             positions = np.array(pos_array[:, 1:], dtype=float)
-            if subdct.get('units', 'alat') == 'crystal':
+            if subdct.get('units', 'angstrom') == 'alat':
                 scale_positions = True
                 if 'ibrav' not in subdct:
                     raise KeyError('"ibrav" (and any other cell-related ' \
@@ -340,7 +340,7 @@ def write_json(fd, calcs=[], workflow_settings={}):
             # cell parameters
             if calc.parameters['input_data']['system'].get('ibrav', None) == 0:
                 bigdct[code]['cell_parameters'] = {'vectors': [
-                    list(row) for row in calc.atoms.cell[:]], 'units': 'alat'}
+                    list(row) for row in calc.atoms.cell[:]], 'units': 'angstrom'}
 
             # atomic positions
             try:
@@ -350,11 +350,11 @@ def write_json(fd, calcs=[], workflow_settings={}):
             if calc.parameters['input_data']['system'].get('ibrav', None) == 0:
                 bigdct[code]['atomic_positions'] = {'positions': [
                     [label] + [str(x) for x in pos] for label, pos in zip(labels, calc.atoms.get_positions())],
-                    'units': 'alat'}
+                    'units': 'angstrom'}
             else:
                 bigdct[code]['atomic_positions'] = {'positions': [
                     [label] + [str(x) for x in pos] for label, pos in zip(labels, calc.atoms.get_scaled_positions())],
-                    'units': 'crystal'}
+                    'units': 'alat'}
 
             # atomic species
             bigdct[code]['atomic_species'] = {'species': [[key, 1.0, val]

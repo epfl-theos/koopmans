@@ -28,13 +28,13 @@
             "species" : [["H", 1.0, "H_ONCV_PBE-1.0.upf"],["O", 1.0, "O_ONCV_PBE-1.0.upf"]]
         },
         "atomic_positions": {
-            "units"                 : "alat",
+            "units"                 : "angstrom",
             "positions"             : [["O", 4.7571, 4.0, 3.902317],
                                        ["H", 5.5142, 4.0, 4.488417],
                                        ["H", 4.0, 4.0, 4.488417]]
         },
         "cell_parameters": {
-            "units"                 : "alat",
+            "units"                 : "angstrom",
             "vectors"               : [[9.514200, 0.000000, 0.000000],
                                        [0.000000, 8.000000, 0.000000],
                                        [0.000000, 0.000000, 8.586100]]
