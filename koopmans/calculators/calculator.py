@@ -12,6 +12,7 @@ Sep 2020: moved individual calculators into calculators/
 
 import ase.io as ase_io
 from ase.io import espresso_cp as cp_io
+from ase.build import make_supercell
 from koopmans.io import cpi_diff, read_alpharef, write_alpharef, warn
 import os
 import sys
@@ -211,6 +212,11 @@ class QE_calc:
         raise ValueError(
             f'is_complete() function has not been implemented for {self.__class__}')
 
+    def transform_to_supercell(self, matrix, **kwargs):
+        # Converts to a supercell as given by a 3x3 transformation matrix
+        assert np.shape(matrix) == (3, 3)
+        self._ase_calc.atoms = make_supercell(self._ase_calc.atoms, matrix, **kwargs)
+        self._ase_calc.atoms.calc = self._ase_calc
 
 def run_qe(master_qe_calc, silent=True, from_scratch=False, enforce_ss=False):
     '''
