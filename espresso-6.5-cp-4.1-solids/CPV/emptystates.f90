@@ -1214,6 +1214,8 @@ write(stdout,*) ei_emp
         USE reciprocal_vectors, ONLY: ig_l2g
         USE gvecw,              ONLY: ngw
         USE xml_io_base,        ONLY: restart_dir, wfc_filename
+        USE electrons_base,     ONLY: nspin
+        USE electrons_module,   ONLY: iupdwn_emp, nupdwn_emp
 
         IMPLICIT none
 
@@ -1240,55 +1242,57 @@ write(stdout,*) ei_emp
         ALLOCATE( ctmp(ngw_g) )
         !
         dirname   = restart_dir( outdir, ndi )
-        fileempty = TRIM( wfc_filename( dirname, 'evc_empty', 1 ) )
         !
-        IF ( ionode ) THEN
+        DO iss = 1, nspin
+          IF ( ionode ) THEN
+              fileempty = TRIM( wfc_filename( dirname, 'evc_empty', 1, iss ) )
+            INQUIRE( FILE = TRIM(fileempty), EXIST = EXST )
 
-          INQUIRE( FILE = TRIM(fileempty), EXIST = EXST )
-
-          IF ( EXST ) THEN
-            !
-            OPEN( UNIT=emptyunit, FILE=TRIM(fileempty), STATUS='OLD', FORM='UNFORMATTED' )
-            !
-            READ(emptyunit) ngw_rd, ne_rd
-            !
-            IF( ne > ne_rd ) THEN
-              EXST = .false.
-              WRITE( stdout,10)  TRIM(fileempty) 
-              WRITE( stdout,20)  ngw_rd, ne_rd
-              WRITE( stdout,20)  ngw_g, ne
+            IF ( EXST ) THEN
+              !
+              OPEN( UNIT=emptyunit, FILE=TRIM(fileempty), STATUS='OLD', FORM='UNFORMATTED' )
+              !
+              READ(emptyunit) ngw_rd, ne_rd
+              !
+              IF( nupdwn_emp(iss) > ne_rd ) THEN
+                EXST = .false.
+                WRITE( stdout,10)  TRIM(fileempty) 
+                WRITE( stdout,20)  ngw_rd, ne_rd
+                WRITE( stdout,20)  ngw_g, nupdwn_emp(iss)
+              END IF
+              !
             END IF
             !
           END IF
-          !
-        END IF
 
- 10     FORMAT('*** EMPTY STATES : wavefunctions dimensions changed  ', A )
- 20     FORMAT('*** NGW = ', I8, ' NE = ', I4)
+ 10       FORMAT('*** EMPTY STATES : wavefunctions dimensions changed  ', A )
+ 20       FORMAT('*** NGW = ', I8, ' NE = ', I4)
 
-        CALL mp_bcast(exst,   ionode_id, intra_image_comm)
-        CALL mp_bcast(ne_rd,  ionode_id, intra_image_comm)
-        CALL mp_bcast(ngw_rd, ionode_id, intra_image_comm)
+          CALL mp_bcast(exst,   ionode_id, intra_image_comm)
+          CALL mp_bcast(ne_rd,  ionode_id, intra_image_comm)
+          CALL mp_bcast(ngw_rd, ionode_id, intra_image_comm)
 
-        IF ( exst ) THEN
+          IF ( exst ) THEN
 
-           DO i = 1, MIN( ne, ne_rd )
+            DO i = 1, nupdwn_emp(iss)
               IF ( ionode ) THEN
-                  READ(emptyunit) ( ctmp(ig), ig = 1, MIN( SIZE(ctmp), ngw_rd ) )
+                READ(emptyunit) ( ctmp(ig), ig = 1, MIN( SIZE(ctmp), ngw_rd ) )
               END IF
-              IF( i <= ne ) THEN
-                  CALL splitwf(c_emp(:,i), ctmp, ngw_l, ig_l2g, me_image, &
-                       nproc_image, ionode_id, intra_image_comm)
-              END IF
-           END DO
+              CALL splitwf(c_emp(:, i + iupdwn_emp(iss) - 1), ctmp, ngw_l, ig_l2g, me_image, &
+                     nproc_image, ionode_id, intra_image_comm)
+            END DO
 
-        END IF
+          END IF
 
-        IF ( ionode .AND. EXST ) THEN
-          CLOSE(emptyunit)
-        END IF
+          IF ( ionode .AND. EXST ) THEN
+            CLOSE(emptyunit)
+          END IF
 
-        readempty_x = exst
+          readempty_x = exst
+
+          IF (.NOT. readempty_x) RETURN
+        END DO
+
         DEALLOCATE(ctmp)
 
         RETURN
@@ -1311,6 +1315,8 @@ write(stdout,*) ei_emp
         USE gvecw,              ONLY: ngw
         USE xml_io_base,        ONLY: restart_dir, wfc_filename
         USE wrappers,           ONLY: f_mkdir
+        USE electrons_base,     ONLY: nspin
+        USE electrons_module,   ONLY: iupdwn_emp, nupdwn_emp
         !
         IMPLICIT NONE
 
@@ -1333,31 +1339,33 @@ write(stdout,*) ei_emp
         ALLOCATE( ctmp( ngw_g ) )
         !
         dirname   = restart_dir( outdir, ndi )
-        fileempty = TRIM( wfc_filename( dirname, 'evc_empty', 1 ) )
         !
         ierr = f_mkdir( TRIM(dirname)//"/K00001" )
         !
-        IF( ionode ) THEN
-          OPEN( UNIT = emptyunit, FILE = TRIM(fileempty), status = 'unknown', FORM = 'UNFORMATTED' )
-          REWIND( emptyunit )
-          WRITE (emptyunit)  ngw_g, ne
-        END IF
+        DO iss = 1, nspin
+          fileempty = TRIM( wfc_filename( dirname, 'evc_empty', 1, iss ) )
+          IF( ionode ) THEN
+            OPEN( UNIT = emptyunit, FILE = TRIM(fileempty), status = 'unknown', FORM = 'UNFORMATTED' )
+            REWIND( emptyunit )
+            WRITE (emptyunit)  ngw_g, ne
+          END IF
 
- 10     FORMAT('*** EMPTY STATES : writing wavefunctions  ', A )
- 20     FORMAT('*** NGW = ', I8, ' NE = ', I4)
+ 10       FORMAT('*** EMPTY STATES : writing wavefunctions  ', A )
+ 20       FORMAT('*** NGW = ', I8, ' NE = ', I4)
 
-        DO i = 1, ne
-           ctmp = 0.0d0
-           CALL MERGEWF( c_emp(:,i), ctmp(:), ngw_l, ig_l2g, me_image, &
-                         nproc_image, ionode_id, intra_image_comm )
-           IF( ionode ) THEN
+          DO i = 1, nupdwn_emp(iss)
+            ctmp = 0.0d0
+              CALL MERGEWF( c_emp(:,i + iupdwn_emp(iss) - 1), ctmp(:), ngw_l, ig_l2g, me_image, &
+                          nproc_image, ionode_id, intra_image_comm )
+            IF( ionode ) THEN
               WRITE (emptyunit) ( ctmp(ig), ig=1, ngw_g )
-           END IF
-        END DO
+            END IF
+          END DO
 
-        IF( ionode ) THEN
-          CLOSE (emptyunit)
-        END IF
+          IF( ionode ) THEN
+            CLOSE (emptyunit)
+          END IF
+        END DO
 
         DEALLOCATE(ctmp)
 
@@ -1380,6 +1388,8 @@ LOGICAL FUNCTION reademptytwin_x( c_emp, ne, ndi )
         USE reciprocal_vectors, ONLY: ig_l2g
         USE gvecw,              ONLY: ngw
         USE xml_io_base,        ONLY: restart_dir, wfc_filename
+        USE electrons_base,     ONLY: nspin
+        USE electrons_module,   ONLY: iupdwn_emp, nupdwn_emp
         !
         IMPLICIT none
         ! 
@@ -1407,66 +1417,66 @@ LOGICAL FUNCTION reademptytwin_x( c_emp, ne, ndi )
         !
         dirname   = restart_dir( outdir, ndi )
         !
-        fileempty = TRIM( wfc_filename( dirname, 'evc0_empty', 1 ) )
-        !
-        IF ( ionode ) THEN
+        DO iss = 1, nspin
+           fileempty = TRIM( wfc_filename( dirname, 'evc0_empty', 1, iss ) )
            !
-           INQUIRE( FILE = TRIM(fileempty), EXIST = EXST )
-           !
-           IF ( exst ) THEN
+           IF ( ionode ) THEN
               !
-              OPEN( UNIT=emptyunitc0, FILE=TRIM(fileempty), STATUS='OLD', FORM='UNFORMATTED' )
+              INQUIRE( FILE = TRIM(fileempty), EXIST = EXST )
               !
-              READ(emptyunitc0) ngw_rd, ne_rd
-              !
-              IF ( ne > ne_rd ) THEN
+              IF ( exst ) THEN
                  !
-                 exst = .false.
-                 WRITE( stdout,10)  TRIM(fileempty) 
-                 WRITE( stdout,20)  ngw_rd, ne_rd
-                 WRITE( stdout,20)  ngw_g, ne
+                 OPEN( UNIT=emptyunitc0, FILE=TRIM(fileempty), STATUS='OLD', FORM='UNFORMATTED' )
                  !
+                 READ(emptyunitc0) ngw_rd, ne_rd
+                 !
+                 IF ( nupdwn_emp(iss) > ne_rd ) THEN
+                    !
+                    exst = .false.
+                    WRITE( stdout,10)  TRIM(fileempty) 
+                    WRITE( stdout,20)  ngw_rd, ne_rd
+                    WRITE( stdout,20)  ngw_g, nupdwn_emp(iss)
+                    !
+                 ENDIF
+                 ! 
               ENDIF
-              ! 
+              !
            ENDIF
            !
-        ENDIF
-        !
- 10     FORMAT('*** EMPTY STATES : wavefunctions dimensions changed  ', A )
- 20     FORMAT('*** NGW = ', I8, ' NE = ', I4)
-        !  
-        CALL mp_bcast(exst,   ionode_id, intra_image_comm)
-        CALL mp_bcast(ne_rd,  ionode_id, intra_image_comm)
-        CALL mp_bcast(ngw_rd, ionode_id, intra_image_comm)
-        !
-        IF ( exst ) THEN
-           ! 
-           DO i = 1, MIN( ne, ne_rd )
-              !
-              IF ( ionode ) THEN
-                 ! 
-                 READ(emptyunitc0) ( ctmp(ig), ig = 1, MIN( SIZE(ctmp), ngw_rd ) )
-                 !
-              ENDIF
+ 10        FORMAT('*** EMPTY STATES : wavefunctions dimensions changed  ', A )
+ 20        FORMAT('*** NGW = ', I8, ' NE = ', I4)
+           !  
+           CALL mp_bcast(exst,   ionode_id, intra_image_comm)
+           CALL mp_bcast(ne_rd,  ionode_id, intra_image_comm)
+           CALL mp_bcast(ngw_rd, ionode_id, intra_image_comm)
+           !
+           IF ( exst ) THEN
               ! 
-              IF ( i <= ne ) THEN
+              DO i = 1, nupdwn_emp(iss)
                  !
-                 CALL splitwf(c_emp(:,i), ctmp, ngw_l, ig_l2g, me_image, &
-                       nproc_image, ionode_id, intra_image_comm)
-                 !
-              ENDIF
+                 IF ( ionode ) THEN
+                    ! 
+                    READ(emptyunitc0) ( ctmp(ig), ig = 1, MIN( SIZE(ctmp), ngw_rd ) )
+                    !
+                 ENDIF
+                 ! 
+                 CALL splitwf(c_emp(:,i + iupdwn_emp(iss) - 1), ctmp, ngw_l, ig_l2g, me_image, &
+                          nproc_image, ionode_id, intra_image_comm)
+                    !
+              ENDDO
               !
-           ENDDO
-           !
-        ENDIF
-        ! 
-        IF ( ionode .AND. exst ) THEN
-           !
-           CLOSE(emptyunitc0) 
-           !
-        ENDIF
-        ! 
-        reademptytwin_x = exst
+           ENDIF
+           ! 
+           IF ( ionode .AND. exst ) THEN
+              !
+              CLOSE(emptyunitc0) 
+              !
+           ENDIF
+           ! 
+           reademptytwin_x = exst
+           ! 
+           IF (.NOT. reademptytwin_x) RETURN
+        END DO
         ! 
         DEALLOCATE(ctmp)
         !
@@ -1492,6 +1502,8 @@ SUBROUTINE writeemptytwin_x( c_emp, ne, ndi, write_evc0)
         USE gvecw,              ONLY: ngw
         USE xml_io_base,        ONLY: restart_dir, wfc_filename
         USE wrappers,           ONLY: f_mkdir
+        USE electrons_base,     ONLY: nspin
+        USE electrons_module,   ONLY: iupdwn_emp, nupdwn_emp
         !
         IMPLICIT NONE
         ! 
@@ -1500,7 +1512,7 @@ SUBROUTINE writeemptytwin_x( c_emp, ne, ndi, write_evc0)
         INTEGER,     INTENT(IN) :: ndi
         LOGICAL,     INTENT(IN) :: write_evc0
         !
-        INTEGER :: ig, i, ngw_g, iss, ngw_l
+        INTEGER :: ig, i, ngw_g, iss, ngw_l, funit, ne_loc, i_start
         LOGICAL :: exst, ierr
         COMPLEX(DP), ALLOCATABLE :: ctmp(:)
         CHARACTER(LEN=256) :: fileempty, dirname
@@ -1510,86 +1522,71 @@ SUBROUTINE writeemptytwin_x( c_emp, ne, ndi, write_evc0)
         ngw_g    = ngw
         ngw_l    = ngw
         !
+        IF (write_evc0) THEN
+          funit = emptyunitc0
+        ELSE
+          funit = emptyunitc0fixed
+        END IF
+        !
         CALL mp_sum( ngw_g, intra_image_comm )
         !
         ALLOCATE( ctmp( ngw_g ) )
         !
         dirname   = restart_dir( outdir, ndi )
         !
-        IF (write_evc0) THEN
-           !    
-           fileempty = TRIM( wfc_filename( dirname, 'evc0_empty', 1 ) )
-           !
-        ELSE
-           !
-           fileempty = TRIM( wfc_filename( dirname, 'evcfixed_empty', 1 ) )
-           !
-        ENDIF   
-        !
         ierr = f_mkdir( TRIM(dirname)//"/K00001" )
         !
-        IF ( ionode ) THEN
+        DO iss = 1, nspin
+           ! We only split the files by spin if evc0_empty = .true.. If .false.,
+           ! we ignore the iss index, do everything at once, and exit after
+           ! completing the loop once
            ! 
            IF (write_evc0) THEN
               ! 
-              OPEN( UNIT = emptyunitc0, FILE = TRIM(fileempty), status = 'unknown', FORM = 'UNFORMATTED' )
-              !
-              REWIND( emptyunitc0 )
-              !
-              WRITE (emptyunitc0)  ngw_g, ne
+              fileempty = TRIM( wfc_filename( dirname, 'evc0_empty', 1, iss ) )
+              ne_loc = nupdwn_emp(iss)
+              i_start = iupdwn_emp(iss)
               !
            ELSE
               ! 
-              OPEN( UNIT = emptyunitc0fixed, FILE = TRIM(fileempty), status = 'unknown', FORM = 'UNFORMATTED' )
+              fileempty = TRIM( wfc_filename( dirname, 'evcfixed_empty', 1 ) )
+              ne_loc = ne
+              i_start = 1
               !
-              REWIND( emptyunitc0fixed )
+           ENDIF   
+           !
+           IF ( ionode ) THEN
+              OPEN( UNIT = funit, FILE = TRIM(fileempty), status = 'unknown', FORM = 'UNFORMATTED' )
               !
-              WRITE ( emptyunitc0fixed )  ngw_g, ne
+              REWIND( funit )
               !
-           ENDIF 
-           !
-        ENDIF
-        !
- 10     FORMAT('*** EMPTY STATES : writing wavefunctions  ', A )
- 20     FORMAT('*** NGW = ', I8, ' NE = ', I4)
-        !
-        DO i = 1, ne
-           !
-           ctmp = 0.0d0
-           !
-           CALL MERGEWF( c_emp(:,i), ctmp(:), ngw_l, ig_l2g, me_image, &
-                         nproc_image, ionode_id, intra_image_comm )
-           !
-           IF (ionode ) THEN
-              !
-              IF (write_evc0) THEN
-                 ! 
-                 WRITE (emptyunitc0) ( ctmp(ig), ig=1, ngw_g )
-                 !
-              ELSE
-                 !
-                 WRITE (emptyunitc0fixed) ( ctmp(ig), ig=1, ngw_g )
-                 !
-              ENDIF 
-              ! 
+              WRITE (funit)  ngw_g, ne_loc
            ENDIF
            !
-        ENDDO
-        ! 
-        IF ( ionode ) THEN
+ 10        FORMAT('*** EMPTY STATES : writing wavefunctions  ', A )
+ 20        FORMAT('*** NGW = ', I8, ' NE = ', I4)
            !
-           IF (write_evc0) THEN
-              !  
-              CLOSE (emptyunitc0)
-              ! 
-           ELSE
+           DO i = 1, ne_loc
               !
-              CLOSE (emptyunitc0fixed)
-              ! 
-           ENDIF 
-           !
-        ENDIF
-        !
+              ctmp = 0.0d0
+              !
+              CALL MERGEWF( c_emp(:,i + i_start - 1), ctmp(:), ngw_l, ig_l2g, me_image, &
+                         nproc_image, ionode_id, intra_image_comm )
+              !
+              IF (ionode ) THEN
+                 !
+                 WRITE (funit) ( ctmp(ig), ig=1, ngw_g )
+                 ! 
+              ENDIF
+              !
+           ENDDO
+           ! 
+           IF ( ionode ) CLOSE(funit)
+
+           ! For evc0_fixed, exit this 'spin' loop
+           IF (.NOT. write_evc0) EXIT
+        END DO
+
         DEALLOCATE(ctmp)
         !
         RETURN
