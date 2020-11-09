@@ -147,8 +147,20 @@ class QE_calc:
         if not isinstance(value, list):
             value = [value]
         self._preprocessing_flags = value
-        before, after = self._ase_calc.command.split(' ', 1)
-        self._ase_calc.command = ' '.join([before] + value + [after])
+
+        # Updating self._ase_calc.command
+        command = self._ase_calc.command
+        if command[:6] == 'mpirun':
+            mpirun, npflag, np, exe, after = command.split(' ', 4)
+            before = [mpirun, npflag, np, exe]
+        elif command[:4] == 'srun':
+            srun, exe, after = command.split(' ', 2)
+            before = [srun, exe]
+        else:
+            before, after = command.split(' ', 1)
+            before = [before]
+        after = [after]
+        self._ase_calc.command = ' '.join(before + value + after)
 
     def calculate(self):
         # Generic function for running a calculation
@@ -212,7 +224,7 @@ class QE_calc:
     def parse_algebraic_settings(self):
         # Checks self._settings for keywords defined algebraically, and evaluates them
         for key, value in self._settings.items():
-            if key in ['pseudo_dir', 'outdir']:
+            if key in ['pseudo_dir', 'outdir', 'assume_isolated']:
                 continue
             self._settings[key] = self.parse_algebraic_setting(value)
 

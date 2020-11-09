@@ -1,6 +1,5 @@
 import os
 from koopmans.calculators.pw import PW_calc
-import ipdb
 
 _default_settings = {
    'ENVIRON': {
@@ -19,6 +18,8 @@ class Environ_calc(PW_calc):
 
    def __init__(self, *args, **kwargs):
       super(Environ_calc, self).__init__(*args, **kwargs)
+
+      # Ensure we're using an environ-enabled version of pw.x
       self.preprocessing_flags = '--environ'
 
    def calculate(self):
@@ -30,11 +31,6 @@ class Environ_calc(PW_calc):
           self.pseudo_dir = '../'*directory_depth + self.pseudo_dir
 
       self.write_environ_in()
-
-      # Ensure we're using an environ-enabled version of pw.x
-      ipdb.set_trace()
-      if '--environ' not in self._ase_calc.command:
-          self._ase_calc.command = self._ase_calc.command.replace('pw.x', 'pw.x --environ')
 
       self._ase_calculate()
 
