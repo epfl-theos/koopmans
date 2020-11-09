@@ -18,9 +18,9 @@ class PW2Wannier_calc(QE_calc):
 
     # Adding all wannier90 keywords as decorated properties of the W90_calc class.
     # This means one can set and get wannier90 keywords as self.<keyword> but
-    # internally they are stored as self._settings['keyword'] rather than 
+    # internally they are stored as self._settings['keyword'] rather than
     # self.<keyword>
-    _recognised_keywords = ['outdir', 'prefix', 'seedname', 'write_mmn', 
+    _recognised_keywords = ['outdir', 'prefix', 'seedname', 'write_mmn',
         'write_amn', 'write_uHu', 'uHu_formatted']
 
     for k in _recognised_keywords:

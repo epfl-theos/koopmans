@@ -38,11 +38,15 @@
       "wo_odd_in_empty_run": false,
       "aux_empty_nbnd": 0,
       "print_evc0_occ_empty": false
-    },
+    }
+  },
+  "atoms": {
     "atomic_positions": {
       "positions": [ [ "Si1", 0.0, 0.0, 0.0 ],
                      [ "Si2", 0.25, 0.25, 0.25 ] ],
-      "units": "crystal"
+      "units": "crystal",
+      "ibrav": 2,
+      "celldm(1)": 10.263101844
     },
     "atomic_species": {
       "species": [ [ "Si1", 1.0, "Si_ONCV_PBE-1.1.upf" ],

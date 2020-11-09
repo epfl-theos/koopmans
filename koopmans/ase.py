@@ -23,10 +23,9 @@ from koopmans.calculators import cp, pw, wannier90, pw2wannier
 import os
 import copy
 
-def read_w90_dict(dct):
+def read_w90_dict(dct, generic_atoms=Atoms()):
     # Setting up ASE atoms and calc objects
-    calc = Wannier90()
-    calc.atoms = Atoms()
+    calc = Wannier90(atoms=generic_atoms)
     calc.atoms.calc = calc
 
     for k, v in dct.items():
@@ -35,10 +34,9 @@ def read_w90_dict(dct):
     # Return python_KI-type calculator object rather than ASE calculator
     return wannier90.W90_calc(calc)
 
-def read_pw2wannier_dict(dct):
+def read_pw2wannier_dict(dct, generic_atoms=Atoms()):
     # Setting up ASE atoms and calc objects
-    calc = PW2Wannier()
-    calc.atoms = Atoms()
+    calc = PW2Wannier(atoms=generic_atoms)
     calc.atoms.calc = calc
 
     calc.parameters['inputpp'] = {}
@@ -52,7 +50,7 @@ def read_pw2wannier_dict(dct):
     # Return python_KI-type calculator object rather than ASE calculator
     return pw2wannier.PW2Wannier_calc(calc)
 
-def read_qe_generic_dict(dct, calc):
+def read_qe_generic_dict(dct, calc, generic_atoms=Atoms()):
     '''
 
     Reads in dict of cp/pw input file and adds the settings to the provided calc object
@@ -61,12 +59,28 @@ def read_qe_generic_dict(dct, calc):
 
     calc.parameters['input_data'] = {k: {} for k in KEYS.keys()}
 
-    symbols = []
-    positions = []
-    cell = None
-    labels = None
+    if generic_atoms is None:
+        generic_atoms = Atoms()
+
+    symbols = generic_atoms.get_chemical_symbols()
+    positions = generic_atoms.get_positions()
+    if np.any(generic_atoms.cell.lengths() != 0):
+        cell = generic_atoms.cell
+    else:
+        cell = None
+    if generic_atoms.has('labels'):
+        labels = generic_atoms.get_array('labels')
+    else:
+        labels = None
     scale_positions = False
     skipped_blocks = []
+
+    # Add any generic parameters (calc.atoms.calc points to the generic calculator
+    # at the moment, but will be overwritten)
+    if generic_atoms.calc is not None:
+        for key, val in generic_atoms.calc.parameters.items():
+            if key not in calc.parameters:
+                calc.parameters[key] = val
 
     for block, subdct in dct.items():
         if block == 'atomic_species':
@@ -80,6 +94,16 @@ def read_qe_generic_dict(dct, calc):
             positions = np.array(pos_array[:, 1:], dtype=float)
             if subdct.get('units', 'alat') == 'crystal':
                 scale_positions = True
+                if 'ibrav' not in subdct:
+                    raise KeyError('"ibrav" (and any other cell-related ' \
+                                   'parameters) should be listed in the ' \
+                                   '"atomic_positions" block when using ' \
+                                   'crystal coordinates')
+            # Copy over all the rest of the information to the system block
+            for k, v in subdct.items():
+                if k not in ['positions', 'units']:
+                    calc.parameters['input_data']['system'][k] = v
+                
         elif block == 'cell_parameters':
             cell = subdct['vectors']
         elif block in KEYS:
@@ -109,12 +133,11 @@ def read_qe_generic_dict(dct, calc):
 
     # Defining our atoms object and tethering it to the calculator
     if scale_positions:
-        atoms = Atoms(symbols, scaled_positions=positions,
+        calc.atoms = Atoms(symbols, scaled_positions=positions,
                       cell=cell, calculator=calc)
     else:
-        atoms = Atoms(symbols, positions, cell=cell, calculator=calc)
-    atoms.set_array('labels', labels)
-    calc.atoms = atoms
+        calc.atoms = Atoms(symbols, positions, cell=cell, calculator=calc)
+    calc.atoms.set_array('labels', labels)
 
     # Set up pseudopotentials, by...
     #  1. trying to locating the directory as currently specified by the calculator
@@ -138,7 +161,7 @@ def read_qe_generic_dict(dct, calc):
 
     return skipped_blocks
 
-def read_cp_dict(dct):
+def read_cp_dict(dct, generic_atoms=None):
     '''
 
     Reads in dict of cp input file and returns a CP_calc object
@@ -146,7 +169,7 @@ def read_cp_dict(dct):
     '''
 
     calc = Espresso_cp()
-    skipped_blocks = read_qe_generic_dict(dct, calc)
+    skipped_blocks = read_qe_generic_dict(dct, calc, generic_atoms)
 
     for block in skipped_blocks:
         warn(f'The {block} block is not yet implemented and will be ignored')
@@ -175,7 +198,7 @@ def read_cp_dict(dct):
 
     return cp.CP_calc(calc)
 
-def read_pw_dict(dct):
+def read_pw_dict(dct, generic_atoms=None):
     '''
 
     Reads in dict of pw input file and returns a PW_calc object
@@ -183,7 +206,7 @@ def read_pw_dict(dct):
     '''
 
     calc = Espresso()
-    skipped_blocks = read_qe_generic_dict(dct, calc)
+    skipped_blocks = read_qe_generic_dict(dct, calc, generic_atoms)
 
     for block in skipped_blocks:
         if block == 'k_points':
@@ -203,6 +226,22 @@ def read_pw_dict(dct):
             warn(f'The {block} block is not yet implemented and will be ignored')
 
     return pw.PW_calc(calc)
+
+def read_atoms_dct(dct):
+    '''
+
+    Reads the atoms block
+
+    '''
+
+    # Take advantage of the PW dict reader in order to read the block settings
+    pw_calc = read_pw_dict(dct)
+    atoms = pw_calc._ase_calc.atoms
+
+    # Remove the code-specific settings
+    del atoms.calc.parameters['input_data']
+
+    return atoms
 
 def read_workflow_dict(dct):
     '''
@@ -241,13 +280,20 @@ def read_json(fd):
 
     readers = {'cp': read_cp_dict, 'w90': read_w90_dict, 'pw2wannier': read_pw2wannier_dict, 'pw': read_pw_dict}
     calcs_dct = {}
+
+    # Load default values
+    generic_atoms = None
+    if 'atoms' in bigdct:
+        generic_atoms = read_atoms_dct(bigdct['atoms'])
+        del bigdct['atoms']
+
     for block, dct in bigdct.items():
         block = block.lower()
         if block == 'workflow':
             workflow_settings = read_workflow_dict(dct)
         elif block in readers:
             # Read in the block
-            calcs_dct[block] = readers[block](dct)
+            calcs_dct[block] = readers[block](dct, generic_atoms)
 
             # Load calculator default values from koopmans.defaults
             defaults.load_defaults(calcs_dct[block])

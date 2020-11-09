@@ -203,7 +203,7 @@ class QE_calc:
                 continue
             elif all([c.isalpha() for c in term]):
                 if self._settings.get(term, None) is None:
-                    raise ValueError('Failed to parse ' + ''.join(expr))
+                    raise ValueError('Failed to parse ' + ''.join(map(str, expr)))
                 else:
                     expr[i] = self._settings[term]
             else:
