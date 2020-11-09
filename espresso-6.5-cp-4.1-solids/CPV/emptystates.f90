@@ -455,8 +455,8 @@
             if(allocated(valpsi)) deallocate(valpsi)
             !
             ! reallocate the memory of odd_alpha for empty states
-            allocate (odd_alpha(n_emps)) 
-            allocate (valpsi(n_emps, ngw)) 
+            allocate (odd_alpha(n_empx)) 
+            allocate (valpsi(n_empx, ngw)) 
             !
          ENDIF
          !
