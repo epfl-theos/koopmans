@@ -304,7 +304,6 @@ MODULE read_namelists_module
        iprint_spreads=-1
        iprint_manifold_overlap=-1
        hartree_only_sic=.false.
-       one_innerloop_only = .FALSE. 
        !
        RETURN
        
@@ -472,6 +471,9 @@ MODULE read_namelists_module
        efield_cart(3)=0.d0
        !
        occupation_constraints = .false.
+       !
+       do_outerloop = .true.
+       do_outerloop_empty = .true.
        !
        RETURN
        !
@@ -991,7 +993,6 @@ MODULE read_namelists_module
        CALL mp_bcast( iprint_spreads,             ionode_id )
        CALL mp_bcast( iprint_manifold_overlap,    ionode_id )
        CALL mp_bcast( hartree_only_sic,           ionode_id )
-       CALL mp_bcast( one_innerloop_only,         ionode_id )
        !     
       RETURN
       !
@@ -1102,6 +1103,8 @@ MODULE read_namelists_module
        CALL mp_bcast( sic_epsilon ,         ionode_id )
        CALL mp_bcast( sic_alpha   ,         ionode_id )
        CALL mp_bcast( force_pairing ,       ionode_id )
+       CALL mp_bcast( do_outerloop,         ionode_id )
+       CALL mp_bcast( do_outerloop_empty,   ionode_id )
        !
        ! ... ensemble-DFT
        !
