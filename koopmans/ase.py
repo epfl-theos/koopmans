@@ -94,18 +94,19 @@ def read_qe_generic_dict(dct, calc, generic_atoms=Atoms()):
             positions = np.array(pos_array[:, 1:], dtype=float)
             if subdct.get('units', 'angstrom') == 'alat':
                 scale_positions = True
-                if 'ibrav' not in subdct:
-                    raise KeyError('"ibrav" (and any other cell-related ' \
-                                   'parameters) should be listed in the ' \
-                                   '"atomic_positions" block when using ' \
-                                   'crystal coordinates')
-            # Copy over all the rest of the information to the system block
-            for k, v in subdct.items():
-                if k not in ['positions', 'units']:
-                    calc.parameters['input_data']['system'][k] = v
                 
         elif block == 'cell_parameters':
             cell = subdct['vectors']
+            if subdct.get('units', 'angstrom') == 'alat':
+                if 'ibrav' not in subdct:
+                    raise KeyError('"ibrav" (and any other cell-related ' \
+                                   'parameters) should be listed in the ' \
+                                   '"cell_parameters" block when using ' \
+                                   'crystal coordinates')
+                # Copy over all the rest of the information to the system block
+                for k, v in subdct.items():
+                    if k not in ['vectors', 'units']:
+                        calc.parameters['input_data']['system'][k] = v
         elif block in KEYS:
             for key, value in subdct.items():
                 if value == "":
