@@ -22,14 +22,64 @@ from koopmans.io import input_dft_from_pseudos, nelec_from_pseudos
 from koopmans.calculators import cp, pw, wannier90, pw2wannier
 import os
 import copy
+import ipdb
 
 def read_w90_dict(dct, generic_atoms=Atoms()):
     # Setting up ASE atoms and calc objects
-    calc = Wannier90(atoms=generic_atoms)
-    calc.atoms.calc = calc
+    calc = Wannier90()
+
+    # Loading defaults
+    if generic_atoms is None:
+        generic_atoms = Atoms()
+    symbols = generic_atoms.get_chemical_symbols()
+    positions = generic_atoms.get_positions()
+    if np.any(generic_atoms.cell.lengths() != 0):
+        cell = generic_atoms.cell
+    else:
+        cell = None
+    if generic_atoms.has('labels'):
+        labels = generic_atoms.get_array('labels')
+    else:
+        labels = None
+    scale_positions = False
+
+    # Add any generic parameters (calc.atoms.calc points to the generic calculator
+    # at the moment, but will be overwritten)
+    if generic_atoms.calc is not None:
+        for key, val in generic_atoms.calc.parameters.items():
+            if key not in calc.parameters:
+                calc.parameters[key] = val
+
+    dct = {k.lower(): v for k, v in dct.items()}
 
     for k, v in dct.items():
-        calc.parameters[k] = v
+        if k == "atoms_frac":
+            scaled_positions = True
+            labels = [line.split()[0] for line in v['positions']]
+            symbols = [''.join([c for c in label if c.isalpha()])
+                       for label in labels]
+            positions = np.array([[float(x) for x in line.split()[1:]] for line in v['positions']])
+        elif k == "unit_cell_cart":
+            if v['units'].lower() != 'ang':
+                raise NotImplementedError('unit_cell_cart with units != "ang" is not yet implemented')
+            cell = np.array(v['vectors'])
+        elif k == 'mp_grid':
+            calc.parameters['koffset'] = [0, 0, 0]
+            calc.parameters['kpts'] = v
+        else:
+            try:
+                v = json.loads(v)
+            except:
+                pass
+            calc.parameters[k] = v
+
+    # Defining our atoms object and tethering it to the calculator
+    if scale_positions:
+        calc.atoms = Atoms(symbols, scaled_positions=positions,
+                      cell=cell, calculator=calc)
+    else:
+        calc.atoms = Atoms(symbols, positions, cell=cell, calculator=calc)
+    calc.atoms.set_array('labels', labels)
 
     # Return python_KI-type calculator object rather than ASE calculator
     return wannier90.W90_calc(calc)
@@ -92,21 +142,33 @@ def read_qe_generic_dict(dct, calc, generic_atoms=Atoms()):
             symbols = [''.join([c for c in label if c.isalpha()])
                        for label in labels]
             positions = np.array(pos_array[:, 1:], dtype=float)
-            if subdct.get('units', 'angstrom') == 'alat':
+            units = subdct.get('units', 'angstrom').lower()
+            if units == 'angstrom':
+                pass
+            elif units == 'crystal':
                 scale_positions = True
+            else:
+                raise NotImplementedError(f'atomic_positions units = {units} is not yet implemented')
                 
         elif block == 'cell_parameters':
-            cell = subdct['vectors']
-            if subdct.get('units', 'angstrom') == 'alat':
+            cell = subdct.get('vectors', None)
+            units = subdct.get('units', None)
+            if cell is None and units in [None, 'alat']:
                 if 'ibrav' not in subdct:
                     raise KeyError('"ibrav" (and any other cell-related ' \
                                    'parameters) should be listed in the ' \
-                                   '"cell_parameters" block when using ' \
-                                   'crystal coordinates')
+                                   '"cell_parameters" block when not ' \
+                                   'explicitly providing the cell')
                 # Copy over all the rest of the information to the system block
                 for k, v in subdct.items():
                     if k not in ['vectors', 'units']:
                         calc.parameters['input_data']['system'][k] = v
+            elif cell is not None and units == 'angstrom':
+                pass
+            else:
+                raise NotImplementedError('the combination of vectors, ibrav, & units ' \
+                      'in the cell_parameter block cannot be read (may not yet be ' \
+                      'implemented)')
         elif block in KEYS:
             for key, value in subdct.items():
                 if value == "":
@@ -219,10 +281,8 @@ def read_pw_dict(dct, generic_atoms=None):
                 kpts = subdct['kpts']
                 koffset = subdct['koffset']
 
-            # For some reason calc.set() wipes calc.atoms
-            atoms = copy.deepcopy(calc.atoms)
-            calc.atoms.calc.set(kpts=kpts, koffset=koffset)
-            calc.atoms = atoms
+            calc.parameters['kpts'] = kpts
+            calc.parameters['koffset'] = koffset
         else:
             warn(f'The {block} block is not yet implemented and will be ignored')
 
@@ -279,7 +339,8 @@ def read_json(fd):
 
     bigdct = json.loads(fd.read())
 
-    readers = {'cp': read_cp_dict, 'w90': read_w90_dict, 'pw2wannier': read_pw2wannier_dict, 'pw': read_pw_dict}
+    readers = {'cp': read_cp_dict, 'w90_occ': read_w90_dict, 'w90_emp': read_w90_dict, 
+               'pw2wannier': read_pw2wannier_dict, 'pw': read_pw_dict}
     calcs_dct = {}
 
     # Load default values
@@ -287,6 +348,11 @@ def read_json(fd):
     if 'atoms' in bigdct:
         generic_atoms = read_atoms_dct(bigdct['atoms'])
         del bigdct['atoms']
+
+    if 'w90' in bigdct:
+        bigdct['w90_occ'] = bigdct['w90']['occ']
+        bigdct['w90_emp'] = bigdct['w90']['emp']
+        del bigdct['w90']
 
     for block, dct in bigdct.items():
         block = block.lower()

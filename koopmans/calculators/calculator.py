@@ -224,7 +224,7 @@ class QE_calc:
     def parse_algebraic_settings(self):
         # Checks self._settings for keywords defined algebraically, and evaluates them
         for key, value in self._settings.items():
-            if key in ['pseudo_dir', 'outdir', 'assume_isolated']:
+            if key in ['pseudo_dir', 'outdir', 'assume_isolated', 'exclude_bands']:
                 continue
             self._settings[key] = self.parse_algebraic_setting(value)
 

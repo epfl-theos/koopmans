@@ -20,10 +20,10 @@ class W90_calc(QE_calc):
     # This means one can set and get wannier90 keywords as self.<keyword> but
     # internally they are stored as self._settings['keyword'] rather than 
     # self.<keyword>
-    _recognised_keywords = ['atoms_frac', 'bands_plot', 'dis_froz_max', 
-        'dis_num_iter', 'dis_win_max', 'guiding_centres', 'kpoint_path', 'kpoints',
+    _recognised_keywords = ['bands_plot', 'dis_froz_max',
+        'dis_num_iter', 'dis_win_max', 'guiding_centres', 'kpoint_path'
         'mp_grid', 'num_bands', 'num_iter', 'num_print_cycles', 'num_wann', 
-        'projections', 'unit_cell_cart']
+        'projections']
 
     for k in _recognised_keywords:
         # We need to use these make_get/set functions so that get/set_k are
