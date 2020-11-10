@@ -22,7 +22,6 @@ from koopmans.io import input_dft_from_pseudos, nelec_from_pseudos
 from koopmans.calculators import cp, pw, wannier90, pw2wannier
 import os
 import copy
-import ipdb
 
 def read_w90_dict(dct, generic_atoms=Atoms()):
     # Setting up ASE atoms and calc objects
@@ -47,7 +46,7 @@ def read_w90_dict(dct, generic_atoms=Atoms()):
     # at the moment, but will be overwritten)
     if generic_atoms.calc is not None:
         for key, val in generic_atoms.calc.parameters.items():
-            if key not in calc.parameters:
+            if key not in calc.parameters and key not in ['pseudopotentials']:
                 calc.parameters[key] = val
 
     dct = {k.lower(): v for k, v in dct.items()}
@@ -86,8 +85,7 @@ def read_w90_dict(dct, generic_atoms=Atoms()):
 
 def read_pw2wannier_dict(dct, generic_atoms=Atoms()):
     # Setting up ASE atoms and calc objects
-    calc = PW2Wannier(atoms=generic_atoms)
-    calc.atoms.calc = calc
+    calc = PW2Wannier()
 
     calc.parameters['inputpp'] = {}
     for k, v in dct.items():
@@ -96,6 +94,11 @@ def read_pw2wannier_dict(dct, generic_atoms=Atoms()):
         except:
             pass
         calc.parameters['inputpp'][k] = v
+
+    # Attaching an atoms object (though pw2wannier doesn't need this information,
+    # ASE will complain if it's missing)
+    calc.atoms = copy.deepcopy(generic_atoms)
+    calc.atoms.calc = calc
     
     # Return python_KI-type calculator object rather than ASE calculator
     return pw2wannier.PW2Wannier_calc(calc)
