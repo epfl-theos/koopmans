@@ -1,13 +1,16 @@
+import os
 from koopmans import utils
 from koopmans.calculators.calculator import run_qe
 from koopmans.calculators.environ import Environ_calc
-import os
 
 '''
 Workflow for performing delta SCF PBE calculations using pw.x --environ
 '''
 
 def run(workflow_settings, calcs_dct):
+
+    from koopmans.config import from_scratch
+
     if 'pw' not in calcs_dct:
         raise ValueError('You need to provide a pw block in your input .json file for task = environ_dscf')
 
@@ -17,7 +20,7 @@ def run(workflow_settings, calcs_dct):
     calc_succeeded = True
     pw_calc.name = 'pbe'
 
-    if workflow_settings['from_scratch']:
+    if from_scratch:
         utils.system_call('rm -r neutral charged 2> /dev/null', False)
 
     epsilons = sorted(workflow_settings['eps_cavity'], reverse=True)
@@ -48,10 +51,12 @@ def run(workflow_settings, calcs_dct):
             pw_calc.environ_settings['BOUNDARY']['solvent_mode'] = 'ionic'
             pw_calc.environ_settings['ELECTROSTATIC']['tol'] = 1e-8
 
-            run_qe(pw_calc, silent=False, from_scratch=True)
+            from_scratch = True
             # from_scratch = True means that run_qe won't try and skip this calculation
-            # if it encounters pre-existing QE output files, and NOT that QE will set
+            # if it encounters pre-existing QE output files, and NOT that QE will use
             # restart_mode = 'from_scratch'
+
+            run_qe(pw_calc, silent=False)
             calc_succeeded = pw_calc.is_converged()
 
             # Preparing for next loop

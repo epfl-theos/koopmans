@@ -15,6 +15,7 @@ import koopmans.utils as utils
 from koopmans.io import write_alpharef, read_alpharef, print_summary, print_qc
 from koopmans.calculators.calculator import run_qe, calculate_alpha
 from koopmans.calculators.cp import CP_calc
+import ipdb
 
 def run(workflow_settings, calcs_dct):
     '''
@@ -35,6 +36,8 @@ def run(workflow_settings, calcs_dct):
         tab_alpha_values.tex  -- a latex table of the alpha values
     '''
 
+    from koopmans.config import from_scratch
+
     functional = workflow_settings['functional']
 
     if 'cp' not in calcs_dct:
@@ -45,7 +48,7 @@ def run(workflow_settings, calcs_dct):
     master_calc.outdir = os.getcwd() + '/' + master_calc.outdir.strip('./')
 
     # Removing old directories
-    if workflow_settings['from_scratch']:
+    if from_scratch:
         if workflow_settings['init_density'] != 'ki':
             # if init_density == "ki" we don't want to delete the directory containing
             # the KI calculation we're reading the manifold from, or the TMP files
@@ -74,26 +77,13 @@ def run(workflow_settings, calcs_dct):
         alpha_df.loc[1] = [workflow_settings['alpha_guess']
                            for _ in range(n_bands)]
 
-    prev_calc_not_skipped = workflow_settings['from_scratch']
-    # Note since we always provide 'from_scratch=prev_calc_not_skipped' to run_qe, if
-    # workflow_settings['from_scratch'] is False, the workflow will skip all calculations
-    # until it reaches an incomplete calculation, at which stage prev_calc_not_skipped
-    # will go from False to True and all subsequent calculations will be run with
-    # 'from_scratch = True'.
-
-    # On the other hand, if workflow_settings['from_scratch'] is True,
-    # prev_calc_not_skipped will remain equal to True throughout the workflow and no
-    # calculations will be skipped
-
     print('\nINITIALISATION OF DENSITY')
 
     init_density = workflow_settings['init_density']
     if init_density == 'pbe':
         calc = set_up_calculator(master_calc, 'pbe_init')
         calc.directory = 'init'
-        prev_calc_not_skipped = run_qe(
-            calc, silent=False, from_scratch=prev_calc_not_skipped,
-            enforce_ss=workflow_settings['enforce_spin_symmetry'])
+        run_qe(calc, silent=False, enforce_ss=workflow_settings['enforce_spin_symmetry'])
 
     elif init_density == 'pbe-pw':
         # PBE using pw.x
@@ -103,14 +93,12 @@ def run(workflow_settings, calcs_dct):
         # PBE from scratch
         calc = set_up_calculator(master_calc, 'pbe_init')
         calc.directory = 'init'
-        prev_calc_not_skipped = run_qe(
-            calc, silent=False, from_scratch=prev_calc_not_skipped)
+        run_qe(calc, silent=False)
         # PZ from PBE
         calc = set_up_calculator(master_calc, 'pz_init')
         calc.directory = 'init'
         write_alpharef(alpha_df.loc[1], calc)
-        prev_calc_not_skipped = run_qe(
-            calc, silent=False, from_scratch=prev_calc_not_skipped)
+        run_qe(calc, silent=False)
 
     elif init_density == 'ki':
         print('Copying the density from a pre-existing KI calculation')
@@ -198,10 +186,9 @@ def run(workflow_settings, calcs_dct):
         utils.system_call(
             f'cp -r {save_prefix}_{calc.ndr}.save {save_prefix}_{calc.ndw}.save')
     else:
-        prev_calc_not_skipped = run_qe(
-            calc, silent=False, from_scratch=prev_calc_not_skipped)
+        run_qe(calc, silent=False)
 
-    if prev_calc_not_skipped and init_manifold != 'ki' and workflow_settings['enforce_spin_symmetry']:
+    if from_scratch and init_manifold != 'ki' and workflow_settings['enforce_spin_symmetry']:
         print('Copying the spin-up variational orbitals over to the spin-down channel')
         savedir = f'{calc.outdir}/{calc.prefix}_{calc.ndw}.save/K00001'
         utils.system_call(f'cp {savedir}/evc01.dat {savedir}/evc02.dat')
@@ -239,7 +226,7 @@ def run(workflow_settings, calcs_dct):
         converged = False
         i_sc = 0
 
-        if not prev_calc_not_skipped and os.path.isfile('alphas.pkl'):
+        if not from_scratch and os.path.isfile('alphas.pkl'):
             # Reloading alphas and errors from file
             print('Reloading alpha values from file')
             alpha_df = pd.read_pickle('alphas.pkl')
@@ -279,9 +266,9 @@ def run(workflow_settings, calcs_dct):
                 # For later SC loops, read in the matching calculation from the
                 # previous loop rather than the initialisation calculations
                 calc.ndr = calc.ndw
-            prev_calc_not_skipped = run_qe(
-                calc, silent=False, from_scratch=prev_calc_not_skipped, enforce_ss=enforce_ss)
-            # Store the result
+
+            # Run the calculation and store the result
+            run_qe(calc, silent=False)
             alpha_dep_calcs = [calc]
 
             # Loop over removing/adding an electron from/to each orbital
@@ -382,8 +369,7 @@ def run(workflow_settings, calcs_dct):
                     calc.directory = directory
 
                     # Run cp.x
-                    prev_calc_not_skipped = run_qe(
-                        calc, silent=False, from_scratch=prev_calc_not_skipped)
+                    run_qe(calc, silent=False)
 
                     # Reset the value of 'fixed_band' so we can keep track of which calculation
                     # is which. This is important for empty orbital calculations, where fixed_band
@@ -422,7 +408,7 @@ def run(workflow_settings, calcs_dct):
                             raise OSError(
                                 f'Could not find {evcempty_dir}/evcfixed_empty.dat')
 
-                if prev_calc_not_skipped:
+                if from_scratch:
 
                     # Calculate an updated alpha and a measure of the error
                     # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
@@ -485,14 +471,21 @@ def run(workflow_settings, calcs_dct):
         # to restart from them
         if workflow_settings['calculate_alpha'] or final_calc_type == 'pkipz':
             final_calc_type += '_final'
-
-        calc = set_up_calculator(master_calc, final_calc_type,
-                                 empty_states_nbnd=n_empty_bands)
+        
+        # For pKIPZ, the appropriate ndr can change but it is always ndw of the previous
+        # KI calculation
+        if final_calc_type == 'pkipz_final':
+            ndr = calc.ndw
+            calc = set_up_calculator(master_calc, final_calc_type, ndr=ndr,
+                                     empty_states_nbnd=n_empty_bands)
+        else:
+            calc = set_up_calculator(master_calc, final_calc_type,
+                                     empty_states_nbnd=n_empty_bands)
 
         calc.directory = directory
         write_alpharef(alpha_df.iloc[-1], calc)
 
-        run_qe(calc, silent=False, from_scratch=prev_calc_not_skipped)
+        run_qe(calc, silent=False)
 
     # Print out data for quality control
     if workflow_settings['print_qc']:

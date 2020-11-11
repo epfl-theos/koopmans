@@ -10,16 +10,15 @@ Sep 2020: moved individual calculators into calculators/
 
 """
 
-import ase.io as ase_io
-from ase.io import espresso_cp as cp_io
-from ase.build import make_supercell
-from koopmans.io import cpi_diff, read_alpharef, write_alpharef, warn
 import os
 import sys
 import copy
 import numpy as np
+import ase.io as ase_io
+from ase.io import espresso_cp as cp_io
+from ase.build import make_supercell
+from koopmans.io import cpi_diff, read_alpharef, write_alpharef, warn
 import koopmans.utils as utils
-
 
 class QE_calc:
 
@@ -242,10 +241,12 @@ class QE_calc:
         self._ase_calc.atoms = make_supercell(self._ase_calc.atoms, matrix, **kwargs)
         self._ase_calc.atoms.calc = self._ase_calc
 
-def run_qe(master_qe_calc, silent=True, from_scratch=False, enforce_ss=False):
+def run_qe(master_qe_calc, silent=True, enforce_ss=False):
     '''
     Wrapper for run_qe_single that manages the optional enforcing of spin symmetry
     '''
+
+    import koopmans.config as config
 
     if enforce_ss:
         # Create a copy of the calculator object (to avoid modifying the input)
@@ -264,9 +265,9 @@ def run_qe(master_qe_calc, silent=True, from_scratch=False, enforce_ss=False):
                 # Rewrite alpha file for nspin=1
                 alpha = read_alpharef(qe_calc)
                 write_alpharef(alpha, qe_calc)
-            from_scratch = run_qe_single(qe_calc, silent=silent, from_scratch=from_scratch)
+            run_qe_single(qe_calc, silent=silent)
 
-            if from_scratch:
+            if config.from_scratch:
                # Copy over nspin=2 wavefunction to nspin=1 tmp directory (if it has not been done already)
                nspin1_tmpdir = f'{qe_calc.outdir}/{qe_calc.prefix}_{qe_calc.ndw}.save/K00001'
                utils.system_call(f'convert_nspin2_wavefunction_to_nspin1.sh {nspin2_tmpdir} {nspin1_tmpdir}')
@@ -281,7 +282,7 @@ def run_qe(master_qe_calc, silent=True, from_scratch=False, enforce_ss=False):
             # Rewrite alpha file for nspin=1
             alpha = read_alpharef(qe_calc)
             write_alpharef(alpha, qe_calc)
-        from_scratch = run_qe_single(qe_calc, silent=silent, from_scratch=from_scratch)
+        run_qe_single(qe_calc, silent=silent)
 
         # PBE from scratch with nspin=2 (dummy run for creating files of appropriate size)
         qe_calc = copy.deepcopy(master_qe_calc)
@@ -294,11 +295,11 @@ def run_qe(master_qe_calc, silent=True, from_scratch=False, enforce_ss=False):
             # Rewrite alpha file for nspin=2
             alpha = read_alpharef(qe_calc, duplicated=False)
             write_alpharef(alpha, qe_calc)
-        from_scratch = run_qe_single(qe_calc, silent=silent, from_scratch=from_scratch)
+        run_qe_single(qe_calc, silent=silent)
         nspin2_tmpdir = f'{qe_calc.outdir}/{qe_calc.prefix}_{qe_calc.ndw}.save/K00001'
 
         # Copy over nspin=1 wavefunction to nspin=2 tmp directory
-        if from_scratch:
+        if config.from_scratch:
             utils.system_call(
                 f'convert_nspin1_wavefunction_to_nspin2.sh {nspin1_tmpdir} {nspin2_tmpdir}')
 
@@ -306,54 +307,51 @@ def run_qe(master_qe_calc, silent=True, from_scratch=False, enforce_ss=False):
         master_qe_calc.name += '_nspin2'
         master_qe_calc.restart_mode = 'restart'
         master_qe_calc.ndr = 99
-        return run_qe_single(master_qe_calc, silent=silent, from_scratch=from_scratch)
+        run_qe_single(master_qe_calc, silent=silent)
+
+        return
 
     else:
-        return run_qe_single(master_qe_calc, silent, from_scratch)
 
-def run_qe_single(qe_calc, silent=True, from_scratch=False):
+        run_qe_single(master_qe_calc, silent)
+
+        return
+
+def run_qe_single(qe_calc, silent=True):
     '''
     Runs qe_calc.calculate with additional options:
 
         silent :       if False, print status
-        from_scratch : if False, check for a pre-existing calculation, and see
-                       if it has completed. If so, skip this calculation.
 
-    returns True if the calculation was run, and False if the calculation was skipped
     '''
+
+    import koopmans.config as config
 
     ext_in = qe_calc.ext_in
     ext_out = qe_calc.ext_out
 
     # If an output file already exists, check if the run completed successfully
-    if not from_scratch:
+    verb = 'Running'
+    if not config.from_scratch:
+
+        verb = 'Rerunning'
         calc_file = f'{qe_calc.directory}/{qe_calc.name}'
+
         if os.path.isfile(calc_file + ext_out):
+
+            # Load the old calc_file
             old_calc = qe_calc.__class__(qe_files=calc_file)
 
             if old_calc.is_complete():
-                # If it did, load the results, and exit
+                # If it is complete, load the results, and exit
                 qe_calc.results = old_calc.results
                 if not silent:
                     print(
                         f'Not running {calc_file} as it is already complete')
-                return False
-            else:
-                # If not, compare our settings with the settings of the preexisting .cpi file
-                if ext_out == '.cpo':
-                    diffs = cpi_diff([qe_calc, old_calc])
-                else:
-                    raise ValueError('pwi_diff needs to be implemented')
-                if len(diffs) > 0:
-                    for d in diffs:
-                        old_value = getattr(old_calc, d, None)
-                        setattr(qe_calc, d, old_value)
-                        if not silent:
-                            print(f'    Resetting {d}')
+                return
 
     if not silent:
-        print('Running {}/{}...'.format(qe_calc.directory,
-                                        qe_calc.name), end='', flush=True)
+        print(f'{verb} {qe_calc.directory}/{qe_calc.name}...', end='', flush=True)
 
     qe_calc.calculate()
 
@@ -371,7 +369,9 @@ def run_qe_single(qe_calc, silent=True, from_scratch=False):
     if not silent:
         print(' done')
 
-    return True
+    config.from_scratch = True
+
+    return
 
 
 def calculate_alpha(calcs, filled=True, kipz=False):

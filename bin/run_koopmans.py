@@ -4,6 +4,7 @@ import argparse
 import textwrap
 from koopmans import io, ase
 from koopmans.workflows import workflow, pbe_dscf_with_pw
+from koopmans import config
 from collections import namedtuple
 
 '''
@@ -123,6 +124,9 @@ def check_settings(settings):
     # Parse physicals
     for physical in ['alpha_conv_thr', 'convergence_threshold']:
         settings[physical] = io.parse_physical(settings[physical])
+
+    # Set calculator.from_scratch
+    config.init(from_scratch = workflow_settings['from_scratch'])
 
 if __name__ == '__main__':
 

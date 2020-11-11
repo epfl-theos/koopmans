@@ -22,6 +22,8 @@ def run(workflow_settings, calcs_dct):
 
     '''
 
+    from koopmans.config import from_scratch
+
     if 'cp' not in calcs_dct:
         raise ValueError('"functional": "PBE" requires a "cp" block in the input .json file')
 
@@ -34,7 +36,7 @@ def run(workflow_settings, calcs_dct):
     calc.outdir = os.getcwd() + '/' + calc.outdir
 
     # Removing old directories
-    if workflow_settings['from_scratch']:
+    if from_scratch:
         utils.system_call(f'rm -r {calc.outdir} 2>/dev/null', False)
 
     calc.name = 'pbe'
@@ -53,8 +55,7 @@ def run(workflow_settings, calcs_dct):
         if calc.empty_states_maxstep is None:
             calc.empty_states_maxstep = 300
 
-    run_qe(calc, silent=False, from_scratch=workflow_settings['from_scratch'],
-               enforce_ss=workflow_settings['enforce_spin_symmetry'])
+    run_qe(calc, silent=False, enforce_ss=workflow_settings['enforce_spin_symmetry'])
 
     if workflow_settings['print_qc']:
         for var in ['energy', 'homo_energy']:

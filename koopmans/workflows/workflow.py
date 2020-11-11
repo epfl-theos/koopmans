@@ -16,8 +16,9 @@ from koopmans.ase import write_json
 from koopmans.defaults import load_defaults
 from koopmans.workflows import kc_with_cp, pbe_with_cp
 
-
 def run_convergence(workflow_settings, master_calcs_dct, initial_depth=3):
+
+    from koopmans.config import from_scratch
 
     if 'cp' in master_calcs_dct:
         cp_master_calc = master_calcs_dct['cp']
@@ -26,7 +27,7 @@ def run_convergence(workflow_settings, master_calcs_dct, initial_depth=3):
 
     increments = {'cell_size': 0.1, 'ecutwfc': 10, 'empty_states_nbnd': 1}
 
-    if workflow_settings['from_scratch']:
+    if from_scratch:
         for key in increments.keys():
             utils.system_call(f'rm -r {key}* 2> /dev/null', False)
 
@@ -204,13 +205,15 @@ def run_convergence(workflow_settings, master_calcs_dct, initial_depth=3):
 
 def run_singlepoint(workflow_settings, calcs_dct):
 
+    from koopmans.config import from_scratch
+
     if workflow_settings['functional'] == 'all':
         # if 'all', create subdirectories and run
         functionals = ['ki', 'pkipz', 'kipz']
 
         # Make separate directories for KI, pKIPZ, and KIPZ
         for functional in functionals:
-            if workflow_settings['from_scratch'] and os.path.isdir(functional):
+            if from_scratch and os.path.isdir(functional):
                 utils.system_call(f'rm -r {functional}')
             if not os.path.isdir(functional):
                 utils.system_call(f'mkdir {functional}')
