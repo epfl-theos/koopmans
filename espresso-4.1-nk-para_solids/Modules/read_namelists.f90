@@ -473,6 +473,9 @@ MODULE read_namelists_module
        !
        occupation_constraints = .false.
        !
+       do_outerloop = .true.
+       do_outerloop_empty = .true.
+       !
        RETURN
        !
      END SUBROUTINE
@@ -1102,6 +1105,8 @@ MODULE read_namelists_module
        CALL mp_bcast( sic_epsilon ,         ionode_id )
        CALL mp_bcast( sic_alpha   ,         ionode_id )
        CALL mp_bcast( force_pairing ,       ionode_id )
+       CALL mp_bcast( do_outerloop,         ionode_id )
+       CALL mp_bcast( do_outerloop_empty,   ionode_id )
        !
        ! ... ensemble-DFT
        !

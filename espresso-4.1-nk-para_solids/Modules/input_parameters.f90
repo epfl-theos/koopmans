@@ -962,6 +962,9 @@ MODULE input_parameters
           ! If true perform CP dynamics with constrained occupations
           ! to be used together with penalty functional ...
 
+        LOGICAL :: do_outerloop  = .true. ! do outer loop minimization
+        LOGICAL :: do_outerloop_empty = .true. ! do outer loop minimizatio
+
         NAMELIST / electrons / emass, emass_cutoff, orthogonalization, &
           electron_maxstep, ortho_eps, ortho_max, electron_dynamics,   &
           electron_damping, electron_velocities, electron_temperature, &
@@ -979,7 +982,8 @@ MODULE input_parameters
           occupation_dynamics, tcg, maxiter, etresh, passop, epol,     &
           efield, epol2, efield2, diago_full_acc,                      &
           occupation_constraints, ortho_para, niter_cg_restart,        &
-          niter_cold_restart, lambda_cold, efield_cart, real_space
+          niter_cold_restart, lambda_cold, efield_cart, real_space,    &
+          do_outerloop, do_outerloop_empty
 
 !
 !=----------------------------------------------------------------------------=!
