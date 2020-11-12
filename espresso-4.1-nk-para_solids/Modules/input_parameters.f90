@@ -567,8 +567,6 @@ MODULE input_parameters
         REAL ( DP ) :: hfscalfact = 1.0_DP
         REAL ( DP ) :: vanishing_rho_w = 1.0e-7_DP
         !
-        LOGICAL :: one_innerloop_only = .FALSE. ! NsC : do innerloop only without touching the input density (NO outern loop)
-        !
 !=-----BEGIN nksic input variables
         NAMELIST / nksic /  draw_pot, pot_number,                             & !added:linh draw vsic potentials 
              do_nk, do_pz, do_nki, do_nkpz, do_nkipz, do_hf,                  &
@@ -586,7 +584,7 @@ MODULE input_parameters
              innerloop_init_n, innerloop_cg_ratio, do_pz_renorm, kfact,       &
              esic_conv_thr, do_bare_eigs, sortwfc_spread, iprint_spreads,     &
              iprint_manifold_overlap, innerloop_until, innerloop_atleast,     &
-             hartree_only_sic, aux_empty_nbnd, one_innerloop_only                                
+             hartree_only_sic, aux_empty_nbnd
              !
 
 !=----END nksic input variables
@@ -962,6 +960,9 @@ MODULE input_parameters
           ! If true perform CP dynamics with constrained occupations
           ! to be used together with penalty functional ...
 
+        LOGICAL :: do_outerloop  = .true. ! do outer loop minimization
+        LOGICAL :: do_outerloop_empty = .true. ! do outer loop minimizatio
+
         NAMELIST / electrons / emass, emass_cutoff, orthogonalization, &
           electron_maxstep, ortho_eps, ortho_max, electron_dynamics,   &
           electron_damping, electron_velocities, electron_temperature, &
@@ -979,7 +980,8 @@ MODULE input_parameters
           occupation_dynamics, tcg, maxiter, etresh, passop, epol,     &
           efield, epol2, efield2, diago_full_acc,                      &
           occupation_constraints, ortho_para, niter_cg_restart,        &
-          niter_cold_restart, lambda_cold, efield_cart, real_space
+          niter_cold_restart, lambda_cold, efield_cart, real_space,    &
+          do_outerloop, do_outerloop_empty
 
 !
 !=----------------------------------------------------------------------------=!
