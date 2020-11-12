@@ -185,7 +185,7 @@ PROGRAM pw2wannier90
      scdm_entanglement = 'isolated'
      scdm_mu = 0.0_dp
      scdm_sigma = 1.0_dp
-     wannier_plot = .true.
+     wannier_plot = .false.
      wannier_plot_list = 'all'
      !
      !     reading the namelist inputpp
