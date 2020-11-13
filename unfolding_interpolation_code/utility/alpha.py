@@ -49,25 +49,27 @@ odd_alpha = False
 if ( ki_calc ):
     if ( args.state == 'occ' ): ifile = open( 'cp_ki_N.in', 'r' )
     if ( args.state == 'emp' ): ifile = open( 'cp_ki_N+1-1.in', 'r' )
-        lines = ifile.readlines()
-        for line in lines:
-            if ( re.search('odd_nkscalfact',line) ):
-                if ( 'true' in line ): odd_alpha = True
-            if ( re.search('fixed_band', line) ):
-                orb = int(line.split()[2])
-            if ( args.state == 'emp' and re.search('nelec',line) ):
-                nelec = int(line.split()[2])
+    lines = ifile.readlines()
+    for line in lines:
+        if ( re.search('odd_nkscalfact',line) ):
+            if ( 'true' in line ): odd_alpha = True
+        if ( re.search('fixed_band', line) ):
+            orb = int(line.split()[2])
+        if ( args.state == 'emp' and re.search('nelec',line) ):
+            nelec = int(line.split()[2])
+
 if ( kipz_calc ):
     if ( args.state == 'occ' ): ifile = open( 'cp_kipz_N.in', 'r' )
     if ( args.state == 'emp' ): ifile = open( 'cp_kipz_N+1-1.in', 'r' )
-        lines = ifile.readlines()
-        for line in lines:
-            if ( re.search('odd_nkscalfact',line) ):
-                if ( 'true' in line ): odd_alpha = True
+    lines = ifile.readlines()
+    for line in lines:
+        if ( re.search('odd_nkscalfact',line) ):
+            if ( 'true' in line ): odd_alpha = True
 
 if ( odd_alpha ):
     if ( args.state == 'occ' ): ifile = open( 'file_alpharef.txt', 'r' )
     if ( args.state == 'emp' ): ifile = open( 'file_alpharef_empty.txt', 'r' )
+    ### TO FINISH ...
 
 
 
