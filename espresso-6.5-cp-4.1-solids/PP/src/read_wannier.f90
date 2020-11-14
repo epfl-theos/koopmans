@@ -170,9 +170,6 @@ MODULE read_wannier
     ENDIF
     !
     ALLOCATE( u_mat(num_wann,num_wann,num_kpts) )
-    ALLOCATE( m_mat(num_wann,num_wann,nntot,num_kpts) )  
-    ALLOCATE( centers(3,num_wann) )                                ! Wannier centers
-    ALLOCATE( spreads(num_wann) )                                  ! Wannier spreads
     !
     IF ( ionode ) THEN
       !
@@ -181,6 +178,10 @@ MODULE read_wannier
                                             nkp=1,num_kpts )
       !
       CALL check_u_unitary          ! checks u_mat is unitary
+      !
+      ALLOCATE( m_mat(num_wann,num_wann,nntot,num_kpts) )  
+      ALLOCATE( centers(3,num_wann) )                                ! Wannier centers
+      ALLOCATE( spreads(num_wann) )                                  ! Wannier spreads
       !
       READ( chk_unit ) (((( m_mat(i,j,nn,nkp), i=1,num_wann ), &
                                                j=1,num_wann ), &

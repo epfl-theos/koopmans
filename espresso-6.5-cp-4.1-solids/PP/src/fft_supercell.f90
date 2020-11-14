@@ -199,6 +199,13 @@ CONTAINS
       ALLOCATE( xkcp(3,nkscp) )
       xkcp(:,1) = (/ 0.D0, 0.D0, 0.D0 /)
       !
+      ! force the supercell FFT grid to be a multiple of the 
+      ! primitive cell FFT grid
+      !
+      dfftcp%nr1 = dffts%nr1 * kgrid(1)
+      dfftcp%nr2 = dffts%nr2 * kgrid(2)
+      dfftcp%nr3 = dffts%nr3 * kgrid(3)
+      !
     ENDIF
     !
     ! ... set up the supercell fft descriptor, including parallel 

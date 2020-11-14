@@ -42,7 +42,6 @@ MODULE wannier2odd
     ! ...  4) Wannier functions are finally written in a CP-readable
     ! ...     file
     !
-    USE io_global,           ONLY : stdout
     USE io_files,            ONLY : nwordwfc, iunwfc, restart_dir
     USE io_base,             ONLY : write_rhog
     USE mp_pools,            ONLY : my_pool_id
@@ -342,6 +341,7 @@ MODULE wannier2odd
     ENDIF
     !
     CALL mp_sum( charge, intra_bgrp_comm )
+    !
     nelec_ = nelec * num_kpts
     IF ( check_fft ) nelec_ = nelec
     IF ( ABS( charge - nelec_ ) > 1.D-3 * charge ) &

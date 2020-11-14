@@ -38,7 +38,6 @@ MODULE scell_wfc
     ! ...  psicx : output wfc extended to the supercell
     ! ...  dfftx : fft descriptor of the supercell
     !
-    USE io_global,           ONLY : stdout
     USE mp,                  ONLY : mp_sum
     USE mp_bands,            ONLY : intra_bgrp_comm
     USE fft_base,            ONLY : dffts
