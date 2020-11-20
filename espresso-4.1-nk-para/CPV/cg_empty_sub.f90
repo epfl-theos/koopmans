@@ -285,6 +285,13 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
                                    wfc_centers_emp, wfc_spreads_emp, &
                                    icompute_spread, .true.)
              !
+             ! Print spreads infor	
+             !	
+             ! WRITE( stdout, *) "sum spreads:1", sum(wfc_spreads_emp(1:nupdwn_emp(1), 1, 1)), &
+             !                                    sum(wfc_spreads_emp(1:nupdwn_emp(2), 2, 1))
+             ! WRITE( stdout, *) "sum spreads:2", sum(wfc_spreads_emp(1:nupdwn_emp(1), 1, 2)), &
+             !                                    sum(wfc_spreads_emp(1:nupdwn_emp(2), 2, 2))
+             !
              IF ( (maxiter_emp==1).and.(itercg==1) ) THEN 
                 write(stdout, *) "Localization of orbitals from PZS localization"
                 do i = 1, nupdwn_emp(2)
@@ -815,6 +822,13 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
                                       wtot, sizwtot, vsic_emp, .false., pink_emp, nudx_emp, &
                                       wfc_centers_emp, wfc_spreads_emp, &
                                       icompute_spread, .true.)
+           !
+           ! Print spreads infor	
+           !	
+           ! WRITE( stdout, *) "sum spreads:1", sum(wfc_spreads_emp(1:nupdwn_emp(1), 1, 1)), &
+           !                                    sum(wfc_spreads_emp(1:nupdwn_emp(2), 2, 1))
+           ! WRITE( stdout, *) "sum spreads:2", sum(wfc_spreads_emp(1:nupdwn_emp(1), 1, 2)), &
+           !                                    sum(wfc_spreads_emp(1:nupdwn_emp(2), 2, 2))
            !
            do i = 1, n_emps 
               !  
