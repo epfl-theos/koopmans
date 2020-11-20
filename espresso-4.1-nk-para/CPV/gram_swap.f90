@@ -35,7 +35,6 @@ SUBROUTINE gram_swap( betae, bec, nkbx, cp, ngwx, n, fixed_index )
       ! 
       csc=CMPLX(0.d0,0.d0)
       !
-      WRITE(*,*) "NICOLA in gram_swap fixed_inex=", fixed_index
       CALL dswap( 2*ngw*1, cp(:,fixed_index), 1, cp(:,1), 1 ) 
       ! NsC Exchange the spin indeces as well
       ispin_aux = ispin(fixed_index) ! Store the original spin 

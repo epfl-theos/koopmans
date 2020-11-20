@@ -81,7 +81,7 @@
       use printout_base,            only : printout_base_open, printout_base_unit, &
                                            printout_base_close
       use control_flags,            only : iprint_manifold_overlap, iprint_spreads
-      use input_parameters,         only : fixed_state, fixed_band, odd_nkscalfact, one_innerloop_only, &
+      use input_parameters,         only : fixed_state, fixed_band, odd_nkscalfact, do_outerloop, &
                                            finite_field_introduced, finite_field_for_empty_state
       !
       implicit none
@@ -362,14 +362,13 @@
            !
            call do_innerloop_subroutine()
            !
-           IF ( one_innerloop_only ) THEN 
-              !do_orbdep=.FALSE. !!! TEMPORARY FOR DEBUG
-              EXIT OUTER_LOOP !! NsC: Exit Just after the first IL without touching the input density
-           ENDIF
-           ! 
         endif
         !
         call print_out_observables()
+        !
+        IF ( .not. do_outerloop ) THEN
+           EXIT OUTER_LOOP
+        ENDIF
         !
         ! here we store the etot in ene0, to keep track of the energy of the initial point
         !

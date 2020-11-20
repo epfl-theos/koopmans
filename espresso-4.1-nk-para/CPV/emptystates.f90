@@ -86,6 +86,7 @@
       type(twin_matrix) :: bec_occ !(:,:) !modified:giovanni
       type(twin_matrix), dimension(:),  ALLOCATABLE :: lambda_emp !(:,:,:) !, 
       REAL(DP),    ALLOCATABLE :: f_emp(:)
+      REAL(DP),    ALLOCATABLE :: f_aux(:)
       REAL(DP),    ALLOCATABLE :: lambda_rep(:,:)
       COMPLEX(DP), ALLOCATABLE :: lambda_rep_c(:,:)
       INTEGER,     ALLOCATABLE :: ispin_emp(:)
@@ -217,6 +218,7 @@
       ENDDO
       !
       ALLOCATE( f_emp( n_empx ) )
+      ALLOCATE( f_aux( n_empx ) )
       ALLOCATE( ispin_emp( n_empx ) )
       !
       c0_emp     = 0.0
@@ -234,6 +236,7 @@
       ENDDO
       !
       f_emp      = 2.0d0 / DBLE(nspin)
+      f_aux      = 1.0d0
       !
       ispin_emp = 0
       ispin_emp( 1:nupdwn_emp( 1 ) ) = 1
@@ -455,8 +458,8 @@
             if(allocated(valpsi)) deallocate(valpsi)
             !
             ! reallocate the memory of odd_alpha for empty states
-            allocate (odd_alpha(n_emps)) 
-            allocate (valpsi(n_emps, ngw)) 
+            allocate (odd_alpha(n_empx))
+            allocate (valpsi(n_empx, ngw))
             !
          ENDIF
          !
@@ -569,7 +572,7 @@
             !
             DO i = 1, n_emps, 2
                 !
-                CALL dforce( i, bec_emp, vkb, c0_emp, c2, c3, v, SIZE(v,1), ispin_emp, f_emp, n_emps, nspin )
+                CALL dforce( i, bec_emp, vkb, c0_emp, c2, c3, v, SIZE(v,1), ispin_emp, f_aux, n_emps, nspin )
                 !
                 ! ODD terms
                 !
@@ -577,16 +580,16 @@
                     !
                     IF ( odd_nkscalfact_empty ) THEN
                        !
-                       c2(:) = c2(:) - valpsi(i, :)   * f_emp(i)
-                       c3(:) = c3(:) - valpsi(i+1, :) * f_emp(i+1)
+                       c2(:) = c2(:) - valpsi(i, :)   * f_aux(i)
+                       c3(:) = c3(:) - valpsi(i+1, :) * f_aux(i+1)
                        !
                     ENDIF
                     !   
                     CALL nksic_eforce( i, n_emps, n_empx, vsic_emp, deeq_sic_emp, bec_emp, ngw, &
                                        c0_emp(:,i), c0_emp(:,i+1), vsicpsi, lgam )
                     !
-                    c2(:) = c2(:) - vsicpsi(:,1) * f_emp(i)
-                    c3(:) = c3(:) - vsicpsi(:,2) * f_emp(i+1)
+                    c2(:) = c2(:) - vsicpsi(:,1) * f_aux(i)
+                    c3(:) = c3(:) - vsicpsi(:,2) * f_aux(i+1)
                     !
                 ENDIF
                 !
@@ -594,8 +597,8 @@
                 !
                 IF ( do_hf ) THEN
                     !
-                    c2(:) = c2(:) - vxxpsi_emp(:,i)   * f_emp(i)
-                    c3(:) = c3(:) - vxxpsi_emp(:,i+1) * f_emp(i+1)
+                    c2(:) = c2(:) - vxxpsi_emp(:,i)   * f_aux(i)
+                    c3(:) = c3(:) - vxxpsi_emp(:,i+1) * f_aux(i+1)
                     !
                 ENDIF
                 !
@@ -722,7 +725,7 @@
               CALL crot( cm_emp, c0_emp, ngw, n, i, i, lambda_rep_c, nudx_emp, ei_emp(:,iss) )
           ENDIF
           !   
-          ei_emp( 1:n, iss ) = ei_emp( 1:n, iss ) / f_emp( i : i + n - 1 )
+          ei_emp( 1:n, iss ) = ei_emp( 1:n, iss ) / f_aux( i : i + n - 1 )
           !
       ENDDO
       !
@@ -800,6 +803,7 @@
       ! 
       DEALLOCATE( ispin_emp )
       DEALLOCATE( f_emp )
+      DEALLOCATE( f_aux )
       DEALLOCATE( emadt2 )
       DEALLOCATE( emaver )
       DEALLOCATE( c2 )

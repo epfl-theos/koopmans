@@ -567,9 +567,6 @@ MODULE input_parameters
         REAL ( DP ) :: hfscalfact = 1.0_DP
         REAL ( DP ) :: vanishing_rho_w = 1.0e-7_DP
         !
-        ! NsC : do innerloop only without touching the input density (NO outern loop)
-        LOGICAL :: one_innerloop_only = .FALSE. 
-        !
         ! Linh: finite field
         LOGICAL :: finite_field_introduced = .FALSE.
         LOGICAL :: finite_field_for_empty_state = .FALSE.
@@ -592,7 +589,7 @@ MODULE input_parameters
              innerloop_init_n, innerloop_cg_ratio, do_pz_renorm, kfact,       &
              esic_conv_thr, do_bare_eigs, sortwfc_spread, iprint_spreads,     &
              iprint_manifold_overlap, innerloop_until, innerloop_atleast,     &
-             hartree_only_sic, aux_empty_nbnd, one_innerloop_only,            &
+             hartree_only_sic, aux_empty_nbnd,                            &
              !
              finite_field_introduced, finite_field_for_empty_state
              !
@@ -971,6 +968,14 @@ MODULE input_parameters
           ! If true perform CP dynamics with constrained occupations
           ! to be used together with penalty functional ...
 
+        LOGICAL :: do_outerloop = .TRUE.
+          ! If true, perform the outerloop when optimising the
+          ! filled electronic variational orbitals
+
+        LOGICAL :: do_outerloop_empty = .TRUE.
+          ! If true, perform the outerloop when optimising the
+          ! empty electronic variational orbitals
+
         NAMELIST / electrons / emass, emass_cutoff, orthogonalization, &
           electron_maxstep, ortho_eps, ortho_max, electron_dynamics,   &
           electron_damping, electron_velocities, electron_temperature, &
@@ -988,7 +993,8 @@ MODULE input_parameters
           occupation_dynamics, tcg, maxiter, etresh, passop, epol,     &
           efield, epol2, efield2, diago_full_acc,                      &
           occupation_constraints, ortho_para, niter_cg_restart,        &
-          niter_cold_restart, lambda_cold, efield_cart, real_space
+          niter_cold_restart, lambda_cold, efield_cart, real_space,    &
+          do_outerloop, do_outerloop_empty
 
 !
 !=----------------------------------------------------------------------------=!

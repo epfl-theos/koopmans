@@ -81,7 +81,8 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
       use cp_interfaces,            only : gram_empty, nlsm1
       use uspp_param,               only : nhm
       use descriptors,              only : descla_siz_
-      use input_parameters,         only : odd_nkscalfact_empty, wo_odd_in_empty_run, odd_nkscalfact
+      use input_parameters,         only : odd_nkscalfact_empty, wo_odd_in_empty_run, odd_nkscalfact, &
+                                           do_outerloop_empty
       !
       implicit none
       !
@@ -216,11 +217,11 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
       !
       numok = 0
       !
-      allocate( hpsi(ngw, n_emps) )
-      allocate( hpsi0(ngw, n_emps) )
-      allocate( gi(ngw, n_emps), hi(ngw, n_emps) )
+      allocate( hpsi(ngw, n_empx) )
+      allocate( hpsi0(ngw, n_empx) )
+      allocate( gi(ngw, n_empx), hi(ngw, n_empx) )
       !
-      allocate(hitmp(ngw, n_emps))
+      allocate(hitmp(ngw, n_empx))
       hitmp(:,:) = CMPLX(0.d0,0.d0)
       !
       gi(:,:)=CMPLX(0.d0,0.d0)
@@ -286,10 +287,10 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
              !
              ! Print spreads infor
              !
-             WRITE( stdout, *) "sum spreads:1", sum(wfc_spreads_emp(1:nupdwn_emp(1), 1, 1)), &
-                                                sum(wfc_spreads_emp(1:nupdwn_emp(2), 2, 1))
-             WRITE( stdout, *) "sum spreads:2", sum(wfc_spreads_emp(1:nupdwn_emp(1), 1, 2)), &
-                                                sum(wfc_spreads_emp(1:nupdwn_emp(2), 2, 2))       
+             ! WRITE( stdout, *) "sum spreads:1", sum(wfc_spreads_emp(1:nupdwn_emp(1), 1, 1)), &
+             !                                    sum(wfc_spreads_emp(1:nupdwn_emp(2), 2, 1))
+             ! WRITE( stdout, *) "sum spreads:2", sum(wfc_spreads_emp(1:nupdwn_emp(1), 1, 2)), &
+             !                                    sum(wfc_spreads_emp(1:nupdwn_emp(2), 2, 2))
              !
              IF ( (maxiter_emp==1).and.(itercg==1) ) THEN 
                 write(stdout, *) "Localization of orbitals from PZS localization"
@@ -349,6 +350,10 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
 !!!! NLN check end
         ! 
         call print_out_observables()
+        !
+        IF ( .not. do_outerloop_empty ) THEN
+           EXIT OUTER_LOOP
+        ENDIF
         !
         ! here we store the etot in ene0, to keep track of the energy of the initial point
         !
@@ -820,10 +825,10 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
            !
            ! Print spreads infor
            !
-           WRITE( stdout, *) "sum spreads:1", sum(wfc_spreads_emp(1:nupdwn_emp(1), 1, 1)), & 
-                                              sum(wfc_spreads_emp(1:nupdwn_emp(2), 2, 1))
-           WRITE( stdout, *) "sum spreads:2", sum(wfc_spreads_emp(1:nupdwn_emp(1), 1, 2)), &
-                                              sum(wfc_spreads_emp(1:nupdwn_emp(2), 2, 2))
+           ! WRITE( stdout, *) "sum spreads:1", sum(wfc_spreads_emp(1:nupdwn_emp(1), 1, 1)), &
+           !                                    sum(wfc_spreads_emp(1:nupdwn_emp(2), 2, 1)
+           ! WRITE( stdout, *) "sum spreads:2", sum(wfc_spreads_emp(1:nupdwn_emp(1), 1, 2)), &
+           !                                    sum(wfc_spreads_emp(1:nupdwn_emp(2), 2, 2))
            !
            do i = 1, n_emps 
               !  

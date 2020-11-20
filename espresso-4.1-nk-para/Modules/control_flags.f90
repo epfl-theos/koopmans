@@ -104,6 +104,8 @@ MODULE control_flags
   INTEGER :: iprint_manifold_overlap=-1
   LOGICAL :: hartree_only_sic=.false.
   INTEGER :: innerloop_until=-1
+  LOGICAL :: do_outerloop  = .TRUE. ! Do outer loop minimization
+  LOGICAL :: do_outerloop_empty = .TRUE. ! Do outer loop minimization
   LOGICAL :: do_innerloop  = .FALSE. ! Do inner loop minimization in case do_orbdep
   LOGICAL :: do_innerloop_empty = .FALSE. ! Do inner loop minimization in case do_orbdep
   LOGICAL :: do_innerloop_cg  = .FALSE. ! Do cg inner loop minimization with parabolic minimization in case do_orbdep
