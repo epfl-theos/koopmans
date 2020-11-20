@@ -580,16 +580,16 @@
                     !
                     IF ( odd_nkscalfact_empty ) THEN
                        !
-                       c2(:) = c2(:) - valpsi(i, :)   * f_emp(i)
-                       c3(:) = c3(:) - valpsi(i+1, :) * f_emp(i+1)
+                       c2(:) = c2(:) - valpsi(i, :)   * f_aux(i)
+                       c3(:) = c3(:) - valpsi(i+1, :) * f_aux(i+1)
                        !
                     ENDIF
                     !   
                     CALL nksic_eforce( i, n_emps, n_empx, vsic_emp, deeq_sic_emp, bec_emp, ngw, &
                                        c0_emp(:,i), c0_emp(:,i+1), vsicpsi, lgam )
                     !
-                    c2(:) = c2(:) - vsicpsi(:,1) * f_emp(i)
-                    c3(:) = c3(:) - vsicpsi(:,2) * f_emp(i+1)
+                    c2(:) = c2(:) - vsicpsi(:,1) * f_aux(i)
+                    c3(:) = c3(:) - vsicpsi(:,2) * f_aux(i+1)
                     !
                 ENDIF
                 !
@@ -597,8 +597,8 @@
                 !
                 IF ( do_hf ) THEN
                     !
-                    c2(:) = c2(:) - vxxpsi_emp(:,i)   * f_emp(i)
-                    c3(:) = c3(:) - vxxpsi_emp(:,i+1) * f_emp(i+1)
+                    c2(:) = c2(:) - vxxpsi_emp(:,i)   * f_aux(i)
+                    c3(:) = c3(:) - vxxpsi_emp(:,i+1) * f_aux(i+1)
                     !
                 ENDIF
                 !
