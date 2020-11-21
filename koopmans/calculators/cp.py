@@ -13,9 +13,10 @@ from koopmans.calculators.calculator import QE_calc
 # Quantum ESPRESSO uses CODATA 2006 internally
 units = create_units('2006')
 
+
 class CP_calc(QE_calc):
     # Subclass of QE_calc for performing calculations with cp.x
-     
+
     # Point to the appropriate ASE IO module
     _io = cp_io
 
@@ -25,12 +26,12 @@ class CP_calc(QE_calc):
 
     # Adding all cp.x keywords as decorated properties of the CP_calc class.
     # This means one can set and get cp.x keywords as self.<keyword> but
-    # internally they are stored as self._settings['keyword'] rather than 
+    # internally they are stored as self._settings['keyword'] rather than
     # self.<keyword>
     _recognised_keywords = []
 
     for keywords in _io.KEYS.values():
-        for k in keywords: 
+        for k in keywords:
             _recognised_keywords.append(k)
 
             # We need to use these make_get/set functions so that get/set_k are
@@ -50,7 +51,7 @@ class CP_calc(QE_calc):
 
             get_k = make_get(k)
             set_k = make_set(k)
-            locals()[k] = property(get_k, set_k)     
+            locals()[k] = property(get_k, set_k)
 
     def is_complete(self):
         return self.results['job_done']
@@ -58,12 +59,14 @@ class CP_calc(QE_calc):
     def is_converged(self):
         # Checks convergence of the calculation
         if self.conv_thr is None:
-            raise ValueError('Cannot check convergence when "conv_thr" is not set')
+            raise ValueError(
+                'Cannot check convergence when "conv_thr" is not set')
         return self._ase_is_converged()
 
     def _ase_is_converged(self):
         if 'convergence' not in self.results:
-            raise ValueError('Could not locate calculation details to check convergence')
+            raise ValueError(
+                'Could not locate calculation details to check convergence')
 
         # Check convergence for both filled and empty, allowing for the possibility
         # of do_outerloop(_empty) = False meaning the calculation is immpediately
@@ -75,5 +78,6 @@ class CP_calc(QE_calc):
             if not do_outer:
                 converged.append(True)
             else:
-                converged.append(convergence[-1]['delta_E'] < self.conv_thr*units.Hartree)
+                converged.append(
+                    convergence[-1]['delta_E'] < self.conv_thr * units.Hartree)
         return all(converged)

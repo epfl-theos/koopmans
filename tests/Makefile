@@ -4,14 +4,14 @@
 install:
 	@# install testcode
 	git submodule init
-	git submodule update
+	git submodule update --remote --merge
 
 tests:
 ifeq ($(wildcard ./testcode/bin/testcode.py),)
 	@$(MAKE) install
 endif
 ifneq ($(wildcard ./test_06/converged.json),)
-	rm test_06/converged.json 2> /dev/null
+	@rm test_06/converged.json 2> /dev/null
 endif
 	testcode/bin/testcode.py $(TC) --verbose
 

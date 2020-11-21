@@ -9,6 +9,7 @@ For information on how to run the tests, run `make help`
 `test_05` KIPZ on H2O, calculating screening parameters for the HOMO and LUMO only
 `test_06` PBE convergence on H2O
 `test_07` KI, pKIPZ, and KIPZ on H2O as a single workflow
+`test_08` PBE delta SCF calculation on SO2 using a cavity to stabilise the unbound LUMO
 
 Last updated by Edward Linscott, Oct 2020
 

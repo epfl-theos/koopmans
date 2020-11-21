@@ -21,6 +21,7 @@ import os
 # Quantum Espresso -- and python_KI -- uses CODATA 2006 internally
 ase_units = create_units('2006')
 
+
 def cpi_diff(calcs, silent=False):
 
     # If calcs is a dict, convert it to a list (we only need the values)
@@ -45,7 +46,7 @@ def cpi_diff(calcs, silent=False):
     return diffs
 
 
-def print_summary(alpha_df, error_df = None):
+def print_summary(alpha_df, error_df=None):
     # Printing out a progress summary
     print('\nalpha')
     print(alpha_df)
@@ -69,11 +70,12 @@ def write_alpharef(alphas, calc=None, filling=None, directory=None, duplicate=Tr
 
     if calc is not None:
         directory = calc.directory
-        n_filled_bands = calc.nelec//2
+        n_filled_bands = calc.nelec // 2
         n_empty_bands = calc.empty_states_nbnd
         if n_empty_bands is None:
             n_empty_bands = 0
-        filling = [True for _ in range(n_filled_bands)] + [False for _ in range(n_empty_bands)]
+        filling = [True for _ in range(
+            n_filled_bands)] + [False for _ in range(n_empty_bands)]
         duplicate = (calc.nspin == 2)
     elif directory is None:
         raise ValueError(
@@ -86,7 +88,7 @@ def write_alpharef(alphas, calc=None, filling=None, directory=None, duplicate=Tr
             alphas += alphas
         with open(f'{directory}/file_alpharef{suffix}.txt', 'w') as fd:
             fd.write('{}\n'.format(len(alphas)))
-            fd.writelines(['{} {} 1.0\n'.format(i+1, a)
+            fd.writelines(['{} {} 1.0\n'.format(i + 1, a)
                            for i, a in enumerate(alphas)])
 
 
@@ -117,7 +119,7 @@ def read_alpharef(calc=None, directory=None, duplicated=True):
             flines = fd.readlines()
             n_orbs = int(flines[0])
             if duplicated:
-               n_orbs //= 2
+                n_orbs //= 2
             alphas += [float(line.split()[1]) for line in flines[1:n_orbs + 1]]
     return alphas
 
@@ -174,7 +176,7 @@ def input_dft_from_pseudos(calc):
                           for fname in calc.parameters['pseudopotentials'].values()]))
 
     if len(input_dft) != 1:
-        warn('The listed pseudopotentials do not use the same functional; they are using ' +
+        warn('The listed pseudopotentials do not use the same functional; they are using '
              ', '.join(input_dft))
 
     return input_dft[0]
@@ -185,6 +187,7 @@ def print_qc(key, value):
     Prints out a quality control message for testcode to evaluate
     '''
     print(f'<QC> {key} {value}')
+
 
 def parse_physical(value):
     '''
@@ -204,10 +207,13 @@ def parse_physical(value):
         elif len(splitline) == 2:
             [value, units] = splitline
             value = float(value)
-            matching_units = [u for u in ase_units if u.lower() == units.lower()]
+            matching_units = [
+                u for u in ase_units if u.lower() == units.lower()]
             if len(matching_units) == 1:
                 return value * ase_units[matching_units[0]]
             elif len(matching_units) > 1:
-                raise ValueError(f'Multiple matches for {units} found; this should not happen')
+                raise ValueError(
+                    f'Multiple matches for {units} found; this should not happen')
             else:
-                raise NotImplementedError(f'{units} not implemented in koopmans.io.parse_physical')
+                raise NotImplementedError(
+                    f'{units} not implemented in koopmans.io.parse_physical')

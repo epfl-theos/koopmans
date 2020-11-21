@@ -2,64 +2,70 @@ import os
 from koopmans.calculators.pw import PW_calc
 
 _default_settings = {
-   'ENVIRON': {
-   'verbose': 0,
-   'environ_type': 'input',
-   'environ_type': 'input',
-   'env_surface_tension': 0,
-   'env_pressure': 0},
-   'BOUNDARY': {},
-   'ELECTROSTATIC': {}}
+    'ENVIRON': {
+        'verbose': 0,
+        'environ_type': 'input',
+        'environ_type': 'input',
+        'env_surface_tension': 0,
+        'env_pressure': 0},
+    'BOUNDARY': {},
+    'ELECTROSTATIC': {}}
+
 
 class Environ_calc(PW_calc):
-   # Create an environ calculator that inherits from the vanilla pw.x calculator
+    # Create an environ calculator that inherits from the vanilla pw.x calculator
 
-   environ_settings = _default_settings
+    environ_settings = _default_settings
 
-   def __init__(self, *args, **kwargs):
-      super(Environ_calc, self).__init__(*args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super(Environ_calc, self).__init__(*args, **kwargs)
 
-      # Ensure we're using an environ-enabled version of pw.x
-      self.preprocessing_flags = '--environ'
+        # Ensure we're using an environ-enabled version of pw.x
+        self.preprocessing_flags = '--environ'
 
-   def calculate(self):
-      # Generic function for running a calculation
+    def calculate(self):
+        # Generic function for running a calculation
 
-      # If pseudo_dir is a relative path then make sure it accounts for self.directory
-      if self.pseudo_dir is not None and self.pseudo_dir[0] != '/':
-          directory_depth = self.directory.strip('./').count('/') + 1
-          self.pseudo_dir = '../'*directory_depth + self.pseudo_dir
+        # If pseudo_dir is a relative path then make sure it accounts for self.directory
+        if self.pseudo_dir is not None and self.pseudo_dir[0] != '/':
+            directory_depth = self.directory.strip('./').count('/') + 1
+            self.pseudo_dir = '../'*directory_depth + self.pseudo_dir
 
-      self.write_environ_in()
+        self.write_environ_in()
 
-      self._ase_calculate()
+        self._ase_calculate()
 
-   def set_environ_settings(self, settings, use_defaults=True):
-      self.environ_settings = settings
+    def set_environ_settings(self, settings, use_defaults=True):
+        self.environ_settings = settings
 
-      if use_defaults:
-         # cycle through blocks in default settings
-         for block_name, block in _default_settings.items():
-            # if an entire block is missing, add it
-            if block_name not in settings.keys():
-               self.environ_settings[block_name] = {}
-            # if a particular keyword is missing, add it
-            for key, value in block.items():
-                if key not in settings[block_name].keys():
-                   self.environ_settings[block_name][key] = value
+        if use_defaults:
+            # cycle through blocks in default settings
+            for block_name, block in _default_settings.items():
+                # if an entire block is missing, add it
+                if block_name not in settings.keys():
+                    self.environ_settings[block_name] = {}
+                # if a particular keyword is missing, add it
+                for key, value in block.items():
+                    if key not in settings[block_name].keys():
+                        self.environ_settings[block_name][key] = value
 
-   def write_environ_in(self):
-      # Write an environ.in file
-      with open(f'{self.directory}/environ.in', 'w') as f:
-         # cycle through blocks
-         for block_name, block in self.environ_settings.items():
-            # add header
-            f.write(f'&{block_name}\n')
-            # add key-value pairs
-            for key, value in block.items():
-               if isinstance(value, str):
-                  value = f"'{value}'"
-               f.write(f'   {key} = {value}\n')
-            # add footer
-            f.write('/\n')
-             
+    def write_environ_in(self):
+        # Write an environ.in file
+        with open(f'{self.directory}/environ.in', 'w') as f:
+            # cycle through blocks
+            for block_name, block in self.environ_settings.items():
+                # add header
+                f.write(f'&{block_name}\n')
+                # add key-value pairs
+                for key, value in block.items():
+                    if isinstance(value, str):
+                        value = f"'{value}'"
+                    f.write(f'   {key} = {value}\n')
+                # add footer
+                f.write('/\n')
+
+    def check_code_is_installed(self):
+        executable_with_path = super().check_code_is_installed()
+        qe_directory, _, _ = executable_with_path.rsplit('/', 2)
+        if not os.path.isfile(qe_directory + '/Environ_PATCH'):
+            raise OSError('The pw add-on "environ" is not installed')

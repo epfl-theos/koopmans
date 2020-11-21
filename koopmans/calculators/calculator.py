@@ -20,6 +20,7 @@ from ase.build import make_supercell
 from koopmans.io import cpi_diff, read_alpharef, write_alpharef, warn
 import koopmans.utils as utils
 
+
 class QE_calc:
 
     '''
@@ -95,6 +96,9 @@ class QE_calc:
                     f'{key} is not a recognised Quantum Espresso keyword')
             setattr(self, key, val)
 
+        # Check the corresponding program is installed
+        self.check_code_is_installed()
+
     # By default, use cp.x
     _io = cp_io
 
@@ -167,7 +171,7 @@ class QE_calc:
         # If pseudo_dir is a relative path then make sure it accounts for self.directory
         if self.pseudo_dir is not None and self.pseudo_dir[0] != '/':
             directory_depth = self.directory.strip('./').count('/') + 1
-            self.pseudo_dir = '../'*directory_depth + self.pseudo_dir
+            self.pseudo_dir = '../' * directory_depth + self.pseudo_dir
 
         self._ase_calculate()
 
@@ -202,7 +206,8 @@ class QE_calc:
                 continue
             elif all([c.isalpha() for c in term]):
                 if self._settings.get(term, None) is None:
-                    raise ValueError('Failed to parse ' + ''.join(map(str, expr)))
+                    raise ValueError('Failed to parse '
+                                     ''.join(map(str, expr)))
                 else:
                     expr[i] = self._settings[term]
             else:
@@ -215,7 +220,7 @@ class QE_calc:
             elif op == '/':
                 value /= float(term)
             else:
-                raise ValueError('Failed to parse ' +
+                raise ValueError('Failed to parse '
                                  ''.join([str(e) for e in expr]))
 
         return value
@@ -238,8 +243,28 @@ class QE_calc:
     def transform_to_supercell(self, matrix, **kwargs):
         # Converts to a supercell as given by a 3x3 transformation matrix
         assert np.shape(matrix) == (3, 3)
-        self._ase_calc.atoms = make_supercell(self._ase_calc.atoms, matrix, **kwargs)
+        self._ase_calc.atoms = make_supercell(
+            self._ase_calc.atoms, matrix, **kwargs)
         self._ase_calc.atoms.calc = self._ase_calc
+
+    def check_code_is_installed(self):
+        # Checks the corresponding code is installed
+        command = self._ase_calc.command
+        if command[:4] == 'srun':
+            i_exe = 1
+        elif command[:6] == 'mpirun':
+            i_exe = 3
+        else:
+            i_exe = 0
+        executable = command.split()[i_exe]
+
+        executable_with_path = utils.find_executable(executable)
+
+        if executable_with_path is None:
+            raise OSError(f'{executable} is not installed')
+
+        return executable_with_path
+
 
 def run_qe(master_qe_calc, silent=True, enforce_ss=False):
     '''
@@ -268,9 +293,10 @@ def run_qe(master_qe_calc, silent=True, enforce_ss=False):
             run_qe_single(qe_calc, silent=silent)
 
             if config.from_scratch:
-               # Copy over nspin=2 wavefunction to nspin=1 tmp directory (if it has not been done already)
-               nspin1_tmpdir = f'{qe_calc.outdir}/{qe_calc.prefix}_{qe_calc.ndw}.save/K00001'
-               utils.system_call(f'convert_nspin2_wavefunction_to_nspin1.sh {nspin2_tmpdir} {nspin1_tmpdir}')
+                # Copy over nspin=2 wavefunction to nspin=1 tmp directory (if it has not been done already)
+                nspin1_tmpdir = f'{qe_calc.outdir}/{qe_calc.prefix}_{qe_calc.ndw}.save/K00001'
+                utils.system_call(
+                    f'convert_nspin2_wavefunction_to_nspin1.sh {nspin2_tmpdir} {nspin1_tmpdir}')
 
         # PBE with nspin=1
         qe_calc = copy.deepcopy(master_qe_calc)
@@ -316,6 +342,7 @@ def run_qe(master_qe_calc, silent=True, enforce_ss=False):
         run_qe_single(master_qe_calc, silent)
 
         return
+
 
 def run_qe_single(qe_calc, silent=True):
     '''
@@ -470,7 +497,7 @@ def calculate_alpha(calcs, filled=True, kipz=False):
     else:
         alpha_guess = alpha_calc.nkscalfact
 
-    alpha = alpha_guess*(dE - lambda_0) / (lambda_a - lambda_0)
+    alpha = alpha_guess * (dE - lambda_0) / (lambda_a - lambda_0)
 
     # The error is lambda^alpha(1) - lambda^alpha_i(1)
     error = dE - lambda_a

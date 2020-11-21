@@ -20,7 +20,7 @@ You will also need to install the git repositories `testcode` and `ase_koopmans`
 
 ```
 git submodule init
-git submodule update
+git submodule update --remote --merge
 ```
 
 Add the following to your ~/.bashrc:

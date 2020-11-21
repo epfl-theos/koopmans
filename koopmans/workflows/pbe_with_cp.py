@@ -11,6 +11,7 @@ import copy
 from koopmans import utils, io
 from koopmans.calculators.calculator import run_qe
 
+
 def run(workflow_settings, calcs_dct):
     '''
     This function runs a single PBE calculation with cp.x
@@ -25,7 +26,8 @@ def run(workflow_settings, calcs_dct):
     from koopmans.config import from_scratch
 
     if 'cp' not in calcs_dct:
-        raise ValueError('"functional": "PBE" requires a "cp" block in the input .json file')
+        raise ValueError(
+            '"functional": "PBE" requires a "cp" block in the input .json file')
 
     calc = copy.deepcopy(calcs_dct['cp'])
 
@@ -55,7 +57,8 @@ def run(workflow_settings, calcs_dct):
         if calc.empty_states_maxstep is None:
             calc.empty_states_maxstep = 300
 
-    run_qe(calc, silent=False, enforce_ss=workflow_settings['enforce_spin_symmetry'])
+    run_qe(calc, silent=False,
+           enforce_ss=workflow_settings['enforce_spin_symmetry'])
 
     if workflow_settings['print_qc']:
         for var in ['energy', 'homo_energy']:

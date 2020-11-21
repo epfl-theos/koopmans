@@ -79,6 +79,7 @@ valid_settings = [
 
 valid_settings_dict = {s.name: s for s in valid_settings}
 
+
 def check_settings(settings):
     '''
     Checks workflow settings against the list of valid settings, populates
@@ -100,7 +101,7 @@ def check_settings(settings):
                 value = value.lower()
 
             # Check value is the correct type
-            if not isinstance(value, valid_setting.type) and not value is None:
+            if not isinstance(value, valid_setting.type) and value is not None:
                 if isinstance(valid_setting.type, tuple):
                     raise ValueError(
                         f'{type(value).__name__} is an invalid type for "{key}" (must be '
@@ -126,7 +127,8 @@ def check_settings(settings):
         settings[physical] = io.parse_physical(settings[physical])
 
     # Set calculator.from_scratch
-    config.init(from_scratch = workflow_settings['from_scratch'])
+    config.init(from_scratch=workflow_settings['from_scratch'])
+
 
 if __name__ == '__main__':
 
@@ -144,17 +146,17 @@ if __name__ == '__main__':
         if s.options is not None and s.type is not bool:
             entry += ', must be ' + '/'.join([str(o) for o in s.options])
         entry += ')'
-        for line in textwrap.wrap(entry, subsequent_indent=' '*(maxlen + 2)):
+        for line in textwrap.wrap(entry, subsequent_indent=' ' * (maxlen + 2)):
             epilog += '\n' + line
         epilog += '\n'
 
     # Construct parser
     parser = argparse.ArgumentParser(
-        description='Perform a KI/KIPZ calculation using cp.x',
+        description='Perform a KI/KIPZ calculation using Quantum Espresso',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="'workflow' block arguments:" + epilog)
     parser.add_argument('json', metavar='system.json', type=str,
-                        help='a single JSON file containing the workflow and cp settings')
+                        help='a single JSON file containing the workflow and code settings')
 
     # Parse arguments
     args = parser.parse_args()

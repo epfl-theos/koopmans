@@ -16,6 +16,7 @@ from koopmans.ase import write_json
 from koopmans.defaults import load_defaults
 from koopmans.workflows import kc_with_cp, pbe_with_cp
 
+
 def run_convergence(workflow_settings, master_calcs_dct, initial_depth=3):
 
     from koopmans.config import from_scratch
@@ -23,7 +24,8 @@ def run_convergence(workflow_settings, master_calcs_dct, initial_depth=3):
     if 'cp' in master_calcs_dct:
         cp_master_calc = master_calcs_dct['cp']
     else:
-        raise ValueError('run_convergence() has not been generalised beyond cp.x')
+        raise ValueError(
+            'run_convergence() has not been generalised beyond cp.x')
 
     increments = {'cell_size': 0.1, 'ecutwfc': 10, 'empty_states_nbnd': 1}
 
@@ -33,7 +35,7 @@ def run_convergence(workflow_settings, master_calcs_dct, initial_depth=3):
 
     # Populate the param_dict
     param_dict = {}
-        
+
     # Convert to list
     convergence_parameters = workflow_settings['convergence_parameters']
     if isinstance(convergence_parameters, str):
@@ -41,15 +43,19 @@ def run_convergence(workflow_settings, master_calcs_dct, initial_depth=3):
 
     for parameter in convergence_parameters:
         if parameter not in increments:
-            raise NotImplementedError(f'Convergence wrt {parameter} has not yet been implemented')
+            raise NotImplementedError(
+                f'Convergence wrt {parameter} has not yet been implemented')
 
         if parameter == 'cell_size':
-            param_dict[parameter] = [1 + i*increments['cell_size'] for i in range(initial_depth)]
+            param_dict[parameter] = [1 + i * increments['cell_size']
+                                     for i in range(initial_depth)]
         else:
             attr = getattr(cp_master_calc, parameter, None)
             if attr is None:
-                raise AttributeError(f'In order to converge wrt {parameter} specify a baseline value for it')
-            param_dict[parameter] = [attr + i*increments[parameter] for i in range(initial_depth)]
+                raise AttributeError(
+                    f'In order to converge wrt {parameter} specify a baseline value for it')
+            param_dict[parameter] = [attr + i * increments[parameter]
+                                     for i in range(initial_depth)]
 
     # Create array for storing calculation results
     results = np.empty([initial_depth for _ in param_dict])
@@ -61,12 +67,14 @@ def run_convergence(workflow_settings, master_calcs_dct, initial_depth=3):
 
     # Record the alpha values for the original calculation
     provide_alpha = 'empty_states_nbnd' in param_dict and workflow_settings['functional'] in ['ki', 'kipz', 'pkipz', 'all'] \
-             and workflow_settings['alpha_from_file']
+        and workflow_settings['alpha_from_file']
     if provide_alpha:
-        master_alphas = io.read_alpharef(directory = '.')
+        master_alphas = io.read_alpharef(directory='.')
         if workflow_settings['orbital_groups'] is None:
-            workflow_settings['orbital_groups'] = list(range(cp_master_calc.nelec // 2 + cp_master_calc.empty_states_nbnd))
-        master_orbital_groups = copy.deepcopy(workflow_settings['orbital_groups'])
+            workflow_settings['orbital_groups'] = list(
+                range(cp_master_calc.nelec // 2 + cp_master_calc.empty_states_nbnd))
+        master_orbital_groups = copy.deepcopy(
+            workflow_settings['orbital_groups'])
 
     while True:
 
@@ -88,9 +96,10 @@ def run_convergence(workflow_settings, master_calcs_dct, initial_depth=3):
                 elif isinstance(value, float):
                     value_str = '{:.1f}'.format(value)
                 header += f'{param} = {value_str}, '
-                    
+
                 # Create new working directory
-                subdir = f'{param}_{value_str}'.replace(' ', '_').replace('.', 'd')
+                subdir = f'{param}_{value_str}'.replace(
+                    ' ', '_').replace('.', 'd')
                 if not os.path.isdir(subdir):
                     utils.system_call(f'mkdir {subdir}')
                 os.chdir(subdir)
@@ -100,15 +109,18 @@ def run_convergence(workflow_settings, master_calcs_dct, initial_depth=3):
                 else:
                     setattr(cp_calc, param, value)
                 if param == 'ecutwfc':
-                    setattr(cp_calc, 'ecutrho', 4*value)
-                
+                    setattr(cp_calc, 'ecutrho', 4 * value)
+
             if provide_alpha:
                 # Update alpha files and orbitals
                 extra_orbitals = cp_calc.empty_states_nbnd - cp_master_calc.empty_states_nbnd
-                filling = [True] * (cp_calc.nelec // 2) + [False] * cp_calc.empty_states_nbnd
-                alphas = master_alphas + [master_alphas[-1] for _ in range(extra_orbitals)]
-                workflow_settings['orbital_groups'] = master_orbital_groups + [master_orbital_groups[-1] for _ in range(extra_orbitals)]
-                io.write_alpharef(alphas, directory = '.', filling = filling)
+                filling = [True] * (cp_calc.nelec // 2) + \
+                    [False] * cp_calc.empty_states_nbnd
+                alphas = master_alphas + [master_alphas[-1]
+                                          for _ in range(extra_orbitals)]
+                workflow_settings['orbital_groups'] = master_orbital_groups + \
+                    [master_orbital_groups[-1] for _ in range(extra_orbitals)]
+                io.write_alpharef(alphas, directory='.', filling=filling)
 
             print(header.rstrip(', '))
 
@@ -121,13 +133,14 @@ def run_convergence(workflow_settings, master_calcs_dct, initial_depth=3):
             obs = workflow_settings['convergence_observable']
             obs = obs.replace('total ', '').replace(' ', '_')
             if obs not in solved_calc.results:
-                raise ValueError(f'{solved_calc.name} has not returned a value for {obs}')
+                raise ValueError(
+                    f'{solved_calc.name} has not returned a value for {obs}')
             result = solved_calc.results[obs]
             results[indices] = result
 
             # Move back to the base directory:
             for _ in param_dict:
-               os.chdir('..')
+                os.chdir('..')
 
             print()
 
@@ -153,14 +166,16 @@ def run_convergence(workflow_settings, master_calcs_dct, initial_depth=3):
             # First, find the indices of the converged array
             slice_where = [slice(None) for _ in param_dict]
             slice_where[-1] = 0
-            indices = np.array(np.where(converged[subarray_slice]))[tuple(slice_where)]
+            indices = np.array(np.where(converged[subarray_slice]))[
+                tuple(slice_where)]
 
             # Extract the corresponding parameters
             converged_parameters = {}
             for index, param in zip(indices, param_dict.keys()):
                 converged_parameters[param] = param_dict[param][index]
 
-            print('Converged parameters are ' + ', '.join([f'{k} = {v}' for k, v in converged_parameters.items()]))
+            print('Converged parameters are '
+                  ', '.join([f'{k} = {v}' for k, v in converged_parameters.items()]))
 
             # Construct a calculator with the converged settings
             # Abuse the fact we don't routinely update the ase settings to ignore the various defaults that
@@ -172,7 +187,7 @@ def run_convergence(workflow_settings, master_calcs_dct, initial_depth=3):
                 else:
                     setattr(cp_master_calc, param, value)
                 if param == 'ecutwfc':
-                    setattr(cp_master_calc, 'ecutrho', 4*value)
+                    setattr(cp_master_calc, 'ecutrho', 4 * value)
 
                 if workflow_settings['print_qc']:
                     io.print_qc(param, value)
@@ -194,7 +209,8 @@ def run_convergence(workflow_settings, master_calcs_dct, initial_depth=3):
                 subarray_slice[index] = slice(None)
                 if np.all(converged[tuple(subarray_slice)]):
                     continue
-                param_dict[param].append(param_dict[param][-1] + increments[param])
+                param_dict[param].append(
+                    param_dict[param][-1] + increments[param])
                 new_array_shape[index] += 1
                 new_array_slice[index] = slice(None, -1)
 
@@ -202,6 +218,7 @@ def run_convergence(workflow_settings, master_calcs_dct, initial_depth=3):
             new_results[:] = np.nan
             new_results[tuple(new_array_slice)] = results
             results = new_results
+
 
 def run_singlepoint(workflow_settings, calcs_dct):
 
@@ -257,8 +274,10 @@ def run_singlepoint(workflow_settings, calcs_dct):
                 # KIPZ
                 utils.system_call('cp -r ki/final kipz/init')
                 utils.system_call(f'cp -r {solved_calc.outdir} kipz/')
-                utils.system_call('mv kipz/init/ki_final.cpi kipz/init/ki_init.cpi')
-                utils.system_call('mv kipz/init/ki_final.cpo kipz/init/ki_init.cpo')
+                utils.system_call(
+                    'mv kipz/init/ki_final.cpi kipz/init/ki_init.cpi')
+                utils.system_call(
+                    'mv kipz/init/ki_final.cpo kipz/init/ki_init.cpo')
                 utils.system_call('cp -r ki/final/file_alpharef* kipz/')
         return solved_calc
 

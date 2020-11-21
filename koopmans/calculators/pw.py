@@ -10,6 +10,7 @@ from ase.io import espresso_cp as pw_io
 from ase.units import create_units
 from koopmans.calculators.calculator import QE_calc
 
+
 class PW_calc(QE_calc):
     # Subclass of QE_calc for performing calculations with pw.x
 
@@ -22,12 +23,12 @@ class PW_calc(QE_calc):
 
     # Adding all pw.x keywords as decorated properties of the PW_calc class.
     # This means one can set and get pw.x keywords as self.<keyword> but
-    # internally they are stored as self._settings['keyword'] rather than 
+    # internally they are stored as self._settings['keyword'] rather than
     # self.<keyword>
     _recognised_keywords = []
 
     for keywords in _io.KEYS.values():
-        for k in keywords: 
+        for k in keywords:
             _recognised_keywords.append(k)
 
             # We need to use these make_get/set functions so that get/set_k are
@@ -47,11 +48,10 @@ class PW_calc(QE_calc):
 
             get_k = make_get(k)
             set_k = make_set(k)
-            locals()[k] = property(get_k, set_k)     
+            locals()[k] = property(get_k, set_k)
 
     def is_complete(self):
         return self.results.get('job done', False)
 
     def is_converged(self):
         return self.results.get('energy', None) is not None
-

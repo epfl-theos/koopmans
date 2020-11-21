@@ -17,6 +17,7 @@ from koopmans.calculators.calculator import run_qe, calculate_alpha
 from koopmans.calculators.cp import CP_calc
 import ipdb
 
+
 def run(workflow_settings, calcs_dct):
     '''
     This function runs the KI/KIPZ workflow from start to finish
@@ -41,7 +42,8 @@ def run(workflow_settings, calcs_dct):
     functional = workflow_settings['functional']
 
     if 'cp' not in calcs_dct:
-        raise ValueError('Performing a KC calculation requires a "cp" block in the .json input file')
+        raise ValueError(
+            'Performing a KC calculation requires a "cp" block in the .json input file')
     master_calc = copy.deepcopy(calcs_dct['cp'])
 
     # Sanitise outdir
@@ -83,7 +85,8 @@ def run(workflow_settings, calcs_dct):
     if init_density == 'pbe':
         calc = set_up_calculator(master_calc, 'pbe_init')
         calc.directory = 'init'
-        run_qe(calc, silent=False, enforce_ss=workflow_settings['enforce_spin_symmetry'])
+        run_qe(calc, silent=False,
+               enforce_ss=workflow_settings['enforce_spin_symmetry'])
 
     elif init_density == 'pbe-pw':
         # PBE using pw.x
@@ -143,8 +146,10 @@ def run(workflow_settings, calcs_dct):
         utils.system_call(f'cp {savedir}/evc1.dat {savedir}/evc01.dat')
         utils.system_call(f'cp {savedir}/evc2.dat {savedir}/evc02.dat')
         if calc.empty_states_nbnd is not None and calc.empty_states_nbnd > 0:
-            utils.system_call(f'cp {savedir}/evc_empty1.dat {savedir}/evc0_empty1.dat')
-            utils.system_call(f'cp {savedir}/evc_empty2.dat {savedir}/evc0_empty2.dat')
+            utils.system_call(
+                f'cp {savedir}/evc_empty1.dat {savedir}/evc0_empty1.dat')
+            utils.system_call(
+                f'cp {savedir}/evc_empty2.dat {savedir}/evc0_empty2.dat')
 
     print('\nINITIALISATION OF MANIFOLD')
 
@@ -211,7 +216,7 @@ def run(workflow_settings, calcs_dct):
             group = groups[i_band - 1]
             if group not in groups_found:
                 groups_found.add(group)
-                bands_to_solve[i_band] = [i+1 for i,
+                bands_to_solve[i_band] = [i + 1 for i,
                                           g in enumerate(groups) if g == group]
         if groups_found != set(groups):
             raise ValueError('Splitting of orbitals into groups failed')
@@ -291,7 +296,8 @@ def run(workflow_settings, calcs_dct):
                 # Link tmp files from band-independent calculations
                 if not os.path.isdir(outdir_band):
                     utils.system_call(f'mkdir {outdir_band}')
-                    utils.system_call( f'ln -sr {master_calc.outdir}/*.save {outdir_band}')
+                    utils.system_call(
+                        f'ln -sr {master_calc.outdir}/*.save {outdir_band}')
 
                 # Don't repeat if this particular alpha_i was converged
                 if i_sc > 1 and any([abs(e) < workflow_settings['alpha_conv_thr'] for e in
@@ -436,7 +442,8 @@ def run(workflow_settings, calcs_dct):
 
             print_summary(alpha_df, error_df)
 
-            converged = all([abs(e) < 1e-3 or pd.isnull(e) for e in error_df.loc[i_sc, :]])
+            converged = all([abs(e) < 1e-3 or pd.isnull(e)
+                             for e in error_df.loc[i_sc, :]])
 
         if converged:
             print('Alpha values have been converged')
@@ -444,7 +451,7 @@ def run(workflow_settings, calcs_dct):
             print('Alpha values have been determined but are not necessarily converged')
 
         # Writing alphas to a .tex table
-        latex_table = alpha_df.to_latex(column_format='l' + 'd'*n_bands,
+        latex_table = alpha_df.to_latex(column_format='l' + 'd' * n_bands,
                                         float_format='{:.3f}'.format, escape=False)
         with open('tab_alpha_values.tex', 'w') as f:
             f.write(latex_table)
@@ -456,7 +463,7 @@ def run(workflow_settings, calcs_dct):
     # Final calculation
     print(f'\nFINAL {functional.upper().replace("PK","pK")} CALCULATION')
 
-    directory = 'final' 
+    directory = 'final'
     if not os.path.isdir(directory):
         utils.system_call(f'mkdir {directory}')
 
@@ -471,7 +478,7 @@ def run(workflow_settings, calcs_dct):
         # to restart from them
         if workflow_settings['calculate_alpha'] or final_calc_type == 'pkipz':
             final_calc_type += '_final'
-        
+
         # For pKIPZ, the appropriate ndr can change but it is always ndw of the previous
         # KI calculation
         if final_calc_type == 'pkipz_final':
@@ -503,6 +510,7 @@ def run(workflow_settings, calcs_dct):
     print('\nWORKFLOW COMPLETE')
 
     return calc
+
 
 def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
     """
@@ -698,7 +706,8 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
                          ' an index_empty_to_save. Provide this as an argument to set_calculator')
 
     if calc.fixed_band is not None and calc.fixed_band > calc.nelup + 1:
-        utils.warn('calc.fixed_band is higher than the LUMO; this should not happen')
+        utils.warn(
+            'calc.fixed_band is higher than the LUMO; this should not happen')
 
     # avoid innerloops for one-orbital-manifolds
     if calc.nelup in [0, 1] and calc.neldw in [0, 1]:

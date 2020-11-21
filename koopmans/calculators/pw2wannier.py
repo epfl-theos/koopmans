@@ -9,6 +9,7 @@ Written by Edward Linscott Sep 2020
 from ase.io import pw2wannier as p2w_io
 from koopmans.calculators.calculator import QE_calc
 
+
 class PW2Wannier_calc(QE_calc):
     # Link to relevant ase io module
     _io = p2w_io
@@ -21,7 +22,7 @@ class PW2Wannier_calc(QE_calc):
     # internally they are stored as self._settings['keyword'] rather than
     # self.<keyword>
     _recognised_keywords = ['outdir', 'prefix', 'seedname', 'write_mmn',
-        'write_amn', 'write_uHu', 'uHu_formatted']
+                            'write_amn', 'write_uHu', 'uHu_formatted']
 
     for k in _recognised_keywords:
         # We need to use these make_get/set functions so that get/set_k are
@@ -41,11 +42,10 @@ class PW2Wannier_calc(QE_calc):
 
         get_k = make_get(k)
         set_k = make_set(k)
-        locals()[k] = property(get_k, set_k)     
+        locals()[k] = property(get_k, set_k)
 
     def _update_settings_dict(self):
-       self._settings = self._ase_calc.parameters['inputpp']
+        self._settings = self._ase_calc.parameters['inputpp']
 
     def calculate(self):
-       self._ase_calc.calculate()
-
+        self._ase_calc.calculate()
