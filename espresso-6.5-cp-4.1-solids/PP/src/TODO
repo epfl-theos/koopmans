@@ -1,7 +1,8 @@
 TO DO list:
 
-1) on the cluster I get 'insufficient virtual memory' error
+1) on the cluster I get 'insufficient virtual memory' error (made m_mat only for main process, problem half-solved)
 2) sometimes pw2wannier90.x crashes when parallelizing and then by rerunning it works
 3) cp.x not working in espresso-6.5-cp-4.1-solids
 4) check spin
-5) check problem with cutoff (36-37Ry)
+5) check problem with cutoff (36-37Ry) (maybe the problem was the incosistency of the dfftcp%nr1,2,3 fixed already?)
+6) change the supercell fft variables from cp to x, e.g. dfftcp --> dfftx

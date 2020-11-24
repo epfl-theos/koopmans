@@ -1885,14 +1885,24 @@
      subroutine makov_payne_correction_2nd_term (charge, quadrupole)
        !
        real (DP) :: charge, quadrupole
-       real (DP) :: corr2, corr1 
+       real (DP) :: corr2, corr1
+       !
+       ! RICCARDO: WARNING!!! this formula is correct only for simple cubic
+       ! systems. Somewhere in the code the lattice vector are renormalized when
+       ! their norm is different from one (so in SC systems nothing changes) and
+       ! so the value of alat is not correct. About the 2nd order correction,
+       ! one problem might be the quadrupole since often the spatial spread is
+       ! not well calculated by the code. Also the L^3 term at the denominator
+       ! is really the cube of the lattice vector in the original formula and
+       ! not the volume of the cell, it is so only for simple cubic systems.
+       ! This is to check
        ! 
        ! 1 / 2 Ry -> a.u.
        corr1 = - 2.8373D0 / alat * charge**2 / 2.0D0
        !
        corr2 = ( 2.D0 / 3.D0 * pi )*( charge*quadrupole)/ omega
        !
-       write(stdout, *) "Test MP:", charge, omega, quadrupole
+       write(stdout, *) "Test MP:", charge, omega, quadrupole, alat
        write(stdout, *) "Makov-Payne 1st energy ", corr1
        write(stdout, *) "Makov-Payne 2nd energy ", corr2
        !
