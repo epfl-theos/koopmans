@@ -6,6 +6,7 @@ Written by Edward Linscott Sep 2020
 
 """
 
+from koopmans.utils import warn
 from ase.io import pw2wannier as p2w_io
 from koopmans.calculators.calculator import QE_calc
 
@@ -15,14 +16,17 @@ class PW2Wannier_calc(QE_calc):
     _io = p2w_io
 
     # Define the appropriate file extensions
-    ext_in = '.win'
+    ext_in = '.p2wi'
+    ext_out = '.p2wo'
 
     # Adding all wannier90 keywords as decorated properties of the W90_calc class.
     # This means one can set and get wannier90 keywords as self.<keyword> but
     # internally they are stored as self._settings['keyword'] rather than
     # self.<keyword>
     _recognised_keywords = ['outdir', 'prefix', 'seedname', 'write_mmn',
-                            'write_amn', 'write_uHu', 'uHu_formatted']
+        'write_amn', 'write_uHu', 'uHu_formatted', 'write_unk', 'reduce_unk',
+        'wan_mode', 'wannier_plot', 'wannier_plot_list']
+
 
     for k in _recognised_keywords:
         # We need to use these make_get/set functions so that get/set_k are
@@ -48,4 +52,12 @@ class PW2Wannier_calc(QE_calc):
         self._settings = self._ase_calc.parameters['inputpp']
 
     def calculate(self):
-        self._ase_calc.calculate()
+       self._ase_calc.calculate()
+
+    def is_converged(self):
+       warn("is_converged is not properly implemented")
+       return True
+
+    def is_complete(self):
+       warn("is_complete is not properly implemented")
+       return True

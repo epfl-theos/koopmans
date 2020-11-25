@@ -6,7 +6,10 @@ Written by Edward Linscott Sep 2020
 
 """
 
+import numpy as np
+from koopmans.utils import warn
 from ase.io import wannier90 as w90_io
+from ase.dft.kpoints import bandpath
 from koopmans.calculators.calculator import QE_calc
 
 
@@ -21,10 +24,10 @@ class W90_calc(QE_calc):
     # This means one can set and get wannier90 keywords as self.<keyword> but
     # internally they are stored as self._settings['keyword'] rather than
     # self.<keyword>
-    _recognised_keywords = ['bands_plot', 'dis_froz_max',
-                            'dis_num_iter', 'dis_win_max', 'guiding_centres', 'kpoint_path'
-                            'mp_grid', 'num_bands', 'num_iter', 'num_print_cycles', 'num_wann',
-                            'projections']
+    _recognised_keywords = ['num_bands', 'num_wann', 'exclude_bands',
+        'num_iter', 'conv_window', 'conv_tol', 'num_print_cycles', 
+        'dis_froz_max', 'dis_num_iter', 'dis_win_max', 'guiding_centres',
+        'bands_plot', 'mp_grid', 'kpoint_path', 'projections', 'write_hr']
 
     for k in _recognised_keywords:
         # We need to use these make_get/set functions so that get/set_k are
@@ -44,10 +47,27 @@ class W90_calc(QE_calc):
 
         get_k = make_get(k)
         set_k = make_set(k)
-        locals()[k] = property(get_k, set_k)
+        locals()[k] = property(get_k, set_k)   
 
     def _update_settings_dict(self):
         self._settings = self._ase_calc.parameters
 
     def calculate(self):
-        self._ase_calc.calculate()
+       if self.mp_grid is None:
+          self.generate_kpoints()
+       self._ase_calc.calculate()
+
+    def generate_kpoints(self):
+       self.mp_grid = self._ase_calc.parameters['kpts']
+       kpts = np.indices(self._ase_calc.parameters['kpts']).transpose(1,2,3,0).reshape(-1,3)
+       kpts = kpts / self._ase_calc.parameters['kpts']
+       kpts = bandpath(kpts, self._ase_calc.atoms.cell, npoints=len(kpts)-1)       
+       self._ase_calc.parameters['kpts'] = kpts.kpts[:,:3]
+
+    def is_converged(self):
+       warn("is_converged is not properly implemented")
+       return True
+
+    def is_complete(self):
+       warn("is_complete is not properly implemented")
+       return True

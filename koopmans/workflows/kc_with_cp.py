@@ -10,12 +10,13 @@ Split off from workflow.py Oct 2020
 import os
 import subprocess
 import copy
+import numpy as np
 import pandas as pd
 import koopmans.utils as utils
 from koopmans.io import write_alpharef, read_alpharef, print_summary, print_qc
 from koopmans.calculators.calculator import run_qe, calculate_alpha
 from koopmans.calculators.cp import CP_calc
-import ipdb
+from koopmans.workflows import wf_with_w90
 
 
 def run(workflow_settings, calcs_dct):
@@ -82,15 +83,65 @@ def run(workflow_settings, calcs_dct):
     print('\nINITIALISATION OF DENSITY')
 
     init_density = workflow_settings['init_density']
+    wannierize = workflow_settings['init_variational_orbitals'] == 'mlwfs'
+
+    if wannierize:
+        # Wannier functions using pw.x, wannier90.x and pw2wannier90.x
+        if init_density != 'pbe':
+            raise ValueError('wannierize requires init_density to be pbe')
+        w90_dir = wf_with_w90.run(workflow_settings, calcs_dct)
+
     if init_density == 'pbe':
-        calc = set_up_calculator(master_calc, 'pbe_init')
-        calc.directory = 'init'
-        run_qe(calc, silent=False,
-               enforce_ss=workflow_settings['enforce_spin_symmetry'])
+        if wannierize:
+            # By default the wavefunctions are real since they come from
+            # a Γ-only calculation and no counter-charge corrections are applied
+            master_calc.do_wf_cmplx = False
+            if master_calc.empty_states_nbnd != calcs_dct['w90_emp'].num_wann * \
+                    np.prod(master_calc._ase_calc.parameters.kpts):
+                master_calc.empty_states_nbnd = calcs_dct['w90_emp'].num_wann * \
+                    np.prod(master_calc._ase_calc.parameters.kpts)
+                utils.warn('empty_states_nbnd differs from num_wann (emp); '
+                           'empty_states_nbnd=num_wann is forced')
+
+            # First we transform the calculation with k-points into a
+            # Γ-only supercell calculation
+            master_calc.transform_to_supercell(
+                np.diag(master_calc._ase_calc.parameters.kpts))
+
+            # We need a dummy calc before the real pbe_init in order
+            # to copy the previously calculated Wannier functions
+            calc = set_up_calculator(master_calc, 'pbe_init', maxiter=3,
+                                     empty_states_nbnd=0)
+            calc.directory = 'init'
+            calc.name = 'pbe_dummy'
+            run_qe(calc, silent=False, enforce_ss=False)
+            # PBE restarting from Wannier functions (after copying the Wannier functions)
+            calc = set_up_calculator(master_calc, 'pbe_init', restart_mode='restart',
+                                     restart_from_wannier_pwscf=True, empty_states_maxstep=1)
+            calc.directory = 'init'
+            restart_dir = f'{master_calc.outdir}/{calc.prefix}_{calc.ndr}.save/K00001'
+            for typ in ['occ', 'emp']:
+                if typ == 'occ':
+                    dest_file = 'evc_occupied.dat'
+                if typ == 'emp':
+                    dest_file = 'evc0_empty.dat'
+                evcw_file = w90_dir[typ] + '/evcw.dat'
+                if os.path.isfile(f'{evcw_file}'):
+                    utils.system_call(
+                        f'cp {evcw_file} {restart_dir}/{dest_file}')
+                else:
+                    raise OSError(f'Could not find {evcw_file}')
+            run_qe(calc, silent=False, enforce_ss=False)
+
+        else:
+            calc = set_up_calculator(master_calc, 'pbe_init')
+            calc.directory = 'init'
+            run_qe(calc, silent=False,
+                   enforce_ss=workflow_settings['enforce_spin_symmetry'])
 
     elif init_density == 'pbe-pw':
         # PBE using pw.x
-        raise ValueError('init_denisty: pbe-pw is not yet implemented')
+        raise ValueError('init_density: pbe-pw is not yet implemented')
 
     elif init_density == 'pz':
         # PBE from scratch
@@ -139,7 +190,7 @@ def run(workflow_settings, calcs_dct):
         raise ValueError(
             "Should not arrive here; compare the above code with workflow.valid_settings")
 
-    if init_density == 'pbe':
+    if init_density == 'pbe' and not wannierize:
         # Using KS eigenfunctions as guess variational orbitals
         print('Overwriting the CP variational orbitals with Kohn-Sham orbitals')
         savedir = f'{calc.outdir}/{calc.prefix}_{calc.ndw}.save/K00001'
@@ -153,7 +204,7 @@ def run(workflow_settings, calcs_dct):
 
     print('\nINITIALISATION OF MANIFOLD')
 
-    init_manifold = workflow_settings['init_manifold']
+    init_manifold = workflow_settings['init_variational_orbitals']
     # Since nelec is defined automatically, record whether or not the previous calculation had 2 electrons
     # before calc gets overwritten
     calc_has_two_electrons = (calc.nelec == 2)
@@ -161,12 +212,9 @@ def run(workflow_settings, calcs_dct):
         calc = set_up_calculator(master_calc, 'pz_innerloop_init')
     elif init_manifold == 'ki':
         if init_density != 'ki':
-            raise ValueError('Initialising manifold with KI makes no sense unless '
+            raise ValueError('Initialising variational orbitals with KI makes no sense unless '
                              'reading from a pre-existing KI calculation')
         print('Copying the density from a pre-existing KI calculation')
-    else:
-        raise ValueError(
-            f'Unrecognised option "{init_manifold}" for init_manifold. Should be one of "pz"/"ki"/"skip"')
 
     calc.directory = 'init'
     write_alpharef(alpha_df.loc[1], calc)
@@ -178,22 +226,24 @@ def run(workflow_settings, calcs_dct):
         # transformations. Likewise, if we have no empty states or if we're using a functional which is
         # invariant w.r.t. unitary rotations of the empty states, then the empty manifold need not be minimised
         # In these instances, we can skip the initialisation of the manifold entirely
-        print('Skipping the optimisation of the manifold since it is invariant under unitary transformations')
+        print('Skipping the optimisation of the variational orbitals since they are invariant under unitary transformations')
         save_prefix = f'{calc.outdir}/{calc.prefix}'
         utils.system_call(
             f'cp -r {save_prefix}_{calc.ndr}.save {save_prefix}_{calc.ndw}.save')
+    elif init_manifold == 'mlwfs':
+        print('The variational orbitals have already been initialised to Wannier functions during the density initialisation')
     elif init_manifold in [init_density, 'skip']:
         if init_manifold == 'skip':
-            print('Skipping the optimisation of the manifold')
+            print('Skipping the optimisation of the variational orbitals')
         else:
-            print('Skipping the optimisation of the manifold since it was already optimised during the density initialisation')
+            print('Skipping the optimisation of the variational orbitals since they were already optimised during the density initialisation')
         save_prefix = f'{calc.outdir}/{calc.prefix}'
         utils.system_call(
             f'cp -r {save_prefix}_{calc.ndr}.save {save_prefix}_{calc.ndw}.save')
     else:
         run_qe(calc, silent=False)
 
-    if from_scratch and init_manifold != 'ki' and workflow_settings['enforce_spin_symmetry']:
+    if from_scratch and init_manifold != 'ki' and workflow_settings['enforce_spin_symmetry'] and not wannierize:
         print('Copying the spin-up variational orbitals over to the spin-down channel')
         savedir = f'{calc.outdir}/{calc.prefix}_{calc.ndw}.save/K00001'
         utils.system_call(f'cp {savedir}/evc01.dat {savedir}/evc02.dat')
@@ -259,6 +309,13 @@ def run(workflow_settings, calcs_dct):
             calc = set_up_calculator(
                 master_calc, calc_type=functional.replace('pkipz', 'ki'))
             calc.directory = iteration_directory
+            if wannierize:
+                calc.ndr = 50
+                # WARNING: this probabaly needs to be changed once do_outerloop
+                #          will be properly implemented in the solids code
+                calc.maxiter = 3
+                calc.empty_states_maxstep = 1
+                calc.restart_from_wannier_pwscf = True
             write_alpharef(alpha_df.loc[i_sc], calc)
 
             enforce_ss = workflow_settings['enforce_spin_symmetry']
@@ -491,6 +548,9 @@ def run(workflow_settings, calcs_dct):
 
         calc.directory = directory
         write_alpharef(alpha_df.iloc[-1], calc)
+        if wannierize:
+            calc.maxiter = 3
+            calc.empty_states_maxstep = 1
 
         run_qe(calc, silent=False)
 
@@ -692,6 +752,7 @@ def set_up_calculator(calc, calc_type='pbe_init', **kwargs):
 
     # if periodic, set calc.which_compensation = 'none'
     calc.which_compensation = 'tcc'
+    utils.warn('which_compensation is set to tcc; this is wrong for periodic calculations')
 
     # Handle any keywords provided by kwargs
     # Note that since this is performed after the above logic this can (deliberately

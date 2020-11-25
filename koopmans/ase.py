@@ -345,7 +345,16 @@ def read_workflow_dict(dct):
                 settings[k] = v
     return settings
 
+def set_up_pw2wannier():
+    '''
 
+    Set up a PW2Wannier_calc object from scratch
+
+    '''
+    calc = read_pw2wannier_dict({})
+    defaults.load_defaults(calc)
+    return pw2wannier.PW2Wannier_calc(calc)
+    
 def read_json(fd):
     '''
 

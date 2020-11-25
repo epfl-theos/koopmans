@@ -1,7 +1,7 @@
 {
   "workflow": {
     "functional": "ki",
-    "init_manifold": "pz",
+    "init_variational_orbitals": "pz",
     "n_max_sc_steps": 2,
     "alpha_guess" : 0.8,
     "alpha_from_file": false,

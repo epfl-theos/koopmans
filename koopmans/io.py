@@ -10,7 +10,6 @@ May 2020: converted the module to use CP_calc rather than an ASE calculator
 """
 
 import json
-import numpy as np
 from ase.io.espresso_cp import Espresso_cp, KEYS, ibrav_to_cell
 from ase.units import create_units
 from ase.atoms import Atoms

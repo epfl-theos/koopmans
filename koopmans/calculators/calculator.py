@@ -96,6 +96,9 @@ class QE_calc:
                     f'{key} is not a recognised Quantum Espresso keyword')
             setattr(self, key, val)
 
+        # Set up preprocessing flags
+        self.preprocessing_flags = ['']
+
         # Check the corresponding program is installed
         self.check_code_is_installed()
 
@@ -147,12 +150,14 @@ class QE_calc:
 
     @preprocessing_flags.setter
     def preprocessing_flags(self, value):
+        if not hasattr(self._ase_calc, 'original_command'):
+            self._ase_calc.original_command = self._ase_calc.command
         if not isinstance(value, list):
             value = [value]
         self._preprocessing_flags = value
 
         # Updating self._ase_calc.command
-        command = self._ase_calc.command
+        command = self._ase_calc.original_command
         if command[:6] == 'mpirun':
             mpirun, npflag, np, exe, after = command.split(' ', 4)
             before = [mpirun, npflag, np, exe]
@@ -385,16 +390,19 @@ def run_qe_single(qe_calc, silent=True):
     if not qe_calc.is_complete():
         sys.exit(1)
 
-    # Check spin-up and spin-down eigenvalues match
-    if qe_calc.is_converged() and qe_calc.do_outerloop and qe_calc.nspin == 2 \
-            and qe_calc.tot_magnetization == 0 and not qe_calc.fixed_state:
-        rms_eigenval_difference = np.sqrt(
-            np.mean(np.diff(qe_calc.results['eigenvalues'], axis=0)**2))
-        if rms_eigenval_difference > 0.05:
-            warn('Spin-up and spin-down eigenvalues differ substantially')
-
     if not silent:
         print(' done')
+
+    # Check spin-up and spin-down eigenvalues match
+    if 'eigenvalues' in qe_calc.results:
+
+        if qe_calc.is_converged() and qe_calc.do_outerloop and qe_calc.nspin == 2 \
+                and qe_calc.tot_magnetization == 0 and not qe_calc.fixed_state \
+                and len(qe_calc.results['eigenvalues']) > 0:
+            rms_eigenval_difference = np.sqrt(
+                np.mean(np.diff(qe_calc.results['eigenvalues'], axis=0)**2))
+            if rms_eigenval_difference > 0.05:
+                warn('Spin-up and spin-down eigenvalues differ substantially')
 
     config.from_scratch = True
 
