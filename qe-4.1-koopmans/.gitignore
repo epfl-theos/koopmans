@@ -6,7 +6,6 @@ PW/cpver.h
 include/iotk_config.h
 include/configure.h
 include/c_defs.h
-include/f_defs.h
 include/fft_defs.h
 include/build_date.h
 config.log
