@@ -23,12 +23,22 @@ MODULE cp_files
   CONTAINS
   !
   !-------------------------------------------------------------------
-  SUBROUTINE write_wannier_cp( iun, nword, npwx, nwann, nrtot, ig_l2g )
+  SUBROUTINE write_wannier_cp( iun, nword, npwx, nwann, nrtot, ig_l2g, emp )
     !-----------------------------------------------------------------
     !
     ! ...  This routine takes the Wannier functions in input and 
-    ! ...  writes them into a file, readable by the CP-Koopmans code,
-    ! ...  called 'evcw.dat'
+    ! ...  writes them into a file, readable by the CP-Koopmans code.
+    !
+    ! ...  For occupied states, a single file called 'evcw.dat' containing
+    ! ...  both the spin channels is created, that is the 'evc_occupied.dat'
+    ! ...  expected by the CP code.
+    !
+    ! ...  For empty states, two files 'evcw1.dat' and 'evcw2.dat'
+    ! ...  are created containing the two spin components independently,
+    ! ...  corresponding to the files 'evc0_empty1.dat' and 'evc0_empty2.dat'
+    ! ...  expected by the CP code.
+    !
+    ! ...  NB: for the moment the spin down component is a copy of the spin up!
     !
     USE kinds,               ONLY : DP
     USE io_global,           ONLY : ionode, ionode_id
@@ -48,7 +58,9 @@ MODULE cp_files
     INTEGER, INTENT(IN) :: nwann                 ! num of (primitive cell) WFs
     INTEGER, INTENT(IN) :: nrtot                 ! num of k-points
     INTEGER, INTENT(IN) :: ig_l2g(:)
+    LOGICAL, INTENT(IN) :: emp                   ! .true. for empty states
     !
+    CHARACTER(LEN=9) :: filename
     INTEGER :: io_level = 1
     INTEGER :: cp_unit = 125
     INTEGER :: npw_g                             ! global number of PWs
@@ -62,12 +74,11 @@ MODULE cp_files
     !
     nwannx = nwann * nrtot     ! number of bands in the supercell
     !
-    !
     npw_g = npwx
     CALL mp_sum( npw_g, intra_bgrp_comm )
     ALLOCATE( evc_g(npw_g) )
     !
-    IF ( ionode ) THEN
+    IF ( .not. emp .and. ionode ) THEN
       OPEN( UNIT=cp_unit, FILE='evcw.dat', STATUS='unknown', FORM='unformatted' )
       WRITE( cp_unit ) npw_g, nwannx*2
     ENDIF
@@ -76,6 +87,12 @@ MODULE cp_files
     ! ... and we write it to file (nspin=2 in CP-Koopmans)
     !
     DO ispin = 1, 2
+      !
+      IF ( emp .and. ionode ) THEN
+        WRITE( filename, 100 ) ispin
+        OPEN( UNIT=cp_unit, FILE=filename, STATUS='unknown', FORM='unformatted' )
+        WRITE( cp_unit ) npw_g, nwannx
+      ENDIF
       !
       DO ir = 1, nrtot
         !
@@ -86,7 +103,6 @@ MODULE cp_files
           evc_g(:) = ( 0.D0, 0.D0 )
           CALL mergewf( evc(:,ibnd), evc_g, npwx, ig_l2g, mpime, &
                         nproc, ionode_id, intra_bgrp_comm )
-  
           !
           IF ( ionode ) THEN
             !
@@ -98,9 +114,14 @@ MODULE cp_files
         !
       ENDDO
       !
+      IF ( emp .and. ionode ) CLOSE ( cp_unit )
+      !
     ENDDO
     !
-    IF ( ionode ) CLOSE( cp_unit )
+    IF ( .not. emp .and. ionode ) CLOSE( cp_unit )
+    !
+    !
+100 FORMAT( 'evcw', I1, '.dat' )
     !
     !
   END SUBROUTINE write_wannier_cp
