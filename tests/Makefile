@@ -21,15 +21,16 @@ KEEP_TESTS := $(patsubst %,! -name %,${KEEP_FILES})
 CLEAN_FILES := test.out.* test.err.*
 CLEAN_TESTS := $(patsubst %,-o -name %,${CLEAN_FILES})
 
-CLEAN_TEST_DIRS := -name ki -o -name kipz
+CLEAN_TEST_DIRS := -name ki -o -name pkipz -o -name kipz
 
-CLEAN_TEST_SUBDIRS := -name init -o -name calc_alpha -o -name final
+CLEAN_TEST_SUBDIRS := -name init -o -name calc_alpha -o -name final -o \
+                      -name TMP-CP -o -name ecutwfc*
 
 
 clean:
 	find test_?? -type f ${KEEP_TESTS} ${CLEAN_TESTS} | xargs -i rm -v {}
 	find ${CLEAN_TEST_DIRS} | xargs -i rm -vr {}
-	find ${CLEAN_TEST_SUBDIRS} | xargs -i rm -vr {}
+	find ${CLEAN_TEST_SUBDIRS} | xargs -i rm -vrf {}
 
 help:
 	@echo ''

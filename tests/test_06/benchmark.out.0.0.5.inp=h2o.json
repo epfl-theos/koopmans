@@ -1,0 +1,715 @@
+ecutwfc = 20.0, cell_size = 1.0
+Running pbe_nspin1... done
+<QC> pbe_nspin1_energy -442.10480216660983
+<QC> pbe_nspin1_homo_energy -7.0292
+Running pbe_nspin2_dummy... done
+Running pbe_nspin2... done
+<QC> pbe_nspin2_energy -442.1049322805628
+<QC> pbe_nspin2_homo_energy -7.0294
+
+ecutwfc = 20.0, cell_size = 1.1
+Running pbe_nspin1... done
+<QC> pbe_nspin1_energy -441.96006510154837
+<QC> pbe_nspin1_homo_energy -7.034
+Running pbe_nspin2_dummy... done
+Running pbe_nspin2... done
+<QC> pbe_nspin2_energy -441.9601951828478
+<QC> pbe_nspin2_homo_energy -7.0342
+
+ecutwfc = 20.0, cell_size = 1.2
+Running pbe_nspin1... done
+<QC> pbe_nspin1_energy -442.07314135140734
+<QC> pbe_nspin1_homo_energy -7.009
+Running pbe_nspin2_dummy... done
+Running pbe_nspin2... done
+<QC> pbe_nspin2_energy -442.0732680802643
+<QC> pbe_nspin2_homo_energy -7.0093
+
+ecutwfc = 30.0, cell_size = 1.0
+Running pbe_nspin1... done
+<QC> pbe_nspin1_energy -456.49605694968335
+<QC> pbe_nspin1_homo_energy -7.2027
+Running pbe_nspin2_dummy... done
+Running pbe_nspin2... done
+<QC> pbe_nspin2_energy -456.4961516752317
+<QC> pbe_nspin2_homo_energy -7.2029
+
+ecutwfc = 30.0, cell_size = 1.1
+Running pbe_nspin1... done
+<QC> pbe_nspin1_energy -456.5496284990678
+<QC> pbe_nspin1_homo_energy -7.2043
+Running pbe_nspin2_dummy... done
+Running pbe_nspin2... done
+<QC> pbe_nspin2_energy -456.5497284954613
+<QC> pbe_nspin2_homo_energy -7.2045
+
+ecutwfc = 30.0, cell_size = 1.2
+Running pbe_nspin1... done
+<QC> pbe_nspin1_energy -456.4874716002478
+<QC> pbe_nspin1_homo_energy -7.2055
+Running pbe_nspin2_dummy... done
+Running pbe_nspin2... done
+<QC> pbe_nspin2_energy -456.48756689179294
+<QC> pbe_nspin2_homo_energy -7.2058
+
+ecutwfc = 40.0, cell_size = 1.0
+Running pbe_nspin1... done
+<QC> pbe_nspin1_energy -463.2635400900582
+<QC> pbe_nspin1_homo_energy -7.241
+Running pbe_nspin2_dummy... done
+Running pbe_nspin2... done
+<QC> pbe_nspin2_energy -463.2636273896199
+<QC> pbe_nspin2_homo_energy -7.2413
+
+ecutwfc = 40.0, cell_size = 1.1
+Running pbe_nspin1... done
+<QC> pbe_nspin1_energy -463.2016572479696
+<QC> pbe_nspin1_homo_energy -7.2446
+Running pbe_nspin2_dummy... done
+Running pbe_nspin2... done
+<QC> pbe_nspin2_energy -463.20174118148316
+<QC> pbe_nspin2_homo_energy -7.2449
+
+ecutwfc = 40.0, cell_size = 1.2
+Running pbe_nspin1... done
+<QC> pbe_nspin1_energy -463.2639584161047
+<QC> pbe_nspin1_homo_energy -7.2458
+Running pbe_nspin2_dummy... done
+Running pbe_nspin2... done
+<QC> pbe_nspin2_energy -463.26404375916786
+<QC> pbe_nspin2_homo_energy -7.2461
+
+Converged parameters are ecutwfc = 30.0, cell_size = 1.0
+<QC> ecutwfc 30.0
+<QC> cell_size 1.0
+Contents of ./pbe.cpo:
+=------------------------------------------------------------------------------=
+
+     CP: variable-cell Car-Parrinello molecular dynamics
+     using norm-conserving and ultrasoft Vanderbilt pseudopotentials
+
+     Version: 4.1 - Fri 20 Nov 12:22:15 CET 2020                          
+     Authors: Alfredo Pasquarello, Kari Laasonen, Andrea Trave, Roberto Car,
+       Paolo Giannozzi, Nicola Marzari, Carlo Cavazzoni, Guido Chiarotti,
+       Sandro Scandolo, Paolo Focher, Gerardo Ballabio, and others
+
+=------------------------------------------------------------------------------=
+
+   This run was started on:  14:46: 8   1Dec2020               
+
+   MPI Parallel Build
+   Tasks =    8  This task id =    0
+     Message from routine  system_checkin     :
+      starting_magnetization is not used in CP 
+Warning: card &NKSIC ignored
+Warning: card    INNERLOOP_CG_NRESET = 20 ignored
+Warning: card    INNERLOOP_CG_NSD = 2 ignored
+Warning: card    INNERLOOP_INIT_N = 3 ignored
+Warning: card    HARTREE_ONLY_SIC = .FALSE. ignored
+Warning: card    ESIC_CONV_THR    = 8E-09 ignored
+Warning: card    DO_INNERLOOP_CG  = .TRUE. ignored
+Warning: card    INNERLOOP_NMAX   = 100 ignored
+Warning: card / ignored
+Warning: card K_POINTS GAMMA ignored
+
+   Job Title: MD Simulation
+
+
+   Atomic Pseudopotentials Parameters
+   ----------------------------------
+
+   Reading pseudopotential for specie #  1 from file :
+   /home/elinscott/code/python_KI/pseudos/O_ONCV_PBE-1.0.upf
+   file type is 20: UPF
+ read_nonlocal
+
+   Warning XC functionals forced to be: PBE                 
+
+   Reading pseudopotential for specie #  2 from file :
+   /home/elinscott/code/python_KI/pseudos/H_ONCV_PBE-1.0.upf
+   file type is 20: UPF
+ read_nonlocal
+
+   Warning XC functionals forced to be: PBE                 
+
+
+   Main Simulation Parameters (from input)
+   ---------------------------------------
+   ion_nstepe or cell_nstepe have no effects 
+   Restart Mode       =      -1   from_scratch   
+   Number of MD Steps =      50
+   Print out every            1 MD Steps
+   Reads from unit    =      50
+   Writes to unit     =      51
+   MD Simulation time step            =       1.00
+   Electronic fictitious mass (emass) =     400.00
+   emass cut-off                      =       2.50
+
+   Simulation Cell Parameters (from input)
+   external pressure       =            0.00 [GPa]
+   wmass (calculated)      =         2495.49 [AU]
+   initial cell from CELL_PARAMETERS card
+       9.51420000    0.00000000    0.00000000
+       0.00000000    8.00000000    0.00000000
+       0.00000000    0.00000000    8.58610000
+   ibrav =    0
+   alat  =    17.97923237
+   a1    =    17.97923237    0.00000000    0.00000000
+   a2    =     0.00000000   15.11780906    0.00000000
+   a3    =     0.00000000    0.00000000   16.22537755
+ 
+   b1    =     0.05561973    0.00000000    0.00000000
+   b2    =     0.00000000    0.06614715    0.00000000
+   b3    =     0.00000000    0.00000000    0.06163185
+   omega =  4410.16473992
+ nbeg          -1
+
+    ========================================
+    |  CONJUGATE GRADIENT                  |
+    ========================================
+    | iterations   =           300         |
+    | conv_thr     = 0.00000000800 a.u.    |
+    | passop       =       2.00000 a.u.    |
+    | niter_cg_restart =  20      |
+    ========================================
+
+   Energy Cut-offs
+   ---------------
+   Ecutwfc =   20.0 Ry,      Ecutrho =   80.0 Ry,      Ecuts =   80.0 Ry
+   Gcutwfc =   12.8     ,    Gcutrho =   25.6          Gcuts =   25.6
+   NOTA BENE: refg, mmx =   0.050000  3200
+   Orthog. with Gram-Schmidt
+   Electron dynamics with conjugate gradient
+   Electron dynamics : the temperature is not controlled
+   initial random displacement of el. coordinates with  amplitude=  0.020000
+
+   Electronic states
+   -----------------
+   Local Spin Density calculation
+   Number of Electron =     8
+   Spins up   =     4, occupations: 
+   1.00 1.00 1.00 1.00
+   Spins down =     4, occupations: 
+   1.00 1.00 1.00 1.00
+
+
+   Exchange and correlations functionals
+   -------------------------------------
+   Using Local Density Approximation with
+     Exchange functional: SLATER                                                      
+     Correlation functional: PERDEW AND WANG                                             
+   Using Generalized Gradient Corrections with
+     Exchange functional: PERDEW BURKE ERNZERHOF                                      
+     Correlation functional: PERDEW BURKE ERNZERHOF                                      
+     Exchange-correlation      = PBE (1434)
+   Wavefunctions will be written to file as Kohn-Sham states
+
+
+   Ions Simulation Parameters
+   --------------------------
+   Ions are not allowed to move
+   Ionic position (from input)
+   sorted by specie, and converted to real a.u. coordinates
+   Species   1 atoms =    1 mass =     29164.39 (a.u.),        16.00 (amu) rcmax =   1.00 (a.u.)
+        8.989616     7.558905     7.374310
+   Species   2 atoms =    2 mass =      1837.47 (a.u.),         1.01 (amu) rcmax =   1.00 (a.u.)
+       10.420328     7.558905     8.481879
+        7.558905     7.558905     8.481879
+   Ionic position read from input file
+
+
+   Cell Dynamics Parameters (from STDIN)
+   -------------------------------------
+   Starting cell generated from CELLDM
+   Constant VOLUME Molecular dynamics
+   cell parameters are not allowed to move
+
+   Verbosity: iprsta =  1
+
+ nbeg          -1
+
+
+   Simulation dimensions initialization
+   ------------------------------------
+
+   unit vectors of full simulation cell
+   in real space:                         in reciprocal space (units 2pi/alat):
+   1    17.9792    0.0000    0.0000              1.0000    0.0000    0.0000
+   2     0.0000   15.1178    0.0000              0.0000    1.1893    0.0000
+   3     0.0000    0.0000   16.2254              0.0000    0.0000    1.1081
+ 
+   Stick Mesh
+   ----------
+   nst =   869,  nstw =   215, nsts =   869
+        PEs    n.st   n.stw   n.sts    n.g    n.gw   n.gs
+          1     216      54     216    6664     838    6664
+          2     216      54     216    6664     838    6664
+          3     216      54     216    6664     838    6664
+          4     218      54     218    6666     838    6666
+          5     217      53     217    6663     835    6663
+          6     218      54     218    6662     830    6662
+          7     218      54     218    6662     830    6662
+          8     218      52     218    6662     828    6662
+          0    1737     429    1737   53307    6675   53307
+ 
+ 
+   Real Mesh
+   ---------
+   Global Dimensions   Local  Dimensions   Processor Grid
+   .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
+    54    45    48      54    45     6       1     1     8
+   Array leading dimensions ( nr1x, nr2x, nr3x )   =     54    45    48
+   Local number of cell to store the grid ( nnrx ) =      14580
+   Number of x-y planes for each processors: 
+   nr3l =     6    6    6    6    6    6    6    6
+ 
+   Smooth Real Mesh
+   ----------------
+   Global Dimensions   Local  Dimensions   Processor Grid
+   .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
+    54    45    48      54    45     6       1     1     8
+   Array leading dimensions ( nr1x, nr2x, nr3x )   =     54    45    48
+   Local number of cell to store the grid ( nnrx ) =      14580
+   Number of x-y planes for each processors: 
+   nr3sl =     6    6    6    6    6    6    6    6
+ 
+   Reciprocal Space Mesh
+   ---------------------
+                Large Mesh
+   PE   Global(ngmt)     Local(ngm) MaxLocal(ngmx)
+    1          53307           6664           6666
+    2          53307           6664           6666
+    3          53307           6664           6666
+    4          53307           6666           6666
+    5          53307           6663           6666
+    6          53307           6662           6666
+    7          53307           6662           6666
+    8          53307           6662           6666
+                Smooth Mesh
+   PE   Global(ngst)     Local(ngs) MaxLocal(ngsx)
+    1          53307           6664           6666
+    2          53307           6664           6666
+    3          53307           6664           6666
+    4          53307           6666           6666
+    5          53307           6663           6666
+    6          53307           6662           6666
+    7          53307           6662           6666
+    8          53307           6662           6666
+                Wave function Mesh
+   PE   Global(ngwt)     Local(ngw) MaxLocal(ngwx)
+    1           6675            838            838
+    2           6675            838            838
+    3           6675            838            838
+    4           6675            838            838
+    5           6675            835            838
+    6           6675            830            838
+    7           6675            830            838
+    8           6675            828            838
+
+
+   System geometry initialization
+   ------------------------------
+ 
+   Scaled positions from standard input
+   O    5.000000E-01  5.000000E-01  4.544924E-01
+   H    5.795758E-01  5.000000E-01  5.227539E-01
+   H    4.204242E-01  5.000000E-01  5.227539E-01
+
+   Matrix Multiplication Performances
+   ortho mmul, time for parallel driver      =   0.00000 with    1 procs
+
+   Constraints matrixes will be distributed block like on
+   ortho sub-group =    1*   1 procs
+
+
+
+   Pseudopotentials initialization
+   -------------------------------
+
+
+   Common initialization
+
+   Specie:     1
+   1  indv=  1   ang. mom=  0
+   2  indv=  2   ang. mom=  0
+   3  indv=  3   ang. mom=  1
+   4  indv=  3   ang. mom=  1
+   5  indv=  3   ang. mom=  1
+   6  indv=  4   ang. mom=  1
+   7  indv=  4   ang. mom=  1
+   8  indv=  4   ang. mom=  1
+ 
+                        dion 
+      9.757151948500      0.000000000000      0.000000000000      0.000000000000
+      0.000000000000      1.376126720650      0.000000000000      0.000000000000
+      0.000000000000      0.000000000000     -4.806858824850      0.000000000000
+      0.000000000000      0.000000000000      0.000000000000     -1.616239702250
+
+   Specie:     2
+   1  indv=  1   ang. mom=  0
+   2  indv=  2   ang. mom=  0
+ 
+                        dion 
+    -12.008220743500      0.000000000000
+      0.000000000000     -0.516823145650
+ 
+   Short Legend and Physical Units in the Output
+   ---------------------------------------------
+   NFI    [int]          - step index
+   EKINC  [HARTREE A.U.] - kinetic energy of the fictitious electronic dynamics
+   TEMPH  [K]            - Temperature of the fictitious cell dynamics
+   TEMP   [K]            - Ionic temperature
+   ETOT   [HARTREE A.U.] - Scf total energy (Kohn-Sham hamiltonian)
+   ENTHAL [HARTREE A.U.] - Enthalpy ( ETOT + P * V )
+   ECONS  [HARTREE A.U.] - Enthalpy + kinetic energy of ions and cell
+   ECONT  [HARTREE A.U.] - Constant of motion for the CP lagrangian
+ 
+
+   f_cutoff =  0.0100
+   do_spinsym   =    F
+   EE with periodic-image correction method = tcc                 
+ USING TCC FOR ODD T
+
+
+   Wave Initialization: random initial wave-functions
+   Occupation number from init
+   spin =   1 nbnd =     4
+    1.00 1.00 1.00 1.00
+   spin =   2 nbnd =     4
+    1.00 1.00 1.00 1.00
+
+   formf: eself=  15.15981
+   formf:     vps(g=0)=  -0.0034259     rhops(g=0)=  -0.0013196
+   formf:     vps(g=0)=  -0.0034259     rhops(g=0)=  -0.0013196
+   formf: sum_g vps(g)=  -8.1521286 sum_g rhops(g)=  -1.0775227
+   formf:     vps(g=0)=  -0.0006615     rhops(g=0)=  -0.0002199
+   formf:     vps(g=0)=  -0.0006615     rhops(g=0)=  -0.0002199
+   formf: sum_g vps(g)=  -2.9749450 sum_g rhops(g)=  -0.1795871
+   Delta V(G=0):   0.005698Ry,    0.155042eV
+
+ * Physical Quantities at step:     1
+           0 call to runcg_uspp in move_electrons.f90
+           1 call to runcg_uspp in move_electrons.f90
+           2 call to runcg_uspp in move_electrons.f90
+           3 call to runcg_uspp in move_electrons.f90
+           4 call to runcg_uspp in move_electrons.f90
+           5 call to runcg_uspp in move_electrons.f90
+           6 call to runcg_uspp in move_electrons.f90
+           7 call to runcg_uspp in move_electrons.f90
+
+PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
+
+     CP           :     0.12s CPU time,    0.13s wall time
+
+     iteration =   1  eff iteration =   1   Etot (Ha) =     21.61863017260230
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+   21.618630172602  -17.704379777372    6.981022322148    6.528226531831    6.887352700208    1.704708533202    2.000000000000    1.704708533202
+     CP           :     0.16s CPU time,    0.16s wall time
+
+     iteration =   2  eff iteration =   2   Etot (Ha) =      6.88735270020775
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+    6.887352700208  -24.336079634163   -3.191319093064   -6.812364166485   -3.926129350712    1.125877057656    1.704708533202    1.125877057656
+     CP           :     0.19s CPU time,    0.20s wall time
+
+     iteration =   3  eff iteration =   3   Etot (Ha) =     -3.92612935071217 delta_E=  0.14731277472395E+02
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+   -3.926129350712  -31.855230543533   -6.999331559187  -13.732702122368   -9.516328668515    0.615696236023    1.125877057656    0.615696236023
+     CP           :     0.22s CPU time,    0.23s wall time
+
+     iteration =   4  eff iteration =   4   Etot (Ha) =     -9.51632866851529 delta_E=  0.10813482050920E+02
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+   -9.516328668515  -14.134061703215  -12.743989589387  -12.974546801416  -12.840157145939    0.489345271800    0.615696236023    0.489345271800
+     CP           :     0.25s CPU time,    0.26s wall time
+
+     iteration =   5  eff iteration =   5   Etot (Ha) =    -12.84015714593946 delta_E=  0.55901993178031E+01
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -12.840157145939   -5.872704454567  -14.348667822640  -14.352424963718  -14.356709539947    0.515015808978    0.489345271800    0.515015808978
+     CP           :     0.29s CPU time,    0.29s wall time
+
+     iteration =   6  eff iteration =   6   Etot (Ha) =    -14.35670953994699 delta_E=  0.33238284774242E+01
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -14.356709539947   -2.204404115332  -15.046779322214  -15.080438627294  -15.078914846514    0.656621063546    0.515015808978    0.656621063546
+     CP           :     0.32s CPU time,    0.33s wall time
+
+     iteration =   7  eff iteration =   7   Etot (Ha) =    -15.07891484651435 delta_E=  0.15165523940075E+01
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -15.078914846514   -1.320194480226  -15.545232914680  -15.547932652000  -15.547216174249    0.710528353983    0.656621063546    0.710528353983
+     CP           :     0.35s CPU time,    0.36s wall time
+
+     iteration =   8  eff iteration =   8   Etot (Ha) =    -15.54721617424937 delta_E=  0.72220530656736E+00
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -15.547216174249   -0.964844621441  -15.844277454459  -15.849656561545  -15.849577905413    0.626920398529    0.710528353983    0.626920398529
+     CP           :     0.38s CPU time,    0.39s wall time
+
+     iteration =   9  eff iteration =   9   Etot (Ha) =    -15.84957790541339 delta_E=  0.46830132773501E+00
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -15.849577905413   -0.621475285057  -16.029097203136  -16.030209727987  -16.030337025882    0.581300099674    0.626920398529    0.581300099674
+     CP           :     0.41s CPU time,    0.43s wall time
+
+     iteration =  10  eff iteration =  10   Etot (Ha) =    -16.03033702588151 delta_E=  0.30236173116403E+00
+
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.030337025882   -0.364696360631  -16.128230282921  -16.128806098606  -16.128864027647    0.540005787577    0.581300099674    0.540005787577
+     CP           :     0.44s CPU time,    0.46s wall time
+
+     iteration =  11  eff iteration =  11   Etot (Ha) =    -16.12886402764657 delta_E=  0.18075912046812E+00
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.128864027647   -0.205313826750  -16.183087414095  -16.183113342985  -16.183113559765    0.528452624908    0.540005787577    0.528452624908
+     CP           :     0.47s CPU time,    0.49s wall time
+
+     iteration =  12  eff iteration =  12   Etot (Ha) =    -16.18311355976532 delta_E=  0.98527001765056E-01
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.183113559765   -0.115333867808  -16.212733012716  -16.212756335024  -16.212751691175    0.514034183051    0.528452624908    0.514034183051
+     CP           :     0.51s CPU time,    0.52s wall time
+
+     iteration =  13  eff iteration =  13   Etot (Ha) =    -16.21275169117464 delta_E=  0.54249532118746E-01
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.212751691175   -0.061722358982  -16.228793248859  -16.228795265514  -16.228796354352    0.519862643108    0.514034183051    0.519862643108
+     CP           :     0.54s CPU time,    0.56s wall time
+
+     iteration =  14  eff iteration =  14   Etot (Ha) =    -16.22879635435193 delta_E=  0.29638131409325E-01
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.228796354352   -0.032830607129  -16.237307579662  -16.237307638713  -16.237307578484    0.518496921350    0.519862643108    0.518496921350
+  cg_sub: missed minimum, case 1, iteration   14      0.518496921350
+     CP           :     0.59s CPU time,    0.60s wall time
+
+     iteration =  15  eff iteration =  15   Etot (Ha) =    -16.23730757966212 delta_E=  0.16044663177286E-01
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.237307579662   -0.017173742455  -16.223733465139  -16.243462162009  -16.243458321149    0.716743291465    2.000000000000    0.716743291465
+     CP           :     0.62s CPU time,    0.64s wall time
+
+     iteration =  16  eff iteration =  16   Etot (Ha) =    -16.24345832114896 delta_E=  0.85112253101869E-02
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.243458321149   -0.005374642302  -16.245798155007  -16.245911325521  -16.245910890596    0.912806558729    0.716743291465    0.912806558729
+     CP           :     0.65s CPU time,    0.67s wall time
+
+     iteration =  17  eff iteration =  17   Etot (Ha) =    -16.24591089059556 delta_E=  0.61507414868487E-02
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.245910890596   -0.001713058026  -16.246611890124  -16.246619466462  -16.246619415991    0.827264290677    0.912806558729    0.827264290677
+     CP           :     0.68s CPU time,    0.70s wall time
+
+     iteration =  18  eff iteration =  18   Etot (Ha) =    -16.24661941599130 delta_E=  0.24525694466000E-02
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.246619415991   -0.000647953027  -16.246893433572  -16.246893571125  -16.246893573595    0.846219163870    0.827264290677    0.846219163870
+     CP           :     0.72s CPU time,    0.73s wall time
+
+     iteration =  19  eff iteration =  19   Etot (Ha) =    -16.24689357359518 delta_E=  0.70852539574062E-03
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.246893573595   -0.000216393813  -16.246994534298  -16.246995610366  -16.246995608438    0.943065507084    0.846219163870    0.943065507084
+     CP           :     0.75s CPU time,    0.77s wall time
+
+     iteration =  20  eff iteration =  20   Etot (Ha) =    -16.24699560843833 delta_E=  0.27415760387228E-03
+
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.246995608438   -0.000077960039  -16.246927352698  -16.247022720050  -16.247022722929    0.695525854211    2.000000000000    0.695525854211
+     CP           :     0.78s CPU time,    0.80s wall time
+
+     iteration =  21  eff iteration =  21   Etot (Ha) =    -16.24702272292949 delta_E=  0.10203484314886E-03
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.247022722929   -0.000033561383  -16.247039035450  -16.247042099329  -16.247042097094    1.154684205878    0.695525854211    1.154684205878
+     CP           :     0.81s CPU time,    0.83s wall time
+
+     iteration =  22  eff iteration =  22   Etot (Ha) =    -16.24704209709396 delta_E=  0.27114491160773E-04
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.247042097094   -0.000021232779  -16.247051280395  -16.247051897156  -16.247051897213    0.923106890787    1.154684205878    0.923106890787
+     CP           :     0.84s CPU time,    0.87s wall time
+
+     iteration =  23  eff iteration =  23   Etot (Ha) =    -16.24705189721297 delta_E=  0.19374164470065E-04
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.247051897213   -0.000008734118  -16.247055873890  -16.247055874620  -16.247055874612    0.910774650846    0.923106890787    0.910774650846
+     CP           :     0.88s CPU time,    0.90s wall time
+
+     iteration =  24  eff iteration =  24   Etot (Ha) =    -16.24705587461234 delta_E=  0.98001190096397E-05
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.247055874612   -0.000003107782  -16.247057264896  -16.247057265328  -16.247057265328    0.894989372989    0.910774650846    0.894989372989
+     CP           :     0.91s CPU time,    0.93s wall time
+
+     iteration =  25  eff iteration =  25   Etot (Ha) =    -16.24705726532820 delta_E=  0.39773993698589E-05
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.247057265328   -0.000001248826  -16.247057869195  -16.247057873140  -16.247057873139    0.973412808647    0.894989372989    0.973412808647
+     CP           :     0.94s CPU time,    0.96s wall time
+
+     iteration =  26  eff iteration =  26   Etot (Ha) =    -16.24705787313939 delta_E=  0.13907158660231E-05
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.247057873139   -0.000000272941  -16.247057953929  -16.247057968583  -16.247057968583    0.699373418250    0.973412808647    0.699373418250
+     CP           :     0.97s CPU time,    1.00s wall time
+
+     iteration =  27  eff iteration =  27   Etot (Ha) =    -16.24705796858288 delta_E=  0.60781119159969E-06
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.247057968583   -0.000000067400  -16.247057996232  -16.247057997086  -16.247057997086    0.845781121310    0.699373418250    0.845781121310
+     CP           :     1.00s CPU time,    1.03s wall time
+
+     iteration =  28  eff iteration =  28   Etot (Ha) =    -16.24705799708579 delta_E=  0.95443489556146E-07
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.247057997086   -0.000000021412  -16.247058006706  -16.247058006744  -16.247058006744    0.902135404435    0.845781121310    0.902135404435
+     CP           :     1.03s CPU time,    1.06s wall time
+
+     iteration =  29  eff iteration =  29   Etot (Ha) =    -16.24705800674402 delta_E=  0.28502903148819E-07
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.247058006744   -0.000000008153  -16.247058010725  -16.247058010752  -16.247058010752    0.983222514653    0.902135404435    0.983222514653
+     CP           :     1.07s CPU time,    1.09s wall time
+
+     iteration =  30  eff iteration =  30   Etot (Ha) =    -16.24705801075194 delta_E=  0.96582297715031E-08
+
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.247058010752   -0.000000003272  -16.247058011970  -16.247058012046  -16.247058012047    0.791162266303    0.983222514653    0.791162266303
+     CP           :     1.10s CPU time,    1.13s wall time
+
+     iteration =  31  eff iteration =  31   Etot (Ha) =    -16.24705801204669 delta_E=  0.40079193297515E-08
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.247058012047   -0.000000001255  -16.247058012673  -16.247058012718  -16.247058012718    1.070245232138    0.791162266303    1.070245232138
+     CP           :     1.13s CPU time,    1.16s wall time
+
+     iteration =  32  eff iteration =  32   Etot (Ha) =    -16.24705801271837 delta_E=  0.12947580785294E-08
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.247058012718   -0.000000000554  -16.247058012940  -16.247058012955  -16.247058012955    0.855306501479    1.070245232138    0.855306501479
+     CP           :     1.16s CPU time,    1.19s wall time
+
+     iteration =  33  eff iteration =  33   Etot (Ha) =    -16.24705801295525 delta_E=  0.67167249540034E-09
+ ene0, dene0, ene1, enesti,enever, passo, passov, passof
+  -16.247058012955   -0.000000000171  -16.247058013032  -16.247058013032  -16.247058013032    0.898626469051    0.855306501479    0.898626469051
+
+
+                total energy =     -16.2470580130 Hartree a.u.
+              kinetic energy =       9.8005913999 Hartree a.u.
+        electrostatic energy =     -14.5537115707 Hartree a.u.
+                         esr =       0.4683965329 Hartree a.u.
+                       eself =      15.1598066553 Hartree a.u.
+      pseudopotential energy =      -7.9730321962 Hartree a.u.
+  n-l pseudopotential energy =       0.4735697542 Hartree a.u.
+ exchange-correlation energy =      -3.9944754002 Hartree a.u.
+           average potential =       0.0000000000 Hartree a.u.
+                  odd energy =       0.0000000000 Hartree a.u.
+        van der waals energy =       0.0000000000 Hartree a.u.
+
+
+
+   HOMO Eigenvalue (eV)
+
+   -7.0294
+
+   Eigenvalues (eV), kp =   1 , spin =  1
+
+  -29.1101  -13.2365   -9.7701   -7.0294
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -29.1101  -13.2365   -9.7701   -7.0294
+
+   Orb -- Charge  ---   Centers xyz (Bohr)  ---  Spreads (Bohr^2) - SH(eV), kp =   1 , spin =  1
+
+OCC    1 --    0.00   ---    0.00    0.00    0.00   ---    0.00    0.00
+OCC    2 --    0.00   ---    0.00    0.00    0.00   ---    0.00    0.00
+OCC    3 --    0.00   ---    0.00    0.00    0.00   ---    0.00    0.00
+OCC    4 --    0.00   ---    0.00    0.00    0.00   ---    0.00    0.00
+
+   Orb -- Charge  ---   Centers xyz (Bohr)  ---  Spreads (Bohr^2) - SH(eV), kp =   1 , spin =  2
+
+OCC    1 --    0.00   ---    0.00    0.00    0.00   ---    0.00    0.00
+OCC    2 --    0.00   ---    0.00    0.00    0.00   ---    0.00    0.00
+OCC    3 --    0.00   ---    0.00    0.00    0.00   ---    0.00    0.00
+OCC    4 --    0.00   ---    0.00    0.00    0.00   ---    0.00    0.00
+  Complexification index 
+ (0.000000000000000E+000,0.000000000000000E+000)
+ 
+   Allocated memory (kb) =     14752
+ 
+   CELL_PARAMETERS
+    1.79792324E+01    0.00000000E+00    0.00000000E+00
+    0.00000000E+00    1.51178091E+01    0.00000000E+00
+    0.00000000E+00    0.00000000E+00    1.62253775E+01
+
+   System Density [g/cm^3] :     0.0458
+
+
+   Center of mass square displacement (a.u.):   0.000000
+
+   ATOMIC_POSITIONS
+   O    8.989616E+00  7.558905E+00  7.374310E+00
+   H    1.042033E+01  7.558905E+00  8.481879E+00
+   H    7.558905E+00  7.558905E+00  8.481879E+00
+ 
+   ATOMIC_VELOCITIES
+   O    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+ 
+
+
+   Partial temperatures (for each ionic specie) 
+   Species  Temp (K)   Mean Square Displacement (a.u.)
+        1       0.00     0.0000
+        2       0.00     0.0000
+ 
+  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
+ 
+       nfi   tempp            E -T.S-mu.nbsp         +K_p #Iter
+Step     1       0    -16.24706    -16.24706    -16.24706    34
+ tnosep= F thdyn= F
+
+   writing restart file: /home/elinscott/code/python_KI/tests/test_06/TMP-CP/kc_51.save
+   restart file written in    0.036 sec.
+
+
+
+   Averaged Physical Quantities
+                      accomulated      this run
+   ekinc         :        0.00000       0.00000 (AU)
+   ekin          :        9.80059       9.80059 (AU)
+   epot          :      -26.52122     -26.52122 (AU)
+   total energy  :      -16.24706     -16.24706 (AU)
+   temperature   :        0.00000       0.00000 (K )
+   enthalpy      :        0.00000       0.00000 (AU)
+   econs         :      -16.24706     -16.24706 (AU)
+   pressure      :        0.00000       0.00000 (Gpa)
+   volume        :     4410.16474    4410.16474 (AU)
+
+
+     initialize   :     0.09s CPU
+     total_time   :     1.09s CPU
+     formf        :     0.01s CPU
+     rhoofr       :     0.15s CPU (      68 calls,   0.002 s avg)
+     vofrho       :     0.77s CPU (      68 calls,   0.011 s avg)
+     vofrho1      :     0.02s CPU (       2 calls,   0.012 s avg)
+     vofrho2      :     0.37s CPU (      33 calls,   0.011 s avg)
+     vofrho3      :     0.37s CPU (      33 calls,   0.011 s avg)
+     dforce       :     0.11s CPU (     136 calls,   0.001 s avg)
+     dforce1      :     0.10s CPU (     132 calls,   0.001 s avg)
+     dforce2      :     0.03s CPU
+     calphi       :     0.00s CPU (      34 calls,   0.000 s avg)
+     gram         :     0.01s CPU (      70 calls,   0.000 s avg)
+     newd         :     0.00s CPU (      34 calls,   0.000 s avg)
+     calbec       :     0.04s CPU (     271 calls,   0.000 s avg)
+     prefor       :     0.00s CPU (      36 calls,   0.000 s avg)
+     strucf       :     0.00s CPU
+     nlfl         :     0.00s CPU
+     nlsm1        :     0.04s CPU (     271 calls,   0.000 s avg)
+     fft          :     0.27s CPU (    1157 calls,   0.000 s avg)
+     ffts         :     0.03s CPU (     136 calls,   0.000 s avg)
+     fftw         :     0.19s CPU (    1088 calls,   0.000 s avg)
+     cft3s        :     0.50s CPU (    2381 calls,   0.000 s avg)
+     fft_scatter  :     0.10s CPU (    2381 calls,   0.000 s avg)
+
+     outer_loop   :     1.09s CPU (      33 calls,   0.033 s avg)
+     runcg_uspp   :     1.09s CPU
+     pc2          :     0.01s CPU (      99 calls,   0.000 s avg)
+     pcdaga2      :     0.00s CPU (      33 calls,   0.000 s avg)
+     xminus1      :     0.00s CPU (      66 calls,   0.000 s avg)
+     emass_p_tpa  :     0.00s CPU
+ 
+ 
+     CP           :     1.22s CPU time,    1.27s wall time
+
+ 
+   This run was terminated on:  14:46:10   1Dec2020            
+
+=------------------------------------------------------------------------------=
+   JOB DONE.
+=------------------------------------------------------------------------------=
+ debug0 T
+ debug1 T           2
+ debug2
+ debug2
+ debug3
+ debug3
+

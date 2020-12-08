@@ -1,11 +1,10 @@
 # `python KI`
-For performing KI and KIPZ calculations with ``cp.x``
+For performing KI and KIPZ calculations with ``quantum espresso``
 
 ## Directories
-`ase_koopmans` a fork of ASE that manages `cp.x` reading and writing (for installation details see below)  
+`ase_koopmans` a fork of ASE that manages reading and writing of ``quantum espresso`` (for installation details see below)  
 `bin` scripts for running calculations and performing useful tasks  
-`examples` example calculations  
-`koopmans_cp` source code  
+`koopmans` source code  
 `pseudos` pseudopotentials  
 `tests` test suite  
 
@@ -29,16 +28,24 @@ Add the following to your ~/.bashrc:
 export PATH=/path/to/python_KI/bin:$PATH 
 export PYTHONPATH=/path/to/python_KI/:$PYTHONPATH  
 export PYTHONPATH=/path/to/python_KI/ase_koopmans/:$PYTHONPATH  
+```
+
+For each code you want to use (e.g. ``cp.x``, ``pw.x``, etc) you can define the command to run this code with e.g. 
+```
 export ASE_ESPRESSO_CP_COMMAND="srun cp.x -in PREFIX.cpi > PREFIX.cpo"
+export ASE_ESPRESSO_COMMAND="srun pw.x -in PREFIX.pwi > PREFIX.pwo"
+export ASE_WANNIER90_COMMAND="wannier90.x PREFIX.win"
+export ASE_PW2WANNIER_COMMAND="srun pw2wannier90.x -in PREFIX.p2wi > PREFIX.p2wo"
+```
+Replace ``srun`` with whatever command is appropriate for your machine. Do not change anything after '``cp.x``')
+
+You can also *optionally* direct ASE to a central pseudopotentials directory by adding
+```
 export ESPRESSO_PSEUDO="/path/to/pseudopotential/folder/"
 ```
 
-N.B. 
- - for ``ASE_ESPRESSO_CP_COMMAND``, replace ``srun`` with whatever command is appropriate for your machine. Do not change anything after '``cp.x``')
- - ``ESPRESSO_PSEUDO`` is an *optional* way of directing ASE to a central pseudopotentials directory
-
 ## Running
-To see a list of options, run ``koopmans.py --help``
+To see a list of options, run ``run_koopmans.py --help``
 
 ## Contact
 Written by Edward Linscott, May 2020

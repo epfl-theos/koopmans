@@ -42,6 +42,9 @@ def find_executable(program):
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
+    if program[0] == '~':
+        program = program.replace('~', os.environ["HOME"], 1)
+
     fpath, fname = os.path.split(program)
     if fpath:
         if is_exe(program):
@@ -53,3 +56,29 @@ def find_executable(program):
                 return exe_file
 
     return None
+
+
+def cpi_diff(calcs, silent=False):
+    # Returns the differences in the settings of a list of calculators
+
+    # If calcs is a dict, convert it to a list (we only need the values)
+    if isinstance(calcs, dict):
+        calcs = calcs.values()
+
+    diffs = []
+
+    settings = [c.construct_namelist() for c in calcs]
+
+    blocks = set([b for s in settings for b in s.keys()])
+    for block in sorted(blocks):
+        keys = set(
+            [k for s in settings for k in s.get(block, {}).keys()])
+        for key in sorted(keys):
+            vals = [s[block].get(key, None) for s in settings]
+            if len(set(vals)) > 1:
+                if not silent:
+                    print(f'{block}.{key}: ' + ', '.join(map(str, vals)))
+                diffs.append(key)
+
+    return diffs
+

@@ -23,13 +23,16 @@ class Environ_calc(PW_calc):
         # Ensure we're using an environ-enabled version of pw.x
         self.preprocessing_flags = '--environ'
 
+        # Add electrostatic embedding to the results printed out during QC
+        self.results_for_qc.append('electrostatic embedding')
+
     def calculate(self):
         # Generic function for running a calculation
 
         # If pseudo_dir is a relative path then make sure it accounts for self.directory
         if self.pseudo_dir is not None and self.pseudo_dir[0] != '/':
             directory_depth = self.directory.strip('./').count('/') + 1
-            self.pseudo_dir = '../'*directory_depth + self.pseudo_dir
+            self.pseudo_dir = '../' * directory_depth + self.pseudo_dir
 
         self.write_environ_in()
 
@@ -69,3 +72,4 @@ class Environ_calc(PW_calc):
         qe_directory, _, _ = executable_with_path.rsplit('/', 2)
         if not os.path.isfile(qe_directory + '/Environ_PATCH'):
             raise OSError('The pw add-on "environ" is not installed')
+

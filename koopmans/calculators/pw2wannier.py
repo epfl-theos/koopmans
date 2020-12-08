@@ -8,7 +8,8 @@ Written by Edward Linscott Sep 2020
 
 from koopmans.utils import warn
 from ase.io import pw2wannier as p2w_io
-from koopmans.calculators.calculator import QE_calc
+from ase.calculators.pw2wannier import PW2Wannier
+from koopmans.calculators.generic import QE_calc
 
 
 class PW2Wannier_calc(QE_calc):
@@ -24,9 +25,8 @@ class PW2Wannier_calc(QE_calc):
     # internally they are stored as self._settings['keyword'] rather than
     # self.<keyword>
     _recognised_keywords = ['outdir', 'prefix', 'seedname', 'write_mmn',
-        'write_amn', 'write_uHu', 'uHu_formatted', 'write_unk', 'reduce_unk',
-        'wan_mode', 'wannier_plot', 'wannier_plot_list']
-
+                            'write_amn', 'write_uHu', 'uHu_formatted', 'write_unk', 'reduce_unk',
+                            'wan_mode', 'wannier_plot', 'wannier_plot_list', 'empty_states']
 
     for k in _recognised_keywords:
         # We need to use these make_get/set functions so that get/set_k are
@@ -48,16 +48,19 @@ class PW2Wannier_calc(QE_calc):
         set_k = make_set(k)
         locals()[k] = property(get_k, set_k)
 
+    def __init__(self, *args, **kwargs):
+        self._ase_calc_class = PW2Wannier
+        self.settings_to_not_parse = ['wan_mode']
+        super().__init__(*args, **kwargs)
+
     def _update_settings_dict(self):
+        if 'inputpp' not in self._ase_calc.parameters:
+            self._ase_calc.parameters['inputpp'] = {}
         self._settings = self._ase_calc.parameters['inputpp']
 
-    def calculate(self):
-       self._ase_calc.calculate()
-
     def is_converged(self):
-       warn("is_converged is not properly implemented")
-       return True
+        warn("is_converged is not properly implemented")
+        return True
 
     def is_complete(self):
-       warn("is_complete is not properly implemented")
-       return True
+        return self.results['job done']

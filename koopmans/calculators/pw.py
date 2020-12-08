@@ -7,8 +7,9 @@ Written by Edward Linscott Sep 2020
 """
 
 from ase.io import espresso_cp as pw_io
+from ase.calculators.espresso import Espresso
 from ase.units import create_units
-from koopmans.calculators.calculator import QE_calc
+from koopmans.calculators.generic import QE_calc
 
 
 class PW_calc(QE_calc):
@@ -50,8 +51,41 @@ class PW_calc(QE_calc):
             set_k = make_set(k)
             locals()[k] = property(get_k, set_k)
 
+    def __init__(self, *args, **kwargs):
+        self._ase_calc_class = Espresso
+        self.settings_to_not_parse = ['pseudo_dir', 'assume_isolated']
+        super().__init__(*args, **kwargs)
+        self.results_for_qc = ['energy']
+
+    @property
+    def calc(self):
+        # First, update the param block
+        self._ase_calc.parameters['input_data'] = self.construct_namelist()
+
+        return self._ase_calc
+
+    @calc.setter
+    def calc(self, value):
+        self._ase_calc = value
+
     def is_complete(self):
         return self.results.get('job done', False)
 
     def is_converged(self):
         return self.results.get('energy', None) is not None
+
+    def _ase_calculate(self):
+        # Before running the calculation, update the keywords for the ASE calculator object
+        self._ase_calc.parameters['input_data'] = self.construct_namelist()
+        super()._ase_calculate()
+
+    def construct_namelist(self):
+        # Returns a namelist of settings, grouped by their Quantum Espresso headings
+        return pw_io.construct_namelist(**self._settings, warn=True)
+
+    def _update_settings_dict(self):
+        # Updates self._settings based on self._ase_calc
+        self._settings = {}
+        for namelist in self._ase_calc.parameters.get('input_data', {}).values():
+            for key, val in namelist.items():
+                self._settings[key] = val

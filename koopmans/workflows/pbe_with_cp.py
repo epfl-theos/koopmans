@@ -8,60 +8,48 @@ Written by Edward Linscott Oct 2020
 
 import os
 import copy
-from koopmans import utils, io
-from koopmans.calculators.calculator import run_qe
+from koopmans import utils
+from koopmans.workflows.generic import Workflow
 
 
-def run(workflow_settings, calcs_dct):
-    '''
-    This function runs a single PBE calculation with cp.x
+class PBEWorkflow(Workflow):
 
-    Arguments:
-        workflow_settings -- a dictionary containing workflow settings
-        calcs_dct         -- a dictionary of calculators, including a CP_calc calculator
-                             object containing cp.x settings
+    def __init__(self, *args):
+        super().__init__(*args)
+        if 'cp' not in self.master_calcs:
+            raise ValueError(
+                '"functional": "PBE" requires a "cp" block in the input .json file')
 
-    '''
+    def run(self):
 
-    from koopmans.config import from_scratch
+        calc = self.new_calculator('cp')
 
-    if 'cp' not in calcs_dct:
-        raise ValueError(
-            '"functional": "PBE" requires a "cp" block in the input .json file')
+        # Sanitise outdir
+        calc.outdir = calc.outdir.strip('./')
+        if '/' in calc.outdir:
+            raise ValueError('"outdir" cannot be a nested directory')
+        calc.outdir = os.getcwd() + '/' + calc.outdir
 
-    calc = copy.deepcopy(calcs_dct['cp'])
+        # Removing old directories
+        if self.from_scratch:
+            utils.system_call(f'rm -r {calc.outdir} 2>/dev/null', False)
 
-    # Sanitise outdir and define 'outdir'
-    calc.outdir = calc.outdir.strip('./')
-    if '/' in calc.outdir:
-        raise ValueError('"outdir" cannot be a nested directory')
-    calc.outdir = os.getcwd() + '/' + calc.outdir
+        calc.name = 'pbe'
+        calc.ndr = 50
+        calc.ndw = 51
+        calc.restart_mode = 'from_scratch'
+        calc.do_orbdep = False
+        calc.fixed_state = False
+        calc.do_outerloop = True
+        calc.which_compensation = 'tcc'
 
-    # Removing old directories
-    if from_scratch:
-        utils.system_call(f'rm -r {calc.outdir} 2>/dev/null', False)
+        if calc.maxiter is None:
+            calc.maxiter = 300
+        if calc.empty_states_nbnd > 0:
+            calc.do_outerloop_empty = True
+            if calc.empty_states_maxstep is None:
+                calc.empty_states_maxstep = 300
 
-    calc.name = 'pbe'
-    calc.ndr = 50
-    calc.ndw = 51
-    calc.restart_mode = 'from_scratch'
-    calc.do_orbdep = False
-    calc.fixed_state = False
-    calc.do_outerloop = True
-    calc.which_compensation = 'tcc'
+        self.run_calculator(calc, enforce_ss=self.enforce_spin_symmetry)
 
-    if calc.maxiter is None:
-        calc.maxiter = 300
-    if calc.empty_states_nbnd > 0:
-        calc.do_outerloop_empty = True
-        if calc.empty_states_maxstep is None:
-            calc.empty_states_maxstep = 300
-
-    run_qe(calc, silent=False,
-           enforce_ss=workflow_settings['enforce_spin_symmetry'])
-
-    if workflow_settings['print_qc']:
-        for var in ['energy', 'homo_energy']:
-            io.print_qc(var, calc.results[var])
-
-    return calc
+        return calc

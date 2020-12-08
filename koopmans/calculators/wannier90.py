@@ -9,8 +9,9 @@ Written by Edward Linscott Sep 2020
 import numpy as np
 from koopmans.utils import warn
 from ase.io import wannier90 as w90_io
+from ase.calculators.wannier90 import Wannier90
 from ase.dft.kpoints import bandpath
-from koopmans.calculators.calculator import QE_calc
+from koopmans.calculators.generic import QE_calc
 
 
 class W90_calc(QE_calc):
@@ -19,15 +20,16 @@ class W90_calc(QE_calc):
 
     # Define the appropriate file extensions
     ext_in = '.win'
+    ext_out = '.wout'
 
     # Adding all wannier90 keywords as decorated properties of the W90_calc class.
     # This means one can set and get wannier90 keywords as self.<keyword> but
     # internally they are stored as self._settings['keyword'] rather than
     # self.<keyword>
     _recognised_keywords = ['num_bands', 'num_wann', 'exclude_bands',
-        'num_iter', 'conv_window', 'conv_tol', 'num_print_cycles', 
-        'dis_froz_max', 'dis_num_iter', 'dis_win_max', 'guiding_centres',
-        'bands_plot', 'mp_grid', 'kpoint_path', 'projections', 'write_hr']
+                            'num_iter', 'conv_window', 'conv_tol', 'num_print_cycles',
+                            'dis_froz_max', 'dis_num_iter', 'dis_win_max', 'guiding_centres',
+                            'bands_plot', 'mp_grid', 'kpoint_path', 'projections', 'hr_plot']
 
     for k in _recognised_keywords:
         # We need to use these make_get/set functions so that get/set_k are
@@ -47,27 +49,29 @@ class W90_calc(QE_calc):
 
         get_k = make_get(k)
         set_k = make_set(k)
-        locals()[k] = property(get_k, set_k)   
+        locals()[k] = property(get_k, set_k)
 
-    def _update_settings_dict(self):
-        self._settings = self._ase_calc.parameters
+    def __init__(self, *args, **kwargs):
+        self._ase_calc_class = Wannier90
+        self.settings_to_not_parse = ['exclude_bands']
+        super().__init__(*args, **kwargs)
 
     def calculate(self):
-       if self.mp_grid is None:
-          self.generate_kpoints()
-       self._ase_calc.calculate()
+        if self.mp_grid is None:
+            self.generate_kpoints()
+        super().calculate()
 
     def generate_kpoints(self):
-       self.mp_grid = self._ase_calc.parameters['kpts']
-       kpts = np.indices(self._ase_calc.parameters['kpts']).transpose(1,2,3,0).reshape(-1,3)
-       kpts = kpts / self._ase_calc.parameters['kpts']
-       kpts = bandpath(kpts, self._ase_calc.atoms.cell, npoints=len(kpts)-1)       
-       self._ase_calc.parameters['kpts'] = kpts.kpts[:,:3]
+        self.mp_grid = self._ase_calc.parameters['kpts']
+        kpts = np.indices(self._ase_calc.parameters['kpts']).transpose(
+            1, 2, 3, 0).reshape(-1, 3)
+        kpts = kpts / self._ase_calc.parameters['kpts']
+        kpts = bandpath(kpts, self._ase_calc.atoms.cell, npoints=len(kpts) - 1)
+        self._ase_calc.parameters['kpts'] = kpts.kpts[:, :3]
 
     def is_converged(self):
-       warn("is_converged is not properly implemented")
-       return True
+        warn("is_converged is not properly implemented")
+        return True
 
     def is_complete(self):
-       warn("is_complete is not properly implemented")
-       return True
+        return self.results['job done']
