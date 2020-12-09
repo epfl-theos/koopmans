@@ -213,6 +213,7 @@ cp_interfaces.o : ../Modules/uspp.o
 cp_interfaces.o : atoms_type.o
 cp_interfaces.o : modules.o
 cp_interfaces.o : wave_types.o
+cp_interfaces.o : write_hamiltonian.o
 cp_restart.o : ../Modules/cell_base.o
 cp_restart.o : ../Modules/constants.o
 cp_restart.o : ../Modules/control_flags.o
@@ -1451,6 +1452,8 @@ wf.o : cp_interfaces.o
 wf.o : modules.o
 wf.o : wannier.o
 wf.o : wannier_base.o
+write_hamiltonian.o : ../Modules/io_global.o
+write_hamiltonian.o : ../Modules/kind.o
 writetofile.o : ../Modules/cell_base.o
 writetofile.o : ../Modules/control_flags.o
 writetofile.o : ../Modules/fft_types.o

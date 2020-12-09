@@ -98,7 +98,7 @@ MODULE control_flags
   LOGICAL :: do_ee         = .FALSE. ! Compute periodi-image correction
 !$$ 
   LOGICAL :: draw_pot      = .FALSE. ! added:linh draw vsic potentials  
-  INTEGER :: pot_number    =  1      ! added:linh draw vsic potentials 
+  INTEGER :: pot_number    =  1      ! added:linh draw vsic potentials
 !$$
   INTEGER :: iprint_spreads=-1
   INTEGER :: iprint_manifold_overlap=-1

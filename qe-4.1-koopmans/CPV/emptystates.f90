@@ -43,7 +43,8 @@
       USE cp_interfaces,        ONLY : writeempty, readempty, gram_empty, ortho, &
                                        wave_rand_init, wave_atom_init, elec_fakekine, &
                                        crot, dforce, nlsm1, grabec, &
-                                       bec_csv, readempty_twin, writeempty_twin
+                                       bec_csv, readempty_twin, writeempty_twin, &
+                                       write_hamiltonian
       USE mp,                   ONLY : mp_comm_split, mp_comm_free, mp_sum
       USE mp_global,            ONLY : intra_image_comm, me_image
       USE nksic,                ONLY : do_orbdep, do_pz, do_wxd, vsicpsi, wtot, sizwtot, &
@@ -57,7 +58,7 @@
       USE input_parameters,     ONLY : odd_nkscalfact_empty, &
                                        restart_from_wannier_cp, wannier_empty_only, &
                                        fixed_band, print_wfc_anion, wo_odd_in_empty_run, &
-                                       odd_nkscalfact, index_empty_to_save
+                                       odd_nkscalfact, index_empty_to_save, write_hr
       USE wavefunctions_module, ONLY : c0fixed_emp
       !
       IMPLICIT NONE
@@ -719,15 +720,17 @@
           !
           IF(.not.lambda_emp(iss)%iscmplx) THEN
               CALL collect_lambda( lambda_rep, lambda_emp(iss)%rvec(:,:), desc_emp( :, iss ) )
-              IF (iss==1) THEN
-                OPEN(27,FILE='hamiltonian_emp.dat',FORM='formatted',status='UNKNOWN')
-                WRITE(27,'(1E16.10)') lambda_rep
-                CLOSE(27)
-              ENDIF
+!              IF (iss==1) THEN
+!                OPEN(27,FILE='hamiltonian_emp.dat',FORM='formatted',status='UNKNOWN')
+!                WRITE(27,'(1E16.10)') lambda_rep
+!                CLOSE(27)
+!              ENDIF
               CALL crot( cm_emp, c0_emp, ngw, n, i, i, lambda_rep, nudx_emp, ei_emp(:,iss) )
+              IF ( write_hr ) CALL write_hamiltonian( lambda_rep, n, iss, .true. )
           ELSE
               CALL collect_lambda( lambda_rep_c, lambda_emp(iss)%cvec(:,:), desc_emp( :, iss ) )
               CALL crot( cm_emp, c0_emp, ngw, n, i, i, lambda_rep_c, nudx_emp, ei_emp(:,iss) )
+              IF ( write_hr ) CALL write_hamiltonian( lambda_rep_c, n, iss, .true. )
           ENDIF
           !   
           ei_emp( 1:n, iss ) = ei_emp( 1:n, iss ) / f_aux( i : i + n - 1 )

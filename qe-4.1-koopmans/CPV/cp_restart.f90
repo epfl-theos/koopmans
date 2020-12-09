@@ -79,14 +79,14 @@ MODULE cp_restart
       USE mp,                       ONLY : mp_sum
       USE fft_base,                 ONLY : dfftp
       USE constants,                ONLY : pi
-      USE cp_interfaces,            ONLY : n_atom_wfc
+      USE cp_interfaces,            ONLY : n_atom_wfc, write_hamiltonian
       USE global_version,           ONLY : version_number
       USE cp_main_variables,        ONLY : collect_lambda, descla, collect_zmat
       USE twin_types !added:giovanni
       USE electrons_base,           ONLY : nbsp !added:giovanni
       USE nksic,                    ONLY : do_bare_eigs !added:giovanni
       USE input_parameters,         ONLY : odd_nkscalfact, restart_odd_nkscalfact, & 
-                                           print_evc0_occ_empty
+                                           print_evc0_occ_empty, write_hr
       USE wavefunctions_module,     ONLY : c0_fixed, c0_occ_emp_aux
       !
       IMPLICIT NONE
@@ -935,11 +935,11 @@ MODULE cp_restart
                                filename, CREATE = .TRUE., BINARY = .TRUE. )
                !
                IF(.not. lambda0(1)%iscmplx) THEN
-		  CALL iotk_write_dat( iunpun, &
-					"LAMBDA0" // TRIM( cspin ), mrepl )
+                   CALL iotk_write_dat( iunpun, &
+                                        "LAMBDA0" // TRIM( cspin ), mrepl )
                ELSE
-                  CALL iotk_write_dat( iunpun, &
-					"LAMBDA0" // TRIM( cspin ), mrepl_c )
+                   CALL iotk_write_dat( iunpun, &
+                                        "LAMBDA0" // TRIM( cspin ), mrepl_c )
                ENDIF
                !
                ! Changes by Nicolas Poilvert, Sep. 2010 for printing the lambda
@@ -961,12 +961,17 @@ MODULE cp_restart
                CALL iotk_link( iunpun, "HAMILTONIAN" // TRIM( cspin ), &
                                filename, CREATE = .TRUE., BINARY = .FALSE. )
                !
+               !
                IF(allocated(mrepl)) THEN
-		  CALL iotk_write_dat( iunpun, &
-					"HAMILTONIAN" // TRIM( cspin ), mrepl )
+                   CALL iotk_write_dat( iunpun, &
+                                        "HAMILTONIAN" // TRIM( cspin ), mrepl )
+                   IF ( write_hr ) CALL write_hamiltonian( mrepl, nupdwn(iss), iss, .false. )
+                   !
+                   !
                ELSE IF(allocated(mrepl_c)) THEN
-                  CALL iotk_write_dat( iunpun, &
-					"HAMILTONIAN" // TRIM( cspin ), mrepl_c )
+                   CALL iotk_write_dat( iunpun, &
+                                        "HAMILTONIAN" // TRIM( cspin ), mrepl_c )
+                   IF ( write_hr ) CALL write_hamiltonian( mrepl_c, nupdwn(iss), iss, .false. )
                ENDIF
                !
             ENDIF
@@ -997,11 +1002,11 @@ MODULE cp_restart
                                filename, CREATE = .TRUE., BINARY = .FALSE. )
                   !
                   IF(allocated(mrepl)) THEN
-		     CALL iotk_write_dat( iunpun, &
-					"HAMILTONIAN0" // TRIM( cspin ), mrepl )
+                      CALL iotk_write_dat( iunpun, &
+                                           "HAMILTONIAN0" // TRIM( cspin ), mrepl )
                   ELSE IF(allocated(mrepl_c)) THEN
-                     CALL iotk_write_dat( iunpun, &
-					"HAMILTONIAN0" // TRIM( cspin ), mrepl_c )
+                      CALL iotk_write_dat( iunpun, &
+                                           "HAMILTONIAN0" // TRIM( cspin ), mrepl_c )
                   ENDIF
                   !
                ENDIF
@@ -1139,11 +1144,11 @@ MODULE cp_restart
       USE mp,                       ONLY : mp_sum
       USE fft_base,                 ONLY : dfftp
       USE constants,                ONLY : pi
-      USE cp_interfaces,            ONLY : n_atom_wfc
+      USE cp_interfaces,            ONLY : n_atom_wfc, write_hamiltonian
       USE global_version,           ONLY : version_number
       USE cp_main_variables,        ONLY : collect_lambda, descla, collect_zmat
       USE input_parameters,     ONLY : odd_nkscalfact, restart_odd_nkscalfact, &
-                                       print_evc0_occ_empty
+                                       print_evc0_occ_empty, write_hr
       USE wavefunctions_module, ONLY : c0_fixed, c0_occ_emp_aux
       !
       IMPLICIT NONE
@@ -1996,6 +2001,7 @@ MODULE cp_restart
                !
                CALL iotk_write_dat( iunpun, &
                                     "HAMILTONIAN" // TRIM( cspin ), mrepl )
+               IF ( write_hr ) CALL write_hamiltonian( mrepl, nupdwn(iss), iss, .false. )
                !
             END IF
             !

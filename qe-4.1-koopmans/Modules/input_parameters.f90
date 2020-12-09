@@ -255,13 +255,18 @@ MODULE input_parameters
         LOGICAL :: lkpoint_dir = .TRUE. ! opens a directory for each k point
 
         LOGICAL :: use_wannier = .FALSE. ! use or not Wannier functions
+        
+        LOGICAL :: write_hr = .false.
+          ! if true, print out the occupied and empty hamiltonians
+          ! in the representation of variational orbitals
 
-        NAMELIST / control / title, calculation, verbosity, restart_mode, &
-          nstep, iprint, isave, tstress, tprnfor, dt, ndr, ndw, outdir,   &
-          prefix, wfcdir, max_seconds, ekin_conv_thr, etot_conv_thr,      &
-          forc_conv_thr, pseudo_dir, disk_io, tefield, dipfield, lberry,  &
-          gdir, nppstr, wf_collect, printwfc, lelfield, nberrycyc, refg,  &
-          tefield2, saverho, tabps, lkpoint_dir, use_wannier, evc_restart
+        NAMELIST / control / title, calculation, verbosity, restart_mode,  &
+          nstep, iprint, isave, tstress, tprnfor, dt, ndr, ndw, outdir,    &
+          prefix, wfcdir, max_seconds, ekin_conv_thr, etot_conv_thr,       &
+          forc_conv_thr, pseudo_dir, disk_io, tefield, dipfield, lberry,   &
+          gdir, nppstr, wf_collect, printwfc, lelfield, nberrycyc, refg,   &
+          tefield2, saverho, tabps, lkpoint_dir, use_wannier, evc_restart, &
+          write_hr
 
 !
 !=----------------------------------------------------------------------------=!
@@ -458,7 +463,7 @@ MODULE input_parameters
         LOGICAL :: fixed_state = .false.
         INTEGER :: fixed_band  = 1
         LOGICAL :: restart_from_wannier_pwscf= .false. !added by linh, to start KIPZ calculations using
-        !
+
         NAMELIST / system / ibrav, celldm, a, b, c, cosab, cosac, cosbc, nat, &
              ntyp, nbnd, nelec, ecutwfc, ecutrho, nr1, nr2, nr3, nr1s, nr2s,  &
              nr3s, nr1b, nr2b, nr3b, nosym, nosym_evc, noinv,                 &
