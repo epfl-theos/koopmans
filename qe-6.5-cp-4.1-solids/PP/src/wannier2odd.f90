@@ -25,7 +25,7 @@ MODULE wannier2odd
   CONTAINS
   !
   !---------------------------------------------------------------------
-  SUBROUTINE wan2odd( seedname, ikstart, plot, emp )
+  SUBROUTINE wan2odd( seedname, ikstart, plot, split_evc_file )
     !-------------------------------------------------------------------
     !
     ! ...  This routine:
@@ -73,7 +73,7 @@ MODULE wannier2odd
     CHARACTER(LEN=256), INTENT(IN) :: seedname
     INTEGER, INTENT(IN) :: ikstart
     LOGICAL, INTENT(IN) :: plot
-    LOGICAL, INTENT(IN) :: emp
+    LOGICAL, INTENT(IN) :: split_evc_file
     !
     CHARACTER(LEN=256) :: dirname
     INTEGER :: ik, ikevc, ibnd, iw, ip
@@ -298,7 +298,7 @@ MODULE wannier2odd
     ! ... write the WFs to a CP-Koopmans-readable file
     !
     CALL write_wannier_cp( iunwann, nwordwann, npwxcp, num_wann, &
-                                         num_kpts, ig_l2g_cp, emp )
+                           num_kpts, ig_l2g_cp, split_evc_file )
     !
     IF ( .not. plot ) CALL close_buffer( iunwann, 'delete' )
     !

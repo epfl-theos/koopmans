@@ -90,7 +90,7 @@ module wannier
    logical :: wannier_plot
    character(len=255) :: wannier_plot_list
    integer, allocatable :: wann_to_plot(:)
-   logical :: empty_states
+   logical :: split_evc_file
 end module wannier
 !
 
@@ -136,7 +136,7 @@ PROGRAM pw2wannier90
    ! begin change Vitale
        scdm_proj, scdm_entanglement, scdm_mu, scdm_sigma,&
    ! end change Vitale
-       wannier_plot, wannier_plot_list, empty_states
+       wannier_plot, wannier_plot_list, split_evc_file
   !
   ! initialise environment
   !
@@ -188,7 +188,7 @@ PROGRAM pw2wannier90
      scdm_sigma = 1.0_dp
      wannier_plot = .false.
      wannier_plot_list = 'all'
-     empty_states = .false.
+     split_evc_file = .false.
      !
      !     reading the namelist inputpp
      !
@@ -231,7 +231,7 @@ PROGRAM pw2wannier90
   CALL mp_bcast(scdm_sigma,ionode_id, world_comm)
   CALL mp_bcast(wannier_plot,ionode_id, world_comm)
   CALL mp_bcast(wannier_plot_list,ionode_id, world_comm)
-  CALL mp_bcast(empty_states,ionode_id, world_comm)
+  CALL mp_bcast(split_evc_file,ionode_id, world_comm)
   !
   ! Check: kpoint distribution with pools not implemented
   !
@@ -494,7 +494,7 @@ PROGRAM pw2wannier90
      CALL read_nnkp
      CALL get_wannier_to_plot
      CALL openfil_pp
-     CALL wan2odd( seedname, ikstart, wannier_plot, empty_states )
+     CALL wan2odd( seedname, ikstart, wannier_plot, split_evc_file )
      IF ( wannier_plot ) CALL plot_wann( wann_to_plot, iknum, n_wannier )
      !
      IF ( ionode ) WRITE( stdout, *  )

@@ -23,20 +23,20 @@ MODULE cp_files
   CONTAINS
   !
   !-------------------------------------------------------------------
-  SUBROUTINE write_wannier_cp( iun, nword, npwx, nwann, nrtot, ig_l2g, emp )
+  SUBROUTINE write_wannier_cp( iun, nword, npwx, nwann, nrtot, ig_l2g, split_evc_file )
     !-----------------------------------------------------------------
     !
     ! ...  This routine takes the Wannier functions in input and 
     ! ...  writes them into a file, readable by the CP-Koopmans code.
     !
-    ! ...  For occupied states, a single file called 'evcw.dat' containing
-    ! ...  both the spin channels is created, that is the 'evc_occupied.dat'
-    ! ...  expected by the CP code.
+    ! ...  split_evc_file = .false. : only one file called 'evcw.dat'
+    ! ...                             containing the 2 spin channels
+    ! ...                             is produced in output
     !
-    ! ...  For empty states, two files 'evcw1.dat' and 'evcw2.dat'
-    ! ...  are created containing the two spin components independently,
-    ! ...  corresponding to the files 'evc0_empty1.dat' and 'evc0_empty2.dat'
-    ! ...  expected by the CP code.
+    ! ...  split_evc_file = .false. : two files called 'evcw1.dat' and 
+    ! ...                             'evcw2.dat' containing respectively
+    ! ...                             the spin up and spin down components
+    ! ...                             are produced 
     !
     ! ...  NB: for the moment the spin down component is a copy of the spin up!
     !
@@ -58,7 +58,7 @@ MODULE cp_files
     INTEGER, INTENT(IN) :: nwann                 ! num of (primitive cell) WFs
     INTEGER, INTENT(IN) :: nrtot                 ! num of k-points
     INTEGER, INTENT(IN) :: ig_l2g(:)
-    LOGICAL, INTENT(IN) :: emp                   ! .true. for empty states
+    LOGICAL, INTENT(IN) :: split_evc_file
     !
     CHARACTER(LEN=9) :: filename
     INTEGER :: io_level = 1
@@ -78,7 +78,7 @@ MODULE cp_files
     CALL mp_sum( npw_g, intra_bgrp_comm )
     ALLOCATE( evc_g(npw_g) )
     !
-    IF ( .not. emp .and. ionode ) THEN
+    IF ( .not. split_evc_file .and. ionode ) THEN
       OPEN( UNIT=cp_unit, FILE='evcw.dat', STATUS='unknown', FORM='unformatted' )
       WRITE( cp_unit ) npw_g, nwannx*2
     ENDIF
@@ -88,7 +88,7 @@ MODULE cp_files
     !
     DO ispin = 1, 2
       !
-      IF ( emp .and. ionode ) THEN
+      IF ( split_evc_file .and. ionode ) THEN
         WRITE( filename, 100 ) ispin
         OPEN( UNIT=cp_unit, FILE=filename, STATUS='unknown', FORM='unformatted' )
         WRITE( cp_unit ) npw_g, nwannx
@@ -114,11 +114,11 @@ MODULE cp_files
         !
       ENDDO
       !
-      IF ( emp .and. ionode ) CLOSE ( cp_unit )
+      IF ( split_evc_file .and. ionode ) CLOSE ( cp_unit )
       !
     ENDDO
     !
-    IF ( .not. emp .and. ionode ) CLOSE( cp_unit )
+    IF ( .not. split_evc_file .and. ionode ) CLOSE( cp_unit )
     !
     !
 100 FORMAT( 'evcw', I1, '.dat' )
