@@ -12,6 +12,7 @@ SUBROUTINE write_hamiltonian_real( ham, nbnd, ispin, empty )
   !
   USE kinds,               ONLY : DP
   USE io_global,           ONLY : ionode
+  USE constants,           ONLY : AUTOEV
   !
   !
   IMPLICIT NONE
@@ -43,10 +44,10 @@ SUBROUTINE write_hamiltonian_real( ham, nbnd, ispin, empty )
     !
     OPEN( UNIT=iunhr, FILE=TRIM(filename), FORM='formatted', STATUS='unknown', ERR=101 )
     !
+    ham_(:,:) = CMPLX( ham(1:nbnd,1:nbnd) ) * AUTOEV     ! Hartree to eV conversion
+    !
     CALL date_and_tim( cdate, ctime )
     header = 'Written on '//cdate//' at '//ctime
-    !
-    ham_(:,:) = CMPLX( ham(:,:) )
     !
     WRITE( iunhr, * ) header
     WRITE( iunhr, * ) nbnd
@@ -79,6 +80,7 @@ SUBROUTINE write_hamiltonian_cmplx( ham, nbnd, ispin, empty )
   !
   USE kinds,               ONLY : DP
   USE io_global,           ONLY : ionode
+  USE constants,           ONLY : AUTOEV
   !
   !
   IMPLICIT NONE
@@ -94,15 +96,23 @@ SUBROUTINE write_hamiltonian_cmplx( ham, nbnd, ispin, empty )
   CHARACTER(LEN=33) :: header
   CHARACTER(LEN=9) :: cdate, ctime
   INTEGER :: i, j
+  COMPLEX(DP) :: ham_(nbnd,nbnd)
   !
   !
   IF ( ionode ) THEN
     !
     INQUIRE( UNIT=iunhr, OPENED=opnd )
-    IF ( opnd ) CALL errore( 'write_hamiltonian_real', 'file unit already opened', iunhr )
+    IF ( opnd ) CALL errore( 'write_hamiltonian_cmplx', 'file unit already opened', iunhr )
     !
-    WRITE( filename, FMT='( "ham_occ_", I1, ".dat" )' ) ispin
+    IF ( empty ) THEN
+      WRITE( filename, FMT='( "ham_emp_", I1, ".dat" )' ) ispin
+    ELSE
+      WRITE( filename, FMT='( "ham_occ_", I1, ".dat" )' ) ispin
+    ENDIF
+    !
     OPEN( UNIT=iunhr, FILE=TRIM(filename), FORM='formatted', STATUS='unknown', ERR=101 )
+    !
+    ham_(:,:) = ham(1:nbnd,1:nbnd) * AUTOEV     ! Hartree to eV conversion
     !
     CALL date_and_tim( cdate, ctime )
     header = 'Written on '//cdate//' at '//ctime
@@ -115,7 +125,7 @@ SUBROUTINE write_hamiltonian_cmplx( ham, nbnd, ispin, empty )
     DO i = 1, nbnd
       DO j = 1, nbnd
         !
-        WRITE( iunhr, FMT='( 5I5, 2F12.6 )' ) 0, 0, 0, i, j, ham(j,i)
+        WRITE( iunhr, FMT='( 5I5, 2F12.6 )' ) 0, 0, 0, i, j, ham_(j,i)
         !
       ENDDO
     ENDDO
@@ -124,7 +134,9 @@ SUBROUTINE write_hamiltonian_cmplx( ham, nbnd, ispin, empty )
     !
   ENDIF
   !
-101 CALL errore( 'write_hamiltonian_real', 'problem opening hamiltonian file', 1 ) 
+  RETURN
+  !
+101 CALL errore( 'write_hamiltonian_cmplx', 'problem opening hamiltonian file', 1 ) 
   !
   !
 END SUBROUTINE write_hamiltonian_cmplx

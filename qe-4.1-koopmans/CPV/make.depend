@@ -1452,6 +1452,7 @@ wf.o : cp_interfaces.o
 wf.o : modules.o
 wf.o : wannier.o
 wf.o : wannier_base.o
+write_hamiltonian.o : ../Modules/constants.o
 write_hamiltonian.o : ../Modules/io_global.o
 write_hamiltonian.o : ../Modules/kind.o
 writetofile.o : ../Modules/cell_base.o
