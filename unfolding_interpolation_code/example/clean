@@ -1,3 +1,0 @@
-#!/bin/bash
-
-rm bands_interpolated.dat dos_interpolated.dat
