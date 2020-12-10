@@ -108,6 +108,8 @@ MODULE read_namelists_module
        !
        saverho = .TRUE.
        !
+       write_hr = .FALSE.
+       !
        RETURN
        !
      END SUBROUTINE
@@ -818,6 +820,7 @@ MODULE read_namelists_module
        CALL mp_bcast( lelfield,      ionode_id )
        CALL mp_bcast( nberrycyc,     ionode_id )
        CALL mp_bcast( saverho,       ionode_id )
+       CALL mp_bcast( write_hr,      ionode_id )
        !
        RETURN
        !

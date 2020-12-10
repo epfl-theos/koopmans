@@ -268,15 +268,15 @@ class Parse_Data():
     
     
     """
-    parse_hr reads the hamiltonian file passed as sys.argv[1] and it sets it up
+    parse_hr reads the hamiltonian file passed as argument and it sets it up
              as attribute self.hr
              
     there are 3 possible types of file:
-      - w90 file normally called seedname_hr.dat
-      - kc_occ file normally called hamiltonian1.xml
-      - kc_emp file normally called hamiltonian_emp.dat
+      - w90 for a Wannier90 type of file (now also CP-koopmans files have this format)
+      - kc_occ_old for the old type of CP hamiltonian for occ states (hamiltonian1.xml)
+      - kc_emp_old for the old type of CP hamiltonian for emp states (hamiltonian_emp.dat)
 
-    nb: kc_emp must be called 'hamiltonian_emp.dat' otherwise the code may crash
+    NB: kc_emp_old must be called 'hamiltonian_emp.dat' otherwise the code may crash
         or misread the matrix elements. if the file name is different the code 
         should be updated.
 
@@ -286,24 +286,29 @@ class Parse_Data():
         with open(file_hr, 'r') as ifile:
             lines = ifile.readlines()
 
-        if ( 'written on' in lines[0] ):                        hr_type = 'w90'
-        elif ( 'xml version' in lines[0]):                      hr_type = 'kc_occ'
-        elif ( file_hr[-19:] == 'hamiltonian_emp.dat' ):        hr_type = 'kc_emp'
+        if ( 'written on' in lines[0].lower() ):                hr_type = 'w90'
+        elif ( 'xml version' in lines[0]):                      hr_type = 'kc_occ_old'
+        elif ( file_hr[-19:] == 'hamiltonian_emp.dat' ):        hr_type = 'kc_emp_old'
         else:		sys.exit('\nHamiltonian file not recognised -> EXIT\n')
 
         self.hr = []
 
         if ( hr_type == 'w90' ):
 
-            if ( self.w90_input_sc ):
+            nrpts = int(lines[2].split()[0])
+            if ( nrpts == 1 ):
+                single_R = True
+            else:
+                single_R = False
+
+            if ( single_R ):
                 if ( int(lines[1].split()[0]) != self.num_wann_sc ):
                     sys.exit('\nIn parse_hr inconsistency in num_wann\n')
             else:
                 if ( int(lines[1].split()[0]) != self.num_wann ):
                     sys.exit('\nIn parse_hr inconsistency in num_wann\n')
             
-            if ( not self.w90_input_sc ): rvect = [] 
-            nrpts = int(lines[2].split()[0])
+            if ( not single_R ): rvect = [] 
             lines_to_skip = 3 + int(nrpts/15)
             if ( nrpts%15 > 0 ): lines_to_skip += 1
             counter = 0
@@ -315,19 +320,19 @@ class Parse_Data():
                 self.hr.append(line.split()[5])
 
                 counter += 1
-                if ( not self.w90_input_sc and counter == self.num_wann**2 ):
+                if ( not single_R and counter == self.num_wann**2 ):
                     rvect.append( np.array(line.split()[0:3], dtype=int) )
                     counter = 0
 
-        if ( hr_type == 'kc_occ' ):
+        if ( hr_type == 'kc_occ_old' ):
             for line in lines[5:-2]:
                 self.hr.append(line.split()[0])
 
-        if ( hr_type == 'kc_emp' ):
+        if ( hr_type == 'kc_emp_old' ):
             for line in lines:
                 self.hr.append(line.split()[0])
 
-        if ( hr_type == 'w90' and not self.w90_input_sc ):
+        if ( hr_type == 'w90' and not single_R ):
             if ( len(self.hr) != nrpts*self.num_wann**2 ):
                 sys.exit('\nWrong number of matrix elements for the input hamiltonian -> EXIT(%s)\n' \
                                                                              %(len(self.hr)))
@@ -341,11 +346,11 @@ class Parse_Data():
             self.hr = np.array(self.hr, dtype=float).reshape(self.num_wann_sc,self.num_wann_sc) 
 
         # conversion to eV (hamiltonian from CP Koopmans code is in Hartree)
-        if ( hr_type == 'kc_occ' or hr_type == 'kc_emp' ):
+        if ( hr_type == 'kc_occ_old' or hr_type == 'kc_emp_old' ):
             self.hr = self.hr * 27.21138386
 
         # check the hermiticity of the hamiltonian (except for H_R(m,n))
-        if ( not (hr_type == 'w90' and not self.w90_input_sc) ):
+        if ( not (hr_type == 'w90' and not single_R) ):
             for m in range (self.num_wann):
                 for n in range(self.num_wann):
                     if ( self.hr[m,n] - self.hr[n,m].conjugate() > 1.e-6 ):
@@ -361,14 +366,14 @@ class Parse_Data():
             with open(self.file_hr_coarse, 'r') as ifile:
                 lines = ifile.readlines()
 
-            if ( self.w90_input_sc ):
+            if ( single_R ):
                 if ( int(lines[1].split()[0]) != self.num_wann_sc ):
                     sys.exit('\nIn parse_hr inconsistency in num_wann in hr_coarse\n')
             else:
                 if ( int(lines[1].split()[0]) != self.num_wann ):
                     sys.exit('\nIn parse_hr inconsistency in num_wann in hr_coarse\n')
             
-            if ( not self.w90_input_sc ): rvect = []
+            if ( not single_R ): rvect = []
             nrpts = int(lines[2].split()[0])
             lines_to_skip = 3 + int(nrpts/15)
             if ( nrpts%15 > 0 ): lines_to_skip += 1
@@ -381,11 +386,11 @@ class Parse_Data():
                 self.hr_coarse.append(line.split()[5])
 
                 counter += 1
-                if ( not self.w90_input_sc and counter == self.num_wann**2 ):
+                if ( not single_R and counter == self.num_wann**2 ):
                     rvect.append( np.array(line.split()[0:3], dtype=int) )
                     counter = 0
 
-            if ( self.w90_input_sc ):
+            if ( single_R ):
                 if ( len(self.hr_coarse) != self.num_wann_sc**2 ):
                     sys.exit('\nWrong number of matrix elements for hr_coarse -> EXIT(%s)\n' \
                                                                              %(len(self.hr_coarse)))
@@ -486,19 +491,19 @@ class Parse_Data():
     """
     def scell_centers(self, units='crys', cell='sc'):
 
-        if ( units is not 'ang'  and units is not 'bohr' and \
-             units is not 'alat' and units is not 'crys' ):
+        if ( units != 'ang'  and units != 'bohr' and \
+             units != 'alat' and units != 'crys' ):
             units = 'crys'
             print('\nThe first argument of scell_centers can be \
 \'ang\' or \'bohr\' or \'alat\' or \'crys\'. Using default \'crys\'\n')
 
-        if ( cell is not 'sc' and cell is not 'pc' ):
+        if ( cell != 'sc' and cell != 'pc' ):
             cell = 'sc'
             print('\nThe second argument of scell_centers can be \
 \'sc\' for supercell or \'pc\' for primitive cell. Using default \'sc\'\n')
 
         if ( hasattr(self, 'alat_sc') ):
-            if ( cell is 'sc' ):
+            if ( cell == 'sc' ):
                 alat = self.alat_sc
                 at = self.at_sc
             else:
@@ -507,7 +512,7 @@ class Parse_Data():
         else:
             alat = self.alat
             at = self.at
-            if ( cell is 'pc' ):
+            if ( cell == 'pc' ):
                 cell = 'sc'
                 print('\nPC not available yet. Using default \'sc\'\n')
 

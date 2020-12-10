@@ -94,6 +94,7 @@ waveinit.o \
 wave.o \
 wave_types.o \
 wf.o \
+write_hamiltonian.o \
 writetofile.o \
 gram_swap.o \
 odd_alpha.o \

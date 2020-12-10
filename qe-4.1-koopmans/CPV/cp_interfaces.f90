@@ -141,6 +141,10 @@
    PUBLIC :: s_wfc
    PUBLIC :: new_ns
 
+   !--- For writing the Hamiltonian --! added: RdG
+
+   PUBLIC :: write_hamiltonian
+
     INTERFACE s_wfc
        !
        SUBROUTINE s_wfc_real(n_atomic_wfc1,becwfc,betae,wfc,swfc)
@@ -2052,6 +2056,28 @@
    END INTERFACE
 !---------- END INTERFACES FOR COMPLEX IMPLEMENTATION
 
+   INTERFACE write_hamiltonian
+      SUBROUTINE write_hamiltonian_real( ham, nbnd, ispin, empty )
+        USE kinds,          ONLY : DP
+        USE io_global,      ONLY : ionode
+        IMPLICIT NONE
+
+        REAL(DP), INTENT(IN) :: ham(:,:)
+        INTEGER, INTENT(IN) :: nbnd
+        INTEGER, INTENT(IN) :: ispin
+        LOGICAL, INTENT(IN) :: empty
+      END SUBROUTINE 
+      SUBROUTINE write_hamiltonian_cmplx( ham, nbnd, ispin, empty )
+        USE kinds,          ONLY : DP
+        USE io_global,      ONLY : ionode
+        IMPLICIT NONE
+
+        COMPLEX(DP), INTENT(IN) :: ham(:,:)
+        INTEGER, INTENT(IN) :: nbnd
+        INTEGER, INTENT(IN) :: ispin
+        LOGICAL, INTENT(IN) :: empty
+      END SUBROUTINE 
+   END INTERFACE
 
 !=----------------------------------------------------------------------------=!
    END MODULE
