@@ -1,3 +1,0 @@
-#!/bin/bash
-
-python3 ../unf_int.py hr_ki_444.dat
