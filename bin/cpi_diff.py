@@ -5,6 +5,7 @@ from ase.io import espresso_cp as cp_io
 from koopmans.io import cpi_diff
 from koopmans.calculators.cp import CP_calc
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Compare two QE input files')

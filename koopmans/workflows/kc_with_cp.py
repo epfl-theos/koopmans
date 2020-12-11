@@ -99,7 +99,8 @@ class KoopmansWorkflow(Workflow):
         print('\nINITIALISATION OF MANIFOLD')
         self.perform_manifold_initialisation()
 
-        if self.from_scratch and self.init_variational_orbitals != 'ki' and self.enforce_spin_symmetry and self.init_variational_orbitals != 'mlwfs':
+        if self.from_scratch and self.init_variational_orbitals != 'ki' and self.enforce_spin_symmetry \
+                and self.init_variational_orbitals != 'mlwfs':
             print('Copying the spin-up variational orbitals over to the spin-down channel')
             calc = self.all_calcs[-1]
             savedir = f'{calc.outdir}/{calc.prefix}_{calc.ndw}.save/K00001'
@@ -288,17 +289,20 @@ class KoopmansWorkflow(Workflow):
             # transformations. Likewise, if we have no empty states or if we're using a functional which is
             # invariant w.r.t. unitary rotations of the empty states, then the empty manifold need not be minimised
             # In these instances, we can skip the initialisation of the manifold entirely
-            print('Skipping the optimisation of the variational orbitals since they are invariant under unitary transformations')
+            print('Skipping the optimisation of the variational orbitals since they are invariant under unitary '
+                  'transformations')
             save_prefix = f'{calc.outdir}/{calc.prefix}'
             utils.system_call(
                 f'cp -r {save_prefix}_{calc.ndr}.save {save_prefix}_{calc.ndw}.save')
         elif self.init_variational_orbitals == 'mlwfs':
-            print('The variational orbitals have already been initialised to Wannier functions during the density initialisation')
+            print('The variational orbitals have already been initialised to Wannier functions during the density '
+                  'initialisation')
         elif self.init_variational_orbitals in [self.init_density, 'skip']:
             if self.init_variational_orbitals == 'skip':
                 print('Skipping the optimisation of the variational orbitals')
             else:
-                print('Skipping the optimisation of the variational orbitals since they were already optimised during the density initialisation')
+                print('Skipping the optimisation of the variational orbitals since they were already optimised during '
+                      'the density initialisation')
             save_prefix = f'{calc.outdir}/{calc.prefix}'
             utils.system_call(
                 f'cp -r {save_prefix}_{calc.ndr}.save {save_prefix}_{calc.ndw}.save')
@@ -416,9 +420,9 @@ class KoopmansWorkflow(Workflow):
                         f'Skipping band {fixed_band} since this alpha is already '
                         'converged')
                     self.alpha_df.loc[i_sc + 1,
-                                 all_bands_in_group] = self.alpha_df.loc[i_sc, fixed_band]
+                                      all_bands_in_group] = self.alpha_df.loc[i_sc, fixed_band]
                     self.error_df.lor[i_sc,
-                                 all_bands_in_group] = self.error_df.loc[i_sc - 1, fixed_band]
+                                      all_bands_in_group] = self.error_df.loc[i_sc - 1, fixed_band]
                     continue
 
                 # When we write/update the alpharef files in the work directory
@@ -562,7 +566,7 @@ class KoopmansWorkflow(Workflow):
 
         # Writing alphas to a .tex table
         latex_table = self.alpha_df.to_latex(column_format='l' + 'd' * n_bands,
-                                        float_format='{:.3f}'.format, escape=False)
+                                             float_format='{:.3f}'.format, escape=False)
         with open('tab_alpha_values.tex', 'w') as f:
             f.write(latex_table)
 
@@ -598,7 +602,6 @@ class KoopmansWorkflow(Workflow):
             self.run_calculator(calc)
 
     def new_calculator(self, calc_type, calc_presets='pbe_init', alphas=None, filling=None, **kwargs):
-
         """
 
         Generates a new calculator based on the self.master_calc[calc_type]
@@ -612,7 +615,6 @@ class KoopmansWorkflow(Workflow):
             raise ValueError(f'You should not be requesting calculators with {calc_type} != "cp"')
 
     def new_cp_calculator(self, calc_presets='pbe_init', alphas=None, filling=None, **kwargs):
-
         """
 
         Generates a new CP calculator based on the self.master_calc["cp"]
@@ -845,7 +847,6 @@ class KoopmansWorkflow(Workflow):
 
 
 def calculate_alpha(calcs, filled=True, kipz=False):
-
     '''
 
     Calculates alpha via equation 10 of Nguyen et. al (2018) 10.1103/PhysRevX.8.021051
@@ -949,4 +950,3 @@ def calculate_alpha(calcs, filled=True, kipz=False):
     error = dE - lambda_a
 
     return alpha, error
-

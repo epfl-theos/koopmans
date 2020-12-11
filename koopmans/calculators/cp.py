@@ -171,7 +171,6 @@ class CP_calc(QE_calc):
         self._filling = val
 
     def write_alphas(self):
-
         '''
         Generates file_alpharef.txt and file_alpharef_empty.txt
 

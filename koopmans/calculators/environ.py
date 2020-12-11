@@ -72,4 +72,3 @@ class Environ_calc(PW_calc):
         qe_directory, _, _ = executable_with_path.rsplit('/', 2)
         if not os.path.isfile(qe_directory + '/Environ_PATCH'):
             raise OSError('The pw add-on "environ" is not installed')
-

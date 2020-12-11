@@ -81,4 +81,3 @@ def cpi_diff(calcs, silent=False):
                 diffs.append(key)
 
     return diffs
-

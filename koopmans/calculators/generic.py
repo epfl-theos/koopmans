@@ -302,4 +302,3 @@ class QE_calc:
             else:
                 setattr(self, key, value)
         return
-
