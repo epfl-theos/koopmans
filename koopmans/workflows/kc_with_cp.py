@@ -598,6 +598,7 @@ class KoopmansWorkflow(Workflow):
             if self.init_variational_orbitals == 'mlwfs':
                 calc.do_outerloop = False
                 calc.do_outerloop_empty = False
+                calc.write_hr = True
 
             self.run_calculator(calc)
 

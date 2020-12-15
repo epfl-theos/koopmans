@@ -19,6 +19,7 @@ defaults = {CP_calc: {
             'prefix': 'kc',
             'verbosity': 'low',
             'disk_io': 'high',
+            'write_hr': False,
             'do_ee': True,
             'electron_dynamics': 'cg',
             'nspin': 2,
@@ -46,7 +47,6 @@ defaults = {CP_calc: {
             'num_iter': 10000,
             'conv_tol': 1.e-10,
             'conv_window': 5,
-            'dis_num_iter': 5000,
             'write_hr': True,
             'guiding_centers': True,
             'gamma_only': False},
@@ -54,10 +54,4 @@ defaults = {CP_calc: {
             'outdir': '../TMP-PW/',
             'prefix': 'kc',
             'seedname': 'wann',
-            'write_mmn': True,
-            'write_amn': True,
-            'write_unk': False,
-            'reduce_unk': True,
-            'wan_mode': 'standalone',
-            'wannier_plot': False,
-            'empty_states': False}}
+            'wan_mode': 'standalone'}}

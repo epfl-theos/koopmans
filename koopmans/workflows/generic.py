@@ -110,7 +110,8 @@ class Workflow(object):
                             'one of ' + '/'.join([t.__name__ for t in valid_setting.type]) + ')')
                     else:
                         raise ValueError(
-                            f'{type(value).__name__} is an invalid type for "{key}" (must be {valid_setting.type.__name__})')
+                            f'{type(value).__name__} is an invalid type for "{key}" (must be '
+                            f'{valid_setting.type.__name__})')
 
                 # Check value is among the valid options
                 if valid_setting.options is not None and value not in valid_setting.options:
@@ -238,7 +239,6 @@ class Workflow(object):
 
             if os.path.isfile(calc_file + ext_out):
                 verb = 'Rerunning'
-                print(calc_file)
 
                 # Load the old calc_file
                 old_calc = qe_calc.__class__(qe_files=calc_file)

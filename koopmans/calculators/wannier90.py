@@ -29,7 +29,7 @@ class W90_calc(QE_calc):
     _recognised_keywords = ['num_bands', 'num_wann', 'exclude_bands',
                             'num_iter', 'conv_window', 'conv_tol', 'num_print_cycles',
                             'dis_froz_max', 'dis_num_iter', 'dis_win_max', 'guiding_centres',
-                            'bands_plot', 'mp_grid', 'kpoint_path', 'projections', 'hr_plot']
+                            'bands_plot', 'mp_grid', 'kpoint_path', 'projections', 'write_hr']
 
     for k in _recognised_keywords:
         # We need to use these make_get/set functions so that get/set_k are
@@ -66,6 +66,7 @@ class W90_calc(QE_calc):
         kpts = np.indices(self._ase_calc.parameters['kpts']).transpose(
             1, 2, 3, 0).reshape(-1, 3)
         kpts = kpts / self._ase_calc.parameters['kpts']
+        kpts[kpts >= 0.5] -= 1
         kpts = bandpath(kpts, self._ase_calc.atoms.cell, npoints=len(kpts) - 1)
         self._ase_calc.parameters['kpts'] = kpts.kpts[:, :3]
 

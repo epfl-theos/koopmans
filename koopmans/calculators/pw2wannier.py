@@ -26,7 +26,7 @@ class PW2Wannier_calc(QE_calc):
     # self.<keyword>
     _recognised_keywords = ['outdir', 'prefix', 'seedname', 'write_mmn',
                             'write_amn', 'write_uHu', 'uHu_formatted', 'write_unk', 'reduce_unk',
-                            'wan_mode', 'wannier_plot', 'wannier_plot_list', 'empty_states']
+                            'wan_mode', 'wannier_plot', 'wannier_plot_list', 'split_evc_file']
 
     for k in _recognised_keywords:
         # We need to use these make_get/set functions so that get/set_k are

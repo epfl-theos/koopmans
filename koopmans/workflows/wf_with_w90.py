@@ -55,16 +55,9 @@ class WannierizeWorkflow(Workflow):
         calc.name = 'scf'
         self.run_calculator(calc)
 
-        calc = self.new_calculator('pw', calculation='nscf')
+        calc = self.new_calculator('pw', calculation='nscf', nosym=True, noinv=True)
         calc.directory = 'wannier'
         calc.name = 'nscf'
-        # Workaround to generate the right explicit MP mesh >>>
-        kpts = np.indices(calc.calc.parameters['kpts']).transpose(
-            1, 2, 3, 0).reshape(-1, 3)
-        kpts = kpts / calc.calc.parameters['kpts']
-        kpts = bandpath(kpts, calc.calc.atoms.cell, npoints=len(kpts) - 1)
-        calc.calc.parameters['kpts'] = kpts
-        # <<<
         self.run_calculator(calc)
 
         calc_p2w = self.new_calculator('pw2wannier')
@@ -72,6 +65,8 @@ class WannierizeWorkflow(Workflow):
             calc_w90 = self.new_calculator('w90_' + typ)
             calc_w90.directory = 'wannier/' + typ
             calc_p2w.directory = calc_w90.directory
+            if calc_w90.num_bands != calc_w90.num_wann and calc_w90.dis_num_iter is None:
+                calc_w90.dis_num_iter = 5000
 
             # 1) pre-processing Wannier90 calculation
             calc_w90.name = 'wann'
@@ -88,7 +83,7 @@ class WannierizeWorkflow(Workflow):
             calc_w2o.directory = calc_w90.directory
             calc_w2o.name = 'wan2odd'
             if typ == 'emp':
-                calc_w2o.empty_states = True
+                calc_w2o.split_evc_file = True
             # Workaround to run wannier2odd in serial >>>
             # if calc_w2o.calc.command[:6] == 'mpirun':
             #     calc_w2o.calc.command = calc_w2o.calc.command[13:]

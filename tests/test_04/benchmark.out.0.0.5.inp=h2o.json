@@ -96,6 +96,82 @@ Running final/pkipz_final... done
 <QC> orbital_self_Hartree(orb=4,sigma=2) 8.164
 
 WORKFLOW COMPLETE
+Contents of ./init/pbe_init_nspin1.cpi:
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'from_scratch'
+   iprint           = 1
+   outdir           = '/home/elinscott/code/python_KI/tests/test_04/TMP-CP'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/elinscott/code/python_KI/pseudos/'
+   ndr              = 98
+   ndw              = 98
+   write_hr         = .false.
+/
+&SYSTEM
+   ecutwfc          = 20.0
+   ecutrho          = 80.0
+   nspin            = 1
+   input_dft        = 'PBE'
+   do_orbdep        = .false.
+   fixed_state      = .false.
+   do_ee            = .true.
+   nelec            = 8
+   do_wf_cmplx      = .true.
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8e-09
+   ortho_para       = 1
+   empty_states_nbnd = 0
+   maxiter          = 300
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .true.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8e-09
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+/
+
+ATOMIC_SPECIES
+O 15.999 O_ONCV_PBE-1.0.upf
+H 1.008 H_ONCV_PBE-1.0.upf
+
+CELL_PARAMETERS angstrom
+9.51420000000000 0.00000000000000 0.00000000000000
+0.00000000000000 8.00000000000000 0.00000000000000
+0.00000000000000 0.00000000000000 8.58610000000000
+
+ATOMIC_POSITIONS angstrom
+O 4.7571000000 4.0000000000 3.9023170000 
+H 5.5142000000 4.0000000000 4.4884170000 
+H 4.0000000000 4.0000000000 4.4884170000 
+
+
 Contents of ./init/pbe_init_nspin1.cpo:
 =------------------------------------------------------------------------------=
 
@@ -109,7 +185,7 @@ Contents of ./init/pbe_init_nspin1.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:58:10   7Dec2020               
+   This run was started on:  11: 2:11  15Dec2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -123,7 +199,6 @@ Warning: card    ESIC_CONV_THR    = 8E-09 ignored
 Warning: card    DO_INNERLOOP_CG  = .TRUE. ignored
 Warning: card    INNERLOOP_NMAX   = 100 ignored
 Warning: card / ignored
-Warning: card K_POINTS GAMMA ignored
 
    Job Title: MD Simulation
 
@@ -400,19 +475,19 @@ Warning: card K_POINTS GAMMA ignored
            1 call to runcg_uspp in move_electrons.f90
            2 call to runcg_uspp in move_electrons.f90
            3 call to runcg_uspp in move_electrons.f90
-           4 call to runcg_uspp in move_electrons.f90
            5 call to runcg_uspp in move_electrons.f90
            6 call to runcg_uspp in move_electrons.f90
            7 call to runcg_uspp in move_electrons.f90
+           4 call to runcg_uspp in move_electrons.f90
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.12s CPU time,    0.13s wall time
+     CP           :     0.12s CPU time,    0.12s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =     21.66274475453402
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
    21.662744754534  -17.781115241451    6.759051403231    6.358270037098    6.678419216567    1.721430237599    2.000000000000    1.721430237599
-     CP           :     0.14s CPU time,    0.15s wall time
+     CP           :     0.14s CPU time,    0.14s wall time
 
      iteration =   2  eff iteration =   2   Etot (Ha) =      6.67841921656676
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -432,158 +507,158 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
      iteration =   5  eff iteration =   5   Etot (Ha) =    -13.20167110816477 delta_E=  0.56654087264243E+01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -13.201671108165   -4.997966638898  -14.460047098944  -14.461414852423  -14.463264554334    0.504102502187    0.487492042099    0.504102502187
-     CP           :     0.21s CPU time,    0.22s wall time
+     CP           :     0.21s CPU time,    0.21s wall time
 
      iteration =   6  eff iteration =   6   Etot (Ha) =    -14.46326455433412 delta_E=  0.31292204684454E+01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -14.463264554334   -1.643135562471  -14.962918040102  -14.985160489568  -14.983370695139    0.635243916758    0.504102502187    0.635243916758
-     CP           :     0.23s CPU time,    0.24s wall time
+     CP           :     0.23s CPU time,    0.23s wall time
 
      iteration =   7  eff iteration =   7   Etot (Ha) =    -14.98337069513918 delta_E=  0.12615934461693E+01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -14.983370695139   -0.961705700731  -15.350706667547  -15.366425328458  -15.360827869532    0.796615083029    0.635243916758    0.796615083029
-     CP           :     0.24s CPU time,    0.26s wall time
+     CP           :     0.24s CPU time,    0.25s wall time
 
      iteration =   8  eff iteration =   8   Etot (Ha) =    -15.36082786953223 delta_E=  0.52010614080506E+00
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.360827869532   -0.989800670227  -15.673165628026  -15.687255251744  -15.687345927580    0.659582059360    0.796615083029    0.659582059360
-     CP           :     0.26s CPU time,    0.28s wall time
+     CP           :     0.26s CPU time,    0.27s wall time
 
      iteration =   9  eff iteration =   9   Etot (Ha) =    -15.68734592758046 delta_E=  0.37745717439305E+00
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.687345927580   -0.867724951549  -15.905284458077  -15.918420133326  -15.917532438642    0.532597813013    0.659582059360    0.532597813013
-     CP           :     0.28s CPU time,    0.29s wall time
+     CP           :     0.28s CPU time,    0.28s wall time
 
      iteration =  10  eff iteration =  10   Etot (Ha) =    -15.91753243864243 delta_E=  0.32651805804823E+00
 
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.917532438642   -0.546690361184  -16.053589868503  -16.054174860666  -16.054282804196    0.499889633055    0.532597813013    0.499889633055
-     CP           :     0.30s CPU time,    0.31s wall time
+     CP           :     0.30s CPU time,    0.30s wall time
 
      iteration =  11  eff iteration =  11   Etot (Ha) =    -16.05428280419567 delta_E=  0.23018651106197E+00
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.054282804196   -0.337950015820  -16.134725866151  -16.134909007252  -16.134915294968    0.477148686387    0.499889633055    0.477148686387
-     CP           :     0.32s CPU time,    0.33s wall time
+     CP           :     0.32s CPU time,    0.32s wall time
 
      iteration =  12  eff iteration =  12   Etot (Ha) =    -16.13491529496769 delta_E=  0.13675036555324E+00
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.134915294968   -0.208522966976  -16.182406594035  -16.182504540789  -16.182483107813    0.456441288093    0.477148686387    0.456441288093
-     CP           :     0.33s CPU time,    0.35s wall time
+     CP           :     0.33s CPU time,    0.34s wall time
 
      iteration =  13  eff iteration =  13   Etot (Ha) =    -16.18248310781299 delta_E=  0.80632490772015E-01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.182483107813   -0.119616959592  -16.210151387994  -16.210156450180  -16.210161689385    0.462699310563    0.456441288093    0.462699310563
-     CP           :     0.35s CPU time,    0.36s wall time
+     CP           :     0.35s CPU time,    0.35s wall time
 
      iteration =  14  eff iteration =  14   Etot (Ha) =    -16.21016168938516 delta_E=  0.47567812845301E-01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.210161689385   -0.067704555199  -16.226135946827  -16.226142239998  -16.226145144391    0.472067221043    0.462699310563    0.472067221043
-     CP           :     0.37s CPU time,    0.38s wall time
+     CP           :     0.37s CPU time,    0.37s wall time
 
      iteration =  15  eff iteration =  15   Etot (Ha) =    -16.22614514439135 delta_E=  0.27678581572168E-01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.226145144391   -0.037142745061  -16.235095566258  -16.235099488572  -16.235099908502    0.482158449289    0.472067221043    0.482158449289
-     CP           :     0.38s CPU time,    0.40s wall time
+     CP           :     0.38s CPU time,    0.39s wall time
 
      iteration =  16  eff iteration =  16   Etot (Ha) =    -16.23509990850243 delta_E=  0.15983455006189E-01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.235099908502   -0.021200895335  -16.240279770764  -16.240280708600  -16.240280651675    0.488734085610    0.482158449289    0.488734085610
-     CP           :     0.40s CPU time,    0.42s wall time
+     CP           :     0.40s CPU time,    0.40s wall time
 
      iteration =  17  eff iteration =  17   Etot (Ha) =    -16.24028065167465 delta_E=  0.89547641110812E-02
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.240280651675   -0.012118963174  -16.243185141429  -16.243186217256  -16.243186234832    0.479507287754    0.488734085610    0.479507287754
-     CP           :     0.42s CPU time,    0.44s wall time
+     CP           :     0.41s CPU time,    0.42s wall time
 
      iteration =  18  eff iteration =  18   Etot (Ha) =    -16.24318623483205 delta_E=  0.51807431722217E-02
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.243186234832   -0.006902781737  -16.244865482845  -16.244865844388  -16.244865856854    0.486647157743    0.479507287754    0.486647157743
-     CP           :     0.44s CPU time,    0.45s wall time
+     CP           :     0.43s CPU time,    0.44s wall time
 
      iteration =  19  eff iteration =  19   Etot (Ha) =    -16.24486585685403 delta_E=  0.29055831573963E-02
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.244865856854   -0.003994820029  -16.245818967123  -16.245819328495  -16.245819318241    0.477353990281    0.486647157743    0.477353990281
-     CP           :     0.45s CPU time,    0.47s wall time
+     CP           :     0.45s CPU time,    0.45s wall time
 
      iteration =  20  eff iteration =  20   Etot (Ha) =    -16.24581931824086 delta_E=  0.16796220219888E-02
 
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.245819318241   -0.002242557418  -16.244206598638  -16.246644047712  -16.246644180644    0.735525846281    2.000000000000    0.735525846281
-     CP           :     0.47s CPU time,    0.49s wall time
+     CP           :     0.46s CPU time,    0.47s wall time
 
      iteration =  21  eff iteration =  21   Etot (Ha) =    -16.24664418064362 delta_E=  0.95346138682473E-03
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.246644180644   -0.000696144040  -16.246934864143  -16.246940293762  -16.246940320488    0.850723706370    0.735525846281    0.850723706370
-     CP           :     0.49s CPU time,    0.50s wall time
+     CP           :     0.48s CPU time,    0.49s wall time
 
      iteration =  22  eff iteration =  22   Etot (Ha) =    -16.24694032048779 delta_E=  0.82486240276580E-03
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.246940320488   -0.000188422921  -16.247014950685  -16.247015306082  -16.247015302298    0.795928577726    0.850723706370    0.795928577726
-     CP           :     0.50s CPU time,    0.52s wall time
+     CP           :     0.49s CPU time,    0.50s wall time
 
      iteration =  23  eff iteration =  23   Etot (Ha) =    -16.24701530229792 delta_E=  0.29613984417054E-03
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.247015302298   -0.000064376322  -16.247041088674  -16.247041089769  -16.247041089757    0.801147689404    0.795928577726    0.801147689404
-     CP           :     0.52s CPU time,    0.54s wall time
+     CP           :     0.51s CPU time,    0.52s wall time
 
      iteration =  24  eff iteration =  24   Etot (Ha) =    -16.24704108975681 delta_E=  0.74981810126218E-04
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.247041089757   -0.000018287927  -16.247049308554  -16.247049432561  -16.247049440315    0.912383825457    0.801147689404    0.912383825457
-     CP           :     0.54s CPU time,    0.55s wall time
+     CP           :     0.53s CPU time,    0.54s wall time
 
      iteration =  25  eff iteration =  25   Etot (Ha) =    -16.24704944031492 delta_E=  0.25787458888260E-04
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.247049440315   -0.000006008486  -16.247052049316  -16.247052055383  -16.247052055609    0.870458135210    0.912383825457    0.870458135210
-     CP           :     0.56s CPU time,    0.57s wall time
+     CP           :     0.54s CPU time,    0.55s wall time
 
      iteration =  26  eff iteration =  26   Etot (Ha) =    -16.24705205560866 delta_E=  0.83505581116583E-05
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.247052055609   -0.000001962877  -16.247052876693  -16.247052877936  -16.247052877829    0.837879887515    0.870458135210    0.837879887515
-     CP           :     0.57s CPU time,    0.59s wall time
+     CP           :     0.56s CPU time,    0.57s wall time
 
      iteration =  27  eff iteration =  27   Etot (Ha) =    -16.24705287782939 delta_E=  0.26152937415702E-05
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.247052877829   -0.000000665332  -16.247053140098  -16.247053141017  -16.247053141002    0.791145196683    0.837879887515    0.791145196683
-     CP           :     0.59s CPU time,    0.61s wall time
+     CP           :     0.58s CPU time,    0.59s wall time
 
      iteration =  28  eff iteration =  28   Etot (Ha) =    -16.24705314100155 delta_E=  0.82222073061189E-06
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.247053141002   -0.000000149512  -16.247053198109  -16.247053198177  -16.247053198203    0.764820560612    0.791145196683    0.764820560612
-     CP           :     0.61s CPU time,    0.62s wall time
+     CP           :     0.59s CPU time,    0.60s wall time
 
      iteration =  29  eff iteration =  29   Etot (Ha) =    -16.24705319820288 delta_E=  0.26317215784388E-06
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.247053198203   -0.000000040291  -16.247053216889  -16.247053217776  -16.247053217513    0.971578713470    0.764820560612    0.971578713470
-     CP           :     0.62s CPU time,    0.64s wall time
+     CP           :     0.61s CPU time,    0.62s wall time
 
      iteration =  30  eff iteration =  30   Etot (Ha) =    -16.24705321751319 delta_E=  0.57201333447665E-07
 
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.247053217513   -0.000000016293  -16.247053226172  -16.247053226249  -16.247053225966    1.072299602276    0.971578713470    1.072299602276
   cg_sub: missed minimum, case 1, iteration   30      1.072299602276
-     CP           :     0.65s CPU time,    0.67s wall time
+     CP           :     0.63s CPU time,    0.64s wall time
 
      iteration =  31  eff iteration =  31   Etot (Ha) =    -16.24705322617156 delta_E=  0.19310306242915E-07
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.247053226172   -0.000000007601  -16.247053215496  -16.247053228404  -16.247053228691    0.587467920506    2.000000000000    0.587467920506
-     CP           :     0.67s CPU time,    0.68s wall time
+     CP           :     0.65s CPU time,    0.66s wall time
 
      iteration =  32  eff iteration =  32   Etot (Ha) =    -16.24705322869104 delta_E=  0.86583646918825E-08
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.247053228691   -0.000000002326  -16.247053230038  -16.247053252256  -16.247052816971   20.260177076472    0.587467920506   20.260177076472
   cg_sub: missed minimum, case 2, iteration   32
-     CP           :     0.69s CPU time,    0.71s wall time
+     CP           :     0.68s CPU time,    0.68s wall time
 
      iteration =  33  eff iteration =  33   Etot (Ha) =    -16.24705323003781 delta_E=  0.25194815123086E-08
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.247053230038   -0.000000000794  -16.247053230445  -16.247053230572  -16.247053230578    1.345008303748    2.000000000000    1.345008303748
-     CP           :     0.71s CPU time,    0.73s wall time
+     CP           :     0.69s CPU time,    0.70s wall time
 
      iteration =  34  eff iteration =  34   Etot (Ha) =    -16.24705323057770 delta_E=  0.13467733595007E-08
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.247053230578   -0.000000000974  -16.247053231395  -16.247053231449  -16.247053231227    1.790007547858    1.345008303748    1.790007547858
   cg_sub: missed minimum, case 1, iteration   34      1.790007547858
-     CP           :     0.73s CPU time,    0.75s wall time
+     CP           :     0.72s CPU time,    0.73s wall time
 
      iteration =  35  eff iteration =  35   Etot (Ha) =    -16.24705323139514 delta_E=  0.53988813419892E-09
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -657,7 +732,7 @@ Step     1       0    -16.24705    -16.24705    -16.24705    36
  tnosep= F thdyn= F
 
    writing restart file: /home/elinscott/code/python_KI/tests/test_04/TMP-CP/kc_98.save
-   restart file written in    0.027 sec.
+   restart file written in    0.026 sec.
 
 
 
@@ -675,13 +750,13 @@ Step     1       0    -16.24705    -16.24705    -16.24705    36
 
 
      initialize   :     0.09s CPU
-     total_time   :     0.64s CPU
+     total_time   :     0.62s CPU
      formf        :     0.01s CPU
      rhoofr       :     0.10s CPU (      74 calls,   0.001 s avg)
-     vofrho       :     0.44s CPU (      74 calls,   0.006 s avg)
-     vofrho1      :     0.02s CPU (       4 calls,   0.005 s avg)
-     vofrho2      :     0.21s CPU (      35 calls,   0.006 s avg)
-     vofrho3      :     0.21s CPU (      35 calls,   0.006 s avg)
+     vofrho       :     0.43s CPU (      74 calls,   0.006 s avg)
+     vofrho1      :     0.02s CPU (       4 calls,   0.006 s avg)
+     vofrho2      :     0.20s CPU (      35 calls,   0.006 s avg)
+     vofrho3      :     0.20s CPU (      35 calls,   0.006 s avg)
      dforce       :     0.06s CPU (      72 calls,   0.001 s avg)
      dforce1      :     0.06s CPU (      70 calls,   0.001 s avg)
      dforce2      :     0.02s CPU
@@ -694,23 +769,23 @@ Step     1       0    -16.24705    -16.24705    -16.24705    36
      nlfl         :     0.00s CPU
      nlsm1        :     0.02s CPU (     295 calls,   0.000 s avg)
      fft          :     0.21s CPU (     889 calls,   0.000 s avg)
-     ffts         :     0.04s CPU (     148 calls,   0.000 s avg)
-     fftw         :     0.11s CPU (     584 calls,   0.000 s avg)
-     cft3s        :     0.35s CPU (    1621 calls,   0.000 s avg)
+     ffts         :     0.03s CPU (     148 calls,   0.000 s avg)
+     fftw         :     0.10s CPU (     584 calls,   0.000 s avg)
+     cft3s        :     0.34s CPU (    1621 calls,   0.000 s avg)
      fft_scatter  :     0.07s CPU (    1621 calls,   0.000 s avg)
 
-     outer_loop   :     0.64s CPU (      35 calls,   0.018 s avg)
-     runcg_uspp   :     0.64s CPU
+     outer_loop   :     0.62s CPU (      35 calls,   0.018 s avg)
+     runcg_uspp   :     0.62s CPU
      pc2          :     0.00s CPU (     105 calls,   0.000 s avg)
      pcdaga2      :     0.00s CPU (      35 calls,   0.000 s avg)
      xminus1      :     0.00s CPU (      70 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     0.77s CPU time,    0.80s wall time
+     CP           :     0.75s CPU time,    0.77s wall time
 
  
-   This run was terminated on:  19:58:11   7Dec2020            
+   This run was terminated on:  11: 2:12  15Dec2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -719,6 +794,88 @@ Step     1       0    -16.24705    -16.24705    -16.24705    36
  debug1 T           1
  debug2
  debug3
+
+Contents of ./init/pbe_init_nspin2_dummy.cpi:
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'from_scratch'
+   iprint           = 1
+   outdir           = '/home/elinscott/code/python_KI/tests/test_04/TMP-CP'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/elinscott/code/python_KI/pseudos/'
+   ndr              = 50
+   ndw              = 99
+   write_hr         = .false.
+/
+&SYSTEM
+   tot_magnetization = 0
+   ecutwfc          = 20.0
+   ecutrho          = 80.0
+   nspin            = 2
+   input_dft        = 'PBE'
+   do_orbdep        = .false.
+   fixed_state      = .false.
+   do_ee            = .true.
+   nelec            = 8
+   nelup            = 4
+   neldw            = 4
+   do_wf_cmplx      = .true.
+   starting_magnetization(1) = 0.0
+   starting_magnetization(2) = 0.0
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8e-09
+   ortho_para       = 1
+   empty_states_nbnd = 0
+   maxiter          = 300
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .false.
+   do_outerloop_empty = .false.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8e-09
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+/
+
+ATOMIC_SPECIES
+O  15.999 O_ONCV_PBE-1.0.upf
+H  1.008 H_ONCV_PBE-1.0.upf
+
+CELL_PARAMETERS angstrom
+9.51420000000000 0.00000000000000 0.00000000000000
+0.00000000000000 8.00000000000000 0.00000000000000
+0.00000000000000 0.00000000000000 8.58610000000000
+
+ATOMIC_POSITIONS angstrom
+O  4.7571000000 4.0000000000 3.9023170000
+H  5.5142000000 4.0000000000 4.4884170000
+H  4.0000000000 4.0000000000 4.4884170000
+
 
 Contents of ./init/pbe_init_nspin2_dummy.cpo:
 =------------------------------------------------------------------------------=
@@ -733,7 +890,7 @@ Contents of ./init/pbe_init_nspin2_dummy.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:58:11   7Dec2020               
+   This run was started on:  11: 2:12  15Dec2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -749,7 +906,6 @@ Warning: card    ESIC_CONV_THR    = 8E-09 ignored
 Warning: card    DO_INNERLOOP_CG  = .TRUE. ignored
 Warning: card    INNERLOOP_NMAX   = 100 ignored
 Warning: card / ignored
-Warning: card K_POINTS GAMMA ignored
 
    Job Title: MD Simulation
 
@@ -1121,7 +1277,7 @@ Step     1       0     21.61863     21.61863     21.61863     1
  tnosep= F thdyn= F
 
    writing restart file: /home/elinscott/code/python_KI/tests/test_04/TMP-CP/kc_99.save
-   restart file written in    0.036 sec.
+   restart file written in    0.035 sec.
 
 
 
@@ -1145,7 +1301,7 @@ Step     1       0     21.61863     21.61863     21.61863     1
      vofrho       :     0.01s CPU
      vofrho1      :     0.01s CPU
      dforce       :     0.00s CPU (       4 calls,   0.001 s avg)
-     dforce2      :     0.03s CPU
+     dforce2      :     0.04s CPU
      calphi       :     0.00s CPU
      gram         :     0.00s CPU (       3 calls,   0.000 s avg)
      newd         :     0.00s CPU
@@ -1154,13 +1310,13 @@ Step     1       0     21.61863     21.61863     21.61863     1
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
      nlsm1        :     0.00s CPU (       3 calls,   0.000 s avg)
-     fft          :     0.00s CPU (      18 calls,   0.000 s avg)
+     fft          :     0.01s CPU (      18 calls,   0.000 s avg)
      ffts         :     0.00s CPU (       2 calls,   0.000 s avg)
      fftw         :     0.00s CPU (      24 calls,   0.000 s avg)
      cft3s        :     0.01s CPU (      44 calls,   0.000 s avg)
      fft_scatter  :     0.00s CPU (      44 calls,   0.000 s avg)
 
-     outer_loop   :     0.04s CPU
+     outer_loop   :     0.05s CPU
      runcg_uspp   :     0.02s CPU
      emass_p_tpa  :     0.00s CPU
  
@@ -1168,7 +1324,7 @@ Step     1       0     21.61863     21.61863     21.61863     1
      CP           :     0.16s CPU time,    0.17s wall time
 
  
-   This run was terminated on:  19:58:11   7Dec2020            
+   This run was terminated on:  11: 2:12  15Dec2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -1179,6 +1335,87 @@ Step     1       0     21.61863     21.61863     21.61863     1
  debug2
  debug3
  debug3
+
+Contents of ./init/pbe_init_nspin2.cpi:
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'restart'
+   iprint           = 1
+   outdir           = '/home/elinscott/code/python_KI/tests/test_04/TMP-CP'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/elinscott/code/python_KI/pseudos/'
+   ndr              = 99
+   ndw              = 50
+   write_hr         = .false.
+/
+&SYSTEM
+   tot_magnetization = 0
+   ecutwfc          = 20.0
+   ecutrho          = 80.0
+   nspin            = 2
+   input_dft        = 'PBE'
+   do_orbdep        = .false.
+   fixed_state      = .false.
+   do_ee            = .true.
+   nelec            = 8
+   nelup            = 4
+   neldw            = 4
+   do_wf_cmplx      = .true.
+   starting_magnetization(1) = 0.0
+   starting_magnetization(2) = 0.0
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8e-09
+   ortho_para       = 1
+   empty_states_nbnd = 0
+   maxiter          = 300
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .true.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8e-09
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+/
+
+ATOMIC_SPECIES
+O  15.999 O_ONCV_PBE-1.0.upf
+H  1.008 H_ONCV_PBE-1.0.upf
+
+CELL_PARAMETERS angstrom
+9.51420000000000 0.00000000000000 0.00000000000000
+0.00000000000000 8.00000000000000 0.00000000000000
+0.00000000000000 0.00000000000000 8.58610000000000
+
+ATOMIC_POSITIONS angstrom
+O  4.7571000000 4.0000000000 3.9023170000
+H  5.5142000000 4.0000000000 4.4884170000
+H  4.0000000000 4.0000000000 4.4884170000
+
 
 Contents of ./init/pbe_init_nspin2.cpo:
 =------------------------------------------------------------------------------=
@@ -1193,7 +1430,7 @@ Contents of ./init/pbe_init_nspin2.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:58:13   7Dec2020               
+   This run was started on:  11: 2:13  15Dec2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -1209,7 +1446,6 @@ Warning: card    ESIC_CONV_THR    = 8E-09 ignored
 Warning: card    DO_INNERLOOP_CG  = .TRUE. ignored
 Warning: card    INNERLOOP_NMAX   = 100 ignored
 Warning: card / ignored
-Warning: card K_POINTS GAMMA ignored
 
    Job Title: MD Simulation
 
@@ -1478,7 +1714,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: /home/elinscott/code/python_KI/tests/test_04/TMP-CP/kc_99.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.011 sec.
+   restart file read in    0.010 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            1
@@ -1504,17 +1740,17 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.14s CPU time,    0.14s wall time
+     CP           :     0.14s CPU time,    0.15s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -16.24705800714567
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.247058007146   -0.000000009527  -16.247058000941  -16.247058010739  -16.247058010739    0.754347606224    2.000000000000    0.754347606224
-     CP           :     0.17s CPU time,    0.18s wall time
+     CP           :     0.16s CPU time,    0.18s wall time
 
      iteration =   2  eff iteration =   2   Etot (Ha) =    -16.24705801073910
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.247058010739   -0.000000002914  -16.247058012280  -16.247058012577  -16.247058012577    1.261362725619    0.754347606224    1.261362725619
-     CP           :     0.21s CPU time,    0.21s wall time
+     CP           :     0.20s CPU time,    0.21s wall time
 
      iteration =   3  eff iteration =   3   Etot (Ha) =    -16.24705801257663 delta_E=  0.35934313302732E-08
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -1524,7 +1760,7 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
      iteration =   4  eff iteration =   4   Etot (Ha) =    -16.24705801294361 delta_E=  0.18375310162355E-08
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -16.247058012944   -0.000000000221  -16.247058013035  -16.247058013038  -16.247058013038    0.858314090980    0.697748929815    0.858314090980
-     CP           :     0.27s CPU time,    0.28s wall time
+     CP           :     0.26s CPU time,    0.27s wall time
 
      iteration =   5  eff iteration =   5   Etot (Ha) =    -16.24705801303828 delta_E=  0.36698111216538E-09
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -1609,7 +1845,7 @@ Step     2       0    -16.24706    -16.24706    -16.24706     6
  tnosep= F thdyn= F
 
    writing restart file: /home/elinscott/code/python_KI/tests/test_04/TMP-CP/kc_50.save
-   restart file written in    0.037 sec.
+   restart file written in    0.035 sec.
 
 
 
@@ -1626,16 +1862,16 @@ Step     2       0    -16.24706    -16.24706    -16.24706     6
    volume        :     4410.16474    4410.16474 (AU)
 
 
-     initialize   :     0.11s CPU
-     total_time   :     0.18s CPU
+     initialize   :     0.10s CPU
+     total_time   :     0.17s CPU
      formf        :     0.01s CPU
      rhoofr       :     0.02s CPU (      11 calls,   0.002 s avg)
      vofrho       :     0.12s CPU (      11 calls,   0.011 s avg)
      vofrho1      :     0.01s CPU
      vofrho2      :     0.06s CPU (       5 calls,   0.011 s avg)
-     vofrho3      :     0.05s CPU (       5 calls,   0.011 s avg)
+     vofrho3      :     0.05s CPU (       5 calls,   0.010 s avg)
      dforce       :     0.02s CPU (      24 calls,   0.001 s avg)
-     dforce1      :     0.02s CPU (      20 calls,   0.001 s avg)
+     dforce1      :     0.01s CPU (      20 calls,   0.001 s avg)
      dforce2      :     0.03s CPU
      calphi       :     0.00s CPU (       6 calls,   0.000 s avg)
      gram         :     0.00s CPU (      11 calls,   0.000 s avg)
@@ -1645,24 +1881,24 @@ Step     2       0    -16.24706    -16.24706    -16.24706     6
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
      nlsm1        :     0.01s CPU (      44 calls,   0.000 s avg)
-     fft          :     0.05s CPU (     188 calls,   0.000 s avg)
-     ffts         :     0.01s CPU (      22 calls,   0.000 s avg)
+     fft          :     0.04s CPU (     188 calls,   0.000 s avg)
+     ffts         :     0.00s CPU (      22 calls,   0.000 s avg)
      fftw         :     0.03s CPU (     184 calls,   0.000 s avg)
      cft3s        :     0.08s CPU (     394 calls,   0.000 s avg)
-     fft_scatter  :     0.02s CPU (     394 calls,   0.000 s avg)
+     fft_scatter  :     0.01s CPU (     394 calls,   0.000 s avg)
 
-     outer_loop   :     0.17s CPU (       5 calls,   0.035 s avg)
-     runcg_uspp   :     0.18s CPU
+     outer_loop   :     0.17s CPU (       5 calls,   0.033 s avg)
+     runcg_uspp   :     0.17s CPU
      pc2          :     0.00s CPU (      15 calls,   0.000 s avg)
      pcdaga2      :     0.00s CPU (       5 calls,   0.000 s avg)
      xminus1      :     0.00s CPU (      10 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     0.33s CPU time,    0.35s wall time
+     CP           :     0.32s CPU time,    0.35s wall time
 
  
-   This run was terminated on:  19:58:13   7Dec2020            
+   This run was terminated on:  11: 2:13  15Dec2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -1673,6 +1909,89 @@ Step     2       0    -16.24706    -16.24706    -16.24706     6
  debug2
  debug3
  debug3
+
+Contents of ./init/pz_innerloop_init.cpi:
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'restart'
+   iprint           = 1
+   outdir           = '/home/elinscott/code/python_KI/tests/test_04/TMP-CP'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/elinscott/code/python_KI/pseudos/'
+   ndr              = 50
+   ndw              = 51
+   write_hr         = .false.
+/
+&SYSTEM
+   tot_magnetization = 0
+   ecutwfc          = 20.0
+   ecutrho          = 80.0
+   nspin            = 2
+   input_dft        = 'PBE'
+   do_orbdep        = .true.
+   fixed_state      = .false.
+   do_ee            = .true.
+   nelec            = 8
+   nelup            = 4
+   neldw            = 4
+   do_wf_cmplx      = .true.
+   starting_magnetization(1) = 0.0
+   starting_magnetization(2) = 0.0
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8e-09
+   ortho_para       = 1
+   empty_states_nbnd = 0
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .false.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .true.
+   odd_nkscalfact   = .true.
+   odd_nkscalfact_empty = .true.
+   which_orbdep     = 'pz'
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8e-09
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+/
+
+ATOMIC_SPECIES
+O  15.999 O_ONCV_PBE-1.0.upf
+H  1.008 H_ONCV_PBE-1.0.upf
+
+CELL_PARAMETERS angstrom
+9.51420000000000 0.00000000000000 0.00000000000000
+0.00000000000000 8.00000000000000 0.00000000000000
+0.00000000000000 0.00000000000000 8.58610000000000
+
+ATOMIC_POSITIONS angstrom
+O  4.7571000000 4.0000000000 3.9023170000
+H  5.5142000000 4.0000000000 4.4884170000
+H  4.0000000000 4.0000000000 4.4884170000
+
 
 Contents of ./init/pz_innerloop_init.cpo:
 =------------------------------------------------------------------------------=
@@ -1687,13 +2006,12 @@ Contents of ./init/pz_innerloop_init.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:58:13   7Dec2020               
+   This run was started on:  11: 2:14  15Dec2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
      Message from routine  system_checkin     :
       starting_magnetization is not used in CP 
-Warning: card K_POINTS GAMMA ignored
 
    Job Title: MD Simulation
 
@@ -1967,7 +2285,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: /home/elinscott/code/python_KI/tests/test_04/TMP-CP/kc_50.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.010 sec.
+   restart file read in    0.009 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            2
@@ -2036,7 +2354,7 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
 # inner-loop converged.
 
-     CP           :     5.19s CPU time,    5.26s wall time
+     CP           :     5.04s CPU time,    5.06s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -16.20708497931204
 
@@ -2119,7 +2437,7 @@ Step     3       0    -16.20708    -16.20708    -16.20708     1
  tnosep= F thdyn= F
 
    writing restart file: /home/elinscott/code/python_KI/tests/test_04/TMP-CP/kc_51.save
-   restart file written in    0.037 sec.
+   restart file written in    0.035 sec.
 
 
 
@@ -2137,7 +2455,7 @@ Step     3       0    -16.20708    -16.20708    -16.20708     1
 
 
      initialize   :     0.10s CPU
-     total_time   :     5.09s CPU
+     total_time   :     4.93s CPU
      formf        :     0.01s CPU
      rhoofr       :     0.00s CPU
      vofrho       :     0.01s CPU
@@ -2152,34 +2470,34 @@ Step     3       0    -16.20708    -16.20708    -16.20708     1
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
      nlsm1        :     0.01s CPU (      66 calls,   0.000 s avg)
-     fft          :     2.05s CPU (    8634 calls,   0.000 s avg)
+     fft          :     1.97s CPU (    8634 calls,   0.000 s avg)
      ffts         :     0.00s CPU (       2 calls,   0.000 s avg)
      fftw         :     0.00s CPU (      24 calls,   0.000 s avg)
-     cft3s        :     2.04s CPU (    8660 calls,   0.000 s avg)
-     fft_scatter  :     0.48s CPU (    8660 calls,   0.000 s avg)
+     cft3s        :     1.96s CPU (    8660 calls,   0.000 s avg)
+     fft_scatter  :     0.40s CPU (    8660 calls,   0.000 s avg)
 
      nk_eforce    :     0.13s CPU (     128 calls,   0.001 s avg)
-     nk_corr      :     4.02s CPU (     504 calls,   0.008 s avg)
-     nk_corr_h    :     0.29s CPU (     504 calls,   0.001 s avg)
+     nk_corr      :     3.89s CPU (     504 calls,   0.008 s avg)
+     nk_corr_h    :     0.28s CPU (     504 calls,   0.001 s avg)
 
-     nk_rot_emin  :     4.98s CPU
-     nk_innerloop :     4.98s CPU (      32 calls,   0.156 s avg)
+     nk_rot_emin  :     4.83s CPU
+     nk_innerloop :     4.83s CPU (      32 calls,   0.151 s avg)
      nk_get_vsica :     0.13s CPU (      62 calls,   0.002 s avg)
-     nk_getOmatto :     4.84s CPU (      62 calls,   0.078 s avg)
+     nk_getOmatto :     4.70s CPU (      62 calls,   0.076 s avg)
      nk_getOmat1  :     0.00s CPU (     124 calls,   0.000 s avg)
      nk_rotwfn    :     0.00s CPU (     124 calls,   0.000 s avg)
 
-     outer_loop   :     5.12s CPU
-     inner_loop   :     4.98s CPU
-     runcg_uspp   :     5.08s CPU
-     inner_loop   :     4.98s CPU
+     outer_loop   :     4.96s CPU
+     inner_loop   :     4.83s CPU
+     runcg_uspp   :     4.92s CPU
+     inner_loop   :     4.83s CPU
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     5.24s CPU time,    5.32s wall time
+     CP           :     5.09s CPU time,    5.11s wall time
 
  
-   This run was terminated on:  19:58:18   7Dec2020            
+   This run was terminated on:  11: 2:19  15Dec2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -2190,6 +2508,89 @@ Step     3       0    -16.20708    -16.20708    -16.20708     1
  debug2
  debug3
  debug3
+
+Contents of ./calc_alpha/ki.cpi:
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'restart'
+   iprint           = 1
+   outdir           = '/home/elinscott/code/python_KI/tests/test_04/TMP-CP'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/elinscott/code/python_KI/pseudos/'
+   ndr              = 51
+   ndw              = 60
+   write_hr         = .false.
+/
+&SYSTEM
+   tot_magnetization = 0
+   ecutwfc          = 20.0
+   ecutrho          = 80.0
+   nspin            = 2
+   input_dft        = 'PBE'
+   do_orbdep        = .true.
+   fixed_state      = .false.
+   do_ee            = .true.
+   nelec            = 8
+   nelup            = 4
+   neldw            = 4
+   do_wf_cmplx      = .true.
+   starting_magnetization(1) = 0.0
+   starting_magnetization(2) = 0.0
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8e-09
+   ortho_para       = 1
+   empty_states_nbnd = 0
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .false.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   odd_nkscalfact   = .true.
+   odd_nkscalfact_empty = .true.
+   which_orbdep     = 'nki'
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8e-09
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+/
+
+ATOMIC_SPECIES
+O  15.999 O_ONCV_PBE-1.0.upf
+H  1.008 H_ONCV_PBE-1.0.upf
+
+CELL_PARAMETERS angstrom
+9.51420000000000 0.00000000000000 0.00000000000000
+0.00000000000000 8.00000000000000 0.00000000000000
+0.00000000000000 0.00000000000000 8.58610000000000
+
+ATOMIC_POSITIONS angstrom
+O  4.7571000000 4.0000000000 3.9023170000
+H  5.5142000000 4.0000000000 4.4884170000
+H  4.0000000000 4.0000000000 4.4884170000
+
 
 Contents of ./calc_alpha/ki.cpo:
 =------------------------------------------------------------------------------=
@@ -2204,13 +2605,12 @@ Contents of ./calc_alpha/ki.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:58:19   7Dec2020               
+   This run was started on:  11: 2:19  15Dec2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
      Message from routine  system_checkin     :
       starting_magnetization is not used in CP 
-Warning: card K_POINTS GAMMA ignored
 
    Job Title: MD Simulation
 
@@ -2486,7 +2886,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: /home/elinscott/code/python_KI/tests/test_04/TMP-CP/kc_51.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.010 sec.
+   restart file read in    0.009 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            3
@@ -2595,7 +2995,7 @@ Step     4       0    -16.24706    -16.24706    -16.24706     1
  tnosep= F thdyn= F
 
    writing restart file: /home/elinscott/code/python_KI/tests/test_04/TMP-CP/kc_60.save
-   restart file written in    0.036 sec.
+   restart file written in    0.035 sec.
 
 
 
@@ -2612,7 +3012,7 @@ Step     4       0    -16.24706    -16.24706    -16.24706     1
    volume        :     4410.16474    4410.16474 (AU)
 
 
-     initialize   :     0.10s CPU
+     initialize   :     0.09s CPU
      total_time   :     0.12s CPU
      formf        :     0.01s CPU
      rhoofr       :     0.00s CPU
@@ -2640,15 +3040,15 @@ Step     4       0    -16.24706    -16.24706    -16.24706     1
      nk_corr_vxc  :     0.07s CPU (       8 calls,   0.009 s avg)
 
 
-     outer_loop   :     0.15s CPU
+     outer_loop   :     0.16s CPU
      runcg_uspp   :     0.11s CPU
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     0.27s CPU time,    0.30s wall time
+     CP           :     0.27s CPU time,    0.29s wall time
 
  
-   This run was terminated on:  19:58:19   7Dec2020            
+   This run was terminated on:  11: 2:19  15Dec2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -2659,6 +3059,91 @@ Step     4       0    -16.24706    -16.24706    -16.24706     1
  debug2
  debug3
  debug3
+
+Contents of ./calc_alpha/orbital_1/ki_frozen.cpi:
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'restart'
+   iprint           = 1
+   outdir           = '/home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_1'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/elinscott/code/python_KI/pseudos/'
+   ndr              = 60
+   ndw              = 61
+   write_hr         = .false.
+/
+&SYSTEM
+   tot_magnetization = 0
+   ecutwfc          = 20.0
+   ecutrho          = 80.0
+   nspin            = 2
+   input_dft        = 'PBE'
+   fixed_band       = 1
+   f_cutoff         = 1.0
+   do_orbdep        = .true.
+   fixed_state      = .true.
+   do_ee            = .true.
+   nelec            = 8
+   nelup            = 4
+   neldw            = 4
+   do_wf_cmplx      = .true.
+   starting_magnetization(1) = 0.0
+   starting_magnetization(2) = 0.0
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8.000000000000001e-07
+   ortho_para       = 1
+   empty_states_nbnd = 0
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .false.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   odd_nkscalfact   = .true.
+   odd_nkscalfact_empty = .true.
+   which_orbdep     = 'nki'
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8.000000000000001e-07
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+/
+
+ATOMIC_SPECIES
+O  15.999 O_ONCV_PBE-1.0.upf
+H  1.008 H_ONCV_PBE-1.0.upf
+
+CELL_PARAMETERS angstrom
+9.51420000000000 0.00000000000000 0.00000000000000
+0.00000000000000 8.00000000000000 0.00000000000000
+0.00000000000000 0.00000000000000 8.58610000000000
+
+ATOMIC_POSITIONS angstrom
+O  4.7571000000 4.0000000000 3.9023170000
+H  5.5142000000 4.0000000000 4.4884170000
+H  4.0000000000 4.0000000000 4.4884170000
+
 
 Contents of ./calc_alpha/orbital_1/ki_frozen.cpo:
 =------------------------------------------------------------------------------=
@@ -2673,13 +3158,12 @@ Contents of ./calc_alpha/orbital_1/ki_frozen.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:58:19   7Dec2020               
+   This run was started on:  11: 2:19  15Dec2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
      Message from routine  system_checkin     :
       starting_magnetization is not used in CP 
-Warning: card K_POINTS GAMMA ignored
 
    Job Title: MD Simulation
 
@@ -2955,7 +3439,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: /home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_1/kc_60.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.010 sec.
+   restart file read in    0.009 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            4
@@ -2981,7 +3465,7 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.24s CPU time,    0.24s wall time
+     CP           :     0.23s CPU time,    0.24s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -16.24705801306661
  NLN: This is 2nd term in MP formular, computed with localized orbital
@@ -3070,7 +3554,7 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
  tnosep= F thdyn= F
 
    writing restart file: /home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_1/kc_61.save
-   restart file written in    0.036 sec.
+   restart file written in    0.035 sec.
 
  
                               lambda   nudx, spin =    4   1
@@ -3093,7 +3577,7 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
 
 
      initialize   :     0.10s CPU
-     total_time   :     0.13s CPU
+     total_time   :     0.12s CPU
      formf        :     0.01s CPU
      rhoofr       :     0.00s CPU
      vofrho       :     0.01s CPU
@@ -3110,24 +3594,24 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
      fft          :     0.05s CPU (     208 calls,   0.000 s avg)
      ffts         :     0.00s CPU (       2 calls,   0.000 s avg)
      fftw         :     0.00s CPU (      24 calls,   0.000 s avg)
-     cft3s        :     0.06s CPU (     234 calls,   0.000 s avg)
+     cft3s        :     0.05s CPU (     234 calls,   0.000 s avg)
      fft_scatter  :     0.01s CPU (     234 calls,   0.000 s avg)
 
      nk_eforce    :     0.00s CPU (       4 calls,   0.001 s avg)
-     nk_corr      :     0.08s CPU (       8 calls,   0.010 s avg)
-     nk_corr_h    :     0.01s CPU (       8 calls,   0.001 s avg)
+     nk_corr      :     0.08s CPU (       8 calls,   0.009 s avg)
+     nk_corr_h    :     0.00s CPU (       8 calls,   0.001 s avg)
      nk_corr_vxc  :     0.07s CPU (       8 calls,   0.009 s avg)
 
 
-     outer_loop   :     0.16s CPU
-     runcg_uspp   :     0.12s CPU
+     outer_loop   :     0.15s CPU
+     runcg_uspp   :     0.11s CPU
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     0.29s CPU time,    0.30s wall time
+     CP           :     0.28s CPU time,    0.29s wall time
 
  
-   This run was terminated on:  19:58:19   7Dec2020            
+   This run was terminated on:  11: 2:20  15Dec2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -3138,6 +3622,88 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
  debug2
  debug3
  debug3
+
+Contents of ./calc_alpha/orbital_1/pbe_frozen.cpi:
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'restart'
+   iprint           = 1
+   outdir           = '/home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_1'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/elinscott/code/python_KI/pseudos/'
+   ndr              = 60
+   ndw              = 62
+   write_hr         = .false.
+/
+&SYSTEM
+   tot_magnetization = 0
+   ecutwfc          = 20.0
+   ecutrho          = 80.0
+   nspin            = 2
+   input_dft        = 'PBE'
+   fixed_band       = 1
+   f_cutoff         = 1.0
+   do_orbdep        = .false.
+   fixed_state      = .true.
+   do_ee            = .true.
+   nelec            = 8
+   nelup            = 4
+   neldw            = 4
+   do_wf_cmplx      = .true.
+   starting_magnetization(1) = 0.0
+   starting_magnetization(2) = 0.0
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8.000000000000001e-07
+   ortho_para       = 1
+   empty_states_nbnd = 0
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .false.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8.000000000000001e-07
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+/
+
+ATOMIC_SPECIES
+O  15.999 O_ONCV_PBE-1.0.upf
+H  1.008 H_ONCV_PBE-1.0.upf
+
+CELL_PARAMETERS angstrom
+9.51420000000000 0.00000000000000 0.00000000000000
+0.00000000000000 8.00000000000000 0.00000000000000
+0.00000000000000 0.00000000000000 8.58610000000000
+
+ATOMIC_POSITIONS angstrom
+O  4.7571000000 4.0000000000 3.9023170000
+H  5.5142000000 4.0000000000 4.4884170000
+H  4.0000000000 4.0000000000 4.4884170000
+
 
 Contents of ./calc_alpha/orbital_1/pbe_frozen.cpo:
 =------------------------------------------------------------------------------=
@@ -3152,7 +3718,7 @@ Contents of ./calc_alpha/orbital_1/pbe_frozen.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:58:19   7Dec2020               
+   This run was started on:  11: 2:20  15Dec2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -3168,7 +3734,6 @@ Warning: card    ESIC_CONV_THR    = 8.000000000000001E-07 ignored
 Warning: card    DO_INNERLOOP_CG  = .TRUE. ignored
 Warning: card    INNERLOOP_NMAX   = 100 ignored
 Warning: card / ignored
-Warning: card K_POINTS GAMMA ignored
 
    Job Title: MD Simulation
 
@@ -3463,7 +4028,7 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.14s CPU time,    0.14s wall time
+     CP           :     0.13s CPU time,    0.14s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -16.24705801306661
 
@@ -3546,7 +4111,7 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
  tnosep= F thdyn= F
 
    writing restart file: /home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_1/kc_62.save
-   restart file written in    0.038 sec.
+   restart file written in    0.036 sec.
 
  
                               lambda   nudx, spin =    4   1
@@ -3568,7 +4133,7 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
    volume        :     4410.16474    4410.16474 (AU)
 
 
-     initialize   :     0.11s CPU
+     initialize   :     0.10s CPU
      total_time   :     0.02s CPU
      formf        :     0.01s CPU
      rhoofr       :     0.00s CPU
@@ -3583,7 +4148,7 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
      nlsm1        :     0.00s CPU (       4 calls,   0.000 s avg)
-     fft          :     0.01s CPU (      18 calls,   0.000 s avg)
+     fft          :     0.00s CPU (      18 calls,   0.000 s avg)
      ffts         :     0.00s CPU (       2 calls,   0.000 s avg)
      fftw         :     0.00s CPU (      24 calls,   0.000 s avg)
      cft3s        :     0.01s CPU (      44 calls,   0.000 s avg)
@@ -3594,10 +4159,10 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     0.18s CPU time,    0.19s wall time
+     CP           :     0.17s CPU time,    0.18s wall time
 
  
-   This run was terminated on:  19:58:20   7Dec2020            
+   This run was terminated on:  11: 2:20  15Dec2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -3608,6 +4173,89 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
  debug2
  debug3
  debug3
+
+Contents of ./calc_alpha/orbital_1/pbe_n-1.cpi:
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'restart'
+   iprint           = 1
+   outdir           = '/home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_1'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/elinscott/code/python_KI/pseudos/'
+   ndr              = 60
+   ndw              = 63
+   write_hr         = .false.
+/
+&SYSTEM
+   tot_magnetization = 0
+   ecutwfc          = 20.0
+   ecutrho          = 80.0
+   nspin            = 2
+   input_dft        = 'PBE'
+   fixed_band       = 1
+   f_cutoff         = 1e-05
+   do_orbdep        = .false.
+   fixed_state      = .true.
+   do_ee            = .true.
+   nelec            = 8
+   nelup            = 4
+   neldw            = 4
+   do_wf_cmplx      = .true.
+   starting_magnetization(1) = 0.0
+   starting_magnetization(2) = 0.0
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8.000000000000001e-07
+   ortho_para       = 1
+   empty_states_nbnd = 0
+   maxiter          = 300
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .true.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8.000000000000001e-07
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+/
+
+ATOMIC_SPECIES
+O  15.999 O_ONCV_PBE-1.0.upf
+H  1.008 H_ONCV_PBE-1.0.upf
+
+CELL_PARAMETERS angstrom
+9.51420000000000 0.00000000000000 0.00000000000000
+0.00000000000000 8.00000000000000 0.00000000000000
+0.00000000000000 0.00000000000000 8.58610000000000
+
+ATOMIC_POSITIONS angstrom
+O  4.7571000000 4.0000000000 3.9023170000
+H  5.5142000000 4.0000000000 4.4884170000
+H  4.0000000000 4.0000000000 4.4884170000
+
 
 Contents of ./calc_alpha/orbital_1/pbe_n-1.cpo:
 =------------------------------------------------------------------------------=
@@ -3622,7 +4270,7 @@ Contents of ./calc_alpha/orbital_1/pbe_n-1.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:58:20   7Dec2020               
+   This run was started on:  11: 2:20  15Dec2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -3638,7 +4286,6 @@ Warning: card    ESIC_CONV_THR    = 8.000000000000001E-07 ignored
 Warning: card    DO_INNERLOOP_CG  = .TRUE. ignored
 Warning: card    INNERLOOP_NMAX   = 100 ignored
 Warning: card / ignored
-Warning: card K_POINTS GAMMA ignored
 
    Job Title: MD Simulation
 
@@ -3907,7 +4554,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: /home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_1/kc_60.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.010 sec.
+   restart file read in    0.009 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            4
@@ -3933,65 +4580,65 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.14s CPU time,    0.15s wall time
+     CP           :     0.14s CPU time,    0.14s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -15.28429602335198
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.284296023352   -0.264043370613  -15.042010038484  -15.374796243834  -15.366557027206    0.685495115986    2.000000000000    0.685495115986
-     CP           :     0.17s CPU time,    0.18s wall time
+     CP           :     0.18s CPU time,    0.18s wall time
 
      iteration =   2  eff iteration =   2   Etot (Ha) =    -15.36655702720557
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.366557027206   -0.026576089180  -15.375627637603  -15.375627797795  -15.375627884695    0.682626441261    0.685495115986    0.682626441261
-     CP           :     0.20s CPU time,    0.21s wall time
+     CP           :     0.21s CPU time,    0.21s wall time
 
      iteration =   3  eff iteration =   3   Etot (Ha) =    -15.37562788469486 delta_E=  0.82261003853588E-01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.375627884695   -0.003712899138  -15.376914467217  -15.376914766349  -15.376914848797    0.693195051301    0.682626441261    0.693195051301
-     CP           :     0.24s CPU time,    0.25s wall time
+     CP           :     0.24s CPU time,    0.24s wall time
 
      iteration =   4  eff iteration =   4   Etot (Ha) =    -15.37691484879740 delta_E=  0.90708574892915E-02
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.376914848797   -0.000722953990  -15.377151595287  -15.377152318436  -15.377152335291    0.656942604162    0.693195051301    0.656942604162
-     CP           :     0.27s CPU time,    0.28s wall time
+     CP           :     0.27s CPU time,    0.27s wall time
 
      iteration =   5  eff iteration =   5   Etot (Ha) =    -15.37715233529061 delta_E=  0.12869641025404E-02
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.377152335291   -0.000145891057  -15.377201081026  -15.377201095467  -15.377201189829    0.668446409466    0.656942604162    0.668446409466
-     CP           :     0.30s CPU time,    0.31s wall time
+     CP           :     0.31s CPU time,    0.31s wall time
 
      iteration =   6  eff iteration =   6   Etot (Ha) =    -15.37720118982921 delta_E=  0.23748649320510E-03
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.377201189829   -0.000029078257  -15.377210588731  -15.377210598915  -15.377210773246    0.647156074836    0.668446409466    0.647156074836
-     CP           :     0.34s CPU time,    0.35s wall time
+     CP           :     0.33s CPU time,    0.34s wall time
 
      iteration =   7  eff iteration =   7   Etot (Ha) =    -15.37721077324560 delta_E=  0.48854538597709E-04
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.377210773246   -0.000006739629  -15.377213174702  -15.377213199542  -15.377213349724    0.720008965189    0.647156074836    0.720008965189
-     CP           :     0.37s CPU time,    0.38s wall time
+     CP           :     0.37s CPU time,    0.37s wall time
 
      iteration =   8  eff iteration =   8   Etot (Ha) =    -15.37721334972447 delta_E=  0.95834163893471E-05
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.377213349724   -0.000001896424  -15.377213884598  -15.377213910916  -15.377213775420    0.591841628489    0.720008965189    0.591841628489
   cg_sub: missed minimum, case 1, iteration    8      0.591841628489
-     CP           :     0.41s CPU time,    0.43s wall time
+     CP           :     0.41s CPU time,    0.42s wall time
 
      iteration =   9  eff iteration =   9   Etot (Ha) =    -15.37721388459777 delta_E=  0.25764788720295E-05
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.377213884598   -0.000000486700  -15.377213298558  -15.377214036497  -15.377214104922    0.624198552597    2.000000000000    0.624198552597
-     CP           :     0.45s CPU time,    0.46s wall time
+     CP           :     0.44s CPU time,    0.45s wall time
 
      iteration =  10  eff iteration =  10   Etot (Ha) =    -15.37721410492195 delta_E=  0.53487329942925E-06
 
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.377214104922   -0.000000189601  -15.377214221809  -15.377216499853  -15.377152418041   25.262843194362    0.624198552597   25.262843194362
   cg_sub: missed minimum, case 2, iteration   10
-     CP           :     0.49s CPU time,    0.51s wall time
+     CP           :     0.48s CPU time,    0.49s wall time
 
      iteration =  11  eff iteration =  11   Etot (Ha) =    -15.37721422180858 delta_E=  0.22032417668072E-06
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.377214221809   -0.000000061486  -15.377214289264  -15.377214289905  -15.377214289905    2.215030568368    2.000000000000    2.215030568368
-     CP           :     0.53s CPU time,    0.54s wall time
+     CP           :     0.51s CPU time,    0.53s wall time
 
      iteration =  12  eff iteration =  12   Etot (Ha) =    -15.37721428990525 delta_E=  0.11688663370535E-06
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -4076,7 +4723,7 @@ Step     5       0    -15.37721    -15.37721    -15.37721    13
  tnosep= F thdyn= F
 
    writing restart file: /home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_1/kc_63.save
-   restart file written in    0.036 sec.
+   restart file written in    0.035 sec.
 
  
                               lambda   nudx, spin =    4   1
@@ -4098,17 +4745,17 @@ Step     5       0    -15.37721    -15.37721    -15.37721    13
    volume        :     4410.16474    4410.16474 (AU)
 
 
-     initialize   :     0.10s CPU
-     total_time   :     0.44s CPU
+     initialize   :     0.11s CPU
+     total_time   :     0.42s CPU
      formf        :     0.01s CPU
      rhoofr       :     0.06s CPU (      27 calls,   0.002 s avg)
-     vofrho       :     0.31s CPU (      27 calls,   0.011 s avg)
-     vofrho1      :     0.04s CPU (       3 calls,   0.012 s avg)
-     vofrho2      :     0.14s CPU (      12 calls,   0.012 s avg)
+     vofrho       :     0.29s CPU (      27 calls,   0.011 s avg)
+     vofrho1      :     0.03s CPU (       3 calls,   0.010 s avg)
+     vofrho2      :     0.13s CPU (      12 calls,   0.011 s avg)
      vofrho3      :     0.13s CPU (      12 calls,   0.011 s avg)
      dforce       :     0.04s CPU (      52 calls,   0.001 s avg)
      dforce1      :     0.04s CPU (      48 calls,   0.001 s avg)
-     dforce2      :     0.04s CPU
+     dforce2      :     0.03s CPU
      calphi       :     0.00s CPU (      13 calls,   0.000 s avg)
      newd         :     0.00s CPU (      13 calls,   0.000 s avg)
      calbec       :     0.01s CPU (     108 calls,   0.000 s avg)
@@ -4116,24 +4763,24 @@ Step     5       0    -15.37721    -15.37721    -15.37721    13
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
      nlsm1        :     0.01s CPU (     108 calls,   0.000 s avg)
-     fft          :     0.11s CPU (     460 calls,   0.000 s avg)
+     fft          :     0.10s CPU (     460 calls,   0.000 s avg)
      ffts         :     0.01s CPU (      54 calls,   0.000 s avg)
      fftw         :     0.08s CPU (     424 calls,   0.000 s avg)
-     cft3s        :     0.20s CPU (     938 calls,   0.000 s avg)
+     cft3s        :     0.19s CPU (     938 calls,   0.000 s avg)
      fft_scatter  :     0.04s CPU (     938 calls,   0.000 s avg)
 
-     outer_loop   :     0.44s CPU (      12 calls,   0.037 s avg)
-     runcg_uspp   :     0.44s CPU
+     outer_loop   :     0.41s CPU (      12 calls,   0.034 s avg)
+     runcg_uspp   :     0.42s CPU
      pc2          :     0.00s CPU (      36 calls,   0.000 s avg)
      pcdaga2      :     0.00s CPU (      12 calls,   0.000 s avg)
      xminus1      :     0.00s CPU (      24 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     0.60s CPU time,    0.62s wall time
+     CP           :     0.57s CPU time,    0.60s wall time
 
  
-   This run was terminated on:  19:58:20   7Dec2020            
+   This run was terminated on:  11: 2:21  15Dec2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -4144,6 +4791,91 @@ Step     5       0    -15.37721    -15.37721    -15.37721    13
  debug2
  debug3
  debug3
+
+Contents of ./calc_alpha/orbital_2/ki_frozen.cpi:
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'restart'
+   iprint           = 1
+   outdir           = '/home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_2'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/elinscott/code/python_KI/pseudos/'
+   ndr              = 60
+   ndw              = 61
+   write_hr         = .false.
+/
+&SYSTEM
+   tot_magnetization = 0
+   ecutwfc          = 20.0
+   ecutrho          = 80.0
+   nspin            = 2
+   input_dft        = 'PBE'
+   fixed_band       = 2
+   f_cutoff         = 1.0
+   do_orbdep        = .true.
+   fixed_state      = .true.
+   do_ee            = .true.
+   nelec            = 8
+   nelup            = 4
+   neldw            = 4
+   do_wf_cmplx      = .true.
+   starting_magnetization(1) = 0.0
+   starting_magnetization(2) = 0.0
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8.000000000000001e-07
+   ortho_para       = 1
+   empty_states_nbnd = 0
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .false.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   odd_nkscalfact   = .true.
+   odd_nkscalfact_empty = .true.
+   which_orbdep     = 'nki'
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8.000000000000001e-07
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+/
+
+ATOMIC_SPECIES
+O  15.999 O_ONCV_PBE-1.0.upf
+H  1.008 H_ONCV_PBE-1.0.upf
+
+CELL_PARAMETERS angstrom
+9.51420000000000 0.00000000000000 0.00000000000000
+0.00000000000000 8.00000000000000 0.00000000000000
+0.00000000000000 0.00000000000000 8.58610000000000
+
+ATOMIC_POSITIONS angstrom
+O  4.7571000000 4.0000000000 3.9023170000
+H  5.5142000000 4.0000000000 4.4884170000
+H  4.0000000000 4.0000000000 4.4884170000
+
 
 Contents of ./calc_alpha/orbital_2/ki_frozen.cpo:
 =------------------------------------------------------------------------------=
@@ -4158,13 +4890,12 @@ Contents of ./calc_alpha/orbital_2/ki_frozen.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:58:21   7Dec2020               
+   This run was started on:  11: 2:21  15Dec2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
      Message from routine  system_checkin     :
       starting_magnetization is not used in CP 
-Warning: card K_POINTS GAMMA ignored
 
    Job Title: MD Simulation
 
@@ -4440,7 +5171,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: /home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_2/kc_60.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.010 sec.
+   restart file read in    0.009 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            4
@@ -4466,7 +5197,7 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.24s CPU time,    0.24s wall time
+     CP           :     0.23s CPU time,    0.24s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -16.24705801306661
  NLN: This is 2nd term in MP formular, computed with localized orbital
@@ -4578,13 +5309,13 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
 
 
      initialize   :     0.10s CPU
-     total_time   :     0.13s CPU
+     total_time   :     0.12s CPU
      formf        :     0.01s CPU
      rhoofr       :     0.00s CPU
      vofrho       :     0.01s CPU
      vofrho1      :     0.01s CPU
      dforce       :     0.00s CPU (       4 calls,   0.001 s avg)
-     dforce2      :     0.05s CPU
+     dforce2      :     0.04s CPU
      calphi       :     0.00s CPU
      newd         :     0.00s CPU
      calbec       :     0.00s CPU (       4 calls,   0.000 s avg)
@@ -4595,7 +5326,7 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
      fft          :     0.05s CPU (     208 calls,   0.000 s avg)
      ffts         :     0.00s CPU (       2 calls,   0.000 s avg)
      fftw         :     0.00s CPU (      24 calls,   0.000 s avg)
-     cft3s        :     0.06s CPU (     234 calls,   0.000 s avg)
+     cft3s        :     0.05s CPU (     234 calls,   0.000 s avg)
      fft_scatter  :     0.01s CPU (     234 calls,   0.000 s avg)
 
      nk_eforce    :     0.00s CPU (       4 calls,   0.001 s avg)
@@ -4604,15 +5335,15 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
      nk_corr_vxc  :     0.07s CPU (       8 calls,   0.009 s avg)
 
 
-     outer_loop   :     0.16s CPU
-     runcg_uspp   :     0.12s CPU
+     outer_loop   :     0.15s CPU
+     runcg_uspp   :     0.11s CPU
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     0.29s CPU time,    0.30s wall time
+     CP           :     0.28s CPU time,    0.30s wall time
 
  
-   This run was terminated on:  19:58:21   7Dec2020            
+   This run was terminated on:  11: 2:21  15Dec2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -4623,6 +5354,88 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
  debug2
  debug3
  debug3
+
+Contents of ./calc_alpha/orbital_2/pbe_frozen.cpi:
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'restart'
+   iprint           = 1
+   outdir           = '/home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_2'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/elinscott/code/python_KI/pseudos/'
+   ndr              = 60
+   ndw              = 62
+   write_hr         = .false.
+/
+&SYSTEM
+   tot_magnetization = 0
+   ecutwfc          = 20.0
+   ecutrho          = 80.0
+   nspin            = 2
+   input_dft        = 'PBE'
+   fixed_band       = 2
+   f_cutoff         = 1.0
+   do_orbdep        = .false.
+   fixed_state      = .true.
+   do_ee            = .true.
+   nelec            = 8
+   nelup            = 4
+   neldw            = 4
+   do_wf_cmplx      = .true.
+   starting_magnetization(1) = 0.0
+   starting_magnetization(2) = 0.0
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8.000000000000001e-07
+   ortho_para       = 1
+   empty_states_nbnd = 0
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .false.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8.000000000000001e-07
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+/
+
+ATOMIC_SPECIES
+O  15.999 O_ONCV_PBE-1.0.upf
+H  1.008 H_ONCV_PBE-1.0.upf
+
+CELL_PARAMETERS angstrom
+9.51420000000000 0.00000000000000 0.00000000000000
+0.00000000000000 8.00000000000000 0.00000000000000
+0.00000000000000 0.00000000000000 8.58610000000000
+
+ATOMIC_POSITIONS angstrom
+O  4.7571000000 4.0000000000 3.9023170000
+H  5.5142000000 4.0000000000 4.4884170000
+H  4.0000000000 4.0000000000 4.4884170000
+
 
 Contents of ./calc_alpha/orbital_2/pbe_frozen.cpo:
 =------------------------------------------------------------------------------=
@@ -4637,7 +5450,7 @@ Contents of ./calc_alpha/orbital_2/pbe_frozen.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:58:21   7Dec2020               
+   This run was started on:  11: 2:21  15Dec2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -4653,7 +5466,6 @@ Warning: card    ESIC_CONV_THR    = 8.000000000000001E-07 ignored
 Warning: card    DO_INNERLOOP_CG  = .TRUE. ignored
 Warning: card    INNERLOOP_NMAX   = 100 ignored
 Warning: card / ignored
-Warning: card K_POINTS GAMMA ignored
 
    Job Title: MD Simulation
 
@@ -4922,7 +5734,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: /home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_2/kc_60.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.010 sec.
+   restart file read in    0.009 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            4
@@ -4948,7 +5760,7 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.14s CPU time,    0.15s wall time
+     CP           :     0.14s CPU time,    0.14s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -16.24705801306661
 
@@ -5031,7 +5843,7 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
  tnosep= F thdyn= F
 
    writing restart file: /home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_2/kc_62.save
-   restart file written in    0.037 sec.
+   restart file written in    0.036 sec.
 
  
                               lambda   nudx, spin =    4   1
@@ -5053,7 +5865,7 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
    volume        :     4410.16474    4410.16474 (AU)
 
 
-     initialize   :     0.10s CPU
+     initialize   :     0.11s CPU
      total_time   :     0.02s CPU
      formf        :     0.01s CPU
      rhoofr       :     0.00s CPU
@@ -5074,15 +5886,15 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
      cft3s        :     0.01s CPU (      44 calls,   0.000 s avg)
      fft_scatter  :     0.00s CPU (      44 calls,   0.000 s avg)
 
-     outer_loop   :     0.05s CPU
+     outer_loop   :     0.06s CPU
      runcg_uspp   :     0.02s CPU
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     0.18s CPU time,    0.19s wall time
+     CP           :     0.18s CPU time,    0.18s wall time
 
  
-   This run was terminated on:  19:58:21   7Dec2020            
+   This run was terminated on:  11: 2:21  15Dec2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -5093,6 +5905,89 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
  debug2
  debug3
  debug3
+
+Contents of ./calc_alpha/orbital_2/pbe_n-1.cpi:
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'restart'
+   iprint           = 1
+   outdir           = '/home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_2'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/elinscott/code/python_KI/pseudos/'
+   ndr              = 60
+   ndw              = 63
+   write_hr         = .false.
+/
+&SYSTEM
+   tot_magnetization = 0
+   ecutwfc          = 20.0
+   ecutrho          = 80.0
+   nspin            = 2
+   input_dft        = 'PBE'
+   fixed_band       = 2
+   f_cutoff         = 1e-05
+   do_orbdep        = .false.
+   fixed_state      = .true.
+   do_ee            = .true.
+   nelec            = 8
+   nelup            = 4
+   neldw            = 4
+   do_wf_cmplx      = .true.
+   starting_magnetization(1) = 0.0
+   starting_magnetization(2) = 0.0
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8.000000000000001e-07
+   ortho_para       = 1
+   empty_states_nbnd = 0
+   maxiter          = 300
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .true.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8.000000000000001e-07
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+/
+
+ATOMIC_SPECIES
+O  15.999 O_ONCV_PBE-1.0.upf
+H  1.008 H_ONCV_PBE-1.0.upf
+
+CELL_PARAMETERS angstrom
+9.51420000000000 0.00000000000000 0.00000000000000
+0.00000000000000 8.00000000000000 0.00000000000000
+0.00000000000000 0.00000000000000 8.58610000000000
+
+ATOMIC_POSITIONS angstrom
+O  4.7571000000 4.0000000000 3.9023170000
+H  5.5142000000 4.0000000000 4.4884170000
+H  4.0000000000 4.0000000000 4.4884170000
+
 
 Contents of ./calc_alpha/orbital_2/pbe_n-1.cpo:
 =------------------------------------------------------------------------------=
@@ -5107,7 +6002,7 @@ Contents of ./calc_alpha/orbital_2/pbe_n-1.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:58:21   7Dec2020               
+   This run was started on:  11: 2:22  15Dec2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -5123,7 +6018,6 @@ Warning: card    ESIC_CONV_THR    = 8.000000000000001E-07 ignored
 Warning: card    DO_INNERLOOP_CG  = .TRUE. ignored
 Warning: card    INNERLOOP_NMAX   = 100 ignored
 Warning: card / ignored
-Warning: card K_POINTS GAMMA ignored
 
    Job Title: MD Simulation
 
@@ -5392,7 +6286,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: /home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_2/kc_60.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.011 sec.
+   restart file read in    0.009 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            4
@@ -5418,12 +6312,12 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.13s CPU time,    0.15s wall time
+     CP           :     0.14s CPU time,    0.14s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -15.28430002434578
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.284300024346   -0.264041997076  -15.042015151373  -15.374799756610  -15.366560645124    0.685494983881    2.000000000000    0.685494983881
-     CP           :     0.16s CPU time,    0.18s wall time
+     CP           :     0.17s CPU time,    0.17s wall time
 
      iteration =   2  eff iteration =   2   Etot (Ha) =    -15.36656064512420
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -5433,57 +6327,57 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
      iteration =   3  eff iteration =   3   Etot (Ha) =    -15.37563149389848 delta_E=  0.82260620778422E-01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.375631493898   -0.003713046459  -15.376918040839  -15.376918336560  -15.376918392525    0.693146544793    0.682638940325    0.693146544793
-     CP           :     0.23s CPU time,    0.25s wall time
+     CP           :     0.23s CPU time,    0.24s wall time
 
      iteration =   4  eff iteration =   4   Etot (Ha) =    -15.37691839252460 delta_E=  0.90708487742841E-02
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.376918392525   -0.000722897603  -15.377155341975  -15.377156040968  -15.377156003069    0.657488537273    0.693146544793    0.657488537273
-     CP           :     0.26s CPU time,    0.28s wall time
+     CP           :     0.26s CPU time,    0.27s wall time
 
      iteration =   5  eff iteration =   5   Etot (Ha) =    -15.37715600306887 delta_E=  0.12868986261232E-02
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.377156003069   -0.000146019063  -15.377204499056  -15.377204504173  -15.377204565193    0.664311946702    0.657488537273    0.664311946702
-     CP           :     0.30s CPU time,    0.31s wall time
+     CP           :     0.30s CPU time,    0.30s wall time
 
      iteration =   6  eff iteration =   6   Etot (Ha) =    -15.37720456519326 delta_E=  0.23761054426608E-03
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.377204565193   -0.000028901167  -15.377214355134  -15.377214358981  -15.377214271823    0.677743380567    0.664311946702    0.677743380567
   cg_sub: missed minimum, case 1, iteration    6      0.677743380567
-     CP           :     0.34s CPU time,    0.36s wall time
+     CP           :     0.34s CPU time,    0.35s wall time
 
      iteration =   7  eff iteration =   7   Etot (Ha) =    -15.37721435513412 delta_E=  0.48562124391083E-04
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.377214355134   -0.000006806333  -15.377204785298  -15.377216353459  -15.377216399319    0.587195739668    2.000000000000    0.587195739668
-     CP           :     0.38s CPU time,    0.40s wall time
+     CP           :     0.37s CPU time,    0.38s wall time
 
      iteration =   8  eff iteration =   8   Etot (Ha) =    -15.37721639931890 delta_E=  0.97899408615376E-05
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.377216399319   -0.000002434679  -15.377217216230  -15.377217233242  -15.377217441224    0.685037530586    0.587195739668    0.685037530586
-     CP           :     0.41s CPU time,    0.43s wall time
+     CP           :     0.40s CPU time,    0.41s wall time
 
      iteration =   9  eff iteration =   9   Etot (Ha) =    -15.37721744122410 delta_E=  0.20441847716768E-05
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.377217441224   -0.000000891183  -15.377217701777  -15.377217707485  -15.377217625823    0.597544739719    0.685037530586    0.597544739719
   cg_sub: missed minimum, case 1, iteration    9      0.597544739719
-     CP           :     0.46s CPU time,    0.48s wall time
+     CP           :     0.44s CPU time,    0.46s wall time
 
      iteration =  10  eff iteration =  10   Etot (Ha) =    -15.37721770177654 delta_E=  0.10419052074440E-05
 
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.377217701777   -0.000000220294  -15.377217322827  -15.377217760992  -15.377217796360    0.537605327738    2.000000000000    0.537605327738
-     CP           :     0.49s CPU time,    0.51s wall time
+     CP           :     0.48s CPU time,    0.49s wall time
 
      iteration =  11  eff iteration =  11   Etot (Ha) =    -15.37721779636040 delta_E=  0.26055243473877E-06
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.377217796360   -0.000000095533  -15.377217852165  -15.377217852165  -15.377217852165    0.537605327738    0.537605327738    0.537605327738
   cg_sub: missed minimum, case 1, iteration   11      0.537605327738
-     CP           :     0.54s CPU time,    0.56s wall time
+     CP           :     0.52s CPU time,    0.54s wall time
 
      iteration =  12  eff iteration =  12   Etot (Ha) =    -15.37721785216477 delta_E=  0.94583864296283E-07
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.377217852165   -0.000000040342  -15.377217912394  -15.377217931729  -15.377217623715    3.944489162234    2.000000000000    3.944489162234
   cg_sub: missed minimum, case 2, iteration   12
-     CP           :     0.59s CPU time,    0.60s wall time
+     CP           :     0.57s CPU time,    0.58s wall time
 
      iteration =  13  eff iteration =  13   Etot (Ha) =    -15.37721791239350 delta_E=  0.55804365572953E-07
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -5591,16 +6485,16 @@ Step     5       0    -15.37722    -15.37722    -15.37722    14
 
 
      initialize   :     0.10s CPU
-     total_time   :     0.50s CPU
+     total_time   :     0.48s CPU
      formf        :     0.01s CPU
      rhoofr       :     0.07s CPU (      31 calls,   0.002 s avg)
-     vofrho       :     0.36s CPU (      31 calls,   0.012 s avg)
-     vofrho1      :     0.05s CPU (       5 calls,   0.011 s avg)
-     vofrho2      :     0.15s CPU (      13 calls,   0.012 s avg)
-     vofrho3      :     0.15s CPU (      13 calls,   0.012 s avg)
-     dforce       :     0.05s CPU (      56 calls,   0.001 s avg)
+     vofrho       :     0.35s CPU (      31 calls,   0.011 s avg)
+     vofrho1      :     0.06s CPU (       5 calls,   0.012 s avg)
+     vofrho2      :     0.15s CPU (      13 calls,   0.011 s avg)
+     vofrho3      :     0.14s CPU (      13 calls,   0.011 s avg)
+     dforce       :     0.04s CPU (      56 calls,   0.001 s avg)
      dforce1      :     0.04s CPU (      52 calls,   0.001 s avg)
-     dforce2      :     0.03s CPU
+     dforce2      :     0.04s CPU
      calphi       :     0.00s CPU (      14 calls,   0.000 s avg)
      newd         :     0.00s CPU (      14 calls,   0.000 s avg)
      calbec       :     0.02s CPU (     124 calls,   0.000 s avg)
@@ -5608,24 +6502,24 @@ Step     5       0    -15.37722    -15.37722    -15.37722    14
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
      nlsm1        :     0.02s CPU (     124 calls,   0.000 s avg)
-     fft          :     0.13s CPU (     528 calls,   0.000 s avg)
+     fft          :     0.12s CPU (     528 calls,   0.000 s avg)
      ffts         :     0.01s CPU (      62 calls,   0.000 s avg)
-     fftw         :     0.09s CPU (     472 calls,   0.000 s avg)
-     cft3s        :     0.23s CPU (    1062 calls,   0.000 s avg)
-     fft_scatter  :     0.05s CPU (    1062 calls,   0.000 s avg)
+     fftw         :     0.08s CPU (     472 calls,   0.000 s avg)
+     cft3s        :     0.22s CPU (    1062 calls,   0.000 s avg)
+     fft_scatter  :     0.04s CPU (    1062 calls,   0.000 s avg)
 
-     outer_loop   :     0.50s CPU (      13 calls,   0.038 s avg)
-     runcg_uspp   :     0.50s CPU
+     outer_loop   :     0.48s CPU (      13 calls,   0.037 s avg)
+     runcg_uspp   :     0.48s CPU
      pc2          :     0.00s CPU (      39 calls,   0.000 s avg)
      pcdaga2      :     0.00s CPU (      13 calls,   0.000 s avg)
      xminus1      :     0.00s CPU (      26 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     0.65s CPU time,    0.68s wall time
+     CP           :     0.64s CPU time,    0.66s wall time
 
  
-   This run was terminated on:  19:58:22   7Dec2020            
+   This run was terminated on:  11: 2:22  15Dec2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -5636,6 +6530,91 @@ Step     5       0    -15.37722    -15.37722    -15.37722    14
  debug2
  debug3
  debug3
+
+Contents of ./calc_alpha/orbital_3/ki_frozen.cpi:
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'restart'
+   iprint           = 1
+   outdir           = '/home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_3'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/elinscott/code/python_KI/pseudos/'
+   ndr              = 60
+   ndw              = 61
+   write_hr         = .false.
+/
+&SYSTEM
+   tot_magnetization = 0
+   ecutwfc          = 20.0
+   ecutrho          = 80.0
+   nspin            = 2
+   input_dft        = 'PBE'
+   fixed_band       = 3
+   f_cutoff         = 1.0
+   do_orbdep        = .true.
+   fixed_state      = .true.
+   do_ee            = .true.
+   nelec            = 8
+   nelup            = 4
+   neldw            = 4
+   do_wf_cmplx      = .true.
+   starting_magnetization(1) = 0.0
+   starting_magnetization(2) = 0.0
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8.000000000000001e-07
+   ortho_para       = 1
+   empty_states_nbnd = 0
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .false.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   odd_nkscalfact   = .true.
+   odd_nkscalfact_empty = .true.
+   which_orbdep     = 'nki'
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8.000000000000001e-07
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+/
+
+ATOMIC_SPECIES
+O  15.999 O_ONCV_PBE-1.0.upf
+H  1.008 H_ONCV_PBE-1.0.upf
+
+CELL_PARAMETERS angstrom
+9.51420000000000 0.00000000000000 0.00000000000000
+0.00000000000000 8.00000000000000 0.00000000000000
+0.00000000000000 0.00000000000000 8.58610000000000
+
+ATOMIC_POSITIONS angstrom
+O  4.7571000000 4.0000000000 3.9023170000
+H  5.5142000000 4.0000000000 4.4884170000
+H  4.0000000000 4.0000000000 4.4884170000
+
 
 Contents of ./calc_alpha/orbital_3/ki_frozen.cpo:
 =------------------------------------------------------------------------------=
@@ -5650,13 +6629,12 @@ Contents of ./calc_alpha/orbital_3/ki_frozen.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:58:22   7Dec2020               
+   This run was started on:  11: 2:22  15Dec2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
      Message from routine  system_checkin     :
       starting_magnetization is not used in CP 
-Warning: card K_POINTS GAMMA ignored
 
    Job Title: MD Simulation
 
@@ -5958,7 +6936,7 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.23s CPU time,    0.24s wall time
+     CP           :     0.23s CPU time,    0.23s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -16.24705801306661
  NLN: This is 2nd term in MP formular, computed with localized orbital
@@ -6047,7 +7025,7 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
  tnosep= F thdyn= F
 
    writing restart file: /home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_3/kc_61.save
-   restart file written in    0.037 sec.
+   restart file written in    0.036 sec.
 
  
                               lambda   nudx, spin =    4   1
@@ -6070,13 +7048,13 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
 
 
      initialize   :     0.10s CPU
-     total_time   :     0.12s CPU
+     total_time   :     0.13s CPU
      formf        :     0.01s CPU
      rhoofr       :     0.00s CPU
      vofrho       :     0.01s CPU
      vofrho1      :     0.01s CPU
      dforce       :     0.00s CPU (       4 calls,   0.001 s avg)
-     dforce2      :     0.04s CPU
+     dforce2      :     0.05s CPU
      calphi       :     0.00s CPU
      newd         :     0.00s CPU
      calbec       :     0.00s CPU (       4 calls,   0.000 s avg)
@@ -6096,15 +7074,15 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
      nk_corr_vxc  :     0.07s CPU (       8 calls,   0.009 s avg)
 
 
-     outer_loop   :     0.14s CPU
-     runcg_uspp   :     0.11s CPU
+     outer_loop   :     0.15s CPU
+     runcg_uspp   :     0.12s CPU
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     0.27s CPU time,    0.30s wall time
+     CP           :     0.28s CPU time,    0.29s wall time
 
  
-   This run was terminated on:  19:58:23   7Dec2020            
+   This run was terminated on:  11: 2:23  15Dec2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -6115,6 +7093,88 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
  debug2
  debug3
  debug3
+
+Contents of ./calc_alpha/orbital_3/pbe_frozen.cpi:
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'restart'
+   iprint           = 1
+   outdir           = '/home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_3'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/elinscott/code/python_KI/pseudos/'
+   ndr              = 60
+   ndw              = 62
+   write_hr         = .false.
+/
+&SYSTEM
+   tot_magnetization = 0
+   ecutwfc          = 20.0
+   ecutrho          = 80.0
+   nspin            = 2
+   input_dft        = 'PBE'
+   fixed_band       = 3
+   f_cutoff         = 1.0
+   do_orbdep        = .false.
+   fixed_state      = .true.
+   do_ee            = .true.
+   nelec            = 8
+   nelup            = 4
+   neldw            = 4
+   do_wf_cmplx      = .true.
+   starting_magnetization(1) = 0.0
+   starting_magnetization(2) = 0.0
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8.000000000000001e-07
+   ortho_para       = 1
+   empty_states_nbnd = 0
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .false.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8.000000000000001e-07
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+/
+
+ATOMIC_SPECIES
+O  15.999 O_ONCV_PBE-1.0.upf
+H  1.008 H_ONCV_PBE-1.0.upf
+
+CELL_PARAMETERS angstrom
+9.51420000000000 0.00000000000000 0.00000000000000
+0.00000000000000 8.00000000000000 0.00000000000000
+0.00000000000000 0.00000000000000 8.58610000000000
+
+ATOMIC_POSITIONS angstrom
+O  4.7571000000 4.0000000000 3.9023170000
+H  5.5142000000 4.0000000000 4.4884170000
+H  4.0000000000 4.0000000000 4.4884170000
+
 
 Contents of ./calc_alpha/orbital_3/pbe_frozen.cpo:
 =------------------------------------------------------------------------------=
@@ -6129,7 +7189,7 @@ Contents of ./calc_alpha/orbital_3/pbe_frozen.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:58:23   7Dec2020               
+   This run was started on:  11: 2:23  15Dec2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -6145,7 +7205,6 @@ Warning: card    ESIC_CONV_THR    = 8.000000000000001E-07 ignored
 Warning: card    DO_INNERLOOP_CG  = .TRUE. ignored
 Warning: card    INNERLOOP_NMAX   = 100 ignored
 Warning: card / ignored
-Warning: card K_POINTS GAMMA ignored
 
    Job Title: MD Simulation
 
@@ -6414,7 +7473,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: /home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_3/kc_60.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.010 sec.
+   restart file read in    0.009 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            4
@@ -6440,7 +7499,7 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.14s CPU time,    0.15s wall time
+     CP           :     0.14s CPU time,    0.14s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -16.24705801306661
 
@@ -6523,7 +7582,7 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
  tnosep= F thdyn= F
 
    writing restart file: /home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_3/kc_62.save
-   restart file written in    0.038 sec.
+   restart file written in    0.035 sec.
 
  
                               lambda   nudx, spin =    4   1
@@ -6552,7 +7611,7 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
      vofrho       :     0.01s CPU
      vofrho1      :     0.01s CPU
      dforce       :     0.00s CPU (       4 calls,   0.001 s avg)
-     dforce2      :     0.03s CPU
+     dforce2      :     0.04s CPU
      calphi       :     0.00s CPU
      newd         :     0.00s CPU
      calbec       :     0.00s CPU (       4 calls,   0.000 s avg)
@@ -6560,7 +7619,7 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
      nlsm1        :     0.00s CPU (       4 calls,   0.000 s avg)
-     fft          :     0.00s CPU (      18 calls,   0.000 s avg)
+     fft          :     0.01s CPU (      18 calls,   0.000 s avg)
      ffts         :     0.00s CPU (       2 calls,   0.000 s avg)
      fftw         :     0.00s CPU (      24 calls,   0.000 s avg)
      cft3s        :     0.01s CPU (      44 calls,   0.000 s avg)
@@ -6571,10 +7630,10 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     0.18s CPU time,    0.19s wall time
+     CP           :     0.18s CPU time,    0.18s wall time
 
  
-   This run was terminated on:  19:58:23   7Dec2020            
+   This run was terminated on:  11: 2:23  15Dec2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -6585,6 +7644,89 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
  debug2
  debug3
  debug3
+
+Contents of ./calc_alpha/orbital_3/pbe_n-1.cpi:
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'restart'
+   iprint           = 1
+   outdir           = '/home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_3'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/elinscott/code/python_KI/pseudos/'
+   ndr              = 60
+   ndw              = 63
+   write_hr         = .false.
+/
+&SYSTEM
+   tot_magnetization = 0
+   ecutwfc          = 20.0
+   ecutrho          = 80.0
+   nspin            = 2
+   input_dft        = 'PBE'
+   fixed_band       = 3
+   f_cutoff         = 1e-05
+   do_orbdep        = .false.
+   fixed_state      = .true.
+   do_ee            = .true.
+   nelec            = 8
+   nelup            = 4
+   neldw            = 4
+   do_wf_cmplx      = .true.
+   starting_magnetization(1) = 0.0
+   starting_magnetization(2) = 0.0
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8.000000000000001e-07
+   ortho_para       = 1
+   empty_states_nbnd = 0
+   maxiter          = 300
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .true.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8.000000000000001e-07
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+/
+
+ATOMIC_SPECIES
+O  15.999 O_ONCV_PBE-1.0.upf
+H  1.008 H_ONCV_PBE-1.0.upf
+
+CELL_PARAMETERS angstrom
+9.51420000000000 0.00000000000000 0.00000000000000
+0.00000000000000 8.00000000000000 0.00000000000000
+0.00000000000000 0.00000000000000 8.58610000000000
+
+ATOMIC_POSITIONS angstrom
+O  4.7571000000 4.0000000000 3.9023170000
+H  5.5142000000 4.0000000000 4.4884170000
+H  4.0000000000 4.0000000000 4.4884170000
+
 
 Contents of ./calc_alpha/orbital_3/pbe_n-1.cpo:
 =------------------------------------------------------------------------------=
@@ -6599,7 +7741,7 @@ Contents of ./calc_alpha/orbital_3/pbe_n-1.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:58:23   7Dec2020               
+   This run was started on:  11: 2:23  15Dec2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -6615,7 +7757,6 @@ Warning: card    ESIC_CONV_THR    = 8.000000000000001E-07 ignored
 Warning: card    DO_INNERLOOP_CG  = .TRUE. ignored
 Warning: card    INNERLOOP_NMAX   = 100 ignored
 Warning: card / ignored
-Warning: card K_POINTS GAMMA ignored
 
    Job Title: MD Simulation
 
@@ -6884,7 +8025,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: /home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_3/kc_60.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.010 sec.
+   restart file read in    0.009 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            4
@@ -6910,12 +8051,12 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.14s CPU time,    0.15s wall time
+     CP           :     0.14s CPU time,    0.14s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -15.36331034904734
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.363310349047   -0.311577123163  -15.096605955582  -15.472406669898  -15.460617179077    0.700284537859    2.000000000000    0.700284537859
-     CP           :     0.17s CPU time,    0.18s wall time
+     CP           :     0.17s CPU time,    0.17s wall time
 
      iteration =   2  eff iteration =   2   Etot (Ha) =    -15.46061717907742
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -6931,49 +8072,49 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.473914016651   -0.000795762095  -15.474188419238  -15.474188496915  -15.474188307274    0.689855085156    0.678250016716    0.689855085156
   cg_sub: missed minimum, case 1, iteration    4      0.689855085156
-     CP           :     0.28s CPU time,    0.29s wall time
+     CP           :     0.28s CPU time,    0.28s wall time
 
      iteration =   5  eff iteration =   5   Etot (Ha) =    -15.47418841923812 delta_E=  0.14183446241400E-02
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.474188419238   -0.000178577090  -15.473932065017  -15.474240398603  -15.474240290310    0.582150429872    2.000000000000    0.582150429872
-     CP           :     0.31s CPU time,    0.33s wall time
+     CP           :     0.31s CPU time,    0.32s wall time
 
      iteration =   6  eff iteration =   6   Etot (Ha) =    -15.47424029031048 delta_E=  0.27440258704026E-03
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.474240290310   -0.000054630619  -15.474260893198  -15.474262866523  -15.474262662940    0.826503991664    0.582150429872    0.826503991664
-     CP           :     0.35s CPU time,    0.36s wall time
+     CP           :     0.34s CPU time,    0.35s wall time
 
      iteration =   7  eff iteration =   7   Etot (Ha) =    -15.47426266293979 delta_E=  0.51871072360044E-04
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.474262662940   -0.000019090199  -15.474269666082  -15.474269755524  -15.474269737056    0.743060290497    0.826503991664    0.743060290497
-     CP           :     0.38s CPU time,    0.39s wall time
+     CP           :     0.37s CPU time,    0.38s wall time
 
      iteration =   8  eff iteration =   8   Etot (Ha) =    -15.47426973705647 delta_E=  0.22372629311818E-04
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.474269737056   -0.000003119040  -15.474270496353  -15.474270598781  -15.474270653880    0.552557158156    0.743060290497    0.552557158156
-     CP           :     0.41s CPU time,    0.42s wall time
+     CP           :     0.40s CPU time,    0.41s wall time
 
      iteration =   9  eff iteration =   9   Etot (Ha) =    -15.47427065387981 delta_E=  0.70741166862121E-05
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.474270653880   -0.000000450488  -15.474270869671  -15.474271121447  -15.474270273872    2.075826414125    0.552557158156    2.075826414125
   cg_sub: missed minimum, case 2, iteration    9
-     CP           :     0.46s CPU time,    0.47s wall time
+     CP           :     0.45s CPU time,    0.46s wall time
 
      iteration =  10  eff iteration =  10   Etot (Ha) =    -15.47427086967064 delta_E=  0.91682333369647E-06
 
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.474270869671   -0.000000089720  -15.474270868705  -15.474270914291  -15.474270938599    0.994644780995    2.000000000000    0.994644780995
-     CP           :     0.49s CPU time,    0.51s wall time
+     CP           :     0.48s CPU time,    0.49s wall time
 
      iteration =  11  eff iteration =  11   Etot (Ha) =    -15.47427093859865 delta_E=  0.21579083586687E-06
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.474270938599   -0.000000048208  -15.474270879842  -15.474270943985  -15.474270948961    0.223477756320    0.994644780995    0.223477756320
-     CP           :     0.52s CPU time,    0.54s wall time
+     CP           :     0.51s CPU time,    0.52s wall time
 
      iteration =  12  eff iteration =  12   Etot (Ha) =    -15.47427094896061 delta_E=  0.68928009966385E-07
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.474270948961   -0.000000053235  -15.474270958615  -15.474270964741  -15.474270964653    0.592858151981    0.223477756320    0.592858151981
-     CP           :     0.56s CPU time,    0.57s wall time
+     CP           :     0.55s CPU time,    0.55s wall time
 
      iteration =  13  eff iteration =  13   Etot (Ha) =    -15.47427096465310 delta_E=  0.10361958402427E-07
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -7058,7 +8199,7 @@ Step     5       0    -15.47427    -15.47427    -15.47427    14
  tnosep= F thdyn= F
 
    writing restart file: /home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_3/kc_63.save
-   restart file written in    0.037 sec.
+   restart file written in    0.035 sec.
 
  
                               lambda   nudx, spin =    4   1
@@ -7081,41 +8222,41 @@ Step     5       0    -15.47427    -15.47427    -15.47427    14
 
 
      initialize   :     0.10s CPU
-     total_time   :     0.47s CPU
+     total_time   :     0.46s CPU
      formf        :     0.01s CPU
      rhoofr       :     0.06s CPU (      29 calls,   0.002 s avg)
      vofrho       :     0.33s CPU (      29 calls,   0.011 s avg)
-     vofrho1      :     0.04s CPU (       3 calls,   0.012 s avg)
+     vofrho1      :     0.03s CPU (       3 calls,   0.012 s avg)
      vofrho2      :     0.15s CPU (      13 calls,   0.011 s avg)
-     vofrho3      :     0.15s CPU (      13 calls,   0.012 s avg)
-     dforce       :     0.05s CPU (      56 calls,   0.001 s avg)
+     vofrho3      :     0.15s CPU (      13 calls,   0.011 s avg)
+     dforce       :     0.04s CPU (      56 calls,   0.001 s avg)
      dforce1      :     0.04s CPU (      52 calls,   0.001 s avg)
-     dforce2      :     0.04s CPU
+     dforce2      :     0.03s CPU
      calphi       :     0.00s CPU (      14 calls,   0.000 s avg)
      newd         :     0.00s CPU (      14 calls,   0.000 s avg)
      calbec       :     0.02s CPU (     116 calls,   0.000 s avg)
      prefor       :     0.00s CPU (      16 calls,   0.000 s avg)
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
-     nlsm1        :     0.02s CPU (     116 calls,   0.000 s avg)
+     nlsm1        :     0.01s CPU (     116 calls,   0.000 s avg)
      fft          :     0.12s CPU (     494 calls,   0.000 s avg)
      ffts         :     0.01s CPU (      58 calls,   0.000 s avg)
      fftw         :     0.08s CPU (     456 calls,   0.000 s avg)
      cft3s        :     0.21s CPU (    1008 calls,   0.000 s avg)
      fft_scatter  :     0.04s CPU (    1008 calls,   0.000 s avg)
 
-     outer_loop   :     0.47s CPU (      13 calls,   0.036 s avg)
-     runcg_uspp   :     0.47s CPU
+     outer_loop   :     0.46s CPU (      13 calls,   0.035 s avg)
+     runcg_uspp   :     0.46s CPU
      pc2          :     0.00s CPU (      39 calls,   0.000 s avg)
      pcdaga2      :     0.00s CPU (      13 calls,   0.000 s avg)
      xminus1      :     0.00s CPU (      26 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     0.63s CPU time,    0.65s wall time
+     CP           :     0.61s CPU time,    0.62s wall time
 
  
-   This run was terminated on:  19:58:24   7Dec2020            
+   This run was terminated on:  11: 2:24  15Dec2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -7126,6 +8267,91 @@ Step     5       0    -15.47427    -15.47427    -15.47427    14
  debug2
  debug3
  debug3
+
+Contents of ./calc_alpha/orbital_4/ki_frozen.cpi:
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'restart'
+   iprint           = 1
+   outdir           = '/home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_4'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/elinscott/code/python_KI/pseudos/'
+   ndr              = 60
+   ndw              = 61
+   write_hr         = .false.
+/
+&SYSTEM
+   tot_magnetization = 0
+   ecutwfc          = 20.0
+   ecutrho          = 80.0
+   nspin            = 2
+   input_dft        = 'PBE'
+   fixed_band       = 4
+   f_cutoff         = 1.0
+   do_orbdep        = .true.
+   fixed_state      = .true.
+   do_ee            = .true.
+   nelec            = 8
+   nelup            = 4
+   neldw            = 4
+   do_wf_cmplx      = .true.
+   starting_magnetization(1) = 0.0
+   starting_magnetization(2) = 0.0
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8.000000000000001e-07
+   ortho_para       = 1
+   empty_states_nbnd = 0
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .false.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   odd_nkscalfact   = .true.
+   odd_nkscalfact_empty = .true.
+   which_orbdep     = 'nki'
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8.000000000000001e-07
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+/
+
+ATOMIC_SPECIES
+O  15.999 O_ONCV_PBE-1.0.upf
+H  1.008 H_ONCV_PBE-1.0.upf
+
+CELL_PARAMETERS angstrom
+9.51420000000000 0.00000000000000 0.00000000000000
+0.00000000000000 8.00000000000000 0.00000000000000
+0.00000000000000 0.00000000000000 8.58610000000000
+
+ATOMIC_POSITIONS angstrom
+O  4.7571000000 4.0000000000 3.9023170000
+H  5.5142000000 4.0000000000 4.4884170000
+H  4.0000000000 4.0000000000 4.4884170000
+
 
 Contents of ./calc_alpha/orbital_4/ki_frozen.cpo:
 =------------------------------------------------------------------------------=
@@ -7140,13 +8366,12 @@ Contents of ./calc_alpha/orbital_4/ki_frozen.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:58:24   7Dec2020               
+   This run was started on:  11: 2:24  15Dec2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
      Message from routine  system_checkin     :
       starting_magnetization is not used in CP 
-Warning: card K_POINTS GAMMA ignored
 
    Job Title: MD Simulation
 
@@ -7448,7 +8673,7 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.24s CPU time,    0.24s wall time
+     CP           :     0.23s CPU time,    0.24s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -16.24705801306661
  NLN: This is 2nd term in MP formular, computed with localized orbital
@@ -7537,7 +8762,7 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
  tnosep= F thdyn= F
 
    writing restart file: /home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_4/kc_61.save
-   restart file written in    0.037 sec.
+   restart file written in    0.035 sec.
 
  
                               lambda   nudx, spin =    4   1
@@ -7566,7 +8791,7 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
      vofrho       :     0.01s CPU
      vofrho1      :     0.01s CPU
      dforce       :     0.00s CPU (       4 calls,   0.001 s avg)
-     dforce2      :     0.04s CPU
+     dforce2      :     0.05s CPU
      calphi       :     0.00s CPU
      newd         :     0.00s CPU
      calbec       :     0.00s CPU (       4 calls,   0.000 s avg)
@@ -7591,10 +8816,10 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     0.28s CPU time,    0.30s wall time
+     CP           :     0.27s CPU time,    0.29s wall time
 
  
-   This run was terminated on:  19:58:24   7Dec2020            
+   This run was terminated on:  11: 2:24  15Dec2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -7605,6 +8830,88 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
  debug2
  debug3
  debug3
+
+Contents of ./calc_alpha/orbital_4/pbe_frozen.cpi:
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'restart'
+   iprint           = 1
+   outdir           = '/home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_4'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/elinscott/code/python_KI/pseudos/'
+   ndr              = 60
+   ndw              = 62
+   write_hr         = .false.
+/
+&SYSTEM
+   tot_magnetization = 0
+   ecutwfc          = 20.0
+   ecutrho          = 80.0
+   nspin            = 2
+   input_dft        = 'PBE'
+   fixed_band       = 4
+   f_cutoff         = 1.0
+   do_orbdep        = .false.
+   fixed_state      = .true.
+   do_ee            = .true.
+   nelec            = 8
+   nelup            = 4
+   neldw            = 4
+   do_wf_cmplx      = .true.
+   starting_magnetization(1) = 0.0
+   starting_magnetization(2) = 0.0
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8.000000000000001e-07
+   ortho_para       = 1
+   empty_states_nbnd = 0
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .false.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8.000000000000001e-07
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+/
+
+ATOMIC_SPECIES
+O  15.999 O_ONCV_PBE-1.0.upf
+H  1.008 H_ONCV_PBE-1.0.upf
+
+CELL_PARAMETERS angstrom
+9.51420000000000 0.00000000000000 0.00000000000000
+0.00000000000000 8.00000000000000 0.00000000000000
+0.00000000000000 0.00000000000000 8.58610000000000
+
+ATOMIC_POSITIONS angstrom
+O  4.7571000000 4.0000000000 3.9023170000
+H  5.5142000000 4.0000000000 4.4884170000
+H  4.0000000000 4.0000000000 4.4884170000
+
 
 Contents of ./calc_alpha/orbital_4/pbe_frozen.cpo:
 =------------------------------------------------------------------------------=
@@ -7619,7 +8926,7 @@ Contents of ./calc_alpha/orbital_4/pbe_frozen.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:58:24   7Dec2020               
+   This run was started on:  11: 2:24  15Dec2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -7635,7 +8942,6 @@ Warning: card    ESIC_CONV_THR    = 8.000000000000001E-07 ignored
 Warning: card    DO_INNERLOOP_CG  = .TRUE. ignored
 Warning: card    INNERLOOP_NMAX   = 100 ignored
 Warning: card / ignored
-Warning: card K_POINTS GAMMA ignored
 
    Job Title: MD Simulation
 
@@ -7904,7 +9210,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: /home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_4/kc_60.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.010 sec.
+   restart file read in    0.009 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            4
@@ -8013,7 +9319,7 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
  tnosep= F thdyn= F
 
    writing restart file: /home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_4/kc_62.save
-   restart file written in    0.037 sec.
+   restart file written in    0.035 sec.
 
  
                               lambda   nudx, spin =    4   1
@@ -8041,7 +9347,7 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
      rhoofr       :     0.00s CPU
      vofrho       :     0.01s CPU
      vofrho1      :     0.01s CPU
-     dforce       :     0.00s CPU (       4 calls,   0.001 s avg)
+     dforce       :     0.00s CPU (       4 calls,   0.000 s avg)
      dforce2      :     0.04s CPU
      calphi       :     0.00s CPU
      newd         :     0.00s CPU
@@ -8050,7 +9356,7 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
      nlsm1        :     0.00s CPU (       4 calls,   0.000 s avg)
-     fft          :     0.00s CPU (      18 calls,   0.000 s avg)
+     fft          :     0.01s CPU (      18 calls,   0.000 s avg)
      ffts         :     0.00s CPU (       2 calls,   0.000 s avg)
      fftw         :     0.00s CPU (      24 calls,   0.000 s avg)
      cft3s        :     0.01s CPU (      44 calls,   0.000 s avg)
@@ -8061,10 +9367,10 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     0.18s CPU time,    0.19s wall time
+     CP           :     0.18s CPU time,    0.18s wall time
 
  
-   This run was terminated on:  19:58:24   7Dec2020            
+   This run was terminated on:  11: 2:25  15Dec2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -8075,6 +9381,89 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
  debug2
  debug3
  debug3
+
+Contents of ./calc_alpha/orbital_4/pbe_n-1.cpi:
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'restart'
+   iprint           = 1
+   outdir           = '/home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_4'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/elinscott/code/python_KI/pseudos/'
+   ndr              = 60
+   ndw              = 63
+   write_hr         = .false.
+/
+&SYSTEM
+   tot_magnetization = 0
+   ecutwfc          = 20.0
+   ecutrho          = 80.0
+   nspin            = 2
+   input_dft        = 'PBE'
+   fixed_band       = 4
+   f_cutoff         = 1e-05
+   do_orbdep        = .false.
+   fixed_state      = .true.
+   do_ee            = .true.
+   nelec            = 8
+   nelup            = 4
+   neldw            = 4
+   do_wf_cmplx      = .true.
+   starting_magnetization(1) = 0.0
+   starting_magnetization(2) = 0.0
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8.000000000000001e-07
+   ortho_para       = 1
+   empty_states_nbnd = 0
+   maxiter          = 300
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .true.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8.000000000000001e-07
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+/
+
+ATOMIC_SPECIES
+O  15.999 O_ONCV_PBE-1.0.upf
+H  1.008 H_ONCV_PBE-1.0.upf
+
+CELL_PARAMETERS angstrom
+9.51420000000000 0.00000000000000 0.00000000000000
+0.00000000000000 8.00000000000000 0.00000000000000
+0.00000000000000 0.00000000000000 8.58610000000000
+
+ATOMIC_POSITIONS angstrom
+O  4.7571000000 4.0000000000 3.9023170000
+H  5.5142000000 4.0000000000 4.4884170000
+H  4.0000000000 4.0000000000 4.4884170000
+
 
 Contents of ./calc_alpha/orbital_4/pbe_n-1.cpo:
 =------------------------------------------------------------------------------=
@@ -8089,7 +9478,7 @@ Contents of ./calc_alpha/orbital_4/pbe_n-1.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:58:25   7Dec2020               
+   This run was started on:  11: 2:25  15Dec2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -8105,7 +9494,6 @@ Warning: card    ESIC_CONV_THR    = 8.000000000000001E-07 ignored
 Warning: card    DO_INNERLOOP_CG  = .TRUE. ignored
 Warning: card    INNERLOOP_NMAX   = 100 ignored
 Warning: card / ignored
-Warning: card K_POINTS GAMMA ignored
 
    Job Title: MD Simulation
 
@@ -8405,60 +9793,60 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
      iteration =   1  eff iteration =   1   Etot (Ha) =    -15.62815224838270
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.628152248383   -0.188959719657  -15.444634157896  -15.691749307285  -15.686225132426    0.673128209738    2.000000000000    0.673128209738
-     CP           :     0.17s CPU time,    0.18s wall time
+     CP           :     0.16s CPU time,    0.17s wall time
 
      iteration =   2  eff iteration =   2   Etot (Ha) =    -15.68622513242603
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.686225132426   -0.022965191935  -15.694301302060  -15.694317604027  -15.694317822725    0.704759761966    0.673128209738    0.704759761966
-     CP           :     0.20s CPU time,    0.21s wall time
+     CP           :     0.19s CPU time,    0.21s wall time
 
      iteration =   3  eff iteration =   3   Etot (Ha) =    -15.69431782272502 delta_E=  0.58072884043330E-01
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.694317822725   -0.003203934092  -15.695412633341  -15.695413638372  -15.695413635713    0.684043813076    0.704759761966    0.684043813076
-     CP           :     0.23s CPU time,    0.24s wall time
+     CP           :     0.22s CPU time,    0.24s wall time
 
      iteration =   4  eff iteration =   4   Etot (Ha) =    -15.69541363571339 delta_E=  0.80926902989873E-02
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.695413635713   -0.000573600754  -15.695606352324  -15.695606412544  -15.695606431488    0.672163797545    0.684043813076    0.672163797545
-     CP           :     0.26s CPU time,    0.28s wall time
+     CP           :     0.26s CPU time,    0.27s wall time
 
      iteration =   5  eff iteration =   5   Etot (Ha) =    -15.69560643148800 delta_E=  0.10958129883676E-02
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.695606431488   -0.000130897341  -15.695653214905  -15.695653403996  -15.695653546955    0.717699955466    0.672163797545    0.717699955466
-     CP           :     0.30s CPU time,    0.31s wall time
+     CP           :     0.29s CPU time,    0.30s wall time
 
      iteration =   6  eff iteration =   6   Etot (Ha) =    -15.69565354695492 delta_E=  0.19279577460729E-03
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.695653546955   -0.000029191644  -15.695663509970  -15.695663533866  -15.695663515894    0.684230777525    0.717699955466    0.684230777525
-     CP           :     0.33s CPU time,    0.34s wall time
+     CP           :     0.32s CPU time,    0.33s wall time
 
      iteration =   7  eff iteration =   7   Etot (Ha) =    -15.69566351589371 delta_E=  0.47115466927039E-04
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.695663515894   -0.000006329392  -15.695665487344  -15.695665503285  -15.695665353396    0.627988054024    0.684230777525    0.627988054024
   cg_sub: missed minimum, case 1, iteration    7      0.627988054024
-     CP           :     0.38s CPU time,    0.39s wall time
+     CP           :     0.37s CPU time,    0.38s wall time
 
      iteration =   8  eff iteration =   8   Etot (Ha) =    -15.69566548734392 delta_E=  0.99689387855761E-05
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.695665487344   -0.000001372340  -15.695663003492  -15.695665847544  -15.695666015636    0.524942740126    2.000000000000    0.524942740126
-     CP           :     0.41s CPU time,    0.42s wall time
+     CP           :     0.40s CPU time,    0.41s wall time
 
      iteration =   9  eff iteration =   9   Etot (Ha) =    -15.69566601563647 delta_E=  0.19714502119683E-05
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.695666015636   -0.000000364814  -15.695666105659  -15.695666105983  -15.695666095144    0.495300655561    0.524942740126    0.495300655561
   cg_sub: missed minimum, case 1, iteration    9      0.495300655561
-     CP           :     0.46s CPU time,    0.47s wall time
+     CP           :     0.45s CPU time,    0.46s wall time
 
      iteration =  10  eff iteration =  10   Etot (Ha) =    -15.69566610565924 delta_E=  0.52829254748588E-06
 
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.695666105659   -0.000000103334  -15.695666149502  -15.695666171238  -15.695666222872    1.269261724615    2.000000000000    1.269261724615
-     CP           :     0.49s CPU time,    0.50s wall time
+     CP           :     0.48s CPU time,    0.49s wall time
 
      iteration =  11  eff iteration =  11   Etot (Ha) =    -15.69566622287209 delta_E=  0.90022773235887E-07
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
   -15.695666222872   -0.000000082640  -15.695666096374  -15.695666234759  -15.695666247611    0.287686544141    1.269261724615    0.287686544141
-     CP           :     0.52s CPU time,    0.53s wall time
+     CP           :     0.51s CPU time,    0.52s wall time
 
      iteration =  12  eff iteration =  12   Etot (Ha) =    -15.69566624761076 delta_E=  0.11721284920441E-06
  ene0, dene0, ene1, enesti,enever, passo, passov, passof
@@ -8543,7 +9931,7 @@ Step     5       0    -15.69567    -15.69567    -15.69567    13
  tnosep= F thdyn= F
 
    writing restart file: /home/elinscott/code/python_KI/tests/test_04/calc_alpha/TMP-CP/orbital_4/kc_63.save
-   restart file written in    0.036 sec.
+   restart file written in    0.035 sec.
 
  
                               lambda   nudx, spin =    4   1
@@ -8566,15 +9954,15 @@ Step     5       0    -15.69567    -15.69567    -15.69567    13
 
 
      initialize   :     0.10s CPU
-     total_time   :     0.44s CPU
+     total_time   :     0.42s CPU
      formf        :     0.01s CPU
      rhoofr       :     0.06s CPU (      27 calls,   0.002 s avg)
-     vofrho       :     0.31s CPU (      27 calls,   0.012 s avg)
-     vofrho1      :     0.04s CPU (       3 calls,   0.012 s avg)
-     vofrho2      :     0.14s CPU (      12 calls,   0.012 s avg)
+     vofrho       :     0.30s CPU (      27 calls,   0.011 s avg)
+     vofrho1      :     0.03s CPU (       3 calls,   0.010 s avg)
+     vofrho2      :     0.14s CPU (      12 calls,   0.011 s avg)
      vofrho3      :     0.14s CPU (      12 calls,   0.011 s avg)
      dforce       :     0.04s CPU (      52 calls,   0.001 s avg)
-     dforce1      :     0.04s CPU (      48 calls,   0.001 s avg)
+     dforce1      :     0.03s CPU (      48 calls,   0.001 s avg)
      dforce2      :     0.04s CPU
      calphi       :     0.00s CPU (      13 calls,   0.000 s avg)
      newd         :     0.00s CPU (      13 calls,   0.000 s avg)
@@ -8585,22 +9973,22 @@ Step     5       0    -15.69567    -15.69567    -15.69567    13
      nlsm1        :     0.01s CPU (     108 calls,   0.000 s avg)
      fft          :     0.11s CPU (     460 calls,   0.000 s avg)
      ffts         :     0.01s CPU (      54 calls,   0.000 s avg)
-     fftw         :     0.08s CPU (     424 calls,   0.000 s avg)
-     cft3s        :     0.20s CPU (     938 calls,   0.000 s avg)
+     fftw         :     0.07s CPU (     424 calls,   0.000 s avg)
+     cft3s        :     0.19s CPU (     938 calls,   0.000 s avg)
      fft_scatter  :     0.04s CPU (     938 calls,   0.000 s avg)
 
-     outer_loop   :     0.44s CPU (      12 calls,   0.036 s avg)
-     runcg_uspp   :     0.44s CPU
+     outer_loop   :     0.42s CPU (      12 calls,   0.035 s avg)
+     runcg_uspp   :     0.42s CPU
      pc2          :     0.00s CPU (      36 calls,   0.000 s avg)
      pcdaga2      :     0.00s CPU (      12 calls,   0.000 s avg)
      xminus1      :     0.00s CPU (      24 calls,   0.000 s avg)
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     0.59s CPU time,    0.61s wall time
+     CP           :     0.58s CPU time,    0.59s wall time
 
  
-   This run was terminated on:  19:58:25   7Dec2020            
+   This run was terminated on:  11: 2:25  15Dec2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -8611,6 +9999,89 @@ Step     5       0    -15.69567    -15.69567    -15.69567    13
  debug2
  debug3
  debug3
+
+Contents of ./final/ki_final.cpi:
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'restart'
+   iprint           = 1
+   outdir           = '/home/elinscott/code/python_KI/tests/test_04/TMP-CP'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/elinscott/code/python_KI/pseudos/'
+   ndr              = 60
+   ndw              = 70
+   write_hr         = .false.
+/
+&SYSTEM
+   tot_magnetization = 0
+   ecutwfc          = 20.0
+   ecutrho          = 80.0
+   nspin            = 2
+   input_dft        = 'PBE'
+   do_orbdep        = .true.
+   fixed_state      = .false.
+   do_ee            = .true.
+   nelec            = 8
+   nelup            = 4
+   neldw            = 4
+   do_wf_cmplx      = .true.
+   starting_magnetization(1) = 0.0
+   starting_magnetization(2) = 0.0
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8e-09
+   ortho_para       = 1
+   empty_states_nbnd = 0
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .false.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   odd_nkscalfact   = .true.
+   odd_nkscalfact_empty = .true.
+   which_orbdep     = 'nki'
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8e-09
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+/
+
+ATOMIC_SPECIES
+O  15.999 O_ONCV_PBE-1.0.upf
+H  1.008 H_ONCV_PBE-1.0.upf
+
+CELL_PARAMETERS angstrom
+9.51420000000000 0.00000000000000 0.00000000000000
+0.00000000000000 8.00000000000000 0.00000000000000
+0.00000000000000 0.00000000000000 8.58610000000000
+
+ATOMIC_POSITIONS angstrom
+O  4.7571000000 4.0000000000 3.9023170000
+H  5.5142000000 4.0000000000 4.4884170000
+H  4.0000000000 4.0000000000 4.4884170000
+
 
 Contents of ./final/ki_final.cpo:
 =------------------------------------------------------------------------------=
@@ -8625,13 +10096,12 @@ Contents of ./final/ki_final.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:58:25   7Dec2020               
+   This run was started on:  11: 2:25  15Dec2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
      Message from routine  system_checkin     :
       starting_magnetization is not used in CP 
-Warning: card K_POINTS GAMMA ignored
 
    Job Title: MD Simulation
 
@@ -8907,7 +10377,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: /home/elinscott/code/python_KI/tests/test_04/TMP-CP/kc_60.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.010 sec.
+   restart file read in    0.009 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            4
@@ -8933,7 +10403,7 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.23s CPU time,    0.24s wall time
+     CP           :     0.23s CPU time,    0.23s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -16.24705801306661
 
@@ -9016,7 +10486,7 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
  tnosep= F thdyn= F
 
    writing restart file: /home/elinscott/code/python_KI/tests/test_04/TMP-CP/kc_70.save
-   restart file written in    0.036 sec.
+   restart file written in    0.035 sec.
 
 
 
@@ -9057,19 +10527,19 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
 
      nk_eforce    :     0.00s CPU (       4 calls,   0.001 s avg)
      nk_corr      :     0.08s CPU (       8 calls,   0.010 s avg)
-     nk_corr_h    :     0.00s CPU (       8 calls,   0.001 s avg)
+     nk_corr_h    :     0.01s CPU (       8 calls,   0.001 s avg)
      nk_corr_vxc  :     0.07s CPU (       8 calls,   0.009 s avg)
 
 
-     outer_loop   :     0.15s CPU
-     runcg_uspp   :     0.11s CPU
+     outer_loop   :     0.16s CPU
+     runcg_uspp   :     0.12s CPU
      emass_p_tpa  :     0.00s CPU
  
  
      CP           :     0.28s CPU time,    0.29s wall time
 
  
-   This run was terminated on:  19:58:26   7Dec2020            
+   This run was terminated on:  11: 2:26  15Dec2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
@@ -9080,6 +10550,89 @@ Step     5       0    -16.24706    -16.24706    -16.24706     1
  debug2
  debug3
  debug3
+
+Contents of ./final/pkipz_final.cpi:
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'restart'
+   iprint           = 1
+   outdir           = '/home/elinscott/code/python_KI/tests/test_04/TMP-CP'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/elinscott/code/python_KI/pseudos/'
+   ndr              = 70
+   ndw              = 71
+   write_hr         = .false.
+/
+&SYSTEM
+   tot_magnetization = 0
+   ecutwfc          = 20.0
+   ecutrho          = 80.0
+   nspin            = 2
+   input_dft        = 'PBE'
+   do_orbdep        = .true.
+   fixed_state      = .false.
+   do_ee            = .true.
+   nelec            = 8
+   nelup            = 4
+   neldw            = 4
+   do_wf_cmplx      = .true.
+   starting_magnetization(1) = 0.0
+   starting_magnetization(2) = 0.0
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8e-09
+   ortho_para       = 1
+   empty_states_nbnd = 0
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .false.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   odd_nkscalfact   = .true.
+   odd_nkscalfact_empty = .true.
+   which_orbdep     = 'nkipz'
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8e-09
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+/
+
+ATOMIC_SPECIES
+O  15.999 O_ONCV_PBE-1.0.upf
+H  1.008 H_ONCV_PBE-1.0.upf
+
+CELL_PARAMETERS angstrom
+9.51420000000000 0.00000000000000 0.00000000000000
+0.00000000000000 8.00000000000000 0.00000000000000
+0.00000000000000 0.00000000000000 8.58610000000000
+
+ATOMIC_POSITIONS angstrom
+O  4.7571000000 4.0000000000 3.9023170000
+H  5.5142000000 4.0000000000 4.4884170000
+H  4.0000000000 4.0000000000 4.4884170000
+
 
 Contents of ./final/pkipz_final.cpo:
 =------------------------------------------------------------------------------=
@@ -9094,13 +10647,12 @@ Contents of ./final/pkipz_final.cpo:
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  19:58:26   7Dec2020               
+   This run was started on:  11: 2:26  15Dec2020               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
      Message from routine  system_checkin     :
       starting_magnetization is not used in CP 
-Warning: card K_POINTS GAMMA ignored
 
    Job Title: MD Simulation
 
@@ -9376,7 +10928,7 @@ Warning: card K_POINTS GAMMA ignored
    reading restart file: /home/elinscott/code/python_KI/tests/test_04/TMP-CP/kc_70.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.010 sec.
+   restart file read in    0.009 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            5
@@ -9402,7 +10954,7 @@ Warning: card K_POINTS GAMMA ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.29s CPU time,    0.31s wall time
+     CP           :     0.28s CPU time,    0.30s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -16.19874200199654
 
@@ -9485,7 +11037,7 @@ Step     6       0    -16.19874    -16.19874    -16.19874     1
  tnosep= F thdyn= F
 
    writing restart file: /home/elinscott/code/python_KI/tests/test_04/TMP-CP/kc_71.save
-   restart file written in    0.038 sec.
+   restart file written in    0.035 sec.
 
 
 
@@ -9503,13 +11055,13 @@ Step     6       0    -16.19874    -16.19874    -16.19874     1
 
 
      initialize   :     0.10s CPU
-     total_time   :     0.19s CPU
+     total_time   :     0.18s CPU
      formf        :     0.01s CPU
      rhoofr       :     0.00s CPU
      vofrho       :     0.01s CPU
      vofrho1      :     0.01s CPU
      dforce       :     0.00s CPU (       4 calls,   0.001 s avg)
-     dforce2      :     0.06s CPU
+     dforce2      :     0.05s CPU
      calphi       :     0.00s CPU
      gram         :     0.00s CPU
      newd         :     0.00s CPU
@@ -9530,15 +11082,15 @@ Step     6       0    -16.19874    -16.19874    -16.19874     1
      nk_corr_vxc  :     0.07s CPU (       8 calls,   0.009 s avg)
 
 
-     outer_loop   :     0.22s CPU
-     runcg_uspp   :     0.18s CPU
+     outer_loop   :     0.21s CPU
+     runcg_uspp   :     0.17s CPU
      emass_p_tpa  :     0.00s CPU
  
  
-     CP           :     0.35s CPU time,    0.37s wall time
+     CP           :     0.33s CPU time,    0.35s wall time
 
  
-   This run was terminated on:  19:58:26   7Dec2020            
+   This run was terminated on:  11: 2:26  15Dec2020            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
