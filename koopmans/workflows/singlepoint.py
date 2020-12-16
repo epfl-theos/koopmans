@@ -74,18 +74,15 @@ class SinglepointWorkflow(Workflow):
                 # Provide the pKIPZ and KIPZ calculations with a KI starting point
                 if functional == 'ki':
                     # pKIPZ
-                    utils.system_call('cp -r ki/* pkipz/')
-                    utils.system_call(
-                        'cp pkipz/final/file_alpharef*.txt pkipz/')
+                    utils.system_call('rsync -a ki/ pkipz/')
 
                     # KIPZ
-                    utils.system_call('cp -r ki/final kipz/init')
-                    utils.system_call(f'cp -r {solved_calc.outdir} kipz/')
+                    utils.system_call('rsync -a ki/final/ kipz/init/')
+                    utils.system_call(f'rsync -a {solved_calc.outdir}/ kipz/')
                     utils.system_call(
                         'mv kipz/init/ki_final.cpi kipz/init/ki_init.cpi')
                     utils.system_call(
                         'mv kipz/init/ki_final.cpo kipz/init/ki_init.cpo')
-                    utils.system_call('cp -r ki/final/file_alpharef* kipz/')
             return solved_calc
 
         else:

@@ -235,7 +235,7 @@ class KoopmansWorkflow(Workflow):
                                  'if init_density=ki')
             if os.path.isdir(savedir):
                 utils.system_call(f'rm -r {savedir}')
-            utils.system_call(f'mv {old_savedir} {savedir}')
+            utils.system_call(f'rsync -a {old_savedir}/ {savedir}/')
 
             # Check that the files defining the variational orbitals exist
             savedir += '/K00001'
