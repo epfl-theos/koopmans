@@ -8,7 +8,7 @@ You will need to install the git repositories `qe_koopmans` and `unfold_and_inte
 
 ```
 git submodule init
-git submodule update --remote --merge
+git submodule update
 ```
 
 In order to have also the `Wannier90` code within `qe_koopmans` you need to enter `qe_koopmans` and then type:

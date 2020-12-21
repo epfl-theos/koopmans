@@ -1,1 +1,0 @@
-CHARACTER(LEN=70), PARAMETER :: version_date = 'Mon 21 Dec 19:34:31 CET 2020'
