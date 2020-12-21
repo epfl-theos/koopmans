@@ -1,6 +1,3 @@
 [submodule "unfold_and_interpolate"]
 	path = unfold_and_interpolate
 	url = git@github.com:degennar/unfold_and_interpolate.git
-[submodule "QE-koopmans"]
-	path = QE-koopmans
-	url = git@github.com:epfl-theos/QE-koopmans.git
