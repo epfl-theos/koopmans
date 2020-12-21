@@ -14,5 +14,5 @@ git submodule update --remote --merge
 In order to have also the `Wannier90` code within `qe_koopmans` you need to enter `qe_koopmans` and then type:
 
 ```
-git submodule update --init --remote --merge external/wannier90
+git submodule update --init external/wannier90
 ```
