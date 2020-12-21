@@ -9,6 +9,7 @@ Written by Edward Linscott Sep 2020
 from ase.io import espresso_cp as pw_io
 from ase.calculators.espresso import Espresso
 from ase.units import create_units
+from koopmans import io
 from koopmans.calculators.generic import QE_calc
 
 
@@ -89,3 +90,13 @@ class PW_calc(QE_calc):
         for namelist in self._ase_calc.parameters.get('input_data', {}).values():
             for key, val in namelist.items():
                 self._settings[key] = val
+
+    @property
+    def nelec(self):
+        # PW does not directly have an "nelec" keyword, but it is useful for setting
+        # extensive properties such as energy convergence thresholds
+        return io.nelec_from_pseudos(self.calc)
+
+    @nelec.setter
+    def nelec(self, value):
+        raise ValueError('You tried to set PW_calc.nelec, which is invalid')

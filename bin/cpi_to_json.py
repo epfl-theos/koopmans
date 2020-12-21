@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 
 import argparse
-from koopmans.ase import write_json, read_json
+from koopmans.io import write_json
 from koopmans.defaults import defaults
 from koopmans.calculators.cp import CP_calc
-from koopmans.workflow import keywords_altered_during_workflow
 import copy
 import textwrap
 
@@ -26,8 +25,7 @@ def cpi_to_json(cpi, json, to_exclude=['nat', 'ntyp'], workflow_settings={}, cp_
     '''
     calc = CP_calc(qe_files=cpi)
 
-    to_exclude += keywords_altered_during_workflow
-    to_exclude += list(defaults.keys())
+    to_exclude += list(defaults[CP_calc].keys())
 
     calc_out = copy.deepcopy(calc)
 

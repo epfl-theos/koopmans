@@ -8,7 +8,7 @@
         "print_qc"                  : true,
         "from_scratch"              : true
     },
-    "cp":
+    "setup":
     {
         "control": {
             "pseudo_dir"            : "../../pseudos/"
@@ -21,10 +21,7 @@
         "electrons":
         {
             "empty_states_nbnd"     : 0
-        }
-     },
-     "atoms":
-     {
+        },
         "atomic_species":
         {
             "species" : [["H", 1.0, "H_ONCV_PBE-1.0.upf"],["O", 1.0, "O_ONCV_PBE-1.0.upf"]]

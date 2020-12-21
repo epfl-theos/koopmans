@@ -42,7 +42,8 @@ defaults = {CP_calc: {
             PW_calc: {
             'calculation': 'scf',
             'outdir': './TMP-PW/',
-            'prefix': 'kc'},
+            'prefix': 'kc',
+            'conv_thr': '2.0e-9*nelec'},
             W90_calc: {
             'num_iter': 10000,
             'conv_tol': 1.e-10,

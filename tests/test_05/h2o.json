@@ -9,7 +9,7 @@
         "from_scratch"              : true,
         "orbital_groups"            : [0, 0, 0, 0, 1]
     },
-    "cp": {
+    "setup": {
         "control": {
             "pseudo_dir"            : "../../pseudos/"
         },
@@ -18,12 +18,8 @@
             "ecutrho"               : "4*ecutwfc"
         },
         "electrons": {
-            "maxiter"               : 300,
-            "empty_states_nbnd"     : 1,
-            "empty_states_maxstep"  : 20
-        }
-    },
-    "atoms": {
+            "empty_states_nbnd"     : 1
+        },
         "atomic_species": {
             "species" : [["H", 1.0, "H_ONCV_PBE-1.0.upf"],["O", 1.0, "O_ONCV_PBE-1.0.upf"]]
         },
@@ -38,6 +34,12 @@
             "vectors"               : [[9.514200, 0.000000, 0.000000],
                                        [0.000000, 8.000000, 0.000000],
                                        [0.000000, 0.000000, 8.586100]]
+        }
+    },
+    "cp": {
+        "electrons": {
+            "maxiter"               : 300,
+            "empty_states_maxstep"  : 20
         }
     }
 }

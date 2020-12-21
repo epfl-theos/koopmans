@@ -22,10 +22,10 @@ class WannierizeWorkflow(Workflow):
 
         if 'pw' not in self.master_calcs:
             raise ValueError(
-                'You need to provide a pw block in your input when init_variational_orbitals = "mlwfs"')
+                'You need to provide a pw block in your input when init_variational_orbitals = "mlwfs" or "projw"')
         if 'w90_occ' not in self.master_calcs and 'w90_emp' not in self.master_calcs:
             raise ValueError(
-                'You need to provide a w90 block in your input when init_variational_orbitals = "mlwfs"')
+                'You need to provide a w90 block in your input when init_variational_orbitals = "mlwfs" or "projw"')
 
         if 'pw2wannier' not in self.master_calcs:
             # Generate a pw2wannier calculator with default settings
@@ -34,6 +34,23 @@ class WannierizeWorkflow(Workflow):
             p2w_calc.calc.atoms = self.master_calcs['pw'].calc.atoms
             p2w_calc.calc.atoms.calc = p2w_calc.calc
             self.master_calcs['pw2wannier'] = p2w_calc
+
+        # Make sure num_wann (occ/empty), num_bands (occ/empty), and nbnd are present and consistent
+        pw_calc = self.master_calcs['pw']
+        w90_occ_calc = self.master_calcs['w90_occ']
+        w90_emp_calc = self.master_calcs['w90_emp']
+
+        # Filling out missing fields
+        if w90_emp_calc.num_bands is None:
+            w90_emp_calc.num_bands = pw_calc.nbnd - w90_occ_calc.num_bands
+        if w90_occ_calc.exclude_bands is None:
+            w90_occ_calc.exclude_bands = f'{w90_occ_calc.num_bands + 1}-{pw_calc.nbnd}'
+
+        # Sanity checking
+        assert pw_calc.nbnd == w90_occ_calc.num_bands + w90_emp_calc.num_bands
+        if w90_emp_calc.num_wann == 0:
+            raise ValueError('Cannot run a wannier90 calculation with num_wann = 0. Please set empty_states_nbnd > 0 '
+                             'in the setup block, or num_wann > 0 in the wannier90 empty subblock')
 
     def run(self):
         '''
@@ -50,12 +67,12 @@ class WannierizeWorkflow(Workflow):
 
         # Run PW scf and nscf calculations
         # PWscf needs only the valence bands
-        calc = self.new_calculator('pw', nbnd=None)
+        calc = self.new_calculator('pw', nbnd=None, nspin=1)
         calc.directory = 'wannier'
         calc.name = 'scf'
         self.run_calculator(calc)
 
-        calc = self.new_calculator('pw', calculation='nscf', nosym=True, noinv=True)
+        calc = self.new_calculator('pw', calculation='nscf', nosym=True, noinv=True, nspin=1)
         calc.directory = 'wannier'
         calc.name = 'nscf'
         self.run_calculator(calc)
@@ -63,10 +80,13 @@ class WannierizeWorkflow(Workflow):
         calc_p2w = self.new_calculator('pw2wannier')
         for typ in ['occ', 'emp']:
             calc_w90 = self.new_calculator('w90_' + typ)
+
             calc_w90.directory = 'wannier/' + typ
             calc_p2w.directory = calc_w90.directory
             if calc_w90.num_bands != calc_w90.num_wann and calc_w90.dis_num_iter is None:
                 calc_w90.dis_num_iter = 5000
+            if self.init_variational_orbitals == 'projw':
+                calc_w90.num_iter = 0
 
             # 1) pre-processing Wannier90 calculation
             calc_w90.name = 'wann'
@@ -84,12 +104,6 @@ class WannierizeWorkflow(Workflow):
             calc_w2o.name = 'wan2odd'
             if typ == 'emp':
                 calc_w2o.split_evc_file = True
-            # Workaround to run wannier2odd in serial >>>
-            # if calc_w2o.calc.command[:6] == 'mpirun':
-            #     calc_w2o.calc.command = calc_w2o.calc.command[13:]
-            # elif calc_w2o.calc.command[:4] == 'srun':
-            #     calc_w2o.calc.command = calc_w2o.calc.command[5:]
-            # <<<
             self.run_calculator(calc_w2o)
 
         print()

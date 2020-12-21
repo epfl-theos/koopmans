@@ -32,6 +32,22 @@ class KoopmansWorkflow(Workflow):
         if cp_calc.outdir[0] != '/':
             cp_calc.outdir = os.getcwd() + '/' + cp_calc.outdir.strip('./')
 
+        # If periodic, convert the cp calculation into a Γ-only supercell calculation
+        if self.periodic:
+            kpts = self.master_calcs['cp'].calc.parameters.kpts
+            self.master_calcs['cp'].transform_to_supercell(np.diag(kpts))
+            self.orbital_groups = [i for i in self.orbital_groups for _ in range(np.prod(kpts))]
+
+        # Check the number of empty states has been correctly configured
+        if self.init_variational_orbitals in ['mlwfs', 'projw']:
+            w90_emp_calc = self.master_calcs['w90_emp']
+
+            expected_empty_states_nbnd = w90_emp_calc.num_wann * np.prod(cp_calc.calc.parameters.kpts)
+            if cp_calc.empty_states_nbnd is None:
+                cp_calc.empty_states_nbnd = expected_empty_states_nbnd
+            elif cp_calc.empty_states_nbnd != expected_empty_states_nbnd:
+                raise ValueError('cp empty_states_nbnd and wannier90 num_wann (emp) are inconsistent')
+
         # Preparing panda dataframes in which to store results
         i_bands = range(1, len(cp_calc.filling[0]) + 1)
         self.alpha_df = pd.DataFrame(columns=i_bands)
@@ -100,7 +116,7 @@ class KoopmansWorkflow(Workflow):
         self.perform_manifold_initialisation()
 
         if self.from_scratch and self.init_variational_orbitals != 'ki' and self.enforce_spin_symmetry \
-                and self.init_variational_orbitals != 'mlwfs':
+                and self.init_variational_orbitals not in ['mlwfs', 'projw']:
             print('Copying the spin-up variational orbitals over to the spin-down channel')
             calc = self.all_calcs[-1]
             savedir = f'{calc.outdir}/{calc.prefix}_{calc.ndw}.save/K00001'
@@ -139,7 +155,7 @@ class KoopmansWorkflow(Workflow):
 
     def perform_density_initialisation(self):
 
-        if self.init_variational_orbitals == 'mlwfs':
+        if self.init_variational_orbitals in ['mlwfs', 'projw']:
             # Wannier functions using pw.x, wannier90.x and pw2wannier90.x
             if self.init_density != 'pbe':
                 raise ValueError('wannierize requires init_density to be pbe')
@@ -153,21 +169,7 @@ class KoopmansWorkflow(Workflow):
             os.chdir('..')
 
         if self.init_density == 'pbe':
-            if self.init_variational_orbitals == 'mlwfs':
-                cp_calc = self.master_calcs['cp']
-                w90_emp_calc = self.master_calcs['w90_emp']
-                if cp_calc.empty_states_nbnd != w90_emp_calc.num_wann * \
-                        np.prod(cp_calc.calc.parameters.kpts):
-                    cp_calc.empty_states_nbnd = w90_emp_calc.num_wann * \
-                        np.prod(cp_calc.calc.parameters.kpts)
-                    utils.warn('empty_states_nbnd differs from num_wann (emp); '
-                               'empty_states_nbnd=num_wann is forced')
-
-                # First we transform the calculation with k-points into a
-                # Γ-only supercell calculation
-                cp_calc.transform_to_supercell(
-                    np.diag(cp_calc.calc.parameters.kpts))
-
+            if self.init_variational_orbitals in ['mlwfs', 'projw']:
                 # We need a dummy calc before the real pbe_init in order
                 # to copy the previously calculated Wannier functions
                 calc = self.new_calculator('cp', 'pbe_init', do_outerloop=False,
@@ -182,7 +184,7 @@ class KoopmansWorkflow(Workflow):
                 calc = self.new_calculator('cp', 'pbe_init', restart_mode='restart',
                                            restart_from_wannier_pwscf=True, do_outerloop_empty=False)
                 calc.directory = 'init'
-                restart_dir = f'{cp_calc.outdir}/{calc.prefix}_{calc.ndr}.save/K00001'
+                restart_dir = f'{calc.outdir}/{calc.prefix}_{calc.ndr}.save/K00001'
                 for typ in ['occ', 'emp']:
                     if typ == 'occ':
                         evcw_file = f'init/wannier/occ/evcw.dat'
@@ -260,7 +262,7 @@ class KoopmansWorkflow(Workflow):
 
     def perform_manifold_initialisation(self):
         calc = self.all_calcs[-1]
-        if self.init_density == 'pbe' and self.init_variational_orbitals != 'mlwfs':
+        if self.init_density == 'pbe' and self.init_variational_orbitals not in ['mlwfs', 'projw']:
             # Using KS eigenfunctions as guesses for the variational orbitals
             print('Overwriting the CP variational orbitals with Kohn-Sham orbitals')
             savedir = f'{calc.outdir}/{calc.prefix}_{calc.ndw}.save/K00001'
@@ -294,7 +296,7 @@ class KoopmansWorkflow(Workflow):
             save_prefix = f'{calc.outdir}/{calc.prefix}'
             utils.system_call(
                 f'cp -r {save_prefix}_{calc.ndr}.save {save_prefix}_{calc.ndw}.save')
-        elif self.init_variational_orbitals == 'mlwfs':
+        elif self.init_variational_orbitals in ['mlwfs', 'projw']:
             print('The variational orbitals have already been initialised to Wannier functions during the density '
                   'initialisation')
         elif self.init_variational_orbitals in [self.init_density, 'skip']:
@@ -370,7 +372,7 @@ class KoopmansWorkflow(Workflow):
                                        alphas=self.alpha_df.loc[i_sc])
             calc.directory = iteration_directory
 
-            if self.init_variational_orbitals == 'mlwfs':
+            if self.init_variational_orbitals in ['mlwfs', 'projw']:
                 calc.ndr = 50
                 calc.do_outerloop = False
                 calc.do_outerloop_empty = False
@@ -595,7 +597,7 @@ class KoopmansWorkflow(Workflow):
 
             calc.directory = directory
 
-            if self.init_variational_orbitals == 'mlwfs':
+            if self.init_variational_orbitals in ['mlwfs', 'projw']:
                 calc.do_outerloop = False
                 calc.do_outerloop_empty = False
                 calc.write_hr = True

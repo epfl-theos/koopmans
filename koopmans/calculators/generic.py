@@ -209,11 +209,10 @@ class QE_calc:
             if term in ['*', '/']:
                 continue
             elif all([c.isalpha() for c in term]):
-                if self._settings.get(term, None) is None:
-                    raise ValueError('Failed to parse '
-                                     ''.join(map(str, expr)))
+                if getattr(self, term, None) is None:
+                    raise ValueError('Failed to parse ' + ''.join(map(str, expr)))
                 else:
-                    expr[i] = self._settings[term]
+                    expr[i] = getattr(self, term)
             else:
                 expr[i] = float(term)
 

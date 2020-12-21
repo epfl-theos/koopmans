@@ -22,11 +22,12 @@ if __name__ == '__main__':
             entry += '/'.join([t.__name__ for t in s.type])
         else:
             entry += s.type.__name__
-        entry += f', default {s.default}'
+        if s.default is not None:
+            entry += f', default {s.default}'
         if s.options is not None and s.type is not bool:
             entry += ', must be ' + '/'.join([str(o) for o in s.options])
         entry += ')'
-        for line in textwrap.wrap(entry, subsequent_indent=' ' * (maxlen + 2)):
+        for line in textwrap.wrap(entry, subsequent_indent=' ' * (maxlen + 2), width=120):
             epilog += '\n' + line
         epilog += '\n'
 

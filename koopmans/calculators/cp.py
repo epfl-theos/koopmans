@@ -201,3 +201,13 @@ class CP_calc(QE_calc):
             alphas = alphas[:self.nelec // 2] + alphas[self.nelec:self.nelec + self.empty_states_nbnd]
             alphas = [alphas, alphas]
         return alphas
+
+    def transform_to_supercell(self, matrix, **kwargs):
+        super().transform_to_supercell(matrix, **kwargs)
+
+        # Also multiply all extensive properties by the appropriate prefactor
+        prefactor = np.prod(np.diag(matrix))
+        for attr in ['nelec', 'nelup', 'neldw', 'empty_states_nbnd', 'conv_thr', 'esic_conv_thr']:
+            value = getattr(self, attr, None)
+            if value is not None:
+                setattr(self, attr, prefactor * value)

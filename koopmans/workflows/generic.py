@@ -29,7 +29,7 @@ valid_settings = [
             str, 'pbe', ('pbe', 'pz', 'ki')),
     Setting('init_variational_orbitals',
             'which orbitals to use as an initial guess for the variational orbitals',
-            str, 'pz', ('pz', 'mlwfs', 'ki', 'skip')),
+            str, 'pz', ('pz', 'mlwfs', 'projw', 'ki', 'skip')),
     Setting('periodic',
             'whether or not the system is periodic. If False, interaction between '
             'periodic images will be corrected for',
@@ -74,7 +74,7 @@ valid_settings = [
             'Convergence threshold for the system observable of interest',
             (str, float), None, None),
     Setting('convergence_parameters',
-            'The observable of interest will be converged with respect to this/these'
+            'The observable of interest will be converged with respect to this/these '
             'simulation parameter(s)',
             (list, str), ['ecutwfc'], None),
     Setting('eps_cavity',

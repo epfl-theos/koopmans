@@ -7,7 +7,7 @@
     "print_qc": true,
     "from_scratch": true
   },
-  "cp": {
+  "setup": {
     "control": {
       "pseudo_dir": "../../pseudos/"
     },
@@ -15,20 +15,11 @@
       "ibrav": 0,
       "ecutwfc": 20.0,
       "ecutrho": 80.0,
-      "input_dft": "PBE",
-      "nr1b": 24,
-      "nr2b": 24,
-      "nr3b": 24
+      "input_dft": "PBE"
     },
     "electrons": {
       "empty_states_nbnd": 2
     },
-    "nksic": {
-      "innerloop_cg_ratio": 0.01,
-      "kfact": 2.0
-    }
-  },
-  "atoms": {
     "cell_parameters": {
       "units": "angstrom",
       "vectors": [ [ 10.0, 0.0, 0.0 ],
@@ -42,6 +33,18 @@
     },
     "atomic_species": {
       "species": [ [ "O", 1.0, "O_ONCV_PBE-1.0.upf" ], [ "C", 1.0, "C_ONCV_PBE-1.0.upf" ] ]
+    }
+  },
+  "cp": {
+    "system":
+    {
+      "nr1b": 24,
+      "nr2b": 24,
+      "nr3b": 24
+    },
+    "nksic": {
+      "innerloop_cg_ratio": 0.01,
+      "kfact": 2.0
     }
   }
 }

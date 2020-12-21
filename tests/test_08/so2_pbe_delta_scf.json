@@ -32,7 +32,7 @@
       "diagonalization": "david"
     }
   },
-  "atoms": {
+  "setup": {
     "cell_parameters": {
       "vectors": [
         [12.4698, 0.0, 0.0],
