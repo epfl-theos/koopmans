@@ -1,0 +1,7 @@
+1) in emptystates.f90
+   - check if evc0_empty present, if yes, restart from evc0_empty; if not, check is evc_empty present or not.
+   - write down pass evc0 at selected orbitals to evc_aux to make anion wfcs.
+   - write down evc0 (or wannier orbitals) to use as referenced orbitals (evc0_fixed).
+2) in odd_alpha.f90
+   - modify to read alpha_ref from file for empty
+   - read evc0_fixed from file.    
