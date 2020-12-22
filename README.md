@@ -1,4 +1,4 @@
-# `Koopmans code`
+# Koopmans code
 CP-based code for Γ-only calculations with Koopmans-compliant functionals
 
 ## Directories
