@@ -10,12 +10,7 @@ CP-based code for Γ-only calculations with Koopmans-compliant functionals
 You will need to install the git repositories `qe_koopmans` and `unfold_and_interpolate`. You can do that by running:
 
 ```
-git submodule init
-git submodule update
+git submodule update --init --recursive
 ```
 
-In order to have also the `Wannier90` code within `qe_koopmans` you need to enter `qe_koopmans` and then type:
-
-```
-git submodule update --init external/wannier90
-```
+the `--recursive` allows to install also the submodules within `qe_koopmans` like, in particular, `wannier90`.
