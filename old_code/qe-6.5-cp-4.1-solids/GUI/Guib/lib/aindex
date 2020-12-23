@@ -1,6 +1,0 @@
-#!/bin/sh
-# \
-exec tclsh "$0"
-
-auto_mkindex [pwd] *.tcl
-exit

@@ -1,9 +1,0 @@
-&BANDS
-   prefix  = 'prefix' ,
-   outdir  = 'dir' ,
-   filband = 'file' ,
-   
-   plot_2d    = .true. ,
-   lsym       = .false. ,
-   no_overlap = .true. ,
-/
