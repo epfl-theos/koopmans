@@ -1,6 +1,0 @@
-(defun $module-$var_lc ()
-  (interactive)
-  (let ((value ($read_cmd "Value of $var: ")))
-    (insert "$var = '" value "'"))
-  (backward-char 1)
-  )

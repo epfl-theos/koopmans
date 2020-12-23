@@ -1,5 +1,0 @@
-(defun $module-$var_lc ()
-  (interactive)
-  (let ((value (read-string "Value of $var: ")))
-    (insert "$var = " value))
-  )

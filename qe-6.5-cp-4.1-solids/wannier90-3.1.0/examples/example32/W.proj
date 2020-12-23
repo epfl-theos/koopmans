@@ -1,6 +1,0 @@
-&projwfc
-    prefix = 'W',
-    outdir = './out',
-    lsym = .FALSE.,
-    filproj = 'W-proj'
- /

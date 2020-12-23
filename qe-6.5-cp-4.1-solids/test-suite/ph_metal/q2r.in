@@ -1,3 +1,0 @@
- &input
-  zasr='simple',  fildyn='al.dyn', flfrc='Al444.fc', la2F=.true.
- /

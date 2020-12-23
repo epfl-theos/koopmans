@@ -1,4 +1,6 @@
 [submodule "unfold_and_interpolate"]
 	path = unfold_and_interpolate
 	url = git@github.com:degennar/unfold_and_interpolate.git
-	branch = master
+[submodule "qe_koopmans"]
+	path = qe_koopmans
+	url = git@gitlab.com:elinscott/qe_koopmans.git

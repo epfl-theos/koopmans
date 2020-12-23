@@ -1,8 +1,0 @@
-&ppacf
-    outdir = './'
-    prefix = 'atomns'
-    n_lambda = 1
-    lfock = .false.
-    lplot = .true.
-/
-

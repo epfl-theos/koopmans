@@ -1,3 +1,0 @@
- &input
-  zasr='simple',  fildyn='bn.disp.dyn', flfrc='bn881.fc', loto_2d=.true.,
- /
