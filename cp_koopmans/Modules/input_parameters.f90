@@ -463,6 +463,23 @@ MODULE input_parameters
         LOGICAL :: fixed_state = .false.
         INTEGER :: fixed_band  = 1
         LOGICAL :: restart_from_wannier_pwscf= .false. !added by linh, to start KIPZ calculations using
+        
+        LOGICAL :: impose_bloch_symm = .false.
+        INTEGER :: mp1
+        INTEGER :: mp2
+        INTEGER :: mp3
+        LOGICAL :: offset_centers_occ = .false.
+        LOGICAL :: offset_centers_emp = .false.
+          ! impose Bloch symmetry on the WFs
+          ! mp1, mp2, mp3 are the dimensions of the Monkhorst-Pack mesh
+          ! for the Brillouin zone of the primitive cell in order to be 
+          ! commensurate to the designed supercell. Equivalently, are the
+          ! number of repetitions of the primitive cell along the crystal
+          ! axis in order to form the supercell
+          ! offset_centers = .true. slightly shifts all the centers on [1,1,1]
+          !                  direction, useful when some centers are on
+          !                  the edge of the cell. The centers are then
+          !                  kept in their original positions
 
         NAMELIST / system / ibrav, celldm, a, b, c, cosab, cosac, cosbc, nat, &
              ntyp, nbnd, nelec, ecutwfc, ecutrho, nr1, nr2, nr3, nr1s, nr2s,  &
@@ -481,7 +498,8 @@ MODULE input_parameters
              tot_charge, multiplicity, tot_magnetization,                     &
              spline_ps, london, london_s6, london_rcut, do_orbdep, do_ee,     &
              do_wf_cmplx, do_spinsym, f_cutoff, fixed_state, fixed_band,      &
-             restart_from_wannier_pwscf
+             restart_from_wannier_pwscf, impose_bloch_symm, mp1, mp2, mp3,    &
+             offset_centers_occ, offset_centers_emp
 !
 !=----------------------------------------------------------------------------=!
 !  NKSIC Namelist Input Parameters

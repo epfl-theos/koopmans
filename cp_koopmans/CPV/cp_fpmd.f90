@@ -976,7 +976,7 @@ END SUBROUTINE gshcount
 
 
 !-------------------------------------------------------------------------
-      subroutine gcal( alat, b1_ , b2_ , b3_ , gmax )
+      subroutine gcal( alat, b1_ , b2_ , b3_ , gmax, ralat2 )
 !-----------------------------------------------------------------------
 !   calculates the values of g-vectors to be assigned to the lattice
 !   points generated in subroutine ggen. these values are derived
@@ -990,21 +990,29 @@ END SUBROUTINE gshcount
 !
 !   the g's are in units of 2pi/a.
 !
+!   RICCARDO: ralat2 is the squared ratio between the new and the old
+!             alat after the call to cell_base_reinit, used to renormalize
+!             g2_g
+!
       USE kinds,     ONLY: DP
       use constants, only: tpi
       use control_flags, only: iprint
-      use reciprocal_vectors, only: g, gx, mill_l
+      use reciprocal_vectors, only: g, gx, mill_l, g2_g
       use gvecp, only: ngm
       use gvecw, only: ngw
       use gvecw, only: ggp, ecutz, ecsig, ecfix
+!
       implicit none
 !
       REAL(DP) :: alat, b1_(3),b2_(3),b3_(3), gmax
       REAL(DP), external :: qe_erf
       REAL(DP) :: b1(3),b2(3),b3(3), tpiba2, gcutz
+      REAL(DP), INTENT(IN) :: ralat2
 !
       integer i1,i2,i3,ig
 
+      g2_g(:) = g2_g(:) * ralat2
+!
       b1 = b1_ * alat
       b2 = b2_ * alat
       b3 = b3_ * alat

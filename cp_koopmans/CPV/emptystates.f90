@@ -58,8 +58,10 @@
       USE input_parameters,     ONLY : odd_nkscalfact_empty, &
                                        restart_from_wannier_cp, wannier_empty_only, &
                                        fixed_band, print_wfc_anion, wo_odd_in_empty_run, &
-                                       odd_nkscalfact, index_empty_to_save, write_hr
+                                       odd_nkscalfact, index_empty_to_save, write_hr, &
+                                       impose_bloch_symm
       USE wavefunctions_module, ONLY : c0fixed_emp
+      USE centers_and_spreads,  ONLY : centers_emp, spreads_emp, get_centers_spreads
       !
       IMPLICIT NONE
       !
@@ -397,6 +399,15 @@
          ELSE
             !
             write(stdout, * ) 'Linh: the code restarts not random wfc'
+            !
+            IF ( impose_bloch_symm ) THEN
+              CALL symm_wannier(c0_emp, n_empx, .true.)
+              WRITE(*,*) 'RICCARDO nemp = ', n_empx
+              CALL write_centers_and_spreads( n_empx/nspin, centers_emp(:,:), spreads_emp(:), .true. )
+            ENDIF
+            !!! RICCARDO debug >>>
+            !CALL get_centers_spreads( c0_emp, n_empx, 'emp' ) 
+            !!! RICCARDO debug >>>
             !
          ENDIF
          !

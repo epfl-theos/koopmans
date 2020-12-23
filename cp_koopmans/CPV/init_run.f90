@@ -87,9 +87,12 @@ SUBROUTINE init_run()
   USE nksic,                    ONLY : do_orbdep
   use input_parameters,         ONLY : odd_nkscalfact, restart_odd_nkscalfact, restart_mode, &
                                        restart_from_wannier_cp, wannier_empty_only, &
-                                       restart_from_wannier_pwscf
+                                       restart_from_wannier_pwscf, impose_bloch_symm
   use wavefunctions_module,     ONLY : c0_fixed
   USE twin_types !added:giovanni
+  !!! RICCARDO debug >>>
+  USE centers_and_spreads,      ONLY : centers_occ, spreads_occ, get_centers_spreads
+  !!! RICCARDO debug <<<
   !
   IMPLICIT NONE
   !
@@ -418,7 +421,16 @@ SUBROUTINE init_run()
         ! 
      ENDIF
      !
-     IF (restart_from_wannier_pwscf) CALL wave_init_wannier_pwscf (c0, nbspx)
+     IF (restart_from_wannier_pwscf) THEN
+         CALL wave_init_wannier_pwscf (c0, nbspx)
+         IF ( impose_bloch_symm ) THEN
+           CALL symm_wannier(c0, nbspx, .false.)
+           CALL write_centers_and_spreads( nbspx/nspin, centers_occ(:,:), spreads_occ(:), .false. )
+         ENDIF
+         !!! RICCARDO debug >>>
+         CALL get_centers_spreads( c0, nbspx, 'occ' ) 
+         !!! RICCARDO debug >>>
+     ENDIF
      !
      IF (restart_from_wannier_cp)    CALL wave_init_wannier_cp (c0, ngw, nbspx, .True.) 
      !

@@ -250,6 +250,13 @@ MODULE read_namelists_module
        fixed_band  = 1
        restart_from_wannier_pwscf = .false.
        !
+       impose_bloch_symm = .false.
+       mp1 = 1
+       mp2 = 1
+       mp3 = 1
+       offset_centers_occ = .false.
+       offset_centers_emp = .false.
+       !
        RETURN
        !
      END SUBROUTINE
@@ -930,6 +937,13 @@ MODULE read_namelists_module
        CALL mp_bcast( fixed_band,                 ionode_id )
        CALL mp_bcast( fixed_state,                ionode_id )
        CALL mp_bcast( restart_from_wannier_pwscf, ionode_id )
+       !
+       CALL mp_bcast( impose_bloch_symm,          ionode_id )
+       CALL mp_bcast( mp1,                        ionode_id )
+       CALL mp_bcast( mp2,                        ionode_id )
+       CALL mp_bcast( mp3,                        ionode_id )
+       CALL mp_bcast( offset_centers_occ,         ionode_id )
+       CALL mp_bcast( offset_centers_emp,         ionode_id )
        !
        RETURN
        !
