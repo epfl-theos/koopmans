@@ -83,6 +83,7 @@
       use control_flags,            only : iprint_manifold_overlap, iprint_spreads
       use input_parameters,         only : fixed_state, fixed_band, odd_nkscalfact, do_outerloop, &
                                            finite_field_introduced, finite_field_for_empty_state
+      USE centers_and_spreads,      ONLY : get_centers_spreads
       !
       implicit none
       !
@@ -1683,7 +1684,11 @@
                write(stdout,'(5x,"iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14)')&
                itercg, itercgeff, etotnew
             endif
+            !
         endif
+        !
+        ! calculate centers and spreads of the current wavefunctions
+        CALL get_centers_spreads( c0, nbspx, 'occ', units='bohr', verbose=.false. )
 
         if ( ionode .and. mod(itercg,10) == 0 ) write(stdout,"()" )
 

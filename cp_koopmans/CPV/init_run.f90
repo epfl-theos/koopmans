@@ -67,7 +67,7 @@ SUBROUTINE init_run()
   USE local_pseudo,             ONLY : allocate_local_pseudo
   USE cp_electronic_mass,       ONLY : emass_precond
   USE wannier_subroutines,      ONLY : wannier_startup
-  USE cp_interfaces,            ONLY : readfile
+  USE cp_interfaces,            ONLY : readfile, symm_wannier
   USE ions_base,                ONLY : ions_cofmass
   USE ensemble_dft,             ONLY : id_matrix_init, allocate_ensemble_dft, h_matrix_init
   USE efield_module,            ONLY : allocate_efield, allocate_efield2
@@ -90,9 +90,6 @@ SUBROUTINE init_run()
                                        restart_from_wannier_pwscf, impose_bloch_symm
   use wavefunctions_module,     ONLY : c0_fixed
   USE twin_types !added:giovanni
-  !!! RICCARDO debug >>>
-  USE centers_and_spreads,      ONLY : centers_occ, spreads_occ, get_centers_spreads
-  !!! RICCARDO debug <<<
   !
   IMPLICIT NONE
   !
@@ -425,11 +422,7 @@ SUBROUTINE init_run()
          CALL wave_init_wannier_pwscf (c0, nbspx)
          IF ( impose_bloch_symm ) THEN
            CALL symm_wannier(c0, nbspx, .false.)
-           CALL write_centers_and_spreads( nbspx/nspin, centers_occ(:,:), spreads_occ(:), .false. )
          ENDIF
-         !!! RICCARDO debug >>>
-         CALL get_centers_spreads( c0, nbspx, 'occ' ) 
-         !!! RICCARDO debug >>>
      ENDIF
      !
      IF (restart_from_wannier_cp)    CALL wave_init_wannier_cp (c0, ngw, nbspx, .True.) 

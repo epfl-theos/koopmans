@@ -44,7 +44,7 @@
                                        wave_rand_init, wave_atom_init, elec_fakekine, &
                                        crot, dforce, nlsm1, grabec, &
                                        bec_csv, readempty_twin, writeempty_twin, &
-                                       write_hamiltonian
+                                       write_hamiltonian, symm_wannier
       USE mp,                   ONLY : mp_comm_split, mp_comm_free, mp_sum
       USE mp_global,            ONLY : intra_image_comm, me_image
       USE nksic,                ONLY : do_orbdep, do_pz, do_wxd, vsicpsi, wtot, sizwtot, &
@@ -61,7 +61,6 @@
                                        odd_nkscalfact, index_empty_to_save, write_hr, &
                                        impose_bloch_symm
       USE wavefunctions_module, ONLY : c0fixed_emp
-      USE centers_and_spreads,  ONLY : centers_emp, spreads_emp, get_centers_spreads
       !
       IMPLICIT NONE
       !
@@ -401,13 +400,8 @@
             write(stdout, * ) 'Linh: the code restarts not random wfc'
             !
             IF ( impose_bloch_symm ) THEN
-              CALL symm_wannier(c0_emp, n_empx, .true.)
-              WRITE(*,*) 'RICCARDO nemp = ', n_empx
-              CALL write_centers_and_spreads( n_empx/nspin, centers_emp(:,:), spreads_emp(:), .true. )
+              CALL symm_wannier( c0_emp, n_empx, .true. )
             ENDIF
-            !!! RICCARDO debug >>>
-            !CALL get_centers_spreads( c0_emp, n_empx, 'emp' ) 
-            !!! RICCARDO debug >>>
             !
          ENDIF
          !

@@ -9,12 +9,13 @@
 MODULE centers_and_spreads
   !---------------------------------------------------------------------
   !
-  ! ... This contains all the routines and variables important for the
-  ! ... calculation of centers and spreads of the variational orbitals
+  ! ... This module contains all the routines and variables important for
+  ! ... the calculation of centers and spreads of the variational orbitals
   !
   USE kinds,                ONLY : DP
   USE io_global,            ONLY : stdout
   USE reciprocal_vectors,   ONLY : g2_g, g, gx
+  USE electrons_base,       ONLY : nspin
   USE constants,            ONLY : BOHR_RADIUS_ANGS
   !
   !
@@ -22,12 +23,19 @@ MODULE centers_and_spreads
   !
   SAVE
   !
-  REAL(DP), ALLOCATABLE :: centers_occ(:,:), centers_emp(:,:)
-  REAL(DP), ALLOCATABLE :: spreads_occ(:), spreads_emp(:)
+  PRIVATE
+  !
+  REAL(DP), ALLOCATABLE, PUBLIC :: centers_occ(:,:,:), centers_emp(:,:,:)
+  REAL(DP), ALLOCATABLE, PUBLIC :: spreads_occ(:,:), spreads_emp(:,:)
+  !
   REAL(DP), ALLOCATABLE :: bstar(:,:)    ! first shell of b-vectors
   REAL(DP), ALLOCATABLE :: wb(:)         ! weight of the b-vectors 
   REAL(DP) :: b2                         ! squared modulus of the first shell
   INTEGER :: nbtot                       ! num of vectors in the first shell
+  INTEGER :: norb
+  !
+  PUBLIC :: get_centers_spreads, write_centers_and_spreads, &
+            read_wannier_centers, read_wannier_spreads
   !
   ! ...  end of module-scope declarations
   !
@@ -36,19 +44,28 @@ MODULE centers_and_spreads
 CONTAINS
   !
   !
-  SUBROUTINE get_centers_spreads( wfc, num_states, typ ) 
+  SUBROUTINE get_centers_spreads( wfc, num_states, typ, units, verbose ) 
     !---------------------------------------------------------------------
     !
     ! ...  This routine calculates the centers and spreads of the variational
-    ! ...  orbitals by using the Gamma-point algorithm of Wannier90
+    ! ...  orbitals by using the Gamma-point algorithm of the Wannier90 code
     ! ...  (see Comput. Phys. Commun. 178, 685 (2008))
     !
     ! ...  typ = 'occ' : occupied states
     ! ...  typ = 'emp' : empty states
     !
+    ! ...  verbose = .true. : at each call the routine prints out the current 
+    ! ...                     centers and spreads
     !
-    USE electrons_base,         ONLY : nspin
-    USE cell_base,              ONLY : tpiba
+    ! ...  units : 'bohr', 'ang', 'crystal', 'alat'
+    ! ...          useful only when verbose is .true., defines in which units 
+    ! ...          centers and spreads must be expressed (the stored global
+    ! ...          variables are not affected and they are always expressed
+    ! ...          in Bohr)
+    !
+    !
+    USE io_global,              ONLY : ionode
+    USE cell_base,              ONLY : tpiba, alat, bg, at
     USE gvecw,                  ONLY : ngw
     USE cp_interfaces,          ONLY : invfft, fwfft
     USE fft_base,               ONLY : dffts
@@ -64,145 +81,178 @@ CONTAINS
     COMPLEX(DP), INTENT(IN) :: wfc(:,:)
     INTEGER, INTENT(IN) :: num_states
     CHARACTER(3), INTENT(IN) :: typ
+    CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: units
+    LOGICAL, OPTIONAL, VALUE :: verbose
     !
     REAL(DP), ALLOCATABLE :: centers(:,:)
     REAL(DP), ALLOCATABLE :: spreads(:)
+    REAL(DP) :: centers_(3), spreads_
     COMPLEX(DP) :: ZDOTC
     COMPLEX(DP), ALLOCATABLE :: Mnn(:)
     COMPLEX(DP), ALLOCATABLE :: psi(:)
     COMPLEX(DP), ALLOCATABLE :: wfcp(:), wfcm(:)
     COMPLEX(DP), ALLOCATABLE :: ph_aux(:)
     COMPLEX(DP), ALLOCATABLE :: phase(:)
-    INTEGER :: norb
-    INTEGER :: ib, bindex, ig, n
+    INTEGER :: iss
+    INTEGER :: ib, bindex, ig, i, n, ns
+    CHARACTER(LEN=3) :: typ_c
+    CHARACTER(LEN=9) :: units_, units_c
     !
-    !
-    norb = num_states / nspin
-    ALLOCATE( centers(3,norb) )
-    ALLOCATE( spreads(norb) )
-    centers(:,:) = 0.D0
-    spreads(:) = 0.D0
+    CHARACTER(1), EXTERNAL :: capital
     !
     !
     IF ( do_wf_cmplx ) THEN
       WRITE( stdout, * ) '# WARNING: centers to check when do_wf_complex=.true.'
     ENDIF
     !
+    IF ( .not. PRESENT(verbose) ) verbose = .false.
+    !
+    IF ( .not. PRESENT(units) ) THEN
+      units_ = 'bohr'
+    ELSE
+      units_ = units
+    ENDIF
+    IF ( trim(units_) .ne. 'bohr' .and. trim(units_) .ne. 'ang' .and. &
+         trim(units_) .ne. 'alat' .and. trim(units_) .ne. 'crystal' ) THEN
+      CALL errore( 'get_centers_spreads', 'Invalid value assigned to units', 1 )
+    ENDIF
+    units_c = trim(units_)
+    units_c(1:1) = capital( units_c(1:1) )
+    !
+    norb = num_states / nspin
+    ALLOCATE( centers(3,norb) )
+    ALLOCATE( spreads(norb) )
+    CALL alloc_centers_spreads( typ )
+    !
+    IF ( .not. ALLOCATED( bstar ) ) CALL star_of_k()
     !
     ALLOCATE( ph_aux(ngw) )
     ALLOCATE( psi(nnrsx), phase(nnrsx) )
     ALLOCATE( wfcp(ngw), wfcm(ngw) )
     ALLOCATE( Mnn(nbtot) )
     !
+    DO i = 1, LEN_TRIM(typ)
+      typ_c(i:i) = capital( typ(i:i) )
+    ENDDO
     !
-    IF ( .not. ALLOCATED( bstar ) ) CALL star_of_k()
     !
-    WRITE( stdout, 301 )
-    !
-    !
-    DO n = 1, norb 
+    ns = 0
+    DO iss = 1, nspin
       !
-      Mnn(:) = ( 0.D0, 0.D0 )
+      centers(:,:) = 0.D0
+      spreads(:) = 0.D0
       !
-      DO ib = 1, nbtot
+      IF ( ionode .and. verbose ) THEN
+        IF ( trim(units_) .eq. 'bohr' .or. trim(units_) .eq. 'ang' ) THEN
+          WRITE( stdout, 301 ) typ_c, iss, (trim(units_c), i=1,4)
+        ELSE
+          WRITE( stdout, 302 ) typ_c, iss, (trim(units_c), i=1,3)
+        ENDIF
+      ENDIF
+      !
+      DO n = 1, norb 
         !
-        ! FFT wfc to real-space -> psi
+        ns = ns + 1
+        Mnn(:) = ( 0.D0, 0.D0 )
         !
-        psi(:) = ( 0.D0, 0.D0 )
-        CALL c2psi( psi, nnrsx, wfc(:,n), wfc(:,n), ngw, 1 ) ! what if wfc is complex ????
-        CALL invfft( 'Wave', psi, dffts )
-        !
-        ! u_b(r) = e^(-ibr) * u(r)
-        ! so here we calculate the phase factor e^(ibr)
-        !
-        bindex = -1
-        ig = 1
-        DO WHILE ( g(ig) .lt. b2 + 1.E-6 )
+        DO ib = 1, nbtot
           !
-          IF ( ( ABS( gx(1,ig) - bstar(1,ib) ) .lt. 1.E-6 ) .and. &
-               ( ABS( gx(2,ig) - bstar(2,ib) ) .lt. 1.E-6 ) .and. &
-               ( ABS( gx(3,ig) - bstar(3,ib) ) .lt. 1.E-6 ) ) bindex = ig
+          ! FFT wfc to real-space -> psi
           !
-          ig = ig + 1
+          psi(:) = ( 0.D0, 0.D0 )
+          CALL c2psi( psi, nnrsx, wfc(:,ns), wfc(:,ns), ngw, 1 ) ! what if wfc is complex ????
+          CALL invfft( 'Wave', psi, dffts )
           !
-        ENDDO
+          ! u_b(r) = e^(-ibr) * u(r)
+          ! so here we calculate the phase factor e^(ibr)
+          !
+          bindex = -1
+          ig = 1
+          DO WHILE ( g(ig) .lt. b2 + 1.E-6 )
+            !
+            IF ( ( ABS( gx(1,ig) - bstar(1,ib) ) .lt. 1.E-6 ) .and. &
+                 ( ABS( gx(2,ig) - bstar(2,ib) ) .lt. 1.E-6 ) .and. &
+                 ( ABS( gx(3,ig) - bstar(3,ib) ) .lt. 1.E-6 ) ) bindex = ig
+            !
+            ig = ig + 1
+            !
+          ENDDO
+          !
+          ph_aux(:) = ( 0.D0, 0.D0 )
+          IF ( bindex .ne. -1 ) ph_aux(bindex) = ( 1.D0, 0.D0 )
+          CALL c2psi( phase, nnrsx, ph_aux, ph_aux, ngw, 0 )
+          CALL invfft( 'Wave', phase, dffts )
+          !
+          psi(1:nnrsx) = psi(1:nnrsx) * phase(1:nnrsx)
+          !
+          ! FFT back to G-space
+          !
+          CALL fwfft( 'Wave', psi, dffts )
+          CALL psi2c( psi, nnrsx, wfcp(:), wfcm(:), ngw, 2 ) ! what if wfc is complex ????
+          IF ( g2_g(1) .lt. 1.E-6 ) wfcm(1) = (0.D0, 0.D0)
+          wfcm(:) = CONJG(wfcm(:))
+          !
+          ! here we calculate Mb(n,n) = < u_n | u_nb >
+          !
+          Mnn(ib) = ZDOTC( ngw, wfcp, 1, wfc(:,ns), 1 ) + ZDOTC( ngw, wfc(:,ns), 1, wfcm, 1 )
+          CALL mp_sum( Mnn(ib), intra_image_comm )
+          !
+          !
+          centers(:,n) = centers(:,n) - wb(ib) * AIMAG( LOG( Mnn(ib) ) ) * bstar(:,ib)
+          !
+          spreads(n) = spreads(n) + wb(ib) * ( ( 1 - Mnn(ib) * CONJG( Mnn(ib) ) ) + &
+                                           ( AIMAG( LOG( Mnn(ib) ) ) )**2 )
+          !
+        ENDDO ! ib
         !
-        ph_aux(:) = ( 0.D0, 0.D0 )
-        ph_aux(bindex) = ( 1.D0, 0.D0 )
-        CALL c2psi( phase, nnrsx, ph_aux, ph_aux, ngw, 0 )
-        CALL invfft( 'Wave', phase, dffts )
+        ! centers and spreads are stored in Bohr units
+        centers(:,n) = centers(:,n) / tpiba
+        spreads(n) = spreads(n) / tpiba**2
         !
-        psi(1:nnrsx) = psi(1:nnrsx) * phase(1:nnrsx)
+        SELECT CASE( trim(units_) )
+          CASE ( 'ang' )
+            centers_(:) = centers(:,n) * BOHR_RADIUS_ANGS
+            spreads_ = spreads(n) * BOHR_RADIUS_ANGS**2
+          CASE ( 'alat' )
+            centers_(:) = centers(:,n) / alat
+            spreads_ = spreads(n) / alat**2
+          CASE ( 'crystal' )
+            centers_(:) = centers(:,n) / alat
+            CALL cryst_to_cart( 1, centers, bg, -1 )
+            spreads_ = spreads(n) / alat**2
+          CASE DEFAULT ! units=bohr
+            centers_(:) = centers(:,n)
+            spreads_ = spreads(n)
+        END SELECT
         !
-        ! FFT back to G-space
+        IF ( ionode .and. verbose ) WRITE( stdout, 401 ) n, centers_, spreads_
         !
-        CALL fwfft( 'Wave', psi, dffts )
-        CALL psi2c( psi, nnrsx, wfcp(:), wfcm(:), ngw, 2 ) ! what if wfc is complex ????
-        IF ( g2_g(1) .lt. 1.E-6 ) wfcm(1) = (0.D0, 0.D0)
-        wfcm(:) = CONJG(wfcm(:))
-        !
-        ! here we calculate Mb(n,n) = < u_n | u_nb >
-        !
-        Mnn(ib) = ZDOTC( ngw, wfcp, 1, wfc(:,n), 1 ) + ZDOTC( ngw, wfc(:,n), 1, wfcm, 1 )
-        CALL mp_sum( Mnn(ib), intra_image_comm )
-        !
-        !
-        centers(:,n) = centers(:,n) - wb(ib) * AIMAG( LOG( Mnn(ib) ) ) * bstar(:,ib)
-        !!! RICCARDO debug >>>
-        !WRITE(*,'("RICCARDO centers(",i2,",",i2,") = ",3f12.6)') ib,n,centers(:,n)
-        !WRITE(*,'("RICCARDO M(",i2,",",i2,") = ",2f12.6,4x,"ImLogM = ",f12.6)') Mnn(ib),AIMAG( LOG( Mnn(ib) ) )
-        !WRITE(*,*) aimag(log(Mnn(ib)))*wb(n)
-        !!! RICCARDO debug <<<
-        !
-        spreads(n) = spreads(n) + wb(ib) * ( ( 1 - Mnn(ib) * CONJG( Mnn(ib) ) ) + &
-                                         ( AIMAG( LOG( Mnn(ib) ) ) )**2 )
-        !
-      ENDDO ! ib
+      ENDDO ! n
       !
-      centers(:,n) = centers(:,n) / ( tpiba / BOHR_RADIUS_ANGS )
-      spreads(n) = spreads(n) / ( tpiba / BOHR_RADIUS_ANGS ) ** 2
       !
-      WRITE( stdout, 401 ) n, centers(:,n), spreads(n)
+      IF ( typ == 'occ' ) THEN
+        centers_occ(:,:,iss) = centers(:,:)
+        spreads_occ(:,iss) = spreads(:)
+      ELSE IF ( typ == 'emp' ) THEN
+        centers_emp(:,:,iss) = centers(:,:)
+        spreads_emp(:,iss) = spreads(:)
+      ELSE
+        CALL errore( 'get_centers_spreads', 'Invalid value assigned to typ', 1 )
+      ENDIF
       !
-    ENDDO ! n 
+      !
+    ENDDO ! iss
     !
     ! 
-    301 FORMAT( //, 3x, 'Centers and Spreads of variational orbitals', /  &
-                    
-                    3x, 75('-'), / &
-                    3x, 'Orbital #', 3x, '|', 3x, '  x [Ang]      y [Ang]      z [Ang]  ', 3x, '|', 3x, '< r^2 > [Ang^2]', / &
-                    3x, 75('-') )
-    !
-    401 FORMAT( 3x, i5, 7x, 3f13.6, 7x, f14.8 ) 
-    !
-    !
-    SELECT CASE ( typ )
-      !
-      CASE ( 'occ' )
-        !
-        IF ( .not. ALLOCATED( centers_occ ) ) THEN
-          ALLOCATE( centers_occ(3,norb) )
-          ALLOCATE( spreads_occ(norb) )
-        ENDIF
-        !
-        centers_occ(:,:) = centers(:,:)
-        spreads_occ(:) = spreads(:)
-        !
-      CASE ( 'emp' )
-        !
-        IF ( .not. ALLOCATED( centers_emp ) ) THEN
-          ALLOCATE( centers_emp(3,norb) )
-          ALLOCATE( spreads_emp(norb) )
-        ENDIF
-        !
-        centers_emp(:,:) = centers(:,:)
-        spreads_emp(:) = spreads(:)
-        !
-      CASE DEFAULT
-        !
-        CALL errore( 'get_centers_spreads', 'typ must be occ or emp', 1 )
-        !
-    END SELECT
+301 FORMAT( //, 3x, 'Centers and Spreads of ', a3, ' variational orbitals, spin = ', i1, /  &
+                3x, 76('-'), / &
+                3x, 'Orbital #', 2x, '|', 3x, '  x [', a4, ']     y [', a4, ']     z [', a4, ']  ', 3x, '|', 3x, '< r^2 > [', a4, '^2]', / &
+                3x, 76('-') )
+302 FORMAT( //, 3x, 'Centers and Spreads of ', a3, ' variational orbitals, spin = ', i1, /  &
+                3x, 76('-'), / &
+                3x, 'Orbital #', 2x, '|', 3x, '  x [', a4, ']     y [', a4, ']     z [', a4, ']  ', 3x, '|', 3x, '< r^2 > [alat^2]', / &
+                3x, 76('-') )
+401 FORMAT( 3x, i5, 7x, 3f13.6, 8x, f14.8 ) 
     !
     !
   END SUBROUTINE get_centers_spreads
@@ -294,9 +344,9 @@ CONTAINS
     tpiba_ang = tpiba / BOHR_RADIUS_ANGS
     !
     !
-    WRITE( stdout, 101 )
-    WRITE( stdout, * )
-    WRITE( stdout, 201 ) ( i, bstar(:,i)*tpiba_ang, wb(i)/tpiba_ang**2, i = 1, nbtot )
+!    WRITE( stdout, 101 )
+!    WRITE( stdout, * )
+!    WRITE( stdout, 201 ) ( i, bstar(:,i)*tpiba_ang, wb(i)/tpiba_ang**2, i = 1, nbtot )
     !
     !
     101 FORMAT( //, 3x, 'First shell of b-vectors (b-vectors [Ang^-1] and weights [Ang^2])', / &
@@ -306,6 +356,236 @@ CONTAINS
     !
     !
   END SUBROUTINE star_of_k
+  !
+  !
+  SUBROUTINE write_centers_and_spreads( num_wann, centers, spreads, emp )
+    !---------------------------------------------------------------------
+    !
+    ! ...  This routine prints the centers and spreads of Wannier functions
+    ! ...  (occupied or empty) to file. The units are Ang.
+    !
+    ! ...  emp = .true. when printing empty states
+    !
+    USE kinds,                ONLY : DP
+    USE io_files,             ONLY : prefix
+    USE io_global,            ONLY : ionode, stdout
+    !
+    !
+    IMPLICIT NONE
+    !
+    INTEGER, INTENT(IN) :: num_wann        ! number of Wannier functions
+    REAL(DP), INTENT(IN) :: centers(3,num_wann) 
+    REAL(DP), INTENT(IN) :: spreads(num_wann) 
+    LOGICAL, INTENT(IN) :: emp
+    !
+    CHARACTER(LEN=268) :: filename
+    CHARACTER(LEN=9)  :: cdate, ctime
+    CHARACTER(LEN=100) :: header
+    INTEGER :: n
+    !
+    !
+    IF ( emp ) THEN
+      filename = TRIM(prefix)//'_cp_centers_emp.xyz'
+    ELSE
+      filename = TRIM(prefix)//'_cp_centers.xyz'
+    ENDIF
+    !
+    CALL date_and_tim( cdate, ctime )
+    header = 'Wannier centers and spreads, written by CP on '//cdate//' at '//ctime
+    !
+    IF ( ionode ) THEN
+      !
+      OPEN( 300, file=filename, status='unknown' )
+      !
+      WRITE( 300, '(i6)' ) num_wann
+      WRITE( 300, * ) header
+      !
+      WRITE( 300, 55 ) ( centers(:,n), spreads(n), n = 1, num_wann )
+      !
+      CLOSE( 300 )
+      !
+    ENDIF
+    !
+    !
+    55 FORMAT( 'X', 5x, 3f17.8, 2x, f17.8 )
+    !
+    !
+  END SUBROUTINE write_centers_and_spreads
+  !
+  !
+  SUBROUTINE read_wannier_centers( centers, num_wann, emp )
+    !---------------------------------------------------------------------
+    !
+    ! ...  This routine reads the centers of Wannier functions from .xyz
+    ! ...  file print out by Wannier90, fold them into the R=0 primitive
+    ! ...  cell and gives them in output (in crystal units)
+    !
+    ! ...  emp = .true. when reading empty states
+    !
+    USE kinds,                ONLY : DP
+    USE cell_base,            ONLY : bg, alat
+    USE constants,            ONLY : BOHR_RADIUS_ANGS
+    USE io_files,             ONLY : prefix
+    !
+    !
+    IMPLICIT NONE
+    !
+    INTEGER, INTENT(IN) :: num_wann        ! number of Wannier functions 
+    LOGICAL, INTENT(IN) :: emp             
+    !
+    REAL(DP), INTENT(OUT) :: centers(3,num_wann)
+    !
+    LOGICAL :: exst
+    INTEGER :: n 
+    CHARACTER(LEN=268) :: filename
+    CHARACTER(LEN=256) :: input_line
+    !
+    !
+    IF ( emp ) THEN
+      filename = trim(prefix)//'_emp_centres.xyz'
+    ELSE
+      filename = trim(prefix)//'_centres.xyz'
+    ENDIF
+    !
+    INQUIRE( file=filename, exist=exst )
+    !
+    IF ( .not. exst ) CALL errore( 'read_wannier_centers', 'File not found', 1 )
+    !
+    OPEN( 100, file=filename, form='formatted', status='old' )
+    !
+    READ( 100, *, end=10, err=20 )    ! skip 1st line
+    READ( 100, *, end=10, err=20 )    ! skip 2nd line
+         !
+    DO n = 1, num_wann
+      !
+      READ( 100, '(a256)', end=10, err=20 ) input_line
+      !
+      IF ( input_line(1:1) .ne. 'X' ) CALL errore( 'read_wannier_centers', &
+              'X must precede each Wannier center line', 1 )
+      !
+      READ( input_line(2:), *, end=10, err=20 ) centers(:,n)
+      !
+    ENDDO
+    !
+    READ( 100, * ) input_line
+    IF ( input_line(1:1) == 'X' ) CALL errore( 'read_wannier_centers', &
+            'Missing some center!', 1 )
+    !
+    CLOSE( 100 )
+    !
+    !
+    centers = centers / ( alat * BOHR_RADIUS_ANGS )
+    !
+    DO n = 1, num_wann
+      !
+      CALL cryst_to_cart( 1, centers(:,n), bg, -1 )
+      !
+    ENDDO
+    !
+    RETURN
+    !
+  10  CALL errore ( 'read_wannier_centers', 'end of file while reading', 1 )
+  20  CALL errore ( 'read_wannier_centers', 'error while reading', 1 )
+    !
+    !
+  END SUBROUTINE read_wannier_centers
+  !
+  !
+  SUBROUTINE read_wannier_spreads( spreads, num_wann, emp )
+    !---------------------------------------------------------------------
+    !
+    ! ...  This routine reads the spreads of Wannier functions from .wout
+    ! ...  file print out by Wannier90, gives them in output (in Ang^2)
+    !
+    ! ...  emp = .true. when reading empty states
+    !
+    USE io_files,             ONLY : prefix
+    !
+    !
+    IMPLICIT NONE
+    !
+    INTEGER, INTENT(IN) :: num_wann        ! number of Wannier functions 
+    LOGICAL, INTENT(IN) :: emp
+    !
+    REAL(DP), INTENT(OUT) :: spreads(num_wann)
+    !
+    LOGICAL :: exst
+    INTEGER :: n 
+    CHARACTER(LEN=268) :: filename
+    CHARACTER(LEN=256) :: input_line
+    !
+    !
+    IF ( emp ) THEN
+      filename = trim(prefix)//'_emp.wout'
+    ELSE
+      filename = trim(prefix)//'.wout'
+    ENDIF
+    !
+    INQUIRE( file=filename, exist=exst )
+    !
+    IF ( .not. exst ) CALL errore( 'read_wannier_spreads', 'File not found', 1 )
+    !
+    OPEN( 200, file=filename, form='formatted', status='old' )
+    !
+    READ( 200, '(a256)', end=10, err=20 ) input_line
+    DO WHILE ( input_line .ne. ' Final State' )
+      READ( 200, '(a256)', end=10, err=20 ) input_line
+    ENDDO
+    !
+    DO n = 1, num_wann
+      !
+      READ( 200, '(a256)', end=10, err=20 ) input_line
+      READ( input_line(65:), * ) spreads(n)
+      !
+    ENDDO
+    !
+    CLOSE( 200 )
+    !
+    !
+    RETURN
+    !
+  10  CALL errore ( 'read_wannier_spreads', 'end of file while reading', 1 )
+  20  CALL errore ( 'read_wannier_spreads', 'error while reading', 1 )
+    !
+    !
+  END SUBROUTINE read_wannier_spreads
+  !
+  !
+  SUBROUTINE alloc_centers_spreads( typ )
+    !---------------------------------------------------------------------
+    !
+    ! ...  allocates centers_occ, centers_emp, spreads_occ and spreads_emp
+    !
+    !
+    IMPLICIT NONE
+    !
+    CHARACTER(LEN=3), INTENT(IN) :: typ
+    !
+    !
+    SELECT CASE ( typ )
+      !
+      CASE ( 'occ' )
+        !
+        IF ( .not. ALLOCATED( centers_occ ) ) THEN
+          ALLOCATE( centers_occ(3,norb,nspin) )
+          ALLOCATE( spreads_occ(norb,nspin) )
+        ENDIF
+        !
+      CASE ( 'emp' )
+        !
+        IF ( .not. ALLOCATED( centers_emp ) ) THEN
+          ALLOCATE( centers_emp(3,norb,nspin) )
+          ALLOCATE( spreads_emp(norb,nspin) )
+        ENDIF
+        !
+      CASE DEFAULT
+        !
+        CALL errore( 'alloc_centers_spreads', 'typ must be occ or emp', 1 )
+        !
+    END SELECT
+    !
+    !
+  END SUBROUTINE alloc_centers_spreads
   !
   !
 END MODULE centers_and_spreads

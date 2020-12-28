@@ -6,7 +6,7 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 !-----------------------------------------------------------------------
-SUBROUTINE symm_wannier( wfc, num_states, emp) 
+SUBROUTINE symm_wannier_x( wfc, num_states, emp) 
   !---------------------------------------------------------------------
   !
   ! ...  This routine imposes the Bloch symmetry on the Wannier
@@ -30,14 +30,15 @@ SUBROUTINE symm_wannier( wfc, num_states, emp)
   USE mp_global,            ONLY : intra_image_comm
   USE constants,            ONLY : BOHR_RADIUS_ANGS
   USE centers_and_spreads,  ONLY : centers_occ, centers_emp, &
-                                   spreads_occ, spreads_emp
+                                   spreads_occ, spreads_emp, &
+                                   read_wannier_centers, read_wannier_spreads
   !
   !
   IMPLICIT NONE
   !
   INTEGER, INTENT(IN) :: num_states
   LOGICAL, INTENT(IN) :: emp
-  COMPLEX(DP), INTENT(INOUT) :: wfc(ngw,num_states)
+  COMPLEX(DP), INTENT(INOUT) :: wfc(:,:)
   !
   INTEGER :: norb
   INTEGER :: norb_pc     ! number of ref WFs
@@ -164,207 +165,13 @@ SUBROUTINE symm_wannier( wfc, num_states, emp)
   CALL cryst_to_cart( norb, centers, at, 1 )
   centers = centers * alat * BOHR_RADIUS_ANGS 
   !
-  IF ( emp ) THEN
-    centers_emp = centers
-    spreads_emp = spreads
-  ELSE
-    centers_occ = centers
-    spreads_occ = spreads
-  ENDIF
+!  IF ( emp ) THEN
+!    centers_emp = centers
+!    spreads_emp = spreads
+!  ELSE
+!    centers_occ = centers
+!    spreads_occ = spreads
+!  ENDIF
   !
   !  
-END SUBROUTINE symm_wannier
-!
-!
-SUBROUTINE read_wannier_centers( centers, num_wann, emp )
-  !---------------------------------------------------------------------
-  !
-  ! ...  This routine reads the centers of Wannier functions from .xyz
-  ! ...  file print out by Wannier90, fold them into the R=0 primitive
-  ! ...  cell and gives them in output (in crystal units)
-  !
-  ! ...  emp = .true. when reading empty states
-  !
-  USE kinds,                ONLY : DP
-  USE cell_base,            ONLY : bg, alat
-  USE constants,            ONLY : BOHR_RADIUS_ANGS
-  USE io_files,             ONLY : prefix
-  !
-  !
-  IMPLICIT NONE
-  !
-  INTEGER, INTENT(IN) :: num_wann        ! number of Wannier functions 
-  LOGICAL, INTENT(IN) :: emp             
-  !
-  REAL(DP), INTENT(OUT) :: centers(3,num_wann)
-  !
-  LOGICAL :: exst
-  INTEGER :: n 
-  CHARACTER(LEN=268) :: filename
-  CHARACTER(LEN=256) :: input_line
-  !
-  !
-  IF ( emp ) THEN
-    filename = trim(prefix)//'_emp_centres.xyz'
-  ELSE
-    filename = trim(prefix)//'_centres.xyz'
-  ENDIF
-  !
-  INQUIRE( file=filename, exist=exst )
-  !
-  IF ( .not. exst ) CALL errore( 'read_wannier_centers', 'File not found', 1 )
-  !
-  OPEN( 100, file=filename, form='formatted', status='old' )
-  !
-  READ( 100, *, end=10, err=20 )    ! skip 1st line
-  READ( 100, *, end=10, err=20 )    ! skip 2nd line
-       !
-  DO n = 1, num_wann
-    !
-    READ( 100, '(a256)', end=10, err=20 ) input_line
-    !
-    IF ( input_line(1:1) .ne. 'X' ) CALL errore( 'read_wannier_centers', &
-            'X must precede each Wannier center line', 1 )
-    !
-    READ( input_line(2:), *, end=10, err=20 ) centers(:,n)
-    !
-  ENDDO
-  !
-  READ( 100, * ) input_line
-  IF ( input_line(1:1) == 'X' ) CALL errore( 'read_wannier_centers', &
-          'Missing some center!', 1 )
-  !
-  CLOSE( 100 )
-  !
-  !
-  centers = centers / ( alat * BOHR_RADIUS_ANGS )
-  !
-  DO n = 1, num_wann
-    !
-    CALL cryst_to_cart( 1, centers(:,n), bg, -1 )
-    !
-  ENDDO
-  !
-  RETURN
-  !
-10  CALL errore ( 'read_wannier_centers', 'end of file while reading', 1 )
-20  CALL errore ( 'read_wannier_centers', 'error while reading', 1 )
-  !
-  !
-END SUBROUTINE read_wannier_centers
-!
-!
-SUBROUTINE read_wannier_spreads( spreads, num_wann, emp )
-  !---------------------------------------------------------------------
-  !
-  ! ...  This routine reads the spreads of Wannier functions from .wout
-  ! ...  file print out by Wannier90, gives them in output (in Ang^2)
-  !
-  ! ...  emp = .true. when reading empty states
-  !
-  USE kinds,                ONLY : DP
-  USE io_files,             ONLY : prefix
-  !
-  !
-  IMPLICIT NONE
-  !
-  INTEGER, INTENT(IN) :: num_wann        ! number of Wannier functions 
-  LOGICAL, INTENT(IN) :: emp
-  !
-  REAL(DP), INTENT(OUT) :: spreads(num_wann)
-  !
-  LOGICAL :: exst
-  INTEGER :: n 
-  CHARACTER(LEN=268) :: filename
-  CHARACTER(LEN=256) :: input_line
-  !
-  !
-  IF ( emp ) THEN
-    filename = trim(prefix)//'_emp.wout'
-  ELSE
-    filename = trim(prefix)//'.wout'
-  ENDIF
-  !
-  INQUIRE( file=filename, exist=exst )
-  !
-  IF ( .not. exst ) CALL errore( 'read_wannier_spreads', 'File not found', 1 )
-  !
-  OPEN( 200, file=filename, form='formatted', status='old' )
-  !
-  READ( 200, '(a256)', end=10, err=20 ) input_line
-  DO WHILE ( input_line .ne. ' Final State' )
-    READ( 200, '(a256)', end=10, err=20 ) input_line
-  ENDDO
-  !
-  DO n = 1, num_wann
-    !
-    READ( 200, '(a256)', end=10, err=20 ) input_line
-    READ( input_line(65:), * ) spreads(n)
-    !
-  ENDDO
-  !
-  CLOSE( 200 )
-  !
-  !
-  RETURN
-  !
-10  CALL errore ( 'read_wannier_spreads', 'end of file while reading', 1 )
-20  CALL errore ( 'read_wannier_spreads', 'error while reading', 1 )
-  !
-  !
-END SUBROUTINE read_wannier_spreads
-!
-!
-SUBROUTINE write_centers_and_spreads( num_wann, centers, spreads, emp )
-  !---------------------------------------------------------------------
-  !
-  ! ...  This routine prints the centers and spreads of Wannier functions
-  ! ...  (occupied or empty) to file. The units are Ang.
-  !
-  ! ...  emp = .true. when printing empty states
-  !
-  USE kinds,                ONLY : DP
-  USE io_files,             ONLY : prefix
-  USE io_global,            ONLY : ionode, stdout
-  !
-  !
-  IMPLICIT NONE
-  !
-  INTEGER, INTENT(IN) :: num_wann        ! number of Wannier functions
-  REAL(DP), INTENT(IN) :: centers(3,num_wann) 
-  REAL(DP), INTENT(IN) :: spreads(num_wann) 
-  LOGICAL, INTENT(IN) :: emp
-  !
-  CHARACTER(LEN=268) :: filename
-  CHARACTER(LEN=9)  :: cdate, ctime
-  CHARACTER(LEN=100) :: header
-  INTEGER :: n
-  !
-  !
-  IF ( emp ) THEN
-    filename = TRIM(prefix)//'_cp_centers_emp.xyz'
-  ELSE
-    filename = TRIM(prefix)//'_cp_centers.xyz'
-  ENDIF
-  !
-  CALL date_and_tim( cdate, ctime )
-  header = 'Wannier centers and spreads, written by CP on '//cdate//' at '//ctime
-  !
-  IF ( ionode ) THEN
-    !
-    OPEN( 300, file=filename, status='unknown' )
-    !
-    WRITE( 300, '(i6)' ) num_wann
-    WRITE( 300, * ) header
-    !
-    WRITE( 300, 55 ) ( centers(:,n), spreads(n), n = 1, num_wann )
-    !
-    CLOSE( 300 )
-    !
-  ENDIF
-  !
-  !
-  55 FORMAT( 'X', 5x, 3f17.8, 2x, f17.8 )
-  !
-  !
-END SUBROUTINE write_centers_and_spreads
+END SUBROUTINE symm_wannier_x

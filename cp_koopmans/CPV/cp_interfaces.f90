@@ -145,6 +145,8 @@
 
    PUBLIC :: write_hamiltonian
 
+   PUBLIC :: symm_wannier
+
     INTERFACE s_wfc
        !
        SUBROUTINE s_wfc_real(n_atomic_wfc1,becwfc,betae,wfc,swfc)
@@ -2077,6 +2079,17 @@
         INTEGER, INTENT(IN) :: ispin
         LOGICAL, INTENT(IN) :: empty
       END SUBROUTINE 
+   END INTERFACE
+
+   INTERFACE symm_wannier
+      SUBROUTINE symm_wannier_x( wfc, num_states, emp )
+        USE kinds,          ONLY : DP
+        IMPLICIT NONE
+
+        INTEGER, INTENT(IN) :: num_states
+        LOGICAL, INTENT(IN) :: emp
+        COMPLEX(DP), INTENT(INOUT) :: wfc(:,:)
+      END SUBROUTINE
    END INTERFACE
 
 !=----------------------------------------------------------------------------=!

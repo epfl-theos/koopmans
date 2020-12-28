@@ -413,14 +413,39 @@
       use constants,      only : autoev 
       USE io_global,      ONLY : stdout, ionode
       USE ensemble_dft,   ONLY : tens, tsmear
-      use nksic,          ONLY : complexification_index, pink, pink_emp, do_orbdep, pzalpha=> odd_alpha, pzalpha_emp=>odd_alpha_emp
+      use nksic,          ONLY : complexification_index, pink, pink_emp, do_orbdep, &
+                                 pzalpha=> odd_alpha, pzalpha_emp=>odd_alpha_emp
+      USE centers_and_spreads, ONLY : centers_occ, centers_emp, &
+                                      spreads_occ, spreads_emp
       !
       INTEGER,  INTENT(IN) :: spread_unit
       LOGICAL,  INTENT(IN) :: tfile, tstdout
       INTEGER,  INTENT(IN) :: nfi
       REAL(DP), INTENT(IN) :: tps
       !
-      INTEGER :: i, j, ik
+      INTEGER :: i, j, ik, n
+      !
+      !
+      DO j = 1, nspin
+        !
+        WRITE( stdout, 2301 ) j
+        !
+        n = 0
+        DO i = 1, nupdwn(j)
+          !
+          n = n + 1
+          WRITE( stdout, 2401 ) n, centers_occ(:,i,j), spreads_occ(i,j)
+          !
+        ENDDO
+        !
+        DO i = 1, nupdwn_emp(j)
+          !
+          n = n + 1
+          WRITE( stdout, 2402 ) n, centers_emp(:,i,j), spreads_emp(i,j)
+          !
+        ENDDO
+        !
+      ENDDO
       !
       !
       ik = 1
@@ -470,6 +495,13 @@
  1445 FORMAT('OCC', I5, ' --',F8.2,'   ---',3F8.2,'   ---',2F8.2)
  1121 FORMAT(/3X,'Manifold complexification index = ',2F8.4/)
  1084 FORMAT(10F8.4)
+ 2301 FORMAT( //, 3x, 'Centers and Spreads of final variational orbitals, spin = ', i1, /  &
+                  3x, 85('-'), / &
+                  3x, 'Type  |  Orbital #', 2x, '|', 3x, '  x [Bohr]     y [Bohr]     z [Bohr]  ', 3x, '|', 3x, '< r^2 > [Bohr^2]', / &
+                  3x, 85('-') )
+ 2401 FORMAT( 4x, 'OCC', 5x, i5, 7x, 3f13.6, 8x, f14.8 )
+ 2402 FORMAT( 4x, 'EMP', 5x, i5, 7x, 3f13.6, 8x, f14.8 )
+
       !
       RETURN
    END SUBROUTINE print_centers_spreads

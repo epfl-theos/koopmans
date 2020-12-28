@@ -83,6 +83,7 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
       use descriptors,              only : descla_siz_
       use input_parameters,         only : odd_nkscalfact_empty, wo_odd_in_empty_run, odd_nkscalfact, &
                                            do_outerloop_empty
+      use centers_and_spreads,      only : get_centers_spreads
       !
       implicit none
       !
@@ -1335,6 +1336,10 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
            endif
            !
         endif
+        !
+        ! calculate centers and spreads of the current wavefunctions
+        CALL get_centers_spreads( c0_emp, n_empx, 'emp', units='bohr', verbose=.false. )
+        !
         !
         if ( ionode .and. mod(itercg,10) == 0 ) write(stdout,"()" )
         !
