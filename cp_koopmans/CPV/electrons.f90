@@ -52,7 +52,7 @@
         INTEGER, ALLOCATABLE  :: sort_spreads(:,:) !added:giovanni wfc_spreads_emp
         INTEGER, ALLOCATABLE  :: sort_spreads_emp(:,:) !added:giovanni wfc_spreads_emp
 
-        LOGICAL :: icompute_spread=.false. !added:giovanni 
+        LOGICAL :: icompute_spread=.true. !added:giovanni 
 
 !  ...  Fourier acceleration
 
@@ -478,10 +478,10 @@
          !
       END DO
       !
-      IF(tstdout) THEN
+      IF( tstdout ) THEN
          !
-         WRITE(stdout, *) " Complexification index "
-         WRITE(stdout, *) complexification_index
+         WRITE( stdout, '(/, " Complexification index ")' )
+         WRITE( stdout, * ) complexification_index
          !
       ENDIF
       !

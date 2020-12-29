@@ -82,7 +82,8 @@
                                            printout_base_close
       use control_flags,            only : iprint_manifold_overlap, iprint_spreads
       use input_parameters,         only : fixed_state, fixed_band, odd_nkscalfact, do_outerloop, &
-                                           finite_field_introduced, finite_field_for_empty_state
+                                           finite_field_introduced, finite_field_for_empty_state, &
+                                           track_orbitals
       USE centers_and_spreads,      ONLY : get_centers_spreads
       !
       implicit none
@@ -1687,8 +1688,10 @@
             !
         endif
         !
-        ! calculate centers and spreads of the current wavefunctions
-        CALL get_centers_spreads( c0, nbspx, 'occ', units='bohr', verbose=.false. )
+        IF ( track_orbitals ) THEN
+          ! calculate centers and spreads of the current wavefunctions
+          CALL get_centers_spreads( c0, nbspx, 'occ', units='bohr', verbose=.true. )
+        ENDIF
 
         if ( ionode .and. mod(itercg,10) == 0 ) write(stdout,"()" )
 
