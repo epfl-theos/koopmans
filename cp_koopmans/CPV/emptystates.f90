@@ -61,6 +61,7 @@
                                        odd_nkscalfact, index_empty_to_save, write_hr, &
                                        impose_bloch_symm
       USE wavefunctions_module, ONLY : c0fixed_emp
+      USE centers_and_spreads,  ONLY : get_centers_spreads
       !
       IMPLICIT NONE
       !
@@ -406,6 +407,9 @@
          ENDIF
          !
       ENDIF
+      !
+      ! calculate centers and spreads of the initial wavefunctions
+      CALL get_centers_spreads( c0_emp, n_empx, 'emp', units='bohr', verbose=.false. )
       !
       CALL nlsm1 ( n_emps, 1, nsp, eigr, c0_emp, bec_emp, 1, lgam )
       !

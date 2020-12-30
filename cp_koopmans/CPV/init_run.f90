@@ -90,6 +90,7 @@ SUBROUTINE init_run()
                                        restart_from_wannier_pwscf, impose_bloch_symm
   use wavefunctions_module,     ONLY : c0_fixed
   USE twin_types !added:giovanni
+  USE centers_and_spreads,      ONLY : get_centers_spreads
   !
   IMPLICIT NONE
   !
@@ -430,6 +431,9 @@ SUBROUTINE init_run()
      write(stdout, *) "in init_run from wannier end Linh"
      !
   ENDIF
+  !
+  ! calculate centers and spreads of the initial wavefunctions
+  CALL get_centers_spreads( c0, nbspx, 'occ', units='bohr', verbose=.false. )
   !
   IF ( odd_nkscalfact ) THEN
      !
