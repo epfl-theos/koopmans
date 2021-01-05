@@ -169,6 +169,10 @@
       real(dp) :: rPi, uPi, eff_finite_field
       real(dp), allocatable :: rho_init(:,:), dvpot(:)
       complex(dp), allocatable :: dvpotpsi(:,:)
+      real(dp) :: exxdiv
+      !
+      real(dp), external :: exx_divergence
+      !
       !
       call do_allocation_initialization()
       !
@@ -1166,18 +1170,30 @@
             itercg, itercgeff, etotnew
 #endif
       !
-      ! Let compute correction for charged system:
+      ! Computes the leading term of the Makov-Payne corrective energy
+      ! E = q^2 * madelung_const / ( 2 * L )
       !
-      IF (fixed_state .and. do_orbdep) THEN
-         !
-         write(stdout, *) "NLN: This is 2nd term in MP formular, computed with localized orbital"
-         write(stdout, *) "NLN: Use for extended system only where tcc does not have the correction"
-         !
-         charge = 1.0_dp
-         !
-         call makov_payne_correction_2nd_term ( charge, wfc_spreads(fixed_band, 1, 1))
-         !
+      IF ( fixed_state ) THEN
+        !
+        exxdiv = exx_divergence()
+        charge = 1.d0 !!! TO BE ADAPTED TO F_CUTOFF !!!
+        exxdiv = exxdiv / omega * charge**2
+        WRITE( stdout, '(/,A,ES20.8)' ) " Makov-Payne 1-order energy : ", exxdiv
+        !
       ENDIF
+      !
+      ! OBSOLETE: old version for calculating correction for charged systems
+      !           using Makov-Payne corrections (simple cubic systems only!)
+      !IF (fixed_state .and. do_orbdep) THEN
+      !   !
+      !   write(stdout, *) "NLN: This is 2nd term in MP formular, computed with localized orbital"
+      !   write(stdout, *) "NLN: Use for extended system only where tcc does not have the correction"
+      !   !
+      !   charge = 1.0_dp
+      !   !
+      !   call makov_payne_correction_2nd_term ( charge, wfc_spreads(fixed_band, 1, 1))
+      !   !
+      !ENDIF
       ! 
       !=======================================================================
       !                 end of the main loop

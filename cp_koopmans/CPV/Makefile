@@ -35,6 +35,7 @@ emptystates.o \
 ensemble_dft.o \
 environment.o \
 exch_corr.o \
+exx_divergence.o \
 fft.o \
 forces.o \
 fromscra.o \
