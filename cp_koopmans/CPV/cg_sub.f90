@@ -1177,7 +1177,7 @@
         !
         exxdiv = exx_divergence()
         charge = 1.d0 !!! TO BE ADAPTED TO F_CUTOFF !!!
-        mp1 = exxdiv / omega * charge**2 / 2
+        mp1 = - exxdiv / omega * charge**2 / 2
         mp1 = mp1 / e2       ! Ry to Ha conversion
         WRITE( stdout, '(/,A,ES20.8)' ) " Makov-Payne 1-order energy : ", mp1
         !
