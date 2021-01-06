@@ -46,7 +46,7 @@
       use mp_global,                ONLY : intra_image_comm, np_ortho, me_ortho, ortho_comm, me_image
       use dener
       use cdvan
-      use constants,                only : pi, au_gpa
+      use constants,                only : pi, au_gpa, e2
       use io_files,                 only : psfile, pseudo_dir
       USE io_files,                 ONLY : outdir, prefix
       use uspp,                     only : nhsa=> nkb, nhsavb=> nkbus, betae => vkb, rhovan => becsum, deeq,qq
@@ -169,7 +169,7 @@
       real(dp) :: rPi, uPi, eff_finite_field
       real(dp), allocatable :: rho_init(:,:), dvpot(:)
       complex(dp), allocatable :: dvpotpsi(:,:)
-      real(dp) :: exxdiv
+      real(dp) :: exxdiv, mp1
       !
       real(dp), external :: exx_divergence
       !
@@ -1177,8 +1177,9 @@
         !
         exxdiv = exx_divergence()
         charge = 1.d0 !!! TO BE ADAPTED TO F_CUTOFF !!!
-        exxdiv = exxdiv / omega * charge**2
-        WRITE( stdout, '(/,A,ES20.8)' ) " Makov-Payne 1-order energy : ", exxdiv
+        mp1 = exxdiv / omega * charge**2 / 2
+        mp1 = mp1 / e2       ! Ry to Ha conversion
+        WRITE( stdout, '(/,A,ES20.8)' ) " Makov-Payne 1-order energy : ", mp1
         !
       ENDIF
       !
