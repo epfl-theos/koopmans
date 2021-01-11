@@ -37,7 +37,7 @@ bindir :
 clean :
 	touch make.sys 
 	for dir in \
-		CPV Modules clib flib iotk \
+		CPV Modules clib flib iotk AFC90 \
 	; do \
 	    if test -d $$dir ; then \
 		( cd $$dir ; \
