@@ -1175,11 +1175,35 @@
       !
       IF ( fixed_state ) THEN
         !
+        WRITE( stdout, '(//,A)' ) " -----------------------"
+        WRITE( stdout, '(A)' ) " MAKOV-PAYNE CORRECTIONS"
+        WRITE( stdout, '(A)' ) " -----------------------"
         exxdiv = exx_divergence()
-        charge = 1.d0 !!! TO BE ADAPTED TO F_CUTOFF !!!
+        !
+        ! The following IF loop determines the system charge assuming always 
+        ! an even number of electrons for the neutral system. When the number
+        ! of electrons is odd (nupdwn(1) .ne. nupdwn(2)), we guess to deal with
+        ! an N+1 calculation and the charge is calculated consequently 
+        IF ( nupdwn(1) == nupdwn(2) .AND. fixed_band .LE. nupdwn(1) ) THEN
+          ! Case N-1
+          charge = 1 - f_cutoff
+          WRITE( stdout, '(A,F10.6)' ) " N-1 CASE --- q =", charge
+          !
+        ELSE IF ( fixed_band .GT. nupdwn(1) .OR. fixed_band .GT. nupdwn(2) ) THEN
+          ! Case N+1
+          charge = - f_cutoff
+          WRITE( stdout, '(A,F10.6)' ) " N+1 CASE --- q =", charge
+          !
+        ELSE
+          !
+          charge = 1.D0
+          WRITE( stdout, '(A)' ) " Cannot understand which case --- q set to 1"
+          !
+        ENDIF
+        !
         mp1 = - exxdiv / omega * charge**2 / 2
         mp1 = mp1 / e2       ! Ry to Ha conversion
-        WRITE( stdout, '(/,A,ES20.8)' ) " Makov-Payne 1-order energy : ", mp1
+        WRITE( stdout, '(/,2X,A,ES20.8)' ) " Makov-Payne 1-order energy : ", mp1
         !
       ENDIF
       !

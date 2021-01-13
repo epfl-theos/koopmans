@@ -45,7 +45,7 @@ FUNCTION exx_divergence()
   !
   CALL start_clock( 'exx_div' )
   !
-  WRITE( stdout, '(//,A,3I4)' ) " EXX : q-grid dimensions are ", nq1, nq2, nq3
+  WRITE( stdout, '(/,A,3I4)' ) " EXX : q-grid dimensions are ", nq1, nq2, nq3
   WRITE( stdout, '(A,5X,L)' )  " EXX : Gamma Extrapolation", x_gamma_extrapolation
   !
   IF ( x_gamma_extrapolation ) THEN
@@ -146,7 +146,7 @@ FUNCTION exx_divergence()
   !
   exx_divergence = div * nqs
   !
-  WRITE( stdout, '(A,1ES15.5,//)' ) " EXX : Coulomb G0 ", exx_divergence
+  WRITE( stdout, '(A,1ES15.5,/)' ) " EXX : Coulomb G0 ", exx_divergence
   !
   CALL stop_clock( 'exx_div' )
   !CALL print_clock( 'exx_div' )
