@@ -1,14 +1,12 @@
 default :
 	@echo 'to install, type at the shell prompt:'
 	@echo '  ./configure'
-	@echo '  make target'
-	@echo 'where target is one of the following:'
-	@echo '  cp           CP-Koopmans code'
+	@echo '  make kcp'
 
-cp : bindir mods libs libiotk afclib
+kcp : bindir mods libs libiotk afclib
 	if test -d CPV ; then \
-	( cd CPV ; if test "$(MAKE)" = "" ; then make $(MFLAGS) TLDEPS= cp ; \
-	else $(MAKE) $(MFLAGS) TLDEPS= cp ; fi ) ; fi
+	( cd CPV ; if test "$(MAKE)" = "" ; then make $(MFLAGS) TLDEPS= kcp ; \
+	else $(MAKE) $(MFLAGS) TLDEPS= kcp ; fi ) ; fi
 
 libiotk :
 	if test -d iotk ; then \
@@ -72,7 +70,7 @@ tar :
 links : bindir
 	( cd bin/ ; \
 	for exe in \
-	    ../CPV/cp.x \
+	    ../CPV/kcp.x \
 	    ../CPV/cppp.x \
 	; do \
 	      if test -f $$exe ; then ln -fs $$exe . ; fi \
