@@ -75,6 +75,7 @@ cg_sub.o : cp_interfaces.o
 cg_sub.o : efield.o
 cg_sub.o : electrons.o
 cg_sub.o : ensemble_dft.o
+cg_sub.o : exx_divergence.o
 cg_sub.o : ions_positions.o
 cg_sub.o : mainvar.o
 cg_sub.o : modules.o
@@ -570,6 +571,14 @@ exch_corr.o : ../Modules/sic.o
 exch_corr.o : cp_interfaces.o
 exch_corr.o : mainvar.o
 exch_corr.o : modules.o
+exx_divergence.o : ../Modules/cell_base.o
+exx_divergence.o : ../Modules/constants.o
+exx_divergence.o : ../Modules/control_flags.o
+exx_divergence.o : ../Modules/io_global.o
+exx_divergence.o : ../Modules/mp_global.o
+exx_divergence.o : ../Modules/mp.o
+exx_divergence.o : ../Modules/kind.o
+exx_divergence.o : ../Modules/recvec.o
 fft.o : ../Modules/control_flags.o
 fft.o : ../Modules/fft_base.o
 fft.o : ../Modules/fft_parallel.o

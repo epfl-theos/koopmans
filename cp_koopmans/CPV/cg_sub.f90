@@ -46,7 +46,7 @@
       use mp_global,                ONLY : intra_image_comm, np_ortho, me_ortho, ortho_comm, me_image
       use dener
       use cdvan
-      use constants,                only : pi, au_gpa
+      use constants,                only : pi, au_gpa, e2
       use io_files,                 only : psfile, pseudo_dir
       USE io_files,                 ONLY : outdir, prefix
       use uspp,                     only : nhsa=> nkb, nhsavb=> nkbus, betae => vkb, rhovan => becsum, deeq,qq
@@ -169,6 +169,10 @@
       real(dp) :: rPi, uPi, eff_finite_field
       real(dp), allocatable :: rho_init(:,:), dvpot(:)
       complex(dp), allocatable :: dvpotpsi(:,:)
+      real(dp) :: exxdiv, mp1
+      !
+      real(dp), external :: exx_divergence
+      !
       !
       call do_allocation_initialization()
       !
@@ -1166,18 +1170,55 @@
             itercg, itercgeff, etotnew
 #endif
       !
-      ! Let compute correction for charged system:
+      ! Computes the leading term of the Makov-Payne corrective energy
+      ! E = q^2 * madelung_const / ( 2 * L )
       !
-      IF (fixed_state .and. do_orbdep) THEN
-         !
-         write(stdout, *) "NLN: This is 2nd term in MP formular, computed with localized orbital"
-         write(stdout, *) "NLN: Use for extended system only where tcc does not have the correction"
-         !
-         charge = 1.0_dp
-         !
-         call makov_payne_correction_2nd_term ( charge, wfc_spreads(fixed_band, 1, 1))
-         !
+      IF ( fixed_state ) THEN
+        !
+        WRITE( stdout, '(//,A)' ) " -----------------------"
+        WRITE( stdout, '(A)' ) " MAKOV-PAYNE CORRECTIONS"
+        WRITE( stdout, '(A)' ) " -----------------------"
+        exxdiv = exx_divergence()
+        !
+        ! The following IF loop determines the system charge assuming always 
+        ! an even number of electrons for the neutral system. When the number
+        ! of electrons is odd (nupdwn(1) .ne. nupdwn(2)), we guess to deal with
+        ! an N+1 calculation and the charge is calculated consequently 
+        IF ( nupdwn(1) == nupdwn(2) .AND. fixed_band .LE. nupdwn(1) ) THEN
+          ! Case N-1
+          charge = 1 - f_cutoff
+          WRITE( stdout, '(A,F10.6)' ) " N-1 CASE --- q =", charge
+          !
+        ELSE IF ( fixed_band .GT. nupdwn(1) .OR. fixed_band .GT. nupdwn(2) ) THEN
+          ! Case N+1
+          charge = - f_cutoff
+          WRITE( stdout, '(A,F10.6)' ) " N+1 CASE --- q =", charge
+          !
+        ELSE
+          !
+          charge = 1.D0
+          WRITE( stdout, '(A)' ) " Cannot understand which case --- q set to 1"
+          !
+        ENDIF
+        !
+        mp1 = - exxdiv / omega * charge**2 / 2
+        mp1 = mp1 / e2       ! Ry to Ha conversion
+        WRITE( stdout, '(/,2X,A,ES20.8)' ) " Makov-Payne 1-order energy : ", mp1
+        !
       ENDIF
+      !
+      ! OBSOLETE: old version for calculating correction for charged systems
+      !           using Makov-Payne corrections (simple cubic systems only!)
+      !IF (fixed_state .and. do_orbdep) THEN
+      !   !
+      !   write(stdout, *) "NLN: This is 2nd term in MP formular, computed with localized orbital"
+      !   write(stdout, *) "NLN: Use for extended system only where tcc does not have the correction"
+      !   !
+      !   charge = 1.0_dp
+      !   !
+      !   call makov_payne_correction_2nd_term ( charge, wfc_spreads(fixed_band, 1, 1))
+      !   !
+      !ENDIF
       ! 
       !=======================================================================
       !                 end of the main loop
