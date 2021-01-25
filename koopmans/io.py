@@ -594,13 +594,6 @@ def set_up_pseudos(calc):
                                      'the environment variable ESPRESSO_PSEUDO or provide a pseudo_dir in '
                                      'the cp block of your json input file.')
 
-    # If it is missing, fill the input_dft field using information contained
-    # in the pseudopotential files
-    if 'pseudopotentials' in calc.parameters:
-        if 'input_dft' not in calc.parameters['input_data']['control']:
-            calc.parameters['input_data']['system']['input_dft'] = input_dft_from_pseudos(
-                calc)
-
 
 def nelec_from_pseudos(calc):
     '''
@@ -613,22 +606,6 @@ def nelec_from_pseudos(calc):
     valences = [int(float(valences_dct[l]))
                 for l in calc.atoms.get_array('labels')]
     return sum(valences)
-
-
-def input_dft_from_pseudos(calc):
-    '''
-    Determines input_dft using information from pseudopotential files
-    '''
-
-    directory = get_pseudo_dir(calc)
-    input_dft = list(set([read_pseudo_file(directory + '/' + fname).find('PP_HEADER').get('functional')
-                          for fname in calc.parameters['pseudopotentials'].values()]))
-
-    if len(input_dft) != 1:
-        warn('The listed pseudopotentials do not use the same functional; they are using '
-             ', '.join(input_dft))
-
-    return input_dft[0]
 
 
 def write_alpha_file(directory, alphas, filling):
