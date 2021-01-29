@@ -1,6 +1,6 @@
 """
 
-Workflow module for performing a single PBE calculation with cp.x
+Workflow module for performing a single PBE calculation with kcp.x
 
 Written by Edward Linscott Oct 2020
 
@@ -16,13 +16,13 @@ class PBEWorkflow(Workflow):
 
     def __init__(self, *args):
         super().__init__(*args)
-        if 'cp' not in self.master_calcs:
+        if 'kcp' not in self.master_calcs:
             raise ValueError(
-                '"functional": "PBE" requires a "cp" block in the input .json file')
+                '"functional": "PBE" requires a "kcp" block in the input .json file')
 
     def run(self):
 
-        calc = self.new_calculator('cp')
+        calc = self.new_calculator('kcp')
 
         # Sanitise outdir
         calc.outdir = calc.outdir.strip('./')

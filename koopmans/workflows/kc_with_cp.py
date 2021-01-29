@@ -13,7 +13,7 @@ import copy
 import numpy as np
 import pandas as pd
 from koopmans import io, utils
-from koopmans.calculators.cp import CP_calc
+from koopmans.calculators.kcp import KCP_calc
 from koopmans.workflows.generic import Workflow
 from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
 
@@ -23,33 +23,43 @@ class KoopmansWorkflow(Workflow):
     def __init__(self, workflow_settings, calcs_dct, alphas=None):
         super().__init__(workflow_settings, calcs_dct)
 
-        if 'cp' not in self.master_calcs:
+        if 'kcp' not in self.master_calcs:
             raise ValueError(
-                'Performing a KC calculation requires a "cp" block in the .json input file')
-        cp_calc = self.master_calcs['cp']
+                'Performing a KC calculation requires a "kcp" block in the .json input file')
+        kcp_calc = self.master_calcs['kcp']
 
         # Sanitise outdir
-        if cp_calc.outdir[0] != '/':
-            cp_calc.outdir = os.getcwd() + '/' + cp_calc.outdir.strip('./')
+        if kcp_calc.outdir[0] != '/':
+            kcp_calc.outdir = os.getcwd() + '/' + kcp_calc.outdir.strip('./')
 
-        # If periodic, convert the cp calculation into a Γ-only supercell calculation
+        # If periodic, convert the kcp calculation into a Γ-only supercell calculation
         if self.periodic:
-            kpts = self.master_calcs['cp'].calc.parameters.kpts
-            self.master_calcs['cp'].transform_to_supercell(np.diag(kpts))
-            self.orbital_groups = [i for i in self.orbital_groups for _ in range(np.prod(kpts))]
+            kpts = self.master_calcs['kcp'].calc.parameters.kpts
+            self.master_calcs['kcp'].transform_to_supercell(np.diag(kpts))
+            nocc = self.master_calcs['w90_occ'].num_wann
+            self.orbital_groups = [i for _ in range(np.prod(kpts)) for i in self.orbital_groups[:nocc]] + \
+                                  [i for _ in range(np.prod(kpts)) for i in self.orbital_groups[nocc:]]
 
-        # Check the number of empty states has been correctly configured
-        if self.init_variational_orbitals in ['mlwfs', 'projw']:
+            # Check the number of empty states has been correctly configured
             w90_emp_calc = self.master_calcs['w90_emp']
 
-            expected_empty_states_nbnd = w90_emp_calc.num_wann * np.prod(cp_calc.calc.parameters.kpts)
-            if cp_calc.empty_states_nbnd is None:
-                cp_calc.empty_states_nbnd = expected_empty_states_nbnd
-            elif cp_calc.empty_states_nbnd != expected_empty_states_nbnd:
-                raise ValueError('cp empty_states_nbnd and wannier90 num_wann (emp) are inconsistent')
+            expected_empty_states_nbnd = w90_emp_calc.num_wann * np.prod(kcp_calc.calc.parameters.kpts)
+            if kcp_calc.empty_states_nbnd is None:
+                kcp_calc.empty_states_nbnd = expected_empty_states_nbnd
+            elif kcp_calc.empty_states_nbnd != expected_empty_states_nbnd:
+                raise ValueError('kcp empty_states_nbnd and wannier90 num_wann (emp) are inconsistent')
+
+        # Check on the Makov-Payne corrections
+        if self.periodic and self.mp_corrections:
+            if self.eps_inf is None:
+                raise ValueError('eps_inf missing in input; needed when mp_corrections is true')
+            elif self.eps_inf < 1.0:
+                raise ValueError('eps_inf cannot be lower than 1')
+        elif self.periodic and not self.mp_corrections:
+            utils.warn('Makov-Payne corrections not applied for a periodic calculation; do this with caution')
 
         # Preparing panda dataframes in which to store results
-        i_bands = range(1, len(cp_calc.filling[0]) + 1)
+        i_bands = range(1, len(kcp_calc.filling[0]) + 1)
         self.alpha_df = pd.DataFrame(columns=i_bands)
         self.error_df = pd.DataFrame(columns=i_bands)
 
@@ -72,7 +82,7 @@ class KoopmansWorkflow(Workflow):
         duplicates if calc.nspin == 2
         '''
 
-        calc = self.master_calcs['cp']
+        calc = self.master_calcs['kcp']
 
         if calc.nspin == 2:
             i_alphas = list(range(0, calc.nelec // 2)) + list((range(calc.nelec, calc.nelec + calc.empty_states_nbnd)))
@@ -105,7 +115,7 @@ class KoopmansWorkflow(Workflow):
                 # if self.init_density == "ki" we don't want to delete the directory containing
                 # the KI calculation we're reading the manifold from, or the TMP files
                 utils.system_call('rm -r init 2>/dev/null', False)
-                utils.system_call(f'rm -r {self.master_calcs["cp"].outdir} 2>/dev/null', False)
+                utils.system_call(f'rm -r {self.master_calcs["kcp"].outdir} 2>/dev/null', False)
             utils.system_call('rm -r calc_alpha 2>/dev/null', False)
             utils.system_call('rm -r final 2>/dev/null', False)
 
@@ -169,20 +179,16 @@ class KoopmansWorkflow(Workflow):
             os.chdir('..')
 
         if self.init_density == 'pbe':
-            if self.init_variational_orbitals in ['mlwfs', 'projw']:
+            if self.periodic:
                 # We need a dummy calc before the real pbe_init in order
                 # to copy the previously calculated Wannier functions
-                calc = self.new_calculator('cp', 'pbe_init', do_outerloop=False,
-                                           do_outerloop_empty=False, do_innerloop=False,
-                                           do_innerloop_empty=False)
+                calc = self.new_calculator('kcp', 'pbe_dummy')
                 calc.directory = 'init'
-                calc.name = 'pbe_dummy'
-                calc.skip_qc = True
                 self.run_calculator(calc, enforce_ss=False)
 
                 # PBE restarting from Wannier functions (after copying the Wannier functions)
-                calc = self.new_calculator('cp', 'pbe_init', restart_mode='restart',
-                                           restart_from_wannier_pwscf=True, do_outerloop_empty=False)
+                calc = self.new_calculator('kcp', 'pbe_init', restart_mode='restart',
+                                           restart_from_wannier_pwscf=True, do_outerloop=True)
                 calc.directory = 'init'
                 restart_dir = f'{calc.outdir}/{calc.prefix}_{calc.ndr}.save/K00001'
                 for typ in ['occ', 'emp']:
@@ -204,7 +210,7 @@ class KoopmansWorkflow(Workflow):
                 self.run_calculator(calc, enforce_ss=False)
 
             else:
-                calc = self.new_calculator('cp', 'pbe_init')
+                calc = self.new_calculator('kcp', 'pbe_init')
                 calc.directory = 'init'
                 self.run_calculator(calc, enforce_ss=self.enforce_spin_symmetry)
 
@@ -214,11 +220,11 @@ class KoopmansWorkflow(Workflow):
 
         elif self.init_density == 'pz':
             # PBE from scratch
-            calc = self.new_calculator('cp', 'pbe_init')
+            calc = self.new_calculator('kcp', 'pbe_init')
             calc.directory = 'init'
             self.run_calculator(calc)
             # PZ from PBE
-            calc = self.new_calculator('cp', 'pz_init')
+            calc = self.new_calculator('kcp', 'pz_init')
             calc.directory = 'init'
             self.run_calculator(calc)
 
@@ -226,7 +232,7 @@ class KoopmansWorkflow(Workflow):
             print('Copying the density from a pre-existing KI calculation')
 
             # Read the .cpi file to work out the value for ndw
-            calc = CP_calc(qe_files='init/ki_init')
+            calc = KCP_calc(qe_files='init/ki_init')
 
             # Move the old save directory to correspond to ndw = 50
             old_savedir = f'{calc.outdir}/{calc.prefix}_{calc.ndw}.save'
@@ -274,8 +280,10 @@ class KoopmansWorkflow(Workflow):
                 utils.system_call(
                     f'cp {savedir}/evc_empty2.dat {savedir}/evc0_empty2.dat')
 
-        if self.init_variational_orbitals == 'pz':
-            calc = self.new_calculator('cp', 'pz_innerloop_init', alphas=self.alpha_df.loc[1])
+        if self.init_variational_orbitals in ['pz', 'mlwfs', 'projw']:
+            # For mlwfs and projw this calculator will not be run. We are going to use
+            # just to get the right ndr and ndw
+            calc = self.new_calculator('kcp', 'pz_innerloop_init', alphas=self.alpha_df.loc[1])
         elif self.init_variational_orbitals == 'ki':
             if self.init_density != 'ki':
                 raise ValueError('Initialising variational orbitals with KI makes no sense unless '
@@ -299,6 +307,9 @@ class KoopmansWorkflow(Workflow):
         elif self.init_variational_orbitals in ['mlwfs', 'projw']:
             print('The variational orbitals have already been initialised to Wannier functions during the density '
                   'initialisation')
+            save_prefix = f'{calc.outdir}/{calc.prefix}'
+            utils.system_call(
+                f'cp -r {save_prefix}_{calc.ndr}.save {save_prefix}_{calc.ndw}.save')
         elif self.init_variational_orbitals in [self.init_density, 'skip']:
             if self.init_variational_orbitals == 'skip':
                 print('Skipping the optimisation of the variational orbitals')
@@ -354,7 +365,7 @@ class KoopmansWorkflow(Workflow):
         while not converged and i_sc < self.n_max_sc_steps:
             i_sc += 1
             iteration_directory = 'calc_alpha'
-            _, outdir = self.master_calcs['cp'].outdir.rsplit('/', 1)
+            _, outdir = self.master_calcs['kcp'].outdir.rsplit('/', 1)
             outdir = os.getcwd() + f'/{iteration_directory}/{outdir}'
 
             if not os.path.isdir(outdir):
@@ -368,18 +379,12 @@ class KoopmansWorkflow(Workflow):
                     utils.system_call(f'mkdir {iteration_directory}')
 
             # Do a KI/KIPZ calculation with the updated alpha values
-            calc = self.new_calculator('cp', calc_presets=self.functional.replace('pkipz', 'ki'),
+            calc = self.new_calculator('kcp', calc_presets=self.functional.replace('pkipz', 'ki'),
                                        alphas=self.alpha_df.loc[i_sc])
             calc.directory = iteration_directory
 
-            if self.init_variational_orbitals in ['mlwfs', 'projw']:
-                calc.ndr = 50
-                calc.do_outerloop = False
-                calc.do_outerloop_empty = False
-                calc.restart_from_wannier_pwscf = True
-
             if i_sc == 1:
-                if self.functional == 'kipz':
+                if self.functional == 'kipz' and not self.periodic:
                     # For the first KIPZ trial calculation, do the innerloop
                     calc.do_innerloop = True
             else:
@@ -413,7 +418,7 @@ class KoopmansWorkflow(Workflow):
                 if not os.path.isdir(outdir_band):
                     utils.system_call(f'mkdir {outdir_band}')
                     utils.system_call(
-                        f'ln -sr {self.master_calcs["cp"].outdir}/*.save {outdir_band}')
+                        f'ln -sr {self.master_calcs["kcp"].outdir}/*.save {outdir_band}')
 
                 # Don't repeat if this particular alpha_i was converged
                 if i_sc > 1 and any([abs(e) < self.alpha_conv_thr for e in
@@ -483,14 +488,12 @@ class KoopmansWorkflow(Workflow):
                         filling = band_filled_or_fixed
 
                     # Set up calculator
-                    calc = self.new_calculator('cp', calc_type, alphas=alphas,
-                                               filling=filling, fixed_band=min(
-                                                   fixed_band, n_filled_bands + 1),
-                                               index_empty_to_save=index_empty_to_save,
-                                               outdir=outdir_band)
+                    calc = self.new_calculator('kcp', calc_type, alphas=alphas, filling=filling, fixed_band=min(
+                                               fixed_band, n_filled_bands + 1),
+                                               index_empty_to_save=index_empty_to_save, outdir=outdir_band)
                     calc.directory = directory
 
-                    # Run cp.x
+                    # Run kcp.x
                     self.run_calculator(calc)
 
                     # Reset the value of 'fixed_band' so we can keep track of which calculation
@@ -518,17 +521,13 @@ class KoopmansWorkflow(Workflow):
 
                     # Copying of evcfixed_empty.dat to evc_occupied.dat
                     if calc_type in ['pz_print', 'kipz_print']:
-                        evcempty_dir = f'{outdir_band}/' \
-                            f'{calc.prefix}_{calc.ndw}.save/K00001/'
+                        evcempty_dir = f'{outdir_band}/{calc.prefix}_{calc.ndw}.save/K00001/'
                     elif calc_type == 'pbe_n+1_dummy':
-                        evcocc_dir = f'{outdir_band}/' \
-                            f'{calc.prefix}_{calc.ndr}.save/K00001/'
+                        evcocc_dir = f'{outdir_band}/{calc.prefix}_{calc.ndr}.save/K00001/'
                         if os.path.isfile(f'{evcempty_dir}/evcfixed_empty.dat'):
-                            utils.system_call(
-                                f'cp {evcempty_dir}/evcfixed_empty.dat {evcocc_dir}/evc_occupied.dat')
+                            utils.system_call(f'cp {evcempty_dir}/evcfixed_empty.dat {evcocc_dir}/evc_occupied.dat')
                         else:
-                            raise OSError(
-                                f'Could not find {evcempty_dir}/evcfixed_empty.dat')
+                            raise OSError(f'Could not find {evcempty_dir}/evcfixed_empty.dat')
 
                 if self.from_scratch:
 
@@ -543,12 +542,7 @@ class KoopmansWorkflow(Workflow):
                     calcs = [c for calc_set in [alpha_dep_calcs, alpha_indep_calcs]
                              for c in calc_set if c.fixed_band == fixed_band]
 
-                    if self.functional in ['ki', 'pkipz']:
-                        alpha, error = calculate_alpha(
-                            calcs, filled=filled, kipz=False)
-                    else:
-                        alpha, error = calculate_alpha(
-                            calcs, filled=filled, kipz=True)
+                    alpha, error = self.calculate_alpha_from_list_of_calcs(calcs, filled=filled)
 
                     for band_in_group in all_bands_in_group:
                         self.alpha_df.loc[i_sc + 1, band_in_group] = alpha
@@ -591,15 +585,13 @@ class KoopmansWorkflow(Workflow):
             # KI calculation
             if final_calc_type == 'pkipz_final':
                 ndr = [c.ndw for c in self.all_calcs if c.name in ['ki', 'ki_final']][-1]
-                calc = self.new_calculator('cp', final_calc_type, ndr=ndr)
+                calc = self.new_calculator('kcp', final_calc_type, ndr=ndr)
             else:
-                calc = self.new_calculator('cp', final_calc_type)
+                calc = self.new_calculator('kcp', final_calc_type)
 
             calc.directory = directory
 
             if self.init_variational_orbitals in ['mlwfs', 'projw']:
-                calc.do_outerloop = False
-                calc.do_outerloop_empty = False
                 calc.write_hr = True
 
             self.run_calculator(calc)
@@ -612,15 +604,15 @@ class KoopmansWorkflow(Workflow):
 
         """
 
-        if calc_type == 'cp':
-            return self.new_cp_calculator(calc_presets, alphas, filling, **kwargs)
+        if calc_type == 'kcp':
+            return self.new_kcp_calculator(calc_presets, alphas, filling, **kwargs)
         else:
-            raise ValueError(f'You should not be requesting calculators with {calc_type} != "cp"')
+            raise ValueError(f'You should not be requesting calculators with {calc_type} != "kcp"')
 
-    def new_cp_calculator(self, calc_presets='pbe_init', alphas=None, filling=None, **kwargs):
+    def new_kcp_calculator(self, calc_presets='pbe_init', alphas=None, filling=None, **kwargs):
         """
 
-        Generates a new CP calculator based on the self.master_calc["cp"]
+        Generates a new KCP calculator based on the self.master_calc["kcp"]
         template calculator, modifying the appropriate settings to match the
         chosen calc_presets, and altering any Quantum Espresso keywords
         specified as kwargs
@@ -634,6 +626,8 @@ class KoopmansWorkflow(Workflow):
                 'pbe_init'            PBE calculation from scratch
                 'pz_init'             PZ calculation starting from PBE restart
                 'pz_innerloop_init'   PZ calculation starting from PBE restart (innerloop only)
+                'pbe_dummy'           PBE dummy calculation that generate store files
+                                      for a periodic calculation restarting from Wannier functions
 
                 Trial calculations
                 'ki'     KI calculation with N electrons and empty bands if specified
@@ -647,8 +641,8 @@ class KoopmansWorkflow(Workflow):
                 'kipz_n-1'      KIPZ calculation with N-1 electrons via fixed_state; rho is optimised
 
                 For calculating alpha_i for empty orbitals
-                'pz_print'         PZ calculation that generates evcempty_fixed.dat file
-                'kipz_print'       KIPZ calculation that generates evcempty_fixed.dat file
+                'pz_print'         PZ calculation that generates evcfixed_empty.dat file
+                'kipz_print'       KIPZ calculation that generates evcfixed_empty.dat file
                 'pbe_n+1_dummy'    PBE dummy calculation that generates store files of
                                    the correct dimensions
                 'pbe_n+1'          PBE calculation with N+1 electrons; rho is optimised
@@ -672,7 +666,7 @@ class KoopmansWorkflow(Workflow):
            **kwargs accepts any Quantum Espresso keywords as an argument, and will
                     apply these options to the returned ASE calculator
 
-        Returns: a new CP calculator object
+        Returns: a new KCP calculator object
 
         """
 
@@ -680,11 +674,11 @@ class KoopmansWorkflow(Workflow):
         if alphas is None:
             alphas = self.alpha_df.iloc[-1]
 
-        # Generate a new cp calculator copied from the master calculator
-        calc = CP_calc(self.master_calcs["cp"], alphas=alphas, filling=filling)
+        # Generate a new kcp calculator copied from the master calculator
+        calc = KCP_calc(self.master_calcs["kcp"], alphas=alphas, filling=filling)
 
         # Set up read/write indexes
-        if calc_presets == 'pbe_init':
+        if calc_presets in ['pbe_init', 'pbe_dummy']:
             ndr = 50
             ndw = 50
         elif calc_presets in ['pz_init', 'pz_innerloop_init']:
@@ -726,12 +720,12 @@ class KoopmansWorkflow(Workflow):
         else:
             raise ValueError('Invalid calc_presets "{}"'.format(calc_presets))
 
-        # CP options
+        # KCP options
         # control
         calc.name = calc_presets
         calc.ndw = ndw
         calc.ndr = ndr
-        if calc.name in ['pbe_init', 'pbe_n+1_dummy']:
+        if calc.name in ['pbe_init', 'pbe_dummy', 'pbe_n+1_dummy']:
             calc.restart_mode = 'from_scratch'
         else:
             calc.restart_mode = 'restart'
@@ -741,8 +735,8 @@ class KoopmansWorkflow(Workflow):
             calc.do_orbdep = True
         else:
             calc.do_orbdep = False
-        if calc.name in ['pbe_init', 'pz_init', 'pz_innerloop_init', 'ki',
-                         'kipz', 'pz_print', 'kipz_print', 'pbe_n+1_dummy',
+        if calc.name in ['pbe_init', 'pz_init', 'pz_innerloop_init', 'pbe_dummy',
+                         'ki', 'kipz', 'pz_print', 'kipz_print', 'pbe_n+1_dummy',
                          'ki_final', 'kipz_final', 'pkipz_final']:
             calc.fixed_state = False
         else:
@@ -756,7 +750,7 @@ class KoopmansWorkflow(Workflow):
             calc.nelup += 1
             if 'dummy' not in calc.name:
                 calc.restart_from_wannier_pwscf = True
-        # Peridoc calculations do not use complex wavefunctions (by default the wavefunctions
+        # Periodic calculations do not use complex wavefunctions (by default the wavefunctions
         # are real since they come from a Γ-only calculation and no counter-charge corrections
         # are applied), whereas aperiodic calculations benefit from using complex wavefunctions
         calc.do_wf_cmplx = not self.periodic
@@ -769,7 +763,11 @@ class KoopmansWorkflow(Workflow):
             calc.conv_thr *= 100
             calc.esic_conv_thr *= 100
 
-        if any([s in calc.name for s in ['frozen', 'dummy', 'print', 'innerloop']]) or calc.name == 'pkipz_final':
+        if self.periodic and not any([s == calc.name for s in ['pbe_init', 'pbe_n-1', 'pbe_n+1',
+                                                               'kipz', 'kipz_n-1', 'kipz_n+1']]):
+            calc.do_outerloop = False
+            calc.do_innerloop = False
+        elif any([s in calc.name for s in ['frozen', 'dummy', 'print', 'innerloop']]) or calc.name == 'pkipz_final':
             calc.do_outerloop = False
             if calc.empty_states_nbnd > 0:
                 calc.do_outerloop_empty = False
@@ -785,6 +783,11 @@ class KoopmansWorkflow(Workflow):
             calc.maxiter = 300
         if calc.empty_states_maxstep is None and calc.do_outerloop_empty:
             calc.empty_states_maxstep = 300
+
+        # No empty states minimization in the solids workflow for the moment
+        if self.periodic and calc.empty_states_nbnd > 0:
+            calc.do_outerloop_empty = False
+            calc.do_innerloop_empty = False
 
         # nksic
         if calc.do_orbdep:
@@ -848,108 +851,136 @@ class KoopmansWorkflow(Workflow):
             print(self.error_df)
         print('')
 
+    def calculate_alpha_from_list_of_calcs(self, calcs, filled=True):
+        '''
 
-def calculate_alpha(calcs, filled=True, kipz=False):
-    '''
+        Calculates alpha via equation 10 of Nguyen et. al (2018) 10.1103/PhysRevX.8.021051
+        If the band is filled, use s = 1; if the band is empty, use s = 0
 
-    Calculates alpha via equation 10 of Nguyen et. al (2018) 10.1103/PhysRevX.8.021051
-    If the band is filled, use s = 1; if the band is empty, use s = 0
+        Arguments:
+            calcs          -- a list of selected calculations from which to calculate alpha
+            filled         -- True if the orbital for which we're calculating alpha is filled
 
-    Arguments:
-        calcs  -- a list of calculations
-        filled -- True if the orbital for which we're calculating alpha is filled
-        kipz   -- True if KIPZ; False if KI
+        '''
 
-    '''
+        if self.functional == 'kipz':
+            if filled:
+                # KIPZ N
+                [alpha_calc] = [c for c in calcs if c.which_orbdep == 'nkipz'
+                                and c.do_orbdep and c.f_cutoff == 1.0]
+                kipz = alpha_calc.results
 
-    if kipz and filled:
-        # KIPZ N
-        [alpha_calc] = [c for c in calcs if c.which_orbdep == 'nkipz'
-                        and c.do_orbdep and c.f_cutoff == 1.0]
-        kipz = alpha_calc.results
+                # KIPZ N-1
+                [kipz_m1_calc] = [c for c in calcs if c.which_orbdep == 'nkipz'
+                                  and c.do_orbdep and c.f_cutoff < 0.0001]
+                kipz_m1 = kipz_m1_calc.results
+                charge = 1 - kipz_m1_calc.f_cutoff
 
-        # KIPZ N-1
-        [kipz_m1] = [c.results for c in calcs if c.which_orbdep == 'nkipz'
-                     and c.do_orbdep and c.f_cutoff < 0.0001]
+                # PBE N
+                [pbe] = [c.results for c in calcs if not c.do_orbdep
+                         and c.restart_mode == 'restart' and c.f_cutoff == 1.0]
 
-        # PBE N
-        [pbe] = [c.results for c in calcs if not c.do_orbdep
-                 and c.restart_mode == 'restart' and c.f_cutoff == 1.0]
+                dE = kipz['energy'] - kipz_m1['energy']
+                lambda_a = kipz['lambda_ii']
+                lambda_0 = pbe['lambda_ii']
+                mp1 = kipz_m1['mp1_energy']
+                mp2 = kipz_m1['mp2_energy']
 
-        dE = kipz['energy'] - kipz_m1['energy']
-        lambda_a = kipz['lambda_ii']
-        lambda_0 = pbe['lambda_ii']
+            else:
+                # KIPZ N+1-1
+                [alpha_calc] = [c for c in calcs if c.which_orbdep == 'nkipz'
+                                and c.do_orbdep and c.f_cutoff < 0.0001]
+                kipz = alpha_calc.results
 
-    elif kipz and not filled:
-        # KIPZ N+1-1
-        [alpha_calc] = [c for c in calcs if c.which_orbdep == 'nkipz'
-                        and c.do_orbdep and c.f_cutoff < 0.0001]
-        kipz = alpha_calc.results
+                # KIPZ N+1
+                [kipz_p1_calc] = [c for c in calcs if c.which_orbdep == 'nkipz'
+                                  and c.do_orbdep and c.f_cutoff == 1.0]
+                kipz_p1 = kipz_p1_calc.results
+                charge = - kipz_p1_calc.f_cutoff
 
-        # KIPZ N+1
-        [kipz_p1] = [c.results for c in calcs if c.which_orbdep == 'nkipz'
-                     and c.do_orbdep and c.f_cutoff == 1.0]
+                # PBE N+1-1
+                [pbe] = [c.results for c in calcs if not c.do_orbdep
+                         and c.restart_mode == 'restart' and c.f_cutoff < 0.0001]
 
-        # PBE N+1-1
-        [pbe] = [c.results for c in calcs if not c.do_orbdep
-                 and c.restart_mode == 'restart' and c.f_cutoff < 0.0001]
+                dE = kipz_p1['energy'] - kipz['energy']
+                lambda_a = kipz['lambda_ii']
+                lambda_0 = pbe['lambda_ii']
+                mp1 = kipz_p1['mp1_energy']
+                mp2 = kipz_p1['mp2_energy']
 
-        dE = kipz_p1['energy'] - kipz['energy']
-        lambda_a = kipz['lambda_ii']
-        lambda_0 = pbe['lambda_ii']
+        else:
+            # self.functional in ['ki', 'pkipz']
+            if filled:
+                # KI N
+                [alpha_calc] = [c for c in calcs if c.which_orbdep == 'nki'
+                                and c.do_orbdep and c.f_cutoff == 1.0]
+                ki = alpha_calc.results
 
-    elif not kipz and filled:
-        # KI N
-        [alpha_calc] = [c for c in calcs if c.which_orbdep == 'nki'
-                        and c.do_orbdep and c.f_cutoff == 1.0]
-        ki = alpha_calc.results
+                # PBE N-1
+                [pbe_m1_calc] = [c for c in calcs if not c.do_orbdep
+                                 and c.restart_mode == 'restart' and c.f_cutoff < 0.0001]
+                pbe_m1 = pbe_m1_calc.results
+                charge = 1 - pbe_m1_calc.f_cutoff
 
-        # PBE N-1
-        [pbe_m1] = [c.results for c in calcs if not c.do_orbdep
-                    and c.restart_mode == 'restart' and c.f_cutoff < 0.0001]
+                # PBE N
+                [pbe] = [c.results for c in calcs if not c.do_orbdep
+                         and c.restart_mode == 'restart' and c.f_cutoff == 1.0]
 
-        # PBE N
-        [pbe] = [c.results for c in calcs if not c.do_orbdep
-                 and c.restart_mode == 'restart' and c.f_cutoff == 1.0]
+                dE = pbe['energy'] - pbe_m1['energy']
+                lambda_a = ki['lambda_ii']
+                lambda_0 = pbe['lambda_ii']
+                mp1 = pbe_m1['mp1_energy']
+                mp2 = pbe_m1['mp2_energy']
 
-        dE = pbe['energy'] - pbe_m1['energy']
-        lambda_a = ki['lambda_ii']
-        lambda_0 = pbe['lambda_ii']
+            else:
+                # KI N+1-1
+                [alpha_calc] = [c for c in calcs if c.which_orbdep == 'nki'
+                                and c.do_orbdep and c.f_cutoff < 0.0001]
+                ki = alpha_calc.results
 
-    else:
-        # KI N+1-1
-        [alpha_calc] = [c for c in calcs if c.which_orbdep == 'nki'
-                        and c.do_orbdep and c.f_cutoff < 0.0001]
-        ki = alpha_calc.results
+                # PBE N+1
+                [pbe_p1_calc] = [c for c in calcs if not c.do_orbdep
+                                 and c.restart_mode == 'restart' and c.f_cutoff == 1.0]
+                pbe_p1 = pbe_p1_calc.results
+                charge = - pbe_p1_calc.f_cutoff
 
-        # PBE N+1
-        [pbe_p1] = [c.results for c in calcs if not c.do_orbdep
-                    and c.restart_mode == 'restart' and c.f_cutoff == 1.0]
+                # PBE N+1-1
+                [pbe] = [c.results for c in calcs if not c.do_orbdep
+                         and c.restart_mode == 'restart' and c.f_cutoff < 0.0001]
 
-        # PBE N+1-1
-        [pbe] = [c.results for c in calcs if not c.do_orbdep
-                 and c.restart_mode == 'restart' and c.f_cutoff < 0.0001]
+                dE = pbe_p1['energy'] - pbe['energy']
+                lambda_a = ki['lambda_ii']
+                lambda_0 = pbe['lambda_ii']
+                mp1 = pbe_p1['mp1_energy']
+                mp2 = pbe_p1['mp2_energy']
 
-        dE = pbe_p1['energy'] - pbe['energy']
-        lambda_a = ki['lambda_ii']
-        lambda_0 = pbe['lambda_ii']
+            # Check total energy is unchanged
+            dE_check = abs(ki['energy'] - pbe['energy'])
+            if dE_check > 1e-5:
+                utils.warn('KI and PBE energies differ by {:.5f} eV'.format(dE_check))
 
-    if not kipz:
-        # Check total energy is unchanged
-        dE_check = abs(ki['energy'] - pbe['energy'])
-        if dE_check > 1e-5:
-            warn('KI and PBE energies differ by {:.5f} eV'.format(dE_check))
+        # Obtaining alpha
+        if (alpha_calc.odd_nkscalfact and filled) or (alpha_calc.odd_nkscalfact_empty and not filled):
+            alpha_guesses = alpha_calc.alphas[0]
+            alpha_guess = alpha_guesses[alpha_calc.fixed_band - 1]
+        else:
+            alpha_guess = alpha_calc.nkscalfact
 
-    # Obtaining alpha
-    if (alpha_calc.odd_nkscalfact and filled) or (alpha_calc.odd_nkscalfact_empty and not filled):
-        alpha_guesses = alpha_calc.alphas[0]
-        alpha_guess = alpha_guesses[alpha_calc.fixed_band - 1]
-    else:
-        alpha_guess = alpha_calc.nkscalfact
+        # Checking Makov-Payne correction energies and applying them (if needed)
+        if self.mp_corrections:
+            if mp1 is None:
+                raise ValueError('Could not find 1st order Makov-Payne energy')
+            if mp2 is None:
+                utils.warn('Could not find 2nd order Makov-Payne energy; applying first order only')
+                mp_energy = mp1
+            else:
+                mp_energy = mp1 + mp2
 
-    alpha = alpha_guess * (dE - lambda_0) / (lambda_a - lambda_0)
+            dE -= np.sign(charge) * mp_energy / self.eps_inf
 
-    # The error is lambda^alpha(1) - lambda^alpha_i(1)
-    error = dE - lambda_a
+        alpha = alpha_guess * (dE - lambda_0) / (lambda_a - lambda_0)
 
-    return alpha, error
+        # The error is lambda^alpha(1) - lambda^alpha_i(1)
+        error = dE - lambda_a
+
+        return alpha, error

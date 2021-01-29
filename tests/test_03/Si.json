@@ -1,8 +1,10 @@
 {
     "workflow":
     {
-        "functional"                : "ki",
+        "functional"                : "all",
         "periodic"                  : true,
+    	"mp_corrections"            : true,
+    	"eps_inf"                   : 13.02,
         "init_variational_orbitals" : "mlwfs",
         "n_max_sc_steps"            : 1,
         "alpha_from_file"           : false,

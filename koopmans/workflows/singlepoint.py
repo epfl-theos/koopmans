@@ -59,7 +59,8 @@ class SinglepointWorkflow(Workflow):
                 os.chdir(functional)
 
                 # Create a KC workflow for this particular functional
-                kc_workflow = KoopmansWorkflow(local_workflow_settings, self.master_calcs, alphas)
+                master_calcs_local = copy.deepcopy(self.master_calcs)
+                kc_workflow = KoopmansWorkflow(local_workflow_settings, master_calcs_local, alphas)
 
                 # Run the workflow
                 kc_workflow.run()
@@ -78,7 +79,7 @@ class SinglepointWorkflow(Workflow):
 
                     # KIPZ
                     utils.system_call('rsync -a ki/final/ kipz/init/')
-                    utils.system_call(f'rsync -a {solved_calc.outdir}/ kipz/')
+                    utils.system_call(f'rsync -a {solved_calc.outdir} kipz/')
                     utils.system_call(
                         'mv kipz/init/ki_final.cpi kipz/init/ki_init.cpi')
                     utils.system_call(

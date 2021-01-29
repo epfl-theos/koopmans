@@ -34,6 +34,13 @@ valid_settings = [
             'whether or not the system is periodic. If False, interaction between '
             'periodic images will be corrected for',
             bool, False, (True, False)),
+    Setting('mp_corrections',
+            'if True, the Makov-Payne corrections for charged systems will '
+            'be applied',
+            bool, False, (True, False)),
+    Setting('eps_inf',
+            'dielectric constant of the system; needed when mp_corrections is True',
+            float, None, None),
     Setting('n_max_sc_steps',
             'maximum number of self-consistency steps for calculating alpha',
             int, 1, None),

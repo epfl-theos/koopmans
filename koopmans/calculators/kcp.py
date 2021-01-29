@@ -1,13 +1,13 @@
 """
 
-cp calculator module for python_KI
+kcp calculator module for python_KI
 
 Written by Edward Linscott Sep 2020
 
 """
 
 import numpy as np
-from ase.io import espresso_cp as cp_io
+from ase.io import espresso_kcp as kcp_io
 from ase.units import create_units
 from koopmans import io
 from koopmans.calculators.generic import QE_calc
@@ -16,18 +16,18 @@ from koopmans.calculators.generic import QE_calc
 units = create_units('2006')
 
 
-class CP_calc(QE_calc):
-    # Subclass of QE_calc for performing calculations with cp.x
+class KCP_calc(QE_calc):
+    # Subclass of QE_calc for performing calculations with kcp.x
 
     # Point to the appropriate ASE IO module
-    _io = cp_io
+    _io = kcp_io
 
     # Define the appropriate file extensions
     ext_in = '.cpi'
     ext_out = '.cpo'
 
-    # Adding all cp.x keywords as decorated properties of the CP_calc class.
-    # This means one can set and get cp.x keywords as self.<keyword> but
+    # Adding all kcp.x keywords as decorated properties of the KCP_calc class.
+    # This means one can set and get kcp.x keywords as self.<keyword> but
     # internally they are stored as self._settings['keyword'] rather than
     # self.<keyword>
     _recognised_keywords = []
@@ -93,7 +93,7 @@ class CP_calc(QE_calc):
 
     def construct_namelist(self):
         # Returns a namelist of settings, grouped by their Quantum Espresso headings
-        return cp_io.construct_namelist(**self._settings, warn=True)
+        return kcp_io.construct_namelist(**self._settings, warn=True)
 
     def _update_settings_dict(self):
         # Updates self._settings based on self._ase_calc

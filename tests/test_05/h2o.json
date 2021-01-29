@@ -36,7 +36,7 @@
                                        [0.000000, 0.000000, 8.586100]]
         }
     },
-    "cp": {
+    "kcp": {
         "electrons": {
             "maxiter"               : 300,
             "empty_states_maxstep"  : 20

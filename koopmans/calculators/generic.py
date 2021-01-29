@@ -15,7 +15,7 @@ import sys
 import copy
 import numpy as np
 import ase.io as ase_io
-from ase.io import espresso_cp as cp_io
+from ase.io import espresso_kcp as kcp_io
 from ase.build import make_supercell
 from koopmans import defaults
 import koopmans.utils as utils
@@ -25,9 +25,9 @@ class QE_calc:
 
     '''
     A quantum espresso calculator object that...
-     - stores cp.x/pw.x keywords in self._settings, but can be accessed like direct attributes
+     - stores kcp.x/pw.x keywords in self._settings, but can be accessed like direct attributes
        e.g. self.<keyword> will return self._settings[<keyword>]
-     - runs a cp.x/pw.x calculation upon self.calculate()
+     - runs a kcp.x/pw.x calculation upon self.calculate()
      - the calculation input/output files are 'self.directory/self.name.(cp/pw)(i/o)'
      - stores the results of this calculation in self.results
 
@@ -39,10 +39,10 @@ class QE_calc:
     This could be changed in the future without affecting the rest of the code
 
     From this generic class we will later define
-      CP_calc for calculations using cp.x
+      CP_calc for calculations using kcp.x
       PW_calc for calculations using pw.x
       ... and others as listed in calculators/
-    These are differentiated by self._io = cp_io/pw_io/...
+    These are differentiated by self._io = kcp_io/pw_io/...
 
     Arguments:
         calc       an ASE calculator object to initialize the QE calculation settings
@@ -114,8 +114,8 @@ class QE_calc:
         self.skip_qc = skip_qc
         self.results_for_qc = []
 
-    # By default, use cp.x
-    _io = cp_io
+    # By default, use kcp.x
+    _io = kcp_io
 
     # extensions for i/o files
     ext_out = ''

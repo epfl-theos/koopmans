@@ -22,11 +22,11 @@ class ConvergenceWorkflow(Workflow):
 
         from koopmans.io import write_json
 
-        if 'cp' in self.master_calcs:
-            cp_master_calc = self.master_calcs['cp']
+        if 'kcp' in self.master_calcs:
+            kcp_master_calc = self.master_calcs['kcp']
         else:
             raise NotImplementedError(
-                'Convergence.run() has not been generalised beyond cp.x')
+                'Convergence.run() has not been generalised beyond kcp.x')
 
         increments = {'cell_size': 0.1, 'ecutwfc': 10, 'empty_states_nbnd': 1}
 
@@ -51,7 +51,7 @@ class ConvergenceWorkflow(Workflow):
                 param_dict[parameter] = [1 + i * increments['cell_size']
                                          for i in range(initial_depth)]
             else:
-                attr = getattr(cp_master_calc, parameter, None)
+                attr = getattr(kcp_master_calc, parameter, None)
                 if attr is None:
                     raise AttributeError(
                         f'In order to converge wrt {parameter} specify a baseline value for it')
@@ -73,7 +73,7 @@ class ConvergenceWorkflow(Workflow):
             master_alphas = io.read_alpharef(directory='.')
             if self.orbital_groups is None:
                 self.orbital_groups = list(
-                    range(cp_master_calc.nelec // 2 + cp_master_calc.empty_states_nbnd))
+                    range(kcp_master_calc.nelec // 2 + kcp_master_calc.empty_states_nbnd))
             master_orbital_groups = copy.deepcopy(self.orbital_groups)
 
         while True:
@@ -85,7 +85,7 @@ class ConvergenceWorkflow(Workflow):
                     continue
 
                 # Create duplicate calculator
-                cp_calc = self.new_calculator('cp')
+                kcp_calc = self.new_calculator('kcp')
 
                 # For each parameter we're converging wrt...
                 header = ''
@@ -105,17 +105,17 @@ class ConvergenceWorkflow(Workflow):
                     os.chdir(subdir)
 
                     if param == 'cell_size':
-                        cp_calc._ase_calc.atoms.cell *= value
+                        kcp_calc._ase_calc.atoms.cell *= value
                     else:
-                        setattr(cp_calc, param, value)
+                        setattr(kcp_calc, param, value)
                     if param == 'ecutwfc':
-                        setattr(cp_calc, 'ecutrho', 4 * value)
+                        setattr(kcp_calc, 'ecutrho', 4 * value)
 
                 if provide_alpha:
                     # Update alpha files and orbitals
-                    extra_orbitals = cp_calc.empty_states_nbnd - cp_master_calc.empty_states_nbnd
-                    filling = [True] * (cp_calc.nelec // 2) + \
-                        [False] * cp_calc.empty_states_nbnd
+                    extra_orbitals = kcp_calc.empty_states_nbnd - kcp_master_calc.empty_states_nbnd
+                    filling = [True] * (kcp_calc.nelec // 2) + \
+                        [False] * kcp_calc.empty_states_nbnd
                     alphas = master_alphas + [master_alphas[-1]
                                               for _ in range(extra_orbitals)]
                     self.orbital_groups = master_orbital_groups + \
@@ -127,7 +127,7 @@ class ConvergenceWorkflow(Workflow):
 
                 # Perform calculation
                 calcs_dct = copy.deepcopy(self.master_calcs)
-                calcs_dct['cp'] = cp_calc
+                calcs_dct['kcp'] = kcp_calc
                 singlepoint = SinglepointWorkflow(self.settings, calcs_dct)
                 solved_calc = singlepoint.run()
 
@@ -183,22 +183,22 @@ class ConvergenceWorkflow(Workflow):
                 # Construct a calculator with the converged settings
                 # Abuse the fact we don't routinely update the ase settings to ignore the various defaults that
                 # have been set
-                cp_master_calc._update_settings_dict()
+                kcp_master_calc._update_settings_dict()
                 for param, value in converged_parameters.items():
                     if param == 'cell_size':
-                        cp_master_calc._ase_calc.atoms.cell *= value
+                        kcp_master_calc._ase_calc.atoms.cell *= value
                     else:
-                        setattr(cp_master_calc, param, value)
+                        setattr(kcp_master_calc, param, value)
                     if param == 'ecutwfc':
-                        setattr(cp_master_calc, 'ecutrho', 4 * value)
+                        setattr(kcp_master_calc, 'ecutrho', 4 * value)
 
                     if self.print_qc:
                         self.print_qc_keyval(param, value)
-                cp_master_calc.ibrav = 0
+                kcp_master_calc.ibrav = 0
 
                 # Save converged settings to a .json file
                 with open('converged.json', 'w') as fd:
-                    write_json(fd, cp_master_calc, {})
+                    write_json(fd, kcp_master_calc, {})
 
                 return converged_parameters
             else:

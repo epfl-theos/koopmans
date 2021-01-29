@@ -35,7 +35,7 @@
       "species": [ [ "O", 1.0, "O_ONCV_PBE-1.0.upf" ], [ "C", 1.0, "C_ONCV_PBE-1.0.upf" ] ]
     }
   },
-  "cp": {
+  "kcp": {
     "system":
     {
       "nr1b": 24,

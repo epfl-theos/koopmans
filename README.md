@@ -30,14 +30,14 @@ export PYTHONPATH=/path/to/python_KI/:$PYTHONPATH
 export PYTHONPATH=/path/to/python_KI/ase_koopmans/:$PYTHONPATH  
 ```
 
-For each code you want to use (e.g. ``cp.x``, ``pw.x``, etc) you can define the command to run this code with e.g. 
+For each code you want to use (e.g. ``kcp.x``, ``pw.x``, etc) you can define the command to run this code with e.g.
 ```
-export ASE_ESPRESSO_CP_COMMAND="srun cp.x -in PREFIX.cpi > PREFIX.cpo"
+export ASE_ESPRESSO_KCP_COMMAND="srun kcp.x -in PREFIX.cpi > PREFIX.cpo"
 export ASE_ESPRESSO_COMMAND="srun pw.x -in PREFIX.pwi > PREFIX.pwo"
 export ASE_WANNIER90_COMMAND="wannier90.x PREFIX.win"
 export ASE_PW2WANNIER_COMMAND="srun pw2wannier90.x -in PREFIX.p2wi > PREFIX.p2wo"
 ```
-Replace ``srun`` with whatever command is appropriate for your machine. Do not change anything after '``cp.x``')
+Replace ``srun`` with whatever command is appropriate for your machine. Do not change anything after the binary names)
 
 You can also *optionally* direct ASE to a central pseudopotentials directory by adding
 ```

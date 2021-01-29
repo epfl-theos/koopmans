@@ -18,8 +18,8 @@ from ase.atoms import Atoms
 from ase.units import create_units
 from ase.io.espresso import Espresso
 from ase.io.espresso import KEYS as pw_keys
-from ase.io.espresso_cp import Espresso_cp, ibrav_to_cell
-from ase.io.espresso_cp import KEYS as cp_keys
+from ase.io.espresso_kcp import Espresso_kcp, ibrav_to_cell
+from ase.io.espresso_kcp import KEYS as kcp_keys
 from ase.io.wannier90 import Wannier90 as ASEWannier90
 from ase.io.pw2wannier import PW2Wannier as ASEPW2Wannier
 from koopmans import defaults
@@ -34,7 +34,7 @@ def read_w90_dict(dct, generic_atoms):
 
     from koopmans.calculators import wannier90
 
-    # Setting up ASE calc object, copying over the generic atoms object and non-cp-specific settings
+    # Setting up ASE calc object, copying over the generic atoms object and non-kcp-specific settings
     calc = ASEWannier90()
     atoms = copy.deepcopy(generic_atoms)
     del atoms.calc.parameters['input_data']
@@ -47,7 +47,7 @@ def read_w90_dict(dct, generic_atoms):
 
     for k, v in dct.items():
         if k in ['atoms_frac', 'unit_cell_cart', 'mp_grid']:
-            raise ValueError('Please specify {k} in the "setup" block using cp syntax rather than in the "w90" block')
+            raise ValueError('Please specify {k} in the "setup" block using kcp syntax rather than in the "w90" block')
         else:
             try:
                 v = json_ext.loads(v)
@@ -116,11 +116,11 @@ def read_pw2wannier_dict(dct, generic_atoms):
 def read_setup_dict(dct):
     '''
 
-    Reads the "setup" block. This block uses the same syntax as cp
+    Reads the "setup" block. This block uses the same syntax as kcp
 
     '''
 
-    calc = Espresso_cp(atoms=Atoms())
+    calc = Espresso_kcp(atoms=Atoms())
 
     calc.parameters['input_data'] = {k: {} for k in pw_keys.keys()}
 
@@ -133,7 +133,7 @@ def read_setup_dict(dct):
             continue
         elif block == 'k_points':
             read_kpoints_block(calc, subdct)
-        elif block in cp_keys:
+        elif block in kcp_keys:
             for key, value in subdct.items():
                 if value == "":
                     continue
@@ -220,19 +220,19 @@ def read_setup_dict(dct):
     return calc.atoms
 
 
-def read_cp_or_pw_dict(dct, calc):
+def read_kcp_or_pw_dict(dct, calc):
     '''
 
-    Reads in dict of cp/pw input file and adds the settings to the provided calc object
+    Reads in dict of kcp/pw input file and adds the settings to the provided calc object
 
     '''
 
-    if isinstance(calc, Espresso_cp):
-        qe_keys = cp_keys
+    if isinstance(calc, Espresso_kcp):
+        qe_keys = kcp_keys
     elif isinstance(calc, Espresso):
         qe_keys = pw_keys
     else:
-        raise TypeError(f'io.read_cp_or_pw_dict() does not accept "calc" with class {calc.__class__}')
+        raise TypeError(f'io.read_kcp_or_pw_dict() does not accept "calc" with class {calc.__class__}')
 
     skipped_blocks = []
     for block, subdct in dct.items():
@@ -261,25 +261,25 @@ def read_cp_or_pw_dict(dct, calc):
     return skipped_blocks
 
 
-def read_cp_dict(dct, generic_atoms):
+def read_kcp_dict(dct, generic_atoms):
     '''
 
-    Reads in dict of cp input file and returns a CP_calc object
+    Reads in dict of kcp input file and returns a KCP_calc object
 
     '''
 
-    from koopmans.calculators import cp
+    from koopmans.calculators import kcp
 
     # Copy over the settings from the "setup" block
     calc = copy.deepcopy(generic_atoms.calc)
 
-    # Read in any settings provided in the "cp" block
-    skipped_blocks = read_cp_or_pw_dict(dct, calc)
+    # Read in any settings provided in the "kcp" block
+    skipped_blocks = read_kcp_or_pw_dict(dct, calc)
 
     for block in skipped_blocks:
         warn(f'The {block} block is not yet implemented and will be ignored')
 
-    return cp.CP_calc(calc)
+    return kcp.KCP_calc(calc)
 
 
 def read_pw_dict(dct, generic_atoms):
@@ -289,15 +289,15 @@ def read_pw_dict(dct, generic_atoms):
 
     '''
 
-    from koopmans.calculators import pw, cp
+    from koopmans.calculators import pw, kcp
 
     # Initialising a pw calculator tethered to a copy of the atoms object
     calc = Espresso()
     calc.atoms = copy.deepcopy(generic_atoms)
     calc.atoms.calc = calc
 
-    # Remove settings using cp-syntax
-    cp_settings = generic_atoms.calc.parameters.pop('input_data')
+    # Remove settings using kcp-syntax
+    kcp_settings = generic_atoms.calc.parameters.pop('input_data')
 
     # Copy over parameters that use generic syntax (pseudos, k_points)
     calc.parameters = generic_atoms.calc.parameters
@@ -305,22 +305,22 @@ def read_pw_dict(dct, generic_atoms):
     # Initialise the pw-specific settings
     calc.parameters['input_data'] = {key: {} for key in pw_keys}
 
-    # Convert cp-syntax settings to pw-syntax settings
-    for block, subdct in cp_settings.items():
+    # Convert kcp-syntax settings to pw-syntax settings
+    for block, subdct in kcp_settings.items():
         for key, val in subdct.items():
             if key in ['nelec', 'nelup', 'neldw', 'empty_states_nbnd', 'tot_magnetization']:
                 continue
             elif block in pw_keys and key.split('(')[0] in pw_keys[block]:
-                # PW and CP share this keyword so we can copy it over directly
+                # PW and KCP share this keyword so we can copy it over directly
                 calc.parameters['input_data'][block][key] = val
             elif key == 'conv_thr':
-                # Pw uses Ry, CP uses Ha = 2 Ry
+                # Pw uses Ry, KCP uses Ha = 2 Ry
                 calc.parameters['input_data'][block][key] = val * 2
             else:
                 raise ValueError(f'Could not convert {block}:{key} to a pw keyword')
 
     # Read the content of the pw block
-    skipped_blocks = read_cp_or_pw_dict(dct, calc)
+    skipped_blocks = read_kcp_or_pw_dict(dct, calc)
     for block in skipped_blocks:
         if block == 'k_points':
             read_kpoints_block(calc, dct[block])
@@ -329,8 +329,8 @@ def read_pw_dict(dct, generic_atoms):
 
     # If no nbnd is provided, auto-generate it
     if 'nbnd' not in calc.parameters['input_data']['system']:
-        n_elec = cp_settings['system']['nelec']
-        n_empty = cp_settings['electrons'].get('empty_states_nbnd', 0)
+        n_elec = kcp_settings['system']['nelec']
+        n_empty = kcp_settings['electrons'].get('empty_states_nbnd', 0)
         calc.parameters['input_data']['system']['nbnd'] = n_elec // 2 + n_empty
 
     return pw.PW_calc(calc)
@@ -367,7 +367,7 @@ def read_json(fd):
 
     '''
 
-    from koopmans.calculators.cp import CP_calc
+    from koopmans.calculators.kcp import KCP_calc
     from koopmans.workflows.singlepoint import SinglepointWorkflow
     from koopmans.workflows.convergence import ConvergenceWorkflow
     from koopmans.workflows.pbe_dscf_with_pw import DeltaSCFWorkflow
@@ -377,7 +377,7 @@ def read_json(fd):
 
     bigdct = json_ext.loads(fd.read())
 
-    readers = {'cp': read_cp_dict, 'w90_occ': read_w90_occ_dict, 'w90_emp': read_w90_empty_dict,
+    readers = {'kcp': read_kcp_dict, 'w90_occ': read_w90_occ_dict, 'w90_emp': read_w90_empty_dict,
                'pw2wannier': read_pw2wannier_dict, 'pw': read_pw_dict}
 
     # Deal with w90 subdicts
@@ -432,7 +432,7 @@ def write_json(fd, calcs=[], workflow_settings={}):
 
     '''
 
-    from koopmans.calculators import cp, pw
+    from koopmans.calculators import kcp, pw
 
     if isinstance(fd, str):
         fd = open(fd, 'w')
@@ -448,10 +448,10 @@ def write_json(fd, calcs=[], workflow_settings={}):
 
     # "setup" block
     # Working out ibrav
-    cp_calc = [c for c in calcs if isinstance(c, cp.CP_calc)]
+    kcp_calc = [c for c in calcs if isinstance(c, kcp.KCP_calc)]
     pw_calc = [c for c in calcs if isinstance(c, pw.PW_calc)]
-    if cp_calc:
-        calc = cp_calc[0].calc
+    if kcp_calc:
+        calc = kcp_calc[0].calc
         ibrav = calc.parameters['input_data']['system'].get('ibrav', None) == 0
     elif pw_calc:
         calc = pw_calc[0]
@@ -486,9 +486,9 @@ def write_json(fd, calcs=[], workflow_settings={}):
                                                      for key, val in calc.parameters.pseudopotentials.items()]}
 
     for calc in calcs:
-        if isinstance(calc, (cp.CP_calc, pw.PW_calc)):
-            if isinstance(calc, cp.CP_calc):
-                code = 'cp'
+        if isinstance(calc, (kcp.KCP_calc, pw.PW_calc)):
+            if isinstance(calc, kcp.KCP_calc):
+                code = 'kcp'
             else:
                 code = 'pw'
             bigdct[code] = {}
@@ -592,7 +592,7 @@ def set_up_pseudos(calc):
         except KeyError:
             raise NotADirectoryError('Directory for pseudopotentials not found. Please define '
                                      'the environment variable ESPRESSO_PSEUDO or provide a pseudo_dir in '
-                                     'the cp block of your json input file.')
+                                     'the kcp block of your json input file.')
 
 
 def nelec_from_pseudos(calc):

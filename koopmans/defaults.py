@@ -7,12 +7,12 @@ Written by Edward Linscott Jan 2020
 """
 
 from koopmans.utils import warn
-from koopmans.calculators.cp import CP_calc
+from koopmans.calculators.kcp import KCP_calc
 from koopmans.calculators.pw import PW_calc
 from koopmans.calculators.wannier90 import W90_calc
 from koopmans.calculators.pw2wannier import PW2Wannier_calc
 
-defaults = {CP_calc: {
+defaults = {KCP_calc: {
             'calculation': 'cp',
             'outdir': './TMP-CP/',
             'iprint': 1,
@@ -49,7 +49,7 @@ defaults = {CP_calc: {
             'conv_tol': 1.e-10,
             'conv_window': 5,
             'write_hr': True,
-            'guiding_centers': True,
+            'guiding_centres': True,
             'gamma_only': False},
             PW2Wannier_calc: {
             'outdir': '../TMP-PW/',
