@@ -52,7 +52,7 @@ class WannierizeWorkflow(Workflow):
             raise ValueError('Cannot run a wannier90 calculation with num_wann = 0. Please set empty_states_nbnd > 0 '
                              'in the setup block, or num_wann > 0 in the wannier90 empty subblock')
 
-    def run(self):
+    def run(self, skip_wann2odd=False):
         '''
 
         Wrapper for the calculation of (maximally localized) Wannier functions
@@ -99,12 +99,13 @@ class WannierizeWorkflow(Workflow):
             calc_w90.preprocessing_flags = ''
             self.run_calculator(calc_w90)
             # 4) pw2wannier90 calc (wannier2odd mode for WFs conversion to supercell)
-            calc_w2o = self.new_calculator('pw2wannier', wan_mode='wannier2odd')
-            calc_w2o.directory = calc_w90.directory
-            calc_w2o.name = 'wan2odd'
-            if typ == 'emp':
-                calc_w2o.split_evc_file = True
-            self.run_calculator(calc_w2o)
+            if not skip_wann2odd:
+                calc_w2o = self.new_calculator('pw2wannier', wan_mode='wannier2odd')
+                calc_w2o.directory = calc_w90.directory
+                calc_w2o.name = 'wan2odd'
+                if typ == 'emp':
+                    calc_w2o.split_evc_file = True
+                self.run_calculator(calc_w2o)
 
         print()
 

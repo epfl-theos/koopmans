@@ -67,15 +67,15 @@ class QE_calc:
 
         # Read qe input file
         for qe_file in [f for f in qe_files if self.ext_in in f]:
-            calc = ase_io.read(qe_file).calc
+            calc = self.read_input_file(qe_file)
 
         # Read qe output file
         for qe_file in [f for f in qe_files if self.ext_out in f]:
             if calc is None:
-                calc = ase_io.read(qe_file).calc
+                calc = self.read_output_file(qe_file)
             else:
                 # Copy over the results
-                calc.results = ase_io.read(qe_file).calc.results
+                calc.results = self.read_output_file(qe_file).results
 
         # Initialise the calculator object
         if isinstance(calc, QE_calc):
@@ -167,10 +167,10 @@ class QE_calc:
 
         # Updating self._ase_calc.command
         command = self.calc.original_command
-        if command[:6] == 'mpirun':
+        if command.startswith('mpirun'):
             mpirun, npflag, npval, exe, after = command.split(' ', 4)
             before = [mpirun, npflag, npval, exe]
-        elif command[:4] == 'srun':
+        elif command.startswith('srun'):
             srun, exe, after = command.split(' ', 2)
             before = [srun, exe]
         else:
@@ -196,6 +196,14 @@ class QE_calc:
     def _update_settings_dict(self):
         # Updates self._settings based on self._ase_calc
         self._settings = self._ase_calc.parameters
+
+    def read_input_file(self, input_file):
+        # By default, use ASE
+        return ase_io.read(input_file).calc
+
+    def read_output_file(self, output_file):
+        # By default, use ASE
+        return ase_io.read(output_file).calc
 
     def parse_algebraic_setting(self, expr):
         # Checks if self._settings[expr] is defined algebraically, and evaluates them
@@ -265,9 +273,9 @@ class QE_calc:
     def check_code_is_installed(self):
         # Checks the corresponding code is installed
         command = self.calc.command
-        if command[:4] == 'srun':
+        if command.startswith('srun'):
             i_exe = 1
-        elif command[:6] == 'mpirun':
+        elif command.startswith('mpirun'):
             i_exe = 3
         else:
             i_exe = 0
@@ -294,10 +302,6 @@ class QE_calc:
             return
 
         for key, value in defaults.defaults[calc_class].items():
-            if getattr(self, key, value) not in [None, value]:
-                # If a setting has already been set, keep that value but print a warning
-                utils.warn(
-                    f'Suggested value for {key} is being overwritten; do this with caution')
-            else:
+            if getattr(self, key, value) in [None, value]:
                 setattr(self, key, value)
         return

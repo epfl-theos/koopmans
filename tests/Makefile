@@ -24,7 +24,7 @@ CLEAN_TESTS := $(patsubst %,-o -name %,${CLEAN_FILES})
 CLEAN_TEST_DIRS := -name ki -o -name pkipz -o -name kipz
 
 CLEAN_TEST_SUBDIRS := -name init -o -name calc_alpha -o -name final -o \
-                      -name TMP-CP -o -name ecutwfc*
+                      -name TMP-CP -o -name ecutwfc* -o -name postproc
 
 
 clean:

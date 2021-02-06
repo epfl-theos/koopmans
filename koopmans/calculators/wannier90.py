@@ -10,7 +10,7 @@ import numpy as np
 from koopmans.utils import warn
 from ase.io import wannier90 as w90_io
 from ase.calculators.wannier90 import Wannier90
-from ase.dft.kpoints import bandpath
+from ase.dft.kpoints import BandPath
 from koopmans.calculators.generic import QE_calc
 
 
@@ -62,13 +62,12 @@ class W90_calc(QE_calc):
         super().calculate()
 
     def generate_kpoints(self):
-        self.mp_grid = self._ase_calc.parameters['kpts']
-        kpts = np.indices(self._ase_calc.parameters['kpts']).transpose(
-            1, 2, 3, 0).reshape(-1, 3)
-        kpts = kpts / self._ase_calc.parameters['kpts']
+        self.mp_grid = self.calc.parameters['kpts']
+        kpts = np.indices(self.calc.parameters['kpts']).transpose(1, 2, 3, 0).reshape(-1, 3)
+        kpts = kpts / self.calc.parameters['kpts']
         kpts[kpts >= 0.5] -= 1
-        kpts = bandpath(kpts, self._ase_calc.atoms.cell, npoints=len(kpts) - 1)
-        self._ase_calc.parameters['kpts'] = kpts.kpts[:, :3]
+        kpts = BandPath(self.calc.atoms.cell, kpts)
+        self.calc.parameters['kpts'] = kpts.kpts[:, :3]
 
     def is_converged(self):
         warn("is_converged is not properly implemented")

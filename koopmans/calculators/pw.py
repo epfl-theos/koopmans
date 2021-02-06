@@ -8,7 +8,6 @@ Written by Edward Linscott Sep 2020
 
 from ase.io import espresso as pw_io
 from ase.calculators.espresso import Espresso
-from ase.units import create_units
 from koopmans import io
 from koopmans.calculators.generic import QE_calc
 

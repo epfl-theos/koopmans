@@ -129,7 +129,8 @@ class ConvergenceWorkflow(Workflow):
                 calcs_dct = copy.deepcopy(self.master_calcs)
                 calcs_dct['kcp'] = kcp_calc
                 singlepoint = SinglepointWorkflow(self.settings, calcs_dct)
-                solved_calc = singlepoint.run()
+                self.run_subworkflow(singlepoint)
+                solved_calc = self.all_calcs[-1]
 
                 # Store the result
                 obs = self.convergence_observable

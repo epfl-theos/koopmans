@@ -8,12 +8,8 @@ Written by Edward Linscott Sep 2020
 
 import numpy as np
 from ase.io import espresso_kcp as kcp_io
-from ase.units import create_units
-from koopmans import io
+from koopmans import io, utils
 from koopmans.calculators.generic import QE_calc
-
-# Quantum ESPRESSO uses CODATA 2006 internally
-units = create_units('2006')
 
 
 class KCP_calc(QE_calc):
@@ -118,7 +114,7 @@ class KCP_calc(QE_calc):
                 converged.append(True)
             else:
                 converged.append(
-                    convergence[-1]['delta_E'] < self.conv_thr * units.Hartree)
+                    convergence[-1]['delta_E'] < self.conv_thr * utils.units.Hartree)
         return all(converged)
 
     @property

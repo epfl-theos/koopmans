@@ -12,6 +12,7 @@ import copy
 import numpy as np
 import itertools
 from koopmans import utils, io
+from koopmans.calculators.kcp import KCP_calc
 from koopmans.workflows.generic import Workflow
 from koopmans.workflows.kc_with_cp import KoopmansWorkflow
 from koopmans.workflows.pbe_with_cp import PBEWorkflow
@@ -37,8 +38,7 @@ class SinglepointWorkflow(Workflow):
 
             alphas = None
             for functional in functionals:
-                print(
-                    f'\n{functional.upper().replace("PKIPZ", "pKIPZ")} CALCULATION')
+                print(f'\n{functional.upper().replace("PKIPZ", "pKIPZ")} CALCULATION')
 
                 # Make a copy of the workflow settings to modify
                 local_workflow_settings = self.settings
@@ -47,7 +47,6 @@ class SinglepointWorkflow(Workflow):
 
                 # For pKIPZ/KIPZ, use KI as a starting point
                 if functional == 'pkipz':
-                    local_workflow_settings['from_scratch'] = False
                     local_workflow_settings['calculate_alpha'] = False
                     local_workflow_settings['alpha_from_file'] = False
                 elif functional == 'kipz':
@@ -62,12 +61,20 @@ class SinglepointWorkflow(Workflow):
                 master_calcs_local = copy.deepcopy(self.master_calcs)
                 kc_workflow = KoopmansWorkflow(local_workflow_settings, master_calcs_local, alphas)
 
+                # We only need to do the smooth interpolation the first time (i.e. for KI)
+                if functional != 'ki':
+                    kc_workflow.redo_preexisting_smooth_dft_calcs = False
+
                 # Run the workflow
-                kc_workflow.run()
+                if functional == 'pkipz' and self.from_scratch:
+                    # We want to run pKIPZ with from_scratch = False, but don't want this to be inherited
+                    self.run_subworkflow(kc_workflow, from_scratch=False)
+                else:
+                    self.run_subworkflow(kc_workflow)
 
                 # Save the alpha values and the final calculation of the workflow
                 alphas = kc_workflow.alpha_df.iloc[-1].values
-                solved_calc = kc_workflow.all_calcs[-1]
+                solved_calc = [c for c in kc_workflow.all_calcs if isinstance(c, KCP_calc)][-1]
 
                 # Return to the base directory
                 os.chdir('..')
@@ -79,11 +86,16 @@ class SinglepointWorkflow(Workflow):
 
                     # KIPZ
                     utils.system_call('rsync -a ki/final/ kipz/init/')
+                    utils.system_call('rsync -a ki/init/wannier kipz/init/')
                     utils.system_call(f'rsync -a {solved_calc.outdir} kipz/')
                     utils.system_call(
                         'mv kipz/init/ki_final.cpi kipz/init/ki_init.cpi')
                     utils.system_call(
                         'mv kipz/init/ki_final.cpo kipz/init/ki_init.cpo')
+                    if self.master_calcs['ui'].do_smooth_interpolation:
+                        # Copy over the smooth PBE calculation from KI for KIPZ to use
+                        utils.system_call('rsync -a ki/postproc kipz/')
+                        utils.system_call('find kipz/postproc/ -name "*interpolated.dat" -delete')
             return solved_calc
 
         else:
@@ -93,4 +105,5 @@ class SinglepointWorkflow(Workflow):
             elif self.functional == 'pbe':
                 workflow = PBEWorkflow(self.settings, self.master_calcs)
 
-            return workflow.run()
+            self.run_subworkflow(workflow)
+            return

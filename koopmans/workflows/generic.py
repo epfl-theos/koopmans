@@ -11,84 +11,79 @@ import os
 import sys
 import copy
 import numpy as np
-from collections import namedtuple
+from ase.calculators.calculator import CalculationFailed
 from koopmans import io, utils
 
-Setting = namedtuple(
-    'Setting', ['name', 'description', 'type', 'default', 'options'])
-
 valid_settings = [
-    Setting('task',
-            'Task to perform',
-            str, 'singlepoint', ('singlepoint', 'convergence', 'environ_dscf')),
-    Setting('functional',
-            'Orbital-density-dependent-functional/density-functional to use',
-            str, 'ki', ('ki', 'kipz', 'pkipz', 'pbe', 'all')),
-    Setting('init_density',
-            'the functional to use to initialise the density',
-            str, 'pbe', ('pbe', 'pz', 'ki')),
-    Setting('init_variational_orbitals',
-            'which orbitals to use as an initial guess for the variational orbitals',
-            str, 'pz', ('pz', 'mlwfs', 'projw', 'ki', 'skip')),
-    Setting('periodic',
-            'whether or not the system is periodic. If False, interaction between '
-            'periodic images will be corrected for',
-            bool, False, (True, False)),
-    Setting('mp_corrections',
-            'if True, the Makov-Payne corrections for charged systems will '
-            'be applied',
-            bool, False, (True, False)),
-    Setting('eps_inf',
-            'dielectric constant of the system; needed when mp_corrections is True',
-            float, None, None),
-    Setting('n_max_sc_steps',
-            'maximum number of self-consistency steps for calculating alpha',
-            int, 1, None),
-    Setting('alpha_conv_thr',
-            'convergence threshold for |delta E - lambda|; if below this '
-            'threshold, the corresponding alpha value is not updated',
-            (float, str), 1e-3, None),
-    Setting('calculate_alpha',
-            'if True, the screening parameters will be calculated; if False, '
-            'they will be read directly from file',
-            bool, True, (True, False)),
-    Setting('alpha_guess',
-            'starting guess for alpha (overridden if alpha_from_file is true)',
-            float, 0.6, None),
-    Setting('alpha_from_file',
-            'if True, uses the file_alpharef.txt from the base directory as a '
-            'starting guess',
-            bool, False, (True, False)),
-    Setting('print_qc',
-            'if True, prints out strings for the purposes of quality control',
-            bool, False, (True, False)),
-    Setting('from_scratch',
-            'if True, will delete any preexisting workflow and start again; '
-            'if False, will resume a workflow from where it was last up to',
-            bool, False, (True, False)),
-    Setting('orbital_groups',
-            'a list of integers the same length as the total number of bands, '
-            'denoting which bands to assign the same screening parameter to',
-            list, None, None),
-    Setting('enforce_spin_symmetry',
-            'if True, the spin-up and spin-down wavefunctions will be forced '
-            'to be the same',
-            bool, True, (True, False)),
-    Setting('convergence_observable',
-            'System observable of interest which we converge',
-            str, 'total energy', ('homo energy', 'lumo energy', 'total energy')),
-    Setting('convergence_threshold',
-            'Convergence threshold for the system observable of interest',
-            (str, float), None, None),
-    Setting('convergence_parameters',
-            'The observable of interest will be converged with respect to this/these '
-            'simulation parameter(s)',
-            (list, str), ['ecutwfc'], None),
-    Setting('eps_cavity',
-            'a list of epsilon_infinity values for the cavity in dscf calculations',
-            list, [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], None)]
-
-valid_settings_dict = {s.name: s for s in valid_settings}
+    utils.Setting('task',
+                  'Task to perform',
+                  str, 'singlepoint', ('singlepoint', 'convergence', 'environ_dscf', 'ui')),
+    utils.Setting('functional',
+                  'Orbital-density-dependent-functional/density-functional to use',
+                  str, 'ki', ('ki', 'kipz', 'pkipz', 'pbe', 'all')),
+    utils.Setting('init_density',
+                  'the functional to use to initialise the density',
+                  str, 'pbe', ('pbe', 'pz', 'ki')),
+    utils.Setting('init_variational_orbitals',
+                  'which orbitals to use as an initial guess for the variational orbitals',
+                  str, 'pz', ('pz', 'mlwfs', 'projw', 'ki', 'skip')),
+    utils.Setting('periodic',
+                  'whether or not the system is periodic. If False, interaction between '
+                  'periodic images will be corrected for',
+                  bool, False, (True, False)),
+    utils.Setting('mp_corrections',
+                  'if True, the Makov-Payne corrections for charged systems will '
+                  'be applied',
+                  bool, False, (True, False)),
+    utils.Setting('eps_inf',
+                  'dielectric constant of the system; needed when mp_corrections is True',
+                  float, None, None),
+    utils.Setting('n_max_sc_steps',
+                  'maximum number of self-consistency steps for calculating alpha',
+                  int, 1, None),
+    utils.Setting('alpha_conv_thr',
+                  'convergence threshold for |delta E - lambda|; if below this '
+                  'threshold, the corresponding alpha value is not updated',
+                  (float, str), 1e-3, None),
+    utils.Setting('calculate_alpha',
+                  'if True, the screening parameters will be calculated; if False, '
+                  'they will be read directly from file',
+                  bool, True, (True, False)),
+    utils.Setting('alpha_guess',
+                  'starting guess for alpha (overridden if alpha_from_file is true)',
+                  float, 0.6, None),
+    utils.Setting('alpha_from_file',
+                  'if True, uses the file_alpharef.txt from the base directory as a '
+                  'starting guess',
+                  bool, False, (True, False)),
+    utils.Setting('print_qc',
+                  'if True, prints out strings for the purposes of quality control',
+                  bool, False, (True, False)),
+    utils.Setting('from_scratch',
+                  'if True, will delete any preexisting workflow and start again; '
+                  'if False, will resume a workflow from where it was last up to',
+                  bool, False, (True, False)),
+    utils.Setting('orbital_groups',
+                  'a list of integers the same length as the total number of bands, '
+                  'denoting which bands to assign the same screening parameter to',
+                  list, None, None),
+    utils.Setting('enforce_spin_symmetry',
+                  'if True, the spin-up and spin-down wavefunctions will be forced '
+                  'to be the same',
+                  bool, True, (True, False)),
+    utils.Setting('convergence_observable',
+                  'System observable of interest which we converge',
+                  str, 'total energy', ('homo energy', 'lumo energy', 'total energy')),
+    utils.Setting('convergence_threshold',
+                  'Convergence threshold for the system observable of interest',
+                  (str, float), None, None),
+    utils.Setting('convergence_parameters',
+                  'The observable of interest will be converged with respect to this/these '
+                  'simulation parameter(s)',
+                  (list, str), ['ecutwfc'], None),
+    utils.Setting('eps_cavity',
+                  'a list of epsilon_infinity values for the cavity in dscf calculations',
+                  list, [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], None)]
 
 
 class Workflow(object):
@@ -97,61 +92,23 @@ class Workflow(object):
         self.master_calcs = calcs_dct
         self.all_calcs = []
         self.silent = False
+        self.valid_settings = valid_settings
 
         # Parsing workflow_settings
-        self.list_of_settings = []
-        for key, value in workflow_settings.items():
-            # Check key is a valid keyword
-            if key in valid_settings_dict:
-                valid_setting = valid_settings_dict[key]
-
-                # Lowers any uppercase strings
-                if isinstance(value, str):
-                    value = value.lower()
-
-                # Check value is the correct type
-                if not isinstance(value, valid_setting.type) and value is not None:
-                    if isinstance(valid_setting.type, tuple):
-                        raise ValueError(
-                            f'{type(value).__name__} is an invalid type for "{key}" (must be '
-                            'one of ' + '/'.join([t.__name__ for t in valid_setting.type]) + ')')
-                    else:
-                        raise ValueError(
-                            f'{type(value).__name__} is an invalid type for "{key}" (must be '
-                            f'{valid_setting.type.__name__})')
-
-                # Check value is among the valid options
-                if valid_setting.options is not None and value not in valid_setting.options:
-                    raise ValueError(
-                        f'"{value}" is an invalid value for "{key}" (options are {"/".join(valid_setting.options)})')
-
-                self.add_setting(key, value)
-            else:
-                raise ValueError(f'"{key}" is not a recognised workflow setting')
-
-        # Populate missing settings with the default options
-        for setting in valid_settings:
-            if setting.name not in self.settings:
-                self.add_setting(setting.name, setting.default)
-
-        # Parse physicals
-        for physical in ['alpha_conv_thr', 'convergence_threshold']:
-            setattr(self, physical, io.parse_physical(getattr(self, physical)))
+        checked_settings = utils.check_settings(workflow_settings, self.valid_settings, physicals=[
+            'alpha_conv_thr', 'convergence_threshold'])
+        self.list_of_settings = list(checked_settings.keys())
+        for key, value in checked_settings.items():
+            self.add_setting(key, value)
 
     @property
     def settings(self):
         return {k: getattr(self, k) for k in self.list_of_settings}
 
     def add_setting(self, key, val):
-        self.list_of_settings.append(key)
+        if key not in self.list_of_settings:
+            self.list_of_settings.append(key)
         setattr(self, key, val)
-
-    def check_settings(self):
-        '''
-        Checks workflow settings against the list of valid settings, populates
-        missing keywords with their default values, and lowers any uppercases
-
-        '''
 
     def new_calculator(self, calc_type, **kwargs):
         if calc_type in self.master_calcs:
@@ -224,13 +181,11 @@ class Workflow(object):
             master_qe_calc.ndr = 99
             self.run_calculator_single(master_qe_calc)
 
-            return
-
         else:
 
             self.run_calculator_single(master_qe_calc)
 
-            return
+        return
 
     def run_calculator_single(self, qe_calc):
         # Runs qe_calc.calculate with additional options:
@@ -272,7 +227,8 @@ class Workflow(object):
         qe_calc.calculate()
 
         if not qe_calc.is_complete():
-            sys.exit(1)
+            print(' failed')
+            raise CalculationFailed()
 
         if not self.silent:
             print(' done')
@@ -308,3 +264,23 @@ class Workflow(object):
         Prints out a quality control message for testcode to evaluate
         '''
         print(f'<QC> {key} {value}')
+
+    def run_subworkflow(self, workflow, from_scratch=None, **kwargs):
+        '''
+        Runs a workflow object, taking care of inheritance of several important properties
+
+        Setting from_scratch to a non-None value will override the value of subworkflow.from_scratch
+        and will prevent inheritance of from_scratch
+        '''
+
+        if from_scratch is None:
+            workflow.from_scratch = self.from_scratch
+        else:
+            workflow.from_scratch = from_scratch
+
+        workflow.run(**kwargs)
+
+        self.all_calcs += workflow.all_calcs
+
+        if from_scratch is None:
+            self.from_scratch = workflow.from_scratch

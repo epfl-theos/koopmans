@@ -15,19 +15,14 @@ import numpy as np
 import json as json_ext
 import xml.etree.ElementTree as ET
 from ase.atoms import Atoms
-from ase.units import create_units
+from ase.calculators.calculator import FileIOCalculator
 from ase.io.espresso import Espresso
 from ase.io.espresso import KEYS as pw_keys
 from ase.io.espresso_kcp import Espresso_kcp, ibrav_to_cell
 from ase.io.espresso_kcp import KEYS as kcp_keys
 from ase.io.wannier90 import Wannier90 as ASEWannier90
 from ase.io.pw2wannier import PW2Wannier as ASEPW2Wannier
-from koopmans import defaults
-from koopmans.utils import warn
-
-
-# Quantum Espresso -- and python_KI -- uses CODATA 2006 internally
-ase_units = create_units('2006')
+from koopmans import defaults, utils
 
 
 def read_w90_dict(dct, generic_atoms):
@@ -248,7 +243,7 @@ def read_kcp_or_pw_dict(dct, calc):
                     raise ValueError('Please specify "pseudo_dir" in the "setup" control block')
 
                 if key in calc.parameters['input_data'][block]:
-                    warn('Overwriting value for {block}:{key} provided in the "setup" block')
+                    utils.warn('Overwriting value for {block}:{key} provided in the "setup" block')
 
                 try:
                     value = json_ext.loads(value)
@@ -277,7 +272,7 @@ def read_kcp_dict(dct, generic_atoms):
     skipped_blocks = read_kcp_or_pw_dict(dct, calc)
 
     for block in skipped_blocks:
-        warn(f'The {block} block is not yet implemented and will be ignored')
+        utils.warn(f'The {block} block is not yet implemented and will be ignored')
 
     return kcp.KCP_calc(calc)
 
@@ -325,7 +320,7 @@ def read_pw_dict(dct, generic_atoms):
         if block == 'k_points':
             read_kpoints_block(calc, dct[block])
         else:
-            warn(f'The {block} block is not yet implemented and will be ignored')
+            utils.warn(f'The {block} block is not yet implemented and will be ignored')
 
     # If no nbnd is provided, auto-generate it
     if 'nbnd' not in calc.parameters['input_data']['system']:
@@ -334,6 +329,20 @@ def read_pw_dict(dct, generic_atoms):
         calc.parameters['input_data']['system']['nbnd'] = n_elec // 2 + n_empty
 
     return pw.PW_calc(calc)
+
+
+def read_ui_dict(dct, generic_atoms):
+
+    from koopmans.calculators import ui
+
+    # For UI, just use a generic calculator with no command
+    calc = generic_atoms.calc
+    calc.command = ''
+
+    # Overwrite the parameters with the provided JSON dict
+    calc.parameters = read_dict(dct)
+
+    return ui.UI_calc(calc)
 
 
 def read_dict(dct):
@@ -371,20 +380,41 @@ def read_json(fd):
     from koopmans.workflows.singlepoint import SinglepointWorkflow
     from koopmans.workflows.convergence import ConvergenceWorkflow
     from koopmans.workflows.pbe_dscf_with_pw import DeltaSCFWorkflow
+    from koopmans.workflows.ui import UnfoldAndInterpolateWorkflow
 
     if isinstance(fd, str):
         fd = open(fd, 'r')
 
     bigdct = json_ext.loads(fd.read())
 
-    readers = {'kcp': read_kcp_dict, 'w90_occ': read_w90_occ_dict, 'w90_emp': read_w90_empty_dict,
-               'pw2wannier': read_pw2wannier_dict, 'pw': read_pw_dict}
-
     # Deal with w90 subdicts
     if 'w90' in bigdct:
         bigdct['w90_occ'] = bigdct['w90']['occ']
         bigdct['w90_emp'] = bigdct['w90']['emp']
         del bigdct['w90']
+
+    # Deal with UI subdicts
+    if 'ui' in bigdct:
+        subdcts = {}
+        keys = ['occ', 'emp']
+        for key in keys:
+            # First, we must remove the occ and emp subdicts from the UI dict
+            if key in bigdct['ui']:
+                subdcts[key] = bigdct['ui'].pop(key)
+
+        # Now, we add the ui_occ and ui_emp calculators to master_calcs
+        for key in keys:
+            if key in subdcts:
+                # Add the corresponding subdict to the rest of the UI block
+                bigdct[f'ui_{key}'] = dict(bigdct['ui'], **subdcts[key])
+            else:
+                # Duplicate the UI block
+                bigdct[f'ui_{key}'] = bigdct['ui']
+
+    # Define which function to use to read each block
+    readers = {'kcp': read_kcp_dict, 'w90_occ': read_w90_occ_dict, 'w90_emp': read_w90_empty_dict,
+               'pw2wannier': read_pw2wannier_dict, 'pw': read_pw_dict, 'ui': read_ui_dict,
+               'ui_occ': read_ui_dict, 'ui_emp': read_ui_dict}
 
     # Check for unexpected blocks
     for block in bigdct:
@@ -394,31 +424,44 @@ def read_json(fd):
 
     # Loading workflow settings
     workflow_settings = read_dict(bigdct.get('workflow', {}))
+    task_name = workflow_settings.pop('task', 'singlepoint')
 
     # Load default values
     if 'setup' in bigdct:
         generic_atoms = read_setup_dict(bigdct['setup'])
         del bigdct['setup']
-    else:
+    elif task_name != 'ui':
         raise ValueError('You must provide a "setup" block in the input file, specifying atomic positions, atomic '
                          'species, etc.')
+    else:
+        # Create an empty dummy ASE calculator to attach settings to
+        generic_atoms = Atoms(calculator=FileIOCalculator())
+        generic_atoms.calc.atoms = generic_atoms
 
     # Loading calculator-specific settings
     calcs_dct = {}
 
+    # Generate a master calculator for every single kind of calculator, regardless of whether or not there was a
+    # corresponding block in the json file
     for block, reader in readers.items():
-        # Generate a master calculator for every single kind of calculator, regardless of whether or not there was a
-        # corresponding block in the json file
+        # For the UI task, the input file won't contain enough for us to generate all the other kinds of calculators
+        if task_name == 'ui' and block != 'ui':
+            if block in bigdct and not block.startswith('ui'):
+                utils.warn(f'Ignoring the {block} block since "task": "ui"')
+            continue
+
+        # Read the block and add the resulting calculator to the calcs_dct
         dct = bigdct.get(block, {})
         calcs_dct[block] = readers[block](dct, generic_atoms)
 
-    task_name = workflow_settings.pop('task', 'singlepoint')
     if task_name == 'singlepoint':
         workflow = SinglepointWorkflow(workflow_settings, calcs_dct)
     elif task_name == 'convergence':
         workflow = ConvergenceWorkflow(workflow_settings, calcs_dct)
     elif task_name == 'environ_dscf':
         workflow = DeltaSCFWorkflow(workflow_settings, calcs_dct)
+    elif task_name == 'ui':
+        workflow = UnfoldAndInterpolateWorkflow(workflow_settings, calcs_dct)
     else:
         raise ValueError('Invalid task name "{task_name}"')
 
@@ -516,36 +559,6 @@ def write_json(fd, calcs=[], workflow_settings={}):
     json_ext.dump(bigdct, fd, indent=2)
 
     return
-
-
-def parse_physical(value):
-    '''
-    Takes in a value that potentially has a unit following a float,
-    converts the value to ASE's default units (Ang, eV), and returns
-    that value
-    '''
-
-    if isinstance(value, float):
-        return value
-    elif isinstance(value, int):
-        return float(value)
-    elif isinstance(value, str):
-        splitline = value.strip().split()
-        if len(splitline) == 1:
-            return float(splitline[0])
-        elif len(splitline) == 2:
-            [value, units] = splitline
-            value = float(value)
-            matching_units = [
-                u for u in ase_units if u.lower() == units.lower()]
-            if len(matching_units) == 1:
-                return value * ase_units[matching_units[0]]
-            elif len(matching_units) > 1:
-                raise ValueError(
-                    f'Multiple matches for {units} found; this should not happen')
-            else:
-                raise NotImplementedError(
-                    f'{units} not implemented in koopmans.io.parse_physical')
 
 
 def read_pseudo_file(fd):

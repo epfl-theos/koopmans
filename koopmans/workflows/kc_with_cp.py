@@ -12,8 +12,10 @@ import subprocess
 import copy
 import numpy as np
 import pandas as pd
+from scipy import interpolate
 from koopmans import io, utils
 from koopmans.calculators.kcp import KCP_calc
+from koopmans.calculators.ui import UI_calc
 from koopmans.workflows.generic import Workflow
 from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
 
@@ -73,6 +75,17 @@ class KoopmansWorkflow(Workflow):
             print('Initialising alpha with a guess')
             self.alpha_df.loc[1] = [self.alpha_guess for _ in i_bands]
 
+        # Raise errors if any UI keywords are provided but will be overwritten by the workflow
+        for ui_keyword in ['kc_ham_file', 'w90_seedname', 'alat_sc', 'sc_dim', 'dft_ham_file', 'dft_smooth_ham_file']:
+            for ui_kind in ['occ', 'emp']:
+                value = getattr(self.master_calcs[f'ui_{ui_kind}'], ui_keyword)
+                [default_value] = [setting.default for setting in self.master_calcs['ui'].valid_settings
+                                   if setting.name == ui_keyword]
+                if value != default_value:
+                    raise ValueError(f'UI keyword {ui_keyword} has been set in the input file, but this will be '
+                                     'automatically set by the Koopmans workflow. Remove this keyword from the input '
+                                     'file')
+
     def read_alphadf_from_file(self, directory='.'):
         '''
         This routine reads in the contents of file_alpharef.txt and file_alpharef_empty.txt and
@@ -118,6 +131,8 @@ class KoopmansWorkflow(Workflow):
                 utils.system_call(f'rm -r {self.master_calcs["kcp"].outdir} 2>/dev/null', False)
             utils.system_call('rm -r calc_alpha 2>/dev/null', False)
             utils.system_call('rm -r final 2>/dev/null', False)
+            if getattr(self, 'redo_preexisting_smooth_dft_calcs', True):
+                utils.system_call('rm -r postproc 2>/dev/null', False)
 
         print('\nINITIALISATION OF DENSITY')
         self.perform_density_initialisation()
@@ -150,7 +165,6 @@ class KoopmansWorkflow(Workflow):
         # Final calculation
         print(f'\nFINAL {self.functional.upper().replace("PK","pK")} CALCULATION')
         self.perform_final_calculations()
-
         # Print out additional quality control data for final calculation
         if self.print_qc:
             calc = self.all_calcs[-1]
@@ -160,6 +174,11 @@ class KoopmansWorkflow(Workflow):
             for isp, orbs_self_hartree in enumerate(calc.results['orbital_data']['self-Hartree']):
                 for i, orb_sh in enumerate(orbs_self_hartree):
                     self.print_qc_keyval(f'orbital_self_Hartree(orb={i+1},sigma={isp+1})', orb_sh)
+
+        # Postprocessing
+        if self.periodic and self.master_calcs['ui'].k_path is not None:
+            print(f'\nPOSTPROCESSING')
+            self.perform_postprocessing()
 
         print('\nWORKFLOW COMPLETE')
 
@@ -175,7 +194,7 @@ class KoopmansWorkflow(Workflow):
             if not os.path.isdir('init'):
                 utils.system_call('mkdir init')
             os.chdir('init')
-            wannier_workflow.run()
+            self.run_subworkflow(wannier_workflow)
             os.chdir('..')
 
         if self.init_density == 'pbe':
@@ -585,16 +604,63 @@ class KoopmansWorkflow(Workflow):
             # KI calculation
             if final_calc_type == 'pkipz_final':
                 ndr = [c.ndw for c in self.all_calcs if c.name in ['ki', 'ki_final']][-1]
-                calc = self.new_calculator('kcp', final_calc_type, ndr=ndr)
+                calc = self.new_calculator('kcp', final_calc_type, ndr=ndr, write_hr=True)
             else:
-                calc = self.new_calculator('kcp', final_calc_type)
+                calc = self.new_calculator('kcp', final_calc_type, write_hr=True)
 
             calc.directory = directory
 
-            if self.init_variational_orbitals in ['mlwfs', 'projw']:
-                calc.write_hr = True
-
             self.run_calculator(calc)
+
+    def perform_postprocessing(self):
+        if self.master_calcs['ui'].do_smooth_interpolation:
+            factors = self.master_calcs['ui'].smooth_int_factor
+            # Run the PW + W90 for a much larger grid
+            local_master_calcs = copy.deepcopy(self.master_calcs)
+            for name, calc in local_master_calcs.items():
+                original_k_grid = calc.calc.parameters.get('kpts', None)
+                if original_k_grid is not None:
+                    # For calculations with a kpts attribute, create a denser k-gridi
+                    new_k_grid = [x * y for x, y in zip(original_k_grid, factors)]
+                    local_master_calcs[name].calc.parameters['kpts'] = new_k_grid
+            wannier_workflow = WannierizeWorkflow(self.settings, local_master_calcs)
+
+            # Perform the wannierisation workflow within the postproc directory
+            with utils.chdir('postproc'):
+                # Here, we allow for skipping of the smooth dft calcs (assuming they have been already run)
+                # This is achieved via the optional argument of from_scratch in run_subworkflow(), which
+                # overrides the value of wannier_workflow.from_scratch, as well as preventing the inheritance of
+                # self.from_scratch to wannier_workflow.from_scratch and back again after the subworkflow finishes
+                from_scratch = getattr(self, 'redo_preexisting_smooth_dft_calcs', None)
+                self.run_subworkflow(wannier_workflow, from_scratch=from_scratch, skip_wann2odd=True)
+
+        for calc_presets in ['occ', 'emp']:
+            calc = self.new_calculator('ui', calc_presets)
+            self.run_calculator(calc, enforce_ss=False)
+
+        # Merge the two calculations to print out the DOS and bands
+        if self.from_scratch:
+            calc = self.new_calculator('ui', 'merge')
+
+            # Merge the bands
+            calc.bg = self.all_calcs[-1].bg
+            zipped_bands = zip(*[c.results['bands'] for c in self.all_calcs[-2:]])
+            calc.results['bands'] = [np.concatenate((a, b)) for a, b in zipped_bands]
+
+            if calc.do_dos:
+                # Merge the DOS (a bit trickier because they're defined on different grids)
+                merged_energy = sorted(list(set([e[0] for c in self.all_calcs[-2:] for e in c.results['dos']])))
+                merged_dos = np.zeros(len(merged_energy))
+                for c in self.all_calcs[-2:]:
+                    # Create a linear interpolator and evaluate it on the merged_energy grid
+                    [energy, dos] = np.transpose(c.results['dos'])
+                    linear_interp = interpolate.interp1d(energy, dos, bounds_error=False, fill_value=(0, 0))
+                    merged_dos += linear_interp(merged_energy)
+                calc.results['dos'] = np.transpose([merged_energy, merged_dos])
+
+            # Print out the merged bands and DOS
+            with utils.chdir('postproc'):
+                calc.write_results()
 
     def new_calculator(self, calc_type, calc_presets='pbe_init', alphas=None, filling=None, **kwargs):
         """
@@ -606,8 +672,10 @@ class KoopmansWorkflow(Workflow):
 
         if calc_type == 'kcp':
             return self.new_kcp_calculator(calc_presets, alphas, filling, **kwargs)
+        elif calc_type == 'ui':
+            return self.new_ui_calculator(calc_presets, **kwargs)
         else:
-            raise ValueError(f'You should not be requesting calculators with {calc_type} != "kcp"')
+            raise ValueError(f'You should not be requesting calculators with {calc_type} not "cp" or "ui"')
 
     def new_kcp_calculator(self, calc_presets='pbe_init', alphas=None, filling=None, **kwargs):
         """
@@ -839,6 +907,33 @@ class KoopmansWorkflow(Workflow):
         # don't print QC in some cases
         if 'dummy' in calc.name:
             calc.skip_qc = True
+
+        return calc
+
+    def new_ui_calculator(self, calc_presets, **kwargs):
+
+        valid_calc_presets = ['occ', 'emp', 'merge']
+        assert calc_presets in valid_calc_presets, 'In KoopmansWorkflow.new_ui_calculator() calc_presets must be ' \
+            '/'.join([f'"{s}"' for s in valid_calc_presets]) + ', but you have tried to set it equal to {calc_presets}'
+
+        if calc_presets == 'merge':
+            # Dummy calculator for merging bands and dos
+            calc = UI_calc(calc=self.master_calcs['ui'])
+            pass
+        else:
+            calc = UI_calc(calc=self.master_calcs[f'ui_{calc_presets}'])
+            # Automatically generating UI calculator settings
+            calc.directory = f'postproc/{calc_presets}'
+            calc.kc_ham_file = os.path.abspath(f'final/ham_{calc_presets}_1.dat')
+            calc.sc_dim = self.master_calcs['pw'].calc.parameters.kpts
+            calc.w90_seedname = os.path.abspath(f'init/wannier/{calc_presets}/wann')
+            # The supercell can be obtained from the most recent CP calculation
+            cell = [c.calc.atoms.get_cell() for c in self.all_calcs if isinstance(c, KCP_calc)][-1]
+            calc.alat_sc = np.linalg.norm(cell[0])
+            if calc.do_smooth_interpolation:
+                calc.dft_smooth_ham_file = os.path.abspath(f'postproc/wannier/{calc_presets}/wann_hr.dat')
+                calc.dft_ham_file = os.path.abspath(f'init/wannier/{calc_presets}/wann_hr.dat')
+        calc.name = self.functional
 
         return calc
 
