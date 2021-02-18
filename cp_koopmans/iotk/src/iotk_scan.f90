@@ -867,7 +867,7 @@ subroutine iotk_scan_x(unit,direction,control,name,attr,binary,stream,found,ierr
 
   character(iotk_taglenx) :: tag
   character(iotk_namlenx) :: r_name
-  integer :: level,r_control
+  integer :: level,r_control,iostat
   logical :: lall,match
 
   found=.false.
@@ -927,6 +927,20 @@ call iotk_error_msg(ierr,"CVS Revision: 1.7 ")
       case(2)
         if(level==0 .and. match) exit
         if(level==0) then
+!-<
+! ... line to solve a bug : before are needed two lines at the end of the files
+! ... to get right scanning
+          if (.not.binary) THEN
+             backspace(unit,iostat=iostat)
+             if(iostat/=0) then
+                call iotk_error_issue(iostat,"iotk_scan",__FILE__,__LINE__)
+call iotk_error_msg(iostat,"CVS Revision: 1.23 ")
+call iotk_error_msg(iostat,' ')
+call iotk_error_write(iostat,"iostat",iostat)
+                return
+             end if
+  else
+!->
           call iotk_scan_tag(unit,-1,r_control,tag,binary,stream,ierr)
           if(ierr/=0) then
             call iotk_error_issue(ierr,"iotk_scan",__FILE__,__LINE__)
@@ -934,6 +948,9 @@ call iotk_error_msg(ierr,"CVS Revision: 1.7 ")
 call iotk_error_msg(ierr,"CVS Revision: 1.7 ")
             return
           end if
+!-<
+          end if
+!->
           return
         end if
         level = level - 1
