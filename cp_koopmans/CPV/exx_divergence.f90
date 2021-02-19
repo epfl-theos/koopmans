@@ -107,16 +107,13 @@ FUNCTION exx_divergence()
   !
   CALL mp_sum( div, intra_pool_comm )
   !
-  IF ( gamma_only ) THEN
-    !
-    div = 2.d0 * div
-    !
-    IF ( .NOT. x_gamma_extrapolation ) THEN
-      IF ( yukawa < 1.d-8) THEN
-        div = div - alpha
-      ELSE
-        div = div + tpiba2 / yukawa
-      ENDIF
+  IF ( gamma_only ) div = 2.d0 * div
+  !
+  IF ( .NOT. x_gamma_extrapolation ) THEN
+    IF ( yukawa < 1.d-8) THEN
+      div = div - alpha
+    ELSE
+      div = div + tpiba2 / yukawa
     ENDIF
   ENDIF
   !
