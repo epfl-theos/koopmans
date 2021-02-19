@@ -21,7 +21,7 @@ FUNCTION exx_divergence()
   USE gvecp,              ONLY : ngm
   USE gvecw,              ONLY : ecutw
   USE io_global,          ONLY : stdout
-  USE control_flags,      ONLY : gamma_only
+  USE control_flags,      ONLY : gamma_only, do_wf_cmplx
   USE mp_global,          ONLY : intra_pool_comm
   USE mp,                 ONLY : mp_sum
   !
@@ -107,7 +107,7 @@ FUNCTION exx_divergence()
   !
   CALL mp_sum( div, intra_pool_comm )
   !
-  IF ( gamma_only ) div = 2.d0 * div
+  IF ( gamma_only .AND. .NOT. do_wf_cmplx ) div = 2.d0 * div
   !
   IF ( .NOT. x_gamma_extrapolation ) THEN
     IF ( yukawa < 1.d-8) THEN
