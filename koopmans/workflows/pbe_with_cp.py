@@ -24,17 +24,12 @@ class PBEWorkflow(Workflow):
 
         calc = self.new_calculator('kcp')
 
-        # Sanitise outdir
-        calc.outdir = calc.outdir.strip('./')
-        if '/' in calc.outdir:
-            raise ValueError('"outdir" cannot be a nested directory')
-        calc.outdir = os.getcwd() + '/' + calc.outdir
-
         # Removing old directories
         if self.from_scratch:
             utils.system_call(f'rm -r {calc.outdir} 2>/dev/null', False)
 
         calc.name = 'pbe'
+        calc.directory = '.'
         calc.ndr = 50
         calc.ndw = 51
         calc.restart_mode = 'from_scratch'
@@ -45,7 +40,7 @@ class PBEWorkflow(Workflow):
 
         if calc.maxiter is None:
             calc.maxiter = 300
-        if calc.empty_states_nbnd > 0:
+        if calc.empty_states_nbnd is not None and calc.empty_states_nbnd > 0:
             calc.do_outerloop_empty = True
             if calc.empty_states_maxstep is None:
                 calc.empty_states_maxstep = 300

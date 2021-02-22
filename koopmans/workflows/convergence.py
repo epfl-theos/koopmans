@@ -89,6 +89,7 @@ class ConvergenceWorkflow(Workflow):
 
                 # For each parameter we're converging wrt...
                 header = ''
+                subdir = ''
                 for index, param, values in zip(indices, param_dict.keys(), param_dict.values()):
                     value = values[index]
                     if isinstance(value, int):
@@ -98,11 +99,8 @@ class ConvergenceWorkflow(Workflow):
                     header += f'{param} = {value_str}, '
 
                     # Create new working directory
-                    subdir = f'{param}_{value_str}'.replace(
+                    subdir += f'{param}_{value_str}/'.replace(
                         ' ', '_').replace('.', 'd')
-                    if not os.path.isdir(subdir):
-                        utils.system_call(f'mkdir {subdir}')
-                    os.chdir(subdir)
 
                     if param == 'cell_size':
                         kcp_calc._ase_calc.atoms.cell *= value
@@ -129,8 +127,8 @@ class ConvergenceWorkflow(Workflow):
                 calcs_dct = copy.deepcopy(self.master_calcs)
                 calcs_dct['kcp'] = kcp_calc
                 singlepoint = SinglepointWorkflow(self.settings, calcs_dct)
-                self.run_subworkflow(singlepoint)
-                solved_calc = self.all_calcs[-1]
+                self.run_subworkflow(singlepoint, subdirectory=subdir)
+                solved_calc = singlepoint.all_calcs[-1]
 
                 # Store the result
                 obs = self.convergence_observable
@@ -140,10 +138,6 @@ class ConvergenceWorkflow(Workflow):
                         f'{solved_calc.name} has not returned a value for {obs}')
                 result = solved_calc.results[obs]
                 results[indices] = result
-
-                # Move back to the base directory:
-                for _ in param_dict:
-                    os.chdir('..')
 
                 print()
 

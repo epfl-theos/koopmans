@@ -14,6 +14,8 @@ import numpy as np
 from ase.calculators.calculator import CalculationFailed
 from koopmans import io, utils
 
+skip_loading_outputs = False
+
 valid_settings = [
     utils.Setting('task',
                   'Task to perform',
@@ -114,15 +116,25 @@ class Workflow(object):
         if calc_type in self.master_calcs:
             calc = copy.deepcopy(self.master_calcs[calc_type])
             for keyword, value in kwargs.items():
-                if keyword not in calc._recognised_keywords:
+                if keyword not in calc._valid_settings and not hasattr(calc, keyword):
                     raise ValueError(f'{keyword} is not a valid setting name')
                 setattr(calc, keyword, value)
             return calc
         else:
-            raise ValueError('Could not find a calculator of type {calc_type}')
+            raise ValueError(f'Could not find a calculator of type {calc_type}')
 
     def run(self):
         raise NotImplementedError('This workflow class has not implemented the run() function')
+
+    def convert_wavefunction_2to1(self, nspin2_tmpdir, nspin1_tmpdir):
+        if self.from_scratch:
+            utils.system_call(
+                f'convert_nspin2_wavefunction_to_nspin1.sh {nspin2_tmpdir} {nspin1_tmpdir}')
+
+    def convert_wavefunction_1to2(self, nspin1_tmpdir, nspin2_tmpdir):
+        if self.from_scratch:
+            utils.system_call(
+                f'convert_nspin1_wavefunction_to_nspin2.sh {nspin1_tmpdir} {nspin2_tmpdir}')
 
     def run_calculator(self, master_qe_calc, enforce_ss=False):
         '''
@@ -144,12 +156,9 @@ class Workflow(object):
                 qe_calc.restart_mode = 'from_scratch'
                 qe_calc.skip_qc = True
                 self.run_calculator_single(qe_calc)
-
-                if self.from_scratch:
-                    # Copy over nspin=2 wavefunction to nspin=1 tmp directory (if it has not been done already)
-                    nspin1_tmpdir = f'{qe_calc.outdir}/{qe_calc.prefix}_{qe_calc.ndw}.save/K00001'
-                    utils.system_call(
-                        f'convert_nspin2_wavefunction_to_nspin1.sh {nspin2_tmpdir} {nspin1_tmpdir}')
+                # Copy over nspin=2 wavefunction to nspin=1 tmp directory (if it has not been done already)
+                nspin1_tmpdir = f'{qe_calc.outdir}/{qe_calc.prefix}_{qe_calc.ndw}.save/K00001'
+                self.convert_wavefunction_2to1(nspin2_tmpdir, nspin1_tmpdir)
 
             # PBE with nspin=1
             qe_calc = copy.deepcopy(master_qe_calc)
@@ -168,12 +177,10 @@ class Workflow(object):
             qe_calc.ndw = 99
             qe_calc.skip_qc = True
             self.run_calculator_single(qe_calc)
-            nspin2_tmpdir = f'{qe_calc.outdir}/{qe_calc.prefix}_{qe_calc.ndw}.save/K00001'
 
-            # Copy over nspin=1 wavefunction to nspin=2 tmp directory
-            if self.from_scratch:
-                utils.system_call(
-                    f'convert_nspin1_wavefunction_to_nspin2.sh {nspin1_tmpdir} {nspin2_tmpdir}')
+            # Copy over nspin=1 wavefunction to nspin=2 tmp directory (if it has not been done already)
+            nspin2_tmpdir = f'{qe_calc.outdir}/{qe_calc.prefix}_{qe_calc.ndw}.save/K00001'
+            self.convert_wavefunction_1to2(nspin1_tmpdir, nspin2_tmpdir)
 
             # PBE with nspin=2, reading in the spin-symmetric nspin=1 wavefunction
             master_qe_calc.name += '_nspin2'
@@ -188,10 +195,7 @@ class Workflow(object):
         return
 
     def run_calculator_single(self, qe_calc):
-        # Runs qe_calc.calculate with additional options:
-
-        ext_in = qe_calc.ext_in
-        ext_out = qe_calc.ext_out
+        # Runs qe_calc.calculate with additional checks
 
         # If an output file already exists, check if the run completed successfully
         verb = 'Running'
@@ -199,10 +203,13 @@ class Workflow(object):
 
             calc_file = f'{qe_calc.directory}/{qe_calc.name}'
 
-            if os.path.isfile(calc_file + ext_out):
+            if os.path.isfile(calc_file + qe_calc.ext_out):
                 verb = 'Rerunning'
 
                 # Load the old calc_file
+                if skip_loading_outputs:
+                    # For tests, don't load the output file
+                    calc_file += qe_calc.ext_in
                 old_calc = qe_calc.__class__(qe_files=calc_file)
 
                 if old_calc.is_complete():
@@ -252,35 +259,53 @@ class Workflow(object):
             for result in qe_calc.results_for_qc:
                 val = qe_calc.results.get(result, None)
                 if val:
-                    self.print_qc_keyval(qe_calc.name + '_' + result, val)
+                    self.print_qc_keyval(result, val, qe_calc)
 
         # If we reached here, all future calculations should be performed from scratch
         self.from_scratch = True
 
         return
 
-    def print_qc_keyval(self, key, value):
+    def print_qc_keyval(self, key, value, calc=None):
         '''
-        Prints out a quality control message for testcode to evaluate
+        Prints out a quality control message for testcode to evaluate, and if a calculator is provided, stores the
+        result in calc.qc_results
         '''
-        print(f'<QC> {key} {value}')
 
-    def run_subworkflow(self, workflow, from_scratch=None, **kwargs):
+        if calc is None:
+            calc_str = ''
+        else:
+            calc_str = f'{calc.name}_'
+        print(f'<QC> {calc_str}{key} {value}')
+
+        if calc is not None:
+            calc.qc_results[key] = value
+
+    def run_subworkflow(self, workflow, subdirectory=None, from_scratch=None, **kwargs):
         '''
         Runs a workflow object, taking care of inheritance of several important properties
 
-        Setting from_scratch to a non-None value will override the value of subworkflow.from_scratch
-        and will prevent inheritance of from_scratch
         '''
 
+        # When testing, make sure the sub-workflow has access to the benchmark
+        if hasattr(self, 'benchmark'):
+            workflow.benchmark = self.benchmark
+
+        # Setting from_scratch to a non-None value will override the value of subworkflow.from_scratch...
         if from_scratch is None:
             workflow.from_scratch = self.from_scratch
         else:
             workflow.from_scratch = from_scratch
 
-        workflow.run(**kwargs)
+        # Link the list of calculations
+        workflow.all_calcs = self.all_calcs
 
-        self.all_calcs += workflow.all_calcs
+        if subdirectory is not None:
+            with utils.chdir(subdirectory):
+                workflow.run(**kwargs)
+        else:
+            workflow.run(**kwargs)
 
+        # ... and will prevent inheritance of from_scratch
         if from_scratch is None:
             self.from_scratch = workflow.from_scratch

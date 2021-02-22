@@ -18,6 +18,9 @@ from koopmans.workflows.kc_with_cp import KoopmansWorkflow
 from koopmans.workflows.pbe_with_cp import PBEWorkflow
 
 
+load_results_from_output = True
+
+
 class SinglepointWorkflow(Workflow):
 
     def run(self):
@@ -54,9 +57,6 @@ class SinglepointWorkflow(Workflow):
                     local_workflow_settings['init_variational_orbitals'] = 'ki'
                     local_workflow_settings['alpha_from_file'] = True
 
-                # Change to relevant subdirectory
-                os.chdir(functional)
-
                 # Create a KC workflow for this particular functional
                 master_calcs_local = copy.deepcopy(self.master_calcs)
                 kc_workflow = KoopmansWorkflow(local_workflow_settings, master_calcs_local, alphas)
@@ -68,16 +68,12 @@ class SinglepointWorkflow(Workflow):
                 # Run the workflow
                 if functional == 'pkipz' and self.from_scratch:
                     # We want to run pKIPZ with from_scratch = False, but don't want this to be inherited
-                    self.run_subworkflow(kc_workflow, from_scratch=False)
+                    self.run_subworkflow(kc_workflow, subdirectory=functional, from_scratch=False)
                 else:
-                    self.run_subworkflow(kc_workflow)
+                    self.run_subworkflow(kc_workflow, subdirectory=functional)
 
-                # Save the alpha values and the final calculation of the workflow
+                # Save the alpha values and the calculations of the workflow
                 alphas = kc_workflow.alpha_df.iloc[-1].values
-                solved_calc = [c for c in kc_workflow.all_calcs if isinstance(c, KCP_calc)][-1]
-
-                # Return to the base directory
-                os.chdir('..')
 
                 # Provide the pKIPZ and KIPZ calculations with a KI starting point
                 if functional == 'ki':
@@ -86,17 +82,15 @@ class SinglepointWorkflow(Workflow):
 
                     # KIPZ
                     utils.system_call('rsync -a ki/final/ kipz/init/')
-                    utils.system_call('rsync -a ki/init/wannier kipz/init/')
-                    utils.system_call(f'rsync -a {solved_calc.outdir} kipz/')
-                    utils.system_call(
-                        'mv kipz/init/ki_final.cpi kipz/init/ki_init.cpi')
-                    utils.system_call(
-                        'mv kipz/init/ki_final.cpo kipz/init/ki_init.cpo')
+                    utils.system_call('mv kipz/init/ki_final.cpi kipz/init/ki_init.cpi')
+                    utils.system_call('mv kipz/init/ki_final.cpo kipz/init/ki_init.cpo')
+                    if self.init_variational_orbitals in ['mlwfs', 'projw']:
+                        utils.system_call('rsync -a ki/init/wannier kipz/init/')
                     if self.master_calcs['ui'].do_smooth_interpolation:
                         # Copy over the smooth PBE calculation from KI for KIPZ to use
                         utils.system_call('rsync -a ki/postproc kipz/')
                         utils.system_call('find kipz/postproc/ -name "*interpolated.dat" -delete')
-            return solved_calc
+            return
 
         else:
             if self.functional in ['ki', 'kipz', 'pkipz']:

@@ -305,25 +305,30 @@ def print_centers(self, centers=None):
     return
 
 
-def write_results(self):
+def write_results(self, directory=None):
     """
     write_results calls write_bands and write_dos if the DOS was calculated
     """
+    if directory is None:
+        directory = self.directory
 
-    self.write_bands()
+    self.write_bands(directory)
 
     if self.do_dos:
-        self.write_dos()
+        self.write_dos(directory)
 
     return
 
 
-def write_bands(self):
+def write_bands(self, directory=None):
     """
     write_bands prints the interpolated bands, in the QE format, in a file called
                 'bands_interpolated.dat'.
                 (see PP/src/bands.f90 around line 574 for the linearized path)
     """
+
+    if directory is None:
+        directory = self.directory
 
     kvec = []
     for n in range(len(self.kvec)):
@@ -345,7 +350,7 @@ def write_bands(self):
         else:
             kx.append(kx[ik - 1] + dxmod)
 
-    with open('bands_interpolated.dat', 'w') as ofile:
+    with open(f'{directory}/bands_interpolated.dat', 'w') as ofile:
         ofile.write('# Written at ' + datetime.now().isoformat(timespec='seconds'))
 
         for n in range(len(self.results['bands'][0])):
@@ -356,17 +361,60 @@ def write_bands(self):
     return
 
 
-def write_dos(self):
+def read_bands(self, directory=None):
+    """
+    read_bands reads the interpolated bands, in the QE format, in a file called
+               'bands_interpolated.dat'.
+               (see PP/src/bands.f90 around line 574 for the linearized path)
+    """
+
+    if directory is None:
+        directory = self.directory
+
+    band_file = f'{directory}/bands_interpolated.dat'
+    bands = [[]]
+    if os.path.isfile(band_file):
+        with open(band_file, 'r') as f:
+            flines = f.readlines()
+        for line in flines[1:-1]:
+            splitline = line.strip().split()
+            if len(splitline) == 0:
+                bands.append([])
+            else:
+                bands[-1].append(float(splitline[-1]))
+    self.results['bands'] = np.transpose(bands)
+
+
+def write_dos(self, directory=None):
     """
     write_dos prints the DOS in a file called 'dos_interpolated.dat', in a format (E , DOS(E))
 
     """
-    with open('dos_interpolated.dat', 'w') as ofile:
+    if directory is None:
+        directory = self.directory
+
+    with open(f'{directory}/dos_interpolated.dat', 'w') as ofile:
         ofile.write('# Written at ' + datetime.now().isoformat(timespec='seconds'))
         for row in self.results['dos']:
             ofile.write('\n{:10.4f}{:12.6f}'.format(*row))
         ofile.write('\n')
 
+    return
+
+
+def read_dos(self, directory=None):
+    """
+    read_dos reads the DOS in a file called 'dos_interpolated.dat'
+
+    """
+    if directory is None:
+        directory = self.directory
+
+    dos_file = f'{directory}/dos_interpolated.dat'
+    if os.path.isfile(dos_file):
+        with open(dos_file, 'r') as ofile:
+            flines = ofile.readlines()
+        self.results['dos'] = [[float(v) for v in line.split()] for line in flines[1:]]
     return
 
 
@@ -378,15 +426,23 @@ def write_input_file(self):
 
     with utils.chdir(self.directory):
         with open(f'{self.name}{self.ext_in}', 'w') as fd:
-            bigdct = {"workflow": {"task": "ui"}, "ui": self.calc.parameters}
+            settings = copy.deepcopy(self.calc.parameters)
+
+            # Convert alat_sc to Bohr
+            settings['alat_sc'] *= utils.units.Bohr
+
+            bigdct = {"workflow": {"task": "ui"}, "ui": settings}
             json.dump(bigdct, fd, indent=2)
 
 
-def read_input_file(self, input_file):
+def read_input_file(self, input_file=None):
     """
     read_input_file reads in the settings from a JSON-formatted input file and returns an ASE calculator (useful for
     restarting)
     """
+
+    if input_file is None:
+        input_file = self.directory + '/' + self.name + self.ext_in
 
     with open(input_file, 'r') as fd:
 
@@ -415,6 +471,7 @@ def read_output_file(self, output_file=None):
     atoms = Atoms(calculator=FileIOCalculator())
     atoms.calc.atoms = atoms
     calc = atoms.calc
+    calc.directory = output_file.rsplit('/', 1)[0]
 
     assert os.path.isfile(output_file)
 
@@ -423,7 +480,15 @@ def read_output_file(self, output_file=None):
         flines = f.readlines()
     calc.results = {'job done': any(['ALL DONE' in line for line in flines])}
 
-    return calc
+    # Convert to a UI_calculator to read the bands and DOS
+    calc = self.__class__(calc=calc)
+
+    # Read the bands and DOS if they exist
+    calc.read_bands()
+    calc.read_dos()
+
+    # Return the ASE calculator object
+    return calc.calc
 
 
 def scell_centers(self, units='crys', cell='sc'):

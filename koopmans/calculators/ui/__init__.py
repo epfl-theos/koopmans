@@ -10,57 +10,38 @@ import os
 from time import time
 from ase.atoms import Atoms
 from ase.calculators.calculator import FileIOCalculator
-from koopmans.calculators.generic import QE_calc
+from koopmans.calculators.generic import GenericCalc
 from koopmans import utils
 
 
-class UI_calc(QE_calc):
+class UI_calc(GenericCalc):
+    # Subclass of GenericCalc for performing unfolding and interpolation
 
     from ._io import parse_w90, parse_hr, parse_phases, print_centers, write_results, write_bands, write_dos, \
-        write_input_file, read_input_file, read_output_file
+        write_input_file, read_input_file, read_output_file, read_bands, read_dos
     from ._interpolate import interpolate, calc_bands, correct_phase, calc_dos
     from ._settings import load_defaults, valid_settings
+
+    # UI_calc does not use ASE
+    _io = None
 
     ext_in = '.uii'
     ext_out = '.uio'
 
-    # Adding all UI keywords as decorated properties of the W90_calc class.
-    # This means one can set and get wannier90 keywords as self.<keyword> but
-    # internally they are stored as self._settings['keyword'] rather than
-    # self.<keyword>
-    _recognised_keywords = [s.name for s in valid_settings]
+    # Adding all UI keywords as decorated properties of the UI calc class
+    _valid_settings = [s.name for s in valid_settings]
+    _settings_that_are_paths = ['w90_seedname', 'kc_ham_file', 'dft_ham_file', 'dft_smooth_ham_file']
 
-    for k in _recognised_keywords:
-        # We need to use these make_get/set functions so that get/set_k are
-        # evaluated immediately (otherwise we run into late binding and 'k'
-        # is not defined when get/set_k are called)
-        def make_get(key):
-            def get_k(self):
-                # Return 'None' rather than an error if the keyword has not
-                # been defined
-                return self._settings.get(key, None)
-            return get_k
-
-        def make_set(key):
-            def set_k(self, value):
-                self._settings[key] = value
-            return set_k
-
-        get_k = make_get(k)
-        set_k = make_set(k)
-        locals()[k] = property(get_k, set_k)
-
-    # Subclass of QE_calc for performing unfolding and interpolation
     def __init__(self, calc=None, qe_files=[], skip_qc=False, **kwargs):
-        self._recognised_keywords = []
         self._ase_calc_class = None
-        self.settings_to_not_parse = ['w90_seedname', 'kc_ham_file', 'dft_ham_file', 'dft_smooth_ham_file']
-
         super().__init__(calc, qe_files, skip_qc, **kwargs)
 
         self.results_for_qc = []
 
     def calculate(self):
+
+        if self.k_path is None:
+            utils.warn('"k_path" missing in input, the energies will be calculated on a commensurate Monkhorst-Pack mesh')
 
         for setting in self.mandatory_settings:
             assert getattr(self, setting, None), f'The mandatory key {setting} has not been provided'
@@ -70,6 +51,12 @@ class UI_calc(QE_calc):
 
         if self.directory is None:
             self.directory = '.'
+
+        self._calculate()
+
+    def _calculate(self):
+        # The core of the calculation machinery is separated into self._calculate() to allow for monkeypatching
+        # during testing
 
         self.write_input_file()
 
@@ -114,7 +101,7 @@ class UI_calc(QE_calc):
                     - DOS into 'dos_interpolated.dat' file
                 """
 
-                self.write_results()
+                self.write_results(directory='.')
 
                 self.f_out.write(f'\tPrinting output in: {time() - reset:24.3f} sec\n')
 

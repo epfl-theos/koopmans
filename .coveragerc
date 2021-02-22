@@ -1,0 +1,6 @@
+[report]
+# Regexes for lines to exclude from consideration
+ignore_errors = True
+omit =
+    *python_KI/ase_koopmans*
+    *python_KI/tests*

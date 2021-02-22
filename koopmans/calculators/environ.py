@@ -1,4 +1,5 @@
 import os
+import copy
 from koopmans.calculators.pw import PW_calc
 
 _default_settings = {
@@ -15,10 +16,8 @@ _default_settings = {
 class Environ_calc(PW_calc):
     # Create an environ calculator that inherits from the vanilla pw.x calculator
 
-    environ_settings = _default_settings
-
     def __init__(self, *args, **kwargs):
-        super(Environ_calc, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Ensure we're using an environ-enabled version of pw.x
         self.preprocessing_flags = '--environ'
@@ -26,17 +25,13 @@ class Environ_calc(PW_calc):
         # Add electrostatic embedding to the results printed out during QC
         self.results_for_qc.append('electrostatic embedding')
 
+        # Add dictionary of environ settings
+        self.environ_settings = copy.deepcopy(_default_settings)
+
     def calculate(self):
         # Generic function for running a calculation
-
-        # If pseudo_dir is a relative path then make sure it accounts for self.directory
-        if self.pseudo_dir is not None and self.pseudo_dir[0] != '/':
-            directory_depth = self.directory.strip('./').count('/') + 1
-            self.pseudo_dir = '../' * directory_depth + self.pseudo_dir
-
         self.write_environ_in()
-
-        self._ase_calculate()
+        super().calculate()
 
     def set_environ_settings(self, settings, use_defaults=True):
         self.environ_settings = settings
@@ -70,5 +65,10 @@ class Environ_calc(PW_calc):
     def check_code_is_installed(self):
         executable_with_path = super().check_code_is_installed()
         qe_directory, _, _ = executable_with_path.rsplit('/', 2)
-        if not os.path.isfile(qe_directory + '/Environ_PATCH'):
+        if not environ_addon_is_installed(qe_directory):
             raise OSError('The pw add-on "environ" is not installed')
+
+
+def environ_addon_is_installed(qe_directory):
+    # This is written in this way so it can be externally imported by the test suite
+    return os.path.isfile(qe_directory + '/Environ_PATCH')

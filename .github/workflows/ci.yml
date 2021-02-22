@@ -1,0 +1,42 @@
+name: Run tests
+
+on:
+   pull_request:
+      branches:
+         - master
+   push:
+      branches:
+         - master
+
+jobs:
+   test:
+      runs-on: ubuntu-latest
+      strategy:
+         fail-fast: false
+         max-parallel: 3
+         matrix:
+            python-version: [3.6, 3.7, 3.8]
+
+      steps:
+         - name: Checkout
+           uses: actions/checkout@v2
+           with:
+              submodules: recursive
+         - name: Set up Python ${{ matrix.python-version }}
+           uses: actions/setup-python@v2
+           with:
+              python-version: ${{ matrix.python-version }}
+         - name: Install dependencies
+           run: |
+              python -m pip install --upgrade pip
+              pip install -e ase_koopmans/ .[test]
+         - name: Test with pytest
+           run: |
+              pytest -m mock tests/ --cov-config=.coveragerc --cov=koopmans --cov-report=xml
+         - name: Upload coverage to Codecov
+           if: matrix.python-version == 3.8 && github.repository == 'elinscott/python_KI'
+           uses: codecov/codecov-action@v1
+           with:
+              token: ${{ secrets.CODECOV_TOKEN }}
+              file: coverage.xml
+              flags: tests

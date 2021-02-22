@@ -7,6 +7,7 @@ Written by Riccardo De Gennaro Nov 2020
 
 """
 
+import copy
 import os
 import numpy as np
 from koopmans import utils
@@ -26,14 +27,6 @@ class WannierizeWorkflow(Workflow):
         if 'w90_occ' not in self.master_calcs and 'w90_emp' not in self.master_calcs:
             raise ValueError(
                 'You need to provide a w90 block in your input when init_variational_orbitals = "mlwfs" or "projw"')
-
-        if 'pw2wannier' not in self.master_calcs:
-            # Generate a pw2wannier calculator with default settings
-            p2w_calc = PW2Wannier_calc()
-            # Copying over the atoms object from the PW calculator
-            p2w_calc.calc.atoms = self.master_calcs['pw'].calc.atoms
-            p2w_calc.calc.atoms.calc = p2w_calc.calc
-            self.master_calcs['pw2wannier'] = p2w_calc
 
         # Make sure num_wann (occ/empty), num_bands (occ/empty), and nbnd are present and consistent
         pw_calc = self.master_calcs['pw']
@@ -67,42 +60,36 @@ class WannierizeWorkflow(Workflow):
 
         # Run PW scf and nscf calculations
         # PWscf needs only the valence bands
-        calc = self.new_calculator('pw', nbnd=None, nspin=1)
-        calc.directory = 'wannier'
-        calc.name = 'scf'
-        self.run_calculator(calc)
+        calc_pw = self.new_calculator('pw', nbnd=None, nspin=1)
+        calc_pw.directory = 'wannier'
+        calc_pw.name = 'scf'
+        self.run_calculator(calc_pw)
 
-        calc = self.new_calculator('pw', calculation='nscf', nosym=True, noinv=True, nspin=1)
-        calc.directory = 'wannier'
-        calc.name = 'nscf'
-        self.run_calculator(calc)
+        calc_pw = self.new_calculator('pw', calculation='nscf', nosym=True, noinv=True, nspin=1)
+        calc_pw.directory = 'wannier'
+        calc_pw.name = 'nscf'
+        self.run_calculator(calc_pw)
 
-        calc_p2w = self.new_calculator('pw2wannier')
         for typ in ['occ', 'emp']:
-            calc_w90 = self.new_calculator('w90_' + typ)
-
-            calc_w90.directory = 'wannier/' + typ
-            calc_p2w.directory = calc_w90.directory
-            if calc_w90.num_bands != calc_w90.num_wann and calc_w90.dis_num_iter is None:
-                calc_w90.dis_num_iter = 5000
-            if self.init_variational_orbitals == 'projw':
-                calc_w90.num_iter = 0
-
             # 1) pre-processing Wannier90 calculation
-            calc_w90.name = 'wann'
-            calc_w90.preprocessing_flags = '-pp'
+            calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ, name='wann_preproc',
+                                           preprocessing_flags='-pp')
             self.run_calculator(calc_w90)
+            utils.system_call(f'rsync -a {calc_w90.directory}/wann_preproc.nnkp {calc_w90.directory}/wann.nnkp')
+
             # 2) standard pw2wannier90 calculation
-            calc_p2w.name = 'pw2wan'
+            calc_p2w = self.new_calculator('pw2wannier', directory=calc_w90.directory, outdir=calc_pw.outdir,
+                                           name='pw2wan')
             self.run_calculator(calc_p2w)
+
             # 3) Wannier90 calculation
-            calc_w90.preprocessing_flags = ''
+            calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ, name='wann')
             self.run_calculator(calc_w90)
+
             # 4) pw2wannier90 calc (wannier2odd mode for WFs conversion to supercell)
             if not skip_wann2odd:
-                calc_w2o = self.new_calculator('pw2wannier', wan_mode='wannier2odd')
-                calc_w2o.directory = calc_w90.directory
-                calc_w2o.name = 'wan2odd'
+                calc_w2o = self.new_calculator('pw2wannier', wan_mode='wannier2odd', directory=calc_w90.directory,
+                                               name='wan2odd')
                 if typ == 'emp':
                     calc_w2o.split_evc_file = True
                 self.run_calculator(calc_w2o)
@@ -110,3 +97,16 @@ class WannierizeWorkflow(Workflow):
         print()
 
         return
+
+    def new_calculator(self, calc_type, *args, **kwargs):
+        calc = super().new_calculator(calc_type, *args, **kwargs)
+
+        # Extra tweaks for Wannier90 calculations
+        if calc_type.startswith('w90'):
+            if calc.num_bands != calc.num_wann and calc.dis_num_iter is None:
+                calc.dis_num_iter = 5000
+            if self.init_variational_orbitals == 'projw':
+                calc.num_iter = 0
+
+        return calc
+

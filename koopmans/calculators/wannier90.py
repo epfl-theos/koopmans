@@ -11,10 +11,10 @@ from koopmans.utils import warn
 from ase.io import wannier90 as w90_io
 from ase.calculators.wannier90 import Wannier90
 from ase.dft.kpoints import BandPath
-from koopmans.calculators.generic import QE_calc
+from koopmans.calculators.generic import GenericCalc
 
 
-class W90_calc(QE_calc):
+class W90_calc(GenericCalc):
     # Link to relevant ase io module
     _io = w90_io
 
@@ -22,34 +22,12 @@ class W90_calc(QE_calc):
     ext_in = '.win'
     ext_out = '.wout'
 
-    # Adding all wannier90 keywords as decorated properties of the W90_calc class.
-    # This means one can set and get wannier90 keywords as self.<keyword> but
-    # internally they are stored as self._settings['keyword'] rather than
-    # self.<keyword>
-    _recognised_keywords = ['num_bands', 'num_wann', 'exclude_bands',
-                            'num_iter', 'conv_window', 'conv_tol', 'num_print_cycles',
-                            'dis_froz_max', 'dis_num_iter', 'dis_win_max', 'guiding_centres',
-                            'bands_plot', 'mp_grid', 'kpoint_path', 'projections', 'write_hr']
-
-    for k in _recognised_keywords:
-        # We need to use these make_get/set functions so that get/set_k are
-        # evaluated immediately (otherwise we run into late binding and 'k'
-        # is not defined when get/set_k are called)
-        def make_get(key):
-            def get_k(self):
-                # Return 'None' rather than an error if the keyword has not
-                # been defined
-                return self._settings.get(key, None)
-            return get_k
-
-        def make_set(key):
-            def set_k(self, value):
-                self._settings[key] = value
-            return set_k
-
-        get_k = make_get(k)
-        set_k = make_set(k)
-        locals()[k] = property(get_k, set_k)
+    # Create a record of the valid settings
+    _valid_settings = ['num_bands', 'num_wann', 'exclude_bands',
+                       'num_iter', 'conv_window', 'conv_tol', 'num_print_cycles',
+                       'dis_froz_max', 'dis_num_iter', 'dis_win_max', 'guiding_centres',
+                       'bands_plot', 'mp_grid', 'kpoint_path', 'projections', 'write_hr']
+    _settings_that_are_paths = []
 
     def __init__(self, *args, **kwargs):
         self._ase_calc_class = Wannier90
@@ -70,8 +48,16 @@ class W90_calc(QE_calc):
         self.calc.parameters['kpts'] = kpts.kpts[:, :3]
 
     def is_converged(self):
-        warn("is_converged is not properly implemented")
-        return True
+        return self.results['convergence']
 
     def is_complete(self):
         return self.results['job done']
+
+    @property
+    def defaults(self):
+        return {'num_iter': 10000,
+                'conv_tol': 1.e-10,
+                'conv_window': 5,
+                'write_hr': True,
+                'guiding_centers': True,
+                'gamma_only': False}

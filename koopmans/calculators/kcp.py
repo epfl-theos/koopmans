@@ -7,13 +7,15 @@ Written by Edward Linscott Sep 2020
 """
 
 import numpy as np
+from pandas.core.series import Series
+from ase.calculators.espresso_kcp import Espresso_kcp
 from ase.io import espresso_kcp as kcp_io
 from koopmans import io, utils
-from koopmans.calculators.generic import QE_calc
+from koopmans.calculators.generic import EspressoCalc
 
 
-class KCP_calc(QE_calc):
-    # Subclass of QE_calc for performing calculations with kcp.x
+class KCP_calc(EspressoCalc):
+    # Subclass of EspressoCalc for performing calculations with kcp.x
 
     # Point to the appropriate ASE IO module
     _io = kcp_io
@@ -22,37 +24,13 @@ class KCP_calc(QE_calc):
     ext_in = '.cpi'
     ext_out = '.cpo'
 
-    # Adding all kcp.x keywords as decorated properties of the KCP_calc class.
-    # This means one can set and get kcp.x keywords as self.<keyword> but
-    # internally they are stored as self._settings['keyword'] rather than
-    # self.<keyword>
-    _recognised_keywords = []
-
-    for keywords in _io.KEYS.values():
-        for k in keywords:
-            _recognised_keywords.append(k)
-
-            # We need to use these make_get/set functions so that get/set_k are
-            # evaluated immediately (otherwise we run into late binding and 'k'
-            # is not defined when get/set_k are called)
-            def make_get(key):
-                def get_k(self):
-                    # Return 'None' rather than an error if the keyword has not
-                    # been defined
-                    return self._settings.get(key, None)
-                return get_k
-
-            def make_set(key):
-                def set_k(self, value):
-                    self._settings[key] = value
-                return set_k
-
-            get_k = make_get(k)
-            set_k = make_set(k)
-            locals()[k] = property(get_k, set_k)
+    # Create a list of the valid settings
+    _valid_settings = [k for sublist in _io.KEYS.values() for k in sublist]
+    _settings_that_are_paths = ['outdir', 'pseudo_dir']
 
     def __init__(self, calc=None, qe_files=[], skip_qc=False, alphas=None, filling=None, **kwargs):
         self.settings_to_not_parse = ['pseudo_dir', 'assume_isolated']
+        self._ase_calc_class = kcp_io.Espresso_kcp
 
         super().__init__(calc, qe_files, skip_qc, **kwargs)
 
@@ -61,16 +39,40 @@ class KCP_calc(QE_calc):
         self.alphas = alphas
         self.filling = filling
 
-    @property
-    def calc(self):
-        # First, update the param block
-        self._ase_calc.parameters['input_data'] = self.construct_namelist()
+    defaults = {'calculation': 'cp',
+                'outdir': './TMP-CP/',
+                'iprint': 1,
+                'prefix': 'kc',
+                'verbosity': 'low',
+                'disk_io': 'high',
+                'write_hr': False,
+                'do_wf_cmplx': True,
+                'do_ee': True,
+                'electron_dynamics': 'cg',
+                'nspin': 2,
+                'ortho_para': 1,
+                'passop': 2.0,
+                'ion_dynamics': 'none',
+                'ion_nstepe': 5,
+                'ion_radius(1)': 1.0,
+                'ion_radius(2)': 1.0,
+                'ion_radius(3)': 1.0,
+                'ion_radius(4)': 1.0,
+                'do_innerloop_cg': True,
+                'innerloop_cg_nreset': 20,
+                'innerloop_cg_nsd': 2,
+                'innerloop_init_n': 3,
+                'innerloop_nmax': 100,
+                'hartree_only_sic': False,
+                'empty_states_nbnd': 0,
+                'conv_thr': '1.0e-9*nelec',
+                'esic_conv_thr': '1.0e-9*nelec'}
 
-        return self._ase_calc
-
-    @calc.setter
-    def calc(self, value):
-        self._ase_calc = value
+    def load_defaults(self):
+        # Because the defaults make explicit reference to nelec, we need to make sure this is defined beforehand
+        if self.nelec is None:
+            self.nelec = io.nelec_from_pseudos(self.calc)
+        super().load_defaults()
 
     def is_complete(self):
         return self.results['job_done']
@@ -81,22 +83,6 @@ class KCP_calc(QE_calc):
             raise ValueError(
                 'Cannot check convergence when "conv_thr" is not set')
         return self._ase_is_converged()
-
-    def _ase_calculate(self):
-        # Before running the calculation, update the keywords for the ASE calculator object
-        self._ase_calc.parameters['input_data'] = self.construct_namelist()
-        super()._ase_calculate()
-
-    def construct_namelist(self):
-        # Returns a namelist of settings, grouped by their Quantum Espresso headings
-        return kcp_io.construct_namelist(**self._settings, warn=True)
-
-    def _update_settings_dict(self):
-        # Updates self._settings based on self._ase_calc
-        self._settings = {}
-        for namelist in self._ase_calc.parameters.get('input_data', {}).values():
-            for key, val in namelist.items():
-                self._settings[key] = val
 
     def _ase_is_converged(self):
         if 'convergence' not in self.results:
@@ -126,9 +112,8 @@ class KCP_calc(QE_calc):
 
         if val is None:
             return
-
-        # convert to an array
-        val = np.array(val)
+        elif isinstance(val, Series):
+            val = val.to_numpy()
 
         # alphas can be a 1D or 2D array. If it is 1D, convert it to 2D so that self.alphas
         # is indexed by [i_spin, i_orbital]

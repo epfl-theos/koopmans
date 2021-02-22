@@ -11,19 +11,8 @@ Workflow for performing delta SCF PBE calculations using pw.x --environ
 
 class DeltaSCFWorkflow(Workflow):
 
-    def ___init__(workflow_settings, calcs_dct):
-        super().__init__(workflow_settings, calcs_dct)
-
-        if 'pw' not in calcs_dct:
-            raise ValueError(
-                'You need to provide a pw block in your input .json file for task = environ_dscf')
-
     def run(self):
         # Run workflow
-        pw_calc = Environ_calc(calc=self.master_calcs['pw'])
-        pw_calc.name = 'pbe'
-        calc_succeeded = True
-
         if self.from_scratch:
             utils.system_call('rm -r neutral charged 2> /dev/null', False)
 
@@ -33,42 +22,44 @@ class DeltaSCFWorkflow(Workflow):
         for charge, label in zip([0, -1], ['neutral', 'charged']):
             print(f'\nPerforming {label} calculations...')
 
-            # Initialize value of epsilon
+            # Initialize variables
             i_eps = 0
             epsilon = epsilons[i_eps]
+            environ_restart = False
+            restart_mode = 'from_scratch'
+            calc_succeeded = True
 
             # Create working directories
             if not os.path.isdir(label):
                 utils.system_call(f'mkdir {label}')
                 utils.system_call(f'mkdir {label}/{epsilons[0]}')
 
-            # Initialize system parameters
-            pw_calc.restart_mode = 'from_scratch'
-            pw_calc.disk_io = 'medium'  # checkpointing files will be required for later restarts
-            pw_calc.environ_settings['ENVIRON']['environ_restart'] = False
-
-            # Apply the desired charge
-            pw_calc.tot_charge = charge
-            pw_calc.tot_magnetization = -charge
-
             while calc_succeeded:
+                # Create a new Environ calculator object
+                pw_calc = Environ_calc(calc=self.master_calcs['pw'], restart_mode=restart_mode, disk_io='medium',
+                                       tot_charge=charge, tot_magnetization=-charge)
+                pw_calc.name = 'pbe'
                 pw_calc.directory = f'{label}/{epsilon}'
+                pw_calc.outdir = 'TMP'
+
+                # Update the environ settings
+                pw_calc.environ_settings['ENVIRON']['environ_restart'] = environ_restart
                 pw_calc.environ_settings['ENVIRON']['env_static_permittivity'] = epsilon
                 pw_calc.environ_settings['BOUNDARY']['solvent_mode'] = 'ionic'
                 pw_calc.environ_settings['ELECTROSTATIC']['tol'] = 1e-8
 
-                self.from_scratch = True
                 # self.from_scratch = True means that run_qe won't try and skip this calculation
                 # if it encounters pre-existing QE output files, and NOT that QE will use
                 # restart_mode = 'from_scratch'
+                self.from_scratch = True
 
+                # Run the calculator
                 try:
                     self.run_calculator(pw_calc)
                 except CalculationFailed:
                     print(' failed to converge')
                     print('\nWORKFLOW COMPLETE\n')
                     return
-
                 calc_succeeded = pw_calc.is_converged()
 
                 # Preparing for next loop
@@ -76,10 +67,10 @@ class DeltaSCFWorkflow(Workflow):
                 if epsilon == 1 or i_eps == len(epsilons):
                     break
                 new_epsilon = max(epsilons[i_eps], 1)
-                utils.system_call(f'cp -r {label}/{epsilon} {label}/{new_epsilon}')
+                outdir = os.path.relpath(pw_calc.outdir, pw_calc.directory)
+                utils.system_call(f'rsync -a {label}/{epsilon}/{outdir} {label}/{new_epsilon}/')
                 epsilon = new_epsilon
-                pw_calc.restart_mode = 'restart'
-
-                pw_calc.environ_settings['ENVIRON']['environ_restart'] = True
+                restart_mode = 'restart'
+                environ_restart = True
 
         print('\nWORKFLOW COMPLETE\n')

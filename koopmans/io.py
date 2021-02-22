@@ -11,6 +11,7 @@ replaced if/when we migrate away from ASE
 
 import os
 import copy
+import glob
 import numpy as np
 import json as json_ext
 import xml.etree.ElementTree as ET
@@ -22,7 +23,7 @@ from ase.io.espresso_kcp import Espresso_kcp, ibrav_to_cell
 from ase.io.espresso_kcp import KEYS as kcp_keys
 from ase.io.wannier90 import Wannier90 as ASEWannier90
 from ase.io.pw2wannier import PW2Wannier as ASEPW2Wannier
-from koopmans import defaults, utils
+from koopmans import utils
 
 
 def read_w90_dict(dct, generic_atoms):
@@ -104,6 +105,10 @@ def read_pw2wannier_dict(dct, generic_atoms):
     calc.atoms = copy.deepcopy(generic_atoms)
     calc.atoms.calc = calc
 
+    # Giving the pw2wannier calculator access to the kpts info for reference
+    if 'kpts' in generic_atoms.calc.parameters:
+        calc.parameters['kpts'] = generic_atoms.calc.parameters['kpts']
+
     # Return python_KI-type calculator object rather than ASE calculator
     return pw2wannier.PW2Wannier_calc(calc)
 
@@ -135,12 +140,7 @@ def read_setup_dict(dct):
 
                 # Force pseudo_dir to be an absolute path
                 if key == 'pseudo_dir' and value[0] != '/':
-                    descend_depth = value.count('../')
-                    splitdir = os.getcwd().rsplit('/', descend_depth)
-                    value = splitdir[0] + '/' + value.lstrip('../')
-                    if not os.path.isdir(value):
-                        raise ValueError(
-                            f'Could not parse pseudo_dir; {value} is not a directory')
+                    value = os.path.abspath(value) + '/'
 
                 try:
                     value = json_ext.loads(value)
@@ -243,7 +243,7 @@ def read_kcp_or_pw_dict(dct, calc):
                     raise ValueError('Please specify "pseudo_dir" in the "setup" control block')
 
                 if key in calc.parameters['input_data'][block]:
-                    utils.warn('Overwriting value for {block}:{key} provided in the "setup" block')
+                    utils.warn(f'Overwriting value for {block}:{key} provided in the "setup" block')
 
                 try:
                     value = json_ext.loads(value)
@@ -305,7 +305,7 @@ def read_pw_dict(dct, generic_atoms):
         for key, val in subdct.items():
             if key in ['nelec', 'nelup', 'neldw', 'empty_states_nbnd', 'tot_magnetization']:
                 continue
-            elif block in pw_keys and key.split('(')[0] in pw_keys[block]:
+            elif block in pw_keys and key in pw_keys[block]:
                 # PW and KCP share this keyword so we can copy it over directly
                 calc.parameters['input_data'][block][key] = val
             elif key == 'conv_thr':
@@ -341,6 +341,10 @@ def read_ui_dict(dct, generic_atoms):
 
     # Overwrite the parameters with the provided JSON dict
     calc.parameters = read_dict(dct)
+
+    # Convert units of alat_sc
+    if 'alat_sc' in calc.parameters:
+        calc.parameters['alat_sc'] *= utils.units.Bohr
 
     return ui.UI_calc(calc)
 
@@ -587,7 +591,7 @@ def get_pseudo_dir(calc):
     elif 'ESPRESSO_PSEUDO' in os.environ:
         return os.environ['ESPRESSO_PSEUDO']
     else:
-        return './'
+        return '.'
 
 
 def set_up_pseudos(calc):
@@ -596,12 +600,10 @@ def set_up_pseudos(calc):
     #  1. trying to locating the directory as currently specified by the calculator
     #  2. if that fails, checking if $ESPRESSO_PSEUDO is set
     #  3. if that fails, raising an error
-    pseudo_dir = calc.parameters['input_data']['control'].get(
-        'pseudo_dir', None)
+    pseudo_dir = calc.parameters['input_data']['control'].get('pseudo_dir', None)
     if pseudo_dir is None or not os.path.isdir(pseudo_dir):
         try:
-            calc.parameters['input_data']['control']['pseudo_dir'] = os.environ.get(
-                'ESPRESSO_PSEUDO')
+            calc.parameters['input_data']['control']['pseudo_dir'] = os.environ.get('ESPRESSO_PSEUDO')
         except KeyError:
             raise NotADirectoryError('Directory for pseudopotentials not found. Please define '
                                      'the environment variable ESPRESSO_PSEUDO or provide a pseudo_dir in '
@@ -616,8 +618,11 @@ def nelec_from_pseudos(calc):
     directory = get_pseudo_dir(calc)
     valences_dct = {key: read_pseudo_file(directory + value).find('PP_HEADER').get(
         'z_valence') for key, value in calc.parameters['pseudopotentials'].items()}
-    valences = [int(float(valences_dct[l]))
-                for l in calc.atoms.get_array('labels')]
+    if calc.atoms.has('labels'):
+        labels = calc.atoms.get_array('labels')
+    else:
+        labels = calc.atoms.symbols
+    valences = [int(float(valences_dct[l])) for l in labels]
     return sum(valences)
 
 
@@ -646,8 +651,8 @@ def read_alpha_file(directory):
 
 def read_kpoints_block(calc, dct):
     if dct['kind'] == 'gamma':
-        kpts = [(1, 1, 1)]
-        koffset = 0
+        kpts = None
+        koffset = None
     elif dct['kind'] == 'automatic':
         kpts = dct['kpts']
         koffset = dct['koffset']
@@ -686,3 +691,31 @@ def read_atomic_positions(calc, dct):
     else:
         calc.atoms = Atoms(symbols, positions=positions, calculator=calc, cell=calc.atoms.cell)
     calc.atoms.set_array('labels', labels)
+
+
+def load_calculator(filenames):
+
+    from koopmans.calculators import kcp, pw, wannier90, pw2wannier, ui
+
+    if not isinstance(filenames, list):
+        filenames = [filenames]
+
+    valid_extensions = ['cpi', 'cpo', 'pwi', 'pwo', 'win', 'wout', 'p2wi', 'p2wo', 'uii', 'uio']
+    if not all([os.path.isfile(f) for f in filenames]):
+        filenames = [f for prefix in filenames for f in glob.glob(f'{prefix}.*') if f.split('.')[-1] in
+                     valid_extensions]
+
+    extensions = set([f.split('.')[-1] for f in filenames])
+
+    if extensions.issubset(set(['cpi', 'cpo'])):
+        return kcp.KCP_calc(qe_files=filenames)
+    elif extensions.issubset(set(['pwi', 'pwo'])):
+        return pw.PW_calc(qe_files=filenames)
+    elif extensions.issubset(set(['win', 'wout'])):
+        return wannier90.W90_calc(qe_files=filenames)
+    elif extensions.issubset(set(['p2wi', 'p2wo'])):
+        return pw2wannier.PW2Wannier_calc(qe_files=filenames)
+    elif extensions.issubset(set(['uii', 'uio'])):
+        return ui.UI_calc(qe_files=filenames)
+    else:
+        raise ValueError('Could not identify the extensions of ' + '/'.join(filenames))

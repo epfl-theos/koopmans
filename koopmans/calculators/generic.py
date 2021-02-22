@@ -7,7 +7,7 @@ Written by Edward Linscott Jan 2020
 Major modifications
 May 2020: replaced Extended_Espresso_cp with QE_calc, a calculator class agnostic to the underlying ASE machinery
 Sep 2020: moved individual calculators into calculators/
-
+Feb 2021: Split calculators further into GenericCalc and EspressoCalc
 """
 
 import os
@@ -17,11 +17,11 @@ import numpy as np
 import ase.io as ase_io
 from ase.io import espresso_kcp as kcp_io
 from ase.build import make_supercell
-from koopmans import defaults
+from ase.calculators.calculator import FileIOCalculator
 import koopmans.utils as utils
 
 
-class QE_calc:
+class GenericCalc:
 
     '''
     A quantum espresso calculator object that...
@@ -50,12 +50,27 @@ class QE_calc:
         kwargs     any valid quantum espresso keywords to alter
     '''
 
+    # By default, use kcp.x
+    _io = kcp_io
+
+    # extensions for i/o files
+    ext_out = ''
+    ext_in = ''
+
+    _valid_settings = None
+    _settings_that_are_paths = []
+
     def __init__(self, calc=None, qe_files=[], skip_qc=False, **kwargs):
+
+        # Initialise a dictionary to store QE settings in
+        self._settings = {}
+
+        # Create settings shortcuts
+        self.create_settings_shortcuts()
 
         # If qe_input/output_files are provided, use them instead of calc
         if len(qe_files) > 0 and calc is not None:
-            raise ValueError(
-                f'Please only provide either the calc or qe_files argument to {self.__class__}')
+            raise ValueError(f'Please only provide either the calc or qe_files argument to {self.__class__}')
 
         # Interpreting the qe_files argument
         if isinstance(qe_files, str):
@@ -78,24 +93,28 @@ class QE_calc:
                 calc.results = self.read_output_file(qe_file).results
 
         # Initialise the calculator object
-        if isinstance(calc, QE_calc):
+        if isinstance(calc, GenericCalc):
             self.calc = copy.deepcopy(calc.calc)
         elif calc is None:
             self.calc = self._ase_calc_class()
-        else:
+        elif isinstance(calc, FileIOCalculator):
             self.calc = copy.deepcopy(calc)
-
-        # Initialise a dictionary to store QE settings in
-        self._settings = {}
+        else:
+            raise ValueError(
+                f'Unrecognizable object "{calc.__class__.__name__}" provided to QE_calc() as the "calc" argument')
 
         # Copy over settings from calc object into self._settings
         self._update_settings_dict()
 
+        # If we initialised from qe_files, update self.directory and self.name
+        if len(qe_files) > 0:
+            self.directory, name = qe_files[0].rsplit('/', 1)
+            self.name = name.rsplit('.', 1)[0]
+
         # Handle any recognised QE keywords passed as arguments
         for key, val in kwargs.items():
-            if key not in self._recognised_keywords:
-                raise ValueError(
-                    f'{key} is not a recognised Quantum Espresso keyword')
+            if key not in self._valid_settings:
+                raise ValueError(f'{key} is not a recognised keyword for {self.__class__.__name__}')
             setattr(self, key, val)
 
         # Set up preprocessing flags
@@ -113,13 +132,47 @@ class QE_calc:
         # Initialise quality control variables
         self.skip_qc = skip_qc
         self.results_for_qc = []
+        self.qc_results = {}
 
-    # By default, use kcp.x
-    _io = kcp_io
+    def create_settings_shortcuts(self):
+        # Dynamically add keywords as decorated properties of the child class being initialised. This means one can
+        # set and get keywords as self.<keyword> but internally they are stored as self._settings['keyword'] rather
+        # than self.<keyword>
+        assert self._valid_settings is not None, \
+            f'self._valid_settings has not been defined for {self.__class__.__name__}'
 
-    # extensions for i/o files
-    ext_out = ''
-    ext_in = ''
+        for k in self._valid_settings:
+            if hasattr(self.__class__, k):
+                continue
+
+            # We need to use these make_get/set functions so that get/set_k are
+            # evaluated immediately (otherwise we run into late binding and 'k'
+            # is not defined when get/set_k are called)
+
+            def make_get_and_set(key):
+                def get_k(self):
+                    # Return 'None' rather than an error if the keyword has not
+                    # been defined
+                    return self._settings.get(key, None)
+
+                if k in self._settings_that_are_paths:
+                    # Insist on paths being stored as absolute paths
+                    def set_k(self, value):
+                        if value is None:
+                            self._settings[key] = None
+                        elif value.startswith('/'):
+                            self._settings[key] = value
+                        else:
+                            self._settings[key] = os.path.abspath(self.directory + '/' + value)
+                else:
+                    def set_k(self, value):
+                        self._settings[key] = value
+                return get_k, set_k
+
+            get_k, set_k = make_get_and_set(k)
+
+            # Add the keyword to self.__class__ (not self)
+            setattr(self.__class__, k, property(get_k, set_k))
 
     @property
     def calc(self):
@@ -131,11 +184,15 @@ class QE_calc:
 
     @property
     def directory(self):
-        return self._ase_calc.directory
+        # Ensure directory is an absolute path
+        if not self.calc.directory.startswith('/'):
+            self.calc.directory = os.path.abspath(self.calc.directory)
+        return self.calc.directory
 
     @directory.setter
     def directory(self, value):
-        self._ase_calc.directory = value
+        # Insist on directory being an absolute path
+        self.calc.directory = os.path.abspath(value)
 
     @property
     def name(self):
@@ -147,15 +204,19 @@ class QE_calc:
 
     @property
     def results(self):
-        return self._ase_calc.results
+        return self.calc.results
 
     @results.setter
     def results(self, value):
-        self._ase_calc.results = value
+        self.calc.results = value
 
     @property
     def preprocessing_flags(self):
         return self._preprocessing_flags
+
+    @property
+    def settings(self):
+        return self._settings
 
     @preprocessing_flags.setter
     def preprocessing_flags(self, value):
@@ -182,6 +243,9 @@ class QE_calc:
     def calculate(self):
         # Generic function for running a calculation
 
+        # First, check the corresponding program is installed
+        self.check_code_is_installed()
+
         # If pseudo_dir is a relative path then make sure it accounts for self.directory
         if getattr(self, 'pseudo_dir', None) is not None and self.pseudo_dir[0] != '/':
             directory_depth = self.directory.strip('./').count('/') + 1
@@ -194,15 +258,48 @@ class QE_calc:
         self._ase_calc.calculate()
 
     def _update_settings_dict(self):
-        # Updates self._settings based on self._ase_calc
-        self._settings = self._ase_calc.parameters
+        # Points self._settings to self.calc.parameters
+        self._settings = self.calc.parameters
 
-    def read_input_file(self, input_file):
+    def write_input_file(self, input_file=None):
         # By default, use ASE
+        if input_file is None:
+            directory = self.directory
+            fname = self.name + self.ext_in
+        else:
+            directory, fname = input_file.rsplit('/', 1)
+        with utils.chdir(directory):
+            ase_io.write(fname, self.calc.atoms)
+
+    def read_input_file(self, input_file=None):
+        # By default, use ASE
+        if input_file is None:
+            input_file = self.directory + '/' + self.name + self.ext_in
         return ase_io.read(input_file).calc
 
-    def read_output_file(self, output_file):
+    def load_input_file(self, input_file=None):
+        if input_file is None:
+            input_file = self.directory + '/' + self.name + self.ext_in
+        elif '.' not in input_file.split('/')[-1]:
+            # Add extension if necessary
+            input_file += self.ext_in
+
+        # Save directory and name
+        directory = self.directory
+        name = self.name
+
+        # Load calculator from input file and update self._settings
+        self.calc = self.read_input_file()
+        self._update_settings_dict()
+
+        # Restore directory and name
+        self.directory = directory
+        self.name = name
+
+    def read_output_file(self, output_file=None):
         # By default, use ASE
+        if output_file is None:
+            output_file = self.directory + '/' + self.name + self.ext_out
         return ase_io.read(output_file).calc
 
     def parse_algebraic_setting(self, expr):
@@ -242,26 +339,28 @@ class QE_calc:
     def settings_to_not_parse(self):
         # A list of settings that typically contain mathematical operators (e.g...
         # )
-        return getattr(self, '_settings_to_not_parse', self._universal_settings_to_not_parse)
+        default = self._universal_settings_to_not_parse.union(self._settings_that_are_paths)
+        return getattr(self, '_settings_to_not_parse', default)
 
     @settings_to_not_parse.setter
     def settings_to_not_parse(self, val):
-        self._settings_to_not_parse = self._universal_settings_to_not_parse.union(val)
+        default = self._universal_settings_to_not_parse.union(self._settings_that_are_paths)
+        self._settings_to_not_parse = default.union(val)
 
     def parse_algebraic_settings(self):
         # Checks self._settings for keywords defined algebraically, and evaluates them
         for key, value in self._settings.items():
             if key in self.settings_to_not_parse:
                 continue
-            self._settings[key] = self.parse_algebraic_setting(value)
+            setattr(self, key, self.parse_algebraic_setting(value))
 
     def is_converged(self):
         raise ValueError(
-            f'is_converged() function has not been implemented for {self.__class__}')
+            f'is_converged() function has not been implemented for {self.__class__.__name__}')
 
     def is_complete(self):
         raise ValueError(
-            f'is_complete() function has not been implemented for {self.__class__}')
+            f'is_complete() function has not been implemented for {self.__class__.__name__}')
 
     def transform_to_supercell(self, matrix, **kwargs):
         # Converts to a supercell as given by a 3x3 transformation matrix
@@ -289,19 +388,48 @@ class QE_calc:
         return executable_with_path
 
     def write_alphas(self):
-        raise NotImplementedError(f'{self.__class__}.write_alphas() has not been implemented/should not be called')
+        raise NotImplementedError(
+            f'{self.__class__.__name__}.write_alphas() has not been implemented/should not be called')
 
     def read_alphas(self):
-        raise NotImplementedError(f'{self.__class__}.read_alphas() has not been implemented/should not be called')
+        raise NotImplementedError(
+            f'{self.__class__.__name__}.read_alphas() has not been implemented/should not be called')
+
+    @property
+    def defaults(self):
+        raise NotImplementedError(f'{self.__class__.__name__} has not got defined defaults')
 
     def load_defaults(self):
-        calc_class = self.__class__
-
-        if calc_class not in defaults.defaults:
-            utils.warn(f'No defaults found for {calc_class} calculator')
-            return
-
-        for key, value in defaults.defaults[calc_class].items():
-            if getattr(self, key, value) in [None, value]:
+        for key, value in self.defaults.items():
+            if getattr(self, key, None) is None:
                 setattr(self, key, value)
         return
+
+
+class EspressoCalc(GenericCalc):
+
+    @property
+    def calc(self):
+        # First, update the param block
+        self._ase_calc.parameters['input_data'] = self.construct_namelist()
+        return self._ase_calc
+
+    @calc.setter
+    def calc(self, value):
+        self._ase_calc = value
+
+    def _ase_calculate(self):
+        # Before running the calculation, update the keywords for the ASE calculator object
+        self._ase_calc.parameters['input_data'] = self.construct_namelist()
+        super()._ase_calculate()
+
+    def construct_namelist(self):
+        # Returns a namelist of settings, grouped by their Quantum Espresso headings
+        return self._io.construct_namelist(**self._settings, warn=True)
+
+    def _update_settings_dict(self):
+        # Updates self._settings based on self._ase_calc
+        self._settings = {}
+        for namelist in self._ase_calc.parameters.get('input_data', {}).values():
+            for key, val in namelist.items():
+                setattr(self, key, val)

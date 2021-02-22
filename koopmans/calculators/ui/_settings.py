@@ -89,9 +89,6 @@ def load_defaults(self):
     for key, val in checked_settings.items():
         setattr(self, key, val)
 
-    if self.alat_sc is not None:
-        self.alat_sc *= utils.units.Bohr  # conversion to angstroms
-
     self.w90_calc = self.w90_calc.lower()
 
     if self.w90_calc == 'sc':
@@ -106,7 +103,6 @@ def load_defaults(self):
 
     if self.k_path is None:
         self.kvec = MP_mesh(self.sc_dim[0], self.sc_dim[1], self.sc_dim[2])
-        utils.warn('"k_path" missing in input, the energies will be calculated on a commensurate Monkhorst-Pack mesh')
     else:
         self.kvec = generate_path(self.k_path)
 

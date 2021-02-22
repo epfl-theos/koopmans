@@ -30,10 +30,6 @@ class KoopmansWorkflow(Workflow):
                 'Performing a KC calculation requires a "kcp" block in the .json input file')
         kcp_calc = self.master_calcs['kcp']
 
-        # Sanitise outdir
-        if kcp_calc.outdir[0] != '/':
-            kcp_calc.outdir = os.getcwd() + '/' + kcp_calc.outdir.strip('./')
-
         # If periodic, convert the kcp calculation into a Γ-only supercell calculation
         if self.periodic:
             kpts = self.master_calcs['kcp'].calc.parameters.kpts
@@ -44,9 +40,9 @@ class KoopmansWorkflow(Workflow):
 
             # Check the number of empty states has been correctly configured
             w90_emp_calc = self.master_calcs['w90_emp']
-
             expected_empty_states_nbnd = w90_emp_calc.num_wann * np.prod(kcp_calc.calc.parameters.kpts)
-            if kcp_calc.empty_states_nbnd is None:
+            if kcp_calc.empty_states_nbnd == 0:
+                # 0 is the default value
                 kcp_calc.empty_states_nbnd = expected_empty_states_nbnd
             elif kcp_calc.empty_states_nbnd != expected_empty_states_nbnd:
                 raise ValueError('kcp empty_states_nbnd and wannier90 num_wann (emp) are inconsistent')
@@ -170,10 +166,10 @@ class KoopmansWorkflow(Workflow):
             calc = self.all_calcs[-1]
             for i, alpha in enumerate(self.alpha_df.iloc[-1]):
                 if not self.error_df.empty and not pd.isnull(self.error_df.iloc[-1, i]):
-                    self.print_qc_keyval(f'alpha({i+1})', alpha)
+                    self.print_qc_keyval(f'alpha({i+1})', alpha, calc)
             for isp, orbs_self_hartree in enumerate(calc.results['orbital_data']['self-Hartree']):
                 for i, orb_sh in enumerate(orbs_self_hartree):
-                    self.print_qc_keyval(f'orbital_self_Hartree(orb={i+1},sigma={isp+1})', orb_sh)
+                    self.print_qc_keyval(f'orbital_self_Hartree(orb={i+1},sigma={isp+1})', orb_sh, calc)
 
         # Postprocessing
         if self.periodic and self.master_calcs['ui'].k_path is not None:
@@ -190,12 +186,12 @@ class KoopmansWorkflow(Workflow):
                 raise ValueError('wannierize requires init_density to be pbe')
             wannier_workflow = WannierizeWorkflow(self.settings, self.master_calcs)
 
+            # When testing, give sub-workflow access to the benchmarks
+            if hasattr(self, 'benchmark'):
+                wannier_workflow.benchmark = self.benchmark
+
             # Perform the wannierisation workflow within the init directory
-            if not os.path.isdir('init'):
-                utils.system_call('mkdir init')
-            os.chdir('init')
-            self.run_subworkflow(wannier_workflow)
-            os.chdir('..')
+            self.run_subworkflow(wannier_workflow, subdirectory='init')
 
         if self.init_density == 'pbe':
             if self.periodic:
@@ -241,7 +237,7 @@ class KoopmansWorkflow(Workflow):
             # PBE from scratch
             calc = self.new_calculator('kcp', 'pbe_init')
             calc.directory = 'init'
-            self.run_calculator(calc)
+            self.run_calculator(calc, enforce_ss=self.enforce_spin_symmetry)
             # PZ from PBE
             calc = self.new_calculator('kcp', 'pz_init')
             calc.directory = 'init'
@@ -603,7 +599,7 @@ class KoopmansWorkflow(Workflow):
             # For pKIPZ, the appropriate ndr can change but it is always ndw of the previous
             # KI calculation
             if final_calc_type == 'pkipz_final':
-                ndr = [c.ndw for c in self.all_calcs if c.name in ['ki', 'ki_final']][-1]
+                ndr = [c.ndw for c in self.all_calcs if c.name in ['ki', 'ki_final'] and hasattr(c, 'ndw')][-1]
                 calc = self.new_calculator('kcp', final_calc_type, ndr=ndr, write_hr=True)
             else:
                 calc = self.new_calculator('kcp', final_calc_type, write_hr=True)
@@ -625,14 +621,12 @@ class KoopmansWorkflow(Workflow):
                     local_master_calcs[name].calc.parameters['kpts'] = new_k_grid
             wannier_workflow = WannierizeWorkflow(self.settings, local_master_calcs)
 
-            # Perform the wannierisation workflow within the postproc directory
-            with utils.chdir('postproc'):
-                # Here, we allow for skipping of the smooth dft calcs (assuming they have been already run)
-                # This is achieved via the optional argument of from_scratch in run_subworkflow(), which
-                # overrides the value of wannier_workflow.from_scratch, as well as preventing the inheritance of
-                # self.from_scratch to wannier_workflow.from_scratch and back again after the subworkflow finishes
-                from_scratch = getattr(self, 'redo_preexisting_smooth_dft_calcs', None)
-                self.run_subworkflow(wannier_workflow, from_scratch=from_scratch, skip_wann2odd=True)
+            # Here, we allow for skipping of the smooth dft calcs (assuming they have been already run)
+            # This is achieved via the optional argument of from_scratch in run_subworkflow(), which
+            # overrides the value of wannier_workflow.from_scratch, as well as preventing the inheritance of
+            # self.from_scratch to wannier_workflow.from_scratch and back again after the subworkflow finishes
+            from_scratch = getattr(self, 'redo_preexisting_smooth_dft_calcs', None)
+            self.run_subworkflow(wannier_workflow, subdirectory='postproc', from_scratch=from_scratch, skip_wann2odd=True)
 
         for calc_presets in ['occ', 'emp']:
             calc = self.new_calculator('ui', calc_presets)
@@ -780,7 +774,12 @@ class KoopmansWorkflow(Workflow):
             ndr = 65
             ndw = 68
         elif calc_presets in ['ki_final', 'kipz_final']:
-            ndr = 60
+            if self.calculate_alpha:
+                ndr = 60
+            elif self.init_variational_orbitals in ['mlwfs', 'projw']:
+                ndr = 50
+            else:
+                ndr = 51
             ndw = 70
         elif calc_presets in ['pkipz_final']:
             ndr = 70
@@ -818,15 +817,11 @@ class KoopmansWorkflow(Workflow):
             calc.nelup += 1
             if 'dummy' not in calc.name:
                 calc.restart_from_wannier_pwscf = True
-        # Periodic calculations do not use complex wavefunctions (by default the wavefunctions
-        # are real since they come from a Γ-only calculation and no counter-charge corrections
-        # are applied), whereas aperiodic calculations benefit from using complex wavefunctions
-        calc.do_wf_cmplx = not self.periodic
 
         # electrons
         # For all calculations calculating alpha, remove the empty states and
         # increase the energy thresholds
-        if not any([s in calc.name for s in ['init', 'print', 'final']]) and calc.name not in ['ki', 'kipz']:
+        if not any([s in calc.name for s in ['init', 'print', 'final']]) and calc.name not in ['ki', 'kipz', 'pbe_dummy']:
             calc.empty_states_nbnd = 0
             calc.conv_thr *= 100
             calc.esic_conv_thr *= 100
@@ -892,7 +887,7 @@ class KoopmansWorkflow(Workflow):
         # Sanity checking
         if calc.print_wfc_anion and calc.index_empty_to_save is None:
             raise ValueError('Error: print_wfc_anion is set to true but you have not selected '
-                             ' an index_empty_to_save. Provide this as an argument to set_calculator')
+                             'an index_empty_to_save. Provide this as an argument to new_cp_calculator')
 
         if calc.fixed_band is not None and calc.fixed_band > calc.nelup + 1:
             utils.warn(
