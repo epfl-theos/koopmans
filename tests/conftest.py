@@ -5,6 +5,7 @@ Written by Edward Linscott, Dec 2020
 '''
 
 import os
+import copy
 import json
 import numpy as np
 import pytest
@@ -61,14 +62,16 @@ class WorkflowTest:
             # Make sure QC printing is turned on
             workflow.print_qc = True
 
-            # Run the workflow
-            workflow.run()
-
-            # Write the output
-            out, _ = self.capsys.readouterr()
-            stdout = self.json.replace('.json', '.stdout')
-            with open(stdout, 'w') as f:
-                f.write(out)
+            try:
+                # Run the workflow
+                workflow.run()
+            finally:
+                # Write the output, even if the workflow gave an error
+                out, err = self.capsys.readouterr()
+                stdout = self.json.replace('.json', '.stdout')
+                with open(stdout, 'w') as f:
+                    f.write(out)
+                    f.write(err)
 
             if not self.mock:
                 # Print out the contents of the QE i/o files
@@ -117,7 +120,8 @@ class WorkflowTest:
 
                 # Compare the calculated result to the reference result
                 if isinstance(ref_result, float):
-                    message = f'{result_name} = {result:.5f} differs from benchmark {ref_result:.5f} by {result - ref_result:.2e}'
+                    message = f'{result_name} = {result:.5f} differs from benchmark {ref_result:.5f} by ' \
+                              f'{result - ref_result:.2e}'
                     if abs(result - ref_result) > tols[0]:
                         log[calc_relpath].append({'kind': 'error', 'message': message})
                     elif abs(result - ref_result) > tols[1]:
@@ -143,7 +147,8 @@ class WorkflowTest:
                         errors.append(calc_relpath + '\n' + '\n'.join(error_list))
 
                     # Write out error messages to the .stdout file
-                    f.write(f'{calc.directory}/{calc_relpath}\n' + '\n'.join([f'  {m["kind"]}: {m["message"]}' for m in messages]) + '\n\n')
+                    f.write(f'{calc.directory}/{calc_relpath}\n' + '\n'.join([f'  {m["kind"]}: {m["message"]}' for m
+                            in messages]) + '\n\n')
 
         # Warn for warnings:
         if len(warnings) > 0:
@@ -166,10 +171,6 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
     Replace all calls to pw.x, kcp.x, etc with pretend calculations that check the input is correct and then fetch
     the results from a lookup table rather than running any actual calculations.
     '''
-
-    # Prevent run_calculator_single from attempting to read output files
-    import koopmans.workflows.generic as wf_generic
-    wf_generic.skip_loading_outputs = True
 
     def tests_directory():
         directory = pytestconfig.rootpath
@@ -311,7 +312,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         def input_files(self):
             files = []
             if self.calculation == 'nscf':
-                files += [f'{self.outdir}/{self.prefix}.save/{f}' for f in ['data-file-schema.xml', 'charge-density.dat']]
+                files += [f'{self.outdir}/{self.prefix}.save/{f}' for f in ['data-file-schema.xml',
+                                                                            'charge-density.dat']]
             return files
 
     class mock_W90_calc(mock_calc, W90_calc):
@@ -400,7 +402,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
     def generic_mock_calculator_single(workflow, qe_calc):
         # Check we have a benchmark entry for this calculation, and connect it to the calculator
         qe_calc_seed = relative_directory(qe_calc.directory + '/' + qe_calc.name)
-        assert qe_calc_seed in workflow.benchmark, f'Could not find an entry for {qe_calc_seed} in tests/benchmarks.json'
+        assert qe_calc_seed in workflow.benchmark, \
+            f'Could not find an entry for {qe_calc_seed} in tests/benchmarks.json'
         qe_calc.benchmark = workflow.benchmark[qe_calc_seed]
 
         # Check required input files exist and come from where we expect
@@ -409,7 +412,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         else:
             input_file_exceptions = qe_calc.benchmark.get('input files', {})
 
-        # If this calculator is a pw2wannier object, it need to know how many kpoints there are (usually done via the contents of .nnkp)
+        # If this calculator is a pw2wannier object, it need to know how many kpoints there are (usually done via the
+        # contents of .nnkp)
         if isinstance(qe_calc, PW2Wannier_calc):
             recent_pw_calc = [c for c in workflow.all_calcs if isinstance(c, PW_calc)][-1]
             qe_calc.calc.parameters['kpts'] = recent_pw_calc.calc.parameters['kpts']
@@ -447,7 +451,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
                             if input_file in [relative_directory(f) for f in c.output_files]:
                                 # Check that this file wrote its own output file (if it didn't it was skipped
                                 # and won't have produced any output files, so it is not a valid match)
-                                c_input_file = relative_directory(os.getcwd() + '/' + c.directory + '/' + c.name + c.ext_in)
+                                c_input_file = relative_directory(os.getcwd() + '/' + c.directory + '/' + c.name +
+                                                                  c.ext_in)
                                 c_output_file = os.path.abspath(c.directory + '/' + c.name + c.ext_out)
                                 assert os.path.isfile(c_output_file)
                                 with open(c_output_file, 'r') as fd:
@@ -481,6 +486,33 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
                             with open(fname, 'w') as fd:
                                 json.dump(exceptions, fd, indent=2)
 
+    def generic_mock_load_old_calculator(self, qe_calc):
+        # Load old calculators by looking through the workflow's list of previous calculations
+        # (During the test suite, the only scenario where we want to reload an old calculation will arise
+        # because we did it earlier in the same workflow)
+
+        # Load the dummy output file
+        calc_fname = f'{qe_calc.directory}/{qe_calc.name}{qe_calc.ext_out}'
+        with open(calc_fname, 'r') as fd:
+            output_file_info = json.load(fd)
+
+        # Find out the calculation that generated the output file
+        directory, name = output_file_info['written_by'].rsplit('.', 1)[0].rsplit('/', 1)
+        directory = tests_directory() + '/' + directory
+        matches = [c for c in self.all_calcs if c.directory == directory and c.name == name]
+
+        # Copy that calculation into the record of all calculations
+        if len(matches) == 1:
+            match = copy.deepcopy(matches[0])
+            # Update its name and directory to be those of the skipped calculation
+            match.name = qe_calc.name
+            match.directory = qe_calc.directory
+            self.all_calcs.append(match)
+        elif len(matches) == 0:
+            raise ValueError(f'Could not find a calculator matching {qe_calc.directory}/{qe_calc.name}')
+        else:
+            raise ValueError(f'Found multiple calculators for {qe_calc.directory}/{qe_calc.name}')
+
     from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
 
     class MockWannierizeWorkflow(WannierizeWorkflow):
@@ -488,6 +520,9 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         def run_calculator_single(self, qe_calc):
             generic_mock_calculator_single(self, qe_calc)
             super().run_calculator_single(qe_calc)
+
+        def load_old_calculator(self, qe_calc):
+            generic_mock_load_old_calculator(self, qe_calc)
 
     monkeypatch.setattr('koopmans.workflows.wf_with_w90.WannierizeWorkflow', MockWannierizeWorkflow)
 
@@ -499,6 +534,9 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             generic_mock_calculator_single(self, qe_calc)
             super().run_calculator_single(qe_calc)
 
+        def load_old_calculator(self, qe_calc):
+            generic_mock_load_old_calculator(self, qe_calc)
+
     monkeypatch.setattr('koopmans.workflows.kc_with_cp.KoopmansWorkflow', MockKoopmansWorkflow)
 
     from koopmans.workflows.pbe_with_cp import PBEWorkflow
@@ -509,6 +547,9 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             generic_mock_calculator_single(self, qe_calc)
             super().run_calculator_single(qe_calc)
 
+        def load_old_calculator(self, qe_calc):
+            generic_mock_load_old_calculator(self, qe_calc)
+
     monkeypatch.setattr('koopmans.workflows.pbe_with_cp.PBEWorkflow', MockPBEWorkflow)
 
     from koopmans.workflows.pbe_dscf_with_pw import DeltaSCFWorkflow
@@ -518,6 +559,9 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         def run_calculator_single(self, qe_calc):
             generic_mock_calculator_single(self, qe_calc)
             super().run_calculator_single(qe_calc)
+
+        def load_old_calculator(self, qe_calc):
+            generic_mock_load_old_calculator(self, qe_calc)
 
     monkeypatch.setattr('koopmans.workflows.pbe_dscf_with_pw.DeltaSCFWorkflow', MockDeltaSCFWorkflow)
 

@@ -21,7 +21,8 @@ if __name__ == '__main__':
         print(' done')
 
     # Construct json file (missing input files)
-    fnames = [f for ext in ['cpi', 'pwi', 'win', 'p2wi', 'uii'] for f in glob.glob(f'test_0?/**/*.{ext}', recursive=True)]
+    fnames = [f for ext in ['cpi', 'pwi', 'win', 'p2wi', 'uii'] for f
+              in glob.glob(f'test_0?/**/*.{ext}', recursive=True)]
 
     fnames.sort(key=os.path.getmtime)
 
@@ -45,6 +46,8 @@ if __name__ == '__main__':
         # Converting np arrays (not JSON serializable) to lists
         results = {}
         for k, v in calc.results.items():
+            if k == 'walltime':
+                continue
             if isinstance(v, np.ndarray):
                 v = v.tolist()
             results[k] = v

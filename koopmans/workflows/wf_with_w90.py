@@ -108,5 +108,17 @@ class WannierizeWorkflow(Workflow):
             if self.init_variational_orbitals == 'projw':
                 calc.num_iter = 0
 
-        return calc
+        # Checking that gamma_trick is consistent with do_wf_cmplx
+        if calc_type == 'pw2wannier' and calc.wan_mode == 'wannier2odd':
+            kcp_calc = self.master_calcs['kcp']
+            if calc.gamma_trick == kcp_calc.do_wf_cmplx:
+                utils.warn(
+                    f'if do_wf_cmplx is {kcp_calc.do_wf_cmplx}, gamma_trick cannot be {calc.gamma_trick}. '
+                    f'Changing gamma_trick to {not kcp_calc.do_wf_cmplx}')
+                calc.gamma_trick = not kcp_calc.do_wf_cmplx
+            elif calc.gamma_trick is None and not kcp_calc.do_wf_cmplx:
+                calc.gamma_trick = True
+            else:
+                pass
 
+        return calc

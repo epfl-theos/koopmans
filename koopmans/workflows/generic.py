@@ -14,8 +14,6 @@ import numpy as np
 from ase.calculators.calculator import CalculationFailed
 from koopmans import io, utils
 
-skip_loading_outputs = False
-
 valid_settings = [
     utils.Setting('task',
                   'Task to perform',
@@ -206,12 +204,9 @@ class Workflow(object):
             if os.path.isfile(calc_file + qe_calc.ext_out):
                 verb = 'Rerunning'
 
-                # Load the old calc_file
-                if skip_loading_outputs:
-                    # For tests, don't load the output file
-                    calc_file += qe_calc.ext_in
-                old_calc = qe_calc.__class__(qe_files=calc_file)
+                self.load_old_calculator(qe_calc)
 
+                old_calc = self.all_calcs[-1]
                 if old_calc.is_complete():
                     # If it is complete, load the results, and exit
                     qe_calc.results = old_calc.results
@@ -265,6 +260,11 @@ class Workflow(object):
         self.from_scratch = True
 
         return
+
+    def load_old_calculator(self, qe_calc):
+        # This is a separate function so that it can be monkeypatched by the test suite
+        calc_file = f'{qe_calc.directory}/{qe_calc.name}'
+        self.all_calcs.append(qe_calc.__class__(qe_files=calc_file))
 
     def print_qc_keyval(self, key, value, calc=None):
         '''

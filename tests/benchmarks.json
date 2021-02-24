@@ -4185,6 +4185,8 @@
     },
     "results": {
       "energy": -211.94917273297,
+      "homo_ene": 6.5195,
+      "lumo_ene": null,
       "electrostatic embedding": null,
       "iterations": 6,
       "job done": true
@@ -4208,6 +4210,8 @@
       "conv_thr": 1.6e-08
     },
     "results": {
+      "homo_ene": 6.5196,
+      "lumo_ene": 7.1035,
       "electrostatic embedding": null,
       "iterations": null,
       "job done": true
@@ -8553,6 +8557,8 @@
     },
     "results": {
       "energy": -214.3192956964419,
+      "homo_ene": 6.2634,
+      "lumo_ene": null,
       "electrostatic embedding": null,
       "iterations": 6,
       "job done": true
@@ -8576,6 +8582,8 @@
       "conv_thr": 1.6e-08
     },
     "results": {
+      "homo_ene": 6.2634,
+      "lumo_ene": 6.9399,
       "electrostatic embedding": null,
       "iterations": null,
       "job done": true
@@ -42948,6 +42956,8 @@
         -0.0,
         -0.0
       ],
+      "homo_ene": null,
+      "lumo_ene": null,
       "electrostatic embedding": -0.2135245998839416,
       "iterations": 17,
       "job done": true
@@ -42987,6 +42997,8 @@
         0.0,
         0.0
       ],
+      "homo_ene": null,
+      "lumo_ene": null,
       "electrostatic embedding": -0.09950005778746923,
       "iterations": 10,
       "job done": true
@@ -43026,6 +43038,8 @@
         0.0,
         0.0
       ],
+      "homo_ene": null,
+      "lumo_ene": null,
       "electrostatic embedding": null,
       "iterations": 10,
       "job done": true
@@ -43065,6 +43079,8 @@
         0.1458,
         0.1458
       ],
+      "homo_ene": null,
+      "lumo_ene": null,
       "electrostatic embedding": -2.1308593877033672,
       "iterations": 19,
       "job done": true
@@ -43104,6 +43120,8 @@
         0.1463,
         0.1463
       ],
+      "homo_ene": null,
+      "lumo_ene": null,
       "electrostatic embedding": -1.3833287947433928,
       "iterations": 12,
       "job done": true
@@ -43142,6 +43160,8 @@
         0.1207,
         0.1207
       ],
+      "homo_ene": null,
+      "lumo_ene": null,
       "electrostatic embedding": null,
       "iterations": 100,
       "job done": true
@@ -43163,6 +43183,8 @@
     },
     "results": {
       "energy": -211.94917273297,
+      "homo_ene": 6.5195,
+      "lumo_ene": null,
       "electrostatic embedding": null,
       "iterations": 6,
       "job done": true
@@ -43184,6 +43206,8 @@
     },
     "results": {
       "energy": -211.94917273297,
+      "homo_ene": 6.5195,
+      "lumo_ene": null,
       "electrostatic embedding": null,
       "iterations": 6,
       "job done": true
@@ -43205,6 +43229,8 @@
     },
     "results": {
       "energy": -211.94917273297,
+      "homo_ene": 6.5195,
+      "lumo_ene": null,
       "electrostatic embedding": null,
       "iterations": 6,
       "job done": true
@@ -43228,6 +43254,8 @@
       "conv_thr": 1.6e-08
     },
     "results": {
+      "homo_ene": 6.5196,
+      "lumo_ene": 7.1035,
       "electrostatic embedding": null,
       "iterations": null,
       "job done": true
@@ -43251,6 +43279,8 @@
       "conv_thr": 1.6e-08
     },
     "results": {
+      "homo_ene": 6.5196,
+      "lumo_ene": 7.1035,
       "electrostatic embedding": null,
       "iterations": null,
       "job done": true
@@ -43274,6 +43304,8 @@
       "conv_thr": 1.6e-08
     },
     "results": {
+      "homo_ene": 6.5196,
+      "lumo_ene": 7.1035,
       "electrostatic embedding": null,
       "iterations": null,
       "job done": true
@@ -68085,6 +68117,8 @@
     },
     "results": {
       "energy": -214.3192956964419,
+      "homo_ene": 6.2634,
+      "lumo_ene": null,
       "electrostatic embedding": null,
       "iterations": 6,
       "job done": true
@@ -68106,6 +68140,8 @@
     },
     "results": {
       "energy": -214.3192956964419,
+      "homo_ene": 6.2634,
+      "lumo_ene": null,
       "electrostatic embedding": null,
       "iterations": 6,
       "job done": true
@@ -68127,6 +68163,8 @@
     },
     "results": {
       "energy": -214.3192956964419,
+      "homo_ene": 6.2634,
+      "lumo_ene": null,
       "electrostatic embedding": null,
       "iterations": 6,
       "job done": true
@@ -68150,6 +68188,8 @@
       "conv_thr": 1.6e-08
     },
     "results": {
+      "homo_ene": 6.2634,
+      "lumo_ene": 6.9399,
       "electrostatic embedding": null,
       "iterations": null,
       "job done": true
@@ -68173,6 +68213,8 @@
       "conv_thr": 1.6e-08
     },
     "results": {
+      "homo_ene": 6.2634,
+      "lumo_ene": 6.9399,
       "electrostatic embedding": null,
       "iterations": null,
       "job done": true
@@ -68196,6 +68238,8 @@
       "conv_thr": 1.6e-08
     },
     "results": {
+      "homo_ene": 6.2634,
+      "lumo_ene": 6.9399,
       "electrostatic embedding": null,
       "iterations": null,
       "job done": true

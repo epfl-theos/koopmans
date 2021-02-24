@@ -16,6 +16,7 @@ from scipy import interpolate
 from koopmans import io, utils
 from koopmans.calculators.kcp import KCP_calc
 from koopmans.calculators.ui import UI_calc
+from koopmans.calculators import pw
 from koopmans.workflows.generic import Workflow
 from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
 
@@ -223,6 +224,19 @@ class KoopmansWorkflow(Workflow):
                             else:
                                 raise OSError(f'Could not find {evcw_file}')
                 self.run_calculator(calc, enforce_ss=False)
+
+                # Check the consistency between the PW and CP band gaps
+                pw_calc = [c for c in self.all_calcs if isinstance(c, pw.PW_calc) and c.calculation == 'nscf'][-1]
+                pw_gap = pw_calc.results['lumo_ene'] - pw_calc.results['homo_ene']
+                cp_gap = calc.results['lumo_energy'] - calc.results['homo_energy']
+                if abs(pw_gap - cp_gap) > 1e-3 * pw_gap:
+                    raise ValueError(f'PW and CP band gaps are not consistent: {pw_gap} {cp_gap}')
+
+                # The CP restarting from Wannier functions must be already converged
+                Eini = calc.results['convergence']['filled'][0]['Etot']
+                Efin = calc.results['energy']
+                if abs(Efin - Eini) > 1e-7 * abs(Efin):
+                    raise ValueError(f'Too much difference between the initial and final CP energies: {Eini} {Efin}')
 
             else:
                 calc = self.new_calculator('kcp', 'pbe_init')
@@ -626,7 +640,8 @@ class KoopmansWorkflow(Workflow):
             # overrides the value of wannier_workflow.from_scratch, as well as preventing the inheritance of
             # self.from_scratch to wannier_workflow.from_scratch and back again after the subworkflow finishes
             from_scratch = getattr(self, 'redo_preexisting_smooth_dft_calcs', None)
-            self.run_subworkflow(wannier_workflow, subdirectory='postproc', from_scratch=from_scratch, skip_wann2odd=True)
+            self.run_subworkflow(wannier_workflow, subdirectory='postproc',
+                                 from_scratch=from_scratch, skip_wann2odd=True)
 
         for calc_presets in ['occ', 'emp']:
             calc = self.new_calculator('ui', calc_presets)
@@ -821,7 +836,8 @@ class KoopmansWorkflow(Workflow):
         # electrons
         # For all calculations calculating alpha, remove the empty states and
         # increase the energy thresholds
-        if not any([s in calc.name for s in ['init', 'print', 'final']]) and calc.name not in ['ki', 'kipz', 'pbe_dummy']:
+        if not any([s in calc.name for s in ['init', 'print', 'final']]) and \
+           calc.name not in ['ki', 'kipz', 'pbe_dummy']:
             calc.empty_states_nbnd = 0
             calc.conv_thr *= 100
             calc.esic_conv_thr *= 100
