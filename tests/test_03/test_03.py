@@ -5,7 +5,7 @@ Written by Edward Linscott, Jan 2021
 '''
 
 import pytest
-from conftest import WorkflowTest
+from tests.conftest import WorkflowTest
 
 
 json = 'tests/test_03/test_si_ki.json'
@@ -20,4 +20,3 @@ def test_mock_si_ki(capsys, mock_quantum_espresso):
 def test_si_ki(capsys):
     test = WorkflowTest(json, capsys)
     test.run()
-

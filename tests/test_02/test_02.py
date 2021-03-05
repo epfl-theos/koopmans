@@ -5,7 +5,7 @@ Written by Edward Linscott, Jan 2021
 '''
 
 import pytest
-from conftest import WorkflowTest
+from tests.conftest import WorkflowTest
 
 
 json = 'tests/test_02/test_co2_ki_with_empty.json'
@@ -20,4 +20,3 @@ def test_mock_co2_ki_with_empty(capsys, mock_quantum_espresso):
 def test_co2_ki_with_empty(capsys):
     test = WorkflowTest(json, capsys)
     test.run()
-

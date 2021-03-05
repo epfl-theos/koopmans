@@ -22,6 +22,7 @@ jobs:
            uses: actions/checkout@v2
            with:
               submodules: recursive
+              fetch-depth: 0
          - name: Set up Python ${{ matrix.python-version }}
            uses: actions/setup-python@v2
            with:
@@ -29,14 +30,13 @@ jobs:
          - name: Install dependencies
            run: |
               python -m pip install --upgrade pip
-              pip install -e ase_koopmans/ .[test]
+              pip install .[test]
          - name: Test with pytest
            run: |
-              pytest -m mock tests/ --cov-config=.coveragerc --cov=koopmans --cov-report=xml
+              pytest -m mock tests/ --cov-config=.coveragerc --cov=./koopmans/ --cov-report=xml
          - name: Upload coverage to Codecov
            if: matrix.python-version == 3.8 && github.repository == 'elinscott/python_KI'
            uses: codecov/codecov-action@v1
            with:
               token: ${{ secrets.CODECOV_TOKEN }}
               file: coverage.xml
-              flags: tests

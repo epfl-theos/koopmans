@@ -5,7 +5,7 @@ Written by Edward Linscott, Jan 2021
 '''
 
 import pytest
-from conftest import WorkflowTest
+from tests.conftest import WorkflowTest
 
 
 json = 'tests/test_05/test_h2o_all.json'
@@ -20,4 +20,3 @@ def test_mock_h2o_all(capsys, mock_quantum_espresso):
 def test_h2o_all(capsys):
     test = WorkflowTest(json, capsys)
     test.run()
-

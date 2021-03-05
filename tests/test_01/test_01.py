@@ -5,7 +5,7 @@ Written by Edward Linscott, Jan 2021
 '''
 
 import pytest
-from conftest import WorkflowTest
+from tests.conftest import WorkflowTest
 
 
 json = 'tests/test_01/test_h2o_kipz.json'

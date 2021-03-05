@@ -6,7 +6,7 @@ Written by Edward Linscott, Jan 2021
 
 import os
 import pytest
-from conftest import WorkflowTest
+from tests.conftest import WorkflowTest
 from koopmans.utils import find_executable
 from koopmans.calculators.environ import environ_addon_is_installed
 
@@ -42,4 +42,3 @@ def test_mock_so2_pbe_delta_scf(capsys, mock_quantum_espresso):
 def test_so2_pbe_delta_scf(capsys):
     test = WorkflowTest(json, capsys)
     test.run()
-
