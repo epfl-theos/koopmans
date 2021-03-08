@@ -229,7 +229,7 @@ class KoopmansWorkflow(Workflow):
                 pw_calc = [c for c in self.all_calcs if isinstance(c, pw.PW_calc) and c.calculation == 'nscf'][-1]
                 pw_gap = pw_calc.results['lumo_ene'] - pw_calc.results['homo_ene']
                 cp_gap = calc.results['lumo_energy'] - calc.results['homo_energy']
-                if abs(pw_gap - cp_gap) > 1e-3 * pw_gap:
+                if abs(pw_gap - cp_gap) > 1e-2 * pw_gap:
                     raise ValueError(f'PW and CP band gaps are not consistent: {pw_gap} {cp_gap}')
 
                 # The CP restarting from Wannier functions must be already converged

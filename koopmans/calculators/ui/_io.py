@@ -138,10 +138,7 @@ def parse_hr(self):
         counter = 0
 
         for line in lines[lines_to_skip:]:
-            assert abs(float(line.split()[6]) <= 1.e-6), 'The hamiltonian must be real, found a complex component'
-
-            self.hr.append(line.split()[5])
-
+            self.hr.append(float(line.split()[5]) + 1j * float(line.split()[6]))
             counter += 1
             if not single_R and counter == self.num_wann**2:
                 rvect.append(np.array(line.split()[0:3], dtype=int))
@@ -158,13 +155,13 @@ def parse_hr(self):
     if hr_type == 'w90' and not single_R:
         assert len(self.hr) == nrpts * self.num_wann**2, \
             f'Wrong number of matrix elements ({len(self.hr)}) for the input hamiltonian'
-        self.hr = np.array(self.hr, dtype=float).reshape(nrpts, self.num_wann, self.num_wann)
+        self.hr = np.array(self.hr, dtype=complex).reshape(nrpts, self.num_wann, self.num_wann)
         self.hr = extract_hr(self.hr, rvect, self.sc_dim[0], self.sc_dim[1], self.sc_dim[2])
         self.hr = self.hr.reshape(self.num_wann_sc, self.num_wann)
     else:
         assert len(self.hr) == self.num_wann_sc**2, \
             f'Wrong number of matrix elements ({len(self.hr)}) for the input hamiltonian'
-        self.hr = np.array(self.hr, dtype=float).reshape(self.num_wann_sc, self.num_wann_sc)
+        self.hr = np.array(self.hr, dtype=complex).reshape(self.num_wann_sc, self.num_wann_sc)
 
     # conversion to eV (hamiltonian from CP Koopmans code is in Hartree)
     if hr_type == 'kc_occ_old' or hr_type == 'kc_emp_old':
@@ -205,10 +202,7 @@ def parse_hr(self):
         counter = 0
 
         for line in lines[lines_to_skip:]:
-            assert abs(float(line.split()[6])) <= 1.e-6, 'hr_coarse must be real, found a complex component'
-
-            self.hr_coarse.append(line.split()[5])
-
+            self.hr_coarse.append(float(line.split()[5]) + 1j * float(line.split()[6]))
             counter += 1
             if not single_R and counter == self.num_wann**2:
                 rvect.append(np.array(line.split()[0:3], dtype=int))
@@ -217,13 +211,13 @@ def parse_hr(self):
         if single_R:
             assert len(self.hr_coarse) == self.num_wann_sc**2, \
                 f'Wrong number of matrix elements for hr_coarse {len(self.hr_coarse)}'
-            self.hr_coarse = np.array(self.hr_coarse, dtype=float)
+            self.hr_coarse = np.array(self.hr_coarse, dtype=complex)
             self.hr_coarse = self.hr_coarse.reshape(self.num_wann_sc, self.num_wann_sc)
             self.hr_coarse = self.hr_coarse[:, :self.num_wann]
         else:
             assert len(self.hr_coarse) == nrpts * \
                 self.num_wann**2, f'Wrong number of matrix elements for hr_coarse {len(self.hr_coarse)}'
-            self.hr_coarse = np.array(self.hr_coarse, dtype=float)
+            self.hr_coarse = np.array(self.hr_coarse, dtype=complex)
             self.hr_coarse = self.hr_coarse.reshape(nrpts, self.num_wann, self.num_wann)
             self.hr_coarse = extract_hr(self.hr_coarse, rvect, self.sc_dim[0], self.sc_dim[1], self.sc_dim[2])
             self.hr_coarse = self.hr_coarse.reshape(self.num_wann_sc, self.num_wann)
@@ -247,10 +241,7 @@ def parse_hr(self):
                 weights.append(int(line.split()[n]))
 
         for line in lines[lines_to_skip:]:
-            assert abs(float(line.split()[6])) <= 1.e-6, 'hr_smooth must be real, found a complex component'
-
-            self.hr_smooth.append(line.split()[5])
-
+            self.hr_smooth.append(float(line.split()[5]) + 1j * float(line.split()[6]))
             counter += 1
             if counter == self.num_wann**2:
                 rvect.append(np.array(line.split()[0:3], dtype=int))
@@ -260,7 +251,7 @@ def parse_hr(self):
             self.num_wann**2, f'Wrong number of matrix elements for hr_smooth {len(self.hr_smooth)}'
         self.wRs = weights
         self.Rsmooth = rvect
-        self.hr_smooth = np.array(self.hr_smooth, dtype=float)
+        self.hr_smooth = np.array(self.hr_smooth, dtype=complex)
         self.hr_smooth = self.hr_smooth.reshape(nrpts, self.num_wann, self.num_wann)
 
     return

@@ -56,7 +56,7 @@ def extract_hr(hr, rvect, nr1, nr2, nr3):
 
     assert len(hr_new) == nr1 * nr2 * nr3, f'Wrong number ({len(hr_new)}) of R-vectors in extract_hr'
 
-    hr_new = np.array(hr_new)
+    hr_new = np.array(hr_new, dtype=complex)
 
     return hr_new
 

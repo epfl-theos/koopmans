@@ -85,7 +85,7 @@ def map_wannier(self):
 
     # redefine phases and hr in order to follow the new order of WFs
     phases = []
-    hr = np.zeros((self.num_wann_sc, self.num_wann_sc), dtype=float)
+    hr = np.zeros((self.num_wann_sc, self.num_wann_sc), dtype=complex)
     for n in range(self.num_wann_sc):
         phases.append(self.phases[index[n]])
         for m in range(self.num_wann_sc):
