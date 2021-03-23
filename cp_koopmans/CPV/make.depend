@@ -215,6 +215,7 @@ cp_interfaces.o : atoms_type.o
 cp_interfaces.o : modules.o
 cp_interfaces.o : wave_types.o
 cp_interfaces.o : write_hamiltonian.o
+cp_interfaces.o : ortho_check.o
 cp_restart.o : ../Modules/cell_base.o
 cp_restart.o : ../Modules/constants.o
 cp_restart.o : ../Modules/control_flags.o
@@ -1069,6 +1070,14 @@ ortho_base.o : ../Modules/twin_types.o
 ortho_base.o : ../Modules/uspp.o
 ortho_base.o : ../Modules/zhpev_drv.o
 ortho_base.o : modules.o
+ortho_check.o : ../Modules/electrons_base.o
+ortho_check.o : ../Modules/io_global.o
+ortho_check.o : ../Modules/kind.o
+ortho_check.o : ../Modules/mp.o
+ortho_check.o : ../Modules/mp_global.o
+ortho_check.o : ../Modules/recvec.o
+ortho_check.o : ../Modules/wavefunctions.o
+ortho_check.o : electrons.o
 para.o : ../Modules/constants.o
 para.o : ../Modules/control_flags.o
 para.o : ../Modules/fft_base.o
