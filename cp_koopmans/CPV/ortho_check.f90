@@ -71,7 +71,7 @@ SUBROUTINE ortho_check_cmplx( c0_emp, lgam )
         !
         ! ... and remove double counting for G=0 component
         !
-        g0comp(:) = CONJG( c0(1,:) ) * c0_emp(0,m)
+        g0comp(:) = CONJG( c0(1,:) ) * c0_emp(1,m)
         proj = proj - SUM( g0comp(:) )
         !
       ENDIF
