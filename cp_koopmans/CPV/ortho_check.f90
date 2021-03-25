@@ -30,9 +30,11 @@ SUBROUTINE ortho_check_cmplx( c0_emp, lgam )
   LOGICAL, INTENT(IN) :: lgam
   !
   INTEGER :: n_empx
-  INTEGER :: m, n, ig
-  REAL(DP) :: sqmod
+  INTEGER :: m, n
   REAL(DP) :: proj, proj_tot
+  COMPLEX(DP) :: g0comp(nbspx)
+  !
+  COMPLEX(DP), EXTERNAL :: ZDOTC
   !
   !
   WRITE( stdout, '(/, A)' ) " -----------------------------------------"
@@ -52,18 +54,29 @@ SUBROUTINE ortho_check_cmplx( c0_emp, lgam )
     proj = 0.D0
     !
     DO n = 1, nbspx
-      DO ig = 1, ngw
-        !
-        sqmod = c0_emp(ig,m) * CONJG( c0(ig,n) )
-        !
-        IF ( lgam .AND. ( gstart .NE. 2 .OR. ig .GT. 1 ) ) THEN
-          sqmod = sqmod * 2
-        ENDIF
-        !
-        proj = proj + sqmod
-        !
-      ENDDO
+      !
+      proj = proj + ZDOTC( ngw, c0(:,n), 1, c0_emp(:,m), 1 )
+      !
     ENDDO
+    !
+    ! when gamma-trick is used ...
+    !
+    IF ( lgam ) THEN
+      !
+      ! ... account for G<0 vectors
+      !
+      proj = proj * 2
+      !
+      IF ( gstart == 2 ) THEN
+        !
+        ! ... and remove double counting for G=0 component
+        !
+        g0comp(:) = CONJG( c0(1,:) ) * c0_emp(0,m)
+        proj = proj - SUM( g0comp(:) )
+        !
+      ENDIF
+      !
+    ENDIF
     !
     CALL mp_sum( proj, intra_pool_comm )
     WRITE( stdout, 100 ) m, proj
