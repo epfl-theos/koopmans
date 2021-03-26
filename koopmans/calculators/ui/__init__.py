@@ -41,7 +41,8 @@ class UI_calc(GenericCalc):
     def calculate(self):
 
         if self.k_path is None:
-            utils.warn('"k_path" missing in input, the energies will be calculated on a commensurate Monkhorst-Pack mesh')
+            utils.warn('"k_path" missing in input, the energies will be calculated on a commensurate Monkhorst-Pack '
+                       'mesh')
 
         for setting in self.mandatory_settings:
             assert getattr(self, setting, None), f'The mandatory key {setting} has not been provided'
@@ -109,6 +110,9 @@ class UI_calc(GenericCalc):
                 self.f_out.write('\nALL DONE\n\n')
 
                 self.calc.results['job done'] = True
+
+                # Unlink the output file
+                delattr(self, 'f_out')
 
     def check_code_is_installed(self):
         # This calculator is entirely python-based, so we don't need to check for an installed binary

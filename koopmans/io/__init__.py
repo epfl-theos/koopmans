@@ -17,9 +17,9 @@ import json as json_ext
 import xml.etree.ElementTree as ET
 from ase.atoms import Atoms
 from ase.calculators.calculator import FileIOCalculator
-from ase.io.espresso import Espresso
+from ase.io.espresso import Espresso, ibrav_to_cell
 from ase.io.espresso import KEYS as pw_keys
-from ase.io.espresso_kcp import Espresso_kcp, ibrav_to_cell
+from ase.io.espresso_kcp import Espresso_kcp
 from ase.io.espresso_kcp import KEYS as kcp_keys
 from ase.io.wannier90 import Wannier90 as ASEWannier90
 from ase.io.pw2wannier import PW2Wannier as ASEPW2Wannier

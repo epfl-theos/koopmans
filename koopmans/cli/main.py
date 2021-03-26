@@ -3,6 +3,7 @@
 import argparse
 import textwrap
 from koopmans.io import read_json
+from koopmans.io.jsonio import write_json
 from koopmans.workflows.generic import valid_settings
 
 '''
@@ -46,3 +47,7 @@ def main():
 
     # Run workflow
     workflow.run()
+
+    # Save workflow to file
+    with open(args.json.replace('.json', '.kwf'), 'w') as fd:
+        write_json(fd, workflow)

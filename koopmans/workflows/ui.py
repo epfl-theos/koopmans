@@ -14,9 +14,6 @@ from koopmans.workflows.generic import Workflow
 
 class UnfoldAndInterpolateWorkflow(Workflow):
 
-    def __init__(self, workflow_settings, calcs_dct):
-        super().__init__(workflow_settings, calcs_dct)
-
     def run(self):
         '''
         '''

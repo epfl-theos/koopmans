@@ -60,13 +60,18 @@ class GenericCalc:
     _valid_settings = None
     _settings_that_are_paths = []
 
-    def __init__(self, calc=None, qe_files=[], skip_qc=False, **kwargs):
+    def __init__(self, calc=None, qe_files=[], skip_qc=False, dct={}, **kwargs):
 
         # Initialise a dictionary to store QE settings in
         self._settings = {}
 
         # Create settings shortcuts
         self.create_settings_shortcuts()
+
+        # Construct from dct if this is provided
+        if dct:
+            self.fromdict(dct)
+            return
 
         # If qe_input/output_files are provided, use them instead of calc
         if len(qe_files) > 0 and calc is not None:
@@ -404,6 +409,16 @@ class GenericCalc:
             if getattr(self, key, None) is None:
                 setattr(self, key, value)
         return
+
+    def todict(self):
+        dct = self.__dict__
+        dct['__koopmans_name__'] = self.__class__.__name__
+        dct['__koopmans_module__'] = self.__class__.__module__
+        return dct
+
+    def fromdict(self, dct):
+        for k, v in dct.items():
+            setattr(self, k, v)
 
 
 class EspressoCalc(GenericCalc):

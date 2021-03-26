@@ -88,18 +88,27 @@ valid_settings = [
 
 class Workflow(object):
 
-    def __init__(self, workflow_settings, calcs_dct):
-        self.master_calcs = calcs_dct
-        self.all_calcs = []
-        self.silent = False
-        self.valid_settings = valid_settings
+    def __init__(self, workflow_settings=None, calcs_dct=None, dct={}):
+        if dct:
+            assert workflow_settings is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, ' \
+                'do not use any other arguments'
+            assert calcs_dct is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, do not ' \
+                'use any other arguments'
+            self.fromdict(dct)
+        else:
+            assert not dct, f'If using the "dct" argument to initialise {self.__class__.__name__}, do not use any ' \
+                'other arguments'
+            self.master_calcs = calcs_dct
+            self.all_calcs = []
+            self.silent = False
+            self.valid_settings = valid_settings
 
-        # Parsing workflow_settings
-        checked_settings = utils.check_settings(workflow_settings, self.valid_settings, physicals=[
-            'alpha_conv_thr', 'convergence_threshold'])
-        self.list_of_settings = list(checked_settings.keys())
-        for key, value in checked_settings.items():
-            self.add_setting(key, value)
+            # Parsing workflow_settings
+            checked_settings = utils.check_settings(workflow_settings, self.valid_settings, physicals=[
+                'alpha_conv_thr', 'convergence_threshold'])
+            self.list_of_settings = list(checked_settings.keys())
+            for key, value in checked_settings.items():
+                self.add_setting(key, value)
 
     @property
     def settings(self):
@@ -309,3 +318,13 @@ class Workflow(object):
         # ... and will prevent inheritance of from_scratch
         if from_scratch is None:
             self.from_scratch = workflow.from_scratch
+
+    def todict(self):
+        dct = self.__dict__
+        dct['__koopmans_name__'] = self.__class__.__name__
+        dct['__koopmans_module__'] = self.__class__.__module__
+        return dct
+
+    def fromdict(self, dct):
+        for k, v in dct.items():
+            setattr(self, k, v)

@@ -1,4 +1,5 @@
 *.pyc
+*.kwf
 __pycache__/
 .vscode
 python_KI.egg-info
