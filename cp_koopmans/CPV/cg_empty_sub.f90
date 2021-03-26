@@ -278,11 +278,12 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
              !
              !
              ! when reortho=.true. the empty states are reorthogonalized to the
-             ! occupied manifold
+             ! occupied manifold. Of course if do_outerloop_empty=.true., the
+             ! orthogonalization is already performed and so this is of no use
              !
-             IF ( reortho ) THEN
+             IF ( reortho .AND. .NOT. do_outerloop_empty ) THEN
                !
-               WRITE( stdout, '(/,A,/)' ) "Empty states are orthogonalized to the occupied manifold"
+               WRITE( stdout, '(A,/)' ) "Empty states are orthogonalized to the occupied manifold"
                !
                DO iss = 1, nspin
                   !
