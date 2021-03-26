@@ -480,6 +480,8 @@ MODULE read_namelists_module
        do_outerloop = .true.
        do_outerloop_empty = .true.
        !
+       reortho = .false.
+       ! 
        RETURN
        !
      END SUBROUTINE
@@ -1113,6 +1115,7 @@ MODULE read_namelists_module
        CALL mp_bcast( force_pairing ,       ionode_id )
        CALL mp_bcast( do_outerloop,         ionode_id )
        CALL mp_bcast( do_outerloop_empty,   ionode_id )
+       CALL mp_bcast( reortho,   ionode_id )
        !
        ! ... ensemble-DFT
        !
