@@ -63,6 +63,7 @@ nl_base.o \
 nlcc.o \
 ortho_base.o \
 ortho.o \
+ortho_check.o \
 para.o \
 path_routines.o \
 phasefactor.o \

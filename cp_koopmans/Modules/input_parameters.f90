@@ -981,6 +981,10 @@ MODULE input_parameters
           ! If true, perform the outerloop when optimising the
           ! empty electronic variational orbitals
 
+        LOGICAL :: reortho = .FALSE.
+          ! If true, re-orthogonalize the non-scf empty states to the occupied
+          ! manifold
+
         NAMELIST / electrons / emass, emass_cutoff, orthogonalization, &
           electron_maxstep, ortho_eps, ortho_max, electron_dynamics,   &
           electron_damping, electron_velocities, electron_temperature, &
@@ -999,7 +1003,7 @@ MODULE input_parameters
           efield, epol2, efield2, diago_full_acc,                      &
           occupation_constraints, ortho_para, niter_cg_restart,        &
           niter_cold_restart, lambda_cold, efield_cart, real_space,    &
-          do_outerloop, do_outerloop_empty
+          do_outerloop, do_outerloop_empty, reortho
 
 !
 !=----------------------------------------------------------------------------=!
