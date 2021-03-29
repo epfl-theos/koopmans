@@ -499,10 +499,10 @@ def write_json(fd, calcs=[], workflow_settings={}):
     pw_calc = [c for c in calcs if isinstance(c, pw.PW_calc)]
     if kcp_calc:
         calc = kcp_calc[0].calc
-        ibrav = calc.parameters['input_data']['system'].get('ibrav', None) == 0
+        ibrav = calc.parameters['input_data']['system'].get('ibrav', 0)
     elif pw_calc:
         calc = pw_calc[0]
-        ibrav = calc.parameters['input_data']['system'].get('ibrav', None) == 0
+        ibrav = calc.parameters['input_data']['system'].get('ibrav', 0)
     else:
         calc = calcs[0].calc
         ibrav = 0

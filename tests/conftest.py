@@ -148,7 +148,7 @@ class WorkflowTest:
 
                     # Write out error messages to the .stdout file
                     f.write(f'{calc.directory}/{calc_relpath}\n' + '\n'.join([f'  {m["kind"]}: {m["message"]}' for m
-                            in messages]) + '\n\n')
+                                                                              in messages]) + '\n\n')
 
         # Warn for warnings:
         if len(warnings) > 0:
@@ -539,9 +539,9 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
 
     monkeypatch.setattr('koopmans.workflows.kc_with_cp.KoopmansWorkflow', MockKoopmansWorkflow)
 
-    from koopmans.workflows.pbe_with_cp import PBEWorkflow
+    from koopmans.workflows.dft_with_cp import DFTWorkflow
 
-    class MockPBEWorkflow(PBEWorkflow):
+    class MockDFTWorkflow(DFTWorkflow):
 
         def run_calculator_single(self, qe_calc):
             generic_mock_calculator_single(self, qe_calc)
@@ -550,7 +550,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         def load_old_calculator(self, qe_calc):
             generic_mock_load_old_calculator(self, qe_calc)
 
-    monkeypatch.setattr('koopmans.workflows.pbe_with_cp.PBEWorkflow', MockPBEWorkflow)
+    monkeypatch.setattr('koopmans.workflows.dft_with_cp.DFTWorkflow', MockDFTWorkflow)
 
     from koopmans.workflows.pbe_dscf_with_pw import DeltaSCFWorkflow
 

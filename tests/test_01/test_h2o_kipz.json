@@ -2,8 +2,7 @@
     "workflow":
     {
         "functional"                : "kipz",
-        "init_density"              : "pz",
-        "init_variational_orbitals" : "pz",
+        "init_orbitals"             : "pz",
         "calculate_alpha"           : false,
         "alpha_guess"               : 0.6,
         "print_qc"                  : true,

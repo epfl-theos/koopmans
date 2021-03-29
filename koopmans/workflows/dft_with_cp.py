@@ -1,6 +1,6 @@
 """
 
-Workflow module for performing a single PBE calculation with kcp.x
+Workflow module for performing a single DFT calculation with kcp.x
 
 Written by Edward Linscott Oct 2020
 
@@ -12,7 +12,7 @@ from koopmans import utils
 from koopmans.workflows.generic import Workflow
 
 
-class PBEWorkflow(Workflow):
+class DFTWorkflow(Workflow):
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -28,7 +28,7 @@ class PBEWorkflow(Workflow):
         if self.from_scratch:
             utils.system_call(f'rm -r {calc.outdir} 2>/dev/null', False)
 
-        calc.name = 'pbe'
+        calc.name = 'dft'
         calc.directory = '.'
         calc.ndr = 50
         calc.ndw = 51

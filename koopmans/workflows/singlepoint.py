@@ -15,7 +15,7 @@ from koopmans import utils, io
 from koopmans.calculators.kcp import KCP_calc
 from koopmans.workflows.generic import Workflow
 from koopmans.workflows.kc_with_cp import KoopmansWorkflow
-from koopmans.workflows.pbe_with_cp import PBEWorkflow
+from koopmans.workflows.dft_with_cp import DFTWorkflow
 
 
 load_results_from_output = True
@@ -53,8 +53,7 @@ class SinglepointWorkflow(Workflow):
                     local_workflow_settings['calculate_alpha'] = False
                     local_workflow_settings['alpha_from_file'] = False
                 elif functional == 'kipz':
-                    local_workflow_settings['init_density'] = 'ki'
-                    local_workflow_settings['init_variational_orbitals'] = 'ki'
+                    local_workflow_settings['init_orbitals'] = 'from old ki'
                     local_workflow_settings['alpha_from_file'] = True
 
                 # Create a KC workflow for this particular functional
@@ -84,7 +83,7 @@ class SinglepointWorkflow(Workflow):
                     utils.system_call('rsync -a ki/final/ kipz/init/')
                     utils.system_call('mv kipz/init/ki_final.cpi kipz/init/ki_init.cpi')
                     utils.system_call('mv kipz/init/ki_final.cpo kipz/init/ki_init.cpo')
-                    if self.init_variational_orbitals in ['mlwfs', 'projw']:
+                    if self.init_orbitals in ['mlwfs', 'projw']:
                         utils.system_call('rsync -a ki/init/wannier kipz/init/')
                     if self.master_calcs['ui'].do_smooth_interpolation:
                         # Copy over the smooth PBE calculation from KI for KIPZ to use
@@ -96,8 +95,8 @@ class SinglepointWorkflow(Workflow):
             if self.functional in ['ki', 'kipz', 'pkipz']:
                 workflow = KoopmansWorkflow(self.settings, self.master_calcs)
 
-            elif self.functional == 'pbe':
-                workflow = PBEWorkflow(self.settings, self.master_calcs)
+            else:
+                workflow = DFTWorkflow(self.settings, self.master_calcs)
 
             self.run_subworkflow(workflow)
             return

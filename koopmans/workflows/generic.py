@@ -21,12 +21,13 @@ valid_settings = [
     utils.Setting('functional',
                   'Orbital-density-dependent-functional/density-functional to use',
                   str, 'ki', ('ki', 'kipz', 'pkipz', 'pbe', 'all')),
-    utils.Setting('init_density',
-                  'the functional to use to initialise the density',
-                  str, 'pbe', ('pbe', 'pz', 'ki')),
-    utils.Setting('init_variational_orbitals',
+    utils.Setting('init_orbitals',
                   'which orbitals to use as an initial guess for the variational orbitals',
-                  str, 'pz', ('pz', 'mlwfs', 'projw', 'ki', 'skip')),
+                  str, 'pz', ('pz', 'kohn-sham', 'mlwfs', 'projwfs', 'from old ki')),
+    utils.Setting('init_empty_orbitals',
+                  'which orbitals to use as an initial guess for the empty variational orbitals '
+                  '(defaults to the same value as "init_orbitals")',
+                  str, 'same', ('same', 'pz', 'kohn-sham', 'mlwfs', 'projwfs', 'from old ki')),
     utils.Setting('periodic',
                   'whether or not the system is periodic. If False, interaction between '
                   'periodic images will be corrected for',
@@ -300,6 +301,10 @@ class Workflow(object):
         if hasattr(self, 'benchmark'):
             workflow.benchmark = self.benchmark
 
+        # Ensure altering workflow.master_calcs won't affect self.master_calcs
+        if workflow.master_calcs is self.master_calcs:
+            workflow.master_calcs = copy.deepcopy(self.master_calcs)
+
         # Setting from_scratch to a non-None value will override the value of subworkflow.from_scratch...
         if from_scratch is None:
             workflow.from_scratch = self.from_scratch
@@ -310,6 +315,16 @@ class Workflow(object):
         workflow.all_calcs = self.all_calcs
 
         if subdirectory is not None:
+            # Update directories
+            for key in workflow.master_calcs.keys():
+                calc = workflow.master_calcs[key]
+                for setting in calc._settings_that_are_paths:
+                    path = getattr(calc, setting, None)
+                    if path is not None and path.startswith(os.getcwd()):
+                        new_path = os.path.abspath('./' + subdirectory + '/' + os.path.relpath(path))
+                        setattr(calc, setting, new_path)
+
+            # Run the workflow
             with utils.chdir(subdirectory):
                 workflow.run(**kwargs)
         else:

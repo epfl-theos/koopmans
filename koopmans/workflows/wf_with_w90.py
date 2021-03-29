@@ -23,10 +23,10 @@ class WannierizeWorkflow(Workflow):
 
         if 'pw' not in self.master_calcs:
             raise ValueError(
-                'You need to provide a pw block in your input when init_variational_orbitals = "mlwfs" or "projw"')
+                'You need to provide a pw block in your input when init_orbitals = "mlwfs" or "projwfs"')
         if 'w90_occ' not in self.master_calcs and 'w90_emp' not in self.master_calcs:
             raise ValueError(
-                'You need to provide a w90 block in your input when init_variational_orbitals = "mlwfs" or "projw"')
+                'You need to provide a w90 block in your input when init_orbitals = "mlwfs" or "projwfs"')
 
         # Make sure num_wann (occ/empty), num_bands (occ/empty), and nbnd are present and consistent
         pw_calc = self.master_calcs['pw']
@@ -105,7 +105,7 @@ class WannierizeWorkflow(Workflow):
         if calc_type.startswith('w90'):
             if calc.num_bands != calc.num_wann and calc.dis_num_iter is None:
                 calc.dis_num_iter = 5000
-            if self.init_variational_orbitals == 'projw':
+            if self.init_orbitals == 'projwfs':
                 calc.num_iter = 0
 
         # Checking that gamma_trick is consistent with do_wf_cmplx
@@ -120,5 +120,9 @@ class WannierizeWorkflow(Workflow):
                 calc.gamma_trick = True
             else:
                 pass
+
+        # Use a unified tmp directory
+        if hasattr(calc, 'outdir'):
+            calc.outdir = os.path.abspath('wannier/TMP')
 
         return calc

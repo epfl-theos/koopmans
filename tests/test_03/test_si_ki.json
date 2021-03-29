@@ -3,9 +3,9 @@
     {
         "functional"                : "ki",
         "periodic"                  : true,
-    	"mp_corrections"            : true,
-    	"eps_inf"                   : 13.02,
-        "init_variational_orbitals" : "mlwfs",
+        "mp_corrections"            : true,
+        "eps_inf"                   : 13.02,
+        "init_orbitals"             : "mlwfs",
         "calculate_alpha"           : false,
         "alpha_guess"               : 0.077,
         "print_qc"                  : true,
