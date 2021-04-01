@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 from scipy import interpolate
 from koopmans import io, utils
+from koopmans.bands import Bands
 from koopmans.calculators.kcp import KCP_calc
 from koopmans.calculators.ui import UI_calc
 from koopmans.calculators import pw
@@ -57,20 +58,19 @@ class KoopmansWorkflow(Workflow):
         elif self.periodic and not self.mp_corrections:
             utils.warn('Makov-Payne corrections not applied for a periodic calculation; do this with caution')
 
-        # Preparing panda dataframes in which to store results
-        i_bands = range(1, len(kcp_calc.filling[0]) + 1)
-        self.alpha_df = pd.DataFrame(columns=i_bands)
-        self.error_df = pd.DataFrame(columns=i_bands)
+        # Initialise the bands object
+        filling = kcp_calc.filling[0]
+        self.bands = Bands(n_bands=len(filling), filling=filling, groups=self.orbital_groups)
 
         if alphas is not None:
             print('Using alpha values provided from a previous calculation')
-            self.alpha_df.loc[1] = alphas
         elif self.alpha_from_file:
             print('Reading alpha values from file')
-            self.read_alphadf_from_file()
+            alphas = self.read_alphas_from_file()
         else:
             print('Initialising alpha with a guess')
-            self.alpha_df.loc[1] = [self.alpha_guess for _ in i_bands]
+            alphas = self.alpha_guess
+        self.bands.alphas = alphas
 
         # Raise errors if any UI keywords are provided but will be overwritten by the workflow
         for ui_keyword in ['kc_ham_file', 'w90_seedname', 'alat_sc', 'sc_dim', 'dft_ham_file', 'dft_smooth_ham_file']:
@@ -90,10 +90,10 @@ class KoopmansWorkflow(Workflow):
             raise NotImplementedError(f'The combination init_orbitals = {self.init_orbitals} and init_empty_orbitals '
                                       f'= {self.init_empty_orbitals} has not yet been implemented')
 
-    def read_alphadf_from_file(self, directory='.'):
+    def read_alphas_from_file(self, directory='.'):
         '''
         This routine reads in the contents of file_alpharef.txt and file_alpharef_empty.txt and
-        stores the result in self.alpha_df
+        stores the result in self.bands.alphas
 
         Note that io.read_alpha_file provides a flattened list of alphas so we must exclude
         duplicates if calc.nspin == 2
@@ -107,9 +107,7 @@ class KoopmansWorkflow(Workflow):
             i_alphas = list((range(0, calc.nelec // 2 + calc.empty_states_nbnd)))
 
         alphas = io.read_alpha_file(directory)
-        alphas = [a for i, a in enumerate(alphas) if i in i_alphas]
-        alphas = pd.DataFrame([alphas], columns=self.alpha_df.columns)
-        self.alpha_df = self.alpha_df.append(alphas)
+        return [a for i, a in enumerate(alphas) if i in i_alphas]
 
     def run(self):
         '''
@@ -156,12 +154,12 @@ class KoopmansWorkflow(Workflow):
             self.perform_alpha_calculations()
         else:
             print('Skipping calculation of screening parameters', end='')
-            if self.alpha_df.empty:
+            if self.bands.alpha_history.empty:
                 print('; reading values from file')
-                self.read_alphadf_from_file()
+                self.bands.alphas = self.read_alphas_from_file()
             else:
                 print('')
-            self.print_summary()
+            self.bands.print_history()
 
         # Final calculation
         print(f'\nFINAL {self.functional.upper().replace("PK","pK")} CALCULATION')
@@ -169,9 +167,8 @@ class KoopmansWorkflow(Workflow):
         # Print out additional quality control data for final calculation
         if self.print_qc:
             calc = self.all_calcs[-1]
-            for i, alpha in enumerate(self.alpha_df.iloc[-1]):
-                if not self.error_df.empty and not pd.isnull(self.error_df.iloc[-1, i]):
-                    self.print_qc_keyval(f'alpha({i+1})', alpha, calc)
+            for b in self.bands.to_solve:
+                self.print_qc_keyval(f'alpha({b.index})', b.alpha, calc)
             for isp, orbs_self_hartree in enumerate(calc.results['orbital_data']['self-Hartree']):
                 for i, orb_sh in enumerate(orbs_self_hartree):
                     self.print_qc_keyval(f'orbital_self_Hartree(orb={i+1},sigma={isp+1})', orb_sh, calc)
@@ -287,7 +284,7 @@ class KoopmansWorkflow(Workflow):
             if self.init_orbitals == 'kohn-sham':
                 self._copy_most_recent_calc_to_ndw(ndw_final)
             elif self.init_orbitals == 'pz':
-                calc = self.new_calculator('kcp', 'pz_innerloop_init', alphas=self.alpha_df.loc[1], ndw=ndw_final)
+                calc = self.new_calculator('kcp', 'pz_innerloop_init', alphas=self.bands.alphas, ndw=ndw_final)
                 calc.directory = 'init'
                 if self.all_calcs[-1].nelec == 2:
                     # If we only have two electrons, then the filled manifold is trivially invariant under unitary
@@ -342,30 +339,6 @@ class KoopmansWorkflow(Workflow):
             utils.system_call(f'cp {savedir}/evc_empty2.dat {savedir}/evc0_empty2.dat')
 
     def perform_alpha_calculations(self):
-        # Group the bands by group, and work out which bands to solve explicitly
-        band_filling = self.all_calcs[-1].filling[0]
-        n_filled_bands = band_filling.count(True)
-        n_bands = len(band_filling)
-        i_bands = range(1, n_bands + 1)
-
-        if self.orbital_groups is None:
-            self.orbital_groups = range(len(band_filling))
-
-        bands_to_solve = {}
-        groups_found = set([])
-
-        for i_band in list(range(1, n_filled_bands + 1)[::-1]) \
-                + list(range(n_filled_bands + 1, n_bands + 1)):
-            # Looping through the filled bands from highest to lowest, then empty bands from
-            # lowest to highest
-            group = self.orbital_groups[i_band - 1]
-            if group not in groups_found:
-                groups_found.add(group)
-                bands_to_solve[i_band] = [i + 1 for i,
-                                          g in enumerate(self.orbital_groups) if g == group]
-        if groups_found != set(self.orbital_groups):
-            raise ValueError('Splitting of orbitals into groups failed')
-
         # Set up directories
         if not os.path.isdir('calc_alpha'):
             utils.system_call('mkdir calc_alpha')
@@ -376,8 +349,8 @@ class KoopmansWorkflow(Workflow):
         if not self.from_scratch and os.path.isfile('alphas.pkl'):
             # Reloading alphas and errors from file
             print('Reloading alpha values from file')
-            self.alpha_df = pd.read_pickle('alphas.pkl')
-            self.error_df = pd.read_pickle('errors.pkl')
+            self.bands.alphas = pd.read_pickle('alphas.pkl')
+            self.bands.errors = pd.read_pickle('errors.pkl')
 
         alpha_indep_calcs = []
 
@@ -399,7 +372,7 @@ class KoopmansWorkflow(Workflow):
 
             # Do a KI/KIPZ calculation with the updated alpha values
             calc = self.new_calculator('kcp', calc_presets=self.functional.replace('pkipz', 'ki'),
-                                       alphas=self.alpha_df.loc[i_sc])
+                                       alphas=self.bands.alphas)
             calc.directory = iteration_directory
 
             if i_sc == 1:
@@ -417,21 +390,19 @@ class KoopmansWorkflow(Workflow):
             alpha_dep_calcs = [calc]
 
             # Loop over removing/adding an electron from/to each orbital
-            for fixed_band, filled in zip(i_bands, band_filling):
-                print('-- Orbital {} ------------------------'.format(fixed_band))
+            for band in self.bands:
+                print('-- Orbital {} ------------------------'.format(band.index))
                 # Skip the bands which can copy the screening parameter from another
                 # calculation in the same orbital group
-                if fixed_band not in bands_to_solve:
-                    print(
-                        f'Skipping; will use the screening parameter of an equivalent orbital')
+                if band not in self.bands.to_solve:
+                    print(f'Skipping; will use the screening parameter of an equivalent orbital')
                     continue
-                all_bands_in_group = bands_to_solve[fixed_band]
 
                 # Set up directories
-                directory = f'{iteration_directory}/orbital_{fixed_band}'
+                directory = f'{iteration_directory}/orbital_{band.index}'
                 if not os.path.isdir(directory):
                     utils.system_call(f'mkdir {directory}')
-                outdir_band = f'{outdir}/orbital_{fixed_band}'
+                outdir_band = f'{outdir}/orbital_{band.index}'
 
                 # Link tmp files from band-independent calculations
                 if not os.path.isdir(outdir_band):
@@ -440,36 +411,32 @@ class KoopmansWorkflow(Workflow):
                         f'ln -sr {self.master_calcs["kcp"].outdir}/*.save {outdir_band}')
 
                 # Don't repeat if this particular alpha_i was converged
-                if i_sc > 1 and any([abs(e) < self.alpha_conv_thr for e in
-                                     self.error_df.loc[:i_sc - 1, fixed_band]]):
-                    print(
-                        f'Skipping band {fixed_band} since this alpha is already '
-                        'converged')
-                    self.alpha_df.loc[i_sc + 1,
-                                      all_bands_in_group] = self.alpha_df.loc[i_sc, fixed_band]
-                    self.error_df.lor[i_sc,
-                                      all_bands_in_group] = self.error_df.loc[i_sc - 1, fixed_band]
+                if i_sc > 1 and any([abs(e) < self.alpha_conv_thr for e in band.error_history]):
+                    print(f'Skipping band {band.index} since this alpha is already converged')
+                    for b in self.bands:
+                        if b == band or (band.group is not None and b.group == band.group):
+                            b.alpha = band.alpha
+                            b.error = band.error
                     continue
 
                 # When we write/update the alpharef files in the work directory
                 # make sure to include the fixed band alpha in file_alpharef.txt
                 # rather than file_alpharef_empty.txt
-                band_filled_or_fixed = [
-                    b or i == fixed_band - 1 for i, b in enumerate(band_filling)]
-                if filled:
+                band_filled_or_fixed = [b is band or b.filled for b in self.bands]
+                if band.filled:
                     index_empty_to_save = None
                 else:
-                    index_empty_to_save = fixed_band - n_filled_bands
+                    index_empty_to_save = band.index - self.bands.num(filled=True)
 
                 # Perform the fixed-band-dependent calculations
                 if self.functional in ['ki', 'pkipz']:
-                    if filled:
+                    if band.filled:
                         calc_types = ['ki_frozen', 'dft_frozen', 'dft_n-1']
                     else:
                         calc_types = ['pz_print', 'dft_n+1_dummy', 'dft_n+1',
                                       'dft_n+1-1_frozen', 'ki_n+1-1_frozen']
                 else:
-                    if filled:
+                    if band.filled:
                         calc_types = ['kipz_frozen', 'dft_frozen', 'kipz_n-1']
                     else:
                         calc_types = ['kipz_print', 'dft_n+1_dummy', 'kipz_n+1',
@@ -493,22 +460,22 @@ class KoopmansWorkflow(Workflow):
                         # in fact involve the fixing of that band (and thus for the
                         # 'fixed' band the corresponding alpha should be in
                         # file_alpharef_empty.txt)
-                        alphas = self.alpha_df.loc[i_sc]
-                        filling = band_filling
-                    elif not filled:
+                        alphas = self.bands.alphas
+                        filling = self.bands.filling
+                    elif not band.filled:
                         # In the case of empty orbitals, we gain an extra orbital in
                         # the spin-up channel, so we explicitly construct both spin
                         # channels for "alphas" and "filling"
-                        alphas = self.alpha_df.loc[i_sc].values.tolist()
+                        alphas = self.bands.alphas
                         alphas = [alphas + [alphas[-1]], alphas]
-                        filling = [band_filled_or_fixed + [False], band_filling]
+                        filling = [band_filled_or_fixed + [False], self.bands.filling]
                     else:
-                        alphas = self.alpha_df.loc[i_sc]
+                        alphas = self.bands.alphas
                         filling = band_filled_or_fixed
 
                     # Set up calculator
                     calc = self.new_calculator('kcp', calc_type, alphas=alphas, filling=filling, fixed_band=min(
-                                               fixed_band, n_filled_bands + 1),
+                                               band.index, self.bands.num(filled=True) + 1),
                                                index_empty_to_save=index_empty_to_save, outdir=outdir_band)
                     calc.directory = directory
 
@@ -519,7 +486,7 @@ class KoopmansWorkflow(Workflow):
                     # is which. This is important for empty orbital calculations, where fixed_band
                     # is always set to the LUMO but in reality we're fixing the band corresponding
                     # to index_empty_to_save from an earlier calculation
-                    calc.fixed_band = fixed_band
+                    calc.fixed_band = band.index
 
                     # Store the result
                     # We store the results in one of two lists: alpha_indep_calcs and
@@ -559,31 +526,26 @@ class KoopmansWorkflow(Workflow):
                     # overwritten by subsequent calculations
 
                     calcs = [c for calc_set in [alpha_dep_calcs, alpha_indep_calcs]
-                             for c in calc_set if c.fixed_band == fixed_band]
+                             for c in calc_set if c.fixed_band == band.index]
 
-                    alpha, error = self.calculate_alpha_from_list_of_calcs(calcs, filled=filled)
+                    alpha, error = self.calculate_alpha_from_list_of_calcs(calcs, filled=band.filled)
 
-                    for band_in_group in all_bands_in_group:
-                        self.alpha_df.loc[i_sc + 1, band_in_group] = alpha
-                    self.error_df.loc[i_sc, fixed_band] = error
-                    self.alpha_df.to_pickle('alphas.pkl')
-                    self.error_df.to_pickle('errors.pkl')
+                    for b in self.bands:
+                        if b == band or (b.group is not None and b.group == band.group):
+                            b.alpha = alpha
+                            b.error = error
 
-            self.print_summary()
+                    self.bands.alpha_history.to_pickle('alphas.pkl')
+                    self.bands.error_history.to_pickle('errors.pkl')
 
-            converged = all([abs(e) < 1e-3 or pd.isnull(e)
-                             for e in self.error_df.loc[i_sc, :]])
+            self.bands.print_history()
+
+            converged = all([abs(b.error) < 1e-3 for b in self.bands])
 
         if converged:
             print('Alpha values have been converged')
         else:
             print('Alpha values have been determined but are not necessarily converged')
-
-        # Writing alphas to a .tex table
-        latex_table = self.alpha_df.to_latex(column_format='l' + 'd' * n_bands,
-                                             float_format='{:.3f}'.format, escape=False)
-        with open('tab_alpha_values.tex', 'w') as f:
-            f.write(latex_table)
 
     def perform_final_calculations(self):
 
@@ -739,7 +701,7 @@ class KoopmansWorkflow(Workflow):
 
         # By default, use the last row in the alpha table for the screening parameters
         if alphas is None:
-            alphas = self.alpha_df.iloc[-1]
+            alphas = self.bands.alphas
 
         # Generate a new kcp calculator copied from the master calculator
         calc = KCP_calc(self.master_calcs["kcp"], alphas=alphas, filling=filling)
@@ -938,15 +900,6 @@ class KoopmansWorkflow(Workflow):
         calc.name = self.functional
 
         return calc
-
-    def print_summary(self):
-        # Printing out a progress summary
-        print('\nalpha')
-        print(self.alpha_df)
-        if not self.error_df.empty:
-            print('\ndelta E - lambda^alpha_ii (eV)')
-            print(self.error_df)
-        print('')
 
     def calculate_alpha_from_list_of_calcs(self, calcs, filled=True):
         '''

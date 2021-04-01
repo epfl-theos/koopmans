@@ -13,6 +13,7 @@ import copy
 import numpy as np
 from ase.calculators.calculator import CalculationFailed
 from koopmans import io, utils
+from koopmans.bands import Bands
 
 valid_settings = [
     utils.Setting('task',
@@ -343,3 +344,14 @@ class Workflow(object):
     def fromdict(self, dct):
         for k, v in dct.items():
             setattr(self, k, v)
+
+    @property
+    def bands(self):
+        if not hasattr(self, '_bands'):
+            raise AttributeError('Bands have not been initialised')
+        return self._bands
+
+    @bands.setter
+    def bands(self, value):
+        assert isinstance(value, Bands)
+        self._bands = value

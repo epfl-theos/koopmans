@@ -72,7 +72,7 @@ class SinglepointWorkflow(Workflow):
                     self.run_subworkflow(kc_workflow, subdirectory=functional)
 
                 # Save the alpha values and the calculations of the workflow
-                alphas = kc_workflow.alpha_df.iloc[-1].values
+                alphas = kc_workflow.bands.alphas
 
                 # Provide the pKIPZ and KIPZ calculations with a KI starting point
                 if functional == 'ki':
