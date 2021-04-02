@@ -44,7 +44,7 @@
                                        wave_rand_init, wave_atom_init, elec_fakekine, &
                                        crot, dforce, nlsm1, grabec, &
                                        bec_csv, readempty_twin, writeempty_twin, &
-                                       write_hamiltonian, symm_wannier
+                                       write_hamiltonian, ortho_check, symm_wannier
       USE mp,                   ONLY : mp_comm_split, mp_comm_free, mp_sum
       USE mp_global,            ONLY : intra_image_comm, me_image
       USE nksic,                ONLY : do_orbdep, do_pz, do_wxd, vsicpsi, wtot, sizwtot, &
@@ -713,6 +713,8 @@
       ENDIF !if clause to choose between cg and damped dynamics
       !
       IF ( ionode ) WRITE( stdout, "()")
+      !
+      CALL ortho_check( c0_emp, lgam )
       ! 
       ! ...  Compute eigenvalues and bring wave functions on Kohn-Sham orbitals
       !

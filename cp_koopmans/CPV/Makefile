@@ -36,6 +36,7 @@ emptystates.o \
 ensemble_dft.o \
 environment.o \
 exch_corr.o \
+exx_divergence.o \
 fft.o \
 forces.o \
 fromscra.o \
@@ -63,6 +64,7 @@ nl_base.o \
 nlcc.o \
 ortho_base.o \
 ortho.o \
+ortho_check.o \
 para.o \
 path_routines.o \
 phasefactor.o \
@@ -202,14 +204,14 @@ AFCLIB=../AFC90/src/libafc90.a
 
 TLDEPS= bindir mods libs libiotk afclib
 
-all : cp
-cp : tldeps libcp.a cp.x cppp.x
+all : kcp
+kcp : tldeps libcp.a kcp.x cppp.x
 
-cp.x : cprstart.o libcp.a $(LIBOBJS) $(AFCLIB)
-	$(LD) $(LDFLAGS) -o cp.x \
+kcp.x : cprstart.o libcp.a $(LIBOBJS) $(AFCLIB)
+	$(LD) $(LDFLAGS) -o kcp.x \
 		cprstart.o $(MODULES) libcp.a \
                 $(LIBOBJS) $(AFCLIB) $(LIBS)
-	- ( cd ../bin ; ln -fs ../CPV/cp.x . )
+	- ( cd ../bin ; ln -fs ../CPV/kcp.x . )
 
 cp_test : tldeps libcp.a cp_test.x cppp.x
 
@@ -261,6 +263,6 @@ tldeps:
 
 clean :
 	- /bin/rm -f cppp.x *.o *.mod cpver.h *.i core* *.F90 fort* \
-		*.cpp *.d *.L *.a *.s cp.x
+		*.cpp *.d *.L *.a *.s kcp.x
 
 include make.depend

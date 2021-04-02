@@ -82,7 +82,7 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
       use uspp_param,               only : nhm
       use descriptors,              only : descla_siz_
       use input_parameters,         only : odd_nkscalfact_empty, wo_odd_in_empty_run, odd_nkscalfact, &
-                                           do_outerloop_empty, track_orbitals
+                                           do_outerloop_empty, reortho, track_orbitals
       use centers_and_spreads,      only : get_centers_spreads
       !
       implicit none
@@ -276,6 +276,33 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
                 odd_nkscalfact = .false.
                 ! 
              endif
+             !
+             !
+             ! when reortho=.true. the empty states are reorthogonalized to the
+             ! occupied manifold. Of course if do_outerloop_empty=.true., the
+             ! orthogonalization is already performed and so this is of no use
+             !
+             IF ( reortho .AND. .NOT. do_outerloop_empty ) THEN
+               !
+               WRITE( stdout, '(A,/)' ) "Empty states are orthogonalized to the occupied manifold"
+               !
+               DO iss = 1, nspin
+                  !
+                  in_emp = iupdwn_emp(iss)
+                  !
+                  issw   = iupdwn(iss)
+                  !
+                  IF (nupdwn(iss)>0.and.nupdwn_emp(iss)>0) THEN
+                     !
+                     CALL gram_empty( .false., eigr, betae, bec_emp, bec, nhsa, &
+                                     c0_emp( :, in_emp: ), c0( :, issw: ), ngw, &
+                                     nupdwn_emp(iss), nupdwn(iss), in_emp, issw )
+                     !
+                  ENDIF
+                  !
+               ENDDO
+               !
+             ENDIF
              !
              icompute_spread = .true.
              !

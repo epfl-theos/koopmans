@@ -144,6 +144,7 @@
    !--- For writing the Hamiltonian --! added: RdG
 
    PUBLIC :: write_hamiltonian
+   PUBLIC :: ortho_check
 
    PUBLIC :: symm_wannier
 
@@ -2061,7 +2062,6 @@
    INTERFACE write_hamiltonian
       SUBROUTINE write_hamiltonian_real( ham, nbnd, ispin, empty )
         USE kinds,          ONLY : DP
-        USE io_global,      ONLY : ionode
         IMPLICIT NONE
 
         REAL(DP), INTENT(IN) :: ham(:,:)
@@ -2071,7 +2071,6 @@
       END SUBROUTINE 
       SUBROUTINE write_hamiltonian_cmplx( ham, nbnd, ispin, empty )
         USE kinds,          ONLY : DP
-        USE io_global,      ONLY : ionode
         IMPLICIT NONE
 
         COMPLEX(DP), INTENT(IN) :: ham(:,:)
@@ -2079,6 +2078,16 @@
         INTEGER, INTENT(IN) :: ispin
         LOGICAL, INTENT(IN) :: empty
       END SUBROUTINE 
+   END INTERFACE
+
+   INTERFACE ortho_check
+     SUBROUTINE ortho_check_cmplx( c0_emp, lgam )
+        USE kinds,          ONLY : DP
+        IMPLICIT NONE
+
+        COMPLEX(DP), INTENT(IN) :: c0_emp(:,:)
+        LOGICAL, INTENT(IN) :: lgam
+     END SUBROUTINE
    END INTERFACE
 
    INTERFACE symm_wannier

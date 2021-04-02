@@ -49,7 +49,7 @@ libafc90.a: $(AFCFILES)
 	$(RANLIB) $@
 
 clean :
-	- /bin/rm -f cppp.x *.o *.mod
+	- /bin/rm -f cppp.x *.o *.mod *.a
 
 tldeps:
 	test -n "$(TLDEPS)" && ( cd ../.. ; $(MAKE) $(MFLAGS) $(TLDEPS) || exit 1) || :

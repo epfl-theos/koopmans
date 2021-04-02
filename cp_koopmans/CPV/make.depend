@@ -90,6 +90,7 @@ cg_sub.o : cp_interfaces.o
 cg_sub.o : efield.o
 cg_sub.o : electrons.o
 cg_sub.o : ensemble_dft.o
+cg_sub.o : exx_divergence.o
 cg_sub.o : ions_positions.o
 cg_sub.o : mainvar.o
 cg_sub.o : modules.o
@@ -228,7 +229,9 @@ cp_interfaces.o : ../Modules/twin_types.o
 cp_interfaces.o : ../Modules/uspp.o
 cp_interfaces.o : atoms_type.o
 cp_interfaces.o : modules.o
+cp_interfaces.o : ortho_check.o
 cp_interfaces.o : wave_types.o
+cp_interfaces.o : write_hamiltonian.o
 cp_restart.o : ../Modules/cell_base.o
 cp_restart.o : ../Modules/constants.o
 cp_restart.o : ../Modules/control_flags.o
@@ -587,6 +590,14 @@ exch_corr.o : ../Modules/sic.o
 exch_corr.o : cp_interfaces.o
 exch_corr.o : mainvar.o
 exch_corr.o : modules.o
+exx_divergence.o : ../Modules/cell_base.o
+exx_divergence.o : ../Modules/constants.o
+exx_divergence.o : ../Modules/control_flags.o
+exx_divergence.o : ../Modules/io_global.o
+exx_divergence.o : ../Modules/mp_global.o
+exx_divergence.o : ../Modules/mp.o
+exx_divergence.o : ../Modules/kind.o
+exx_divergence.o : ../Modules/recvec.o
 fft.o : ../Modules/control_flags.o
 fft.o : ../Modules/fft_base.o
 fft.o : ../Modules/fft_parallel.o
@@ -1079,6 +1090,14 @@ ortho_base.o : ../Modules/twin_types.o
 ortho_base.o : ../Modules/uspp.o
 ortho_base.o : ../Modules/zhpev_drv.o
 ortho_base.o : modules.o
+ortho_check.o : ../Modules/electrons_base.o
+ortho_check.o : ../Modules/io_global.o
+ortho_check.o : ../Modules/kind.o
+ortho_check.o : ../Modules/mp.o
+ortho_check.o : ../Modules/mp_global.o
+ortho_check.o : ../Modules/recvec.o
+ortho_check.o : ../Modules/wavefunctions.o
+ortho_check.o : electrons.o
 para.o : ../Modules/constants.o
 para.o : ../Modules/control_flags.o
 para.o : ../Modules/fft_base.o
