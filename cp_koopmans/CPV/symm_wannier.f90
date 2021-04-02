@@ -6,7 +6,7 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 !-----------------------------------------------------------------------
-SUBROUTINE symm_wannier_x( wfc, num_states, emp) 
+SUBROUTINE symm_wannier_x( wfc, num_states, emp ) 
   !---------------------------------------------------------------------
   !
   ! ...  This routine imposes the Bloch symmetry on the Wannier
@@ -36,9 +36,9 @@ SUBROUTINE symm_wannier_x( wfc, num_states, emp)
   !
   IMPLICIT NONE
   !
+  COMPLEX(DP), INTENT(INOUT) :: wfc(:,:)
   INTEGER, INTENT(IN) :: num_states
   LOGICAL, INTENT(IN) :: emp
-  COMPLEX(DP), INTENT(INOUT) :: wfc(:,:)
   !
   INTEGER :: norb
   INTEGER :: norb_pc     ! number of ref WFs

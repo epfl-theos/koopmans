@@ -2095,9 +2095,9 @@
         USE kinds,          ONLY : DP
         IMPLICIT NONE
 
+        COMPLEX(DP), INTENT(INOUT) :: wfc(:,:)
         INTEGER, INTENT(IN) :: num_states
         LOGICAL, INTENT(IN) :: emp
-        COMPLEX(DP), INTENT(INOUT) :: wfc(:,:)
       END SUBROUTINE
    END INTERFACE
 
