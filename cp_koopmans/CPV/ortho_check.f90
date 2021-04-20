@@ -84,6 +84,10 @@ SUBROUTINE ortho_check_cmplx( c0_emp, lgam )
     !
   ENDDO
   !
+  !
+  ! ... normalize proj_tot to 1
+  !
+  proj_tot = proj_tot / n_empx
   WRITE( stdout, 101 ) proj_tot
   !
   !
