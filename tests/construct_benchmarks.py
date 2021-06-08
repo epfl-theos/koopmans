@@ -2,10 +2,12 @@
 
 import glob
 import os
-import json
 import numpy as np
+import json
+from ase.spectrum.band_structure import BandStructure
 from koopmans import io, utils
-
+from koopmans.io.jsonio import write_json as write_encoded_json
+from koopmans.io.jsonio import read_json as read_encoded_json
 
 readin_exceptions = {''}
 
@@ -13,7 +15,7 @@ readin_exceptions = {''}
 if __name__ == '__main__':
 
     # Run tests
-    for test_json in sorted(glob.glob('test_0?/test*.json')):
+    for test_json in sorted(glob.glob('test_??/test*.json')):
         print(test_json + '...', end='', flush=True)
         test_directory, test_json = test_json.rsplit('/', 1)
         with utils.chdir(test_directory):
@@ -21,8 +23,8 @@ if __name__ == '__main__':
         print(' done')
 
     # Construct json file (missing input files)
-    fnames = [f for ext in ['cpi', 'pwi', 'win', 'p2wi', 'uii'] for f
-              in glob.glob(f'test_0?/**/*.{ext}', recursive=True)]
+    fnames = [f for ext in ['cpi', 'pwi', 'win', 'p2wi', 'uii', 'w2ki', 'ksi', 'khi'] for f
+              in glob.glob(f'test_??/**/*.{ext}', recursive=True)]
 
     fnames.sort(key=os.path.getmtime)
 
@@ -43,13 +45,10 @@ if __name__ == '__main__':
                     fname_folder = fname.rsplit('/', 1)[0]
                     settings[key] = os.path.relpath(settings[key], os.getcwd() + '/' + fname_folder)
 
-        # Converting np arrays (not JSON serializable) to lists
         results = {}
         for k, v in calc.results.items():
             if k == 'walltime':
                 continue
-            if isinstance(v, np.ndarray):
-                v = v.tolist()
             results[k] = v
 
         data[fname_without_ext] = {'settings': settings, 'results': results}
@@ -60,8 +59,8 @@ if __name__ == '__main__':
             if os.path.getctime(directory + '/' + 'file_alpharef.txt') < os.path.getctime(fname):
                 data[fname_without_ext]['alphas'] = calc.read_alphas()[0]
 
-    with open(f'benchmarks.json', 'w') as f:
-        json.dump(data, f, indent=2)
+    with open('benchmarks.json', 'w') as f:
+        write_encoded_json(f, data)
     os.system('cp benchmarks.json benchmarks_backup.json')
 
     # Add input files
@@ -70,4 +69,3 @@ if __name__ == '__main__':
     utils.system_call('pytest -m "mock" tests/')
     os.chdir('tests')
     utils.system_call("sed -i 's/construct_exceptions = True/construct_exceptions = False/g' conftest.py")
-

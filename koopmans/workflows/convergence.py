@@ -121,7 +121,7 @@ class ConvergenceWorkflow(Workflow):
                             for _ in range(extra_orbitals)]
                     io.write_alpharef(alphas, directory='.', filling=filling)
 
-                print(header.rstrip(', '))
+                self.print(header.rstrip(', '), style='subheading')
 
                 # Perform calculation
                 calcs_dct = copy.deepcopy(self.master_calcs)
@@ -138,8 +138,6 @@ class ConvergenceWorkflow(Workflow):
                         f'{solved_calc.name} has not returned a value for {obs}')
                 result = solved_calc.results[obs]
                 results[indices] = result
-
-                print()
 
             # Check convergence
             converged = np.empty([len(x)
@@ -172,7 +170,7 @@ class ConvergenceWorkflow(Workflow):
                 for index, param in zip(indices, param_dict.keys()):
                     converged_parameters[param] = param_dict[param][index]
 
-                print('Converged parameters are '
+                self.print('Converged parameters are '
                       + ', '.join([f'{k} = {v}' for k, v in converged_parameters.items()]))
 
                 # Construct a calculator with the converged settings

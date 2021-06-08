@@ -7,3 +7,6 @@
 `test_06` PBE convergence on H2O
 `test_07` PBE delta SCF calculation on SO2 using a cavity to stabilise the unbound LUMO
 `test_08` KI, pKIPZ, and KIPZ on bulk Si
+`test_09` Unfolding and interpolating postprocessing on bulk Si
+`test_10` KI calculation on bulk Si using DFPT to calculate screening parameters
+`test_11` KI calculation on ozone using DFPT to calculate screening parameters

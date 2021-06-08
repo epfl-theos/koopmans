@@ -6,10 +6,8 @@ Integrated within python_KI by Edward Linscott Jan 2021
 
 """
 
-import os
 from time import time
-from ase.atoms import Atoms
-from ase.calculators.calculator import FileIOCalculator
+import numpy as np
 from koopmans.calculators.generic import GenericCalc
 from koopmans import utils
 
@@ -18,7 +16,7 @@ class UI_calc(GenericCalc):
     # Subclass of GenericCalc for performing unfolding and interpolation
 
     from ._io import parse_w90, parse_hr, parse_phases, print_centers, write_results, write_bands, write_dos, \
-        write_input_file, read_input_file, read_output_file, read_bands, read_dos
+        write_input_file, read_input_file, read_output_file, read_bands
     from ._interpolate import interpolate, calc_bands, correct_phase, calc_dos
     from ._settings import load_defaults, valid_settings
 
@@ -36,12 +34,16 @@ class UI_calc(GenericCalc):
         self._ase_calc_class = None
         super().__init__(calc, qe_files, skip_qc, **kwargs)
 
-        self.results_for_qc = []
+        # If we were reading generating this object from files, look for bands, too
+        if qe_files and any([self.ext_out in f for f in qe_files]):
+            self.read_bands()
+
+        self.results_for_qc = ['band structure', 'dos']
 
     def calculate(self):
 
-        if self.k_path is None:
-            utils.warn('"k_path" missing in input, the energies will be calculated on a commensurate Monkhorst-Pack '
+        if self.kpath is None:
+            utils.warn('"kpath" missing in input, the energies will be calculated on a commensurate Monkhorst-Pack '
                        'mesh')
 
         for setting in self.mandatory_settings:
@@ -106,7 +108,9 @@ class UI_calc(GenericCalc):
 
                 self.f_out.write(f'\tPrinting output in: {time() - reset:24.3f} sec\n')
 
-                self.f_out.write(f'\n\tTotal time: {time() - start:32.3f} sec\n')
+                walltime = time() - start
+                self.calc.results['walltime'] = walltime
+                self.f_out.write(f'\n\tTotal time: {walltime:32.3f} sec\n')
                 self.f_out.write('\nALL DONE\n\n')
 
                 self.calc.results['job done'] = True
@@ -122,14 +126,67 @@ class UI_calc(GenericCalc):
         return self.calc.results.get('job done', False)
 
     @property
-    def preprocessing_flags(self):
-        return None
-
-    @preprocessing_flags.setter
-    def preprocessing_flags(self, value):
-        if value != ['']:
-            raise ValueError('You should not try and set the preprocessing flags for the UI calculator')
-
-    @property
     def do_smooth_interpolation(self):
         return any([f > 1 for f in self.smooth_int_factor])
+
+    def get_k_point_weights(self):
+        return np.ones(len(self.kpath.kpts))
+
+    def get_number_of_spins(self):
+        return 1
+
+    def get_eigenvalues(self, kpt=None, spin=0):
+        if spin != 0:
+            raise NotImplementedError(
+                f'Unfolding and interpolating calculator is not implemented for spin-polarised systems')
+
+        if 'band structure' not in self.results:
+            raise ValueError('You must first calculate the band structure before you try to access the KS eigenvalues')
+
+        if kpt is None:
+            return self.results['band structure'].energies[spin, :]
+        else:
+            return self.results['band structure'].energies[spin, kpt]
+
+    def get_fermi_level(self):
+        return 0
+
+    @property
+    def Emin(self):
+        if self._Emin is None:
+            return np.min(self.get_eigenvalues())
+        else:
+            return self._Emin
+
+    @Emin.setter
+    def Emin(self, value):
+        self._Emin = value
+
+    @property
+    def Emax(self):
+        if self._Emax is None:
+            return np.max(self.get_eigenvalues())
+        else:
+            return self._Emax
+
+    @Emax.setter
+    def Emax(self, value):
+        self._Emax = value
+
+    @property
+    def at(self):
+        # basis vectors of direct lattice (in PC alat units)
+        return self.calc.atoms.cell / self.alat
+
+    @at.setter
+    def at(self, value):
+        self.calc.atoms.cell = value * self.alat
+
+    @property
+    def alat(self):
+        return self.alat_sc / self.sc_dim[0]
+
+    @property
+    def bg(self):
+        # basis vectors of reciprocal lattice (in PC 2pi/alat units)
+        return np.linalg.inv(self.at).transpose()

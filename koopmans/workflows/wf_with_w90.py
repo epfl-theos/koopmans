@@ -18,7 +18,7 @@ from koopmans.workflows.generic import Workflow
 
 class WannierizeWorkflow(Workflow):
 
-    def __init__(self, workflow_settings, calcs_dct):
+    def __init__(self, workflow_settings, calcs_dct, nspin=1):
         super().__init__(workflow_settings, calcs_dct)
 
         if 'pw' not in self.master_calcs:
@@ -40,12 +40,20 @@ class WannierizeWorkflow(Workflow):
             w90_occ_calc.exclude_bands = f'{w90_occ_calc.num_bands + 1}-{pw_calc.nbnd}'
 
         # Sanity checking
-        assert pw_calc.nbnd == w90_occ_calc.num_bands + w90_emp_calc.num_bands
+        w90_nbnd = w90_occ_calc.num_bands + w90_emp_calc.num_bands
+        if pw_calc.nbnd != w90_nbnd:
+            raise ValueError('Number of bands disagrees between pw ({pw_calc.nbnd}) and wannier90 ({w90_nbnd})')
         if w90_emp_calc.num_wann == 0:
             raise ValueError('Cannot run a wannier90 calculation with num_wann = 0. Please set empty_states_nbnd > 0 '
                              'in the setup block, or num_wann > 0 in the wannier90 empty subblock')
+        if nspin == 1:
+            self.master_calcs['pw'].nspin = 1
+        else:
+            self.master_calcs['pw'].nspin = 2
+            self.master_calcs['pw'].tot_magnetization = 0.0
+            self.master_calcs['pw2wannier'].spin_component = 'up'
 
-    def run(self, skip_wann2odd=False):
+    def run(self):
         '''
 
         Wrapper for the calculation of (maximally localized) Wannier functions
@@ -53,48 +61,37 @@ class WannierizeWorkflow(Workflow):
 
         '''
 
-        print('\nWANNIZERIZATION')
+        self.print('Wannierisation', style='heading')
 
         if self.from_scratch:
             utils.system_call("rm -rf wannier", False)
 
         # Run PW scf and nscf calculations
         # PWscf needs only the valence bands
-        calc_pw = self.new_calculator('pw', nbnd=None, nspin=1)
+        calc_pw = self.new_calculator('pw', nbnd=None)
         calc_pw.directory = 'wannier'
         calc_pw.name = 'scf'
         self.run_calculator(calc_pw)
 
-        calc_pw = self.new_calculator('pw', calculation='nscf', nosym=True, noinv=True, nspin=1)
+        calc_pw = self.new_calculator('pw', calculation='nscf', nosym=True, noinv=True)
         calc_pw.directory = 'wannier'
         calc_pw.name = 'nscf'
         self.run_calculator(calc_pw)
 
         for typ in ['occ', 'emp']:
             # 1) pre-processing Wannier90 calculation
-            calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ, name='wann_preproc',
-                                           preprocessing_flags='-pp')
+            calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ, name='wann_preproc')
+            calc_w90.calc.command.flags = '-pp'
             self.run_calculator(calc_w90)
             utils.system_call(f'rsync -a {calc_w90.directory}/wann_preproc.nnkp {calc_w90.directory}/wann.nnkp')
 
             # 2) standard pw2wannier90 calculation
-            calc_p2w = self.new_calculator('pw2wannier', directory=calc_w90.directory, outdir=calc_pw.outdir,
-                                           name='pw2wan')
+            calc_p2w = self.new_calculator('pw2wannier', directory=calc_w90.directory, outdir=calc_pw.outdir, name='pw2wan')
             self.run_calculator(calc_p2w)
 
             # 3) Wannier90 calculation
             calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ, name='wann')
             self.run_calculator(calc_w90)
-
-            # 4) pw2wannier90 calc (wannier2odd mode for WFs conversion to supercell)
-            if not skip_wann2odd:
-                calc_w2o = self.new_calculator('pw2wannier', wan_mode='wannier2odd', directory=calc_w90.directory,
-                                               name='wan2odd')
-                if typ == 'emp':
-                    calc_w2o.split_evc_file = True
-                self.run_calculator(calc_w2o)
-
-        print()
 
         return
 
@@ -107,19 +104,6 @@ class WannierizeWorkflow(Workflow):
                 calc.dis_num_iter = 5000
             if self.init_orbitals == 'projwfs':
                 calc.num_iter = 0
-
-        # Checking that gamma_trick is consistent with do_wf_cmplx
-        if calc_type == 'pw2wannier' and calc.wan_mode == 'wannier2odd':
-            kcp_calc = self.master_calcs['kcp']
-            if calc.gamma_trick == kcp_calc.do_wf_cmplx:
-                utils.warn(
-                    f'if do_wf_cmplx is {kcp_calc.do_wf_cmplx}, gamma_trick cannot be {calc.gamma_trick}. '
-                    f'Changing gamma_trick to {not kcp_calc.do_wf_cmplx}')
-                calc.gamma_trick = not kcp_calc.do_wf_cmplx
-            elif calc.gamma_trick is None and not kcp_calc.do_wf_cmplx:
-                calc.gamma_trick = True
-            else:
-                pass
 
         # Use a unified tmp directory
         if hasattr(calc, 'outdir'):

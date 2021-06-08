@@ -18,4 +18,13 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         '''
         '''
         ui_calc = self.master_calcs['ui']
+        ui_calc.name = self.name
         ui_calc.calculate()
+        self.all_calcs = [ui_calc]
+
+        # Print quality control
+        if self.print_qc and not ui_calc.skip_qc:
+            for key in ui_calc.results_for_qc:
+                val = ui_calc.results.get(key, None)
+                if val is not None:
+                    ui_calc.qc_results[key] = val

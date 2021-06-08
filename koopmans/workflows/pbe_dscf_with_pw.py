@@ -17,10 +17,10 @@ class DeltaSCFWorkflow(Workflow):
             utils.system_call('rm -r neutral charged 2> /dev/null', False)
 
         epsilons = sorted(self.eps_cavity, reverse=True)
-        print('PBE ΔSCF WORKFLOW')
+        self.print('PBE ΔSCF WORKFLOW', style='heading')
 
         for charge, label in zip([0, -1], ['neutral', 'charged']):
-            print(f'\nPerforming {label} calculations...')
+            self.print(f'Performing {label} calculations', style='subheading')
 
             # Initialize variables
             i_eps = 0
@@ -57,8 +57,7 @@ class DeltaSCFWorkflow(Workflow):
                 try:
                     self.run_calculator(pw_calc)
                 except CalculationFailed:
-                    print(' failed to converge')
-                    print('\nWORKFLOW COMPLETE\n')
+                    self.print(' failed to converge (which is expected for small values of epsilon)')
                     return
                 calc_succeeded = pw_calc.is_converged()
 
@@ -72,5 +71,3 @@ class DeltaSCFWorkflow(Workflow):
                 epsilon = new_epsilon
                 restart_mode = 'restart'
                 environ_restart = True
-
-        print('\nWORKFLOW COMPLETE\n')

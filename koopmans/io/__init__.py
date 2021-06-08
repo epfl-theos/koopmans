@@ -16,13 +16,14 @@ import numpy as np
 import json as json_ext
 import xml.etree.ElementTree as ET
 from ase.atoms import Atoms
+from ase.dft.kpoints import bandpath, BandPath
 from ase.calculators.calculator import FileIOCalculator
-from ase.io.espresso import Espresso, ibrav_to_cell
-from ase.io.espresso import KEYS as pw_keys
-from ase.io.espresso_kcp import Espresso_kcp
-from ase.io.espresso_kcp import KEYS as kcp_keys
+from ase.calculators.espresso import Espresso, Espresso_kcp, KoopmansHam, KoopmansScreen, Wann2KC
+from ase.calculators.espresso import PW2Wannier as ASEPW2Wannier
+from ase.io.espresso.utils import ibrav_to_cell
+from ase.io.espresso.pw import KEYS as pw_keys
+from ase.io.espresso.koopmans_cp import KEYS as kcp_keys
 from ase.io.wannier90 import Wannier90 as ASEWannier90
-from ase.io.pw2wannier import PW2Wannier as ASEPW2Wannier
 from koopmans import utils
 
 
@@ -33,8 +34,9 @@ def read_w90_dict(dct, generic_atoms):
     # Setting up ASE calc object, copying over the generic atoms object and non-kcp-specific settings
     calc = ASEWannier90()
     atoms = copy.deepcopy(generic_atoms)
-    del atoms.calc.parameters['input_data']
-    del atoms.calc.parameters['pseudopotentials']
+    atoms.calc.parameters.pop('input_data')
+    atoms.calc.parameters.pop('pseudopotentials')
+    atoms.calc.parameters.pop('kpath', None)
     calc.parameters = atoms.calc.parameters
     calc.atoms = atoms
     calc.atoms.calc = calc
@@ -44,12 +46,9 @@ def read_w90_dict(dct, generic_atoms):
     for k, v in dct.items():
         if k in ['atoms_frac', 'unit_cell_cart', 'mp_grid']:
             raise ValueError('Please specify {k} in the "setup" block using kcp syntax rather than in the "w90" block')
-        else:
-            try:
-                v = json_ext.loads(v)
-            except (TypeError, json_ext.decoder.JSONDecodeError) as e:
-                pass
-            calc.parameters[k] = v
+
+    # Read in parameters
+    calc.parameters.update(read_dict(dct))
 
     # Return python_KI-type calculator object rather than ASE calculator
     return wannier90.W90_calc(calc)
@@ -92,13 +91,7 @@ def read_pw2wannier_dict(dct, generic_atoms):
     # Setting up ASE calc object
     calc = ASEPW2Wannier()
 
-    calc.parameters['inputpp'] = {}
-    for k, v in dct.items():
-        try:
-            v = json_ext.loads(v)
-        except (TypeError, json_ext.decoder.JSONDecodeError) as e:
-            pass
-        calc.parameters['inputpp'][k] = v
+    calc.parameters['inputpp'] = read_dict(dct)
 
     # Attaching an atoms object (though pw2wannier doesn't need this information,
     # ASE will complain if it's missing)
@@ -128,11 +121,9 @@ def read_setup_dict(dct):
                                 'atomic_positions': read_atomic_positions}
 
     for block, subdct in dct.items():
-        if block in compulsory_block_readers or block == 'cell_parameters':
+        if block in compulsory_block_readers or block in ['cell_parameters', 'k_points']:
             # We will read these afterwards
             continue
-        elif block == 'k_points':
-            read_kpoints_block(calc, subdct)
         elif block in kcp_keys:
             for key, value in subdct.items():
                 if value == "":
@@ -154,20 +145,7 @@ def read_setup_dict(dct):
     cell = None
     if 'cell_parameters' in dct:
         subdct = dct['cell_parameters']
-        cell = subdct.get('vectors', None)
-        units = subdct.get('units', None)
-
-        if cell is None and units in [None, 'alat']:
-            if 'ibrav' not in calc.parameters:
-                raise KeyError('Cell has not been defined. Please specify either "ibrav" and related "celldm"s) '
-                               ' or a "cell_parameters" block in "setup"')
-        elif cell is not None and units == 'angstrom':
-            pass
-
-        else:
-            raise NotImplementedError('the combination of vectors, ibrav, & units '
-                                      'in the cell_parameter block cannot be read (may not yet be '
-                                      'implemented)')
+        cell = read_cell_parameters(calc, subdct)
 
     # Generating cell if it is missing
     if cell is None:
@@ -175,6 +153,10 @@ def read_setup_dict(dct):
 
     # Attaching the cell to the calculator
     calc.atoms = Atoms(cell=cell)
+
+    # Calculating kpoints
+    if 'k_points' in dct:
+        read_kpoints_block(calc, dct['k_points'])
 
     def read_compulsory_block(block_name, extract_function):
         if block_name in dct:
@@ -266,7 +248,9 @@ def read_kcp_dict(dct, generic_atoms):
     from koopmans.calculators import kcp
 
     # Copy over the settings from the "setup" block
-    calc = copy.deepcopy(generic_atoms.calc)
+    generic_atoms_copy = copy.deepcopy(generic_atoms)
+    calc = generic_atoms_copy.calc
+    calc.atoms.calc = calc
 
     # Read in any settings provided in the "kcp" block
     skipped_blocks = read_kcp_or_pw_dict(dct, calc)
@@ -336,17 +320,83 @@ def read_ui_dict(dct, generic_atoms):
     from koopmans.calculators import ui
 
     # For UI, just use a generic calculator with no command
-    calc = generic_atoms.calc
+    atoms = copy.deepcopy(generic_atoms)
+    calc = atoms.calc
+    calc.atoms.calc = calc
+
     calc.command = ''
 
     # Overwrite the parameters with the provided JSON dict
     calc.parameters = read_dict(dct)
+
+    # Use kpath specified in the setup block if it is not present in the ui dict
+    setup_kpath = generic_atoms.calc.parameters.get('kpath', None)
+    if 'kpath' not in dct and setup_kpath:
+        calc.parameters['kpath'] = setup_kpath
 
     # Convert units of alat_sc
     if 'alat_sc' in calc.parameters:
         calc.parameters['alat_sc'] *= utils.units.Bohr
 
     return ui.UI_calc(calc)
+
+
+def read_kc_wann_dict(dct, generic_atoms):
+
+    from koopmans.calculators.kc_ham import KoopmansHamCalc
+    from koopmans.calculators.kc_screen import KoopmansScreenCalc
+    from koopmans.calculators.wann2kc import Wann2KCCalc
+
+    calcs = {}
+    for key, ase_calc_class, calc_class in (('kc_ham', KoopmansHam, KoopmansHamCalc),
+                                            ('kc_screen', KoopmansScreen, KoopmansScreenCalc),
+                                            ('wann2kc', Wann2KC, Wann2KCCalc)):
+        # Create a copy of generic_atoms
+        atoms = copy.deepcopy(generic_atoms)
+
+        # Create an ASE calculator object and copy over the settings
+        calc = ase_calc_class(atoms=atoms)
+        calc.parameters = copy.deepcopy(generic_atoms.calc.parameters)
+
+        # Read in the parameters
+        relevant_subblocks = ['control', 'system']
+        if key == 'kc_ham':
+            relevant_subblocks.append('ham')
+            if 'ham' not in dct.keys():
+                if 'kpts' not in calc.parameters:
+                    # Populating kpts if absent
+                    calc.parameters['kpts'] = [1, 1, 1]
+                    calc.atoms.cell.pbc = True
+                    generic_atoms.calc.parameters['kpath'] = BandPath(calc.atoms.cell, [[0, 0, 0]])
+                    calc.atoms.cell.pbc = False
+                dct['ham'] = {}
+
+            # kc_ham stores the kpoint properties slightly differently
+            # kpts -> mp1-3
+            for i, nk in enumerate(calc.parameters['kpts']):
+                dct['ham'][f'mp{i+1}'] = nk
+
+            # kpath -> kpts
+            if 'kpath' in dct['ham']:
+                kpath = dct['ham'].pop('kpath')
+                read_kpath(calc, kpath)
+                calc.parameters['kpts'] = calc.parameters['kpath']
+            elif 'kpath' in generic_atoms.calc.parameters:
+                calc.parameters['kpts'] = generic_atoms.calc.parameters['kpath']
+            else:
+                continue
+
+        elif key == 'kc_screen':
+            relevant_subblocks.append('screen')
+
+        flattened_settings = {k: v for block_name, block in dct.items() for k, v in block.items()
+                              if block_name in relevant_subblocks}
+
+        # Convert to a GenericCalc class, loading the settings
+        calcs[key] = calc_class(calc, **flattened_settings)
+
+    # Unlike most read_*_dict functions, this returns three calculators in a dict
+    return calcs
 
 
 def read_dict(dct):
@@ -393,8 +443,11 @@ def read_json(fd):
 
     # Deal with w90 subdicts
     if 'w90' in bigdct:
-        bigdct['w90_occ'] = bigdct['w90']['occ']
-        bigdct['w90_emp'] = bigdct['w90']['emp']
+        bigdct['w90_occ'] = bigdct['w90'].pop('occ', {})
+        bigdct['w90_emp'] = bigdct['w90'].pop('emp', {})
+        for k, v in bigdct['w90'].items():
+            bigdct['w90_occ'][k] = v
+            bigdct['w90_emp'][k] = v
         del bigdct['w90']
 
     # Deal with UI subdicts
@@ -418,7 +471,7 @@ def read_json(fd):
     # Define which function to use to read each block
     readers = {'kcp': read_kcp_dict, 'w90_occ': read_w90_occ_dict, 'w90_emp': read_w90_empty_dict,
                'pw2wannier': read_pw2wannier_dict, 'pw': read_pw_dict, 'ui': read_ui_dict,
-               'ui_occ': read_ui_dict, 'ui_emp': read_ui_dict}
+               'ui_occ': read_ui_dict, 'ui_emp': read_ui_dict, 'kc_wann': read_kc_wann_dict}
 
     # Check for unexpected blocks
     for block in bigdct:
@@ -456,16 +509,20 @@ def read_json(fd):
 
         # Read the block and add the resulting calculator to the calcs_dct
         dct = bigdct.get(block, {})
-        calcs_dct[block] = readers[block](dct, generic_atoms)
+        if block == 'kc_wann':
+            calcs_dct.update(readers[block](dct, generic_atoms))
+        else:
+            calcs_dct[block] = readers[block](dct, generic_atoms)
 
+    name = fd.name.replace('.json', '')
     if task_name == 'singlepoint':
-        workflow = SinglepointWorkflow(workflow_settings, calcs_dct)
+        workflow = SinglepointWorkflow(workflow_settings, calcs_dct, name)
     elif task_name == 'convergence':
-        workflow = ConvergenceWorkflow(workflow_settings, calcs_dct)
+        workflow = ConvergenceWorkflow(workflow_settings, calcs_dct, name)
     elif task_name == 'environ_dscf':
-        workflow = DeltaSCFWorkflow(workflow_settings, calcs_dct)
+        workflow = DeltaSCFWorkflow(workflow_settings, calcs_dct, name)
     elif task_name == 'ui':
-        workflow = UnfoldAndInterpolateWorkflow(workflow_settings, calcs_dct)
+        workflow = UnfoldAndInterpolateWorkflow(workflow_settings, calcs_dct, name)
     else:
         raise ValueError('Invalid task name "{task_name}"')
 
@@ -511,8 +568,7 @@ def write_json(fd, calcs=[], workflow_settings={}):
 
     # cell parameters
     if ibrav == 0:
-        bigdct['setup']['cell_parameters'] = {'vectors': [
-            list(row) for row in calc.atoms.cell[:]], 'units': 'angstrom'}
+        bigdct['setup']['cell_parameters'] = construct_cell_parameters_block(calc)
 
     # atomic positions
     if calc.atoms.has('labels'):
@@ -563,6 +619,10 @@ def write_json(fd, calcs=[], workflow_settings={}):
     json_ext.dump(bigdct, fd, indent=2)
 
     return
+
+
+def construct_cell_parameters_block(calc):
+    return {'vectors': [list(row) for row in calc.atoms.cell[:]], 'units': 'angstrom'}
 
 
 def read_pseudo_file(fd):
@@ -658,7 +718,31 @@ def read_kpoints_block(calc, dct):
         koffset = dct['koffset']
     calc.parameters['kpts'] = kpts
     calc.parameters['koffset'] = koffset
+
+    if 'kpath' in dct:
+        read_kpath(calc, dct['kpath'])
+
     return
+
+
+def read_kpath(calc, kpath):
+    calc.atoms.cell.pbc = True
+    if isinstance(kpath, str):
+        # Interpret kpath as a string of points in the BZ
+        calc.parameters['kpath'] = bandpath(kpath, calc.atoms.cell, npoints=len(kpath) * 10 - 9)
+    else:
+        kpts = []
+        for k1, k2 in zip(kpath[:-1], kpath[1:]):
+            # Remove the weights, storing the weight of k1
+            npoints = k1[-1]
+            # Interpolate the bandpath
+            kpts += bandpath([k1[:-1], k2[:-1]], calc.atoms.cell, npoints + 1).kpts[:-1].tolist()
+        # Don't forget about the final kpoint
+        kpts.append(k2[:-1])
+        if len(kpts) != sum([k[-1] for k in kpath[:-1]]) + 1:
+            raise AssertionError(
+                'Did not get the expected number of kpoints; this suggests there is a bug in the code')
+        calc.parameters['kpath'] = BandPath(calc.atoms.cell, kpts)
 
 
 def read_atomic_species(calc, dct):
@@ -693,14 +777,32 @@ def read_atomic_positions(calc, dct):
     calc.atoms.set_array('labels', labels)
 
 
+def read_cell_parameters(calc, dct):
+    cell = dct.get('vectors', None)
+    units = dct.get('units', None)
+    if cell is None and units in [None, 'alat']:
+        if 'ibrav' not in calc.parameters:
+            raise KeyError('Cell has not been defined. Please specify either "ibrav" and related "celldm"s) '
+                           ' or a "cell_parameters" block in "setup"')
+    elif cell is not None and units == 'angstrom':
+        pass
+
+    else:
+        raise NotImplementedError('the combination of vectors, ibrav, & units '
+                                  'in the cell_parameter block cannot be read (may not yet be '
+                                  'implemented)')
+    return cell
+
+
 def load_calculator(filenames):
 
-    from koopmans.calculators import kcp, pw, wannier90, pw2wannier, ui
+    from koopmans.calculators import kcp, pw, wannier90, pw2wannier, ui, wann2kc, kc_screen, kc_ham
 
     if not isinstance(filenames, list):
         filenames = [filenames]
 
-    valid_extensions = ['cpi', 'cpo', 'pwi', 'pwo', 'win', 'wout', 'p2wi', 'p2wo', 'uii', 'uio']
+    valid_extensions = ['cpi', 'cpo', 'pwi', 'pwo', 'win', 'wout', 'p2wi',
+                        'p2wo', 'uii', 'uio', 'w2ki', 'w2ko', 'ksi', 'kso', 'khi', 'kho']
     if not all([os.path.isfile(f) for f in filenames]):
         filenames = [f for prefix in filenames for f in glob.glob(f'{prefix}.*') if f.split('.')[-1] in
                      valid_extensions]
@@ -708,14 +810,35 @@ def load_calculator(filenames):
     extensions = set([f.split('.')[-1] for f in filenames])
 
     if extensions.issubset(set(['cpi', 'cpo'])):
-        return kcp.KCP_calc(qe_files=filenames)
+        calc_class = kcp.KCP_calc
     elif extensions.issubset(set(['pwi', 'pwo'])):
-        return pw.PW_calc(qe_files=filenames)
+        calc_class = pw.PW_calc
     elif extensions.issubset(set(['win', 'wout'])):
-        return wannier90.W90_calc(qe_files=filenames)
+        calc_class = wannier90.W90_calc
     elif extensions.issubset(set(['p2wi', 'p2wo'])):
-        return pw2wannier.PW2Wannier_calc(qe_files=filenames)
+        calc_class = pw2wannier.PW2Wannier_calc
     elif extensions.issubset(set(['uii', 'uio'])):
-        return ui.UI_calc(qe_files=filenames)
+        calc_class = ui.UI_calc
+    elif extensions.issubset(set(['w2ki', 'w2ko'])):
+        calc_class = wann2kc.Wann2KCCalc
+    elif extensions.issubset(set(['ksi', 'kso'])):
+        calc_class = kc_screen.KoopmansScreenCalc
+    elif extensions.issubset(set(['khi', 'kho'])):
+        calc_class = kc_ham.KoopmansHamCalc
     else:
         raise ValueError('Could not identify the extensions of ' + '/'.join(filenames))
+
+    return calc_class(qe_files=filenames)
+
+
+print_call_end = '\n'
+
+
+def indented_print(text='', indent=0, **kwargs):
+    global print_call_end
+    for substring in text.split('\n'):
+        if print_call_end == '\n':
+            print(' ' * indent + substring, **kwargs)
+        else:
+            print(substring, **kwargs)
+    print_call_end = kwargs.get('end', '\n')

@@ -6,10 +6,12 @@ Written by Edward Linscott Sep 2020
 
 """
 
+import os
 from koopmans.utils import warn
-from ase.io import pw2wannier as p2w_io
-from ase.calculators.pw2wannier import PW2Wannier
+from ase.io.espresso import pw2wannier as p2w_io
+from ase.calculators.espresso import PW2Wannier
 from koopmans.calculators.generic import GenericCalc
+from koopmans.calculators.commands import ParallelCommand
 
 
 class PW2Wannier_calc(GenericCalc):
@@ -26,7 +28,7 @@ class PW2Wannier_calc(GenericCalc):
     # self.<keyword>
     _valid_settings = ['outdir', 'prefix', 'seedname', 'write_mmn', 'write_amn', 'write_uHu',
                        'uHu_formatted', 'write_unk', 'reduce_unk', 'wan_mode', 'wannier_plot',
-                       'wannier_plot_list', 'split_evc_file', 'gamma_trick']
+                       'wannier_plot_list', 'split_evc_file', 'gamma_trick', 'spin_component']
 
     _settings_that_are_paths = ['outdir']
 
@@ -34,6 +36,7 @@ class PW2Wannier_calc(GenericCalc):
         self._ase_calc_class = PW2Wannier
         self.settings_to_not_parse = ['wan_mode']
         super().__init__(*args, **kwargs)
+        self.calc.command = ParallelCommand(os.environ.get('ASE_PW2WANNIER_COMMAND', self.calc.command))
 
     def _update_settings_dict(self):
         if 'inputpp' not in self._ase_calc.parameters:
@@ -46,7 +49,7 @@ class PW2Wannier_calc(GenericCalc):
     def is_complete(self):
         return self.results['job done']
 
-    defaults = {'outdir': 'TMP-PW',
+    defaults = {'outdir': 'TMP',
                 'prefix': 'kc',
                 'seedname': 'wann',
                 'wan_mode': 'standalone'}

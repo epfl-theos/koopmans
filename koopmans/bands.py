@@ -4,7 +4,7 @@ import pandas as pd
 
 
 class Band(object):
-    def __init__(self, index, filled=True, group=None, alpha=None, error=None):
+    def __init__(self, index=None, filled=True, group=None, alpha=None, error=None, dct={}):
         self.index = index
         self.filled = filled
         self.group = group
@@ -12,6 +12,20 @@ class Band(object):
         self.error_history = []
         self.alpha = alpha
         self.error = error
+        if dct:
+            self.fromdct(dct)
+
+    def fromdct(self, dct):
+        for k, v in dct.items():
+            assert hasattr(self, k)
+            if v is not None:
+                setattr(self, k, v)
+
+    def todict(self):
+        dct = self.__dict__
+        dct['__koopmans_name__'] = self.__class__.__name__
+        dct['__koopmans_module__'] = self.__class__.__module__
+        return dct
 
     @property
     def alpha(self):
@@ -35,21 +49,34 @@ class Band(object):
 
 
 class Bands(object):
-    def __init__(self, n_bands=None, bands=None, **kwargs):
+    def __init__(self, n_bands=None, bands=None, dct={}, **kwargs):
         if bands is None and n_bands:
             self._bands = [Band(i + 1) for i in range(n_bands)]
         elif bands and n_bands is None:
             self._bands = bands
-        else:
+        elif not dct:
             raise ValueError('The arguments "n_bands" and "bands" are mutually exclusive')
         for k, v in kwargs.items():
             assert hasattr(self, k)
             if v:
                 setattr(self, k, v)
+        if dct:
+            self.fromdct(dct)
 
     def __iter__(self):
         for b in self._bands:
             yield b
+
+    def fromdct(self, dct):
+        for k, v in dct.items():
+            if v is not None:
+                setattr(self, k, v)
+
+    def todict(self):
+        dct = self.__dict__
+        dct['__koopmans_name__'] = self.__class__.__name__
+        dct['__koopmans_module__'] = self.__class__.__module__
+        return dct
 
     def get(self, filled=None, group=None, to_solve=None):
         if to_solve is None:
@@ -124,6 +151,8 @@ class Bands(object):
     def alphas(self):
         # This returns the alpha values for the iteration number where we have alpha for all bands
         i = min([len(b.alpha_history) for b in self._bands]) - 1
+        if i == -1:
+            raise AttributeError()
         return [b.alpha_history[i] for b in self._bands]
 
     @alphas.setter

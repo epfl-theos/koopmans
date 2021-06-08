@@ -6,9 +6,9 @@ Integrated within python_KI by Edward Linscott Jan 2021
 
 """
 
+from ase.dft.kpoints import BandPath
 import numpy as np
-from koopmans import utils
-from ._utils import generate_path, MP_mesh
+from koopmans import utils, io
 
 valid_settings = [
     utils.Setting('kc_ham_file',
@@ -41,13 +41,9 @@ valid_settings = [
                   'the Wannier90 code. In particular, this accounts for the periodic boundary conditions and it is '
                   'crucial for a good interpolation when using coarse MP meshes or, equivalently, small supercells',
                   bool, True, (True, False)),
-    utils.Setting('k_path',
-                  'path in the Brillouin zone for the band structure. The logic is the crystal_b units in QE: the '
-                  'path must be defined by providing the initial and final point crystal coordinates of each line, '
-                  'followed by the number of points along the line.\n\nExample: path Gamma-X-Gamma with 10 points '
-                  'along each line\n\n\tk_path :\t[ [ 0.000, 0.000, 0.000, 10 ],\n\t        \t  [ 0.500, 0.000, '
-                  '0.000, 10 ],\n\t        \t  [ 0.000, 0.000, 0.000,  1 ] ]\n\nThe band structure is then written '
-                  'into a file called \'bands_interpolated.dat\'.', list, None, None),
+    utils.Setting('kpath',
+                  'path in the Brillouin zone for generating the band structure, specified by a string e.g. "GXG"',
+                  (str, BandPath), None, None),
     utils.Setting('smooth_int_factor',
                   'if this is > 1 (or is a 3-element list with at least one entry > 1), the smooth interpolation '
                   'method is used. This consists of removing the DFT part of the Hamiltonian from the full Koopmans '
@@ -61,7 +57,7 @@ valid_settings = [
     utils.Setting('dft_ham_file', '', str, None, None),
     utils.Setting('dft_smooth_ham_file', '', str, None, None),
     utils.Setting('do_dos',
-                  'if True, the density-of-states is interpolated along the input k_path. The DOS is written to a '
+                  'if True, the density-of-states is interpolated along the input kpath. The DOS is written to a '
                   'file called "dos_interpolated.dat"',
                   bool, True, (True, False)),
     utils.Setting('degauss',
@@ -85,7 +81,7 @@ def load_defaults(self):
     self.mandatory_settings = ['w90_seedname', 'kc_ham_file', 'alat_sc', 'sc_dim']
     physicals = ['alat_sc', 'degauss', 'Emin', 'Emax']
     checked_settings = utils.check_settings(self.calc.parameters, self.valid_settings,
-                                            physicals=physicals, do_not_lower=self.settings_to_not_parse)
+                                            physicals=physicals, do_not_lower=self.settings_to_not_parse | {'kpath'})
     for key, val in checked_settings.items():
         setattr(self, key, val)
 
@@ -101,10 +97,18 @@ def load_defaults(self):
     if isinstance(self.smooth_int_factor, int):
         self.smooth_int_factor = [self.smooth_int_factor for _ in range(3)]
 
-    if self.k_path is None:
-        self.kvec = MP_mesh(self.sc_dim[0], self.sc_dim[1], self.sc_dim[2])
-    else:
-        self.kvec = generate_path(self.k_path)
+    if self.kpath is None:
+        # By default, use ASE's default bandpath for this cell (see
+        # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
+        if any(self.calc.atoms.pbc):
+            self.kpath = self.calc.atoms.cell.get_bravais_lattice().bandpath()
+        else:
+            self.kpath = 'G'
+    if isinstance(self.kpath, str):
+        # If kpath is provided as a string, convert it to a BandPath first
+        io.read_kpath(self.calc, self.kpath)
+        self.kpath = self.calc.parameters.pop('kpath')
+    assert isinstance(self.kpath, BandPath)
 
     if self.do_smooth_interpolation:
         assert 'dft_ham_file' is not None, 'Missing file_hr_coarse for smooth interpolation'

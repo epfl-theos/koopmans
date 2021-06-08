@@ -14,8 +14,9 @@ import itertools
 from koopmans import utils, io
 from koopmans.calculators.kcp import KCP_calc
 from koopmans.workflows.generic import Workflow
-from koopmans.workflows.kc_with_cp import KoopmansWorkflow
-from koopmans.workflows.dft_with_cp import DFTWorkflow
+from koopmans.workflows.kc_with_pw import KoopmansPWWorkflow
+from koopmans.workflows.kc_with_cp import KoopmansCPWorkflow
+from koopmans.workflows.dft_with_cp import DFTCPWorkflow
 
 
 load_results_from_output = True
@@ -25,7 +26,11 @@ class SinglepointWorkflow(Workflow):
 
     def run(self):
 
-        if self.functional == 'all':
+        if self.method == 'dfpt':
+            workflow = KoopmansPWWorkflow(self.settings, self.master_calcs)
+            self.run_subworkflow(workflow)
+
+        elif self.functional == 'all':
             # if 'all', create subdirectories and run
             functionals = ['ki', 'pkipz', 'kipz']
 
@@ -41,7 +46,7 @@ class SinglepointWorkflow(Workflow):
 
             alphas = None
             for functional in functionals:
-                print(f'\n{functional.upper().replace("PKIPZ", "pKIPZ")} CALCULATION')
+                self.print(f'\n{functional.upper().replace("PKIPZ", "pKIPZ")} calculation', style='heading')
 
                 # Make a copy of the workflow settings to modify
                 local_workflow_settings = self.settings
@@ -51,14 +56,12 @@ class SinglepointWorkflow(Workflow):
                 # For pKIPZ/KIPZ, use KI as a starting point
                 if functional == 'pkipz':
                     local_workflow_settings['calculate_alpha'] = False
-                    local_workflow_settings['alpha_from_file'] = False
                 elif functional == 'kipz':
                     local_workflow_settings['init_orbitals'] = 'from old ki'
-                    local_workflow_settings['alpha_from_file'] = True
 
                 # Create a KC workflow for this particular functional
                 master_calcs_local = copy.deepcopy(self.master_calcs)
-                kc_workflow = KoopmansWorkflow(local_workflow_settings, master_calcs_local, alphas)
+                kc_workflow = KoopmansCPWorkflow(local_workflow_settings, master_calcs_local)
 
                 # We only need to do the smooth interpolation the first time (i.e. for KI)
                 if functional != 'ki':
@@ -71,9 +74,6 @@ class SinglepointWorkflow(Workflow):
                 else:
                     self.run_subworkflow(kc_workflow, subdirectory=functional)
 
-                # Save the alpha values and the calculations of the workflow
-                alphas = kc_workflow.bands.alphas
-
                 # Provide the pKIPZ and KIPZ calculations with a KI starting point
                 if functional == 'ki':
                     # pKIPZ
@@ -83,20 +83,18 @@ class SinglepointWorkflow(Workflow):
                     utils.system_call('rsync -a ki/final/ kipz/init/')
                     utils.system_call('mv kipz/init/ki_final.cpi kipz/init/ki_init.cpi')
                     utils.system_call('mv kipz/init/ki_final.cpo kipz/init/ki_init.cpo')
-                    if self.init_orbitals in ['mlwfs', 'projw']:
+                    if self.init_orbitals in ['mlwfs', 'projwfs']:
                         utils.system_call('rsync -a ki/init/wannier kipz/init/')
                     if self.master_calcs['ui'].do_smooth_interpolation:
                         # Copy over the smooth PBE calculation from KI for KIPZ to use
                         utils.system_call('rsync -a ki/postproc kipz/')
                         utils.system_call('find kipz/postproc/ -name "*interpolated.dat" -delete')
-            return
 
         else:
-            if self.functional in ['ki', 'kipz', 'pkipz']:
-                workflow = KoopmansWorkflow(self.settings, self.master_calcs)
-
+            # self.functional != all and self.method != 'dfpt'
+            if self.functional in ['ki', 'pkipz', 'kipz']:
+                workflow = KoopmansCPWorkflow(self.settings, self.master_calcs)
             else:
-                workflow = DFTWorkflow(self.settings, self.master_calcs)
+                workflow = DFTCPWorkflow(self.settings, self.master_calcs)
 
             self.run_subworkflow(workflow)
-            return

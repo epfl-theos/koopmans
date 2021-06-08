@@ -5,7 +5,7 @@ Calculator module for python_KI
 Written by Edward Linscott Jan 2020
 
 Major modifications
-May 2020: replaced Extended_Espresso_cp with QE_calc, a calculator class agnostic to the underlying ASE machinery
+May 2020: replaced Extended_Espresso_cp with GenericCalc, a calculator class agnostic to the underlying ASE machinery
 Sep 2020: moved individual calculators into calculators/
 Feb 2021: Split calculators further into GenericCalc and EspressoCalc
 """
@@ -15,7 +15,7 @@ import sys
 import copy
 import numpy as np
 import ase.io as ase_io
-from ase.io import espresso_kcp as kcp_io
+from ase.io.espresso import koopmans_cp as kcp_io
 from ase.build import make_supercell
 from ase.calculators.calculator import FileIOCalculator
 import koopmans.utils as utils
@@ -122,12 +122,6 @@ class GenericCalc:
                 raise ValueError(f'{key} is not a recognised keyword for {self.__class__.__name__}')
             setattr(self, key, val)
 
-        # Set up preprocessing flags
-        self.preprocessing_flags = ['']
-
-        # Check the corresponding program is installed
-        self.check_code_is_installed()
-
         # Load defaults
         self.load_defaults()
 
@@ -216,34 +210,8 @@ class GenericCalc:
         self.calc.results = value
 
     @property
-    def preprocessing_flags(self):
-        return self._preprocessing_flags
-
-    @property
     def settings(self):
         return self._settings
-
-    @preprocessing_flags.setter
-    def preprocessing_flags(self, value):
-        if not hasattr(self.calc, 'original_command'):
-            self.calc.original_command = self.calc.command
-        if not isinstance(value, list):
-            value = [value]
-        self._preprocessing_flags = value
-
-        # Updating self._ase_calc.command
-        command = self.calc.original_command
-        if command.startswith('mpirun'):
-            mpirun, npflag, npval, exe, after = command.split(' ', 4)
-            before = [mpirun, npflag, npval, exe]
-        elif command.startswith('srun'):
-            srun, exe, after = command.split(' ', 2)
-            before = [srun, exe]
-        else:
-            before, after = command.split(' ', 1)
-            before = [before]
-        after = [after]
-        self.calc.command = ' '.join(before + value + after)
 
     def calculate(self):
         # Generic function for running a calculation
@@ -259,8 +227,15 @@ class GenericCalc:
         self._ase_calculate()
 
     def _ase_calculate(self):
+        # ASE expects self.command to be a string
+        command = copy.deepcopy(self._ase_calc.command)
+        self._ase_calc.command = str(command)
+
         # Perform the calculation
         self._ase_calc.calculate()
+
+        # Restore self._ase_calc.command
+        self._ase_calc.command = command
 
     def _update_settings_dict(self):
         # Points self._settings to self.calc.parameters
@@ -289,17 +264,19 @@ class GenericCalc:
             # Add extension if necessary
             input_file += self.ext_in
 
-        # Save directory and name
+        # Save directory, name, and command
         directory = self.directory
         name = self.name
+        command = self.calc.command
 
         # Load calculator from input file and update self._settings
         self.calc = self.read_input_file()
         self._update_settings_dict()
 
-        # Restore directory and name
+        # Restore directory, name, and command
         self.directory = directory
         self.name = name
+        self.calc.command = command
 
     def read_output_file(self, output_file=None):
         # By default, use ASE
@@ -311,8 +288,8 @@ class GenericCalc:
         # Checks if self._settings[expr] is defined algebraically, and evaluates them
         if not isinstance(expr, str):
             return expr
-        if all([c.isalpha() or c in ['_'] for c in expr]):
-            return expr
+        if all([c.isalpha() or c in ['_', '"', "'"] for c in expr]):
+            return expr.strip('"').strip("'")
 
         expr = expr.replace('/', ' / ').replace('*', ' * ').split()
         for i, term in enumerate(expr):
@@ -320,7 +297,8 @@ class GenericCalc:
                 continue
             elif all([c.isalpha() for c in term]):
                 if getattr(self, term, None) is None:
-                    raise ValueError('Failed to parse ' + ''.join(map(str, expr)))
+                    raise ValueError('Failed to parse ' +
+                                     ''.join(map(str, expr)))
                 else:
                     expr[i] = getattr(self, term)
             else:
@@ -376,21 +354,14 @@ class GenericCalc:
 
     def check_code_is_installed(self):
         # Checks the corresponding code is installed
-        command = self.calc.command
-        if command.startswith('srun'):
-            i_exe = 1
-        elif command.startswith('mpirun'):
-            i_exe = 3
+        if self.calc.command.path is '':
+            executable_with_path = utils.find_executable(self.calc.command.executable)
+            if executable_with_path is None:
+                raise OSError(f'{self.calc.command.executable} is not installed')
+            self.calc.command.path = executable_with_path.rsplit('/', 1)[0] + '/'
         else:
-            i_exe = 0
-        executable = command.split()[i_exe]
-
-        executable_with_path = utils.find_executable(executable)
-
-        if executable_with_path is None:
-            raise OSError(f'{executable} is not installed')
-
-        return executable_with_path
+            assert os.path.isfile(self.calc.command.path + self.calc.command.executable)
+        return
 
     def write_alphas(self):
         raise NotImplementedError(
@@ -423,6 +394,10 @@ class GenericCalc:
 
 class EspressoCalc(GenericCalc):
 
+    def __init__(self, *args, **kwargs):
+        self._valid_settings = [k for sublist in self._io.KEYS.values() for k in sublist]
+        super().__init__(*args, **kwargs)
+
     @property
     def calc(self):
         # First, update the param block
@@ -448,3 +423,40 @@ class EspressoCalc(GenericCalc):
         for namelist in self._ase_calc.parameters.get('input_data', {}).values():
             for key, val in namelist.items():
                 setattr(self, key, val)
+
+
+class KCWannCalc(EspressoCalc):
+    # Parent class for kc_ham.x, kc_screen.x and wann2kc.x calculators
+    defaults = {'outdir': 'TMP',
+                'kc_iverbosity': 1,
+                'kc_at_ks': False,
+                'homo_only': False,
+                'read_unitary_matrix': True,
+                'check_ks': True,
+                'have_empty': True,
+                'has_disentangle': True}
+
+    _settings_that_are_paths = ['outdir']
+
+    def __init__(self, *args, **kwargs):
+        self.settings_to_not_parse = ['assume_isolated']
+
+        super().__init__(*args, **kwargs)
+
+        self.results_for_qc = []
+
+    @property
+    def name(self):
+        return self._ase_calc.prefix
+
+    @name.setter
+    def name(self, value):
+        self._ase_calc.prefix = value
+        self.prefix = value
+
+    def is_complete(self):
+        return self.calc.results.get('job_done', False)
+
+    @property
+    def filling(self):
+        return [[True for _ in range(self.num_wann_occ)] + [False for _ in range(self.num_wann_emp)]]

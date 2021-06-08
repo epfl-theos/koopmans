@@ -9,6 +9,8 @@ Integrated within python_KI by Edward Linscott Jan 2021
 import numpy as np
 from time import time
 from ._utils import crys_to_cart
+from ase.dft.dos import DOS
+from ase.spectrum.band_structure import BandStructure
 
 
 def interpolate(self, start_time):
@@ -27,7 +29,7 @@ def interpolate(self, start_time):
         self.f_out.write(f'\tBuilding the map |i> --> |Rn> in:\t{time()-start_time:.3f} sec\n')
     reset = time()
 
-    # Step 2: calculate the electronic bands along k_path
+    # Step 2: calculate the electronic bands along kpath
     self.calc_bands()
     self.f_out.write(f'\tCalculating bands in: {time()-reset:22.3f} sec\n')
     reset = time()
@@ -105,7 +107,7 @@ def calc_bands(self):
                transforming the Wannier hamiltonian H(R). The function generates two
                new attributes:
                - self.hk containing H(k) for any k-vector in the input path
-               - self.results['bands'] containing the interpolated electronic energies
+               - self.results['band structure'] containing the interpolated electronic energies
 
     """
 
@@ -120,12 +122,11 @@ def calc_bands(self):
             hr[m, n] = self.phases[m].conjugate() * hr[m, n] * self.phases[n]
 
     # here we build the interpolated H(k)
-    hk = np.zeros((len(self.kvec), self.num_wann, self.num_wann), dtype=complex)
+    hk = np.zeros((len(self.kpath.kpts), self.num_wann, self.num_wann), dtype=complex)
     bands = []
-    self.f_out.write(f"\n\t\tTotal number of k-points: {len(self.kvec):6d}\n\n")
-    for ik in range(len(self.kvec)):
+    self.f_out.write(f"\n\t\tTotal number of k-points: {len(self.kpath.kpts):6d}\n\n")
+    for ik, kpt in enumerate(self.kpath.kpts):
         self.f_out.write(f"\t\t      calculating point # {ik+1}\n")
-        kpt = self.kvec[ik]
         for m in range(self.num_wann):
             for n in range(self.num_wann):
                 for ir in range(len(self.Rvec)):
@@ -149,7 +150,7 @@ def calc_bands(self):
     self.f_out.write('\n')
 
     self.hk = hk
-    self.results['bands'] = bands
+    self.results['band structure'] = BandStructure(self.kpath, [bands])
 
     return
 
@@ -160,22 +161,7 @@ def calc_dos(self):
              as a list [ [E1, DOS(E1)], [E2, DOS[E2]], ... , [En, DOS(En)] ]
     """
 
-    eigvl = np.array(self.results['bands'], dtype=float).reshape(self.num_wann * len(self.kvec))
-
-    if self.Emin is None:
-        self.Emin = min(eigvl)
-    if self.Emax is None:
-        self.Emax = max(eigvl)
-
-    dE = (self.Emax - self.Emin) / self.nstep
-    ene = self.Emin
-    dos = [[ene, sum(np.exp(- ((ene - eigvl) / self.degauss)**2)) / (self.degauss * np.pi ** .5)]]
-
-    for n in range(self.nstep):
-        ene = ene + dE
-        dos.append([ene, sum(np.exp(- ((ene - eigvl) / self.degauss)**2)) / (self.degauss * np.pi ** .5)])
-
-    self.results['dos'] = dos
+    self.results['dos'] = DOS(self, width=self.degauss, window=(self.Emin, self.Emax), npts=self.nstep + 1)
 
     return
 

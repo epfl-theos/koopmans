@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
+import json
 import argparse
+import subprocess
 import textwrap
 from koopmans.io import read_json
 from koopmans.io.jsonio import write_json
@@ -9,6 +11,25 @@ from koopmans.workflows.generic import valid_settings
 '''
 Perform KI/KIPZ calculations
 '''
+
+
+def header():
+    version_label = subprocess.check_output(["git", "describe", "--always"]).strip()
+    version_label = version_label.decode("utf-8")
+    header = ["  _                                                ",
+              " | | _____   ___  _ __  _ __ ___   __ _ _ __  ___  ",
+              " | |/ / _ \ / _ \| '_ \| '_ ` _ \ / _` | '_ \/ __| ",
+              " |   < (_) | (_) | |_) | | | | | | (_| | | | \__ \ ",
+              " |_|\_\___/ \___/| .__/|_| |_| |_|\__,_|_| |_|___/ ",
+              "                 |_|                               ",
+              "",
+              " Koopmans spectral functional calculations with Quantum ESPRESSO",
+              "",
+              " Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna",
+              "",
+              f" Version {version_label}",
+              ""]
+    return '\n'.join(header)
 
 
 def main():
@@ -33,7 +54,7 @@ def main():
 
     # Construct parser
     parser = argparse.ArgumentParser(
-        description='Perform a KI/KIPZ calculation using Quantum Espresso',
+        description='Perform a Koopmans spectral functional calculation using Quantum ESPRESSO',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="'workflow' block arguments:" + epilog)
     parser.add_argument('json', metavar='system.json', type=str,
@@ -45,9 +66,15 @@ def main():
     # Reading in JSON file
     workflow = read_json(args.json)
 
+    # Write out the header
+    print(header())
+
     # Run workflow
     workflow.run()
 
     # Save workflow to file
     with open(args.json.replace('.json', '.kwf'), 'w') as fd:
         write_json(fd, workflow)
+
+    # Print farewell message
+    print('\n Workflow complete')

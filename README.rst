@@ -4,11 +4,11 @@ python KI
 
 | |GH Actions| |Coverage Status| |MIT License| |Documentation Status|
 
-For performing KI and KIPZ calculations with ``quantum espresso``
+For performing KI and KIPZ calculations with ``Quantum ESPRESSO``
 
 Directories
 -----------
-| ``ase_koopmans/`` a fork of ASE that manages reading and writing of ``quantum espresso`` (for installation details see below)
+| ``ase_koopmans/`` a fork of ASE that manages reading and writing of ``Quantum ESPRESSO`` (for installation details see below)
 | ``scripts/`` scripts for performing useful tasks  
 | ``koopmans/`` source code  
 | ``pseudos/`` pseudopotentials  
@@ -39,18 +39,14 @@ And then finally install ``python_KI`` using ``pip``:
    python3 -m pip install --upgrade pip
    python3 -m pip install -e .
 
-For each code you want to use (e.g. ``kcp.x``, ``pw.x``, etc) you can define the command to run this code with
+In order to run the code in parallel, define the environment variables ``PARA_PREFIX`` and ``PARA_POSTFIX``. These are defined in the same way as in Quantum ESPRESSO, e.g.
 
 .. code-block:: bash
 
-   export ASE_ESPRESSO_KCP_COMMAND="srun kcp.x -in PREFIX.cpi > PREFIX.cpo"
-   export ASE_ESPRESSO_COMMAND="srun pw.x -in PREFIX.pwi > PREFIX.pwo"
-   export ASE_WANNIER90_COMMAND="wannier90.x PREFIX.win"
-   export ASE_PW2WANNIER_COMMAND="srun pw2wannier90.x -in PREFIX.p2wi > PREFIX.p2wo"
+   export PARA_PREFIX="srun"
+   export PARA_POSTFIX="-npool 4"
 
-Replace ``srun`` with whatever command is appropriate for your machine.
-
-You can also *optionally* direct ASE to a central pseudopotentials directory by adding
+You can also *optionally* direct the code to use a central pseudopotentials directory by defining
 
 .. code-block:: bash
 

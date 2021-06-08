@@ -3,11 +3,5 @@
 __pycache__/
 .vscode
 python_KI.egg-info
-
-# Output files for example
-examples/h2o/init/
-examples/h2o/calc_alpha/
-examples/h2o/final/
-examples/h2o/alphas.pkl
-examples/h2o/errors.pkl
-examples/h2o/tab_alpha_values.tex
+coverage.xml
+.coverage

@@ -8,11 +8,11 @@ Split off from workflow.py Oct 2020
 """
 
 import os
-import subprocess
 import copy
 import numpy as np
 import pandas as pd
-from scipy import interpolate
+from ase.dft.dos import DOS
+from ase.spectrum.band_structure import BandStructure
 from koopmans import io, utils
 from koopmans.bands import Bands
 from koopmans.calculators.kcp import KCP_calc
@@ -20,11 +20,12 @@ from koopmans.calculators.ui import UI_calc
 from koopmans.calculators import pw
 from koopmans.workflows.generic import Workflow
 from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
+from koopmans.workflows.folding import FoldToSupercellWorkflow
 
 
-class KoopmansWorkflow(Workflow):
+class KoopmansCPWorkflow(Workflow):
 
-    def __init__(self, workflow_settings, calcs_dct, alphas=None):
+    def __init__(self, workflow_settings, calcs_dct):
         super().__init__(workflow_settings, calcs_dct)
 
         if 'kcp' not in self.master_calcs:
@@ -37,8 +38,11 @@ class KoopmansWorkflow(Workflow):
             kpts = self.master_calcs['kcp'].calc.parameters.kpts
             self.master_calcs['kcp'].transform_to_supercell(np.diag(kpts))
             nocc = self.master_calcs['w90_occ'].num_wann
-            self.orbital_groups = [i for _ in range(np.prod(kpts)) for i in self.orbital_groups[:nocc]] + \
-                                  [i for _ in range(np.prod(kpts)) for i in self.orbital_groups[nocc:]]
+            nemp = self.master_calcs['w90_emp'].num_wann
+            if not self.orbital_groups:
+                self.orbital_groups = range(0, nocc + nemp)
+            self.orbital_groups = [i for i in self.orbital_groups[:nocc] for _ in range(np.prod(kpts))] + \
+                                  [i for i in self.orbital_groups[nocc:] for _ in range(np.prod(kpts))]
 
             # Check the number of empty states has been correctly configured
             w90_emp_calc = self.master_calcs['w90_emp']
@@ -49,28 +53,15 @@ class KoopmansWorkflow(Workflow):
             elif kcp_calc.empty_states_nbnd != expected_empty_states_nbnd:
                 raise ValueError('kcp empty_states_nbnd and wannier90 num_wann (emp) are inconsistent')
 
-        # Check on the Makov-Payne corrections
-        if self.periodic and self.mp_corrections:
-            if self.eps_inf is None:
-                raise ValueError('eps_inf missing in input; needed when mp_corrections is true')
-            elif self.eps_inf < 1.0:
-                raise ValueError('eps_inf cannot be lower than 1')
-        elif self.periodic and not self.mp_corrections:
-            utils.warn('Makov-Payne corrections not applied for a periodic calculation; do this with caution')
-
         # Initialise the bands object
         filling = kcp_calc.filling[0]
         self.bands = Bands(n_bands=len(filling), filling=filling, groups=self.orbital_groups)
-
-        if alphas is not None:
-            print('Using alpha values provided from a previous calculation')
-        elif self.alpha_from_file:
-            print('Reading alpha values from file')
-            alphas = self.read_alphas_from_file()
+        if self.alpha_from_file:
+            # Reading alpha values from file
+            self.bands.alphas = self.read_alphas_from_file()
         else:
-            print('Initialising alpha with a guess')
-            alphas = self.alpha_guess
-        self.bands.alphas = alphas
+            # Initialising alpha with a guess
+            self.bands.alphas = self.alpha_guess
 
         # Raise errors if any UI keywords are provided but will be overwritten by the workflow
         for ui_keyword in ['kc_ham_file', 'w90_seedname', 'alat_sc', 'sc_dim', 'dft_ham_file', 'dft_smooth_ham_file']:
@@ -136,12 +127,12 @@ class KoopmansWorkflow(Workflow):
             if getattr(self, 'redo_preexisting_smooth_dft_calcs', True):
                 utils.system_call('rm -r postproc 2>/dev/null', False)
 
-        print('\nINITIALISATION OF DENSITY AND VARIATIONAL ORBITALS')
+        self.print('Initialisation of density and variational orbitals', style='heading')
         self.perform_initialisation()
 
         if self.from_scratch and self.init_orbitals != 'from old ki' and self.enforce_spin_symmetry \
                 and self.init_orbitals not in ['mlwfs', 'projwfs']:
-            print('Copying the spin-up variational orbitals over to the spin-down channel')
+            self.print('Copying the spin-up variational orbitals over to the spin-down channel')
             calc = self.all_calcs[-1]
             savedir = f'{calc.outdir}/{calc.prefix}_{calc.ndw}.save/K00001'
             utils.system_call(f'cp {savedir}/evc01.dat {savedir}/evc02.dat')
@@ -149,20 +140,20 @@ class KoopmansWorkflow(Workflow):
                 utils.system_call(
                     f'cp {savedir}/evc0_empty1.dat {savedir}/evc0_empty2.dat')
 
-        print('\nDETERMINING ALPHA VALUES')
+        self.print('Calculating screening parameters', style='heading')
         if self.calculate_alpha:
             self.perform_alpha_calculations()
         else:
-            print('Skipping calculation of screening parameters', end='')
-            if self.bands.alpha_history.empty:
-                print('; reading values from file')
+            self.print('Skipping calculation of screening parameters', end='')
+            if len(self.bands.alpha_history) == 0:
+                self.print('; reading values from file')
                 self.bands.alphas = self.read_alphas_from_file()
             else:
-                print('')
+                self.print()
             self.bands.print_history()
 
         # Final calculation
-        print(f'\nFINAL {self.functional.upper().replace("PK","pK")} CALCULATION')
+        self.print(f'Final {self.functional.upper().replace("PK","pK")} calculation', style='heading')
         self.perform_final_calculations()
         # Print out additional quality control data for final calculation
         if self.print_qc:
@@ -174,11 +165,9 @@ class KoopmansWorkflow(Workflow):
                     self.print_qc_keyval(f'orbital_self_Hartree(orb={i+1},sigma={isp+1})', orb_sh, calc)
 
         # Postprocessing
-        if self.periodic and self.master_calcs['ui'].k_path is not None:
-            print(f'\nPOSTPROCESSING')
+        if self.periodic and self.master_calcs['ui'].kpath is not None:
+            self.print(f'\nPostprocessing', style='heading')
             self.perform_postprocessing()
-
-        print('\nWORKFLOW COMPLETE')
 
     def perform_initialisation(self):
         # The final calculation during the initialisation, regardless of the workflow settings, should write to ndw = 51
@@ -190,6 +179,12 @@ class KoopmansWorkflow(Workflow):
 
             # Perform the wannierisation workflow within the init directory
             self.run_subworkflow(wannier_workflow, subdirectory='init')
+
+            # Now, convert the files over from w90 format to (k)cp format
+            fold_workflow = FoldToSupercellWorkflow(self.settings, self.master_calcs)
+
+            # Do this in the same directory as the wannierisation
+            self.run_subworkflow(fold_workflow, subdirectory='init/wannier')
 
             # We need a dummy calc before the real dft_init in order
             # to copy the previously calculated Wannier functions
@@ -225,17 +220,17 @@ class KoopmansWorkflow(Workflow):
             pw_calc = [c for c in self.all_calcs if isinstance(c, pw.PW_calc) and c.calculation == 'nscf'][-1]
             pw_gap = pw_calc.results['lumo_ene'] - pw_calc.results['homo_ene']
             cp_gap = calc.results['lumo_energy'] - calc.results['homo_energy']
-            if abs(pw_gap - cp_gap) > 1e-2 * pw_gap:
+            if abs(pw_gap - cp_gap) > 2e-2 * pw_gap:
                 raise ValueError(f'PW and CP band gaps are not consistent: {pw_gap} {cp_gap}')
 
             # The CP restarting from Wannier functions must be already converged
             Eini = calc.results['convergence']['filled'][0]['Etot']
             Efin = calc.results['energy']
-            if abs(Efin - Eini) > 1e-7 * abs(Efin):
+            if abs(Efin - Eini) > 1e-6 * abs(Efin):
                 raise ValueError(f'Too much difference between the initial and final CP energies: {Eini} {Efin}')
 
         elif self.init_orbitals == 'from old ki':
-            print('Copying the density and orbitals from a pre-existing KI calculation')
+            self.print('Copying the density and orbitals from a pre-existing KI calculation')
 
             # Read the .cpi file to work out the value for ndw
             calc = KCP_calc(qe_files='init/ki_init')
@@ -290,8 +285,8 @@ class KoopmansWorkflow(Workflow):
                     # If we only have two electrons, then the filled manifold is trivially invariant under unitary
                     # transformations. Furthermore, the PZ functional is invariant w.r.t. unitary rotations of the
                     # empty states. Thus in this instance we can skip the initialisation of the manifold entirely
-                    print('Skipping the optimisation of the variational orbitals since they are invariant under '
-                          'unitary transformations')
+                    self.print('Skipping the optimisation of the variational orbitals since they are invariant under '
+                               'unitary transformations')
                     self._copy_most_recent_calc_to_ndw(ndw_final)
                 else:
                     self.run_calculator(calc)
@@ -330,7 +325,7 @@ class KoopmansWorkflow(Workflow):
             utils.system_call(f'cp -r {save_prefix}_{calc.ndw}.save {save_prefix}_{ndw}.save')
 
     def _overwrite_canonical_with_variational_orbitals(self, calc):
-        print('Overwriting the variational orbitals with Kohn-Sham orbitals')
+        self.print('Overwriting the variational orbitals with Kohn-Sham orbitals')
         savedir = f'{calc.outdir}/{calc.prefix}_{calc.ndw}.save/K00001'
         utils.system_call(f'cp {savedir}/evc1.dat {savedir}/evc01.dat')
         utils.system_call(f'cp {savedir}/evc2.dat {savedir}/evc02.dat')
@@ -348,7 +343,7 @@ class KoopmansWorkflow(Workflow):
 
         if not self.from_scratch and os.path.isfile('alphas.pkl'):
             # Reloading alphas and errors from file
-            print('Reloading alpha values from file')
+            self.print('Reloading alpha values from file')
             self.bands.alphas = pd.read_pickle('alphas.pkl')
             self.bands.errors = pd.read_pickle('errors.pkl')
 
@@ -365,7 +360,7 @@ class KoopmansWorkflow(Workflow):
 
             # Setting up directories
             if self.n_max_sc_steps > 1:
-                print('\n== SC iteration {} ==================='.format(i_sc))
+                self.print('SC iteration {}'.format(i_sc), style='subheading')
                 iteration_directory += f'/iteration_{i_sc}'
                 if not os.path.isdir(iteration_directory):
                     utils.system_call(f'mkdir {iteration_directory}')
@@ -389,14 +384,29 @@ class KoopmansWorkflow(Workflow):
             self.run_calculator(calc, enforce_ss=self.enforce_spin_symmetry and i_sc > 1)
             alpha_dep_calcs = [calc]
 
+            skipped_orbitals = []
             # Loop over removing/adding an electron from/to each orbital
             for band in self.bands:
-                print('-- Orbital {} ------------------------'.format(band.index))
-                # Skip the bands which can copy the screening parameter from another
-                # calculation in the same orbital group
-                if band not in self.bands.to_solve:
-                    print(f'Skipping; will use the screening parameter of an equivalent orbital')
+                # Working out what to print for the orbital heading (grouping skipped bands together)
+                if band in self.bands.to_solve or band == self.bands[-1]:
+                    if band not in self.bands.to_solve:
+                        skipped_orbitals.append(band.index)
+                    if len(skipped_orbitals) > 0:
+                        if len(skipped_orbitals) == 1:
+                            self.print(f'Orbital {skipped_orbitals[0]}', style='subheading')
+                        else:
+                            orb_range = f'{skipped_orbitals[0]}-{skipped_orbitals[-1]}'
+                            self.print(f'Orbitals {orb_range}', style='subheading')
+                        self.print(f'Skipping; will use the screening parameter of an equivalent orbital')
+                        skipped_orbitals = []
+                    if band not in self.bands.to_solve:
+                        continue
+                else:
+                    # Skip the bands which can copy the screening parameter from another
+                    # calculation in the same orbital group
+                    skipped_orbitals.append(band.index)
                     continue
+                self.print(f'Orbital {band.index}', style='subheading')
 
                 # Set up directories
                 directory = f'{iteration_directory}/orbital_{band.index}'
@@ -411,8 +421,8 @@ class KoopmansWorkflow(Workflow):
                         f'ln -sr {self.master_calcs["kcp"].outdir}/*.save {outdir_band}')
 
                 # Don't repeat if this particular alpha_i was converged
-                if i_sc > 1 and any([abs(e) < self.alpha_conv_thr for e in band.error_history]):
-                    print(f'Skipping band {band.index} since this alpha is already converged')
+                if i_sc > 1 and abs(band.error) < self.alpha_conv_thr:
+                    self.print(f'Skipping band {band.index} since this alpha is already converged')
                     for b in self.bands:
                         if b == band or (band.group is not None and b.group == band.group):
                             b.alpha = band.alpha
@@ -543,9 +553,9 @@ class KoopmansWorkflow(Workflow):
             converged = all([abs(b.error) < 1e-3 for b in self.bands])
 
         if converged:
-            print('Alpha values have been converged')
+            self.print('Screening parameters have been converged')
         else:
-            print('Alpha values have been determined but are not necessarily converged')
+            self.print('Screening parameters have been determined but are not necessarily converged')
 
     def perform_final_calculations(self):
 
@@ -592,34 +602,34 @@ class KoopmansWorkflow(Workflow):
             # overrides the value of wannier_workflow.from_scratch, as well as preventing the inheritance of
             # self.from_scratch to wannier_workflow.from_scratch and back again after the subworkflow finishes
             from_scratch = getattr(self, 'redo_preexisting_smooth_dft_calcs', None)
-            self.run_subworkflow(wannier_workflow, subdirectory='postproc',
-                                 from_scratch=from_scratch, skip_wann2odd=True)
+            self.run_subworkflow(wannier_workflow, subdirectory='postproc', from_scratch=from_scratch)
 
         for calc_presets in ['occ', 'emp']:
             calc = self.new_calculator('ui', calc_presets)
             self.run_calculator(calc, enforce_ss=False)
+            # If not running from scratch, we need to make sure band structures are still loaded
+            if not self.from_scratch:
+                calc.read_bands()
 
         # Merge the two calculations to print out the DOS and bands
+        calc = self.new_calculator('ui', 'merge')
+        calc.alat_sc = self.all_calcs[-1].alat_sc
+
+        # Merge the bands
+        energies = [c.results['band structure'].energies for c in self.all_calcs[-2:]]
+        reference = np.max(energies[0])
+        calc.results['band structure'] = BandStructure(
+            self.all_calcs[-1].kpath, np.concatenate(energies, axis=2) - reference)
+
+        if calc.do_dos:
+            # Generate the DOS
+            calc.calc_dos()
+
+        # Store the calculator in the workflow's list of all the calculators
+        self.all_calcs.append(calc)
+
+        # Print out the merged bands and DOS
         if self.from_scratch:
-            calc = self.new_calculator('ui', 'merge')
-
-            # Merge the bands
-            calc.bg = self.all_calcs[-1].bg
-            zipped_bands = zip(*[c.results['bands'] for c in self.all_calcs[-2:]])
-            calc.results['bands'] = [np.concatenate((a, b)) for a, b in zipped_bands]
-
-            if calc.do_dos:
-                # Merge the DOS (a bit trickier because they're defined on different grids)
-                merged_energy = sorted(list(set([e[0] for c in self.all_calcs[-2:] for e in c.results['dos']])))
-                merged_dos = np.zeros(len(merged_energy))
-                for c in self.all_calcs[-2:]:
-                    # Create a linear interpolator and evaluate it on the merged_energy grid
-                    [energy, dos] = np.transpose(c.results['dos'])
-                    linear_interp = interpolate.interp1d(energy, dos, bounds_error=False, fill_value=(0, 0))
-                    merged_dos += linear_interp(merged_energy)
-                calc.results['dos'] = np.transpose([merged_energy, merged_dos])
-
-            # Print out the merged bands and DOS
             with utils.chdir('postproc'):
                 calc.write_results()
 
@@ -811,6 +821,7 @@ class KoopmansWorkflow(Workflow):
             calc.do_outerloop = True
             if calc.empty_states_nbnd > 0:
                 calc.do_outerloop_empty = True
+
         if calc.maxiter is None and calc.do_outerloop:
             calc.maxiter = 300
         if calc.empty_states_maxstep is None and calc.do_outerloop_empty:
@@ -841,10 +852,18 @@ class KoopmansWorkflow(Workflow):
         if 'print' in calc.name:
             calc.print_wfc_anion = True
 
-        if self.periodic:
-            calc.which_compensation = 'none'
-        else:
+        if self.mt_correction:
             calc.which_compensation = 'tcc'
+        else:
+            calc.which_compensation = 'none'
+
+        # If we are using frozen orbitals, we override the above logic and freeze the variational orbitals post-initialisation
+        if self.frozen_orbitals and 'init' not in calc.name and not any([s == calc.name for s in ['dft_n-1', 'dft_n+1', 'kipz_n-1', 'kipz_n+1']]):
+            calc.do_outerloop = False
+            calc.do_innerloop = False
+            if calc.empty_states_nbnd > 0:
+                calc.do_outerloop_empty = False
+                calc.do_innerloop_empty = False
 
         # Handle any keywords provided by kwargs
         # Note that since this is performed after the above logic this can (deliberately
@@ -877,7 +896,7 @@ class KoopmansWorkflow(Workflow):
     def new_ui_calculator(self, calc_presets, **kwargs):
 
         valid_calc_presets = ['occ', 'emp', 'merge']
-        assert calc_presets in valid_calc_presets, 'In KoopmansWorkflow.new_ui_calculator() calc_presets must be ' \
+        assert calc_presets in valid_calc_presets, 'In KoopmansCPWorkflow.new_ui_calculator() calc_presets must be ' \
             '/'.join([f'"{s}"' for s in valid_calc_presets]) + ', but you have tried to set it equal to {calc_presets}'
 
         if calc_presets == 'merge':
@@ -1017,7 +1036,7 @@ class KoopmansWorkflow(Workflow):
             alpha_guess = alpha_calc.nkscalfact
 
         # Checking Makov-Payne correction energies and applying them (if needed)
-        if self.mp_corrections:
+        if self.mp_correction:
             if mp1 is None:
                 raise ValueError('Could not find 1st order Makov-Payne energy')
             if mp2 is None:

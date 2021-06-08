@@ -2,6 +2,8 @@
   "workflow": {
     "task": "environ_dscf",
     "eps_cavity": [1, 2, 4],
+    "periodic": false,
+    "mt_correction": false,
     "print_qc": true,
     "from_scratch": true
   },

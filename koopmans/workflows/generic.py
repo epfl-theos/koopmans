@@ -13,6 +13,9 @@ import copy
 import numpy as np
 from ase.calculators.calculator import CalculationFailed
 from koopmans import io, utils
+from koopmans.calculators.commands import ParallelCommandWithPostfix
+from koopmans.calculators.kc_ham import KoopmansHamCalc
+from koopmans.calculators.kcp import KCP_calc
 from koopmans.bands import Bands
 
 valid_settings = [
@@ -20,8 +23,14 @@ valid_settings = [
                   'Task to perform',
                   str, 'singlepoint', ('singlepoint', 'convergence', 'environ_dscf', 'ui')),
     utils.Setting('functional',
-                  'Orbital-density-dependent-functional/density-functional to use',
+                  'orbital-density-dependent-functional/density-functional to use',
                   str, 'ki', ('ki', 'kipz', 'pkipz', 'pbe', 'all')),
+    utils.Setting('calculate_alpha',
+                  'whether or not to calculate the screening parameters ab-initio',
+                  bool, True, (True, False)),
+    utils.Setting('method',
+                  'the method to calculate the screening parameters: either with ΔSCF or DFPT',
+                  str, 'dscf', ('dscf', 'dfpt')),
     utils.Setting('init_orbitals',
                   'which orbitals to use as an initial guess for the variational orbitals',
                   str, 'pz', ('pz', 'kohn-sham', 'mlwfs', 'projwfs', 'from old ki')),
@@ -29,16 +38,28 @@ valid_settings = [
                   'which orbitals to use as an initial guess for the empty variational orbitals '
                   '(defaults to the same value as "init_orbitals")',
                   str, 'same', ('same', 'pz', 'kohn-sham', 'mlwfs', 'projwfs', 'from old ki')),
+    utils.Setting('frozen_orbitals',
+                  "if True, freeze the variational orbitals for the duration of the calculation once they've been "
+                  "initialised",
+                  bool, None, (True, False)),
     utils.Setting('periodic',
-                  'whether or not the system is periodic. If False, interaction between '
-                  'periodic images will be corrected for',
+                  'whether or not the system is periodic',
                   bool, False, (True, False)),
-    utils.Setting('mp_corrections',
-                  'if True, the Makov-Payne corrections for charged systems will '
-                  'be applied',
+    utils.Setting('npool',
+                  'Number of pools for parallelising over kpoints (should be commensurate with the k-point grid)',
+                  int, None, None),
+    utils.Setting('gb_correction',
+                  'if True, apply the Gygi-Baldereschi scheme to deal with the q->0 divergence of the Coulomb '
+                  'interation for periodic systems',
+                  bool, None, (True, False)),
+    utils.Setting('mp_correction',
+                  'if True, apply the Makov-Payne correction for charged periodic systems',
                   bool, False, (True, False)),
+    utils.Setting('mt_correction',
+                  'if True, apply the Martyna-Tuckerman correction for charged aperiodic systems',
+                  bool, None, (True, False)),
     utils.Setting('eps_inf',
-                  'dielectric constant of the system; needed when mp_corrections is True',
+                  'dielectric constant of the system used by the Gygi-Baldereschi and Makov-Payne corrections',
                   float, None, None),
     utils.Setting('n_max_sc_steps',
                   'maximum number of self-consistency steps for calculating alpha',
@@ -47,13 +68,9 @@ valid_settings = [
                   'convergence threshold for |delta E - lambda|; if below this '
                   'threshold, the corresponding alpha value is not updated',
                   (float, str), 1e-3, None),
-    utils.Setting('calculate_alpha',
-                  'if True, the screening parameters will be calculated; if False, '
-                  'they will be read directly from file',
-                  bool, True, (True, False)),
     utils.Setting('alpha_guess',
                   'starting guess for alpha (overridden if alpha_from_file is true)',
-                  float, 0.6, None),
+                  (float, list), 0.6, None),
     utils.Setting('alpha_from_file',
                   'if True, uses the file_alpharef.txt from the base directory as a '
                   'starting guess',
@@ -90,7 +107,7 @@ valid_settings = [
 
 class Workflow(object):
 
-    def __init__(self, workflow_settings=None, calcs_dct=None, dct={}):
+    def __init__(self, workflow_settings=None, calcs_dct=None, name=None, dct={}):
         if dct:
             assert workflow_settings is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, ' \
                 'do not use any other arguments'
@@ -101,9 +118,11 @@ class Workflow(object):
             assert not dct, f'If using the "dct" argument to initialise {self.__class__.__name__}, do not use any ' \
                 'other arguments'
             self.master_calcs = calcs_dct
+            self.name = name
             self.all_calcs = []
             self.silent = False
             self.valid_settings = valid_settings
+            self.print_indent = 1
 
             # Parsing workflow_settings
             checked_settings = utils.check_settings(workflow_settings, self.valid_settings, physicals=[
@@ -111,6 +130,58 @@ class Workflow(object):
             self.list_of_settings = list(checked_settings.keys())
             for key, value in checked_settings.items():
                 self.add_setting(key, value)
+
+            # Check internal consistency of workflow settings
+            if self.method == 'dfpt':
+                if self.frozen_orbitals is None:
+                    self.frozen_orbitals = True
+                if not self.frozen_orbitals:
+                    raise ValueError('"frozen_orbitals" must be equal to True when "method" is "dfpt"')
+            else:
+                if self.frozen_orbitals is None:
+                    self.frozen_orbitals = False
+                if self.frozen_orbitals:
+                    utils.warn('You have requested a ΔSCF calculation with frozen orbitals. This is unusual; proceed '
+                               'only if you know what you are doing')
+
+            if self.periodic:
+                if self.gb_correction is None:
+                    self.gb_correction = True
+
+                if self.mp_correction:
+                    if self.eps_inf is None:
+                        raise ValueError('eps_inf missing in input; needed when mp_correction is true')
+                    elif self.eps_inf < 1.0:
+                        raise ValueError('eps_inf cannot be lower than 1')
+                    else:
+                        utils.warn('Makov-Payne corrections not applied for a periodic calculation; do this with caution')
+
+                if self.mt_correction is None:
+                    self.mt_correction = False
+                if self.mt_correction:
+                    raise ValueError('Do not use Martyna-Tuckerman corrections for periodic systems')
+
+            else:
+                if self.gb_correction is None:
+                    self.gb_correction = False
+                if self.gb_correction:
+                    raise ValueError('Do not use Gygi-Baldereschi corrections for aperiodic systems')
+
+                if self.mp_correction is None:
+                    self.mp_correction = False
+                if self.mp_correction:
+                    raise ValueError('Do not use Makov-Payne corrections for aperiodic systems')
+
+                if self.mt_correction is None:
+                    self.mt_correction = True
+                if not self.mt_correction:
+                    utils.warn('Martyna-Tuckerman corrections not applied for an aperiodic calculation; do this with caution')
+
+        # Update postfix for all relevant calculators
+        if self.npool:
+            for calc in self.master_calcs.values():
+                if isinstance(calc.calc.command, ParallelCommandWithPostfix):
+                    calc.calc.command.postfix = f'-npool {self.npool}'
 
     @property
     def settings(self):
@@ -215,40 +286,32 @@ class Workflow(object):
             if os.path.isfile(calc_file + qe_calc.ext_out):
                 verb = 'Rerunning'
 
-                self.load_old_calculator(qe_calc)
+                is_complete = self.load_old_calculator(qe_calc)
 
-                old_calc = self.all_calcs[-1]
-                if old_calc.is_complete():
-                    # If it is complete, load the results, and exit
-                    qe_calc.results = old_calc.results
+                if is_complete:
                     if not self.silent:
-                        print(f'Not running {calc_file} as it is already complete')
-                    self.all_calcs.append(qe_calc)
+                        self.print(f'Not running {os.path.relpath(calc_file)} as it is already complete')
                     return
 
         # Write out screening parameters to file
-        if getattr(qe_calc, 'do_orbdep', False):
+        if getattr(qe_calc, 'do_orbdep', False) or isinstance(qe_calc, KoopmansHamCalc):
             qe_calc.write_alphas()
 
         if not self.silent:
-            if qe_calc.directory == '.':
-                dir_str = ''
-            else:
-                dir_str = qe_calc.directory + '/'
-            print(f'{verb} {dir_str}{qe_calc.name}...', end='', flush=True)
+            dir_str = os.path.relpath(qe_calc.directory) + '/'
+            self.print(f'{verb} {dir_str}{qe_calc.name}...', end='', flush=True)
 
         qe_calc.calculate()
 
         if not qe_calc.is_complete():
-            print(' failed')
+            self.print(' failed')
             raise CalculationFailed()
 
         if not self.silent:
-            print(' done')
+            self.print(' done')
 
         # Check spin-up and spin-down eigenvalues match
-        if 'eigenvalues' in qe_calc.results:
-
+        if 'eigenvalues' in qe_calc.results and isinstance(qe_calc, KCP_calc):
             if qe_calc.is_converged() and qe_calc.do_outerloop and qe_calc.nspin == 2 \
                     and qe_calc.tot_magnetization == 0 and not qe_calc.fixed_state \
                     and len(qe_calc.results['eigenvalues']) > 0:
@@ -274,8 +337,34 @@ class Workflow(object):
 
     def load_old_calculator(self, qe_calc):
         # This is a separate function so that it can be monkeypatched by the test suite
-        calc_file = f'{qe_calc.directory}/{qe_calc.name}'
-        self.all_calcs.append(qe_calc.__class__(qe_files=calc_file))
+        old_calc = qe_calc.__class__(qe_files=f'{qe_calc.directory}/{qe_calc.name}')
+
+        if old_calc.is_complete():
+            # If it is complete, load the results
+            qe_calc.results = old_calc.results
+
+            # Load bandstructure if present, too
+            if isinstance(qe_calc, KoopmansHamCalc):
+                qe_calc.calc.band_structure()
+
+            self.all_calcs.append(qe_calc)
+
+        return old_calc.is_complete()
+
+    def print(self, text='', style='body', **kwargs):
+        if style == 'body':
+            io.indented_print(str(text), self.print_indent + 1, **kwargs)
+        else:
+            if style == 'heading':
+                underline = '='
+            elif style == 'subheading':
+                underline = '-'
+            else:
+                raise ValueError(f'Invalid choice "{style}" for style; must be heading/subheading/body')
+            assert kwargs.get('end', '\n') == '\n'
+            io.indented_print()
+            io.indented_print(str(text), self.print_indent, **kwargs)
+            io.indented_print(underline * len(text), self.print_indent, **kwargs)
 
     def print_qc_keyval(self, key, value, calc=None):
         '''
@@ -287,7 +376,9 @@ class Workflow(object):
             calc_str = ''
         else:
             calc_str = f'{calc.name}_'
-        print(f'<QC> {calc_str}{key} {value}')
+
+        if not isinstance(value, list):
+            self.print(f'<QC> {calc_str}{key} {value}')
 
         if calc is not None:
             calc.qc_results[key] = value
@@ -302,6 +393,13 @@ class Workflow(object):
         if hasattr(self, 'benchmark'):
             workflow.benchmark = self.benchmark
 
+        # Automatically pass along the name of the overall workflow
+        if workflow.name is None:
+            workflow.name = self.name
+
+        # Increase the indent level
+        workflow.print_indent = self.print_indent + 1
+
         # Ensure altering workflow.master_calcs won't affect self.master_calcs
         if workflow.master_calcs is self.master_calcs:
             workflow.master_calcs = copy.deepcopy(self.master_calcs)
@@ -314,6 +412,15 @@ class Workflow(object):
 
         # Link the list of calculations
         workflow.all_calcs = self.all_calcs
+
+        # Link the bands
+        try:
+            workflow.bands = self.bands
+            # Only include the most recent values
+            workflow.bands.alpha_history = workflow.bands.alphas
+            workflow.bands.error_history = []
+        except AttributeError:
+            pass
 
         if subdirectory is not None:
             # Update directories
@@ -334,6 +441,12 @@ class Workflow(object):
         # ... and will prevent inheritance of from_scratch
         if from_scratch is None:
             self.from_scratch = workflow.from_scratch
+
+        # Copy back over the bands
+        try:
+            self.bands = workflow.bands
+        except AttributeError:
+            pass
 
     def todict(self):
         dct = self.__dict__

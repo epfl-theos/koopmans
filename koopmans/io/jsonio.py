@@ -12,35 +12,34 @@ import inspect
 import json
 from ase.io import jsonio as ase_json
 from ase.calculators.calculator import Calculator
-from koopmans.calculators.generic import GenericCalc
-from koopmans.workflows.generic import Workflow
-from koopmans.workflows.singlepoint import SinglepointWorkflow
 
 
 class KoopmansEncoder(ase_json.MyEncoder):
     def default(self, obj):
-
         if isinstance(obj, set):
             return {'__set__': list(obj)}
         elif isinstance(obj, Calculator):
             # ASE only stores the calculator parameters, with Atoms being the more fundamental object
             # Because we store calculators as the primary object, we need to make sure the atoms are also stored
-            d = {'__calculator__': obj.todict(),
+            d = {'__calculator__': super().default(obj),
                  '__name__': obj.__class__.__name__,
                  '__module__': obj.__class__.__module__,
                  '__results__': obj.results,
+                 '__directory__': obj.directory,
+                 '__prefix__': obj.prefix,
                  '__atoms__': super().default(obj.atoms)}
             return d
-        elif isinstance(obj, (GenericCalc, Workflow)):
-            d = obj.todict()
-            if d.get('__koopmans_name__', None):
-                return d
         elif inspect.isclass(obj):
             return {'__class__': {'__name__': obj.__name__, '__module__': obj.__module__}}
+        elif hasattr(obj, 'todict'):
+            d = obj.todict()
+            if '__koopmans_name__' in d:
+                return d
+        # If none of the above, use ASE's encoder
         return super().default(obj)
 
 
-encode = KoopmansEncoder().encode
+encode = KoopmansEncoder(indent=1).encode
 
 
 def object_hook(dct):
@@ -71,6 +70,8 @@ def create_ase_calculator(dct):
     calc = calc_class()
     calc.atoms = ase_json.object_hook(dct.pop('__atoms__'))
     calc.atoms.calc = calc
+    calc.directory = dct['__directory__']
+    calc.prefix = dct['__prefix__']
     calc.parameters = dct['__calculator__']
     calc.results = dct['__results__']
     return calc

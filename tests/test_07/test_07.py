@@ -6,7 +6,7 @@ Written by Edward Linscott, Jan 2021
 
 import os
 import pytest
-from tests.conftest import WorkflowTest
+from conftest import WorkflowTest
 from koopmans.utils import find_executable
 from koopmans.calculators.environ import environ_addon_is_installed
 

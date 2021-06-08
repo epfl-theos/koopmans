@@ -20,7 +20,7 @@ class Environ_calc(PW_calc):
         super().__init__(*args, **kwargs)
 
         # Ensure we're using an environ-enabled version of pw.x
-        self.preprocessing_flags = '--environ'
+        self.calc.command.flags = '--environ'
 
         # Add electrostatic embedding to the results printed out during QC
         self.results_for_qc.append('electrostatic embedding')
@@ -63,8 +63,8 @@ class Environ_calc(PW_calc):
                 f.write('/\n')
 
     def check_code_is_installed(self):
-        executable_with_path = super().check_code_is_installed()
-        qe_directory, _, _ = executable_with_path.rsplit('/', 2)
+        super().check_code_is_installed()
+        qe_directory, _ = self.calc.command.path.rstrip('/').rsplit('/', 1)
         if not environ_addon_is_installed(qe_directory):
             raise OSError('The pw add-on "environ" is not installed')
 

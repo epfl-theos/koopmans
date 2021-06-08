@@ -6,10 +6,12 @@ Written by Edward Linscott Sep 2020
 
 """
 
-from ase.io import espresso as pw_io
+import os
+from ase.io.espresso import pw as pw_io
 from ase.calculators.espresso import Espresso
 from koopmans import io
 from koopmans.calculators.generic import EspressoCalc
+from koopmans.calculators.commands import ParallelCommandWithPostfix
 
 
 class PW_calc(EspressoCalc):
@@ -22,8 +24,6 @@ class PW_calc(EspressoCalc):
     ext_in = '.pwi'
     ext_out = '.pwo'
 
-    # Create a list of the valid settings
-    _valid_settings = [k for sublist in _io.KEYS.values() for k in sublist]
     _settings_that_are_paths = ['outdir', 'pseudo_dir']
 
     def __init__(self, *args, **kwargs):
@@ -31,6 +31,7 @@ class PW_calc(EspressoCalc):
         self.settings_to_not_parse = ['assume_isolated']
         super().__init__(*args, **kwargs)
         self.results_for_qc = ['energy']
+        self.calc.command = ParallelCommandWithPostfix(os.environ.get('ASE_ESPRESSO_COMMAND', self.calc.command))
 
     def is_complete(self):
         return self.results.get('job done', False)
@@ -49,6 +50,6 @@ class PW_calc(EspressoCalc):
         raise ValueError('You tried to set PW_calc.nelec, which is invalid')
 
     defaults = {'calculation': 'scf',
-                'outdir': './TMP-PW/',
+                'outdir': './TMP/',
                 'prefix': 'kc',
                 'conv_thr': '2.0e-9*nelec'}

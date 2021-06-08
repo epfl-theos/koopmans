@@ -10,10 +10,10 @@ is_cp_output=()
 for f in $@
 do
    # Check if file is an output file
-   if [ ${f: -4} == ".out" ] || [ ${f: -4} == ".cpo" ]
+   if [ ${f: -4} == ".out" ] || [ ${f: -1} == "o" ] || [ ${f: -5} == ".wout" ]
    then
       is_cp_output+=(true)
-   elif [ ${f: -3} == ".in" ] || [ ${f: -4} == ".cpi" ]
+   elif [ ${f: -3} == ".in" ] || [ ${f: -1} == "i" ] || [ ${f: -4} == ".win" ]
    then
       is_cp_output+=(false)
    else  
@@ -31,7 +31,7 @@ then
    then
       vimdiff $@
    else
-      cpi_diff.py $@
+      qe_input_diff.py $@
    fi
 else
    # If not, exit with error

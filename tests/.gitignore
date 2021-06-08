@@ -1,3 +1,6 @@
+*.ui?
+*.kwf
+*.stdout
 test_??/alphas.pkl
 test_??/errors.pkl
 test_??/tab_alpha_values.tex

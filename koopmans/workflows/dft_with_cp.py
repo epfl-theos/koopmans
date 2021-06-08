@@ -12,13 +12,7 @@ from koopmans import utils
 from koopmans.workflows.generic import Workflow
 
 
-class DFTWorkflow(Workflow):
-
-    def __init__(self, *args):
-        super().__init__(*args)
-        if 'kcp' not in self.master_calcs:
-            raise ValueError(
-                '"functional": "PBE" requires a "kcp" block in the input .json file')
+class DFTCPWorkflow(Workflow):
 
     def run(self):
 

@@ -6,12 +6,14 @@ Written by Edward Linscott Sep 2020
 
 """
 
+import os
 import numpy as np
 from pandas.core.series import Series
-from ase.calculators.espresso_kcp import Espresso_kcp
-from ase.io import espresso_kcp as kcp_io
+from ase.calculators.espresso import Espresso_kcp
+from ase.io.espresso import koopmans_cp as kcp_io
 from koopmans import io, utils
 from koopmans.calculators.generic import EspressoCalc
+from koopmans.calculators.commands import ParallelCommand
 
 
 class KCP_calc(EspressoCalc):
@@ -24,8 +26,6 @@ class KCP_calc(EspressoCalc):
     ext_in = '.cpi'
     ext_out = '.cpo'
 
-    # Create a list of the valid settings
-    _valid_settings = [k for sublist in _io.KEYS.values() for k in sublist]
     _settings_that_are_paths = ['outdir', 'pseudo_dir']
 
     def __init__(self, calc=None, qe_files=[], skip_qc=False, alphas=None, filling=None, **kwargs):
@@ -35,6 +35,7 @@ class KCP_calc(EspressoCalc):
         super().__init__(calc, qe_files, skip_qc, **kwargs)
 
         self.results_for_qc = ['energy', 'homo_energy', 'lumo_energy']
+        self.calc.command = ParallelCommand(os.environ.get('ASE_ESPRESSO_KCP_COMMAND', self.calc.command))
 
         self.alphas = alphas
         self.filling = filling
@@ -192,3 +193,25 @@ class KCP_calc(EspressoCalc):
             value = getattr(self, attr, None)
             if value is not None:
                 setattr(self, attr, prefactor * value)
+
+    # The following functions enable DOS generation via ase.dft.dos.DOS(<KCP_calc object>)
+    def get_k_point_weights(self):
+        return [1]
+
+    def get_number_of_spins(self):
+        return 1
+
+    def get_eigenvalues(self, kpt=None, spin=0):
+        if 'eigenvalues' not in self.results:
+            raise ValueError('You must first perform a calculation before you try to access the KS eigenvalues')
+
+        if kpt is None:
+            return [self.results['eigenvalues'][spin]]
+        elif kpt == 0:
+            return self.results['eigenvalues'][spin]
+        else:
+            print(kpt)
+            raise ValueError(f'{self.__class__.__name__} does not have k-point-resolved KS eigenvalues')
+
+    def get_fermi_level(self):
+        return 0

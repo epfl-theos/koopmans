@@ -10,14 +10,13 @@ import json
 from datetime import datetime
 from ase.atoms import Atoms
 from ase.calculators.calculator import FileIOCalculator
+from ase.spectrum.band_structure import BandStructure
 from koopmans import io, utils
 from ._utils import latt_vect, crys_to_cart, extract_hr
 
 
 def parse_w90(self):
     '''
-    at      : basis vectors of direct lattice (in PC alat units)
-    bg      : basis vectors of reciprocal lattice (in PC 2pi/alat units)
     centers : centers of WFs (in PC crystal units)
     spreads : spreads of WFs (in Ang^2)
     '''
@@ -25,7 +24,7 @@ def parse_w90(self):
     with open(self.w90_seedname + '.wout', 'r') as ifile:
         lines = ifile.readlines()
 
-    self.at = []
+    at = []
     self.centers = []
     self.spreads = []
     count = 0
@@ -34,11 +33,11 @@ def parse_w90(self):
         if 'Number of Wannier Functions' in line:
             num_wann = int(line.split()[6])
         if ' a_1 ' in line:
-            self.at.append(np.array(line.split()[1:], dtype=float))
+            at.append(np.array(line.split()[1:], dtype=float))
         if ' a_2 ' in line:
-            self.at.append(np.array(line.split()[1:], dtype=float))
+            at.append(np.array(line.split()[1:], dtype=float))
         if ' a_3 ' in line:
-            self.at.append(np.array(line.split()[1:], dtype=float))
+            at.append(np.array(line.split()[1:], dtype=float))
         if count > 0 and count <= num_wann:
             start = line.find('(')
             end = line.find(')')
@@ -50,12 +49,8 @@ def parse_w90(self):
         if 'Final State' in line:
             count += 1
 
-    # primitive cell lattice parameter
-    self.alat = self.alat_sc / self.sc_dim[0]
-
-    self.at = np.array(self.at, dtype=float).reshape(3, 3) / self.alat
-    self.bg = np.linalg.inv(self.at).transpose()
-    self.Rvec = latt_vect(self.sc_dim[0], self.sc_dim[1], self.sc_dim[2])
+    self.Rvec = latt_vect(*self.sc_dim)
+    self.at = np.array(at, dtype=float).reshape(3, 3) / self.alat
 
     if self.w90_input_sc:
         self.num_wann_sc = num_wann
@@ -322,8 +317,8 @@ def write_bands(self, directory=None):
         directory = self.directory
 
     kvec = []
-    for n in range(len(self.kvec)):
-        kvec.append(crys_to_cart(self.kvec[n], self.bg, +1))
+    for kpt in self.kpath.kpts:
+        kvec.append(crys_to_cart(kpt, self.bg, +1))
 
     kx = [0.]
     for ik in range(1, len(kvec)):
@@ -344,9 +339,10 @@ def write_bands(self, directory=None):
     with open(f'{directory}/bands_interpolated.dat', 'w') as ofile:
         ofile.write('# Written at ' + datetime.now().isoformat(timespec='seconds'))
 
-        for n in range(len(self.results['bands'][0])):
-            for ik in range(len(kvec)):
-                ofile.write(f'\n{kx[ik]:10.4f}{self.results["bands"][ik][n]:10.4f}')
+        for energies in self.results['band structure'].energies[0].transpose():
+            assert len(kx) == len(energies)
+            for k, energy in zip(kx, energies):
+                ofile.write(f'\n{k:16.8f}{energy:16.8f}')
             ofile.write('\n')
 
     return
@@ -355,8 +351,10 @@ def write_bands(self, directory=None):
 def read_bands(self, directory=None):
     """
     read_bands reads the interpolated bands, in the QE format, in a file called
-               'bands_interpolated.dat'.
+               'bands_interpolated.dat'
                (see PP/src/bands.f90 around line 574 for the linearized path)
+
+               This function also then regenerates the DOS based off the bandstructure
     """
 
     if directory is None:
@@ -367,13 +365,14 @@ def read_bands(self, directory=None):
     if os.path.isfile(band_file):
         with open(band_file, 'r') as f:
             flines = f.readlines()
-        for line in flines[1:-1]:
+        for line in flines[1:]:
             splitline = line.strip().split()
             if len(splitline) == 0:
                 bands.append([])
             else:
                 bands[-1].append(float(splitline[-1]))
-    self.results['bands'] = np.transpose(bands)
+        self.results['band structure'] = BandStructure(path=self.kpath, energies=[np.transpose(bands)])
+        self.calc_dos()
 
 
 def write_dos(self, directory=None):
@@ -386,26 +385,11 @@ def write_dos(self, directory=None):
 
     with open(f'{directory}/dos_interpolated.dat', 'w') as ofile:
         ofile.write('# Written at ' + datetime.now().isoformat(timespec='seconds'))
-        for row in self.results['dos']:
-            ofile.write('\n{:10.4f}{:12.6f}'.format(*row))
+        dos = self.results['dos']
+        for e, d in zip(dos.get_energies(), dos.get_dos()):
+            ofile.write('\n{:10.4f}{:12.6f}'.format(e, d))
         ofile.write('\n')
 
-    return
-
-
-def read_dos(self, directory=None):
-    """
-    read_dos reads the DOS in a file called 'dos_interpolated.dat'
-
-    """
-    if directory is None:
-        directory = self.directory
-
-    dos_file = f'{directory}/dos_interpolated.dat'
-    if os.path.isfile(dos_file):
-        with open(dos_file, 'r') as ofile:
-            flines = ofile.readlines()
-        self.results['dos'] = [[float(v) for v in line.split()] for line in flines[1:]]
     return
 
 
@@ -422,7 +406,18 @@ def write_input_file(self):
             # Convert alat_sc to Bohr
             settings['alat_sc'] *= utils.units.Bohr
 
+            # Remove the ASE BandPath object
+            kpath = settings.pop('kpath')
+
+            # Store all the settings in one big dictionary
             bigdct = {"workflow": {"task": "ui"}, "ui": settings}
+
+            # Provide the bandpath information in the form of a string
+            bigdct['setup'] = {'kpoints': {'kpath': kpath.path}}
+
+            # We also need to provide a cell so the explicit kpath can be reconstructed from the string alone
+            bigdct['setup']['cell_parameters'] = io.construct_cell_parameters_block(self.calc)
+
             json.dump(bigdct, fd, indent=2)
 
 
@@ -445,6 +440,15 @@ def read_input_file(self, input_file=None):
         # Create an empty dummy ASE calculator required by read_ui_dict
         atoms = Atoms(calculator=FileIOCalculator())
         atoms.calc.atoms = atoms
+
+        # Load the cell if it is provided
+        if 'setup' in bigdct:
+            cell = io.read_cell_parameters(None, bigdct['setup'].get('cell_parameters', {}))
+            if cell:
+                atoms.cell = cell
+            kpath = bigdct['setup'].get('kpoints', {}).get('kpath', None)
+            if kpath:
+                io.read_kpath(atoms.calc, kpath)
 
         # Parse the UI dict
         return io.read_ui_dict(bigdct['ui'], atoms).calc
@@ -471,15 +475,7 @@ def read_output_file(self, output_file=None):
         flines = f.readlines()
     calc.results = {'job done': any(['ALL DONE' in line for line in flines])}
 
-    # Convert to a UI_calculator to read the bands and DOS
-    calc = self.__class__(calc=calc)
-
-    # Read the bands and DOS if they exist
-    calc.read_bands()
-    calc.read_dos()
-
-    # Return the ASE calculator object
-    return calc.calc
+    return calc
 
 
 def scell_centers(self, units='crys', cell='sc'):

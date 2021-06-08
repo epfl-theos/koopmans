@@ -15,7 +15,12 @@ from koopmans.calculators.pw import PW_calc
 from koopmans.calculators.kcp import KCP_calc
 from koopmans.calculators.environ import Environ_calc
 from koopmans.calculators.ui import UI_calc
+from koopmans.calculators.wann2kc import Wann2KCCalc
+from koopmans.calculators.kc_screen import KoopmansScreenCalc
+from koopmans.calculators.kc_ham import KoopmansHamCalc
 from koopmans.io import read_json
+from koopmans.io.jsonio import read_json as read_encoded_json
+from koopmans.io.jsonio import write_json as write_encoded_json
 from koopmans import utils
 from ase import io as ase_io
 from ase.dft.kpoints import BandPath
@@ -26,6 +31,7 @@ default_tolerances = {'alpha': (2e-3, 2e-5),
                       'homo_energy': (2e-3, 2e-5),
                       'lumo_energy': (2e-3, 2e-5),
                       'self-hartree': (2e-3, 2e-5),
+                      'array': (2e-2, 2e-4),
                       'default': (1e-4, 1e-7)}
 
 
@@ -45,7 +51,7 @@ class WorkflowTest:
 
         # Fetch the benchmarks
         with open('tests/benchmarks.json', 'r') as f:
-            benchmarks = json.load(f)
+            benchmarks = read_encoded_json(f)
 
         self.benchmark = {k: v for k, v in benchmarks.items() if self.subdirectory in k}
 
@@ -90,6 +96,11 @@ class WorkflowTest:
             if 'n-1' in calc.name:
                 continue
 
+            # Skip calculations in the base postproc directory because this corresponds to the calculation where we simply
+            # merge the two previous calculations together
+            if calc.directory.endswith('postproc'):
+                continue
+
             # Prepare the log dict entry for this calc
             calc_relpath = os.path.relpath(f'{calc.directory}/{calc.name}', self.tests_directory)
             log[calc_relpath] = []
@@ -113,6 +124,15 @@ class WorkflowTest:
                     [i_orb, i_spin] = [int(s.split('=')[1]) for s in result_name.split('(')[-1][:-1].split(',')]
                     ref_result = calc.benchmark['results']['orbital_data']['self-Hartree'][i_spin - 1][i_orb - 1]
                     tols = self.tolerances['self-hartree']
+                elif result_name in ['band structure', 'dos']:
+                    if result_name == 'band structure':
+                        result = result.energies[0].flatten()
+                        ref_result = np.array(calc.benchmark['results'][result_name].energies[0].flatten())
+                    else:
+                        result = result.get_dos()
+                        ref_result = np.array(calc.benchmark['results'][result_name].get_dos())
+                    assert result.shape == ref_result.shape, 'Array shape mismatch between result and benchmark'
+                    tols = self.tolerances['array']
                 else:
                     assert result_name in calc.benchmark['results']
                     ref_result = calc.benchmark['results'][result_name]
@@ -120,11 +140,27 @@ class WorkflowTest:
 
                 # Compare the calculated result to the reference result
                 if isinstance(ref_result, float):
+                    diff = result - ref_result
                     message = f'{result_name} = {result:.5f} differs from benchmark {ref_result:.5f} by ' \
-                              f'{result - ref_result:.2e}'
-                    if abs(result - ref_result) > tols[0]:
+                              f'{diff:.2e}'
+                    if abs(diff) > tols[0]:
                         log[calc_relpath].append({'kind': 'error', 'message': message})
-                    elif abs(result - ref_result) > tols[1]:
+                    elif abs(diff) > tols[1]:
+                        log[calc_relpath].append({'kind': 'warning', 'message': message})
+                elif isinstance(ref_result, np.ndarray):
+                    # For arrays, perform a mixed error test. If Delta = |x - x_ref| then in the limit of large Delta,
+                    # then this reduces to testing relative error, whereas in the limit of small Delta it reduces to
+                    # testing absolute error
+                    abs_diffs = np.abs(result - ref_result)
+                    mixed_diffs = abs_diffs / (1 + np.abs(ref_result))
+                    i_max = np.argmax(mixed_diffs)
+                    mixed_diff = mixed_diffs[i_max]
+                    abs_diff = abs_diffs[i_max]
+                    message = f'{result_name}[{i_max}] = {result[i_max]:.5f} differs from benchmark {ref_result[i_max]:.5f} by ' \
+                              f'{abs_diff:.2e}'
+                    if mixed_diff > tols[0]:
+                        log[calc_relpath].append({'kind': 'error', 'message': message})
+                    elif mixed_diff > tols[1]:
                         log[calc_relpath].append({'kind': 'warning', 'message': message})
                 else:
                     if result != ref_result:
@@ -206,7 +242,13 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
                 # Compare the path relative to the location of the input file (mirroring behaviour of
                 # construct_benchmark.py)
                 val = os.path.relpath(val, calc.directory)
-            assert val == ref_val, f'{key} = {val} (test) != {ref_val} (benchmark)'
+
+            if isinstance(val, BandPath):
+                assert val.path == ref_val.path, f'{key}.path = {val.path} (test) != {ref_val.path} (benchmark)'
+                assert len(val.kpts) == len(ref_val.kpts), \
+                    f'Mismatch between len({key}) = {len(val.kpts)} (test) != {len(ref_val.kpts)} (benchmark)'
+            else:
+                assert val == ref_val, f'{key} = {val} (test) != {ref_val} (benchmark)'
 
         # Copy over the results
         calc.results = calc.benchmark['results']
@@ -236,7 +278,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             return os.path.isfile(f'{self.directory}/{self.name}{self.ext_out}')
 
         def check_code_is_installed(self):
-            return True
+            # Don't check if the code is installed
+            return
 
     class mock_KCP_calc(mock_calc, KCP_calc):
         # Monkeypatched KCP_calc class which never actually calls kcp.x
@@ -321,7 +364,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
 
         @property
         def output_files(self):
-            if '-pp' in self.preprocessing_flags:
+            if '-pp' in self.calc.command.flags:
                 files = [f'{self.directory}/{self.name}.nnkp']
             else:
                 files = [f'{self.directory}/{self.name}{suffix}' for suffix in [
@@ -330,14 +373,14 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
 
         @property
         def input_files(self):
-            if '-pp' in self.preprocessing_flags:
+            if '-pp' in self.calc.command.flags:
                 files = []
             else:
                 files = [f'{self.directory}/{self.name}{suffix}' for suffix in ['.eig', '.mmn', '.amn']]
             return files
 
     class mock_PW2Wannier_calc(mock_calc, PW2Wannier_calc):
-        # Monkeypatched PW_calc class which never actually calls pw.x
+        # Monkeypatched PW2Wannier_calc class which never actually calls pw2wannier90.x
 
         @property
         def output_files(self):
@@ -389,184 +432,217 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         def input_files(self):
             return []
 
+    class mock_Wann2KCCalc(mock_calc, Wann2KCCalc):
+        @property
+        def input_files(self):
+            return []
+
+        @property
+        def output_files(self):
+            return []
+
+    class mock_KoopmansScreenCalc(mock_calc, KoopmansScreenCalc):
+        @property
+        def input_files(self):
+            return []
+
+        @property
+        def output_files(self):
+            return []
+
+    class mock_KoopmansHamCalc(mock_calc, KoopmansHamCalc):
+        @property
+        def input_files(self):
+            return []
+
+        @property
+        def output_files(self):
+            return []
+
     monkeypatch.setattr('koopmans.calculators.kcp.KCP_calc', mock_KCP_calc)
     monkeypatch.setattr('koopmans.calculators.pw.PW_calc', mock_PW_calc)
     monkeypatch.setattr('koopmans.calculators.environ.Environ_calc', mock_Environ_calc)
     monkeypatch.setattr('koopmans.calculators.wannier90.W90_calc', mock_W90_calc)
     monkeypatch.setattr('koopmans.calculators.pw2wannier.PW2Wannier_calc', mock_PW2Wannier_calc)
     monkeypatch.setattr('koopmans.calculators.ui.UI_calc', mock_UI_calc)
+    monkeypatch.setattr('koopmans.calculators.wann2kc.Wann2KCCalc', mock_Wann2KCCalc)
+    monkeypatch.setattr('koopmans.calculators.kc_screen.KoopmansScreenCalc', mock_KoopmansScreenCalc)
+    monkeypatch.setattr('koopmans.calculators.kc_ham.KoopmansHamCalc', mock_KoopmansHamCalc)
 
-    # Monkeypatching workflows to provide individual calculations with their benchmarks and getting them
-    # to check if the required input files exist and make sense
+    # MockWorkflow class only intended to be used to generate other MockWorkflow subclasses with multiple inheritance
+    class MockWorkflow(object):
+        def run_calculator_single(self, qe_calc):
+            # Monkeypatching workflows to provide individual calculations with their benchmarks and getting them
+            # to check if the required input files exist and make sense
 
-    def generic_mock_calculator_single(workflow, qe_calc):
-        # Check we have a benchmark entry for this calculation, and connect it to the calculator
-        qe_calc_seed = relative_directory(qe_calc.directory + '/' + qe_calc.name)
-        assert qe_calc_seed in workflow.benchmark, \
-            f'Could not find an entry for {qe_calc_seed} in tests/benchmarks.json'
-        qe_calc.benchmark = workflow.benchmark[qe_calc_seed]
+            # Check we have a benchmark entry for this calculation, and connect it to the calculator
+            qe_calc_seed = relative_directory(qe_calc.directory + '/' + qe_calc.name)
+            assert qe_calc_seed in self.benchmark, \
+                f'Could not find an entry for {qe_calc_seed} in tests/benchmarks.json'
+            qe_calc.benchmark = self.benchmark[qe_calc_seed]
 
-        # Check required input files exist and come from where we expect
-        if construct_exceptions:
-            input_file_exceptions = {}
-        else:
-            input_file_exceptions = qe_calc.benchmark.get('input files', {})
+            # Check required input files exist and come from where we expect
+            if construct_exceptions:
+                input_file_exceptions = {}
+            else:
+                input_file_exceptions = qe_calc.benchmark.get('input files', {})
 
-        # If this calculator is a pw2wannier object, it need to know how many kpoints there are (usually done via the
-        # contents of .nnkp)
-        if isinstance(qe_calc, PW2Wannier_calc):
-            recent_pw_calc = [c for c in workflow.all_calcs if isinstance(c, PW_calc)][-1]
-            qe_calc.calc.parameters['kpts'] = recent_pw_calc.calc.parameters['kpts']
+            # If this calculator is a pw2wannier object, it need to know how many kpoints there are (usually done via
+            # the contents of .nnkp)
+            if isinstance(qe_calc, PW2Wannier_calc):
+                recent_pw_calc = [c for c in self.all_calcs if isinstance(c, PW_calc)][-1]
+                qe_calc.calc.parameters['kpts'] = recent_pw_calc.calc.parameters['kpts']
 
-        # We only need to check input files for calculations...
-        # a) not starting from scratch, and
-        # b) not being skipped (i.e. workflow.from_scratch is True)
-        if getattr(qe_calc, 'restart_mode', 'restart') != 'from_scratch' and workflow.from_scratch:
-            for input_file in qe_calc.input_files:
+            # We only need to check input files for calculations...
+            # a) not starting from scratch, and
+            # b) not being skipped (i.e. self.from_scratch is True)
+            if getattr(qe_calc, 'restart_mode', 'restart') != 'from_scratch' and self.from_scratch:
+                for input_file in qe_calc.input_files:
 
-                # Check the input file exists
-                assert os.path.isfile(input_file), f'Could not find the required input file {input_file}'
+                    # Check the input file exists
+                    assert os.path.isfile(input_file), f'Could not find the required input file {input_file}'
 
-                # Load the contents of the dummy input file (it is a json file)
-                with open(input_file, 'r') as fd:
-                    input_file_info = json.load(fd)
-                del input_file_info['filename']
+                    # Load the contents of the dummy input file (it is a json file)
+                    with open(input_file, 'r') as fd:
+                        input_file_info = json.load(fd)
+                    del input_file_info['filename']
 
-                input_file = relative_directory(input_file)
+                    input_file = relative_directory(input_file)
 
-                # Check this file has come from where we expect
-                if input_file in input_file_exceptions:
-                    if not construct_exceptions:
-                        # These files are overwritten during the workflow, so we must check these against a lookup
-                        # table
-                        for k, v in input_file_info.items():
-                            assert v == input_file_exceptions[input_file][k]
+                    # Check this file has come from where we expect
+                    if input_file in input_file_exceptions:
+                        if not construct_exceptions:
+                            # These files are overwritten during the workflow, so we must check these against a lookup
+                            # table
+                            for k, v in input_file_info.items():
+                                assert v == input_file_exceptions[input_file][k]
 
-                else:
-                    if not construct_exceptions:
-                        # These files are not overwritten during the workflow
-                        # Check it was written by the most recent calculation that wrote to this location
-                        match_found = False
-                        for c in workflow.all_calcs[::-1]:
-                            if input_file in [relative_directory(f) for f in c.output_files]:
-                                # Check that this file wrote its own output file (if it didn't it was skipped
-                                # and won't have produced any output files, so it is not a valid match)
-                                c_input_file = relative_directory(os.getcwd() + '/' + c.directory + '/' + c.name +
-                                                                  c.ext_in)
-                                c_output_file = os.path.abspath(c.directory + '/' + c.name + c.ext_out)
-                                assert os.path.isfile(c_output_file)
-                                with open(c_output_file, 'r') as fd:
-                                    c_output_file_info = json.load(fd)
-
-                                if c_output_file_info['written_by'] == c_input_file:
-                                    match_found = True
-                                    assert relative_directory(c_input_file) == input_file_info['written_by'], \
-                                        f'{input_file} has been mistakenly overwritten'
-                                    break
-
-                        assert match_found, f'Could not find {input_file_info["written_by"]} that generated' \
-                            f' {input_file}'
-
-                        # Check this file was written to its current location
-                        assert relative_directory(input_file) == input_file_info['written_to'], \
-                            f'{input_file} has been overwritten by {input_file_info["written_to"]}'
                     else:
-                        # Populate benchmarks.json with exceptions
-                        if not relative_directory(input_file) == input_file_info['written_to']:
-                            # Add entry to exceptions dict
-                            fname = tests_directory() + '/benchmarks.json'
-                            assert os.path.isfile(fname)
-                            with open(fname, 'r') as fd:
-                                exceptions = json.load(fd)
+                        if not construct_exceptions:
+                            # These files are not overwritten during the workflow
+                            # Check it was written by the most recent calculation that wrote to this location
+                            match_found = False
+                            for c in self.all_calcs[::-1]:
+                                if input_file in [relative_directory(f) for f in c.output_files]:
+                                    # Check that this file wrote its own output file (if it didn't it was skipped
+                                    # and won't have produced any output files, so it is not a valid match)
+                                    c_input_file = relative_directory(os.getcwd() + '/' + c.directory + '/' + c.name +
+                                                                      c.ext_in)
+                                    c_output_file = os.path.abspath(c.directory + '/' + c.name + c.ext_out)
+                                    assert os.path.isfile(c_output_file)
+                                    with open(c_output_file, 'r') as fd:
+                                        c_output_file_info = json.load(fd)
 
-                            assert qe_calc_seed in exceptions, f'Benchmark for {qe_calc_seed} is missing'
-                            if 'input files' not in exceptions[qe_calc_seed]:
-                                exceptions[qe_calc_seed]['input files'] = {}
-                            exceptions[qe_calc_seed]['input files'][input_file] = input_file_info
-                            with open(fname, 'w') as fd:
-                                json.dump(exceptions, fd, indent=2)
+                                    if c_output_file_info['written_by'] == c_input_file:
+                                        match_found = True
+                                        assert relative_directory(c_input_file) == input_file_info['written_by'], \
+                                            f'{input_file} has been mistakenly overwritten'
+                                        break
 
-    def generic_mock_load_old_calculator(self, qe_calc):
-        # Load old calculators by looking through the workflow's list of previous calculations
-        # (During the test suite, the only scenario where we want to reload an old calculation will arise
-        # because we did it earlier in the same workflow)
+                            assert match_found, f'Could not find {input_file_info["written_by"]} that generated' \
+                                f' {input_file}'
 
-        # Load the dummy output file
-        calc_fname = f'{qe_calc.directory}/{qe_calc.name}{qe_calc.ext_out}'
-        with open(calc_fname, 'r') as fd:
-            output_file_info = json.load(fd)
+                            # Check this file was written to its current location
+                            assert relative_directory(input_file) == input_file_info['written_to'], \
+                                f'{input_file} has been overwritten by {input_file_info["written_to"]}'
+                        else:
+                            # Populate benchmarks.json with exceptions
+                            if not relative_directory(input_file) == input_file_info['written_to']:
+                                # Add entry to exceptions dict
+                                fname = tests_directory() + '/benchmarks.json'
+                                assert os.path.isfile(fname)
+                                with open(fname, 'r') as fd:
+                                    exceptions = read_encoded_json(fd)
 
-        # Find out the calculation that generated the output file
-        directory, name = output_file_info['written_by'].rsplit('.', 1)[0].rsplit('/', 1)
-        directory = tests_directory() + '/' + directory
-        matches = [c for c in self.all_calcs if c.directory == directory and c.name == name]
+                                assert qe_calc_seed in exceptions, f'Benchmark for {qe_calc_seed} is missing'
+                                if 'input files' not in exceptions[qe_calc_seed]:
+                                    exceptions[qe_calc_seed]['input files'] = {}
+                                exceptions[qe_calc_seed]['input files'][input_file] = input_file_info
 
-        # Copy that calculation into the record of all calculations
-        if len(matches) == 1:
-            match = copy.deepcopy(matches[0])
-            # Update its name and directory to be those of the skipped calculation
-            match.name = qe_calc.name
-            match.directory = qe_calc.directory
-            self.all_calcs.append(match)
-        elif len(matches) == 0:
-            raise ValueError(f'Could not find a calculator matching {qe_calc.directory}/{qe_calc.name}')
-        else:
-            raise ValueError(f'Found multiple calculators for {qe_calc.directory}/{qe_calc.name}')
+                                with open(fname, 'w') as fd:
+                                    write_encoded_json(fd, exceptions)
+            super().run_calculator_single(qe_calc)
+
+        def load_old_calculator(self, qe_calc):
+            # Load old calculators by looking through the workflow's list of previous calculations
+            # (During the test suite, the only scenario where we want to reload an old calculation will arise
+            # because we did it earlier in the same workflow)
+
+            # Load the dummy output file
+            calc_fname = f'{qe_calc.directory}/{qe_calc.name}{qe_calc.ext_out}'
+            with open(calc_fname, 'r') as fd:
+                output_file_info = json.load(fd)
+
+            # Find out the calculation that generated the output file
+            directory, name = output_file_info['written_by'].rsplit('.', 1)[0].rsplit('/', 1)
+            directory = tests_directory() + '/' + directory
+            matches = [c for c in self.all_calcs if c.directory == directory and c.name == name]
+
+            # Copy that calculation into the record of all calculations
+            if len(matches) == 1:
+                # Fetch the results from the match
+                qe_calc.results = matches[0].results
+                self.all_calcs.append(qe_calc)
+            elif len(matches) == 0:
+                raise ValueError(f'Could not find a calculator matching {qe_calc.directory}/{qe_calc.name}')
+            else:
+                raise ValueError(f'Found multiple calculators for {qe_calc.directory}/{qe_calc.name}')
+
+            return qe_calc.is_complete()
 
     from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
 
-    class MockWannierizeWorkflow(WannierizeWorkflow):
-
-        def run_calculator_single(self, qe_calc):
-            generic_mock_calculator_single(self, qe_calc)
-            super().run_calculator_single(qe_calc)
-
-        def load_old_calculator(self, qe_calc):
-            generic_mock_load_old_calculator(self, qe_calc)
+    class MockWannierizeWorkflow(MockWorkflow, WannierizeWorkflow):
+        pass
 
     monkeypatch.setattr('koopmans.workflows.wf_with_w90.WannierizeWorkflow', MockWannierizeWorkflow)
 
-    from koopmans.workflows.kc_with_cp import KoopmansWorkflow
+    from koopmans.workflows.folding import FoldToSupercellWorkflow
 
-    class MockKoopmansWorkflow(KoopmansWorkflow):
+    class MockFoldToSupercellWorkflow(MockWorkflow, FoldToSupercellWorkflow):
+        pass
 
-        def run_calculator_single(self, qe_calc):
-            generic_mock_calculator_single(self, qe_calc)
-            super().run_calculator_single(qe_calc)
+    monkeypatch.setattr('koopmans.workflows.folding.FoldToSupercellWorkflow', MockFoldToSupercellWorkflow)
 
-        def load_old_calculator(self, qe_calc):
-            generic_mock_load_old_calculator(self, qe_calc)
+    from koopmans.workflows.kc_with_cp import KoopmansCPWorkflow
 
-    monkeypatch.setattr('koopmans.workflows.kc_with_cp.KoopmansWorkflow', MockKoopmansWorkflow)
+    class MockKoopmansCPWorkflow(MockWorkflow, KoopmansCPWorkflow):
+        pass
 
-    from koopmans.workflows.dft_with_cp import DFTWorkflow
+    monkeypatch.setattr('koopmans.workflows.kc_with_cp.KoopmansCPWorkflow', MockKoopmansCPWorkflow)
 
-    class MockDFTWorkflow(DFTWorkflow):
+    from koopmans.workflows.dft_with_cp import DFTCPWorkflow
 
-        def run_calculator_single(self, qe_calc):
-            generic_mock_calculator_single(self, qe_calc)
-            super().run_calculator_single(qe_calc)
+    class MockDFTCPWorkflow(MockWorkflow, DFTCPWorkflow):
+        pass
 
-        def load_old_calculator(self, qe_calc):
-            generic_mock_load_old_calculator(self, qe_calc)
+    monkeypatch.setattr('koopmans.workflows.dft_with_cp.DFTCPWorkflow', MockDFTCPWorkflow)
 
-    monkeypatch.setattr('koopmans.workflows.dft_with_cp.DFTWorkflow', MockDFTWorkflow)
+    from koopmans.workflows.dft_with_pw import DFTPWWorkflow
+
+    class MockDFTPWWorkflow(MockWorkflow, DFTPWWorkflow):
+        pass
+
+    monkeypatch.setattr('koopmans.workflows.dft_with_pw.DFTPWWorkflow', MockDFTPWWorkflow)
 
     from koopmans.workflows.pbe_dscf_with_pw import DeltaSCFWorkflow
 
-    class MockDeltaSCFWorkflow(DeltaSCFWorkflow):
-
-        def run_calculator_single(self, qe_calc):
-            generic_mock_calculator_single(self, qe_calc)
-            super().run_calculator_single(qe_calc)
-
-        def load_old_calculator(self, qe_calc):
-            generic_mock_load_old_calculator(self, qe_calc)
+    class MockDeltaSCFWorkflow(MockWorkflow, DeltaSCFWorkflow):
+        pass
 
     monkeypatch.setattr('koopmans.workflows.pbe_dscf_with_pw.DeltaSCFWorkflow', MockDeltaSCFWorkflow)
 
+    from koopmans.workflows.kc_with_pw import KoopmansPWWorkflow
+
+    class MockKoopmansPWWorkflow(MockWorkflow, KoopmansPWWorkflow):
+        def plot_bandstructure(self):
+            # We don't want the mock test to generate files (nor does it have access to the band_structure result)
+            return
+
+    monkeypatch.setattr('koopmans.workflows.kc_with_pw.KoopmansPWWorkflow', MockKoopmansPWWorkflow)
+
     # Monkeypatch find_executable, since we don't want to actually try and find the program
     def mock_find_executable(program):
-        return program
+        return './' + program
 
     monkeypatch.setattr('koopmans.utils.find_executable', mock_find_executable)

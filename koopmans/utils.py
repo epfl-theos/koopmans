@@ -44,6 +44,16 @@ def system_call(command, check_ierr=True):
         raise OSError(f'{command} exited with exit code {ierr}')
 
 
+def mkdir(path):
+    # Creates a (possibly nested) directory
+    relpath = os.path.relpath(path, os.getcwd())
+    split_relpath = relpath.split('/')
+    for i in range(len(split_relpath)):
+        subdir = '/'.join(split_relpath[:i + 1])
+        if not os.path.isdir(subdir):
+            system_call(f'mkdir {subdir}')
+
+
 @contextlib.contextmanager
 def chdir(path):
     # Allows for the context "with chdir(path)". All code within this
@@ -51,12 +61,7 @@ def chdir(path):
     this_dir = os.getcwd()
 
     # Create path if it does not exist
-    relpath = os.path.relpath(path, os.getcwd())
-    split_relpath = relpath.split('/')
-    for i in range(len(split_relpath)):
-        subdir = '/'.join(split_relpath[:i + 1])
-        if not os.path.isdir(subdir):
-            system_call(f'mkdir {subdir}')
+    mkdir(path)
 
     # Move to the directory
     os.chdir(path)
@@ -75,7 +80,7 @@ def find_executable(program):
     if program[0] == '~':
         program = program.replace('~', os.environ["HOME"], 1)
 
-    fpath, fname = os.path.split(program)
+    fpath, _ = os.path.split(program)
     if fpath:
         if is_exe(program):
             return program
@@ -88,7 +93,7 @@ def find_executable(program):
     return None
 
 
-def cpi_diff(calcs, silent=False):
+def calc_diff(calcs, silent=False):
     # Returns the differences in the settings of a list of calculators
 
     # If calcs is a dict, convert it to a list (we only need the values)
@@ -97,18 +102,15 @@ def cpi_diff(calcs, silent=False):
 
     diffs = []
 
-    settings = [c.construct_namelist() for c in calcs]
+    settings = [c._settings for c in calcs]
 
-    blocks = set([b for s in settings for b in s.keys()])
-    for block in sorted(blocks):
-        keys = set(
-            [k for s in settings for k in s.get(block, {}).keys()])
-        for key in sorted(keys):
-            vals = [s[block].get(key, None) for s in settings]
-            if len(set(vals)) > 1:
-                if not silent:
-                    print(f'{block}.{key}: ' + ', '.join(map(str, vals)))
-                diffs.append(key)
+    keys = set([k for s in settings for k in s.keys()])
+    for key in sorted(keys):
+        vals = [s.get(key, None) for s in settings]
+        if len(set(vals)) > 1:
+            if not silent:
+                print(f'{key}: ' + ', '.join(map(str, vals)))
+            diffs.append(key)
 
     return diffs
 
@@ -155,7 +157,7 @@ def check_settings(settings, valid_settings, mandatory_settings=[], physicals=[]
                         f'{valid_setting.type.__name__})')
 
             # Check value is among the valid options
-            if valid_setting.options is not None and value not in valid_setting.options:
+            if valid_setting.options is not None and valid_setting.default is not None and value not in valid_setting.options:
                 raise ValueError(
                     f'"{value}" is an invalid value for "{key}" (options are {"/".join(valid_setting.options)})')
 
