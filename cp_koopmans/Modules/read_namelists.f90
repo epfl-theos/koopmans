@@ -109,7 +109,6 @@ MODULE read_namelists_module
        saverho = .TRUE.
        !
        write_hr = .FALSE.
-       track_orbitals = .FALSE.
        !
        RETURN
        !
@@ -831,7 +830,6 @@ MODULE read_namelists_module
        CALL mp_bcast( nberrycyc,     ionode_id )
        CALL mp_bcast( saverho,       ionode_id )
        CALL mp_bcast( write_hr,      ionode_id )
-       CALL mp_bcast( track_orbitals,ionode_id )
        !
        RETURN
        !

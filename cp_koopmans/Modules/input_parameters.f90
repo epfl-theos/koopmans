@@ -260,17 +260,13 @@ MODULE input_parameters
           ! if true, print out the occupied and empty hamiltonians
           ! in the representation of variational orbitals
 
-        LOGICAL :: track_orbitals = .false.
-          ! if true, the centers and the spreads of the variational orbitals
-          ! are printed at each step of the minimization procedure
-
         NAMELIST / control / title, calculation, verbosity, restart_mode,  &
           nstep, iprint, isave, tstress, tprnfor, dt, ndr, ndw, outdir,    &
           prefix, wfcdir, max_seconds, ekin_conv_thr, etot_conv_thr,       &
           forc_conv_thr, pseudo_dir, disk_io, tefield, dipfield, lberry,   &
           gdir, nppstr, wf_collect, printwfc, lelfield, nberrycyc, refg,   &
           tefield2, saverho, tabps, lkpoint_dir, use_wannier, evc_restart, &
-          write_hr, track_orbitals
+          write_hr
 
 !
 !=----------------------------------------------------------------------------=!

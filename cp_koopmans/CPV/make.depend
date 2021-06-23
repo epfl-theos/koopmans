@@ -18,19 +18,6 @@ bforceion.o : ../Modules/uspp.o
 bforceion.o : mainvar.o
 bforceion.o : modules.o
 brillouin.o : ../Modules/kind.o
-centers_and_spreads.o : ../Modules/cell_base.o
-centers_and_spreads.o : ../Modules/constants.o
-centers_and_spreads.o : ../Modules/control_flags.o
-centers_and_spreads.o : ../Modules/electrons_base.o
-centers_and_spreads.o : ../Modules/fft_base.o
-centers_and_spreads.o : ../Modules/griddim.o
-centers_and_spreads.o : ../Modules/io_files.o
-centers_and_spreads.o : ../Modules/io_global.o
-centers_and_spreads.o : ../Modules/kind.o
-centers_and_spreads.o : ../Modules/mp.o
-centers_and_spreads.o : ../Modules/mp_global.o
-centers_and_spreads.o : ../Modules/recvec.o
-centers_and_spreads.o : cp_interfaces.o
 cg.o : ../Modules/electrons_base.o
 cg.o : ../Modules/io_global.o
 cg.o : ../Modules/kind.o
@@ -54,7 +41,6 @@ cg_empty_sub.o : ../Modules/recvec.o
 cg_empty_sub.o : ../Modules/twin_types.o
 cg_empty_sub.o : ../Modules/uspp.o
 cg_empty_sub.o : ../Modules/wavefunctions.o
-cg_empty_sub.o : centers_and_spreads.o
 cg_empty_sub.o : cg.o
 cg_empty_sub.o : cp_emass.o
 cg_empty_sub.o : cp_interfaces.o
@@ -83,7 +69,6 @@ cg_sub.o : ../Modules/recvec.o
 cg_sub.o : ../Modules/twin_types.o
 cg_sub.o : ../Modules/uspp.o
 cg_sub.o : ../Modules/wavefunctions.o
-cg_sub.o : centers_and_spreads.o
 cg_sub.o : cg.o
 cg_sub.o : cp_emass.o
 cg_sub.o : cp_interfaces.o
@@ -485,7 +470,6 @@ electrons.o : ../Modules/electrons_base.o
 electrons.o : ../Modules/io_global.o
 electrons.o : ../Modules/kind.o
 electrons.o : ../Modules/mp_global.o
-electrons.o : centers_and_spreads.o
 electrons.o : cp_emass.o
 electrons.o : ensemble_dft.o
 electrons.o : modules.o
@@ -736,7 +720,6 @@ init_run.o : ../Modules/twin_types.o
 init_run.o : ../Modules/uspp.o
 init_run.o : ../Modules/wavefunctions.o
 init_run.o : ../Modules/xml_io_base.o
-init_run.o : centers_and_spreads.o
 init_run.o : cg.o
 init_run.o : cp_emass.o
 init_run.o : cp_interfaces.o
