@@ -166,7 +166,7 @@
       !
       !     global arrays are no more needed
       !
-      !if( allocated( g2_g ) )   deallocate( g2_g )!required for calculation of centers: RICCARDO
+      if( allocated( g2_g ) )   deallocate( g2_g )
       !if( allocated( mill_g ) ) deallocate( mill_g )!required for berry's phase e-field now
       
       !
@@ -232,7 +232,7 @@
       use mp_global,        only: nproc_image
       USE io_files,         ONLY: outdir     
       use ions_base,        only: na, nsp, nat, tau_srt, ind_srt, if_pos, atm, na, pmass
-      use cell_base,        only: a1, a2, a3, r_to_s, cell_init, deth, alat
+      use cell_base,        only: a1, a2, a3, r_to_s, cell_init, deth
 
       use cell_base,        only: ibrav, ainv, h, hold, tcell_base_init
       USE ions_positions,   ONLY: allocate_ions_positions, atoms_init, &
@@ -242,7 +242,7 @@
       USE fft_types,        ONLY: fft_box_allocate
       USE cp_main_variables,     ONLY: ht0, htm, taub
       USE atoms_type_module,     ONLY: atoms_type
-      !
+
       implicit none
       !
       ! local
@@ -363,8 +363,6 @@
       ! local
       !
       REAL(DP) :: gmax, b1(3), b2(3), b3(3)
-      REAL(DP) :: alat_ 
-      REAL(DP) :: ralat2
       !
       !WRITE( stdout, 344 ) 
       !do i=1,3
@@ -373,15 +371,11 @@
       !
       !  re-initialize the cell base module with the new geometry
       !
-      alat_ = alat                     ! RICCARDO: the old alat is stored before the change
-      !
       CALL cell_base_reinit( TRANSPOSE( h ) )
-      !
-      ralat2 = ( alat / alat_ ) ** 2   ! RICCARDO: the new/old alat ratio, used to renormalize g2_g
       !
       call recips( a1, a2, a3, b1, b2, b3 )
       !
-      call gcal( alat, b1, b2, b3, gmax, ralat2 )
+      call gcal( alat, b1, b2, b3, gmax )
       !
       !   generation of little box g-vectors
       !
