@@ -465,6 +465,7 @@ MODULE input_parameters
         LOGICAL :: restart_from_wannier_pwscf= .false. !added by linh, to start KIPZ calculations using
         
         LOGICAL :: impose_bloch_symm = .false.
+        LOGICAL :: read_centers = .false.
         INTEGER :: mp1
         INTEGER :: mp2
         INTEGER :: mp3
@@ -498,8 +499,8 @@ MODULE input_parameters
              tot_charge, multiplicity, tot_magnetization,                     &
              spline_ps, london, london_s6, london_rcut, do_orbdep, do_ee,     &
              do_wf_cmplx, do_spinsym, f_cutoff, fixed_state, fixed_band,      &
-             restart_from_wannier_pwscf, impose_bloch_symm, mp1, mp2, mp3,    &
-             offset_centers_occ, offset_centers_emp
+             restart_from_wannier_pwscf, impose_bloch_symm, read_centers,     &
+             mp1, mp2, mp3, offset_centers_occ, offset_centers_emp
 !
 !=----------------------------------------------------------------------------=!
 !  NKSIC Namelist Input Parameters

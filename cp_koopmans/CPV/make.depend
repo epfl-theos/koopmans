@@ -18,6 +18,13 @@ bforceion.o : ../Modules/uspp.o
 bforceion.o : mainvar.o
 bforceion.o : modules.o
 brillouin.o : ../Modules/kind.o
+centers_and_spreads.o : ../Modules/cell_base.o
+centers_and_spreads.o : ../Modules/constants.o
+centers_and_spreads.o : ../Modules/electrons_base.o
+centers_and_spreads.o : ../Modules/io_files.o
+centers_and_spreads.o : ../Modules/io_global.o
+centers_and_spreads.o : ../Modules/kind.o
+centers_and_spreads.o : ../Modules/recvec.o
 cg.o : ../Modules/electrons_base.o
 cg.o : ../Modules/io_global.o
 cg.o : ../Modules/kind.o

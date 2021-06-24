@@ -7,6 +7,7 @@ atoms_type.o \
 bessel.o \
 berryion.o \
 bforceion.o \
+centers_and_spreads.o \
 cg.o \
 cg_sub.o \
 cglib.o \

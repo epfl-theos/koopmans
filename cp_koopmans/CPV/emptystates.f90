@@ -373,7 +373,7 @@
             ENDIF
             !
             IF ( gzero ) THEN
-               !
+              !
                c0_emp( 1, : ) = (0.0d0, 0.0d0)
                ! 
             ENDIF
@@ -399,13 +399,12 @@
             !
             write(stdout, * ) 'Linh: the code restarts not random wfc'
             !
-            IF ( impose_bloch_symm ) THEN
-              CALL symm_wannier( c0_emp, n_empx, .true. )
-            ENDIF
-            !
          ENDIF
          !
       ENDIF
+      !
+      IF ( impose_bloch_symm ) CALL symm_wannier( c0_emp, n_empx, .false. )
+      !
       !
       CALL nlsm1 ( n_emps, 1, nsp, eigr, c0_emp, bec_emp, 1, lgam )
       !
