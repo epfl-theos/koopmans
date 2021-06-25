@@ -418,6 +418,7 @@ SUBROUTINE init_run()
         ! 
      ENDIF
      !
+     IF (restart_from_wannier_pwscf) CALL wave_init_wannier_pwscf (c0, nbspx)
      !
      IF (restart_from_wannier_cp)    CALL wave_init_wannier_cp (c0, ngw, nbspx, .True.) 
      !
@@ -435,8 +436,8 @@ SUBROUTINE init_run()
   !  
   CALL stop_clock( 'initialize' )
   !
-  RETURN
+  IF ( impose_bloch_symm ) CALL symm_wannier(c0, nbspx, .false.)
   !
-  IF ( impose_bloch_symm ) CALL symm_wannier(c0, nbspx, .true.)
+  RETURN
   !
 END SUBROUTINE init_run

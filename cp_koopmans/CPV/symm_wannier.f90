@@ -126,6 +126,8 @@ SUBROUTINE symm_wannier_x( wfc, num_states, emp )
     !
   ELSE
     !
+    counter = norb_pc
+    !
     WRITE( stdout, * )
     WRITE( stdout, 202 ) norb_pc
     ! 
@@ -150,9 +152,10 @@ SUBROUTINE symm_wannier_x( wfc, num_states, emp )
         !
         DO n = 1, norb_pc
           ! 
+          counter = counter + 1
+          !
           IF ( read_centers ) THEN
             !
-            counter = counter + 1
             centers(:,counter) = centers(:,n) + rvect(:)
             spreads(counter) = spreads_(n)
             !
@@ -182,7 +185,7 @@ SUBROUTINE symm_wannier_x( wfc, num_states, emp )
 101 FORMAT( //, 3x, 'Forcing Bloch symmetry on the ', a3, ' orbitals', / &
                 3x, '------------------------------------------' )
 201 FORMAT( 5x, 'orbital # ', i3, ' :', 4x, '(', 3f10.6, ' )' )  
-202 FORMAT( 3x, 'Taking the first ', i4, 'orbitals as reference' )
+202 FORMAT( 3x, 'Taking the first ', i4, ' orbitals as reference' )
 301 FORMAT( /, 3x, 'Building the other orbitals  --->  w_Rn(r) = w_0n(r-R)', / )
   !
   !  

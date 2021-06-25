@@ -403,7 +403,7 @@
          !
       ENDIF
       !
-      IF ( impose_bloch_symm ) CALL symm_wannier( c0_emp, n_empx, .false. )
+      IF ( impose_bloch_symm ) CALL symm_wannier( c0_emp, n_empx, .true. )
       !
       !
       CALL nlsm1 ( n_emps, 1, nsp, eigr, c0_emp, bec_emp, 1, lgam )
