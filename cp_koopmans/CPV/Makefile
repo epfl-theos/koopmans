@@ -7,6 +7,7 @@ atoms_type.o \
 bessel.o \
 berryion.o \
 bforceion.o \
+centers_and_spreads.o \
 cg.o \
 cg_sub.o \
 cglib.o \
@@ -85,6 +86,7 @@ spharmonic.o \
 spline.o \
 stop_run.o \
 stress.o \
+symm_wannier.o \
 turbo.o \
 util.o \
 vanderwaals.o \

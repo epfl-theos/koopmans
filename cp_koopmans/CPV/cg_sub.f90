@@ -1724,7 +1724,9 @@
                write(stdout,'(5x,"iteration =",I4,"  eff iteration =",I4,"   Etot (Ha) =",F22.14)')&
                itercg, itercgeff, etotnew
             endif
+            !
         endif
+        !
 
         if ( ionode .and. mod(itercg,10) == 0 ) write(stdout,"()" )
 

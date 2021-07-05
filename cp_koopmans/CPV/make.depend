@@ -18,6 +18,13 @@ bforceion.o : ../Modules/uspp.o
 bforceion.o : mainvar.o
 bforceion.o : modules.o
 brillouin.o : ../Modules/kind.o
+centers_and_spreads.o : ../Modules/cell_base.o
+centers_and_spreads.o : ../Modules/constants.o
+centers_and_spreads.o : ../Modules/electrons_base.o
+centers_and_spreads.o : ../Modules/io_files.o
+centers_and_spreads.o : ../Modules/io_global.o
+centers_and_spreads.o : ../Modules/kind.o
+centers_and_spreads.o : ../Modules/recvec.o
 cg.o : ../Modules/electrons_base.o
 cg.o : ../Modules/io_global.o
 cg.o : ../Modules/kind.o
@@ -206,6 +213,7 @@ cp_interfaces.o : ../Modules/electrons_base.o
 cp_interfaces.o : ../Modules/energies.o
 cp_interfaces.o : ../Modules/fft_types.o
 cp_interfaces.o : ../Modules/griddim.o
+cp_interfaces.o : ../Modules/io_global.o
 cp_interfaces.o : ../Modules/ions_base.o
 cp_interfaces.o : ../Modules/kind.o
 cp_interfaces.o : ../Modules/recvec.o
@@ -213,9 +221,9 @@ cp_interfaces.o : ../Modules/twin_types.o
 cp_interfaces.o : ../Modules/uspp.o
 cp_interfaces.o : atoms_type.o
 cp_interfaces.o : modules.o
+cp_interfaces.o : ortho_check.o
 cp_interfaces.o : wave_types.o
 cp_interfaces.o : write_hamiltonian.o
-cp_interfaces.o : ortho_check.o
 cp_restart.o : ../Modules/cell_base.o
 cp_restart.o : ../Modules/constants.o
 cp_restart.o : ../Modules/control_flags.o
@@ -512,6 +520,7 @@ emptystates.o : ../Modules/wave_base.o
 emptystates.o : ../Modules/wavefunctions.o
 emptystates.o : ../Modules/wrappers.o
 emptystates.o : ../Modules/xml_io_base.o
+emptystates.o : centers_and_spreads.o
 emptystates.o : cp_emass.o
 emptystates.o : cp_interfaces.o
 emptystates.o : electrons.o
@@ -650,6 +659,7 @@ gradrho.o : ../Modules/griddim.o
 gradrho.o : ../Modules/recvec.o
 gradrho.o : cp_interfaces.o
 gram_swap.o : ../Modules/control_flags.o
+gram_swap.o : ../Modules/electrons_base.o
 gram_swap.o : ../Modules/kind.o
 gram_swap.o : ../Modules/recvec.o
 gram_swap.o : ../Modules/twin_types.o
@@ -1127,7 +1137,6 @@ perturbing_pot.o : ../Modules/uspp.o
 perturbing_pot.o : ../Modules/wavefunctions.o
 perturbing_pot.o : cp_interfaces.o
 perturbing_pot.o : modules.o
-perturbing_pot.o : ../include/f_defs.h
 phasefactor.o : ../Modules/cell_base.o
 phasefactor.o : ../Modules/constants.o
 phasefactor.o : ../Modules/control_flags.o
@@ -1371,6 +1380,16 @@ stress.o : ../Modules/mp_global.o
 stress.o : ../Modules/recvec.o
 stress.o : cp_interfaces.o
 stress.o : modules.o
+symm_wannier.o : ../Modules/cell_base.o
+symm_wannier.o : ../Modules/constants.o
+symm_wannier.o : ../Modules/electrons_base.o
+symm_wannier.o : ../Modules/input_parameters.o
+symm_wannier.o : ../Modules/io_global.o
+symm_wannier.o : ../Modules/kind.o
+symm_wannier.o : ../Modules/mp.o
+symm_wannier.o : ../Modules/mp_global.o
+symm_wannier.o : ../Modules/recvec.o
+symm_wannier.o : centers_and_spreads.o
 turbo.o : ../Modules/io_global.o
 turbo.o : ../Modules/kind.o
 turbo.o : ../Modules/mp.o
@@ -1517,6 +1536,7 @@ nlcc.o : ../include/f_defs.h
 ortho.o : ../include/f_defs.h
 ortho_base.o : ../include/f_defs.h
 para.o : ../include/f_defs.h
+perturbing_pot.o : ../include/f_defs.h
 phasefactor.o : ../include/f_defs.h
 polarization.o : ../include/f_defs.h
 potentials.o : ../include/f_defs.h

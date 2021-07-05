@@ -67,7 +67,7 @@ SUBROUTINE init_run()
   USE local_pseudo,             ONLY : allocate_local_pseudo
   USE cp_electronic_mass,       ONLY : emass_precond
   USE wannier_subroutines,      ONLY : wannier_startup
-  USE cp_interfaces,            ONLY : readfile
+  USE cp_interfaces,            ONLY : readfile, symm_wannier
   USE ions_base,                ONLY : ions_cofmass
   USE ensemble_dft,             ONLY : id_matrix_init, allocate_ensemble_dft, h_matrix_init
   USE efield_module,            ONLY : allocate_efield, allocate_efield2
@@ -87,7 +87,7 @@ SUBROUTINE init_run()
   USE nksic,                    ONLY : do_orbdep
   use input_parameters,         ONLY : odd_nkscalfact, restart_odd_nkscalfact, restart_mode, &
                                        restart_from_wannier_cp, wannier_empty_only, &
-                                       restart_from_wannier_pwscf
+                                       restart_from_wannier_pwscf, impose_bloch_symm
   use wavefunctions_module,     ONLY : c0_fixed
   USE twin_types !added:giovanni
   !
@@ -435,6 +435,8 @@ SUBROUTINE init_run()
   ENDIF
   !  
   CALL stop_clock( 'initialize' )
+  !
+  IF ( impose_bloch_symm ) CALL symm_wannier(c0, nbspx, .false.)
   !
   RETURN
   !

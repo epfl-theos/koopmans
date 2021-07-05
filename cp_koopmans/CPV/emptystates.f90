@@ -44,7 +44,7 @@
                                        wave_rand_init, wave_atom_init, elec_fakekine, &
                                        crot, dforce, nlsm1, grabec, &
                                        bec_csv, readempty_twin, writeempty_twin, &
-                                       write_hamiltonian, ortho_check
+                                       write_hamiltonian, ortho_check, symm_wannier
       USE mp,                   ONLY : mp_comm_split, mp_comm_free, mp_sum
       USE mp_global,            ONLY : intra_image_comm, me_image
       USE nksic,                ONLY : do_orbdep, do_pz, do_wxd, vsicpsi, wtot, sizwtot, &
@@ -58,7 +58,8 @@
       USE input_parameters,     ONLY : odd_nkscalfact_empty, &
                                        restart_from_wannier_cp, wannier_empty_only, &
                                        fixed_band, print_wfc_anion, wo_odd_in_empty_run, &
-                                       odd_nkscalfact, index_empty_to_save, write_hr
+                                       odd_nkscalfact, index_empty_to_save, write_hr, &
+                                       impose_bloch_symm
       USE wavefunctions_module, ONLY : c0fixed_emp
       !
       IMPLICIT NONE
@@ -372,7 +373,7 @@
             ENDIF
             !
             IF ( gzero ) THEN
-               !
+              !
                c0_emp( 1, : ) = (0.0d0, 0.0d0)
                ! 
             ENDIF
@@ -401,6 +402,9 @@
          ENDIF
          !
       ENDIF
+      !
+      IF ( impose_bloch_symm ) CALL symm_wannier( c0_emp, n_empx, .true. )
+      !
       !
       CALL nlsm1 ( n_emps, 1, nsp, eigr, c0_emp, bec_emp, 1, lgam )
       !

@@ -52,7 +52,7 @@
         INTEGER, ALLOCATABLE  :: sort_spreads(:,:) !added:giovanni wfc_spreads_emp
         INTEGER, ALLOCATABLE  :: sort_spreads_emp(:,:) !added:giovanni wfc_spreads_emp
 
-        LOGICAL :: icompute_spread=.false. !added:giovanni 
+        LOGICAL :: icompute_spread=.true. !added:giovanni 
 
 !  ...  Fourier acceleration
 
@@ -413,7 +413,8 @@
       use constants,      only : autoev 
       USE io_global,      ONLY : stdout, ionode
       USE ensemble_dft,   ONLY : tens, tsmear
-      use nksic,          ONLY : complexification_index, pink, pink_emp, do_orbdep, pzalpha=> odd_alpha, pzalpha_emp=>odd_alpha_emp
+      use nksic,          ONLY : complexification_index, pink, pink_emp, do_orbdep, &
+                                 pzalpha=> odd_alpha, pzalpha_emp=>odd_alpha_emp
       !
       INTEGER,  INTENT(IN) :: spread_unit
       LOGICAL,  INTENT(IN) :: tfile, tstdout
@@ -453,10 +454,10 @@
          !
       END DO
       !
-      IF(tstdout) THEN
+      IF( tstdout ) THEN
          !
-         WRITE(stdout, *) " Complexification index "
-         WRITE(stdout, *) complexification_index
+         WRITE( stdout, '(/, " Complexification index ")' )
+         WRITE( stdout, * ) complexification_index
          !
       ENDIF
       !
