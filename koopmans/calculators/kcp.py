@@ -210,7 +210,6 @@ class KCP_calc(EspressoCalc):
         elif kpt == 0:
             return self.results['eigenvalues'][spin]
         else:
-            print(kpt)
             raise ValueError(f'{self.__class__.__name__} does not have k-point-resolved KS eigenvalues')
 
     def get_fermi_level(self):

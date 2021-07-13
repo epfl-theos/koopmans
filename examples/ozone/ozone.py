@@ -41,7 +41,7 @@ def plot(wfs):
     dfpt_sh = wfs['dfpt'].all_calcs[-2].results['orbital_data']['self-Hartree']
     bar1 = ax.bar(x - 0.125, dfpt_sh, width=0.25, label='DFPT')
     bar2 = ax.bar(x + 0.125, dscf_sh, width=0.25, label=r'$\Delta$SCF')
-    ax.set_ylabel('self-Hartree (ev)')
+    ax.set_ylabel('self-Hartree (eV)')
     ax.legend(ncol=2, bbox_to_anchor=(1, 1), loc='upper right', frameon=False)
 
     # Plotting alphas

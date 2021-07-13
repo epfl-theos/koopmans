@@ -61,6 +61,7 @@ class W90_calc(GenericCalc):
     def defaults(self):
         return {'num_iter': 10000,
                 'conv_tol': 1.e-10,
+                'conv_window': 5,
                 'write_hr': True,
                 'guiding_centres': True,
                 'gamma_only': False}

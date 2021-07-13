@@ -24,7 +24,7 @@ def parse_w90(self):
     with open(self.w90_seedname + '.wout', 'r') as ifile:
         lines = ifile.readlines()
 
-    at = []
+    at = np.empty((3, 3), dtype=float)
     self.centers = []
     self.spreads = []
     count = 0
@@ -33,24 +33,23 @@ def parse_w90(self):
         if 'Number of Wannier Functions' in line:
             num_wann = int(line.split()[6])
         if ' a_1 ' in line:
-            at.append(np.array(line.split()[1:], dtype=float))
+            at[0, :] = line.split()[1:]
         if ' a_2 ' in line:
-            at.append(np.array(line.split()[1:], dtype=float))
+            at[1, :] = line.split()[1:]
         if ' a_3 ' in line:
-            at.append(np.array(line.split()[1:], dtype=float))
+            at[2, :] = line.split()[1:]
         if count > 0 and count <= num_wann:
             start = line.find('(')
             end = line.find(')')
             self.centers.append(np.array(line[start + 1:end].replace(',', ' ').split(),
                                          dtype=float))
             self.spreads.append(float(line.split()[-1]))
-
             count += 1
         if 'Final State' in line:
             count += 1
 
     self.Rvec = latt_vect(*self.sc_dim)
-    self.at = np.array(at, dtype=float).reshape(3, 3) / self.alat
+    self.at = at / self.alat
 
     if self.w90_input_sc:
         self.num_wann_sc = num_wann
@@ -476,45 +475,3 @@ def read_output_file(self, output_file=None):
     calc.results = {'job done': any(['ALL DONE' in line for line in flines])}
 
     return calc
-
-
-def scell_centers(self, units='crys', cell='sc'):
-
-    if units not in ['ang', 'bohr', 'alat', 'crys']:
-        units = 'crys'
-        self.f_out.write(
-            'The first argument of scell_centers can be "ang" or "bohr" or "alat" or "crys". Using default "crys"\n')
-
-    if cell not in ['sc', 'pc']:
-        cell = 'sc'
-        self.f_out.write('The second argument of scell_centers can be "sc" for supercell or "pc" for primitive cell. '
-                         'Using default "sc"\n')
-
-    if hasattr(self, 'alat_sc'):
-        if cell == 'sc':
-            alat = self.alat_sc
-            at = self.at_sc
-        else:
-            alat = self.alat
-            at = self.at
-    else:
-        alat = self.alat
-        at = self.at
-        if cell == 'pc':
-            cell = 'sc'
-            self.f_out.write('PC not available yet. Using default "sc"\n')
-
-    if units == 'crys':
-        return self.centers
-    else:
-        c_tmp = []
-        for n in range(self.num_wann_sc):
-            c_tmp.append(crys_to_cart(self.centers[n], at, +1))
-            if units == 'alat':
-                continue
-            if units == 'ang':
-                c_tmp[n] = c_tmp[n] * alat
-            if units == 'bohr':
-                c_tmp[n] = c_tmp[n] * units.Bohr
-
-        return c_tmp

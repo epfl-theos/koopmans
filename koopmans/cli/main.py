@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
-import json
+import os
 import argparse
 import subprocess
 import textwrap
+from types import ModuleType
+import ase
+from koopmans.utils import chdir
 from koopmans.io import read_json
 from koopmans.io.jsonio import write_json
 from koopmans.workflows.generic import valid_settings
@@ -13,21 +16,32 @@ Perform KI/KIPZ calculations
 '''
 
 
+def get_version(module):
+    if isinstance(module, ModuleType):
+        module = module.__path__[0]
+    with chdir(module):
+        version_label = subprocess.check_output(["git", "describe", "--always"]).strip()
+    return version_label.decode("utf-8")
+
+
 def header():
-    version_label = subprocess.check_output(["git", "describe", "--always"]).strip()
-    version_label = version_label.decode("utf-8")
-    header = ["  _                                                ",
-              " | | _____   ___  _ __  _ __ ___   __ _ _ __  ___  ",
-              " | |/ / _ \ / _ \| '_ \| '_ ` _ \ / _` | '_ \/ __| ",
-              " |   < (_) | (_) | |_) | | | | | | (_| | | | \__ \ ",
-              " |_|\_\___/ \___/| .__/|_| |_| |_|\__,_|_| |_|___/ ",
-              "                 |_|                               ",
+
+    koopmans_version = get_version(os.path.dirname(__file__))
+    ase_version = get_version(ase)
+
+    header = [r"  _                                                ",
+              r" | | _____   ___  _ __  _ __ ___   __ _ _ __  ___  ",
+              r" | |/ / _ \ / _ \| '_ \| '_ ` _ \ / _` | '_ \/ __| ",
+              r" |   < (_) | (_) | |_) | | | | | | (_| | | | \__ \ ",
+              r" |_|\_\___/ \___/| .__/|_| |_| |_|\__,_|_| |_|___/ ",
+              r"                 |_|                               ",
               "",
               " Koopmans spectral functional calculations with Quantum ESPRESSO",
               "",
               " Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna",
               "",
-              f" Version {version_label}",
+              f" version {koopmans_version}",
+              f" using ASE version {ase_version}",
               ""]
     return '\n'.join(header)
 

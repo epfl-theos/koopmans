@@ -39,3 +39,26 @@ class KoopmansHamCalc(KCWannCalc):
         alphas = self.results['alphas']
         filling = [True for _ in range(len(alphas))]
         io.write_alpha_file(self.directory, alphas, filling)
+
+    def get_k_point_weights(self):
+        utils.warn('Need to properly define k-point weights')
+        return np.ones(len(self.calc.parameters['kpath'].kpts))
+
+    def get_number_of_spins(self):
+        return 1
+
+    def get_eigenvalues(self, kpt=None, spin=0):
+        if spin != 0:
+            raise NotImplementedError(
+                f'Koopmans hamiltonian calculator is not implemented for spin-polarised systems')
+
+        if 'band structure' not in self.results:
+            raise ValueError('You must first calculate the band structure before you try to access the KS eigenvalues')
+
+        if kpt is None:
+            return self.results['band structure'].energies[spin, :]
+        else:
+            return self.results['band structure'].energies[spin, kpt]
+
+    def get_fermi_level(self):
+        return 0

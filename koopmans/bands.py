@@ -169,7 +169,7 @@ class Bands(object):
         if isinstance(value, pd.DataFrame):
             assert group is None, 'Cannot update only one group via a pandas DataFrame'
             for b, alpha_history in zip(self._bands, np.transpose(value.values.tolist())):
-                b.alpha_history = alpha_history
+                b.alpha_history = alpha_history.tolist()
             return
 
         if isinstance(value, float):
@@ -201,7 +201,7 @@ class Bands(object):
             assert group is None, 'Cannot update only one group via a pandas DataFrame'
             if not value.empty:
                 for b, error_history in zip(self._bands, np.transpose(value.values.tolist())):
-                    b.error_history = error_history
+                    b.error_history = error_history.tolist()
             return
 
         if isinstance(value, float):

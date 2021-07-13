@@ -20817,7 +20817,8 @@
     "empty": []
    },
    "job_done": true
-  }
+  },
+  "alphas": 0.7523021721044479
  },
  "test_05/ki/calc_alpha/iteration_2/ki_nspin1_dummy": {
   "settings": {
@@ -21410,7 +21411,13 @@
     "empty": []
    },
    "job_done": true
-  }
+  },
+  "alphas": [
+   0.7523021721044479,
+   0.7523021721044479,
+   0.7523021721044479,
+   0.7523021721044479
+  ]
  },
  "test_05/ki/calc_alpha/iteration_2/ki_nspin2_dummy": {
   "settings": {
@@ -21765,7 +21772,13 @@
     "empty": []
    },
    "job_done": true
-  }
+  },
+  "alphas": [
+   0.7523021721044479,
+   0.7523021721044479,
+   0.7523021721044479,
+   0.7523021721044479
+  ]
  },
  "test_05/ki/calc_alpha/iteration_2/ki_nspin2": {
   "settings": {
@@ -84017,6 +84030,7 @@
    },
    "num_iter": 10000,
    "conv_tol": 1e-10,
+   "conv_window": 5,
    "write_hr": true,
    "guiding_centres": true,
    "num_bands": 4,
@@ -84159,6 +84173,7 @@
    },
    "num_iter": 10000,
    "conv_tol": 1e-10,
+   "conv_window": 5,
    "write_hr": true,
    "guiding_centres": true,
    "num_bands": 4,
@@ -84174,7 +84189,7 @@
   },
   "results": {
    "job done": true,
-   "convergence": false
+   "convergence": true
   },
   "input files": {
    "test_10/wannier/occ/wann.eig": {
@@ -84260,6 +84275,7 @@
    },
    "num_iter": 10000,
    "conv_tol": 1e-10,
+   "conv_window": 5,
    "write_hr": true,
    "guiding_centres": true,
    "exclude_bands": "1-4",
@@ -84405,6 +84421,7 @@
    },
    "num_iter": 10000,
    "conv_tol": 1e-10,
+   "conv_window": 5,
    "write_hr": true,
    "guiding_centres": true,
    "exclude_bands": "1-4",
@@ -84420,7 +84437,7 @@
   },
   "results": {
    "job done": true,
-   "convergence": false
+   "convergence": true
   },
   "input files": {
    "test_10/wannier/emp/wann.eig": {
@@ -84520,7 +84537,7 @@
   "results": {
    "job_done": true,
    "alphas": [
-    0.02580456
+    0.02580455
    ],
    "orbital_data": {
     "self-Hartree": [
@@ -85098,13 +85115,23 @@
      -14.7691,
      -14.5237,
      -8.4163,
-     -7.1464
+     -7.1464,
+     -7.1264,
+     -4.5102
     ]
    ],
    "ki_eigenvalues_on_grid": [
     [
-     -7.1264,
-     -4.5102
+     -43.865,
+     -35.7707,
+     -27.9106,
+     -19.6054,
+     -19.4463,
+     -19.1386,
+     -12.7273,
+     -11.4576,
+     -11.352,
+     -0.2885
     ]
    ]
   }

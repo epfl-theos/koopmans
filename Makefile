@@ -33,6 +33,7 @@ TEST_DIRS := ki; pkipz; kipz; init; calc_alpha; final; TMP-CP; ecutwfc; charged;
 CLEAN_TEST_DIRS := $(pathsubst %,;, -o name %)
 
 clean:
-	find tests/test_??/ -type f ! \( ${KEEP_TESTS} \) | xargs -i rm -v {}
-	find tests/test_??/* -type d ${CLEAN_TEST_DIRS} | xargs -i rm -vrf {}
+	find tests/test_??/ -path */*/input_files -prune -false -o \
+		-type f ! \( ${KEEP_TESTS} \) | xargs -i rm -v {}
+	find tests/test_??/* -type d ${CLEAN_TEST_DIRS} | grep -v input_files | xargs -i rm -vrf {}
 
