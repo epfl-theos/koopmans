@@ -1,24 +1,25 @@
-=========
-python KI
-=========
+========
+koopmans
+========
 
 | |GH Actions| |Coverage Status| |MIT License| |Documentation Status|
 
-For performing KI and KIPZ calculations with ``Quantum ESPRESSO``
+For performing Koopmans spectral functional calculations with ``Quantum ESPRESSO``
 
 Directories
 -----------
-| ``ase_koopmans/`` a fork of ASE that manages reading and writing of ``Quantum ESPRESSO`` (for installation details see below)
+| ``ase/`` a fork of ASE that manages reading and writing of ``Quantum ESPRESSO`` (for installation details see below)
+| ``quantum_espresso/`` versions of ``Quantum ESPRESSO`` containing the implementations of the Koopmans functionals 
 | ``scripts/`` scripts for performing useful tasks  
-| ``koopmans/`` source code  
 | ``pseudos/`` pseudopotentials  
 | ``requirements/`` python dependencies
 | ``tests/`` test suite  
+| ``workflows/`` source code of the workflow manager
 
 Installation
 ------------
 
-Having checked out the git repository, there are a few final steps to set up ``python KI``. First, make sure you have installed the submodule ``ase_koopmans``. To install this, run
+Having checked out the git repository, there are a few final steps to set up ``koopmans``. First, make sure you have installed the submodule ``ase_koopmans``. To install this, run
 
 .. code-block:: bash
 
@@ -32,7 +33,7 @@ Then, create and activate a virtual environment, for example:
    virtualenv ~/venvs/koopmans
    source ~/venvs/koopmans/bin/activate
 
-And then finally install ``python_KI`` using ``pip``:
+And then finally install the workflow manager ``koopmans`` using ``pip``:
 
 .. code-block:: bash
 
@@ -58,7 +59,7 @@ To see a list of options, run ``koopmans --help``
 
 Contact
 -------
-Written and maintained by Edward Linscott and Riccardo De Gennaro (2020-)
+Written and maintained by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna (2020-)
 
 For help and feedback email edward.linscott@gmail.com
 
