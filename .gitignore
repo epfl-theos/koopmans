@@ -5,3 +5,4 @@ __pycache__/
 python_KI.egg-info
 coverage.xml
 .coverage
+*.egg-info/
