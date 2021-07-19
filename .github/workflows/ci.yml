@@ -21,8 +21,7 @@ jobs:
          - name: Checkout
            uses: actions/checkout@v2
            with:
-              submodules: recursive
-              fetch-depth: 0
+              submodules: ase
          - name: Set up Python ${{ matrix.python-version }}
            uses: actions/setup-python@v2
            with:
