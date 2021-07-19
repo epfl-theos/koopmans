@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+
+import argparse
+from koopmans.utils import calc_diff
+from koopmans.calculators.kcp import KCP_calc
+from koopmans.calculators.pw import PW_calc
+from koopmans.calculators.pw2wannier import PW2Wannier_calc
+from koopmans.calculators.wannier90 import W90_calc
+from koopmans.calculators.wann2kc import Wann2KCCalc
+from koopmans.calculators.kc_screen import KoopmansScreenCalc
+from koopmans.calculators.kc_ham import KoopmansHamCalc
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='Compare two QE input files')
+    parser.add_argument('files', metavar='file1 file2', type=str, nargs=2,
+                        help='the two QE input files')
+
+    args = parser.parse_args()
+
+    calcs = {}
+    exts = set([f.split('.')[-1] for f in args.files])
+    if 'in' in exts:
+        exts.remove('in')
+
+    assert len(exts) == 1, 'Could not work out what kind of file these are based on their extensions'
+
+    if 'cpi' in exts:
+        CalcClass = KCP_calc
+    elif 'pwi' in exts:
+        CalcClass = PW_calc
+    elif 'p2wi' in exts:
+        CalcClass = PW2Wannier_calc
+    elif 'win' in exts:
+        CalcClass = W90_calc
+    elif 'w2ki' in exts:
+        CalcClass = Wann2KCCalc
+    elif 'ksi' in exts:
+        CalcClass = KoopmansScreenCalc
+    elif 'khi' in exts:
+        CalcClass = KoopmansHamCalc
+    else:
+        raise ValueError(f'Unrecognised extension {exts}')
+
+    for f in args.files:
+        calcs[f] = CalcClass(qe_files=f)
+
+    calc_diff(calcs)

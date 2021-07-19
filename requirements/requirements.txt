@@ -1,0 +1,5 @@
+matplotlib>=2.0.0
+scipy>=0.18.1
+numpy>=1.14
+argparse>=1.1
+pandas>=1.0.0
