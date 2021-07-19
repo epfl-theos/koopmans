@@ -10,7 +10,7 @@ import numpy as np
 from ase.io.espresso import koopmans_screen as kcs_io
 from ase.calculators.espresso import KoopmansScreen
 from koopmans import io, utils
-from koopmans.calculators.generic import KCWannCalc
+from koopmans.calculators.generic import KCWannCalc, qe_bin_directory
 from koopmans.calculators.commands import ParallelCommandWithPostfix
 
 
@@ -28,7 +28,8 @@ class KoopmansScreenCalc(KCWannCalc):
     def __init__(self, *args, **kwargs):
         self.defaults.update({'tr2_ph': 1.0e-18, 'nmix_ph': 4, 'niter_ph': 33, 'lrpa': False, 'check_spread': True})
         super().__init__(*args, **kwargs)
-        self.calc.command = ParallelCommandWithPostfix(f'kc_screen.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
+        self.calc.command = ParallelCommandWithPostfix(
+            f'{qe_bin_directory}kc_screen.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
 
     def calculate(self):
         # Populate mp1-3

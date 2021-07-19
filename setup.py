@@ -4,7 +4,6 @@
 import os
 from glob import glob
 from setuptools import setup, find_packages
-from koopmans import __version__
 
 with open('requirements/requirements.txt', 'r') as f:
     requirements = [line.strip() for line in f.readlines()]
@@ -27,18 +26,18 @@ for _file in req_files:
 with open("README.rst", "r") as f:
     long_description = f.read()
 
-setup(name='python_KI',
-      version=__version__,
-      description='Koopmans spectral functional calculations with python and quantum espresso',
+setup(name='koopmans',
+      version='0.1.0',
+      description='Koopmans spectral functional calculations with python and Quantum ESPRESSO',
       long_description=long_description,
-      url='https://github.com/elinscott/python_KI',
+      url='https://github.com/epfl-theos/koopmans',
       author='Edward Linscott',
       author_email='edwardlinscott@gmail.com',
       maintainer='Edward Linscott',
       maintainer_email='edwardlinscott@gmail.com',
       license='MIT',
-      packages=find_packages() + find_packages(where='./ase_koopmans'),
-      package_dir={'': '.', 'ase': './ase_koopmans/ase'},
+      packages=find_packages(),
+      package_dir={'': '.'},
       python_requires='>=3.6',
       install_requires=requirements,
       scripts=glob('scripts/*'),

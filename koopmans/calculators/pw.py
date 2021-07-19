@@ -10,8 +10,8 @@ import os
 from ase.io.espresso import pw as pw_io
 from ase.calculators.espresso import Espresso
 from koopmans import io
-from koopmans.calculators.generic import EspressoCalc
-from koopmans.calculators.commands import ParallelCommandWithPostfix
+from koopmans.calculators.generic import EspressoCalc, qe_bin_directory
+from koopmans.calculators.commands import ParallelCommandWithPostfix, Command
 
 
 class PW_calc(EspressoCalc):
@@ -31,7 +31,9 @@ class PW_calc(EspressoCalc):
         self.settings_to_not_parse = ['assume_isolated']
         super().__init__(*args, **kwargs)
         self.results_for_qc = ['energy']
-        self.calc.command = ParallelCommandWithPostfix(os.environ.get('ASE_ESPRESSO_COMMAND', self.calc.command))
+        if not isinstance(self.calc.command, Command):
+            self.calc.command = ParallelCommandWithPostfix(os.environ.get(
+                'ASE_ESPRESSO_COMMAND', qe_bin_directory + self.calc.command))
 
     def is_complete(self):
         return self.results.get('job done', False)

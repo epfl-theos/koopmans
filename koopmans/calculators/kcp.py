@@ -12,7 +12,7 @@ from pandas.core.series import Series
 from ase.calculators.espresso import Espresso_kcp
 from ase.io.espresso import koopmans_cp as kcp_io
 from koopmans import io, utils
-from koopmans.calculators.generic import EspressoCalc
+from koopmans.calculators.generic import EspressoCalc, kcp_bin_directory
 from koopmans.calculators.commands import ParallelCommand
 
 
@@ -35,7 +35,9 @@ class KCP_calc(EspressoCalc):
         super().__init__(calc, qe_files, skip_qc, **kwargs)
 
         self.results_for_qc = ['energy', 'homo_energy', 'lumo_energy']
-        self.calc.command = ParallelCommand(os.environ.get('ASE_ESPRESSO_KCP_COMMAND', self.calc.command))
+        if not isinstance(self.calc.command, ParallelCommand):
+            self.calc.command = ParallelCommand(os.environ.get(
+                'ASE_ESPRESSO_KCP_COMMAND', kcp_bin_directory + self.calc.command))
 
         self.alphas = alphas
         self.filling = filling

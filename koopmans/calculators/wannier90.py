@@ -12,7 +12,7 @@ from koopmans.utils import warn
 from ase.io import wannier90 as w90_io
 from ase.calculators.wannier90 import Wannier90
 from ase.dft.kpoints import BandPath
-from koopmans.calculators.generic import GenericCalc
+from koopmans.calculators.generic import GenericCalc, qe_bin_directory
 from koopmans.calculators.commands import Command
 
 
@@ -36,7 +36,7 @@ class W90_calc(GenericCalc):
         self._ase_calc_class = Wannier90
         self.settings_to_not_parse = ['exclude_bands']
         super().__init__(*args, **kwargs)
-        self.calc.command = Command(os.environ.get('ASE_WANNIER90_COMMAND', self.calc.command))
+        self.calc.command = Command(os.environ.get('ASE_WANNIER90_COMMAND', qe_bin_directory + self.calc.command))
 
     def calculate(self):
         if self.mp_grid is None:

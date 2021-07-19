@@ -10,7 +10,7 @@ import numpy as np
 from ase.calculators.espresso import KoopmansHam
 from ase.io.espresso import koopmans_ham as kch_io
 from koopmans import io, utils
-from koopmans.calculators.generic import KCWannCalc
+from koopmans.calculators.generic import KCWannCalc, qe_bin_directory
 from koopmans.calculators.commands import ParallelCommand
 
 
@@ -29,7 +29,8 @@ class KoopmansHamCalc(KCWannCalc):
         self.defaults.update({'do_bands': True, 'use_ws_distance': True,
                               'write_hr': True, 'l_alpha_corr': False, 'lrpa': False})
         super().__init__(*args, **kwargs)
-        self.calc.command = ParallelCommand(f'kc_ham.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
+        self.calc.command = ParallelCommand(
+            f'{qe_bin_directory}kc_ham.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
 
     def write_alphas(self):
         assert 'alphas' in self.results

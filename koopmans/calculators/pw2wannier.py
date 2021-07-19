@@ -10,7 +10,7 @@ import os
 from koopmans.utils import warn
 from ase.io.espresso import pw2wannier as p2w_io
 from ase.calculators.espresso import PW2Wannier
-from koopmans.calculators.generic import GenericCalc
+from koopmans.calculators.generic import GenericCalc, qe_bin_directory
 from koopmans.calculators.commands import ParallelCommand
 
 
@@ -36,7 +36,8 @@ class PW2Wannier_calc(GenericCalc):
         self._ase_calc_class = PW2Wannier
         self.settings_to_not_parse = ['wan_mode']
         super().__init__(*args, **kwargs)
-        self.calc.command = ParallelCommand(os.environ.get('ASE_PW2WANNIER_COMMAND', self.calc.command))
+        self.calc.command = ParallelCommand(os.environ.get(
+            'ASE_PW2WANNIER_COMMAND', qe_bin_directory + self.calc.command))
 
     def _update_settings_dict(self):
         if 'inputpp' not in self._ase_calc.parameters:

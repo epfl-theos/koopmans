@@ -20,6 +20,11 @@ from ase.build import make_supercell
 from ase.calculators.calculator import FileIOCalculator
 import koopmans.utils as utils
 
+# Directories of the various QE calculators
+qe_parent_directory = os.path.dirname(__file__).rsplit('/', 2)[0] + '/quantum_espresso/'
+qe_bin_directory = qe_parent_directory + 'qe_koopmans/bin/'
+kcp_bin_directory = qe_parent_directory + 'cp_koopmans/bin/'
+
 
 class GenericCalc:
 
@@ -119,6 +124,8 @@ class GenericCalc:
         # Handle any recognised QE keywords passed as arguments
         for key, val in kwargs.items():
             if key not in self._valid_settings:
+                import ipdb
+                ipdb.set_trace()
                 raise ValueError(f'{key} is not a recognised keyword for {self.__class__.__name__}')
             setattr(self, key, val)
 

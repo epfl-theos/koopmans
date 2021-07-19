@@ -9,6 +9,7 @@ import ase
 from koopmans.utils import chdir
 from koopmans.io import read_json
 from koopmans.io.jsonio import write_json
+from koopmans.calculators.generic import qe_bin_directory
 from koopmans.workflows.generic import valid_settings
 
 '''
@@ -28,6 +29,7 @@ def header():
 
     koopmans_version = get_version(os.path.dirname(__file__))
     ase_version = get_version(ase)
+    qe_version = get_version(qe_bin_directory)
 
     header = [r"  _                                                ",
               r" | | _____   ___  _ __  _ __ ___   __ _ _ __  ___  ",
@@ -40,8 +42,7 @@ def header():
               "",
               " Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna",
               "",
-              f" version {koopmans_version}",
-              f" using ASE version {ase_version}",
+              f" using QE version {qe_version}, workflow manager version {koopmans_version}, and ASE version {ase_version}",
               ""]
     return '\n'.join(header)
 

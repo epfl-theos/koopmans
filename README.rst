@@ -33,12 +33,12 @@ Then, create and activate a virtual environment, for example:
    virtualenv ~/venvs/koopmans
    source ~/venvs/koopmans/bin/activate
 
-And then finally install the workflow manager ``koopmans`` using ``pip``:
+And then finally install the workflow manager ``koopmans`` (and ``ase``, the atomic simulation environment) using ``pip``:
 
 .. code-block:: bash
 
    python3 -m pip install --upgrade pip
-   python3 -m pip install -e .
+   python3 -m pip install -e . -e ase/
 
 In order to run the code in parallel, define the environment variables ``PARA_PREFIX`` and ``PARA_POSTFIX``. These are defined in the same way as in Quantum ESPRESSO, e.g.
 

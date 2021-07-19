@@ -11,7 +11,7 @@ import numpy as np
 from ase.calculators.espresso import Wann2KC
 from ase.io.espresso import wann2kc as w2k_io
 from koopmans import io, utils
-from koopmans.calculators.generic import KCWannCalc
+from koopmans.calculators.generic import KCWannCalc, qe_bin_directory
 from koopmans.calculators.commands import ParallelCommandWithPostfix
 
 
@@ -28,4 +28,5 @@ class Wann2KCCalc(KCWannCalc):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.calc.command = ParallelCommandWithPostfix(f'wann2kc.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
+        self.calc.command = ParallelCommandWithPostfix(
+            f'{qe_bin_directory}wann2kc.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
