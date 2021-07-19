@@ -19,7 +19,7 @@ Directories
 Installation
 ------------
 
-Having checked out the git repository, there are a few final steps to set up ``koopmans``. First, make sure you have installed the submodule ``ase_koopmans``. To install this, run
+Having checked out the git repository, there are a few final steps to set up ``koopmans``. First, make sure you have installed the various submodules. To install this, run
 
 .. code-block:: bash
 
