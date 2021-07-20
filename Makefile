@@ -2,9 +2,7 @@
 .PHONY: help install submodules configure espresso workflow tests mock_tests clean clean_espresso clean_tests
 
 MPIF90 = "mpiifort"
-FFT_LIBS="-lfftw3"
 BLAS_LIBS="-lmkl_intel_lp64 -lmkl_sequential -lmkl_core"
-LAPACK_LIBS=" "
 
 help:
 	@echo '  _                                                '
@@ -34,7 +32,7 @@ submodules:
 	git submodule update --remote --merge
 
 configure:
-	cd quantum_espresso/cp_koopmans; ./configure MPIF90=$(MPIF90) FFT_LIBS=$(FFT_LIBS) BLAS_LIBS=$(BLAS_LIBS) LAPACK_LIBS=$(LAPACK_LIBS);
+	cd quantum_espresso/cp_koopmans; ./configure MPIF90=$(MPIF90) FFT_LIBS=$(BLAS_LIBS) BLAS_LIBS=$(BLAS_LIBS) LAPACK_LIBS=$(BLAS_LIBS);
 	cd quantum_espresso/qe_koopmans; ./configure MPIF90=$(MPIF90);
 
 espresso:
@@ -48,8 +46,8 @@ workflow:
 clean: clean_espresso clean_tests
 
 clean_espresso:
-	@(cd quantum_espresso/cp_koopmans; $(MAKE) clean)
-	@(cd quantum_espresso/qe_koopmans; $(MAKE) clean)
+	@(cd quantum_espresso/cp_koopmans; $(MAKE) veryclean)
+	@(cd quantum_espresso/qe_koopmans; $(MAKE) veryclean)
 
 tests:
 	python3 -m pytest -m "not mock" tests/
