@@ -118,7 +118,10 @@ class GenericCalc:
 
         # If we initialised from qe_files, update self.directory and self.name
         if len(qe_files) > 0:
-            self.directory, name = qe_files[0].rsplit('/', 1)
+            if '/' in qe_files[0]:
+                self.directory, name = qe_files[0].rsplit('/', 1)
+            else:
+                self.directory, name = '.', qe_files[0]
             self.name = name.rsplit('.', 1)[0]
 
         # Handle any recognised QE keywords passed as arguments

@@ -595,9 +595,14 @@ def write_json(fd, calcs=[], workflow_settings={}):
             else:
                 code = 'pw'
             bigdct[code] = {}
+            calc = calc.calc
+
+            # pseudo directory
+            pseudo_dir = calc.parameters['input_data']['control'].pop('pseudo_dir', None)
+            if pseudo_dir is not None:
+                bigdct['setup']['control'] = {'pseudo_dir': pseudo_dir}
 
             # Populate bigdct with the settings
-            calc = calc.calc
             for key, block in calc.parameters['input_data'].items():
                 if len(block) > 0:
                     bigdct[code][key] = {k: v for k, v in dict(
