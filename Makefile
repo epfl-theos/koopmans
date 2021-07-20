@@ -1,8 +1,7 @@
 # List of available tasks
 .PHONY: help install submodules configure espresso workflow tests mock_tests clean clean_espresso clean_tests
 
-MPIF90 = "mpiifort"
-BLAS_LIBS="-lmkl_intel_lp64 -lmkl_sequential -lmkl_core"
+MPIF90 = "mpif90"
 
 help:
 	@echo '  _                                                '
@@ -32,7 +31,7 @@ submodules:
 	git submodule update --remote --merge
 
 configure:
-	cd quantum_espresso/cp_koopmans; ./configure MPIF90=$(MPIF90) FFT_LIBS=$(BLAS_LIBS) BLAS_LIBS=$(BLAS_LIBS) LAPACK_LIBS=$(BLAS_LIBS);
+	cd quantum_espresso/cp_koopmans; ./configure MPIF90=$(MPIF90);
 	cd quantum_espresso/qe_koopmans; ./configure MPIF90=$(MPIF90);
 
 espresso:
