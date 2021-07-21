@@ -8275,6 +8275,8 @@ echo setting IFLAGS... $iflags
 
 ac_config_headers="$ac_config_headers include/qe_cdefs.h:include/qe_cdefs.h.in"
 
+ac_config_headers="$ac_config_headers include/fft_defs.h:include/fft_defs.h.in"
+
 ac_config_files="$ac_config_files include/configure.h:include/configure.h.in"
 
 
@@ -8973,6 +8975,7 @@ do
   case $ac_config_target in
     "install/make_lapack.inc") CONFIG_FILES="$CONFIG_FILES install/make_lapack.inc" ;;
     "include/qe_cdefs.h") CONFIG_HEADERS="$CONFIG_HEADERS include/qe_cdefs.h:include/qe_cdefs.h.in" ;;
+    "include/fft_defs.h") CONFIG_HEADERS="$CONFIG_HEADERS include/fft_defs.h:include/fft_defs.h.in" ;;
     "include/configure.h") CONFIG_FILES="$CONFIG_FILES include/configure.h:include/configure.h.in" ;;
     "make.inc") CONFIG_FILES="$CONFIG_FILES make.inc" ;;
     "configure.msg") CONFIG_FILES="$CONFIG_FILES configure.msg" ;;

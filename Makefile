@@ -32,7 +32,7 @@ install: submodules espresso workflow
 
 submodules:
 	git submodule init
-	git submodule update --remote --merge
+	git submodule update
 
 configure:
 	cd quantum_espresso/cp_koopmans; ./configure MPIF90=$(MPIF90);

@@ -35,7 +35,7 @@ For a more careful installation, first make sure you have downloaded the various
 .. code-block:: bash
 
    git submodule init
-   git submodule update --remote --merge
+   git submodule update
 
 Then you need to compile the copies of ``Quantum ESPRESSO``. To do this, run
 
