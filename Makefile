@@ -14,17 +14,21 @@ help:
 	@echo ' Python module for performing KI and KIPZ calculations'
 	@echo ' For more information, see README.rst'
 	@echo ''
+	@echo ' To install'
+	@echo ' > make install'
+	@echo '(For more details, see README.rst)'
+	@echo ''
 	@echo ' To run the test suite'
 	@echo ' > make tests'
 	@echo ''
-	@echo ' To test without calling QE:'
+	@echo ' To test without calling QE'
 	@echo ' > make mock_tests'
 	@echo ''
-	@echo ' To remove all test outputs in the test subdirectories:'
+	@echo ' To clean the repository (removing compilations of QE and all test outputs)'
 	@echo ' > make clean'
 	@echo ''
 
-install: submodules configure espresso workflow
+install: submodules espresso workflow
 
 submodules:
 	git submodule init
@@ -34,13 +38,13 @@ configure:
 	cd quantum_espresso/cp_koopmans; ./configure MPIF90=$(MPIF90);
 	cd quantum_espresso/qe_koopmans; ./configure MPIF90=$(MPIF90);
 
-espresso:
+espresso: configure
 	@(cd quantum_espresso/cp_koopmans; $(MAKE) kcp)
 	@(cd quantum_espresso/qe_koopmans; $(MAKE) kc)
 
 workflow:
 	python3 -m pip install --upgrade pip
-	python3 -m pip install . ase/
+	python3 -m pip install -e . -e ase/
 
 clean: clean_espresso clean_tests
 

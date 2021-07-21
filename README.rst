@@ -8,6 +8,8 @@ For performing Koopmans spectral functional calculations with ``Quantum ESPRESSO
 
 Directories
 -----------
+This repository contains...
+
 | ``ase/`` a fork of ASE that manages reading and writing of ``Quantum ESPRESSO`` (for installation details see below)
 | ``quantum_espresso/`` versions of ``Quantum ESPRESSO`` containing the implementations of the Koopmans functionals 
 | ``scripts/`` scripts for performing useful tasks  
@@ -19,28 +21,52 @@ Directories
 Installation
 ------------
 
-Having checked out the git repository, there are a few final steps to set up ``koopmans``. First, make sure you have installed the various submodules. To install this, run
-
-.. code-block:: bash
-
-   git submodule init
-   git submodule update --remote --merge
-
-Then, create and activate a virtual environment, for example:
+You are encouraged (but it is not necessary) to first create and activate a virtual environment as follows:
 
 .. code-block:: bash
 
    virtualenv ~/venvs/koopmans
    source ~/venvs/koopmans/bin/activate
 
-And then finally install the workflow manager ``koopmans`` (and ``ase``, the atomic simulation environment) using ``pip``:
+For a quick installation one can then simply run ``make install``.
+
+For a more careful installation, first make sure you have downloaded the various ``git`` submodules. To install this, run ``make submodules``, or equivalently
+
+.. code-block:: bash
+
+   git submodule init
+   git submodule update --remote --merge
+
+Then you need to compile the copies of ``Quantum ESPRESSO``. To do this, run
+
+.. code-block:: bash
+
+   make espresso MPIF90=<mpif90>
+
+where ``<mpif90>`` should be replaced by the name of your chosen MPI Fortran90 compiler e.g. ``MPIF90=mpiifort``. The code should automatically detect and link the requisite libraries. (If this fails you will need to manually compile the two copies of ``Quantum ESPRESSO`` contained in the ``quantum_espresso/``.)
+
+Finally, install the python workflow manager, either via ``make workflow``, or
 
 .. code-block:: bash
 
    python3 -m pip install --upgrade pip
    python3 -m pip install -e . -e ase/
 
-In order to run the code in parallel, define the environment variables ``PARA_PREFIX`` and ``PARA_POSTFIX``. These are defined in the same way as in Quantum ESPRESSO, e.g.
+Running
+-------
+Calculations are run with the command
+
+.. code-block:: bash
+
+   koopmans <seed>.json
+
+where <seed>.json is the ``koopmans`` input file. For a description of the contents of this file, refer to the documentation (`available online <https://koopmans-docs.readthedocs.io>`_). The keywords of ``koopmans`` keywords can be readily listed by running
+
+.. code-block:: bash
+   
+   koopmans --help
+
+In order to run the code in parallel, define the environment variables ``PARA_PREFIX`` and ``PARA_POSTFIX``. These are defined in the same way as in ``Quantum ESPRESSO``, e.g.
 
 .. code-block:: bash
 
@@ -52,10 +78,6 @@ You can also *optionally* direct the code to use a central pseudopotentials dire
 .. code-block:: bash
 
    export ESPRESSO_PSEUDO="/path/to/pseudopotential/folder/"
-
-Running
--------
-To see a list of options, run ``koopmans --help``
 
 Contact
 -------
