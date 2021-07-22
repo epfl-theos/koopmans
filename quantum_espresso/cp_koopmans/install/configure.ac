@@ -62,6 +62,9 @@ SIZEOF_INT_P=$ac_cv_sizeof_int_p
 AC_SUBST(SIZEOF_INT_P)
 AC_CONFIG_FILES([include/fft_defs.h:include/fft_defs.h.in])
 
+# Find fortran-to-C wrappers
+AC_F77_WRAPPERS() 
+
 AC_LANG_PUSH(Fortran 77)
 F77=$f90 # use Fortran 90 actually
 FFLAGS="$test_fflags"
@@ -120,7 +123,7 @@ AC_SUBST(iflags)
 AC_SUBST(ld_libs)
 AC_SUBST(topdir)
 AC_SUBST(extlib_flags)
-AC_CONFIG_HEADERS([include/qe_cdefs.h:include/qe_cdefs.h.in])
+AC_CONFIG_HEADERS([include/c_defs.h:include/c_defs.h.in])
 AC_CONFIG_FILES([include/configure.h:include/configure.h.in])
 
 #AC_CONFIG_FILES(Makefile.cpu)

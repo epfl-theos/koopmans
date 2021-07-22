@@ -955,10 +955,12 @@ SUBROUTINE print_lambda_x_twin( lambda, n, nshow, ccc, iunit )
 !              IF (fixed_state .AND. (is==1)) &
 !                 WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl(fixed_band,fixed_band)*ccc/f_cutoff)              
               IF (fixed_state .AND. (fixed_band .le. nupdwn(1)) ) THEN
-                 WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl(fixed_band,fixed_band)*ccc/f_cutoff)
+                 WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, &
+                                 real(lambda_repl(fixed_band,fixed_band)*ccc/f_cutoff)
               ELSE
                  fixed_band_aux = fixed_band-nupdwn(1)
-                 WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl(fixed_band_aux,fixed_band_aux)*ccc/f_cutoff)
+                 WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, &
+                                 real(lambda_repl(fixed_band_aux,fixed_band_aux)*ccc/f_cutoff)
              ENDIF
 	  END IF
 	END DO
@@ -978,10 +980,12 @@ SUBROUTINE print_lambda_x_twin( lambda, n, nshow, ccc, iunit )
 !              IF (fixed_state .AND. (is==1)) &
 !                 WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl_c(fixed_band,fixed_band)*ccc/f_cutoff)
               IF (fixed_state .AND. (fixed_band .le. nupdwn(1)) ) THEN
-                  WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl_c(fixed_band,fixed_band)*ccc/f_cutoff)
+                  WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, &
+                                  real(lambda_repl_c(fixed_band,fixed_band)*ccc/f_cutoff)
               ELSE
                  fixed_band_aux = fixed_band-nupdwn(1)
-                 WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, real(lambda_repl_c(fixed_band_aux,fixed_band_aux)*ccc/f_cutoff)
+                 WRITE(stdout,*) "fixed_lambda ",fixed_band,fixed_band, &
+                                 real(lambda_repl_c(fixed_band_aux,fixed_band_aux)*ccc/f_cutoff)
              ENDIF
 	  END IF
 	END DO
