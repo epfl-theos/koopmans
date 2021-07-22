@@ -7,5 +7,8 @@ test_??/tab_alpha_values.tex
 test_??/converged.json
 test_??/*/
 test_??/*.stdout
+test_09/bands_interpolated.dat
+test_09/dos_interpolated.dat
+test_10/test_si_primitive_bandstructure.png
 coverage.xml
 
