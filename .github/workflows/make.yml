@@ -1,0 +1,27 @@
+name: Build
+
+on:
+   pull_request:
+      branches:
+         - master
+   push:
+      branches:
+         - master
+
+jobs:
+   compile-qe:
+      runs-on: ubuntu-latest
+      strategy:
+         fail-fast: false
+      steps:
+         - name: Checkout
+           uses: actions/checkout@v2
+           with:
+              submodules: true
+         - name: Install dependencies
+           run: |
+              sudo apt-get install gfortran libblas-dev liblapack-dev fftw3-dev
+         - name: Build
+           run: |
+              make espresso MPIF90=mpif90
+
