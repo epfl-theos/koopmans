@@ -25,6 +25,8 @@ You are encouraged (but it is not necessary) to first create and activate a virt
 
 .. code-block:: bash
 
+   sudo apt-get install python3-pip
+   sudo pip3 install virtualenv
    virtualenv ~/venvs/koopmans
    source ~/venvs/koopmans/bin/activate
 
