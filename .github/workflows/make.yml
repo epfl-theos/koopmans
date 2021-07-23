@@ -9,6 +9,8 @@ on:
    push:
       branches:
          - master
+      paths:
+         - 'quantum_espresso/**'
 
 jobs:
    gfortran:
