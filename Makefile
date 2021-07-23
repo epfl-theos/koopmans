@@ -1,5 +1,5 @@
 # List of available tasks
-.PHONY: help install submodules configure espresso workflow tests mock_tests clean clean_espresso clean_tests
+.PHONY: help install submodules configure_4 configure_6 configure espresso_4 espresso_6 espresso workflow tests mock_tests clean clean_espresso clean_tests
 
 MPIF90 = "mpif90"
 
@@ -34,13 +34,21 @@ submodules:
 	git submodule init
 	git submodule update
 
-configure:
+configure_4:
 	cd quantum_espresso/cp_koopmans; ./configure MPIF90=$(MPIF90);
+
+configure_6:
 	cd quantum_espresso/qe_koopmans; ./configure MPIF90=$(MPIF90);
 
-espresso: configure
+configure: configure_4 configure_6
+
+espresso_4:
 	@(cd quantum_espresso/cp_koopmans; $(MAKE) kcp)
+
+espresso_6:
 	@(cd quantum_espresso/qe_koopmans; $(MAKE) kc)
+
+espresso: configure_4 espresso_4 configure_6 espresso_6
 
 workflow:
 	python3 -m pip install --upgrade pip

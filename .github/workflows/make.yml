@@ -19,7 +19,16 @@ jobs:
          - name: Install dependencies
            run: |
               sudo apt-get install gfortran libopenmpi-dev libblas-dev liblapack-dev fftw3-dev
-         - name: Build
+         - name: Configure cp_koopmans
            run: |
-              make espresso MPIF90=mpif90
+              make configure_4 MPIF90=mpif90
+         - name: Build cp_koopmans
+           run: |
+              make espresso_4 MPIF90=mpif90
+         - name: Configure qe_koopmans
+           run: |
+              make configure_6 MPIF90=mpif90
+         - name: Build qe_koopmans
+           run: |
+              make espresso_6 MPIF90=mpif90
 
