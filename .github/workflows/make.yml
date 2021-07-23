@@ -4,6 +4,8 @@ on:
    pull_request:
       branches:
          - master
+      paths:
+         - 'quantum_espresso/**'
    push:
       branches:
          - master
@@ -18,6 +20,7 @@ jobs:
               submodules: true
          - name: Install dependencies
            run: |
+              sudo apt-get update
               sudo apt-get install gfortran libopenmpi-dev libblas-dev liblapack-dev fftw3-dev
          - name: Configure cp_koopmans
            run: |
