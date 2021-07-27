@@ -890,6 +890,10 @@ class KoopmansCPWorkflow(Workflow):
         # don't print QC in some cases
         if 'dummy' in calc.name:
             calc.skip_qc = True
+        elif calc.name[-2:] == '+1':
+            # Don't check N+1 energies because they're known to be unreliable
+            if 'energy' in calc.results_for_qc:
+                calc.results_for_qc.remove('energy')
 
         return calc
 
