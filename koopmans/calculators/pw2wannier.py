@@ -1,6 +1,6 @@
 """
 
-pw2wannier calculator module for python_KI
+pw2wannier calculator module for koopmans
 
 Written by Edward Linscott Sep 2020
 

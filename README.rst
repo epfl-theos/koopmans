@@ -10,10 +10,10 @@ Directories
 -----------
 This repository contains...
 
-| ``ase/`` a fork of ASE that manages reading and writing of ``Quantum ESPRESSO`` (for installation details see below)
-| ``quantum_espresso/`` versions of ``Quantum ESPRESSO`` containing the implementations of the Koopmans functionals 
-| ``scripts/`` scripts for performing useful tasks  
-| ``pseudos/`` pseudopotentials  
+| ``ase/`` a fork of ASE that manages reading and writing of ``Quantum ESPRESSO``
+| ``bin/`` executables (N.B. this directory does not need to be added to ``$PATH``)  
+| ``quantum_espresso/`` modified versions of ``Quantum ESPRESSO`` that contain implementations of the Koopmans functionals 
+| ``pseudos/`` pseudopotentials
 | ``requirements/`` python dependencies
 | ``tests/`` test suite  
 | ``workflows/`` source code of the workflow manager
@@ -26,7 +26,7 @@ You are encouraged (but it is not necessary) to first create and activate a virt
 .. code-block:: bash
 
    sudo apt-get install python3-pip
-   sudo pip3 install virtualenv
+   pip3 install virtualenv
    virtualenv ~/venvs/koopmans
    source ~/venvs/koopmans/bin/activate
 

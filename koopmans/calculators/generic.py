@@ -1,6 +1,6 @@
 """
 
-Calculator module for python_KI
+Calculator module for koopmans
 
 Written by Edward Linscott Jan 2020
 

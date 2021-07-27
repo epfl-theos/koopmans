@@ -1,0 +1,1 @@
+../quantum_espresso/qe_koopmans/bin/pw2wannier90.x

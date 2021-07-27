@@ -1,1 +1,1 @@
-'Calculators for use with python_KI'
+'Calculators for use with koopmans'

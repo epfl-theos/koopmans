@@ -1,6 +1,6 @@
 """
 
-wannier90 calculator module for python_KI
+wannier90 calculator module for koopmans
 
 Written by Edward Linscott Sep 2020
 

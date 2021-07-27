@@ -1,6 +1,6 @@
 """
 
-JSON I/O for python_KI
+JSON I/O for koopmans
 
 Written by Edward Linscott Mar 2021, largely modelled off ase.io.jsonio
 

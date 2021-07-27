@@ -1,6 +1,6 @@
 '''
 
-utils module for python_KI
+utils module for koopmans
 
 Written by Edward Linscott May 2020
 
@@ -14,7 +14,7 @@ import contextlib
 from ase.units import create_units
 
 
-# Quantum Espresso -- and python_KI -- uses CODATA 2006 internally
+# Quantum Espresso -- and koopmans -- uses CODATA 2006 internally
 units = create_units('2006')
 
 def _warning(message, category=UserWarning, filename='', lineno=-1, file=None, line=None):

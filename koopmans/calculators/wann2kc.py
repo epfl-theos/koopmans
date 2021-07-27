@@ -1,6 +1,6 @@
 """
 
-wann2kc calculator module for python_KI
+wann2kc calculator module for koopmans
 
 Written by Edward Linscott Feb 2021
 

@@ -1,6 +1,6 @@
 """
 
-I/O module for python_KI
+I/O module for koopmans
 
 Written by Edward Linscott Jan 2020
 
@@ -50,7 +50,7 @@ def read_w90_dict(dct, generic_atoms):
     # Read in parameters
     calc.parameters.update(read_dict(dct))
 
-    # Return python_KI-type calculator object rather than ASE calculator
+    # Return koopmans-type calculator object rather than ASE calculator
     return wannier90.W90_calc(calc)
 
 
@@ -102,7 +102,7 @@ def read_pw2wannier_dict(dct, generic_atoms):
     if 'kpts' in generic_atoms.calc.parameters:
         calc.parameters['kpts'] = generic_atoms.calc.parameters['kpts']
 
-    # Return python_KI-type calculator object rather than ASE calculator
+    # Return koopmans-type calculator object rather than ASE calculator
     return pw2wannier.PW2Wannier_calc(calc)
 
 

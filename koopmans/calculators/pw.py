@@ -1,6 +1,6 @@
 """
 
-pw calculator module for python_KI
+pw calculator module for koopmans
 
 Written by Edward Linscott Sep 2020
 

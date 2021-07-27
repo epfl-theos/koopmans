@@ -1,6 +1,6 @@
 """
 
-Generic workflow object for python_KI
+Generic workflow object for koopmans
 
 Written by Edward Linscott Oct 2020
 Converted workflows from functions to objects Nov 2020

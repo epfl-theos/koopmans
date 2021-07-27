@@ -1,1 +1,1 @@
-'Workflows for use with python_KI'
+'Workflows for use with koopmans'

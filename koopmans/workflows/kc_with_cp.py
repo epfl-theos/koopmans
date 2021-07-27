@@ -1,6 +1,6 @@
 """
 
-Workflow module for python_KI, containing the workflow for performing KI and KIPZ calculations
+Workflow module for koopmans, containing the workflow for performing KI and KIPZ calculations
 
 Written by Edward Linscott Jan 2020
 Split off from workflow.py Oct 2020

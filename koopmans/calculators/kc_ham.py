@@ -1,6 +1,6 @@
 """
 
-kc_ham calculator module for python_KI
+kc_ham calculator module for koopmans
 
 Written by Edward Linscott Feb 2021
 

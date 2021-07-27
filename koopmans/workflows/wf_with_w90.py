@@ -1,6 +1,6 @@
 """
 
-Workflow module for python_KI, containing the workflow for generating maximally localized
+Workflow module for koopmans, containing the workflow for generating maximally localized
 Wannier functions (MLWFs), using the Wannier90 code
 
 Written by Riccardo De Gennaro Nov 2020

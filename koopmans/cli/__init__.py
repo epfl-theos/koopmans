@@ -1,1 +1,1 @@
-# Command line interface module for python_KI
+# Command line interface module for koopmans

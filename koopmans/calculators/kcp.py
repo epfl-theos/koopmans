@@ -1,6 +1,6 @@
 """
 
-kcp calculator module for python_KI
+kcp calculator module for koopmans
 
 Written by Edward Linscott Sep 2020
 

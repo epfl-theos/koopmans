@@ -1,6 +1,6 @@
 """
 
-Workflow module for python_KI, containing the workflow for converting W90 files to cp.x friendly-format
+Workflow module for koopmans, containing the workflow for converting W90 files to cp.x friendly-format
 using a modified version of pw2wannier.x
 
 Written by Edward Linscott Feb 2021

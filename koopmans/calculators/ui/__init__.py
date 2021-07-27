@@ -1,8 +1,8 @@
 """
-Unfolding & interpolating calculator for python_KI
+Unfolding & interpolating calculator for koopmans
 
 Originally written by Riccardo De Gennaro as the standalone 'unfolding and interpolate' code
-Integrated within python_KI by Edward Linscott Jan 2021
+Integrated within koopmans by Edward Linscott Jan 2021
 
 """
 

@@ -1,6 +1,6 @@
 """
 
-singlepoint workflow object for python_KI
+singlepoint workflow object for koopmans
 
 Written by Edward Linscott Oct 2020
 Converted to a workflow object Nov 2020
