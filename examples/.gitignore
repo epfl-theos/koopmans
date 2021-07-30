@@ -1,0 +1,13 @@
+**/TMP/
+**/TMP-CP/
+**/init/*
+**/wannier/*
+**/calc_alpha/*
+**/final/*
+**/postproc/*
+**/screening/*
+**/hamiltonian/*
+*.pkl
+*.png
+*.tex
+*.pdf

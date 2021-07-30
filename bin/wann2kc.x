@@ -1,0 +1,1 @@
+../quantum_espresso/qe_koopmans/bin/wann2kc.x
