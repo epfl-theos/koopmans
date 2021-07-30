@@ -27,7 +27,7 @@ with open("README.rst", "r") as f:
     long_description = f.read()
 
 setup(name='koopmans',
-      version='0.1.0',
+      version='0.3.0',
       description='Koopmans spectral functional calculations with python and Quantum ESPRESSO',
       long_description=long_description,
       url='https://github.com/epfl-theos/koopmans',
