@@ -1,0 +1,3 @@
+[report]
+# Regexes for lines to exclude from consideration
+ignore_errors = True

@@ -1,6 +1,9 @@
-[submodule "unfold_and_interpolate"]
-	path = unfold_and_interpolate
-	url = git@github.com:degennar/unfold_and_interpolate.git
-[submodule "qe_koopmans"]
-	path = qe_koopmans
-	url = git@gitlab.com:elinscott/qe_koopmans.git
+[submodule "quantum_espresso/qe_koopmans"]
+	path = quantum_espresso/qe_koopmans
+	url = https://gitlab.com/elinscott/qe_koopmans.git
+[submodule "ase"]
+	path = ase
+	url = https://github.com/elinscott/ase_koopmans
+[submodule "docs"]
+	path = docs
+	url = https://github.com/elinscott/koopmans_docs.git

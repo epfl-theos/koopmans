@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Given a list of cp input/output files...
+# ... run vimdiff $@ if they're all output files
+# ... run cp_diff.py $@ if they're all input files
+# ... return an error otherwise
+
+# Check if files are output files
+is_cp_output=()
+for f in $@
+do
+   # Check if file is an output file
+   if [ ${f: -4} == ".out" ] || [ ${f: -1} == "o" ] || [ ${f: -5} == ".wout" ]
+   then
+      is_cp_output+=(true)
+   elif [ ${f: -3} == ".in" ] || [ ${f: -1} == "i" ] || [ ${f: -4} == ".win" ]
+   then
+      is_cp_output+=(false)
+   else  
+      # If neither an input or output file, exit with error
+      echo "Unrecognised file extension ${f#*.}"
+      exit 1
+   fi
+done
+
+# Check if all files are of the same type
+if [[ $(echo ${is_cp_output[@]} | tr ' ' '\n' | sort -u | wc -l) == 1 ]]
+then
+   # If so, run the appropriate command
+   if ${is_cp_output}
+   then
+      vimdiff $@
+   else
+      qe_input_diff.py $@
+   fi
+else
+   # If not, exit with error
+   echo 'Mismatching file types detected'
+   exit 1
+fi
