@@ -65,7 +65,7 @@ valid_settings = [
                   'maximum number of self-consistency steps for calculating alpha',
                   int, 1, None),
     utils.Setting('alpha_conv_thr',
-                  'convergence threshold for |delta E - lambda|; if below this '
+                  'convergence threshold for |ΔE_i - ε_i|; if below this '
                   'threshold, the corresponding alpha value is not updated',
                   (float, str), 1e-3, None),
     utils.Setting('alpha_guess',
