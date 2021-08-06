@@ -154,7 +154,8 @@ class Workflow(object):
                     elif self.eps_inf < 1.0:
                         raise ValueError('eps_inf cannot be lower than 1')
                     else:
-                        utils.warn('Makov-Payne corrections not applied for a periodic calculation; do this with caution')
+                        utils.warn('Makov-Payne corrections not applied for a periodic calculation; do this with '
+                                   'caution')
 
                 if self.mt_correction is None:
                     self.mt_correction = False
@@ -175,7 +176,8 @@ class Workflow(object):
                 if self.mt_correction is None:
                     self.mt_correction = True
                 if not self.mt_correction:
-                    utils.warn('Martyna-Tuckerman corrections not applied for an aperiodic calculation; do this with caution')
+                    utils.warn('Martyna-Tuckerman corrections not applied for an aperiodic calculation; do this with '
+                               'caution')
 
         # Update postfix for all relevant calculators
         if self.npool:
