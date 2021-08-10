@@ -442,6 +442,7 @@ MODULE input_parameters
         LOGICAL :: spline_ps = .false.
           ! use spline interpolation for pseudopotential
         LOGICAL :: do_orbdep  = .false.
+        LOGICAL :: l_comp_cmplxfctn_index  = .false.
 ! DCC
         ! add electrostatic embedding part (details in the EE namelist)
         LOGICAL :: do_ee  = .false.
@@ -615,7 +616,7 @@ MODULE input_parameters
              iprint_manifold_overlap, innerloop_until, innerloop_atleast,     &
              hartree_only_sic, aux_empty_nbnd,                            &
              !
-             finite_field_introduced, finite_field_for_empty_state
+             finite_field_introduced, finite_field_for_empty_state, l_comp_cmplxfctn_index
              !
 !             lgroup !NsC 
 

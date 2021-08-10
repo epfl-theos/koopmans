@@ -387,6 +387,7 @@ module nksic
   logical :: do_spinsym
   logical :: do_wxd
   logical :: do_wref
+  logical :: l_comp_cmplxfctn_index
 !$$
   logical :: do_innerloop
   logical :: do_innerloop_empty
