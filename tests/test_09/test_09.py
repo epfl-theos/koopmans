@@ -8,16 +8,16 @@ import pytest
 from conftest import WorkflowTest
 
 
-json = 'tests/test_09/test_si_ui.json'
+json = 'tests/test_09/test_si_primitive.json'
 
 
-# Note that this is identical to the non-mock test because this calculation relies on python alone, and not QE
 @pytest.mark.mock
-def test_mock_si_ui(capsys):
-    test = WorkflowTest(json, capsys)
+def test_mock_si_primitive(capsys, mock_quantum_espresso):
+    test = WorkflowTest(json, capsys, mock=True)
     test.run()
 
 
-def test_si_ui(capsys):
+def test_si_primitive(capsys):
     test = WorkflowTest(json, capsys)
     test.run()
+
