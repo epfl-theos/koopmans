@@ -74,7 +74,7 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
       use nksic,                    only : odd_alpha, valpsi, nkscalfact, do_orbdep, wtot, vsicpsi, sizwtot, & 
                                            do_innerloop_empty, do_innerloop_cg, innerloop_cg_nsd, &
                                            innerloop_cg_nreset, innerloop_init_n, innerloop_cg_ratio, &
-                                           innerloop_until
+                                           innerloop_until, do_bare_eigs
 
       use cp_main_variables,        only : becdual, becmdual, overlap, ioverlap
       use electrons_module,         only : wfc_spreads_emp, wfc_centers_emp, icompute_spread
@@ -120,9 +120,9 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
       complex(dp), allocatable :: hpsi(:,:), hpsi0(:,:), gi(:,:), hi(:,:), gi_bare(:,:)
       type(twin_matrix) :: s_minus1!(:,:)    !factors for inverting US S matrix
       type(twin_matrix) :: k_minus1!(:,:)    !factors for inverting US preconditioning matrix
-      real(DP),    allocatable :: lambda_repl(:,:) ! replicated copy of lambda
+!      real(DP),    allocatable :: lambda_repl(:,:) ! replicated copy of lambda
       real(DP),    allocatable :: lambda_dist(:,:) ! replicated copy of lambda
-      complex(DP),    allocatable :: lambda_repl_c(:,:) ! replicated copy of lambda
+!      complex(DP),    allocatable :: lambda_repl_c(:,:) ! replicated copy of lambda
       complex(DP),    allocatable :: lambda_dist_c(:,:) ! replicated copy of lambda
       !
       real(dp)    :: sca, dumm(1)
@@ -164,6 +164,7 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
       real(DP), allocatable    :: faux_emp(:)
       integer                  :: in_emp, issw
       COMPLEX(DP), PARAMETER   :: c_zero=CMPLX(0.d0,0.d0)
+      CHARACTER(256) :: fname
       !
       ! var for numerical derivatives
       REAl(DP):: etot_emp_tmp1, etot_emp_tmp2, etot_emp_tmp
@@ -1063,11 +1064,28 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
       !
       faux(:) = f_emp(:) * DBLE( nspin ) / 2.0d0
       !
+      IF(do_bare_eigs) THEN
+         !
+         allocate(c2_bare(ngw), c3_bare(ngw))
+         allocate(gi_bare(ngw,n_empx))
+         c2_bare=0.d0
+         c3_bare=0.d0
+         gi_bare=0.d0
+         !
+      ENDIF
+      !
       do i = 1, n_emps, 2
          !
          call start_clock( 'dforce2' )
          !
          call dforce(i, bec_emp, betae, c0_emp, c2, c3, filledstates_potential, nnrsx, ispin_emp, faux, n_emps, nspin)
+         !
+         IF(do_bare_eigs) THEN
+            !
+            c2_bare(:) = c2(:)
+            c3_bare(:) = c3(:)
+            !
+         ENDIF
          !
          call start_clock( 'dforce2' )
          ! 
@@ -1101,96 +1119,38 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
          !
       enddo
       !
-      if(.not.lambda_emp(1)%iscmplx) then
-         allocate(lambda_repl(nudx_emp,nudx_emp))
-      else
-         allocate(lambda_repl_c(nudx_emp,nudx_emp))
-      endif
-      !
-      hitmp(:,:) = c0_emp(:,:)
-      !
-      do is = 1, nspin
+      IF(do_bare_eigs) THEN
          !
-         nss = nupdwn_emp(is)
-         istart = iupdwn_emp(is)
-         ! 
-         if (.not.lambda_emp(1)%iscmplx) then
-            lambda_repl = 0.d0
-         else
-            lambda_repl_c = CMPLX(0.d0,0.d0)
+         do ig=1,ngw
+            gi_bare(ig,  i)=c2_bare(ig)
+            if(i+1 <= n_emps) gi_bare(ig,i+1)=c3_bare(ig)
+         enddo
+         !
+         if (lgam.and.ng0.eq.2) then
+            gi_bare(1,  i)=CMPLX(DBLE(gi_bare(1,  i)),0.d0)
+            if(i+1 <= n_emps) gi_bare(1,i+1)=CMPLX(DBLE(gi_bare(1,i+1)),0.d0)
          endif
          !
-         do i = 1, nss
-            !
-            do j = i, nss
-               !
-               ii = i + istart - 1
-               jj = j + istart - 1
-               !
-               if (.not.lambda_emp(1)%iscmplx) then
-                  !
-                  do ig = 1, ngw
-                     !
-                     lambda_repl( i, j ) = lambda_repl( i, j ) - &
-                     2.d0 * DBLE( CONJG( hitmp( ig, ii ) ) * gi( ig, jj) )
-                     !
-                  enddo
-                  !
-                  if ( ng0 == 2 ) then
-                     !  
-                     lambda_repl( i, j ) = lambda_repl( i, j ) + &
-                    DBLE( CONJG( hitmp( 1, ii ) ) * gi( 1, jj ) )
-                    !
-                 endif
-                 !
-                 lambda_repl( j, i ) = lambda_repl( i, j )
-                 !
-              else
-                 !
-                 do ig = 1, ngw
-                    !
-                    lambda_repl_c( i, j ) = lambda_repl_c( i, j ) - &
-                    CONJG( hitmp( ig, ii ) ) * gi( ig, jj)
-                    !
-                 enddo
-                 !  
-                 lambda_repl_c( j, i ) = CONJG(lambda_repl_c( i, j ))
-                 !
-              endif
-              !
-           enddo
-           !
-        enddo
-        !
-        if (.not.lambda_emp(1)%iscmplx) then
-           !  
-           call mp_sum( lambda_repl, intra_image_comm )
-           call distribute_lambda( lambda_repl, lambda_emp(is)%rvec( :, :),  desc_emp( :, is ) )
-           !
-        else
-           !
-           call mp_sum( lambda_repl_c, intra_image_comm )
-           call distribute_lambda( lambda_repl_c, lambda_emp(is)%cvec( :, :), desc_emp( :, is ) )
-           ! 
-        endif
-        !
-     enddo
+      ENDIF
+      !
      !
-     if (.not.lambda_emp(1)%iscmplx) then
-        ! 
-        deallocate( lambda_repl )
-        !
-     else
-        !  
-        deallocate( lambda_repl_c )
-        !
-     endif
+     IF (do_bare_eigs) THEN
+        CALL compute_lambda (c0_emp, gi_bare, lambda_emp, nspin, n_empx, ngw, nudx_emp, desc_emp )
+        fname='hamiltonian0_emp'
+        CALL write_ham_emp_xml (nspin, nudx_emp, lambda_emp, desc_emp, fname)
+     ENDIF
+     !
+     CALL compute_lambda (c0_emp, gi, lambda_emp, nspin, n_empx, ngw, nudx_emp, desc_emp )
+     fname='hamiltonian_emp'
+     CALL write_ham_emp_xml (nspin, nudx_emp, lambda_emp, desc_emp, fname)
      !
      call do_deallocation()
      !
      return
      !
      contains
+     !
+     !
      !
      subroutine do_allocation_initialization()
          !  
@@ -1556,3 +1516,217 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
      end subroutine v_times_rho
      !                     
 END SUBROUTINE runcg_uspp_emp
+
+!-----------------------------------------------------------------------
+SUBROUTINE compute_lambda (c0, gi, lambda, nspin, nbnd, ngw, nudx, desc_emp )
+!-----------------------------------------------------------------------
+ !
+ USE kinds,                    ONLY : DP
+ USE twin_types 
+ USE electrons_module,         ONLY : nupdwn_emp, iupdwn_emp
+ USE reciprocal_vectors,       ONLY : ng0 => gstart
+ USE descriptors,              ONLY : descla_siz_ 
+ USE mp_global,                ONLY : intra_image_comm
+ USE mp,                       only : mp_sum
+ USE cp_main_variables,        ONLY : distribute_lambda
+ !
+ IMPLICIT NONE 
+ INTEGER, INTENT(IN) :: nspin, ngw, nbnd, nudx
+ INTEGER, INTENT (IN) :: desc_emp( descla_siz_ , 2 )
+ COMPLEX(DP), INTENT(IN) :: c0(ngw, nbnd)
+ COMPLEX(DP), INTENT(IN) :: gi(ngw, nbnd)
+ TYPE(twin_matrix ), INTENT(INOUT)   :: lambda(nspin)
+ INTEGER :: nss, is, i, j, ii, jj, istart, ig
+ REAL(DP),    ALLOCATABLE :: lambda_repl(:,:) ! replicated copy of lambda
+ COMPLEX(DP), ALLOCATABLE :: lambda_repl_c(:,:) ! replicated copy of lambda
+ !
+ Write(*,*) "Nicola 1" 
+ if(.not.lambda(1)%iscmplx) then
+     WRITE(*,*) "Nicola Allocated?", ALLOCATED(lambda_repl)
+     allocate(lambda_repl(nudx,nudx))
+     WRITE(*,*) "Nicola Allocated?", ALLOCATED(lambda_repl)
+ else
+    allocate(lambda_repl_c(nudx,nudx))
+ endif
+ !
+ Write(*,*) "Nicola 2" 
+ do is = 1, nspin
+    !
+    nss = nupdwn_emp(is)
+    istart = iupdwn_emp(is)
+    ! 
+    if (.not.lambda(1)%iscmplx) then
+       lambda_repl = 0.d0
+    else
+       lambda_repl_c = CMPLX(0.d0,0.d0)
+    endif
+    !
+    do i = 1, nss
+       !
+       do j = i, nss
+          !
+          ii = i + istart - 1
+          jj = j + istart - 1
+          !
+          if (.not.lambda(1)%iscmplx) then
+             !
+             do ig = 1, ngw
+                !
+                lambda_repl( i, j ) = lambda_repl( i, j ) - &
+                2.d0 * DBLE( CONJG( c0( ig, ii ) ) * gi( ig, jj) )
+                !
+             enddo
+             !
+             if ( ng0 == 2 ) then
+                !  
+                lambda_repl( i, j ) = lambda_repl( i, j ) + &
+               DBLE( CONJG( c0( 1, ii ) ) * gi( 1, jj ) )
+               !
+            endif
+            !
+            lambda_repl( j, i ) = lambda_repl( i, j )
+            !
+         else
+            !
+            do ig = 1, ngw
+               !
+               lambda_repl_c( i, j ) = lambda_repl_c( i, j ) - &
+               CONJG( c0( ig, ii ) ) * gi( ig, jj)
+               !
+            enddo
+            !  
+            lambda_repl_c( j, i ) = CONJG(lambda_repl_c( i, j ))
+            !
+         endif
+         !
+      enddo
+      !
+   enddo
+   !
+   if (.not.lambda(1)%iscmplx) then
+      !  
+      call mp_sum( lambda_repl, intra_image_comm )
+      call distribute_lambda( lambda_repl, lambda(is)%rvec( :, :),  desc_emp( :, is ) )
+      !
+   else
+      !
+      call mp_sum( lambda_repl_c, intra_image_comm )
+      call distribute_lambda( lambda_repl_c, lambda(is)%cvec( :, :), desc_emp( :, is ) )
+      ! 
+   endif
+   !
+ enddo
+ !
+ if (.not.lambda(1)%iscmplx) then
+    deallocate( lambda_repl )
+ else
+    deallocate( lambda_repl_c )
+ endif
+ !
+ RETURN
+ !
+END SUBROUTINE  
+
+!-----------------------------------------------------------------------
+   SUBROUTINE write_ham_emp_xml (nspin, nudx_emp, lambda_emp, desc_emp, fname)
+!-----------------------------------------------------------------------
+!   
+    USE iotk_module
+    USE io_global,            ONLY : ionode, stdout, ionode_id
+    USE io_files,             ONLY : prefix, iunpun, outdir, xmlpun
+    USE xml_io_base,          ONLY : wfc_filename, restart_dir, create_directory, kpoint_dir
+    USE twin_types !added:giovanni 
+    USE electrons_base,       ONLY : nudx
+    USE cp_main_variables,    ONLY : collect_lambda, descla
+    USE descriptors,          ONLY : descla_siz_ 
+    USE control_flags,        ONLY : ndw
+    USE mp_global,            ONLY : intra_image_comm
+    USE mp,                   ONLY : mp_bcast
+    ! 
+    IMPLICIT NONE 
+    !
+    INTEGER, INTENT(IN) :: nspin
+    INTEGER, INTENT(IN) :: nudx_emp
+    CHARACTER(256), INTENT(IN) :: fname
+    TYPE(twin_matrix), INTENT(IN) :: lambda_emp(nspin)
+    !
+    INTEGER :: ik = 1 ! There only 1 kpoint in CP 
+    CHARACTER(LEN=256)    :: dirname, filename
+    CHARACTER(LEN=4)      :: cspin
+    INTEGER :: iss, ierr
+    REAL(DP), ALLOCATABLE :: mrepl(:,:)
+    COMPLEX(DP), ALLOCATABLE :: mrepl_c(:,:) !added:giovanni
+    INTEGER, INTENT (IN) :: desc_emp( descla_siz_ , 2 )
+    !
+    dirname = restart_dir( outdir, ndw )
+    IF (ionode) THEN 
+       CALL create_directory( kpoint_dir( dirname, ik ) )
+       CALL iotk_open_write( iunpun, FILE = TRIM( dirname ) // '/' // &
+                           & TRIM( xmlpun ), BINARY = .FALSE., IERR = ierr )
+    ENDIF
+    !
+    CALL mp_bcast( ierr, ionode_id, intra_image_comm )
+    CALL errore( 'cp_writefile ', 'cannot open restart file for writing', ierr )
+    !
+    DO iss = 1, nspin 
+    !
+    IF(.not. lambda_emp(1)%iscmplx) THEN
+        ALLOCATE( mrepl( nudx_emp, nudx_emp ) )    
+        CALL collect_lambda( mrepl, lambda_emp(iss)%rvec(:,:), desc_emp(:,iss) )
+    ELSE
+        ALLOCATE( mrepl_c( nudx_emp, nudx_emp) )
+        CALL collect_lambda( mrepl_c, lambda_emp(iss)%cvec(:,:), desc_emp(:,iss))
+    ENDIF
+    !
+    cspin = iotk_index( iss )
+    ! 
+    IF ( ionode ) THEN
+       !
+       !
+       ! Changes by Nicolas Poilvert, Sep. 2010 for printing the lambda
+       ! matrix at current time step into a formatted file.
+       ! This matrix corresponds to the Hamiltonian matrix  in the case
+       ! of Self-Interaction. Only in the basis  of minimizing orbitals
+       ! do this matrix has an interpretation.
+       !
+       IF ( nspin == 1 ) THEN
+           !
+           filename = TRIM( wfc_filename( ".", fname, ik, EXTENSION='xml' ) )
+           !
+       ELSE
+           !
+           filename = TRIM( wfc_filename( ".", fname, ik, iss, EXTENSION='xml' ) )
+           !
+       ENDIF
+       !
+       CALL iotk_link( iunpun, "HAMILTONIAN" // TRIM( cspin ), &
+                       filename, CREATE = .TRUE., BINARY = .FALSE. )
+       !
+       !
+       IF(allocated(mrepl)) THEN
+           CALL iotk_write_dat( iunpun, &
+                                "HAMILTONIAN" // TRIM( cspin ), mrepl )
+           !IF ( write_hr ) CALL write_hamiltonian( mrepl, nupdwn(iss), iss, .false. )
+           !
+           !
+       ELSE IF(allocated(mrepl_c)) THEN
+           CALL iotk_write_dat( iunpun, &
+                                "HAMILTONIAN" // TRIM( cspin ), mrepl_c )
+           !IF ( write_hr ) CALL write_hamiltonian( mrepl_c, nupdwn(iss), iss, .false. )
+       ENDIF
+       !
+    ENDIF
+    !
+    IF(allocated(mrepl)) THEN
+      DEALLOCATE( mrepl )
+    ENDIF
+    IF(allocated(mrepl_c)) THEN
+      DEALLOCATE( mrepl_c )
+    ENDIF
+    !
+    ENDDO
+    !
+    IF ( ionode ) CALL iotk_close_write( iunpun )
+    !
+END SUBROUTINE write_ham_emp_xml
+
