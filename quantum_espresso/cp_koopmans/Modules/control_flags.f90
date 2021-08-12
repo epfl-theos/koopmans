@@ -47,7 +47,7 @@ MODULE control_flags
 !$$
   PUBLIC :: do_innerloop, do_innerloop_empty, do_innerloop_cg, innerloop_dd_nstep,&
             innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax, &
-            innerloop_init_n, innerloop_cg_ratio, innerloop_atleast
+            innerloop_init_n, innerloop_cg_ratio, innerloop_atleast, l_comp_cmplxfctn_index
 !$$
   !
   PUBLIC :: fix_dependencies, check_flags
@@ -108,6 +108,7 @@ MODULE control_flags
   LOGICAL :: do_outerloop_empty = .TRUE. ! Do outer loop minimization
   LOGICAL :: do_innerloop  = .FALSE. ! Do inner loop minimization in case do_orbdep
   LOGICAL :: do_innerloop_empty = .FALSE. ! Do inner loop minimization in case do_orbdep
+  LOGICAL :: l_comp_cmplxfctn_index = .FALSE. ! compute complexification index in case of CMPLX WFs
   LOGICAL :: do_innerloop_cg  = .FALSE. ! Do cg inner loop minimization with parabolic minimization in case do_orbdep
   INTEGER :: innerloop_dd_nstep = 50 ! Number of outer loop damped dynamics steps before each inner loop minimization
   INTEGER :: innerloop_cg_nsd  = 20 ! Number of steepest-descent steps in doing conjugate-gradient inner loop minimization

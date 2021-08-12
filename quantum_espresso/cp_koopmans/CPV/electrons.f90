@@ -414,7 +414,8 @@
       USE io_global,      ONLY : stdout, ionode
       USE ensemble_dft,   ONLY : tens, tsmear
       use nksic,          ONLY : complexification_index, pink, pink_emp, do_orbdep, &
-                                 pzalpha=> odd_alpha, pzalpha_emp=>odd_alpha_emp
+                                 pzalpha=> odd_alpha, pzalpha_emp=>odd_alpha_emp,&
+                                 l_comp_cmplxfctn_index 
       !
       INTEGER,  INTENT(IN) :: spread_unit
       LOGICAL,  INTENT(IN) :: tfile, tstdout
@@ -454,7 +455,7 @@
          !
       END DO
       !
-      IF( tstdout ) THEN
+      IF( tstdout .AND. l_comp_cmplxfctn_index) THEN
          !
          WRITE( stdout, '(/, " Complexification index ")' )
          WRITE( stdout, * ) complexification_index

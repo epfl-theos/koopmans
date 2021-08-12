@@ -442,7 +442,6 @@ MODULE input_parameters
         LOGICAL :: spline_ps = .false.
           ! use spline interpolation for pseudopotential
         LOGICAL :: do_orbdep  = .false.
-        LOGICAL :: l_comp_cmplxfctn_index  = .false.
 ! DCC
         ! add electrostatic embedding part (details in the EE namelist)
         LOGICAL :: do_ee  = .false.
@@ -542,6 +541,7 @@ MODULE input_parameters
         INTEGER :: iprint_spreads=-1 !prints spread every nth step, -1 does not print spread !!added:giovanni
         INTEGER :: iprint_manifold_overlap=-1 !prints manifold overlap with initial wavefunctions (random or from restart), when -1, no overlap is printed
         LOGICAL :: hartree_only_sic
+        LOGICAL :: l_comp_cmplxfctn_index  = .false.
         !
         ! This variable overwrites the ones above
         CHARACTER(80)     :: which_orbdep=" "
