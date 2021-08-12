@@ -152,7 +152,7 @@ class WorkflowTest:
                     # then this reduces to testing relative error, whereas in the limit of small Delta it reduces to
                     # testing absolute error. We use 0.1*max(ref_result) as a reference scale factor.
                     abs_diffs = np.abs(result - ref_result)
-                    mixed_diffs = abs_diffs / (0.1*np.max(ref_result) + np.abs(ref_result))
+                    mixed_diffs = abs_diffs / (0.1*np.max(np.abs(ref_result)) + np.abs(ref_result))
                     i_max = np.argmax(mixed_diffs)
                     mixed_diff = mixed_diffs[i_max]
                     abs_diff = abs_diffs[i_max]
