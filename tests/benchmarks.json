@@ -21410,13 +21410,7 @@
     "empty": []
    },
    "job_done": true
-  },
-  "alphas": [
-   0.7523021721044479,
-   0.7523021721044479,
-   0.7523021721044479,
-   0.7523021721044479
-  ]
+  }
  },
  "test_05/ki/calc_alpha/iteration_2/ki_nspin2_dummy": {
   "settings": {
@@ -21771,13 +21765,7 @@
     "empty": []
    },
    "job_done": true
-  },
-  "alphas": [
-   0.7523021721044479,
-   0.7523021721044479,
-   0.7523021721044479,
-   0.7523021721044479
-  ]
+  }
  },
  "test_05/ki/calc_alpha/iteration_2/ki_nspin2": {
   "settings": {
@@ -26083,1590 +26071,6 @@
    }
   }
  },
- "test_05/kipz/calc_alpha/iteration_3/kipz_nspin1_dummy": {
-  "settings": {
-   "calculation": "cp",
-   "verbosity": "low",
-   "restart_mode": "from_scratch",
-   "iprint": 1,
-   "outdir": "../../TMP-CP",
-   "prefix": "kc",
-   "disk_io": "high",
-   "pseudo_dir": "../../../../../pseudos",
-   "ndr": 98,
-   "ndw": 98,
-   "write_hr": false,
-   "ecutwfc": 20.0,
-   "ecutrho": 80.0,
-   "nspin": 1,
-   "do_orbdep": true,
-   "fixed_state": false,
-   "do_ee": true,
-   "nelec": 8,
-   "do_wf_cmplx": true,
-   "ntyp": 2,
-   "nat": 3,
-   "ibrav": 0,
-   "conv_thr": 8e-09,
-   "ortho_para": 1,
-   "empty_states_nbnd": 0,
-   "maxiter": 300,
-   "electron_dynamics": "cg",
-   "passop": 2.0,
-   "do_outerloop": false,
-   "do_outerloop_empty": false,
-   "ion_dynamics": "none",
-   "ion_nstepe": 5,
-   "ion_radius(1)": 1.0,
-   "ion_radius(2)": 1.0,
-   "ion_radius(3)": 1.0,
-   "ion_radius(4)": 1.0,
-   "which_compensation": "tcc",
-   "do_innerloop": false,
-   "odd_nkscalfact": true,
-   "odd_nkscalfact_empty": true,
-   "which_orbdep": "nkipz",
-   "innerloop_cg_nreset": 20,
-   "innerloop_cg_nsd": 2,
-   "innerloop_init_n": 3,
-   "hartree_only_sic": false,
-   "esic_conv_thr": 8e-09,
-   "do_innerloop_cg": true,
-   "innerloop_nmax": 100
-  },
-  "results": {
-   "energy": 597.2444791382591,
-   "odd_energy": 7.7712160418116785,
-   "homo_energy": 89.9606,
-   "lumo_energy": null,
-   "mp1_energy": null,
-   "mp2_energy": null,
-   "eigenvalues": [
-    [
-     56.9419,
-     59.691,
-     61.168,
-     89.9606
-    ]
-   ],
-   "lambda_ii": null,
-   "orbital_data": {
-    "charge": [
-     [
-      1.0,
-      1.0,
-      1.0,
-      1.0
-     ]
-    ],
-    "centres": [
-     [
-      [
-       0.0370424045847479,
-       -0.021167088334141652,
-       -0.052917720835354135
-      ],
-      [
-       0.08996012542010202,
-       -0.005291772083535413,
-       -0.0740848091694958
-      ],
-      [
-       0.10583544167070827,
-       0.015875316250606238,
-       0.05820949291888954
-      ],
-      [
-       0.015875316250606238,
-       0.06350126500242495,
-       -0.13229430208838533
-      ]
-     ]
-    ],
-    "spreads": [
-     [
-      8.274842702197036,
-      16.402390404009786,
-      18.08536179623328,
-      18.712345647678934
-     ]
-    ],
-    "self-Hartree": [
-     [
-      5.614,
-      2.204,
-      2.017,
-      1.988
-     ]
-    ]
-   },
-   "convergence": {
-    "filled": [
-     {
-      "iteration": 1,
-      "eff iteration": 1,
-      "Etot": 597.2444791388068
-     }
-    ],
-    "empty": []
-   },
-   "job_done": true
-  }
- },
- "test_05/kipz/calc_alpha/iteration_3/kipz_nspin1": {
-  "settings": {
-   "calculation": "cp",
-   "verbosity": "low",
-   "restart_mode": "restart",
-   "iprint": 1,
-   "outdir": "../../TMP-CP",
-   "prefix": "kc",
-   "disk_io": "high",
-   "pseudo_dir": "../../../../../pseudos",
-   "ndr": 98,
-   "ndw": 98,
-   "write_hr": false,
-   "ecutwfc": 20.0,
-   "ecutrho": 80.0,
-   "nspin": 1,
-   "do_orbdep": true,
-   "fixed_state": false,
-   "do_ee": true,
-   "nelec": 8,
-   "do_wf_cmplx": true,
-   "ntyp": 2,
-   "nat": 3,
-   "ibrav": 0,
-   "conv_thr": 8e-09,
-   "ortho_para": 1,
-   "empty_states_nbnd": 0,
-   "maxiter": 300,
-   "electron_dynamics": "cg",
-   "passop": 2.0,
-   "do_outerloop": true,
-   "ion_dynamics": "none",
-   "ion_nstepe": 5,
-   "ion_radius(1)": 1.0,
-   "ion_radius(2)": 1.0,
-   "ion_radius(3)": 1.0,
-   "ion_radius(4)": 1.0,
-   "which_compensation": "tcc",
-   "do_innerloop": false,
-   "odd_nkscalfact": true,
-   "odd_nkscalfact_empty": true,
-   "which_orbdep": "nkipz",
-   "innerloop_cg_nreset": 20,
-   "innerloop_cg_nsd": 2,
-   "innerloop_init_n": 3,
-   "hartree_only_sic": false,
-   "esic_conv_thr": 8e-09,
-   "do_innerloop_cg": true,
-   "innerloop_nmax": 100
-  },
-  "results": {
-   "energy": -440.8114839330088,
-   "odd_energy": 1.2087445069548672,
-   "homo_energy": -12.5398,
-   "lumo_energy": null,
-   "mp1_energy": null,
-   "mp2_energy": null,
-   "eigenvalues": [
-    [
-     -36.0843,
-     -19.4272,
-     -15.8807,
-     -12.5398
-    ]
-   ],
-   "lambda_ii": null,
-   "orbital_data": {
-    "charge": [
-     [
-      1.0,
-      1.0,
-      1.0,
-      1.0
-     ]
-    ],
-    "centres": [
-     [
-      [
-       -2.524175283846392,
-       -0.0,
-       1.8891626338221423
-      ],
-      [
-       3.3232328684602397,
-       -0.0,
-       1.8891626338221423
-      ],
-      [
-       0.9419354308693035,
-       -0.0,
-       3.1697714780377124
-      ],
-      [
-       0.8678506216998078,
-       0.0,
-       1.7198259271490093
-      ]
-     ]
-    ],
-    "spreads": [
-     [
-      37.7402834349645,
-      33.0654873581294,
-      35.4518903871691,
-      43.31761142480066
-     ]
-    ],
-    "self-Hartree": [
-     [
-      10.517,
-      10.517,
-      10.672,
-      8.13
-     ]
-    ]
-   },
-   "convergence": {
-    "filled": [
-     {
-      "iteration": 1,
-      "eff iteration": 1,
-      "Etot": -440.81148390413756
-     },
-     {
-      "iteration": 2,
-      "eff iteration": 7,
-      "Etot": -440.8114839206815
-     },
-     {
-      "iteration": 3,
-      "eff iteration": 13,
-      "Etot": -440.8114839344753,
-      "delta_E": 1.6543962048480275e-08
-     },
-     {
-      "iteration": 4,
-      "eff iteration": 19,
-      "Etot": -440.81148394607493,
-      "delta_E": 1.3793772822944393e-08
-     },
-     {
-      "iteration": 5,
-      "eff iteration": 25,
-      "Etot": -440.81148394607493,
-      "delta_E": 1.159955724181454e-08
-     }
-    ],
-    "empty": []
-   },
-   "job_done": true
-  },
-  "input files": {
-   "test_05/kipz/TMP-CP/kc_98.save/K00001/evc01.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_98.save/K00001/evc01.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin1_dummy.cpi"
-   },
-   "test_05/kipz/TMP-CP/kc_98.save/K00001/evc1.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_98.save/K00001/evc1.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin1_dummy.cpi"
-   },
-   "test_05/kipz/TMP-CP/kc_98.save/K00001/evcm1.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_98.save/K00001/evcm1.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin1_dummy.cpi"
-   },
-   "test_05/kipz/TMP-CP/kc_98.save/K00001/hamiltonian1.xml": {
-    "written_to": "test_05/kipz/TMP-CP/kc_98.save/K00001/hamiltonian1.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin1_dummy.cpi"
-   },
-   "test_05/kipz/TMP-CP/kc_98.save/K00001/eigenval1.xml": {
-    "written_to": "test_05/kipz/TMP-CP/kc_98.save/K00001/eigenval1.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin1_dummy.cpi"
-   },
-   "test_05/kipz/TMP-CP/kc_98.save/K00001/lambda01.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/lambda01.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/TMP-CP/kc_98.save/K00001/lambdam1.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/lambdam1.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
-   }
-  }
- },
- "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2_dummy": {
-  "settings": {
-   "calculation": "cp",
-   "verbosity": "low",
-   "restart_mode": "from_scratch",
-   "iprint": 1,
-   "outdir": "../../TMP-CP",
-   "prefix": "kc",
-   "disk_io": "high",
-   "pseudo_dir": "../../../../../pseudos",
-   "ndr": 60,
-   "ndw": 99,
-   "write_hr": false,
-   "tot_magnetization": 0,
-   "ecutwfc": 20.0,
-   "ecutrho": 80.0,
-   "nspin": 2,
-   "do_orbdep": true,
-   "fixed_state": false,
-   "do_ee": true,
-   "nelec": 8,
-   "nelup": 4,
-   "neldw": 4,
-   "do_wf_cmplx": true,
-   "ntyp": 2,
-   "nat": 3,
-   "ibrav": 0,
-   "conv_thr": 8e-09,
-   "ortho_para": 1,
-   "empty_states_nbnd": 0,
-   "maxiter": 300,
-   "electron_dynamics": "cg",
-   "passop": 2.0,
-   "do_outerloop": false,
-   "do_outerloop_empty": false,
-   "ion_dynamics": "none",
-   "ion_nstepe": 5,
-   "ion_radius(1)": 1.0,
-   "ion_radius(2)": 1.0,
-   "ion_radius(3)": 1.0,
-   "ion_radius(4)": 1.0,
-   "which_compensation": "tcc",
-   "do_innerloop": false,
-   "odd_nkscalfact": true,
-   "odd_nkscalfact_empty": true,
-   "which_orbdep": "nkipz",
-   "innerloop_cg_nreset": 20,
-   "innerloop_cg_nsd": 2,
-   "innerloop_init_n": 3,
-   "hartree_only_sic": false,
-   "esic_conv_thr": 8e-09,
-   "do_innerloop_cg": true,
-   "innerloop_nmax": 100
-  },
-  "results": {
-   "energy": 596.0838189534306,
-   "odd_energy": 7.810974679132945,
-   "homo_energy": 90.0259,
-   "lumo_energy": null,
-   "mp1_energy": null,
-   "mp2_energy": null,
-   "eigenvalues": [
-    [
-     56.8028,
-     59.5521,
-     61.0284,
-     89.8483
-    ],
-    [
-     56.6038,
-     59.1532,
-     60.7683,
-     90.0259
-    ]
-   ],
-   "lambda_ii": null,
-   "orbital_data": {
-    "charge": [
-     [
-      1.0,
-      1.0,
-      1.0,
-      1.0
-     ],
-     [
-      1.0,
-      1.0,
-      1.0,
-      1.0
-     ]
-    ],
-    "centres": [
-     [
-      [
-       0.0370424045847479,
-       -0.021167088334141652,
-       -0.052917720835354135
-      ],
-      [
-       0.08996012542010202,
-       -0.005291772083535413,
-       -0.0740848091694958
-      ],
-      [
-       0.10583544167070827,
-       0.015875316250606238,
-       0.05820949291888954
-      ],
-      [
-       0.015875316250606238,
-       0.06350126500242495,
-       -0.13229430208838533
-      ]
-     ],
-     [
-      [
-       0.031750632501212475,
-       -0.021167088334141652,
-       -0.042334176668283305
-      ],
-      [
-       0.05820949291888954,
-       -0.010583544167070826,
-       -0.10054366958717285
-      ],
-      [
-       -0.042334176668283305,
-       -0.021167088334141652,
-       -0.010583544167070826
-      ],
-      [
-       0.052917720835354135,
-       0.04762594875181872,
-       -0.06350126500242495
-      ]
-     ]
-    ],
-    "spreads": [
-     [
-      8.274842702197036,
-      16.402390404009786,
-      18.08536179623328,
-      18.712345647678934
-     ],
-     [
-      8.545910307466977,
-      16.641814786763714,
-      17.919304885153657,
-      18.625816835666114
-     ]
-    ],
-    "self-Hartree": [
-     [
-      5.614,
-      2.204,
-      2.017,
-      1.988
-     ],
-     [
-      5.522,
-      2.188,
-      2.016,
-      1.994
-     ]
-    ]
-   },
-   "convergence": {
-    "filled": [
-     {
-      "iteration": 1,
-      "eff iteration": 1,
-      "Etot": 596.0838189536545
-     }
-    ],
-    "empty": []
-   },
-   "job_done": true
-  }
- },
- "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2": {
-  "settings": {
-   "calculation": "cp",
-   "verbosity": "low",
-   "restart_mode": "restart",
-   "iprint": 1,
-   "outdir": "../../TMP-CP",
-   "prefix": "kc",
-   "disk_io": "high",
-   "pseudo_dir": "../../../../../pseudos",
-   "ndr": 99,
-   "ndw": 60,
-   "write_hr": false,
-   "tot_magnetization": 0,
-   "ecutwfc": 20.0,
-   "ecutrho": 80.0,
-   "nspin": 2,
-   "do_orbdep": true,
-   "fixed_state": false,
-   "do_ee": true,
-   "nelec": 8,
-   "nelup": 4,
-   "neldw": 4,
-   "do_wf_cmplx": true,
-   "ntyp": 2,
-   "nat": 3,
-   "ibrav": 0,
-   "conv_thr": 8e-09,
-   "ortho_para": 1,
-   "empty_states_nbnd": 0,
-   "maxiter": 300,
-   "electron_dynamics": "cg",
-   "passop": 2.0,
-   "do_outerloop": true,
-   "ion_dynamics": "none",
-   "ion_nstepe": 5,
-   "ion_radius(1)": 1.0,
-   "ion_radius(2)": 1.0,
-   "ion_radius(3)": 1.0,
-   "ion_radius(4)": 1.0,
-   "which_compensation": "tcc",
-   "do_innerloop": false,
-   "odd_nkscalfact": true,
-   "odd_nkscalfact_empty": true,
-   "which_orbdep": "nkipz",
-   "innerloop_cg_nreset": 20,
-   "innerloop_cg_nsd": 2,
-   "innerloop_init_n": 3,
-   "hartree_only_sic": false,
-   "esic_conv_thr": 8e-09,
-   "do_innerloop_cg": true,
-   "innerloop_nmax": 100
-  },
-  "results": {
-   "energy": -440.8116016304075,
-   "odd_energy": 1.2088209192419002,
-   "homo_energy": -12.5399,
-   "lumo_energy": null,
-   "mp1_energy": null,
-   "mp2_energy": null,
-   "eigenvalues": [
-    [
-     -36.0844,
-     -19.4273,
-     -15.8808,
-     -12.5399
-    ],
-    [
-     -36.0844,
-     -19.4273,
-     -15.8808,
-     -12.5399
-    ]
-   ],
-   "lambda_ii": null,
-   "orbital_data": {
-    "charge": [
-     [
-      1.0,
-      1.0,
-      1.0,
-      1.0
-     ],
-     [
-      1.0,
-      1.0,
-      1.0,
-      1.0
-     ]
-    ],
-    "centres": [
-     [
-      [
-       -2.524175283846392,
-       -0.0,
-       1.8891626338221423
-      ],
-      [
-       3.3232328684602397,
-       -0.0,
-       1.8891626338221423
-      ],
-      [
-       0.9419354308693035,
-       -0.0,
-       3.1697714780377124
-      ],
-      [
-       0.8678506216998078,
-       0.0,
-       1.7198259271490093
-      ]
-     ],
-     [
-      [
-       -2.524175283846392,
-       -0.0,
-       1.8891626338221423
-      ],
-      [
-       3.3232328684602397,
-       -0.0,
-       1.8891626338221423
-      ],
-      [
-       0.9419354308693035,
-       -0.0,
-       3.1697714780377124
-      ],
-      [
-       0.8678506216998078,
-       0.0,
-       1.7198259271490093
-      ]
-     ]
-    ],
-    "spreads": [
-     [
-      37.74000340644666,
-      33.06520732961156,
-      35.4518903871691,
-      43.31761142480066
-     ],
-     [
-      37.74000340644666,
-      33.06520732961156,
-      35.4518903871691,
-      43.31761142480066
-     ]
-    ],
-    "self-Hartree": [
-     [
-      10.517,
-      10.517,
-      10.672,
-      8.13
-     ],
-     [
-      10.517,
-      10.517,
-      10.672,
-      8.13
-     ]
-    ]
-   },
-   "convergence": {
-    "filled": [
-     {
-      "iteration": 1,
-      "eff iteration": 1,
-      "Etot": -440.81160159768905
-     },
-     {
-      "iteration": 2,
-      "eff iteration": 2,
-      "Etot": -440.8116016169585
-     },
-     {
-      "iteration": 3,
-      "eff iteration": 3,
-      "Etot": -440.8116016221281,
-      "delta_E": 1.9269402664562328e-08
-     },
-     {
-      "iteration": 4,
-      "eff iteration": 4,
-      "Etot": -440.8116016244917,
-      "delta_E": 5.169462473884845e-09
-     },
-     {
-      "iteration": 5,
-      "eff iteration": 5,
-      "Etot": -440.8116016262952,
-      "delta_E": 2.363588877078327e-09
-     }
-    ],
-    "empty": []
-   },
-   "job_done": true
-  },
-  "alphas": [
-   0.7629346718820885,
-   0.7629346718820885,
-   0.7629346718820885,
-   0.7629346718820885
-  ],
-  "input files": {
-   "test_05/kipz/TMP-CP/kc_99.save/K00001/evc01.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evc01.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/TMP-CP/kc_99.save/K00001/evc1.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evc1.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/TMP-CP/kc_99.save/K00001/evcm1.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evcm1.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/TMP-CP/kc_99.save/K00001/hamiltonian1.xml": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/hamiltonian1.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/TMP-CP/kc_99.save/K00001/eigenval1.xml": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/eigenval1.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/TMP-CP/kc_99.save/K00001/lambda01.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_98.save/K00001/lambda01.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin1.cpi"
-   },
-   "test_05/kipz/TMP-CP/kc_99.save/K00001/lambdam1.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_99.save/K00001/lambdam1.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2_dummy.cpi"
-   },
-   "test_05/kipz/TMP-CP/kc_99.save/K00001/evc02.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evc01.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/TMP-CP/kc_99.save/K00001/evc2.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evc1.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/TMP-CP/kc_99.save/K00001/evcm2.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evcm1.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/TMP-CP/kc_99.save/K00001/hamiltonian2.xml": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/hamiltonian1.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/TMP-CP/kc_99.save/K00001/eigenval2.xml": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/eigenval1.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/TMP-CP/kc_99.save/K00001/lambda02.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_98.save/K00001/lambda01.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin1.cpi"
-   },
-   "test_05/kipz/TMP-CP/kc_99.save/K00001/lambdam2.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_99.save/K00001/lambdam2.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2_dummy.cpi"
-   }
-  }
- },
- "test_05/kipz/calc_alpha/iteration_3/orbital_4/kipz_frozen": {
-  "settings": {
-   "calculation": "cp",
-   "verbosity": "low",
-   "restart_mode": "restart",
-   "iprint": 1,
-   "outdir": "../../TMP-CP/orbital_4",
-   "prefix": "kc",
-   "disk_io": "high",
-   "pseudo_dir": "../../../../../../pseudos",
-   "ndr": 60,
-   "ndw": 61,
-   "write_hr": false,
-   "tot_magnetization": 0,
-   "ecutwfc": 20.0,
-   "ecutrho": 80.0,
-   "nspin": 2,
-   "fixed_band": 4,
-   "f_cutoff": 1.0,
-   "do_orbdep": true,
-   "fixed_state": true,
-   "do_ee": true,
-   "nelec": 8,
-   "nelup": 4,
-   "neldw": 4,
-   "do_wf_cmplx": true,
-   "ntyp": 2,
-   "nat": 3,
-   "ibrav": 0,
-   "conv_thr": 8.000000000000001e-07,
-   "ortho_para": 1,
-   "empty_states_nbnd": 0,
-   "electron_dynamics": "cg",
-   "passop": 2.0,
-   "do_outerloop": false,
-   "ion_dynamics": "none",
-   "ion_nstepe": 5,
-   "ion_radius(1)": 1.0,
-   "ion_radius(2)": 1.0,
-   "ion_radius(3)": 1.0,
-   "ion_radius(4)": 1.0,
-   "which_compensation": "tcc",
-   "do_innerloop": false,
-   "odd_nkscalfact": true,
-   "odd_nkscalfact_empty": true,
-   "which_orbdep": "nkipz",
-   "innerloop_cg_nreset": 20,
-   "innerloop_cg_nsd": 2,
-   "innerloop_init_n": 3,
-   "hartree_only_sic": false,
-   "esic_conv_thr": 8.000000000000001e-07,
-   "do_innerloop_cg": true,
-   "innerloop_nmax": 100
-  },
-  "results": {
-   "energy": -440.8116016304075,
-   "odd_energy": 1.2088209192419002,
-   "homo_energy": -12.5399,
-   "lumo_energy": null,
-   "mp1_energy": 0.0,
-   "mp2_energy": null,
-   "eigenvalues": [
-    [
-     -36.0844,
-     -19.4273,
-     -15.8808,
-     -12.5399
-    ],
-    [
-     -36.0844,
-     -19.4273,
-     -15.8808,
-     -12.5399
-    ]
-   ],
-   "lambda_ii": -14.62561096970701,
-   "orbital_data": {
-    "charge": [
-     [
-      1.0,
-      1.0,
-      1.0,
-      1.0
-     ],
-     [
-      1.0,
-      1.0,
-      1.0,
-      1.0
-     ]
-    ],
-    "centres": [
-     [
-      [
-       -2.524175283846392,
-       -0.0,
-       1.8891626338221423
-      ],
-      [
-       3.3232328684602397,
-       -0.0,
-       1.8891626338221423
-      ],
-      [
-       0.9419354308693035,
-       -0.0,
-       3.1697714780377124
-      ],
-      [
-       0.8678506216998078,
-       0.0,
-       1.7198259271490093
-      ]
-     ],
-     [
-      [
-       -2.524175283846392,
-       -0.0,
-       1.8891626338221423
-      ],
-      [
-       3.3232328684602397,
-       -0.0,
-       1.8891626338221423
-      ],
-      [
-       0.9419354308693035,
-       -0.0,
-       3.1697714780377124
-      ],
-      [
-       0.8678506216998078,
-       0.0,
-       1.7198259271490093
-      ]
-     ]
-    ],
-    "spreads": [
-     [
-      37.74000340644666,
-      33.06520732961156,
-      35.4518903871691,
-      43.31761142480066
-     ],
-     [
-      37.74000340644666,
-      33.06520732961156,
-      35.4518903871691,
-      43.31761142480066
-     ]
-    ],
-    "self-Hartree": [
-     [
-      10.517,
-      10.517,
-      10.672,
-      8.13
-     ],
-     [
-      10.517,
-      10.517,
-      10.672,
-      8.13
-     ]
-    ]
-   },
-   "convergence": {
-    "filled": [
-     {
-      "iteration": 1,
-      "eff iteration": 1,
-      "Etot": -440.81160163027135
-     }
-    ],
-    "empty": []
-   },
-   "job_done": true
-  },
-  "input files": {
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/evc01.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evc01.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/evc1.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evc1.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/evcm1.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evcm1.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/hamiltonian1.xml": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/hamiltonian1.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/eigenval1.xml": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/eigenval1.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/lambda01.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/lambda01.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/lambdam1.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/lambdam1.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/evc02.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evc02.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/evc2.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evc2.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/evcm2.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evcm2.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/hamiltonian2.xml": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/hamiltonian2.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/eigenval2.xml": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/eigenval2.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/lambda02.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/lambda02.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/lambdam2.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/lambdam2.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   }
-  }
- },
- "test_05/kipz/calc_alpha/iteration_3/orbital_4/dft_frozen": {
-  "settings": {
-   "calculation": "cp",
-   "verbosity": "low",
-   "restart_mode": "restart",
-   "iprint": 1,
-   "outdir": "../../TMP-CP/orbital_4",
-   "prefix": "kc",
-   "disk_io": "high",
-   "pseudo_dir": "../../../../../../pseudos",
-   "ndr": 60,
-   "ndw": 62,
-   "write_hr": false,
-   "tot_magnetization": 0,
-   "ecutwfc": 20.0,
-   "ecutrho": 80.0,
-   "nspin": 2,
-   "fixed_band": 4,
-   "f_cutoff": 1.0,
-   "do_orbdep": false,
-   "fixed_state": true,
-   "do_ee": true,
-   "nelec": 8,
-   "nelup": 4,
-   "neldw": 4,
-   "do_wf_cmplx": true,
-   "ntyp": 2,
-   "nat": 3,
-   "ibrav": 0,
-   "conv_thr": 8.000000000000001e-07,
-   "ortho_para": 1,
-   "empty_states_nbnd": 0,
-   "electron_dynamics": "cg",
-   "passop": 2.0,
-   "do_outerloop": false,
-   "ion_dynamics": "none",
-   "ion_nstepe": 5,
-   "ion_radius(1)": 1.0,
-   "ion_radius(2)": 1.0,
-   "ion_radius(3)": 1.0,
-   "ion_radius(4)": 1.0,
-   "which_compensation": "tcc",
-   "do_innerloop": false,
-   "innerloop_cg_nreset": 20,
-   "innerloop_cg_nsd": 2,
-   "innerloop_init_n": 3,
-   "hartree_only_sic": false,
-   "esic_conv_thr": 8.000000000000001e-07,
-   "do_innerloop_cg": true,
-   "innerloop_nmax": 100
-  },
-  "results": {
-   "energy": -442.0204225496494,
-   "odd_energy": 0.0,
-   "homo_energy": -6.8553,
-   "lumo_energy": null,
-   "mp1_energy": 0.0,
-   "mp2_energy": null,
-   "eigenvalues": [
-    [
-     -28.9039,
-     -13.0322,
-     -9.5574,
-     -6.8553
-    ],
-    [
-     -28.9039,
-     -13.0322,
-     -9.5574,
-     -6.8553
-    ]
-   ],
-   "lambda_ii": -9.32156167191038,
-   "orbital_data": {
-    "charge": [
-     [
-      0.0,
-      0.0,
-      0.0,
-      0.0
-     ],
-     [
-      0.0,
-      0.0,
-      0.0,
-      0.0
-     ]
-    ],
-    "centres": [
-     [
-      [
-       0.0,
-       0.0,
-       0.0
-      ],
-      [
-       0.0,
-       0.0,
-       0.0
-      ],
-      [
-       0.0,
-       0.0,
-       0.0
-      ],
-      [
-       0.0,
-       0.0,
-       0.0
-      ]
-     ],
-     [
-      [
-       0.0,
-       0.0,
-       0.0
-      ],
-      [
-       0.0,
-       0.0,
-       0.0
-      ],
-      [
-       0.0,
-       0.0,
-       0.0
-      ],
-      [
-       0.0,
-       0.0,
-       0.0
-      ]
-     ]
-    ],
-    "spreads": [
-     [
-      0.0,
-      0.0,
-      0.0,
-      0.0
-     ],
-     [
-      0.0,
-      0.0,
-      0.0,
-      0.0
-     ]
-    ],
-    "self-Hartree": [
-     [
-      0.0,
-      0.0,
-      0.0,
-      0.0
-     ],
-     [
-      0.0,
-      0.0,
-      0.0,
-      0.0
-     ]
-    ]
-   },
-   "convergence": {
-    "filled": [
-     {
-      "iteration": 1,
-      "eff iteration": 1,
-      "Etot": -442.0204225487424
-     }
-    ],
-    "empty": []
-   },
-   "job_done": true
-  },
-  "input files": {
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/evc01.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evc01.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/evc1.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evc1.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/evcm1.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evcm1.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/hamiltonian1.xml": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/hamiltonian1.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/eigenval1.xml": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/eigenval1.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/lambda01.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/lambda01.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/lambdam1.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/lambdam1.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/evc02.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evc02.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/evc2.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evc2.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/evcm2.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evcm2.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/hamiltonian2.xml": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/hamiltonian2.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/eigenval2.xml": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/eigenval2.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/lambda02.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/lambda02.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/lambdam2.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/lambdam2.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   }
-  }
- },
- "test_05/kipz/calc_alpha/iteration_3/orbital_4/kipz_n-1": {
-  "settings": {
-   "calculation": "cp",
-   "verbosity": "low",
-   "restart_mode": "restart",
-   "iprint": 1,
-   "outdir": "../../TMP-CP/orbital_4",
-   "prefix": "kc",
-   "disk_io": "high",
-   "pseudo_dir": "../../../../../../pseudos",
-   "ndr": 60,
-   "ndw": 63,
-   "write_hr": false,
-   "tot_magnetization": 0,
-   "ecutwfc": 20.0,
-   "ecutrho": 80.0,
-   "nspin": 2,
-   "fixed_band": 4,
-   "f_cutoff": 1e-05,
-   "do_orbdep": true,
-   "fixed_state": true,
-   "do_ee": true,
-   "nelec": 8,
-   "nelup": 4,
-   "neldw": 4,
-   "do_wf_cmplx": true,
-   "ntyp": 2,
-   "nat": 3,
-   "ibrav": 0,
-   "conv_thr": 8.000000000000001e-07,
-   "ortho_para": 1,
-   "empty_states_nbnd": 0,
-   "maxiter": 300,
-   "electron_dynamics": "cg",
-   "passop": 2.0,
-   "do_outerloop": true,
-   "ion_dynamics": "none",
-   "ion_nstepe": 5,
-   "ion_radius(1)": 1.0,
-   "ion_radius(2)": 1.0,
-   "ion_radius(3)": 1.0,
-   "ion_radius(4)": 1.0,
-   "which_compensation": "tcc",
-   "do_innerloop": false,
-   "odd_nkscalfact": true,
-   "odd_nkscalfact_empty": true,
-   "which_orbdep": "nkipz",
-   "innerloop_cg_nreset": 20,
-   "innerloop_cg_nsd": 2,
-   "innerloop_init_n": 3,
-   "hartree_only_sic": false,
-   "esic_conv_thr": 8.000000000000001e-07,
-   "do_innerloop_cg": true,
-   "innerloop_nmax": 100
-  },
-  "results": {
-   "energy": -426.18582396267055,
-   "odd_energy": 0.7657885036255788,
-   "homo_energy": -14.7753,
-   "lumo_energy": null,
-   "mp1_energy": 2.335597589563145,
-   "mp2_energy": null,
-   "eigenvalues": [
-    [
-     -47.2167,
-     -31.3303,
-     -26.5217,
-     -14.7753
-    ],
-    [
-     -50.4082,
-     -32.2494,
-     -29.1774,
-     -26.2981
-    ]
-   ],
-   "lambda_ii": -14.775328304233598,
-   "orbital_data": {
-    "charge": [
-     [
-      1.0,
-      1.0,
-      1.0,
-      1.0
-     ],
-     [
-      1.0,
-      1.0,
-      1.0,
-      1.0
-     ]
-    ],
-    "centres": [
-     [
-      [
-       -2.5559259163476047,
-       -0.0,
-       2.058499340495276
-      ],
-      [
-       3.3867341334626646,
-       -0.0,
-       2.058499340495276
-      ],
-      [
-       0.9789778354540515,
-       -0.0,
-       3.212105654705996
-      ],
-      [
-       0.8678506216998078,
-       0.0,
-       1.7198259271490093
-      ]
-     ],
-     [
-      [
-       -2.4871328792616443,
-       -0.0,
-       2.0902499729964883
-      ],
-      [
-       3.3549835009614517,
-       -0.0,
-       2.0902499729964883
-      ],
-      [
-       0.9948531517046576,
-       -0.0,
-       3.2226891988730664
-      ],
-      [
-       0.9525189750363744,
-       0.0,
-       1.9262050384068905
-      ]
-     ]
-    ],
-    "spreads": [
-     [
-      37.351323823683565,
-      32.414141025631594,
-      35.478773124881826,
-      43.31761142480066
-     ],
-     [
-      37.61763094415022,
-      32.55919579787315,
-      35.431728333884564,
-      43.37025678615474
-     ]
-    ],
-    "self-Hartree": [
-     [
-      11.103,
-      11.103,
-      11.132,
-      8.13
-     ],
-     [
-      11.11,
-      11.111,
-      11.338,
-      9.067
-     ]
-    ]
-   },
-   "convergence": {
-    "filled": [
-     {
-      "iteration": 1,
-      "eff iteration": 1,
-      "Etot": -424.4349920895778
-     },
-     {
-      "iteration": 2,
-      "eff iteration": 2,
-      "Etot": -425.957445015806
-     },
-     {
-      "iteration": 3,
-      "eff iteration": 3,
-      "Etot": -426.1522857028027,
-      "delta_E": 1.5224529262282673
-     },
-     {
-      "iteration": 4,
-      "eff iteration": 4,
-      "Etot": -426.1771093124924,
-      "delta_E": 0.19484068699657237
-     },
-     {
-      "iteration": 5,
-      "eff iteration": 5,
-      "Etot": -426.18149657720284,
-      "delta_E": 0.02482360968975465
-     },
-     {
-      "iteration": 6,
-      "eff iteration": 6,
-      "Etot": -426.1827236307281,
-      "delta_E": 0.004387264710364206
-     },
-     {
-      "iteration": 7,
-      "eff iteration": 7,
-      "Etot": -426.1830920762458,
-      "delta_E": 0.001227053525266123
-     },
-     {
-      "iteration": 8,
-      "eff iteration": 8,
-      "Etot": -426.1833094807398,
-      "delta_E": 0.0003684455177877554
-     },
-     {
-      "iteration": 9,
-      "eff iteration": 9,
-      "Etot": -426.183688651895,
-      "delta_E": 0.00021740449380339472
-     },
-     {
-      "iteration": 10,
-      "eff iteration": 10,
-      "Etot": -426.18446717658696,
-      "delta_E": 0.00037917115512942643
-     },
-     {
-      "iteration": 11,
-      "eff iteration": 11,
-      "Etot": -426.1852112339319,
-      "delta_E": 0.0007785246919780777
-     },
-     {
-      "iteration": 12,
-      "eff iteration": 12,
-      "Etot": -426.1855574822011,
-      "delta_E": 0.0007440573451619028
-     },
-     {
-      "iteration": 13,
-      "eff iteration": 13,
-      "Etot": -426.1856984808996,
-      "delta_E": 0.0003462482691647631
-     },
-     {
-      "iteration": 14,
-      "eff iteration": 14,
-      "Etot": -426.1857375662386,
-      "delta_E": 0.00014099869831154347
-     },
-     {
-      "iteration": 15,
-      "eff iteration": 15,
-      "Etot": -426.18575274043957,
-      "delta_E": 3.9085338974148266e-05
-     },
-     {
-      "iteration": 16,
-      "eff iteration": 16,
-      "Etot": -426.1857826226118,
-      "delta_E": 1.5174201244420861e-05
-     },
-     {
-      "iteration": 17,
-      "eff iteration": 17,
-      "Etot": -426.1858040514666,
-      "delta_E": 2.9882172087691176e-05
-     },
-     {
-      "iteration": 18,
-      "eff iteration": 18,
-      "Etot": -426.1858083168644,
-      "delta_E": 2.1428854811733142e-05
-     },
-     {
-      "iteration": 19,
-      "eff iteration": 19,
-      "Etot": -426.18581216718843,
-      "delta_E": 4.2653977040285145e-06
-     },
-     {
-      "iteration": 20,
-      "eff iteration": 25,
-      "Etot": -426.18581231519414,
-      "delta_E": 3.8503242254060976e-06
-     }
-    ],
-    "empty": []
-   },
-   "job_done": true
-  },
-  "alphas": [
-   0.7629346718820885,
-   0.7629346718820885,
-   0.7629346718820885,
-   0.7629346718820885
-  ],
-  "input files": {
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/evc01.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evc01.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/evc1.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evc1.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/evcm1.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evcm1.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/hamiltonian1.xml": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/hamiltonian1.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/eigenval1.xml": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/eigenval1.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/lambda01.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/lambda01.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/lambdam1.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/lambdam1.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/evc02.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evc02.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/evc2.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evc2.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/evcm2.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evcm2.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/hamiltonian2.xml": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/hamiltonian2.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/eigenval2.xml": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/eigenval2.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/lambda02.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/lambda02.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   },
-   "test_05/kipz/calc_alpha/TMP-CP/orbital_4/kc_60.save/K00001/lambdam2.dat": {
-    "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/lambdam2.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
-   }
-  }
- },
  "test_05/kipz/final/kipz_final": {
   "settings": {
    "calculation": "cp",
@@ -27721,24 +26125,24 @@
    "innerloop_nmax": 100
   },
   "results": {
-   "energy": -440.81156364603675,
-   "odd_energy": 1.2088335997467814,
-   "homo_energy": -12.5401,
+   "energy": -440.8116016304075,
+   "odd_energy": 1.208819939632081,
+   "homo_energy": -12.5399,
    "lumo_energy": null,
    "mp1_energy": null,
    "mp2_energy": null,
    "eigenvalues": [
     [
-     -36.0846,
-     -19.4275,
-     -15.881,
-     -12.5401
+     -36.0844,
+     -19.4273,
+     -15.8808,
+     -12.5399
     ],
     [
-     -36.0846,
-     -19.4275,
-     -15.881,
-     -12.5401
+     -36.0844,
+     -19.4273,
+     -15.8808,
+     -12.5399
     ]
    ],
    "lambda_ii": null,
@@ -27806,13 +26210,13 @@
     "spreads": [
      [
       37.74000340644666,
-      33.06492730109372,
+      33.06520732961156,
       35.4518903871691,
       43.31761142480066
      ],
      [
       37.74000340644666,
-      33.06492730109372,
+      33.06520732961156,
       35.4518903871691,
       43.31761142480066
      ]
@@ -27837,30 +26241,30 @@
      {
       "iteration": 1,
       "eff iteration": 1,
-      "Etot": -440.8115636389079
+      "Etot": -440.81160159136806
      },
      {
       "iteration": 2,
       "eff iteration": 2,
-      "Etot": -440.81156364139906
+      "Etot": -440.81160161610654
      },
      {
       "iteration": 3,
       "eff iteration": 3,
-      "Etot": -440.81156364280315,
-      "delta_E": 2.491392243085037e-09
+      "Etot": -440.81160162125195,
+      "delta_E": 2.473855533104981e-08
      },
      {
       "iteration": 4,
       "eff iteration": 4,
-      "Etot": -440.8115636438261,
-      "delta_E": 1.403903540960028e-09
+      "Etot": -440.8116016239238,
+      "delta_E": 5.145390584220989e-09
      },
      {
       "iteration": 5,
       "eff iteration": 5,
-      "Etot": -440.811563644813,
-      "delta_E": 1.0231036478432763e-09
+      "Etot": -440.8116016258106,
+      "delta_E": 2.6717864041806933e-09
      }
     ],
     "empty": []
@@ -27868,67 +26272,67 @@
    "job_done": true
   },
   "alphas": [
-   0.7629586497336559,
-   0.7629586497336559,
-   0.7629586497336559,
-   0.7629586497336559
+   0.7629346718820885,
+   0.7629346718820885,
+   0.7629346718820885,
+   0.7629346718820885
   ],
   "input files": {
    "test_05/kipz/TMP-CP/kc_60.save/K00001/evc01.dat": {
     "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evc01.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
+    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
    },
    "test_05/kipz/TMP-CP/kc_60.save/K00001/evc1.dat": {
     "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evc1.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
+    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
    },
    "test_05/kipz/TMP-CP/kc_60.save/K00001/evcm1.dat": {
     "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evcm1.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
+    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
    },
    "test_05/kipz/TMP-CP/kc_60.save/K00001/hamiltonian1.xml": {
     "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/hamiltonian1.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
+    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
    },
    "test_05/kipz/TMP-CP/kc_60.save/K00001/eigenval1.xml": {
     "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/eigenval1.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
+    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
    },
    "test_05/kipz/TMP-CP/kc_60.save/K00001/lambda01.dat": {
     "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/lambda01.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
+    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
    },
    "test_05/kipz/TMP-CP/kc_60.save/K00001/lambdam1.dat": {
     "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/lambdam1.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
+    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
    },
    "test_05/kipz/TMP-CP/kc_60.save/K00001/evc02.dat": {
     "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evc02.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
+    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
    },
    "test_05/kipz/TMP-CP/kc_60.save/K00001/evc2.dat": {
     "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evc2.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
+    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
    },
    "test_05/kipz/TMP-CP/kc_60.save/K00001/evcm2.dat": {
     "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/evcm2.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
+    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
    },
    "test_05/kipz/TMP-CP/kc_60.save/K00001/hamiltonian2.xml": {
     "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/hamiltonian2.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
+    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
    },
    "test_05/kipz/TMP-CP/kc_60.save/K00001/eigenval2.xml": {
     "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/eigenval2.xml",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
+    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
    },
    "test_05/kipz/TMP-CP/kc_60.save/K00001/lambda02.dat": {
     "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/lambda02.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
+    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
    },
    "test_05/kipz/TMP-CP/kc_60.save/K00001/lambdam2.dat": {
     "written_to": "test_05/kipz/TMP-CP/kc_60.save/K00001/lambdam2.dat",
-    "written_by": "test_05/kipz/calc_alpha/iteration_3/kipz_nspin2.cpi"
+    "written_by": "test_05/kipz/calc_alpha/iteration_2/kipz_nspin2.cpi"
    }
   }
  },
@@ -67139,6 +65543,7 @@
    ],
    "Emin": -10,
    "Emax": 4,
+   "degauss": 0.5,
    "kc_ham_file": "../../../ki/final/ham_occ_1.dat",
    "w90_seedname": "../../../ki/init/wannier/occ/wann",
    "alat_sc": 2.150785181477445,
@@ -67153,7 +65558,6 @@
    "dft_ham_file": "../../../ki/init/wannier/occ/wann_hr.dat",
    "dft_smooth_ham_file": "../../../ki/postproc/wannier/occ/wann_hr.dat",
    "do_dos": true,
-   "degauss": 0.05,
    "nstep": 1000,
    "kpath": {
     "kpts": {
@@ -67522,7 +65926,7 @@
    },
    "dos": {
     "calc": null,
-    "width": 0.05,
+    "width": 0.5,
     "window": [
      -10.0,
      4.0
@@ -67619,6 +66023,7 @@
    ],
    "Emin": -10,
    "Emax": 4,
+   "degauss": 0.5,
    "kc_ham_file": "../../../ki/final/ham_occ_1.dat",
    "w90_seedname": "../../../ki/init/wannier/occ/wann",
    "alat_sc": 2.150785181477445,
@@ -67633,7 +66038,6 @@
    "dft_ham_file": "../../../ki/init/wannier/occ/wann_hr.dat",
    "dft_smooth_ham_file": "../../../ki/postproc/wannier/occ/wann_hr.dat",
    "do_dos": true,
-   "degauss": 0.05,
    "nstep": 1000,
    "kpath": {
     "kpts": {
@@ -68002,7 +66406,7 @@
    },
    "dos": {
     "calc": null,
-    "width": 0.05,
+    "width": 0.5,
     "window": [
      -10.0,
      4.0
@@ -68099,6 +66503,7 @@
    ],
    "Emin": -10,
    "Emax": 4,
+   "degauss": 0.5,
    "kc_ham_file": "../../final/ham_occ_1.dat",
    "w90_seedname": "../../init/wannier/occ/wann",
    "alat_sc": 2.150785181477445,
@@ -68113,7 +66518,6 @@
    "dft_ham_file": "../../init/wannier/occ/wann_hr.dat",
    "dft_smooth_ham_file": "../wannier/occ/wann_hr.dat",
    "do_dos": true,
-   "degauss": 0.05,
    "nstep": 1000,
    "kpath": {
     "kpts": {
@@ -68482,7 +66886,7 @@
    },
    "dos": {
     "calc": null,
-    "width": 0.05,
+    "width": 0.5,
     "window": [
      -10.0,
      4.0
@@ -68579,6 +66983,7 @@
    ],
    "Emin": -10,
    "Emax": 4,
+   "degauss": 0.5,
    "kc_ham_file": "../../../ki/final/ham_emp_1.dat",
    "w90_seedname": "../../../ki/init/wannier/emp/wann",
    "alat_sc": 2.150785181477445,
@@ -68593,7 +66998,6 @@
    "dft_ham_file": "../../../ki/init/wannier/emp/wann_hr.dat",
    "dft_smooth_ham_file": "../../../ki/postproc/wannier/emp/wann_hr.dat",
    "do_dos": true,
-   "degauss": 0.05,
    "nstep": 1000,
    "kpath": {
     "kpts": {
@@ -68962,7 +67366,7 @@
    },
    "dos": {
     "calc": null,
-    "width": 0.05,
+    "width": 0.5,
     "window": [
      -10.0,
      4.0
@@ -69059,6 +67463,7 @@
    ],
    "Emin": -10,
    "Emax": 4,
+   "degauss": 0.5,
    "kc_ham_file": "../../../ki/final/ham_emp_1.dat",
    "w90_seedname": "../../../ki/init/wannier/emp/wann",
    "alat_sc": 2.150785181477445,
@@ -69073,7 +67478,6 @@
    "dft_ham_file": "../../../ki/init/wannier/emp/wann_hr.dat",
    "dft_smooth_ham_file": "../../../ki/postproc/wannier/emp/wann_hr.dat",
    "do_dos": true,
-   "degauss": 0.05,
    "nstep": 1000,
    "kpath": {
     "kpts": {
@@ -69442,7 +67846,7 @@
    },
    "dos": {
     "calc": null,
-    "width": 0.05,
+    "width": 0.5,
     "window": [
      -10.0,
      4.0
@@ -69539,6 +67943,7 @@
    ],
    "Emin": -10,
    "Emax": 4,
+   "degauss": 0.5,
    "kc_ham_file": "../../final/ham_emp_1.dat",
    "w90_seedname": "../../init/wannier/emp/wann",
    "alat_sc": 2.150785181477445,
@@ -69553,7 +67958,6 @@
    "dft_ham_file": "../../init/wannier/emp/wann_hr.dat",
    "dft_smooth_ham_file": "../wannier/emp/wann_hr.dat",
    "do_dos": true,
-   "degauss": 0.05,
    "nstep": 1000,
    "kpath": {
     "kpts": {
@@ -69922,7 +68326,7 @@
    },
    "dos": {
     "calc": null,
-    "width": 0.05,
+    "width": 0.5,
     "window": [
      -10.0,
      4.0
@@ -71350,6 +69754,7 @@
    ],
    "Emin": -10,
    "Emax": 4,
+   "degauss": 0.5,
    "kc_ham_file": "../../final/ham_occ_1.dat",
    "w90_seedname": "../../init/wannier/occ/wann",
    "alat_sc": 2.150785181477445,
@@ -71364,7 +69769,6 @@
    "dft_ham_file": "../../init/wannier/occ/wann_hr.dat",
    "dft_smooth_ham_file": "../wannier/occ/wann_hr.dat",
    "do_dos": true,
-   "degauss": 0.05,
    "nstep": 1000,
    "kpath": {
     "kpts": {
@@ -71733,7 +70137,7 @@
    },
    "dos": {
     "calc": null,
-    "width": 0.05,
+    "width": 0.5,
     "window": [
      -10.0,
      4.0
@@ -71830,6 +70234,7 @@
    ],
    "Emin": -10,
    "Emax": 4,
+   "degauss": 0.5,
    "kc_ham_file": "../../final/ham_emp_1.dat",
    "w90_seedname": "../../init/wannier/emp/wann",
    "alat_sc": 2.150785181477445,
@@ -71844,7 +70249,6 @@
    "dft_ham_file": "../../init/wannier/emp/wann_hr.dat",
    "dft_smooth_ham_file": "../wannier/emp/wann_hr.dat",
    "do_dos": true,
-   "degauss": 0.05,
    "nstep": 1000,
    "kpath": {
     "kpts": {
@@ -72213,7 +70617,7 @@
    },
    "dos": {
     "calc": null,
-    "width": 0.05,
+    "width": 0.5,
     "window": [
      -10.0,
      4.0
@@ -82155,6 +80559,7 @@
    ],
    "Emin": -10,
    "Emax": 4,
+   "degauss": 0.5,
    "kc_ham_file": "../../final/ham_occ_1.dat",
    "w90_seedname": "../../init/wannier/occ/wann",
    "alat_sc": 2.150785181477445,
@@ -82169,7 +80574,6 @@
    "dft_ham_file": "../../init/wannier/occ/wann_hr.dat",
    "dft_smooth_ham_file": "../wannier/occ/wann_hr.dat",
    "do_dos": true,
-   "degauss": 0.05,
    "nstep": 1000,
    "kpath": {
     "kpts": {
@@ -82538,7 +80942,7 @@
    },
    "dos": {
     "calc": null,
-    "width": 0.05,
+    "width": 0.5,
     "window": [
      -10.0,
      4.0
@@ -82635,6 +81039,7 @@
    ],
    "Emin": -10,
    "Emax": 4,
+   "degauss": 0.5,
    "kc_ham_file": "../../final/ham_emp_1.dat",
    "w90_seedname": "../../init/wannier/emp/wann",
    "alat_sc": 2.150785181477445,
@@ -82649,7 +81054,6 @@
    "dft_ham_file": "../../init/wannier/emp/wann_hr.dat",
    "dft_smooth_ham_file": "../wannier/emp/wann_hr.dat",
    "do_dos": true,
-   "degauss": 0.05,
    "nstep": 1000,
    "kpath": {
     "kpts": {
@@ -83018,7 +81422,7 @@
    },
    "dos": {
     "calc": null,
-    "width": 0.05,
+    "width": 0.5,
     "window": [
      -10.0,
      4.0

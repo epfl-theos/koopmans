@@ -150,9 +150,9 @@ class WorkflowTest:
                 elif isinstance(ref_result, np.ndarray):
                     # For arrays, perform a mixed error test. If Delta = |x - x_ref| then in the limit of large Delta,
                     # then this reduces to testing relative error, whereas in the limit of small Delta it reduces to
-                    # testing absolute error
+                    # testing absolute error. We use 0.1*max(ref_result) as a reference scale factor.
                     abs_diffs = np.abs(result - ref_result)
-                    mixed_diffs = abs_diffs / (1 + np.abs(ref_result))
+                    mixed_diffs = abs_diffs / (0.1*np.max(ref_result) + np.abs(ref_result))
                     i_max = np.argmax(mixed_diffs)
                     mixed_diff = mixed_diffs[i_max]
                     abs_diff = abs_diffs[i_max]
