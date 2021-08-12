@@ -613,11 +613,7 @@ class KoopmansCPWorkflow(Workflow):
         calc.alat_sc = self.all_calcs[-1].alat_sc
 
         # Merge the bands
-        try:
-            energies = [c.results['band structure'].energies for c in self.all_calcs[-2:]]
-        except:
-            import ipdb
-            ipdb.set_trace()
+        energies = [c.results['band structure'].energies for c in self.all_calcs[-2:]]
         reference = np.max(energies[0])
         calc.results['band structure'] = BandStructure(
             self.all_calcs[-1].kpath, np.concatenate(energies, axis=2) - reference)

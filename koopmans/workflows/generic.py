@@ -350,7 +350,6 @@ class Workflow(object):
             if isinstance(qe_calc, KoopmansHamCalc):
                 qe_calc.calc.band_structure()
             elif isinstance(qe_calc, UI_calc):
-                print('Loading bands')
                 qe_calc.read_bands()
                 # If the band structure file does not exist, we must re-run
                 if 'band structure' not in qe_calc.results:
