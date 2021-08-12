@@ -857,7 +857,8 @@ class KoopmansCPWorkflow(Workflow):
         # If we are using frozen orbitals, we override the above logic and freeze the variational orbitals
         # post-initialisation
         if self.frozen_orbitals and 'init' not in calc.name and not any([s == calc.name for s in
-                                                                         ['dft_n-1', 'dft_n+1', 'kipz_n-1', 'kipz_n+1']]):
+                                                                         ['dft_n-1', 'dft_n+1', 'kipz_n-1',
+                                                                          'kipz_n+1']]):
             calc.do_outerloop = False
             calc.do_innerloop = False
             if calc.empty_states_nbnd > 0:
