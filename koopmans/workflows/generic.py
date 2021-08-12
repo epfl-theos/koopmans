@@ -14,6 +14,7 @@ import numpy as np
 from ase.calculators.calculator import CalculationFailed
 from koopmans import io, utils
 from koopmans.calculators.commands import ParallelCommandWithPostfix
+from koopmans.calculators.ui import UI_calc
 from koopmans.calculators.kc_ham import KoopmansHamCalc
 from koopmans.calculators.kcp import KCP_calc
 from koopmans.bands import Bands
@@ -348,6 +349,12 @@ class Workflow(object):
             # Load bandstructure if present, too
             if isinstance(qe_calc, KoopmansHamCalc):
                 qe_calc.calc.band_structure()
+            elif isinstance(qe_calc, UI_calc):
+                print('Loading bands')
+                qe_calc.read_bands()
+                # If the band structure file does not exist, we must re-run
+                if 'band structure' not in qe_calc.results:
+                    return False
 
             self.all_calcs.append(qe_calc)
 

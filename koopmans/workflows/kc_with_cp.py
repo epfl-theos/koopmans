@@ -607,16 +607,17 @@ class KoopmansCPWorkflow(Workflow):
         for calc_presets in ['occ', 'emp']:
             calc = self.new_calculator('ui', calc_presets)
             self.run_calculator(calc, enforce_ss=False)
-            # If not running from scratch, we need to make sure band structures are still loaded
-            if not self.from_scratch:
-                calc.read_bands()
 
         # Merge the two calculations to print out the DOS and bands
         calc = self.new_calculator('ui', 'merge')
         calc.alat_sc = self.all_calcs[-1].alat_sc
 
         # Merge the bands
-        energies = [c.results['band structure'].energies for c in self.all_calcs[-2:]]
+        try:
+            energies = [c.results['band structure'].energies for c in self.all_calcs[-2:]]
+        except:
+            import ipdb
+            ipdb.set_trace()
         reference = np.max(energies[0])
         calc.results['band structure'] = BandStructure(
             self.all_calcs[-1].kpath, np.concatenate(energies, axis=2) - reference)
