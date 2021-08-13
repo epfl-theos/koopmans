@@ -21,7 +21,7 @@ from koopmans.bands import Bands
 valid_settings = [
     utils.Setting('task',
                   'Task to perform',
-                  str, 'singlepoint', ('singlepoint', 'convergence', 'environ_dscf', 'ui')),
+                  str, 'singlepoint', ('singlepoint', 'convergence', 'wannierise', 'environ_dscf', 'ui')),
     utils.Setting('functional',
                   'orbital-density-dependent-functional/density-functional to use',
                   str, 'ki', ('ki', 'kipz', 'pkipz', 'pbe', 'all')),

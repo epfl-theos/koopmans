@@ -435,6 +435,7 @@ def read_json(fd):
     from koopmans.workflows.convergence import ConvergenceWorkflow
     from koopmans.workflows.pbe_dscf_with_pw import DeltaSCFWorkflow
     from koopmans.workflows.ui import UnfoldAndInterpolateWorkflow
+    from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
 
     if isinstance(fd, str):
         fd = open(fd, 'r')
@@ -519,6 +520,8 @@ def read_json(fd):
         workflow = SinglepointWorkflow(workflow_settings, calcs_dct, name)
     elif task_name == 'convergence':
         workflow = ConvergenceWorkflow(workflow_settings, calcs_dct, name)
+    elif task_name in ['wannierize', 'wannierise']:
+        workflow = WannierizeWorkflow(workflow_settings, calcs_dct, name)
     elif task_name == 'environ_dscf':
         workflow = DeltaSCFWorkflow(workflow_settings, calcs_dct, name)
     elif task_name == 'ui':
