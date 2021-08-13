@@ -1137,11 +1137,13 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
      IF (do_bare_eigs) THEN
         CALL compute_lambda (c0_emp, gi_bare, lambda_emp, nspin, n_empx, ngw, nudx_emp, desc_emp )
         fname='hamiltonian0_emp'
+        WRITE( stdout, '(/,3X,"writing empty state DFT Hamiltonian file: ",A)' ) TRIM( fname )
         CALL write_ham_emp_xml (nspin, nudx_emp, lambda_emp, desc_emp, fname)
      ENDIF
      !
      CALL compute_lambda (c0_emp, gi, lambda_emp, nspin, n_empx, ngw, nudx_emp, desc_emp )
      fname='hamiltonian_emp'
+     WRITE( stdout, '(/,3X,"writing empty state KC  Hamiltonian file: ",A)' ) TRIM( fname )
      CALL write_ham_emp_xml (nspin, nudx_emp, lambda_emp, desc_emp, fname)
      !
      call do_deallocation()
