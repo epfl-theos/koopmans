@@ -1135,13 +1135,13 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
       enddo
      !
      IF (do_bare_eigs) THEN
-        CALL compute_lambda (c0_emp, gi_bare, lambda_emp, nspin, n_empx, ngw, nudx_emp, desc_emp )
+        CALL compute_lambda (c0_emp, gi_bare, lambda_emp, nspin, n_empx, ngw, nudx_emp, desc_emp, nupdwn_emp, iupdwn_emp)
         fname='hamiltonian0_emp'
         WRITE( stdout, '(/,3X,"writing empty state DFT Hamiltonian file: ",A)' ) TRIM( fname )
         CALL write_ham_emp_xml (nspin, nudx_emp, lambda_emp, desc_emp, fname)
      ENDIF
      !
-     CALL compute_lambda (c0_emp, gi, lambda_emp, nspin, n_empx, ngw, nudx_emp, desc_emp )
+     CALL compute_lambda (c0_emp, gi, lambda_emp, nspin, n_empx, ngw, nudx_emp, desc_emp, nupdwn_emp, iupdwn_emp )
      fname='hamiltonian_emp'
      WRITE( stdout, '(/,3X,"writing empty state KC  Hamiltonian file: ",A)' ) TRIM( fname )
      CALL write_ham_emp_xml (nspin, nudx_emp, lambda_emp, desc_emp, fname)
@@ -1524,12 +1524,12 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
 END SUBROUTINE runcg_uspp_emp
 
 !-----------------------------------------------------------------------
-SUBROUTINE compute_lambda (c0, gi, lambda, nspin, nbnd, ngw, nudx, desc_emp )
+SUBROUTINE compute_lambda (c0, gi, lambda, nspin, nbnd, ngw, nudx, desc_emp, nupdwn, iupdwn )
 !-----------------------------------------------------------------------
  !
  USE kinds,                    ONLY : DP
  USE twin_types 
- USE electrons_module,         ONLY : nupdwn_emp, iupdwn_emp
+ !USE electrons_module,         ONLY : nupdwn_emp, iupdwn_emp
  USE reciprocal_vectors,       ONLY : ng0 => gstart
  USE descriptors,              ONLY : descla_siz_ 
  USE mp_global,                ONLY : intra_image_comm
@@ -1538,6 +1538,7 @@ SUBROUTINE compute_lambda (c0, gi, lambda, nspin, nbnd, ngw, nudx, desc_emp )
  !
  IMPLICIT NONE 
  INTEGER, INTENT(IN) :: nspin, ngw, nbnd, nudx
+ INTEGER, INTENT(IN) :: nupdwn(nspin), iupdwn(nspin)
  INTEGER, INTENT (IN) :: desc_emp( descla_siz_ , 2 )
  COMPLEX(DP), INTENT(IN) :: c0(ngw, nbnd)
  COMPLEX(DP), INTENT(IN) :: gi(ngw, nbnd)
@@ -1554,8 +1555,8 @@ SUBROUTINE compute_lambda (c0, gi, lambda, nspin, nbnd, ngw, nudx, desc_emp )
  !
  do is = 1, nspin
     !
-    nss = nupdwn_emp(is)
-    istart = iupdwn_emp(is)
+    nss = nupdwn(is)
+    istart = iupdwn(is)
     ! 
     if (.not.lambda(1)%iscmplx) then
        lambda_repl = 0.d0

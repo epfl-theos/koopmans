@@ -1447,67 +1447,8 @@
          !
      enddo
      !
-     IF(.not.lambda(1)%iscmplx) THEN
-        allocate(lambda_repl(nudx,nudx))
-     ELSE
-        allocate(lambda_repl_c(nudx,nudx))
-     ENDIF
-     !
-     hitmp(1:ngw,1:nbsp) = c0(1:ngw,1:nbsp)
-     !
-     do is = 1, nspin
-        !
-        nss = nupdwn(is)
-        istart = iupdwn(is)
-        ! 
-        IF(.not.lambda(1)%iscmplx) THEN
-           lambda_repl = 0.d0
-        ELSE
-           lambda_repl_c = CMPLX(0.d0,0.d0)
-        ENDIF
-        !
-        !
-        do i = 1, nss
-           do j = i, nss
-              ii = i + istart - 1
-              jj = j + istart - 1
-              IF(.not.lambda(1)%iscmplx) THEN
-                 do ig = 1, ngw
-                    lambda_repl( i, j ) = lambda_repl( i, j ) - &
-                    2.d0 * DBLE( CONJG( hitmp( ig, ii ) ) * gi( ig, jj) )
-                 enddo
-                 if( ng0 == 2 ) then
-                    lambda_repl( i, j ) = lambda_repl( i, j ) + &
-                    DBLE( CONJG( hitmp( 1, ii ) ) * gi( 1, jj ) )
-                 endif
-                 lambda_repl( j, i ) = lambda_repl( i, j )
-              ELSE
-                 do ig = 1, ngw
-                    lambda_repl_c( i, j ) = lambda_repl_c( i, j ) - &
-                    CONJG( hitmp( ig, ii ) ) * gi( ig, jj)
-                 enddo
-                 lambda_repl_c( j, i ) = CONJG(lambda_repl_c( i, j ))
-              ENDIF
-           enddo
-        enddo
-        !
-        IF(.not.lambda(1)%iscmplx) THEN
-           CALL mp_sum( lambda_repl, intra_image_comm )
-           CALL distribute_lambda( lambda_repl, lambda(is)%rvec( :, :), descla( :, is ) )
-        ELSE
-           CALL mp_sum( lambda_repl_c, intra_image_comm )
-           CALL distribute_lambda( lambda_repl_c, lambda(is)%cvec( :, :), descla( :, is ) )
-        ENDIF
-        !
-     end do
-
-     IF(do_bare_eigs) call compute_lambda_bare()
-
-     IF(.not.lambda(1)%iscmplx) THEN
-        DEALLOCATE( lambda_repl )
-     ELSE
-        DEALLOCATE( lambda_repl_c )
-     ENDIF
+     CALL compute_lambda (c0, gi, lambda, nspin, nbsp, ngw, nudx, descla, nupdwn, iupdwn )
+     IF (do_bare_eigs) CALL compute_lambda (c0, gi_bare, lambda_bare, nspin, nbsp, ngw, nudx, descla, nupdwn, iupdwn )
      !
      call nlfl_twin(bec,becdr,lambda,fion, lgam)
      !
@@ -2011,70 +1952,6 @@
         !
      end subroutine orthogonalize_wfc_only
      !                     
-     subroutine compute_lambda_bare ()
-        ! 
-        hitmp(:,:) = c0(:,:)
-        !
-        DO is = 1, nspin
-           !
-           nss = nupdwn(is)
-           istart = iupdwn(is)
-           !
-           IF(.not.lambda(1)%iscmplx) THEN
-              lambda_repl = 0.d0
-           ELSE
-              lambda_repl_c = CMPLX(0.d0,0.d0)
-           ENDIF
-           !
-           DO i = 1, nss
-              ! 
-              DO j = i, nss
-                 ii = i + istart - 1
-                 jj = j + istart - 1
-                 IF (.not.lambda(1)%iscmplx) THEN
-                    !
-                    DO ig = 1, ngw
-                       lambda_repl( i, j ) = lambda_repl( i, j ) - &
-                       2.d0 * DBLE( CONJG( hitmp( ig, ii ) ) * gi_bare( ig, jj) )
-                    ENDDO
-                    !
-                    IF( ng0 == 2 ) THEN
-                       lambda_repl( i, j ) = lambda_repl( i, j ) + &
-                       DBLE( CONJG( hitmp( 1, ii ) ) * gi_bare( 1, jj ) )
-                    ENDIF
-                    ! 
-                    lambda_repl( j, i ) = lambda_repl( i, j )
-                    !
-                 ELSE
-                    !
-                    DO ig = 1, ngw
-                       lambda_repl_c( i, j ) = lambda_repl_c( i, j ) - &
-                       CONJG( hitmp( ig, ii ) ) * gi_bare( ig, jj)
-                    ENDDO
-                    !
-                    lambda_repl_c( j, i ) = CONJG(lambda_repl_c( i, j ))
-                    !    
-                 ENDIF
-                 !
-              ENDDO
-              ! 
-           ENDDO
-           !
-           IF(.not.lambda_bare(1)%iscmplx) THEN
-              CALL mp_sum( lambda_repl, intra_image_comm )
-              CALL distribute_lambda( lambda_repl, lambda_bare(is)%rvec( :, :), descla( :, is ) )
-           ELSE
-              CALL mp_sum( lambda_repl_c, intra_image_comm )
-              CALL distribute_lambda( lambda_repl_c, lambda_bare(is)%cvec( :, :), descla( :, is ) )
-           ENDIF
-           !
-           !
-        ENDDO
-        ! 
-     return
-     !
-     end subroutine compute_lambda_bare
-     !
      subroutine makov_payne_correction_2nd_term (charge, quadrupole)
        !
        real (DP) :: charge, quadrupole
