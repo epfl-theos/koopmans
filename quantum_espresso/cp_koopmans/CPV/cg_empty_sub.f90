@@ -1117,22 +1117,22 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
             !    
          endif
          !
+         !
+         IF(do_bare_eigs) THEN
+            !
+            do ig=1,ngw
+               gi_bare(ig,  i)=c2_bare(ig)
+               if(i+1 <= n_emps) gi_bare(ig,i+1)=c3_bare(ig)
+            enddo
+            !
+            if (lgam.and.ng0.eq.2) then
+               gi_bare(1,  i)=CMPLX(DBLE(gi_bare(1,  i)),0.d0)
+               if(i+1 <= n_emps) gi_bare(1,i+1)=CMPLX(DBLE(gi_bare(1,i+1)),0.d0)
+            endif
+            !
+         ENDIF
+         !
       enddo
-      !
-      IF(do_bare_eigs) THEN
-         !
-         do ig=1,ngw
-            gi_bare(ig,  i)=c2_bare(ig)
-            if(i+1 <= n_emps) gi_bare(ig,i+1)=c3_bare(ig)
-         enddo
-         !
-         if (lgam.and.ng0.eq.2) then
-            gi_bare(1,  i)=CMPLX(DBLE(gi_bare(1,  i)),0.d0)
-            if(i+1 <= n_emps) gi_bare(1,i+1)=CMPLX(DBLE(gi_bare(1,i+1)),0.d0)
-         endif
-         !
-      ENDIF
-      !
      !
      IF (do_bare_eigs) THEN
         CALL compute_lambda (c0_emp, gi_bare, lambda_emp, nspin, n_empx, ngw, nudx_emp, desc_emp )
@@ -1263,6 +1263,10 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
            CALL printout_base_close( "ovp" )
            !
         ENDIF
+        !
+        IF(allocated(c2_bare)) deallocate(c2_bare)
+        IF(allocated(c3_bare)) deallocate(c3_bare)
+        IF(allocated(gi_bare)) deallocate(gi_bare)
         ! 
      end subroutine do_deallocation
      ! 
@@ -1540,16 +1544,12 @@ SUBROUTINE compute_lambda (c0, gi, lambda, nspin, nbnd, ngw, nudx, desc_emp )
  REAL(DP),    ALLOCATABLE :: lambda_repl(:,:) ! replicated copy of lambda
  COMPLEX(DP), ALLOCATABLE :: lambda_repl_c(:,:) ! replicated copy of lambda
  !
- Write(*,*) "Nicola 1" 
  if(.not.lambda(1)%iscmplx) then
-     WRITE(*,*) "Nicola Allocated?", ALLOCATED(lambda_repl)
      allocate(lambda_repl(nudx,nudx))
-     WRITE(*,*) "Nicola Allocated?", ALLOCATED(lambda_repl)
  else
     allocate(lambda_repl_c(nudx,nudx))
  endif
  !
- Write(*,*) "Nicola 2" 
  do is = 1, nspin
     !
     nss = nupdwn_emp(is)
@@ -1659,14 +1659,15 @@ END SUBROUTINE
     INTEGER, INTENT (IN) :: desc_emp( descla_siz_ , 2 )
     !
     dirname = restart_dir( outdir, ndw )
+    CALL create_directory( kpoint_dir( dirname, ik ) )
+    !
     IF (ionode) THEN 
-       CALL create_directory( kpoint_dir( dirname, ik ) )
        CALL iotk_open_write( iunpun, FILE = TRIM( dirname ) // '/' // &
                            & TRIM( xmlpun ), BINARY = .FALSE., IERR = ierr )
     ENDIF
     !
     CALL mp_bcast( ierr, ionode_id, intra_image_comm )
-    CALL errore( 'cp_writefile ', 'cannot open restart file for writing', ierr )
+    CALL errore( 'write_ham_emp_xml ', 'cannot open restart file for writing', ierr )
     !
     DO iss = 1, nspin 
     !
