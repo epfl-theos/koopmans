@@ -6387,3 +6387,113 @@ end function set_Hubbard_l
       END SUBROUTINE atomic_wfc_northo
 
 
+!-----------------------------------------------------------------------
+SUBROUTINE compute_lambda (c0, gi, lambda, nspin, nbnd, ngw, nudx, desc_emp, nupdwn, iupdwn )
+ !-----------------------------------------------------------------------
+ ! 
+ ! Compute matrix of lagangian multipliers (i.e. the Hamiltonian on the
+ ! variational orbitals)
+ !
+ USE kinds,                    ONLY : DP
+ USE twin_types 
+ !USE electrons_module,         ONLY : nupdwn_emp, iupdwn_emp
+ USE reciprocal_vectors,       ONLY : ng0 => gstart
+ USE descriptors,              ONLY : descla_siz_ 
+ USE mp_global,                ONLY : intra_image_comm
+ USE mp,                       only : mp_sum
+ USE cp_main_variables,        ONLY : distribute_lambda
+ !
+ IMPLICIT NONE 
+ INTEGER, INTENT(IN) :: nspin, ngw, nbnd, nudx
+ INTEGER, INTENT(IN) :: nupdwn(nspin), iupdwn(nspin)
+ INTEGER, INTENT (IN) :: desc_emp( descla_siz_ , 2 )
+ COMPLEX(DP), INTENT(IN) :: c0(ngw, nbnd)
+ COMPLEX(DP), INTENT(IN) :: gi(ngw, nbnd)
+ TYPE(twin_matrix ), INTENT(INOUT)   :: lambda(nspin)
+ INTEGER :: nss, is, i, j, ii, jj, istart, ig
+ REAL(DP),    ALLOCATABLE :: lambda_repl(:,:) ! replicated copy of lambda
+ COMPLEX(DP), ALLOCATABLE :: lambda_repl_c(:,:) ! replicated copy of lambda
+ !
+ if(.not.lambda(1)%iscmplx) then
+     allocate(lambda_repl(nudx,nudx))
+ else
+    allocate(lambda_repl_c(nudx,nudx))
+ endif
+ !
+ do is = 1, nspin
+    !
+    nss = nupdwn(is)
+    istart = iupdwn(is)
+    ! 
+    if (.not.lambda(1)%iscmplx) then
+       lambda_repl = 0.d0
+    else
+       lambda_repl_c = CMPLX(0.d0,0.d0)
+    endif
+    !
+    do i = 1, nss
+       !
+       do j = i, nss
+          !
+          ii = i + istart - 1
+          jj = j + istart - 1
+          !
+          if (.not.lambda(1)%iscmplx) then
+             !
+             do ig = 1, ngw
+                !
+                lambda_repl( i, j ) = lambda_repl( i, j ) - &
+                2.d0 * DBLE( CONJG( c0( ig, ii ) ) * gi( ig, jj) )
+                !
+             enddo
+             !
+             if ( ng0 == 2 ) then
+                !  
+                lambda_repl( i, j ) = lambda_repl( i, j ) + &
+               DBLE( CONJG( c0( 1, ii ) ) * gi( 1, jj ) )
+               !
+            endif
+            !
+            lambda_repl( j, i ) = lambda_repl( i, j )
+            !
+         else
+            !
+            do ig = 1, ngw
+               !
+               lambda_repl_c( i, j ) = lambda_repl_c( i, j ) - &
+               CONJG( c0( ig, ii ) ) * gi( ig, jj)
+               !
+            enddo
+            !  
+            lambda_repl_c( j, i ) = CONJG(lambda_repl_c( i, j ))
+            !
+         endif
+         !
+      enddo
+      !
+   enddo
+   !
+   if (.not.lambda(1)%iscmplx) then
+      !  
+      call mp_sum( lambda_repl, intra_image_comm )
+      call distribute_lambda( lambda_repl, lambda(is)%rvec( :, :),  desc_emp( :, is ) )
+      !
+   else
+      !
+      call mp_sum( lambda_repl_c, intra_image_comm )
+      call distribute_lambda( lambda_repl_c, lambda(is)%cvec( :, :), desc_emp( :, is ) )
+      ! 
+   endif
+   !
+ enddo
+ !
+ if (.not.lambda(1)%iscmplx) then
+    deallocate( lambda_repl )
+ else
+    deallocate( lambda_repl_c )
+ endif
+ !
+ RETURN
+ !
+END SUBROUTINE  
+
