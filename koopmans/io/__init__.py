@@ -36,7 +36,6 @@ def read_w90_dict(dct, generic_atoms):
     atoms = copy.deepcopy(generic_atoms)
     atoms.calc.parameters.pop('input_data')
     atoms.calc.parameters.pop('pseudopotentials')
-    atoms.calc.parameters.pop('kpath', None)
     calc.parameters = atoms.calc.parameters
     calc.atoms = atoms
     calc.atoms.calc = calc
@@ -521,7 +520,7 @@ def read_json(fd):
     elif task_name == 'convergence':
         workflow = ConvergenceWorkflow(workflow_settings, calcs_dct, name)
     elif task_name in ['wannierize', 'wannierise']:
-        workflow = WannierizeWorkflow(workflow_settings, calcs_dct, name)
+        workflow = WannierizeWorkflow(workflow_settings, calcs_dct, name, check_bandstructure=True)
     elif task_name == 'environ_dscf':
         workflow = DeltaSCFWorkflow(workflow_settings, calcs_dct, name)
     elif task_name == 'ui':

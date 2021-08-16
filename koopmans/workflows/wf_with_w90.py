@@ -18,8 +18,10 @@ from koopmans.workflows.generic import Workflow
 
 class WannierizeWorkflow(Workflow):
 
-    def __init__(self, workflow_settings, calcs_dct, nspin=1):
+    def __init__(self, workflow_settings, calcs_dct, nspin=1, check_bandstructure=False):
         super().__init__(workflow_settings, calcs_dct)
+
+        self.check_bandstructure = check_bandstructure
 
         if 'pw' not in self.master_calcs:
             raise ValueError(
@@ -86,12 +88,19 @@ class WannierizeWorkflow(Workflow):
             utils.system_call(f'rsync -a {calc_w90.directory}/wann_preproc.nnkp {calc_w90.directory}/wann.nnkp')
 
             # 2) standard pw2wannier90 calculation
-            calc_p2w = self.new_calculator('pw2wannier', directory=calc_w90.directory, outdir=calc_pw.outdir, name='pw2wan')
+            calc_p2w = self.new_calculator('pw2wannier', directory=calc_w90.directory,
+                                           outdir=calc_pw.outdir, name='pw2wan')
             self.run_calculator(calc_p2w)
 
             # 3) Wannier90 calculation
             calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ, name='wann')
             self.run_calculator(calc_w90)
+
+        if self.check_bandstructure:
+            calc_pw = self.new_calculator('pw', calculation='bands')
+            calc_pw.directory = 'wannier'
+            calc_pw.name = 'bands'
+            self.run_calculator(calc_pw)
 
         return
 
