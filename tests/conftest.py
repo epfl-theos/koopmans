@@ -96,8 +96,8 @@ class WorkflowTest:
             if 'n-1' in calc.name:
                 continue
 
-            # Skip calculations in the base postproc directory because this corresponds to the calculation where we simply
-            # merge the two previous calculations together
+            # Skip calculations in the base postproc directory because this corresponds to the calculation where we
+            # simply merge the two previous calculations together
             if calc.directory.endswith('postproc'):
                 continue
 
@@ -152,12 +152,12 @@ class WorkflowTest:
                     # then this reduces to testing relative error, whereas in the limit of small Delta it reduces to
                     # testing absolute error. We use 0.1*max(ref_result) as a reference scale factor.
                     abs_diffs = np.abs(result - ref_result)
-                    mixed_diffs = abs_diffs / (0.1*np.max(np.abs(ref_result)) + np.abs(ref_result))
+                    mixed_diffs = abs_diffs / (0.1 * np.max(np.abs(ref_result)) + np.abs(ref_result))
                     i_max = np.argmax(mixed_diffs)
                     mixed_diff = mixed_diffs[i_max]
                     abs_diff = abs_diffs[i_max]
-                    message = f'{result_name}[{i_max}] = {result[i_max]:.5f} differs from benchmark {ref_result[i_max]:.5f} by ' \
-                              f'{abs_diff:.2e}'
+                    message = f'{result_name}[{i_max}] = {result[i_max]:.5f} differs from benchmark ' \
+                              f'{ref_result[i_max]:.5f} by {abs_diff:.2e}'
                     if mixed_diff > tols[0]:
                         log[calc_relpath].append({'kind': 'error', 'message': message})
                     elif mixed_diff > tols[1]:
