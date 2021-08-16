@@ -55,8 +55,8 @@
       COMPLEX(DP) :: CHI(3,3,3)
       COMPLEX(DP) :: ctmp
       REAL(DP)    :: omega
-      INTEGER      :: idum, ig, i, j, k, l, m, s
-      INTEGER      :: NFI, ierr
+      INTEGER      :: idum, ig, i, j, k
+      INTEGER      :: ierr
  
       IF( .NOT. tchi2 ) RETURN
 
