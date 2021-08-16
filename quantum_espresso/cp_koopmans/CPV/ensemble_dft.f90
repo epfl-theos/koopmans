@@ -323,22 +323,22 @@ CONTAINS
     IF( ALLOCATED( c0diag ) )         deallocate(c0diag )
 !     IF( ALLOCATED( z0t ) )            deallocate(z0t )
     !begin_modified:giovanni
-    IF(ionode) THEN
-      write(6,*) "debug0", becdiag%iscmplx
-    ENDIF
+!    IF(ionode) THEN
+!      write(6,*) "debug0", becdiag%iscmplx
+!    ENDIF
     call deallocate_twin(becdiag)
-    IF(ionode) THEN
-      write(6,*) "debug1", allocated(fmat0), size(fmat0)
-    ENDIF
+!    IF(ionode) THEN
+!      write(6,*) "debug1", allocated(fmat0), size(fmat0)
+!    ENDIF
     !
     IF(allocated(fmat0)) THEN
        !
        do ispin=1,size(fmat0)
           !
           call deallocate_twin(fmat0(ispin))
-          IF(ionode) THEN
-             write(6,*) "debug2"
-          ENDIF
+!          IF(ionode) THEN
+!             write(6,*) "debug2"
+!          ENDIF
           !
        enddo
        !
@@ -353,9 +353,9 @@ CONTAINS
           call deallocate_twin(psihpsi(ispin))
           call deallocate_twin(z0t(ispin))
           !
-          IF(ionode) THEN
-             write(6,*) "debug3"
-          ENDIF
+!          IF(ionode) THEN
+!             write(6,*) "debug3"
+!          ENDIF
           !
        enddo
        !

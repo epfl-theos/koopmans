@@ -6,6 +6,7 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 #include "f_defs.h"
+!#define DEBUG  !! Uncomment this for extra prints out
 !
 !=======================================================================
    subroutine runcg_uspp( nfi, tfirst, tlast, eigr, bec, irb, eigrb, &
@@ -963,8 +964,10 @@
         !
         ! check with  what supposed
         !
+#ifdef DEBUG
         write(stdout,*) 'ene0, dene0, ene1, enesti,enever, passo, passov, passof'
         write(stdout,"(8f18.12)") ene0, dene0, ene1, enesti,enever, passo, passov, passof
+#endif
 
         if(ionode .and. iprsta > 1 ) then
             write(stdout,"(2x,a,f20.12)") 'cg_sub: estimate :'  , (enesti-enever)/(ene0-enever)
@@ -985,7 +988,7 @@
            !
            if (ionode) then
               ! 
-              write(stdout,"(2x,a,i5,f20.12)") 'cg_sub: missed minimum, case 1, iteration',itercg, passof
+              write(stdout,"(5x,a,i5,f20.12)") 'WARNING cg_sub: missed minimum, case 1, iteration',itercg, passof
               ! 
            endif
            ! 
@@ -1004,7 +1007,7 @@
         elseif((enever.ge.ene0).and.(ene0.gt.ene1)) then
            !   
            if (ionode) then
-              write(stdout,"(2x,a,i5)") 'cg_sub: missed minimum, case 2, iteration',itercg
+              write(stdout,"(5x,a,i5)") 'WARNING cg_sub: missed minimum, case 2, iteration',itercg
            endif
            ! 
            c0(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
@@ -1022,7 +1025,7 @@
         elseif((enever.ge.ene0).and.(ene0.le.ene1)) then
            !
            if(ionode) then
-             write(stdout,"(2x,a,i5)") 'cg_sub: missed minimum, case 3, iteration',itercg
+             write(stdout,"(5x,a,i5)") 'WARNING cg_sub: missed minimum, case 3, iteration',itercg
            endif
            !
            iter3=0
@@ -1125,7 +1128,7 @@
            !
            if (iter3 == maxiter3 .and. enever.gt.ene0) then
               ! 
-              write(stdout,"(2x,a)") 'missed minimum: iter3 = maxiter3'
+              write(stdout,"(5x,a)") 'WARNING missed minimum: iter3 = maxiter3'
               write(stdout,*) enever, ene0
               !
            elseif (enever.le.ene0) then

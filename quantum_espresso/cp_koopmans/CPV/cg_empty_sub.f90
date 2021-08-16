@@ -6,7 +6,7 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 #include "f_defs.h"
-#define DEBUG_NUMDER
+!#define DEBUG
 !
 !=======================================================================
 subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
@@ -120,9 +120,7 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
       complex(dp), allocatable :: hpsi(:,:), hpsi0(:,:), gi(:,:), hi(:,:), gi_bare(:,:)
       type(twin_matrix) :: s_minus1!(:,:)    !factors for inverting US S matrix
       type(twin_matrix) :: k_minus1!(:,:)    !factors for inverting US preconditioning matrix
-!      real(DP),    allocatable :: lambda_repl(:,:) ! replicated copy of lambda
       real(DP),    allocatable :: lambda_dist(:,:) ! replicated copy of lambda
-!      complex(DP),    allocatable :: lambda_repl_c(:,:) ! replicated copy of lambda
       complex(DP),    allocatable :: lambda_dist_c(:,:) ! replicated copy of lambda
       !
       real(dp)    :: sca, dumm(1)
@@ -882,8 +880,10 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
         !
         ! check with  what supposed
         !
+#ifdef DEBUG
         write(stdout,*) 'ene0, dene0, ene1, enesti,enever, passo, passov, passof'
         write(stdout,"(7f18.12)") ene0, dene0, ene1, enesti,enever, passo, passov, passof
+#endif
         !
         ! if the energy has diminished with respect to ene0 and ene1 , everything ok
         !
@@ -901,7 +901,7 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
            !
            if (ionode) then
               ! 
-              write(stdout,"(2x,a,i5,f20.12)") 'cg_sub: missed minimum, case 1, iteration',itercg, passof
+              write(stdout,"(5x,a,i5,f20.12)") 'WARNING cg_sub: missed minimum, case 1, iteration',itercg, passof
               ! 
            endif
            ! 
@@ -920,7 +920,7 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
         elseif((enever.ge.ene0).and.(ene0.gt.ene1)) then
            !   
            if (ionode) then
-              write(stdout,"(2x,a,i5)") 'cg_sub: missed minimum, case 2, iteration',itercg
+              write(stdout,"(5x,a,i5)") 'WARNING cg_sub: missed minimum, case 2, iteration',itercg
            endif
            ! 
            c0_emp(:,:) = c0_emp(:,:) + spasso * passov * hi(:,:)
@@ -938,7 +938,7 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
         elseif((enever.ge.ene0).and.(ene0.le.ene1)) then
            !
            if(ionode) then
-             write(stdout,"(2x,a,i5)") 'cg_sub: missed minimum, case 3, iteration, doing steepest descent',itercg
+             write(stdout,"(5x,a,i5)") 'WARNING cg_sub: missed minimum, case 3, iteration, doing steepest descent',itercg
            endif
            !
            iter3=0
@@ -1016,7 +1016,7 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
            !
            if (iter3 == maxiter3 .and. enever.gt.ene0) then
               ! 
-              write(stdout,"(2x,a)") 'missed minimum: iter3 = maxiter3'
+              write(stdout,"(5x,a)") 'WANRING missed minimum: iter3 = maxiter3'
               write(stdout,*) enever, ene0
               !
            elseif (enever.le.ene0) then

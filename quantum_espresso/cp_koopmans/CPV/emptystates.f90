@@ -330,8 +330,8 @@
          !
          IF ( .NOT. exst ) THEN
             !
-            write(stdout, * ) 'Linh: oopp restart from minimizing orbital does not work for emptystate'
-            write(stdout, * ) 'Linh: initialize random states and orthogonalize to filled ones'
+            write(stdout, '(5X, "Empty-states WFCs file NOT FOUND")' )
+            write(stdout, '(5X, "Initializing random WFCs and orthogonlizing to the occupied manifold ")' ) 
             !
             ! ...  initial random states orthogonal to filled ones
             !
@@ -397,7 +397,7 @@
             !
          ELSE
             !
-            write(stdout, * ) 'Linh: the code restarts not random wfc'
+            write(stdout, '(5X, "Empty-states WFCs read from file")' )
             !
          ENDIF
          !
