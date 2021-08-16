@@ -37,7 +37,7 @@
       REAL(DP) :: J1(MMAX)
       REAL(DP) :: J2(MMAX)
       REAL(DP) :: J3(MMAX)
-      INTEGER :: IR, L, LL, LMAX
+      INTEGER :: L, LL, LMAX
 
 ! ... Subroutine Body
 
@@ -123,7 +123,7 @@
       REAL(DP) :: F1(MMAX)
       REAL(DP) :: F2(MMAX)
       REAL(DP) :: F3(MMAX)
-      INTEGER  :: IR, L, LL, LMAX, mmin
+      INTEGER  :: L, LL, LMAX, mmin
 
 ! ... Subroutine Body
 

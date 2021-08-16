@@ -15,19 +15,14 @@
 !=======================================================================
       !
       use kinds,                    only : dp
-      use control_flags,            only : iprint, thdyn, tpre, iprsta, &
-                                           tfor, taurdr, tprnfor, gamma_only, do_wf_cmplx !added:giovanni gamma_only, do_wf_cmplx
-      use control_flags,            only : ndr, ndw, nbeg, nomore, tsde, tortho, tnosee, &
-                                           tnosep, trane, tranp, tsdp, tcp, tcap, ampre, &
-                                           amprp, tnoseh, non_ortho
+      use control_flags,            only : tpre, iprsta, &
+                                           tfor, tprnfor, gamma_only, do_wf_cmplx !added:giovanni gamma_only, do_wf_cmplx
       use core,                     only : nlcc_any
       !---ensemble-DFT
-      use energies,                 only : eht, epseu, exc, etot, eself, enl, ekin,&
-                                           atot, entropy, egrand, eodd
-      use electrons_base,           only : f, nspin, nel, iupdwn, nupdwn, nudx, nelt, &
+      use energies,                 only : etot, enl, ekin, eodd
+      use electrons_base,           only : f, nspin, iupdwn, nupdwn, nudx, &
                                            nbspx, nbsp, ispin
-      use ensemble_dft,             only : tens, tsmear,   ef,  z0t, c0diag,  &
-                                           becdiag, fmat0, fmat0_diag, e0,  id_matrix_init
+      use ensemble_dft,             only : id_matrix_init
       !---
       use gvecp,                    only : ngm
       use gvecs,                    only : ngs
@@ -35,48 +30,42 @@
       use gvecw,                    only : ngw, ngwx
       use reciprocal_vectors,       only : ng0 => gstart
       use cvan,                     only : nvb, ish
-      use ions_base,                only : na, nat, pmass, nax, nsp, rcmax
+      use ions_base,                only : na, nat, nsp
       use grid_dimensions,          only : nnr => nnrx, nr1, nr2, nr3
-      use cell_base,                only : ainv, a1, a2, a3
       use cell_base,                only : omega, alat
-      use cell_base,                only : h, hold, deth, wmass, tpiba2
-      use smooth_grid_dimensions,   only : nnrsx, nr1s, nr2s, nr3s
-      use smallbox_grid_dimensions, only : nnrb => nnrbx, nr1b, nr2b, nr3b
-      use local_pseudo,             only : vps, rhops
-      use io_global,                ONLY : io_global_start, stdout, ionode, ionode_id
-      use mp_global,                ONLY : intra_image_comm, np_ortho, me_ortho, ortho_comm, me_image
+      use cell_base,                only : tpiba2
+      use smooth_grid_dimensions,   only : nnrsx
+      !use smallbox_grid_dimensions, only : nnrb => nnrbx
+      use io_global,                ONLY : io_global_start, stdout, ionode
+      use mp_global,                ONLY : intra_image_comm, me_image
       use dener
       use cdvan
       use constants,                only : pi, au_gpa, e2
-      use io_files,                 only : psfile, pseudo_dir
-      USE io_files,                 ONLY : outdir, prefix
       use uspp,                     only : nhsa=> nkb, nhsavb=> nkbus, betae => vkb, rhovan => becsum, deeq,qq
       use uspp_param,               only : nh
       use cg_module,                only : ene_ok,  maxiter,niter_cg_restart, &
                                            conv_thr, passop, enever, itercg
       use ions_positions,           only : tau0
-      use wavefunctions_module,     only : c0, cm, phi => cp, cdual, cmdual, cstart
-      use efield_module,            only : tefield, evalue, ctable, qmat, detq, ipolp, &
-                                           berry_energy, ctabin, gqq, gqqm, df, pberryel, &
-                                           tefield2, evalue2, ctable2, qmat2, detq2, ipolp2, &
-                                           berry_energy2, ctabin2, gqq2, gqqm2, pberryel2
+      use wavefunctions_module,     only : c0, cm, phi => cp, cstart
+      use efield_module,            only : tefield, evalue, qmat, ipolp, &
+                                           berry_energy, ctabin, gqq, gqqm, df, &
+                                           tefield2, berry_energy2
       use mp,                       only : mp_sum, mp_bcast
       use cp_electronic_mass,       ONLY : emass_cutoff
       use orthogonalize_base,       ONLY : calphi
       use cp_interfaces,            ONLY : rhoofr, dforce, compute_stress, nlfl, set_x_minus1, xminus1
-      USE cp_main_variables,        ONLY : nlax, collect_lambda, distribute_lambda, descla, nrlx, nlam
+      USE cp_main_variables,        ONLY : nlax, collect_lambda, distribute_lambda, descla
       USE descriptors,              ONLY : la_npc_ , la_npr_ , la_comm_ , la_me_ , la_nrl_ , ldim_cyclic
-      USE mp_global,                ONLY : me_image, my_image_id
+      USE mp_global,                ONLY : me_image
       !
-      use nksic,                    only : do_orbdep, do_innerloop, do_innerloop_cg, innerloop_cg_nsd, &
-                                           innerloop_cg_nreset, innerloop_init_n, innerloop_cg_ratio, &
-                                           vsicpsi, vsic, wtot, fsic, fion_sic, deeq_sic, f_cutoff, & 
+      use nksic,                    only : do_orbdep, do_innerloop, do_innerloop_cg, &
+                                           innerloop_init_n, innerloop_cg_ratio, &
+                                           vsicpsi, vsic, wtot, fsic, deeq_sic, f_cutoff, & 
                                            pink, do_wxd, sizwtot, do_bare_eigs, innerloop_until, &
                                            valpsi, odd_alpha
       use hfmod,                    only : do_hf, vxxpsi, exx
       use twin_types !added:giovanni
-      use control_flags,            only : non_ortho
-      use cp_main_variables,        only : becdual, becmdual, overlap, ioverlap, becstart
+      use cp_main_variables,        only : becstart
       use electrons_module,         only : wfc_spreads, wfc_centers, icompute_spread, manifold_overlap
       use ldau,                     only : lda_plus_u, vupsi
       use printout_base,            only : printout_base_open, printout_base_unit, &
@@ -87,7 +76,6 @@
       !
       implicit none
       !
-      CHARACTER(LEN=80) :: uname
       CHARACTER(LEN=6), EXTERNAL :: int_to_char
       integer, EXTERNAL :: get_clock
       integer     :: nfi
@@ -112,29 +100,22 @@
       type(twin_matrix) :: lambda(nspin)!(nlam,nlam,nspin)   !modified:giovanni
       type(twin_matrix) :: lambda_bare(nspin)     !(nlam,nlam,nspin)   !modified:giovanni
       !
-      integer     :: i, j, ig, k, is, iss,ia, iv, jv, il, ii, jj, kk, ip, isp
-      integer     :: inl, jnl, niter, istart, nss, nrl, me_rot, np_rot , comm
-      real(dp)    :: enb, enbi, x
-      real(dp)    :: entmp, sta
+      integer     :: i, ig, is ,ia, iv, jv
+      integer     :: inl, jnl
+      real(dp)    :: enb, enbi
       complex(dp) :: gamma_c  !warning_giovanni, is it real anyway?
       complex(dp), allocatable :: c2(:), c3(:), c2_bare(:), c3_bare(:)
       complex(dp), allocatable :: hpsi(:,:), hpsi0(:,:), gi(:,:), hi(:,:), gi_bare(:,:)
       type(twin_matrix) :: s_minus1!(:,:)    !factors for inverting US S matrix
       type(twin_matrix) :: k_minus1!(:,:)    !factors for inverting US preconditioning matrix
-      real(DP),    allocatable :: lambda_repl(:,:) ! replicated copy of lambda
-      real(DP),    allocatable :: lambda_dist(:,:) ! replicated copy of lambda
-      complex(DP),    allocatable :: lambda_repl_c(:,:) ! replicated copy of lambda
-      complex(DP),    allocatable :: lambda_dist_c(:,:) ! replicated copy of lambda
       !
-      real(dp)    :: sca, dumm(1)
+      real(dp)    :: dumm(1)
       logical     :: newscheme, firstiter
       integer     :: maxiter3
       !
       type(twin_tensor) :: becdrdiag !modified:giovanni
       type(twin_matrix) :: bec0, becm !modified:giovanni
       real(kind=DP), allocatable :: ave_ene(:)!average kinetic energy for preconditioning
-      real(kind=DP), allocatable :: fmat_(:,:)!average kinetic energy for preconditioning
-      complex(kind=DP), allocatable :: fmat_c_(:,:)!average kinetic energy for preconditioning
       ! 
       logical     :: pre_state!if .true. does preconditioning state by state
       !
@@ -151,23 +132,18 @@
       real(DP)    :: ene0,ene1,dene0,enesti !energy terms for linear minimization along hi
       !
       real(DP),    allocatable :: faux(:) ! takes into account spin multiplicity
-      real(DP),    allocatable :: hpsinorm(:), hpsinosicnorm(:)
-      complex(DP), allocatable :: hpsinosic(:,:)
       complex(DP), allocatable :: hitmp(:,:)
-      integer     :: ninner,nbnd1,nbnd2,itercgeff
+      integer     :: ninner, itercgeff
       complex(DP) :: Omattot(nbspx,nbspx)
-      real(DP)    :: dtmp, temp
       real(DP)    :: etot_tmp1, etot_tmp2,  tmppasso
       !
       logical :: lgam, switch=.false., ortho_switch=.false., okvan, steepest=.false.
-      complex(DP) :: phase
       integer :: ierr, northo_flavor
       real(DP) :: deltae,sic_coeff1, sic_coeff2 !coefficients which may change according to the flavour of SIC
       integer :: me, iunit_manifold_overlap, iunit_spreads
-      character(len=10) :: tcpu_cg_here
       real(DP) :: charge
       !
-      real(dp) :: rPi, uPi, eff_finite_field
+      real(dp) :: uPi
       real(dp), allocatable :: rho_init(:,:), dvpot(:)
       complex(dp), allocatable :: dvpotpsi(:,:)
       real(dp) :: exxdiv, mp1

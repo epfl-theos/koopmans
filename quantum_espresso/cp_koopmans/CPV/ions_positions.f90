@@ -213,9 +213,8 @@ MODULE ions_positions
     REAL(DP), INTENT(OUT)   :: velsp(:,:)
     REAL(DP), INTENT(IN)    :: velsm(:,:)
     INTEGER                 :: is, ia, i, isa
-    REAL(DP)                :: dt2by2, fac, dt2, twodel
+    REAL(DP)                :: dt2by2, dt2, twodel
     REAL(DP)                :: verl1, verl2, verl3
-    REAL(DP)                :: ftmp(3)
     !
     !
     dt2by2 = 0.5D0 * delt * delt
@@ -441,7 +440,7 @@ MODULE ions_positions
 
         IMPLICIT NONE
         TYPE(atoms_type) :: atoms_m, atoms_0, atoms_p
-        INTEGER :: is, ia, ub
+        INTEGER :: ub
 
           ub = atoms_m%nat
           atoms_m%taus(1:3,1:ub) = atoms_0%taus(1:3,1:ub)

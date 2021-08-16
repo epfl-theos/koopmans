@@ -147,11 +147,11 @@ END SUBROUTINE write_hamiltonian_cmplx
 !-----------------------------------------------------------------------
 !   
     USE iotk_module
-    USE io_global,            ONLY : ionode, stdout, ionode_id
-    USE io_files,             ONLY : prefix, iunpun, outdir, xmlpun
+    USE io_global,            ONLY : ionode, ionode_id
+    USE io_files,             ONLY : iunpun, outdir, xmlpun
     USE xml_io_base,          ONLY : wfc_filename, restart_dir, create_directory, kpoint_dir
     USE twin_types !added:giovanni 
-    USE cp_main_variables,    ONLY : collect_lambda, descla
+    USE cp_main_variables,    ONLY : collect_lambda
     USE descriptors,          ONLY : descla_siz_ 
     USE control_flags,        ONLY : ndw
     USE mp_global,            ONLY : intra_image_comm

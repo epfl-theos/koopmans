@@ -88,7 +88,7 @@ CONTAINS
     real(DP), intent(out) :: ex(:)
     real(DP), intent(in) :: fx(:)
     integer, intent(in) :: n, nspin
-    real(DP) :: f2,xx
+    real(DP) :: xx
     integer :: i
     !     calculation of the entropy derivative at x
     do i=1,n
@@ -317,28 +317,16 @@ CONTAINS
   END SUBROUTINE allocate_ensemble_dft
 
   SUBROUTINE deallocate_ensemble_dft( )
-    use io_global, only: ionode
     IMPLICIT NONE
     INTEGER :: ispin
     IF( ALLOCATED( c0diag ) )         deallocate(c0diag )
-!     IF( ALLOCATED( z0t ) )            deallocate(z0t )
-    !begin_modified:giovanni
-!    IF(ionode) THEN
-!      write(6,*) "debug0", becdiag%iscmplx
-!    ENDIF
     call deallocate_twin(becdiag)
-!    IF(ionode) THEN
-!      write(6,*) "debug1", allocated(fmat0), size(fmat0)
-!    ENDIF
     !
     IF(allocated(fmat0)) THEN
        !
        do ispin=1,size(fmat0)
           !
           call deallocate_twin(fmat0(ispin))
-!          IF(ionode) THEN
-!             write(6,*) "debug2"
-!          ENDIF
           !
        enddo
        !

@@ -313,7 +313,7 @@
    SUBROUTINE print_eigenvalues( ei_unit, tfile, tstdout, nfi, tps )
       !
       use constants,      only : autoev 
-      USE io_global,      ONLY : stdout, ionode
+      USE io_global,      ONLY : stdout
       USE ensemble_dft,   ONLY : tens, tsmear
       !
       INTEGER,  INTENT(IN) :: ei_unit
@@ -411,8 +411,7 @@
    SUBROUTINE print_centers_spreads( spread_unit, tfile, tstdout, nfi, tps )
       !
       use constants,      only : autoev 
-      USE io_global,      ONLY : stdout, ionode
-      USE ensemble_dft,   ONLY : tens, tsmear
+      USE io_global,      ONLY : stdout
       use nksic,          ONLY : complexification_index, pink, pink_emp, do_orbdep, &
                                  pzalpha=> odd_alpha, pzalpha_emp=>odd_alpha_emp
       !

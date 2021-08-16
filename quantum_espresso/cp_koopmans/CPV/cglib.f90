@@ -15,7 +15,7 @@
 !
       USE kinds,             ONLY: DP
       use electrons_base,    ONLY: nudx, nspin, nupdwn, iupdwn, nx => nbspx
-      USE cp_main_variables, ONLY: descla, nlax, nrlx
+      USE cp_main_variables, ONLY: descla, nrlx
       USE descriptors,       ONLY: la_npc_ , la_npr_ , la_comm_ , la_me_ , la_nrl_ , &
                                    lambda_node_ , ldim_cyclic
       USE mp,                ONLY: mp_sum, mp_bcast
@@ -27,7 +27,7 @@
                   !  NOTE: zmat and fmat are distributed by row across processors
                   !        fdiag is replicated
 
-      integer  :: iss, nss, istart, i, j, k, ii, jj, kk
+      integer  :: iss, nss, istart, i, j, k, ii
       integer  :: np_rot, me_rot, nrl, comm_rot, ip, nrl_ip
 
       real(DP), ALLOCATABLE :: mtmp(:,:)
@@ -91,7 +91,7 @@
 !
       USE kinds,             ONLY: DP
       use electrons_base,    ONLY: nudx, nspin, nupdwn, iupdwn, nx => nbspx
-      USE cp_main_variables, ONLY: descla, nlax, nrlx
+      USE cp_main_variables, ONLY: descla, nrlx
       USE descriptors,       ONLY: la_npc_ , la_npr_ , la_comm_ , la_me_ , la_nrl_ , &
                                    lambda_node_ , ldim_cyclic
       USE mp,                ONLY: mp_sum, mp_bcast
@@ -105,7 +105,7 @@
                   !        fdiag is replicated
       type(twin_matrix) :: zmat(:), fmat(:)
 
-      integer  :: iss, nss, istart, i, j, k, ii, jj, kk
+      integer  :: iss, nss, istart, i, j, k, ii
       integer  :: np_rot, me_rot, nrl, comm_rot, ip, nrl_ip
 
       real(DP), ALLOCATABLE :: mtmp(:,:)
@@ -199,10 +199,10 @@
       use cvan
       use electrons_base, only: nudx, nspin, nupdwn, iupdwn, nx => nbspx, n => nbsp
       use uspp_param, only: nh
-      use uspp, only :nhsa=>nkb, nhsavb=>nkbus, qq
+      use uspp, only :nhsa=>nkb
       use gvecw, only: ngw
       use ions_base, only: nsp, na
-      USE cp_main_variables, ONLY: descla, nlax, nrlx
+      USE cp_main_variables, ONLY: descla, nrlx
       USE descriptors,       ONLY: la_npc_ , la_npr_ , la_comm_ , la_me_ , la_nrl_
       USE cp_interfaces,     ONLY: protate
 
@@ -236,12 +236,11 @@
 !-----------------------------------------------------------------------
       use kinds, only: dp
       use cvan
-      use electrons_base, only: nudx, nspin, nupdwn, iupdwn, nx => nbspx, n => nbsp
+      use electrons_base, only: nspin, nupdwn, iupdwn, nx => nbspx
       use uspp_param, only: nh
-      use uspp, only :nhsa=>nkb, nhsavb=>nkbus, qq
       use gvecw, only: ngw
       use ions_base, only: nsp, na
-      USE cp_main_variables, ONLY: descla, nlax, nrlx
+      USE cp_main_variables, ONLY: descla
       USE descriptors,       ONLY: la_npc_ , la_npr_ , la_comm_ , la_me_ , la_nrl_
       USE cp_interfaces,     ONLY: protate
       USE twin_types
@@ -354,7 +353,7 @@
 !
 !  constructs fmat=zmat.fdiag.zmat^t
 !
-      use electrons_base, only: nudx, nspin, nupdwn, iupdwn, nx => nbspx, n => nbsp
+      use electrons_base, only: nudx, nspin, nupdwn, iupdwn, nx => nbspx
       use kinds, only : dp
 
       implicit none
@@ -362,7 +361,7 @@
       logical firstiter
 
 
-      integer iss, nss, istart, i, j, k, ii, jj, kk
+      integer iss, nss, istart, i, j, k
       real(dp) zmat(nudx,nudx,nspin), fmat(nudx,nudx,nspin),         &
     &   fdiag(nx)
 
@@ -433,16 +432,14 @@ subroutine pc2_non_ortho(a, adual, beca, becadual, b,becb, lgam)
 !    b output:b_i =b_i-a_j><a_j|S|b_i>
     
       use kinds, only: dp 
-      use ions_base, only: na, nsp
-      use io_global, only: stdout
-      use mp_global, only: intra_image_comm, mpime
+      use ions_base, only: na
+      use mp_global, only: intra_image_comm
       use cvan 
       use gvecw, only: ngw
       use constants, only: pi, fpi
-      use control_flags, only: iprint, iprsta
       use reciprocal_vectors, only: ng0 => gstart
       use mp, only: mp_sum
-      use electrons_base, only: n => nbsp, ispin,  nupdwn, iupdwn, nspin
+      use electrons_base, only: n => nbsp, nupdwn, iupdwn, nspin
       use uspp_param, only: nh
       use uspp, only :nhsa=>nkb
       use uspp, only :qq
@@ -457,8 +454,7 @@ subroutine pc2_non_ortho(a, adual, beca, becadual, b,becb, lgam)
       type(twin_matrix) ::   beca,becb,becadual!(nhsa,n) !modified:giovanni
       logical :: lgam
 ! local variables
-      integer is, iv, jv, ia, inl, jnl, i, j,ig
-      real(kind=DP) sca
+      integer is, iv, jv, ia, inl, jnl, i, j
       real(DP), allocatable :: bectmp(:,:)
       complex(DP), allocatable :: bectmp_c(:,:)
       real(DP), allocatable :: qq_tmp(:,:), qqb_tmp(:,:)
@@ -619,16 +615,14 @@ subroutine pc2(a,beca,b,becb, lgam)
 !    b output:b_i =b_i-a_j><a_j|S|b_i>
     
       use kinds, only: dp 
-      use ions_base, only: na, nsp
-      use io_global, only: stdout
-      use mp_global, only: intra_image_comm, mpime
+      use ions_base, only: na
+      use mp_global, only: intra_image_comm
       use cvan 
       use gvecw, only: ngw
       use constants, only: pi, fpi
-      use control_flags, only: iprint, iprsta
       use reciprocal_vectors, only: ng0 => gstart
       use mp, only: mp_sum
-      use electrons_base, only: n => nbsp, ispin,  nupdwn, iupdwn, nspin
+      use electrons_base, only: n => nbsp, nupdwn, iupdwn, nspin
       use uspp_param, only: nh
       use uspp, only :nhsa=>nkb
       use uspp, only :qq
@@ -643,8 +637,7 @@ subroutine pc2(a,beca,b,becb, lgam)
       type(twin_matrix) ::   beca,becb!(nhsa,n) !modified:giovanni
       logical :: lgam
 ! local variables
-      integer is, iv, jv, ia, inl, jnl, i, j,ig
-      real(kind=DP) sca
+      integer is, iv, jv, ia, inl, jnl, i, j
       real(DP), allocatable :: bectmp(:,:)
       complex(DP), allocatable :: bectmp_c(:,:)
       real(DP), allocatable :: qq_tmp(:,:), qqb_tmp(:,:)
@@ -805,13 +798,11 @@ subroutine pc2(a,beca,b,becb, lgam)
 !    b output:b_i =b_i-a_j><a_j|S|b_i>
     
       use kinds, only: dp 
-      use ions_base, only: na, nsp
-      use io_global, only: stdout
-      use mp_global, only: intra_image_comm, mpime
+      use ions_base, only: na
+      use mp_global, only: intra_image_comm
       use cvan 
       use gvecw, only: ngw
       use constants, only: pi, fpi
-      use control_flags, only: iprint, iprsta
       use reciprocal_vectors, only: ng0 => gstart
       use mp, only: mp_sum
       use electrons_base, only:  nspin
@@ -830,8 +821,7 @@ subroutine pc2(a,beca,b,becb, lgam)
       type(twin_matrix) ::   beca,becb!(nhsa,n) !modified:giovanni
       logical :: lgam
 ! local variables
-      integer is, iv, jv, ia, inl, jnl, i, j,ig
-      real(kind=DP) sca
+      integer is, iv, jv, ia, inl, jnl, i, j
       real(DP), allocatable :: bectmp(:,:)
       complex(DP), allocatable :: bectmp_c(:,:)
       real(DP), allocatable :: qq_tmp(:,:), qqb_tmp(:,:)
@@ -994,25 +984,20 @@ subroutine pc2(a,beca,b,becb, lgam)
 !    b output:b_i =b_i - S|a_j><a_j|b_i>
 
       use kinds
-      use ions_base, only: na, nsp
-      use io_global, only: stdout
       use mp_global, only: intra_image_comm
       use cvan
       use gvecw, only: ngw
       use constants, only: pi, fpi
-      use control_flags, only: iprint, iprsta
       use reciprocal_vectors, only: ng0 => gstart
       use mp, only: mp_sum
       use electrons_base, only: n => nbsp, ispin
-      use uspp_param, only: nh
-      use uspp, only :nhsa=>nkb
 
       implicit none
 
       complex(dp) a(ngw,n), adual(ngw,n), b(ngw,n), as(ngw,n)
       logical :: lgam
       ! local variables
-      integer is, iv, jv, ia, inl, jnl, i, j,ig
+      integer i, j,ig
       complex(dp) sca
       complex(DP), allocatable:: scar(:)
       !
@@ -1069,25 +1054,20 @@ subroutine pc2(a,beca,b,becb, lgam)
 !    b output:b_i =b_i - S|a_j><a_j|b_i>
 
       use kinds
-      use ions_base, only: na, nsp
-      use io_global, only: stdout
       use mp_global, only: intra_image_comm
       use cvan
       use gvecw, only: ngw
       use constants, only: pi, fpi
-      use control_flags, only: iprint, iprsta
       use reciprocal_vectors, only: ng0 => gstart
       use mp, only: mp_sum
       use electrons_base, only: n => nbsp, ispin
-      use uspp_param, only: nh
-      use uspp, only :nhsa=>nkb
 
       implicit none
 
       complex(dp) a(ngw,n), b(ngw,n), as(ngw,n)
       logical :: lgam
       ! local variables
-      integer is, iv, jv, ia, inl, jnl, i, j,ig
+      integer i, j,ig
       complex(dp) sca
       complex(DP), allocatable:: scar(:)
       !
@@ -1143,17 +1123,12 @@ subroutine pc2(a,beca,b,becb, lgam)
 !    b output:b_i =b_i - S|a_j><a_j|b_i>
 
       use kinds
-      use ions_base, only: na, nsp
-      use io_global, only: stdout
       use mp_global, only: intra_image_comm
       use cvan
       use gvecw, only: ngw
       use constants, only: pi, fpi
-      use control_flags, only: iprint, iprsta
       use reciprocal_vectors, only: ng0 => gstart
       use mp, only: mp_sum
-      use uspp_param, only: nh
-      use uspp, only :nhsa=>nkb
 
       implicit none
 
@@ -1161,7 +1136,7 @@ subroutine pc2(a,beca,b,becb, lgam)
       complex(dp) a(ngw,n), b(ngw,n), as(ngw,n)
       logical :: lgam
       ! local variables
-      integer is, iv, jv, ia, inl, jnl, i, j,ig
+      integer  i, j,ig
       complex(dp) sca
       complex(DP), allocatable:: scar(:)
       !
@@ -1217,25 +1192,20 @@ subroutine pc2(a,beca,b,becb, lgam)
 !    b output:b_i =b_i - S|a_j>(<a_j|b_i>+<a_i|b_j>)/2
 
       use kinds
-      use ions_base, only: na, nsp
-      use io_global, only: stdout
       use mp_global, only: intra_image_comm
       use cvan
       use gvecw, only: ngw
       use constants, only: pi, fpi
-      use control_flags, only: iprint, iprsta
       use reciprocal_vectors, only: ng0 => gstart
       use mp, only: mp_sum
       use electrons_base, only: n => nbsp, ispin
-      use uspp_param, only: nh
-      use uspp, only :nhsa=>nkb
 
       implicit none
 
       complex(dp) a(ngw,n), b(ngw,n), as(ngw,n)
       logical :: lgam
       ! local variables
-      integer is, iv, jv, ia, inl, jnl, i, j,ig
+      integer i, j,ig
       complex(dp) sca
       complex(DP) :: bold(ngw,n)
       complex(DP), allocatable:: scar(:)
@@ -1290,13 +1260,13 @@ subroutine pc2(a,beca,b,becb, lgam)
 !----------------------------------------------------------------------
 
       use kinds
-      use io_global, only: stdout,ionode
+      use io_global, only: ionode
       use mp_global, only: intra_image_comm
       use gvecw, only: ngw
       use reciprocal_vectors, only: ng0 => gstart
       use mp, only: mp_sum
-      use cvan, only: nvb, ish
-      use electrons_base, only: n => nbsp, ispin, nspin,nupdwn,iupdwn
+      use cvan, only: nvb
+      use electrons_base, only: n => nbsp, nspin, nupdwn, iupdwn
 
       implicit none
 
@@ -1424,28 +1394,23 @@ subroutine pc2(a,beca,b,becb, lgam)
 !----------------------------------------------------------------------
 
       use kinds
-      use io_global, only: stdout,ionode
-      use mp_global, only: intra_image_comm
+      use io_global, only: ionode
       use gvecw, only: ngw
-      use reciprocal_vectors, only: ng0 => gstart
       use mp, only: mp_sum
-      use cvan, only: nvb, ish
-      use uspp, only: betae => vkb
+      use cvan, only: nvb
       use twin_types
-      use ions_base, only: nsp, nat
-      use electrons_base, only: n => nbsp, nbspx, ispin, nspin,nupdwn,iupdwn
+      use electrons_base, only: n => nbsp, nbspx, nspin, nupdwn, iupdwn
 
       implicit none
 
       complex(dp) a(ngw,n), aold(ngw,n)
-      integer i, j,k,ig, isp,ndim,nbnd1,nbnd2
+      integer i, j,k,isp,ndim,nbnd1,nbnd2
       real(dp) sqrt_seig(n)
       complex(DP) :: sca
       type(twin_matrix) :: beca
       real(DP), allocatable :: seig(:)
       complex(DP), allocatable :: s(:,:), omat(:,:), sqrt_s(:,:)
       logical :: lgam, okvan
-      complex(dp) :: eigr(ngw,nat) !!debug
       !
       okvan=nvb>0
       aold(:,:)=a(:,:)
@@ -1552,16 +1517,14 @@ subroutine pc2(a,beca,b,becb, lgam)
 !    b output:b_i =b_i-a_j>(<a_j|S|b_i>+<b_j|S|a_i>)/2
     
       use kinds, only: dp 
-      use ions_base, only: na, nsp
-      use io_global, only: stdout
-      use mp_global, only: intra_image_comm, mpime
+      use ions_base, only: na
+      use mp_global, only: intra_image_comm
       use cvan 
       use gvecw, only: ngw
       use constants, only: pi, fpi
-      use control_flags, only: iprint, iprsta
       use reciprocal_vectors, only: ng0 => gstart
       use mp, only: mp_sum
-      use electrons_base, only: n => nbsp, ispin,  nupdwn, iupdwn, nspin
+      use electrons_base, only: n => nbsp, nupdwn, iupdwn, nspin
       use uspp_param, only: nh
       use uspp, only :nhsa=>nkb
       use uspp, only :qq
@@ -1575,8 +1538,7 @@ subroutine pc2(a,beca,b,becb, lgam)
       type(twin_matrix) ::   beca,becb!(nhsa,n) !modified:giovanni
       logical :: lgam
 ! local variables
-      integer is, iv, jv, ia, inl, jnl, i, j,ig
-      real(kind=DP) sca
+      integer is, iv, jv, ia, inl, jnl, i, j
       real(DP), allocatable :: bectmp(:,:)
       complex(DP), allocatable :: bectmp_c(:,:)
       real(DP), allocatable :: qq_tmp(:,:), qqb_tmp(:,:)
@@ -1828,7 +1790,6 @@ subroutine pc2(a,beca,b,becb, lgam)
 !    b output:b_i =b_i - |a_j>(<a_j|b_i>+<b_j|a_i>)/2
 
       use kinds
-      use io_global, only: stdout
       use mp_global, only: intra_image_comm
       use gvecw, only: ngw
       use reciprocal_vectors, only: ng0 => gstart
@@ -1844,7 +1805,6 @@ subroutine pc2(a,beca,b,becb, lgam)
       integer i, j,ig
 !       real(dp) sca
       complex(DP) :: sca_c
-      real(DP), allocatable:: scar(:)
       complex(DP), allocatable:: scar_c(:)
       !
       call start_clock('pc3')
@@ -1943,7 +1903,6 @@ subroutine pc2(a,beca,b,becb, lgam)
 !    b output:b_i =b_i - |a_j>(<a_j|b_i>+<b_j|a_i>)/2
 
       use kinds
-      use io_global, only: stdout
       use mp_global, only: intra_image_comm
       use gvecw, only: ngw
       use reciprocal_vectors, only: ng0 => gstart
@@ -1959,7 +1918,6 @@ subroutine pc2(a,beca,b,becb, lgam)
       integer i, j,ig
 !       real(dp) sca
       complex(DP) :: sca_c
-      real(DP), allocatable:: scar(:)
       complex(DP), allocatable:: scar_c(:)
       !
       call start_clock('pc3')
@@ -2058,7 +2016,6 @@ subroutine pc2(a,beca,b,becb, lgam)
 !    b output:b_i =b_i - |a_j>(<a_j|b_i>+<b_j|a_i>)/2
 
       use kinds
-      use io_global, only: stdout
       use mp_global, only: intra_image_comm
       use gvecw, only: ngw
       use reciprocal_vectors, only: ng0 => gstart
@@ -2073,7 +2030,6 @@ subroutine pc2(a,beca,b,becb, lgam)
       complex(DP) :: bold(ngw,n_emp)
       integer i, j, ig, ispin_tot(n+n_emp)
       complex(DP) :: sca_c
-      real(DP), allocatable:: scar(:)
       complex(DP), allocatable:: scar_c(:)
       !
       call start_clock('pc3')
@@ -2213,7 +2169,6 @@ subroutine pc2(a,beca,b,becb, lgam)
 !    b output:b_i =b_i - |a_j>(<b_j|a_i>)
 
       use kinds
-      use io_global, only: stdout
       use mp_global, only: intra_image_comm
       use gvecw, only: ngw
       use reciprocal_vectors, only: ng0 => gstart
@@ -2229,7 +2184,6 @@ subroutine pc2(a,beca,b,becb, lgam)
       integer i, j,ig
 !       real(dp) sca
       complex(DP) :: sca_c
-      real(DP), allocatable:: scar(:)
       complex(DP), allocatable:: scar_c(:)
       !
       call start_clock('pc3')
@@ -2298,7 +2252,6 @@ subroutine pc2(a,beca,b,becb, lgam)
 !    b output:b_i =b_i - |adual_j>(<a_j|b_i>+<b_j|a_i>)/2
 
       use kinds
-      use io_global, only: stdout
       use mp_global, only: intra_image_comm
       use gvecw, only: ngw
       use reciprocal_vectors, only: ng0 => gstart
@@ -2314,7 +2267,6 @@ subroutine pc2(a,beca,b,becb, lgam)
       integer i, j,ig
 !       real(dp) sca
       complex(DP) :: sca_c
-      real(DP), allocatable:: scar(:)
       complex(DP), allocatable:: scar_c(:)
       !
       call start_clock('pc3')
@@ -2382,7 +2334,6 @@ subroutine pc2(a,beca,b,becb, lgam)
 !    b output:c_i = - |adual_i>(<a_i|b_i>)
 
       use kinds
-      use io_global, only: stdout
       use mp_global, only: intra_image_comm
       use gvecw, only: ngw
       use reciprocal_vectors, only: ng0 => gstart
@@ -2398,7 +2349,6 @@ subroutine pc2(a,beca,b,becb, lgam)
       integer i, j,ig
 !       real(dp) sca
       complex(DP) :: sca_c
-      real(DP), allocatable:: scar(:)
       complex(DP), allocatable:: scar_c(:)
       !
       call start_clock('pc4')
@@ -2464,16 +2414,14 @@ subroutine pc2(a,beca,b,becb, lgam)
      !
 
       use kinds, only: dp
-      use ions_base, only: na, nsp
+      use ions_base, only: na
       use io_global, only: stdout
       use mp_global, only: intra_image_comm
       use cvan
       use gvecw, only: ngw
       use constants, only: pi, fpi
-      use control_flags, only: iprint, iprsta
       use reciprocal_vectors, only: ng0 => gstart
       use mp, only: mp_sum, mp_bcast
-      use electrons_base, only: n => nbsp, ispin
       use uspp_param, only: nh
       use uspp, only :nhsa=>nkb,qq,nhsavb=>nkbus
       use io_global, ONLY: ionode, ionode_id
@@ -2487,8 +2435,8 @@ subroutine pc2(a,beca,b,becb, lgam)
 
 
 ! local variables
-      real(DP),allocatable :: q_matrix(:,:), b_matrix(:,:),c_matrix(:,:)
-      integer is, iv, jv, ia, inl, jnl, i, j, k,ig, js, ja
+      real(DP),allocatable :: q_matrix(:,:), c_matrix(:,:)
+      integer is, iv, jv, ia, inl, jnl, i, ig, js, ja
       real(DP) sca
       integer info, lwork
       integer, allocatable :: ipiv(:)
@@ -2588,16 +2536,14 @@ subroutine pc2(a,beca,b,becb, lgam)
      !
 
       use kinds, only: dp
-      use ions_base, only: na, nsp
+      use ions_base, only: na
       use io_global, only: stdout
       use mp_global, only: intra_image_comm
       use cvan
       use gvecw, only: ngw
       use constants, only: pi, fpi
-      use control_flags, only: iprint, iprsta
       use reciprocal_vectors, only: ng0 => gstart
       use mp, only: mp_sum, mp_bcast
-      use electrons_base, only: n => nbsp, ispin
       use uspp_param, only: nh
       use uspp, only :nhsa=>nkb,qq,nhsavb=>nkbus
       use io_global, ONLY: ionode, ionode_id
@@ -2613,9 +2559,9 @@ subroutine pc2(a,beca,b,becb, lgam)
 
 
 ! local variables
-      real(DP),allocatable :: q_matrix(:,:), b_matrix(:,:),c_matrix(:,:)
-      complex(DP), allocatable :: q_matrix_c(:,:), b_matrix_c(:,:),c_matrix_c(:,:)
-      integer is, iv, jv, ia, inl, jnl, i, j, k,ig, js, ja
+      real(DP),allocatable :: q_matrix(:,:) ,c_matrix(:,:)
+      complex(DP), allocatable :: q_matrix_c(:,:), c_matrix_c(:,:)
+      integer is, iv, jv, ia, inl, jnl, i, ig, js, ja
       complex(DP) :: sca
       integer info, lwork
       integer, allocatable :: ipiv(:)
@@ -2784,19 +2730,14 @@ subroutine pc2(a,beca,b,becb, lgam)
 !       where  |phi> = s^{-1}|c0> 
 ! endif
       use kinds, only: dp
-      use ions_base, only: na, nsp
-      use io_global, only: stdout
-!$$
-      use io_global, only: ionode
-!$$
+      use ions_base, only: na
       use mp_global, only: intra_image_comm
       use cvan
       use uspp_param, only: nh
-      use uspp, only :nhsa=>nkb, nhsavb=>nkbus, qq
+      use uspp, only :nhsa=>nkb, nhsavb=>nkbus
       use electrons_base, only: n => nbsp
       use gvecw, only: ngw
       use constants, only: pi, fpi
-      use control_flags, only: iprint, iprsta
       use mp, only: mp_sum
       use reciprocal_vectors, only: ng0 => gstart
 !
@@ -2808,7 +2749,7 @@ subroutine pc2(a,beca,b,becb, lgam)
 ! local variables
       complex(dp), allocatable :: phi(:,:)
       real(dp) , allocatable   :: qtemp(:,:)
-      integer is, iv, jv, ia, inl, jnl, i, j, js, ja,ig
+      integer is, iv, ia, inl, i, j ,ig
       real(dp) becktmp
 
       
@@ -2902,19 +2843,14 @@ subroutine pc2(a,beca,b,becb, lgam)
 !       where  |phi> = s^{-1}|c0> 
 ! endif
       use kinds, only: dp
-      use ions_base, only: na, nsp
-      use io_global, only: stdout
-!$$
-      use io_global, only: ionode
-!$$
+      use ions_base, only: na
       use mp_global, only: intra_image_comm
       use cvan
       use uspp_param, only: nh
-      use uspp, only :nhsa=>nkb, nhsavb=>nkbus, qq
+      use uspp, only :nhsa=>nkb, nhsavb=>nkbus
       use electrons_base, only: n => nbsp
       use gvecw, only: ngw
       use constants, only: pi, fpi
-      use control_flags, only: iprint, iprsta
       use mp, only: mp_sum
       use reciprocal_vectors, only: ng0 => gstart
       use twin_types
@@ -2930,7 +2866,7 @@ subroutine pc2(a,beca,b,becb, lgam)
       complex(dp), allocatable :: phi(:,:)
       real(dp) , allocatable   :: qtemp(:,:)
       complex(dp) , allocatable   :: qtemp_c(:,:)
-      integer is, iv, jv, ia, inl, jnl, i, j, js, ja,ig
+      integer is, iv, ia, inl, i, j,ig
       real(dp) becktmp
       complex(dp) becktmp_c      
       logical :: mat_par=.true.!if true uses parallel routines
@@ -3055,16 +2991,13 @@ subroutine pc2(a,beca,b,becb, lgam)
      ! endif
       !
       use kinds, only: dp
-      use ions_base, only: na, nsp
-      use io_global, only: stdout
-      use io_global, only: ionode
+      use ions_base, only: na
       use mp_global, only: intra_image_comm
       use cvan
       use uspp_param, only: nh
-      use uspp, only :nhsa=>nkb, nhsavb=>nkbus, qq
+      use uspp, only :nhsa=>nkb, nhsavb=>nkbus
       use gvecw, only: ngw
       use constants, only: pi, fpi
-      use control_flags, only: iprint, iprsta
       use mp, only: mp_sum
       use reciprocal_vectors, only: ng0 => gstart
       use twin_types
@@ -3083,7 +3016,7 @@ subroutine pc2(a,beca,b,becb, lgam)
       complex(dp), allocatable   :: phi(:,:)
       real(dp) ,   allocatable   :: qtemp(:,:)
       complex(dp), allocatable   :: qtemp_c(:,:)
-      integer is, iv, jv, ia, inl, jnl, i, j, js, ja,ig
+      integer is, iv, ia, inl, i, j, ig
       real(dp) becktmp
       complex(dp) becktmp_c      
       logical :: mat_par=.true.!if true uses parallel routines
@@ -3277,16 +3210,14 @@ subroutine pc2(a,beca,b,becb, lgam)
 ! endif
 !adapted for state by state
       use kinds, only: dp
-      use ions_base, only: na, nsp
-      use io_global, only: stdout
+      use ions_base, only: na
       use mp_global, only: intra_image_comm
       use cvan
       use uspp_param, only: nh
-      use uspp, only :nhsa=>nkb, nhsavb=>nkbus, qq
+      use uspp, only :nhsa=>nkb, nhsavb=>nkbus
       use electrons_base, only: n => nbsp
       use gvecw, only: ngw
       use constants, only: pi, fpi
-      use control_flags, only: iprint, iprsta
       use mp, only: mp_sum
       use reciprocal_vectors, only: ng0 => gstart
       USE gvecw,              ONLY: ggp
@@ -3303,7 +3234,7 @@ subroutine pc2(a,beca,b,becb, lgam)
 ! local variables
       complex(dp), allocatable :: phi(:,:)
       real(dp) , allocatable   :: qtemp(:,:)
-      integer is, iv, jv, ia, inl, jnl, i, j, js, ja,ig
+      integer is, iv, ia, inl, i, j, ig
       real(dp) becktmp
       real(kind=DP) :: prec_fact, x
 
