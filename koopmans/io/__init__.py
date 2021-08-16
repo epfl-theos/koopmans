@@ -422,10 +422,20 @@ def read_dict(dct):
     return settings
 
 
-def read_json(fd):
+def update_nested_dict(dct_to_update, second_dct):
+    for k, v in second_dct.items():
+        if k in dct_to_update and isinstance(v, dict):
+            update_nested_dict(dct_to_update[k], second_dct[k])
+        else:
+            dct_to_update[k] = v
+
+
+def read_json(fd, override={}):
     '''
 
     Reads in settings listed in JSON file
+
+    Values in the JSON file can be overridden by values provided in the override argument
 
     '''
 
@@ -440,6 +450,9 @@ def read_json(fd):
         fd = open(fd, 'r')
 
     bigdct = json_ext.loads(fd.read())
+
+    # Override all keywords provided explicitly
+    update_nested_dict(bigdct, override)
 
     # Deal with w90 subdicts
     if 'w90' in bigdct:

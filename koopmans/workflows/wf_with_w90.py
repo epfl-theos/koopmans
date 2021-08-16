@@ -7,12 +7,10 @@ Written by Riccardo De Gennaro Nov 2020
 
 """
 
-import copy
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 from koopmans import utils
-from koopmans.calculators.pw2wannier import PW2Wannier_calc
-from ase.dft.kpoints import bandpath
 from koopmans.workflows.generic import Workflow
 
 
@@ -97,10 +95,39 @@ class WannierizeWorkflow(Workflow):
             self.run_calculator(calc_w90)
 
         if self.check_bandstructure:
+            # Run a "bands" calculation
             calc_pw = self.new_calculator('pw', calculation='bands')
             calc_pw.directory = 'wannier'
             calc_pw.name = 'bands'
             self.run_calculator(calc_pw)
+
+            # Plot the bandstructures on top of one another
+            ax = None
+            labels = ['interpolation (occ)', 'interpolation (emp)', 'explicit']
+            colour_cycle = plt.rcParams["axes.prop_cycle"]()
+            selected_calcs = [c for c in self.all_calcs if 'band structure' in c.results]
+            emin = np.min(selected_calcs[0].results['band structure'].energies) - 1
+            emax = np.max(selected_calcs[1].results['band structure'].energies) + 1
+            for calc, label in zip(selected_calcs, labels):
+                if 'band structure' in calc.results:
+                    # Load the bandstructure
+                    bs = calc.results['band structure']
+
+                    # Tweaking the plot aesthetics
+                    colours = [next(colour_cycle)['color'] for _ in range(bs.energies.shape[0])]
+                    kwargs = {}
+                    if 'explicit' in label:
+                        kwargs['ls'] = 'none'
+                        kwargs['marker'] = 'x'
+
+                    # Plot
+                    ax = bs.plot(ax=ax, emin=emin, emax=emax, colors=colours, label=label, **kwargs)
+
+            # Move the legend
+            plt.legend(bbox_to_anchor=(1, 1), loc="lower right", ncol=2)
+
+            # Save the comparison to file
+            plt.savefig('interpolated_bandstructure_{}x{}x{}.png'.format(*calc_w90.mp_grid))
 
         return
 

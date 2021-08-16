@@ -4,6 +4,7 @@ import os
 import argparse
 import subprocess
 import textwrap
+import matplotlib
 from types import ModuleType
 import ase
 from koopmans.utils import chdir
@@ -16,6 +17,8 @@ from koopmans.workflows.generic import valid_settings
 Perform KI/KIPZ calculations
 '''
 
+# Use a backend that does not rely on X-forwarding
+matplotlib.use('Agg')
 
 def get_version(module):
     if isinstance(module, ModuleType):
