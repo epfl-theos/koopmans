@@ -51,7 +51,7 @@ CONTAINS
           USE local_pseudo, ONLY: deallocate_local_pseudo
           USE uspp,         ONLY: dvan
 
-          INTEGER :: i, j
+          INTEGER :: i
 
           CALL deallocate_local_pseudo()
           !
