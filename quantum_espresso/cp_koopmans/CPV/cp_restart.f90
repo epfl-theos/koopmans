@@ -4348,7 +4348,7 @@ MODULE cp_restart
       INTEGER,            INTENT(OUT) :: ierr
       CHARACTER(LEN=*),   INTENT(OUT) :: pos_unit
       !
-      LOGICAL          :: found, back_compat
+      LOGICAL          :: found
       INTEGER          :: i
       CHARACTER(LEN=3) :: lab
       !
