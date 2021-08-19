@@ -130,7 +130,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   USE mp_global,                ONLY : root_image, intra_image_comm, np_ortho, me_ortho, ortho_comm, &
                                        me_image
   USE ldaU,                     ONLY : lda_plus_u, vupsi
-  USE nksic,                    ONLY : do_orbdep, pink, complexification_index
+  USE nksic,                    ONLY : do_orbdep, pink, complexification_index, l_comp_cmplxfctn_index
   USE step_constraint
   USE small_box,                ONLY : ainvb
   USE descriptors,              ONLY : descla_siz_
@@ -861,7 +861,7 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
            !
         ENDIF
         !
-        IF(do_wf_cmplx) THEN
+        IF(do_wf_cmplx .AND. l_comp_cmplxfctn_index) THEN
            !
            ! Compute complexification index
            !

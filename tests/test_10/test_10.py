@@ -8,7 +8,7 @@ import pytest
 from conftest import WorkflowTest
 
 
-json = 'tests/test_10/test_si_primitive.json'
+json = 'tests/test_10/test_ozone_dfpt.json'
 
 
 @pytest.mark.mock

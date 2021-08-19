@@ -607,9 +607,6 @@ class KoopmansCPWorkflow(Workflow):
         for calc_presets in ['occ', 'emp']:
             calc = self.new_calculator('ui', calc_presets)
             self.run_calculator(calc, enforce_ss=False)
-            # If not running from scratch, we need to make sure band structures are still loaded
-            if not self.from_scratch:
-                calc.read_bands()
 
         # Merge the two calculations to print out the DOS and bands
         calc = self.new_calculator('ui', 'merge')
@@ -857,8 +854,11 @@ class KoopmansCPWorkflow(Workflow):
         else:
             calc.which_compensation = 'none'
 
-        # If we are using frozen orbitals, we override the above logic and freeze the variational orbitals post-initialisation
-        if self.frozen_orbitals and 'init' not in calc.name and not any([s == calc.name for s in ['dft_n-1', 'dft_n+1', 'kipz_n-1', 'kipz_n+1']]):
+        # If we are using frozen orbitals, we override the above logic and freeze the variational orbitals
+        # post-initialisation
+        if self.frozen_orbitals and 'init' not in calc.name and not any([s == calc.name for s in
+                                                                         ['dft_n-1', 'dft_n+1', 'kipz_n-1',
+                                                                          'kipz_n+1']]):
             calc.do_outerloop = False
             calc.do_innerloop = False
             if calc.empty_states_nbnd > 0:

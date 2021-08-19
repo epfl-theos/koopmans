@@ -1,7 +1,7 @@
 {
     "workflow": {
         "functional"                : "all",
-        "n_max_sc_steps"            : 3,
+        "n_max_sc_steps"            : 2,
         "alpha_from_file"           : false,
         "print_qc"                  : true,
         "from_scratch"              : true,
