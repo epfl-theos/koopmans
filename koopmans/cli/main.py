@@ -20,6 +20,7 @@ Perform KI/KIPZ calculations
 # Use a backend that does not rely on X-forwarding
 matplotlib.use('Agg')
 
+
 def get_version(module):
     if isinstance(module, ModuleType):
         module = module.__path__[0]
@@ -45,7 +46,8 @@ def header():
               "",
               " Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna",
               "",
-              f" using QE version {qe_version}, workflow manager version {koopmans_version}, and ASE version {ase_version}",
+              f" using QE version {qe_version}, workflow manager version {koopmans_version}, and ASE version "
+              f"{ase_version}"
               ""]
     return '\n'.join(header)
 

@@ -9,7 +9,6 @@ Written by Edward Linscott Feb 2021
 import os
 import numpy as np
 import copy
-import matplotlib
 from koopmans import utils, io
 from koopmans.bands import Bands
 from koopmans.calculators.pw import PW_calc
@@ -32,11 +31,13 @@ class KoopmansPWWorkflow(Workflow):
         if self.periodic:
             if self.init_orbitals not in ['mlwfs', 'projwfs']:
                 raise ValueError(
-                    'Calculating screening parameters with DFPT for a periodic system is only possible with MLWFs as the variational orbitals')
+                    'Calculating screening parameters with DFPT for a periodic system is only possible with MLWFs as '
+                    'the variational orbitals')
         else:
             if self.init_orbitals != 'kohn-sham':
                 raise ValueError(
-                    'Calculating screening parameters with DFPT for a periodic system is only possible with Kohn-Sham orbitals as the variational orbitals')
+                    'Calculating screening parameters with DFPT for a periodic system is only possible with Kohn-Sham '
+                    'orbitals as the variational orbitals')
         for calc in self.master_calcs.values():
             if self.periodic:
                 # Gygi-Baldereschi

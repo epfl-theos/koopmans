@@ -40,7 +40,8 @@ class PW_calc(EspressoCalc):
             if 'kpath' in self.calc.parameters:
                 self.calc.parameters['kpts'] = self.calc.parameters.pop('kpath')
             else:
-                raise KeyError('You are running a calculation that requires a kpath; please provide it in the input file')
+                raise KeyError('You are running a calculation that requires a kpath; please provide it in the input '
+                               'file')
         else:
             self.calc.parameters.pop('kpath', None)
         super().calculate()
