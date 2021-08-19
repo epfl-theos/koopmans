@@ -7,6 +7,7 @@ Written by Edward Linscott Sep 2020
 """
 
 import os
+from ase.calculators.calculator import CalculationFailed
 import numpy as np
 from koopmans.utils import warn
 from ase.io import wannier90 as w90_io
@@ -29,7 +30,7 @@ class W90_calc(GenericCalc):
                        'num_iter', 'conv_window', 'conv_tol', 'num_print_cycles',
                        'dis_froz_max', 'dis_num_iter', 'dis_win_max', 'guiding_centres',
                        'bands_plot', 'mp_grid', 'kpoint_path', 'projections', 'write_hr',
-                       'write_u_matrices', 'write_xyz']
+                       'write_u_matrices', 'write_xyz', 'wannier_plot']
     _settings_that_are_paths = []
 
     def __init__(self, *args, **kwargs):
@@ -42,6 +43,14 @@ class W90_calc(GenericCalc):
         if self.mp_grid is None:
             self.generate_kpoints()
         super().calculate()
+        # Afterwards, check the real vs imaginary component
+        if self.wannier_plot and '-pp' not in self.calc.command.flags:
+            max_imre = np.max(self.results['Im/Re ratio'])
+            message = f'Im/Re ratio of {max_imre} detected during Wannierisation'
+            if max_imre > 1e-4:
+                raise CalculationFailed(message)
+            if max_imre > 1e-6:
+                warn(message)
 
     def generate_kpoints(self):
         self.mp_grid = self.calc.parameters['kpts']
@@ -64,4 +73,5 @@ class W90_calc(GenericCalc):
                 'conv_window': 5,
                 'write_hr': True,
                 'guiding_centres': True,
-                'gamma_only': False}
+                'gamma_only': False,
+                'wannier_plot': True}
