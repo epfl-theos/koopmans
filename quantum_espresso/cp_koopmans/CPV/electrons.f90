@@ -414,7 +414,8 @@
       USE io_global,      ONLY : stdout, ionode
       USE ensemble_dft,   ONLY : tens, tsmear
       use nksic,          ONLY : complexification_index, pink, pink_emp, do_orbdep, &
-                                 pzalpha=> odd_alpha, pzalpha_emp=>odd_alpha_emp
+                                 pzalpha=> odd_alpha, pzalpha_emp=>odd_alpha_emp,&
+                                 l_comp_cmplxfctn_index 
       !
       INTEGER,  INTENT(IN) :: spread_unit
       LOGICAL,  INTENT(IN) :: tfile, tstdout
@@ -443,9 +444,14 @@
             IF( n_emp .GT. 0 ) THEN
                WRITE( stdout,1333) ik, j
                !
-               WRITE( stdout,1446) ( i, wfc_centers_emp(1:4, i, j ), wfc_spreads_emp( i, j , 1), wfc_spreads_emp( i, j, 2), &
-                                     pink_emp(iupdwn_emp(j)-1+sort_spreads_emp(i,j))*hartree_si/electronvolt_si, &
-                                     pzalpha_emp(iupdwn_emp(j)-1+sort_spreads_emp(i,j)), i = 1, nupdwn_emp(j))
+               IF (do_orbdep) THEN 
+                  WRITE( stdout,1446) ( i, wfc_centers_emp(1:4, i, j ), wfc_spreads_emp( i, j , 1), wfc_spreads_emp( i, j, 2), &
+                                        pink_emp(iupdwn_emp(j)-1+sort_spreads_emp(i,j))*hartree_si/electronvolt_si, &
+                                        pzalpha_emp(iupdwn_emp(j)-1+sort_spreads_emp(i,j)), i = 1, nupdwn_emp(j))
+               ELSE
+                  WRITE( stdout,1447) ( i, wfc_centers_emp(1:4, i, j ), wfc_spreads_emp( i, j , 1), wfc_spreads_emp( i, j, 2), &
+                                        i = 1, nupdwn_emp(j))
+               ENDIF
                !  
             ENDIF
             !  
@@ -454,7 +460,7 @@
          !
       END DO
       !
-      IF( tstdout ) THEN
+      IF( tstdout .AND. l_comp_cmplxfctn_index) THEN
          !
          WRITE( stdout, '(/, " Complexification index ")' )
          WRITE( stdout, * ) complexification_index
@@ -468,6 +474,7 @@
  1005 FORMAT(/,3X,'Empty States Eigenvalues (eV), kp = ',I3, ' , spin = ',I2,/)
  1444 FORMAT('OCC', I5, ' --',F8.2,'   ---',3F8.2,'   ---',4F8.3)
  1446 FORMAT('EMP', I5, ' --',F8.2,'   ---',3F8.2,'   ---',4F8.3)
+ 1447 FORMAT('EMP', I5, ' --',F8.2,'   ---',3F8.2,'   ---',2F8.3)
  1445 FORMAT('OCC', I5, ' --',F8.2,'   ---',3F8.2,'   ---',2F8.2)
  1121 FORMAT(/3X,'Manifold complexification index = ',2F8.4/)
  1084 FORMAT(10F8.4)

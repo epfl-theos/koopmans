@@ -234,6 +234,6 @@ class Bands(object):
         print('\nalpha')
         print(self.alpha_history)
         if not self.error_history.empty:
-            print('\nΔE_i - ε_i (eV)')
+            print('\nDelta E_i - epsilon_i (eV)')
             print(self.error_history)
         print('')

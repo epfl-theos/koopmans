@@ -541,6 +541,7 @@ MODULE input_parameters
         INTEGER :: iprint_spreads=-1 !prints spread every nth step, -1 does not print spread !!added:giovanni
         INTEGER :: iprint_manifold_overlap=-1 !prints manifold overlap with initial wavefunctions (random or from restart), when -1, no overlap is printed
         LOGICAL :: hartree_only_sic
+        LOGICAL :: l_comp_cmplxfctn_index  = .false.
         !
         ! This variable overwrites the ones above
         CHARACTER(80)     :: which_orbdep=" "
@@ -615,7 +616,7 @@ MODULE input_parameters
              iprint_manifold_overlap, innerloop_until, innerloop_atleast,     &
              hartree_only_sic, aux_empty_nbnd,                            &
              !
-             finite_field_introduced, finite_field_for_empty_state
+             finite_field_introduced, finite_field_for_empty_state, l_comp_cmplxfctn_index
              !
 !             lgroup !NsC 
 

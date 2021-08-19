@@ -127,8 +127,6 @@ class GenericCalc:
         # Handle any recognised QE keywords passed as arguments
         for key, val in kwargs.items():
             if key not in self._valid_settings:
-                import ipdb
-                ipdb.set_trace()
                 raise ValueError(f'{key} is not a recognised keyword for {self.__class__.__name__}')
             setattr(self, key, val)
 

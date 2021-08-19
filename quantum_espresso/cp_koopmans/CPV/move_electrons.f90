@@ -121,7 +121,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
 
   electron_dynamic: IF ( tcg ) THEN
      ! 
-     WRITE(*,*) mpime, 'call to runcg_uspp in move_electrons.f90'
+     !WRITE(*,*) mpime, 'call to runcg_uspp in move_electrons.f90'
      CALL runcg_uspp( nfi, tfirst, tlast, eigr, bec, irb, eigrb, &
                       rhor, rhog, rhos, rhoc, ei1, ei2, ei3, sfac, &
                       fion, ema0bg, becdr, lambdap, lambda, lambda_bare, vpot  )
