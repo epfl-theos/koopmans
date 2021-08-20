@@ -4307,7 +4307,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": false
+   "convergence": false,
+   "Im/Re ratio": []
   }
  },
  "test_03/init/wannier/occ/pw2wan": {
@@ -4315,7 +4316,8 @@
    "outdir": "../TMP",
    "prefix": "kc",
    "seedname": "wann",
-   "wan_mode": "standalone"
+   "wan_mode": "standalone",
+   "write_unk": false
   },
   "results": {
    "job done": true
@@ -4439,6 +4441,7 @@
    "num_bands": 4,
    "num_wann": 4,
    "exclude_bands": "5-12",
+   "wannier_plot": false,
    "mp_grid": [
     2,
     2,
@@ -4447,7 +4450,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": true
+   "convergence": true,
+   "Im/Re ratio": []
   },
   "input files": {
    "test_03/init/wannier/occ/wann.eig": {
@@ -4547,7 +4551,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": false
+   "convergence": false,
+   "Im/Re ratio": []
   }
  },
  "test_03/init/wannier/emp/pw2wan": {
@@ -4555,7 +4560,8 @@
    "outdir": "../TMP",
    "prefix": "kc",
    "seedname": "wann",
-   "wan_mode": "standalone"
+   "wan_mode": "standalone",
+   "write_unk": false
   },
   "results": {
    "job done": true
@@ -4681,6 +4687,7 @@
    "guiding_centres": true,
    "exclude_bands": "1-4",
    "num_bands": 8,
+   "wannier_plot": false,
    "dis_num_iter": 5000,
    "mp_grid": [
     2,
@@ -4690,7 +4697,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": true
+   "convergence": true,
+   "Im/Re ratio": []
   },
   "input files": {
    "test_03/init/wannier/emp/wann.eig": {
@@ -9343,7 +9351,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": false
+   "convergence": false,
+   "Im/Re ratio": []
   }
  },
  "test_03/postproc/wannier/occ/pw2wan": {
@@ -9351,7 +9360,8 @@
    "outdir": "../TMP",
    "prefix": "kc",
    "seedname": "wann",
-   "wan_mode": "standalone"
+   "wan_mode": "standalone",
+   "write_unk": false
   },
   "results": {
    "job done": true
@@ -10035,6 +10045,7 @@
    "num_bands": 4,
    "num_wann": 4,
    "exclude_bands": "5-12",
+   "wannier_plot": false,
    "mp_grid": [
     4,
     4,
@@ -10043,7 +10054,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": true
+   "convergence": true,
+   "Im/Re ratio": []
   },
   "input files": {
    "test_03/postproc/wannier/occ/wann.eig": {
@@ -10479,7 +10491,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": false
+   "convergence": false,
+   "Im/Re ratio": []
   }
  },
  "test_03/postproc/wannier/emp/pw2wan": {
@@ -10487,7 +10500,8 @@
    "outdir": "../TMP",
    "prefix": "kc",
    "seedname": "wann",
-   "wan_mode": "standalone"
+   "wan_mode": "standalone",
+   "write_unk": false
   },
   "results": {
    "job done": true
@@ -11173,6 +11187,7 @@
    "guiding_centres": true,
    "exclude_bands": "1-4",
    "num_bands": 8,
+   "wannier_plot": false,
    "dis_num_iter": 5000,
    "mp_grid": [
     4,
@@ -11182,7 +11197,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": true
+   "convergence": true,
+   "Im/Re ratio": []
   },
   "input files": {
    "test_03/postproc/wannier/emp/wann.eig": {
@@ -33188,7 +33204,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": false
+   "convergence": false,
+   "Im/Re ratio": []
   }
  },
  "test_07/kipz/init/wannier/occ/wann_preproc": {
@@ -33271,7 +33288,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": false
+   "convergence": false,
+   "Im/Re ratio": []
   }
  },
  "test_07/ki/init/wannier/occ/wann_preproc": {
@@ -33354,7 +33372,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": false
+   "convergence": false,
+   "Im/Re ratio": []
   }
  },
  "test_07/pkipz/init/wannier/occ/pw2wan": {
@@ -33362,7 +33381,8 @@
    "outdir": "../../../../ki/init/wannier/TMP",
    "prefix": "kc",
    "seedname": "wann",
-   "wan_mode": "standalone"
+   "wan_mode": "standalone",
+   "write_unk": false
   },
   "results": {
    "job done": true
@@ -33373,7 +33393,8 @@
    "outdir": "../../../../ki/init/wannier/TMP",
    "prefix": "kc",
    "seedname": "wann",
-   "wan_mode": "standalone"
+   "wan_mode": "standalone",
+   "write_unk": false
   },
   "results": {
    "job done": true
@@ -33384,7 +33405,8 @@
    "outdir": "../TMP",
    "prefix": "kc",
    "seedname": "wann",
-   "wan_mode": "standalone"
+   "wan_mode": "standalone",
+   "write_unk": false
   },
   "results": {
    "job done": true
@@ -33508,6 +33530,7 @@
    "num_bands": 4,
    "num_wann": 4,
    "exclude_bands": "5-12",
+   "wannier_plot": false,
    "mp_grid": [
     2,
     2,
@@ -33516,7 +33539,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": true
+   "convergence": true,
+   "Im/Re ratio": []
   }
  },
  "test_07/kipz/init/wannier/occ/wann": {
@@ -33591,6 +33615,7 @@
    "num_bands": 4,
    "num_wann": 4,
    "exclude_bands": "5-12",
+   "wannier_plot": false,
    "mp_grid": [
     2,
     2,
@@ -33599,7 +33624,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": true
+   "convergence": true,
+   "Im/Re ratio": []
   }
  },
  "test_07/ki/init/wannier/occ/wann": {
@@ -33674,6 +33700,7 @@
    "num_bands": 4,
    "num_wann": 4,
    "exclude_bands": "5-12",
+   "wannier_plot": false,
    "mp_grid": [
     2,
     2,
@@ -33682,7 +33709,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": true
+   "convergence": true,
+   "Im/Re ratio": []
   },
   "input files": {
    "test_07/ki/init/wannier/occ/wann.eig": {
@@ -33782,7 +33810,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": false
+   "convergence": false,
+   "Im/Re ratio": []
   }
  },
  "test_07/kipz/init/wannier/emp/wann_preproc": {
@@ -33868,7 +33897,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": false
+   "convergence": false,
+   "Im/Re ratio": []
   }
  },
  "test_07/ki/init/wannier/emp/wann_preproc": {
@@ -33954,7 +33984,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": false
+   "convergence": false,
+   "Im/Re ratio": []
   }
  },
  "test_07/pkipz/init/wannier/emp/pw2wan": {
@@ -33962,7 +33993,8 @@
    "outdir": "../../../../ki/init/wannier/TMP",
    "prefix": "kc",
    "seedname": "wann",
-   "wan_mode": "standalone"
+   "wan_mode": "standalone",
+   "write_unk": false
   },
   "results": {
    "job done": true
@@ -33973,7 +34005,8 @@
    "outdir": "../../../../ki/init/wannier/TMP",
    "prefix": "kc",
    "seedname": "wann",
-   "wan_mode": "standalone"
+   "wan_mode": "standalone",
+   "write_unk": false
   },
   "results": {
    "job done": true
@@ -33984,7 +34017,8 @@
    "outdir": "../TMP",
    "prefix": "kc",
    "seedname": "wann",
-   "wan_mode": "standalone"
+   "wan_mode": "standalone",
+   "write_unk": false
   },
   "results": {
    "job done": true
@@ -34110,6 +34144,7 @@
    "guiding_centres": true,
    "exclude_bands": "1-4",
    "num_bands": 8,
+   "wannier_plot": false,
    "dis_num_iter": 5000,
    "mp_grid": [
     2,
@@ -34119,7 +34154,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": true
+   "convergence": true,
+   "Im/Re ratio": []
   }
  },
  "test_07/kipz/init/wannier/emp/wann": {
@@ -34196,6 +34232,7 @@
    "guiding_centres": true,
    "exclude_bands": "1-4",
    "num_bands": 8,
+   "wannier_plot": false,
    "dis_num_iter": 5000,
    "mp_grid": [
     2,
@@ -34205,7 +34242,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": true
+   "convergence": true,
+   "Im/Re ratio": []
   }
  },
  "test_07/ki/init/wannier/emp/wann": {
@@ -34282,6 +34320,7 @@
    "guiding_centres": true,
    "exclude_bands": "1-4",
    "num_bands": 8,
+   "wannier_plot": false,
    "dis_num_iter": 5000,
    "mp_grid": [
     2,
@@ -34291,7 +34330,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": true
+   "convergence": true,
+   "Im/Re ratio": []
   },
   "input files": {
    "test_07/ki/init/wannier/emp/wann.eig": {
@@ -60270,7 +60310,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": false
+   "convergence": false,
+   "Im/Re ratio": []
   }
  },
  "test_07/kipz/postproc/wannier/occ/wann_preproc": {
@@ -60689,7 +60730,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": false
+   "convergence": false,
+   "Im/Re ratio": []
   }
  },
  "test_07/ki/postproc/wannier/occ/wann_preproc": {
@@ -61108,7 +61150,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": false
+   "convergence": false,
+   "Im/Re ratio": []
   }
  },
  "test_07/pkipz/postproc/wannier/occ/pw2wan": {
@@ -61116,7 +61159,8 @@
    "outdir": "../../../../ki/postproc/wannier/TMP",
    "prefix": "kc",
    "seedname": "wann",
-   "wan_mode": "standalone"
+   "wan_mode": "standalone",
+   "write_unk": false
   },
   "results": {
    "job done": true
@@ -61127,7 +61171,8 @@
    "outdir": "../../../../ki/postproc/wannier/TMP",
    "prefix": "kc",
    "seedname": "wann",
-   "wan_mode": "standalone"
+   "wan_mode": "standalone",
+   "write_unk": false
   },
   "results": {
    "job done": true
@@ -61138,7 +61183,8 @@
    "outdir": "../TMP",
    "prefix": "kc",
    "seedname": "wann",
-   "wan_mode": "standalone"
+   "wan_mode": "standalone",
+   "write_unk": false
   },
   "results": {
    "job done": true
@@ -61822,6 +61868,7 @@
    "num_bands": 4,
    "num_wann": 4,
    "exclude_bands": "5-12",
+   "wannier_plot": false,
    "mp_grid": [
     4,
     4,
@@ -61830,7 +61877,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": true
+   "convergence": true,
+   "Im/Re ratio": []
   }
  },
  "test_07/kipz/postproc/wannier/occ/wann": {
@@ -62241,6 +62289,7 @@
    "num_bands": 4,
    "num_wann": 4,
    "exclude_bands": "5-12",
+   "wannier_plot": false,
    "mp_grid": [
     4,
     4,
@@ -62249,7 +62298,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": true
+   "convergence": true,
+   "Im/Re ratio": []
   }
  },
  "test_07/ki/postproc/wannier/occ/wann": {
@@ -62660,6 +62710,7 @@
    "num_bands": 4,
    "num_wann": 4,
    "exclude_bands": "5-12",
+   "wannier_plot": false,
    "mp_grid": [
     4,
     4,
@@ -62668,7 +62719,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": true
+   "convergence": true,
+   "Im/Re ratio": []
   },
   "input files": {
    "test_07/ki/postproc/wannier/occ/wann.eig": {
@@ -63104,7 +63156,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": false
+   "convergence": false,
+   "Im/Re ratio": []
   }
  },
  "test_07/kipz/postproc/wannier/emp/wann_preproc": {
@@ -63526,7 +63579,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": false
+   "convergence": false,
+   "Im/Re ratio": []
   }
  },
  "test_07/ki/postproc/wannier/emp/wann_preproc": {
@@ -63948,7 +64002,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": false
+   "convergence": false,
+   "Im/Re ratio": []
   }
  },
  "test_07/pkipz/postproc/wannier/emp/pw2wan": {
@@ -63956,7 +64011,8 @@
    "outdir": "../../../../ki/postproc/wannier/TMP",
    "prefix": "kc",
    "seedname": "wann",
-   "wan_mode": "standalone"
+   "wan_mode": "standalone",
+   "write_unk": false
   },
   "results": {
    "job done": true
@@ -63967,7 +64023,8 @@
    "outdir": "../../../../ki/postproc/wannier/TMP",
    "prefix": "kc",
    "seedname": "wann",
-   "wan_mode": "standalone"
+   "wan_mode": "standalone",
+   "write_unk": false
   },
   "results": {
    "job done": true
@@ -63978,7 +64035,8 @@
    "outdir": "../TMP",
    "prefix": "kc",
    "seedname": "wann",
-   "wan_mode": "standalone"
+   "wan_mode": "standalone",
+   "write_unk": false
   },
   "results": {
    "job done": true
@@ -64664,6 +64722,7 @@
    "guiding_centres": true,
    "exclude_bands": "1-4",
    "num_bands": 8,
+   "wannier_plot": false,
    "dis_num_iter": 5000,
    "mp_grid": [
     4,
@@ -64673,7 +64732,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": true
+   "convergence": true,
+   "Im/Re ratio": []
   }
  },
  "test_07/kipz/postproc/wannier/emp/wann": {
@@ -65086,6 +65146,7 @@
    "guiding_centres": true,
    "exclude_bands": "1-4",
    "num_bands": 8,
+   "wannier_plot": false,
    "dis_num_iter": 5000,
    "mp_grid": [
     4,
@@ -65095,7 +65156,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": true
+   "convergence": true,
+   "Im/Re ratio": []
   }
  },
  "test_07/ki/postproc/wannier/emp/wann": {
@@ -65508,6 +65570,7 @@
    "guiding_centres": true,
    "exclude_bands": "1-4",
    "num_bands": 8,
+   "wannier_plot": false,
    "dis_num_iter": 5000,
    "mp_grid": [
     4,
@@ -65517,7 +65580,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": true
+   "convergence": true,
+   "Im/Re ratio": []
   },
   "input files": {
    "test_07/ki/postproc/wannier/emp/wann.eig": {
@@ -82144,7 +82208,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": false
+   "convergence": false,
+   "Im/Re ratio": []
   }
  },
  "test_09/wannier/occ/pw2wan": {
@@ -82153,7 +82218,8 @@
    "prefix": "kc",
    "seedname": "wann",
    "wan_mode": "standalone",
-   "spin_component": "up"
+   "spin_component": "up",
+   "write_unk": false
   },
   "results": {
    "job done": true
@@ -82279,6 +82345,7 @@
    "write_u_matrices": true,
    "write_xyz": true,
    "exclude_bands": "5-20",
+   "wannier_plot": false,
    "mp_grid": [
     2,
     2,
@@ -82287,7 +82354,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": true
+   "convergence": true,
+   "Im/Re ratio": []
   },
   "input files": {
    "test_09/wannier/occ/wann.eig": {
@@ -82389,7 +82457,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": false
+   "convergence": false,
+   "Im/Re ratio": []
   }
  },
  "test_09/wannier/emp/pw2wan": {
@@ -82398,7 +82467,8 @@
    "prefix": "kc",
    "seedname": "wann",
    "wan_mode": "standalone",
-   "spin_component": "up"
+   "spin_component": "up",
+   "write_unk": false
   },
   "results": {
    "job done": true
@@ -82526,6 +82596,7 @@
    "write_u_matrices": true,
    "write_xyz": true,
    "num_bands": 16,
+   "wannier_plot": false,
    "dis_num_iter": 5000,
    "mp_grid": [
     2,
@@ -82535,7 +82606,8 @@
   },
   "results": {
    "job done": true,
-   "convergence": true
+   "convergence": true,
+   "Im/Re ratio": []
   },
   "input files": {
    "test_09/wannier/emp/wann.eig": {
