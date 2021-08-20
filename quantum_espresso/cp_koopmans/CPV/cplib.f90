@@ -4617,7 +4617,7 @@ END FUNCTION
                                    innerloop_dd_nstep, &
                                    innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax, &
                                    innerloop_cg_ratio, innerloop_init_n, innerloop_until, &
-                                   innerloop_atleast
+                                   innerloop_atleast, l_comp_cmplxfctn_index
 !$$
       use input_parameters, ONLY : do_nk_ => do_nk, &
                                    do_pz_ => do_pz, &
@@ -4635,7 +4635,8 @@ END FUNCTION
                                    nkscalfact_ => nkscalfact, &
                                    nknmax_ => nknmax, &
                                    f_cutoff_ => f_cutoff, &
-                                   do_orbdep_=> do_orbdep
+                                   do_orbdep_=> do_orbdep, &
+                                   l_comp_cmplxfctn_index_ => l_comp_cmplxfctn_index
 !$$
       use input_parameters, only : do_innerloop_ => do_innerloop, &
                                    do_innerloop_empty_ => do_innerloop_empty, &
@@ -4685,6 +4686,7 @@ END FUNCTION
 !$$
       do_innerloop        = do_innerloop_
       do_innerloop_empty  = do_innerloop_empty_
+      l_comp_cmplxfctn_index  = l_comp_cmplxfctn_index_
       do_innerloop_cg     = do_innerloop_cg_
       innerloop_dd_nstep  = innerloop_dd_nstep_
       innerloop_cg_nsd    = innerloop_cg_nsd_
