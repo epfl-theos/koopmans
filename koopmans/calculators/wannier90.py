@@ -73,5 +73,4 @@ class W90_calc(GenericCalc):
                 'conv_window': 5,
                 'write_hr': True,
                 'guiding_centres': True,
-                'gamma_only': False,
-                'wannier_plot': True}
+                'gamma_only': False}

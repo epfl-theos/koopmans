@@ -91,6 +91,9 @@ valid_settings = [
                   'if True, the spin-up and spin-down wavefunctions will be forced '
                   'to be the same',
                   bool, True, (True, False)),
+    utils.Setting('check_wannierisation',
+                  'if True, checks the Im/Re ratio and generates a plot of the interpolated band structure',
+                  bool, False, (True, False)),
     utils.Setting('convergence_observable',
                   'System observable of interest which we converge',
                   str, 'total energy', ('homo energy', 'lumo energy', 'total energy')),
@@ -110,14 +113,14 @@ class Workflow(object):
 
     def __init__(self, workflow_settings=None, calcs_dct=None, name=None, dct={}):
         if dct:
-            assert workflow_settings is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, ' \
-                'do not use any other arguments'
-            assert calcs_dct is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, do not ' \
-                'use any other arguments'
+            assert workflow_settings is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, '
+            'do not use any other arguments'
+            assert calcs_dct is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, do not '
+            'use any other arguments'
             self.fromdict(dct)
         else:
-            assert not dct, f'If using the "dct" argument to initialise {self.__class__.__name__}, do not use any ' \
-                'other arguments'
+            assert not dct, f'If using the "dct" argument to initialise {self.__class__.__name__}, do not use any '
+            'other arguments'
             self.master_calcs = calcs_dct
             self.name = name
             self.all_calcs = []

@@ -53,5 +53,4 @@ class PW2Wannier_calc(GenericCalc):
     defaults = {'outdir': 'TMP',
                 'prefix': 'kc',
                 'seedname': 'wann',
-                'wan_mode': 'standalone',
-                'write_unk': True}
+                'wan_mode': 'standalone'}

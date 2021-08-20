@@ -9,6 +9,7 @@ Written by Riccardo De Gennaro Nov 2020
 
 import os
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 from koopmans import utils
 from koopmans.workflows.generic import Workflow
@@ -16,10 +17,13 @@ from koopmans.workflows.generic import Workflow
 
 class WannierizeWorkflow(Workflow):
 
-    def __init__(self, workflow_settings, calcs_dct, nspin=1, check_bandstructure=False):
+    def __init__(self, workflow_settings, calcs_dct, nspin=1, check_wannierisation=None):
         super().__init__(workflow_settings, calcs_dct)
 
-        self.check_bandstructure = check_bandstructure
+        if check_wannierisation is not None:
+            # In certain cases we never want to check the wannierisation, even if this is requested by the
+            # JSON input file (e.g. with the smooth interpolation)
+            self.check_wannierisation = check_wannierisation
 
         if 'pw' not in self.master_calcs:
             raise ValueError(
@@ -30,6 +34,7 @@ class WannierizeWorkflow(Workflow):
 
         # Make sure num_wann (occ/empty), num_bands (occ/empty), and nbnd are present and consistent
         pw_calc = self.master_calcs['pw']
+        pw2w_calc = self.master_calcs['pw2wannier']
         w90_occ_calc = self.master_calcs['w90_occ']
         w90_emp_calc = self.master_calcs['w90_emp']
 
@@ -47,11 +52,11 @@ class WannierizeWorkflow(Workflow):
             raise ValueError('Cannot run a wannier90 calculation with num_wann = 0. Please set empty_states_nbnd > 0 '
                              'in the setup block, or num_wann > 0 in the wannier90 empty subblock')
         if nspin == 1:
-            self.master_calcs['pw'].nspin = 1
+            pw_calc.nspin = 1
         else:
-            self.master_calcs['pw'].nspin = 2
-            self.master_calcs['pw'].tot_magnetization = 0.0
-            self.master_calcs['pw2wannier'].spin_component = 'up'
+            pw_calc.nspin = 2
+            pw_calc.tot_magnetization = 0.0
+            pw2w_calc.spin_component = 'up'
 
     def run(self):
         '''
@@ -87,14 +92,15 @@ class WannierizeWorkflow(Workflow):
 
             # 2) standard pw2wannier90 calculation
             calc_p2w = self.new_calculator('pw2wannier', directory=calc_w90.directory,
-                                           outdir=calc_pw.outdir, name='pw2wan')
+                                           outdir=calc_pw.outdir, name='pw2wan', write_unk=self.check_wannierisation)
             self.run_calculator(calc_p2w)
 
             # 3) Wannier90 calculation
-            calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ, name='wann')
+            calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ, name='wann',
+                                           wannier_plot=self.check_wannierisation)
             self.run_calculator(calc_w90)
 
-        if self.check_bandstructure:
+        if self.check_wannierisation:
             # Run a "bands" calculation
             calc_pw = self.new_calculator('pw', calculation='bands')
             calc_pw.directory = 'wannier'
@@ -102,6 +108,7 @@ class WannierizeWorkflow(Workflow):
             self.run_calculator(calc_pw)
 
             # Plot the bandstructures on top of one another
+            matplotlib.use('Agg')
             ax = None
             labels = ['interpolation (occ)', 'interpolation (emp)', 'explicit']
             colour_cycle = plt.rcParams["axes.prop_cycle"]()
