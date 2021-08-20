@@ -13,62 +13,50 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   !
   USE kinds,                    ONLY : DP
   USE constants,                ONLY : bohr_radius_angs, amu_au, autoev
-  USE control_flags,            ONLY : iprint, isave, thdyn, tpre, iprsta,     &
-                                       tfor, remove_rigid_rot, taurdr,         &
-                                       tprnfor, tsdc, lconstrain, lwf, lneb,   &
-                                       lcoarsegrained, ndr, ndw, nomore, tsde, &
-                                       tortho, tnosee, tnosep, trane, tranp,   &
-                                       tsdp, tcp, tcap, ampre, amprp, tnoseh,  &
-                                       tolp, ortho_eps, ortho_max, printwfc,   &
+  USE control_flags,            ONLY : iprint, isave, thdyn, tpre,     &
+                                       iprsta, tfor, remove_rigid_rot, &
+                                       tprnfor, tsdc, lconstrain, lwf, &
+                                       lneb, lcoarsegrained,  nomore,  &
+                                       tsde, tortho, tnosee, tnosep,   &
+                                       tsdp, tcp, tcap, tnoseh, tolp,  &
                                        tprojwfc, textfor, non_ortho
-  USE core,                     ONLY : nlcc_any, rhoc
-  USE uspp_param,               ONLY : nhm, nh
-  USE cvan,                     ONLY : nvb, ish
-  USE uspp,                     ONLY : nkb, vkb, becsum, deeq, okvan
-  USE energies,                 ONLY : eht, epseu, exc, etot, eself, enl, &
-                                       ekin, atot, entropy, egrand, enthal, &
+  USE core,                     ONLY : nlcc_any
+  USE cvan,                     ONLY : nvb
+  USE uspp,                     ONLY : nkb, vkb, okvan
+  USE energies,                 ONLY : eht, epseu, exc, etot, eself, &
+                                       ekin, atot, entropy, enthal,  &
                                        ekincm, print_energies, debug_energies
   USE electrons_base,           ONLY : nbspx, nbsp, ispin, f, nspin
-  USE electrons_base,           ONLY : nel, nelt, iupdwn, nupdwn, nudx
-  USE electrons_module,         ONLY : ei, sort_spreads, wfc_spreads, wfc_centers
-  USE efield_module,            ONLY : efield, epol, tefield, allocate_efield, &
-                                       efield_update, ipolp, qmat, gqq, evalue,&
-                                       berry_energy, pberryel, pberryion,      &
-                                       efield2, epol2, tefield2,               &
-                                       allocate_efield2, efield_update2,       &
-                                       ipolp2, qmat2, gqq2, evalue2,           &
-                                       berry_energy2, pberryel2, pberryion2
-  USE ensemble_dft,             ONLY : tens, e0, z0t, fmat0, fmat0_diag, fmat0_diag_set, gibbsfe, &
-                                       tsmear, ef, ismear, degauss => etemp, &
-                                       c0diag, becdiag, id_matrix_init, psihpsi, nfroz_occ
+  USE electrons_base,           ONLY : nelt, iupdwn, nupdwn
+  USE electrons_module,         ONLY : wfc_spreads
+  USE efield_module,            ONLY : tefield, allocate_efield, efield_update,  &
+                                       berry_energy, tefield2, allocate_efield2, &
+                                       efield_update2, berry_energy2
+  USE ensemble_dft,             ONLY : tens, e0, z0t, fmat0, fmat0_diag, fmat0_diag_set, &
+                                       gibbsfe, tsmear, ef, ismear, degauss => etemp,    &
+                                       id_matrix_init, psihpsi, nfroz_occ
   USE cg_module,                ONLY : tcg,  cg_update, c0old
-  USE gvecp,                    ONLY : ngm
   USE gvecs,                    ONLY : ngs
-  USE gvecb,                    ONLY : ngb
   USE gvecw,                    ONLY : ngw
-  USE reciprocal_vectors,       ONLY : gstart, mill_l
-  USE ions_base,                ONLY : na, nat, pmass, nax, nsp, rcmax
+  USE reciprocal_vectors,       ONLY : mill_l
+  USE ions_base,                ONLY : na, nat, pmass, nsp
   USE ions_base,                ONLY : ind_srt, ions_cofmass, ions_kinene, &
                                        ions_temp, ions_thermal_stress, if_pos, extfor
   USE ions_base,                ONLY : ions_vrescal, fricp, greasp, &
                                        iforce, ndfrz, ions_shiftvar, ityp, &
-                                       atm, ind_bck, cdm, cdms, ions_cofmsub
+                                       ind_bck, cdm, cdms, ions_cofmsub
   USE cell_base,                ONLY : a1, a2, a3, b1, b2, b3, ainv, frich, &
-                                       greash, tpiba2, omega, alat, ibrav,  &
-                                       celldm, h, hold, hnew, velh, deth,   &
-                                       wmass, press, iforceh, cell_force,   &
-                                       thdiag
+                                       greash, tpiba2, omega, ibrav,  &
+                                       celldm, h, hold, hnew, velh,   &
+                                       wmass, press, iforceh, cell_force
   USE grid_dimensions,          ONLY : nnrx, nr1, nr2, nr3
-  USE smooth_grid_dimensions,   ONLY : nnrsx, nr1s, nr2s, nr3s
-  USE smallbox_grid_dimensions, ONLY : nr1b, nr2b, nr3b
+  USE smooth_grid_dimensions,   ONLY : nnrsx
   USE local_pseudo,             ONLY : allocate_local_pseudo
   USE io_global,                ONLY : io_global_start, &
                                        stdout, ionode, ionode_id
-  USE dener,                    ONLY : detot, denl, dekin6
-  USE cdvan,                    ONLY : dbec, drhovan
+  USE cdvan,                    ONLY : dbec
   USE gvecw,                    ONLY : ggp
   USE constants,                ONLY : pi, k_boltzmann_au, au_ps
-  USE io_files,                 ONLY : psfile, pseudo_dir
   USE wave_base,                ONLY : wave_steepest, wave_verlet
   USE wave_base,                ONLY : wave_speed2, frice, grease
   USE control_flags,            ONLY : conv_elec, tconvthrs, gamma_only, do_wf_cmplx !added:giovanni gamma_only, do_wf_cmplx
@@ -79,12 +67,12 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   USE ions_positions,           ONLY : tau0, taum, taup, taus, tausm, tausp, &
                                        vels, velsm, velsp, ions_hmove,       &
                                        ions_move, fion, fionm
-  USE ions_nose,                ONLY : gkbt, kbt, qnp, ndega, nhpcl, nhpdim, &
+  USE ions_nose,                ONLY : kbt, qnp, ndega, nhpcl, nhpdim, &
                                        nhpbeg, nhpend,               &
                                        vnhp, xnhp0, xnhpm, xnhpp,    &
                                        atm2nhp, ions_nosevel, ions_noseupd,  &
                                        tempw, ions_nose_nrg, gkbt2nhp,       &
-                                       ekin2nhp, anum2nhp
+                                       ekin2nhp
   USE electrons_nose,           ONLY : qne, ekincw, xnhe0, xnhep, xnhem,  &
                                        vnhe, electrons_nose_nrg,    &
                                        electrons_nose_shiftvar,           &
@@ -105,16 +93,14 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
                                        cell_move, cell_hmove
   USE gvecw,                    ONLY : ecutw
   USE gvecp,                    ONLY : ecutp
-  USE time_step,                ONLY : delt, tps, dt2, dt2by2, twodelt
+  USE time_step,                ONLY : delt, tps, dt2, twodelt
   USE cp_interfaces,            ONLY : cp_print_rho, nlfh, print_lambda
   USE cp_main_variables,        ONLY : acc, bec, lambda, lambdam, lambdap, lambda_bare, &
                                        ema0bg, sfac, eigr, ei1, ei2, ei3,  &
-                                       irb, becdr, taub, eigrb, rhog, rhos, &
+                                       irb, taub, eigrb, rhos, &
                                        rhor, bephi, becp, nfi, descla, iprint_stdout, &
-                                       drhor, drhog, nlax, hamilt, collect_zmat
-  USE cp_main_variables,        ONLY : vpot
-  USE autopilot,                ONLY : event_step, event_index, &
-                                       max_event_step, restart_p
+                                       nlax, hamilt, collect_zmat
+  USE autopilot,                ONLY : max_event_step, restart_p
   USE cell_base,                ONLY : s_to_r, r_to_s
   USE wannier_subroutines,      ONLY : wannier_startup, wf_closing_options, &
                                        ef_enthalpy
@@ -127,10 +113,9 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   USE orthogonalize_base,       ONLY : updatc
   USE control_flags,            ONLY : force_pairing
   USE mp,                       ONLY : mp_bcast
-  USE mp_global,                ONLY : root_image, intra_image_comm, np_ortho, me_ortho, ortho_comm, &
-                                       me_image
+  USE mp_global,                ONLY : intra_image_comm
   USE ldaU,                     ONLY : lda_plus_u, vupsi
-  USE nksic,                    ONLY : do_orbdep, pink, complexification_index, l_comp_cmplxfctn_index
+  USE nksic,                    ONLY : do_orbdep, complexification_index, l_comp_cmplxfctn_index
   USE step_constraint
   USE small_box,                ONLY : ainvb
   USE descriptors,              ONLY : descla_siz_
@@ -158,27 +143,22 @@ SUBROUTINE cprmain( tau_out, fion_out, etot_out )
   !
   ! ... work variables
   !
-  REAL(DP) :: tempp, savee, saveh, savep, epot, epre, &
+  REAL(DP) :: tempp, epot, epre, &
               enow, econs, econt, fccc, ccc, bigr, dt2bye
   REAL(DP) :: ekinc0, ekinp, ekinpr, ekinc
   REAL(DP) :: temps(nat)
-  REAL(DP) :: ekinh, temphc, randy
+  REAL(DP) :: ekinh, temphc
   REAL(DP) :: delta_etot
-  REAL(DP) :: ftmp, enb, enbi
-  INTEGER  :: is, nacc, ia, j, iter, i, isa, ipos, iat
-  INTEGER  :: k, ii, l, m, iss
+  REAL(DP) :: enb, enbi
+  INTEGER  :: is, nacc, ia, iter, i, isa, ipos
+  INTEGER  :: iss
   REAL(DP) :: hgamma(3,3), temphh(3,3)
   REAL(DP) :: fcell(3,3)
   REAL(DP) :: deltaP, ekincf
-  REAL(DP) :: stress_gpa(3,3), thstress(3,3), stress(3,3)
+  REAL(DP) :: stress(3,3)
   !
   REAL(DP), ALLOCATABLE :: usrt_tau0(:,:), usrt_taup(:,:), usrt_fion(:,:)
     ! temporary array used to store unsorted positions and forces for
-    ! constrained dynamics
-  REAL(DP), ALLOCATABLE :: tauw(:,:)  
-    ! temporary array used to printout positions
-  CHARACTER(LEN=3) :: labelw( nat )
-    ! for force_pairing
   INTEGER   :: nspin_sub , i1, i2
   !
   REAL(DP),  ALLOCATABLE :: forceh(:,:)
@@ -1091,7 +1071,6 @@ SUBROUTINE terminate_run()
   !
   USE kinds,             ONLY : DP
   USE io_global,         ONLY : stdout, ionode
-  USE cp_main_variables, ONLY : acc
   USE cg_module,         ONLY : tcg, print_clock_tcg
   USE mp,                ONLY : mp_report
   USE control_flags,     ONLY : use_task_groups

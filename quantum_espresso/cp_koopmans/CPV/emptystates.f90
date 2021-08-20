@@ -330,8 +330,8 @@
          !
          IF ( .NOT. exst ) THEN
             !
-            write(stdout, '(5X, "Empty-states WFCs file NOT FOUND")' )
-            write(stdout, '(5X, "Initializing random WFCs and orthogonlizing to the occupied manifold ")' ) 
+            write(stdout, '(/,3X "Empty-states WFCs file NOT FOUND")' )
+            write(stdout, '(3X, "Initializing random WFCs and orthogonlizing to the occupied manifold ",/)' ) 
             !
             ! ...  initial random states orthogonal to filled ones
             !
@@ -397,7 +397,7 @@
             !
          ELSE
             !
-            write(stdout, '(5X, "Empty-states WFCs read from file")' )
+            write(stdout, '(/, 3X, "Empty-states WFCs read from file")' )
             !
          ENDIF
          !
