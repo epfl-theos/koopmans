@@ -728,7 +728,7 @@ END FUNCTION
       USE control_flags,      ONLY: gamma_only, do_wf_cmplx, non_ortho
       USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
 
-      COMPLEX(DP), INTENT(IN) :: c(ngw,n)
+      COMPLEX(DP) :: c(ngw,n)
       COMPLEX(DP), INTENT(OUT) :: cd(ngw,n)
       INTEGER, INTENT(IN) :: iflag
       COMPLEX(DP) :: temp1,temp2
@@ -791,7 +791,8 @@ END FUNCTION
       USE control_flags,      ONLY: gamma_only, do_wf_cmplx, non_ortho
       USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
 
-      COMPLEX(DP), INTENT(IN) :: c(ngw,n), cin(ngw,n)
+      COMPLEX(DP) :: c(ngw,n)
+      COMPLEX(DP), INTENT(IN) :: cin(ngw,n)
       COMPLEX(DP), intent(OUT) :: cd(ngw,n)
 !       COMPLEX(DP) :: ss(nudx,nudx,nspin)
       COMPLEX(DP), allocatable :: ss(:,:,:), iss(:,:,:)

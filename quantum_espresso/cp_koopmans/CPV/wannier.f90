@@ -404,10 +404,8 @@ MODULE wannier_subroutines
                          enl, ekin  )
     !--------------------------------------------------------------------------
     !
-    USE efcalc,         ONLY : wf_efield
     USE wannier_base,   ONLY : nwf, calwf, jwf, wffort, iplot, iwf
     USE wannier_module, ONLY : what1, wfc, utwf
-    USE control_flags,  ONLY : iprsta
     USE cp_interfaces,  ONLY : rhoofr
     USE dener,          ONLY : denl, dekin6
     !
@@ -683,15 +681,9 @@ MODULE wannier_subroutines
                                  celldm, fion, tps, mat_z, occ_f, rho )
     !--------------------------------------------------------------------------
     !
-    USE efcalc,         ONLY : wf_efield
-    USE wannier_base,   ONLY : nwf, calwf, jwf, wffort, iplot, iwf
+    USE wannier_base,   ONLY : calwf, jwf
     USE wannier_module, ONLY : what1, wfc, utwf
-    USE control_flags,  ONLY : iprsta
-    USE electrons_base, ONLY : nbsp
-    USE gvecw,          ONLY : ngw
-    USE control_flags,  ONLY : ndw
     USE cell_base,      ONLY : h, hold
-    USE ions_base,      ONLY : pmass
     USE cvan,           ONLY : nvb
     USE cp_interfaces,  ONLY : writefile
     !
@@ -776,15 +768,10 @@ MODULE wannier_subroutines
                                  celldm, fion, tps, mat_z, occ_f, rho )
     !--------------------------------------------------------------------------
     !
-    USE efcalc,         ONLY : wf_efield
-    USE wannier_base,   ONLY : nwf, calwf, jwf, wffort, iplot, iwf
+    USE wannier_base,   ONLY : calwf, jwf
     USE wannier_module, ONLY : what1, wfc, utwf
-    USE control_flags,  ONLY : iprsta
     USE electrons_base, ONLY : nbsp
-    USE gvecw,          ONLY : ngw
-    USE control_flags,  ONLY : ndw
     USE cell_base,      ONLY : h, hold
-    USE ions_base,      ONLY : pmass
     USE cvan,           ONLY : nvb
     USE cp_interfaces,  ONLY : writefile
     USE twin_types
