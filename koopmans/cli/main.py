@@ -20,6 +20,7 @@ Perform KI/KIPZ calculations
 # Use a backend that does not rely on X-forwarding
 matplotlib.use('Agg')
 
+
 def get_version(module):
     if isinstance(module, ModuleType):
         module = module.__path__[0]
