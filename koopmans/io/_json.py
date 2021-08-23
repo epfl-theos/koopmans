@@ -530,7 +530,7 @@ def read_json(fd, override={}):
     elif task_name == 'convergence':
         workflow = ConvergenceWorkflow(workflow_settings, calcs_dct, name)
     elif task_name in ['wannierize', 'wannierise']:
-￼        workflow = WannierizeWorkflow(workflow_settings, calcs_dct, name, check_wannierisation=True)
+        workflow = WannierizeWorkflow(workflow_settings, calcs_dct, name, check_wannierisation=True)
     elif task_name == 'environ_dscf':
         workflow = DeltaSCFWorkflow(workflow_settings, calcs_dct, name)
     elif task_name == 'ui':
