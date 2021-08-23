@@ -43,14 +43,12 @@ class W90_calc(GenericCalc):
         if self.mp_grid is None:
             self.generate_kpoints()
         super().calculate()
+
         # Afterwards, check the real vs imaginary component
         if self.wannier_plot and '-pp' not in self.calc.command.flags:
             max_imre = np.max(self.results['Im/Re ratio'])
-            message = f'Im/Re ratio of {max_imre} detected during Wannierisation'
-            if max_imre > 1e-4:
-                raise CalculationFailed(message)
             if max_imre > 1e-6:
-                warn(message)
+                warn(f'Im/Re ratio of {max_imre} detected during Wannierisation')
 
     def generate_kpoints(self):
         self.mp_grid = self.calc.parameters['kpts']
