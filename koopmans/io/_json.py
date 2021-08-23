@@ -33,7 +33,6 @@ def read_w90_dict(dct, generic_atoms):
     atoms = copy.deepcopy(generic_atoms)
     atoms.calc.parameters.pop('input_data')
     atoms.calc.parameters.pop('pseudopotentials')
-    atoms.calc.parameters.pop('kpath', None)
     calc.parameters = atoms.calc.parameters
     calc.atoms = atoms
     calc.atoms.calc = calc
@@ -420,10 +419,20 @@ def read_dict(dct):
     return settings
 
 
-def read_json(fd):
+def update_nested_dict(dct_to_update, second_dct):
+    for k, v in second_dct.items():
+        if k in dct_to_update and isinstance(v, dict):
+            update_nested_dict(dct_to_update[k], second_dct[k])
+        else:
+            dct_to_update[k] = v
+
+
+def read_json(fd, override={}):
     '''
 
     Reads in settings listed in JSON file
+
+    Values in the JSON file can be overridden by values provided in the override argument
 
     '''
 
@@ -432,11 +441,15 @@ def read_json(fd):
     from koopmans.workflows.convergence import ConvergenceWorkflow
     from koopmans.workflows.pbe_dscf_with_pw import DeltaSCFWorkflow
     from koopmans.workflows.ui import UnfoldAndInterpolateWorkflow
+    from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
 
     if isinstance(fd, str):
         fd = open(fd, 'r')
 
     bigdct = json_ext.loads(fd.read())
+
+    # Override all keywords provided explicitly
+    update_nested_dict(bigdct, override)
 
     # Deal with w90 subdicts
     if 'w90' in bigdct:
@@ -516,6 +529,8 @@ def read_json(fd):
         workflow = SinglepointWorkflow(workflow_settings, calcs_dct, name)
     elif task_name == 'convergence':
         workflow = ConvergenceWorkflow(workflow_settings, calcs_dct, name)
+    elif task_name in ['wannierize', 'wannierise']:
+￼        workflow = WannierizeWorkflow(workflow_settings, calcs_dct, name, check_wannierisation=True)
     elif task_name == 'environ_dscf':
         workflow = DeltaSCFWorkflow(workflow_settings, calcs_dct, name)
     elif task_name == 'ui':

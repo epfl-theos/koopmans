@@ -1,6 +1,7 @@
 *.ui?
 *.kwf
 *.stdout
+*.png
 test_??/alphas.pkl
 test_??/errors.pkl
 test_??/tab_alpha_values.tex
@@ -9,6 +10,5 @@ test_??/*/
 test_??/*.stdout
 test_08/bands_interpolated.dat
 test_08/dos_interpolated.dat
-test_09/test_si_primitive_bandstructure.png
 coverage.xml
 
