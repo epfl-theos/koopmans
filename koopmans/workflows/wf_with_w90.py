@@ -97,7 +97,7 @@ class WannierizeWorkflow(Workflow):
 
             # 3) Wannier90 calculation
             calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ, name='wann',
-                                           wannier_plot=self.check_wannierisation)
+                                           wannier_plot=self.check_wannierisation, bands_plot=self.check_wannierisation)
             self.run_calculator(calc_w90)
 
         if self.check_wannierisation:

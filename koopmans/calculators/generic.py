@@ -100,7 +100,10 @@ class GenericCalc:
                 calc = self.read_output_file(qe_file)
             else:
                 # Copy over the results
-                calc.results = self.read_output_file(qe_file).results
+                outcalc = self.read_output_file(qe_file)
+                calc.results = outcalc.results
+                if hasattr(outcalc, 'kpts'):
+                    calc.kpts = outcalc.kpts
 
         # Initialise the calculator object
         if isinstance(calc, GenericCalc):
