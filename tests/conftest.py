@@ -18,9 +18,9 @@ from koopmans.calculators.ui import UI_calc
 from koopmans.calculators.wann2kc import Wann2KCCalc
 from koopmans.calculators.kc_screen import KoopmansScreenCalc
 from koopmans.calculators.kc_ham import KoopmansHamCalc
-from koopmans.io import read_json
-from koopmans.io.jsonio import read_json as read_encoded_json
-from koopmans.io.jsonio import write_json as write_encoded_json
+from koopmans.io import read
+from koopmans.io import read_kwf as read_encoded_json
+from koopmans.io import write_kwf as write_encoded_json
 from koopmans import utils
 from ase import io as ase_io
 from ase.dft.kpoints import BandPath
@@ -60,7 +60,7 @@ class WorkflowTest:
         with utils.chdir(self.directory):
 
             # Load the input file
-            workflow = read_json(self.json)
+            workflow = read(self.json)
 
             # Give it access to the benchmark
             workflow.benchmark = self.benchmark
