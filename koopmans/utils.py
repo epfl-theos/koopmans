@@ -157,7 +157,8 @@ def check_settings(settings, valid_settings, mandatory_settings=[], physicals=[]
                         f'{valid_setting.type.__name__})')
 
             # Check value is among the valid options
-            if valid_setting.options is not None and valid_setting.default is not None and value not in valid_setting.options:
+            if valid_setting.options is not None and valid_setting.default is not None and value not in \
+                    valid_setting.options:
                 raise ValueError(
                     f'"{value}" is an invalid value for "{key}" (options are {"/".join(valid_setting.options)})')
 
