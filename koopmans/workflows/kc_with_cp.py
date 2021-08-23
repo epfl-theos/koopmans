@@ -41,8 +41,8 @@ class KoopmansCPWorkflow(Workflow):
             nemp = self.master_calcs['w90_emp'].num_wann
             if not self.orbital_groups:
                 self.orbital_groups = range(0, nocc + nemp)
-            self.orbital_groups = [i for i in self.orbital_groups[:nocc] for _ in range(np.prod(kpts))] + \
-                                  [i for i in self.orbital_groups[nocc:] for _ in range(np.prod(kpts))]
+            self.orbital_groups = [i for _ in range(np.prod(kpts)) for i in self.orbital_groups[:nocc]] + \
+                                  [i for _ in range(np.prod(kpts)) for i in self.orbital_groups[nocc:]]
 
             # Check the number of empty states has been correctly configured
             w90_emp_calc = self.master_calcs['w90_emp']

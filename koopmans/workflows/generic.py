@@ -14,6 +14,7 @@ import numpy as np
 from ase.calculators.calculator import CalculationFailed
 from ase.calculators.espresso import EspressoWithBandstructure
 from koopmans import io, utils
+from koopmans.calculators.generic import EspressoCalc
 from koopmans.calculators.commands import ParallelCommandWithPostfix
 from koopmans.calculators.ui import UI_calc
 from koopmans.calculators.kc_ham import KoopmansHamCalc
@@ -357,7 +358,8 @@ class Workflow(object):
                 if 'band structure' not in qe_calc.results:
                     return False
             elif isinstance(qe_calc.calc, EspressoWithBandstructure):
-                qe_calc.calc.band_structure()
+                if not isinstance(qe_calc, EspressoCalc) or qe_calc.calculation == 'bands':
+                    qe_calc.calc.band_structure()
 
             self.all_calcs.append(qe_calc)
 
