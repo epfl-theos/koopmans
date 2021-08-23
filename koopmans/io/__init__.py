@@ -12,14 +12,14 @@ from ._utils import indented_print, write_alpha_file, read_alpha_file, construct
     nelec_from_pseudos, read_kpath, read_cell_parameters
 
 
-def read(filename):
+def read(filename, **kwargs):
 
     # Generic "read" function
 
     if filename.endswith('kwf'):
-        return read_kwf(filename)
+        return read_kwf(filename, **kwargs)
     elif filename.endswith('.json'):
-        return read_json(filename)
+        return read_json(filename, **kwargs)
     else:
         raise ValueError(f'Unrecognised file type for {filename}')
 
@@ -30,12 +30,12 @@ def write(obj, filename):
 
     from koopmans.workflows.generic import Workflow
 
-    if isinstance(obj, Workflow):
+    if filename.endswith('kwf'):
         return write_kwf(obj, filename)
-    elif isinstance(obj, dict):
+    elif filename.endswith('.json'):
         return write_json(obj, filename)
     else:
-        raise ValueError(f'Unrecognised object class {obj.__class__.__name__}')
+        raise ValueError(f'Unrecognised file type for {filename}')
 
 
 def load_calculator(filenames):

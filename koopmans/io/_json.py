@@ -526,7 +526,7 @@ def read_json(fd):
     return workflow
 
 
-def write_json(fd, calcs=[], workflow_settings={}):
+def write_json(workflow, filename):
     '''
 
     Writes out settings to a JSON file
@@ -535,17 +535,15 @@ def write_json(fd, calcs=[], workflow_settings={}):
 
     from koopmans.calculators import kcp, pw
 
-    if isinstance(fd, str):
-        fd = open(fd, 'w')
+    fd = open(filename, 'w')
 
-    if not isinstance(calcs, list):
-        calcs = [calcs]
+    calcs = workflow.master_calcs
 
     bigdct = {}
 
     # "workflow" block
     bigdct['workflow'] = {k: v for k,
-                          v in workflow_settings.items() if v is not None}
+                          v in workflow.settings.items() if v is not None}
 
     # "setup" block
     # Working out ibrav
@@ -619,5 +617,7 @@ def write_json(fd, calcs=[], workflow_settings={}):
                 f'Writing of {calc.__class__} with write_json is not yet implemented')
 
     json_ext.dump(bigdct, fd, indent=2)
+
+    fd.close()
 
     return
