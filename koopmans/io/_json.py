@@ -533,6 +533,7 @@ def write_json(workflow, filename):
 
     '''
 
+    from koopmans.workflows.generic import valid_settings
     from koopmans.calculators import kcp, pw
 
     fd = open(filename, 'w')
@@ -541,22 +542,27 @@ def write_json(workflow, filename):
 
     bigdct = {}
 
-    # "workflow" block
-    bigdct['workflow'] = {k: v for k,
-                          v in workflow.settings.items() if v is not None}
+    # "workflow" block (not printing any values that match the defaults)
+    bigdct['workflow'] = {}
+    for k, v in workflow.settings.items():
+        if v is None:
+            continue
+        setting = [s for s in valid_settings if s.name == k][0]
+        if v != setting.default:
+            bigdct['workflow'][k] = v
 
     # "setup" block
     # Working out ibrav
-    kcp_calc = [c for c in calcs if isinstance(c, kcp.KCP_calc)]
-    pw_calc = [c for c in calcs if isinstance(c, pw.PW_calc)]
+    kcp_calc = calcs.get('kcp', None)
+    pw_calc = calcs.get('pw', None)
     if kcp_calc:
-        calc = kcp_calc[0].calc
+        calc = kcp_calc.calc
         ibrav = calc.parameters['input_data']['system'].get('ibrav', 0)
     elif pw_calc:
-        calc = pw_calc[0]
+        calc = pw_calc
         ibrav = calc.parameters['input_data']['system'].get('ibrav', 0)
     else:
-        calc = calcs[0].calc
+        calc = calcs.values().calc
         ibrav = 0
 
     bigdct['setup'] = {}
@@ -583,12 +589,8 @@ def write_json(workflow, filename):
     bigdct['setup']['atomic_species'] = {'species': [[key, 1.0, val]
                                                      for key, val in calc.parameters.pseudopotentials.items()]}
 
-    for calc in calcs:
+    for code, calc in calcs.items():
         if isinstance(calc, (kcp.KCP_calc, pw.PW_calc)):
-            if isinstance(calc, kcp.KCP_calc):
-                code = 'kcp'
-            else:
-                code = 'pw'
             bigdct[code] = {}
             calc = calc.calc
 

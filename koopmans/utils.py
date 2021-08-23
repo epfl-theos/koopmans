@@ -17,6 +17,7 @@ from ase.units import create_units
 # Quantum Espresso -- and koopmans -- uses CODATA 2006 internally
 units = create_units('2006')
 
+
 def _warning(message, category=UserWarning, filename='', lineno=-1, file=None, line=None):
     '''
     Monkey-patching warnings.warn
@@ -199,4 +200,3 @@ def parse_physical(value):
             else:
                 raise NotImplementedError(
                     f'{val_units} not implemented in koopmans.utils.parse_physical')
-

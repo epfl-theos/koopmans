@@ -188,7 +188,7 @@ class ConvergenceWorkflow(Workflow):
                 kcp_master_calc.ibrav = 0
 
                 # Save converged settings to a .json file
-                io.write(SinglepointWorkflow({}, kcp_master_calc), 'converged.json')
+                io.write(SinglepointWorkflow({}, {'kcp': kcp_master_calc}), 'converged.json')
 
                 return converged_parameters
             else:
