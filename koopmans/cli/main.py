@@ -8,8 +8,7 @@ import matplotlib
 from types import ModuleType
 import ase
 from koopmans.utils import chdir
-from koopmans.io import read_json
-from koopmans.io.jsonio import write_json
+from koopmans.io import read, write
 from koopmans.calculators.generic import qe_bin_directory
 from koopmans.workflows.generic import valid_settings
 
@@ -84,7 +83,7 @@ def main():
     args = parser.parse_args()
 
     # Reading in JSON file
-    workflow = read_json(args.json)
+    workflow = read(args.json)
 
     # Write out the header
     print(header())
@@ -93,8 +92,7 @@ def main():
     workflow.run()
 
     # Save workflow to file
-    with open(args.json.replace('.json', '.kwf'), 'w') as fd:
-        write_json(fd, workflow)
+    write(workflow, args.json.replace('.json', '.kwf'))
 
     # Print farewell message
     print('\n Workflow complete')

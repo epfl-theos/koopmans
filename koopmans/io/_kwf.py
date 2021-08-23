@@ -1,6 +1,6 @@
 """
 
-JSON I/O for koopmans
+kwf (Koopmans WorkFlow) I/O for koopmans
 
 Written by Edward Linscott Mar 2021, largely modelled off ase.io.jsonio
 
@@ -90,9 +90,9 @@ def create_koopmans_object(dct):
 decode = json.JSONDecoder(object_hook=object_hook).decode
 
 
-def read_json(fd):
+def read_kwf(fd):
     return decode(fd.read())
 
 
-def write_json(fd, obj):
+def write_kwf(fd, obj):
     fd.write(encode(obj))

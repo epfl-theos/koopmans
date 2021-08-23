@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 import argparse
-from koopmans.io import write_json, load_calculator
+from koopmans.workflows.singlepoint import SinglepointWorkflow
+from koopmans.io import write, load_calculator
 import copy
 import textwrap
 
@@ -9,7 +10,7 @@ import textwrap
 def qei_to_json(input_file, json, to_exclude=['nat', 'ntyp'], workflow_settings={}, qe_param={}):
     '''
 
-    Converts a cpi file to a json file
+    Converts a QE input file to a json file
 
     Arguments
     ---------
@@ -17,7 +18,7 @@ def qei_to_json(input_file, json, to_exclude=['nat', 'ntyp'], workflow_settings=
         json: the name of the .json file to write out to
         to_exclude: the keywords included in the .cpi file to exclude from the .json file
         workflow_settings: the koopmans.py keywords to add to the .json file (these are not
-                    included in the .cpi file)
+                    included in the QE input file)
         qe_param: qe flags to alter
 
     '''
@@ -30,7 +31,14 @@ def qei_to_json(input_file, json, to_exclude=['nat', 'ntyp'], workflow_settings=
     for key, value in qe_param.items():
         setattr(calc, key, value)
 
-    write_json(json, calc, workflow_settings=workflow_settings)
+    if input_file.endswith('.cpi'):
+        key = 'kcp'
+    elif input_file.endswith('pwi'):
+        key = 'pw'
+    else:
+        raise ValueError('Unrecognised input file format')
+
+    write(SinglepointWorkflow(workflow_settings, {key: calc}), json)
 
     return calc
 
@@ -61,7 +69,7 @@ if __name__ == '__main__':
     settings = {"functional": "ki",
                 "init_orbitals": "pz",
                 "n_max_sc_steps": 2,
-                "alpha_from_file": "false"}
+                "alpha_from_file": False}
 
     # Store any additional arguments in the settings dict
     for arg, value in args.__dict__.items():

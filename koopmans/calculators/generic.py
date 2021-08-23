@@ -11,7 +11,6 @@ Feb 2021: Split calculators further into GenericCalc and EspressoCalc
 """
 
 import os
-import sys
 import copy
 import numpy as np
 import ase.io as ase_io
