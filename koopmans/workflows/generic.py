@@ -12,7 +12,9 @@ import sys
 import copy
 import numpy as np
 from ase.calculators.calculator import CalculationFailed
+from ase.calculators.espresso import EspressoWithBandstructure
 from koopmans import io, utils
+from koopmans.calculators.generic import EspressoCalc
 from koopmans.calculators.commands import ParallelCommandWithPostfix
 from koopmans.calculators.ui import UI_calc
 from koopmans.calculators.kc_ham import KoopmansHamCalc
@@ -22,7 +24,7 @@ from koopmans.bands import Bands
 valid_settings = [
     utils.Setting('task',
                   'Task to perform',
-                  str, 'singlepoint', ('singlepoint', 'convergence', 'environ_dscf', 'ui')),
+                  str, 'singlepoint', ('singlepoint', 'convergence', 'wannierise', 'environ_dscf', 'ui')),
     utils.Setting('functional',
                   'orbital-density-dependent-functional/density-functional to use',
                   str, 'ki', ('ki', 'kipz', 'pkipz', 'pbe', 'all')),
@@ -91,6 +93,9 @@ valid_settings = [
                   'if True, the spin-up and spin-down wavefunctions will be forced '
                   'to be the same',
                   bool, True, (True, False)),
+    utils.Setting('check_wannierisation',
+                  'if True, checks the Im/Re ratio and generates a plot of the interpolated band structure',
+                  bool, False, (True, False)),
     utils.Setting('convergence_observable',
                   'System observable of interest which we converge',
                   str, 'total energy', ('homo energy', 'lumo energy', 'total energy')),
@@ -110,14 +115,14 @@ class Workflow(object):
 
     def __init__(self, workflow_settings=None, calcs_dct=None, name=None, dct={}):
         if dct:
-            assert workflow_settings is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, ' \
-                'do not use any other arguments'
-            assert calcs_dct is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, do not ' \
-                'use any other arguments'
+            assert workflow_settings is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, '
+            'do not use any other arguments'
+            assert calcs_dct is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, do not '
+            'use any other arguments'
             self.fromdict(dct)
         else:
-            assert not dct, f'If using the "dct" argument to initialise {self.__class__.__name__}, do not use any ' \
-                'other arguments'
+            assert not dct, f'If using the "dct" argument to initialise {self.__class__.__name__}, do not use any '
+            'other arguments'
             self.master_calcs = calcs_dct
             self.name = name
             self.all_calcs = []
@@ -347,13 +352,14 @@ class Workflow(object):
             qe_calc.results = old_calc.results
 
             # Load bandstructure if present, too
-            if isinstance(qe_calc, KoopmansHamCalc):
-                qe_calc.calc.band_structure()
-            elif isinstance(qe_calc, UI_calc):
+            if isinstance(qe_calc, UI_calc):
                 qe_calc.read_bands()
                 # If the band structure file does not exist, we must re-run
                 if 'band structure' not in qe_calc.results:
                     return False
+            elif isinstance(qe_calc.calc, EspressoWithBandstructure):
+                if not isinstance(qe_calc, EspressoCalc) or qe_calc.calculation == 'bands':
+                    qe_calc.calc.band_structure()
 
             self.all_calcs.append(qe_calc)
 

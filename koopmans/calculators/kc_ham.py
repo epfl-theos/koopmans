@@ -51,7 +51,7 @@ class KoopmansHamCalc(KCWannCalc):
     def get_eigenvalues(self, kpt=None, spin=0):
         if spin != 0:
             raise NotImplementedError(
-                f'Koopmans hamiltonian calculator is not implemented for spin-polarised systems')
+                f'Koopmans Hamiltonian calculator is not implemented for spin-polarised systems')
 
         if 'band structure' not in self.results:
             raise ValueError('You must first calculate the band structure before you try to access the KS eigenvalues')

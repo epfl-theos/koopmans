@@ -7,19 +7,23 @@ Written by Riccardo De Gennaro Nov 2020
 
 """
 
-import copy
 import os
 import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
 from koopmans import utils
-from koopmans.calculators.pw2wannier import PW2Wannier_calc
-from ase.dft.kpoints import bandpath
 from koopmans.workflows.generic import Workflow
 
 
 class WannierizeWorkflow(Workflow):
 
-    def __init__(self, workflow_settings, calcs_dct, nspin=1):
+    def __init__(self, workflow_settings, calcs_dct, nspin=1, check_wannierisation=None):
         super().__init__(workflow_settings, calcs_dct)
+
+        if check_wannierisation is not None:
+            # In certain cases we never want to check the wannierisation, even if this is requested by the
+            # JSON input file (e.g. with the smooth interpolation)
+            self.check_wannierisation = check_wannierisation
 
         if 'pw' not in self.master_calcs:
             raise ValueError(
@@ -30,6 +34,7 @@ class WannierizeWorkflow(Workflow):
 
         # Make sure num_wann (occ/empty), num_bands (occ/empty), and nbnd are present and consistent
         pw_calc = self.master_calcs['pw']
+        pw2w_calc = self.master_calcs['pw2wannier']
         w90_occ_calc = self.master_calcs['w90_occ']
         w90_emp_calc = self.master_calcs['w90_emp']
 
@@ -47,11 +52,11 @@ class WannierizeWorkflow(Workflow):
             raise ValueError('Cannot run a wannier90 calculation with num_wann = 0. Please set empty_states_nbnd > 0 '
                              'in the setup block, or num_wann > 0 in the wannier90 empty subblock')
         if nspin == 1:
-            self.master_calcs['pw'].nspin = 1
+            pw_calc.nspin = 1
         else:
-            self.master_calcs['pw'].nspin = 2
-            self.master_calcs['pw'].tot_magnetization = 0.0
-            self.master_calcs['pw2wannier'].spin_component = 'up'
+            pw_calc.nspin = 2
+            pw_calc.tot_magnetization = 0.0
+            pw2w_calc.spin_component = 'up'
 
     def run(self):
         '''
@@ -86,12 +91,50 @@ class WannierizeWorkflow(Workflow):
             utils.system_call(f'rsync -a {calc_w90.directory}/wann_preproc.nnkp {calc_w90.directory}/wann.nnkp')
 
             # 2) standard pw2wannier90 calculation
-            calc_p2w = self.new_calculator('pw2wannier', directory=calc_w90.directory, outdir=calc_pw.outdir, name='pw2wan')
+            calc_p2w = self.new_calculator('pw2wannier', directory=calc_w90.directory,
+                                           outdir=calc_pw.outdir, name='pw2wan', write_unk=self.check_wannierisation)
             self.run_calculator(calc_p2w)
 
             # 3) Wannier90 calculation
-            calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ, name='wann')
+            calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ, name='wann',
+                                           wannier_plot=self.check_wannierisation, bands_plot=self.check_wannierisation)
             self.run_calculator(calc_w90)
+
+        if self.check_wannierisation:
+            # Run a "bands" calculation
+            calc_pw = self.new_calculator('pw', calculation='bands')
+            calc_pw.directory = 'wannier'
+            calc_pw.name = 'bands'
+            self.run_calculator(calc_pw)
+
+            # Plot the bandstructures on top of one another
+            matplotlib.use('Agg')
+            ax = None
+            labels = ['interpolation (occ)', 'interpolation (emp)', 'explicit']
+            colour_cycle = plt.rcParams["axes.prop_cycle"]()
+            selected_calcs = [c for c in self.all_calcs if 'band structure' in c.results]
+            emin = np.min(selected_calcs[0].results['band structure'].energies) - 1
+            emax = np.max(selected_calcs[1].results['band structure'].energies) + 1
+            for calc, label in zip(selected_calcs, labels):
+                if 'band structure' in calc.results:
+                    # Load the bandstructure
+                    bs = calc.results['band structure']
+
+                    # Tweaking the plot aesthetics
+                    colours = [next(colour_cycle)['color'] for _ in range(bs.energies.shape[0])]
+                    kwargs = {}
+                    if 'explicit' in label:
+                        kwargs['ls'] = 'none'
+                        kwargs['marker'] = 'x'
+
+                    # Plot
+                    ax = bs.plot(ax=ax, emin=emin, emax=emax, colors=colours, label=label, **kwargs)
+
+            # Move the legend
+            plt.legend(bbox_to_anchor=(1, 1), loc="lower right", ncol=2)
+
+            # Save the comparison to file
+            plt.savefig('interpolated_bandstructure_{}x{}x{}.png'.format(*calc_w90.mp_grid))
 
         return
 
