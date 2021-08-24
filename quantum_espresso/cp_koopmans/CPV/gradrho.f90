@@ -22,8 +22,7 @@
       use recvecs_indexes
       USE cp_interfaces, ONLY: fwfft, invfft
       USE fft_base,           ONLY: dfftp
-      use grid_dimensions, only : nr1, nr2, nr3, nr1x, nr2x, nr3x,      &
-     &                            nnr=> nnrx
+      use grid_dimensions, only : nnr=> nnrx
 !      use grid_dimensions, only: nr1, nr2, nr3, &
 !            nr1x, nr2x, nr3x, nnr => nnrx
 !

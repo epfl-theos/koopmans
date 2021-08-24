@@ -32,7 +32,6 @@
           COMPLEX(DP), allocatable ::  psi(:)
           COMPLEX(DP), allocatable ::  vtemp(:)
           COMPLEX(DP), allocatable ::  vtemp_pol(:)
-          REAL(DP), ALLOCATABLE :: v(:)
           REAL(DP) :: fac
 ! ...                                                                   
           nspin = SIZE(rhor,2)
@@ -91,7 +90,7 @@
         REAL(DP) ::  gcpail(6)
         REAL(DP) ::  omega
 !
-        REAL(DP) :: stre, grhoi, grhoj
+        REAL(DP) :: stre
         INTEGER :: i, ipol, jpol, ic, is, js, nspin
         INTEGER, DIMENSION(6), PARAMETER :: alpha = (/ 1,2,3,2,3,3 /)
         INTEGER, DIMENSION(6), PARAMETER :: beta  = (/ 1,1,1,2,2,3 /)
@@ -127,7 +126,6 @@
       USE funct,              ONLY: dft_is_gradient
       USE reciprocal_vectors, ONLY: gstart, g
       USE gvecp,              ONLY: ngm
-      USE io_global,          ONLY: stdout
       USE cp_interfaces,      ONLY: stress_gc
 
       IMPLICIT NONE
@@ -151,10 +149,9 @@
          (/ 1.0_DP, 0.0_DP, 0.0_DP, 1.0_DP, 0.0_DP, 1.0_DP /)
 
       COMPLEX(DP) :: tex1, tex2, tex3
-      REAL(DP) :: gcpail(6), omega, detmp( 3, 3 )
+      REAL(DP) :: gcpail(6), omega
       REAL(DP) :: dcc( 6 )
-      INTEGER :: ig, k, is, ispin, nspin
-      INTEGER :: i, j
+      INTEGER :: ig, is, ispin, nspin
 
       omega = box%deth
       nspin = SIZE(vxc, 2)
@@ -545,11 +542,11 @@
 !     plus the gradient-correction contribution to pressure
 !           
       USE kinds,              ONLY: DP
-      use control_flags, only: iprint, tpre
+      use control_flags, only:  tpre
       use reciprocal_vectors, only: gx
       use recvecs_indexes, only: np, nm
       use gvecp, only: ng => ngm
-      use grid_dimensions, only: nr1, nr2, nr3, nnr => nnrx, nr1x, nr2x, nr3x
+      use grid_dimensions, only: nnr => nnrx
       use cell_base, only: ainv, tpiba, omega
       use cp_main_variables, only: drhog
       USE cp_interfaces, ONLY: fwfft, invfft
@@ -729,7 +726,6 @@ subroutine exch_corr_wrapper(nnr, nspin, grhor, rhor, etxc, v, h)
   integer :: neg(3)
   real(DP), parameter :: epsr = 1.0d-10, epsg = 1.0d-10
   real(DP), parameter :: epsr2 = 1.0d-30
-  real(DP) :: signrho
   logical :: debug_xc = .false.
   logical :: igcc_is_lyp
 

@@ -17,8 +17,7 @@
       use reciprocal_vectors
       use gvecs
       use gvecw,                  only : ngw
-      use smooth_grid_dimensions, only : nr1s, nr2s, nr3s, &
-                                         nr1sx, nr2sx, nr3sx, nnrs => nnrsx
+      use smooth_grid_dimensions, only : nnrs => nnrsx
       use cell_base,              only : tpiba2
       USE metagga,                ONLY : kedtaus
       USE cp_interfaces,          ONLY : fwfft, invfft
@@ -74,8 +73,7 @@
       use reciprocal_vectors
       use gvecs
       use gvecw,                  only : ngw
-      use smooth_grid_dimensions, only : nr1s, nr2s, nr3s, &
-                                         nr1sx, nr2sx, nr3sx, nnrs => nnrsx
+      use smooth_grid_dimensions, only : nnrs => nnrsx
       use cell_base,              only : tpiba2
       USE metagga,                ONLY : kedtaus
       USE cp_interfaces,          ONLY : fwfft, invfft
@@ -150,16 +148,14 @@
 !-----------------------------------------------------------------------
 !
       use kinds, only: dp
-      use control_flags, only: tpre, use_task_groups
+      use control_flags, only: tpre
       use gvecs
       use gvecw, only: ngw
       use reciprocal_vectors, only: gx
       use recvecs_indexes, only: np, nm
-      use grid_dimensions, only: nr1, nr2, nr3, &
-            nr1x, nr2x, nr3x, nnr => nnrx
+      use grid_dimensions, only: nnr => nnrx
       use cell_base
-      use smooth_grid_dimensions, only: nr1s, nr2s, nr3s, &
-            nr1sx, nr2sx, nr3sx, nnrsx
+      use smooth_grid_dimensions, only: nnrsx
       use electrons_base, only: nx => nbspx, n => nbsp, f, ispin, nspin
       use constants, only: pi, fpi
 !
@@ -177,7 +173,7 @@
       complex(8) :: psi( npsi ), psis( npsis )
 
 ! local variables
-      integer iss, isup, isdw, iss1, iss2, ios, i, ir, ig
+      integer iss, isup, isdw, iss1, iss2, i, ir, ig
       integer ipol, ix,iy, ipol2xy(3,3)
       real(8) sa1, sa2
       complex(8) ci,fp,fm
@@ -338,36 +334,27 @@
 !     rhos output: total potential on smooth real space grid
 !
       use kinds, only: dp
-      use control_flags, only: iprint, iprsta, thdyn, tpre, tfor, tprnfor
-      use io_global, only: stdout
-      use ions_base, only: nas => nax, nsp, na, nat
+      use control_flags, only: tpre
       use gvecs
       use gvecp, only: ng => ngm
       use cell_base, only: omega
-      use cell_base, only: a1, a2, a3, tpiba2
-      use reciprocal_vectors, only: gstart, g
       use recvecs_indexes, only: np, nm
-      use grid_dimensions, only: nr1, nr2, nr3, &
-            nr1x, nr2x, nr3x, nnr => nnrx
-      use smooth_grid_dimensions, only: nr1s, nr2s, nr3s, &
-            nr1sx, nr2sx, nr3sx, nnrs => nnrsx
+      use grid_dimensions, only: nnr => nnrx
+      use smooth_grid_dimensions, only: nr1s, nr2s, nr3s,nnrs => nnrsx
       use electrons_base, only: nspin
       use constants, only: pi, fpi
-      use energies, only: etot, eself, enl, ekin, epseu, esr, eht, exc
-      use local_pseudo, only: vps, rhops
       use core
       use gvecb
       use dener
 !      use derho
       use mp,      ONLY : mp_sum
-      use mp_global, ONLY : intra_image_comm
       use metagga, ONLY : kedtaur, kedtaug, kedtaus, dkedtaus
       USE cp_interfaces, ONLY: fwfft, invfft
       USE fft_base,      ONLY: dffts, dfftp
 !
       implicit none
 !
-      integer iss, isup, isdw, ig, ir,i,j,k,is, ia
+      integer iss, isup, isdw, ig, ir,i,j 
       real(8) dkedxc(3,3) !metagga
       complex(8)  fp, fm, ci
       complex(8)  v(nnr), vs(nnrs)

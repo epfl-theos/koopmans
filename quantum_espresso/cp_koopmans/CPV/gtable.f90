@@ -194,7 +194,7 @@ subroutine find_whose_is_g
   USE reciprocal_vectors, ONLY : ig_l2g
   USE mp,                 ONLY : mp_sum
   USE io_global,          ONLY : stdout
-  USE mp_global,          ONLY : me_image, nproc_image, intra_image_comm
+  USE mp_global,          ONLY : me_image, intra_image_comm
   USE efield_module,      ONLY : whose_is_g
 
   implicit none
@@ -227,7 +227,7 @@ subroutine gtable_missing
   USE reciprocal_vectors, ONLY : ig_l2g, mill_g, mill_l, gstart
   USE mp,                 ONLY : mp_sum, mp_max, mp_alltoall
   USE io_global,          ONLY : stdout
-  USE mp_global,          ONLY : me_image, nproc_image, intra_image_comm, world_comm
+  USE mp_global,          ONLY : me_image, nproc_image, intra_image_comm
   USE parallel_include
 
 
@@ -238,7 +238,6 @@ subroutine gtable_missing
   INTEGER :: nfound_proc(nproc_image,2)
   INTEGER, ALLOCATABLE :: igg_found(:,:,:), ig_send(:,:,:), igg_found_snd(:,:,:)
   INTEGER, ALLOCATABLE :: igg_found_rcv(:,:,:)
-  INTEGER :: ierr,sndint,rcvint
 
 
 
@@ -442,10 +441,10 @@ subroutine gtable_missing_inv
   USE efield_module, ONLY : ctabin_missing_1,ctabin_missing_2, whose_is_g,n_g_missing_m,&
                           &      ctabin_missing_rev_1,ctabin_missing_rev_2 
   USE gvecw,              ONLY : ngw, ngwt
-  USE reciprocal_vectors, ONLY : ig_l2g, mill_g, mill_l, gstart
+  USE reciprocal_vectors, ONLY : ig_l2g, mill_g, mill_l
   USE mp,                 ONLY : mp_sum, mp_max, mp_alltoall
   USE io_global,          ONLY : stdout
-  USE mp_global,          ONLY : me_image, nproc_image, intra_image_comm, world_comm
+  USE mp_global,          ONLY : me_image, nproc_image, intra_image_comm
   USE parallel_include
 
 
@@ -456,7 +455,6 @@ subroutine gtable_missing_inv
   INTEGER :: nfound_proc(nproc_image,2)
   INTEGER, ALLOCATABLE :: igg_found(:,:,:), ig_send(:,:,:), igg_found_snd(:,:,:)
   INTEGER, ALLOCATABLE :: igg_found_rcv(:,:,:)
-  INTEGER :: ierr,sndint,rcvint
 
 
 
