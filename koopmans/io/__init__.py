@@ -22,7 +22,7 @@ def read(filename: str, **kwargs) -> Workflow:
     # Generic "read" function
 
     if filename.endswith('kwf'):
-        with open(filename, 'w') as fd:
+        with open(filename, 'r') as fd:
             out = read_kwf(fd)
         return out
     elif filename.endswith('.json'):
