@@ -8,6 +8,7 @@ Integrated within koopmans by Edward Linscott Jan 2021
 
 from time import time
 import numpy as np
+from typing import List
 from koopmans.calculators.generic import GenericCalc
 from koopmans import utils
 
@@ -27,7 +28,7 @@ class UI_calc(GenericCalc):
     ext_out = '.uio'
 
     # Adding all UI keywords as decorated properties of the UI calc class
-    _valid_settings = [s.name for s in valid_settings]
+    _valid_settings: List[str] = [s.name for s in valid_settings]
     _settings_that_are_paths = ['w90_seedname', 'kc_ham_file', 'dft_ham_file', 'dft_smooth_ham_file']
 
     def __init__(self, calc=None, qe_files=[], skip_qc=False, **kwargs):

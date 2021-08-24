@@ -7,6 +7,7 @@ Written by Edward Linscott Sep 2020
 """
 
 import os
+from typing import List
 from ase.calculators.calculator import CalculationFailed
 import numpy as np
 from koopmans.utils import warn
@@ -31,7 +32,7 @@ class W90_calc(GenericCalc):
                        'dis_froz_max', 'dis_num_iter', 'dis_win_max', 'guiding_centres',
                        'bands_plot', 'mp_grid', 'kpoint_path', 'projections', 'write_hr',
                        'write_u_matrices', 'write_xyz', 'wannier_plot']
-    _settings_that_are_paths = []
+    _settings_that_are_paths: List[str] = []
 
     def __init__(self, *args, **kwargs):
         self._ase_calc_class = Wannier90
