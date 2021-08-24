@@ -24,7 +24,7 @@ def get_version(module):
     if isinstance(module, ModuleType):
         module = module.__path__[0]
     with chdir(module):
-        version_label = subprocess.check_output(["git", "describe", "--always"]).strip()
+        version_label = subprocess.check_output(["git", "describe", "--always", "--tags"]).strip()
     return version_label.decode("utf-8")
 
 
