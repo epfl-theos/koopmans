@@ -13,6 +13,7 @@ Feb 2021: Split calculators further into GenericCalc and EspressoCalc
 import os
 import copy
 import numpy as np
+from typing import List
 import ase.io as ase_io
 from ase.io.espresso import koopmans_cp as kcp_io
 from ase.build import make_supercell
@@ -61,8 +62,8 @@ class GenericCalc:
     ext_out = ''
     ext_in = ''
 
-    _valid_settings = None
-    _settings_that_are_paths = []
+    _valid_settings: List[str] = []
+    _settings_that_are_paths: List[str] = []
 
     def __init__(self, calc=None, qe_files=[], skip_qc=False, dct={}, **kwargs):
 

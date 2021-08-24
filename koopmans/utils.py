@@ -7,8 +7,8 @@ Written by Edward Linscott May 2020
 '''
 
 import os
+from typing import Union, NamedTuple, Tuple, Type, Any
 import warnings
-from collections import namedtuple
 import subprocess
 import contextlib
 from ase.units import create_units
@@ -115,7 +115,12 @@ def calc_diff(calcs, silent=False):
     return diffs
 
 
-Setting = namedtuple('Setting', ['name', 'description', 'type', 'default', 'options'])
+class Setting(NamedTuple):
+    name: str
+    description: str
+    kind: Union[Type, Tuple[Type, ...]]
+    default: Union[str, bool, float, list, None]
+    options: Union[tuple, None]
 
 
 def check_settings(settings, valid_settings, mandatory_settings=[], physicals=[], do_not_lower=[]):
@@ -146,15 +151,15 @@ def check_settings(settings, valid_settings, mandatory_settings=[], physicals=[]
                 value = value.lower()
 
             # Check value is the correct type
-            if not isinstance(value, valid_setting.type) and value is not None:
-                if isinstance(valid_setting.type, tuple):
+            if not isinstance(value, valid_setting.kind) and value is not None:
+                if isinstance(valid_setting.kind, tuple):
                     raise ValueError(
                         f'{type(value).__name__} is an invalid type for "{key}" (must be '
-                        'one of ' + '/'.join([t.__name__ for t in valid_setting.type]) + ')')
+                        'one of ' + '/'.join([t.__name__ for t in valid_setting.kind]) + ')')
                 else:
                     raise ValueError(
                         f'{type(value).__name__} is an invalid type for "{key}" (must be '
-                        f'{valid_setting.type.__name__})')
+                        f'{valid_setting.kind.__name__})')
 
             # Check value is among the valid options
             if valid_setting.options is not None and valid_setting.default is not None and value not in \
