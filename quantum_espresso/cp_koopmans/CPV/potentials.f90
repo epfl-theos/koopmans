@@ -35,7 +35,7 @@
         USE constants,          ONLY: fpi
         USE cell_base,          ONLY: tpiba2, tpiba
         USE mp,                 ONLY: mp_sum
-        USE mp_global,          ONLY: nproc_image, me_image, intra_image_comm
+        USE mp_global,          ONLY: intra_image_comm
         USE io_global,          ONLY: ionode
         USE io_files,           ONLY: opt_unit
         USE gvecp,              ONLY: ngm
@@ -164,12 +164,12 @@
       USE kinds,          ONLY: DP
       USE control_flags,  ONLY: tscreen, iprsta, iesr, tvhmean, textfor, &
                                                        gamma_only, do_wf_cmplx !added:giovanni
-      USE mp_global,      ONLY: nproc_image, me_image, intra_image_comm
       USE mp,             ONLY: mp_sum
+      USE mp_global,      ONLY: intra_image_comm
       USE cell_base,      ONLY: tpiba2, boxdimensions, s_to_r
-      USE ions_base,      ONLY: rcmax, zv, nsp, extfor, compute_eextfor
+      USE ions_base,      ONLY: nsp, extfor, compute_eextfor
       USE fft_base,       ONLY: dfftp
-      USE energies,       ONLY: total_energy, dft_energy_type, ekin
+      USE energies,       ONLY: total_energy, dft_energy_type
       USE cp_interfaces,  ONLY: pstress, stress_kin, compute_gagb, &
                                 stress_local, add_drhoph, stress_hartree
       USE stress_param,   ONLY: dalbe
@@ -177,13 +177,13 @@
       USE vanderwaals,    ONLY: tvdw, vdw
       USE wave_types,     ONLY: wave_descriptor
       USE io_global,      ONLY: ionode, stdout
-      USE sic_module,     ONLY: self_interaction, sic_epsilon, sic_alpha !!TO ADD!!!
+      USE sic_module,     ONLY: self_interaction, sic_alpha !!TO ADD!!!
       USE gvecp,          ONLY: ngm
       USE local_pseudo,   ONLY: vps, rhops
       USE uspp_param,     ONLY: upf
       USE core,           ONLY: nlcc_any, rhocg, drhocg
       USE cp_interfaces,  ONLY: fwfft, invfft, add_core_charge, core_charge_forces
-      USE electrons_base, ONLY: iupdwn, nupdwn, nspin
+      USE electrons_base, ONLY: nspin
       !
       USE reciprocal_vectors, ONLY: gx, g, gstart
       USE atoms_type_module,  ONLY: atoms_type
@@ -191,7 +191,7 @@
       USE cp_interfaces,      ONLY: vofloc, vofps, self_vofhar, force_loc, fillgrad
       use grid_dimensions,    only: nr1, nr2, nr3, nnrx
       use dener,              only: dekin6, denl6, denl
-      use fft_base,           only: dffts, dfftp
+      use fft_base,           only: dfftp
 
       IMPLICIT NONE
 
@@ -212,10 +212,7 @@
       COMPLEX(DP) :: rhoeg(:,:)   !  the electronic charge density in reciprocal space
       COMPLEX(DP), INTENT(IN) :: sfac(:,:)
 
-      TYPE (dft_energy_type) :: edft_self
-
 ! ... declare functions
-      REAL(DP)  DDOT
 
 ! ... declare other variables
 
@@ -225,7 +222,6 @@
       COMPLEX(DP), ALLOCATABLE :: screen_coul(:)
       !
       REAL(DP),    ALLOCATABLE :: rhoetr(:,:)
-      REAL(DP),    ALLOCATABLE :: fion_vdw(:,:)
       REAL(DP),    ALLOCATABLE :: grho(:,:,:)
       REAL(DP),    ALLOCATABLE :: v2xc(:,:,:)
       REAL(DP),    ALLOCATABLE :: fion(:,:)
@@ -237,22 +233,19 @@
 
       REAL(DP),    ALLOCATABLE :: gagb(:,:)
 
-      COMPLEX(DP) :: ehtep
       REAL(DP)    :: self_exc, self_vxc
-
-      REAL(DP)  :: summing1, summing2
 
       COMPLEX(DP) :: ehp, eps
 
-      REAL(DP)  :: dum, exc, vxc, ehr, strvxc
-      REAL(DP)  :: omega, desr(6), pesum(16)
-      REAL(DP), DIMENSION (6) :: deht, deps, dexc, dvdw
+      REAL(DP)  :: exc, vxc, strvxc
+      REAL(DP)  :: omega, desr(6)
+      REAL(DP), DIMENSION (6) :: deht, deps, dexc
 
       LOGICAL :: ttscreen, ttsic, tgc
       LOGICAL :: nlcc(nsp) ! for compatibility
 
-      INTEGER ig1, ig2, ig3, is, ia, ig, isc, iflag, iss
-      INTEGER ik, i, j, k, isa, idum
+      INTEGER is, ig, iflag, iss
+      INTEGER i, k
       INTEGER :: ierr
       LOGICAL :: lgam
 
@@ -757,10 +750,9 @@
       !
 
       USE kinds,              ONLY: DP
-      USE io_global,          ONLY: stdout
       USE ions_base,          ONLY: nsp
       USE gvecp,              ONLY: ngm
-      USE reciprocal_vectors, ONLY: gstart, gx, g
+      USE reciprocal_vectors, ONLY: gstart
       USE mp_global,          ONLY: intra_image_comm
       USE mp,                 ONLY: mp_sum
 
@@ -837,10 +829,9 @@
       !
 
       USE kinds,              ONLY: DP
-      USE io_global,          ONLY: stdout
       USE ions_base,          ONLY: nsp
       USE gvecp,              ONLY: ngm
-      USE reciprocal_vectors, ONLY: gstart, gx, g
+      USE reciprocal_vectors, ONLY: gstart
       USE mp_global,          ONLY: intra_image_comm
       USE mp,                 ONLY: mp_sum
 
@@ -915,8 +906,7 @@
 
       USE kinds,              ONLY: DP
       USE constants,          ONLY: fpi
-      USE cell_base,          ONLY: tpiba2, tpiba
-      USE io_global,          ONLY: stdout
+      USE cell_base,          ONLY: tpiba2
       USE reciprocal_vectors, ONLY: gstart, g
       USE ions_base,          ONLY: nsp
       USE gvecp,              ONLY: ngm
@@ -940,7 +930,7 @@
       ! ... Locals
 
       INTEGER     :: is, ig
-      REAL(DP)    :: fpibg, cost
+      REAL(DP)    :: fpibg
       COMPLEX(DP) :: rhet, rhog, rp, vscreen
 
       ! ... Subroutine body ...
@@ -1027,11 +1017,9 @@
       USE kinds,              ONLY: DP
       USE constants,          ONLY: fpi
       USE cell_base,          ONLY: tpiba2, tpiba
-      USE io_global,          ONLY: stdout
       USE grid_dimensions,    ONLY: nr1, nr2, nr3
       USE reciprocal_vectors, ONLY: mill_l, gstart, gx, g
       USE ions_base,          ONLY: nat, nsp, na
-      USE gvecp,              ONLY: ngm
       USE gvecs,              ONLY: ngs
 
       IMPLICIT NONE
@@ -1054,7 +1042,7 @@
 
       INTEGER     :: is, ia, isa, ig, ig1, ig2, ig3
       REAL(DP)    :: fpibg, fact
-      COMPLEX(DP) :: cxc, rhet, rhog, vp, rp, gxc, gyc, gzc
+      COMPLEX(DP) :: rhet, rhog, rp, gxc, gyc, gzc
       COMPLEX(DP) :: teigr, cnvg, cvn, tx, ty, tz
       COMPLEX(DP), ALLOCATABLE :: ftmp(:,:)
 
@@ -1154,11 +1142,11 @@
       
 ! ... LOCALS 
 
-      INTEGER :: na_loc, ia_s, ia_e, igis
-      INTEGER :: k, i, j, l, m, is, ia, infm, ix, iy, iz, ishft
+      INTEGER :: na_loc, ia_s, ia_e
+      INTEGER :: k, i, j, l, m, is, ia, infm, ix, iy, iz
       INTEGER :: npt, isa, me
       INTEGER :: iakl, iajm
-      LOGICAL :: split, tzero, tshift
+      LOGICAL :: tzero, tshift
       INTEGER, ALLOCATABLE   :: iatom(:,:)
       REAL(DP), ALLOCATABLE :: zv2(:,:)
       REAL(DP), ALLOCATABLE :: rc(:,:)  
@@ -1167,7 +1155,7 @@
       REAL(DP)  :: xlm, ylm, zlm, erre2, rlm, arg, esrtzero
       REAL(DP)  :: addesr, addpre, repand, fxx
       REAL(DP)  :: rckj_m1
-      REAL(DP)  :: zvk, zvj, zv2_kj
+      REAL(DP)  :: zv2_kj
       REAL(DP)  :: fact_pre
       REAL(DP)  :: iasp( nsp )
 
@@ -1356,11 +1344,11 @@
 
       USE kinds,              ONLY: DP
       USE constants,          ONLY: fpi
-      USE control_flags,      ONLY: do_wf_cmplx, gamma_only !added:giovanni do_wf_cmplx
+      USE control_flags,      ONLY: gamma_only !added:giovanni do_wf_cmplx
       USE cell_base,          ONLY: tpiba2, boxdimensions
       USE gvecp,              ONLY: ngm
       USE reciprocal_vectors, ONLY: gstart, g
-      USE sic_module,         ONLY: sic_epsilon, sic_alpha
+      USE sic_module,         ONLY: sic_epsilon
       USE mp_global,          ONLY: intra_image_comm
       USE mp,                 ONLY: mp_sum
 
@@ -1449,9 +1437,9 @@
 
       USE kinds,              ONLY: DP
       USE constants, ONLY: fpi
-      USE control_flags, ONLY: do_wf_cmplx, gamma_only !added:giovanni do_wf_cmplx
+      USE control_flags, ONLY:  gamma_only !added:giovanni do_wf_cmplx
       USE atoms_type_module, ONLY: atoms_type
-      USE sic_module, ONLY: ind_localisation, nat_localisation, print_localisation
+      USE sic_module, ONLY: ind_localisation
       USE sic_module, ONLY: sic_rloc, pos_localisation
       USE ions_base, ONLY: ind_srt
       USE fft_base, ONLY: dfftp, dffts
@@ -1459,7 +1447,7 @@
       USE reciprocal_vectors, ONLY: gstart, g
       USE gvecp, ONLY: ngm
       USE gvecw, ONLY: ngw
-      use grid_dimensions, only: nr1, nr2, nr3, nr1l, nr2l, nr3l, nnrx
+      use grid_dimensions, only: nr1l, nr2l, nr3l, nnrx
       USE cp_interfaces, ONLY: fwfft, invfft
 
       IMPLICIT NONE
@@ -1474,8 +1462,8 @@
 ! ... Locals
 
       REAL(DP)    :: ehte
-      INTEGER      :: ig, at, ia, is, isa_input, isa_sorted, isa_loc
-      REAL(DP)    :: fpibg, omega, aRe, aR2, R(3)
+      INTEGER      :: ig, ia, is, isa_input, isa_sorted, isa_loc
+      REAL(DP)    :: fpibg, omega, R(3)
       INTEGER      :: Xmin, Ymin, Zmin, Xmax, Ymax, Zmax, i,j,k, ir
       REAL(DP)    :: work, work2
       COMPLEX(DP) :: rhog
