@@ -589,12 +589,13 @@ class KoopmansCPWorkflow(Workflow):
             factors = self.master_calcs['ui'].smooth_int_factor
             # Run the PW + W90 for a much larger grid
             local_master_calcs = copy.deepcopy(self.master_calcs)
-            for name, calc in local_master_calcs.items():
+            for name in ['pw', 'pw2wannier', 'w90_occ', 'w90_emp']:
+                calc = local_master_calcs[name]
                 original_k_grid = calc.calc.parameters.get('kpts', None)
                 if original_k_grid is not None:
-                    # For calculations with a kpts attribute, create a denser k-gridi
+                    # For calculations with a kpts attribute, create a denser k-grid
                     new_k_grid = [x * y for x, y in zip(original_k_grid, factors)]
-                    local_master_calcs[name].calc.parameters['kpts'] = new_k_grid
+                    calc.calc.parameters['kpts'] = new_k_grid
             wannier_workflow = WannierizeWorkflow(self.settings, local_master_calcs)
 
             # Here, we allow for skipping of the smooth dft calcs (assuming they have been already run)
