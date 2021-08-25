@@ -18,7 +18,7 @@ from koopmans.calculators.kc_screen import KoopmansScreenCalc
 from koopmans.calculators.kc_ham import KoopmansHamCalc
 from koopmans.workflows.generic import Workflow
 from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
-from koopmans.workflows.dft_with_pw import copy
+from koopmans.workflows.dft_with_pw import DFTPWWorkflow
 matplotlib.use('Agg')
 
 

@@ -365,7 +365,7 @@ class GenericCalc:
 
     def check_code_is_installed(self):
         # Checks the corresponding code is installed
-        if self.calc.command.path is '':
+        if self.calc.command.path == '':
             executable_with_path = utils.find_executable(self.calc.command.executable)
             if executable_with_path is None:
                 raise OSError(f'{self.calc.command.executable} is not installed')

@@ -112,5 +112,5 @@ def load_defaults(self):
     assert isinstance(self.kpath, BandPath)
 
     if self.do_smooth_interpolation:
-        assert 'dft_ham_file' is not None, 'Missing file_hr_coarse for smooth interpolation'
-        assert 'dft_smooth_ham_file' is not None, 'Missing dft_smooth_ham_file for smooth interpolation'
+        assert 'dft_ham_file', 'Missing file_hr_coarse for smooth interpolation'
+        assert 'dft_smooth_ham_file', 'Missing dft_smooth_ham_file for smooth interpolation'
