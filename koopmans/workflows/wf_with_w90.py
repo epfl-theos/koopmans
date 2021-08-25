@@ -10,6 +10,7 @@ Written by Riccardo De Gennaro Nov 2020
 import os
 import numpy as np
 import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from koopmans import utils
 from koopmans.workflows.generic import Workflow
@@ -108,7 +109,6 @@ class WannierizeWorkflow(Workflow):
             self.run_calculator(calc_pw)
 
             # Plot the bandstructures on top of one another
-            matplotlib.use('Agg')
             ax = None
             labels = ['interpolation (occ)', 'interpolation (emp)', 'explicit']
             colour_cycle = plt.rcParams["axes.prop_cycle"]()

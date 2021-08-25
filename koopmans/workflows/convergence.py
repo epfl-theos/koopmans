@@ -168,7 +168,7 @@ class ConvergenceWorkflow(Workflow):
                 for index, param in zip(indices, param_dict.keys()):
                     converged_parameters[param] = param_dict[param][index]
 
-                self.print('Converged parameters are '
+                self.print('\n Converged parameters are '
                            + ', '.join([f'{k} = {v}' for k, v in converged_parameters.items()]))
 
                 # Construct a calculator with the converged settings
@@ -186,6 +186,11 @@ class ConvergenceWorkflow(Workflow):
                     if self.print_qc:
                         self.print_qc_keyval(param, value)
                 kcp_master_calc.ibrav = 0
+
+                # Avoid printing defaults to file
+                for k, v in kcp_master_calc.defaults.items():
+                    if getattr(kcp_master_calc, k, v) == v:
+                        setattr(kcp_master_calc, k, None)
 
                 # Save converged settings to a .json file
                 io.write(SinglepointWorkflow({}, {'kcp': kcp_master_calc}), 'converged.json')

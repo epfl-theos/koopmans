@@ -27,7 +27,7 @@ valid_settings = [
                   str, 'singlepoint', ('singlepoint', 'convergence', 'wannierise', 'environ_dscf', 'ui')),
     utils.Setting('functional',
                   'orbital-density-dependent-functional/density-functional to use',
-                  str, 'ki', ('ki', 'kipz', 'pkipz', 'pbe', 'all')),
+                  str, 'ki', ('ki', 'kipz', 'pkipz', 'dft', 'all')),
     utils.Setting('calculate_alpha',
                   'whether or not to calculate the screening parameters ab-initio',
                   bool, True, (True, False)),
@@ -114,6 +114,7 @@ valid_settings = [
 class Workflow(object):
 
     def __init__(self, workflow_settings=None, calcs_dct=None, name=None, dct={}):
+        self.valid_settings = valid_settings
         if dct:
             assert workflow_settings is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, '
             'do not use any other arguments'
@@ -127,7 +128,6 @@ class Workflow(object):
             self.name = name
             self.all_calcs = []
             self.silent = False
-            self.valid_settings = valid_settings
             self.print_indent = 1
 
             # Parsing workflow_settings
@@ -463,7 +463,13 @@ class Workflow(object):
             pass
 
     def todict(self):
-        dct = self.__dict__
+        # Shallow copy
+        dct = dict(self.__dict__)
+
+        # Removing keys we won't need to reconstruct the workflow
+        del dct['valid_settings']
+
+        # Adding information required by the json decoder
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct

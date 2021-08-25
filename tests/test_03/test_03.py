@@ -6,8 +6,6 @@ Written by Edward Linscott, Jan 2021
 
 import pytest
 from conftest import WorkflowTest
-import matplotlib
-matplotlib.use('Agg')
 
 
 json = 'tests/test_03/test_si_ki.json'

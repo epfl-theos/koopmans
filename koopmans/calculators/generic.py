@@ -393,7 +393,14 @@ class GenericCalc:
         return
 
     def todict(self):
-        dct = self.__dict__
+        # Shallow copy of self.__dict__
+        dct = dict(self.__dict__)
+
+        # Remove keys that we don't need to reconstruct the calculator
+        for k in ['_settings_to_not_parse', '_ase_calc_class', '_valid_settings']:
+            dct.pop(k, None)
+
+        # Add additional information required by the json decoder
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct

@@ -8,8 +8,8 @@ Written by Edward Linscott Feb 2021
 
 import os
 import numpy as np
-import matplotlib
 import copy
+import matplotlib
 from koopmans import utils, io
 from koopmans.bands import Bands
 from koopmans.calculators.pw import PW_calc
@@ -18,7 +18,8 @@ from koopmans.calculators.kc_screen import KoopmansScreenCalc
 from koopmans.calculators.kc_ham import KoopmansHamCalc
 from koopmans.workflows.generic import Workflow
 from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
-from koopmans.workflows.dft_with_pw import DFTPWWorkflow
+from koopmans.workflows.dft_with_pw import copy
+matplotlib.use('Agg')
 
 
 class KoopmansPWWorkflow(Workflow):
@@ -211,7 +212,6 @@ class KoopmansPWWorkflow(Workflow):
 
             # Plot the bandstructure if the band path has been specified
             if bs.path.path:
-                matplotlib.use('Agg')
                 bs.plot(emin=-20, emax=20, filename=f'{self.name}_bandstructure.png')
 
     def new_calculator(self, calc_presets, **kwargs):
