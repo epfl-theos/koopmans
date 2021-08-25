@@ -232,6 +232,7 @@ class KoopmansPWWorkflow(Workflow):
                 calc.directory = 'wannier'
             else:
                 calc.directory = 'init'
+            calc.calc.parameters.pop('kpath', None)
         elif calc_presets == 'kc_screen':
             calc.directory = 'screening'
             # If eps_inf is not provided in the kc_wann:screen subdictionary but there is a value provided in the
