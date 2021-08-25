@@ -191,3 +191,8 @@ class UI_calc(GenericCalc):
     def bg(self):
         # basis vectors of reciprocal lattice (in PC 2pi/alat units)
         return np.linalg.inv(self.at).transpose()
+
+    def todict(self):
+        dct = super().todict()
+        del dct['valid_settings']
+        return dct

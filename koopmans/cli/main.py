@@ -4,20 +4,19 @@ import os
 import argparse
 import subprocess
 import textwrap
-import matplotlib
 from types import ModuleType
+import matplotlib
+matplotlib.use('Agg')
 import ase
 from koopmans.utils import chdir
 from koopmans.io import read, write
 from koopmans.calculators.generic import qe_bin_directory
 from koopmans.workflows.generic import valid_settings
 
+
 '''
 Perform KI/KIPZ calculations
 '''
-
-# Use a backend that does not rely on X-forwarding
-matplotlib.use('Agg')
 
 
 def get_version(module):
