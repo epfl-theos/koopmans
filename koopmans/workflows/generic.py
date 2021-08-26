@@ -89,6 +89,16 @@ valid_settings = [
                   'a list of integers the same length as the total number of bands, '
                   'denoting which bands to assign the same screening parameter to',
                   list, None, None),
+    utils.Setting('orbital_groups_self_hartree_tol',
+                  'when calculating alpha parameters, the code will group orbitals '
+                  'together only if their self-Hartree energy is within this '
+                  'threshold',
+                  float, None, None),
+    utils.Setting('orbital_groups_energy_tol',
+                  'when calculating alpha parameters, the code will group orbitals '
+                  'together only if their energy < psi | H | psi > is within this '
+                  'threshold',
+                  float, None, None),
     utils.Setting('enforce_spin_symmetry',
                   'if True, the spin-up and spin-down wavefunctions will be forced '
                   'to be the same',
