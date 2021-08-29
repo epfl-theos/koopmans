@@ -339,7 +339,7 @@ SUBROUTINE cpmain_x( tau, fion, etot )
            ! unpaired electron is assumed of spinup and in highest 
            ! index band; and put equal for paired wf spin up and down
            !
-           CALL runcp_uspp_force_pairing( nfi, fccc, ccc, ema0bg, dt2bye, vpot, bec%rvec, c0, cp, intermed )
+           CALL runcp_uspp_force_pairing( fccc, ccc, ema0bg, dt2bye, vpot, bec%rvec, c0, cp, intermed )
            !
         ELSE
            !
@@ -629,7 +629,7 @@ SUBROUTINE cpmain_x( tau, fion, etot )
         !
         IF( ttsave .OR. ttexit ) THEN
           CALL writefile( nfi, tps, c0, cm, f, atoms0, atomsm, acc,  &
-                          taui, cdmi, htm, ht0, rhor, vpot, lambda_dumb, ttexit ) !modified:giovanni
+                          taui, cdmi, htm, ht0, rhor, lambda_dumb, ttexit ) !modified:giovanni
         END IF
 
         ! ...   loop back

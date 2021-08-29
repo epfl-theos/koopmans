@@ -478,10 +478,10 @@
          ! 
          call runcg_uspp_emp(c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
                              n_emps, ispin_emp, iupdwn_emp, nupdwn_emp, phi_emp, lambda_emp, &
-                             max_emp, wxd_emp, vsic_emp, sizvsic_emp, pink_emp, nnrx, becsum_emp, &
+                             max_emp, wxd_emp, vsic_emp, sizvsic_emp, pink_emp, becsum_emp, &
                              deeq_sic_emp, nudx_emp, eodd_emp, etot_emp, v, &
-                             nfi, .true., .true., eigr, bec, irb, eigrb, &
-                             rhor, rhog, rhos, rhoc, ema0bg, desc_emp)     !!! Added rhoc NICOLA 
+                             nfi, .true., eigr, bec, irb, eigrb, &
+                             rhor, rhoc, ema0bg, desc_emp)     !!! Added rhoc NICOLA 
          !
       ELSE ! compute empty states with damped dynamics
          !

@@ -223,8 +223,8 @@
          me_rot   = descla( la_me_   , iss )
          nrl      = descla( la_nrl_  , iss )
          comm_rot = descla( la_comm_ , iss )
-         CALL protate ( c0, bec, c0diag, becdiag, ngw, nss, istart, z0(:,:,iss), nrl, &
-                        na, nsp, ish, nh, np_rot, me_rot, comm_rot )
+         CALL protate ( c0, bec, c0diag, becdiag, ngw, nss, istart, z0(:,:,iss), &
+                        na, nsp, ish, nh, np_rot, me_rot)
       END DO
 
       CALL stop_clock( 'rotate' )
@@ -265,11 +265,11 @@
          nrl      = descla( la_nrl_  , iss )
          comm_rot = descla( la_comm_ , iss )
          IF(.not.z0(iss)%iscmplx) THEN
-	  CALL protate ( c0, bec%rvec, c0diag, becdiag%rvec, ngw, nss, istart, z0(iss)%rvec, nrl, &
-                        na, nsp, ish, nh, np_rot, me_rot, comm_rot )
+	  CALL protate ( c0, bec%rvec, c0diag, becdiag%rvec, ngw, nss, istart, z0(iss)%rvec, &
+                        na, nsp, ish, nh, np_rot, me_rot)
          ELSE
-	  CALL protate ( c0, bec%cvec, c0diag, becdiag%cvec, ngw, nss, istart, z0(iss)%cvec, nrl, &
-                        na, nsp, ish, nh, np_rot, me_rot, comm_rot )
+	  CALL protate ( c0, bec%cvec, c0diag, becdiag%cvec, ngw, nss, istart, z0(iss)%cvec, &
+                        na, nsp, ish, nh, np_rot, me_rot )
          ENDIF
       END DO
 

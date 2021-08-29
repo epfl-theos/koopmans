@@ -6285,7 +6285,7 @@ end subroutine nksic_getOmattot_new
          valpsi(:,:) = (0.0_DP, 0.0_DP)
          odd_alpha(:) = 0.0_DP
          !
-         call odd_alpha_routine(wfc1, nbsp, nbspx, lgam, .false.)
+         call odd_alpha_routine(nbspx, .false.)
          !
       endif
       !

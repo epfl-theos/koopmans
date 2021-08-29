@@ -920,7 +920,7 @@
       END SUBROUTINE writefile_cp_twin
       SUBROUTINE writefile_fpmd  &
          ( nfi, trutime, c0, cm, occ, atoms_0, atoms_m, acc, taui, cdmi, ht_m, &
-           ht_0, rho, vpot, lambda, tlast )
+           ht_0, rho, lambda, tlast )
          USE kinds,             ONLY: DP
           USE cell_base,         ONLY: boxdimensions
          USE atoms_type_module, ONLY: atoms_type
@@ -931,7 +931,6 @@
          TYPE (boxdimensions), INTENT(IN)    :: ht_m, ht_0
          TYPE (atoms_type),    INTENT(IN)    :: atoms_0, atoms_m
          REAL(DP),             INTENT(IN)    :: rho(:,:)
-         REAL(DP),             INTENT(INOUT) :: vpot(:,:)
          REAL(DP),             INTENT(IN)    :: taui(:,:)
          REAL(DP),             INTENT(IN)    :: acc(:), cdmi(:)
          REAL(DP),             INTENT(IN)    :: trutime
@@ -973,11 +972,10 @@
 
    INTERFACE runcp_uspp_force_pairing
       SUBROUTINE runcp_uspp_force_pairing_x  &
-         ( nfi, fccc, ccc, ema0bg, dt2bye, rhos, bec, c0, cm, intermed, fromscra, &
+         ( fccc, ccc, ema0bg, dt2bye, rhos, bec, c0, cm, intermed, fromscra, &
            restart )
          USE kinds,             ONLY: DP
          IMPLICIT NONE
-         INTEGER, INTENT(in) :: nfi
          REAL(DP) :: fccc, ccc
          REAL(DP) :: ema0bg(:), dt2bye
          REAL(DP) :: rhos(:,:)
@@ -1320,7 +1318,7 @@
    END INTERFACE
 
    INTERFACE pseudo_stress
-      SUBROUTINE pseudo_stress_x( deps, epseu, gagb, sfac, dvps, rhoeg, omega )
+      SUBROUTINE pseudo_stress_x( deps, gagb, sfac, rhoeg, omega )
          USE kinds,              ONLY: DP
          IMPLICIT NONE
          REAL(DP),     INTENT(IN)  :: omega
@@ -1328,8 +1326,6 @@
          REAL(DP),     INTENT(IN)  :: gagb(:,:)
          COMPLEX(DP),  INTENT(IN)  :: rhoeg(:,:)
          COMPLEX(DP),  INTENT(IN)  :: sfac(:,:)
-         REAL(DP),     INTENT(IN)  :: dvps(:,:)
-         REAL(DP),     INTENT(IN)  :: epseu
       END SUBROUTINE
    END INTERFACE
 
@@ -1356,14 +1352,13 @@
    END INTERFACE
 
    INTERFACE stress_hartree
-      SUBROUTINE stress_hartree_x(deht, ehr, sfac, rhot, drhot, gagb, omega )
+      SUBROUTINE stress_hartree_x(deht, ehr, rhot, drhot, gagb, omega )
          USE kinds,              ONLY: DP
          IMPLICIT NONE
          REAL(DP),    INTENT(OUT) :: DEHT(:)
          REAL(DP),    INTENT(IN)  :: omega, EHR, gagb(:,:)
          COMPLEX(DP) :: rhot(:)  ! total charge: Sum_spin ( rho_e + rho_I )
          COMPLEX(DP) :: drhot(:,:)
-         COMPLEX(DP), INTENT(IN) :: sfac(:,:)
       END SUBROUTINE
    END INTERFACE
 
@@ -1378,7 +1373,7 @@
    END INTERFACE
 
    INTERFACE stress_local
-      SUBROUTINE stress_local_x( deps, epseu, gagb, sfac, rhoe, drhoe, omega )
+      SUBROUTINE stress_local_x( deps, gagb, sfac, rhoe, drhoe, omega )
          USE kinds,              ONLY: DP
          IMPLICIT NONE
          REAL(DP),     INTENT(IN)  :: omega
@@ -1387,7 +1382,6 @@
          COMPLEX(DP),  INTENT(IN)  :: rhoe(:)
          COMPLEX(DP),  INTENT(IN)  :: drhoe(:,:)
          COMPLEX(DP),  INTENT(IN)  :: sfac(:,:)
-         REAL(DP),     INTENT(IN)  :: epseu
       END SUBROUTINE
    END INTERFACE
 
@@ -1908,26 +1902,26 @@
    END INTERFACE
 
    INTERFACE protate
-      SUBROUTINE protate_real_x ( c0, bec, c0rot, becrot, ngwl, nss, noff, lambda, nrl, &
-                           na, nsp, ish, nh, np_rot, me_rot, comm_rot  )
+      SUBROUTINE protate_real_x ( c0, bec, c0rot, becrot, ngwl, nss, noff, lambda, &
+                           na, nsp, ish, nh, np_rot, me_rot )
          USE kinds,            ONLY: DP
          IMPLICIT NONE
-         INTEGER, INTENT(IN) :: ngwl, nss, nrl, noff
+         INTEGER, INTENT(IN) :: ngwl, nss, noff
          INTEGER, INTENT(IN) :: na(:), nsp, ish(:), nh(:)
-         INTEGER, INTENT(IN) :: np_rot, me_rot, comm_rot  
+         INTEGER, INTENT(IN) :: np_rot, me_rot
          COMPLEX(DP), INTENT(IN) :: c0(:,:)
          COMPLEX(DP), INTENT(OUT) :: c0rot(:,:)
          REAL(DP), INTENT(IN) :: lambda(:,:)
          REAL(DP), INTENT(IN) :: bec(:,:)
          REAL(DP), INTENT(OUT) :: becrot(:,:)
       END SUBROUTINE
-      SUBROUTINE protate_cmplx_x ( c0, bec, c0rot, becrot, ngwl, nss, noff, lambda, nrl, &
-                           na, nsp, ish, nh, np_rot, me_rot, comm_rot  )
+      SUBROUTINE protate_cmplx_x ( c0, bec, c0rot, becrot, ngwl, nss, noff, lambda, &
+                           na, nsp, ish, nh, np_rot, me_rot )
          USE kinds,            ONLY: DP
          IMPLICIT NONE
-         INTEGER, INTENT(IN) :: ngwl, nss, nrl, noff
+         INTEGER, INTENT(IN) :: ngwl, nss, noff
          INTEGER, INTENT(IN) :: na(:), nsp, ish(:), nh(:)
-         INTEGER, INTENT(IN) :: np_rot, me_rot, comm_rot  
+         INTEGER, INTENT(IN) :: np_rot, me_rot
          COMPLEX(DP), INTENT(IN) :: c0(:,:)
          COMPLEX(DP), INTENT(OUT) :: c0rot(:,:)
          COMPLEX(DP), INTENT(IN) :: lambda(:,:)

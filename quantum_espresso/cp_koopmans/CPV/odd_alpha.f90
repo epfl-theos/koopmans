@@ -1,5 +1,5 @@
 !--------------------------------------------------------------
-subroutine odd_alpha_routine( evc, nbsp, nbndx, lgam, is_empty)
+subroutine odd_alpha_routine( nbndx, is_empty)
 !--------------------------------------------------------------
       !
       ! alpha_v = (\sum (I,l) {alpha0_I <c_v|chi(I,l)><chi(I,l)|c_v>}) / (\sum (I,l) {<c_v|chi(I,l)><chi(I,l)|c_v>}),
@@ -10,15 +10,9 @@ subroutine odd_alpha_routine( evc, nbsp, nbndx, lgam, is_empty)
       !
       !
       use kinds,              ONLY: DP        
-      USE ions_base,          ONLY: nsp
       USE mp_global,          ONLY: intra_image_comm
       USE mp,                 ONLY: mp_bcast, mp_sum
-      USE io_global,          ONLY: ionode, ionode_id, stdout
-      use gvecw,              only: ngw
-      use reciprocal_vectors, only: gstart
-      USE uspp,               ONLY: nhsa=>nkb, betae => vkb
-      use electrons_base,     only: nspin, ispin, f
-      USE cp_main_variables,  ONLY: eigr
+      USE io_global,          ONLY: ionode, ionode_id
       use orthogonalize_base, ONLY: calphi
       USE nksic,              ONLY: odd_alpha, valpsi, &
                                     call_index_emp, call_index, &
@@ -31,20 +25,17 @@ subroutine odd_alpha_routine( evc, nbsp, nbndx, lgam, is_empty)
       include 'mpif.h'
 #endif
       !
-      integer,     intent(in)  :: nbsp, nbndx
-      complex(DP), intent(in)  :: evc(ngw,nbndx) 
-      logical :: lgam, is_empty
+      integer,     intent(in)  :: nbndx
+      logical :: is_empty
       !
       ! local variables
-      !
-      logical :: odd_alpha_is_fixed = .true.
       !
       integer ::  n_ref_nkscal0  
       integer,     allocatable :: index_ref_nkscal0(:)
       real(DP),    allocatable :: ref_nkscal0(:)
       real(DP),    allocatable :: spead_ref_nkscal0(:)
       ! 
-      integer :: i, iv, jv, n_evc0_fixed
+      integer :: i, iv
       !
       ! this part is computed only one at starting calculation
       !

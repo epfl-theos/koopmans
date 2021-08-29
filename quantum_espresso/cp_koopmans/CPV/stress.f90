@@ -79,12 +79,10 @@
 
 
 !------------------------------------------------------------------------------!
-   SUBROUTINE pseudo_stress_x( deps, epseu, gagb, sfac, dvps, rhoeg, omega )
+   SUBROUTINE pseudo_stress_x( deps, gagb, sfac, rhoeg, omega )
 !------------------------------------------------------------------------------!
       !
       USE kinds,              ONLY: DP
-      USE ions_base,          ONLY: nsp
-      USE reciprocal_vectors, ONLY: gstart
       USE gvecs,              ONLY: ngs
       USE electrons_base,     ONLY: nspin
       USE stress_param,       ONLY: dalbe
@@ -97,11 +95,8 @@
       REAL(DP),     INTENT(IN)  :: gagb(:,:)
       COMPLEX(DP),  INTENT(IN)  :: rhoeg(:,:)
       COMPLEX(DP),  INTENT(IN)  :: sfac(:,:)
-      REAL(DP),     INTENT(IN)  :: dvps(:,:)
-      REAL(DP),     INTENT(IN)  :: epseu
 
       INTEGER     :: k
-      COMPLEX(DP) :: rhets, depst(6)
       COMPLEX(DP), ALLOCATABLE :: rhoe( : )
       COMPLEX(DP), ALLOCATABLE :: drhoe( :, : )
       !
@@ -114,7 +109,7 @@
          drhoe( 1:ngs, k ) = - rhoe( 1:ngs ) * dalbe( k )
       END DO
 
-      CALL stress_local( deps, epseu, gagb, sfac, rhoe, drhoe, omega )
+      CALL stress_local( deps, gagb, sfac, rhoe, drhoe, omega )
 
       DEALLOCATE( drhoe, rhoe )
 
@@ -124,14 +119,13 @@
 
 
 !------------------------------------------------------------------------------!
-   SUBROUTINE stress_local_x( deps, epseu, gagb, sfac, rhoe, drhoe, omega )
+   SUBROUTINE stress_local_x( deps, gagb, sfac, rhoe, drhoe, omega )
 !------------------------------------------------------------------------------!
       !
       USE kinds,              ONLY: DP
       USE ions_base,          ONLY: nsp
       USE reciprocal_vectors, ONLY: gstart
       USE gvecs,              ONLY: ngs
-      USE electrons_base,     ONLY: nspin
       USE local_pseudo,       ONLY: vps, dvps
 
       IMPLICIT NONE
@@ -142,9 +136,8 @@
       COMPLEX(DP),  INTENT(IN)  :: rhoe(:)
       COMPLEX(DP),  INTENT(IN)  :: drhoe(:,:)
       COMPLEX(DP),  INTENT(IN)  :: sfac(:,:)
-      REAL(DP),     INTENT(IN)  :: epseu
 
-      INTEGER     :: ig,k,is, ispin
+      INTEGER     :: ig,k,is
       COMPLEX(DP) :: dsvp, svp, depst(6)
       REAL(DP)    :: wz
       !
@@ -305,11 +298,9 @@
 !------------------------------------------------------------------------------!
 
       use kinds,              only: DP
-      use ions_base,          only: nsp, rcmax
-      use mp_global,          ONLY: me_image, root_image
+      use ions_base,          only: nsp
       USE constants,          ONLY: fpi
-      USE cell_base,          ONLY: tpiba2
-      USE reciprocal_vectors, ONLY: gstart, g
+      USE reciprocal_vectors, ONLY: gstart
       USE gvecs,              ONLY: ngs
       USE gvecp,              ONLY: ngm
       USE local_pseudo,       ONLY: rhops
@@ -324,14 +315,9 @@
       COMPLEX(DP), INTENT(IN)  :: RHOEG(:,:)
       COMPLEX(DP), INTENT(IN)  :: sfac(:,:)
 
-      COMPLEX(DP)    DEHC(6)
-      COMPLEX(DP)    RHOP,DRHOP
-      COMPLEX(DP)    RHET,RHOG,RHETS,RHOGS
-      COMPLEX(DP)    CFACT
       COMPLEX(DP), ALLOCATABLE :: rhot(:), drhot(:,:)
-      REAL(DP)       hgm1
 
-      INTEGER       ig, is, k, ispin
+      INTEGER       ig, is, k
 
 
       ALLOCATE( rhot( ngm ) )
@@ -367,7 +353,7 @@
       !
       CALL add_drhoph( drhot, sfac, gagb )
 
-      CALL stress_hartree(deht, ehr, sfac, rhot, drhot, gagb, omega ) 
+      CALL stress_hartree(deht, ehr, rhot, drhot, gagb, omega ) 
 
       DEALLOCATE( rhot, drhot )
 
@@ -378,7 +364,7 @@
 
 
 !------------------------------------------------------------------------------!
-   SUBROUTINE stress_hartree_x(deht, ehr, sfac, rhot, drhot, gagb, omega ) 
+   SUBROUTINE stress_hartree_x(deht, ehr, rhot, drhot, gagb, omega ) 
 !------------------------------------------------------------------------------!
 
       ! This subroutine computes: d E_hartree / dh  =
@@ -390,15 +376,11 @@
       !   drho_t = d rho_t / dh = -rho_e + d rho_hard / dh  + d rho_I / dh
 
       use kinds,              only: DP
-      use ions_base,          only: nsp, rcmax
       use mp_global,          ONLY: me_image, root_image
       USE constants,          ONLY: fpi
       USE cell_base,          ONLY: tpiba2
       USE reciprocal_vectors, ONLY: gstart, g
-      USE gvecs,              ONLY: ngs
       USE gvecp,              ONLY: ngm
-      USE local_pseudo,       ONLY: rhops
-      USE electrons_base,     ONLY: nspin
       USE stress_param,       ONLY: dalbe
 
       IMPLICIT NONE
@@ -407,14 +389,13 @@
       REAL(DP),    INTENT(IN)  :: omega, EHR, gagb(:,:)
       COMPLEX(DP) :: rhot(:)  ! total charge: Sum_spin ( rho_e + rho_I )
       COMPLEX(DP) :: drhot(:,:)
-      COMPLEX(DP), INTENT(IN) :: sfac(:,:)
 
       COMPLEX(DP)    DEHC(6)
       COMPLEX(DP)    CFACT
       REAL(DP), ALLOCATABLE :: hgm1( : )
       REAL(DP)    :: wz
 
-      INTEGER       ig, is, k, iss
+      INTEGER       ig, k
 
       DEHC  = (0.D0,0.D0)
       DEHT  = 0.D0

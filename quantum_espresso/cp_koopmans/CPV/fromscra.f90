@@ -266,7 +266,7 @@ SUBROUTINE from_scratch( )
          !
          IF( force_pairing ) THEN
             !
-            CALL runcp_uspp_force_pairing( nfi, fccc, ccc, ema0bg, dt2bye, rhos, bec%rvec, cm, &
+            CALL runcp_uspp_force_pairing( fccc, ccc, ema0bg, dt2bye, rhos, bec%rvec, cm, &
         &                 c0, ei_unp, fromscra = .TRUE. ) !warning:giovanni not yet modified
             !
             IF(.not.lambda(2)%iscmplx) THEN

@@ -25,16 +25,14 @@
       USE gvecw,                 ONLY : ngw
       USE gvecp,                 ONLY : ngm
       USE recvecs_indexes,       ONLY : np, nm
-      USE grid_dimensions,       ONLY : nnrx, nr1, nr2, nr3
+      USE grid_dimensions,       ONLY : nnrx
       USE electrons_base,        ONLY : nspin
       USE control_flags,         ONLY : gamma_only, do_wf_cmplx
       USE reciprocal_vectors,    ONLY : gstart, g
       USE cp_interfaces,         ONLY : fwfft, invfft
       USE fft_base,              ONLY : dfftp
       USE mp,                    ONLY : mp_sum
-      USE mp_global,             ONLY : intra_image_comm
       USE cp_interfaces,         ONLY : nksic_get_orbitalrho
-      USE io_global,             ONLY : stdout
       USE eecp_mod,              ONLY : do_comp
       USE wavefunctions_module,  ONLY : c0
       USE funct,                 ONLY : dmxc, dmxc_spin
@@ -55,9 +53,8 @@
       ! ... orbital density in G space, auxiliary potential in real and G space
       COMPLEX(DP) :: c1(ngw), psi1(nnrx)
       ! ... auxiliary variable for the wavefunction ...
-      INTEGER ig, ir, is, is1
+      INTEGER ig, ir
       ! ... counter  
-      REAL(DP) sum, uPi
       !
       !
       !

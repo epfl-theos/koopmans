@@ -266,7 +266,7 @@
                  valpsi(:,:) = (0.0_DP, 0.0_DP)
                  odd_alpha(:) = 0.0_DP
                  !
-                 call odd_alpha_routine(c0, nbsp, nbspx, lgam, .false.)
+                 call odd_alpha_routine(nbspx, .false.)
                  !
               endif
               !
@@ -702,7 +702,7 @@
                     valpsi(:,:) = (0.0_DP, 0.0_DP)
                     odd_alpha(:) = 0.0_DP
                     !
-                    call odd_alpha_routine(cm, nbsp, nbspx, lgam, .false.)
+                    call odd_alpha_routine( nbspx, .false.)
                     !
                  endif
                  !
@@ -805,7 +805,7 @@
               valpsi(:,:) = (0.0_DP, 0.0_DP)
               odd_alpha(:) = 0.0_DP
               !
-              call odd_alpha_routine(cm, nbsp, nbspx, lgam, .false.)
+              call odd_alpha_routine(nbspx, .false.)
               !
            endif
            !
@@ -899,7 +899,7 @@
                valpsi(:,:) = (0.0_DP, 0.0_DP)
                odd_alpha(:) = 0.0_DP
                !
-               call odd_alpha_routine(cm, nbsp, nbspx, lgam, .false.)
+               call odd_alpha_routine(nbspx, .false.)
                !
             endif
             !
@@ -1056,7 +1056,7 @@
                    valpsi(:,:) = (0.0_DP, 0.0_DP)
                    odd_alpha(:) = 0.0_DP
                    !
-                   call odd_alpha_routine(cm, nbsp, nbspx, lgam, .false.)
+                   call odd_alpha_routine(nbspx,.false.)
                    !
                 endif
                 !
@@ -1238,7 +1238,7 @@
                 valpsi(:,:) = (0.0_DP, 0.0_DP)
                 odd_alpha(:) = 0.0_DP
                 !
-                call odd_alpha_routine(cm, nbsp, nbspx, lgam, .false.)
+                call odd_alpha_routine(nbspx,.false.)
                 !
              endif
              !

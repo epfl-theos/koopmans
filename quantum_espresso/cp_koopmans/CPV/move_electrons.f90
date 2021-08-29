@@ -188,7 +188,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
             valpsi(:,:) = (0.0_DP, 0.0_DP)
             odd_alpha(:) = 0.0_DP
             !
-            call odd_alpha_routine(c0, nbsp, nbspx, lgam, .false.)
+            call odd_alpha_routine(nbspx,.false.)
             ! 
          endif
          !
@@ -348,7 +348,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
      !
      IF( force_pairing ) THEN
         !
-        CALL runcp_uspp_force_pairing( nfi, fccc, ccc, ema0bg, dt2bye, &
+        CALL runcp_uspp_force_pairing( fccc, ccc, ema0bg, dt2bye, &
                       rhos, bec%rvec, c0, cm, ei_unp )
         !
      ELSE

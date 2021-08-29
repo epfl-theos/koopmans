@@ -3811,7 +3811,7 @@ END FUNCTION
       USE cp_interfaces,      ONLY : fwfft, invfft, self_vofhar
       USE sic_module,         ONLY : self_interaction
       USE energies,           ONLY : self_exc, self_ehte
-      USE cp_interfaces,      ONLY : pseudo_stress, compute_gagb, stress_hartree, &
+      USE cp_interfaces,      ONLY : compute_gagb, stress_hartree, &
                                      add_drhoph, stress_local, force_loc
       USE fft_base,           ONLY : dfftp, dffts
       USE ldaU,               ONLY : e_hubbard
@@ -3891,7 +3891,7 @@ END FUNCTION
 !
 !     ab-initio pressure and surface tension contributions to the potential
 !
-      if (abivol.or.abisur) call vol_clu(rhor,rhog,sfac,nfi)
+      if (abivol.or.abisur) call vol_clu(rhor,rhog,nfi)
       !
       ttsic = ( ABS( self_interaction ) /= 0 )
       !
@@ -3981,7 +3981,7 @@ END FUNCTION
 !
       IF( tpre ) THEN
          !
-         CALL stress_local( dps6, epseu, gagb, sfac, rhotmp, drhot, omega )
+         CALL stress_local( dps6, gagb, sfac, rhotmp, drhot, omega )
          !
       END IF
       !
@@ -4036,7 +4036,7 @@ END FUNCTION
          !
          CALL add_drhoph( drhot, sfac, gagb )
          !
-         CALL stress_hartree(dh6, eh*omega, sfac, rhotmp, drhot, gagb, omega )
+         CALL stress_hartree(dh6, eh*omega, rhotmp, drhot, gagb, omega )
          !
       END IF
       !

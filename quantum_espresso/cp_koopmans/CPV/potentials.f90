@@ -341,7 +341,7 @@
 
       IF( tstress ) THEN
          !
-         CALL stress_local( deps, edft%epseu, gagb, sfac, rhog, drhog, box%deth )
+         CALL stress_local( deps, gagb, sfac, rhog, drhog, box%deth )
          !
       END IF
 
@@ -392,7 +392,7 @@
          !
          CALL add_drhoph( drhog, sfac, gagb )
          !
-         CALL stress_hartree( deht, edft%eh, sfac, rhog, drhog, gagb, box%deth )
+         CALL stress_hartree( deht, edft%eh, rhog, drhog, gagb, box%deth )
 
          DEALLOCATE( drhog )
          !

@@ -336,7 +336,7 @@ MODULE wannier_subroutines
           !
           jwf = 1
           !
-          CALL wf( calwf,cm, bec, eigr, eigrb, taub, irb, &
+          CALL wf( calwf,cm, bec, eigrb, irb, &
                    b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
           !
           what1 = .FALSE.
@@ -448,7 +448,7 @@ MODULE wannier_subroutines
        !
        jwf=1
        !
-       CALL wf (calwf,cm,bec,eigr,eigrb,taub,irb,b1,b2,b3,utwf,what1,wfc,jwf,ibrav)
+       CALL wf (calwf,cm,bec,eigrb,irb,b1,b2,b3,utwf,what1,wfc,jwf,ibrav)
        !
        CALL stop_run( .TRUE. )
        !
@@ -457,7 +457,7 @@ MODULE wannier_subroutines
     IF (calwf.EQ.5) THEN
        !
        jwf=iplot(1)
-       CALL wf (calwf,cm,bec,eigr,eigrb,taub,irb,b1,b2,b3,utwf,what1,wfc,jwf,ibrav)
+       CALL wf (calwf,cm,bec,eigrb,irb,b1,b2,b3,utwf,what1,wfc,jwf,ibrav)
        !
        CALL stop_run( .TRUE. )
        !
@@ -717,12 +717,12 @@ MODULE wannier_subroutines
        !
        jwf = 1
        !
-       CALL wf( calwf, c0, bec, eigr, eigrb, taub, irb, &
+       CALL wf( calwf, c0, bec, eigrb, irb, &
                 b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
        !
        IF ( nvb == 0 ) THEN
           !
-          CALL wf( calwf, cm, bec, eigr, eigrb, taub, irb, &
+          CALL wf( calwf, cm, bec, eigrb, irb, &
                    b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
           !
        ELSE
@@ -747,7 +747,7 @@ MODULE wannier_subroutines
        !
        jwf = 1
        !
-       CALL wf( calwf, c0, bec, eigr, eigrb, taub, irb, &
+       CALL wf( calwf, c0, bec, eigrb, irb, &
                 b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
        !
        CALL stop_clock('wf_close_opt')
@@ -820,16 +820,16 @@ MODULE wannier_subroutines
        bec_tmp(:,:) = 0.0
        bec_tmp(:,:) = bec%rvec(:,:)
        ! 
-       !CALL wf( calwf, c0, bec, eigr, eigrb, taub, irb, &
+       !CALL wf( calwf, c0, bec, eigrb, irb, &
        !         b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
-       CALL wf( calwf, c0, bec_tmp, eigr, eigrb, taub, irb, &
+       CALL wf( calwf, c0, bec_tmp, eigrb, irb, &
                 b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
        !
        IF ( nvb == 0 ) THEN
           !
-          !CALL wf( calwf, cm, bec, eigr, eigrb, taub, irb, &
+          !CALL wf( calwf, cm, bec, eigrb, irb, &
           !         b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
-          CALL wf( calwf, cm, bec_tmp, eigr, eigrb, taub, irb, &
+          CALL wf( calwf, cm, bec_tmp, eigrb, irb, &
                    b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
           !
        ELSE
@@ -854,7 +854,7 @@ MODULE wannier_subroutines
        !
        jwf = 1
        !
-       CALL wf( calwf, c0, bec, eigr, eigrb, taub, irb, &
+       CALL wf( calwf, c0, bec, eigrb, irb, &
                 b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
        !
        CALL stop_clock('wf_close_opt')
