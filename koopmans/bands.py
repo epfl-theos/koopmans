@@ -1,5 +1,5 @@
 import itertools
-from typing import Optional, List
+from typing import Optional, List, Union
 import numpy as np
 import pandas as pd
 
@@ -12,8 +12,8 @@ class Band(object):
         self.index = index
         self.filled = filled
         self.group = group
-        self.alpha_history = []
-        self.error_history = []
+        self.alpha_history: List[float] = []
+        self.error_history: List[float] = []
         self.alpha = alpha
         self.error = error
         self.self_hartree = self_hartree
@@ -34,7 +34,7 @@ class Band(object):
         return dct
 
     @property
-    def alpha(self) -> float:
+    def alpha(self) -> Union[float, None]:
         assert len(self.alpha_history) > 0, 'Band does not have screening parameters'
         return self.alpha_history[-1]
 
@@ -145,9 +145,9 @@ class Bands(object):
         for filled in [True, False]:
             unassigned = [b for b in self._bands if b.filled == filled]
 
-            def points_are_close(p0: Band, p1: Band, factor: int = 1) -> bool:
+            def points_are_close(p0: Band, p1: Band, factor: Union[int, float] = 1) -> bool:
                 # Determine if two bands are "close"
-                for obs, tol in (('self_hartree', sh_tol)):
+                for obs, tol in (('self_hartree', sh_tol),):
                     if tol is not None and abs(getattr(p0, obs) - getattr(p1, obs)) > tol * factor:
                         return False
                 return True
