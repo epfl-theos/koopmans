@@ -172,11 +172,11 @@ class Bands(object):
                 wider_neighbourhood = [b for b in unassigned if points_are_close(centre, b)]
 
                 if neighbourhood != wider_neighbourhood:
-                    if self.self_hartree_tol and sh_tol < 0.01*self.self_hartree_tol:
+                    if self.self_hartree_tol and sh_tol < 0.01 * self.self_hartree_tol:
                         # We have recursed too deeply, abort
                         raise Exception('Clustering algorithm failed')
                     else:
-                        self.assign_groups(sh_tol=0.9*sh_tol if sh_tol else None,
+                        self.assign_groups(sh_tol=0.9 * sh_tol if sh_tol else None,
                                            allow_reassignment=allow_reassignment)
                         return
 
