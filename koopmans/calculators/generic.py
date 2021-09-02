@@ -99,8 +99,12 @@ class GenericCalc:
             if calc is None:
                 calc = self.read_output_file(qe_file)
             else:
+                try:
+                    outcalc = self.read_output_file(qe_file)
+                except:
+                    # Calculation could not be read; must have been incomplete
+                    continue
                 # Copy over the results
-                outcalc = self.read_output_file(qe_file)
                 calc.results = outcalc.results
                 if hasattr(outcalc, 'kpts'):
                     calc.kpts = outcalc.kpts

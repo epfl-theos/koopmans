@@ -1,17 +1,23 @@
 import itertools
+from typing import Optional, List, Union
 import numpy as np
 import pandas as pd
 
 
 class Band(object):
-    def __init__(self, index=None, filled=True, group=None, alpha=None, error=None, dct={}):
+    def __init__(self, index: Optional[int] = None, filled: bool = True, group: Optional[int] = None,
+                 alpha: Optional[float] = None, error: Optional[float] = None,
+                 self_hartree: Optional[float] = None,
+                 centre: Optional[np.ndarray] = None, dct: dict = {}) -> None:
         self.index = index
         self.filled = filled
         self.group = group
-        self.alpha_history = []
-        self.error_history = []
+        self.alpha_history: List[float] = []
+        self.error_history: List[float] = []
         self.alpha = alpha
         self.error = error
+        self.self_hartree = self_hartree
+        self.centre = centre
         if dct:
             self.fromdct(dct)
 
@@ -21,14 +27,14 @@ class Band(object):
             if v is not None:
                 setattr(self, k, v)
 
-    def todict(self):
+    def todict(self) -> dict:
         dct = self.__dict__
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct
 
     @property
-    def alpha(self):
+    def alpha(self) -> Union[float, None]:
         assert len(self.alpha_history) > 0, 'Band does not have screening parameters'
         return self.alpha_history[-1]
 
@@ -49,13 +55,14 @@ class Band(object):
 
 
 class Bands(object):
-    def __init__(self, n_bands=None, bands=None, dct={}, **kwargs):
+    def __init__(self, n_bands=None, bands=None, self_hartree_tol=None, dct={}, **kwargs):
         if bands is None and n_bands:
             self._bands = [Band(i + 1) for i in range(n_bands)]
         elif bands and n_bands is None:
             self._bands = bands
         elif not dct:
             raise ValueError('The arguments "n_bands" and "bands" are mutually exclusive')
+        self.self_hartree_tol = self_hartree_tol
         for k, v in kwargs.items():
             assert hasattr(self, k)
             if v:
@@ -123,6 +130,75 @@ class Bands(object):
         for i, v in enumerate(value):
             self._bands[i].group = v
 
+    def assign_groups(self, sh_tol: Optional[float] = None, allow_reassignment: bool = False):
+        # Basic clustering algorithm for assigning groups
+
+        if self.self_hartree_tol is None:
+            # Do not perform clustering
+            return
+
+        # By default use the settings provided when Bands() was initialised
+        sh_tol = sh_tol if sh_tol is not None else self.self_hartree_tol
+
+        # Separate the filled and empty manifolds
+        group = 0
+        for filled in [True, False]:
+            unassigned = [b for b in self._bands if b.filled == filled]
+
+            def points_are_close(p0: Band, p1: Band, factor: Union[int, float] = 1) -> bool:
+                # Determine if two bands are "close"
+                for obs, tol in (('self_hartree', sh_tol),):
+                    if tol is not None and abs(getattr(p0, obs) - getattr(p1, obs)) > tol * factor:
+                        return False
+                return True
+
+            while len(unassigned) > 0:
+                # Select one band
+                guess = unassigned[0]
+
+                # Find the neighbourhood of adjacent bands (with 2x larger threshold)
+                neighbourhood = [b for b in unassigned if points_are_close(guess, b)]
+
+                # Find the centre of that neighbourhood
+                av_sh = np.mean([b.self_hartree for b in neighbourhood])
+                centre = Band(self_hartree=av_sh)
+
+                # Find a revised neighbourhood close to the centre (using a factor of 0.5 because we want points that
+                # are on opposite sides of the neighbourhood to be within "tol" of each other which means they can be
+                # at most 0.5*tol away from the neighbourhood centre
+                neighbourhood = [b for b in unassigned if points_are_close(centre, b, 0.5)]
+
+                # Check the neighbourhood is isolated
+                wider_neighbourhood = [b for b in unassigned if points_are_close(centre, b)]
+
+                if neighbourhood != wider_neighbourhood:
+                    if self.self_hartree_tol and sh_tol < 0.01 * self.self_hartree_tol:
+                        # We have recursed too deeply, abort
+                        raise Exception('Clustering algorithm failed')
+                    else:
+                        self.assign_groups(sh_tol=0.9 * sh_tol if sh_tol else None,
+                                           allow_reassignment=allow_reassignment)
+                        return
+
+                for b in neighbourhood:
+                    unassigned.remove(b)
+
+                    if allow_reassignment:
+                        # Perform the reassignment
+                        b.group = group
+                    else:
+                        # Check previous values exist
+                        if b.group is None:
+                            b.group = group
+                        # Check the new grouping matches the old grouping
+                        if b.group != group:
+                            raise Exception('Clustering algorithm found different grouping')
+
+                # Move on to next group
+                group += 1
+
+        return
+
     @property
     def to_solve(self):
         # Update which bands to solve explicitly
@@ -146,6 +222,17 @@ class Bands(object):
             raise ValueError('Splitting of orbitals into groups failed')
 
         return sorted(to_solve, key=lambda x: x.index)
+
+    @property
+    def self_hartrees(self) -> List[float]:
+        return [b.self_hartree for b in self._bands]
+
+    @self_hartrees.setter
+    def self_hartrees(self, value: List[float]) -> None:
+        if len(value) != len(self._bands):
+            raise ValueError(f'The argument to Bands.self_hartrees() has length {len(value)} != {len(self._bands)}')
+        for v, b in zip(value, self._bands):
+            b.self_hartree = v
 
     @property
     def alphas(self):
