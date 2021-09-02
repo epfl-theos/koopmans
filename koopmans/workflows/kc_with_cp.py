@@ -55,7 +55,8 @@ class KoopmansCPWorkflow(Workflow):
 
         # Initialise the bands object
         filling = kcp_calc.filling[0]
-        self.bands = Bands(n_bands=len(filling), filling=filling, groups=self.orbital_groups)
+        self.bands = Bands(n_bands=len(filling), filling=filling, groups=self.orbital_groups,
+                           self_hartree_tol=self.orbital_groups_self_hartree_tol)
         if self.alpha_from_file:
             # Reading alpha values from file
             self.bands.alphas = self.read_alphas_from_file()
@@ -388,8 +389,7 @@ class KoopmansCPWorkflow(Workflow):
             self.bands.self_hartrees = calc.results['orbital_data']['self-Hartree'][0]
 
             # Group the bands
-            self.bands.assign_groups(self.orbital_groups_self_hartree_tol,
-                                     self.orbital_groups_energy_tol, allow_reassignment=True)
+            self.bands.assign_groups(allow_reassignment=True)
 
             skipped_orbitals = []
             # Loop over removing/adding an electron from/to each orbital

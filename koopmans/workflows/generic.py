@@ -94,11 +94,6 @@ valid_settings = [
                   'together only if their self-Hartree energy is within this '
                   'threshold',
                   float, None, None),
-    utils.Setting('orbital_groups_energy_tol',
-                  'when calculating alpha parameters, the code will group orbitals '
-                  'together only if their energy < psi | H | psi > is within this '
-                  'threshold',
-                  float, None, None),
     utils.Setting('enforce_spin_symmetry',
                   'if True, the spin-up and spin-down wavefunctions will be forced '
                   'to be the same',

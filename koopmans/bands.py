@@ -7,7 +7,7 @@ import pandas as pd
 class Band(object):
     def __init__(self, index: Optional[int] = None, filled: bool = True, group: Optional[int] = None,
                  alpha: Optional[float] = None, error: Optional[float] = None,
-                 self_hartree: Optional[float] = None, energy: Optional[float] = None,
+                 self_hartree: Optional[float] = None,
                  centre: Optional[np.ndarray] = None, dct: dict = {}) -> None:
         self.index = index
         self.filled = filled
@@ -17,7 +17,6 @@ class Band(object):
         self.alpha = alpha
         self.error = error
         self.self_hartree = self_hartree
-        self.energy = energy
         self.centre = centre
         if dct:
             self.fromdct(dct)
@@ -56,13 +55,14 @@ class Band(object):
 
 
 class Bands(object):
-    def __init__(self, n_bands=None, bands=None, dct={}, **kwargs):
+    def __init__(self, n_bands=None, bands=None, self_hartree_tol=None, dct={}, **kwargs):
         if bands is None and n_bands:
             self._bands = [Band(i + 1) for i in range(n_bands)]
         elif bands and n_bands is None:
             self._bands = bands
         elif not dct:
             raise ValueError('The arguments "n_bands" and "bands" are mutually exclusive')
+        self.self_hartree_tol = self_hartree_tol
         for k, v in kwargs.items():
             assert hasattr(self, k)
             if v:
@@ -130,12 +130,15 @@ class Bands(object):
         for i, v in enumerate(value):
             self._bands[i].group = v
 
-    def assign_groups(self, sh_tol: Optional[float] = None, energy_tol: Optional[float] = None, allow_reassignment: bool = False):
+    def assign_groups(self, sh_tol: Optional[float] = None, allow_reassignment: bool = False):
         # Basic clustering algorithm for assigning groups
 
-        if sh_tol is None and energy_tol is None:
+        if self.self_hartree_tol is None:
             # Do not perform clustering
             return
+
+        # By default use the settings provided when Bands() was initialised
+        sh_tol = sh_tol if sh_tol is not None else self.self_hartree_tol
 
         # Separate the filled and empty manifolds
         group = 0
@@ -144,7 +147,7 @@ class Bands(object):
 
             def points_are_close(p0: Band, p1: Band, factor: int = 1) -> bool:
                 # Determine if two bands are "close"
-                for obs, tol in (('self_hartree', sh_tol), ('energy', energy_tol)):
+                for obs, tol in (('self_hartree', sh_tol)):
                     if tol is not None and abs(getattr(p0, obs) - getattr(p1, obs)) > tol * factor:
                         return False
                 return True
@@ -154,40 +157,28 @@ class Bands(object):
                 guess = unassigned[0]
 
                 # Find the neighbourhood of adjacent bands (with 2x larger threshold)
-                neighbourhood = [b for b in unassigned if points_are_close(guess, b, 2)]
+                neighbourhood = [b for b in unassigned if points_are_close(guess, b)]
 
                 # Find the centre of that neighbourhood
                 av_sh = np.mean([b.self_hartree for b in neighbourhood])
-                # av_energy = np.mean([b.energy for b in neighbourhood])
-                centre = Band(self_hartree=av_sh)  # , energy=av_energy)
+                centre = Band(self_hartree=av_sh)
 
-                # Find a revised neighbourhood close to the centre
-                neighbourhood = [b for b in unassigned if points_are_close(centre, b)]
+                # Find a revised neighbourhood close to the centre (using a factor of 0.5 because we want points that
+                # are on opposite sides of the neighbourhood to be within "tol" of each other which means they can be
+                # at most 0.5*tol away from the neighbourhood centre
+                neighbourhood = [b for b in unassigned if points_are_close(centre, b, 0.5)]
 
                 # Check the neighbourhood is isolated
-                wider_neighbourhood = [b for b in unassigned if points_are_close(centre, b, 2)]
+                wider_neighbourhood = [b for b in unassigned if points_are_close(centre, b)]
 
                 if neighbourhood != wider_neighbourhood:
-                    # Get statistics about the neighbourhood
-                    sh_mean = np.mean([b.self_hartree for b in neighbourhood])
-                    # energy_mean = np.mean([b.energy for b in neighbourhood])
-                    energy_mean = 0.0
-
-                    # Get statistics about the wider neighbourhood
-                    wider_sh_values = [b.self_hartree for b in wider_neighbourhood]
-                    wider_sh_range = f'{np.min(wider_sh_values):.3f}-{np.max(wider_sh_values):.3f}'
-                    wider_energy_values = [b.energy for b in wider_neighbourhood]
-                    wider_energy_range = ''
-                    raise Exception('Clustering algorithm failed'
-                                    '\n Based on the tolerances you provided, a group of orbitals was found with'
-                                    f'\n average self-Hartree = {sh_mean:.3f} eV'
-                                    f'\n average energy = {energy_mean:.3f} eV'
-                                    '\n\nHowever, there are other nearby orbitals with'
-                                    f'\n self-Hartrees = {wider_sh_range} eV'
-                                    f'\n energies = {wider_energy_range} eV'
-                                    '\n\nConsider either'
-                                    '\n (a) increasing the tolerances (in order to include these orbitals in this group), or'
-                                    '\n (b) decreasing the tolerances (in order to exclude them)\n')
+                    if self.self_hartree_tol and sh_tol < 0.01*self.self_hartree_tol:
+                        # We have recursed too deeply, abort
+                        raise Exception('Clustering algorithm failed')
+                    else:
+                        self.assign_groups(sh_tol=0.9*sh_tol if sh_tol else None,
+                                           allow_reassignment=allow_reassignment)
+                        return
 
                 for b in neighbourhood:
                     unassigned.remove(b)
@@ -242,17 +233,6 @@ class Bands(object):
             raise ValueError(f'The argument to Bands.self_hartrees() has length {len(value)} != {len(self._bands)}')
         for v, b in zip(value, self._bands):
             b.self_hartree = v
-
-    @property
-    def energies(self) -> List[float]:
-        return [b.energy for b in self._bands]
-
-    @energies.setter
-    def energies(self, value: List[float]) -> None:
-        if len(value) != len(self._bands):
-            raise ValueError(f'The argument to Bands.energies() has length {len(value)} != {len(self._bands)}')
-        for v, b in zip(value, self._bands):
-            b.energy = v
 
     @property
     def alphas(self):
