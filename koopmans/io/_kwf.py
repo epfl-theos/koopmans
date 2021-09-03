@@ -1,21 +1,22 @@
 """
 
-JSON I/O for koopmans
+kwf (Koopmans WorkFlow) I/O for koopmans
 
 Written by Edward Linscott Mar 2021, largely modelled off ase.io.jsonio
 
 """
 
-
+from typing import Union, TextIO
 from importlib import import_module
 import inspect
 import json
 from ase.io import jsonio as ase_json
 from ase.calculators.calculator import Calculator
+from koopmans.workflows.generic import Workflow
 
 
 class KoopmansEncoder(ase_json.MyEncoder):
-    def default(self, obj):
+    def default(self, obj) -> dict:
         if isinstance(obj, set):
             return {'__set__': list(obj)}
         elif isinstance(obj, Calculator):
@@ -64,7 +65,7 @@ def object_hook(dct):
         return ase_json.object_hook(dct)
 
 
-def create_ase_calculator(dct):
+def create_ase_calculator(dct: dict):
     module = import_module(dct['__module__'])
     calc_class = getattr(module, dct['__name__'])
     calc = calc_class()
@@ -77,7 +78,7 @@ def create_ase_calculator(dct):
     return calc
 
 
-def create_koopmans_object(dct):
+def create_koopmans_object(dct: dict):
     # Load object class corresponding to this dictionary
     name = dct.pop('__koopmans_name__')
     module = import_module(dct.pop('__koopmans_module__'))
@@ -90,9 +91,9 @@ def create_koopmans_object(dct):
 decode = json.JSONDecoder(object_hook=object_hook).decode
 
 
-def read_json(fd):
+def read_kwf(fd: TextIO):
     return decode(fd.read())
 
 
-def write_json(fd, obj):
+def write_kwf(obj: Union[Workflow, dict], fd: TextIO):
     fd.write(encode(obj))

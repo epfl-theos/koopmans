@@ -35,6 +35,17 @@ class PW_calc(EspressoCalc):
             self.calc.command = ParallelCommandWithPostfix(os.environ.get(
                 'ASE_ESPRESSO_COMMAND', qe_bin_directory + self.calc.command))
 
+    def calculate(self):
+        if self.calculation == 'bands':
+            if 'kpath' in self.calc.parameters:
+                self.calc.parameters['kpts'] = self.calc.parameters.pop('kpath')
+            else:
+                raise KeyError('You are running a calculation that requires a kpath; please provide it in the input '
+                               'file')
+        else:
+            self.calc.parameters.pop('kpath', None)
+        super().calculate()
+
     def is_complete(self):
         return self.results.get('job done', False)
 

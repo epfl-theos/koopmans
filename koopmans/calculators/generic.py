@@ -11,9 +11,9 @@ Feb 2021: Split calculators further into GenericCalc and EspressoCalc
 """
 
 import os
-import sys
 import copy
 import numpy as np
+from typing import List
 import ase.io as ase_io
 from ase.io.espresso import koopmans_cp as kcp_io
 from ase.build import make_supercell
@@ -62,8 +62,8 @@ class GenericCalc:
     ext_out = ''
     ext_in = ''
 
-    _valid_settings = None
-    _settings_that_are_paths = []
+    _valid_settings: List[str] = []
+    _settings_that_are_paths: List[str] = []
 
     def __init__(self, calc=None, qe_files=[], skip_qc=False, dct={}, **kwargs):
 
@@ -99,8 +99,15 @@ class GenericCalc:
             if calc is None:
                 calc = self.read_output_file(qe_file)
             else:
+                try:
+                    outcalc = self.read_output_file(qe_file)
+                except:
+                    # Calculation could not be read; must have been incomplete
+                    continue
                 # Copy over the results
-                calc.results = self.read_output_file(qe_file).results
+                calc.results = outcalc.results
+                if hasattr(outcalc, 'kpts'):
+                    calc.kpts = outcalc.kpts
 
         # Initialise the calculator object
         if isinstance(calc, GenericCalc):
@@ -362,7 +369,7 @@ class GenericCalc:
 
     def check_code_is_installed(self):
         # Checks the corresponding code is installed
-        if self.calc.command.path is '':
+        if self.calc.command.path == '':
             executable_with_path = utils.find_executable(self.calc.command.executable)
             if executable_with_path is None:
                 raise OSError(f'{self.calc.command.executable} is not installed')
@@ -390,7 +397,14 @@ class GenericCalc:
         return
 
     def todict(self):
-        dct = self.__dict__
+        # Shallow copy of self.__dict__
+        dct = dict(self.__dict__)
+
+        # Remove keys that we don't need to reconstruct the calculator
+        for k in ['_settings_to_not_parse', '_ase_calc_class', '_valid_settings']:
+            dct.pop(k, None)
+
+        # Add additional information required by the json decoder
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct

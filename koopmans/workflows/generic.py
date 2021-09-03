@@ -12,7 +12,9 @@ import sys
 import copy
 import numpy as np
 from ase.calculators.calculator import CalculationFailed
+from ase.calculators.espresso import EspressoWithBandstructure
 from koopmans import io, utils
+from koopmans.calculators.generic import EspressoCalc
 from koopmans.calculators.commands import ParallelCommandWithPostfix
 from koopmans.calculators.ui import UI_calc
 from koopmans.calculators.kc_ham import KoopmansHamCalc
@@ -22,10 +24,10 @@ from koopmans.bands import Bands
 valid_settings = [
     utils.Setting('task',
                   'Task to perform',
-                  str, 'singlepoint', ('singlepoint', 'convergence', 'environ_dscf', 'ui')),
+                  str, 'singlepoint', ('singlepoint', 'convergence', 'wannierise', 'environ_dscf', 'ui')),
     utils.Setting('functional',
                   'orbital-density-dependent-functional/density-functional to use',
-                  str, 'ki', ('ki', 'kipz', 'pkipz', 'pbe', 'all')),
+                  str, 'ki', ('ki', 'kipz', 'pkipz', 'dft', 'all')),
     utils.Setting('calculate_alpha',
                   'whether or not to calculate the screening parameters ab-initio',
                   bool, True, (True, False)),
@@ -87,10 +89,18 @@ valid_settings = [
                   'a list of integers the same length as the total number of bands, '
                   'denoting which bands to assign the same screening parameter to',
                   list, None, None),
+    utils.Setting('orbital_groups_self_hartree_tol',
+                  'when calculating alpha parameters, the code will group orbitals '
+                  'together only if their self-Hartree energy is within this '
+                  'threshold',
+                  float, None, None),
     utils.Setting('enforce_spin_symmetry',
                   'if True, the spin-up and spin-down wavefunctions will be forced '
                   'to be the same',
                   bool, True, (True, False)),
+    utils.Setting('check_wannierisation',
+                  'if True, checks the Im/Re ratio and generates a plot of the interpolated band structure',
+                  bool, False, (True, False)),
     utils.Setting('convergence_observable',
                   'System observable of interest which we converge',
                   str, 'total energy', ('homo energy', 'lumo energy', 'total energy')),
@@ -109,20 +119,20 @@ valid_settings = [
 class Workflow(object):
 
     def __init__(self, workflow_settings=None, calcs_dct=None, name=None, dct={}):
+        self.valid_settings = valid_settings
         if dct:
-            assert workflow_settings is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, ' \
-                'do not use any other arguments'
-            assert calcs_dct is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, do not ' \
-                'use any other arguments'
+            assert workflow_settings is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, '
+            'do not use any other arguments'
+            assert calcs_dct is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, do not '
+            'use any other arguments'
             self.fromdict(dct)
         else:
-            assert not dct, f'If using the "dct" argument to initialise {self.__class__.__name__}, do not use any ' \
-                'other arguments'
+            assert not dct, f'If using the "dct" argument to initialise {self.__class__.__name__}, do not use any '
+            'other arguments'
             self.master_calcs = calcs_dct
             self.name = name
             self.all_calcs = []
             self.silent = False
-            self.valid_settings = valid_settings
             self.print_indent = 1
 
             # Parsing workflow_settings
@@ -347,13 +357,14 @@ class Workflow(object):
             qe_calc.results = old_calc.results
 
             # Load bandstructure if present, too
-            if isinstance(qe_calc, KoopmansHamCalc):
-                qe_calc.calc.band_structure()
-            elif isinstance(qe_calc, UI_calc):
+            if isinstance(qe_calc, UI_calc):
                 qe_calc.read_bands()
                 # If the band structure file does not exist, we must re-run
                 if 'band structure' not in qe_calc.results:
                     return False
+            elif isinstance(qe_calc.calc, EspressoWithBandstructure):
+                if not isinstance(qe_calc, EspressoCalc) or qe_calc.calculation == 'bands':
+                    qe_calc.calc.band_structure()
 
             self.all_calcs.append(qe_calc)
 
@@ -457,7 +468,13 @@ class Workflow(object):
             pass
 
     def todict(self):
-        dct = self.__dict__
+        # Shallow copy
+        dct = dict(self.__dict__)
+
+        # Removing keys we won't need to reconstruct the workflow
+        del dct['valid_settings']
+
+        # Adding information required by the json decoder
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct

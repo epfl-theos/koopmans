@@ -7,8 +7,10 @@ Written by Edward Linscott May 2020
 '''
 
 import os
+import sys
+from typing import Union, NamedTuple, Tuple, Type, Any
 import warnings
-from collections import namedtuple
+import traceback
 import subprocess
 import contextlib
 from ase.units import create_units
@@ -17,6 +19,7 @@ from ase.units import create_units
 # Quantum Espresso -- and koopmans -- uses CODATA 2006 internally
 units = create_units('2006')
 
+
 def _warning(message, category=UserWarning, filename='', lineno=-1, file=None, line=None):
     '''
     Monkey-patching warnings.warn
@@ -24,6 +27,14 @@ def _warning(message, category=UserWarning, filename='', lineno=-1, file=None, l
     print(f'{category.__name__}: {message}')
 
 
+def _warn_with_traceback(message, category, filename, lineno, file=None, line=None):
+
+    log = file if hasattr(file, 'write') else sys.stderr
+    traceback.print_stack(file=log)
+    log.write(warnings.formatwarning(message, category, filename, lineno, line))
+
+
+# warnings.showwarning = _warn_with_traceback
 warnings.showwarning = _warning
 
 
@@ -114,7 +125,12 @@ def calc_diff(calcs, silent=False):
     return diffs
 
 
-Setting = namedtuple('Setting', ['name', 'description', 'type', 'default', 'options'])
+class Setting(NamedTuple):
+    name: str
+    description: str
+    kind: Union[Type, Tuple[Type, ...]]
+    default: Union[str, bool, float, list, None]
+    options: Union[tuple, None]
 
 
 def check_settings(settings, valid_settings, mandatory_settings=[], physicals=[], do_not_lower=[]):
@@ -145,18 +161,19 @@ def check_settings(settings, valid_settings, mandatory_settings=[], physicals=[]
                 value = value.lower()
 
             # Check value is the correct type
-            if not isinstance(value, valid_setting.type) and value is not None:
-                if isinstance(valid_setting.type, tuple):
+            if not isinstance(value, valid_setting.kind) and value is not None:
+                if isinstance(valid_setting.kind, tuple):
                     raise ValueError(
                         f'{type(value).__name__} is an invalid type for "{key}" (must be '
-                        'one of ' + '/'.join([t.__name__ for t in valid_setting.type]) + ')')
+                        'one of ' + '/'.join([t.__name__ for t in valid_setting.kind]) + ')')
                 else:
                     raise ValueError(
                         f'{type(value).__name__} is an invalid type for "{key}" (must be '
-                        f'{valid_setting.type.__name__})')
+                        f'{valid_setting.kind.__name__})')
 
             # Check value is among the valid options
-            if valid_setting.options is not None and valid_setting.default is not None and value not in valid_setting.options:
+            if valid_setting.options is not None and valid_setting.default is not None and value not in \
+                    valid_setting.options:
                 raise ValueError(
                     f'"{value}" is an invalid value for "{key}" (options are {"/".join(valid_setting.options)})')
 
@@ -199,4 +216,3 @@ def parse_physical(value):
             else:
                 raise NotImplementedError(
                     f'{val_units} not implemented in koopmans.utils.parse_physical')
-

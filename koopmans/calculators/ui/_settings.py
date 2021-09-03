@@ -6,11 +6,12 @@ Integrated within koopmans by Edward Linscott Jan 2021
 
 """
 
+from typing import List
 from ase.dft.kpoints import BandPath
 import numpy as np
 from koopmans import utils, io
 
-valid_settings = [
+valid_settings: List[utils.Setting] = [
     utils.Setting('kc_ham_file',
                   'the name of the Hamiltonian file to read in',
                   str, None, None),
@@ -111,5 +112,5 @@ def load_defaults(self):
     assert isinstance(self.kpath, BandPath)
 
     if self.do_smooth_interpolation:
-        assert 'dft_ham_file' is not None, 'Missing file_hr_coarse for smooth interpolation'
-        assert 'dft_smooth_ham_file' is not None, 'Missing dft_smooth_ham_file for smooth interpolation'
+        assert 'dft_ham_file', 'Missing file_hr_coarse for smooth interpolation'
+        assert 'dft_smooth_ham_file', 'Missing dft_smooth_ham_file for smooth interpolation'

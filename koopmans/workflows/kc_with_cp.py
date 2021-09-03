@@ -41,8 +41,8 @@ class KoopmansCPWorkflow(Workflow):
             nemp = self.master_calcs['w90_emp'].num_wann
             if not self.orbital_groups:
                 self.orbital_groups = range(0, nocc + nemp)
-            self.orbital_groups = [i for i in self.orbital_groups[:nocc] for _ in range(np.prod(kpts))] + \
-                                  [i for i in self.orbital_groups[nocc:] for _ in range(np.prod(kpts))]
+            self.orbital_groups = [i for _ in range(np.prod(kpts)) for i in self.orbital_groups[:nocc]] + \
+                                  [i for _ in range(np.prod(kpts)) for i in self.orbital_groups[nocc:]]
 
             # Check the number of empty states has been correctly configured
             w90_emp_calc = self.master_calcs['w90_emp']
@@ -55,7 +55,8 @@ class KoopmansCPWorkflow(Workflow):
 
         # Initialise the bands object
         filling = kcp_calc.filling[0]
-        self.bands = Bands(n_bands=len(filling), filling=filling, groups=self.orbital_groups)
+        self.bands = Bands(n_bands=len(filling), filling=filling, groups=self.orbital_groups,
+                           self_hartree_tol=self.orbital_groups_self_hartree_tol)
         if self.alpha_from_file:
             # Reading alpha values from file
             self.bands.alphas = self.read_alphas_from_file()
@@ -384,6 +385,12 @@ class KoopmansCPWorkflow(Workflow):
             self.run_calculator(calc, enforce_ss=self.enforce_spin_symmetry and i_sc > 1)
             alpha_dep_calcs = [calc]
 
+            # Update the bands' self-Hartree and energies (assuming spin-symmetry)
+            self.bands.self_hartrees = calc.results['orbital_data']['self-Hartree'][0]
+
+            # Group the bands
+            self.bands.assign_groups(allow_reassignment=True)
+
             skipped_orbitals = []
             # Loop over removing/adding an electron from/to each orbital
             for band in self.bands:
@@ -485,8 +492,8 @@ class KoopmansCPWorkflow(Workflow):
 
                     # Set up calculator
                     calc = self.new_calculator('kcp', calc_type, alphas=alphas, filling=filling, fixed_band=min(
-                                               band.index, self.bands.num(filled=True) + 1),
-                                               index_empty_to_save=index_empty_to_save, outdir=outdir_band)
+                        band.index, self.bands.num(filled=True) + 1),
+                        index_empty_to_save=index_empty_to_save, outdir=outdir_band)
                     calc.directory = directory
 
                     # Run kcp.x
@@ -589,12 +596,13 @@ class KoopmansCPWorkflow(Workflow):
             factors = self.master_calcs['ui'].smooth_int_factor
             # Run the PW + W90 for a much larger grid
             local_master_calcs = copy.deepcopy(self.master_calcs)
-            for name, calc in local_master_calcs.items():
+            for name in ['pw', 'pw2wannier', 'w90_occ', 'w90_emp']:
+                calc = local_master_calcs[name]
                 original_k_grid = calc.calc.parameters.get('kpts', None)
                 if original_k_grid is not None:
-                    # For calculations with a kpts attribute, create a denser k-gridi
+                    # For calculations with a kpts attribute, create a denser k-grid
                     new_k_grid = [x * y for x, y in zip(original_k_grid, factors)]
-                    local_master_calcs[name].calc.parameters['kpts'] = new_k_grid
+                    calc.calc.parameters['kpts'] = new_k_grid
             wannier_workflow = WannierizeWorkflow(self.settings, local_master_calcs)
 
             # Here, we allow for skipping of the smooth dft calcs (assuming they have been already run)

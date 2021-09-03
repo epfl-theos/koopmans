@@ -19,6 +19,7 @@ from koopmans.calculators.kc_ham import KoopmansHamCalc
 from koopmans.workflows.generic import Workflow
 from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
 from koopmans.workflows.dft_with_pw import DFTPWWorkflow
+matplotlib.use('Agg')
 
 
 class KoopmansPWWorkflow(Workflow):
@@ -32,11 +33,13 @@ class KoopmansPWWorkflow(Workflow):
         if self.periodic:
             if self.init_orbitals not in ['mlwfs', 'projwfs']:
                 raise ValueError(
-                    'Calculating screening parameters with DFPT for a periodic system is only possible with MLWFs as the variational orbitals')
+                    'Calculating screening parameters with DFPT for a periodic system is only possible with MLWFs as '
+                    'the variational orbitals')
         else:
             if self.init_orbitals != 'kohn-sham':
                 raise ValueError(
-                    'Calculating screening parameters with DFPT for a periodic system is only possible with Kohn-Sham orbitals as the variational orbitals')
+                    'Calculating screening parameters with DFPT for a periodic system is only possible with Kohn-Sham '
+                    'orbitals as the variational orbitals')
         for calc in self.master_calcs.values():
             if self.periodic:
                 # Gygi-Baldereschi
@@ -209,9 +212,6 @@ class KoopmansPWWorkflow(Workflow):
 
             # Plot the bandstructure if the band path has been specified
             if bs.path.path:
-                # Use a backend that does not rely on X-forwarding
-                matplotlib.use('Agg')
-
                 bs.plot(emin=-20, emax=20, filename=f'{self.name}_bandstructure.png')
 
     def new_calculator(self, calc_presets, **kwargs):
@@ -232,6 +232,7 @@ class KoopmansPWWorkflow(Workflow):
                 calc.directory = 'wannier'
             else:
                 calc.directory = 'init'
+            calc.calc.parameters.pop('kpath', None)
         elif calc_presets == 'kc_screen':
             calc.directory = 'screening'
             # If eps_inf is not provided in the kc_wann:screen subdictionary but there is a value provided in the

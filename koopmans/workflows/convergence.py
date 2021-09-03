@@ -20,8 +20,6 @@ class ConvergenceWorkflow(Workflow):
 
     def run(self, initial_depth=3):
 
-        from koopmans.io import write_json
-
         if 'kcp' in self.master_calcs:
             kcp_master_calc = self.master_calcs['kcp']
         else:
@@ -170,8 +168,8 @@ class ConvergenceWorkflow(Workflow):
                 for index, param in zip(indices, param_dict.keys()):
                     converged_parameters[param] = param_dict[param][index]
 
-                self.print('Converged parameters are '
-                      + ', '.join([f'{k} = {v}' for k, v in converged_parameters.items()]))
+                self.print('\n Converged parameters are '
+                           + ', '.join([f'{k} = {v}' for k, v in converged_parameters.items()]))
 
                 # Construct a calculator with the converged settings
                 # Abuse the fact we don't routinely update the ase settings to ignore the various defaults that
@@ -189,9 +187,13 @@ class ConvergenceWorkflow(Workflow):
                         self.print_qc_keyval(param, value)
                 kcp_master_calc.ibrav = 0
 
+                # Avoid printing defaults to file
+                for k, v in kcp_master_calc.defaults.items():
+                    if getattr(kcp_master_calc, k, v) == v:
+                        setattr(kcp_master_calc, k, None)
+
                 # Save converged settings to a .json file
-                with open('converged.json', 'w') as fd:
-                    write_json(fd, kcp_master_calc, {})
+                io.write(SinglepointWorkflow({}, {'kcp': kcp_master_calc}), 'converged.json')
 
                 return converged_parameters
             else:
