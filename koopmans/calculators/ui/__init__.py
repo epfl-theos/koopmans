@@ -9,19 +9,19 @@ Integrated within koopmans by Edward Linscott Jan 2021
 from time import time
 import numpy as np
 from typing import List
-from koopmans.calculators.generic import GenericCalc
+from koopmans.calculators.generic import ExtendedCalculator
 from koopmans import utils
 
 
-class UI_calc(GenericCalc):
-    # Subclass of GenericCalc for performing unfolding and interpolation
+class UnfoldAndInterpolateCalculator(ExtendedCalculator):
+    # Subclass of ExtendedCalculator for performing unfolding and interpolation
 
     from ._io import parse_w90, parse_hr, parse_phases, print_centers, write_results, write_bands, write_dos, \
         write_input_file, read_input_file, read_output_file, read_bands
     from ._interpolate import interpolate, calc_bands, correct_phase, calc_dos
     from ._settings import load_defaults, valid_settings
 
-    # UI_calc does not use ASE
+    # UnfoldAndInterpolateCalculator does not use ASE
     _io = None
 
     ext_in = '.uii'

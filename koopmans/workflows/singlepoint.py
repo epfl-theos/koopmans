@@ -12,7 +12,7 @@ import copy
 import numpy as np
 import itertools
 from koopmans import utils, io
-from koopmans.calculators.kcp import KCP_calc
+from koopmans.calculators.kcp import KoopmansCPCalculator
 from koopmans.workflows.generic import Workflow
 from koopmans.workflows.kc_with_pw import KoopmansPWWorkflow
 from koopmans.workflows.kc_with_cp import KoopmansCPWorkflow

@@ -13,7 +13,7 @@ from ._json import read_json, write_json, read_ui_dict
 from ._kwf import read_kwf, write_kwf
 from ._utils import indented_print, write_alpha_file, read_alpha_file, construct_cell_parameters_block, \
     nelec_from_pseudos, read_kpath, read_cell_parameters
-from koopmans.calculators.generic import GenericCalc
+from koopmans.calculators.generic import ExtendedCalculator
 from koopmans.workflows.generic import Workflow
 
 
@@ -44,7 +44,7 @@ def write(obj: Workflow, filename: str):
         raise ValueError(f'Unrecognised file type for {filename}')
 
 
-def load_calculator(filenames: Union[str, List[str]]) -> GenericCalc:
+def load_calculator(filenames: Union[str, List[str]]) -> ExtendedCalculator:
 
     from koopmans.calculators import kcp, pw, wannier90, pw2wannier, ui, wann2kc, kc_screen, kc_ham
 
@@ -59,24 +59,24 @@ def load_calculator(filenames: Union[str, List[str]]) -> GenericCalc:
 
     extensions = set([f.split('.')[-1] for f in filenames])
 
-    calc_class: Type[GenericCalc]
+    calc_class: Type[ExtendedCalculator]
 
     if extensions.issubset(set(['cpi', 'cpo'])):
-        calc_class = kcp.KCP_calc
+        calc_class = kcp.KoopmansCPCalculator
     elif extensions.issubset(set(['pwi', 'pwo'])):
-        calc_class = pw.PW_calc
+        calc_class = pw.PWCalculator
     elif extensions.issubset(set(['win', 'wout'])):
-        calc_class = wannier90.W90_calc
+        calc_class = wannier90.Wannier90Calculator
     elif extensions.issubset(set(['p2wi', 'p2wo'])):
-        calc_class = pw2wannier.PW2Wannier_calc
+        calc_class = pw2wannier.PW2WannierCalculator
     elif extensions.issubset(set(['uii', 'uio'])):
-        calc_class = ui.UI_calc
+        calc_class = ui.UnfoldAndInterpolateCalculator
     elif extensions.issubset(set(['w2ki', 'w2ko'])):
-        calc_class = wann2kc.Wann2KCCalc
+        calc_class = wann2kc.Wann2KCCalculator
     elif extensions.issubset(set(['ksi', 'kso'])):
-        calc_class = kc_screen.KoopmansScreenCalc
+        calc_class = kc_screen.KoopmansScreenCalculator
     elif extensions.issubset(set(['khi', 'kho'])):
-        calc_class = kc_ham.KoopmansHamCalc
+        calc_class = kc_ham.KoopmansHamCalculator
     else:
         raise ValueError('Could not identify the extensions of ' + '/'.join(filenames))
 

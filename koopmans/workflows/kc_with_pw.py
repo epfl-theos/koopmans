@@ -12,10 +12,10 @@ import copy
 import matplotlib
 from koopmans import utils, io
 from koopmans.bands import Bands
-from koopmans.calculators.pw import PW_calc
-from koopmans.calculators.wann2kc import Wann2KCCalc
-from koopmans.calculators.kc_screen import KoopmansScreenCalc
-from koopmans.calculators.kc_ham import KoopmansHamCalc
+from koopmans.calculators.pw import PWCalculator
+from koopmans.calculators.wann2kc import Wann2KCCalculator
+from koopmans.calculators.kc_screen import KoopmansScreenCalculator
+from koopmans.calculators.kc_ham import KoopmansHamCalculator
 from koopmans.workflows.generic import Workflow
 from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
 from koopmans.workflows.dft_with_pw import DFTPWWorkflow
@@ -103,7 +103,7 @@ class KoopmansPWWorkflow(Workflow):
         # Populating kpoints if absent
         if not self.periodic:
             for calc in self.master_calcs.values():
-                if isinstance(calc, (PW_calc, KoopmansScreenCalc)):
+                if isinstance(calc, (PWCalculator, KoopmansScreenCalculator)):
                     calc.calc.parameters['kpts'] = [1, 1, 1]
 
     def run(self):
@@ -197,8 +197,8 @@ class KoopmansPWWorkflow(Workflow):
 
     def plot_bandstructure(self):
         # Identify the relevant calculators
-        [wann2kc_calc] = [c for c in self.all_calcs if isinstance(c, Wann2KCCalc)]
-        [kc_ham_calc] = [c for c in self.all_calcs if isinstance(c, KoopmansHamCalc)]
+        [wann2kc_calc] = [c for c in self.all_calcs if isinstance(c, Wann2KCCalculator)]
+        [kc_ham_calc] = [c for c in self.all_calcs if isinstance(c, KoopmansHamCalculator)]
 
         if self.periodic:
             # Align the bandstructure to the VBM

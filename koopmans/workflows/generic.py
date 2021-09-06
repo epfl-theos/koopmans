@@ -14,11 +14,11 @@ import numpy as np
 from ase.calculators.calculator import CalculationFailed
 from ase.calculators.espresso import EspressoWithBandstructure
 from koopmans import io, utils
-from koopmans.calculators.generic import EspressoCalc
+from koopmans.calculators.generic import EspressoCalculator
 from koopmans.calculators.commands import ParallelCommandWithPostfix
-from koopmans.calculators.ui import UI_calc
-from koopmans.calculators.kc_ham import KoopmansHamCalc
-from koopmans.calculators.kcp import KCP_calc
+from koopmans.calculators.ui import UnfoldAndInterpolateCalculator
+from koopmans.calculators.kc_ham import KoopmansHamCalculator
+from koopmans.calculators.kcp import KoopmansCPCalculator
 from koopmans.bands import Bands
 
 valid_settings = [
@@ -307,7 +307,7 @@ class Workflow(object):
                     return
 
         # Write out screening parameters to file
-        if getattr(qe_calc, 'do_orbdep', False) or isinstance(qe_calc, KoopmansHamCalc):
+        if getattr(qe_calc, 'do_orbdep', False) or isinstance(qe_calc, KoopmansHamCalculator):
             qe_calc.write_alphas()
 
         if not self.silent:
@@ -324,7 +324,7 @@ class Workflow(object):
             self.print(' done')
 
         # Check spin-up and spin-down eigenvalues match
-        if 'eigenvalues' in qe_calc.results and isinstance(qe_calc, KCP_calc):
+        if 'eigenvalues' in qe_calc.results and isinstance(qe_calc, KoopmansCPCalculator):
             if qe_calc.is_converged() and qe_calc.do_outerloop and qe_calc.nspin == 2 \
                     and qe_calc.tot_magnetization == 0 and not qe_calc.fixed_state \
                     and len(qe_calc.results['eigenvalues']) > 0:
@@ -357,13 +357,13 @@ class Workflow(object):
             qe_calc.results = old_calc.results
 
             # Load bandstructure if present, too
-            if isinstance(qe_calc, UI_calc):
+            if isinstance(qe_calc, UnfoldAndInterpolateCalculator):
                 qe_calc.read_bands()
                 # If the band structure file does not exist, we must re-run
                 if 'band structure' not in qe_calc.results:
                     return False
             elif isinstance(qe_calc.calc, EspressoWithBandstructure):
-                if not isinstance(qe_calc, EspressoCalc) or qe_calc.calculation == 'bands':
+                if not isinstance(qe_calc, EspressoCalculator) or qe_calc.calculation == 'bands':
                     qe_calc.calc.band_structure()
 
             self.all_calcs.append(qe_calc)

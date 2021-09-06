@@ -1,6 +1,6 @@
 import os
 import copy
-from koopmans.calculators.pw import PW_calc
+from koopmans.calculators.pw import PWCalculator
 
 _default_settings = {
     'ENVIRON': {
@@ -13,7 +13,7 @@ _default_settings = {
     'ELECTROSTATIC': {}}
 
 
-class Environ_calc(PW_calc):
+class EnvironCalculator(PWCalculator):
     # Create an environ calculator that inherits from the vanilla pw.x calculator
 
     def __init__(self, *args, **kwargs):

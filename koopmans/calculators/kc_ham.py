@@ -10,12 +10,12 @@ import numpy as np
 from ase.calculators.espresso import KoopmansHam
 from ase.io.espresso import koopmans_ham as kch_io
 from koopmans import io, utils
-from koopmans.calculators.generic import KCWannCalc, qe_bin_directory
+from koopmans.calculators.generic import KCWannCalculator, qe_bin_directory
 from koopmans.calculators.commands import ParallelCommand
 
 
-class KoopmansHamCalc(KCWannCalc):
-    # Subclass of KCWannCalc for performing calculations with kc_wann.x
+class KoopmansHamCalculator(KCWannCalculator):
+    # Subclass of KCWannCalculator for performing calculations with kc_wann.x
 
     # Point to the appropriate ASE IO module
     _io = kch_io

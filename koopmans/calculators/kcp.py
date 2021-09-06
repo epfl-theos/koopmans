@@ -12,12 +12,12 @@ from pandas.core.series import Series
 from ase.calculators.espresso import Espresso_kcp
 from ase.io.espresso import koopmans_cp as kcp_io
 from koopmans import io, utils
-from koopmans.calculators.generic import EspressoCalc, kcp_bin_directory
+from koopmans.calculators.generic import EspressoCalculator, kcp_bin_directory
 from koopmans.calculators.commands import ParallelCommand
 
 
-class KCP_calc(EspressoCalc):
-    # Subclass of EspressoCalc for performing calculations with kcp.x
+class KoopmansCPCalculator(EspressoCalculator):
+    # Subclass of EspressoCalculator for performing calculations with kcp.x
 
     # Point to the appropriate ASE IO module
     _io = kcp_io
@@ -196,7 +196,7 @@ class KCP_calc(EspressoCalc):
             if value is not None:
                 setattr(self, attr, prefactor * value)
 
-    # The following functions enable DOS generation via ase.dft.dos.DOS(<KCP_calc object>)
+    # The following functions enable DOS generation via ase.dft.dos.DOS(<KoopmansCPCalculator object>)
     def get_k_point_weights(self):
         return [1]
 

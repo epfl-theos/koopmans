@@ -10,12 +10,12 @@ import os
 from ase.io.espresso import pw as pw_io
 from ase.calculators.espresso import Espresso
 from koopmans import io
-from koopmans.calculators.generic import EspressoCalc, qe_bin_directory
+from koopmans.calculators.generic import EspressoCalculator, qe_bin_directory
 from koopmans.calculators.commands import ParallelCommandWithPostfix, Command
 
 
-class PW_calc(EspressoCalc):
-    # Subclass of EspressoCalc for performing calculations with pw.x
+class PWCalculator(EspressoCalculator):
+    # Subclass of EspressoCalculator for performing calculations with pw.x
 
     # Point to the appropriate ASE IO module
     _io = pw_io
@@ -60,7 +60,7 @@ class PW_calc(EspressoCalc):
 
     @nelec.setter
     def nelec(self, value):
-        raise ValueError('You tried to set PW_calc.nelec, which is invalid')
+        raise ValueError('You tried to set PWCalculator.nelec, which is invalid')
 
     defaults = {'calculation': 'scf',
                 'outdir': './TMP/',

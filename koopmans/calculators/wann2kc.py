@@ -11,12 +11,12 @@ import numpy as np
 from ase.calculators.espresso import Wann2KC
 from ase.io.espresso import wann2kc as w2k_io
 from koopmans import io, utils
-from koopmans.calculators.generic import KCWannCalc, qe_bin_directory
+from koopmans.calculators.generic import KCWannCalculator, qe_bin_directory
 from koopmans.calculators.commands import ParallelCommandWithPostfix
 
 
-class Wann2KCCalc(KCWannCalc):
-    # Subclass of KCWannCalc for performing calculations with wann_to_kc.x
+class Wann2KCCalculator(KCWannCalculator):
+    # Subclass of KCWannCalculator for performing calculations with wann_to_kc.x
 
     # Point to the appropriate ASE IO module
     _io = w2k_io

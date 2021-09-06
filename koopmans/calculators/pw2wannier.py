@@ -10,11 +10,11 @@ import os
 from koopmans.utils import warn
 from ase.io.espresso import pw2wannier as p2w_io
 from ase.calculators.espresso import PW2Wannier
-from koopmans.calculators.generic import GenericCalc, qe_bin_directory
+from koopmans.calculators.generic import ExtendedCalculator, qe_bin_directory
 from koopmans.calculators.commands import ParallelCommand
 
 
-class PW2Wannier_calc(GenericCalc):
+class PW2WannierCalculator(ExtendedCalculator):
     # Link to relevant ase io module
     _io = p2w_io
 
@@ -22,7 +22,7 @@ class PW2Wannier_calc(GenericCalc):
     ext_in = '.p2wi'
     ext_out = '.p2wo'
 
-    # Adding all wannier90 keywords as decorated properties of the W90_calc class.
+    # Adding all wannier90 keywords as decorated properties of the Wannier90Calculator class.
     # This means one can set and get wannier90 keywords as self.<keyword> but
     # internally they are stored as self._settings['keyword'] rather than
     # self.<keyword>

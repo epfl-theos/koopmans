@@ -26,7 +26,7 @@ qe_bin_directory = qe_parent_directory + 'qe_koopmans/bin/'
 kcp_bin_directory = qe_parent_directory + 'cp_koopmans/bin/'
 
 
-class GenericCalc:
+class ExtendedCalculator:
 
     '''
     A quantum espresso calculator object that...
@@ -45,7 +45,7 @@ class GenericCalc:
 
     From this generic class we will later define
       CP_calc for calculations using kcp.x
-      PW_calc for calculations using pw.x
+      PWCalculator for calculations using pw.x
       ... and others as listed in calculators/
     These are differentiated by self._io = kcp_io/pw_io/...
 
@@ -110,7 +110,7 @@ class GenericCalc:
                     calc.kpts = outcalc.kpts
 
         # Initialise the calculator object
-        if isinstance(calc, GenericCalc):
+        if isinstance(calc, ExtendedCalculator):
             self.calc = copy.deepcopy(calc.calc)
         elif calc is None:
             self.calc = self._ase_calc_class()
@@ -414,7 +414,7 @@ class GenericCalc:
             setattr(self, k, v)
 
 
-class EspressoCalc(GenericCalc):
+class EspressoCalculator(ExtendedCalculator):
 
     def __init__(self, *args, **kwargs):
         self._valid_settings = [k for sublist in self._io.KEYS.values() for k in sublist]
@@ -447,7 +447,7 @@ class EspressoCalc(GenericCalc):
                 setattr(self, key, val)
 
 
-class KCWannCalc(EspressoCalc):
+class KCWannCalculator(EspressoCalculator):
     # Parent class for kc_ham.x, kc_screen.x and wann2kc.x calculators
     defaults = {'outdir': 'TMP',
                 'kc_iverbosity': 1,

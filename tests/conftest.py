@@ -9,15 +9,15 @@ import copy
 import json
 import numpy as np
 import pytest
-from koopmans.calculators.wannier90 import W90_calc
-from koopmans.calculators.pw2wannier import PW2Wannier_calc
-from koopmans.calculators.pw import PW_calc
-from koopmans.calculators.kcp import KCP_calc
-from koopmans.calculators.environ import Environ_calc
-from koopmans.calculators.ui import UI_calc
-from koopmans.calculators.wann2kc import Wann2KCCalc
-from koopmans.calculators.kc_screen import KoopmansScreenCalc
-from koopmans.calculators.kc_ham import KoopmansHamCalc
+from koopmans.calculators.wannier90 import Wannier90Calculator
+from koopmans.calculators.pw2wannier import PW2WannierCalculator
+from koopmans.calculators.pw import PWCalculator
+from koopmans.calculators.kcp import KoopmansCPCalculator
+from koopmans.calculators.environ import EnvironCalculator
+from koopmans.calculators.ui import UnfoldAndInterpolateCalculator
+from koopmans.calculators.wann2kc import Wann2KCCalculator
+from koopmans.calculators.kc_screen import KoopmansScreenCalculator
+from koopmans.calculators.kc_ham import KoopmansHamCalculator
 from koopmans.io import read
 from koopmans.io import read_kwf as read_encoded_json
 from koopmans.io import write_kwf as write_encoded_json
@@ -284,8 +284,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             # Don't check if the code is installed
             return
 
-    class MockKCP_calc(MockCalc, KCP_calc):
-        # Monkeypatched KCP_calc class which never actually calls kcp.x
+    class MockKoopmansCPCalculator(MockCalc, KoopmansCPCalculator):
+        # Monkeypatched KoopmansCPCalculator class which never actually calls kcp.x
 
         @property
         def __files(self):
@@ -314,8 +314,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
                 files.append('evc_occupied.dat')
             return [f'{self.outdir}/{self.prefix}_{self.ndr}.save/K00001/{fname}' for fname in files]
 
-    class MockEnviron_calc(MockCalc, Environ_calc):
-        # Monkeypatched Environ_calc class which never actually calls pw.x
+    class MockEnvironCalculator(MockCalc, EnvironCalculator):
+        # Monkeypatched EnvironCalculator class which never actually calls pw.x
 
         @property
         def output_files(self):
@@ -336,8 +336,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             # Not yet implemented
             return []
 
-    class MockPW_calc(MockCalc, PW_calc):
-        # Monkeypatched PW_calc class which never actually calls pw.x
+    class MockPWCalculator(MockCalc, PWCalculator):
+        # Monkeypatched PWCalculator class which never actually calls pw.x
 
         @property
         def output_files(self):
@@ -362,8 +362,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
                                                                             'charge-density.dat']]
             return files
 
-    class MockW90_calc(MockCalc, W90_calc):
-        # Monkeypatched W90_calc class which never actually calls wannier90.x
+    class MockWannier90Calculator(MockCalc, Wannier90Calculator):
+        # Monkeypatched Wannier90Calculator class which never actually calls wannier90.x
 
         @property
         def output_files(self):
@@ -382,8 +382,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
                 files = [f'{self.directory}/{self.name}{suffix}' for suffix in ['.eig', '.mmn', '.amn']]
             return files
 
-    class MockPW2Wannier_calc(MockCalc, PW2Wannier_calc):
-        # Monkeypatched PW2Wannier_calc class which never actually calls pw2wannier90.x
+    class MockPW2WannierCalculator(MockCalc, PW2WannierCalculator):
+        # Monkeypatched PW2WannierCalculator class which never actually calls pw2wannier90.x
 
         @property
         def output_files(self):
@@ -409,7 +409,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
                 files.append(f'{self.directory}/{self.seedname}.chk')
             return files
 
-    class MockUI_calc(MockCalc, UI_calc):
+    class MockUnfoldAndInterpolateCalculator(MockCalc, UnfoldAndInterpolateCalculator):
         # For the UI calculator, _calculate() plays the role of _ase_calculate()
         def _calculate(self):
             generic_mock_calculate(self)
@@ -435,7 +435,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         def input_files(self):
             return []
 
-    class MockWann2KCCalc(MockCalc, Wann2KCCalc):
+    class MockWann2KCCalculator(MockCalc, Wann2KCCalculator):
         @property
         def input_files(self):
             return []
@@ -444,7 +444,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         def output_files(self):
             return []
 
-    class MockKoopmansScreenCalc(MockCalc, KoopmansScreenCalc):
+    class MockKoopmansScreenCalculator(MockCalc, KoopmansScreenCalculator):
         @property
         def input_files(self):
             return []
@@ -453,7 +453,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         def output_files(self):
             return []
 
-    class MockKoopmansHamCalc(MockCalc, KoopmansHamCalc):
+    class MockKoopmansHamCalculator(MockCalc, KoopmansHamCalculator):
         @property
         def input_files(self):
             return []
@@ -462,15 +462,15 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         def output_files(self):
             return []
 
-    monkeypatch.setattr('koopmans.calculators.kcp.KCP_calc', MockKCP_calc)
-    monkeypatch.setattr('koopmans.calculators.pw.PW_calc', MockPW_calc)
-    monkeypatch.setattr('koopmans.calculators.environ.Environ_calc', MockEnviron_calc)
-    monkeypatch.setattr('koopmans.calculators.wannier90.W90_calc', MockW90_calc)
-    monkeypatch.setattr('koopmans.calculators.pw2wannier.PW2Wannier_calc', MockPW2Wannier_calc)
-    monkeypatch.setattr('koopmans.calculators.ui.UI_calc', MockUI_calc)
-    monkeypatch.setattr('koopmans.calculators.wann2kc.Wann2KCCalc', MockWann2KCCalc)
-    monkeypatch.setattr('koopmans.calculators.kc_screen.KoopmansScreenCalc', MockKoopmansScreenCalc)
-    monkeypatch.setattr('koopmans.calculators.kc_ham.KoopmansHamCalc', MockKoopmansHamCalc)
+    monkeypatch.setattr('koopmans.calculators.kcp.KoopmansCPCalculator', MockKoopmansCPCalculator)
+    monkeypatch.setattr('koopmans.calculators.pw.PWCalculator', MockPWCalculator)
+    monkeypatch.setattr('koopmans.calculators.environ.EnvironCalculator', MockEnvironCalculator)
+    monkeypatch.setattr('koopmans.calculators.wannier90.Wannier90Calculator', MockWannier90Calculator)
+    monkeypatch.setattr('koopmans.calculators.pw2wannier.PW2WannierCalculator', MockPW2WannierCalculator)
+    monkeypatch.setattr('koopmans.calculators.ui.UnfoldAndInterpolateCalculator', MockUnfoldAndInterpolateCalculator)
+    monkeypatch.setattr('koopmans.calculators.wann2kc.Wann2KCCalculator', MockWann2KCCalculator)
+    monkeypatch.setattr('koopmans.calculators.kc_screen.KoopmansScreenCalculator', MockKoopmansScreenCalculator)
+    monkeypatch.setattr('koopmans.calculators.kc_ham.KoopmansHamCalculator', MockKoopmansHamCalculator)
 
     # MockWorkflow class only intended to be used to generate other MockWorkflow subclasses with multiple inheritance
     class MockWorkflow(object):
@@ -492,8 +492,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
 
             # If this calculator is a pw2wannier object, it need to know how many kpoints there are (usually done via
             # the contents of .nnkp)
-            if isinstance(qe_calc, PW2Wannier_calc):
-                recent_pw_calc = [c for c in self.all_calcs if isinstance(c, PW_calc)][-1]
+            if isinstance(qe_calc, PW2WannierCalculator):
+                recent_pw_calc = [c for c in self.all_calcs if isinstance(c, PWCalculator)][-1]
                 qe_calc.calc.parameters['kpts'] = recent_pw_calc.calc.parameters['kpts']
 
             # We only need to check input files for calculations...

@@ -47,7 +47,7 @@ def read_w90_dict(dct, generic_atoms):
     calc.parameters.update(read_dict(dct))
 
     # Return koopmans-type calculator object rather than ASE calculator
-    return wannier90.W90_calc(calc)
+    return wannier90.Wannier90Calculator(calc)
 
 
 def read_w90_occ_dict(dct, generic_atoms):
@@ -99,7 +99,7 @@ def read_pw2wannier_dict(dct, generic_atoms):
         calc.parameters['kpts'] = generic_atoms.calc.parameters['kpts']
 
     # Return koopmans-type calculator object rather than ASE calculator
-    return pw2wannier.PW2Wannier_calc(calc)
+    return pw2wannier.PW2WannierCalculator(calc)
 
 
 def read_setup_dict(dct):
@@ -237,7 +237,7 @@ def read_kcp_or_pw_dict(dct, calc):
 def read_kcp_dict(dct, generic_atoms):
     '''
 
-    Reads in dict of kcp input file and returns a KCP_calc object
+    Reads in dict of kcp input file and returns a KoopmansCPCalculator object
 
     '''
 
@@ -254,13 +254,13 @@ def read_kcp_dict(dct, generic_atoms):
     for block in skipped_blocks:
         utils.warn(f'The {block} block is not yet implemented and will be ignored')
 
-    return kcp.KCP_calc(calc)
+    return kcp.KoopmansCPCalculator(calc)
 
 
 def read_pw_dict(dct, generic_atoms):
     '''
 
-    Reads in dict of pw input file and returns a PW_calc object
+    Reads in dict of pw input file and returns a PWCalculator object
 
     '''
 
@@ -308,7 +308,7 @@ def read_pw_dict(dct, generic_atoms):
         n_empty = kcp_settings['electrons'].get('empty_states_nbnd', 0)
         calc.parameters['input_data']['system']['nbnd'] = n_elec // 2 + n_empty
 
-    return pw.PW_calc(calc)
+    return pw.PWCalculator(calc)
 
 
 def read_ui_dict(dct, generic_atoms):
@@ -334,19 +334,19 @@ def read_ui_dict(dct, generic_atoms):
     if 'alat_sc' in calc.parameters:
         calc.parameters['alat_sc'] *= utils.units.Bohr
 
-    return ui.UI_calc(calc)
+    return ui.UnfoldAndInterpolateCalculator(calc)
 
 
 def read_kc_wann_dict(dct, generic_atoms):
 
-    from koopmans.calculators.kc_ham import KoopmansHamCalc
-    from koopmans.calculators.kc_screen import KoopmansScreenCalc
-    from koopmans.calculators.wann2kc import Wann2KCCalc
+    from koopmans.calculators.kc_ham import KoopmansHamCalculator
+    from koopmans.calculators.kc_screen import KoopmansScreenCalculator
+    from koopmans.calculators.wann2kc import Wann2KCCalculator
 
     calcs = {}
-    for key, ase_calc_class, calc_class in (('kc_ham', KoopmansHam, KoopmansHamCalc),
-                                            ('kc_screen', KoopmansScreen, KoopmansScreenCalc),
-                                            ('wann2kc', Wann2KC, Wann2KCCalc)):
+    for key, ase_calc_class, calc_class in (('kc_ham', KoopmansHam, KoopmansHamCalculator),
+                                            ('kc_screen', KoopmansScreen, KoopmansScreenCalculator),
+                                            ('wann2kc', Wann2KC, Wann2KCCalculator)):
         # Create a copy of generic_atoms
         atoms = copy.deepcopy(generic_atoms)
 
@@ -388,7 +388,7 @@ def read_kc_wann_dict(dct, generic_atoms):
         flattened_settings = {k: v for block_name, block in dct.items() for k, v in block.items()
                               if block_name in relevant_subblocks}
 
-        # Convert to a GenericCalc class, loading the settings
+        # Convert to a ExtendedCalculator class, loading the settings
         calcs[key] = calc_class(calc, **flattened_settings)
 
     # Unlike most read_*_dict functions, this returns three calculators in a dict
@@ -436,7 +436,7 @@ def read_json(fd, override={}):
 
     '''
 
-    from koopmans.calculators.kcp import KCP_calc
+    from koopmans.calculators.kcp import KoopmansCPCalculator
     from koopmans.workflows.singlepoint import SinglepointWorkflow
     from koopmans.workflows.convergence import ConvergenceWorkflow
     from koopmans.workflows.pbe_dscf_with_pw import DeltaSCFWorkflow
@@ -605,7 +605,7 @@ def write_json(workflow, filename):
                                                      for key, val in calc.parameters.pseudopotentials.items()]}
 
     for code, calc in calcs.items():
-        if isinstance(calc, (kcp.KCP_calc, pw.PW_calc)):
+        if isinstance(calc, (kcp.KoopmansCPCalculator, pw.PWCalculator)):
             bigdct[code] = {}
             calc = calc.calc
 

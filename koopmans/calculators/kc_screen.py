@@ -10,12 +10,12 @@ import numpy as np
 from ase.io.espresso import koopmans_screen as kcs_io
 from ase.calculators.espresso import KoopmansScreen
 from koopmans import io, utils
-from koopmans.calculators.generic import KCWannCalc, qe_bin_directory
+from koopmans.calculators.generic import KCWannCalculator, qe_bin_directory
 from koopmans.calculators.commands import ParallelCommandWithPostfix
 
 
-class KoopmansScreenCalc(KCWannCalc):
-    # Subclass of KCWannCalc for performing calculations with kc_screen.x
+class KoopmansScreenCalculator(KCWannCalculator):
+    # Subclass of KCWannCalculator for performing calculations with kc_screen.x
 
     # Point to the appropriate ASE IO module
     _io = kcs_io
