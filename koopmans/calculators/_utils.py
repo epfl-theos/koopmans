@@ -1,6 +1,6 @@
 """
 
-Calculator module for koopmans
+Calculator utilities for koopmans
 
 Written by Edward Linscott Jan 2020
 
@@ -8,6 +8,7 @@ Major modifications
 May 2020: replaced Extended_Espresso_cp with GenericCalc, a calculator class agnostic to the underlying ASE machinery
 Sep 2020: moved individual calculators into calculators/
 Feb 2021: Split calculators further into GenericCalc and EspressoCalc
+Sep 2021: Reshuffled files to make imports cleaner
 """
 
 import os

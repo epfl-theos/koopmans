@@ -15,9 +15,7 @@ from ase.dft.dos import DOS
 from ase.spectrum.band_structure import BandStructure
 from koopmans import io, utils
 from koopmans.bands import Bands
-from koopmans.calculators.kcp import KoopmansCPCalculator
-from koopmans.calculators.ui import UnfoldAndInterpolateCalculator
-from koopmans.calculators import pw
+from koopmans import calculators
 from koopmans.workflows.generic import Workflow
 from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
 from koopmans.workflows.folding import FoldToSupercellWorkflow
@@ -218,7 +216,8 @@ class KoopmansCPWorkflow(Workflow):
             self.run_calculator(calc, enforce_ss=False)
 
             # Check the consistency between the PW and CP band gaps
-            pw_calc = [c for c in self.all_calcs if isinstance(c, pw.PWCalculator) and c.calculation == 'nscf'][-1]
+            pw_calc = [c for c in self.all_calcs if isinstance(
+                c, calculators.PWCalculator) and c.calculation == 'nscf'][-1]
             pw_gap = pw_calc.results['lumo_ene'] - pw_calc.results['homo_ene']
             cp_gap = calc.results['lumo_energy'] - calc.results['homo_energy']
             if abs(pw_gap - cp_gap) > 2e-2 * pw_gap:
@@ -234,7 +233,7 @@ class KoopmansCPWorkflow(Workflow):
             self.print('Copying the density and orbitals from a pre-existing KI calculation')
 
             # Read the .cpi file to work out the value for ndw
-            calc = KoopmansCPCalculator(qe_files='init/ki_init')
+            calc = calculators.KoopmansCPCalculator(qe_files='init/ki_init')
 
             # Move the old save directory to correspond to ndw_final, using pz_innerloop_init to work out where the
             # code will expect the tmp files to be
@@ -719,7 +718,7 @@ class KoopmansCPWorkflow(Workflow):
             alphas = self.bands.alphas
 
         # Generate a new kcp calculator copied from the master calculator
-        calc = KoopmansCPCalculator(self.master_calcs["kcp"], alphas=alphas, filling=filling)
+        calc = calculators.KoopmansCPCalculator(self.master_calcs["kcp"], alphas=alphas, filling=filling)
 
         # Set up read/write indexes
         if calc_presets in ['dft_init', 'dft_dummy']:
@@ -913,17 +912,17 @@ class KoopmansCPWorkflow(Workflow):
 
         if calc_presets == 'merge':
             # Dummy calculator for merging bands and dos
-            calc = UnfoldAndInterpolateCalculator(calc=self.master_calcs['ui'])
+            calc = calculators.UnfoldAndInterpolateCalculator(calc=self.master_calcs['ui'])
             pass
         else:
-            calc = UnfoldAndInterpolateCalculator(calc=self.master_calcs[f'ui_{calc_presets}'])
+            calc = calculators.UnfoldAndInterpolateCalculator(calc=self.master_calcs[f'ui_{calc_presets}'])
             # Automatically generating UI calculator settings
             calc.directory = f'postproc/{calc_presets}'
             calc.kc_ham_file = os.path.abspath(f'final/ham_{calc_presets}_1.dat')
             calc.sc_dim = self.master_calcs['pw'].calc.parameters.kpts
             calc.w90_seedname = os.path.abspath(f'init/wannier/{calc_presets}/wann')
             # The supercell can be obtained from the most recent CP calculation
-            cell = [c.calc.atoms.get_cell() for c in self.all_calcs if isinstance(c, KoopmansCPCalculator)][-1]
+            cell = [c.calc.atoms.get_cell() for c in self.all_calcs if isinstance(c, calculators.KoopmansCPCalculator)][-1]
             calc.alat_sc = np.linalg.norm(cell[0])
             if calc.do_smooth_interpolation:
                 calc.dft_smooth_ham_file = os.path.abspath(f'postproc/wannier/{calc_presets}/wann_hr.dat')

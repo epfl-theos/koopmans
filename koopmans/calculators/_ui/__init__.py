@@ -9,7 +9,7 @@ Integrated within koopmans by Edward Linscott Jan 2021
 from time import time
 import numpy as np
 from typing import List
-from koopmans.calculators.generic import ExtendedCalculator
+from .._utils import ExtendedCalculator
 from koopmans import utils
 
 

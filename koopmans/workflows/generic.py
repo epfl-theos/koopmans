@@ -8,17 +8,13 @@ Converted workflows from functions to objects Nov 2020
 """
 
 import os
-import sys
 import copy
 import numpy as np
 from ase.calculators.calculator import CalculationFailed
 from ase.calculators.espresso import EspressoWithBandstructure
 from koopmans import io, utils
-from koopmans.calculators.generic import EspressoCalculator
-from koopmans.calculators.commands import ParallelCommandWithPostfix
-from koopmans.calculators.ui import UnfoldAndInterpolateCalculator
-from koopmans.calculators.kc_ham import KoopmansHamCalculator
-from koopmans.calculators.kcp import KoopmansCPCalculator
+from koopmans.calculators import EspressoCalculator, UnfoldAndInterpolateCalculator, KoopmansHamCalculator, KoopmansCPCalculator
+from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.bands import Bands
 
 valid_settings = [

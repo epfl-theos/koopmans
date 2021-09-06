@@ -14,8 +14,8 @@ from koopmans.utils import warn
 from ase.io import wannier90 as w90_io
 from ase.calculators.wannier90 import Wannier90
 from ase.dft.kpoints import BandPath
-from koopmans.calculators.generic import ExtendedCalculator, qe_bin_directory
-from koopmans.calculators.commands import Command
+from ._utils import ExtendedCalculator, qe_bin_directory
+from koopmans.commands import Command
 
 
 class Wannier90Calculator(ExtendedCalculator):

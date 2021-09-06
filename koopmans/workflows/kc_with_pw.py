@@ -12,10 +12,7 @@ import copy
 import matplotlib
 from koopmans import utils, io
 from koopmans.bands import Bands
-from koopmans.calculators.pw import PWCalculator
-from koopmans.calculators.wann2kc import Wann2KCCalculator
-from koopmans.calculators.kc_screen import KoopmansScreenCalculator
-from koopmans.calculators.kc_ham import KoopmansHamCalculator
+from koopmans.calculators import PWCalculator, Wann2KCCalculator, KoopmansScreenCalculator, KoopmansHamCalculator
 from koopmans.workflows.generic import Workflow
 from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
 from koopmans.workflows.dft_with_pw import DFTPWWorkflow

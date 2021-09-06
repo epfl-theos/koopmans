@@ -13,11 +13,9 @@ from ._json import read_json, write_json, read_ui_dict
 from ._kwf import read_kwf, write_kwf
 from ._utils import indented_print, write_alpha_file, read_alpha_file, construct_cell_parameters_block, \
     nelec_from_pseudos, read_kpath, read_cell_parameters
-from koopmans.calculators.generic import ExtendedCalculator
-from koopmans.workflows.generic import Workflow
 
 
-def read(filename: str, **kwargs) -> Workflow:
+def read(filename: str, **kwargs) -> 'Workflow':
 
     # Generic "read" function
 
@@ -31,7 +29,7 @@ def read(filename: str, **kwargs) -> Workflow:
         raise ValueError(f'Unrecognised file type for {filename}')
 
 
-def write(obj: Workflow, filename: str):
+def write(obj: 'Workflow', filename: str):
 
     # Generic "write" function
 
@@ -44,9 +42,9 @@ def write(obj: Workflow, filename: str):
         raise ValueError(f'Unrecognised file type for {filename}')
 
 
-def load_calculator(filenames: Union[str, List[str]]) -> ExtendedCalculator:
+def load_calculator(filenames: Union[str, List[str]]) -> 'ExtendedCalculator':
 
-    from koopmans.calculators import kcp, pw, wannier90, pw2wannier, ui, wann2kc, kc_screen, kc_ham
+    from koopmans import calculators
 
     if not isinstance(filenames, list):
         filenames = [filenames]
@@ -59,24 +57,24 @@ def load_calculator(filenames: Union[str, List[str]]) -> ExtendedCalculator:
 
     extensions = set([f.split('.')[-1] for f in filenames])
 
-    calc_class: Type[ExtendedCalculator]
+    calc_class: Type['ExtendedCalculator']
 
     if extensions.issubset(set(['cpi', 'cpo'])):
-        calc_class = kcp.KoopmansCPCalculator
+        calc_class = calculators.KoopmansCPCalculator
     elif extensions.issubset(set(['pwi', 'pwo'])):
-        calc_class = pw.PWCalculator
+        calc_class = calculators.PWCalculator
     elif extensions.issubset(set(['win', 'wout'])):
-        calc_class = wannier90.Wannier90Calculator
+        calc_class = calculators.Wannier90Calculator
     elif extensions.issubset(set(['p2wi', 'p2wo'])):
-        calc_class = pw2wannier.PW2WannierCalculator
+        calc_class = calculators.PW2WannierCalculator
     elif extensions.issubset(set(['uii', 'uio'])):
-        calc_class = ui.UnfoldAndInterpolateCalculator
+        calc_class = calculators.UnfoldAndInterpolateCalculator
     elif extensions.issubset(set(['w2ki', 'w2ko'])):
-        calc_class = wann2kc.Wann2KCCalculator
+        calc_class = calculators.Wann2KCCalculator
     elif extensions.issubset(set(['ksi', 'kso'])):
-        calc_class = kc_screen.KoopmansScreenCalculator
+        calc_class = calculators.KoopmansScreenCalculator
     elif extensions.issubset(set(['khi', 'kho'])):
-        calc_class = kc_ham.KoopmansHamCalculator
+        calc_class = calculators.KoopmansHamCalculator
     else:
         raise ValueError('Could not identify the extensions of ' + '/'.join(filenames))
 

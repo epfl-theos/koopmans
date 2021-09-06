@@ -10,8 +10,8 @@ import numpy as np
 from ase.calculators.espresso import KoopmansHam
 from ase.io.espresso import koopmans_ham as kch_io
 from koopmans import io, utils
-from koopmans.calculators.generic import KCWannCalculator, qe_bin_directory
-from koopmans.calculators.commands import ParallelCommand
+from ._utils import KCWannCalculator, qe_bin_directory
+from koopmans.commands import ParallelCommand
 
 
 class KoopmansHamCalculator(KCWannCalculator):

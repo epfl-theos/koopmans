@@ -10,8 +10,8 @@ import os
 from koopmans.utils import warn
 from ase.io.espresso import pw2wannier as p2w_io
 from ase.calculators.espresso import PW2Wannier
-from koopmans.calculators.generic import ExtendedCalculator, qe_bin_directory
-from koopmans.calculators.commands import ParallelCommand
+from ._utils import ExtendedCalculator, qe_bin_directory
+from koopmans.commands import ParallelCommand
 
 
 class PW2WannierCalculator(ExtendedCalculator):

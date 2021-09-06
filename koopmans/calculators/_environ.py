@@ -1,6 +1,6 @@
 import os
 import copy
-from koopmans.calculators.pw import PWCalculator
+from ._pw import PWCalculator
 
 _default_settings = {
     'ENVIRON': {

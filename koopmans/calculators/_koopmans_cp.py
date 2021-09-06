@@ -9,11 +9,10 @@ Written by Edward Linscott Sep 2020
 import os
 import numpy as np
 from pandas.core.series import Series
-from ase.calculators.espresso import Espresso_kcp
 from ase.io.espresso import koopmans_cp as kcp_io
 from koopmans import io, utils
-from koopmans.calculators.generic import EspressoCalculator, kcp_bin_directory
-from koopmans.calculators.commands import ParallelCommand
+from ._utils import EspressoCalculator, kcp_bin_directory
+from koopmans.commands import ParallelCommand
 
 
 class KoopmansCPCalculator(EspressoCalculator):

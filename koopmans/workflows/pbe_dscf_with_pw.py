@@ -1,7 +1,7 @@
 import os
 from ase.calculators.calculator import CalculationFailed
 from koopmans import utils
-from koopmans.calculators.environ import EnvironCalculator
+from koopmans.calculators import EnvironCalculator
 from koopmans.workflows.generic import Workflow
 
 '''
@@ -37,7 +37,7 @@ class DeltaSCFWorkflow(Workflow):
             while calc_succeeded:
                 # Create a new Environ calculator object
                 pw_calc = EnvironCalculator(calc=self.master_calcs['pw'], restart_mode=restart_mode, disk_io='medium',
-                                       tot_charge=charge, tot_magnetization=-charge)
+                                            tot_charge=charge, tot_magnetization=-charge)
                 pw_calc.name = 'pbe'
                 pw_calc.directory = f'{label}/{epsilon}'
                 pw_calc.outdir = 'TMP'

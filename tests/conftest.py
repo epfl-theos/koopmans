@@ -9,15 +9,9 @@ import copy
 import json
 import numpy as np
 import pytest
-from koopmans.calculators.wannier90 import Wannier90Calculator
-from koopmans.calculators.pw2wannier import PW2WannierCalculator
-from koopmans.calculators.pw import PWCalculator
-from koopmans.calculators.kcp import KoopmansCPCalculator
-from koopmans.calculators.environ import EnvironCalculator
-from koopmans.calculators.ui import UnfoldAndInterpolateCalculator
-from koopmans.calculators.wann2kc import Wann2KCCalculator
-from koopmans.calculators.kc_screen import KoopmansScreenCalculator
-from koopmans.calculators.kc_ham import KoopmansHamCalculator
+from koopmans.calculators import Wannier90Calculator, PW2WannierCalculator, PWCalculator, KoopmansCPCalculator, \
+    EnvironCalculator, UnfoldAndInterpolateCalculator, Wann2KCCalculator, KoopmansScreenCalculator, \
+    KoopmansHamCalculator
 from koopmans.io import read
 from koopmans.io import read_kwf as read_encoded_json
 from koopmans.io import write_kwf as write_encoded_json
@@ -462,15 +456,15 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         def output_files(self):
             return []
 
-    monkeypatch.setattr('koopmans.calculators.kcp.KoopmansCPCalculator', MockKoopmansCPCalculator)
-    monkeypatch.setattr('koopmans.calculators.pw.PWCalculator', MockPWCalculator)
-    monkeypatch.setattr('koopmans.calculators.environ.EnvironCalculator', MockEnvironCalculator)
-    monkeypatch.setattr('koopmans.calculators.wannier90.Wannier90Calculator', MockWannier90Calculator)
-    monkeypatch.setattr('koopmans.calculators.pw2wannier.PW2WannierCalculator', MockPW2WannierCalculator)
-    monkeypatch.setattr('koopmans.calculators.ui.UnfoldAndInterpolateCalculator', MockUnfoldAndInterpolateCalculator)
-    monkeypatch.setattr('koopmans.calculators.wann2kc.Wann2KCCalculator', MockWann2KCCalculator)
-    monkeypatch.setattr('koopmans.calculators.kc_screen.KoopmansScreenCalculator', MockKoopmansScreenCalculator)
-    monkeypatch.setattr('koopmans.calculators.kc_ham.KoopmansHamCalculator', MockKoopmansHamCalculator)
+    monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', MockKoopmansCPCalculator)
+    monkeypatch.setattr('koopmans.calculators.PWCalculator', MockPWCalculator)
+    monkeypatch.setattr('koopmans.calculators.EnvironCalculator', MockEnvironCalculator)
+    monkeypatch.setattr('koopmans.calculators.Wannier90Calculator', MockWannier90Calculator)
+    monkeypatch.setattr('koopmans.calculators.PW2WannierCalculator', MockPW2WannierCalculator)
+    monkeypatch.setattr('koopmans.calculators.UnfoldAndInterpolateCalculator', MockUnfoldAndInterpolateCalculator)
+    monkeypatch.setattr('koopmans.calculators.Wann2KCCalculator', MockWann2KCCalculator)
+    monkeypatch.setattr('koopmans.calculators.KoopmansScreenCalculator', MockKoopmansScreenCalculator)
+    monkeypatch.setattr('koopmans.calculators.KoopmansHamCalculator', MockKoopmansHamCalculator)
 
     # MockWorkflow class only intended to be used to generate other MockWorkflow subclasses with multiple inheritance
     class MockWorkflow(object):

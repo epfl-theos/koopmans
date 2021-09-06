@@ -9,9 +9,9 @@ Written by Edward Linscott Sep 2020
 import os
 from ase.io.espresso import pw as pw_io
 from ase.calculators.espresso import Espresso
-from koopmans import io
-from koopmans.calculators.generic import EspressoCalculator, qe_bin_directory
-from koopmans.calculators.commands import ParallelCommandWithPostfix, Command
+from koopmans.io import nelec_from_pseudos
+from ._utils import EspressoCalculator, qe_bin_directory
+from koopmans.commands import ParallelCommandWithPostfix, Command
 
 
 class PWCalculator(EspressoCalculator):
@@ -56,7 +56,7 @@ class PWCalculator(EspressoCalculator):
     def nelec(self):
         # PW does not directly have an "nelec" keyword, but it is useful for setting
         # extensive properties such as energy convergence thresholds
-        return io.nelec_from_pseudos(self.calc)
+        return nelec_from_pseudos(self.calc)
 
     @nelec.setter
     def nelec(self, value):

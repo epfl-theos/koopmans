@@ -10,7 +10,7 @@ matplotlib.use('Agg')
 import ase
 from koopmans.utils import chdir
 from koopmans.io import read, write
-from koopmans.calculators.generic import qe_bin_directory
+from koopmans.calculators import qe_bin_directory
 from koopmans.workflows.generic import valid_settings
 
 

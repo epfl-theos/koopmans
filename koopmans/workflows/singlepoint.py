@@ -9,10 +9,7 @@ Converted to a workflow object Nov 2020
 
 import os
 import copy
-import numpy as np
-import itertools
-from koopmans import utils, io
-from koopmans.calculators.kcp import KoopmansCPCalculator
+from koopmans import utils
 from koopmans.workflows.generic import Workflow
 from koopmans.workflows.kc_with_pw import KoopmansPWWorkflow
 from koopmans.workflows.kc_with_cp import KoopmansCPWorkflow
@@ -44,7 +41,6 @@ class SinglepointWorkflow(Workflow):
             if self.alpha_from_file:
                 utils.system_call('cp file_alpharef*.txt ki/')
 
-            alphas = None
             for functional in functionals:
                 self.print(f'\n{functional.upper().replace("PKIPZ", "pKIPZ")} calculation', style='heading')
 

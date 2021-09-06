@@ -12,7 +12,6 @@ import inspect
 import json
 from ase.io import jsonio as ase_json
 from ase.calculators.calculator import Calculator
-from koopmans.workflows.generic import Workflow
 
 
 class KoopmansEncoder(ase_json.MyEncoder):
@@ -95,5 +94,5 @@ def read_kwf(fd: TextIO):
     return decode(fd.read())
 
 
-def write_kwf(obj: Union[Workflow, dict], fd: TextIO):
+def write_kwf(obj: Union['Workflow', dict], fd: TextIO):
     fd.write(encode(obj))
