@@ -9,7 +9,7 @@ Written by Edward Linscott Sep 2020
 import os
 from ase.io.espresso import pw as pw_io
 from ase.calculators.espresso import Espresso
-from koopmans.io import nelec_from_pseudos
+from koopmans.pseudopotentials import nelec_from_pseudos
 from ._utils import EspressoCalculator, qe_bin_directory
 from koopmans.commands import ParallelCommandWithPostfix, Command
 

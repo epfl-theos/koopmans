@@ -6,6 +6,7 @@ import numpy as np
 import json
 from ase.spectrum.band_structure import BandStructure
 from koopmans import io, utils
+from koopmans.calculators import load as load_calculator
 from koopmans.io.jsonio import write_json as write_encoded_json
 from koopmans.io.jsonio import read_json as read_encoded_json
 
@@ -19,7 +20,7 @@ if __name__ == '__main__':
         print(test_json + '...', end='', flush=True)
         test_directory, test_json = test_json.rsplit('/', 1)
         with utils.chdir(test_directory):
-            utils.system_call(f'koopmans {test_json} >/dev/null 2>&1')
+            utils.system_call(f'koopmans {test_json} > {test_json.replace("json", "stdout")} 2>&1')
         print(' done')
 
     # Construct json file (missing input files)
@@ -32,7 +33,7 @@ if __name__ == '__main__':
     for fname in fnames:
         print(fname)
         fname_without_ext, _ = fname.lstrip('./').rsplit('.', 1)
-        calc = io.load_calculator(fname_without_ext)
+        calc = load_calculator(fname_without_ext)
         if fname_without_ext in data:
             raise ValueError(f'Encountered a duplicate for {fname}')
 

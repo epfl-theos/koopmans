@@ -10,7 +10,7 @@ import os
 import numpy as np
 from pandas.core.series import Series
 from ase.io.espresso import koopmans_cp as kcp_io
-from koopmans import io, utils
+from koopmans import io, utils, pseudopotentials
 from ._utils import EspressoCalculator, kcp_bin_directory
 from koopmans.commands import ParallelCommand
 
@@ -73,7 +73,7 @@ class KoopmansCPCalculator(EspressoCalculator):
     def load_defaults(self):
         # Because the defaults make explicit reference to nelec, we need to make sure this is defined beforehand
         if self.nelec is None:
-            self.nelec = io.nelec_from_pseudos(self.calc)
+            self.nelec = pseudopotentials.nelec_from_pseudos(self.calc)
         super().load_defaults()
 
     def is_complete(self):

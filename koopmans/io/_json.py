@@ -20,8 +20,9 @@ from ase.io.espresso.pw import KEYS as pw_keys
 from ase.io.espresso.koopmans_cp import KEYS as kcp_keys
 from ase.io.wannier90 import Wannier90 as ASEWannier90
 from koopmans import utils
+from koopmans.pseudopotentials import set_up_pseudos, nelec_from_pseudos
 from ._utils import read_atomic_species, read_atomic_positions, read_cell_parameters, read_kpoints_block, read_kpath, \
-    set_up_pseudos, nelec_from_pseudos, construct_cell_parameters_block
+    construct_cell_parameters_block
 
 
 def read_w90_dict(dct, generic_atoms):
