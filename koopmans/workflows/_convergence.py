@@ -11,9 +11,9 @@ import os
 import copy
 import numpy as np
 import itertools
-from koopmans import utils, io
-from koopmans.workflows.generic import Workflow
-from koopmans.workflows.singlepoint import SinglepointWorkflow
+from koopmans import utils
+from ._generic import Workflow
+from ._singlepoint import SinglepointWorkflow
 
 
 class ConvergenceWorkflow(Workflow):
@@ -68,7 +68,7 @@ class ConvergenceWorkflow(Workflow):
         provide_alpha = 'empty_states_nbnd' in param_dict and self.functional in ['ki', 'kipz', 'pkipz', 'all'] \
             and self.alpha_from_file
         if provide_alpha:
-            master_alphas = io.read_alpharef(directory='.')
+            master_alphas = utils.read_alpha_file(directory='.')
             if self.orbital_groups is None:
                 self.orbital_groups = list(
                     range(kcp_master_calc.nelec // 2 + kcp_master_calc.empty_states_nbnd))
@@ -117,7 +117,7 @@ class ConvergenceWorkflow(Workflow):
                     self.orbital_groups = master_orbital_groups + \
                         [master_orbital_groups[-1]
                             for _ in range(extra_orbitals)]
-                    io.write_alpharef(alphas, directory='.', filling=filling)
+                    utils.write_alpharef(alphas, directory='.', filling=filling)
 
                 self.print(header.rstrip(', '), style='subheading')
 
@@ -170,30 +170,6 @@ class ConvergenceWorkflow(Workflow):
 
                 self.print('\n Converged parameters are '
                            + ', '.join([f'{k} = {v}' for k, v in converged_parameters.items()]))
-
-                # Construct a calculator with the converged settings
-                # Abuse the fact we don't routinely update the ase settings to ignore the various defaults that
-                # have been set
-                kcp_master_calc._update_settings_dict()
-                for param, value in converged_parameters.items():
-                    if param == 'cell_size':
-                        kcp_master_calc._ase_calc.atoms.cell *= value
-                    else:
-                        setattr(kcp_master_calc, param, value)
-                    if param == 'ecutwfc':
-                        setattr(kcp_master_calc, 'ecutrho', 4 * value)
-
-                    if self.print_qc:
-                        self.print_qc_keyval(param, value)
-                kcp_master_calc.ibrav = 0
-
-                # Avoid printing defaults to file
-                for k, v in kcp_master_calc.defaults.items():
-                    if getattr(kcp_master_calc, k, v) == v:
-                        setattr(kcp_master_calc, k, None)
-
-                # Save converged settings to a .json file
-                io.write(SinglepointWorkflow({}, {'kcp': kcp_master_calc}), 'converged.json')
 
                 return converged_parameters
             else:

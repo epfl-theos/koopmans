@@ -9,7 +9,7 @@ Written by Edward Linscott Feb 2021
 import numpy as np
 from ase.io.espresso import koopmans_screen as kcs_io
 from ase.calculators.espresso import KoopmansScreen
-from koopmans import io, utils
+from koopmans import utils
 from ._utils import KCWannCalculator, qe_bin_directory
 from koopmans.commands import ParallelCommandWithPostfix
 

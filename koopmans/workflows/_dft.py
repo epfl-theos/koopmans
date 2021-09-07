@@ -1,6 +1,6 @@
 """
 
-Workflow module for performing a single DFT calculation with kcp.x
+Workflow module for performing a single DFT calculation with either kcp.x or pw.x
 
 Written by Edward Linscott Oct 2020
 
@@ -9,7 +9,7 @@ Written by Edward Linscott Oct 2020
 import os
 import copy
 from koopmans import utils
-from koopmans.workflows.generic import Workflow
+from ._generic import Workflow
 
 
 class DFTCPWorkflow(Workflow):
@@ -42,3 +42,26 @@ class DFTCPWorkflow(Workflow):
         self.run_calculator(calc, enforce_ss=self.enforce_spin_symmetry)
 
         return calc
+
+
+class DFTPWWorkflow(Workflow):
+
+    def run(self):
+
+        # Create the calculator
+        calc = self.new_calculator('pw')
+
+        # Update keywords
+        calc.name = 'dft'
+        calc.ndr = 50
+        calc.ndw = 51
+        calc.restart_mode = 'from_scratch'
+
+        # Remove old directories
+        if self.from_scratch:
+            utils.system_call(f'rm -r {calc.outdir} 2>/dev/null', False)
+
+        # Run the calculator
+        self.run_calculator(calc)
+
+        return

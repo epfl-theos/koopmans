@@ -9,7 +9,7 @@ Originally written by Riccardo De Genarro as the standalone 'unfolding and inter
 Integrated within koopmans by Edward Linscott Jan 2021
 """
 
-from koopmans.workflows.generic import Workflow
+from ._generic import Workflow
 
 
 class UnfoldAndInterpolateWorkflow(Workflow):

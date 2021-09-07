@@ -10,7 +10,7 @@ import os
 import numpy as np
 from pandas.core.series import Series
 from ase.io.espresso import koopmans_cp as kcp_io
-from koopmans import io, utils, pseudopotentials
+from koopmans import utils, pseudopotentials
 from ._utils import EspressoCalculator, kcp_bin_directory
 from koopmans.commands import ParallelCommand
 
@@ -164,7 +164,7 @@ class KoopmansCPCalculator(EspressoCalculator):
 
         flat_alphas = [a for sublist in self.alphas for a in sublist]
         flat_filling = [f for sublist in self.filling for f in sublist]
-        io.write_alpha_file(self.directory, flat_alphas, flat_filling)
+        utils.write_alpha_file(self.directory, flat_alphas, flat_filling)
 
     def read_alphas(self):
         '''
@@ -177,7 +177,7 @@ class KoopmansCPCalculator(EspressoCalculator):
         if not self.do_orbdep or not self.odd_nkscalfact:
             return
 
-        alphas = io.read_alpha_file(self.directory)
+        alphas = utils.read_alpha_file(self.directory)
 
         if self.nspin == 2:
             # Remove duplicates

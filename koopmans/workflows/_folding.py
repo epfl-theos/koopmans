@@ -8,7 +8,7 @@ Written by Edward Linscott Feb 2021
 """
 
 from koopmans import utils
-from koopmans.workflows.generic import Workflow
+from ._generic import Workflow
 
 
 class FoldToSupercellWorkflow(Workflow):

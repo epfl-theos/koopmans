@@ -1,23 +1,50 @@
 """
 
-Generic I/O functions for koopmans
+Generic I/O functions that koopmans.calculators and koopmans.workflows can import non-cyclically
 
 Written by Edward Linscott Jan 2020
-Moved into _utils Aug 2021
+Moved into utils Sep 2021
 
 """
 
 import os
+import json
 import numpy as np
+from typing import List, Union, Tuple
 from ase.atoms import Atoms
 from ase.dft.kpoints import bandpath, BandPath
+from ase.calculators.calculator import Calculator
 
 
-def construct_cell_parameters_block(calc):
+def parse_dict(dct: dict) -> dict:
+    '''
+
+    Reads in a dict, formatting the values appropriately if they are not already
+
+    '''
+    settings = {}
+    for k, v in dct.items():
+        # Deal with bools separately since JSON strictly only will interpret
+        # 'false' as False, while 'False' will be left as a string and
+        # any statement to the effect of 'if param' will evaluate to True if
+        # param = 'False'
+        if isinstance(v, str) and v.lower() in ['f', 'false']:
+            settings[k] = False
+        elif isinstance(v, str) and v.lower() in ['t', 'true']:
+            settings[k] = True
+        else:
+            try:
+                settings[k] = json.loads(v)
+            except (TypeError, json.decoder.JSONDecodeError) as e:
+                settings[k] = v
+    return settings
+
+
+def construct_cell_parameters_block(calc: Calculator) -> dict:
     return {'vectors': [list(row) for row in calc.atoms.cell[:]], 'units': 'angstrom'}
 
 
-def write_alpha_file(directory, alphas, filling):
+def write_alpha_file(directory: str, alphas: List[float], filling: List[float]):
     a_filled = [a for a, f in zip(alphas, filling) if f]
     a_empty = [a for a, f in zip(alphas, filling) if not f]
     for alphas, suffix in zip([a_filled, a_empty], ['', '_empty']):
@@ -27,7 +54,7 @@ def write_alpha_file(directory, alphas, filling):
                            for i, a in enumerate(alphas)])
 
 
-def read_alpha_file(directory):
+def read_alpha_file(directory: str) -> List[float]:
     alphas = []
     for suffix in ['', '_empty']:
         fname = f'{directory}/file_alpharef{suffix}.txt'
@@ -40,7 +67,7 @@ def read_alpha_file(directory):
     return alphas
 
 
-def read_kpoints_block(calc, dct):
+def read_kpoints_block(calc: Calculator, dct: dict):
     if dct['kind'] == 'gamma':
         kpts = None
         koffset = None
@@ -56,12 +83,13 @@ def read_kpoints_block(calc, dct):
     return
 
 
-def read_kpath(calc, kpath):
+def read_kpath(calc: Calculator, kpath: Union[str, List[Tuple[float, float, float, int]]]):
     calc.atoms.cell.pbc = True
     if isinstance(kpath, str):
         # Interpret kpath as a string of points in the BZ
         calc.parameters['kpath'] = bandpath(kpath, calc.atoms.cell, npoints=len(kpath) * 10 - 9)
     else:
+        # Interpret bandpath as using PW syntax (https://www.quantum-espresso.org/Doc/INPUT_PW.html#idm1290)
         kpts = []
         for k1, k2 in zip(kpath[:-1], kpath[1:]):
             # Remove the weights, storing the weight of k1
@@ -76,11 +104,11 @@ def read_kpath(calc, kpath):
         calc.parameters['kpath'] = BandPath(calc.atoms.cell, kpts)
 
 
-def read_atomic_species(calc, dct):
+def read_atomic_species(calc: Calculator, dct: dict):
     calc.parameters['pseudopotentials'] = {l[0]: l[2] for l in dct['species']}
 
 
-def read_atomic_positions(calc, dct):
+def read_atomic_positions(calc: Calculator, dct: dict):
 
     pos_array = np.array(dct['positions'])
     labels = pos_array[:, 0]
@@ -108,7 +136,7 @@ def read_atomic_positions(calc, dct):
     calc.atoms.set_array('labels', labels)
 
 
-def read_cell_parameters(calc, dct):
+def read_cell_parameters(calc: Calculator, dct: dict):
     cell = dct.get('vectors', None)
     units = dct.get('units', None)
     if cell is None and units in [None, 'alat']:
@@ -128,7 +156,7 @@ def read_cell_parameters(calc, dct):
 print_call_end = '\n'
 
 
-def indented_print(text='', indent=0, **kwargs):
+def indented_print(text: str = '', indent: int = 0, **kwargs):
     global print_call_end
     for substring in text.split('\n'):
         if print_call_end == '\n':

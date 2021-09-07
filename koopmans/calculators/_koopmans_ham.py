@@ -9,7 +9,7 @@ Written by Edward Linscott Feb 2021
 import numpy as np
 from ase.calculators.espresso import KoopmansHam
 from ase.io.espresso import koopmans_ham as kch_io
-from koopmans import io, utils
+from koopmans import utils
 from ._utils import KCWannCalculator, qe_bin_directory
 from koopmans.commands import ParallelCommand
 
@@ -39,7 +39,7 @@ class KoopmansHamCalculator(KCWannCalculator):
         # duplicated results for spin up then spin down
         alphas = self.results['alphas']
         filling = [True for _ in range(len(alphas))]
-        io.write_alpha_file(self.directory, alphas, filling)
+        utils.write_alpha_file(self.directory, alphas, filling)
 
     def get_k_point_weights(self):
         utils.warn('Need to properly define k-point weights')

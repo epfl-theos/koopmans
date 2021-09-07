@@ -2,7 +2,7 @@ import os
 from ase.calculators.calculator import CalculationFailed
 from koopmans import utils
 from koopmans.calculators import EnvironCalculator
-from koopmans.workflows.generic import Workflow
+from ._generic import Workflow
 
 '''
 Workflow for performing delta SCF PBE calculations using pw.x --environ

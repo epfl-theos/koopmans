@@ -1,18 +1,12 @@
 import os
 from glob import glob
 from typing import Union, List, Type
-from ._utils import ExtendedCalculator
-from ._koopmans_cp import KoopmansCPCalculator
-from ._pw import PWCalculator
-from ._wannier90 import Wannier90Calculator
-from ._pw2wannier import PW2WannierCalculator
-from ._ui import UnfoldAndInterpolateCalculator
-from ._wann2kc import Wann2KCCalculator
-from ._koopmans_screen import KoopmansScreenCalculator
-from ._koopmans_ham import KoopmansHamCalculator
+from koopmans.calculators import ExtendedCalculator, KoopmansCPCalculator, PWCalculator, Wannier90Calculator, \
+    PW2WannierCalculator, UnfoldAndInterpolateCalculator, Wann2KCCalculator, KoopmansScreenCalculator, \
+    KoopmansHamCalculator
 
 
-def load(filenames: Union[str, List[str]]) -> ExtendedCalculator:
+def read_calculator(filenames: Union[str, List[str]]) -> ExtendedCalculator:
 
     if not isinstance(filenames, list):
         filenames = [filenames]

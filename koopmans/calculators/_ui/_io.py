@@ -11,7 +11,7 @@ from datetime import datetime
 from ase.atoms import Atoms
 from ase.calculators.calculator import FileIOCalculator
 from ase.spectrum.band_structure import BandStructure
-from koopmans import io, utils
+from koopmans import utils
 from ._utils import latt_vect, crys_to_cart, extract_hr
 
 
@@ -415,7 +415,7 @@ def write_input_file(self):
             bigdct['setup'] = {'kpoints': {'kpath': kpath.path}}
 
             # We also need to provide a cell so the explicit kpath can be reconstructed from the string alone
-            bigdct['setup']['cell_parameters'] = io.construct_cell_parameters_block(self.calc)
+            bigdct['setup']['cell_parameters'] = utils.construct_cell_parameters_block(self.calc)
 
             json.dump(bigdct, fd, indent=2)
 
@@ -442,15 +442,15 @@ def read_input_file(self, input_file=None):
 
         # Load the cell if it is provided
         if 'setup' in bigdct:
-            cell = io.read_cell_parameters(None, bigdct['setup'].get('cell_parameters', {}))
+            cell = utils.read_cell_parameters(None, bigdct['setup'].get('cell_parameters', {}))
             if cell:
                 atoms.cell = cell
             kpath = bigdct['setup'].get('kpoints', {}).get('kpath', None)
             if kpath:
-                io.read_kpath(atoms.calc, kpath)
+                utils.read_kpath(atoms.calc, kpath)
 
         # Parse the UI dict
-        return io.read_ui_dict(bigdct['ui'], atoms).calc
+        return read_ui_dict(bigdct['ui'], atoms)
 
 
 def read_output_file(self, output_file=None):
@@ -473,5 +473,27 @@ def read_output_file(self, output_file=None):
     with open(output_file, 'r') as f:
         flines = f.readlines()
     calc.results = {'job done': any(['ALL DONE' in line for line in flines])}
+
+    return calc
+
+def read_ui_dict(dct, generic_atoms):
+    # Use a generic calculator with no command
+    atoms = copy.deepcopy(generic_atoms)
+    calc = atoms.calc
+    calc.atoms.calc = calc
+
+    calc.command = ''
+
+    # Overwrite the parameters with the provided JSON dict
+    calc.parameters = utils.parse_dict(dct)
+
+    # Use kpath specified in the setup block if it is not present in the ui dict
+    setup_kpath = generic_atoms.calc.parameters.get('kpath', None)
+    if 'kpath' not in dct and setup_kpath:
+        calc.parameters['kpath'] = setup_kpath
+
+    # Convert units of alat_sc
+    if 'alat_sc' in calc.parameters:
+        calc.parameters['alat_sc'] *= utils.units.Bohr
 
     return calc

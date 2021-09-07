@@ -12,8 +12,8 @@ import copy
 import numpy as np
 from ase.calculators.calculator import CalculationFailed
 from ase.calculators.espresso import EspressoWithBandstructure
-from koopmans import io, utils
-from koopmans.calculators import EspressoCalculator, UnfoldAndInterpolateCalculator, KoopmansHamCalculator, KoopmansCPCalculator
+from koopmans import utils
+import koopmans.calculators as calculators
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.bands import Bands
 
@@ -303,7 +303,7 @@ class Workflow(object):
                     return
 
         # Write out screening parameters to file
-        if getattr(qe_calc, 'do_orbdep', False) or isinstance(qe_calc, KoopmansHamCalculator):
+        if getattr(qe_calc, 'do_orbdep', False) or isinstance(qe_calc, calculators.KoopmansHamCalculator):
             qe_calc.write_alphas()
 
         if not self.silent:
@@ -320,7 +320,7 @@ class Workflow(object):
             self.print(' done')
 
         # Check spin-up and spin-down eigenvalues match
-        if 'eigenvalues' in qe_calc.results and isinstance(qe_calc, KoopmansCPCalculator):
+        if 'eigenvalues' in qe_calc.results and isinstance(qe_calc, calculators.KoopmansCPCalculator):
             if qe_calc.is_converged() and qe_calc.do_outerloop and qe_calc.nspin == 2 \
                     and qe_calc.tot_magnetization == 0 and not qe_calc.fixed_state \
                     and len(qe_calc.results['eigenvalues']) > 0:
@@ -353,13 +353,13 @@ class Workflow(object):
             qe_calc.results = old_calc.results
 
             # Load bandstructure if present, too
-            if isinstance(qe_calc, UnfoldAndInterpolateCalculator):
+            if isinstance(qe_calc, calculators.UnfoldAndInterpolateCalculator):
                 qe_calc.read_bands()
                 # If the band structure file does not exist, we must re-run
                 if 'band structure' not in qe_calc.results:
                     return False
             elif isinstance(qe_calc.calc, EspressoWithBandstructure):
-                if not isinstance(qe_calc, EspressoCalculator) or qe_calc.calculation == 'bands':
+                if not isinstance(qe_calc, calculators.EspressoCalculator) or qe_calc.calculation == 'bands':
                     qe_calc.calc.band_structure()
 
             self.all_calcs.append(qe_calc)
@@ -368,7 +368,7 @@ class Workflow(object):
 
     def print(self, text='', style='body', **kwargs):
         if style == 'body':
-            io.indented_print(str(text), self.print_indent + 1, **kwargs)
+            utils.indented_print(str(text), self.print_indent + 1, **kwargs)
         else:
             if style == 'heading':
                 underline = '='
@@ -377,9 +377,9 @@ class Workflow(object):
             else:
                 raise ValueError(f'Invalid choice "{style}" for style; must be heading/subheading/body')
             assert kwargs.get('end', '\n') == '\n'
-            io.indented_print()
-            io.indented_print(str(text), self.print_indent, **kwargs)
-            io.indented_print(underline * len(text), self.print_indent, **kwargs)
+            utils.indented_print()
+            utils.indented_print(str(text), self.print_indent, **kwargs)
+            utils.indented_print(underline * len(text), self.print_indent, **kwargs)
 
     def print_qc_keyval(self, key, value, calc=None):
         '''

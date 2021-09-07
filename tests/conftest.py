@@ -5,10 +5,10 @@ Written by Edward Linscott, Dec 2020
 '''
 
 import os
-import copy
 import json
 import numpy as np
 import pytest
+from ase.dft.kpoints import BandPath
 from koopmans.calculators import Wannier90Calculator, PW2WannierCalculator, PWCalculator, KoopmansCPCalculator, \
     EnvironCalculator, UnfoldAndInterpolateCalculator, Wann2KCCalculator, KoopmansScreenCalculator, \
     KoopmansHamCalculator
@@ -16,8 +16,6 @@ from koopmans.io import read
 from koopmans.io import read_kwf as read_encoded_json
 from koopmans.io import write_kwf as write_encoded_json
 from koopmans import utils
-from ase import io as ase_io
-from ase.dft.kpoints import BandPath
 
 
 # A hard and a soft tolerance for checking floats
@@ -587,56 +585,56 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
 
             return qe_calc.is_complete()
 
-    from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
+    from koopmans.workflows import WannierizeWorkflow
 
     class MockWannierizeWorkflow(MockWorkflow, WannierizeWorkflow):
         pass
 
-    monkeypatch.setattr('koopmans.workflows.wf_with_w90.WannierizeWorkflow', MockWannierizeWorkflow)
+    monkeypatch.setattr('koopmans.workflows.WannierizeWorkflow', MockWannierizeWorkflow)
 
-    from koopmans.workflows.folding import FoldToSupercellWorkflow
+    from koopmans.workflows import FoldToSupercellWorkflow
 
     class MockFoldToSupercellWorkflow(MockWorkflow, FoldToSupercellWorkflow):
         pass
 
-    monkeypatch.setattr('koopmans.workflows.folding.FoldToSupercellWorkflow', MockFoldToSupercellWorkflow)
+    monkeypatch.setattr('koopmans.workflows.FoldToSupercellWorkflow', MockFoldToSupercellWorkflow)
 
-    from koopmans.workflows.kc_with_cp import KoopmansCPWorkflow
+    from koopmans.workflows import KoopmansDSCFWorkflow
 
-    class MockKoopmansCPWorkflow(MockWorkflow, KoopmansCPWorkflow):
+    class MockKoopmansDSCFWorkflow(MockWorkflow, KoopmansDSCFWorkflow):
         pass
 
-    monkeypatch.setattr('koopmans.workflows.kc_with_cp.KoopmansCPWorkflow', MockKoopmansCPWorkflow)
+    monkeypatch.setattr('koopmans.workflows.KoopmansDSCFWorkflow', MockKoopmansDSCFWorkflow)
 
-    from koopmans.workflows.dft_with_cp import DFTCPWorkflow
+    from koopmans.workflows import DFTCPWorkflow
 
     class MockDFTCPWorkflow(MockWorkflow, DFTCPWorkflow):
         pass
 
-    monkeypatch.setattr('koopmans.workflows.dft_with_cp.DFTCPWorkflow', MockDFTCPWorkflow)
+    monkeypatch.setattr('koopmans.workflows.DFTCPWorkflow', MockDFTCPWorkflow)
 
-    from koopmans.workflows.dft_with_pw import DFTPWWorkflow
+    from koopmans.workflows import DFTPWWorkflow
 
     class MockDFTPWWorkflow(MockWorkflow, DFTPWWorkflow):
         pass
 
-    monkeypatch.setattr('koopmans.workflows.dft_with_pw.DFTPWWorkflow', MockDFTPWWorkflow)
+    monkeypatch.setattr('koopmans.workflows.DFTPWWorkflow', MockDFTPWWorkflow)
 
-    from koopmans.workflows.pbe_dscf_with_pw import DeltaSCFWorkflow
+    from koopmans.workflows import DeltaSCFWorkflow
 
     class MockDeltaSCFWorkflow(MockWorkflow, DeltaSCFWorkflow):
         pass
 
-    monkeypatch.setattr('koopmans.workflows.pbe_dscf_with_pw.DeltaSCFWorkflow', MockDeltaSCFWorkflow)
+    monkeypatch.setattr('koopmans.workflows.DeltaSCFWorkflow', MockDeltaSCFWorkflow)
 
-    from koopmans.workflows.kc_with_pw import KoopmansPWWorkflow
+    from koopmans.workflows import KoopmansDFPTWorkflow
 
-    class MockKoopmansPWWorkflow(MockWorkflow, KoopmansPWWorkflow):
+    class MockKoopmansDFPTWorkflow(MockWorkflow, KoopmansDFPTWorkflow):
         def plot_bandstructure(self):
             # We don't want the mock test to generate files (nor does it have access to the band_structure result)
             return
 
-    monkeypatch.setattr('koopmans.workflows.kc_with_pw.KoopmansPWWorkflow', MockKoopmansPWWorkflow)
+    monkeypatch.setattr('koopmans.workflows.KoopmansDFPTWorkflow', MockKoopmansDFPTWorkflow)
 
     # Monkeypatch find_executable, since we don't want to actually try and find the program
     def mock_find_executable(program):

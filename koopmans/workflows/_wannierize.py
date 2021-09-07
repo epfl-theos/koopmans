@@ -13,7 +13,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from koopmans import utils
-from koopmans.workflows.generic import Workflow
+from ._generic import Workflow
 
 
 class WannierizeWorkflow(Workflow):

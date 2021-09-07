@@ -6,20 +6,18 @@ Written by Edward Linscott Feb 2021
 
 """
 
+from ._generic import Workflow
+from koopmans.calculators import PWCalculator, Wann2KCCalculator, KoopmansScreenCalculator, KoopmansHamCalculator
+from koopmans.bands import Bands
+from koopmans import utils
 import os
 import numpy as np
 import copy
 import matplotlib
-from koopmans import utils, io
-from koopmans.bands import Bands
-from koopmans.calculators import PWCalculator, Wann2KCCalculator, KoopmansScreenCalculator, KoopmansHamCalculator
-from koopmans.workflows.generic import Workflow
-from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
-from koopmans.workflows.dft_with_pw import DFTPWWorkflow
 matplotlib.use('Agg')
 
 
-class KoopmansPWWorkflow(Workflow):
+class KoopmansDFPTWorkflow(Workflow):
 
     def __init__(self, workflow_settings, calcs_dct):
         super().__init__(workflow_settings, calcs_dct)
@@ -107,6 +105,9 @@ class KoopmansPWWorkflow(Workflow):
         '''
         This function runs the workflow from start to finish
         '''
+
+        # Import these here so that if they have been monkey-patched, we get the monkey-patched version
+        from koopmans.workflows import DFTPWWorkflow, WannierizeWorkflow
 
         if self.periodic:
             # Run PW and Wannierisation

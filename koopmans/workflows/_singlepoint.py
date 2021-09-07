@@ -10,10 +10,7 @@ Converted to a workflow object Nov 2020
 import os
 import copy
 from koopmans import utils
-from koopmans.workflows.generic import Workflow
-from koopmans.workflows.kc_with_pw import KoopmansPWWorkflow
-from koopmans.workflows.kc_with_cp import KoopmansCPWorkflow
-from koopmans.workflows.dft_with_cp import DFTCPWorkflow
+from ._generic import Workflow
 
 
 load_results_from_output = True
@@ -23,8 +20,11 @@ class SinglepointWorkflow(Workflow):
 
     def run(self):
 
+        # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
+        from koopmans.workflows import KoopmansDFPTWorkflow, KoopmansDSCFWorkflow, DFTCPWorkflow
+
         if self.method == 'dfpt':
-            workflow = KoopmansPWWorkflow(self.settings, self.master_calcs)
+            workflow = KoopmansDFPTWorkflow(self.settings, self.master_calcs)
             self.run_subworkflow(workflow)
 
         elif self.functional == 'all':
@@ -57,7 +57,7 @@ class SinglepointWorkflow(Workflow):
 
                 # Create a KC workflow for this particular functional
                 master_calcs_local = copy.deepcopy(self.master_calcs)
-                kc_workflow = KoopmansCPWorkflow(local_workflow_settings, master_calcs_local)
+                kc_workflow = KoopmansDSCFWorkflow(local_workflow_settings, master_calcs_local)
 
                 # We only need to do the smooth interpolation the first time (i.e. for KI)
                 if functional != 'ki':
@@ -89,7 +89,7 @@ class SinglepointWorkflow(Workflow):
         else:
             # self.functional != all and self.method != 'dfpt'
             if self.functional in ['ki', 'pkipz', 'kipz']:
-                workflow = KoopmansCPWorkflow(self.settings, self.master_calcs)
+                workflow = KoopmansDSCFWorkflow(self.settings, self.master_calcs)
             else:
                 workflow = DFTCPWorkflow(self.settings, self.master_calcs)
 

@@ -13,15 +13,13 @@ import numpy as np
 import pandas as pd
 from ase.dft.dos import DOS
 from ase.spectrum.band_structure import BandStructure
-from koopmans import io, utils
+from koopmans import utils
 from koopmans.bands import Bands
 from koopmans import calculators
-from koopmans.workflows.generic import Workflow
-from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
-from koopmans.workflows.folding import FoldToSupercellWorkflow
+from ._generic import Workflow
 
 
-class KoopmansCPWorkflow(Workflow):
+class KoopmansDSCFWorkflow(Workflow):
 
     def __init__(self, workflow_settings, calcs_dct):
         super().__init__(workflow_settings, calcs_dct)
@@ -85,7 +83,7 @@ class KoopmansCPWorkflow(Workflow):
         This routine reads in the contents of file_alpharef.txt and file_alpharef_empty.txt and
         stores the result in self.bands.alphas
 
-        Note that io.read_alpha_file provides a flattened list of alphas so we must exclude
+        Note that utils.read_alpha_file provides a flattened list of alphas so we must exclude
         duplicates if calc.nspin == 2
         '''
 
@@ -96,7 +94,7 @@ class KoopmansCPWorkflow(Workflow):
         else:
             i_alphas = list((range(0, calc.nelec // 2 + calc.empty_states_nbnd)))
 
-        alphas = io.read_alpha_file(directory)
+        alphas = utils.read_alpha_file(directory)
         return [a for i, a in enumerate(alphas) if i in i_alphas]
 
     def run(self):
@@ -169,6 +167,9 @@ class KoopmansCPWorkflow(Workflow):
             self.perform_postprocessing()
 
     def perform_initialisation(self):
+        # Import these here so that if these have been monkey-patched, we get the monkey-patched version
+        from koopmans.workflows import WannierizeWorkflow, FoldToSupercellWorkflow
+
         # The final calculation during the initialisation, regardless of the workflow settings, should write to ndw = 51
         ndw_final = 51
 
@@ -591,6 +592,9 @@ class KoopmansCPWorkflow(Workflow):
             self.run_calculator(calc)
 
     def perform_postprocessing(self):
+        # Import these here so that if these have been monkey-patched, we get the monkey-patched version
+        from koopmans.workflows import WannierizeWorkflow
+
         if self.master_calcs['ui'].do_smooth_interpolation:
             factors = self.master_calcs['ui'].smooth_int_factor
             # Run the PW + W90 for a much larger grid
@@ -907,7 +911,7 @@ class KoopmansCPWorkflow(Workflow):
     def new_ui_calculator(self, calc_presets, **kwargs):
 
         valid_calc_presets = ['occ', 'emp', 'merge']
-        assert calc_presets in valid_calc_presets, 'In KoopmansCPWorkflow.new_ui_calculator() calc_presets must be ' \
+        assert calc_presets in valid_calc_presets, 'In KoopmansDSCFWorkflow.new_ui_calculator() calc_presets must be ' \
             '/'.join([f'"{s}"' for s in valid_calc_presets]) + ', but you have tried to set it equal to {calc_presets}'
 
         if calc_presets == 'merge':

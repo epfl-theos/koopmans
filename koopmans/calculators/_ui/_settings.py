@@ -9,7 +9,7 @@ Integrated within koopmans by Edward Linscott Jan 2021
 from typing import List
 from ase.dft.kpoints import BandPath
 import numpy as np
-from koopmans import utils, io
+from koopmans import utils
 
 valid_settings: List[utils.Setting] = [
     utils.Setting('kc_ham_file',
@@ -107,7 +107,7 @@ def load_defaults(self):
             self.kpath = 'G'
     if isinstance(self.kpath, str):
         # If kpath is provided as a string, convert it to a BandPath first
-        io.read_kpath(self.calc, self.kpath)
+        utils.read_kpath(self.calc, self.kpath)
         self.kpath = self.calc.parameters.pop('kpath')
     assert isinstance(self.kpath, BandPath)
 

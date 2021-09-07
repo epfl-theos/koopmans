@@ -21,13 +21,13 @@ from ase.io.espresso.koopmans_cp import KEYS as kcp_keys
 from ase.io.wannier90 import Wannier90 as ASEWannier90
 from koopmans import utils
 from koopmans.pseudopotentials import set_up_pseudos, nelec_from_pseudos
-from ._utils import read_atomic_species, read_atomic_positions, read_cell_parameters, read_kpoints_block, read_kpath, \
+from koopmans import calculators
+from koopmans import workflows
+from koopmans.utils import read_atomic_species, read_atomic_positions, read_cell_parameters, read_kpoints_block, read_kpath, \
     construct_cell_parameters_block
 
 
 def read_w90_dict(dct, generic_atoms):
-
-    from koopmans import calculators
 
     # Setting up ASE calc object, copying over the generic atoms object and non-kcp-specific settings
     calc = ASEWannier90()
@@ -45,7 +45,7 @@ def read_w90_dict(dct, generic_atoms):
             raise ValueError('Please specify {k} in the "setup" block using kcp syntax rather than in the "w90" block')
 
     # Read in parameters
-    calc.parameters.update(read_dict(dct))
+    calc.parameters.update(utils.parse_dict(dct))
 
     # Return koopmans-type calculator object rather than ASE calculator
     return calculators.Wannier90Calculator(calc)
@@ -88,7 +88,7 @@ def read_pw2wannier_dict(dct, generic_atoms):
     # Setting up ASE calc object
     calc = ASEPW2Wannier()
 
-    calc.parameters['inputpp'] = read_dict(dct)
+    calc.parameters['inputpp'] = utils.parse_dict(dct)
 
     # Attaching an atoms object (though pw2wannier doesn't need this information,
     # ASE will complain if it's missing)
@@ -313,28 +313,7 @@ def read_pw_dict(dct, generic_atoms):
 
 
 def read_ui_dict(dct, generic_atoms):
-
-    from koopmans import calculators
-
-    # For UI, just use a generic calculator with no command
-    atoms = copy.deepcopy(generic_atoms)
-    calc = atoms.calc
-    calc.atoms.calc = calc
-
-    calc.command = ''
-
-    # Overwrite the parameters with the provided JSON dict
-    calc.parameters = read_dict(dct)
-
-    # Use kpath specified in the setup block if it is not present in the ui dict
-    setup_kpath = generic_atoms.calc.parameters.get('kpath', None)
-    if 'kpath' not in dct and setup_kpath:
-        calc.parameters['kpath'] = setup_kpath
-
-    # Convert units of alat_sc
-    if 'alat_sc' in calc.parameters:
-        calc.parameters['alat_sc'] *= utils.units.Bohr
-
+    calc = calculators.read_ui_dict(dct, generic_atoms)
     return calculators.UnfoldAndInterpolateCalculator(calc)
 
 
@@ -394,30 +373,6 @@ def read_kc_wann_dict(dct, generic_atoms):
     return calcs
 
 
-def read_dict(dct):
-    '''
-
-    Reads in a dict, formatting the values appropriately if they are not already
-
-    '''
-    settings = {}
-    for k, v in dct.items():
-        # Deal with bools separately since JSON strictly only will interpret
-        # 'false' as False, while 'False' will be left as a string and
-        # any statement to the effect of 'if param' will evaluate to True if
-        # param = 'False'
-        if isinstance(v, str) and v.lower() in ['f', 'false']:
-            settings[k] = False
-        elif isinstance(v, str) and v.lower() in ['t', 'true']:
-            settings[k] = True
-        else:
-            try:
-                settings[k] = json_ext.loads(v)
-            except (TypeError, json_ext.decoder.JSONDecodeError) as e:
-                settings[k] = v
-    return settings
-
-
 def update_nested_dict(dct_to_update, second_dct):
     for k, v in second_dct.items():
         if k in dct_to_update and isinstance(v, dict):
@@ -434,13 +389,6 @@ def read_json(fd, override={}):
     Values in the JSON file can be overridden by values provided in the override argument
 
     '''
-
-    from koopmans.calculators import KoopmansCPCalculator
-    from koopmans.workflows.singlepoint import SinglepointWorkflow
-    from koopmans.workflows.convergence import ConvergenceWorkflow
-    from koopmans.workflows.pbe_dscf_with_pw import DeltaSCFWorkflow
-    from koopmans.workflows.ui import UnfoldAndInterpolateWorkflow
-    from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
 
     if isinstance(fd, str):
         fd = open(fd, 'r')
@@ -489,7 +437,7 @@ def read_json(fd, override={}):
                              'valid options are workflow/' + '/'.join(readers.keys()))
 
     # Loading workflow settings
-    workflow_settings = read_dict(bigdct.get('workflow', {}))
+    workflow_settings = utils.parse_dict(bigdct.get('workflow', {}))
     task_name = workflow_settings.pop('task', 'singlepoint')
 
     # Load default values
@@ -525,15 +473,15 @@ def read_json(fd, override={}):
 
     name = fd.name.replace('.json', '')
     if task_name == 'singlepoint':
-        workflow = SinglepointWorkflow(workflow_settings, calcs_dct, name)
+        workflow = workflows.SinglepointWorkflow(workflow_settings, calcs_dct, name)
     elif task_name == 'convergence':
-        workflow = ConvergenceWorkflow(workflow_settings, calcs_dct, name)
+        workflow = workflows.ConvergenceWorkflow(workflow_settings, calcs_dct, name)
     elif task_name in ['wannierize', 'wannierise']:
-        workflow = WannierizeWorkflow(workflow_settings, calcs_dct, name, check_wannierisation=True)
+        workflow = workflows.WannierizeWorkflow(workflow_settings, calcs_dct, name, check_wannierisation=True)
     elif task_name == 'environ_dscf':
-        workflow = DeltaSCFWorkflow(workflow_settings, calcs_dct, name)
+        workflow = workflows.DeltaSCFWorkflow(workflow_settings, calcs_dct, name)
     elif task_name == 'ui':
-        workflow = UnfoldAndInterpolateWorkflow(workflow_settings, calcs_dct, name)
+        workflow = workflows.UnfoldAndInterpolateWorkflow(workflow_settings, calcs_dct, name)
     else:
         raise ValueError('Invalid task name "{task_name}"')
 
@@ -547,9 +495,6 @@ def write_json(workflow, filename):
 
     '''
 
-    from koopmans.workflows.generic import valid_settings
-    from koopmans.calculators import PWCalculator, KoopmansCPCalculator
-
     fd = open(filename, 'w')
 
     calcs = workflow.master_calcs
@@ -561,7 +506,7 @@ def write_json(workflow, filename):
     for k, v in workflow.settings.items():
         if v is None:
             continue
-        setting = [s for s in valid_settings if s.name == k][0]
+        setting = [s for s in workflows.valid_settings if s.name == k][0]
         if v != setting.default:
             bigdct['workflow'][k] = v
 
@@ -604,7 +549,7 @@ def write_json(workflow, filename):
                                                      for key, val in calc.parameters.pseudopotentials.items()]}
 
     for code, calc in calcs.items():
-        if isinstance(calc, (KoopmansCPCalculator, PWCalculator)):
+        if isinstance(calc, (calculators.KoopmansCPCalculator, calculators.PWCalculator)):
             bigdct[code] = {}
             calc = calc.calc
 

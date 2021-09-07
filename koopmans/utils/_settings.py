@@ -1,128 +1,13 @@
 '''
 
-utils module for koopmans
+Functions for koopmans.utils for dealing with settings
 
 Written by Edward Linscott May 2020
 
 '''
 
-import os
-import sys
-from typing import Union, NamedTuple, Tuple, Type, Any
-import warnings
-import traceback
-import subprocess
-import contextlib
-from ase.units import create_units
-
-
-# Quantum Espresso -- and koopmans -- uses CODATA 2006 internally
-units = create_units('2006')
-
-
-def _warning(message, category=UserWarning, filename='', lineno=-1, file=None, line=None):
-    '''
-    Monkey-patching warnings.warn
-    '''
-    print(f'{category.__name__}: {message}')
-
-
-def _warn_with_traceback(message, category, filename, lineno, file=None, line=None):
-
-    log = file if hasattr(file, 'write') else sys.stderr
-    traceback.print_stack(file=log)
-    log.write(warnings.formatwarning(message, category, filename, lineno, line))
-
-
-# warnings.showwarning = _warn_with_traceback
-warnings.showwarning = _warning
-
-
-def warn(message):
-    '''
-    Allowing the monkey-patched warnings.warn to be imported as utils.warn
-    '''
-    warnings.warn(message)
-
-
-def system_call(command, check_ierr=True):
-    '''
-    Make a system call and check the exit code
-    '''
-    ierr = subprocess.call(command, shell=True)
-    if ierr > 0 and check_ierr:
-        raise OSError(f'{command} exited with exit code {ierr}')
-
-
-def mkdir(path):
-    # Creates a (possibly nested) directory
-    relpath = os.path.relpath(path, os.getcwd())
-    split_relpath = relpath.split('/')
-    for i in range(len(split_relpath)):
-        subdir = '/'.join(split_relpath[:i + 1])
-        if not os.path.isdir(subdir):
-            system_call(f'mkdir {subdir}')
-
-
-@contextlib.contextmanager
-def chdir(path):
-    # Allows for the context "with chdir(path)". All code within this
-    # context will be executed in the directory "path"
-    this_dir = os.getcwd()
-
-    # Create path if it does not exist
-    mkdir(path)
-
-    # Move to the directory
-    os.chdir(path)
-    try:
-        yield
-    finally:
-        # Return to the original directory
-        os.chdir(this_dir)
-
-
-def find_executable(program):
-    # Equivalent to the unix command "which"
-    def is_exe(fpath):
-        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-
-    if program[0] == '~':
-        program = program.replace('~', os.environ["HOME"], 1)
-
-    fpath, _ = os.path.split(program)
-    if fpath:
-        if is_exe(program):
-            return program
-    else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            exe_file = os.path.join(path, program)
-            if is_exe(exe_file):
-                return exe_file
-
-    return None
-
-
-def calc_diff(calcs, silent=False):
-    # Returns the differences in the settings of a list of calculators
-
-    # If calcs is a dict, convert it to a list (we only need the values)
-    if isinstance(calcs, dict):
-        calcs = calcs.values()
-
-    diffs = []
-
-    settings = [c._settings for c in calcs]
-
-    keys = set([k for s in settings for k in s.keys()])
-    for key in sorted(keys):
-        vals = [s.get(key, None) for s in settings]
-        if len(set(vals)) > 1:
-            if not silent:
-                print(f'{key}: ' + ', '.join(map(str, vals)))
-            diffs.append(key)
-
-    return diffs
+from typing import Union, Type, Tuple, NamedTuple
+from ._units import units
 
 
 class Setting(NamedTuple):
