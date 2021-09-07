@@ -2,13 +2,10 @@
 
 import glob
 import os
-import numpy as np
-import json
-from ase.spectrum.band_structure import BandStructure
-from koopmans import io, utils
-from koopmans.calculators import load as load_calculator
-from koopmans.io.jsonio import write_json as write_encoded_json
-from koopmans.io.jsonio import read_json as read_encoded_json
+from koopmans import utils
+from koopmans.io import read
+from koopmans.io import write_json as write_encoded_json
+from koopmans.io import read_json as read_encoded_json
 
 readin_exceptions = {''}
 
@@ -33,7 +30,7 @@ if __name__ == '__main__':
     for fname in fnames:
         print(fname)
         fname_without_ext, _ = fname.lstrip('./').rsplit('.', 1)
-        calc = load_calculator(fname_without_ext)
+        calc = read(fname_without_ext)
         if fname_without_ext in data:
             raise ValueError(f'Encountered a duplicate for {fname}')
 
