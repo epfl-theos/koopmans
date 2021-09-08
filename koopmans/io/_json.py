@@ -526,15 +526,15 @@ def read_json(fd, override={}):
 
     name = fd.name.replace('.json', '')
     if task_name == 'singlepoint':
-        workflow = SinglepointWorkflow(workflow_settings, calcs_dct, name)
+        workflow = SinglepointWorkflow(workflow_settings, calcs_dct, name=name)
     elif task_name == 'convergence':
-        workflow = ConvergenceWorkflow(workflow_settings, calcs_dct, name)
+        workflow = ConvergenceWorkflow(workflow_settings, calcs_dct, name=name)
     elif task_name in ['wannierize', 'wannierise']:
-        workflow = WannierizeWorkflow(workflow_settings, calcs_dct, name, check_wannierisation=True)
+        workflow = WannierizeWorkflow(workflow_settings, calcs_dct, name=name, check_wannierisation=True)
     elif task_name == 'environ_dscf':
-        workflow = DeltaSCFWorkflow(workflow_settings, calcs_dct, name)
+        workflow = DeltaSCFWorkflow(workflow_settings, calcs_dct, name=name)
     elif task_name == 'ui':
-        workflow = UnfoldAndInterpolateWorkflow(workflow_settings, calcs_dct, name)
+        workflow = UnfoldAndInterpolateWorkflow(workflow_settings, calcs_dct, name=name)
     else:
         raise ValueError('Invalid task name "{task_name}"')
 
