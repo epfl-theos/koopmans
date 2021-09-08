@@ -25,8 +25,8 @@ from koopmans.workflows.folding import FoldToSupercellWorkflow
 
 class KoopmansCPWorkflow(Workflow):
 
-    def __init__(self, workflow_settings, calcs_dct):
-        super().__init__(workflow_settings, calcs_dct)
+    def __init__(self, workflow_settings=None, calcs_dct=None, dct=None):
+        super().__init__(workflow_settings, calcs_dct, dct=dct)
 
         if 'kcp' not in self.master_calcs:
             raise ValueError(

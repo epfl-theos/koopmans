@@ -118,7 +118,7 @@ valid_settings = [
 
 class Workflow(object):
 
-    def __init__(self, workflow_settings=None, calcs_dct=None, name=None, dct={}):
+    def __init__(self, workflow_settings=None, calcs_dct=None, dct={}, name=None):
         self.valid_settings = valid_settings
         if dct:
             assert workflow_settings is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, '
