@@ -24,8 +24,8 @@ matplotlib.use('Agg')
 
 class KoopmansPWWorkflow(Workflow):
 
-    def __init__(self, workflow_settings, calcs_dct):
-        super().__init__(workflow_settings, calcs_dct)
+    def __init__(self, workflow_settings=None, calcs_dct=None, dct=None):
+        super().__init__(workflow_settings, calcs_dct, dct=dct)
 
         # Check the consistency of keywords
         if self.functional != 'ki':
