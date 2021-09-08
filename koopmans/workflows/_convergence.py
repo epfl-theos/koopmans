@@ -11,6 +11,7 @@ import os
 import copy
 import numpy as np
 import itertools
+from typing import Dict, Union
 from koopmans import utils
 from ._generic import Workflow
 from ._singlepoint import SinglepointWorkflow
@@ -18,7 +19,7 @@ from ._singlepoint import SinglepointWorkflow
 
 class ConvergenceWorkflow(Workflow):
 
-    def run(self, initial_depth=3):
+    def run(self, initial_depth: int=3) -> Dict[str, Union[float, int]]:
 
         if 'kcp' in self.master_calcs:
             kcp_master_calc = self.master_calcs['kcp']

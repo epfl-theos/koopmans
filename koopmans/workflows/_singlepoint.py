@@ -18,7 +18,7 @@ load_results_from_output = True
 
 class SinglepointWorkflow(Workflow):
 
-    def run(self):
+    def run(self) -> None:
 
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
         from koopmans.workflows import KoopmansDFPTWorkflow, KoopmansDSCFWorkflow, DFTCPWorkflow

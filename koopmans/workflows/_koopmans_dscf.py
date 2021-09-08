@@ -10,6 +10,7 @@ Split off from workflow.py Oct 2020
 import os
 import copy
 import numpy as np
+from typing import Any, Dict, List, Optional, Tuple, Union
 import pandas as pd
 from ase.dft.dos import DOS
 from ase.spectrum.band_structure import BandStructure
@@ -21,7 +22,7 @@ from ._generic import Workflow
 
 class KoopmansDSCFWorkflow(Workflow):
 
-    def __init__(self, workflow_settings, calcs_dct):
+    def __init__(self, workflow_settings: Dict[str, Any], calcs_dct: Dict[str, calculators.ExtendedCalculator]) -> None:
         super().__init__(workflow_settings, calcs_dct)
 
         if 'kcp' not in self.master_calcs:
@@ -97,7 +98,7 @@ class KoopmansDSCFWorkflow(Workflow):
         alphas = utils.read_alpha_file(directory)
         return [a for i, a in enumerate(alphas) if i in i_alphas]
 
-    def run(self):
+    def run(self) -> None:
         '''
         This function runs the KI/KIPZ workflow from start to finish
 
@@ -166,7 +167,7 @@ class KoopmansDSCFWorkflow(Workflow):
             self.print(f'\nPostprocessing', style='heading')
             self.perform_postprocessing()
 
-    def perform_initialisation(self):
+    def perform_initialisation(self) -> None:
         # Import these here so that if these have been monkey-patched, we get the monkey-patched version
         from koopmans.workflows import WannierizeWorkflow, FoldToSupercellWorkflow
 
@@ -325,7 +326,7 @@ class KoopmansDSCFWorkflow(Workflow):
             save_prefix = f'{calc.outdir}/{calc.prefix}'
             utils.system_call(f'cp -r {save_prefix}_{calc.ndw}.save {save_prefix}_{ndw}.save')
 
-    def _overwrite_canonical_with_variational_orbitals(self, calc):
+    def _overwrite_canonical_with_variational_orbitals(self, calc: calculators.KoopmansCPCalculator) -> None:
         self.print('Overwriting the variational orbitals with Kohn-Sham orbitals')
         savedir = f'{calc.outdir}/{calc.prefix}_{calc.ndw}.save/K00001'
         utils.system_call(f'cp {savedir}/evc1.dat {savedir}/evc01.dat')
@@ -334,7 +335,7 @@ class KoopmansDSCFWorkflow(Workflow):
             utils.system_call(f'cp {savedir}/evc_empty1.dat {savedir}/evc0_empty1.dat')
             utils.system_call(f'cp {savedir}/evc_empty2.dat {savedir}/evc0_empty2.dat')
 
-    def perform_alpha_calculations(self):
+    def perform_alpha_calculations(self) -> None:
         # Set up directories
         if not os.path.isdir('calc_alpha'):
             utils.system_call('mkdir calc_alpha')
@@ -564,7 +565,7 @@ class KoopmansDSCFWorkflow(Workflow):
         else:
             self.print('Screening parameters have been determined but are not necessarily converged')
 
-    def perform_final_calculations(self):
+    def perform_final_calculations(self) -> None:
 
         directory = 'final'
         if not os.path.isdir(directory):
@@ -591,7 +592,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
             self.run_calculator(calc)
 
-    def perform_postprocessing(self):
+    def perform_postprocessing(self) -> None:
         # Import these here so that if these have been monkey-patched, we get the monkey-patched version
         from koopmans.workflows import WannierizeWorkflow
 
@@ -641,7 +642,7 @@ class KoopmansDSCFWorkflow(Workflow):
             with utils.chdir('postproc'):
                 calc.write_results()
 
-    def new_calculator(self, calc_type, calc_presets='dft_init', alphas=None, filling=None, **kwargs):
+    def new_calculator(self, calc_type: str, calc_presets: str = 'dft_init', alphas: Optional[Union[List[float], List[List[float]]]] = None, filling: Optional[Union[List[List[bool]], List[bool]]] = None, **kwargs) -> calculators.ExtendedCalculator:
         """
 
         Generates a new calculator based on the self.master_calc[calc_type]
@@ -656,7 +657,7 @@ class KoopmansDSCFWorkflow(Workflow):
         else:
             raise ValueError(f'Invalid calc type {calc_type}; must be "kcp"/"ui"')
 
-    def new_kcp_calculator(self, calc_presets='dft_init', alphas=None, filling=None, **kwargs):
+    def new_kcp_calculator(self, calc_presets: str = 'dft_init', alphas: Optional[Union[List[float], List[List[float]]]] = None, filling: Optional[Union[List[List[bool]], List[bool]]] = None, **kwargs) -> calculators.KoopmansCPCalculator:
         """
 
         Generates a new KCP calculator based on the self.master_calc["kcp"]
@@ -889,8 +890,7 @@ class KoopmansDSCFWorkflow(Workflow):
                              'an index_empty_to_save. Provide this as an argument to new_cp_calculator')
 
         if calc.fixed_band is not None and calc.fixed_band > calc.nelup + 1:
-            utils.warn(
-                'calc.fixed_band is higher than the LUMO; this should not happen')
+            utils.warn('calc.fixed_band is higher than the LUMO; this should not happen')
 
         # avoid innerloops for one-orbital-manifolds
         if calc.nelup in [0, 1] and calc.neldw in [0, 1]:
@@ -908,7 +908,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         return calc
 
-    def new_ui_calculator(self, calc_presets, **kwargs):
+    def new_ui_calculator(self, calc_presets: str, **kwargs) -> calculators.UnfoldAndInterpolateCalculator:
 
         valid_calc_presets = ['occ', 'emp', 'merge']
         assert calc_presets in valid_calc_presets, 'In KoopmansDSCFWorkflow.new_ui_calculator() calc_presets must be ' \
@@ -935,7 +935,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         return calc
 
-    def calculate_alpha_from_list_of_calcs(self, calcs, filled=True):
+    def calculate_alpha_from_list_of_calcs(self, calcs: List[calculators.KoopmansCPCalculator], filled: bool = True) -> Union[Tuple[float, float]]:
         '''
 
         Calculates alpha via equation 10 of Nguyen et. al (2018) 10.1103/PhysRevX.8.021051
