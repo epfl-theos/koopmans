@@ -91,7 +91,6 @@ def symlink(src, dest, relative=True):
     else:
         if relative:
             os.symlink(os.path.relpath(src, dest), os.path.join(dest, os.path.basename(src)))
-            raise ValueError()
         else:
             os.symlink(src, dest)
 
