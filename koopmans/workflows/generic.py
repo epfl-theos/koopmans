@@ -225,7 +225,8 @@ class Workflow(object):
             if not os.path.isdir(directory):
                 raise OSError(f'{directory} not found')
 
-        for wfile in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml', 'eigenval.xml', 'evc_empty1.dat', 'lambda01.dat', 'lambdam1.dat']:
+        for wfile in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
+                      'eigenval.xml', 'evc_empty1.dat', 'lambda01.dat', 'lambdam1.dat']:
             if '1.' in wfile:
                 prefix, suffix = wfile.split('1.')
             else:
@@ -256,7 +257,8 @@ class Workflow(object):
             if not os.path.isdir(directory):
                 raise OSError(f'{directory} not found')
 
-        for wfile in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml', 'eigenval.xml', 'evc_empty1.dat', 'lambda01.dat']:
+        for wfile in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
+                      'eigenval.xml', 'evc_empty1.dat', 'lambda01.dat']:
             if '1.' in wfile:
                 prefix, suffix = wfile.split('1.')
             else:
