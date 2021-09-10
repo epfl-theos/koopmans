@@ -418,7 +418,7 @@ class Workflow(object):
                 if 'band structure' not in qe_calc.results:
                     return False
             elif isinstance(qe_calc.calc, EspressoWithBandstructure):
-                if not isinstance(qe_calc, EspressoCalc) or qe_calc.calculation == 'bands':
+                if not isinstance(qe_calc, EspressoCalc) or getattr(qe_calc, 'calculation', None) == 'bands':
                     qe_calc.calc.band_structure()
 
             self.all_calcs.append(qe_calc)

@@ -4,6 +4,8 @@ Script for the bulk Si example
 Written by Edward Linscott, Mar 2021
 '''
 
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from koopmans import utils, io
 from ase.dft.dos import DOS
