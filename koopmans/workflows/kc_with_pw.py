@@ -10,6 +10,7 @@ import os
 import numpy as np
 import copy
 import matplotlib
+matplotlib.use('Agg')
 from koopmans import utils, io
 from koopmans.bands import Bands
 from koopmans.calculators.pw import PW_calc
@@ -19,7 +20,6 @@ from koopmans.calculators.kc_ham import KoopmansHamCalc
 from koopmans.workflows.generic import Workflow
 from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
 from koopmans.workflows.dft_with_pw import DFTPWWorkflow
-matplotlib.use('Agg')
 
 
 class KoopmansPWWorkflow(Workflow):
