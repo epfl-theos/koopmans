@@ -9,7 +9,7 @@ from time import time
 import numpy as np
 from .._utils import ExtendedCalculator
 from ._settings import valid_settings
-from koopmans import utils
+from koopmans import utils, settings
 
 
 class UnfoldAndInterpolateCalculator(ExtendedCalculator):
@@ -19,18 +19,22 @@ class UnfoldAndInterpolateCalculator(ExtendedCalculator):
     from ._interpolate import interpolate, calc_bands, correct_phase, calc_dos
     from ._settings import load_defaults, valid_settings
 
-    # UnfoldAndInterpolateCalculator does not use ASE
-    _io = None
-
-    ext_in = '.uii'
-    ext_out = '.uio'
-
-    # Adding all UI keywords as decorated properties of the UI calc class
-    _valid_settings: List[str] = [s.name for s in valid_settings]
-    _settings_that_are_paths = ['w90_seedname', 'kc_ham_file', 'dft_ham_file', 'dft_smooth_ham_file']
-
     def __init__(self, calc=None, qe_files=[], skip_qc=False, **kwargs):
+
+        self.parameters = settings.SettingsDict(valid=[s.name for s in valid_settings],
+                                                defaults={s.name: s.default for s in valid_settings},
+                                                are_paths=['w90_seedname', 'kc_ham_file',
+                                                           'dft_ham_file', 'dft_smooth_ham_file'],
+                                                to_not_parse=[])
+
+        # Link to the corresponding ASE IO module and Calculator (it does not use ASE)
+        self._io = None
         self._ase_calc_class = None
+
+        # Define the appropriate file extensions
+        self.ext_in = '.uii'
+        self.ext_out = '.uio'
+
         super().__init__(calc, qe_files, skip_qc, **kwargs)
 
         # If we were reading generating this object from files, look for bands, too
@@ -38,6 +42,8 @@ class UnfoldAndInterpolateCalculator(ExtendedCalculator):
             self.read_bands()
 
         self.results_for_qc = ['band structure', 'dos']
+
+        raise ValueError('Still need to implement the contents of ._settings.load_defaults() in a sensible way')
 
     def calculate(self):
 
@@ -124,7 +130,7 @@ class UnfoldAndInterpolateCalculator(ExtendedCalculator):
     def is_complete(self):
         return self.calc.results.get('job done', False)
 
-    @property
+    @ property
     def do_smooth_interpolation(self):
         return any([f > 1 for f in self.smooth_int_factor])
 
@@ -150,42 +156,42 @@ class UnfoldAndInterpolateCalculator(ExtendedCalculator):
     def get_fermi_level(self):
         return 0
 
-    @property
+    @ property
     def Emin(self):
         if self._Emin is None:
             return np.min(self.get_eigenvalues())
         else:
             return self._Emin
 
-    @Emin.setter
+    @ Emin.setter
     def Emin(self, value):
         self._Emin = value
 
-    @property
+    @ property
     def Emax(self):
         if self._Emax is None:
             return np.max(self.get_eigenvalues())
         else:
             return self._Emax
 
-    @Emax.setter
+    @ Emax.setter
     def Emax(self, value):
         self._Emax = value
 
-    @property
+    @ property
     def at(self):
         # basis vectors of direct lattice (in PC alat units)
         return self.calc.atoms.cell / self.alat
 
-    @at.setter
+    @ at.setter
     def at(self, value):
         self.calc.atoms.cell = value * self.alat
 
-    @property
+    @ property
     def alat(self):
         return self.alat_sc / self.sc_dim[0]
 
-    @property
+    @ property
     def bg(self):
         # basis vectors of reciprocal lattice (in PC 2pi/alat units)
         return np.linalg.inv(self.at).transpose()

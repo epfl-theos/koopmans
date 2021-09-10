@@ -9,7 +9,7 @@ Written by Edward Linscott Sep 2020
 import os
 from ase.io.espresso import pw as pw_io
 from ase.calculators.espresso import Espresso
-from koopmans.pseudopotentials import nelec_from_pseudos
+from koopmans.settings import SettingsDict
 from ._utils import EspressoCalculator, qe_bin_directory
 from koopmans.commands import ParallelCommandWithPostfix, Command
 
@@ -17,33 +17,38 @@ from koopmans.commands import ParallelCommandWithPostfix, Command
 class PWCalculator(EspressoCalculator):
     # Subclass of EspressoCalculator for performing calculations with pw.x
 
-    # Point to the appropriate ASE IO module
-    _io = pw_io
-
-    # Define the appropriate file extensions
-    ext_in = '.pwi'
-    ext_out = '.pwo'
-
-    _settings_that_are_paths = ['outdir', 'pseudo_dir']
-
     def __init__(self, *args, **kwargs):
+        # Link to corresponding ASE IO module and Calculator
+        self._io = pw_io
         self._ase_calc_class = Espresso
-        self.settings_to_not_parse = ['assume_isolated']
+
+        # Define the valid settings
+        self.parameters = SettingsDict(valid=[k for block in pw_io.KEYS for k in block],
+                                       defaults={'calculation': 'scf', 'outdir': './TMP/', 'prefix': 'kc',
+                                                 'conv_thr': '2.0e-9*nelec'},
+                                       are_paths=['outdir', 'pseudo_dir'],
+                                       to_not_parse=['assume_isolated'])
+
+        # Define the appropriate file extensions
+        self.ext_in = '.pwi'
+        self.ext_out = '.pwo'
+
         super().__init__(*args, **kwargs)
+
         self.results_for_qc = ['energy']
-        if not isinstance(self.calc.command, Command):
-            self.calc.command = ParallelCommandWithPostfix(os.environ.get(
-                'ASE_ESPRESSO_COMMAND', qe_bin_directory + self.calc.command))
+        if not isinstance(self.command, Command):
+            self.command = ParallelCommandWithPostfix(os.environ.get(
+                'ASE_ESPRESSO_COMMAND', qe_bin_directory + self.command))
 
     def calculate(self):
         if self.calculation == 'bands':
-            if 'kpath' in self.calc.parameters:
-                self.calc.parameters['kpts'] = self.calc.parameters.pop('kpath')
+            if 'kpath' in self.parameters:
+                self.parameters.kpts = self.parameters.pop('kpath')
             else:
                 raise KeyError('You are running a calculation that requires a kpath; please provide it in the input '
                                'file')
         else:
-            self.calc.parameters.pop('kpath', None)
+            self.parameters.pop('kpath', None)
         super().calculate()
 
     def is_complete(self):
@@ -51,18 +56,3 @@ class PWCalculator(EspressoCalculator):
 
     def is_converged(self):
         return self.results.get('energy', None) is not None
-
-    @property
-    def nelec(self):
-        # PW does not directly have an "nelec" keyword, but it is useful for setting
-        # extensive properties such as energy convergence thresholds
-        return nelec_from_pseudos(self.calc)
-
-    @nelec.setter
-    def nelec(self, value):
-        raise ValueError('You tried to set PWCalculator.nelec, which is invalid')
-
-    defaults = {'calculation': 'scf',
-                'outdir': './TMP/',
-                'prefix': 'kc',
-                'conv_thr': '2.0e-9*nelec'}

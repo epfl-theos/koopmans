@@ -29,12 +29,9 @@ from koopmans.utils import read_atomic_species, read_atomic_positions, read_cell
 
 def read_w90_dict(dct, generic_atoms):
 
-    # Setting up ASE calc object, copying over the generic atoms object and non-kcp-specific settings
+    # Setting up ASE calc object, copying over the generic atoms object
     calc = ASEWannier90()
     atoms = copy.deepcopy(generic_atoms)
-    atoms.calc.parameters.pop('input_data')
-    atoms.calc.parameters.pop('pseudopotentials')
-    calc.parameters = atoms.calc.parameters
     calc.atoms = atoms
     calc.atoms.calc = calc
 
@@ -56,11 +53,12 @@ def read_w90_occ_dict(dct, generic_atoms):
     calc = read_w90_dict(dct, generic_atoms)
 
     # Auto-generate values if they have not been provided
-    n_filled = generic_atoms.calc.parameters['input_data']['system']['nelec'] // 2
-    if calc.num_bands is None:
-        calc.num_bands = n_filled
-    if calc.num_wann is None:
-        calc.num_wann = n_filled
+    n_filled = generic_atoms.calc.parameters.nelec // 2
+
+    if calc.parameters.num_bands is None:
+        calc.parameters.num_bands = n_filled
+    if calc.parameters.num_wann is None:
+        calc.parameters.num_wann = n_filled
 
     return calc
 
@@ -70,13 +68,13 @@ def read_w90_empty_dict(dct, generic_atoms):
     calc = read_w90_dict(dct, generic_atoms)
 
     # Auto-generate values if they have not been provided
-    n_filled = generic_atoms.calc.parameters['input_data']['system']['nelec'] // 2
-    n_empty = generic_atoms.calc.parameters['input_data']['electrons'].get('empty_states_nbnd', 0)
+    n_filled = generic_atoms.calc.parameters.nelec // 2
+    n_empty = generic_atoms.calc.parameters.get('empty_states_nbnd', 0)
 
-    if calc.num_wann is None:
-        calc.num_wann = n_empty
-    if calc.exclude_bands is None:
-        calc.exclude_bands = f'1-{n_filled}'
+    if calc.parameters.num_wann is None:
+        calc.parameters.num_wann = n_empty
+    if calc.parameters.exclude_bands is None:
+        calc.parameters.exclude_bands = f'1-{n_filled}'
 
     return calc
 
@@ -112,8 +110,6 @@ def read_setup_dict(dct):
 
     calc = Espresso_kcp(atoms=Atoms())
 
-    calc.parameters['input_data'] = {k: {} for k in pw_keys.keys()}
-
     compulsory_block_readers = {'atomic_species': read_atomic_species,
                                 'atomic_positions': read_atomic_positions}
 
@@ -134,7 +130,7 @@ def read_setup_dict(dct):
                     value = json_ext.loads(value)
                 except (TypeError, json_ext.decoder.JSONDecodeError) as e:
                     pass
-                calc.parameters['input_data'][block][key] = value
+                calc.parameters[key] = value
         else:
             raise ValueError(f'Unrecognised block "setup:{block}" in the input file')
 
@@ -146,7 +142,7 @@ def read_setup_dict(dct):
 
     # Generating cell if it is missing
     if cell is None:
-        _, cell = ibrav_to_cell(calc.parameters['input_data']['system'])
+        _, cell = ibrav_to_cell(calc.parameters)
 
     # Attaching the cell to the calculator
     calc.atoms = Atoms(cell=cell)
@@ -170,26 +166,24 @@ def read_setup_dict(dct):
 
     # If they are missing, fill the nelec/nelup/neldw field using information contained
     # in the pseudopotential files
-    if 'nelec' not in calc.parameters['input_data']['system']:
+    if 'nelec' not in calc.parameters:
         nelec = nelec_from_pseudos(calc)
-        calc.parameters['input_data']['system']['nelec'] = nelec
+        calc.parameters.nelec = nelec
     else:
-        nelec = calc.parameters['input_data']['system']['nelec']
-    if 'tot_charge' in calc.parameters['input_data']['system']:
-        tot_charge = calc.parameters['input_data']['system']['tot_charge']
-        calc.parameters['input_data']['system']['nelec'] -= tot_charge
+        nelec = calc.parameters.nelec
+    if 'tot_charge' in calc.parameters:
+        tot_charge = calc.parameters.tot_charge
+        calc.parameters.nelec -= tot_charge
         nelec -= tot_charge
-    if 'tot_magnetization' in calc.parameters['input_data']['system']:
-        tot_mag = calc.parameters['input_data']['system']['tot_magnetization']
+    if 'tot_magnetization' in calc.parameters:
+        tot_mag = calc.parameters.tot_magnetization
     else:
         tot_mag = nelec % 2
-        calc.parameters['input_data']['system']['tot_magnetization'] = tot_mag
-    if 'nelup' not in calc.parameters['input_data']['system']:
-        calc.parameters['input_data']['system']['nelup'] = int(
-            nelec / 2 + tot_mag / 2)
-    if 'neldw' not in calc.parameters['input_data']['system']:
-        calc.parameters['input_data']['system']['neldw'] = int(
-            nelec / 2 - tot_mag / 2)
+        calc.parameters.tot_magnetization = tot_mag
+    if 'nelup' not in calc.parameters:
+        calc.parameters.nelup = int(nelec / 2 + tot_mag / 2)
+    if 'neldw' not in calc.parameters:
+        calc.parameters.neldw = int(nelec / 2 - tot_mag / 2)
 
     return calc.atoms
 
@@ -273,27 +267,25 @@ def read_pw_dict(dct, generic_atoms):
     calc.atoms.calc = calc
 
     # Remove settings using kcp-syntax
-    kcp_settings = generic_atoms.calc.parameters.pop('input_data')
+    kcp_settings = copy.deepcopy(generic_atoms.calc.parameters)
 
-    # Copy over parameters that use generic syntax (pseudos, k_points)
-    calc.parameters = generic_atoms.calc.parameters
-
-    # Initialise the pw-specific settings
-    calc.parameters['input_data'] = {key: {} for key in pw_keys}
+    # Copy over parameters that use generic syntax
+    for key in ['pseudopotentials', 'kpts', 'kpath']:
+        if key in kcp_settings:
+            calc.parameters[key] = kcp_settings.pop(key)
 
     # Convert kcp-syntax settings to pw-syntax settings
-    for block, subdct in kcp_settings.items():
-        for key, val in subdct.items():
-            if key in ['nelec', 'nelup', 'neldw', 'empty_states_nbnd', 'tot_magnetization']:
-                continue
-            elif block in pw_keys and key in pw_keys[block]:
-                # PW and KCP share this keyword so we can copy it over directly
-                calc.parameters['input_data'][block][key] = val
-            elif key == 'conv_thr':
-                # Pw uses Ry, KCP uses Ha = 2 Ry
-                calc.parameters['input_data'][block][key] = val * 2
-            else:
-                raise ValueError(f'Could not convert {block}:{key} to a pw keyword')
+    for key, val in kcp_settings.items():
+        if key in ['nelec', 'nelup', 'neldw', 'empty_states_nbnd', 'tot_magnetization']:
+            continue
+        elif key in [k for block in pw_keys.values() for k in block]:
+            # PW and KCP share this keyword so we can copy it over directly
+            calc.parameters[key] = val
+        elif key == 'conv_thr':
+            # PW uses Ry, KCP uses Ha = 2 Ry
+            calc.parameters[key] = val * 2
+        else:
+            raise ValueError(f'Could not convert {key} to a pw keyword')
 
     # Read the content of the pw block
     skipped_blocks = read_kcp_or_pw_dict(dct, calc)
@@ -304,10 +296,10 @@ def read_pw_dict(dct, generic_atoms):
             utils.warn(f'The {block} block is not yet implemented and will be ignored')
 
     # If no nbnd is provided, auto-generate it
-    if 'nbnd' not in calc.parameters['input_data']['system']:
-        n_elec = kcp_settings['system']['nelec']
-        n_empty = kcp_settings['electrons'].get('empty_states_nbnd', 0)
-        calc.parameters['input_data']['system']['nbnd'] = n_elec // 2 + n_empty
+    if 'nbnd' not in calc.parameters:
+        n_elec = kcp_settings.nelec
+        n_empty = kcp_settings.get('empty_states_nbnd', 0)
+        calc.parameters.nbnd = n_elec // 2 + n_empty
 
     return calculators.PWCalculator(calc)
 

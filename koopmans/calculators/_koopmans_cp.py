@@ -10,12 +10,12 @@ import os
 import numpy as np
 from pandas.core.series import Series
 from ase.io.espresso import koopmans_cp as kcp_io
-from koopmans import utils, pseudopotentials
+from koopmans import utils, settings
 from ._utils import EspressoCalculator, kcp_bin_directory
 from koopmans.commands import ParallelCommand
 
 
-class KoopmansCPCalculator(EspressoCalculator):
+class KoopmansCPCalculator(EspressoCalculator, kcp_io.Espresso_kcp):
     # Subclass of EspressoCalculator for performing calculations with kcp.x
 
     # Point to the appropriate ASE IO module
@@ -28,60 +28,59 @@ class KoopmansCPCalculator(EspressoCalculator):
     _settings_that_are_paths = ['outdir', 'pseudo_dir']
 
     def __init__(self, calc=None, qe_files=[], skip_qc=False, alphas=None, filling=None, **kwargs):
-        self.settings_to_not_parse = ['pseudo_dir', 'assume_isolated']
+
+        defaults = {'calculation': 'cp',
+                    'outdir': './TMP-CP/',
+                    'iprint': 1,
+                    'prefix': 'kc',
+                    'verbosity': 'low',
+                    'disk_io': 'high',
+                    'write_hr': False,
+                    'do_wf_cmplx': True,
+                    'do_ee': True,
+                    'electron_dynamics': 'cg',
+                    'nspin': 2,
+                    'ortho_para': 1,
+                    'passop': 2.0,
+                    'ion_dynamics': 'none',
+                    'ion_nstepe': 5,
+                    'ion_radius(1)': 1.0,
+                    'ion_radius(2)': 1.0,
+                    'ion_radius(3)': 1.0,
+                    'ion_radius(4)': 1.0,
+                    'do_innerloop_cg': True,
+                    'innerloop_cg_nreset': 20,
+                    'innerloop_cg_nsd': 2,
+                    'innerloop_init_n': 3,
+                    'innerloop_nmax': 100,
+                    'hartree_only_sic': False,
+                    'empty_states_nbnd': 0,
+                    'conv_thr': '1.0e-9*nelec',
+                    'esic_conv_thr': '1.0e-9*nelec'}
+
+        self.parameters = settings.SettingsDict(valid=[k for sublist in self._io.KEYS.values() for k in sublist],
+                                                defaults=defaults,
+                                                are_paths=['outdir', 'pseudo_dir'],
+                                                to_not_parse=['assume_isolated'])
+
         self._ase_calc_class = kcp_io.Espresso_kcp
 
         super().__init__(calc, qe_files, skip_qc, **kwargs)
 
         self.results_for_qc = ['energy', 'homo_energy', 'lumo_energy']
-        if not isinstance(self.calc.command, ParallelCommand):
-            self.calc.command = ParallelCommand(os.environ.get(
-                'ASE_ESPRESSO_KCP_COMMAND', kcp_bin_directory + self.calc.command))
+        if not isinstance(self.command, ParallelCommand):
+            self.command = ParallelCommand(os.environ.get(
+                'ASE_ESPRESSO_KCP_COMMAND', kcp_bin_directory + self.command))
 
         self.alphas = alphas
         self.filling = filling
-
-    defaults = {'calculation': 'cp',
-                'outdir': './TMP-CP/',
-                'iprint': 1,
-                'prefix': 'kc',
-                'verbosity': 'low',
-                'disk_io': 'high',
-                'write_hr': False,
-                'do_wf_cmplx': True,
-                'do_ee': True,
-                'electron_dynamics': 'cg',
-                'nspin': 2,
-                'ortho_para': 1,
-                'passop': 2.0,
-                'ion_dynamics': 'none',
-                'ion_nstepe': 5,
-                'ion_radius(1)': 1.0,
-                'ion_radius(2)': 1.0,
-                'ion_radius(3)': 1.0,
-                'ion_radius(4)': 1.0,
-                'do_innerloop_cg': True,
-                'innerloop_cg_nreset': 20,
-                'innerloop_cg_nsd': 2,
-                'innerloop_init_n': 3,
-                'innerloop_nmax': 100,
-                'hartree_only_sic': False,
-                'empty_states_nbnd': 0,
-                'conv_thr': '1.0e-9*nelec',
-                'esic_conv_thr': '1.0e-9*nelec'}
-
-    def load_defaults(self):
-        # Because the defaults make explicit reference to nelec, we need to make sure this is defined beforehand
-        if self.nelec is None:
-            self.nelec = pseudopotentials.nelec_from_pseudos(self.calc)
-        super().load_defaults()
 
     def is_complete(self):
         return self.results['job_done']
 
     def is_converged(self):
         # Checks convergence of the calculation
-        if self.conv_thr is None:
+        if 'conv_thr' not in self.parameters:
             raise ValueError(
                 'Cannot check convergence when "conv_thr" is not set')
         return self._ase_is_converged()
@@ -94,7 +93,7 @@ class KoopmansCPCalculator(EspressoCalculator):
         # Check convergence for both filled and empty, allowing for the possibility
         # of do_outerloop(_empty) = False meaning the calculation is immediately
         # 'converged'
-        do_outers = [self.do_outerloop, self.do_outerloop_empty]
+        do_outers = [self.parameters.do_outerloop, self.parameters.do_outerloop_empty]
         convergence_data = self.results['convergence'].values()
         converged = []
         for do_outer, convergence in zip(do_outers, convergence_data):
@@ -102,7 +101,7 @@ class KoopmansCPCalculator(EspressoCalculator):
                 converged.append(True)
             else:
                 converged.append(
-                    convergence[-1]['delta_E'] < self.conv_thr * utils.units.Hartree)
+                    convergence[-1]['delta_E'] < self.parameters.conv_thr * utils.units.Hartree)
         return all(converged)
 
     @property
@@ -120,10 +119,10 @@ class KoopmansCPCalculator(EspressoCalculator):
         # alphas can be a 1D or 2D array. If it is 1D, convert it to 2D so that self.alphas
         # is indexed by [i_spin, i_orbital]
         if isinstance(val[0], float):
-            val = [val for _ in range(self.nspin)]
+            val = [val for _ in range(self.parameters.nspin)]
 
         if len(val) == 1 and self.nspin == 2:
-            val = [val[0] for _ in range(self.nspin)]
+            val = [val[0] for _ in range(self.parameters.nspin)]
 
         self._alphas = val
 
@@ -133,8 +132,8 @@ class KoopmansCPCalculator(EspressoCalculator):
         # Filling is written in this way such that we can calculate it automatically,
         # but if it is explicitly set then we will always use that value instead
         if self._filling is None:
-            n_filled_bands = self.nelec // 2
-            n_empty_bands = self.empty_states_nbnd
+            n_filled_bands = self.parameters.nelec // 2
+            n_empty_bands = self.parameters.empty_states_nbnd
             if n_empty_bands is None:
                 n_empty_bands = 0
             filled_spin_channel = [True for _ in range(n_filled_bands)] + [False for _ in range(n_empty_bands)]

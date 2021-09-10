@@ -1,13 +1,90 @@
 '''
 
-Functions for koopmans.utils for dealing with settings
+Module koopmans for dealing with settings
 
 Written by Edward Linscott May 2020
 
 '''
 
-from typing import Union, Type, Tuple, NamedTuple
-from ._units import units
+import os
+from collections import UserDict
+from typing import Union, Type, Tuple, NamedTuple, Dict, Any, Optional, List
+from koopmans.utils import units
+
+
+class SettingsDict(UserDict):
+    '''
+    A dictionary-like class that has a few extra checks that are performed when setting values (e.g. when setting
+    variables identified as paths it will convert them to absolute paths) as well as a few extra useful attributes
+
+    Modelled off ase.calculators.Parameters which allows us to refer to "self.key", which returns "self['key']"
+    '''
+
+    def __init__(self, valid: List[str], defaults: Dict[str, Union[int, str, float, bool]] = {}, are_paths: List[str] = [], to_not_parse: List[str] = [], directory='', **kwargs):
+        super().__init__(**kwargs)
+        self.valid = valid
+        self.defaults = defaults
+        self.update(**defaults)
+        self.are_paths = are_paths
+        self.to_not_parse = to_not_parse
+        self.directory = directory
+        self.update(**kwargs)
+
+    def __getattr__(self, key):
+        if key in ['data', 'valid', 'defaults', 'update', 'are_paths', 'to_not_parse', '_to_not_parse', 'directory']:
+            return self.__dict__[key]
+        elif key in self.valid:
+            return self.data.get(key, None)
+        else:
+            if key not in self.data:
+                return dict.__getattribute__(self.data, key)
+            return self.data[key]
+
+    def __setattr__(self, key, value):
+        if key in ['data', 'valid', 'defaults', 'update', 'are_paths', 'to_not_parse', '_to_not_parse', 'directory']:
+            self.__dict__[key] = value
+        else:
+            self.data[key] = value
+
+    def __getitem__(self, key: str):
+        if key not in self.data:
+            if key in self.defaults:
+                self.data[key] = self.defaults[key]
+            else:
+                raise KeyError(key)
+        return self.data[key]
+
+    def __setitem__(self, key: str, value: Union[int, str, float, bool]):
+        # Insisting that all values corresponding to paths are absolute
+        if key in self.are_paths and value.startswith('/'):
+            value = os.path.abspath(self.directory + '/' + self.value)
+
+        super().__setitem__(key, value)
+
+    def update(self, *args, **kwargs):
+        if args:
+            if len(args) > 1:
+                raise TypeError(f"update expected at most 1 arguments, got {len(args)}")
+            other = dict(args[0])
+            for key in other:
+                self.data[key] = other[key]
+        for key in kwargs:
+            self.data[key] = kwargs[key]
+
+    def setdefault(self, key: str, value: Optional[Any] = None):
+        if key not in self:
+            self.data[key] = value
+        return self.data[key]
+
+    @property
+    def to_not_parse(self):
+        if not '_to_not_parse' in self.__dict__:
+            self._to_not_parse = set(self.are_paths)
+        return self._to_not_parse
+
+    @to_not_parse.setter
+    def to_not_parse(self, value: Union[list, set]):
+        self._to_not_parse = self.to_not_parse.union(value)
 
 
 class Setting(NamedTuple):
