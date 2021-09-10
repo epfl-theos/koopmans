@@ -247,7 +247,7 @@ class Workflow(object):
 
             for i in range(1, 3):
                 to_delete = os.path.join(nspin2_tmpdir, f'{prefix}{i}.{suffix}')
-                if to_delete != file_out:
+                if to_delete != file_out and os.path.isfile(to_delete):
                     utils.system_call(f'rm {to_delete}')
 
     def convert_wavefunction_1to2(self, nspin1_tmpdir, nspin2_tmpdir):
