@@ -424,8 +424,7 @@ class KoopmansCPWorkflow(Workflow):
                 # Link tmp files from band-independent calculations
                 if not os.path.isdir(outdir_band):
                     utils.system_call(f'mkdir {outdir_band}')
-                    utils.system_call(
-                        f'ln -sr {self.master_calcs["kcp"].outdir}/*.save {outdir_band}')
+                    utils.symlink(f'{self.master_calcs["kcp"].outdir}/*.save', outdir_band)
 
                 # Don't repeat if this particular alpha_i was converged
                 if i_sc > 1 and abs(band.error) < self.alpha_conv_thr:
