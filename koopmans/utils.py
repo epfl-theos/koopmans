@@ -84,14 +84,21 @@ def chdir(path):
 
 
 def symlink(src, dest, relative=True):
-    # Follow the syntax of ln, whereby ln -s src/* dest/ will create multiple links
+    # Create a symlink of "src" at "dest"
     if '*' in src:
+        # Follow the syntax of ln, whereby ln -s src/* dest/ will create multiple links
         for src_file in glob(src):
-            symlink(dest, src_file, relative)
+            symlink(src_file, dest, relative)
     else:
+        src = os.path.abspath(src)
         if relative:
-            os.symlink(os.path.relpath(src, dest), os.path.join(dest, os.path.basename(src)))
+            # The equivalent of ln -sr
+            if os.path.isdir(dest):
+                os.symlink(os.path.relpath(src, dest), os.path.join(dest, os.path.basename(src)))
+            else:
+                os.symlink(os.path.relpath(src, os.path.dirname(dest)), dest)
         else:
+            # The equivalent of ln -s
             os.symlink(src, dest)
 
 
