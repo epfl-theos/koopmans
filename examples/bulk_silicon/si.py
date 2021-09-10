@@ -6,7 +6,6 @@ Written by Edward Linscott, Mar 2021
 
 import matplotlib.pyplot as plt
 from koopmans import utils, io
-from koopmans.io import jsonio
 from ase.dft.dos import DOS
 from ase.spectrum.band_structure import BandStructurePlot
 
@@ -16,7 +15,7 @@ def run(from_scratch=True):
     wfs = {}
     for name in names:
         with utils.chdir(name):
-            wf = io.read_json(f'si.json')
+            wf = io.read(f'si.json')
             wf.from_scratch = from_scratch
             if 'screening' in name:
                 wf.calculate_alpha = False
@@ -25,8 +24,7 @@ def run(from_scratch=True):
             wf.run()
 
             # Save workflow to file
-            with open('si.kwf', 'w') as fd:
-                jsonio.write_json(fd, wf)
+            io.write(wf, 'si.kwf')
         wfs[name] = wf
     return wfs
 
