@@ -17,7 +17,7 @@ subroutine formf( tfirst, eself )
   ! 
   USE kinds,           ONLY : DP
   use mp,              ONLY : mp_sum
-  use control_flags,   ONLY : iprint, tpre, iprsta, gamma_only, do_wf_cmplx!added:giovanni
+  use control_flags,   ONLY : tpre, iprsta
   use io_global,       ONLY : stdout
   use mp_global,       ONLY : intra_image_comm
   use gvecs,           ONLY : ngs
@@ -194,10 +194,10 @@ subroutine nlfh_real_x( stress, bec, dbec, lambda )
   !
   USE kinds,             ONLY : DP
   use cvan,              ONLY : nvb, ish
-  use uspp,              ONLY : nkb, qq
+  use uspp,              ONLY : qq
   use uspp_param,        ONLY : nh, nhm
   use ions_base,         ONLY : na
-  use electrons_base,    ONLY : nbspx, nbsp, nudx, nspin, nupdwn, iupdwn
+  use electrons_base,    ONLY : nspin, nupdwn, iupdwn
   use cell_base,         ONLY : omega, h
   use constants,         ONLY : pi, fpi, au_gpa
   use io_global,         ONLY : stdout
@@ -215,8 +215,8 @@ subroutine nlfh_real_x( stress, bec, dbec, lambda )
   REAL(DP), INTENT(IN)    :: lambda( :, :, : )
 !
   INTEGER  :: i, j, ii, jj, inl, iv, jv, ia, is, iss, nss, istart
-  INTEGER  :: jnl, ir, ic, nr, nc, nx
-  REAL(DP) :: fpre(3,3), TT, T1, T2
+  INTEGER  :: ir, ic, nr, nc, nx
+  REAL(DP) :: fpre(3,3)
   !
   REAL(DP), ALLOCATABLE :: tmpbec(:,:), tmpdh(:,:), temp(:,:)
   !
@@ -333,10 +333,10 @@ subroutine nlfh_twin_x( stress, bec, dbec, lambda ) !added:giovanni warning:dbec
   !
   USE kinds,             ONLY : DP
   use cvan,              ONLY : nvb, ish
-  use uspp,              ONLY : nkb, qq
+  use uspp,              ONLY : qq
   use uspp_param,        ONLY : nh, nhm
   use ions_base,         ONLY : na
-  use electrons_base,    ONLY : nbspx, nbsp, nudx, nspin, nupdwn, iupdwn
+  use electrons_base,    ONLY : nspin, nupdwn, iupdwn
   use cell_base,         ONLY : omega, h
   use constants,         ONLY : pi, fpi, au_gpa
   use io_global,         ONLY : stdout
@@ -355,8 +355,8 @@ subroutine nlfh_twin_x( stress, bec, dbec, lambda ) !added:giovanni warning:dbec
   TYPE(twin_matrix), dimension(:), INTENT(IN)    :: lambda
 !
   INTEGER  :: i, j, ii, jj, inl, iv, jv, ia, is, iss, nss, istart
-  INTEGER  :: jnl, ir, ic, nr, nc, nx
-  REAL(DP) :: fpre(3,3), TT, T1, T2
+  INTEGER  :: ir, ic, nr, nc, nx
+  REAL(DP) :: fpre(3,3)
   !
   REAL(DP), ALLOCATABLE :: tmpbec(:,:), tmpdh(:,:), temp(:,:)
   COMPLEX(DP), ALLOCATABLE :: tmpbec_c(:,:), tmpdh_c(:,:), temp_c(:,:)
@@ -531,14 +531,13 @@ subroutine nlinit
   !     (betax, qradx) then calculated on the box grid by interpolation
   !     (this is done in routine newnlinit)
   !     
-      use control_flags,   ONLY : iprint, tpre, program_name
+      use control_flags,   ONLY : tpre
       use io_global,       ONLY : stdout, ionode
       use gvecw,           ONLY : ngw
-      use cvan,            ONLY : ish, nvb
-      use core,            ONLY : rhocb, nlcc_any, allocate_core
+      use core,            ONLY : allocate_core
       use constants,       ONLY : pi, fpi
-      use ions_base,       ONLY : na, nsp
-      use uspp,            ONLY : aainit, beta, qq, dvan, nhtol, nhtolm, indv
+      use ions_base,       ONLY : nsp
+      use uspp,            ONLY : aainit, beta, qq, nhtol, indv
       use uspp_param,      ONLY : upf, lmaxq, nbetam, lmaxkb, nhm, nh
       use atom,            ONLY : rgrid
       use qradb_mod,       ONLY : qradb
@@ -548,7 +547,6 @@ subroutine nlinit
       use cdvan,           ONLY : dbeta
       use dqrad_mod,       ONLY : dqrad
       use dqgb_mod,        ONLY : dqgb
-      use betax,           ONLY : qradx, dqradx, refg, betagx, mmx, dbetagx
       use cp_interfaces,   ONLY : pseudopotential_indexes, compute_dvan, &
                                   compute_betagx, compute_qradx
       USE grid_dimensions, ONLY : nnrx
@@ -556,10 +554,8 @@ subroutine nlinit
 !
       implicit none
 !
-      integer  is, il, l, ir, iv, jv, lm, ind, ltmp, i0
-      real(8), allocatable:: fint(:), jl(:),  jltmp(:), djl(:),    &
-     &              dfint(:)
-      real(8) xg, xrg, fac
+      integer  is, iv, jv
+      real(8) fac
 
 
       IF( ionode ) THEN
@@ -646,7 +642,6 @@ subroutine qvan2b(ngy,iv,jv,is,ylm,qg)
   !     q(g,l,k) = sum_lm (-i)^l ap(lm,l,k) yr_lm(g^) qrad(g,l,l,k)
   !
   USE kinds,         ONLY : DP
-  use control_flags, ONLY : iprint, tpre
   use qradb_mod,     ONLY : qradb
   use uspp,          ONLY : nlx, lpx, lpl, ap, indv, nhtolm
   use gvecb,         ONLY : ngb
@@ -658,7 +653,7 @@ subroutine qvan2b(ngy,iv,jv,is,ylm,qg)
   real(DP),    intent(in)  :: ylm( ngb, lmaxq*lmaxq )
   complex(DP), intent(out) :: qg( ngb )
 !
-  integer      :: ivs, jvs, ijvs, ivl, jvl, i, ii, ij, l, lp, ig
+  integer      :: ivs, jvs, ijvs, ivl, jvl, i, l, lp, ig
   complex(DP) :: sig
   ! 
   !       iv  = 1..8     s_1 p_x1 p_z1 p_y1 s_2 p_x2 p_z2 p_y2
@@ -727,7 +722,6 @@ subroutine dqvan2b(ngy,iv,jv,is,ylm,dylm,dqg)
   !     dq(i,j) derivatives wrt to h(i,j) of q(g,l,k) calculated in qvan2b
   !
   USE kinds,         ONLY : DP
-  use control_flags, ONLY : iprint, tpre
   use qradb_mod,     ONLY : qradb
   use uspp,          ONLY : nlx, lpx, lpl, ap, indv, nhtolm
   use gvecb,         ONLY : ngb
@@ -879,7 +873,7 @@ SUBROUTINE print_lambda_x_real( lambda, n, nshow, ccc, iunit )
     integer, intent(in) :: n, nshow
     integer, intent(in), optional :: iunit
     !
-    integer :: nnn, j, un, i, is, fixed_band_aux
+    integer :: nnn, un, is, fixed_band_aux
     real(DP), allocatable :: lambda_repl(:,:)
     if( present( iunit ) ) then
       un = iunit
@@ -929,7 +923,7 @@ SUBROUTINE print_lambda_x_twin( lambda, n, nshow, ccc, iunit )
     integer, intent(in) :: n, nshow
     integer, intent(in), optional :: iunit
     !
-    integer :: nnn, j, un, i, is, fixed_band_aux
+    integer :: nnn, un, is, fixed_band_aux
     real(DP), allocatable :: lambda_repl(:,:)
     complex(DP), allocatable :: lambda_repl_c(:,:)
     !

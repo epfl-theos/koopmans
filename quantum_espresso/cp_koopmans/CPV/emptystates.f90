@@ -18,17 +18,16 @@
 !
       USE kinds,                ONLY : DP
       USE constants,            ONLY : autoev
-      USE control_flags,        ONLY : iprsta, tsde, program_name, gamma_only, do_wf_cmplx, &
-                                           tortho
+      USE control_flags,        ONLY : tsde, gamma_only, do_wf_cmplx, &
+                                       tortho
       USE io_global,            ONLY : ionode, stdout
       USE cp_main_variables,    ONLY : eigr, ema0bg, collect_lambda, &
                                        rhor, rhog, rhos, eigr, eigrb, irb, bec, bec_emp
       USE descriptors,          ONLY : descla_siz_ , descla_init, nlax_, lambda_node_
-      USE cell_base,            ONLY : omega
-      USE uspp,                 ONLY : vkb, nkb, okvan
+      USE uspp,                 ONLY : vkb, nkb
       USE uspp_param,           ONLY : nhm
       USE grid_dimensions,      ONLY : nnrx
-      USE electrons_base,       ONLY : nbsp, nbspx, ispin, nspin, f, nudx, iupdwn, nupdwn
+      USE electrons_base,       ONLY : nbsp, nbspx, ispin, nspin, f, iupdwn, nupdwn
       USE electrons_module,     ONLY : iupdwn_emp, nupdwn_emp, n_emp, ei_emp,  &
                                        max_emp, ethr_emp, etot_emp, eodd_emp
       USE ions_base,            ONLY : nat, nsp
@@ -50,11 +49,11 @@
       USE nksic,                ONLY : do_orbdep, do_pz, do_wxd, vsicpsi, wtot, sizwtot, &
                                        odd_alpha, valpsi, nkscalfact, odd_alpha_emp
       USE nksic,                ONLY : do_spinsym, pink_emp, allocate_nksic_empty
-      USE hfmod,                ONLY : do_hf, vxxpsi
+      USE hfmod,                ONLY : do_hf
       USE twin_types !added:giovanni
-      USE control_flags,        ONLY : tatomicwfc, trane, ndr, ndw
+      USE control_flags,        ONLY : tatomicwfc, ndr, ndw
       USE electrons_module,     ONLY : wfc_centers_emp, wfc_spreads_emp, icompute_spread
-      USE core,                 ONLY : nlcc_any, rhoc
+      USE core,                 ONLY : rhoc
       USE input_parameters,     ONLY : odd_nkscalfact_empty, &
                                        restart_from_wannier_cp, wannier_empty_only, &
                                        fixed_band, print_wfc_anion, wo_odd_in_empty_run, &
@@ -72,11 +71,11 @@
       INTEGER  :: i, iss, j, in, in_emp, iter, iter_ortho
       INTEGER  :: n_occs, n_emps, n_empx, nudx_emp, issw, n
       INTEGER  :: nlax_emp, nlam_emp
-      LOGICAL  :: exst, do_wxd_, tcg_
+      LOGICAL  :: exst, tcg_
       !
-      REAL(DP) :: fccc, ccc, csv, dt2bye, bigr
+      REAL(DP) :: fccc, ccc, dt2bye, bigr
       REAL(DP) :: verl1, verl2, verl3
-      REAL(DP) :: dek, ekinc, ekinc_old, detothf
+      REAL(DP) :: dek, ekinc, ekinc_old
       !
       REAL(DP),    ALLOCATABLE :: emadt2(:)
       REAL(DP),    ALLOCATABLE :: emaver(:)
@@ -330,8 +329,8 @@
          !
          IF ( .NOT. exst ) THEN
             !
-            write(stdout, * ) 'Linh: oopp restart from minimizing orbital does not work for emptystate'
-            write(stdout, * ) 'Linh: initialize random states and orthogonalize to filled ones'
+            write(stdout, '(/,3X "Empty-states WFCs file NOT FOUND")' )
+            write(stdout, '(3X, "Initializing random WFCs and orthogonlizing to the occupied manifold ",/)' ) 
             !
             ! ...  initial random states orthogonal to filled ones
             !
@@ -397,7 +396,7 @@
             !
          ELSE
             !
-            write(stdout, * ) 'Linh: the code restarts not random wfc'
+            write(stdout, '(/, 3X, "Empty-states WFCs read from file")' )
             !
          ENDIF
          !
@@ -479,10 +478,10 @@
          ! 
          call runcg_uspp_emp(c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
                              n_emps, ispin_emp, iupdwn_emp, nupdwn_emp, phi_emp, lambda_emp, &
-                             max_emp, wxd_emp, vsic_emp, sizvsic_emp, pink_emp, nnrx, becsum_emp, &
+                             max_emp, wxd_emp, vsic_emp, sizvsic_emp, pink_emp, becsum_emp, &
                              deeq_sic_emp, nudx_emp, eodd_emp, etot_emp, v, &
-                             nfi, .true., .true., eigr, bec, irb, eigrb, &
-                             rhor, rhog, rhos, rhoc, ema0bg, desc_emp)     !!! Added rhoc NICOLA 
+                             nfi, .true., eigr, bec, irb, eigrb, &
+                             rhor, rhoc, ema0bg, desc_emp)     !!! Added rhoc NICOLA 
          !
       ELSE ! compute empty states with damped dynamics
          !
@@ -1223,8 +1222,8 @@
         USE io_global,          ONLY: stdout, ionode, ionode_id
         USE mp,                 ONLY: mp_bcast, mp_sum
         USE mp_wave,            ONLY: splitwf
-        USE io_files,           ONLY: outdir, prefix
-        USE io_files,           ONLY: empty_file, emptyunit
+        USE io_files,           ONLY: outdir
+        USE io_files,           ONLY: emptyunit
         USE reciprocal_vectors, ONLY: ig_l2g
         USE gvecw,              ONLY: ngw
         USE xml_io_base,        ONLY: restart_dir, wfc_filename
@@ -1238,7 +1237,7 @@
         INTEGER,     INTENT(IN)  :: ndi
 
         LOGICAL :: exst
-        INTEGER :: ierr, ig, i, iss
+        INTEGER :: ig, i, iss
         INTEGER :: ngw_rd, ne_rd, ngw_l
         INTEGER :: ngw_g
 
@@ -1323,8 +1322,8 @@
         USE mp_global,          ONLY: me_image, nproc_image, intra_image_comm
         USE mp_wave,            ONLY: mergewf
         USE mp,                 ONLY: mp_sum
-        USE io_files,           ONLY: empty_file, emptyunit, outdir, prefix
-        USE io_global,          ONLY: ionode, ionode_id, stdout
+        USE io_files,           ONLY: emptyunit, outdir
+        USE io_global,          ONLY: ionode, ionode_id
         USE reciprocal_vectors, ONLY: ig_l2g
         USE gvecw,              ONLY: ngw
         USE xml_io_base,        ONLY: restart_dir, wfc_filename
@@ -1339,7 +1338,7 @@
         INTEGER,     INTENT(IN) :: ndi
 
         INTEGER :: ig, i, ngw_g, iss, ngw_l
-        LOGICAL :: exst, ierr
+        LOGICAL :: ierr
         COMPLEX(DP), ALLOCATABLE :: ctmp(:)
         CHARACTER(LEN=256) :: fileempty, dirname
         !
@@ -1397,8 +1396,8 @@ LOGICAL FUNCTION reademptytwin_x( c_emp, ne, ndi )
         USE io_global,          ONLY: stdout, ionode, ionode_id
         USE mp,                 ONLY: mp_bcast, mp_sum
         USE mp_wave,            ONLY: splitwf
-        USE io_files,           ONLY: outdir, prefix
-        USE io_files,           ONLY: empty_file, emptyunitc0, emptyunit, emptyunitc0fixed
+        USE io_files,           ONLY: outdir
+        USE io_files,           ONLY: emptyunitc0
         USE reciprocal_vectors, ONLY: ig_l2g
         USE gvecw,              ONLY: ngw
         USE xml_io_base,        ONLY: restart_dir, wfc_filename
@@ -1412,7 +1411,7 @@ LOGICAL FUNCTION reademptytwin_x( c_emp, ne, ndi )
         INTEGER,     INTENT(IN)  :: ndi
         ! 
         LOGICAL :: exst
-        INTEGER :: ierr, ig, i, iss
+        INTEGER :: ig, i, iss
         INTEGER :: ngw_rd, ne_rd, ngw_l
         INTEGER :: ngw_g
         ! 
@@ -1509,9 +1508,8 @@ SUBROUTINE writeemptytwin_x( c_emp, ne, ndi, write_evc0)
         USE mp_global,          ONLY: me_image, nproc_image, intra_image_comm
         USE mp_wave,            ONLY: mergewf
         USE mp,                 ONLY: mp_sum
-        USE io_files,           ONLY: empty_file, outdir, prefix, &
-                                      emptyunitc0, emptyunitc0fixed
-        USE io_global,          ONLY: ionode, ionode_id, stdout
+        USE io_files,           ONLY: outdir, emptyunitc0, emptyunitc0fixed
+        USE io_global,          ONLY: ionode, ionode_id
         USE reciprocal_vectors, ONLY: ig_l2g
         USE gvecw,              ONLY: ngw
         USE xml_io_base,        ONLY: restart_dir, wfc_filename
@@ -1527,7 +1525,7 @@ SUBROUTINE writeemptytwin_x( c_emp, ne, ndi, write_evc0)
         LOGICAL,     INTENT(IN) :: write_evc0
         !
         INTEGER :: ig, i, ngw_g, iss, ngw_l, funit, ne_loc, i_start
-        LOGICAL :: exst, ierr
+        LOGICAL :: ierr
         COMPLEX(DP), ALLOCATABLE :: ctmp(:)
         CHARACTER(LEN=256) :: fileempty, dirname
         !

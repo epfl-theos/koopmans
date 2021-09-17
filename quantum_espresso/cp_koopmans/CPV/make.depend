@@ -1492,6 +1492,7 @@ wf.o : wannier_base.o
 write_hamiltonian.o : ../Modules/constants.o
 write_hamiltonian.o : ../Modules/io_global.o
 write_hamiltonian.o : ../Modules/kind.o
+write_hamiltonian.o : mainvar.o
 writetofile.o : ../Modules/cell_base.o
 writetofile.o : ../Modules/control_flags.o
 writetofile.o : ../Modules/fft_types.o

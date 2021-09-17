@@ -10,34 +10,30 @@
 SUBROUTINE from_scratch( )
     !
     USE kinds,                ONLY : DP
-    USE control_flags,        ONLY : tranp, trane, iprsta, tpre, tcarpar,  &
-                                     tzeroc, tzerop, tzeroe, tfor, thdyn, &
-                                     lwf, tprnfor, non_ortho, tortho, amprp, ampre,  &
-                                     tsde, ortho_eps, ortho_max, program_name, &
-                                     force_pairing, use_task_groups, gamma_only, &
-                                     do_wf_cmplx, iprint_manifold_overlap !added:giovanni gamma_only, do_wf_cmplx
+    USE control_flags,        ONLY : tranp, iprsta, tpre, tfor, thdyn,   &
+                                     tprnfor, non_ortho, tortho, amprp,  &
+                                     tsde, program_name, force_pairing,  & 
+                                     gamma_only, do_wf_cmplx  !added:giovanni gamma_only, do_wf_cmplx
     USE ions_positions,       ONLY : taus, tau0, tausm, vels, fion, fionm, atoms0
-    USE ions_base,            ONLY : na, nsp, randpos, zv, ions_vel, pmass
-    USE ions_base,            ONLY : taui, cdmi, nat, iforce
+    USE ions_base,            ONLY : na, nsp, randpos, ions_vel
+    USE ions_base,            ONLY : nat, iforce
     USE ions_nose,            ONLY : xnhp0, xnhpm, vnhp
-    USE cell_base,            ONLY : ainv, h, s_to_r, ibrav, omega, press, &
-                                     hold, r_to_s, deth, wmass, iforceh,   &
-                                     cell_force, boxdimensions, velh, a1,  &
-                                     a2, a3, b1, b2, b3
+    USE cell_base,            ONLY : ainv, h, s_to_r, omega, a1, a2, a3,  &
+                                     hold, r_to_s, deth, cell_force,      &
+                                     boxdimensions, velh
     USE cell_nose,            ONLY : xnhh0, xnhhm, vnhh
     USE electrons_nose,       ONLY : xnhe0, xnhem, vnhe
-    use electrons_base,       ONLY : nbsp, f, nspin, nupdwn, iupdwn, nbspx
+    use electrons_base,       ONLY : nbsp, f, nspin, nupdwn, iupdwn
     USE electrons_module,     ONLY : occn_info
-    USE energies,             ONLY : entropy, eself, enl, ekin, enthal, etot, ekincm
+    USE energies,             ONLY : entropy, eself, enl, ekin, etot, ekincm
     USE energies,             ONLY : dft_energy_type, debug_energies
-    USE dener,                ONLY : denl, denl6, dekin6, detot
-    USE uspp,                 ONLY : vkb, becsum, deeq, nkb, okvan
+    USE dener,                ONLY : denl, dekin6, detot
+    USE uspp,                 ONLY : vkb, becsum, nkb, okvan
     USE io_global,            ONLY : stdout, ionode, meta_ionode
     USE core,                 ONLY : nlcc_any, rhoc
     USE gvecw,                ONLY : ngw
     USE gvecs,                ONLY : ngs
-    USE gvecp,                ONLY : ngm
-    USE reciprocal_vectors,   ONLY : gstart, mill_l, gx, ig_l2g!added:giovanni ig_l2g
+    USE reciprocal_vectors,   ONLY : mill_l
     USE cvan,                 ONLY : nvb
     USE cp_electronic_mass,   ONLY : emass
     USE efield_module,        ONLY : tefield, efield_berry_setup, berry_energy, &
@@ -59,32 +55,26 @@ SUBROUTINE from_scratch( )
     USE time_step,            ONLY : delt
     USE cp_main_variables,    ONLY : setval_lambda, descla, bephi, becp, becdr, nfi, &
                                      sfac, eigr, ei1, ei2, ei3, bec, taub, irb, eigrb, &
-                                     lambda, lambdam, lambdap, ema0bg, rhog, rhor, rhos, &
+                                     lambda, lambdam, ema0bg, rhog, rhor, rhos, &
                                      vpot, ht0, edft, nlax, becdual
-    USE mp_global,            ONLY : np_ortho, me_ortho, ortho_comm
     USE small_box,            ONLY : ainvb
     USE cdvan,                ONLY : dbec
     USE nksic,                ONLY : do_spinsym
-    USE mp_global,      ONLY : mpime !added:giovanni:debug
-    USE control_flags,        ONLY : tatomicwfc, trane
+    USE control_flags,        ONLY : tatomicwfc
     USE descriptors,          ONLY: descla_siz_
 
     !
     IMPLICIT NONE
     !
-    REAL(DP),    ALLOCATABLE :: emadt2(:), emaver(:)
-    REAL(DP)                 :: verl1, verl2
-    REAL(DP)                 :: bigr, dum
-    INTEGER                  :: i, j, iter, iss, ierr, nspin_wfc
+    REAL(DP)                 :: bigr
+    INTEGER                  :: i, j, iter, iss, nspin_wfc
     LOGICAL                  :: tlast = .FALSE.
-    REAL(DP)                 :: gam(1,1,1)
-    REAL(DP)                 :: fcell(3,3), ccc, enb, enbi, fccc
+    REAL(DP)                 :: ccc, enb, enbi, fccc
     LOGICAL                  :: ttforce
     LOGICAL                  :: tstress
     LOGICAL, PARAMETER       :: ttprint = .TRUE.
     REAL(DP)                 :: ei_unp  
     REAL(DP)                 :: dt2bye
-    INTEGER                  :: n_spin_start 
     LOGICAL                  :: tfirst = .TRUE.
     REAL(DP)                 :: stress(3,3)
     INTEGER                  :: i1, i2 
@@ -276,7 +266,7 @@ SUBROUTINE from_scratch( )
          !
          IF( force_pairing ) THEN
             !
-            CALL runcp_uspp_force_pairing( nfi, fccc, ccc, ema0bg, dt2bye, rhos, bec%rvec, cm, &
+            CALL runcp_uspp_force_pairing( fccc, ccc, ema0bg, dt2bye, rhos, bec%rvec, cm, &
         &                 c0, ei_unp, fromscra = .TRUE. ) !warning:giovanni not yet modified
             !
             IF(.not.lambda(2)%iscmplx) THEN

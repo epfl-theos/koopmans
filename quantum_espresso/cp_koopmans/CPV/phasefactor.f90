@@ -258,7 +258,7 @@
       COMPLEX(DP) :: eigrb(ngb,nat)
       REAL(DP)    :: ainvb(3,3)
 ! local           
-      integer :: i,j,k, is, ia, ig, isa
+      integer :: i, is, ia, ig, isa
       complex(8), allocatable:: ei1b(:,:), ei2b(:,:), ei3b(:,:)
       real(8), allocatable :: taus(:,:)
 !

@@ -262,17 +262,12 @@
       use io_global,          only: stdout
       use mp_global,          only: intra_image_comm
       use cell_base,          only: omega
-      use recvecs_indexes,    only: np
       USE mp,                 ONLY: mp_sum
 
       ! this isn't really needed, but if I remove it, ifc 7.1
       ! gives an "internal compiler error"
-      use reciprocal_vectors, only: gstart
-      use gvecp,              only: ngm
-      use grid_dimensions,    only: nr1, nr2, nr3, &
-                                    nr1x, nr2x, nr3x, nnrx
+      use grid_dimensions,    only: nr1, nr2, nr3, nnrx
       USE cp_interfaces,      ONLY: fwfft
-      USE fft_base,           ONLY: dfftp
 !
       implicit none
       !
@@ -280,7 +275,7 @@
       REAL(DP),    INTENT(INOUT):: rhor( nnrx, nspin )
       !
 !
-      integer :: ig, ir, iss, isup, isdw
+      integer :: iss, isup, isdw
       REAL(DP) :: rsum
       !
       IF( iprsta > 2 ) THEN
@@ -325,10 +320,8 @@
 
       ! this isn't really needed, but if I remove it, ifc 7.1
       ! gives an "internal compiler error"
-      use reciprocal_vectors, only: gstart
       use gvecp,              only: ngm
-      use grid_dimensions,    only: nr1, nr2, nr3, &
-                                    nr1x, nr2x, nr3x, nnrx
+      use grid_dimensions,    only: nr1, nr2, nr3, nnrx
       USE cp_interfaces,      ONLY: fwfft
       USE fft_base,           ONLY: dfftp
 !
@@ -340,7 +333,7 @@
       !
       COMPLEX(DP), ALLOCATABLE :: wrk1( : )
 !
-      integer :: ig, ir, iss, isup, isdw
+      integer :: ig, iss, isup, isdw
       REAL(DP) :: rsum
       !
       IF( iprsta > 2 ) THEN
@@ -409,9 +402,7 @@
       use core,            only: rhocb
       use cp_interfaces,   only: invfft
       use fft_base,        only: dfftb
-      use reciprocal_vectors, only: gstart
-      use smallbox_grid_dimensions, only: nr1b, nr2b, nr3b, &
-            nr1bx, nr2bx, nr3bx, nnrb => nnrbx
+      use smallbox_grid_dimensions, only: nnrb => nnrbx
 
       implicit none
 
@@ -508,14 +499,12 @@
 !
       use ions_base,       only: nsp, na, nat
       use uspp_param,      only: upf
-      use grid_dimensions, only: nr3, nnr => nnrx
+      use grid_dimensions, only: nnr => nnrx
       use gvecb,           only: ngb, npb, nmb
-      use control_flags,   only: iprint
       use core,            only: rhocb
       use cp_interfaces,   only: invfft
       use fft_base,        only: dfftb
-      use smallbox_grid_dimensions, only: nr1b, nr2b, nr3b, &
-            nr1bx, nr2bx, nr3bx, nnrb => nnrbx
+      use smallbox_grid_dimensions, only: nnrb => nnrbx
 
       implicit none
 ! input

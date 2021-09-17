@@ -189,7 +189,7 @@ CONTAINS
     logical :: lgam
 
     lgam=gamma_only.and..not.do_wf_cmplx
-    call qmatrixd(cm,bec,ctable(1,1,ipolp),gqq,qmat,detq,ipolp, lgam)
+    call qmatrixd(cm,bec,ctable(1,1,ipolp),gqq,qmat,detq,ipolp)
     call enberry( detq, ipolp,enb)
     call berryion(tau0,fion,tfor.or.tprnfor,ipolp,evalue,enbi)
     pberryel=enb
@@ -346,7 +346,7 @@ CONTAINS
     logical :: lgam
 
     lgam=gamma_only.and..not.do_wf_cmplx
-    call qmatrixd(cm,bec,ctable2(1,1,ipolp2),gqq2,qmat2,detq2,ipolp2, lgam)
+    call qmatrixd(cm,bec,ctable2(1,1,ipolp2),gqq2,qmat2,detq2,ipolp2)
     call enberry( detq2, ipolp2,enb)
     call berryion(tau0,fion,tfor.or.tprnfor,ipolp2,evalue2,enbi)
     pberryel2=enb

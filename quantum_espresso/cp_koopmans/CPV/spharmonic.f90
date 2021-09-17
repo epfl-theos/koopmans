@@ -21,7 +21,7 @@
         INTEGER, INTENT(IN) :: lm1x, ngw
         REAL(DP), INTENT(IN) :: gx(:,:), gg(:)
         REAL(DP), INTENT(OUT) :: ylm(:,:)
-        INTEGER :: l, m, iy
+        INTEGER :: iy
         iy  = 0
 !        DO l = 0, lm1x
 !          DO m = -l, l
@@ -157,7 +157,7 @@
       IMPLICIT NONE
       REAL(DP) P_M(3,3),T_M(3,3)
       REAL(DP) PM(3,3),PMTM(6,3,3)
-      INTEGER A,M1,M2,KK
+      INTEGER M1,M2,KK
 
       INTEGER, dimension(6), parameter :: ALPHA = (/ 1,2,3,2,3,3 /)
       INTEGER, dimension(6), parameter :: BETA  = (/ 1,1,1,2,2,3 /)

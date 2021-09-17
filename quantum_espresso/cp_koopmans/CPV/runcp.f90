@@ -25,11 +25,11 @@
       !
       USE parallel_include
       USE kinds,               ONLY : DP
-      USE mp_global,           ONLY : nogrp, ogrp_comm, me_image, nolist
+      USE mp_global,           ONLY : nogrp
       USE mp,                  ONLY : mp_sum
       USE fft_base,            ONLY : dffts
       use wave_base,           only : wave_steepest, wave_verlet
-      use control_flags,       only : lwf, tsde, use_task_groups, program_name, &
+      use control_flags,       only : lwf, tsde, use_task_groups, &
                                                        gamma_only, do_wf_cmplx !added:giovanni do_wf_cmplx
       use uspp,                only : deeq, vkb
       use reciprocal_vectors,  only : gstart
@@ -38,7 +38,7 @@
       use wannier_subroutines, only : ef_potential
       use efield_module,       only : dforce_efield, tefield, dforce_efield2, tefield2
       use gvecw,               only : ngw, ngwx
-      USE cp_main_variables,   ONLY : hamilt, iprint_stdout
+      USE cp_main_variables,   ONLY : hamilt
       USE cp_interfaces,       ONLY : dforce
       USE task_groups,         ONLY : tg_gather
       USE ldaU,                ONLY : vupsi, lda_plus_u
@@ -68,8 +68,8 @@
       real(DP),    allocatable :: faux(:)
       complex(DP), allocatable :: c2(:), c3(:)
       REAL(DP),    ALLOCATABLE :: tg_rhos(:,:)
-      integer :: nsiz, incr, idx, idx_in, ierr
-      integer :: iwfc, nwfc, is, tg_rhos_siz, c2_siz
+      integer :: incr, idx, idx_in
+      integer :: tg_rhos_siz, c2_siz
       integer :: isp, j, jj, j0, i, ii, i0
       integer :: iflag
       logical :: ttsde
@@ -420,7 +420,7 @@
 !=----------------------------------------------------------------------------=!
 
     SUBROUTINE runcp_uspp_force_pairing_x  & !warning:giovanni still to be modified
-       ( nfi, fccc, ccc, ema0bg, dt2bye, rhos, bec, c0, cm, intermed, fromscra, &
+       ( fccc, ccc, ema0bg, dt2bye, rhos, bec, c0, cm, intermed, fromscra, &
          restart )
   !
 !  same as runcp, except that electrons are paired forcedly
@@ -429,8 +429,8 @@
 
       USE kinds,               ONLY : DP
       USE wave_base,           ONLY : wave_steepest, wave_verlet
-      USE control_flags,       ONLY : lwf, tsde, program_name, use_task_groups
-      USE uspp,                ONLY : deeq, vkb
+      USE control_flags,       ONLY : lwf, tsde, use_task_groups
+      USE uspp,                ONLY : vkb
       USE reciprocal_vectors,  ONLY : gstart
       USE wannier_subroutines, ONLY : ef_potential
       USE efield_module,       ONLY : dforce_efield, tefield
@@ -440,7 +440,7 @@
       USE gvecw, ONLY: ngw
   !
   !
-      USE electrons_base,   ONLY: nx=>nbnd, nupdwn, iupdwn, nbspx, nbsp
+      USE electrons_base,   ONLY: nupdwn, iupdwn, nbspx, nbsp
       USE mp, ONLY: mp_sum 
       USE mp_global, ONLY: intra_image_comm 
 !@@@@
@@ -448,7 +448,6 @@
 !@@@@
   !
       IMPLICIT NONE
-      INTEGER, INTENT(in) :: nfi
       REAL(DP) :: fccc, ccc
       REAL(DP) :: ema0bg(:), dt2bye
       REAL(DP) :: rhos(:,:)
@@ -466,9 +465,7 @@
       INTEGER :: iflag
       LOGICAL :: ttsde
 !
-       INTEGER     :: ierr,  nb, np_dw, is_dw, npair, n_unp, n_dwn, n_pair 
-       REAL(DP)    :: ei_unp_mem, ei_unp_wfc
-       COMPLEX(DP) :: intermed3
+       INTEGER     :: np_dw, is_dw, npair, n_unp, n_dwn
        REAL(DP),    ALLOCATABLE :: occ(:)
        COMPLEX(DP), ALLOCATABLE :: c4(:), c5(:)
 !

@@ -14,7 +14,7 @@
 ! ... written by Manu Sharma ( 2001-2005 )
 !
 !----------------------------------------------------------------------------
-SUBROUTINE wf( clwf, c, bec, eigr, eigrb, taub, irb, &
+SUBROUTINE wf( clwf, c, bec, eigrb, irb, &
                b1, b2, b3, Uall, what1, wfc, jw, ibrav )
   !----------------------------------------------------------------------------
   !
@@ -24,14 +24,13 @@ SUBROUTINE wf( clwf, c, bec, eigr, eigrb, taub, irb, &
   !
   USE kinds,                    ONLY : DP
   USE constants,                ONLY : pi, tpi
-  USE ions_base,                ONLY : nsp, na, nax, nat
+  USE ions_base,                ONLY : na, nat
   USE cvan,                     ONLY : nvb, ish
   USE cell_base,                ONLY : omega, a1, a2, a3, alat, h, ainv
   USE electrons_base,           ONLY :  nspin, nbspx, nbsp, nupdwn, iupdwn
   USE gvecb,                    ONLY : npb, nmb, ngb
   USE gvecw,                    ONLY : ngw
   USE reciprocal_vectors,       ONLY : gstart
-  USE smooth_grid_dimensions,   ONLY : nnrsx
   USE control_flags,            ONLY : iprsta, do_wf_cmplx, gamma_only
   USE qgb_mod,                  ONLY : qgb
   USE wannier_base,             ONLY : wfg, nw, weight, indexplus, indexplusz, &
@@ -39,12 +38,12 @@ SUBROUTINE wf( clwf, c, bec, eigr, eigrb, taub, irb, &
                                        expo, wfsd
   USE grid_dimensions,          ONLY : nr1, nr2, nr3
   USE smallbox_grid_dimensions, ONLY : nnrbx
-  USE uspp_param,               ONLY : nh, nhm
+  USE uspp_param,               ONLY : nh
   USE uspp,                     ONLY : nkb
   USE io_global,                ONLY : ionode, stdout
   USE mp,                       ONLY : mp_barrier, mp_sum
   USE mp_wave,                  ONLY : redistwf
-  USE mp_global,                ONLY : nproc_image, me_image, root_image, intra_image_comm
+  USE mp_global,                ONLY : nproc_image, me_image, intra_image_comm
   USE cp_interfaces,            ONLY : invfft
   USE fft_base,                 ONLY : dfftp, dfftb
   USE printout_base,            ONLY : printout_base_open, printout_base_unit, &
@@ -57,9 +56,9 @@ SUBROUTINE wf( clwf, c, bec, eigr, eigrb, taub, irb, &
   INTEGER,     INTENT(IN)    :: irb(3,nat), jw, ibrav, clwf
 !   TYPE(twin_matrix)          :: bec
   REAL(DP),    INTENT(INOUT) :: bec(nkb,nbsp)
-  REAL(DP),    INTENT(IN)    :: b1(3), b2(3), b3(3), taub(3,nax)
+  REAL(DP),    INTENT(IN)    :: b1(3), b2(3), b3(3)
   COMPLEX(DP), INTENT(INOUT) :: c(ngw,nbspx)
-  COMPLEX(DP), INTENT(IN)    :: eigr(ngw,nat), eigrb(ngb,nat)
+  COMPLEX(DP), INTENT(IN)    :: eigrb(ngb,nat)
   REAL(DP),    INTENT(INOUT) :: Uall(nbsp,nbsp)
   LOGICAL,     INTENT(IN)    :: what1
   REAL(DP),    INTENT(OUT)   :: wfc(3,nbsp)
@@ -79,17 +78,13 @@ SUBROUTINE wf( clwf, c, bec, eigr, eigrb, taub, irb, &
   INTEGER,     ALLOCATABLE :: f3(:), f4(:)
   COMPLEX(DP), ALLOCATABLE :: U2(:,:)
   !
-  INTEGER           :: inl, jnl, iss, isa, is, ia, ijv, i, j, k, l, ig, &
-                       ierr, ti, tj, tk, iv, jv, inw, iqv, ibig1, ibig2, &
-                       ibig3, ir1, ir2, ir3, ir, m,  &
-                       ib, jb, total, nstat, jj, ngpww, irb3
-  REAL(DP)    :: t1, t2, t3, taup(3)
+  INTEGER           :: inl, jnl, isa, is, ia, ijv, i, j, k, ig, &
+                       tk, iv, jv, inw, iqv, total, nstat, irb3
+  REAL(DP)    :: t1
   REAL(DP)    :: wrsq, wrsqmin
   COMPLEX(DP) :: qvt
   REAL (DP)   :: temp_vec(3)
-  INTEGER           :: adjust,ini, ierr1,nnn, me
-  INTEGER           :: igx, igy, igz
-  REAL(DP)    :: wfcx, wfcy, wfcz
+  INTEGER     :: me
   REAL(DP)    :: te(6)
   INTEGER     :: iunit
   
@@ -98,10 +93,7 @@ SUBROUTINE wf( clwf, c, bec, eigr, eigrb, taub, irb, &
   !
 #if defined (__PARA)
   !
-  INTEGER :: proc, ntot, ncol, mc, ngpwpp(nproc_image)
-  INTEGER :: ncol1,nz1, nz_1 
-  INTEGER :: nmin(3), nmax(3), n1,n2,nzx,nz,nz_
-  INTEGER :: nmin1(3), nmax1(3)
+  INTEGER :: proc, ngpwpp(nproc_image)
   !
   COMPLEX(DP), ALLOCATABLE :: psitot(:,:), psitot_pl(:,:)
   COMPLEX(DP), ALLOCATABLE :: psitot_mi(:,:)
@@ -568,11 +560,11 @@ SUBROUTINE wf( clwf, c, bec, eigr, eigrb, taub, irb, &
      IF(nspin.EQ.1) THEN
         IF(.NOT.what1) THEN
            IF(wfsd==1) THEN
-              CALL ddyn(nbsp,O,Uall,b1,b2,b3)
+              CALL ddyn(nbsp,O,Uall)
            ELSE IF(wfsd==2) THEN
-              CALL wfsteep(nbsp,O,Uall,b1,b2,b3)
+              CALL wfsteep(nbsp,O,Uall)
            ELSE IF(wfsd==3) THEN
-              CALL jacobi_rotation(nbsp,O,Uall,b1,b2,b3)
+              CALL jacobi_rotation(nbsp,O,Uall)
            END IF
         END IF
         IF(iprsta.GT.4) THEN
@@ -588,11 +580,11 @@ SUBROUTINE wf( clwf, c, bec, eigr, eigrb, taub, irb, &
         END DO
         IF(.NOT.what1) THEN
            IF(wfsd==1) THEN
-             CALL ddyn(nupdwn(1), Ospin, Uspin,b1,b2,b3)
+             CALL ddyn(nupdwn(1), Ospin, Uspin)
            ELSE IF (wfsd==2) THEN
-             CALL wfsteep(nupdwn(1), Ospin, Uspin,b1,b2,b3)
+             CALL wfsteep(nupdwn(1), Ospin, Uspin)
            ELSE
-            CALL jacobi_rotation(nupdwn(1), Ospin, Uspin,b1,b2,b3)
+            CALL jacobi_rotation(nupdwn(1), Ospin, Uspin)
            END IF
         END IF
         DO i=1, nupdwn(1)
@@ -611,11 +603,11 @@ SUBROUTINE wf( clwf, c, bec, eigr, eigrb, taub, irb, &
         END DO
         IF(.NOT.what1) THEN
            IF(wfsd==1) THEN
-              CALL ddyn(nupdwn(2), Ospin, Uspin,b1,b2,b3)
+              CALL ddyn(nupdwn(2), Ospin, Uspin)
            ELSE IF (wfsd==2) THEN
-              CALL wfsteep(nupdwn(2), Ospin, Uspin,b1,b2,b3)
+              CALL wfsteep(nupdwn(2), Ospin, Uspin)
            ELSE
-              CALL jacobi_rotation(nupdwn(2), Ospin, Uspin,b1,b2,b3)
+              CALL jacobi_rotation(nupdwn(2), Ospin, Uspin)
            END IF
         END IF
         DO i=1, nupdwn(2)
@@ -1312,11 +1304,11 @@ END SUBROUTINE wf
 !      IF(nspin.EQ.1) THEN
 !         IF(.NOT.what1) THEN
 !            IF(wfsd==1) THEN
-!               CALL ddyn(nbsp,O,Uall,b1,b2,b3)
+!               CALL ddyn(nbsp,O,Uall)
 !            ELSE IF(wfsd==2) THEN
-!               CALL wfsteep(nbsp,O,Uall,b1,b2,b3)
+!               CALL wfsteep(nbsp,O,Uall)
 !            ELSE IF(wfsd==3) THEN
-!               CALL jacobi_rotation(nbsp,O,Uall,b1,b2,b3)
+!               CALL jacobi_rotation(nbsp,O,Uall)
 !            END IF
 !         END IF
 !         IF(iprsta.GT.4) THEN
@@ -1332,11 +1324,11 @@ END SUBROUTINE wf
 !         END DO
 !         IF(.NOT.what1) THEN
 !            IF(wfsd==1) THEN
-!              CALL ddyn(nupdwn(1), Ospin, Uspin,b1,b2,b3)
+!              CALL ddyn(nupdwn(1), Ospin, Uspin)
 !            ELSE IF (wfsd==2) THEN
-!              CALL wfsteep(nupdwn(1), Ospin, Uspin,b1,b2,b3)
+!              CALL wfsteep(nupdwn(1), Ospin, Uspin)
 !            ELSE
-!             CALL jacobi_rotation(nupdwn(1), Ospin, Uspin,b1,b2,b3)
+!             CALL jacobi_rotation(nupdwn(1), Ospin, Uspin)
 !            END IF
 !         END IF
 !         DO i=1, nupdwn(1)
@@ -1355,11 +1347,11 @@ END SUBROUTINE wf
 !         END DO
 !         IF(.NOT.what1) THEN
 !            IF(wfsd==1) THEN
-!               CALL ddyn(nupdwn(2), Ospin, Uspin,b1,b2,b3)
+!               CALL ddyn(nupdwn(2), Ospin, Uspin)
 !            ELSE IF (wfsd==2) THEN
-!               CALL wfsteep(nupdwn(2), Ospin, Uspin,b1,b2,b3)
+!               CALL wfsteep(nupdwn(2), Ospin, Uspin)
 !            ELSE
-!               CALL jacobi_rotation(nupdwn(2), Ospin, Uspin,b1,b2,b3)
+!               CALL jacobi_rotation(nupdwn(2), Ospin, Uspin)
 !            END IF
 !         END IF
 !         DO i=1, nupdwn(2)
@@ -1502,7 +1494,7 @@ END SUBROUTINE wf
 ! END SUBROUTINE wf_new
 ! !
 !----------------------------------------------------------------------------
-SUBROUTINE ddyn( m, Omat, Umat, b1, b2, b3 )
+SUBROUTINE ddyn( m, Omat, Umat)
   !----------------------------------------------------------------------------
   ! ... This part of the subroutine wf has been added by Manu. It performes
   ! ... Damped Dynamics on the A matrix to get the Unitary transformation to
@@ -1515,7 +1507,6 @@ SUBROUTINE ddyn( m, Omat, Umat, b1, b2, b3 )
                                weight, nw, wfdt
   USE cell_base,        ONLY : alat
   USE constants,        ONLY : tpi, autoaf => BOHR_RADIUS_ANGS
-  USE electrons_base,   ONLY : nbsp
   USE control_flags,    ONLY : iprsta
   USE mp_global,        ONLY : me_image
   USE printout_base,    ONLY : printout_base_open, printout_base_unit, &
@@ -1524,17 +1515,16 @@ SUBROUTINE ddyn( m, Omat, Umat, b1, b2, b3 )
   !
   IMPLICIT NONE
   !
-  INTEGER :: f3(nw), f4(nw), i,j,inw
+  INTEGER :: i, j, inw
   INTEGER ,INTENT(in) :: m
-  REAL(DP), INTENT(in) :: b1(3),b2(3),b3(3)
   REAL(DP), INTENT(inout) :: Umat(m,m)
   COMPLEX(DP), INTENT(inout) :: Omat(nw,m,m)
   COMPLEX(DP) :: U2(m,m),U3(m,m)
-  INTEGER :: adjust,ini, ierr1,nnn
+  INTEGER :: ini, ierr1
   REAL(DP), ALLOCATABLE, DIMENSION(:) :: wr
   REAL(DP), ALLOCATABLE, DIMENSION(:,:) :: W
   REAL(DP) :: t0, fric,U(m,m), t2
-  REAL(DP) :: A(m,m),oldt0,Wm(m,m),U1(m,m)
+  REAL(DP) :: A(m,m), oldt0, U1(m,m)
   REAL(DP) :: Aminus(m,m), Aplus(m,m),f2(4*m)
   REAL(DP) :: temp(m,m)
   COMPLEX(DP) :: d(m,m)
@@ -1543,7 +1533,6 @@ SUBROUTINE ddyn( m, Omat, Umat, b1, b2, b3 )
   COMPLEX(DP), ALLOCATABLE, DIMENSION(:, :, :) :: Oc
   REAL(DP) , ALLOCATABLE , DIMENSION(:) :: mt
   REAL(DP) :: spread, sp
-  REAL(DP) :: wfc(3,nbsp), gr(nw,3)
   INTEGER  :: me, iunit
   !
   me = me_image + 1
@@ -1785,7 +1774,7 @@ SUBROUTINE wfunc_init( clwf, b1, b2, b3, ibrav )
   REAL(DP), INTENT(in) :: b1(3),b2(3),b3(3)
   INTEGER,  INTENT(in) :: clwf, ibrav
 #ifdef __PARA
-  INTEGER :: ntot, proc, ierr, i,j,inw,ngppp(nproc_image)
+  INTEGER :: ntot, i, j, inw, ngppp(nproc_image)
   INTEGER :: ii,ig,displs(nproc_image)
 #else
   INTEGER :: ierr, i,j,inw, ntot
@@ -1793,10 +1782,10 @@ SUBROUTINE wfunc_init( clwf, b1, b2, b3, ibrav )
 #endif
   REAL (DP), ALLOCATABLE:: bigg(:,:)
   INTEGER, ALLOCATABLE :: bign(:,:)
-  INTEGER :: igcount,nw1,jj,nw2, in, kk
+  INTEGER :: nw1
   INTEGER, ALLOCATABLE :: i_1(:), j_1(:), k_1(:)
   INTEGER :: ti, tj, tk
-  REAL(DP) ::t1, vt, err1, err2, err3
+  REAL(DP) ::vt, err1, err2, err3
   INTEGER :: ti1,tj1,tk1
   INTEGER :: me
   !
@@ -2171,7 +2160,7 @@ SUBROUTINE setwfg( ibrav, b1, b2, b3 )
   ! Find G vectors for a given ibrav and celldms
   !
   USE kinds,              ONLY : DP
-  USE cell_base,          ONLY : tpiba, celldm
+  USE cell_base,          ONLY : celldm
   USE wannier_base,       ONLY : wfg, nw, weight
   !
   IMPLICIT NONE
@@ -2544,7 +2533,7 @@ SUBROUTINE setwfg( ibrav, b1, b2, b3 )
 END SUBROUTINE setwfg
 !
 !----------------------------------------------------------------------------
-SUBROUTINE tric_wts( rp1, rp2, rp3, alat, wts )
+SUBROUTINE tric_wts( rp1, rp2, rp3, wts )
   !----------------------------------------------------------------------------
   !
   ! ... This subroutine computes the weights to be used for
@@ -2558,11 +2547,9 @@ SUBROUTINE tric_wts( rp1, rp2, rp3, alat, wts )
   IMPLICIT NONE
   !
   REAL(DP), INTENT(IN)  :: rp1(3), rp2(3), rp3(3)
-  REAL(DP), INTENT(IN)  :: alat
   REAL(DP), INTENT(OUT) :: wts(6)
   ! 
   REAL(DP) :: b1x, b2x, b3x, b1y, b2y, b3y, b1z, b2z, b3z
-  INTEGER        :: i
   !
   !
   b1x = rp1(1)*tpiba
@@ -2768,9 +2755,9 @@ FUNCTION boxdotgridcplx(irb,qv,vr)
   !      use ion_parameters
   !
   USE kinds,                    ONLY : DP
-  USE grid_dimensions,          ONLY : nnrx, nr1, nr2, nr3, nr1x, nr2x, nr3x
+  USE grid_dimensions,          ONLY : nnrx, nr1, nr2, nr3, nr1x, nr2x
   USE smallbox_grid_dimensions, ONLY : nnrbx, nr1b, nr2b, nr3b, &
-                                       nr1bx, nr2bx, nr3bx
+                                       nr1bx, nr2bx
   USE fft_base,                 ONLY : dfftp
   USE mp_global,                ONLY : me_image
   !
@@ -2820,7 +2807,7 @@ SUBROUTINE write_rho_g( rhog )
   USE kinds,              ONLY : DP
   USE io_global,          ONLY : stdout
   USE gvecp,              ONLY : ngm
-  USE reciprocal_vectors, ONLY : gx, mill_l
+  USE reciprocal_vectors, ONLY : gx
   USE electrons_base,     ONLY : nspin
   USE fft_base,           ONLY : dfftp
   USE mp_global,          ONLY : nproc_image, me_image, root_image, intra_image_comm
@@ -2835,7 +2822,7 @@ SUBROUTINE write_rho_g( rhog )
   COMPLEX(DP) :: rhotmp_g(ngm)
   INTEGER           :: ntot, i, j, me
 #ifdef __PARA
-  INTEGER proc, ierr, ngdens(nproc_image), displs(nproc_image)
+  INTEGER ngdens(nproc_image), displs(nproc_image)
 #endif
   CHARACTER (LEN=6)  :: name
   CHARACTER (LEN=15) :: name2
@@ -2968,9 +2955,9 @@ SUBROUTINE macroscopic_average( rhog, tau0, e_tuned )
   INTEGER ntot, i, j, ngz, l, isa
   INTEGER ,ALLOCATABLE :: g_red(:,:)
 #ifdef __PARA
-  INTEGER proc, ierr, ngdens(nproc_image), displs( nproc_image )
+  INTEGER ngdens(nproc_image), displs( nproc_image )
 #endif
-  REAL(DP) zlen,vtot, pos(3,nax,nsp), a_direct(3,3),a_trans(3,3), e_slp, e_int
+  REAL(DP) zlen,vtot, pos(3,nax,nsp), a_direct(3,3),a_trans(3,3)
   REAL(DP), INTENT(out) :: e_tuned(3)
   REAL(DP), INTENT(in) :: tau0(3,nax)
   REAL(DP),ALLOCATABLE :: v_mr(:), dz(:), gz(:), g_1(:,:), vbar(:), cd(:), v_final(:)
@@ -3224,7 +3211,7 @@ SUBROUTINE least_square( npts, x, y, slope, intercept )
 END SUBROUTINE least_square
 !
 !----------------------------------------------------------------------------
-SUBROUTINE wfsteep( m, Omat, Umat, b1, b2, b3 )
+SUBROUTINE wfsteep( m, Omat, Umat)
   !----------------------------------------------------------------------------
   !
   USE kinds,                  ONLY : DP
@@ -3233,7 +3220,6 @@ SUBROUTINE wfsteep( m, Omat, Umat, b1, b2, b3 )
   USE control_flags,          ONLY : iprsta
   USE cell_base,              ONLY : alat
   USE constants,              ONLY : tpi, autoaf => BOHR_RADIUS_ANGS
-  USE smooth_grid_dimensions, ONLY : nr1s, nr2s, nr3s
   USE mp_global,              ONLY : me_image
   USE printout_base,          ONLY : printout_base_open, printout_base_unit, &
                                      printout_base_close
@@ -3249,20 +3235,18 @@ SUBROUTINE wfsteep( m, Omat, Umat, b1, b2, b3 )
   !     conjugated gradient to search maximization
   !
   INTEGER, INTENT(in) :: m
-  REAL(DP), INTENT(in) :: b1(3),b2(3),b3(3)
   COMPLEX(DP), INTENT(inout) :: Omat(nw, m, m)
   REAL(DP), INTENT(inout) :: Umat(m,m)
   !
-  INTEGER :: i, j, k, l, ig, ierr, ti, tj, tk, inw, ir, adjust
-  INTEGER :: f3(nw), f4(nw), ierr1
+  INTEGER :: i, j, k, ierr, ti, tj, tk, inw
   REAL(DP) :: slope, slope2, t1, t2, t3, mt(nw),t21,temp1,maxdt
-  REAL(DP) :: U(m,m), wfc(3, m), Wm(m,m), schd(m,m), f2(4*m), gr(nw, 3)
-  REAL(DP) :: Uspin2(m,m),temp2,wfdtold,oldt1,t01, d3(m,m), d4(m,m), U1(m,m)
+  REAL(DP) :: U(m,m), Wm(m,m), schd(m,m), f2(4*m)
+  REAL(DP) :: temp2,wfdtold,oldt1,t01, d3(m,m), d4(m,m), U1(m,m)
   REAL(DP) :: spread, sp
   REAL(DP), ALLOCATABLE  :: wr(:)
   REAL(DP), ALLOCATABLE  :: W(:,:)
-  COMPLEX(DP) :: ct1, ct2, ct3, z(m, m), X(m, m), d(m,m), d2(m,m)
-  COMPLEX(DP) :: f1(2*m-1), wp(m*(m+1)/2), Oc(nw, m, m)
+  COMPLEX(DP) :: z(m, m), X(m, m), d(m,m)
+  COMPLEX(DP) :: f1(2*m-1), Oc(nw, m, m)
   COMPLEX(DP) ::  Oc2(nw, m, m),wp1(m*(m+1)/2), X1(m,m), U2(m,m), U3(m,m)
   INTEGER :: me, iunit
   !
@@ -3608,7 +3592,7 @@ SUBROUTINE write_psi( c, jw )
   INTEGER :: jw
   COMPLEX(DP) :: c(ngw,nbspx)
   !
-  INTEGER ::i, ig, proc, ntot, ngpwpp(nproc_image)
+  INTEGER ::i, proc, ntot, ngpwpp(nproc_image)
   INTEGER ::displs(nproc_image)
   COMPLEX(DP), ALLOCATABLE:: psitot(:)
 
@@ -3661,16 +3645,13 @@ SUBROUTINE write_psi( c, jw )
 END SUBROUTINE write_psi
 !
 !----------------------------------------------------------------------------
-SUBROUTINE jacobi_rotation( m, Omat, Umat, b1, b2, b3 )
+SUBROUTINE jacobi_rotation( m, Omat, Umat )
   !----------------------------------------------------------------------------
   !
   USE kinds,                  ONLY : DP
-  USE io_global,              ONLY : stdout
-  USE wannier_base,           ONLY : nw, weight, nit, tolw, wfdt, maxwfdt, nsd
-  USE control_flags,          ONLY : iprsta
+  USE wannier_base,           ONLY : nw, weight, nit, tolw
   USE cell_base,              ONLY : alat
   USE constants,              ONLY : tpi
-  USE smooth_grid_dimensions, ONLY : nr1s, nr2s, nr3s
   USE mp_global,              ONLY : me_image
   USE printout_base,          ONLY : printout_base_open, printout_base_unit, &
                                      printout_base_close
@@ -3703,9 +3684,7 @@ SUBROUTINE jacobi_rotation( m, Omat, Umat, b1, b2, b3 )
   REAL(DP) :: bMinusa, outDiag ! To compute the eigenvector linked to the largest eigenvalue of matrixG
   REAL(DP) :: newMat_ll, newMat_cc, newMat_lc, presentSpread, saveSpread, mt(nw)
   REAL(DP), DIMENSION (m,2) :: newMat_cols
-  REAL(DP), INTENT(in) :: b1(3),b2(3),b3(3)
-  INTEGER :: me, iunit
-  REAL(DP), DIMENSION(m, m) :: matriceTest
+  INTEGER :: me
   !
   me = me_image + 1
   nbMat=2*nw

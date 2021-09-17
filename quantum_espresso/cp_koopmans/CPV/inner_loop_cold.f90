@@ -69,7 +69,7 @@
       USE ions_positions, ONLY: tau0
       USE mp,             ONLY: mp_sum,mp_bcast, mp_root_sum
 
-      USE cp_interfaces,  ONLY: rhoofr, dforce, protate
+      USE cp_interfaces,  ONLY: rhoofr, dforce
       USE cg_module,      ONLY: itercg
       USE cp_main_variables, ONLY: distribute_lambda, descla, nlax, collect_lambda
       USE descriptors,       ONLY: lambda_node_ , la_npc_ , la_npr_ , descla_siz_ , &
@@ -608,7 +608,7 @@
       USE ions_positions, ONLY: tau0
       USE mp,             ONLY: mp_sum,mp_bcast, mp_root_sum
 
-      USE cp_interfaces,  ONLY: rhoofr, dforce, protate
+      USE cp_interfaces,  ONLY: rhoofr, dforce
       USE cg_module,      ONLY: itercg
       USE cp_main_variables, ONLY: distribute_lambda, descla, nlax, collect_lambda, nrlx
       USE descriptors,       ONLY: lambda_node_ , la_npc_ , la_npr_ , descla_siz_ , &

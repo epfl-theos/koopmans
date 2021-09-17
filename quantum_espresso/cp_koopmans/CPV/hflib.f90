@@ -29,17 +29,12 @@
       use gvecs,                   only: ngs, nps, nms
       use gvecw,                   only: ngw
       use recvecs_indexes,         only: np, nm
-      use reciprocal_vectors,      only: gstart
-      use grid_dimensions,         only: nr1, nr2, nr3, &
-                                         nr1x, nr2x, nr3x, nnrx
-      use cell_base,               only: omega, a1, a2, a3
-      use smooth_grid_dimensions,  only: nr1s, nr2s, nr3s, &
-                                         nr1sx, nr2sx, nr3sx, nnrsx
+      use grid_dimensions,         only: nnrx
+      use cell_base,               only: omega
+      use smooth_grid_dimensions,  only: nnrsx
       use electrons_base,          only: nspin
       use constants,               only: pi, fpi
       use mp,                      only: mp_sum
-      use mp_global,               only: intra_image_comm
-      use io_global,               only: stdout, ionode
       use funct,                   only: dft_is_gradient
       use cp_interfaces,           only: fwfft, invfft, fillgrad
       use fft_base,                only: dffts, dfftp
@@ -70,10 +65,9 @@
       !
       real(dp), parameter :: vanishing_f = 1.e-6_dp
       !
-      integer     :: iss, isup, isdw, iss1, iss2 
-      integer     :: ios, i, ir, ig, k, j
+      integer     :: i, ir, ig, j
       integer     :: istart, iend
-      real(dp)    :: sa1, sa2, eaux(2), etxc, fact
+      real(dp)    :: sa1, eaux(2)
       real(dp)    :: faux_i, faux_j0, faux_jp
       complex(dp) :: ci,fp,fm
       !
@@ -85,9 +79,6 @@
       real(dp),    allocatable :: orbitalrhos(:,:)
       real(dp),    allocatable :: orbitalrhor(:,:)
       real(dp),    allocatable :: aux(:,:)
-      real(dp),    allocatable :: vxc(:,:)
-      real(dp),    allocatable :: grhor(:,:,:)
-      real(dp),    allocatable :: h(:,:,:)
       !
       ci=(0.0d0,1.0d0)
 
@@ -358,7 +349,7 @@
       real(dp),   intent(out) :: vxx(nnrx)
       real(dp),   intent(out) :: exx
       !
-      integer  :: i, is, ig, ir
+      integer  :: ig
       real(dp) :: fact
       complex(dp),allocatable :: aux(:)
       complex(dp),allocatable :: rhotmp(:)

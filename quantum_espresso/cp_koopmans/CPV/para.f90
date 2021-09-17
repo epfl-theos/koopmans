@@ -79,7 +79,6 @@
       integer  :: nspin
       real(DP) :: rhor( nnrx, nspin )
       !
-      integer            :: is
       CHARACTER(LEN=256) :: filename
       !
       filename = restart_dir( outdir, ndr )
@@ -112,7 +111,6 @@
 !
       use parallel_include
       use grid_dimensions, only : nr1x, nr2x, nr3x, nnrx
-      use gvecw ,          only : ngw
       USE mp_global,       ONLY : nproc_image, intra_image_comm
       USE io_global,       ONLY : ionode, ionode_id
       USE fft_base,        ONLY : dfftp
@@ -127,7 +125,7 @@
       !
       integer :: ir, is
 
-      integer :: proc, ierr
+      integer :: proc
       integer, allocatable:: displs(:), recvcount(:)
       real(kind=DP), allocatable:: rhodist(:)
       !     
@@ -210,7 +208,7 @@
 ! output
       integer nmin(3), nmax(3)
 ! local
-      integer nmin0(3), nmax0(3), ig, ierr
+      integer nmin0(3), nmax0(3), ig
 !
 !
       nmin0(1)=  nr1s

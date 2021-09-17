@@ -17,14 +17,11 @@
 ! ... in 0D setttings (e.g., isolated molecule, cluster)
 !
       use kinds,              only : dp
-      use cell_base,          only : a1, a2, a3, omega, tpiba2, s_to_r, &
+      use cell_base,          only : a1, a2, a3, s_to_r, &
                                      boxdimensions
       use constants,          only : fpi, pi
-      use io_global,          only : stdout
-      use grid_dimensions,    only : nnrx, nr1,  nr2,  nr3, nr1x, nr2x, &
-                                     nr3x, nr1l, nr2l, nr3l
-      use recvecs_indexes,    only : np, nm
-      use reciprocal_vectors, only : gstart, g
+      use grid_dimensions,    only : nnrx, nr1l, nr2l, nr3l
+      use recvecs_indexes,    only : np
       use gvecp,              only : ngm
       use fft_base,           only : dfftp
       use cp_interfaces,      only : fwfft, invfft
@@ -43,7 +40,6 @@
       real(dp) :: aux(dfftp%nr1,dfftp%nr2,dfftp%nr3)
       !
       integer             :: ig, ir1, ir2, ir3, ir, i, j, k
-      real(dp)            :: sv(3), lv(3) ,dist
       real(dp)            :: a(3,3)
       integer             :: npt(3)
       logical             :: tperiodic(3)
@@ -122,14 +118,11 @@
 ! ... for 1D setttings (e.g., nanotube, polymer chain)
 !
       use kinds,              only : dp
-      use cell_base,          only : a1, a2, a3, omega, tpiba2, s_to_r, &
+      use cell_base,          only : a1, a2, a3, s_to_r, &
                                      boxdimensions
       use constants,          only : fpi, pi
-      use io_global,          only : stdout
-      use grid_dimensions,    only : nnrx, nr1, nr2, nr3, nr1x, nr2x, nr3x, &
-                                           nr1l, nr2l, nr3l
-      use recvecs_indexes,    only : np, nm
-      use reciprocal_vectors, only : gstart, g, gx
+      use grid_dimensions,    only : nnrx, nr1l, nr2l, nr3l
+      use recvecs_indexes,    only : np
       use gvecp,              only : ngm
       use fft_base,           only : dfftp
       use cp_interfaces,      only : fwfft, invfft
@@ -149,8 +142,7 @@
       real(dp),    allocatable :: vtempr(:)
       real(dp) :: aux(dfftp%nr1,dfftp%nr2,dfftp%nr3)
       !
-      integer                  :: ig, ir1, ir2, ir3, ir, i, j, k
-      real(dp)                 :: sv(3), lv(3), dist
+      integer             :: ig, ir1, ir2, ir3, ir, i, j, k
       real(dp)            :: a(3,3)
       integer             :: npt(3)
       logical             :: tperiodic(3)
@@ -232,14 +224,10 @@
 ! ... for 2D setttings (e.g., surface, thin film)
 !
       use kinds,              only : dp
-      use cell_base,          only : a1, a2, a3, omega, tpiba2, s_to_r, &
-                                     boxdimensions
+      use cell_base,          only : a1, a2, a3, s_to_r, boxdimensions
       use constants,          only : fpi, pi
-      use io_global,          only : stdout
-      use grid_dimensions,    only : nnrx, nr1, nr2, nr3, nr1x, nr2x, nr3x, &
-                                           nr1l, nr2l, nr3l
-      use recvecs_indexes,    only : np, nm
-      use reciprocal_vectors, only : gstart, g, gx
+      use grid_dimensions,    only : nnrx, nr1l, nr2l, nr3l
+      use recvecs_indexes,    only : np
       use gvecp,              only : ngm
       use fft_base,           only : dfftp
       use cp_interfaces,      only : fwfft, invfft
@@ -259,8 +247,7 @@
       real(dp),    allocatable :: vtempr(:)
       real(dp) :: aux(dfftp%nr1,dfftp%nr2,dfftp%nr3)
       !
-      integer                  :: ig, ir1, ir2, ir3, ir, i, j, k
-      real(dp)                 :: sv(3), lv(3), dist
+      integer             :: ig, ir1, ir2, ir3, ir, i, j, k
       real(dp)            :: a(3,3)
       integer             :: npt(3)
       logical             :: tperiodic(3)
@@ -344,8 +331,7 @@
 !
       use kinds,              only: dp
       use gvecp,              only: ngm
-      use eecp_mod,           only: gcorr_fft, which_compensation, tcc_odd
-      use cell_base,          only: omega
+      use eecp_mod,           only: which_compensation, tcc_odd
 
       implicit none
       complex(dp) :: rho_fft(ngm)
@@ -482,7 +468,6 @@
 !
       use kinds,              only : dp
       use gvecp,              only : ngm
-      use eecp_mod,           only : gcorr_fft
       use cell_base,          only : omega
       use reciprocal_vectors, only : gstart
       use mp,                 only : mp_sum
@@ -544,14 +529,12 @@
 ! ... (the system is assumed to be centered at the origin of the cell)
 !
       use kinds,              only : dp
-      use cell_base,          only : a1, a2, a3, omega, tpiba2, s_to_r, &
+      use cell_base,          only : s_to_r, &
                                      boxdimensions
       use constants,          only : fpi, pi
-      use io_global,          only : stdout
-      use grid_dimensions,    only : nr1,  nr2,  nr3,  nr1x, nr2x, nr3x, &
+      use grid_dimensions,    only : nr1,  nr2,  nr3, &
                                      nr1l, nr2l, nr3l, nnrx
-      use recvecs_indexes,    only : np, nm
-      use reciprocal_vectors, only : gstart, g
+      use recvecs_indexes,    only : np
       use gvecp,              only : ngm
       use fft_base,           only : dfftp
       use cp_interfaces,      only : fwfft, invfft
@@ -623,24 +606,22 @@
 ! ... calculate the electronic dipole in real space
 !
       use kinds,              only : dp
-      use cell_base,          only : a1, a2, a3, omega, tpiba2, s_to_r, &
+      use cell_base,          only : omega, s_to_r, &
                                      boxdimensions
       use constants,          only : fpi, pi
       use io_global,          only : stdout, meta_ionode
       use gvecw,              only : ngw
       use grid_dimensions,    only : nr1l, nr2l, nr3l, nnrx, &
-                                     nr1,  nr2, nr3, nr1x, nr2x, nr3x
+                                     nr1,  nr2, nr3
       use smooth_grid_dimensions, &
-                              only : nr1s, nr2s, nr3s, &
-                                     nr1sx, nr2sx, nr3sx, nnrsx
+                              only :  nnrsx
       use recvecs_indexes,    only : np, nm
-      use reciprocal_vectors, only : gstart, g
       use gvecs,              only : ngs, nps, nms
       use gvecp,              only : ngm
       use fft_base,           only : dfftp, dffts
       use cp_interfaces,      only : fwfft, invfft
       use electrons_base,     only : nbspx, nbsp, &
-                                     f, ispin, nspin, nelt
+                                     f, ispin, nspin
       use mp_global,          only : me_image, intra_image_comm
       use mp,                 only : mp_sum
       !
@@ -650,11 +631,10 @@
       complex(dp),       intent(inout) :: wfc(ngw,nbspx)
       !
       integer       :: ig, ir1, ir2, ir3, ir, i, j, k
-      integer       :: iss, isup, isdw, iss1, iss2, ios
+      integer       :: isup, isdw, iss1, iss2
       real(dp)      :: sa1, sa2, dipole(3), sv(3), lv(3) 
       complex(dp)   :: ci, fp, fm
       !
-      complex(dp), allocatable :: vtemp(:)
       complex(dp), allocatable :: psi(:), psis(:), rhog(:,:)
       real(dp),    allocatable :: rhor(:,:), rhos(:,:)
       !
@@ -799,8 +779,6 @@
       !
       real( dp )             :: fact
       real( dp )             :: term
-      real( dp )             :: total1
-      real( dp )             :: total2
       !
       integer                :: k
       !
@@ -1029,9 +1007,9 @@
       !
       use kinds,              only : dp
       use ions_base,          only : zv
-      use cell_base,          only : a1, a2, a3, omega, tpiba2, s_to_r, &
+      use cell_base,          only : a1, a2, a3, s_to_r, &
                                      boxdimensions
-      use io_global,          only : meta_ionode, meta_ionode_id
+      use io_global,          only : meta_ionode_id
       use mp,                 only : mp_sum, mp_barrier, mp_gather
       use mp_global,          only : intra_image_comm, me_image, &
                                      nproc_image
@@ -1048,7 +1026,7 @@
       type(boxdimensions)    :: box
       type(fft_dlay_descriptor) :: dfft
       !
-      integer                :: ir,ir1,ir2,ir3,ia,a,b,c,&
+      integer                :: ir1,ir2,ir3,ia,a,b,c,&
                                 bound1,bound2,bound3,na_loc,ia_e,ia_s, &
                                 proc,is,isa
       real(dp)               :: taur(3,nat)
@@ -1058,7 +1036,6 @@
       integer,  allocatable :: displs(:),recvcount(:)
       real(dp), allocatable    :: vcomp(:)
       real(dp), allocatable    :: fcorr(:,:)
-      complex(dp), allocatable :: aux(:)
       !
       integer, external      :: compindex
       integer, external      :: compmod

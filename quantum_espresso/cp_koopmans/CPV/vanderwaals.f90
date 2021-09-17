@@ -52,7 +52,7 @@
       parameter (csp11=1.0191452D0, csp12=0.2239317D0, csp22=0.04364401D0)
 
       REAL(DP) sij(3),rij(3),sij_image(3) 
-      REAL(DP) csp1, dist, ff,dist6,fun,fact,cont
+      REAL(DP) csp1, dist, ff,dist6,fun,fact
       REAL(DP) force( 3, nat )
       integer i,j,is,js,ia,ja,ix,iy,iz,iesr
       logical:: tzero,tshift

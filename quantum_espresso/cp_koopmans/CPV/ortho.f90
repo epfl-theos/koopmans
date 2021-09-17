@@ -14,7 +14,7 @@
       USE control_flags,      ONLY: force_pairing
       USE cp_main_variables,  ONLY: ema0bg
       USE descriptors,        ONLY: lambda_node_ , nlar_ , nlac_
-      USE control_flags,      ONLY: ortho_eps, ortho_max
+      USE control_flags,      ONLY: ortho_max
       USE orthogonalize_base, ONLY: calphi, updatc
       USE cp_interfaces,      ONLY: ortho_gamma
       !
@@ -29,7 +29,7 @@
       COMPLEX(DP), ALLOCATABLE :: phi(:,:)
       INTEGER                  :: iss, nsc, iwfc, nwfc, info
       INTEGER                  :: iter, i, j
-      INTEGER                  :: ngwx, n, nr, nc, nx
+      INTEGER                  :: ngwx, n, nx
       REAL(DP)                 :: diff
       REAL(DP),    ALLOCATABLE :: dum(:,:)
       REAL(DP),    ALLOCATABLE :: ddum(:,:)
@@ -98,11 +98,10 @@ SUBROUTINE ortho_m_twin(c0, cp, lambda, descla, ccc, nupdwn, iupdwn, nspin)
       USE control_flags,      ONLY: force_pairing
       USE cp_main_variables,  ONLY: ema0bg
       USE descriptors,        ONLY: lambda_node_ , nlar_ , nlac_
-      USE control_flags,      ONLY: ortho_eps, ortho_max
+      USE control_flags,      ONLY: ortho_max
       USE orthogonalize_base, ONLY: calphi, updatc
       USE cp_interfaces,      ONLY: ortho_gamma
       USE twin_types
-      USE mp_global,          ONLY: mpime
       !
       IMPLICIT NONE
 
@@ -115,7 +114,7 @@ SUBROUTINE ortho_m_twin(c0, cp, lambda, descla, ccc, nupdwn, iupdwn, nspin)
       COMPLEX(DP), ALLOCATABLE :: phi(:,:)
       INTEGER                  :: iss, nsc, iwfc, nwfc, info
       INTEGER                  :: iter, i, j
-      INTEGER                  :: ngwx, n, nr, nc, nx
+      INTEGER                  :: ngwx, n, nx
       REAL(DP)                 :: diff
       REAL(DP),    ALLOCATABLE :: dum(:,:)
       REAL(DP),    ALLOCATABLE :: ddum(:,:)
@@ -212,7 +211,6 @@ SUBROUTINE ortho_m_twin(c0, cp, lambda, descla, ccc, nupdwn, iupdwn, nspin)
                                     use_parallel_diag, diagonalize_parallel
       USE descriptors,        ONLY: lambda_node_ , nlar_ , nlac_ , ilar_ , ilac_ , &
                                     nlax_ , la_comm_ , descla_siz_
-      USE mp_global,          ONLY: nproc_image, me_image, intra_image_comm
       USE mp,                 ONLY: mp_sum
       USE parallel_toolkit,            ONLY: sqr_tr_cannon
 
@@ -440,7 +438,6 @@ SUBROUTINE ortho_m_twin(c0, cp, lambda, descla, ccc, nupdwn, iupdwn, nspin)
                                     use_parallel_diag, diagonalize_parallel
       USE descriptors,        ONLY: lambda_node_ , nlar_ , nlac_ , ilar_ , ilac_ , &
                                     nlax_ , la_comm_ , descla_siz_
-      USE mp_global,          ONLY: nproc_image, me_image, intra_image_comm
       USE mp,                 ONLY: mp_sum
       USE parallel_toolkit,      ONLY: sqr_tr_cannon
 
@@ -697,14 +694,11 @@ SUBROUTINE ortho_m_twin(c0, cp, lambda, descla, ccc, nupdwn, iupdwn, nspin)
       USE cvan,           ONLY: ish, nvb
       USE uspp,           ONLY: nkb, qq
       USE uspp_param,     ONLY: nh
-      USE electrons_base, ONLY: f
-      USE gvecw,          ONLY: ngw
-      USE control_flags,  ONLY: iprint, iprsta, ortho_max
+      USE control_flags,  ONLY: iprsta, ortho_max
       USE control_flags,  ONLY: force_pairing
-      USE io_global,      ONLY: stdout, ionode
+      USE io_global,      ONLY: stdout
       USE cp_interfaces,  ONLY: ortho_gamma, nlsm1, nlsm1_dist
       USE descriptors,    ONLY: nlac_ , ilac_ , descla_siz_ , nlar_ , ilar_, lambda_node_, nlax_
-      USE mp_global,          ONLY: nproc_image, me_image, intra_image_comm  ! DEBUG
       !
       IMPLICIT NONE
       !
@@ -723,8 +717,8 @@ SUBROUTINE ortho_m_twin(c0, cp, lambda, descla, ccc, nupdwn, iupdwn, nspin)
       LOGICAL :: la_proc
       !
       INTEGER :: nkbx
-      INTEGER :: istart, nss, ifail, i, j, iss, iv, jv, ia, is, inl, jnl
-      INTEGER :: nspin_sub, nx0, nc, ic, icc, nr, ir
+      INTEGER :: istart, nss, i, iss, iv, jv, is, inl, jnl
+      INTEGER :: nspin_sub, nx0, nc, ic, icc
       REAL(DP) :: qqf
       !
 !       write(6,*) "inside ortho-cp-real" !added:giovanni:debug
@@ -877,16 +871,13 @@ SUBROUTINE ortho_m_twin(c0, cp, lambda, descla, ccc, nupdwn, iupdwn, nspin)
       USE kinds,          ONLY: DP
       USE ions_base,      ONLY: na, nat
       USE cvan,           ONLY: ish, nvb
-      USE uspp,           ONLY: nkb, qq, vkb !added:giovanni:vkb
+      USE uspp,           ONLY: nkb, qq
       USE uspp_param,     ONLY: nh
-      USE electrons_base, ONLY: f
-      USE gvecw,          ONLY: ngw
-      USE control_flags,  ONLY: iprint, iprsta, ortho_max
+      USE control_flags,  ONLY: iprsta, ortho_max
       USE control_flags,  ONLY: force_pairing, gamma_only, do_wf_cmplx
-      USE io_global,      ONLY: stdout, ionode
+      USE io_global,      ONLY: stdout
       USE cp_interfaces,  ONLY: ortho_gamma, nlsm1, nlsm1_dist
       USE descriptors,    ONLY: nlac_ , ilac_ , descla_siz_ , nlar_ , ilar_, lambda_node_, nlax_
-      USE mp_global,          ONLY: nproc_image, me_image, intra_image_comm, mpime   ! DEBUG !added:giovanni mpime
       USE twin_types !added:giovanni
       USE parallel_toolkit,  ONLY: redist_row2col
       !
@@ -910,13 +901,12 @@ SUBROUTINE ortho_m_twin(c0, cp, lambda, descla, ccc, nupdwn, iupdwn, nspin)
       LOGICAL :: la_proc
       !
       INTEGER :: nkbx
-      INTEGER :: istart, nss, ifail, i, j, iss, iv, jv, ia, is, inl, jnl
-      INTEGER :: nspin_sub, nx0, nc, ic, icc, nr, ir
+      INTEGER :: istart, nss, i, iss, iv, jv, is, inl, jnl
+      INTEGER :: nspin_sub, nx0, nc, ic, icc
       REAL(DP) :: qqf
       COMPLEX(DP) :: qqf_c
       LOGICAL :: lgam !added:giovanni
       COMPLEX(DP), PARAMETER :: c_one = CMPLX(1.d0, 0.d0)
-      COMPLEX(DP), DIMENSION(nbsp) :: csc
       
       !
 !       write(6,*) "inside ortho-cp-twin", bephi%cvec !added:giovanni:debug
