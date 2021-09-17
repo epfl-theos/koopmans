@@ -31,15 +31,16 @@ class KoopmansDSCFWorkflow(Workflow):
         kcp_calc = self.master_calcs['kcp']
 
         # If periodic, convert the kcp calculation into a Γ-only supercell calculation
-        if self.periodic:
+        if self.parameters.periodic:
             kpts = self.master_calcs['kcp'].parameters.kpts
             self.master_calcs['kcp'].transform_to_supercell(np.diag(kpts))
             nocc = self.master_calcs['w90_occ'].parameters.num_wann
             nemp = self.master_calcs['w90_emp'].parameters.num_wann
-            if not self.orbital_groups:
-                self.orbital_groups = range(0, nocc + nemp)
-            self.orbital_groups = [i for _ in range(np.prod(kpts)) for i in self.orbital_groups[:nocc]] + \
-                                  [i for _ in range(np.prod(kpts)) for i in self.orbital_groups[nocc:]]
+            if not self.parameters.orbital_groups:
+                self.parameters.orbital_groups = range(0, nocc + nemp)
+            self.parameters.orbital_groups = [i for _ in range(np.prod(kpts)) for i in self.parameters.orbital_groups[:nocc]] + \
+                                             [i for _ in range(np.prod(kpts))
+                                              for i in self.parameters.orbital_groups[nocc:]]
 
             # Check the number of empty states has been correctly configured
             w90_emp_calc = self.master_calcs['w90_emp']
@@ -52,32 +53,31 @@ class KoopmansDSCFWorkflow(Workflow):
 
         # Initialise the bands object
         filling = kcp_calc.filling[0]
-        self.bands = Bands(n_bands=len(filling), filling=filling, groups=self.orbital_groups,
-                           self_hartree_tol=self.orbital_groups_self_hartree_tol)
-        if self.alpha_from_file:
+        self.bands = Bands(n_bands=len(filling), filling=filling, groups=self.parameters.orbital_groups,
+                           self_hartree_tol=self.parameters.orbital_groups_self_hartree_tol)
+        if self.parameters.alpha_from_file:
             # Reading alpha values from file
             self.bands.alphas = self.read_alphas_from_file()
         else:
             # Initialising alpha with a guess
-            self.bands.alphas = self.alpha_guess
+            self.bands.alphas = self.parameters.alpha_guess
 
         # Raise errors if any UI keywords are provided but will be overwritten by the workflow
         for ui_keyword in ['kc_ham_file', 'w90_seedname', 'alat_sc', 'sc_dim', 'dft_ham_file', 'dft_smooth_ham_file']:
             for ui_kind in ['occ', 'emp']:
                 value = getattr(self.master_calcs[f'ui_{ui_kind}'].parameters, ui_keyword)
-                [default_value] = [setting.default for setting in self.master_calcs['ui'].parameters.valid
-                                   if setting.name == ui_keyword]
+                [default_value] = [s.default for s in self.master_calcs['ui'].parameters.settings if s.name == ui_keyword]
                 if value != default_value:
                     raise ValueError(f'UI keyword {ui_keyword} has been set in the input file, but this will be '
                                      'automatically set by the Koopmans workflow. Remove this keyword from the input '
                                      'file')
 
         # Initialise self.init_empty_orbitals has not been set
-        if self.init_empty_orbitals == 'same':
-            self.init_empty_orbitals = self.init_orbitals
-        if self.init_empty_orbitals != self.init_orbitals:
-            raise NotImplementedError(f'The combination init_orbitals = {self.init_orbitals} and init_empty_orbitals '
-                                      f'= {self.init_empty_orbitals} has not yet been implemented')
+        if self.parameters.init_empty_orbitals == 'same':
+            self.parameters.init_empty_orbitals = self.parameters.init_orbitals
+        if self.parameters.init_empty_orbitals != self.parameters.init_orbitals:
+            raise NotImplementedError(f'The combination init_orbitals = {self.parameters.init_orbitals} and init_empty_orbitals '
+                                      f'= {self.parameters.init_empty_orbitals} has not yet been implemented')
 
     def read_alphas_from_file(self, directory='.'):
         '''
@@ -115,8 +115,8 @@ class KoopmansDSCFWorkflow(Workflow):
         '''
 
         # Removing old directories
-        if self.from_scratch:
-            if self.init_orbitals != 'from old ki':
+        if self.parameters.from_scratch:
+            if self.parameters.init_orbitals != 'from old ki':
                 # if self.init_orbitals == "from old ki" we don't want to delete the directory containing
                 # the KI calculation we're reading the manifold from, or the TMP files
                 utils.system_call('rm -r init 2>/dev/null', False)
@@ -129,8 +129,8 @@ class KoopmansDSCFWorkflow(Workflow):
         self.print('Initialisation of density and variational orbitals', style='heading')
         self.perform_initialisation()
 
-        if self.from_scratch and self.init_orbitals != 'from old ki' and self.enforce_spin_symmetry \
-                and self.init_orbitals not in ['mlwfs', 'projwfs']:
+        if self.parameters.from_scratch and self.parameters.init_orbitals != 'from old ki' and self.parameters.enforce_spin_symmetry \
+                and self.parameters.init_orbitals not in ['mlwfs', 'projwfs']:
             self.print('Copying the spin-up variational orbitals over to the spin-down channel')
             calc = self.all_calcs[-1]
             savedir = f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
@@ -140,7 +140,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     f'cp {savedir}/evc0_empty1.dat {savedir}/evc0_empty2.dat')
 
         self.print('Calculating screening parameters', style='heading')
-        if self.calculate_alpha:
+        if self.parameters.calculate_alpha:
             self.perform_alpha_calculations()
         else:
             self.print('Skipping calculation of screening parameters', end='')
@@ -152,10 +152,10 @@ class KoopmansDSCFWorkflow(Workflow):
             self.bands.print_history()
 
         # Final calculation
-        self.print(f'Final {self.functional.upper().replace("PK","pK")} calculation', style='heading')
+        self.print(f'Final {self.parameters.functional.upper().replace("PK","pK")} calculation', style='heading')
         self.perform_final_calculations()
         # Print out additional quality control data for final calculation
-        if self.print_qc:
+        if self.parameters.print_qc:
             calc = self.all_calcs[-1]
             for b in self.bands.to_solve:
                 self.print_qc_keyval(f'alpha({b.index})', b.alpha, calc)
@@ -164,7 +164,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     self.print_qc_keyval(f'orbital_self_Hartree(orb={i+1},sigma={isp+1})', orb_sh, calc)
 
         # Postprocessing
-        if self.periodic and self.master_calcs['ui'].parameters.kpath is not None:
+        if self.parameters.periodic and self.master_calcs['ui'].parameters.kpath is not None:
             self.print(f'\nPostprocessing', style='heading')
             self.perform_postprocessing()
 
@@ -175,7 +175,7 @@ class KoopmansDSCFWorkflow(Workflow):
         # The final calculation during the initialisation, regardless of the workflow settings, should write to ndw = 51
         ndw_final = 51
 
-        if self.init_orbitals in ['mlwfs', 'projwfs']:
+        if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
             # Wannier functions using pw.x, wannier90.x and pw2wannier90.x
             wannier_workflow = WannierizeWorkflow(self.settings, self.master_calcs)
 
@@ -232,7 +232,7 @@ class KoopmansDSCFWorkflow(Workflow):
             if abs(Efin - Eini) > 1e-6 * abs(Efin):
                 raise ValueError(f'Too much difference between the initial and final CP energies: {Eini} {Efin}')
 
-        elif self.init_orbitals == 'from old ki':
+        elif self.parameters.init_orbitals == 'from old ki':
             self.print('Copying the density and orbitals from a pre-existing KI calculation')
 
             # Read the .cpi file to work out the value for ndw
@@ -271,17 +271,17 @@ class KoopmansDSCFWorkflow(Workflow):
 
             self.all_calcs.append(calc)
 
-        elif self.functional in ['ki', 'pkipz']:
+        elif self.parameters.functional in ['ki', 'pkipz']:
             calc = self.new_calculator('kcp', 'dft_init')
             calc.directory = 'init'
-            self.run_calculator(calc, enforce_ss=self.enforce_spin_symmetry)
+            self.run_calculator(calc, enforce_ss=self.parameters.enforce_spin_symmetry)
 
             # Use the KS eigenfunctions as better guesses for the variational orbitals
             self._overwrite_canonical_with_variational_orbitals(calc)
 
-            if self.init_orbitals == 'kohn-sham':
+            if self.parameters.init_orbitals == 'kohn-sham':
                 self._copy_most_recent_calc_to_ndw(ndw_final)
-            elif self.init_orbitals == 'pz':
+            elif self.parameters.init_orbitals == 'pz':
                 calc = self.new_calculator('kcp', 'pz_innerloop_init', alphas=self.bands.alphas, ndw=ndw_final)
                 calc.directory = 'init'
                 if self.all_calcs[-1].parameters.nelec == 2:
@@ -296,17 +296,17 @@ class KoopmansDSCFWorkflow(Workflow):
             else:
                 raise ValueError('Should not arrive here')
 
-        elif self.functional == 'kipz':
+        elif self.parameters.functional == 'kipz':
             # DFT from scratch
             calc = self.new_calculator('kcp', 'dft_init')
             calc.directory = 'init'
-            self.run_calculator(calc, enforce_ss=self.enforce_spin_symmetry)
+            self.run_calculator(calc, enforce_ss=self.parameters.enforce_spin_symmetry)
 
-            if self.init_orbitals == 'kohn-sham':
+            if self.parameters.init_orbitals == 'kohn-sham':
                 # Initialise the density with DFT and use the KS eigenfunctions as guesses for the variational orbitals
                 self._overwrite_canonical_with_variational_orbitals(calc)
                 self._copy_most_recent_calc_to_ndw(ndw_final)
-            elif self.init_orbitals == 'pz':
+            elif self.parameters.init_orbitals == 'pz':
                 # PZ from DFT (generating PZ density and PZ orbitals)
                 calc = self.new_calculator('kcp', 'pz_init', ndw=ndw_final)
                 calc.directory = 'init'
@@ -609,7 +609,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     # For calculations with a kpts attribute, create a denser k-grid
                     new_k_grid = [x * y for x, y in zip(original_k_grid, factors)]
                     calc.parameters['kpts'] = new_k_grid
-            wannier_workflow = WannierizeWorkflow(self.settings, local_master_calcs)
+            wannier_workflow = WannierizeWorkflow(self.parameters, local_master_calcs)
 
             # Here, we allow for skipping of the smooth dft calcs (assuming they have been already run)
             # This is achieved via the optional argument of from_scratch in run_subworkflow(), which
@@ -813,8 +813,8 @@ class KoopmansDSCFWorkflow(Workflow):
             calc.parameters.conv_thr *= 100
             calc.parameters.esic_conv_thr *= 100
 
-        if self.periodic and not any([s == calc.prefix for s in ['dft_init', 'dft_n-1', 'dft_n+1',
-                                                                 'kipz', 'kipz_n-1', 'kipz_n+1']]):
+        if self.parameters.periodic and not any([s == calc.prefix for s in ['dft_init', 'dft_n-1', 'dft_n+1',
+                                                                            'kipz', 'kipz_n-1', 'kipz_n+1']]):
             calc.parameters.do_outerloop = False
             calc.parameters.do_innerloop = False
         elif any([s in calc.prefix for s in ['frozen', 'dummy', 'print', 'innerloop']]) or calc.prefix == 'pkipz_final':
@@ -824,7 +824,7 @@ class KoopmansDSCFWorkflow(Workflow):
         elif calc.prefix in ['ki', 'ki_final']:
             calc.parameters.do_outerloop = False
             if calc.parameters.empty_states_nbnd > 0:
-                if self.init_empty_orbitals == 'pz':
+                if self.parameters.init_empty_orbitals == 'pz':
                     calc.parameters.do_outerloop_empty = True
                 else:
                     calc.parameters.do_outerloop_empty = False
@@ -839,7 +839,7 @@ class KoopmansDSCFWorkflow(Workflow):
             calc.parameters.empty_states_maxstep = 300
 
         # No empty states minimization in the solids workflow for the moment
-        if self.periodic and calc.parameters.empty_states_nbnd > 0:
+        if self.parameters.periodic and calc.parameters.empty_states_nbnd > 0:
             calc.parameters.do_outerloop_empty = False
             calc.parameters.do_innerloop_empty = False
 
@@ -863,16 +863,16 @@ class KoopmansDSCFWorkflow(Workflow):
         if 'print' in calc.prefix:
             calc.parameters.print_wfc_anion = True
 
-        if self.mt_correction:
+        if self.parameters.mt_correction:
             calc.parameters.which_compensation = 'tcc'
         else:
             calc.parameters.which_compensation = 'none'
 
         # If we are using frozen orbitals, we override the above logic and freeze the variational orbitals
         # post-initialisation
-        if self.frozen_orbitals and 'init' not in calc.prefix and not any([s == calc.prefix for s in
-                                                                           ['dft_n-1', 'dft_n+1', 'kipz_n-1',
-                                                                            'kipz_n+1']]):
+        if self.parameters.frozen_orbitals and 'init' not in calc.prefix and not any([s == calc.prefix for s in
+                                                                                      ['dft_n-1', 'dft_n+1', 'kipz_n-1',
+                                                                                       'kipz_n+1']]):
             calc.parameters.do_outerloop = False
             calc.parameters.do_innerloop = False
             if calc.parameters.empty_states_nbnd > 0:
@@ -882,9 +882,7 @@ class KoopmansDSCFWorkflow(Workflow):
         # Handle any keywords provided by kwargs
         # Note that since this is performed after the above logic this can (deliberately
         # or accidentally) overwrite the above settings
-
-        for keyword, value in kwargs.items():
-            setattr(calc.parameters, keyword, value)
+        calc.parameters.update(**kwargs)
 
         # Sanity checking
         if calc.parameters.print_wfc_anion and calc.parameters.index_empty_to_save is None:

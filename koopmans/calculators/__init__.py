@@ -8,4 +8,4 @@ from ._pw2wannier import PW2WannierCalculator
 from ._wannier90 import Wannier90Calculator
 from ._wann2kc import Wann2KCCalculator
 from ._ui import UnfoldAndInterpolateCalculator, read_ui_dict
-from ._utils import EspressoCalculator, ExtendedCalculator, qe_bin_directory
+from ._utils import ExtendedCalculator, qe_bin_directory

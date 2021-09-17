@@ -10,16 +10,15 @@ import os
 from ase.io.espresso import pw as pw_io
 from ase.calculators.espresso import Espresso
 from koopmans.settings import SettingsDict
-from ._utils import EspressoCalculator, qe_bin_directory
+from ._utils import ExtendedCalculator, qe_bin_directory
 from koopmans.commands import ParallelCommandWithPostfix, Command
 
 
-class PWCalculator(EspressoCalculator):
-    # Subclass of EspressoCalculator for performing calculations with pw.x
+class PWCalculator(ExtendedCalculator, Espresso):
+    # Subclass of ExtendedCalculator for performing calculations with pw.x
 
     def __init__(self, *args, **kwargs):
-        # Link to corresponding ASE IO module and Calculator
-        self._io = pw_io
+        # Link to corresponding ASE Calculator
         self._ase_calc_class = Espresso
 
         # Define the valid settings

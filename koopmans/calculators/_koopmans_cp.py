@@ -11,21 +11,12 @@ import numpy as np
 from pandas.core.series import Series
 from ase.io.espresso import koopmans_cp as kcp_io
 from koopmans import utils, settings
-from ._utils import EspressoCalculator, kcp_bin_directory
+from ._utils import ExtendedCalculator, kcp_bin_directory
 from koopmans.commands import ParallelCommand
 
 
-class KoopmansCPCalculator(EspressoCalculator, kcp_io.Espresso_kcp):
-    # Subclass of EspressoCalculator for performing calculations with kcp.x
-
-    # Point to the appropriate ASE IO module
-    _io = kcp_io
-
-    # Define the appropriate file extensions
-    ext_in = '.cpi'
-    ext_out = '.cpo'
-
-    _settings_that_are_paths = ['outdir', 'pseudo_dir']
+class KoopmansCPCalculator(ExtendedCalculator, kcp_io.Espresso_kcp):
+    # Subclass of ExtendedCalculator for performing calculations with kcp.x
 
     def __init__(self, calc=None, qe_files=[], skip_qc=False, alphas=None, filling=None, **kwargs):
 
@@ -58,10 +49,14 @@ class KoopmansCPCalculator(EspressoCalculator, kcp_io.Espresso_kcp):
                     'conv_thr': '1.0e-9*nelec',
                     'esic_conv_thr': '1.0e-9*nelec'}
 
-        self.parameters = settings.SettingsDict(valid=[k for sublist in self._io.KEYS.values() for k in sublist],
+        self.parameters = settings.SettingsDict(valid=[k for sublist in kcp_io.KEYS.values() for k in sublist],
                                                 defaults=defaults,
                                                 are_paths=['outdir', 'pseudo_dir'],
                                                 to_not_parse=['assume_isolated'])
+
+        # Define the appropriate file extensions
+        self.ext_in = '.cpi'
+        self.ext_out = '.cpo'
 
         self._ase_calc_class = kcp_io.Espresso_kcp
 
@@ -137,7 +132,7 @@ class KoopmansCPCalculator(EspressoCalculator, kcp_io.Espresso_kcp):
             if n_empty_bands is None:
                 n_empty_bands = 0
             filled_spin_channel = [True for _ in range(n_filled_bands)] + [False for _ in range(n_empty_bands)]
-            return [filled_spin_channel for _ in range(self.nspin)]
+            return [filled_spin_channel for _ in range(self.parameters.nspin)]
         else:
             return self._filling
 

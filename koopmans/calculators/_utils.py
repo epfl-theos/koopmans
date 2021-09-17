@@ -30,25 +30,7 @@ kcp_bin_directory = qe_parent_directory + 'cp_koopmans/bin/'
 class ExtendedCalculator:
 
     '''
-    A quantum espresso calculator object that...
-     - stores kcp.x/pw.x keywords in self._settings, but can be accessed like direct attributes
-       e.g. self.<keyword> will return self._settings[<keyword>]
-     - runs a kcp.x/pw.x calculation upon self.calculate()
-     - the calculation input/output files are 'self.directory/self.prefix.(cp/pw)(i/o)'
-     - stores the results of this calculation in self.results
-
-    Under the hood. it uses ASE to manage I/O and executing calculations.
-      self.calc -> self._ase_calc
-      self.directory -> self._ase_calc.directory
-      self.prefix -> self._ase_calc.prefix
-      self.results -> self._ase_calc.results
-    This could be changed in the future without affecting the rest of the code
-
-    From this generic class we will later define
-      CP_calc for calculations using kcp.x
-      PWCalculator for calculations using pw.x
-      ... and others as listed in calculators/
-    These are differentiated by self._io = kcp_io/pw_io/...
+    This generic class is designed to be a parent class of a calculator that also inherits from an ASE calculator
 
     Arguments:
         calc       an ASE calculator object to initialize the QE calculation settings
@@ -57,14 +39,6 @@ class ExtendedCalculator:
     '''
 
     def __init__(self, calc=None, qe_files=[], skip_qc=False, dct={}, **kwargs):
-
-        # By default, use kcp.x
-        self._io = kcp_io
-
-        # extensions for i/o files
-        self.ext_out = ''
-        self.ext_in = ''
-
         # Construct from dct if this is provided
         if dct:
             self.fromdict(dct)
@@ -103,7 +77,7 @@ class ExtendedCalculator:
 
         # Initialise the calculator object
         if isinstance(calc, ExtendedCalculator):
-            self = copy.deepcopy(calc)
+            self.__dict__ = copy.deepcopy(calc.__dict__)
         elif isinstance(calc, FileIOCalculator):
             # We must convert from an ASE Calculator to an ExtendedCalculator
             for k, v in calc.__dict__.items():
@@ -126,10 +100,7 @@ class ExtendedCalculator:
             self.parameters.prefix = prefix.rsplit('.', 1)[0]
 
         # Handle any recognised QE keywords passed as arguments
-        for key, val in kwargs.items():
-            if key not in self._valid_settings:
-                raise ValueError(f'{key} is not a recognised keyword for {self.__class__.__name__}')
-            setattr(self, key, val)
+        self.parameters.update(**kwargs)
 
         # Extract nelec from the pseudos if it has not been specified explicitly
         if 'pseudopotentials' in self.parameters and 'nelec' not in self.parameters:
@@ -268,10 +239,10 @@ class ExtendedCalculator:
 
     def parse_algebraic_settings(self):
         # Checks self.parameters for keywords defined algebraically, and evaluates them
-        for key, value in self.parameters.items():
+        for key in list(self.parameters.keys()):
             if key in self.parameters.to_not_parse:
                 continue
-            self.parameters[key] = self.parse_algebraic_setting(value)
+            self.parameters[key] = self.parse_algebraic_setting(self.parameters[key])
 
     def is_converged(self):
         raise ValueError(
@@ -324,27 +295,10 @@ class ExtendedCalculator:
             setattr(self, k, v)
 
 
-class EspressoCalculator(ExtendedCalculator):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-
-class KCWannCalculator(EspressoCalculator):
+class KCWannCalculator(ExtendedCalculator):
     # Parent class for kc_ham.x, kc_screen.x and wann2kc.x calculators
-    defaults = {'outdir': 'TMP',
-                'kc_iverbosity': 1,
-                'kc_at_ks': False,
-                'homo_only': False,
-                'read_unitary_matrix': True,
-                'check_ks': True,
-                'have_empty': True,
-                'has_disentangle': True}
-
-    _settings_that_are_paths = ['outdir']
 
     def __init__(self, *args, **kwargs):
-        self.settings_to_not_parse = ['assume_isolated']
 
         super().__init__(*args, **kwargs)
 
@@ -356,3 +310,13 @@ class KCWannCalculator(EspressoCalculator):
     @property
     def filling(self):
         return [[True for _ in range(self.parameters.num_wann_occ)] + [False for _ in range(self.parameters.num_wann_emp)]]
+
+
+kc_wann_defaults = {'outdir': 'TMP',
+                    'kc_iverbosity': 1,
+                    'kc_at_ks': False,
+                    'homo_only': False,
+                    'read_unitary_matrix': True,
+                    'check_ks': True,
+                    'have_empty': True,
+                    'has_disentangle': True}

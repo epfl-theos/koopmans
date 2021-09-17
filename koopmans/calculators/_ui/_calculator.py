@@ -7,9 +7,10 @@ The calculator class defining the Unfolding & interpolating calculator
 from typing import List
 from time import time
 import numpy as np
+from ase.dft.kpoints import BandPath
 from .._utils import ExtendedCalculator
-from ._settings import valid_settings
-from koopmans import utils, settings
+from ._settings import valid_settings, UISettingsDictWithChecks
+from koopmans import utils
 
 
 class UnfoldAndInterpolateCalculator(ExtendedCalculator):
@@ -17,18 +18,15 @@ class UnfoldAndInterpolateCalculator(ExtendedCalculator):
     from ._io import parse_w90, parse_hr, parse_phases, print_centers, write_results, write_bands, write_dos, \
         write_input_file, read_input_file, read_output_file, read_bands
     from ._interpolate import interpolate, calc_bands, correct_phase, calc_dos
-    from ._settings import load_defaults, valid_settings
 
     def __init__(self, calc=None, qe_files=[], skip_qc=False, **kwargs):
 
-        self.parameters = settings.SettingsDict(valid=[s.name for s in valid_settings],
-                                                defaults={s.name: s.default for s in valid_settings},
-                                                are_paths=['w90_seedname', 'kc_ham_file',
-                                                           'dft_ham_file', 'dft_smooth_ham_file'],
-                                                to_not_parse=[])
-
-        # Link to the corresponding ASE IO module and Calculator (it does not use ASE)
-        self._io = None
+        self.parameters = UISettingsDictWithChecks(settings=valid_settings,
+                                                   are_paths=['w90_seedname', 'kc_ham_file',
+                                                              'dft_ham_file', 'dft_smooth_ham_file'],
+                                                   to_not_parse=[],
+                                                   physicals=['alat_sc', 'degauss', 'Emin', 'Emax'])
+        # Link to the corresponding ASE Calculator (it does not use ASE)
         self._ase_calc_class = None
 
         # Define the appropriate file extensions
@@ -43,16 +41,31 @@ class UnfoldAndInterpolateCalculator(ExtendedCalculator):
 
         self.results_for_qc = ['band structure', 'dos']
 
-        raise ValueError('Still need to implement the contents of ._settings.load_defaults() in a sensible way')
+        if self.parameters.kpath is None:
+            # By default, use ASE's default bandpath for this cell (see
+            # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
+            if any(self.atoms.pbc):
+                self.parameters.kpath = self.atoms.cell.get_bravais_lattice().bandpath()
+            else:
+                self.parameters.kpath = 'G'
+        if isinstance(self.parameters.kpath, str):
+            # If kpath is provided as a string, convert it to a BandPath first
+            utils.read_kpath(self, self.parameters.kpath)
+        assert isinstance(self.parameters.kpath, BandPath)
+
+        if self.parameters.do_smooth_interpolation:
+            assert self.parameters.dft_ham_file, 'Missing file_hr_coarse for smooth interpolation'
+            assert self.parameters.dft_smooth_ham_file, 'Missing dft_smooth_ham_file for smooth interpolation'
 
     def calculate(self):
+        # Check mandatory settings
+        for mandatory_setting in ['w90_seedname', 'kc_ham_file', 'alat_sc', 'sc_dim']:
+            if mandatory_setting not in self.parameters:
+                raise ValueError(f'You must provide the "{mandatory_setting}" setting for a UI calculation')
 
-        if self.kpath is None:
+        if self.parameters.kpath is None:
             utils.warn('"kpath" missing in input, the energies will be calculated on a commensurate Monkhorst-Pack '
                        'mesh')
-
-        for setting in self.mandatory_settings:
-            assert getattr(self, setting, None), f'The mandatory key {setting} has not been provided'
 
         if self.name is None:
             self.name = 'ui'
@@ -114,7 +127,7 @@ class UnfoldAndInterpolateCalculator(ExtendedCalculator):
                 self.f_out.write(f'\tPrinting output in: {time() - reset:24.3f} sec\n')
 
                 walltime = time() - start
-                self.calc.results['walltime'] = walltime
+                self.results['walltime'] = walltime
                 self.f_out.write(f'\n\tTotal time: {walltime:32.3f} sec\n')
                 self.f_out.write('\nALL DONE\n\n')
 
@@ -128,14 +141,10 @@ class UnfoldAndInterpolateCalculator(ExtendedCalculator):
         return True
 
     def is_complete(self):
-        return self.calc.results.get('job done', False)
-
-    @ property
-    def do_smooth_interpolation(self):
-        return any([f > 1 for f in self.smooth_int_factor])
+        return self.results.get('job done', False)
 
     def get_k_point_weights(self):
-        return np.ones(len(self.kpath.kpts))
+        return np.ones(len(self.parameters.kpath.kpts))
 
     def get_number_of_spins(self):
         return 1
@@ -155,46 +164,6 @@ class UnfoldAndInterpolateCalculator(ExtendedCalculator):
 
     def get_fermi_level(self):
         return 0
-
-    @ property
-    def Emin(self):
-        if self._Emin is None:
-            return np.min(self.get_eigenvalues())
-        else:
-            return self._Emin
-
-    @ Emin.setter
-    def Emin(self, value):
-        self._Emin = value
-
-    @ property
-    def Emax(self):
-        if self._Emax is None:
-            return np.max(self.get_eigenvalues())
-        else:
-            return self._Emax
-
-    @ Emax.setter
-    def Emax(self, value):
-        self._Emax = value
-
-    @ property
-    def at(self):
-        # basis vectors of direct lattice (in PC alat units)
-        return self.calc.atoms.cell / self.alat
-
-    @ at.setter
-    def at(self, value):
-        self.calc.atoms.cell = value * self.alat
-
-    @ property
-    def alat(self):
-        return self.alat_sc / self.sc_dim[0]
-
-    @ property
-    def bg(self):
-        # basis vectors of reciprocal lattice (in PC 2pi/alat units)
-        return np.linalg.inv(self.at).transpose()
 
     def todict(self):
         dct = super().todict()

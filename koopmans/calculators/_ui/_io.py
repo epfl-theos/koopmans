@@ -169,7 +169,7 @@ def parse_hr(self):
                     f'Hamiltonian matrix (index {m}, {n}) not hermitian'
 
     # reading the 2 hamiltonians for the smooth interpolation method
-    if self.do_smooth_interpolation:
+    if self.parameters.do_smooth_interpolation:
         self.hr_coarse = []
         self.hr_smooth = []
 
@@ -475,6 +475,7 @@ def read_output_file(self, output_file=None):
     calc.results = {'job done': any(['ALL DONE' in line for line in flines])}
 
     return calc
+
 
 def read_ui_dict(dct, generic_atoms):
     # Use a generic calculator with no command

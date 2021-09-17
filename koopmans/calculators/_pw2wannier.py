@@ -33,8 +33,7 @@ class PW2WannierCalculator(ExtendedCalculator):
                                        are_paths=['outdir'],
                                        to_not_parse=['wan_mode'])
 
-        # Link to corresponding ASE IO module and Calculator
-        self._io = p2w_io
+        # Link to corresponding ASE Calculator
         self._ase_calc_class = PW2Wannier
 
         # Define the appropriate file extensions

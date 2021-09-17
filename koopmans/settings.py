@@ -12,15 +12,35 @@ from typing import Union, Type, Tuple, NamedTuple, Dict, Any, Optional, List
 from koopmans.utils import units
 
 
+class Setting(NamedTuple):
+    name: str
+    description: str
+    kind: Union[Type, Tuple[Type, ...]]
+    default: Union[str, bool, float, list, None]
+    options: Union[tuple, None]
+
+
 class SettingsDict(UserDict):
     '''
     A dictionary-like class that has a few extra checks that are performed when setting values (e.g. when setting
     variables identified as paths it will convert them to absolute paths) as well as a few extra useful attributes
 
     Modelled off ase.calculators.Parameters which allows us to refer to "self.key", which returns "self['key']"
+
+    Arguments:
+    valid -- list of valid settings
+    defaults -- dict of defaults for each setting
+    are_paths -- list of settings that correspond to paths
+    to_not_parse -- list of settings that should not be parsed algebraically
+    directory -- the directory in which the calculation is being run (used to enforce all path settings to be absolute paths)
+    physicals -- list of keywords that have accompanying units from input
     '''
 
-    def __init__(self, valid: List[str], defaults: Dict[str, Union[int, str, float, bool]] = {}, are_paths: List[str] = [], to_not_parse: List[str] = [], directory='', **kwargs):
+    # Need to provide these here to allow copy.deepcopy to perform the checks in __getattr__
+    valid = []
+    data = {}
+
+    def __init__(self, valid: List[Union[str, Setting]], defaults: Dict[str, Union[int, str, float, bool]] = {}, are_paths: List[str] = [], to_not_parse: List[str] = [], directory='', physicals: List[str] = [], **kwargs):
         super().__init__(**kwargs)
         self.valid = valid
         self.defaults = defaults
@@ -28,10 +48,15 @@ class SettingsDict(UserDict):
         self.are_paths = are_paths
         self.to_not_parse = to_not_parse
         self.directory = directory
+        self.physicals = physicals
         self.update(**kwargs)
 
+    @property
+    def attributes(self):
+        return ['data', 'valid', 'defaults', 'update', 'are_paths', 'to_not_parse', 'directory', 'settings', 'physicals']
+
     def __getattr__(self, key):
-        if key in ['data', 'valid', 'defaults', 'update', 'are_paths', 'to_not_parse', '_to_not_parse', 'directory']:
+        if key in ['attributes'] + self.attributes:
             return self.__dict__[key]
         elif key in self.valid:
             return self.data.get(key, None)
@@ -41,7 +66,7 @@ class SettingsDict(UserDict):
             return self.data[key]
 
     def __setattr__(self, key, value):
-        if key in ['data', 'valid', 'defaults', 'update', 'are_paths', 'to_not_parse', '_to_not_parse', 'directory']:
+        if key in ['attributes'] + self.attributes:
             self.__dict__[key] = value
         else:
             self.data[key] = value
@@ -59,6 +84,14 @@ class SettingsDict(UserDict):
         if key in self.are_paths and value.startswith('/'):
             value = os.path.abspath(self.directory + '/' + self.value)
 
+        # Parse any units provided
+        if key in self.physicals:
+            value = parse_physical(value)
+
+        # Perform additional checks that the key and corresponding value is valid
+        self._check_before_setitem(key, value)
+
+        # Set the item
         super().__setitem__(key, value)
 
     def update(self, *args, **kwargs):
@@ -86,68 +119,48 @@ class SettingsDict(UserDict):
     def to_not_parse(self, value: Union[list, set]):
         self._to_not_parse = self.to_not_parse.union(value)
 
+    def _check_before_setitem(self, key, value):
+        # Function that child classes can overwrite to impose additional checks when setting attributes
+        return
 
-class Setting(NamedTuple):
-    name: str
-    description: str
-    kind: Union[Type, Tuple[Type, ...]]
-    default: Union[str, bool, float, list, None]
-    options: Union[tuple, None]
+    def todict(self):
+        # Shallow copy
+        dct = dict(self.__dict__)
+
+        # Adding information required by the json decoder
+        dct['__koopmans_name__'] = self.__class__.__name__
+        dct['__koopmans_module__'] = self.__class__.__module__
+        return dct
+
+    def fromdict(self, dct):
+        for k, v in dct.items():
+            setattr(self, k, v)
 
 
-def check_settings(settings, valid_settings, mandatory_settings=[], physicals=[], do_not_lower=[]):
-    '''
-    Checks settings (a dict) against a list of Settings (namedtuples), and adding defaults where they are not present
-    Will additionally check that all mandatory settings are present, and arse any units for those settings named in
-    the 'physicals' list
-    '''
+class SettingsDictWithChecks(SettingsDict):
+    def __init__(self, settings: List[Setting], **kwargs):
+        self.settings = settings
+        super().__init__(valid=[s.name for s in settings], defaults={
+            s.name: s.default for s in settings if not s.default is None}, **kwargs)
 
-    valid_settings_dict = {s.name: s for s in valid_settings}
-
-    # Check all mandatory keys are provided:
-    for mandatory_setting in mandatory_settings:
-        if mandatory_setting not in settings:
-            raise ValueError(f'The mandatory key {mandatory_setting} has not been provided')
-
-    # Populate checked_settings with the default values
-    checked_settings = {s.name: s.default for s in valid_settings}
-
-    for key, value in settings.items():
-
-        # Check key is a valid keyword
-        if key in valid_settings_dict:
-            valid_setting = valid_settings_dict[key]
-
-            # Lowers any uppercase strings
-            if isinstance(value, str) and key not in do_not_lower:
-                value = value.lower()
-
-            # Check value is the correct type
-            if not isinstance(value, valid_setting.kind) and value is not None:
-                if isinstance(valid_setting.kind, tuple):
-                    raise ValueError(
-                        f'{type(value).__name__} is an invalid type for "{key}" (must be '
-                        'one of ' + '/'.join([t.__name__ for t in valid_setting.kind]) + ')')
-                else:
-                    raise ValueError(
-                        f'{type(value).__name__} is an invalid type for "{key}" (must be '
-                        f'{valid_setting.kind.__name__})')
-
-            # Check value is among the valid options
-            if valid_setting.options is not None and valid_setting.default is not None and value not in \
-                    valid_setting.options:
-                raise ValueError(
-                    f'"{value}" is an invalid value for "{key}" (options are {"/".join(valid_setting.options)})')
-
-            checked_settings[key] = value
+    def _check_before_setitem(self, key, value):
+        # Check key is a valid setting
+        if key not in self.valid:
+            raise KeyError(f'{key} is not a valid setting')
         else:
-            raise ValueError(f'"{key}" is not a recognised setting')
+            [setting] = [s for s in self.settings if s.name == key]
 
-    # Parse physicals
-    for physical in physicals:
-        checked_settings[physical] = parse_physical(checked_settings[physical])
+        # Check the value is the valid type
+        if isinstance(setting.kind, tuple):
+            if not any([isinstance(value, k) for k in setting.kind]):
+                raise ValueError(f'{setting.name} must be a ' + '/'.join([str(k) for k in setting.kind]))
+        else:
+            if not isinstance(value, setting.kind):
+                raise ValueError(f'{setting.name} must be a {setting.kind}')
 
-    return checked_settings
+        # Check the value is among the valid options
+        if setting.options is not None and value not in setting.options:
+            raise ValueError(f'{setting.name} may only be set to ' + '/'.join([str(o) for o in setting.options]))
 
 
 def parse_physical(value):

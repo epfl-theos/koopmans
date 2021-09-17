@@ -85,7 +85,7 @@ class WorkflowTest:
         for calc in workflow.all_calcs:
 
             # Skip checking n-1 calculations since these are known to be unreliable
-            if 'n-1' in calc.name:
+            if 'n-1' in calc.prefix:
                 continue
 
             # Skip calculations in the base postproc directory because this corresponds to the calculation where we
@@ -94,7 +94,7 @@ class WorkflowTest:
                 continue
 
             # Prepare the log dict entry for this calc
-            calc_relpath = os.path.relpath(f'{calc.directory}/{calc.name}', self.tests_directory)
+            calc_relpath = os.path.relpath(f'{calc.directory}/{calc.prefix}', self.tests_directory)
             log[calc_relpath] = []
 
             # If there has been no monkey-patching, calc will not have a benchmark attribute yet, so add that
@@ -221,7 +221,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         calc.load_input_file()
 
         # Check that we are using the correct settings
-        input_file_name = f'{relative_directory(calc.directory)}/{calc.name}{calc.ext_in}'
+        input_file_name = f'{relative_directory(calc.directory)}/{calc.prefix}{calc.ext_in}'
         for key in set(list(calc.benchmark['settings'].keys()) + list(calc.settings.keys())):
             # Don't check starting magnetization because ASE doesn't parse it
             if key.startswith('starting_magnetization'):
@@ -248,7 +248,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         # Copy over the results
         calc.results = calc.benchmark['results']
 
-        main_output_file = f'{calc.directory}/{calc.name}{calc.ext_out}'
+        main_output_file = f'{calc.directory}/{calc.prefix}{calc.ext_out}'
         # Create dummy output files
         if os.path.isfile(main_output_file):
             # If this input file exists already, this means that in a real calculation it is skipped with from_scratch,
@@ -270,7 +270,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             generic_mock_calculate(self)
 
         def is_complete(self):
-            return os.path.isfile(f'{self.directory}/{self.name}{self.ext_out}')
+            return os.path.isfile(f'{self.directory}/{self.prefix}{self.ext_out}')
 
         def check_code_is_installed(self):
             # Don't check if the code is installed
@@ -281,30 +281,30 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
 
         @property
         def __files(self):
-            files = [fname for ispin in range(1, self.nspin + 1) for fname in [f'evc0{ispin}.dat', f'evc{ispin}.dat',
-                                                                               f'evcm{ispin}.dat',
-                                                                               f'hamiltonian{ispin}.xml',
-                                                                               f'eigenval{ispin}.xml',
-                                                                               f'lambda0{ispin}.dat',
-                                                                               f'lambdam{ispin}.dat']]
-            if self.empty_states_nbnd > 0:
-                files += [fname for ispin in range(1, self.nspin + 1) for fname in [f'evc0_empty{ispin}.dat',
-                                                                                    f'evc_empty{ispin}.dat']]
+            files = [fname for ispin in range(1, self.parameters.nspin + 1) for fname in [f'evc0{ispin}.dat', f'evc{ispin}.dat',
+                                                                                          f'evcm{ispin}.dat',
+                                                                                          f'hamiltonian{ispin}.xml',
+                                                                                          f'eigenval{ispin}.xml',
+                                                                                          f'lambda0{ispin}.dat',
+                                                                                          f'lambdam{ispin}.dat']]
+            if self.parameters.empty_states_nbnd > 0:
+                files += [fname for ispin in range(1, self.parameters.nspin + 1) for fname in [f'evc0_empty{ispin}.dat',
+                                                                                               f'evc_empty{ispin}.dat']]
             return files
 
         @property
         def output_files(self):
             files = self.__files
-            if self.print_wfc_anion:
+            if self.parameters.print_wfc_anion:
                 files.append('evcfixed_empty.dat')
-            return [f'{self.outdir}/{self.prefix}_{self.ndw}.save/K00001/{fname}' for fname in files]
+            return [f'{self.parameters.outdir}/{self.prefix}_{self.parameters.ndw}.save/K00001/{fname}' for fname in files]
 
         @property
         def input_files(self):
             files = self.__files
-            if self.restart_from_wannier_pwscf:
+            if self.parameters.restart_from_wannier_pwscf:
                 files.append('evc_occupied.dat')
-            return [f'{self.outdir}/{self.prefix}_{self.ndr}.save/K00001/{fname}' for fname in files]
+            return [f'{self.parameters.outdir}/{self.prefix}_{self.parameters.ndr}.save/K00001/{fname}' for fname in files]
 
     class MockEnvironCalculator(MockCalc, EnvironCalculator):
         # Monkeypatched EnvironCalculator class which never actually calls pw.x
@@ -312,15 +312,15 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         @property
         def output_files(self):
             files = []
-            if 'kpts' in self.calc.parameters:
-                assert self.calc.parameters['kpts'] == [
+            if 'kpts' in self.parameters:
+                assert self.parameters.kpts == [
                     1, 1, 1], 'Have not implemented dummy environ calculations for kpts != [1, 1, 1]'
 
                 i_kpoints = range(1)
-                files += [f'{self.outdir}/{self.prefix}.save/wfc{i}.dat' for i in i_kpoints]
-                if self.nosym:
-                    files += [f'{self.outdir}/wfc{i}.dat' for i in i_kpoints]
-            files += [f'{self.outdir}/{self.prefix}.xml']
+                files += [f'{self.parameters.outdir}/{self.prefix}.save/wfc{i}.dat' for i in i_kpoints]
+                if self.parameters.nosym:
+                    files += [f'{self.parameters.outdir}/wfc{i}.dat' for i in i_kpoints]
+            files += [f'{self.parameters.outdir}/{self.prefix}.xml']
             return files
 
         @property
@@ -359,19 +359,19 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
 
         @property
         def output_files(self):
-            if '-pp' in self.calc.command.flags:
-                files = [f'{self.directory}/{self.name}.nnkp']
+            if '-pp' in self.command.flags:
+                files = [f'{self.directory}/{self.prefix}.nnkp']
             else:
-                files = [f'{self.directory}/{self.name}{suffix}' for suffix in [
+                files = [f'{self.directory}/{self.prefix}{suffix}' for suffix in [
                     '.chk', '_wsvec.dat', '_hr.dat']]
             return files
 
         @property
         def input_files(self):
-            if '-pp' in self.calc.command.flags:
+            if '-pp' in self.command.flags:
                 files = []
             else:
-                files = [f'{self.directory}/{self.name}{suffix}' for suffix in ['.eig', '.mmn', '.amn']]
+                files = [f'{self.directory}/{self.prefix}{suffix}' for suffix in ['.eig', '.mmn', '.amn']]
             return files
 
     class MockPW2WannierCalculator(MockCalc, PW2WannierCalculator):
@@ -379,8 +379,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
 
         @property
         def output_files(self):
-            if self.wan_mode == 'wannier2odd':
-                if self.split_evc_file:
+            if self.parameters.wan_mode == 'wannier2odd':
+                if self.parameters.split_evc_file:
                     files = [
                         f'{self.directory}/{fname}' for fname in ['evcw1.dat', 'evcw2.dat']]
                 else:
@@ -388,17 +388,17 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
                         'evcw.dat', 'charge-density-x.dat']]
             else:
                 files = [
-                    f'{self.directory}/{self.seedname}{suffix}' for suffix in ['.eig', '.mmn', '.amn']]
+                    f'{self.directory}/{self.parameters.seedname}{suffix}' for suffix in ['.eig', '.mmn', '.amn']]
             return files
 
         @property
         def input_files(self):
-            i_kpoints = range(1, np.prod(self.calc.parameters['kpts']) + 1)
-            files = [f'{self.outdir}/{self.prefix}.save/wfc{i}.dat' for i in i_kpoints]
-            files += [f'{self.outdir}/{self.prefix}.save/{f}' for f in ['data-file-schema.xml', 'charge-density.dat']]
-            files.append(f'{self.directory}/{self.seedname}.nnkp')
-            if self.wan_mode == 'wannier2odd':
-                files.append(f'{self.directory}/{self.seedname}.chk')
+            i_kpoints = range(1, np.prod(self.parameters.kpts) + 1)
+            files = [f'{self.parameters.outdir}/{self.prefix}.save/wfc{i}.dat' for i in i_kpoints]
+            files += [f'{self.parameters.outdir}/{self.prefix}.save/{f}' for f in ['data-file-schema.xml', 'charge-density.dat']]
+            files.append(f'{self.directory}/{self.parameters.seedname}.nnkp')
+            if self.parameters.wan_mode == 'wannier2odd':
+                files.append(f'{self.directory}/{self.parameters.seedname}.chk')
             return files
 
     class MockUnfoldAndInterpolateCalculator(MockCalc, UnfoldAndInterpolateCalculator):
@@ -471,7 +471,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             # to check if the required input files exist and make sense
 
             # Check we have a benchmark entry for this calculation, and connect it to the calculator
-            qe_calc_seed = relative_directory(qe_calc.directory + '/' + qe_calc.name)
+            qe_calc_seed = relative_directory(qe_calc.directory + '/' + qe_calc.prefix)
             assert qe_calc_seed in self.benchmark, \
                 f'Could not find an entry for {qe_calc_seed} in tests/benchmarks.json'
             qe_calc.benchmark = self.benchmark[qe_calc_seed]
@@ -486,12 +486,12 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             # the contents of .nnkp)
             if isinstance(qe_calc, PW2WannierCalculator):
                 recent_pw_calc = [c for c in self.all_calcs if isinstance(c, PWCalculator)][-1]
-                qe_calc.calc.parameters['kpts'] = recent_pw_calc.calc.parameters['kpts']
+                qe_calc.parameters.kpts = recent_pw_calc.parameters.kpts
 
             # We only need to check input files for calculations...
             # a) not starting from scratch, and
             # b) not being skipped (i.e. self.from_scratch is True)
-            if getattr(qe_calc, 'restart_mode', 'restart') != 'from_scratch' and self.from_scratch:
+            if getattr(qe_calc, 'restart_mode', 'restart') != 'from_scratch' and self.parameters.from_scratch:
                 for input_file in qe_calc.input_files:
 
                     # Check the input file exists
@@ -564,7 +564,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             # because we did it earlier in the same workflow)
 
             # Load the dummy output file
-            calc_fname = f'{qe_calc.directory}/{qe_calc.name}{qe_calc.ext_out}'
+            calc_fname = f'{qe_calc.directory}/{qe_calc.prefix}{qe_calc.ext_out}'
             with open(calc_fname, 'r') as fd:
                 output_file_info = json.load(fd)
 
@@ -579,9 +579,9 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
                 qe_calc.results = matches[0].results
                 self.all_calcs.append(qe_calc)
             elif len(matches) == 0:
-                raise ValueError(f'Could not find a calculator matching {qe_calc.directory}/{qe_calc.name}')
+                raise ValueError(f'Could not find a calculator matching {qe_calc.directory}/{qe_calc.prefix}')
             else:
-                raise ValueError(f'Found multiple calculators for {qe_calc.directory}/{qe_calc.name}')
+                raise ValueError(f'Found multiple calculators for {qe_calc.directory}/{qe_calc.prefix}')
 
             return qe_calc.is_complete()
 

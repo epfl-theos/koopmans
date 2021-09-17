@@ -36,8 +36,7 @@ class Wannier90Calculator(ExtendedCalculator):
         self.ext_in = '.win'
         self.ext_out = '.wout'
 
-        # Link the relevant ASE calc class and IO module
-        self._io = w90_io
+        # Link the relevant ASE Calculator
         self._ase_calc_class = Wannier90
 
         super().__init__(*args, **kwargs)

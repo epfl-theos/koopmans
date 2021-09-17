@@ -115,7 +115,6 @@ valid_settings = [
 class Workflow(object):
 
     def __init__(self, workflow_settings=None, calcs_dct=None, name=None, dct={}):
-        self.valid_settings = valid_settings
         if dct:
             assert workflow_settings is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, '
             'do not use any other arguments'
@@ -132,82 +131,68 @@ class Workflow(object):
             self.print_indent = 1
 
             # Parsing workflow_settings
-            checked_settings = utils.check_settings(workflow_settings, self.valid_settings, physicals=[
-                'alpha_conv_thr', 'convergence_threshold'])
-            self.list_of_settings = list(checked_settings.keys())
-            for key, value in checked_settings.items():
-                self.add_setting(key, value)
+
+            self.parameters = settings.SettingsDictWithChecks(
+                settings=valid_settings, physicals=['alpha_conv_thr', 'convergence_threshold'], **workflow_settings)
 
             # Check internal consistency of workflow settings
-            if self.method == 'dfpt':
-                if self.frozen_orbitals is None:
-                    self.frozen_orbitals = True
-                if not self.frozen_orbitals:
+            if self.parameters.method == 'dfpt':
+                if self.parameters.frozen_orbitals is None:
+                    self.parameters.frozen_orbitals = True
+                if not self.parameters.frozen_orbitals:
                     raise ValueError('"frozen_orbitals" must be equal to True when "method" is "dfpt"')
             else:
-                if self.frozen_orbitals is None:
-                    self.frozen_orbitals = False
-                if self.frozen_orbitals:
+                if self.parameters.frozen_orbitals is None:
+                    self.parameters.frozen_orbitals = False
+                if self.parameters.frozen_orbitals:
                     utils.warn('You have requested a ΔSCF calculation with frozen orbitals. This is unusual; proceed '
                                'only if you know what you are doing')
 
-            if self.periodic:
-                if self.gb_correction is None:
-                    self.gb_correction = True
+            if self.parameters.periodic:
+                if self.parameters.gb_correction is None:
+                    self.parameters.gb_correction = True
 
-                if self.mp_correction:
-                    if self.eps_inf is None:
+                if self.parameters.mp_correction:
+                    if self.parameters.eps_inf is None:
                         raise ValueError('eps_inf missing in input; needed when mp_correction is true')
-                    elif self.eps_inf < 1.0:
+                    elif self.parameters.eps_inf < 1.0:
                         raise ValueError('eps_inf cannot be lower than 1')
                     else:
                         utils.warn('Makov-Payne corrections not applied for a periodic calculation; do this with '
                                    'caution')
 
-                if self.mt_correction is None:
-                    self.mt_correction = False
-                if self.mt_correction:
+                if self.parameters.mt_correction is None:
+                    self.parameters.mt_correction = False
+                if self.parameters.mt_correction:
                     raise ValueError('Do not use Martyna-Tuckerman corrections for periodic systems')
 
             else:
-                if self.gb_correction is None:
-                    self.gb_correction = False
-                if self.gb_correction:
+                if self.parameters.gb_correction is None:
+                    self.parameters.gb_correction = False
+                if self.parameters.gb_correction:
                     raise ValueError('Do not use Gygi-Baldereschi corrections for aperiodic systems')
 
-                if self.mp_correction is None:
-                    self.mp_correction = False
-                if self.mp_correction:
+                if self.parameters.mp_correction is None:
+                    self.parameters.mp_correction = False
+                if self.parameters.mp_correction:
                     raise ValueError('Do not use Makov-Payne corrections for aperiodic systems')
 
-                if self.mt_correction is None:
-                    self.mt_correction = True
-                if not self.mt_correction:
+                if self.parameters.mt_correction is None:
+                    self.parameters.mt_correction = True
+                if not self.parameters.mt_correction:
                     utils.warn('Martyna-Tuckerman corrections not applied for an aperiodic calculation; do this with '
                                'caution')
 
         # Update postfix for all relevant calculators
-        if self.npool:
+        if self.parameters.npool:
             for calc in self.master_calcs.values():
-                if isinstance(calc.calc.command, ParallelCommandWithPostfix):
-                    calc.calc.command.postfix = f'-npool {self.npool}'
-
-    @property
-    def settings(self):
-        return {k: getattr(self, k) for k in self.list_of_settings}
-
-    def add_setting(self, key, val):
-        if key not in self.list_of_settings:
-            self.list_of_settings.append(key)
-        setattr(self, key, val)
+                if isinstance(calc.command, ParallelCommandWithPostfix):
+                    calc.command.postfix = f'-npool {self.npool}'
 
     def new_calculator(self, calc_type, **kwargs):
         if calc_type in self.master_calcs:
             calc = copy.deepcopy(self.master_calcs[calc_type])
-            for keyword, value in kwargs.items():
-                if keyword not in calc._valid_settings and not hasattr(calc, keyword):
-                    raise ValueError(f'{keyword} is not a valid setting name')
-                setattr(calc, keyword, value)
+            calc.parameters.update(**kwargs)
             return calc
         else:
             raise ValueError(f'Could not find a calculator of type {calc_type}')
@@ -233,48 +218,48 @@ class Workflow(object):
         if enforce_ss:
             # Create a copy of the calculator object (to avoid modifying the input)
             qe_calc = copy.deepcopy(master_qe_calc)
-            nspin2_tmpdir = f'{master_qe_calc.outdir}/{master_qe_calc.prefix}_{master_qe_calc.ndw}.save/K00001'
+            nspin2_tmpdir = f'{master_qe_calc.parameters.outdir}/{master_qe_calc.parameters.prefix}_{master_qe_calc.parameters.ndw}.save/K00001'
 
-            if master_qe_calc.restart_mode == 'restart':
+            if master_qe_calc.parameters.restart_mode == 'restart':
                 # PBE with nspin=1 dummy
-                qe_calc.name += '_nspin1_dummy'
-                qe_calc.do_outerloop = False
-                qe_calc.do_outerloop_empty = False
-                qe_calc.nspin, qe_calc.nelup, qe_calc.neldw, qe_calc.tot_magnetization = 1, None, None, None
-                qe_calc.ndw, qe_calc.ndr = 98, 98
-                qe_calc.restart_mode = 'from_scratch'
-                qe_calc.skip_qc = True
+                qe_calc.prefix += '_nspin1_dummy'
+                qe_calc.parameters.do_outerloop = False
+                qe_calc.parameters.do_outerloop_empty = False
+                qe_calc.parameters.nspin, qe_calc.parameters.nelup, qe_calc.parameters.neldw, qe_calc.parameters.tot_magnetization = 1, None, None, None
+                qe_calc.parameters.ndw, qe_calc.parameters.ndr = 98, 98
+                qe_calc.parameters.restart_mode = 'from_scratch'
+                qe_calc.parameters.skip_qc = True
                 self.run_calculator_single(qe_calc)
                 # Copy over nspin=2 wavefunction to nspin=1 tmp directory (if it has not been done already)
-                nspin1_tmpdir = f'{qe_calc.outdir}/{qe_calc.prefix}_{qe_calc.ndw}.save/K00001'
+                nspin1_tmpdir = f'{qe_calc.parameters.outdir}/{qe_calc.parameters.prefix}_{qe_calc.parameters.ndw}.save/K00001'
                 self.convert_wavefunction_2to1(nspin2_tmpdir, nspin1_tmpdir)
 
             # PBE with nspin=1
             qe_calc = copy.deepcopy(master_qe_calc)
-            qe_calc.name += '_nspin1'
-            qe_calc.nspin, qe_calc.nelup, qe_calc.neldw, qe_calc.tot_magnetization = 1, None, None, None
-            qe_calc.ndw, qe_calc.ndr = 98, 98
-            nspin1_tmpdir = f'{qe_calc.outdir}/{qe_calc.prefix}_{qe_calc.ndw}.save/K00001'
+            qe_calc.prefix += '_nspin1'
+            qe_calc.parameters.nspin, qe_calc.parameters.nelup, qe_calc.parameters.neldw, qe_calc.parameters.tot_magnetization = 1, None, None, None
+            qe_calc.parameters.ndw, qe_calc.parameters.ndr = 98, 98
+            nspin1_tmpdir = f'{qe_calc.parameters.outdir}/{qe_calc.parameters.prefix}_{qe_calc.parameters.ndw}.save/K00001'
             self.run_calculator_single(qe_calc)
 
             # PBE from scratch with nspin=2 (dummy run for creating files of appropriate size)
             qe_calc = copy.deepcopy(master_qe_calc)
-            qe_calc.name += '_nspin2_dummy'
-            qe_calc.restart_mode = 'from_scratch'
-            qe_calc.do_outerloop = False
-            qe_calc.do_outerloop_empty = False
-            qe_calc.ndw = 99
-            qe_calc.skip_qc = True
+            qe_calc.prefix += '_nspin2_dummy'
+            qe_calc.parameters.restart_mode = 'from_scratch'
+            qe_calc.parameters.do_outerloop = False
+            qe_calc.parameters.do_outerloop_empty = False
+            qe_calc.parameters.ndw = 99
+            qe_calc.parameters.skip_qc = True
             self.run_calculator_single(qe_calc)
 
             # Copy over nspin=1 wavefunction to nspin=2 tmp directory (if it has not been done already)
-            nspin2_tmpdir = f'{qe_calc.outdir}/{qe_calc.prefix}_{qe_calc.ndw}.save/K00001'
+            nspin2_tmpdir = f'{qe_calc.parameters.outdir}/{qe_calc.parameters.prefix}_{qe_calc.parameters.ndw}.save/K00001'
             self.convert_wavefunction_1to2(nspin1_tmpdir, nspin2_tmpdir)
 
             # PBE with nspin=2, reading in the spin-symmetric nspin=1 wavefunction
-            master_qe_calc.name += '_nspin2'
-            master_qe_calc.restart_mode = 'restart'
-            master_qe_calc.ndr = 99
+            master_qe_calc.prefix += '_nspin2'
+            master_qe_calc.parameters.restart_mode = 'restart'
+            master_qe_calc.parameters.ndr = 99
             self.run_calculator_single(master_qe_calc)
 
         else:
@@ -288,9 +273,9 @@ class Workflow(object):
 
         # If an output file already exists, check if the run completed successfully
         verb = 'Running'
-        if not self.from_scratch:
+        if not self.parameters.from_scratch:
 
-            calc_file = f'{qe_calc.directory}/{qe_calc.name}'
+            calc_file = f'{qe_calc.directory}/{qe_calc.parameters.name}'
 
             if os.path.isfile(calc_file + qe_calc.ext_out):
                 verb = 'Rerunning'
@@ -303,12 +288,12 @@ class Workflow(object):
                     return
 
         # Write out screening parameters to file
-        if getattr(qe_calc, 'do_orbdep', False) or isinstance(qe_calc, calculators.KoopmansHamCalculator):
+        if qe_calc.parameters.get('do_orbdep', False) or isinstance(qe_calc, calculators.KoopmansHamCalculator):
             qe_calc.write_alphas()
 
         if not self.silent:
             dir_str = os.path.relpath(qe_calc.directory) + '/'
-            self.print(f'{verb} {dir_str}{qe_calc.name}...', end='', flush=True)
+            self.print(f'{verb} {dir_str}{qe_calc.prefix}...', end='', flush=True)
 
         qe_calc.calculate()
 
@@ -321,8 +306,8 @@ class Workflow(object):
 
         # Check spin-up and spin-down eigenvalues match
         if 'eigenvalues' in qe_calc.results and isinstance(qe_calc, calculators.KoopmansCPCalculator):
-            if qe_calc.is_converged() and qe_calc.do_outerloop and qe_calc.nspin == 2 \
-                    and qe_calc.tot_magnetization == 0 and not qe_calc.fixed_state \
+            if qe_calc.is_converged() and qe_calc.parameters.do_outerloop and qe_calc.parameters.nspin == 2 \
+                    and qe_calc.parameters.tot_magnetization == 0 and not qe_calc.parameters.fixed_state \
                     and len(qe_calc.results['eigenvalues']) > 0:
                 rms_eigenval_difference = np.sqrt(
                     np.mean(np.diff(qe_calc.results['eigenvalues'], axis=0)**2))
@@ -333,14 +318,14 @@ class Workflow(object):
         self.all_calcs.append(qe_calc)
 
         # Print quality control
-        if self.print_qc and not qe_calc.skip_qc:
+        if self.parameters.print_qc and not qe_calc.skip_qc:
             for result in qe_calc.results_for_qc:
                 val = qe_calc.results.get(result, None)
                 if val:
                     self.print_qc_keyval(result, val, qe_calc)
 
         # If we reached here, all future calculations should be performed from scratch
-        self.from_scratch = True
+        self.parameters.from_scratch = True
 
         return
 
@@ -358,9 +343,10 @@ class Workflow(object):
                 # If the band structure file does not exist, we must re-run
                 if 'band structure' not in qe_calc.results:
                     return False
-            elif isinstance(qe_calc.calc, EspressoWithBandstructure):
-                if not isinstance(qe_calc, calculators.EspressoCalculator) or qe_calc.calculation == 'bands':
-                    qe_calc.calc.band_structure()
+            raise ValueError('Need to work out how to restructure the code below')
+            # elif isinstance(qe_calc.calc, EspressoWithBandstructure):
+            #     if not isinstance(qe_calc, calculators.EspressoCalculator) or qe_calc.calculation == 'bands':
+            #         qe_calc.band_structure()
 
             self.all_calcs.append(qe_calc)
 
@@ -421,9 +407,9 @@ class Workflow(object):
 
         # Setting from_scratch to a non-None value will override the value of subworkflow.from_scratch...
         if from_scratch is None:
-            workflow.from_scratch = self.from_scratch
+            workflow.parameters.from_scratch = self.parameters.from_scratch
         else:
-            workflow.from_scratch = from_scratch
+            workflow.parameters.from_scratch = from_scratch
 
         # Link the list of calculations
         workflow.all_calcs = self.all_calcs
@@ -441,11 +427,11 @@ class Workflow(object):
             # Update directories
             for key in workflow.master_calcs.keys():
                 calc = workflow.master_calcs[key]
-                for setting in calc._settings_that_are_paths:
-                    path = getattr(calc, setting, None)
+                for setting in calc.parameters.are_paths:
+                    path = getattr(calc.parameters, setting, None)
                     if path is not None and path.startswith(os.getcwd()):
                         new_path = os.path.abspath('./' + subdirectory + '/' + os.path.relpath(path))
-                        setattr(calc, setting, new_path)
+                        setattr(calc.parameters, setting, new_path)
 
             # Run the workflow
             with utils.chdir(subdirectory):
@@ -455,7 +441,7 @@ class Workflow(object):
 
         # ... and will prevent inheritance of from_scratch
         if from_scratch is None:
-            self.from_scratch = workflow.from_scratch
+            self.parameters.from_scratch = workflow.parameters.from_scratch
 
         # Copy back over the bands
         try:

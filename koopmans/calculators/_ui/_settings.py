@@ -6,9 +6,10 @@ Integrated within koopmans by Edward Linscott Jan 2021
 
 """
 
-from typing import List
+import numpy as np
+from typing import List, Union
 from ase.dft.kpoints import BandPath
-from koopmans import utils, settings
+from koopmans import settings
 
 valid_settings: List[settings.Setting] = [
     settings.Setting('kc_ham_file',
@@ -74,42 +75,72 @@ valid_settings: List[settings.Setting] = [
                      (str, float, int), None, None)]
 
 
-def load_defaults(self):
-    self.valid_settings = valid_settings
+class UISettingsDictWithChecks(settings.SettingsDictWithChecks):
+    def _check_before_setitem(self, key, value):
+        # Additional sanity checks
+        if key == 'w90_calc':
+            value = value.lower()
+            if value == 'sc':
+                self.w90_input_sc = True
+            else:
+                self.w90_input_sc = False
+                if self.do_map:
+                    raise ValueError('do_map = True is incompatible with w90_calc = "pc"')
 
-    # Load UI settings
-    self.mandatory_settings = ['w90_seedname', 'kc_ham_file', 'alat_sc', 'sc_dim']
-    physicals = ['alat_sc', 'degauss', 'Emin', 'Emax']
-    checked_settings = utils.check_settings(self.calc.parameters, self.valid_settings,
-                                            physicals=physicals, do_not_lower=self.settings_to_not_parse | {'kpath'})
-    for key, val in checked_settings.items():
-        setattr(self, key, val)
+        return super()._check_before_setitem(key, value)
 
-    self.w90_calc = self.w90_calc.lower()
+    def __setitem__(self, key: str, value: Union[int, str, float, bool]):
 
-    if self.w90_calc == 'sc':
-        self.w90_input_sc = True
-    else:
-        self.w90_input_sc = False
-        if self.do_map:
-            raise ValueError('do_map = True is incompatible with w90_calc = "pc"')
+        if key == 'smooth_int_factor' and isinstance(value, int):
+            value = [value for _ in range(3)]
 
-    if isinstance(self.smooth_int_factor, int):
-        self.smooth_int_factor = [self.smooth_int_factor for _ in range(3)]
+        return super().__setitem__(key, value)
 
-    if self.kpath is None:
-        # By default, use ASE's default bandpath for this cell (see
-        # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
-        if any(self.calc.atoms.pbc):
-            self.kpath = self.calc.atoms.cell.get_bravais_lattice().bandpath()
+    @property
+    def attributes(self):
+        return ['data', 'valid', 'defaults', 'update', 'are_paths', 'to_not_parse', 'directory', 'settings', 'physicals',
+                'Emin', 'Emax', 'at', 'alat', 'bg', 'do_smooth_interpolation']
+
+    @property
+    def Emin(self):
+        if self._Emin is None:
+            return np.min(self.get_eigenvalues())
         else:
-            self.kpath = 'G'
-    if isinstance(self.kpath, str):
-        # If kpath is provided as a string, convert it to a BandPath first
-        utils.read_kpath(self.calc, self.kpath)
-        self.kpath = self.calc.parameters.pop('kpath')
-    assert isinstance(self.kpath, BandPath)
+            return self._Emin
 
-    if self.do_smooth_interpolation:
-        assert 'dft_ham_file', 'Missing file_hr_coarse for smooth interpolation'
-        assert 'dft_smooth_ham_file', 'Missing dft_smooth_ham_file for smooth interpolation'
+    @Emin.setter
+    def Emin(self, value):
+        self._Emin = value
+
+    @property
+    def Emax(self):
+        if self._Emax is None:
+            return np.max(self.get_eigenvalues())
+        else:
+            return self._Emax
+
+    @Emax.setter
+    def Emax(self, value):
+        self._Emax = value
+
+    @property
+    def at(self):
+        # basis vectors of direct lattice (in PC alat units)
+        return self.atoms.cell / self.alat
+
+    @at.setter
+    def at(self, value):
+        self.atoms.cell = value * self.alat
+
+    @property
+    def alat(self):
+        return self.alat_sc / self.sc_dim[0]
+
+    @property
+    def bg(self):
+        # basis vectors of reciprocal lattice (in PC 2pi/alat units)
+        return np.linalg.inv(self.at).transpose()
+
+    @property
+    def do_smooth_interpolation(self):
+        return any([f > 1 for f in self.smooth_int_factor])

@@ -113,7 +113,7 @@ def calc_bands(self):
 
     # when smooth interpolation is on, we remove the DFT part from hr
     hr = np.array(self.hr[:, :self.num_wann], dtype=complex)
-    if self.do_smooth_interpolation:
+    if self.parameters.do_smooth_interpolation:
         hr = hr - self.hr_coarse
 
     # renormalize H(R) on the WF phases
@@ -137,7 +137,7 @@ def calc_bands(self):
                     hk[ik, m, n] = hk[ik, m, n] + np.exp(1j * 2 * np.pi * np.dot(kpt, self.Rvec[ir])) * \
                         phase * hr[mm, n]
 
-                if self.do_smooth_interpolation:
+                if self.parameters.do_smooth_interpolation:
                     hk_smooth = 0
                     for jr in range(len(self.Rsmooth)):
                         Rs = self.Rsmooth[jr]
