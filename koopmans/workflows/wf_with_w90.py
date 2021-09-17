@@ -7,19 +7,19 @@ Written by Riccardo De Gennaro Nov 2020
 
 """
 
-import os
-import numpy as np
+from koopmans.workflows.generic import Workflow
+from koopmans import utils
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from koopmans import utils
-from koopmans.workflows.generic import Workflow
+import os
+import numpy as np
 
 
 class WannierizeWorkflow(Workflow):
 
-    def __init__(self, workflow_settings, calcs_dct, nspin=1, check_wannierisation=None):
-        super().__init__(workflow_settings, calcs_dct)
+    def __init__(self, workflow_settings=None, calcs_dct=None, dct=None, nspin=1, check_wannierisation=None):
+        super().__init__(workflow_settings, calcs_dct, dct=dct)
 
         if check_wannierisation is not None:
             # In certain cases we never want to check the wannierisation, even if this is requested by the

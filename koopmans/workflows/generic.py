@@ -118,7 +118,7 @@ valid_settings = [
 
 class Workflow(object):
 
-    def __init__(self, workflow_settings=None, calcs_dct=None, name=None, dct={}):
+    def __init__(self, workflow_settings=None, calcs_dct=None, dct={}, name=None):
         self.valid_settings = valid_settings
         if dct:
             assert workflow_settings is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, '
@@ -220,14 +220,69 @@ class Workflow(object):
         raise NotImplementedError('This workflow class has not implemented the run() function')
 
     def convert_wavefunction_2to1(self, nspin2_tmpdir, nspin1_tmpdir):
-        if self.from_scratch:
-            utils.system_call(
-                f'convert_nspin2_wavefunction_to_nspin1.sh {nspin2_tmpdir} {nspin1_tmpdir}')
+
+        for directory in [nspin2_tmpdir, nspin1_tmpdir]:
+            if not os.path.isdir(directory):
+                raise OSError(f'{directory} not found')
+
+        for wfile in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
+                      'eigenval.xml', 'evc_empty1.dat', 'lambda01.dat', 'lambdam1.dat']:
+            if '1.' in wfile:
+                prefix, suffix = wfile.split('1.')
+            else:
+                prefix, suffix = wfile.split('.')
+
+            file_out = os.path.join(nspin1_tmpdir, wfile)
+            file_in = os.path.join(nspin2_tmpdir, f'{prefix}1.{suffix}')
+
+            if os.path.isfile(file_in):
+
+                with open(file_in, 'rb') as fd:
+                    contents = fd.read()
+
+                contents = contents.replace(b'nk="2"', b'nk="1"')
+                contents = contents.replace(b'nspin="2"', b'nspin="1"')
+
+                with open(file_out, 'wb') as fd:
+                    fd.write(contents)
+
+            for i in range(1, 3):
+                to_delete = os.path.join(nspin2_tmpdir, f'{prefix}{i}.{suffix}')
+                if to_delete != file_out and os.path.isfile(to_delete):
+                    utils.system_call(f'rm {to_delete}')
 
     def convert_wavefunction_1to2(self, nspin1_tmpdir, nspin2_tmpdir):
-        if self.from_scratch:
-            utils.system_call(
-                f'convert_nspin1_wavefunction_to_nspin2.sh {nspin1_tmpdir} {nspin2_tmpdir}')
+
+        for directory in [nspin2_tmpdir, nspin1_tmpdir]:
+            if not os.path.isdir(directory):
+                raise OSError(f'{directory} not found')
+
+        for wfile in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
+                      'eigenval.xml', 'evc_empty1.dat', 'lambda01.dat']:
+            if '1.' in wfile:
+                prefix, suffix = wfile.split('1.')
+            else:
+                prefix, suffix = wfile.split('.')
+
+            file_in = os.path.join(nspin1_tmpdir, wfile)
+
+            if os.path.isfile(file_in):
+                with open(file_in, 'rb') as fd:
+                    contents = fd.read()
+
+                contents = contents.replace(b'nk="1"', b'nk="2"')
+                contents = contents.replace(b'nspin="1"', b'nspin="2"')
+
+                file_out = os.path.join(nspin2_tmpdir, f'{prefix}1.{suffix}')
+                with open(file_out, 'wb') as fd:
+                    fd.write(contents)
+
+                contents = contents.replace(b'ik="1"', b'ik="2"')
+                contents = contents.replace(b'ispin="1"', b'ispin="2"')
+
+                file_out = os.path.join(nspin2_tmpdir, f'{prefix}2.{suffix}')
+                with open(file_out, 'wb') as fd:
+                    fd.write(contents)
 
     def run_calculator(self, master_qe_calc, enforce_ss=False):
         '''
@@ -363,7 +418,7 @@ class Workflow(object):
                 if 'band structure' not in qe_calc.results:
                     return False
             elif isinstance(qe_calc.calc, EspressoWithBandstructure):
-                if not isinstance(qe_calc, EspressoCalc) or qe_calc.calculation == 'bands':
+                if not isinstance(qe_calc, EspressoCalc) or getattr(qe_calc, 'calculation', None) == 'bands':
                     qe_calc.calc.band_structure()
 
             self.all_calcs.append(qe_calc)
@@ -483,13 +538,13 @@ class Workflow(object):
         for k, v in dct.items():
             setattr(self, k, v)
 
-    @property
+    @ property
     def bands(self):
         if not hasattr(self, '_bands'):
             raise AttributeError('Bands have not been initialised')
         return self._bands
 
-    @bands.setter
+    @ bands.setter
     def bands(self, value):
         assert isinstance(value, Bands)
         self._bands = value

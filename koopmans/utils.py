@@ -8,6 +8,7 @@ Written by Edward Linscott May 2020
 
 import os
 import sys
+from glob import glob
 from typing import Union, NamedTuple, Tuple, Type, Any
 import warnings
 import traceback
@@ -80,6 +81,25 @@ def chdir(path):
     finally:
         # Return to the original directory
         os.chdir(this_dir)
+
+
+def symlink(src, dest, relative=True):
+    # Create a symlink of "src" at "dest"
+    if '*' in src:
+        # Follow the syntax of ln, whereby ln -s src/* dest/ will create multiple links
+        for src_file in glob(src):
+            symlink(src_file, dest, relative)
+    else:
+        src = os.path.abspath(src)
+        if relative:
+            # The equivalent of ln -sr
+            if os.path.isdir(dest):
+                os.symlink(os.path.relpath(src, dest), os.path.join(dest, os.path.basename(src)))
+            else:
+                os.symlink(os.path.relpath(src, os.path.dirname(dest)), dest)
+        else:
+            # The equivalent of ln -s
+            os.symlink(src, dest)
 
 
 def find_executable(program):
