@@ -15,13 +15,6 @@ import numpy as np
 import copy
 import matplotlib
 matplotlib.use('Agg')
-from koopmans.workflows.dft_with_pw import DFTPWWorkflow
-from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
-from koopmans.workflows.generic import Workflow
-from koopmans.calculators.kc_ham import KoopmansHamCalc
-from koopmans.calculators.kc_screen import KoopmansScreenCalc
-from koopmans.calculators.wann2kc import Wann2KCCalc
-from koopmans.calculators.pw import PW_calc
 from koopmans.bands import Bands
 from koopmans import utils, io
 

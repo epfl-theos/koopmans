@@ -33,7 +33,7 @@ def mkdir(path: Path):
 
 def symlink(src: Union[str, Path], dest: Union[str, Path], relative: bool = True):
     # Create a symlink of "src" at "dest"
-    if '*' in src:
+    if isinstance(src, str) and '*' in src:
         # Follow the syntax of ln, whereby ln -s src/* dest/ will create multiple links
         for src_file in glob(src):
             symlink(src_file, dest, relative)
