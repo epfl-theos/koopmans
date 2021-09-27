@@ -15,12 +15,21 @@ import numpy as np
 import copy
 import matplotlib
 matplotlib.use('Agg')
+from koopmans.workflows.dft_with_pw import DFTPWWorkflow
+from koopmans.workflows.wf_with_w90 import WannierizeWorkflow
+from koopmans.workflows.generic import Workflow
+from koopmans.calculators.kc_ham import KoopmansHamCalc
+from koopmans.calculators.kc_screen import KoopmansScreenCalc
+from koopmans.calculators.wann2kc import Wann2KCCalc
+from koopmans.calculators.pw import PW_calc
+from koopmans.bands import Bands
+from koopmans import utils, io
 
 
 class KoopmansDFPTWorkflow(Workflow):
 
-    def __init__(self, workflow_settings, calcs_dct):
-        super().__init__(workflow_settings, calcs_dct)
+    def __init__(self, workflow_settings=None, calcs_dct=None, dct=None):
+        super().__init__(workflow_settings, calcs_dct, dct=dct)
 
         # Check the consistency of keywords
         if self.functional != 'ki':
@@ -141,7 +150,7 @@ class KoopmansDFPTWorkflow(Workflow):
             utils.system_call(f'mkdir {base_outdir}')
         init_outdir = self.all_calcs[0].outdir
         if self.from_scratch and init_outdir != base_outdir:
-            utils.system_call(f'ln -sf {init_outdir}/* {base_outdir}/')
+            utils.symlink(f'{init_outdir}/*', base_outdir)
 
         # Convert from wannier to KC
         self.print('Conversion to Koopmans format', style='subheading')
@@ -256,10 +265,10 @@ class KoopmansDFPTWorkflow(Workflow):
 
         # Provide the rotation matrices and the wannier centres
         if self.periodic:
-            utils.system_call(f'ln -srf wannier/occ/wann_u.mat {calc.directory}/')
-            utils.system_call(f'ln -srf wannier/emp/wann_u.mat {calc.directory}/wann_emp_u.mat')
-            utils.system_call(f'ln -srf wannier/emp/wann_u_dis.mat {calc.directory}/wann_emp_u_dis.mat')
-            utils.system_call(f'ln -srf wannier/occ/wann_centres.xyz {calc.directory}/wann_centres.xyz')
-            utils.system_call(f'ln -srf wannier/emp/wann_centres.xyz {calc.directory}/wann_emp_centres.xyz')
+            utils.symlink(f'wannier/occ/wann_u.mat', f'{calc.directory}/')
+            utils.symlink(f'wannier/emp/wann_u.mat', f'{calc.directory}/wann_emp_u.mat')
+            utils.symlink(f'wannier/emp/wann_u_dis.mat', f'{calc.directory}/wann_emp_u_dis.mat')
+            utils.symlink(f'wannier/occ/wann_centres.xyz', f'{calc.directory}/')
+            utils.symlink(f'wannier/emp/wann_centres.xyz', f'{calc.directory}/wann_emp_centres.xyz')
 
         super().run_calculator(calc)

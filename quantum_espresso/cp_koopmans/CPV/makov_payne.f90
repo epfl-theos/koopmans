@@ -21,10 +21,9 @@ SUBROUTINE makov_payne(etot)
   USE constants,         ONLY : pi,AUTOEV
   USE cp_main_variables, ONLY : rhor
   USE electrons_base,    ONLY : nspin
-  USE cell_base,         ONLY : at, bg, omega, alat, ibrav
+  USE cell_base,         ONLY : alat, ibrav
   USE parallel_include
-  USE grid_dimensions,   ONLY : nr1x, nr2x, nr3x, nnrx
-  USE gvecw ,            ONLY : ngw
+  USE grid_dimensions,   ONLY : nr1x, nr2x, nr3x
   USE fft_base,          ONLY : dfftp
 #if defined __PARA
   USE mp_global,         ONLY : me_image, nproc_image, intra_image_comm
@@ -32,19 +31,16 @@ SUBROUTINE makov_payne(etot)
 #endif
 !
 IMPLICIT NONE
-INTEGER :: nspecie
-INTEGER :: i,j,k,l,m,n,ip
+INTEGER :: i,j,k,ip
 INTEGER, ALLOCATABLE, DIMENSION(:) :: zvv
 REAL(DP), ALLOCATABLE, DIMENSION(:,:,:) :: rhof
 REAL(DP), ALLOCATABLE, DIMENSION(:,:) :: r
-REAL(DP) :: h(3,3),volumetto,a(3,3)
-REAL(DP) :: usunx,usuny,usunz,R0(3),qq,aa,bb,debye
+REAL(DP) :: usunx,usuny,usunz,R0(3),aa,bb,debye
 REAL(DP) :: charge, charge_ion, charge_el
 REAL(DP) :: dipole(3), dipole_ion(3), dipole_el(3)
 REAL(DP) :: quadrupole, quadrupole_ion, quadrupole_el
 REAL(DP) :: corr1, corr2, etot
 REAL(DP), ALLOCATABLE, DIMENSION(:) :: rgx,rgy,rgz
-INTEGER :: ir, is
 INTEGER :: ierr
 #if defined __PARA
 INTEGER :: proc

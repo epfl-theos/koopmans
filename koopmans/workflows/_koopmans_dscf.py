@@ -23,8 +23,8 @@ from ._generic import Workflow
 
 class KoopmansDSCFWorkflow(Workflow):
 
-    def __init__(self, workflow_settings: Dict[str, Any], calcs_dct: Dict[str, calculators.ExtendedCalculator]) -> None:
-        super().__init__(workflow_settings, calcs_dct)
+    def __init__(self, workflow_settings: Dict[str, Any], calcs_dct: Dict[str, calculators.ExtendedCalculator], **kwargs) -> None:
+        super().__init__(workflow_settings, calcs_dct, **kwargs)
 
         if 'kcp' not in self.master_calcs:
             raise ValueError(
@@ -377,7 +377,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
             # Do a KI/KIPZ calculation with the updated alpha values
             calc = self.new_kcp_calculator(calc_presets=self.parameters.functional.replace('pkipz', 'ki'),
-                                       alphas=self.bands.alphas)
+                                           alphas=self.bands.alphas)
             calc.directory = iteration_directory
 
             if i_sc == 1:
@@ -433,8 +433,8 @@ class KoopmansDSCFWorkflow(Workflow):
                 # Link tmp files from band-independent calculations
                 if not os.path.isdir(outdir_band):
                     utils.system_call(f'mkdir {outdir_band}')
-                    utils.system_call(
-                        f'ln -sr {self.master_calcs["kcp"].parameters.outdir}/*.save {outdir_band}')
+
+                    utils.symlink(f'{self.master_calcs["kcp"].parameters.outdir}/*.save', outdir_band)
 
                 # Don't repeat if this particular alpha_i was converged
                 if i_sc > 1 and abs(band.error) < self.parameters.alpha_conv_thr:

@@ -5,9 +5,10 @@ Written by Edward Linscott, Jun 2021
 '''
 
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from koopmans import utils, io
-from koopmans.io.jsonio import write_json
 
 
 def run(from_scratch=False):
@@ -16,7 +17,7 @@ def run(from_scratch=False):
     wfs = {}
     for name in names:
         with utils.chdir(name):
-            wf = io.read_json(f'ozone.json')
+            wf = io.read('ozone.json')
             wf.from_scratch = from_scratch
             if 'screening' in name:
                 wf.calculate_alpha = False
@@ -24,8 +25,8 @@ def run(from_scratch=False):
             wf.run()
 
             # Save workflow to file
-            with open('ozone.kwf', 'w') as fd:
-                write_json(fd, wf)
+            io.write(wf, 'ozone.kwf')
+
         wfs[name] = wf
     return wfs
 

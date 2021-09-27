@@ -12,8 +12,8 @@ SUBROUTINE wave_init_wannier_pwscf ( c0, nbndx )
       USE io_global,          ONLY: stdout, ionode, ionode_id
       USE mp,                 ONLY: mp_bcast, mp_sum
       USE mp_wave,            ONLY: splitwf
-      USE io_files,           ONLY: outdir, prefix
-      USE io_files,           ONLY: empty_file, emptyunitc0, emptyunit, emptyunitc0fixed
+      USE io_files,           ONLY: outdir
+      USE io_files,           ONLY: emptyunitc0
       USE reciprocal_vectors, ONLY: ig_l2g
       USE gvecw,              ONLY: ngw
       USE xml_io_base,        ONLY: restart_dir, wfc_filename
@@ -25,7 +25,7 @@ SUBROUTINE wave_init_wannier_pwscf ( c0, nbndx )
       COMPLEX(DP), INTENT(OUT) :: c0(ngw,nbndx)
       ! 
       LOGICAL :: exst
-      INTEGER :: ierr, ig, ibnd, iss
+      INTEGER :: ig, ibnd
       INTEGER :: ngw_rd, nbnd_rd, ngw_l, ngw_g
       ! 
       CHARACTER(LEN=256) :: fileocc, dirname
@@ -125,11 +125,7 @@ SUBROUTINE wave_init_wannier_cp ( c0, ngw,  nbndx, occupied_only)
       ! 
       USE kinds,            ONLY: DP
       USE mp,               ONLY: mp_bcast
-      USE mp_global,        ONLY: nproc_image, me_image, intra_image_comm
-     USE io_global,         ONLY: ionode, ionode_id, stdout
       USE dspev_module,     ONLY: dspev_drv
-      USE control_flags,    ONLY: ndw
-      USE cp_main_variables, ONLY : lambda
       USE cp_interfaces,    ONLY: set_evtot, readempty
       USE electrons_base,   ONLY: nspin, iupdwn, nupdwn
       USE electrons_module, ONLY: iupdwn_emp, nupdwn_emp
@@ -148,7 +144,6 @@ SUBROUTINE wave_init_wannier_cp ( c0, ngw,  nbndx, occupied_only)
       COMPLEX(DP), ALLOCATABLE :: vv(:,:)
       COMPLEX(DP), ALLOCATABLE :: ctot(:,:), c0_tmp(:,:)
       INTEGER               :: i, j, k, nx, n_occs, npw
-      LOGICAl :: exst
       !  
       IF (occupied_only) THEN
          !

@@ -13,9 +13,9 @@ subroutine ggenb (b1b, b2b, b3b, nr1b ,nr2b, nr3b, nr1bx ,nr2bx, nr3bx, gcutb )
    ! The documentation for ggen applies
    !
    USE kinds, ONLY: DP
-   use gvecb, only: ngb, ngbt, ngbl, ngbx, gb, gxb, glb, npb, nmb
+   use gvecb, only: ngb, ngbl, gb, gxb, glb, npb, nmb
    use gvecb, only: iglb, mill_b
-   use io_global, only: stdout, ionode
+   use io_global, only: stdout
    use control_flags, only: iprsta
 !
    implicit none
@@ -25,7 +25,7 @@ subroutine ggenb (b1b, b2b, b3b, nr1b ,nr2b, nr3b, nr1bx ,nr2bx, nr3bx, gcutb )
 !
    integer, allocatable:: idx(:)
    integer n1pb, n2pb, n3pb, n1mb, n2mb, n3mb
-   integer it, icurr, nr1m1, nr2m1, nr3m1, ir, ig, i,j,k, itv(3), idum, ip
+   integer it, icurr, nr1m1, nr2m1, nr3m1, ir, ig, i,j,k, itv(3), idum
    REAL(DP) t(3), g2
 !
       nr1m1=nr1b-1
@@ -221,14 +221,13 @@ end subroutine ggenb
 !-----------------------------------------------------------------------
 !
       USE kinds, ONLY: DP
-      use control_flags, only: iprint
       use gvecb
 !
       implicit none
       REAL(DP), intent(in) :: alatb, b1b_ (3), b2b_ (3), b3b_ (3)
       REAL(DP) :: b1b(3), b2b(3), b3b(3)
 !
-      integer i, i1,i2,i3,ig
+      integer i1,i2,i3,ig
 
       b1b = b1b_ * alatb
       b2b = b2b_ * alatb
@@ -341,22 +340,17 @@ end subroutine ggenb
       use io_global,          only: stdout
       USE fft_base,           ONLY: dfftp, dffts, fft_dlay_descriptor
       use mp,                 ONLY: mp_sum, mp_max
-      use io_global,          only: ionode
-      use mp_global,          only: intra_image_comm, mpime
+      use mp_global,          only: intra_image_comm
       use constants,          only: eps8
       use control_flags,      only: iprsta
       !
       implicit none
       !
       REAL(DP) :: b1(3), b2(3), b3(3), gcut, gcuts, gcutw
-      REAL(DP) :: t(3), g2
       logical      ::  lgam !added:giovanni do_wf_cmplx
       integer      :: nr1,nr2,nr3, nr1s,nr2s,nr3s
-      integer      :: n1p, n2p, n3p, n1m, n2m, n3m
-      integer      :: n1ps, n2ps, n3ps, n1ms, n2ms, n3ms
-      integer      :: it, icurr, nr1m1, nr2m1, nr3m1, nrefold, ir, ig, i,j,k
+      integer      :: ig
       integer      :: ichk
-      integer      :: mill(3)
  
       !
       !  First of all count the number of G vectors according with the FFT mesh 
@@ -545,7 +539,7 @@ SUBROUTINE gcount &
   INTEGER  nr1, nr2, nr3, nind
   REAL(DP) b1(3), b2(3), b3(3), gcut, gcuts, gcutw
   INTEGER :: isind( nind ), ldis
-  LOGICAL :: lgam, do_wf_cmplx !added:giovanni do_wf_cmplx
+  LOGICAL :: lgam
 
   INTEGER :: nr1m1, nr2m1, nr3m1
   INTEGER :: i, j, k, n1p, n2p, ir, iind
@@ -630,7 +624,6 @@ SUBROUTINE gglobal( ng_g, g2_g, mill_g, b1, b2, b3, nr1, nr2, nr3, gcut, lgam )
 !-------------------------------------------------------------------------
 
   USE kinds,     ONLY: DP
-  use io_global, only: ionode
 
   IMPLICIT NONE
 
@@ -642,7 +635,7 @@ SUBROUTINE gglobal( ng_g, g2_g, mill_g, b1, b2, b3, nr1, nr2, nr3, gcut, lgam )
   LOGICAL :: lgam
 
   INTEGER :: nr1m1, nr2m1, nr3m1
-  INTEGER :: i, j, k, ir, ng, ig
+  INTEGER :: i, j, k, ir, ng
 
   REAL(DP) :: g2, t(3)
 
@@ -703,7 +696,6 @@ SUBROUTINE glocal( ng, g, ig_l2g, mill_l, ng_g, g2_g, mill_g, nr1, nr2, nr3, isi
 !-------------------------------------------------------------------------
 
   USE kinds,     ONLY: DP
-  use io_global, only: ionode
 
   IMPLICIT NONE
 
@@ -834,7 +826,6 @@ END SUBROUTINE gchkrefold
 
 SUBROUTINE gfftindex( np, nm, ng, mill_l, nr1, nr2, nr3, isind, nr1x, nr2x, nr3x, lgam )
   !
-  use mp_global,  ONLY:mpime
   IMPLICIT NONE
 
   INTEGER :: ng
@@ -846,23 +837,12 @@ SUBROUTINE gfftindex( np, nm, ng, mill_l, nr1, nr2, nr3, isind, nr1x, nr2x, nr3x
   INTEGER :: n1p, n2p, n3p
   INTEGER :: n1m, n2m, n3m
   INTEGER :: i, j, k, ig, isp, ism
-  INTEGER :: m1,m2,mc
 
 ngloop:  do ig = 1, ng
 
          i = mill_l(1,ig)
          j = mill_l(2,ig)
          k = mill_l(3,ig)
-
-! #ifdef __PARA
-!       m1 = mod (i, nr1) + 1
-!       IF (m1 < 1) m1 = m1 + nr1
-!       m2 = mod (j, nr2) + 1
-!       IF (m2 < 1) m2 = m2 + nr2
-!       mc = m1 + (m2 - 1) * nr1x
-!       IF ( isind ( mc ) == 0) CYCLE ngloop
-! #endif
-
          !
          ! n1p,n2p,n3p: indexes of G
          ! negative indexes are refolded (note that by construction i.ge.0)
@@ -992,7 +972,6 @@ END SUBROUTINE gshcount
 !
       USE kinds,     ONLY: DP
       use constants, only: tpi
-      use control_flags, only: iprint
       use reciprocal_vectors, only: g, gx, mill_l
       use gvecp, only: ngm
       use gvecw, only: ngw
@@ -1175,8 +1154,6 @@ END SUBROUTINE gshcount
           USE gvecw, ONLY: ecutwfc => ecutw,  gcutw
           USE gvecp, ONLY: ecutrho => ecutp,  gcutp
           USE gvecs, ONLY: ecuts, gcuts
-          USE gvecb, ONLY: ecutb, gcutb
-          USE gvecw, ONLY: ecfix, ecutz, ecsig
           USE gvecw, ONLY: ekcut, gkcut
           USE constants, ONLY: eps8, pi
 
@@ -1237,9 +1214,7 @@ END SUBROUTINE gshcount
         USE gvecw, ONLY: ecutwfc => ecutw,  gcutw
         USE gvecp, ONLY: ecutrho => ecutp,  gcutp
         USE gvecw, ONLY: ecfix, ecutz, ecsig
-        USE gvecw, ONLY: ekcut, gkcut
         USE gvecs, ONLY: ecuts, gcuts
-        USE gvecb, ONLY: ecutb, gcutb
         use betax, only: mmx, refg
         USE io_global, ONLY: stdout
 
@@ -1432,18 +1407,17 @@ END SUBROUTINE gshcount
             
          !  Print info about input parameter for ion dynamic
 
-         USE io_global,     ONLY: ionode, stdout
+         USE io_global,     ONLY: stdout
          USE control_flags, ONLY: tranp, amprp, tnosep, tolp, tfor, tsdp, tzerop, &
-                                  tv0rd, taurdr, nv0rd, nbeg, tcp, tcap, &
-                                  program_name
-         USE ions_base,     ONLY: tau_srt, tau_units, if_pos, ind_srt, nsp, na, &
+                                  tv0rd, taurdr, nv0rd, nbeg, tcp, tcap
+         USE ions_base,     ONLY: tau_srt, if_pos, ind_srt, nsp, na, &
                                   pmass, nat, fricp, greasp, rcmax
          USE ions_nose,     ONLY: tempw, ndega
          USE constants,     ONLY: amu_au
 
          IMPLICIT NONE
               
-         integer is, ia, k, ic, isa
+         integer is, ia, k, isa
          LOGICAL :: ismb( 3 ) 
                 
          WRITE( stdout, 50 ) 

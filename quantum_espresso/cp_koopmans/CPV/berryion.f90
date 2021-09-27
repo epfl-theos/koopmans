@@ -128,7 +128,7 @@ end subroutine berryion
           integer ipol!el. field polarization
 
 
-          integer i,ia,is,isa
+          integer ia,is,isa
           real(8) fcm!force appplied on center of mass
           real(8) tch!total charge
 

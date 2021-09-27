@@ -436,9 +436,6 @@ contains
       integer, intent(in):: ngw
       integer, intent(in):: nnrx
       !
-      integer :: ispin
-      logical :: lgam
-      !
       allocate( fsic(nx) )
       allocate( vsic(nnrx,nx) )
       allocate( fion_sic(3,nat) )

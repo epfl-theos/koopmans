@@ -8,7 +8,7 @@ SUBROUTINE gram_swap( betae, bec, nkbx, cp, ngwx, n, fixed_index )
 !     we swap the fixed wfc with the first one, then do as normal,
 !     then in the end, we do another swap to return to input order.
 !
-      USE uspp,           ONLY : nkb, nhsavb=> nkbus
+      USE uspp,           ONLY : nkb
       USE gvecw,          ONLY : ngw
       USE kinds,          ONLY : DP
       USE control_flags,  ONLY : gamma_only, do_wf_cmplx !added:giovanni

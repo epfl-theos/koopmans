@@ -33,8 +33,7 @@ MODULE path_routines
                                    first_last_opt, temp_req, ds, k_max,       &
                                    k_min, path_thr, restart_mode, nstep,      &
                                    calculation, use_freezing,                 &
-                                   phase_space, ion_dynamics, etot_conv_thr,  &
-                                   forc_conv_thr
+                                   phase_space, ion_dynamics
       !
       USE path_variables, ONLY : lsteep_des, lquick_min, lbroyden, nstep_path, &
                                  num_of_images_  => num_of_images, &
@@ -48,7 +47,7 @@ MODULE path_routines
                                  use_freezing_   => use_freezing
       !
       USE io_files,      ONLY : prefix, outdir, tmp_dir
-      USE io_global,     ONLY : ionode, ionode_id
+      USE io_global,     ONLY : ionode
       USE ions_base,     ONLY : nat
       USE cell_base,     ONLY : alat, a1, a2, a3
       USE mp_global,     ONLY : mpime

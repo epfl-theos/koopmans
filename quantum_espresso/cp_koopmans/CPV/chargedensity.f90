@@ -30,7 +30,7 @@
        !
        REAL(DP) :: dft_total_charge_x
        !
-       INTEGER     :: ib, igs
+       INTEGER     :: ib
        REAL(DP)    :: rsum
        COMPLEX(DP) :: wdot
        COMPLEX(DP) :: ZDOTC
@@ -95,26 +95,20 @@
 !     e_v = sum_i,ij rho_i,ij d^ion_is,ji
 !
       USE kinds,              ONLY: DP
-      USE control_flags,      ONLY: iprint, iprsta, thdyn, tpre, trhor, use_task_groups, program_name, &
+      USE control_flags,      ONLY: iprsta, thdyn, tpre, trhor, use_task_groups, program_name, &
                              &          gamma_only, do_wf_cmplx !added:giovanni gamma_only, do_wf_cmplx
-      USE ions_base,          ONLY: nat
       USE gvecp,              ONLY: ngm
       USE gvecs,              ONLY: ngs, nps, nms
-      USE gvecb,              ONLY: ngb
       USE gvecw,              ONLY: ngw
       USE recvecs_indexes,    ONLY: np, nm
       USE reciprocal_vectors, ONLY: gstart
-      USE uspp,               ONLY: nkb
-      USE uspp_param,         ONLY: nh, nhm
-      USE grid_dimensions,    ONLY: nr1, nr2, nr3, &
-                                    nr1x, nr2x, nr3x, nnrx
+      USE grid_dimensions,    ONLY: nr1, nr2, nr3, nnrx
       USE cell_base,          ONLY: omega
-      USE smooth_grid_dimensions, ONLY: nr1s, nr2s, nr3s, &
-                                        nr1sx, nr2sx, nr3sx, nnrsx
-      USE electrons_base,     ONLY: nx => nbspx, n => nbsp, f, ispin, nspin
+      USE smooth_grid_dimensions, ONLY: nr1sx, nr2sx, nnrsx
+      USE electrons_base,     ONLY: n => nbsp, f, ispin, nspin
       USE constants,          ONLY: pi, fpi
       USE mp,                 ONLY: mp_sum
-      USE io_global,          ONLY: stdout, ionode
+      USE io_global,          ONLY: stdout
       USE mp_global,          ONLY: intra_image_comm, nogrp, me_image, ogrp_comm, nolist
       USE funct,              ONLY: dft_is_meta
       USE cg_module,          ONLY: tcg
@@ -144,8 +138,8 @@
 
       ! local variables
 
-      INTEGER  :: iss, isup, isdw, iss1, iss2, ios, i, ir, ig, j !added:giovanni j
-      REAL(DP) :: rsumr(2), rsumg(2), sa1, sa2, detmp(6), mtmp(3,3)
+      INTEGER  :: iss, isup, isdw, iss1, iss2, i, ir, ig
+      REAL(DP) :: rsumr(2), rsumg(2), sa1, sa2
       REAL(DP) :: rnegsum, rmin, rmax, rsum
       REAL(DP), EXTERNAL :: enkin_non_ortho, ennl_non_ortho, enkin
       REAL(DP), EXTERNAL :: dnrm2, ddot
@@ -153,7 +147,6 @@
       COMPLEX(DP) :: ci,fp,fm
       COMPLEX(DP), ALLOCATABLE :: psi(:), psis(:), psis2(:)
 
-      LOGICAL, SAVE :: first = .TRUE.
       LOGICAL :: ttstress
       LOGICAL :: lgam
       !
@@ -767,26 +760,20 @@
 !     e_v = sum_i,ij rho_i,ij d^ion_is,ji
 !
       USE kinds,              ONLY: DP
-      USE control_flags,      ONLY: iprint, iprsta, thdyn, tpre, trhor, use_task_groups, program_name, &
+      USE control_flags,      ONLY: iprsta, thdyn, tpre, trhor, use_task_groups, program_name, &
                              &          gamma_only, do_wf_cmplx !added:giovanni gamma_only, do_wf_cmplx
-      USE ions_base,          ONLY: nat
       USE gvecp,              ONLY: ngm
       USE gvecs,              ONLY: ngs, nps, nms
-      USE gvecb,              ONLY: ngb
       USE gvecw,              ONLY: ngw
       USE recvecs_indexes,    ONLY: np, nm
       USE reciprocal_vectors, ONLY: gstart
-      USE uspp,               ONLY: nkb
-      USE uspp_param,         ONLY: nh, nhm
-      USE grid_dimensions,    ONLY: nr1, nr2, nr3, &
-                                    nr1x, nr2x, nr3x, nnrx
+      USE grid_dimensions,    ONLY: nr1, nr2, nr3, nnrx
       USE cell_base,          ONLY: omega
-      USE smooth_grid_dimensions, ONLY: nr1s, nr2s, nr3s, &
-                                        nr1sx, nr2sx, nr3sx, nnrsx
-      USE electrons_base,     ONLY: nx => nbspx, n => nbsp, f, ispin, nspin
+      USE smooth_grid_dimensions, ONLY: nr1sx, nr2sx, nnrsx
+      USE electrons_base,     ONLY: n => nbsp, f, ispin, nspin
       USE constants,          ONLY: pi, fpi
       USE mp,                 ONLY: mp_sum
-      USE io_global,          ONLY: stdout, ionode
+      USE io_global,          ONLY: stdout
       USE mp_global,          ONLY: intra_image_comm, nogrp, me_image, ogrp_comm, nolist
       USE funct,              ONLY: dft_is_meta
       USE cg_module,          ONLY: tcg
@@ -816,8 +803,8 @@
 
       ! local variables
 
-      INTEGER  :: iss, isup, isdw, iss1, iss2, ios, i, ir, ig, j !added:giovanni j
-      REAL(DP) :: rsumr(2), rsumg(2), sa1, sa2, detmp(6), mtmp(3,3)
+      INTEGER  :: iss, isup, isdw, iss1, iss2, i, ir, ig !added:giovanni j
+      REAL(DP) :: rsumr(2), rsumg(2), sa1, sa2
       REAL(DP) :: rnegsum, rmin, rmax, rsum
       REAL(DP), EXTERNAL :: enkin, ennl
       REAL(DP), EXTERNAL :: dnrm2, ddot
@@ -825,7 +812,6 @@
       COMPLEX(DP) :: ci,fp,fm
       COMPLEX(DP), ALLOCATABLE :: psi(:), psis(:)
 
-      LOGICAL, SAVE :: first = .TRUE.
       LOGICAL :: ttstress
       LOGICAL :: lgam
       !
@@ -1418,8 +1404,8 @@
 !     e_v = sum_i,ij rho_i,ij d^ion_is,ji
 !
       USE kinds,              ONLY: DP
-      USE control_flags,      ONLY: iprint, iprsta, thdyn, tpre, trhor, use_task_groups, program_name, &
-                             &          gamma_only, do_wf_cmplx !added:giovanni gamma_only, do_wf_cmplx
+      USE control_flags,      ONLY: iprsta, thdyn, tpre, trhor, use_task_groups, program_name, &
+                                  & gamma_only, do_wf_cmplx !added:giovanni gamma_only, do_wf_cmplx
       USE ions_base,          ONLY: nat
       USE gvecp,              ONLY: ngm
       USE gvecs,              ONLY: ngs, nps, nms
@@ -1427,16 +1413,13 @@
       USE gvecw,              ONLY: ngw
       USE recvecs_indexes,    ONLY: np, nm
       USE reciprocal_vectors, ONLY: gstart
-      USE uspp,               ONLY: nkb
-      USE uspp_param,         ONLY: nh, nhm
-      USE grid_dimensions,    ONLY: nr1, nr2, nr3, &
-                                    nr1x, nr2x, nr3x, nnrx
+      USE uspp_param,         ONLY: nhm
+      USE grid_dimensions,    ONLY: nr1, nr2, nr3, nnrx
       USE cell_base,          ONLY: omega
-      USE smooth_grid_dimensions, ONLY: nr1s, nr2s, nr3s, &
-                                        nr1sx, nr2sx, nr3sx, nnrsx
+      USE smooth_grid_dimensions, ONLY: nr1sx, nr2sx, nnrsx
       USE constants,          ONLY: pi, fpi
       USE mp,                 ONLY: mp_sum
-      USE io_global,          ONLY: stdout, ionode
+      USE io_global,          ONLY: stdout
       USE mp_global,          ONLY: intra_image_comm, nogrp, me_image, ogrp_comm, nolist
       USE funct,              ONLY: dft_is_meta
       USE cg_module,          ONLY: tcg
@@ -1466,8 +1449,8 @@
       INTEGER, INTENT(IN) :: ndwwf
 
       ! local variables
-      INTEGER  :: iss, isup, isdw, iss1, iss2, ios, i, ir, ig, j !added:giovanni j
-      REAL(DP) :: rsumr(2), rsumg(2), sa1, sa2, detmp(6), mtmp(3,3)
+      INTEGER  :: iss, isup, isdw, iss1, iss2, i, ir, ig !added:giovanni j
+      REAL(DP) :: rsumr(2), rsumg(2), sa1, sa2
       REAL(DP) :: rnegsum, rmin, rmax, rsum
       REAL(DP), EXTERNAL :: enkin_new, ennl_new
       REAL(DP), EXTERNAL :: dnrm2, ddot
@@ -1475,7 +1458,6 @@
       COMPLEX(DP) :: ci,fp,fm
       COMPLEX(DP), ALLOCATABLE :: psi(:), psis(:)
 
-      LOGICAL, SAVE :: first = .TRUE.
       LOGICAL :: ttstress
       LOGICAL :: lgam
       !
@@ -2012,25 +1994,20 @@
 !     e_v = sum_i,ij rho_i,ij d^ion_is,ji
 !
       USE kinds,              ONLY: DP
-      USE control_flags,      ONLY: iprint, iprsta, thdyn, tpre, trhor, use_task_groups, program_name
-      USE ions_base,          ONLY: nat
+      USE io_global,          ONLY: stdout
+      USE control_flags,      ONLY: iprsta, thdyn, tpre, trhor, use_task_groups, program_name, &
+                                    gamma_only, do_wf_cmplx !added:giovanni gamma_only, do_wf_cmplx
       USE gvecp,              ONLY: ngm
       USE gvecs,              ONLY: ngs, nps, nms
-      USE gvecb,              ONLY: ngb
       USE gvecw,              ONLY: ngw
       USE recvecs_indexes,    ONLY: np, nm
       USE reciprocal_vectors, ONLY: gstart
-      USE uspp,               ONLY: nkb
-      USE uspp_param,         ONLY: nh, nhm
-      USE grid_dimensions,    ONLY: nr1, nr2, nr3, &
-                                    nr1x, nr2x, nr3x, nnrx
+      USE grid_dimensions,    ONLY: nr1, nr2, nr3, nnrx
       USE cell_base,          ONLY: omega
-      USE smooth_grid_dimensions, ONLY: nr1s, nr2s, nr3s, &
-                                        nr1sx, nr2sx, nr3sx, nnrsx
-      USE electrons_base,     ONLY: nx => nbspx, n => nbsp, f, ispin, nspin
+      USE smooth_grid_dimensions, ONLY:  nr1sx, nr2sx, nnrsx
+      USE electrons_base,     ONLY: n => nbsp, f, ispin, nspin
       USE constants,          ONLY: pi, fpi
       USE mp,                 ONLY: mp_sum
-      USE io_global,          ONLY: stdout, ionode
       USE mp_global,          ONLY: intra_image_comm, nogrp, me_image, ogrp_comm, nolist
       USE funct,              ONLY: dft_is_meta
       USE cg_module,          ONLY: tcg
@@ -2059,21 +2036,21 @@
 
       ! local variables
 
-      INTEGER  :: iss, isup, isdw, iss1, iss2, ios, i, ir, ig, k
-      REAL(DP) :: rsumr(2), rsumg(2), sa1, sa2, detmp(6), mtmp(3,3)
+      INTEGER  :: iss, isup, isdw, iss1, iss2, i, ir, ig
+      REAL(DP) :: rsumr(2), rsumg(2), sa1, sa2
       REAL(DP) :: rnegsum, rmin, rmax, rsum
       REAL(DP), EXTERNAL :: enkin, ennl
       COMPLEX(DP) :: ci,fp,fm
       COMPLEX(DP), ALLOCATABLE :: psi(:), psis(:)
 
-      LOGICAL, SAVE :: first = .TRUE.
       LOGICAL :: ttstress
-      INTEGER :: j
+      LOGICAL :: lgam
       
       !
 
       CALL start_clock( 'rhoofr' )
 
+      lgam=gamma_only.and..not.do_wf_cmplx
       ttstress = tpre
       IF( PRESENT( tstress ) ) ttstress = tstress
 
@@ -2300,7 +2277,7 @@
          IF ( ttstress .AND. program_name == 'CP90' ) &
             CALL drhov( irb, eigrb, rhovan, rhog, rhor, drhog, drhor )
          !
-         CALL rhov( irb, eigrb, rhovan, rhog, rhor )
+         CALL rhov( irb, eigrb, rhovan, rhog, rhor, lgam )
 
       ENDIF COMPUTE_CHARGE
 !
@@ -2554,8 +2531,7 @@
       use reciprocal_vectors, only: gx
       use recvecs_indexes,    only: np, nm
       use gvecp,              only: ngm
-      use grid_dimensions,    only: nr1, nr2, nr3, &
-                                    nr1x, nr2x, nr3x, nnrx
+      use grid_dimensions,    only: nnrx
       use cell_base,          only: tpiba
       USE cp_interfaces,      ONLY: invfft
       USE fft_base,           ONLY: dfftp
@@ -2686,7 +2662,6 @@
       USE kinds,              ONLY: DP
       USE fft_base,           ONLY: dfftp
       USE cp_interfaces,      ONLY: fwfft, invfft
-      USE ions_base,          ONLY: nsp
       USE cell_base,          ONLY: tpiba2
       USE reciprocal_vectors, ONLY: gstart, gzero, g
       USE gvecp,              ONLY: ngm
@@ -2708,11 +2683,11 @@
 ! ... declare other variables
       COMPLEX(DP) :: dr
       COMPLEX(DP) :: rhoout(ngm)
-      REAL(DP) :: g02, g12, ar, den, num, rsc
+      REAL(DP) :: g02, g12, den, rsc
       REAL(DP) :: alpha(daamax)
       REAL(DP), ALLOCATABLE :: aa(:,:)
       REAL(DP), ALLOCATABLE :: rho_old(:)
-      INTEGER :: ns, sp, is, ism, i, ig
+      INTEGER :: is, ism, i, ig
       LOGICAL, SAVE :: tfirst = .TRUE.
       INTEGER, SAVE :: dimaa, dimaaold, nrho_t, ierr
       COMPLEX(DP), ALLOCATABLE :: psi(:)
@@ -2885,7 +2860,6 @@
         SUBROUTINE invgen( aa )
 
           IMPLICIT NONE
-          INTEGER dimaa
           REAL(DP) :: aa(:,:)
 
           REAL(DP) ::  scr1(SIZE(aa,1),SIZE(aa,2))
@@ -2914,15 +2888,14 @@ SUBROUTINE drhov(irb,eigrb,rhovan,rhog,rhor,drhog,drhor)
 !     Output in (drhor, drhog)
 !
       USE kinds,                    ONLY: DP
-      USE control_flags,            ONLY: iprint
-      USE ions_base,                ONLY: na, nsp, nat
+      USE ions_base,                ONLY: na, nat
       USE cvan,                     ONLY: nvb
       USE uspp_param,               ONLY: nhm, nh
-      USE grid_dimensions,          ONLY: nr1, nr2, nr3, nr1x, nr2x, nr3x, nnr => nnrx
+      USE grid_dimensions,          ONLY: nnr => nnrx
       USE electrons_base,           ONLY: nspin
       USE gvecb,                    ONLY: ngb, npb, nmb
       USE gvecp,                    ONLY: ng => ngm
-      USE smallbox_grid_dimensions, ONLY: nr1b, nr2b, nr3b, nr1bx, nr2bx, nr3bx, nnrb => nnrbx
+      USE smallbox_grid_dimensions, ONLY: nnrb => nnrbx
       USE cell_base,                ONLY: ainv
       USE qgb_mod,                  ONLY: qgb
       USE cdvan,                    ONLY: drhovan
@@ -3158,25 +3131,24 @@ SUBROUTINE rhov(irb,eigrb,rhovan,rhog,rhor, lgam) !added:giovanni lgam
 !     routine makes use of c(-g)=c*(g)  and  beta(-g)=beta*(g)
 !
       USE kinds,                    ONLY: dp
-      USE ions_base,                ONLY: nat, na, nsp
+      USE ions_base,                ONLY: nat, na
       USE io_global,                ONLY: stdout
       USE mp_global,                ONLY: intra_image_comm
       USE mp,                       ONLY: mp_sum
       USE cvan,                     ONLY: nvb
       USE uspp_param,               ONLY: nh, nhm
-      USE uspp,                     ONLY: deeq
-      USE grid_dimensions,          ONLY: nr1, nr2, nr3, nr1x, nr2x, nr3x, nnr => nnrx
+      USE grid_dimensions,          ONLY: nr1, nr2, nr3, nnr => nnrx
       USE electrons_base,           ONLY: nspin
       USE gvecb,                    ONLY: npb, nmb, ngb
       USE gvecp,                    ONLY: ng => ngm
-      USE cell_base,                ONLY: omega, ainv
+      USE cell_base,                ONLY: omega
       USE small_box,                ONLY: omegab
-      USE smallbox_grid_dimensions, ONLY: nr1b, nr2b, nr3b, nr1bx, nr2bx, nr3bx, nnrb => nnrbx
-      USE control_flags,            ONLY: iprint, iprsta, tpre
+      USE smallbox_grid_dimensions, ONLY: nr1b, nr2b, nr3b, nnrb => nnrbx
       USE qgb_mod,                  ONLY: qgb
       USE recvecs_indexes,          ONLY: np, nm
       USE cp_interfaces,            ONLY: fwfft, invfft
       USE fft_base,                 ONLY: dfftb, dfftp
+      USE control_flags,            ONLY: iprsta
 !
       IMPLICIT NONE
       !
@@ -3188,7 +3160,7 @@ SUBROUTINE rhov(irb,eigrb,rhovan,rhog,rhor, lgam) !added:giovanni lgam
       COMPLEX(DP),  INTENT(inout):: rhog(ng,nspin)
       LOGICAl, INTENT(IN) :: lgam !added:giovanni
 !
-      INTEGER     :: isup, isdw, nfft, ifft, iv, jv, ig, ijv, is, iss, isa, ia, ir, i, j, istep
+      INTEGER     :: isup, isdw, nfft, ifft, iv, jv, ig, ijv, is, iss, isa, ia, ir, istep
       REAL(DP)    :: sumrho
       COMPLEX(DP) :: ci, fp, fm, ca
       COMPLEX(DP), ALLOCATABLE :: qgbt(:,:)

@@ -96,7 +96,6 @@ MODULE input
      !
      USE input_parameters,        ONLY : atom_pfile, pseudo_dir, ntyp, nat, &
                                          prefix, outdir, input_dft
-     USE control_flags,           ONLY : program_name
      USE read_pseudo_module_fpmd, ONLY : readpp
      USE io_files,                ONLY : psfile_     => psfile , &
                                          pseudo_dir_ => pseudo_dir, &
@@ -268,9 +267,7 @@ MODULE input
                                esic_conv_thr_ => esic_conv_thr, &
 !$$
                                forc_conv_thr_ => forc_conv_thr, &
-                               ekin_maxiter_  => ekin_maxiter, &
-                               etot_maxiter_  => etot_maxiter, &
-                               forc_maxiter_  => forc_maxiter
+                               ekin_maxiter_  => ekin_maxiter
      USE control_flags, ONLY : force_pairing_ => force_pairing
      USE control_flags, ONLY : remove_rigid_rot_ => remove_rigid_rot
      USE control_flags, ONLY : iesr, tvhmean, vhrmin, vhrmax, vhasse
@@ -300,14 +297,14 @@ MODULE input
      !
      USE input_parameters,   ONLY: &
         electron_dynamics, electron_damping, electron_temperature,   &
-        ion_dynamics, ekin_conv_thr, etot_conv_thr, forc_conv_thr, ion_maxstep,&
+        ion_dynamics, ekin_conv_thr, etot_conv_thr, forc_conv_thr,&
 !$$
         esic_conv_thr, &
 !$$
         electron_maxstep, ion_damping, ion_temperature, ion_velocities, tranp, &
         amprp, ion_nstepe, cell_nstepe, cell_dynamics, cell_damping,           &
         cell_parameters, cell_velocities, cell_temperature, force_pairing,     &
-        tapos, tavel, ecutwfc, emass, emass_cutoff, taspc, trd_ht, ibrav,      &
+        tapos, tavel, emass, emass_cutoff, taspc, trd_ht, ibrav,               &
         ortho_eps, ortho_max, ntyp, tolp, tchi2_inp, calculation, disk_io, dt, &
         tcg, ndr, ndw, iprint, isave, tstress, k_points, tprnfor, verbosity,   &
         tdipole_card, tnewnfi_card, newnfi_card, occupations,                  & ! added:giovanni occupations
@@ -315,7 +312,7 @@ MODULE input
         orthogonalization, electron_velocities, nat, if_pos, phase_space,      &
         tefield, epol, efield, tefield2, epol2, efield2, remove_rigid_rot,     &
         iesr_inp, vhrmax_inp, vhrmin_inp, tvhmean_inp, vhasse_inp, saverho,    &
-        ortho_para, rd_for, do_wf_cmplx, empty_states_nbnd, which_orbdep,      & !added:giovanni do_wf_cmplx, empty_states_nbnd
+        ortho_para, rd_for, do_wf_cmplx,                                       & !added:giovanni do_wf_cmplx, empty_states_nbnd
         iprint_manifold_overlap, iprint_spreads, hartree_only_sic,             &
         assume_isolated
      USE input_parameters,   ONLY : evc_restart 
@@ -912,21 +909,20 @@ MODULE input
    SUBROUTINE modules_setup()
      !-------------------------------------------------------------------------
      !
-     USE control_flags,    ONLY : program_name, lconstrain, lneb, lmetadyn, &
+     USE control_flags,    ONLY : program_name, lconstrain, lneb, &
                                   tpre, thdyn, tksw, nbeg
 
      USE constants,        ONLY : amu_au, pi
      !
-     USE input_parameters, ONLY: ibrav , celldm , trd_ht, dt,    &
+     USE input_parameters, ONLY: ibrav , celldm , trd_ht,     &
            cell_symmetry, rd_ht, a, b, c, cosab, cosac, cosbc, ntyp , nat ,   &
            na_inp , sp_pos , rd_pos , rd_vel, atom_mass, atom_label, if_pos,  &
            atomic_positions, id_loc, sic, sic_epsilon, sic_rloc, ecutwfc,     &
            ecutrho, ecfixed, qcutz, q2sigma, tk_inp, wmass,                   &
            ion_radius, emass, emass_cutoff, temph, fnoseh, nr1b, nr2b, nr3b,  &
            tempw, fnosep, nr1, nr2, nr3, nr1s, nr2s, nr3s, ekincw, fnosee,    &
-           tturbo_inp, nturbo_inp, outdir, prefix,                            &
-           k_points, nkstot, nk1, nk2, nk3, k1, k2, k3,                       &
-           xk, wk, occupations, n_inner, fermi_energy, rotmass, occmass,      &
+           tturbo_inp, nturbo_inp, outdir, prefix, nkstot,                    &
+           xk, occupations, n_inner, fermi_energy, rotmass, occmass,          &
            rotation_damping, occupation_damping, occupation_dynamics,         &
            rotation_dynamics, degauss, smearing, nhpcl, nhptyp, ndega,        &
            nhgrp, fnhscl, cell_units, restart_mode, sic_alpha ,               &
@@ -935,11 +931,8 @@ MODULE input
      USE input_parameters, ONLY: empty_states_maxstep,                         &
            empty_states_ethr, empty_states_nbnd,                               &
            iprnks_empty, nconstr_inp, iprnks, nprnks,                          &
-           etot_conv_thr, ekin_conv_thr, nspin, f_inp, nelup, neldw, nbnd,     &
-!$$
-           esic_conv_thr, &
-!$$
-           nelec, press, cell_damping, cell_dofree, tf_inp, nprnks_empty,      &
+           ekin_conv_thr, nspin, f_inp, nelup, neldw, nbnd,     &
+           nelec, press, cell_damping, cell_dofree, nprnks_empty,      &
            refg, greash, grease, greasp, epol, efield, tcg, maxiter, conv_thr, &
            passop, tot_charge, multiplicity, tot_magnetization, ncolvar_inp,   &
            niter_cg_restart
@@ -957,7 +950,7 @@ MODULE input
                                   delta_eps, delta_sigma, n_cntr,     &
                                   axis
      !
-     USE ions_base,        ONLY : tau, ityp, zv
+     USE ions_base,        ONLY : zv
      USE cell_base,        ONLY : cell_base_init, a1, a2, a3, cell_alat
      USE cell_nose,        ONLY : cell_nose_init
      USE ions_base,        ONLY : ions_base_init, greasp_ => greasp
@@ -972,29 +965,25 @@ MODULE input
      USE pres_ai_mod,      ONLY : pres_ai_init
      !
      USE smallbox_grid_dimensions, ONLY: &
-           nnrbx, &  !  variable is used to workaround internal compiler error (IBM xlf)
            nr1b_ => nr1b, &
            nr2b_ => nr2b, &
            nr3b_ => nr3b
      USE grid_dimensions,          ONLY: &
-           nnrx, &  !  variable is used to workaround internal compiler error (IBM xlf)
            nr1_ => nr1, &
            nr2_ => nr2, &
            nr3_ => nr3
      USE smooth_grid_dimensions,   ONLY: &
-           nnrsx, &  !  variable is used to workaround internal compiler error (IBM xlf)
            nr1s_ => nr1s, &
            nr2s_ => nr2s, &
            nr3s_ => nr3s
      USE charge_mix,         ONLY : charge_mix_setup
      USE kohn_sham_states,   ONLY : ks_states_init
      USE electrons_module,   ONLY : electrons_setup, empty_init
-     USE electrons_base,     ONLY : electrons_base_initval, nbsp
+     USE electrons_base,     ONLY : electrons_base_initval
      !USE ensemble_dft,       ONLY : ensemble_initval,tens, degauss, tsmear, etemp
      USE ensemble_dft,       ONLY : ensemble_initval,tens, tsmear, etemp
      !
      USE wannier_base,       ONLY : wannier_init
-     USE efield_module,      ONLY : tefield
      USE xml_io_base,        ONLY : create_directory
      !
      IMPLICIT NONE
@@ -1002,8 +991,7 @@ MODULE input
      REAL(DP) :: alat_ , massa_totale
      REAL(DP) :: ethr_emp_inp
      ! ...   DIIS
-     INTEGER :: ia, iss
-     LOGICAL :: ltest
+     INTEGER ::  iss
      !
      !   Subroutine Body
      !
@@ -1193,8 +1181,8 @@ MODULE input
   !
   SUBROUTINE modules_info()
 
-    USE input_parameters, ONLY: electron_dynamics, electron_temperature, &
-      orthogonalization
+    USE input_parameters, ONLY: electron_dynamics
+      
 
     USE control_flags, ONLY:  program_name, tortho, tnosee, trane, ampre, &
                               trhor, tksw, evc_restart, tfor, tnosep, iprsta, &
@@ -1213,9 +1201,7 @@ MODULE input
     !
     !
     IMPLICIT NONE
-
-    INTEGER :: is
-
+    !
     IF( .NOT. has_been_read ) &
       CALL errore( ' iosys ', ' input file has not been read yet! ', 1 )
 

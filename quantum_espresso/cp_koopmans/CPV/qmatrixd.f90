@@ -6,7 +6,7 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 
-subroutine qmatrixd(c0, bec0,ctable, gqq, qmat, detq, ipol, lgam)
+subroutine qmatrixd(c0, bec0,ctable, gqq, qmat, detq, ipol)
 
   ! this subroutine computes the inverse of the matrix Q
   ! Q_ij=<Psi_i^0|e^iG_ipol.r|Psi_j^0>
@@ -25,16 +25,13 @@ subroutine qmatrixd(c0, bec0,ctable, gqq, qmat, detq, ipol, lgam)
   use gvecw, only: ngw
   use cvan,  only: nvb, ish
   use ions_base, only : nax, nsp, na
-  use cell_base, only: a1, a2, a3
   use reciprocal_vectors, only: gstart
   use uspp_param, only: nh, nhm
-  use uspp, only : nkb
   use electrons_base, only: nx => nbspx, n => nbsp, ispin
   use mp, only: mp_sum, mp_alltoall
   use mp_global, only: intra_image_comm, nproc_image
-  USE efield_module, ONLY : ctable_missing_1,ctable_missing_2, whose_is_g,n_g_missing_p,&
+  USE efield_module, ONLY : ctable_missing_1,ctable_missing_2, n_g_missing_p,&
        &      ctable_missing_rev_1,ctable_missing_rev_2
-  use io_global, only : stdout
   use twin_types !added:giovanni
   
   implicit none
@@ -44,11 +41,10 @@ subroutine qmatrixd(c0, bec0,ctable, gqq, qmat, detq, ipol, lgam)
   complex(DP) :: c0(ngw,nx),  qmat(nx,nx), detq
   integer :: ctable(ngw,2)
   integer, intent(in) :: ipol
-  logical, intent(in) :: lgam
   ! local variables
   integer ig,ix,jx, iv,jv,is,ia, inl,jnl, ip
   complex(DP) :: sca
-  integer :: info, ierr
+  integer :: info
   integer, allocatable :: ipiv(:,:)
   complex(DP), allocatable :: work(:)
   complex(DP), allocatable :: sndbuf(:,:,:),rcvbuf(:,:,:)
@@ -265,16 +261,14 @@ subroutine qmatrixd_old(c0, bec0,ctable, gqq, qmat, detq, ipol)
   use gvecw, only: ngw
   use cvan,  only: nvb, ish
   use ions_base, only : nax, nsp, na
-  use cell_base, only: a1, a2, a3
   use reciprocal_vectors, only: gstart
   use uspp_param, only: nh, nhm
   use uspp, only : nkb
   use electrons_base, only: nx => nbspx, n => nbsp, ispin
   use mp, only: mp_sum, mp_alltoall
   use mp_global, only: intra_image_comm, nproc_image
-  USE efield_module, ONLY : ctable_missing_1,ctable_missing_2, whose_is_g,n_g_missing_p,&
+  USE efield_module, ONLY : ctable_missing_1,ctable_missing_2,n_g_missing_p,&
        &      ctable_missing_rev_1,ctable_missing_rev_2
-  use io_global, only : stdout
   
   implicit none
   
@@ -286,7 +280,7 @@ subroutine qmatrixd_old(c0, bec0,ctable, gqq, qmat, detq, ipol)
   ! local variables
   integer ig,ix,jx, iv,jv,is,ia, inl,jnl, ip
   complex(DP) :: sca
-  integer :: info, ierr
+  integer :: info
   integer, allocatable :: ipiv(:,:)
   complex(DP), allocatable :: work(:)
   complex(DP), allocatable :: sndbuf(:,:,:),rcvbuf(:,:,:)

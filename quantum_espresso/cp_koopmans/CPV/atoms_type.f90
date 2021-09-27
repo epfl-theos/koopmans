@@ -85,7 +85,7 @@
           INTEGER, INTENT(IN) :: na(:), nsp
           CHARACTER(LEN=3), INTENT(IN) :: label(:)
           INTEGER :: nax, nat
-          INTEGER :: ierr, is, ia, isa, isatop
+          INTEGER :: is, isa, isatop
 
 
           nat = SUM( na( 1 : nsp )  )

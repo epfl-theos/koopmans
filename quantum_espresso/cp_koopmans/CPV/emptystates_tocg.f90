@@ -403,10 +403,10 @@
             stop
 !          call runcg_uspp_emp(c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
 !                           n_emps, ispin_emp, iupdwn_emp, nupdwn_emp, phi_emp, lambda_emp, &
-!                           max_emp, wxd_emp, vsic_emp, sizvsic_emp, pink_emp, nnrx, becsum_emp, &
+!                           max_emp, wxd_emp, vsic_emp, sizvsic_emp, pink_emp, becsum_emp, &
 !                           deeq_sic_emp, nudx_emp, eodd_emp, etot_emp, v, &
-!                           nfi, .true., .true., eigr, bec, irb, eigrb, &
-!                           rhor, rhog, rhos, ema0bg, desc_emp)
+!                           nfi, .true., eigr, bec, irb, eigrb, &
+!                           rhor, ema0bg, desc_emp)
       
       ELSE ! compute empty states with damped dynamics
       !
@@ -421,7 +421,7 @@
                    valpsi(:,:) = (0.0_DP, 0.0_DP)
                    odd_alpha(:) = 0.0_DP
                    !
-                   CALL odd_alpha_routine(c0_emp, n_emps, n_empx, lgam)
+                   CALL odd_alpha_routine(n_empx)
                    ! 
                 ENDIF
                 !    

@@ -365,7 +365,7 @@
         REAL (DP), INTENT (OUT) :: y1
         REAL (DP) :: splineh
 
-        INTEGER :: khi, klo, i
+        INTEGER :: i
         REAL (DP) :: a, b, h, invh, t, ylo, yhi, y2lo, y2hi, d, d0
 
 ! fast spline for pair potentials without checks
@@ -584,7 +584,7 @@
         REAL(DP),  INTENT(IN)  :: x,xmin,xmax,ya(:),y2a(:)
         REAL(DP),  INTENT(OUT) :: y
         INTEGER :: khi,klo
-        REAL(DP)  :: a,b,h,dx,xhi,xlo
+        REAL(DP)  :: a,b,dx,xhi,xlo
         dx  = (xmax-xmin)/DBLE(n-1)
         klo = INT(x/dx)
         khi = klo+1

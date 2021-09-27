@@ -20,20 +20,14 @@
 
       ! declares modules
       USE kinds,          ONLY: dp
-      USE control_flags,  ONLY: iprint, thdyn, tpre, iprsta, &
-                                tfor, taurdr, &
-                                tprnfor, ndr, ndw, nbeg, nomore, &
-                                tsde, tortho, tnosee, tnosep, trane, &
-                                tranp, tsdp, tcp, tcap, ampre, &
-                                amprp, tnoseh
       USE core,           ONLY: nlcc_any
-      USE energies,       ONLY: eht, epseu, exc, etot, eself, enl, &
-                                ekin, atot, entropy, egrand
-      USE electrons_base, ONLY: f, nspin, nel, iupdwn, nupdwn, nudx, &
+      USE energies,       ONLY: etot, enl, &
+                                ekin, atot, entropy
+      USE electrons_base, ONLY: f, nspin, iupdwn, nupdwn, nudx, &
                                 nelt, nx => nbspx, n => nbsp, ispin 
 
-      USE ensemble_dft,   ONLY: tens, tgrand, ninner, ismear, etemp, &
-                                ef, z0t, c0diag, becdiag, &
+      USE ensemble_dft,   ONLY: ninner, ismear, etemp, &
+                                z0t, c0diag, becdiag, &
                                 fmat0,  &
                                 e0,   &
                                  compute_entropy2, &
@@ -44,28 +38,19 @@
       USE gvecw,          ONLY: ngw
       USE reciprocal_vectors, &
                           ONLY: ng0 => gstart
-      USE cvan,           ONLY: nvb, ish
-      USE ions_base,      ONLY: na, nat, pmass, nax, nsp, rcmax
+      USE ions_base,      ONLY: nat, nsp
       USE grid_dimensions, &
                           ONLY: nnr => nnrx, nr1, nr2, nr3
-      USE cell_base,      ONLY: ainv, a1, a2, a3
-      USE cell_base,      ONLY: omega, alat
-      USE cell_base,      ONLY: h, hold, deth, wmass, tpiba2
       USE smooth_grid_dimensions, &
-                          ONLY: nnrsx, nr1s, nr2s, nr3s
-      USE smallbox_grid_dimensions, &
-                          ONLY: nnrb => nnrbx, nr1b, nr2b, nr3b
-      USE local_pseudo,   ONLY: vps, rhops
-      USE io_global,      ONLY: io_global_start, stdout, ionode, &
+                          ONLY: nnrsx
+      USE io_global,      ONLY: io_global_start, ionode, &
                                 ionode_id
       USE mp_global,      ONLY: intra_image_comm
       USE dener
       ! USE derho
       USE cdvan
-      USE io_files,       ONLY: psfile, pseudo_dir, outdir
       USE uspp,           ONLY: nhsa=> nkb, betae => vkb, &
-                                rhovan => becsum, deeq
-      USE uspp_param,     ONLY: nh
+                                rhovan => becsum
       USE cg_module,      ONLY:  ene_ok, &
                                 enever
       USE ions_positions, ONLY: tau0
@@ -104,23 +89,11 @@
       INTEGER                :: ig
       INTEGER                :: k
       INTEGER                :: is
-      INTEGER                :: ia
-      INTEGER                :: iv
-      INTEGER                :: jv
-      INTEGER                :: inl
-      INTEGER                :: jnl
-      REAL(DP)               :: enb
-      REAL(DP)               :: enbi
-      COMPLEX(DP)            :: c2( ngw )
-      COMPLEX(DP)            :: c3( ngw )
-      REAL(DP)               :: gamma
       REAL(DP)               :: entmp
-      REAL(DP)               :: sta
       INTEGER                :: npt
       REAL(DP)               :: deltax
       REAL(DP)               :: deltaxmin
       REAL(DP)               :: xinit
-      INTEGER                :: ii,jj,kk,nrot
       REAL(kind=DP), ALLOCATABLE :: dval(:), ex(:)!, ztmp(:,:)
       COMPLEX(DP), ALLOCATABLE :: dx_c(:)
       REAL(kind=DP), ALLOCATABLE :: fion2(:,:)
@@ -131,7 +104,7 @@
 !       REAL(kind=DP), ALLOCATABLE :: epsi0(:,:,:)
       type(twin_matrix), dimension(:), allocatable :: epsi0
       REAL(kind=DP) :: atot0,atot1,atotmin,etot0,etot1, ef1, enocc
-      REAL(kind=DP) :: dadx1,dedx1,dentdx1,eqa,eqb,eqc, etot2, entropy2
+      REAL(kind=DP) :: eqa,eqb,eqc, etot2, entropy2
       COMPLEX(DP) :: dentdx1_c, dedx1_c, dadx1_c
       REAL(kind=DP) :: f2,x,xmin
       INTEGER ::  niter,nss,istart,il

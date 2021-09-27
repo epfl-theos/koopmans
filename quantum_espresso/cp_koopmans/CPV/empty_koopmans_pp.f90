@@ -17,11 +17,11 @@ SUBROUTINE empty_koopmans_pp (n_emps_evc, ispin_evc, evc)
       !
       USE kinds,                ONLY : DP
       USE constants,            ONLY : autoev
-      USE control_flags,        ONLY : gamma_only, do_wf_cmplx,tortho, &
+      USE control_flags,        ONLY : gamma_only, do_wf_cmplx, &
                                        ndr, ndw
       USE io_global,            ONLY : ionode, stdout
       USE cp_main_variables,    ONLY : eigr, rhor
-      USE core,                 ONLY : nlcc_any, rhoc
+      USE core,                 ONLY : rhoc
       USE electrons_base,       ONLY : nspin, nbspx
       USE uspp,                 ONLY : nkb
       USE uspp_param,           ONLY : nhm
@@ -31,8 +31,8 @@ SUBROUTINE empty_koopmans_pp (n_emps_evc, ispin_evc, evc)
       USE reciprocal_vectors,   ONLY : ng0 => gstart
       USE cp_interfaces,        ONLY : readempty_twin, writeempty_twin, nlsm1, readempty
       USE mp,                   ONLY : mp_comm_split, mp_comm_free, mp_sum
-      USE mp_global,            ONLY : intra_image_comm, me_image
-      USE nksic,                ONLY : do_orbdep, do_pz, do_wxd, vsicpsi, wtot, sizwtot, &
+      USE mp_global,            ONLY : intra_image_comm
+      USE nksic,                ONLY : do_pz, do_wxd, vsicpsi, wtot, sizwtot, &
                                        odd_alpha, valpsi, nkscalfact, odd_alpha_emp
       USE nksic,                ONLY : allocate_nksic_empty
       USE input_parameters,     ONLY : odd_nkscalfact_empty, odd_nkscalfact, aux_empty_nbnd 
@@ -45,7 +45,7 @@ SUBROUTINE empty_koopmans_pp (n_emps_evc, ispin_evc, evc)
       INTEGER, INTENT(IN)      :: ispin_evc(n_emps_evc)
       COMPLEX(DP), INTENT (INOUT) :: evc(ngw, n_emps_evc)
       !
-      INTEGER :: i, m, ig, iss, nbnd 
+      INTEGER :: i, m, ig, iss
       !
       INTEGER :: n_emp   ! number of empty states from input
       LOGICAL :: exst

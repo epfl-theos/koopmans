@@ -7,6 +7,7 @@ Written by Edward Linscott May 2020
 '''
 
 import os
+from glob import glob
 from pathlib import Path
 from typing import Union
 import subprocess
@@ -28,6 +29,33 @@ def mkdir(path: Path):
     for p in reversed(relpath.parents):
         if not p.is_dir():
             p.mkdir()
+
+
+def symlink(src: Union[str, Path], dest: Union[str, Path], relative: bool = True):
+    # Create a symlink of "src" at "dest"
+    if '*' in src:
+        # Follow the syntax of ln, whereby ln -s src/* dest/ will create multiple links
+        for src_file in glob(src):
+            symlink(src_file, dest, relative)
+    else:
+        # Sanitise input
+        if isinstance(src, str):
+            src = Path(src)
+        if isinstance(dest, str):
+            dest = Path(src)
+
+        src = src.resolve()
+        if relative:
+            # The equivalent of ln -sr
+            if dest.is_dir():
+                dest /= src.name
+                src = os.path.relpath(src, dest)
+            else:
+                src = os.path.relpath(src, dest.parent)
+        else:
+            # The equivalent of ln -s
+            pass
+        dest.symlink_to(src)
 
 
 @contextlib.contextmanager

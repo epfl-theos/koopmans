@@ -55,22 +55,19 @@ SUBROUTINE cpmain_x( tau, fion, etot )
 
 ! ... declare modules
       USE kinds
-      USE control_flags, ONLY: tbeg, nomore, tprnfor, tpre, &
-                  nbeg, newnfi, tnewnfi, isave, iprint, tv0rd, nv0rd, tzeroc, tzerop, &
-                  tfor, thdyn, tzeroe, tsde, tsdp, tsdc, taurdr, ndr, &
-                  ndw, tortho, timing, memchk, iprsta, &
-                  tprnsfac, tcarpar, &
-                  tdipole, textfor, &
+      USE control_flags, ONLY: nomore, tprnfor, tpre, &
+                  isave, iprint, &
+                  tfor, thdyn,  tsde, tsdp, tsdc, &
+                  tortho, iprsta, tprnsfac, tdipole, textfor, &
                   tnosee, tnosep, force_pairing, tconvthrs, convergence_criteria, tionstep, nstepe, &
-                  ekin_conv_thr, ekin_maxiter, conv_elec, lneb, tnoseh, etot_conv_thr, tdamp, &
+                  ekin_conv_thr, conv_elec, lneb, tnoseh, &
                   gamma_only, do_wf_cmplx
       USE atoms_type_module, ONLY: atoms_type
       USE cell_base, ONLY: press, wmass, boxdimensions, cell_force, cell_move, gethinv, &
                            cell_update_vel, cell_init
       USE polarization, ONLY: ddipole
       USE energies, ONLY: dft_energy_type, debug_energies
-      USE dener, ONLY: denl6, dekin6, denl
-      USE turbo, ONLY: tturbo
+      USE dener, ONLY: dekin6, denl
 
       USE cp_interfaces, ONLY: printout, print_sfac
       USE cp_interfaces, ONLY: empty_cp
@@ -80,8 +77,7 @@ SUBROUTINE cpmain_x( tau, fion, etot )
       USE cp_interfaces, ONLY: writefile, readfile, strucf, phfacs
       USE cp_interfaces, ONLY: runcp_uspp, runcp_uspp_force_pairing
 
-      USE electrons_module,         ONLY: ei, n_emp
-      USE fft_base,                 ONLY: dfftp, dffts
+      USE electrons_module,         ONLY: n_emp
       USE check_stop,               ONLY: check_stop_now
       USE time_step,                ONLY: tps, delt
       USE wave_types
@@ -89,23 +85,22 @@ SUBROUTINE cpmain_x( tau, fion, etot )
       USE io_global,                ONLY: ionode
       USE io_global,                ONLY: stdout
       USE input,                    ONLY: iosys
-      USE cell_base,                ONLY: alat, a1, a2, a3, cell_kinene, velh
+      USE cell_base,                ONLY: cell_kinene, velh
       USE cell_base,                ONLY: frich, greash, iforceh, tpiba2
       USE stick_base,               ONLY: pstickset
-      USE smallbox_grid_dimensions, ONLY: nr1b, nr2b, nr3b
       USE ions_base,                ONLY: taui, cdmi, nat, nsp, fricp, pmass, iforce, extfor
       USE sic_module,               ONLY: self_interaction, nat_localisation
       USE ions_base,                ONLY: if_pos, ind_srt, ions_thermal_stress, ions_vel, ions_kinene
       USE ions_base,                ONLY: ions_temp
       USE constants,                ONLY: au_ps
-      USE electrons_base,           ONLY: nupdwn, nbnd, nspin, f, iupdwn, nbsp
+      USE electrons_base,           ONLY: nupdwn, nspin, f, iupdwn, nbsp
       USE electrons_nose,           ONLY: electrons_nosevel, electrons_nose_shiftvar, electrons_noseupd, &
                                           vnhe, xnhe0, xnhem, xnhep, qne, ekincw
       USE cell_nose,                ONLY: cell_nosevel, cell_noseupd, cell_nose_shiftvar, &
                                           vnhh, xnhh0, xnhhm, xnhhp, qnh, temph
-      USE cell_base,                ONLY: cell_gamma, s_to_r, ainv
+      USE cell_base,                ONLY: cell_gamma, s_to_r
       USE grid_subroutines,         ONLY: realspace_grids_init, realspace_grids_para
-      USE uspp,                     ONLY: vkb, nkb, okvan, becsum
+      USE uspp,                     ONLY: vkb, nkb, becsum
       USE cdvan,                    ONLY: dbec
       !
       USE reciprocal_vectors,       ONLY: &
@@ -117,11 +112,8 @@ SUBROUTINE cpmain_x( tau, fion, etot )
            gcutp,  & ! Potentials and Charge density cut-off  ( same units )
            gcuts,  & ! Smooth mesh Potentials and Charge density cut-off  ( same units )
            gkcut,  & ! Wave function augmented cut-off (take into account all G + k_i , same units)
-           gzero,  & ! 
            ngw,    & !
-           ngwt,   & !
-           ngm,    & !
-           ngs
+           ngm
       !
       USE recvecs_subroutines,      ONLY: recvecs_init
       !
@@ -130,19 +122,16 @@ SUBROUTINE cpmain_x( tau, fion, etot )
            cm, & ! cm(:,:)  ! wave functions at time t-delta t
            cp    ! cp(:,:)  ! wave functions at time t+delta t
       !
-      USE grid_dimensions,          ONLY: nr1, nr2, nr3, nr1x, nr2x, nr3x
-      USE smooth_grid_dimensions,   ONLY: nr1s, nr2s, nr3s, nr1sx, nr2sx, nr3sx
+      USE grid_dimensions,          ONLY: nr1, nr2, nr3
       !
       USE ions_nose,                ONLY: ions_nose_shiftvar, vnhp, xnhpp, xnhp0, xnhpm, ions_nosevel, ndega, atm2nhp, &
-                                          ions_noseupd, qnp, gkbt, kbt, nhpcl, nhpdim, nhpbeg, nhpend, gkbt2nhp, ekin2nhp
-      USE uspp_param,               ONLY: nhm
+                                          ions_noseupd, qnp, kbt, nhpcl, nhpdim, nhpbeg, nhpend, gkbt2nhp, ekin2nhp
       USE core,                     ONLY: deallocate_core
       USE local_pseudo,             ONLY: deallocate_local_pseudo
-      USE io_files,                 ONLY: outdir, prefix
       USE printout_base,            ONLY: printout_base_init
       USE cp_main_variables,        ONLY: ei1, ei2, ei3, eigr, sfac, lambda, &
                                           ht0, htm, htp, rhor, vpot, rhog, rhos, wfill, &
-                                          acc, acc_this_run,  edft, nfi, bec, becdr, &
+                                          acc,  edft, nfi, bec, becdr, &
                                           ema0bg, descla, irb, eigrb, iprint_stdout
       USE ions_positions,           ONLY: atoms0, atomsp, atomsm, ions_move, &
                                           max_ion_forces, ions_shiftval, resort_position
@@ -158,18 +147,11 @@ SUBROUTINE cpmain_x( tau, fion, etot )
 ! ... declare functions
 
 ! ... declare other variables
-      INTEGER :: ik, nstep_this_run, iunit, is, i, j, ierr
-      INTEGER :: nnrg
-      INTEGER :: n1, n2, n3
-      INTEGER :: n1s, n2s, n3s
+      INTEGER  :: nstep_this_run, iunit, is, i
 
       REAL(DP) :: ekinc, ekcell, ekinp, erhoold, maxfion, ekinpr
-      REAL(DP) :: derho, dum
-      REAL(DP) :: dum3x3(3,3) = 0.0d0
-      REAL(DP) :: ekmt(3,3) = 0.0d0
+      REAL(DP) :: derho
       REAL(DP) :: hgamma(3,3) = 0.0d0
-      REAL(DP) :: gcm1(3,3) = 0.0d0
-      REAL(DP) :: gcdot(3,3) = 0.0d0
       REAL(DP) :: temphh(3,3) = 0.0d0
       REAL(DP) :: fcell(3,3) = 0.0d0
       REAL(DP) :: newh(3,3) = 0.0d0
@@ -180,10 +162,9 @@ SUBROUTINE cpmain_x( tau, fion, etot )
       LOGICAL :: tstop, tconv, doions
       LOGICAL :: topen, ttempst
       LOGICAL :: ttconvchk
-      LOGICAL :: ttionstep
       LOGICAL :: tstdout 
 
-      REAL(DP) :: fccc, vnosep, ccc, dt2bye, intermed
+      REAL(DP) :: fccc, ccc, dt2bye, intermed
       REAL(DP) :: temps(nat), tempp
       REAL(DP), DIMENSION(:,:,:), ALLOCATABLE :: lambda_dumb
 
@@ -239,7 +220,7 @@ SUBROUTINE cpmain_x( tau, fion, etot )
         IF( ionode .AND. tstdout ) THEN
            !
            WRITE( stdout, fmt = '( /, " * Physical Quantities at step:",  I6 )' ) nfi
-           WRITE( stdout, fmt = '( /, "   Simulated time t = ", D14.8, " ps" )' ) tps
+           WRITE( stdout, fmt = '( /, "   Simulated time t = ", D15.8, " ps" )' ) tps
            !
         END IF
 
@@ -358,7 +339,7 @@ SUBROUTINE cpmain_x( tau, fion, etot )
            ! unpaired electron is assumed of spinup and in highest 
            ! index band; and put equal for paired wf spin up and down
            !
-           CALL runcp_uspp_force_pairing( nfi, fccc, ccc, ema0bg, dt2bye, vpot, bec%rvec, c0, cp, intermed )
+           CALL runcp_uspp_force_pairing( fccc, ccc, ema0bg, dt2bye, vpot, bec%rvec, c0, cp, intermed )
            !
         ELSE
            !
@@ -648,7 +629,7 @@ SUBROUTINE cpmain_x( tau, fion, etot )
         !
         IF( ttsave .OR. ttexit ) THEN
           CALL writefile( nfi, tps, c0, cm, f, atoms0, atomsm, acc,  &
-                          taui, cdmi, htm, ht0, rhor, vpot, lambda_dumb, ttexit ) !modified:giovanni
+                          taui, cdmi, htm, ht0, rhor, lambda_dumb, ttexit ) !modified:giovanni
         END IF
 
         ! ...   loop back

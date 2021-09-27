@@ -40,10 +40,9 @@
                                             grhobar, fion_sic, pzalpha => odd_alpha, &
                                             kfact, upsilonkin, upsilonw, edens,&
                                             taukin, tauw, valpsi, odd_alpha, nkscalfact
-      use nksic,                      only: epsi3=> epsi_cutoff_renorm, epsi2=> epsi2_cutoff_renorm
+      use nksic,                      only: epsi2=> epsi2_cutoff_renorm
       use ions_base,                  only: nat
       use control_flags,              only: gamma_only, do_wf_cmplx
-      use uspp,                       only: nkb
       use uspp_param,                 only: nhm
       use cp_interfaces,              only: nksic_get_orbitalrho
       use input_parameters,           only: draw_pot, pot_number, odd_nkscalfact  !added:linh draw vsic potentials
@@ -63,19 +62,10 @@
 
               use kinds,                only : dp
               use constants,            only : e2, fpi, hartree_si, electronvolt_si
-              use cell_base,            only : tpiba2,omega
-              use nksic,                only : nknmax, nkscalfact
-              use grid_dimensions,      only : nnrx, nr1, nr2, nr3
-              use gvecp,                only : ngm
-              use recvecs_indexes,      only : np, nm
-              use reciprocal_vectors,   only : gstart, g
-              use eecp_mod,             only : do_comp
+              use grid_dimensions,      only : nnrx
               use cp_interfaces,        only : fwfft, invfft, fillgrad
-              use fft_base,             only : dfftp
               use funct,                only : dft_is_gradient
               use mp,                   only : mp_sum
-              use mp_global,            only : intra_image_comm
-              use control_flags,        only : gamma_only, do_wf_cmplx
 
               integer,     intent(in)  :: ispin, ibnd
               real(dp),    intent(in)  :: f, orb_rhor(nnrx)
@@ -93,22 +83,13 @@
 
               use kinds,                only : dp
               use constants,            only : e2, fpi
-              use cell_base,            only : tpiba2,omega
-              use nksic,                only : fref, rhobarfact, nknmax, &
-                                               nkscalfact, &
-                                               etxc => etxc_sic, vxc => vxc_sic
-              use grid_dimensions,      only : nnrx, nr1, nr2, nr3
+              use nksic,                only : vxc => vxc_sic
               use gvecp,                only : ngm
-              use recvecs_indexes,      only : np, nm
-              use reciprocal_vectors,   only : gstart, g
-              use eecp_mod,             only : do_comp
+              use grid_dimensions,      only : nnrx
               use cp_interfaces,        only : fwfft, invfft, fillgrad
-              use fft_base,             only : dfftp
               use funct,                only : dmxc_spin, dft_is_gradient
               use mp,                   only : mp_sum
-              use mp_global,            only : intra_image_comm
               use electrons_base,       only : nspin
-              use control_flags,          only : gamma_only, do_wf_cmplx
 
               integer,     intent(in)  :: ispin, ibnd
               real(dp),    intent(in)  :: f, orb_rhor(nnrx)
@@ -147,7 +128,7 @@
       !
       ! local variables
       !
-      integer  :: i,j,jj,ibnd,isp,ir
+      integer  :: i,j,jj,ibnd,ir
       real(dp) :: focc,pinkpz, shart
       real(dp),    allocatable :: vsicpz(:), rhor_nocc(:,:)
       complex(dp), allocatable :: rhobarg(:,:)
@@ -785,7 +766,7 @@ end subroutine nksic_get_orbitalrho_real
       use uspp_param,                 only: nhm
       use electrons_base,             only: nspin
       use ions_base,                  only: nat
-      use uspp,                       only: okvan, nkb
+      use uspp,                       only: okvan
       use twin_types
       !
       implicit none
@@ -1103,7 +1084,7 @@ end subroutine nksic_get_orbitalrho_twin_non_ortho
       use uspp_param,                 only: nhm
       use electrons_base,             only: nspin
       use ions_base,                  only: nat
-      use uspp,                       only: okvan, nkb
+      use uspp,                       only: okvan
       use twin_types
       !
       implicit none
@@ -1123,8 +1104,7 @@ end subroutine nksic_get_orbitalrho_twin_non_ortho
       integer       :: ir, ig, ierr
       real(dp)      :: sa1
       complex(dp)   :: fm, fp
-      complex(dp), allocatable :: psis1(:), psis2(:), psi1(:), psi2(:), &
-                                   psi1d(:), psi2d(:)
+      complex(dp), allocatable :: psis1(:), psis2(:), psi1(:), psi2(:)
       complex(dp), allocatable :: orb_rhog(:,:)
       real(dp),    allocatable :: orb_rhos(:)
       real(dp),    allocatable :: rhovan(:,:,:)
@@ -1997,17 +1977,14 @@ end subroutine nksic_newd
 !     energy density (involving the total density).
 !
       use kinds,                only : dp
-      use cell_base,            only : tpiba2,omega
+      use cell_base,            only : omega
       use grid_dimensions,      only : nnrx, nr1, nr2, nr3
-      use gvecp,                only : ngm
-      use recvecs_indexes,      only : np, nm
       use cp_interfaces,        only : fwfft, invfft, fillgrad
-      use fft_base,             only : dfftp
       use funct,                only : dft_is_gradient
       use mp,                   only : mp_sum
       use mp_global,            only : intra_image_comm
       use control_flags,        only : gamma_only, do_wf_cmplx
-      use nksic,                only : epsi3=> epsi_cutoff_renorm, epsi2=> epsi2_cutoff_renorm
+      use nksic,                only : epsi2=> epsi2_cutoff_renorm
       !
       implicit none
       !
@@ -2080,17 +2057,13 @@ end subroutine nksic_newd
 !     energy density (involving the total density).
 !
       use kinds,                only : dp
-      use cell_base,            only : tpiba2,omega
+      use cell_base,            only : omega
       use grid_dimensions,      only : nnrx, nr1, nr2, nr3
-      use gvecp,                only : ngm
-      use recvecs_indexes,      only : np, nm
       use cp_interfaces,        only : fwfft, invfft, fillgrad
-      use fft_base,             only : dfftp
       use funct,                only : dft_is_gradient
       use mp,                   only : mp_sum
-      use mp_global,            only : intra_image_comm
       use control_flags,        only : gamma_only, do_wf_cmplx
-      use nksic,                only : epsi3=> epsi_cutoff_renorm, epsi2=> epsi2_cutoff_renorm
+      use nksic,                only : epsi2=> epsi2_cutoff_renorm
 
       !
       implicit none
@@ -2105,7 +2078,7 @@ end subroutine nksic_newd
       !
       INTEGER :: ir,j
       LOGICAL :: lgam
-      real(dp) :: fact, temp, tempw, dexc_dummy(3,3), aidtau, aidfrac, aidspin
+      real(dp) :: fact, temp, tempw, aidtau, aidfrac, aidspin
       complex(dp), allocatable :: rhog_dummy(:,:)
       real(dp), allocatable :: upsilonh(:,:,:), vsicaux(:,:)
 !       real(dp), parameter :: epsi=1.d-3
@@ -2230,7 +2203,7 @@ end subroutine nksic_newd
 !---------------------------------------------------------------
         !
         USE kinds, only: DP
-        use nksic,                only : epsi=> epsi_cutoff_renorm, epsi2_cutoff_renorm
+        use nksic,                only : epsi=> epsi_cutoff_renorm
 
         !
         INTEGER, INTENT(IN) :: nnrx
@@ -2268,14 +2241,14 @@ end subroutine nksic_newd
 !
       use kinds,                only : dp
 !       use nksic,                only : add_up_taukin
-      use grid_dimensions,      only : nnrx, nr1, nr2, nr3
+      use grid_dimensions,      only : nnrx
       use gvecp,                only : ngm
-      use recvecs_indexes,      only : np, nm
+      use recvecs_indexes,      only : np
       use cp_interfaces,        only : fwfft, invfft, fillgrad
       use fft_base,             only : dfftp
       use funct,                only : dft_is_gradient
       use control_flags,        only : gamma_only, do_wf_cmplx
-      use nksic,                only : epsi=> epsi_cutoff_renorm, epsi2_cutoff_renorm
+      use nksic,                only : epsi=> epsi_cutoff_renorm
 
       !
       implicit none
@@ -2352,14 +2325,14 @@ end subroutine nksic_newd
 !     energy density (involving the total density).
 !
       use kinds,                only : dp
-      use grid_dimensions,      only : nnrx, nr1, nr2, nr3
+      use grid_dimensions,      only : nnrx
       use gvecp,                only : ngm
-      use recvecs_indexes,      only : np, nm
+      use recvecs_indexes,      only : np
       use cp_interfaces,        only : fwfft, invfft, fillgrad
       use fft_base,             only : dfftp
       use funct,                only : dft_is_gradient
       use control_flags,        only : gamma_only, do_wf_cmplx
-      use nksic,                only : epsi=> epsi_cutoff_renorm, epsi2_cutoff_renorm
+      use nksic,                only : epsi=> epsi_cutoff_renorm
       !
       implicit none
       !
@@ -2464,7 +2437,6 @@ end subroutine nksic_newd
       integer       :: ig
       real(dp)      :: ehele, fact
       !
-      real(dp),    allocatable :: rhoelef(:,:)
       complex(dp), allocatable :: rhogaux(:,:)
       complex(dp), allocatable :: vhaux(:)
       complex(dp), allocatable :: vcorr(:)
@@ -2931,7 +2903,6 @@ end subroutine nksic_correction_pz
       use mp,                   only : mp_sum
       use mp_global,            only : intra_image_comm
       use control_flags,        only : gamma_only, do_wf_cmplx, hartree_only_sic
-      USE io_global,            only : stdout
       !
       implicit none
       integer,     intent(in)  :: ispin, ibnd
@@ -2944,7 +2915,6 @@ end subroutine nksic_correction_pz
       integer       :: ig
       real(dp)      :: ehele, fact, w2cst, etmp, etxc_
       !
-      real(dp),    allocatable :: rhoele(:,:)
       real(dp),    allocatable :: vxc_(:,:)
       complex(dp), allocatable :: rhogaux(:,:)
       complex(dp), allocatable :: vhaux(:)
@@ -2952,7 +2922,6 @@ end subroutine nksic_correction_pz
       complex(dp), allocatable :: vtmp(:)
       !
       real(dp),    allocatable :: grhoraux(:,:,:)
-      real(dp),    allocatable :: haux(:,:,:)
       logical :: lgam
       real(dp) :: icoeff
       real(dp) :: dexc_dummy(3,3)
@@ -3195,7 +3164,6 @@ end subroutine nksic_correction_nkipz
       use mp_global,            only : intra_image_comm
       use electrons_base,       only : nspin
       use control_flags,        only : gamma_only, do_wf_cmplx
-      use io_global,            only : stdout
       !
       implicit none
       integer,     intent(in)  :: ispin, ibnd
@@ -3895,7 +3863,7 @@ CONTAINS
       logical, intent(IN) :: lgam
       !
       complex(dp) :: c(ngw,2)
-      complex(dp) :: psis(nnrsx), psis2(nnrsx)
+      complex(dp) :: psis(nnrsx)
       complex(dp) :: vsicg(nnrx)
       complex(dp) :: vsics(nnrsx)
       complex(dp) :: vsicpsis(nnrsx)
@@ -4126,9 +4094,6 @@ end subroutine nksic_dmxc_spin_cp
       use electrons_base,             only : nbsp, nbspx, nspin, &
                                              iupdwn,nupdwn
       use cp_interfaces,              only : invfft
-      use fft_base,                   only : dfftp
-      use ions_base,                  only : nsp, nat
-      use uspp_param,                 only : nhm
       use nksic,                      only : vsic, pink, &
                                              do_nk, do_wref, do_wxd, &
                                              innerloop_nmax
@@ -4153,12 +4118,11 @@ end subroutine nksic_dmxc_spin_cp
       ! local variables
       !
       real(dp)    :: esic,esic_old
-      integer     :: i, nbnd1,nbnd2
+      integer     :: nbnd1,nbnd2
       integer     :: npassofailmax
       real(dp)    :: dtmp,dalpha
       integer     :: isp
       real(dp)    :: vsicah2sum,deigrms,dmaxeig
-      integer     :: nfile
       logical     :: do_nonvar,lstopinner
       !
       complex(dp),    allocatable :: Omat1tot(:,:)
@@ -4441,7 +4405,6 @@ end subroutine nksic_rot_emin
                                              iupdwn, nupdwn
       use uspp,                       only : nkb
       use wavefunctions_module,       only : c0
-      use cg_module,                  only : tcg
       !
       implicit none
       !
@@ -4557,9 +4520,6 @@ end subroutine nksic_rot_test
       use kinds,                      only : dp
       use io_global,                  only : stdout, ionode
       use cp_interfaces,              only : invfft
-      use fft_base,                   only : dfftp
-      use ions_base,                  only : nsp, nat
-      use uspp_param,                 only : nhm
       use nksic,                      only : innerloop_cg_nsd, &
                                              innerloop_cg_nreset,&
                                              innerloop_nmax, &
@@ -4591,7 +4551,6 @@ end subroutine nksic_rot_test
       integer     :: nbnd1,nbnd2
       integer     :: isp
       logical     :: ldotest
-      integer     :: nfile
       real(dp)    :: dtmp
       real(dp)    :: ene0,ene1,enesti,enever,dene0
       real(dp)    :: passo,passov,passof,passomax,spasso
@@ -5111,9 +5070,6 @@ end subroutine nksic_rot_emin_cg_new
       use electrons_base,             only : nbsp, nbspx, nspin, &
                                              iupdwn,nupdwn
       use cp_interfaces,              only : invfft
-      use fft_base,                   only : dfftp
-      use ions_base,                  only : nsp, nat
-      use uspp_param,                 only : nhm
       use nksic,                      only : vsic, pink, &
                                              innerloop_cg_nsd, innerloop_cg_nreset,&
                                              innerloop_nmax, &
@@ -5143,7 +5099,6 @@ end subroutine nksic_rot_emin_cg_new
       integer     :: nbnd1,nbnd2
       integer     :: isp
       logical     :: ldotest
-      integer     :: nfile
       real(dp)    :: dtmp
       real(dp)    :: ene0,ene1,enesti,enever,dene0
       real(dp)    :: passo,passov,passof,passomax,spasso
@@ -5661,9 +5616,6 @@ end subroutine nksic_rot_emin_cg
       use electrons_base,             only : nbsp, nbspx, nspin, &
                                              iupdwn,nupdwn
       use cp_interfaces,              only : invfft
-      use fft_base,                   only : dfftp
-      use ions_base,                  only : nsp, nat
-      use uspp_param,                 only : nhm
       use nksic,                      only : vsic, pink, &
                                              innerloop_cg_nsd, innerloop_cg_nreset,&
                                              innerloop_nmax
@@ -5690,7 +5642,6 @@ end subroutine nksic_rot_emin_cg
       integer     :: nbnd1,nbnd2
       integer     :: isp
       logical     :: ldotest
-      integer     :: nfile
       real(dp)    :: dtmp
       real(dp)    :: ene0,ene1,enesti,enever,dene0
       real(dp)    :: passo,passov,passof,passomax,spasso
@@ -6110,7 +6061,7 @@ end subroutine nksic_rot_emin_cg_descla
       use grid_dimensions,            only : nnrx
       use gvecw,                      only : ngw
       use ions_base,                  only : nsp
-      use uspp,                       only : becsum,nkb
+      use uspp,                       only : becsum
       use cp_main_variables,          only : eigr, rhor
       use nksic,                      only : deeq_sic, wtot, fsic, sizwtot
       use control_flags,         only : gamma_only, do_wf_cmplx
@@ -6238,7 +6189,7 @@ end subroutine nksic_getOmattot_new
       use electrons_base,             only : nbsp, nbspx, nspin, ispin, &
                                              iupdwn, nupdwn, nudx
       use ions_base,                  only : nsp
-      use uspp,                       only : becsum,nkb
+      use uspp,                       only : becsum
       use cp_main_variables,          only : eigr, rhor
       use nksic,                      only : deeq_sic, wtot, fsic, sizwtot, do_wxd, &
                                              valpsi, odd_alpha
@@ -6334,7 +6285,7 @@ end subroutine nksic_getOmattot_new
          valpsi(:,:) = (0.0_DP, 0.0_DP)
          odd_alpha(:) = 0.0_DP
          !
-         call odd_alpha_routine(wfc1, nbsp, nbspx, lgam, .false.)
+         call odd_alpha_routine(nbspx, .false.)
          !
       endif
       !
@@ -6418,8 +6369,6 @@ end subroutine nksic_rotwfn
 !
       use kinds,                      only : dp
       use mp,                         only : mp_bcast
-      use mp_global,                  only : intra_image_comm
-      use io_global,                  only : ionode, ionode_id
       !
       implicit none
       !
@@ -6465,8 +6414,6 @@ end subroutine nksic_getHeigU_new
 !
       use kinds,                      only : dp
       use mp,                         only : mp_bcast
-      use mp_global,                  only : intra_image_comm
-      use io_global,                  only : ionode, ionode_id
       use electrons_base,             only : nupdwn
       !
       implicit none
@@ -6827,13 +6774,11 @@ end subroutine nksic_getvsicah_new1
 !     and then computes   < phi_j | h_i | phi_i >  in reciprocal space.
 !
       use kinds,                      only : dp
-      use grid_dimensions,            only : nr1x, nr2x, nr3x, nnrx
       use reciprocal_vectors,         only : gstart
       use mp,                         only : mp_sum
       use mp_global,                  only : intra_image_comm
       use cp_interfaces,              only : invfft
-      use fft_base,                   only : dfftp
-      use nksic,                      only : vsic, fsic, vsicpsi, &
+      use nksic,                      only : vsic, vsicpsi, &
                                              deeq_sic  ! to be passed directly
       use twin_types
       !
@@ -6851,9 +6796,9 @@ end subroutine nksic_getvsicah_new1
       !
       ! local variables
       !
-      real(dp)        :: vsicahtmp, cost
+      real(dp)        :: cost
       integer         :: nbnd1,nbnd2
-      integer         :: i, j1, jj1, j2, jj2
+      integer         :: j1, jj1, j2
       !
       !complex(dp), allocatable :: vsicpsi(:,:)
       complex(dp),    allocatable :: hmat(:,:)
@@ -6948,15 +6893,13 @@ end subroutine nksic_getvsicah_new3
 !     and then computes   < phi_j | h_i | phi_i >  in reciprocal space.
 !
       use kinds,                      only : dp
-      use grid_dimensions,            only : nr1x, nr2x, nr3x, nnrx
       use gvecw,                      only : ngw
       use reciprocal_vectors,         only : gstart
       use mp,                         only : mp_sum
       use mp_global,                  only : intra_image_comm
       use electrons_base,             only : nspin, iupdwn, nupdwn, nbsp,nbspx
       use cp_interfaces,              only : invfft
-      use fft_base,                   only : dfftp
-      use nksic,                      only : vsic, fsic, vsicpsi, &
+      use nksic,                      only : vsic, vsicpsi, &
                                              valpsi, deeq_sic  ! to be passed directly
       use wavefunctions_module,       only : c0
       use cp_main_variables,          only : bec  ! to be passed directly
@@ -6974,9 +6917,9 @@ end subroutine nksic_getvsicah_new3
       !
       ! local variables
       !
-      real(dp)        :: vsicahtmp, cost
+      real(dp)        :: cost
       integer         :: nbnd1,nbnd2
-      integer         :: i, j1, jj1, j2, jj2
+      integer         :: j1, jj1, j2
       !
       !complex(dp), allocatable :: vsicpsi(:,:)
       complex(dp),    allocatable :: hmat(:,:)
@@ -7363,7 +7306,6 @@ end subroutine nksic_getOmat1
       real(dp), intent(in)    :: f, small
       real(dp), intent(inout) :: wref(nnrx), wxd(nnrx,2)
       !
-      character(18) :: subname='nksic_dmxc_spin_cp'
       real(dp) :: rhoup, rhodw, rhotot, zeta
       real(dp) :: dmuxc(2,2)
       real(dp) :: rs, ex, vx, dr, dz, ec, &
@@ -7525,22 +7467,19 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
    USE kinds,              ONLY: DP
    USE ions_positions,     ONLY: taus
    USE ions_base,          ONLY: ions_cofmass, pmass, na, nsp
-   USE cell_base,          ONLY: h, s_to_r
-   USE cell_base,          ONLY : at, bg, alat, omega
-   USE mp_global,          ONLY : intra_image_comm, mpime
-   USE io_global,          ONLY : ionode_id
-   USE mp,                 ONLY : mp_bcast
+   USE cell_base,          ONLY: s_to_r
+   USE mp,                 ONLY: mp_bcast
    !
    !   INPUT VARIABLES
    !
-   INTEGER, INTENT(IN)      :: ispin(nx),nx,j,k,nspin, nbsp, &
+   INTEGER, INTENT(IN)      :: nx, nnrx, nudx
+   INTEGER, INTENT(IN)      :: ispin(nx),j,k,nspin, nbsp, &
                                nupdwn(nspin), iupdwn(nspin)
      !ispin is 1 or 2 for each band (listed as in c0),
      !nx is nudx, j and k the two bands involved in the
      !spread calculation
    REAL(DP), INTENT(in)  :: orb_rhor(nnrx,2)
-   REAL(DP) :: wfc_centers(4,nudx,nspin) !in position 1 we &
-   !have the integrated charge
+   REAL(DP) :: wfc_centers(4,nudx,nspin)
    REAL(DP) :: wfc_spreads(nudx,nspin,2)
    !orbital spreads: both wannier(1) and self-hartree(2)
    !self-hartree is stored separately, within nksic subroutines
@@ -7598,9 +7537,7 @@ SUBROUTINE spread_sort(ngw, nspin, nbsp, nudx, nupdwn, iupdwn, tempspreads, wfc_
       USE kinds,  ONLY: DP
       USE input_parameters,      only: draw_pot, sortwfc_spread !added:linh draw vsic potentials
       USE wavefunctions_module,  only: c0,cm
-      USE mp_global,             only: mpime, intra_image_comm
       USE mp,                    only: mp_bcast
-      USE io_global,             only: ionode, ionode_id
 
       IMPLICIT NONE
 
@@ -7791,8 +7728,7 @@ SUBROUTINE compute_complexification_index(ngw, nnrx, nnrsx, nbsp, nbspx, nspin, 
       USE mp_global,      ONLY: intra_image_comm
       use cell_base,                  only: omega
       use cp_interfaces,              only: fwfft, invfft
-      use fft_base,                   only: dffts, dfftp
-      use uspp,           ONLY: okvan, nkb
+      use fft_base,                   only: dfftp
 
       IMPLICIT NONE
 
@@ -7801,7 +7737,7 @@ SUBROUTINE compute_complexification_index(ngw, nnrx, nnrsx, nbsp, nbspx, nspin, 
       type(twin_matrix) :: bec
       COMPLEX(DP) :: c0(ngw, nbspx), complexification_index
 
-      INTEGER :: i,j,k, ir
+      INTEGER :: i,j, ir
       COMPLEX(DP), allocatable :: temp_array(:, :), psi1(:), psi2(:)
       REAL(DP) :: sa1
 
@@ -7909,10 +7845,9 @@ END subroutine compute_complexification_index
                                             do_nk, do_nki, do_pz, do_nkpz, &
                                             do_nkipz, grhobar, fion_sic, &
                                             pzalpha=>odd_alpha, do_pz_renorm, edens, &
-                                            tauw,taukin, upsilonkin, upsilonw, kfact
+                                            tauw,taukin, kfact
       use ions_base,                  only: nat
       use control_flags,         only: gamma_only, do_wf_cmplx !added:giovanni
-      use uspp,                       only: nkb
       use uspp_param,                 only: nhm
       use cp_interfaces,         only: nksic_get_orbitalrho !added:giovanni
       use twin_types !added:giovanni
@@ -7932,19 +7867,10 @@ END subroutine compute_complexification_index
 
               use kinds,                only : dp
               use constants,            only : e2, fpi, hartree_si, electronvolt_si
-              use cell_base,            only : tpiba2,omega
-              use nksic,                only : nknmax, nkscalfact
-              use grid_dimensions,      only : nnrx, nr1, nr2, nr3
-              use gvecp,                only : ngm
-              use recvecs_indexes,      only : np, nm
-              use reciprocal_vectors,   only : gstart, g
-              use eecp_mod,             only : do_comp
+              use grid_dimensions,      only : nnrx
               use cp_interfaces,        only : fwfft, invfft, fillgrad
-              use fft_base,             only : dfftp
               use funct,                only : dft_is_gradient
               use mp,                   only : mp_sum
-              use mp_global,            only : intra_image_comm
-              use control_flags,        only : gamma_only, do_wf_cmplx
 
               integer,     intent(in)  :: ispin, ibnd
               real(dp),    intent(in)  :: f, orb_rhor(nnrx)
@@ -7962,22 +7888,12 @@ END subroutine compute_complexification_index
 
               use kinds,                only : dp
               use constants,            only : e2, fpi
-              use cell_base,            only : tpiba2,omega
-              use nksic,                only : fref, rhobarfact, nknmax, &
-                                               nkscalfact, &
-                                               etxc => etxc_sic, vxc => vxc_sic
-              use grid_dimensions,      only : nnrx, nr1, nr2, nr3
+              use grid_dimensions,      only : nnrx
               use gvecp,                only : ngm
-              use recvecs_indexes,      only : np, nm
-              use reciprocal_vectors,   only : gstart, g
-              use eecp_mod,             only : do_comp
               use cp_interfaces,        only : fwfft, invfft, fillgrad
-              use fft_base,             only : dfftp
               use funct,                only : dmxc_spin, dft_is_gradient
               use mp,                   only : mp_sum
-              use mp_global,            only : intra_image_comm
               use electrons_base,       only : nspin
-              use control_flags,          only : gamma_only, do_wf_cmplx
 
               integer,     intent(in)  :: ispin, ibnd
               real(dp),    intent(in)  :: f, orb_rhor(nnrx)
@@ -8022,7 +7938,6 @@ END subroutine compute_complexification_index
       real(dp), allocatable :: vsicpz(:)
       complex(dp), allocatable :: rhobarg(:,:)
       logical :: lgam
-      complex(dp), dimension(nudx,nudx,nspin) :: overlap_
       !
       ! main body
       !
@@ -8278,7 +8193,7 @@ END subroutine compute_complexification_index
                     if ( i >= iupdwn(2) ) ibnd=i-iupdwn(2)+1
                 endif
                 !
-                call nksic_get_pz_factor( nspin, ispin(i), orb_rhor(:,jj), &
+                call nksic_get_pz_factor( nspin, ispin(i), orb_rhor(:,jj), rhor,&
                                          taukin, tauw, pzalpha(i), ibnd, kfact)
                 !
                 ! update vsic with factor here: it works for pz, will it work for

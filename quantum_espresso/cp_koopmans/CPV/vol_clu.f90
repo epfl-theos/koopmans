@@ -9,7 +9,7 @@
 #include "f_defs.h"
 
 !----------------------------------------------------------------------
-      subroutine vol_clu(rho_real,rho_g,s_fac,flag)
+      subroutine vol_clu(rho_real,rho_g,flag)
 !----------------------------------------------------------------------
 ! it computes the volume of the cluster (cluster calculations) starting
 ! from the measure of the region of space occupied by the electronic density
@@ -29,8 +29,7 @@
       use control_flags, only: tpre
       use local_pseudo
       USE cp_interfaces,    ONLY: fwfft, invfft
-      use grid_dimensions, only: nr1, nr2, nr3,                         &
-     &                   nr1x, nr2x, nr3x, nnr => nnrx
+      use grid_dimensions, only: nr1, nr2, nr3, nnr => nnrx
       use pres_ai_mod, only: rho_thr, n_cntr, cntr, step_rad, fill_vac, &
      &                       delta_eps, delta_sigma, axis,              &
      &                       abisur, dthr, Surf_t, rho_gaus, v_vol,     &
@@ -40,7 +39,6 @@
       use fft_base
 #ifdef __PARA
       use mp_global, only: nproc, mpime
-      use io_global, only: ionode
       USE mp,                 ONLY: mp_bcast, mp_sum
       USE mp_global,          ONLY: intra_image_comm
 #endif
@@ -52,34 +50,31 @@
 #endif
 
       real(kind=8) dx, dxx, xcc(4500)
-      real(kind=8) weight0, wpiu, wmeno, maxr, minr
+      real(kind=8) weight0, wpiu, wmeno
       real(kind=8) tau00(3), dist
       real(kind=8) rho_real(nnr,nspin), rhoc
       real(kind=8) alfa(nsx), alfa0, sigma, hgt 
-      real(kind=8) pos_cry(3), pos_car(3), pos_aux(3)
-      real(kind=8) pos_cry0(3), dpvdh(3,3)
-      real(kind=8) v_d(3)
+      real(kind=8) pos_aux(3)
+      real(kind=8) dpvdh(3,3)
       real(kind=8) mtot, rad0, cm(3)
       real(kind=8) modr, lap
       real(kind=8) prod, aux1
       real(kind=8) gxl, xyr, xzr, yzr
-      real(kind=8), allocatable:: vec(:,:,:), aiuto(:,:,:)
       real(kind=8), allocatable:: drho(:,:), d2rho(:,:)
       real(kind=8), allocatable:: dxdyrho(:), dxdzrho(:)
       real(kind=8), allocatable:: dydzrho(:)
       real(kind=8), allocatable:: tauv(:,:,:)
 
-      complex(kind=8) s_fac(ngs,nsp), ci
-      complex(kind=8) sum_sf, aux, auxx, fact, rho_g(ngm,nspin) 
+      complex(kind=8) ci
+      complex(kind=8) aux, fact, rho_g(ngm,nspin) 
       complex(kind=8), allocatable :: psi(:), rhofill(:), rhotmp(:,:)
 
-      integer ir, ir1, ir2, ir3, is, iss, ia, flag, ierr
-      integer i, j, k, l, ig, cnt, nmin, nmax, n_at
+      integer ir, ir1, ir2, ir3, is, iss, ia, flag
+      integer i, j, k, ig, cnt, n_at
 
 #ifdef __PARA
-      real(kind=8) maxr_p(nproc), minr_p(nproc), maxr_pp, minr_pp
-      integer shift(nproc), incr(nproc),  ppp(nproc) 
-      integer displs(nproc), ip, me
+      integer shift(nproc),  ppp(nproc) 
+      integer ip, me
 #endif
       if (abisur) allocate(drho(3,nnr))
       if (abisur) allocate(d2rho(3,nnr))

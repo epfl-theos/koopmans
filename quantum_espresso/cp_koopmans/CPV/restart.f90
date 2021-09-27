@@ -18,17 +18,15 @@
 ! read from file and distribute data calculated in preceding iterations
 !
       USE kinds,            ONLY: DP
-      USE ions_base,        ONLY: nsp, na, cdmi, taui
+      USE ions_base,        ONLY: cdmi, taui
       USE cell_base,        ONLY: s_to_r
       USE cp_restart,       ONLY: cp_writefile
       USE cp_interfaces,    ONLY: set_evtot, set_eitot
-      USE electrons_base,   ONLY: nspin, nbnd, nbsp, iupdwn, nupdwn
-      USE electrons_module, ONLY: ei, ei_emp, n_emp, iupdwn_emp, nupdwn_emp
+      USE electrons_base,   ONLY: nspin, iupdwn, nupdwn
+      USE electrons_module, ONLY: ei, nupdwn_emp
       USE io_files,         ONLY: outdir
-      USE io_global,        ONLY: stdout 
       USE ensemble_dft,     ONLY: tens, tsmear
       USE mp,               ONLY: mp_bcast
-      USE mp_global,        ONLY: root_image, intra_image_comm
       USE control_flags,    ONLY: tksw, ndw, evc_restart
 !
       implicit none
@@ -48,9 +46,8 @@
       REAL(DP), INTENT(in) :: mat_z(:,:,:)
 
       REAL(DP) :: ht(3,3), htm(3,3), htvel(3,3), gvel(3,3)
-      INTEGER  :: nk = 1, ispin, i, ib
+      INTEGER  :: nk = 1
       REAL(DP) :: xk(3,1) = 0.0d0, wk(1) = 2.0d0
-      REAL(DP) :: htm1(3,3), omega
       COMPLEX(DP), ALLOCATABLE :: ctot(:,:)
       REAL(DP),    ALLOCATABLE :: eitot(:,:)
       INTEGER  :: nupdwn_tot( 2 ), iupdwn_tot( 2 )
@@ -133,22 +130,19 @@
 ! read from file and distribute data calculated in preceding iterations
 !
       USE kinds,            ONLY: DP
-      USE ions_base,        ONLY: nsp, na, cdmi, taui
+      USE ions_base,        ONLY: cdmi, taui
       USE cell_base,        ONLY: s_to_r
       USE cp_restart,       ONLY: cp_writefile
       USE cp_interfaces,    ONLY: set_evtot, set_eitot
-      USE electrons_base,   ONLY: nspin, nbnd, nbsp, iupdwn, nupdwn, nudx
-      USE electrons_module, ONLY: ei, ei_emp, n_emp, iupdwn_emp, nupdwn_emp
+      USE electrons_base,   ONLY: nspin, iupdwn, nupdwn
+      USE electrons_module, ONLY: ei, nupdwn_emp
       USE io_files,         ONLY: outdir
-      USE io_global,        ONLY: stdout
       USE ensemble_dft,     ONLY: tens, tsmear
       USE mp,               ONLY: mp_bcast
-      USE mp_global,        ONLY: root_image, intra_image_comm
       USE control_flags,    ONLY: tksw, ndw, evc_restart
       USE electrons_module, ONLY: wfc_spreads
       USE nksic,            ONLY: do_orbdep
       USE twin_types
-      use gvecw,            ONLY: ngw
 !
       implicit none
       integer, INTENT(IN) ::  nfi
@@ -168,9 +162,8 @@
       TYPE(twin_matrix), dimension(:), INTENT(IN) :: mat_z
 
       REAL(DP) :: ht(3,3), htm(3,3), htvel(3,3), gvel(3,3)
-      INTEGER  :: nk = 1, ispin, i, ib
+      INTEGER  :: nk = 1
       REAL(DP) :: xk(3,1) = 0.0d0, wk(1) = 2.0d0
-      REAL(DP) :: htm1(3,3), omega
       COMPLEX(DP), ALLOCATABLE :: ctot(:,:)
       REAL(DP),    ALLOCATABLE :: eitot(:,:)
       INTEGER  :: nupdwn_tot( 2 ), iupdwn_tot( 2 )
@@ -264,9 +257,8 @@
 !
       USE kinds,          ONLY : DP
       USE io_files,       ONLY : outdir
-      USE electrons_base, ONLY : nbnd, nbsp, nspin, nupdwn, iupdwn, keep_occ
-      USE gvecw,          ONLY : ngw, ngwt
-      USE ions_base,      ONLY : nsp, na, cdmi, taui
+      USE electrons_base, ONLY : nspin, keep_occ
+      USE ions_base,      ONLY : cdmi, taui
       USE cp_restart,     ONLY : cp_readfile, cp_read_cell, cp_read_wfc
       USE ensemble_dft,   ONLY : tens, tsmear
       USE autopilot,      ONLY : event_step, event_index, max_event_step
@@ -290,12 +282,11 @@
       REAL(DP), INTENT(INOUT) :: mat_z(:,:,:), occ_f(:)
       !
       REAL(DP) :: ht(3,3), htm(3,3), htvel(3,3), gvel(3,3)
-      integer :: nk = 1, ispin, i, ib
+      integer :: nk = 1, ispin
       REAL(DP) :: xk(3,1) = 0.0d0, wk(1) = 2.0d0
       REAL(DP), ALLOCATABLE :: occ_ ( : )
-      REAL(DP) :: htm1(3,3), b1(3) , b2(3), b3(3), omega
-        
-      LOGICAL::lopen
+      REAL(DP) :: b1(3) , b2(3), b3(3)
+       
 
       IF( flag == -1 ) THEN
         CALL cp_read_cell( ndr, outdir, .TRUE., ht, htm, htvel, gvel, xnhh0, xnhhm, vnhh )
@@ -366,9 +357,8 @@
 !
       USE kinds,          ONLY : DP
       USE io_files,       ONLY : outdir
-      USE electrons_base, ONLY : nbnd, nbsp, nspin, nupdwn, iupdwn, keep_occ
-      USE gvecw,          ONLY : ngw, ngwt
-      USE ions_base,      ONLY : nsp, na, cdmi, taui
+      USE electrons_base, ONLY : nspin, keep_occ
+      USE ions_base,      ONLY : cdmi, taui
       USE cp_restart,     ONLY : cp_readfile, cp_read_cell, cp_read_wfc
       USE ensemble_dft,   ONLY : tens, tsmear
       USE autopilot,      ONLY : event_step, event_index, max_event_step
@@ -395,12 +385,11 @@
       TYPE(twin_matrix), DIMENSION(:) :: mat_z
       !
       REAL(DP) :: ht(3,3), htm(3,3), htvel(3,3), gvel(3,3)
-      integer :: nk = 1, ispin, i, ib
+      integer :: nk = 1, ispin
       REAL(DP) :: xk(3,1) = 0.0d0, wk(1) = 2.0d0
       REAL(DP), ALLOCATABLE :: occ_ ( : )
-      REAL(DP) :: htm1(3,3), b1(3) , b2(3), b3(3), omega
+      REAL(DP) :: b1(3) , b2(3), b3(3)
         
-      LOGICAL::lopen
 
       IF( flag == -1 ) THEN
         CALL cp_read_cell( ndr, outdir, .TRUE., ht, htm, htvel, gvel, xnhh0, xnhhm, vnhh )
@@ -465,23 +454,20 @@
 
    SUBROUTINE writefile_fpmd &
      ( nfi, trutime, c0, cm, occ, atoms_0, atoms_m, acc, taui, cdmi, ht_m, &
-       ht_0, rho, vpot, lambda, tlast )
+       ht_0, rho, lambda, tlast )
                                                                         
         USE kinds,             ONLY: DP
         USE cell_base,         ONLY: boxdimensions, r_to_s
-        USE control_flags,     ONLY: ndw, do_wf_cmplx, gamma_only !added:giovanni do_wf_cmplx
-        USE control_flags,     ONLY: twfcollect, force_pairing, tksw, evc_restart
+        USE control_flags,     ONLY: ndw
+        USE control_flags,     ONLY: tksw, evc_restart
         USE atoms_type_module, ONLY: atoms_type
-        USE io_global,         ONLY: ionode, ionode_id
-        USE io_global,         ONLY: stdout
         USE electrons_nose,    ONLY: xnhe0, xnhem, vnhe
-        USE electrons_base,    ONLY: nbsp, nspin, nudx, iupdwn, nupdwn
+        USE electrons_base,    ONLY: nspin, iupdwn, nupdwn
         USE cell_nose,         ONLY: xnhh0, xnhhm, vnhh
         USE ions_nose,         ONLY: vnhp, xnhp0, xnhpm, nhpcl, nhpdim
         USE cp_restart,        ONLY: cp_writefile
-        USE electrons_module,  ONLY: ei, ei_emp, iupdwn_emp, nupdwn_emp, n_emp
+        USE electrons_module,  ONLY: nupdwn_emp
         USE io_files,          ONLY: outdir
-        USE grid_dimensions,   ONLY: nr1, nr2, nr3, nr1x, nr2x, nr3x
         USE cp_interfaces,     ONLY: set_evtot, set_eitot
         USE kohn_sham_states,  ONLY: print_all_states
 
@@ -493,7 +479,6 @@
         TYPE (boxdimensions), INTENT(IN)    :: ht_m, ht_0
         TYPE (atoms_type),    INTENT(IN)    :: atoms_0, atoms_m
         REAL(DP),             INTENT(IN)    :: rho(:,:)
-        REAL(DP),             INTENT(INOUT) :: vpot(:,:)
         REAL(DP),             INTENT(IN)    :: taui(:,:)
         REAL(DP),             INTENT(IN)    :: acc(:), cdmi(:) 
         REAL(DP),             INTENT(IN)    :: trutime
@@ -501,7 +486,6 @@
         LOGICAL,              INTENT(IN)    :: tlast
 
         REAL(DP) :: ekincm
-        INTEGER   :: i, j, k, ir
         COMPLEX(DP), ALLOCATABLE :: ctot(:,:)
         REAL(DP),    ALLOCATABLE :: eitot(:,:)
         INTEGER  :: nupdwn_tot( 2 ), iupdwn_tot( 2 )
@@ -591,7 +575,7 @@
 !------------------------------------------------------------------------------!
       USE kinds,             ONLY: DP
       USE electrons_base,    ONLY: nupdwn, nspin, iupdwn, nudx
-      USE electrons_module,  ONLY: nupdwn_emp, ei, ei_emp, n_emp, iupdwn_emp
+      USE electrons_module,  ONLY: nupdwn_emp, n_emp, iupdwn_emp
       USE cp_interfaces,     ONLY: readempty, crot, readempty_twin
       USE cp_main_variables, ONLY: collect_lambda, descla
       USE control_flags,     ONLY: ndw
@@ -682,7 +666,7 @@
 !------------------------------------------------------------------------------!
       USE kinds,             ONLY: DP
       USE electrons_base,    ONLY: nupdwn, nspin, iupdwn, nudx
-      USE electrons_module,  ONLY: nupdwn_emp, ei, ei_emp, n_emp, iupdwn_emp
+      USE electrons_module,  ONLY: nupdwn_emp, n_emp, iupdwn_emp
       USE cp_interfaces,     ONLY: readempty, crot, readempty_twin
       USE cp_main_variables, ONLY: collect_lambda, descla
       USE control_flags,     ONLY: ndw

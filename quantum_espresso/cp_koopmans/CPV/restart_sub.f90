@@ -12,17 +12,17 @@ SUBROUTINE from_restart( )
    USE kinds,                 ONLY : DP
    USE control_flags,         ONLY : program_name, tbeg, taurdr, tfor, tsdp, tv0rd, &
                                      iprsta, tsde, tzeroe, tzerop, nbeg, tranp, amprp, &
-                                     tzeroc, force_pairing, trhor, ampre, trane, tpre, dt_old, &
+                                     tzeroc, force_pairing, ampre, trane, tpre, dt_old, &
                                      iprint_manifold_overlap !added:giovanni iprint_manifold_overlap
-   USE wavefunctions_module,  ONLY : c0, cm, phi => cp, cstart
+   USE wavefunctions_module,  ONLY : c0, cm, cstart
    USE electrons_module,      ONLY : occn_info
-   USE electrons_base,        ONLY : nspin, iupdwn, nupdwn, f, nbsp, nbspx
-   USE io_global,             ONLY : ionode, ionode_id, stdout
+   USE electrons_base,        ONLY : iupdwn, nupdwn, f, nbsp, nbspx
+   USE io_global,             ONLY : ionode, stdout
    USE cell_base,             ONLY : ainv, h, hold, deth, r_to_s, s_to_r, boxdimensions, &
                                      velh, a1, a2, a3
    USE ions_base,             ONLY : na, nsp, iforce, vel_srt, nat, randpos
    USE time_step,             ONLY : tps, delt
-   USE ions_positions,        ONLY : taus, tau0, tausm, taum, vels, fion, fionm, set_velocities
+   USE ions_positions,        ONLY : taus, tau0, tausm, taum, vels, fion, set_velocities
    USE ions_nose,             ONLY : xnhp0, xnhpm
    USE grid_dimensions,       ONLY : nr1, nr2, nr3
    USE reciprocal_vectors,    ONLY : mill_l
@@ -32,7 +32,6 @@ SUBROUTINE from_restart( )
    USE cp_interfaces,         ONLY : phfacs, strucf
    USE energies,              ONLY : eself, dft_energy_type
    USE wave_base,             ONLY : rande_base
-   USE mp_global,             ONLY : me_image, mpime
    USE efield_module,         ONLY : efield_berry_setup,  tefield, &
                                      efield_berry_setup2, tefield2
    USE small_box,             ONLY : ainvb

@@ -44,22 +44,19 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
 !$$
 
   USE kinds,                ONLY : DP
-  USE control_flags,        ONLY : lwf, tfor, tprnfor, thdyn, use_task_groups
+  USE control_flags,        ONLY : lwf, tfor, tprnfor, thdyn
   USE cg_module,            ONLY : tcg
   USE cp_main_variables,    ONLY : eigr, bec, irb, eigrb, rhog, rhos, rhor, &
                                    ei1, ei2, ei3, sfac, ema0bg, becdr, &
                                    taub, lambda, lambdam, lambdap, lambda_bare, vpot,&
                                    iprint_stdout !added:giovanni iprint_stdout
   USE wavefunctions_module, ONLY : c0, cm, phi => cp, cdual
-  USE cell_base,            ONLY : omega, ibrav, h, press, a1, a2, a3
-  use grid_dimensions,      only : nr1, nr2, nr3, nr1x, nr2x, nr3x, nnrx
+  USE cell_base,            ONLY : omega, ibrav, h, press
   USE uspp,                 ONLY : becsum, vkb, nkb
-  USE energies,             ONLY : ekin, enl, entropy, etot, eodd
-  USE grid_dimensions,      ONLY : nnrx
+  USE energies,             ONLY : ekin, enl, etot, eodd
   USE electrons_base,       ONLY : nbsp, nbspx, nspin, f, nudx
   USE core,                 ONLY : nlcc_any, rhoc
   USE ions_positions,       ONLY : tau0
-  USE ions_base,            ONLY : nat
   USE dener,                ONLY : detot, denl, dekin6
   USE efield_module,        ONLY : tefield, ipolp, qmat, gqq, evalue, &
                                    tefield2, ipolp2, qmat2, gqq2, evalue2
@@ -75,19 +72,15 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   USE control_flags,        ONLY : force_pairing, gamma_only, do_wf_cmplx !added:giovanni
   USE cp_interfaces,        ONLY : rhoofr, compute_stress, invfft
   USE electrons_base,       ONLY : ispin, iupdwn, nupdwn 
-  USE mp_global,            ONLY : me_image, intra_image_comm, mpime
   USE mp,                   ONLY : mp_sum, mp_bcast
   USE efield_mod,           ONLY : do_efield
-  USE fft_base,             ONLY : dfftp
-  USE io_global,            ONLY : ionode, ionode_id
   USE hfmod,                ONLY : do_hf, vxxpsi, exx
   USE nksic,                ONLY : do_orbdep, vsic, wtot, fsic, fion_sic, deeq_sic, pink, do_wxd, sizwtot, &
-                                   f_cutoff, valpsi, odd_alpha 
+                                   valpsi, odd_alpha 
   !
-  USE nksic,                ONLY : do_pz, do_innerloop,do_innerloop_cg, innerloop_dd_nstep, &
+  USE nksic,                ONLY : do_innerloop,do_innerloop_cg, innerloop_dd_nstep, &
                                    innerloop_init_n
   use ions_base,            only : nsp
-  use electrons_base,       only : nel, nelt
   use electrons_module,     ONLY : icompute_spread, wfc_centers, wfc_spreads
   use cp_main_variables,    ONLY : becdual
   use control_flags,        ONLY : non_ortho, esic_conv_thr
@@ -107,7 +100,6 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
   REAL(DP)                :: stress(3,3)
   LOGICAL, OPTIONAL, INTENT(IN) :: tprint_ham
   !
-  INTEGER :: i, j, is, n2
 !$$ The following local variables are for the inner-loop, i.e., unitary rotation
   INTEGER :: ninner
   REAL(DP)                   :: Omattot(nbspx,nbspx)
@@ -196,7 +188,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
             valpsi(:,:) = (0.0_DP, 0.0_DP)
             odd_alpha(:) = 0.0_DP
             !
-            call odd_alpha_routine(c0, nbsp, nbspx, lgam, .false.)
+            call odd_alpha_routine(nbspx,.false.)
             ! 
          endif
          !
@@ -356,7 +348,7 @@ SUBROUTINE move_electrons_x( nfi, tfirst, tlast, b1, b2, b3, fion, &
      !
      IF( force_pairing ) THEN
         !
-        CALL runcp_uspp_force_pairing( nfi, fccc, ccc, ema0bg, dt2bye, &
+        CALL runcp_uspp_force_pairing( fccc, ccc, ema0bg, dt2bye, &
                       rhos, bec%rvec, c0, cm, ei_unp )
         !
      ELSE
