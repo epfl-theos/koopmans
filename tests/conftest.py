@@ -7,6 +7,8 @@ Written by Edward Linscott, Dec 2020
 import os
 import json
 import numpy as np
+from typing import List
+from pathlib import Path
 import pytest
 from ase.dft.kpoints import BandPath
 from koopmans.calculators import Wannier90Calculator, PW2WannierCalculator, PWCalculator, KoopmansCPCalculator, \
@@ -45,7 +47,7 @@ class WorkflowTest:
         with open('tests/benchmarks.json', 'r') as f:
             benchmarks = read_encoded_json(f)
 
-        self.benchmark = {k: v for k, v in benchmarks.items() if self.subdirectory in k}
+        self.benchmark = {Path(k): v for k, v in benchmarks.items() if self.subdirectory in k}
 
     def run(self):
         # Move into the test directory
@@ -207,10 +209,10 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         directory = pytestconfig.rootpath
         if directory.parts[-1] != 'tests':
             directory /= 'tests'
-        return os.path.abspath(directory)
+        return directory.resolve()
 
     def relative_directory(path):
-        return os.path.relpath(path, tests_directory())
+        return path.relative_to(tests_directory())
 
     def generic_mock_calculate(calc, from_scratch=True):
 
@@ -222,7 +224,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
 
         # Check that we are using the correct settings
         input_file_name = f'{relative_directory(calc.directory)}/{calc.prefix}{calc.ext_in}'
-        for key in set(list(calc.benchmark['settings'].keys()) + list(calc.settings.keys())):
+        for key in set(list(calc.benchmark['settings'].keys()) + list(calc.parameters.keys())):
             # Don't check starting magnetization because ASE doesn't parse it
             if key.startswith('starting_magnetization'):
                 continue
@@ -230,8 +232,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             assert key in calc.benchmark['settings'].keys(), f'{key} in {input_file_name} not found in benchmark'
             ref_val = calc.benchmark['settings'][key]
 
-            assert key in calc.settings.keys(), f'{key} missing from {input_file_name}'
-            val = calc.settings[key]
+            assert key in calc.parameters.keys(), f'{key} missing from {input_file_name}'
+            val = calc.parameters[key]
 
             if key in calc._settings_that_are_paths:
                 # Compare the path relative to the location of the input file (mirroring behaviour of
@@ -280,7 +282,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         # Monkeypatched KoopmansCPCalculator class which never actually calls kcp.x
 
         @property
-        def __files(self):
+        def __files(self) -> List[Path]:
             files = [fname for ispin in range(1, self.parameters.nspin + 1) for fname in [f'evc0{ispin}.dat', f'evc{ispin}.dat',
                                                                                           f'evcm{ispin}.dat',
                                                                                           f'hamiltonian{ispin}.xml',
@@ -290,27 +292,27 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             if self.parameters.empty_states_nbnd > 0:
                 files += [fname for ispin in range(1, self.parameters.nspin + 1) for fname in [f'evc0_empty{ispin}.dat',
                                                                                                f'evc_empty{ispin}.dat']]
-            return files
+            return [Path(f) for f in files]
 
         @property
-        def output_files(self):
+        def output_files(self) -> List[Path]:
             files = self.__files
             if self.parameters.print_wfc_anion:
                 files.append('evcfixed_empty.dat')
-            return [f'{self.parameters.outdir}/{self.prefix}_{self.parameters.ndw}.save/K00001/{fname}' for fname in files]
+            return [self.parameters.outdir / Path(f'{self.prefix}_{self.parameters.ndw}.save/K00001/{fname}') for fname in files]
 
         @property
-        def input_files(self):
+        def input_files(self) -> List[Path]:
             files = self.__files
             if self.parameters.restart_from_wannier_pwscf:
                 files.append('evc_occupied.dat')
-            return [f'{self.parameters.outdir}/{self.prefix}_{self.parameters.ndr}.save/K00001/{fname}' for fname in files]
+            return [self.parameters.outdir / Path(f'{self.prefix}_{self.parameters.ndr}.save/K00001/{fname}') for fname in files]
 
     class MockEnvironCalculator(MockCalc, EnvironCalculator):
         # Monkeypatched EnvironCalculator class which never actually calls pw.x
 
         @property
-        def output_files(self):
+        def output_files(self) -> List[Path]:
             files = []
             if 'kpts' in self.parameters:
                 assert self.parameters.kpts == [
@@ -321,10 +323,10 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
                 if self.parameters.nosym:
                     files += [f'{self.parameters.outdir}/wfc{i}.dat' for i in i_kpoints]
             files += [f'{self.parameters.outdir}/{self.prefix}.xml']
-            return files
+            return [Path(f) for f in files]
 
         @property
-        def input_files(self):
+        def input_files(self) -> List[Path]:
             # Not yet implemented
             return []
 
@@ -332,7 +334,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         # Monkeypatched PWCalculator class which never actually calls pw.x
 
         @property
-        def output_files(self):
+        def output_files(self) -> List[Path]:
             files = []
             if 'kpts' in self.calc.parameters:
                 if self.nosym:
@@ -344,41 +346,41 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
                 files += [f'{self.outdir}/{self.prefix}.save/wfc{i}.dat' for i in i_kpoints]
             files += [f'{self.outdir}/{self.prefix}.xml']
             files += [f'{self.outdir}/{self.prefix}.save/{f}' for f in ['data-file-schema.xml', 'charge-density.dat']]
-            return files
+            return [Path(f) for f in files]
 
         @property
-        def input_files(self):
+        def input_files(self) -> List[Path]:
             files = []
             if self.calculation == 'nscf':
                 files += [f'{self.outdir}/{self.prefix}.save/{f}' for f in ['data-file-schema.xml',
                                                                             'charge-density.dat']]
-            return files
+            return [Path(f) for f in files]
 
     class MockWannier90Calculator(MockCalc, Wannier90Calculator):
         # Monkeypatched Wannier90Calculator class which never actually calls wannier90.x
 
         @property
-        def output_files(self):
+        def output_files(self) -> List[Path]:
             if '-pp' in self.command.flags:
                 files = [f'{self.directory}/{self.prefix}.nnkp']
             else:
                 files = [f'{self.directory}/{self.prefix}{suffix}' for suffix in [
                     '.chk', '_wsvec.dat', '_hr.dat']]
-            return files
+            return [Path(f) for f in files]
 
         @property
-        def input_files(self):
+        def input_files(self) -> List[Path]:
             if '-pp' in self.command.flags:
                 files = []
             else:
                 files = [f'{self.directory}/{self.prefix}{suffix}' for suffix in ['.eig', '.mmn', '.amn']]
-            return files
+            return [Path(f) for f in files]
 
     class MockPW2WannierCalculator(MockCalc, PW2WannierCalculator):
         # Monkeypatched PW2WannierCalculator class which never actually calls pw2wannier90.x
 
         @property
-        def output_files(self):
+        def output_files(self) -> List[Path]:
             if self.parameters.wan_mode == 'wannier2odd':
                 if self.parameters.split_evc_file:
                     files = [
@@ -389,17 +391,17 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             else:
                 files = [
                     f'{self.directory}/{self.parameters.seedname}{suffix}' for suffix in ['.eig', '.mmn', '.amn']]
-            return files
+            return [Path(f) for f in files]
 
         @property
-        def input_files(self):
+        def input_files(self) -> List[Path]:
             i_kpoints = range(1, np.prod(self.parameters.kpts) + 1)
             files = [f'{self.parameters.outdir}/{self.prefix}.save/wfc{i}.dat' for i in i_kpoints]
             files += [f'{self.parameters.outdir}/{self.prefix}.save/{f}' for f in ['data-file-schema.xml', 'charge-density.dat']]
             files.append(f'{self.directory}/{self.parameters.seedname}.nnkp')
             if self.parameters.wan_mode == 'wannier2odd':
                 files.append(f'{self.directory}/{self.parameters.seedname}.chk')
-            return files
+            return [Path(f) for f in files]
 
     class MockUnfoldAndInterpolateCalculator(MockCalc, UnfoldAndInterpolateCalculator):
         # For the UI calculator, _calculate() plays the role of _ase_calculate()
@@ -429,29 +431,29 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
 
     class MockWann2KCCalculator(MockCalc, Wann2KCCalculator):
         @property
-        def input_files(self):
+        def input_files(self) -> List[Path]:
             return []
 
         @property
-        def output_files(self):
+        def output_files(self) -> List[Path]:
             return []
 
     class MockKoopmansScreenCalculator(MockCalc, KoopmansScreenCalculator):
         @property
-        def input_files(self):
+        def input_files(self) -> List[Path]:
             return []
 
         @property
-        def output_files(self):
+        def output_files(self) -> List[Path]:
             return []
 
     class MockKoopmansHamCalculator(MockCalc, KoopmansHamCalculator):
         @property
-        def input_files(self):
+        def input_files(self) -> List[Path]:
             return []
 
         @property
-        def output_files(self):
+        def output_files(self) -> List[Path]:
             return []
 
     monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', MockKoopmansCPCalculator)
@@ -471,7 +473,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             # to check if the required input files exist and make sense
 
             # Check we have a benchmark entry for this calculation, and connect it to the calculator
-            qe_calc_seed = relative_directory(qe_calc.directory + '/' + qe_calc.prefix)
+            qe_calc_seed = relative_directory(qe_calc.directory / qe_calc.prefix)
             assert qe_calc_seed in self.benchmark, \
                 f'Could not find an entry for {qe_calc_seed} in tests/benchmarks.json'
             qe_calc.benchmark = self.benchmark[qe_calc_seed]
@@ -491,7 +493,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             # We only need to check input files for calculations...
             # a) not starting from scratch, and
             # b) not being skipped (i.e. self.from_scratch is True)
-            if getattr(qe_calc, 'restart_mode', 'restart') != 'from_scratch' and self.parameters.from_scratch:
+            if qe_calc.parameters.restart_mode != 'from_scratch' and self.parameters.from_scratch:
                 for input_file in qe_calc.input_files:
 
                     # Check the input file exists
@@ -521,9 +523,10 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
                                 if input_file in [relative_directory(f) for f in c.output_files]:
                                     # Check that this file wrote its own output file (if it didn't it was skipped
                                     # and won't have produced any output files, so it is not a valid match)
-                                    c_input_file = relative_directory(os.getcwd() + '/' + c.directory + '/' + c.name +
-                                                                      c.ext_in)
-                                    c_output_file = os.path.abspath(c.directory + '/' + c.name + c.ext_out)
+                                    c_input_file = relative_directory(Path.get() / c.directory / c.name + c.ext_in)
+                                    c_output_file = c.directory / c.name + c.ext_out
+                                    c_output_file = c_output_file.resolve()
+                                    raise ValueError()
                                     assert os.path.isfile(c_output_file)
                                     with open(c_output_file, 'r') as fd:
                                         c_output_file_info = json.load(fd)

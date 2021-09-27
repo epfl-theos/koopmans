@@ -7,6 +7,8 @@ Written by Edward Linscott May 2020
 '''
 
 import os
+from pathlib import Path
+from typing import Union
 import subprocess
 import contextlib
 
@@ -20,21 +22,24 @@ def system_call(command, check_ierr=True):
         raise OSError(f'{command} exited with exit code {ierr}')
 
 
-def mkdir(path):
+def mkdir(path: Path):
     # Creates a (possibly nested) directory
-    relpath = os.path.relpath(path, os.getcwd())
-    split_relpath = relpath.split('/')
-    for i in range(len(split_relpath)):
-        subdir = '/'.join(split_relpath[:i + 1])
-        if not os.path.isdir(subdir):
-            system_call(f'mkdir {subdir}')
+    relpath = Path(os.path.relpath(path, Path.cwd()))
+    for p in reversed(relpath.parents):
+        if not p.is_dir():
+            p.mkdir()
 
 
 @contextlib.contextmanager
-def chdir(path):
+def chdir(path: Union[Path, str]):
     # Allows for the context "with chdir(path)". All code within this
     # context will be executed in the directory "path"
-    this_dir = os.getcwd()
+
+    # Ensure path is a Path object
+    if isinstance(path, str):
+        path = Path(path)
+
+    this_dir = Path.cwd()
 
     # Create path if it does not exist
     mkdir(path)
@@ -48,21 +53,18 @@ def chdir(path):
         os.chdir(this_dir)
 
 
-def find_executable(program):
+def find_executable(program: Path):
     # Equivalent to the unix command "which"
-    def is_exe(fpath):
-        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+    def is_exe(fpath: Path):
+        return fpath.is_file() and os.access(fpath, os.X_OK)
 
-    if program[0] == '~':
-        program = program.replace('~', os.environ["HOME"], 1)
-
-    fpath, _ = os.path.split(program)
-    if fpath:
+    fpath = program.parent
+    if fpath.samefile('.'):
         if is_exe(program):
             return program
     else:
         for path in os.environ["PATH"].split(os.pathsep):
-            exe_file = os.path.join(path, program)
+            exe_file = Path(path) / program
             if is_exe(exe_file):
                 return exe_file
 

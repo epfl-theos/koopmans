@@ -37,7 +37,7 @@ class PWCalculator(ExtendedCalculator, Espresso):
         self.results_for_qc = ['energy']
         if not isinstance(self.command, Command):
             self.command = ParallelCommandWithPostfix(os.environ.get(
-                'ASE_ESPRESSO_COMMAND', qe_bin_directory + self.command))
+                'ASE_ESPRESSO_COMMAND', str(qe_bin_directory) + self.command))
 
     def calculate(self):
         if self.calculation == 'bands':

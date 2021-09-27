@@ -63,9 +63,10 @@ class KoopmansCPCalculator(ExtendedCalculator, kcp_io.Espresso_kcp):
         super().__init__(calc, qe_files, skip_qc, **kwargs)
 
         self.results_for_qc = ['energy', 'homo_energy', 'lumo_energy']
+
         if not isinstance(self.command, ParallelCommand):
             self.command = ParallelCommand(os.environ.get(
-                'ASE_ESPRESSO_KCP_COMMAND', kcp_bin_directory + self.command))
+                'ASE_ESPRESSO_KCP_COMMAND', str(kcp_bin_directory) + os.path.sep + self.command))
 
         self.alphas = alphas
         self.filling = filling
@@ -92,6 +93,8 @@ class KoopmansCPCalculator(ExtendedCalculator, kcp_io.Espresso_kcp):
         convergence_data = self.results['convergence'].values()
         converged = []
         for do_outer, convergence in zip(do_outers, convergence_data):
+            if len(convergence) == 0:
+                return False
             if not do_outer:
                 converged.append(True)
             else:

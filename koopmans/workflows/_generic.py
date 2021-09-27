@@ -201,12 +201,12 @@ class Workflow(object):
         raise NotImplementedError('This workflow class has not implemented the run() function')
 
     def convert_wavefunction_2to1(self, nspin2_tmpdir, nspin1_tmpdir):
-        if self.from_scratch:
+        if self.parameters.from_scratch:
             utils.system_call(
                 f'convert_nspin2_wavefunction_to_nspin1.sh {nspin2_tmpdir} {nspin1_tmpdir}')
 
-    def convert_wavefunction_1to2(self, nspin1_tmpdir, nspin2_tmpdir):
-        if self.from_scratch:
+    def convert_wavefunction_1to2(self, nspin1_tmpdir: Path, nspin2_tmpdir: Path):
+        if self.parameters.from_scratch:
             utils.system_call(
                 f'convert_nspin1_wavefunction_to_nspin2.sh {nspin1_tmpdir} {nspin2_tmpdir}')
 

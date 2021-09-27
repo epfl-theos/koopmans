@@ -41,7 +41,7 @@ class PW2WannierCalculator(ExtendedCalculator):
         self.ext_out = '.p2wo'
 
         super().__init__(*args, **kwargs)
-        self.command = ParallelCommand(os.environ.get('ASE_PW2WANNIER_COMMAND', qe_bin_directory + self.command))
+        self.command = ParallelCommand(os.environ.get('ASE_PW2WANNIER_COMMAND', str(qe_bin_directory) + self.command))
 
     def is_converged(self):
         return True

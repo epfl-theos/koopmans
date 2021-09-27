@@ -7,7 +7,7 @@ Integrated within koopmans by Edward Linscott Jan 2021
 """
 
 import numpy as np
-from typing import List, Union
+from typing import List, Any
 from ase.dft.kpoints import BandPath
 from koopmans import settings
 
@@ -89,7 +89,7 @@ class UISettingsDictWithChecks(settings.SettingsDictWithChecks):
 
         return super()._check_before_setitem(key, value)
 
-    def __setitem__(self, key: str, value: Union[int, str, float, bool]):
+    def __setitem__(self, key: str, value: Any):
 
         if key == 'smooth_int_factor' and isinstance(value, int):
             value = [value for _ in range(3)]

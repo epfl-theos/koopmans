@@ -11,7 +11,7 @@ import os
 import copy
 import numpy as np
 import itertools
-from typing import Dict, Union
+from typing import Dict, Union, List
 from koopmans import utils
 from ._generic import Workflow
 from ._singlepoint import SinglepointWorkflow
@@ -19,7 +19,7 @@ from ._singlepoint import SinglepointWorkflow
 
 class ConvergenceWorkflow(Workflow):
 
-    def run(self, initial_depth: int=3) -> Dict[str, Union[float, int]]:
+    def run(self, initial_depth: int = 3) -> Dict[str, Union[float, int]]:
 
         if 'kcp' in self.master_calcs:
             kcp_master_calc = self.master_calcs['kcp']
@@ -29,7 +29,7 @@ class ConvergenceWorkflow(Workflow):
 
         increments = {'cell_size': 0.1, 'ecutwfc': 10, 'empty_states_nbnd': 1}
 
-        if self.from_scratch:
+        if self.parameters.from_scratch:
             for key in increments.keys():
                 utils.system_call(f'rm -r {key}* 2> /dev/null', False)
 
@@ -37,7 +37,7 @@ class ConvergenceWorkflow(Workflow):
         param_dict = {}
 
         # Convert to list
-        convergence_parameters = self.convergence_parameters
+        convergence_parameters = self.parameters.convergence_parameters
         if isinstance(convergence_parameters, str):
             convergence_parameters = [convergence_parameters]
 
@@ -66,14 +66,14 @@ class ConvergenceWorkflow(Workflow):
         # number of convergence parameters
 
         # Record the alpha values for the original calculation
-        provide_alpha = 'empty_states_nbnd' in param_dict and self.functional in ['ki', 'kipz', 'pkipz', 'all'] \
-            and self.alpha_from_file
+        provide_alpha = 'empty_states_nbnd' in param_dict and self.parameters.functional in ['ki', 'kipz', 'pkipz', 'all'] \
+            and self.parameters.alpha_from_file
         if provide_alpha:
             master_alphas = utils.read_alpha_file(directory='.')
-            if self.orbital_groups is None:
-                self.orbital_groups = list(
+            if self.parameters.orbital_groups is None:
+                self.parameters.orbital_groups = list(
                     range(kcp_master_calc.nelec // 2 + kcp_master_calc.empty_states_nbnd))
-            master_orbital_groups = copy.deepcopy(self.orbital_groups)
+            master_orbital_groups = copy.deepcopy(self.parameters.orbital_groups)
 
         while True:
 
@@ -115,22 +115,22 @@ class ConvergenceWorkflow(Workflow):
                         [False] * kcp_calc.empty_states_nbnd
                     alphas = master_alphas + [master_alphas[-1]
                                               for _ in range(extra_orbitals)]
-                    self.orbital_groups = master_orbital_groups + \
+                    self.parameters.orbital_groups = master_orbital_groups + \
                         [master_orbital_groups[-1]
                             for _ in range(extra_orbitals)]
-                    utils.write_alpharef(alphas, directory='.', filling=filling)
+                    utils.write_alpha_file(directory='.', alphas=alphas, filling=filling)
 
                 self.print(header.rstrip(', '), style='subheading')
 
                 # Perform calculation
                 calcs_dct = copy.deepcopy(self.master_calcs)
                 calcs_dct['kcp'] = kcp_calc
-                singlepoint = SinglepointWorkflow(self.settings, calcs_dct)
+                singlepoint = SinglepointWorkflow(self.parameters, calcs_dct)
                 self.run_subworkflow(singlepoint, subdirectory=subdir)
                 solved_calc = singlepoint.all_calcs[-1]
 
                 # Store the result
-                obs = self.convergence_observable
+                obs = self.parameters.convergence_observable
                 obs = obs.replace('total ', '').replace(' ', '_')
                 if obs not in solved_calc.results:
                     raise ValueError(
@@ -139,12 +139,12 @@ class ConvergenceWorkflow(Workflow):
                 results[indices] = result
 
             # Check convergence
-            converged = np.empty([len(x)
-                                  for x in param_dict.values()], dtype=bool)
+            converged = np.empty([len(x) for x in param_dict.values()], dtype=bool)
             converged[:] = False
 
             converged_result = results[tuple([-1 for _ in param_dict])]
-            threshold = self.convergence_threshold
+            threshold = self.parameters.convergence_threshold
+            subarray_slice: List[Union[int, slice]]
             for indices in itertools.product(*[range(len(x)) for x in param_dict.values()]):
                 subarray_slice = [slice(None) for _ in range(len(indices))]
                 for i_index, index in enumerate(indices):
@@ -154,14 +154,14 @@ class ConvergenceWorkflow(Workflow):
 
             # Check convergence, ignoring the calculations with the most fine parameters because
             # we have nothing to compare them against
-            subarray_slice = tuple([slice(0, -1) for _ in param_dict])
-            if np.any(converged[subarray_slice]):
+            subarray_slice = [slice(0, -1) for _ in param_dict]
+            if np.any(converged[tuple(subarray_slice)]):
                 # Work out which was the fastest calculation, and propose those parameters
 
                 # First, find the indices of the converged array
-                slice_where = [slice(None) for _ in param_dict]
+                slice_where: List[Union[slice, int]] = [slice(None) for _ in param_dict]
                 slice_where[-1] = 0
-                indices = np.array(np.where(converged[subarray_slice]))[
+                indices = np.array(np.where(converged[tuple(subarray_slice)]))[
                     tuple(slice_where)]
 
                 # Extract the corresponding parameters
@@ -178,9 +178,8 @@ class ConvergenceWorkflow(Workflow):
                 # for increased values of those parameters
 
                 new_array_shape = list(np.shape(results))
-                new_array_slice = [slice(None) for _ in indices]
+                new_array_slice: List[Union[int, slice]] = [slice(None) for _ in indices]
                 for index, param in enumerate(param_dict):
-                    subarray_slice = [-1 for _ in indices]
                     subarray_slice[index] = slice(None)
                     if np.all(converged[tuple(subarray_slice)]):
                         continue

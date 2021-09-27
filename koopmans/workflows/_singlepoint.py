@@ -24,7 +24,7 @@ class SinglepointWorkflow(Workflow):
         from koopmans.workflows import KoopmansDFPTWorkflow, KoopmansDSCFWorkflow, DFTCPWorkflow
 
         if self.parameters.method == 'dfpt':
-            workflow = KoopmansDFPTWorkflow(self.settings, self.master_calcs)
+            workflow = KoopmansDFPTWorkflow(self.parameters, self.master_calcs)
             self.run_subworkflow(workflow)
 
         elif self.parameters.functional == 'all':
@@ -89,8 +89,9 @@ class SinglepointWorkflow(Workflow):
         else:
             # self.functional != all and self.method != 'dfpt'
             if self.parameters.functional in ['ki', 'pkipz', 'kipz']:
-                workflow = KoopmansDSCFWorkflow(self.parameters, self.master_calcs)
+                dscf_workflow = KoopmansDSCFWorkflow(self.parameters, self.master_calcs)
+                self.run_subworkflow(dscf_workflow)
             else:
-                workflow = DFTCPWorkflow(self.parameters, self.master_calcs)
+                dft_workflow = DFTCPWorkflow(self.parameters, self.master_calcs)
+                self.run_subworkflow(dft_workflow)
 
-            self.run_subworkflow(workflow)

@@ -44,7 +44,7 @@ def construct_cell_parameters_block(calc: Calculator) -> dict:
     return {'vectors': [list(row) for row in calc.atoms.cell[:]], 'units': 'angstrom'}
 
 
-def write_alpha_file(directory: str, alphas: List[float], filling: List[float]):
+def write_alpha_file(directory: str, alphas: List[float], filling: List[bool]):
     a_filled = [a for a, f in zip(alphas, filling) if f]
     a_empty = [a for a, f in zip(alphas, filling) if not f]
     for alphas, suffix in zip([a_filled, a_empty], ['', '_empty']):

@@ -40,7 +40,7 @@ class Wannier90Calculator(ExtendedCalculator):
         self._ase_calc_class = Wannier90
 
         super().__init__(*args, **kwargs)
-        self.command = Command(os.environ.get('ASE_WANNIER90_COMMAND', qe_bin_directory + self.command))
+        self.command = Command(os.environ.get('ASE_WANNIER90_COMMAND', str(qe_bin_directory) + self.command))
 
     def calculate(self):
         if self.parameters.mp_grid is None:

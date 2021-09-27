@@ -19,6 +19,8 @@ class UnfoldAndInterpolateCalculator(ExtendedCalculator):
         write_input_file, read_input_file, read_output_file, read_bands
     from ._interpolate import interpolate, calc_bands, correct_phase, calc_dos
 
+    prefix: str
+
     def __init__(self, calc=None, qe_files=[], skip_qc=False, **kwargs):
 
         self.parameters = UISettingsDictWithChecks(settings=valid_settings,

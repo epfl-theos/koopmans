@@ -6,7 +6,7 @@ Written by Edward Linscott May 2020
 
 '''
 
-import os
+from pathlib import Path
 from collections import UserDict
 from typing import Union, Type, Tuple, NamedTuple, Dict, Any, Optional, List
 from koopmans.utils import units
@@ -37,10 +37,10 @@ class SettingsDict(UserDict):
     '''
 
     # Need to provide these here to allow copy.deepcopy to perform the checks in __getattr__
-    valid = []
-    data = {}
+    valid: List[str] = []
+    data: Dict[str, Any] = {}
 
-    def __init__(self, valid: List[Union[str, Setting]], defaults: Dict[str, Union[int, str, float, bool]] = {}, are_paths: List[str] = [], to_not_parse: List[str] = [], directory='', physicals: List[str] = [], **kwargs):
+    def __init__(self, valid: List[str], defaults: Dict[str, Any] = {}, are_paths: List[str] = [], to_not_parse: List[str] = [], directory='', physicals: List[str] = [], **kwargs):
         super().__init__(**kwargs)
         self.valid = valid
         self.defaults = defaults
@@ -79,10 +79,14 @@ class SettingsDict(UserDict):
                 raise KeyError(key)
         return self.data[key]
 
-    def __setitem__(self, key: str, value: Union[int, str, float, bool]):
-        # Insisting that all values corresponding to paths are absolute
-        if key in self.are_paths and value.startswith('/'):
-            value = os.path.abspath(self.directory + '/' + self.value)
+    def __setitem__(self, key: str, value: Any):
+        # Insisting that all values corresponding to paths are absolute and are Path objects
+        if key in self.are_paths:
+            if isinstance(value, str):
+                value = Path(value)
+            elif not isinstance(value, Path):
+                raise ValueError(f'{key} must be either a string or a Path')
+            value = value.resolve()
 
         # Parse any units provided
         if key in self.physicals:

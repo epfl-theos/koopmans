@@ -14,17 +14,17 @@ Sep 2021: Reshuffled files to make imports cleaner
 import os
 import copy
 import numpy as np
-from typing import List
+from typing import Union, Optional
+from pathlib import Path
 import ase.io as ase_io
-from ase.io.espresso import koopmans_cp as kcp_io
 from ase.build import make_supercell
 from ase.calculators.calculator import FileIOCalculator
 from koopmans import utils, settings, pseudopotentials
 
 # Directories of the various QE calculators
-qe_parent_directory = os.path.dirname(__file__).rsplit('/', 2)[0] + '/quantum_espresso/'
-qe_bin_directory = qe_parent_directory + 'qe_koopmans/bin/'
-kcp_bin_directory = qe_parent_directory + 'cp_koopmans/bin/'
+qe_parent_directory = Path(__file__).parents[2] / 'quantum_espresso'
+qe_bin_directory = qe_parent_directory / 'qe_koopmans/bin/'
+kcp_bin_directory = qe_parent_directory / 'cp_koopmans/bin/'
 
 
 class ExtendedCalculator:
@@ -37,6 +37,10 @@ class ExtendedCalculator:
         qe_files   an alternative to calc, initialize the settings using qe input file(s)
         kwargs     any valid quantum espresso keywords to alter
     '''
+
+    results: dict
+    ext_in: str = ''
+    ext_out: str = ''
 
     def __init__(self, calc=None, qe_files=[], skip_qc=False, dct={}, **kwargs):
         # Construct from dct if this is provided
@@ -121,20 +125,24 @@ class ExtendedCalculator:
         return self._parameters
 
     @parameters.setter
-    def parameters(self, value: settings.SettingsDict):
-        self._parameters = value
+    def parameters(self, value: Union[settings.SettingsDict, dict]):
+        if isinstance(value, settings.SettingsDict):
+            self._parameters = value
+        else:
+            # If using a standard dictionary, retain all of the information about valid keywords etc
+            self._parameters.data = {}
+            self._parameters.update(**value)
 
     @property
     def directory(self):
-        # Ensure directory is an absolute path
-        if not self._directory.startswith('/'):
-            self._directory = os.path.abspath(self._directory)
         return self._directory
 
     @directory.setter
-    def directory(self, value):
+    def directory(self, value: Union[Path, str]):
+        if not isinstance(value, Path):
+            value = Path(value)
         # Insist on directory being an absolute path
-        self._directory = os.path.abspath(value)
+        self._directory = value.resolve()
 
         # Update parameters' record of self.directory
         self._parameters.directory = self._directory
@@ -167,39 +175,36 @@ class ExtendedCalculator:
         # By default, use ASE
         if input_file is None:
             directory = self.directory
-            fname = self.prefix + self.ext_in
+            fname = self.parameters.prefix + self.ext_in
         else:
             directory, fname = input_file.rsplit('/', 1)
         with utils.chdir(directory):
             ase_io.write(fname, self.atoms)
 
-    def read_input_file(self, input_file=None):
+    def read_input_file(self, input_file: Optional[Path] = None):
         # By default, use ASE
         if input_file is None:
-            input_file = self.directory + '/' + self.prefix + self.ext_in
+            input_file = self.directory / (self.parameters.prefix + self.ext_in)
         return ase_io.read(input_file).calc
 
-    def load_input_file(self, input_file=None):
+    def load_input_file(self, input_file: Optional[Path] = None):
         if input_file is None:
-            input_file = self.directory + '/' + self.prefix + self.ext_in
-        elif '.' not in input_file.split('/')[-1]:
+            input_file = self.directory / (self.parameters.prefix + self.ext_in)
+        elif not input_file.suffix:
             # Add extension if necessary
-            input_file += self.ext_in
+            input_file = input_file.with_suffix(self.ext_in)
 
-        # Save directory, prefix, and command
-        directory = self.directory
-        prefix = self.prefix
-        command = self.calc.command
+        # Save command
+        command = self.command
 
-        # Load calculator from input file and update self._settings
-        raise NotImplementedError()
-        # self.calc = self.read_input_file()
-        # self._update_settings_dict()
+        # Load calculator from input file and update self.parameters
+        calc = self.read_input_file()
+        self.parameters = calc.parameters
+        self.atoms = calc.atoms
+        self.atoms.calc = self
 
-        # Restore directory, prefix, and command
-        self.directory = directory
-        self.prefix = prefix
-        self.calc.command = command
+        # Restore command
+        self.command = command
 
     def read_output_file(self, output_file=None):
         # By default, use ASE
@@ -266,7 +271,7 @@ class ExtendedCalculator:
                 raise OSError(f'{self.command.executable} is not installed')
             self.command.path = executable_with_path.rsplit('/', 1)[0] + '/'
         else:
-            assert os.path.isfile(self.command.path + self.command.executable)
+            assert (self.command.path / self.command.executable).is_file
         return
 
     def write_alphas(self):

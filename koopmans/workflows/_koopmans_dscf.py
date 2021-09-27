@@ -10,6 +10,7 @@ Split off from workflow.py Oct 2020
 import os
 import copy
 import numpy as np
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 import pandas as pd
 from ase.dft.dos import DOS
@@ -76,8 +77,13 @@ class KoopmansDSCFWorkflow(Workflow):
         if self.parameters.init_empty_orbitals == 'same':
             self.parameters.init_empty_orbitals = self.parameters.init_orbitals
         if self.parameters.init_empty_orbitals != self.parameters.init_orbitals:
-            raise NotImplementedError(f'The combination init_orbitals = {self.parameters.init_orbitals} and init_empty_orbitals '
-                                      f'= {self.parameters.init_empty_orbitals} has not yet been implemented')
+            raise NotImplementedError(f'The combination init_orbitals = {self.parameters.init_orbitals} '
+                                      f'and init_empty_orbitals = {self.parameters.init_empty_orbitals} '
+                                      'has not yet been implemented')
+
+        # By default, we will always run the higher-res DFT calculations. Changing this flag allows for calculations
+        # where this is unnecessary (such as pKIPZ) to skip this step.
+        self.redo_preexisting_smooth_dft_calcs = True
 
     def read_alphas_from_file(self, directory='.'):
         '''
@@ -177,26 +183,26 @@ class KoopmansDSCFWorkflow(Workflow):
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
             # Wannier functions using pw.x, wannier90.x and pw2wannier90.x
-            wannier_workflow = WannierizeWorkflow(self.settings, self.master_calcs)
+            wannier_workflow = WannierizeWorkflow(self.parameters, self.master_calcs)
 
             # Perform the wannierisation workflow within the init directory
             self.run_subworkflow(wannier_workflow, subdirectory='init')
 
             # Now, convert the files over from w90 format to (k)cp format
-            fold_workflow = FoldToSupercellWorkflow(self.settings, self.master_calcs)
+            fold_workflow = FoldToSupercellWorkflow(self.parameters, self.master_calcs)
 
             # Do this in the same directory as the wannierisation
             self.run_subworkflow(fold_workflow, subdirectory='init/wannier')
 
             # We need a dummy calc before the real dft_init in order
             # to copy the previously calculated Wannier functions
-            calc = self.new_calculator('kcp', 'dft_dummy')
+            calc = self.new_kcp_calculator('dft_dummy')
             calc.directory = 'init'
             self.run_calculator(calc, enforce_ss=False)
 
             # DFT restarting from Wannier functions (after copying the Wannier functions)
-            calc = self.new_calculator('kcp', 'dft_init', restart_mode='restart',
-                                       restart_from_wannier_pwscf=True, do_outerloop=True, ndw=ndw_final)
+            calc = self.new_kcp_calculator('dft_init', restart_mode='restart',
+                                           restart_from_wannier_pwscf=True, do_outerloop=True, ndw=ndw_final)
             calc.directory = 'init'
             restart_dir = f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndr}.save/K00001'
             for typ in ['occ', 'emp']:
@@ -240,14 +246,15 @@ class KoopmansDSCFWorkflow(Workflow):
 
             # Move the old save directory to correspond to ndw_final, using pz_innerloop_init to work out where the
             # code will expect the tmp files to be
-            old_savedir = f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save'
-            savedir = f'{self.new_calculator("kcp", "pz_innerloop_init").parameters.outdir}/{calc.parameters.prefix}_{ndw_final}.save'
-            if not os.path.isdir(old_savedir):
+            old_savedir = Path(calc.parameters.outdir) / f'{calc.parameters.prefix}_{calc.parameters.ndw}.save'
+            savedir = Path(f'{self.new_kcp_calculator("pz_innerloop_init").parameters.outdir}') / \
+                f'{calc.parameters.prefix}_{ndw_final}.save'
+            if not old_savedir.is_dir():
                 raise ValueError(f'{old_savedir} does not exist; a previous '
                                  'and complete KI calculation is required '
                                  'if init_orbitals="from old ki"')
-            if os.path.isdir(savedir):
-                utils.system_call(f'rm -r {savedir}')
+            if savedir.is_dir():
+                savedir.rmdir()
 
             # Use the chdir construct in order to create the directory savedir if it does not already exist and is
             # nested
@@ -255,7 +262,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 utils.system_call(f'rsync -a {old_savedir}/ .')
 
             # Check that the files defining the variational orbitals exist
-            savedir += '/K00001'
+            savedir /= 'K00001'
             files_to_check = ['init/ki_init.cpo', f'{savedir}/evc01.dat', f'{savedir}/evc02.dat']
 
             if calc.parameters.empty_states_nbnd is not None and calc.parameters.empty_states_nbnd > 0:
@@ -272,7 +279,7 @@ class KoopmansDSCFWorkflow(Workflow):
             self.all_calcs.append(calc)
 
         elif self.parameters.functional in ['ki', 'pkipz']:
-            calc = self.new_calculator('kcp', 'dft_init')
+            calc = self.new_kcp_calculator('dft_init')
             calc.directory = 'init'
             self.run_calculator(calc, enforce_ss=self.parameters.enforce_spin_symmetry)
 
@@ -282,7 +289,7 @@ class KoopmansDSCFWorkflow(Workflow):
             if self.parameters.init_orbitals == 'kohn-sham':
                 self._copy_most_recent_calc_to_ndw(ndw_final)
             elif self.parameters.init_orbitals == 'pz':
-                calc = self.new_calculator('kcp', 'pz_innerloop_init', alphas=self.bands.alphas, ndw=ndw_final)
+                calc = self.new_kcp_calculator('pz_innerloop_init', alphas=self.bands.alphas, ndw=ndw_final)
                 calc.directory = 'init'
                 if self.all_calcs[-1].parameters.nelec == 2:
                     # If we only have two electrons, then the filled manifold is trivially invariant under unitary
@@ -298,7 +305,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         elif self.parameters.functional == 'kipz':
             # DFT from scratch
-            calc = self.new_calculator('kcp', 'dft_init')
+            calc = self.new_kcp_calculator('dft_init')
             calc.directory = 'init'
             self.run_calculator(calc, enforce_ss=self.parameters.enforce_spin_symmetry)
 
@@ -308,7 +315,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 self._copy_most_recent_calc_to_ndw(ndw_final)
             elif self.parameters.init_orbitals == 'pz':
                 # PZ from DFT (generating PZ density and PZ orbitals)
-                calc = self.new_calculator('kcp', 'pz_init', ndw=ndw_final)
+                calc = self.new_kcp_calculator('pz_init', ndw=ndw_final)
                 calc.directory = 'init'
                 self.run_calculator(calc)
             else:
@@ -327,7 +334,7 @@ class KoopmansDSCFWorkflow(Workflow):
             save_prefix = f'{calc.parameters.outdir}/{calc.parameters.prefix}'
             utils.system_call(f'cp -r {save_prefix}_{calc.parameters.ndw}.save {save_prefix}_{ndw}.save')
 
-    def _overwrite_canonical_with_variational_orbitals(self, calc: calculators.KoopmansCPCalculator) -> None:
+    def _overwrite_canonical_with_variational_orbitals(self, calc: calculators.ExtendedCalculator) -> None:
         self.print('Overwriting the variational orbitals with Kohn-Sham orbitals')
         savedir = f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
         utils.system_call(f'cp {savedir}/evc1.dat {savedir}/evc01.dat')
@@ -344,7 +351,7 @@ class KoopmansDSCFWorkflow(Workflow):
         converged = False
         i_sc = 0
 
-        if not self.from_scratch and os.path.isfile('alphas.pkl'):
+        if not self.parameters.from_scratch and Path('alphas.pkl').is_file():
             # Reloading alphas and errors from file
             self.print('Reloading alpha values from file')
             self.bands.alphas = pd.read_pickle('alphas.pkl')
@@ -352,29 +359,29 @@ class KoopmansDSCFWorkflow(Workflow):
 
         alpha_indep_calcs = []
 
-        while not converged and i_sc < self.n_max_sc_steps:
+        while not converged and i_sc < self.parameters.n_max_sc_steps:
             i_sc += 1
-            iteration_directory = 'calc_alpha'
+            iteration_directory = Path('calc_alpha')
             _, outdir = self.master_calcs['kcp'].outdir.rsplit('/', 1)
-            outdir = os.getcwd() + f'/{iteration_directory}/{outdir}'
+            outdir = Path.cwd() / iteration_directory / outdir
 
-            if not os.path.isdir(outdir):
-                utils.system_call(f'mkdir {outdir}')
+            if not outdir.is_dir():
+                outdir.mkdir()
 
             # Setting up directories
-            if self.n_max_sc_steps > 1:
+            if self.parameters.n_max_sc_steps > 1:
                 self.print('SC iteration {}'.format(i_sc), style='subheading')
-                iteration_directory += f'/iteration_{i_sc}'
-                if not os.path.isdir(iteration_directory):
-                    utils.system_call(f'mkdir {iteration_directory}')
+                iteration_directory /= f'iteration_{i_sc}'
+                if not iteration_directory.is_dir():
+                    iteration_directory.mkdir()
 
             # Do a KI/KIPZ calculation with the updated alpha values
-            calc = self.new_calculator('kcp', calc_presets=self.functional.replace('pkipz', 'ki'),
+            calc = self.new_kcp_calculator(calc_presets=self.parameters.functional.replace('pkipz', 'ki'),
                                        alphas=self.bands.alphas)
             calc.directory = iteration_directory
 
             if i_sc == 1:
-                if self.functional == 'kipz' and not self.periodic:
+                if self.parameters.functional == 'kipz' and not self.parameters.periodic:
                     # For the first KIPZ trial calculation, do the innerloop
                     calc.parameters.do_innerloop = True
             else:
@@ -384,7 +391,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
             # Run the calculation and store the result. Note that we only need to continue
             # enforcing the spin symmetry if the density will change
-            self.run_calculator(calc, enforce_ss=self.enforce_spin_symmetry and i_sc > 1)
+            self.run_calculator(calc, enforce_ss=self.parameters.enforce_spin_symmetry and i_sc > 1)
             alpha_dep_calcs = [calc]
 
             # Update the bands' self-Hartree and energies (assuming spin-symmetry)
@@ -430,7 +437,7 @@ class KoopmansDSCFWorkflow(Workflow):
                         f'ln -sr {self.master_calcs["kcp"].parameters.outdir}/*.save {outdir_band}')
 
                 # Don't repeat if this particular alpha_i was converged
-                if i_sc > 1 and abs(band.error) < self.alpha_conv_thr:
+                if i_sc > 1 and abs(band.error) < self.parameters.alpha_conv_thr:
                     self.print(f'Skipping band {band.index} since this alpha is already converged')
                     for b in self.bands:
                         if b == band or (band.group is not None and b.group == band.group):
@@ -448,7 +455,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     index_empty_to_save = band.index - self.bands.num(filled=True)
 
                 # Perform the fixed-band-dependent calculations
-                if self.functional in ['ki', 'pkipz']:
+                if self.parameters.functional in ['ki', 'pkipz']:
                     if band.filled:
                         calc_types = ['ki_frozen', 'dft_frozen', 'dft_n-1']
                     else:
@@ -462,7 +469,7 @@ class KoopmansDSCFWorkflow(Workflow):
                                       'dft_n+1-1_frozen', 'kipz_n+1-1_frozen']
 
                 for calc_type in calc_types:
-                    if self.functional in ['ki', 'pkipz']:
+                    if self.parameters.functional in ['ki', 'pkipz']:
                         # Only the KI calculations change with alpha; we don't need to
                         # redo any of the others
                         if i_sc > 1 and 'ki' not in calc_type:
@@ -493,7 +500,7 @@ class KoopmansDSCFWorkflow(Workflow):
                         filling = band_filled_or_fixed
 
                     # Set up calculator
-                    calc = self.new_calculator('kcp', calc_type, alphas=alphas, filling=filling, fixed_band=min(
+                    calc = self.new_kcp_calculator(calc_type, alphas=alphas, filling=filling, fixed_band=min(
                         band.index, self.bands.num(filled=True) + 1),
                         index_empty_to_save=index_empty_to_save, outdir=outdir_band)
                     calc.directory = directory
@@ -514,7 +521,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     if 'ki' in calc_type and 'print' not in calc_type:
                         alpha_dep_calcs.append(calc)
                     elif 'dft' in calc_type and 'dummy' not in calc_type:
-                        if self.functional in ['ki', 'pkipz']:
+                        if self.parameters.functional in ['ki', 'pkipz']:
                             # For KI, the DFT calculations are independent of alpha so
                             # we store these in a list that is never overwritten
                             alpha_indep_calcs.append(calc)
@@ -534,7 +541,7 @@ class KoopmansDSCFWorkflow(Workflow):
                         else:
                             raise OSError(f'Could not find {evcempty_dir}/evcfixed_empty.dat')
 
-                if self.from_scratch:
+                if self.parameters.from_scratch:
 
                     # Calculate an updated alpha and a measure of the error
                     # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
@@ -572,10 +579,10 @@ class KoopmansDSCFWorkflow(Workflow):
         if not os.path.isdir(directory):
             utils.system_call(f'mkdir {directory}')
 
-        if self.functional == 'pkipz':
+        if self.parameters.functional == 'pkipz':
             final_calc_types = ['ki', 'pkipz']
         else:
-            final_calc_types = [self.functional]
+            final_calc_types = [self.parameters.functional]
 
         for final_calc_type in final_calc_types:
 
@@ -586,9 +593,9 @@ class KoopmansDSCFWorkflow(Workflow):
             if final_calc_type == 'pkipz_final':
                 ndr = [c.parameters.ndw for c in self.all_calcs if c.prefix in [
                     'ki', 'ki_final'] and hasattr(c.parameters, 'ndw')][-1]
-                calc = self.new_calculator('kcp', final_calc_type, ndr=ndr, write_hr=True)
+                calc = self.new_kcp_calculator(final_calc_type, ndr=ndr, write_hr=True)
             else:
-                calc = self.new_calculator('kcp', final_calc_type, write_hr=True)
+                calc = self.new_kcp_calculator(final_calc_type, write_hr=True)
 
             calc.directory = directory
 
@@ -619,11 +626,11 @@ class KoopmansDSCFWorkflow(Workflow):
             self.run_subworkflow(wannier_workflow, subdirectory='postproc', from_scratch=from_scratch)
 
         for calc_presets in ['occ', 'emp']:
-            calc = self.new_calculator('ui', calc_presets)
+            calc = self.new_ui_calculator(calc_presets)
             self.run_calculator(calc, enforce_ss=False)
 
         # Merge the two calculations to print out the DOS and bands
-        calc = self.new_calculator('ui', 'merge')
+        calc = self.new_ui_calculator('merge')
         calc.alat_sc = self.all_calcs[-1].alat_sc
 
         # Merge the bands
@@ -640,24 +647,9 @@ class KoopmansDSCFWorkflow(Workflow):
         self.all_calcs.append(calc)
 
         # Print out the merged bands and DOS
-        if self.from_scratch:
+        if self.parameters.from_scratch:
             with utils.chdir('postproc'):
                 calc.write_results()
-
-    def new_calculator(self, calc_type: str, calc_presets: str = 'dft_init', alphas: Optional[Union[List[float], List[List[float]]]] = None, filling: Optional[Union[List[List[bool]], List[bool]]] = None, **kwargs) -> calculators.ExtendedCalculator:
-        """
-
-        Generates a new calculator based on the self.master_calc[calc_type]
-        template calculator
-
-        """
-
-        if calc_type == 'kcp':
-            return self.new_kcp_calculator(calc_presets, alphas, filling, **kwargs)
-        elif calc_type == 'ui':
-            return self.new_ui_calculator(calc_presets, **kwargs)
-        else:
-            raise ValueError(f'Invalid calc type {calc_type}; must be "kcp"/"ui"')
 
     def new_kcp_calculator(self, calc_presets: str = 'dft_init', alphas: Optional[Union[List[float], List[List[float]]]] = None, filling: Optional[Union[List[List[bool]], List[bool]]] = None, **kwargs) -> calculators.KoopmansCPCalculator:
         """
@@ -762,7 +754,7 @@ class KoopmansDSCFWorkflow(Workflow):
             ndr = 65
             ndw = 68
         elif calc_presets in ['ki_final', 'kipz_final']:
-            if self.calculate_alpha:
+            if self.parameters.calculate_alpha:
                 ndr = 60
             else:
                 ndr = 51
@@ -931,7 +923,7 @@ class KoopmansDSCFWorkflow(Workflow):
             if calc.parameters.do_smooth_interpolation:
                 calc.parameters.dft_smooth_ham_file = os.path.abspath(f'postproc/wannier/{calc_presets}/wann_hr.dat')
                 calc.parameters.dft_ham_file = os.path.abspath(f'init/wannier/{calc_presets}/wann_hr.dat')
-        calc.prefix = self.functional
+        calc.prefix = self.parameters.functional
 
         return calc
 
@@ -947,7 +939,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         '''
 
-        if self.functional == 'kipz':
+        if self.parameters.functional == 'kipz':
             if filled:
                 # KIPZ N
                 [alpha_calc] = [c for c in calcs if c.parameters.which_orbdep == 'nkipz'
@@ -1051,7 +1043,7 @@ class KoopmansDSCFWorkflow(Workflow):
             alpha_guess = alpha_calc.parameters.nkscalfact
 
         # Checking Makov-Payne correction energies and applying them (if needed)
-        if self.mp_correction:
+        if self.parameters.mp_correction:
             if mp1 is None:
                 raise ValueError('Could not find 1st order Makov-Payne energy')
             if mp2 is None:
@@ -1060,7 +1052,7 @@ class KoopmansDSCFWorkflow(Workflow):
             else:
                 mp_energy = mp1 + mp2
 
-            dE -= np.sign(charge) * mp_energy / self.eps_inf
+            dE -= np.sign(charge) * mp_energy / self.parameters.eps_inf
 
         alpha = alpha_guess * (dE - lambda_0) / (lambda_a - lambda_0)
 
