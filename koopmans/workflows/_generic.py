@@ -158,9 +158,9 @@ class Workflow(object):
                         raise ValueError('eps_inf missing in input; needed when mp_correction is true')
                     elif self.parameters.eps_inf < 1.0:
                         raise ValueError('eps_inf cannot be lower than 1')
-                    else:
-                        utils.warn('Makov-Payne corrections not applied for a periodic calculation; do this with '
-                                   'caution')
+                else:
+                    utils.warn('Makov-Payne corrections not applied for a periodic calculation; do this with '
+                               'caution')
 
                 if self.parameters.mt_correction is None:
                     self.parameters.mt_correction = False
@@ -280,7 +280,8 @@ class Workflow(object):
         if enforce_ss:
             # Create a copy of the calculator object (to avoid modifying the input)
             qe_calc = copy.deepcopy(master_qe_calc)
-            nspin2_tmpdir = f'{master_qe_calc.parameters.outdir}/{master_qe_calc.parameters.prefix}_{master_qe_calc.parameters.ndw}.save/K00001'
+            nspin2_tmpdir = master_qe_calc.parameters.outdir / \
+                f'{master_qe_calc.parameters.prefix}_{master_qe_calc.parameters.ndw}.save/K00001'
 
             if master_qe_calc.parameters.restart_mode == 'restart':
                 # PBE with nspin=1 dummy
@@ -293,7 +294,8 @@ class Workflow(object):
                 qe_calc.parameters.skip_qc = True
                 self.run_calculator_single(qe_calc)
                 # Copy over nspin=2 wavefunction to nspin=1 tmp directory (if it has not been done already)
-                nspin1_tmpdir = f'{qe_calc.parameters.outdir}/{qe_calc.parameters.prefix}_{qe_calc.parameters.ndw}.save/K00001'
+                nspin1_tmpdir = qe_calc.parameters.outdir / \
+                    f'{qe_calc.parameters.prefix}_{qe_calc.parameters.ndw}.save/K00001'
                 self.convert_wavefunction_2to1(nspin2_tmpdir, nspin1_tmpdir)
 
             # PBE with nspin=1
@@ -301,7 +303,8 @@ class Workflow(object):
             qe_calc.prefix += '_nspin1'
             qe_calc.parameters.nspin, qe_calc.parameters.nelup, qe_calc.parameters.neldw, qe_calc.parameters.tot_magnetization = 1, None, None, None
             qe_calc.parameters.ndw, qe_calc.parameters.ndr = 98, 98
-            nspin1_tmpdir = f'{qe_calc.parameters.outdir}/{qe_calc.parameters.prefix}_{qe_calc.parameters.ndw}.save/K00001'
+            nspin1_tmpdir = qe_calc.parameters.outdir / \
+                f'{qe_calc.parameters.prefix}_{qe_calc.parameters.ndw}.save/K00001'
             self.run_calculator_single(qe_calc)
 
             # PBE from scratch with nspin=2 (dummy run for creating files of appropriate size)
@@ -315,7 +318,8 @@ class Workflow(object):
             self.run_calculator_single(qe_calc)
 
             # Copy over nspin=1 wavefunction to nspin=2 tmp directory (if it has not been done already)
-            nspin2_tmpdir = f'{qe_calc.parameters.outdir}/{qe_calc.parameters.prefix}_{qe_calc.parameters.ndw}.save/K00001'
+            nspin2_tmpdir = qe_calc.parameters.outdir / \
+                f'{qe_calc.parameters.prefix}_{qe_calc.parameters.ndw}.save/K00001'
             self.convert_wavefunction_1to2(nspin1_tmpdir, nspin2_tmpdir)
 
             # PBE with nspin=2, reading in the spin-symmetric nspin=1 wavefunction

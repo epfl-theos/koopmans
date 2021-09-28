@@ -6,17 +6,15 @@ Written by Edward Linscott Feb 2021
 
 """
 
-from ._generic import Workflow
-from koopmans.calculators import PWCalculator, Wann2KCCalculator, KoopmansScreenCalculator, KoopmansHamCalculator
-from koopmans.bands import Bands
-from koopmans import utils
 import os
 import numpy as np
 import copy
 import matplotlib
-matplotlib.use('Agg')
-from koopmans.bands import Bands
 from koopmans import utils, io
+from koopmans.calculators import PWCalculator, Wann2KCCalculator, KoopmansScreenCalculator, KoopmansHamCalculator
+from koopmans.bands import Bands
+from ._generic import Workflow
+matplotlib.use('Agg')
 
 
 class KoopmansDFPTWorkflow(Workflow):
@@ -56,7 +54,7 @@ class KoopmansDFPTWorkflow(Workflow):
                 if hasattr(calc, 'assume_isolated'):
                     if calc.assume_isolated not in ['none', None]:
                         raise ValueError(
-                            f'Periodic systems must have "assume_isolated" = "none", but it is set to {val}')
+                            f'Periodic systems must have "assume_isolated" = "none", but it is set to {calc.assume_isolated}')
 
             else:
                 # Gygi-Baldereschi (not used for aperiodic systems)
@@ -220,12 +218,12 @@ class KoopmansDFPTWorkflow(Workflow):
                 f'Invalid choice calc_presets={calc_presets} in {self.__class__.__name__}.new_calculator()')
 
         calc = copy.deepcopy(self.master_calcs[calc_presets])
-        calc.name = 'kc'
-        calc.outdir = 'TMP'
-        calc.seedname = 'wann'
-        calc.spin_component = 1
-        calc.kc_at_ks = not self.periodic
-        calc.read_unitary_matrix = self.periodic
+        calc.prefix = 'kc'
+        calc.parameters.outdir = 'TMP'
+        calc.parameters.seedname = 'wann'
+        calc.parameters.spin_component = 1
+        calc.parameters.kc_at_ks = not self.periodic
+        calc.parameters.read_unitary_matrix = self.periodic
 
         if calc_presets == 'wann2kc':
             if self.periodic:

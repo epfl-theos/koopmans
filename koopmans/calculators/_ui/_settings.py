@@ -97,11 +97,6 @@ class UISettingsDictWithChecks(settings.SettingsDictWithChecks):
         return super().__setitem__(key, value)
 
     @property
-    def attributes(self):
-        return ['data', 'valid', 'defaults', 'update', 'are_paths', 'to_not_parse', 'directory', 'settings', 'physicals',
-                'Emin', 'Emax', 'at', 'alat', 'bg', 'do_smooth_interpolation']
-
-    @property
     def Emin(self):
         if self._Emin is None:
             return np.min(self.get_eigenvalues())

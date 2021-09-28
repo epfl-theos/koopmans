@@ -22,7 +22,7 @@ class PWCalculator(ExtendedCalculator, Espresso):
         self._ase_calc_class = Espresso
 
         # Define the valid settings
-        self.parameters = SettingsDict(valid=[k for block in pw_io.KEYS for k in block],
+        self.parameters = SettingsDict(valid=[k for block in pw_io.KEYS.values() for k in block],
                                        defaults={'calculation': 'scf', 'outdir': './TMP/', 'prefix': 'kc',
                                                  'conv_thr': '2.0e-9*nelec'},
                                        are_paths=['outdir', 'pseudo_dir'],

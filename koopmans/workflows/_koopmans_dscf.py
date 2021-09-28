@@ -10,6 +10,7 @@ Split off from workflow.py Oct 2020
 import os
 import copy
 import numpy as np
+import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 import pandas as pd
@@ -197,28 +198,28 @@ class KoopmansDSCFWorkflow(Workflow):
             # We need a dummy calc before the real dft_init in order
             # to copy the previously calculated Wannier functions
             calc = self.new_kcp_calculator('dft_dummy')
-            calc.directory = 'init'
+            calc.directory = Path('init')
             self.run_calculator(calc, enforce_ss=False)
 
             # DFT restarting from Wannier functions (after copying the Wannier functions)
             calc = self.new_kcp_calculator('dft_init', restart_mode='restart',
                                            restart_from_wannier_pwscf=True, do_outerloop=True, ndw=ndw_final)
-            calc.directory = 'init'
-            restart_dir = f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndr}.save/K00001'
+            calc.directory = Path('init')
+            restart_dir = Path(f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndr}.save/K00001')
             for typ in ['occ', 'emp']:
                 if typ == 'occ':
-                    evcw_file = f'init/wannier/occ/evcw.dat'
-                    dest_file = 'evc_occupied.dat'
-                    if os.path.isfile(f'{evcw_file}'):
-                        utils.system_call(f'cp {evcw_file} {restart_dir}/{dest_file}')
+                    evcw_file = Path('init/wannier/occ/evcw.dat')
+                    dest_file = restart_dir / 'evc_occupied.dat'
+                    if evcw_file.is_file():
+                        shutil.copy(evcw_file, dest_file)
                     else:
                         raise OSError(f'Could not find {evcw_file}')
                 if typ == 'emp':
                     for i_spin in ['1', '2']:
-                        evcw_file = 'init/wannier/emp/evcw' + i_spin + '.dat'
-                        dest_file = 'evc0_empty' + i_spin + '.dat'
-                        if os.path.isfile(f'{evcw_file}'):
-                            utils.system_call(f'cp {evcw_file} {restart_dir}/{dest_file}')
+                        evcw_file = Path('init/wannier/emp') / f'evcw{i_spin}.dat'
+                        dest_file = restart_dir / f'evc0_empty{i_spin}.dat'
+                        if evcw_file.is_file():
+                            shutil.copy(evcw_file, dest_file)
                         else:
                             raise OSError(f'Could not find {evcw_file}')
 
@@ -280,7 +281,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         elif self.parameters.functional in ['ki', 'pkipz']:
             calc = self.new_kcp_calculator('dft_init')
-            calc.directory = 'init'
+            calc.directory = Path('init')
             self.run_calculator(calc, enforce_ss=self.parameters.enforce_spin_symmetry)
 
             # Use the KS eigenfunctions as better guesses for the variational orbitals
@@ -290,7 +291,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 self._copy_most_recent_calc_to_ndw(ndw_final)
             elif self.parameters.init_orbitals == 'pz':
                 calc = self.new_kcp_calculator('pz_innerloop_init', alphas=self.bands.alphas, ndw=ndw_final)
-                calc.directory = 'init'
+                calc.directory = Path('init')
                 if self.all_calcs[-1].parameters.nelec == 2:
                     # If we only have two electrons, then the filled manifold is trivially invariant under unitary
                     # transformations. Furthermore, the PZ functional is invariant w.r.t. unitary rotations of the
@@ -306,7 +307,7 @@ class KoopmansDSCFWorkflow(Workflow):
         elif self.parameters.functional == 'kipz':
             # DFT from scratch
             calc = self.new_kcp_calculator('dft_init')
-            calc.directory = 'init'
+            calc.directory = Path('init')
             self.run_calculator(calc, enforce_ss=self.parameters.enforce_spin_symmetry)
 
             if self.parameters.init_orbitals == 'kohn-sham':
@@ -316,7 +317,7 @@ class KoopmansDSCFWorkflow(Workflow):
             elif self.parameters.init_orbitals == 'pz':
                 # PZ from DFT (generating PZ density and PZ orbitals)
                 calc = self.new_kcp_calculator('pz_init', ndw=ndw_final)
-                calc.directory = 'init'
+                calc.directory = Path('init')
                 self.run_calculator(calc)
             else:
                 raise ValueError('Should not arrive here')
@@ -425,14 +426,14 @@ class KoopmansDSCFWorkflow(Workflow):
                 self.print(f'Orbital {band.index}', style='subheading')
 
                 # Set up directories
-                directory = f'{iteration_directory}/orbital_{band.index}'
-                if not os.path.isdir(directory):
-                    utils.system_call(f'mkdir {directory}')
-                outdir_band = f'{outdir}/orbital_{band.index}'
+                directory = Path(f'{iteration_directory}/orbital_{band.index}')
+                if not directory.is_dir():
+                    directory.mkdir()
+                outdir_band = outdir / f'orbital_{band.index}'
 
                 # Link tmp files from band-independent calculations
-                if not os.path.isdir(outdir_band):
-                    utils.system_call(f'mkdir {outdir_band}')
+                if not outdir_band.is_dir():
+                    outdir_band.mkdir()
 
                     utils.symlink(f'{self.master_calcs["kcp"].parameters.outdir}/*.save', outdir_band)
 
@@ -575,9 +576,9 @@ class KoopmansDSCFWorkflow(Workflow):
 
     def perform_final_calculations(self) -> None:
 
-        directory = 'final'
-        if not os.path.isdir(directory):
-            utils.system_call(f'mkdir {directory}')
+        directory = Path('final')
+        if not directory.is_dir():
+            directory.mkdir()
 
         if self.parameters.functional == 'pkipz':
             final_calc_types = ['ki', 'pkipz']
@@ -913,7 +914,7 @@ class KoopmansDSCFWorkflow(Workflow):
         else:
             calc = calculators.UnfoldAndInterpolateCalculator(calc=self.master_calcs[f'ui_{calc_presets}'])
             # Automatically generating UI calculator settings
-            calc.directory = f'postproc/{calc_presets}'
+            calc.directory = Path(f'postproc/{calc_presets}')
             calc.parameters.kc_ham_file = os.path.abspath(f'final/ham_{calc_presets}_1.dat')
             calc.parameters.sc_dim = self.master_calcs['pw'].parameters.kpts
             calc.parameters.w90_seedname = os.path.abspath(f'init/wannier/{calc_presets}/wann')

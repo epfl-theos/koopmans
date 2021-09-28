@@ -8,6 +8,7 @@ Written by Edward Linscott Sep 2020
 
 import os
 import numpy as np
+from pathlib import Path
 from pandas.core.series import Series
 from ase.io.espresso import koopmans_cp as kcp_io
 from koopmans import utils, settings
@@ -21,7 +22,7 @@ class KoopmansCPCalculator(ExtendedCalculator, kcp_io.Espresso_kcp):
     def __init__(self, calc=None, qe_files=[], skip_qc=False, alphas=None, filling=None, **kwargs):
 
         defaults = {'calculation': 'cp',
-                    'outdir': './TMP-CP/',
+                    'outdir': Path('./tmp/'),
                     'iprint': 1,
                     'prefix': 'kc',
                     'verbosity': 'low',

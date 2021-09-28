@@ -27,7 +27,7 @@ class Wannier90Calculator(ExtendedCalculator):
                                               'num_iter', 'conv_window', 'conv_tol', 'num_print_cycles',
                                               'dis_froz_max', 'dis_num_iter', 'dis_win_max', 'guiding_centres',
                                               'bands_plot', 'mp_grid', 'kpoint_path', 'projections', 'write_hr',
-                                              'write_u_matrices', 'write_xyz', 'wannier_plot'],
+                                              'write_u_matrices', 'write_xyz', 'wannier_plot', 'gamma_only'],
                                        defaults={'num_iter': 10000, 'conv_tol': 1.e-10, 'conv_window': 5,
                                                  'write_hr': True, 'guiding_centres': True, 'gamma_only': False},
                                        to_not_parse=['exclude_bands'])

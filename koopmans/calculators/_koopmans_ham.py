@@ -22,7 +22,7 @@ class KoopmansHamCalculator(KCWannCalculator):
         self._ase_calc_class = KoopmansHam
 
         # Define the valid settings
-        self.parameters = settings.SettingsDict(valid=[k for block in kch_io.KEYS for k in block],
+        self.parameters = settings.SettingsDict(valid=[k for block in kch_io.KEYS.values() for k in block],
                                                 defaults={'do_bands': True, 'use_ws_distance': True, 'write_hr': True,
                                                           'l_alpha_corr': False, 'lrpa': False, **kc_wann_defaults},
                                                 are_paths=['outdir', 'pseudo_dir'],

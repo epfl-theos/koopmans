@@ -11,7 +11,6 @@ Feb 2021: Split calculators further into GenericCalc and EspressoCalc
 Sep 2021: Reshuffled files to make imports cleaner
 """
 
-import os
 import copy
 import numpy as np
 from typing import Union, Optional
@@ -129,12 +128,12 @@ class ExtendedCalculator:
         if isinstance(value, settings.SettingsDict):
             self._parameters = value
         else:
-            # If using a standard dictionary, retain all of the information about valid keywords etc
+            # If setting with a standard dictionary, retain all of the information about valid keywords etc
             self._parameters.data = {}
             self._parameters.update(**value)
 
     @property
-    def directory(self):
+    def directory(self) -> Path:
         return self._directory
 
     @directory.setter
@@ -145,7 +144,7 @@ class ExtendedCalculator:
         self._directory = value.resolve()
 
         # Update parameters' record of self.directory
-        self._parameters.directory = self._directory
+        self.parameters.directory = self._directory
 
     def calculate(self):
         # Generic function for running a calculation

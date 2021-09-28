@@ -9,6 +9,7 @@ Split into a separate module Sep 2021
 """
 
 import os
+from pathlib import Path
 import xml.etree.ElementTree as ET
 
 
@@ -24,17 +25,17 @@ def read_pseudo_file(fd):
     return upf
 
 
-def get_pseudo_dir(calc):
+def get_pseudo_dir(calc) -> Path:
     '''
     Works out the pseudo directory (pseudo_dir is given precedence over $ESPRESSO_PSEUDO)
     '''
 
     if calc.parameters.get('pseudo_dir', None):
-        return calc.parameters.pseudo_dir
+        return Path(calc.parameters.pseudo_dir)
     elif 'ESPRESSO_PSEUDO' in os.environ:
-        return os.environ['ESPRESSO_PSEUDO']
+        return Path(os.environ['ESPRESSO_PSEUDO'])
     else:
-        return '.'
+        return Path.cwd()
 
 
 def set_up_pseudos(calc):
@@ -59,8 +60,9 @@ def nelec_from_pseudos(calc):
     '''
 
     directory = get_pseudo_dir(calc)
-    valences_dct = {key: read_pseudo_file(directory + value).find('PP_HEADER').get(
+    valences_dct = {key: read_pseudo_file(directory / value).find('PP_HEADER').get(
         'z_valence') for key, value in calc.parameters.pseudopotentials.items()}
+
     if calc.atoms.has('labels'):
         labels = calc.atoms.get_array('labels')
     else:

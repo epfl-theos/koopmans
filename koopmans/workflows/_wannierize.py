@@ -9,8 +9,6 @@ Written by Riccardo De Gennaro Nov 2020
 
 import numpy as np
 from koopmans import utils
-from koopmans.workflows.generic import Workflow
-from koopmans import utils
 from ._generic import Workflow
 import matplotlib
 matplotlib.use('Agg')

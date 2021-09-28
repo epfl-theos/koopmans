@@ -12,6 +12,36 @@ from typing import Union, Type, Tuple, NamedTuple, Dict, Any, Optional, List
 from koopmans.utils import units
 
 
+def parse_physical(value):
+    '''
+    Takes in a value that potentially has a unit following a float,
+    converts the value to ASE's default units (Ang, eV), and returns
+    that value
+    '''
+
+    if isinstance(value, float):
+        return value
+    elif isinstance(value, int):
+        return float(value)
+    elif isinstance(value, str):
+        splitline = value.strip().split()
+        if len(splitline) == 1:
+            return float(splitline[0])
+        elif len(splitline) == 2:
+            [value, val_units] = splitline
+            value = float(value)
+            matching_units = [
+                u for u in units if u.lower() == val_units.lower()]
+            if len(matching_units) == 1:
+                return value * units[matching_units[0]]
+            elif len(matching_units) > 1:
+                raise ValueError(
+                    f'Multiple matches for {val_units} found; this should not happen')
+            else:
+                raise NotImplementedError(
+                    f'{val_units} not implemented in koopmans.utils.parse_physical')
+
+
 class Setting(NamedTuple):
     name: str
     description: str
@@ -42,34 +72,49 @@ class SettingsDict(UserDict):
 
     def __init__(self, valid: List[str], defaults: Dict[str, Any] = {}, are_paths: List[str] = [], to_not_parse: List[str] = [], directory='', physicals: List[str] = [], **kwargs):
         super().__init__(**kwargs)
-        self.valid = valid
+        self.valid = valid + ['pseudopotentials']
         self.defaults = defaults
-        self.update(**defaults)
         self.are_paths = are_paths
         self.to_not_parse = to_not_parse
         self.directory = directory
         self.physicals = physicals
+        self.update(**defaults)
         self.update(**kwargs)
 
-    @property
-    def attributes(self):
-        return ['data', 'valid', 'defaults', 'update', 'are_paths', 'to_not_parse', 'directory', 'settings', 'physicals']
-
-    def __getattr__(self, key):
-        if key in ['attributes'] + self.attributes:
-            return self.__dict__[key]
-        elif key in self.valid:
-            return self.data.get(key, None)
+    def __getattr__(self, name):
+        if name != 'valid' and name in self.valid:
+            return self.data.get(name, None)
         else:
-            if key not in self.data:
-                return dict.__getattribute__(self.data, key)
-            return self.data[key]
+            return self.__dict__[name]
+        # if key == 'directory':
+        #     return self._directory
+        # elif key == 'to_not_parse':
+        #     if not '_to_not_parse' in self.__dict__:
+        #         self.__dict__['_to_not_parse'] = set(self.are_paths)
+        #     return self.__dict__['_to_not_parse']
+        # elif key in ['attributes'] + self.attributes:
+        #     return self.__dict__[key]
+        # elif key in self.valid:
+        #     return self.data.get(key, None)
+        # else:
+        #     if key not in self.data:
+        #         return dict.__getattribute__(self.data, key)
+        #     return self.data[key]
 
-    def __setattr__(self, key, value):
-        if key in ['attributes'] + self.attributes:
-            self.__dict__[key] = value
+    def __setattr__(self, name, value):
+        if name in self.valid:
+            self.data[name] = value
         else:
-            self.data[key] = value
+            super().__setattr__(name, value)
+    # def __setattr__(self, key, value):
+    #     if key == 'directory':
+    #         self.__dict__['_directory'] = value
+    #     elif key == 'to_not_parse':
+    #         self.__dict__['_to_not_parse'] = self.to_not_parse.union(value)
+    #     elif key in ['attributes'] + self.attributes:
+    #         self.__dict__[key] = value
+    #     else:
+    #         self.data[key] = value
 
     def __getitem__(self, key: str):
         if key not in self.data:
@@ -104,27 +149,18 @@ class SettingsDict(UserDict):
                 raise TypeError(f"update expected at most 1 arguments, got {len(args)}")
             other = dict(args[0])
             for key in other:
-                self.data[key] = other[key]
+                self.__setitem__(key, other[key])
         for key in kwargs:
-            self.data[key] = kwargs[key]
+            self.__setitem__(key, kwargs[key])
 
     def setdefault(self, key: str, value: Optional[Any] = None):
         if key not in self:
             self.data[key] = value
         return self.data[key]
 
-    @property
-    def to_not_parse(self):
-        if not '_to_not_parse' in self.__dict__:
-            self._to_not_parse = set(self.are_paths)
-        return self._to_not_parse
-
-    @to_not_parse.setter
-    def to_not_parse(self, value: Union[list, set]):
-        self._to_not_parse = self.to_not_parse.union(value)
-
     def _check_before_setitem(self, key, value):
-        # Function that child classes can overwrite to impose additional checks when setting attributes
+        if key not in self.valid:
+            raise KeyError(f'{key} is not a valid setting')
         return
 
     def todict(self):
@@ -148,11 +184,10 @@ class SettingsDictWithChecks(SettingsDict):
             s.name: s.default for s in settings if not s.default is None}, **kwargs)
 
     def _check_before_setitem(self, key, value):
-        # Check key is a valid setting
-        if key not in self.valid:
-            raise KeyError(f'{key} is not a valid setting')
-        else:
-            [setting] = [s for s in self.settings if s.name == key]
+        super()._check_before_setitem(key, value)
+
+        # Fetch the record of the setting in question
+        [setting] = [s for s in self.settings if s.name == key]
 
         # Check the value is the valid type
         if isinstance(setting.kind, tuple):
@@ -165,33 +200,3 @@ class SettingsDictWithChecks(SettingsDict):
         # Check the value is among the valid options
         if setting.options is not None and value not in setting.options:
             raise ValueError(f'{setting.name} may only be set to ' + '/'.join([str(o) for o in setting.options]))
-
-
-def parse_physical(value):
-    '''
-    Takes in a value that potentially has a unit following a float,
-    converts the value to ASE's default units (Ang, eV), and returns
-    that value
-    '''
-
-    if isinstance(value, float):
-        return value
-    elif isinstance(value, int):
-        return float(value)
-    elif isinstance(value, str):
-        splitline = value.strip().split()
-        if len(splitline) == 1:
-            return float(splitline[0])
-        elif len(splitline) == 2:
-            [value, val_units] = splitline
-            value = float(value)
-            matching_units = [
-                u for u in units if u.lower() == val_units.lower()]
-            if len(matching_units) == 1:
-                return value * units[matching_units[0]]
-            elif len(matching_units) > 1:
-                raise ValueError(
-                    f'Multiple matches for {val_units} found; this should not happen')
-            else:
-                raise NotImplementedError(
-                    f'{val_units} not implemented in koopmans.utils.parse_physical')

@@ -86,7 +86,7 @@ def read_pw2wannier_dict(dct, generic_atoms):
     # Setting up ASE calc object
     calc = ASEPW2Wannier()
 
-    calc.parameters['inputpp'] = utils.parse_dict(dct)
+    calc.parameters.update(utils.parse_dict(dct))
 
     # Attaching an atoms object (though pw2wannier doesn't need this information,
     # ASE will complain if it's missing)
