@@ -18,8 +18,8 @@ import numpy as np
 
 class WannierizeWorkflow(Workflow):
 
-    def __init__(self, workflow_settings=None, calcs_dct=None, dct=None, nspin=1, check_wannierisation=None):
-        super().__init__(workflow_settings, calcs_dct, dct=dct)
+    def __init__(self, workflow_settings=None, calcs_dct=None, nspin=1, check_wannierisation=None, **kwargs):
+        super().__init__(workflow_settings, calcs_dct, **kwargs)
 
         if check_wannierisation is not None:
             # In certain cases we never want to check the wannierisation, even if this is requested by the
