@@ -1,0 +1,33 @@
+name: Build KCP
+
+on:
+   pull_request:
+      branches:
+         - master
+      paths:
+         - 'quantum_espresso/cp_koopmans/**'
+   push:
+      branches:
+         - master
+      paths:
+         - 'quantum_espresso/cp_koopmans/**'
+
+jobs:
+   gfortran:
+      runs-on: ubuntu-latest
+      steps:
+         - name: Checkout
+           uses: actions/checkout@v2
+           with:
+              submodules: true
+         - name: Install dependencies
+           run: |
+              sudo apt-get update
+              sudo apt-get install gfortran libopenmpi-dev libblas-dev liblapack-dev fftw3-dev
+         - name: Configure cp_koopmans
+           run: |
+              make configure_4 MPIF90=mpif90
+         - name: Build cp_koopmans
+           run: |
+              make espresso_4 MPIF90=mpif90
+

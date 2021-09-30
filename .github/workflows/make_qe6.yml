@@ -1,16 +1,16 @@
-name: Build
+name: Build QE
 
 on:
    pull_request:
       branches:
          - master
       paths:
-         - 'quantum_espresso/**'
+         - 'quantum_espresso/qe_koopmans/**'
    push:
       branches:
          - master
       paths:
-         - 'quantum_espresso/**'
+         - 'quantum_espresso/qe_koopmans/**'
 
 jobs:
    gfortran:
@@ -24,12 +24,6 @@ jobs:
            run: |
               sudo apt-get update
               sudo apt-get install gfortran libopenmpi-dev libblas-dev liblapack-dev fftw3-dev
-         - name: Configure cp_koopmans
-           run: |
-              make configure_4 MPIF90=mpif90
-         - name: Build cp_koopmans
-           run: |
-              make espresso_4 MPIF90=mpif90
          - name: Configure qe_koopmans
            run: |
               make configure_6 MPIF90=mpif90
