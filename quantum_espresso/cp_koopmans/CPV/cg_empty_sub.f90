@@ -908,6 +908,7 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
            !
            if(ionode) then
              write(stdout,"(5x,a,i5)") 'WARNING cg_sub: missed minimum, case 3, iteration, doing steepest descent',itercg
+             write(stdout,'(5x,"enever, ene0, ene1", 3F20.15)') enever, ene0, ene1
            endif
            !
            iter3=0
@@ -978,15 +979,16 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
              endif
              ! 
              enever=etot_emp
+             write(stdout, *) iter3, spasso*passov, enever
              !
            enddo
            !
-           if (ionode) write(stdout,"(2x,a,i5)") 'iter3 = ',iter3
+           if (ionode) write(stdout,"(7x,a,i5)") 'iter3 = ',iter3
            !
            if (iter3 == maxiter3 .and. enever.gt.ene0) then
               ! 
-              write(stdout,"(5x,a)") 'WANRING missed minimum: iter3 = maxiter3'
-              write(stdout,*) enever, ene0
+              write(stdout,"(7x,a)") 'WANRING missed minimum: iter3 = maxiter3'
+              write(stdout,'(7x, "enever, ene0", 2F20.15)') enever, ene0
               !
            elseif (enever.le.ene0) then
               !
