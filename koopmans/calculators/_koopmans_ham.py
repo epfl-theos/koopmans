@@ -6,35 +6,32 @@ Written by Edward Linscott Feb 2021
 
 """
 
+import os
 import numpy as np
+from ase import Atoms
 from ase.calculators.espresso import KoopmansHam
-from ase.io.espresso import koopmans_ham as kch_io
 from koopmans import utils, settings
-from ._utils import KCWannCalculator, qe_bin_directory, kc_wann_defaults
+from ._utils import KCWannCalculator, qe_bin_directory
 from koopmans.commands import ParallelCommand
 
 
-class KoopmansHamCalculator(KCWannCalculator):
+class KoopmansHamCalculator(KCWannCalculator, KoopmansHam):
     # Subclass of KCWannCalculator for performing calculations with kc_wann.x
 
-    def __init__(self, *args, **kwargs):
-        # Link to corresponding ASE IO Calculator
-        self._ase_calc_class = KoopmansHam
-
+    def __init__(self, atoms: Atoms, *args, **kwargs):
         # Define the valid settings
-        self.parameters = settings.SettingsDict(valid=[k for block in kch_io.KEYS.values() for k in block],
-                                                defaults={'do_bands': True, 'use_ws_distance': True, 'write_hr': True,
-                                                          'l_alpha_corr': False, 'lrpa': False, **kc_wann_defaults},
-                                                are_paths=['outdir', 'pseudo_dir'],
-                                                to_not_parse=['assume_isolated'])
+        self.parameters = settings.KoopmansHamSettingsDict()
 
         # Define the appropriate file extensions
         self.ext_in = '.khi'
         self.ext_out = '.kho'
 
-        super().__init__(*args, **kwargs)
+        # Initialise using the ASE parent, and then ExtendedCalculator
+        KoopmansHam.__init__(self, atoms=atoms)
+        KCWannCalculator.__init__(*args, **kwargs)
 
-        self.command = ParallelCommand(f'{qe_bin_directory}kc_ham.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
+        self.command = ParallelCommand(
+            f'{qe_bin_directory}{os.path.sep}kc_ham.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
 
     def write_alphas(self):
         assert 'alphas' in self.results

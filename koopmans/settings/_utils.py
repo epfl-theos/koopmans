@@ -1,11 +1,12 @@
 '''
 
-Generic functions and classes for dealing with settings
+Module koopmans for dealing with settings
 
 Written by Edward Linscott May 2020
 
 '''
 
+from koopmans import pseudopotentials
 from pathlib import Path
 from collections import UserDict
 from typing import Union, Type, Tuple, NamedTuple, Dict, Any, Optional, List
@@ -69,23 +70,32 @@ class SettingsDict(UserDict):
     # Need to provide these here to allow copy.deepcopy to perform the checks in __getattr__
     valid: List[str] = []
     data: Dict[str, Any] = {}
+    are_paths: List[str] = []
+    to_not_parse: List[str] = []
+    physicals: List[str] = []
 
     def __init__(self, valid: List[str], defaults: Dict[str, Any] = {}, are_paths: List[str] = [], to_not_parse: List[str] = [], directory='', physicals: List[str] = [], **kwargs):
-        super().__init__(**kwargs)
-        self.valid = valid + ['pseudopotentials']
+        super().__init__()
+        self.valid = valid + self._other_valid_keywords
         self.defaults = defaults
         self.are_paths = are_paths
         self.to_not_parse = to_not_parse
         self.directory = directory
         self.physicals = physicals
         self.update(**defaults)
-        self.update(**kwargs)
+        try:
+            self.update(**kwargs)
+        except:
+            raise ValueError()
 
     def __getattr__(self, name):
-        if name != 'valid' and name in self.valid:
+        if name != 'valid' and self.is_valid(name):
             return self.data.get(name, None)
         else:
-            return self.__dict__[name]
+            try:
+                super().__getattr__(name)
+            except AttributeError:
+                raise AttributeError(name)
         # if key == 'directory':
         #     return self._directory
         # elif key == 'to_not_parse':
@@ -102,7 +112,7 @@ class SettingsDict(UserDict):
         #     return self.data[key]
 
     def __setattr__(self, name, value):
-        if name in self.valid:
+        if self.is_valid(name):
             self.data[name] = value
         else:
             super().__setattr__(name, value)
@@ -143,6 +153,11 @@ class SettingsDict(UserDict):
         # Set the item
         super().__setitem__(key, value)
 
+    def is_valid(self, name):
+        # Check if a keyword is valid. This is a separate subroutine to allow child classes to overwrite it
+        # e.g. QE calculators want to be able to set keywords such as Hubbard(i) where i is an arbitrary integer
+        return name in self.valid
+
     def update(self, *args, **kwargs):
         if args:
             if len(args) > 1:
@@ -159,9 +174,55 @@ class SettingsDict(UserDict):
         return self.data[key]
 
     def _check_before_setitem(self, key, value):
-        if key not in self.valid:
+        if not self.is_valid(key):
             raise KeyError(f'{key} is not a valid setting')
         return
+
+    def parse_algebraic_setting(self, expr, **kwargs):
+        # Checks if expr is defined algebraically, and evaluates them
+        if not isinstance(expr, str):
+            return expr
+        if all([c.isalpha() or c in ['_', '"', "'"] for c in expr]):
+            return expr.strip('"').strip("'")
+
+        expr = expr.replace('/', ' / ').replace('*', ' * ').split()
+        for i, term in enumerate(expr):
+            if term in ['*', '/']:
+                continue
+            elif all([c.isalpha() for c in term]):
+                if term in kwargs:
+                    expr[i] = kwargs[term]
+                elif getattr(self, term, None) is None:
+                    raise ValueError('Failed to parse ' + ''.join(map(str, expr)))
+                else:
+                    expr[i] = getattr(self, term)
+            else:
+                expr[i] = float(term)
+
+        value = float(expr[0])
+        for op, term in zip(expr[1::2], expr[2::2]):
+            if op == '*':
+                value *= float(term)
+            elif op == '/':
+                value /= float(term)
+            else:
+                raise ValueError('Failed to parse ' + ''.join([str(e) for e in expr]))
+
+        return value
+
+    def parse_algebraic_settings(self, **kwargs):
+        # Checks self.parameters for keywords defined algebraically, and evaluates them.
+        # kwargs can be used to provide values for keywords such as 'nelec', which the
+        # SettingsDict may not have access to but is a useful keyword for scaling extensive
+        # parameters
+        for key in self.data.keys():
+            if key in self.to_not_parse:
+                continue
+            self.data[key] = self.parse_algebraic_setting(self.data[key], **kwargs)
+
+    @property
+    def _other_valid_keywords(self):
+        return ['pseudopotentials', 'kpts', 'koffset', 'kpath']
 
     def todict(self):
         # Shallow copy
@@ -186,6 +247,10 @@ class SettingsDictWithChecks(SettingsDict):
     def _check_before_setitem(self, key, value):
         super()._check_before_setitem(key, value)
 
+        # Always accept pseudopotentials and k-point data
+        if key in self._other_valid_keywords:
+            return
+
         # Fetch the record of the setting in question
         [setting] = [s for s in self.settings if s.name == key]
 
@@ -200,3 +265,13 @@ class SettingsDictWithChecks(SettingsDict):
         # Check the value is among the valid options
         if setting.options is not None and value not in setting.options:
             raise ValueError(f'{setting.name} may only be set to ' + '/'.join([str(o) for o in setting.options]))
+
+
+kc_wann_defaults = {'outdir': 'TMP',
+                    'kc_iverbosity': 1,
+                    'kc_at_ks': False,
+                    'homo_only': False,
+                    'read_unitary_matrix': True,
+                    'check_ks': True,
+                    'have_empty': True,
+                    'has_disentangle': True}

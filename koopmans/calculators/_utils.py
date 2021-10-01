@@ -12,11 +12,9 @@ Sep 2021: Reshuffled files to make imports cleaner
 """
 
 import copy
-import numpy as np
 from typing import Union, Optional
 from pathlib import Path
 import ase.io as ase_io
-from ase.build import make_supercell
 from ase.calculators.calculator import FileIOCalculator
 from koopmans import utils, settings, pseudopotentials
 
@@ -26,7 +24,7 @@ qe_bin_directory = qe_parent_directory / 'qe_koopmans/bin/'
 kcp_bin_directory = qe_parent_directory / 'cp_koopmans/bin/'
 
 
-class ExtendedCalculator:
+class ExtendedCalculator():
 
     '''
     This generic class is designed to be a parent class of a calculator that also inherits from an ASE calculator
@@ -37,80 +35,14 @@ class ExtendedCalculator:
         kwargs     any valid quantum espresso keywords to alter
     '''
 
+    prefix: str = ''
     results: dict
     ext_in: str = ''
     ext_out: str = ''
 
-    def __init__(self, calc=None, qe_files=[], skip_qc=False, dct={}, **kwargs):
-        # Construct from dct if this is provided
-        if dct:
-            self.fromdict(dct)
-            return
-
-        # If qe_input/output_files are provided, use them instead of calc
-        if len(qe_files) > 0 and calc is not None:
-            raise ValueError(f'Please only provide either the calc or qe_files argument to {self.__class__}')
-
-        # Interpreting the qe_files argument
-        if isinstance(qe_files, str):
-            # If no extension is provided, automatically read both input and output files
-            if '.' not in qe_files.split('/')[-1]:
-                qe_files = [qe_files + self.ext_in, qe_files + self.ext_out]
-            else:
-                qe_files = [qe_files]
-
-        # Read qe input file
-        for qe_file in [f for f in qe_files if self.ext_in in f]:
-            calc = self.read_input_file(qe_file)
-
-        # Read qe output file
-        for qe_file in [f for f in qe_files if self.ext_out in f]:
-            if calc is None:
-                calc = self.read_output_file(qe_file)
-            else:
-                try:
-                    outcalc = self.read_output_file(qe_file)
-                except:
-                    # Calculation could not be read; must have been incomplete
-                    continue
-                # Copy over the results
-                calc.results = outcalc.results
-                if hasattr(outcalc, 'kpts'):
-                    calc.kpts = outcalc.kpts
-
-        # Initialise the calculator object
-        if isinstance(calc, ExtendedCalculator):
-            self.__dict__ = copy.deepcopy(calc.__dict__)
-        elif isinstance(calc, FileIOCalculator):
-            # We must convert from an ASE Calculator to an ExtendedCalculator
-            for k, v in calc.__dict__.items():
-                if k == 'parameters':
-                    # Use our custom parameters class instead of ASE's Parameters
-                    self.parameters.update(calc.parameters)
-                else:
-                    self.__dict__[k] = v
-            self.atoms.calc = self
-        else:
-            raise ValueError(
-                f'Unrecognizable object "{calc.__class__.__name__}" provided to QE_calc() as the "calc" argument')
-
-        # If we initialised from qe_files, update self.directory and self.parameters.prefix
-        if len(qe_files) > 0:
-            if '/' in qe_files[0]:
-                self.directory, prefix = qe_files[0].rsplit('/', 1)
-            else:
-                self.directory, prefix = '.', qe_files[0]
-            self.parameters.prefix = prefix.rsplit('.', 1)[0]
-
+    def __init__(self, skip_qc=False, **kwargs):
         # Handle any recognised QE keywords passed as arguments
         self.parameters.update(**kwargs)
-
-        # Extract nelec from the pseudos if it has not been specified explicitly
-        if 'pseudopotentials' in self.parameters and 'nelec' not in self.parameters:
-            self.parameters.nelec = pseudopotentials.nelec_from_pseudos(self)
-
-        # Parse any algebraic expressions used for keywords
-        self.parse_algebraic_settings()
 
         # Initialise quality control variables
         self.skip_qc = skip_qc
@@ -124,13 +56,14 @@ class ExtendedCalculator:
         return self._parameters
 
     @parameters.setter
-    def parameters(self, value: Union[settings.SettingsDict, dict]):
+    def parameters(self, value: Union[settings.SettingsDict, dict, None]):
         if isinstance(value, settings.SettingsDict):
             self._parameters = value
         else:
-            # If setting with a standard dictionary, retain all of the information about valid keywords etc
+            # If setting with a standard dictionary or None, retain all of the information about valid keywords etc
             self._parameters.data = {}
-            self._parameters.update(**value)
+            if value is not None:
+                self._parameters.update(**value)
 
     @property
     def directory(self) -> Path:
@@ -152,11 +85,7 @@ class ExtendedCalculator:
         # First, check the corresponding program is installed
         self.check_code_is_installed()
 
-        # If pseudo_dir is a relative path then make sure it accounts for self.directory
-        if getattr(self.parameters, 'pseudo_dir', None) is not None and self.parameters['pseudo_dir'][0] != '/':
-            directory_depth = self.directory.strip('./').count('/') + 1
-            self.parameters.pseudo_dir = '../' * directory_depth + self.parameters.pseudo_dir
-
+        # Then call the relevant ASE calculate() function
         self._ase_calculate()
 
     def _ase_calculate(self):
@@ -170,83 +99,32 @@ class ExtendedCalculator:
         # Restore self.command
         self.command = command
 
-    def write_input_file(self, input_file=None):
-        # By default, use ASE
+    def read_input(self, input_file: Optional[Path] = None):
         if input_file is None:
-            directory = self.directory
-            fname = self.parameters.prefix + self.ext_in
-        else:
-            directory, fname = input_file.rsplit('/', 1)
-        with utils.chdir(directory):
-            ase_io.write(fname, self.atoms)
-
-    def read_input_file(self, input_file: Optional[Path] = None):
-        # By default, use ASE
-        if input_file is None:
-            input_file = self.directory / (self.parameters.prefix + self.ext_in)
-        return ase_io.read(input_file).calc
-
-    def load_input_file(self, input_file: Optional[Path] = None):
-        if input_file is None:
-            input_file = self.directory / (self.parameters.prefix + self.ext_in)
+            input_file = self.directory / (self.prefix + self.ext_in)
         elif not input_file.suffix:
             # Add extension if necessary
             input_file = input_file.with_suffix(self.ext_in)
 
-        # Save command
-        command = self.command
+        # Load calculator from input file
+        input_file = self.directory / (self.prefix + self.ext_in)
+        calc = ase_io.read(input_file).calc
 
-        # Load calculator from input file and update self.parameters
-        calc = self.read_input_file()
-        self.parameters = calc.parameters
+        # Update self based off the input file
+        try:
+            self.parameters = calc.parameters
+        except:
+            raise ValueError()
         self.atoms = calc.atoms
         self.atoms.calc = self
 
-        # Restore command
-        self.command = command
-
-    def read_output_file(self, output_file=None):
-        # By default, use ASE
-        if output_file is None:
-            output_file = self.directory + '/' + self.prefix + self.ext_out
-        return ase_io.read(output_file).calc
-
-    def parse_algebraic_setting(self, expr):
-        # Checks if expr is defined algebraically, and evaluates them
-        if not isinstance(expr, str):
-            return expr
-        if all([c.isalpha() or c in ['_', '"', "'"] for c in expr]):
-            return expr.strip('"').strip("'")
-
-        expr = expr.replace('/', ' / ').replace('*', ' * ').split()
-        for i, term in enumerate(expr):
-            if term in ['*', '/']:
-                continue
-            elif all([c.isalpha() for c in term]):
-                if getattr(self.parameters, term, None) is None:
-                    raise ValueError('Failed to parse ' + ''.join(map(str, expr)))
-                else:
-                    expr[i] = getattr(self.parameters, term)
-            else:
-                expr[i] = float(term)
-
-        value = float(expr[0])
-        for op, term in zip(expr[1::2], expr[2::2]):
-            if op == '*':
-                value *= float(term)
-            elif op == '/':
-                value /= float(term)
-            else:
-                raise ValueError('Failed to parse ' + ''.join([str(e) for e in expr]))
-
-        return value
-
-    def parse_algebraic_settings(self):
-        # Checks self.parameters for keywords defined algebraically, and evaluates them
-        for key in list(self.parameters.keys()):
-            if key in self.parameters.to_not_parse:
-                continue
-            self.parameters[key] = self.parse_algebraic_setting(self.parameters[key])
+    # def read_results(self, output_file=None):
+    #     # By default, use ASE
+    #     if output_file is None:
+    #         output_file = self.directory / (self.prefix + self.ext_out)
+    #
+    #     raise NotImplementedError('Need to check correct behaviour here')
+    #     output = ase_io.read(output_file).calc
 
     def is_converged(self):
         raise ValueError(
@@ -255,12 +133,6 @@ class ExtendedCalculator:
     def is_complete(self):
         raise ValueError(
             f'is_complete() function has not been implemented for {self.__class__.__name__}')
-
-    def transform_to_supercell(self, matrix, **kwargs):
-        # Converts to a supercell as given by a 3x3 transformation matrix
-        assert np.shape(matrix) == (3, 3)
-        self.atoms = make_supercell(self.atoms, matrix, **kwargs)
-        self.atoms.calc = self
 
     def check_code_is_installed(self):
         # Checks the corresponding code is installed
@@ -294,9 +166,33 @@ class ExtendedCalculator:
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct
 
-    def fromdict(self, dct):
-        for k, v in dct.items():
-            setattr(self, k, v)
+    @classmethod
+    def fromdict(cls, dct):
+        raise NotImplementedError()
+        # for k, v in dct.items():
+        #     setattr(cls, k, v)
+
+    @classmethod
+    def fromfile(cls, filenames):
+        # Read qe input file
+        for filename in [f for f in filenames if f.suffix == cls.ext_in]:
+            cls.read_input(filename)
+
+        # Read qe output file
+        for filename in [f for f in filenames if f.suffix == cls.ext_out]:
+            try:
+                cls.read_results(filename)
+            except:
+                # Calculation could not be read; must have been incomplete
+                continue
+            # # Copy over the results
+            # cls.results = outcls.results
+            # if hasattr(outcls, 'kpts'):
+            #     cls.kpts = outcls.kpts
+
+        # Update cls.directory and cls.parameters.prefix
+        cls.directory = filenames[0].parent
+        cls.parameters.prefix = filenames[0].stem
 
 
 class KCWannCalculator(ExtendedCalculator):
@@ -314,13 +210,3 @@ class KCWannCalculator(ExtendedCalculator):
     @property
     def filling(self):
         return [[True for _ in range(self.parameters.num_wann_occ)] + [False for _ in range(self.parameters.num_wann_emp)]]
-
-
-kc_wann_defaults = {'outdir': 'TMP',
-                    'kc_iverbosity': 1,
-                    'kc_at_ks': False,
-                    'homo_only': False,
-                    'read_unitary_matrix': True,
-                    'check_ks': True,
-                    'have_empty': True,
-                    'has_disentangle': True}

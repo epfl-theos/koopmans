@@ -21,8 +21,8 @@ class ConvergenceWorkflow(Workflow):
 
     def run(self, initial_depth: int = 3) -> Dict[str, Union[float, int]]:
 
-        if 'kcp' in self.master_calcs:
-            kcp_master_calc = self.master_calcs['kcp']
+        if 'kcp' in self.master_calc_params:
+            kcp_master_params = self.master_calc_params['kcp']
         else:
             raise NotImplementedError(
                 'Convergence.run() has not been generalised beyond kcp.x')
@@ -50,7 +50,7 @@ class ConvergenceWorkflow(Workflow):
                 param_dict[parameter] = [1 + i * increments['cell_size']
                                          for i in range(initial_depth)]
             else:
-                attr = getattr(kcp_master_calc, parameter, None)
+                attr = getattr(kcp_master_params, parameter, None)
                 if attr is None:
                     raise AttributeError(
                         f'In order to converge wrt {parameter} specify a baseline value for it')
@@ -72,7 +72,7 @@ class ConvergenceWorkflow(Workflow):
             master_alphas = utils.read_alpha_file(directory='.')
             if self.parameters.orbital_groups is None:
                 self.parameters.orbital_groups = list(
-                    range(kcp_master_calc.nelec // 2 + kcp_master_calc.empty_states_nbnd))
+                    range(kcp_master_params.nelec // 2 + kcp_master_params.empty_states_nbnd))
             master_orbital_groups = copy.deepcopy(self.parameters.orbital_groups)
 
         while True:
@@ -110,7 +110,7 @@ class ConvergenceWorkflow(Workflow):
 
                 if provide_alpha:
                     # Update alpha files and orbitals
-                    extra_orbitals = kcp_calc.empty_states_nbnd - kcp_master_calc.empty_states_nbnd
+                    extra_orbitals = kcp_calc.empty_states_nbnd - kcp_master_params.empty_states_nbnd
                     filling = [True] * (kcp_calc.nelec // 2) + \
                         [False] * kcp_calc.empty_states_nbnd
                     alphas = master_alphas + [master_alphas[-1]
@@ -123,11 +123,11 @@ class ConvergenceWorkflow(Workflow):
                 self.print(header.rstrip(', '), style='subheading')
 
                 # Perform calculation
-                calcs_dct = copy.deepcopy(self.master_calcs)
+                calcs_dct = copy.deepcopy(self.master_calc_params)
                 calcs_dct['kcp'] = kcp_calc
                 singlepoint = SinglepointWorkflow(self.parameters, calcs_dct)
                 self.run_subworkflow(singlepoint, subdirectory=subdir)
-                solved_calc = singlepoint.all_calcs[-1]
+                solved_calc = singlepoint.calculations[-1]
 
                 # Store the result
                 obs = self.parameters.convergence_observable

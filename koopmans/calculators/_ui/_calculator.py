@@ -4,13 +4,12 @@ The calculator class defining the Unfolding & interpolating calculator
 
 """
 
-from typing import List
 from time import time
 import numpy as np
 from ase.dft.kpoints import BandPath
 from .._utils import ExtendedCalculator
-from ._settings import valid_settings, UISettingsDictWithChecks
 from koopmans import utils
+from koopmans.settings import UnfoldAndInterpolateSettingsDict
 
 
 class UnfoldAndInterpolateCalculator(ExtendedCalculator):
@@ -23,11 +22,8 @@ class UnfoldAndInterpolateCalculator(ExtendedCalculator):
 
     def __init__(self, calc=None, qe_files=[], skip_qc=False, **kwargs):
 
-        self.parameters = UISettingsDictWithChecks(settings=valid_settings,
-                                                   are_paths=['w90_seedname', 'kc_ham_file',
-                                                              'dft_ham_file', 'dft_smooth_ham_file'],
-                                                   to_not_parse=[],
-                                                   physicals=['alat_sc', 'degauss', 'Emin', 'Emax'])
+        self.parameters = UnfoldAndInterpolateSettingsDict()
+
         # Link to the corresponding ASE Calculator (it does not use ASE)
         self._ase_calc_class = None
 

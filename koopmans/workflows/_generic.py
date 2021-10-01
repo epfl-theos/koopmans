@@ -11,9 +11,13 @@ import os
 import copy
 from pathlib import Path
 import numpy as np
+from typing import Optional, Dict, List, Type, Union, Any
+from ase import Atoms
+from ase.build import make_supercell
+from ase.dft.kpoints import BandPath
 from ase.calculators.calculator import CalculationFailed
 from ase.calculators.espresso import EspressoWithBandstructure
-from koopmans import utils, settings
+from koopmans import pseudopotentials, utils, settings
 import koopmans.calculators as calculators
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.bands import Bands
@@ -115,88 +119,175 @@ valid_settings = [
 
 class Workflow(object):
 
-    def __init__(self, workflow_settings=None, calcs_dct=None, name=None, dct={}):
-        if dct:
-            assert workflow_settings is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, '
-            'do not use any other arguments'
-            assert calcs_dct is None, f'If using the "dct" argument to initialise {self.__class__.__name__}, do not '
-            'use any other arguments'
-            self.fromdict(dct)
+    def __init__(self, atoms: Atoms, workflow_settings: settings.SettingsDict,
+                 master_calc_params: Dict[str, settings.SettingsDict], name: str,
+                 pseudopotentials: Optional[Dict[str, str]] = None,
+                 kpts: Optional[List[int]] = [1, 1, 1],
+                 koffset: Optional[List[int]] = [0, 0, 0],
+                 kpath: Optional[BandPath] = None):
+
+        self.master_calc_params = master_calc_params
+        self.atoms = atoms
+        self.name = name
+        self.calculations: List[calculators.ExtendedCalculator] = []
+        self.silent = False
+        self.print_indent = 1
+        if pseudopotentials is not None:
+            self.pseudopotentials = pseudopotentials
+        self.kpts = kpts
+        self.koffset = koffset
+        self.kpath = BandPath(path='G', cell=self.atoms.cell) if kpath is None else kpath
+
+        # If atoms has a calculator, overwrite the kpoints and pseudopotentials variables and then detach the calculator
+        if atoms.calc is not None:
+            utils.warn(f'You have initialised a {self.__class__.__name__} object with an atoms object that possesses '
+                       'a calculator. This calculator will be ignored.')
+            self.atoms.calc = None
+
+        # Parsing workflow_settings
+        self.parameters = settings.SettingsDictWithChecks(
+            settings=valid_settings, physicals=['alpha_conv_thr', 'convergence_threshold'], **workflow_settings)
+
+        # Check internal consistency of workflow settings
+        if self.parameters.method == 'dfpt':
+            if self.parameters.frozen_orbitals is None:
+                self.parameters.frozen_orbitals = True
+            if not self.parameters.frozen_orbitals:
+                raise ValueError('"frozen_orbitals" must be equal to True when "method" is "dfpt"')
         else:
-            assert not dct, f'If using the "dct" argument to initialise {self.__class__.__name__}, do not use any '
-            'other arguments'
-            self.master_calcs = calcs_dct
-            self.name = name
-            self.all_calcs = []
-            self.silent = False
-            self.print_indent = 1
+            if self.parameters.frozen_orbitals is None:
+                self.parameters.frozen_orbitals = False
+            if self.parameters.frozen_orbitals:
+                utils.warn('You have requested a ΔSCF calculation with frozen orbitals. This is unusual; proceed '
+                           'only if you know what you are doing')
 
-            # Parsing workflow_settings
+        if self.parameters.periodic:
+            if self.parameters.gb_correction is None:
+                self.parameters.gb_correction = True
 
-            self.parameters = settings.SettingsDictWithChecks(
-                settings=valid_settings, physicals=['alpha_conv_thr', 'convergence_threshold'], **workflow_settings)
-
-            # Check internal consistency of workflow settings
-            if self.parameters.method == 'dfpt':
-                if self.parameters.frozen_orbitals is None:
-                    self.parameters.frozen_orbitals = True
-                if not self.parameters.frozen_orbitals:
-                    raise ValueError('"frozen_orbitals" must be equal to True when "method" is "dfpt"')
+            if self.parameters.mp_correction:
+                if self.parameters.eps_inf is None:
+                    raise ValueError('eps_inf missing in input; needed when mp_correction is true')
+                elif self.parameters.eps_inf < 1.0:
+                    raise ValueError('eps_inf cannot be lower than 1')
             else:
-                if self.parameters.frozen_orbitals is None:
-                    self.parameters.frozen_orbitals = False
-                if self.parameters.frozen_orbitals:
-                    utils.warn('You have requested a ΔSCF calculation with frozen orbitals. This is unusual; proceed '
-                               'only if you know what you are doing')
+                utils.warn('Makov-Payne corrections not applied for a periodic calculation; do this with '
+                           'caution')
 
-            if self.parameters.periodic:
-                if self.parameters.gb_correction is None:
-                    self.parameters.gb_correction = True
+            if self.parameters.mt_correction is None:
+                self.parameters.mt_correction = False
+            if self.parameters.mt_correction:
+                raise ValueError('Do not use Martyna-Tuckerman corrections for periodic systems')
 
-                if self.parameters.mp_correction:
-                    if self.parameters.eps_inf is None:
-                        raise ValueError('eps_inf missing in input; needed when mp_correction is true')
-                    elif self.parameters.eps_inf < 1.0:
-                        raise ValueError('eps_inf cannot be lower than 1')
-                else:
-                    utils.warn('Makov-Payne corrections not applied for a periodic calculation; do this with '
-                               'caution')
-
-                if self.parameters.mt_correction is None:
-                    self.parameters.mt_correction = False
-                if self.parameters.mt_correction:
-                    raise ValueError('Do not use Martyna-Tuckerman corrections for periodic systems')
-
-            else:
-                if self.parameters.gb_correction is None:
-                    self.parameters.gb_correction = False
-                if self.parameters.gb_correction:
-                    raise ValueError('Do not use Gygi-Baldereschi corrections for aperiodic systems')
-
-                if self.parameters.mp_correction is None:
-                    self.parameters.mp_correction = False
-                if self.parameters.mp_correction:
-                    raise ValueError('Do not use Makov-Payne corrections for aperiodic systems')
-
-                if self.parameters.mt_correction is None:
-                    self.parameters.mt_correction = True
-                if not self.parameters.mt_correction:
-                    utils.warn('Martyna-Tuckerman corrections not applied for an aperiodic calculation; do this with '
-                               'caution')
-
-        # Update postfix for all relevant calculators
-        if self.parameters.npool:
-            for calc in self.master_calcs.values():
-                if isinstance(calc.command, ParallelCommandWithPostfix):
-                    calc.command.postfix = f'-npool {self.npool}'
-
-    def new_calculator(self, calc_type, **kwargs):
-        if calc_type in self.master_calcs:
-            calc = copy.deepcopy(self.master_calcs[calc_type])
-            calc.parameters.update(**kwargs)
-            return calc
         else:
-            raise ValueError(f'Could not find a calculator of type {calc_type}')
+            if self.parameters.gb_correction is None:
+                self.parameters.gb_correction = False
+            if self.parameters.gb_correction:
+                raise ValueError('Do not use Gygi-Baldereschi corrections for aperiodic systems')
+
+            if self.parameters.mp_correction is None:
+                self.parameters.mp_correction = False
+            if self.parameters.mp_correction:
+                raise ValueError('Do not use Makov-Payne corrections for aperiodic systems')
+
+            if self.parameters.mt_correction is None:
+                self.parameters.mt_correction = True
+            if not self.parameters.mt_correction:
+                utils.warn('Martyna-Tuckerman corrections not applied for an aperiodic calculation; do this with '
+                           'caution')
+
+    @property
+    def pseudopotentials(self) -> Dict[str, str]:
+        return self._pseudopotentials
+
+    @pseudopotentials.setter
+    def pseudopotentials(self, value: Dict[str, str]):
+        self._pseudopotentials = value
+
+    @property
+    def kpts(self):
+        return self._kpts
+
+    @kpts.setter
+    def kpts(self, value: List[int]):
+        self._kpts = value
+
+    @property
+    def koffset(self):
+        return self._koffset
+
+    @koffset.setter
+    def koffset(self, value: List[int]):
+        self._koffset = value
+
+    @property
+    def kpath(self):
+        return self._kpath
+
+    @kpath.setter
+    def kpath(self, value: Union[str, BandPath]):
+        if isinstance(value, str):
+            raise NotImplementedError()
+        self._kpath = value
+
+    @property
+    def wf_kwargs(self):
+        # Returns a kwargs designed to be used to initialise another workflow with the same configuration as this one
+        # i.e.
+        # > sub_wf = Workflow(**self.wf_kwargs)
+        return {'atoms': copy.deepcopy(self.atoms),
+                'workflow_settings': copy.deepcopy(self.parameters),
+                'master_calc_params': copy.deepcopy(self.master_calc_params),
+                'name': copy.deepcopy(self.name),
+                'pseudopotentials': copy.deepcopy(self.pseudopotentials),
+                'kpts': copy.deepcopy(self.kpts),
+                'koffset': copy.deepcopy(self.koffset),
+                'kpath': copy.deepcopy(self.kpath)}
+
+    def new_calculator(self, calc_type: str, directory: Optional[Path] = None, **kwargs) -> calculators.ExtendedCalculator:
+        calc_class: Type[calculators.ExtendedCalculator]
+
+        if calc_type == 'kcp':
+            calc_class = calculators.KoopmansCPCalculator
+        elif calc_type == 'pw':
+            calc_class = calculators.PWCalculator
+        elif calc_type.startswith('w90'):
+            calc_class = calculators.Wannier90Calculator
+        elif calc_type == 'pw2wannier':
+            calc_class = calculators.PW2WannierCalculator
+        elif calc_type.startswith('ui'):
+            calc_class = calculators.UnfoldAndInterpolateCalculator
+        elif calc_type == 'wann2kc':
+            calc_class = calculators.Wann2KCCalculator
+        elif calc_type == 'kc_screen':
+            calc_class = calculators.KoopmansScreenCalculator
+        elif calc_type == 'kc_ham':
+            calc_class = calculators.KoopmansHamCalculator
+        else:
+            raise ValueError(f'Cound not find a calculator of type {calc_type}')
+
+        # Merge master_calc_params and kwargs, giving kwargs higher precedence
+        all_kwargs: Dict[str, Any] = {}
+        master_calc_params = self.master_calc_params[calc_type]
+        all_kwargs.update(**master_calc_params)
+        all_kwargs.update(**kwargs)
+
+        # Add pseudopotential and kpt information to the calculator as required
+        for kw in ['pseudopotentials', 'kpts', 'koffset', 'kpath']:
+            if kw not in all_kwargs and kw in master_calc_params.valid:
+                all_kwargs[kw] = getattr(self, kw)
+
+        # Create the calculator
+        calc = calc_class(atoms=copy.deepcopy(self.atoms), **all_kwargs)
+
+        # Add the directory if provided
+        if directory is not None:
+            calc.directory = directory
+
+        if calc_type == 'kcp' and 'pseudopotentials' not in calc.parameters:
+            raise ValueError()
+
+        return calc
 
     def run(self):
         raise NotImplementedError('This workflow class has not implemented the run() function')
@@ -271,6 +362,17 @@ class Workflow(object):
                 file_out = nspin2_tmpdir / f'{prefix}2.{suffix}'
                 with open(file_out, 'wb') as fd:
                     fd.write(contents)
+
+    def primitive_to_supercell(self, matrix, **kwargs):
+        # Converts to a supercell as given by a 3x3 transformation matrix
+        assert np.shape(matrix) == (3, 3)
+        self.atoms = make_supercell(self.atoms, matrix, **kwargs)
+
+    def supercell_to_primitive(self, matrix, **kwargs):
+        # Converts from a supercell to a primitive cell, as given by a 3x3 transformation matrix
+        # The inverse of self.primitive_to_supercell()
+        assert np.shape(matrix) == (3, 3)
+        raise NotImplementedError('Yet to write this function')
 
     def run_calculator(self, master_qe_calc, enforce_ss=False):
         '''
@@ -361,6 +463,11 @@ class Workflow(object):
             dir_str = os.path.relpath(qe_calc.directory) + '/'
             self.print(f'{verb} {dir_str}{qe_calc.prefix}...', end='', flush=True)
 
+        # Update postfix if relevant
+        if self.parameters.npool:
+            if isinstance(qe_calc.command, ParallelCommandWithPostfix):
+                qe_calc.command.postfix = f'-npool {self.npool}'
+
         qe_calc.calculate()
 
         if not qe_calc.is_complete():
@@ -381,7 +488,7 @@ class Workflow(object):
                     utils.warn('Spin-up and spin-down eigenvalues differ substantially')
 
         # Store the calculator
-        self.all_calcs.append(qe_calc)
+        self.calculations.append(qe_calc)
 
         # Print quality control
         if self.parameters.print_qc and not qe_calc.skip_qc:
@@ -414,7 +521,7 @@ class Workflow(object):
             #     if not isinstance(qe_calc, calculators.EspressoCalculator) or qe_calc.calculation == 'bands':
             #         qe_calc.band_structure()
 
-            self.all_calcs.append(qe_calc)
+            self.calculations.append(qe_calc)
 
         return old_calc.is_complete()
 
@@ -442,7 +549,7 @@ class Workflow(object):
         if calc is None:
             calc_str = ''
         else:
-            calc_str = f'{calc.name}_'
+            calc_str = f'{calc.prefix}_'
 
         if not isinstance(value, list):
             self.print(f'<QC> {calc_str}{key} {value}')
@@ -464,12 +571,18 @@ class Workflow(object):
         if workflow.name is None:
             workflow.name = self.name
 
+        # Make sure the subworkflow has inherited the pseudos and kpoints data
+        workflow.pseudopotentials = self.pseudopotentials
+        workflow.kpts = self.kpts
+        workflow.koffset = self.koffset
+        workflow.kpath = self.kpath
+
         # Increase the indent level
         workflow.print_indent = self.print_indent + 1
 
-        # Ensure altering workflow.master_calcs won't affect self.master_calcs
-        if workflow.master_calcs is self.master_calcs:
-            workflow.master_calcs = copy.deepcopy(self.master_calcs)
+        # Ensure altering workflow.master_calc_params won't affect self.master_calc_params
+        if workflow.master_calc_params is self.master_calc_params:
+            workflow.master_calc_params = copy.deepcopy(self.master_calc_params)
 
         # Setting from_scratch to a non-None value will override the value of subworkflow.from_scratch...
         if from_scratch is None:
@@ -478,7 +591,7 @@ class Workflow(object):
             workflow.parameters.from_scratch = from_scratch
 
         # Link the list of calculations
-        workflow.all_calcs = self.all_calcs
+        workflow.calculations = self.calculations
 
         # Link the bands
         try:
@@ -491,13 +604,13 @@ class Workflow(object):
 
         if subdirectory is not None:
             # Update directories
-            for key in workflow.master_calcs.keys():
-                calc = workflow.master_calcs[key]
-                for setting in calc.parameters.are_paths:
-                    path = getattr(calc.parameters, setting, None)
-                    if path is not None and path.startswith(os.getcwd()):
-                        new_path = os.path.abspath('./' + subdirectory + '/' + os.path.relpath(path))
-                        setattr(calc.parameters, setting, new_path)
+            for key in workflow.master_calc_params.keys():
+                params = workflow.master_calc_params[key]
+                for setting in params.are_paths:
+                    path = getattr(params, setting, None)
+                    if path is not None and Path.cwd() in path.parents:
+                        new_path = Path(subdirectory).resolve() / os.path.relpath(path)
+                        setattr(params, setting, new_path)
 
             # Run the workflow
             with utils.chdir(subdirectory):
@@ -519,17 +632,14 @@ class Workflow(object):
         # Shallow copy
         dct = dict(self.__dict__)
 
-        # Removing keys we won't need to reconstruct the workflow
-        del dct['valid_settings']
-
         # Adding information required by the json decoder
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct
 
-    def fromdict(self, dct):
-        for k, v in dct.items():
-            setattr(self, k, v)
+    @classmethod
+    def fromdict(cls, dct):
+        raise NotImplementedError('Need to rewrite fromdict using classmethod syntax')
 
     @property
     def bands(self):

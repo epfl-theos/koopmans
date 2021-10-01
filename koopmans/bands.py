@@ -2,6 +2,7 @@ import itertools
 from typing import Optional, List, Union
 import numpy as np
 import pandas as pd
+from koopmans.utils import indented_print
 
 
 class Band(object):
@@ -316,11 +317,11 @@ class Bands(object):
             data = None
         return pd.DataFrame(data, columns=self.indices)
 
-    def print_history(self):
+    def print_history(self, indent: int = 0):
         # Printing out a progress summary
-        print('\nalpha')
-        print(self.alpha_history)
+        indented_print(f'\nalpha', indent=indent)
+        indented_print(str(self.alpha_history), indent=indent)
         if not self.error_history.empty:
-            print('\nDelta E_i - epsilon_i (eV)')
-            print(self.error_history)
-        print('')
+            indented_print(f'\nDelta E_i - epsilon_i (eV)', indent=indent)
+            indented_print(str(self.error_history), indent=indent)
+        indented_print('')

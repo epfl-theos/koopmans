@@ -6,21 +6,22 @@ Written by Edward Linscott Feb 2021
 
 """
 
+from ._generic import Workflow
+from koopmans.bands import Bands
+from koopmans.calculators import PWCalculator, Wann2KCCalculator, KoopmansScreenCalculator, KoopmansHamCalculator
+from koopmans import utils, io
+from ase import Atoms
 import os
 import numpy as np
 import copy
 import matplotlib
-from koopmans import utils, io
-from koopmans.calculators import PWCalculator, Wann2KCCalculator, KoopmansScreenCalculator, KoopmansHamCalculator
-from koopmans.bands import Bands
-from ._generic import Workflow
 matplotlib.use('Agg')
 
 
 class KoopmansDFPTWorkflow(Workflow):
 
-    def __init__(self, workflow_settings=None, calcs_dct=None, dct=None):
-        super().__init__(workflow_settings, calcs_dct, dct=dct)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         # Check the consistency of keywords
         if self.functional != 'ki':
@@ -35,47 +36,47 @@ class KoopmansDFPTWorkflow(Workflow):
                 raise ValueError(
                     'Calculating screening parameters with DFPT for a periodic system is only possible with Kohn-Sham '
                     'orbitals as the variational orbitals')
-        for calc in self.master_calcs.values():
+        for params in self.master_calc_params.values():
             if self.periodic:
                 # Gygi-Baldereschi
                 if self.gb_correction:
-                    if hasattr(calc, 'l_vcut'):
-                        if calc.l_vcut is None:
-                            calc.l_vcut = True
-                        if not calc.l_vcut:
+                    if hasattr(params, 'l_vcut'):
+                        if params.l_vcut is None:
+                            params.l_vcut = True
+                        if not params.l_vcut:
                             raise ValueError('Gygi-Baldereschi corrections require l_vcut = True')
 
                 # Makov-Payne
                 if self.mp_correction:
-                    if hasattr(calc, 'eps_inf'):
-                        calc.eps_inf = self.eps_inf
+                    if hasattr(params, 'eps_inf'):
+                        params.eps_inf = self.eps_inf
 
                 # Martyna-Tuckerman (not used for periodic systems)
-                if hasattr(calc, 'assume_isolated'):
-                    if calc.assume_isolated not in ['none', None]:
+                if hasattr(params, 'assume_isolated'):
+                    if params.assume_isolated not in ['none', None]:
                         raise ValueError(
-                            f'Periodic systems must have "assume_isolated" = "none", but it is set to {calc.assume_isolated}')
+                            f'Periodic systems must have "assume_isolated" = "none", but it is set to {params.assume_isolated}')
 
             else:
                 # Gygi-Baldereschi (not used for aperiodic systems)
-                if hasattr(calc, 'l_vcut'):
-                    if calc.l_vcut is None:
-                        calc.l_vcut = False
-                    if calc.l_vcut:
+                if hasattr(params, 'l_vcut'):
+                    if params.l_vcut is None:
+                        params.l_vcut = False
+                    if params.l_vcut:
                         raise ValueError('Aperiodic systems require l_vcut = False')
 
                 # Makov-Payne (not used for aperiodic systems)
-                if getattr(calc, 'eps_inf', None) not in [None, 1.0]:
+                if getattr(params, 'eps_inf', None) not in [None, 1.0]:
                     raise ValueError('Aperiodic systems should not have a non-zero eps_inf')
 
                 # Martyna-Tuckerman
                 if self.mt_correction:
-                    if hasattr(calc, 'assume_isolated'):
-                        if calc.assume_isolated is None:
-                            calc.assume_isolated = 'm-t'
-                        if calc.assume_isolated not in ['martyna-tuckerman', 'm-t', 'mt']:
+                    if hasattr(params, 'assume_isolated'):
+                        if params.assume_isolated is None:
+                            params.assume_isolated = 'm-t'
+                        if params.assume_isolated not in ['martyna-tuckerman', 'm-t', 'mt']:
                             raise ValueError(
-                                f'assume_isolated = {calc.assume_isolated} is incompatible with mt_correction = True')
+                                f'assume_isolated = {params.assume_isolated} is incompatible with mt_correction = True')
 
         # Delete any pre-existing directories if running from scratch
         if self.from_scratch:
@@ -85,21 +86,20 @@ class KoopmansDFPTWorkflow(Workflow):
 
         # Initialise the bands
         if self.periodic:
-            nocc = self.master_calcs['w90_occ'].num_wann
-            nemp = self.master_calcs['w90_emp'].num_wann
+            nocc = self.master_calc_params['w90_occ'].num_wann
+            nemp = self.master_calc_params['w90_emp'].num_wann
         else:
-            pw_calc = self.master_calcs['pw']
-            nocc = pw_calc.nelec // 2
-            nemp = pw_calc.nbnd - nocc
+            pw_params = self.master_calc_params['pw']
+            nocc = pw_params.nelec // 2
+            nemp = pw_params.nbnd - nocc
         if self.orbital_groups is None:
             self.orbital_groups = list(range(nocc + nemp))
         self.bands = Bands(n_bands=nocc + nemp, filling=[True] * nocc + [False] * nemp, groups=self.orbital_groups)
 
         # Populating kpoints if absent
         if not self.periodic:
-            for calc in self.master_calcs.values():
-                if isinstance(calc, (PWCalculator, KoopmansScreenCalculator)):
-                    calc.calc.parameters['kpts'] = [1, 1, 1]
+            for key in ['pw', 'kc_screen']:
+                self.master_calc_params[key].kpts = [1, 1, 1]
 
     def run(self):
         '''
@@ -111,11 +111,11 @@ class KoopmansDFPTWorkflow(Workflow):
 
         if self.periodic:
             # Run PW and Wannierisation
-            for key in self.master_calcs.keys():
+            for key in self.master_calc_params.keys():
                 if key.startswith('w90'):
-                    self.master_calcs[key].write_u_matrices = True
-                    self.master_calcs[key].write_xyz = True
-            wf_workflow = WannierizeWorkflow(self.settings, self.master_calcs, nspin=2)
+                    self.master_calc_params[key].write_u_matrices = True
+                    self.master_calc_params[key].write_xyz = True
+            wf_workflow = WannierizeWorkflow(self.atoms, self.settings, self.master_calc_params, nspin=2)
             self.run_subworkflow(wf_workflow)
 
         else:
@@ -123,23 +123,23 @@ class KoopmansDFPTWorkflow(Workflow):
             self.print('Initialisation of density and variational orbitals', style='heading')
 
             # Create the workflow
-            pw_workflow = DFTPWWorkflow(self.settings, self.master_calcs)
+            pw_workflow = DFTPWWorkflow(self.atoms, self.settings, self.master_calc_params)
 
             # Update settings
-            pw_calc = pw_workflow.master_calcs['pw']
-            pw_calc.directory = 'init'
-            pw_calc.outdir = '../TMP'
-            pw_calc.nspin = 2
-            pw_calc.tot_magnetization = 0
+            pw_params = pw_workflow.master_calc_params['pw']
+            pw_params.directory = 'init'
+            pw_params.outdir = '../TMP'
+            pw_params.nspin = 2
+            pw_params.tot_magnetization = 0
 
             # Run the subworkflow
             self.run_subworkflow(pw_workflow)
 
         # Copy the outdir to the base directory
-        base_outdir = self.master_calcs['pw'].outdir
-        if not os.path.isdir(base_outdir):
-            utils.system_call(f'mkdir {base_outdir}')
-        init_outdir = self.all_calcs[0].outdir
+        base_outdir = self.master_calc_params['pw'].outdir
+        if not base_outdir.is_dir():
+            base_outdir.mkdir()
+        init_outdir = self.calculations[0].outdir
         if self.from_scratch and init_outdir != base_outdir:
             utils.symlink(f'{init_outdir}/*', base_outdir)
 
@@ -166,7 +166,7 @@ class KoopmansDFPTWorkflow(Workflow):
                 for band in self.bands.to_solve:
                     # 1) Create the calculator (in a subdirectory)
                     kc_screen_calc = self.new_calculator('kc_screen', i_orb=band.index)
-                    kc_screen_calc.directory += f'/band_{band.index}'
+                    kc_screen_calc.directory /= f'band_{band.index}'
 
                     # 2) Run the calculator
                     self.run_calculator(kc_screen_calc)
@@ -195,8 +195,8 @@ class KoopmansDFPTWorkflow(Workflow):
 
     def plot_bandstructure(self):
         # Identify the relevant calculators
-        [wann2kc_calc] = [c for c in self.all_calcs if isinstance(c, Wann2KCCalculator)]
-        [kc_ham_calc] = [c for c in self.all_calcs if isinstance(c, KoopmansHamCalculator)]
+        [wann2kc_calc] = [c for c in self.calculations if isinstance(c, Wann2KCCalculator)]
+        [kc_ham_calc] = [c for c in self.calculations if isinstance(c, KoopmansHamCalculator)]
 
         if self.periodic:
             # Align the bandstructure to the VBM
@@ -217,8 +217,10 @@ class KoopmansDFPTWorkflow(Workflow):
             raise ValueError(
                 f'Invalid choice calc_presets={calc_presets} in {self.__class__.__name__}.new_calculator()')
 
-        calc = copy.deepcopy(self.master_calcs[calc_presets])
-        calc.prefix = 'kc'
+        calc = super().new_calculator(calc_presets)
+
+        params = copy.deepcopy(self.master_calc_params[calc_presets])
+        # calc.prefix = 'kc'
         calc.parameters.outdir = 'TMP'
         calc.parameters.seedname = 'wann'
         calc.parameters.spin_component = 1
@@ -241,8 +243,8 @@ class KoopmansDFPTWorkflow(Workflow):
             calc.directory = 'hamiltonian'
             calc.results['alphas'] = self.bands.alphas
 
-        calc.num_wann_occ = self.master_calcs['w90_occ'].num_wann
-        calc.num_wann_emp = self.master_calcs['w90_emp'].num_wann
+        calc.num_wann_occ = self.master_calc_params['w90_occ'].num_wann
+        calc.num_wann_emp = self.master_calc_params['w90_emp'].num_wann
 
         # Apply any additional calculator keywords passed as kwargs
         for k, v in kwargs.items():

@@ -36,8 +36,8 @@ class DeltaSCFWorkflow(Workflow):
 
             while calc_succeeded:
                 # Create a new Environ calculator object
-                pw_calc = EnvironCalculator(calc=self.master_calcs['pw'], restart_mode=restart_mode, disk_io='medium',
-                                            tot_charge=charge, tot_magnetization=-charge)
+                pw_calc = EnvironCalculator(atoms=self.atoms, restart_mode=restart_mode, disk_io='medium',
+                                            tot_charge=charge, tot_magnetization=-charge, **self.master_calc_params['pw'])
                 pw_calc.name = 'pbe'
                 pw_calc.directory = f'{label}/{epsilon}'
                 pw_calc.outdir = 'TMP'

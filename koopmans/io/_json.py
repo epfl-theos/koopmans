@@ -6,6 +6,11 @@ Written by Edward Linscott Jan 2020
 
 """
 
+from koopmans import pseudopotentials
+from koopmans.utils import read_atomic_species, read_atomic_positions, read_cell_parameters, read_kpoints_block, read_kpath, \
+    construct_cell_parameters_block
+from koopmans import workflows
+from koopmans import calculators
 import os
 import copy
 import json as json_ext
@@ -21,84 +26,7 @@ from ase.io.espresso.koopmans_cp import KEYS as kcp_keys
 from ase.io.wannier90 import Wannier90 as ASEWannier90
 from koopmans import utils
 from koopmans.pseudopotentials import set_up_pseudos, nelec_from_pseudos
-from koopmans import calculators
-from koopmans import workflows
-from koopmans.utils import read_atomic_species, read_atomic_positions, read_cell_parameters, read_kpoints_block, read_kpath, \
-    construct_cell_parameters_block
-
-
-def read_w90_dict(dct, generic_atoms):
-
-    # Setting up ASE calc object, copying over the generic atoms object
-    calc = ASEWannier90()
-    atoms = copy.deepcopy(generic_atoms)
-    calc.atoms = atoms
-    calc.atoms.calc = calc
-
-    dct = {k.lower(): v for k, v in dct.items()}
-
-    for k in dct.keys():
-        if k in ['atoms_frac', 'unit_cell_cart', 'mp_grid']:
-            raise ValueError('Please specify {k} in the "setup" block using kcp syntax rather than in the "w90" block')
-
-    # Read in parameters
-    calc.parameters.update(utils.parse_dict(dct))
-
-    # Return koopmans-type calculator object rather than ASE calculator
-    return calculators.Wannier90Calculator(calc)
-
-
-def read_w90_occ_dict(dct, generic_atoms):
-
-    calc = read_w90_dict(dct, generic_atoms)
-
-    # Auto-generate values if they have not been provided
-    n_filled = generic_atoms.calc.parameters.nelec // 2
-
-    if calc.parameters.num_bands is None:
-        calc.parameters.num_bands = n_filled
-    if calc.parameters.num_wann is None:
-        calc.parameters.num_wann = n_filled
-
-    return calc
-
-
-def read_w90_empty_dict(dct, generic_atoms):
-
-    calc = read_w90_dict(dct, generic_atoms)
-
-    # Auto-generate values if they have not been provided
-    n_filled = generic_atoms.calc.parameters.nelec // 2
-    n_empty = generic_atoms.calc.parameters.get('empty_states_nbnd', 0)
-
-    if calc.parameters.num_wann is None:
-        calc.parameters.num_wann = n_empty
-    if calc.parameters.exclude_bands is None:
-        calc.parameters.exclude_bands = f'1-{n_filled}'
-
-    return calc
-
-
-def read_pw2wannier_dict(dct, generic_atoms):
-
-    from koopmans import calculators
-
-    # Setting up ASE calc object
-    calc = ASEPW2Wannier()
-
-    calc.parameters.update(utils.parse_dict(dct))
-
-    # Attaching an atoms object (though pw2wannier doesn't need this information,
-    # ASE will complain if it's missing)
-    calc.atoms = copy.deepcopy(generic_atoms)
-    calc.atoms.calc = calc
-
-    # Giving the pw2wannier calculator access to the kpts info for reference
-    if 'kpts' in generic_atoms.calc.parameters:
-        calc.parameters['kpts'] = generic_atoms.calc.parameters['kpts']
-
-    # Return koopmans-type calculator object rather than ASE calculator
-    return calculators.PW2WannierCalculator(calc)
+from koopmans.settings import KoopmansCPSettingsDict, KoopmansHamSettingsDict, KoopmansScreenSettingsDict, PWSettingsDict, PW2WannierSettingsDict, UnfoldAndInterpolateSettingsDict, Wann2KCSettingsDict, Wannier90SettingsDict
 
 
 def read_setup_dict(dct):
@@ -185,7 +113,20 @@ def read_setup_dict(dct):
     if 'neldw' not in calc.parameters:
         calc.parameters.neldw = int(nelec / 2 - tot_mag / 2)
 
-    return calc.atoms
+    # Work out the number of filled and empty bands
+    n_filled = nelec // 2
+    n_empty = calc.parameters.get('empty_states_nbnd', 0)
+
+    # Separamting the output into atoms, parameters, and psp+kpoint information
+    atoms = calc.atoms
+    atoms.calc = None
+    parameters = calc.parameters
+    psps_and_kpts = {}
+    for key in ['pseudopotentials', 'kpts', 'koffset', 'kpath']:
+        if key in parameters:
+            psps_and_kpts[key] = parameters.pop(key)
+
+    return atoms, parameters, psps_and_kpts, n_filled, n_empty
 
 
 def read_kcp_or_pw_dict(dct, calc):
@@ -408,7 +349,7 @@ def read_json(fd, override={}):
             if key in bigdct['ui']:
                 subdcts[key] = bigdct['ui'].pop(key)
 
-        # Now, we add the ui_occ and ui_emp calculators to master_calcs
+        # Now, we add the ui_occ and ui_emp calculators to master_calc_params
         for key in keys:
             if key in subdcts:
                 # Add the corresponding subdict to the rest of the UI block
@@ -417,16 +358,28 @@ def read_json(fd, override={}):
                 # Duplicate the UI block
                 bigdct[f'ui_{key}'] = bigdct['ui']
 
+    # Deal with kc_wann subdicts
+    kc_wann_blocks = bigdct.pop('kc_wann', {'kc_ham': {}, 'kc_screen': {}, 'wann2kc': {}})
+    bigdct.update(**kc_wann_blocks)
+
     # Define which function to use to read each block
-    readers = {'kcp': read_kcp_dict, 'w90_occ': read_w90_occ_dict, 'w90_emp': read_w90_empty_dict,
-               'pw2wannier': read_pw2wannier_dict, 'pw': read_pw_dict, 'ui': read_ui_dict,
-               'ui_occ': read_ui_dict, 'ui_emp': read_ui_dict, 'kc_wann': read_kc_wann_dict}
+    settings_classes = {'kcp': KoopmansCPSettingsDict,
+                        'kc_ham': KoopmansHamSettingsDict,
+                        'kc_screen': KoopmansScreenSettingsDict,
+                        'wann2kc': Wann2KCSettingsDict,
+                        'pw': PWSettingsDict,
+                        'pw2wannier': PW2WannierSettingsDict,
+                        'ui': UnfoldAndInterpolateSettingsDict,
+                        'ui_occ': UnfoldAndInterpolateSettingsDict,
+                        'ui_emp': UnfoldAndInterpolateSettingsDict,
+                        'w90_occ': Wannier90SettingsDict,
+                        'w90_emp': Wannier90SettingsDict}
 
     # Check for unexpected blocks
     for block in bigdct:
-        if block not in list(readers.keys()) + ['workflow', 'setup']:
+        if block not in list(settings_classes.keys()) + ['workflow', 'setup']:
             raise ValueError(f'Unrecognised block "{block}" in json input file; '
-                             'valid options are workflow/' + '/'.join(readers.keys()))
+                             'valid options are workflow/' + '/'.join(settings_classes.keys()))
 
     # Loading workflow settings
     workflow_settings = utils.parse_dict(bigdct.get('workflow', {}))
@@ -434,46 +387,71 @@ def read_json(fd, override={}):
 
     # Load default values
     if 'setup' in bigdct:
-        generic_atoms = read_setup_dict(bigdct['setup'])
+        atoms, setup_parameters, psps_and_kpts, n_filled, n_empty = read_setup_dict(bigdct['setup'])
         del bigdct['setup']
     elif task_name != 'ui':
         raise ValueError('You must provide a "setup" block in the input file, specifying atomic positions, atomic '
                          'species, etc.')
     else:
-        # Create an empty dummy ASE calculator to attach settings to
-        generic_atoms = Atoms(calculator=FileIOCalculator())
-        generic_atoms.calc.atoms = generic_atoms
+        # Create dummy objects
+        atoms = Atoms()
+        setup_parameters = {}
+        psps_and_kpts = {}
+        n_filled = 0
+        n_empty = 0
 
     # Loading calculator-specific settings
-    calcs_dct = {}
+    master_calc_params = {}
 
-    # Generate a master calculator for every single kind of calculator, regardless of whether or not there was a
+    # Generate a master SettingsDict for every single kind of calculator, regardless of whether or not there was a
     # corresponding block in the json file
-    for block, reader in readers.items():
-        # For the UI task, the input file won't contain enough for us to generate all the other kinds of calculators
-        if task_name == 'ui' and block != 'ui':
-            if block in bigdct and not block.startswith('ui'):
-                utils.warn(f'Ignoring the {block} block since "task": "ui"')
-            continue
+    for block, settings_class in settings_classes.items():
+        # # For the UI task, the input file won't contain enough for us to generate all the other kinds of SettingsDicts
+        # if task_name == 'ui' and block != 'ui':
+        #     if block in bigdct and not block.startswith('ui'):
+        #         utils.warn(f'Ignoring the {block} block since "task": "ui"')
+        #     continue
 
         # Read the block and add the resulting calculator to the calcs_dct
         dct = bigdct.get(block, {})
-        if block == 'kc_wann':
-            calcs_dct.update(readers[block](dct, generic_atoms))
-        else:
-            calcs_dct[block] = readers[block](dct, generic_atoms)
+        # Populating missing settings based on nelec, n_filled, n_empty etc
+        if block == 'kcp':
+            if 'nelec' not in dct.get('system', {}):
+                dct['nelec'] = n_filled * 2
+        elif block == 'pw':
+            if 'nbnd' not in dct.get('system', {}):
+                dct['nbnd'] = n_filled + n_empty
+        if block == 'w90_occ':
+            if 'num_wann' not in dct:
+                dct['num_wann'] = n_filled
+            if 'num_bands' not in dct:
+                dct['num_bands'] = n_filled
+        elif block == 'w90_emp':
+            if 'num_wann' not in dct:
+                dct['num_wann'] = n_empty
+            if 'exclude_bands' not in dct:
+                dct['exclude_bands'] = f'1-{n_filled}'
+
+        master_calc_params[block] = settings_class(**dct)
+        master_calc_params[block].update(
+            **{k: v for k, v in setup_parameters.items() if k in master_calc_params[block].valid})
+        master_calc_params[block].parse_algebraic_settings(nelec=n_filled * 2)
 
     name = fd.name.replace('.json', '')
     if task_name == 'singlepoint':
-        workflow = workflows.SinglepointWorkflow(workflow_settings, calcs_dct, name=name)
+        workflow = workflows.SinglepointWorkflow(
+            atoms, workflow_settings, master_calc_params, name=name, **psps_and_kpts)
     elif task_name == 'convergence':
-        workflow = workflows.ConvergenceWorkflow(workflow_settings, calcs_dct, name=name)
+        workflow = workflows.ConvergenceWorkflow(
+            atoms, workflow_settings, master_calc_params, name=name, **psps_and_kpts)
     elif task_name in ['wannierize', 'wannierise']:
-        workflow = workflows.WannierizeWorkflow(workflow_settings, calcs_dct, name=name, check_wannierisation=True)
+        workflow = workflows.WannierizeWorkflow(
+            atoms, workflow_settings, master_calc_params, name=name, check_wannierisation=True, **psps_and_kpts)
     elif task_name == 'environ_dscf':
-        workflow = workflows.DeltaSCFWorkflow(workflow_settings, calcs_dct, name=name)
+        workflow = workflows.DeltaSCFWorkflow(atoms, workflow_settings, master_calc_params, name=name, **psps_and_kpts)
     elif task_name == 'ui':
-        workflow = workflows.UnfoldAndInterpolateWorkflow(workflow_settings, calcs_dct, name=name)
+        workflow = workflows.UnfoldAndInterpolateWorkflow(
+            atoms, workflow_settings, master_calc_params, name=name, **psps_and_kpts)
     else:
         raise ValueError('Invalid task name "{task_name}"')
 
@@ -489,7 +467,7 @@ def write_json(workflow, filename):
 
     fd = open(filename, 'w')
 
-    calcs = workflow.master_calcs
+    calcs = workflow.master_calc_parameters
 
     bigdct = {}
 

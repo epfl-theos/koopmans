@@ -6,7 +6,9 @@ Written by Edward Linscott Mar 2021, largely modelled off ase.io.jsonio
 
 """
 
+import os
 from typing import Union, TextIO
+from pathlib import Path
 from importlib import import_module
 import inspect
 import json
@@ -19,6 +21,8 @@ class KoopmansEncoder(ase_json.MyEncoder):
     def default(self, obj) -> dict:
         if isinstance(obj, set):
             return {'__set__': list(obj)}
+        elif isinstance(obj, Path):
+            return {'__path__': str(os.path.relpath(obj, Path.cwd()))}
         elif isinstance(obj, Calculator):
             # ASE only stores the calculator parameters, with Atoms being the more fundamental object
             # Because we store calculators as the primary object, we need to make sure the atoms are also stored
@@ -51,6 +55,8 @@ def object_hook(dct):
         return create_ase_calculator(dct)
     elif '__set__' in dct:
         return set(dct['__set__'])
+    elif '__path__' in dct:
+        return Path(dct['__path__'])
     elif '__class__' in dct:
         subdct = dct['__class__']
         module = import_module(subdct['__module__'])
@@ -85,7 +91,7 @@ def create_koopmans_object(dct: dict):
     objclass = getattr(module, name)
 
     # Reconstruct the class from the dictionary
-    return objclass(dct=dct)
+    return objclass.fromdict(dct)
 
 
 decode = json.JSONDecoder(object_hook=object_hook).decode

@@ -23,15 +23,8 @@ def system_call(command, check_ierr=True):
         raise OSError(f'{command} exited with exit code {ierr}')
 
 
-def mkdir(path: Path):
-    # Creates a (possibly nested) directory
-    relpath = Path(os.path.relpath(path, Path.cwd()))
-    for p in reversed(relpath.parents):
-        if not p.is_dir():
-            p.mkdir()
-
-
 def symlink(src: Union[str, Path], dest: Union[str, Path], relative: bool = True):
+    print(f'From {Path.cwd()} linking {src} and {dest}')
     # Create a symlink of "src" at "dest"
     if isinstance(src, str) and '*' in src:
         # Follow the syntax of ln, whereby ln -s src/* dest/ will create multiple links
@@ -42,19 +35,26 @@ def symlink(src: Union[str, Path], dest: Union[str, Path], relative: bool = True
         if isinstance(src, str):
             src = Path(src)
         if isinstance(dest, str):
-            dest = Path(src)
+            dest = Path(dest)
 
+        if dest.is_dir():
+            dest /= src.name
+
+        dest = dest.resolve()
         src = src.resolve()
+
+        # Check if the src exists
+        if not src.exists():
+            raise FileNotFoundError(src)
+
         if relative:
             # The equivalent of ln -sr
-            if dest.is_dir():
-                dest /= src.name
-                src = os.path.relpath(src, dest)
-            else:
-                src = os.path.relpath(src, dest.parent)
+            src = Path(os.path.relpath(src, dest.parent))
+
         else:
             # The equivalent of ln -s
             pass
+
         dest.symlink_to(src)
 
 
@@ -70,7 +70,7 @@ def chdir(path: Union[Path, str]):
     this_dir = Path.cwd()
 
     # Create path if it does not exist
-    mkdir(path)
+    path.mkdir(parents=True, exist_ok=True)
 
     # Move to the directory
     os.chdir(path)

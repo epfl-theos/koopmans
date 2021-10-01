@@ -14,6 +14,7 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 import pandas as pd
+from ase import Atoms
 from ase.dft.dos import DOS
 from ase.spectrum.band_structure import BandStructure
 from koopmans import utils
@@ -24,37 +25,39 @@ from ._generic import Workflow
 
 class KoopmansDSCFWorkflow(Workflow):
 
-    def __init__(self, workflow_settings: Dict[str, Any], calcs_dct: Dict[str, calculators.ExtendedCalculator], **kwargs) -> None:
-        super().__init__(workflow_settings, calcs_dct, **kwargs)
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
 
-        if 'kcp' not in self.master_calcs:
+        if 'kcp' not in self.master_calc_params:
             raise ValueError(
                 'Performing a KC calculation requires a "kcp" block in the .json input file')
-        kcp_calc = self.master_calcs['kcp']
 
         # If periodic, convert the kcp calculation into a Γ-only supercell calculation
+        kcp_params = self.master_calc_params['kcp']
         if self.parameters.periodic:
-            kpts = self.master_calcs['kcp'].parameters.kpts
-            self.master_calcs['kcp'].transform_to_supercell(np.diag(kpts))
-            nocc = self.master_calcs['w90_occ'].parameters.num_wann
-            nemp = self.master_calcs['w90_emp'].parameters.num_wann
+            # Update the KCP settings to correspond to a supercell (leaving self.atoms unchanged for the moment)
+            self.convert_kcp_to_supercell()
+
+            nocc = self.master_calc_params['w90_occ'].num_wann
+            nemp = self.master_calc_params['w90_emp'].num_wann
             if not self.parameters.orbital_groups:
                 self.parameters.orbital_groups = range(0, nocc + nemp)
-            self.parameters.orbital_groups = [i for _ in range(np.prod(kpts)) for i in self.parameters.orbital_groups[:nocc]] + \
-                                             [i for _ in range(np.prod(kpts))
+            self.parameters.orbital_groups = [i for _ in range(np.prod(self.kpts)) for i in self.parameters.orbital_groups[:nocc]] + \
+                                             [i for _ in range(np.prod(self.kpts))
                                               for i in self.parameters.orbital_groups[nocc:]]
 
             # Check the number of empty states has been correctly configured
-            w90_emp_calc = self.master_calcs['w90_emp']
-            expected_empty_states_nbnd = w90_emp_calc.parameters.num_wann * np.prod(kcp_calc.parameters.kpts)
-            if kcp_calc.parameters.empty_states_nbnd == 0:
+            w90_emp_params = self.master_calc_params['w90_emp']
+            expected_empty_states_nbnd = w90_emp_params.num_wann * np.prod(self.kpts)
+            if kcp_params.empty_states_nbnd == 0:
                 # 0 is the default value
-                kcp_calc.parameters.empty_states_nbnd = expected_empty_states_nbnd
-            elif kcp_calc.parameters.empty_states_nbnd != expected_empty_states_nbnd:
+                kcp_params.empty_states_nbnd = expected_empty_states_nbnd
+            elif kcp_params.empty_states_nbnd != expected_empty_states_nbnd:
                 raise ValueError('kcp empty_states_nbnd and wannier90 num_wann (emp) are inconsistent')
 
         # Initialise the bands object
-        filling = kcp_calc.filling[0]
+        filling = [True for _ in range(kcp_params.nelec // 2)] + [False for _ in range(kcp_params.empty_states_nbnd)]
+
         self.bands = Bands(n_bands=len(filling), filling=filling, groups=self.parameters.orbital_groups,
                            self_hartree_tol=self.parameters.orbital_groups_self_hartree_tol)
         if self.parameters.alpha_from_file:
@@ -67,8 +70,8 @@ class KoopmansDSCFWorkflow(Workflow):
         # Raise errors if any UI keywords are provided but will be overwritten by the workflow
         for ui_keyword in ['kc_ham_file', 'w90_seedname', 'alat_sc', 'sc_dim', 'dft_ham_file', 'dft_smooth_ham_file']:
             for ui_kind in ['occ', 'emp']:
-                value = getattr(self.master_calcs[f'ui_{ui_kind}'].parameters, ui_keyword)
-                [default_value] = [s.default for s in self.master_calcs['ui'].parameters.settings if s.name == ui_keyword]
+                value = getattr(self.master_calc_params[f'ui_{ui_kind}'], ui_keyword)
+                [default_value] = [s.default for s in self.master_calc_params['ui'].settings if s.name == ui_keyword]
                 if value != default_value:
                     raise ValueError(f'UI keyword {ui_keyword} has been set in the input file, but this will be '
                                      'automatically set by the Koopmans workflow. Remove this keyword from the input '
@@ -86,6 +89,14 @@ class KoopmansDSCFWorkflow(Workflow):
         # where this is unnecessary (such as pKIPZ) to skip this step.
         self.redo_preexisting_smooth_dft_calcs = True
 
+    def convert_kcp_to_supercell(self):
+        # Multiply all extensive KCP settings by the appropriate prefactor
+        prefactor = np.prod(self.kpts)
+        for attr in ['nelec', 'nelup', 'neldw', 'empty_states_nbnd', 'conv_thr', 'esic_conv_thr']:
+            value = getattr(self.master_calc_params['kcp'], attr, None)
+            if value is not None:
+                setattr(self.master_calc_params['kcp'], attr, prefactor * value)
+
     def read_alphas_from_file(self, directory='.'):
         '''
         This routine reads in the contents of file_alpharef.txt and file_alpharef_empty.txt and
@@ -95,7 +106,7 @@ class KoopmansDSCFWorkflow(Workflow):
         duplicates if calc.nspin == 2
         '''
 
-        params = self.master_calcs['kcp'].parameters
+        params = self.master_calc_params['kcp']
 
         if params.nspin == 2:
             i_alphas = list(range(0, params.nelec // 2)) + \
@@ -127,7 +138,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 # if self.init_orbitals == "from old ki" we don't want to delete the directory containing
                 # the KI calculation we're reading the manifold from, or the TMP files
                 utils.system_call('rm -r init 2>/dev/null', False)
-                utils.system_call(f'rm -r {self.master_calcs["kcp"].parameters.outdir} 2>/dev/null', False)
+                utils.system_call(f'rm -r {self.master_calc_params["kcp"].outdir} 2>/dev/null', False)
             utils.system_call('rm -r calc_alpha 2>/dev/null', False)
             utils.system_call('rm -r final 2>/dev/null', False)
             if getattr(self, 'redo_preexisting_smooth_dft_calcs', True):
@@ -139,7 +150,7 @@ class KoopmansDSCFWorkflow(Workflow):
         if self.parameters.from_scratch and self.parameters.init_orbitals != 'from old ki' and self.parameters.enforce_spin_symmetry \
                 and self.parameters.init_orbitals not in ['mlwfs', 'projwfs']:
             self.print('Copying the spin-up variational orbitals over to the spin-down channel')
-            calc = self.all_calcs[-1]
+            calc = self.calculations[-1]
             savedir = f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
             utils.system_call(f'cp {savedir}/evc01.dat {savedir}/evc02.dat')
             if calc.parameters.empty_states_nbnd is not None and calc.parameters.empty_states_nbnd > 0:
@@ -156,14 +167,14 @@ class KoopmansDSCFWorkflow(Workflow):
                 self.bands.alphas = self.read_alphas_from_file()
             else:
                 self.print()
-            self.bands.print_history()
+            self.bands.print_history(indent=self.print_indent + 1)
 
         # Final calculation
         self.print(f'Final {self.parameters.functional.upper().replace("PK","pK")} calculation', style='heading')
         self.perform_final_calculations()
         # Print out additional quality control data for final calculation
         if self.parameters.print_qc:
-            calc = self.all_calcs[-1]
+            calc = self.calculations[-1]
             for b in self.bands.to_solve:
                 self.print_qc_keyval(f'alpha({b.index})', b.alpha, calc)
             for isp, orbs_self_hartree in enumerate(calc.results['orbital_data']['self-Hartree']):
@@ -171,7 +182,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     self.print_qc_keyval(f'orbital_self_Hartree(orb={i+1},sigma={isp+1})', orb_sh, calc)
 
         # Postprocessing
-        if self.parameters.periodic and self.master_calcs['ui'].parameters.kpath is not None:
+        if self.parameters.periodic and self.master_calc_params['ui'].kpath is not None:
             self.print(f'\nPostprocessing', style='heading')
             self.perform_postprocessing()
 
@@ -184,16 +195,19 @@ class KoopmansDSCFWorkflow(Workflow):
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
             # Wannier functions using pw.x, wannier90.x and pw2wannier90.x
-            wannier_workflow = WannierizeWorkflow(self.parameters, self.master_calcs)
+            wannier_workflow = WannierizeWorkflow(self.atoms, self.parameters, self.master_calc_params, self.name)
 
             # Perform the wannierisation workflow within the init directory
             self.run_subworkflow(wannier_workflow, subdirectory='init')
 
             # Now, convert the files over from w90 format to (k)cp format
-            fold_workflow = FoldToSupercellWorkflow(self.parameters, self.master_calcs)
+            fold_workflow = FoldToSupercellWorkflow(self.atoms, self.parameters, self.master_calc_params, self.name)
 
             # Do this in the same directory as the wannierisation
             self.run_subworkflow(fold_workflow, subdirectory='init/wannier')
+
+            # Convert self.atoms to the supercell
+            self.primitive_to_supercell(np.diag(self.kpts))
 
             # We need a dummy calc before the real dft_init in order
             # to copy the previously calculated Wannier functions
@@ -226,7 +240,7 @@ class KoopmansDSCFWorkflow(Workflow):
             self.run_calculator(calc, enforce_ss=False)
 
             # Check the consistency between the PW and CP band gaps
-            pw_calc = [c for c in self.all_calcs if isinstance(
+            pw_calc = [c for c in self.calculations if isinstance(
                 c, calculators.PWCalculator) and c.parameters.calculation == 'nscf'][-1]
             pw_gap = pw_calc.results['lumo_ene'] - pw_calc.results['homo_ene']
             cp_gap = calc.results['lumo_energy'] - calc.results['homo_energy']
@@ -243,7 +257,7 @@ class KoopmansDSCFWorkflow(Workflow):
             self.print('Copying the density and orbitals from a pre-existing KI calculation')
 
             # Read the .cpi file to work out the value for ndw
-            calc = calculators.KoopmansCPCalculator(qe_files='init/ki_init')
+            calc = calculators.KoopmansCPCalculator.fromfile('init/ki_init')
 
             # Move the old save directory to correspond to ndw_final, using pz_innerloop_init to work out where the
             # code will expect the tmp files to be
@@ -277,7 +291,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 raise ValueError('init/ki_init.cpo is incomplete so cannot be used '
                                  'to initialise the density and orbitals')
 
-            self.all_calcs.append(calc)
+            self.calculations.append(calc)
 
         elif self.parameters.functional in ['ki', 'pkipz']:
             calc = self.new_kcp_calculator('dft_init')
@@ -292,7 +306,7 @@ class KoopmansDSCFWorkflow(Workflow):
             elif self.parameters.init_orbitals == 'pz':
                 calc = self.new_kcp_calculator('pz_innerloop_init', alphas=self.bands.alphas, ndw=ndw_final)
                 calc.directory = Path('init')
-                if self.all_calcs[-1].parameters.nelec == 2:
+                if self.calculations[-1].parameters.nelec == 2:
                     # If we only have two electrons, then the filled manifold is trivially invariant under unitary
                     # transformations. Furthermore, the PZ functional is invariant w.r.t. unitary rotations of the
                     # empty states. Thus in this instance we can skip the initialisation of the manifold entirely
@@ -329,7 +343,7 @@ class KoopmansDSCFWorkflow(Workflow):
         return
 
     def _copy_most_recent_calc_to_ndw(self, ndw):
-        calc = self.all_calcs[-1]
+        calc = self.calculations[-1]
         if calc.parameters.ndw != ndw:
             assert calc.is_complete(), 'Cannot copy results of a previous calculation that is not itself complete'
             save_prefix = f'{calc.parameters.outdir}/{calc.parameters.prefix}'
@@ -363,7 +377,7 @@ class KoopmansDSCFWorkflow(Workflow):
         while not converged and i_sc < self.parameters.n_max_sc_steps:
             i_sc += 1
             iteration_directory = Path('calc_alpha')
-            _, outdir = self.master_calcs['kcp'].outdir.rsplit('/', 1)
+            outdir = self.master_calc_params['kcp'].outdir.name
             outdir = Path.cwd() / iteration_directory / outdir
 
             if not outdir.is_dir():
@@ -435,7 +449,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 if not outdir_band.is_dir():
                     outdir_band.mkdir()
 
-                    utils.symlink(f'{self.master_calcs["kcp"].parameters.outdir}/*.save', outdir_band)
+                    utils.symlink(f'{self.master_calc_params["kcp"].outdir}/*.save', outdir_band)
 
                 # Don't repeat if this particular alpha_i was converged
                 if i_sc > 1 and abs(band.error) < self.parameters.alpha_conv_thr:
@@ -565,7 +579,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     self.bands.alpha_history.to_pickle('alphas.pkl')
                     self.bands.error_history.to_pickle('errors.pkl')
 
-            self.bands.print_history()
+            self.bands.print_history(indent=self.print_indent + 1)
 
             converged = all([abs(b.error) < 1e-3 for b in self.bands])
 
@@ -592,7 +606,7 @@ class KoopmansDSCFWorkflow(Workflow):
             # For pKIPZ, the appropriate ndr can change but it is always ndw of the previous
             # KI calculation
             if final_calc_type == 'pkipz_final':
-                ndr = [c.parameters.ndw for c in self.all_calcs if c.prefix in [
+                ndr = [c.parameters.ndw for c in self.calculations if c.prefix in [
                     'ki', 'ki_final'] and hasattr(c.parameters, 'ndw')][-1]
                 calc = self.new_kcp_calculator(final_calc_type, ndr=ndr, write_hr=True)
             else:
@@ -606,18 +620,18 @@ class KoopmansDSCFWorkflow(Workflow):
         # Import these here so that if these have been monkey-patched, we get the monkey-patched version
         from koopmans.workflows import WannierizeWorkflow
 
-        if self.master_calcs['ui'].parameters.do_smooth_interpolation:
-            factors = self.master_calcs['ui'].parameters.smooth_int_factor
+        if self.master_calc_params['ui'].do_smooth_interpolation:
+            factors = self.master_calc_params['ui'].smooth_int_factor
             # Run the PW + W90 for a much larger grid
-            local_master_calcs = copy.deepcopy(self.master_calcs)
+            local_master_calc_params = copy.deepcopy(self.master_calc_params)
             for name in ['pw', 'pw2wannier', 'w90_occ', 'w90_emp']:
-                calc = local_master_calcs[name]
-                original_k_grid = calc.parameters.get('kpts', None)
+                params = local_master_calc_params[name]
+                original_k_grid = params.get('kpts', None)
                 if original_k_grid is not None:
-                    # For calculations with a kpts attribute, create a denser k-grid
+                    # For paramsulations with a kpts attribute, create a denser k-grid
                     new_k_grid = [x * y for x, y in zip(original_k_grid, factors)]
-                    calc.parameters['kpts'] = new_k_grid
-            wannier_workflow = WannierizeWorkflow(self.parameters, local_master_calcs)
+                    params.kpts = new_k_grid
+            wannier_workflow = WannierizeWorkflow(self.atoms, self.parameters, local_master_calc_params)
 
             # Here, we allow for skipping of the smooth dft calcs (assuming they have been already run)
             # This is achieved via the optional argument of from_scratch in run_subworkflow(), which
@@ -632,20 +646,19 @@ class KoopmansDSCFWorkflow(Workflow):
 
         # Merge the two calculations to print out the DOS and bands
         calc = self.new_ui_calculator('merge')
-        calc.alat_sc = self.all_calcs[-1].alat_sc
+        calc.parameters.alat_sc = self.calculations[-1].parameters.alat_sc
 
         # Merge the bands
-        energies = [c.results['band structure'].energies for c in self.all_calcs[-2:]]
+        energies = [c.results['band structure'].energies for c in self.calculations[-2:]]
         reference = np.max(energies[0])
-        calc.results['band structure'] = BandStructure(
-            self.all_calcs[-1].kpath, np.concatenate(energies, axis=2) - reference)
+        calc.results['band structure'] = BandStructure(self.kpath, np.concatenate(energies, axis=2) - reference)
 
         if calc.do_dos:
             # Generate the DOS
             calc.calc_dos()
 
         # Store the calculator in the workflow's list of all the calculators
-        self.all_calcs.append(calc)
+        self.calculations.append(calc)
 
         # Print out the merged bands and DOS
         if self.parameters.from_scratch:
@@ -655,8 +668,8 @@ class KoopmansDSCFWorkflow(Workflow):
     def new_kcp_calculator(self, calc_presets: str = 'dft_init', alphas: Optional[Union[List[float], List[List[float]]]] = None, filling: Optional[Union[List[List[bool]], List[bool]]] = None, **kwargs) -> calculators.KoopmansCPCalculator:
         """
 
-        Generates a new KCP calculator based on the self.master_calc["kcp"]
-        template calculator, modifying the appropriate settings to match the
+        Generates a new KCP calculator based on the self.master_calc_params["kcp"]
+        parameters, modifying the appropriate settings to match the
         chosen calc_presets, and altering any Quantum Espresso keywords
         specified as kwargs
 
@@ -718,7 +731,7 @@ class KoopmansDSCFWorkflow(Workflow):
             alphas = self.bands.alphas
 
         # Generate a new kcp calculator copied from the master calculator
-        calc = calculators.KoopmansCPCalculator(self.master_calcs["kcp"], alphas=alphas, filling=filling)
+        calc = self.new_calculator('kcp', alphas=alphas, filling=filling)
 
         # Set up read/write indexes
         if calc_presets in ['dft_init', 'dft_dummy']:
@@ -909,17 +922,18 @@ class KoopmansDSCFWorkflow(Workflow):
 
         if calc_presets == 'merge':
             # Dummy calculator for merging bands and dos
-            calc = calculators.UnfoldAndInterpolateCalculator(calc=self.master_calcs['ui'])
+            calc = calculators.UnfoldAndInterpolateCalculator(self.atoms, **self.master_calc_params['ui'])
             pass
         else:
-            calc = calculators.UnfoldAndInterpolateCalculator(calc=self.master_calcs[f'ui_{calc_presets}'])
+            calc = calculators.UnfoldAndInterpolateCalculator(
+                self.atoms, **self.master_calc_params[f'ui_{calc_presets}'])
             # Automatically generating UI calculator settings
             calc.directory = Path(f'postproc/{calc_presets}')
             calc.parameters.kc_ham_file = os.path.abspath(f'final/ham_{calc_presets}_1.dat')
-            calc.parameters.sc_dim = self.master_calcs['pw'].parameters.kpts
+            calc.parameters.sc_dim = self.master_calc_params['pw'].kpts
             calc.parameters.w90_seedname = os.path.abspath(f'init/wannier/{calc_presets}/wann')
             # The supercell can be obtained from the most recent CP calculation
-            cell = [c.atoms.get_cell() for c in self.all_calcs if isinstance(c, calculators.KoopmansCPCalculator)][-1]
+            cell = [c.atoms.get_cell() for c in self.calculations if isinstance(c, calculators.KoopmansCPCalculator)][-1]
             calc.parameters.alat_sc = np.linalg.norm(cell[0])
             if calc.parameters.do_smooth_interpolation:
                 calc.parameters.dft_smooth_ham_file = os.path.abspath(f'postproc/wannier/{calc_presets}/wann_hr.dat')

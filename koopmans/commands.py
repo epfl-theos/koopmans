@@ -63,6 +63,16 @@ class Command(object):
     def flags(self, value: str):
         self._flags = value
 
+    def todict(self):
+        dct = self.__dict__.copy()
+        dct['__koopmans_name__'] = self.__class__.__name__
+        dct['__koopmans_module__'] = self.__class__.__module__
+        return dct
+
+    @classmethod
+    def fromdict(cls, dct):
+        raise NotImplementedError()
+
 
 class ParallelCommand(Command):
     """

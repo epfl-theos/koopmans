@@ -7,63 +7,35 @@ Written by Edward Linscott Sep 2020
 """
 
 import os
-import numpy as np
-from pathlib import Path
+from typing import Optional, List
 from pandas.core.series import Series
-from ase.io.espresso import koopmans_cp as kcp_io
-from koopmans import utils, settings
+from ase import Atoms
+from ase.calculators.espresso import Espresso_kcp
+from koopmans import utils, settings, pseudopotentials
 from ._utils import ExtendedCalculator, kcp_bin_directory
 from koopmans.commands import ParallelCommand
 
 
-class KoopmansCPCalculator(ExtendedCalculator, kcp_io.Espresso_kcp):
+class KoopmansCPCalculator(ExtendedCalculator, Espresso_kcp):
     # Subclass of ExtendedCalculator for performing calculations with kcp.x
 
-    def __init__(self, calc=None, qe_files=[], skip_qc=False, alphas=None, filling=None, **kwargs):
-
-        defaults = {'calculation': 'cp',
-                    'outdir': Path('./tmp/'),
-                    'iprint': 1,
-                    'prefix': 'kc',
-                    'verbosity': 'low',
-                    'disk_io': 'high',
-                    'write_hr': False,
-                    'do_wf_cmplx': True,
-                    'do_ee': True,
-                    'electron_dynamics': 'cg',
-                    'nspin': 2,
-                    'ortho_para': 1,
-                    'passop': 2.0,
-                    'ion_dynamics': 'none',
-                    'ion_nstepe': 5,
-                    'ion_radius(1)': 1.0,
-                    'ion_radius(2)': 1.0,
-                    'ion_radius(3)': 1.0,
-                    'ion_radius(4)': 1.0,
-                    'do_innerloop_cg': True,
-                    'innerloop_cg_nreset': 20,
-                    'innerloop_cg_nsd': 2,
-                    'innerloop_init_n': 3,
-                    'innerloop_nmax': 100,
-                    'hartree_only_sic': False,
-                    'empty_states_nbnd': 0,
-                    'conv_thr': '1.0e-9*nelec',
-                    'esic_conv_thr': '1.0e-9*nelec'}
-
-        self.parameters = settings.SettingsDict(valid=[k for sublist in kcp_io.KEYS.values() for k in sublist],
-                                                defaults=defaults,
-                                                are_paths=['outdir', 'pseudo_dir'],
-                                                to_not_parse=['assume_isolated'])
+    def __init__(self, atoms: Atoms, skip_qc: bool = False, alphas: Optional[List[float]] = None, filling: Optional[List[bool]] = None, **kwargs):
+        # Define the valid parameters
+        self.parameters = settings.KoopmansCPSettingsDict()
 
         # Define the appropriate file extensions
         self.ext_in = '.cpi'
         self.ext_out = '.cpo'
 
-        self._ase_calc_class = kcp_io.Espresso_kcp
-
-        super().__init__(calc, qe_files, skip_qc, **kwargs)
+        # Initialise first using the ASE parent and then ExtendedCalculator
+        Espresso_kcp.__init__(self, atoms=atoms)
+        ExtendedCalculator.__init__(self, skip_qc, **kwargs)
 
         self.results_for_qc = ['energy', 'homo_energy', 'lumo_energy']
+
+        # Add nelec if it is missing
+        if 'nelec' not in self.parameters:
+            self.parameters.nelec = pseudopotentials.nelec_from_pseudos(self)
 
         if not isinstance(self.command, ParallelCommand):
             self.command = ParallelCommand(os.environ.get(
@@ -78,8 +50,7 @@ class KoopmansCPCalculator(ExtendedCalculator, kcp_io.Espresso_kcp):
     def is_converged(self):
         # Checks convergence of the calculation
         if 'conv_thr' not in self.parameters:
-            raise ValueError(
-                'Cannot check convergence when "conv_thr" is not set')
+            raise ValueError('Cannot check convergence when "conv_thr" is not set')
         return self._ase_is_converged()
 
     def _ase_is_converged(self):
@@ -147,7 +118,7 @@ class KoopmansCPCalculator(ExtendedCalculator, kcp_io.Espresso_kcp):
             # val can be a 1D or 2D array. If it is 1D, convert it to 2D so that filling
             # is indexed by [i_spin, i_orbital]
             if isinstance(val[0], bool):
-                val = [val for _ in range(self.nspin)]
+                val = [val for _ in range(self.parameters.nspin)]
 
         self._filling = val
 
@@ -157,7 +128,7 @@ class KoopmansCPCalculator(ExtendedCalculator, kcp_io.Espresso_kcp):
 
         '''
 
-        if not self.do_orbdep or not self.odd_nkscalfact:
+        if not self.parameters.do_orbdep or not self.parameters.odd_nkscalfact:
             return
 
         flat_alphas = [a for sublist in self.alphas for a in sublist]
@@ -172,7 +143,7 @@ class KoopmansCPCalculator(ExtendedCalculator, kcp_io.Espresso_kcp):
            alphas -- a list of alpha values (1 per orbital)
         '''
 
-        if not self.do_orbdep or not self.odd_nkscalfact:
+        if not self.parameters.do_orbdep or not self.parameters.odd_nkscalfact:
             return
 
         alphas = utils.read_alpha_file(self.directory)
@@ -182,16 +153,6 @@ class KoopmansCPCalculator(ExtendedCalculator, kcp_io.Espresso_kcp):
             alphas = alphas[:self.nelec // 2] + alphas[self.nelec:self.nelec + self.empty_states_nbnd]
             alphas = [alphas, alphas]
         return alphas
-
-    def transform_to_supercell(self, matrix, **kwargs):
-        super().transform_to_supercell(matrix, **kwargs)
-
-        # Also multiply all extensive properties by the appropriate prefactor
-        prefactor = np.prod(np.diag(matrix))
-        for attr in ['nelec', 'nelup', 'neldw', 'empty_states_nbnd', 'conv_thr', 'esic_conv_thr']:
-            value = getattr(self, attr, None)
-            if value is not None:
-                setattr(self, attr, prefactor * value)
 
     # The following functions enable DOS generation via ase.dft.dos.DOS(<KoopmansCPCalculator object>)
     def get_k_point_weights(self):

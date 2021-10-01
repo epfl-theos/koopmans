@@ -7,7 +7,9 @@ Written by Edward Linscott Feb 2021
 
 """
 
+import numpy as np
 from koopmans import utils
+from koopmans import calculators
 from ._generic import Workflow
 
 
@@ -24,25 +26,27 @@ class FoldToSupercellWorkflow(Workflow):
         self.print('Folding to supercell', style='subheading')
 
         for typ in ['occ', 'emp']:
-            calc_w2o = self.new_calculator('pw2wannier', wan_mode='wannier2odd', directory=f'./{typ}', name='wan2odd')
+            # Create the calculator
+            kwargs = self.master_calc_params['pw2wannier'].copy()
+            kwargs['wan_mode'] = 'wannier2odd'
+            calc_w2o = calculators.PW2WannierCalculator(atoms=self.atoms,  **kwargs)
+            calc_w2o.directory = f'./{typ}'
+            calc_w2o.prefix = 'wan2odd'
+
+            # Checking that gamma_trick is consistent with do_wf_cmplx
+            kcp_params = self.master_calc_params['kcp']
+            if calc_w2o.parameters.gamma_trick == kcp_params.do_wf_cmplx:
+                utils.warn(
+                    f'if do_wf_cmplx is {kcp_params.do_wf_cmplx}, gamma_trick cannot be {calc_w2o.parameters.gamma_trick}. '
+                    f'Changing gamma_trick to {not kcp_params.do_wf_cmplx}')
+                calc_w2o.parameters.gamma_trick = not kcp_params.do_wf_cmplx
+            elif calc_w2o.parameters.gamma_trick is None and not kcp_params.do_wf_cmplx:
+                calc_w2o.parameters.gamma_trick = True
+
             if typ == 'emp':
-                calc_w2o.split_evc_file = True
+                calc_w2o.parameters.split_evc_file = True
+
+            # Run the calculator
             self.run_calculator(calc_w2o)
 
         return
-
-    def new_calculator(self, calc_type, *args, **kwargs):
-        calc = super().new_calculator(calc_type, *args, **kwargs)
-
-        # Checking that gamma_trick is consistent with do_wf_cmplx
-        kcp_calc = self.master_calcs['kcp']
-        if calc.gamma_trick == kcp_calc.do_wf_cmplx:
-            utils.warn(
-                f'if do_wf_cmplx is {kcp_calc.do_wf_cmplx}, gamma_trick cannot be {calc.gamma_trick}. '
-                f'Changing gamma_trick to {not kcp_calc.do_wf_cmplx}')
-            calc.gamma_trick = not kcp_calc.do_wf_cmplx
-        elif calc.gamma_trick is None and not kcp_calc.do_wf_cmplx:
-            calc.gamma_trick = True
-        else:
-            pass
-        return calc

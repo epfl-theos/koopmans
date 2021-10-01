@@ -24,7 +24,7 @@ class SinglepointWorkflow(Workflow):
         from koopmans.workflows import KoopmansDFPTWorkflow, KoopmansDSCFWorkflow, DFTCPWorkflow
 
         if self.parameters.method == 'dfpt':
-            workflow = KoopmansDFPTWorkflow(self.parameters, self.master_calcs)
+            workflow = KoopmansDFPTWorkflow(**self.wf_kwargs)
             self.run_subworkflow(workflow)
 
         elif self.parameters.functional == 'all':
@@ -45,8 +45,10 @@ class SinglepointWorkflow(Workflow):
                 self.print(f'\n{functional.upper().replace("PKIPZ", "pKIPZ")} calculation', style='heading')
 
                 # Make a copy of the workflow settings to modify
-                local_workflow_settings = copy.deepcopy(self.parameters)
+                wf_kwargs = self.wf_kwargs
+                local_workflow_settings = wf_kwargs.pop('workflow_settings')
 
+                # Select the functional
                 local_workflow_settings.functional = functional
 
                 # For pKIPZ/KIPZ, use KI as a starting point
@@ -56,8 +58,7 @@ class SinglepointWorkflow(Workflow):
                     local_workflow_settings.init_orbitals = 'from old ki'
 
                 # Create a KC workflow for this particular functional
-                master_calcs_local = copy.deepcopy(self.master_calcs)
-                kc_workflow = KoopmansDSCFWorkflow(local_workflow_settings, master_calcs_local)
+                kc_workflow = KoopmansDSCFWorkflow(workflow_settings=local_workflow_settings, **wf_kwargs)
 
                 # We only need to do the smooth interpolation the first time (i.e. for KI)
                 if functional != 'ki':
@@ -81,7 +82,7 @@ class SinglepointWorkflow(Workflow):
                     utils.system_call('mv kipz/init/ki_final.cpo kipz/init/ki_init.cpo')
                     if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
                         utils.system_call('rsync -a ki/init/wannier kipz/init/')
-                    if self.master_calcs['ui'].do_smooth_interpolation:
+                    if self.master_calc_params['ui'].do_smooth_interpolation:
                         # Copy over the smooth PBE calculation from KI for KIPZ to use
                         utils.system_call('rsync -a ki/postproc kipz/')
                         utils.system_call('find kipz/postproc/ -name "*interpolated.dat" -delete')
@@ -89,9 +90,8 @@ class SinglepointWorkflow(Workflow):
         else:
             # self.functional != all and self.method != 'dfpt'
             if self.parameters.functional in ['ki', 'pkipz', 'kipz']:
-                dscf_workflow = KoopmansDSCFWorkflow(self.parameters, self.master_calcs)
+                dscf_workflow = KoopmansDSCFWorkflow(**self.wf_kwargs)
                 self.run_subworkflow(dscf_workflow)
             else:
-                dft_workflow = DFTCPWorkflow(self.parameters, self.master_calcs)
+                dft_workflow = DFTCPWorkflow(**self.wf_kwargs)
                 self.run_subworkflow(dft_workflow)
-
