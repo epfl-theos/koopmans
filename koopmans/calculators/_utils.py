@@ -2,6 +2,13 @@
 
 Calculator utilities for koopmans
 
+The central objects defined in this submodule are CalculatorABC and CalculatorExt, designed to extend
+ASE calculators to have several additional useful features.
+
+We can create a new 'extended' version of a preexisting ASE calculator via
+    class ExtendedCalc(CalculatorExt, ASECalc, CalculatorABC):
+        pass
+
 Written by Edward Linscott Jan 2020
 
 Major modifications
@@ -12,8 +19,10 @@ Sep 2021: Reshuffled files to make imports cleaner
 """
 
 import copy
-from typing import Union, Optional
+from typing import Union, Optional, List
 from pathlib import Path
+from abc import ABC, abstractmethod, abstractproperty
+from ase import Atoms
 import ase.io as ase_io
 from ase.calculators.calculator import FileIOCalculator
 from koopmans import utils, settings, pseudopotentials
@@ -24,15 +33,93 @@ qe_bin_directory = qe_parent_directory / 'qe_koopmans/bin/'
 kcp_bin_directory = qe_parent_directory / 'cp_koopmans/bin/'
 
 
-class ExtendedCalculator():
+def sanitise_filenames(filenames: Union[str, Path, List[str], List[Path]], ext_in: str, ext_out: str) -> List[Path]:
+    # Generic function for sanitising the input of CalculatorExt.fromfile()
+    if isinstance(filenames, List):
+        sanitised_filenames = [Path(f) for f in filenames]
+    else:
+        if isinstance(filenames, str):
+            filenames = Path(filenames)
+        # If the input is a single string...
+        if filenames.suffix in [ext_in, ext_out]:
+            # ... and it has a valid suffix, convert it to a list and proceed
+            sanitised_filenames = [filenames]
+        elif filenames.suffix == '':
+            # ... and it has no suffix, automatically add the expected suffixes for both the input and output files
+            sanitised_filenames = [filenames.with_suffix(ext_in), filenames.with_suffix(ext_out)]
+        else:
+            raise ValueError(f'Unrecognised file format {filenames.suffix}')
+    return sanitised_filenames
+
+
+class CalculatorABC(ABC):
+
+    '''
+    This abstract base class defines various functions we expect any Calculator to possess
+
+    '''
+
+    ext_in: str
+    ext_out: str
+
+    def __init__(self, atoms: Atoms) -> None:
+        self.prefix: str = ''
+        pass
+
+    @abstractmethod
+    def read_input(self, input_file: Optional[Path] = None):
+        ...
+
+    @abstractmethod
+    def read_results(self):
+        ...
+
+    @abstractproperty
+    def directory(self) -> Path:
+        ...
+
+    @directory.setter
+    def directory(self, value: Union[Path, str]) -> None:
+        ...
+
+    @classmethod
+    def fromfile(cls, filenames: Union[str, Path, List[str], List[Path]]):
+        sanitised_filenames = sanitise_filenames(filenames, cls.ext_in, cls.ext_out)
+
+        # Initialise a new calc object
+        calc = cls(atoms=Atoms())
+
+        # Read qe input file
+        for filename in [f for f in sanitised_filenames if f.suffix == cls.ext_in]:
+            calc.read_input(input_file=filename)
+
+        # Read qe output file
+        for filename in [f for f in sanitised_filenames if f.suffix == cls.ext_out]:
+            calc.directory = filename.parent
+            calc.prefix = filename.name
+            try:
+                calc.read_results()
+            except:
+                # Calculation could not be read; must have been incomplete
+                continue
+            # # Copy over the results
+            # cls.results = outcls.results
+            # if hasattr(outcls, 'kpts'):
+            #     cls.kpts = outcls.kpts
+
+        # Update calc.directory and calc.parameters.prefix
+        calc.directory = sanitised_filenames[0].parent
+        calc.prefix = sanitised_filenames[0].stem
+
+        # Return the new calc object
+        return calc
+
+
+class CalculatorExt():
 
     '''
     This generic class is designed to be a parent class of a calculator that also inherits from an ASE calculator
 
-    Arguments:
-        calc       an ASE calculator object to initialize the QE calculation settings
-        qe_files   an alternative to calc, initialize the settings using qe input file(s)
-        kwargs     any valid quantum espresso keywords to alter
     '''
 
     prefix: str = ''
@@ -100,6 +187,7 @@ class ExtendedCalculator():
         self.command = command
 
     def read_input(self, input_file: Optional[Path] = None):
+        # Auto-generate the appropriate input file name if required
         if input_file is None:
             input_file = self.directory / (self.prefix + self.ext_in)
         elif not input_file.suffix:
@@ -107,24 +195,12 @@ class ExtendedCalculator():
             input_file = input_file.with_suffix(self.ext_in)
 
         # Load calculator from input file
-        input_file = self.directory / (self.prefix + self.ext_in)
         calc = ase_io.read(input_file).calc
 
         # Update self based off the input file
-        try:
-            self.parameters = calc.parameters
-        except:
-            raise ValueError()
+        self.parameters = calc.parameters
         self.atoms = calc.atoms
         self.atoms.calc = self
-
-    # def read_results(self, output_file=None):
-    #     # By default, use ASE
-    #     if output_file is None:
-    #         output_file = self.directory / (self.prefix + self.ext_out)
-    #
-    #     raise NotImplementedError('Need to check correct behaviour here')
-    #     output = ase_io.read(output_file).calc
 
     def is_converged(self):
         raise ValueError(
@@ -172,30 +248,8 @@ class ExtendedCalculator():
         # for k, v in dct.items():
         #     setattr(cls, k, v)
 
-    @classmethod
-    def fromfile(cls, filenames):
-        # Read qe input file
-        for filename in [f for f in filenames if f.suffix == cls.ext_in]:
-            cls.read_input(filename)
 
-        # Read qe output file
-        for filename in [f for f in filenames if f.suffix == cls.ext_out]:
-            try:
-                cls.read_results(filename)
-            except:
-                # Calculation could not be read; must have been incomplete
-                continue
-            # # Copy over the results
-            # cls.results = outcls.results
-            # if hasattr(outcls, 'kpts'):
-            #     cls.kpts = outcls.kpts
-
-        # Update cls.directory and cls.parameters.prefix
-        cls.directory = filenames[0].parent
-        cls.parameters.prefix = filenames[0].stem
-
-
-class KCWannCalculator(ExtendedCalculator):
+class KCWannCalculator(CalculatorExt):
     # Parent class for kc_ham.x, kc_screen.x and wann2kc.x calculators
 
     def __init__(self, *args, **kwargs):

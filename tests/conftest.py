@@ -210,13 +210,13 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
     the results from a lookup table rather than running any actual calculations.
     '''
 
-    def tests_directory():
+    def tests_directory() -> Path:
         directory = pytestconfig.rootpath
         if directory.parts[-1] != 'tests':
             directory /= 'tests'
         return directory.resolve()
 
-    def relative_directory(path):
+    def relative_directory(path) -> Path:
         return path.relative_to(tests_directory())
 
     def generic_mock_calculate(calc, from_scratch=True):
@@ -236,7 +236,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
 
             # Don't check pseudopotentials
             print('Remove me once the benchmark is updated')
-            if key in calc.parameters._other_valid_keywords or key in ['gamma_only', 'kpoints']:
+            if key in calc.parameters._other_valid_keywords or key in ['gamma_only', 'kpoints', 'alat_sc', 'sc_dim']:
                 continue
 
             assert key in calc.benchmark['settings'].keys(), f'{key} in {input_file_name} not found in benchmark'
@@ -580,14 +580,14 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             # because we did it earlier in the same workflow)
 
             # Load the dummy output file
-            calc_fname = f'{qe_calc.directory}/{qe_calc.prefix}{qe_calc.ext_out}'
+            calc_fname = qe_calc.directory / f'{qe_calc.prefix}{qe_calc.ext_out}'
             with open(calc_fname, 'r') as fd:
                 output_file_info = json.load(fd)
 
             # Find out the calculation that generated the output file
-            directory, name = output_file_info['written_by'].rsplit('.', 1)[0].rsplit('/', 1)
-            directory = tests_directory() + '/' + directory
-            matches = [c for c in self.calculations if c.directory == directory and c.name == name]
+            directory, prefix = output_file_info['written_by'].rsplit('.', 1)[0].rsplit('/', 1)
+            directory = tests_directory() / directory
+            matches = [c for c in self.calculations if c.directory == directory and c.prefix == prefix]
 
             # Copy that calculation into the record of all calculations
             if len(matches) == 1:

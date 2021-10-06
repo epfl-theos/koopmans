@@ -11,22 +11,20 @@ import numpy as np
 from ase import Atoms
 from ase.calculators.espresso import KoopmansHam
 from koopmans import utils, settings
-from ._utils import KCWannCalculator, qe_bin_directory
+from ._utils import KCWannCalculator, CalculatorABC, qe_bin_directory
 from koopmans.commands import ParallelCommand
 
 
-class KoopmansHamCalculator(KCWannCalculator, KoopmansHam):
+class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, CalculatorABC):
     # Subclass of KCWannCalculator for performing calculations with kc_wann.x
+    ext_in = '.khi'
+    ext_out = '.kho'
 
     def __init__(self, atoms: Atoms, *args, **kwargs):
         # Define the valid settings
         self.parameters = settings.KoopmansHamSettingsDict()
 
-        # Define the appropriate file extensions
-        self.ext_in = '.khi'
-        self.ext_out = '.kho'
-
-        # Initialise using the ASE parent, and then ExtendedCalculator
+        # Initialise using the ASE parent, and then CalculatorExt
         KoopmansHam.__init__(self, atoms=atoms)
         KCWannCalculator.__init__(*args, **kwargs)
 

@@ -24,7 +24,7 @@ def interpolate(self, start_time):
     """
 
     # Step 1: map the WFs
-    if self.do_map:
+    if self.parameters.do_map:
         self.map_wannier()
         self.f_out.write(f'\tBuilding the map |i> --> |Rn> in:\t{time()-start_time:.3f} sec\n')
     reset = time()
@@ -35,7 +35,7 @@ def interpolate(self, start_time):
     reset = time()
 
     # Step 3 (optional) : calculate the density-of-states
-    if self.do_dos:
+    if self.parameters.do_dos:
         self.calc_dos()
         self.f_out.write(f'\tCalculating DOS in: {time()-reset:24.3f} sec\n')
 
@@ -53,13 +53,13 @@ def map_wannier(self):
     num_wann = 0
 
     # here we identify the WFs within the R=0 cell
-    for n in range(self.num_wann_sc):
+    for n in range(self.parameters.num_wann_sc):
         # shift the WFs within the SC
-        self.centers[n] = self.centers[n] / self.sc_dim
+        self.centers[n] = self.centers[n] / self.parameters.kpts
         self.centers[n] = self.centers[n] - np.floor(self.centers[n])
 
         # converting centers from crystal units of SC to crystal units of PC
-        self.centers[n] = self.centers[n] * self.sc_dim
+        self.centers[n] = self.centers[n] * self.parameters.kpts
 
         if (self.centers[n][0] - 1 < 1.e-3) and (self.centers[n][1] - 1 < 1.e-3) and (self.centers[n][2] - 1 < 1.e-3):
             centers.append(self.centers[n])
@@ -68,14 +68,14 @@ def map_wannier(self):
             num_wann += 1
 
     # check on the WFs found in the R=0 cell
-    assert num_wann == self.num_wann, 'Did not find the right number of WFs in the R=0 cell'
+    assert num_wann == self.parameters.num_wann, 'Did not find the right number of WFs in the R=0 cell'
 
     # here we identify with |Rn> the WFs in the rest of the SC
     # the WFs are now ordered as (R0,1),(R0,2),...,(R0,n),(R1,1),...
     for rvect in self.Rvec[1:]:
         count = 0
-        for m in range(self.num_wann):
-            for n in range(self.num_wann_sc):
+        for m in range(self.parameters.num_wann):
+            for n in range(self.parameters.num_wann_sc):
                 wf_dist = self.centers[n] - centers[m]
                 if (np.linalg.norm(wf_dist - rvect) < 1.e-3) and (abs(self.spreads[n] - spreads[m] < 1.e-3)):
                     centers.append(self.centers[n])
@@ -83,14 +83,14 @@ def map_wannier(self):
                     index.append(n)
                     count += 1
 
-        assert count == self.num_wann, f'Found {count} WFs in the {rvect} cell'
+        assert count == self.parameters.num_wann, f'Found {count} WFs in the {rvect} cell'
 
     # redefine phases and hr in order to follow the new order of WFs
     phases = []
-    hr = np.zeros((self.num_wann_sc, self.num_wann_sc), dtype=complex)
-    for n in range(self.num_wann_sc):
+    hr = np.zeros((self.parameters.num_wann_sc, self.parameters.num_wann_sc), dtype=complex)
+    for n in range(self.parameters.num_wann_sc):
         phases.append(self.phases[index[n]])
-        for m in range(self.num_wann_sc):
+        for m in range(self.parameters.num_wann_sc):
             hr[m, n] = self.hr[index[m], index[n]]
 
     self.centers = centers
@@ -112,26 +112,26 @@ def calc_bands(self):
     """
 
     # when smooth interpolation is on, we remove the DFT part from hr
-    hr = np.array(self.hr[:, :self.num_wann], dtype=complex)
+    hr = np.array(self.hr[:, :self.parameters.num_wann], dtype=complex)
     if self.parameters.do_smooth_interpolation:
         hr = hr - self.hr_coarse
 
     # renormalize H(R) on the WF phases
-    for m in range(self.num_wann_sc):
-        for n in range(self.num_wann):
+    for m in range(self.parameters.num_wann_sc):
+        for n in range(self.parameters.num_wann):
             hr[m, n] = self.phases[m].conjugate() * hr[m, n] * self.phases[n]
 
     # here we build the interpolated H(k)
-    hk = np.zeros((len(self.kpath.kpts), self.num_wann, self.num_wann), dtype=complex)
+    hk = np.zeros((len(self.parameters.kpath.kpts), self.parameters.num_wann, self.parameters.num_wann), dtype=complex)
     bands = []
-    self.f_out.write(f"\n\t\tTotal number of k-points: {len(self.kpath.kpts):6d}\n\n")
-    for ik, kpt in enumerate(self.kpath.kpts):
+    self.f_out.write(f"\n\t\tTotal number of k-points: {len(self.parameters.kpath.kpts):6d}\n\n")
+    for ik, kpt in enumerate(self.parameters.kpath.kpts):
         self.f_out.write(f"\t\t      calculating point # {ik+1}\n")
-        for m in range(self.num_wann):
-            for n in range(self.num_wann):
+        for m in range(self.parameters.num_wann):
+            for n in range(self.parameters.num_wann):
                 for ir in range(len(self.Rvec)):
 
-                    mm = ir * self.num_wann + m
+                    mm = ir * self.parameters.num_wann + m
                     phase = self.correct_phase(self.centers[n], self.centers[mm], self.Rvec[ir], kpt)
 
                     hk[ik, m, n] = hk[ik, m, n] + np.exp(1j * 2 * np.pi * np.dot(kpt, self.Rvec[ir])) * \
@@ -150,18 +150,24 @@ def calc_bands(self):
     self.f_out.write('\n')
 
     self.hk = hk
-    self.results['band structure'] = BandStructure(self.kpath, [bands])
+    self.results['band structure'] = BandStructure(self.parameters.kpath, [bands])
 
     return
 
 
-def calc_dos(self):
+def calc_dos(self) -> None:
     """
     calc_dos calculates the density of states using a gaussian smearing. The DOS is saved
              as a list [ [E1, DOS(E1)], [E2, DOS[E2]], ... , [En, DOS(En)] ]
     """
 
-    self.results['dos'] = DOS(self, width=self.degauss, window=(self.Emin, self.Emax), npts=self.nstep + 1)
+    if self.parameters.Emin is None:
+        self.parameters.Emin = np.min(self.get_eigenvalues() - 0.1)
+    if self.parameters.Emax is None:
+        self.parameters.Emax = np.max(self.get_eigenvalues() + 0.1)
+
+    self.results['dos'] = DOS(self, width=self.parameters.degauss, window=(
+        self.parameters.Emin, self.parameters.Emax), npts=self.parameters.nstep + 1)
 
     return
 
@@ -180,10 +186,10 @@ def correct_phase(self, center_ref, center, rvect, kvect):
                   be in crystal units otherwise the distances are not properly evaluated.
     """
 
-    if self.use_ws_distance:
-        wf_dist = crys_to_cart(center - center_ref, self.at, +1)
+    if self.parameters.use_ws_distance:
+        wf_dist = crys_to_cart(center - center_ref, self.atoms.acell, +1)
     else:
-        wf_dist = crys_to_cart(rvect, self.at, +1)
+        wf_dist = crys_to_cart(rvect, self.atoms.acell, +1)
 
     dist_min = np.linalg.norm(wf_dist)
     Tlist = []
@@ -191,8 +197,8 @@ def correct_phase(self, center_ref, center, rvect, kvect):
     for i in range(-1, 2):
         for j in range(-1, 2):
             for k in range(-1, 2):
-                tvect = np.array([i, j, k]) * self.sc_dim
-                Tvec = crys_to_cart(tvect, self.at, +1)
+                tvect = np.array([i, j, k]) * self.parameters.kpts
+                Tvec = crys_to_cart(tvect, self.atoms.acell, +1)
                 dist = np.linalg.norm(wf_dist + Tvec)
 
                 if (abs(dist - dist_min) < 1.e-3):

@@ -8,25 +8,22 @@ Integrated within koopmans by Edward Linscott Jan 2021
 
 import numpy as np
 from typing import List, Any
+from pathlib import Path
 from ase.dft.kpoints import BandPath
 from ._utils import Setting, SettingsDictWithChecks
 
 valid_settings: List[Setting] = [
     Setting('kc_ham_file',
             'the name of the Hamiltonian file to read in',
-            str, None, None),
+            Path, None, None),
     Setting('w90_seedname',
             'w90_seedname must be equal to the seedname used in the previous Wannier90 calculation. The code '
             'will look for a file called w90_seedname.wout',
-            str, None, None),
-    Setting('alat_sc',
-            'the lattice parameter (in Bohr) of the supercell, as celldm(1) in QE. NB: it is important to put '
-            'the supercell (and not the primitive cell) lattice parameter, otherwise the result will be wrong',
-            (float, int), None, None),
+            Path, None, None),
     Setting('sc_dim',
             'units of repetition of the primitive cell withing the supercell along the three lattice directions. '
             'Equivalently this has to match the Monkhorst-Pack mesh of k-points.',
-            list, [1, 1, 1], None),
+            list, None, None),
     Setting('w90_calc',
             'Specifies the type of PW/Wannier90 calculation preceding the koopmans calculation. If the latter '
             'is done in a supercell at Gamma then w90_calc must be equal to \'sc\', otherwise if it comes from '
@@ -55,8 +52,8 @@ valid_settings: List[Setting] = [
             'calculation using Wannier since, to be consistent, all the Hamiltonians must be in the same '
             'gauge, i.e. the Wannier gauge',
             (int, list), 1, None),
-    Setting('dft_ham_file', '', str, None, None),
-    Setting('dft_smooth_ham_file', '', str, None, None),
+    Setting('dft_ham_file', '', Path, None, None),
+    Setting('dft_smooth_ham_file', '', Path, None, None),
     Setting('do_dos',
             'if True, the density-of-states is interpolated along the input kpath. The DOS is written to a '
             'file called "dos_interpolated.dat"',
@@ -78,72 +75,46 @@ valid_settings: List[Setting] = [
 class UnfoldAndInterpolateSettingsDict(SettingsDictWithChecks):
 
     def __init__(self, **kwargs):
-        super().__init__(settings=valid_settings,
-                         are_paths=['w90_seedname', 'kc_ham_file',
-                                    'dft_ham_file', 'dft_smooth_ham_file'],
+        # First, rename a few settings internally
+        # - sc_dim is nothing more than 'kpts', so let's internally rename this
+        name_changes = {'sc_dim': 'kpts'}
+        local_valid_settings = []
+        for setting in valid_settings:
+            if setting.name in name_changes.keys():
+                setting_dict = setting._asdict()
+                setting_dict['name'] = name_changes[setting.name]
+                setting = Setting(**setting_dict)
+
+            local_valid_settings.append(setting)
+
+        super().__init__(settings=local_valid_settings,
                          to_not_parse=[],
-                         physicals=['alat_sc', 'degauss', 'Emin', 'Emax'],
+                         physicals=['degauss', 'Emin', 'Emax'],
                          **kwargs)
+
+    @property
+    def _other_valid_keywords(self):
+        return ['kpts', 'kpath']
 
     def _check_before_setitem(self, key, value):
         # Additional sanity checks
+        if self.do_map and key == 'w90_calc' and value.lower() != 'sc':
+            raise ValueError('do_map = True is incompatible with w90_calc = "pc"')
+
+        return super()._check_before_setitem(key, value)
+
+    def __setitem__(self, key: str, value: Any):
         if key == 'w90_calc':
             value = value.lower()
             if value == 'sc':
                 self.w90_input_sc = True
             else:
                 self.w90_input_sc = False
-                if self.do_map:
-                    raise ValueError('do_map = True is incompatible with w90_calc = "pc"')
-
-        return super()._check_before_setitem(key, value)
-
-    def __setitem__(self, key: str, value: Any):
 
         if key == 'smooth_int_factor' and isinstance(value, int):
             value = [value for _ in range(3)]
 
         return super().__setitem__(key, value)
-
-    @property
-    def Emin(self):
-        if self._Emin is None:
-            return np.min(self.get_eigenvalues())
-        else:
-            return self._Emin
-
-    @Emin.setter
-    def Emin(self, value):
-        self._Emin = value
-
-    @property
-    def Emax(self):
-        if self._Emax is None:
-            return np.max(self.get_eigenvalues())
-        else:
-            return self._Emax
-
-    @Emax.setter
-    def Emax(self, value):
-        self._Emax = value
-
-    @property
-    def at(self):
-        # basis vectors of direct lattice (in PC alat units)
-        return self.atoms.cell / self.alat
-
-    @at.setter
-    def at(self, value):
-        self.atoms.cell = value * self.alat
-
-    @property
-    def alat(self):
-        return self.alat_sc / self.sc_dim[0]
-
-    @property
-    def bg(self):
-        # basis vectors of reciprocal lattice (in PC 2pi/alat units)
-        return np.linalg.inv(self.at).transpose()
 
     @property
     def do_smooth_interpolation(self):

@@ -10,11 +10,11 @@ from typing import Union, List
 from ._json import read_json, write_json
 from ._kwf import read_kwf, write_kwf
 from ._calculators import read_calculator
-from koopmans.calculators import ExtendedCalculator
+from koopmans.calculators import CalculatorExt
 from koopmans.workflows import Workflow
 
 
-def read(filename: Union[str, List[str]], **kwargs) -> Union[Workflow, ExtendedCalculator]:
+def read(filename: Union[str, List[str]], **kwargs) -> Union[Workflow, CalculatorExt]:
 
     # Generic "read" function
 

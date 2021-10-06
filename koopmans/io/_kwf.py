@@ -14,6 +14,7 @@ import inspect
 import json
 from ase.io import jsonio as ase_json
 from ase.calculators.calculator import Calculator
+from ase.calculators.singlepoint import SinglePointKPoint
 import koopmans.workflows as workflows
 
 
@@ -40,6 +41,7 @@ class KoopmansEncoder(ase_json.MyEncoder):
             d = obj.todict()
             if '__koopmans_name__' in d:
                 return d
+
         # If none of the above, use ASE's encoder
         return super().default(obj)
 

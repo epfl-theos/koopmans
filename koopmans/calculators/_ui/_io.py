@@ -7,8 +7,11 @@ import os
 import numpy as np
 import copy
 import json
+from typing import Optional
+from pathlib import Path
 from datetime import datetime
 from ase.atoms import Atoms
+from ase.build.supercells import lattice_points_in_supercell
 from ase.calculators.calculator import FileIOCalculator
 from ase.spectrum.band_structure import BandStructure
 from koopmans import utils
@@ -21,10 +24,9 @@ def parse_w90(self):
     spreads : spreads of WFs (in Ang^2)
     '''
 
-    with open(self.w90_seedname + '.wout', 'r') as ifile:
+    with open(self.parameters.w90_seedname.with_suffix('.wout'), 'r') as ifile:
         lines = ifile.readlines()
 
-    at = np.empty((3, 3), dtype=float)
     self.centers = []
     self.spreads = []
     count = 0
@@ -32,12 +34,6 @@ def parse_w90(self):
     for line in lines:
         if 'Number of Wannier Functions' in line:
             num_wann = int(line.split()[6])
-        if ' a_1 ' in line:
-            at[0, :] = line.split()[1:]
-        if ' a_2 ' in line:
-            at[1, :] = line.split()[1:]
-        if ' a_3 ' in line:
-            at[2, :] = line.split()[1:]
         if count > 0 and count <= num_wann:
             start = line.find('(')
             end = line.find(')')
@@ -48,33 +44,26 @@ def parse_w90(self):
         if 'Final State' in line:
             count += 1
 
-    self.Rvec = latt_vect(*self.sc_dim)
-    self.at = at / self.alat
+    # self.Rvec = latt_vect(*self.parameters.kpts)
+    self.Rvec = np.array([[x, y, z] for x in range(self.parameters.kpts[0])
+                          for y in range(self.parameters.kpts[1]) for z in range(self.parameters.kpts[2])])
 
-    if self.w90_input_sc:
-        self.num_wann_sc = num_wann
-        self.num_wann = num_wann // np.prod(self.sc_dim)
-
-        # converting at and bg from the SC to the PC
-        self.at_sc = copy.copy(self.at)
-        self.at = np.array([x / n for x, n in zip(self.at, self.sc_dim)])
-        self.bg_sc = copy.copy(self.bg)
-        self.bg = np.array([x * n for x, n in zip(self.bg, self.sc_dim)])
+    if self.parameters.w90_input_sc:
+        self.parameters.num_wann_sc = num_wann
+        self.parameters.num_wann = num_wann // np.prod(self.parameters.kpts)
 
     else:
-        self.num_wann = num_wann
-        self.num_wann_sc = num_wann * np.prod(self.sc_dim)
-        self.at_sc = np.array([x * n for x, n in zip(self.at, self.sc_dim)])
-        self.bg_sc = np.array([x / n for x, n in zip(self.bg, self.sc_dim)])
+        self.parameters.num_wann = num_wann
+        self.parameters.num_wann_sc = num_wann * np.prod(self.parameters.kpts)
 
     for n in range(num_wann):
-        self.centers[n] = self.centers[n] / self.alat
-        self.centers[n] = crys_to_cart(self.centers[n], self.bg, -1)
+        self.centers[n] = self.centers[n] / np.linalg.norm(self.atoms.cell[0])
+        self.centers[n] = crys_to_cart(self.centers[n], self.atoms.acell.reciprocal(), -1)
 
     # generate the centers and spreads of all the other (R/=0) WFs
-    if not self.w90_input_sc:
+    if not self.parameters.w90_input_sc:
         for rvect in self.Rvec[1:]:
-            for n in range(self.num_wann):
+            for n in range(self.parameters.num_wann):
                 self.centers.append(self.centers[n] + rvect)
                 self.spreads.append(self.spreads[n])
 
@@ -97,14 +86,14 @@ def parse_hr(self):
 
     """
 
-    with open(self.kc_ham_file, 'r') as ifile:
+    with open(self.parameters.kc_ham_file, 'r') as ifile:
         lines = ifile.readlines()
 
     if 'written on' in lines[0].lower():
         hr_type = 'w90'
     elif 'xml version' in lines[0]:
         hr_type = 'kc_occ_old'
-    elif self.kc_ham_file[-19:] == 'hamiltonian_emp.dat':
+    elif self.parameters.kc_ham_file.name == 'hamiltonian_emp.dat':
         hr_type = 'kc_emp_old'
     else:
         raise ValueError('Hamiltonian file not recognised')
@@ -120,9 +109,9 @@ def parse_hr(self):
             single_R = False
 
         if single_R:
-            assert int(lines[1].split()[0]) == self.num_wann_sc, 'In parse_hr inconsistency in num_wann'
+            assert int(lines[1].split()[0]) == self.parameters.num_wann_sc, 'In parse_hr inconsistency in num_wann'
         else:
-            assert int(lines[1].split()[0]) != self.num_wann, 'In parse_hr inconsistency in num_wann'
+            assert int(lines[1].split()[0]) != self.parameters.num_wann, 'In parse_hr inconsistency in num_wann'
 
         if not single_R:
             rvect = []
@@ -134,7 +123,7 @@ def parse_hr(self):
         for line in lines[lines_to_skip:]:
             self.hr.append(float(line.split()[5]) + 1j * float(line.split()[6]))
             counter += 1
-            if not single_R and counter == self.num_wann**2:
+            if not single_R and counter == self.parameters.num_wann**2:
                 rvect.append(np.array(line.split()[0:3], dtype=int))
                 counter = 0
 
@@ -147,15 +136,15 @@ def parse_hr(self):
             self.hr.append(line.split()[0])
 
     if hr_type == 'w90' and not single_R:
-        assert len(self.hr) == nrpts * self.num_wann**2, \
+        assert len(self.hr) == nrpts * self.parameters.num_wann**2, \
             f'Wrong number of matrix elements ({len(self.hr)}) for the input hamiltonian'
-        self.hr = np.array(self.hr, dtype=complex).reshape(nrpts, self.num_wann, self.num_wann)
-        self.hr = extract_hr(self.hr, rvect, self.sc_dim[0], self.sc_dim[1], self.sc_dim[2])
-        self.hr = self.hr.reshape(self.num_wann_sc, self.num_wann)
+        self.hr = np.array(self.hr, dtype=complex).reshape(nrpts, self.parameters.num_wann, self.parameters.num_wann)
+        self.hr = extract_hr(self.hr, rvect, *self.parameters.kpts)
+        self.hr = self.hr.reshape(self.parameters.num_wann_sc, self.parameters.num_wann)
     else:
-        assert len(self.hr) == self.num_wann_sc**2, \
+        assert len(self.hr) == self.parameters.num_wann_sc**2, \
             f'Wrong number of matrix elements ({len(self.hr)}) for the input hamiltonian'
-        self.hr = np.array(self.hr, dtype=complex).reshape(self.num_wann_sc, self.num_wann_sc)
+        self.hr = np.array(self.hr, dtype=complex).reshape(self.parameters.num_wann_sc, self.parameters.num_wann_sc)
 
     # conversion to eV (hamiltonian from CP Koopmans code is in Hartree)
     if hr_type == 'kc_occ_old' or hr_type == 'kc_emp_old':
@@ -163,10 +152,7 @@ def parse_hr(self):
 
     # check the hermiticity of the hamiltonian (except for H_R(m,n))
     if not (hr_type == 'w90' and not single_R):
-        for m in range(self.num_wann):
-            for n in range(self.num_wann):
-                assert self.hr[m, n] - self.hr[n, m].conjugate() <= 1.e-6, \
-                    f'Hamiltonian matrix (index {m}, {n}) not hermitian'
+        assert np.allclose(self.hr, self.hr.T.conj(), atol=1e-6), 'Hamiltonian is not Hermitian'
 
     # reading the 2 hamiltonians for the smooth interpolation method
     if self.parameters.do_smooth_interpolation:
@@ -174,7 +160,7 @@ def parse_hr(self):
         self.hr_smooth = []
 
         # parsing hr_coarse
-        with open(self.dft_ham_file, 'r') as ifile:
+        with open(self.parameters.dft_ham_file, 'r') as ifile:
             lines = ifile.readlines()
 
         nrpts = int(lines[2].split()[0])
@@ -184,9 +170,11 @@ def parse_hr(self):
             single_R = False
 
         if single_R:
-            assert int(lines[1].split()[0]) == self.num_wann_sc, 'In parse_hr inconsistency in num_wann in hr_coarse'
+            assert int(lines[1].split()[0]
+                       ) == self.parameters.num_wann_sc, 'In parse_hr inconsistency in num_wann in hr_coarse'
         else:
-            assert int(lines[1].split()[0]) == self.num_wann, 'In parse_hr inconsistency in num_wann in hr_coarse'
+            assert int(lines[1].split()[0]
+                       ) == self.parameters.num_wann, 'In parse_hr inconsistency in num_wann in hr_coarse'
 
         if not single_R:
             rvect = []
@@ -198,29 +186,29 @@ def parse_hr(self):
         for line in lines[lines_to_skip:]:
             self.hr_coarse.append(float(line.split()[5]) + 1j * float(line.split()[6]))
             counter += 1
-            if not single_R and counter == self.num_wann**2:
+            if not single_R and counter == self.parameters.num_wann**2:
                 rvect.append(np.array(line.split()[0:3], dtype=int))
                 counter = 0
 
         if single_R:
-            assert len(self.hr_coarse) == self.num_wann_sc**2, \
+            assert len(self.hr_coarse) == self.parameters.num_wann_sc**2, \
                 f'Wrong number of matrix elements for hr_coarse {len(self.hr_coarse)}'
             self.hr_coarse = np.array(self.hr_coarse, dtype=complex)
-            self.hr_coarse = self.hr_coarse.reshape(self.num_wann_sc, self.num_wann_sc)
-            self.hr_coarse = self.hr_coarse[:, :self.num_wann]
+            self.hr_coarse = self.hr_coarse.reshape(self.parameters.num_wann_sc, self.parameters.num_wann_sc)
+            self.hr_coarse = self.hr_coarse[:, :self.parameters.num_wann]
         else:
             assert len(self.hr_coarse) == nrpts * \
-                self.num_wann**2, f'Wrong number of matrix elements for hr_coarse {len(self.hr_coarse)}'
+                self.parameters.num_wann**2, f'Wrong number of matrix elements for hr_coarse {len(self.hr_coarse)}'
             self.hr_coarse = np.array(self.hr_coarse, dtype=complex)
-            self.hr_coarse = self.hr_coarse.reshape(nrpts, self.num_wann, self.num_wann)
-            self.hr_coarse = extract_hr(self.hr_coarse, rvect, self.sc_dim[0], self.sc_dim[1], self.sc_dim[2])
-            self.hr_coarse = self.hr_coarse.reshape(self.num_wann_sc, self.num_wann)
+            self.hr_coarse = self.hr_coarse.reshape(nrpts, self.parameters.num_wann, self.parameters.num_wann)
+            self.hr_coarse = extract_hr(self.hr_coarse, rvect, *self.parameters.kpts)
+            self.hr_coarse = self.hr_coarse.reshape(self.parameters.num_wann_sc, self.parameters.num_wann)
 
         # parsing hr_smooth
-        with open(self.dft_smooth_ham_file, 'r') as ifile:
+        with open(self.parameters.dft_smooth_ham_file, 'r') as ifile:
             lines = ifile.readlines()
 
-        assert int(lines[1].split()[0]) == self.num_wann, 'In parse_hr inconsistency in num_wann in hr_smooth'
+        assert int(lines[1].split()[0]) == self.parameters.num_wann, 'In parse_hr inconsistency in num_wann in hr_smooth'
 
         weights = []
         rvect = []
@@ -237,16 +225,16 @@ def parse_hr(self):
         for line in lines[lines_to_skip:]:
             self.hr_smooth.append(float(line.split()[5]) + 1j * float(line.split()[6]))
             counter += 1
-            if counter == self.num_wann**2:
+            if counter == self.parameters.num_wann**2:
                 rvect.append(np.array(line.split()[0:3], dtype=int))
                 counter = 0
 
         assert len(self.hr_smooth) == nrpts * \
-            self.num_wann**2, f'Wrong number of matrix elements for hr_smooth {len(self.hr_smooth)}'
+            self.parameters.num_wann**2, f'Wrong number of matrix elements for hr_smooth {len(self.hr_smooth)}'
         self.wRs = weights
         self.Rsmooth = rvect
         self.hr_smooth = np.array(self.hr_smooth, dtype=complex)
-        self.hr_smooth = self.hr_smooth.reshape(nrpts, self.num_wann, self.num_wann)
+        self.hr_smooth = self.hr_smooth.reshape(nrpts, self.parameters.num_wann, self.parameters.num_wann)
 
     return
 
@@ -262,9 +250,9 @@ def parse_phases(self):
             lines = ifile.readlines()
         self.phases = [float(l.split()[0]) + float(l.split()[1]) * 1j for l in lines]
     except FileNotFoundError:
-        if self.w90_input_sc:
+        if self.parameters.w90_input_sc:
             utils.warn('file "wf_phases.dat" not found; phases are ignored')
-        self.phases = [1 for _ in range(self.num_wann_sc)]
+        self.phases = [1 for _ in range(self.parameters.num_wann_sc)]
     return
 
 
@@ -284,7 +272,7 @@ def print_centers(self, centers=None):
     if centers is None:
         centers = self.centers
 
-    for n in range(self.num_wann_sc):
+    for n in range(self.parameters.num_wann_sc):
         self.f_out.write(' X' + ''.join([f'  {x:10.6f}' for x in centers[n]]) + '\n')
 
     return
@@ -299,7 +287,7 @@ def write_results(self, directory=None):
 
     self.write_bands(directory)
 
-    if self.do_dos:
+    if self.parameters.do_dos:
         self.write_dos(directory)
 
     return
@@ -316,8 +304,8 @@ def write_bands(self, directory=None):
         directory = self.directory
 
     kvec = []
-    for kpt in self.kpath.kpts:
-        kvec.append(crys_to_cart(kpt, self.bg, +1))
+    for kpt in self.parameters.kpath.kpts:
+        kvec.append(crys_to_cart(kpt, self.atoms.acell.reciprocal(), +1))
 
     kx = [0.]
     for ik in range(1, len(kvec)):
@@ -370,7 +358,7 @@ def read_bands(self, directory=None):
                 bands.append([])
             else:
                 bands[-1].append(float(splitline[-1]))
-        self.results['band structure'] = BandStructure(path=self.kpath, energies=[np.transpose(bands)])
+        self.results['band structure'] = BandStructure(path=self.parameters.kpath, energies=[np.transpose(bands)])
         self.calc_dos()
 
 
@@ -392,109 +380,88 @@ def write_dos(self, directory=None):
     return
 
 
-def write_input_file(self):
+def write_input(self, atoms: Atoms):
     """
-    write_input_file writes out a JSON file containing the settings used for the calculation. This "input" file is
+    write_input writes out a JSON file containing the settings used for the calculation. This "input" file is
     never actually used in a standard calculation, but it is useful for debugging
     """
 
     with utils.chdir(self.directory):
-        with open(f'{self.name}{self.ext_in}', 'w') as fd:
-            settings = copy.deepcopy(self.calc.parameters)
+        with open(f'{self.prefix}{self.ext_in}', 'w') as fd:
+            settings = copy.deepcopy(self.parameters.data)
 
-            # Convert alat_sc to Bohr
-            settings['alat_sc'] *= utils.units.Bohr
-
-            # Remove the ASE BandPath object
+            # Remove the kpoints information from the settings dict
+            kpts = settings.pop('kpts')
             kpath = settings.pop('kpath')
+
+            # Converting Paths to JSON-serialisable strings
+            for k in self.parameters.are_paths:
+                settings[k] = str(settings[k])
 
             # Store all the settings in one big dictionary
             bigdct = {"workflow": {"task": "ui"}, "ui": settings}
 
             # Provide the bandpath information in the form of a string
-            bigdct['setup'] = {'kpoints': {'kpath': kpath.path}}
+            bigdct['setup'] = {'kpoints': {'kpath': kpath.path,
+                                           'kind': 'automatic', 'kpts': kpts, 'koffset': [0, 0, 0]}}
 
             # We also need to provide a cell so the explicit kpath can be reconstructed from the string alone
-            bigdct['setup']['cell_parameters'] = utils.construct_cell_parameters_block(self.calc)
+            bigdct['setup']['cell_parameters'] = utils.construct_cell_parameters_block(self)
 
             json.dump(bigdct, fd, indent=2)
 
 
-def read_input_file(self, input_file=None):
+def read_input(self, input_file: Optional[Path] = None):
     """
-    read_input_file reads in the settings from a JSON-formatted input file and returns an ASE calculator (useful for
+    read_input reads in the settings from a JSON-formatted input file and loads them onto this calculator (useful for
     restarting)
     """
 
     if input_file is None:
-        input_file = self.directory + '/' + self.name + self.ext_in
+        input_file = self.directory / (self.prefix + self.ext_in)
 
     with open(input_file, 'r') as fd:
 
         # Load the input file
         bigdct = json.load(fd)
 
-        assert bigdct['workflow']['task'] == 'ui', 'UI input file should have "task": "ui"'
+    assert bigdct['workflow']['task'] == 'ui', 'UI input file should have "task": "ui"'
 
-        # Create an empty dummy ASE calculator required by read_ui_dict
-        atoms = Atoms(calculator=FileIOCalculator())
-        atoms.calc.atoms = atoms
+    # Load the cell and kpts if they are provided
+    if 'setup' in bigdct:
+        cell = utils.read_cell_parameters(None, bigdct['setup'].get('cell_parameters', {}))
+        if cell:
+            self.atoms.cell = cell
+        kpoint_block = bigdct['setup'].get('kpoints', {})
+        if kpoint_block:
+            self.parameters.kpts = kpoint_block['kpts']
+            utils.read_kpath(self, kpoint_block['kpath'])
 
-        # Load the cell if it is provided
-        if 'setup' in bigdct:
-            cell = utils.read_cell_parameters(None, bigdct['setup'].get('cell_parameters', {}))
-            if cell:
-                atoms.cell = cell
-            kpath = bigdct['setup'].get('kpoints', {}).get('kpath', None)
-            if kpath:
-                utils.read_kpath(atoms.calc, kpath)
+    # Update the parameters
+    self.parameters = bigdct['ui']
 
-        # Parse the UI dict
-        return read_ui_dict(bigdct['ui'], atoms)
+    return
 
 
-def read_output_file(self, output_file=None):
+def read_results(self, output_file=None):
     """
-    read_output_file reads in an output file and returns an ASE calculator object with the solitary result 'job done'
+    read_results reads in an output file and returns an ASE calculator object with the solitary result 'job done'
     """
 
     if output_file is None:
-        output_file = f'{self.directory}/{self.name}{self.ext_out}'
+        output_file = self.directory / (self.prefix + self.ext_out)
 
     # Create an empty dummy ASE calculator
     atoms = Atoms(calculator=FileIOCalculator())
     atoms.calc.atoms = atoms
     calc = atoms.calc
-    calc.directory = output_file.rsplit('/', 1)[0]
+    calc.directory = output_file.parent
 
-    assert os.path.isfile(output_file)
+    assert output_file.is_file()
 
     # Check the calculation is done
     with open(output_file, 'r') as f:
         flines = f.readlines()
     calc.results = {'job done': any(['ALL DONE' in line for line in flines])}
-
-    return calc
-
-
-def read_ui_dict(dct, generic_atoms):
-    # Use a generic calculator with no command
-    atoms = copy.deepcopy(generic_atoms)
-    calc = atoms.calc
-    calc.atoms.calc = calc
-
-    calc.command = ''
-
-    # Overwrite the parameters with the provided JSON dict
-    calc.parameters = utils.parse_dict(dct)
-
-    # Use kpath specified in the setup block if it is not present in the ui dict
-    setup_kpath = generic_atoms.calc.parameters.get('kpath', None)
-    if 'kpath' not in dct and setup_kpath:
-        calc.parameters['kpath'] = setup_kpath
-
-    # Convert units of alat_sc
-    if 'alat_sc' in calc.parameters:
-        calc.parameters['alat_sc'] *= utils.units.Bohr
 
     return calc

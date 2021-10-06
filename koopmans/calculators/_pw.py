@@ -10,24 +10,22 @@ import os
 from ase import Atoms
 from ase.calculators.espresso import Espresso
 from koopmans.settings import PWSettingsDict
-from ._utils import ExtendedCalculator, qe_bin_directory
+from ._utils import CalculatorExt, CalculatorABC, qe_bin_directory
 from koopmans.commands import ParallelCommandWithPostfix, Command
 
 
-class PWCalculator(ExtendedCalculator, Espresso):
-    # Subclass of ExtendedCalculator for performing calculations with pw.x
+class PWCalculator(CalculatorExt, Espresso, CalculatorABC):
+    # Subclass of CalculatorExt for performing calculations with pw.x
+    ext_in = '.pwi'
+    ext_out = '.pwo'
 
     def __init__(self, atoms: Atoms, *args, **kwargs):
         # Define the valid settings
         self.parameters = PWSettingsDict()
 
-        # Define the appropriate file extensions
-        self.ext_in = '.pwi'
-        self.ext_out = '.pwo'
-
-        # Initialise first using the ASE parent and then ExtendedCalculator
+        # Initialise first using the ASE parent and then CalculatorExt
         Espresso.__init__(self, atoms=atoms)
-        ExtendedCalculator.__init__(self, *args, **kwargs)
+        CalculatorExt.__init__(self, *args, **kwargs)
 
         self.results_for_qc = ['energy']
         if not isinstance(self.command, Command):

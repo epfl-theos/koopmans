@@ -19,27 +19,30 @@ class DFTCPWorkflow(Workflow):
         calc = self.new_calculator('kcp')
 
         # Removing old directories
-        if self.from_scratch:
-            utils.system_call(f'rm -r {calc.outdir} 2>/dev/null', False)
+        if self.parameters.from_scratch:
+            utils.system_call(f'rm -r {calc.parameters.outdir} 2>/dev/null', False)
 
-        calc.name = 'dft'
+        calc.prefix = 'dft'
         calc.directory = '.'
-        calc.ndr = 50
-        calc.ndw = 51
-        calc.restart_mode = 'from_scratch'
-        calc.do_orbdep = False
-        calc.fixed_state = False
-        calc.do_outerloop = True
-        calc.which_compensation = 'tcc'
+        calc.parameters.ndr = 50
+        calc.parameters.ndw = 51
+        calc.parameters.restart_mode = 'from_scratch'
+        calc.parameters.do_orbdep = False
+        calc.parameters.fixed_state = False
+        calc.parameters.do_outerloop = True
+        calc.parameters.which_compensation = 'tcc'
 
-        if calc.maxiter is None:
-            calc.maxiter = 300
-        if calc.empty_states_nbnd is not None and calc.empty_states_nbnd > 0:
-            calc.do_outerloop_empty = True
-            if calc.empty_states_maxstep is None:
-                calc.empty_states_maxstep = 300
+        if calc.parameters.maxiter is None:
+            calc.parameters.maxiter = 300
+        if calc.parameters.empty_states_nbnd is not None and calc.parameters.empty_states_nbnd > 0:
+            calc.parameters.do_outerloop_empty = True
+            if calc.parameters.empty_states_maxstep is None:
+                calc.parameters.empty_states_maxstep = 300
 
-        self.run_calculator(calc, enforce_ss=self.enforce_spin_symmetry)
+        try:
+            self.run_calculator(calc, enforce_ss=self.parameters.enforce_spin_symmetry)
+        except:
+            raise ValueError()
 
         return calc
 
@@ -52,14 +55,14 @@ class DFTPWWorkflow(Workflow):
         calc = self.new_calculator('pw')
 
         # Update keywords
-        calc.name = 'dft'
-        calc.ndr = 50
-        calc.ndw = 51
-        calc.restart_mode = 'from_scratch'
+        calc.prefix = 'dft'
+        calc.parameters.ndr = 50
+        calc.parameters.ndw = 51
+        calc.parameters.restart_mode = 'from_scratch'
 
         # Remove old directories
-        if self.from_scratch:
-            utils.system_call(f'rm -r {calc.outdir} 2>/dev/null', False)
+        if self.parameters.from_scratch:
+            utils.system_call(f'rm -r {calc.parameters.outdir} 2>/dev/null', False)
 
         # Run the calculator
         self.run_calculator(calc)

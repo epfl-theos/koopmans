@@ -1,12 +1,12 @@
 from glob import glob
 from typing import Union, List, Type
 from pathlib import Path
-from koopmans.calculators import ExtendedCalculator, KoopmansCPCalculator, PWCalculator, Wannier90Calculator, \
+from koopmans.calculators import CalculatorExt, KoopmansCPCalculator, PWCalculator, Wannier90Calculator, \
     PW2WannierCalculator, UnfoldAndInterpolateCalculator, Wann2KCCalculator, KoopmansScreenCalculator, \
     KoopmansHamCalculator
 
 
-def read_calculator(filenames: Union[Path, List[Path]]) -> ExtendedCalculator:
+def read_calculator(filenames: Union[Path, List[Path]]) -> Union[KoopmansCPCalculator, PWCalculator, Wannier90Calculator, PW2WannierCalculator, UnfoldAndInterpolateCalculator, Wann2KCCalculator, KoopmansScreenCalculator, KoopmansHamCalculator]:
 
     # Interpreting the filenames argument
     if not isinstance(filenames, list):
@@ -19,7 +19,8 @@ def read_calculator(filenames: Union[Path, List[Path]]) -> ExtendedCalculator:
                      valid_extensions]
     extensions = set([f.suffix for f in filenames])
 
-    calc_class: Type[ExtendedCalculator]
+    calc_class: Union[Type[KoopmansCPCalculator], Type[PWCalculator], Type[Wannier90Calculator], Type[PW2WannierCalculator],
+                      Type[UnfoldAndInterpolateCalculator], Type[Wann2KCCalculator], Type[KoopmansScreenCalculator], Type[KoopmansHamCalculator]]
 
     if extensions.issubset(set(['.cpi', '.cpo'])):
         calc_class = KoopmansCPCalculator

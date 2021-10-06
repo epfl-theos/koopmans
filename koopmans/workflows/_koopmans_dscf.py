@@ -68,7 +68,7 @@ class KoopmansDSCFWorkflow(Workflow):
             self.bands.alphas = self.parameters.alpha_guess
 
         # Raise errors if any UI keywords are provided but will be overwritten by the workflow
-        for ui_keyword in ['kc_ham_file', 'w90_seedname', 'alat_sc', 'sc_dim', 'dft_ham_file', 'dft_smooth_ham_file']:
+        for ui_keyword in ['kc_ham_file', 'w90_seedname', 'kpts', 'dft_ham_file', 'dft_smooth_ham_file']:
             for ui_kind in ['occ', 'emp']:
                 value = getattr(self.master_calc_params[f'ui_{ui_kind}'], ui_keyword)
                 [default_value] = [s.default for s in self.master_calc_params['ui'].settings if s.name == ui_keyword]
@@ -182,7 +182,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     self.print_qc_keyval(f'orbital_self_Hartree(orb={i+1},sigma={isp+1})', orb_sh, calc)
 
         # Postprocessing
-        if self.parameters.periodic and self.master_calc_params['ui'].kpath is not None:
+        if self.parameters.periodic and self.kpath is not None:
             self.print(f'\nPostprocessing', style='heading')
             self.perform_postprocessing()
 
@@ -195,13 +195,13 @@ class KoopmansDSCFWorkflow(Workflow):
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
             # Wannier functions using pw.x, wannier90.x and pw2wannier90.x
-            wannier_workflow = WannierizeWorkflow(self.atoms, self.parameters, self.master_calc_params, self.name)
+            wannier_workflow = WannierizeWorkflow(**self.wf_kwargs)
 
             # Perform the wannierisation workflow within the init directory
             self.run_subworkflow(wannier_workflow, subdirectory='init')
 
             # Now, convert the files over from w90 format to (k)cp format
-            fold_workflow = FoldToSupercellWorkflow(self.atoms, self.parameters, self.master_calc_params, self.name)
+            fold_workflow = FoldToSupercellWorkflow(**self.wf_kwargs)
 
             # Do this in the same directory as the wannierisation
             self.run_subworkflow(fold_workflow, subdirectory='init/wannier')
@@ -349,7 +349,7 @@ class KoopmansDSCFWorkflow(Workflow):
             save_prefix = f'{calc.parameters.outdir}/{calc.parameters.prefix}'
             utils.system_call(f'cp -r {save_prefix}_{calc.parameters.ndw}.save {save_prefix}_{ndw}.save')
 
-    def _overwrite_canonical_with_variational_orbitals(self, calc: calculators.ExtendedCalculator) -> None:
+    def _overwrite_canonical_with_variational_orbitals(self, calc: calculators.CalculatorExt) -> None:
         self.print('Overwriting the variational orbitals with Kohn-Sham orbitals')
         savedir = f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
         utils.system_call(f'cp {savedir}/evc1.dat {savedir}/evc01.dat')
@@ -620,18 +620,14 @@ class KoopmansDSCFWorkflow(Workflow):
         # Import these here so that if these have been monkey-patched, we get the monkey-patched version
         from koopmans.workflows import WannierizeWorkflow
 
+        # Transform self.atoms back to the primitive cell
+        self.supercell_to_primitive(np.diag(self.kpts))
+
         if self.master_calc_params['ui'].do_smooth_interpolation:
-            factors = self.master_calc_params['ui'].smooth_int_factor
-            # Run the PW + W90 for a much larger grid
-            local_master_calc_params = copy.deepcopy(self.master_calc_params)
-            for name in ['pw', 'pw2wannier', 'w90_occ', 'w90_emp']:
-                params = local_master_calc_params[name]
-                original_k_grid = params.get('kpts', None)
-                if original_k_grid is not None:
-                    # For paramsulations with a kpts attribute, create a denser k-grid
-                    new_k_grid = [x * y for x, y in zip(original_k_grid, factors)]
-                    params.kpts = new_k_grid
-            wannier_workflow = WannierizeWorkflow(self.atoms, self.parameters, local_master_calc_params)
+            wf_kwargs = self.wf_kwargs
+            wf_kwargs['kpts'] = [x * y for x,
+                                 y in zip(wf_kwargs['kpts'], self.master_calc_params['ui'].smooth_int_factor)]
+            wannier_workflow = WannierizeWorkflow(**wf_kwargs)
 
             # Here, we allow for skipping of the smooth dft calcs (assuming they have been already run)
             # This is achieved via the optional argument of from_scratch in run_subworkflow(), which
@@ -646,14 +642,13 @@ class KoopmansDSCFWorkflow(Workflow):
 
         # Merge the two calculations to print out the DOS and bands
         calc = self.new_ui_calculator('merge')
-        calc.parameters.alat_sc = self.calculations[-1].parameters.alat_sc
 
         # Merge the bands
         energies = [c.results['band structure'].energies for c in self.calculations[-2:]]
         reference = np.max(energies[0])
         calc.results['band structure'] = BandStructure(self.kpath, np.concatenate(energies, axis=2) - reference)
 
-        if calc.do_dos:
+        if calc.parameters.do_dos:
             # Generate the DOS
             calc.calc_dos()
 
@@ -922,22 +917,20 @@ class KoopmansDSCFWorkflow(Workflow):
 
         if calc_presets == 'merge':
             # Dummy calculator for merging bands and dos
-            calc = calculators.UnfoldAndInterpolateCalculator(self.atoms, **self.master_calc_params['ui'])
+            kwargs['directory'] = Path('postproc')
             pass
         else:
-            calc = calculators.UnfoldAndInterpolateCalculator(
-                self.atoms, **self.master_calc_params[f'ui_{calc_presets}'])
             # Automatically generating UI calculator settings
-            calc.directory = Path(f'postproc/{calc_presets}')
-            calc.parameters.kc_ham_file = os.path.abspath(f'final/ham_{calc_presets}_1.dat')
-            calc.parameters.sc_dim = self.master_calc_params['pw'].kpts
-            calc.parameters.w90_seedname = os.path.abspath(f'init/wannier/{calc_presets}/wann')
+            kwargs['directory'] = Path(f'postproc/{calc_presets}')
+            kwargs['kc_ham_file'] = Path(f'final/ham_{calc_presets}_1.dat').resolve()
+            kwargs['w90_seedname'] = Path(f'init/wannier/{calc_presets}/wann').resolve()
             # The supercell can be obtained from the most recent CP calculation
             cell = [c.atoms.get_cell() for c in self.calculations if isinstance(c, calculators.KoopmansCPCalculator)][-1]
-            calc.parameters.alat_sc = np.linalg.norm(cell[0])
-            if calc.parameters.do_smooth_interpolation:
-                calc.parameters.dft_smooth_ham_file = os.path.abspath(f'postproc/wannier/{calc_presets}/wann_hr.dat')
-                calc.parameters.dft_ham_file = os.path.abspath(f'init/wannier/{calc_presets}/wann_hr.dat')
+            if self.master_calc_params['ui'].do_smooth_interpolation:
+                kwargs['dft_smooth_ham_file'] = Path(f'postproc/wannier/{calc_presets}/wann_hr.dat').resolve()
+                kwargs['dft_ham_file'] = Path(f'init/wannier/{calc_presets}/wann_hr.dat').resolve()
+
+        calc = self.new_calculator('ui', **kwargs)
         calc.prefix = self.parameters.functional
 
         return calc
@@ -965,7 +958,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 [kipz_m1_calc] = [c for c in calcs if c.parameters.which_orbdep == 'nkipz'
                                   and c.parameters.do_orbdep and c.parameters.f_cutoff < 0.0001]
                 kipz_m1 = kipz_m1_calc.results
-                charge = 1 - kipz_m1_calc.f_cutoff
+                charge = 1 - kipz_m1_calc.parameters.f_cutoff
 
                 # DFT N
                 [dft] = [c.results for c in calcs if not c.parameters.do_orbdep

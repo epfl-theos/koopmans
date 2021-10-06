@@ -14,33 +14,31 @@ from ase.dft.kpoints import BandPath
 from koopmans.utils import warn
 from koopmans.settings import Wannier90SettingsDict
 from koopmans.commands import Command
-from ._utils import ExtendedCalculator, qe_bin_directory
+from ._utils import CalculatorExt, CalculatorABC, qe_bin_directory
 
 
-class Wannier90Calculator(ExtendedCalculator, Wannier90):
+class Wannier90Calculator(CalculatorExt, Wannier90, CalculatorABC):
+    ext_in = '.win'
+    ext_out = '.wout'
 
     def __init__(self, atoms: Atoms, *args, **kwargs):
         # Define the list of parameters
         self.parameters = Wannier90SettingsDict()
 
-        # Define the appropriate file extensions
-        self.ext_in = '.win'
-        self.ext_out = '.wout'
-
         # Remove kpts from the kwargs
         mp_grid = kwargs.pop('kpts', [1, 1, 1])
 
-        # Initialise first using the ASE parent and then ExtendedCalculator
+        # Initialise first using the ASE parent and then CalculatorExt
         Wannier90.__init__(self, atoms=atoms)
-        ExtendedCalculator.__init__(self, *args, **kwargs)
+        CalculatorExt.__init__(self, *args, **kwargs)
 
         # Convert the kpts data into the format expected by W90
+        kpts = np.indices(mp_grid).transpose(1, 2, 3, 0).reshape(-1, 3)
         self.parameters.mp_grid = np.array(mp_grid)
-        kpts = np.indices(self.parameters.mp_grid).transpose(1, 2, 3, 0).reshape(-1, 3)
         kpts = kpts / self.parameters.mp_grid
         kpts[kpts >= 0.5] -= 1
-        kpts = BandPath(atoms.cell, kpts)
-        self.parameters.kpts = kpts.kpts[:, :3]
+        kpath = BandPath(atoms.cell, kpts)
+        self.parameters.kpts = kpath.kpts[:, :3]
 
         # Set up the command for running this calculator
         self.command = Command(os.environ.get('ASE_WANNIER90_COMMAND',

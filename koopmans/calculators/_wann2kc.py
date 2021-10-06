@@ -16,16 +16,14 @@ from koopmans.commands import ParallelCommandWithPostfix
 
 class Wann2KCCalculator(KCWannCalculator, Wann2KC):
     # Subclass of KCWannCalculator for performing calculations with wann_to_kc.x
+    ext_in = '.w2ki'
+    ext_out = '.w2ko'
 
     def __init__(self, atoms: Atoms, *args, **kwargs):
         # Define the valid settings
         self.parameters = Wann2KCSettingsDict()
 
-        # Define the appropriate file extensions
-        self.ext_in = '.w2ki'
-        self.ext_out = '.w2ko'
-
-        # Initialise first using the ASE parent and then ExtendedCalculator
+        # Initialise first using the ASE parent and then CalculatorExt
         Wann2KC.__init__(self, atoms=atoms)
         KCWannCalculator.__init__(self, *args, **kwargs)
 

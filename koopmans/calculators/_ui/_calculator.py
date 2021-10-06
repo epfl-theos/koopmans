@@ -5,68 +5,80 @@ The calculator class defining the Unfolding & interpolating calculator
 """
 
 from time import time
+from ase.calculators.calculator import Calculator
+from ase.units import Hartree
 import numpy as np
+from numpy.typing import ArrayLike
+from typing import Union, List, Optional
+from pathlib import Path
+from ase import Atoms
+from ase.calculators.calculator import Calculator
 from ase.dft.kpoints import BandPath
-from .._utils import ExtendedCalculator
+from .._utils import CalculatorExt, CalculatorABC, sanitise_filenames
+from ._atoms import UIAtoms
 from koopmans import utils
 from koopmans.settings import UnfoldAndInterpolateSettingsDict
 
 
-class UnfoldAndInterpolateCalculator(ExtendedCalculator):
-    # Subclass of ExtendedCalculator for performing unfolding and interpolation
+class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
+    # Subclass of CalculatorExt for performing unfolding and interpolation
     from ._io import parse_w90, parse_hr, parse_phases, print_centers, write_results, write_bands, write_dos, \
-        write_input_file, read_input_file, read_output_file, read_bands
+        write_input, read_input, read_results, read_bands
     from ._interpolate import interpolate, calc_bands, correct_phase, calc_dos
 
-    prefix: str
+    ext_in = '.uii'
+    ext_out = '.uio'
+    results_for_qc = ['band structure', 'dos']
 
-    def __init__(self, calc=None, qe_files=[], skip_qc=False, **kwargs):
-
+    def __init__(self, atoms: Atoms, *args, **kwargs):
         self.parameters = UnfoldAndInterpolateSettingsDict()
 
-        # Link to the corresponding ASE Calculator (it does not use ASE)
-        self._ase_calc_class = None
+        # Initialise first with the base ASE calculator, and then with the calculator extensions
+        Calculator.__init__(self, atoms=atoms, *args, **kwargs)
+        CalculatorExt.__init__(self, *args, **kwargs)
 
-        # Define the appropriate file extensions
-        self.ext_in = '.uii'
-        self.ext_out = '.uio'
+        # Ensure that self.atoms is a UIAtoms and not just a Atoms object
+        if not isinstance(atoms, UIAtoms):
+            atoms = UIAtoms.fromatoms(atoms=atoms, supercell_matrix=np.diag(self.parameters.kpts))
+        self.atoms = atoms
+        self.atoms.calc = self
 
-        super().__init__(calc, qe_files, skip_qc, **kwargs)
+        # Intermediate variables
+        self.centers: ArrayLike = []
+        self.spreads: ArrayLike = []
+        self.phases: ArrayLike = []
+        self.hr: ArrayLike = []
+        self.hr_smooth: ArrayLike = []
+        self.hk: ArrayLike = []
+        self.Rvec: ArrayLike = []
+        self.Rsmooth: ArrayLike = []
+        self.wRs: ArrayLike = []
+
+    @classmethod
+    def fromfile(cls, filenames: Union[str, Path, List[str], List[Path]]) -> 'UnfoldAndInterpolateCalculator':
+        calc = CalculatorABC.fromfile(filenames)
+
+        sanitised_filenames = sanitise_filenames(filenames, cls.ext_in, cls.ext_out)
 
         # If we were reading generating this object from files, look for bands, too
-        if qe_files and any([self.ext_out in f for f in qe_files]):
-            self.read_bands()
+        if any([f.suffix == calc.ext_out for f in sanitised_filenames]):
+            calc.read_bands()
 
-        self.results_for_qc = ['band structure', 'dos']
-
-        if self.parameters.kpath is None:
-            # By default, use ASE's default bandpath for this cell (see
-            # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
-            if any(self.atoms.pbc):
-                self.parameters.kpath = self.atoms.cell.get_bravais_lattice().bandpath()
-            else:
-                self.parameters.kpath = 'G'
-        if isinstance(self.parameters.kpath, str):
-            # If kpath is provided as a string, convert it to a BandPath first
-            utils.read_kpath(self, self.parameters.kpath)
-        assert isinstance(self.parameters.kpath, BandPath)
-
-        if self.parameters.do_smooth_interpolation:
-            assert self.parameters.dft_ham_file, 'Missing file_hr_coarse for smooth interpolation'
-            assert self.parameters.dft_smooth_ham_file, 'Missing dft_smooth_ham_file for smooth interpolation'
+        return calc
 
     def calculate(self):
         # Check mandatory settings
-        for mandatory_setting in ['w90_seedname', 'kc_ham_file', 'alat_sc', 'sc_dim']:
+        for mandatory_setting in ['w90_seedname', 'kc_ham_file']:
             if mandatory_setting not in self.parameters:
                 raise ValueError(f'You must provide the "{mandatory_setting}" setting for a UI calculation')
 
-        if self.parameters.kpath is None:
-            utils.warn('"kpath" missing in input, the energies will be calculated on a commensurate Monkhorst-Pack '
-                       'mesh')
+        # Check we have the requisite files
+        if self.parameters.do_smooth_interpolation:
+            assert self.parameters.dft_ham_file.is_file(), 'Missing file_hr_coarse for smooth interpolation'
+            assert self.parameters.dft_smooth_ham_file.is_file(), 'Missing dft_smooth_ham_file for smooth interpolation'
 
-        if self.name is None:
-            self.name = 'ui'
+        if self.prefix is None:
+            self.prefix = 'ui'
 
         if self.directory is None:
             self.directory = '.'
@@ -77,13 +89,13 @@ class UnfoldAndInterpolateCalculator(ExtendedCalculator):
         # The core of the calculation machinery is separated into self._calculate() to allow for monkeypatching
         # during testing
 
-        self.write_input_file()
+        self.write_input(self.atoms)
 
         start = time()
         reset = time()
 
         with utils.chdir(self.directory):
-            with open(f'{self.name}{self.ext_out}', 'w') as f_out:
+            with open(f'{self.prefix}{self.ext_out}', 'w') as f_out:
                 self.f_out = f_out
 
                 self.f_out.write('\nUNFOLDING & INTERPOLATION\n\n')
@@ -129,7 +141,7 @@ class UnfoldAndInterpolateCalculator(ExtendedCalculator):
                 self.f_out.write(f'\n\tTotal time: {walltime:32.3f} sec\n')
                 self.f_out.write('\nALL DONE\n\n')
 
-                self.calc.results['job done'] = True
+                self.results['job done'] = True
 
                 # Unlink the output file
                 delattr(self, 'f_out')
@@ -162,8 +174,3 @@ class UnfoldAndInterpolateCalculator(ExtendedCalculator):
 
     def get_fermi_level(self):
         return 0
-
-    def todict(self):
-        dct = super().todict()
-        del dct['valid_settings']
-        return dct

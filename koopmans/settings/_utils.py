@@ -6,7 +6,6 @@ Written by Edward Linscott May 2020
 
 '''
 
-from koopmans import pseudopotentials
 from pathlib import Path
 from collections import UserDict
 from typing import Union, Type, Tuple, NamedTuple, Dict, Any, Optional, List
@@ -83,10 +82,7 @@ class SettingsDict(UserDict):
         self.directory = directory
         self.physicals = physicals
         self.update(**defaults)
-        try:
-            self.update(**kwargs)
-        except:
-            raise ValueError()
+        self.update(**kwargs)
 
     def __getattr__(self, name):
         if name != 'valid' and self.is_valid(name):
@@ -242,7 +238,8 @@ class SettingsDictWithChecks(SettingsDict):
     def __init__(self, settings: List[Setting], **kwargs):
         self.settings = settings
         super().__init__(valid=[s.name for s in settings], defaults={
-            s.name: s.default for s in settings if not s.default is None}, **kwargs)
+            s.name: s.default for s in settings if not s.default is None},
+            are_paths=[s.name for s in settings if s.kind == Path], **kwargs)
 
     def _check_before_setitem(self, key, value):
         super()._check_before_setitem(key, value)

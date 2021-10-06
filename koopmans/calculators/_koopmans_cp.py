@@ -12,29 +12,26 @@ from pandas.core.series import Series
 from ase import Atoms
 from ase.calculators.espresso import Espresso_kcp
 from koopmans import utils, settings, pseudopotentials
-from ._utils import ExtendedCalculator, kcp_bin_directory
+from ._utils import CalculatorExt, CalculatorABC, kcp_bin_directory
 from koopmans.commands import ParallelCommand
 
 
-class KoopmansCPCalculator(ExtendedCalculator, Espresso_kcp):
-    # Subclass of ExtendedCalculator for performing calculations with kcp.x
+class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
+    # Subclass of CalculatorExt for performing calculations with kcp.x
+    ext_in = '.cpi'
+    ext_out = '.cpo'
+    results_for_qc = ['energy', 'homo_energy', 'lumo_energy']
 
     def __init__(self, atoms: Atoms, skip_qc: bool = False, alphas: Optional[List[float]] = None, filling: Optional[List[bool]] = None, **kwargs):
         # Define the valid parameters
         self.parameters = settings.KoopmansCPSettingsDict()
 
-        # Define the appropriate file extensions
-        self.ext_in = '.cpi'
-        self.ext_out = '.cpo'
-
-        # Initialise first using the ASE parent and then ExtendedCalculator
+        # Initialise first using the ASE parent and then CalculatorExt
         Espresso_kcp.__init__(self, atoms=atoms)
-        ExtendedCalculator.__init__(self, skip_qc, **kwargs)
-
-        self.results_for_qc = ['energy', 'homo_energy', 'lumo_energy']
+        CalculatorExt.__init__(self, skip_qc, **kwargs)
 
         # Add nelec if it is missing
-        if 'nelec' not in self.parameters:
+        if 'nelec' not in self.parameters and 'pseudopotentials' in self.parameters:
             self.parameters.nelec = pseudopotentials.nelec_from_pseudos(self)
 
         if not isinstance(self.command, ParallelCommand):

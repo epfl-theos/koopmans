@@ -83,8 +83,9 @@ class ConvergenceWorkflow(Workflow):
                 if not np.isnan(results[tuple(indices)]):
                     continue
 
-                # Create duplicate calculator
-                kcp_calc = self.new_calculator('kcp')
+                # Create duplicate kcp calculator settings and atoms
+                kcp_params = copy.deepcopy(self.master_calc_params['kcp'])
+                atoms = copy.deepcopy(self.atoms)
 
                 # For each parameter we're converging wrt...
                 header = ''
@@ -102,19 +103,18 @@ class ConvergenceWorkflow(Workflow):
                         ' ', '_').replace('.', 'd')
 
                     if param == 'cell_size':
-                        kcp_calc._ase_calc.atoms.cell *= value
+                        atoms.cell *= value
                     else:
-                        setattr(kcp_calc, param, value)
+                        setattr(kcp_params, param, value)
                     if param == 'ecutwfc':
-                        setattr(kcp_calc, 'ecutrho', 4 * value)
+                        setattr(kcp_params, 'ecutrho', 4 * value)
 
                 if provide_alpha:
                     # Update alpha files and orbitals
-                    extra_orbitals = kcp_calc.empty_states_nbnd - kcp_master_params.empty_states_nbnd
-                    filling = [True] * (kcp_calc.nelec // 2) + \
-                        [False] * kcp_calc.empty_states_nbnd
-                    alphas = master_alphas + [master_alphas[-1]
-                                              for _ in range(extra_orbitals)]
+                    extra_orbitals = kcp_params.empty_states_nbnd - kcp_master_params.empty_states_nbnd
+                    filling = [True] * (kcp_params.nelec // 2) + \
+                        [False] * kcp_params.empty_states_nbnd
+                    alphas = master_alphas + [master_alphas[-1] for _ in range(extra_orbitals)]
                     self.parameters.orbital_groups = master_orbital_groups + \
                         [master_orbital_groups[-1]
                             for _ in range(extra_orbitals)]
@@ -123,9 +123,10 @@ class ConvergenceWorkflow(Workflow):
                 self.print(header.rstrip(', '), style='subheading')
 
                 # Perform calculation
-                calcs_dct = copy.deepcopy(self.master_calc_params)
-                calcs_dct['kcp'] = kcp_calc
-                singlepoint = SinglepointWorkflow(self.parameters, calcs_dct)
+                wf_kwargs = self.wf_kwargs
+                wf_kwargs['atoms'] = atoms
+                wf_kwargs['master_calc_params']['kcp'] = kcp_params
+                singlepoint = SinglepointWorkflow(**wf_kwargs)
                 self.run_subworkflow(singlepoint, subdirectory=subdir)
                 solved_calc = singlepoint.calculations[-1]
 

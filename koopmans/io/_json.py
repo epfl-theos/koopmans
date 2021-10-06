@@ -129,181 +129,176 @@ def read_setup_dict(dct):
     return atoms, parameters, psps_and_kpts, n_filled, n_empty
 
 
-def read_kcp_or_pw_dict(dct, calc):
-    '''
-
-    Reads in dict of kcp/pw input file and adds the settings to the provided calc object
-
-    '''
-
-    if isinstance(calc, Espresso_kcp):
-        qe_keys = kcp_keys
-    elif isinstance(calc, Espresso):
-        qe_keys = pw_keys
-    else:
-        raise TypeError(f'io.read_kcp_or_pw_dict() does not accept "calc" with class {calc.__class__}')
-
-    skipped_blocks = []
-    for block, subdct in dct.items():
-        if block in qe_keys:
-            if block not in calc.parameters['input_data']:
-                calc.parameters['input_data'][block] = {}
-
-            for key, value in subdct.items():
-                if value == "":
-                    continue
-
-                if key == 'pseudo_dir':
-                    raise ValueError('Please specify "pseudo_dir" in the "setup" control block')
-
-                if key in calc.parameters['input_data'][block]:
-                    utils.warn(f'Overwriting value for {block}:{key} provided in the "setup" block')
-
-                try:
-                    value = json_ext.loads(value)
-                except (TypeError, json_ext.decoder.JSONDecodeError) as e:
-                    pass
-                calc.parameters['input_data'][block][key] = value
-        else:
-            skipped_blocks.append(block)
-
-    return skipped_blocks
-
-
-def read_kcp_dict(dct, generic_atoms):
-    '''
-
-    Reads in dict of kcp input file and returns a KoopmansCPCalculator object
-
-    '''
-
-    from koopmans import calculators
-
-    # Copy over the settings from the "setup" block
-    generic_atoms_copy = copy.deepcopy(generic_atoms)
-    calc = generic_atoms_copy.calc
-    calc.atoms.calc = calc
-
-    # Read in any settings provided in the "kcp" block
-    skipped_blocks = read_kcp_or_pw_dict(dct, calc)
-
-    for block in skipped_blocks:
-        utils.warn(f'The {block} block is not yet implemented and will be ignored')
-
-    return calculators.KoopmansCPCalculator(calc)
-
-
-def read_pw_dict(dct, generic_atoms):
-    '''
-
-    Reads in dict of pw input file and returns a PWCalculator object
-
-    '''
-
-    from koopmans import calculators
-
-    # Initialising a pw calculator tethered to a copy of the atoms object
-    calc = Espresso()
-    calc.atoms = copy.deepcopy(generic_atoms)
-    calc.atoms.calc = calc
-
-    # Remove settings using kcp-syntax
-    kcp_settings = copy.deepcopy(generic_atoms.calc.parameters)
-
-    # Copy over parameters that use generic syntax
-    for key in ['pseudopotentials', 'kpts', 'kpath']:
-        if key in kcp_settings:
-            calc.parameters[key] = kcp_settings.pop(key)
-
-    # Convert kcp-syntax settings to pw-syntax settings
-    for key, val in kcp_settings.items():
-        if key in ['nelec', 'nelup', 'neldw', 'empty_states_nbnd', 'tot_magnetization']:
-            continue
-        elif key in [k for block in pw_keys.values() for k in block]:
-            # PW and KCP share this keyword so we can copy it over directly
-            calc.parameters[key] = val
-        elif key == 'conv_thr':
-            # PW uses Ry, KCP uses Ha = 2 Ry
-            calc.parameters[key] = val * 2
-        else:
-            raise ValueError(f'Could not convert {key} to a pw keyword')
-
-    # Read the content of the pw block
-    skipped_blocks = read_kcp_or_pw_dict(dct, calc)
-    for block in skipped_blocks:
-        if block == 'k_points':
-            read_kpoints_block(calc, dct[block])
-        else:
-            utils.warn(f'The {block} block is not yet implemented and will be ignored')
-
-    # If no nbnd is provided, auto-generate it
-    if 'nbnd' not in calc.parameters:
-        n_elec = kcp_settings.nelec
-        n_empty = kcp_settings.get('empty_states_nbnd', 0)
-        calc.parameters.nbnd = n_elec // 2 + n_empty
-
-    return calculators.PWCalculator(calc)
-
-
-def read_ui_dict(dct, generic_atoms):
-    calc = calculators.read_ui_dict(dct, generic_atoms)
-    return calculators.UnfoldAndInterpolateCalculator(calc)
-
-
-def read_kc_wann_dict(dct, generic_atoms):
-
-    from koopmans.calculators import KoopmansHamCalculator, KoopmansScreenCalculator, Wann2KCCalculator
-
-    calcs = {}
-    for key, ase_calc_class, calc_class in (('kc_ham', KoopmansHam, KoopmansHamCalculator),
-                                            ('kc_screen', KoopmansScreen, KoopmansScreenCalculator),
-                                            ('wann2kc', Wann2KC, Wann2KCCalculator)):
-        # Create a copy of generic_atoms
-        atoms = copy.deepcopy(generic_atoms)
-
-        # Create an ASE calculator object and copy over the settings
-        calc = ase_calc_class(atoms=atoms)
-        calc.parameters = copy.deepcopy(generic_atoms.calc.parameters)
-
-        # Read in the parameters
-        relevant_subblocks = ['control', 'system']
-        if key == 'kc_ham':
-            relevant_subblocks.append('ham')
-            if 'ham' not in dct.keys():
-                if 'kpts' not in calc.parameters:
-                    # Populating kpts if absent
-                    calc.parameters['kpts'] = [1, 1, 1]
-                    calc.atoms.cell.pbc = True
-                    generic_atoms.calc.parameters['kpath'] = BandPath(calc.atoms.cell, [[0, 0, 0]])
-                    calc.atoms.cell.pbc = False
-                dct['ham'] = {}
-
-            # kc_ham stores the kpoint properties slightly differently
-            # kpts -> mp1-3
-            for i, nk in enumerate(calc.parameters['kpts']):
-                dct['ham'][f'mp{i+1}'] = nk
-
-            # kpath -> kpts
-            if 'kpath' in dct['ham']:
-                kpath = dct['ham'].pop('kpath')
-                read_kpath(calc, kpath)
-                calc.parameters['kpts'] = calc.parameters['kpath']
-            elif 'kpath' in generic_atoms.calc.parameters:
-                calc.parameters['kpts'] = generic_atoms.calc.parameters['kpath']
-            else:
-                continue
-
-        elif key == 'kc_screen':
-            relevant_subblocks.append('screen')
-
-        flattened_settings = {k: v for block_name, block in dct.items() for k, v in block.items()
-                              if block_name in relevant_subblocks}
-
-        # Convert to a ExtendedCalculator class, loading the settings
-        calcs[key] = calc_class(calc, **flattened_settings)
-
-    # Unlike most read_*_dict functions, this returns three calculators in a dict
-    return calcs
+# def read_kcp_or_pw_dict(dct, calc):
+#     '''
+#
+#     Reads in dict of kcp/pw input file and adds the settings to the provided calc object
+#
+#     '''
+#
+#     if isinstance(calc, Espresso_kcp):
+#         qe_keys = kcp_keys
+#     elif isinstance(calc, Espresso):
+#         qe_keys = pw_keys
+#     else:
+#         raise TypeError(f'io.read_kcp_or_pw_dict() does not accept "calc" with class {calc.__class__}')
+#
+#     skipped_blocks = []
+#     for block, subdct in dct.items():
+#         if block in qe_keys:
+#             if block not in calc.parameters['input_data']:
+#                 calc.parameters['input_data'][block] = {}
+#
+#             for key, value in subdct.items():
+#                 if value == "":
+#                     continue
+#
+#                 if key == 'pseudo_dir':
+#                     raise ValueError('Please specify "pseudo_dir" in the "setup" control block')
+#
+#                 if key in calc.parameters['input_data'][block]:
+#                     utils.warn(f'Overwriting value for {block}:{key} provided in the "setup" block')
+#
+#                 try:
+#                     value = json_ext.loads(value)
+#                 except (TypeError, json_ext.decoder.JSONDecodeError) as e:
+#                     pass
+#                 calc.parameters['input_data'][block][key] = value
+#         else:
+#             skipped_blocks.append(block)
+#
+#     return skipped_blocks
+#
+#
+# def read_kcp_dict(dct, generic_atoms):
+#     '''
+#
+#     Reads in dict of kcp input file and returns a KoopmansCPCalculator object
+#
+#     '''
+#
+#     from koopmans import calculators
+#
+#     # Copy over the settings from the "setup" block
+#     generic_atoms_copy = copy.deepcopy(generic_atoms)
+#     calc = generic_atoms_copy.calc
+#     calc.atoms.calc = calc
+#
+#     # Read in any settings provided in the "kcp" block
+#     skipped_blocks = read_kcp_or_pw_dict(dct, calc)
+#
+#     for block in skipped_blocks:
+#         utils.warn(f'The {block} block is not yet implemented and will be ignored')
+#
+#     return calculators.KoopmansCPCalculator(calc)
+#
+#
+# def read_pw_dict(dct, generic_atoms):
+#     '''
+#
+#     Reads in dict of pw input file and returns a PWCalculator object
+#
+#     '''
+#
+#     from koopmans import calculators
+#
+#     # Initialising a pw calculator tethered to a copy of the atoms object
+#     calc = Espresso()
+#     calc.atoms = copy.deepcopy(generic_atoms)
+#     calc.atoms.calc = calc
+#
+#     # Remove settings using kcp-syntax
+#     kcp_settings = copy.deepcopy(generic_atoms.calc.parameters)
+#
+#     # Copy over parameters that use generic syntax
+#     for key in ['pseudopotentials', 'kpts', 'kpath']:
+#         if key in kcp_settings:
+#             calc.parameters[key] = kcp_settings.pop(key)
+#
+#     # Convert kcp-syntax settings to pw-syntax settings
+#     for key, val in kcp_settings.items():
+#         if key in ['nelec', 'nelup', 'neldw', 'empty_states_nbnd', 'tot_magnetization']:
+#             continue
+#         elif key in [k for block in pw_keys.values() for k in block]:
+#             # PW and KCP share this keyword so we can copy it over directly
+#             calc.parameters[key] = val
+#         elif key == 'conv_thr':
+#             # PW uses Ry, KCP uses Ha = 2 Ry
+#             calc.parameters[key] = val * 2
+#         else:
+#             raise ValueError(f'Could not convert {key} to a pw keyword')
+#
+#     # Read the content of the pw block
+#     skipped_blocks = read_kcp_or_pw_dict(dct, calc)
+#     for block in skipped_blocks:
+#         if block == 'k_points':
+#             read_kpoints_block(calc, dct[block])
+#         else:
+#             utils.warn(f'The {block} block is not yet implemented and will be ignored')
+#
+#     # If no nbnd is provided, auto-generate it
+#     if 'nbnd' not in calc.parameters:
+#         n_elec = kcp_settings.nelec
+#         n_empty = kcp_settings.get('empty_states_nbnd', 0)
+#         calc.parameters.nbnd = n_elec // 2 + n_empty
+#
+#     return calculators.PWCalculator(calc)
+#
+#
+# def read_kc_wann_dict(dct, generic_atoms):
+#
+#     from koopmans.calculators import KoopmansHamCalculator, KoopmansScreenCalculator, Wann2KCCalculator
+#
+#     calcs = {}
+#     for key, ase_calc_class, calc_class in (('kc_ham', KoopmansHam, KoopmansHamCalculator),
+#                                             ('kc_screen', KoopmansScreen, KoopmansScreenCalculator),
+#                                             ('wann2kc', Wann2KC, Wann2KCCalculator)):
+#         # Create a copy of generic_atoms
+#         atoms = copy.deepcopy(generic_atoms)
+#
+#         # Create an ASE calculator object and copy over the settings
+#         calc = ase_calc_class(atoms=atoms)
+#         calc.parameters = copy.deepcopy(generic_atoms.calc.parameters)
+#
+#         # Read in the parameters
+#         relevant_subblocks = ['control', 'system']
+#         if key == 'kc_ham':
+#             relevant_subblocks.append('ham')
+#             if 'ham' not in dct.keys():
+#                 if 'kpts' not in calc.parameters:
+#                     # Populating kpts if absent
+#                     calc.parameters['kpts'] = [1, 1, 1]
+#                     calc.atoms.cell.pbc = True
+#                     generic_atoms.calc.parameters['kpath'] = BandPath(calc.atoms.cell, [[0, 0, 0]])
+#                     calc.atoms.cell.pbc = False
+#                 dct['ham'] = {}
+#
+#             # kc_ham stores the kpoint properties slightly differently
+#             # kpts -> mp1-3
+#             for i, nk in enumerate(calc.parameters['kpts']):
+#                 dct['ham'][f'mp{i+1}'] = nk
+#
+#             # kpath -> kpts
+#             if 'kpath' in dct['ham']:
+#                 kpath = dct['ham'].pop('kpath')
+#                 read_kpath(calc, kpath)
+#                 calc.parameters['kpts'] = calc.parameters['kpath']
+#             elif 'kpath' in generic_atoms.calc.parameters:
+#                 calc.parameters['kpts'] = generic_atoms.calc.parameters['kpath']
+#             else:
+#                 continue
+#
+#         elif key == 'kc_screen':
+#             relevant_subblocks.append('screen')
+#
+#         flattened_settings = {k: v for block_name, block in dct.items() for k, v in block.items()
+#                               if block_name in relevant_subblocks}
+#
+#         # Convert to a CalculatorExt class, loading the settings
+#         calcs[key] = calc_class(calc, **flattened_settings)
+#
+#     # Unlike most read_*_dict functions, this returns three calculators in a dict
+#     return calcs
 
 
 def update_nested_dict(dct_to_update, second_dct):
@@ -431,6 +426,17 @@ def read_json(fd, override={}):
                 dct['num_wann'] = n_empty
             if 'exclude_bands' not in dct:
                 dct['exclude_bands'] = f'1-{n_filled}'
+        elif block.startswith('ui'):
+            # Dealing with redundancies in UI keywords
+            if 'sc_dim' in dct and 'kpts' in psps_and_kpts:
+                # In this case, the sc_dim keyword is redundant
+                if psps_and_kpts['kpts'] != dct['sc_dim']:
+                    raise ValueError('sc_dim in the UI block should match the kpoints provided in the setup block')
+                dct.pop('sc_dim')
+            if 'kpath' in dct and 'kpath' in psps_and_kpts:
+                if psps_and_kpts['kpath'] != dct['kpath']:
+                    raise ValueError('kpath in the UI block should match that provided in the setup block')
+                dct.pop('kpath')
 
         master_calc_params[block] = settings_class(**dct)
         master_calc_params[block].update(

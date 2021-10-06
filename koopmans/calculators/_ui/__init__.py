@@ -6,5 +6,4 @@ Integrated within koopmans by Edward Linscott Jan 2021
 
 """
 
-from ._io import read_ui_dict
 from ._calculator import UnfoldAndInterpolateCalculator

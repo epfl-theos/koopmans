@@ -11,22 +11,20 @@ import numpy as np
 from ase import Atoms
 from ase.calculators.espresso import KoopmansScreen
 from koopmans import utils, settings
-from ._utils import KCWannCalculator, qe_bin_directory
+from ._utils import KCWannCalculator, CalculatorABC, qe_bin_directory
 from koopmans.commands import ParallelCommandWithPostfix
 
 
-class KoopmansScreenCalculator(KCWannCalculator):
+class KoopmansScreenCalculator(KCWannCalculator, KoopmansScreen, CalculatorABC):
     # Subclass of KCWannCalculator for performing calculations with kc_screen.x
+    ext_in = '.ksi'
+    ext_out = '.kso'
 
     def __init__(self, atoms: Atoms, *args, **kwargs):
         # Define the valid settings
         self.parameters = settings.KoopmansScreenSettingsDict()
 
-        # Define the appropriate file extensions
-        self.ext_in = '.ksi'
-        self.ext_out = '.kso'
-
-        # Initialise first using the ASE parent and then ExtendedCalculator
+        # Initialise first using the ASE parent and then CalculatorExt
         KoopmansScreen.__init__(self, atoms=atoms)
         KCWannCalculator.__init__(self, *args, **kwargs)
         super().__init__(*args, **kwargs)

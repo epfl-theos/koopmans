@@ -82,7 +82,7 @@ class SinglepointWorkflow(Workflow):
                     utils.system_call('mv kipz/init/ki_final.cpo kipz/init/ki_init.cpo')
                     if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
                         utils.system_call('rsync -a ki/init/wannier kipz/init/')
-                    if self.master_calc_params['ui'].do_smooth_interpolation:
+                    if self.parameters.periodic and self.master_calc_params['ui'].do_smooth_interpolation:
                         # Copy over the smooth PBE calculation from KI for KIPZ to use
                         utils.system_call('rsync -a ki/postproc kipz/')
                         utils.system_call('find kipz/postproc/ -name "*interpolated.dat" -delete')

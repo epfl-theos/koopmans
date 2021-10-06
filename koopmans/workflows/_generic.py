@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 from typing import Optional, Dict, List, Type, Union, Any
 from ase import Atoms
-from ase.build import make_supercell
+from ase.build.supercells import make_supercell, lattice_points_in_supercell
 from ase.dft.kpoints import BandPath
 from ase.calculators.calculator import CalculationFailed
 from ase.calculators.espresso import EspressoWithBandstructure
@@ -126,27 +126,36 @@ class Workflow(object):
                  koffset: Optional[List[int]] = [0, 0, 0],
                  kpath: Optional[BandPath] = None):
 
+        # Parsing workflow_settings
+        self.parameters = settings.SettingsDictWithChecks(
+            settings=valid_settings, physicals=['alpha_conv_thr', 'convergence_threshold'], **workflow_settings)
+
         self.master_calc_params = master_calc_params
         self.atoms = atoms
         self.name = name
-        self.calculations: List[calculators.ExtendedCalculator] = []
+        self.calculations: List[calculators.CalculatorExt] = []
         self.silent = False
         self.print_indent = 1
         if pseudopotentials is not None:
             self.pseudopotentials = pseudopotentials
         self.kpts = kpts
         self.koffset = koffset
-        self.kpath = BandPath(path='G', cell=self.atoms.cell) if kpath is None else kpath
+
+        if kpath is None:
+            if self.parameters.periodic:
+                # By default, use ASE's default bandpath for this cell (see
+                # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
+                self.kpath = self.atoms.cell.get_bravais_lattice().bandpath()
+            else:
+                self.kpath = BandPath(path='G', cell=self.atoms.cell)
+        else:
+            self.kpath = kpath
 
         # If atoms has a calculator, overwrite the kpoints and pseudopotentials variables and then detach the calculator
         if atoms.calc is not None:
             utils.warn(f'You have initialised a {self.__class__.__name__} object with an atoms object that possesses '
                        'a calculator. This calculator will be ignored.')
             self.atoms.calc = None
-
-        # Parsing workflow_settings
-        self.parameters = settings.SettingsDictWithChecks(
-            settings=valid_settings, physicals=['alpha_conv_thr', 'convergence_threshold'], **workflow_settings)
 
         # Check internal consistency of workflow settings
         if self.parameters.method == 'dfpt':
@@ -244,8 +253,8 @@ class Workflow(object):
                 'koffset': copy.deepcopy(self.koffset),
                 'kpath': copy.deepcopy(self.kpath)}
 
-    def new_calculator(self, calc_type: str, directory: Optional[Path] = None, **kwargs) -> calculators.ExtendedCalculator:
-        calc_class: Type[calculators.ExtendedCalculator]
+    def new_calculator(self, calc_type: str, directory: Optional[Path] = None, **kwargs) -> calculators.CalculatorExt:
+        calc_class: Type[calculators.CalculatorExt]
 
         if calc_type == 'kcp':
             calc_class = calculators.KoopmansCPCalculator
@@ -283,9 +292,6 @@ class Workflow(object):
         # Add the directory if provided
         if directory is not None:
             calc.directory = directory
-
-        if calc_type == 'kcp' and 'pseudopotentials' not in calc.parameters:
-            raise ValueError()
 
         return calc
 
@@ -368,11 +374,25 @@ class Workflow(object):
         assert np.shape(matrix) == (3, 3)
         self.atoms = make_supercell(self.atoms, matrix, **kwargs)
 
-    def supercell_to_primitive(self, matrix, **kwargs):
+    def supercell_to_primitive(self, matrix):
         # Converts from a supercell to a primitive cell, as given by a 3x3 transformation matrix
         # The inverse of self.primitive_to_supercell()
+
         assert np.shape(matrix) == (3, 3)
-        raise NotImplementedError('Yet to write this function')
+
+        # # Work out the atoms belonging to the primitive cell
+        inv_matrix = np.linalg.inv(matrix)
+        self.atoms.cell = np.dot(inv_matrix, self.atoms.cell)
+
+        # Wrap the atomic positions
+        wrapped_atoms = copy.deepcopy(self.atoms)
+        wrapped_atoms.wrap(pbc=True)
+
+        # Find all atoms whose positions have not moved
+        mask = [np.linalg.norm(a.position - wrapped_a.position) < 1e-7 for a,
+                wrapped_a in zip(self.atoms, wrapped_atoms)]
+
+        self.atoms = self.atoms[mask]
 
     def run_calculator(self, master_qe_calc, enforce_ss=False):
         '''
@@ -443,9 +463,9 @@ class Workflow(object):
         verb = 'Running'
         if not self.parameters.from_scratch:
 
-            calc_file = f'{qe_calc.directory}/{qe_calc.parameters.name}'
+            calc_file = qe_calc.directory / qe_calc.prefix
 
-            if os.path.isfile(calc_file + qe_calc.ext_out):
+            if calc_file.with_suffix(qe_calc.ext_out).is_file():
                 verb = 'Rerunning'
 
                 is_complete = self.load_old_calculator(qe_calc)
@@ -504,7 +524,7 @@ class Workflow(object):
 
     def load_old_calculator(self, qe_calc):
         # This is a separate function so that it can be monkeypatched by the test suite
-        old_calc = qe_calc.__class__(qe_files=f'{qe_calc.directory}/{qe_calc.name}')
+        old_calc = qe_calc.__class__.fromfile(qe_calc.directory / qe_calc.prefix)
 
         if old_calc.is_complete():
             # If it is complete, load the results
@@ -571,12 +591,6 @@ class Workflow(object):
         if workflow.name is None:
             workflow.name = self.name
 
-        # Make sure the subworkflow has inherited the pseudos and kpoints data
-        workflow.pseudopotentials = self.pseudopotentials
-        workflow.kpts = self.kpts
-        workflow.koffset = self.koffset
-        workflow.kpath = self.kpath
-
         # Increase the indent level
         workflow.print_indent = self.print_indent + 1
 
@@ -637,17 +651,17 @@ class Workflow(object):
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct
 
-    @classmethod
+    @ classmethod
     def fromdict(cls, dct):
         raise NotImplementedError('Need to rewrite fromdict using classmethod syntax')
 
-    @property
+    @ property
     def bands(self):
         if not hasattr(self, '_bands'):
             raise AttributeError('Bands have not been initialised')
         return self._bands
 
-    @bands.setter
+    @ bands.setter
     def bands(self, value):
         assert isinstance(value, Bands)
         self._bands = value
