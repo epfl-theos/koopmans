@@ -109,7 +109,7 @@ class SettingsDict(UserDict):
 
     def __setattr__(self, name, value):
         if self.is_valid(name):
-            self.data[name] = value
+            self.__setitem__(name, value)
         else:
             super().__setattr__(name, value)
     # def __setattr__(self, key, value):

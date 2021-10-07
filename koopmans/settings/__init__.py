@@ -15,3 +15,4 @@ from ._ui import UnfoldAndInterpolateSettingsDict
 from ._utils import Setting, SettingsDict, SettingsDictWithChecks
 from ._wann2kc import Wann2KCSettingsDict
 from ._wannier90 import Wannier90SettingsDict
+from ._workflow import WorkflowSettingsDict

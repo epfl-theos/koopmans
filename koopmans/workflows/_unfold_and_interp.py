@@ -18,8 +18,8 @@ class UnfoldAndInterpolateWorkflow(Workflow):
     def run(self):
         '''
         '''
-        ui_calc = UnfoldAndInterpolateCalculator(atoms=self.atoms, **self.master_calc_params['ui'])
-        ui_calc.name = self.name
+        ui_calc = self.new_calculator('ui')
+        ui_calc.prefix = self.name
         ui_calc.calculate()
         self.calculations = [ui_calc]
 

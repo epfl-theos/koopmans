@@ -278,13 +278,13 @@ class KoopmansDSCFWorkflow(Workflow):
 
             # Check that the files defining the variational orbitals exist
             savedir /= 'K00001'
-            files_to_check = ['init/ki_init.cpo', f'{savedir}/evc01.dat', f'{savedir}/evc02.dat']
+            files_to_check = [Path('init/ki_init.cpo'), savedir / 'evc01.dat', savedir / 'evc02.dat']
 
             if calc.parameters.empty_states_nbnd is not None and calc.parameters.empty_states_nbnd > 0:
-                files_to_check += [f'{savedir}/evc0_empty{i}.dat' for i in [1, 2]]
+                files_to_check += [savedir / f'evc0_empty{i}.dat' for i in [1, 2]]
 
             for fname in files_to_check:
-                if not os.path.isfile(fname):
+                if not fname.is_file():
                     raise ValueError(f'Could not find {fname}')
 
             if not calc.is_complete():
@@ -360,8 +360,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
     def perform_alpha_calculations(self) -> None:
         # Set up directories
-        if not os.path.isdir('calc_alpha'):
-            utils.system_call('mkdir calc_alpha')
+        Path('calc_alpha').mkdir(exist_ok=True)
 
         converged = False
         i_sc = 0
@@ -622,6 +621,8 @@ class KoopmansDSCFWorkflow(Workflow):
 
         # Transform self.atoms back to the primitive cell
         self.supercell_to_primitive(np.diag(self.kpts))
+
+        calc: calculators.UnfoldAndInterpolateCalculator
 
         if self.master_calc_params['ui'].do_smooth_interpolation:
             wf_kwargs = self.wf_kwargs

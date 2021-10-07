@@ -21,100 +21,6 @@ import koopmans.calculators as calculators
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.bands import Bands
 
-valid_settings = [
-    settings.Setting('task',
-                     'Task to perform',
-                     str, 'singlepoint', ('singlepoint', 'convergence', 'wannierise', 'environ_dscf', 'ui')),
-    settings.Setting('functional',
-                     'orbital-density-dependent-functional/density-functional to use',
-                     str, 'ki', ('ki', 'kipz', 'pkipz', 'dft', 'all')),
-    settings.Setting('calculate_alpha',
-                     'whether or not to calculate the screening parameters ab-initio',
-                     bool, True, (True, False)),
-    settings.Setting('method',
-                     'the method to calculate the screening parameters: either with ΔSCF or DFPT',
-                     str, 'dscf', ('dscf', 'dfpt')),
-    settings.Setting('init_orbitals',
-                     'which orbitals to use as an initial guess for the variational orbitals',
-                     str, 'pz', ('pz', 'kohn-sham', 'mlwfs', 'projwfs', 'from old ki')),
-    settings.Setting('init_empty_orbitals',
-                     'which orbitals to use as an initial guess for the empty variational orbitals '
-                     '(defaults to the same value as "init_orbitals")',
-                     str, 'same', ('same', 'pz', 'kohn-sham', 'mlwfs', 'projwfs', 'from old ki')),
-    settings.Setting('frozen_orbitals',
-                     "if True, freeze the variational orbitals for the duration of the calculation once they've been "
-                     "initialised",
-                     bool, None, (True, False)),
-    settings.Setting('periodic',
-                     'whether or not the system is periodic',
-                     bool, False, (True, False)),
-    settings.Setting('npool',
-                     'Number of pools for parallelising over kpoints (should be commensurate with the k-point grid)',
-                     int, None, None),
-    settings.Setting('gb_correction',
-                     'if True, apply the Gygi-Baldereschi scheme to deal with the q->0 divergence of the Coulomb '
-                     'interation for periodic systems',
-                     bool, None, (True, False)),
-    settings.Setting('mp_correction',
-                     'if True, apply the Makov-Payne correction for charged periodic systems',
-                     bool, False, (True, False)),
-    settings.Setting('mt_correction',
-                     'if True, apply the Martyna-Tuckerman correction for charged aperiodic systems',
-                     bool, None, (True, False)),
-    settings.Setting('eps_inf',
-                     'dielectric constant of the system used by the Gygi-Baldereschi and Makov-Payne corrections',
-                     float, None, None),
-    settings.Setting('n_max_sc_steps',
-                     'maximum number of self-consistency steps for calculating alpha',
-                     int, 1, None),
-    settings.Setting('alpha_conv_thr',
-                     'convergence threshold for |Delta E_i - epsilon_i|; if below this '
-                     'threshold, the corresponding alpha value is not updated',
-                     (float, str), 1e-3, None),
-    settings.Setting('alpha_guess',
-                     'starting guess for alpha (overridden if alpha_from_file is true)',
-                     (float, list), 0.6, None),
-    settings.Setting('alpha_from_file',
-                     'if True, uses the file_alpharef.txt from the base directory as a '
-                     'starting guess',
-                     bool, False, (True, False)),
-    settings.Setting('print_qc',
-                     'if True, prints out strings for the purposes of quality control',
-                     bool, False, (True, False)),
-    settings.Setting('from_scratch',
-                     'if True, will delete any preexisting workflow and start again; '
-                     'if False, will resume a workflow from where it was last up to',
-                     bool, False, (True, False)),
-    settings.Setting('orbital_groups',
-                     'a list of integers the same length as the total number of bands, '
-                     'denoting which bands to assign the same screening parameter to',
-                     list, None, None),
-    settings.Setting('orbital_groups_self_hartree_tol',
-                     'when calculating alpha parameters, the code will group orbitals '
-                     'together only if their self-Hartree energy is within this '
-                     'threshold',
-                     float, None, None),
-    settings.Setting('enforce_spin_symmetry',
-                     'if True, the spin-up and spin-down wavefunctions will be forced '
-                     'to be the same',
-                     bool, True, (True, False)),
-    settings.Setting('check_wannierisation',
-                     'if True, checks the Im/Re ratio and generates a plot of the interpolated band structure',
-                     bool, False, (True, False)),
-    settings.Setting('convergence_observable',
-                     'System observable of interest which we converge',
-                     str, 'total energy', ('homo energy', 'lumo energy', 'total energy')),
-    settings.Setting('convergence_threshold',
-                     'Convergence threshold for the system observable of interest',
-                     (str, float), None, None),
-    settings.Setting('convergence_parameters',
-                     'The observable of interest will be converged with respect to this/these '
-                     'simulation parameter(s)',
-                     (list, str), ['ecutwfc'], None),
-    settings.Setting('eps_cavity',
-                     'a list of epsilon_infinity values for the cavity in dscf calculations',
-                     list, [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], None)]
-
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
 
@@ -129,8 +35,7 @@ class Workflow(object):
                  kpath: Optional[BandPath] = None):
 
         # Parsing workflow_settings
-        self.parameters = settings.SettingsDictWithChecks(
-            settings=valid_settings, physicals=['alpha_conv_thr', 'convergence_threshold'], **workflow_settings)
+        self.parameters = settings.WorkflowSettingsDict(**workflow_settings)
 
         self.master_calc_params = master_calc_params
         self.atoms = atoms
@@ -488,7 +393,7 @@ class Workflow(object):
         # Update postfix if relevant
         if self.parameters.npool:
             if isinstance(qe_calc.command, ParallelCommandWithPostfix):
-                qe_calc.command.postfix = f'-npool {self.npool}'
+                qe_calc.command.postfix = f'-npool {self.parameters.npool}'
 
         qe_calc.calculate()
 
@@ -538,7 +443,6 @@ class Workflow(object):
                 # If the band structure file does not exist, we must re-run
                 if 'band structure' not in qe_calc.results:
                     return False
-            raise ValueError('Need to work out how to restructure the code below')
             # elif isinstance(qe_calc.calc, EspressoWithBandstructure):
             #     if not isinstance(qe_calc, calculators.EspressoCalculator) or qe_calc.calculation == 'bands':
             #         qe_calc.band_structure()
@@ -653,17 +557,17 @@ class Workflow(object):
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct
 
-    @ classmethod
-    def fromdict(cls, dct):
+    @classmethod
+    def fromdict(cls, dct: Dict):
         raise NotImplementedError('Need to rewrite fromdict using classmethod syntax')
 
-    @ property
+    @property
     def bands(self):
         if not hasattr(self, '_bands'):
             raise AttributeError('Bands have not been initialised')
         return self._bands
 
-    @ bands.setter
+    @bands.setter
     def bands(self, value):
         assert isinstance(value, Bands)
         self._bands = value

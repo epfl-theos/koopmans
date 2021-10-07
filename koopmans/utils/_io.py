@@ -40,8 +40,8 @@ def parse_dict(dct: dict) -> dict:
     return settings
 
 
-def construct_cell_parameters_block(calc: Calculator) -> dict:
-    return {'vectors': [list(row) for row in calc.atoms.cell[:]], 'units': 'angstrom'}
+def construct_cell_parameters_block(atoms: Atoms) -> dict:
+    return {'vectors': [list(row) for row in atoms.cell[:]], 'units': 'angstrom'}
 
 
 def write_alpha_file(directory: str, alphas: List[float], filling: List[bool]):

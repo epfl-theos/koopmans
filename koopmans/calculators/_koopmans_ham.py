@@ -26,7 +26,7 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, CalculatorABC):
 
         # Initialise using the ASE parent, and then CalculatorExt
         KoopmansHam.__init__(self, atoms=atoms)
-        KCWannCalculator.__init__(*args, **kwargs)
+        KCWannCalculator.__init__(self, *args, **kwargs)
 
         self.command = ParallelCommand(
             f'{qe_bin_directory}{os.path.sep}kc_ham.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
@@ -62,3 +62,6 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, CalculatorABC):
 
     def get_fermi_level(self):
         return 0
+
+    def is_converged(self):
+        raise NotImplementedError('TODO')

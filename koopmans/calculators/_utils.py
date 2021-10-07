@@ -115,12 +115,12 @@ class CalculatorABC(ABC, Generic[T]):
         # Read qe output file
         for filename in [f for f in sanitised_filenames if f.suffix == cls.ext_out]:
             calc.directory = filename.parent
-            calc.prefix = filename.name
+            calc.prefix = filename.stem
             try:
                 calc.read_results()
             except:
                 # Calculation could not be read; must have been incomplete
-                continue
+                pass
             # # Copy over the results
             # cls.results = outcls.results
             # if hasattr(outcls, 'kpts'):
@@ -218,8 +218,10 @@ class CalculatorExt():
 
         # Update self based off the input file
         self.parameters = calc.parameters
-        self.atoms = calc.atoms
-        self.atoms.calc = self
+        if calc.atoms is not None:
+            # Some calculators (e.g. wann2kc) can't reconstruct atoms from an input file
+            self.atoms = calc.atoms
+            self.atoms.calc = self
 
     def check_code_is_installed(self):
         # Checks the corresponding code is installed
@@ -252,6 +254,10 @@ class CalculatorExt():
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct
+
+    @classmethod
+    def fromdict(cls, dct: dict) -> T:
+        raise NotImplementedError('TODO')
 
 
 class KCWannCalculator(CalculatorExt):

@@ -234,9 +234,9 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             if key.startswith('starting_magnetization'):
                 continue
 
-            # Don't check pseudopotentials
+            # Don't check pseudopotentials TODO REMOVE ME
             print('Remove me once the benchmark is updated')
-            if key in calc.parameters._other_valid_keywords or key in ['gamma_only', 'kpoints', 'alat_sc', 'sc_dim']:
+            if key in calc.parameters._other_valid_keywords or key in ['gamma_only', 'kpoints', 'alat_sc', 'sc_dim', 'check_spread']:
                 continue
 
             assert key in calc.benchmark['settings'].keys(), f'{key} in {input_file_name} not found in benchmark'
@@ -374,11 +374,15 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         @property
         def output_files(self) -> List[Path]:
             if '-pp' in self.command.flags:
-                files = [f'{self.directory}/{self.prefix}.nnkp']
+                files = [self.directory / f'{self.prefix}.nnkp']
             else:
-                files = [f'{self.directory}/{self.prefix}{suffix}' for suffix in [
-                    '.chk', '_wsvec.dat', '_hr.dat']]
-            return [Path(f) for f in files]
+                suffixes = ['.chk', '_wsvec.dat', '_hr.dat']
+                if self.parameters.get('write_u_matrices', False):
+                    suffixes += ['_u.mat', '_u_dis.mat']
+                if self.parameters.get('write_xyz', False):
+                    suffixes += ['_centres.xyz']
+                files = [self.directory / f'{self.prefix}{suffix}' for suffix in suffixes]
+            return [f for f in files]
 
         @property
         def input_files(self) -> List[Path]:

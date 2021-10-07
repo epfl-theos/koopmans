@@ -405,7 +405,7 @@ def write_input(self, atoms: Atoms):
                                            'kind': 'automatic', 'kpts': kpts, 'koffset': [0, 0, 0]}}
 
             # We also need to provide a cell so the explicit kpath can be reconstructed from the string alone
-            bigdct['setup']['cell_parameters'] = utils.construct_cell_parameters_block(self)
+            bigdct['setup']['cell_parameters'] = utils.construct_cell_parameters_block(self.atoms)
 
             json.dump(bigdct, fd, indent=2)
 

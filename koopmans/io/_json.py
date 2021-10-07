@@ -15,6 +15,8 @@ import os
 import copy
 import json as json_ext
 import xml.etree.ElementTree as ET
+from typing import TextIO, Dict
+from pathlib import Path
 from ase.atoms import Atoms
 from ase.dft.kpoints import BandPath
 from ase.calculators.calculator import FileIOCalculator
@@ -22,11 +24,11 @@ from ase.calculators.espresso import Espresso, Espresso_kcp, KoopmansHam, Koopma
 from ase.calculators.espresso import PW2Wannier as ASEPW2Wannier
 from ase.io.espresso.utils import ibrav_to_cell
 from ase.io.espresso.pw import KEYS as pw_keys
-from ase.io.espresso.koopmans_cp import KEYS as kcp_keys
+from ase.io.espresso.koopmans_cp import KEYS as kcp_keys, construct_namelist
 from ase.io.wannier90 import Wannier90 as ASEWannier90
 from koopmans import utils
 from koopmans.pseudopotentials import set_up_pseudos, nelec_from_pseudos
-from koopmans.settings import KoopmansCPSettingsDict, KoopmansHamSettingsDict, KoopmansScreenSettingsDict, PWSettingsDict, PW2WannierSettingsDict, UnfoldAndInterpolateSettingsDict, Wann2KCSettingsDict, Wannier90SettingsDict
+from koopmans.settings import KoopmansCPSettingsDict, KoopmansHamSettingsDict, KoopmansScreenSettingsDict, PWSettingsDict, PW2WannierSettingsDict, UnfoldAndInterpolateSettingsDict, Wann2KCSettingsDict, Wannier90SettingsDict, WorkflowSettingsDict
 
 
 def read_setup_dict(dct):
@@ -309,7 +311,7 @@ def update_nested_dict(dct_to_update, second_dct):
             dct_to_update[k] = v
 
 
-def read_json(fd, override={}):
+def read_json(fd: TextIO, override={}):
     '''
 
     Reads in settings listed in JSON file
@@ -317,9 +319,6 @@ def read_json(fd, override={}):
     Values in the JSON file can be overridden by values provided in the override argument
 
     '''
-
-    if isinstance(fd, str):
-        fd = open(fd, 'r')
 
     bigdct = json_ext.loads(fd.read())
 
@@ -377,14 +376,13 @@ def read_json(fd, override={}):
                              'valid options are workflow/' + '/'.join(settings_classes.keys()))
 
     # Loading workflow settings
-    workflow_settings = utils.parse_dict(bigdct.get('workflow', {}))
-    task_name = workflow_settings.pop('task', 'singlepoint')
+    workflow_settings = WorkflowSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})))
 
     # Load default values
     if 'setup' in bigdct:
         atoms, setup_parameters, psps_and_kpts, n_filled, n_empty = read_setup_dict(bigdct['setup'])
         del bigdct['setup']
-    elif task_name != 'ui':
+    elif workflow_settings.task != 'ui':
         raise ValueError('You must provide a "setup" block in the input file, specifying atomic positions, atomic '
                          'species, etc.')
     else:
@@ -444,18 +442,19 @@ def read_json(fd, override={}):
         master_calc_params[block].parse_algebraic_settings(nelec=n_filled * 2)
 
     name = fd.name.replace('.json', '')
-    if task_name == 'singlepoint':
+    workflow: workflows.Workflow
+    if workflow_settings.task == 'singlepoint':
         workflow = workflows.SinglepointWorkflow(
             atoms, workflow_settings, master_calc_params, name=name, **psps_and_kpts)
-    elif task_name == 'convergence':
+    elif workflow_settings.task == 'convergence':
         workflow = workflows.ConvergenceWorkflow(
             atoms, workflow_settings, master_calc_params, name=name, **psps_and_kpts)
-    elif task_name in ['wannierize', 'wannierise']:
+    elif workflow_settings.task in ['wannierize', 'wannierise']:
         workflow = workflows.WannierizeWorkflow(
             atoms, workflow_settings, master_calc_params, name=name, check_wannierisation=True, **psps_and_kpts)
-    elif task_name == 'environ_dscf':
+    elif workflow_settings.task == 'environ_dscf':
         workflow = workflows.DeltaSCFWorkflow(atoms, workflow_settings, master_calc_params, name=name, **psps_and_kpts)
-    elif task_name == 'ui':
+    elif workflow_settings.task == 'ui':
         workflow = workflows.UnfoldAndInterpolateWorkflow(
             atoms, workflow_settings, master_calc_params, name=name, **psps_and_kpts)
     else:
@@ -464,7 +463,7 @@ def read_json(fd, override={}):
     return workflow
 
 
-def write_json(workflow, filename):
+def write_json(workflow: workflows.Workflow, filename: Path):
     '''
 
     Writes out settings to a JSON file
@@ -473,85 +472,71 @@ def write_json(workflow, filename):
 
     fd = open(filename, 'w')
 
-    calcs = workflow.master_calc_parameters
-
-    bigdct = {}
+    bigdct: Dict[str, Dict] = {}
 
     # "workflow" block (not printing any values that match the defaults)
     bigdct['workflow'] = {}
-    for k, v in workflow.settings.items():
+    for k, v in workflow.parameters.items():
         if v is None:
             continue
-        setting = [s for s in workflows.valid_settings if s.name == k][0]
-        if v != setting.default:
+        default = workflow.parameters.defaults.get(k, None)
+        if v != default:
             bigdct['workflow'][k] = v
 
     # "setup" block
     # Working out ibrav
-    kcp_calc = calcs.get('kcp', None)
-    pw_calc = calcs.get('pw', None)
-    if kcp_calc:
-        calc = kcp_calc.calc
-        ibrav = calc.parameters['input_data']['system'].get('ibrav', 0)
-    elif pw_calc:
-        calc = pw_calc
-        ibrav = calc.parameters['input_data']['system'].get('ibrav', 0)
-    else:
-        calc = calcs.values().calc
-        ibrav = 0
+    ibrav = workflow.master_calc_params['kcp'].get('ibrav', workflow.master_calc_params['pw'].get('ibrav', 0))
 
     bigdct['setup'] = {}
 
     # cell parameters
     if ibrav == 0:
-        bigdct['setup']['cell_parameters'] = construct_cell_parameters_block(calc)
+        bigdct['setup']['cell_parameters'] = construct_cell_parameters_block(workflow.atoms)
 
     # atomic positions
-    if calc.atoms.has('labels'):
-        labels = calc.atoms.get_array('labels')
+    if workflow.atoms.has('labels'):
+        labels = workflow.atoms.get_array('labels')
     else:
-        labels = calc.atoms.get_chemical_symbols()
+        labels = workflow.atoms.get_chemical_symbols()
     if ibrav == 0:
         bigdct['setup']['atomic_positions'] = {'positions': [
-            [label] + [str(x) for x in pos] for label, pos in zip(labels, calc.atoms.get_positions())],
+            [label] + [str(x) for x in pos] for label, pos in zip(labels, workflow.atoms.get_positions())],
             'units': 'angstrom'}
     else:
         bigdct['setup']['atomic_positions'] = {'positions': [
-            [label] + [str(x) for x in pos] for label, pos in zip(labels, calc.atoms.get_scaled_positions())],
+            [label] + [str(x) for x in pos] for label, pos in zip(labels, workflow.atoms.get_scaled_positions())],
             'units': 'alat'}
 
     # atomic species
     bigdct['setup']['atomic_species'] = {'species': [[key, 1.0, val]
-                                                     for key, val in calc.parameters.pseudopotentials.items()]}
+                                                     for key, val in workflow.parameters.pseudopotentials.items()]}
 
-    for code, calc in calcs.items():
-        if isinstance(calc, (calculators.KoopmansCPCalculator, calculators.PWCalculator)):
+    for code, params in workflow.master_calc_params.items():
+        if isinstance(params, (KoopmansCPSettingsDict, PWSettingsDict)):
             bigdct[code] = {}
-            calc = calc.calc
 
             # pseudo directory
-            pseudo_dir = calc.parameters['input_data']['control'].pop('pseudo_dir', None)
+            pseudo_dir = params.pop('pseudo_dir', None)
             if pseudo_dir is not None:
                 bigdct['setup']['control'] = {'pseudo_dir': pseudo_dir}
 
             # Populate bigdct with the settings
-            for key, block in calc.parameters['input_data'].items():
+            input_data = construct_namelist(params)
+            for key, block in input_data:
+
                 if len(block) > 0:
                     bigdct[code][key] = {k: v for k, v in dict(
                         block).items() if v is not None}
 
             if code == 'pw':
                 # Adding kpoints to "setup"
-                if 'kpts' in calc.parameters:
-                    kpts = {'kind': 'automatic',
-                            'kpts': calc.parameters['kpts'],
-                            'koffset': calc.parameters['koffset']}
-                else:
-                    kpts = {'kind': 'gamma'}
+                kpts = {'kind': 'automatic',
+                        'kpts': workflow.kpts,
+                        'koffset': workflow.koffset}
                 bigdct['setup']['k_points'] = kpts
         else:
-            raise ValueError(
-                f'Writing of {calc.__class__} with write_json is not yet implemented')
+            raise NotImplementedError(
+                f'Writing of {params} with write_json is not yet implemented')
 
     json_ext.dump(bigdct, fd, indent=2)
 

@@ -18,13 +18,13 @@ from .._utils import CalculatorExt, CalculatorABC, sanitise_filenames
 from ._atoms import UIAtoms
 from ._io import parse_w90, parse_hr, parse_phases, print_centers, write_results, write_bands, write_dos, \
     write_input, read_input, read_results, read_bands
-from ._interpolate import interpolate, calc_bands, correct_phase
+from ._interpolate import interpolate, calc_bands, correct_phase, calc_dos
 from koopmans import utils
 from koopmans.settings import UnfoldAndInterpolateSettingsDict
 
 
 class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
-    # Subclass of CalculatorExt for performing unfolding and interpolation
+    # Subclass of CalculatorExt for performing unfolding and interpolation, using the base ASE calculator 'Calculator'
 
     ext_in = '.uii'
     ext_out = '.uio'
@@ -69,6 +69,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
     # Adding various functions defined in ._interpolate
     interpolate = interpolate
     calc_bands = calc_bands
+    calc_dos = calc_dos
     correct_phase = correct_phase
 
     @classmethod
@@ -169,6 +170,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
     def is_complete(self):
         return self.results.get('job done', False)
+
+    def is_converged(self):
+        return True
 
     def get_k_point_weights(self):
         return np.ones(len(self.parameters.kpath.kpts))

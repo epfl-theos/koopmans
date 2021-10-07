@@ -9,6 +9,7 @@ Converted to a workflow object Nov 2020
 
 import os
 import copy
+import numpy as np
 from koopmans import utils
 from ._generic import Workflow
 
@@ -63,6 +64,10 @@ class SinglepointWorkflow(Workflow):
                 # We only need to do the smooth interpolation the first time (i.e. for KI)
                 if functional != 'ki':
                     kc_workflow.redo_preexisting_smooth_dft_calcs = False
+
+                # Transform to the supercell
+                if functional == 'kipz':
+                    kc_workflow.primitive_to_supercell(np.diag(self.kpts))
 
                 # Run the workflow
                 if functional == 'pkipz' and self.parameters.from_scratch:

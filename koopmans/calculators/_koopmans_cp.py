@@ -42,7 +42,7 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
         self.filling = filling
 
     def is_complete(self):
-        return self.results['job_done']
+        return self.results.get('job_done', False)
 
     def is_converged(self):
         # Checks convergence of the calculation

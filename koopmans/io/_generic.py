@@ -23,12 +23,14 @@ def read(filename: Union[str, Path, List[str], List[Path]], **kwargs) -> Union[W
 
     # Generic "read" function
 
-    if isinstance(filename, Path) and filename.suffix == 'kwf':
+    if isinstance(filename, Path) and filename.suffix == '.kwf':
         with open(filename, 'r') as fd:
             out = read_kwf(fd)
         return out
     elif isinstance(filename, Path) and filename.suffix == '.json':
-        return read_json(filename, **kwargs)
+        with open(filename, 'r') as fd:
+            out = read_json(fd, **kwargs)
+        return out
     else:
         try:
             return read_calculator(filename)
@@ -36,14 +38,16 @@ def read(filename: Union[str, Path, List[str], List[Path]], **kwargs) -> Union[W
             raise ValueError(f'Unrecognised file type for {filename}')
 
 
-def write(obj: Workflow, filename: str):
+def write(obj: Workflow, filename: Union[str, Path]):
+    if isinstance(filename, str):
+        filename = Path(filename)
 
     # Generic "write" function
 
-    if filename.endswith('kwf'):
+    if filename.suffix == '.kwf':
         with open(filename, 'w') as fd:
             write_kwf(obj, fd)
-    elif filename.endswith('.json'):
+    elif filename.suffix == '.json':
         write_json(obj, filename)
     else:
         raise ValueError(f'Unrecognised file type for {filename}')

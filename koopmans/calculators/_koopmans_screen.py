@@ -43,3 +43,6 @@ class KoopmansScreenCalculator(KCWannCalculator, KoopmansScreen, CalculatorABC):
                        'converge very slowly with respect to the k- and q-point grids')
 
         super().calculate()
+
+    def is_converged(self):
+        raise NotImplementedError('TODO')
