@@ -7,6 +7,7 @@ Written by Edward Linscott Jan 2020
 """
 
 from typing import Union, List
+from pathlib import Path
 from ._json import read_json, write_json
 from ._kwf import read_kwf, write_kwf
 from ._calculators import read_calculator
@@ -14,15 +15,19 @@ from koopmans.calculators import CalculatorExt
 from koopmans.workflows import Workflow
 
 
-def read(filename: Union[str, List[str]], **kwargs) -> Union[Workflow, CalculatorExt]:
+def read(filename: Union[str, Path, List[str], List[Path]], **kwargs) -> Union[Workflow, CalculatorExt]:
+    if isinstance(filename, str):
+        filename = Path(filename)
+    elif isinstance(filename, list):
+        filename = [Path(f) for f in filename]
 
     # Generic "read" function
 
-    if isinstance(filename, str) and filename.endswith('kwf'):
+    if isinstance(filename, Path) and filename.suffix == 'kwf':
         with open(filename, 'r') as fd:
             out = read_kwf(fd)
         return out
-    elif isinstance(filename, str) and filename.endswith('.json'):
+    elif isinstance(filename, Path) and filename.suffix == '.json':
         return read_json(filename, **kwargs)
     else:
         try:

@@ -19,9 +19,9 @@ Sep 2021: Reshuffled files to make imports cleaner
 """
 
 import copy
-from typing import Union, Optional, List
+from typing import Union, Optional, List, TypeVar, Generic, Type
 from pathlib import Path
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 from ase import Atoms
 import ase.io as ase_io
 from ase.calculators.calculator import FileIOCalculator
@@ -52,7 +52,10 @@ def sanitise_filenames(filenames: Union[str, Path, List[str], List[Path]], ext_i
     return sanitised_filenames
 
 
-class CalculatorABC(ABC):
+T = TypeVar('T', bound='CalculatorExt')
+
+
+class CalculatorABC(ABC, Generic[T]):
 
     '''
     This abstract base class defines various functions we expect any Calculator to possess
@@ -80,6 +83,22 @@ class CalculatorABC(ABC):
 
     @directory.setter
     def directory(self, value: Union[Path, str]) -> None:
+        ...
+
+    @abstractmethod
+    def is_converged(self) -> bool:
+        ...
+
+    @abstractmethod
+    def is_complete(self) -> bool:
+        ...
+
+    @abstractmethod
+    def todict(self) -> dict:
+        ...
+
+    @abstractclassmethod
+    def fromdict(cls, dct: dict) -> T:
         ...
 
     @classmethod
@@ -118,7 +137,7 @@ class CalculatorABC(ABC):
 class CalculatorExt():
 
     '''
-    This generic class is designed to be a parent class of a calculator that also inherits from an ASE calculator
+    This generic class is designed to be a parent class of a calculator that also inherits from an ASE calculator and CalculatorABC
 
     '''
 
@@ -202,14 +221,6 @@ class CalculatorExt():
         self.atoms = calc.atoms
         self.atoms.calc = self
 
-    def is_converged(self):
-        raise ValueError(
-            f'is_converged() function has not been implemented for {self.__class__.__name__}')
-
-    def is_complete(self):
-        raise ValueError(
-            f'is_complete() function has not been implemented for {self.__class__.__name__}')
-
     def check_code_is_installed(self):
         # Checks the corresponding code is installed
         if self.command.path == '':
@@ -241,12 +252,6 @@ class CalculatorExt():
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct
-
-    @classmethod
-    def fromdict(cls, dct):
-        raise NotImplementedError()
-        # for k, v in dct.items():
-        #     setattr(cls, k, v)
 
 
 class KCWannCalculator(CalculatorExt):

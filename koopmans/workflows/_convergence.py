@@ -135,7 +135,7 @@ class ConvergenceWorkflow(Workflow):
                 obs = obs.replace('total ', '').replace(' ', '_')
                 if obs not in solved_calc.results:
                     raise ValueError(
-                        f'{solved_calc.name} has not returned a value for {obs}')
+                        f'{solved_calc.prefix} has not returned a value for {obs}')
                 result = solved_calc.results[obs]
                 results[indices] = result
 

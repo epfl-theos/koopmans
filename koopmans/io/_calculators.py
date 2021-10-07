@@ -1,7 +1,7 @@
 from glob import glob
 from typing import Union, List, Type
 from pathlib import Path
-from koopmans.calculators import CalculatorExt, KoopmansCPCalculator, PWCalculator, Wannier90Calculator, \
+from koopmans.calculators import KoopmansCPCalculator, PWCalculator, Wannier90Calculator, \
     PW2WannierCalculator, UnfoldAndInterpolateCalculator, Wann2KCCalculator, KoopmansScreenCalculator, \
     KoopmansHamCalculator
 

@@ -16,15 +16,15 @@ from ase.calculators.calculator import Calculator
 from ase.dft.kpoints import BandPath
 from .._utils import CalculatorExt, CalculatorABC, sanitise_filenames
 from ._atoms import UIAtoms
+from ._io import parse_w90, parse_hr, parse_phases, print_centers, write_results, write_bands, write_dos, \
+    write_input, read_input, read_results, read_bands
+from ._interpolate import interpolate, calc_bands, correct_phase
 from koopmans import utils
 from koopmans.settings import UnfoldAndInterpolateSettingsDict
 
 
 class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
     # Subclass of CalculatorExt for performing unfolding and interpolation
-    from ._io import parse_w90, parse_hr, parse_phases, print_centers, write_results, write_bands, write_dos, \
-        write_input, read_input, read_results, read_bands
-    from ._interpolate import interpolate, calc_bands, correct_phase, calc_dos
 
     ext_in = '.uii'
     ext_out = '.uio'
@@ -53,6 +53,23 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         self.Rvec: ArrayLike = []
         self.Rsmooth: ArrayLike = []
         self.wRs: ArrayLike = []
+
+    # Adding all the various functions defined in ._io
+    parse_w90 = parse_w90
+    parse_hr = parse_hr
+    parse_phases = parse_phases
+    print_centers = print_centers
+    write_results = write_results
+    write_bands = write_bands
+    write_dos = write_dos
+    write_input = write_input
+    read_input = read_input
+    read_results = read_results
+    read_bands = read_bands
+    # Adding various functions defined in ._interpolate
+    interpolate = interpolate
+    calc_bands = calc_bands
+    correct_phase = correct_phase
 
     @classmethod
     def fromfile(cls, filenames: Union[str, Path, List[str], List[Path]]) -> 'UnfoldAndInterpolateCalculator':

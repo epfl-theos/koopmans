@@ -11,7 +11,6 @@ from typing import Optional
 from pathlib import Path
 from datetime import datetime
 from ase.atoms import Atoms
-from ase.build.supercells import lattice_points_in_supercell
 from ase.calculators.calculator import FileIOCalculator
 from ase.spectrum.band_structure import BandStructure
 from koopmans import utils
@@ -278,7 +277,7 @@ def print_centers(self, centers=None):
     return
 
 
-def write_results(self, directory=None):
+def write_results(self, directory: Optional[Path] = None):
     """
     write_results calls write_bands and write_dos if the DOS was calculated
     """

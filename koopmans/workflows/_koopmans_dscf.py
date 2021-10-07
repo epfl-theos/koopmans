@@ -652,13 +652,13 @@ class KoopmansDSCFWorkflow(Workflow):
             # Generate the DOS
             calc.calc_dos()
 
-        # Store the calculator in the workflow's list of all the calculators
-        self.calculations.append(calc)
-
         # Print out the merged bands and DOS
         if self.parameters.from_scratch:
             with utils.chdir('postproc'):
                 calc.write_results()
+
+        # Store the calculator in the workflow's list of all the calculators
+        self.calculations.append(calc)
 
     def new_kcp_calculator(self, calc_presets: str = 'dft_init', alphas: Optional[Union[List[float], List[List[float]]]] = None, filling: Optional[Union[List[List[bool]], List[bool]]] = None, **kwargs) -> calculators.KoopmansCPCalculator:
         """
@@ -726,7 +726,7 @@ class KoopmansDSCFWorkflow(Workflow):
             alphas = self.bands.alphas
 
         # Generate a new kcp calculator copied from the master calculator
-        calc = self.new_calculator('kcp', alphas=alphas, filling=filling)
+        calc: calculators.KoopmansCPCalculator = self.new_calculator('kcp', alphas=alphas, filling=filling)
 
         # Set up read/write indexes
         if calc_presets in ['dft_init', 'dft_dummy']:
@@ -930,7 +930,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 kwargs['dft_smooth_ham_file'] = Path(f'postproc/wannier/{calc_presets}/wann_hr.dat').resolve()
                 kwargs['dft_ham_file'] = Path(f'init/wannier/{calc_presets}/wann_hr.dat').resolve()
 
-        calc = self.new_calculator('ui', **kwargs)
+        calc: calculators.UnfoldAndInterpolateCalculator = self.new_calculator('ui', **kwargs)
         calc.prefix = self.parameters.functional
 
         return calc

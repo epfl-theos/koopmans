@@ -11,13 +11,12 @@ import os
 import copy
 from pathlib import Path
 import numpy as np
-from typing import Optional, Dict, List, Type, Union, Any
+from typing import Optional, Dict, List, Type, Union, Any, TypeVar
 from ase import Atoms
-from ase.build.supercells import make_supercell, lattice_points_in_supercell
+from ase.build.supercells import make_supercell
 from ase.dft.kpoints import BandPath
 from ase.calculators.calculator import CalculationFailed
-from ase.calculators.espresso import EspressoWithBandstructure
-from koopmans import pseudopotentials, utils, settings
+from koopmans import utils, settings
 import koopmans.calculators as calculators
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.bands import Bands
@@ -115,6 +114,9 @@ valid_settings = [
     settings.Setting('eps_cavity',
                      'a list of epsilon_infinity values for the cavity in dscf calculations',
                      list, [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], None)]
+
+
+T = TypeVar('T', bound='calculators.CalculatorExt')
 
 
 class Workflow(object):
@@ -253,8 +255,8 @@ class Workflow(object):
                 'koffset': copy.deepcopy(self.koffset),
                 'kpath': copy.deepcopy(self.kpath)}
 
-    def new_calculator(self, calc_type: str, directory: Optional[Path] = None, **kwargs) -> calculators.CalculatorExt:
-        calc_class: Type[calculators.CalculatorExt]
+    def new_calculator(self, calc_type: str, directory: Optional[Path] = None, **kwargs) -> T:
+        calc_class: Type[T]
 
         if calc_type == 'kcp':
             calc_class = calculators.KoopmansCPCalculator
