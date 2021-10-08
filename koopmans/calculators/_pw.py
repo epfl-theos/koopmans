@@ -32,6 +32,8 @@ class PWCalculator(CalculatorExt, Espresso, CalculatorABC):
             self.command = ParallelCommandWithPostfix(os.environ.get(
                 'ASE_ESPRESSO_COMMAND', str(qe_bin_directory) + os.path.sep + self.command))
 
+        self.results_for_qc = ['energy']
+
     def calculate(self):
         if self.parameters.calculation == 'bands':
             if 'kpath' in self.parameters:

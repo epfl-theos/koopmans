@@ -20,7 +20,6 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
     # Subclass of CalculatorExt for performing calculations with kcp.x
     ext_in = '.cpi'
     ext_out = '.cpo'
-    results_for_qc = ['energy', 'homo_energy', 'lumo_energy']
 
     def __init__(self, atoms: Atoms, skip_qc: bool = False, alphas: Optional[List[float]] = None, filling: Optional[List[bool]] = None, **kwargs):
         # Define the valid parameters
@@ -40,6 +39,7 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
 
         self.alphas = alphas
         self.filling = filling
+        self.results_for_qc = ['energy', 'homo_energy', 'lumo_energy']
 
     def is_complete(self):
         return self.results.get('job_done', False)

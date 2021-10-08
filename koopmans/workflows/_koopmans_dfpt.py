@@ -240,6 +240,7 @@ class KoopmansDFPTWorkflow(Workflow):
         else:
             calc.directory = 'hamiltonian'
             calc.results['alphas'] = self.bands.alphas
+            calc.parameters.do_bands = self.parameters.periodic
 
         calc.parameters.num_wann_occ = self.master_calc_params['w90_occ'].num_wann
         calc.parameters.num_wann_emp = self.master_calc_params['w90_emp'].num_wann

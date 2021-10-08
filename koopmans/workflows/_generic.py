@@ -320,7 +320,7 @@ class Workflow(object):
                 qe_calc.parameters.nspin, qe_calc.parameters.nelup, qe_calc.parameters.neldw, qe_calc.parameters.tot_magnetization = 1, None, None, None
                 qe_calc.parameters.ndw, qe_calc.parameters.ndr = 98, 98
                 qe_calc.parameters.restart_mode = 'from_scratch'
-                qe_calc.parameters.skip_qc = True
+                qe_calc.skip_qc = True
                 self.run_calculator_single(qe_calc)
                 # Copy over nspin=2 wavefunction to nspin=1 tmp directory (if it has not been done already)
                 nspin1_tmpdir = qe_calc.parameters.outdir / \
@@ -343,7 +343,7 @@ class Workflow(object):
             qe_calc.parameters.do_outerloop = False
             qe_calc.parameters.do_outerloop_empty = False
             qe_calc.parameters.ndw = 99
-            qe_calc.parameters.skip_qc = True
+            qe_calc.skip_qc = True
             self.run_calculator_single(qe_calc)
 
             # Copy over nspin=1 wavefunction to nspin=2 tmp directory (if it has not been done already)

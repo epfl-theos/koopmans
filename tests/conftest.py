@@ -65,7 +65,7 @@ class WorkflowTest:
             workflow.benchmark = self.benchmark
 
             # Make sure QC printing is turned on
-            workflow.print_qc = True
+            workflow.parameters.print_qc = True
 
             try:
                 # Run the workflow
