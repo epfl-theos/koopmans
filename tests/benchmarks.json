@@ -83821,7 +83821,7 @@
    "num_wann_emp": 1,
    "have_empty": true,
    "has_disentangle": true,
-   "do_bands": true,
+   "do_bands": false,
    "use_ws_distance": true,
    "write_hr": true,
    "l_alpha_corr": false,

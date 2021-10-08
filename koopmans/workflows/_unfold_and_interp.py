@@ -10,7 +10,6 @@ Integrated within koopmans by Edward Linscott Jan 2021
 """
 
 from ._generic import Workflow
-from koopmans.calculators import UnfoldAndInterpolateCalculator
 
 
 class UnfoldAndInterpolateWorkflow(Workflow):
@@ -24,7 +23,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         self.calculations = [ui_calc]
 
         # Print quality control
-        if self.print_qc and not ui_calc.skip_qc:
+        if self.parameters.print_qc and not ui_calc.skip_qc:
             for key in ui_calc.results_for_qc:
                 val = ui_calc.results.get(key, None)
                 if val is not None:
