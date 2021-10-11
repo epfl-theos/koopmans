@@ -313,14 +313,16 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             files = self.__files
             if self.parameters.print_wfc_anion:
                 files.append('evcfixed_empty.dat')
-            return [self.parameters.outdir / Path(f'{self.parameters.prefix}_{self.parameters.ndw}.save/K00001/{fname}') for fname in files]
+            return [self.parameters.outdir
+                    / Path(f'{self.parameters.prefix}_{self.parameters.ndw}.save/K00001/{fname}') for fname in files]
 
         @property
         def input_files(self) -> List[Path]:
             files = self.__files
             if self.parameters.restart_from_wannier_pwscf:
                 files.append('evc_occupied.dat')
-            return [self.parameters.outdir / Path(f'{self.parameters.prefix}_{self.parameters.ndr}.save/K00001/{fname}') for fname in files]
+            return [self.parameters.outdir
+                    / Path(f'{self.parameters.prefix}_{self.parameters.ndr}.save/K00001/{fname}') for fname in files]
 
     class MockEnvironCalculator(MockCalc, EnvironCalculator):
         # Monkeypatched EnvironCalculator class which never actually calls pw.x
