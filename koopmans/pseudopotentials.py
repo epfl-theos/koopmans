@@ -11,6 +11,8 @@ Split into a separate module Sep 2021
 import os
 from pathlib import Path
 import xml.etree.ElementTree as ET
+from ase import Atoms
+from typing import Dict, Optional
 
 
 def read_pseudo_file(fd):
@@ -23,19 +25,6 @@ def read_pseudo_file(fd):
     upf = ET.parse(fd).getroot()
 
     return upf
-
-
-def get_pseudo_dir(calc) -> Path:
-    '''
-    Works out the pseudo directory (pseudo_dir is given precedence over $ESPRESSO_PSEUDO)
-    '''
-
-    if calc.parameters.get('pseudo_dir', None):
-        return Path(calc.parameters.pseudo_dir)
-    elif 'ESPRESSO_PSEUDO' in os.environ:
-        return Path(os.environ['ESPRESSO_PSEUDO'])
-    else:
-        return Path.cwd()
 
 
 def set_up_pseudos(calc):
@@ -54,18 +43,25 @@ def set_up_pseudos(calc):
                                      'the kcp block of your json input file.')
 
 
-def nelec_from_pseudos(calc):
+def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str], pseudo_dir: Optional[Path] = None) -> int:
     '''
     Determines the number of electrons in the system using information from pseudopotential files
     '''
 
-    directory = get_pseudo_dir(calc)
-    valences_dct = {key: read_pseudo_file(directory / value).find('PP_HEADER').get(
-        'z_valence') for key, value in calc.parameters.pseudopotentials.items()}
+    # Works out the pseudo directory (pseudo_dir is given precedence over $ESPRESSO_PSEUDO)
+    if pseudo_dir is None:
+        if 'ESPRESSO_PSEUDO' in os.environ:
+            pseudo_dir = Path(os.environ['ESPRESSO_PSEUDO'])
+        else:
+            pseudo_dir = Path.cwd()
 
-    if calc.atoms.has('labels'):
-        labels = calc.atoms.get_array('labels')
+    valences_dct = {key: read_pseudo_file(pseudo_dir / value).find('PP_HEADER').get(
+        'z_valence') for key, value in pseudopotentials.items()}
+
+    if atoms.has('labels'):
+        labels = atoms.get_array('labels')
     else:
-        labels = calc.atoms.symbols
+        labels = atoms.symbols
+
     valences = [int(float(valences_dct[l])) for l in labels]
     return sum(valences)

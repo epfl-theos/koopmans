@@ -16,6 +16,7 @@ from ase import Atoms
 from ase.build.supercells import make_supercell
 from ase.dft.kpoints import BandPath
 from ase.calculators.calculator import CalculationFailed
+from koopmans.pseudopotentials import nelec_from_pseudos
 from koopmans import utils, settings
 import koopmans.calculators as calculators
 from koopmans.commands import ParallelCommandWithPostfix
@@ -27,8 +28,10 @@ T = TypeVar('T', bound='calculators.CalculatorExt')
 
 class Workflow(object):
 
-    def __init__(self, atoms: Atoms, workflow_settings: settings.SettingsDict,
-                 master_calc_params: Dict[str, settings.SettingsDict], name: str,
+    def __init__(self, atoms: Atoms,
+                 workflow_settings: settings.SettingsDict = settings.WorkflowSettingsDict(),
+                 master_calc_params: Dict[str, settings.SettingsDict] = settings.default_master_calc_params,
+                 name: str = 'koopmans_workflow',
                  pseudopotentials: Optional[Dict[str, str]] = None,
                  kpts: Optional[List[int]] = [1, 1, 1],
                  koffset: Optional[List[int]] = [0, 0, 0],
@@ -47,6 +50,11 @@ class Workflow(object):
             self.pseudopotentials = pseudopotentials
         self.kpts = kpts
         self.koffset = koffset
+
+        # We rely on kcp_params.nelec so make sure this has been initialised
+        if 'nelec' not in self.master_calc_params['kcp']:
+            pseudo_dir = self.master_calc_params['kcp'].get('pseudo_dir', None)
+            self.master_calc_params['kcp'].nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, pseudo_dir)
 
         if kpath is None:
             if self.parameters.periodic:

@@ -31,7 +31,8 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
 
         # Add nelec if it is missing
         if 'nelec' not in self.parameters and 'pseudopotentials' in self.parameters:
-            self.parameters.nelec = pseudopotentials.nelec_from_pseudos(self)
+            self.parameters.nelec = pseudopotentials.nelec_from_pseudos(
+                self.atoms, self.pseudopotentials, self.parameters.pseudo_dir)
 
         if not isinstance(self.command, ParallelCommand):
             self.command = ParallelCommand(os.environ.get(
