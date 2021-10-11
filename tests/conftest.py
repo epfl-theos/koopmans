@@ -35,7 +35,8 @@ construct_exceptions = False
 
 class WorkflowTest:
 
-    def __init__(self, json_input: Union[str, Path], capsys: pytest.CaptureFixture[str], mock: bool = False, tolerances: Dict[str, Tuple[float, float]] = default_tolerances):
+    def __init__(self, json_input: Union[str, Path], capsys: pytest.CaptureFixture[str], mock: bool = False,
+                 tolerances: Dict[str, Tuple[float, float]] = default_tolerances):
 
         if isinstance(json_input, str):
             json_input = Path(json_input)
@@ -234,9 +235,9 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             if key.startswith('starting_magnetization'):
                 continue
 
-            # Don't check pseudopotentials TODO REMOVE ME
-            print('Remove me once the benchmark is updated')
-            if key in calc.parameters._other_valid_keywords or key in ['gamma_only', 'kpoints', 'alat_sc', 'sc_dim', 'check_spread']:
+            # TODO REMOVE ME ONCE THE BENCHMARKS ARE UPDATED
+            if key in calc.parameters._other_valid_keywords or \
+                    key in ['gamma_only', 'kpoints', 'alat_sc', 'sc_dim', 'check_spread']:
                 continue
 
             assert key in calc.benchmark['settings'].keys(), f'{key} in {input_file_name} not found in benchmark'
@@ -295,15 +296,16 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
 
         @property
         def __files(self) -> List[Path]:
-            files = [fname for ispin in range(1, self.parameters.nspin + 1) for fname in [f'evc0{ispin}.dat', f'evc{ispin}.dat',
+            files = [fname for ispin in range(1, self.parameters.nspin + 1) for fname in [f'evc0{ispin}.dat',
+                                                                                          f'evc{ispin}.dat',
                                                                                           f'evcm{ispin}.dat',
                                                                                           f'hamiltonian{ispin}.xml',
                                                                                           f'eigenval{ispin}.xml',
                                                                                           f'lambda0{ispin}.dat',
                                                                                           f'lambdam{ispin}.dat']]
             if self.parameters.empty_states_nbnd > 0:
-                files += [fname for ispin in range(1, self.parameters.nspin + 1) for fname in [f'evc0_empty{ispin}.dat',
-                                                                                               f'evc_empty{ispin}.dat']]
+                files += [fname for ispin in range(1, self.parameters.nspin + 1)
+                          for fname in [f'evc0_empty{ispin}.dat', f'evc_empty{ispin}.dat']]
             return [Path(f) for f in files]
 
         @property
@@ -357,15 +359,16 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
 
                 files += [f'{self.parameters.outdir}/{self.parameters.prefix}.save/wfc{i}.dat' for i in i_kpoints]
             files += [f'{self.parameters.outdir}/{self.parameters.prefix}.xml']
-            files += [f'{self.parameters.outdir}/{self.parameters.prefix}.save/{f}' for f in ['data-file-schema.xml', 'charge-density.dat']]
+            files += [f'{self.parameters.outdir}/{self.parameters.prefix}.save/{f}'
+                      for f in ['data-file-schema.xml', 'charge-density.dat']]
             return [Path(f) for f in files]
 
         @property
         def input_files(self) -> List[Path]:
             files = []
             if self.parameters.calculation == 'nscf':
-                files += [f'{self.parameters.outdir}/{self.parameters.prefix}.save/{f}' for f in ['data-file-schema.xml',
-                                                                                                  'charge-density.dat']]
+                files += [f'{self.parameters.outdir}/{self.parameters.prefix}.save/{f}'
+                          for f in ['data-file-schema.xml', 'charge-density.dat']]
             return [Path(f) for f in files]
 
     class MockWannier90Calculator(MockCalc, Wannier90Calculator):
@@ -413,7 +416,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         def input_files(self) -> List[Path]:
             i_kpoints = range(1, np.prod(self.parameters.kpts) + 1)
             files = [f'{self.parameters.outdir}/{self.prefix}.save/wfc{i}.dat' for i in i_kpoints]
-            files += [f'{self.parameters.outdir}/{self.prefix}.save/{f}' for f in ['data-file-schema.xml', 'charge-density.dat']]
+            files += [f'{self.parameters.outdir}/{self.prefix}.save/{f}'
+                      for f in ['data-file-schema.xml', 'charge-density.dat']]
             files.append(f'{self.directory}/{self.parameters.seedname}.nnkp')
             if self.parameters.wan_mode == 'wannier2odd':
                 files.append(f'{self.directory}/{self.parameters.seedname}.chk')
@@ -509,7 +513,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             # We only need to check input files for calculations...
             # a) not starting from scratch, and
             # b) not being skipped (i.e. self.from_scratch is True)
-            if qe_calc.parameters.get('restart_mode', 'from_scratch') != 'from_scratch' and self.parameters.from_scratch:
+            if qe_calc.parameters.get('restart_mode', 'from_scratch') != 'from_scratch' \
+                    and self.parameters.from_scratch:
                 for input_file in qe_calc.input_files:
 
                     # Check the input file exists
