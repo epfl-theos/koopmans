@@ -62,7 +62,8 @@ class SettingsDict(UserDict):
     defaults -- dict of defaults for each setting
     are_paths -- list of settings that correspond to paths
     to_not_parse -- list of settings that should not be parsed algebraically
-    directory -- the directory in which the calculation is being run (used to enforce all path settings to be absolute paths)
+    directory -- the directory in which the calculation is being run (used to enforce all path settings to be absolute
+                 paths)
     physicals -- list of keywords that have accompanying units from input
     '''
 
@@ -73,7 +74,8 @@ class SettingsDict(UserDict):
     to_not_parse: List[str] = []
     physicals: List[str] = []
 
-    def __init__(self, valid: List[str], defaults: Dict[str, Any] = {}, are_paths: List[str] = [], to_not_parse: List[str] = [], directory='', physicals: List[str] = [], **kwargs):
+    def __init__(self, valid: List[str], defaults: Dict[str, Any] = {}, are_paths: List[str] = [],
+                 to_not_parse: List[str] = [], directory='', physicals: List[str] = [], **kwargs):
         super().__init__()
         self.valid = valid + self._other_valid_keywords
         self.defaults = defaults
@@ -237,9 +239,9 @@ class SettingsDict(UserDict):
 class SettingsDictWithChecks(SettingsDict):
     def __init__(self, settings: List[Setting], **kwargs):
         self.settings = settings
-        super().__init__(valid=[s.name for s in settings], defaults={
-            s.name: s.default for s in settings if not s.default is None},
-            are_paths=[s.name for s in settings if s.kind == Path], **kwargs)
+        super().__init__(valid=[s.name for s in settings],
+                         defaults={s.name: s.default for s in settings if s.default is not None},
+                         are_paths=[s.name for s in settings if s.kind == Path], **kwargs)
 
     def _check_before_setitem(self, key, value):
         super()._check_before_setitem(key, value)

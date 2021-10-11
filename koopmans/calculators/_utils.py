@@ -137,7 +137,8 @@ class CalculatorABC(ABC, Generic[T]):
 class CalculatorExt():
 
     '''
-    This generic class is designed to be a parent class of a calculator that also inherits from an ASE calculator and CalculatorABC
+    This generic class is designed to be a parent class of a calculator that also inherits from an ASE calculator and
+    CalculatorABC
 
     '''
 
@@ -274,4 +275,5 @@ class KCWannCalculator(CalculatorExt):
 
     @property
     def filling(self):
-        return [[True for _ in range(self.parameters.num_wann_occ)] + [False for _ in range(self.parameters.num_wann_emp)]]
+        return [[True for _ in range(self.parameters.num_wann_occ)]
+                + [False for _ in range(self.parameters.num_wann_emp)]]

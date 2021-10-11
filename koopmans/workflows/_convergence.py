@@ -66,7 +66,8 @@ class ConvergenceWorkflow(Workflow):
         # number of convergence parameters
 
         # Record the alpha values for the original calculation
-        provide_alpha = 'empty_states_nbnd' in param_dict and self.parameters.functional in ['ki', 'kipz', 'pkipz', 'all'] \
+        provide_alpha = 'empty_states_nbnd' in param_dict \
+            and self.parameters.functional in ['ki', 'kipz', 'pkipz', 'all'] \
             and self.parameters.alpha_from_file
         if provide_alpha:
             master_alphas = utils.read_alpha_file(directory='.')

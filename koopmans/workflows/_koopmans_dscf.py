@@ -42,9 +42,10 @@ class KoopmansDSCFWorkflow(Workflow):
             nemp = self.master_calc_params['w90_emp'].num_wann
             if not self.parameters.orbital_groups:
                 self.parameters.orbital_groups = range(0, nocc + nemp)
-            self.parameters.orbital_groups = [i for _ in range(np.prod(self.kpts)) for i in self.parameters.orbital_groups[:nocc]] + \
-                                             [i for _ in range(np.prod(self.kpts))
-                                              for i in self.parameters.orbital_groups[nocc:]]
+            self.parameters.orbital_groups = [i for _ in range(np.prod(self.kpts))
+                                              for i in self.parameters.orbital_groups[:nocc]] \
+                + [i for _ in range(np.prod(self.kpts))
+                   for i in self.parameters.orbital_groups[nocc:]]
 
             # Check the number of empty states has been correctly configured
             w90_emp_params = self.master_calc_params['w90_emp']
@@ -147,7 +148,8 @@ class KoopmansDSCFWorkflow(Workflow):
         self.print('Initialisation of density and variational orbitals', style='heading')
         self.perform_initialisation()
 
-        if self.parameters.from_scratch and self.parameters.init_orbitals != 'from old ki' and self.parameters.enforce_spin_symmetry \
+        if self.parameters.from_scratch and self.parameters.init_orbitals != 'from old ki' \
+                and self.parameters.enforce_spin_symmetry \
                 and self.parameters.init_orbitals not in ['mlwfs', 'projwfs']:
             self.print('Copying the spin-up variational orbitals over to the spin-down channel')
             calc = self.calculations[-1]
@@ -661,7 +663,10 @@ class KoopmansDSCFWorkflow(Workflow):
         # Store the calculator in the workflow's list of all the calculators
         self.calculations.append(calc)
 
-    def new_kcp_calculator(self, calc_presets: str = 'dft_init', alphas: Optional[Union[List[float], List[List[float]]]] = None, filling: Optional[Union[List[List[bool]], List[bool]]] = None, **kwargs) -> calculators.KoopmansCPCalculator:
+    def new_kcp_calculator(self, calc_presets: str = 'dft_init',
+                           alphas: Optional[Union[List[float], List[List[float]]]] = None,
+                           filling: Optional[Union[List[List[bool]], List[bool]]] = None,
+                           **kwargs) -> calculators.KoopmansCPCalculator:
         """
 
         Generates a new KCP calculator based on the self.master_calc_params["kcp"]
@@ -925,8 +930,6 @@ class KoopmansDSCFWorkflow(Workflow):
             kwargs['directory'] = Path(f'postproc/{calc_presets}')
             kwargs['kc_ham_file'] = Path(f'final/ham_{calc_presets}_1.dat').resolve()
             kwargs['w90_seedname'] = Path(f'init/wannier/{calc_presets}/wann').resolve()
-            # The supercell can be obtained from the most recent CP calculation
-            cell = [c.atoms.get_cell() for c in self.calculations if isinstance(c, calculators.KoopmansCPCalculator)][-1]
             if self.master_calc_params['ui'].do_smooth_interpolation:
                 kwargs['dft_smooth_ham_file'] = Path(f'postproc/wannier/{calc_presets}/wann_hr.dat').resolve()
                 kwargs['dft_ham_file'] = Path(f'init/wannier/{calc_presets}/wann_hr.dat').resolve()
@@ -936,7 +939,8 @@ class KoopmansDSCFWorkflow(Workflow):
 
         return calc
 
-    def calculate_alpha_from_list_of_calcs(self, calcs: List[calculators.KoopmansCPCalculator], filled: bool = True) -> Union[Tuple[float, float]]:
+    def calculate_alpha_from_list_of_calcs(self, calcs: List[calculators.KoopmansCPCalculator], filled: bool = True) \
+            -> Union[Tuple[float, float]]:
         '''
 
         Calculates alpha via equation 10 of Nguyen et. al (2018) 10.1103/PhysRevX.8.021051
@@ -1045,7 +1049,8 @@ class KoopmansDSCFWorkflow(Workflow):
                 utils.warn('KI and DFT energies differ by {:.5f} eV'.format(dE_check))
 
         # Obtaining alpha
-        if (alpha_calc.parameters.odd_nkscalfact and filled) or (alpha_calc.parameters.odd_nkscalfact_empty and not filled):
+        if (alpha_calc.parameters.odd_nkscalfact and filled) \
+                or (alpha_calc.parameters.odd_nkscalfact_empty and not filled):
             alpha_guesses = alpha_calc.alphas[0]
             alpha_guess = alpha_guesses[alpha_calc.parameters.fixed_band - 1]
         else:

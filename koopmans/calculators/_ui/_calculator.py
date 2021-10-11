@@ -566,8 +566,8 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
     def read_input(self, input_file: Optional[Path] = None):
         """
-        read_input reads in the settings from a JSON-formatted input file and loads them onto this calculator (useful for
-        restarting)
+        read_input reads in the settings from a JSON-formatted input file and loads them onto this calculator (useful
+        for restarting)
         """
 
         if input_file is None:
@@ -665,7 +665,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             # converting centers from crystal units of SC to crystal units of PC
             self.centers[n] = self.centers[n] * self.parameters.kpts
 
-            if (self.centers[n][0] - 1 < 1.e-3) and (self.centers[n][1] - 1 < 1.e-3) and (self.centers[n][2] - 1 < 1.e-3):
+            if all([x - 1 < 1.e-3 for x in self.centers[n]]):
                 centers.append(self.centers[n])
                 spreads.append(self.spreads[n])
                 index.append(n)

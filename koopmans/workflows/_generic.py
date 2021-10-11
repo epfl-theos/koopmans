@@ -325,7 +325,10 @@ class Workflow(object):
                 qe_calc.prefix += '_nspin1_dummy'
                 qe_calc.parameters.do_outerloop = False
                 qe_calc.parameters.do_outerloop_empty = False
-                qe_calc.parameters.nspin, qe_calc.parameters.nelup, qe_calc.parameters.neldw, qe_calc.parameters.tot_magnetization = 1, None, None, None
+                qe_calc.parameters.nspin = 1
+                qe_calc.parameters.nelup = None
+                qe_calc.parameters.neldw = None
+                qe_calc.parameters.tot_magnetization = None
                 qe_calc.parameters.ndw, qe_calc.parameters.ndr = 98, 98
                 qe_calc.parameters.restart_mode = 'from_scratch'
                 qe_calc.skip_qc = True
@@ -338,7 +341,10 @@ class Workflow(object):
             # PBE with nspin=1
             qe_calc = copy.deepcopy(master_qe_calc)
             qe_calc.prefix += '_nspin1'
-            qe_calc.parameters.nspin, qe_calc.parameters.nelup, qe_calc.parameters.neldw, qe_calc.parameters.tot_magnetization = 1, None, None, None
+            qe_calc.parameters.nspin = 1
+            qe_calc.parameters.nelup = None
+            qe_calc.parameters.neldw = None
+            qe_calc.parameters.tot_magnetization = None
             qe_calc.parameters.ndw, qe_calc.parameters.ndr = 98, 98
             nspin1_tmpdir = qe_calc.parameters.outdir / \
                 f'{qe_calc.parameters.prefix}_{qe_calc.parameters.ndw}.save/K00001'

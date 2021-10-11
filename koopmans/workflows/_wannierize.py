@@ -94,13 +94,15 @@ class WannierizeWorkflow(Workflow):
 
             # 2) standard pw2wannier90 calculation
             calc_p2w = self.new_calculator('pw2wannier', directory=calc_w90.directory,
-                                           outdir=calc_pw.parameters.outdir, write_unk=self.parameters.check_wannierisation)
+                                           outdir=calc_pw.parameters.outdir,
+                                           write_unk=self.parameters.check_wannierisation)
             calc_p2w.prefix = 'pw2wan'
             self.run_calculator(calc_p2w)
 
             # 3) Wannier90 calculation
             calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ,
-                                           wannier_plot=self.parameters.check_wannierisation, bands_plot=self.parameters.check_wannierisation)
+                                           wannier_plot=self.parameters.check_wannierisation,
+                                           bands_plot=self.parameters.check_wannierisation)
             calc_w90.prefix = 'wann'
             self.run_calculator(calc_w90)
 

@@ -29,7 +29,7 @@ class FoldToSupercellWorkflow(Workflow):
             # Create the calculator
             kwargs = self.master_calc_params['pw2wannier'].copy()
             kwargs['wan_mode'] = 'wannier2odd'
-            calc_w2o = calculators.PW2WannierCalculator(atoms=self.atoms,  **kwargs)
+            calc_w2o = calculators.PW2WannierCalculator(atoms=self.atoms, **kwargs)
             calc_w2o.directory = f'./{typ}'
             calc_w2o.prefix = 'wan2odd'
 
@@ -37,8 +37,8 @@ class FoldToSupercellWorkflow(Workflow):
             kcp_params = self.master_calc_params['kcp']
             if calc_w2o.parameters.gamma_trick == kcp_params.do_wf_cmplx:
                 utils.warn(
-                    f'if do_wf_cmplx is {kcp_params.do_wf_cmplx}, gamma_trick cannot be {calc_w2o.parameters.gamma_trick}. '
-                    f'Changing gamma_trick to {not kcp_params.do_wf_cmplx}')
+                    f'if do_wf_cmplx is {kcp_params.do_wf_cmplx}, gamma_trick cannot be '
+                    f'{calc_w2o.parameters.gamma_trick}. Changing gamma_trick to {not kcp_params.do_wf_cmplx}')
                 calc_w2o.parameters.gamma_trick = not kcp_params.do_wf_cmplx
             elif calc_w2o.parameters.gamma_trick is None and not kcp_params.do_wf_cmplx:
                 calc_w2o.parameters.gamma_trick = True

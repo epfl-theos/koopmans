@@ -21,7 +21,8 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
     ext_in = '.cpi'
     ext_out = '.cpo'
 
-    def __init__(self, atoms: Atoms, skip_qc: bool = False, alphas: Optional[List[float]] = None, filling: Optional[List[bool]] = None, **kwargs):
+    def __init__(self, atoms: Atoms, skip_qc: bool = False, alphas: Optional[List[float]] = None,
+                 filling: Optional[List[bool]] = None, **kwargs):
         # Define the valid parameters
         self.parameters = settings.KoopmansCPSettingsDict()
 

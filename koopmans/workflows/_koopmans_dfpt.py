@@ -54,8 +54,8 @@ class KoopmansDFPTWorkflow(Workflow):
                 # Martyna-Tuckerman (not used for periodic systems)
                 if hasattr(params, 'assume_isolated'):
                     if params.assume_isolated not in ['none', None]:
-                        raise ValueError(
-                            f'Periodic systems must have "assume_isolated" = "none", but it is set to {params.assume_isolated}')
+                        raise ValueError('Periodic systems must have "assume_isolated" = "none", but it is set to '
+                                         + params.assume_isolated)
 
             else:
                 # Gygi-Baldereschi (not used for aperiodic systems)
@@ -93,8 +93,8 @@ class KoopmansDFPTWorkflow(Workflow):
             nemp = self.master_calc_params['pw'].nbnd - nocc
         if self.parameters.orbital_groups is None:
             self.parameters.orbital_groups = list(range(nocc + nemp))
-        self.bands = Bands(n_bands=nocc + nemp, filling=[True] * nocc +
-                           [False] * nemp, groups=self.parameters.orbital_groups)
+        self.bands = Bands(n_bands=nocc + nemp, filling=[True] * nocc + [False] * nemp,
+                           groups=self.parameters.orbital_groups)
 
         # Populating kpoints if absent
         if not self.parameters.periodic:
