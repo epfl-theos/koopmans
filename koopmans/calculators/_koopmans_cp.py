@@ -147,9 +147,10 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
 
         alphas = utils.read_alpha_file(self.directory)
 
-        if self.nspin == 2:
+        if self.parameters.nspin == 2:
             # Remove duplicates
-            alphas = alphas[:self.nelec // 2] + alphas[self.nelec:self.nelec + self.empty_states_nbnd]
+            alphas = alphas[:self.parameters.nelec // 2] + \
+                alphas[self.parameters.nelec:self.parameters.nelec + self.parameters.empty_states_nbnd]
             alphas = [alphas, alphas]
         return alphas
 

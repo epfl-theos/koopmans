@@ -230,18 +230,13 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
 
         # Check that we are using the correct settings
         input_file_name = f'{relative_directory(calc.directory)}/{calc.prefix}{calc.ext_in}'
-        for key in set(list(calc.benchmark['settings'].keys()) + list(calc.parameters.keys())):
+        for key in set(list(calc.benchmark['parameters'].keys()) + list(calc.parameters.keys())):
             # Don't check starting magnetization because ASE doesn't parse it
             if key.startswith('starting_magnetization'):
                 continue
 
-            # TODO REMOVE ME ONCE THE BENCHMARKS ARE UPDATED
-            if key in calc.parameters._other_valid_keywords or \
-                    key in ['gamma_only', 'kpoints', 'alat_sc', 'sc_dim', 'check_spread']:
-                continue
-
-            assert key in calc.benchmark['settings'].keys(), f'{key} in {input_file_name} not found in benchmark'
-            ref_val = calc.benchmark['settings'][key]
+            assert key in calc.benchmark['parameters'].keys(), f'{key} in {input_file_name} not found in benchmark'
+            ref_val = calc.benchmark['parameters'][key]
 
             assert key in calc.parameters.keys(), f'{key} missing from {input_file_name}'
             val = calc.parameters[key]
@@ -249,7 +244,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             if key in calc.parameters.are_paths:
                 # Compare the path relative to the location of the input file (mirroring behaviour of
                 # construct_benchmark.py)
-                val = os.path.relpath(val, calc.directory)
+                val = Path(os.path.relpath(val, calc.directory))
 
             if isinstance(val, BandPath):
                 assert val.path == ref_val.path, f'{key}.path = {val.path} (test) != {ref_val.path} (benchmark)'
@@ -285,7 +280,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             generic_mock_calculate(self)
 
         def is_complete(self):
-            return os.path.isfile(f'{self.directory}/{self.prefix}{self.ext_out}')
+            return (self.directory / f'{self.prefix}{self.ext_out}').is_file()
 
         def check_code_is_installed(self):
             # Don't check if the code is installed
@@ -312,7 +307,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         def output_files(self) -> List[Path]:
             files = self.__files
             if self.parameters.print_wfc_anion:
-                files.append('evcfixed_empty.dat')
+                files.append(Path('evcfixed_empty.dat'))
             return [self.parameters.outdir
                     / Path(f'{self.parameters.prefix}_{self.parameters.ndw}.save/K00001/{fname}') for fname in files]
 
@@ -320,7 +315,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         def input_files(self) -> List[Path]:
             files = self.__files
             if self.parameters.restart_from_wannier_pwscf:
-                files.append('evc_occupied.dat')
+                files.append(Path('evc_occupied.dat'))
             return [self.parameters.outdir
                     / Path(f'{self.parameters.prefix}_{self.parameters.ndr}.save/K00001/{fname}') for fname in files]
 
@@ -417,8 +412,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         @property
         def input_files(self) -> List[Path]:
             i_kpoints = range(1, np.prod(self.parameters.kpts) + 1)
-            files = [f'{self.parameters.outdir}/{self.prefix}.save/wfc{i}.dat' for i in i_kpoints]
-            files += [f'{self.parameters.outdir}/{self.prefix}.save/{f}'
+            files = [f'{self.parameters.outdir}/{self.parameters.prefix}.save/wfc{i}.dat' for i in i_kpoints]
+            files += [f'{self.parameters.outdir}/{self.parameters.prefix}.save/{f}'
                       for f in ['data-file-schema.xml', 'charge-density.dat']]
             files.append(f'{self.directory}/{self.parameters.seedname}.nnkp')
             if self.parameters.wan_mode == 'wannier2odd':
@@ -509,13 +504,12 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             # If this calculator is a pw2wannier object, it need to know how many kpoints there are (usually done via
             # the contents of .nnkp)
             if isinstance(qe_calc, PW2WannierCalculator):
-                recent_pw_calc = [c for c in self.calculations if isinstance(c, PWCalculator)][-1]
-                qe_calc.parameters.kpts = recent_pw_calc.parameters.kpts
+                qe_calc.parameters.kpts = self.kpts
 
             # We only need to check input files for calculations...
             # a) not starting from scratch, and
             # b) not being skipped (i.e. self.from_scratch is True)
-            if qe_calc.parameters.get('restart_mode', 'from_scratch') != 'from_scratch' \
+            if qe_calc.parameters.get('restart_mode', 'restart') != 'from_scratch' \
                     and self.parameters.from_scratch:
                 for input_file in qe_calc.input_files:
 
@@ -569,7 +563,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
                                 f'{input_file} has been overwritten by {input_file_info["written_to"]}'
                         else:
                             # Populate benchmarks.json with exceptions
-                            if not relative_directory(input_file) == input_file_info['written_to']:
+                            if not relative_directory(Path(input_file).resolve()) == input_file_info['written_to']:
                                 # Add entry to exceptions dict
                                 fname = tests_directory() / 'benchmarks.json'
                                 assert fname.is_file()
@@ -579,10 +573,10 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
                                 assert qe_calc_seed in exceptions, f'Benchmark for {qe_calc_seed} is missing'
                                 if 'input files' not in exceptions[qe_calc_seed]:
                                     exceptions[qe_calc_seed]['input files'] = {}
-                                exceptions[qe_calc_seed]['input files'][input_file] = input_file_info
+                                exceptions[qe_calc_seed]['input files'][str(input_file)] = input_file_info
 
                                 with open(fname, 'w') as fd:
-                                    write_encoded_json(fd, exceptions)
+                                    write_encoded_json(exceptions, fd)
             super().run_calculator_single(qe_calc)
 
         def load_old_calculator(self, qe_calc):

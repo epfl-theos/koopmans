@@ -9,12 +9,12 @@ Written by Edward Linscott Feb 2021
 import os
 from ase import Atoms
 from ase.calculators.espresso import Wann2KC
-from ._utils import KCWannCalculator, qe_bin_directory
+from ._utils import KCWannCalculator, qe_bin_directory, CalculatorABC
 from koopmans.settings import Wann2KCSettingsDict
 from koopmans.commands import ParallelCommandWithPostfix
 
 
-class Wann2KCCalculator(KCWannCalculator, Wann2KC):
+class Wann2KCCalculator(KCWannCalculator, Wann2KC, CalculatorABC):
     # Subclass of KCWannCalculator for performing calculations with wann_to_kc.x
     ext_in = '.w2ki'
     ext_out = '.w2ko'
@@ -29,3 +29,10 @@ class Wann2KCCalculator(KCWannCalculator, Wann2KC):
 
         self.command = ParallelCommandWithPostfix(
             f'{qe_bin_directory}{os.path.sep}wann2kc.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
+
+    def is_converged(self):
+        return True
+
+    def is_complete(self):
+        # TODO implement me
+        return True

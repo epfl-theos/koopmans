@@ -121,10 +121,6 @@ class CalculatorABC(ABC, Generic[T]):
             except:
                 # Calculation could not be read; must have been incomplete
                 pass
-            # # Copy over the results
-            # cls.results = outcls.results
-            # if hasattr(outcls, 'kpts'):
-            #     cls.kpts = outcls.kpts
 
         # Update calc.directory and calc.parameters.prefix
         calc.directory = sanitised_filenames[0].parent

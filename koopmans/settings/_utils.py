@@ -6,6 +6,7 @@ Written by Edward Linscott May 2020
 
 '''
 
+import os
 from pathlib import Path
 from collections import UserDict
 from typing import Union, Type, Tuple, NamedTuple, Dict, Any, Optional, List
@@ -65,6 +66,9 @@ class SettingsDict(UserDict):
     directory -- the directory in which the calculation is being run (used to enforce all path settings to be absolute
                  paths)
     physicals -- list of keywords that have accompanying units from input
+
+    By altering SettingsDict.use_relative_paths = True/False you can change if settings that are paths are returned as
+    absolute or relative paths (absolute paths are returned by default)
     '''
 
     # Need to provide these here to allow copy.deepcopy to perform the checks in __getattr__
@@ -85,6 +89,7 @@ class SettingsDict(UserDict):
         self.physicals = physicals
         self.update(**defaults)
         self.update(**kwargs)
+        self.use_relative_paths = False
 
     def __getattr__(self, name):
         if name != 'valid' and self.is_valid(name):
@@ -94,35 +99,12 @@ class SettingsDict(UserDict):
                 super().__getattr__(name)
             except AttributeError:
                 raise AttributeError(name)
-        # if key == 'directory':
-        #     return self._directory
-        # elif key == 'to_not_parse':
-        #     if not '_to_not_parse' in self.__dict__:
-        #         self.__dict__['_to_not_parse'] = set(self.are_paths)
-        #     return self.__dict__['_to_not_parse']
-        # elif key in ['attributes'] + self.attributes:
-        #     return self.__dict__[key]
-        # elif key in self.valid:
-        #     return self.data.get(key, None)
-        # else:
-        #     if key not in self.data:
-        #         return dict.__getattribute__(self.data, key)
-        #     return self.data[key]
 
     def __setattr__(self, name, value):
         if self.is_valid(name):
             self.__setitem__(name, value)
         else:
             super().__setattr__(name, value)
-    # def __setattr__(self, key, value):
-    #     if key == 'directory':
-    #         self.__dict__['_directory'] = value
-    #     elif key == 'to_not_parse':
-    #         self.__dict__['_to_not_parse'] = self.to_not_parse.union(value)
-    #     elif key in ['attributes'] + self.attributes:
-    #         self.__dict__[key] = value
-    #     else:
-    #         self.data[key] = value
 
     def __getitem__(self, key: str):
         if key not in self.data:
@@ -130,7 +112,10 @@ class SettingsDict(UserDict):
                 self.data[key] = self.defaults[key]
             else:
                 raise KeyError(key)
-        return self.data[key]
+        if key in self.are_paths and self.use_relative_paths:
+            return Path(os.path.relpath(self.data[key], self.directory))
+        else:
+            return self.data[key]
 
     def __setitem__(self, key: str, value: Any):
         # Insisting that all values corresponding to paths are absolute and are Path objects

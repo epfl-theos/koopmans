@@ -23,7 +23,7 @@ class KoopmansEncoder(ase_json.MyEncoder):
         if isinstance(obj, set):
             return {'__set__': list(obj)}
         elif isinstance(obj, Path):
-            return {'__path__': str(os.path.relpath(obj, Path.cwd()))}
+            return {'__path__': str(obj)}
         elif isinstance(obj, Calculator):
             # ASE only stores the calculator parameters, with Atoms being the more fundamental object
             # Because we store calculators as the primary object, we need to make sure the atoms are also stored
@@ -104,4 +104,9 @@ def read_kwf(fd: TextIO):
 
 
 def write_kwf(obj: Union[workflows.Workflow, dict], fd: TextIO):
+    if isinstance(obj, workflows.Workflow):
+        use_relpath = obj.parameters.use_relative_paths
+        obj.parameters.use_relative_paths = True
     fd.write(encode(obj))
+    if isinstance(obj, workflows.Workflow):
+        obj.parameters.use_relative_paths = use_relpath

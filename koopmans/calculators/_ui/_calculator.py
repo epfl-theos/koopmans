@@ -39,7 +39,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         CalculatorExt.__init__(self, *args, **kwargs)
 
         # Ensure that self.atoms is a UIAtoms and not just a Atoms object
-        if not isinstance(atoms, UIAtoms):
+        if not isinstance(atoms, UIAtoms) and self.parameters.kpts:
             atoms = UIAtoms.fromatoms(atoms=atoms, supercell_matrix=np.diag(self.parameters.kpts))
         self.atoms = atoms
         self.atoms.calc = self
@@ -57,9 +57,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
     @classmethod
     def fromfile(cls, filenames: Union[str, Path, List[str], List[Path]]) -> 'UnfoldAndInterpolateCalculator':
-        calc = CalculatorABC.fromfile(filenames)
-
         sanitised_filenames = sanitise_filenames(filenames, cls.ext_in, cls.ext_out)
+
+        calc = super(UnfoldAndInterpolateCalculator, cls).fromfile(sanitised_filenames)
 
         # If we were reading generating this object from files, look for bands, too
         if any([f.suffix == calc.ext_out for f in sanitised_filenames]):
@@ -580,6 +580,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         assert bigdct['workflow']['task'] == 'ui', 'UI input file should have "task": "ui"'
 
+        # Update the parameters
+        self.parameters = bigdct['ui']
+
         # Load the cell and kpts if they are provided
         if 'setup' in bigdct:
             cell = utils.read_cell_parameters(None, bigdct['setup'].get('cell_parameters', {}))
@@ -589,9 +592,6 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             if kpoint_block:
                 self.parameters.kpts = kpoint_block['kpts']
                 utils.read_kpath(self, kpoint_block['kpath'])
-
-        # Update the parameters
-        self.parameters = bigdct['ui']
 
         return
 
