@@ -73,13 +73,14 @@
     }
   },
   "w90": {
+    "conv_window": 5,
     "projections": {
       "sites": [
         [
           [
-            0.125,
-            0.125,
-            0.125
+            0.25,
+            0.25,
+            0.25
           ],
           "sp3"
         ]
@@ -87,8 +88,8 @@
     },
     "emp": {
       "num_wann": 4,
-      "dis_froz_max": 11.5,
-      "dis_win_max": 17.0
+      "dis_froz_max": 10.6,
+      "dis_win_max": 16.9
     }
   }
 }

@@ -4431,7 +4431,9 @@
   "results": {
    "job done": true,
    "convergence": false,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [],
+   "spreads": []
   }
  },
  "test_03/init/wannier/occ/pw2wan": {
@@ -4570,7 +4572,35 @@
   "results": {
    "job done": true,
    "convergence": true,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [
+    [
+     -0.678875,
+     2.036625,
+     2.036625
+    ],
+    [
+     -0.678875,
+     0.678875,
+     0.678875
+    ],
+    [
+     -2.036625,
+     2.036625,
+     0.678875
+    ],
+    [
+     -2.036625,
+     0.678875,
+     2.036625
+    ]
+   ],
+   "spreads": [
+    1.01746737,
+    1.01746736,
+    1.01746737,
+    1.01746737
+   ]
   },
   "input files": {
    "test_03/init/wannier/occ/wann.eig": {
@@ -4664,7 +4694,9 @@
   "results": {
    "job done": true,
    "convergence": false,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [],
+   "spreads": []
   }
  },
  "test_03/init/wannier/emp/pw2wan": {
@@ -4806,7 +4838,35 @@
   "results": {
    "job done": true,
    "convergence": true,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [
+    [
+     -0.678875,
+     2.036625,
+     2.036625
+    ],
+    [
+     -0.678875,
+     0.678875,
+     0.678875
+    ],
+    [
+     -2.036625,
+     2.036625,
+     0.678875
+    ],
+    [
+     -2.036625,
+     0.678875,
+     2.036625
+    ]
+   ],
+   "spreads": [
+    2.23824733,
+    2.23824734,
+    2.23824733,
+    2.23824734
+   ]
   },
   "input files": {
    "test_03/init/wannier/emp/wann.eig": {
@@ -9459,7 +9519,9 @@
   "results": {
    "job done": true,
    "convergence": false,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [],
+   "spreads": []
   }
  },
  "test_03/postproc/wannier/occ/pw2wan": {
@@ -10102,7 +10164,35 @@
   "results": {
    "job done": true,
    "convergence": true,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [
+    [
+     -0.678875,
+     2.036625,
+     2.036625
+    ],
+    [
+     -0.678875,
+     0.678875,
+     0.678875
+    ],
+    [
+     -2.036625,
+     2.036625,
+     0.678875
+    ],
+    [
+     -2.036625,
+     0.678875,
+     2.036625
+    ]
+   ],
+   "spreads": [
+    1.60402653,
+    1.6040265,
+    1.60402653,
+    1.60402653
+   ]
   },
   "input files": {
    "test_03/postproc/wannier/occ/wann.eig": {
@@ -10476,7 +10566,9 @@
   "results": {
    "job done": true,
    "convergence": false,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [],
+   "spreads": []
   }
  },
  "test_03/postproc/wannier/emp/pw2wan": {
@@ -11122,7 +11214,35 @@
   "results": {
    "job done": true,
    "convergence": true,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [
+    [
+     -0.678875,
+     2.036625,
+     2.036625
+    ],
+    [
+     -0.678875,
+     0.678875,
+     0.678875
+    ],
+    [
+     -2.036625,
+     2.036625,
+     0.678875
+    ],
+    [
+     -2.036625,
+     0.678875,
+     2.036625
+    ]
+   ],
+   "spreads": [
+    4.77281976,
+    4.77281973,
+    4.77281973,
+    4.77281972
+   ]
   },
   "input files": {
    "test_03/postproc/wannier/emp/wann.eig": {
@@ -34080,7 +34200,9 @@
   "results": {
    "job done": true,
    "convergence": false,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [],
+   "spreads": []
   }
  },
  "test_07/kipz/init/wannier/occ/wann_preproc": {
@@ -34157,7 +34279,9 @@
   "results": {
    "job done": true,
    "convergence": false,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [],
+   "spreads": []
   }
  },
  "test_07/ki/init/wannier/occ/wann_preproc": {
@@ -34234,7 +34358,9 @@
   "results": {
    "job done": true,
    "convergence": false,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [],
+   "spreads": []
   }
  },
  "test_07/pkipz/init/wannier/occ/pw2wan": {
@@ -34401,7 +34527,35 @@
   "results": {
    "job done": true,
    "convergence": true,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [
+    [
+     -0.678875,
+     2.036625,
+     2.036625
+    ],
+    [
+     -0.678875,
+     0.678875,
+     0.678875
+    ],
+    [
+     -2.036625,
+     2.036625,
+     0.678875
+    ],
+    [
+     -2.036625,
+     0.678875,
+     2.036625
+    ]
+   ],
+   "spreads": [
+    1.01746737,
+    1.01746736,
+    1.01746737,
+    1.01746737
+   ]
   }
  },
  "test_07/kipz/init/wannier/occ/wann": {
@@ -34480,7 +34634,35 @@
   "results": {
    "job done": true,
    "convergence": true,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [
+    [
+     -0.678875,
+     2.036625,
+     2.036625
+    ],
+    [
+     -0.678875,
+     0.678875,
+     0.678875
+    ],
+    [
+     -2.036625,
+     2.036625,
+     0.678875
+    ],
+    [
+     -2.036625,
+     0.678875,
+     2.036625
+    ]
+   ],
+   "spreads": [
+    1.01746737,
+    1.01746736,
+    1.01746737,
+    1.01746737
+   ]
   }
  },
  "test_07/ki/init/wannier/occ/wann": {
@@ -34559,7 +34741,35 @@
   "results": {
    "job done": true,
    "convergence": true,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [
+    [
+     -0.678875,
+     2.036625,
+     2.036625
+    ],
+    [
+     -0.678875,
+     0.678875,
+     0.678875
+    ],
+    [
+     -2.036625,
+     2.036625,
+     0.678875
+    ],
+    [
+     -2.036625,
+     0.678875,
+     2.036625
+    ]
+   ],
+   "spreads": [
+    1.01746737,
+    1.01746736,
+    1.01746737,
+    1.01746737
+   ]
   },
   "input files": {
    "test_07/ki/init/wannier/occ/wann.eig": {
@@ -34653,7 +34863,9 @@
   "results": {
    "job done": true,
    "convergence": false,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [],
+   "spreads": []
   }
  },
  "test_07/kipz/init/wannier/emp/wann_preproc": {
@@ -34733,7 +34945,9 @@
   "results": {
    "job done": true,
    "convergence": false,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [],
+   "spreads": []
   }
  },
  "test_07/ki/init/wannier/emp/wann_preproc": {
@@ -34813,7 +35027,9 @@
   "results": {
    "job done": true,
    "convergence": false,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [],
+   "spreads": []
   }
  },
  "test_07/pkipz/init/wannier/emp/pw2wan": {
@@ -34983,7 +35199,35 @@
   "results": {
    "job done": true,
    "convergence": true,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [
+    [
+     -0.678875,
+     2.036625,
+     2.036625
+    ],
+    [
+     -0.678875,
+     0.678875,
+     0.678875
+    ],
+    [
+     -2.036625,
+     2.036625,
+     0.678875
+    ],
+    [
+     -2.036625,
+     0.678875,
+     2.036625
+    ]
+   ],
+   "spreads": [
+    2.23824733,
+    2.23824734,
+    2.23824733,
+    2.23824734
+   ]
   }
  },
  "test_07/kipz/init/wannier/emp/wann": {
@@ -35065,7 +35309,35 @@
   "results": {
    "job done": true,
    "convergence": true,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [
+    [
+     -0.678875,
+     2.036625,
+     2.036625
+    ],
+    [
+     -0.678875,
+     0.678875,
+     0.678875
+    ],
+    [
+     -2.036625,
+     2.036625,
+     0.678875
+    ],
+    [
+     -2.036625,
+     0.678875,
+     2.036625
+    ]
+   ],
+   "spreads": [
+    2.23824733,
+    2.23824734,
+    2.23824733,
+    2.23824734
+   ]
   }
  },
  "test_07/ki/init/wannier/emp/wann": {
@@ -35147,7 +35419,35 @@
   "results": {
    "job done": true,
    "convergence": true,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [
+    [
+     -0.678875,
+     2.036625,
+     2.036625
+    ],
+    [
+     -0.678875,
+     0.678875,
+     0.678875
+    ],
+    [
+     -2.036625,
+     2.036625,
+     0.678875
+    ],
+    [
+     -2.036625,
+     0.678875,
+     2.036625
+    ]
+   ],
+   "spreads": [
+    2.23824733,
+    2.23824734,
+    2.23824733,
+    2.23824734
+   ]
   },
   "input files": {
    "test_07/ki/init/wannier/emp/wann.eig": {
@@ -61378,7 +61678,9 @@
   "results": {
    "job done": true,
    "convergence": false,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [],
+   "spreads": []
   }
  },
  "test_07/kipz/postproc/wannier/occ/wann_preproc": {
@@ -61735,7 +62037,9 @@
   "results": {
    "job done": true,
    "convergence": false,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [],
+   "spreads": []
   }
  },
  "test_07/ki/postproc/wannier/occ/wann_preproc": {
@@ -62092,7 +62396,9 @@
   "results": {
    "job done": true,
    "convergence": false,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [],
+   "spreads": []
   }
  },
  "test_07/pkipz/postproc/wannier/occ/pw2wan": {
@@ -62763,7 +63069,35 @@
   "results": {
    "job done": true,
    "convergence": true,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [
+    [
+     -0.678875,
+     2.036625,
+     2.036625
+    ],
+    [
+     -0.678875,
+     0.678875,
+     0.678875
+    ],
+    [
+     -2.036625,
+     2.036625,
+     0.678875
+    ],
+    [
+     -2.036625,
+     0.678875,
+     2.036625
+    ]
+   ],
+   "spreads": [
+    1.60402653,
+    1.6040265,
+    1.60402653,
+    1.60402653
+   ]
   }
  },
  "test_07/kipz/postproc/wannier/occ/wann": {
@@ -63122,7 +63456,35 @@
   "results": {
    "job done": true,
    "convergence": true,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [
+    [
+     -0.678875,
+     2.036625,
+     2.036625
+    ],
+    [
+     -0.678875,
+     0.678875,
+     0.678875
+    ],
+    [
+     -2.036625,
+     2.036625,
+     0.678875
+    ],
+    [
+     -2.036625,
+     0.678875,
+     2.036625
+    ]
+   ],
+   "spreads": [
+    1.60402653,
+    1.6040265,
+    1.60402653,
+    1.60402653
+   ]
   }
  },
  "test_07/ki/postproc/wannier/occ/wann": {
@@ -63481,7 +63843,35 @@
   "results": {
    "job done": true,
    "convergence": true,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [
+    [
+     -0.678875,
+     2.036625,
+     2.036625
+    ],
+    [
+     -0.678875,
+     0.678875,
+     0.678875
+    ],
+    [
+     -2.036625,
+     2.036625,
+     0.678875
+    ],
+    [
+     -2.036625,
+     0.678875,
+     2.036625
+    ]
+   ],
+   "spreads": [
+    1.60402653,
+    1.6040265,
+    1.60402653,
+    1.60402653
+   ]
   },
   "input files": {
    "test_07/ki/postproc/wannier/occ/wann.eig": {
@@ -63855,7 +64245,9 @@
   "results": {
    "job done": true,
    "convergence": false,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [],
+   "spreads": []
   }
  },
  "test_07/kipz/postproc/wannier/emp/wann_preproc": {
@@ -64215,7 +64607,9 @@
   "results": {
    "job done": true,
    "convergence": false,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [],
+   "spreads": []
   }
  },
  "test_07/ki/postproc/wannier/emp/wann_preproc": {
@@ -64575,7 +64969,9 @@
   "results": {
    "job done": true,
    "convergence": false,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [],
+   "spreads": []
   }
  },
  "test_07/pkipz/postproc/wannier/emp/pw2wan": {
@@ -65249,7 +65645,35 @@
   "results": {
    "job done": true,
    "convergence": true,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [
+    [
+     -0.678875,
+     2.036625,
+     2.036625
+    ],
+    [
+     -0.678875,
+     0.678875,
+     0.678875
+    ],
+    [
+     -2.036625,
+     2.036625,
+     0.678875
+    ],
+    [
+     -2.036625,
+     0.678875,
+     2.036625
+    ]
+   ],
+   "spreads": [
+    4.77281976,
+    4.77281973,
+    4.77281973,
+    4.77281972
+   ]
   }
  },
  "test_07/kipz/postproc/wannier/emp/wann": {
@@ -65611,7 +66035,35 @@
   "results": {
    "job done": true,
    "convergence": true,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [
+    [
+     -0.678875,
+     2.036625,
+     2.036625
+    ],
+    [
+     -0.678875,
+     0.678875,
+     0.678875
+    ],
+    [
+     -2.036625,
+     2.036625,
+     0.678875
+    ],
+    [
+     -2.036625,
+     0.678875,
+     2.036625
+    ]
+   ],
+   "spreads": [
+    4.77281976,
+    4.77281973,
+    4.77281973,
+    4.77281972
+   ]
   }
  },
  "test_07/ki/postproc/wannier/emp/wann": {
@@ -65973,7 +66425,35 @@
   "results": {
    "job done": true,
    "convergence": true,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [
+    [
+     -0.678875,
+     2.036625,
+     2.036625
+    ],
+    [
+     -0.678875,
+     0.678875,
+     0.678875
+    ],
+    [
+     -2.036625,
+     2.036625,
+     0.678875
+    ],
+    [
+     -2.036625,
+     0.678875,
+     2.036625
+    ]
+   ],
+   "spreads": [
+    4.77281976,
+    4.77281973,
+    4.77281973,
+    4.77281972
+   ]
   },
   "input files": {
    "test_07/ki/postproc/wannier/emp/wann.eig": {
@@ -82720,9 +83200,9 @@
     "sites": [
      [
       [
-       0.125,
-       0.125,
-       0.125
+       0.25,
+       0.25,
+       0.25
       ],
       "sp3"
      ]
@@ -82784,7 +83264,9 @@
   "results": {
    "job done": true,
    "convergence": false,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [],
+   "spreads": []
   }
  },
  "test_09/wannier/occ/pw2wan": {
@@ -82860,9 +83342,9 @@
     "sites": [
      [
       [
-       0.125,
-       0.125,
-       0.125
+       0.25,
+       0.25,
+       0.25
       ],
       "sp3"
      ]
@@ -82926,7 +83408,35 @@
   "results": {
    "job done": true,
    "convergence": true,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [
+    [
+     -0.678875,
+     2.036625,
+     2.036625
+    ],
+    [
+     -0.678875,
+     0.678875,
+     0.678875
+    ],
+    [
+     -2.036625,
+     2.036625,
+     0.678875
+    ],
+    [
+     -2.036625,
+     0.678875,
+     2.036625
+    ]
+   ],
+   "spreads": [
+    1.01911347,
+    1.01911346,
+    1.01911347,
+    1.01911347
+   ]
   },
   "input files": {
    "test_09/wannier/occ/wann.eig": {
@@ -82952,15 +83462,15 @@
    "guiding_centres": true,
    "gamma_only": false,
    "num_wann": 4,
-   "dis_froz_max": 11.5,
-   "dis_win_max": 17.0,
+   "dis_froz_max": 10.6,
+   "dis_win_max": 16.9,
    "projections": {
     "sites": [
      [
       [
-       0.125,
-       0.125,
-       0.125
+       0.25,
+       0.25,
+       0.25
       ],
       "sp3"
      ]
@@ -83022,7 +83532,9 @@
   "results": {
    "job done": true,
    "convergence": false,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [],
+   "spreads": []
   }
  },
  "test_09/wannier/emp/pw2wan": {
@@ -83095,15 +83607,15 @@
    "guiding_centres": true,
    "gamma_only": false,
    "num_wann": 4,
-   "dis_froz_max": 11.5,
-   "dis_win_max": 17.0,
+   "dis_froz_max": 10.6,
+   "dis_win_max": 16.9,
    "projections": {
     "sites": [
      [
       [
-       0.125,
-       0.125,
-       0.125
+       0.25,
+       0.25,
+       0.25
       ],
       "sp3"
      ]
@@ -83167,7 +83679,35 @@
   "results": {
    "job done": true,
    "convergence": true,
-   "Im/Re ratio": []
+   "Im/Re ratio": [],
+   "centers": [
+    [
+     -0.678875,
+     2.036625,
+     2.036625
+    ],
+    [
+     -0.678875,
+     0.678875,
+     0.678875
+    ],
+    [
+     -2.036625,
+     2.036625,
+     0.678875
+    ],
+    [
+     -2.036625,
+     0.678875,
+     2.036625
+    ]
+   ],
+   "spreads": [
+    2.23511463,
+    2.23511463,
+    2.23511463,
+    2.23511463
+   ]
   },
   "input files": {
    "test_09/wannier/emp/wann.eig": {
