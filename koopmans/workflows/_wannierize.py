@@ -74,7 +74,8 @@ class WannierizeWorkflow(Workflow):
 
         # Run PW scf and nscf calculations
         # PWscf needs only the valence bands
-        calc_pw = self.new_calculator('pw', nbnd=None)
+        calc_pw = self.new_calculator('pw')
+        calc_pw.parameters.pop('nbnd', None)
         calc_pw.directory = 'wannier'
         calc_pw.prefix = 'scf'
         self.run_calculator(calc_pw)
@@ -94,21 +95,19 @@ class WannierizeWorkflow(Workflow):
 
             # 2) standard pw2wannier90 calculation
             calc_p2w = self.new_calculator('pw2wannier', directory=calc_w90.directory,
-                                           outdir=calc_pw.parameters.outdir,
-                                           write_unk=self.parameters.check_wannierisation)
+                                           outdir=calc_pw.parameters.outdir)
             calc_p2w.prefix = 'pw2wan'
             self.run_calculator(calc_p2w)
 
             # 3) Wannier90 calculation
             calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ,
-                                           wannier_plot=self.parameters.check_wannierisation,
                                            bands_plot=self.parameters.check_wannierisation)
             calc_w90.prefix = 'wann'
             self.run_calculator(calc_w90)
 
         if self.parameters.check_wannierisation:
             # Run a "bands" calculation
-            calc_pw = self.new_calculator('pw', calculation='bands')
+            calc_pw = self.new_calculator('pw', calculation='bands', kpts=self.kpath)
             calc_pw.directory = 'wannier'
             calc_pw.prefix = 'bands'
             self.run_calculator(calc_pw)
@@ -139,15 +138,11 @@ class WannierizeWorkflow(Workflow):
             plt.legend(bbox_to_anchor=(1, 1), loc="lower right", ncol=2)
 
             # Save the comparison to file
-            plt.savefig('interpolated_bandstructure_{}x{}x{}.png'.format(*calc_w90.mp_grid))
+            plt.savefig('interpolated_bandstructure_{}x{}x{}.png'.format(*self.kgrid))
 
         return
 
     def new_calculator(self, calc_type, *args, **kwargs):
-        # Add kpts data to the calculator
-        if calc_type != 'pw2wannier':
-            kwargs['kpts'] = self.kpts
-
         calc = super().new_calculator(calc_type, *args, **kwargs)
 
         # Extra tweaks for Wannier90 calculations

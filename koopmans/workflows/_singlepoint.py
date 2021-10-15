@@ -47,19 +47,19 @@ class SinglepointWorkflow(Workflow):
 
                 # Make a copy of the workflow settings to modify
                 wf_kwargs = self.wf_kwargs
-                local_workflow_settings = wf_kwargs.pop('workflow_settings')
+                local_parameters = wf_kwargs.pop('parameters')
 
                 # Select the functional
-                local_workflow_settings.functional = functional
+                local_parameters.functional = functional
 
                 # For pKIPZ/KIPZ, use KI as a starting point
                 if functional == 'pkipz':
-                    local_workflow_settings.calculate_alpha = False
+                    local_parameters.calculate_alpha = False
                 elif functional == 'kipz':
-                    local_workflow_settings.init_orbitals = 'from old ki'
+                    local_parameters.init_orbitals = 'from old ki'
 
                 # Create a KC workflow for this particular functional
-                kc_workflow = KoopmansDSCFWorkflow(workflow_settings=local_workflow_settings, **wf_kwargs)
+                kc_workflow = KoopmansDSCFWorkflow(parameters=local_parameters, **wf_kwargs)
 
                 # We only need to do the smooth interpolation the first time (i.e. for KI)
                 if functional != 'ki':
@@ -67,7 +67,7 @@ class SinglepointWorkflow(Workflow):
 
                 # Transform to the supercell
                 if functional == 'kipz':
-                    kc_workflow.primitive_to_supercell(np.diag(self.kpts))
+                    kc_workflow.primitive_to_supercell()
 
                 # Run the workflow
                 if functional == 'pkipz' and self.parameters.from_scratch:

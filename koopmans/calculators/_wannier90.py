@@ -25,33 +25,15 @@ class Wannier90Calculator(CalculatorExt, Wannier90, CalculatorABC):
         # Define the list of parameters
         self.parameters = Wannier90SettingsDict()
 
-        # Remove kpts from the kwargs
-        mp_grid = kwargs.pop('kpts', [1, 1, 1])
-
         # Initialise first using the ASE parent and then CalculatorExt
         Wannier90.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
-
-        # Convert the kpts data into the format expected by W90
-        kpts = np.indices(mp_grid).transpose(1, 2, 3, 0).reshape(-1, 3)
-        self.parameters.mp_grid = np.array(mp_grid)
-        kpts = kpts / self.parameters.mp_grid
-        kpts[kpts >= 0.5] -= 1
-        kpath = BandPath(atoms.cell, kpts)
-        self.parameters.kpts = kpath.kpts[:, :3]
 
         # Set up the command for running this calculator
         self.command = Command(os.environ.get('ASE_WANNIER90_COMMAND',
                                               str(qe_bin_directory) + os.path.sep + self.command))
 
-    def calculate(self):
-        super().calculate()
-
-        # Afterwards, check the real vs imaginary component
-        if self.parameters.wannier_plot and '-pp' not in self.command.flags:
-            max_imre = np.max(self.results['Im/Re ratio'])
-            if max_imre > 1e-6:
-                warn(f'Im/Re ratio of {max_imre} detected during Wannierisation')
+        self.results_for_qc = ['centers', 'spreads']
 
     def is_converged(self):
         return self.results['convergence']

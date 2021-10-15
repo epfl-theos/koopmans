@@ -9,6 +9,7 @@ Written by Edward Linscott Sep 2020
 import os
 from ase import Atoms
 from ase.calculators.espresso import Espresso
+from ase.dft.kpoints import BandPath
 from koopmans.settings import PWSettingsDict
 from ._utils import CalculatorExt, CalculatorABC, qe_bin_directory
 from koopmans.commands import ParallelCommandWithPostfix, Command
@@ -36,13 +37,9 @@ class PWCalculator(CalculatorExt, Espresso, CalculatorABC):
 
     def calculate(self):
         if self.parameters.calculation == 'bands':
-            if 'kpath' in self.parameters:
-                self.parameters.kpts = self.parameters.pop('kpath')
-            else:
-                raise KeyError('You are running a calculation that requires a kpath; please provide it in the input '
-                               'file')
-        else:
-            self.parameters.pop('kpath', None)
+            if not isinstance(self.parameters.kpts, BandPath):
+                raise KeyError('You are running a calculation that requires a kpoint path; please provide a BandPath '
+                               'as the kpts parameter')
         super().calculate()
 
     def is_complete(self):

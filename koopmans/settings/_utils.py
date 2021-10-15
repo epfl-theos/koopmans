@@ -7,6 +7,7 @@ Written by Edward Linscott May 2020
 '''
 
 import os
+import numpy as np
 from pathlib import Path
 from collections import UserDict
 from typing import Union, Type, Tuple, NamedTuple, Dict, Any, Optional, List
@@ -118,6 +119,11 @@ class SettingsDict(UserDict):
             return self.data[key]
 
     def __setitem__(self, key: str, value: Any):
+        # If we set something to "None", simply remove it from the dictionary
+        if value is None:
+            self.pop(key, None)
+            return
+
         # Insisting that all values corresponding to paths are absolute and are Path objects
         if key in self.are_paths:
             if isinstance(value, str):
@@ -205,20 +211,29 @@ class SettingsDict(UserDict):
 
     @property
     def _other_valid_keywords(self):
-        return ['pseudopotentials', 'kpts', 'koffset', 'kpath']
+        return ['pseudopotentials', 'kpts', 'koffset']
 
     def todict(self):
-        # Shallow copy
-        dct = dict(self.__dict__)
+        # Construct a minimal representation of this dictionary. Most of the requisite information
+        # (defaults, valid, are_paths, etc) is contained in the class itself so we needn't store this
+        dct = {}
+        for k, v in self.data.items():
+            if k in self.defaults:
+                if isinstance(v, np.ndarray) and np.all(v == self.defaults[k]):
+                    continue
+                elif v == self.defaults[k]:
+                    continue
+            dct[k] = v
 
         # Adding information required by the json decoder
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
+
         return dct
 
-    def fromdict(self, dct):
-        for k, v in dct.items():
-            setattr(self, k, v)
+    @classmethod
+    def fromdict(cls, dct):
+        return cls(**dct)
 
 
 class SettingsDictWithChecks(SettingsDict):

@@ -254,7 +254,10 @@ class CalculatorExt():
 
     @classmethod
     def fromdict(cls, dct: dict) -> T:
-        raise NotImplementedError('TODO')
+        calc = cls(dct.pop('atoms'))
+        for k, v in dct.items():
+            setattr(calc, k.lstrip('_'), v)
+        return calc
 
 
 class KCWannCalculator(CalculatorExt):

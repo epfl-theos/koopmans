@@ -10,7 +10,10 @@ Converted workflows from functions to objects Nov 2020
 import os
 import copy
 from pathlib import Path
+from ase.geometry.cell import cell_to_cellpar
+from ase.io.espresso.utils import cell_to_ibrav
 import numpy as np
+import numpy.typing as npt
 from typing import Optional, Dict, List, Type, Union, Any, TypeVar
 from ase import Atoms
 from ase.build.supercells import make_supercell
@@ -29,16 +32,16 @@ T = TypeVar('T', bound='calculators.CalculatorExt')
 class Workflow(object):
 
     def __init__(self, atoms: Atoms,
-                 workflow_settings: settings.SettingsDict = settings.WorkflowSettingsDict(),
+                 parameters: settings.SettingsDict = settings.WorkflowSettingsDict(),
                  master_calc_params: Dict[str, settings.SettingsDict] = settings.default_master_calc_params,
                  name: str = 'koopmans_workflow',
                  pseudopotentials: Optional[Dict[str, str]] = None,
-                 kpts: Optional[List[int]] = [1, 1, 1],
+                 kgrid: Optional[List[int]] = [1, 1, 1],
                  koffset: Optional[List[int]] = [0, 0, 0],
                  kpath: Optional[BandPath] = None):
 
-        # Parsing workflow_settings
-        self.parameters = settings.WorkflowSettingsDict(**workflow_settings)
+        # Parsing parameters
+        self.parameters = settings.WorkflowSettingsDict(**parameters)
 
         self.master_calc_params = master_calc_params
         self.atoms = atoms
@@ -48,7 +51,7 @@ class Workflow(object):
         self.print_indent = 1
         if pseudopotentials is not None:
             self.pseudopotentials = pseudopotentials
-        self.kpts = kpts
+        self.kgrid = kgrid
         self.koffset = koffset
 
         # We rely on kcp_params.nelec so make sure this has been initialised
@@ -129,12 +132,12 @@ class Workflow(object):
         self._pseudopotentials = value
 
     @property
-    def kpts(self):
-        return self._kpts
+    def kgrid(self):
+        return self._kgrid
 
-    @kpts.setter
-    def kpts(self, value: List[int]):
-        self._kpts = value
+    @kgrid.setter
+    def kgrid(self, value: List[int]):
+        self._kgrid = value
 
     @property
     def koffset(self):
@@ -160,15 +163,14 @@ class Workflow(object):
         # i.e.
         # > sub_wf = Workflow(**self.wf_kwargs)
         return {'atoms': copy.deepcopy(self.atoms),
-                'workflow_settings': copy.deepcopy(self.parameters),
+                'parameters': copy.deepcopy(self.parameters),
                 'master_calc_params': copy.deepcopy(self.master_calc_params),
                 'name': copy.deepcopy(self.name),
                 'pseudopotentials': copy.deepcopy(self.pseudopotentials),
-                'kpts': copy.deepcopy(self.kpts),
-                'koffset': copy.deepcopy(self.koffset),
+                'kgrid': copy.deepcopy(self.kgrid),
                 'kpath': copy.deepcopy(self.kpath)}
 
-    def new_calculator(self, calc_type: str, directory: Optional[Path] = None, **kwargs) -> T:
+    def new_calculator(self, calc_type: str, directory: Optional[Path] = None, kpts: Optional[Union[List[int], BandPath]] = None, **kwargs) -> T:
         calc_class: Type[T]
 
         if calc_type == 'kcp':
@@ -196,8 +198,16 @@ class Workflow(object):
         all_kwargs.update(**master_calc_params)
         all_kwargs.update(**kwargs)
 
+        # For the k-points, the Workflow has two options: self.kgrid and self.kpath. A calculator should only ever
+        # have one of these two. By default, use the kgrid.
+        if 'kpts' in master_calc_params.valid:
+            if kpts is None:
+                all_kwargs['kpts'] = self.kgrid
+            else:
+                all_kwargs['kpts'] = kpts
+
         # Add pseudopotential and kpt information to the calculator as required
-        for kw in ['pseudopotentials', 'kpts', 'koffset', 'kpath']:
+        for kw in ['pseudopotentials', 'kgrid', 'kpath', 'koffset']:
             if kw not in all_kwargs and kw in master_calc_params.valid:
                 all_kwargs[kw] = getattr(self, kw)
 
@@ -284,15 +294,27 @@ class Workflow(object):
                 with open(file_out, 'wb') as fd:
                     fd.write(contents)
 
-    def primitive_to_supercell(self, matrix, **kwargs):
+    def update_celldms(self):
+        # Update celldm(*) to match the current self.atoms.cell
+        for k, params in self.master_calc_params.items():
+            if 'ibrav' in params:
+                celldms = cell_to_ibrav(self.atoms.cell, params.ibrav)
+                self.master_calc_params[k].update(**celldms)
+
+    def primitive_to_supercell(self, matrix: Optional[npt.NDArray[np.int_]] = None, **kwargs):
         # Converts to a supercell as given by a 3x3 transformation matrix
+        if matrix is None:
+            matrix = np.diag(self.kgrid)
         assert np.shape(matrix) == (3, 3)
         self.atoms = make_supercell(self.atoms, matrix, **kwargs)
 
-    def supercell_to_primitive(self, matrix):
+        self.update_celldms()
+
+    def supercell_to_primitive(self, matrix: Optional[npt.NDArray[np.int_]] = None):
         # Converts from a supercell to a primitive cell, as given by a 3x3 transformation matrix
         # The inverse of self.primitive_to_supercell()
-
+        if matrix is None:
+            matrix = np.diag(self.kgrid)
         assert np.shape(matrix) == (3, 3)
 
         # # Work out the atoms belonging to the primitive cell
@@ -308,6 +330,8 @@ class Workflow(object):
                 wrapped_a in zip(self.atoms, wrapped_atoms)]
 
         self.atoms = self.atoms[mask]
+
+        self.update_celldms()
 
     def run_calculator(self, master_qe_calc, enforce_ss=False):
         '''
@@ -413,7 +437,8 @@ class Workflow(object):
 
         if not qe_calc.is_complete():
             self.print(' failed')
-            raise CalculationFailed()
+            raise CalculationFailed(
+                f'{qe_calc.directory}/{qe_calc.prefix} failed; check the Quantum ESPRESSO output file for more details')
 
         if not self.silent:
             self.print(' done')
@@ -573,7 +598,17 @@ class Workflow(object):
 
     @classmethod
     def fromdict(cls, dct: Dict):
-        raise NotImplementedError('Need to rewrite fromdict using classmethod syntax')
+        wf = cls(atoms=dct.pop('atoms'),
+                 parameters=dct.pop('parameters'),
+                 master_calc_params=dct.pop('master_calc_params'),
+                 pseudopotentials=dct.pop('_pseudopotentials'),
+                 kgrid=dct.pop('_kgrid'),
+                 kpath=dct.pop('_kpath'))
+
+        for k, v in dct.items():
+            setattr(wf, k, v)
+
+        return wf
 
     @property
     def bands(self):

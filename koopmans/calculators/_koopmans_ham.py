@@ -8,6 +8,7 @@ Written by Edward Linscott Feb 2021
 
 import os
 import numpy as np
+from typing import Optional, List
 from ase import Atoms
 from ase.calculators.espresso import KoopmansHam
 from koopmans import utils, settings
@@ -20,7 +21,7 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, CalculatorABC):
     ext_in = '.khi'
     ext_out = '.kho'
 
-    def __init__(self, atoms: Atoms, *args, **kwargs):
+    def __init__(self, atoms: Atoms, alphas: Optional[List[int]] = None, *args, **kwargs):
         # Define the valid settings
         self.parameters = settings.KoopmansHamSettingsDict()
 
@@ -31,14 +32,17 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, CalculatorABC):
         self.command = ParallelCommand(
             f'{qe_bin_directory}{os.path.sep}kc_ham.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
 
-    def write_alphas(self):
-        assert 'alphas' in self.results
+        self.results_for_qc = ['ki_eigenvalues_on_grid', 'band structure']
 
+        # Store the alphas
+        self.alphas = alphas
+
+    def write_alphas(self):
         # kc_ham.x takes a single file for the alphas (rather than splitting between filled/empty) and does not have
         # duplicated results for spin up then spin down
-        alphas = self.results['alphas']
-        filling = [True for _ in range(len(alphas))]
-        utils.write_alpha_file(self.directory, alphas, filling)
+        assert self.alphas is not None, 'You have not provided screening parameters to this calculator'
+        filling = [True for _ in range(len(self.alphas))]
+        utils.write_alpha_file(self.directory, self.alphas, filling)
 
     def get_k_point_weights(self):
         utils.warn('Need to properly define k-point weights')
@@ -65,3 +69,15 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, CalculatorABC):
 
     def is_converged(self):
         raise NotImplementedError('TODO')
+
+    def read_input(self, **kwargs):
+        # A .khi file doesn't have the requisite information to reconstruct the bandpath, so in the event that kpts
+        # are already provided in self.parameters, don't overwrite them
+
+        kpts = self.parameters.kpts
+
+        super().read_input(**kwargs)
+
+        if kpts is not None:
+            self.parameters.kpts = kpts
+        return

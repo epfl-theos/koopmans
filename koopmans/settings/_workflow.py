@@ -1,3 +1,4 @@
+import numpy as np
 from ._utils import Setting, SettingsDictWithChecks
 
 

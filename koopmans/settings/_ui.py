@@ -51,7 +51,7 @@ valid_settings: List[Setting] = [
             'will be [a*kx_old, b*ky_old, c*kz_old].) This works only for a non self-consistent Koopmans '
             'calculation using Wannier since, to be consistent, all the Hamiltonians must be in the same '
             'gauge, i.e. the Wannier gauge',
-            (int, list), 1, None),
+            (int, list, np.ndarray), 1, None),
     Setting('dft_ham_file', '', Path, None, None),
     Setting('dft_smooth_ham_file', '', Path, None, None),
     Setting('do_dos',
@@ -94,7 +94,7 @@ class UnfoldAndInterpolateSettingsDict(SettingsDictWithChecks):
 
     @property
     def _other_valid_keywords(self):
-        return ['kpts', 'kpath']
+        return ['kgrid', 'kpath']
 
     def _check_before_setitem(self, key, value):
         # Additional sanity checks

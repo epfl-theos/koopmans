@@ -18,16 +18,16 @@ class Command(object):
         Command.suffix
     """
 
-    path: Path
-    executable: str
-    _flags: str
-    suffix: str
-
-    def __init__(self, value, **kwargs):
+    def __init__(self, value=None, **kwargs):
+        self.path: Path = Path()
+        self.executable: str = ''
+        self._flags: str = ''
+        self.suffix: str = ''
 
         if isinstance(value, Command):
             value = str(value)
-        self.__set__(value)
+        if value is not None:
+            self.__set__(value)
 
         # Accepts setting of public attributes as kwargs
         for k, v in kwargs.items():
@@ -71,7 +71,8 @@ class Command(object):
 
     @classmethod
     def fromdict(cls, dct):
-        raise NotImplementedError()
+        command = cls(**{k.lstrip('_'): v for k, v in dct.items()})
+        return command
 
 
 class ParallelCommand(Command):
@@ -79,8 +80,9 @@ class ParallelCommand(Command):
     An extension to the Command class for mpi-parallelized executables
     """
 
-    mpi_command: str
-    postfix: str
+    def __init__(self, *args, **kwargs):
+        self.mpi_command: str = ''
+        super().__init__(*args, **kwargs)
 
     def __get__(self):
         return self.mpi_command + ' ' + super().__get__()

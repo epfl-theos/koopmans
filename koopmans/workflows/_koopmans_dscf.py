@@ -42,14 +42,14 @@ class KoopmansDSCFWorkflow(Workflow):
             nemp = self.master_calc_params['w90_emp'].num_wann
             if not self.parameters.orbital_groups:
                 self.parameters.orbital_groups = range(0, nocc + nemp)
-            self.parameters.orbital_groups = [i for _ in range(np.prod(self.kpts))
+            self.parameters.orbital_groups = [i for _ in range(np.prod(self.kgrid))
                                               for i in self.parameters.orbital_groups[:nocc]] \
-                + [i for _ in range(np.prod(self.kpts))
+                + [i for _ in range(np.prod(self.kgrid))
                    for i in self.parameters.orbital_groups[nocc:]]
 
             # Check the number of empty states has been correctly configured
             w90_emp_params = self.master_calc_params['w90_emp']
-            expected_empty_states_nbnd = w90_emp_params.num_wann * np.prod(self.kpts)
+            expected_empty_states_nbnd = w90_emp_params.num_wann * np.prod(self.kgrid)
             if kcp_params.empty_states_nbnd == 0:
                 # 0 is the default value
                 kcp_params.empty_states_nbnd = expected_empty_states_nbnd
@@ -92,7 +92,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
     def convert_kcp_to_supercell(self):
         # Multiply all extensive KCP settings by the appropriate prefactor
-        prefactor = np.prod(self.kpts)
+        prefactor = np.prod(self.kgrid)
         for attr in ['nelec', 'nelup', 'neldw', 'empty_states_nbnd', 'conv_thr', 'esic_conv_thr']:
             value = getattr(self.master_calc_params['kcp'], attr, None)
             if value is not None:
@@ -174,14 +174,6 @@ class KoopmansDSCFWorkflow(Workflow):
         # Final calculation
         self.print(f'Final {self.parameters.functional.upper().replace("PK","pK")} calculation', style='heading')
         self.perform_final_calculations()
-        # Print out additional quality control data for final calculation
-        if self.parameters.print_qc:
-            calc = self.calculations[-1]
-            for b in self.bands.to_solve:
-                self.print_qc_keyval(f'alpha({b.index})', b.alpha, calc)
-            for isp, orbs_self_hartree in enumerate(calc.results['orbital_data']['self-Hartree']):
-                for i, orb_sh in enumerate(orbs_self_hartree):
-                    self.print_qc_keyval(f'orbital_self_Hartree(orb={i+1},sigma={isp+1})', orb_sh, calc)
 
         # Postprocessing
         if self.parameters.periodic and self.kpath is not None:
@@ -209,7 +201,7 @@ class KoopmansDSCFWorkflow(Workflow):
             self.run_subworkflow(fold_workflow, subdirectory='init/wannier')
 
             # Convert self.atoms to the supercell
-            self.primitive_to_supercell(np.diag(self.kpts))
+            self.primitive_to_supercell()
 
             # We need a dummy calc before the real dft_init in order
             # to copy the previously calculated Wannier functions
@@ -622,14 +614,14 @@ class KoopmansDSCFWorkflow(Workflow):
         from koopmans.workflows import WannierizeWorkflow
 
         # Transform self.atoms back to the primitive cell
-        self.supercell_to_primitive(np.diag(self.kpts))
+        self.supercell_to_primitive()
 
         calc: calculators.UnfoldAndInterpolateCalculator
 
         if self.master_calc_params['ui'].do_smooth_interpolation:
             wf_kwargs = self.wf_kwargs
-            wf_kwargs['kpts'] = [x * y for x,
-                                 y in zip(wf_kwargs['kpts'], self.master_calc_params['ui'].smooth_int_factor)]
+            wf_kwargs['kgrid'] = [x * y for x,
+                                  y in zip(wf_kwargs['kgrid'], self.master_calc_params['ui'].smooth_int_factor)]
             wannier_workflow = WannierizeWorkflow(**wf_kwargs)
 
             # Here, we allow for skipping of the smooth dft calcs (assuming they have been already run)

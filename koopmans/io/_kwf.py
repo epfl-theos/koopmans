@@ -24,17 +24,6 @@ class KoopmansEncoder(ase_json.MyEncoder):
             return {'__set__': list(obj)}
         elif isinstance(obj, Path):
             return {'__path__': str(obj)}
-        elif isinstance(obj, Calculator):
-            # ASE only stores the calculator parameters, with Atoms being the more fundamental object
-            # Because we store calculators as the primary object, we need to make sure the atoms are also stored
-            d = {'__calculator__': super().default(obj),
-                 '__name__': obj.__class__.__name__,
-                 '__module__': obj.__class__.__module__,
-                 '__results__': obj.results,
-                 '__directory__': obj.directory,
-                 '__prefix__': obj.prefix,
-                 '__atoms__': super().default(obj.atoms)}
-            return d
         elif inspect.isclass(obj):
             return {'__class__': {'__name__': obj.__name__, '__module__': obj.__module__}}
         elif hasattr(obj, 'todict'):
@@ -51,10 +40,9 @@ encode = KoopmansEncoder(indent=1).encode
 
 def object_hook(dct):
     if '__koopmans_name__' in dct:
-        dct = ase_json.numpyfy(dct)
         return create_koopmans_object(dct)
-    elif '__calculator__' in dct:
-        return create_ase_calculator(dct)
+        # elif '__calculator__' in dct:
+        #     return create_ase_calculator(dct)
     elif '__set__' in dct:
         return set(dct['__set__'])
     elif '__path__' in dct:
@@ -71,19 +59,6 @@ def object_hook(dct):
                 dct['__ndarray__'][1] = 'str'
 
         return ase_json.object_hook(dct)
-
-
-def create_ase_calculator(dct: dict):
-    module = import_module(dct['__module__'])
-    calc_class = getattr(module, dct['__name__'])
-    calc = calc_class()
-    calc.atoms = ase_json.object_hook(dct.pop('__atoms__'))
-    calc.atoms.calc = calc
-    calc.directory = dct['__directory__']
-    calc.prefix = dct['__prefix__']
-    calc.parameters = dct['__calculator__']
-    calc.results = dct['__results__']
-    return calc
 
 
 def create_koopmans_object(dct: dict):

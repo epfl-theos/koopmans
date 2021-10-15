@@ -68,17 +68,13 @@ def read_alpha_file(directory: str) -> List[float]:
 
 
 def read_kpoints_block(calc: Calculator, dct: dict):
-    if dct['kind'] == 'gamma':
-        kpts = None
-        koffset = None
-    elif dct['kind'] == 'automatic':
-        kpts = dct['kpts']
-        koffset = dct['koffset']
-    calc.parameters['kpts'] = kpts
-    calc.parameters['koffset'] = koffset
-
-    if 'kpath' in dct:
-        read_kpath(calc, dct['kpath'])
+    for k, v in dct.items():
+        if k == 'kgrid':
+            calc.parameters['kgrid'] = v
+        elif k == 'kpath':
+            read_kpath(calc, v)
+        else:
+            raise KeyError(f'Unrecognised option "{k}" provided in the k_points block')
 
     return
 

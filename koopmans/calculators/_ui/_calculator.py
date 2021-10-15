@@ -39,8 +39,8 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         CalculatorExt.__init__(self, *args, **kwargs)
 
         # Ensure that self.atoms is a UIAtoms and not just a Atoms object
-        if not isinstance(atoms, UIAtoms) and self.parameters.kpts:
-            atoms = UIAtoms.fromatoms(atoms=atoms, supercell_matrix=np.diag(self.parameters.kpts))
+        if not isinstance(atoms, UIAtoms) and self.parameters.kgrid:
+            atoms = UIAtoms.fromatoms(atoms=atoms, supercell_matrix=np.diag(self.parameters.kgrid))
         self.atoms = atoms
         self.atoms.calc = self
 
@@ -205,16 +205,16 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             if 'Final State' in line:
                 count += 1
 
-        self.Rvec = np.array([[x, y, z] for x in range(self.parameters.kpts[0])
-                              for y in range(self.parameters.kpts[1]) for z in range(self.parameters.kpts[2])])
+        self.Rvec = np.array([[x, y, z] for x in range(self.parameters.kgrid[0])
+                              for y in range(self.parameters.kgrid[1]) for z in range(self.parameters.kgrid[2])])
 
         if self.parameters.w90_input_sc:
             self.parameters.num_wann_sc = num_wann
-            self.parameters.num_wann = num_wann // np.prod(self.parameters.kpts)
+            self.parameters.num_wann = num_wann // np.prod(self.parameters.kgrid)
 
         else:
             self.parameters.num_wann = num_wann
-            self.parameters.num_wann_sc = num_wann * np.prod(self.parameters.kpts)
+            self.parameters.num_wann_sc = num_wann * np.prod(self.parameters.kgrid)
 
         for n in range(num_wann):
             self.centers[n] = self.centers[n] / np.linalg.norm(self.atoms.cell[0])
@@ -299,7 +299,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 f'Wrong number of matrix elements ({len(self.hr)}) for the input hamiltonian'
             self.hr = np.array(self.hr, dtype=complex).reshape(
                 nrpts, self.parameters.num_wann, self.parameters.num_wann)
-            self.hr = extract_hr(self.hr, rvect, *self.parameters.kpts)
+            self.hr = extract_hr(self.hr, rvect, *self.parameters.kgrid)
             self.hr = self.hr.reshape(self.parameters.num_wann_sc, self.parameters.num_wann)
         else:
             assert len(self.hr) == self.parameters.num_wann_sc**2, \
@@ -361,7 +361,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                     self.parameters.num_wann**2, f'Wrong number of matrix elements for hr_coarse {len(self.hr_coarse)}'
                 self.hr_coarse = np.array(self.hr_coarse, dtype=complex)
                 self.hr_coarse = self.hr_coarse.reshape(nrpts, self.parameters.num_wann, self.parameters.num_wann)
-                self.hr_coarse = extract_hr(self.hr_coarse, rvect, *self.parameters.kpts)
+                self.hr_coarse = extract_hr(self.hr_coarse, rvect, *self.parameters.kgrid)
                 self.hr_coarse = self.hr_coarse.reshape(self.parameters.num_wann_sc, self.parameters.num_wann)
 
             # parsing hr_smooth
@@ -545,7 +545,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 settings = copy.deepcopy(self.parameters.data)
 
                 # Remove the kpoints information from the settings dict
-                kpts = settings.pop('kpts')
+                kgrid = settings.pop('kgrid')
                 kpath = settings.pop('kpath')
 
                 # Converting Paths to JSON-serialisable strings
@@ -556,8 +556,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 bigdct = {"workflow": {"task": "ui"}, "ui": settings}
 
                 # Provide the bandpath information in the form of a string
-                bigdct['setup'] = {'kpoints': {'kpath': kpath.path,
-                                               'kind': 'automatic', 'kpts': kpts, 'koffset': [0, 0, 0]}}
+                bigdct['setup'] = {'kpoints': {'kpath': kpath.path, 'kgrid': kgrid}}
 
                 # We also need to provide a cell so the explicit kpath can be reconstructed from the string alone
                 bigdct['setup']['cell_parameters'] = utils.construct_cell_parameters_block(atoms)
@@ -590,7 +589,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 self.atoms.cell = cell
             kpoint_block = bigdct['setup'].get('kpoints', {})
             if kpoint_block:
-                self.parameters.kpts = kpoint_block['kpts']
+                self.parameters.kgrid = kpoint_block['kgrid']
                 utils.read_kpath(self, kpoint_block['kpath'])
 
         return
@@ -659,11 +658,11 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         # here we identify the WFs within the R=0 cell
         for n in range(self.parameters.num_wann_sc):
             # shift the WFs within the SC
-            self.centers[n] = self.centers[n] / self.parameters.kpts
+            self.centers[n] = self.centers[n] / self.parameters.kgrid
             self.centers[n] = self.centers[n] - np.floor(self.centers[n])
 
             # converting centers from crystal units of SC to crystal units of PC
-            self.centers[n] = self.centers[n] * self.parameters.kpts
+            self.centers[n] = self.centers[n] * self.parameters.kgrid
 
             if all([x - 1 < 1.e-3 for x in self.centers[n]]):
                 centers.append(self.centers[n])
@@ -799,7 +798,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         for i in range(-1, 2):
             for j in range(-1, 2):
                 for k in range(-1, 2):
-                    tvect = np.array([i, j, k]) * self.parameters.kpts
+                    tvect = np.array([i, j, k]) * self.parameters.kgrid
                     Tvec = crys_to_cart(tvect, self.atoms.acell, +1)
                     dist = np.linalg.norm(wf_dist + Tvec)
 

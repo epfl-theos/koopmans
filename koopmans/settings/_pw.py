@@ -8,7 +8,7 @@ class PWSettingsDict(SettingsDict):
         # Get rid of any nested kwargs
         flattened_kwargs: Dict[str, Any] = {}
         for k, v in kwargs.items():
-            if isinstance(v, dict):
+            if isinstance(v, dict) and k != 'pseudopotentials':
                 flattened_kwargs.update(**v)
             else:
                 flattened_kwargs[k] = v

@@ -11,6 +11,7 @@ from pathlib import Path
 from ._json import read_json, write_json
 from ._kwf import read_kwf, write_kwf
 from ._calculators import read_calculator
+from koopmans.utils import chdir
 from koopmans.calculators import CalculatorExt
 from koopmans.workflows import Workflow
 
@@ -28,8 +29,9 @@ def read(filename: Union[str, Path, List[str], List[Path]], **kwargs) -> Union[W
             out = read_kwf(fd)
         return out
     elif isinstance(filename, Path) and filename.suffix == '.json':
-        with open(filename, 'r') as fd:
-            out = read_json(fd, **kwargs)
+        with chdir(filename.parent):
+            with open(filename.name, 'r') as fd:
+                out = read_json(fd, **kwargs)
         return out
     else:
         try:

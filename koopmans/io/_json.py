@@ -118,7 +118,7 @@ def read_setup_dict(dct):
     atoms.calc = None
     parameters = calc.parameters
     psps_and_kpts = {}
-    for key in ['pseudopotentials', 'kpts', 'koffset', 'kpath']:
+    for key in ['pseudopotentials', 'kgrid', 'koffset', 'kpath']:
         if key in parameters:
             psps_and_kpts[key] = parameters.pop(key)
 
@@ -198,13 +198,13 @@ def read_json(fd: TextIO, override={}):
                              'valid options are workflow/' + '/'.join(settings_classes.keys()))
 
     # Loading workflow settings
-    workflow_settings = WorkflowSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})))
+    parameters = WorkflowSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})))
 
     # Load default values
     if 'setup' in bigdct:
         atoms, setup_parameters, psps_and_kpts, n_filled, n_empty = read_setup_dict(bigdct['setup'])
         del bigdct['setup']
-    elif workflow_settings.task != 'ui':
+    elif parameters.task != 'ui':
         raise ValueError('You must provide a "setup" block in the input file, specifying atomic positions, atomic '
                          'species, etc.')
     else:
@@ -259,20 +259,20 @@ def read_json(fd: TextIO, override={}):
 
     name = fd.name.replace('.json', '')
     workflow: workflows.Workflow
-    if workflow_settings.task == 'singlepoint':
+    if parameters.task == 'singlepoint':
         workflow = workflows.SinglepointWorkflow(
-            atoms, workflow_settings, master_calc_params, name=name, **psps_and_kpts)
-    elif workflow_settings.task == 'convergence':
+            atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
+    elif parameters.task == 'convergence':
         workflow = workflows.ConvergenceWorkflow(
-            atoms, workflow_settings, master_calc_params, name=name, **psps_and_kpts)
-    elif workflow_settings.task in ['wannierize', 'wannierise']:
+            atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
+    elif parameters.task in ['wannierize', 'wannierise']:
         workflow = workflows.WannierizeWorkflow(
-            atoms, workflow_settings, master_calc_params, name=name, check_wannierisation=True, **psps_and_kpts)
-    elif workflow_settings.task == 'environ_dscf':
-        workflow = workflows.DeltaSCFWorkflow(atoms, workflow_settings, master_calc_params, name=name, **psps_and_kpts)
-    elif workflow_settings.task == 'ui':
+            atoms, parameters, master_calc_params, name=name, check_wannierisation=True, **psps_and_kpts)
+    elif parameters.task == 'environ_dscf':
+        workflow = workflows.DeltaSCFWorkflow(atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
+    elif parameters.task == 'ui':
         workflow = workflows.UnfoldAndInterpolateWorkflow(
-            atoms, workflow_settings, master_calc_params, name=name, **psps_and_kpts)
+            atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
     else:
         raise ValueError('Invalid task name "{task_name}"')
 
@@ -347,8 +347,8 @@ def write_json(workflow: workflows.Workflow, filename: Path):
             if code == 'pw':
                 # Adding kpoints to "setup"
                 kpts = {'kind': 'automatic',
-                        'kpts': workflow.kpts,
-                        'koffset': workflow.koffset}
+                        'kgrid': workflow.kgrid,
+                        'kpath': workflow.kpath.path}
                 bigdct['setup']['k_points'] = kpts
         else:
             raise NotImplementedError(

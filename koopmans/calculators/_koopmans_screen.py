@@ -32,12 +32,11 @@ class KoopmansScreenCalculator(KCWannCalculator, KoopmansScreen, CalculatorABC):
         self.command = ParallelCommandWithPostfix(
             f'{qe_bin_directory}{os.path.sep}kc_screen.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
 
-    def calculate(self):
-        # Populate mp1-3
-        kpoints = self.parameters.get('kpts', [1, 1, 1])
-        [self.parameters.mp1, self.parameters.mp2, self.parameters.mp3] = kpoints
+        self.results_for_qc = ['alphas']
 
+    def calculate(self):
         # Check eps infinity
+        kpoints = [self.parameters.mp1, self.parameters.mp2, self.parameters.mp3]
         if np.max(kpoints) > 1 and self.parameters.eps_inf is None:
             utils.warn('You have not specified a value for eps_inf. This will mean that the screening parameters will '
                        'converge very slowly with respect to the k- and q-point grids')

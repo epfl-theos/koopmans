@@ -182,7 +182,7 @@ class KoopmansDFPTWorkflow(Workflow):
 
         # Calculate the Hamiltonian
         self.print('Construction of the Hamiltonian', style='heading')
-        kc_ham_calc = self.new_calculator('kc_ham')
+        kc_ham_calc = self.new_calculator('kc_ham', kpts=self.kpath)
 
         if self.parameters.calculate_alpha and kc_ham_calc.parameters.lrpa != kc_screen_calc.parameters.lrpa:
             raise ValueError('Do not set "lrpa" to different values in the "screen" and "ham" blocks')
@@ -230,7 +230,6 @@ class KoopmansDFPTWorkflow(Workflow):
                 calc.directory = 'wannier'
             else:
                 calc.directory = 'init'
-            calc.parameters.pop('kpath', None)
         elif calc_presets == 'kc_screen':
             calc.directory = 'screening'
             # If eps_inf is not provided in the kc_wann:screen subdictionary but there is a value provided in the
@@ -239,8 +238,8 @@ class KoopmansDFPTWorkflow(Workflow):
                 calc.eps_inf = self.parameters.eps_inf
         else:
             calc.directory = 'hamiltonian'
-            calc.results['alphas'] = self.bands.alphas
             calc.parameters.do_bands = self.parameters.periodic
+            calc.alphas = self.bands.alphas
 
         calc.parameters.num_wann_occ = self.master_calc_params['w90_occ'].num_wann
         calc.parameters.num_wann_emp = self.master_calc_params['w90_emp'].num_wann
