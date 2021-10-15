@@ -86,6 +86,41 @@ class WorkflowTest:
                 # Check numerical results against the benchmarks
                 self.check_qc_results(workflow)
 
+    def check_qc_result(self, result, ref_result, result_name, tols):
+        # Compare the calculated result to the reference result
+        if isinstance(ref_result, float):
+            diff = result - ref_result
+            message = f'{result_name} = {result:.5f} differs from benchmark {ref_result:.5f} by ' \
+                      f'{diff:.2e}'
+            if abs(diff) > tols[0]:
+                return {'kind': 'error', 'message': message}
+            elif abs(diff) > tols[1]:
+                return {'kind': 'warning', 'message': message}
+        elif isinstance(ref_result, np.ndarray):
+            # For arrays, perform a mixed error test. If Delta = |x - x_ref| then in the limit of large Delta,
+            # then this reduces to testing relative error, whereas in the limit of small Delta it reduces to
+            # testing absolute error. We use 0.1*max(ref_result) as a reference scale factor.
+            abs_diffs = np.abs(result - ref_result)
+            scale_factor = 0.1 * np.max(np.abs(ref_result))
+            if scale_factor == 0.0:
+                scale_factor = 1.0
+            mixed_diffs = abs_diffs / (scale_factor + np.abs(ref_result))
+            i_max = np.argmax(mixed_diffs)
+            mixed_diff = mixed_diffs[i_max]
+            abs_diff = abs_diffs[i_max]
+            message = f'{result_name}[{i_max}] = {result[i_max]:.5f} differs from benchmark ' \
+                      f'{ref_result[i_max]:.5f} by {abs_diff:.2e}'
+            if mixed_diff > tols[0]:
+                return {'kind': 'error', 'message': message}
+            elif mixed_diff > tols[1]:
+                return {'kind': 'warning', 'message': message}
+        else:
+            if result != ref_result:
+                message = f'{result_name} = {result} differs from benchmark {ref_result}'
+                return {'kind': 'error', 'message': message}
+
+        return None
+
     def check_qc_results(self, workflow):
 
         # Loop through the stored QC results of all the calculations
@@ -113,18 +148,7 @@ class WorkflowTest:
             for result_name, result in calc.qc_results.items():
 
                 # Fetch the corresponding benchmark
-                if result_name.startswith('alpha'):
-                    # alphas are not stored in results but in a separate field
-                    assert 'alphas' in calc.benchmark
-                    i_orb = int(result_name.split('(')[-1][:-1])
-                    ref_result = calc.benchmark['alphas'][i_orb - 1]
-                    tols = self.tolerances['alpha']
-                elif result_name.startswith('orbital_self_Hartree'):
-                    assert 'orbital_data' in calc.benchmark['results']
-                    [i_orb, i_spin] = [int(s.split('=')[1]) for s in result_name.split('(')[-1][:-1].split(',')]
-                    ref_result = calc.benchmark['results']['orbital_data']['self-Hartree'][i_spin - 1][i_orb - 1]
-                    tols = self.tolerances['self-hartree']
-                elif result_name in ['band structure', 'dos']:
+                if result_name in ['band structure', 'dos']:
                     if result_name == 'band structure':
                         result = result.energies[0].flatten()
                         ref_result = np.array(calc.benchmark['results'][result_name].energies[0].flatten())
@@ -138,37 +162,19 @@ class WorkflowTest:
                     ref_result = calc.benchmark['results'][result_name]
                     tols = self.tolerances.get(result_name, self.tolerances['default'])
 
-                # Compare the calculated result to the reference result
-                if isinstance(ref_result, float):
-                    diff = result - ref_result
-                    message = f'{result_name} = {result:.5f} differs from benchmark {ref_result:.5f} by ' \
-                              f'{diff:.2e}'
-                    if abs(diff) > tols[0]:
-                        log[calc_relpath].append({'kind': 'error', 'message': message})
-                    elif abs(diff) > tols[1]:
-                        log[calc_relpath].append({'kind': 'warning', 'message': message})
-                elif isinstance(ref_result, np.ndarray):
-                    # For arrays, perform a mixed error test. If Delta = |x - x_ref| then in the limit of large Delta,
-                    # then this reduces to testing relative error, whereas in the limit of small Delta it reduces to
-                    # testing absolute error. We use 0.1*max(ref_result) as a reference scale factor.
-                    abs_diffs = np.abs(result - ref_result)
-                    scale_factor = 0.1 * np.max(np.abs(ref_result))
-                    if scale_factor == 0.0:
-                        scale_factor = 1.0
-                    mixed_diffs = abs_diffs / (scale_factor + np.abs(ref_result))
-                    i_max = np.argmax(mixed_diffs)
-                    mixed_diff = mixed_diffs[i_max]
-                    abs_diff = abs_diffs[i_max]
-                    message = f'{result_name}[{i_max}] = {result[i_max]:.5f} differs from benchmark ' \
-                              f'{ref_result[i_max]:.5f} by {abs_diff:.2e}'
-                    if mixed_diff > tols[0]:
-                        log[calc_relpath].append({'kind': 'error', 'message': message})
-                    elif mixed_diff > tols[1]:
-                        log[calc_relpath].append({'kind': 'warning', 'message': message})
-                else:
-                    if result != ref_result:
-                        message = f'{result_name} = {result} differs from benchmark {ref_result}'
-                        log[calc_relpath].append({'kind': 'error', 'message': message})
+                message = self.check_qc_result(result, ref_result, result_name, tols)
+                if message is not None:
+                    log[calc_relpath].append(message)
+
+            # Also check the alphas at this stage
+            if 'alphas' in calc.benchmark or hasattr(calc, 'alphas'):
+                assert 'alphas' in calc.benchmark, f'{calc.directory/calc.prefix} benchmark is missing alphas'
+                assert hasattr(calc, 'alphas'), f'{calc.directory/calc.prefix} is missing alphas'
+
+                message = self.check_qc_result(
+                    calc.alphas, calc.benchmark['alphas'], 'alphas', self.tolerances['alpha'])
+                if message is not None:
+                    log[calc_relpath].append(message)
 
         errors = []
         warnings = []
@@ -235,6 +241,9 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             if key.startswith('starting_magnetization'):
                 continue
 
+            if key == 'ibrav':
+                continue
+
             assert key in calc.benchmark['parameters'].keys(), f'{key} in {input_file_name} not found in benchmark'
             ref_val = calc.benchmark['parameters'][key]
 
@@ -245,6 +254,12 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
                 # Compare the path relative to the location of the input file (mirroring behaviour of
                 # construct_benchmark.py)
                 val = Path(os.path.relpath(val, calc.directory))
+
+            if isinstance(val, np.ndarray):
+                val = val.tolist()
+
+            if isinstance(ref_val, np.ndarray):
+                ref_val = ref_val.tolist()
 
             if isinstance(val, BandPath):
                 assert val.path == ref_val.path, f'{key}.path = {val.path} (test) != {ref_val.path} (benchmark)'
@@ -348,7 +363,9 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         def output_files(self) -> List[Path]:
             files = []
             if 'kpts' in self.parameters:
-                if self.parameters.nosym:
+                if isinstance(self.parameters.kpts, BandPath):
+                    n_kpoints = len(self.parameters.kpts.kpts)
+                elif self.parameters.nosym:
                     n_kpoints = np.prod(self.parameters['kpts']) + 1
                 else:
                     n_kpoints = len(BandPath(self.parameters['kpts'], self.atoms.cell).kpts)
@@ -504,7 +521,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             # If this calculator is a pw2wannier object, it need to know how many kpoints there are (usually done via
             # the contents of .nnkp)
             if isinstance(qe_calc, PW2WannierCalculator):
-                qe_calc.parameters.kpts = self.kpts
+                qe_calc.parameters.kpts = self.kgrid
 
             # We only need to check input files for calculations...
             # a) not starting from scratch, and
