@@ -147,7 +147,7 @@ class SettingsDict(UserDict):
         # e.g. QE calculators want to be able to set keywords such as Hubbard(i) where i is an arbitrary integer
         return name in self.valid
 
-    def update(self, *args, **kwargs):
+    def update(self, *args: Any, **kwargs: Any) -> None:
         if args:
             if len(args) > 1:
                 raise TypeError(f"update expected at most 1 arguments, got {len(args)}")

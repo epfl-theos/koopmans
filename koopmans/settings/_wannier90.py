@@ -20,9 +20,9 @@ class Wannier90SettingsDict(SettingsDict):
                          to_not_parse=['exclude_bands'],
                          **kwargs)
 
-    def update(self, kpath: Optional[BandPath] = None, *args, **kwargs):
+    def update(self, *args, **kwargs) -> None:
+        kpath = kwargs.pop('kpath', None)
         super().update(*args, **kwargs)
-
         # Defer setting kpath until after bands_plot has had the chance to be updated
         if kpath is not None and self.get('bands_plot', False):
             self.kpath = kpath
@@ -43,8 +43,8 @@ class Wannier90SettingsDict(SettingsDict):
             self.mp_grid = value
 
             # The second, kpoints, is a grid of each individual k-point
-            kpts = np.indices(value).transpose(1, 2, 3, 0).reshape(-1, 3)
-            kpts = kpts / value
+            kpts: np.ndarray = np.indices(value).transpose(1, 2, 3, 0).reshape(-1, 3)
+            kpts /= value
             kpts[kpts >= 0.5] -= 1
             self.kpoints = kpts
         elif key == 'kpath':
