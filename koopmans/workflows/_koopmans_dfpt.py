@@ -256,10 +256,13 @@ class KoopmansDFPTWorkflow(Workflow):
 
         # Provide the rotation matrices and the wannier centres
         if self.parameters.periodic:
-            utils.symlink(f'wannier/occ/wann_u.mat', f'{calc.directory}/')
-            utils.symlink(f'wannier/emp/wann_u.mat', f'{calc.directory}/wann_emp_u.mat')
-            utils.symlink(f'wannier/emp/wann_u_dis.mat', f'{calc.directory}/wann_emp_u_dis.mat')
-            utils.symlink(f'wannier/occ/wann_centres.xyz', f'{calc.directory}/')
-            utils.symlink(f'wannier/emp/wann_centres.xyz', f'{calc.directory}/wann_emp_centres.xyz')
+            exist_ok = not self.parameters.from_scratch
+            utils.symlink(f'wannier/occ/wann_u.mat', f'{calc.directory}/', exist_ok=exist_ok)
+            utils.symlink(f'wannier/emp/wann_u.mat', f'{calc.directory}/wann_emp_u.mat', exist_ok=exist_ok)
+            utils.symlink(f'wannier/emp/wann_u_dis.mat',
+                          f'{calc.directory}/wann_emp_u_dis.mat', exist_ok=exist_ok)
+            utils.symlink(f'wannier/occ/wann_centres.xyz', f'{calc.directory}/', exist_ok=exist_ok)
+            utils.symlink(f'wannier/emp/wann_centres.xyz',
+                          f'{calc.directory}/wann_emp_centres.xyz', exist_ok=exist_ok)
 
         super().run_calculator(calc)

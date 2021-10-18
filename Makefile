@@ -61,7 +61,7 @@ clean_espresso:
 	@(cd quantum_espresso/qe_koopmans; $(MAKE) veryclean)
 
 tests:
-	python3 -m pytest -m "not mock" tests/
+	python3 -m pytest -m "standard" tests/
 
 mock_tests:
 	python3 -m pytest -m "mock" tests/

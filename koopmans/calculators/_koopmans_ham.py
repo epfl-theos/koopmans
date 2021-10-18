@@ -78,6 +78,6 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, CalculatorABC):
 
         super().read_input(**kwargs)
 
-        if kpts is not None:
+        if kpts is not None and kpts.path == self.parameters.kpts.path:
             self.parameters.kpts = kpts
         return

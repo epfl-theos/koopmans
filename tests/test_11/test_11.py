@@ -17,6 +17,13 @@ def test_mock_si_wannierise(capsys, mock_quantum_espresso):
     test.run()
 
 
+@pytest.mark.stumble
+def test_si_wannierise_stumble(capsys, stumble):
+    test = WorkflowTest(json, capsys)
+    test.run()
+
+
+@pytest.mark.standard
 def test_si_wannierise(capsys):
     test = WorkflowTest(json, capsys)
     test.run()

@@ -17,7 +17,13 @@ def test_mock_h2o_kipz(capsys, mock_quantum_espresso):
     test.run()
 
 
-def test_h2o_kipz(capsys):
+@pytest.mark.stumble
+def test_h2o_kipz_stumble(capsys, stumble):
     test = WorkflowTest(json, capsys)
     test.run()
 
+
+@pytest.mark.standard
+def test_h2o_kipz(capsys):
+    test = WorkflowTest(json, capsys)
+    test.run()

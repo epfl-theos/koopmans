@@ -7,9 +7,11 @@ Written by Edward Linscott, Dec 2020
 import os
 import json
 import numpy as np
+import copy
 from typing import List, Union, Dict, Tuple
 from pathlib import Path
 import pytest
+from ase.calculators.calculator import CalculationFailed
 from ase.dft.kpoints import BandPath
 from koopmans.calculators import Wannier90Calculator, PW2WannierCalculator, PWCalculator, KoopmansCPCalculator, \
     EnvironCalculator, UnfoldAndInterpolateCalculator, Wann2KCCalculator, KoopmansScreenCalculator, \
@@ -208,6 +210,109 @@ class WorkflowTest:
             if len(errors) == 1:
                 message = message.replace('disagreements', 'disagreement')
             raise ValueError(message)
+
+
+@pytest.fixture
+def stumble(monkeypatch):
+    '''
+    Deliberately crash the code after every single calculation and attempt to restart
+    '''
+
+    class DeliberateCalculationFailed(CalculationFailed):
+        '''
+        An error speciflcally for when we deliberately crash a calculation
+        '''
+
+    stumble_message = 'Deliberately crashing for testing purposes'
+
+    class StumblingWorkflow(object):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.calc_counter = 1
+            self.catch_stumbles = True
+
+        def run_calculator_single(self, *args, **kwargs):
+            if len(self.calculations) == self.calc_counter:
+                self.print(stumble_message)
+                raise DeliberateCalculationFailed(stumble_message)
+            else:
+                super().run_calculator_single(*args, **kwargs)
+
+        def run(self, *args, **kwargs):
+            if self.catch_stumbles:
+                # Create a copy of the state of the workflow before we start running it
+                dct_before_running = {k: copy.deepcopy(v) for k, v in self.__dict__.items() if k not in
+                                      ['benchmark', 'calc_counter']}
+                self.print(f'ATTEMPT {self.calc_counter}', style='heading')
+                try:
+                    super().run(*args, **kwargs)
+                except DeliberateCalculationFailed:
+                    # Restore the workflow to the state it was in before we ran any calculations and attempt to restart
+                    # from where we left off
+                    self.__dict__.update(**dct_before_running)
+                    self.parameters.from_scratch = False
+                    self.calc_counter += 1
+                    self.print_stumble = True
+                    self.run(*args, **kwargs)
+            else:
+                super().run(*args, **kwargs)
+
+        def run_subworkflow(self, workflow, *args, **kwargs):
+            # Prevent subworkflows from catching stumbles
+            workflow.catch_stumbles = False
+            workflow.calc_counter = self.calc_counter
+            super().run_subworkflow(workflow, *args, **kwargs)
+
+    from koopmans.workflows import WannierizeWorkflow
+
+    class StumblingWannierizeWorkflow(StumblingWorkflow, WannierizeWorkflow):
+        pass
+
+    monkeypatch.setattr('koopmans.workflows.WannierizeWorkflow', StumblingWannierizeWorkflow)
+
+    from koopmans.workflows import FoldToSupercellWorkflow
+
+    class StumblingFoldToSupercellWorkflow(StumblingWorkflow, FoldToSupercellWorkflow):
+        pass
+
+    monkeypatch.setattr('koopmans.workflows.FoldToSupercellWorkflow', StumblingFoldToSupercellWorkflow)
+
+    from koopmans.workflows import KoopmansDSCFWorkflow
+
+    class StumblingKoopmansDSCFWorkflow(StumblingWorkflow, KoopmansDSCFWorkflow):
+        pass
+
+    monkeypatch.setattr('koopmans.workflows.KoopmansDSCFWorkflow', StumblingKoopmansDSCFWorkflow)
+
+    from koopmans.workflows import DFTCPWorkflow
+
+    class StumblingDFTCPWorkflow(StumblingWorkflow, DFTCPWorkflow):
+        pass
+
+    monkeypatch.setattr('koopmans.workflows.DFTCPWorkflow', StumblingDFTCPWorkflow)
+
+    from koopmans.workflows import DFTPWWorkflow
+
+    class StumblingDFTPWWorkflow(StumblingWorkflow, DFTPWWorkflow):
+        pass
+
+    monkeypatch.setattr('koopmans.workflows.DFTPWWorkflow', StumblingDFTPWWorkflow)
+
+    from koopmans.workflows import DeltaSCFWorkflow
+
+    class StumblingDeltaSCFWorkflow(StumblingWorkflow, DeltaSCFWorkflow):
+        pass
+
+    monkeypatch.setattr('koopmans.workflows.DeltaSCFWorkflow', StumblingDeltaSCFWorkflow)
+
+    from koopmans.workflows import KoopmansDFPTWorkflow
+
+    class StumblingKoopmansDFPTWorkflow(StumblingWorkflow, KoopmansDFPTWorkflow):
+        def plot_bandstructure(self):
+            # We don't want the mock test to generate files (nor does it have access to the band_structure result)
+            return
+
+    monkeypatch.setattr('koopmans.workflows.KoopmansDFPTWorkflow', StumblingKoopmansDFPTWorkflow)
 
 
 @pytest.fixture
