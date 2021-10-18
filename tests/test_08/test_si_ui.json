@@ -31,16 +31,10 @@
       ]
     },
     "k_points": {
-      "kind": "automatic",
-      "kpts": [
+      "kgrid": [
         2,
         2,
         2
-      ],
-      "koffset": [
-        0,
-        0,
-        0
       ],
       "kpath": "GL"
     },
