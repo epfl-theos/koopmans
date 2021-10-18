@@ -253,7 +253,7 @@ class CalculatorExt():
         return dct
 
     @classmethod
-    def fromdict(cls, dct: dict) -> T:
+    def fromdict(cls, dct: dict) -> 'CalculatorExt':
         calc = cls(dct.pop('atoms'))
         for k, v in dct.items():
             setattr(calc, k.lstrip('_'), v)
