@@ -43,7 +43,7 @@ class Wannier90SettingsDict(SettingsDict):
             self.mp_grid = value
 
             # The second, kpoints, is a grid of each individual k-point
-            kpts: np.ndarray = np.indices(value).transpose(1, 2, 3, 0).reshape(-1, 3)
+            kpts: np.ndarray = np.indices(value, dtype=float).transpose(1, 2, 3, 0).reshape(-1, 3)
             kpts /= value
             kpts[kpts >= 0.5] -= 1
             self.kpoints = kpts
