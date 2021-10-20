@@ -4484,18 +4484,16 @@
    "write_hr": true,
    "guiding_centres": true,
    "gamma_only": false,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "num_wann": 4,
    "num_bands": 4,
    "exclude_bands": "5-12",
@@ -4615,18 +4613,16 @@
    "write_hr": true,
    "guiding_centres": true,
    "gamma_only": false,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "num_wann": 4,
    "num_bands": 4,
    "exclude_bands": "5-12",
@@ -4731,18 +4727,16 @@
    "num_wann": 4,
    "dis_froz_max": 10.6,
    "dis_win_max": 16.9,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "exclude_bands": "1-4",
    "num_bands": 8,
    "mp_grid": [
@@ -4865,18 +4859,16 @@
    "num_wann": 4,
    "dis_froz_max": 10.6,
    "dis_win_max": 16.9,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "exclude_bands": "1-4",
    "num_bands": 8,
    "bands_plot": false,
@@ -9583,18 +9575,16 @@
    "write_hr": true,
    "guiding_centres": true,
    "gamma_only": false,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "num_wann": 4,
    "num_bands": 4,
    "exclude_bands": "5-12",
@@ -10106,18 +10096,16 @@
    "write_hr": true,
    "guiding_centres": true,
    "gamma_only": false,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "num_wann": 4,
    "num_bands": 4,
    "exclude_bands": "5-12",
@@ -10390,18 +10378,16 @@
    "num_wann": 4,
    "dis_froz_max": 10.6,
    "dis_win_max": 16.9,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "exclude_bands": "1-4",
    "num_bands": 8,
    "mp_grid": [
@@ -10916,18 +10902,16 @@
    "num_wann": 4,
    "dis_froz_max": 10.6,
    "dis_win_max": 16.9,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "exclude_bands": "1-4",
    "num_bands": 8,
    "bands_plot": false,
@@ -33052,18 +33036,16 @@
    "write_hr": true,
    "guiding_centres": true,
    "gamma_only": false,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "num_wann": 4,
    "num_bands": 4,
    "exclude_bands": "5-12",
@@ -33183,18 +33165,16 @@
    "write_hr": true,
    "guiding_centres": true,
    "gamma_only": false,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "num_wann": 4,
    "num_bands": 4,
    "exclude_bands": "5-12",
@@ -33299,18 +33279,16 @@
    "num_wann": 4,
    "dis_froz_max": 10.6,
    "dis_win_max": 16.9,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "exclude_bands": "1-4",
    "num_bands": 8,
    "mp_grid": [
@@ -33433,18 +33411,16 @@
    "num_wann": 4,
    "dis_froz_max": 10.6,
    "dis_win_max": 16.9,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "exclude_bands": "1-4",
    "num_bands": 8,
    "bands_plot": false,
@@ -47609,18 +47585,16 @@
    "write_hr": true,
    "guiding_centres": true,
    "gamma_only": false,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "num_wann": 4,
    "num_bands": 4,
    "exclude_bands": "5-12",
@@ -48132,18 +48106,16 @@
    "write_hr": true,
    "guiding_centres": true,
    "gamma_only": false,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "num_wann": 4,
    "num_bands": 4,
    "exclude_bands": "5-12",
@@ -48416,18 +48388,16 @@
    "num_wann": 4,
    "dis_froz_max": 10.6,
    "dis_win_max": 16.9,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "exclude_bands": "1-4",
    "num_bands": 8,
    "mp_grid": [
@@ -48942,18 +48912,16 @@
    "num_wann": 4,
    "dis_froz_max": 10.6,
    "dis_win_max": 16.9,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "exclude_bands": "1-4",
    "num_bands": 8,
    "bands_plot": false,
@@ -50852,18 +50820,16 @@
    "write_hr": true,
    "guiding_centres": true,
    "gamma_only": false,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "num_wann": 4,
    "num_bands": 4,
    "exclude_bands": "5-12",
@@ -50937,18 +50903,16 @@
    "write_hr": true,
    "guiding_centres": true,
    "gamma_only": false,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "num_wann": 4,
    "num_bands": 4,
    "exclude_bands": "5-12",
@@ -51039,18 +51003,16 @@
    "num_wann": 4,
    "dis_froz_max": 10.6,
    "dis_win_max": 16.9,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "exclude_bands": "1-4",
    "num_bands": 8,
    "mp_grid": [
@@ -51127,18 +51089,16 @@
    "num_wann": 4,
    "dis_froz_max": 10.6,
    "dis_win_max": 16.9,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "exclude_bands": "1-4",
    "num_bands": 8,
    "bands_plot": false,
@@ -56973,18 +56933,16 @@
    "write_hr": true,
    "guiding_centres": true,
    "gamma_only": false,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "num_wann": 4,
    "num_bands": 4,
    "exclude_bands": "5-12",
@@ -57226,18 +57184,16 @@
    "write_hr": true,
    "guiding_centres": true,
    "gamma_only": false,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "num_wann": 4,
    "num_bands": 4,
    "exclude_bands": "5-12",
@@ -57496,18 +57452,16 @@
    "num_wann": 4,
    "dis_froz_max": 10.6,
    "dis_win_max": 16.9,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "exclude_bands": "1-4",
    "num_bands": 8,
    "mp_grid": [
@@ -57752,18 +57706,16 @@
    "num_wann": 4,
    "dis_froz_max": 10.6,
    "dis_win_max": 16.9,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "exclude_bands": "1-4",
    "num_bands": 8,
    "bands_plot": false,
@@ -71958,18 +71910,16 @@
    "write_hr": true,
    "guiding_centres": true,
    "gamma_only": false,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "num_wann": 4,
    "num_bands": 4,
    "exclude_bands": "5-12",
@@ -72211,18 +72161,16 @@
    "write_hr": true,
    "guiding_centres": true,
    "gamma_only": false,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "num_wann": 4,
    "num_bands": 4,
    "exclude_bands": "5-12",
@@ -72481,18 +72429,16 @@
    "num_wann": 4,
    "dis_froz_max": 10.6,
    "dis_win_max": 16.9,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "exclude_bands": "1-4",
    "num_bands": 8,
    "mp_grid": [
@@ -72737,18 +72683,16 @@
    "num_wann": 4,
    "dis_froz_max": 10.6,
    "dis_win_max": 16.9,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "exclude_bands": "1-4",
    "num_bands": 8,
    "bands_plot": false,
@@ -75149,18 +75093,16 @@
    "write_hr": true,
    "guiding_centres": true,
    "gamma_only": false,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "num_wann": 4,
    "num_bands": 4,
    "write_u_matrices": true,
@@ -75283,18 +75225,16 @@
    "write_hr": true,
    "guiding_centres": true,
    "gamma_only": false,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "num_wann": 4,
    "num_bands": 4,
    "write_u_matrices": true,
@@ -75401,18 +75341,16 @@
    "num_wann": 4,
    "dis_froz_max": 10.6,
    "dis_win_max": 16.9,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "exclude_bands": "1-4",
    "write_u_matrices": true,
    "write_xyz": true,
@@ -75538,18 +75476,16 @@
    "num_wann": 4,
    "dis_froz_max": 10.6,
    "dis_win_max": 16.9,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "exclude_bands": "1-4",
    "write_u_matrices": true,
    "write_xyz": true,
@@ -77048,18 +76984,16 @@
    "write_hr": true,
    "guiding_centres": true,
    "gamma_only": false,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "num_wann": 4,
    "num_bands": 4,
    "exclude_bands": "5-20",
@@ -77179,18 +77113,16 @@
    "write_hr": true,
    "guiding_centres": true,
    "gamma_only": false,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "num_wann": 4,
    "num_bands": 4,
    "exclude_bands": "5-20",
@@ -81837,18 +81769,16 @@
    "num_wann": 4,
    "dis_froz_max": 10.6,
    "dis_win_max": 16.9,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "exclude_bands": "1-4",
    "num_bands": 16,
    "mp_grid": [
@@ -81971,18 +81901,16 @@
    "num_wann": 4,
    "dis_froz_max": 10.6,
    "dis_win_max": 16.9,
-   "projections": {
-    "sites": [
-     [
-      [
-       0.25,
-       0.25,
-       0.25
-      ],
-      "sp3"
-     ]
-    ]
-   },
+   "projections": [
+    {
+     "fsite": [
+      0.25,
+      0.25,
+      0.25
+     ],
+     "ang_mtm": "sp3"
+    }
+   ],
    "exclude_bands": "1-4",
    "num_bands": 16,
    "bands_plot": true,

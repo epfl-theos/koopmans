@@ -8,6 +8,8 @@ Written by Riccardo De Gennaro Nov 2020
 """
 
 from pathlib import Path
+from typing import List
+from koopmans.pseudopotentials import nelec_from_pseudos
 from ._generic import Workflow
 from koopmans import utils
 import numpy as np
@@ -40,15 +42,32 @@ class WannierizeWorkflow(Workflow):
         w90_emp_params = self.master_calc_params['w90_emp']
 
         # Filling out missing fields
+        extra_core_bands = 0
+        extra_conduction_bands = 0
+        n_filled_bands = nelec_from_pseudos(self.atoms, self.pseudopotentials, pw_params.pseudo_dir) // 2
         if w90_emp_params.num_bands is None:
-            w90_emp_params.num_bands = pw_params.nbnd - w90_occ_params.num_bands
+            # If num_bands has not been defined, this should just match the number of empty bands from the pw calculation
+            w90_emp_params.num_bands = pw_params.nbnd - n_filled_bands
         if w90_occ_params.exclude_bands is None:
-            w90_occ_params.exclude_bands = f'{w90_occ_params.num_bands + 1}-{pw_params.nbnd}'
+            # If exclude_bands hasn't been defined for the occupied calculation, this should exclude...
+            exclude_bands = []
+            extra_core_bands = n_filled_bands - w90_occ_params.num_bands
+            if extra_core_bands > 0:
+                # (a) the core bands if there are more filled bands than w90 num_bands, and
+                exclude_bands += list(range(1, extra_core_bands + 1))
+            # (b) all empty bands
+            if n_filled_bands != pw_params.nbnd:
+                exclude_bands += list(range(n_filled_bands + 1, pw_params.nbnd + 1))
+            w90_occ_params.exclude_bands = list_to_formatted_str(exclude_bands)
+        if w90_emp_params.exclude_bands is None:
+            extra_conduction_bands = pw_params.nbnd - extra_core_bands - w90_occ_params.num_bands - w90_emp_params.num_bands
+            # If exclude bands hasn't been defined for the empty calculation, this should exclude all filled bands
+            w90_emp_params.exclude_bands = f'1-{pw_params.nelec//2}'
 
         # Sanity checking
-        w90_nbnd = w90_occ_params.num_bands + w90_emp_params.num_bands
+        w90_nbnd = w90_occ_params.num_bands + w90_emp_params.num_bands + extra_core_bands + extra_conduction_bands
         if pw_params.nbnd != w90_nbnd:
-            raise ValueError('Number of bands disagrees between pw ({pw_params.nbnd}) and wannier90 ({w90_nbnd})')
+            raise ValueError(f'Number of bands disagrees between pw ({pw_params.nbnd}) and wannier90 ({w90_nbnd})')
         if w90_emp_params.num_wann == 0:
             raise ValueError('Cannot run a wannier90 calculation with num_wann = 0. Please set empty_states_nbnd > 0 '
                              'in the setup block, or num_wann > 0 in the wannier90 empty subblock')
@@ -157,3 +176,18 @@ class WannierizeWorkflow(Workflow):
             calc.parameters.outdir = Path('wannier/TMP').resolve()
 
         return calc
+
+
+def list_to_formatted_str(values: List[int]):
+    # Converts a list of integers into the format expected by Wannier90
+    # e.g. list_to_formatted_str([1, 2, 3, 4, 5, 7]) = "1-5,7"
+    assert all(a > b for a, b in zip(values[1:], values[:-1])), 'values must be monotonically increasing'
+    indices = [None] + [i + 1 for i in range(len(values) - 1) if values[i + 1] != values[i] + 1] + [None]
+    sectors = [values[slice(a, b)] for a, b in zip(indices[:-1], indices[1:])]
+    out = []
+    for sector in sectors:
+        if len(sector) == 1:
+            out.append(str(sector[0]))
+        else:
+            out.append(f'{sector[0]}-{sector[-1]}')
+    return ','.join(out)

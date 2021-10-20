@@ -54,6 +54,16 @@ class Workflow(object):
         self.kgrid = kgrid
         self.koffset = koffset
 
+        if 'periodic' in parameters:
+            # If "periodic" was explicitly provided, override self.atoms.pbc
+            self.atoms.pbc = self.parameters.periodic
+        else:
+            # If "periodic" was not explicitly provided, use the value from self.atoms.pbc
+            self.parameters.periodic = all(self.atoms.pbc)
+
+        if all(self.atoms.pbc):
+            self.atoms.wrap(pbc=True)
+
         # We rely on kcp_params.nelec so make sure this has been initialised
         if 'nelec' not in self.master_calc_params['kcp']:
             pseudo_dir = self.master_calc_params['kcp'].get('pseudo_dir', None)
