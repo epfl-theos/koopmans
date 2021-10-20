@@ -8,7 +8,7 @@ Written by Riccardo De Gennaro Nov 2020
 """
 
 from pathlib import Path
-from typing import List
+from typing import List, Union
 from koopmans.pseudopotentials import nelec_from_pseudos
 from ._generic import Workflow
 from koopmans import utils
@@ -22,7 +22,9 @@ def list_to_formatted_str(values: List[int]):
     # Converts a list of integers into the format expected by Wannier90
     # e.g. list_to_formatted_str([1, 2, 3, 4, 5, 7]) = "1-5,7"
     assert all(a > b for a, b in zip(values[1:], values[:-1])), 'values must be monotonically increasing'
-    indices = [None] + [i + 1 for i in range(len(values) - 1) if values[i + 1] != values[i] + 1] + [None]
+    indices: List[Union[int, None]] = [None]
+    indices += [i + 1 for i in range(len(values) - 1) if values[i + 1] != values[i] + 1]
+    indices += [None]
     sectors = [values[slice(a, b)] for a, b in zip(indices[:-1], indices[1:])]
     out = []
     for sector in sectors:
