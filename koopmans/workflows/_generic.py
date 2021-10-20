@@ -19,6 +19,7 @@ from ase import Atoms
 from ase.build.supercells import make_supercell
 from ase.dft.kpoints import BandPath
 from ase.calculators.calculator import CalculationFailed
+from ase.io.wannier90 import num_wann_from_projections
 from koopmans.pseudopotentials import nelec_from_pseudos
 from koopmans import utils, settings
 import koopmans.calculators as calculators
@@ -68,6 +69,17 @@ class Workflow(object):
         if 'nelec' not in self.master_calc_params['kcp']:
             pseudo_dir = self.master_calc_params['kcp'].get('pseudo_dir', None)
             self.master_calc_params['kcp'].nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, pseudo_dir)
+
+        # We also rely on w90_occ/emp_params.num_wann so make sure this has been initialised, too
+        for params, default_num_wann in [(self.master_calc_params['w90_occ'], self.master_calc_params['kcp'].nelec // 2),
+                                         (self.master_calc_params['w90_emp'], self.master_calc_params['kcp'].empty_states_nbnd)]:
+            if params.num_wann is None:
+                if 'projections' in params:
+                    # Populate num_wann based on the projections provided
+                    params.num_wann = num_wann_from_projections(params.projections, self.atoms)
+                else:
+                    # Populate num_wann based off the kcp calculator
+                    params.num_wann = default_num_wann
 
         if kpath is None:
             if self.parameters.periodic:

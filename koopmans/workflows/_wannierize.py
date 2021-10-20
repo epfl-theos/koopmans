@@ -12,7 +12,6 @@ from typing import List
 from koopmans.pseudopotentials import nelec_from_pseudos
 from ._generic import Workflow
 from koopmans import utils
-from ase.io.wannier90 import num_wann_from_projections
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -61,11 +60,6 @@ class WannierizeWorkflow(Workflow):
         extra_core_bands = 0
         extra_conduction_bands = 0
         n_filled_bands = nelec_from_pseudos(self.atoms, self.pseudopotentials, pw_params.pseudo_dir) // 2
-        for params in [w90_occ_params, w90_emp_params]:
-            # Populate num_wann based on the projections provided
-            if params.num_wann is None:
-                assert 'projections' in params, 'Missing projections block for the Wannier90 calculation'
-                params.num_wann = num_wann_from_projections(params.projections, self.atoms)
         if w90_occ_params.num_bands is None:
             # If num_bands has not been defined, this should just match the number of occupied Wannier functions
             # we want to define
