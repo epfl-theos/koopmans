@@ -230,16 +230,6 @@ def read_json(fd: TextIO, override={}):
         elif block == 'pw':
             if 'nbnd' not in dct.get('system', {}):
                 dct['nbnd'] = n_filled + n_empty
-        if block == 'w90_occ':
-            if 'num_wann' not in dct:
-                dct['num_wann'] = n_filled
-            if 'num_bands' not in dct:
-                dct['num_bands'] = n_filled
-        elif block == 'w90_emp':
-            if 'num_wann' not in dct:
-                dct['num_wann'] = n_empty
-            if 'exclude_bands' not in dct:
-                dct['exclude_bands'] = f'1-{n_filled}'
         elif block.startswith('ui'):
             # Dealing with redundancies in UI keywords
             if 'sc_dim' in dct and 'kpts' in psps_and_kpts:

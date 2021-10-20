@@ -1,9 +1,8 @@
-import math
 import numpy as np
-from typing import Any, Optional, List
-from ase.cell import Cell
+from typing import Any, Dict, List
+from ase import Atoms
 from ase.io.wannier90 import construct_kpoint_path, proj_string_to_dict
-from ase.dft.kpoints import BandPath, bandpath
+from ase.dft.kpoints import BandPath
 from ._utils import SettingsDict
 
 

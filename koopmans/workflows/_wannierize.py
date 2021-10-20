@@ -12,10 +12,26 @@ from typing import List
 from koopmans.pseudopotentials import nelec_from_pseudos
 from ._generic import Workflow
 from koopmans import utils
+from ase.io.wannier90 import num_wann_from_projections
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
+
+
+def list_to_formatted_str(values: List[int]):
+    # Converts a list of integers into the format expected by Wannier90
+    # e.g. list_to_formatted_str([1, 2, 3, 4, 5, 7]) = "1-5,7"
+    assert all(a > b for a, b in zip(values[1:], values[:-1])), 'values must be monotonically increasing'
+    indices = [None] + [i + 1 for i in range(len(values) - 1) if values[i + 1] != values[i] + 1] + [None]
+    sectors = [values[slice(a, b)] for a, b in zip(indices[:-1], indices[1:])]
+    out = []
+    for sector in sectors:
+        if len(sector) == 1:
+            out.append(str(sector[0]))
+        else:
+            out.append(f'{sector[0]}-{sector[-1]}')
+    return ','.join(out)
 
 
 class WannierizeWorkflow(Workflow):
@@ -45,6 +61,15 @@ class WannierizeWorkflow(Workflow):
         extra_core_bands = 0
         extra_conduction_bands = 0
         n_filled_bands = nelec_from_pseudos(self.atoms, self.pseudopotentials, pw_params.pseudo_dir) // 2
+        for params in [w90_occ_params, w90_emp_params]:
+            # Populate num_wann based on the projections provided
+            if params.num_wann is None:
+                assert 'projections' in params, 'Missing projections block for the Wannier90 calculation'
+                params.num_wann = num_wann_from_projections(params.projections, self.atoms)
+        if w90_occ_params.num_bands is None:
+            # If num_bands has not been defined, this should just match the number of occupied Wannier functions
+            # we want to define
+            w90_occ_params.num_bands = w90_occ_params.num_wann
         if w90_emp_params.num_bands is None:
             # If num_bands has not been defined, this should just match the number of empty bands from the pw calculation
             w90_emp_params.num_bands = pw_params.nbnd - n_filled_bands
@@ -62,7 +87,7 @@ class WannierizeWorkflow(Workflow):
         if w90_emp_params.exclude_bands is None:
             extra_conduction_bands = pw_params.nbnd - extra_core_bands - w90_occ_params.num_bands - w90_emp_params.num_bands
             # If exclude bands hasn't been defined for the empty calculation, this should exclude all filled bands
-            w90_emp_params.exclude_bands = f'1-{pw_params.nelec//2}'
+            w90_emp_params.exclude_bands = f'1-{n_filled_bands}'
 
         # Sanity checking
         w90_nbnd = w90_occ_params.num_bands + w90_emp_params.num_bands + extra_core_bands + extra_conduction_bands
@@ -176,18 +201,3 @@ class WannierizeWorkflow(Workflow):
             calc.parameters.outdir = Path('wannier/TMP').resolve()
 
         return calc
-
-
-def list_to_formatted_str(values: List[int]):
-    # Converts a list of integers into the format expected by Wannier90
-    # e.g. list_to_formatted_str([1, 2, 3, 4, 5, 7]) = "1-5,7"
-    assert all(a > b for a, b in zip(values[1:], values[:-1])), 'values must be monotonically increasing'
-    indices = [None] + [i + 1 for i in range(len(values) - 1) if values[i + 1] != values[i] + 1] + [None]
-    sectors = [values[slice(a, b)] for a, b in zip(indices[:-1], indices[1:])]
-    out = []
-    for sector in sectors:
-        if len(sector) == 1:
-            out.append(str(sector[0]))
-        else:
-            out.append(f'{sector[0]}-{sector[-1]}')
-    return ','.join(out)
