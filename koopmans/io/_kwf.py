@@ -12,6 +12,7 @@ from pathlib import Path
 from importlib import import_module
 import inspect
 import json
+import numpy as np
 from ase.io import jsonio as ase_json
 from ase.calculators.calculator import Calculator
 from ase.calculators.singlepoint import SinglePointKPoint
@@ -52,11 +53,12 @@ def object_hook(dct):
         module = import_module(subdct['__module__'])
         return getattr(module, subdct['__name__'])
     else:
-        # Patching bug in ASE
+        # Patching bug in ASE where allocating an np.empty(dtype=str) will assume a particular length for each
+        # string. dtype=object allows for individual strings to be different lengths
         if '__ndarray__' in dct:
             dtype = dct['__ndarray__'][1]
             if 'str' in dtype:
-                dct['__ndarray__'][1] = 'str'
+                dct['__ndarray__'][1] = object
 
         return ase_json.object_hook(dct)
 
