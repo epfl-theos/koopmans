@@ -25,8 +25,7 @@ if __name__ == '__main__':
         print(' done')
 
     # Construct json file (missing input files)
-    kwf_names = [Path(f) for f in glob.glob('test_??/*.kwf')]
-    kwf_names.sort(key=os.path.getmtime)
+    kwf_names = [Path(f) for f in sorted(glob.glob('test_??/*.kwf'))]
 
     data = {}
     for fname in kwf_names:

@@ -1,0 +1,86 @@
+{
+    "workflow": {
+        "functional": "ki",
+        "periodic": true,
+        "method": "dscf",
+        "mp_correction": true,
+        "eps_inf" : 4.861298525,
+        "init_orbitals": "mlwfs",
+        "alpha_guess": 0.25,
+        "orbital_groups": [0,1,2,2,0,2,1,2,0,2,2,1,3,4,5,5,4,5,6,7,7,7,8,8,8,9],
+        "from_scratch": false,
+        "npool": 4
+    },
+    "setup": {
+        "atomic_species": {
+            "species": [
+                ["Cs", 132.90500,"Cs_ONCV_PBE-1.1.upf"],
+                ["Pb", 207.20000,"Pb_ONCV_PBE-1.0.upf"],
+                ["Br", 132.90500,"Br_ONCV_PBE-1.0.upf"]
+            ]
+        },
+        "atomic_positions": {
+            "units": "crystal",
+            "positions": [
+                ["Cs", 0.00, 0.00, 0.00 ],
+                ["Pb", 0.50, 0.50, 0.50 ],
+                ["Br", 0.50, 0.50, 0.00 ],
+                ["Br", 0.00, 0.50, 0.50 ],
+                ["Br", 0.50, 0.00, 0.50 ]
+            ]
+        },
+        "k_points": {
+            "kind": "automatic",
+            "kpts": [
+                3,
+                3,
+                3
+            ],
+            "koffset": [
+                0,
+                0,
+                0
+            ],
+            "kpath": "GXMGRXRM"
+        },
+        "control": {
+            "pseudo_dir": "/psi/home/colonna_n/CODES/pseudo/ONCV_PBE/with_WFC/"
+        },
+        "system": {
+            "ibrav": 1,
+            "celldm(1)": 11.09269240003872480459,
+            "ecutwfc": 80.0
+        }
+    },
+    "pw": {
+        "system": {
+            "nbnd": 33
+        }
+    },
+    "w90": {
+	"occ": {
+          "num_iter": 0,
+      	  "projections": {
+        	    "sites": [
+               	 [ [0.50, 0.50, 0.00], "l=0; l=1" ],
+               	 [ [0.00, 0.50, 0.50], "l=0; l=1" ],
+               	 [ [0.50, 0.00, 0.50], "l=0; l=1" ],
+               	 [ [0.50, 0.50, 0.50], "l=0; l=2" ],
+               	 [ [0.00, 0.00, 0.00], "l=0; l=1" ]
+           	 ]
+        	}
+	},
+        "emp": {
+          "num_iter": 1000,
+          "num_wann": 4,
+          "dis_froz_max": 8.6,
+          "dis_win_max": 9.8,
+	  "projections": {
+                  "sites": [
+                 [ [0.50, 0.50, 0.50], "l=1" ], 
+                 [ [0.00, 0.00, 0.00], "l=0" ]
+                 ] 
+                }
+        }
+    }
+}

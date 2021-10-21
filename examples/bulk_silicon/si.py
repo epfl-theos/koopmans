@@ -20,9 +20,9 @@ def run(from_scratch=True):
             wf = io.read(f'si.json')
             wf.from_scratch = from_scratch
             if 'screening' in name:
-                wf.calculate_alpha = False
+                wf.parameters.calculate_alpha = False
                 dscf_alphas = wfs['dscf'].bands.alphas
-                wf.alpha_guess = dscf_alphas[len(dscf_alphas) // 2 - 4: len(dscf_alphas) // 2 + 4]
+                wf.parameters.alpha_guess = dscf_alphas[len(dscf_alphas) // 2 - 4: len(dscf_alphas) // 2 + 4]
             wf.run()
 
             # Save workflow to file
@@ -32,7 +32,7 @@ def run(from_scratch=True):
 
 
 def plot(wfs):
-    calcs = {name: wf.all_calcs[-1] for name, wf in wfs.items()}
+    calcs = {name: wf.calculations[-1] for name, wf in wfs.items()}
 
     # Setting up figure
     fig, axes = plt.subplots(ncols=2, nrows=1, sharey=True, gridspec_kw={'width_ratios': [3, 1]})
