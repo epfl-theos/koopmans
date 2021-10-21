@@ -152,17 +152,29 @@ class WannierizeWorkflow(Workflow):
             calc_pw.prefix = 'bands'
             self.run_calculator(calc_pw)
 
+            # Select those calculations that generated a band structure
+            selected_calcs = [c for c in self.calculations if 'band structure' in c.results]
+
+            # Work out the energy ranges for plotting
+            w90_emp_num_bands = self.master_calc_params['w90_emp'].num_bands
+            valence_edge = np.max(selected_calcs[-1].results['band structure'].energies[:, :, :-w90_emp_num_bands])
+            cond_edge = np.min(selected_calcs[-1].results['band structure'].energies[:, :, -w90_emp_num_bands:])
+            mu = 0.5 * (valence_edge + cond_edge)
+            emin = np.min(selected_calcs[0].results['band structure'].energies) - 1 - mu
+            emax = np.max(selected_calcs[1].results['band structure'].energies) + 1 - mu
+
             # Plot the bandstructures on top of one another
             ax = None
             labels = ['interpolation (occ)', 'interpolation (emp)', 'explicit']
             colour_cycle = plt.rcParams["axes.prop_cycle"]()
-            selected_calcs = [c for c in self.calculations if 'band structure' in c.results]
-            emin = np.min(selected_calcs[0].results['band structure'].energies) - 1
-            emax = np.max(selected_calcs[1].results['band structure'].energies) + 1
             for calc, label in zip(selected_calcs, labels):
                 if 'band structure' in calc.results:
                     # Load the bandstructure
                     bs = calc.results['band structure']
+
+                    # Unfortunately once a bandstructure object is created you cannot tweak it, so we must alter
+                    # this private variable
+                    bs._energies -= mu
 
                     # Tweaking the plot aesthetics
                     colours = [next(colour_cycle)['color'] for _ in range(bs.energies.shape[0])]
