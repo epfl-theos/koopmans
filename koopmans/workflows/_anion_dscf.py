@@ -13,11 +13,15 @@ class DeltaSCFWorkflow(Workflow):
 
     def run(self):
         # Run workflow
-        if self.from_scratch:
+        if self.parameters.from_scratch:
             utils.system_call('rm -r neutral charged 2> /dev/null', False)
 
-        epsilons = sorted(self.eps_cavity, reverse=True)
+        epsilons = sorted(self.parameters.eps_cavity, reverse=True)
         self.print('PBE ΔSCF WORKFLOW', style='heading')
+
+        # Remove settings from master_calc_params that will be overwritten
+        for key in ['tot_charge', 'tot_magnetization', 'disk_io', 'restart_mode']:
+            self.master_calc_params['pw'].pop(key, None)
 
         for charge, label in zip([0, -1], ['neutral', 'charged']):
             self.print(f'Performing {label} calculations', style='subheading')
@@ -39,9 +43,9 @@ class DeltaSCFWorkflow(Workflow):
                 pw_calc = EnvironCalculator(atoms=self.atoms, restart_mode=restart_mode, disk_io='medium',
                                             tot_charge=charge, tot_magnetization=-charge,
                                             **self.master_calc_params['pw'])
-                pw_calc.name = 'pbe'
+                pw_calc.prefix = 'pbe'
                 pw_calc.directory = f'{label}/{epsilon}'
-                pw_calc.outdir = 'TMP'
+                pw_calc.parameters.outdir = 'TMP'
 
                 # Update the environ settings
                 pw_calc.environ_settings['ENVIRON']['environ_restart'] = environ_restart
@@ -52,7 +56,7 @@ class DeltaSCFWorkflow(Workflow):
                 # self.from_scratch = True means that run_qe won't try and skip this calculation
                 # if it encounters pre-existing QE output files, and NOT that QE will use
                 # restart_mode = 'from_scratch'
-                self.from_scratch = True
+                self.parameters.from_scratch = True
 
                 # Run the calculator
                 try:
@@ -67,7 +71,7 @@ class DeltaSCFWorkflow(Workflow):
                 if epsilon == 1 or i_eps == len(epsilons):
                     break
                 new_epsilon = max(epsilons[i_eps], 1)
-                outdir = os.path.relpath(pw_calc.outdir, pw_calc.directory)
+                outdir = os.path.relpath(pw_calc.parameters.outdir, pw_calc.directory)
                 utils.system_call(f'rsync -a {label}/{epsilon}/{outdir} {label}/{new_epsilon}/')
                 epsilon = new_epsilon
                 restart_mode = 'restart'
