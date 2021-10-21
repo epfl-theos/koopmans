@@ -42,8 +42,6 @@ encode = KoopmansEncoder(indent=1).encode
 def object_hook(dct):
     if '__koopmans_name__' in dct:
         return create_koopmans_object(dct)
-        # elif '__calculator__' in dct:
-        #     return create_ase_calculator(dct)
     elif '__set__' in dct:
         return set(dct['__set__'])
     elif '__path__' in dct:
