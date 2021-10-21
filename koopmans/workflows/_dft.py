@@ -6,9 +6,7 @@ Written by Edward Linscott Oct 2020
 
 """
 
-import os
-import copy
-from koopmans import utils
+from koopmans import utils, pseudopotentials
 from ._generic import Workflow
 
 
@@ -65,3 +63,24 @@ class DFTPWWorkflow(Workflow):
         self.run_calculator(calc)
 
         return
+
+
+class PWBandStructureWorkflow(Workflow):
+
+    def run(self):
+
+        # First, a scf calculation
+        calc_scf = self.new_calculator('pw', nbnd=None)
+        calc_scf.prefix = 'scf'
+        self.run_calculator(calc_scf)
+
+        # Second, a bands calculation
+        calc_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpath)
+        calc_bands.prefix = 'bands'
+        self.run_calculator(calc_bands)
+
+        # Finally, plot the band structure
+        bs = calc_bands.results['band structure']
+        n_filled = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials) // 2
+        bs._energies -= bs._energies[:, :, :n_filled].max()
+        bs.plot(filename=f'{self.name}_bands.png')

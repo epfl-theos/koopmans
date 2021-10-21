@@ -95,19 +95,21 @@ def read_setup_dict(dct):
         calc.parameters.nelec = nelec
     else:
         nelec = calc.parameters.nelec
-    if 'tot_charge' in calc.parameters:
-        tot_charge = calc.parameters.tot_charge
-        calc.parameters.nelec -= tot_charge
-        nelec -= tot_charge
-    if 'tot_magnetization' in calc.parameters:
-        tot_mag = calc.parameters.tot_magnetization
-    else:
-        tot_mag = nelec % 2
-        calc.parameters.tot_magnetization = tot_mag
-    if 'nelup' not in calc.parameters:
-        calc.parameters.nelup = int(nelec / 2 + tot_mag / 2)
-    if 'neldw' not in calc.parameters:
-        calc.parameters.neldw = int(nelec / 2 - tot_mag / 2)
+
+    if calc.parameters.get('nspin', 2) == 2:
+        if 'tot_charge' in calc.parameters:
+            tot_charge = calc.parameters.tot_charge
+            calc.parameters.nelec -= tot_charge
+            nelec -= tot_charge
+        if 'tot_magnetization' in calc.parameters:
+            tot_mag = calc.parameters.tot_magnetization
+        else:
+            tot_mag = nelec % 2
+            calc.parameters.tot_magnetization = tot_mag
+        if 'nelup' not in calc.parameters:
+            calc.parameters.nelup = int(nelec / 2 + tot_mag / 2)
+        if 'neldw' not in calc.parameters:
+            calc.parameters.neldw = int(nelec / 2 - tot_mag / 2)
 
     # Work out the number of filled and empty bands
     n_filled = nelec // 2
@@ -263,6 +265,8 @@ def read_json(fd: TextIO, override={}):
     elif parameters.task == 'ui':
         workflow = workflows.UnfoldAndInterpolateWorkflow(
             atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
+    elif parameters.task == 'dft_bands':
+        workflow = workflows.PWBandStructureWorkflow(atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
     else:
         raise ValueError('Invalid task name "{task_name}"')
 
@@ -285,6 +289,8 @@ def write_json(workflow: workflows.Workflow, filename: Path):
     for k, v in workflow.parameters.items():
         if v is None:
             continue
+        if isinstance(v, Path):
+            v = str(v)
         default = workflow.parameters.defaults.get(k, None)
         if v != default:
             bigdct['workflow'][k] = v
@@ -311,11 +317,11 @@ def write_json(workflow: workflows.Workflow, filename: Path):
     else:
         bigdct['setup']['atomic_positions'] = {'positions': [
             [label] + [str(x) for x in pos] for label, pos in zip(labels, workflow.atoms.get_scaled_positions())],
-            'units': 'alat'}
+            'units': 'crystal'}
 
     # atomic species
     bigdct['setup']['atomic_species'] = {'species': [[key, 1.0, val]
-                                                     for key, val in workflow.parameters.pseudopotentials.items()]}
+                                                     for key, val in workflow.pseudopotentials.items()]}
 
     for code, params in workflow.master_calc_params.items():
         if isinstance(params, (KoopmansCPSettingsDict, PWSettingsDict)):
@@ -324,11 +330,17 @@ def write_json(workflow: workflows.Workflow, filename: Path):
             # pseudo directory
             pseudo_dir = params.pop('pseudo_dir', None)
             if pseudo_dir is not None:
-                bigdct['setup']['control'] = {'pseudo_dir': pseudo_dir}
+                bigdct['setup']['control'] = {'pseudo_dir': str(pseudo_dir)}
+
+            # Remove default settings and convert Paths to strings
+            params = {k: v for k, v in params.items() if params.defaults.get(k, None) != v}
+            for k in params:
+                if isinstance(params[k], Path):
+                    params[k] = str(params[k])
 
             # Populate bigdct with the settings
             input_data = construct_namelist(params)
-            for key, block in input_data:
+            for key, block in input_data.items():
 
                 if len(block) > 0:
                     bigdct[code][key] = {k: v for k, v in dict(
@@ -336,13 +348,12 @@ def write_json(workflow: workflows.Workflow, filename: Path):
 
             if code == 'pw':
                 # Adding kpoints to "setup"
-                kpts = {'kind': 'automatic',
-                        'kgrid': workflow.kgrid,
+                kpts = {'kgrid': workflow.kgrid,
                         'kpath': workflow.kpath.path}
                 bigdct['setup']['k_points'] = kpts
         else:
             raise NotImplementedError(
-                f'Writing of {params} with write_json is not yet implemented')
+                f'Writing of {params.__class__.__name__} with write_json is not yet implemented')
 
     json_ext.dump(bigdct, fd, indent=2)
 

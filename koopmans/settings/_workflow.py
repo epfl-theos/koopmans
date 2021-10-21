@@ -8,7 +8,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
         settings = [
             Setting('task',
                     'Task to perform',
-                    str, 'singlepoint', ('singlepoint', 'convergence', 'wannierise', 'environ_dscf', 'ui')),
+                    str, 'singlepoint', ('singlepoint', 'convergence', 'wannierise', 'environ_dscf', 'ui', 'dft_bands')),
             Setting('functional',
                     'orbital-density-dependent-functional/density-functional to use',
                     str, 'ki', ('ki', 'kipz', 'pkipz', 'dft', 'all')),
@@ -28,7 +28,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
             Setting('frozen_orbitals',
                     "if True, freeze the variational orbitals for the duration of the calculation once they've been "
                     "initialised",
-                    bool, None, (True, False)),
+                    bool, False, (True, False)),
             Setting('periodic',
                     'whether or not the system is periodic',
                     bool, False, (True, False)),
