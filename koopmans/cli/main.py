@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
 
-from koopmans.settings import WorkflowSettingsDict
-from koopmans.calculators import qe_bin_directory
-from koopmans.io import read, write
-from koopmans.utils import chdir
-import ase
 import os
 import argparse
 import subprocess
@@ -12,6 +7,11 @@ import textwrap
 from types import ModuleType
 import matplotlib
 matplotlib.use('Agg')
+import ase
+from koopmans.settings import WorkflowSettingsDict
+from koopmans.calculators import qe_bin_directory
+from koopmans.io import read, write
+from koopmans.utils import chdir
 
 
 '''

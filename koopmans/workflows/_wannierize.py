@@ -7,15 +7,15 @@ Written by Riccardo De Gennaro Nov 2020
 
 """
 
+import numpy as np
 from pathlib import Path
 from typing import List, Union
-from koopmans.pseudopotentials import nelec_from_pseudos
-from ._generic import Workflow
-from koopmans import utils
-import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from koopmans.pseudopotentials import nelec_from_pseudos
+from koopmans import utils
+from ._generic import Workflow
 
 
 def list_to_formatted_str(values: List[int]):

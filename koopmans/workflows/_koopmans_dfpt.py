@@ -6,16 +6,14 @@ Written by Edward Linscott Feb 2021
 
 """
 
-from ._generic import Workflow
-from koopmans.bands import Bands
-from koopmans.calculators import PWCalculator, Wann2KCCalculator, KoopmansScreenCalculator, KoopmansHamCalculator
-from koopmans import utils, io
-from ase import Atoms
 import os
 import numpy as np
-import copy
 import matplotlib
 matplotlib.use('Agg')
+from koopmans.bands import Bands
+from koopmans.calculators import Wann2KCCalculator, KoopmansHamCalculator
+from koopmans import utils, io
+from ._generic import Workflow
 
 
 class KoopmansDFPTWorkflow(Workflow):
