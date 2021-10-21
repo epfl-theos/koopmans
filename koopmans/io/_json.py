@@ -333,13 +333,13 @@ def write_json(workflow: workflows.Workflow, filename: Path):
                 bigdct['setup']['control'] = {'pseudo_dir': str(pseudo_dir)}
 
             # Remove default settings and convert Paths to strings
-            params = {k: v for k, v in params.items() if params.defaults.get(k, None) != v}
-            for k in params:
-                if isinstance(params[k], Path):
-                    params[k] = str(params[k])
+            params_dict = {k: v for k, v in params.items() if params.defaults.get(k, None) != v}
+            for k in params_dict:
+                if isinstance(params_dict[k], Path):
+                    params_dict[k] = str(params_dict[k])
 
             # Populate bigdct with the settings
-            input_data = construct_namelist(params)
+            input_data = construct_namelist(params_dict)
             for key, block in input_data.items():
 
                 if len(block) > 0:

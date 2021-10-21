@@ -28,7 +28,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
             Setting('frozen_orbitals',
                     "if True, freeze the variational orbitals for the duration of the calculation once they've been "
                     "initialised",
-                    bool, False, (True, False)),
+                    bool, None, (True, False)),
             Setting('periodic',
                     'whether or not the system is periodic',
                     bool, False, (True, False)),
