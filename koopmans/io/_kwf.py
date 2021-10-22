@@ -6,36 +6,32 @@ Written by Edward Linscott Mar 2021, largely modelled off ase.io.jsonio
 
 """
 
+import os
 from typing import Union, TextIO
+from pathlib import Path
 from importlib import import_module
 import inspect
 import json
+import numpy as np
 from ase.io import jsonio as ase_json
 from ase.calculators.calculator import Calculator
-from koopmans.workflows.generic import Workflow
+from ase.calculators.singlepoint import SinglePointKPoint
+import koopmans.workflows as workflows
 
 
 class KoopmansEncoder(ase_json.MyEncoder):
     def default(self, obj) -> dict:
         if isinstance(obj, set):
             return {'__set__': list(obj)}
-        elif isinstance(obj, Calculator):
-            # ASE only stores the calculator parameters, with Atoms being the more fundamental object
-            # Because we store calculators as the primary object, we need to make sure the atoms are also stored
-            d = {'__calculator__': super().default(obj),
-                 '__name__': obj.__class__.__name__,
-                 '__module__': obj.__class__.__module__,
-                 '__results__': obj.results,
-                 '__directory__': obj.directory,
-                 '__prefix__': obj.prefix,
-                 '__atoms__': super().default(obj.atoms)}
-            return d
+        elif isinstance(obj, Path):
+            return {'__path__': str(obj)}
         elif inspect.isclass(obj):
             return {'__class__': {'__name__': obj.__name__, '__module__': obj.__module__}}
         elif hasattr(obj, 'todict'):
             d = obj.todict()
             if '__koopmans_name__' in d:
                 return d
+
         # If none of the above, use ASE's encoder
         return super().default(obj)
 
@@ -45,37 +41,24 @@ encode = KoopmansEncoder(indent=1).encode
 
 def object_hook(dct):
     if '__koopmans_name__' in dct:
-        dct = ase_json.numpyfy(dct)
         return create_koopmans_object(dct)
-    elif '__calculator__' in dct:
-        return create_ase_calculator(dct)
     elif '__set__' in dct:
         return set(dct['__set__'])
+    elif '__path__' in dct:
+        return Path(dct['__path__'])
     elif '__class__' in dct:
         subdct = dct['__class__']
         module = import_module(subdct['__module__'])
         return getattr(module, subdct['__name__'])
     else:
-        # Patching bug in ASE
+        # Patching bug in ASE where allocating an np.empty(dtype=str) will assume a particular length for each
+        # string. dtype=object allows for individual strings to be different lengths
         if '__ndarray__' in dct:
             dtype = dct['__ndarray__'][1]
             if 'str' in dtype:
-                dct['__ndarray__'][1] = 'str'
+                dct['__ndarray__'][1] = object
 
         return ase_json.object_hook(dct)
-
-
-def create_ase_calculator(dct: dict):
-    module = import_module(dct['__module__'])
-    calc_class = getattr(module, dct['__name__'])
-    calc = calc_class()
-    calc.atoms = ase_json.object_hook(dct.pop('__atoms__'))
-    calc.atoms.calc = calc
-    calc.directory = dct['__directory__']
-    calc.prefix = dct['__prefix__']
-    calc.parameters = dct['__calculator__']
-    calc.results = dct['__results__']
-    return calc
 
 
 def create_koopmans_object(dct: dict):
@@ -85,7 +68,7 @@ def create_koopmans_object(dct: dict):
     objclass = getattr(module, name)
 
     # Reconstruct the class from the dictionary
-    return objclass(dct=dct)
+    return objclass.fromdict(dct)
 
 
 decode = json.JSONDecoder(object_hook=object_hook).decode
@@ -95,5 +78,10 @@ def read_kwf(fd: TextIO):
     return decode(fd.read())
 
 
-def write_kwf(obj: Union[Workflow, dict], fd: TextIO):
+def write_kwf(obj: Union[workflows.Workflow, dict], fd: TextIO):
+    if isinstance(obj, workflows.Workflow):
+        use_relpath = obj.parameters.use_relative_paths
+        obj.parameters.use_relative_paths = True
     fd.write(encode(obj))
+    if isinstance(obj, workflows.Workflow):
+        obj.parameters.use_relative_paths = use_relpath

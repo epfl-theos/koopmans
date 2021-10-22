@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 import argparse
-from koopmans.workflows.singlepoint import SinglepointWorkflow
-from koopmans.io import write, load_calculator
-import copy
 import textwrap
+from ase.dft.kpoints import BandPath
+from koopmans.workflows import SinglepointWorkflow
+from koopmans.io import write, read
 
 
-def qei_to_json(input_file, json, to_exclude=['nat', 'ntyp'], workflow_settings={}, qe_param={}):
+def qei_to_json(input_file, json, workflow_settings={}):
     '''
 
     Converts a QE input file to a json file
@@ -16,29 +16,35 @@ def qei_to_json(input_file, json, to_exclude=['nat', 'ntyp'], workflow_settings=
     ---------
         input_file: the name of the QE input file to read in
         json: the name of the .json file to write out to
-        to_exclude: the keywords included in the .cpi file to exclude from the .json file
         workflow_settings: the koopmans.py keywords to add to the .json file (these are not
                     included in the QE input file)
-        qe_param: qe flags to alter
 
     '''
-    calc = load_calculator(input_file)
-
-    to_exclude += [k for k, v in calc.defaults.items() if getattr(calc, k, v) == v]
-
-    for key in to_exclude:
-        setattr(calc, key, None)
-    for key, value in qe_param.items():
-        setattr(calc, key, value)
-
     if input_file.endswith('.cpi'):
         key = 'kcp'
-    elif input_file.endswith('pwi'):
+    elif input_file.endswith('.pwi'):
         key = 'pw'
     else:
         raise ValueError('Unrecognised input file format')
 
-    write(SinglepointWorkflow(workflow_settings, {key: calc}), json)
+    calc = read(input_file)
+    calc.atoms.calc = None
+
+    wf = SinglepointWorkflow(atoms=calc.atoms,
+                             parameters=workflow_settings,
+                             pseudopotentials=calc.parameters.pseudopotentials)
+
+    wf.master_calc_params[key] = calc.parameters
+    if key == 'pw':
+        if isinstance(calc.parameters.kpts, BandPath):
+            wf.kpath = calc.parameters.kpts
+        else:
+            wf.kgrid = calc.parameters.kpts
+
+    # Remove all the blocks io.write_json can't currently handle
+    wf.master_calc_params = {k: v for k, v in wf.master_calc_params.items() if k in ['kcp', 'pw']}
+
+    write(wf, json)
 
     return calc
 
@@ -49,7 +55,7 @@ if __name__ == '__main__':
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=textwrap.dedent('''\
                additional arguments:
-                 -<keyword>  <value>  Add '<keyword>: <value>' to the workflow_settingss
+                 -<keyword>  <value>  Add '<keyword>: <value>' to the workflow
                                       block of the JSON file
                  '''))
     parser.add_argument('qei', metavar='in.cpi/in.pwi', type=str,
@@ -66,15 +72,11 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    settings = {"functional": "ki",
-                "init_orbitals": "pz",
-                "n_max_sc_steps": 2,
-                "alpha_from_file": False}
-
     # Store any additional arguments in the settings dict
+    settings = {}
     for arg, value in args.__dict__.items():
         if arg in parsed:
             continue
         settings[arg] = value
 
-    qei_to_json(args.qei, args.json, workflow_settings=settings)
+    qei_to_json(args.qei, args.json, settings)

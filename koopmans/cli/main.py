@@ -8,10 +8,10 @@ from types import ModuleType
 import matplotlib
 matplotlib.use('Agg')
 import ase
-from koopmans.utils import chdir
+from koopmans.settings import WorkflowSettingsDict
+from koopmans.calculators import qe_bin_directory
 from koopmans.io import read, write
-from koopmans.calculators.generic import qe_bin_directory
-from koopmans.workflows.generic import valid_settings
+from koopmans.utils import chdir
 
 
 '''
@@ -54,8 +54,9 @@ def main():
     # Automatically constructing a list of workflow keywords for 'run_koopmans.py --help'
     # from valid_settings
     epilog = ''
-    maxlen = max([len(s.name) for s in valid_settings]) + 2
-    for s in valid_settings:
+    wf_settings = WorkflowSettingsDict()
+    maxlen = max([len(s.name) for s in wf_settings.settings]) + 2
+    for s in wf_settings.settings:
         entry = f'  {s.name.ljust(maxlen)}{s.description} ('
         if isinstance(s.kind, tuple):
             entry += '/'.join([t.__name__ for t in s.kind])

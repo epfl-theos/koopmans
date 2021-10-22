@@ -2,13 +2,14 @@ import itertools
 from typing import Optional, List, Union
 import numpy as np
 import pandas as pd
+from koopmans.utils import indented_print
 
 
 class Band(object):
     def __init__(self, index: Optional[int] = None, filled: bool = True, group: Optional[int] = None,
                  alpha: Optional[float] = None, error: Optional[float] = None,
                  self_hartree: Optional[float] = None,
-                 centre: Optional[np.ndarray] = None, dct: dict = {}) -> None:
+                 centre: Optional[np.ndarray] = None) -> None:
         self.index = index
         self.filled = filled
         self.group = group
@@ -18,14 +19,15 @@ class Band(object):
         self.error = error
         self.self_hartree = self_hartree
         self.centre = centre
-        if dct:
-            self.fromdct(dct)
 
-    def fromdct(self, dct):
-        for k, v in dct.items():
-            assert hasattr(self, k)
-            if v is not None:
-                setattr(self, k, v)
+    @classmethod
+    def fromdict(cls, dct):
+        alpha_history = dct.pop('alpha_history')
+        error_history = dct.pop('error_history')
+        band = cls(**dct)
+        band.alpha_history = alpha_history
+        band.error_history = error_history
+        return band
 
     def todict(self) -> dict:
         dct = self.__dict__
@@ -55,29 +57,27 @@ class Band(object):
 
 
 class Bands(object):
-    def __init__(self, n_bands=None, bands=None, self_hartree_tol=None, dct={}, **kwargs):
+    def __init__(self, n_bands=None, bands=None, self_hartree_tol=None, **kwargs):
         if bands is None and n_bands:
             self._bands = [Band(i + 1) for i in range(n_bands)]
         elif bands and n_bands is None:
             self._bands = bands
-        elif not dct:
+        else:
             raise ValueError('The arguments "n_bands" and "bands" are mutually exclusive')
         self.self_hartree_tol = self_hartree_tol
         for k, v in kwargs.items():
             assert hasattr(self, k)
             if v:
                 setattr(self, k, v)
-        if dct:
-            self.fromdct(dct)
 
     def __iter__(self):
         for b in self._bands:
             yield b
 
-    def fromdct(self, dct):
-        for k, v in dct.items():
-            if v is not None:
-                setattr(self, k, v)
+    @classmethod
+    def fromdict(cls, dct):
+        bands = dct['_bands']
+        return cls(bands=bands, **dct)
 
     def todict(self):
         dct = self.__dict__
@@ -316,11 +316,11 @@ class Bands(object):
             data = None
         return pd.DataFrame(data, columns=self.indices)
 
-    def print_history(self):
+    def print_history(self, indent: int = 0):
         # Printing out a progress summary
-        print('\nalpha')
-        print(self.alpha_history)
+        indented_print(f'\nalpha', indent=indent)
+        indented_print(str(self.alpha_history), indent=indent)
         if not self.error_history.empty:
-            print('\nDelta E_i - epsilon_i (eV)')
-            print(self.error_history)
-        print('')
+            indented_print(f'\nDelta E_i - epsilon_i (eV)', indent=indent)
+            indented_print(str(self.error_history), indent=indent)
+        indented_print('')

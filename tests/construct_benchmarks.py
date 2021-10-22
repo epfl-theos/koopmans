@@ -2,12 +2,11 @@
 
 import glob
 import os
-import numpy as np
-import json
-from ase.spectrum.band_structure import BandStructure
-from koopmans import io, utils
-from koopmans.io.jsonio import write_json as write_encoded_json
-from koopmans.io.jsonio import read_json as read_encoded_json
+import copy
+from pathlib import Path
+from koopmans import utils
+from koopmans.io import read, write
+from koopmans.io import write_kwf as write_encoded_json
 
 readin_exceptions = {''}
 
@@ -16,56 +15,52 @@ if __name__ == '__main__':
 
     # Run tests
     for test_json in sorted(glob.glob('test_??/test*.json')):
-        print(test_json + '...', end='', flush=True)
-        test_directory, test_json = test_json.rsplit('/', 1)
-        with utils.chdir(test_directory):
-            utils.system_call(f'koopmans {test_json} >/dev/null 2>&1')
+        test_json = Path(test_json)
+        print(f'{test_json}...', end='', flush=True)
+        wf = read(test_json)
+        with utils.chdir(test_json.parent):
+            wf.run()
+        kwf_name = (test_json.parent / test_json.stem).with_suffix('.kwf')
+        write(wf, kwf_name)
         print(' done')
 
     # Construct json file (missing input files)
-    fnames = [f for ext in ['cpi', 'pwi', 'win', 'p2wi', 'uii', 'w2ki', 'ksi', 'khi'] for f
-              in glob.glob(f'test_??/**/*.{ext}', recursive=True)]
-
-    fnames.sort(key=os.path.getmtime)
+    kwf_names = [Path(f) for f in sorted(glob.glob('test_??/*.kwf'))]
 
     data = {}
-    for fname in fnames:
-        print(fname)
-        fname_without_ext, _ = fname.lstrip('./').rsplit('.', 1)
-        calc = io.load_calculator(fname_without_ext)
-        if fname_without_ext in data:
-            raise ValueError(f'Encountered a duplicate for {fname}')
+    for fname in kwf_names:
+        fname_without_suffix = fname.parent / fname.stem
 
-        settings = calc._settings
-        for key in ['pseudo_dir', 'outdir', 'dft_ham_file', 'kc_ham_file', 'dft_smooth_ham_file', 'w90_seedname']:
-            if key in settings:
-                test_dir = fname.split('/')[0]
-                if settings[key][0] == '/':
-                    # Convert all absolute paths to be relative to the input file
-                    fname_folder = fname.rsplit('/', 1)[0]
-                    settings[key] = os.path.relpath(settings[key], os.getcwd() + '/' + fname_folder)
+        wf = read(fname)
 
-        results = {}
-        for k, v in calc.results.items():
-            if k == 'walltime':
-                continue
-            results[k] = v
+        for calc in wf.calculations:
+            cname = str(calc.directory.relative_to(Path.cwd()) / calc.prefix)
 
-        data[fname_without_ext] = {'settings': settings, 'results': results}
+            # Convert the SettingsDict to a plain dictionary to store in the json, making sure we
+            # are going to store all paths as relative paths
+            calc.parameters.use_relative_paths = True
+            parameters = dict(calc.parameters)
 
-        # Load alphas if do_orbdep = True and the alpha file is older than the input file
-        if getattr(calc, 'do_orbdep', False):
-            directory, _ = fname_without_ext.rsplit('/', 1)
-            if os.path.getctime(directory + '/' + 'file_alpharef.txt') < os.path.getctime(fname):
-                data[fname_without_ext]['alphas'] = calc.read_alphas()[0]
+            if cname in data:
+                raise ValueError(f'Encountered a duplicate for {cname}')
+
+            # Don't include walltime info
+            calc.results.pop('walltime', None)
+
+            # Here we will create a minimal representation of the calculator to store in the benchmarks
+            data[cname] = {'parameters': parameters, 'results': calc.results}
+
+            # Load alphas if do_orbdep = True and the alpha file is older than the input file
+            if hasattr(calc, 'alphas'):
+                data[cname]['alphas'] = calc.alphas
 
     with open('benchmarks.json', 'w') as f:
-        write_encoded_json(f, data)
+        write_encoded_json(data, f)
     os.system('cp benchmarks.json benchmarks_backup.json')
 
     # Add input files
     utils.system_call("sed -i 's/construct_exceptions = False/construct_exceptions = True/g' conftest.py")
     os.chdir('..')
-    utils.system_call('pytest -m "mock" tests/')
+    utils.system_call('pytest -m "mock" tests/test_?? --pdb')
     os.chdir('tests')
     utils.system_call("sed -i 's/construct_exceptions = True/construct_exceptions = False/g' conftest.py")
