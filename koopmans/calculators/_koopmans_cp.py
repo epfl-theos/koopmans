@@ -7,13 +7,35 @@ Written by Edward Linscott Sep 2020
 """
 
 import os
+import math
+import numpy as np
+from pathlib import Path
+from scipy.linalg import block_diag
 from typing import Optional, List
 from pandas.core.series import Series
+import xml.etree.ElementTree as ET
 from ase import Atoms
 from ase.calculators.espresso import Espresso_kcp
 from koopmans import utils, settings, pseudopotentials
-from ._utils import CalculatorExt, CalculatorABC, kcp_bin_directory
 from koopmans.commands import ParallelCommand
+from ._utils import CalculatorExt, CalculatorABC, kcp_bin_directory
+
+
+def read_ham_file(filename: Path) -> np.ndarray:
+    # Read a single hamiltonian XML file
+    if not filename.exists():
+        raise FileExistsError(f'{filename} does not exist')
+
+    with open(filename, 'r') as fd:
+        tree = ET.parse(fd)
+    ham_xml = tree.getroot()
+
+    length = int(math.sqrt(int(ham_xml.attrib['size'])))
+
+    ham_array = np.array([complex(*[float(x) for x in line.split(',')])
+                          for line in ham_xml.text.strip().split('\n')], dtype=complex) * utils.units.Hartree
+
+    return ham_array.reshape((length, length))
 
 
 class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
@@ -51,6 +73,53 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
         if 'conv_thr' not in self.parameters:
             raise ValueError('Cannot check convergence when "conv_thr" is not set')
         return self._ase_is_converged()
+
+    def read_ham_files(self, bare=False) -> List[np.ndarray]:
+        # Reads all expected hamiltonian XML files
+        ham_dir = self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndw}.save/K00001'
+        ham_matrix: List[np.ndarray] = []
+
+        for ispin in range(1, self.parameters.nspin + 1):
+            # Construct the filename
+            filename = 'hamiltonian'
+            if bare:
+                filename += '0'
+            if self.parameters.nspin > 1:
+                filename += str(ispin)
+            filename += '.xml'
+
+            # Read the hamiltonian
+            ham_filled = read_ham_file(ham_dir / filename)
+
+            if self.parameters.empty_states_nbnd > 0:
+                # Construct the filename
+                filename = 'hamiltonian'
+                if bare:
+                    filename += '0'
+                filename += '_emp'
+                if self.parameters.nspin > 1:
+                    filename += str(ispin)
+                filename += '.xml'
+
+                # Read the hamiltonian
+                ham_empty = read_ham_file(ham_dir / filename)
+                ham = block_diag(ham_filled, ham_empty)
+            else:
+                ham = ham_filled
+
+            # Store the hamiltonian
+            ham_matrix.append(ham)
+
+        return ham_matrix
+
+    def read_results(self):
+        return_val = super().read_results()
+
+        self.results['lambda'] = self.read_ham_files()
+        if self.parameters.do_bare_eigs:
+            self.results['bare lambda'] = self.read_ham_files(bare=True)
+
+        return return_val
 
     def _ase_is_converged(self):
         if 'convergence' not in self.results:
