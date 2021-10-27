@@ -534,8 +534,8 @@ class KoopmansDSCFWorkflow(Workflow):
                             # For KI, the results of the DFT calculations are typically independent of alpha so we
                             # store these in a list that is never overwritten
 
-                            # The exception to this are KI calculations on empty states. When we update alpha, the empty manifold changes,
-                            # which in turn affects the lambda values
+                            # The exception to this are KI calculations on empty states. When we update alpha, the
+                            # empty manifold changes, which in turn affects the lambda values
                             if trial_calc.parameters.empty_states_nbnd > 0 and not band.filled:
                                 alpha_dep_calcs.append(calc)
                             else:
@@ -923,8 +923,11 @@ class KoopmansDSCFWorkflow(Workflow):
 
         return calc
 
-    def calculate_alpha_from_list_of_calcs(self, calcs: List[calculators.KoopmansCPCalculator], trial_calc: calculators.KoopmansCPCalculator, band_index: int, filled: bool = True) \
-            -> Union[Tuple[float, float]]:
+    def calculate_alpha_from_list_of_calcs(self,
+                                           calcs: List[calculators.KoopmansCPCalculator],
+                                           trial_calc: calculators.KoopmansCPCalculator,
+                                           band_index: int,
+                                           filled: bool = True) -> Union[Tuple[float, float]]:
         '''
 
         Calculates alpha via equation 10 of Nguyen et. al (2018) 10.1103/PhysRevX.8.021051
