@@ -43,7 +43,8 @@ def set_up_pseudos(calc):
                                      'the kcp block of your json input file.')
 
 
-def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str], pseudo_dir: Optional[Union[Path, str]] = None) -> int:
+def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str],
+                       pseudo_dir: Optional[Union[Path, str]] = None) -> int:
     '''
     Determines the number of electrons in the system using information from pseudopotential files
     '''
