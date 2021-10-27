@@ -384,26 +384,26 @@ class KoopmansDSCFWorkflow(Workflow):
                     iteration_directory.mkdir()
 
             # Do a KI/KIPZ calculation with the updated alpha values
-            base_calc = self.new_kcp_calculator(calc_presets=self.parameters.functional.replace('pkipz', 'ki'),
-                                                alphas=self.bands.alphas)
-            base_calc.directory = iteration_directory
+            trial_calc = self.new_kcp_calculator(calc_presets=self.parameters.functional.replace('pkipz', 'ki'),
+                                                 alphas=self.bands.alphas)
+            trial_calc.directory = iteration_directory
 
             if i_sc == 1:
                 if self.parameters.functional == 'kipz' and not self.parameters.periodic:
                     # For the first KIPZ trial calculation, do the innerloop
-                    base_calc.parameters.do_innerloop = True
+                    trial_calc.parameters.do_innerloop = True
             else:
                 # For later SC loops, read in the matching calculation from the
                 # previous loop rather than the initialisation calculations
-                base_calc.parameters.ndr = base_calc.parameters.ndw
+                trial_calc.parameters.ndr = trial_calc.parameters.ndw
 
             # Run the calculation and store the result. Note that we only need to continue
             # enforcing the spin symmetry if the density will change
-            self.run_calculator(base_calc, enforce_ss=self.parameters.enforce_spin_symmetry and i_sc > 1)
-            alpha_dep_calcs = [base_calc]
+            self.run_calculator(trial_calc, enforce_ss=self.parameters.enforce_spin_symmetry and i_sc > 1)
+            alpha_dep_calcs = [trial_calc]
 
             # Update the bands' self-Hartree and energies (assuming spin-symmetry)
-            self.bands.self_hartrees = base_calc.results['orbital_data']['self-Hartree'][0]
+            self.bands.self_hartrees = trial_calc.results['orbital_data']['self-Hartree'][0]
 
             # Group the bands
             self.bands.assign_groups(allow_reassignment=True)
@@ -480,7 +480,7 @@ class KoopmansDSCFWorkflow(Workflow):
                         #  - the KI calculations
                         #  - DFT calculations on empty variational orbitals
                         # We don't need to redo any of the others
-                        if base_calc.parameters.empty_states_nbnd == 0 or band.filled:
+                        if trial_calc.parameters.empty_states_nbnd == 0 or band.filled:
                             if i_sc > 1 and 'ki' not in calc_type:
                                 continue
                     else:
@@ -536,7 +536,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
                             # The exception to this are KI calculations on empty states. When we update alpha, the empty manifold changes,
                             # which in turn affects the lambda values
-                            if base_calc.parameters.empty_states_nbnd > 0 and not band.filled:
+                            if trial_calc.parameters.empty_states_nbnd > 0 and not band.filled:
                                 alpha_dep_calcs.append(calc)
                             else:
                                 alpha_indep_calcs.append(calc)
@@ -571,7 +571,7 @@ class KoopmansDSCFWorkflow(Workflow):
                              for c in calc_set if c.parameters.fixed_band == band.index]
 
                     alpha, error = self.calculate_alpha_from_list_of_calcs(
-                        calcs, base_calc, band.index, filled=band.filled)
+                        calcs, trial_calc, band.index, filled=band.filled)
 
                     for b in self.bands:
                         if b == band or (b.group is not None and b.group == band.group):
@@ -923,7 +923,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         return calc
 
-    def calculate_alpha_from_list_of_calcs(self, calcs: List[calculators.KoopmansCPCalculator], base_calc: calculators.KoopmansCPCalculator, band_index: int, filled: bool = True) \
+    def calculate_alpha_from_list_of_calcs(self, calcs: List[calculators.KoopmansCPCalculator], trial_calc: calculators.KoopmansCPCalculator, band_index: int, filled: bool = True) \
             -> Union[Tuple[float, float]]:
         '''
 
@@ -932,7 +932,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         Arguments:
             calcs          -- a list of selected calculations from which to calculate alpha
-            base_calc      -- the N-electron Koopmans calculation
+            trial_calc     -- the N-electron Koopmans calculation
             filled         -- True if the orbital for which we're calculating alpha is filled
 
         '''
@@ -946,7 +946,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 kipz_m1 = kipz_m1_calc.results
                 charge = 1 - kipz_m1_calc.parameters.f_cutoff
 
-                dE = base_calc.results['energy'] - kipz_m1['energy']
+                dE = trial_calc.results['energy'] - kipz_m1['energy']
                 mp1 = kipz_m1['mp1_energy']
                 mp2 = kipz_m1['mp2_energy']
 
@@ -957,7 +957,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 kipz_p1 = kipz_p1_calc.results
                 charge = - kipz_p1_calc.parameters.f_cutoff
 
-                dE = kipz_p1['energy'] - base_calc.results['energy']
+                dE = kipz_p1['energy'] - trial_calc.results['energy']
                 mp1 = kipz_p1['mp1_energy']
                 mp2 = kipz_p1['mp2_energy']
 
@@ -970,7 +970,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 dft_m1 = dft_m1_calc.results
                 charge = 1 - dft_m1_calc.parameters.f_cutoff
 
-                dE = base_calc.results['energy'] - dft_m1['energy']
+                dE = trial_calc.results['energy'] - dft_m1['energy']
                 mp1 = dft_m1['mp1_energy']
                 mp2 = dft_m1['mp2_energy']
 
@@ -981,21 +981,21 @@ class KoopmansDSCFWorkflow(Workflow):
                 dft_p1 = dft_p1_calc.results
                 charge = - dft_p1_calc.parameters.f_cutoff
 
-                dE = dft_p1['energy'] - base_calc.results['energy']
+                dE = dft_p1['energy'] - trial_calc.results['energy']
                 mp1 = dft_p1['mp1_energy']
                 mp2 = dft_p1['mp2_energy']
 
         # Extract lambda from the base calculator
         iband = band_index - 1  # converting from 1-indexing to 0-indexing
-        lambda_a = base_calc.results['lambda'][0][iband, iband].real
-        lambda_0 = base_calc.results['bare lambda'][0][iband, iband].real
+        lambda_a = trial_calc.results['lambda'][0][iband, iband].real
+        lambda_0 = trial_calc.results['bare lambda'][0][iband, iband].real
 
         # Obtaining alpha
-        if (base_calc.parameters.odd_nkscalfact and filled) \
-                or (base_calc.parameters.odd_nkscalfact_empty and not filled):
-            alpha_guess = base_calc.alphas[0][iband]
+        if (trial_calc.parameters.odd_nkscalfact and filled) \
+                or (trial_calc.parameters.odd_nkscalfact_empty and not filled):
+            alpha_guess = trial_calc.alphas[0][iband]
         else:
-            alpha_guess = base_calc.parameters.nkscalfact
+            alpha_guess = trial_calc.parameters.nkscalfact
 
         # Checking Makov-Payne correction energies and applying them (if needed)
         if self.parameters.mp_correction:
