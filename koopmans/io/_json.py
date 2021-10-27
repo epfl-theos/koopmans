@@ -91,7 +91,7 @@ def read_setup_dict(dct):
     # If they are missing, fill the nelec/nelup/neldw field using information contained
     # in the pseudopotential files
     if 'nelec' not in calc.parameters:
-        nelec = nelec_from_pseudos(calc.atoms, calc.parameters.pseudopotentials, Path(calc.parameters.pseudo_dir))
+        nelec = nelec_from_pseudos(calc.atoms, calc.parameters.pseudopotentials, calc.parameters.pseudo_dir)
         calc.parameters.nelec = nelec
     else:
         nelec = calc.parameters.nelec
