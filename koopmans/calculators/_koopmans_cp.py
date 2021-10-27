@@ -32,6 +32,8 @@ def read_ham_file(filename: Path) -> np.ndarray:
 
     length = int(math.sqrt(int(ham_xml.attrib['size'])))
 
+    assert ham_xml.text is not None, f'{filename} is empty'
+
     ham_array = np.array([complex(*[float(x) for x in line.split(',')])
                           for line in ham_xml.text.strip().split('\n')], dtype=complex) * utils.units.Hartree
 
