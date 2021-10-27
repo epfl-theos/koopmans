@@ -74,7 +74,7 @@ class CalculatorABC(ABC, Generic[T]):
         ...
 
     @abstractmethod
-    def read_results(self):
+    def read_results(self) -> None:
         ...
 
     @abstractproperty

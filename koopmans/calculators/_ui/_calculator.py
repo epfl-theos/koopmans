@@ -594,28 +594,21 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         return
 
-    def read_results(self, output_file=None):
+    def read_results(self) -> None:
         """
-        read_results reads in an output file and returns an ASE calculator object with the solitary result 'job done'
+        read_results parses a .uio file for the solitary result 'job done'
         """
 
-        if output_file is None:
-            output_file = self.directory / (self.prefix + self.ext_out)
-
-        # Create an empty dummy ASE calculator
-        atoms = Atoms(calculator=Calculator())
-        atoms.calc.atoms = atoms
-        calc = atoms.calc
-        calc.directory = output_file.parent
+        output_file = self.directory / (self.prefix + self.ext_out)
 
         assert output_file.is_file()
 
         # Check the calculation is done
         with open(output_file, 'r') as f:
             flines = f.readlines()
-        calc.results = {'job done': any(['ALL DONE' in line for line in flines])}
+        self.results = {'job done': any(['ALL DONE' in line for line in flines])}
 
-        return calc
+        return
 
     def interpolate(self, start_time):
         """
