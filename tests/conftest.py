@@ -102,14 +102,26 @@ class WorkflowTest:
             # For arrays, perform a mixed error test. If Delta = |x - x_ref| then in the limit of large Delta,
             # then this reduces to testing relative error, whereas in the limit of small Delta it reduces to
             # testing absolute error. We use 0.1*max(ref_result) as a reference scale factor.
+
+            # Sanitise the input
+            result = result.flatten()
+            ref_result = ref_result.flatten()
+
+            # Calculate the absolute difference
             abs_diffs = np.abs(result - ref_result)
+
+            # Calculate the mixed difference
             scale_factor = 0.1 * np.max(np.abs(ref_result))
             if scale_factor == 0.0:
                 scale_factor = 1.0
             mixed_diffs = abs_diffs / (scale_factor + np.abs(ref_result))
+
+            # Locate the datapoint with the larges mixed difference
             i_max = np.argmax(mixed_diffs)
             mixed_diff = mixed_diffs[i_max]
             abs_diff = abs_diffs[i_max]
+
+            # Generate an error message if necessary
             message = f'{result_name}[{i_max}] = {result[i_max]:.5f} differs from benchmark ' \
                       f'{ref_result[i_max]:.5f} by {abs_diff:.2e}'
             if mixed_diff > tols[0]:
@@ -173,8 +185,14 @@ class WorkflowTest:
                 assert 'alphas' in calc.benchmark, f'{calc.directory/calc.prefix} benchmark is missing alphas'
                 assert hasattr(calc, 'alphas'), f'{calc.directory/calc.prefix} is missing alphas'
 
-                message = self.check_qc_result(
-                    calc.alphas, calc.benchmark['alphas'], 'alphas', self.tolerances['alpha'])
+                # Sanitise the alphas (flatten the arrays and convert to numpy arrays)
+                if isinstance(calc.alphas[0], list):
+                    alphas = np.array([x for row in calc.alphas for x in row])
+                    ref_alphas = np.array([x for row in calc.benchmark['alphas'] for x in row])
+                else:
+                    alphas = np.array(calc.alphas)
+                    ref_alphas = np.array(calc.benchmark['alphas'])
+                message = self.check_qc_result(alphas, ref_alphas, 'alphas', self.tolerances['alpha'])
                 if message is not None:
                     log[calc_relpath].append(message)
 

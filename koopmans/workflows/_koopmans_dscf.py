@@ -384,26 +384,26 @@ class KoopmansDSCFWorkflow(Workflow):
                     iteration_directory.mkdir()
 
             # Do a KI/KIPZ calculation with the updated alpha values
-            calc = self.new_kcp_calculator(calc_presets=self.parameters.functional.replace('pkipz', 'ki'),
-                                           alphas=self.bands.alphas)
-            calc.directory = iteration_directory
+            trial_calc = self.new_kcp_calculator(calc_presets=self.parameters.functional.replace('pkipz', 'ki'),
+                                                 alphas=self.bands.alphas)
+            trial_calc.directory = iteration_directory
 
             if i_sc == 1:
                 if self.parameters.functional == 'kipz' and not self.parameters.periodic:
                     # For the first KIPZ trial calculation, do the innerloop
-                    calc.parameters.do_innerloop = True
+                    trial_calc.parameters.do_innerloop = True
             else:
                 # For later SC loops, read in the matching calculation from the
                 # previous loop rather than the initialisation calculations
-                calc.parameters.ndr = calc.parameters.ndw
+                trial_calc.parameters.ndr = trial_calc.parameters.ndw
 
             # Run the calculation and store the result. Note that we only need to continue
             # enforcing the spin symmetry if the density will change
-            self.run_calculator(calc, enforce_ss=self.parameters.enforce_spin_symmetry and i_sc > 1)
-            alpha_dep_calcs = [calc]
+            self.run_calculator(trial_calc, enforce_ss=self.parameters.enforce_spin_symmetry and i_sc > 1)
+            alpha_dep_calcs = [trial_calc]
 
             # Update the bands' self-Hartree and energies (assuming spin-symmetry)
-            self.bands.self_hartrees = calc.results['orbital_data']['self-Hartree'][0]
+            self.bands.self_hartrees = trial_calc.results['orbital_data']['self-Hartree'][0]
 
             # Group the bands
             self.bands.assign_groups(allow_reassignment=True)
@@ -465,23 +465,24 @@ class KoopmansDSCFWorkflow(Workflow):
                 # Perform the fixed-band-dependent calculations
                 if self.parameters.functional in ['ki', 'pkipz']:
                     if band.filled:
-                        calc_types = ['ki_frozen', 'dft_frozen', 'dft_n-1']
+                        calc_types = ['dft_n-1']
                     else:
-                        calc_types = ['pz_print', 'dft_n+1_dummy', 'dft_n+1',
-                                      'dft_n+1-1_frozen', 'ki_n+1-1_frozen']
+                        calc_types = ['pz_print', 'dft_n+1_dummy', 'dft_n+1']
                 else:
                     if band.filled:
-                        calc_types = ['kipz_frozen', 'dft_frozen', 'kipz_n-1']
+                        calc_types = ['kipz_n-1']
                     else:
-                        calc_types = ['kipz_print', 'dft_n+1_dummy', 'kipz_n+1',
-                                      'dft_n+1-1_frozen', 'kipz_n+1-1_frozen']
+                        calc_types = ['kipz_print', 'dft_n+1_dummy', 'kipz_n+1']
 
                 for calc_type in calc_types:
                     if self.parameters.functional in ['ki', 'pkipz']:
-                        # Only the KI calculations change with alpha; we don't need to
-                        # redo any of the others
-                        if i_sc > 1 and 'ki' not in calc_type:
-                            continue
+                        # The calculations whose results change with alpha are...
+                        #  - the KI calculations
+                        #  - DFT calculations on empty variational orbitals
+                        # We don't need to redo any of the others
+                        if trial_calc.parameters.empty_states_nbnd == 0 or band.filled:
+                            if i_sc > 1 and 'ki' not in calc_type:
+                                continue
                     else:
                         # No need to repeat the dummy calculation; all other
                         # calculations are dependent on the screening parameters so
@@ -530,13 +531,20 @@ class KoopmansDSCFWorkflow(Workflow):
                         alpha_dep_calcs.append(calc)
                     elif 'dft' in calc_type and 'dummy' not in calc_type:
                         if self.parameters.functional in ['ki', 'pkipz']:
-                            # For KI, the DFT calculations are independent of alpha so
-                            # we store these in a list that is never overwritten
-                            alpha_indep_calcs.append(calc)
+                            # For KI, the results of the DFT calculations are typically independent of alpha so we
+                            # store these in a list that is never overwritten
+
+                            # The exception to this are KI calculations on empty states. When we update alpha, the
+                            # empty manifold changes, which in turn affects the lambda values
+                            if trial_calc.parameters.empty_states_nbnd > 0 and not band.filled:
+                                alpha_dep_calcs.append(calc)
+                            else:
+                                alpha_indep_calcs.append(calc)
                         else:
                             # For KIPZ, the DFT calculations are dependent on alpha via
                             # the definition of the variational orbitals. We only want to
                             # store the calculations that used the most recent value of alpha
+
                             alpha_dep_calcs.append(calc)
 
                     # Copying of evcfixed_empty.dat to evc_occupied.dat
@@ -562,7 +570,8 @@ class KoopmansDSCFWorkflow(Workflow):
                     calcs = [c for calc_set in [alpha_dep_calcs, alpha_indep_calcs]
                              for c in calc_set if c.parameters.fixed_band == band.index]
 
-                    alpha, error = self.calculate_alpha_from_list_of_calcs(calcs, filled=band.filled)
+                    alpha, error = self.calculate_alpha_from_list_of_calcs(
+                        calcs, trial_calc, band.index, filled=band.filled)
 
                     for b in self.bands:
                         if b == band or (b.group is not None and b.group == band.group):
@@ -683,23 +692,17 @@ class KoopmansDSCFWorkflow(Workflow):
                 'kipz'   As above, but for KIPZ
 
                 For calculating alpha_i for filled orbitals.
-                'dft_frozen'    DFT calculation leaving rho unchanged, for reporting energy and lambda
-                'ki_frozen'     KI calculation with N electrons for generating lambda only (will not alter density)
-                'kipz_frozen'   KIPZ calculation with N electrons for generating lambda only (will not alter density)
-                'dft_n-1'       DFT calculation with N-1 electrons via fixed_state; rho is optimised
-                'kipz_n-1'      KIPZ calculation with N-1 electrons via fixed_state; rho is optimised
+                'dft_n-1'       DFT calculation with N-1 electrons via fixed_state
+                'kipz_n-1'      KIPZ calculation with N-1 electrons via fixed_state
 
                 For calculating alpha_i for empty orbitals
                 'pz_print'         PZ calculation that generates evcfixed_empty.dat file
                 'kipz_print'       KIPZ calculation that generates evcfixed_empty.dat file
                 'dft_n+1_dummy'    DFT dummy calculation that generates store files of
                                    the correct dimensions
-                'dft_n+1'          DFT calculation with N+1 electrons; rho is optimised
-                'kipz_n+1'         KIPZ calculation with N+1 electrons; rho is optimised
-                'dft_n+1-1_frozen' DFT calculation with N electrons, starting from N+1
-                                   but with f_cutoff = 0.00001
-                'ki_n+1-1_frozen'  KI calculation with N electrons, starting from N+1
-                                   but with f_cutoff = 0.00001
+                'dft_n+1'          DFT calculation with N+1 electrons
+                'kipz_n+1'         KIPZ calculation with N+1 electrons
+
                 Note that when calculating alpha_i, all empty states (bar orbital_i if it is empty) are removed
                 and the convergence criteria are loosened
 
@@ -736,12 +739,6 @@ class KoopmansDSCFWorkflow(Workflow):
         elif calc_presets in ['ki', 'kipz']:
             ndr = 51
             ndw = 60
-        elif calc_presets in ['ki_frozen', 'kipz_frozen']:
-            ndr = 60
-            ndw = 61
-        elif calc_presets == 'dft_frozen':
-            ndr = 60
-            ndw = 62
         elif calc_presets in ['dft_n-1', 'kipz_n-1']:
             ndr = 60
             ndw = 63
@@ -751,12 +748,6 @@ class KoopmansDSCFWorkflow(Workflow):
         elif calc_presets == 'dft_n+1_dummy':
             ndr = 65
             ndw = 65
-        elif calc_presets in ['ki_n+1-1_frozen', 'kipz_n+1-1_frozen']:
-            ndr = 65
-            ndw = 66
-        elif calc_presets == 'dft_n+1-1_frozen':
-            ndr = 65
-            ndw = 67
         elif calc_presets in ['dft_n+1', 'kipz_n+1']:
             ndr = 65
             ndw = 68
@@ -785,6 +776,7 @@ class KoopmansDSCFWorkflow(Workflow):
         # system
         if 'pz' in calc.prefix or 'ki' in calc.prefix:
             calc.parameters.do_orbdep = True
+            calc.parameters.do_bare_eigs = True
         else:
             calc.parameters.do_orbdep = False
         if calc.prefix in ['dft_init', 'pz_init', 'pz_innerloop_init', 'dft_dummy',
@@ -931,8 +923,11 @@ class KoopmansDSCFWorkflow(Workflow):
 
         return calc
 
-    def calculate_alpha_from_list_of_calcs(self, calcs: List[calculators.KoopmansCPCalculator], filled: bool = True) \
-            -> Union[Tuple[float, float]]:
+    def calculate_alpha_from_list_of_calcs(self,
+                                           calcs: List[calculators.KoopmansCPCalculator],
+                                           trial_calc: calculators.KoopmansCPCalculator,
+                                           band_index: int,
+                                           filled: bool = True) -> Union[Tuple[float, float]]:
         '''
 
         Calculates alpha via equation 10 of Nguyen et. al (2018) 10.1103/PhysRevX.8.021051
@@ -940,113 +935,70 @@ class KoopmansDSCFWorkflow(Workflow):
 
         Arguments:
             calcs          -- a list of selected calculations from which to calculate alpha
+            trial_calc     -- the N-electron Koopmans calculation
             filled         -- True if the orbital for which we're calculating alpha is filled
 
         '''
 
+        # Extract the energy difference Delta E
         if self.parameters.functional == 'kipz':
             if filled:
-                # KIPZ N
-                [alpha_calc] = [c for c in calcs if c.parameters.which_orbdep == 'nkipz'
-                                and c.parameters.do_orbdep and c.parameters.f_cutoff == 1.0]
-                kipz = alpha_calc.results
-
                 # KIPZ N-1
                 [kipz_m1_calc] = [c for c in calcs if c.parameters.which_orbdep == 'nkipz'
                                   and c.parameters.do_orbdep and c.parameters.f_cutoff < 0.0001]
                 kipz_m1 = kipz_m1_calc.results
                 charge = 1 - kipz_m1_calc.parameters.f_cutoff
 
-                # DFT N
-                [dft] = [c.results for c in calcs if not c.parameters.do_orbdep
-                         and c.parameters.restart_mode == 'restart' and c.parameters.f_cutoff == 1.0]
-
-                dE = kipz['energy'] - kipz_m1['energy']
-                lambda_a = kipz['lambda_ii']
-                lambda_0 = dft['lambda_ii']
+                dE = trial_calc.results['energy'] - kipz_m1['energy']
                 mp1 = kipz_m1['mp1_energy']
                 mp2 = kipz_m1['mp2_energy']
 
             else:
-                # KIPZ N+1-1
-                [alpha_calc] = [c for c in calcs if c.parameters.which_orbdep == 'nkipz'
-                                and c.parameters.do_orbdep and c.parameters.f_cutoff < 0.0001]
-                kipz = alpha_calc.results
-
                 # KIPZ N+1
                 [kipz_p1_calc] = [c for c in calcs if c.parameters.which_orbdep == 'nkipz'
                                   and c.parameters.do_orbdep and c.parameters.f_cutoff == 1.0]
                 kipz_p1 = kipz_p1_calc.results
                 charge = - kipz_p1_calc.parameters.f_cutoff
 
-                # DFT N+1-1
-                [dft] = [c.results for c in calcs if not c.parameters.do_orbdep
-                         and c.parameters.restart_mode == 'restart' and c.parameters.f_cutoff < 0.0001]
-
-                dE = kipz_p1['energy'] - kipz['energy']
-                lambda_a = kipz['lambda_ii']
-                lambda_0 = dft['lambda_ii']
+                dE = kipz_p1['energy'] - trial_calc.results['energy']
                 mp1 = kipz_p1['mp1_energy']
                 mp2 = kipz_p1['mp2_energy']
 
         else:
             # self.functional in ['ki', 'pkipz']
             if filled:
-                # KI N
-                [alpha_calc] = [c for c in calcs if c.parameters.which_orbdep == 'nki'
-                                and c.parameters.do_orbdep and c.parameters.f_cutoff == 1.0]
-                ki = alpha_calc.results
-
                 # DFT N-1
                 [dft_m1_calc] = [c for c in calcs if not c.parameters.do_orbdep
                                  and c.parameters.restart_mode == 'restart' and c.parameters.f_cutoff < 0.0001]
                 dft_m1 = dft_m1_calc.results
                 charge = 1 - dft_m1_calc.parameters.f_cutoff
 
-                # DFT N
-                [dft] = [c.results for c in calcs if not c.parameters.do_orbdep
-                         and c.parameters.restart_mode == 'restart' and c.parameters.f_cutoff == 1.0]
-
-                dE = dft['energy'] - dft_m1['energy']
-                lambda_a = ki['lambda_ii']
-                lambda_0 = dft['lambda_ii']
+                dE = trial_calc.results['energy'] - dft_m1['energy']
                 mp1 = dft_m1['mp1_energy']
                 mp2 = dft_m1['mp2_energy']
 
             else:
-                # KI N+1-1
-                [alpha_calc] = [c for c in calcs if c.parameters.which_orbdep == 'nki'
-                                and c.parameters.do_orbdep and c.parameters.f_cutoff < 0.0001]
-                ki = alpha_calc.results
-
                 # DFT N+1
                 [dft_p1_calc] = [c for c in calcs if not c.parameters.do_orbdep
                                  and c.parameters.restart_mode == 'restart' and c.parameters.f_cutoff == 1.0]
                 dft_p1 = dft_p1_calc.results
                 charge = - dft_p1_calc.parameters.f_cutoff
 
-                # DFT N+1-1
-                [dft] = [c.results for c in calcs if not c.parameters.do_orbdep
-                         and c.parameters.restart_mode == 'restart' and c.parameters.f_cutoff < 0.0001]
-
-                dE = dft_p1['energy'] - dft['energy']
-                lambda_a = ki['lambda_ii']
-                lambda_0 = dft['lambda_ii']
+                dE = dft_p1['energy'] - trial_calc.results['energy']
                 mp1 = dft_p1['mp1_energy']
                 mp2 = dft_p1['mp2_energy']
 
-            # Check total energy is unchanged
-            dE_check = abs(ki['energy'] - dft['energy'])
-            if dE_check > 1e-5:
-                utils.warn('KI and DFT energies differ by {:.5f} eV'.format(dE_check))
+        # Extract lambda from the base calculator
+        iband = band_index - 1  # converting from 1-indexing to 0-indexing
+        lambda_a = trial_calc.results['lambda'][0][iband, iband].real
+        lambda_0 = trial_calc.results['bare lambda'][0][iband, iband].real
 
         # Obtaining alpha
-        if (alpha_calc.parameters.odd_nkscalfact and filled) \
-                or (alpha_calc.parameters.odd_nkscalfact_empty and not filled):
-            alpha_guesses = alpha_calc.alphas[0]
-            alpha_guess = alpha_guesses[alpha_calc.parameters.fixed_band - 1]
+        if (trial_calc.parameters.odd_nkscalfact and filled) \
+                or (trial_calc.parameters.odd_nkscalfact_empty and not filled):
+            alpha_guess = trial_calc.alphas[0][iband]
         else:
-            alpha_guess = alpha_calc.parameters.nkscalfact
+            alpha_guess = trial_calc.parameters.nkscalfact
 
         # Checking Makov-Payne correction energies and applying them (if needed)
         if self.parameters.mp_correction:

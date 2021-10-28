@@ -10,9 +10,9 @@ Split into a separate module Sep 2021
 
 import os
 from pathlib import Path
+from typing import Dict, Optional, Union
 import xml.etree.ElementTree as ET
 from ase import Atoms
-from typing import Dict, Optional
 
 
 def read_pseudo_file(fd):
@@ -43,7 +43,8 @@ def set_up_pseudos(calc):
                                      'the kcp block of your json input file.')
 
 
-def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str], pseudo_dir: Optional[Path] = None) -> int:
+def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str],
+                       pseudo_dir: Optional[Union[Path, str]] = None) -> int:
     '''
     Determines the number of electrons in the system using information from pseudopotential files
     '''
@@ -54,6 +55,8 @@ def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str], pseudo_di
             pseudo_dir = Path(os.environ['ESPRESSO_PSEUDO'])
         else:
             pseudo_dir = Path.cwd()
+    elif isinstance(pseudo_dir, str):
+        pseudo_dir = Path(pseudo_dir)
 
     valences_dct = {key: read_pseudo_file(pseudo_dir / value).find('PP_HEADER').get(
         'z_valence') for key, value in pseudopotentials.items()}
