@@ -32,6 +32,13 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
             Setting('periodic',
                     'whether or not the system is periodic',
                     bool, False, (True, False)),
+            Setting('spin_polarised',
+                    'if True, the system will be allowed to break spin symmetry i.e. n^{up}(r) != n^{down}(r)',
+                    bool, False, (True, False)),
+            Setting('fix_spin_contamination',
+                    'if True, steps will be taken to try and avoid spin contamination. This is only sensible when '
+                    'performing a non-spin-polarised calculation, and is turned on by default for such calculations',
+                    bool, None, (True, False)),
             Setting('npool',
                     'Number of pools for parallelising over kpoints (should be commensurate with the k-point grid)',
                     int, None, None),
@@ -78,10 +85,6 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     'together only if their self-Hartree energy is within this '
                     'threshold',
                     float, None, None),
-            Setting('enforce_spin_symmetry',
-                    'if True, the spin-up and spin-down wavefunctions will be forced '
-                    'to be the same',
-                    bool, True, (True, False)),
             Setting('check_wannierisation',
                     'if True, checks the Im/Re ratio and generates a plot of the interpolated band structure',
                     bool, False, (True, False)),
@@ -99,6 +102,9 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     'a list of epsilon_infinity values for the cavity in dscf calculations',
                     list, [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], None)]
         super().__init__(settings=settings, physicals=['alpha_conv_thr', 'convergence_threshold'], **kwargs)
+
+        if self.fix_spin_contamination is None:
+            self.fix_spin_contamination = not self.spin_polarised
 
     @property
     def _other_valid_keywords(self):

@@ -149,7 +149,7 @@ class KoopmansDSCFWorkflow(Workflow):
         self.perform_initialisation()
 
         if self.parameters.from_scratch and self.parameters.init_orbitals != 'from old ki' \
-                and self.parameters.enforce_spin_symmetry \
+                and self.parameters.fix_spin_contamination \
                 and self.parameters.init_orbitals not in ['mlwfs', 'projwfs']:
             self.print('Copying the spin-up variational orbitals over to the spin-down channel')
             calc = self.calculations[-1]
@@ -290,7 +290,7 @@ class KoopmansDSCFWorkflow(Workflow):
         elif self.parameters.functional in ['ki', 'pkipz']:
             calc = self.new_kcp_calculator('dft_init')
             calc.directory = Path('init')
-            self.run_calculator(calc, enforce_ss=self.parameters.enforce_spin_symmetry)
+            self.run_calculator(calc, enforce_ss=self.parameters.fix_spin_contamination)
 
             # Use the KS eigenfunctions as better guesses for the variational orbitals
             self._overwrite_canonical_with_variational_orbitals(calc)
@@ -316,7 +316,7 @@ class KoopmansDSCFWorkflow(Workflow):
             # DFT from scratch
             calc = self.new_kcp_calculator('dft_init')
             calc.directory = Path('init')
-            self.run_calculator(calc, enforce_ss=self.parameters.enforce_spin_symmetry)
+            self.run_calculator(calc, enforce_ss=self.parameters.fix_spin_contamination)
 
             if self.parameters.init_orbitals == 'kohn-sham':
                 # Initialise the density with DFT and use the KS eigenfunctions as guesses for the variational orbitals
@@ -399,7 +399,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
             # Run the calculation and store the result. Note that we only need to continue
             # enforcing the spin symmetry if the density will change
-            self.run_calculator(trial_calc, enforce_ss=self.parameters.enforce_spin_symmetry and i_sc > 1)
+            self.run_calculator(trial_calc, enforce_ss=self.parameters.fix_spin_contamination and i_sc > 1)
             alpha_dep_calcs = [trial_calc]
 
             # Update the bands' self-Hartree and energies (assuming spin-symmetry)
