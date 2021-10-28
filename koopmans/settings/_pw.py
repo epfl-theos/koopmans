@@ -1,5 +1,6 @@
 from typing import Any, Dict
 from ase.io.espresso import pw as pw_io
+from ase.dft.kpoints import BandPath
 from ._utils import SettingsDict
 
 
@@ -30,4 +31,8 @@ class PWSettingsDict(SettingsDict):
     def __setitem__(self, key: str, value: Any):
         if key == 'nspin' and value == 1:
             self.data.pop('tot_magnetization', None)
+        if key == 'kpts' and isinstance(value, BandPath):
+            # Make sure the kpoints are always printed out in full
+            if len(value.kpts) >= 100:
+                self.verbosity = 'high'
         return super().__setitem__(key, value)
