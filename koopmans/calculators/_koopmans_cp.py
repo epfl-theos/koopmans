@@ -11,7 +11,7 @@ import math
 import numpy as np
 from pathlib import Path
 from scipy.linalg import block_diag
-from typing import Optional, List
+from typing import Optional, List, Union
 from pandas.core.series import Series
 import xml.etree.ElementTree as ET
 from ase import Atoms
@@ -45,8 +45,8 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
     ext_in = '.cpi'
     ext_out = '.cpo'
 
-    def __init__(self, atoms: Atoms, skip_qc: bool = False, alphas: Optional[List[float]] = None,
-                 filling: Optional[List[bool]] = None, **kwargs):
+    def __init__(self, atoms: Atoms, skip_qc: bool = False, alphas: Optional[List[List[float]]] = None,
+                 filling: Optional[List[List[bool]]] = None, **kwargs):
         # Define the valid parameters
         self.parameters = settings.KoopmansCPSettingsDict()
 
@@ -149,20 +149,16 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
         return self._alphas
 
     @alphas.setter
-    def alphas(self, val):
+    def alphas(self, val: Union[None, Series, List[List[float]]]):
 
         if val is None:
             return
-        elif isinstance(val, Series):
+
+        if isinstance(val, Series):
             val = val.to_numpy()
 
-        # alphas can be a 1D or 2D array. If it is 1D, convert it to 2D so that self.alphas
-        # is indexed by [i_spin, i_orbital]
-        if isinstance(val[0], float):
-            val = [val for _ in range(self.parameters.nspin)]
-
-        if len(val) == 1 and self.nspin == 2:
-            val = [val[0] for _ in range(self.parameters.nspin)]
+        assert len(val) == self.parameters.nspin, \
+            f'Dimensions of {self.__class__.name}.alphas must match nspin = {self.parameters.nspin}'
 
         self._alphas = val
 
@@ -172,23 +168,22 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
         # Filling is written in this way such that we can calculate it automatically,
         # but if it is explicitly set then we will always use that value instead
         if self._filling is None:
-            n_filled_bands = self.parameters.nelec // 2
+            self._filling = []
+
+            # Work out how many filled and empty bands we will have for each spin channel
+            if self.parameters.nspin == 2:
+                n_filled_bands_list = [self.parameters.nelup, self.parameters.neldw]
+            else:
+                n_filled_bands_list = [self.parameters.nelec // 2]
             n_empty_bands = self.parameters.empty_states_nbnd
-            if n_empty_bands is None:
-                n_empty_bands = 0
-            filled_spin_channel = [True for _ in range(n_filled_bands)] + [False for _ in range(n_empty_bands)]
-            return [filled_spin_channel for _ in range(self.parameters.nspin)]
-        else:
-            return self._filling
+
+            # Generate the filling list
+            for n_filled_bands in n_filled_bands_list:
+                self._filling.append([True for _ in range(n_filled_bands)] + [False for _ in range(n_empty_bands)])
+        return self._filling
 
     @filling.setter
-    def filling(self, val):
-
-        if val is not None:
-            # val can be a 1D or 2D array. If it is 1D, convert it to 2D so that filling
-            # is indexed by [i_spin, i_orbital]
-            if isinstance(val[0], bool):
-                val = [val for _ in range(self.parameters.nspin)]
+    def filling(self, val: Union[List[List[bool]], None]):
 
         self._filling = val
 
@@ -205,7 +200,7 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
         flat_filling = [f for sublist in self.filling for f in sublist]
         utils.write_alpha_file(self.directory, flat_alphas, flat_filling)
 
-    def read_alphas(self):
+    def read_alphas(self) -> List[List[float]]:
         '''
         Reads in file_alpharef.txt and file_alpharef_empty.txt from this calculation's directory
 
@@ -214,15 +209,19 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
         '''
 
         if not self.parameters.do_orbdep or not self.parameters.odd_nkscalfact:
-            return
+            return [[]]
 
-        alphas = utils.read_alpha_file(self.directory)
+        flat_alphas = utils.read_alpha_file(self.directory)
 
+        # Read alpha file returns a flat list ordered by filled spin up, filled spin down, empty spin up, empty spin down
+        # Here we reorder this into a nested list indexed by [i_spin][i_orbital]
         if self.parameters.nspin == 2:
-            # Remove duplicates
-            alphas = alphas[:self.parameters.nelec // 2] + \
-                alphas[self.parameters.nelec:self.parameters.nelec + self.parameters.empty_states_nbnd]
-            alphas = [alphas, alphas]
+            alphas = [flat_alphas[:self.parameters.nelup]
+                      + flat_alphas[self.parameters.nelec:-self.parameters.empty_states_nbnd],
+                      flat_alphas[self.parameters.nelup:self.parameters.nelec]
+                      + flat_alphas[-self.parameters.empty_states_nbnd:]]
+        else:
+            alphas = [flat_alphas]
         return alphas
 
     # The following functions enable DOS generation via ase.dft.dos.DOS(<KoopmansCPCalculator object>)

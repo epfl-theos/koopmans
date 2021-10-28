@@ -103,9 +103,6 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     list, [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], None)]
         super().__init__(settings=settings, physicals=['alpha_conv_thr', 'convergence_threshold'], **kwargs)
 
-        if self.fix_spin_contamination is None:
-            self.fix_spin_contamination = not self.spin_polarised
-
     @property
     def _other_valid_keywords(self):
         return []

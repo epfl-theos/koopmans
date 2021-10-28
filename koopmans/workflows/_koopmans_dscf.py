@@ -57,9 +57,14 @@ class KoopmansDSCFWorkflow(Workflow):
                 raise ValueError('kcp empty_states_nbnd and wannier90 num_wann (emp) are inconsistent')
 
         # Initialise the bands object
-        filling = [True for _ in range(kcp_params.nelec // 2)] + [False for _ in range(kcp_params.empty_states_nbnd)]
+        if self.parameters.spin_polarised:
+            raise NotImplementedError()
+        else:
+            filling = [[True for _ in range(kcp_params.nelec // 2)]
+                       + [False for _ in range(kcp_params.empty_states_nbnd)] for _ in range(2)]
 
-        self.bands = Bands(n_bands=len(filling), filling=filling, groups=self.parameters.orbital_groups,
+        self.bands = Bands(n_bands=len(filling[0]), n_spin=2, spin_polarised=self.parameters.spin_polarised,
+                           filling=filling, groups=self.parameters.orbital_groups,
                            self_hartree_tol=self.parameters.orbital_groups_self_hartree_tol)
         if self.parameters.alpha_from_file:
             # Reading alpha values from file
@@ -403,7 +408,7 @@ class KoopmansDSCFWorkflow(Workflow):
             alpha_dep_calcs = [trial_calc]
 
             # Update the bands' self-Hartree and energies (assuming spin-symmetry)
-            self.bands.self_hartrees = trial_calc.results['orbital_data']['self-Hartree'][0]
+            self.bands.self_hartrees = trial_calc.results['orbital_data']['self-Hartree']
 
             # Group the bands
             self.bands.assign_groups(allow_reassignment=True)
@@ -412,7 +417,7 @@ class KoopmansDSCFWorkflow(Workflow):
             # Loop over removing/adding an electron from/to each orbital
             for band in self.bands:
                 # Working out what to print for the orbital heading (grouping skipped bands together)
-                if band in self.bands.to_solve or band == self.bands[-1]:
+                if band in self.bands.to_solve or band == self.bands.get(spin=band.spin)[-1]:
                     if band not in self.bands.to_solve:
                         skipped_orbitals.append(band.index)
                     if len(skipped_orbitals) > 0:
@@ -425,6 +430,10 @@ class KoopmansDSCFWorkflow(Workflow):
                         skipped_orbitals = []
                     if band not in self.bands.to_solve:
                         continue
+                elif not self.parameters.spin_polarised and band.spin == 1:
+                    # In this case, skip over the bands entirely and don't include it in the printout about which
+                    # bands we've skipped
+                    continue
                 else:
                     # Skip the bands which can copy the screening parameter from another
                     # calculation in the same orbital group
@@ -433,16 +442,20 @@ class KoopmansDSCFWorkflow(Workflow):
                 self.print(f'Orbital {band.index}', style='subheading')
 
                 # Set up directories
-                directory = Path(f'{iteration_directory}/orbital_{band.index}')
+                if self.parameters.spin_polarised:
+                    directory = Path(f'{iteration_directory}/spin_{band.spin + 1}/orbital_{band.index}')
+                    outdir_band = outdir / f'spin_{band.spin + 1}/orbital_{band.index}'
+                else:
+                    directory = Path(f'{iteration_directory}/orbital_{band.index}')
+                    outdir_band = outdir / f'orbital_{band.index}'
                 if not directory.is_dir():
                     directory.mkdir()
-                outdir_band = outdir / f'orbital_{band.index}'
 
                 # Link tmp files from band-independent calculations
                 if not outdir_band.is_dir():
                     outdir_band.mkdir()
 
-                    utils.symlink(f'{self.master_calc_params["kcp"].outdir}/*.save', outdir_band)
+                    utils.symlink(f'{trial_calc.parameters.outdir}/*.save', outdir_band)
 
                 # Don't repeat if this particular alpha_i was converged
                 if i_sc > 1 and abs(band.error) < self.parameters.alpha_conv_thr:
@@ -456,11 +469,12 @@ class KoopmansDSCFWorkflow(Workflow):
                 # When we write/update the alpharef files in the work directory
                 # make sure to include the fixed band alpha in file_alpharef.txt
                 # rather than file_alpharef_empty.txt
-                band_filled_or_fixed = [b is band or b.filled for b in self.bands]
+                if self.parameters.spin_polarised:
+                    raise NotImplementedError()
                 if band.filled:
                     index_empty_to_save = None
                 else:
-                    index_empty_to_save = band.index - self.bands.num(filled=True)
+                    index_empty_to_save = band.index - self.bands.num(filled=True, spin=band.spin)
 
                 # Perform the fixed-band-dependent calculations
                 if self.parameters.functional in ['ki', 'pkipz']:
@@ -502,15 +516,20 @@ class KoopmansDSCFWorkflow(Workflow):
                         # the spin-up channel, so we explicitly construct both spin
                         # channels for "alphas" and "filling"
                         alphas = self.bands.alphas
-                        alphas = [alphas + [alphas[-1]], alphas]
-                        filling = [band_filled_or_fixed + [False], self.bands.filling]
+                        alphas[band.spin].append(alphas)
+                        filling = self.bands.filling
+                        filling[band.spin][band.index - 1] = True
+                        filling[band.spin].append(False)
                     else:
                         alphas = self.bands.alphas
-                        filling = band_filled_or_fixed
+                        filling = self.bands.filling
+                        filling[band.spin][band.index - 1] = True
 
                     # Set up calculator
+                    if self.parameters.spin_polarised:
+                        raise NotImplementedError()
                     calc = self.new_kcp_calculator(calc_type, alphas=alphas, filling=filling, fixed_band=min(
-                        band.index, self.bands.num(filled=True) + 1),
+                        band.index, self.bands.num(filled=True, spin=band.spin) + 1),
                         index_empty_to_save=index_empty_to_save, outdir=outdir_band)
                     calc.directory = directory
 
@@ -665,8 +684,8 @@ class KoopmansDSCFWorkflow(Workflow):
         self.calculations.append(calc)
 
     def new_kcp_calculator(self, calc_presets: str = 'dft_init',
-                           alphas: Optional[Union[List[float], List[List[float]]]] = None,
-                           filling: Optional[Union[List[List[bool]], List[bool]]] = None,
+                           alphas: Optional[List[List[float]]] = None,
+                           filling: Optional[List[List[bool]]] = None,
                            **kwargs) -> calculators.KoopmansCPCalculator:
         """
 

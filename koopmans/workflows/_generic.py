@@ -98,6 +98,12 @@ class Workflow(object):
             self.atoms.calc = None
 
         # Check internal consistency of workflow settings
+        if self.parameters.fix_spin_contamination is None:
+            self.parameters.fix_spin_contamination = not self.parameters.spin_polarised
+        else:
+            if self.parameters.fix_spin_contamination and self.parameters.spin_polarised:
+                raise ValueError('fix_spin_contamination = True is incompatible with spin_polarised = True')
+
         if self.parameters.method == 'dfpt':
             if self.parameters.frozen_orbitals is None:
                 self.parameters.frozen_orbitals = True

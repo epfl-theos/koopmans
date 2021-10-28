@@ -11,6 +11,7 @@ import os
 import json
 import numpy as np
 from typing import List, Union, Tuple
+from pathlib import Path
 from ase.atoms import Atoms
 from ase.dft.kpoints import bandpath, BandPath
 from ase.calculators.calculator import Calculator
@@ -44,21 +45,21 @@ def construct_cell_parameters_block(atoms: Atoms) -> dict:
     return {'vectors': [list(row) for row in atoms.cell[:]], 'units': 'angstrom'}
 
 
-def write_alpha_file(directory: str, alphas: List[float], filling: List[bool]):
+def write_alpha_file(directory: Path, alphas: List[float], filling: List[bool]):
     a_filled = [a for a, f in zip(alphas, filling) if f]
     a_empty = [a for a, f in zip(alphas, filling) if not f]
     for alphas, suffix in zip([a_filled, a_empty], ['', '_empty']):
-        with open(f'{directory}/file_alpharef{suffix}.txt', 'w') as fd:
+        with open(directory / f'file_alpharef{suffix}.txt', 'w') as fd:
             fd.write('{}\n'.format(len(alphas)))
             fd.writelines(['{} {} 1.0\n'.format(i + 1, a)
                            for i, a in enumerate(alphas)])
 
 
-def read_alpha_file(directory: str) -> List[float]:
+def read_alpha_file(directory: Path) -> List[float]:
     alphas = []
     for suffix in ['', '_empty']:
-        fname = f'{directory}/file_alpharef{suffix}.txt'
-        if not os.path.isfile(fname):
+        fname = directory / f'file_alpharef{suffix}.txt'
+        if not fname.is_file():
             break
         with open(fname, 'r') as fd:
             flines = fd.readlines()

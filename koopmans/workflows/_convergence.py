@@ -12,6 +12,7 @@ import copy
 import numpy as np
 import itertools
 from typing import Dict, Union, List
+from pathlib import Path
 from koopmans import utils
 from ._generic import Workflow
 from ._singlepoint import SinglepointWorkflow
@@ -70,7 +71,7 @@ class ConvergenceWorkflow(Workflow):
             and self.parameters.functional in ['ki', 'kipz', 'pkipz', 'all'] \
             and self.parameters.alpha_from_file
         if provide_alpha:
-            master_alphas = utils.read_alpha_file(directory='.')
+            master_alphas = utils.read_alpha_file(directory=Path())
             if self.parameters.orbital_groups is None:
                 self.parameters.orbital_groups = list(
                     range(kcp_master_params.nelec // 2 + kcp_master_params.empty_states_nbnd))
@@ -119,7 +120,7 @@ class ConvergenceWorkflow(Workflow):
                     self.parameters.orbital_groups = master_orbital_groups + \
                         [master_orbital_groups[-1]
                             for _ in range(extra_orbitals)]
-                    utils.write_alpha_file(directory='.', alphas=alphas, filling=filling)
+                    utils.write_alpha_file(directory=Path(), alphas=alphas, filling=filling)
 
                 self.print(header.rstrip(', '), style='subheading')
 
