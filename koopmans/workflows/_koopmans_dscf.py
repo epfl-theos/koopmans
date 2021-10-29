@@ -18,6 +18,7 @@ from ase import Atoms
 from ase.dft.dos import DOS
 from ase.spectrum.band_structure import BandStructure
 from koopmans import utils
+from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.bands import Bands
 from koopmans import calculators
 from ._generic import Workflow
@@ -121,7 +122,9 @@ class KoopmansDSCFWorkflow(Workflow):
         '''
 
         flat_alphas = utils.read_alpha_file(directory)
-        alphas = calculators.convert_flat_alphas_for_kcp(flat_alphas, self.master_calc_params['kcp'])
+        params = self.master_calc_params['kcp']
+        assert isinstance(params, KoopmansCPSettingsDict)
+        alphas = calculators.convert_flat_alphas_for_kcp(flat_alphas, params)
 
         if self.parameters.spin_polarised:
             raise NotImplementedError('Need to check implementation')
