@@ -35,13 +35,16 @@ class KoopmansDSCFWorkflow(Workflow):
         # If periodic, convert the kcp calculation into a Γ-only supercell calculation
         kcp_params = self.master_calc_params['kcp']
         if self.parameters.periodic:
+            if self.parameters.spin_polarised:
+                raise NotImplementedError('Yet to implement spin-polarised calculations for periodic systems')
+
             # Update the KCP settings to correspond to a supercell (leaving self.atoms unchanged for the moment)
             self.convert_kcp_to_supercell()
-
             nocc = self.master_calc_params['w90_occ'].num_wann
             nemp = self.master_calc_params['w90_emp'].num_wann
-            if not self.parameters.orbital_groups:
-                self.parameters.orbital_groups = range(0, nocc + nemp)
+            # Note that self.parameters.orbital_groups does not have a spin index, as opposed to self.bands.groups
+            if self.parameters.orbital_groups is None:
+                self.parameters.orbital_groups = list(range(0, nocc + nemp))
             self.parameters.orbital_groups = [i for _ in range(np.prod(self.kgrid))
                                               for i in self.parameters.orbital_groups[:nocc]] \
                 + [i for _ in range(np.prod(self.kgrid))
@@ -62,9 +65,14 @@ class KoopmansDSCFWorkflow(Workflow):
         else:
             filling = [[True for _ in range(kcp_params.nelec // 2)]
                        + [False for _ in range(kcp_params.empty_states_nbnd)] for _ in range(2)]
+            # self.parameters.orbital_groups does not have a spin index
+            if self.parameters.orbital_groups is None:
+                groups = None
+            else:
+                groups = [self.parameters.orbital_groups for _ in range(2)]
 
         self.bands = Bands(n_bands=len(filling[0]), n_spin=2, spin_polarised=self.parameters.spin_polarised,
-                           filling=filling, groups=self.parameters.orbital_groups,
+                           filling=filling, groups=groups,
                            self_hartree_tol=self.parameters.orbital_groups_self_hartree_tol)
         if self.parameters.alpha_from_file:
             # Reading alpha values from file
@@ -103,25 +111,22 @@ class KoopmansDSCFWorkflow(Workflow):
             if value is not None:
                 setattr(self.master_calc_params['kcp'], attr, prefactor * value)
 
-    def read_alphas_from_file(self, directory='.'):
+    def read_alphas_from_file(self, directory: Path = Path()):
         '''
         This routine reads in the contents of file_alpharef.txt and file_alpharef_empty.txt and
         stores the result in self.bands.alphas
 
-        Note that utils.read_alpha_file provides a flattened list of alphas so we must exclude
-        duplicates if calc.nspin == 2
+        Since utils.read_alpha_file provides a flattened list of alphas so we must convert this
+        to a nested list using convert_flat_alphas_for_kcp()
         '''
 
-        params = self.master_calc_params['kcp']
+        flat_alphas = utils.read_alpha_file(directory)
+        alphas = calculators.convert_flat_alphas_for_kcp(flat_alphas, self.master_calc_params['kcp'])
 
-        if params.nspin == 2:
-            i_alphas = list(range(0, params.nelec // 2)) + \
-                list((range(params.nelec, params.nelec + params.empty_states_nbnd)))
-        else:
-            i_alphas = list((range(0, params.nelec // 2 + params.empty_states_nbnd)))
+        if self.parameters.spin_polarised:
+            raise NotImplementedError('Need to check implementation')
 
-        alphas = utils.read_alpha_file(directory)
-        return [a for i, a in enumerate(alphas) if i in i_alphas]
+        return alphas
 
     def run(self) -> None:
         '''

@@ -346,7 +346,10 @@ class Bands(object):
 
         # Create an array of values padded with NaNs
         arr = np.array(list(itertools.zip_longest(*[getattr(b, attr) for b in band_subset], fillvalue=np.nan)))
-        df = pd.DataFrame(arr, columns=columns)
+        if arr.size == 0:
+            df = pd.DataFrame(columns=columns)
+        else:
+            df = pd.DataFrame(arr, columns=columns)
         return df
 
     @property

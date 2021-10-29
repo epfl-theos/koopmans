@@ -213,16 +213,7 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
 
         flat_alphas = utils.read_alpha_file(self.directory)
 
-        # Read alpha file returns a flat list ordered by filled spin up, filled spin down, empty spin up, empty spin down
-        # Here we reorder this into a nested list indexed by [i_spin][i_orbital]
-        if self.parameters.nspin == 2:
-            alphas = [flat_alphas[:self.parameters.nelup]
-                      + flat_alphas[self.parameters.nelec:-self.parameters.empty_states_nbnd],
-                      flat_alphas[self.parameters.nelup:self.parameters.nelec]
-                      + flat_alphas[-self.parameters.empty_states_nbnd:]]
-        else:
-            alphas = [flat_alphas]
-        return alphas
+        return convert_flat_alphas_for_kcp(flat_alphas, self.parameters)
 
     # The following functions enable DOS generation via ase.dft.dos.DOS(<KoopmansCPCalculator object>)
     def get_k_point_weights(self):
@@ -244,3 +235,16 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
 
     def get_fermi_level(self):
         return 0
+
+
+def convert_flat_alphas_for_kcp(flat_alphas: List[float], parameters: settings.KoopmansCPSettingsDict) -> List[List[float]]:
+    # Read alpha file returns a flat list ordered by filled spin up, filled spin down, empty spin up, empty spin down
+    # Here we reorder this into a nested list indexed by [i_spin][i_orbital]
+    if parameters.nspin == 2:
+        alphas = [flat_alphas[:parameters.nelup]
+                  + flat_alphas[parameters.nelec:-parameters.empty_states_nbnd],
+                  flat_alphas[parameters.nelup:parameters.nelec]
+                  + flat_alphas[-parameters.empty_states_nbnd:]]
+    else:
+        alphas = [flat_alphas]
+    return alphas

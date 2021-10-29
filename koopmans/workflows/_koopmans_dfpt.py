@@ -10,10 +10,10 @@ import os
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
-from koopmans.bands import Bands
-from koopmans.calculators import Wann2KCCalculator, KoopmansHamCalculator
-from koopmans import utils, io
 from ._generic import Workflow
+from koopmans import utils, io
+from koopmans.calculators import Wann2KCCalculator, KoopmansHamCalculator
+from koopmans.bands import Bands
 
 
 class KoopmansDFPTWorkflow(Workflow):
@@ -22,8 +22,12 @@ class KoopmansDFPTWorkflow(Workflow):
         super().__init__(*args, **kwargs)
 
         # Check the consistency of keywords
+        if self.parameters.spin_polarised:
+            raise NotImplementedError(
+                'Calculating screening parameters with DFPT is not yet possible for spin-polarised systems')
         if self.parameters.functional != 'ki':
-            raise ValueError('Calculating screening parameters with DFPT is only possible with the KI functional')
+            raise NotImplementedError(
+                'Calculating screening parameters with DFPT is not yet possible with functionals other than KI')
         if self.parameters.periodic:
             if self.parameters.init_orbitals not in ['mlwfs', 'projwfs']:
                 raise ValueError(
@@ -91,8 +95,8 @@ class KoopmansDFPTWorkflow(Workflow):
             nemp = self.master_calc_params['pw'].nbnd - nocc
         if self.parameters.orbital_groups is None:
             self.parameters.orbital_groups = list(range(nocc + nemp))
-        self.bands = Bands(n_bands=nocc + nemp, filling=[True] * nocc + [False] * nemp,
-                           groups=self.parameters.orbital_groups)
+        self.bands = Bands(n_bands=nocc + nemp, filling=[[True] * nocc + [False] * nemp],
+                           groups=[self.parameters.orbital_groups])
 
         # Populating kpoints if absent
         if not self.parameters.periodic:
@@ -156,7 +160,7 @@ class KoopmansDFPTWorkflow(Workflow):
                 self.run_calculator(kc_screen_calc)
 
                 # 3) Store the computed screening parameters
-                self.bands.alphas = kc_screen_calc.results['alphas']
+                self.bands.alphas = [kc_screen_calc.results['alphas']]
             else:
                 # If there is orbital grouping, do the orbitals one-by-one
                 for band in self.bands.to_solve:

@@ -9,7 +9,7 @@
         "alpha_guess": 0.077,
         "print_qc": true,
         "from_scratch": true,
-        "enforce_spin_symmetry": true,
+        "fix_spin_contamination": true,
         "orbital_groups": [
             0,
             0,
