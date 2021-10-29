@@ -155,6 +155,8 @@ class KoopmansDSCFWorkflow(Workflow):
                 utils.system_call(f'rm -r {self.master_calc_params["kcp"].outdir} 2>/dev/null', False)
             utils.system_call('rm -r calc_alpha 2>/dev/null', False)
             utils.system_call('rm -r final 2>/dev/null', False)
+            utils.system_call('rm -r alphas.pkl 2>/dev/null', False)
+            utils.system_call('rm -r errors.pkl 2>/dev/null', False)
             if getattr(self, 'redo_preexisting_smooth_dft_calcs', True):
                 utils.system_call('rm -r postproc 2>/dev/null', False)
 
@@ -524,7 +526,7 @@ class KoopmansDSCFWorkflow(Workflow):
                         # the spin-up channel, so we explicitly construct both spin
                         # channels for "alphas" and "filling"
                         alphas = self.bands.alphas
-                        alphas[band.spin].append(alphas)
+                        alphas[band.spin].append(alphas[band.spin][-1])
                         filling = self.bands.filling
                         filling[band.spin][band.index - 1] = True
                         filling[band.spin].append(False)
@@ -954,7 +956,7 @@ class KoopmansDSCFWorkflow(Workflow):
                                            calcs: List[calculators.KoopmansCPCalculator],
                                            trial_calc: calculators.KoopmansCPCalculator,
                                            band_index: int,
-                                           filled: bool = True) -> Union[Tuple[float, float]]:
+                                           filled: bool = True) -> Tuple[float, float]:
         '''
 
         Calculates alpha via equation 10 of Nguyen et. al (2018) 10.1103/PhysRevX.8.021051

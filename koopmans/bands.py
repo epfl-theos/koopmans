@@ -262,6 +262,39 @@ class Bands(object):
         for b, v in zip(self, np.array(value)[:]):
             b.self_hartree = v
 
+    def update_attrib_with_history(self, name: str, value: Union[float, List[List[float]], np.ndarray, pd.DataFrame], group=None):
+        '''
+        Generic function for setting the band's screening parameters/errors to the value provided
+         - "value" can be a scalar, a list, or a pandas DataFrame of the alpha_history
+         - if "group" is provided then it applies this value to the orbitals belonging to this group only
+        '''
+
+        if isinstance(value, pd.DataFrame):
+            assert group is None, 'Cannot update only one group via a pandas DataFrame'
+            if self.spin_polarised:
+                raise NotImplementedError()
+            else:
+                tmp_arr = np.transpose(value.values)
+                array = [tmp_arr for _ in range(self.n_spin)]
+
+            for spin, s_array in enumerate(array):
+                for b, history in zip(self.get(spin=spin), s_array):
+                    # Make sure to exclude NaNs
+                    setattr(b, f'{name}_history', [a for a in history.tolist() if not np.isnan(a)])
+            return
+
+        if isinstance(value, float):
+            value = value * np.ones((self.n_spin, self.n_bands))
+        elif isinstance(value, list):
+            value = np.array(value)
+        shape = (self.n_spin, self.n_bands)
+        assert np.shape(value) == shape, f'Bands.{name} must have shape {shape}'
+        for b, v in zip(self, value.flatten()):
+            if group:
+                if b.group != group:
+                    continue
+            setattr(b, name, v)
+
     @property
     def alphas(self):
         # This returns the alpha values for the iteration number where we have alpha for all bands
@@ -272,34 +305,7 @@ class Bands(object):
 
     @alphas.setter
     def alphas(self, value):
-        self.update_alphas(value)
-
-    def update_alphas(self, value: Union[float, List[List[float]], np.ndarray, pd.DataFrame], group=None):
-        '''
-        Sets the band's screening parameters to the value provided
-         - "value" can be a scalar, a list, or a pandas DataFrame of the alpha_history
-         - if "group" is provided then it applies this value to the orbitals belonging to this group only
-        '''
-
-        if isinstance(value, pd.DataFrame):
-            raise NotImplementedError()
-            assert group is None, 'Cannot update only one group via a pandas DataFrame'
-            for b, alpha_history in zip(self, np.transpose(value.values.tolist())):
-                # Make sure to exclude NaNs
-                b.alpha_history = [a for a in alpha_history.tolist() if not np.isnan(a)]
-            return
-
-        if isinstance(value, float):
-            value = value * np.ones((self.n_spin, self.n_bands))
-        elif isinstance(value, list):
-            value = np.array(value)
-        shape = (self.n_spin, self.n_bands)
-        assert np.shape(value) == shape, f'Bands.alpha must have shape {shape}'
-        for b, v in zip(self, value.flatten()):
-            if group:
-                if b.group != group:
-                    continue
-            b.alpha = v
+        self.update_attrib_with_history('alpha', value)
 
     @property
     def errors(self):
@@ -310,30 +316,7 @@ class Bands(object):
         self.update_errors(value)
 
     def update_errors(self, value, group=None):
-        '''
-        Sets the band's residual error to the value provided
-         - "value" can be a scalar, a list, or a pandas DataFrame
-         - if "group" is provided then it applies this value to the orbitals belonging to this group only
-        '''
-
-        raise NotImplementedError()
-
-        if isinstance(value, pd.DataFrame):
-            assert group is None, 'Cannot update only one group via a pandas DataFrame'
-            if not value.empty:
-                for b, error_history in zip(self._bands, np.transpose(value.values.tolist())):
-                    b.error_history = [e for e in error_history.tolist() if not np.isnan(e)]
-            return
-
-        if isinstance(value, float):
-            value = [value for _ in range(self.num())]
-        assert len(value) == len(
-            self._bands), f'You tried to set the orbital errors with a list of length {len(value)} != {self.num()}'
-        for i, v in enumerate(value):
-            if group:
-                if self._bands[i].group != group:
-                    continue
-            self._bands[i].error = v
+        self.update_attrib_with_history('error', value)
 
     def _create_dataframe(self, attr) -> pd.DataFrame:
         # Generate a dataframe containing the requested attribute, sorting the bands first by index, then by spin
