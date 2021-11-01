@@ -10,7 +10,6 @@ Converted workflows from functions to objects Nov 2020
 import os
 import copy
 from pathlib import Path
-from ase.geometry.cell import cell_to_cellpar
 from ase.io.espresso.utils import cell_to_ibrav
 import numpy as np
 import numpy.typing as npt
@@ -281,11 +280,6 @@ class Workflow(object):
                 with open(file_out, 'wb') as fd:
                     fd.write(contents)
 
-            for i in range(1, 3):
-                to_delete = nspin2_tmpdir / f'{prefix}{i}.{suffix}'
-                if to_delete != file_out and to_delete.is_file():
-                    to_delete.unlink()
-
     def convert_wavefunction_1to2(self, nspin1_tmpdir: Path, nspin2_tmpdir: Path):
 
         if not self.parameters.from_scratch:
@@ -510,9 +504,6 @@ class Workflow(object):
                 # If the band structure file does not exist, we must re-run
                 if 'band structure' not in qe_calc.results:
                     return False
-            # elif isinstance(qe_calc.calc, EspressoWithBandstructure):
-            #     if not isinstance(qe_calc, calculators.EspressoCalculator) or qe_calc.calculation == 'bands':
-            #         qe_calc.band_structure()
 
             self.calculations.append(qe_calc)
 
@@ -581,13 +572,13 @@ class Workflow(object):
         workflow.calculations = self.calculations
 
         # Link the bands
-        try:
-            workflow.bands = self.bands
-            # Only include the most recent values
-            workflow.bands.alpha_history = workflow.bands.alphas
-            workflow.bands.error_history = []
-        except AttributeError:
-            pass
+        if hasattr(self, 'bands'):
+            workflow.bands = copy.deepcopy(self.bands)
+            # Only include the most recent screening parameter and wipe the error history
+            for b in workflow.bands:
+                if len(b.alpha_history) > 0:
+                    b.alpha_history = [b.alpha]
+                b.error_history = []
 
         if subdirectory is not None:
             # Update directories
@@ -610,10 +601,15 @@ class Workflow(object):
             self.parameters.from_scratch = workflow.parameters.from_scratch
 
         # Copy back over the bands
-        try:
-            self.bands = workflow.bands
-        except AttributeError:
-            pass
+        if hasattr(workflow, 'bands'):
+            if hasattr(self, 'bands'):
+                # Add the alpha and error history
+                for b, b_sub in zip(self.bands, workflow.bands):
+                    b.alpha_history += b_sub.alpha_history[1:]
+                    b.error_history += b_sub.error_history
+            else:
+                # Copy the entire bands object
+                self.bands = workflow.bands
 
     def todict(self):
         # Shallow copy

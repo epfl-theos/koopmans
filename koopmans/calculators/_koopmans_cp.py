@@ -9,6 +9,7 @@ Written by Edward Linscott Sep 2020
 import os
 import math
 import numpy as np
+import pickle
 from pathlib import Path
 from scipy.linalg import block_diag
 from typing import Optional, List, Union
@@ -76,7 +77,7 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
             raise ValueError('Cannot check convergence when "conv_thr" is not set')
         return self._ase_is_converged()
 
-    def read_ham_files(self, bare=False) -> List[np.ndarray]:
+    def read_ham_xml_files(self, bare=False) -> List[np.ndarray]:
         # Reads all expected hamiltonian XML files
         ham_dir = self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndw}.save/K00001'
         ham_matrix: List[np.ndarray] = []
@@ -114,14 +115,41 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
 
         return ham_matrix
 
+    def _ham_pkl_file(self, bare: bool = False) -> Path:
+        if bare:
+            suffix = '.bare_ham.pkl'
+        else:
+            suffix = '.ham.pkl'
+        return self.directory / (self.prefix + suffix)
+
+    def read_ham_pkl_files(self, bare: bool = False) -> List[np.ndarray]:
+        with open(self._ham_pkl_file(bare), 'rb') as fd:
+            ham_matrix = pickle.load(fd)
+        return ham_matrix
+
+    def write_ham_pkl_files(self, ham_matrix: List[np.ndarray], bare: bool = False) -> None:
+        with open(self._ham_pkl_file(bare), 'wb') as fd:
+            pickle.dump(ham_matrix, fd)
+
+    def read_ham_files(self, bare: bool = False) -> List[np.ndarray]:
+        # While the hamiltonian information is stored in xml files inside the outdir of the corresponding calculations,
+        # we want a workflow to be able to be reconstructed even if these outdirs have been deleted. This means that we
+        # need to store the contents of these xml files elsewhere. We do these as python-readable pickle files
+
+        if self._ham_pkl_file(bare).exists():
+            ham_matrix = self.read_ham_pkl_files(bare)
+        else:
+            ham_matrix = self.read_ham_xml_files(bare)
+            self.write_ham_pkl_files(ham_matrix, bare)
+
+        return ham_matrix
+
     def read_results(self):
-        return_val = super().read_results()
+        super().read_results()
 
         self.results['lambda'] = self.read_ham_files()
         if self.parameters.do_bare_eigs:
             self.results['bare lambda'] = self.read_ham_files(bare=True)
-
-        return return_val
 
     def _ase_is_converged(self):
         if 'convergence' not in self.results:

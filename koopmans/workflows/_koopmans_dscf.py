@@ -133,17 +133,13 @@ class KoopmansDSCFWorkflow(Workflow):
 
     def run(self) -> None:
         '''
-        This function runs the KI/KIPZ workflow from start to finish
+        This function runs a KI/pKIPZ/KIPZ workflow from start to finish
 
-        Running this function will generate a number of files:
+        Running this function will generate several directories:
             init/                 -- the density and manifold initialisation calculations
             calc_alpha/orbital_#/ -- calculations where we have fixed a particular orbital
                                      in order to calculate alpha
             final/                -- the final KI/KIPZ calculation
-            alphas.pkl            -- a python pickle file containing the alpha values
-            errors.pkl            -- a python pickle file containing the errors in the alpha
-                                     values
-            tab_alpha_values.tex  -- a latex table of the alpha values
         '''
 
         # Removing old directories
@@ -155,8 +151,6 @@ class KoopmansDSCFWorkflow(Workflow):
                 utils.system_call(f'rm -r {self.master_calc_params["kcp"].outdir} 2>/dev/null', False)
             utils.system_call('rm -r calc_alpha 2>/dev/null', False)
             utils.system_call('rm -r final 2>/dev/null', False)
-            utils.system_call('rm -r alphas.pkl 2>/dev/null', False)
-            utils.system_call('rm -r errors.pkl 2>/dev/null', False)
             if getattr(self, 'redo_preexisting_smooth_dft_calcs', True):
                 utils.system_call('rm -r postproc 2>/dev/null', False)
 
@@ -374,16 +368,12 @@ class KoopmansDSCFWorkflow(Workflow):
         converged = False
         i_sc = 0
 
-        if not self.parameters.from_scratch and Path('alphas.pkl').is_file():
-            # Reloading alphas and errors from file
-            self.print('Reloading alpha values from file')
-            self.bands.alphas = pd.read_pickle('alphas.pkl')
-            self.bands.errors = pd.read_pickle('errors.pkl')
-
         alpha_indep_calcs = []
 
         while not converged and i_sc < self.parameters.n_max_sc_steps:
             i_sc += 1
+
+            # Setting up directories
             iteration_directory = Path('calc_alpha')
             outdir = self.master_calc_params['kcp'].outdir.name
             outdir = Path.cwd() / iteration_directory / outdir
@@ -391,7 +381,6 @@ class KoopmansDSCFWorkflow(Workflow):
             if not outdir.is_dir():
                 outdir.mkdir()
 
-            # Setting up directories
             if self.parameters.n_max_sc_steps > 1:
                 self.print('SC iteration {}'.format(i_sc), style='subheading')
                 iteration_directory /= f'iteration_{i_sc}'
@@ -428,7 +417,7 @@ class KoopmansDSCFWorkflow(Workflow):
             for band in self.bands:
                 # Working out what to print for the orbital heading (grouping skipped bands together)
                 if band in self.bands.to_solve or band == self.bands.get(spin=band.spin)[-1]:
-                    if band not in self.bands.to_solve:
+                    if band not in self.bands.to_solve and (self.parameters.spin_polarised or band.spin == 0):
                         skipped_orbitals.append(band.index)
                     if len(skipped_orbitals) > 0:
                         if len(skipped_orbitals) == 1:
@@ -470,6 +459,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 # Don't repeat if this particular alpha_i was converged
                 if i_sc > 1 and abs(band.error) < self.parameters.alpha_conv_thr:
                     self.print(f'Skipping band {band.index} since this alpha is already converged')
+                    # if self.parameters.from_scratch:
                     for b in self.bands:
                         if b == band or (band.group is not None and b.group == band.group):
                             b.alpha = band.alpha
@@ -586,29 +576,24 @@ class KoopmansDSCFWorkflow(Workflow):
                         else:
                             raise OSError(f'Could not find {evcempty_dir}/evcfixed_empty.dat')
 
-                if self.parameters.from_scratch:
+                # Calculate an updated alpha and a measure of the error
+                # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
+                # E_i(N + 1) - E(N) - lambda^alpha_ii(0)     (empty)
+                #
+                # Note that we can do this even from calculations that have been skipped because
+                # we read in all the requisite information from the output files and .pkl files
+                # that do not get overwritten
 
-                    # Calculate an updated alpha and a measure of the error
-                    # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
-                    # E_i(N + 1) - E(N) - lambda^alpha_ii(0)     (empty)
-                    #
-                    # Note that we only do this if the calculation has not been skipped
-                    # because calculate_alpha reads in alpha values from files which get
-                    # overwritten by subsequent calculations
+                calcs = [c for calc_set in [alpha_dep_calcs, alpha_indep_calcs]
+                         for c in calc_set if c.parameters.fixed_band == band.index]
 
-                    calcs = [c for calc_set in [alpha_dep_calcs, alpha_indep_calcs]
-                             for c in calc_set if c.parameters.fixed_band == band.index]
+                alpha, error = self.calculate_alpha_from_list_of_calcs(
+                    calcs, trial_calc, band.index, filled=band.filled)
 
-                    alpha, error = self.calculate_alpha_from_list_of_calcs(
-                        calcs, trial_calc, band.index, filled=band.filled)
-
-                    for b in self.bands:
-                        if b == band or (b.group is not None and b.group == band.group):
-                            b.alpha = alpha
-                            b.error = error
-
-                    self.bands.alpha_history.to_pickle('alphas.pkl')
-                    self.bands.error_history.to_pickle('errors.pkl')
+                for b in self.bands:
+                    if b == band or (b.group is not None and b.group == band.group):
+                        b.alpha = alpha
+                        b.error = error
 
             self.bands.print_history(indent=self.print_indent + 1)
 

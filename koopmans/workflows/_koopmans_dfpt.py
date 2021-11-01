@@ -6,14 +6,14 @@ Written by Edward Linscott Feb 2021
 
 """
 
+from koopmans.bands import Bands
+from koopmans.calculators import Wann2KCCalculator, KoopmansHamCalculator
+from koopmans import utils, io
+from ._generic import Workflow
 import os
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
-from ._generic import Workflow
-from koopmans import utils, io
-from koopmans.calculators import Wann2KCCalculator, KoopmansHamCalculator
-from koopmans.bands import Bands
 
 
 class KoopmansDFPTWorkflow(Workflow):
@@ -160,7 +160,7 @@ class KoopmansDFPTWorkflow(Workflow):
                 self.run_calculator(kc_screen_calc)
 
                 # 3) Store the computed screening parameters
-                self.bands.alphas = [kc_screen_calc.results['alphas']]
+                self.bands.alphas = kc_screen_calc.results['alphas']
             else:
                 # If there is orbital grouping, do the orbitals one-by-one
                 for band in self.bands.to_solve:
@@ -174,11 +174,15 @@ class KoopmansDFPTWorkflow(Workflow):
                     # 3) Store the computed screening parameter (accounting for band groupings)
                     for b in self.bands:
                         if b.group == band.group:
-                            b.alpha = kc_screen_calc.results['alphas'][0]
+                            alpha = kc_screen_calc.results['alphas'][0]
+                            if not len(alpha) == 1:
+                                raise NotImplementedError(
+                                    'Yet to implement spin polarisation for the KoopmansDFPTWorkflow')
+                            b.alpha = alpha[0]
         else:
             # Load the alphas
             if self.parameters.alpha_from_file:
-                self.bands.alphas = io.read_alpha_file()
+                self.bands.alphas = [io.read_alpha_file()]
             else:
                 self.bands.alphas = self.parameters.alpha_guess
 

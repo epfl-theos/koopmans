@@ -266,11 +266,17 @@ def stumble(monkeypatch):
                     super().run(*args, **kwargs)
                 except DeliberateCalculationFailed:
                     # Restore the workflow to the state it was in before we ran any calculations and attempt to restart
-                    # from where we left off
-                    self.__dict__.update(**dct_before_running)
+                    # from where we left off (keeping the calc_counter and the benchmark, which we excluded above)
+                    calc_counter = self.calc_counter
+                    benchmark = self.benchmark
+                    self.__dict__ = dct_before_running
+                    self.benchmark = benchmark
+
+                    # Update the parameters related to stumbling
                     self.parameters.from_scratch = False
-                    self.calc_counter += 1
+                    self.calc_counter = calc_counter + 1
                     self.print_stumble = True
+
                     self.run(*args, **kwargs)
             else:
                 super().run(*args, **kwargs)
@@ -280,6 +286,21 @@ def stumble(monkeypatch):
             workflow.catch_stumbles = False
             workflow.calc_counter = self.calc_counter
             super().run_subworkflow(workflow, *args, **kwargs)
+            self.calc_counter = workflow.calc_counter
+
+    from koopmans.workflows import SinglepointWorkflow
+
+    class StumblingSinglepointWorkflow(StumblingWorkflow, SinglepointWorkflow):
+        pass
+
+    monkeypatch.setattr('koopmans.workflows.SinglepointWorkflow', StumblingSinglepointWorkflow)
+
+    from koopmans.workflows import ConvergenceWorkflow
+
+    class StumblingConvergenceWorkflow(StumblingWorkflow, ConvergenceWorkflow):
+        pass
+
+    monkeypatch.setattr('koopmans.workflows.ConvergenceWorkflow', StumblingConvergenceWorkflow)
 
     from koopmans.workflows import WannierizeWorkflow
 
