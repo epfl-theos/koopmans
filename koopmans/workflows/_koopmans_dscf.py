@@ -62,7 +62,12 @@ class KoopmansDSCFWorkflow(Workflow):
 
         # Initialise the bands object
         if self.parameters.spin_polarised:
-            raise NotImplementedError()
+            filling = [[True for _ in range(kcp_params.nelup)] + [False for _ in range(kcp_params.empty_states_nbnd)],
+                       [True for _ in range(kcp_params.neldw)] + [False for _ in range(kcp_params.empty_states_nbnd)]]
+            groups = self.parameters.orbital_groups
+            if len(groups) != 2 or not isinstance(groups[0], list):
+                raise ValueError('If spin_polarised = True, orbital_groups should be a list containing two sublists '
+                                 '(one per spin channel)')
         else:
             filling = [[True for _ in range(kcp_params.nelec // 2)]
                        + [False for _ in range(kcp_params.empty_states_nbnd)] for _ in range(2)]
@@ -413,8 +418,12 @@ class KoopmansDSCFWorkflow(Workflow):
             self.bands.assign_groups(allow_reassignment=True)
 
             skipped_orbitals = []
+            first_band_of_each_channel = [self.bands.get(spin=spin)[0] for spin in range(2)]
             # Loop over removing/adding an electron from/to each orbital
             for band in self.bands:
+                if self.parameters.spin_polarised and band in first_band_of_each_channel:
+                    self.print(f'Spin {band.spin + 1}', style='subheading')
+
                 # Working out what to print for the orbital heading (grouping skipped bands together)
                 if band in self.bands.to_solve or band == self.bands.get(spin=band.spin)[-1]:
                     if band not in self.bands.to_solve and (self.parameters.spin_polarised or band.spin == 0):
@@ -438,6 +447,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     # calculation in the same orbital group
                     skipped_orbitals.append(band.index)
                     continue
+
                 self.print(f'Orbital {band.index}', style='subheading')
 
                 # Set up directories
@@ -448,11 +458,11 @@ class KoopmansDSCFWorkflow(Workflow):
                     directory = Path(f'{iteration_directory}/orbital_{band.index}')
                     outdir_band = outdir / f'orbital_{band.index}'
                 if not directory.is_dir():
-                    directory.mkdir()
+                    directory.mkdir(parents=True)
 
                 # Link tmp files from band-independent calculations
                 if not outdir_band.is_dir():
-                    outdir_band.mkdir()
+                    outdir_band.mkdir(parents=True)
 
                     utils.symlink(f'{trial_calc.parameters.outdir}/*.save', outdir_band)
 
