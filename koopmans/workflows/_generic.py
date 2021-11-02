@@ -84,7 +84,10 @@ class Workflow(object):
             if self.parameters.periodic:
                 # By default, use ASE's default bandpath for this cell (see
                 # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
-                self.kpath = self.atoms.cell.get_bravais_lattice().bandpath()
+                bl = self.atoms.cell.get_bravais_lattice()
+                path = bl.bandpath().path
+                npoints = 10 * len(path) - 9 - 29 * path.count(',')
+                self.kpath = bl.bandpath(npoints=npoints)
             else:
                 self.kpath = BandPath(path='G', cell=self.atoms.cell)
         else:
