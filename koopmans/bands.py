@@ -114,6 +114,12 @@ class Bands(object):
     def num(self, filled=None, spin=None):
         return len(self.get(filled=filled, spin=spin))
 
+    def index(self, band: Band) -> int:
+        if band not in self.bands:
+            raise ValueError(f"{band} is not in Bands object")
+        [i_match] = [i for i, b in enumerate(self.bands) if b == band]
+        return i_match
+
     @property
     def filling(self) -> List[List[bool]]:
         return [[b.filled for b in self if b.spin == i_spin] for i_spin in range(self.n_spin)]
@@ -321,8 +327,9 @@ class Bands(object):
     def _create_dataframe(self, attr) -> pd.DataFrame:
         # Generate a dataframe containing the requested attribute, sorting the bands first by index, then by spin
         if self.spin_polarised:
-            columns = pd.MultiIndex.from_product((range(self.n_bands), self.n_spin))
-            band_subset = sorted(self, key=lambda x: (x.index, x.spin))
+            columns = pd.MultiIndex.from_product(
+                ([f'spin {s+1}' for s in range(self.n_spin)], range(1, self.n_bands + 1)))
+            band_subset = sorted(self, key=lambda x: (x.spin, x.index))
         else:
             band_subset = self.get(spin=0)
             columns = [b.index for b in self.get(spin=0)]

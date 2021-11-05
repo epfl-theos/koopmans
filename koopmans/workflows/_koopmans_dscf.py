@@ -77,9 +77,15 @@ class KoopmansDSCFWorkflow(Workflow):
             else:
                 groups = [self.parameters.orbital_groups for _ in range(2)]
 
+        # Sanity checking
+        if groups is not None:
+            for g, f in zip(groups, filling):
+                assert len(g) == len(f), 'orbital_groups is the wrong dimension; it should have dimensions (2, num_bands)'
+
         self.bands = Bands(n_bands=len(filling[0]), n_spin=2, spin_polarised=self.parameters.spin_polarised,
                            filling=filling, groups=groups,
                            self_hartree_tol=self.parameters.orbital_groups_self_hartree_tol)
+
         if self.parameters.alpha_from_file:
             # Reading alpha values from file
             self.bands.alphas = self.read_alphas_from_file()
@@ -97,7 +103,7 @@ class KoopmansDSCFWorkflow(Workflow):
                                      'automatically set by the Koopmans workflow. Remove this keyword from the input '
                                      'file')
 
-        # Initialise self.init_empty_orbitals has not been set
+        # Initialise self.init_empty_orbitals if it has not been set
         if self.parameters.init_empty_orbitals == 'same':
             self.parameters.init_empty_orbitals = self.parameters.init_orbitals
         if self.parameters.init_empty_orbitals != self.parameters.init_orbitals:
@@ -479,11 +485,11 @@ class KoopmansDSCFWorkflow(Workflow):
                 # When we write/update the alpharef files in the work directory
                 # make sure to include the fixed band alpha in file_alpharef.txt
                 # rather than file_alpharef_empty.txt
-                if self.parameters.spin_polarised:
-                    raise NotImplementedError()
                 if band.filled:
                     index_empty_to_save = None
                 else:
+                    if self.parameters.spin_polarised:
+                        raise NotImplementedError()
                     index_empty_to_save = band.index - self.bands.num(filled=True, spin=band.spin)
 
                 # Perform the fixed-band-dependent calculations
@@ -533,14 +539,19 @@ class KoopmansDSCFWorkflow(Workflow):
                     else:
                         alphas = self.bands.alphas
                         filling = self.bands.filling
-                        filling[band.spin][band.index - 1] = True
+
+                    if self.parameters.spin_polarised and not band.filled or 'print' in calc_type:
+                        raise NotImplementedError()
+
+                    # Work out the index of the band that is fixed (noting that we will be throwing away all empty
+                    # bands)
+                    fixed_band = min(band.index, self.bands.num(filled=True, spin=band.spin) + 1)
+                    if self.parameters.spin_polarised and band.spin == 1:
+                        fixed_band += self.bands.num(filled=True, spin=0)
 
                     # Set up calculator
-                    if self.parameters.spin_polarised:
-                        raise NotImplementedError()
-                    calc = self.new_kcp_calculator(calc_type, alphas=alphas, filling=filling, fixed_band=min(
-                        band.index, self.bands.num(filled=True, spin=band.spin) + 1),
-                        index_empty_to_save=index_empty_to_save, outdir=outdir_band)
+                    calc = self.new_kcp_calculator(calc_type, alphas=alphas, filling=filling, fixed_band=fixed_band,
+                                                   index_empty_to_save=index_empty_to_save, outdir=outdir_band)
                     calc.directory = directory
 
                     # Run kcp.x
@@ -550,7 +561,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     # is which. This is important for empty orbital calculations, where fixed_band
                     # is always set to the LUMO but in reality we're fixing the band corresponding
                     # to index_empty_to_save from an earlier calculation
-                    calc.parameters.fixed_band = band.index
+                    calc.parameters.fixed_band = band
 
                     # Store the result
                     # We store the results in one of two lists: alpha_indep_calcs and
@@ -595,7 +606,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 # that do not get overwritten
 
                 calcs = [c for calc_set in [alpha_dep_calcs, alpha_indep_calcs]
-                         for c in calc_set if c.parameters.fixed_band == band.index]
+                         for c in calc_set if c.parameters.fixed_band == band]
 
                 alpha, error = self.calculate_alpha_from_list_of_calcs(
                     calcs, trial_calc, band.index, filled=band.filled)
@@ -903,9 +914,6 @@ class KoopmansDSCFWorkflow(Workflow):
         if calc.parameters.print_wfc_anion and calc.parameters.index_empty_to_save is None:
             raise ValueError('Error: print_wfc_anion is set to true but you have not selected '
                              'an index_empty_to_save. Provide this as an argument to new_cp_calculator')
-
-        if calc.parameters.fixed_band is not None and calc.parameters.fixed_band > calc.parameters.nelup + 1:
-            utils.warn('calc.fixed_band is higher than the LUMO; this should not happen')
 
         # avoid innerloops for one-orbital-manifolds
         if calc.parameters.nelup in [0, 1] and calc.parameters.neldw in [0, 1]:
