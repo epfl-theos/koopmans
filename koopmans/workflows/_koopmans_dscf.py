@@ -540,7 +540,7 @@ class KoopmansDSCFWorkflow(Workflow):
                         alphas = self.bands.alphas
                         filling = self.bands.filling
 
-                    if self.parameters.spin_polarised and not band.filled or 'print' in calc_type:
+                    if self.parameters.spin_polarised and (not band.filled or 'print' in calc_type):
                         raise NotImplementedError()
 
                     # Work out the index of the band that is fixed (noting that we will be throwing away all empty
