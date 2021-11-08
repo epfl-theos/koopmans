@@ -21,7 +21,7 @@ jobs:
            uses: actions/checkout@v2
            with:
               submodules: true
-              ssh-known-hosts: 'gitlab.com'
+              ssh-known-hosts: 'gitlab.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAfuCHKVTjquxvt6CM6tdG4SLp1Btn/nOeHHE5UOzRdf'
          - name: Set up Python 3.8
            uses: actions/setup-python@v2
            with:
