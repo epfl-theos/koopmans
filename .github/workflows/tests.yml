@@ -22,7 +22,6 @@ jobs:
            with:
               submodules: true
               ssh-known-hosts: 'gitlab.com'
-              token: ${{ secrets.ELINSCOTT_GITLAB_TOKEN }}
          - name: Set up Python 3.8
            uses: actions/setup-python@v2
            with:
