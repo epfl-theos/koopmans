@@ -1,9 +1,9 @@
 [submodule "quantum_espresso/qe_koopmans"]
 	path = quantum_espresso/qe_koopmans
-	url = https://gitlab.com/elinscott/qe_koopmans.git
+	url = git@gitlab.com:elinscott/qe_koopmans.git
 [submodule "ase"]
 	path = ase
-	url = https://github.com/elinscott/ase_koopmans
+	url = git@github.com:elinscott/ase_koopmans
 [submodule "docs"]
 	path = docs
-	url = https://github.com/elinscott/koopmans_docs.git
+	url = git@github.com:elinscott/koopmans_docs.git
