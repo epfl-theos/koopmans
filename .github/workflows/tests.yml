@@ -20,8 +20,14 @@ jobs:
          - name: Checkout
            uses: actions/checkout@v2
            with:
-              submodules: true
-              token: ${{ secrets.ELINSCOTT_GITLAB_TOKEN }}
+              submodules: false
+         - name: Checkout ASE submodule
+           run: git submodule update --remote ase
+         - name: Checkout QE submodule
+           uses: actions/checkout@v2
+           working-directory: quantum_espresso/qe_koopmans
+           with:
+                 token: ${{ secrets.ELINSCOTT_GITLAB_TOKEN }}
          - name: Set up Python 3.8
            uses: actions/setup-python@v2
            with:
