@@ -117,7 +117,7 @@ class KoopmansDFPTWorkflow(Workflow):
                 if key.startswith('w90'):
                     self.master_calc_params[key].write_u_matrices = True
                     self.master_calc_params[key].write_xyz = True
-            wf_workflow = WannierizeWorkflow(nspin=2, **self.wf_kwargs)
+            wf_workflow = WannierizeWorkflow(**self.wf_kwargs)
             self.run_subworkflow(wf_workflow)
 
         else:

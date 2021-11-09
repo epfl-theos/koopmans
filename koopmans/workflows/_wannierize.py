@@ -37,7 +37,7 @@ def list_to_formatted_str(values: List[int]):
 
 class WannierizeWorkflow(Workflow):
 
-    def __init__(self, *args, nspin=1, check_wannierisation=None, **kwargs):
+    def __init__(self, *args, check_wannierisation=None, **kwargs):
         super().__init__(*args, **kwargs)
 
         if check_wannierisation is not None:
@@ -125,7 +125,12 @@ class WannierizeWorkflow(Workflow):
         calc_pw.prefix = 'nscf'
         self.run_calculator(calc_pw)
 
-        for typ in ['occ', 'emp']:
+        if calc_pw.nspin == 1:
+            types = ['occ','emp']
+        else:
+            types = ['occ_up','occ_dw','emp_up','emp_dw']
+
+        for typ in types:
             # 1) pre-processing Wannier90 calculation
             calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ)
             calc_w90.prefix = 'wann_preproc'
@@ -135,13 +140,13 @@ class WannierizeWorkflow(Workflow):
 
             # 2) standard pw2wannier90 calculation
             calc_p2w = self.new_calculator('pw2wannier', directory=calc_w90.directory,
-                                           outdir=calc_pw.parameters.outdir)
+                                        outdir=calc_pw.parameters.outdir)
             calc_p2w.prefix = 'pw2wan'
             self.run_calculator(calc_p2w)
 
             # 3) Wannier90 calculation
             calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ,
-                                           bands_plot=self.parameters.check_wannierisation)
+                                        bands_plot=self.parameters.check_wannierisation)
             calc_w90.prefix = 'wann'
             self.run_calculator(calc_w90)
 

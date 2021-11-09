@@ -14,6 +14,7 @@ SUBROUTINE wave_init_wannier_pwscf ( c0, nbndx )
       USE mp_wave,            ONLY: splitwf
       USE io_files,           ONLY: outdir
       USE io_files,           ONLY: emptyunitc0
+      USE electrons_base,     ONLY: nspin, nupdwn, iupdwn
       USE reciprocal_vectors, ONLY: ig_l2g
       USE gvecw,              ONLY: ngw
       USE xml_io_base,        ONLY: restart_dir, wfc_filename
@@ -25,7 +26,7 @@ SUBROUTINE wave_init_wannier_pwscf ( c0, nbndx )
       COMPLEX(DP), INTENT(OUT) :: c0(ngw,nbndx)
       ! 
       LOGICAL :: exst
-      INTEGER :: ig, ibnd
+      INTEGER :: ig, ibnd, iss
       INTEGER :: ngw_rd, nbnd_rd, ngw_l, ngw_g
       ! 
       CHARACTER(LEN=256) :: fileocc, dirname
@@ -40,72 +41,74 @@ SUBROUTINE wave_init_wannier_pwscf ( c0, nbndx )
       CALL mp_sum( ngw_g, intra_image_comm )
       !
       ALLOCATE( ctmp(ngw_g) )
+      c0(:,:) = (0.0_DP, 0.0_DP)
       !
       dirname   = restart_dir( outdir, ndr )
       !
-      fileocc = TRIM( wfc_filename( dirname, 'evc_occupied', 1 ) )
-      !
-      IF ( ionode ) THEN
-         !
-         INQUIRE( FILE = TRIM(fileocc), EXIST = exst )
-         !
-         IF ( exst ) THEN
-            !
-            OPEN( UNIT=emptyunitc0, FILE=TRIM(fileocc), STATUS='OLD', FORM='UNFORMATTED' )
-            !
-            READ(emptyunitc0) ngw_rd, nbnd_rd
-            !
-            IF ( ngw_g .ne. ngw_rd ) THEN
-               !
-               exst = .false.
-               WRITE( stdout,10)  TRIM(fileocc) 
-               WRITE( stdout,20)  ngw_g, ngw_rd
-               !
-            ENDIF
-            !
-         ENDIF
-         !
-      ENDIF
-      !
- 10   FORMAT('*** OCCUPIED STATES : wavefunctions dimensions changed  ', A )
- 20   FORMAT('*** NGW_G = ', I8, ' NE_READ = ', I4)
-      !  
-      CALL mp_bcast(exst,   ionode_id, intra_image_comm)
-      CALL mp_bcast(nbnd_rd,  ionode_id, intra_image_comm)
-      CALL mp_bcast(ngw_rd, ionode_id, intra_image_comm)
-      !
-      c0(:,:) = (0.0_DP, 0.0_DP)
-      !
-      IF ( exst ) THEN
-         ! 
-         DO ibnd = 1, MIN( nbndx, nbnd_rd )
-            !
-            IF ( ionode ) THEN
-               ! 
-               READ(emptyunitc0) ( ctmp(ig), ig = 1, MIN( SIZE(ctmp), ngw_rd ) )
-               !
-            ENDIF
-            ! 
-            IF ( ibnd <= nbnd_rd ) THEN
-               !
-               CALL splitwf(c0(:,ibnd), ctmp, ngw_l, ig_l2g, me_image, &
-                            nproc_image, ionode_id, intra_image_comm)
-               !
-            ENDIF
-            !
-         ENDDO
-         !
-      ELSE
-         !
-         IF (.not. exst ) CALL errore( 'wave_init_wannier_pwscf', 'Something wrong with reading evc_occupied file', 1 )
-         !
-      ENDIF
-      ! 
-      IF ( ionode .AND. exst ) THEN
-         !
-         CLOSE(emptyunitc0) 
-         !
-      ENDIF
+      DO iss = 1, nspin
+        !
+        fileocc = TRIM( wfc_filename( dirname, 'evc_occupied', 1, iss ) )
+        !
+        IF ( ionode ) THEN
+           !
+           INQUIRE( FILE = TRIM(fileocc), EXIST = exst )
+           !
+           IF ( exst ) THEN
+              !
+              OPEN( UNIT=emptyunitc0, FILE=TRIM(fileocc), STATUS='OLD', FORM='UNFORMATTED' )
+              !
+              READ(emptyunitc0) ngw_rd, nbnd_rd
+              !
+              IF ( ngw_g .ne. ngw_rd .or. nbnd_rd .ne. nupdwn(iss) ) THEN
+                 !
+                 exst = .false.
+                 WRITE( stdout,10)  TRIM(fileocc) 
+                 WRITE( stdout,20)  ngw_g, ngw_rd
+                 WRITE( stdout,30)  nbnd_rd, nupdwn(iss)
+                 !
+              ENDIF
+              !
+           ENDIF
+           !
+        ENDIF
+        !
+10   FORMAT('*** OCCUPIED STATES : wavefunctions dimensions changed  ', A )
+20   FORMAT('*** NGW_G = ', I8, ' NGW_RD  = ', I4)
+30   FORMAT('*** NBND  = ', I8, ' NBND_RD = ', I4)
+        !  
+        CALL mp_bcast(exst,   ionode_id, intra_image_comm)
+        CALL mp_bcast(nbnd_rd,  ionode_id, intra_image_comm)
+        CALL mp_bcast(ngw_rd, ionode_id, intra_image_comm)
+        !
+        IF ( exst ) THEN
+           ! 
+           DO ibnd = 1, nupdwn(iss)
+              !
+              IF ( ionode ) THEN
+                 ! 
+                 READ(emptyunitc0) ( ctmp(ig), ig = 1, MIN( SIZE(ctmp), ngw_rd ) )
+                 !
+              ENDIF
+                 !
+              CALL splitwf(c0(:,ibnd + iupdwn(iss) - 1), ctmp, ngw_l, ig_l2g, me_image, &
+                         nproc_image, ionode_id, intra_image_comm)
+               
+              !
+           ENDDO
+           !
+        ELSE
+           !
+           IF (.not. exst ) CALL errore( 'wave_init_wannier_pwscf', 'Something wrong with reading evc_occupied files', 1 )
+           !
+        ENDIF
+        ! 
+        IF ( ionode .AND. exst ) THEN
+           !
+           CLOSE(emptyunitc0) 
+           !
+        ENDIF
+        !
+      ENDDO
       ! 
       DEALLOCATE(ctmp)
       !
