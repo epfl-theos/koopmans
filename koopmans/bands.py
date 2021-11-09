@@ -115,9 +115,9 @@ class Bands(object):
         return len(self.get(filled=filled, spin=spin))
 
     def index(self, band: Band) -> int:
-        if band not in self.bands:
+        if band not in self._bands:
             raise ValueError(f"{band} is not in Bands object")
-        [i_match] = [i for i, b in enumerate(self.bands) if b == band]
+        [i_match] = [i for i, b in enumerate(self._bands) if b == band]
         return i_match
 
     @property
