@@ -94,7 +94,8 @@ class Bands(object):
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct
 
-    def get(self, spin: Optional[int] = None, filled: Optional[bool] = None, group: Optional[int] = None, to_solve: Optional[bool] = None) -> List[Band]:
+    def get(self, spin: Optional[int] = None, filled: Optional[bool] = None, group: Optional[int] = None,
+            to_solve: Optional[bool] = None) -> List[Band]:
         if to_solve:
             selected_bands = self.to_solve
         else:
@@ -156,8 +157,8 @@ class Bands(object):
         # By default use the settings provided when Bands() was initialised
         sh_tol = sh_tol if sh_tol is not None else self.self_hartree_tol
 
-        # Separate the orbitals into different subsets, where we don't want any grouping of orbitals belonging to different subsets
-        # filled and empty manifolds
+        # Separate the orbitals into different subsets, where we don't want any grouping of orbitals belonging to different
+        # subsets
         if self.spin_polarised:
             # Separate by both spin and filling
             unassigned_sets = [[b for b in self if b.filled == filled and b.spin == i_spin]
@@ -246,8 +247,9 @@ class Bands(object):
 
         for band in [b for i_spin in range(self.n_spin) for b in self.get(spin=i_spin)[::-1] if b.filled] \
                 + [b for i_spin in range(self.n_spin) for b in self.get(spin=i_spin) if not b.filled]:
-            # Looping through the filled bands from highest to lowest (first high spin then low spin), then empty bands from
-            # lowest to highest
+            # Looping through the filled bands from highest to lowest (first high spin then low spin), then empty
+            # bands from lowest to highest (but note since these are variational orbitals "highest" and "lowest")
+            # is not especially meaningful, unless we happen to be using KS orbitals as variational orbitals...
             if band.group not in groups_found:
                 groups_found.add(band.group)
                 to_solve.append(band)
@@ -268,7 +270,8 @@ class Bands(object):
         for b, v in zip(self, np.array(value)[:]):
             b.self_hartree = v
 
-    def update_attrib_with_history(self, name: str, value: Union[float, List[List[float]], np.ndarray, pd.DataFrame], group=None):
+    def update_attrib_with_history(self, name: str, value: Union[float, List[List[float]], np.ndarray, pd.DataFrame],
+                                   group=None) -> None:
         '''
         Generic function for setting the band's screening parameters/errors to the value provided
          - "value" can be a scalar, a list, or a pandas DataFrame of the alpha_history

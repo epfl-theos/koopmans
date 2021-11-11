@@ -265,7 +265,8 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
         return 0
 
 
-def convert_flat_alphas_for_kcp(flat_alphas: List[float], parameters: settings.KoopmansCPSettingsDict) -> List[List[float]]:
+def convert_flat_alphas_for_kcp(flat_alphas: List[float],
+                                parameters: settings.KoopmansCPSettingsDict) -> List[List[float]]:
     # Read alpha file returns a flat list ordered by filled spin up, filled spin down, empty spin up, empty spin down
     # Here we reorder this into a nested list indexed by [i_spin][i_orbital]
     if parameters.nspin == 2:

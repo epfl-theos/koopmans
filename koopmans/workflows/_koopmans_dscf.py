@@ -80,7 +80,8 @@ class KoopmansDSCFWorkflow(Workflow):
         # Sanity checking
         if groups is not None:
             for g, f in zip(groups, filling):
-                assert len(g) == len(f), 'orbital_groups is the wrong dimension; it should have dimensions (2, num_bands)'
+                assert len(g) == len(f), 'orbital_groups is the wrong dimension; it should have dimensions (2, ' \
+                    'num_bands)'
 
         self.bands = Bands(n_bands=len(filling[0]), n_spin=2, spin_polarised=self.parameters.spin_polarised,
                            filling=filling, groups=groups,

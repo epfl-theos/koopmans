@@ -62,7 +62,8 @@ class WannierizeWorkflow(Workflow):
             # we want to define
             w90_occ_params.num_bands = w90_occ_params.num_wann
         if w90_emp_params.num_bands is None:
-            # If num_bands has not been defined, this should just match the number of empty bands from the pw calculation
+            # If num_bands has not been defined, this should just match the number of empty bands from the pw
+            # calculation
             w90_emp_params.num_bands = pw_params.nbnd - n_filled_bands
         if w90_occ_params.exclude_bands is None:
             # If exclude_bands hasn't been defined for the occupied calculation, this should exclude...
@@ -76,7 +77,8 @@ class WannierizeWorkflow(Workflow):
                 exclude_bands += list(range(n_filled_bands + 1, pw_params.nbnd + 1))
             w90_occ_params.exclude_bands = list_to_formatted_str(exclude_bands)
         if w90_emp_params.exclude_bands is None:
-            extra_conduction_bands = pw_params.nbnd - extra_core_bands - w90_occ_params.num_bands - w90_emp_params.num_bands
+            extra_conduction_bands = pw_params.nbnd - extra_core_bands - w90_occ_params.num_bands \
+                - w90_emp_params.num_bands
             # If exclude bands hasn't been defined for the empty calculation, this should exclude all filled bands
             w90_emp_params.exclude_bands = f'1-{n_filled_bands}'
 

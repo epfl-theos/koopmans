@@ -8,7 +8,8 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
         settings = [
             Setting('task',
                     'Task to perform',
-                    str, 'singlepoint', ('singlepoint', 'convergence', 'wannierise', 'environ_dscf', 'ui', 'dft_bands')),
+                    str, 'singlepoint', ('singlepoint', 'convergence', 'wannierise', 'environ_dscf', 'ui',
+                                         'dft_bands')),
             Setting('functional',
                     'orbital-density-dependent-functional/density-functional to use',
                     str, 'ki', ('ki', 'kipz', 'pkipz', 'dft', 'all')),
