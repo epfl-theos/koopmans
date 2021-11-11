@@ -7,15 +7,15 @@ Written by Riccardo De Gennaro Nov 2020
 
 """
 
+from ._generic import Workflow
+from koopmans import utils
+from koopmans.pseudopotentials import nelec_from_pseudos
+import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 from typing import List, Union
 import matplotlib
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-from koopmans.pseudopotentials import nelec_from_pseudos
-from koopmans import utils
-from ._generic import Workflow
 
 
 def list_to_formatted_str(values: List[int]):
@@ -37,13 +37,8 @@ def list_to_formatted_str(values: List[int]):
 
 class WannierizeWorkflow(Workflow):
 
-    def __init__(self, *args, check_wannierisation=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        if check_wannierisation is not None:
-            # In certain cases we never want to check the wannierisation, even if this is requested by the
-            # JSON input file (e.g. with the smooth interpolation)
-            self.parameters.check_wannierisation = check_wannierisation
 
         if 'pw' not in self.master_calc_params:
             raise ValueError(
@@ -92,12 +87,12 @@ class WannierizeWorkflow(Workflow):
         if w90_emp_params.num_wann == 0:
             raise ValueError('Cannot run a wannier90 calculation with num_wann = 0. Please set empty_states_nbnd > 0 '
                              'in the setup block, or num_wann > 0 in the wannier90 empty subblock')
-        if nspin == 1:
-            pw_params.nspin = 1
-        else:
+
+        if self.parameters.spin_polarised:
             pw_params.nspin = 2
-            pw_params.tot_magnetization = 0.0
-            pw2w_params.spin_component = 'up'
+            raise NotImplementedError()
+        else:
+            pw_params.nspin = 1
 
     def run(self):
         '''
@@ -126,9 +121,9 @@ class WannierizeWorkflow(Workflow):
         self.run_calculator(calc_pw)
 
         if calc_pw.nspin == 1:
-            types = ['occ','emp']
+            types = ['occ', 'emp']
         else:
-            types = ['occ_up','occ_dw','emp_up','emp_dw']
+            types = ['occ_up', 'occ_dw', 'emp_up', 'emp_dw']
 
         for typ in types:
             # 1) pre-processing Wannier90 calculation
@@ -140,13 +135,13 @@ class WannierizeWorkflow(Workflow):
 
             # 2) standard pw2wannier90 calculation
             calc_p2w = self.new_calculator('pw2wannier', directory=calc_w90.directory,
-                                        outdir=calc_pw.parameters.outdir)
+                                           outdir=calc_pw.parameters.outdir)
             calc_p2w.prefix = 'pw2wan'
             self.run_calculator(calc_p2w)
 
             # 3) Wannier90 calculation
             calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ,
-                                        bands_plot=self.parameters.check_wannierisation)
+                                           bands_plot=self.parameters.check_wannierisation)
             calc_w90.prefix = 'wann'
             self.run_calculator(calc_w90)
 

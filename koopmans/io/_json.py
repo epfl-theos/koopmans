@@ -259,7 +259,8 @@ def read_json(fd: TextIO, override={}):
             atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
     elif parameters.task in ['wannierize', 'wannierise']:
         workflow = workflows.WannierizeWorkflow(
-            atoms, parameters, master_calc_params, name=name, check_wannierisation=True, **psps_and_kpts)
+            atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
+        workflow.parameters.check_wannierisation = True
     elif parameters.task == 'environ_dscf':
         workflow = workflows.DeltaSCFWorkflow(atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
     elif parameters.task == 'ui':
