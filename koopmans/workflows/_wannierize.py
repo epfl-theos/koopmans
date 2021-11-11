@@ -120,7 +120,7 @@ class WannierizeWorkflow(Workflow):
         calc_pw.prefix = 'nscf'
         self.run_calculator(calc_pw)
 
-        if calc_pw.nspin == 1:
+        if calc_pw.parameters.nspin == 1:
             types = ['occ', 'emp']
         else:
             types = ['occ_up', 'occ_dw', 'emp_up', 'emp_dw']
