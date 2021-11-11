@@ -54,7 +54,7 @@
       USE control_flags,        ONLY : tatomicwfc, ndr, ndw
       USE electrons_module,     ONLY : wfc_centers_emp, wfc_spreads_emp, icompute_spread
       USE core,                 ONLY : rhoc
-      USE input_parameters,     ONLY : odd_nkscalfact_empty, &
+      USE input_parameters,     ONLY : odd_nkscalfact_empty, restart_mode, &
                                        restart_from_wannier_cp, wannier_empty_only, &
                                        fixed_band, print_wfc_anion, wo_odd_in_empty_run, &
                                        odd_nkscalfact, index_empty_to_save, write_hr, &
@@ -327,9 +327,10 @@
             exst = readempty( c0_emp, n_empx, ndr_loc )
          ENDIF  
          !
-         IF ( .NOT. exst ) THEN
+         IF ( .NOT. exst .OR. TRIM(restart_mode) == 'from_scratch' ) THEN
             !
-            write(stdout, '(/,3X "Empty-states WFCs file NOT FOUND")' )
+            write(stdout, '(/)')
+            IF (.NOT. exst) write(stdout, '(3X "Empty-states WFCs file NOT FOUND")' )
             write(stdout, '(3X, "Initializing random WFCs and orthogonlizing to the occupied manifold ",/)' ) 
             !
             ! ...  initial random states orthogonal to filled ones
@@ -396,7 +397,26 @@
             !
          ELSE
             !
-            write(stdout, '(/, 3X, "Empty-states WFCs read from file")' )
+            write(stdout, '(/, 3X, "Empty-states: WFCs read from file")' )
+            write(stdout, '(   3X, "Empty-states: Going to re-orthogonalize to occ manifold")' )
+            !
+            ! Here we orthogonalize to the occupied manifold. Just in case this was changed after the restart 
+            !
+            DO iss = 1, nspin
+               !
+               in_emp = iupdwn_emp(iss)
+               !
+               issw   = iupdwn(iss)
+               !
+               IF (nupdwn(iss)>0.and.nupdwn_emp(iss)>0) THEN
+                  !
+                  CALL gram_empty( .false., eigr, vkb, bec_emp, bec_occ, nkb, &
+                                  c0_emp( :, in_emp: ), c0( :, issw: ), ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, issw )
+                  !
+               ENDIF
+               !
+            ENDDO
+            !
             !
          ENDIF
          !

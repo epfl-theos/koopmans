@@ -1100,12 +1100,12 @@
              !
            enddo
            !
-           if (ionode) write(stdout,"(2x,a,i5)") 'iter3 = ',iter3
+           if (ionode) write(stdout,"(7x,a,i5)") 'iter3 = ',iter3
            !
            if (iter3 == maxiter3 .and. enever.gt.ene0) then
               ! 
-              write(stdout,"(5x,a)") 'WARNING missed minimum: iter3 = maxiter3'
-              write(stdout,*) enever, ene0
+              write(stdout,"(7x,a)") 'WARNING missed minimum: iter3 = maxiter3'
+              write(stdout,'(7x, "enever, ene0", 2F20.15)') enever, ene0
               !
            elseif (enever.le.ene0) then
               !
