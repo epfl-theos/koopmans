@@ -985,7 +985,7 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
            !
            if (iter3 == maxiter3 .and. enever.gt.ene0) then
               ! 
-              write(stdout,"(7x,a)") 'WANRING missed minimum: iter3 = maxiter3'
+              write(stdout,"(7x,a)") 'WARNING missed minimum: iter3 = maxiter3'
               write(stdout,'(7x, "enever, ene0", 2F20.15)') enever, ene0
               !
            elseif (enever.le.ene0) then
