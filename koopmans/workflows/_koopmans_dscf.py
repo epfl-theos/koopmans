@@ -1021,6 +1021,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 mp2 = dft_p1['mp2_energy']
 
         # Extract lambda from the base calculator
+        assert band.index is not None
         iband = band.index - 1  # converting from 1-indexing to 0-indexing
         lambda_a = trial_calc.results['lambda'][band.spin][iband, iband].real
         lambda_0 = trial_calc.results['bare lambda'][band.spin][iband, iband].real
