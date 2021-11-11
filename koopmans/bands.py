@@ -157,8 +157,8 @@ class Bands(object):
         # By default use the settings provided when Bands() was initialised
         sh_tol = sh_tol if sh_tol is not None else self.self_hartree_tol
 
-        # Separate the orbitals into different subsets, where we don't want any grouping of orbitals belonging to different
-        # subsets
+        # Separate the orbitals into different subsets, where we don't want any grouping of orbitals belonging to
+        # different subsets
         if self.spin_polarised:
             # Separate by both spin and filling
             unassigned_sets = [[b for b in self if b.filled == filled and b.spin == i_spin]
