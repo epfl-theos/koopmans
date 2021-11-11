@@ -19,7 +19,7 @@ from ase.dft.dos import DOS
 from ase.spectrum.band_structure import BandStructure
 from koopmans import utils
 from koopmans.settings import KoopmansCPSettingsDict
-from koopmans.bands import Bands
+from koopmans.bands import Band, Bands
 from koopmans import calculators
 from ._generic import Workflow
 
@@ -609,7 +609,7 @@ class KoopmansDSCFWorkflow(Workflow):
                          for c in calc_set if c.parameters.fixed_band == band]
 
                 alpha, error = self.calculate_alpha_from_list_of_calcs(
-                    calcs, trial_calc, band.index, filled=band.filled)
+                    calcs, trial_calc, band, filled=band.filled)
 
                 for b in self.bands:
                     if b == band or (b.group is not None and b.group == band.group):
@@ -958,7 +958,7 @@ class KoopmansDSCFWorkflow(Workflow):
     def calculate_alpha_from_list_of_calcs(self,
                                            calcs: List[calculators.KoopmansCPCalculator],
                                            trial_calc: calculators.KoopmansCPCalculator,
-                                           band_index: int,
+                                           band: Band,
                                            filled: bool = True) -> Tuple[float, float]:
         '''
 
@@ -1021,14 +1021,14 @@ class KoopmansDSCFWorkflow(Workflow):
                 mp2 = dft_p1['mp2_energy']
 
         # Extract lambda from the base calculator
-        iband = band_index - 1  # converting from 1-indexing to 0-indexing
-        lambda_a = trial_calc.results['lambda'][0][iband, iband].real
-        lambda_0 = trial_calc.results['bare lambda'][0][iband, iband].real
+        iband = band.index - 1  # converting from 1-indexing to 0-indexing
+        lambda_a = trial_calc.results['lambda'][band.spin][iband, iband].real
+        lambda_0 = trial_calc.results['bare lambda'][band.spin][iband, iband].real
 
         # Obtaining alpha
         if (trial_calc.parameters.odd_nkscalfact and filled) \
                 or (trial_calc.parameters.odd_nkscalfact_empty and not filled):
-            alpha_guess = trial_calc.alphas[0][iband]
+            alpha_guess = trial_calc.alphas[band.spin][iband]
         else:
             alpha_guess = trial_calc.parameters.nkscalfact
 
