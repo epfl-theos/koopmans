@@ -49,16 +49,10 @@
             ]
         },
         "k_points": {
-            "kind": "automatic",
-            "kpts": [
+            "kgrid": [
                 2,
                 2,
                 2
-            ],
-            "koffset": [
-                0,
-                0,
-                0
             ],
             "kpath": "GL"
         },
@@ -77,37 +71,17 @@
         }
     },
     "w90": {
-        "conv_window": 5,
-        "occ": {
-            "projections": {
-                "sites": [
-                    [
-                        [
-                            0.25,
-                            0.25,
-                            0.25
-                        ],
-                        "sp3"
-                    ]
-                ]
-            }
-        },
-        "emp": {
-            "num_wann": 4,
-            "dis_froz_max": 10.6,
-            "dis_win_max": 16.9,
-            "projections": {
-                "sites": [
-                    [
-                        [
-                            0.25,
-                            0.25,
-                            0.25
-                        ],
-                        "sp3"
-                    ]
-                ]
-            }
+    "conv_window": 5,
+    "projections": [
+        {
+            "fsite": [0.25, 0.25, 0.25],
+            "ang_mtm": "sp3"
+        }
+    ],
+    "emp": {
+        "num_wann": 4,
+        "dis_froz_max": 10.6,
+        "dis_win_max": 16.9
         }
     },
     "ui": {

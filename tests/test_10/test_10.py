@@ -17,7 +17,13 @@ def test_mock_si_primitive(capsys, mock_quantum_espresso):
     test.run()
 
 
-def test_si_primitive(capsys):
+@pytest.mark.stumble
+def test_si_primitive_stumble(capsys):
     test = WorkflowTest(json, capsys)
     test.run()
 
+
+@pytest.mark.standard
+def test_si_primitive(capsys):
+    test = WorkflowTest(json, capsys)
+    test.run()
