@@ -25,13 +25,22 @@ class FoldToSupercellWorkflow(Workflow):
 
         self.print('Folding to supercell', style='subheading')
 
-        for typ in ['occ', 'emp']:
+        if self.parameters.spin_polarised:
+            types = ['occ_up','occ_dw','emp_up','emp_dw']
+        else:
+            types = ['occ','emp']
+
+        for typ in types:
             # Create the calculator
             kwargs = self.master_calc_params['pw2wannier'].copy()
             kwargs['wan_mode'] = 'wannier2odd'
             calc_w2o = calculators.PW2WannierCalculator(atoms=self.atoms, **kwargs)
             calc_w2o.directory = f'./{typ}'
             calc_w2o.prefix = 'wan2odd'
+            if typ[:-2] == 'dw':
+                calc_w2o.spin_component = 'down'
+            else:
+                calc_w2o.spin_component = 'up'
 
             # Checking that gamma_trick is consistent with do_wf_cmplx
             kcp_params = self.master_calc_params['kcp']
@@ -42,9 +51,6 @@ class FoldToSupercellWorkflow(Workflow):
                 calc_w2o.parameters.gamma_trick = not kcp_params.do_wf_cmplx
             elif calc_w2o.parameters.gamma_trick is None and not kcp_params.do_wf_cmplx:
                 calc_w2o.parameters.gamma_trick = True
-
-            if typ == 'emp':
-                calc_w2o.parameters.split_evc_file = True
 
             # Run the calculator
             self.run_calculator(calc_w2o)

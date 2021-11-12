@@ -91,12 +91,6 @@ class WannierizeWorkflow(Workflow):
             raise ValueError('Cannot run a wannier90 calculation with num_wann = 0. Please set empty_states_nbnd > 0 '
                              'in the setup block, or num_wann > 0 in the wannier90 empty subblock')
 
-        if self.parameters.spin_polarised:
-            pw_params.nspin = 2
-            raise NotImplementedError()
-        else:
-            pw_params.nspin = 1
-
     def run(self):
         '''
 
@@ -146,6 +140,10 @@ class WannierizeWorkflow(Workflow):
             calc_p2w = self.new_calculator('pw2wannier', directory=calc_w90.directory,
                                            outdir=calc_pw.parameters.outdir)
             calc_p2w.prefix = 'pw2wan'
+            if typ[:-2] == 'dw':
+                calc_p2w.spin_component = 'down'
+            else:
+                calc_p2w.spin_component = 'up'
             self.run_calculator(calc_p2w)
 
             # 3) Wannier90 calculation
