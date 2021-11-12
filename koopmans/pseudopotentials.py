@@ -34,13 +34,16 @@ def set_up_pseudos(calc):
     #  2. if that fails, checking if $ESPRESSO_PSEUDO is set
     #  3. if that fails, raising an error
     pseudo_dir = calc.parameters.get('pseudo_dir', None)
-    if pseudo_dir is None or not os.path.isdir(pseudo_dir):
+    if pseudo_dir is None:
         try:
             calc.parameters.pseudo_dir = os.environ.get('ESPRESSO_PSEUDO')
         except KeyError:
             raise NotADirectoryError('Directory for pseudopotentials not found. Please define '
                                      'the environment variable ESPRESSO_PSEUDO or provide a pseudo_dir in '
                                      'the kcp block of your json input file.')
+    else:
+        if not os.path.isdir(pseudo_dir):
+            raise NotADirectoryError(f'The pseudo_dir you provided ({pseudo_dir}) does not exist')
 
 
 def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str], pseudo_dir: Optional[Path] = None) -> int:
