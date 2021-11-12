@@ -235,22 +235,46 @@ class KoopmansDSCFWorkflow(Workflow):
                                            restart_from_wannier_pwscf=True, do_outerloop=True, ndw=ndw_final)
             calc.directory = Path('init')
             restart_dir = Path(f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndr}.save/K00001')
-            for typ in ['occ', 'emp']:
-                if typ == 'occ':
-                    evcw_file = Path('init/wannier/occ/evcw.dat')
-                    dest_file = restart_dir / 'evc_occupied.dat'
+            fillings = ['occ', 'emp']
+            if self.parameters.spin_polarised:
+                spins = ['up', 'down']
+            else:
+                spins = [None]
+
+            for filling, spin in itertools.product(fillings, spins):
+                if spin is None:
+                    typ = filling
+                else:
+                    typ = f'{filling}_{spin}'
+
+                if spin is None:
+                    if filling == 'occ':
+                        evcw_file = Path('init/wannier/occ/evcw.dat')
+                        dest_file = 'evc_occupied'
+                    else:
+                        evcw_file = Path('init/wannier/emp/evcw.dat')
+                        dest_file = 'evc0_empty'
                     if evcw_file.is_file():
+                        for i_spin in ['1', '2']:
+                            dest_file = restart_dir / f'{dest_file}{i_spin}.dat'
+                            shutil.copy(evcw_file, dest_file)
+                    else:
+                        raise OSError(f'Could not find {evcw_file}')
+                else:
+                    if filling == 'occ':
+                        evcw_file = Path(f'init/wannier/occ_{spin}/evcw.dat')
+                        dest_file = 'evc_occupied'
+                    else:
+                        evcw_file = Path(f'init/wannier/emp_{spin}/evcw.dat')
+                        dest_file = 'evc0_empty'
+                    if evcw_file.is_file():
+                        if spin == 'up':
+                            dest_file = restart_dir / f'{dest_file}1.dat'
+                        else:
+                            dest_file = restart_dir / f'{dest_file}2.dat'
                         shutil.copy(evcw_file, dest_file)
                     else:
                         raise OSError(f'Could not find {evcw_file}')
-                if typ == 'emp':
-                    for i_spin in ['1', '2']:
-                        evcw_file = Path('init/wannier/emp') / f'evcw{i_spin}.dat'
-                        dest_file = restart_dir / f'evc0_empty{i_spin}.dat'
-                        if evcw_file.is_file():
-                            shutil.copy(evcw_file, dest_file)
-                        else:
-                            raise OSError(f'Could not find {evcw_file}')
 
             self.run_calculator(calc, enforce_ss=False)
 

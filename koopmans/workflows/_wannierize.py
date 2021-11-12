@@ -140,8 +140,8 @@ class WannierizeWorkflow(Workflow):
             calc_p2w = self.new_calculator('pw2wannier', directory=calc_w90.directory,
                                            outdir=calc_pw.parameters.outdir)
             calc_p2w.prefix = 'pw2wan'
-            if typ[:-2] == 'dw':
-                calc_p2w.spin_component = 'down'
+            if spin != 'none':
+                calc_p2w.spin_component = spin
             else:
                 calc_p2w.spin_component = 'up'
             self.run_calculator(calc_p2w)
