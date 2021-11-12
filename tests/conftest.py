@@ -388,6 +388,10 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             if key == 'ibrav':
                 continue
 
+            # TODO: remove this
+            if key in ['split_evc_file']:
+                continue
+
             assert key in calc.benchmark['parameters'].keys(), f'{key} in {input_file_name} not found in benchmark'
             ref_val = calc.benchmark['parameters'][key]
 
@@ -559,12 +563,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         @property
         def output_files(self) -> List[Path]:
             if self.parameters.wan_mode == 'wannier2odd':
-                if self.parameters.split_evc_file:
-                    files = [
-                        f'{self.directory}/{fname}' for fname in ['evcw1.dat', 'evcw2.dat']]
-                else:
-                    files = [f'{self.directory}/{fname}' for fname in [
-                        'evcw.dat', 'charge-density-x.dat']]
+                files = [f'{self.directory}/{fname}' for fname in ['evcw1.dat', 'evcw2.dat']]
             else:
                 files = [
                     f'{self.directory}/{self.parameters.seedname}{suffix}' for suffix in ['.eig', '.mmn', '.amn']]
