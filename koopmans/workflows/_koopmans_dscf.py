@@ -240,13 +240,15 @@ class KoopmansDSCFWorkflow(Workflow):
                     if self.parameters.spin_polarised:
                         evcw_file = Path(f'init/wannier/{typ}_{spin}/evcw.dat')
                     else:
-                        evcw_file = Path(f'init/wannier/{typ}/evcw{i_spin + 1}.dat')
+                        evcw_file = Path(f'init/wannier/{typ}/evcw.dat')
                     if typ == 'occ':
                         dest_file = restart_dir / f'evc_occupied{i_spin + 1}.dat'
                     else:
                         dest_file = restart_dir / f'evc0_empty{i_spin + 1}.dat'
                     if evcw_file.is_file():
-                        shutil.copy(evcw_file, dest_file)
+                        for i_spin in ['1', '2']:
+                            dest_file = restart_dir / f'{dest_file}{i_spin}.dat'
+                            shutil.copy(evcw_file, dest_file)
                     else:
                         raise OSError(f'Could not find {evcw_file}')
 

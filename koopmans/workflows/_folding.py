@@ -25,22 +25,28 @@ class FoldToSupercellWorkflow(Workflow):
 
         self.print('Folding to supercell', style='subheading')
 
+        fillings = ['occ', 'emp']
         if self.parameters.spin_polarised:
-            types = ['occ_up','occ_dw','emp_up','emp_dw']
+            spins = ['up', 'down']
         else:
-            types = ['occ','emp']
+            spins = [None]
 
-        for typ in types:
+        for filling, spin in itertools.product(fillings, spins):
+            if spin is None:
+                typ = filling
+            else:
+                typ = f'{filling}_{spin}'
+
             # Create the calculator
             kwargs = self.master_calc_params['pw2wannier'].copy()
             kwargs['wan_mode'] = 'wannier2odd'
             calc_w2o = calculators.PW2WannierCalculator(atoms=self.atoms, **kwargs)
             calc_w2o.directory = f'./{typ}'
             calc_w2o.prefix = 'wan2odd'
-            if typ[:-2] == 'dw':
-                calc_w2o.spin_component = 'down'
+            if spin != 'none':
+                calc_p2w.spin_component = spin
             else:
-                calc_w2o.spin_component = 'up'
+                calc_p2w.spin_component = 'up'
 
             # Checking that gamma_trick is consistent with do_wf_cmplx
             kcp_params = self.master_calc_params['kcp']
