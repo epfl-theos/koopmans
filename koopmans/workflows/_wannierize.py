@@ -7,6 +7,7 @@ Written by Riccardo De Gennaro Nov 2020
 
 """
 
+import itertools
 from ._generic import Workflow
 from koopmans import utils
 from koopmans.pseudopotentials import nelec_from_pseudos
@@ -122,14 +123,20 @@ class WannierizeWorkflow(Workflow):
         calc_pw.prefix = 'nscf'
         self.run_calculator(calc_pw)
 
-        if calc_pw.parameters.nspin == 1:
-            types = ['occ', 'emp']
+        fillings = ['occ', 'emp']
+        if self.parameters.spin_polarised:
+            spins = ['up', 'down']
         else:
-            types = ['occ_up', 'occ_dw', 'emp_up', 'emp_dw']
+            spins = [None]
 
-        for typ in types:
+        for filling, spin in itertools.product(fillings, spins):
+            if spin is None:
+                typ = filling
+            else:
+                typ = f'{filling}_{spin}'
+
             # 1) pre-processing Wannier90 calculation
-            calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ)
+            calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ, spin_component=spin)
             calc_w90.prefix = 'wann_preproc'
             calc_w90.command.flags = '-pp'
             self.run_calculator(calc_w90)
@@ -143,7 +150,7 @@ class WannierizeWorkflow(Workflow):
 
             # 3) Wannier90 calculation
             calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ,
-                                           bands_plot=self.parameters.check_wannierisation)
+                                           bands_plot=self.parameters.check_wannierisation, spin_component=spin)
             calc_w90.prefix = 'wann'
             self.run_calculator(calc_w90)
 
