@@ -259,7 +259,7 @@ class WannierizeWorkflow(Workflow):
 
 class WannierBandBlock(object):
     def __init__(self,
-                 projections: Union[List[str], List[Dict[str, Any]]],
+                 projections: List[Union[str, Dict[str, Any]]],
                  filled: bool,
                  atoms: Atoms,
                  band_indices: Optional[List[int]] = None,
@@ -308,7 +308,7 @@ class WannierBandBlocks(object):
 
     @classmethod
     def fromprojections(cls,
-                        list_of_projections: Union[List[List[str]], List[List[Dict[str, Any]]]],
+                        list_of_projections: List[List[Union[str, Dict[str, Any]]]],
                         filling: List[bool],
                         atoms: Atoms):
 
@@ -327,7 +327,7 @@ class WannierBandBlocks(object):
         return cls(blocks)
 
     def todict(self) -> dict:
-        dct = {'blocks': self._blocks}
+        dct: Dict[str, Any] = {'blocks': self._blocks}
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct
