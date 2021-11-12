@@ -48,6 +48,10 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, CalculatorABC):
         filling = [True for _ in range(len(alphas))]
         utils.write_alpha_file(self.directory, alphas, filling)
 
+    def calculate(self):
+        self.write_alphas()
+        super().calculate()
+
     def get_k_point_weights(self):
         utils.warn('Need to properly define k-point weights')
         return np.ones(len(self.parameters['kpath'].kpts))

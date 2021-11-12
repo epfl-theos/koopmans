@@ -451,10 +451,6 @@ class Workflow(object):
                         self.print(f'Not running {os.path.relpath(calc_file)} as it is already complete')
                     return
 
-        # Write out screening parameters to file
-        if qe_calc.parameters.get('do_orbdep', False) or isinstance(qe_calc, calculators.KoopmansHamCalculator):
-            qe_calc.write_alphas()
-
         if not self.silent:
             dir_str = os.path.relpath(qe_calc.directory) + '/'
             self.print(f'{verb} {dir_str}{qe_calc.prefix}...', end='', flush=True)

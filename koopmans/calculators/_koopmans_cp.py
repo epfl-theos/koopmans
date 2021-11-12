@@ -10,6 +10,7 @@ import os
 import math
 import numpy as np
 import pickle
+from glob import glob
 from pathlib import Path
 from scipy.linalg import block_diag
 from typing import Optional, List, Union
@@ -67,6 +68,43 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
         self.alphas = alphas
         self.filling = filling
         self.results_for_qc = ['energy', 'homo_energy', 'lumo_energy']
+
+    def calculate(self):
+        # kcp.x imposes nelup >= neldw, so if we try to run a calcualtion with neldw > nelup, swap the spin channels
+        self._spin_channels_are_swapped = self.parameters.nelup < self.parameters.neldw
+
+        # Swap the spin channels
+        if self._spin_channels_are_swapped:
+            self.swap_spin_channels()
+
+        # Write out screening parameters to file
+        if self.parameters.get('do_orbdep', False):
+            self.write_alphas()
+
+        super().calculate()
+
+        # Swap the spin channels back
+        if self._spin_channels_are_swapped:
+            self.swap_spin_channels()
+
+    def swap_spin_channels(self):
+        # Parameters
+        self.parameters.nelup, self.parameters.neldw = self.parameters.neldw, self.parameters.nelup
+        self.parameters.tot_magnetization *= -1
+
+        # # alphas and filling
+        # self.alphas = ...
+
+        # # Results
+        # if 'orbital_data' in self.results:
+        #     ...
+
+        # # Files
+        # outdir = self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndw}.save/K00001'
+        # for fpath in glob(f'{outdir}/*1*'):
+        #     fdir, fname = fpath.rsplit('/', 1)
+
+        raise NotImplementedError()
 
     def is_complete(self):
         return self.results.get('job_done', False)

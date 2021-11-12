@@ -236,21 +236,19 @@ class KoopmansDSCFWorkflow(Workflow):
             calc.directory = Path('init')
             restart_dir = Path(f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndr}.save/K00001')
             for typ in ['occ', 'emp']:
-                if typ == 'occ':
-                    evcw_file = Path('init/wannier/occ/evcw.dat')
-                    dest_file = restart_dir / 'evc_occupied.dat'
+                for i_spin, spin in enumerate(['up', 'down']):
+                    if self.parameters.spin_polarised:
+                        evcw_file = Path(f'init/wannier/{typ}_{spin}/evcw.dat')
+                    else:
+                        evcw_file = Path(f'init/wannier/{typ}/evcw{i_spin + 1}.dat')
+                    if typ == 'occ':
+                        dest_file = restart_dir / f'evc_occupied{i_spin + 1}.dat'
+                    else:
+                        dest_file = restart_dir / f'evc0_empty{i_spin + 1}.dat'
                     if evcw_file.is_file():
                         shutil.copy(evcw_file, dest_file)
                     else:
                         raise OSError(f'Could not find {evcw_file}')
-                if typ == 'emp':
-                    for i_spin in ['1', '2']:
-                        evcw_file = Path('init/wannier/emp') / f'evcw{i_spin}.dat'
-                        dest_file = restart_dir / f'evc0_empty{i_spin}.dat'
-                        if evcw_file.is_file():
-                            shutil.copy(evcw_file, dest_file)
-                        else:
-                            raise OSError(f'Could not find {evcw_file}')
 
             self.run_calculator(calc, enforce_ss=False)
 
@@ -590,13 +588,16 @@ class KoopmansDSCFWorkflow(Workflow):
 
                     # Copying of evcfixed_empty.dat to evc_occupied.dat
                     if calc_type in ['pz_print', 'kipz_print']:
-                        evcempty_dir = f'{outdir_band}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001/'
+                        evcempty_dir = outdir_band / f'{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001/'
                     elif calc_type == 'dft_n+1_dummy':
-                        evcocc_dir = f'{outdir_band}/{calc.parameters.prefix}_{calc.parameters.ndr}.save/K00001/'
-                        if os.path.isfile(f'{evcempty_dir}/evcfixed_empty.dat'):
-                            utils.system_call(f'cp {evcempty_dir}/evcfixed_empty.dat {evcocc_dir}/evc_occupied.dat')
-                        else:
-                            raise OSError(f'Could not find {evcempty_dir}/evcfixed_empty.dat')
+                        evcocc_dir = outdir_band / f'{calc.parameters.prefix}_{calc.parameters.ndr}.save/K00001/'
+                        for i_spin in range(1, 3):
+                            src = evcempty_dir / f'evcfixed_empty{i_spin}.dat'
+                            dest = evcocc_dir / f'evc_occupied{i_spin}.dat'
+                            if src.is_file():
+                                shutil.copy(src, dest)
+                            else:
+                                raise OSError(f'Could not find {src}')
 
                 # Calculate an updated alpha and a measure of the error
                 # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
