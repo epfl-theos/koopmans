@@ -8,13 +8,16 @@ Written by Riccardo De Gennaro Nov 2020
 """
 
 import itertools
+import pickle
+from ase import Atoms
+from ase.io.wannier90 import num_wann_from_projections, proj_string_to_dict
 from ._generic import Workflow
 from koopmans import utils
 from koopmans.pseudopotentials import nelec_from_pseudos
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
-from typing import List, Union
+from typing import List, Union, Dict, Any, Optional
 import matplotlib
 matplotlib.use('Agg')
 
@@ -22,6 +25,8 @@ matplotlib.use('Agg')
 def list_to_formatted_str(values: List[int]):
     # Converts a list of integers into the format expected by Wannier90
     # e.g. list_to_formatted_str([1, 2, 3, 4, 5, 7]) = "1-5,7"
+    if len(values) == 0:
+        raise ValueError('list_to_formatted_str() should not be given an empty list')
     assert all(a > b for a, b in zip(values[1:], values[:-1])), 'values must be monotonically increasing'
     indices: List[Union[int, None]] = [None]
     indices += [i + 1 for i in range(len(values) - 1) if values[i + 1] != values[i] + 1]
@@ -76,7 +81,8 @@ class WannierizeWorkflow(Workflow):
             # (b) all empty bands
             if n_filled_bands != pw_params.nbnd:
                 exclude_bands += list(range(n_filled_bands + 1, pw_params.nbnd + 1))
-            w90_occ_params.exclude_bands = list_to_formatted_str(exclude_bands)
+            if len(exclude_bands) > 0:
+                w90_occ_params.exclude_bands = list_to_formatted_str(exclude_bands)
         if w90_emp_params.exclude_bands is None:
             extra_conduction_bands = pw_params.nbnd - extra_core_bands - w90_occ_params.num_bands \
                 - w90_emp_params.num_bands
@@ -87,9 +93,12 @@ class WannierizeWorkflow(Workflow):
         w90_nbnd = w90_occ_params.num_bands + w90_emp_params.num_bands + extra_core_bands + extra_conduction_bands
         if pw_params.nbnd != w90_nbnd:
             raise ValueError(f'Number of bands disagrees between pw ({pw_params.nbnd}) and wannier90 ({w90_nbnd})')
-        if w90_emp_params.num_wann == 0:
-            raise ValueError('Cannot run a wannier90 calculation with num_wann = 0. Please set empty_states_nbnd > 0 '
-                             'in the setup block, or num_wann > 0 in the wannier90 empty subblock')
+
+        # Spin-polarisation
+        if self.parameters.spin_polarised:
+            pw_params.nspin = 2
+        else:
+            pw_params.nspin = 1
 
     def run(self):
         '''
@@ -117,40 +126,59 @@ class WannierizeWorkflow(Workflow):
         calc_pw.prefix = 'nscf'
         self.run_calculator(calc_pw)
 
-        fillings = ['occ', 'emp']
+        fillings = []
+        for filling in ['occ', 'emp']:
+            if self.master_calc_params['w90_' + filling].num_wann > 0:
+                fillings.append(filling)
+
         if self.parameters.spin_polarised:
             spins = ['up', 'down']
         else:
             spins = [None]
 
         for filling, spin in itertools.product(fillings, spins):
-            if spin is None:
-                typ = filling
+            # First, construct any extra settings in case we are Wannierising block-by-block
+            filled = (filling == 'occ')
+            block_projs = [b for b in self.parameters.w90_projections_blocks if b.filled == filled]
+            if len(block_projs) == 1:
+                # We are not Wannierising block-by-block; don't provide any extra arguments
+                blocks_kwargs = [{}]
             else:
-                typ = f'{filling}_{spin}'
+                # We are Wannierising block-by-block; provide extra arguments that will overwrite projections,
+                # num_wann, and exclude_bands appropriately
+                blocks_kwargs = [b.kwargs for b in block_projs]
 
-            # 1) pre-processing Wannier90 calculation
-            calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ, spin_component=spin)
-            calc_w90.prefix = 'wann_preproc'
-            calc_w90.command.flags = '-pp'
-            self.run_calculator(calc_w90)
-            utils.system_call(f'rsync -a {calc_w90.directory}/wann_preproc.nnkp {calc_w90.directory}/wann.nnkp')
+            # Loop over each block that will be Wannierised separately
+            for i_block, block_kwargs in enumerate(blocks_kwargs):
+                # Construct the subdirectory label
+                if spin is None:
+                    typ = filling
+                else:
+                    typ = f'{filling}_{spin}'
+                if block_kwargs != {}:
+                    typ += f'_block{i_block + 1}'
 
-            # 2) standard pw2wannier90 calculation
-            calc_p2w = self.new_calculator('pw2wannier', directory=calc_w90.directory,
-                                           outdir=calc_pw.parameters.outdir)
-            calc_p2w.prefix = 'pw2wan'
-            if spin != 'none':
-                calc_p2w.spin_component = spin
-            else:
-                calc_p2w.spin_component = 'up'
-            self.run_calculator(calc_p2w)
+                # 1) pre-processing Wannier90 calculation
+                calc_w90 = self.new_calculator('w90_' + filling, directory='wannier/'
+                                               + typ, spin_component=spin, **block_kwargs)
+                calc_w90.prefix = 'wann_preproc'
+                calc_w90.command.flags = '-pp'
+                self.run_calculator(calc_w90)
+                utils.system_call(f'rsync -a {calc_w90.directory}/wann_preproc.nnkp {calc_w90.directory}/wann.nnkp')
 
-            # 3) Wannier90 calculation
-            calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ,
-                                           bands_plot=self.parameters.check_wannierisation, spin_component=spin)
-            calc_w90.prefix = 'wann'
-            self.run_calculator(calc_w90)
+                # 2) standard pw2wannier90 calculation
+                calc_p2w = self.new_calculator('pw2wannier', directory=calc_w90.directory,
+                                               outdir=calc_pw.parameters.outdir)
+                calc_p2w.prefix = 'pw2wan'
+                if spin is not None:
+                    calc_p2w.spin_component = spin
+                self.run_calculator(calc_p2w)
+
+                # 3) Wannier90 calculation
+                calc_w90 = self.new_calculator('w90_' + filling, directory='wannier/' + typ,
+                                               bands_plot=self.parameters.check_wannierisation, spin_component=spin, **block_kwargs)
+                calc_w90.prefix = 'wann'
+                self.run_calculator(calc_w90)
 
         if self.parameters.check_wannierisation:
             # Run a "bands" calculation
@@ -160,21 +188,28 @@ class WannierizeWorkflow(Workflow):
             self.run_calculator(calc_pw)
 
             # Select those calculations that generated a band structure
-            selected_calcs = [c for c in self.calculations if 'band structure' in c.results]
+            selected_calcs = [c for c in self.calculations[:-1] if 'band structure' in c.results]
+
+            # Work out the vertical shift to set the chemical potential to zero
+            w90_emp_num_bands = self.master_calc_params['w90_emp'].num_bands
+            if w90_emp_num_bands > 0:
+                valence_edge = np.max(calc_pw.results['band structure'].energies[:, :, :-w90_emp_num_bands])
+                cond_edge = np.min(calc_pw.results['band structure'].energies[:, :, -w90_emp_num_bands:])
+                mu = 0.5 * (valence_edge + cond_edge)
+            else:
+                mu = 0.0
 
             # Work out the energy ranges for plotting
-            w90_emp_num_bands = self.master_calc_params['w90_emp'].num_bands
-            valence_edge = np.max(selected_calcs[-1].results['band structure'].energies[:, :, :-w90_emp_num_bands])
-            cond_edge = np.min(selected_calcs[-1].results['band structure'].energies[:, :, -w90_emp_num_bands:])
-            mu = 0.5 * (valence_edge + cond_edge)
             emin = np.min(selected_calcs[0].results['band structure'].energies) - 1 - mu
-            emax = np.max(selected_calcs[1].results['band structure'].energies) + 1 - mu
+            emax = np.max(selected_calcs[-1].results['band structure'].energies) + 1 - mu
 
             # Plot the bandstructures on top of one another
             ax = None
-            labels = ['interpolation (occ)', 'interpolation (emp)', 'explicit']
+            labels = ['explicit'] \
+                + [f'interpolation ({c.directory.name.replace("_",", ").replace("block", "block ")})'
+                   for c in selected_calcs]
             colour_cycle = plt.rcParams["axes.prop_cycle"]()
-            for calc, label in zip(selected_calcs, labels):
+            for calc, label in zip([calc_pw] + selected_calcs, labels):
                 if 'band structure' in calc.results:
                     # Load the bandstructure
                     bs = calc.results['band structure']
@@ -194,10 +229,14 @@ class WannierizeWorkflow(Workflow):
                     ax = bs.plot(ax=ax, emin=emin, emax=emax, colors=colours, label=label, **kwargs)
 
             # Move the legend
-            plt.legend(bbox_to_anchor=(1, 1), loc="lower right", ncol=2)
+            lgd = ax.legend(bbox_to_anchor=(1, 1), loc="lower right", ncol=2)
 
-            # Save the comparison to file
-            plt.savefig('interpolated_bandstructure_{}x{}x{}.png'.format(*self.kgrid))
+            # Save the comparison to file (as png and also in editable form)
+            with open('interpolated_bandstructure_{}x{}x{}.fig.pkl'.format(*self.kgrid), 'wb') as fd:
+                pickle.dump(plt.gcf(), fd)
+            # The "bbox_extra_artists" and "bbox_inches" mean that the legend is not cropped out
+            plt.savefig('interpolated_bandstructure_{}x{}x{}.png'.format(*self.kgrid),
+                        bbox_extra_artists=(lgd,), bbox_inches='tight')
 
         return
 
@@ -216,3 +255,83 @@ class WannierizeWorkflow(Workflow):
             calc.parameters.outdir = Path('wannier/TMP').resolve()
 
         return calc
+
+
+class WannierBandBlock(object):
+    def __init__(self,
+                 projections: Union[List[str], List[Dict[str, Any]]],
+                 filled: bool,
+                 atoms: Atoms,
+                 band_indices: Optional[List[int]] = None,
+                 tot_num_wann: Optional[int] = None):
+
+        self.projections = []
+        for proj in projections:
+            if isinstance(proj, str):
+                proj = proj_string_to_dict(proj)
+            self.projections.append(proj)
+        self.filled = filled
+        self._atoms = atoms
+        self.band_indices = band_indices
+        self.tot_num_wann = tot_num_wann
+
+    @property
+    def exclude_bands(self):
+        return list_to_formatted_str([i for i in range(1, self.tot_num_wann + 1) if i not in self.band_indices])
+
+    @property
+    def num_wann(self):
+        return num_wann_from_projections(self.projections, self._atoms)
+
+    @property
+    def kwargs(self):
+        return {'projections': self.projections, 'exclude_bands': self.exclude_bands, 'num_wann': self.num_wann, 'num_bands': self.num_wann}
+
+    def todict(self) -> dict:
+        dct = {k.strip('_'): v for k, v in self.__dict__.items()}
+        dct['__koopmans_name__'] = self.__class__.__name__
+        dct['__koopmans_module__'] = self.__class__.__module__
+        return dct
+
+    @classmethod
+    def fromdict(cls, dct):
+        return cls(**dct)
+
+
+class WannierBandBlocks(object):
+    def __init__(self, blocks: List[WannierBandBlock]):
+        self._blocks = blocks
+
+    def __iter__(self):
+        for b in self._blocks:
+            yield b
+
+    @classmethod
+    def fromprojections(cls,
+                        list_of_projections: Union[List[List[str]], List[List[Dict[str, Any]]]],
+                        filling: List[bool],
+                        atoms: Atoms):
+
+        blocks = [WannierBandBlock(p, f, atoms) for p, f in zip(list_of_projections, filling)]
+
+        # Count the total number of wannier functions
+        tot_num_wann = sum([b.num_wann for b in blocks])
+
+        # Populate the tot_num_wann and band_indices attributes of each block
+        count = 0
+        for b in blocks:
+            b.tot_num_wann = tot_num_wann
+            b.band_indices = list(range(count + 1, count + 1 + b.num_wann))
+            count += b.num_wann
+
+        return cls(blocks)
+
+    def todict(self) -> dict:
+        dct = {'blocks': self._blocks}
+        dct['__koopmans_name__'] = self.__class__.__name__
+        dct['__koopmans_module__'] = self.__class__.__module__
+        return dct
+
+    @classmethod
+    def fromdict(cls, dct):
+        return cls(**dct)

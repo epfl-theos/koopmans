@@ -71,10 +71,13 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
 
     def calculate(self):
         # kcp.x imposes nelup >= neldw, so if we try to run a calcualtion with neldw > nelup, swap the spin channels
-        self._spin_channels_are_swapped = self.parameters.nelup < self.parameters.neldw
+        if self.parameters.nspin == 2:
+            spin_channels_are_swapped = self.parameters.nelup < self.parameters.neldw
+        else:
+            spin_channels_are_swapped = False
 
         # Swap the spin channels
-        if self._spin_channels_are_swapped:
+        if spin_channels_are_swapped:
             self.swap_spin_channels()
 
         # Write out screening parameters to file
@@ -84,7 +87,7 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
         super().calculate()
 
         # Swap the spin channels back
-        if self._spin_channels_are_swapped:
+        if spin_channels_are_swapped:
             self.swap_spin_channels()
 
     def swap_spin_channels(self):

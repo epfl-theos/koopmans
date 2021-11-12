@@ -16,8 +16,7 @@ class PWSettingsDict(SettingsDict):
 
         super().__init__(valid=[k for block in pw_io.KEYS.values() for k in block],
                          defaults={'calculation': 'scf', 'outdir': './TMP/', 'prefix': 'kc',
-                                   'conv_thr': '2.0e-9*nelec', 'nspin': '2',
-                                   'tot_magnetization': '0.0'},
+                                   'conv_thr': '2.0e-9*nelec'},
                          are_paths=['outdir', 'pseudo_dir'],
                          to_not_parse=['assume_isolated'],
                          **flattened_kwargs)

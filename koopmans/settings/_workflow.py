@@ -1,4 +1,3 @@
-import numpy as np
 from ._utils import Setting, SettingsDictWithChecks
 
 
@@ -106,4 +105,4 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
 
     @property
     def _other_valid_keywords(self):
-        return []
+        return ['w90_projections_blocks']

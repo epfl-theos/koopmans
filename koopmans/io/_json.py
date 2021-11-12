@@ -219,6 +219,8 @@ def read_json(fd: TextIO, override={}):
 
     # Loading calculator-specific settings
     master_calc_params = {}
+    w90_block_projs = []
+    w90_block_filling = []
 
     # Generate a master SettingsDict for every single kind of calculator, regardless of whether or not there was a
     # corresponding block in the json file
@@ -243,6 +245,15 @@ def read_json(fd: TextIO, override={}):
                 if psps_and_kpts['kpath'] != dct['kpath']:
                     raise ValueError('kpath in the UI block should match that provided in the setup block')
                 dct.pop('kpath')
+        elif block.startswith('w90'):
+            if 'projections' in dct and 'projections_blocks' in dct:
+                raise ValueError('"projections" and "projections_block" are mutually exclusive')
+            elif 'projections_blocks' in dct:
+                projs = dct.pop('projections_blocks')
+            else:
+                projs = [dct.get('projections', [])]
+            w90_block_projs += projs
+            w90_block_filling += [block.endswith('occ') for _ in range(len(projs))]
 
         master_calc_params[block] = settings_class(**dct)
         master_calc_params[block].update(
@@ -270,6 +281,11 @@ def read_json(fd: TextIO, override={}):
         workflow = workflows.PWBandStructureWorkflow(atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
     else:
         raise ValueError('Invalid task name "{task_name}"')
+
+    # Adding the w90_projections_blocks to the workflow parameters (this is unusual in that this is a setting associated
+    # with the workflow object but is provided in the w90_occ and emp blocks)
+    workflow.parameters.w90_projections_blocks = workflows.WannierBandBlocks.fromprojections(
+        w90_block_projs, w90_block_filling, atoms)
 
     return workflow
 

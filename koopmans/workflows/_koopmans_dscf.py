@@ -235,20 +235,18 @@ class KoopmansDSCFWorkflow(Workflow):
                                            restart_from_wannier_pwscf=True, do_outerloop=True, ndw=ndw_final)
             calc.directory = Path('init')
             restart_dir = Path(f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndr}.save/K00001')
-            for typ in ['occ', 'emp']:
+            for filling in ['occ', 'emp']:
                 for i_spin, spin in enumerate(['up', 'down']):
                     if self.parameters.spin_polarised:
-                        evcw_file = Path(f'init/wannier/{typ}_{spin}/evcw.dat')
+                        evcw_file = Path(f'init/wannier/{filling}_{spin}/evcw.dat')
                     else:
-                        evcw_file = Path(f'init/wannier/{typ}/evcw.dat')
-                    if typ == 'occ':
+                        evcw_file = Path(f'init/wannier/{filling}/evcw{i_spin + 1}.dat')
+                    if filling == 'occ':
                         dest_file = restart_dir / f'evc_occupied{i_spin + 1}.dat'
                     else:
                         dest_file = restart_dir / f'evc0_empty{i_spin + 1}.dat'
                     if evcw_file.is_file():
-                        for i_spin in ['1', '2']:
-                            dest_file = restart_dir / f'{dest_file}{i_spin}.dat'
-                            shutil.copy(evcw_file, dest_file)
+                        shutil.copy(evcw_file, dest_file)
                     else:
                         raise OSError(f'Could not find {evcw_file}')
 
@@ -423,6 +421,11 @@ class KoopmansDSCFWorkflow(Workflow):
 
             # Group the bands
             self.bands.assign_groups(allow_reassignment=True)
+
+            # For a KI calculation with only filled bands, we don't have any further calculations to
+            # do so we stop this loop here before we print out any headers
+            if self.parameters.functional == 'ki' and all([b.filled for b in self.bands]) and i_sc > 1:
+                continue
 
             skipped_orbitals = []
             first_band_of_each_channel = [self.bands.get(spin=spin)[0] for spin in range(2)]

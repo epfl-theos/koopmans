@@ -7,7 +7,7 @@ Written by Edward Linscott Feb 2021
 
 """
 
-import numpy as np
+import itertools
 from koopmans import utils
 from koopmans import calculators
 from ._generic import Workflow
@@ -43,10 +43,8 @@ class FoldToSupercellWorkflow(Workflow):
             calc_w2o = calculators.PW2WannierCalculator(atoms=self.atoms, **kwargs)
             calc_w2o.directory = f'./{typ}'
             calc_w2o.prefix = 'wan2odd'
-            if spin != 'none':
-                calc_p2w.spin_component = spin
-            else:
-                calc_p2w.spin_component = 'up'
+            if spin is not None:
+                calc_w2o.spin_component = spin
 
             # Checking that gamma_trick is consistent with do_wf_cmplx
             kcp_params = self.master_calc_params['kcp']
