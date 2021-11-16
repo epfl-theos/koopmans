@@ -821,8 +821,8 @@
                c0_anion ( :, start_is:start_is+nupdwn(1)-1 ) = c0( :, start_is:start_is+nupdwn(1)-1 )
                c0_anion ( :, start_is+nupdwn(1) )            = c0_emp(:, index_empty_to_save)
              ELSE 
-               start_is = start_is + 1 ! Take care of the fact that now I have N+1 bands in the spin-up channel 
-               c0_anion ( :, start_is:start_is+nupdwn(1)-1 ) = c0( :, start_is:start_is+nupdwn(1)-1 )
+               ! The new wfc for spin-dw start from start_is+1 to keep track that the sin-up channel has one more band
+               c0_anion ( :, start_is+1:start_is+1+nupdwn(2)-1 ) = c0( :, start_is:start_is+nupdwn(2)-1 )
              ENDIF 
              !
            ELSE
@@ -831,7 +831,7 @@
                c0_anion ( :, start_is:start_is+nupdwn(1)-1 ) = c0( :, start_is:start_is+nupdwn(1)-1 )
              ELSE 
                c0_anion ( :, start_is:start_is+nupdwn(2)-1 ) = c0( :, start_is:start_is+nupdwn(2)-1 )
-               c0_anion ( :, start_is+nupdwn(1) )            = c0_emp(:, index_empty_to_save)
+               c0_anion ( :, start_is+nupdwn(2) )            = c0_emp(:, index_empty_to_save)
              ENDIF 
            !
            ENDIF
@@ -843,72 +843,6 @@
          DEALLOCATE (c0_anion)
          !
       ENDIF
-
-!        IF ( nupdwn(1) == nupdwn(2) ) THEN !! NsC
-
-!          nbnd_    = nupdwn(1)! Why??? only works if spin_up = spin_dw... NsC
-!          !
-!          write(stdout,*) " Case nup = ndw", nupdwn(1), nupdwn(2), (nbnd_+1) * nspin
-!          ! 
-!          allocate(c0_anion(ngw, (nbnd_+1) * nspin))
-!          !
-!          do iss = 1, nspin
-!             !
-!             ib = iupdwn( iss )
-!             !
-!             start_is = iupdwn( iss )
-!             !  
-!             if (iss == 2) start_is = start_is + 1
-!             !
-!             c0_anion(:, start_is:start_is + nbnd_ - 1 ) = c0(:, ib:ib + nbnd_ - 1)
-!             !
-!             if (iss == 1 ) then
-!                !
-!                c0_anion(:, start_is + nbnd_) =  c0_emp(:, index_empty_to_save)
-!                !
-!             endif
-!             !
-!          enddo
-!          !
-!          call writeempty_twin( c0_anion, ((nbnd_+1) * nspin), ndw_loc, .false.)
-!          !
-!          deallocate(c0_anion)
-!          !
-!        ELSE ! here the case for nup>ndw
-!          !
-!          nbnd_    = nupdwn(1)+nupdwn(2) ! Not sure it works for REAL wcf when nup is ODD
-!          ! 
-!          write(stdout,*) " Case nup > ndw", nupdwn(1), nupdwn(2), nbnd_
-!          write(stdout,*) " Warning: NOT TESTED!"
-!          !
-!          allocate(c0_anion(ngw, (nbnd_+1) ))
-!          !
-!          do iss = 1, nspin
-!             !
-!             ib = iupdwn( iss )
-!             !
-!             start_is = iupdwn( iss )
-!             !  
-!             write(stdout,*) " iss, start_is ", iss, start_is
-!             !if (iss == 2) start_is = start_is + 1
-!             !
-!             c0_anion(:, start_is:start_is + nupdwn(1) - 1 ) = c0(:, ib:ib + nupdwn(1) - 1)
-!             !
-!             if (iss == 2 ) then
-!                !
-!                c0_anion(:, start_is + nupdwn(2)) =  c0_emp(:, index_empty_to_save)
-!                !
-!             endif
-!             !
-!          enddo
-!          !
-!          call writeempty_twin( c0_anion, (nbnd_+1), ndw_loc,.false.)
-!          !
-!          deallocate(c0_anion)
-!          !
-!        ENDIF  !! NsC
-!        !
-!     ENDIF
       !
       odd_nkscalfact = odd_nkscalfact_old
       !

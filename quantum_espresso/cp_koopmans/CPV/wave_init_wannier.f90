@@ -73,8 +73,8 @@ SUBROUTINE wave_init_wannier_pwscf ( c0, nbndx )
         ENDIF
         !
 10   FORMAT('*** OCCUPIED STATES : wavefunctions dimensions changed  ', A )
-20   FORMAT('*** NGW_G = ', I8, ' NGW_RD  = ', I4)
-30   FORMAT('*** NBND  = ', I8, ' NBND_RD = ', I4)
+20   FORMAT('*** NGW_G = ', I8, ' NGW_RD  = ', I8)
+30   FORMAT('*** NBND  = ', I4, ' NBND_RD = ', I4)
         !  
         CALL mp_bcast(exst,   ionode_id, intra_image_comm)
         CALL mp_bcast(nbnd_rd,  ionode_id, intra_image_comm)
