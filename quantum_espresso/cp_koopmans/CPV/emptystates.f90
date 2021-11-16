@@ -780,11 +780,13 @@
       !
       ! ...   Save canonical empty orbitals to disk
       !
+      WRITE(*,*) "NICOLA write empty canonical" 
       CALL writeempty( cm_emp, n_empx, ndw_loc )
       ! 
       ! ...   Save minimizing empty orbitals to disk
       !
-      CALL writeempty_twin( c0_emp, n_empx, ndw_loc, .true. )
+      WRITE(*,*) "NICOLA write empty variational" 
+      CALL writeempty_twin( c0_emp, n_empx, ndw_loc, .false. )
       !
       IF (print_wfc_anion) THEN
          !
