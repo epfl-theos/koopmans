@@ -422,187 +422,186 @@ class KoopmansDSCFWorkflow(Workflow):
             # Group the bands
             self.bands.assign_groups(allow_reassignment=True)
 
-            # For a KI calculation with only filled bands, we don't have any further calculations to
-            # do so we stop this loop here before we print out any headers
-            if self.parameters.functional == 'ki' and all([b.filled for b in self.bands]) and i_sc > 1:
-                continue
-
             skipped_orbitals = []
             first_band_of_each_channel = [self.bands.get(spin=spin)[0] for spin in range(2)]
             # Loop over removing/adding an electron from/to each orbital
             for band in self.bands:
-                if self.parameters.spin_polarised and band in first_band_of_each_channel:
-                    self.print(f'Spin {band.spin + 1}', style='subheading')
+                # For a KI calculation with only filled bands, we don't have any further calculations to
+                # do so we don't enter this section to avoid printing any headers
+                if self.parameters.functional != 'ki' or any([not b.filled for b in self.bands]) or i_sc == 1:
 
-                # Working out what to print for the orbital heading (grouping skipped bands together)
-                if band in self.bands.to_solve or band == self.bands.get(spin=band.spin)[-1]:
-                    if band not in self.bands.to_solve and (self.parameters.spin_polarised or band.spin == 0):
-                        skipped_orbitals.append(band.index)
-                    if len(skipped_orbitals) > 0:
-                        if len(skipped_orbitals) == 1:
-                            self.print(f'Orbital {skipped_orbitals[0]}', style='subheading')
-                        else:
-                            orb_range = f'{skipped_orbitals[0]}-{skipped_orbitals[-1]}'
-                            self.print(f'Orbitals {orb_range}', style='subheading')
-                        self.print(f'Skipping; will use the screening parameter of an equivalent orbital')
-                        skipped_orbitals = []
-                    if band not in self.bands.to_solve:
-                        continue
-                elif not self.parameters.spin_polarised and band.spin == 1:
-                    # In this case, skip over the bands entirely and don't include it in the printout about which
-                    # bands we've skipped
-                    continue
-                else:
-                    # Skip the bands which can copy the screening parameter from another
-                    # calculation in the same orbital group
-                    skipped_orbitals.append(band.index)
-                    continue
+                    if self.parameters.spin_polarised and band in first_band_of_each_channel:
+                        self.print(f'Spin {band.spin + 1}', style='subheading')
 
-                self.print(f'Orbital {band.index}', style='subheading')
-
-                # Set up directories
-                if self.parameters.spin_polarised:
-                    directory = Path(f'{iteration_directory}/spin_{band.spin + 1}/orbital_{band.index}')
-                    outdir_band = outdir / f'spin_{band.spin + 1}/orbital_{band.index}'
-                else:
-                    directory = Path(f'{iteration_directory}/orbital_{band.index}')
-                    outdir_band = outdir / f'orbital_{band.index}'
-                if not directory.is_dir():
-                    directory.mkdir(parents=True)
-
-                # Link tmp files from band-independent calculations
-                if not outdir_band.is_dir():
-                    outdir_band.mkdir(parents=True)
-
-                    utils.symlink(f'{trial_calc.parameters.outdir}/*.save', outdir_band)
-
-                # Don't repeat if this particular alpha_i was converged
-                if i_sc > 1 and abs(band.error) < self.parameters.alpha_conv_thr:
-                    self.print(f'Skipping band {band.index} since this alpha is already converged')
-                    # if self.parameters.from_scratch:
-                    for b in self.bands:
-                        if b == band or (band.group is not None and b.group == band.group):
-                            b.alpha = band.alpha
-                            b.error = band.error
-                    continue
-
-                # When we write/update the alpharef files in the work directory
-                # make sure to include the fixed band alpha in file_alpharef.txt
-                # rather than file_alpharef_empty.txt
-                if band.filled:
-                    index_empty_to_save = None
-                else:
-                    if self.parameters.spin_polarised:
-                        raise NotImplementedError()
-                    index_empty_to_save = band.index - self.bands.num(filled=True, spin=band.spin)
-
-                # Perform the fixed-band-dependent calculations
-                if self.parameters.functional in ['ki', 'pkipz']:
-                    if band.filled:
-                        calc_types = ['dft_n-1']
-                    else:
-                        calc_types = ['pz_print', 'dft_n+1_dummy', 'dft_n+1']
-                else:
-                    if band.filled:
-                        calc_types = ['kipz_n-1']
-                    else:
-                        calc_types = ['kipz_print', 'dft_n+1_dummy', 'kipz_n+1']
-
-                for calc_type in calc_types:
-                    if self.parameters.functional in ['ki', 'pkipz']:
-                        # The calculations whose results change with alpha are...
-                        #  - the KI calculations
-                        #  - DFT calculations on empty variational orbitals
-                        # We don't need to redo any of the others
-                        if trial_calc.parameters.empty_states_nbnd == 0 or band.filled:
-                            if i_sc > 1 and 'ki' not in calc_type:
-                                continue
-                    else:
-                        # No need to repeat the dummy calculation; all other
-                        # calculations are dependent on the screening parameters so
-                        # will need updating at each step
-                        if i_sc > 1 and calc_type == 'dft_n+1_dummy':
+                    # Working out what to print for the orbital heading (grouping skipped bands together)
+                    if band in self.bands.to_solve or band == self.bands.get(spin=band.spin)[-1]:
+                        if band not in self.bands.to_solve and (self.parameters.spin_polarised or band.spin == 0):
+                            skipped_orbitals.append(band.index)
+                        if len(skipped_orbitals) > 0:
+                            if len(skipped_orbitals) == 1:
+                                self.print(f'Orbital {skipped_orbitals[0]}', style='subheading')
+                            else:
+                                orb_range = f'{skipped_orbitals[0]}-{skipped_orbitals[-1]}'
+                                self.print(f'Orbitals {orb_range}', style='subheading')
+                            self.print(f'Skipping; will use the screening parameter of an equivalent orbital')
+                            skipped_orbitals = []
+                        if band not in self.bands.to_solve:
                             continue
-
-                    if 'print' in calc_type:
-                        # Note that the 'print' calculations for empty bands do not
-                        # in fact involve the fixing of that band (and thus for the
-                        # 'fixed' band the corresponding alpha should be in
-                        # file_alpharef_empty.txt)
-                        alphas = self.bands.alphas
-                        filling = self.bands.filling
-                    elif not band.filled:
-                        # In the case of empty orbitals, we gain an extra orbital in
-                        # the spin-up channel, so we explicitly construct both spin
-                        # channels for "alphas" and "filling"
-                        alphas = self.bands.alphas
-                        alphas[band.spin].append(alphas[band.spin][-1])
-                        filling = self.bands.filling
-                        filling[band.spin][band.index - 1] = True
-                        filling[band.spin].append(False)
+                    elif not self.parameters.spin_polarised and band.spin == 1:
+                        # In this case, skip over the bands entirely and don't include it in the printout about which
+                        # bands we've skipped
+                        continue
                     else:
-                        alphas = self.bands.alphas
-                        filling = self.bands.filling
+                        # Skip the bands which can copy the screening parameter from another
+                        # calculation in the same orbital group
+                        skipped_orbitals.append(band.index)
+                        continue
 
-                    if self.parameters.spin_polarised and (not band.filled or 'print' in calc_type):
-                        raise NotImplementedError()
+                    self.print(f'Orbital {band.index}', style='subheading')
 
-                    # Work out the index of the band that is fixed (noting that we will be throwing away all empty
-                    # bands)
-                    fixed_band = min(band.index, self.bands.num(filled=True, spin=band.spin) + 1)
-                    if self.parameters.spin_polarised and band.spin == 1:
-                        fixed_band += self.bands.num(filled=True, spin=0)
+                    # Set up directories
+                    if self.parameters.spin_polarised:
+                        directory = Path(f'{iteration_directory}/spin_{band.spin + 1}/orbital_{band.index}')
+                        outdir_band = outdir / f'spin_{band.spin + 1}/orbital_{band.index}'
+                    else:
+                        directory = Path(f'{iteration_directory}/orbital_{band.index}')
+                        outdir_band = outdir / f'orbital_{band.index}'
+                    if not directory.is_dir():
+                        directory.mkdir(parents=True)
 
-                    # Set up calculator
-                    calc = self.new_kcp_calculator(calc_type, alphas=alphas, filling=filling, fixed_band=fixed_band,
-                                                   index_empty_to_save=index_empty_to_save, outdir=outdir_band)
-                    calc.directory = directory
+                    # Link tmp files from band-independent calculations
+                    if not outdir_band.is_dir():
+                        outdir_band.mkdir(parents=True)
 
-                    # Run kcp.x
-                    self.run_calculator(calc)
+                        utils.symlink(f'{trial_calc.parameters.outdir}/*.save', outdir_band)
 
-                    # Reset the value of 'fixed_band' so we can keep track of which calculation
-                    # is which. This is important for empty orbital calculations, where fixed_band
-                    # is always set to the LUMO but in reality we're fixing the band corresponding
-                    # to index_empty_to_save from an earlier calculation
-                    calc.parameters.fixed_band = band
+                    # Don't repeat if this particular alpha_i was converged
+                    if i_sc > 1 and abs(band.error) < self.parameters.alpha_conv_thr:
+                        self.print(f'Skipping band {band.index} since this alpha is already converged')
+                        # if self.parameters.from_scratch:
+                        for b in self.bands:
+                            if b == band or (band.group is not None and b.group == band.group):
+                                b.alpha = band.alpha
+                                b.error = band.error
+                        continue
 
-                    # Store the result
-                    # We store the results in one of two lists: alpha_indep_calcs and
-                    # alpha_dep_calcs. The latter is overwritten at each new self-
-                    # consistency loop.
-                    if 'ki' in calc_type and 'print' not in calc_type:
-                        alpha_dep_calcs.append(calc)
-                    elif 'dft' in calc_type and 'dummy' not in calc_type:
-                        if self.parameters.functional in ['ki', 'pkipz']:
-                            # For KI, the results of the DFT calculations are typically independent of alpha so we
-                            # store these in a list that is never overwritten
+                    # When we write/update the alpharef files in the work directory
+                    # make sure to include the fixed band alpha in file_alpharef.txt
+                    # rather than file_alpharef_empty.txt
+                    if band.filled:
+                        index_empty_to_save = None
+                    else:
+                        if self.parameters.spin_polarised:
+                            raise NotImplementedError()
+                        index_empty_to_save = band.index - self.bands.num(filled=True, spin=band.spin)
 
-                            # The exception to this are KI calculations on empty states. When we update alpha, the
-                            # empty manifold changes, which in turn affects the lambda values
-                            if trial_calc.parameters.empty_states_nbnd > 0 and not band.filled:
-                                alpha_dep_calcs.append(calc)
-                            else:
-                                alpha_indep_calcs.append(calc)
+                    # Perform the fixed-band-dependent calculations
+                    if self.parameters.functional in ['ki', 'pkipz']:
+                        if band.filled:
+                            calc_types = ['dft_n-1']
                         else:
-                            # For KIPZ, the DFT calculations are dependent on alpha via
-                            # the definition of the variational orbitals. We only want to
-                            # store the calculations that used the most recent value of alpha
+                            calc_types = ['pz_print', 'dft_n+1_dummy', 'dft_n+1']
+                    else:
+                        if band.filled:
+                            calc_types = ['kipz_n-1']
+                        else:
+                            calc_types = ['kipz_print', 'dft_n+1_dummy', 'kipz_n+1']
 
+                    for calc_type in calc_types:
+                        if self.parameters.functional in ['ki', 'pkipz']:
+                            # The calculations whose results change with alpha are...
+                            #  - the KI calculations
+                            #  - DFT calculations on empty variational orbitals
+                            # We don't need to redo any of the others
+                            if trial_calc.parameters.empty_states_nbnd == 0 or band.filled:
+                                if i_sc > 1 and 'ki' not in calc_type:
+                                    continue
+                        else:
+                            # No need to repeat the dummy calculation; all other
+                            # calculations are dependent on the screening parameters so
+                            # will need updating at each step
+                            if i_sc > 1 and calc_type == 'dft_n+1_dummy':
+                                continue
+
+                        if 'print' in calc_type:
+                            # Note that the 'print' calculations for empty bands do not
+                            # in fact involve the fixing of that band (and thus for the
+                            # 'fixed' band the corresponding alpha should be in
+                            # file_alpharef_empty.txt)
+                            alphas = self.bands.alphas
+                            filling = self.bands.filling
+                        elif not band.filled:
+                            # In the case of empty orbitals, we gain an extra orbital in
+                            # the spin-up channel, so we explicitly construct both spin
+                            # channels for "alphas" and "filling"
+                            alphas = self.bands.alphas
+                            alphas[band.spin].append(alphas[band.spin][-1])
+                            filling = self.bands.filling
+                            filling[band.spin][band.index - 1] = True
+                            filling[band.spin].append(False)
+                        else:
+                            alphas = self.bands.alphas
+                            filling = self.bands.filling
+
+                        if self.parameters.spin_polarised and (not band.filled or 'print' in calc_type):
+                            raise NotImplementedError()
+
+                        # Work out the index of the band that is fixed (noting that we will be throwing away all empty
+                        # bands)
+                        fixed_band = min(band.index, self.bands.num(filled=True, spin=band.spin) + 1)
+                        if self.parameters.spin_polarised and band.spin == 1:
+                            fixed_band += self.bands.num(filled=True, spin=0)
+
+                        # Set up calculator
+                        calc = self.new_kcp_calculator(calc_type, alphas=alphas, filling=filling, fixed_band=fixed_band,
+                                                       index_empty_to_save=index_empty_to_save, outdir=outdir_band)
+                        calc.directory = directory
+
+                        # Run kcp.x
+                        self.run_calculator(calc)
+
+                        # Reset the value of 'fixed_band' so we can keep track of which calculation
+                        # is which. This is important for empty orbital calculations, where fixed_band
+                        # is always set to the LUMO but in reality we're fixing the band corresponding
+                        # to index_empty_to_save from an earlier calculation
+                        calc.parameters.fixed_band = band
+
+                        # Store the result
+                        # We store the results in one of two lists: alpha_indep_calcs and
+                        # alpha_dep_calcs. The latter is overwritten at each new self-
+                        # consistency loop.
+                        if 'ki' in calc_type and 'print' not in calc_type:
                             alpha_dep_calcs.append(calc)
+                        elif 'dft' in calc_type and 'dummy' not in calc_type:
+                            if self.parameters.functional in ['ki', 'pkipz']:
+                                # For KI, the results of the DFT calculations are typically independent of alpha so we
+                                # store these in a list that is never overwritten
 
-                    # Copying of evcfixed_empty.dat to evc_occupied.dat
-                    if calc_type in ['pz_print', 'kipz_print']:
-                        evcempty_dir = outdir_band / f'{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001/'
-                    elif calc_type == 'dft_n+1_dummy':
-                        evcocc_dir = outdir_band / f'{calc.parameters.prefix}_{calc.parameters.ndr}.save/K00001/'
-                        for i_spin in range(1, 3):
-                            src = evcempty_dir / f'evcfixed_empty{i_spin}.dat'
-                            dest = evcocc_dir / f'evc_occupied{i_spin}.dat'
-                            if src.is_file():
-                                shutil.copy(src, dest)
+                                # The exception to this are KI calculations on empty states. When we update alpha, the
+                                # empty manifold changes, which in turn affects the lambda values
+                                if trial_calc.parameters.empty_states_nbnd > 0 and not band.filled:
+                                    alpha_dep_calcs.append(calc)
+                                else:
+                                    alpha_indep_calcs.append(calc)
                             else:
-                                raise OSError(f'Could not find {src}')
+                                # For KIPZ, the DFT calculations are dependent on alpha via
+                                # the definition of the variational orbitals. We only want to
+                                # store the calculations that used the most recent value of alpha
+
+                                alpha_dep_calcs.append(calc)
+
+                        # Copying of evcfixed_empty.dat to evc_occupied.dat
+                        if calc_type in ['pz_print', 'kipz_print']:
+                            evcempty_dir = outdir_band / f'{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001/'
+                        elif calc_type == 'dft_n+1_dummy':
+                            evcocc_dir = outdir_band / f'{calc.parameters.prefix}_{calc.parameters.ndr}.save/K00001/'
+                            for i_spin in range(1, 3):
+                                src = evcempty_dir / f'evcfixed_empty{i_spin}.dat'
+                                dest = evcocc_dir / f'evc_occupied{i_spin}.dat'
+                                if src.is_file():
+                                    shutil.copy(src, dest)
+                                else:
+                                    raise OSError(f'Could not find {src}')
 
                 # Calculate an updated alpha and a measure of the error
                 # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
