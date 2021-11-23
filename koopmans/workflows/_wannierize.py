@@ -190,18 +190,16 @@ class WannierizeWorkflow(Workflow):
             # Select those calculations that generated a band structure
             selected_calcs = [c for c in self.calculations[:-1] if 'band structure' in c.results]
 
-            # Work out the vertical shift to set the chemical potential to zero
+            # Work out the vertical shift to set the valence band edge to zero
             w90_emp_num_bands = self.master_calc_params['w90_emp'].num_bands
             if w90_emp_num_bands > 0:
-                valence_edge = np.max(calc_pw.results['band structure'].energies[:, :, :-w90_emp_num_bands])
-                cond_edge = np.min(calc_pw.results['band structure'].energies[:, :, -w90_emp_num_bands:])
-                mu = 0.5 * (valence_edge + cond_edge)
+                vbe = np.max(calc_pw.results['band structure'].energies[:, :, :-w90_emp_num_bands])
             else:
-                mu = 0.0
+                vbe = np.max(calc_pw.results['band structure'].energies)
 
             # Work out the energy ranges for plotting
-            emin = np.min(selected_calcs[0].results['band structure'].energies) - 1 - mu
-            emax = np.max(selected_calcs[-1].results['band structure'].energies) + 1 - mu
+            emin = np.min(selected_calcs[0].results['band structure'].energies) - 1 - vbe
+            emax = np.max(selected_calcs[-1].results['band structure'].energies) + 1 - vbe
 
             # Plot the bandstructures on top of one another
             ax = None
@@ -216,7 +214,7 @@ class WannierizeWorkflow(Workflow):
 
                     # Unfortunately once a bandstructure object is created you cannot tweak it, so we must alter
                     # this private variable
-                    bs._energies -= mu
+                    bs._energies -= vbe
 
                     # Tweaking the plot aesthetics
                     colours = [next(colour_cycle)['color'] for _ in range(bs.energies.shape[0])]
