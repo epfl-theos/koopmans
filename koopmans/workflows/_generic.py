@@ -70,14 +70,17 @@ class Workflow(object):
             self.master_calc_params['kcp'].nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, pseudo_dir)
 
         # We also rely on w90_occ/emp_params.num_wann so make sure this has been initialised, too
-        for params, default_num_wann in \
-                [(self.master_calc_params['w90_occ'], self.master_calc_params['kcp'].nelec // 2),
-                 (self.master_calc_params['w90_emp'], self.master_calc_params['kcp'].empty_states_nbnd)]:
+        for occ, params, default_num_wann in \
+                [(True, self.master_calc_params['w90_occ'], self.master_calc_params['kcp'].nelec // 2),
+                 (False, self.master_calc_params['w90_emp'], self.master_calc_params['kcp'].empty_states_nbnd)]:
             if params.num_wann is None:
-                if 'projections' in params:
+                num_wann = self.parameters.w90_projections_blocks.num_wann(occ=occ)
+                if num_wann > 0:
                     # Populate num_wann based on the projections provided
-                    params.num_wann = num_wann_from_projections(params.projections, self.atoms)
+                    params.num_wann = num_wann
                 else:
+                    if self.parameters.spin_polarised:
+                        raise NotImplementedError()
                     # Populate num_wann based off the kcp calculator
                     params.num_wann = default_num_wann
 

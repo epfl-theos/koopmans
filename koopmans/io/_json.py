@@ -263,6 +263,11 @@ def read_json(fd: TextIO, override={}):
             **{k: v for k, v in setup_parameters.items() if k in master_calc_params[block].valid})
         master_calc_params[block].parse_algebraic_settings(nelec=setup_parameters['nelec'])
 
+    # Adding the w90_projections_blocks to the workflow parameters (this is unusual in that this is a setting associated
+    # with the workflow object but is provided in the w90_occ and emp blocks)
+    parameters['w90_projections_blocks'] = workflows.WannierBandBlocks.fromprojections(
+        w90_block_projs, w90_block_filling, atoms)
+
     name = fd.name.replace('.json', '')
     workflow: workflows.Workflow
     if parameters.task == 'singlepoint':
@@ -284,11 +289,6 @@ def read_json(fd: TextIO, override={}):
         workflow = workflows.PWBandStructureWorkflow(atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
     else:
         raise ValueError('Invalid task name "{task_name}"')
-
-    # Adding the w90_projections_blocks to the workflow parameters (this is unusual in that this is a setting associated
-    # with the workflow object but is provided in the w90_occ and emp blocks)
-    workflow.parameters.w90_projections_blocks = workflows.WannierBandBlocks.fromprojections(
-        w90_block_projs, w90_block_filling, atoms)
 
     return workflow
 

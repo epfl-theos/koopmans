@@ -181,11 +181,16 @@ class WannierizeWorkflow(Workflow):
                 self.run_calculator(calc_w90)
 
         if self.parameters.check_wannierisation:
-            # Run a "bands" calculation
-            calc_pw = self.new_calculator('pw', calculation='bands', kpts=self.kpath)
-            calc_pw.directory = 'wannier'
-            calc_pw.prefix = 'bands'
-            self.run_calculator(calc_pw)
+            # Run a "bands" calculation, making sure we don't overwrite the scf/nscf tmp files by setting a different prefix
+            calc_pw_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpath)
+            calc_pw_bands.directory = 'wannier'
+            calc_pw_bands.prefix = 'bands'
+            calc_pw_bands.parameters.prefix += '_bands'
+            # Link the save directory so that the bands calculation can use the old density
+            if self.parameters.from_scratch:
+                [src, dest] = [(c.parameters.outdir / c.parameters.prefix).with_suffix('.save') for c in [calc_pw, calc_pw_bands]]
+                utils.symlink(src, dest)
+            self.run_calculator(calc_pw_bands)
 
             # Select those calculations that generated a band structure
             selected_calcs = [c for c in self.calculations[:-1] if 'band structure' in c.results]
@@ -193,9 +198,9 @@ class WannierizeWorkflow(Workflow):
             # Work out the vertical shift to set the valence band edge to zero
             w90_emp_num_bands = self.master_calc_params['w90_emp'].num_bands
             if w90_emp_num_bands > 0:
-                vbe = np.max(calc_pw.results['band structure'].energies[:, :, :-w90_emp_num_bands])
+                vbe = np.max(calc_pw_bands.results['band structure'].energies[:, :, :-w90_emp_num_bands])
             else:
-                vbe = np.max(calc_pw.results['band structure'].energies)
+                vbe = np.max(calc_pw_bands.results['band structure'].energies)
 
             # Work out the energy ranges for plotting
             emin = np.min(selected_calcs[0].results['band structure'].energies) - 1 - vbe
@@ -207,7 +212,7 @@ class WannierizeWorkflow(Workflow):
                 + [f'interpolation ({c.directory.name.replace("_",", ").replace("block", "block ")})'
                    for c in selected_calcs]
             colour_cycle = plt.rcParams["axes.prop_cycle"]()
-            for calc, label in zip([calc_pw] + selected_calcs, labels):
+            for calc, label in zip([calc_pw_bands] + selected_calcs, labels):
                 if 'band structure' in calc.results:
                     # Load the bandstructure
                     bs = calc.results['band structure']
@@ -303,6 +308,9 @@ class WannierBandBlocks(object):
     def __iter__(self):
         for b in self._blocks:
             yield b
+
+    def num_wann(self, occ: Optional[bool] = None) -> int:
+        return sum([b.num_wann for b in self if occ is None or b.filled is occ])
 
     @classmethod
     def fromprojections(cls,
