@@ -61,11 +61,12 @@ class Wannier90SettingsDict(SettingsDict):
             if key == 'kpoint_path':
                 assert self.bands_plot, 'Do not try and set a kpoint_path for a Wannier90 calculation which does not have bands_plot = True'
             if key == 'projections':
-                for v in value:
+                for i, v in enumerate(value):
                     if isinstance(v, str):
                         v = proj_string_to_dict(v)
                     assert isinstance(v, dict)
                     for k in v.keys():
                         if k not in ['site', 'csite', 'fsite', 'ang_mtm', 'zaxis', 'xaxis', 'radial', 'zona']:
                             raise KeyError(f'Unrecognised key {k} in the w90 projections block')
+                    value[i] = v
             return super().__setitem__(key, value)
