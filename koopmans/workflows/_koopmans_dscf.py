@@ -1045,7 +1045,7 @@ class KoopmansDSCFWorkflow(Workflow):
             if mp1 is None:
                 raise ValueError('Could not find 1st order Makov-Payne energy')
             if mp2 is None:
-                utils.warn('Could not find 2nd order Makov-Payne energy; applying first order only')
+                #utils.warn('Could not find 2nd order Makov-Payne energy; applying first order only')
                 mp_energy = mp1
             else:
                 mp_energy = mp1 + mp2
