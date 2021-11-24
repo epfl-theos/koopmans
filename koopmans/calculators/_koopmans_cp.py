@@ -78,7 +78,7 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
 
         # Swap the spin channels
         if spin_channels_are_swapped:
-            self.swap_spin_channels()
+            self._swap_spin_channels()
 
         # Write out screening parameters to file
         if self.parameters.get('do_orbdep', False):
@@ -88,26 +88,47 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
 
         # Swap the spin channels back
         if spin_channels_are_swapped:
-            self.swap_spin_channels()
+            self._swap_spin_channels()
 
-    def swap_spin_channels(self):
+    def _swap_spin_channels(self):
         # Parameters
+        if self.parameters.fixed_band is not None and self.parameters.fixed_state:
+            n_bands_up = self.parameters.nelup + self.parameters.empty_states_nbnd
+            if self.parameters.fixed_band > n_bands_up:
+                # The fixed band was spin-down
+                self.parameters.fixed_band -= n_bands_up
+            else:
+                # The fixed band was spin-up
+                self.parameters.fixed_band += self.parameters.neldw + self.parameters.empty_states_nbnd
         self.parameters.nelup, self.parameters.neldw = self.parameters.neldw, self.parameters.nelup
         self.parameters.tot_magnetization *= -1
 
-        # # alphas and filling
-        # self.alphas = ...
+        # alphas and filling
+        self.alphas = self.alphas[::-1]
+        self.filling = self.filling[::-1]
 
-        # # Results
-        # if 'orbital_data' in self.results:
-        #     ...
+        # Results
+        if 'orbital_data' in self.results:
+            self.results['orbital_data'] = {k: v[::-1] for k, v in self.results['orbital_data'].items()}
+        for key in ['eigenvalues', 'lambda']:
+            if key in self.results:
+                self.results[key] = self.results[key][::-1]
 
-        # # Files
-        # outdir = self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndw}.save/K00001'
-        # for fpath in glob(f'{outdir}/*1*'):
-        #     fdir, fname = fpath.rsplit('/', 1)
+        # Input and output files
+        for nd in [self.parameters.ndr, self.parameters.ndw]:
+            outdir = self.parameters.outdir / f'{self.parameters.prefix}_{nd}.save/K00001'
+            for fpath_1 in outdir.glob('*1.*'):
+                # Swap the two files around
+                fpath_tmp = fpath_1.parent / fpath_1.name.replace('1', 'tmp')
+                fpath_2 = fpath_1.parent / fpath_1.name.replace('1', '2')
 
-        raise NotImplementedError()
+                if not fpath_2.exists():
+                    raise FileNotFoundError(
+                        'Error in {self.__class__.__name__}._swap_spin_channels: I expected {fpath_2} to exist')
+
+                fpath_1.replace(fpath_tmp)
+                fpath_2.replace(fpath_1)
+                fpath_tmp.replace(fpath_2)
 
     def is_complete(self):
         return self.results.get('job_done', False)

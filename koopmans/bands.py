@@ -63,11 +63,26 @@ class Band(object):
 
 
 class Bands(object):
-    def __init__(self, n_bands: int, n_spin: int = 1, spin_polarised: bool = False, self_hartree_tol=None, **kwargs):
-        self.n_bands = n_bands
+    def __init__(self, n_bands: Union[int, List[int]], n_spin: int = 1, spin_polarised: bool = False, self_hartree_tol=None, **kwargs):
+        if isinstance(n_bands, int):
+            self.n_bands = [n_bands for _ in range(n_spin)]
+        else:
+            if len(n_bands) != n_spin:
+                raise ValueError(f'n_bands = {n_bands} should have length matching n_spin = {n_spin}')
+            self.n_bands = n_bands
         self.n_spin = n_spin
         self.spin_polarised = spin_polarised
-        self._bands = [Band(i_band + 1, i_spin, group=i_band) for i_spin in range(n_spin) for i_band in range(n_bands)]
+        if self.spin_polarised:
+            # Assign every single band a distinct group
+            self._bands = []
+            for i_spin, n_bands_spin in enumerate(self.n_bands):
+                for i_band in range(n_bands_spin):
+                    self._bands.append(Band(i_band + 1, i_spin, group=len(self._bands)))
+        else:
+            # Assign bands with the same index but opposite spin the same group
+            self._bands = [Band(i_band + 1, i_spin, group=i_band) for i_spin in range(n_spin)
+                           for i_band in range(self.n_bands[i_spin])]
+
         self.self_hartree_tol = self_hartree_tol
         for k, v in kwargs.items():
             assert hasattr(self, k)
@@ -121,15 +136,21 @@ class Bands(object):
         [i_match] = [i for i, b in enumerate(self._bands) if b == band]
         return i_match
 
+    def _check_array_shape_match(self, array, array_name):
+        assert len(
+            array) == self.n_spin, f'Bands.{array_name} must be length {self.n_spin} but you provided an array of length {len(array)}'
+        for i, (subarray, n_bands) in enumerate(zip(array, self.n_bands)):
+            assert len(
+                subarray) == n_bands, f'Bands.{array_name}[{i}] must be length {n_bands} but you provided an array with length {len(subarray)}'
+
     @property
     def filling(self) -> List[List[bool]]:
         return [[b.filled for b in self if b.spin == i_spin] for i_spin in range(self.n_spin)]
 
     @filling.setter
     def filling(self, value: List[List[bool]]):
-        shape = (self.n_spin, self.n_bands)
-        assert np.shape(value) == shape, f'Bands.filling must have shape {shape}'
-        for b, v in zip(self, np.array(value).flatten()):
+        self._check_array_shape_match(value, 'filling')
+        for b, v in zip(self, [v for subarray in value for v in subarray]):
             b.filled = v
 
     @property
@@ -142,9 +163,8 @@ class Bands(object):
 
     @groups.setter
     def groups(self, value: List[List[int]]):
-        shape = (self.n_spin, self.n_bands)
-        assert np.shape(value) == shape, f'Bands.groups must have shape {shape}'
-        for b, v in zip(self, np.array(value).flatten()):
+        self._check_array_shape_match(value, 'groups')
+        for b, v in zip(self, [v for subarray in value for v in subarray]):
             b.group = v
 
     def assign_groups(self, sh_tol: Optional[float] = None, allow_reassignment: bool = False):
@@ -265,9 +285,8 @@ class Bands(object):
 
     @self_hartrees.setter
     def self_hartrees(self, value: List[List[float]]) -> None:
-        shape = (self.n_spin, self.n_bands)
-        assert np.shape(value) == shape, f'Bands.self_hartrees must have shape {shape}'
-        for b, v in zip(self, np.array(value)[:]):
+        self._check_array_shape_match(value, 'self_hartrees')
+        for b, v in zip(self, [v for subarray in value for v in subarray]):
             b.self_hartree = v
 
     def update_attrib_with_history(self, name: str, value: Union[float, List[List[float]], np.ndarray, pd.DataFrame],
@@ -293,12 +312,10 @@ class Bands(object):
             return
 
         if isinstance(value, float):
-            value = value * np.ones((self.n_spin, self.n_bands))
-        elif isinstance(value, list):
-            value = np.array(value)
-        shape = (self.n_spin, self.n_bands)
-        assert np.shape(value) == shape, f'Bands.{name} must have shape {shape}'
-        for b, v in zip(self, value.flatten()):
+            value = [[value for _ in range(n_bands_spin)] for n_bands_spin in self.n_bands]
+
+        self._check_array_shape_match(value, name)
+        for b, v in zip(self, [v for subarray in value for v in subarray]):
             if group:
                 if b.group != group:
                     continue
@@ -330,12 +347,11 @@ class Bands(object):
     def _create_dataframe(self, attr) -> pd.DataFrame:
         # Generate a dataframe containing the requested attribute, sorting the bands first by index, then by spin
         if self.spin_polarised:
-            columns = pd.MultiIndex.from_product(
-                ([f'spin {s+1}' for s in range(self.n_spin)], range(1, self.n_bands + 1)))
+            columns = pd.MultiIndex.from_tuples([(f'spin {b.spin}', b.index) for b in self])
             band_subset = sorted(self, key=lambda x: (x.spin, x.index))
         else:
-            band_subset = self.get(spin=0)
             columns = [b.index for b in self.get(spin=0)]
+            band_subset = self.get(spin=0)
 
         # Create an array of values padded with NaNs
         arr = np.array(list(itertools.zip_longest(*[getattr(b, attr) for b in band_subset], fillvalue=np.nan)))

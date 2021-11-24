@@ -65,7 +65,7 @@ class KoopmansDSCFWorkflow(Workflow):
             filling = [[True for _ in range(kcp_params.nelup)] + [False for _ in range(kcp_params.empty_states_nbnd)],
                        [True for _ in range(kcp_params.neldw)] + [False for _ in range(kcp_params.empty_states_nbnd)]]
             groups = self.parameters.orbital_groups
-            if len(groups) != 2 or not isinstance(groups[0], list):
+            if groups is not None and (len(groups) != 2 or not isinstance(groups[0], list)):
                 raise ValueError('If spin_polarised = True, orbital_groups should be a list containing two sublists '
                                  '(one per spin channel)')
         else:
@@ -83,7 +83,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 assert len(g) == len(f), 'orbital_groups is the wrong dimension; it should have dimensions (2, ' \
                     'num_bands)'
 
-        self.bands = Bands(n_bands=len(filling[0]), n_spin=2, spin_polarised=self.parameters.spin_polarised,
+        self.bands = Bands(n_bands=[len(f) for f in filling], n_spin=2, spin_polarised=self.parameters.spin_polarised,
                            filling=filling, groups=groups,
                            self_hartree_tol=self.parameters.orbital_groups_self_hartree_tol)
 
@@ -491,9 +491,9 @@ class KoopmansDSCFWorkflow(Workflow):
                     if band.filled:
                         index_empty_to_save = None
                     else:
-                        if self.parameters.spin_polarised:
-                            raise NotImplementedError()
                         index_empty_to_save = band.index - self.bands.num(filled=True, spin=band.spin)
+                        if self.parameters.spin_polarised and band.spin == 1:
+                            index_empty_to_save += self.bands.num(filled=False, spin=0)
 
                     # Perform the fixed-band-dependent calculations
                     if self.parameters.functional in ['ki', 'pkipz']:
@@ -543,9 +543,6 @@ class KoopmansDSCFWorkflow(Workflow):
                             alphas = self.bands.alphas
                             filling = self.bands.filling
 
-                        if self.parameters.spin_polarised and (not band.filled or 'print' in calc_type):
-                            raise NotImplementedError()
-
                         # Work out the index of the band that is fixed (noting that we will be throwing away all empty
                         # bands)
                         fixed_band = min(band.index, self.bands.num(filled=True, spin=band.spin) + 1)
@@ -554,7 +551,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
                         # Set up calculator
                         calc = self.new_kcp_calculator(calc_type, alphas=alphas, filling=filling, fixed_band=fixed_band,
-                                                       index_empty_to_save=index_empty_to_save, outdir=outdir_band)
+                                                       index_empty_to_save=index_empty_to_save, outdir=outdir_band, add_to_spin_up=(band.spin == 0))
                         calc.directory = directory
 
                         # Run kcp.x
@@ -708,6 +705,7 @@ class KoopmansDSCFWorkflow(Workflow):
     def new_kcp_calculator(self, calc_presets: str = 'dft_init',
                            alphas: Optional[List[List[float]]] = None,
                            filling: Optional[List[List[bool]]] = None,
+                           add_to_spin_up: bool = True,
                            **kwargs) -> calculators.KoopmansCPCalculator:
         """
 
@@ -832,7 +830,10 @@ class KoopmansDSCFWorkflow(Workflow):
                 calc.parameters.f_cutoff = 1.0
         if 'n+1' in calc.prefix:
             calc.parameters.nelec += 1
-            calc.parameters.nelup += 1
+            if add_to_spin_up:
+                calc.parameters.nelup += 1
+            else:
+                calc.parameters.neldw += 1
             if 'dummy' not in calc.prefix:
                 calc.parameters.restart_from_wannier_pwscf = True
 

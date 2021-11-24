@@ -110,9 +110,12 @@ def read_setup_dict(dct):
             calc.parameters.nelup = int(nelec / 2 + tot_mag / 2)
         if 'neldw' not in calc.parameters:
             calc.parameters.neldw = int(nelec / 2 - tot_mag / 2)
+        if tot_mag != 0:
+            if 'starting_magnetization(1)' not in calc.parameters:
+                calc.atoms.set_initial_magnetic_moments([tot_mag / len(calc.atoms) for _ in calc.atoms])
 
     # Work out the number of filled and empty bands
-    n_filled = nelec // 2
+    n_filled = nelec // 2 + nelec % 2
     n_empty = calc.parameters.get('empty_states_nbnd', 0)
 
     # Separamting the output into atoms, parameters, and psp+kpoint information
@@ -230,7 +233,7 @@ def read_json(fd: TextIO, override={}):
         # Populating missing settings based on nelec, n_filled, n_empty etc
         if block == 'kcp':
             if 'nelec' not in dct.get('system', {}):
-                dct['nelec'] = n_filled * 2
+                dct['nelec'] = setup_parameters['nelec']
         elif block == 'pw':
             if 'nbnd' not in dct.get('system', {}):
                 dct['nbnd'] = n_filled + n_empty
@@ -258,7 +261,7 @@ def read_json(fd: TextIO, override={}):
         master_calc_params[block] = settings_class(**dct)
         master_calc_params[block].update(
             **{k: v for k, v in setup_parameters.items() if k in master_calc_params[block].valid})
-        master_calc_params[block].parse_algebraic_settings(nelec=n_filled * 2)
+        master_calc_params[block].parse_algebraic_settings(nelec=setup_parameters['nelec'])
 
     name = fd.name.replace('.json', '')
     workflow: workflows.Workflow
