@@ -198,7 +198,7 @@ class KoopmansDSCFWorkflow(Workflow):
         self.perform_final_calculations()
 
         # Postprocessing
-        if self.parameters.periodic and self.kpath is not None:
+        if self.parameters.periodic and self.parameters.init_orbitals != 'kohn-sham' and self.kpath is not None:
             self.print(f'\nPostprocessing', style='heading')
             self.perform_postprocessing()
 
