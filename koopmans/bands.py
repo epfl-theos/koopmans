@@ -74,7 +74,7 @@ class Bands(object):
         self.spin_polarised = spin_polarised
         if self.spin_polarised:
             # Assign every single band a distinct group
-            self._bands = []
+            self._bands: List[Band] = []
             for i_spin, n_bands_spin in enumerate(self.n_bands):
                 for i_band in range(n_bands_spin):
                     self._bands.append(Band(i_band + 1, i_spin, group=len(self._bands)))
