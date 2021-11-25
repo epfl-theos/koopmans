@@ -14,6 +14,7 @@ from koopmans import utils
 from koopmans.pseudopotentials import nelec_from_pseudos
 import matplotlib.pyplot as plt
 import numpy as np
+import shutil
 from pathlib import Path
 from typing import List, Union
 import matplotlib
@@ -143,16 +144,18 @@ class WannierizeWorkflow(Workflow):
                 if block_kwargs != {}:
                     typ += f'_block{i_block + 1}'
 
+                w90_dir = Path('wannier') / typ
+
                 # 1) pre-processing Wannier90 calculation
-                calc_w90 = self.new_calculator('w90_' + filling, directory='wannier/'
-                                               + typ, spin_component=spin, **block_kwargs)
+                calc_w90 = self.new_calculator('w90_' + filling, directory=w90_dir,
+                                               spin_component=spin, **block_kwargs)
                 calc_w90.prefix = 'wann_preproc'
                 calc_w90.command.flags = '-pp'
                 self.run_calculator(calc_w90)
                 utils.system_call(f'rsync -a {calc_w90.directory}/wann_preproc.nnkp {calc_w90.directory}/wann.nnkp')
 
                 # 2) standard pw2wannier90 calculation
-                calc_p2w = self.new_calculator('pw2wannier', directory=calc_w90.directory,
+                calc_p2w = self.new_calculator('pw2wannier', directory=w90_dir,
                                                outdir=calc_pw.parameters.outdir)
                 calc_p2w.prefix = 'pw2wan'
                 if spin is not None:
@@ -160,7 +163,7 @@ class WannierizeWorkflow(Workflow):
                 self.run_calculator(calc_p2w)
 
                 # 3) Wannier90 calculation
-                calc_w90 = self.new_calculator('w90_' + filling, directory='wannier/' + typ,
+                calc_w90 = self.new_calculator('w90_' + filling, directory=w90_dir,
                                                bands_plot=self.parameters.check_wannierisation, spin_component=spin, **block_kwargs)
                 calc_w90.prefix = 'wann'
                 self.run_calculator(calc_w90)
@@ -175,7 +178,8 @@ class WannierizeWorkflow(Workflow):
             if self.parameters.from_scratch:
                 [src, dest] = [(c.parameters.outdir / c.parameters.prefix).with_suffix('.save')
                                for c in [calc_pw, calc_pw_bands]]
-                utils.symlink(src, dest)
+
+                shutil.copytree(src, dest)
             self.run_calculator(calc_pw_bands)
 
             # Select those calculations that generated a band structure
