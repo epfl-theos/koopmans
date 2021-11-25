@@ -592,7 +592,7 @@ class Workflow(object):
             # Update directories
             for key in workflow.master_calc_params.keys():
                 params = workflow.master_calc_params[key]
-                for setting in params.are_paths:
+                for setting in params.are_paths and setting != 'pseudo_dir':
                     path = getattr(params, setting, None)
                     if path is not None and Path.cwd() in path.parents:
                         new_path = Path(subdirectory).resolve() / os.path.relpath(path)
