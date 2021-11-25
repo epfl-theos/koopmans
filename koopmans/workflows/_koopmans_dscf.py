@@ -179,7 +179,8 @@ class KoopmansDSCFWorkflow(Workflow):
 
         if self.parameters.from_scratch and self.parameters.init_orbitals != 'from old ki' \
                 and self.parameters.fix_spin_contamination \
-                and self.parameters.init_orbitals not in ['mlwfs', 'projwfs']:
+                and self.parameters.init_orbitals not in ['mlwfs', 'projwfs'] \
+                and not (self.parameters.periodic and self.parameters.init_orbitals == 'kohn-sham'):
             self.print('Copying the spin-up variational orbitals over to the spin-down channel')
             calc = self.calculations[-1]
             savedir = f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
@@ -205,7 +206,7 @@ class KoopmansDSCFWorkflow(Workflow):
         self.perform_final_calculations()
 
         # Postprocessing
-        if self.parameters.periodic and self.kpath is not None:
+        if self.parameters.periodic and self.parameters.init_orbitals != 'kohn-sham' and self.kpath is not None:
             self.print(f'\nPostprocessing', style='heading')
             self.perform_postprocessing()
 
@@ -216,8 +217,9 @@ class KoopmansDSCFWorkflow(Workflow):
         # The final calculation during the initialisation, regardless of the workflow settings, should write to ndw = 51
         ndw_final = 51
 
-        if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-            # Wannier functions using pw.x, wannier90.x and pw2wannier90.x
+        if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] or \
+                (self.parameters.periodic and self.parameters.init_orbitals == 'kohn-sham'):
+            # Wannier functions using pw.x, wannier90.x and pw2wannier90.x (pw.x only for Kohn-Sham states)
             wannier_workflow = WannierizeWorkflow(**self.wf_kwargs)
 
             # Perform the wannierisation workflow within the init directory
@@ -243,12 +245,19 @@ class KoopmansDSCFWorkflow(Workflow):
                                            restart_from_wannier_pwscf=True, do_outerloop=True, ndw=ndw_final)
             calc.directory = Path('init')
             restart_dir = Path(f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndr}.save/K00001')
+
             for filling in ['occ', 'emp']:
                 for i_spin, spin in enumerate(['up', 'down']):
-                    if self.parameters.spin_polarised:
+                    if self.parameters.init_orbitals == 'kohn-sham':
+                        if filling == 'occ':
+                            evcw_file = Path(f'init/wannier/ks2odd/evc_occupied{i_spin + 1}.dat')
+                        else:
+                            evcw_file = Path(f'init/wannier/ks2odd/evc0_empty{i_spin + 1}.dat')
+                    elif self.parameters.spin_polarised:
                         evcw_file = Path(f'init/wannier/{filling}_{spin}/evcw.dat')
                     else:
                         evcw_file = Path(f'init/wannier/{filling}/evcw{i_spin + 1}.dat')
+
                     if filling == 'occ':
                         dest_file = restart_dir / f'evc_occupied{i_spin + 1}.dat'
                     else:
@@ -1053,7 +1062,7 @@ class KoopmansDSCFWorkflow(Workflow):
             if mp1 is None:
                 raise ValueError('Could not find 1st order Makov-Payne energy')
             if mp2 is None:
-                utils.warn('Could not find 2nd order Makov-Payne energy; applying first order only')
+                #utils.warn('Could not find 2nd order Makov-Payne energy; applying first order only')
                 mp_energy = mp1
             else:
                 mp_energy = mp1 + mp2

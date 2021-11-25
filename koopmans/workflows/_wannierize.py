@@ -28,57 +28,61 @@ class WannierizeWorkflow(Workflow):
 
         if 'pw' not in self.master_calc_params:
             raise ValueError(
-                'You need to provide a pw block in your input when init_orbitals = "mlwfs" or "projwfs"')
-        if 'w90_occ' not in self.master_calc_params and 'w90_emp' not in self.master_calc_params:
-            raise ValueError(
-                'You need to provide a w90 block in your input when init_orbitals = "mlwfs" or "projwfs"')
+                'You need to provide a pw block in your input')
 
-        # Make sure num_wann (occ/empty), num_bands (occ/empty), and nbnd are present and consistent
         pw_params = self.master_calc_params['pw']
-        pw2w_params = self.master_calc_params['pw2wannier']
-        w90_occ_params = self.master_calc_params['w90_occ']
-        w90_emp_params = self.master_calc_params['w90_emp']
+        
+        if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
+            pw2w_params = self.master_calc_params['pw2wannier']
+            w90_occ_params = self.master_calc_params['w90_occ']
+            w90_emp_params = self.master_calc_params['w90_emp']
 
-        # Filling out missing fields
-        extra_core_bands = 0
-        extra_conduction_bands = 0
-        n_filled_bands = nelec_from_pseudos(self.atoms, self.pseudopotentials, pw_params.pseudo_dir) // 2
-        if w90_occ_params.num_bands is None:
-            # If num_bands has not been defined, this should just match the number of occupied Wannier functions
-            # we want to define
-            w90_occ_params.num_bands = w90_occ_params.num_wann
-        if w90_emp_params.num_bands is None:
-            # If num_bands has not been defined, this should just match the number of empty bands from the pw
-            # calculation
-            w90_emp_params.num_bands = pw_params.nbnd - n_filled_bands
-        if w90_occ_params.exclude_bands is None:
-            # If exclude_bands hasn't been defined for the occupied calculation, this should exclude...
-            exclude_bands = []
-            extra_core_bands = n_filled_bands - w90_occ_params.num_bands
-            if extra_core_bands > 0:
-                # (a) the core bands if there are more filled bands than w90 num_bands, and
-                exclude_bands += list(range(1, extra_core_bands + 1))
-            # (b) all empty bands
-            if n_filled_bands != pw_params.nbnd:
-                exclude_bands += list(range(n_filled_bands + 1, pw_params.nbnd + 1))
-            if len(exclude_bands) > 0:
-                w90_occ_params.exclude_bands = utils.list_to_formatted_str(exclude_bands)
-        if w90_emp_params.exclude_bands is None:
-            extra_conduction_bands = pw_params.nbnd - extra_core_bands - w90_occ_params.num_bands \
-                - w90_emp_params.num_bands
-            # If exclude bands hasn't been defined for the empty calculation, this should exclude all filled bands
-            w90_emp_params.exclude_bands = f'1-{n_filled_bands}'
+            # Filling out missing fields
+            extra_core_bands = 0
+            extra_conduction_bands = 0
+            n_filled_bands = nelec_from_pseudos(self.atoms, self.pseudopotentials, pw_params.pseudo_dir) // 2
+            if w90_occ_params.num_bands is None:
+                # If num_bands has not been defined, this should just match the number of occupied Wannier functions
+                # we want to define
+                w90_occ_params.num_bands = w90_occ_params.num_wann
+            if w90_emp_params.num_bands is None:
+                # If num_bands has not been defined, this should just match the number of empty bands from the pw
+                # calculation
+                w90_emp_params.num_bands = pw_params.nbnd - n_filled_bands
+            if w90_occ_params.exclude_bands is None:
+                # If exclude_bands hasn't been defined for the occupied calculation, this should exclude...
+                exclude_bands = []
+                extra_core_bands = n_filled_bands - w90_occ_params.num_bands
+                if extra_core_bands > 0:
+                    # (a) the core bands if there are more filled bands than w90 num_bands, and
+                    exclude_bands += list(range(1, extra_core_bands + 1))
+                # (b) all empty bands
+                if n_filled_bands != pw_params.nbnd:
+                    exclude_bands += list(range(n_filled_bands + 1, pw_params.nbnd + 1))
+                if len(exclude_bands) > 0:
+                    w90_occ_params.exclude_bands = utils.list_to_formatted_str(exclude_bands)
+            if w90_emp_params.exclude_bands is None:
+                extra_conduction_bands = pw_params.nbnd - extra_core_bands - w90_occ_params.num_bands \
+                    - w90_emp_params.num_bands
+                # If exclude bands hasn't been defined for the empty calculation, this should exclude all filled bands
+                w90_emp_params.exclude_bands = f'1-{n_filled_bands}'
+    
+            # Update the projections_blocks to account for additional bands
+            self.parameters.w90_projections_blocks.add_excluded_bands(
+                w90_occ_params.num_bands + extra_core_bands - w90_occ_params.num_wann, above=False)
+            self.parameters.w90_projections_blocks.add_excluded_bands(
+                w90_emp_params.num_bands - w90_emp_params.num_wann, above=True)
+    
+            # Sanity checking
+            w90_nbnd = w90_occ_params.num_bands + w90_emp_params.num_bands + extra_core_bands + extra_conduction_bands
+            if pw_params.nbnd != w90_nbnd:
+                raise ValueError(f'Number of bands disagrees between pw ({pw_params.nbnd}) and wannier90 ({w90_nbnd})')
 
-        # Update the projections_blocks to account for additional bands
-        self.parameters.w90_projections_blocks.add_excluded_bands(
-            w90_occ_params.num_bands + extra_core_bands - w90_occ_params.num_wann, above=False)
-        self.parameters.w90_projections_blocks.add_excluded_bands(
-            w90_emp_params.num_bands - w90_emp_params.num_wann, above=True)
+        elif self.parameters.init_orbitals == 'kohn-sham':
+            pass
 
-        # Sanity checking
-        w90_nbnd = w90_occ_params.num_bands + w90_emp_params.num_bands + extra_core_bands + extra_conduction_bands
-        if pw_params.nbnd != w90_nbnd:
-            raise ValueError(f'Number of bands disagrees between pw ({pw_params.nbnd}) and wannier90 ({w90_nbnd})')
+        else:
+            raise NotImplementedError('WannierizeWorkflow supports only init_orbitals = "mlwfs", "projwfs" or "kohn-sham"')
 
         # Spin-polarisation
         if self.parameters.spin_polarised:
@@ -94,10 +98,14 @@ class WannierizeWorkflow(Workflow):
 
         '''
 
-        self.print('Wannierisation', style='heading')
+        if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
+            self.print('Wannierisation', style='heading')
+        else:
+            self.print('Kohn-Sham orbitals', style='heading')
 
         if self.parameters.from_scratch:
             utils.system_call("rm -rf wannier", False)
+
 
         # Run PW scf and nscf calculations
         # PWscf needs only the valence bands
@@ -112,33 +120,24 @@ class WannierizeWorkflow(Workflow):
         calc_pw.prefix = 'nscf'
         self.run_calculator(calc_pw)
 
-        fillings = []
-        for filling in ['occ', 'emp']:
-            if self.master_calc_params['w90_' + filling].num_wann > 0:
-                fillings.append(filling)
+        if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
+            fillings = []
+            for filling in ['occ', 'emp']:
+                if self.master_calc_params['w90_' + filling].num_wann > 0:
+                    fillings.append(filling)
 
-        if self.parameters.spin_polarised:
-            spins = ['up', 'down']
-        else:
-            spins = [None]
-
-        for filling, spin in itertools.product(fillings, spins):
-            # First, construct any extra settings in case we are Wannierising block-by-block
-            filled = (filling == 'occ')
-            block_projs = [b for b in self.parameters.w90_projections_blocks if b.filled == filled]
-            if len(block_projs) == 1:
-                # We are not Wannierising block-by-block; don't provide any extra arguments
-                blocks_kwargs = [{}]
+            if self.parameters.spin_polarised:
+                spins = ['up', 'down']
             else:
-                # We are Wannierising block-by-block; provide extra arguments that will overwrite projections,
-                # num_wann, and exclude_bands appropriately
-                blocks_kwargs = [b.kwargs for b in block_projs]
+                spins = [None]
 
-            # Loop over each block that will be Wannierised separately
-            for i_block, block_kwargs in enumerate(blocks_kwargs):
-                # Construct the subdirectory label
-                if spin is None:
-                    typ = filling
+            for filling, spin in itertools.product(fillings, spins):
+                # First, construct any extra settings in case we are Wannierising block-by-block
+                filled = (filling == 'occ')
+                block_projs = [b for b in self.parameters.w90_projections_blocks if b.filled == filled]
+                if len(block_projs) == 1:
+                    # We are not Wannierising block-by-block; don't provide any extra arguments
+                    blocks_kwargs = [{}]
                 else:
                     typ = f'{filling}_{spin}'
                 if block_kwargs != {}:
