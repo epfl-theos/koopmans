@@ -21,6 +21,7 @@ from koopmans import utils
 from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.bands import Band, Bands
 from koopmans import calculators
+from koopmans.pseudopotentials import nelec_from_pseudos
 from ._generic import Workflow
 
 
@@ -40,8 +41,14 @@ class KoopmansDSCFWorkflow(Workflow):
                 raise NotImplementedError('Yet to implement spin-polarised calculations for periodic systems')
 
             # Check that we have wannierised every orbital
-            nocc = self.master_calc_params['w90_occ'].num_wann
-            nemp = self.master_calc_params['w90_emp'].num_wann
+            if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
+                nocc = self.master_calc_params['w90_occ'].num_wann
+                nemp = self.master_calc_params['w90_emp'].num_wann
+            else:
+                pw_params = self.master_calc_params['pw']
+                nocc = nelec_from_pseudos(self.atoms, self.pseudopotentials, pw_params.pseudo_dir) // 2
+                nemp = pw_params.nbnd - nocc
+                
             if nocc != kcp_params.nelup:
                 raise ValueError('You have configured this calculation to only wannierise a subset of the occupied '
                                  'bands. This is incompatible with the subsequent Koopmans calculation.\nPlease '
