@@ -15,7 +15,7 @@ from ase.atoms import Atoms
 from ase.io.espresso.utils import ibrav_to_cell
 from ase.calculators.espresso import Espresso_kcp
 from ase.io.espresso.koopmans_cp import KEYS as kcp_keys, construct_namelist
-from koopmans import utils
+from koopmans import utils, bands
 from koopmans.pseudopotentials import set_up_pseudos, nelec_from_pseudos
 from koopmans.settings import KoopmansCPSettingsDict, KoopmansHamSettingsDict, KoopmansScreenSettingsDict, \
     PWSettingsDict, PW2WannierSettingsDict, UnfoldAndInterpolateSettingsDict, Wann2KCSettingsDict, \
@@ -265,7 +265,7 @@ def read_json(fd: TextIO, override={}):
 
     # Adding the w90_projections_blocks to the workflow parameters (this is unusual in that this is a setting associated
     # with the workflow object but is provided in the w90_occ and emp blocks)
-    parameters['w90_projections_blocks'] = workflows.WannierBandBlocks.fromprojections(
+    parameters['w90_projections_blocks'] = bands.WannierBandBlocks.fromprojections(
         w90_block_projs, w90_block_filling, atoms)
 
     name = fd.name.replace('.json', '')

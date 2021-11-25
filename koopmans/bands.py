@@ -1,8 +1,10 @@
 import itertools
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Any, Dict
 import numpy as np
 import pandas as pd
-from koopmans.utils import indented_print
+from ase import Atoms
+from ase.io.wannier90 import num_wann_from_projections, proj_string_to_dict
+from koopmans.utils import indented_print, list_to_formatted_str
 
 
 class Band(object):
@@ -74,7 +76,7 @@ class Bands(object):
         self.spin_polarised = spin_polarised
         if self.spin_polarised:
             # Assign every single band a distinct group
-            self._bands = []
+            self._bands: List[Band] = []
             for i_spin, n_bands_spin in enumerate(self.n_bands):
                 for i_band in range(n_bands_spin):
                     self._bands.append(Band(i_band + 1, i_spin, group=len(self._bands)))
@@ -377,3 +379,92 @@ class Bands(object):
             indented_print(f'\nDelta E_i - epsilon_i (eV)', indent=indent)
             indented_print(str(self.error_history), indent=indent)
         indented_print('')
+
+
+class WannierBandBlock(object):
+    def __init__(self,
+                 projections: List[Union[str, Dict[str, Any]]],
+                 filled: bool,
+                 atoms: Atoms,
+                 band_indices: Optional[List[int]] = None,
+                 tot_num_wann: Optional[int] = None):
+
+        self.projections = []
+        for proj in projections:
+            if isinstance(proj, str):
+                proj = proj_string_to_dict(proj)
+            self.projections.append(proj)
+        self.filled = filled
+        self._atoms = atoms
+        self.band_indices = band_indices
+        self.tot_num_wann = tot_num_wann
+
+    @property
+    def exclude_bands(self):
+        return list_to_formatted_str([i for i in range(1, self.tot_num_wann + 1) if i not in self.band_indices])
+
+    @property
+    def num_wann(self):
+        return num_wann_from_projections(self.projections, self._atoms)
+
+    @property
+    def kwargs(self):
+        return {'projections': self.projections, 'exclude_bands': self.exclude_bands, 'num_wann': self.num_wann, 'num_bands': self.num_wann}
+
+    def todict(self) -> dict:
+        dct = {k.strip('_'): v for k, v in self.__dict__.items()}
+        dct['__koopmans_name__'] = self.__class__.__name__
+        dct['__koopmans_module__'] = self.__class__.__module__
+        return dct
+
+    @classmethod
+    def fromdict(cls, dct):
+        return cls(**dct)
+
+
+class WannierBandBlocks(object):
+    def __init__(self, blocks: List[WannierBandBlock]):
+        self._blocks = blocks
+
+    def __iter__(self):
+        for b in self._blocks:
+            yield b
+
+    @classmethod
+    def fromprojections(cls,
+                        list_of_projections: List[List[Union[str, Dict[str, Any]]]],
+                        filling: List[bool],
+                        atoms: Atoms):
+
+        blocks = [WannierBandBlock(p, f, atoms) for p, f in zip(list_of_projections, filling)]
+
+        # Count the total number of wannier functions
+        tot_num_wann = sum([b.num_wann for b in blocks])
+
+        # Populate the tot_num_wann and band_indices attributes of each block
+        count = 0
+        for b in blocks:
+            b.tot_num_wann = tot_num_wann
+            b.band_indices = list(range(count + 1, count + 1 + b.num_wann))
+            count += b.num_wann
+
+        return cls(blocks)
+
+    def todict(self) -> dict:
+        dct: Dict[str, Any] = {'blocks': self._blocks}
+        dct['__koopmans_name__'] = self.__class__.__name__
+        dct['__koopmans_module__'] = self.__class__.__module__
+        return dct
+
+    def add_excluded_bands(self, num: int, above: bool = False):
+        for b in self:
+            b.tot_num_wann += num
+            if not above:
+                b.band_indices = [i + num for i in b.band_indices]
+
+    def num_wann(self, occ: Optional[bool] = None):
+        return sum([b.num_wann for b in self if occ is None or b.filled == occ])
+
+    @classmethod
+    def fromdict(cls, dct):
+        return cls(**dct)

@@ -32,11 +32,6 @@ class WannierizeWorkflow(Workflow):
         pw_params = self.master_calc_params['pw']
         
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-            if 'w90_occ' not in self.master_calc_params and 'w90_emp' not in self.master_calc_params:
-                raise ValueError(
-                    'You need to provide a w90 block in your input when init_orbitals = "mlwfs" or "projwfs"')
-
-            # Make sure num_wann (occ/empty), num_bands (occ/empty), and nbnd are present and consistent
             pw2w_params = self.master_calc_params['pw2wannier']
             w90_occ_params = self.master_calc_params['w90_occ']
             w90_emp_params = self.master_calc_params['w90_emp']
