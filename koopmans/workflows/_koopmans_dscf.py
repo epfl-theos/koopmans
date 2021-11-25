@@ -67,8 +67,11 @@ class KoopmansDSCFWorkflow(Workflow):
                    for i in self.parameters.orbital_groups[nocc:]]
 
             # Check the number of empty states has been correctly configured
-            w90_emp_params = self.master_calc_params['w90_emp']
-            expected_empty_states_nbnd = w90_emp_params.num_wann * np.prod(self.kgrid)
+            if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
+                w90_emp_params = self.master_calc_params['w90_emp']
+                expected_empty_states_nbnd = w90_emp_params.num_wann * np.prod(self.kgrid)
+            else:
+                expected_empty_states_nbnd = nemp * np.prod(self.kgrid)
             if kcp_params.empty_states_nbnd == 0:
                 # 0 is the default value
                 kcp_params.empty_states_nbnd = expected_empty_states_nbnd
