@@ -9,36 +9,15 @@ Written by Riccardo De Gennaro Nov 2020
 
 import itertools
 import pickle
-from ase import Atoms
-from ase.io.wannier90 import num_wann_from_projections, proj_string_to_dict
 from ._generic import Workflow
 from koopmans import utils
 from koopmans.pseudopotentials import nelec_from_pseudos
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
-from typing import List, Union, Dict, Any, Optional
+from typing import List, Union
 import matplotlib
 matplotlib.use('Agg')
-
-
-def list_to_formatted_str(values: List[int]):
-    # Converts a list of integers into the format expected by Wannier90
-    # e.g. list_to_formatted_str([1, 2, 3, 4, 5, 7]) = "1-5,7"
-    if len(values) == 0:
-        raise ValueError('list_to_formatted_str() should not be given an empty list')
-    assert all(a > b for a, b in zip(values[1:], values[:-1])), 'values must be monotonically increasing'
-    indices: List[Union[int, None]] = [None]
-    indices += [i + 1 for i in range(len(values) - 1) if values[i + 1] != values[i] + 1]
-    indices += [None]
-    sectors = [values[slice(a, b)] for a, b in zip(indices[:-1], indices[1:])]
-    out = []
-    for sector in sectors:
-        if len(sector) == 1:
-            out.append(str(sector[0]))
-        else:
-            out.append(f'{sector[0]}-{sector[-1]}')
-    return ','.join(out)
 
 
 class WannierizeWorkflow(Workflow):
@@ -82,12 +61,18 @@ class WannierizeWorkflow(Workflow):
             if n_filled_bands != pw_params.nbnd:
                 exclude_bands += list(range(n_filled_bands + 1, pw_params.nbnd + 1))
             if len(exclude_bands) > 0:
-                w90_occ_params.exclude_bands = list_to_formatted_str(exclude_bands)
+                w90_occ_params.exclude_bands = utils.list_to_formatted_str(exclude_bands)
         if w90_emp_params.exclude_bands is None:
             extra_conduction_bands = pw_params.nbnd - extra_core_bands - w90_occ_params.num_bands \
                 - w90_emp_params.num_bands
             # If exclude bands hasn't been defined for the empty calculation, this should exclude all filled bands
             w90_emp_params.exclude_bands = f'1-{n_filled_bands}'
+
+        # Update the projections_blocks to account for additional bands
+        self.parameters.w90_projections_blocks.add_excluded_bands(
+            w90_occ_params.num_bands + extra_core_bands - w90_occ_params.num_wann, above=False)
+        self.parameters.w90_projections_blocks.add_excluded_bands(
+            w90_emp_params.num_bands - w90_emp_params.num_wann, above=True)
 
         # Sanity checking
         w90_nbnd = w90_occ_params.num_bands + w90_emp_params.num_bands + extra_core_bands + extra_conduction_bands
@@ -188,7 +173,8 @@ class WannierizeWorkflow(Workflow):
             calc_pw_bands.parameters.prefix += '_bands'
             # Link the save directory so that the bands calculation can use the old density
             if self.parameters.from_scratch:
-                [src, dest] = [(c.parameters.outdir / c.parameters.prefix).with_suffix('.save') for c in [calc_pw, calc_pw_bands]]
+                [src, dest] = [(c.parameters.outdir / c.parameters.prefix).with_suffix('.save')
+                               for c in [calc_pw, calc_pw_bands]]
                 utils.symlink(src, dest)
             self.run_calculator(calc_pw_bands)
 
@@ -258,86 +244,3 @@ class WannierizeWorkflow(Workflow):
             calc.parameters.outdir = Path('wannier/TMP').resolve()
 
         return calc
-
-
-class WannierBandBlock(object):
-    def __init__(self,
-                 projections: List[Union[str, Dict[str, Any]]],
-                 filled: bool,
-                 atoms: Atoms,
-                 band_indices: Optional[List[int]] = None,
-                 tot_num_wann: Optional[int] = None):
-
-        self.projections = []
-        for proj in projections:
-            if isinstance(proj, str):
-                proj = proj_string_to_dict(proj)
-            self.projections.append(proj)
-        self.filled = filled
-        self._atoms = atoms
-        self.band_indices = band_indices
-        self.tot_num_wann = tot_num_wann
-
-    @property
-    def exclude_bands(self):
-        return list_to_formatted_str([i for i in range(1, self.tot_num_wann + 1) if i not in self.band_indices])
-
-    @property
-    def num_wann(self):
-        return num_wann_from_projections(self.projections, self._atoms)
-
-    @property
-    def kwargs(self):
-        return {'projections': self.projections, 'exclude_bands': self.exclude_bands, 'num_wann': self.num_wann, 'num_bands': self.num_wann}
-
-    def todict(self) -> dict:
-        dct = {k.strip('_'): v for k, v in self.__dict__.items()}
-        dct['__koopmans_name__'] = self.__class__.__name__
-        dct['__koopmans_module__'] = self.__class__.__module__
-        return dct
-
-    @classmethod
-    def fromdict(cls, dct):
-        return cls(**dct)
-
-
-class WannierBandBlocks(object):
-    def __init__(self, blocks: List[WannierBandBlock]):
-        self._blocks = blocks
-
-    def __iter__(self):
-        for b in self._blocks:
-            yield b
-
-    def num_wann(self, occ: Optional[bool] = None) -> int:
-        return sum([b.num_wann for b in self if occ is None or b.filled is occ])
-
-    @classmethod
-    def fromprojections(cls,
-                        list_of_projections: List[List[Union[str, Dict[str, Any]]]],
-                        filling: List[bool],
-                        atoms: Atoms):
-
-        blocks = [WannierBandBlock(p, f, atoms) for p, f in zip(list_of_projections, filling)]
-
-        # Count the total number of wannier functions
-        tot_num_wann = sum([b.num_wann for b in blocks])
-
-        # Populate the tot_num_wann and band_indices attributes of each block
-        count = 0
-        for b in blocks:
-            b.tot_num_wann = tot_num_wann
-            b.band_indices = list(range(count + 1, count + 1 + b.num_wann))
-            count += b.num_wann
-
-        return cls(blocks)
-
-    def todict(self) -> dict:
-        dct: Dict[str, Any] = {'blocks': self._blocks}
-        dct['__koopmans_name__'] = self.__class__.__name__
-        dct['__koopmans_module__'] = self.__class__.__module__
-        return dct
-
-    @classmethod
-    def fromdict(cls, dct):
-        return cls(**dct)
