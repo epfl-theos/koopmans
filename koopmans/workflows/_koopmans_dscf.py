@@ -39,10 +39,18 @@ class KoopmansDSCFWorkflow(Workflow):
             if self.parameters.spin_polarised:
                 raise NotImplementedError('Yet to implement spin-polarised calculations for periodic systems')
 
-            # Update the KCP settings to correspond to a supercell (leaving self.atoms unchanged for the moment)
-            self.convert_kcp_to_supercell()
+            # Check that we have wannierised every orbital
             nocc = self.master_calc_params['w90_occ'].num_wann
             nemp = self.master_calc_params['w90_emp'].num_wann
+            if nocc != kcp_params.nelup:
+                raise ValueError('You have configured this calculation to only wannierise a subset of the occupied '
+                                 'bands. This is incompatible with the subsequent Koopmans calculation.\nPlease '
+                                 'modify the wannier90 settings in order to wannierise all of the occupied bands. '
+                                 '(You may want to consider taking advantage of the "projections_blocks" functionality '
+                                 'if your system has a lot of semi-core electrons.)')
+
+            # Update the KCP settings to correspond to a supercell (leaving self.atoms unchanged for the moment)
+            self.convert_kcp_to_supercell()
             # Note that self.parameters.orbital_groups does not have a spin index, as opposed to self.bands.groups
             if self.parameters.orbital_groups is None:
                 self.parameters.orbital_groups = list(range(0, nocc + nemp))
