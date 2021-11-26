@@ -51,6 +51,9 @@ def header():
 
 
 def main():
+    # Write out the header
+    print(header())
+
     # Automatically constructing a list of workflow keywords for 'run_koopmans.py --help'
     # from valid_settings
     epilog = ''
@@ -84,9 +87,6 @@ def main():
 
     # Reading in JSON file
     workflow = read(args.json)
-
-    # Write out the header
-    print(header())
 
     # Run workflow
     workflow.run()
