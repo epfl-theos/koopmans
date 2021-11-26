@@ -211,7 +211,7 @@ class SettingsDict(UserDict):
 
     @property
     def _other_valid_keywords(self):
-        return ['pseudopotentials', 'kpts', 'koffset']
+        return ['pseudopotentials', 'gamma_only', 'kpts', 'koffset']
 
     def todict(self):
         # Construct a minimal representation of this dictionary. Most of the requisite information

@@ -119,7 +119,7 @@ class WannierizeWorkflow(Workflow):
         calc_pw.directory = 'wannier'
         calc_pw.prefix = 'nscf'
         self.run_calculator(calc_pw)
-
+        
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
             fillings = []
             for filling in ['occ', 'emp']:
@@ -137,7 +137,7 @@ class WannierizeWorkflow(Workflow):
                 block_projs = [b for b in self.parameters.w90_projections_blocks if b.filled == filled]
                 if len(block_projs) == 1:
                     # We are not Wannierising block-by-block; don't provide any extra arguments
-                    blocks_kwargs = [{}]
+                    block_kwargs = [{}]
                 else:
                     typ = f'{filling}_{spin}'
                 if block_kwargs != {}:
@@ -147,7 +147,7 @@ class WannierizeWorkflow(Workflow):
 
                 # 1) pre-processing Wannier90 calculation
                 calc_w90 = self.new_calculator('w90_' + filling, directory=w90_dir,
-                                               spin_component=spin, **block_kwargs)
+                                               spin_component=spin, gamma_only=calc_pw.parameters.gamma_only, **block_kwargs)
                 calc_w90.prefix = 'wann_preproc'
                 calc_w90.command.flags = '-pp'
                 self.run_calculator(calc_w90)
@@ -163,7 +163,8 @@ class WannierizeWorkflow(Workflow):
 
                 # 3) Wannier90 calculation
                 calc_w90 = self.new_calculator('w90_' + filling, directory=w90_dir,
-                                               bands_plot=self.parameters.check_wannierisation, spin_component=spin, **block_kwargs)
+                                               bands_plot=self.parameters.check_wannierisation, spin_component=spin,
+                                               gamma_only=calc_pw.parameters.gamma_only, **block_kwargs)
                 calc_w90.prefix = 'wann'
                 self.run_calculator(calc_w90)
 
