@@ -1,3 +1,4 @@
+from typing import Any
 from ._utils import Setting, SettingsDictWithChecks
 
 
@@ -106,3 +107,10 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
     @property
     def _other_valid_keywords(self):
         return ['w90_projections_blocks']
+
+    def __setitem__(self, key: str, value: Any):
+        # Make sure that orbital_groups is always stored as a list of lists
+        if key == 'orbital_groups' and value is not None:
+            if len(value) == 0 or not isinstance(value[0], list):
+                value = [value]
+        return super().__setitem__(key, value)

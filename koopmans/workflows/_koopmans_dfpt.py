@@ -88,15 +88,15 @@ class KoopmansDFPTWorkflow(Workflow):
 
         # Initialise the bands
         if self.parameters.periodic:
-            nocc = self.master_calc_params['w90_occ'].num_wann
-            nemp = self.master_calc_params['w90_emp'].num_wann
+            nocc = self.parameters.w90_projections_blocks.num_wann(occ=True)
+            nemp = self.parameters.w90_projections_blocks.num_wann(occ=False)
         else:
             nocc = self.master_calc_params['kcp'].nelec // 2
             nemp = self.master_calc_params['pw'].nbnd - nocc
         if self.parameters.orbital_groups is None:
-            self.parameters.orbital_groups = list(range(nocc + nemp))
+            self.parameters.orbital_groups = [list(range(nocc + nemp))]
         self.bands = Bands(n_bands=nocc + nemp, filling=[[True] * nocc + [False] * nemp],
-                           groups=[self.parameters.orbital_groups])
+                           groups=self.parameters.orbital_groups)
 
         # Populating kpoints if absent
         if not self.parameters.periodic:

@@ -152,13 +152,24 @@ def read_json(fd: TextIO, override={}):
     # Override all keywords provided explicitly
     update_nested_dict(bigdct, override)
 
-    # Deal with w90 subdicts
+    # Deal with the nested w90 subdictionaries
     if 'w90' in bigdct:
-        bigdct['w90_occ'] = bigdct['w90'].pop('occ', {})
-        bigdct['w90_emp'] = bigdct['w90'].pop('emp', {})
-        for k, v in bigdct['w90'].items():
-            bigdct['w90_occ'][k] = v
-            bigdct['w90_emp'][k] = v
+        for filling in ['occ', 'emp']:
+            for spin in ['up', 'down']:
+                # Add any keywords in the filling:spin subsubdictionary
+                subsubdct = bigdct['w90'].get(filling, {}).get(spin, {})
+                bigdct[f'w90_{filling}_{spin}'] = subsubdct
+                # Add any keywords in the filling subdictionary
+                subdct = {k: v for k, v in bigdct['w90'].get(filling, {}).items() if k not in ['up', 'down']}
+                bigdct[f'w90_{filling}_{spin}'].update(subdct)
+                # Add any keywords in the main dictionary
+                dct = {k: v for k, v in bigdct['w90'].items() if k not in ['occ', 'emp']}
+                bigdct[f'w90_{filling}_{spin}'].update(dct)
+            # Also create a spin-independent set of parameters
+            bigdct[f'w90_{filling}'] = {}
+            bigdct[f'w90_{filling}'].update(subdct)
+            bigdct[f'w90_{filling}'].update(dct)
+        # Finally, remove the nested w90 entry
         del bigdct['w90']
 
     # Deal with UI subdicts
@@ -194,7 +205,11 @@ def read_json(fd: TextIO, override={}):
                         'ui_occ': UnfoldAndInterpolateSettingsDict,
                         'ui_emp': UnfoldAndInterpolateSettingsDict,
                         'w90_occ': Wannier90SettingsDict,
-                        'w90_emp': Wannier90SettingsDict}
+                        'w90_emp': Wannier90SettingsDict,
+                        'w90_occ_up': Wannier90SettingsDict,
+                        'w90_emp_up': Wannier90SettingsDict,
+                        'w90_occ_down': Wannier90SettingsDict,
+                        'w90_emp_down': Wannier90SettingsDict}
 
     # Check for unexpected blocks
     for block in bigdct:
@@ -223,7 +238,8 @@ def read_json(fd: TextIO, override={}):
     # Loading calculator-specific settings
     master_calc_params = {}
     w90_block_projs = []
-    w90_block_filling = []
+    w90_block_filling: List[bool] = []
+    w90_block_spins: List[Union[int, None]] = []
 
     # Generate a master SettingsDict for every single kind of calculator, regardless of whether or not there was a
     # corresponding block in the json file
@@ -249,14 +265,29 @@ def read_json(fd: TextIO, override={}):
                     raise ValueError('kpath in the UI block should match that provided in the setup block')
                 dct.pop('kpath')
         elif block.startswith('w90'):
+            # If we are spin-polarised, don't store the spin-independent w90 block
+            # Likewise, if we are not spin-polarised, don't store the spin-dependent w90 blocks
+            if parameters.spin_polarised is not ('up' in block or 'down' in block):
+                continue
             if 'projections' in dct and 'projections_blocks' in dct:
                 raise ValueError('"projections" and "projections_block" are mutually exclusive')
             elif 'projections_blocks' in dct:
                 projs = dct.pop('projections_blocks')
             else:
-                projs = [dct.get('projections', [])]
+                projs = [dct.pop('projections', [])]
             w90_block_projs += projs
-            w90_block_filling += [block.endswith('occ') for _ in range(len(projs))]
+            w90_block_filling += ['occ' in block for _ in range(len(projs))]
+            if 'up' in block:
+                w90_block_spins += ['up' for _ in range(len(projs))]
+            elif 'down' in block:
+                w90_block_spins += ['down' for _ in range(len(projs))]
+            else:
+                w90_block_spins += [None for _ in range(len(projs))]
+            for kw in ['exclude_bands', 'num_wann', 'num_bands', 'projections']:
+                if kw in dct:
+                    utils.warn(f'{kw} will be overwritten by the workflow; it is best to leave this keyword out of the '
+                               'JSON input file and to then double-check this keyword in the various .win files generated '
+                               'by the workflow.')
 
         master_calc_params[block] = settings_class(**dct)
         master_calc_params[block].update(
@@ -266,7 +297,7 @@ def read_json(fd: TextIO, override={}):
     # Adding the w90_projections_blocks to the workflow parameters (this is unusual in that this is a setting associated
     # with the workflow object but is provided in the w90_occ and emp blocks)
     parameters['w90_projections_blocks'] = bands.WannierBandBlocks.fromprojections(
-        w90_block_projs, w90_block_filling, atoms)
+        w90_block_projs, w90_block_filling, w90_block_spins, atoms)
 
     name = fd.name.replace('.json', '')
     workflow: workflows.Workflow

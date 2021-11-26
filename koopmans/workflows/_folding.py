@@ -1,6 +1,6 @@
 """
 
-Workflow module for koopmans, containing the workflow for converting W90 or PW files to 
+Workflow module for koopmans, containing the workflow for converting W90 or PW files to
 kcp.x friendly-format using a modified version of pw2wannier90.x
 
 Written by Edward Linscott Feb 2021
@@ -26,26 +26,12 @@ class FoldToSupercellWorkflow(Workflow):
         self.print('Folding to supercell', style='subheading')
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-            fillings = ['occ', 'emp']
-            if self.parameters.spin_polarised:
-                spins = ['up', 'down']
-            else:
-                spins = [None]
-
-            for filling, spin in itertools.product(fillings, spins):
-                if spin is None:
-                    typ = filling
-                else:
-                    typ = f'{filling}_{spin}'
-
+            # Loop over the various subblocks that we have wannierised separately
+            for block in self.parameters.w90_projections_blocks:
                 # Create the calculator
-                kwargs = self.master_calc_params['pw2wannier'].copy()
-                kwargs['wan_mode'] = 'wannier2odd'
-                calc_w2o = calculators.PW2WannierCalculator(atoms=self.atoms, **kwargs)
-                calc_w2o.directory = f'./{typ}'
+                calc_w2o = self.new_calculator('pw2wannier', spin_component=block['spin'], wan_mode='wannier2odd',
+                                               directory=block['subdirectory'])
                 calc_w2o.prefix = 'wan2odd'
-                if spin is not None:
-                    calc_w2o.spin_component = spin
 
                 # Checking that gamma_trick is consistent with do_wf_cmplx
                 kcp_params = self.master_calc_params['kcp']
@@ -59,15 +45,11 @@ class FoldToSupercellWorkflow(Workflow):
 
                 # Run the calculator
                 self.run_calculator(calc_w2o)
-        
+
         else:
             # Create the calculator
-            kwargs = self.master_calc_params['pw2wannier'].copy()
-            kwargs['wan_mode'] = 'ks2odd'
-            calc_w2o = calculators.PW2WannierCalculator(atoms=self.atoms, **kwargs)
-            calc_w2o.directory = 'ks2odd'
+            calc_w2o = self.new_calculator('pw2wannier', directory='ks2odd', wan_mode='ks2odd', seedname=None)
             calc_w2o.prefix = 'ks2odd'
-            del calc_w2o.parameters['seedname']
 
             # Run the calculator
             self.run_calculator(calc_w2o)

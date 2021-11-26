@@ -1,9 +1,10 @@
 import itertools
 from typing import Optional, List, Union, Any, Dict
+from pathlib import Path
 import numpy as np
 import pandas as pd
 from ase import Atoms
-from ase.io.wannier90 import num_wann_from_projections, proj_string_to_dict
+from ase.io.wannier90 import num_wann_from_projections, proj_string_to_dict, proj_dict_to_string
 from koopmans.utils import indented_print, list_to_formatted_str
 
 
@@ -382,12 +383,11 @@ class Bands(object):
 
 
 class WannierBandBlock(object):
+    # This simple object contains th projections, filling, and spin corresponding to a block of bands
     def __init__(self,
                  projections: List[Union[str, Dict[str, Any]]],
                  filled: bool,
-                 atoms: Atoms,
-                 band_indices: Optional[List[int]] = None,
-                 tot_num_wann: Optional[int] = None):
+                 spin: Optional[int]):
 
         self.projections = []
         for proj in projections:
@@ -395,24 +395,16 @@ class WannierBandBlock(object):
                 proj = proj_string_to_dict(proj)
             self.projections.append(proj)
         self.filled = filled
-        self._atoms = atoms
-        self.band_indices = band_indices
-        self.tot_num_wann = tot_num_wann
+        self.spin = spin
 
-    @property
-    def exclude_bands(self):
-        return list_to_formatted_str([i for i in range(1, self.tot_num_wann + 1) if i not in self.band_indices])
-
-    @property
-    def num_wann(self):
-        return num_wann_from_projections(self.projections, self._atoms)
-
-    @property
-    def kwargs(self):
-        return {'projections': self.projections, 'exclude_bands': self.exclude_bands, 'num_wann': self.num_wann, 'num_bands': self.num_wann}
+    def __repr__(self) -> str:
+        out = f'WannierBandBlock(projections={[self.projections]}, filled={self.filled}'
+        if self.spin is not None:
+            out += ', spin={self.spin}'
+        return out + ')'
 
     def todict(self) -> dict:
-        dct = {k.strip('_'): v for k, v in self.__dict__.items()}
+        dct = {k: v for k, v in self.__dict__.items()}
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct
@@ -423,48 +415,136 @@ class WannierBandBlock(object):
 
 
 class WannierBandBlocks(object):
-    def __init__(self, blocks: List[WannierBandBlock]):
+    """
+    This object is a collection of blocks of bands. In addition to the band blocks themselves, it also stores
+    system-wide properties such as how many extra conduction bands we have.
+
+    It allow easy iteration over all the blocks with the syntax
+
+    > for block in bandblocks:
+    >     ...
+
+    where in this case "block" is a dictionary that is populated with all the relevant keywords pertaining
+    to that band block, such as spin (which could alternatively be extracted from the individual band block) but also
+    keywords such as exclude_bands (which require knowledge of the total number of bands and wannier functions to
+    construct). See self.__iter__() for more details.
+    """
+
+    def __init__(self, blocks: List[WannierBandBlock], atoms: Atoms):
         self._blocks = blocks
+        self._atoms = atoms
+        # This BandBlocks object must keep track of how many bands we have not belonging to any block
+        self._n_bands_below = {spin: 0 for spin in set([b.spin for b in blocks])}
+        self._n_bands_above = {spin: 0 for spin in set([b.spin for b in blocks])}
+
+    def __repr__(self):
+        out = 'WannierBandBlocks('
+        for b in self._blocks:
+            out += f'{b}\n                  '
+        out = out.strip()
+        out += ')'
+        return out
 
     def __iter__(self):
-        for b in self._blocks:
-            yield b
+        # Construct all the blocks including more global information such as exclude_bands
+        for spin in [None, 'up', 'down']:
+            subset = self.get_subset(spin=spin)
+            if len(subset) == 0:
+                continue
+            is_last = [False for _ in subset]
+            is_last[-1] = True
+            wann_counter = self._n_bands_below[spin] + 1
+            for b, include_above in zip(subset, is_last):
+                # Construct num_wann
+                num_wann = num_wann_from_projections(b.projections, self._atoms)
+
+                # Construct num_bands
+                num_bands = num_wann
+                if include_above:
+                    num_bands += self._n_bands_above[spin]
+
+                # Construct exclude_bands
+                band_indices = range(wann_counter, wann_counter + num_wann)
+                wann_counter += num_wann
+                if include_above:
+                    # For the uppermost block we don't want to exclude any extra bands from the wannierisation
+                    upper_bound = max(band_indices)
+                else:
+                    upper_bound = self.num_bands(spin=spin)
+                to_exclude = [i for i in range(1, upper_bound + 1) if i not in band_indices]
+                exclude_bands = list_to_formatted_str(to_exclude)
+
+                # Construct the calc_type
+                if b.filled:
+                    label = 'occ'
+                else:
+                    label = 'emp'
+                if b.spin is not None:
+                    label += '_' + spin
+
+                # Construct subdirectory
+                subdirectory = label
+                subset = self.get_subset(occ=b.filled, spin=b.spin)
+                if len(subset) > 1:
+                    subdirectory = label + f'_block{subset.index(b) + 1}'
+
+                dct = {'kwargs': {'num_wann': num_wann,
+                                  'projections': b.projections,
+                                  'exclude_bands': exclude_bands,
+                                  'num_bands': num_bands},
+                       'filled': b.filled,
+                       'spin': b.spin,
+                       'calc_type': 'w90_' + label,
+                       'subdirectory': subdirectory}
+                yield dct
 
     @classmethod
     def fromprojections(cls,
                         list_of_projections: List[List[Union[str, Dict[str, Any]]]],
-                        filling: List[bool],
+                        fillings: List[bool],
+                        spins: List[Union[str, None]],
                         atoms: Atoms):
 
-        blocks = [WannierBandBlock(p, f, atoms) for p, f in zip(list_of_projections, filling)]
+        # Make sure to store all filled blocks before any empty blocks
+        blocks: List[WannierBandBlock] = []
+        for filled in [True, False]:
+            blocks += [WannierBandBlock(p, f, s)
+                       for p, f, s in zip(list_of_projections, fillings, spins) if f is filled]
 
-        # Count the total number of wannier functions
-        tot_num_wann = sum([b.num_wann for b in blocks])
+        return cls(blocks, atoms)
 
-        # Populate the tot_num_wann and band_indices attributes of each block
-        count = 0
-        for b in blocks:
-            b.tot_num_wann = tot_num_wann
-            b.band_indices = list(range(count + 1, count + 1 + b.num_wann))
-            count += b.num_wann
+    def add_bands(self, num: int, above: bool = False, spin: Optional[str] = None):
+        if above:
+            self._n_bands_above[spin] += num
+        else:
+            self._n_bands_below[spin] += num
 
-        return cls(blocks)
+    def get_subset(self, occ: Optional[bool] = None, spin: Optional[str] = None):
+        return [b for b in self._blocks if (occ is None or b.filled == occ) and (spin is None or b.spin == spin)]
+
+    def num_wann(self, occ: Optional[bool] = None, spin: Optional[str] = None):
+        return sum([num_wann_from_projections(b.projections, self._atoms) for b in self.get_subset(occ, spin)])
+
+    def num_bands(self, occ: Optional[bool] = None, spin: Optional[str] = None):
+        nbands = self.num_wann(occ, spin)
+        try:
+            if (occ is True or occ is None):
+                nbands += self._n_bands_below[spin]
+            if (occ is False or occ is None):
+                nbands += self._n_bands_above[spin]
+        except KeyError:
+            raise ValueError('num_bands does not support summing over all spins')
+        return nbands
 
     def todict(self) -> dict:
-        dct: Dict[str, Any] = {'blocks': self._blocks}
+        dct: Dict[str, Any] = {k: v for k, v in self.__dict__}
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct
 
-    def add_excluded_bands(self, num: int, above: bool = False):
-        for b in self:
-            b.tot_num_wann += num
-            if not above:
-                b.band_indices = [i + num for i in b.band_indices]
-
-    def num_wann(self, occ: Optional[bool] = None):
-        return sum([b.num_wann for b in self if occ is None or b.filled == occ])
-
-    @classmethod
+    @ classmethod
     def fromdict(cls, dct):
-        return cls(**dct)
+        new_bandblock = cls(dct.pop('_blocks'), dct.pop('_atoms'))
+        for k, v in dct.items():
+            setattr(new_bandblock, k, v)
+        return new_bandblock

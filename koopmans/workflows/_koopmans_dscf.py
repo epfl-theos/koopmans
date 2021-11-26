@@ -37,45 +37,68 @@ class KoopmansDSCFWorkflow(Workflow):
         kcp_params = self.master_calc_params['kcp']
         if self.parameters.periodic:
             if self.parameters.spin_polarised:
-                raise NotImplementedError('Yet to implement spin-polarised calculations for periodic systems')
+                spins = ['up', 'down']
+                nelecs = [kcp_params.nelup, kcp_params.neldw]
+            else:
+                spins = [None]
+                nelecs = [kcp_params.nelec // 2]
 
-            # Check that we have wannierised every orbital
-            nocc = self.master_calc_params['w90_occ'].num_wann
-            nemp = self.master_calc_params['w90_emp'].num_wann
-            if nocc != kcp_params.nelup:
-                raise ValueError('You have configured this calculation to only wannierise a subset of the occupied '
-                                 'bands. This is incompatible with the subsequent Koopmans calculation.\nPlease '
-                                 'modify the wannier90 settings in order to wannierise all of the occupied bands. '
-                                 '(You may want to consider taking advantage of the "projections_blocks" functionality '
-                                 'if your system has a lot of semi-core electrons.)')
+            for spin, nelec in zip(spins, nelecs):
+                # Check that we have wannierised every filled orbital
+                num_wann_occ = self.parameters.w90_projections_blocks.num_wann(occ=True, spin=spin)
+
+                if num_wann_occ != nelec:
+                    raise ValueError('You have configured this calculation to only wannierise a subset of the occupied '
+                                     'bands. This is incompatible with the subsequent Koopmans calculation.\nPlease '
+                                     'modify the wannier90 settings in order to wannierise all of the occupied bands. '
+                                     '(You may want to consider taking advantage of the "projections_blocks" functionality '
+                                     'if your system has a lot of semi-core electrons.)')
+
+                # Check the number of empty states has been correctly configured
+                num_wann_emp = self.parameters.w90_projections_blocks.num_wann(occ=False, spin=spin)
+                expected_empty_states_nbnd = num_wann_emp
+                if kcp_params.empty_states_nbnd == 0:
+                    # 0 is the default value
+                    kcp_params.empty_states_nbnd = expected_empty_states_nbnd
+                elif kcp_params.empty_states_nbnd != expected_empty_states_nbnd:
+                    raise ValueError('kcp empty_states_nbnd and wannier90 num_wann (emp) are inconsistent')
+
+            # Populating self.parameters.orbital_groups if needed
+            # N.B. self.bands.groups is guaranteed to be 2 x num_wann, but self.parameters.orbital_groups
+            # is either 1- or 2- long, depending on if we are spin-polarised or not
+            if self.parameters.orbital_groups is None:
+                orbital_groups: List[List[int]] = []
+                i_start = 0
+                for i_spin, nelec in enumerate(nelecs):
+                    i_end = i_start + nelec + kcp_params.empty_states_nbnd - 1
+                    orbital_groups.append(list(range(i_start, i_end + 1)))
+                    i_start = i_end
+                self.parameters.orbital_groups = orbital_groups
 
             # Update the KCP settings to correspond to a supercell (leaving self.atoms unchanged for the moment)
             self.convert_kcp_to_supercell()
-            # Note that self.parameters.orbital_groups does not have a spin index, as opposed to self.bands.groups
-            if self.parameters.orbital_groups is None:
-                self.parameters.orbital_groups = list(range(0, nocc + nemp))
-            self.parameters.orbital_groups = [i for _ in range(np.prod(self.kgrid))
-                                              for i in self.parameters.orbital_groups[:nocc]] \
-                + [i for _ in range(np.prod(self.kgrid))
-                   for i in self.parameters.orbital_groups[nocc:]]
 
-            # Check the number of empty states has been correctly configured
-            w90_emp_params = self.master_calc_params['w90_emp']
-            expected_empty_states_nbnd = w90_emp_params.num_wann * np.prod(self.kgrid)
-            if kcp_params.empty_states_nbnd == 0:
-                # 0 is the default value
-                kcp_params.empty_states_nbnd = expected_empty_states_nbnd
-            elif kcp_params.empty_states_nbnd != expected_empty_states_nbnd:
-                raise ValueError('kcp empty_states_nbnd and wannier90 num_wann (emp) are inconsistent')
+            # Expanding self.parameters.orbital_groups to account for the supercell, grouping equivalent wannier
+            # functions together
+            for i_spin, nelec in enumerate(nelecs):
+                self.parameters.orbital_groups[i_spin] = [i for _ in range(np.prod(self.kgrid))
+                                                          for i in self.parameters.orbital_groups[i_spin][:nelec]] \
+                    + [i for _ in range(np.prod(self.kgrid))
+                       for i in self.parameters.orbital_groups[i_spin][nelec:]]
 
-        # Initialise the bands object
+        # Check the shape of self.parameters.orbital_groups is as expected
+        if self.parameters.spin_polarised:
+            target_length = 2
+        else:
+            target_length = 1
+        if self.parameters.orbital_groups is not None:
+            assert len(self.parameters.orbital_groups) == target_length
+
+        # Constructing the arrays required to initialise a Bands object
         if self.parameters.spin_polarised:
             filling = [[True for _ in range(kcp_params.nelup)] + [False for _ in range(kcp_params.empty_states_nbnd)],
                        [True for _ in range(kcp_params.neldw)] + [False for _ in range(kcp_params.empty_states_nbnd)]]
             groups = self.parameters.orbital_groups
-            if groups is not None and (len(groups) != 2 or not isinstance(groups[0], list)):
-                raise ValueError('If spin_polarised = True, orbital_groups should be a list containing two sublists '
-                                 '(one per spin channel)')
         else:
             filling = [[True for _ in range(kcp_params.nelec // 2)]
                        + [False for _ in range(kcp_params.empty_states_nbnd)] for _ in range(2)]
@@ -83,14 +106,14 @@ class KoopmansDSCFWorkflow(Workflow):
             if self.parameters.orbital_groups is None:
                 groups = None
             else:
-                groups = [self.parameters.orbital_groups for _ in range(2)]
+                groups = [self.parameters.orbital_groups[0] for _ in range(2)]
 
-        # Sanity checking
+        # Checking groups and filling are the same dimensions
         if groups is not None:
             for g, f in zip(groups, filling):
-                assert len(g) == len(f), 'orbital_groups is the wrong dimension; it should have dimensions (2, ' \
-                    'num_bands)'
+                assert len(g) == len(f), 'orbital_groups is the wrong dimension; its length should match the number of bands'
 
+        # Initialise the bands object
         self.bands = Bands(n_bands=[len(f) for f in filling], n_spin=2, spin_polarised=self.parameters.spin_polarised,
                            filling=filling, groups=groups,
                            self_hartree_tol=self.parameters.orbital_groups_self_hartree_tol)
@@ -414,16 +437,17 @@ class KoopmansDSCFWorkflow(Workflow):
                 if not iteration_directory.is_dir():
                     iteration_directory.mkdir()
 
+            innerloop_override = {}
+            if i_sc == 1 and self.parameters.functional == 'kipz' and not self.parameters.periodic:
+                # For the first KIPZ trial calculation, override do_innerloop to true
+                innerloop_override['do_innerloop'] = True
+
             # Do a KI/KIPZ calculation with the updated alpha values
             trial_calc = self.new_kcp_calculator(calc_presets=self.parameters.functional.replace('pkipz', 'ki'),
-                                                 alphas=self.bands.alphas)
+                                                 alphas=self.bands.alphas, **innerloop_override)
             trial_calc.directory = iteration_directory
 
-            if i_sc == 1:
-                if self.parameters.functional == 'kipz' and not self.parameters.periodic:
-                    # For the first KIPZ trial calculation, do the innerloop
-                    trial_calc.parameters.do_innerloop = True
-            else:
+            if i_sc > 1:
                 # For later SC loops, read in the matching calculation from the
                 # previous loop rather than the initialisation calculations
                 trial_calc.parameters.ndr = trial_calc.parameters.ndw
@@ -1062,7 +1086,7 @@ class KoopmansDSCFWorkflow(Workflow):
             if mp1 is None:
                 raise ValueError('Could not find 1st order Makov-Payne energy')
             if mp2 is None:
-                #utils.warn('Could not find 2nd order Makov-Payne energy; applying first order only')
+                # utils.warn('Could not find 2nd order Makov-Payne energy; applying first order only')
                 mp_energy = mp1
             else:
                 mp_energy = mp1 + mp2

@@ -69,21 +69,7 @@ class Workflow(object):
             pseudo_dir = self.master_calc_params['kcp'].get('pseudo_dir', None)
             self.master_calc_params['kcp'].nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, pseudo_dir)
 
-        # We also rely on w90_occ/emp_params.num_wann so make sure this has been initialised, too
-        for occ, params, default_num_wann in \
-                [(True, self.master_calc_params['w90_occ'], self.master_calc_params['kcp'].nelec // 2),
-                 (False, self.master_calc_params['w90_emp'], self.master_calc_params['kcp'].empty_states_nbnd)]:
-            if params.num_wann is None:
-                num_wann = self.parameters.w90_projections_blocks.num_wann(occ=occ)
-                if num_wann > 0:
-                    # Populate num_wann based on the projections provided
-                    params.num_wann = num_wann
-                else:
-                    if self.parameters.spin_polarised:
-                        raise NotImplementedError()
-                    # Populate num_wann based off the kcp calculator
-                    params.num_wann = default_num_wann
-
+        # Generate the kpath
         if kpath is None:
             if self.parameters.periodic:
                 # By default, use ASE's default bandpath for this cell (see
@@ -373,6 +359,9 @@ class Workflow(object):
         '''
 
         if enforce_ss:
+            if not isinstance(master_qe_calc, calculators.KoopmansCPCalculator):
+                raise NotImplementedError('Workflow.run_calculator(..., enforce_ss = True) needs to be generalised to '
+                                          'other calculator types')
             # Create a copy of the calculator object (to avoid modifying the input)
             qe_calc = copy.deepcopy(master_qe_calc)
             nspin2_tmpdir = master_qe_calc.parameters.outdir / \
