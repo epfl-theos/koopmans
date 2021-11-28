@@ -31,7 +31,7 @@ class WannierizeWorkflow(Workflow):
                 'You need to provide a pw block in your input')
 
         pw_params = self.master_calc_params['pw']
-        
+
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
             pw2w_params = self.master_calc_params['pw2wannier']
             w90_occ_params = self.master_calc_params['w90_occ']
@@ -66,13 +66,13 @@ class WannierizeWorkflow(Workflow):
                     - w90_emp_params.num_bands
                 # If exclude bands hasn't been defined for the empty calculation, this should exclude all filled bands
                 w90_emp_params.exclude_bands = f'1-{n_filled_bands}'
-    
+
             # Update the projections_blocks to account for additional bands
             self.parameters.w90_projections_blocks.add_excluded_bands(
                 w90_occ_params.num_bands + extra_core_bands - w90_occ_params.num_wann, above=False)
             self.parameters.w90_projections_blocks.add_excluded_bands(
                 w90_emp_params.num_bands - w90_emp_params.num_wann, above=True)
-    
+
             # Sanity checking
             w90_nbnd = w90_occ_params.num_bands + w90_emp_params.num_bands + extra_core_bands + extra_conduction_bands
             if pw_params.nbnd != w90_nbnd:
@@ -82,7 +82,8 @@ class WannierizeWorkflow(Workflow):
             pass
 
         else:
-            raise NotImplementedError('WannierizeWorkflow supports only init_orbitals = "mlwfs", "projwfs" or "kohn-sham"')
+            raise NotImplementedError('WannierizeWorkflow supports only init_orbitals = ' \
+                                        '"mlwfs", "projwfs" or "kohn-sham"')
 
         # Spin-polarisation
         if self.parameters.spin_polarised:
@@ -119,7 +120,7 @@ class WannierizeWorkflow(Workflow):
         calc_pw.directory = 'wannier'
         calc_pw.prefix = 'nscf'
         self.run_calculator(calc_pw)
-        
+
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
             fillings = []
             for filling in ['occ', 'emp']:
@@ -146,8 +147,8 @@ class WannierizeWorkflow(Workflow):
                 w90_dir = Path('wannier') / typ
 
                 # 1) pre-processing Wannier90 calculation
-                calc_w90 = self.new_calculator('w90_' + filling, directory=w90_dir,
-                                               spin_component=spin, gamma_only=calc_pw.parameters.gamma_only, **block_kwargs)
+                calc_w90 = self.new_calculator('w90_' + filling, directory=w90_dir, spin_component=spin,
+                                               gamma_only=calc_pw.parameters.gamma_only, **block_kwargs)
                 calc_w90.prefix = 'wann_preproc'
                 calc_w90.command.flags = '-pp'
                 self.run_calculator(calc_w90)
@@ -169,7 +170,8 @@ class WannierizeWorkflow(Workflow):
                 self.run_calculator(calc_w90)
 
         if self.parameters.check_wannierisation:
-            # Run a "bands" calculation, making sure we don't overwrite the scf/nscf tmp files by setting a different prefix
+            # Run a "bands" calculation, making sure we don't overwrite 
+            # the scf/nscf tmp files by setting a different prefix
             calc_pw_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpath)
             calc_pw_bands.directory = 'wannier'
             calc_pw_bands.prefix = 'bands'
