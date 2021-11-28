@@ -82,8 +82,8 @@ class WannierizeWorkflow(Workflow):
             pass
 
         else:
-            raise NotImplementedError('WannierizeWorkflow supports only init_orbitals = ' \
-                                        '"mlwfs", "projwfs" or "kohn-sham"')
+            raise NotImplementedError('WannierizeWorkflow supports only init_orbitals = '
+                                      '"mlwfs", "projwfs" or "kohn-sham"')
 
         # Spin-polarisation
         if self.parameters.spin_polarised:
@@ -106,7 +106,6 @@ class WannierizeWorkflow(Workflow):
 
         if self.parameters.from_scratch:
             utils.system_call("rm -rf wannier", False)
-
 
         # Run PW scf and nscf calculations
         # PWscf needs only the valence bands
@@ -170,7 +169,7 @@ class WannierizeWorkflow(Workflow):
                 self.run_calculator(calc_w90)
 
         if self.parameters.check_wannierisation:
-            # Run a "bands" calculation, making sure we don't overwrite 
+            # Run a "bands" calculation, making sure we don't overwrite
             # the scf/nscf tmp files by setting a different prefix
             calc_pw_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpath)
             calc_pw_bands.directory = 'wannier'
