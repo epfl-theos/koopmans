@@ -267,7 +267,6 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             else:
                 single_R = False
 
-            import ipdb; ipdb.set_trace()
             if single_R:
                 assert int(lines[1].split()[0]) == self.parameters.num_wann_sc, 'In parse_hr inconsistency in num_wann_sc'
             else:
