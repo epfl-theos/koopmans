@@ -123,7 +123,7 @@ def read_setup_dict(dct):
     atoms.calc = None
     parameters = calc.parameters
     psps_and_kpts = {}
-    for key in ['pseudopotentials', 'kgrid', 'koffset', 'kpath']:
+    for key in ['pseudopotentials', 'gamma_only', 'kgrid', 'koffset', 'kpath']:
         if key in parameters:
             psps_and_kpts[key] = parameters.pop(key)
 

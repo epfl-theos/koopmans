@@ -63,8 +63,6 @@ class WannierizeWorkflow(Workflow):
                 # Sanity checking
                 w90_nbnd = proj_blocks.num_bands(spin=spin)
                 if pw_params.nbnd != w90_nbnd:
-                    import ipdb
-                    ipdb.set_trace()
                     raise ValueError(
                         f'Number of bands disagrees between pw ({pw_params.nbnd}) and wannier90 ({w90_nbnd})')
 
@@ -72,8 +70,8 @@ class WannierizeWorkflow(Workflow):
             pass
 
         else:
-            raise NotImplementedError(
-                'WannierizeWorkflow supports only init_orbitals = "mlwfs", "projwfs" or "kohn-sham"')
+            raise NotImplementedError('WannierizeWorkflow supports only init_orbitals = '
+                                      '"mlwfs", "projwfs" or "kohn-sham"')
 
         # Spin-polarisation
         if self.parameters.spin_polarised:
@@ -118,6 +116,7 @@ class WannierizeWorkflow(Workflow):
 
                 # 1) pre-processing Wannier90 calculation
                 calc_w90 = self.new_calculator(block.calc_type, directory=w90_dir,
+                                               gamma_only=calc_pw.parameters.gamma_only,
                                                **block.w90_kwargs)
                 calc_w90.prefix = 'wann_preproc'
                 calc_w90.command.flags = '-pp'
@@ -133,13 +132,15 @@ class WannierizeWorkflow(Workflow):
 
                 # 3) Wannier90 calculation
                 calc_w90 = self.new_calculator(block.calc_type, directory=w90_dir,
+                                               gamma_only=calc_pw.parameters.gamma_only,
                                                bands_plot=self.parameters.check_wannierisation,
                                                **block.w90_kwargs)
                 calc_w90.prefix = 'wann'
                 self.run_calculator(calc_w90)
 
         if self.parameters.check_wannierisation:
-            # Run a "bands" calculation, making sure we don't overwrite the scf/nscf tmp files by setting a different prefix
+            # Run a "bands" calculation, making sure we don't overwrite
+            # the scf/nscf tmp files by setting a different prefix
             calc_pw_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpath)
             calc_pw_bands.directory = 'wannier'
             calc_pw_bands.prefix = 'bands'

@@ -70,7 +70,7 @@ def read_alpha_file(directory: Path) -> List[float]:
 
 def read_kpoints_block(calc: Calculator, dct: dict):
     for k, v in dct.items():
-        if k in ['kgrid', 'koffset']:
+        if k in ['gamma_only', 'kgrid', 'koffset']:
             calc.parameters[k] = v
         elif k == 'kpath':
             read_kpath(calc, v)
