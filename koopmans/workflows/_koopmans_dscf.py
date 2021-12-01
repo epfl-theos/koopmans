@@ -21,6 +21,7 @@ from koopmans import utils
 from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.bands import Band, Bands
 from koopmans import calculators
+from koopmans.pseudopotentials import nelec_from_pseudos
 from ._generic import Workflow
 
 
@@ -45,23 +46,31 @@ class KoopmansDSCFWorkflow(Workflow):
 
             for spin, nelec in zip(spins, nelecs):
                 # Check that we have wannierised every filled orbital
-                num_wann_occ = self.parameters.w90_projections_blocks.num_wann(occ=True, spin=spin)
+                if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
+                    nbands_occ = self.parameters.w90_projections_blocks.num_wann(occ=True, spin=spin)
 
-                if num_wann_occ != nelec:
-                    raise ValueError('You have configured this calculation to only wannierise a subset of the occupied '
-                                     'bands. This is incompatible with the subsequent Koopmans calculation.\nPlease '
-                                     'modify the wannier90 settings in order to wannierise all of the occupied bands. '
-                                     '(You may want to consider taking advantage of the "projections_blocks" functionality '
-                                     'if your system has a lot of semi-core electrons.)')
+                    if nbands_occ != nelec:
+                        raise ValueError('You have configured this calculation to only wannierise a subset of the occupied '
+                                         'bands. This is incompatible with the subsequent Koopmans calculation.\nPlease '
+                                         'modify the wannier90 settings in order to wannierise all of the occupied bands. '
+                                         '(You may want to consider taking advantage of the "projections_blocks" functionality '
+                                         'if your system has a lot of semi-core electrons.)')
+
+                    nbands_emp = self.parameters.w90_projections_blocks.num_wann(occ=False, spin=spin)
+                else:
+                    nbands_occ = nelec
+                    nbands_emp = self.master_calc_params['pw'].nbnd - nbands_occ
 
                 # Check the number of empty states has been correctly configured
-                num_wann_emp = self.parameters.w90_projections_blocks.num_wann(occ=False, spin=spin)
-                expected_empty_states_nbnd = num_wann_emp
                 if kcp_params.empty_states_nbnd == 0:
                     # 0 is the default value
-                    kcp_params.empty_states_nbnd = expected_empty_states_nbnd
-                elif kcp_params.empty_states_nbnd != expected_empty_states_nbnd:
-                    raise ValueError('kcp empty_states_nbnd and wannier90 num_wann (emp) are inconsistent')
+                    kcp_params.empty_states_nbnd = nbands_emp
+                elif kcp_params.empty_states_nbnd != nbands_emp:
+                    if self.parameters.spin_polarised:
+                        raise NotImplementedError('TODO: add support for different numbers of empty states for spin-polarised systems')
+                    raise ValueError('The number of empty states are inconsistent. If you have provided '
+                                     '"empty_states_nbnd" explicitly, check that it matches with the number of '
+                                     'empty projections/bands in your system.')
 
             # Populating self.parameters.orbital_groups if needed
             # N.B. self.bands.groups is guaranteed to be 2 x num_wann, but self.parameters.orbital_groups
