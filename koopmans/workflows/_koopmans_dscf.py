@@ -883,12 +883,6 @@ class KoopmansDSCFWorkflow(Workflow):
         if calc.parameters.fixed_band is not None and calc.parameters.fixed_band > calc.parameters.nelup + 1:
             utils.warn('calc.fixed_band is higher than the LUMO; this should not happen')
 
-        # avoid innerloops for one-orbital-manifolds
-        if calc.parameters.nelup in [0, 1] and calc.parameters.neldw in [0, 1]:
-            calc.parameters.do_innerloop = False
-        if calc.parameters.empty_states_nbnd == 1:
-            calc.parameters.do_innerloop_empty = False
-
         # don't print QC in some cases
         if 'dummy' in calc.prefix:
             calc.skip_qc = True
