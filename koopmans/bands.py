@@ -409,6 +409,19 @@ class WannierBandBlock(object):
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct
 
+    @property
+    def w90_kwargs(self) -> Dict[str, Any]:
+        # Returns the keywords to provide when constructing a new calculator corresponding to this block
+        kwargs = {}
+        for key in ['projections', 'num_wann', 'num_bands', 'exclude_bands']:
+            val = getattr(self, key, None)
+            if val is None:
+                raise AttributeError(f'You must define {self.__class__.__name__}.{key} before requesting w90_kwargs')
+            kwargs[key] = val
+        if self.spin is not None:
+            kwargs['spin_component'] = self.spin
+        return kwargs
+
     @classmethod
     def fromdict(cls, dct):
         return cls(**dct)
@@ -445,8 +458,9 @@ class WannierBandBlocks(object):
         out += ')'
         return out
 
-    def __iter__(self):
-        # Construct all the blocks including more global information such as exclude_bands
+    @property
+    def blocks(self):
+        # Before returning all the blocks, add more global information such as exclude_bands
         for spin in [None, 'up', 'down']:
             subset = self.get_subset(spin=spin)
             if len(subset) == 0:
@@ -456,23 +470,23 @@ class WannierBandBlocks(object):
             wann_counter = self._n_bands_below[spin] + 1
             for b, include_above in zip(subset, is_last):
                 # Construct num_wann
-                num_wann = num_wann_from_projections(b.projections, self._atoms)
+                b.num_wann = num_wann_from_projections(b.projections, self._atoms)
 
                 # Construct num_bands
-                num_bands = num_wann
+                b.num_bands = b.num_wann
                 if include_above:
-                    num_bands += self._n_bands_above[spin]
+                    b.num_bands += self._n_bands_above[spin]
 
                 # Construct exclude_bands
-                band_indices = range(wann_counter, wann_counter + num_wann)
-                wann_counter += num_wann
+                band_indices = range(wann_counter, wann_counter + b.num_wann)
+                wann_counter += b.num_wann
                 if include_above:
                     # For the uppermost block we don't want to exclude any extra bands from the wannierisation
                     upper_bound = max(band_indices)
                 else:
                     upper_bound = self.num_bands(spin=spin)
                 to_exclude = [i for i in range(1, upper_bound + 1) if i not in band_indices]
-                exclude_bands = list_to_formatted_str(to_exclude)
+                b.exclude_bands = list_to_formatted_str(to_exclude)
 
                 # Construct the calc_type
                 if b.filled:
@@ -481,22 +495,23 @@ class WannierBandBlocks(object):
                     label = 'emp'
                 if b.spin is not None:
                     label += '_' + spin
+                b.calc_type = 'w90_' + label
 
-                # Construct subdirectory
-                subdirectory = label
+                # Construct directory and info for merging
+                b.directory = label
+
                 subset = self.get_subset(occ=b.filled, spin=b.spin)
                 if len(subset) > 1:
-                    subdirectory = label + f'_block{subset.index(b) + 1}'
+                    b.to_merge = True
+                    b.merge_directory = b.directory
+                    b.directory = label + f'_block{subset.index(b) + 1}'
+                else:
+                    b.to_merge = False
+        return self._blocks
 
-                dct = {'kwargs': {'num_wann': num_wann,
-                                  'projections': b.projections,
-                                  'exclude_bands': exclude_bands,
-                                  'num_bands': num_bands},
-                       'filled': b.filled,
-                       'spin': b.spin,
-                       'calc_type': 'w90_' + label,
-                       'subdirectory': subdirectory}
-                yield dct
+    def __iter__(self):
+        for b in self.blocks:
+            yield b
 
     @classmethod
     def fromprojections(cls,
@@ -537,7 +552,7 @@ class WannierBandBlocks(object):
         return nbands
 
     def todict(self) -> dict:
-        dct: Dict[str, Any] = {k: v for k, v in self.__dict__}
+        dct: Dict[str, Any] = {k: v for k, v in self.__dict__.items()}
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct

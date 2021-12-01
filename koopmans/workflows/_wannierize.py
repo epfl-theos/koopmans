@@ -114,11 +114,11 @@ class WannierizeWorkflow(Workflow):
             # Loop over the various subblocks that we must wannierise separately
             for block in self.parameters.w90_projections_blocks:
                 # Construct the subdirectory label
-                w90_dir = Path('wannier') / block['subdirectory']
+                w90_dir = Path('wannier') / block.directory
 
                 # 1) pre-processing Wannier90 calculation
-                calc_w90 = self.new_calculator(block['calc_type'], directory=w90_dir,
-                                               spin_component=block['spin'], **block['kwargs'])
+                calc_w90 = self.new_calculator(block.calc_type, directory=w90_dir,
+                                               **block.w90_kwargs)
                 calc_w90.prefix = 'wann_preproc'
                 calc_w90.command.flags = '-pp'
                 self.run_calculator(calc_w90)
@@ -126,15 +126,15 @@ class WannierizeWorkflow(Workflow):
 
                 # 2) standard pw2wannier90 calculation
                 calc_p2w = self.new_calculator('pw2wannier', directory=w90_dir,
-                                               spin_component=block['spin'],
+                                               spin_component=block.spin,
                                                outdir=calc_pw.parameters.outdir)
                 calc_p2w.prefix = 'pw2wan'
                 self.run_calculator(calc_p2w)
 
                 # 3) Wannier90 calculation
-                calc_w90 = self.new_calculator(block['calc_type'], directory=w90_dir,
+                calc_w90 = self.new_calculator(block.calc_type, directory=w90_dir,
                                                bands_plot=self.parameters.check_wannierisation,
-                                               spin_component=block['spin'], **block['kwargs'])
+                                               **block.w90_kwargs)
                 calc_w90.prefix = 'wann'
                 self.run_calculator(calc_w90)
 
@@ -156,7 +156,7 @@ class WannierizeWorkflow(Workflow):
             selected_calcs = [c for c in self.calculations[:-1] if 'band structure' in c.results]
 
             # Work out the vertical shift to set the valence band edge to zero
-            w90_emp_num_bands = self.master_calc_params['w90_emp'].num_bands
+            w90_emp_num_bands = self.parameters.w90_projections_blocks.num_bands(occ=False)
             if w90_emp_num_bands > 0:
                 vbe = np.max(calc_pw_bands.results['band structure'].energies[:, :, :-w90_emp_num_bands])
             else:

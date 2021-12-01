@@ -7,7 +7,7 @@ Written by Edward Linscott Feb 2021
 
 """
 
-import itertools
+from pathlib import Path
 from koopmans import utils
 from koopmans import calculators
 from ._generic import Workflow
@@ -29,8 +29,8 @@ class FoldToSupercellWorkflow(Workflow):
             # Loop over the various subblocks that we have wannierised separately
             for block in self.parameters.w90_projections_blocks:
                 # Create the calculator
-                calc_w2o = self.new_calculator('pw2wannier', spin_component=block['spin'], wan_mode='wannier2odd',
-                                               directory=block['subdirectory'])
+                calc_w2o = self.new_calculator('pw2wannier', spin_component=block.spin, wan_mode='wannier2odd',
+                                               directory=block.directory)
                 calc_w2o.prefix = 'wan2odd'
 
                 # Checking that gamma_trick is consistent with do_wf_cmplx
@@ -45,6 +45,22 @@ class FoldToSupercellWorkflow(Workflow):
 
                 # Run the calculator
                 self.run_calculator(calc_w2o)
+
+            if self.parameters.spin_polarised:
+                spins = ['up', 'down']
+            else:
+                spins = [None, None]
+
+            # Merging evcw files
+            for occ in [True, False]:
+                for spin, evc_index in zip(spins, [1, 2]):
+                    subset = self.parameters.w90_projections_blocks.get_subset(occ=occ, spin=spin)
+
+                    if len(subset) > 1:
+                        output_directory = Path(subset[0].merge_directory)
+                        output_directory.mkdir(exist_ok=True)
+                        command = ' '.join([f'{calculators.qe_bin_directory}/merge_evc.x'] + [f'-i {b.directory}/evcw{evc_index}.dat' for b in subset] + [f'-o {output_directory}/evcw{evc_index}.dat'])
+                        utils.system_call(command)
 
         else:
             # Create the calculator
