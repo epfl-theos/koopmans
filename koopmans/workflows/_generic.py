@@ -36,6 +36,7 @@ class Workflow(object):
                  master_calc_params: Dict[str, settings.SettingsDict] = settings.default_master_calc_params,
                  name: str = 'koopmans_workflow',
                  pseudopotentials: Optional[Dict[str, str]] = None,
+                 gamma_only: Optional[bool] = False,
                  kgrid: Optional[List[int]] = [1, 1, 1],
                  koffset: Optional[List[int]] = [0, 0, 0],
                  kpath: Optional[BandPath] = None):
@@ -51,8 +52,19 @@ class Workflow(object):
         self.print_indent = 1
         if pseudopotentials is not None:
             self.pseudopotentials = pseudopotentials
-        self.kgrid = kgrid
-        self.koffset = koffset
+        self.gamma_only = gamma_only
+        if self.gamma_only:
+            if kgrid != [1, 1, 1]:
+                utils.warn(f'You have initialised kgrid to {kgrid}, not compatible with gamma_only=True; '
+                           'kgrid is set equal to [1, 1, 1]')
+            if koffset != [0, 0, 0]:
+                utils.warn(f'You have initialised koffset to {koffset}, not compatible with gamma_only=True; '
+                           'koffset is set equal to [0, 0, 0]')
+            self.kgrid = [1, 1, 1]
+            self.koffset = [0, 0, 0]
+        else:
+            self.kgrid = kgrid
+            self.koffset = koffset
 
         if 'periodic' in parameters:
             # If "periodic" was explicitly provided, override self.atoms.pbc
@@ -166,6 +178,14 @@ class Workflow(object):
         self._pseudopotentials = value
 
     @property
+    def gamma_only(self):
+        return self._gamma_only
+
+    @gamma_only.setter
+    def gamma_only(self, value: bool):
+        self._gamma_only = value
+
+    @property
     def kgrid(self):
         return self._kgrid
 
@@ -201,6 +221,7 @@ class Workflow(object):
                 'master_calc_params': copy.deepcopy(self.master_calc_params),
                 'name': copy.deepcopy(self.name),
                 'pseudopotentials': copy.deepcopy(self.pseudopotentials),
+                'gamma_only': copy.deepcopy(self.gamma_only),
                 'kgrid': copy.deepcopy(self.kgrid),
                 'kpath': copy.deepcopy(self.kpath)}
 
@@ -240,13 +261,13 @@ class Workflow(object):
         # For the k-points, the Workflow has two options: self.kgrid and self.kpath. A calculator should only ever
         # have one of these two. By default, use the kgrid.
         if 'kpts' in master_calc_params.valid:
-            if kpts is None:
+            if kpts is None and not self.gamma_only:
                 all_kwargs['kpts'] = self.kgrid
             else:
                 all_kwargs['kpts'] = kpts
 
         # Add pseudopotential and kpt information to the calculator as required
-        for kw in ['pseudopotentials', 'kgrid', 'kpath', 'koffset']:
+        for kw in ['pseudopotentials', 'gamma_only', 'kgrid', 'kpath', 'koffset']:
             if kw not in all_kwargs and kw in master_calc_params.valid:
                 all_kwargs[kw] = getattr(self, kw)
 
@@ -636,6 +657,7 @@ class Workflow(object):
                  parameters=dct.pop('parameters'),
                  master_calc_params=dct.pop('master_calc_params'),
                  pseudopotentials=dct.pop('_pseudopotentials'),
+                 gamma_only=dct.pop('_gamma_only'),
                  kgrid=dct.pop('_kgrid'),
                  kpath=dct.pop('_kpath'))
 
