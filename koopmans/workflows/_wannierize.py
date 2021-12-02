@@ -10,10 +10,12 @@ Written by Riccardo De Gennaro Nov 2020
 import itertools
 import pickle
 from ._generic import Workflow
-from koopmans import utils
+from koopmans import utils, bands
 from koopmans.pseudopotentials import nelec_from_pseudos
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.linalg import block_diag
+import math
 import shutil
 from pathlib import Path
 from typing import List, Union
@@ -42,7 +44,7 @@ class WannierizeWorkflow(Workflow):
 
             for spin in spins:
                 # Update the projections_blocks to account for additional occupied bands
-                num_wann_occ = proj_blocks.num_wann(occ=True, spin=spin)
+                num_wann_occ = proj_blocks.num_bands(occ=True, spin=spin)
                 nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, pw_params.pseudo_dir)
                 if self.parameters.spin_polarised:
                     num_bands_occ = nelec
@@ -56,7 +58,7 @@ class WannierizeWorkflow(Workflow):
                 proj_blocks.add_bands(num_bands_occ - num_wann_occ, above=False, spin=spin)
 
                 # Update the projections_blocks to account for additional empty bands
-                num_wann_emp = proj_blocks.num_wann(occ=False, spin=spin)
+                num_wann_emp = proj_blocks.num_bands(occ=False, spin=spin)
                 num_bands_emp = pw_params.nbnd - num_bands_occ
                 proj_blocks.add_bands(num_bands_emp - num_wann_emp, above=True, spin=spin)
 
@@ -137,6 +139,10 @@ class WannierizeWorkflow(Workflow):
                                                **block.w90_kwargs)
                 calc_w90.prefix = 'wann'
                 self.run_calculator(calc_w90)
+
+            # Merging Hamiltonian files, if necessary
+            for block in self.parameters.w90_projections_blocks.to_merge():
+                self.merge_hr_files(block, prefix=calc_w90.prefix)
 
         if self.parameters.check_wannierisation:
             # Run a "bands" calculation, making sure we don't overwrite
@@ -219,3 +225,42 @@ class WannierizeWorkflow(Workflow):
             calc.parameters.outdir = Path('wannier/TMP').resolve()
 
         return calc
+
+    def merge_hr_files(self, block: List[bands.WannierBandBlock], prefix: str = 'wann'):
+        """
+        Merges the hr (Hamiltonian) files of a collection of blocks that share the same filling and spin
+        """
+
+        # Looping over each block in this set of blocks
+        weights_out = None
+        rvect_out = None
+        fnames_in = [Path('wannier') / b.directory / (prefix + '_hr.dat') for b in block]
+        fname_out = Path('wannier') / block[0].merge_directory / (prefix + '_hr.dat')
+        hr_list = []
+        for fname_in in fnames_in:
+            hr, rvect, weights, nrpts = utils.read_hr_file(fname_in)
+            if weights_out is None:
+                weights_out = weights
+            elif weights != weights_out:
+                raise ValueError(
+                    f'{fname_in} contains weights that differ from the other blocks. This should not happen.')
+            if rvect_out is None:
+                rvect_out = rvect
+            elif np.all(rvect != rvect_out):
+                raise ValueError(
+                    f'{fname_in} contains a set of R-vectors that differ from the other blocks. This should not happen.')
+            num_wann2 = hr.size // nrpts
+            num_wann = int(math.sqrt(num_wann2))
+            hr_list.append(hr.reshape(nrpts, num_wann, num_wann))
+
+        # Construct the block matrix hr_out which is dimensions (nrpts, num_wann_tot, num_wann_tot)
+        num_wann_tot = sum([hr.shape[-1] for hr in hr_list])
+        hr_out = np.zeros((nrpts, num_wann_tot, num_wann_tot), dtype=complex)
+        start = 0
+        for hr in hr_list:
+            for irpt in range(nrpts):
+                end = start + hr.shape[1]
+                hr_out[irpt, start:end, start:end] = hr[irpt, :, :]
+            start = end
+
+        utils.write_hr_file(fname_out, hr_out, rvect_out, weights_out)

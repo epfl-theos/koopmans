@@ -3,7 +3,7 @@
 Workflow module for koopmans, containing the workflow for unfolding and interpolating
 results from the supercell to generate a bandstructure
 
-For the moment the code works only with cubic, tetragonal and orthorombic systems.
+For the moment the code works only with cubic, tetragonal and orthorhombic systems.
 
 Originally written by Riccardo De Genarro as the standalone 'unfolding and interpolate' code
 Integrated within koopmans by Edward Linscott Jan 2021
@@ -19,6 +19,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         '''
         ui_calc = self.new_calculator('ui')
         ui_calc.prefix = self.name
+
         ui_calc.calculate()
         self.calculations = [ui_calc]
 

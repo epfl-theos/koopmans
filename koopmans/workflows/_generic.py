@@ -631,6 +631,9 @@ class Workflow(object):
                 # Copy the entire bands object
                 self.bands = workflow.bands
 
+        # Make sure any updates to the w90_projections_blocks are passed along
+        self.parameters.w90_projections_blocks = workflow.parameters.w90_projections_blocks
+
     def todict(self):
         # Shallow copy
         dct = dict(self.__dict__)

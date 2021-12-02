@@ -498,13 +498,13 @@ class WannierBandBlocks(object):
                 b.calc_type = 'w90_' + label
 
                 # Construct directory and info for merging
-                b.directory = label
+                b.directory = Path(label)
 
                 subset = self.get_subset(occ=b.filled, spin=b.spin)
                 if len(subset) > 1:
                     b.to_merge = True
                     b.merge_directory = b.directory
-                    b.directory = label + f'_block{subset.index(b) + 1}'
+                    b.directory = Path(label + f'_block{subset.index(b) + 1}')
                 else:
                     b.to_merge = False
         return self._blocks
@@ -533,6 +533,13 @@ class WannierBandBlocks(object):
             self._n_bands_above[spin] += num
         else:
             self._n_bands_below[spin] += num
+
+    def to_merge(self):
+        for occ in [True, False]:
+            for spin in [None, 'up', 'down']:
+                subset = self.get_subset(occ=occ, spin=spin)
+                if len(subset) > 1:
+                    yield subset
 
     def get_subset(self, occ: Optional[bool] = None, spin: Optional[str] = None):
         return [b for b in self._blocks if (occ is None or b.filled == occ) and (spin is None or b.spin == spin)]

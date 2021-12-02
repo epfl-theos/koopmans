@@ -67,7 +67,8 @@ class KoopmansDSCFWorkflow(Workflow):
                     kcp_params.empty_states_nbnd = nbands_emp
                 elif kcp_params.empty_states_nbnd != nbands_emp:
                     if self.parameters.spin_polarised:
-                        raise NotImplementedError('TODO: add support for different numbers of empty states for spin-polarised systems')
+                        raise NotImplementedError(
+                            'TODO: add support for different numbers of empty states for spin-polarised systems')
                     raise ValueError('The number of empty states are inconsistent. If you have provided '
                                      '"empty_states_nbnd" explicitly, check that it matches with the number of '
                                      'empty projections/bands in your system.')
@@ -152,9 +153,9 @@ class KoopmansDSCFWorkflow(Workflow):
                                       f'and init_empty_orbitals = {self.parameters.init_empty_orbitals} '
                                       'has not yet been implemented')
 
-        # By default, we will always run the higher-res DFT calculations. Changing this flag allows for calculations
-        # where this is unnecessary (such as pKIPZ) to skip this step.
-        self.redo_preexisting_smooth_dft_calcs = True
+        # By default, we don't override self.parameters.from_scratch when we arrive at the higher-res DFT calculations.
+        # We change this flag to False for workflows where this is unnecessary (such as pKIPZ) to skip this step.
+        self.redo_preexisting_smooth_dft_calcs = None
 
     def convert_kcp_to_supercell(self):
         # Multiply all extensive KCP settings by the appropriate prefactor
@@ -713,7 +714,9 @@ class KoopmansDSCFWorkflow(Workflow):
         # Transform self.atoms back to the primitive cell
         self.supercell_to_primitive()
 
-        calc: calculators.UnfoldAndInterpolateCalculator
+        # Store the original w90 calculations
+        w90_calcs = [c for c in self.calculations if isinstance(c, calculators.Wannier90Calculator)
+                     and c.command.flags == '']
 
         if self.master_calc_params['ui'].do_smooth_interpolation:
             wf_kwargs = self.wf_kwargs
@@ -725,11 +728,18 @@ class KoopmansDSCFWorkflow(Workflow):
             # This is achieved via the optional argument of from_scratch in run_subworkflow(), which
             # overrides the value of wannier_workflow.from_scratch, as well as preventing the inheritance of
             # self.from_scratch to wannier_workflow.from_scratch and back again after the subworkflow finishes
-            from_scratch = getattr(self, 'redo_preexisting_smooth_dft_calcs', None)
+            from_scratch = self.redo_preexisting_smooth_dft_calcs
             self.run_subworkflow(wannier_workflow, subdirectory='postproc', from_scratch=from_scratch)
 
+        calc: calculators.UnfoldAndInterpolateCalculator
+        if self.parameters.spin_polarised:
+            raise NotImplementedError()
         for calc_presets in ['occ', 'emp']:
             calc = self.new_ui_calculator(calc_presets)
+            calc.centers = [center for c in w90_calcs for center in c.results['centers']
+                            if calc_presets in c.directory.name]
+            calc.spreads = [spread for c in w90_calcs for spread in c.results['spreads']
+                            if calc_presets in c.directory.name]
             self.run_calculator(calc, enforce_ss=False)
 
         # Merge the two calculations to print out the DOS and bands

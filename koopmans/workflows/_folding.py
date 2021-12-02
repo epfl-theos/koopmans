@@ -59,8 +59,19 @@ class FoldToSupercellWorkflow(Workflow):
                     if len(subset) > 1:
                         output_directory = Path(subset[0].merge_directory)
                         output_directory.mkdir(exist_ok=True)
-                        command = ' '.join([f'{calculators.qe_bin_directory}/merge_evc.x'] + [f'-i {b.directory}/evcw{evc_index}.dat' for b in subset] + [f'-o {output_directory}/evcw{evc_index}.dat'])
-                        utils.system_call(command)
+                        command = ' '.join([f'{calculators.qe_bin_directory}/merge_evc.x'] + [
+                                           f'-i {b.directory}/evcw{evc_index}.dat' for b in subset] + [f'-o {output_directory}/evcw{evc_index}.dat'])
+                        if occ:
+                            label = 'occupied'
+                        else:
+                            label = 'empty'
+                        label += f' spin {evc_index}'
+                        if self.parameters.from_scratch:
+                            self.print(f'Merging the {label} band blocks... ', end='')
+                            utils.system_call(command)
+                            self.print('done')
+                        else:
+                            self.print(f'Not merging the {label} band blocks as this is already complete')
 
         else:
             # Create the calculator

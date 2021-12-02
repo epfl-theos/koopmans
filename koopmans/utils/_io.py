@@ -7,7 +7,7 @@ Moved into utils Sep 2021
 
 """
 
-import os
+from datetime import datetime
 import json
 import numpy as np
 from typing import List, Union, Tuple
@@ -161,3 +161,78 @@ def indented_print(text: str = '', indent: int = 0, **kwargs):
         else:
             print(substring, **kwargs)
     print_call_end = kwargs.get('end', '\n')
+
+
+def write_hr_file(fname: Path, ham: np.ndarray, rvect: List[List[int]], weights: List[int]) -> None:
+
+    nrpts = len(rvect)
+    num_wann = np.size(ham, -1)
+    expected_shape = (nrpts, num_wann, num_wann)
+    if ham.shape != expected_shape:
+        raise ValueError(f'ham has shape {ham.shape} which does not match the expected shape {expected_shape}')
+
+    flines = [f' Written on {datetime.now().isoformat(timespec="seconds")}']
+    flines.append(f'{num_wann:12d}')
+    flines.append(f'{nrpts:12d}')
+
+    ints_per_line = 15
+    for pos in range(0, len(weights), ints_per_line):
+        flines.append(''.join([f'{x:5d}' for x in weights[pos:pos + ints_per_line]]))
+
+    for r, ham_block in zip(rvect, ham):
+        flines += [f'{r[0]:5d}{r[1]:5d}{r[2]:5d}{j+1:5d}{i+1:5d}{val.real:12.6f}{val.imag:12.6f}' for i,
+                   row in enumerate(ham_block) for j, val in enumerate(row)]
+
+    # Make sure the parent directory exists
+    fname.parent.mkdir(exist_ok=True, parents=True)
+
+    # Write the Hamiltonian to file
+    with open(fname, 'w') as fd:
+        fd.write('\n'.join(flines))
+
+
+def read_hr_file(fname: Path) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
+    """
+    Reads in a hr file, but does not reshape the hamiltonian (because we want to reshape different Hamiltonians differently)
+    """
+
+    with open(fname, 'r') as fd:
+        lines = fd.readlines()
+
+    if 'written on' in lines[0].lower():
+        pass
+    elif 'xml version' in lines[0] or fname == 'hamiltonian_emp.dat':
+        raise ValueError(f'The format of {fname} is no longer supported')
+    else:
+        raise ValueError(f'The format of {fname} is not recognised')
+
+    # Read in the number of r-points and the number of Wannier functions
+    nrpts = int(lines[2].split()[0])
+    single_R = (nrpts == 1)
+
+    if not single_R:
+        num_wann = int(lines[1].split()[0])
+
+    lines_to_skip = 3 + nrpts // 15
+    if nrpts % 15 > 0:
+        lines_to_skip += 1
+
+    # Read in the weights
+    weights = [int(x) for line in lines[3:lines_to_skip] for x in line.split()]
+
+    # Read in the hamiltonian and the unique r-vectors
+    hr: List[complex] = []
+    rvect: List[List[int]] = []
+    for i, line in enumerate(lines[lines_to_skip:]):
+        hr.append(float(line.split()[5]) + 1j * float(line.split()[6]))
+        if not single_R and i % num_wann**2 == 0:
+            rvect.append([int(x) for x in line.split()[0:3]])
+
+    # Convert hr and rvect to numpy arrays
+    hr_np = np.array(hr, dtype=complex)
+    if single_R:
+        rvect_np = np.array([[0, 0, 0]])
+    else:
+        rvect_np = np.array(rvect, dtype=int)
+
+    return hr_np, rvect_np, weights, nrpts

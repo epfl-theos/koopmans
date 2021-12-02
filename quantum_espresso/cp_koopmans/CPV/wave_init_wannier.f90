@@ -64,7 +64,7 @@ SUBROUTINE wave_init_wannier_pwscf ( c0, nbndx )
                  exst = .false.
                  WRITE( stdout,10)  TRIM(fileocc) 
                  WRITE( stdout,20)  ngw_g, ngw_rd
-                 WRITE( stdout,30)  nbnd_rd, nupdwn(iss)
+                 WRITE( stdout,30)  nupdwn(iss), nbnd_rd
                  !
               ENDIF
               !
