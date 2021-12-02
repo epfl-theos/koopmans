@@ -64,7 +64,7 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
       use uspp_param,               only : nhm
       use descriptors,              only : descla_siz_
       use input_parameters,         only : odd_nkscalfact_empty, wo_odd_in_empty_run, odd_nkscalfact, &
-                                           do_outerloop_empty, reortho
+                                           do_outerloop_empty, reortho, empty_states_nbnd
       !
       implicit none
       !
@@ -327,22 +327,11 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
           !
         endif ENERGY_CHECK
         !
-!!! NLN  check begin
-        IF ( (maxiter_emp==1).and.(itercg==1) ) THEN 
-           if( do_orbdep ) then
-             !
-             call do_innerloop_subroutine()
-             ! 
-           endif
-           EXIT
-        ENDIF
-        !!! orgin
-        !if( do_orbdep ) then
+        if( do_orbdep ) then
           !
-        !  call do_innerloop_subroutine()
+          call do_innerloop_subroutine()
           ! 
-        !endif
-!!!! NLN check end
+        endif
         ! 
         call print_out_observables()
         !
@@ -1242,37 +1231,45 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
      end subroutine do_deallocation
      ! 
      subroutine do_innerloop_subroutine()
-        !
-	if (do_innerloop_empty .and. innerloop_until>=itercgeff) then
-           !
-           call start_clock( "inner_loop" )
-           !
-           eodd_emp= sum(pink_emp(:))
-           etot_emp= etot_emp - eodd_emp
-           etotnew = etotnew  - eodd_emp
-           ninner  = 0
-           !
-           if (.not.do_innerloop_cg) then
-              ! 
-              write(stdout,*)  "WARNING, do_innerloop_cg should be .true."
-              ! 
-           else
-              !
-              call nksic_rot_emin_cg_general(itercg,innerloop_init_n,ninner,etot_emp,deltae*innerloop_cg_ratio,lgam, &
-                                     n_emps, n_empx, nudx_emp, iupdwn_emp, nupdwn_emp, ispin_emp, & 
-                                     c0_emp, rhovan_emp, bec_emp, rhor, rhoc, vsic_emp, pink_emp, & 
-                                     deeq_sic_emp, wtot, fsic_emp, sizwtot, .false.,  wfc_centers_emp, wfc_spreads_emp, .true.) 
-              !
-           endif
-           !
-           eodd_emp= sum(pink_emp(:)) 
-           etot_emp= etot_emp + eodd_emp 
-           etotnew = etotnew  + eodd_emp
-           ! 
-           call stop_clock( "inner_loop" )
-           !
-        endif
-        !
+         !
+	      if (do_innerloop_empty .and. innerloop_until>=itercgeff) then
+            !
+            ! skip innerloop if there is only one electron
+            if ( empty_states_nbnd == 1 ) then
+               write(stdout,fmt='(5x,a)') "WARNING: skipping innerloop when empty_states_nbnd=1"
+               goto 24
+            endif
+            !
+            call start_clock( "inner_loop" )
+            !
+            eodd_emp= sum(pink_emp(:))
+            etot_emp= etot_emp - eodd_emp
+            etotnew = etotnew  - eodd_emp
+            ninner  = 0
+            !
+            if (.not.do_innerloop_cg) then
+               ! 
+               write(stdout,*)  "WARNING, do_innerloop_cg should be .true."
+               ! 
+            else
+               !
+               call nksic_rot_emin_cg_general(itercg,innerloop_init_n,ninner,etot_emp,deltae*innerloop_cg_ratio,lgam, &
+                                       n_emps, n_empx, nudx_emp, iupdwn_emp, nupdwn_emp, ispin_emp, & 
+                                       c0_emp, rhovan_emp, bec_emp, rhor, rhoc, vsic_emp, pink_emp, & 
+                                       deeq_sic_emp, wtot, fsic_emp, sizwtot, .false.,  wfc_centers_emp, wfc_spreads_emp, .true.) 
+               !
+            endif
+            !
+            eodd_emp= sum(pink_emp(:)) 
+            etot_emp= etot_emp + eodd_emp 
+            etotnew = etotnew  + eodd_emp
+            ! 
+            call stop_clock( "inner_loop" )
+            !
+24          continue            
+            !
+         endif
+         !
      endsubroutine do_innerloop_subroutine
      !   
      subroutine print_out_observables()
