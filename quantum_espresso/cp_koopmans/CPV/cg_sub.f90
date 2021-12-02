@@ -21,7 +21,7 @@
       !---ensemble-DFT
       use energies,                 only : etot, enl, ekin, eodd
       use electrons_base,           only : f, nspin, iupdwn, nupdwn, nudx, &
-                                           nbspx, nbsp, ispin, nelt
+                                           nbspx, nbsp, ispin
       use ensemble_dft,             only : id_matrix_init
       !---
       use gvecp,                    only : ngm
@@ -1592,8 +1592,8 @@
 
       if(do_innerloop .and. innerloop_until>=itercgeff) then
          !
-         ! skip innerloop if there is only one electron
-         if ( nelt == 1 ) then
+         ! skip innerloop if there is only zero or one electrons/spin
+         if ( nupdwn(1) .le. 1 .and. nupdwn(2) .le. 1 ) then
             write(stdout,fmt='(5x,a)') "WARNING: skipping innerloop for 1-electron systems"
             goto 24
          endif
