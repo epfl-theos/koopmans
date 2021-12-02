@@ -9,7 +9,7 @@ Written by Edward Linscott Jan 2020
 import os
 import json as json_ext
 import xml.etree.ElementTree as ET
-from typing import TextIO, Dict
+from typing import TextIO, Dict, List, Union
 from pathlib import Path
 from ase.atoms import Atoms
 from ase.io.espresso.utils import ibrav_to_cell
@@ -239,7 +239,7 @@ def read_json(fd: TextIO, override={}):
     master_calc_params = {}
     w90_block_projs = []
     w90_block_filling: List[bool] = []
-    w90_block_spins: List[Union[int, None]] = []
+    w90_block_spins: List[Union[str, None]] = []
 
     # Generate a master SettingsDict for every single kind of calculator, regardless of whether or not there was a
     # corresponding block in the json file

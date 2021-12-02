@@ -231,29 +231,35 @@ class WannierizeWorkflow(Workflow):
         Merges the hr (Hamiltonian) files of a collection of blocks that share the same filling and spin
         """
 
-        # Looping over each block in this set of blocks
-        weights_out = None
-        rvect_out = None
-        fnames_in = [Path('wannier') / b.directory / (prefix + '_hr.dat') for b in block]
-        fname_out = Path('wannier') / block[0].merge_directory / (prefix + '_hr.dat')
-        hr_list = []
-        for fname_in in fnames_in:
+        # Working out the files to read in and where to write out to
+        fnames_in: List[Path] = []
+        for b in block:
+            assert b.directory is not None, 'The block which you are trying to merge is missing a directory; this should not happen'
+            fnames_in.append(Path('wannier') / b.directory / (prefix + '_hr.dat'))
+        assert b.merge_directory is not None, 'The block which you are trying to merge is missing a merge_directory; this should not happen'
+        fname_out = Path('wannier') / b.merge_directory / (prefix + '_hr.dat')
+
+        # Reading in each hr file in turn
+        hr, rvect_out, weights_out, nrpts = utils.read_hr_file(fnames_in[0])
+        hr_list = [hr]
+        for fname_in in fnames_in[1:]:
+            # Reading the hr file
             hr, rvect, weights, nrpts = utils.read_hr_file(fname_in)
-            if weights_out is None:
-                weights_out = weights
-            elif weights != weights_out:
+
+            # Sanity checking
+            if weights != weights_out:
                 raise ValueError(
                     f'{fname_in} contains weights that differ from the other blocks. This should not happen.')
-            if rvect_out is None:
-                rvect_out = rvect
-            elif np.all(rvect != rvect_out):
+            if np.all(rvect != rvect_out):
                 raise ValueError(
                     f'{fname_in} contains a set of R-vectors that differ from the other blocks. This should not happen.')
+
+            # Reshaping this block of the Hamiltonian in preparation for constructing the block matrix, and storing it
             num_wann2 = hr.size // nrpts
             num_wann = int(math.sqrt(num_wann2))
             hr_list.append(hr.reshape(nrpts, num_wann, num_wann))
 
-        # Construct the block matrix hr_out which is dimensions (nrpts, num_wann_tot, num_wann_tot)
+        # Constructing the block matrix hr_out which is dimensions (nrpts, num_wann_tot, num_wann_tot)
         num_wann_tot = sum([hr.shape[-1] for hr in hr_list])
         hr_out = np.zeros((nrpts, num_wann_tot, num_wann_tot), dtype=complex)
         start = 0
@@ -263,4 +269,7 @@ class WannierizeWorkflow(Workflow):
                 hr_out[irpt, start:end, start:end] = hr[irpt, :, :]
             start = end
 
-        utils.write_hr_file(fname_out, hr_out, rvect_out, weights_out)
+        assert rvect_out is not None
+        assert weights_out is not None
+
+        utils.write_hr_file(fname_out, hr_out, rvect_out.tolist(), weights_out)

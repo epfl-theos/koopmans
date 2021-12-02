@@ -387,7 +387,7 @@ class WannierBandBlock(object):
     def __init__(self,
                  projections: List[Union[str, Dict[str, Any]]],
                  filled: bool,
-                 spin: Optional[int]):
+                 spin: Optional[str]):
 
         self.projections = []
         for proj in projections:
@@ -396,6 +396,8 @@ class WannierBandBlock(object):
             self.projections.append(proj)
         self.filled = filled
         self.spin = spin
+        self.directory: Optional[Path] = None
+        self.merge_directory: Optional[Path] = None
 
     def __repr__(self) -> str:
         out = f'WannierBandBlock(projections={[self.projections]}, filled={self.filled}'

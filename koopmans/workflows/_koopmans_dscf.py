@@ -37,6 +37,7 @@ class KoopmansDSCFWorkflow(Workflow):
         # If periodic, convert the kcp calculation into a Γ-only supercell calculation
         kcp_params = self.master_calc_params['kcp']
         if self.parameters.periodic:
+            spins: List[Optional[str]]
             if self.parameters.spin_polarised:
                 spins = ['up', 'down']
                 nelecs = [kcp_params.nelup, kcp_params.neldw]
@@ -155,7 +156,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         # By default, we don't override self.parameters.from_scratch when we arrive at the higher-res DFT calculations.
         # We change this flag to False for workflows where this is unnecessary (such as pKIPZ) to skip this step.
-        self.redo_preexisting_smooth_dft_calcs = None
+        self.redo_preexisting_smooth_dft_calcs: Optional[bool] = None
 
     def convert_kcp_to_supercell(self):
         # Multiply all extensive KCP settings by the appropriate prefactor
@@ -447,7 +448,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 if not iteration_directory.is_dir():
                     iteration_directory.mkdir()
 
-            innerloop_override = {}
+            innerloop_override: Dict[str, Any] = {}
             if i_sc == 1 and self.parameters.functional == 'kipz' and not self.parameters.periodic:
                 # For the first KIPZ trial calculation, override do_innerloop to true
                 innerloop_override['do_innerloop'] = True
