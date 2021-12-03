@@ -712,9 +712,8 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             hr = hr - self.hr_coarse
 
         # renormalize H(R) on the WF phases
-        for m in range(self.parameters.num_wann_sc):
-            for n in range(self.parameters.num_wann):
-                hr[m, n] = self.phases[m].conjugate() * hr[m, n] * self.phases[n]
+        conj_phases = [p.conjugate() for p in self.phases]
+        hr = (conj_phases*hr.transpose()).transpose()*self.phases
 
         # here we build the interpolated H(k)
         hk = np.zeros((len(self.parameters.kpath.kpts), self.parameters.num_wann,
