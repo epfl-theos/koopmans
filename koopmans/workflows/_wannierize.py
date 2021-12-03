@@ -240,17 +240,22 @@ class WannierizeWorkflow(Workflow):
         fname_out = Path('wannier') / b.merge_directory / (prefix + '_hr.dat')
 
         # Reading in each hr file in turn
-        hr, rvect_out, weights_out, nrpts = utils.read_hr_file(fnames_in[0])
-        hr_list = [hr]
-        for fname_in in fnames_in[1:]:
+        hr_list = []
+        weights_out = None
+        rvect_out = None
+        for fname_in in fnames_in:
             # Reading the hr file
             hr, rvect, weights, nrpts = utils.read_hr_file(fname_in)
 
             # Sanity checking
-            if weights != weights_out:
+            if weights_out is None:
+                weights_out = weights
+            elif weights != weights_out:
                 raise ValueError(
                     f'{fname_in} contains weights that differ from the other blocks. This should not happen.')
-            if np.all(rvect != rvect_out):
+            if rvect_out is None:
+                rvect_out = rvect
+            elif np.all(rvect != rvect_out):
                 raise ValueError(
                     f'{fname_in} contains a set of R-vectors that differ from the other blocks. This should not happen.')
 
