@@ -98,8 +98,10 @@ class Bands(object):
 
     @classmethod
     def fromdict(cls, dct):
-        bands = dct['_bands']
-        return cls(bands=bands, **dct)
+        bands = dct.pop('_bands')
+        obj = cls(**dct)
+        obj._bands = bands
+        return obj
 
     @classmethod
     def fromlist(cls, bands: List[Band]):
@@ -246,7 +248,7 @@ class Bands(object):
 
         if not self.spin_polarised and self.n_spin == 2:
             for b in self.get(spin=1):
-                [match] = [b_op for b_op in self.get(spin=1) if b_op.index == b.index]
+                [match] = [b_op for b_op in self.get(spin=0) if b_op.index == b.index]
                 b.group = match.group
 
         return
@@ -387,7 +389,14 @@ class WannierBandBlock(object):
     def __init__(self,
                  projections: List[Union[str, Dict[str, Any]]],
                  filled: bool,
-                 spin: Optional[str]):
+                 spin: Optional[str] = None,
+                 directory: Optional[Path] = None,
+                 merge_directory: Optional[Path] = None,
+                 num_wann: Optional[int] = None,
+                 num_bands: Optional[int] = None,
+                 exclude_bands: Optional[str] = None,
+                 calc_type: Optional[str] = None,
+                 to_merge: Optional[bool] = None):
 
         self.projections = []
         for proj in projections:
@@ -396,8 +405,13 @@ class WannierBandBlock(object):
             self.projections.append(proj)
         self.filled = filled
         self.spin = spin
-        self.directory: Optional[Path] = None
-        self.merge_directory: Optional[Path] = None
+        self.directory = directory
+        self.merge_directory = merge_directory
+        self.num_wann = num_wann
+        self.num_bands = num_bands
+        self.exclude_bands = exclude_bands
+        self.calc_type = calc_type
+        self.to_merge = to_merge
 
     def __repr__(self) -> str:
         out = f'WannierBandBlock(projections={[self.projections]}, filled={self.filled}'
