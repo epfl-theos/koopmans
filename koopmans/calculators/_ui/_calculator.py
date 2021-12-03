@@ -187,7 +187,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         spreads : spreads of WFs (in Ang^2)
         '''
 
-        if hasattr(self, 'centers') and hasattr(self, 'spreads'):
+        if self.centers and self.spreads:
             num_wann = len(self.centers)
         else:
             with open(self.parameters.w90_seedname.with_suffix('.wout'), 'r') as ifile:
