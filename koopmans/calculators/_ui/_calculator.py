@@ -438,7 +438,8 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
                 # Converting Paths to JSON-serialisable strings
                 for k in self.parameters.are_paths:
-                    settings[k] = str(settings[k])
+                    if k in settings:
+                        settings[k] = str(settings[k])
 
                 # Store all the settings in one big dictionary
                 bigdct = {"workflow": {"task": "ui"}, "ui": settings}

@@ -269,8 +269,8 @@ class WannierizeWorkflow(Workflow):
         hr_out = np.zeros((nrpts, num_wann_tot, num_wann_tot), dtype=complex)
         start = 0
         for hr in hr_list:
+            end = start + hr.shape[1]
             for irpt in range(nrpts):
-                end = start + hr.shape[1]
                 hr_out[irpt, start:end, start:end] = hr[irpt, :, :]
             start = end
 

@@ -7,6 +7,7 @@ Written by Edward Linscott Feb 2021
 
 """
 
+import numpy as np
 from pathlib import Path
 from koopmans import utils
 from koopmans import calculators
@@ -59,7 +60,7 @@ class FoldToSupercellWorkflow(Workflow):
                     if len(subset) > 1:
                         output_directory = Path(subset[0].merge_directory)
                         output_directory.mkdir(exist_ok=True)
-                        command = ' '.join([f'{calculators.qe_bin_directory}/merge_evc.x'] + [
+                        command = ' '.join([f'{calculators.qe_bin_directory}/merge_evc.x -nr {np.prod(self.kgrid)}'] + [
                                            f'-i {b.directory}/evcw{evc_index}.dat' for b in subset] + [f'-o {output_directory}/evcw{evc_index}.dat'])
                         if occ:
                             label = 'occupied'
