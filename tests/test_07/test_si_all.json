@@ -79,7 +79,6 @@
         }
     ],
     "emp": {
-        "num_wann": 4,
         "dis_froz_max": 10.6,
         "dis_win_max": 16.9
         }
