@@ -7,32 +7,31 @@ Split off from workflow.py Oct 2020
 
 """
 
-import os
-import copy
 import numpy as np
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
-import pandas as pd
-from ase import Atoms
-from ase.dft.dos import DOS
+from typing import Any, Dict, List, Optional, Tuple
 from ase.spectrum.band_structure import BandStructure
 from koopmans import utils
 from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.bands import Band, Bands
 from koopmans import calculators
-from koopmans.pseudopotentials import nelec_from_pseudos
 from ._generic import Workflow
 
 
 class KoopmansDSCFWorkflow(Workflow):
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, redo_smooth_dft: Optional[None] = None, restart_from_old_ki: bool = False, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-        if 'kcp' not in self.master_calc_params:
-            raise ValueError(
-                'Performing a KC calculation requires a "kcp" block in the .json input file')
+        # The following two additional keywords allow for some tweaking of the workflow when running a singlepoint workflow with functional == 'all'
+
+        # By default, we don't override self.parameters.from_scratch when we arrive at the higher-res DFT calculations.
+        # We change this flag to False for workflows where this is unnecessary (such as pKIPZ) to skip this step.
+        self._redo_smooth_dft = redo_smooth_dft
+
+        # For the KIPZ calculation we restart from the old KI calculation
+        self._restart_from_old_ki = restart_from_old_ki
 
         # If periodic, convert the kcp calculation into a Γ-only supercell calculation
         kcp_params = self.master_calc_params['kcp']
@@ -47,8 +46,8 @@ class KoopmansDSCFWorkflow(Workflow):
 
             for spin, nelec in zip(spins, nelecs):
                 # Check that we have wannierised every filled orbital
-                if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-                    nbands_occ = self.parameters.w90_projections_blocks.num_wann(occ=True, spin=spin)
+                if self.projections:
+                    nbands_occ = self.projections.num_wann(occ=True, spin=spin)
 
                     if nbands_occ != nelec:
                         raise ValueError('You have configured this calculation to only wannierise a subset of the occupied '
@@ -57,7 +56,7 @@ class KoopmansDSCFWorkflow(Workflow):
                                          '(You may want to consider taking advantage of the "projections_blocks" functionality '
                                          'if your system has a lot of semi-core electrons.)')
 
-                    nbands_emp = self.parameters.w90_projections_blocks.num_wann(occ=False, spin=spin)
+                    nbands_emp = self.projections.num_wann(occ=False, spin=spin)
                 else:
                     nbands_occ = nelec
                     nbands_emp = self.master_calc_params['pw'].nbnd - nbands_occ
@@ -154,10 +153,6 @@ class KoopmansDSCFWorkflow(Workflow):
                                       f'and init_empty_orbitals = {self.parameters.init_empty_orbitals} '
                                       'has not yet been implemented')
 
-        # By default, we don't override self.parameters.from_scratch when we arrive at the higher-res DFT calculations.
-        # We change this flag to False for workflows where this is unnecessary (such as pKIPZ) to skip this step.
-        self.redo_preexisting_smooth_dft_calcs: Optional[bool] = None
-
     def convert_kcp_to_supercell(self):
         # Multiply all extensive KCP settings by the appropriate prefactor
         prefactor = np.prod(self.kgrid)
@@ -198,20 +193,20 @@ class KoopmansDSCFWorkflow(Workflow):
 
         # Removing old directories
         if self.parameters.from_scratch:
-            if self.parameters.init_orbitals != 'from old ki':
-                # if self.init_orbitals == "from old ki" we don't want to delete the directory containing
+            if not self._restart_from_old_ki:
+                # if self._restart_from_old_ki we don't want to delete the directory containing
                 # the KI calculation we're reading the manifold from, or the TMP files
                 utils.system_call('rm -r init 2>/dev/null', False)
                 utils.system_call(f'rm -r {self.master_calc_params["kcp"].outdir} 2>/dev/null', False)
             utils.system_call('rm -r calc_alpha 2>/dev/null', False)
             utils.system_call('rm -r final 2>/dev/null', False)
-            if getattr(self, 'redo_preexisting_smooth_dft_calcs', True):
+            if self._redo_smooth_dft in [None, True]:
                 utils.system_call('rm -r postproc 2>/dev/null', False)
 
         self.print('Initialisation of density and variational orbitals', style='heading')
         self.perform_initialisation()
 
-        if self.parameters.from_scratch and self.parameters.init_orbitals != 'from old ki' \
+        if self.parameters.from_scratch and not self._restart_from_old_ki \
                 and self.parameters.fix_spin_contamination \
                 and self.parameters.init_orbitals not in ['mlwfs', 'projwfs'] \
                 and not (self.parameters.periodic and self.parameters.init_orbitals == 'kohn-sham'):
@@ -240,7 +235,7 @@ class KoopmansDSCFWorkflow(Workflow):
         self.perform_final_calculations()
 
         # Postprocessing
-        if self.parameters.periodic and self.parameters.init_orbitals != 'kohn-sham' and self.kpath is not None:
+        if self.parameters.periodic and self.projections and self.kpath is not None:
             self.print(f'\nPostprocessing', style='heading')
             self.perform_postprocessing()
 
@@ -251,7 +246,47 @@ class KoopmansDSCFWorkflow(Workflow):
         # The final calculation during the initialisation, regardless of the workflow settings, should write to ndw = 51
         ndw_final = 51
 
-        if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] or \
+        if self._restart_from_old_ki:
+            self.print('Copying the density and orbitals from a pre-existing KI calculation')
+
+            # Read the .cpi file to work out the value for ndw
+            calc = calculators.KoopmansCPCalculator.fromfile('init/ki_init')
+
+            # Move the old save directory to correspond to ndw_final, using pz_innerloop_init to work out where the
+            # code will expect the tmp files to be
+            old_savedir = Path(calc.parameters.outdir) / f'{calc.parameters.prefix}_{calc.parameters.ndw}.save'
+            savedir = Path(f'{self.new_kcp_calculator("pz_innerloop_init").parameters.outdir}') / \
+                f'{calc.parameters.prefix}_{ndw_final}.save'
+            if not old_savedir.is_dir():
+                raise ValueError(f'{old_savedir} does not exist; a previous '
+                                 'and complete KI calculation is required '
+                                 'to restart from an old KI calculation"')
+            if savedir.is_dir():
+                savedir.rmdir()
+
+            # Use the chdir construct in order to create the directory savedir if it does not already exist and is
+            # nested
+            with utils.chdir(savedir):
+                utils.system_call(f'rsync -a {old_savedir}/ .')
+
+            # Check that the files defining the variational orbitals exist
+            savedir /= 'K00001'
+            files_to_check = [Path('init/ki_init.cpo'), savedir / 'evc01.dat', savedir / 'evc02.dat']
+
+            if calc.parameters.empty_states_nbnd is not None and calc.parameters.empty_states_nbnd > 0:
+                files_to_check += [savedir / f'evc0_empty{i}.dat' for i in [1, 2]]
+
+            for fname in files_to_check:
+                if not fname.is_file():
+                    raise ValueError(f'Could not find {fname}')
+
+            if not calc.is_complete():
+                raise ValueError('init/ki_init.cpo is incomplete so cannot be used '
+                                 'to initialise the density and orbitals')
+
+            self.calculations.append(calc)
+
+        elif self.parameters.init_orbitals in ['mlwfs', 'projwfs'] or \
                 (self.parameters.periodic and self.parameters.init_orbitals == 'kohn-sham'):
             # Wannier functions using pw.x, wannier90.x and pw2wannier90.x (pw.x only for Kohn-Sham states)
             wannier_workflow = WannierizeWorkflow(**self.wf_kwargs)
@@ -316,46 +351,6 @@ class KoopmansDSCFWorkflow(Workflow):
             Efin = calc.results['energy']
             if abs(Efin - Eini) > 1e-6 * abs(Efin):
                 raise ValueError(f'Too much difference between the initial and final CP energies: {Eini} {Efin}')
-
-        elif self.parameters.init_orbitals == 'from old ki':
-            self.print('Copying the density and orbitals from a pre-existing KI calculation')
-
-            # Read the .cpi file to work out the value for ndw
-            calc = calculators.KoopmansCPCalculator.fromfile('init/ki_init')
-
-            # Move the old save directory to correspond to ndw_final, using pz_innerloop_init to work out where the
-            # code will expect the tmp files to be
-            old_savedir = Path(calc.parameters.outdir) / f'{calc.parameters.prefix}_{calc.parameters.ndw}.save'
-            savedir = Path(f'{self.new_kcp_calculator("pz_innerloop_init").parameters.outdir}') / \
-                f'{calc.parameters.prefix}_{ndw_final}.save'
-            if not old_savedir.is_dir():
-                raise ValueError(f'{old_savedir} does not exist; a previous '
-                                 'and complete KI calculation is required '
-                                 'if init_orbitals="from old ki"')
-            if savedir.is_dir():
-                savedir.rmdir()
-
-            # Use the chdir construct in order to create the directory savedir if it does not already exist and is
-            # nested
-            with utils.chdir(savedir):
-                utils.system_call(f'rsync -a {old_savedir}/ .')
-
-            # Check that the files defining the variational orbitals exist
-            savedir /= 'K00001'
-            files_to_check = [Path('init/ki_init.cpo'), savedir / 'evc01.dat', savedir / 'evc02.dat']
-
-            if calc.parameters.empty_states_nbnd is not None and calc.parameters.empty_states_nbnd > 0:
-                files_to_check += [savedir / f'evc0_empty{i}.dat' for i in [1, 2]]
-
-            for fname in files_to_check:
-                if not fname.is_file():
-                    raise ValueError(f'Could not find {fname}')
-
-            if not calc.is_complete():
-                raise ValueError('init/ki_init.cpo is incomplete so cannot be used '
-                                 'to initialise the density and orbitals')
-
-            self.calculations.append(calc)
 
         elif self.parameters.functional in ['ki', 'pkipz']:
             calc = self.new_kcp_calculator('dft_init')
@@ -729,8 +724,7 @@ class KoopmansDSCFWorkflow(Workflow):
             # This is achieved via the optional argument of from_scratch in run_subworkflow(), which
             # overrides the value of wannier_workflow.from_scratch, as well as preventing the inheritance of
             # self.from_scratch to wannier_workflow.from_scratch and back again after the subworkflow finishes
-            from_scratch = self.redo_preexisting_smooth_dft_calcs
-            self.run_subworkflow(wannier_workflow, subdirectory='postproc', from_scratch=from_scratch)
+            self.run_subworkflow(wannier_workflow, subdirectory='postproc', from_scratch=self._redo_smooth_dft)
 
         calc: calculators.UnfoldAndInterpolateCalculator
         if self.parameters.spin_polarised:

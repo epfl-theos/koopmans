@@ -21,11 +21,11 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     str, 'dscf', ('dscf', 'dfpt')),
             Setting('init_orbitals',
                     'which orbitals to use as an initial guess for the variational orbitals',
-                    str, 'pz', ('pz', 'kohn-sham', 'mlwfs', 'projwfs', 'from old ki')),
+                    str, 'pz', ('pz', 'kohn-sham', 'mlwfs', 'projwfs')),
             Setting('init_empty_orbitals',
                     'which orbitals to use as an initial guess for the empty variational orbitals '
                     '(defaults to the same value as "init_orbitals")',
-                    str, 'same', ('same', 'pz', 'kohn-sham', 'mlwfs', 'projwfs', 'from old ki')),
+                    str, 'same', ('same', 'pz', 'kohn-sham', 'mlwfs', 'projwfs')),
             Setting('frozen_orbitals',
                     "if True, freeze the variational orbitals for the duration of the calculation once they've been "
                     "initialised",
@@ -106,9 +106,13 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
 
     @property
     def _other_valid_keywords(self):
-        return ['w90_projections_blocks']
+        return []
 
     def __setitem__(self, key: str, value: Any):
+        # Be forgiving to Americans
+        if key == 'task' and value == 'wannierize':
+            value = 'wannierise'
+
         # Make sure that orbital_groups is always stored as a list of lists
         if key == 'orbital_groups' and value is not None:
             if len(value) == 0 or not isinstance(value[0], list):

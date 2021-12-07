@@ -31,8 +31,8 @@ class KoopmansDFPTWorkflow(Workflow):
         if self.parameters.periodic:
             if self.parameters.init_orbitals not in ['mlwfs', 'projwfs']:
                 raise ValueError(
-                    'Calculating screening parameters with DFPT for a periodic system is only possible with MLWFs as '
-                    'the variational orbitals')
+                    'Calculating screening parameters with DFPT for a periodic system is only possible with MLWFs '
+                    'or projected WFs as the variational orbitals')
         else:
             if self.parameters.init_orbitals != 'kohn-sham':
                 raise ValueError(
@@ -88,8 +88,8 @@ class KoopmansDFPTWorkflow(Workflow):
 
         # Initialise the bands
         if self.parameters.periodic:
-            nocc = self.parameters.w90_projections_blocks.num_wann(occ=True)
-            nemp = self.parameters.w90_projections_blocks.num_wann(occ=False)
+            nocc = self.projections.num_wann(occ=True)
+            nemp = self.projections.num_wann(occ=False)
         else:
             nocc = self.master_calc_params['kcp'].nelec // 2
             nemp = self.master_calc_params['pw'].nbnd - nocc
@@ -117,7 +117,7 @@ class KoopmansDFPTWorkflow(Workflow):
                 if key.startswith('w90'):
                     self.master_calc_params[key].write_u_matrices = True
                     self.master_calc_params[key].write_xyz = True
-            wf_workflow = WannierizeWorkflow(**self.wf_kwargs)
+            wf_workflow = WannierizeWorkflow(force_nspin2=True, **self.wf_kwargs)
             self.run_subworkflow(wf_workflow)
 
         else:
@@ -151,7 +151,8 @@ class KoopmansDFPTWorkflow(Workflow):
         # Calculate screening parameters
         if self.parameters.calculate_alpha:
             self.print('Calculation of screening parameters', style='heading')
-            if len(set(self.parameters.orbital_groups)) == len(self.parameters.orbital_groups):
+            all_groups = [g for gspin in self.parameters.orbital_groups for g in gspin]
+            if len(set(all_groups)) == len(all_groups):
                 # If there is no orbital grouping, do all orbitals in one calculation
                 # 1) Create the calculator
                 kc_screen_calc = self.new_calculator('kc_screen')
@@ -174,11 +175,8 @@ class KoopmansDFPTWorkflow(Workflow):
                     # 3) Store the computed screening parameter (accounting for band groupings)
                     for b in self.bands:
                         if b.group == band.group:
-                            alpha = kc_screen_calc.results['alphas'][0]
-                            if not len(alpha) == 1:
-                                raise NotImplementedError(
-                                    'Yet to implement spin polarisation for the KoopmansDFPTWorkflow')
-                            b.alpha = alpha[0]
+                            alpha = kc_screen_calc.results['alphas'][band.spin]
+                            b.alpha = alpha[band.spin]
         else:
             # Load the alphas
             if self.parameters.alpha_from_file:
@@ -247,8 +245,14 @@ class KoopmansDFPTWorkflow(Workflow):
             calc.parameters.do_bands = self.parameters.periodic
             calc.alphas = self.bands.alphas
 
-        calc.parameters.num_wann_occ = self.master_calc_params['w90_occ'].num_wann
-        calc.parameters.num_wann_emp = self.master_calc_params['w90_emp'].num_wann
+        if self.parameters.periodic:
+            nocc = self.projections.num_wann(occ=True)
+            nemp = self.projections.num_wann(occ=False)
+        else:
+            nocc = self.master_calc_params['kcp'].nelec // 2
+            nemp = self.master_calc_params['pw'].nbnd - nocc
+        calc.parameters.num_wann_occ = nocc
+        calc.parameters.num_wann_emp = nemp
 
         # Apply any additional calculator keywords passed as kwargs
         for k, v in kwargs.items():

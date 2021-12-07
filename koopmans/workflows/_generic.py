@@ -18,12 +18,12 @@ from ase import Atoms
 from ase.build.supercells import make_supercell
 from ase.dft.kpoints import BandPath
 from ase.calculators.calculator import CalculationFailed
-from ase.io.wannier90 import num_wann_from_projections
 from koopmans.pseudopotentials import nelec_from_pseudos
 from koopmans import utils, settings
 import koopmans.calculators as calculators
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.bands import Bands
+from koopmans.projections import ProjectionBlocks
 
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
@@ -35,11 +35,12 @@ class Workflow(object):
                  parameters: settings.SettingsDict = settings.WorkflowSettingsDict(),
                  master_calc_params: Dict[str, settings.SettingsDict] = settings.default_master_calc_params,
                  name: str = 'koopmans_workflow',
-                 pseudopotentials: Optional[Dict[str, str]] = None,
+                 pseudopotentials: Dict[str, str] = {},
                  gamma_only: Optional[bool] = False,
                  kgrid: Optional[List[int]] = [1, 1, 1],
                  koffset: Optional[List[int]] = [0, 0, 0],
-                 kpath: Optional[BandPath] = None):
+                 kpath: Optional[BandPath] = None,
+                 projections: Optional[ProjectionBlocks] = None):
 
         # Parsing parameters
         self.parameters = settings.WorkflowSettingsDict(**parameters)
@@ -50,8 +51,7 @@ class Workflow(object):
         self.calculations: List[calculators.CalculatorExt] = []
         self.silent = False
         self.print_indent = 1
-        if pseudopotentials is not None:
-            self.pseudopotentials = pseudopotentials
+        self.pseudopotentials = pseudopotentials
         self.gamma_only = gamma_only
         if self.gamma_only:
             if kgrid != [1, 1, 1]:
@@ -65,6 +65,7 @@ class Workflow(object):
         else:
             self.kgrid = kgrid
             self.koffset = koffset
+        self.projections = ProjectionBlocks([], self.atoms) if projections is None else projections
 
         if 'periodic' in parameters:
             # If "periodic" was explicitly provided, override self.atoms.pbc
@@ -209,7 +210,8 @@ class Workflow(object):
                 'pseudopotentials': copy.deepcopy(self.pseudopotentials),
                 'gamma_only': copy.deepcopy(self.gamma_only),
                 'kgrid': copy.deepcopy(self.kgrid),
-                'kpath': copy.deepcopy(self.kpath)}
+                'kpath': copy.deepcopy(self.kpath),
+                'projections': copy.deepcopy(self.projections)}
 
     def new_calculator(self,
                        calc_type: str,
@@ -247,10 +249,10 @@ class Workflow(object):
         # For the k-points, the Workflow has two options: self.kgrid and self.kpath. A calculator should only ever
         # have one of these two. By default, use the kgrid.
         if 'kpts' in master_calc_params.valid:
-            if kpts is None and not self.gamma_only:
-                all_kwargs['kpts'] = self.kgrid
+            if self.gamma_only:
+                all_kwargs['kpts'] = None
             else:
-                all_kwargs['kpts'] = kpts
+                all_kwargs['kpts'] = kpts if kpts is not None else self.kgrid
 
         # Add pseudopotential and kpt information to the calculator as required
         for kw in ['pseudopotentials', 'gamma_only', 'kgrid', 'kpath', 'koffset']:
@@ -631,8 +633,8 @@ class Workflow(object):
                 # Copy the entire bands object
                 self.bands = workflow.bands
 
-        # Make sure any updates to the w90_projections_blocks are passed along
-        self.parameters.w90_projections_blocks = workflow.parameters.w90_projections_blocks
+        # Make sure any updates to the projections are passed along
+        self.projections = workflow.projections
 
     def todict(self):
         # Shallow copy

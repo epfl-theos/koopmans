@@ -28,7 +28,7 @@ class FoldToSupercellWorkflow(Workflow):
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
             # Loop over the various subblocks that we have wannierised separately
-            for block in self.parameters.w90_projections_blocks:
+            for block in self.projections:
                 # Create the calculator
                 calc_w2o = self.new_calculator('pw2wannier', spin_component=block.spin, wan_mode='wannier2odd',
                                                directory=block.directory)
@@ -55,7 +55,7 @@ class FoldToSupercellWorkflow(Workflow):
             # Merging evcw files
             for occ in [True, False]:
                 for spin, evc_index in zip(spins, [1, 2]):
-                    subset = self.parameters.w90_projections_blocks.get_subset(occ=occ, spin=spin)
+                    subset = self.projections.get_subset(occ=occ, spin=spin)
 
                     if len(subset) > 1:
                         output_directory = Path(subset[0].merge_directory)

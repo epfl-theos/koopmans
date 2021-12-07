@@ -7,25 +7,23 @@ Written by Riccardo De Gennaro Nov 2020
 
 """
 
-import itertools
 import pickle
 from ._generic import Workflow
-from koopmans import utils, bands
+from koopmans import utils, projections
 from koopmans.pseudopotentials import nelec_from_pseudos
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.linalg import block_diag
 import math
 import shutil
 from pathlib import Path
-from typing import List, Union
+from typing import List
 import matplotlib
 matplotlib.use('Agg')
 
 
 class WannierizeWorkflow(Workflow):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, force_nspin2=False, **kwargs):
         super().__init__(*args, **kwargs)
 
         if 'pw' not in self.master_calc_params:
@@ -33,7 +31,6 @@ class WannierizeWorkflow(Workflow):
                 'You need to provide a pw block in your input')
 
         pw_params = self.master_calc_params['pw']
-        proj_blocks = self.parameters.w90_projections_blocks
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
 
@@ -44,7 +41,7 @@ class WannierizeWorkflow(Workflow):
 
             for spin in spins:
                 # Update the projections_blocks to account for additional occupied bands
-                num_wann_occ = proj_blocks.num_bands(occ=True, spin=spin)
+                num_wann_occ = self.projections.num_bands(occ=True, spin=spin)
                 nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, pw_params.pseudo_dir)
                 if self.parameters.spin_polarised:
                     num_bands_occ = nelec
@@ -55,15 +52,15 @@ class WannierizeWorkflow(Workflow):
                     num_bands_occ //= 2
                 else:
                     num_bands_occ = nelec // 2
-                proj_blocks.add_bands(num_bands_occ - num_wann_occ, above=False, spin=spin)
+                self.projections.add_bands(num_bands_occ - num_wann_occ, above=False, spin=spin)
 
                 # Update the projections_blocks to account for additional empty bands
-                num_wann_emp = proj_blocks.num_bands(occ=False, spin=spin)
+                num_wann_emp = self.projections.num_bands(occ=False, spin=spin)
                 num_bands_emp = pw_params.nbnd - num_bands_occ
-                proj_blocks.add_bands(num_bands_emp - num_wann_emp, above=True, spin=spin)
+                self.projections.add_bands(num_bands_emp - num_wann_emp, above=True, spin=spin)
 
                 # Sanity checking
-                w90_nbnd = proj_blocks.num_bands(spin=spin)
+                w90_nbnd = self.projections.num_bands(spin=spin)
                 if pw_params.nbnd != w90_nbnd:
                     raise ValueError(
                         f'Number of bands disagrees between pw ({pw_params.nbnd}) and wannier90 ({w90_nbnd})')
@@ -76,7 +73,10 @@ class WannierizeWorkflow(Workflow):
                                       '"mlwfs", "projwfs" or "kohn-sham"')
 
         # Spin-polarisation
-        if self.parameters.spin_polarised:
+        self._force_nspin2 = force_nspin2
+        if force_nspin2:
+            pw_params.nspin = 2
+        elif self.parameters.spin_polarised:
             pw_params.nspin = 2
         else:
             pw_params.nspin = 1
@@ -112,13 +112,12 @@ class WannierizeWorkflow(Workflow):
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
             # Loop over the various subblocks that we must wannierise separately
-            for block in self.parameters.w90_projections_blocks:
+            for block in self.projections:
                 # Construct the subdirectory label
                 w90_dir = Path('wannier') / block.directory
 
                 # 1) pre-processing Wannier90 calculation
                 calc_w90 = self.new_calculator(block.calc_type, directory=w90_dir,
-                                               gamma_only=calc_pw.parameters.gamma_only,
                                                **block.w90_kwargs)
                 calc_w90.prefix = 'wann_preproc'
                 calc_w90.command.flags = '-pp'
@@ -133,15 +132,16 @@ class WannierizeWorkflow(Workflow):
                 self.run_calculator(calc_p2w)
 
                 # 3) Wannier90 calculation
+                bands_plot_dct = {'bands_plot': True} if self.parameters.check_wannierisation else {}
                 calc_w90 = self.new_calculator(block.calc_type, directory=w90_dir,
-                                               gamma_only=calc_pw.parameters.gamma_only,
-                                               bands_plot=self.parameters.check_wannierisation,
-                                               **block.w90_kwargs)
+                                               **block.w90_kwargs, **bands_plot_dct)
+                if self.parameters.check_wannierisation:
+                    calc_w90.parameters.bands_plot = True
                 calc_w90.prefix = 'wann'
                 self.run_calculator(calc_w90)
 
             # Merging Hamiltonian files, if necessary
-            for block in self.parameters.w90_projections_blocks.to_merge():
+            for block in self.projections.to_merge():
                 self.merge_hr_files(block, prefix=calc_w90.prefix)
 
         if self.parameters.check_wannierisation:
@@ -163,7 +163,7 @@ class WannierizeWorkflow(Workflow):
             selected_calcs = [c for c in self.calculations[:-1] if 'band structure' in c.results]
 
             # Work out the vertical shift to set the valence band edge to zero
-            w90_emp_num_bands = self.parameters.w90_projections_blocks.num_bands(occ=False)
+            w90_emp_num_bands = self.projections.num_bands(occ=False)
             if w90_emp_num_bands > 0:
                 vbe = np.max(calc_pw_bands.results['band structure'].energies[:, :, :-w90_emp_num_bands])
             else:
@@ -219,6 +219,9 @@ class WannierizeWorkflow(Workflow):
                 calc.parameters.dis_num_iter = 5000
             if self.parameters.init_orbitals == 'projwfs':
                 calc.parameters.num_iter = 0
+        if calc_type == 'pw2wannier':
+            if self._force_nspin2 and not self.parameters.spin_polarised:
+                calc.parameters.spin_component = 'up'
 
         # Use a unified tmp directory
         if 'outdir' in calc.parameters.valid:
@@ -226,7 +229,7 @@ class WannierizeWorkflow(Workflow):
 
         return calc
 
-    def merge_hr_files(self, block: List[bands.WannierBandBlock], prefix: str = 'wann'):
+    def merge_hr_files(self, block: List[projections.ProjectionBlock], prefix: str = 'wann'):
         """
         Merges the hr (Hamiltonian) files of a collection of blocks that share the same filling and spin
         """

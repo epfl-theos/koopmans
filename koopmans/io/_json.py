@@ -15,7 +15,7 @@ from ase.atoms import Atoms
 from ase.io.espresso.utils import ibrav_to_cell
 from ase.calculators.espresso import Espresso_kcp
 from ase.io.espresso.koopmans_cp import KEYS as kcp_keys, construct_namelist
-from koopmans import utils, bands
+from koopmans import utils, bands, projections
 from koopmans.pseudopotentials import set_up_pseudos, nelec_from_pseudos
 from koopmans.settings import KoopmansCPSettingsDict, KoopmansHamSettingsDict, KoopmansScreenSettingsDict, \
     PWSettingsDict, PW2WannierSettingsDict, UnfoldAndInterpolateSettingsDict, Wann2KCSettingsDict, \
@@ -222,7 +222,7 @@ def read_json(fd: TextIO, override={}):
 
     # Load default values
     if 'setup' in bigdct:
-        atoms, setup_parameters, psps_and_kpts, n_filled, n_empty = read_setup_dict(bigdct['setup'])
+        atoms, setup_parameters, workflow_kwargs, n_filled, n_empty = read_setup_dict(bigdct['setup'])
         del bigdct['setup']
     elif parameters.task != 'ui':
         raise ValueError('You must provide a "setup" block in the input file, specifying atomic positions, atomic '
@@ -231,7 +231,7 @@ def read_json(fd: TextIO, override={}):
         # Create dummy objects
         atoms = Atoms()
         setup_parameters = {}
-        psps_and_kpts = {}
+        workflow_kwargs = {}
         n_filled = 0
         n_empty = 0
 
@@ -255,13 +255,13 @@ def read_json(fd: TextIO, override={}):
                 dct['nbnd'] = n_filled + n_empty
         elif block.startswith('ui'):
             # Dealing with redundancies in UI keywords
-            if 'sc_dim' in dct and 'kpts' in psps_and_kpts:
+            if 'sc_dim' in dct and 'kpts' in workflow_kwargs:
                 # In this case, the sc_dim keyword is redundant
-                if psps_and_kpts['kpts'] != dct['sc_dim']:
+                if workflow_kwargs['kpts'] != dct['sc_dim']:
                     raise ValueError('sc_dim in the UI block should match the kpoints provided in the setup block')
                 dct.pop('sc_dim')
-            if 'kpath' in dct and 'kpath' in psps_and_kpts:
-                if psps_and_kpts['kpath'] != dct['kpath']:
+            if 'kpath' in dct and 'kpath' in workflow_kwargs:
+                if workflow_kwargs['kpath'] != dct['kpath']:
                     raise ValueError('kpath in the UI block should match that provided in the setup block')
                 dct.pop('kpath')
         elif block.startswith('w90'):
@@ -294,30 +294,32 @@ def read_json(fd: TextIO, override={}):
             **{k: v for k, v in setup_parameters.items() if k in master_calc_params[block].valid})
         master_calc_params[block].parse_algebraic_settings(nelec=setup_parameters['nelec'])
 
-    # Adding the w90_projections_blocks to the workflow parameters (this is unusual in that this is a setting associated
-    # with the workflow object but is provided in the w90_occ and emp blocks)
-    parameters['w90_projections_blocks'] = bands.WannierBandBlocks.fromprojections(
+    # Adding the projections to the workflow kwargs (this is unusual in that this is an attribute of the workflow object
+    # but it is provided in the w90 subdictionary)
+    workflow_kwargs['projections'] = projections.ProjectionBlocks.fromprojections(
         w90_block_projs, w90_block_filling, w90_block_spins, atoms)
 
     name = fd.name.replace('.json', '')
     workflow: workflows.Workflow
     if parameters.task == 'singlepoint':
         workflow = workflows.SinglepointWorkflow(
-            atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
+            atoms, parameters, master_calc_params, name=name, **workflow_kwargs)
     elif parameters.task == 'convergence':
         workflow = workflows.ConvergenceWorkflow(
-            atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
-    elif parameters.task in ['wannierize', 'wannierise']:
+            atoms, parameters, master_calc_params, name=name, **workflow_kwargs)
+    elif parameters.task == 'wannierise':
         workflow = workflows.WannierizeWorkflow(
-            atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
+            atoms, parameters, master_calc_params, name=name, **workflow_kwargs)
         workflow.parameters.check_wannierisation = True
     elif parameters.task == 'environ_dscf':
-        workflow = workflows.DeltaSCFWorkflow(atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
+        workflow = workflows.DeltaSCFWorkflow(atoms, parameters, master_calc_params,
+                                              name=name, **workflow_kwargs)
     elif parameters.task == 'ui':
         workflow = workflows.UnfoldAndInterpolateWorkflow(
-            atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
+            atoms, parameters, master_calc_params, name=name, **workflow_kwargs)
     elif parameters.task == 'dft_bands':
-        workflow = workflows.PWBandStructureWorkflow(atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
+        workflow = workflows.PWBandStructureWorkflow(
+            atoms, parameters, master_calc_params, name=name, **workflow_kwargs)
     else:
         raise ValueError('Invalid task name "{task_name}"')
 
