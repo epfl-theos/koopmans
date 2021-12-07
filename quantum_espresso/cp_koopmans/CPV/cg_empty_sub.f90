@@ -328,9 +328,24 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
         endif ENERGY_CHECK
         !
         if( do_orbdep ) then
-          !
-          call do_innerloop_subroutine()
-          ! 
+            !
+            if ( do_innerloop_empty .and. innerloop_until>=itercgeff ) then
+               !
+               if ( empty_states_nbnd == 1 ) then
+                  !
+                  ! skip innerloop if there is only one electron
+                  write(stdout,fmt='(5x,a)') "WARNING: skipping innerloop when empty_states_nbnd=1"
+                  !
+               else
+                  !
+                  call do_innerloop_subroutine()
+                  !
+               endif
+               !
+            endif
+            !
+
+            !
         endif
         ! 
         call print_out_observables()
@@ -1232,44 +1247,31 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
      ! 
      subroutine do_innerloop_subroutine()
          !
-	      if (do_innerloop_empty .and. innerloop_until>=itercgeff) then
+         call start_clock( "inner_loop" )
+         !
+         eodd_emp= sum(pink_emp(:))
+         etot_emp= etot_emp - eodd_emp
+         etotnew = etotnew  - eodd_emp
+         ninner  = 0
+         !
+         if ( .not. do_innerloop_cg ) then
+            ! 
+            write(stdout,*)  "WARNING, do_innerloop_cg should be .true."
+            ! 
+         else
             !
-            if ( empty_states_nbnd == 1 ) then
-               !
-               ! skip innerloop if there is only one electron
-               write(stdout,fmt='(5x,a)') "WARNING: skipping innerloop when empty_states_nbnd=1"
-               !
-            else
-               !
-               call start_clock( "inner_loop" )
-               !
-               eodd_emp= sum(pink_emp(:))
-               etot_emp= etot_emp - eodd_emp
-               etotnew = etotnew  - eodd_emp
-               ninner  = 0
-               !
-               if (.not.do_innerloop_cg) then
-                  ! 
-                  write(stdout,*)  "WARNING, do_innerloop_cg should be .true."
-                  ! 
-               else
-                  !
-                  call nksic_rot_emin_cg_general(itercg,innerloop_init_n,ninner,etot_emp,deltae*innerloop_cg_ratio,lgam, &
-                                          n_emps, n_empx, nudx_emp, iupdwn_emp, nupdwn_emp, ispin_emp, & 
-                                          c0_emp, rhovan_emp, bec_emp, rhor, rhoc, vsic_emp, pink_emp, & 
-                                          deeq_sic_emp, wtot, fsic_emp, sizwtot, .false.,  wfc_centers_emp, wfc_spreads_emp, .true.) 
-                  !
-               endif
-               !
-               eodd_emp= sum(pink_emp(:)) 
-               etot_emp= etot_emp + eodd_emp 
-               etotnew = etotnew  + eodd_emp
-               ! 
-               call stop_clock( "inner_loop" )
-               !
-            endif
+            call nksic_rot_emin_cg_general(itercg,innerloop_init_n,ninner,etot_emp,deltae*innerloop_cg_ratio,lgam, &
+                                    n_emps, n_empx, nudx_emp, iupdwn_emp, nupdwn_emp, ispin_emp, & 
+                                    c0_emp, rhovan_emp, bec_emp, rhor, rhoc, vsic_emp, pink_emp, & 
+                                    deeq_sic_emp, wtot, fsic_emp, sizwtot, .false.,  wfc_centers_emp, wfc_spreads_emp, .true.) 
             !
          endif
+         !
+         eodd_emp= sum(pink_emp(:)) 
+         etot_emp= etot_emp + eodd_emp 
+         etotnew = etotnew  + eodd_emp
+         ! 
+         call stop_clock( "inner_loop" )
          !
      endsubroutine do_innerloop_subroutine
      !   
