@@ -396,6 +396,9 @@ class Workflow(object):
                 qe_calc.parameters.do_outerloop = False
                 qe_calc.parameters.do_outerloop_empty = False
                 qe_calc.parameters.nspin = 1
+                if qe_calc.parameters.do_orbdep:
+                    qe_calc.alphas = [qe_calc.alphas[0]]
+                    qe_calc.filling = [qe_calc.filling[0]]
                 qe_calc.parameters.nelup = None
                 qe_calc.parameters.neldw = None
                 qe_calc.parameters.tot_magnetization = None
@@ -414,6 +417,9 @@ class Workflow(object):
             qe_calc.parameters.nspin = 1
             qe_calc.parameters.nelup = None
             qe_calc.parameters.neldw = None
+            if qe_calc.parameters.do_orbdep:
+                qe_calc.alphas = [qe_calc.alphas[0]]
+                qe_calc.filling = [qe_calc.filling[0]]
             qe_calc.parameters.tot_magnetization = None
             qe_calc.parameters.ndw, qe_calc.parameters.ndr = 98, 98
             nspin1_tmpdir = qe_calc.parameters.outdir / \

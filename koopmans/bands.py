@@ -63,7 +63,8 @@ class Band(object):
 
 
 class Bands(object):
-    def __init__(self, n_bands: Union[int, List[int]], n_spin: int = 1, spin_polarised: bool = False, self_hartree_tol=None, **kwargs):
+    def __init__(self, n_bands: Union[int, List[int]], n_spin: int = 1, spin_polarised: bool = False,
+                 self_hartree_tol=None, **kwargs):
         if isinstance(n_bands, int):
             self.n_bands = [n_bands for _ in range(n_spin)]
         else:
@@ -139,11 +140,11 @@ class Bands(object):
         return i_match
 
     def _check_array_shape_match(self, array, array_name):
-        assert len(
-            array) == self.n_spin, f'Bands.{array_name} must be length {self.n_spin} but you provided an array of length {len(array)}'
+        assert len(array) == self.n_spin, f'Bands.{array_name} must be length {self.n_spin} but you provided an ' \
+            f'array of length {len(array)}'
         for i, (subarray, n_bands) in enumerate(zip(array, self.n_bands)):
-            assert len(
-                subarray) == n_bands, f'Bands.{array_name}[{i}] must be length {n_bands} but you provided an array with length {len(subarray)}'
+            assert len(subarray) == n_bands, f'Bands.{array_name}[{i}] must be length {n_bands} but you provided an ' \
+                f'array with length {len(subarray)}'
 
     @property
     def filling(self) -> List[List[bool]]:

@@ -193,7 +193,8 @@ def write_hr_file(fname: Path, ham: np.ndarray, rvect: List[List[int]], weights:
 
 def read_hr_file(fname: Path) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
     """
-    Reads in a hr file, but does not reshape the hamiltonian (because we want to reshape different Hamiltonians differently)
+    Reads in a hr file, but does not reshape the hamiltonian (because we want to reshape different Hamiltonians
+    differently)
     """
 
     with open(fname, 'r') as fd:

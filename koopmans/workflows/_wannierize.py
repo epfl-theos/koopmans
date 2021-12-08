@@ -9,16 +9,19 @@ Written by Riccardo De Gennaro Nov 2020
 
 import pickle
 from ._generic import Workflow
-from koopmans import utils, projections
+from koopmans import utils, projections, calculators
 from koopmans.pseudopotentials import nelec_from_pseudos
 import matplotlib.pyplot as plt
 import numpy as np
 import math
 import shutil
 from pathlib import Path
-from typing import List
+from typing import List, TypeVar
 import matplotlib
 matplotlib.use('Agg')
+
+
+CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
 
 
 class WannierizeWorkflow(Workflow):
@@ -210,8 +213,8 @@ class WannierizeWorkflow(Workflow):
 
         return
 
-    def new_calculator(self, calc_type, *args, **kwargs):
-        calc = super().new_calculator(calc_type, *args, **kwargs)
+    def new_calculator(self, calc_type, *args, **kwargs) -> CalcExtType:
+        calc: CalcExtType = super().new_calculator(calc_type, *args, **kwargs)
 
         # Extra tweaks for Wannier90 calculations
         if calc_type.startswith('w90'):
@@ -237,9 +240,11 @@ class WannierizeWorkflow(Workflow):
         # Working out the files to read in and where to write out to
         fnames_in: List[Path] = []
         for b in block:
-            assert b.directory is not None, 'The block which you are trying to merge is missing a directory; this should not happen'
+            assert b.directory is not None, 'The block which you are trying to merge is missing a directory; this ' \
+                'should not happen'
             fnames_in.append(Path('wannier') / b.directory / (prefix + '_hr.dat'))
-        assert b.merge_directory is not None, 'The block which you are trying to merge is missing a merge_directory; this should not happen'
+        assert b.merge_directory is not None, 'The block which you are trying to merge is missing a ' \
+            'merge_directory; this should not happen'
         fname_out = Path('wannier') / b.merge_directory / (prefix + '_hr.dat')
 
         # Reading in each hr file in turn

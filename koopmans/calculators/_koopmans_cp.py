@@ -65,8 +65,10 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
             self.command = ParallelCommand(os.environ.get(
                 'ASE_ESPRESSO_KCP_COMMAND', str(kcp_bin_directory) + os.path.sep + self.command))
 
-        self.alphas = alphas
-        self.filling = filling
+        if alphas is not None:
+            self.alphas = alphas
+        if filling is not None:
+            self.filling = filling
         self.results_for_qc = ['energy', 'homo_energy', 'lumo_energy']
 
     def calculate(self):
@@ -235,30 +237,29 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
         return all(converged)
 
     @property
-    def alphas(self):
+    def alphas(self) -> List[List[float]]:
+        if not hasattr(self, '_alphas'):
+            raise ValueError(f'{self}.alphas has not been initialised')
         return self._alphas
 
     @alphas.setter
-    def alphas(self, val: Union[None, Series, List[List[float]]]):
-
-        if val is None:
-            return
+    def alphas(self, val: Union[Series, List[List[float]]]):
 
         if isinstance(val, Series):
             val = val.to_numpy()
 
         assert len(val) == self.parameters.nspin, \
-            f'Dimensions of {self.__class__.name}.alphas must match nspin = {self.parameters.nspin}'
+            f'Dimensions of {self.__class__.__name__}.alphas must match nspin = {self.parameters.nspin}'
 
         self._alphas = val
 
     @property
-    def filling(self):
+    def filling(self) -> List[List[bool]]:
         # Filling is indexed by [i_spin, i_orbital]
         # Filling is written in this way such that we can calculate it automatically,
         # but if it is explicitly set then we will always use that value instead
-        if self._filling is None:
-            self._filling = []
+        if not hasattr(self, '_filling'):
+            filling = []
 
             # Work out how many filled and empty bands we will have for each spin channel
             if self.parameters.nspin == 2:
@@ -269,12 +270,15 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
 
             # Generate the filling list
             for n_filled_bands in n_filled_bands_list:
-                self._filling.append([True for _ in range(n_filled_bands)] + [False for _ in range(n_empty_bands)])
+                filling.append([True for _ in range(n_filled_bands)] + [False for _ in range(n_empty_bands)])
+
+            self._filling = filling
         return self._filling
 
     @filling.setter
-    def filling(self, val: Union[List[List[bool]], None]):
-
+    def filling(self, val: List[List[bool]]):
+        assert len(val) == self.parameters.nspin, \
+            f'Dimensions of {self.__class__.__name__}.filling must match nspin = {self.parameters.nspin}'
         self._filling = val
 
     def write_alphas(self):

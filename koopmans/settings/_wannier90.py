@@ -59,7 +59,8 @@ class Wannier90SettingsDict(SettingsDict):
                 path=self.kpoint_path.path, cell=self.kpoint_path.cell, bands_point_num=value)
         else:
             if key == 'kpoint_path':
-                assert self.bands_plot, 'Do not try and set a kpoint_path for a Wannier90 calculation which does not have bands_plot = True'
+                assert self.bands_plot, 'Do not try and set a kpoint_path for a Wannier90 calculation which does ' \
+                    'not have bands_plot = True'
             if key == 'projections':
                 for i, v in enumerate(value):
                     if isinstance(v, str):

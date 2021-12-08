@@ -21,10 +21,12 @@ from ._generic import Workflow
 
 class KoopmansDSCFWorkflow(Workflow):
 
-    def __init__(self, *args, redo_smooth_dft: Optional[bool] = None, restart_from_old_ki: bool = False, **kwargs) -> None:
+    def __init__(self, *args, redo_smooth_dft: Optional[bool] = None, restart_from_old_ki: bool = False,
+                 **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-        # The following two additional keywords allow for some tweaking of the workflow when running a singlepoint workflow with functional == 'all'
+        # The following two additional keywords allow for some tweaking of the workflow when running a singlepoint
+        # workflow with functional == 'all'
 
         # By default, we don't override self.parameters.from_scratch when we arrive at the higher-res DFT calculations.
         # We change this flag to False for workflows where this is unnecessary (such as pKIPZ) to skip this step.
@@ -50,11 +52,11 @@ class KoopmansDSCFWorkflow(Workflow):
                     nbands_occ = self.projections.num_wann(occ=True, spin=spin)
 
                     if nbands_occ != nelec:
-                        raise ValueError('You have configured this calculation to only wannierise a subset of the occupied '
-                                         'bands. This is incompatible with the subsequent Koopmans calculation.\nPlease '
-                                         'modify the wannier90 settings in order to wannierise all of the occupied bands. '
-                                         '(You may want to consider taking advantage of the "projections_blocks" functionality '
-                                         'if your system has a lot of semi-core electrons.)')
+                        raise ValueError('You have configured this calculation to only wannierise a subset of the '
+                                         'occupied bands. This is incompatible with the subsequent Koopmans '
+                                         'calculation.\nPlease modify the wannier90 settings in order to wannierise '
+                                         'all of the occupied bands. (You may want to consider taking advantage of the '
+                                         '"projections_blocks" functionality if your system has a lot of electrons.)')
 
                     nbands_emp = self.projections.num_wann(occ=False, spin=spin)
                 else:
@@ -121,7 +123,8 @@ class KoopmansDSCFWorkflow(Workflow):
         # Checking groups and filling are the same dimensions
         if groups is not None:
             for g, f in zip(groups, filling):
-                assert len(g) == len(f), 'orbital_groups is the wrong dimension; its length should match the number of bands'
+                assert len(g) == len(f), 'orbital_groups is the wrong dimension; its length should match the number ' \
+                    'of bands'
 
         # Initialise the bands object
         self.bands = Bands(n_bands=[len(f) for f in filling], n_spin=2, spin_polarised=self.parameters.spin_polarised,
@@ -163,8 +166,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
     def read_alphas_from_file(self, directory: Path = Path()):
         '''
-        This routine reads in the contents of file_alpharef.txt and file_alpharef_empty.txt and
-        stores the result in self.bands.alphas
+        This routine reads in the contents of file_alpharef.txt and file_alpharef_empty.txt
 
         Since utils.read_alpha_file provides a flattened list of alphas so we must convert this
         to a nested list using convert_flat_alphas_for_kcp()
@@ -215,8 +217,7 @@ class KoopmansDSCFWorkflow(Workflow):
             savedir = f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
             utils.system_call(f'cp {savedir}/evc01.dat {savedir}/evc02.dat')
             if calc.parameters.empty_states_nbnd is not None and calc.parameters.empty_states_nbnd > 0:
-                utils.system_call(
-                    f'cp {savedir}/evc0_empty1.dat {savedir}/evc0_empty2.dat')
+                utils.system_call(f'cp {savedir}/evc0_empty1.dat {savedir}/evc0_empty2.dat')
 
         self.print('Calculating screening parameters', style='heading')
         if self.parameters.calculate_alpha:
@@ -598,7 +599,8 @@ class KoopmansDSCFWorkflow(Workflow):
 
                         # Set up calculator
                         calc = self.new_kcp_calculator(calc_type, alphas=alphas, filling=filling, fixed_band=fixed_band,
-                                                       index_empty_to_save=index_empty_to_save, outdir=outdir_band, add_to_spin_up=(band.spin == 0))
+                                                       index_empty_to_save=index_empty_to_save, outdir=outdir_band,
+                                                       add_to_spin_up=(band.spin == 0))
                         calc.directory = directory
 
                         # Run kcp.x
