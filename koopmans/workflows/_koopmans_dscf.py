@@ -21,7 +21,7 @@ from ._generic import Workflow
 
 class KoopmansDSCFWorkflow(Workflow):
 
-    def __init__(self, *args, redo_smooth_dft: Optional[None] = None, restart_from_old_ki: bool = False, **kwargs) -> None:
+    def __init__(self, *args, redo_smooth_dft: Optional[bool] = None, restart_from_old_ki: bool = False, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         # The following two additional keywords allow for some tweaking of the workflow when running a singlepoint workflow with functional == 'all'
@@ -712,7 +712,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         # Store the original w90 calculations
         w90_calcs = [c for c in self.calculations if isinstance(c, calculators.Wannier90Calculator)
-                     and c.command.flags == '']
+                     and c.command.flags == ''][-len(self.projections):]
 
         if self.master_calc_params['ui'].do_smooth_interpolation:
             wf_kwargs = self.wf_kwargs

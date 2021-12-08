@@ -88,8 +88,11 @@ class ProjectionBlocks(object):
         out += ')'
         return out
 
+    def __len__(self):
+        return len(self._blocks)
+
     def __bool__(self):
-        return len(self._blocks) > 0
+        return len(self) > 0
 
     @property
     def blocks(self):
