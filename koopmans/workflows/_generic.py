@@ -249,10 +249,7 @@ class Workflow(object):
         # For the k-points, the Workflow has two options: self.kgrid and self.kpath. A calculator should only ever
         # have one of these two. By default, use the kgrid.
         if 'kpts' in master_calc_params.valid:
-            if self.gamma_only:
-                all_kwargs['kpts'] = None
-            else:
-                all_kwargs['kpts'] = kpts if kpts is not None else self.kgrid
+            all_kwargs['kpts'] = kpts if kpts is not None else self.kgrid
 
         # Add pseudopotential and kpt information to the calculator as required
         for kw in ['pseudopotentials', 'gamma_only', 'kgrid', 'kpath', 'koffset']:
@@ -396,8 +393,9 @@ class Workflow(object):
                 qe_calc.parameters.do_outerloop = False
                 qe_calc.parameters.do_outerloop_empty = False
                 qe_calc.parameters.nspin = 1
-                if qe_calc.parameters.do_orbdep:
+                if hasattr(qe_calc, 'alphas'):
                     qe_calc.alphas = [qe_calc.alphas[0]]
+                if hasattr(qe_calc, 'filling'):
                     qe_calc.filling = [qe_calc.filling[0]]
                 qe_calc.parameters.nelup = None
                 qe_calc.parameters.neldw = None
@@ -417,8 +415,9 @@ class Workflow(object):
             qe_calc.parameters.nspin = 1
             qe_calc.parameters.nelup = None
             qe_calc.parameters.neldw = None
-            if qe_calc.parameters.do_orbdep:
+            if hasattr(qe_calc, 'alphas'):
                 qe_calc.alphas = [qe_calc.alphas[0]]
+            if hasattr(qe_calc, 'filling'):
                 qe_calc.filling = [qe_calc.filling[0]]
             qe_calc.parameters.tot_magnetization = None
             qe_calc.parameters.ndw, qe_calc.parameters.ndr = 98, 98
@@ -659,7 +658,8 @@ class Workflow(object):
                  pseudopotentials=dct.pop('_pseudopotentials'),
                  gamma_only=dct.pop('_gamma_only'),
                  kgrid=dct.pop('_kgrid'),
-                 kpath=dct.pop('_kpath'))
+                 kpath=dct.pop('_kpath'),
+                 projections=dct.pop('projections'))
 
         for k, v in dct.items():
             setattr(wf, k, v)

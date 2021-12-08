@@ -204,5 +204,7 @@ class ProjectionBlocks(object):
     def fromdict(cls, dct):
         new_bandblock = cls(dct.pop('_blocks'), dct.pop('_atoms'))
         for k, v in dct.items():
+            if not hasattr(new_bandblock, k):
+                raise AttributeError(k)
             setattr(new_bandblock, k, v)
         return new_bandblock

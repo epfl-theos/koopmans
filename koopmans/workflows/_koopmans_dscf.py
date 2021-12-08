@@ -606,11 +606,11 @@ class KoopmansDSCFWorkflow(Workflow):
                         # Run kcp.x
                         self.run_calculator(calc)
 
-                        # Reset the value of 'fixed_band' so we can keep track of which calculation
-                        # is which. This is important for empty orbital calculations, where fixed_band
-                        # is always set to the LUMO but in reality we're fixing the band corresponding
-                        # to index_empty_to_save from an earlier calculation
-                        calc.parameters.fixed_band = band
+                        # Store the band that we've perturbed as calc.fixed_band. Note that we can't use
+                        # calc.parameters.fixed_band to keep track of which band we held fixed, because for empty
+                        # orbitals, calc.parameters.fixed_band is always set to the LUMO but in reality we're fixing
+                        # the band corresponding # to index_empty_to_save from an earlier calculation
+                        calc.fixed_band = band
 
                         # Store the result
                         # We store the results in one of two lists: alpha_indep_calcs and
@@ -658,7 +658,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 # that do not get overwritten
 
                 calcs = [c for calc_set in [alpha_dep_calcs, alpha_indep_calcs]
-                         for c in calc_set if c.parameters.fixed_band == band]
+                         for c in calc_set if c.fixed_band == band]
 
                 alpha, error = self.calculate_alpha_from_list_of_calcs(
                     calcs, trial_calc, band, filled=band.filled)

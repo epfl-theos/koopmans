@@ -19,13 +19,12 @@ Sep 2021: Reshuffled files to make imports cleaner
 """
 
 import copy
-from typing import Union, Optional, List, TypeVar, Generic, Type
+from typing import Union, Optional, List, TypeVar, Generic
 from pathlib import Path
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 from ase import Atoms
 import ase.io as ase_io
-from ase.calculators.calculator import FileIOCalculator
-from koopmans import utils, settings, pseudopotentials
+from koopmans import utils, settings
 
 # Directories of the various QE calculators
 qe_parent_directory = Path(__file__).parents[2] / 'quantum_espresso'
