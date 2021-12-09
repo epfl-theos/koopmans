@@ -444,17 +444,16 @@ class KoopmansDSCFWorkflow(Workflow):
                 if not iteration_directory.is_dir():
                     iteration_directory.mkdir()
 
-            innerloop_override: Dict[str, Any] = {}
-            if i_sc == 1 and self.parameters.functional == 'kipz' and not self.parameters.periodic:
-                # For the first KIPZ trial calculation, override do_innerloop to true
-                innerloop_override['do_innerloop'] = True
-
             # Do a KI/KIPZ calculation with the updated alpha values
             trial_calc = self.new_kcp_calculator(calc_presets=self.parameters.functional.replace('pkipz', 'ki'),
-                                                 alphas=self.bands.alphas, **innerloop_override)
+                                                 alphas=self.bands.alphas)
             trial_calc.directory = iteration_directory
 
-            if i_sc > 1:
+            if i_sc == 1:
+                if self.parameters.functional == 'kipz' and not self.parameters.periodic:
+                    # For the first KIPZ trial calculation, do the innerloop
+                    trial_calc.parameters.do_innerloop = True
+            else:
                 # For later SC loops, read in the matching calculation from the
                 # previous loop rather than the initialisation calculations
                 trial_calc.parameters.ndr = trial_calc.parameters.ndw
@@ -978,7 +977,6 @@ class KoopmansDSCFWorkflow(Workflow):
         if calc.parameters.print_wfc_anion and calc.parameters.index_empty_to_save is None:
             raise ValueError('Error: print_wfc_anion is set to true but you have not selected '
                              'an index_empty_to_save. Provide this as an argument to new_cp_calculator')
-
 
         # don't print QC in some cases
         if 'dummy' in calc.prefix:
