@@ -339,10 +339,25 @@
           !
         endif ENERGY_CHECK
         !
-        if( do_orbdep ) then
-           !
-           call do_innerloop_subroutine()
-           !
+        if ( do_orbdep ) then
+            !
+            if ( do_innerloop .and. innerloop_until>=itercgeff ) then
+               !
+               if ( nupdwn(1) .le. 1 .and. nupdwn(2) .le. 1 ) then
+                  !  
+                  ! skip innerloop if there is only zero or one electrons/spin
+                  write(stdout,fmt='(5x,a)') "WARNING: skipping innerloop for 1-electron systems"
+                  !
+               else
+                  !
+                  call do_innerloop_subroutine()
+                  !
+               endif
+               !
+            endif
+            !
+            eodd = sum(pink(1:nbsp))
+            !
         endif
         !
         call print_out_observables()
@@ -1589,10 +1604,6 @@
      end subroutine do_deallocation
      
      subroutine do_innerloop_subroutine()
-
-      if(do_innerloop .and. innerloop_until>=itercgeff) then
-!$$$$          if(do_innerloop.and.itercg.le.20) then
-!$$$$
          !
          call start_clock( "inner_loop" )
          !
@@ -1600,29 +1611,27 @@
          etot    = etot - eodd
          etotnew = etotnew - eodd
          ninner  = 0
-
-         if(.not.do_innerloop_cg) then
-           call nksic_rot_emin(itercg,ninner,etot,Omattot, lgam)
+         !
+         if ( .not. do_innerloop_cg ) then
+            !
+            call nksic_rot_emin(itercg,ninner,etot,Omattot, lgam)
+            !
          else
-           !call nksic_rot_emin_cg(itercg,innerloop_init_n,ninner,etot,Omattot,deltae*innerloop_cg_ratio,lgam)
-           call nksic_rot_emin_cg_general(itercg,innerloop_init_n,ninner,etot,deltae*innerloop_cg_ratio,lgam, &
-                                     nbsp, nbspx, nudx, iupdwn, nupdwn, ispin, c0, rhovan, bec, rhor, rhoc, &
-                                     vsic, pink, deeq_sic, wtot, fsic, sizwtot, do_wxd, wfc_centers, wfc_spreads, .false.)
-
-
+            !
+            !call nksic_rot_emin_cg(itercg,innerloop_init_n,ninner,etot,Omattot,deltae*innerloop_cg_ratio,lgam)
+            call nksic_rot_emin_cg_general(itercg,innerloop_init_n,ninner,etot,deltae*innerloop_cg_ratio,lgam, &
+                                       nbsp, nbspx, nudx, iupdwn, nupdwn, ispin, c0, rhovan, bec, rhor, rhoc, &
+                                       vsic, pink, deeq_sic, wtot, fsic, sizwtot, do_wxd, wfc_centers, wfc_spreads, .false.)
+            !
          endif
-
+         !
          eodd    = sum(pink(1:nbsp))
          etot    = etot + eodd
          etotnew = etotnew + eodd
          eoddnew = eodd
-
-         call stop_clock( "inner_loop" )
          !
-      endif
-      !
-      eodd = sum(pink(1:nbsp))
-      
+         call stop_clock( "inner_loop" )
+         !      
      end subroutine do_innerloop_subroutine
 
      subroutine print_out_observables()
