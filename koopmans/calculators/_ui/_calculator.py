@@ -20,7 +20,7 @@ from ase.spectrum.band_structure import BandStructure
 from koopmans import utils
 from koopmans.settings import UnfoldAndInterpolateSettingsDict
 from .._utils import CalculatorExt, CalculatorABC, sanitise_filenames
-from ._utils import crys_to_cart, extract_hr
+from ._utils import crys_to_cart, extract_hr, latt_vect
 from ._atoms import UIAtoms
 
 
@@ -205,8 +205,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             if 'Final State' in line:
                 count += 1
 
-        self.Rvec = np.array([[x, y, z] for x in range(self.parameters.kgrid[0])
-                              for y in range(self.parameters.kgrid[1]) for z in range(self.parameters.kgrid[2])])
+        self.Rvec = latt_vect(*self.parameters.kgrid)
 
         if self.parameters.w90_input_sc:
             self.parameters.num_wann_sc = num_wann
@@ -250,6 +249,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         if 'written on' in lines[0].lower():
             hr_type = 'w90'
+        # obsolete formats for the CP-Koopmans Hamiltonians
         elif 'xml version' in lines[0]:
             hr_type = 'kc_occ_old'
         elif self.parameters.kc_ham_file.name == 'hamiltonian_emp.dat':
@@ -712,8 +712,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             hr = hr - self.hr_coarse
 
         # renormalize H(R) on the WF phases
-        conj_phases = [p.conjugate() for p in self.phases]
-        hr = (conj_phases*hr.transpose()).transpose()*self.phases
+        for m in range(self.parameters.num_wann_sc):
+            for n in range(self.parameters.num_wann):
+                hr[m, n] = self.phases[m].conjugate() * hr[m, n] * self.phases[n]
 
         # here we build the interpolated H(k)
         hk = np.zeros((len(self.parameters.kpath.kpts), self.parameters.num_wann,
@@ -775,14 +776,76 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                       distance between Wannier functions, otherwise only the intercell
                       distances are considered.
 
-           IMPORTANT: the input vectors (center_ref, center, Rvec and kvec) must all
-                      be in crystal units otherwise the distances are not properly evaluated.
+           IMPORTANT: the input vectors must all be in crystal units otherwise the distances
+                      are not properly evaluated.
         """
 
         if self.parameters.use_ws_distance:
             wf_dist = crys_to_cart(center - center_ref, self.atoms.acell, +1)
         else:
             wf_dist = crys_to_cart(rvect, self.atoms.acell, +1)
+
+        dist_min = np.linalg.norm(wf_dist)
+        Tlist = []
+
+        for i in range(-1, 2):
+            for j in range(-1, 2):
+                for k in range(-1, 2):
+                    tvect = np.array([i, j, k]) * self.parameters.kgrid
+                    Tvec = crys_to_cart(tvect, self.atoms.acell, +1)
+                    dist = np.linalg.norm(wf_dist + Tvec)
+
+                    if (abs(dist - dist_min) < 1.e-3):
+                        #
+                        # an equidistant replica is found
+                        #
+                        Tlist.append(tvect)
+
+                    elif (dist < dist_min):
+                        #
+                        # a new nearest replica is found
+                        # reset dist_min and reinitialize Tlist
+                        #
+                        dist_min = dist
+                        Tlist = [tvect]
+
+                    else:
+                        #
+                        # this replica is rejected
+                        #
+                        continue
+
+        phase = sum(np.exp(1j * 2 * np.pi * np.dot(Tlist, kvect))) / len(Tlist)
+
+        return phase
+
+    def correct_phase_(self):
+        """
+        correct_phase calculate the correct phase factor to put in the Fourier transform
+                      to get the interpolated k-space hamiltonian. The correction consists
+                      of finding the right distance, i.e. the right R-vector, considering
+                      also the BVK boundary conditions.
+                      if use_ws_distance=True, the function accounts also for the intracell
+                      distance between Wannier functions, otherwise only the intercell
+                      distances are considered.
+
+           IMPORTANT: the input vectors must all be in crystal units otherwise the distances
+                      are not properly evaluated.
+        """
+
+        if self.parameters.use_ws_distance:
+            # define the distance between WFs accounting for their positions within the unit cell
+            wf_dist = self.centers[:self.parameters.num_wann]*np.prod(self.parameters.kgrid) - self.centers
+        else:
+            # define the distance between WFs considering only the distance between the unit cells to which they belong
+            wf_dist = list(np.concatenate([[rvec]*self.parameters.num_wann for rvec in self.Rvec]))
+        wf_dist = crys_to_cart(wf_dist, self.atoms.acell, +1)
+
+        # supercell lattice vectors
+        Tvec = [np.array((i,j,k))*self.parameters.kgrid for i in range(-1,2) \
+                                                        for j in range(-1,2) \
+                                                        for k in range(-1,2)]
+
 
         dist_min = np.linalg.norm(wf_dist)
         Tlist = []
