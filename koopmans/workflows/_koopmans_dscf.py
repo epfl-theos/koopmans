@@ -979,11 +979,6 @@ class KoopmansDSCFWorkflow(Workflow):
             raise ValueError('Error: print_wfc_anion is set to true but you have not selected '
                              'an index_empty_to_save. Provide this as an argument to new_cp_calculator')
 
-        # avoid innerloops for one-orbital-manifolds
-        if calc.parameters.nelup in [0, 1] and calc.parameters.neldw in [0, 1]:
-            calc.parameters.do_innerloop = False
-        if calc.parameters.empty_states_nbnd == 1:
-            calc.parameters.do_innerloop_empty = False
 
         # don't print QC in some cases
         if 'dummy' in calc.prefix:
