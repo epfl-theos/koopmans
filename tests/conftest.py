@@ -388,10 +388,6 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             if key == 'ibrav':
                 continue
 
-            # TODO: remove this
-            if key in ['split_evc_file']:
-                continue
-
             assert key in calc.benchmark['parameters'].keys(), f'{key} in {input_file_name} not found in benchmark'
             ref_val = calc.benchmark['parameters'][key]
 
@@ -470,7 +466,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         def output_files(self) -> List[Path]:
             files = self.__files
             if self.parameters.print_wfc_anion:
-                files.append(Path('evcfixed_empty.dat'))
+                for ispin in range(self.parameters.nspin):
+                    files.append(Path(f'evcfixed_empty{ispin + 1}.dat'))
             return [self.parameters.outdir
                     / Path(f'{self.parameters.prefix}_{self.parameters.ndw}.save/K00001/{fname}') for fname in files]
 
@@ -478,7 +475,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         def input_files(self) -> List[Path]:
             files = self.__files
             if self.parameters.restart_from_wannier_pwscf:
-                files.append(Path('evc_occupied.dat'))
+                for ispin in range(self.parameters.nspin):
+                    files.append(Path(f'evc_occupied{ispin + 1}.dat'))
             return [self.parameters.outdir
                     / Path(f'{self.parameters.prefix}_{self.parameters.ndr}.save/K00001/{fname}') for fname in files]
 
