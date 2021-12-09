@@ -767,7 +767,9 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
     from koopmans.workflows import WannierizeWorkflow
 
     class MockWannierizeWorkflow(MockWorkflow, WannierizeWorkflow):
-        pass
+        def merge_hr_files(self, block, prefix):
+            # We don't want the Wannierise workflow to attempt to read and write the hr files
+            return
 
     monkeypatch.setattr('koopmans.workflows.WannierizeWorkflow', MockWannierizeWorkflow)
 
