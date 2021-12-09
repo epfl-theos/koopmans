@@ -200,7 +200,6 @@ subroutine nksic_rot_emin_cg_general(nouter, init_n, ninner, etot, rot_threshold
            if (ionode) then
               !  
               write(stdout,"(a,/)") '# inner-loop converged.'
-              write(stdout,"(a,/)") '# inner-loop converged.'
               !
            endif
            !
