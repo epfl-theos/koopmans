@@ -6,3 +6,4 @@ python_KI.egg-info
 coverage.xml
 .coverage
 *.egg-info/
+.mypy_cache
