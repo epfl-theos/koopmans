@@ -662,7 +662,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             # 1) accounting for their positions within the unit cell
             wf_dist = np.concatenate([[c] * self.parameters.num_wann_sc
                                      for c in self.centers[:self.parameters.num_wann]]) \
-                                     - np.array(self.centers * self.parameters.num_wann)
+            - np.array(self.centers * self.parameters.num_wann)
         else:
             # 2) considering only the distance between the unit cells they belong to
             wf_dist = np.array(np.concatenate([[rvec] * self.parameters.num_wann for rvec in self.Rvec]).tolist()
@@ -677,7 +677,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             norm = np.linalg.norm(distance, axis=1)
             Tlist.append(np.where(norm - norm.min() < 1.e-3)[0])
 
-        phase = np.zeros((len(self.parameters.kpath.kpts), len(Tlist)))
+        phase = np.zeros((len(self.parameters.kpath.kpts), len(Tlist)), dtype=complex)
         for i, t_index in enumerate(Tlist):
             for ik, kvect in enumerate(self.parameters.kpath.kpts):
                 for it in t_index:
