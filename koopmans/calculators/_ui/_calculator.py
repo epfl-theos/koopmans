@@ -718,20 +718,20 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         # renormalize H(R) on the WF phases
         if self.phases:
-            hr = np.conjugate(self.phases)*(hr.transpose()*self.phases).transpose()
+            hr = np.conjugate(self.phases) * (hr.transpose() * self.phases).transpose()
 
         # calculate phase and phase correction
         # phi:      (Nkpath, NR)
         # phi_corr: (Nkpath, NR, num_wann, num_wann)
         phi = np.exp(2j * np.pi * np.dot(self.parameters.kpath.kpts, self.Rvec.transpose()))
-        phi_corr = self.correct_phase_()
+        phi_corr = self.correct_phase()
 
         # interpolate H(k)
-        hk = np.transpose(np.sum(phi * np.transpose(hr*phi_corr, axes=(2,3,0,1)), axis=3), axes=(2,0,1))
+        hk = np.transpose(np.sum(phi * np.transpose(hr * phi_corr, axes=(2, 3, 0, 1)), axis=3), axes=(2, 0, 1))
         if self.parameters.do_smooth_interpolation:
             phi = np.exp(2j * np.pi * np.dot(self.parameters.kpath.kpts, self.Rsmooth.transpose()))
-            hr_smooth = np.transpose(self.hr_smooth, axes=(2,1,0)) / self.wRs
-            hk += np.dot(phi, np.transpose(hr_smooth, axes=(1,2,0)))
+            hr_smooth = np.transpose(self.hr_smooth, axes=(2, 1, 0)) / self.wRs
+            hk += np.dot(phi, np.transpose(hr_smooth, axes=(1, 2, 0)))
 
         bands = np.linalg.eigvalsh(hk)
         self.hk = hk
@@ -772,17 +772,18 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         if self.parameters.use_ws_distance:
             # create an array containing all the distances between reference (R=0) WFs and all the other WFs:
             # 1) accounting for their positions within the unit cell
-            wf_dist = np.concatenate([[c]*self.parameters.num_wann_sc for c in self.centers[:self.parameters.num_wann]]) \
-                                - np.array(self.centers*self.parameters.num_wann)
+            wf_dist = np.concatenate([[c] * self.parameters.num_wann_sc
+                                    for c in self.centers[:self.parameters.num_wann]]) \
+                                    - np.array(self.centers*self.parameters.num_wann)
         else:
             # 2) considering only the distance between the unit cells they belong to
-            wf_dist = np.array(np.concatenate([[rvec]*self.parameters.num_wann for rvec in self.Rvec]).tolist() \
-                                * self.parameters.num_wann)
+            wf_dist = np.array(np.concatenate([[rvec] * self.parameters.num_wann 
+                                    for rvec in self.Rvec]).tolist() * self.parameters.num_wann)
 
         # supercell lattice vectors
-        Tvec = [np.array((i,j,k))*self.parameters.kgrid for i in range(-1,2) \
-                                                        for j in range(-1,2) \
-                                                        for k in range(-1,2)]
+        Tvec = [np.array((i, j, k)) * self.parameters.kgrid for i in range(-1, 2)
+                                                            for j in range(-1, 2)
+                                                            for k in range(-1, 2)]
         Tlist = []
         for dist in wf_dist:
             distance = crys_to_cart(dist + np.array(Tvec), self.atoms.acell, +1)
@@ -795,7 +796,8 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 for it in t_index:
                     phase[ik, i] += np.exp(2j * np.pi * np.dot(kvect, Tvec[it]))
 
-        phase = phase.reshape(len(self.parameters.kpath.kpts), self.parameters.num_wann, len(self.Rvec), self.parameters.num_wann)
-        phase = np.transpose(phase, axes=(0,2,1,3))
+        phase = phase.reshape(len(self.parameters.kpath.kpts), self.parameters.num_wann, \
+                                                len(self.Rvec), self.parameters.num_wann)
+        phase = np.transpose(phase, axes=(0, 2, 1, 3))
 
         return phase

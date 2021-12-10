@@ -43,7 +43,7 @@ def extract_hr(hr: ArrayLike, rvect: ArrayLike, nr1: int, nr2: int, nr3: int) ->
     matrix elements corresponding to R-vectors exceeding the boundaries of the
     original supercell are ignored.
     """
-    
+
     Rvec = latt_vect(nr1, nr2, nr3)
     rgrid = [nr1, nr2, nr3]
     hr_new = []
@@ -51,7 +51,7 @@ def extract_hr(hr: ArrayLike, rvect: ArrayLike, nr1: int, nr2: int, nr3: int) ->
 
     for R in Rvec:
         for ir, rvec in enumerate(rvect):
-            if all(x < 1 for x in rvec/rgrid):
+            if all(x < 1 for x in rvec / rgrid):
                 rvec %= rgrid
                 if all(rvec == R):
                     hr_new.append(hr[ir, :, :])
@@ -68,6 +68,6 @@ def latt_vect(nr1: int, nr2: int, nr3: int) -> List:
     Function for generating lattice vectors {R} of the primitive cell
     commensurate to the supercell. The R-vectors are given in crystal units.
     """
-    
-    Rvec = [np.array((i,j,k)) for i in range(nr1) for j in range(nr2) for k in range(nr3)]
+
+    Rvec = [np.array((i, j, k)) for i in range(nr1) for j in range(nr2) for k in range(nr3)]
     return np.array(Rvec)
