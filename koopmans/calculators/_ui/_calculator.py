@@ -8,6 +8,7 @@ import os
 import copy
 import json
 from time import time
+from ase.geometry.cell import crystal_structure_from_cell
 import numpy as np
 from numpy.typing import ArrayLike
 from typing import Union, List, Optional
@@ -393,7 +394,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             assert len(self.hr_smooth) == nrpts * \
                 self.parameters.num_wann**2, f'Wrong number of matrix elements for hr_smooth {len(self.hr_smooth)}'
             self.wRs = weights
-            self.Rsmooth = rvect
+            self.Rsmooth = np.array(rvect)
             self.hr_smooth = np.array(self.hr_smooth, dtype=complex)
             self.hr_smooth = self.hr_smooth.reshape(nrpts, self.parameters.num_wann, self.parameters.num_wann)
 
@@ -412,7 +413,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         except FileNotFoundError:
             if self.parameters.w90_input_sc:
                 utils.warn('file "wf_phases.dat" not found; phases are ignored')
-            self.phases = [1 for _ in range(self.parameters.num_wann_sc)]
+            self.phases = []
         return
 
     def print_centers(self, centers=None):
@@ -682,17 +683,20 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             assert count == self.parameters.num_wann, f'Found {count} WFs in the {rvect} cell'
 
         # redefine phases and hr in order to follow the new order of WFs
-        phases = []
+        if self.phases:
+            phases = []
+            for n in range(self.parameters.num_wann_sc):
+                phases.append(self.phases[index[n]])
+            self.phases = phases
+
         hr = np.zeros((self.parameters.num_wann_sc, self.parameters.num_wann_sc), dtype=complex)
         for n in range(self.parameters.num_wann_sc):
-            phases.append(self.phases[index[n]])
             for m in range(self.parameters.num_wann_sc):
                 hr[m, n] = self.hr[index[m], index[n]]
 
         self.centers = centers
         self.spreads = spreads
         self.hr = hr
-        self.phases = phases
 
         return
 
@@ -710,41 +714,26 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         hr = np.array(self.hr[:, :self.parameters.num_wann], dtype=complex)
         if self.parameters.do_smooth_interpolation:
             hr = hr - self.hr_coarse
+        hr = hr.reshape(len(self.Rvec), self.parameters.num_wann, self.parameters.num_wann)
 
         # renormalize H(R) on the WF phases
-        for m in range(self.parameters.num_wann_sc):
-            for n in range(self.parameters.num_wann):
-                hr[m, n] = self.phases[m].conjugate() * hr[m, n] * self.phases[n]
+        if self.phases:
+            hr = np.conjugate(self.phases)*(hr.transpose()*self.phases).transpose()
 
-        # here we build the interpolated H(k)
-        hk = np.zeros((len(self.parameters.kpath.kpts), self.parameters.num_wann,
-                      self.parameters.num_wann), dtype=complex)
-        bands = []
-        self.f_out.write(f"\n\t\tTotal number of k-points: {len(self.parameters.kpath.kpts):6d}\n\n")
-        for ik, kpt in enumerate(self.parameters.kpath.kpts):
-            self.f_out.write(f"\t\t      calculating point # {ik+1}\n")
-            for m in range(self.parameters.num_wann):
-                for n in range(self.parameters.num_wann):
-                    for ir in range(len(self.Rvec)):
+        # calculate phase and phase correction
+        # phi:      (Nkpath, NR)
+        # phi_corr: (Nkpath, NR, num_wann, num_wann)
+        phi = np.exp(2j * np.pi * np.dot(self.parameters.kpath.kpts, self.Rvec.transpose()))
+        phi_corr = self.correct_phase_()
 
-                        mm = ir * self.parameters.num_wann + m
-                        phase = self.correct_phase(self.centers[n], self.centers[mm], self.Rvec[ir], kpt)
+        # interpolate H(k)
+        hk = np.transpose(np.sum(phi * np.transpose(hr*phi_corr, axes=(2,3,0,1)), axis=3), axes=(2,0,1))
+        if self.parameters.do_smooth_interpolation:
+            phi = np.exp(2j * np.pi * np.dot(self.parameters.kpath.kpts, self.Rsmooth.transpose()))
+            hr_smooth = np.transpose(self.hr_smooth, axes=(2,1,0)) / self.wRs
+            hk += np.dot(phi, np.transpose(hr_smooth, axes=(1,2,0)))
 
-                        hk[ik, m, n] = hk[ik, m, n] + np.exp(1j * 2 * np.pi * np.dot(kpt, self.Rvec[ir])) * \
-                            phase * hr[mm, n]
-
-                    if self.parameters.do_smooth_interpolation:
-                        hk_smooth = 0
-                        for jr in range(len(self.Rsmooth)):
-                            Rs = self.Rsmooth[jr]
-                            hk_smooth = hk_smooth + np.exp(1j * 2 * np.pi * np.dot(kpt, Rs)) * \
-                                self.hr_smooth[jr, m, n] / self.wRs[jr]
-                        hk[ik, m, n] = hk[ik, m, n] + hk_smooth
-
-            bands.append(np.linalg.eigvalsh(hk[ik]))
-
-        self.f_out.write('\n')
-
+        bands = np.linalg.eigvalsh(hk)
         self.hk = hk
         self.results['band structure'] = BandStructure(self.parameters.kpath, [bands])
 
@@ -766,7 +755,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         return
 
-    def correct_phase(self, center_ref, center, rvect, kvect):
+    def correct_phase(self):
         """
         correct_phase calculate the correct phase factor to put in the Fourier transform
                       to get the interpolated k-space hamiltonian. The correction consists
@@ -776,107 +765,37 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                       distance between Wannier functions, otherwise only the intercell
                       distances are considered.
 
-           IMPORTANT: the input vectors must all be in crystal units otherwise the distances
-                      are not properly evaluated.
+           IMPORTANT: the vectors must all be in crystal units otherwise the distances are
+                      not properly evaluated.
         """
 
         if self.parameters.use_ws_distance:
-            wf_dist = crys_to_cart(center - center_ref, self.atoms.acell, +1)
+            # create an array containing all the distances between reference (R=0) WFs and all the other WFs:
+            # 1) accounting for their positions within the unit cell
+            wf_dist = np.concatenate([[c]*self.parameters.num_wann_sc for c in self.centers[:self.parameters.num_wann]]) \
+                                - np.array(self.centers*self.parameters.num_wann)
         else:
-            wf_dist = crys_to_cart(rvect, self.atoms.acell, +1)
-
-        dist_min = np.linalg.norm(wf_dist)
-        Tlist = []
-
-        for i in range(-1, 2):
-            for j in range(-1, 2):
-                for k in range(-1, 2):
-                    tvect = np.array([i, j, k]) * self.parameters.kgrid
-                    Tvec = crys_to_cart(tvect, self.atoms.acell, +1)
-                    dist = np.linalg.norm(wf_dist + Tvec)
-
-                    if (abs(dist - dist_min) < 1.e-3):
-                        #
-                        # an equidistant replica is found
-                        #
-                        Tlist.append(tvect)
-
-                    elif (dist < dist_min):
-                        #
-                        # a new nearest replica is found
-                        # reset dist_min and reinitialize Tlist
-                        #
-                        dist_min = dist
-                        Tlist = [tvect]
-
-                    else:
-                        #
-                        # this replica is rejected
-                        #
-                        continue
-
-        phase = sum(np.exp(1j * 2 * np.pi * np.dot(Tlist, kvect))) / len(Tlist)
-
-        return phase
-
-    def correct_phase_(self):
-        """
-        correct_phase calculate the correct phase factor to put in the Fourier transform
-                      to get the interpolated k-space hamiltonian. The correction consists
-                      of finding the right distance, i.e. the right R-vector, considering
-                      also the BVK boundary conditions.
-                      if use_ws_distance=True, the function accounts also for the intracell
-                      distance between Wannier functions, otherwise only the intercell
-                      distances are considered.
-
-           IMPORTANT: the input vectors must all be in crystal units otherwise the distances
-                      are not properly evaluated.
-        """
-
-        if self.parameters.use_ws_distance:
-            # define the distance between WFs accounting for their positions within the unit cell
-            wf_dist = self.centers[:self.parameters.num_wann]*np.prod(self.parameters.kgrid) - self.centers
-        else:
-            # define the distance between WFs considering only the distance between the unit cells to which they belong
-            wf_dist = list(np.concatenate([[rvec]*self.parameters.num_wann for rvec in self.Rvec]))
-        wf_dist = crys_to_cart(wf_dist, self.atoms.acell, +1)
+            # 2) considering only the distance between the unit cells they belong to
+            wf_dist = np.array(np.concatenate([[rvec]*self.parameters.num_wann for rvec in self.Rvec]).tolist() \
+                                * self.parameters.num_wann)
 
         # supercell lattice vectors
         Tvec = [np.array((i,j,k))*self.parameters.kgrid for i in range(-1,2) \
                                                         for j in range(-1,2) \
                                                         for k in range(-1,2)]
-
-
-        dist_min = np.linalg.norm(wf_dist)
         Tlist = []
+        for dist in wf_dist:
+            distance = crys_to_cart(dist + np.array(Tvec), self.atoms.acell, +1)
+            norm = np.linalg.norm(distance, axis=1)
+            Tlist.append(np.where(norm - norm.min() < 1.e-3)[0])
 
-        for i in range(-1, 2):
-            for j in range(-1, 2):
-                for k in range(-1, 2):
-                    tvect = np.array([i, j, k]) * self.parameters.kgrid
-                    Tvec = crys_to_cart(tvect, self.atoms.acell, +1)
-                    dist = np.linalg.norm(wf_dist + Tvec)
+        phase = np.zeros((len(self.parameters.kpath.kpts), len(Tlist)))
+        for i, t_index in enumerate(Tlist):
+            for ik, kvect in enumerate(self.parameters.kpath.kpts):
+                for it in t_index:
+                    phase[ik, i] += np.exp(2j * np.pi * np.dot(kvect, Tvec[it]))
 
-                    if (abs(dist - dist_min) < 1.e-3):
-                        #
-                        # an equidistant replica is found
-                        #
-                        Tlist.append(tvect)
-
-                    elif (dist < dist_min):
-                        #
-                        # a new nearest replica is found
-                        # reset dist_min and reinitialize Tlist
-                        #
-                        dist_min = dist
-                        Tlist = [tvect]
-
-                    else:
-                        #
-                        # this replica is rejected
-                        #
-                        continue
-
-        phase = sum(np.exp(1j * 2 * np.pi * np.dot(Tlist, kvect))) / len(Tlist)
+        phase = phase.reshape(len(self.parameters.kpath.kpts), self.parameters.num_wann, len(self.Rvec), self.parameters.num_wann)
+        phase = np.transpose(phase, axes=(0,2,1,3))
 
         return phase

@@ -35,7 +35,7 @@ def crys_to_cart(vec: ArrayLike, trmat: NDArray, typ: int) -> ArrayLike:
         return vec_tr
 
 
-def extract_hr(hr: ArrayLike, rvect: List[NDArray(np.int_)], nr1: int, nr2: int, nr3: int) -> NDArray[np.complex]:
+def extract_hr(hr: ArrayLike, rvect: ArrayLike, nr1: int, nr2: int, nr3: int) -> NDArray[np.complex_]:
     """
     Function to select the Wannier Hamiltonian only on the primitive cell R-vectors.
     The Hamiltonian coming from a Wannier90 calculation with k-points is indeed
@@ -55,18 +55,19 @@ def extract_hr(hr: ArrayLike, rvect: List[NDArray(np.int_)], nr1: int, nr2: int,
                 rvec %= rgrid
                 if all(rvec == R):
                     hr_new.append(hr[ir, :, :])
+                    break
 
-    assert len(hr_new) == np.prod(rgrid) f'Wrong number ({len(hr_new)}) of R-vectors in extract_hr'
+    assert len(hr_new) == np.prod(rgrid), f'Wrong number ({len(hr_new)}) of R-vectors in extract_hr'
 
     hr_new = np.array(hr_new, dtype=complex)
     return hr_new
 
 
-def latt_vect(nr1: int, nr2: int, nr3: int) -> List[np.ndarray(dtype=int)]:
+def latt_vect(nr1: int, nr2: int, nr3: int) -> List:
     """
     Function for generating lattice vectors {R} of the primitive cell
     commensurate to the supercell. The R-vectors are given in crystal units.
     """
     
     Rvec = [np.array((i,j,k)) for i in range(nr1) for j in range(nr2) for k in range(nr3)]
-    return Rvec
+    return np.array(Rvec)
