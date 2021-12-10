@@ -561,10 +561,13 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         @property
         def output_files(self) -> List[Path]:
             if self.parameters.wan_mode == 'wannier2odd':
-                files = [f'{self.directory}/{fname}' for fname in ['evcw1.dat', 'evcw2.dat']]
+                files = [self.directory / fname for fname in ['evcw1.dat', 'evcw2.dat']]
+            elif self.parameters.wan_mode == 'ks2odd':
+                files = [self.directory / fname for i in [1, 2]
+                         for fname in [f'evc_occupied{i}.dat', f'evc0_empty{i}.dat']]
             else:
                 files = [
-                    f'{self.directory}/{self.parameters.seedname}{suffix}' for suffix in ['.eig', '.mmn', '.amn']]
+                    self.directory / f'{self.parameters.seedname}{suffix}' for suffix in ['.eig', '.mmn', '.amn']]
             return [Path(f) for f in files]
 
         @property
@@ -573,7 +576,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             files = [f'{self.parameters.outdir}/{self.parameters.prefix}.save/wfc{i}.dat' for i in i_kpoints]
             files += [f'{self.parameters.outdir}/{self.parameters.prefix}.save/{f}'
                       for f in ['data-file-schema.xml', 'charge-density.dat']]
-            files.append(f'{self.directory}/{self.parameters.seedname}.nnkp')
+            if self.parameters.wan_mode != 'ks2odd':
+                files.append(f'{self.directory}/{self.parameters.seedname}.nnkp')
             if self.parameters.wan_mode == 'wannier2odd':
                 files.append(f'{self.directory}/{self.parameters.seedname}.chk')
             return [Path(f) for f in files]
