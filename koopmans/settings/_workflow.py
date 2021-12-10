@@ -1,4 +1,4 @@
-import numpy as np
+from typing import Any
 from ._utils import Setting, SettingsDictWithChecks
 
 
@@ -8,7 +8,8 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
         settings = [
             Setting('task',
                     'Task to perform',
-                    str, 'singlepoint', ('singlepoint', 'convergence', 'wannierise', 'environ_dscf', 'ui', 'dft_bands')),
+                    str, 'singlepoint', ('singlepoint', 'convergence', 'wannierise', 'environ_dscf', 'ui',
+                                         'dft_bands')),
             Setting('functional',
                     'orbital-density-dependent-functional/density-functional to use',
                     str, 'ki', ('ki', 'kipz', 'pkipz', 'dft', 'all')),
@@ -20,11 +21,11 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     str, 'dscf', ('dscf', 'dfpt')),
             Setting('init_orbitals',
                     'which orbitals to use as an initial guess for the variational orbitals',
-                    str, 'pz', ('pz', 'kohn-sham', 'mlwfs', 'projwfs', 'from old ki')),
+                    str, 'pz', ('pz', 'kohn-sham', 'mlwfs', 'projwfs')),
             Setting('init_empty_orbitals',
                     'which orbitals to use as an initial guess for the empty variational orbitals '
                     '(defaults to the same value as "init_orbitals")',
-                    str, 'same', ('same', 'pz', 'kohn-sham', 'mlwfs', 'projwfs', 'from old ki')),
+                    str, 'same', ('same', 'pz', 'kohn-sham', 'mlwfs', 'projwfs')),
             Setting('frozen_orbitals',
                     "if True, freeze the variational orbitals for the duration of the calculation once they've been "
                     "initialised",
@@ -32,6 +33,13 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
             Setting('periodic',
                     'whether or not the system is periodic',
                     bool, False, (True, False)),
+            Setting('spin_polarised',
+                    'if True, the system will be allowed to break spin symmetry i.e. n^{up}(r) != n^{down}(r)',
+                    bool, False, (True, False)),
+            Setting('fix_spin_contamination',
+                    'if True, steps will be taken to try and avoid spin contamination. This is only sensible when '
+                    'performing a non-spin-polarised calculation, and is turned on by default for such calculations',
+                    bool, None, (True, False)),
             Setting('npool',
                     'Number of pools for parallelising over kpoints (should be commensurate with the k-point grid)',
                     int, None, None),
@@ -78,10 +86,6 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     'together only if their self-Hartree energy is within this '
                     'threshold',
                     float, None, None),
-            Setting('enforce_spin_symmetry',
-                    'if True, the spin-up and spin-down wavefunctions will be forced '
-                    'to be the same',
-                    bool, True, (True, False)),
             Setting('check_wannierisation',
                     'if True, checks the Im/Re ratio and generates a plot of the interpolated band structure',
                     bool, False, (True, False)),
@@ -103,3 +107,14 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
     @property
     def _other_valid_keywords(self):
         return []
+
+    def __setitem__(self, key: str, value: Any):
+        # Be forgiving to Americans
+        if key == 'task' and value == 'wannierize':
+            value = 'wannierise'
+
+        # Make sure that orbital_groups is always stored as a list of lists
+        if key == 'orbital_groups' and value is not None:
+            if len(value) == 0 or not isinstance(value[0], list):
+                value = [value]
+        return super().__setitem__(key, value)

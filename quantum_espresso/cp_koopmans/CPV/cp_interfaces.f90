@@ -1011,13 +1011,14 @@
 
 
    INTERFACE writeempty_twin
-      SUBROUTINE writeemptytwin_x( c_emp, ne, ndi, restart_from_evc0)
+      SUBROUTINE writeemptytwin_x( c_emp, ne, ndi, l_fixed_state, spin_to_save)
          USE kinds,             ONLY: DP
          IMPLICIT NONE
          COMPLEX(DP), INTENT(IN) :: c_emp(:,:)
          INTEGER,     INTENT(IN) :: ne
          INTEGER,     INTENT(IN) :: ndi
-         LOGICAL,     INTENT(IN) :: restart_from_evc0
+         LOGICAL,     INTENT(IN) :: l_fixed_state
+         INTEGER, OPTIONAL, INTENT(IN) :: spin_to_save
       END SUBROUTINE
    END INTERFACE
 

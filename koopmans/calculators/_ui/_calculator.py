@@ -76,8 +76,10 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         # Check we have the requisite files
         if self.parameters.do_smooth_interpolation:
-            assert self.parameters.dft_ham_file.is_file(), 'Missing file_hr_coarse for smooth interpolation'
-            assert self.parameters.dft_smooth_ham_file.is_file(), 'Missing dft_smooth_ham_file for smooth interpolation'
+            if not self.parameters.dft_ham_file.is_file():
+                raise FileNotFoundError(f'Cannot find {self.parameters.dft_ham_file} for smooth interpolation')
+            if not self.parameters.dft_smooth_ham_file.is_file():
+                raise FileNotFoundError(f'Cannot find {self.parameters.dft_smooth_ham_file} for smooth interpolation')
 
         if self.prefix is None:
             self.prefix = 'ui'
@@ -186,25 +188,28 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         spreads : spreads of WFs (in Ang^2)
         '''
 
-        with open(self.parameters.w90_seedname.with_suffix('.wout'), 'r') as ifile:
-            lines = ifile.readlines()
+        if self.centers and self.spreads:
+            num_wann = len(self.centers)
+        else:
+            with open(self.parameters.w90_seedname.with_suffix('.wout'), 'r') as ifile:
+                lines = ifile.readlines()
 
-        self.centers = []
-        self.spreads = []
-        count = 0
+            self.centers = []
+            self.spreads = []
+            count = 0
 
-        for line in lines:
-            if 'Number of Wannier Functions' in line:
-                num_wann = int(line.split()[6])
-            if count > 0 and count <= num_wann:
-                start = line.find('(')
-                end = line.find(')')
-                self.centers.append(np.array(line[start + 1:end].replace(',', ' ').split(),
-                                             dtype=float))
-                self.spreads.append(float(line.split()[-1]))
-                count += 1
-            if 'Final State' in line:
-                count += 1
+            for line in lines:
+                if 'Number of Wannier Functions' in line:
+                    num_wann = int(line.split()[6])
+                if count > 0 and count <= num_wann:
+                    start = line.find('(')
+                    end = line.find(')')
+                    self.centers.append(np.array(line[start + 1:end].replace(',', ' ').split(),
+                                                 dtype=float))
+                    self.spreads.append(float(line.split()[-1]))
+                    count += 1
+                if 'Final State' in line:
+                    count += 1
 
         self.Rvec = latt_vect(*self.parameters.kgrid)
 
@@ -232,170 +237,52 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
     def parse_hr(self):
         """
         parse_hr reads the hamiltonian file passed as argument and it sets it up
-                 as attribute self.hr
+        as self.hr. It also reads in the coarse and smooth Hamiltonians, if smooth
+        interploation is being performed
 
-        there are 3 possible types of file:
-          - w90 for a Wannier90 type of file (now also CP-koopmans files have this format)
-          - kc_occ_old for the old type of CP hamiltonian for occ states (hamiltonian1.xml)
-          - kc_emp_old for the old type of CP hamiltonian for emp states (hamiltonian_emp.dat)
-
-        NB: kc_emp_old must be called 'hamiltonian_emp.dat' otherwise the code may crash
-            or misread the matrix elements. if the file name is different the code
-            should be updated.
+        There is only one possible file format: the Wannier90 formatting. kcp files
+        now also have this format. kc_occ_old and kc_emp_old have been deprecated.
 
         """
 
-        with open(self.parameters.kc_ham_file, 'r') as ifile:
-            lines = ifile.readlines()
+        # Read the Hamiltonian
+        hr, rvect, _, nrpts = utils.read_hr_file(self.parameters.kc_ham_file)
 
-        if 'written on' in lines[0].lower():
-            hr_type = 'w90'
-        # obsolete formats for the CP-Koopmans Hamiltonians
-        elif 'xml version' in lines[0]:
-            hr_type = 'kc_occ_old'
-        elif self.parameters.kc_ham_file.name == 'hamiltonian_emp.dat':
-            hr_type = 'kc_emp_old'
+        # Reshape the hamiltonian and convert it to a numpy array
+        if nrpts == 1:
+            assert len(hr) == self.parameters.num_wann_sc**2, \
+                f'Wrong number of matrix elements ({len(hr)}) for the input hamiltonian'
+            self.hr = np.array(hr, dtype=complex).reshape(self.parameters.num_wann_sc, self.parameters.num_wann_sc)
         else:
-            raise ValueError('Hamiltonian file not recognised')
-
-        self.hr = []
-
-        if hr_type == 'w90':
-
-            nrpts = int(lines[2].split()[0])
-            if (nrpts == 1):
-                single_R = True
-            else:
-                single_R = False
-
-            if single_R:
-                assert int(lines[1].split()[0]) == self.parameters.num_wann_sc, 'In parse_hr inconsistency in num_wann'
-            else:
-                assert int(lines[1].split()[0]) == self.parameters.num_wann, 'In parse_hr inconsistency in num_wann'
-
-            if not single_R:
-                rvect = []
-            lines_to_skip = 3 + int(nrpts / 15)
-            if nrpts % 15 > 0:
-                lines_to_skip += 1
-            counter = 0
-
-            for line in lines[lines_to_skip:]:
-                self.hr.append(float(line.split()[5]) + 1j * float(line.split()[6]))
-                counter += 1
-                if not single_R and counter == self.parameters.num_wann**2:
-                    rvect.append(np.array(line.split()[0:3], dtype=int))
-                    counter = 0
-
-        if hr_type == 'kc_occ_old':
-            for line in lines[5:-2]:
-                self.hr.append(line.split()[0])
-
-        if hr_type == 'kc_emp_old':
-            for line in lines:
-                self.hr.append(line.split()[0])
-
-        if hr_type == 'w90' and not single_R:
-            assert len(self.hr) == nrpts * self.parameters.num_wann**2, \
-                f'Wrong number of matrix elements ({len(self.hr)}) for the input hamiltonian'
-            self.hr = np.array(self.hr, dtype=complex).reshape(
-                nrpts, self.parameters.num_wann, self.parameters.num_wann)
+            assert len(hr) == nrpts * self.parameters.num_wann**2, \
+                f'Wrong number of matrix elements ({len(hr)}) for the input hamiltonian'
+            self.hr = np.array(hr, dtype=complex).reshape(nrpts, self.parameters.num_wann, self.parameters.num_wann)
             self.hr = extract_hr(self.hr, rvect, *self.parameters.kgrid)
             self.hr = self.hr.reshape(self.parameters.num_wann_sc, self.parameters.num_wann)
-        else:
-            assert len(self.hr) == self.parameters.num_wann_sc**2, \
-                f'Wrong number of matrix elements ({len(self.hr)}) for the input hamiltonian'
-            self.hr = np.array(self.hr, dtype=complex).reshape(self.parameters.num_wann_sc, self.parameters.num_wann_sc)
 
-        # conversion to eV (hamiltonian from CP Koopmans code is in Hartree)
-        if hr_type == 'kc_occ_old' or hr_type == 'kc_emp_old':
-            self.hr = self.hr * utils.units.Hartree
-
-        # check the hermiticity of the hamiltonian (except for H_R(m,n))
-        if not (hr_type == 'w90' and not single_R):
-            assert np.allclose(self.hr, self.hr.T.conj(), atol=1e-6), 'Hamiltonian is not Hermitian'
-
-        # reading the 2 hamiltonians for the smooth interpolation method
+        # Reading the two Hamiltonians for the smooth interpolation method
         if self.parameters.do_smooth_interpolation:
-            self.hr_coarse = []
-            self.hr_smooth = []
-
-            # parsing hr_coarse
-            with open(self.parameters.dft_ham_file, 'r') as ifile:
-                lines = ifile.readlines()
-
-            nrpts = int(lines[2].split()[0])
+            # The coarse Hamiltonian
+            hr_coarse, rvect, _, nrpts = utils.read_hr_file(self.parameters.dft_ham_file)
             if nrpts == 1:
-                single_R = True
-            else:
-                single_R = False
-
-            if single_R:
-                assert int(lines[1].split()[0]
-                           ) == self.parameters.num_wann_sc, 'In parse_hr inconsistency in num_wann in hr_coarse'
-            else:
-                assert int(lines[1].split()[0]
-                           ) == self.parameters.num_wann, 'In parse_hr inconsistency in num_wann in hr_coarse'
-
-            if not single_R:
-                rvect = []
-            lines_to_skip = 3 + int(nrpts / 15)
-            if nrpts % 15 > 0:
-                lines_to_skip += 1
-            counter = 0
-
-            for line in lines[lines_to_skip:]:
-                self.hr_coarse.append(float(line.split()[5]) + 1j * float(line.split()[6]))
-                counter += 1
-                if not single_R and counter == self.parameters.num_wann**2:
-                    rvect.append(np.array(line.split()[0:3], dtype=int))
-                    counter = 0
-
-            if single_R:
-                assert len(self.hr_coarse) == self.parameters.num_wann_sc**2, \
-                    f'Wrong number of matrix elements for hr_coarse {len(self.hr_coarse)}'
+                assert len(hr_coarse) == self.parameters.num_wann_sc**2, \
+                    f'Wrong number of matrix elements for hr_coarse {len(hr_coarse)}'
                 self.hr_coarse = np.array(self.hr_coarse, dtype=complex)
                 self.hr_coarse = self.hr_coarse.reshape(self.parameters.num_wann_sc, self.parameters.num_wann_sc)
                 self.hr_coarse = self.hr_coarse[:, :self.parameters.num_wann]
             else:
-                assert len(self.hr_coarse) == nrpts * \
-                    self.parameters.num_wann**2, f'Wrong number of matrix elements for hr_coarse {len(self.hr_coarse)}'
-                self.hr_coarse = np.array(self.hr_coarse, dtype=complex)
+                assert len(hr_coarse) == nrpts * \
+                    self.parameters.num_wann**2, f'Wrong number of matrix elements for hr_coarse {len(hr_coarse)}'
+                self.hr_coarse = np.array(hr_coarse, dtype=complex)
                 self.hr_coarse = self.hr_coarse.reshape(nrpts, self.parameters.num_wann, self.parameters.num_wann)
                 self.hr_coarse = extract_hr(self.hr_coarse, rvect, *self.parameters.kgrid)
                 self.hr_coarse = self.hr_coarse.reshape(self.parameters.num_wann_sc, self.parameters.num_wann)
 
-            # parsing hr_smooth
-            with open(self.parameters.dft_smooth_ham_file, 'r') as ifile:
-                lines = ifile.readlines()
-
-            assert int(lines[1].split()[0]
-                       ) == self.parameters.num_wann, 'In parse_hr inconsistency in num_wann in hr_smooth'
-
-            weights = []
-            rvect = []
-            nrpts = int(lines[2].split()[0])
-            lines_to_skip = 3 + int(nrpts / 15)
-            if nrpts % 15 > 0:
-                lines_to_skip += 1
-            counter = 0
-
-            for line in lines[3:lines_to_skip]:
-                for n in range(len(line.split())):
-                    weights.append(int(line.split()[n]))
-
-            for line in lines[lines_to_skip:]:
-                self.hr_smooth.append(float(line.split()[5]) + 1j * float(line.split()[6]))
-                counter += 1
-                if counter == self.parameters.num_wann**2:
-                    rvect.append(np.array(line.split()[0:3], dtype=int))
-                    counter = 0
-
-            assert len(self.hr_smooth) == nrpts * \
+            # The smooth Hamiltonian
+            hr_smooth, self.Rsmooth, self.wRs, nrpts = utils.read_hr_file(self.parameters.dft_smooth_ham_file)
+            assert len(hr_smooth) == nrpts * \
                 self.parameters.num_wann**2, f'Wrong number of matrix elements for hr_smooth {len(self.hr_smooth)}'
-            self.wRs = weights
-            self.Rsmooth = np.array(rvect)
-            self.hr_smooth = np.array(self.hr_smooth, dtype=complex)
+            self.hr_smooth = np.array(hr_smooth, dtype=complex)
             self.hr_smooth = self.hr_smooth.reshape(nrpts, self.parameters.num_wann, self.parameters.num_wann)
 
         return
@@ -551,7 +438,8 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
                 # Converting Paths to JSON-serialisable strings
                 for k in self.parameters.are_paths:
-                    settings[k] = str(settings[k])
+                    if k in settings:
+                        settings[k] = str(settings[k])
 
                 # Store all the settings in one big dictionary
                 bigdct = {"workflow": {"task": "ui"}, "ui": settings}

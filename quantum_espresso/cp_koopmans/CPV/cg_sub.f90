@@ -30,7 +30,7 @@
       use gvecw,                    only : ngw, ngwx
       use reciprocal_vectors,       only : ng0 => gstart
       use cvan,                     only : nvb, ish
-      use ions_base,                only : na, nat, nsp
+      use ions_base,                only : na, nat, nsp, zv
       use grid_dimensions,          only : nnr => nnrx, nr1, nr2, nr3
       use cell_base,                only : omega, alat
       use cell_base,                only : tpiba2
@@ -45,7 +45,7 @@
       use uspp_param,               only : nh
       use cg_module,                only : ene_ok,  maxiter,niter_cg_restart, &
                                            conv_thr, passop, enever, itercg
-      use ions_positions,           only : tau0
+      use ions_positions,           only : ityp, tau0
       use wavefunctions_module,     only : c0, cm, phi => cp, cstart
       use efield_module,            only : tefield, evalue, qmat, ipolp, &
                                            berry_energy, ctabin, gqq, gqqm, df, &
@@ -100,7 +100,7 @@
       type(twin_matrix) :: lambda(nspin)!(nlam,nlam,nspin)   !modified:giovanni
       type(twin_matrix) :: lambda_bare(nspin)     !(nlam,nlam,nspin)   !modified:giovanni
       !
-      integer     :: i, ig, is ,ia, iv, jv
+      integer     :: i, ig, is, ia, iv, jv, iat
       integer     :: inl, jnl
       real(dp)    :: enb, enbi
       complex(dp) :: gamma_c  !warning_giovanni, is it real anyway?
@@ -1174,26 +1174,12 @@
         WRITE( stdout, '(A)' ) " -----------------------"
         exxdiv = exx_divergence()
         !
-        ! The following IF loop determines the system charge assuming always 
-        ! an even number of electrons for the neutral system. When the number
-        ! of electrons is odd (nupdwn(1) .ne. nupdwn(2)), we guess to deal with
-        ! an N+1 calculation and the charge is calculated consequently 
-        IF ( nupdwn(1) == nupdwn(2) .AND. fixed_band .LE. nupdwn(1) ) THEN
-          ! Case N-1
-          charge = 1 - f_cutoff
-          WRITE( stdout, '(A,F10.6)' ) " N-1 CASE --- q =", charge
-          !
-        ELSE IF ( fixed_band .GT. nupdwn(1) .OR. fixed_band .GT. nupdwn(2) ) THEN
-          ! Case N+1
-          charge = - f_cutoff
-          WRITE( stdout, '(A,F10.6)' ) " N+1 CASE --- q =", charge
-          !
-        ELSE
-          !
-          charge = 1.D0
-          WRITE( stdout, '(A)' ) " Cannot understand which case --- q set to 1"
-          !
-        ENDIF
+        ! Determining the system charge
+        charge = 0
+        DO iat=1,nat
+          charge = charge + zv(ityp(iat))
+        END DO
+        charge = charge - nbsp + 1 - f_cutoff
         !
         mp1 = - exxdiv / omega * charge**2 / 2
         mp1 = mp1 / e2       ! Ry to Ha conversion

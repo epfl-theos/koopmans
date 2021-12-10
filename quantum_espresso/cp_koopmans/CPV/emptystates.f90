@@ -110,7 +110,8 @@
       !
       LOGICAL :: odd_nkscalfact_old
       INTEGER :: nbnd_, ib, start_is
-      COMPLEX(DP), ALLOCATABLE :: c0_anion(:,:)
+      COMPLEX(DP), ALLOCATABLE :: c0_anion(:,:) 
+      INTEGER :: spin_to_save
       !
       lgam=gamma_only.and..not.do_wf_cmplx
       !
@@ -783,76 +784,61 @@
       ! 
       ! ...   Save minimizing empty orbitals to disk
       !
-      CALL writeempty_twin( c0_emp, n_empx, ndw_loc, .true. )
+      CALL writeempty_twin( c0_emp, n_empx, ndw_loc, .false. )
       !
       IF (print_wfc_anion) THEN
          !
          write(stdout,*) "\n Writing on file the anion WFC \n" 
          ! ...   Save N+1 orbitals to disk to be used in the future anion calculation
          !
-         IF ( nupdwn(1) == nupdwn(2) ) THEN !! NsC
-
-           nbnd_    = nupdwn(1)! Why??? only works if spin_up = spin_dw... NsC
+         ! Here check if the orbital to save is from spin up or spin dw according to 
+         ! the value of index_empty_to_save
+         !
+         WRITE(*,'("NsC: nupdwn_emp =", 2I5)') nupdwn_emp(:) ! DEBUG 
+         IF (index_empty_to_save .le. nupdwn_emp(1) ) THEN 
+           ! This is the case the extra electron is from the spin-up  channel
+           spin_to_save=1
+         ELSE
+           ! This is the case the extra electron is from the spin-dwn channel
+           spin_to_save=2
+         ENDIF 
+         WRITE(*,'("orbital to save, spin ", 2I5)'), index_empty_to_save, spin_to_save
+         WRITE(*,'("iupdwn(1) ", I5)'), iupdwn(1)
+         IF( nspin == 2 ) WRITE(*,'("iupdwn(2) ", I5)'), iupdwn(2)
+         !
+         allocate( c0_anion(ngw, nbsp+1) )
+         !
+         DO iss = 1, nspin 
            !
-           write(stdout,*) " Case nup = ndw", nupdwn(1), nupdwn(2), (nbnd_+1) * nspin
-           ! 
-           allocate(c0_anion(ngw, (nbnd_+1) * nspin))
+           start_is = iupdwn( iss )
+           !!!! IF (iss == 2) start_is = start_is+1
            !
-           do iss = 1, nspin
-              !
-              ib = iupdwn( iss )
-              !
-              start_is = iupdwn( iss )
-              !  
-              if (iss == 2) start_is = start_is + 1
-              !
-              c0_anion(:, start_is:start_is + nbnd_ - 1 ) = c0(:, ib:ib + nbnd_ - 1)
-              !
-              if (iss == 1 ) then
-                 !
-                 c0_anion(:, start_is + nbnd_) =  c0_emp(:, index_empty_to_save)
-                 !
-              endif
-              !
-           enddo
+           IF ( spin_to_save == 1 ) THEN 
+             !
+             IF (iss == 1) THEN 
+               c0_anion ( :, start_is:start_is+nupdwn(1)-1 ) = c0( :, start_is:start_is+nupdwn(1)-1 )
+               c0_anion ( :, start_is+nupdwn(1) )            = c0_emp(:, index_empty_to_save)
+             ELSE 
+               ! The new wfc for spin-dw start from start_is+1 to keep track that the sin-up channel has one more band
+               c0_anion ( :, start_is+1:start_is+1+nupdwn(2)-1 ) = c0( :, start_is:start_is+nupdwn(2)-1 )
+             ENDIF 
+             !
+           ELSE
+             !
+             IF (iss == 1) THEN 
+               c0_anion ( :, start_is:start_is+nupdwn(1)-1 ) = c0( :, start_is:start_is+nupdwn(1)-1 )
+             ELSE 
+               c0_anion ( :, start_is:start_is+nupdwn(2)-1 ) = c0( :, start_is:start_is+nupdwn(2)-1 )
+               c0_anion ( :, start_is+nupdwn(2) )            = c0_emp(:, index_empty_to_save)
+             ENDIF 
            !
-           call writeempty_twin( c0_anion, ((nbnd_+1) * nspin), ndw_loc, .false.)
+           ENDIF
            !
-           deallocate(c0_anion)
-           !
-         ELSE ! here the case for nup>ndw
-           !
-           nbnd_    = nupdwn(1)+nupdwn(2) ! Not sure it works for REAL wcf when nup is ODD
-           ! 
-           write(stdout,*) " Case nup > ndw", nupdwn(1), nupdwn(2), nbnd_
-           write(stdout,*) " Warning: NOT TESTED!"
-           !
-           allocate(c0_anion(ngw, (nbnd_+1) ))
-           !
-           do iss = 1, nspin
-              !
-              ib = iupdwn( iss )
-              !
-              start_is = iupdwn( iss )
-              !  
-              write(stdout,*) " iss, start_is ", iss, start_is
-              !if (iss == 2) start_is = start_is + 1
-              !
-              c0_anion(:, start_is:start_is + nupdwn(1) - 1 ) = c0(:, ib:ib + nupdwn(1) - 1)
-              !
-              if (iss == 2 ) then
-                 !
-                 c0_anion(:, start_is + nupdwn(2)) =  c0_emp(:, index_empty_to_save)
-                 !
-              endif
-              !
-           enddo
-           !
-           call writeempty_twin( c0_anion, (nbnd_+1), ndw_loc,.false.)
-           !
-           deallocate(c0_anion)
-           !
-         ENDIF  !! NsC
+         ENDDO
+         !
+         CALL writeempty_twin( c0_anion, nbsp+1, ndw_loc, .true., spin_to_save)
+         !
+         DEALLOCATE (c0_anion)
          !
       ENDIF
       !
@@ -1519,7 +1505,7 @@ END FUNCTION reademptytwin_x
 
 
 !-----------------------------------------------------------------------
-SUBROUTINE writeemptytwin_x( c_emp, ne, ndi, write_evc0)
+SUBROUTINE writeemptytwin_x( c_emp, ne, ndi, fixed, spin_to_save)
 !-----------------------------------------------------------------------
         !
         ! ...   This subroutine writes empty states to unit emptyunitc0
@@ -1534,7 +1520,7 @@ SUBROUTINE writeemptytwin_x( c_emp, ne, ndi, write_evc0)
         USE gvecw,              ONLY: ngw
         USE xml_io_base,        ONLY: restart_dir, wfc_filename
         USE wrappers,           ONLY: f_mkdir
-        USE electrons_base,     ONLY: nspin
+        USE electrons_base,     ONLY: nspin, nupdwn, iupdwn
         USE electrons_module,   ONLY: iupdwn_emp, nupdwn_emp
         !
         IMPLICIT NONE
@@ -1542,19 +1528,20 @@ SUBROUTINE writeemptytwin_x( c_emp, ne, ndi, write_evc0)
         COMPLEX(DP), INTENT(IN) :: c_emp(:,:)
         INTEGER,     INTENT(IN) :: ne
         INTEGER,     INTENT(IN) :: ndi
-        LOGICAL,     INTENT(IN) :: write_evc0
+        LOGICAL,     INTENT(IN) :: fixed
+        INTEGER, OPTIONAL, INTENT(IN) :: spin_to_save
         !
         INTEGER :: ig, i, ngw_g, iss, ngw_l, funit, ne_loc, i_start
         LOGICAL :: ierr
         COMPLEX(DP), ALLOCATABLE :: ctmp(:)
-        CHARACTER(LEN=256) :: fileempty, dirname
+        CHARACTER(LEN=256) :: fileempty, dirname, filename
         !
         ! ... Subroutine Body
         !
         ngw_g    = ngw
         ngw_l    = ngw
         !
-        IF (write_evc0) THEN
+        IF (fixed) THEN
           funit = emptyunitc0
         ELSE
           funit = emptyunitc0fixed
@@ -1568,24 +1555,21 @@ SUBROUTINE writeemptytwin_x( c_emp, ne, ndi, write_evc0)
         !
         ierr = f_mkdir( TRIM(dirname)//"/K00001" )
         !
+        filename = 'evc0_empty'
+        IF (fixed) filename = 'evcfixed_empty'
+
         DO iss = 1, nspin
-          ! We only split the files by spin if evc0_empty = .true.. If .false.,
-          ! we ignore the iss index, do everything at once, and exit after
-          ! completing the loop once
+          !    
+          fileempty = TRIM( wfc_filename( dirname, filename, 1, iss ) )
+          ne_loc = nupdwn_emp(iss)
+          i_start = iupdwn_emp(iss)
           !
-          IF (write_evc0) THEN
-             !    
-             fileempty = TRIM( wfc_filename( dirname, 'evc0_empty', 1, iss ) )
-             ne_loc = nupdwn_emp(iss)
-             i_start = iupdwn_emp(iss)
-             !
-          ELSE
-             !
-             fileempty = TRIM( wfc_filename( dirname, 'evcfixed_empty', 1 ) )
-             ne_loc = ne
-             i_start = 1
-             !
-          ENDIF   
+          IF (fixed) THEN 
+            ne_loc = nupdwn(iss) 
+            i_start = iupdwn(iss)
+            IF (iss == spin_to_save) ne_loc = ne_loc+1
+            IF (iss == 2 .AND. spin_to_save == 1 ) i_start = i_start+1
+          ENDIF 
           !
           IF ( ionode ) THEN
              OPEN( UNIT = funit, FILE = TRIM(fileempty), status = 'unknown', FORM = 'UNFORMATTED' )
@@ -1616,7 +1600,7 @@ SUBROUTINE writeemptytwin_x( c_emp, ne, ndi, write_evc0)
           IF ( ionode ) CLOSE(funit)
 
           ! For evc0_fixed, exit this 'spin' loop
-          IF (.NOT. write_evc0) EXIT
+          !IF (.NOT. write_evc0) EXIT
         END DO
 
         DEALLOCATE(ctmp)

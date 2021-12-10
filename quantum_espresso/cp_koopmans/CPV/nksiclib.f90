@@ -3017,7 +3017,7 @@ end subroutine nksic_correction_pz
       !
       call mp_sum(w2cst,intra_image_comm)
       !
-      vsic  = vsic + w2cst    ! second term in eq. (A15) Borghi PRB
+      vsic  = vsic + w2cst    ! Hartree part of first and third terms in eq. (A15) Borghi PRB
       !
       ehele = 0.5d0 * ehele * omega / fact
       !

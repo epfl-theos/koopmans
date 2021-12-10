@@ -7,6 +7,9 @@ Written by Edward Linscott May 2020
 '''
 
 
+from typing import List, Union
+
+
 def calc_diff(calcs, silent=False):
     # Returns the differences in the settings of a list of calculators
 
@@ -27,3 +30,22 @@ def calc_diff(calcs, silent=False):
             diffs.append(key)
 
     return diffs
+
+
+def list_to_formatted_str(values: List[int]):
+    # Converts a list of integers into the format expected by Wannier90
+    # e.g. list_to_formatted_str([1, 2, 3, 4, 5, 7]) = "1-5,7"
+    if len(values) == 0:
+        raise ValueError('list_to_formatted_str() should not be given an empty list')
+    assert all(a > b for a, b in zip(values[1:], values[:-1])), 'values must be monotonically increasing'
+    indices: List[Union[int, None]] = [None]
+    indices += [i + 1 for i in range(len(values) - 1) if values[i + 1] != values[i] + 1]
+    indices += [None]
+    sectors = [values[slice(a, b)] for a, b in zip(indices[:-1], indices[1:])]
+    out = []
+    for sector in sectors:
+        if len(sector) == 1:
+            out.append(str(sector[0]))
+        else:
+            out.append(f'{sector[0]}-{sector[-1]}')
+    return ','.join(out)

@@ -9,13 +9,13 @@ Written by Edward Linscott Jan 2020
 import os
 import json as json_ext
 import xml.etree.ElementTree as ET
-from typing import TextIO, Dict
+from typing import TextIO, Dict, List, Union
 from pathlib import Path
 from ase.atoms import Atoms
 from ase.io.espresso.utils import ibrav_to_cell
 from ase.calculators.espresso import Espresso_kcp
 from ase.io.espresso.koopmans_cp import KEYS as kcp_keys, construct_namelist
-from koopmans import utils
+from koopmans import utils, bands, projections
 from koopmans.pseudopotentials import set_up_pseudos, nelec_from_pseudos
 from koopmans.settings import KoopmansCPSettingsDict, KoopmansHamSettingsDict, KoopmansScreenSettingsDict, \
     PWSettingsDict, PW2WannierSettingsDict, UnfoldAndInterpolateSettingsDict, Wann2KCSettingsDict, \
@@ -110,9 +110,12 @@ def read_setup_dict(dct):
             calc.parameters.nelup = int(nelec / 2 + tot_mag / 2)
         if 'neldw' not in calc.parameters:
             calc.parameters.neldw = int(nelec / 2 - tot_mag / 2)
+        if tot_mag != 0:
+            if 'starting_magnetization(1)' not in calc.parameters:
+                calc.atoms.set_initial_magnetic_moments([tot_mag / len(calc.atoms) for _ in calc.atoms])
 
     # Work out the number of filled and empty bands
-    n_filled = nelec // 2
+    n_filled = nelec // 2 + nelec % 2
     n_empty = calc.parameters.get('empty_states_nbnd', 0)
 
     # Separamting the output into atoms, parameters, and psp+kpoint information
@@ -120,7 +123,7 @@ def read_setup_dict(dct):
     atoms.calc = None
     parameters = calc.parameters
     psps_and_kpts = {}
-    for key in ['pseudopotentials', 'kgrid', 'koffset', 'kpath']:
+    for key in ['pseudopotentials', 'gamma_only', 'kgrid', 'koffset', 'kpath']:
         if key in parameters:
             psps_and_kpts[key] = parameters.pop(key)
 
@@ -149,13 +152,24 @@ def read_json(fd: TextIO, override={}):
     # Override all keywords provided explicitly
     update_nested_dict(bigdct, override)
 
-    # Deal with w90 subdicts
+    # Deal with the nested w90 subdictionaries
     if 'w90' in bigdct:
-        bigdct['w90_occ'] = bigdct['w90'].pop('occ', {})
-        bigdct['w90_emp'] = bigdct['w90'].pop('emp', {})
-        for k, v in bigdct['w90'].items():
-            bigdct['w90_occ'][k] = v
-            bigdct['w90_emp'][k] = v
+        for filling in ['occ', 'emp']:
+            for spin in ['up', 'down']:
+                # Add any keywords in the filling:spin subsubdictionary
+                subsubdct = bigdct['w90'].get(filling, {}).get(spin, {})
+                bigdct[f'w90_{filling}_{spin}'] = subsubdct
+                # Add any keywords in the filling subdictionary
+                subdct = {k: v for k, v in bigdct['w90'].get(filling, {}).items() if k not in ['up', 'down']}
+                bigdct[f'w90_{filling}_{spin}'].update(subdct)
+                # Add any keywords in the main dictionary
+                dct = {k: v for k, v in bigdct['w90'].items() if k not in ['occ', 'emp']}
+                bigdct[f'w90_{filling}_{spin}'].update(dct)
+            # Also create a spin-independent set of parameters
+            bigdct[f'w90_{filling}'] = {}
+            bigdct[f'w90_{filling}'].update(subdct)
+            bigdct[f'w90_{filling}'].update(dct)
+        # Finally, remove the nested w90 entry
         del bigdct['w90']
 
     # Deal with UI subdicts
@@ -191,7 +205,11 @@ def read_json(fd: TextIO, override={}):
                         'ui_occ': UnfoldAndInterpolateSettingsDict,
                         'ui_emp': UnfoldAndInterpolateSettingsDict,
                         'w90_occ': Wannier90SettingsDict,
-                        'w90_emp': Wannier90SettingsDict}
+                        'w90_emp': Wannier90SettingsDict,
+                        'w90_occ_up': Wannier90SettingsDict,
+                        'w90_emp_up': Wannier90SettingsDict,
+                        'w90_occ_down': Wannier90SettingsDict,
+                        'w90_emp_down': Wannier90SettingsDict}
 
     # Check for unexpected blocks
     for block in bigdct:
@@ -204,7 +222,7 @@ def read_json(fd: TextIO, override={}):
 
     # Load default values
     if 'setup' in bigdct:
-        atoms, setup_parameters, psps_and_kpts, n_filled, n_empty = read_setup_dict(bigdct['setup'])
+        atoms, setup_parameters, workflow_kwargs, n_filled, n_empty = read_setup_dict(bigdct['setup'])
         del bigdct['setup']
     elif parameters.task != 'ui':
         raise ValueError('You must provide a "setup" block in the input file, specifying atomic positions, atomic '
@@ -213,12 +231,15 @@ def read_json(fd: TextIO, override={}):
         # Create dummy objects
         atoms = Atoms()
         setup_parameters = {}
-        psps_and_kpts = {}
+        workflow_kwargs = {}
         n_filled = 0
         n_empty = 0
 
     # Loading calculator-specific settings
     master_calc_params = {}
+    w90_block_projs = []
+    w90_block_filling: List[bool] = []
+    w90_block_spins: List[Union[str, None]] = []
 
     # Generate a master SettingsDict for every single kind of calculator, regardless of whether or not there was a
     # corresponding block in the json file
@@ -228,45 +249,77 @@ def read_json(fd: TextIO, override={}):
         # Populating missing settings based on nelec, n_filled, n_empty etc
         if block == 'kcp':
             if 'nelec' not in dct.get('system', {}):
-                dct['nelec'] = n_filled * 2
+                dct['nelec'] = setup_parameters['nelec']
         elif block == 'pw':
             if 'nbnd' not in dct.get('system', {}):
                 dct['nbnd'] = n_filled + n_empty
         elif block.startswith('ui'):
             # Dealing with redundancies in UI keywords
-            if 'sc_dim' in dct and 'kpts' in psps_and_kpts:
+            if 'sc_dim' in dct and 'kpts' in workflow_kwargs:
                 # In this case, the sc_dim keyword is redundant
-                if psps_and_kpts['kpts'] != dct['sc_dim']:
+                if workflow_kwargs['kpts'] != dct['sc_dim']:
                     raise ValueError('sc_dim in the UI block should match the kpoints provided in the setup block')
                 dct.pop('sc_dim')
-            if 'kpath' in dct and 'kpath' in psps_and_kpts:
-                if psps_and_kpts['kpath'] != dct['kpath']:
+            if 'kpath' in dct and 'kpath' in workflow_kwargs:
+                if workflow_kwargs['kpath'] != dct['kpath']:
                     raise ValueError('kpath in the UI block should match that provided in the setup block')
                 dct.pop('kpath')
+        elif block.startswith('w90'):
+            # If we are spin-polarised, don't store the spin-independent w90 block
+            # Likewise, if we are not spin-polarised, don't store the spin-dependent w90 blocks
+            if parameters.spin_polarised is not ('up' in block or 'down' in block):
+                continue
+            if 'projections' in dct and 'projections_blocks' in dct:
+                raise ValueError('"projections" and "projections_block" are mutually exclusive')
+            elif 'projections_blocks' in dct:
+                projs = dct.pop('projections_blocks')
+            else:
+                projs = [dct.pop('projections', [])]
+            w90_block_projs += projs
+            w90_block_filling += ['occ' in block for _ in range(len(projs))]
+            if 'up' in block:
+                w90_block_spins += ['up' for _ in range(len(projs))]
+            elif 'down' in block:
+                w90_block_spins += ['down' for _ in range(len(projs))]
+            else:
+                w90_block_spins += [None for _ in range(len(projs))]
+            for kw in ['exclude_bands', 'num_wann', 'num_bands', 'projections']:
+                if kw in dct:
+                    utils.warn(f'{kw} will be overwritten by the workflow; it is best to leave this keyword out of the '
+                               'JSON input file and to then double-check this keyword in the various .win files '
+                               'generated by the workflow.')
 
         master_calc_params[block] = settings_class(**dct)
         master_calc_params[block].update(
             **{k: v for k, v in setup_parameters.items() if k in master_calc_params[block].valid})
-        master_calc_params[block].parse_algebraic_settings(nelec=n_filled * 2)
+        master_calc_params[block].parse_algebraic_settings(nelec=setup_parameters['nelec'])
+
+    # Adding the projections to the workflow kwargs (this is unusual in that this is an attribute of the workflow object
+    # but it is provided in the w90 subdictionary)
+    workflow_kwargs['projections'] = projections.ProjectionBlocks.fromprojections(
+        w90_block_projs, w90_block_filling, w90_block_spins, atoms)
 
     name = fd.name.replace('.json', '')
     workflow: workflows.Workflow
     if parameters.task == 'singlepoint':
         workflow = workflows.SinglepointWorkflow(
-            atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
+            atoms, parameters, master_calc_params, name=name, **workflow_kwargs)
     elif parameters.task == 'convergence':
         workflow = workflows.ConvergenceWorkflow(
-            atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
-    elif parameters.task in ['wannierize', 'wannierise']:
+            atoms, parameters, master_calc_params, name=name, **workflow_kwargs)
+    elif parameters.task == 'wannierise':
         workflow = workflows.WannierizeWorkflow(
-            atoms, parameters, master_calc_params, name=name, check_wannierisation=True, **psps_and_kpts)
+            atoms, parameters, master_calc_params, name=name, **workflow_kwargs)
+        workflow.parameters.check_wannierisation = True
     elif parameters.task == 'environ_dscf':
-        workflow = workflows.DeltaSCFWorkflow(atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
+        workflow = workflows.DeltaSCFWorkflow(atoms, parameters, master_calc_params,
+                                              name=name, **workflow_kwargs)
     elif parameters.task == 'ui':
         workflow = workflows.UnfoldAndInterpolateWorkflow(
-            atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
+            atoms, parameters, master_calc_params, name=name, **workflow_kwargs)
     elif parameters.task == 'dft_bands':
-        workflow = workflows.PWBandStructureWorkflow(atoms, parameters, master_calc_params, name=name, **psps_and_kpts)
+        workflow = workflows.PWBandStructureWorkflow(
+            atoms, parameters, master_calc_params, name=name, **workflow_kwargs)
     else:
         raise ValueError('Invalid task name "{task_name}"')
 
