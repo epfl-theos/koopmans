@@ -40,6 +40,14 @@ class ProjectionBlock(object):
             out += ', spin={self.spin}'
         return out + ')'
 
+    def __len__(self):
+        # Count the number of projections
+        return len(self.projections)
+
+    def __bool__(self):
+        # Return true if this ProjectionBlock is non-empty
+        return len(self) > 0
+
     def todict(self) -> dict:
         dct = {k: v for k, v in self.__dict__.items()}
         dct['__koopmans_name__'] = self.__class__.__name__
@@ -89,9 +97,11 @@ class ProjectionBlocks(object):
         return out
 
     def __len__(self):
-        return len(self._blocks)
+        # Count the number of non-empty "ProjectionBlock"s
+        return sum([1 for b in self._blocks if b])
 
     def __bool__(self):
+        # Return true if this contains any non-empty "ProjectionBlock"s
         return len(self) > 0
 
     @property
