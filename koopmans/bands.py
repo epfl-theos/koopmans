@@ -2,7 +2,7 @@ import itertools
 from typing import Optional, List, Union
 import numpy as np
 import pandas as pd
-from koopmans.utils import indented_print
+from koopmans.utils import indented_print, warn
 
 
 class Band(object):
@@ -248,6 +248,11 @@ class Bands(object):
             for b in self.get(spin=1):
                 [match] = [b_op for b_op in self.get(spin=0) if b_op.index == b.index]
                 b.group = match.group
+
+        if sh_tol != self.self_hartree_tol:
+            warn(f'It was not possible to group orbitals with the self-Hartree tolerance of {self.self_hartree_tol:.2e} eV. '
+                 f'A grouping was found for a self-Hartree tolerance of {sh_tol:.2e} eV.\n'
+                 f'Try a larger self-Hartree tolerance to group more orbitals together')
 
         return
 

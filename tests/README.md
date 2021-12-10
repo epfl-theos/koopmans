@@ -10,3 +10,4 @@
 `test_09` KI calculation on bulk Si using DFPT to calculate screening parameters  
 `test_10` KI calculation on ozone using DFPT to calculate screening parameters  
 `test_11` Block-by-block Wannierisation of TiO2
+`test_12` KI calculation on bulk Si using KS orbitals as variational orbitals
