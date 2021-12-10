@@ -773,8 +773,8 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             # create an array containing all the distances between reference (R=0) WFs and all the other WFs:
             # 1) accounting for their positions within the unit cell
             wf_dist = np.concatenate([[c] * self.parameters.num_wann_sc
-                                     for c in self.centers[:self.parameters.num_wann]]) \
-                      - np.array(self.centers * self.parameters.num_wann)
+                                     for c in self.centers[:self.parameters.num_wann]])
+                                     - np.array(self.centers * self.parameters.num_wann)
         else:
             # 2) considering only the distance between the unit cells they belong to
             wf_dist = np.array(np.concatenate([[rvec] * self.parameters.num_wann for rvec in self.Rvec]).tolist()
