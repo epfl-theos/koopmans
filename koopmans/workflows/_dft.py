@@ -37,7 +37,7 @@ class DFTCPWorkflow(Workflow):
             if calc.parameters.empty_states_maxstep is None:
                 calc.parameters.empty_states_maxstep = 300
 
-        self.run_calculator(calc, enforce_ss=self.parameters.enforce_spin_symmetry)
+        self.run_calculator(calc, enforce_ss=self.parameters.fix_spin_contamination)
 
         return calc
 

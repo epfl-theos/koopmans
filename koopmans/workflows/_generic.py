@@ -10,7 +10,6 @@ Converted workflows from functions to objects Nov 2020
 import os
 import copy
 from pathlib import Path
-from ase.geometry.cell import cell_to_cellpar
 from ase.io.espresso.utils import cell_to_ibrav
 import numpy as np
 import numpy.typing as npt
@@ -19,12 +18,12 @@ from ase import Atoms
 from ase.build.supercells import make_supercell
 from ase.dft.kpoints import BandPath
 from ase.calculators.calculator import CalculationFailed
-from ase.io.wannier90 import num_wann_from_projections
 from koopmans.pseudopotentials import nelec_from_pseudos
 from koopmans import utils, settings
 import koopmans.calculators as calculators
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.bands import Bands
+from koopmans.projections import ProjectionBlocks
 
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
@@ -36,10 +35,12 @@ class Workflow(object):
                  parameters: settings.SettingsDict = settings.WorkflowSettingsDict(),
                  master_calc_params: Dict[str, settings.SettingsDict] = settings.default_master_calc_params,
                  name: str = 'koopmans_workflow',
-                 pseudopotentials: Optional[Dict[str, str]] = None,
+                 pseudopotentials: Dict[str, str] = {},
+                 gamma_only: Optional[bool] = False,
                  kgrid: Optional[List[int]] = [1, 1, 1],
                  koffset: Optional[List[int]] = [0, 0, 0],
-                 kpath: Optional[BandPath] = None):
+                 kpath: Optional[BandPath] = None,
+                 projections: Optional[ProjectionBlocks] = None):
 
         # Parsing parameters
         self.parameters = settings.WorkflowSettingsDict(**parameters)
@@ -50,10 +51,21 @@ class Workflow(object):
         self.calculations: List[calculators.CalculatorExt] = []
         self.silent = False
         self.print_indent = 1
-        if pseudopotentials is not None:
-            self.pseudopotentials = pseudopotentials
-        self.kgrid = kgrid
-        self.koffset = koffset
+        self.pseudopotentials = pseudopotentials
+        self.gamma_only = gamma_only
+        if self.gamma_only:
+            if kgrid != [1, 1, 1]:
+                utils.warn(f'You have initialised kgrid to {kgrid}, not compatible with gamma_only=True; '
+                           'kgrid is set equal to [1, 1, 1]')
+            if koffset != [0, 0, 0]:
+                utils.warn(f'You have initialised koffset to {koffset}, not compatible with gamma_only=True; '
+                           'koffset is set equal to [0, 0, 0]')
+            self.kgrid = [1, 1, 1]
+            self.koffset = [0, 0, 0]
+        else:
+            self.kgrid = kgrid
+            self.koffset = koffset
+        self.projections = ProjectionBlocks([], self.atoms) if projections is None else projections
 
         if 'periodic' in parameters:
             # If "periodic" was explicitly provided, override self.atoms.pbc
@@ -70,22 +82,15 @@ class Workflow(object):
             pseudo_dir = self.master_calc_params['kcp'].get('pseudo_dir', None)
             self.master_calc_params['kcp'].nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, pseudo_dir)
 
-        # We also rely on w90_occ/emp_params.num_wann so make sure this has been initialised, too
-        for params, default_num_wann in [(self.master_calc_params['w90_occ'], self.master_calc_params['kcp'].nelec // 2),
-                                         (self.master_calc_params['w90_emp'], self.master_calc_params['kcp'].empty_states_nbnd)]:
-            if params.num_wann is None:
-                if 'projections' in params:
-                    # Populate num_wann based on the projections provided
-                    params.num_wann = num_wann_from_projections(params.projections, self.atoms)
-                else:
-                    # Populate num_wann based off the kcp calculator
-                    params.num_wann = default_num_wann
-
+        # Generate the kpath
         if kpath is None:
             if self.parameters.periodic:
                 # By default, use ASE's default bandpath for this cell (see
                 # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
-                self.kpath = self.atoms.cell.get_bravais_lattice().bandpath()
+                bl = self.atoms.cell.get_bravais_lattice()
+                path = bl.bandpath().path
+                npoints = 10 * len(path) - 9 - 29 * path.count(',')
+                self.kpath = bl.bandpath(npoints=npoints)
             else:
                 self.kpath = BandPath(path='G', cell=self.atoms.cell)
         else:
@@ -98,6 +103,12 @@ class Workflow(object):
             self.atoms.calc = None
 
         # Check internal consistency of workflow settings
+        if self.parameters.fix_spin_contamination is None:
+            self.parameters.fix_spin_contamination = not self.parameters.spin_polarised
+        else:
+            if self.parameters.fix_spin_contamination and self.parameters.spin_polarised:
+                raise ValueError('fix_spin_contamination = True is incompatible with spin_polarised = True')
+
         if self.parameters.method == 'dfpt':
             if self.parameters.frozen_orbitals is None:
                 self.parameters.frozen_orbitals = True
@@ -154,6 +165,14 @@ class Workflow(object):
         self._pseudopotentials = value
 
     @property
+    def gamma_only(self):
+        return self._gamma_only
+
+    @gamma_only.setter
+    def gamma_only(self, value: bool):
+        self._gamma_only = value
+
+    @property
     def kgrid(self):
         return self._kgrid
 
@@ -189,10 +208,17 @@ class Workflow(object):
                 'master_calc_params': copy.deepcopy(self.master_calc_params),
                 'name': copy.deepcopy(self.name),
                 'pseudopotentials': copy.deepcopy(self.pseudopotentials),
+                'gamma_only': copy.deepcopy(self.gamma_only),
                 'kgrid': copy.deepcopy(self.kgrid),
-                'kpath': copy.deepcopy(self.kpath)}
+                'kpath': copy.deepcopy(self.kpath),
+                'projections': copy.deepcopy(self.projections)}
 
-    def new_calculator(self, calc_type: str, directory: Optional[Path] = None, kpts: Optional[Union[List[int], BandPath]] = None, **kwargs) -> T:
+    def new_calculator(self,
+                       calc_type: str,
+                       directory: Optional[Path] = None,
+                       kpts: Optional[Union[List[int], BandPath]] = None,
+                       **kwargs) -> T:
+
         calc_class: Type[T]
 
         if calc_type == 'kcp':
@@ -223,13 +249,10 @@ class Workflow(object):
         # For the k-points, the Workflow has two options: self.kgrid and self.kpath. A calculator should only ever
         # have one of these two. By default, use the kgrid.
         if 'kpts' in master_calc_params.valid:
-            if kpts is None:
-                all_kwargs['kpts'] = self.kgrid
-            else:
-                all_kwargs['kpts'] = kpts
+            all_kwargs['kpts'] = kpts if kpts is not None else self.kgrid
 
         # Add pseudopotential and kpt information to the calculator as required
-        for kw in ['pseudopotentials', 'kgrid', 'kpath', 'koffset']:
+        for kw in ['pseudopotentials', 'gamma_only', 'kgrid', 'kpath', 'koffset']:
             if kw not in all_kwargs and kw in master_calc_params.valid:
                 all_kwargs[kw] = getattr(self, kw)
 
@@ -274,11 +297,6 @@ class Workflow(object):
 
                 with open(file_out, 'wb') as fd:
                     fd.write(contents)
-
-            for i in range(1, 3):
-                to_delete = nspin2_tmpdir / f'{prefix}{i}.{suffix}'
-                if to_delete != file_out and to_delete.is_file():
-                    to_delete.unlink()
 
     def convert_wavefunction_1to2(self, nspin1_tmpdir: Path, nspin2_tmpdir: Path):
 
@@ -361,6 +379,9 @@ class Workflow(object):
         '''
 
         if enforce_ss:
+            if not isinstance(master_qe_calc, calculators.KoopmansCPCalculator):
+                raise NotImplementedError('Workflow.run_calculator(..., enforce_ss = True) needs to be generalised to '
+                                          'other calculator types')
             # Create a copy of the calculator object (to avoid modifying the input)
             qe_calc = copy.deepcopy(master_qe_calc)
             nspin2_tmpdir = master_qe_calc.parameters.outdir / \
@@ -372,6 +393,10 @@ class Workflow(object):
                 qe_calc.parameters.do_outerloop = False
                 qe_calc.parameters.do_outerloop_empty = False
                 qe_calc.parameters.nspin = 1
+                if hasattr(qe_calc, 'alphas'):
+                    qe_calc.alphas = [qe_calc.alphas[0]]
+                if hasattr(qe_calc, 'filling'):
+                    qe_calc.filling = [qe_calc.filling[0]]
                 qe_calc.parameters.nelup = None
                 qe_calc.parameters.neldw = None
                 qe_calc.parameters.tot_magnetization = None
@@ -390,6 +415,10 @@ class Workflow(object):
             qe_calc.parameters.nspin = 1
             qe_calc.parameters.nelup = None
             qe_calc.parameters.neldw = None
+            if hasattr(qe_calc, 'alphas'):
+                qe_calc.alphas = [qe_calc.alphas[0]]
+            if hasattr(qe_calc, 'filling'):
+                qe_calc.filling = [qe_calc.filling[0]]
             qe_calc.parameters.tot_magnetization = None
             qe_calc.parameters.ndw, qe_calc.parameters.ndr = 98, 98
             nspin1_tmpdir = qe_calc.parameters.outdir / \
@@ -441,10 +470,6 @@ class Workflow(object):
                     if not self.silent:
                         self.print(f'Not running {os.path.relpath(calc_file)} as it is already complete')
                     return
-
-        # Write out screening parameters to file
-        if qe_calc.parameters.get('do_orbdep', False) or isinstance(qe_calc, calculators.KoopmansHamCalculator):
-            qe_calc.write_alphas()
 
         if not self.silent:
             dir_str = os.path.relpath(qe_calc.directory) + '/'
@@ -504,9 +529,6 @@ class Workflow(object):
                 # If the band structure file does not exist, we must re-run
                 if 'band structure' not in qe_calc.results:
                     return False
-            # elif isinstance(qe_calc.calc, EspressoWithBandstructure):
-            #     if not isinstance(qe_calc, calculators.EspressoCalculator) or qe_calc.calculation == 'bands':
-            #         qe_calc.band_structure()
 
             self.calculations.append(qe_calc)
 
@@ -575,19 +597,21 @@ class Workflow(object):
         workflow.calculations = self.calculations
 
         # Link the bands
-        try:
-            workflow.bands = self.bands
-            # Only include the most recent values
-            workflow.bands.alpha_history = workflow.bands.alphas
-            workflow.bands.error_history = []
-        except AttributeError:
-            pass
+        if hasattr(self, 'bands'):
+            workflow.bands = copy.deepcopy(self.bands)
+            # Only include the most recent screening parameter and wipe the error history
+            for b in workflow.bands:
+                if len(b.alpha_history) > 0:
+                    b.alpha_history = [b.alpha]
+                b.error_history = []
 
         if subdirectory is not None:
             # Update directories
             for key in workflow.master_calc_params.keys():
                 params = workflow.master_calc_params[key]
                 for setting in params.are_paths:
+                    if setting == 'pseudo_dir':
+                        continue
                     path = getattr(params, setting, None)
                     if path is not None and Path.cwd() in path.parents:
                         new_path = Path(subdirectory).resolve() / os.path.relpath(path)
@@ -604,10 +628,18 @@ class Workflow(object):
             self.parameters.from_scratch = workflow.parameters.from_scratch
 
         # Copy back over the bands
-        try:
-            self.bands = workflow.bands
-        except AttributeError:
-            pass
+        if hasattr(workflow, 'bands'):
+            if hasattr(self, 'bands'):
+                # Add the alpha and error history
+                for b, b_sub in zip(self.bands, workflow.bands):
+                    b.alpha_history += b_sub.alpha_history[1:]
+                    b.error_history += b_sub.error_history
+            else:
+                # Copy the entire bands object
+                self.bands = workflow.bands
+
+        # Make sure any updates to the projections are passed along
+        self.projections = workflow.projections
 
     def todict(self):
         # Shallow copy
@@ -624,8 +656,10 @@ class Workflow(object):
                  parameters=dct.pop('parameters'),
                  master_calc_params=dct.pop('master_calc_params'),
                  pseudopotentials=dct.pop('_pseudopotentials'),
+                 gamma_only=dct.pop('_gamma_only'),
                  kgrid=dct.pop('_kgrid'),
-                 kpath=dct.pop('_kpath'))
+                 kpath=dct.pop('_kpath'),
+                 projections=dct.pop('projections'))
 
         for k, v in dct.items():
             setattr(wf, k, v)

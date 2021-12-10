@@ -55,15 +55,15 @@ class SinglepointWorkflow(Workflow):
                 # For pKIPZ/KIPZ, use KI as a starting point
                 if functional == 'pkipz':
                     local_parameters.calculate_alpha = False
-                elif functional == 'kipz':
-                    local_parameters.init_orbitals = 'from old ki'
-
-                # Create a KC workflow for this particular functional
-                kc_workflow = KoopmansDSCFWorkflow(parameters=local_parameters, **wf_kwargs)
+                restart_from_old_ki = (functional == 'kipz')
 
                 # We only need to do the smooth interpolation the first time (i.e. for KI)
-                if functional != 'ki':
-                    kc_workflow.redo_preexisting_smooth_dft_calcs = False
+                redo_smooth_dft = None if functional == 'ki' else False
+
+                # Create a KC workflow for this particular functional
+                kc_workflow = KoopmansDSCFWorkflow(parameters=local_parameters,
+                                                   restart_from_old_ki=restart_from_old_ki,
+                                                   redo_smooth_dft=redo_smooth_dft, **wf_kwargs)
 
                 # Transform to the supercell
                 if functional == 'kipz':

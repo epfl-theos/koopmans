@@ -266,11 +266,17 @@ def stumble(monkeypatch):
                     super().run(*args, **kwargs)
                 except DeliberateCalculationFailed:
                     # Restore the workflow to the state it was in before we ran any calculations and attempt to restart
-                    # from where we left off
-                    self.__dict__.update(**dct_before_running)
+                    # from where we left off (keeping the calc_counter and the benchmark, which we excluded above)
+                    calc_counter = self.calc_counter
+                    benchmark = self.benchmark
+                    self.__dict__ = dct_before_running
+                    self.benchmark = benchmark
+
+                    # Update the parameters related to stumbling
                     self.parameters.from_scratch = False
-                    self.calc_counter += 1
+                    self.calc_counter = calc_counter + 1
                     self.print_stumble = True
+
                     self.run(*args, **kwargs)
             else:
                 super().run(*args, **kwargs)
@@ -280,6 +286,21 @@ def stumble(monkeypatch):
             workflow.catch_stumbles = False
             workflow.calc_counter = self.calc_counter
             super().run_subworkflow(workflow, *args, **kwargs)
+            self.calc_counter = workflow.calc_counter
+
+    from koopmans.workflows import SinglepointWorkflow
+
+    class StumblingSinglepointWorkflow(StumblingWorkflow, SinglepointWorkflow):
+        pass
+
+    monkeypatch.setattr('koopmans.workflows.SinglepointWorkflow', StumblingSinglepointWorkflow)
+
+    from koopmans.workflows import ConvergenceWorkflow
+
+    class StumblingConvergenceWorkflow(StumblingWorkflow, ConvergenceWorkflow):
+        pass
+
+    monkeypatch.setattr('koopmans.workflows.ConvergenceWorkflow', StumblingConvergenceWorkflow)
 
     from koopmans.workflows import WannierizeWorkflow
 
@@ -445,7 +466,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         def output_files(self) -> List[Path]:
             files = self.__files
             if self.parameters.print_wfc_anion:
-                files.append(Path('evcfixed_empty.dat'))
+                for ispin in range(self.parameters.nspin):
+                    files.append(Path(f'evcfixed_empty{ispin + 1}.dat'))
             return [self.parameters.outdir
                     / Path(f'{self.parameters.prefix}_{self.parameters.ndw}.save/K00001/{fname}') for fname in files]
 
@@ -453,7 +475,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         def input_files(self) -> List[Path]:
             files = self.__files
             if self.parameters.restart_from_wannier_pwscf:
-                files.append(Path('evc_occupied.dat'))
+                for ispin in range(self.parameters.nspin):
+                    files.append(Path(f'evc_occupied{ispin + 1}.dat'))
             return [self.parameters.outdir
                     / Path(f'{self.parameters.prefix}_{self.parameters.ndr}.save/K00001/{fname}') for fname in files]
 
@@ -538,15 +561,13 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         @property
         def output_files(self) -> List[Path]:
             if self.parameters.wan_mode == 'wannier2odd':
-                if self.parameters.split_evc_file:
-                    files = [
-                        f'{self.directory}/{fname}' for fname in ['evcw1.dat', 'evcw2.dat']]
-                else:
-                    files = [f'{self.directory}/{fname}' for fname in [
-                        'evcw.dat', 'charge-density-x.dat']]
+                files = [self.directory / fname for fname in ['evcw1.dat', 'evcw2.dat']]
+            elif self.parameters.wan_mode == 'ks2odd':
+                files = [self.directory / fname for i in [1, 2]
+                         for fname in [f'evc_occupied{i}.dat', f'evc0_empty{i}.dat']]
             else:
                 files = [
-                    f'{self.directory}/{self.parameters.seedname}{suffix}' for suffix in ['.eig', '.mmn', '.amn']]
+                    self.directory / f'{self.parameters.seedname}{suffix}' for suffix in ['.eig', '.mmn', '.amn']]
             return [Path(f) for f in files]
 
         @property
@@ -555,7 +576,8 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             files = [f'{self.parameters.outdir}/{self.parameters.prefix}.save/wfc{i}.dat' for i in i_kpoints]
             files += [f'{self.parameters.outdir}/{self.parameters.prefix}.save/{f}'
                       for f in ['data-file-schema.xml', 'charge-density.dat']]
-            files.append(f'{self.directory}/{self.parameters.seedname}.nnkp')
+            if self.parameters.wan_mode != 'ks2odd':
+                files.append(f'{self.directory}/{self.parameters.seedname}.nnkp')
             if self.parameters.wan_mode == 'wannier2odd':
                 files.append(f'{self.directory}/{self.parameters.seedname}.chk')
             return [Path(f) for f in files]
@@ -749,7 +771,9 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
     from koopmans.workflows import WannierizeWorkflow
 
     class MockWannierizeWorkflow(MockWorkflow, WannierizeWorkflow):
-        pass
+        def merge_hr_files(self, block, prefix):
+            # We don't want the Wannierise workflow to attempt to read and write the hr files
+            return
 
     monkeypatch.setattr('koopmans.workflows.WannierizeWorkflow', MockWannierizeWorkflow)
 

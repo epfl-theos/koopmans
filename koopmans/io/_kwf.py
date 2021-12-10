@@ -6,16 +6,12 @@ Written by Edward Linscott Mar 2021, largely modelled off ase.io.jsonio
 
 """
 
-import os
 from typing import Union, TextIO
 from pathlib import Path
 from importlib import import_module
 import inspect
 import json
-import numpy as np
 from ase.io import jsonio as ase_json
-from ase.calculators.calculator import Calculator
-from ase.calculators.singlepoint import SinglePointKPoint
 import koopmans.workflows as workflows
 
 
@@ -57,6 +53,10 @@ def object_hook(dct):
             dtype = dct['__ndarray__'][1]
             if 'str' in dtype:
                 dct['__ndarray__'][1] = object
+
+        # Making it possible for "None" to be a key in a dictionary
+        if 'null' in dct:
+            dct[None] = dct.pop('null')
 
         return ase_json.object_hook(dct)
 

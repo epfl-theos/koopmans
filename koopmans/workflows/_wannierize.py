@@ -7,97 +7,82 @@ Written by Riccardo De Gennaro Nov 2020
 
 """
 
+import pickle
+from ._generic import Workflow
+from koopmans import utils, projections, calculators
+from koopmans.pseudopotentials import nelec_from_pseudos
+import matplotlib.pyplot as plt
 import numpy as np
+import math
+import shutil
 from pathlib import Path
-from typing import List, Union
+from typing import List, TypeVar
 import matplotlib
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-from koopmans.pseudopotentials import nelec_from_pseudos
-from koopmans import utils
-from ._generic import Workflow
 
 
-def list_to_formatted_str(values: List[int]):
-    # Converts a list of integers into the format expected by Wannier90
-    # e.g. list_to_formatted_str([1, 2, 3, 4, 5, 7]) = "1-5,7"
-    assert all(a > b for a, b in zip(values[1:], values[:-1])), 'values must be monotonically increasing'
-    indices: List[Union[int, None]] = [None]
-    indices += [i + 1 for i in range(len(values) - 1) if values[i + 1] != values[i] + 1]
-    indices += [None]
-    sectors = [values[slice(a, b)] for a, b in zip(indices[:-1], indices[1:])]
-    out = []
-    for sector in sectors:
-        if len(sector) == 1:
-            out.append(str(sector[0]))
-        else:
-            out.append(f'{sector[0]}-{sector[-1]}')
-    return ','.join(out)
+CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
 
 
 class WannierizeWorkflow(Workflow):
 
-    def __init__(self, *args, nspin=1, check_wannierisation=None, **kwargs):
+    def __init__(self, *args, force_nspin2=False, **kwargs):
         super().__init__(*args, **kwargs)
-
-        if check_wannierisation is not None:
-            # In certain cases we never want to check the wannierisation, even if this is requested by the
-            # JSON input file (e.g. with the smooth interpolation)
-            self.parameters.check_wannierisation = check_wannierisation
 
         if 'pw' not in self.master_calc_params:
             raise ValueError(
-                'You need to provide a pw block in your input when init_orbitals = "mlwfs" or "projwfs"')
-        if 'w90_occ' not in self.master_calc_params and 'w90_emp' not in self.master_calc_params:
-            raise ValueError(
-                'You need to provide a w90 block in your input when init_orbitals = "mlwfs" or "projwfs"')
+                'You need to provide a pw block in your input')
 
-        # Make sure num_wann (occ/empty), num_bands (occ/empty), and nbnd are present and consistent
         pw_params = self.master_calc_params['pw']
-        pw2w_params = self.master_calc_params['pw2wannier']
-        w90_occ_params = self.master_calc_params['w90_occ']
-        w90_emp_params = self.master_calc_params['w90_emp']
 
-        # Filling out missing fields
-        extra_core_bands = 0
-        extra_conduction_bands = 0
-        n_filled_bands = nelec_from_pseudos(self.atoms, self.pseudopotentials, pw_params.pseudo_dir) // 2
-        if w90_occ_params.num_bands is None:
-            # If num_bands has not been defined, this should just match the number of occupied Wannier functions
-            # we want to define
-            w90_occ_params.num_bands = w90_occ_params.num_wann
-        if w90_emp_params.num_bands is None:
-            # If num_bands has not been defined, this should just match the number of empty bands from the pw calculation
-            w90_emp_params.num_bands = pw_params.nbnd - n_filled_bands
-        if w90_occ_params.exclude_bands is None:
-            # If exclude_bands hasn't been defined for the occupied calculation, this should exclude...
-            exclude_bands = []
-            extra_core_bands = n_filled_bands - w90_occ_params.num_bands
-            if extra_core_bands > 0:
-                # (a) the core bands if there are more filled bands than w90 num_bands, and
-                exclude_bands += list(range(1, extra_core_bands + 1))
-            # (b) all empty bands
-            if n_filled_bands != pw_params.nbnd:
-                exclude_bands += list(range(n_filled_bands + 1, pw_params.nbnd + 1))
-            w90_occ_params.exclude_bands = list_to_formatted_str(exclude_bands)
-        if w90_emp_params.exclude_bands is None:
-            extra_conduction_bands = pw_params.nbnd - extra_core_bands - w90_occ_params.num_bands - w90_emp_params.num_bands
-            # If exclude bands hasn't been defined for the empty calculation, this should exclude all filled bands
-            w90_emp_params.exclude_bands = f'1-{n_filled_bands}'
+        if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
 
-        # Sanity checking
-        w90_nbnd = w90_occ_params.num_bands + w90_emp_params.num_bands + extra_core_bands + extra_conduction_bands
-        if pw_params.nbnd != w90_nbnd:
-            raise ValueError(f'Number of bands disagrees between pw ({pw_params.nbnd}) and wannier90 ({w90_nbnd})')
-        if w90_emp_params.num_wann == 0:
-            raise ValueError('Cannot run a wannier90 calculation with num_wann = 0. Please set empty_states_nbnd > 0 '
-                             'in the setup block, or num_wann > 0 in the wannier90 empty subblock')
-        if nspin == 1:
-            pw_params.nspin = 1
+            if self.parameters.spin_polarised:
+                spins = [0, 1]
+            else:
+                spins = [None]
+
+            for spin in spins:
+                # Update the projections_blocks to account for additional occupied bands
+                num_wann_occ = self.projections.num_bands(occ=True, spin=spin)
+                nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, pw_params.pseudo_dir)
+                if self.parameters.spin_polarised:
+                    num_bands_occ = nelec
+                    if spin == 0:
+                        num_bands_occ += pw_params.tot_magnetization
+                    else:
+                        num_bands_occ -= pw_params.tot_magnetization
+                    num_bands_occ //= 2
+                else:
+                    num_bands_occ = nelec // 2
+                self.projections.add_bands(num_bands_occ - num_wann_occ, above=False, spin=spin)
+
+                # Update the projections_blocks to account for additional empty bands
+                num_wann_emp = self.projections.num_bands(occ=False, spin=spin)
+                num_bands_emp = pw_params.nbnd - num_bands_occ
+                self.projections.add_bands(num_bands_emp - num_wann_emp, above=True, spin=spin)
+
+                # Sanity checking
+                w90_nbnd = self.projections.num_bands(spin=spin)
+                if pw_params.nbnd != w90_nbnd:
+                    raise ValueError(
+                        f'Number of bands disagrees between pw ({pw_params.nbnd}) and wannier90 ({w90_nbnd})')
+
+        elif self.parameters.init_orbitals == 'kohn-sham':
+            pass
+
         else:
+            raise NotImplementedError('WannierizeWorkflow supports only init_orbitals = '
+                                      '"mlwfs", "projwfs" or "kohn-sham"')
+
+        # Spin-polarisation
+        self._force_nspin2 = force_nspin2
+        if force_nspin2:
             pw_params.nspin = 2
-            pw_params.tot_magnetization = 0.0
-            pw2w_params.spin_component = 'up'
+        elif self.parameters.spin_polarised:
+            pw_params.nspin = 2
+        else:
+            pw_params.nspin = 1
 
     def run(self):
         '''
@@ -107,7 +92,10 @@ class WannierizeWorkflow(Workflow):
 
         '''
 
-        self.print('Wannierisation', style='heading')
+        if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
+            self.print('Wannierisation', style='heading')
+        else:
+            self.print('Kohn-Sham orbitals', style='heading')
 
         if self.parameters.from_scratch:
             utils.system_call("rm -rf wannier", False)
@@ -125,56 +113,83 @@ class WannierizeWorkflow(Workflow):
         calc_pw.prefix = 'nscf'
         self.run_calculator(calc_pw)
 
-        for typ in ['occ', 'emp']:
-            # 1) pre-processing Wannier90 calculation
-            calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ)
-            calc_w90.prefix = 'wann_preproc'
-            calc_w90.command.flags = '-pp'
-            self.run_calculator(calc_w90)
-            utils.system_call(f'rsync -a {calc_w90.directory}/wann_preproc.nnkp {calc_w90.directory}/wann.nnkp')
+        if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
+            # Loop over the various subblocks that we must wannierise separately
+            for block in self.projections:
+                # Construct the subdirectory label
+                w90_dir = Path('wannier') / block.directory
 
-            # 2) standard pw2wannier90 calculation
-            calc_p2w = self.new_calculator('pw2wannier', directory=calc_w90.directory,
-                                           outdir=calc_pw.parameters.outdir)
-            calc_p2w.prefix = 'pw2wan'
-            self.run_calculator(calc_p2w)
+                # 1) pre-processing Wannier90 calculation
+                calc_w90 = self.new_calculator(block.calc_type, directory=w90_dir,
+                                               **block.w90_kwargs)
+                calc_w90.prefix = 'wann_preproc'
+                calc_w90.command.flags = '-pp'
+                self.run_calculator(calc_w90)
+                utils.system_call(f'rsync -a {calc_w90.directory}/wann_preproc.nnkp {calc_w90.directory}/wann.nnkp')
 
-            # 3) Wannier90 calculation
-            calc_w90 = self.new_calculator('w90_' + typ, directory='wannier/' + typ,
-                                           bands_plot=self.parameters.check_wannierisation)
-            calc_w90.prefix = 'wann'
-            self.run_calculator(calc_w90)
+                # 2) standard pw2wannier90 calculation
+                calc_p2w = self.new_calculator('pw2wannier', directory=w90_dir,
+                                               spin_component=block.spin,
+                                               outdir=calc_pw.parameters.outdir)
+                calc_p2w.prefix = 'pw2wan'
+                self.run_calculator(calc_p2w)
+
+                # 3) Wannier90 calculation
+                bands_plot_dct = {'bands_plot': True} if self.parameters.check_wannierisation else {}
+                calc_w90 = self.new_calculator(block.calc_type, directory=w90_dir,
+                                               **block.w90_kwargs, **bands_plot_dct)
+                if self.parameters.check_wannierisation:
+                    calc_w90.parameters.bands_plot = True
+                calc_w90.prefix = 'wann'
+                self.run_calculator(calc_w90)
+
+            # Merging Hamiltonian files, if necessary
+            for block in self.projections.to_merge():
+                self.merge_hr_files(block, prefix=calc_w90.prefix)
 
         if self.parameters.check_wannierisation:
-            # Run a "bands" calculation
-            calc_pw = self.new_calculator('pw', calculation='bands', kpts=self.kpath)
-            calc_pw.directory = 'wannier'
-            calc_pw.prefix = 'bands'
-            self.run_calculator(calc_pw)
+            # Run a "bands" calculation, making sure we don't overwrite
+            # the scf/nscf tmp files by setting a different prefix
+            calc_pw_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpath)
+            calc_pw_bands.directory = 'wannier'
+            calc_pw_bands.prefix = 'bands'
+            calc_pw_bands.parameters.prefix += '_bands'
+            # Link the save directory so that the bands calculation can use the old density
+            if self.parameters.from_scratch:
+                [src, dest] = [(c.parameters.outdir / c.parameters.prefix).with_suffix('.save')
+                               for c in [calc_pw, calc_pw_bands]]
+
+                shutil.copytree(src, dest)
+            self.run_calculator(calc_pw_bands)
 
             # Select those calculations that generated a band structure
-            selected_calcs = [c for c in self.calculations if 'band structure' in c.results]
+            selected_calcs = [c for c in self.calculations[:-1] if 'band structure' in c.results]
+
+            # Work out the vertical shift to set the valence band edge to zero
+            w90_emp_num_bands = self.projections.num_bands(occ=False)
+            if w90_emp_num_bands > 0:
+                vbe = np.max(calc_pw_bands.results['band structure'].energies[:, :, :-w90_emp_num_bands])
+            else:
+                vbe = np.max(calc_pw_bands.results['band structure'].energies)
 
             # Work out the energy ranges for plotting
-            w90_emp_num_bands = self.master_calc_params['w90_emp'].num_bands
-            valence_edge = np.max(selected_calcs[-1].results['band structure'].energies[:, :, :-w90_emp_num_bands])
-            cond_edge = np.min(selected_calcs[-1].results['band structure'].energies[:, :, -w90_emp_num_bands:])
-            mu = 0.5 * (valence_edge + cond_edge)
-            emin = np.min(selected_calcs[0].results['band structure'].energies) - 1 - mu
-            emax = np.max(selected_calcs[1].results['band structure'].energies) + 1 - mu
+            emin = np.min(selected_calcs[0].results['band structure'].energies) - 1 - vbe
+            emax = np.max(selected_calcs[-1].results['band structure'].energies) + 1 - vbe
 
             # Plot the bandstructures on top of one another
             ax = None
-            labels = ['interpolation (occ)', 'interpolation (emp)', 'explicit']
+            labels = ['explicit'] \
+                + [f'interpolation ({c.directory.name.replace("_",", ").replace("block", "block ")})'
+                   for c in selected_calcs]
             colour_cycle = plt.rcParams["axes.prop_cycle"]()
-            for calc, label in zip(selected_calcs, labels):
+            for calc, label in zip([calc_pw_bands] + selected_calcs, labels):
                 if 'band structure' in calc.results:
                     # Load the bandstructure
                     bs = calc.results['band structure']
 
                     # Unfortunately once a bandstructure object is created you cannot tweak it, so we must alter
                     # this private variable
-                    bs._energies -= mu
+                    bs._energies -= vbe
 
                     # Tweaking the plot aesthetics
                     colours = [next(colour_cycle)['color'] for _ in range(bs.energies.shape[0])]
@@ -187,15 +202,19 @@ class WannierizeWorkflow(Workflow):
                     ax = bs.plot(ax=ax, emin=emin, emax=emax, colors=colours, label=label, **kwargs)
 
             # Move the legend
-            plt.legend(bbox_to_anchor=(1, 1), loc="lower right", ncol=2)
+            lgd = ax.legend(bbox_to_anchor=(1, 1), loc="lower right", ncol=2)
 
-            # Save the comparison to file
-            plt.savefig('interpolated_bandstructure_{}x{}x{}.png'.format(*self.kgrid))
+            # Save the comparison to file (as png and also in editable form)
+            with open('interpolated_bandstructure_{}x{}x{}.fig.pkl'.format(*self.kgrid), 'wb') as fd:
+                pickle.dump(plt.gcf(), fd)
+            # The "bbox_extra_artists" and "bbox_inches" mean that the legend is not cropped out
+            plt.savefig('interpolated_bandstructure_{}x{}x{}.png'.format(*self.kgrid),
+                        bbox_extra_artists=(lgd,), bbox_inches='tight')
 
         return
 
-    def new_calculator(self, calc_type, *args, **kwargs):
-        calc = super().new_calculator(calc_type, *args, **kwargs)
+    def new_calculator(self, calc_type, *args, **kwargs) -> CalcExtType:
+        calc: CalcExtType = super().new_calculator(calc_type, *args, **kwargs)
 
         # Extra tweaks for Wannier90 calculations
         if calc_type.startswith('w90'):
@@ -203,9 +222,67 @@ class WannierizeWorkflow(Workflow):
                 calc.parameters.dis_num_iter = 5000
             if self.parameters.init_orbitals == 'projwfs':
                 calc.parameters.num_iter = 0
+        if calc_type == 'pw2wannier':
+            if self._force_nspin2 and not self.parameters.spin_polarised:
+                calc.parameters.spin_component = 'up'
 
         # Use a unified tmp directory
         if 'outdir' in calc.parameters.valid:
             calc.parameters.outdir = Path('wannier/TMP').resolve()
 
         return calc
+
+    def merge_hr_files(self, block: List[projections.ProjectionBlock], prefix: str = 'wann'):
+        """
+        Merges the hr (Hamiltonian) files of a collection of blocks that share the same filling and spin
+        """
+
+        # Working out the files to read in and where to write out to
+        fnames_in: List[Path] = []
+        for b in block:
+            assert b.directory is not None, 'The block which you are trying to merge is missing a directory; this ' \
+                'should not happen'
+            fnames_in.append(Path('wannier') / b.directory / (prefix + '_hr.dat'))
+        assert b.merge_directory is not None, 'The block which you are trying to merge is missing a ' \
+            'merge_directory; this should not happen'
+        fname_out = Path('wannier') / b.merge_directory / (prefix + '_hr.dat')
+
+        # Reading in each hr file in turn
+        hr_list = []
+        weights_out = None
+        rvect_out = None
+        for fname_in in fnames_in:
+            # Reading the hr file
+            hr, rvect, weights, nrpts = utils.read_hr_file(fname_in)
+
+            # Sanity checking
+            if weights_out is None:
+                weights_out = weights
+            elif weights != weights_out:
+                raise ValueError(
+                    f'{fname_in} contains weights that differ from the other blocks. This should not happen.')
+            if rvect_out is None:
+                rvect_out = rvect
+            elif np.all(rvect != rvect_out):
+                raise ValueError(
+                    f'{fname_in} contains a set of R-vectors that differ from the other blocks. This should not happen.')
+
+            # Reshaping this block of the Hamiltonian in preparation for constructing the block matrix, and storing it
+            num_wann2 = hr.size // nrpts
+            num_wann = int(math.sqrt(num_wann2))
+            hr_list.append(hr.reshape(nrpts, num_wann, num_wann))
+
+        # Constructing the block matrix hr_out which is dimensions (nrpts, num_wann_tot, num_wann_tot)
+        num_wann_tot = sum([hr.shape[-1] for hr in hr_list])
+        hr_out = np.zeros((nrpts, num_wann_tot, num_wann_tot), dtype=complex)
+        start = 0
+        for hr in hr_list:
+            end = start + hr.shape[1]
+            for irpt in range(nrpts):
+                hr_out[irpt, start:end, start:end] = hr[irpt, :, :]
+            start = end
+
+        assert rvect_out is not None
+        assert weights_out is not None
+
+        utils.write_hr_file(fname_out, hr_out, rvect_out.tolist(), weights_out)

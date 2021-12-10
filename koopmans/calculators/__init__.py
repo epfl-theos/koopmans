@@ -1,6 +1,6 @@
 'Calculators for use with koopmans'
 from ._environ import EnvironCalculator
-from ._koopmans_cp import KoopmansCPCalculator
+from ._koopmans_cp import KoopmansCPCalculator, convert_flat_alphas_for_kcp
 from ._koopmans_ham import KoopmansHamCalculator
 from ._koopmans_screen import KoopmansScreenCalculator
 from ._pw import PWCalculator

@@ -211,7 +211,7 @@ class SettingsDict(UserDict):
 
     @property
     def _other_valid_keywords(self):
-        return ['pseudopotentials', 'kpts', 'koffset']
+        return ['pseudopotentials', 'gamma_only', 'kpts', 'koffset']
 
     def todict(self):
         # Construct a minimal representation of this dictionary. Most of the requisite information
@@ -224,6 +224,12 @@ class SettingsDict(UserDict):
                 elif v == self.defaults[k]:
                     continue
             dct[k] = v
+
+        # Make sure if a default is missing entirely (which means it must have been manually wiped) we store this as
+        # key: None
+        for k in self.defaults:
+            if k not in self.data:
+                dct[k] = None
 
         # Adding information required by the json decoder
         dct['__koopmans_name__'] = self.__class__.__name__

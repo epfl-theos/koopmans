@@ -38,11 +38,19 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, CalculatorABC):
         self.alphas = alphas
 
     def write_alphas(self):
-        # kc_ham.x takes a single file for the alphas (rather than splitting between filled/empty) and does not have
-        # duplicated results for spin up then spin down
+        # self.alphas is a list of alpha values indexed by spin index and then band index. Meanwhile, kc_ham.x takes a
+        # single file for the alphas (rather than splitting between filled/empty) and does not have two columns for
+        # spin up then spin down
         assert self.alphas is not None, 'You have not provided screening parameters to this calculator'
-        filling = [True for _ in range(len(self.alphas))]
-        utils.write_alpha_file(self.directory, self.alphas, filling)
+        if not len(self.alphas) == 1:
+            raise NotImplementedError('KoopmansHamCalculator yet to be implemented for spin-polarised systems')
+        [alphas] = self.alphas
+        filling = [True for _ in range(len(alphas))]
+        utils.write_alpha_file(self.directory, alphas, filling)
+
+    def calculate(self):
+        self.write_alphas()
+        super().calculate()
 
     def get_k_point_weights(self):
         utils.warn('Need to properly define k-point weights')
