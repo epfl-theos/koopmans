@@ -102,7 +102,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             with open(f'{self.prefix}{self.ext_out}', 'w') as f_out:
                 self.f_out = f_out
 
-                self.f_out.write('\nUNFOLDING & INTERPOLATION\n\n')
+                self.f_out.write('UNFOLDING & INTERPOLATION\n\n')
 
                 """
                  1) Parse data:
@@ -116,7 +116,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 self.parse_hr()
                 self.parse_phases()
 
-                self.f_out.write(f'\tParsing input in:{time() - reset:25.3f} sec\n')
+                self.f_out.write(f'\tParsing input in:{time() - reset:27.3f} sec\n')
                 reset = time()
 
                 """
@@ -143,7 +143,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 walltime = time() - start
                 self.results['walltime'] = walltime
                 self.f_out.write(f'\n\tTotal time: {walltime:32.3f} sec\n')
-                self.f_out.write('\nALL DONE\n\n')
+                self.f_out.write('\nALL DONE')
 
                 self.results['job done'] = True
 
@@ -431,6 +431,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 # Remove the kpoints information from the settings dict
                 kgrid = settings.pop('kgrid')
                 kpath = settings.pop('kpath')
+                _ = settings.pop('kpts')
 
                 # Converting Paths to JSON-serialisable strings
                 for k in self.parameters.are_paths:
@@ -441,10 +442,10 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 bigdct = {"workflow": {"task": "ui"}, "ui": settings}
 
                 # Provide the bandpath information in the form of a string
-                bigdct['setup'] = {'kpoints': {'kpath': kpath.path, 'kgrid': kgrid}}
+                bigdct['setup'] = {'k_points': {'kpath': kpath.path, 'kgrid': kgrid}}
 
                 # We also need to provide a cell so the explicit kpath can be reconstructed from the string alone
-                bigdct['setup']['cell_parameters'] = utils.construct_cell_parameters_block(atoms)
+                bigdct['setup']['cell_parameters'] = utils.construct_cell_parameters_block(atoms) 
 
                 json.dump(bigdct, fd, indent=2)
 
@@ -508,7 +509,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         # Step 1: map the WFs
         if self.parameters.do_map:
             self.map_wannier()
-            self.f_out.write(f'\tBuilding the map |i> --> |Rn> in:\t{time()-start_time:.3f} sec\n')
+            self.f_out.write(f'\tBuilding the map |i> --> |Rn> in:{time()-start_time:11.3f} sec\n')
         reset = time()
 
         # Step 2: calculate the electronic bands along kpath
@@ -560,7 +561,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             assert count == self.parameters.num_wann, f'Found {count} WFs in the {rvect} cell'
 
         # permute phases and Hamiltonian matrix elements in order to follow the new order of WFs
-        hr = [self.hr[i,j] for i in index for j in index]
+        hr = [self.hr[i, j] for i in index for j in index]
         if self.phases:
             self.phases = [self.phases[i] for i in index]
 
@@ -625,7 +626,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         return
 
-    def correct_phase(self):
+    def correct_phase(self) -> ArrayLike:
         """
         correct_phase calculate the correct phase factor to put in the Fourier transform
                       to get the interpolated k-space hamiltonian. The correction consists
@@ -642,7 +643,6 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         if self.parameters.use_ws_distance:
             # create an array containing all the distances between reference (R=0) WFs and all the other WFs:
             # 1) accounting for their positions within the unit cell
-            import ipdb; ipdb.set_trace()
             wf_dist = np.concatenate([[c] * self.parameters.num_wann_sc
                                      for c in self.centers[:self.parameters.num_wann]]) - \
                       np.concatenate([self.centers] * self.parameters.num_wann)
