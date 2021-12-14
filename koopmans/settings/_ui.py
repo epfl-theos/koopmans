@@ -96,13 +96,6 @@ class UnfoldAndInterpolateSettingsDict(SettingsDictWithChecks):
     def _other_valid_keywords(self):
         return ['kgrid', 'kpath']
 
-    def _check_before_setitem(self, key, value):
-        # Additional sanity checks
-        if self.do_map and key == 'w90_calc' and value.lower() != 'sc':
-            raise ValueError('do_map = True is incompatible with w90_calc = "pc"')
-
-        return super()._check_before_setitem(key, value)
-
     def __setitem__(self, key: str, value: Any):
         if key == 'w90_calc':
             value = value.lower()

@@ -182,13 +182,13 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
     def get_fermi_level(self):
         return 0
 
-    def parse_w90(self):
+    def parse_w90(self) -> None:
         '''
         centers : centers of WFs (in PC crystal units)
         spreads : spreads of WFs (in Ang^2)
         '''
 
-        if self.centers and self.spreads:
+        if len(self.centers) > 0 and len(self.spreads) > 0:
             num_wann = len(self.centers)
         else:
             with open(self.parameters.w90_seedname.with_suffix('.wout'), 'r') as ifile:
@@ -216,25 +216,21 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         if self.parameters.w90_input_sc:
             self.parameters.num_wann_sc = num_wann
             self.parameters.num_wann = num_wann // np.prod(self.parameters.kgrid)
-
         else:
             self.parameters.num_wann = num_wann
             self.parameters.num_wann_sc = num_wann * np.prod(self.parameters.kgrid)
 
-        for n in range(num_wann):
-            self.centers[n] = self.centers[n] / np.linalg.norm(self.atoms.cell[0])
-            self.centers[n] = crys_to_cart(self.centers[n], self.atoms.acell.reciprocal(), -1)
+        self.centers /= np.linalg.norm(self.atoms.cell[0])
+        self.centers = crys_to_cart(self.centers, self.atoms.acell.reciprocal(), -1)
 
         # generate the centers and spreads of all the other (R/=0) WFs
-        if not self.parameters.w90_input_sc:
-            for rvect in self.Rvec[1:]:
-                for n in range(self.parameters.num_wann):
-                    self.centers.append(self.centers[n] + rvect)
-                    self.spreads.append(self.spreads[n])
+        centers = [self.centers + rvec for rvec in self.Rvec]
+        self.centers = np.concatenate(centers)
+        self.spreads *= len(self.Rvec)
 
         return
 
-    def parse_hr(self):
+    def parse_hr(self) -> None:
         """
         parse_hr reads the hamiltonian file passed as argument and it sets it up
         as self.hr. It also reads in the coarse and smooth Hamiltonians, if smooth
@@ -287,7 +283,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         return
 
-    def parse_phases(self):
+    def parse_phases(self) -> None:
         """
         parse_phases gets the phases of WFs from the file 'wf_phases.dat'. If the file
                      is not found a warning is print out and the WFs phases are ignored.
@@ -303,7 +299,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             self.phases = []
         return
 
-    def print_centers(self, centers=None):
+    def print_centers(self, centers=None) -> None:
         """
         print_centers simply prints out the centers in the following Xcrysden-readable format:
 
@@ -324,7 +320,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         return
 
-    def write_results(self, directory: Optional[Path] = None):
+    def write_results(self, directory: Optional[Path] = None) -> None:
         """
         write_results calls write_bands and write_dos if the DOS was calculated
         """
@@ -338,7 +334,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         return
 
-    def write_bands(self, directory=None):
+    def write_bands(self, directory=None) -> None:
         """
         write_bands prints the interpolated bands, in the QE format, in a file called
                     'bands_interpolated.dat'.
@@ -405,7 +401,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             self.results['band structure'] = BandStructure(path=self.parameters.kpath, energies=[np.transpose(bands)])
             self.calc_dos()
 
-    def write_dos(self, directory=None):
+    def write_dos(self, directory=None) -> None:
         """
         write_dos prints the DOS in a file called 'dos_interpolated.dat', in a format (E , DOS(E))
 
@@ -422,7 +418,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         return
 
-    def write_input(self, atoms: Atoms):
+    def write_input(self, atoms: Atoms) -> None:
         """
         write_input writes out a JSON file containing the settings used for the calculation. This "input" file is
         never actually used in a standard calculation, but it is useful for debugging
@@ -452,7 +448,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
                 json.dump(bigdct, fd, indent=2)
 
-    def read_input(self, input_file: Optional[Path] = None):
+    def read_input(self, input_file: Optional[Path] = None) -> None:
         """
         read_input reads in the settings from a JSON-formatted input file and loads them onto this calculator (useful
         for restarting)
@@ -499,7 +495,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         return
 
-    def interpolate(self, start_time):
+    def interpolate(self, start_time) -> None:
         """
         interpolate is the main program in this module and it calls consecutively
                     the three independent functions:
@@ -527,7 +523,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         return
 
-    def map_wannier(self):
+    def map_wannier(self) -> None:
         """
         map_wannier builds the map |i> --> |Rn> between the WFs in the SC and in the PC.
         """
@@ -535,60 +531,46 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         centers = []
         spreads = []
         index = []
-        num_wann = 0
 
         # here we identify the WFs within the R=0 cell
+        self.centers /= self.parameters.kgrid
+        self.centers -= np.floor(self.centers)
+        self.centers *= self.parameters.kgrid
         for n in range(self.parameters.num_wann_sc):
-            # shift the WFs within the SC
-            self.centers[n] = self.centers[n] / self.parameters.kgrid
-            self.centers[n] = self.centers[n] - np.floor(self.centers[n])
-
-            # converting centers from crystal units of SC to crystal units of PC
-            self.centers[n] = self.centers[n] * self.parameters.kgrid
-
             if all([x - 1 < 1.e-3 for x in self.centers[n]]):
                 centers.append(self.centers[n])
                 spreads.append(self.spreads[n])
                 index.append(n)
-                num_wann += 1
 
         # check on the WFs found in the R=0 cell
-        assert num_wann == self.parameters.num_wann, 'Did not find the right number of WFs in the R=0 cell'
+        assert len(centers) == self.parameters.num_wann, 'Did not find the right number of WFs in the R=0 cell'
 
-        # here we identify with |Rn> the WFs in the rest of the SC
+        # here we identify with |Rn> the WFs in the rest of the SC, by comparing centers and spreads
         # the WFs are now ordered as (R0,1),(R0,2),...,(R0,n),(R1,1),...
         for rvect in self.Rvec[1:]:
             count = 0
             for m in range(self.parameters.num_wann):
                 for n in range(self.parameters.num_wann_sc):
-                    wf_dist = self.centers[n] - centers[m]
-                    if (np.linalg.norm(wf_dist - rvect) < 1.e-3) and (abs(self.spreads[n] - spreads[m] < 1.e-3)):
+                    if all(abs(self.centers[n] - centers[m] - rvect) < 1.e-3) and \
+                       abs(self.spreads[n] - spreads[m]) < 1.e-3:
                         centers.append(self.centers[n])
                         spreads.append(self.spreads[n])
                         index.append(n)
                         count += 1
-
             assert count == self.parameters.num_wann, f'Found {count} WFs in the {rvect} cell'
 
-        # redefine phases and hr in order to follow the new order of WFs
+        # permute phases and Hamiltonian matrix elements in order to follow the new order of WFs
+        hr = [self.hr[i,j] for i in index for j in index]
         if self.phases:
-            phases = []
-            for n in range(self.parameters.num_wann_sc):
-                phases.append(self.phases[index[n]])
-            self.phases = phases
+            self.phases = [self.phases[i] for i in index]
 
-        hr = np.zeros((self.parameters.num_wann_sc, self.parameters.num_wann_sc), dtype=complex)
-        for n in range(self.parameters.num_wann_sc):
-            for m in range(self.parameters.num_wann_sc):
-                hr[m, n] = self.hr[index[m], index[n]]
-
-        self.centers = centers
-        self.spreads = spreads
-        self.hr = hr
+        self.centers = np.array(centers, dtype=float)
+        self.spreads = np.array(spreads, dtype=float)
+        self.hr = np.array(hr, dtype=complex).reshape(self.parameters.num_wann_sc, self.parameters.num_wann_sc)
 
         return
 
-    def calc_bands(self):
+    def calc_bands(self) -> None:
         """
         calc_bands interpolates the k-space hamiltonian along the input path, by Fourier
                    transforming the Wannier hamiltonian H(R). The function generates two
@@ -660,9 +642,10 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         if self.parameters.use_ws_distance:
             # create an array containing all the distances between reference (R=0) WFs and all the other WFs:
             # 1) accounting for their positions within the unit cell
+            import ipdb; ipdb.set_trace()
             wf_dist = np.concatenate([[c] * self.parameters.num_wann_sc
-                                     for c in self.centers[:self.parameters.num_wann]]) \
-            - np.array(self.centers * self.parameters.num_wann)
+                                     for c in self.centers[:self.parameters.num_wann]]) - \
+                      np.concatenate([self.centers] * self.parameters.num_wann)
         else:
             # 2) considering only the distance between the unit cells they belong to
             wf_dist = np.array(np.concatenate([[rvec] * self.parameters.num_wann for rvec in self.Rvec]).tolist()
