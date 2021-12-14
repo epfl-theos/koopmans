@@ -7,18 +7,17 @@ Written by Riccardo De Gennaro Nov 2020
 
 """
 
-import pickle
-from ._generic import Workflow
-from koopmans import utils, projections, calculators
-from koopmans.pseudopotentials import nelec_from_pseudos
-import matplotlib.pyplot as plt
 import numpy as np
 import math
-import shutil
 from pathlib import Path
+import pickle
+import shutil
 from typing import List, TypeVar
-import matplotlib
-matplotlib.use('Agg')
+import koopmans.mpl_config
+import matplotlib.pyplot as plt
+from koopmans import utils, projections, calculators
+from koopmans.pseudopotentials import nelec_from_pseudos
+from ._generic import Workflow
 
 
 CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
@@ -259,13 +258,13 @@ class WannierizeWorkflow(Workflow):
             if weights_out is None:
                 weights_out = weights
             elif weights != weights_out:
-                raise ValueError(
-                    f'{fname_in} contains weights that differ from the other blocks. This should not happen.')
+                raise ValueError(f'{fname_in} contains weights that differ from the other blocks. This should not '
+                                 'happen.')
             if rvect_out is None:
                 rvect_out = rvect
             elif np.all(rvect != rvect_out):
-                raise ValueError(
-                    f'{fname_in} contains a set of R-vectors that differ from the other blocks. This should not happen.')
+                raise ValueError(f'{fname_in} contains a set of R-vectors that differ from the other blocks. This '
+                                 'should not happen.')
 
             # Reshaping this block of the Hamiltonian in preparation for constructing the block matrix, and storing it
             num_wann2 = hr.size // nrpts

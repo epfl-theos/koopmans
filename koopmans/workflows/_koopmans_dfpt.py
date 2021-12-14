@@ -6,14 +6,13 @@ Written by Edward Linscott Feb 2021
 
 """
 
+import os
+import numpy as np
+import koopmans.mpl_config
 from koopmans.bands import Bands
 from koopmans.calculators import Wann2KCCalculator, KoopmansHamCalculator
 from koopmans import utils, io
 from ._generic import Workflow
-import os
-import numpy as np
-import matplotlib
-matplotlib.use('Agg')
 
 
 class KoopmansDFPTWorkflow(Workflow):
