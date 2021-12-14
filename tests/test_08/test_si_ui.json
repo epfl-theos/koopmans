@@ -55,7 +55,7 @@
     "kc_ham_file": "input_files/kc_ham.dat",
     "w90_seedname": "input_files/wann",
     "w90_calc": "pc",
-    "do_map": false,
+    "do_map": true,
     "use_ws_distance": true,
     "dft_ham_file": "input_files/dft_ham.dat",
     "dft_smooth_ham_file": "input_files/smooth_dft_ham.dat",
