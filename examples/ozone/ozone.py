@@ -5,8 +5,7 @@ Written by Edward Linscott, Jun 2021
 '''
 
 import numpy as np
-import matplotlib
-matplotlib.use('Agg')
+import koopmans.mpl_config
 import matplotlib.pyplot as plt
 from koopmans import utils, io
 

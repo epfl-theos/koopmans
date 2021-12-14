@@ -5,8 +5,7 @@ import argparse
 import subprocess
 import textwrap
 from types import ModuleType
-import matplotlib
-matplotlib.use('Agg')
+import koopmans.mpl_config
 import ase
 from koopmans.settings import WorkflowSettingsDict
 from koopmans.calculators import qe_bin_directory
