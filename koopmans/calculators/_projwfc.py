@@ -4,7 +4,12 @@ projwfc.x calculator module for koopmans
 
 """
 
-from ._utils import CalculatorExt, CalculatorABC
+import os
+from ase import Atoms
+from koopmans.commands import Command, ParallelCommand
+from koopmans.settings import ProjwfcSettingsDict
+from ase.calculators.espresso import Projwfc
+from ._utils import CalculatorExt, CalculatorABC, qe_bin_directory
 
 
 class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
@@ -22,7 +27,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
 
         self.results_for_qc = ['energy']
         if not isinstance(self.command, Command):
-            self.command = ParallelCommandWithPostfix(os.environ.get(
+            self.command = ParallelCommand(os.environ.get(
                 'ASE_PROJWFC_COMMAND', str(qe_bin_directory) + os.path.sep + self.command))
 
         self.results_for_qc = []
