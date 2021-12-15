@@ -440,8 +440,10 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 # Provide the bandpath information in the form of a string
                 bigdct['setup'] = {'k_points': {'kpath': kpath.path, 'kgrid': kgrid}}
 
-                # We also need to provide a cell so the explicit kpath can be reconstructed from the string alone
+                # We also need to provide the cell, the atomic positions and species, as well as the pseudo_dir
                 bigdct['setup']['cell_parameters'] = utils.construct_cell_parameters_block(atoms)
+                bigdct['setup']['atomic_species'] = utils.construct_atomic_species_block(atoms)
+                bigdct['setup']['atomic_positions'] = utils.construct_atomic_positions_block(atoms)
 
                 json.dump(bigdct, fd, indent=2)
 
