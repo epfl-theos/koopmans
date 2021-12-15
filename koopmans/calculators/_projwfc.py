@@ -25,7 +25,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         Projwfc.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
 
-        self.results_for_qc = ['energy']
+        self.results_for_qc = ['DOS']
         if not isinstance(self.command, Command):
             self.command = ParallelCommand(os.environ.get(
                 'ASE_PROJWFC_COMMAND', str(qe_bin_directory) + os.path.sep + self.command))
