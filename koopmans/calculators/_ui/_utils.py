@@ -8,10 +8,10 @@ Integrated within koopmans by Edward Linscott Jan 2021
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
-from typing import List
+from typing import TypeVar, Union, List
 
 
-def crys_to_cart(vec: ArrayLike, trmat: NDArray, typ: int) -> ArrayLike:
+def crys_to_cart(vec: NDArray[np.float_], trmat: NDArray[np.float_], typ: int) -> NDArray[np.float_]:
     """
     Function to transform the numpy array vec (or a list/array of numpy arrays) from
     crystal to cartesian (in alat units), or viceversa, as it is done in QE: typ=+1
@@ -29,13 +29,10 @@ def crys_to_cart(vec: ArrayLike, trmat: NDArray, typ: int) -> ArrayLike:
     else:
         raise ValueError(f'typ = {typ} in crys_to_cart call must be either +1 or -1')
 
-    if type(vec) == list:
-        return list(vec_tr)
-    else:
-        return vec_tr
+    return vec_tr
 
 
-def extract_hr(hr: ArrayLike, rvect: ArrayLike, nr1: int, nr2: int, nr3: int) -> NDArray[np.complex_]:
+def extract_hr(hr: NDArray[np.complex_], rvect: NDArray[np.int_], nr1: int, nr2: int, nr3: int) -> NDArray[np.complex_]:
     """
     Function to select the Wannier Hamiltonian only on the primitive cell R-vectors.
     The Hamiltonian coming from a Wannier90 calculation with k-points is indeed
@@ -59,15 +56,14 @@ def extract_hr(hr: ArrayLike, rvect: ArrayLike, nr1: int, nr2: int, nr3: int) ->
 
     assert len(hr_new) == np.prod(rgrid), f'Wrong number ({len(hr_new)}) of R-vectors in extract_hr'
 
-    hr_new = np.array(hr_new, dtype=complex)
-    return hr_new
+    return np.array(hr_new, dtype=complex)
 
 
-def latt_vect(nr1: int, nr2: int, nr3: int) -> List:
+def latt_vect(nr1: int, nr2: int, nr3: int) -> NDArray[np.int_]:
     """
     Function for generating lattice vectors {R} of the primitive cell
     commensurate to the supercell. The R-vectors are given in crystal units.
     """
 
-    Rvec = [np.array((i, j, k)) for i in range(nr1) for j in range(nr2) for k in range(nr3)]
+    Rvec = [[i, j, k] for i in range(nr1) for j in range(nr2) for k in range(nr3)]
     return np.array(Rvec)

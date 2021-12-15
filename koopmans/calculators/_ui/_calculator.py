@@ -10,7 +10,7 @@ import json
 from time import time
 from ase.geometry.cell import crystal_structure_from_cell
 import numpy as np
-from numpy.typing import ArrayLike
+from numpy.typing import ArrayLike, NDArray
 from typing import Union, List, Optional
 from pathlib import Path
 from datetime import datetime
@@ -46,15 +46,16 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         self.atoms.calc = self
 
         # Intermediate variables
-        self.centers: ArrayLike = []
-        self.spreads: ArrayLike = []
-        self.phases: ArrayLike = []
-        self.hr: ArrayLike = []
-        self.hr_smooth: ArrayLike = []
-        self.hk: ArrayLike = []
-        self.Rvec: ArrayLike = []
-        self.Rsmooth: ArrayLike = []
-        self.wRs: ArrayLike = []
+        self.centers: NDArray[np.float_] = np.array([])
+        self.spreads: List[float] = []
+        self.phases: List[complex] = []
+        self.hr: NDArray[np.complex_] = np.array([])
+        self.hr_coarse: NDArray[np.complex_] = np.array([])
+        self.hr_smooth: NDArray[np.complex_] = np.array([])
+        self.hk: NDArray[np.complex_] = np.array([])
+        self.Rvec: NDArray[np.int_] = np.array([])
+        self.Rsmooth: NDArray[np.int_] = np.array([])
+        self.wRs: List[int] = []
 
     @classmethod
     def fromfile(cls, filenames: Union[str, Path, List[str], List[Path]]) -> 'UnfoldAndInterpolateCalculator':
@@ -194,8 +195,8 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             with open(self.parameters.w90_seedname.with_suffix('.wout'), 'r') as ifile:
                 lines = ifile.readlines()
 
-            self.centers = []
-            self.spreads = []
+            centers = []
+            spreads = []
             count = 0
 
             for line in lines:
@@ -204,9 +205,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 if count > 0 and count <= num_wann:
                     start = line.find('(')
                     end = line.find(')')
-                    self.centers.append(np.array(line[start + 1:end].replace(',', ' ').split(),
+                    centers.append(np.array(line[start + 1:end].replace(',', ' ').split(),
                                                  dtype=float))
-                    self.spreads.append(float(line.split()[-1]))
+                    spreads.append(float(line.split()[-1]))
                     count += 1
                 if 'Final State' in line:
                     count += 1
@@ -220,13 +221,12 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             self.parameters.num_wann = num_wann
             self.parameters.num_wann_sc = num_wann * np.prod(self.parameters.kgrid)
 
-        self.centers /= np.linalg.norm(self.atoms.cell[0])
+        self.centers = centers / np.linalg.norm(self.atoms.cell[0])
         self.centers = crys_to_cart(self.centers, self.atoms.acell.reciprocal(), -1)
 
         # generate the centers and spreads of all the other (R/=0) WFs
-        centers = [self.centers + rvec for rvec in self.Rvec]
-        self.centers = np.concatenate(centers)
-        self.spreads *= len(self.Rvec)
+        self.centers = np.concatenate([self.centers + rvec for rvec in self.Rvec])
+        self.spreads = spreads * len(self.Rvec)
 
         return
 
@@ -299,7 +299,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             self.phases = []
         return
 
-    def print_centers(self, centers=None) -> None:
+    def print_centers(self, centers: NDArray[np.float_] = np.array([])) -> None:
         """
         print_centers simply prints out the centers in the following Xcrysden-readable format:
 
@@ -312,7 +312,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         """
 
-        if centers is None:
+        if len(centers) == 0:
             centers = self.centers
 
         for n in range(self.parameters.num_wann_sc):
@@ -353,14 +353,11 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             dxmod = np.linalg.norm(kvec[ik] - kvec[ik - 1])
             if ik == 1:
                 dxmod_save = dxmod
-
             if dxmod > 5 * dxmod_save:
                 kx.append(kx[ik - 1])
-
             elif dxmod > 1.e-4:
                 kx.append(kx[ik - 1] + dxmod)
                 dxmod_save = dxmod
-
             else:
                 kx.append(kx[ik - 1] + dxmod)
 
@@ -372,10 +369,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 for k, energy in zip(kx, energies):
                     ofile.write(f'\n{k:16.8f}{energy:16.8f}')
                 ofile.write('\n')
-
         return
 
-    def read_bands(self, directory=None):
+    def read_bands(self, directory=None) -> None:
         """
         read_bands reads the interpolated bands, in the QE format, in a file called
                    'bands_interpolated.dat'
@@ -388,7 +384,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             directory = self.directory
 
         band_file = f'{directory}/bands_interpolated.dat'
-        bands = [[]]
+        bands: List[List] = [[]]
         if os.path.isfile(band_file):
             with open(band_file, 'r') as f:
                 flines = f.readlines()
@@ -566,7 +562,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             self.phases = [self.phases[i] for i in index]
 
         self.centers = np.array(centers, dtype=float)
-        self.spreads = np.array(spreads, dtype=float)
+        self.spreads = spreads
         self.hr = np.array(hr, dtype=complex).reshape(self.parameters.num_wann_sc, self.parameters.num_wann_sc)
 
         return
@@ -582,7 +578,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         """
 
         # when smooth interpolation is on, we remove the DFT part from hr
-        hr = np.array(self.hr[:, :self.parameters.num_wann], dtype=complex)
+        hr = self.hr[:, :self.parameters.num_wann]
         if self.parameters.do_smooth_interpolation:
             hr = hr - self.hr_coarse
         hr = hr.reshape(len(self.Rvec), self.parameters.num_wann, self.parameters.num_wann)
@@ -626,7 +622,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         return
 
-    def correct_phase(self) -> ArrayLike:
+    def correct_phase(self) -> NDArray[np.complex_]:
         """
         correct_phase calculate the correct phase factor to put in the Fourier transform
                       to get the interpolated k-space hamiltonian. The correction consists
