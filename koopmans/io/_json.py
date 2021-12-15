@@ -19,7 +19,7 @@ from koopmans import utils, bands, projections
 from koopmans.pseudopotentials import set_up_pseudos, nelec_from_pseudos
 from koopmans.settings import KoopmansCPSettingsDict, KoopmansHamSettingsDict, KoopmansScreenSettingsDict, \
     PWSettingsDict, PW2WannierSettingsDict, UnfoldAndInterpolateSettingsDict, Wann2KCSettingsDict, \
-    Wannier90SettingsDict, WorkflowSettingsDict
+    Wannier90SettingsDict, WorkflowSettingsDict, ProjwfcSettingsDict
 from koopmans.utils import read_atomic_species, read_atomic_positions, read_cell_parameters, read_kpoints_block, \
     construct_cell_parameters_block
 from koopmans import workflows
@@ -200,6 +200,7 @@ def read_json(fd: TextIO, override={}):
                         'kc_screen': KoopmansScreenSettingsDict,
                         'wann2kc': Wann2KCSettingsDict,
                         'pw': PWSettingsDict,
+                        'projwfc': ProjwfcSettingsDict,
                         'pw2wannier': PW2WannierSettingsDict,
                         'ui': UnfoldAndInterpolateSettingsDict,
                         'ui_occ': UnfoldAndInterpolateSettingsDict,
