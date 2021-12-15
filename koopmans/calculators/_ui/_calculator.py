@@ -206,7 +206,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                     start = line.find('(')
                     end = line.find(')')
                     centers.append(np.array(line[start + 1:end].replace(',', ' ').split(),
-                                                 dtype=float))
+                                            dtype=float))
                     spreads.append(float(line.split()[-1]))
                     count += 1
                 if 'Final State' in line:

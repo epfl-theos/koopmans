@@ -733,7 +733,7 @@ class KoopmansDSCFWorkflow(Workflow):
         for calc_presets in ['occ', 'emp']:
             calc = self.new_ui_calculator(calc_presets)
             calc.centers = np.array(center for c in w90_calcs for center in c.results['centers']
-                            if calc_presets in c.directory.name)
+                                    if calc_presets in c.directory.name)
             calc.spreads = [spread for c in w90_calcs for spread in c.results['spreads']
                             if calc_presets in c.directory.name]
             self.run_calculator(calc, enforce_ss=False)
