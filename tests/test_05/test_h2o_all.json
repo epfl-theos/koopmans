@@ -16,7 +16,7 @@
             "ecutrho"               : "4*ecutwfc"
         },
         "electrons": {
-            "empty_states_nbnd"     : 1
+            "nbnd"                  : 5
         },
         "atomic_species": {
             "species" : [["H", 1.0, "H_ONCV_PBE-1.0.upf"],["O", 1.0, "O_ONCV_PBE-1.0.upf"]]

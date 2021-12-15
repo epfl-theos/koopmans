@@ -10,9 +10,6 @@
         "control": {
             "pseudo_dir"            : "../../pseudos/"
         },
-        "electrons": {
-            "empty_states_nbnd"     : 0
-        },
         "system": {
             "ecutwfc"               : 20.0,
             "ecutrho"               : "4*ecutwfc"
