@@ -153,6 +153,7 @@ class WannierizeWorkflow(Workflow):
             calc_pw_bands.directory = 'wannier'
             calc_pw_bands.prefix = 'bands'
             calc_pw_bands.parameters.prefix += '_bands'
+
             # Link the save directory so that the bands calculation can use the old density
             if self.parameters.from_scratch:
                 [src, dest] = [(c.parameters.outdir / c.parameters.prefix).with_suffix('.save')
@@ -160,6 +161,11 @@ class WannierizeWorkflow(Workflow):
 
                 shutil.copytree(src, dest)
             self.run_calculator(calc_pw_bands)
+
+            # Marija <- here add a projwfc.x calculation, and extract the pDOS
+            calc_projwfc = self.new_calculator('projwfc')
+            self.run_calculator(calc_projwfc)
+            # afterwards we extract the DOS from calc_projwfc.results['DOS']
 
             # Select those calculations that generated a band structure
             selected_calcs = [c for c in self.calculations[:-1] if 'band structure' in c.results]
