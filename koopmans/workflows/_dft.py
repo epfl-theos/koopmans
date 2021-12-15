@@ -32,7 +32,7 @@ class DFTCPWorkflow(Workflow):
 
         if calc.parameters.maxiter is None:
             calc.parameters.maxiter = 300
-        if calc.parameters.empty_states_nbnd is not None and calc.parameters.empty_states_nbnd > 0:
+        if calc.has_empty_states():
             calc.parameters.do_outerloop_empty = True
             if calc.parameters.empty_states_maxstep is None:
                 calc.parameters.empty_states_maxstep = 300

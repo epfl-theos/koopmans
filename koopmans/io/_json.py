@@ -88,7 +88,7 @@ def read_setup_dict(dct):
 
     set_up_pseudos(calc)
 
-    # If they are missing, fill the nelec/nelup/neldw field using information contained
+    # If they are missing, fill the nelec/nelup/neldw fields using information contained
     # in the pseudopotential files
     if 'nelec' not in calc.parameters:
         nelec = nelec_from_pseudos(calc.atoms, calc.parameters.pseudopotentials, calc.parameters.pseudo_dir)
@@ -116,7 +116,10 @@ def read_setup_dict(dct):
 
     # Work out the number of filled and empty bands
     n_filled = nelec // 2 + nelec % 2
-    n_empty = calc.parameters.get('empty_states_nbnd', 0)
+    if 'nbnd' in calc.parameters:
+        n_empty = calc.parameters.nbnd - n_filled
+    else:
+        n_empty = 0
 
     # Separamting the output into atoms, parameters, and psp+kpoint information
     atoms = calc.atoms

@@ -10,7 +10,7 @@ Split off from workflow.py Oct 2020
 import numpy as np
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 from ase.spectrum.band_structure import BandStructure
 from koopmans import utils
 from koopmans.settings import KoopmansCPSettingsDict
@@ -64,15 +64,12 @@ class KoopmansDSCFWorkflow(Workflow):
                     nbands_emp = self.master_calc_params['pw'].nbnd - nbands_occ
 
                 # Check the number of empty states has been correctly configured
-                if kcp_params.empty_states_nbnd == 0:
-                    # 0 is the default value
-                    kcp_params.empty_states_nbnd = nbands_emp
-                elif kcp_params.empty_states_nbnd != nbands_emp:
-                    if self.parameters.spin_polarised:
-                        raise NotImplementedError(
-                            'TODO: add support for different numbers of empty states for spin-polarised systems')
+                if kcp_params.nbnd is None:
+                    if nbands_emp != 0:
+                        kcp_params.nbnd = nbands_occ + nbands_emp
+                elif kcp_params.nbnd != nbands_occ + nbands_emp:
                     raise ValueError('The number of empty states are inconsistent. If you have provided '
-                                     '"empty_states_nbnd" explicitly, check that it matches with the number of '
+                                     '"nbnd" explicitly to the kcp calculator, check that it matches with the number of '
                                      'empty projections/bands in your system.')
 
             # Populating self.parameters.orbital_groups if needed
@@ -81,8 +78,8 @@ class KoopmansDSCFWorkflow(Workflow):
             if self.parameters.orbital_groups is None:
                 orbital_groups: List[List[int]] = []
                 i_start = 0
-                for i_spin, nelec in enumerate(nelecs):
-                    i_end = i_start + nelec + kcp_params.empty_states_nbnd - 1
+                for nelec in nelecs:
+                    i_end = i_start + kcp_params.get('nbnd', nelec) - 1
                     orbital_groups.append(list(range(i_start, i_end + 1)))
                     i_start = i_end
                 self.parameters.orbital_groups = orbital_groups
@@ -108,12 +105,22 @@ class KoopmansDSCFWorkflow(Workflow):
 
         # Constructing the arrays required to initialise a Bands object
         if self.parameters.spin_polarised:
-            filling = [[True for _ in range(kcp_params.nelup)] + [False for _ in range(kcp_params.empty_states_nbnd)],
-                       [True for _ in range(kcp_params.neldw)] + [False for _ in range(kcp_params.empty_states_nbnd)]]
+            if 'nbnd' in kcp_params:
+                n_emp_up = kcp_params.nbnd - kcp_params.nelup
+                n_emp_dw = kcp_params.nbnd - kcp_params.neldw
+            else:
+                n_emp_up = 0
+                n_emp_dw = 0
+            filling = [[True for _ in range(kcp_params.nelup)] + [False for _ in range(n_emp_up)],
+                       [True for _ in range(kcp_params.neldw)] + [False for _ in range(n_emp_dw)]]
             groups = self.parameters.orbital_groups
         else:
+            if 'nbnd' in kcp_params:
+                n_emp = kcp_params.nbnd - kcp_params.nelec // 2
+            else:
+                n_emp = 0
             filling = [[True for _ in range(kcp_params.nelec // 2)]
-                       + [False for _ in range(kcp_params.empty_states_nbnd)] for _ in range(2)]
+                       + [False for _ in range(n_emp)] for _ in range(2)]
             # self.parameters.orbital_groups does not have a spin index
             if self.parameters.orbital_groups is None:
                 groups = None
@@ -159,7 +166,7 @@ class KoopmansDSCFWorkflow(Workflow):
     def convert_kcp_to_supercell(self):
         # Multiply all extensive KCP settings by the appropriate prefactor
         prefactor = np.prod(self.kgrid)
-        for attr in ['nelec', 'nelup', 'neldw', 'empty_states_nbnd', 'conv_thr', 'esic_conv_thr']:
+        for attr in ['nelec', 'nelup', 'neldw', 'nbnd', 'conv_thr', 'esic_conv_thr']:
             value = getattr(self.master_calc_params['kcp'], attr, None)
             if value is not None:
                 setattr(self.master_calc_params['kcp'], attr, prefactor * value)
@@ -216,7 +223,7 @@ class KoopmansDSCFWorkflow(Workflow):
             calc = self.calculations[-1]
             savedir = f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
             utils.system_call(f'cp {savedir}/evc01.dat {savedir}/evc02.dat')
-            if calc.parameters.empty_states_nbnd is not None and calc.parameters.empty_states_nbnd > 0:
+            if calc.has_empty_states():
                 utils.system_call(f'cp {savedir}/evc0_empty1.dat {savedir}/evc0_empty2.dat')
 
         self.print('Calculating screening parameters', style='heading')
@@ -274,8 +281,9 @@ class KoopmansDSCFWorkflow(Workflow):
             savedir /= 'K00001'
             files_to_check = [Path('init/ki_init.cpo'), savedir / 'evc01.dat', savedir / 'evc02.dat']
 
-            if calc.parameters.empty_states_nbnd is not None and calc.parameters.empty_states_nbnd > 0:
-                files_to_check += [savedir / f'evc0_empty{i}.dat' for i in [1, 2]]
+            for ispin in range(2):
+                if calc.has_empty_states(ispin):
+                    files_to_check.append(savedir / f'evc0_empty{ispin + 1}.dat')
 
             for fname in files_to_check:
                 if not fname.is_file():
@@ -414,9 +422,9 @@ class KoopmansDSCFWorkflow(Workflow):
         savedir = f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
         utils.system_call(f'cp {savedir}/evc1.dat {savedir}/evc01.dat')
         utils.system_call(f'cp {savedir}/evc2.dat {savedir}/evc02.dat')
-        if calc.parameters.empty_states_nbnd is not None and calc.parameters.empty_states_nbnd > 0:
-            utils.system_call(f'cp {savedir}/evc_empty1.dat {savedir}/evc0_empty1.dat')
-            utils.system_call(f'cp {savedir}/evc_empty2.dat {savedir}/evc0_empty2.dat')
+        for ispin in range(2):
+            if calc.has_empty_states(ispin):
+                utils.system_call(f'cp {savedir}/evc_empty{ispin + 1}.dat {savedir}/evc0_empty{ispin + 1}.dat')
 
     def perform_alpha_calculations(self) -> None:
         # Set up directories
@@ -560,7 +568,7 @@ class KoopmansDSCFWorkflow(Workflow):
                             #  - the KI calculations
                             #  - DFT calculations on empty variational orbitals
                             # We don't need to redo any of the others
-                            if trial_calc.parameters.empty_states_nbnd == 0 or band.filled:
+                            if not trial_calc.has_empty_states() or band.filled:
                                 if i_sc > 1 and 'ki' not in calc_type:
                                     continue
                         else:
@@ -624,7 +632,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
                                 # The exception to this are KI calculations on empty states. When we update alpha, the
                                 # empty manifold changes, which in turn affects the lambda values
-                                if trial_calc.parameters.empty_states_nbnd > 0 and not band.filled:
+                                if trial_calc.has_empty_states() and not band.filled:
                                     alpha_dep_calcs.append(calc)
                                 else:
                                     alpha_indep_calcs.append(calc)
@@ -898,7 +906,7 @@ class KoopmansDSCFWorkflow(Workflow):
         # increase the energy thresholds
         if not any([s in calc.prefix for s in ['init', 'print', 'final']]) and \
            calc.prefix not in ['ki', 'kipz', 'dft_dummy']:
-            calc.parameters.empty_states_nbnd = 0
+            calc.parameters.nbnd = None
             calc.parameters.conv_thr *= 100
             calc.parameters.esic_conv_thr *= 100
 
@@ -908,18 +916,18 @@ class KoopmansDSCFWorkflow(Workflow):
             calc.parameters.do_innerloop = False
         elif any([s in calc.prefix for s in ['frozen', 'dummy', 'print', 'innerloop']]) or calc.prefix == 'pkipz_final':
             calc.parameters.do_outerloop = False
-            if calc.parameters.empty_states_nbnd > 0:
+            if calc.has_empty_states():
                 calc.parameters.do_outerloop_empty = False
         elif calc.prefix in ['ki', 'ki_final']:
             calc.parameters.do_outerloop = False
-            if calc.parameters.empty_states_nbnd > 0:
+            if calc.has_empty_states():
                 if self.parameters.init_empty_orbitals == 'pz':
                     calc.parameters.do_outerloop_empty = True
                 else:
                     calc.parameters.do_outerloop_empty = False
         else:
             calc.parameters.do_outerloop = True
-            if calc.parameters.empty_states_nbnd > 0:
+            if calc.has_empty_states():
                 calc.parameters.do_outerloop_empty = True
 
         if calc.parameters.maxiter is None and calc.parameters.do_outerloop:
@@ -928,7 +936,7 @@ class KoopmansDSCFWorkflow(Workflow):
             calc.parameters.empty_states_maxstep = 300
 
         # No empty states minimization in the solids workflow for the moment
-        if self.parameters.periodic and calc.parameters.empty_states_nbnd > 0:
+        if self.parameters.periodic and calc.has_empty_states():
             calc.parameters.do_outerloop_empty = False
             calc.parameters.do_innerloop_empty = False
 
@@ -941,7 +949,7 @@ class KoopmansDSCFWorkflow(Workflow):
             calc.parameters.do_innerloop = True
         else:
             calc.parameters.do_innerloop = False
-        if calc.parameters.empty_states_nbnd > 0:
+        if calc.has_empty_states():
             calc.parameters.do_innerloop_empty = False
         if 'kipz' in calc.prefix:
             calc.parameters.which_orbdep = 'nkipz'
@@ -964,7 +972,7 @@ class KoopmansDSCFWorkflow(Workflow):
                                                                                        'kipz_n+1']]):
             calc.parameters.do_outerloop = False
             calc.parameters.do_innerloop = False
-            if calc.parameters.empty_states_nbnd > 0:
+            if calc.has_empty_states():
                 calc.parameters.do_outerloop_empty = False
                 calc.parameters.do_innerloop_empty = False
 

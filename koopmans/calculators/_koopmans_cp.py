@@ -100,13 +100,12 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
     def _swap_spin_channels(self):
         # Parameters
         if self.parameters.fixed_band is not None and self.parameters.fixed_state:
-            n_bands_up = self.parameters.nelup + self.parameters.empty_states_nbnd
-            if self.parameters.fixed_band > n_bands_up:
+            if self.parameters.fixed_band > self.parameters.nbnd:
                 # The fixed band was spin-down
-                self.parameters.fixed_band -= n_bands_up
+                self.parameters.fixed_band -= self.parameters.nbnd
             else:
                 # The fixed band was spin-up
-                self.parameters.fixed_band += self.parameters.neldw + self.parameters.empty_states_nbnd
+                self.parameters.fixed_band += self.parameters.nbnd
         self.parameters.nelup, self.parameters.neldw = self.parameters.neldw, self.parameters.nelup
         self.parameters.tot_magnetization *= -1
 
@@ -163,7 +162,7 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
             # Read the hamiltonian
             ham_filled = read_ham_file(ham_dir / filename)
 
-            if self.parameters.empty_states_nbnd > 0:
+            if self.has_empty_states():
                 # Construct the filename
                 filename = 'hamiltonian'
                 if bare:
@@ -268,14 +267,17 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
 
             # Work out how many filled and empty bands we will have for each spin channel
             if self.parameters.nspin == 2:
-                n_filled_bands_list = [self.parameters.nelup, self.parameters.neldw]
+                nel_list = [self.parameters.nelup, self.parameters.neldw]
             else:
-                n_filled_bands_list = [self.parameters.nelec // 2]
-            n_empty_bands = self.parameters.empty_states_nbnd
+                nel_list = [self.parameters.nelec // 2]
 
             # Generate the filling list
-            for n_filled_bands in n_filled_bands_list:
-                filling.append([True for _ in range(n_filled_bands)] + [False for _ in range(n_empty_bands)])
+            for nel in nel_list:
+                if 'nbnd' in self.parameters:
+                    nemp = self.parameters.nbnd - nel
+                else:
+                    nemp = 0
+                filling.append([True for _ in range(nel)] + [False for _ in range(nemp)])
 
             self._filling = filling
         return self._filling
@@ -335,16 +337,30 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
     def get_fermi_level(self):
         return 0
 
+    def has_empty_states(self, spin: Optional[int] = None) -> bool:
+        if 'nbnd' not in self.parameters:
+            return False
+        if self.parameters.nspin == 1:
+            nel = self.parameters.nelec // 2
+        elif spin == 0:
+            nel = self.parameters.nelup
+        elif spin == 1:
+            nel = self.parameters.neldw
+        else:
+            nel = self.parameters.nelec // 2
+        return self.parameters.nbnd > nel
+
 
 def convert_flat_alphas_for_kcp(flat_alphas: List[float],
                                 parameters: settings.KoopmansCPSettingsDict) -> List[List[float]]:
     # Read alpha file returns a flat list ordered by filled spin up, filled spin down, empty spin up, empty spin down
     # Here we reorder this into a nested list indexed by [i_spin][i_orbital]
     if parameters.nspin == 2:
+        nbnd = len(flat_alphas) // 2
         alphas = [flat_alphas[:parameters.nelup]
-                  + flat_alphas[parameters.nelec:-parameters.empty_states_nbnd],
+                  + flat_alphas[parameters.nelec:-(nbnd - parameters.neldw)],
                   flat_alphas[parameters.nelup:parameters.nelec]
-                  + flat_alphas[-parameters.empty_states_nbnd:]]
+                  + flat_alphas[-(nbnd - parameters.neldw):]]
     else:
         alphas = [flat_alphas]
     return alphas
