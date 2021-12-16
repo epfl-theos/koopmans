@@ -19,7 +19,7 @@
       "input_dft": "PBE"
     },
     "electrons": {
-      "nbnd": 9
+      "nbnd": 10
     },
     "cell_parameters": {
       "units": "angstrom",
