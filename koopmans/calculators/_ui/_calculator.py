@@ -196,7 +196,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 lines = ifile.readlines()
 
             centers = []
-            spreads = []
+            self.spreads = []
             count = 0
 
             for line in lines:
@@ -207,10 +207,12 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                     end = line.find(')')
                     centers.append(np.array(line[start + 1:end].replace(',', ' ').split(),
                                             dtype=float))
-                    spreads.append(float(line.split()[-1]))
+                    self.spreads.append(float(line.split()[-1]))
                     count += 1
                 if 'Final State' in line:
                     count += 1
+
+            self.centers = np.array(centers)
 
         self.Rvec = latt_vect(*self.parameters.kgrid)
 
@@ -221,12 +223,12 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             self.parameters.num_wann = num_wann
             self.parameters.num_wann_sc = num_wann * np.prod(self.parameters.kgrid)
 
-        self.centers = centers / np.linalg.norm(self.atoms.cell[0])
+        self.centers /= np.linalg.norm(self.atoms.cell[0])
         self.centers = crys_to_cart(self.centers, self.atoms.acell.reciprocal(), -1)
 
         # generate the centers and spreads of all the other (R/=0) WFs
         self.centers = np.concatenate([self.centers + rvec for rvec in self.Rvec])
-        self.spreads = spreads * len(self.Rvec)
+        self.spreads *= len(self.Rvec)
 
         return
 
@@ -468,7 +470,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             cell = utils.read_cell_parameters(None, bigdct['setup'].get('cell_parameters', {}))
             if cell:
                 self.atoms.cell = cell
-            kpoint_block = bigdct['setup'].get('kpoints', {})
+            kpoint_block = bigdct['setup'].get('k_points', {})
             if kpoint_block:
                 self.parameters.kgrid = kpoint_block['kgrid']
                 utils.read_kpath(self, kpoint_block['kpath'])

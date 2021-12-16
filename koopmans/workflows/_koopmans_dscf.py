@@ -139,7 +139,7 @@ class KoopmansDSCFWorkflow(Workflow):
             self.bands.alphas = self.parameters.alpha_guess
 
         # Raise errors if any UI keywords are provided but will be overwritten by the workflow
-        for ui_keyword in ['kc_ham_file', 'w90_seedname', 'kpts', 'dft_ham_file', 'dft_smooth_ham_file']:
+        for ui_keyword in ['kc_ham_file', 'w90_seedname', 'dft_ham_file', 'dft_smooth_ham_file']:
             for ui_kind in ['occ', 'emp']:
                 value = getattr(self.master_calc_params[f'ui_{ui_kind}'], ui_keyword)
                 [default_value] = [s.default for s in self.master_calc_params['ui'].settings if s.name == ui_keyword]
@@ -732,8 +732,8 @@ class KoopmansDSCFWorkflow(Workflow):
             raise NotImplementedError()
         for calc_presets in ['occ', 'emp']:
             calc = self.new_ui_calculator(calc_presets)
-            calc.centers = np.array(center for c in w90_calcs for center in c.results['centers']
-                                    if calc_presets in c.directory.name)
+            calc.centers = np.array([center for c in w90_calcs for center in c.results['centers']
+                                    if calc_presets in c.directory.name])
             calc.spreads = [spread for c in w90_calcs for spread in c.results['spreads']
                             if calc_presets in c.directory.name]
             self.run_calculator(calc, enforce_ss=False)
