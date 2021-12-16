@@ -64,7 +64,7 @@ subroutine runcg_uspp_emp(c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx, &
    use uspp_param, only: nhm
    use descriptors, only: descla_siz_
    use input_parameters, only: odd_nkscalfact_empty, wo_odd_in_empty_run, odd_nkscalfact, &
-                               do_outerloop_empty, reortho, empty_states_nbnd
+                               do_outerloop_empty, reortho
    !
    implicit none
    !
@@ -331,20 +331,9 @@ subroutine runcg_uspp_emp(c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx, &
          !
          if (do_innerloop_empty .and. innerloop_until >= itercgeff) then
             !
-            if (empty_states_nbnd == 1) then
-               !
-               ! skip innerloop if there is only one electron
-               write (stdout, fmt='(5x,a)') "WARNING: skipping innerloop when empty_states_nbnd=1"
-               !
-            else
-               !
-               call do_innerloop_subroutine()
-               !
-            end if
+            call do_innerloop_subroutine()
             !
          end if
-         !
-
          !
       end if
       !

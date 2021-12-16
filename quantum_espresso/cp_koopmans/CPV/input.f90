@@ -929,7 +929,7 @@ CONTAINS
                                   niter_cold_restart, lambda_cold, rd_for
 
       USE input_parameters, ONLY: empty_states_maxstep, &
-                                  empty_states_ethr, empty_states_nbnd, &
+                                  empty_states_ethr, &
                                   iprnks_empty, nconstr_inp, iprnks, nprnks, &
                                   ekin_conv_thr, nspin, f_inp, nelup, neldw, nbnd, &
                                   nelec, press, cell_damping, cell_dofree, nprnks_empty, &
@@ -978,8 +978,8 @@ CONTAINS
          nr3s_ => nr3s
       USE charge_mix, ONLY: charge_mix_setup
       USE kohn_sham_states, ONLY: ks_states_init
-      USE electrons_module, ONLY: electrons_setup, empty_init
-      USE electrons_base, ONLY: electrons_base_initval
+      USE electrons_module, ONLY: electrons_empty_initval, empty_init, nupdwn_emp
+      USE electrons_base, ONLY: electrons_base_initval, nupdwn
       !USE ensemble_dft,       ONLY : ensemble_initval,tens, degauss, tsmear, etemp
       USE ensemble_dft, ONLY: ensemble_initval, tens, tsmear, etemp
       !
@@ -990,6 +990,7 @@ CONTAINS
       !
       REAL(DP) :: alat_, massa_totale
       REAL(DP) :: ethr_emp_inp
+      LOGICAL  :: nbnd_provided
       ! ...   DIIS
       INTEGER ::  iss
       !
@@ -1093,6 +1094,9 @@ CONTAINS
          tksw = tksw .OR. (nprnks_empty(iss) > 0)
       END DO
 
+      ! Need to store if nbnd was provided in the input file prior to calling electrons_base_initval
+      nbnd_provided = (nbnd /= 0)
+
       CALL electrons_base_initval(zv, na_inp, ntyp, nelec, nelup, &
                                   neldw, nbnd, nspin, occupations, f_inp, &
                                   tot_charge, multiplicity, tot_magnetization)
@@ -1104,7 +1108,8 @@ CONTAINS
          !
       END IF
 
-      CALL electrons_setup(empty_states_nbnd, emass, emass_cutoff)
+      CALL electrons_empty_initval(nbnd_provided, emass, emass_cutoff)
+      write (*, *) 'EBL DEBUG:', nbnd, nupdwn(1), nupdwn(2), nupdwn_emp(1), nupdwn_emp(2)
 
       CALL ensemble_initval(occupations, n_inner, fermi_energy, &
                             niter_cold_restart, lambda_cold, rotmass, &
