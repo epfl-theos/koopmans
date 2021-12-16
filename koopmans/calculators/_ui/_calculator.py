@@ -427,7 +427,6 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 # Remove the kpoints information from the settings dict
                 kgrid = settings.pop('kgrid')
                 kpath = settings.pop('kpath')
-                _ = settings.pop('kpts')
 
                 # Converting Paths to JSON-serialisable strings
                 for k in self.parameters.are_paths:
@@ -440,10 +439,8 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 # Provide the bandpath information in the form of a string
                 bigdct['setup'] = {'k_points': {'kpath': kpath.path, 'kgrid': kgrid}}
 
-                # We also need to provide the cell, the atomic positions and species, as well as the pseudo_dir
+                # We also need to provide a cell so the explicit kpath can be reconstructed from the string alone
                 bigdct['setup']['cell_parameters'] = utils.construct_cell_parameters_block(atoms)
-                bigdct['setup']['atomic_species'] = utils.construct_atomic_species_block(atoms)
-                bigdct['setup']['atomic_positions'] = utils.construct_atomic_positions_block(atoms)
 
                 json.dump(bigdct, fd, indent=2)
 

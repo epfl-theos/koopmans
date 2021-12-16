@@ -20,10 +20,6 @@ valid_settings: List[Setting] = [
             'w90_seedname must be equal to the seedname used in the previous Wannier90 calculation. The code '
             'will look for a file called w90_seedname.wout',
             Path, None, None),
-    Setting('sc_dim',
-            'units of repetition of the primitive cell withing the supercell along the three lattice directions. '
-            'Equivalently this has to match the Monkhorst-Pack mesh of k-points.',
-            list, None, None),
     Setting('w90_calc',
             'Specifies the type of PW/Wannier90 calculation preceding the koopmans calculation. If the latter '
             'is done in a supercell at Gamma then w90_calc must be equal to \'sc\', otherwise if it comes from '
@@ -75,19 +71,7 @@ valid_settings: List[Setting] = [
 class UnfoldAndInterpolateSettingsDict(SettingsDictWithChecks):
 
     def __init__(self, **kwargs):
-        # First, rename a few settings internally
-        # - sc_dim is nothing more than 'kpts', so let's internally rename this
-        name_changes = {'sc_dim': 'kpts'}
-        local_valid_settings = []
-        for setting in valid_settings:
-            if setting.name in name_changes.keys():
-                setting_dict = setting._asdict()
-                setting_dict['name'] = name_changes[setting.name]
-                setting = Setting(**setting_dict)
-
-            local_valid_settings.append(setting)
-
-        super().__init__(settings=local_valid_settings,
+        super().__init__(settings=valid_settings,
                          to_not_parse=[],
                          physicals=['degauss', 'Emin', 'Emax'],
                          **kwargs)
