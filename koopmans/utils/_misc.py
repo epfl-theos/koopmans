@@ -7,7 +7,7 @@ Written by Edward Linscott May 2020
 '''
 
 
-from typing import List, Union, Generator
+from typing import List, Union, Generator, Iterable
 from collections.abc import Iterable
 
 
@@ -52,12 +52,12 @@ def list_to_formatted_str(values: List[int]):
     return ','.join(out)
 
 
-def flatten(l: List) -> Generator:
+def flatten(l: Union[List, Iterable]) -> Generator:
     # Converts a list of any kind of object (numbers, arrays, lists, strings, ecc.)
     # to a generator
-     for item in l:
-         if isinstance(item, Iterable) and not isinstance(item, str):
-             for x in flatten(item):
-                 yield x
-         else:        
-             yield item
+    for item in l:
+        if isinstance(item, Iterable) and not isinstance(item, str):
+            for x in flatten(item):
+                yield x
+        else:        
+            yield item
