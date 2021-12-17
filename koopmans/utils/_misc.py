@@ -8,7 +8,6 @@ Written by Edward Linscott May 2020
 
 
 from typing import List, Union, Generator, Iterable
-from collections.abc import Iterable
 
 
 def calc_diff(calcs, silent=False):
