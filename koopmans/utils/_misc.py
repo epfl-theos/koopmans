@@ -7,7 +7,8 @@ Written by Edward Linscott May 2020
 '''
 
 
-from typing import List, Union
+from typing import List, Union, Generator
+from collections.abc import Iterable
 
 
 def calc_diff(calcs, silent=False):
@@ -49,3 +50,14 @@ def list_to_formatted_str(values: List[int]):
         else:
             out.append(f'{sector[0]}-{sector[-1]}')
     return ','.join(out)
+
+
+def flatten(l: List) -> Generator:
+    # Converts a list of any kind of object (numbers, arrays, lists, strings, ecc.)
+    # to a generator
+     for item in l:
+         if isinstance(item, Iterable) and not isinstance(item, str):
+             for x in flatten(item):
+                 yield x
+         else:        
+             yield item
