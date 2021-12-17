@@ -59,5 +59,5 @@ def flatten(l: Union[List, Iterable]) -> Generator:
         if isinstance(item, Iterable) and not isinstance(item, str):
             for x in flatten(item):
                 yield x
-        else:        
+        else:
             yield item
