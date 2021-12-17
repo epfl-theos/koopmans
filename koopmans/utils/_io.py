@@ -45,6 +45,19 @@ def construct_cell_parameters_block(atoms: Atoms) -> dict:
     return {'vectors': [list(row) for row in atoms.cell[:]], 'units': 'angstrom'}
 
 
+def construct_atomic_positions_block(atoms: Atoms) -> dict:
+    labels = atoms.get_chemical_symbols()
+    positions = atoms.get_scaled_positions()
+    return {'positions': list([label] + [x for x in pos] for label, pos in zip(labels, positions)), 'units': 'crystal'}
+
+
+def construct_atomic_species_block(atoms: Atoms) -> dict:
+    labels = atoms.get_chemical_symbols()
+    masses = atoms.get_masses()
+    pseudopotentials = ['Si_ONCV_PBE-1.2.upf', 'Si_ONCV_PBE-1.2.upf']
+    return {'species': list([label] + [m] + [pp] for label, m, pp in zip(labels, masses, pseudopotentials))}
+
+
 def write_alpha_file(directory: Path, alphas: List[float], filling: List[bool]):
     a_filled = [a for a, f in zip(alphas, filling) if f]
     a_empty = [a for a, f in zip(alphas, filling) if not f]
