@@ -399,10 +399,6 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             if key == 'ibrav':
                 continue
 
-            # TODO remove me
-            if key in ['nbnd', 'empty_states_nbnd']:
-                continue
-
             assert key in calc.benchmark['parameters'].keys(), f'{key} in {input_file_name} not found in benchmark'
             ref_val = calc.benchmark['parameters'][key]
 
