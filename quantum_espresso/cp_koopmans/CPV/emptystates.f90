@@ -27,8 +27,9 @@
       USE uspp_param, ONLY: nhm
       USE grid_dimensions, ONLY: nnrx
       USE electrons_base, ONLY: nbsp, nbspx, ispin, nspin, f, iupdwn, nupdwn
-      USE electrons_module, ONLY: iupdwn_emp, nupdwn_emp, n_emp, ei_emp, &
-                                  max_emp, ethr_emp, etot_emp, eodd_emp
+      USE electrons_module, ONLY: iupdwn_emp, nupdwn_emp, nbsp_emp, ei_emp, &
+                                  max_emp, ethr_emp, etot_emp, eodd_emp, &
+                                  nudx_emp, nbsp_emp, nbspx_emp
       USE ions_base, ONLY: nat, nsp
       USE gvecw, ONLY: ngw
       USE orthogonalize_base, ONLY: calphi, updatc
@@ -68,7 +69,7 @@
       logical, optional, intent(IN) :: tcg
       !
       INTEGER  :: i, iss, j, in, in_emp, iter, iter_ortho
-      INTEGER  :: n_occs, n_emps, n_empx, nudx_emp, issw, n
+      INTEGER  :: issw, n
       INTEGER  :: nlax_emp, nlam_emp
       LOGICAL  :: exst, tcg_
       !
@@ -128,7 +129,7 @@
       !
       ! ...  quick exit if empty states have not to be computed
       !
-      IF (n_emp < 1) RETURN
+      IF (nbsp_emp < 1) RETURN
       !
       ! restart directories
       !
@@ -166,24 +167,6 @@
       !
       !  Done with the group
       !
-      ! n_occs    == nbsp
-      ! n_emps    => nbsp   (corresponds to)
-      ! n_empx    => nbspx
-      ! nudx_emp  => nudx
-      !
-      n_occs = nupdwn(1)
-      IF (nspin == 2) n_occs = n_occs + nupdwn(2)
-      !
-      n_emps = nupdwn_emp(1)
-      IF (nspin == 2) n_emps = n_emps + nupdwn_emp(2)
-      !
-      nudx_emp = nupdwn_emp(1) !+ MOD( nupdwn_emp( 1 ), 2)
-      IF (nspin == 2) nudx_emp = MAX(nudx_emp, nupdwn_emp(2))
-      !
-      n_empx = nupdwn_emp(1)
-      IF (nspin == 2) n_empx = n_empx + nupdwn_emp(2)
-      n_empx = n_empx + MOD(n_empx, 2)
-      !
       DO iss = 1, nspin
          CALL descla_init(desc_emp(:, iss), nupdwn_emp(iss), nudx_emp, np_emp, me_emp, emp_comm, color)
       END DO
@@ -192,24 +175,24 @@
       nlam_emp = 1
       IF (ANY(desc_emp(lambda_node_, :) > 0)) nlam_emp = nlax_emp
       !
-      ALLOCATE (c0_emp(ngw, n_empx))
-      ALLOCATE (cm_emp(ngw, n_empx))
-      ALLOCATE (phi_emp(ngw, n_empx))
+      ALLOCATE (c0_emp(ngw, nbspx_emp))
+      ALLOCATE (cm_emp(ngw, nbspx_emp))
+      ALLOCATE (phi_emp(ngw, nbspx_emp))
       !
       IF (wannier_empty_only .and. odd_nkscalfact_empty) THEN
          !
-         ALLOCATE (c0fixed_emp(ngw, n_empx))
+         ALLOCATE (c0fixed_emp(ngw, nbspx_emp))
          !
       END IF
       !
       call init_twin(bec_emp, lgam)
-      call allocate_twin(bec_emp, nkb, n_emps, lgam)
+      call allocate_twin(bec_emp, nkb, nbsp_emp, lgam)
       call init_twin(becp_emp, lgam)
-      call allocate_twin(becp_emp, nkb, n_emps, lgam)
+      call allocate_twin(becp_emp, nkb, nbsp_emp, lgam)
       call init_twin(bec_occ, lgam)
-      call allocate_twin(bec_occ, nkb, n_occs, lgam)
+      call allocate_twin(bec_occ, nkb, nbsp, lgam)
       call init_twin(bephi_emp, lgam)
-      call allocate_twin(bephi_emp, nkb, n_emps, lgam)
+      call allocate_twin(bephi_emp, nkb, nbsp_emp, lgam)
       !
       ALLOCATE (lambda_emp(nspin))
       !
@@ -218,9 +201,9 @@
          CALL allocate_twin(lambda_emp(iss), nlam_emp, nlam_emp, lgam)
       END DO
       !
-      ALLOCATE (f_emp(n_empx))
-      ALLOCATE (f_aux(n_empx))
-      ALLOCATE (ispin_emp(n_empx))
+      ALLOCATE (f_emp(nbspx_emp))
+      ALLOCATE (f_aux(nbspx_emp))
+      ALLOCATE (ispin_emp(nbspx_emp))
       !
       c0_emp = 0.0
       cm_emp = 0.0
@@ -245,13 +228,13 @@
       !
       IF (do_orbdep) THEN
          !
-         ALLOCATE (fsic_emp(n_empx))
+         ALLOCATE (fsic_emp(nbspx_emp))
          ! n_empx_odd=n_empx
-         ALLOCATE (vsic_emp(nnrx, n_empx))
+         ALLOCATE (vsic_emp(nnrx, nbspx_emp))
          ALLOCATE (wxd_emp(nnrx, 2))
-         ALLOCATE (deeq_sic_emp(nhm, nhm, nat, n_empx))
+         ALLOCATE (deeq_sic_emp(nhm, nhm, nat, nbspx_emp))
          ALLOCATE (becsum_emp(nhm*(nhm + 1)/2, nat, nspin))
-         CALL allocate_nksic_empty(n_empx)
+         CALL allocate_nksic_empty(nbspx_emp)
          sizvsic_emp = nnrx
          !
          fsic_emp = 0.0d0
@@ -260,23 +243,23 @@
          !
       ELSE
          !
-         ALLOCATE (fsic_emp(n_empx))
+         ALLOCATE (fsic_emp(nbspx_emp))
          ! n_empx_odd=1
-         ALLOCATE (vsic_emp(1, n_empx))
+         ALLOCATE (vsic_emp(1, nbspx_emp))
          ALLOCATE (wxd_emp(1, 2))
-         ALLOCATE (deeq_sic_emp(nhm, nhm, nat, n_empx))
+         ALLOCATE (deeq_sic_emp(nhm, nhm, nat, nbspx_emp))
          ALLOCATE (becsum_emp(nhm*(nhm + 1)/2, nat, nspin))
          !
-         call allocate_nksic_empty(n_empx)
+         call allocate_nksic_empty(nbspx_emp)
          sizvsic_emp = 1
          !
       END IF
       !
       IF (do_hf) THEN
          !
-         !ALLOCATE( fsic_emp(n_empx ) )
-         ALLOCATE (vxxpsi_emp(ngw, n_empx))
-         ALLOCATE (exx_emp(n_empx))
+         !ALLOCATE( fsic_emp(nbspx_emp ) )
+         ALLOCATE (vxxpsi_emp(ngw, nbspx_emp))
+         ALLOCATE (exx_emp(nbspx_emp))
          !
          !fsic_emp   = 0.0d0
          vxxpsi_emp = 0.0d0
@@ -286,7 +269,7 @@
       !
       CALL prefor(eigr, vkb)
       !
-      CALL nlsm1(n_occs, 1, nvb, eigr, c0, bec_occ, 1, lgam)
+      CALL nlsm1(nbsp, 1, nvb, eigr, c0, bec_occ, 1, lgam)
       !
       ! here is initialize wfcs
       !
@@ -294,13 +277,13 @@
          !
          ! (1) read canonical orbital evctot_empty
          !
-         exst = readempty(c0_emp, n_empx, ndr_loc)
+         exst = readempty(c0_emp, nbspx_emp, ndr_loc)
          !
          IF (exst) THEN
             !
             ! (2) tranform evc to wannier evc0
             !
-            CALL wave_init_wannier_cp(c0_emp, ngw, n_empx, .false.)
+            CALL wave_init_wannier_cp(c0_emp, ngw, nbspx_emp, .false.)
             !
          ELSE
             !
@@ -312,9 +295,9 @@
          !
          ! (3) read wannier evc0_empty
          !
-         !exst = readempty_twin( c0_emp, n_empx, ndr_loc, .true., .false.)
+         !exst = readempty_twin( c0_emp, nbspx_emp, ndr_loc, .true., .false.)
          !
-         !exst = readempty_twin( c0fixed_emp, n_empx, ndr_loc, .false., .false.)
+         !exst = readempty_twin( c0fixed_emp, nbspx_emp, ndr_loc, .false., .false.)
          !
       ELSE
          !
@@ -322,9 +305,9 @@
          ! it can be the wannierized orbitals
          !
          IF (.not. wo_odd_in_empty_run) THEN
-            exst = readempty_twin(c0_emp, n_empx, ndr_loc)
+            exst = readempty_twin(c0_emp, nbspx_emp, ndr_loc)
          ELSE
-            exst = readempty(c0_emp, n_empx, ndr_loc)
+            exst = readempty(c0_emp, nbspx_emp, ndr_loc)
          END IF
          !
          IF (.NOT. exst .OR. TRIM(restart_mode) == 'from_scratch') THEN
@@ -339,11 +322,11 @@
                !
                IF (tatomicwfc) THEN
                   !
-                  CALL wave_atom_init(c0_emp, n_emps, 1)
+                  CALL wave_atom_init(c0_emp, nbsp_emp, 1)
                   !
                ELSE
                   !
-                  CALL wave_rand_init(c0_emp, n_emps, 1)
+                  CALL wave_rand_init(c0_emp, nbsp_emp, 1)
                   !
                END IF
                !
@@ -378,7 +361,7 @@
                !
             END IF
             !
-            CALL nlsm1(n_emps, 1, nvb, eigr, c0_emp, bec_emp, 1, lgam)
+            CALL nlsm1(nbsp_emp, 1, nvb, eigr, c0_emp, bec_emp, 1, lgam)
             !
             DO iss = 1, nspin
                !
@@ -422,10 +405,10 @@
          !
       END IF
       !
-      IF (impose_bloch_symm) CALL symm_wannier(c0_emp, n_empx, .true.)
+      IF (impose_bloch_symm) CALL symm_wannier(c0_emp, nbspx_emp, .true.)
       !
       !
-      CALL nlsm1(n_emps, 1, nsp, eigr, c0_emp, bec_emp, 1, lgam)
+      CALL nlsm1(nbsp_emp, 1, nsp, eigr, c0_emp, bec_emp, 1, lgam)
       !
       ! ...  set verlet variables
       !
@@ -482,8 +465,8 @@
             if (allocated(valpsi)) deallocate (valpsi)
             !
             ! reallocate the memory of odd_alpha for empty states
-            allocate (odd_alpha(n_empx))
-            allocate (valpsi(n_empx, ngw))
+            allocate (odd_alpha(nbspx_emp))
+            allocate (valpsi(nbspx_emp, ngw))
             !
          END IF
          !
@@ -496,8 +479,8 @@
       !
       IF (tcg_) THEN ! compute empty states with conjugate gradient
          !
-         call runcg_uspp_emp(c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx, &
-                             n_emps, ispin_emp, iupdwn_emp, nupdwn_emp, phi_emp, lambda_emp, &
+         call runcg_uspp_emp(c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, nbspx_emp, &
+                             nbsp_emp, ispin_emp, iupdwn_emp, nupdwn_emp, phi_emp, lambda_emp, &
                              max_emp, wxd_emp, vsic_emp, sizvsic_emp, pink_emp, becsum_emp, &
                              deeq_sic_emp, nudx_emp, eodd_emp, etot_emp, v, &
                              nfi, .true., eigr, bec, irb, eigrb, &
@@ -516,7 +499,7 @@
                   valpsi(:, :) = (0.0_DP, 0.0_DP)
                   odd_alpha(:) = 0.0_DP
                   !
-                  CALL odd_alpha_routine(c0_emp, n_emps, n_empx, lgam, .true.)
+                  CALL odd_alpha_routine(c0_emp, nbsp_emp, nbspx_emp, lgam, .true.)
                   !
 
                ELSE
@@ -548,7 +531,7 @@
                !
                !ENDIF
                !
-               call nksic_potential(n_emps, n_empx, c0_emp, fsic_emp, &
+               call nksic_potential(nbsp_emp, nbspx_emp, c0_emp, fsic_emp, &
                                     bec_emp, becsum_emp, deeq_sic_emp, &
                                     ispin_emp, iupdwn_emp, nupdwn_emp, rhor, rhoc, &
                                     wtot, sizwtot, vsic_emp, .false., pink_emp, nudx_emp, &
@@ -565,7 +548,7 @@
                WRITE (stdout, *) "sum spreads:2", sum(wfc_spreads_emp(1:nupdwn_emp(1), 1, 2)), &
                   sum(wfc_spreads_emp(1:nupdwn_emp(2), 2, 2))
                !
-               DO i = 1, n_emps
+               DO i = 1, nbsp_emp
                   !
                   ! Here wxd_emp <-> wtot that computed from nksic_potential of occupied states.
                   ! wtot is scaled with nkscalfact constant, we thus need to rescaled it here with
@@ -587,16 +570,16 @@
                vxxpsi_emp = 0.0d0
                !
                CALL hf_potential(nbsp, nbspx, c0, f, ispin, iupdwn, nupdwn, &
-                                 n_emps, n_empx, c0_emp, fsic_emp, ispin_emp, &
+                                 nbsp_emp, nbspx_emp, c0_emp, fsic_emp, ispin_emp, &
                                  iupdwn_emp, nupdwn_emp, rhor, rhog, vxxpsi_emp, exx_emp)
                !
             END IF
             !
             ! standard terms
             !
-            DO i = 1, n_emps, 2
+            DO i = 1, nbsp_emp, 2
                !
-               CALL dforce(i, bec_emp, vkb, c0_emp, c2, c3, v, SIZE(v, 1), ispin_emp, f_aux, n_emps, nspin)
+               CALL dforce(i, bec_emp, vkb, c0_emp, c2, c3, v, SIZE(v, 1), ispin_emp, f_aux, nbsp_emp, nspin)
                !
                ! ODD terms
                !
@@ -609,7 +592,7 @@
                      !
                   END IF
                   !
-                  CALL nksic_eforce(i, n_emps, n_empx, vsic_emp, deeq_sic_emp, bec_emp, ngw, &
+                  CALL nksic_eforce(i, nbsp_emp, nbspx_emp, vsic_emp, deeq_sic_emp, bec_emp, ngw, &
                                     c0_emp(:, i), c0_emp(:, i + 1), vsicpsi, lgam)
                   !
                   c2(:) = c2(:) - vsicpsi(:, 1)*f_aux(i)
@@ -664,38 +647,38 @@
             ! ... calphi calculates phi
             ! ... the electron mass rises with g**2
             !
-            CALL calphi(c0_emp, ngw, bec_emp, nkb, vkb, phi_emp, n_emps, lgam, ema0bg)
+            CALL calphi(c0_emp, ngw, bec_emp, nkb, vkb, phi_emp, nbsp_emp, lgam, ema0bg)
             !
             IF (tortho) THEN
                !
-               CALL ortho_cp_twin(eigr(1:ngw, 1:nat), cm_emp(1:ngw, 1:n_emps), phi_emp(1:ngw, 1:n_emps), &
+               CALL ortho_cp_twin(eigr(1:ngw, 1:nat), cm_emp(1:ngw, 1:nbsp_emp), phi_emp(1:ngw, 1:nbsp_emp), &
                                   ngw, lambda_emp(1:nspin), desc_emp(1:descla_siz_, 1:nspin), &
-                                  bigr, iter_ortho, ccc, bephi_emp, becp_emp, n_emps, nspin, &
+                                  bigr, iter_ortho, ccc, bephi_emp, becp_emp, nbsp_emp, nspin, &
                                   nupdwn_emp, iupdwn_emp)
                !
             ELSE
                !
-               CALL gram(vkb, bec_emp, nkb, cm_emp, ngw, n_emps)
+               CALL gram(vkb, bec_emp, nkb, cm_emp, ngw, nbsp_emp)
                !
             END IF
             !
             DO iss = 1, nspin
                !
                IF (.not. lambda_emp(iss)%iscmplx) THEN
-                  CALL updatc(ccc, n_emps, lambda_emp(iss)%rvec(:, :), SIZE(lambda_emp(iss)%rvec, 1), &
+                  CALL updatc(ccc, nbsp_emp, lambda_emp(iss)%rvec(:, :), SIZE(lambda_emp(iss)%rvec, 1), &
                               phi_emp, ngw, bephi_emp%rvec, nkb, becp_emp%rvec, bec_emp%rvec, &
                               cm_emp, nupdwn_emp(iss), iupdwn_emp(iss), desc_emp(:, iss))
                ELSE
-                  CALL updatc(ccc, n_emps, lambda_emp(iss)%cvec(:, :), SIZE(lambda_emp(iss)%cvec, 1), &
+                  CALL updatc(ccc, nbsp_emp, lambda_emp(iss)%cvec(:, :), SIZE(lambda_emp(iss)%cvec, 1), &
                               phi_emp, ngw, bephi_emp%cvec(:, :), nkb, becp_emp%cvec(:, :), bec_emp%cvec(:, :), &
                               cm_emp, nupdwn_emp(iss), iupdwn_emp(iss), desc_emp(:, iss))
                END IF
                !
             END DO
             !
-            CALL nlsm1(n_emps, 1, nsp, eigr, cm_emp, bec_emp, 1, lgam)
+            CALL nlsm1(nbsp_emp, 1, nsp, eigr, cm_emp, bec_emp, 1, lgam)
             !
-            CALL elec_fakekine(ekinc, ema0bg, emass, c0_emp, cm_emp, ngw, n_emps, 1, delt)
+            CALL elec_fakekine(ekinc, ema0bg, emass, c0_emp, cm_emp, ngw, nbsp_emp, 1, delt)
             !
             CALL dswap(2*SIZE(c0_emp), c0_emp, 1, cm_emp, 1)
             !
@@ -773,17 +756,17 @@
       !
       IF (do_orbdep .and. wo_odd_in_empty_run) THEN
          !
-         CALL empty_koopmans_pp(n_emps, ispin_emp, cm_emp)
+         CALL empty_koopmans_pp(nbsp_emp, ispin_emp, cm_emp)
          !
       END IF
       !
       ! ...   Save canonical empty orbitals to disk
       !
-      CALL writeempty(cm_emp, n_empx, ndw_loc)
+      CALL writeempty(cm_emp, nbspx_emp, ndw_loc)
       !
       ! ...   Save minimizing empty orbitals to disk
       !
-      CALL writeempty_twin(c0_emp, n_empx, ndw_loc, .false.)
+      CALL writeempty_twin(c0_emp, nbspx_emp, ndw_loc, .false.)
       !
       IF (print_wfc_anion) THEN
          !

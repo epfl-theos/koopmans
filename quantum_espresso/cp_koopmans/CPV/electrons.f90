@@ -27,31 +27,12 @@ MODULE electrons_module
 
    LOGICAL :: band_first = .TRUE.
 
-   ! For filled orbitals we have the following
-
-   ! INTEGER :: nbnd = 0    !  number electronic bands, each band contains
-   ! !  two spin states
-   ! INTEGER :: nbndx = 0    !  array dimension nbndx >= nbnd
-   ! INTEGER :: nspin = 0    !  nspin = number of spins (1=no spin, 2=LSDA)
-   ! INTEGER :: nel(2) = 0    !  number of electrons (up, down)
-   ! INTEGER :: nelt = 0    !  total number of electrons ( up + down )
-   ! INTEGER :: nupdwn(2) = 0    !  number of states with spin up (1) and down (2)
-   ! INTEGER :: iupdwn(2) = 0    !  first state with spin (1) and down (2)
-   ! INTEGER :: nudx = 0    !  max (nupdw(1),nupdw(2))
-   ! INTEGER :: nbsp = 0    !  total number of electronic states
-   ! !  (nupdwn(1)+nupdwn(2))
-   ! INTEGER :: nbspx = 0    !  array dimension nbspx >= nbsp
-
-   ! thus we will introduce the empty-specific
+   ! The empty-orbital-equivalents of the variables defined in Modules/electrons_base.f90
    INTEGER :: nupdwn_emp(2) = 0    !  number of empty states with spin up (1) and down (2)
    INTEGER :: iupdwn_emp(2) = 0    !  first empty state with spin (1) and down (2)
    INTEGER :: nudx_emp = 0    !  max (nupdw_emp(1),nupdw_emp(2))
-   INTEGER :: nbsp_emp = 0    !  total number of electronic states
-   !  (nupdwn_emp(1)+nupdwn_emp(2))
-   INTEGER :: nbspx_emp = 0    !  array dimension nbspx_emp >= nbsp_emp
-
-   ! replace n_emp with nbsp_emp/nbspx_emp depending on the context
-   INTEGER :: n_emp = 0
+   INTEGER :: nbsp_emp = 0    !  total number of electronic states = nupdwn_emp(1) + nupdwn_emp(2)
+   INTEGER :: nbspx_emp = 0   !  array dimension nbspx_emp >= nbsp_emp
    !
    INTEGER  :: max_emp = 0    !  maximum number of iterations for empty states
    REAL(DP) :: ethr_emp, etot_emp, eodd_emp !  threshold for convergence
@@ -78,8 +59,8 @@ MODULE electrons_module
    PUBLIC :: electrons_empty_initval
    PUBLIC :: bmeshset, occn_info
    PUBLIC :: deallocate_electrons
-   PUBLIC :: n_emp, ei_emp, ib_owner, ib_local
-   PUBLIC :: ei, nupdwn_emp, iupdwn_emp, nudx_emp
+   PUBLIC :: ei_emp, ib_owner, ib_local
+   PUBLIC :: ei, nupdwn_emp, iupdwn_emp, nudx_emp, nbsp_emp, nbspx_emp
    PUBLIC :: print_eigenvalues, print_centers_spreads
    PUBLIC :: max_emp, ethr_emp
    PUBLIC :: empty_print_info, empty_init
@@ -140,10 +121,10 @@ CONTAINS
       END IF
 
       IF (ALLOCATED(ib_owner)) DEALLOCATE (ib_owner)
-      ALLOCATE (ib_owner(MAX(n_emp, nbndx)), STAT=ierr)
+      ALLOCATE (ib_owner(MAX(nudx_emp, nbndx)), STAT=ierr)
       IF (ierr /= 0) CALL errore(' bmeshset ', ' allocating ib_owner ', ierr)
       IF (ALLOCATED(ib_local)) DEALLOCATE (ib_local)
-      ALLOCATE (ib_local(MAX(n_emp, nbndx)), STAT=ierr)
+      ALLOCATE (ib_local(MAX(nudx_emp, nbndx)), STAT=ierr)
       IF (ierr /= 0) CALL errore(' bmeshset ', ' allocating ib_local ', ierr)
 
       !  here define the association between processors and electronic states
@@ -151,7 +132,7 @@ CONTAINS
 
       ib_local = 0
       ib_owner = -1
-      DO i = 1, MAX(n_emp, nbndx)
+      DO i = 1, MAX(nudx_emp, nbndx)
          ib_local(i) = (i - 1)/nproc_image        !  local index of the i-th band
          ib_owner(i) = MOD((i - 1), nproc_image)  !  owner of th i-th band
          IF (me_image <= ib_owner(i)) THEN
@@ -202,7 +183,10 @@ CONTAINS
          nudx_emp = 0
       END IF
 
-      n_emp = nudx_emp
+      nbsp_emp = sum(nupdwn_emp)
+      nbspx_emp = nbsp_emp + mod(nbsp_emp, 2)
+
+      write (*, *) 'EBL DEBUG', include_empty, nbnd, nupdwn, iupdwn, nupdwn_emp, iupdwn_emp, nbsp_emp, nbspx_emp
 
       IF (ALLOCATED(ei)) DEALLOCATE (ei)
       ALLOCATE (ei(nudx, nspin), STAT=ierr)
@@ -295,10 +279,10 @@ CONTAINS
       USE kinds, ONLY: DP
       INTEGER, INTENT(IN) :: iunit
       !
-      IF (n_emp > 0) THEN
+      IF (nbsp_emp > 0) THEN
          WRITE (iunit, "(//, 3X, 'Empty states minimization')")
          WRITE (iunit, "(    3X, '--------------------------')")
-         WRITE (iunit, "(3X, '   states = ',i8)") n_emp
+         WRITE (iunit, "(3X, '   states = ',i8)") nbsp_emp
          WRITE (iunit, "(3X, '  maxiter = ',i8)") max_emp
          WRITE (iunit, "(3X, '     ethr = ',D12.4)") ethr_emp
       END IF
@@ -351,13 +335,13 @@ CONTAINS
             WRITE (stdout, 1444) MAX(MAXVAL(ei(1:nupdwn(1), 1)*autoev, nupdwn(1)), MAXVAL(ei(1:nupdwn(2), 2)*autoev, nupdwn(2)))
          END IF
 
-         IF (n_emp .gt. 0) THEN
+         IF (nbsp_emp .gt. 0) THEN
             IF (nspin == 1) THEN
                WRITE (stdout, 1201)
-               WRITE (stdout, 1444) MINVAL(ei_emp(1:n_emp, 1)*autoev, n_emp)
+               WRITE (stdout, 1444) MINVAL(ei_emp(1:nupdwn_emp(1), 1)*autoev, nupdwn_emp(1))
             ELSE
                WRITE (stdout, 1201)
-               WRITE (stdout, 1444) MIN(MINVAL(ei_emp(1:n_emp, 1)*autoev, n_emp), MINVAL(ei_emp(1:n_emp, 2)*autoev, n_emp))
+            WRITE (stdout, 1444) MIN(MINVAL(ei_emp(1:nupdwn_emp(1), 1)*autoev, nupdwn_emp(1)), MINVAL(ei_emp(1:nupdwn_emp(2), 2)*autoev, nupdwn_emp(2)))
             END IF
          END IF
       END IF
@@ -377,9 +361,9 @@ CONTAINS
                WRITE (stdout, 1084) (fmat0_diag(i), i=iupdwn(j), iupdwn(j) + nupdwn(j) - 1)
             END IF
             !
-            IF (n_emp .GT. 0) THEN
+            IF (nbsp_emp .GT. 0) THEN
                WRITE (stdout, 1005) ik, j
-               WRITE (stdout, 1004) (ei_emp(i, j)*autoev, i=1, n_emp)
+               WRITE (stdout, 1004) (ei_emp(i, j)*autoev, i=1, nupdwn_emp(j))
                IF (nupdwn(j) > 0) &
                   WRITE (stdout, 1006) (ei_emp(1, j) - ei(nupdwn(j), j))*autoev
             END IF
@@ -388,9 +372,9 @@ CONTAINS
          IF (tfile) THEN
             WRITE (ei_unit, 1010) ik, j
             WRITE (ei_unit, 1020) (ei(i, j)*autoev, i=1, nupdwn(j))
-            IF (n_emp .GT. 0) THEN
+            IF (nbsp_emp .GT. 0) THEN
                WRITE (ei_unit, 1011) ik, j
-               WRITE (ei_unit, 1020) (ei_emp(i, j)*autoev, i=1, n_emp)
+               WRITE (ei_unit, 1020) (ei_emp(i, j)*autoev, i=1, nupdwn_emp(j))
                IF (nupdwn(j) > 0) &
                   WRITE (ei_unit, 1021) ((ei_emp(1, j) - ei(nupdwn(j), j))*autoev)
             END IF
@@ -453,7 +437,7 @@ CONTAINS
                WRITE (stdout, 1445) (i, wfc_centers(1:4, i, j), wfc_spreads(i, j, 1), wfc_spreads(i, j, 2), i=1, nupdwn(j))
             END IF
             !
-            IF (n_emp .GT. 0) THEN
+            IF (nbsp_emp .GT. 0) THEN
                WRITE (stdout, 1333) ik, j
                !
                IF (do_orbdep) THEN
