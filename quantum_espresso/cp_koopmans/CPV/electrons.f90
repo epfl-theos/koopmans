@@ -341,7 +341,8 @@ CONTAINS
                WRITE (stdout, 1444) MINVAL(ei_emp(1:nupdwn_emp(1), 1)*autoev, nupdwn_emp(1))
             ELSE
                WRITE (stdout, 1201)
-            WRITE (stdout, 1444) MIN(MINVAL(ei_emp(1:nupdwn_emp(1), 1)*autoev, nupdwn_emp(1)), MINVAL(ei_emp(1:nupdwn_emp(2), 2)*autoev, nupdwn_emp(2)))
+               WRITE (stdout, 1444) MIN(MINVAL(ei_emp(1:nupdwn_emp(1), 1)*autoev, nupdwn_emp(1)), &
+                                        MINVAL(ei_emp(1:nupdwn_emp(2), 2)*autoev, nupdwn_emp(2)))
             END IF
          END IF
       END IF
