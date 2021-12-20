@@ -223,6 +223,8 @@ class KoopmansDSCFWorkflow(Workflow):
             calc = self.calculations[-1]
             savedir = f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
             utils.system_call(f'cp {savedir}/evc01.dat {savedir}/evc02.dat')
+
+            assert isinstance(calc, calculators.KoopmansCPCalculator)
             if calc.has_empty_states():
                 utils.system_call(f'cp {savedir}/evc0_empty1.dat {savedir}/evc0_empty2.dat')
 
@@ -417,7 +419,7 @@ class KoopmansDSCFWorkflow(Workflow):
             save_prefix = f'{calc.parameters.outdir}/{calc.parameters.prefix}'
             utils.system_call(f'cp -r {save_prefix}_{calc.parameters.ndw}.save {save_prefix}_{ndw}.save')
 
-    def _overwrite_canonical_with_variational_orbitals(self, calc: calculators.CalculatorExt) -> None:
+    def _overwrite_canonical_with_variational_orbitals(self, calc: calculators.KoopmansCPCalculator) -> None:
         self.print('Overwriting the variational orbitals with Kohn-Sham orbitals')
         savedir = f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
         utils.system_call(f'cp {savedir}/evc1.dat {savedir}/evc01.dat')
