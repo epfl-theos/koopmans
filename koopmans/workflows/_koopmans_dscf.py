@@ -69,8 +69,8 @@ class KoopmansDSCFWorkflow(Workflow):
                         kcp_params.nbnd = nbands_occ + nbands_emp
                 elif kcp_params.nbnd != nbands_occ + nbands_emp:
                     raise ValueError('The number of empty states are inconsistent. If you have provided '
-                                     '"nbnd" explicitly to the kcp calculator, check that it matches with the number of '
-                                     'empty projections/bands in your system.')
+                                     '"nbnd" explicitly to the kcp calculator, check that it matches with the number '
+                                     'of empty projections/bands in your system.')
 
             # Populating self.parameters.orbital_groups if needed
             # N.B. self.bands.groups is guaranteed to be 2 x num_wann, but self.parameters.orbital_groups
