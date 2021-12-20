@@ -25,16 +25,37 @@ MODULE electrons_module
 
 !  ...  declare module-scope variables
 
-   INTEGER, PARAMETER :: nspinx = 2
    LOGICAL :: band_first = .TRUE.
 
-   INTEGER :: n_emp = 0  ! number of empty states
-   INTEGER :: nudx_emp = 0  ! maximum number of empty states per spin
-   INTEGER :: nupdwn_emp(nspinx) = 0  ! number of empty states
-   INTEGER :: iupdwn_emp(nspinx) = 0  ! number of empty states
+   ! For filled orbitals we have the following
 
-   INTEGER :: nb_l(nspinx) = 0  ! local number of states ( for each spin components )
-   INTEGER :: n_emp_l(nspinx) = 0
+   ! INTEGER :: nbnd = 0    !  number electronic bands, each band contains
+   ! !  two spin states
+   ! INTEGER :: nbndx = 0    !  array dimension nbndx >= nbnd
+   ! INTEGER :: nspin = 0    !  nspin = number of spins (1=no spin, 2=LSDA)
+   ! INTEGER :: nel(2) = 0    !  number of electrons (up, down)
+   ! INTEGER :: nelt = 0    !  total number of electrons ( up + down )
+   ! INTEGER :: nupdwn(2) = 0    !  number of states with spin up (1) and down (2)
+   ! INTEGER :: iupdwn(2) = 0    !  first state with spin (1) and down (2)
+   ! INTEGER :: nudx = 0    !  max (nupdw(1),nupdw(2))
+   ! INTEGER :: nbsp = 0    !  total number of electronic states
+   ! !  (nupdwn(1)+nupdwn(2))
+   ! INTEGER :: nbspx = 0    !  array dimension nbspx >= nbsp
+
+   ! thus we will introduce the empty-specific
+   INTEGER :: nupdwn_emp(2) = 0    !  number of empty states with spin up (1) and down (2)
+   INTEGER :: iupdwn_emp(2) = 0    !  first empty state with spin (1) and down (2)
+   INTEGER :: nudx_emp = 0    !  max (nupdw_emp(1),nupdw_emp(2))
+   INTEGER :: nbsp_emp = 0    !  total number of electronic states
+   !  (nupdwn_emp(1)+nupdwn_emp(2))
+   INTEGER :: nbspx_emp = 0    !  array dimension nbspx_emp >= nbsp_emp
+
+   ! replace n_emp with nbsp_emp/nbspx_emp depending on the context
+   INTEGER :: n_emp = 0
+
+   ! TODO remove these two keywords, they aren't used anywhere?
+   INTEGER :: nb_l(2) = 0  ! local number of states ( for each spin components )
+   INTEGER :: n_emp_l(2) = 0
    !
    INTEGER  :: max_emp = 0    !  maximum number of iterations for empty states
    REAL(DP) :: ethr_emp, etot_emp, eodd_emp !  threshold for convergence
@@ -124,7 +145,7 @@ CONTAINS
 
       DO i = 1, nspin
          !
-         IF (i > nspinx) CALL errore(' bmeshset ', ' spin too large ', i)
+         IF (i > 2) CALL errore(' bmeshset ', ' spin too large ', i)
          !
          nb_l(i) = nupdwn(i)/nproc_image
          IF (me_image < MOD(nupdwn(i), nproc_image)) nb_l(i) = nb_l(i) + 1
@@ -185,18 +206,21 @@ CONTAINS
             IF (nupdwn_emp(2) < 0) CALL errore(' electrons ', ' cannot have a negative number of empty bands')
          END IF
          !
+         IF (nspin == 2) THEN
+            nudx_emp = nbnd - minval(nupdwn)
+         ELSE
+            nudx_emp = nbnd - nupdwn(1)
+         END IF
       ELSE
          ! nbnd was not expliclty provided, so we shouldn't perform an empty states calculation
          nupdwn_emp(1) = 0
          nupdwn_emp(2) = 0
+         nudx_emp = 0
       END IF
 
-      IF (nspin == 2) THEN
-         nudx_emp = nbnd - minval(nupdwn)
-      ELSE
-         nudx_emp = nbnd - nupdwn(1)
-      END IF
       n_emp = nudx_emp
+
+      write (*, *) 'EBL DEBUG', include_empty, nbnd, nupdwn(1), nupdwn(2), n_emp, nudx_emp, iupdwn_emp(1), nupdwn_emp(1), iupdwn_emp(2), nupdwn_emp(2)
 
       IF (ALLOCATED(ei)) DEALLOCATE (ei)
       ALLOCATE (ei(nudx, nspin), STAT=ierr)
