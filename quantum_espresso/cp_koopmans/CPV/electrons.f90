@@ -52,10 +52,6 @@ MODULE electrons_module
 
    ! replace n_emp with nbsp_emp/nbspx_emp depending on the context
    INTEGER :: n_emp = 0
-
-   ! TODO remove these two keywords, they aren't used anywhere?
-   INTEGER :: nb_l(2) = 0  ! local number of states ( for each spin components )
-   INTEGER :: n_emp_l(2) = 0
    !
    INTEGER  :: max_emp = 0    !  maximum number of iterations for empty states
    REAL(DP) :: ethr_emp, etot_emp, eodd_emp !  threshold for convergence
@@ -82,7 +78,7 @@ MODULE electrons_module
    PUBLIC :: electrons_empty_initval
    PUBLIC :: bmeshset, occn_info
    PUBLIC :: deallocate_electrons
-   PUBLIC :: n_emp, ei_emp, n_emp_l, ib_owner, ib_local, nb_l
+   PUBLIC :: n_emp, ei_emp, ib_owner, ib_local
    PUBLIC :: ei, nupdwn_emp, iupdwn_emp, nudx_emp
    PUBLIC :: print_eigenvalues, print_centers_spreads
    PUBLIC :: max_emp, ethr_emp
@@ -142,18 +138,6 @@ CONTAINS
       IF (band_first) THEN
          CALL errore(' bmeshset ', ' module not initialized ', 0)
       END IF
-
-      DO i = 1, nspin
-         !
-         IF (i > 2) CALL errore(' bmeshset ', ' spin too large ', i)
-         !
-         nb_l(i) = nupdwn(i)/nproc_image
-         IF (me_image < MOD(nupdwn(i), nproc_image)) nb_l(i) = nb_l(i) + 1
-         !
-         n_emp_l(i) = nupdwn_emp(i)/nproc_image
-         IF (me_image < MOD(nupdwn_emp(i), nproc_image)) n_emp_l(i) = n_emp_l(i) + 1
-         !
-      END DO
 
       IF (ALLOCATED(ib_owner)) DEALLOCATE (ib_owner)
       ALLOCATE (ib_owner(MAX(n_emp, nbndx)), STAT=ierr)
@@ -219,8 +203,6 @@ CONTAINS
       END IF
 
       n_emp = nudx_emp
-
-      write (*, *) 'EBL DEBUG', include_empty, nbnd, nupdwn(1), nupdwn(2), n_emp, nudx_emp, iupdwn_emp(1), nupdwn_emp(1), iupdwn_emp(2), nupdwn_emp(2)
 
       IF (ALLOCATED(ei)) DEALLOCATE (ei)
       ALLOCATE (ei(nudx, nspin), STAT=ierr)
