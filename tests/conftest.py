@@ -20,6 +20,7 @@ from koopmans.io import read
 from koopmans.io import read_kwf as read_encoded_json
 from koopmans.io import write_kwf as write_encoded_json
 from koopmans import utils
+from koopmans.utils._misc import flatten
 
 
 # A hard and a soft tolerance for checking floats
@@ -129,6 +130,15 @@ class WorkflowTest:
                 return {'kind': 'error', 'message': message}
             elif mixed_diff > tols[1]:
                 return {'kind': 'warning', 'message': message}
+        elif isinstance(ref_result, list):
+            # For lists, the list is first flattened and the elements are compared one by one
+            for a, b in zip(flatten(ref_result), flatten(result)):
+                diff = b - a
+                message = f'{result_name} = {b:.5f} differs from benchmark {a:.5f} by {diff:.2e}'
+                if abs(diff) > tols[0]:
+                    return {'kind': 'error', 'message': message}
+                elif abs(diff) > tols[1]:
+                    return {'kind': 'warning', 'message': message}
         else:
             if result != ref_result:
                 message = f'{result_name} = {result} differs from benchmark {ref_result}'

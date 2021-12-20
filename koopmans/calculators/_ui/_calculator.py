@@ -8,8 +8,9 @@ import os
 import copy
 import json
 from time import time
+from ase.geometry.cell import crystal_structure_from_cell
 import numpy as np
-from numpy.typing import ArrayLike
+from numpy.typing import ArrayLike, NDArray
 from typing import Union, List, Optional
 from pathlib import Path
 from datetime import datetime
@@ -20,7 +21,7 @@ from ase.spectrum.band_structure import BandStructure
 from koopmans import utils
 from koopmans.settings import UnfoldAndInterpolateSettingsDict
 from .._utils import CalculatorExt, CalculatorABC, sanitise_filenames
-from ._utils import crys_to_cart, extract_hr
+from ._utils import crys_to_cart, extract_hr, latt_vect
 from ._atoms import UIAtoms
 
 
@@ -45,15 +46,16 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         self.atoms.calc = self
 
         # Intermediate variables
-        self.centers: ArrayLike = []
-        self.spreads: ArrayLike = []
-        self.phases: ArrayLike = []
-        self.hr: ArrayLike = []
-        self.hr_smooth: ArrayLike = []
-        self.hk: ArrayLike = []
-        self.Rvec: ArrayLike = []
-        self.Rsmooth: ArrayLike = []
-        self.wRs: ArrayLike = []
+        self.centers: NDArray[np.float_] = np.array([])
+        self.spreads: List[float] = []
+        self.phases: List[complex] = []
+        self.hr: NDArray[np.complex_] = np.array([])
+        self.hr_coarse: NDArray[np.complex_] = np.array([])
+        self.hr_smooth: NDArray[np.complex_] = np.array([])
+        self.hk: NDArray[np.complex_] = np.array([])
+        self.Rvec: NDArray[np.int_] = np.array([])
+        self.Rsmooth: NDArray[np.int_] = np.array([])
+        self.wRs: List[int] = []
 
     @classmethod
     def fromfile(cls, filenames: Union[str, Path, List[str], List[Path]]) -> 'UnfoldAndInterpolateCalculator':
@@ -101,7 +103,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             with open(f'{self.prefix}{self.ext_out}', 'w') as f_out:
                 self.f_out = f_out
 
-                self.f_out.write('\nUNFOLDING & INTERPOLATION\n\n')
+                self.f_out.write('UNFOLDING & INTERPOLATION\n\n')
 
                 """
                  1) Parse data:
@@ -115,7 +117,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 self.parse_hr()
                 self.parse_phases()
 
-                self.f_out.write(f'\tParsing input in:{time() - reset:25.3f} sec\n')
+                self.f_out.write(f'\tParsing input in:{time() - reset:27.3f} sec\n')
                 reset = time()
 
                 """
@@ -142,7 +144,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 walltime = time() - start
                 self.results['walltime'] = walltime
                 self.f_out.write(f'\n\tTotal time: {walltime:32.3f} sec\n')
-                self.f_out.write('\nALL DONE\n\n')
+                self.f_out.write('\nALL DONE\n')
 
                 self.results['job done'] = True
 
@@ -181,19 +183,19 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
     def get_fermi_level(self):
         return 0
 
-    def parse_w90(self):
+    def parse_w90(self) -> None:
         '''
         centers : centers of WFs (in PC crystal units)
         spreads : spreads of WFs (in Ang^2)
         '''
 
-        if self.centers and self.spreads:
+        if len(self.centers) > 0 and len(self.spreads) > 0:
             num_wann = len(self.centers)
         else:
             with open(self.parameters.w90_seedname.with_suffix('.wout'), 'r') as ifile:
                 lines = ifile.readlines()
 
-            self.centers = []
+            centers = []
             self.spreads = []
             count = 0
 
@@ -203,38 +205,34 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 if count > 0 and count <= num_wann:
                     start = line.find('(')
                     end = line.find(')')
-                    self.centers.append(np.array(line[start + 1:end].replace(',', ' ').split(),
-                                                 dtype=float))
+                    centers.append(np.array(line[start + 1:end].replace(',', ' ').split(),
+                                            dtype=float))
                     self.spreads.append(float(line.split()[-1]))
                     count += 1
                 if 'Final State' in line:
                     count += 1
 
-        self.Rvec = np.array([[x, y, z] for x in range(self.parameters.kgrid[0])
-                              for y in range(self.parameters.kgrid[1]) for z in range(self.parameters.kgrid[2])])
+            self.centers = np.array(centers)
+
+        self.Rvec = latt_vect(*self.parameters.kgrid)
 
         if self.parameters.w90_input_sc:
             self.parameters.num_wann_sc = num_wann
             self.parameters.num_wann = num_wann // np.prod(self.parameters.kgrid)
-
         else:
             self.parameters.num_wann = num_wann
             self.parameters.num_wann_sc = num_wann * np.prod(self.parameters.kgrid)
 
-        for n in range(num_wann):
-            self.centers[n] = self.centers[n] / np.linalg.norm(self.atoms.cell[0])
-            self.centers[n] = crys_to_cart(self.centers[n], self.atoms.acell.reciprocal(), -1)
+        self.centers /= np.linalg.norm(self.atoms.cell[0])
+        self.centers = crys_to_cart(self.centers, self.atoms.acell.reciprocal(), -1)
 
         # generate the centers and spreads of all the other (R/=0) WFs
-        if not self.parameters.w90_input_sc:
-            for rvect in self.Rvec[1:]:
-                for n in range(self.parameters.num_wann):
-                    self.centers.append(self.centers[n] + rvect)
-                    self.spreads.append(self.spreads[n])
+        self.centers = np.concatenate([self.centers + rvec for rvec in self.Rvec])
+        self.spreads *= len(self.Rvec)
 
         return
 
-    def parse_hr(self):
+    def parse_hr(self) -> None:
         """
         parse_hr reads the hamiltonian file passed as argument and it sets it up
         as self.hr. It also reads in the coarse and smooth Hamiltonians, if smooth
@@ -287,7 +285,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         return
 
-    def parse_phases(self):
+    def parse_phases(self) -> None:
         """
         parse_phases gets the phases of WFs from the file 'wf_phases.dat'. If the file
                      is not found a warning is print out and the WFs phases are ignored.
@@ -300,10 +298,10 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         except FileNotFoundError:
             if self.parameters.w90_input_sc:
                 utils.warn('file "wf_phases.dat" not found; phases are ignored')
-            self.phases = [1 for _ in range(self.parameters.num_wann_sc)]
+            self.phases = []
         return
 
-    def print_centers(self, centers=None):
+    def print_centers(self, centers: NDArray[np.float_] = np.array([])) -> None:
         """
         print_centers simply prints out the centers in the following Xcrysden-readable format:
 
@@ -316,7 +314,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         """
 
-        if centers is None:
+        if len(centers) == 0:
             centers = self.centers
 
         for n in range(self.parameters.num_wann_sc):
@@ -324,7 +322,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         return
 
-    def write_results(self, directory: Optional[Path] = None):
+    def write_results(self, directory: Optional[Path] = None) -> None:
         """
         write_results calls write_bands and write_dos if the DOS was calculated
         """
@@ -338,7 +336,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         return
 
-    def write_bands(self, directory=None):
+    def write_bands(self, directory=None) -> None:
         """
         write_bands prints the interpolated bands, in the QE format, in a file called
                     'bands_interpolated.dat'.
@@ -357,14 +355,11 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             dxmod = np.linalg.norm(kvec[ik] - kvec[ik - 1])
             if ik == 1:
                 dxmod_save = dxmod
-
             if dxmod > 5 * dxmod_save:
                 kx.append(kx[ik - 1])
-
             elif dxmod > 1.e-4:
                 kx.append(kx[ik - 1] + dxmod)
                 dxmod_save = dxmod
-
             else:
                 kx.append(kx[ik - 1] + dxmod)
 
@@ -376,10 +371,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 for k, energy in zip(kx, energies):
                     ofile.write(f'\n{k:16.8f}{energy:16.8f}')
                 ofile.write('\n')
-
         return
 
-    def read_bands(self, directory=None):
+    def read_bands(self, directory=None) -> None:
         """
         read_bands reads the interpolated bands, in the QE format, in a file called
                    'bands_interpolated.dat'
@@ -392,7 +386,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             directory = self.directory
 
         band_file = f'{directory}/bands_interpolated.dat'
-        bands = [[]]
+        bands: List[List] = [[]]
         if os.path.isfile(band_file):
             with open(band_file, 'r') as f:
                 flines = f.readlines()
@@ -405,7 +399,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             self.results['band structure'] = BandStructure(path=self.parameters.kpath, energies=[np.transpose(bands)])
             self.calc_dos()
 
-    def write_dos(self, directory=None):
+    def write_dos(self, directory=None) -> None:
         """
         write_dos prints the DOS in a file called 'dos_interpolated.dat', in a format (E , DOS(E))
 
@@ -422,7 +416,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         return
 
-    def write_input(self, atoms: Atoms):
+    def write_input(self, atoms: Atoms) -> None:
         """
         write_input writes out a JSON file containing the settings used for the calculation. This "input" file is
         never actually used in a standard calculation, but it is useful for debugging
@@ -445,14 +439,14 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 bigdct = {"workflow": {"task": "ui"}, "ui": settings}
 
                 # Provide the bandpath information in the form of a string
-                bigdct['setup'] = {'kpoints': {'kpath': kpath.path, 'kgrid': kgrid}}
+                bigdct['setup'] = {'k_points': {'kpath': kpath.path, 'kgrid': kgrid}}
 
                 # We also need to provide a cell so the explicit kpath can be reconstructed from the string alone
                 bigdct['setup']['cell_parameters'] = utils.construct_cell_parameters_block(atoms)
 
                 json.dump(bigdct, fd, indent=2)
 
-    def read_input(self, input_file: Optional[Path] = None):
+    def read_input(self, input_file: Optional[Path] = None) -> None:
         """
         read_input reads in the settings from a JSON-formatted input file and loads them onto this calculator (useful
         for restarting)
@@ -476,7 +470,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             cell = utils.read_cell_parameters(None, bigdct['setup'].get('cell_parameters', {}))
             if cell:
                 self.atoms.cell = cell
-            kpoint_block = bigdct['setup'].get('kpoints', {})
+            kpoint_block = bigdct['setup'].get('k_points', {})
             if kpoint_block:
                 self.parameters.kgrid = kpoint_block['kgrid']
                 utils.read_kpath(self, kpoint_block['kpath'])
@@ -499,7 +493,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         return
 
-    def interpolate(self, start_time):
+    def interpolate(self, start_time) -> None:
         """
         interpolate is the main program in this module and it calls consecutively
                     the three independent functions:
@@ -512,7 +506,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         # Step 1: map the WFs
         if self.parameters.do_map:
             self.map_wannier()
-            self.f_out.write(f'\tBuilding the map |i> --> |Rn> in:\t{time()-start_time:.3f} sec\n')
+            self.f_out.write(f'\tBuilding the map |i> --> |Rn> in:{time()-start_time:11.3f} sec\n')
         reset = time()
 
         # Step 2: calculate the electronic bands along kpath
@@ -527,7 +521,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         return
 
-    def map_wannier(self):
+    def map_wannier(self) -> None:
         """
         map_wannier builds the map |i> --> |Rn> between the WFs in the SC and in the PC.
         """
@@ -535,57 +529,46 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         centers = []
         spreads = []
         index = []
-        num_wann = 0
 
         # here we identify the WFs within the R=0 cell
+        self.centers /= self.parameters.kgrid
+        self.centers -= np.floor(self.centers)
+        self.centers *= self.parameters.kgrid
         for n in range(self.parameters.num_wann_sc):
-            # shift the WFs within the SC
-            self.centers[n] = self.centers[n] / self.parameters.kgrid
-            self.centers[n] = self.centers[n] - np.floor(self.centers[n])
-
-            # converting centers from crystal units of SC to crystal units of PC
-            self.centers[n] = self.centers[n] * self.parameters.kgrid
-
             if all([x - 1 < 1.e-3 for x in self.centers[n]]):
                 centers.append(self.centers[n])
                 spreads.append(self.spreads[n])
                 index.append(n)
-                num_wann += 1
 
         # check on the WFs found in the R=0 cell
-        assert num_wann == self.parameters.num_wann, 'Did not find the right number of WFs in the R=0 cell'
+        assert len(centers) == self.parameters.num_wann, 'Did not find the right number of WFs in the R=0 cell'
 
-        # here we identify with |Rn> the WFs in the rest of the SC
+        # here we identify with |Rn> the WFs in the rest of the SC, by comparing centers and spreads
         # the WFs are now ordered as (R0,1),(R0,2),...,(R0,n),(R1,1),...
         for rvect in self.Rvec[1:]:
             count = 0
             for m in range(self.parameters.num_wann):
                 for n in range(self.parameters.num_wann_sc):
-                    wf_dist = self.centers[n] - centers[m]
-                    if (np.linalg.norm(wf_dist - rvect) < 1.e-3) and (abs(self.spreads[n] - spreads[m] < 1.e-3)):
+                    if all(abs(self.centers[n] - centers[m] - rvect) < 1.e-3) and \
+                       abs(self.spreads[n] - spreads[m]) < 1.e-3:
                         centers.append(self.centers[n])
                         spreads.append(self.spreads[n])
                         index.append(n)
                         count += 1
-
             assert count == self.parameters.num_wann, f'Found {count} WFs in the {rvect} cell'
 
-        # redefine phases and hr in order to follow the new order of WFs
-        phases = []
-        hr = np.zeros((self.parameters.num_wann_sc, self.parameters.num_wann_sc), dtype=complex)
-        for n in range(self.parameters.num_wann_sc):
-            phases.append(self.phases[index[n]])
-            for m in range(self.parameters.num_wann_sc):
-                hr[m, n] = self.hr[index[m], index[n]]
+        # permute phases and Hamiltonian matrix elements in order to follow the new order of WFs
+        hr = [self.hr[i, j] for i in index for j in index]
+        if self.phases:
+            self.phases = [self.phases[i] for i in index]
 
-        self.centers = centers
+        self.centers = np.array(centers, dtype=float)
         self.spreads = spreads
-        self.hr = hr
-        self.phases = phases
+        self.hr = np.array(hr, dtype=complex).reshape(self.parameters.num_wann_sc, self.parameters.num_wann_sc)
 
         return
 
-    def calc_bands(self):
+    def calc_bands(self) -> None:
         """
         calc_bands interpolates the k-space hamiltonian along the input path, by Fourier
                    transforming the Wannier hamiltonian H(R). The function generates two
@@ -596,44 +579,29 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         """
 
         # when smooth interpolation is on, we remove the DFT part from hr
-        hr = np.array(self.hr[:, :self.parameters.num_wann], dtype=complex)
+        hr = self.hr[:, :self.parameters.num_wann]
         if self.parameters.do_smooth_interpolation:
             hr = hr - self.hr_coarse
+        hr = hr.reshape(len(self.Rvec), self.parameters.num_wann, self.parameters.num_wann)
 
         # renormalize H(R) on the WF phases
-        for m in range(self.parameters.num_wann_sc):
-            for n in range(self.parameters.num_wann):
-                hr[m, n] = self.phases[m].conjugate() * hr[m, n] * self.phases[n]
+        if self.phases:
+            hr = np.conjugate(self.phases) * (hr.transpose() * self.phases).transpose()
 
-        # here we build the interpolated H(k)
-        hk = np.zeros((len(self.parameters.kpath.kpts), self.parameters.num_wann,
-                      self.parameters.num_wann), dtype=complex)
-        bands = []
-        self.f_out.write(f"\n\t\tTotal number of k-points: {len(self.parameters.kpath.kpts):6d}\n\n")
-        for ik, kpt in enumerate(self.parameters.kpath.kpts):
-            self.f_out.write(f"\t\t      calculating point # {ik+1}\n")
-            for m in range(self.parameters.num_wann):
-                for n in range(self.parameters.num_wann):
-                    for ir in range(len(self.Rvec)):
+        # calculate phase and phase correction
+        # phi:      (Nkpath, NR)
+        # phi_corr: (Nkpath, NR, num_wann, num_wann)
+        phi = np.exp(2j * np.pi * np.dot(self.parameters.kpath.kpts, self.Rvec.transpose()))
+        phi_corr = self.correct_phase()
 
-                        mm = ir * self.parameters.num_wann + m
-                        phase = self.correct_phase(self.centers[n], self.centers[mm], self.Rvec[ir], kpt)
+        # interpolate H(k)
+        hk = np.transpose(np.sum(phi * np.transpose(hr * phi_corr, axes=(2, 3, 0, 1)), axis=3), axes=(2, 0, 1))
+        if self.parameters.do_smooth_interpolation:
+            phi = np.exp(2j * np.pi * np.dot(self.parameters.kpath.kpts, self.Rsmooth.transpose()))
+            hr_smooth = np.transpose(self.hr_smooth, axes=(2, 1, 0)) / self.wRs
+            hk += np.dot(phi, np.transpose(hr_smooth, axes=(1, 2, 0)))
 
-                        hk[ik, m, n] = hk[ik, m, n] + np.exp(1j * 2 * np.pi * np.dot(kpt, self.Rvec[ir])) * \
-                            phase * hr[mm, n]
-
-                    if self.parameters.do_smooth_interpolation:
-                        hk_smooth = 0
-                        for jr in range(len(self.Rsmooth)):
-                            Rs = self.Rsmooth[jr]
-                            hk_smooth = hk_smooth + np.exp(1j * 2 * np.pi * np.dot(kpt, Rs)) * \
-                                self.hr_smooth[jr, m, n] / self.wRs[jr]
-                        hk[ik, m, n] = hk[ik, m, n] + hk_smooth
-
-            bands.append(np.linalg.eigvalsh(hk[ik]))
-
-        self.f_out.write('\n')
-
+        bands = np.linalg.eigvalsh(hk)
         self.hk = hk
         self.results['band structure'] = BandStructure(self.parameters.kpath, [bands])
 
@@ -655,7 +623,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         return
 
-    def correct_phase(self, center_ref, center, rvect, kvect):
+    def correct_phase(self) -> NDArray[np.complex_]:
         """
         correct_phase calculate the correct phase factor to put in the Fourier transform
                       to get the interpolated k-space hamiltonian. The correction consists
@@ -665,45 +633,38 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                       distance between Wannier functions, otherwise only the intercell
                       distances are considered.
 
-           IMPORTANT: the input vectors (center_ref, center, Rvec and kvec) must all
-                      be in crystal units otherwise the distances are not properly evaluated.
+           IMPORTANT: the vectors must all be in crystal units otherwise the distances are
+                      not properly evaluated.
         """
 
         if self.parameters.use_ws_distance:
-            wf_dist = crys_to_cart(center - center_ref, self.atoms.acell, +1)
+            # create an array containing all the distances between reference (R=0) WFs and all the other WFs:
+            # 1) accounting for their positions within the unit cell
+            wf_dist = np.concatenate([[c] * self.parameters.num_wann_sc
+                                     for c in self.centers[:self.parameters.num_wann]]) \
+                - np.concatenate([self.centers] * self.parameters.num_wann)
         else:
-            wf_dist = crys_to_cart(rvect, self.atoms.acell, +1)
+            # 2) considering only the distance between the unit cells they belong to
+            wf_dist = np.array(np.concatenate([[rvec] * self.parameters.num_wann for rvec in self.Rvec]).tolist()
+                               * self.parameters.num_wann)
 
-        dist_min = np.linalg.norm(wf_dist)
+        # supercell lattice vectors
+        Tvec = [np.array((i, j, k)) * self.parameters.kgrid for i in range(-1, 2)
+                for j in range(-1, 2) for k in range(-1, 2)]
         Tlist = []
+        for dist in wf_dist:
+            distance = crys_to_cart(dist + np.array(Tvec), self.atoms.acell, +1)
+            norm = np.linalg.norm(distance, axis=1)
+            Tlist.append(np.where(norm - norm.min() < 1.e-3)[0])
 
-        for i in range(-1, 2):
-            for j in range(-1, 2):
-                for k in range(-1, 2):
-                    tvect = np.array([i, j, k]) * self.parameters.kgrid
-                    Tvec = crys_to_cart(tvect, self.atoms.acell, +1)
-                    dist = np.linalg.norm(wf_dist + Tvec)
+        phase = np.zeros((len(self.parameters.kpath.kpts), len(Tlist)), dtype=complex)
+        for i, t_index in enumerate(Tlist):
+            for ik, kvect in enumerate(self.parameters.kpath.kpts):
+                for it in t_index:
+                    phase[ik, i] += np.exp(2j * np.pi * np.dot(kvect, Tvec[it]))
 
-                    if (abs(dist - dist_min) < 1.e-3):
-                        #
-                        # an equidistant replica is found
-                        #
-                        Tlist.append(tvect)
-
-                    elif (dist < dist_min):
-                        #
-                        # a new nearest replica is found
-                        # reset dist_min and reinitialize Tlist
-                        #
-                        dist_min = dist
-                        Tlist = [tvect]
-
-                    else:
-                        #
-                        # this replica is rejected
-                        #
-                        continue
-
-        phase = sum(np.exp(1j * 2 * np.pi * np.dot(Tlist, kvect))) / len(Tlist)
+        phase = phase.reshape(len(self.parameters.kpath.kpts), self.parameters.num_wann, len(self.Rvec),
+                              self.parameters.num_wann)
+        phase = np.transpose(phase, axes=(0, 2, 1, 3))
 
         return phase
