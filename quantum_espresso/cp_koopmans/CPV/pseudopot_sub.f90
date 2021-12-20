@@ -182,7 +182,7 @@
    SUBROUTINE compute_xgtab_x( xgmin, xgmax, xgtabmax )
       !
       USE kinds,              ONLY : DP
-      USE cell_base,          ONLY : tpiba, tpiba2
+      USE cell_base,          ONLY : tpiba
       USE mp,                 ONLY : mp_max
       USE mp_global,          ONLY : intra_image_comm
       USE reciprocal_vectors, ONLY : g
@@ -193,8 +193,8 @@
       !
       REAL(DP), INTENT(OUT)  :: xgmax, xgmin, xgtabmax
       !
-      INTEGER    :: ig, nval
-      REAL(DP)  :: xg, dxg, res
+      INTEGER   :: ig, nval
+      REAL(DP)  :: dxg
       !
       IF( .NOT. ALLOCATED( xgtab ) )     ALLOCATE( xgtab( mmx ) )
       nval = mmx
@@ -224,12 +224,12 @@
       USE kinds,              ONLY : DP
       USE atom,               ONLY : rgrid
       USE ions_base,          ONLY : nsp, rcmax, zv
-      USE cell_base,          ONLY : tpiba, tpiba2
+      USE cell_base,          ONLY : tpiba2
       USE splines,            ONLY : init_spline, allocate_spline, kill_spline, nullify_spline
       USE pseudo_base,        ONLY : formfn, formfa
       USE uspp_param,         only : upf, oldvan
       USE control_flags,      only : tpre
-      use reciprocal_vectors, ONLY : g, gstart
+      use reciprocal_vectors, ONLY : g
       USE cp_interfaces,      ONLY : compute_xgtab, chkpstab
       USE pseudopotential,    ONLY : vps_sp, dvps_sp, xgtab
       USE local_pseudo,       ONLY : vps0
@@ -237,7 +237,7 @@
 
       IMPLICIT NONE
 
-      INTEGER   :: is, ig
+      INTEGER   :: is
       REAL(DP)  :: xgmax, xgmin
       LOGICAL   :: compute_tab
       REAL(DP)  :: xgtabmax = 0.0d0
@@ -304,11 +304,11 @@
       USE kinds,              ONLY : DP
       USE atom,               ONLY : rgrid
       USE uspp_param,         ONLY : upf
-      USE ions_base,          ONLY : nsp, rcmax
-      USE cell_base,          ONLY : tpiba, tpiba2
+      USE ions_base,          ONLY : nsp
+      USE cell_base,          ONLY : tpiba2
       USE splines,            ONLY : init_spline, allocate_spline, kill_spline, nullify_spline
       USE pseudo_base,        ONLY : compute_rhocg
-      USE reciprocal_vectors, ONLY : g, gstart
+      USE reciprocal_vectors, ONLY : g
       USE cp_interfaces,      ONLY : compute_xgtab, chkpstab
       USE pseudopotential,    ONLY : rhoc1_sp, rhocp_sp, xgtab
       USE betax,              ONLY : mmx
@@ -485,11 +485,10 @@
       USE kinds,         ONLY : DP
       use io_global,     only : stdout
       USE ions_base,     ONLY : nsp
-      USE uspp_param,    ONLY : upf, nh, nhm, nbetam, lmaxq, oldvan
+      USE uspp_param,    ONLY : upf, nh, nbetam, lmaxq, oldvan
       USE atom,          ONLY : rgrid
-      USE uspp,          ONLY : indv
       USE betax,         only : refg, qradx, mmx, dqradx
-      USE cvan,          only : ish, nvb
+      USE cvan,          only : nvb
       use gvecb,         only : ngb
       USE cp_interfaces, ONLY : fill_qrl
       !
@@ -497,7 +496,7 @@
       !
       LOGICAL, INTENT(IN) :: tpre
       !
-      INTEGER :: is, iv, l, il, ir, jv, ijv, ierr
+      INTEGER :: is, iv, l, il, ir, jv, ijv
       INTEGER :: nr
       REAL(DP), ALLOCATABLE :: dfint(:), djl(:), fint(:), jl(:), qrl(:,:,:)
       REAL(DP) :: xg
@@ -616,15 +615,13 @@
       USE kinds,         ONLY : DP
       use io_global,  only: stdout
       USE ions_base,  ONLY: nsp
-      USE uspp_param, ONLY: upf, nh, nhm, nbetam, lmaxq, oldvan
-      use uspp_param, only: lmaxkb
+      USE uspp_param, ONLY: upf, nh, nbetam, lmaxq, oldvan
       USE atom,       ONLY: rgrid
-      USE uspp,       ONLY: indv
-      use uspp,       only: qq, beta
-      USE betax,      only: refg, qradx, mmx, dqradx
-      USE cvan,       only: ish, nvb
+      use uspp,       only: qq
+      USE betax,      only: qradx, dqradx
+      USE cvan,       only: nvb
       use gvecb,      only: ngb
-      use control_flags, only: iprint, iprsta
+      use control_flags, only: iprsta
       use cell_base,  only: ainv
       use constants,  only: pi, fpi
       use qradb_mod,  only: qradb
@@ -640,9 +637,9 @@
       LOGICAL, INTENT(IN) :: tpre
       !
       INTEGER :: is, iv, l, il, ir, jv, ijv, ierr
-      INTEGER :: ig, i,j, jj, nr
+      INTEGER :: ig, i,j, nr
       REAL(DP), ALLOCATABLE :: dfint(:), djl(:), fint(:), jl(:), qrl(:,:,:)
-      REAL(DP) :: xg, c, betagl, dbetagl, gg
+      REAL(DP) :: xg, c
       REAL(DP), ALLOCATABLE :: dqradb(:,:,:,:)
       REAL(DP), ALLOCATABLE :: ylmb(:,:), dylmb(:,:,:,:)
       COMPLEX(DP), ALLOCATABLE :: dqgbs(:,:,:)
@@ -929,9 +926,9 @@
       USE gvecw, only: ngw
       USE ions_base, only: nsp
       USE reciprocal_vectors, only: g, gx, gstart
-      USE uspp_param, only: upf, lmaxq, lmaxkb, nh
-      USE uspp, only: qq, nhtolm, beta
-      USE cell_base, only: ainv, omega, tpiba2, tpiba
+      USE uspp_param, only: lmaxkb, nh
+      USE uspp, only: nhtolm, beta
+      USE cell_base, only: ainv, omega, tpiba
       USE betax, ONLY : refg, betagx, dbetagx
       USE cdvan, ONLY : dbeta
 
@@ -1026,15 +1023,14 @@
       !
       !
       USE kinds,         ONLY : DP
-      use control_flags, only: iprint, iprsta
+      use control_flags, only: iprsta
       use io_global, only: stdout
-      use gvecw, only: ngw
       use cell_base, only: ainv
       use cvan, only: nvb
-      use uspp, only: qq, nhtolm, beta
+      use uspp, only: qq
       use constants, only: pi, fpi
       use ions_base, only: nsp
-      use uspp_param, only: upf, lmaxq, lmaxkb, nbetam, nh
+      use uspp_param, only: upf, lmaxq, nbetam, nh
       use qradb_mod, only: qradb
       use qgb_mod, only: qgb
       use gvecb, only: gb, gxb, ngb
@@ -1047,11 +1043,11 @@
 
       LOGICAL, INTENT(IN) :: tpre
 
-      integer  is, l, ig, ir, iv, jv, ijv, i,j, jj, ierr
-      real(8), allocatable:: fint(:), jl(:), dqradb(:,:,:,:)
+      integer  is, l, ig, iv, jv, ijv, i,j, jj, ierr
+      real(8), allocatable::  dqradb(:,:,:,:)
       real(8), allocatable:: ylmb(:,:), dylmb(:,:,:,:)
       complex(8), allocatable:: dqgbs(:,:,:)
-      real(8) xg, c, betagl, dbetagl, gg
+      real(8) c, gg
 !
 !
       allocate( ylmb( ngb, lmaxq*lmaxq ), STAT=ierr )
@@ -1198,9 +1194,9 @@
       USE io_global,     only : stdout
       USE gvecw,         only : ngw
       USE ions_base,     only : nsp
-      USE uspp_param,    only : upf, lmaxq, lmaxkb, nh, nhm, oldvan
-      USE uspp,          only : qq, nhtolm, beta, nhtol, indv
-      USE cell_base,     only : ainv, omega, tpiba2, tpiba
+      USE uspp_param,    only : upf, lmaxkb, nh, nhm, oldvan
+      USE uspp,          only : nhtolm, beta, nhtol, indv
+      USE cell_base,     only : ainv, omega, tpiba
       USE cdvan,         ONLY : dbeta
       USE atom,          ONLY : rgrid
       USE reciprocal_vectors, only : g, gx, gstart
@@ -1210,8 +1206,8 @@
       LOGICAL, INTENT(IN) :: tpre
  
       REAL(DP), ALLOCATABLE ::  ylm(:,:), dylm(:,:,:,:)
-      REAL(DP) :: c, gg, betagl, dbetagl
-      INTEGER :: is, iv, lp, ig, jj, i, j, nr
+      REAL(DP) :: c, betagl, dbetagl
+      INTEGER :: is, iv, lp, ig, i, j, nr
       INTEGER :: l, il, ir
       REAL(DP), ALLOCATABLE :: dfint(:), djl(:), fint(:), jl(:)
       REAL(DP), ALLOCATABLE :: betagx ( :, :, : ), dbetagx( :, :, : )

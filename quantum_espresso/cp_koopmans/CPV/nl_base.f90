@@ -37,8 +37,7 @@
       complex(DP), intent(in)  :: eigr( ngw, nat ), c( ngw, n )
       real(DP), intent(out) :: becp( nkb, n )
       !
-      integer   :: isa, ig, is, iv, ia, l, ixr, ixi, inl, i, nhx
-      real(DP)  :: signre, signim, arg
+      integer   :: isa, ig, is, iv, ia, l, inl, i, nhx
       real(DP), allocatable :: becps( :, : )
       complex(DP), allocatable :: wrk2( :, : )
       complex(DP), parameter :: c_one=CMPLX(1.d0,0.d0), c_zero=CMPLX(0.d0,0.d0)
@@ -191,8 +190,7 @@
       type(twin_matrix) :: becp ! modified:giovanni
       logical :: lgam2 ! added:giovanni
       !
-      integer   :: isa, ig, is, iv, ia, l, ixr, ixi, inl, i, nhx
-      real(DP)  :: signre, signim, arg
+      integer   :: isa, ig, is, iv, ia, l, inl, nhx, i
       real(DP), allocatable :: becps( :, : )
       complex(DP), allocatable :: becps_c( :, : )
       complex(DP), allocatable :: wrk2_c( :, : )
@@ -200,7 +198,6 @@
       complex(DP), parameter :: ci=CMPLX(0.d0,1.d0)
       complex(DP) :: cl, arg_c
       logical :: lgam!added:giovanni
-      integer :: i1,i2,i3
       !
       lgam=lgam2
       call start_clock( 'nlsm1' )
@@ -570,9 +567,8 @@
       type(twin_matrix), intent(out) :: becp !( nkb, nlax*nspin )
       logical, intent(IN) :: lgam2
       !
-      integer   :: isa, ig, is, iv, ia, l, ixr, ixi, inl, i, nhx
+      integer   :: isa, ig, is, iv, ia, l, inl, i, nhx
       integer   :: nr, ir, nup
-      real(DP)  :: signre, signim, arg
       real(DP), allocatable :: becps( :, : )
       complex(DP), allocatable :: becps_c( :, : )
       complex(DP), allocatable :: wrk2_c( :, : )
@@ -580,7 +576,6 @@
       complex(DP), parameter :: ci=CMPLX(0.d0,1.d0)
       complex(DP) :: cl, arg_c
       logical :: lgam !added:giovanni
-      integer :: i1,i2,i3
       !
       lgam=lgam2
       call start_clock( 'nlsm1' )
@@ -790,7 +785,7 @@
       use cell_base,  only : tpiba
       use mp,         only : mp_sum
       use mp_global,  only : nproc_image, intra_image_comm
-      use cp_main_variables,  only : nlax, descla, distribute_bec_real, distribute_bec_cmplx
+      use cp_main_variables,  only : descla, distribute_bec_real, distribute_bec_cmplx
       use reciprocal_vectors, only : gx, gstart
       use twin_types !added:giovanni
 !
@@ -806,8 +801,7 @@
       real(DP), allocatable :: becdr_repl(:,:)
       complex(DP), allocatable :: becdr_repl_c(:,:)
       !
-      integer   :: ig, is, iv, ia, k, l, ixr, ixi, inl, isa, i
-      real(DP) :: signre, signim, arg
+      integer   :: ig, is, iv, ia, k, l, inl, isa
       logical :: lgam ! added:giovanni
       complex(DP), parameter :: c_one=CMPLX(1.d0,0.d0), c_zero=CMPLX(0.d0,0.d0)
       complex(DP), parameter :: ci=CMPLX(0.d0,1.d0) !added:giovanni
@@ -954,7 +948,7 @@
       real(DP), allocatable :: gk(:)
       complex(DP), allocatable :: wrk2_c(:,:)
       !
-      integer   :: ig, is, iv, ia, k, l, ixr, ixi, inl, isa, i
+      integer   :: ig, is, iv, ia, k, l, inl, isa
       real(DP) :: fact
       complex(DP), parameter :: c_one=CMPLX(1.d0,0.d0), c_zero=CMPLX(0.d0,0.d0)
       complex(DP), parameter :: ci=CMPLX(0.d0,1.d0) !added:giovanni
@@ -1050,7 +1044,7 @@
       use kinds,          only : DP
       use cvan,           only : ish
       use uspp_param,     only : nhm, nh
-      use uspp,           only : nkb, dvan
+      use uspp,           only : dvan
       use electrons_base, only : n => nbsp, nspin, ispin, f
       use ions_base,      only : nsp, nat, na
       use twin_types
@@ -1165,7 +1159,7 @@
       use kinds,          only : DP
       use cvan,           only : ish
       use uspp_param,     only : nhm, nh
-      use uspp,           only : nkb, dvan
+      use uspp,           only : dvan
       use electrons_base, only : n => nbsp, nspin, ispin, f
       use ions_base,      only : nsp, nat, na
       use twin_types
@@ -1279,7 +1273,7 @@
       use kinds,          only : DP
       use cvan,           only : ish
       use uspp_param,     only : nhm, nh
-      use uspp,           only : nkb, dvan
+      use uspp,           only : dvan
       use ions_base,      only : nsp, nat, na
       use twin_types
       use control_flags,  only : gamma_only, do_wf_cmplx
@@ -1395,7 +1389,7 @@
       use kinds,          only : DP
       use cvan,           only : ish
       use uspp_param,     only : nhm, nh
-      use uspp,           only : nkb, dvan
+      use uspp,           only : nkb
       use electrons_base, only : n => nbsp, nspin, ispin, f
       use ions_base,      only : nsp, nat, na
       !
@@ -1443,13 +1437,11 @@
       use kinds,          only : DP
       use cvan,           only : ish
       use uspp_param,     only : nhm, nh
-      use uspp,           only : nkb, dvan
-      use electrons_base, only : n => nbsp, nspin, ispin, f
+      use electrons_base, only : nspin, ispin, f
       use ions_base,      only : nsp, nat, na
       use twin_types
       use cp_main_variables, only : becdual
       use control_flags,     only : non_ortho
-      use wavefunctions_module, only : cdual
       !
       implicit none
       !
@@ -1535,10 +1527,8 @@
       use cvan,           only : ish
       use electrons_base, only : n => nbsp
       use gvecw,          only : ngw
-      use control_flags,  only : iprint, iprsta, gamma_only, &
-  &                              do_wf_cmplx
+      use control_flags,  only : iprsta, gamma_only, do_wf_cmplx
       use uspp_param,     only : nh
-      use uspp,           only : nkb
       use twin_types
 !
       implicit none
@@ -1609,9 +1599,9 @@ SUBROUTINE caldbec( ngw, nkb, n, nspmn, nspmx, eigr, c, dbec ) !warning:giovanni
   use cvan,       only : ish
   use cdvan,      only : dbeta
   use uspp,       only : nhtol
-  use uspp_param, only : nh, nhm
+  use uspp_param, only : nh
   use reciprocal_vectors, only : gstart
-  USE cp_main_variables,  ONLY : descla, la_proc, nlax, nlam
+  USE cp_main_variables,  ONLY : descla, la_proc, nlam
   USE descriptors,        ONLY : nlar_ , nlac_ , ilar_ , ilac_ , nlax_ , la_myr_ , la_myc_
   use electrons_base,     only : nspin, iupdwn, nupdwn
   !
@@ -1723,16 +1713,13 @@ subroutine dennl( bec, dbec, drhovan, denl )
   USE kinds,      ONLY : DP
   use cvan,       only : ish
   use uspp_param, only : nh, nhm
-  use uspp,       only : nkb, dvan, deeq
+  use uspp,       only : nkb, dvan
   use ions_base,  only : nsp, na, nat
-  use cell_base,  only : h
-  use io_global,  only : stdout
   use mp,         only : mp_sum
   use mp_global,  only : intra_image_comm
-  USE cp_main_variables,  ONLY : descla, la_proc, nlax, nlam
+  USE cp_main_variables,  ONLY : descla, la_proc, nlam
   USE descriptors,        ONLY : nlar_ , nlac_ , ilar_ , ilac_ , nlax_ , la_myr_ , la_myc_
-  use electrons_base,     only : n => nbsp, ispin, f, nspin, iupdwn, nupdwn
-  use reciprocal_vectors, only : gstart
+  use electrons_base,     only : n => nbsp, f, nspin, iupdwn, nupdwn
 
   implicit none
 
@@ -1741,7 +1728,7 @@ subroutine dennl( bec, dbec, drhovan, denl )
   real(DP), intent(out) :: drhovan( nhm*(nhm+1)/2, nat, nspin, 3, 3 )
   real(DP), intent(out) :: denl( 3, 3 )
 
-  real(DP) :: dsum(3,3),dsums(2,3,3), detmp(3,3)
+  real(DP) :: dsum(3,3),dsums(2,3,3)
   integer   :: is, iv, jv, ijv, inl, jnl, isa, ism, ia, iss, i,j,k
   integer   :: istart, nss, ii, ir, nr
   !
@@ -1832,12 +1819,12 @@ subroutine nlfq( c, eigr, bec, becdr, fion, lgam2)
   USE kinds,          ONLY : DP
   use uspp,           only : nkb, dvan, deeq
   use uspp_param,     only : nhm, nh
-  use cvan,           only : ish, nvb
-  use ions_base,      only : nax, nat, nsp, na
-  use electrons_base, only : n => nbsp, ispin, f, nspin, iupdwn, nupdwn
+  use cvan,           only : ish
+  use ions_base,      only : nat, nsp, na
+  use electrons_base, only : n => nbsp, f, nspin, iupdwn, nupdwn
   use gvecw,          only : ngw
   use constants,      only : pi, fpi
-  use mp_global,      only : me_image, intra_image_comm, nproc_image
+  use mp_global,      only : intra_image_comm
   use mp,             only : mp_sum
   USE cp_main_variables, ONLY: nlax, descla, la_proc
   USE descriptors,       ONLY: nlar_ , nlac_ , ilar_ , ilac_ , lambda_node_ , &

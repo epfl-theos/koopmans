@@ -336,7 +336,7 @@ MODULE wannier_subroutines
           !
           jwf = 1
           !
-          CALL wf( calwf,cm, bec, eigr, eigrb, taub, irb, &
+          CALL wf( calwf,cm, bec, eigrb, irb, &
                    b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
           !
           what1 = .FALSE.
@@ -404,10 +404,8 @@ MODULE wannier_subroutines
                          enl, ekin  )
     !--------------------------------------------------------------------------
     !
-    USE efcalc,         ONLY : wf_efield
     USE wannier_base,   ONLY : nwf, calwf, jwf, wffort, iplot, iwf
     USE wannier_module, ONLY : what1, wfc, utwf
-    USE control_flags,  ONLY : iprsta
     USE cp_interfaces,  ONLY : rhoofr
     USE dener,          ONLY : denl, dekin6
     !
@@ -450,7 +448,7 @@ MODULE wannier_subroutines
        !
        jwf=1
        !
-       CALL wf (calwf,cm,bec,eigr,eigrb,taub,irb,b1,b2,b3,utwf,what1,wfc,jwf,ibrav)
+       CALL wf (calwf,cm,bec,eigrb,irb,b1,b2,b3,utwf,what1,wfc,jwf,ibrav)
        !
        CALL stop_run( .TRUE. )
        !
@@ -459,7 +457,7 @@ MODULE wannier_subroutines
     IF (calwf.EQ.5) THEN
        !
        jwf=iplot(1)
-       CALL wf (calwf,cm,bec,eigr,eigrb,taub,irb,b1,b2,b3,utwf,what1,wfc,jwf,ibrav)
+       CALL wf (calwf,cm,bec,eigrb,irb,b1,b2,b3,utwf,what1,wfc,jwf,ibrav)
        !
        CALL stop_run( .TRUE. )
        !
@@ -683,15 +681,9 @@ MODULE wannier_subroutines
                                  celldm, fion, tps, mat_z, occ_f, rho )
     !--------------------------------------------------------------------------
     !
-    USE efcalc,         ONLY : wf_efield
-    USE wannier_base,   ONLY : nwf, calwf, jwf, wffort, iplot, iwf
+    USE wannier_base,   ONLY : calwf, jwf
     USE wannier_module, ONLY : what1, wfc, utwf
-    USE control_flags,  ONLY : iprsta
-    USE electrons_base, ONLY : nbsp
-    USE gvecw,          ONLY : ngw
-    USE control_flags,  ONLY : ndw
     USE cell_base,      ONLY : h, hold
-    USE ions_base,      ONLY : pmass
     USE cvan,           ONLY : nvb
     USE cp_interfaces,  ONLY : writefile
     !
@@ -725,12 +717,12 @@ MODULE wannier_subroutines
        !
        jwf = 1
        !
-       CALL wf( calwf, c0, bec, eigr, eigrb, taub, irb, &
+       CALL wf( calwf, c0, bec, eigrb, irb, &
                 b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
        !
        IF ( nvb == 0 ) THEN
           !
-          CALL wf( calwf, cm, bec, eigr, eigrb, taub, irb, &
+          CALL wf( calwf, cm, bec, eigrb, irb, &
                    b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
           !
        ELSE
@@ -755,7 +747,7 @@ MODULE wannier_subroutines
        !
        jwf = 1
        !
-       CALL wf( calwf, c0, bec, eigr, eigrb, taub, irb, &
+       CALL wf( calwf, c0, bec, eigrb, irb, &
                 b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
        !
        CALL stop_clock('wf_close_opt')
@@ -776,15 +768,10 @@ MODULE wannier_subroutines
                                  celldm, fion, tps, mat_z, occ_f, rho )
     !--------------------------------------------------------------------------
     !
-    USE efcalc,         ONLY : wf_efield
-    USE wannier_base,   ONLY : nwf, calwf, jwf, wffort, iplot, iwf
+    USE wannier_base,   ONLY : calwf, jwf
     USE wannier_module, ONLY : what1, wfc, utwf
-    USE control_flags,  ONLY : iprsta
     USE electrons_base, ONLY : nbsp
-    USE gvecw,          ONLY : ngw
-    USE control_flags,  ONLY : ndw
     USE cell_base,      ONLY : h, hold
-    USE ions_base,      ONLY : pmass
     USE cvan,           ONLY : nvb
     USE cp_interfaces,  ONLY : writefile
     USE twin_types
@@ -833,16 +820,16 @@ MODULE wannier_subroutines
        bec_tmp(:,:) = 0.0
        bec_tmp(:,:) = bec%rvec(:,:)
        ! 
-       !CALL wf( calwf, c0, bec, eigr, eigrb, taub, irb, &
+       !CALL wf( calwf, c0, bec, eigrb, irb, &
        !         b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
-       CALL wf( calwf, c0, bec_tmp, eigr, eigrb, taub, irb, &
+       CALL wf( calwf, c0, bec_tmp, eigrb, irb, &
                 b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
        !
        IF ( nvb == 0 ) THEN
           !
-          !CALL wf( calwf, cm, bec, eigr, eigrb, taub, irb, &
+          !CALL wf( calwf, cm, bec, eigrb, irb, &
           !         b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
-          CALL wf( calwf, cm, bec_tmp, eigr, eigrb, taub, irb, &
+          CALL wf( calwf, cm, bec_tmp, eigrb, irb, &
                    b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
           !
        ELSE
@@ -867,7 +854,7 @@ MODULE wannier_subroutines
        !
        jwf = 1
        !
-       CALL wf( calwf, c0, bec, eigr, eigrb, taub, irb, &
+       CALL wf( calwf, c0, bec, eigrb, irb, &
                 b1, b2, b3, utwf, what1, wfc, jwf, ibrav )
        !
        CALL stop_clock('wf_close_opt')

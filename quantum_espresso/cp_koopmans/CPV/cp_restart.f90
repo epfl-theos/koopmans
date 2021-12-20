@@ -58,24 +58,23 @@ MODULE cp_restart
       USE control_flags,            ONLY : do_wf_cmplx, gamma_only, force_pairing, trhow, tksw !added:giovanni do_wf_cmplx!
       USE control_flags,            ONLY : evc_restart !added:giovanni evc_restart
       USE io_files,                 ONLY : psfile, pseudo_dir
-      USE mp_global,                ONLY : intra_image_comm, me_image, nproc_image
+      USE mp_global,                ONLY : intra_image_comm
       USE printout_base,            ONLY : title
-      USE grid_dimensions,          ONLY : nr1, nr2, nr3, nr1x, nr2x, nr3l
+      USE grid_dimensions,          ONLY : nr1, nr2, nr3, nr1x, nr2x
       USE smooth_grid_dimensions,   ONLY : nr1s, nr2s, nr3s
       USE smallbox_grid_dimensions, ONLY : nr1b, nr2b, nr3b
-      USE gvecp,                    ONLY : ngm, ngmt, ecutp, gcutp
-      USE gvecs,                    ONLY : ngs, ngst, ecuts, gcuts, dual
-      USE gvecw,                    ONLY : ngw, ngwt, ecutw, gcutw
+      USE gvecp,                    ONLY : ngm, ngmt
+      USE gvecs,                    ONLY : ngst, dual
+      USE gvecw,                    ONLY : ngw, ngwt, ecutw
       USE reciprocal_vectors,       ONLY : ig_l2g, mill_l
-      USE electrons_base,           ONLY : nspin, nelt, nel, nudx, nbspx
+      USE electrons_base,           ONLY : nspin, nelt, nel, nudx
       USE cell_base,                ONLY : ibrav, alat, celldm, &
                                            symm_type, s_to_r
-      USE ions_base,                ONLY : nsp, nat, na, atm, zv, &
-                                           pmass, amass, iforce, ind_bck
+      USE ions_base,                ONLY : nsp, nat, na, atm, &
+                                           amass, iforce, ind_bck
       USE funct,                    ONLY : get_dft_name
       USE energies,                 ONLY : enthal, ekin, eht, esr, eself, &
                                            epseu, enl, exc, vave
-      USE mp_global,                ONLY : nproc, mpime
       USE mp,                       ONLY : mp_sum
       USE fft_base,                 ONLY : dfftp
       USE constants,                ONLY : pi
@@ -83,10 +82,8 @@ MODULE cp_restart
       USE global_version,           ONLY : version_number
       USE cp_main_variables,        ONLY : collect_lambda, descla, collect_zmat
       USE twin_types !added:giovanni
-      USE electrons_base,           ONLY : nbsp !added:giovanni
       USE nksic,                    ONLY : do_bare_eigs !added:giovanni
-      USE input_parameters,         ONLY : odd_nkscalfact, restart_odd_nkscalfact, & 
-                                           print_evc0_occ_empty, write_hr
+      USE input_parameters,         ONLY : print_evc0_occ_empty, write_hr
       USE wavefunctions_module,     ONLY : c0_fixed, c0_occ_emp_aux
       !
       IMPLICIT NONE
@@ -149,7 +146,7 @@ MODULE cp_restart
       INTEGER               :: kunit, ib, ik_eff
       INTEGER               :: k1, k2, k3
       INTEGER               :: nk1, nk2, nk3
-      INTEGER               :: j, i, iss, ig, nspin_wfc, iss_wfc
+      INTEGER               :: i, iss, iss_wfc
       INTEGER               :: is, ia, isa, ik, ierr
       INTEGER,  ALLOCATABLE :: mill(:,:)
       INTEGER,  ALLOCATABLE :: ftmp(:,:)
@@ -169,15 +166,7 @@ MODULE cp_restart
       INTEGER               :: nbnd_
       REAL(DP), ALLOCATABLE :: mrepl(:,:)
       COMPLEX(DP), ALLOCATABLE :: mrepl_c(:,:) !added:giovanni
-      COMPLEX(DP) :: csc(nbsp, nbsp)
-      INTEGER:: icsc, icsc2
       !
-      COMPLEX(DP), ALLOCATABLE :: c0_tmp(:,:)
-      COMPLEX(DP), ALLOCATABLE :: cm_tmp(:,:)
-      COMPLEX(DP), ALLOCATABLE :: ctot_tmp(:,:)
-      INTEGER :: nbnd_tmp, nbnd_tot_tmp, start_is
-      !
-      ! 
       write_charge_density = trhow
       !
       IF( nspin > 1 .AND. .NOT. force_pairing ) THEN
@@ -704,7 +693,7 @@ MODULE cp_restart
             !
          END IF
          !
-         CALL write_gk( iunout, ik, mill, filename )
+         CALL write_gk( iunout, mill, filename )
          !
          DO iss = 1, nspin
             ! 
@@ -839,7 +828,6 @@ MODULE cp_restart
             !
             !  Save fixed wave function
             !
-            !IF (odd_nkscalfact) THEN
             IF (.false.) THEN
                !   
                IF ( ionode ) THEN
@@ -1123,33 +1111,31 @@ MODULE cp_restart
       !
       USE control_flags,            ONLY : gamma_only, do_wf_cmplx, force_pairing, trhow, tksw !added:giovanni do_wf_cmplx
       USE io_files,                 ONLY : psfile, pseudo_dir
-      USE mp_global,                ONLY : intra_image_comm, me_image, nproc_image
+      USE mp_global,                ONLY : intra_image_comm
       USE printout_base,            ONLY : title
-      USE grid_dimensions,          ONLY : nr1, nr2, nr3, nr1x, nr2x, nr3l
+      USE grid_dimensions,          ONLY : nr1, nr2, nr3, nr1x, nr2x
       USE smooth_grid_dimensions,   ONLY : nr1s, nr2s, nr3s
       USE smallbox_grid_dimensions, ONLY : nr1b, nr2b, nr3b
-      USE gvecp,                    ONLY : ngm, ngmt, ecutp, gcutp
-      USE gvecs,                    ONLY : ngs, ngst, ecuts, gcuts, dual
-      USE gvecw,                    ONLY : ngw, ngwt, ecutw, gcutw
+      USE gvecp,                    ONLY : ngm, ngmt
+      USE gvecs,                    ONLY : ngst, dual
+      USE gvecw,                    ONLY : ngw, ngwt, ecutw
       USE reciprocal_vectors,       ONLY : ig_l2g, mill_l
-      USE electrons_base,           ONLY : nspin, nelt, nel, nudx, nbspx
+      USE electrons_base,           ONLY : nspin, nelt, nel, nudx
       USE cell_base,                ONLY : ibrav, alat, celldm, &
                                            symm_type, s_to_r
-      USE ions_base,                ONLY : nsp, nat, na, atm, zv, &
-                                           pmass, amass, iforce, ind_bck
+      USE ions_base,                ONLY : nsp, nat, na, atm, &
+                                           amass, iforce, ind_bck
       USE funct,                    ONLY : get_dft_name
       USE energies,                 ONLY : enthal, ekin, eht, esr, eself, &
                                            epseu, enl, exc, vave
-      USE mp_global,                ONLY : nproc, mpime
       USE mp,                       ONLY : mp_sum
       USE fft_base,                 ONLY : dfftp
       USE constants,                ONLY : pi
       USE cp_interfaces,            ONLY : n_atom_wfc, write_hamiltonian
       USE global_version,           ONLY : version_number
       USE cp_main_variables,        ONLY : collect_lambda, descla, collect_zmat
-      USE input_parameters,     ONLY : odd_nkscalfact, restart_odd_nkscalfact, &
-                                       print_evc0_occ_empty, write_hr
-      USE wavefunctions_module, ONLY : c0_fixed, c0_occ_emp_aux
+      USE input_parameters,         ONLY : print_evc0_occ_empty, write_hr
+      USE wavefunctions_module,     ONLY : c0_fixed, c0_occ_emp_aux
       !
       IMPLICIT NONE
       !
@@ -1207,7 +1193,7 @@ MODULE cp_restart
       INTEGER               :: kunit, ib, ik_eff
       INTEGER               :: k1, k2, k3
       INTEGER               :: nk1, nk2, nk3
-      INTEGER               :: j, i, iss, ig, nspin_wfc, iss_wfc
+      INTEGER               :: i, iss, iss_wfc
       INTEGER               :: is, ia, isa, ik, ierr
       INTEGER,  ALLOCATABLE :: mill(:,:)
       INTEGER,  ALLOCATABLE :: ftmp(:,:)
@@ -1226,11 +1212,6 @@ MODULE cp_restart
       INTEGER               :: nbnd_emp
       INTEGER               :: nbnd_
       REAL(DP), ALLOCATABLE :: mrepl(:,:)
-      !
-      COMPLEX(DP), ALLOCATABLE :: c0_tmp(:,:)
-      COMPLEX(DP), ALLOCATABLE :: cm_tmp(:,:)
-      COMPLEX(DP), ALLOCATABLE :: ctot_tmp(:,:)
-      INTEGER :: nbnd_tmp, nbnd_tot_tmp, start_is
       !
       write_charge_density = trhow
       !
@@ -1760,7 +1741,7 @@ MODULE cp_restart
             !
          END IF
          !
-         CALL write_gk( iunout, ik, mill, filename )
+         CALL write_gk( iunout, mill, filename )
          !
          DO iss = 1, nspin
             ! 
@@ -1887,7 +1868,6 @@ MODULE cp_restart
             !
             !  Save fixed wave function
             !
-            !IF (odd_nkscalfact) THEN
             IF (.false.) THEN
                !   
                IF ( ionode ) THEN
@@ -2082,31 +2062,24 @@ MODULE cp_restart
                             ekincm, c02, cm2, mat_z )
       !------------------------------------------------------------------------
       !
-      USE control_flags,            ONLY : do_wf_cmplx, gamma_only, force_pairing !added:giovanni do_wf_cmplx
+      USE control_flags,            ONLY : force_pairing
       USE io_files,                 ONLY : iunpun, xmlpun
       USE printout_base,            ONLY : title
-      USE grid_dimensions,          ONLY : nr1, nr2, nr3
-      USE smooth_grid_dimensions,   ONLY : nr1s, nr2s, nr3s
-      USE smallbox_grid_dimensions, ONLY : nr1b, nr2b, nr3b
-      USE gvecp,                    ONLY : ngm, ngmt, ecutp
-      USE gvecs,                    ONLY : ngs, ngst
-      USE gvecw,                    ONLY : ngw, ngwt, ecutw
-      USE electrons_base,           ONLY : nspin, nbnd, nelt, nel, &
+      USE gvecw,                    ONLY : ngw
+      USE electrons_base,           ONLY : nspin, nelt, nel, &
                                            nupdwn, iupdwn, nudx
-      USE cell_base,                ONLY : ibrav, alat, celldm, symm_type, &
-                                           s_to_r, r_to_s
-      USE ions_base,                ONLY : nsp, nat, na, atm, zv, pmass, &
+      USE cell_base,                ONLY : s_to_r, r_to_s
+      USE ions_base,                ONLY : nsp, nat, na, &
                                            sort_tau, ityp, ions_cofmass
-      USE reciprocal_vectors,       ONLY : ig_l2g, mill_l
+      USE reciprocal_vectors,       ONLY : ig_l2g
       USE cp_main_variables,        ONLY : nprint_nfi, distribute_lambda, descla, distribute_zmat
       USE mp,                       ONLY : mp_sum
       USE mp_global,                ONLY : intra_image_comm
       USE parameters,               ONLY : ntypx
       USE constants,                ONLY : eps8, angstrom_au, pi
-      USE input_parameters,     ONLY : odd_nkscalfact, restart_odd_nkscalfact,&
-                                       restart_from_wannier_cp, restart_from_wannier_pwscf, wannier_empty_only
-      USE wavefunctions_module, ONLY : c0_fixed, ctot_aux
-      USE electrons_module,     ONLY : nupdwn_emp
+      USE input_parameters,         ONLY : restart_from_wannier_cp, restart_from_wannier_pwscf, wannier_empty_only
+      USE wavefunctions_module,     ONLY : c0_fixed, ctot_aux
+      USE electrons_module,         ONLY : nupdwn_emp
       !
       IMPLICIT NONE
       !
@@ -2153,31 +2126,25 @@ MODULE cp_restart
       COMPLEX(DP),           INTENT(INOUT) :: cm2(:,:)     ! 
       REAL(DP),    OPTIONAL, INTENT(INOUT) :: mat_z(:,:,:) ! 
       !
-      CHARACTER(LEN=256)   :: dirname, kdirname, filename
-      CHARACTER(LEN=5)     :: kindex
+      CHARACTER(LEN=256)   :: dirname, filename
       CHARACTER(LEN=4)     :: cspin
-      INTEGER              :: strlen
       INTEGER              :: kunit
-      INTEGER              :: k1, k2, k3
-      INTEGER              :: nk1, nk2, nk3
-      INTEGER              :: i, j, iss, ig, nspin_wfc, ierr, ik
+      INTEGER              :: i, iss, ierr, ik
       REAL(DP)             :: omega, htm1(3,3), hinv(3,3), scalef
       LOGICAL              :: found
-      INTEGER, ALLOCATABLE :: mill(:,:)
       !
       ! ... variables read for testing pourposes
       !
       INTEGER               :: ibrav_
       CHARACTER(LEN=9)      :: symm_type_
       CHARACTER(LEN=3)      :: atm_(ntypx)
-      INTEGER               :: nat_, nsp_, na_
-      INTEGER               :: nk_, ik_, nt_
-      LOGICAL               :: do_wf_cmplx_, gamma_only_ , lsda_ !added:giovanni do_wf_cmplx
+      INTEGER               :: nat_, nsp_
+      INTEGER               :: nt_
+      LOGICAL               :: lsda_ !added:giovanni do_wf_cmplx
       REAL(DP)              :: alat_, a1_(3), a2_(3), a3_(3)
-      REAL(DP)              :: pmass_, zv_ 
       REAL(DP)              :: celldm_(6)
       INTEGER               :: iss_, nspin_, ngwt_, nbnd_ , n_emp_ , nbnd_tot
-      INTEGER               :: nstates_up_ , nstates_dw_ , ntmp, nel_(2)
+      INTEGER               :: nstates_up_ , nstates_dw_ , nel_(2)
       REAL(DP)              :: nelec_ 
       REAL(DP)              :: scalef_
       REAL(DP)              :: wk_
@@ -2868,7 +2835,6 @@ MODULE cp_restart
                !
             END IF
             !
-            !IF (odd_nkscalfact .and. restart_odd_nkscalfact) THEN
             IF (.false.) THEN
                ! 
                IF ( ionode ) THEN
@@ -3043,30 +3009,23 @@ MODULE cp_restart
       USE control_flags,            ONLY : do_wf_cmplx, gamma_only, force_pairing !added:giovanni do_wf_cmplx
       USE io_files,                 ONLY : iunpun, xmlpun
       USE printout_base,            ONLY : title
-      USE grid_dimensions,          ONLY : nr1, nr2, nr3
-      USE smooth_grid_dimensions,   ONLY : nr1s, nr2s, nr3s
-      USE smallbox_grid_dimensions, ONLY : nr1b, nr2b, nr3b
-      USE gvecp,                    ONLY : ngm, ngmt, ecutp
-      USE gvecs,                    ONLY : ngs, ngst
-      USE gvecw,                    ONLY : ngw, ngwt, ecutw
-      USE electrons_base,           ONLY : nspin, nbnd, nelt, nel, &
+      USE gvecw,                    ONLY : ngw
+      USE electrons_base,           ONLY : nspin, nelt, nel, &
                                            nupdwn, iupdwn, nudx
-      USE cell_base,                ONLY : ibrav, alat, celldm, symm_type, &
-                                           s_to_r, r_to_s
-      USE ions_base,                ONLY : nsp, nat, na, atm, zv, pmass, &
+      USE cell_base,                ONLY : s_to_r, r_to_s
+      USE ions_base,                ONLY : nsp, nat, na, &
                                            sort_tau, ityp, ions_cofmass
-      USE reciprocal_vectors,       ONLY : ig_l2g, mill_l
+      USE reciprocal_vectors,       ONLY : ig_l2g
       USE cp_main_variables,        ONLY : nprint_nfi, distribute_lambda, descla, distribute_zmat
       USE mp,                       ONLY : mp_sum
       USE mp_global,                ONLY : intra_image_comm
       USE parameters,               ONLY : ntypx
       USE constants,                ONLY : eps8, angstrom_au, pi
       USE twin_types
-      USE input_parameters,     ONLY : odd_nkscalfact, restart_odd_nkscalfact, &
-                                       restart_from_wannier_cp, wannier_empty_only, &
+      USE input_parameters,         ONLY : restart_from_wannier_cp, wannier_empty_only, &
                                        restart_from_wannier_pwscf
-      USE wavefunctions_module, ONLY : c0_fixed, ctot_aux
-      USE electrons_module,     ONLY : nupdwn_emp
+      USE wavefunctions_module,     ONLY : c0_fixed, ctot_aux
+      USE electrons_module,         ONLY : nupdwn_emp
       !
       IMPLICIT NONE
       !
@@ -3115,31 +3074,25 @@ MODULE cp_restart
       COMPLEX(DP),           INTENT(INOUT) :: cm2(:,:)     ! 
       TYPE(twin_matrix), dimension(:), INTENT(INOUT), optional :: mat_z
       !
-      CHARACTER(LEN=256)   :: dirname, kdirname, filename
-      CHARACTER(LEN=5)     :: kindex
+      CHARACTER(LEN=256)   :: dirname, filename
       CHARACTER(LEN=4)     :: cspin
-      INTEGER              :: strlen
       INTEGER              :: kunit
-      INTEGER              :: k1, k2, k3
-      INTEGER              :: nk1, nk2, nk3
-      INTEGER              :: i, j, iss, ig, nspin_wfc, ierr, ik
+      INTEGER              :: i, iss, ierr, ik
       REAL(DP)             :: omega, htm1(3,3), hinv(3,3), scalef
       LOGICAL              :: found
-      INTEGER, ALLOCATABLE :: mill(:,:)
       !
       ! ... variables read for testing pourposes
       !
       INTEGER               :: ibrav_
       CHARACTER(LEN=9)      :: symm_type_
       CHARACTER(LEN=3)      :: atm_(ntypx)
-      INTEGER               :: nat_, nsp_, na_
-      INTEGER               :: nk_, ik_, nt_
-      LOGICAL               :: do_wf_cmplx_, gamma_only_ , lsda_ !added:giovanni do_wf_cmplx
+      INTEGER               :: nat_, nsp_
+      INTEGER               :: nt_
+      LOGICAL               :: lsda_ !added:giovanni do_wf_cmplx
       REAL(DP)              :: alat_, a1_(3), a2_(3), a3_(3)
-      REAL(DP)              :: pmass_, zv_ 
       REAL(DP)              :: celldm_(6)
       INTEGER               :: iss_, nspin_, ngwt_, nbnd_ , n_emp_ , nbnd_tot
-      INTEGER               :: nstates_up_ , nstates_dw_ , ntmp, nel_(2)
+      INTEGER               :: nstates_up_ , nstates_dw_ , nel_(2)
       REAL(DP)              :: nelec_ 
       REAL(DP)              :: scalef_
       REAL(DP)              :: wk_
@@ -3831,7 +3784,6 @@ MODULE cp_restart
                !
             END IF
             !
-            !IF (odd_nkscalfact .and. restart_odd_nkscalfact) THEN
             IF (.false.) THEN
                !
                IF ( ionode ) THEN
@@ -4052,7 +4004,7 @@ MODULE cp_restart
       !------------------------------------------------------------------------
       !
       USE electrons_base,     ONLY : iupdwn, nupdwn
-      USE reciprocal_vectors, ONLY : ngwt, ngw, ig_l2g
+      USE reciprocal_vectors, ONLY : ngw, ig_l2g
       !
       IMPLICIT NONE
       !
@@ -4132,8 +4084,7 @@ MODULE cp_restart
       REAL(DP),         INTENT(INOUT) :: vnhh(3,3)
       !
       CHARACTER(LEN=256) :: dirname, filename
-      INTEGER            :: strlen
-      INTEGER            :: i, ierr, nt_
+      INTEGER            :: ierr, nt_
       LOGICAL            :: found
       !
       ! ... variables read for testing pourposes
@@ -4348,7 +4299,7 @@ MODULE cp_restart
       INTEGER,            INTENT(OUT) :: ierr
       CHARACTER(LEN=*),   INTENT(OUT) :: pos_unit
       !
-      LOGICAL          :: found, back_compat
+      LOGICAL          :: found
       INTEGER          :: i
       CHARACTER(LEN=3) :: lab
       !
@@ -4423,18 +4374,18 @@ MODULE cp_restart
     !
     !
     !
-    SUBROUTINE write_gk( iun, ik, mill, filename )
+    SUBROUTINE write_gk( iun, mill, filename )
        !
        USE gvecw,                    ONLY : ngw, ngwt
        USE control_flags,            ONLY : do_wf_cmplx, gamma_only !added:giovanni do_wf_cmplx
-       USE reciprocal_vectors,       ONLY : ig_l2g, mill_l
+       USE reciprocal_vectors,       ONLY : ig_l2g
        USE mp,                       ONLY : mp_sum
        USE mp_global,                ONLY : intra_image_comm
        USE io_global,                ONLY : ionode
        !
        IMPLICIT NONE
        !
-       INTEGER,            INTENT(IN) :: iun, ik
+       INTEGER,            INTENT(IN) :: iun
        INTEGER,            INTENT(IN) :: mill(:,:)
        CHARACTER(LEN=256), INTENT(IN) :: filename
        !

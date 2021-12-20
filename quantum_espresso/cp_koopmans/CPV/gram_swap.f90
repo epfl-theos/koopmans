@@ -8,7 +8,7 @@ SUBROUTINE gram_swap( betae, bec, nkbx, cp, ngwx, n, fixed_index )
 !     we swap the fixed wfc with the first one, then do as normal,
 !     then in the end, we do another swap to return to input order.
 !
-      USE uspp,           ONLY : nkb, nhsavb=> nkbus
+      USE uspp,           ONLY : nkb
       USE gvecw,          ONLY : ngw
       USE kinds,          ONLY : DP
       USE control_flags,  ONLY : gamma_only, do_wf_cmplx !added:giovanni
@@ -35,12 +35,12 @@ SUBROUTINE gram_swap( betae, bec, nkbx, cp, ngwx, n, fixed_index )
       ! 
       csc=CMPLX(0.d0,0.d0)
       !
-      CALL dswap( 2*ngw*1, cp(:,fixed_index), 1, cp(:,1), 1 ) 
+      CALL zswap( ngwx, cp(:,fixed_index), 1, cp(:,1), 1 )
       ! NsC Exchange the spin indeces as well
       ispin_aux = ispin(fixed_index) ! Store the original spin 
       ispin(1) = ispin(fixed_index)
       ispin(fixed_index) = 1
-      !
+
       DO i = 1, n
          !
          CALL gracsc( bec, nkbx, betae, cp, ngwx, i, csc, n, lgam )!added:giovanni lgam
@@ -73,7 +73,7 @@ SUBROUTINE gram_swap( betae, bec, nkbx, cp, ngwx, n, fixed_index )
       !
       DEALLOCATE( csc )
       !
-      CALL dswap( 2*ngw*1, cp(:,1), 1, cp(:,fixed_index), 1 ) 
+      CALL zswap( ngwx, cp(:,1), 1, cp(:,fixed_index), 1 )
       ! Nsc
       ispin(1) = 1
       ispin(fixed_index) = ispin_aux

@@ -1,0 +1,87 @@
+{
+    "workflow": {
+        "task": "wannierise",
+        "periodic": true,
+        "init_orbitals": "mlwfs",
+        "from_scratch": true
+    },
+    "setup": {
+        "atomic_species": {
+            "species": [
+                ["Ti", 47.867, "Ti_ONCV_PBE-1.0.upf"],
+                ["O", 15.994, "O_ONCV_PBE-1.0.upf"]
+            ]
+        },
+        "atomic_positions": {
+            "units": "crystal",
+            "positions": [
+                [
+                    "Ti",
+                    0.00,
+                    0.00,
+                    0.00
+                ],
+                [
+                    "Ti",
+                    0.50,
+                    0.50,
+                    0.50
+                ],
+                [  "O",
+                   0.195,
+                   0.804,
+                   0.500
+                ],
+                [ "O",
+                  0.804,
+                  0.195,
+                  0.500
+                ],
+                [ "O",
+                  0.304,
+                  0.304,
+                  0.000
+                ], 
+                [ "O",
+                  0.695,
+                  0.695,
+                  0.000
+                ]   
+            ]
+        },
+        "k_points": {
+            "kgrid": [
+                2,
+                2,
+                2
+            ],
+            "kpath": "GXG"
+        },
+        "control": {
+            "pseudo_dir": "../../pseudos"
+        },
+        "system": {
+            "ibrav": 6,
+            "celldm(1)": 8.793,
+            "celldm(3)": 0.638,
+            "ecutwfc": 40.0
+        }
+    },
+    "pw": {
+	"control": {
+	    "verbosity": "high"
+	},
+        "system": {
+            "nbnd": 36
+        }
+    },
+    "w90": {
+	    "num_iter": 1000,
+	    "occ": {
+                "projections_blocks": [["Ti:l=0"], ["Ti:l=1"], ["O:l=0"], ["O:l=1"]]
+	    },
+	    "emp": {
+                "projections": ["Ti:l=0","Ti:l=2"]
+	    }
+    }
+}

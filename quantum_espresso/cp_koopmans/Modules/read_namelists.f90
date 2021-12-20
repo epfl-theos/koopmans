@@ -288,6 +288,7 @@ MODULE read_namelists_module
 !$$
        do_innerloop = .false. ! main switch of inner loop minimization
        do_innerloop_empty = .false. ! main switch of inner loop minimization
+       l_comp_cmplxfctn_index  = .false. ! compute the complexification index
        do_innerloop_cg = .false. ! main switch of cg inner loop minimization
        innerloop_dd_nstep = 50 ! number of outer loop damped dynamics steps between each inner loop minimization
        innerloop_cg_nsd = 20 ! number of initial steepest-descent steps in cg inner loop minimization
@@ -979,7 +980,7 @@ MODULE read_namelists_module
        CALL mp_bcast( do_nkipz,                   ionode_id )
 !$$
        CALL mp_bcast( do_innerloop,               ionode_id )
-       CALL mp_bcast( do_innerloop_empty,               ionode_id )
+       CALL mp_bcast( do_innerloop_empty,         ionode_id )
        CALL mp_bcast( do_innerloop_cg,            ionode_id )
        CALL mp_bcast( innerloop_dd_nstep,         ionode_id )
        CALL mp_bcast( innerloop_cg_nsd,           ionode_id )
@@ -1021,6 +1022,8 @@ MODULE read_namelists_module
        CALL mp_bcast( hartree_only_sic,           ionode_id )
        CALL mp_bcast( finite_field_introduced,    ionode_id )
        CALL mp_bcast( finite_field_for_empty_state,   ionode_id )
+       !
+       CALL mp_bcast( l_comp_cmplxfctn_index,     ionode_id )
        !     
       RETURN
       !

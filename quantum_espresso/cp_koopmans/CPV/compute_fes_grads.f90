@@ -24,11 +24,10 @@ SUBROUTINE compute_fes_grads( fii, lii, stat )
                                  init_constraint, deallocate_constraint
   USE cell_base,          ONLY : alat, at
   USE cp_main_variables,  ONLY : nfi
-  USE ions_base,          ONLY : tau, nat, nsp, ityp, if_pos, sort_tau, &
+  USE ions_base,          ONLY : tau, nat, nsp, ityp, sort_tau, &
                                  tau_srt, ind_srt
   USE path_formats,       ONLY : scf_fmt, scf_fmt_para
-  USE io_files,           ONLY : prefix, outdir, iunpath, iunaxsf, &
-                                 iunupdate, exit_file, iunexit
+  USE io_files,           ONLY : prefix, outdir, iunpath, iunaxsf
   USE constants,          ONLY : bohr_radius_angs
   USE io_global,          ONLY : stdout, ionode, ionode_id, meta_ionode
   USE mp_global,          ONLY : inter_image_comm, intra_image_comm, &
@@ -46,7 +45,7 @@ SUBROUTINE compute_fes_grads( fii, lii, stat )
   !
   INTEGER, INTENT(IN)   :: fii, lii
   LOGICAL, INTENT(OUT)  :: stat
-  INTEGER               :: image, iter
+  INTEGER               :: image
   CHARACTER(LEN=256)    :: outdir_saved, filename
   LOGICAL               :: file_exists, opnd
   LOGICAL               :: tnosep_saved
@@ -504,11 +503,11 @@ SUBROUTINE metadyn()
   USE wave_base,          ONLY : frice
   USE control_flags,      ONLY : nomore, ldamped, tconvthrs, tnosep, trane, &
                                  ampre, nbeg, tfor, taurdr, ndr, ndw, isave
-  USE ions_base,          ONLY : nat, nsp, ityp, if_pos
+  USE ions_base,          ONLY : nat
   USE io_global,          ONLY : stdout, ionode, ionode_id
   USE io_files,           ONLY : iunmeta, iunaxsf, outdir
-  USE metadyn_vars,       ONLY : ncolvar, fe_grad, new_target, to_target, &
-                                 metadyn_fmt, to_new_target, fe_step,     &
+  USE metadyn_vars,       ONLY : ncolvar, fe_grad,  &
+                                 metadyn_fmt, to_new_target,              &
                                  metadyn_history, max_metadyn_iter,       &
                                  first_metadyn_iter, fe_nstep, sw_nstep,  &
                                  eq_nstep, dfe_acc, etot_av, gaussian_pos

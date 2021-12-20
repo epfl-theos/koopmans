@@ -254,7 +254,7 @@ END SUBROUTINE diagonalize_parallel_cmplx
 
    SUBROUTINE mesure_diag_perf( n )
       !
-      USE mp_global,   ONLY: nproc_image, me_image, intra_image_comm, root_image
+      USE mp_global,   ONLY: intra_image_comm, root_image
       USE mp_global,   ONLY: np_ortho, me_ortho, ortho_comm, ortho_comm_id
       USE io_global,   ONLY: ionode, stdout
       USE mp,          ONLY: mp_sum, mp_bcast, mp_barrier
@@ -400,7 +400,7 @@ END SUBROUTINE diagonalize_parallel_cmplx
 
    SUBROUTINE mesure_mmul_perf( n )
       !
-      USE mp_global,   ONLY: nproc_image, me_image, intra_image_comm, root_image, &
+      USE mp_global,   ONLY: nproc_image, intra_image_comm, &
                              ortho_comm, np_ortho, me_ortho, init_ortho_group, ortho_comm_id
       USE io_global,   ONLY: ionode, stdout
       USE mp,          ONLY: mp_sum, mp_bcast, mp_barrier
@@ -414,7 +414,7 @@ END SUBROUTINE diagonalize_parallel_cmplx
       !
       REAL(DP), ALLOCATABLE :: c(:,:), a(:,:), b(:,:)
       REAL(DP) :: t1, tcan
-      INTEGER  :: nr, nc, ir, ic, np, lnode
+      INTEGER  :: nr, nc, np
       INTEGER  :: desc( descla_siz_ )
       !
       REAL(DP) :: cclock
@@ -511,9 +511,8 @@ END SUBROUTINE diagonalize_parallel_cmplx
       !  nproc is not a square, some procs are left idle
 
       USE kinds,             ONLY: DP
-      USE io_global,         ONLY: stdout
       USE control_flags,     ONLY: ortho_eps, ortho_max
-      USE mp_global,         ONLY: intra_image_comm, me_image, nproc_image
+      USE mp_global,         ONLY: intra_image_comm
       USE mp,                ONLY: mp_sum, mp_max
       USE descriptors,       ONLY: nlar_ , nlac_ , ilar_ , ilac_ , lambda_node_ , &
                                    la_myr_ , la_myc_ , la_comm_ , descla_siz_ , nlax_
@@ -660,9 +659,8 @@ END SUBROUTINE diagonalize_parallel_cmplx
       !  nproc is not a square, some procs are left idle
 
       USE kinds,             ONLY: DP
-      USE io_global,         ONLY: stdout
       USE control_flags,     ONLY: ortho_eps, ortho_max
-      USE mp_global,         ONLY: intra_image_comm, me_image, nproc_image
+      USE mp_global,         ONLY: intra_image_comm
       USE mp,                ONLY: mp_sum, mp_max
       USE descriptors,       ONLY: nlar_ , nlac_ , ilar_ , ilac_ , lambda_node_ , &
                                    la_myr_ , la_myc_ , la_comm_ , descla_siz_ , nlax_
@@ -815,9 +813,8 @@ END SUBROUTINE diagonalize_parallel_cmplx
                              rhor, tau, nss, desc )
 
       USE kinds,             ONLY: DP
-      USE io_global,         ONLY: stdout
       USE control_flags,     ONLY: ortho_eps, ortho_max
-      USE mp_global,         ONLY: intra_image_comm, me_image, nproc_image
+      USE mp_global,         ONLY: intra_image_comm
       USE mp,                ONLY: mp_sum, mp_max
       USE parallel_toolkit,    ONLY: sqr_tr_cannon
       USE descriptors,       ONLY: nlar_ , nlac_ , ilar_ , ilac_ , lambda_node_ , &
@@ -841,7 +838,7 @@ END SUBROUTINE diagonalize_parallel_cmplx
       REAL(DP), ALLOCATABLE :: tmp1(:,:), tmp2(:,:)
       REAL(DP), ALLOCATABLE :: x1(:,:)
       REAL(DP), ALLOCATABLE :: sigd(:)
-      REAL(DP) :: den, dx
+      REAL(DP) :: den
       !
       IF( nss < 1 ) RETURN
 
@@ -971,9 +968,8 @@ END SUBROUTINE diagonalize_parallel_cmplx
    SUBROUTINE ortho_alt_iterate_cmplx( iter, diff, u, ldx, diag, xloc, nx0, sig, rhor, tau, nss, desc )
 
       USE kinds,             ONLY: DP
-      USE io_global,         ONLY: stdout
       USE control_flags,     ONLY: ortho_eps, ortho_max
-      USE mp_global,         ONLY: intra_image_comm, me_image, nproc_image
+      USE mp_global,         ONLY: intra_image_comm
       USE mp,                ONLY: mp_sum, mp_max
       USE descriptors,       ONLY: nlar_ , nlac_ , ilar_ , ilac_ , lambda_node_ , &
                                    la_myr_ , la_myc_ , la_comm_ , descla_siz_ , nlax_
@@ -996,7 +992,7 @@ END SUBROUTINE diagonalize_parallel_cmplx
       COMPLEX(DP), ALLOCATABLE :: tmp1(:,:), tmp2(:,:)
       COMPLEX(DP), ALLOCATABLE :: x1(:,:)
       REAL(DP), ALLOCATABLE :: sigd(:)
-      REAL(DP) :: den, dx
+      REAL(DP) :: den
       COMPLEX(DP), PARAMETER :: c_zero = CMPLX(0.d0, 0.d0), c_one = CMPLX(1.d0,0.d0)
       !
       IF( nss < 1 ) RETURN
@@ -1155,8 +1151,8 @@ END SUBROUTINE diagonalize_parallel_cmplx
       REAL(DP)    :: sig( ldx, ldx )
       INTEGER     :: desc( descla_siz_ )
 !
-      INTEGER :: i, j, ipr, ipc, nr, nc, ir, ic, npr, npc
-      INTEGER :: ii, jj, root
+      INTEGER :: i, j, ipr, ipc, nr, nc, ir, ic
+      INTEGER :: root
       INTEGER :: desc_ip( descla_siz_ )
       INTEGER :: np( 2 ), coor_ip( 2 )
       !
@@ -1259,7 +1255,6 @@ END SUBROUTINE diagonalize_parallel_cmplx
       USE uspp,               ONLY: nkbus
       USE cvan,               ONLY: nvb
       USE gvecw,              ONLY: ngw
-      USE reciprocal_vectors, ONLY: gstart
       USE mp,                 ONLY: mp_root_sum
       USE control_flags,      ONLY: iprsta
       USE io_global,          ONLY: stdout
@@ -1277,8 +1272,8 @@ END SUBROUTINE diagonalize_parallel_cmplx
       COMPLEX(DP)    :: sig( ldx, ldx )
       INTEGER     :: desc( descla_siz_ )
 !
-      INTEGER :: i, j, ipr, ipc, nr, nc, ir, ic, npr, npc
-      INTEGER :: ii, jj, root
+      INTEGER :: i, j, ipr, ipc, nr, nc, ir, ic
+      INTEGER :: root
       INTEGER :: desc_ip( descla_siz_ )
       INTEGER :: np( 2 ), coor_ip( 2 )
       !
@@ -1388,7 +1383,7 @@ END SUBROUTINE diagonalize_parallel_cmplx
       USE cvan,               ONLY: nvb
       USE kinds,              ONLY: DP
       USE mp,                 ONLY: mp_root_sum
-      USE mp_global,          ONLY: intra_image_comm, me_image, leg_ortho
+      USE mp_global,          ONLY: intra_image_comm, leg_ortho
       USE control_flags,      ONLY: iprsta
       USE io_global,          ONLY: stdout
       USE descriptors,        ONLY: lambda_node_ , la_npc_ , la_npr_ , descla_siz_ , &
@@ -1404,8 +1399,8 @@ END SUBROUTINE diagonalize_parallel_cmplx
       REAL(DP)    :: rho( ldx, ldx )
       INTEGER     :: desc( descla_siz_ )
       !
-      INTEGER :: i, j, ipr, ipc, nr, nc, ir, ic, npr, npc
-      INTEGER :: ii, jj, root, nx
+      INTEGER :: i, j, ipr, ipc, nr, nc, ir, ic
+      INTEGER :: root, nx
       INTEGER :: desc_ip( descla_siz_ )
       INTEGER :: np( 2 ), coor_ip( 2 )
 
@@ -1510,12 +1505,11 @@ END SUBROUTINE diagonalize_parallel_cmplx
 !     routine makes use of  c(-q)=c*(q)
 !
       USE gvecw,              ONLY: ngw
-      USE reciprocal_vectors, ONLY: gstart
       USE uspp,               ONLY: nkbus
       USE cvan,               ONLY: nvb
       USE kinds,              ONLY: DP
       USE mp,                 ONLY: mp_root_sum
-      USE mp_global,          ONLY: intra_image_comm, me_image, leg_ortho
+      USE mp_global,          ONLY: intra_image_comm, leg_ortho
       USE control_flags,      ONLY: iprsta
       USE io_global,          ONLY: stdout
       USE descriptors,        ONLY: lambda_node_ , la_npc_ , la_npr_ , descla_siz_ , &
@@ -1531,8 +1525,8 @@ END SUBROUTINE diagonalize_parallel_cmplx
       COMPLEX(DP)    :: rho( ldx, ldx )
       INTEGER     :: desc( descla_siz_ )
       !
-      INTEGER :: i, j, ipr, ipc, nr, nc, ir, ic, npr, npc
-      INTEGER :: ii, jj, root, nx
+      INTEGER :: i, j, ipr, ipc, nr, nc, ir, ic
+      INTEGER :: root, nx
       INTEGER :: desc_ip( descla_siz_ )
       INTEGER :: np( 2 ), coor_ip( 2 )
 
@@ -1657,8 +1651,8 @@ END SUBROUTINE diagonalize_parallel_cmplx
       REAL(DP)    :: tau( ldx, ldx )
       INTEGER     :: desc( descla_siz_ )
       !
-      INTEGER :: i, j, ipr, ipc, nr, nc, ir, ic, npr, npc
-      INTEGER :: ii, jj, root
+      INTEGER :: i, j, ipr, ipc, nr, nc, ir, ic
+      INTEGER :: root
       INTEGER :: desc_ip( descla_siz_ )
       INTEGER :: np( 2 ), coor_ip( 2 )
 
@@ -1768,7 +1762,6 @@ END SUBROUTINE diagonalize_parallel_cmplx
       USE cvan,               ONLY: nvb
       USE uspp,               ONLY: nkbus
       USE gvecw,              ONLY: ngw
-      USE reciprocal_vectors, ONLY: gstart
       USE mp,                 ONLY: mp_root_sum
       USE control_flags,      ONLY: iprsta
       USE io_global,          ONLY: stdout
@@ -1786,8 +1779,8 @@ END SUBROUTINE diagonalize_parallel_cmplx
       COMPLEX(DP)    :: tau( ldx, ldx )
       INTEGER     :: desc( descla_siz_ )
       !
-      INTEGER :: i, j, ipr, ipc, nr, nc, ir, ic, npr, npc
-      INTEGER :: ii, jj, root
+      INTEGER :: i, j, ipr, ipc, nr, nc, ir, ic
+      INTEGER :: root
       INTEGER :: desc_ip( descla_siz_ )
       INTEGER :: np( 2 ), coor_ip( 2 )
 
@@ -1900,13 +1893,13 @@ END SUBROUTINE diagonalize_parallel_cmplx
       !     output bec: bec=becp+lambda*bephi
       !
       USE kinds,             ONLY: DP
-      USE ions_base,         ONLY: nsp, na
+      USE ions_base,         ONLY: na
       USE io_global,         ONLY: stdout
       USE cvan,              ONLY: nvb, ish
       USE uspp,              ONLY: nkb, nkbus
       USE uspp_param,        ONLY: nh
       USE gvecw,             ONLY: ngw
-      USE control_flags,     ONLY: iprint, iprsta
+      USE control_flags,     ONLY: iprsta
       USE mp,                ONLY: mp_sum, mp_bcast
       USE mp_global,         ONLY: intra_image_comm, leg_ortho, me_image
       USE descriptors,       ONLY: nlar_ , nlac_ , ilar_ , ilac_ , lambda_node_ , descla_siz_ , la_comm_ , &
@@ -1924,11 +1917,10 @@ END SUBROUTINE diagonalize_parallel_cmplx
 
       ! local variables
 
-      INTEGER :: i, j, ig, is, iv, ia, inl, nr, nc, ir, ic
+      INTEGER :: i, is, iv, ia, inl, nr, nc, ir, ic
       REAL(DP),    ALLOCATABLE :: wtemp(:,:) 
       REAL(DP),    ALLOCATABLE :: xd(:,:) 
       REAL(DP),    ALLOCATABLE :: bephi_tmp(:,:) 
-      REAL(DP) :: beta
       INTEGER :: ipr, ipc, nx, root
       INTEGER :: np( 2 ), coor_ip( 2 )
       INTEGER :: desc_ip( descla_siz_ )
@@ -2080,13 +2072,13 @@ END SUBROUTINE diagonalize_parallel_cmplx
       !     output bec: bec=becp+lambda*bephi
       !
       USE kinds,             ONLY: DP
-      USE ions_base,         ONLY: nsp, na
+      USE ions_base,         ONLY: na
       USE io_global,         ONLY: stdout
       USE cvan,              ONLY: nvb, ish
       USE uspp,              ONLY: nkb, nkbus
       USE uspp_param,        ONLY: nh
       USE gvecw,             ONLY: ngw
-      USE control_flags,     ONLY: iprint, iprsta
+      USE control_flags,     ONLY: iprsta
       USE mp,                ONLY: mp_sum, mp_bcast
       USE mp_global,         ONLY: intra_image_comm, leg_ortho, me_image
       USE descriptors,       ONLY: nlar_ , nlac_ , ilar_ , ilac_ , lambda_node_ , descla_siz_ , la_comm_ , &
@@ -2104,11 +2096,10 @@ END SUBROUTINE diagonalize_parallel_cmplx
 
       ! local variables
 
-      INTEGER :: i, j, ig, is, iv, ia, inl, nr, nc, ir, ic
+      INTEGER :: i, is, iv, ia, inl, nr, nc, ir, ic
       COMPLEX(DP),    ALLOCATABLE :: wtemp(:,:) 
       COMPLEX(DP),    ALLOCATABLE :: xd(:,:) 
       COMPLEX(DP),    ALLOCATABLE :: bephi_tmp(:,:) 
-      REAL(DP) :: beta
       INTEGER :: ipr, ipc, nx, root
       INTEGER :: np( 2 ), coor_ip( 2 )
       INTEGER :: desc_ip( descla_siz_ )
@@ -2257,7 +2248,7 @@ END SUBROUTINE diagonalize_parallel_cmplx
 !     where s'=s(r(t))  
 ! 
       USE kinds,          ONLY: DP
-      USE ions_base,      ONLY: na, nsp
+      USE ions_base,      ONLY: na
       USE io_global,      ONLY: stdout
       USE mp_global,      ONLY: intra_image_comm
       USE cvan,           ONLY: ish, nvb
@@ -2265,7 +2256,7 @@ END SUBROUTINE diagonalize_parallel_cmplx
       USE uspp,           ONLY: nkbus, qq
       USE gvecw,          ONLY: ngw
       USE constants,      ONLY: pi, fpi
-      USE control_flags,  ONLY: iprint, iprsta
+      USE control_flags,  ONLY: iprsta
       USE mp,             ONLY: mp_sum
       USE twin_types !added:giovanni
 !
@@ -2441,7 +2432,7 @@ END SUBROUTINE diagonalize_parallel_cmplx
 !     where s'=s(r(t))  
 !
       USE kinds,          ONLY: DP
-      USE ions_base,      ONLY: na, nsp
+      USE ions_base,      ONLY: na
       USE io_global,      ONLY: stdout
       USE mp_global,      ONLY: intra_image_comm
       USE cvan,           ONLY: ish, nvb
@@ -2449,7 +2440,7 @@ END SUBROUTINE diagonalize_parallel_cmplx
       USE uspp,           ONLY: nkbus, qq
       USE gvecw,          ONLY: ngw
       USE constants,      ONLY: pi, fpi
-      USE control_flags,  ONLY: iprint, iprsta
+      USE control_flags,  ONLY: iprsta
       USE mp,             ONLY: mp_sum
 !
       IMPLICIT NONE

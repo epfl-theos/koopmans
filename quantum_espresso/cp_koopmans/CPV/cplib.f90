@@ -16,7 +16,7 @@
 !
       USE kinds,              ONLY: DP
       USE gvecw,              ONLY: ngw
-      USE reciprocal_vectors, ONLY: gstart, g, gx, ig_l2g
+      USE reciprocal_vectors, ONLY: g, gx
       USE ions_base,          ONLY: nsp, na, nat
       USE cell_base,          ONLY: tpiba
       USE atom,               ONLY: rgrid
@@ -29,7 +29,6 @@
 !
       INTEGER :: natwfc, ndm, is, ia, ir, nb, l, m, lm, i, lmax_wfc, isa, ig
       REAL(DP), ALLOCATABLE ::  ylm(:,:), q(:), jl(:), vchi(:), chiq(:)
-      COMPLEX(DP), allocatable :: lg(:), lgx(:,:)
 !
 ! calculate max angular momentum required in wavefunctions
 !
@@ -256,7 +255,6 @@ END FUNCTION
       USE mp,                 ONLY: mp_sum
       USE mp_global,          ONLY: intra_image_comm
       USE uspp_param,         ONLY: upf
-      USE grid_dimensions,    ONLY: nr1, nr2, nr3, nr1x, nr2x, nr3x
       USE cp_interfaces,      ONLY: fwfft
       USE fft_base,           ONLY: dfftp
 
@@ -322,7 +320,7 @@ END FUNCTION
 !-----------------------------------------------------------------------
 !
       USE kinds,              ONLY: DP
-      USE ions_base,          ONLY: na, nsp, nat
+      USE ions_base,          ONLY: na, nat
       USE io_global,          ONLY: stdout
       USE reciprocal_vectors, ONLY: gstart
       USE cvan,               ONLY: ish, nvb
@@ -433,11 +431,10 @@ END FUNCTION
 !-----------------------------------------------------------------------
 !
       USE kinds,              ONLY: DP
-      USE ions_base,          ONLY: na, nsp, nat
-      USE io_global,          ONLY: stdout
+      USE ions_base,          ONLY: na
       USE reciprocal_vectors, ONLY: gstart
       USE cvan,               ONLY: ish, nvb
-      USE uspp,               ONLY: nkb, qq
+      USE uspp,               ONLY: qq
       USE uspp_param,         ONLY: nh
       USE mp,                 ONLY: mp_sum
       USE mp_global,          ONLY: intra_image_comm
@@ -520,13 +517,9 @@ END FUNCTION
       USE kinds,              ONLY: DP
       USE constants,          ONLY: pi, fpi
       USE gvecw,              ONLY: ngw
-      USE reciprocal_vectors, ONLY: gstart
-      USE gvecw,              ONLY: ggp
       USE mp,                 ONLY: mp_sum
-      USE mp_global,          ONLY: intra_image_comm
-      USE cell_base,          ONLY: tpiba2
-      USE control_flags,      ONLY: gamma_only, do_wf_cmplx, non_ortho
-      USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx, nbspx
+      USE control_flags,      ONLY: gamma_only, do_wf_cmplx
+      USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx, nbspx, nbsp
       USE twin_types
 
       INTEGER,     INTENT(IN) :: ngwx, n
@@ -536,7 +529,7 @@ END FUNCTION
 
       COMPLEX(DP) :: ss(nudx,nudx,nspin)
       LOGICAL :: lgam
-      INTEGER :: ig, i, j, isp
+      INTEGER :: i, j, isp
       
       lgam=gamma_only.and..not.do_wf_cmplx
       !write(6,*) ubound(c), lbound(c), ubound(cstart), lbound(cstart)
@@ -590,11 +583,9 @@ END FUNCTION
       USE constants,          ONLY: pi, fpi
       USE gvecw,              ONLY: ngw
       USE reciprocal_vectors, ONLY: gstart
-      USE gvecw,              ONLY: ggp
       USE mp,                 ONLY: mp_sum
       USE mp_global,          ONLY: intra_image_comm
-      USE cell_base,          ONLY: tpiba2
-      USE control_flags,      ONLY: gamma_only, do_wf_cmplx, non_ortho
+      USE control_flags,      ONLY: gamma_only, do_wf_cmplx
       USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
 
       INTEGER,     INTENT(IN) :: ngwx, n
@@ -603,6 +594,7 @@ END FUNCTION
 
       LOGICAL :: lgam
       INTEGER :: ig, i, j, isp
+      REAL(DP) :: icoeff 
 
       lgam=gamma_only.and..not.do_wf_cmplx
 
@@ -678,7 +670,7 @@ END FUNCTION
 !  
 !
       USE kinds,              ONLY: DP
-      USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
+      USE electrons_base,     ONLY: nupdwn, nspin, nudx
       USE io_global,          ONLY: ionode
 
       COMPLEX(DP), INTENT(IN) :: ss(nudx,nudx,nspin)
@@ -687,7 +679,7 @@ END FUNCTION
       INTEGER, dimension(:), allocatable :: ipiv
       COMPLEX, DIMENSION(:), allocatable :: work
 
-      INTEGER :: i, j, isp, info, lwork
+      INTEGER :: isp, info, lwork
       !
       lwork=nudx*nudx+10
       allocate(ipiv(nudx))
@@ -721,18 +713,17 @@ END FUNCTION
       USE constants,          ONLY: pi, fpi
       USE gvecw,              ONLY: ngw
       USE reciprocal_vectors, ONLY: gstart
-      USE gvecw,              ONLY: ggp
       USE mp,                 ONLY: mp_sum
       USE mp_global,          ONLY: intra_image_comm
-      USE cell_base,          ONLY: tpiba2
-      USE control_flags,      ONLY: gamma_only, do_wf_cmplx, non_ortho
+      USE control_flags,      ONLY: gamma_only, do_wf_cmplx
       USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
 
-      COMPLEX(DP), INTENT(IN) :: c(ngw,n)
+      INTEGER, INTENT(IN) :: iflag, n
+      COMPLEX(DP) :: c(ngw,n)
       COMPLEX(DP), INTENT(OUT) :: cd(ngw,n)
-      INTEGER, INTENT(IN) :: iflag
       COMPLEX(DP) :: temp1,temp2
       COMPLEX(DP), allocatable :: ss(:,:,:), iss(:,:,:)
+      LOGICAL :: lgam
 
       INTEGER :: i, j, isp, cdindex
 
@@ -783,19 +774,17 @@ END FUNCTION
       USE kinds,              ONLY: DP
       USE constants,          ONLY: pi, fpi
       USE gvecw,              ONLY: ngw
-      USE reciprocal_vectors, ONLY: gstart
-      USE gvecw,              ONLY: ggp
       USE mp,                 ONLY: mp_sum
-      USE mp_global,          ONLY: intra_image_comm
-      USE cell_base,          ONLY: tpiba2
-      USE control_flags,      ONLY: gamma_only, do_wf_cmplx, non_ortho
+      USE control_flags,      ONLY: gamma_only, do_wf_cmplx
       USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
 
-      COMPLEX(DP), INTENT(IN) :: c(ngw,n), cin(ngw,n)
+      INTEGER, INTENT(IN) :: iflag, n
+      COMPLEX(DP) :: c(ngw,n)
+      COMPLEX(DP), INTENT(IN) :: cin(ngw,n)
       COMPLEX(DP), intent(OUT) :: cd(ngw,n)
 !       COMPLEX(DP) :: ss(nudx,nudx,nspin)
       COMPLEX(DP), allocatable :: ss(:,:,:), iss(:,:,:)
-      INTEGER, INTENT(IN) :: iflag
+      LOGICAL :: lgam
 
 
       INTEGER :: i, j, isp, cdindex
@@ -842,8 +831,6 @@ END FUNCTION
       USE mp_global,          ONLY: intra_image_comm
       USE cell_base,          ONLY: tpiba2
       USE control_flags,      ONLY: gamma_only, do_wf_cmplx
-      USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
-      USE cp_main_variables,  ONLY: kk => kinetic_mat
       
       IMPLICIT NONE
 
@@ -857,7 +844,7 @@ END FUNCTION
       !
       ! local
 
-      INTEGER  :: ig, i, j, isp
+      INTEGER  :: ig, i
       REAL(DP) :: sk(n)  ! automatic array
       LOGICAL :: lgam !added:giovanni
       REAL(DP) :: icoeff
@@ -944,8 +931,6 @@ END FUNCTION
       USE mp_global,          ONLY: intra_image_comm
       USE cell_base,          ONLY: tpiba2
       USE control_flags,      ONLY: gamma_only, do_wf_cmplx
-      USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
-      USE cp_main_variables,  ONLY: kk => kinetic_mat
       
       IMPLICIT NONE
 
@@ -959,7 +944,7 @@ END FUNCTION
       !
       ! local
 
-      INTEGER  :: ig, i, j, isp
+      INTEGER  :: ig, i
       REAL(DP) :: sk(n)  ! automatic array
       LOGICAL :: lgam !added:giovanni
       REAL(DP) :: icoeff
@@ -1014,7 +999,6 @@ END FUNCTION
       USE cell_base,          ONLY: tpiba2
       USE control_flags,      ONLY: gamma_only, do_wf_cmplx
 !       USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
-      USE cp_main_variables,  ONLY: kk => kinetic_mat
       
       IMPLICIT NONE
 
@@ -1029,7 +1013,7 @@ END FUNCTION
       !
       ! local
 
-      INTEGER  :: ig, i, j, isp
+      INTEGER  :: ig, i
       REAL(DP) :: sk(n)  ! automatic array
       LOGICAL :: lgam !added:giovanni
       REAL(DP) :: icoeff
@@ -1077,15 +1061,12 @@ END FUNCTION
       USE kinds,              ONLY: DP
       USE constants,          ONLY: pi, fpi
 !       USE gvecw,              ONLY: ngw
-      USE reciprocal_vectors, ONLY: gstart, gx
+      USE reciprocal_vectors, ONLY:  gx
 !       USE gvecw,              ONLY: ggp
       USE gvecp,              only: ng => ngm
       USE mp,                 ONLY: mp_sum
-      USE mp_global,          ONLY: intra_image_comm
-      USE cell_base,          ONLY: tpiba2
       USE control_flags,      ONLY: gamma_only, do_wf_cmplx
 !       USE electrons_base,     ONLY: iupdwn, nupdwn, nspin, nudx
-      USE cp_main_variables,  ONLY: kk => kinetic_mat
       
       IMPLICIT NONE
 
@@ -1097,10 +1078,10 @@ END FUNCTION
       !
       ! local
 
-      INTEGER  :: ig, i, j, isp
+      INTEGER  :: ig
 !       COMPLEX(DP), allocatable :: sk(:)  ! automatic array
       LOGICAL :: lgam !added:giovanni
-      REAL(DP) :: icoeff, aidg
+      REAL(DP) :: icoeff
 
       lgam=gamma_only.and..not.do_wf_cmplx
 
@@ -1131,7 +1112,7 @@ END FUNCTION
 ! initialize wavefunctions with gaussians - edit to fit your system
 !
       USE kinds,              ONLY: DP
-      USE ions_base,          ONLY: na, nsp, nat
+      USE ions_base,          ONLY: na, nat
       USE electrons_base,     ONLY: n => nbsp
       USE gvecw,              ONLY: ngw
       USE reciprocal_vectors, ONLY: gx, g
@@ -1238,7 +1219,7 @@ END FUNCTION
 !
       USE ions_base,      ONLY: na
       USE cvan,           ONLY :nvb, ish
-      USE uspp,           ONLY : nkb, nhsavb=>nkbus, qq
+      USE uspp,           ONLY : nkb, qq
       USE uspp_param,     ONLY:  nh
       USE electrons_base, ONLY: ispin
       USE gvecw,          ONLY: ngw
@@ -1261,7 +1242,6 @@ END FUNCTION
       COMPLEX(DP) :: csum
       REAL(DP), ALLOCATABLE :: temp(:)
       COMPLEX(DP), ALLOCATABLE :: temp_c(:) !added:giovanni
-      REAL(DP) :: icoeff !added:giovanni
       
 
 !!!begin_added:giovanni
@@ -1382,12 +1362,8 @@ END FUNCTION
 !     requires in input the updated bec(k) for k<i
 !     on output: bec(i) is recalculated
 !
-      USE ions_base,      ONLY: na
-      USE cvan,           ONLY :nvb, ish
       USE reciprocal_vectors, ONLY: gx
-      USE cell_base, ONLY: a1,a2,a3
-      USE uspp,           ONLY : nkb, nhsavb=>nkbus, qq
-      USE uspp_param,     ONLY:  nh
+      USE cell_base, ONLY: a3
       USE electrons_base, ONLY: ispin
       USE gvecw,          ONLY: ngw
       USE mp,             ONLY: mp_sum
@@ -1406,12 +1382,9 @@ END FUNCTION
 !       type(twin_matrix) :: bec!( nkbx, n )!modified:giovanni
       COMPLEX(DP)    :: csc( n,n ) !modified:giovanni
       LOGICAL :: lgam !added:giovanni
-      INTEGER :: k, i, kmax,ig, is, iv, jv, ia, inl, jnl
-      REAL(DP)    :: rsum
-      COMPLEX(DP) :: csum
+      INTEGER :: k, i, kmax,ig
       REAL(DP), ALLOCATABLE :: temp(:)
       COMPLEX(DP), ALLOCATABLE :: temp_c(:) !added:giovanni
-      REAL(DP) :: icoeff !added:giovanni
       
 !!!begin_added:giovanni
       IF(lgam) THEN 
@@ -1504,7 +1477,7 @@ END FUNCTION
       COMPLEX(DP) :: csum
       REAL(DP), ALLOCATABLE :: temp(:)
       COMPLEX(DP), ALLOCATABLE :: temp_c(:) !added:giovanni
-      REAL(DP) :: icoeff !added:giovanni
+      
       
 
 !!!begin_added:giovanni
@@ -1702,7 +1675,7 @@ END FUNCTION
       COMPLEX(DP) :: csum
       REAL(DP), ALLOCATABLE :: temp(:)
       COMPLEX(DP), ALLOCATABLE :: temp_c(:) !added:giovanni
-      REAL(DP) :: icoeff !added:giovanni
+      
       
 
 !!!begin_added:giovanni
@@ -2001,7 +1974,7 @@ END FUNCTION
 !
       INTEGER, INTENT(IN) :: nkbx, ngwx, l2_bec
       COMPLEX(DP) :: betae( ngwx, nkb )
-      LOGICAL :: lgam
+      !
       COMPLEX(DP)    ::  c( 1, ngwx )
       type(twin_matrix) :: becc !( nkbx ),
       INTEGER     :: ig, inl
@@ -2042,9 +2015,9 @@ END FUNCTION
 !     on output: csv is updated
 !
       USE ions_base,      ONLY: na
-      USE cvan,           ONLY :nvb, ish
-      USE uspp,           ONLY : nkb, nhsavb=>nkbus, qq
-      USE uspp_param,     ONLY:  nh
+      USE cvan,           ONLY: nvb, ish
+      USE uspp,           ONLY: qq
+      USE uspp_param,     ONLY: nh
       USE kinds,          ONLY: DP
 !
       IMPLICIT NONE
@@ -2085,9 +2058,9 @@ END FUNCTION
 !     on output: csv is updated
 !
       USE ions_base,      ONLY: na
-      USE cvan,           ONLY :nvb, ish
-      USE uspp,           ONLY : nkb, nhsavb=>nkbus, qq
-      USE uspp_param,     ONLY:  nh
+      USE cvan,           ONLY: nvb, ish
+      USE uspp,           ONLY: qq
+      USE uspp_param,     ONLY: nh
       USE kinds,          ONLY: DP
       USE twin_types
 !
@@ -2150,17 +2123,17 @@ END FUNCTION
 !----------------------------------------------------------------------
 
       use kinds
-      use io_global, only: stdout,ionode
+      use io_global, only: ionode
       use mp_global, only: intra_image_comm
       use gvecw, only: ngw
       use reciprocal_vectors, only: ng0 => gstart
       use mp, only: mp_sum
-      use electrons_base, only: n => nbsp, ispin, nspin,nupdwn,iupdwn
+      use electrons_base, only: n => nbsp, nspin,nupdwn,iupdwn
 
       implicit none
 
       complex(dp) a(ngw,n), b(ngw,n)
-      integer i, j,k,ig, isp,ndim,nbnd1,nbnd2
+      integer i, j, ig, isp,ndim,nbnd1,nbnd2
       real(dp) sca
       real(DP), allocatable :: s(:,:)
       !
@@ -2225,7 +2198,7 @@ END FUNCTION
 !-----------------------------------------------------------------------
 !     gram-schmidt orthogonalization of the set of wavefunctions cp
 !
-      USE uspp,           ONLY : nkb, nhsavb=> nkbus
+      USE uspp,           ONLY : nkb
       USE gvecw,          ONLY : ngw
       USE kinds,          ONLY : DP
       USE control_flags,  ONLY : gamma_only, do_wf_cmplx !added:giovanni
@@ -2289,7 +2262,7 @@ END FUNCTION
 !-----------------------------------------------------------------------
 !     gram-schmidt orthogonalization of the set of wavefunctions cp
 !
-      USE uspp,           ONLY : nkb, nhsavb=> nkbus
+      USE uspp,           ONLY : nkb
       USE gvecw,          ONLY : ngw
       USE kinds,          ONLY : DP
       USE control_flags,  ONLY : gamma_only, do_wf_cmplx !added:giovanni
@@ -2303,7 +2276,7 @@ END FUNCTION
 !
       REAL(DP) :: anorm, cscnorm
       COMPLEX(DP), ALLOCATABLE :: csc( : ) !modified:giovanni
-      INTEGER :: i,k,j
+      INTEGER :: i,k
       LOGICAL :: lgam !added:giovanni
       EXTERNAL cscnorm
 
@@ -2370,7 +2343,7 @@ END FUNCTION
       USE mp_global,                ONLY: nproc_image, me_image
       USE fft_base,                 ONLY: dfftb, dfftp, fft_dlay_descriptor
       USE fft_types,                ONLY: fft_box_set
-      USE cvan,                     ONLY: nvb
+      
 
       IMPLICIT NONE
 ! input
@@ -2499,16 +2472,16 @@ END FUNCTION
       USE uspp_param,               ONLY: nh, nhm
       USE uspp,                     ONLY: deeq
       USE cvan,                     ONLY: nvb
-      USE ions_base,                ONLY: nat, nsp, na
+      USE ions_base,                ONLY: nat, na
       USE constants,                ONLY: pi, fpi
-      USE grid_dimensions,          ONLY: nr3, nnr => nnrx
+      USE grid_dimensions,          ONLY: nnr => nnrx
       USE gvecb,                    ONLY: ngb, npb, nmb, gxb
       USE small_box,                ONLY: omegab, tpibab
       USE smallbox_grid_dimensions, ONLY: nr1b, nr2b, nr3b, &
-                                          nr1bx, nr2bx, nr3bx, nnrb => nnrbx
+                                          nnrb => nnrbx
       USE qgb_mod,                  ONLY: qgb
       USE electrons_base,           ONLY: nspin
-      USE control_flags,            ONLY: iprint, thdyn, tfor, tprnfor
+      USE control_flags,            ONLY: thdyn, tfor, tprnfor
       USE mp,                       ONLY: mp_sum
       USE mp_global,                ONLY: intra_image_comm
       USE cp_interfaces,            ONLY: invfft
@@ -2782,13 +2755,13 @@ END FUNCTION
 !     contribution to fion due to the orthonormality constraint
 ! 
 !
+
       USE kinds,             ONLY: DP
-      USE io_global,         ONLY: stdout
-      USE ions_base,         ONLY: na, nsp, nat
+      USE ions_base,         ONLY: na, nat
       USE uspp,              ONLY: nhsa=>nkb, qq
       USE uspp_param,        ONLY: nhm, nh
       USE cvan,              ONLY: ish, nvb
-      USE electrons_base,    ONLY: nbspx, nbsp, nudx, nspin, iupdwn, nupdwn
+      USE electrons_base,    ONLY: nbsp, nspin, iupdwn, nupdwn
       USE constants,         ONLY: pi, fpi
       USE cp_main_variables, ONLY: nlam, nlax, descla, la_proc
       USE descriptors,       ONLY: nlar_ , nlac_ , ilar_ , ilac_ 
@@ -2894,13 +2867,13 @@ END FUNCTION
 !     contribution to fion due to the orthonormality constraint
 ! 
 !
+
       USE kinds,             ONLY: DP
-      USE io_global,         ONLY: stdout
-      USE ions_base,         ONLY: na, nsp, nat
+      USE ions_base,         ONLY: na, nat
       USE uspp,              ONLY: nhsa=>nkb, qq
       USE uspp_param,        ONLY: nhm, nh
       USE cvan,              ONLY: ish, nvb
-      USE electrons_base,    ONLY: nbspx, nbsp, nudx, nspin, iupdwn, nupdwn
+      USE electrons_base,    ONLY: nbsp, nspin, iupdwn, nupdwn
       USE constants,         ONLY: pi, fpi
       USE cp_main_variables, ONLY: nlam, nlax, descla, la_proc
       USE descriptors,       ONLY: nlar_ , nlac_ , ilar_ , ilac_ 
@@ -3006,15 +2979,15 @@ END FUNCTION
 !     contribution to fion due to the orthonormality constraint
 ! 
 !
+
       USE kinds,             ONLY: DP
-      USE io_global,         ONLY: stdout
-      USE ions_base,         ONLY: na, nsp, nat
-      USE uspp,              ONLY: nhsa=>nkb, qq
+      USE ions_base,         ONLY: na, nat
+      USE uspp,              ONLY: qq
       USE uspp_param,        ONLY: nhm, nh
       USE cvan,              ONLY: ish, nvb
-      USE electrons_base,    ONLY: nbspx, nbsp, nudx, nspin, iupdwn, nupdwn
+      USE electrons_base,    ONLY: nspin, iupdwn, nupdwn
       USE constants,         ONLY: pi, fpi
-      USE cp_main_variables, ONLY: nlam, nlax, descla, la_proc
+      USE cp_main_variables, ONLY: nlax, descla, la_proc
       USE descriptors,       ONLY: nlar_ , nlac_ , ilar_ , ilac_ 
       USE mp,                ONLY: mp_sum
       USE mp_global,         ONLY: intra_image_comm
@@ -3676,7 +3649,7 @@ END FUNCTION
             nnr => nnrx
       USE cell_base, ONLY: omega
       USE cvan, ONLY: nvb, ish
-      USE uspp, ONLY: nhsa => nkb, nhsavb=>nkbus, qq
+      USE uspp, ONLY: nhsa => nkb, qq
       USE uspp_param, ONLY: nh
       USE ions_base, ONLY: na
 !
@@ -3805,12 +3778,12 @@ END FUNCTION
 !     rhor output: total potential on dense real space grid
 !     rhos output: total potential on smooth real space grid
 !
+
       USE kinds,              ONLY : dp
-      USE control_flags,      ONLY : iprint, iprsta, thdyn, tpre, tfor, &
+      USE control_flags,      ONLY : iprint, iprsta, tpre, tfor, &
                                      tprnfor, iesr, textfor, gamma_only, do_wf_cmplx !addded:giovanni
-      use electrons_base,     only : nx => nbspx, n => nbsp
-      USE io_global,          ONLY : meta_ionode, stdout
-      USE ions_base,          ONLY : nsp, na, nat, rcmax, compute_eextfor
+      USE io_global,          ONLY : stdout
+      USE ions_base,          ONLY : nsp, na, nat, compute_eextfor
       USE gvecs
       USE gvecp,              ONLY : ng => ngm
       USE cell_base,          ONLY : omega, r_to_s
@@ -3818,33 +3791,32 @@ END FUNCTION
       USE reciprocal_vectors, ONLY : gstart, g, gx
       USE recvecs_indexes,    ONLY : np, nm
       USE grid_dimensions,    ONLY : nr1, nr2, nr3, &
-                                     nr1x, nr2x, nr3x, nnr => nnrx
+                                     nnr => nnrx
       USE smooth_grid_dimensions, &
-                              ONLY : nr1s, nr2s, nr3s, &
-                                     nr1sx, nr2sx, nr3sx, nnrsx
+                              ONLY : nnrsx
       USE electrons_base,     ONLY : nspin
       USE constants,          ONLY : pi, fpi, au_gpa
       USE energies,           ONLY : etot, eself, enl, ekin, epseu, esr, eht, exc, eextfor
-      USE local_pseudo,       ONLY : vps, dvps, rhops
+      USE local_pseudo,       ONLY : vps, rhops
       USE core,               ONLY : nlcc_any
       USE gvecb
       USE dener,              ONLY : detot, dekin, dps, dh, dsr, dxc, denl, &
-                                     detot6, dekin6, dps6, dh6, dsr6, dxc6, denl6
-      USE cp_main_variables,  ONLY : drhog, drhor, ht0
+                                     detot6, dekin6, dps6, dh6, dsr6
+      USE cp_main_variables,  ONLY : drhog, ht0
       USE mp,                 ONLY : mp_sum
       USE mp_global,          ONLY : intra_image_comm
       USE funct,              ONLY : dft_is_meta, dft_is_hybrid
       USE pres_ai_mod,        ONLY : abivol, abisur, v_vol, P_ext, volclu,  &
                                      Surf_t, surfclu
       USE cp_interfaces,      ONLY : fwfft, invfft, self_vofhar
-      USE sic_module,         ONLY : self_interaction, sic_epsilon, sic_alpha
+      USE sic_module,         ONLY : self_interaction
       USE energies,           ONLY : self_exc, self_ehte
-      USE cp_interfaces,      ONLY : pseudo_stress, compute_gagb, stress_hartree, &
+      USE cp_interfaces,      ONLY : compute_gagb, stress_hartree, &
                                      add_drhoph, stress_local, force_loc
       USE fft_base,           ONLY : dfftp, dffts
       USE ldaU,               ONLY : e_hubbard
       USE hfmod,              ONLY : do_hf, hfscalfact
-      use eecp_mod,           only : do_comp, which_compensation, vcorr, &
+      use eecp_mod,           only : do_comp, vcorr, &
                                      vcorr_fft, ecomp
       USE efield_mod,         ONLY : do_efield, efieldpotg
       USE io_global,          ONLY : stdout
@@ -3860,9 +3832,9 @@ END FUNCTION
       !
       INTEGER irb(3,nat)
       !
-      INTEGER iss, isup, isdw, ig, ir, i, j, k, ij, is, ia
-      REAL(DP) vave, ebac, wz, eh, ehpre
-      COMPLEX(DP)  fp, fm, ci, drhop, zpseu, zh
+      INTEGER iss, isup, isdw, ig, ir, i, j, k, ij, is
+      REAL(DP) vave, ebac, wz, eh
+      COMPLEX(DP)  fp, fm, ci, zpseu, zh
       COMPLEX(DP), ALLOCATABLE :: rhotmp(:), vtemp(:), aux(:)
       ! COMPLEX(DP), ALLOCATABLE :: drhotmp(:,:,:)
       COMPLEX(DP), ALLOCATABLE :: drhot(:,:)
@@ -3873,13 +3845,10 @@ END FUNCTION
       REAL(DP), ALLOCATABLE :: stmp( :, : )
       !
       COMPLEX(DP), ALLOCATABLE :: self_vloc(:)
-      COMPLEX(DP)              :: self_rhoeg
-      REAL(DP)                 :: self_ehtet, fpibg
+      REAL(DP)                 :: self_ehtet
       LOGICAL                  :: ttsic
-      REAL(DP)                 :: detmp( 3, 3 ), desr( 6 ), deps( 6 )
-      REAL(DP)                 :: detmp2( 3, 3 )
+      REAL(DP)                 :: detmp( 3, 3 )
       REAL(DP)                 :: ht( 3, 3 )
-      REAL(DP)                 :: deht( 6 )
       COMPLEX(DP)              :: screen_coul( 1 )
 !
       INTEGER, DIMENSION(6), PARAMETER :: alpha = (/ 1,2,3,2,3,3 /)
@@ -3922,7 +3891,7 @@ END FUNCTION
 !
 !     ab-initio pressure and surface tension contributions to the potential
 !
-      if (abivol.or.abisur) call vol_clu(rhor,rhog,sfac,nfi)
+      if (abivol.or.abisur) call vol_clu(rhor,rhog,nfi)
       !
       ttsic = ( ABS( self_interaction ) /= 0 )
       !
@@ -4012,7 +3981,7 @@ END FUNCTION
 !
       IF( tpre ) THEN
          !
-         CALL stress_local( dps6, epseu, gagb, sfac, rhotmp, drhot, omega )
+         CALL stress_local( dps6, gagb, sfac, rhotmp, drhot, omega )
          !
       END IF
       !
@@ -4067,7 +4036,7 @@ END FUNCTION
          !
          CALL add_drhoph( drhot, sfac, gagb )
          !
-         CALL stress_hartree(dh6, eh*omega, sfac, rhotmp, drhot, gagb, omega )
+         CALL stress_hartree(dh6, eh*omega, rhotmp, drhot, gagb, omega )
          !
       END IF
       !
@@ -4115,10 +4084,10 @@ END FUNCTION
         aux=0.0_dp
 
 !         IF(lgam) THEN !!!### uncomment for k points
-	  do ig=1,ng
-	    aux(np(ig))=vcorr_fft(ig)
-	    aux(nm(ig))=conjg(vcorr_fft(ig))
-	  end do
+        do ig=1,ng
+          aux(np(ig))=vcorr_fft(ig)
+          aux(nm(ig))=conjg(vcorr_fft(ig))
+        end do
 !         ELSE !!!### uncomment for k points
 !           do ig=1,ng !!!### uncomment for k points
 ! 	    aux(np(ig))=vcorr_fft(ig) !!!### uncomment for k points
@@ -4139,10 +4108,10 @@ END FUNCTION
         !
         aux=0.0_dp
 !         IF(lgam) THEN !!!### uncomment for k points
-	  do ig=1,ng 
-	    aux(np(ig))=vcorr_fft(ig)+vtemp(ig)
-	    aux(nm(ig))=conjg(vcorr_fft(ig)+vtemp(ig))
-	  end do
+        do ig=1,ng 
+          aux(np(ig))=vcorr_fft(ig)+vtemp(ig)
+          aux(nm(ig))=conjg(vcorr_fft(ig)+vtemp(ig))
+        end do
 !         ELSE !!!### uncomment for k points
 !           do ig=1,ng !!!### uncomment for k points
 ! 	    aux(np(ig))=vcorr_fft(ig)+vtemp(ig) !!!### uncomment for k points
@@ -4157,10 +4126,10 @@ END FUNCTION
         !
         aux=0.0_dp
 !         IF(lgam) THEN !!!### uncomment for k points
-	  do ig=1,ng
-	    aux(np(ig))=vtemp(ig)
-	    aux(nm(ig))=conjg(vtemp(ig))
-	  end do
+        do ig=1,ng
+          aux(np(ig))=vtemp(ig)
+          aux(nm(ig))=conjg(vtemp(ig))
+        end do
 !         ELSE !!!### uncomment for k points
 !           do ig=1,ng !!!### uncomment for k points
 ! 	    aux(np(ig))=vtemp(ig) !!!### uncomment for k points
@@ -4174,10 +4143,10 @@ END FUNCTION
         aux=0.0_dp
 
 !         IF(lgam) THEN  !!!### uncomment for k points
-	  do ig=1,ng
-	    aux(np(ig))=rhotmp(ig)
-	    aux(nm(ig))=conjg(rhotmp(ig))
-	  end do
+        do ig=1,ng
+          aux(np(ig))=rhotmp(ig)
+          aux(nm(ig))=conjg(rhotmp(ig))
+        end do
 !         ELSE !!!### uncomment for k points
 ! 	  do ig=1,ng !!!### uncomment for k points
 ! 	    aux(np(ig))=rhotmp(ig) !!!### uncomment for k points
@@ -4305,10 +4274,10 @@ END FUNCTION
          iss=1
 !$omp parallel do
 ! 	IF(lgam) THEN !!!### uncomment for k points
-	    DO ig=1,ng
-		v(np(ig))=rhog(ig,iss)
-		v(nm(ig))=CONJG(rhog(ig,iss))
-	    END DO
+          DO ig=1,ng
+            v(np(ig))=rhog(ig,iss)
+            v(nm(ig))=CONJG(rhog(ig,iss))
+          END DO
 ! 	ELSE !!!### uncomment for k points
 ! 	    DO ig=1,ng !!!### uncomment for k points
 ! 		v(np(ig))=rhog(ig,iss) !!!### uncomment for k points
@@ -4332,10 +4301,10 @@ END FUNCTION
          isdw=2
 !$omp parallel do
 !          IF(lgam) THEN !!!### uncomment for k points
-	    DO ig=1,ng
-		v(np(ig))=rhog(ig,isup)+ci*rhog(ig,isdw)
-		v(nm(ig))=CONJG(rhog(ig,isup)) +ci*CONJG(rhog(ig,isdw))
-	    END DO
+         DO ig=1,ng
+           v(np(ig))=rhog(ig,isup)+ci*rhog(ig,isdw)
+           v(nm(ig))=CONJG(rhog(ig,isup)) +ci*CONJG(rhog(ig,isdw))
+         END DO
 !          ELSE !!!### uncomment for k points
 ! 	    DO ig=1,ng !!!### uncomment for k points
 ! 		v(np(ig))=rhog(ig,isup)+ci*rhog(ig,isdw) !!!### uncomment for k points
@@ -4367,10 +4336,10 @@ END FUNCTION
          iss=1
 !$omp parallel do
 !        IF(lgam) THEN !!!### uncomment for k points
-	  DO ig=1,ngs
-	      vs(nms(ig))=CONJG(rhog(ig,iss))
-	      vs(nps(ig))=rhog(ig,iss)
-	  END DO
+       DO ig=1,ngs
+           vs(nms(ig))=CONJG(rhog(ig,iss))
+           vs(nps(ig))=rhog(ig,iss)
+       END DO
 !        ELSE !!!### uncomment for k points
 ! 	  DO ig=1,ngs !!!### uncomment for k points
 !               write(6,*) "debug", nps(ig), nnrsx, ig, ngs  !added:giovanni:debug
@@ -4391,10 +4360,10 @@ END FUNCTION
          isdw=2
 !$omp parallel do
 !          IF(lgam) THEN !!!### uncomment for k points
-	    DO ig=1,ngs
-		vs(nps(ig))=rhog(ig,isup)+ci*rhog(ig,isdw)
-		vs(nms(ig))=CONJG(rhog(ig,isup)) +ci*CONJG(rhog(ig,isdw))
-	    END DO 
+         DO ig=1,ngs
+          vs(nps(ig))=rhog(ig,isup)+ci*rhog(ig,isdw)
+          vs(nms(ig))=CONJG(rhog(ig,isup)) +ci*CONJG(rhog(ig,isdw))
+         END DO 
 !          ELSE !!!### uncomment for k points
 ! 	    DO ig=1,ngs !!!### uncomment for k points
 ! 		vs(nps(ig))=rhog(ig,isup)+ci*rhog(ig,isdw) !!!### uncomment for k points
@@ -4617,7 +4586,7 @@ END FUNCTION
                                    innerloop_dd_nstep, &
                                    innerloop_cg_nsd, innerloop_cg_nreset, innerloop_nmax, &
                                    innerloop_cg_ratio, innerloop_init_n, innerloop_until, &
-                                   innerloop_atleast
+                                   innerloop_atleast, l_comp_cmplxfctn_index
 !$$
       use input_parameters, ONLY : do_nk_ => do_nk, &
                                    do_pz_ => do_pz, &
@@ -4635,7 +4604,8 @@ END FUNCTION
                                    nkscalfact_ => nkscalfact, &
                                    nknmax_ => nknmax, &
                                    f_cutoff_ => f_cutoff, &
-                                   do_orbdep_=> do_orbdep
+                                   do_orbdep_=> do_orbdep, &
+                                   l_comp_cmplxfctn_index_ => l_comp_cmplxfctn_index
 !$$
       use input_parameters, only : do_innerloop_ => do_innerloop, &
                                    do_innerloop_empty_ => do_innerloop_empty, &
@@ -4685,6 +4655,7 @@ END FUNCTION
 !$$
       do_innerloop        = do_innerloop_
       do_innerloop_empty  = do_innerloop_empty_
+      l_comp_cmplxfctn_index  = l_comp_cmplxfctn_index_
       do_innerloop_cg     = do_innerloop_cg_
       innerloop_dd_nstep  = innerloop_dd_nstep_
       innerloop_cg_nsd    = innerloop_cg_nsd_
@@ -4958,56 +4929,55 @@ END FUNCTION
       if(do_efield) call allocate_efield(nnrx,ngm)
       !
       end subroutine efield_init
-!
-!-----------------------------------------------------------------------
-integer function set_Hubbard_l(psd) result (hubbard_l)
-!-----------------------------------------------------------------------
-!
-implicit none
-character*3 :: psd
-!
-! TRANSITION METALS
-!
-if (psd.eq.'V'  .or. psd.eq.'Cr' .or. psd .eq.'Mn' .or. psd.eq.'Fe' .or. &
-    psd.eq.'Co' .or. psd.eq.'Ni' .or. psd .eq.'Cu'.or. psd .eq.'Fe1'.or. &
-    psd .eq.'Fe2' ) then
-    hubbard_l = 2
-!
-! RARE EARTHS
-!
-elseif (psd .eq.'Ce') then
-   hubbard_l =  3
-!
-! OTHER ELEMENTS
-!
-elseif (psd .eq.'H') then
-   hubbard_l =  0
-elseif (psd .eq.'O') then
-   hubbard_l = 1
-else
-   hubbard_l = -1
-   call errore ('set_Hubbard_l','pseudopotential not yet inserted', 1)
-endif
-return
-end function set_Hubbard_l
-!
-!-----------------------------------------------------------------------
-      subroutine new_ns_real(c,eigr,betae,hpsi,hpsi_con,forceh)
-!-----------------------------------------------------------------------
-!
-! This routine computes the on site occupation numbers of the Hubbard ions.
-! It also calculates the contribution of the Hubbard Hamiltonian to the
-! electronic potential and to the forces acting on ions.
-!
+  !
+  !-----------------------------------------------------------------------
+  integer function set_Hubbard_l(psd) result (hubbard_l)
+  !-----------------------------------------------------------------------
+  !
+  implicit none
+  character*3 :: psd
+  !
+  ! TRANSITION METALS
+  !
+  if (psd.eq.'V'  .or. psd.eq.'Cr' .or. psd .eq.'Mn' .or. psd.eq.'Fe' .or. &
+      psd.eq.'Co' .or. psd.eq.'Ni' .or. psd .eq.'Cu'.or. psd .eq.'Fe1'.or. &
+      psd .eq.'Fe2' ) then
+      hubbard_l = 2
+  !
+  ! RARE EARTHS
+  !
+  elseif (psd .eq.'Ce') then
+     hubbard_l =  3
+  !
+  ! OTHER ELEMENTS
+  !
+  elseif (psd .eq.'H') then
+     hubbard_l =  0
+  elseif (psd .eq.'O') then
+     hubbard_l = 1
+  else
+     hubbard_l = -1
+     call errore ('set_Hubbard_l','pseudopotential not yet inserted', 1)
+  endif
+  return
+  end function set_Hubbard_l
+  !
+ !-----------------------------------------------------------------------
+       subroutine new_ns_real(c,eigr,betae,hpsi,hpsi_con,forceh)
+ !-----------------------------------------------------------------------
+ !
+ ! This routine computes the on site occupation numbers of the Hubbard ions.
+ ! It also calculates the contribution of the Hubbard Hamiltonian to the
+ ! electronic potential and to the forces acting on ions.
+ !
       use control_flags,      ONLY: tfor, tprnfor
       use kinds,              ONLY: DP        
       use ions_base,          only: na, nat, nsp
       use gvecw,              only: ngw
-      use reciprocal_vectors, only: ng0 => gstart
       USE uspp,               ONLY: nhsa=>nkb
       USE uspp_param,         ONLY: upf
       use electrons_base,     only: nspin, n => nbsp, nx => nbspx, ispin, f
-      USE ldaU,               ONLY: lda_plus_u, Hubbard_U, Hubbard_l
+      USE ldaU,               ONLY: Hubbard_U, Hubbard_l
       USE ldaU,               ONLY: n_atomic_wfc, ns, e_hubbard
       USE cp_interfaces, ONLY: nlsm1, projwfc_hub, s_wfc !added:giovanni
 !
@@ -5016,28 +4986,21 @@ end function set_Hubbard_l
       include 'mpif.h'
 #endif
       integer, parameter :: ldmx = 7
-      complex(DP), intent(in) :: c(ngw,nx), eigr(ngw,nat),      &
-     &                               betae(ngw,nhsa)
+      complex(DP), intent(in) :: c(ngw,nx), eigr(ngw,nat), betae(ngw,nhsa)
       complex(DP), intent(out) :: hpsi(ngw,nx), hpsi_con(1,1)
       real(DP) forceh(3,nat)
-!
-      complex(DP), allocatable:: wfc(:,:), swfc(:,:),dphi(:,:,:),   &
-     &                               spsi(:,:)
-      real(DP), allocatable   :: becwfc(:,:), bp(:,:),              &
-     &                               dbp(:,:,:), wdb(:,:,:)
+      complex(DP), allocatable:: wfc(:,:), swfc(:,:),dphi(:,:,:), spsi(:,:)
+      real(DP), allocatable   :: becwfc(:,:), bp(:,:), dbp(:,:,:), wdb(:,:,:)
       real(DP), allocatable   :: dns(:,:,:,:)
-      real(DP), allocatable   :: e(:), z(:,:),                      &
-     &                               proj(:,:), temp(:)
+      real(DP), allocatable   :: e(:), z(:,:),proj(:,:), temp(:)
       real(DP), allocatable   :: ftemp1(:), ftemp2(:)
       real(DP)                :: lambda(ldmx), somma, ntot, nsum,   &
-     &                           nsuma, x_value, g_value, step_value
+                                 & nsuma, x_value, g_value, step_value
       real(DP) :: f1 (ldmx, ldmx), vet (ldmx, ldmx)
       integer is, ia, iat, nb, isp, l, m, m1, m2, k, i, counter, err, ig
       integer iv, jv, inl, jnl,alpha,alpha_a,alpha_s,ipol
       integer, allocatable ::  offset (:,:)
       complex(DP) :: tempsi
-!
-!
       allocate(wfc(ngw,n_atomic_wfc))
       allocate(ftemp1(ldmx))
       allocate(ftemp2(ldmx))
@@ -6386,4 +6349,114 @@ end function set_Hubbard_l
       RETURN
       END SUBROUTINE atomic_wfc_northo
 
+
+!-----------------------------------------------------------------------
+SUBROUTINE compute_lambda (c0, gi, lambda, nspin, nbnd, ngw, nudx, desc_emp, nupdwn, iupdwn )
+ !-----------------------------------------------------------------------
+ ! 
+ ! Compute matrix of lagangian multipliers (i.e. the Hamiltonian on the
+ ! variational orbitals)
+ !
+ USE kinds,                    ONLY : DP
+ USE twin_types 
+ !USE electrons_module,         ONLY : nupdwn_emp, iupdwn_emp
+ USE reciprocal_vectors,       ONLY : ng0 => gstart
+ USE descriptors,              ONLY : descla_siz_ 
+ USE mp_global,                ONLY : intra_image_comm
+ USE mp,                       only : mp_sum
+ USE cp_main_variables,        ONLY : distribute_lambda
+ !
+ IMPLICIT NONE 
+ INTEGER, INTENT(IN) :: nspin, ngw, nbnd, nudx
+ INTEGER, INTENT(IN) :: nupdwn(nspin), iupdwn(nspin)
+ INTEGER, INTENT (IN) :: desc_emp( descla_siz_ , 2 )
+ COMPLEX(DP), INTENT(IN) :: c0(ngw, nbnd)
+ COMPLEX(DP), INTENT(IN) :: gi(ngw, nbnd)
+ TYPE(twin_matrix ), INTENT(INOUT)   :: lambda(nspin)
+ INTEGER :: nss, is, i, j, ii, jj, istart, ig
+ REAL(DP),    ALLOCATABLE :: lambda_repl(:,:) ! replicated copy of lambda
+ COMPLEX(DP), ALLOCATABLE :: lambda_repl_c(:,:) ! replicated copy of lambda
+ !
+ if(.not.lambda(1)%iscmplx) then
+     allocate(lambda_repl(nudx,nudx))
+ else
+    allocate(lambda_repl_c(nudx,nudx))
+ endif
+ !
+ do is = 1, nspin
+    !
+    nss = nupdwn(is)
+    istart = iupdwn(is)
+    ! 
+    if (.not.lambda(1)%iscmplx) then
+       lambda_repl = 0.d0
+    else
+       lambda_repl_c = CMPLX(0.d0,0.d0)
+    endif
+    !
+    do i = 1, nss
+       !
+       do j = i, nss
+          !
+          ii = i + istart - 1
+          jj = j + istart - 1
+          !
+          if (.not.lambda(1)%iscmplx) then
+             !
+             do ig = 1, ngw
+                !
+                lambda_repl( i, j ) = lambda_repl( i, j ) - &
+                2.d0 * DBLE( CONJG( c0( ig, ii ) ) * gi( ig, jj) )
+                !
+             enddo
+             !
+             if ( ng0 == 2 ) then
+                !  
+                lambda_repl( i, j ) = lambda_repl( i, j ) + &
+               DBLE( CONJG( c0( 1, ii ) ) * gi( 1, jj ) )
+               !
+            endif
+            !
+            lambda_repl( j, i ) = lambda_repl( i, j )
+            !
+         else
+            !
+            do ig = 1, ngw
+               !
+               lambda_repl_c( i, j ) = lambda_repl_c( i, j ) - &
+               CONJG( c0( ig, ii ) ) * gi( ig, jj)
+               !
+            enddo
+            !  
+            lambda_repl_c( j, i ) = CONJG(lambda_repl_c( i, j ))
+            !
+         endif
+         !
+      enddo
+      !
+   enddo
+   !
+   if (.not.lambda(1)%iscmplx) then
+      !  
+      call mp_sum( lambda_repl, intra_image_comm )
+      call distribute_lambda( lambda_repl, lambda(is)%rvec( :, :),  desc_emp( :, is ) )
+      !
+   else
+      !
+      call mp_sum( lambda_repl_c, intra_image_comm )
+      call distribute_lambda( lambda_repl_c, lambda(is)%cvec( :, :), desc_emp( :, is ) )
+      ! 
+   endif
+   !
+ enddo
+ !
+ if (.not.lambda(1)%iscmplx) then
+    deallocate( lambda_repl )
+ else
+    deallocate( lambda_repl_c )
+ endif
+ !
+ RETURN
+ !
+END SUBROUTINE  
 

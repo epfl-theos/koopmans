@@ -8,15 +8,22 @@ import pytest
 from conftest import WorkflowTest
 
 
-json = 'tests/test_08/test_si_all.json'
+json = 'tests/test_08/test_si_ui.json'
 
 
 @pytest.mark.mock
-def test_mock_si_all(capsys, mock_quantum_espresso):
-    test = WorkflowTest(json, capsys, mock=True)
+def test_mock_si_ui(capsys):
+    test = WorkflowTest(json, capsys)
     test.run()
 
 
-def test_si_all(capsys):
+@pytest.mark.stumble
+def test_si_ui_stumble(capsys, stumble):
+    test = WorkflowTest(json, capsys)
+    test.run()
+
+
+@pytest.mark.standard
+def test_si_ui(capsys):
     test = WorkflowTest(json, capsys)
     test.run()

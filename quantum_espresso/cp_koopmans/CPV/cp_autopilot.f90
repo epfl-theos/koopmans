@@ -98,7 +98,7 @@ CONTAINS
     USE input_parameters, ONLY :   dt, & 
          &  electron_dynamics, electron_damping, &
          & ion_dynamics, ion_damping, &
-         & ion_temperature, fnosep, nhpcl, nhptyp, nhgrp, fnhscl, ndega, nat
+         & ion_temperature, fnosep, nhpcl, nhptyp, nhgrp, fnhscl, ndega
     use ions_nose, ONLY: tempw
     USE control_flags, only: tsde, tsdp, tfor, tcp, tnosep, isave,iprint,&
                              tconvthrs, tolp,ldamped, &
@@ -109,7 +109,6 @@ CONTAINS
     use wave_base, only: frice
     use ions_base, only: fricp
     USE ions_nose, ONLY: ions_nose_init
-    USE io_global, ONLY: ionode, ionode_id
     USE time_step,          ONLY : set_time_step
     USE cp_electronic_mass, ONLY: emass
     IMPLICIT NONE

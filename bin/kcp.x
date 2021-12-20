@@ -1,0 +1,1 @@
+../quantum_espresso/cp_koopmans/bin/kcp.x

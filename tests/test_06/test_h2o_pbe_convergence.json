@@ -1,7 +1,7 @@
 {
     "workflow":
     {
-        "functional"               : "pbe",
+        "functional"               : "dft",
         "task"                     : "convergence",
         "print_qc"                 : true,
         "from_scratch"             : true,

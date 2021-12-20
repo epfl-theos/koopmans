@@ -27,23 +27,22 @@
 !
       USE parallel_include
       USE kinds,                  ONLY: dp
-      USE control_flags,          ONLY: iprint, use_task_groups, program_name, &
+      USE control_flags,          ONLY: use_task_groups, program_name, &
                                                               gamma_only, do_wf_cmplx
       USE gvecs,                  ONLY: nms, nps
       USE cvan,                   ONLY: ish
       USE uspp,                   ONLY: nhsa=>nkb, dvan, deeq
-      USE uspp_param,             ONLY: nhm, nh
-      USE smooth_grid_dimensions, ONLY: nr1s, nr2s, nr3s, &
-                                        nr1sx, nr2sx, nr3sx, nnrsx
+      USE uspp_param,             ONLY: nh
+      USE smooth_grid_dimensions, ONLY: nr1sx, nr2sx, nr3sx, nnrsx
       USE constants,              ONLY: pi, fpi
-      USE ions_base,              ONLY: nsp, na, nat
+      USE ions_base,              ONLY: nsp, na
       USE gvecw,                  ONLY: ngw, ggp
       USE cell_base,              ONLY: tpiba2
       USE ensemble_dft,           ONLY: tens, tsmear
       USE fft_base,               ONLY: dffts
       USE funct,                  ONLY: dft_is_meta
       USE cp_interfaces,          ONLY: fwfft, invfft
-      USE mp_global,              ONLY: nogrp, me_image, ogrp_comm
+      USE mp_global,              ONLY: nogrp, me_image
       USE twin_types !added:giovanni
 !
       IMPLICIT NONE
@@ -63,9 +62,9 @@
       !
       ! local variables
       !
-      INTEGER     :: iv, jv, ia, is, isa, ism, ios, iss1, iss2, ir, ig, inl, jnl
-      INTEGER     :: ivoff, jvoff, igoff, igno, igrp, ierr
-      INTEGER     :: idx, eig_offset, eig_index, nogrp_
+      INTEGER     :: iv, jv, ia, is, isa, ism, iss1, iss2, ir, ig, inl, jnl
+      INTEGER     :: ivoff, jvoff, igoff, igno, igrp
+      INTEGER     :: idx, eig_offset, nogrp_
       REAL(DP)    :: fi, fip, dd, dv
       COMPLEX(DP) :: fp, fm, ci
       COMPLEX(DP), ALLOCATABLE :: af( :, : ), aa( :, : ) !modified:giovanni
@@ -420,22 +419,21 @@
 !
       USE parallel_include
       USE kinds,                  ONLY: dp
-      USE control_flags,          ONLY: iprint, use_task_groups, program_name
+      USE control_flags,          ONLY: use_task_groups, program_name
       USE gvecs,                  ONLY: nms, nps
       USE cvan,                   ONLY: ish
       USE uspp,                   ONLY: nhsa=>nkb, dvan, deeq
-      USE uspp_param,             ONLY: nhm, nh
-      USE smooth_grid_dimensions, ONLY: nr1s, nr2s, nr3s, &
-                                        nr1sx, nr2sx, nr3sx, nnrsx
+      USE uspp_param,             ONLY: nh
+      USE smooth_grid_dimensions, ONLY: nr1sx, nr2sx, nr3sx, nnrsx
       USE constants,              ONLY: pi, fpi
-      USE ions_base,              ONLY: nsp, na, nat
+      USE ions_base,              ONLY: nsp, na
       USE gvecw,                  ONLY: ngw, ggp
       USE cell_base,              ONLY: tpiba2
       USE ensemble_dft,           ONLY: tens, tsmear
       USE fft_base,               ONLY: dffts
       USE funct,                  ONLY: dft_is_meta
       USE cp_interfaces,          ONLY: fwfft, invfft
-      USE mp_global,              ONLY: nogrp, me_image, ogrp_comm
+      USE mp_global,              ONLY: nogrp, me_image
 !
       IMPLICIT NONE
 !
@@ -454,9 +452,9 @@
       !
       ! local variables
       !
-      INTEGER     :: iv, jv, ia, is, isa, ism, ios, iss1, iss2, ir, ig, inl, jnl
-      INTEGER     :: ivoff, jvoff, igoff, igno, igrp, ierr
-      INTEGER     :: idx, eig_offset, eig_index, nogrp_
+      INTEGER     :: iv, jv, ia, is, isa, ism, iss1, iss2, ir, ig, inl, jnl
+      INTEGER     :: ivoff, jvoff, igoff, igno, igrp
+      INTEGER     :: idx, eig_offset, nogrp_
       REAL(DP)    :: fi, fip, dd, dv
       COMPLEX(DP) :: fp, fm, ci
       REAL(DP),    ALLOCATABLE :: af( :, : ), aa( :, : )

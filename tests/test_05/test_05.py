@@ -17,6 +17,13 @@ def test_mock_h2o_all(capsys, mock_quantum_espresso):
     test.run()
 
 
+@pytest.mark.stumble
+def test_h2o_all_stumble(capsys, stumble):
+    test = WorkflowTest(json, capsys)
+    test.run()
+
+
+@pytest.mark.standard
 def test_h2o_all(capsys):
     test = WorkflowTest(json, capsys)
     test.run()

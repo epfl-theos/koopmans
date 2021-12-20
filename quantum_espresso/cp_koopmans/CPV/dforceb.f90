@@ -60,14 +60,13 @@ subroutine dforceb(c0, i, betae, ipol, bec0, ctabin, gqq, gqqm, qmat, dq2, df)
 
 ! local variables
 
-  integer j,k,ig,iv,jv,ix,jx,is,ia, isa,iss,iss1,mism
-  integer ir,ism,itemp,itempa,jnl,inl
-  complex(DP) fi, fp, fm
-  real(DP) afr(nhsa), dd
+  integer j,ig,iv,jv,is,ia
+  integer jnl,inl
+  complex(DP) fi
   complex(DP)  afrc(nhsa)
   complex(DP), allocatable::  dtemp(:)
   complex(DP), allocatable :: sndbuf(:,:,:),rcvbuf(:,:,:)
-  integer :: ierr, ip
+  integer :: ip
 
   allocate( dtemp(ngw))
 

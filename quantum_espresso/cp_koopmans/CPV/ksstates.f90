@@ -41,7 +41,7 @@ CONTAINS
       INTEGER, INTENT(IN) :: iprnks(:,:)
       INTEGER, INTENT(IN) :: iprnks_emp(:,:)
 
-      INTEGER :: i, ip, k, nstates
+      INTEGER :: i, k, nstates
 
       ! ...   Tell the code which Kohn-Sham state should be printed to file
       !
@@ -100,11 +100,10 @@ CONTAINS
       SUBROUTINE print_all_states( ctot, iupdwn_tot, nupdwn_tot )
 
         USE kinds,            ONLY : DP
-        USE mp_global,        ONLY : intra_image_comm
         USE io_global,        ONLY : ionode
         USE io_global,        ONLY : stdout
-        USE electrons_module, ONLY : iupdwn_emp, nupdwn_emp
-        USE electrons_base,   ONLY : nupdwn, iupdwn, nspin
+        USE electrons_module, ONLY : nupdwn_emp
+        USE electrons_base,   ONLY : nupdwn, nspin
 
         IMPLICIT NONE
 
@@ -174,15 +173,15 @@ CONTAINS
       SUBROUTINE print_ks_states( c, file_name )
 
         USE kinds
-        USE mp, ONLY: mp_sum
-        USE io_global, ONLY: ionode, ionode_id
-        USE io_global, ONLY: stdout
-        USE gvecw, ONLY: ngw
-        USE fft_base, ONLY: dfftp, dffts
-        USE grid_dimensions, ONLY: nr1, nr2, nr3, nr1x, nr2x, nr3x, nnrx
-        USE cp_interfaces, ONLY: invfft
-        USE xml_io_base, ONLY: write_rho_xml
-        USE mp_global,       ONLY: nproc_image, me_image, intra_image_comm
+        USE mp,              ONLY: mp_sum
+        USE io_global,       ONLY: ionode
+        USE io_global,       ONLY: stdout
+        USE gvecw,           ONLY: ngw
+        USE fft_base,        ONLY: dfftp, dffts
+        USE grid_dimensions, ONLY: nr1, nr2, nr3, nr1x, nr2x, nnrx
+        USE cp_interfaces,   ONLY: invfft
+        USE xml_io_base,     ONLY: write_rho_xml
+        USE mp_global,       ONLY: intra_image_comm
 
         IMPLICIT NONE
 

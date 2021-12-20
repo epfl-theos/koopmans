@@ -6,6 +6,7 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 #include "f_defs.h"
+!#define DEBUG  !! Uncomment this for extra prints out
 !
 !=======================================================================
    subroutine runcg_uspp( nfi, tfirst, tlast, eigr, bec, irb, eigrb, &
@@ -14,19 +15,14 @@
 !=======================================================================
       !
       use kinds,                    only : dp
-      use control_flags,            only : iprint, thdyn, tpre, iprsta, &
-                                           tfor, taurdr, tprnfor, gamma_only, do_wf_cmplx !added:giovanni gamma_only, do_wf_cmplx
-      use control_flags,            only : ndr, ndw, nbeg, nomore, tsde, tortho, tnosee, &
-                                           tnosep, trane, tranp, tsdp, tcp, tcap, ampre, &
-                                           amprp, tnoseh, non_ortho
+      use control_flags,            only : tpre, iprsta, &
+                                           tfor, tprnfor, gamma_only, do_wf_cmplx !added:giovanni gamma_only, do_wf_cmplx
       use core,                     only : nlcc_any
       !---ensemble-DFT
-      use energies,                 only : eht, epseu, exc, etot, eself, enl, ekin,&
-                                           atot, entropy, egrand, eodd
-      use electrons_base,           only : f, nspin, nel, iupdwn, nupdwn, nudx, nelt, &
+      use energies,                 only : etot, enl, ekin, eodd
+      use electrons_base,           only : f, nspin, iupdwn, nupdwn, nudx, &
                                            nbspx, nbsp, ispin
-      use ensemble_dft,             only : tens, tsmear,   ef,  z0t, c0diag,  &
-                                           becdiag, fmat0, fmat0_diag, e0,  id_matrix_init
+      use ensemble_dft,             only : id_matrix_init
       !---
       use gvecp,                    only : ngm
       use gvecs,                    only : ngs
@@ -34,48 +30,42 @@
       use gvecw,                    only : ngw, ngwx
       use reciprocal_vectors,       only : ng0 => gstart
       use cvan,                     only : nvb, ish
-      use ions_base,                only : na, nat, pmass, nax, nsp, rcmax
+      use ions_base,                only : na, nat, nsp, zv
       use grid_dimensions,          only : nnr => nnrx, nr1, nr2, nr3
-      use cell_base,                only : ainv, a1, a2, a3
       use cell_base,                only : omega, alat
-      use cell_base,                only : h, hold, deth, wmass, tpiba2
-      use smooth_grid_dimensions,   only : nnrsx, nr1s, nr2s, nr3s
-      use smallbox_grid_dimensions, only : nnrb => nnrbx, nr1b, nr2b, nr3b
-      use local_pseudo,             only : vps, rhops
-      use io_global,                ONLY : io_global_start, stdout, ionode, ionode_id
-      use mp_global,                ONLY : intra_image_comm, np_ortho, me_ortho, ortho_comm, me_image
+      use cell_base,                only : tpiba2
+      use smooth_grid_dimensions,   only : nnrsx
+      !use smallbox_grid_dimensions, only : nnrb => nnrbx
+      use io_global,                ONLY : io_global_start, stdout, ionode
+      use mp_global,                ONLY : intra_image_comm, me_image
       use dener
       use cdvan
       use constants,                only : pi, au_gpa, e2
-      use io_files,                 only : psfile, pseudo_dir
-      USE io_files,                 ONLY : outdir, prefix
       use uspp,                     only : nhsa=> nkb, nhsavb=> nkbus, betae => vkb, rhovan => becsum, deeq,qq
       use uspp_param,               only : nh
       use cg_module,                only : ene_ok,  maxiter,niter_cg_restart, &
                                            conv_thr, passop, enever, itercg
-      use ions_positions,           only : tau0
-      use wavefunctions_module,     only : c0, cm, phi => cp, cdual, cmdual, cstart
-      use efield_module,            only : tefield, evalue, ctable, qmat, detq, ipolp, &
-                                           berry_energy, ctabin, gqq, gqqm, df, pberryel, &
-                                           tefield2, evalue2, ctable2, qmat2, detq2, ipolp2, &
-                                           berry_energy2, ctabin2, gqq2, gqqm2, pberryel2
+      use ions_positions,           only : ityp, tau0
+      use wavefunctions_module,     only : c0, cm, phi => cp, cstart
+      use efield_module,            only : tefield, evalue, qmat, ipolp, &
+                                           berry_energy, ctabin, gqq, gqqm, df, &
+                                           tefield2, berry_energy2
       use mp,                       only : mp_sum, mp_bcast
       use cp_electronic_mass,       ONLY : emass_cutoff
       use orthogonalize_base,       ONLY : calphi
       use cp_interfaces,            ONLY : rhoofr, dforce, compute_stress, nlfl, set_x_minus1, xminus1
-      USE cp_main_variables,        ONLY : nlax, collect_lambda, distribute_lambda, descla, nrlx, nlam
+      USE cp_main_variables,        ONLY : nlax, collect_lambda, distribute_lambda, descla
       USE descriptors,              ONLY : la_npc_ , la_npr_ , la_comm_ , la_me_ , la_nrl_ , ldim_cyclic
-      USE mp_global,                ONLY : me_image, my_image_id
+      USE mp_global,                ONLY : me_image
       !
-      use nksic,                    only : do_orbdep, do_innerloop, do_innerloop_cg, innerloop_cg_nsd, &
-                                           innerloop_cg_nreset, innerloop_init_n, innerloop_cg_ratio, &
-                                           vsicpsi, vsic, wtot, fsic, fion_sic, deeq_sic, f_cutoff, & 
+      use nksic,                    only : do_orbdep, do_innerloop, do_innerloop_cg, &
+                                           innerloop_init_n, innerloop_cg_ratio, &
+                                           vsicpsi, vsic, wtot, fsic, deeq_sic, f_cutoff, & 
                                            pink, do_wxd, sizwtot, do_bare_eigs, innerloop_until, &
                                            valpsi, odd_alpha
       use hfmod,                    only : do_hf, vxxpsi, exx
       use twin_types !added:giovanni
-      use control_flags,            only : non_ortho
-      use cp_main_variables,        only : becdual, becmdual, overlap, ioverlap, becstart
+      use cp_main_variables,        only : becstart
       use electrons_module,         only : wfc_spreads, wfc_centers, icompute_spread, manifold_overlap
       use ldau,                     only : lda_plus_u, vupsi
       use printout_base,            only : printout_base_open, printout_base_unit, &
@@ -88,7 +78,6 @@
       !
       implicit none
       !
-      CHARACTER(LEN=80) :: uname
       CHARACTER(LEN=6), EXTERNAL :: int_to_char
       integer, EXTERNAL :: get_clock
       integer     :: nfi
@@ -113,29 +102,22 @@
       type(twin_matrix) :: lambda(nspin)!(nlam,nlam,nspin)   !modified:giovanni
       type(twin_matrix) :: lambda_bare(nspin)     !(nlam,nlam,nspin)   !modified:giovanni
       !
-      integer     :: i, j, ig, k, is, iss,ia, iv, jv, il, ii, jj, kk, ip, isp
-      integer     :: inl, jnl, niter, istart, nss, nrl, me_rot, np_rot , comm
-      real(dp)    :: enb, enbi, x
-      real(dp)    :: entmp, sta
+      integer     :: i, ig, is, ia, iv, jv, iat
+      integer     :: inl, jnl
+      real(dp)    :: enb, enbi
       complex(dp) :: gamma_c  !warning_giovanni, is it real anyway?
       complex(dp), allocatable :: c2(:), c3(:), c2_bare(:), c3_bare(:)
       complex(dp), allocatable :: hpsi(:,:), hpsi0(:,:), gi(:,:), hi(:,:), gi_bare(:,:)
       type(twin_matrix) :: s_minus1!(:,:)    !factors for inverting US S matrix
       type(twin_matrix) :: k_minus1!(:,:)    !factors for inverting US preconditioning matrix
-      real(DP),    allocatable :: lambda_repl(:,:) ! replicated copy of lambda
-      real(DP),    allocatable :: lambda_dist(:,:) ! replicated copy of lambda
-      complex(DP),    allocatable :: lambda_repl_c(:,:) ! replicated copy of lambda
-      complex(DP),    allocatable :: lambda_dist_c(:,:) ! replicated copy of lambda
       !
-      real(dp)    :: sca, dumm(1)
+      real(dp)    :: dumm(1)
       logical     :: newscheme, firstiter
       integer     :: maxiter3
       !
       type(twin_tensor) :: becdrdiag !modified:giovanni
       type(twin_matrix) :: bec0, becm !modified:giovanni
       real(kind=DP), allocatable :: ave_ene(:)!average kinetic energy for preconditioning
-      real(kind=DP), allocatable :: fmat_(:,:)!average kinetic energy for preconditioning
-      complex(kind=DP), allocatable :: fmat_c_(:,:)!average kinetic energy for preconditioning
       ! 
       logical     :: pre_state!if .true. does preconditioning state by state
       !
@@ -152,23 +134,18 @@
       real(DP)    :: ene0,ene1,dene0,enesti !energy terms for linear minimization along hi
       !
       real(DP),    allocatable :: faux(:) ! takes into account spin multiplicity
-      real(DP),    allocatable :: hpsinorm(:), hpsinosicnorm(:)
-      complex(DP), allocatable :: hpsinosic(:,:)
       complex(DP), allocatable :: hitmp(:,:)
-      integer     :: ninner,nbnd1,nbnd2,itercgeff
+      integer     :: ninner, itercgeff
       complex(DP) :: Omattot(nbspx,nbspx)
-      real(DP)    :: dtmp, temp
       real(DP)    :: etot_tmp1, etot_tmp2,  tmppasso
       !
       logical :: lgam, switch=.false., ortho_switch=.false., okvan, steepest=.false.
-      complex(DP) :: phase
       integer :: ierr, northo_flavor
       real(DP) :: deltae,sic_coeff1, sic_coeff2 !coefficients which may change according to the flavour of SIC
       integer :: me, iunit_manifold_overlap, iunit_spreads
-      character(len=10) :: tcpu_cg_here
       real(DP) :: charge
       !
-      real(dp) :: rPi, uPi, eff_finite_field
+      real(dp) :: uPi
       real(dp), allocatable :: rho_init(:,:), dvpot(:)
       complex(dp), allocatable :: dvpotpsi(:,:)
       real(dp) :: exxdiv, mp1
@@ -291,7 +268,7 @@
                  valpsi(:,:) = (0.0_DP, 0.0_DP)
                  odd_alpha(:) = 0.0_DP
                  !
-                 call odd_alpha_routine(c0, nbsp, nbspx, lgam, .false.)
+                 call odd_alpha_routine(nbspx, .false.)
                  !
               endif
               !
@@ -364,10 +341,25 @@
           !
         endif ENERGY_CHECK
         !
-        if( do_orbdep ) then
-           !
-           call do_innerloop_subroutine()
-           !
+        if ( do_orbdep ) then
+            !
+            if ( do_innerloop .and. innerloop_until>=itercgeff ) then
+               !
+               if ( nupdwn(1) .le. 1 .and. nupdwn(2) .le. 1 ) then
+                  !  
+                  ! skip innerloop if there is only zero or one electrons/spin
+                  write(stdout,fmt='(5x,a)') "WARNING: skipping innerloop for 1-electron systems"
+                  !
+               else
+                  !
+                  call do_innerloop_subroutine()
+                  !
+               endif
+               !
+            endif
+            !
+            eodd = sum(pink(1:nbsp))
+            !
         endif
         !
         call print_out_observables()
@@ -727,7 +719,7 @@
                     valpsi(:,:) = (0.0_DP, 0.0_DP)
                     odd_alpha(:) = 0.0_DP
                     !
-                    call odd_alpha_routine(cm, nbsp, nbspx, lgam, .false.)
+                    call odd_alpha_routine( nbspx, .false.)
                     !
                  endif
                  !
@@ -830,7 +822,7 @@
               valpsi(:,:) = (0.0_DP, 0.0_DP)
               odd_alpha(:) = 0.0_DP
               !
-              call odd_alpha_routine(cm, nbsp, nbspx, lgam, .false.)
+              call odd_alpha_routine(nbspx, .false.)
               !
            endif
            !
@@ -924,7 +916,7 @@
                valpsi(:,:) = (0.0_DP, 0.0_DP)
                odd_alpha(:) = 0.0_DP
                !
-               call odd_alpha_routine(cm, nbsp, nbspx, lgam, .false.)
+               call odd_alpha_routine(nbspx, .false.)
                !
             endif
             !
@@ -965,8 +957,10 @@
         !
         ! check with  what supposed
         !
+#ifdef DEBUG
         write(stdout,*) 'ene0, dene0, ene1, enesti,enever, passo, passov, passof'
         write(stdout,"(8f18.12)") ene0, dene0, ene1, enesti,enever, passo, passov, passof
+#endif
 
         if(ionode .and. iprsta > 1 ) then
             write(stdout,"(2x,a,f20.12)") 'cg_sub: estimate :'  , (enesti-enever)/(ene0-enever)
@@ -987,7 +981,7 @@
            !
            if (ionode) then
               ! 
-              write(stdout,"(2x,a,i5,f20.12)") 'cg_sub: missed minimum, case 1, iteration',itercg, passof
+              write(stdout,"(5x,a,i5,f20.12)") 'WARNING cg_sub: missed minimum, case 1, iteration',itercg, passof
               ! 
            endif
            ! 
@@ -1006,7 +1000,7 @@
         elseif((enever.ge.ene0).and.(ene0.gt.ene1)) then
            !   
            if (ionode) then
-              write(stdout,"(2x,a,i5)") 'cg_sub: missed minimum, case 2, iteration',itercg
+              write(stdout,"(5x,a,i5)") 'WARNING cg_sub: missed minimum, case 2, iteration',itercg
            endif
            ! 
            c0(1:ngw,1:nbsp)=c0(1:ngw,1:nbsp)+spasso*passov*hi(1:ngw,1:nbsp)
@@ -1024,7 +1018,7 @@
         elseif((enever.ge.ene0).and.(ene0.le.ene1)) then
            !
            if(ionode) then
-             write(stdout,"(2x,a,i5)") 'cg_sub: missed minimum, case 3, iteration',itercg
+             write(stdout,"(5x,a,i5)") 'WARNING cg_sub: missed minimum, case 3, iteration',itercg
            endif
            !
            iter3=0
@@ -1079,7 +1073,7 @@
                    valpsi(:,:) = (0.0_DP, 0.0_DP)
                    odd_alpha(:) = 0.0_DP
                    !
-                   call odd_alpha_routine(cm, nbsp, nbspx, lgam, .false.)
+                   call odd_alpha_routine(nbspx,.false.)
                    !
                 endif
                 !
@@ -1123,12 +1117,12 @@
              !
            enddo
            !
-           if (ionode) write(stdout,"(2x,a,i5)") 'iter3 = ',iter3
+           if (ionode) write(stdout,"(7x,a,i5)") 'iter3 = ',iter3
            !
            if (iter3 == maxiter3 .and. enever.gt.ene0) then
               ! 
-              write(stdout,"(2x,a)") 'missed minimum: iter3 = maxiter3'
-              write(stdout,*) enever, ene0
+              write(stdout,"(7x,a)") 'WARNING missed minimum: iter3 = maxiter3'
+              write(stdout,'(7x, "enever, ene0", 2F20.15)') enever, ene0
               !
            elseif (enever.le.ene0) then
               !
@@ -1182,26 +1176,12 @@
         WRITE( stdout, '(A)' ) " -----------------------"
         exxdiv = exx_divergence()
         !
-        ! The following IF loop determines the system charge assuming always 
-        ! an even number of electrons for the neutral system. When the number
-        ! of electrons is odd (nupdwn(1) .ne. nupdwn(2)), we guess to deal with
-        ! an N+1 calculation and the charge is calculated consequently 
-        IF ( nupdwn(1) == nupdwn(2) .AND. fixed_band .LE. nupdwn(1) ) THEN
-          ! Case N-1
-          charge = 1 - f_cutoff
-          WRITE( stdout, '(A,F10.6)' ) " N-1 CASE --- q =", charge
-          !
-        ELSE IF ( fixed_band .GT. nupdwn(1) .OR. fixed_band .GT. nupdwn(2) ) THEN
-          ! Case N+1
-          charge = - f_cutoff
-          WRITE( stdout, '(A,F10.6)' ) " N+1 CASE --- q =", charge
-          !
-        ELSE
-          !
-          charge = 1.D0
-          WRITE( stdout, '(A)' ) " Cannot understand which case --- q set to 1"
-          !
-        ENDIF
+        ! Determining the system charge
+        charge = 0
+        DO iat=1,nat
+          charge = charge + zv(ityp(iat))
+        END DO
+        charge = charge - nbsp + 1 - f_cutoff
         !
         mp1 = - exxdiv / omega * charge**2 / 2
         mp1 = mp1 / e2       ! Ry to Ha conversion
@@ -1261,7 +1241,7 @@
                 valpsi(:,:) = (0.0_DP, 0.0_DP)
                 odd_alpha(:) = 0.0_DP
                 !
-                call odd_alpha_routine(cm, nbsp, nbspx, lgam, .false.)
+                call odd_alpha_routine(nbspx,.false.)
                 !
              endif
              !
@@ -1449,67 +1429,8 @@
          !
      enddo
      !
-     IF(.not.lambda(1)%iscmplx) THEN
-        allocate(lambda_repl(nudx,nudx))
-     ELSE
-        allocate(lambda_repl_c(nudx,nudx))
-     ENDIF
-     !
-     hitmp(1:ngw,1:nbsp) = c0(1:ngw,1:nbsp)
-     !
-     do is = 1, nspin
-        !
-        nss = nupdwn(is)
-        istart = iupdwn(is)
-        ! 
-        IF(.not.lambda(1)%iscmplx) THEN
-           lambda_repl = 0.d0
-        ELSE
-           lambda_repl_c = CMPLX(0.d0,0.d0)
-        ENDIF
-        !
-        !
-        do i = 1, nss
-           do j = i, nss
-              ii = i + istart - 1
-              jj = j + istart - 1
-              IF(.not.lambda(1)%iscmplx) THEN
-                 do ig = 1, ngw
-                    lambda_repl( i, j ) = lambda_repl( i, j ) - &
-                    2.d0 * DBLE( CONJG( hitmp( ig, ii ) ) * gi( ig, jj) )
-                 enddo
-                 if( ng0 == 2 ) then
-                    lambda_repl( i, j ) = lambda_repl( i, j ) + &
-                    DBLE( CONJG( hitmp( 1, ii ) ) * gi( 1, jj ) )
-                 endif
-                 lambda_repl( j, i ) = lambda_repl( i, j )
-              ELSE
-                 do ig = 1, ngw
-                    lambda_repl_c( i, j ) = lambda_repl_c( i, j ) - &
-                    CONJG( hitmp( ig, ii ) ) * gi( ig, jj)
-                 enddo
-                 lambda_repl_c( j, i ) = CONJG(lambda_repl_c( i, j ))
-              ENDIF
-           enddo
-        enddo
-        !
-        IF(.not.lambda(1)%iscmplx) THEN
-           CALL mp_sum( lambda_repl, intra_image_comm )
-           CALL distribute_lambda( lambda_repl, lambda(is)%rvec( :, :), descla( :, is ) )
-        ELSE
-           CALL mp_sum( lambda_repl_c, intra_image_comm )
-           CALL distribute_lambda( lambda_repl_c, lambda(is)%cvec( :, :), descla( :, is ) )
-        ENDIF
-        !
-     end do
-
-     IF(do_bare_eigs) call compute_lambda_bare()
-
-     IF(.not.lambda(1)%iscmplx) THEN
-        DEALLOCATE( lambda_repl )
-     ELSE
-        DEALLOCATE( lambda_repl_c )
-     ENDIF
+     CALL compute_lambda (c0, gi, lambda, nspin, nbsp, ngw, nudx, descla, nupdwn, iupdwn )
+     IF (do_bare_eigs) CALL compute_lambda (c0, gi_bare, lambda_bare, nspin, nbsp, ngw, nudx, descla, nupdwn, iupdwn )
      !
      call nlfl_twin(bec,becdr,lambda,fion, lgam)
      !
@@ -1671,10 +1592,6 @@
      end subroutine do_deallocation
      
      subroutine do_innerloop_subroutine()
-
-      if(do_innerloop .and. innerloop_until>=itercgeff) then
-!$$$$          if(do_innerloop.and.itercg.le.20) then
-!$$$$
          !
          call start_clock( "inner_loop" )
          !
@@ -1682,29 +1599,27 @@
          etot    = etot - eodd
          etotnew = etotnew - eodd
          ninner  = 0
-
-         if(.not.do_innerloop_cg) then
-           call nksic_rot_emin(itercg,ninner,etot,Omattot, lgam)
+         !
+         if ( .not. do_innerloop_cg ) then
+            !
+            call nksic_rot_emin(itercg,ninner,etot,Omattot, lgam)
+            !
          else
-           !call nksic_rot_emin_cg(itercg,innerloop_init_n,ninner,etot,Omattot,deltae*innerloop_cg_ratio,lgam)
-           call nksic_rot_emin_cg_general(itercg,innerloop_init_n,ninner,etot,deltae*innerloop_cg_ratio,lgam, &
-                                     nbsp, nbspx, nudx, iupdwn, nupdwn, ispin, c0, rhovan, bec, rhor, rhoc, &
-                                     vsic, pink, deeq_sic, wtot, fsic, sizwtot, do_wxd, wfc_centers, wfc_spreads, .false.)
-
-
+            !
+            !call nksic_rot_emin_cg(itercg,innerloop_init_n,ninner,etot,Omattot,deltae*innerloop_cg_ratio,lgam)
+            call nksic_rot_emin_cg_general(itercg,innerloop_init_n,ninner,etot,deltae*innerloop_cg_ratio,lgam, &
+                                       nbsp, nbspx, nudx, iupdwn, nupdwn, ispin, c0, rhovan, bec, rhor, rhoc, &
+                                       vsic, pink, deeq_sic, wtot, fsic, sizwtot, do_wxd, wfc_centers, wfc_spreads, .false.)
+            !
          endif
-
+         !
          eodd    = sum(pink(1:nbsp))
          etot    = etot + eodd
          etotnew = etotnew + eodd
          eoddnew = eodd
-
-         call stop_clock( "inner_loop" )
          !
-      endif
-      !
-      eodd = sum(pink(1:nbsp))
-      
+         call stop_clock( "inner_loop" )
+         !      
      end subroutine do_innerloop_subroutine
 
      subroutine print_out_observables()
@@ -2017,70 +1932,6 @@
         !
      end subroutine orthogonalize_wfc_only
      !                     
-     subroutine compute_lambda_bare ()
-        ! 
-        hitmp(:,:) = c0(:,:)
-        !
-        DO is = 1, nspin
-           !
-           nss = nupdwn(is)
-           istart = iupdwn(is)
-           !
-           IF(.not.lambda(1)%iscmplx) THEN
-              lambda_repl = 0.d0
-           ELSE
-              lambda_repl_c = CMPLX(0.d0,0.d0)
-           ENDIF
-           !
-           DO i = 1, nss
-              ! 
-              DO j = i, nss
-                 ii = i + istart - 1
-                 jj = j + istart - 1
-                 IF (.not.lambda(1)%iscmplx) THEN
-                    !
-                    DO ig = 1, ngw
-                       lambda_repl( i, j ) = lambda_repl( i, j ) - &
-                       2.d0 * DBLE( CONJG( hitmp( ig, ii ) ) * gi_bare( ig, jj) )
-                    ENDDO
-                    !
-                    IF( ng0 == 2 ) THEN
-                       lambda_repl( i, j ) = lambda_repl( i, j ) + &
-                       DBLE( CONJG( hitmp( 1, ii ) ) * gi_bare( 1, jj ) )
-                    ENDIF
-                    ! 
-                    lambda_repl( j, i ) = lambda_repl( i, j )
-                    !
-                 ELSE
-                    !
-                    DO ig = 1, ngw
-                       lambda_repl_c( i, j ) = lambda_repl_c( i, j ) - &
-                       CONJG( hitmp( ig, ii ) ) * gi_bare( ig, jj)
-                    ENDDO
-                    !
-                    lambda_repl_c( j, i ) = CONJG(lambda_repl_c( i, j ))
-                    !    
-                 ENDIF
-                 !
-              ENDDO
-              ! 
-           ENDDO
-           !
-           IF(.not.lambda_bare(1)%iscmplx) THEN
-              CALL mp_sum( lambda_repl, intra_image_comm )
-              CALL distribute_lambda( lambda_repl, lambda_bare(is)%rvec( :, :), descla( :, is ) )
-           ELSE
-              CALL mp_sum( lambda_repl_c, intra_image_comm )
-              CALL distribute_lambda( lambda_repl_c, lambda_bare(is)%cvec( :, :), descla( :, is ) )
-           ENDIF
-           !
-           !
-        ENDDO
-        ! 
-     return
-     !
-     end subroutine compute_lambda_bare
-     !
      subroutine makov_payne_correction_2nd_term (charge, quadrupole)
        !
        real (DP) :: charge, quadrupole

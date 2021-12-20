@@ -6,89 +6,71 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 #include "f_defs.h"
-#define DEBUG_NUMDER
+!#define DEBUG
 !
 !=======================================================================
 subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
                           n_emps, ispin_emp, iupdwn_emp, nupdwn_emp, phi_emp, lambda_emp, &
-                          maxiter_emp, wxd_emp, vsic_emp, sizvsic_emp, pink_emp, nnrx, rhovan_emp, &
+                          maxiter_emp, wxd_emp, vsic_emp, sizvsic_emp, pink_emp, rhovan_emp, &
                           deeq_sic_emp, nudx_emp, eodd_emp, etot_emp, &
-                          filledstates_potential, nfi, tfirst, tlast, eigr, bec, irb, eigrb, &
-                          rhor, rhog, rhos, rhoc, ema0bg, desc_emp)
+                          filledstates_potential, nfi, tfirst, eigr, bec, irb, eigrb, &
+                          rhor, rhoc, ema0bg, desc_emp)
 !=======================================================================
 
       use kinds,                    only : dp
-      use control_flags,            only : iprint, thdyn, tpre, iprsta, &
-                                           tfor, taurdr, tprnfor, gamma_only, do_wf_cmplx, tstress !added:giovanni gamma_only, do_wf_cmplx
-      use control_flags,            only : ndr, ndw, nbeg, nomore, tsde, tortho, tnosee, &
-                                           tnosep, trane, tranp, tsdp, tcp, tcap, ampre, &
-                                           amprp, tnoseh, non_ortho
+      use control_flags,            only : iprsta, &
+                                           gamma_only, do_wf_cmplx, tstress !added:giovanni gamma_only, do_wf_cmplx
       use core,                     only : nlcc_any
       !---ensemble-DFT
-      use energies,                 only : eht, epseu, exc, etot, eself, enl, ekin,&
-                                           atot, entropy, egrand, eodd
-      use electrons_base,           only : f, nspin, nel, iupdwn, nupdwn, nudx, nelt, &
-                                           ispin
-      use ensemble_dft,             only : tens, tsmear,   ef,  z0t, c0diag,  &
-                                           becdiag, fmat0, fmat0_diag, e0,  id_matrix_init
+      use electrons_base,           only : nspin, iupdwn, nupdwn
+      use ensemble_dft,             only : id_matrix_init
       !---
       use gvecp,                    only : ngm
-      use gvecs,                    only : ngs
       use gvecb,                    only : ngb
       use gvecw,                    only : ngw
       use reciprocal_vectors,       only : ng0 => gstart
       use cvan,                     only : nvb, ish
-      use ions_base,                only : na, nat, pmass, nax, nsp, rcmax
-      use grid_dimensions,          only : nnr => nnrx, nr1, nr2, nr3
-      use cell_base,                only : ainv, a1, a2, a3
-      use cell_base,                only : omega, alat
-      use cell_base,                only : h, hold, deth, wmass, tpiba2
-      use smooth_grid_dimensions,   only : nnrsx, nr1s, nr2s, nr3s
-      use smallbox_grid_dimensions, only : nnrb => nnrbx, nr1b, nr2b, nr3b
-      use local_pseudo,             only : vps, rhops
-      use io_global,                ONLY : io_global_start, stdout, ionode, ionode_id
-      use mp_global,                ONLY : intra_image_comm, np_ortho, me_ortho, ortho_comm, me_image
+      use ions_base,                only : na, nat, nsp
+      use grid_dimensions,          only : nnr => nnrx
+      use cell_base,                only : tpiba2
+      use smooth_grid_dimensions,   only : nnrsx
+      use io_global,                ONLY : io_global_start, stdout, ionode
+      use mp_global,                ONLY : intra_image_comm, me_image
       ! use dener
       use cdvan
       use constants,                only : pi, au_gpa
-      use io_files,                 only : psfile, pseudo_dir
-      USE io_files,                 ONLY : outdir, prefix
-      use uspp,                     only : nhsa=> nkb, nhsavb=> nkbus, betae => vkb, rhovan => becsum, deeq,qq
+      use uspp,                     only : nhsa=> nkb, nhsavb=> nkbus, betae => vkb,  qq
       use uspp_param,               only : nh
       use cg_module,                only : ene_ok,  maxiter,niter_cg_restart, &
                                            conv_thr, passop, enever, itercg
-      use ions_positions,           only : tau0
       use wavefunctions_module,     only : c0 => cp
       use mp,                       only : mp_sum, mp_bcast
       use cp_electronic_mass,       ONLY : emass_cutoff
       use orthogonalize_base,       ONLY : calphi
       use cp_interfaces,            ONLY : rhoofr, dforce, compute_stress, nlfl, set_x_minus1, xminus1
-      USE cp_main_variables,        ONLY : nlax, collect_lambda, distribute_lambda, nrlx, nlam
+      USE cp_main_variables,        ONLY : collect_lambda, distribute_lambda
       USE descriptors,              ONLY : la_npc_ , la_npr_ , la_comm_ , la_me_ , la_nrl_ , ldim_cyclic
-      USE mp_global,                ONLY : me_image,my_image_id
+      USE mp_global,                ONLY : me_image
       !
       use twin_types !added:giovanni
-      use control_flags,            only : non_ortho, iprint_spreads
       use printout_base,            only : printout_base_open, printout_base_unit, &
                                            printout_base_close
       use nksic,                    only : odd_alpha, valpsi, nkscalfact, do_orbdep, wtot, vsicpsi, sizwtot, & 
-                                           do_innerloop_empty, do_innerloop_cg, innerloop_cg_nsd, &
-                                           innerloop_cg_nreset, innerloop_init_n, innerloop_cg_ratio, &
-                                           innerloop_until
-
-      use cp_main_variables,        only : becdual, becmdual, overlap, ioverlap
+                                           do_innerloop_empty, do_innerloop_cg,  &
+                                           innerloop_init_n, innerloop_cg_ratio, &
+                                           innerloop_until, do_bare_eigs
       use electrons_module,         only : wfc_spreads_emp, wfc_centers_emp, icompute_spread
       use cp_interfaces,            only : gram_empty, nlsm1
       use uspp_param,               only : nhm
       use descriptors,              only : descla_siz_
       use input_parameters,         only : odd_nkscalfact_empty, wo_odd_in_empty_run, odd_nkscalfact, &
-                                           do_outerloop_empty, reortho, track_orbitals
+                                           do_outerloop_empty, reortho, empty_states_nbnd, track_orbitals
       use centers_and_spreads,      only : get_centers_spreads
       !
       implicit none
       !
       integer     :: nfi
-      logical     :: tfirst , tlast
+      logical     :: tfirst 
       integer     :: sizvsic_emp
       complex(dp) :: eigr(ngw,nat)
       type(twin_matrix)    :: bec 
@@ -97,11 +79,9 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
       integer     :: irb(3,nat)
       complex(dp) :: eigrb(ngb,nat)
       real(dp)    :: rhor(nnr,nspin)
-      complex(dp) :: rhog(ngm,nspin)
-      real(dp)    :: rhos(nnrsx,nspin)
       real(dp)    :: rhoc(nnr)
       real(dp)    :: ema0bg(ngw)
-      integer     :: n_emps, n_empx, iupdwn_emp(nspin), nupdwn_emp(nspin), maxiter_emp, nnrx, &
+      integer     :: n_emps, n_empx, iupdwn_emp(nspin), nupdwn_emp(nspin), maxiter_emp, &
                      nudx_emp, ispin_emp(n_empx)
       real(dp)    :: f_emp(n_empx), fsic_emp(n_empx), wxd_emp(sizvsic_emp,2), vsic_emp(sizvsic_emp, n_empx), &
                      pink_emp(n_empx), rhovan_emp(nhm*(nhm+1)/2, nat, nspin), &
@@ -112,27 +92,19 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
       !
       ! local variables
       ! 
-      integer     :: i, j, ig, k, is, iss,ia, iv, jv, il, ii, jj, kk, ip, isp
-      integer     :: inl, jnl, niter, istart, nss, nrl, me_rot, np_rot , comm
-      real(dp)    :: enb, enbi, x
-      real(dp)    :: entmp, sta
+      integer     :: i, ig, is, iss,ia, iv, jv
+      integer     :: inl, jnl
       complex(dp) :: gamma_c  !warning_giovanni, is it real anyway?
       complex(dp), allocatable :: c2(:), c3(:), c2_bare(:), c3_bare(:)
       complex(dp), allocatable :: hpsi(:,:), hpsi0(:,:), gi(:,:), hi(:,:), gi_bare(:,:)
       type(twin_matrix) :: s_minus1!(:,:)    !factors for inverting US S matrix
       type(twin_matrix) :: k_minus1!(:,:)    !factors for inverting US preconditioning matrix
-      real(DP),    allocatable :: lambda_repl(:,:) ! replicated copy of lambda
-      real(DP),    allocatable :: lambda_dist(:,:) ! replicated copy of lambda
-      complex(DP),    allocatable :: lambda_repl_c(:,:) ! replicated copy of lambda
-      complex(DP),    allocatable :: lambda_dist_c(:,:) ! replicated copy of lambda
       !
-      real(dp)    :: sca, dumm(1)
+      real(dp)    :: dumm(1)
       logical     :: newscheme, firstiter
       integer     :: maxiter3
       !
       type(twin_matrix) :: bec0, becm !modified:giovanni
-      real(kind=DP), allocatable :: fmat_(:,:)!average kinetic energy for preconditioning
-      complex(kind=DP), allocatable :: fmat_c_(:,:)!average kinetic energy for preconditioning
       ! 
       complex(DP) :: esse_c, essenew_c !factors in c.g.
       logical     :: ltresh!flag for convergence on energy
@@ -146,25 +118,21 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
       real(DP)    :: ene0,ene1,dene0,enesti !energy terms for linear minimization along hi
       !
       real(DP),    allocatable :: faux(:) ! takes into account spin multiplicity
-      real(DP),    allocatable :: hpsinorm(:), hpsinosicnorm(:)
-      complex(DP), allocatable :: hpsinosic(:,:)
       complex(DP), allocatable :: hitmp(:,:)
-      integer     :: ninner,nbnd1,nbnd2,itercgeff
-      real(DP)    :: dtmp, temp
-      real(dp)    :: tmppasso, ene_save(100), ene_save2(100)
+      integer     :: ninner,itercgeff
+      real(dp)    :: tmppasso
       !
-      logical     :: lgam, switch=.false., ortho_switch=.false., okvan, steepest=.false.
-      complex(DP) :: phase
+      logical     :: lgam, switch=.false., okvan, steepest=.false.
       integer     :: ierr, northo_flavor
       real(DP)    :: deltae, sic_coeff1, sic_coeff2 !coefficients which may change according to the flavour of SIC
       integer     :: me, iunit_manifold_overlap, iunit_spreads
-      character(len=10) :: tcpu_cg_here
       real(DP):: ekin_emp, enl_emp, dekin_emp(6), denl_emp(3,3), epot_emp
       real(DP), allocatable :: rhor_emp(:,:), rhos_emp(:,:), rhoc_emp(:)
       complex(DP), allocatable :: rhog_emp(:,:)
       real(DP), allocatable    :: faux_emp(:)
       integer                  :: in_emp, issw
       COMPLEX(DP), PARAMETER   :: c_zero=CMPLX(0.d0,0.d0)
+      CHARACTER(256) :: fname
       !
       ! var for numerical derivatives
       REAl(DP):: etot_emp_tmp1, etot_emp_tmp2, etot_emp_tmp
@@ -263,7 +231,7 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
                 valpsi(:,:)  = (0.0_DP, 0.0_DP)
                 odd_alpha(:) = 0.0_DP
                 !
-                CALL odd_alpha_routine(c0_emp, n_emps, n_empx, lgam, .true.)
+                CALL odd_alpha_routine(n_empx, .true.)
                 !
              else
                 !
@@ -360,22 +328,26 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
           !
         endif ENERGY_CHECK
         !
-!!! NLN  check begin
-        IF ( (maxiter_emp==1).and.(itercg==1) ) THEN 
-           if( do_orbdep ) then
-             !
-             call do_innerloop_subroutine()
-             ! 
-           endif
-           EXIT
-        ENDIF
-        !!! orgin
-        !if( do_orbdep ) then
-          !
-        !  call do_innerloop_subroutine()
-          ! 
-        !endif
-!!!! NLN check end
+        if( do_orbdep ) then
+            !
+            if ( do_innerloop_empty .and. innerloop_until>=itercgeff ) then
+               !
+               if ( empty_states_nbnd == 1 ) then
+                  !
+                  ! skip innerloop if there is only one electron
+                  write(stdout,fmt='(5x,a)') "WARNING: skipping innerloop when empty_states_nbnd=1"
+                  !
+               else
+                  !
+                  call do_innerloop_subroutine()
+                  !
+               endif
+               !
+            endif
+            !
+
+            !
+        endif
         ! 
         call print_out_observables()
         !
@@ -690,7 +662,7 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
                  valpsi(:,:)  = (0.0_DP, 0.0_DP)
                  odd_alpha(:) = 0.0_DP
                  !
-                 CALL odd_alpha_routine(c0_emp, n_emps, n_empx, lgam, .true.)
+                 CALL odd_alpha_routine(n_empx, .true.)
                  !
               else
                  !
@@ -759,7 +731,7 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
               valpsi(:,:)  = (0.0_DP, 0.0_DP)
               odd_alpha(:) = 0.0_DP
               !
-              CALL odd_alpha_routine(c0_emp, n_emps, n_empx, lgam, .true.)
+              CALL odd_alpha_routine(n_empx, .true.)
               !
            else
               !
@@ -829,7 +801,7 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
               valpsi(:,:)  = (0.0_DP, 0.0_DP)
               odd_alpha(:) = 0.0_DP
               !
-              CALL odd_alpha_routine(cm_emp, n_emps, n_empx, lgam, .true.)
+              CALL odd_alpha_routine(n_empx,.true.)
               !
            else
               !
@@ -882,8 +854,10 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
         !
         ! check with  what supposed
         !
+#ifdef DEBUG
         write(stdout,*) 'ene0, dene0, ene1, enesti,enever, passo, passov, passof'
         write(stdout,"(7f18.12)") ene0, dene0, ene1, enesti,enever, passo, passov, passof
+#endif
         !
         ! if the energy has diminished with respect to ene0 and ene1 , everything ok
         !
@@ -901,7 +875,7 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
            !
            if (ionode) then
               ! 
-              write(stdout,"(2x,a,i5,f20.12)") 'cg_sub: missed minimum, case 1, iteration',itercg, passof
+              write(stdout,"(5x,a,i5,f20.12)") 'WARNING cg_sub: missed minimum, case 1, iteration',itercg, passof
               ! 
            endif
            ! 
@@ -920,7 +894,7 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
         elseif((enever.ge.ene0).and.(ene0.gt.ene1)) then
            !   
            if (ionode) then
-              write(stdout,"(2x,a,i5)") 'cg_sub: missed minimum, case 2, iteration',itercg
+              write(stdout,"(5x,a,i5)") 'WARNING cg_sub: missed minimum, case 2, iteration',itercg
            endif
            ! 
            c0_emp(:,:) = c0_emp(:,:) + spasso * passov * hi(:,:)
@@ -938,7 +912,7 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
         elseif((enever.ge.ene0).and.(ene0.le.ene1)) then
            !
            if(ionode) then
-             write(stdout,"(2x,a,i5)") 'cg_sub: missed minimum, case 3, iteration, doing steepest descent',itercg
+             write(stdout,"(5x,a,i5)") 'WARNING cg_sub: missed minimum, case 3, iteration, doing steepest descent',itercg
            endif
            !
            iter3=0
@@ -980,7 +954,7 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
                    valpsi(:,:)  = (0.0_DP, 0.0_DP)
                    odd_alpha(:) = 0.0_DP
                    !
-                   call odd_alpha_routine(cm_emp, n_emps, n_empx, lgam, .true.)
+                   call odd_alpha_routine( n_empx, .true.)
                    !
                 else
                    !
@@ -1012,12 +986,12 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
              !
            enddo
            !
-           if (ionode) write(stdout,"(2x,a,i5)") 'iter3 = ',iter3
+           if (ionode) write(stdout,"(7x,a,i5)") 'iter3 = ',iter3
            !
            if (iter3 == maxiter3 .and. enever.gt.ene0) then
               ! 
-              write(stdout,"(2x,a)") 'missed minimum: iter3 = maxiter3'
-              write(stdout,*) enever, ene0
+              write(stdout,"(7x,a)") 'WARNING missed minimum: iter3 = maxiter3'
+              write(stdout,'(7x, "enever, ene0", 2F20.15)') enever, ene0
               !
            elseif (enever.le.ene0) then
               !
@@ -1064,11 +1038,28 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
       !
       faux(:) = f_emp(:) * DBLE( nspin ) / 2.0d0
       !
+      IF(do_bare_eigs) THEN
+         !
+         allocate(c2_bare(ngw), c3_bare(ngw))
+         allocate(gi_bare(ngw,n_empx))
+         c2_bare=0.d0
+         c3_bare=0.d0
+         gi_bare=0.d0
+         !
+      ENDIF
+      !
       do i = 1, n_emps, 2
          !
          call start_clock( 'dforce2' )
          !
          call dforce(i, bec_emp, betae, c0_emp, c2, c3, filledstates_potential, nnrsx, ispin_emp, faux, n_emps, nspin)
+         !
+         IF(do_bare_eigs) THEN
+            !
+            c2_bare(:) = c2(:)
+            c3_bare(:) = c3(:)
+            !
+         ENDIF
          !
          call start_clock( 'dforce2' )
          ! 
@@ -1100,98 +1091,42 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
             !    
          endif
          !
-      enddo
-      !
-      if(.not.lambda_emp(1)%iscmplx) then
-         allocate(lambda_repl(nudx_emp,nudx_emp))
-      else
-         allocate(lambda_repl_c(nudx_emp,nudx_emp))
-      endif
-      !
-      hitmp(:,:) = c0_emp(:,:)
-      !
-      do is = 1, nspin
          !
-         nss = nupdwn_emp(is)
-         istart = iupdwn_emp(is)
-         ! 
-         if (.not.lambda_emp(1)%iscmplx) then
-            lambda_repl = 0.d0
-         else
-            lambda_repl_c = CMPLX(0.d0,0.d0)
-         endif
-         !
-         do i = 1, nss
+         IF(do_bare_eigs) THEN
             !
-            do j = i, nss
-               !
-               ii = i + istart - 1
-               jj = j + istart - 1
-               !
-               if (.not.lambda_emp(1)%iscmplx) then
-                  !
-                  do ig = 1, ngw
-                     !
-                     lambda_repl( i, j ) = lambda_repl( i, j ) - &
-                     2.d0 * DBLE( CONJG( hitmp( ig, ii ) ) * gi( ig, jj) )
-                     !
-                  enddo
-                  !
-                  if ( ng0 == 2 ) then
-                     !  
-                     lambda_repl( i, j ) = lambda_repl( i, j ) + &
-                    DBLE( CONJG( hitmp( 1, ii ) ) * gi( 1, jj ) )
-                    !
-                 endif
-                 !
-                 lambda_repl( j, i ) = lambda_repl( i, j )
-                 !
-              else
-                 !
-                 do ig = 1, ngw
-                    !
-                    lambda_repl_c( i, j ) = lambda_repl_c( i, j ) - &
-                    CONJG( hitmp( ig, ii ) ) * gi( ig, jj)
-                    !
-                 enddo
-                 !  
-                 lambda_repl_c( j, i ) = CONJG(lambda_repl_c( i, j ))
-                 !
-              endif
-              !
-           enddo
-           !
-        enddo
-        !
-        if (.not.lambda_emp(1)%iscmplx) then
-           !  
-           call mp_sum( lambda_repl, intra_image_comm )
-           call distribute_lambda( lambda_repl, lambda_emp(is)%rvec( :, :),  desc_emp( :, is ) )
-           !
-        else
-           !
-           call mp_sum( lambda_repl_c, intra_image_comm )
-           call distribute_lambda( lambda_repl_c, lambda_emp(is)%cvec( :, :), desc_emp( :, is ) )
-           ! 
-        endif
-        !
-     enddo
+            do ig=1,ngw
+               gi_bare(ig,  i)=c2_bare(ig)
+               if(i+1 <= n_emps) gi_bare(ig,i+1)=c3_bare(ig)
+            enddo
+            !
+            if (lgam.and.ng0.eq.2) then
+               gi_bare(1,  i)=CMPLX(DBLE(gi_bare(1,  i)),0.d0)
+               if(i+1 <= n_emps) gi_bare(1,i+1)=CMPLX(DBLE(gi_bare(1,i+1)),0.d0)
+            endif
+            !
+         ENDIF
+         !
+      enddo
      !
-     if (.not.lambda_emp(1)%iscmplx) then
-        ! 
-        deallocate( lambda_repl )
-        !
-     else
-        !  
-        deallocate( lambda_repl_c )
-        !
-     endif
+     IF (do_bare_eigs) THEN
+        CALL compute_lambda (c0_emp, gi_bare, lambda_emp, nspin, n_empx, ngw, nudx_emp, desc_emp, nupdwn_emp, iupdwn_emp)
+        fname='hamiltonian0_emp'
+        WRITE( stdout, '(/,3X,"writing empty state DFT Hamiltonian file: ",A)' ) TRIM( fname )
+        CALL write_ham_emp_xml (nspin, nudx_emp, lambda_emp, desc_emp, fname)
+     ENDIF
+     !
+     CALL compute_lambda (c0_emp, gi, lambda_emp, nspin, n_empx, ngw, nudx_emp, desc_emp, nupdwn_emp, iupdwn_emp )
+     fname='hamiltonian_emp'
+     WRITE( stdout, '(/,3X,"writing empty state KC  Hamiltonian file: ",A)' ) TRIM( fname )
+     CALL write_ham_emp_xml (nspin, nudx_emp, lambda_emp, desc_emp, fname)
      !
      call do_deallocation()
      !
      return
      !
      contains
+     !
+     !
      !
      subroutine do_allocation_initialization()
          !  
@@ -1304,41 +1239,41 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
            CALL printout_base_close( "ovp" )
            !
         ENDIF
+        !
+        IF(allocated(c2_bare)) deallocate(c2_bare)
+        IF(allocated(c3_bare)) deallocate(c3_bare)
+        IF(allocated(gi_bare)) deallocate(gi_bare)
         ! 
      end subroutine do_deallocation
      ! 
      subroutine do_innerloop_subroutine()
-        !
-	if (do_innerloop_empty .and. innerloop_until>=itercgeff) then
-           !
-           call start_clock( "inner_loop" )
-           !
-           eodd_emp= sum(pink_emp(:))
-           etot_emp= etot_emp - eodd_emp
-           etotnew = etotnew  - eodd_emp
-           ninner  = 0
-           !
-           if (.not.do_innerloop_cg) then
-              ! 
-              write(stdout,*)  "WARNING, do_innerloop_cg should be .true."
-              ! 
-           else
-              !
-              call nksic_rot_emin_cg_general(itercg,innerloop_init_n,ninner,etot_emp,deltae*innerloop_cg_ratio,lgam, &
-                                     n_emps, n_empx, nudx_emp, iupdwn_emp, nupdwn_emp, ispin_emp, & 
-                                     c0_emp, rhovan_emp, bec_emp, rhor, rhoc, vsic_emp, pink_emp, & 
-                                     deeq_sic_emp, wtot, fsic_emp, sizwtot, .false.,  wfc_centers_emp, wfc_spreads_emp, .true.) 
-              !
-           endif
-           !
-           eodd_emp= sum(pink_emp(:)) 
-           etot_emp= etot_emp + eodd_emp 
-           etotnew = etotnew  + eodd_emp
-           ! 
-           call stop_clock( "inner_loop" )
-           !
-        endif
-        !
+         !
+         call start_clock( "inner_loop" )
+         !
+         eodd_emp= sum(pink_emp(:))
+         etot_emp= etot_emp - eodd_emp
+         etotnew = etotnew  - eodd_emp
+         ninner  = 0
+         !
+         if ( .not. do_innerloop_cg ) then
+            ! 
+            write(stdout,*)  "WARNING, do_innerloop_cg should be .true."
+            ! 
+         else
+            !
+            call nksic_rot_emin_cg_general(itercg,innerloop_init_n,ninner,etot_emp,deltae*innerloop_cg_ratio,lgam, &
+                                    n_emps, n_empx, nudx_emp, iupdwn_emp, nupdwn_emp, ispin_emp, & 
+                                    c0_emp, rhovan_emp, bec_emp, rhor, rhoc, vsic_emp, pink_emp, & 
+                                    deeq_sic_emp, wtot, fsic_emp, sizwtot, .false.,  wfc_centers_emp, wfc_spreads_emp, .true.) 
+            !
+         endif
+         !
+         eodd_emp= sum(pink_emp(:)) 
+         etot_emp= etot_emp + eodd_emp 
+         etotnew = etotnew  + eodd_emp
+         ! 
+         call stop_clock( "inner_loop" )
+         !
      endsubroutine do_innerloop_subroutine
      !   
      subroutine print_out_observables()
@@ -1563,3 +1498,4 @@ subroutine runcg_uspp_emp( c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
      end subroutine v_times_rho
      !                     
 END SUBROUTINE runcg_uspp_emp
+

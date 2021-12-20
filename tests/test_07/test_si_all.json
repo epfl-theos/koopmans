@@ -1,0 +1,96 @@
+{
+    "workflow": {
+        "functional": "all",
+        "periodic": true,
+        "method": "dscf",
+        "mp_correction": true,
+        "eps_inf": 13.02,
+        "init_orbitals": "mlwfs",
+        "alpha_guess": 0.077,
+        "print_qc": true,
+        "from_scratch": true,
+        "fix_spin_contamination": true,
+        "orbital_groups": [
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            1,
+            1
+        ]
+    },
+    "setup": {
+        "atomic_species": {
+            "species": [
+                [
+                    "Si",
+                    28.085,
+                    "Si_ONCV_PBE-1.2.upf"
+                ]
+            ]
+        },
+        "atomic_positions": {
+            "units": "crystal",
+            "positions": [
+                [
+                    "Si",
+                    0.00,
+                    0.00,
+                    0.00
+                ],
+                [
+                    "Si",
+                    0.25,
+                    0.25,
+                    0.25
+                ]
+            ]
+        },
+        "k_points": {
+            "kgrid": [
+                2,
+                2,
+                2
+            ],
+            "kpath": "GL"
+        },
+        "control": {
+            "pseudo_dir": "../../pseudos/"
+        },
+        "system": {
+            "ibrav": 2,
+            "celldm(1)": 10.263102,
+            "ecutwfc": 60.0
+        }
+    },
+    "pw": {
+        "system": {
+            "nbnd": 12
+        }
+    },
+    "w90": {
+    "conv_window": 5,
+    "projections": [
+        {
+            "fsite": [0.25, 0.25, 0.25],
+            "ang_mtm": "sp3"
+        }
+    ],
+    "emp": {
+        "dis_froz_max": 10.6,
+        "dis_win_max": 16.9
+        }
+    },
+    "ui": {
+        "smooth_int_factor": [
+            2,
+            2,
+            2
+        ],
+        "Emin": -10,
+        "Emax": 4,
+        "degauss": 0.5
+    }
+}

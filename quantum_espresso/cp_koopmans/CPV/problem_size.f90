@@ -20,13 +20,13 @@
       use ions_base,          only: nat, nsp
       use electrons_base,     only: nx => nbnd, nspin
       use electrons_module,   only: n_emp
-      use reciprocal_vectors, only: ngwx, ngmx, ngmt
+      use reciprocal_vectors, only: ngwx, ngmx
       use gvecb,              only: ngb
       use uspp_param,         only: nhm
       use uspp,               only: nkb
       USE io_global,          ONLY: ionode
       USE io_global,          ONLY: stdout
-      USE fft_base,           ONLY: dfftp, dffts
+      USE fft_base,           ONLY: dfftp
  
       implicit none 
                                                                         

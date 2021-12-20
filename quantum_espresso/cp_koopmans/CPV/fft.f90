@@ -432,8 +432,8 @@
 
      SUBROUTINE psi2rho( grid_type, psi, nnr, rho, ng )
 
-       use recvecs_indexes, only: nm, np
-       use gvecs, only: nms, nps
+       use recvecs_indexes, only: np
+       use gvecs, only: nps
        use kinds, only: DP
 
        implicit none

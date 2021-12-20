@@ -16,16 +16,15 @@ SUBROUTINE init_run()
   !
   USE kinds,                    ONLY : DP
   USE control_flags,            ONLY : nbeg, nomore, lwf, iprsta, iprint, &
-                                       ndr, tfor, tprnfor, tpre, program_name, &
-                                       force_pairing, newnfi, tnewnfi, ndw, non_ortho, &
+                                       tfor, tprnfor, tpre, &
+                                       newnfi, tnewnfi, ndw, non_ortho, &
                                        iprint_manifold_overlap
                                        !above, added:giovanni non_ortho, iprint_manifold_overlap
-  USE cp_electronic_mass,       ONLY : emass, emass_cutoff
-  USE ions_base,                ONLY : na, nax, nat, nsp, iforce, pmass, ityp, cdms
+  USE cp_electronic_mass,       ONLY : emass_cutoff
+  USE ions_base,                ONLY : na, nax, nat, nsp, pmass, cdms
   USE ions_positions,           ONLY : tau0, taum, taup, taus, tausm, tausp, &
-                                       vels, velsm, velsp, fion, fionm,      &
-                                       atoms0, atomsm, atomsp
-  USE gvecw,                    ONLY : ngw, ecutw, ngwt, ggp
+                                       vels, velsm, velsp, fion
+  USE gvecw,                    ONLY : ngw, ngwt, ggp
   USE gvecb,                    ONLY : ngb
   USE gvecs,                    ONLY : ngs
   USE gvecp,                    ONLY : ngm
@@ -35,33 +34,28 @@ SUBROUTINE init_run()
   USE electrons_base,           ONLY : nspin, nbsp, nbspx, nupdwn, f
   USE electrons_module,         ONLY : n_emp
   USE uspp,                     ONLY : nkb, vkb, deeq, becsum,nkbus
-  USE core,                     ONLY : rhoc
   USE smooth_grid_dimensions,   ONLY : nnrsx
   USE wavefunctions_module,     ONLY : c0, cm, cp, cdual, cmdual, cstart
   USE cdvan,                    ONLY : dbec, drhovan
   USE ensemble_dft,             ONLY : tens, z0t, tsmear
   USE cg_module,                ONLY : tcg
-  USE electrons_base,           ONLY : nudx, nbnd
+  USE electrons_base,           ONLY : nudx
   USE efield_module,            ONLY : tefield, tefield2
   USE uspp_param,               ONLY : nhm
   USE ions_nose,                ONLY : xnhp0, xnhpm, vnhp, nhpcl, nhpdim
   USE cell_base,                ONLY : h, hold, hnew, velh, tpiba2, ibrav, &
-                                       alat, celldm, a1, a2, a3, b1, b2, b3
-  USE cp_main_variables,        ONLY : lambda, lambdam, lambdap, ema0bg, bec,  &
-                                       sfac, eigr, ei1, ei2, ei3, taub, &
-                                       irb, eigrb, rhog, rhos, rhor,     &
+                                       alat, a1, a2, a3, b1, b2, b3
+  USE cp_main_variables,        ONLY : lambda, lambdam, ema0bg, &
                                        acc, acc_this_run, wfill, hamilt, &
-                                       edft, nfi, vpot, ht0, htm, iprint_stdout, gamma_only, do_wf_cmplx !added:giovanni gamma_only, do_wf_cmplx
+                                       edft, nfi,  ht0, iprint_stdout,   &
+                                       gamma_only, do_wf_cmplx !added:giovanni gamma_only, do_wf_cmplx
   USE cp_main_variables,        ONLY : allocate_mainvar, nlax, descla, nrlx, nlam
-  USE energies,                 ONLY : eself, enl, ekin, etot, enthal, ekincm
-  USE dener,                    ONLY : detot
-  USE time_step,                ONLY : dt2, delt, tps
+  USE energies,                 ONLY : ekincm
+  USE time_step,                ONLY : tps
   USE electrons_nose,           ONLY : xnhe0, xnhem, vnhe
   USE cell_nose,                ONLY : xnhh0, xnhhm, vnhh
-  USE gvecp,                    ONLY : ecutp
   USE funct,                    ONLY : dft_is_meta
   USE metagga,                  ONLY : crosstaus, dkedtaus, gradwfc
-  USE pseudopotential,          ONLY : nsanl
   !
   USE efcalc,                   ONLY : clear_nbeg
   USE local_pseudo,             ONLY : allocate_local_pseudo
@@ -74,13 +68,13 @@ SUBROUTINE init_run()
   USE cg_module,                ONLY : allocate_cg
   USE wannier_module,           ONLY : allocate_wannier  
   USE io_files,                 ONLY : outdir, prefix
-  USE io_global,                ONLY : ionode, stdout
+  USE io_global,                ONLY : stdout
   USE printout_base,            ONLY : printout_base_init
   USE wave_types,               ONLY : wave_descriptor_info
   USE xml_io_base,              ONLY : restart_dir, create_directory
   USE orthogonalize_base,       ONLY : mesure_diag_perf, mesure_mmul_perf
   USE step_constraint,          ONLY : step_con
-  USE ions_base,                ONLY : ions_reference_positions, cdmi, taui
+  USE ions_base,                ONLY : ions_reference_positions
   USE ldau
   use eecp_mod,                 ONLY : do_comp, which_compensation, tcc_odd
   use efield_mod,               ONLY : do_efield

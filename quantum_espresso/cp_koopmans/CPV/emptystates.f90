@@ -18,17 +18,16 @@
 !
       USE kinds,                ONLY : DP
       USE constants,            ONLY : autoev
-      USE control_flags,        ONLY : iprsta, tsde, program_name, gamma_only, do_wf_cmplx, &
-                                           tortho
+      USE control_flags,        ONLY : tsde, gamma_only, do_wf_cmplx, &
+                                       tortho
       USE io_global,            ONLY : ionode, stdout
       USE cp_main_variables,    ONLY : eigr, ema0bg, collect_lambda, &
                                        rhor, rhog, rhos, eigr, eigrb, irb, bec, bec_emp
       USE descriptors,          ONLY : descla_siz_ , descla_init, nlax_, lambda_node_
-      USE cell_base,            ONLY : omega
-      USE uspp,                 ONLY : vkb, nkb, okvan
+      USE uspp,                 ONLY : vkb, nkb
       USE uspp_param,           ONLY : nhm
       USE grid_dimensions,      ONLY : nnrx
-      USE electrons_base,       ONLY : nbsp, nbspx, ispin, nspin, f, nudx, iupdwn, nupdwn
+      USE electrons_base,       ONLY : nbsp, nbspx, ispin, nspin, f, iupdwn, nupdwn
       USE electrons_module,     ONLY : iupdwn_emp, nupdwn_emp, n_emp, ei_emp,  &
                                        max_emp, ethr_emp, etot_emp, eodd_emp
       USE ions_base,            ONLY : nat, nsp
@@ -50,12 +49,12 @@
       USE nksic,                ONLY : do_orbdep, do_pz, do_wxd, vsicpsi, wtot, sizwtot, &
                                        odd_alpha, valpsi, nkscalfact, odd_alpha_emp
       USE nksic,                ONLY : do_spinsym, pink_emp, allocate_nksic_empty
-      USE hfmod,                ONLY : do_hf, vxxpsi
+      USE hfmod,                ONLY : do_hf
       USE twin_types !added:giovanni
-      USE control_flags,        ONLY : tatomicwfc, trane, ndr, ndw
+      USE control_flags,        ONLY : tatomicwfc, ndr, ndw
       USE electrons_module,     ONLY : wfc_centers_emp, wfc_spreads_emp, icompute_spread
-      USE core,                 ONLY : nlcc_any, rhoc
-      USE input_parameters,     ONLY : odd_nkscalfact_empty, &
+      USE core,                 ONLY : rhoc
+      USE input_parameters,     ONLY : odd_nkscalfact_empty, restart_mode, &
                                        restart_from_wannier_cp, wannier_empty_only, &
                                        fixed_band, print_wfc_anion, wo_odd_in_empty_run, &
                                        odd_nkscalfact, index_empty_to_save, write_hr, &
@@ -73,11 +72,11 @@
       INTEGER  :: i, iss, j, in, in_emp, iter, iter_ortho
       INTEGER  :: n_occs, n_emps, n_empx, nudx_emp, issw, n
       INTEGER  :: nlax_emp, nlam_emp
-      LOGICAL  :: exst, do_wxd_, tcg_
+      LOGICAL  :: exst, tcg_
       !
-      REAL(DP) :: fccc, ccc, csv, dt2bye, bigr
+      REAL(DP) :: fccc, ccc, dt2bye, bigr
       REAL(DP) :: verl1, verl2, verl3
-      REAL(DP) :: dek, ekinc, ekinc_old, detothf
+      REAL(DP) :: dek, ekinc, ekinc_old
       !
       REAL(DP),    ALLOCATABLE :: emadt2(:)
       REAL(DP),    ALLOCATABLE :: emaver(:)
@@ -112,7 +111,8 @@
       !
       LOGICAL :: odd_nkscalfact_old
       INTEGER :: nbnd_, ib, start_is
-      COMPLEX(DP), ALLOCATABLE :: c0_anion(:,:)
+      COMPLEX(DP), ALLOCATABLE :: c0_anion(:,:) 
+      INTEGER :: spin_to_save
       !
       lgam=gamma_only.and..not.do_wf_cmplx
       !
@@ -329,10 +329,11 @@
             exst = readempty( c0_emp, n_empx, ndr_loc )
          ENDIF  
          !
-         IF ( .NOT. exst ) THEN
+         IF ( .NOT. exst .OR. TRIM(restart_mode) == 'from_scratch' ) THEN
             !
-            write(stdout, * ) 'Linh: oopp restart from minimizing orbital does not work for emptystate'
-            write(stdout, * ) 'Linh: initialize random states and orthogonalize to filled ones'
+            write(stdout, '(/)')
+            IF (.NOT. exst) write(stdout, '(3X "Empty-states WFCs file NOT FOUND")' )
+            write(stdout, '(3X, "Initializing random WFCs and orthogonlizing to the occupied manifold ",/)' ) 
             !
             ! ...  initial random states orthogonal to filled ones
             !
@@ -398,7 +399,26 @@
             !
          ELSE
             !
-            write(stdout, * ) 'Linh: the code restarts not random wfc'
+            write(stdout, '(/, 3X, "Empty-states: WFCs read from file")' )
+            write(stdout, '(   3X, "Empty-states: Going to re-orthogonalize to occ manifold")' )
+            !
+            ! Here we orthogonalize to the occupied manifold. Just in case this was changed after the restart 
+            !
+            DO iss = 1, nspin
+               !
+               in_emp = iupdwn_emp(iss)
+               !
+               issw   = iupdwn(iss)
+               !
+               IF (nupdwn(iss)>0.and.nupdwn_emp(iss)>0) THEN
+                  !
+                  CALL gram_empty( .false., eigr, vkb, bec_emp, bec_occ, nkb, &
+                                  c0_emp( :, in_emp: ), c0( :, issw: ), ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, issw )
+                  !
+               ENDIF
+               !
+            ENDDO
+            !
             !
          ENDIF
          !
@@ -483,10 +503,10 @@
          ! 
          call runcg_uspp_emp(c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx,&
                              n_emps, ispin_emp, iupdwn_emp, nupdwn_emp, phi_emp, lambda_emp, &
-                             max_emp, wxd_emp, vsic_emp, sizvsic_emp, pink_emp, nnrx, becsum_emp, &
+                             max_emp, wxd_emp, vsic_emp, sizvsic_emp, pink_emp, becsum_emp, &
                              deeq_sic_emp, nudx_emp, eodd_emp, etot_emp, v, &
-                             nfi, .true., .true., eigr, bec, irb, eigrb, &
-                             rhor, rhog, rhos, rhoc, ema0bg, desc_emp)     !!! Added rhoc NICOLA 
+                             nfi, .true., eigr, bec, irb, eigrb, &
+                             rhor, rhoc, ema0bg, desc_emp)     !!! Added rhoc NICOLA 
          !
       ELSE ! compute empty states with damped dynamics
          !
@@ -768,76 +788,61 @@
       ! 
       ! ...   Save minimizing empty orbitals to disk
       !
-      CALL writeempty_twin( c0_emp, n_empx, ndw_loc, .true. )
+      CALL writeempty_twin( c0_emp, n_empx, ndw_loc, .false. )
       !
       IF (print_wfc_anion) THEN
          !
          write(stdout,*) "\n Writing on file the anion WFC \n" 
          ! ...   Save N+1 orbitals to disk to be used in the future anion calculation
          !
-         IF ( nupdwn(1) == nupdwn(2) ) THEN !! NsC
-
-           nbnd_    = nupdwn(1)! Why??? only works if spin_up = spin_dw... NsC
+         ! Here check if the orbital to save is from spin up or spin dw according to 
+         ! the value of index_empty_to_save
+         !
+         WRITE(*,'("NsC: nupdwn_emp =", 2I5)') nupdwn_emp(:) ! DEBUG 
+         IF (index_empty_to_save .le. nupdwn_emp(1) ) THEN 
+           ! This is the case the extra electron is from the spin-up  channel
+           spin_to_save=1
+         ELSE
+           ! This is the case the extra electron is from the spin-dwn channel
+           spin_to_save=2
+         ENDIF 
+         WRITE(*,'("orbital to save, spin ", 2I5)'), index_empty_to_save, spin_to_save
+         WRITE(*,'("iupdwn(1) ", I5)'), iupdwn(1)
+         IF( nspin == 2 ) WRITE(*,'("iupdwn(2) ", I5)'), iupdwn(2)
+         !
+         allocate( c0_anion(ngw, nbsp+1) )
+         !
+         DO iss = 1, nspin 
            !
-           write(stdout,*) " Case nup = ndw", nupdwn(1), nupdwn(2), (nbnd_+1) * nspin
-           ! 
-           allocate(c0_anion(ngw, (nbnd_+1) * nspin))
+           start_is = iupdwn( iss )
+           !!!! IF (iss == 2) start_is = start_is+1
            !
-           do iss = 1, nspin
-              !
-              ib = iupdwn( iss )
-              !
-              start_is = iupdwn( iss )
-              !  
-              if (iss == 2) start_is = start_is + 1
-              !
-              c0_anion(:, start_is:start_is + nbnd_ - 1 ) = c0(:, ib:ib + nbnd_ - 1)
-              !
-              if (iss == 1 ) then
-                 !
-                 c0_anion(:, start_is + nbnd_) =  c0_emp(:, index_empty_to_save)
-                 !
-              endif
-              !
-           enddo
+           IF ( spin_to_save == 1 ) THEN 
+             !
+             IF (iss == 1) THEN 
+               c0_anion ( :, start_is:start_is+nupdwn(1)-1 ) = c0( :, start_is:start_is+nupdwn(1)-1 )
+               c0_anion ( :, start_is+nupdwn(1) )            = c0_emp(:, index_empty_to_save)
+             ELSE 
+               ! The new wfc for spin-dw start from start_is+1 to keep track that the sin-up channel has one more band
+               c0_anion ( :, start_is+1:start_is+1+nupdwn(2)-1 ) = c0( :, start_is:start_is+nupdwn(2)-1 )
+             ENDIF 
+             !
+           ELSE
+             !
+             IF (iss == 1) THEN 
+               c0_anion ( :, start_is:start_is+nupdwn(1)-1 ) = c0( :, start_is:start_is+nupdwn(1)-1 )
+             ELSE 
+               c0_anion ( :, start_is:start_is+nupdwn(2)-1 ) = c0( :, start_is:start_is+nupdwn(2)-1 )
+               c0_anion ( :, start_is+nupdwn(2) )            = c0_emp(:, index_empty_to_save)
+             ENDIF 
            !
-           call writeempty_twin( c0_anion, ((nbnd_+1) * nspin), ndw_loc, .false.)
+           ENDIF
            !
-           deallocate(c0_anion)
-           !
-         ELSE ! here the case for nup>ndw
-           !
-           nbnd_    = nupdwn(1)+nupdwn(2) ! Not sure it works for REAL wcf when nup is ODD
-           ! 
-           write(stdout,*) " Case nup > ndw", nupdwn(1), nupdwn(2), nbnd_
-           write(stdout,*) " Warning: NOT TESTED!"
-           !
-           allocate(c0_anion(ngw, (nbnd_+1) ))
-           !
-           do iss = 1, nspin
-              !
-              ib = iupdwn( iss )
-              !
-              start_is = iupdwn( iss )
-              !  
-              write(stdout,*) " iss, start_is ", iss, start_is
-              !if (iss == 2) start_is = start_is + 1
-              !
-              c0_anion(:, start_is:start_is + nupdwn(1) - 1 ) = c0(:, ib:ib + nupdwn(1) - 1)
-              !
-              if (iss == 2 ) then
-                 !
-                 c0_anion(:, start_is + nupdwn(2)) =  c0_emp(:, index_empty_to_save)
-                 !
-              endif
-              !
-           enddo
-           !
-           call writeempty_twin( c0_anion, (nbnd_+1), ndw_loc,.false.)
-           !
-           deallocate(c0_anion)
-           !
-         ENDIF  !! NsC
+         ENDDO
+         !
+         CALL writeempty_twin( c0_anion, nbsp+1, ndw_loc, .true., spin_to_save)
+         !
+         DEALLOCATE (c0_anion)
          !
       ENDIF
       !
@@ -1227,8 +1232,8 @@
         USE io_global,          ONLY: stdout, ionode, ionode_id
         USE mp,                 ONLY: mp_bcast, mp_sum
         USE mp_wave,            ONLY: splitwf
-        USE io_files,           ONLY: outdir, prefix
-        USE io_files,           ONLY: empty_file, emptyunit
+        USE io_files,           ONLY: outdir
+        USE io_files,           ONLY: emptyunit
         USE reciprocal_vectors, ONLY: ig_l2g
         USE gvecw,              ONLY: ngw
         USE xml_io_base,        ONLY: restart_dir, wfc_filename
@@ -1242,7 +1247,7 @@
         INTEGER,     INTENT(IN)  :: ndi
 
         LOGICAL :: exst
-        INTEGER :: ierr, ig, i, iss
+        INTEGER :: ig, i, iss
         INTEGER :: ngw_rd, ne_rd, ngw_l
         INTEGER :: ngw_g
 
@@ -1327,8 +1332,8 @@
         USE mp_global,          ONLY: me_image, nproc_image, intra_image_comm
         USE mp_wave,            ONLY: mergewf
         USE mp,                 ONLY: mp_sum
-        USE io_files,           ONLY: empty_file, emptyunit, outdir, prefix
-        USE io_global,          ONLY: ionode, ionode_id, stdout
+        USE io_files,           ONLY: emptyunit, outdir
+        USE io_global,          ONLY: ionode, ionode_id
         USE reciprocal_vectors, ONLY: ig_l2g
         USE gvecw,              ONLY: ngw
         USE xml_io_base,        ONLY: restart_dir, wfc_filename
@@ -1343,7 +1348,7 @@
         INTEGER,     INTENT(IN) :: ndi
 
         INTEGER :: ig, i, ngw_g, iss, ngw_l
-        LOGICAL :: exst, ierr
+        LOGICAL :: ierr
         COMPLEX(DP), ALLOCATABLE :: ctmp(:)
         CHARACTER(LEN=256) :: fileempty, dirname
         !
@@ -1401,8 +1406,8 @@ LOGICAL FUNCTION reademptytwin_x( c_emp, ne, ndi )
         USE io_global,          ONLY: stdout, ionode, ionode_id
         USE mp,                 ONLY: mp_bcast, mp_sum
         USE mp_wave,            ONLY: splitwf
-        USE io_files,           ONLY: outdir, prefix
-        USE io_files,           ONLY: empty_file, emptyunitc0, emptyunit, emptyunitc0fixed
+        USE io_files,           ONLY: outdir
+        USE io_files,           ONLY: emptyunitc0
         USE reciprocal_vectors, ONLY: ig_l2g
         USE gvecw,              ONLY: ngw
         USE xml_io_base,        ONLY: restart_dir, wfc_filename
@@ -1416,7 +1421,7 @@ LOGICAL FUNCTION reademptytwin_x( c_emp, ne, ndi )
         INTEGER,     INTENT(IN)  :: ndi
         ! 
         LOGICAL :: exst
-        INTEGER :: ierr, ig, i, iss
+        INTEGER :: ig, i, iss
         INTEGER :: ngw_rd, ne_rd, ngw_l
         INTEGER :: ngw_g
         ! 
@@ -1504,7 +1509,7 @@ END FUNCTION reademptytwin_x
 
 
 !-----------------------------------------------------------------------
-SUBROUTINE writeemptytwin_x( c_emp, ne, ndi, write_evc0)
+SUBROUTINE writeemptytwin_x( c_emp, ne, ndi, fixed, spin_to_save)
 !-----------------------------------------------------------------------
         !
         ! ...   This subroutine writes empty states to unit emptyunitc0
@@ -1513,14 +1518,13 @@ SUBROUTINE writeemptytwin_x( c_emp, ne, ndi, write_evc0)
         USE mp_global,          ONLY: me_image, nproc_image, intra_image_comm
         USE mp_wave,            ONLY: mergewf
         USE mp,                 ONLY: mp_sum
-        USE io_files,           ONLY: empty_file, outdir, prefix, &
-                                      emptyunitc0, emptyunitc0fixed
-        USE io_global,          ONLY: ionode, ionode_id, stdout
+        USE io_files,           ONLY: outdir, emptyunitc0, emptyunitc0fixed
+        USE io_global,          ONLY: ionode, ionode_id
         USE reciprocal_vectors, ONLY: ig_l2g
         USE gvecw,              ONLY: ngw
         USE xml_io_base,        ONLY: restart_dir, wfc_filename
         USE wrappers,           ONLY: f_mkdir
-        USE electrons_base,     ONLY: nspin
+        USE electrons_base,     ONLY: nspin, nupdwn, iupdwn
         USE electrons_module,   ONLY: iupdwn_emp, nupdwn_emp
         !
         IMPLICIT NONE
@@ -1528,19 +1532,20 @@ SUBROUTINE writeemptytwin_x( c_emp, ne, ndi, write_evc0)
         COMPLEX(DP), INTENT(IN) :: c_emp(:,:)
         INTEGER,     INTENT(IN) :: ne
         INTEGER,     INTENT(IN) :: ndi
-        LOGICAL,     INTENT(IN) :: write_evc0
+        LOGICAL,     INTENT(IN) :: fixed
+        INTEGER, OPTIONAL, INTENT(IN) :: spin_to_save
         !
         INTEGER :: ig, i, ngw_g, iss, ngw_l, funit, ne_loc, i_start
-        LOGICAL :: exst, ierr
+        LOGICAL :: ierr
         COMPLEX(DP), ALLOCATABLE :: ctmp(:)
-        CHARACTER(LEN=256) :: fileempty, dirname
+        CHARACTER(LEN=256) :: fileempty, dirname, filename
         !
         ! ... Subroutine Body
         !
         ngw_g    = ngw
         ngw_l    = ngw
         !
-        IF (write_evc0) THEN
+        IF (fixed) THEN
           funit = emptyunitc0
         ELSE
           funit = emptyunitc0fixed
@@ -1554,24 +1559,21 @@ SUBROUTINE writeemptytwin_x( c_emp, ne, ndi, write_evc0)
         !
         ierr = f_mkdir( TRIM(dirname)//"/K00001" )
         !
+        filename = 'evc0_empty'
+        IF (fixed) filename = 'evcfixed_empty'
+
         DO iss = 1, nspin
-          ! We only split the files by spin if evc0_empty = .true.. If .false.,
-          ! we ignore the iss index, do everything at once, and exit after
-          ! completing the loop once
+          !    
+          fileempty = TRIM( wfc_filename( dirname, filename, 1, iss ) )
+          ne_loc = nupdwn_emp(iss)
+          i_start = iupdwn_emp(iss)
           !
-          IF (write_evc0) THEN
-             !    
-             fileempty = TRIM( wfc_filename( dirname, 'evc0_empty', 1, iss ) )
-             ne_loc = nupdwn_emp(iss)
-             i_start = iupdwn_emp(iss)
-             !
-          ELSE
-             !
-             fileempty = TRIM( wfc_filename( dirname, 'evcfixed_empty', 1 ) )
-             ne_loc = ne
-             i_start = 1
-             !
-          ENDIF   
+          IF (fixed) THEN 
+            ne_loc = nupdwn(iss) 
+            i_start = iupdwn(iss)
+            IF (iss == spin_to_save) ne_loc = ne_loc+1
+            IF (iss == 2 .AND. spin_to_save == 1 ) i_start = i_start+1
+          ENDIF 
           !
           IF ( ionode ) THEN
              OPEN( UNIT = funit, FILE = TRIM(fileempty), status = 'unknown', FORM = 'UNFORMATTED' )
@@ -1602,7 +1604,7 @@ SUBROUTINE writeemptytwin_x( c_emp, ne, ndi, write_evc0)
           IF ( ionode ) CLOSE(funit)
 
           ! For evc0_fixed, exit this 'spin' loop
-          IF (.NOT. write_evc0) EXIT
+          !IF (.NOT. write_evc0) EXIT
         END DO
 
         DEALLOCATE(ctmp)

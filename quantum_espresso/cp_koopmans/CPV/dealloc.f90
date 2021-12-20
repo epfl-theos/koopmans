@@ -58,7 +58,6 @@ SUBROUTINE deallocate_modules_var()
   USE nksic,                ONLY : deallocate_nksic
   USE hfmod,                ONLY : deallocate_hf
   USE eecp_mod,             ONLY : deallocate_ee
-  USE io_global,           ONLY : ionode
   !
   IMPLICIT NONE
   !

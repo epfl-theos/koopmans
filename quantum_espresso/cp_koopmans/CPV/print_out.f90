@@ -15,14 +15,14 @@
 
       !
       USE kinds,             ONLY : DP
-      USE control_flags,     ONLY : iprint, textfor, iprsta, do_makov_payne
+      USE control_flags,     ONLY : iprint, textfor, do_makov_payne
       USE energies,          ONLY : print_energies, dft_energy_type
       USE printout_base,     ONLY : printout_base_open, printout_base_close, &
                                     printout_pos, printout_cell, printout_stress, &
                                     printout_matrix_norm
       USE constants,         ONLY : au_gpa, amu_si, bohr_radius_cm, &
                                     amu_au, BOHR_RADIUS_ANGS, pi
-      USE ions_base,         ONLY : na, nsp, nat, ind_bck, atm, ityp, pmass, cdmi, &
+      USE ions_base,         ONLY : na, nsp, nat, ind_bck, pmass, cdmi, &
                                     ions_cofmass, ions_displacement, label_srt
       USE cell_base,         ONLY : s_to_r, get_volume
       USE efield_module,     ONLY : tefield, pberryel, pberryion, &
@@ -39,7 +39,7 @@
       USE io_files,          ONLY : outdir
       USE control_flags,     ONLY : ndw, tdipole
       USE polarization,      ONLY : print_dipole
-      USE io_global,         ONLY : ionode, ionode_id, stdout
+      USE io_global,         ONLY : ionode, stdout
       use eecp_mod,          only : do_comp, ecomp 
       !
       IMPLICIT NONE
@@ -366,14 +366,14 @@
 
       !
       USE kinds,             ONLY : DP
-      USE control_flags,     ONLY : iprint, textfor, iprsta, do_makov_payne
+      USE control_flags,     ONLY : iprint, textfor, do_makov_payne
       USE energies,          ONLY : print_energies, dft_energy_type
       USE printout_base,     ONLY : printout_base_open, printout_base_close, &
                                     printout_pos, printout_cell, printout_stress, &
                                     printout_matrix_norm
       USE constants,         ONLY : au_gpa, amu_si, bohr_radius_cm, &
                                     amu_au, BOHR_RADIUS_ANGS, pi
-      USE ions_base,         ONLY : na, nsp, nat, ind_bck, atm, ityp, pmass, cdmi, &
+      USE ions_base,         ONLY : na, nsp, nat, ind_bck,  pmass, cdmi, &
                                     ions_cofmass, ions_displacement, label_srt
       USE cell_base,         ONLY : s_to_r, get_volume
       USE efield_module,     ONLY : tefield, pberryel, pberryion, &
@@ -390,7 +390,7 @@
       USE io_files,          ONLY : outdir
       USE control_flags,     ONLY : ndw, tdipole
       USE polarization,      ONLY : print_dipole
-      USE io_global,         ONLY : ionode, ionode_id, stdout
+      USE io_global,         ONLY : ionode, stdout
       use eecp_mod,          only : do_comp, ecomp 
       use twin_types
       !
@@ -731,22 +731,19 @@
 !=----------------------------------------------------------------------------=!
 
       USE kinds,              ONLY: DP
-      USE control_flags,      ONLY: tdipole, tnosee, tnosep, tnoseh, iprint
+      USE control_flags,      ONLY: tnosee, tnosep, tnoseh, iprint
       use constants,          only: k_boltzmann_au, au_gpa, amu_si, bohr_radius_cm
       use energies,           only: dft_energy_type
-      use mp_global,          only: me_image, intra_image_comm
       use time_step,          ONLY: tps
       USE electrons_nose,     ONLY: electrons_nose_nrg, xnhe0, vnhe, qne, ekincw
-      USE sic_module,         ONLY: ind_localisation, pos_localisation, nat_localisation, &
-                                    self_interaction, sic_rloc
-      USE ions_base,          ONLY: ions_temp, nsp
-      USE ions_nose,          ONLY: ndega, ions_nose_nrg, xnhp0, vnhp, qnp, gkbt, &
+      USE sic_module,         ONLY: self_interaction
+      USE ions_base,          ONLY: ions_temp
+      USE ions_nose,          ONLY: ndega, ions_nose_nrg, xnhp0, vnhp, qnp, &
                                     kbt, nhpcl, nhpdim, atm2nhp, ekin2nhp, gkbt2nhp
       USE cell_nose,          ONLY: cell_nose_nrg, qnh, temph, xnhh0, vnhh
       USE cell_base,          ONLY: iforceh, boxdimensions, s_to_r, press
       USE printout_base,      ONLY: printout_base_open, printout_base_close, &
                                     printout_pos, printout_cell, printout_stress
-      USE environment,        ONLY: start_cclock_val
       USE atoms_type_module,  ONLY: atoms_type
       USE cp_interfaces,      ONLY: printout_new
 
@@ -760,14 +757,13 @@
       REAL(DP) :: ekinc, ekcell
 !
 ! ...
-      INTEGER   :: is, ia, k, i, j, ik, isa, iunit, nfill, nempt
-      REAL(DP) :: tau(3), vel(3), stress_tensor(3,3), temps( atoms%nsp )
+      INTEGER  :: is, ia
+      REAL(DP) :: stress_tensor(3,3), temps( atoms%nsp )
       REAL(DP) :: tempp, econs, ettt, out_press, ekinpr, enosee
-      REAL(DP) :: enthal, totalmass, enoseh, temphc, enosep
-      REAL(DP) :: h(3,3)
+      REAL(DP) :: enthal, enoseh, temphc, enosep
       REAL(DP) :: epot
       !!REAL(DP) :: dis( nsp )
-      LOGICAL   :: tfile, topen, tsic
+      LOGICAL   :: tfile, tsic
       LOGICAL   :: tfirst = .TRUE.
       REAL(DP), ALLOCATABLE :: tauw( :, : )
       INTEGER   :: old_nfi = -1
@@ -918,8 +914,8 @@
       USE gvecp,              ONLY: ngm
       USE fft_base,           ONLY : dfftp
       USE cp_interfaces,      ONLY: fwfft
-      USE io_global,          ONLY : ionode, ionode_id, stdout
-      USE io_files,           ONLY: sfacunit, sfac_file, opt_unit
+      USE io_global,          ONLY : ionode, ionode_id
+      USE io_files,           ONLY: sfacunit, sfac_file
 
       IMPLICIT NONE
 
@@ -1080,8 +1076,8 @@
    SUBROUTINE print_projwfc_real_x ( c0, lambda, eigr, vkb )
 !=----------------------------------------------------------------------------=!
       USE kinds,            ONLY: DP
-      USE electrons_base,   ONLY: nspin, nbnd, nbsp, iupdwn, nupdwn
-      USE electrons_module, ONLY: ei, ei_emp, n_emp, iupdwn_emp, nupdwn_emp
+      USE electrons_base,   ONLY: nspin, iupdwn, nupdwn
+      USE electrons_module, ONLY: nupdwn_emp
       USE cp_interfaces,    ONLY: set_evtot, set_eitot
       !
       IMPLICIT NONE
@@ -1117,8 +1113,8 @@
    SUBROUTINE print_projwfc_twin_x ( c0, lambda, eigr, vkb )
 !=----------------------------------------------------------------------------=!
       USE kinds,            ONLY: DP
-      USE electrons_base,   ONLY: nspin, nbnd, nbsp, iupdwn, nupdwn
-      USE electrons_module, ONLY: ei, ei_emp, n_emp, iupdwn_emp, nupdwn_emp
+      USE electrons_base,   ONLY: nspin, iupdwn, nupdwn
+      USE electrons_module, ONLY: nupdwn_emp
       USE cp_interfaces,    ONLY: set_evtot, set_eitot
       USE twin_types
       !

@@ -1,0 +1,36 @@
+name: Typechecking
+
+on:
+   pull_request:
+      branches:
+         - master
+   push:
+      branches:
+         - master
+
+jobs:
+   test:
+      runs-on: ubuntu-latest
+      strategy:
+         fail-fast: false
+         max-parallel: 3
+      steps:
+         - name: Checkout
+           uses: actions/checkout@v2
+           with:
+              submodules: false
+         - name: Set up Python 3.8
+           uses: actions/setup-python@v2
+           with:
+              python-version: 3.8
+         - name: Install dependencies
+           run: |
+              python -m pip install --upgrade pip
+              pip install -e .[test]
+         - name: Install mypy
+           run: |
+              python -m pip install --upgrade pip
+              pip install mypy
+         - name: Run mypy
+           run: |
+              mypy koopmans/ --ignore-missing-imports

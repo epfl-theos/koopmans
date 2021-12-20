@@ -19,10 +19,10 @@ SUBROUTINE compute_scf( N_in, N_fin, stat  )
   USE control_flags,     ONLY : conv_elec, ndr, program_name, nbeg, taurdr, &
                                 trane, ampre, nomore, tfor, isave
   USE cp_main_variables, ONLY : nfi
-  USE io_files,          ONLY : iunpath, iunexit, outdir, prefix
+  USE io_files,          ONLY : iunpath, outdir, prefix
   USE io_global,         ONLY : stdout, ionode
   USE path_formats,      ONLY : scf_fmt
-  USE path_variables,    ONLY : pos, pes, grad_pes, num_of_images, &
+  USE path_variables,    ONLY : pos, pes, grad_pes, &
                                 dim1, pending_image, frozen
   USE check_stop,        ONLY : check_stop_now
   USE xml_io_base,       ONLY : check_restartfile

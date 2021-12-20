@@ -13,12 +13,10 @@ subroutine nksic_rot_emin_cg_general(nouter, init_n, ninner, etot, rot_threshold
       use kinds,                      only : dp
       use io_global,                  only : stdout, ionode
       use cp_interfaces,              only : invfft
-      use fft_base,                   only : dfftp
       use grid_dimensions,            only : nnrx
       use gvecw,                      only : ngw
       use electrons_base,             only : nspin
-      use electrons_module,           only : icompute_spread
-      use ions_base,                  only : nsp, nat
+      use ions_base,                  only : nat
       use uspp_param,                 only : nhm
       use nksic,                      only : innerloop_cg_nsd, &
                                              innerloop_cg_nreset,&
@@ -26,7 +24,6 @@ subroutine nksic_rot_emin_cg_general(nouter, init_n, ninner, etot, rot_threshold
                                              innerloop_atleast
       use uspp,                       only : nkb
       use control_flags,              only : esic_conv_thr
-      use cg_module,                  only : tcg
       use twin_types
       !
       implicit none
@@ -58,7 +55,6 @@ subroutine nksic_rot_emin_cg_general(nouter, init_n, ninner, etot, rot_threshold
       !
       integer     :: nbnd1, nbnd2
       integer     :: isp
-      integer     :: nfile
       integer     :: nidx1,nidx2
       integer     :: iter3, nfail
       integer     :: maxiter3, numok, minsteps
@@ -203,7 +199,6 @@ subroutine nksic_rot_emin_cg_general(nouter, init_n, ninner, etot, rot_threshold
            !
            if (ionode) then
               !  
-              write(stdout,"(a,/)") '# inner-loop converged.'
               write(stdout,"(a,/)") '# inner-loop converged.'
               !
            endif
@@ -537,13 +532,11 @@ subroutine nksic_getvsicah_general(ngw, nbsp, nbspx, c0, bec, &
       !     and then computes   < phi_j | h_i | phi_i >  in reciprocal space.
       !
       use kinds,                      only : dp
-      use io_global,                  only : stdout
       use grid_dimensions,            only : nnrx
       use reciprocal_vectors,         only : gstart
       use mp,                         only : mp_sum
       use mp_global,                  only : intra_image_comm
       use cp_interfaces,              only : invfft
-      use fft_base,                   only : dfftp
       use uspp_param,                 only : nhm
       use ions_base,                  only : nat
       use electrons_base,             only : nspin
@@ -565,8 +558,8 @@ subroutine nksic_getvsicah_general(ngw, nbsp, nbspx, c0, bec, &
       ! local variables
       !
       integer         :: nbnd1,nbnd2
-      integer         :: i, j1, jj1, j2, jj2
-      real(dp)        :: vsicahtmp, cost
+      integer         :: j1, jj1, j2
+      real(dp)        :: cost
       complex(dp),    allocatable :: hmat(:,:)
       complex(dp),    allocatable :: vsicpsi(:,:)
       !   
@@ -669,8 +662,6 @@ subroutine nksic_getHeigU_general(isp, nupdwn, vsicah, Heig, Umat)
       !
       use kinds,                      only : dp
       use mp,                         only : mp_bcast
-      use mp_global,                  only : intra_image_comm
-      use io_global,                  only : ionode, ionode_id
       use electrons_base,             only : nspin
       !
       implicit none
@@ -715,7 +706,6 @@ subroutine nksic_getOmattot_general(nbsp,nbspx,nudx,ispin, &
       !     Other quantities such as bec, vsic, pink are also calculated for wfc1.
       !
       use kinds,                      only : dp
-      use io_global,                  only : stdout, ionode
       use grid_dimensions,            only : nnrx
       use gvecw,                      only : ngw
       use ions_base,                  only : nsp, nat

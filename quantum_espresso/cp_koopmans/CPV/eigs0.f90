@@ -17,12 +17,12 @@
       use constants,         only : autoev
       use dspev_module,      only : dspev_drv, pdspev_drv
       USE sic_module,        only : self_interaction
-      USE cp_main_variables, only : nlax, nlam, la_proc
+      USE cp_main_variables, only : nlam, la_proc
       USE descriptors,       ONLY : nlar_ , nlac_ , ilar_ , ilac_ , lambda_node_ , la_me_ , la_n_ , &
                                     descla_siz_ , la_npr_ , la_npc_ , la_nrl_ , la_nrlx_ , la_comm_ , &
                                     nlax_ , la_myc_ , la_myr_
       USE mp,                only : mp_sum, mp_bcast
-      USE mp_global,         only : intra_image_comm, root_image, me_image
+      USE mp_global,         only : intra_image_comm, root_image
       use nksic,             only : f_cutoff
 
       implicit none
@@ -35,8 +35,8 @@
 ! local variables
       real(DP), allocatable :: ap(:), wr(:)
       real(DP) zr(1)
-      integer :: iss, j, i, ierr, k, n, ndim, nspin_eig, npaired
-      INTEGER :: ir, ic, nr, nc, nrl, nrlx, comm, np, me
+      integer :: iss, j, i, k, n, nspin_eig, npaired
+      INTEGER :: ir, nr, np
       logical :: tsic
       CHARACTER(LEN=80) :: msg
 !
@@ -176,12 +176,12 @@
       use dspev_module,      only : dspev_drv, pdspev_drv
       use zhpev_module,      only : zhpev_drv
       USE sic_module,        only : self_interaction
-      USE cp_main_variables, only : nlax, nlam, la_proc
+      USE cp_main_variables, only : la_proc
       USE descriptors,       ONLY : nlar_ , nlac_ , ilar_ , ilac_ , lambda_node_ , la_me_ , la_n_ , &
                                     descla_siz_ , la_npr_ , la_npc_ , la_nrl_ , la_nrlx_ , la_comm_ , &
                                     nlax_ , la_myc_ , la_myr_
       USE mp,                only : mp_sum, mp_bcast
-      USE mp_global,         only : intra_image_comm, root_image, me_image
+      USE mp_global,         only : intra_image_comm, root_image
       use nksic,             only : f_cutoff
       USE twin_types
 
@@ -198,8 +198,8 @@
       complex(DP), allocatable :: ap_c(:)
       real(DP) zr(1)
       complex(DP) zr_c(1)
-      integer :: iss, j, i, ierr, k, n, ndim, nspin_eig, npaired
-      INTEGER :: ir, ic, nr, nc, nrl, nrlx, comm, np, me
+      integer :: iss, j, i, k, n, nspin_eig, npaired
+      INTEGER :: ir, nr, np
       logical :: tsic
       CHARACTER(LEN=80) :: msg
       !
@@ -397,12 +397,12 @@
       use dspev_module,      only : dspev_drv, pdspev_drv, dgeev_drv
       use zhpev_module,      only : zhpev_drv, zgeev_drv
       USE sic_module,        only : self_interaction
-      USE cp_main_variables, only : nlax, nlam, la_proc
+      USE cp_main_variables, only : la_proc
       USE descriptors,       ONLY : nlar_ , nlac_ , ilar_ , ilac_ , lambda_node_ , la_me_ , la_n_ , &
                                     descla_siz_ , la_npr_ , la_npc_ , la_nrl_ , la_nrlx_ , la_comm_ , &
                                     nlax_ , la_myc_ , la_myr_
       USE mp,                only : mp_sum, mp_bcast
-      USE mp_global,         only : intra_image_comm, root_image, me_image
+      USE mp_global,         only : intra_image_comm, root_image
       use nksic,             only : f_cutoff
       USE twin_types
 
@@ -419,8 +419,8 @@
       complex(DP), allocatable :: ap_c(:,:)
       real(DP) zr(1,1)
       complex(DP) zr_c(1,1)
-      integer :: iss, j, i, ierr, k, n, ndim, nspin_eig, npaired
-      INTEGER :: ir, ic, nr, nc, nrl, nrlx, comm, np, me
+      integer :: iss, j, i, n, nspin_eig, npaired
+      INTEGER :: ir, nr, np
       logical :: tsic
       CHARACTER(LEN=80) :: msg
       !
@@ -732,7 +732,6 @@
       use electrons_base,    only: nx => nbspx, f, nspin
       use electrons_base,    only: iupdwn, nupdwn, nudx
       use electrons_module,  only: ei
-      use io_global,         only: stdout
       use cp_main_variables, only: descla
 
       IMPLICIT NONE
@@ -773,7 +772,6 @@
       use electrons_base,    only: nx => nbspx, f, nspin
       use electrons_base,    only: iupdwn, nupdwn, nudx
       use electrons_module,  only: ei
-      use io_global,         only: stdout
       use cp_main_variables, only: descla
       use twin_types
 
@@ -815,7 +813,6 @@
       use electrons_base,    only: nx => nbspx, f, nspin
       use electrons_base,    only: iupdwn, nupdwn, nudx
       use electrons_module,  only: ei
-      use io_global,         only: stdout
       use cp_main_variables, only: descla
       use twin_types
 

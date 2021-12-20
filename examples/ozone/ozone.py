@@ -5,9 +5,9 @@ Written by Edward Linscott, Jun 2021
 '''
 
 import numpy as np
+import koopmans.mpl_config
 import matplotlib.pyplot as plt
 from koopmans import utils, io
-from koopmans.io.jsonio import write_json
 
 
 def run(from_scratch=False):
@@ -16,16 +16,16 @@ def run(from_scratch=False):
     wfs = {}
     for name in names:
         with utils.chdir(name):
-            wf = io.read_json(f'ozone.json')
-            wf.from_scratch = from_scratch
+            wf = io.read('ozone.json')
+            wf.parameters.from_scratch = from_scratch
             if 'screening' in name:
-                wf.calculate_alpha = False
-                wf.alpha_guess = wfs['dscf'].bands.alphas
+                wf.parameters.calculate_alpha = False
+                wf.parameters.alpha_guess = wfs['dscf'].bands.alphas
             wf.run()
 
             # Save workflow to file
-            with open('ozone.kwf', 'w') as fd:
-                write_json(fd, wf)
+            io.write(wf, 'ozone.kwf')
+
         wfs[name] = wf
     return wfs
 
@@ -37,8 +37,8 @@ def plot(wfs):
 
     # Plotting self-Hartrees
     ax = axes[0]
-    dscf_sh = wfs['dscf'].all_calcs[-1].results['orbital_data']['self-Hartree'][0]
-    dfpt_sh = wfs['dfpt'].all_calcs[-2].results['orbital_data']['self-Hartree']
+    dscf_sh = wfs['dscf'].calculations[-1].results['orbital_data']['self-Hartree'][0]
+    dfpt_sh = wfs['dfpt'].calculations[-2].results['orbital_data']['self-Hartree']
     bar1 = ax.bar(x - 0.125, dfpt_sh, width=0.25, label='DFPT')
     bar2 = ax.bar(x + 0.125, dscf_sh, width=0.25, label=r'$\Delta$SCF')
     ax.set_ylabel('self-Hartree (eV)')
@@ -54,7 +54,7 @@ def plot(wfs):
     # Plotting eigenvalues
     ax = axes[2]
     ax.axhline(y=0, color='k', linestyle='-', lw=0.5)
-    eigs = np.array([wf.all_calcs[-1].results['eigenvalues'][0] for wf in wfs.values()])
+    eigs = np.array([wf.calculations[-1].results['eigenvalues'][0] for wf in wfs.values()])
     bar1 = ax.bar(x - 0.125, eigs[1] - eigs[0], width=0.25, label='DFPT')
     bar2 = ax.bar(x + 0.125, eigs[2] - eigs[0], width=0.25, label=r'DFPT@$\alpha_{\Delta SCF}$')
     label_bars(bar1 + bar2)

@@ -160,8 +160,8 @@ MODULE cp_main_variables
                                  gzero, nudx, tpre )
       !------------------------------------------------------------------------
       !
-      USE mp_global,   ONLY: np_ortho, me_ortho, intra_image_comm, ortho_comm, &
-                             me_image, ortho_comm_id
+      USE mp_global,   ONLY: np_ortho, me_ortho, ortho_comm, &
+                             ortho_comm_id
       USE mp,          ONLY: mp_max, mp_min
       USE descriptors, ONLY: descla_siz_ , descla_init , nlax_ , la_nrlx_ , lambda_node_
       USE control_flags, ONLY: do_wf_cmplx, gamma_only, non_ortho, &
@@ -480,7 +480,6 @@ endif
        INTEGER,  INTENT(IN)  :: desc(:,:)
        INTEGER,  INTENT(IN)  :: nspin
        INTEGER :: i, ir, n, nlax
-       CHARACTER(len=21) :: subname = "distribute_bec_cmplx"
        !
 !        IF(.not.bec_dist%iscmplx) THEN
 !            call errore(subname, "incompatible types", 1)
@@ -516,7 +515,6 @@ endif
        INTEGER,  INTENT(IN)  :: desc(:,:)
        INTEGER,  INTENT(IN)  :: nspin
        INTEGER :: i, ir, n, nlax
-       CHARACTER(len=21) :: subname = "distribute_bec_real"
        !
 !        IF(bec_dist%iscmplx) THEN
 !            call errore(subname, "incompatible types", 1)
@@ -640,7 +638,7 @@ endif
        REAL(DP), INTENT(IN)  :: bec_dist(:,:)
        INTEGER,  INTENT(IN)  :: desc(:,:)
        INTEGER,  INTENT(IN)  :: nspin
-       INTEGER :: i, ir, n, nlax, iss
+       INTEGER :: i, ir, n, nlax
        !
        bec_repl = 0.0d0
        !

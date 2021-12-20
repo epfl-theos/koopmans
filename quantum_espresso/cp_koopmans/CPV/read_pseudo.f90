@@ -194,7 +194,6 @@ END FUNCTION calculate_dx
 
 ! ... declare other variables
       CHARACTER(LEN=20)  :: dft_name
-      CHARACTER(LEN=20)  :: pottyp
       CHARACTER(LEN=80)  :: error_msg
       CHARACTER(LEN=256) :: filename
       INTEGER            :: is, ierr, info
@@ -462,7 +461,7 @@ END FUNCTION calculate_dx
         USE io_global, ONLY: stdout
 
         TYPE (pseudo_upf), INTENT(IN) :: upf
-        INTEGER   :: in1, in2, in3, in4, m, il, ib, l, i
+        INTEGER   :: in1, in2, in3, in4, m, l, i
         INTEGER   :: lloc
 
         WRITE( stdout, * ) 

@@ -128,8 +128,8 @@
   end subroutine elec_fakekine_x
 
 !=----------------------------------------------------------------------------=!
-   SUBROUTINE protate_real_x ( c0, bec, c0rot, becrot, ngwl, nss, noff, lambda, nrl, &
-                        na, nsp, ish, nh, np_rot, me_rot, comm_rot  )
+   SUBROUTINE protate_real_x ( c0, bec, c0rot, becrot, ngwl, nss, noff, lambda, &
+                        na, nsp, ish, nh, np_rot, me_rot )
 !=----------------------------------------------------------------------------=!
 
       !  this routine rotates the wave functions using the matrix lambda
@@ -153,16 +153,16 @@
 
       USE kinds,            ONLY: DP
       USE mp,               ONLY: mp_bcast
-      USE mp_global,        ONLY: nproc_image, me_image, intra_image_comm
+      USE mp_global,        ONLY: intra_image_comm
       USE dspev_module,     ONLY: pdspev_drv, dspev_drv
 
       IMPLICIT NONE
 
       ! ... declare subroutine arguments
 
-      INTEGER, INTENT(IN) :: ngwl, nss, nrl, noff
+      INTEGER, INTENT(IN) :: ngwl, nss, noff
       INTEGER, INTENT(IN) :: na(:), nsp, ish(:), nh(:)
-      INTEGER, INTENT(IN) :: np_rot, me_rot, comm_rot 
+      INTEGER, INTENT(IN) :: np_rot, me_rot
       COMPLEX(DP), INTENT(IN) :: c0(:,:)
       COMPLEX(DP), INTENT(OUT) :: c0rot(:,:)
       REAL(DP), INTENT(IN) :: lambda(:,:)
@@ -170,8 +170,8 @@
       REAL(DP), INTENT(OUT) :: becrot(:,:)
 
       ! ... declare other variables
-      INTEGER   :: i, j, k, ip
-      INTEGER   :: jl, nrl_ip, is, ia, jv, jnl, nj
+      INTEGER   :: i, j, ip
+      INTEGER   :: jl, nrl_ip, is, ia, jv, jnl
       REAL(DP), ALLOCATABLE :: uu(:,:)
 
       IF( nss < 1 ) THEN
@@ -233,8 +233,8 @@
    END SUBROUTINE protate_real_x
 
 !=----------------------------------------------------------------------------=!
-   SUBROUTINE protate_cmplx_x ( c0, bec, c0rot, becrot, ngwl, nss, noff, lambda, nrl, &
-                        na, nsp, ish, nh, np_rot, me_rot, comm_rot  )
+   SUBROUTINE protate_cmplx_x ( c0, bec, c0rot, becrot, ngwl, nss, noff, lambda, &
+                        na, nsp, ish, nh, np_rot, me_rot  )
 !=----------------------------------------------------------------------------=!
 
       !  this routine rotates the wave functions using the matrix lambda
@@ -258,16 +258,16 @@
 
       USE kinds,            ONLY: DP
       USE mp,               ONLY: mp_bcast
-      USE mp_global,        ONLY: nproc_image, me_image, intra_image_comm
+      USE mp_global,        ONLY: intra_image_comm
       USE dspev_module,     ONLY: pdspev_drv, dspev_drv
 
       IMPLICIT NONE
 
       ! ... declare subroutine arguments
 
-      INTEGER, INTENT(IN) :: ngwl, nss, nrl, noff
+      INTEGER, INTENT(IN) :: ngwl, nss, noff
       INTEGER, INTENT(IN) :: na(:), nsp, ish(:), nh(:)
-      INTEGER, INTENT(IN) :: np_rot, me_rot, comm_rot 
+      INTEGER, INTENT(IN) :: np_rot, me_rot
       COMPLEX(DP), INTENT(IN) :: c0(:,:)
       COMPLEX(DP), INTENT(OUT) :: c0rot(:,:)
       COMPLEX(DP), INTENT(IN) :: lambda(:,:)
@@ -275,8 +275,8 @@
       COMPLEX(DP), INTENT(OUT) :: becrot(:,:)
 
       ! ... declare other variables
-      INTEGER   :: i, j, k, ip
-      INTEGER   :: jl, nrl_ip, is, ia, jv, jnl, nj
+      INTEGER   :: i, j, ip
+      INTEGER   :: jl, nrl_ip, is, ia, jv, jnl
       COMPLEX(DP), ALLOCATABLE :: uu(:,:)
 
       IF( nss < 1 ) THEN
@@ -349,7 +349,6 @@
 
       USE kinds,            ONLY: DP
       USE mp,               ONLY: mp_bcast
-      USE mp_global,        ONLY: nproc_image, me_image, intra_image_comm
       USE dspev_module,     ONLY: dspev_drv
 
       IMPLICIT NONE
@@ -416,7 +415,6 @@
 
       USE kinds,            ONLY: DP
       USE mp,               ONLY: mp_bcast
-      USE mp_global,        ONLY: nproc_image, me_image, intra_image_comm
       USE zhpev_module,     ONLY: zhpev_drv
 
       IMPLICIT NONE
@@ -491,7 +489,7 @@
          
 ! ...   declare modules
         USE kinds,              ONLY: DP
-        USE mp_global,          ONLY: nproc_image, me_image, intra_image_comm
+        USE mp_global,          ONLY: nproc_image, me_image
         USE wave_base,          ONLY: dotp
         USE reciprocal_vectors, ONLY: gzero
 
@@ -504,7 +502,7 @@
 
 ! ...   declare other variables
         REAL(DP), ALLOCATABLE :: ee(:)
-        INTEGER :: i, j, jl
+        INTEGER :: i, j
         COMPLEX(DP) :: alp
 
 ! ... end of declarations
@@ -546,16 +544,13 @@
       USE kinds,              ONLY: DP
       USE mp,                 ONLY: mp_sum
       USE mp_wave,            ONLY: splitwf
-      USE mp_global,          ONLY: me_image, nproc_image, root_image, intra_image_comm
-      USE reciprocal_vectors, ONLY: ig_l2g, ngw, ngwt, gzero
-      USE io_global,          ONLY: stdout
+      USE reciprocal_vectors, ONLY: ngw
       USE random_numbers,     ONLY: randy
       USE control_flags,      ONLY: ampre, tatomicwfc, trane
       USE uspp_param,         ONLY: n_atom_wfc
-      USE electrons_base,     ONLY: nbsp
-      USE ions_base,          ONLY: nat, nsp, ityp
+      USE ions_base,          ONLY: nat, ityp
       USE cp_main_variables,  ONLY: eigr
-      USE reciprocal_vectors, ONLY: ig_l2g, ngw, ngwt, gzero, gx, ngwx
+      USE reciprocal_vectors, ONLY: ngw, gx, ngwx
       USE constants,          ONLY: tpi      
 
       IMPLICIT NONE
@@ -565,8 +560,8 @@
       COMPLEX(DP), INTENT(INOUT) :: cm(:,:)
 
       ! ... declare other variables
-      INTEGER :: ntest, ig, ib, natomwfc, ik
-      REAL(DP) ::  rranf1, rranf2, rr, arg
+      INTEGER :: ig, natomwfc
+      REAL(DP) :: rr, arg
       COMPLEX(DP), ALLOCATABLE :: wfcatom(:,:) ! atomic wfcs for initialization
       INTEGER :: ibnd, n_starting_wfc, n_starting_atomic_wfc
       CHARACTER(len=15) :: subname="wave_atom_init"
@@ -672,9 +667,7 @@
       USE kinds,              ONLY: DP
       USE mp,                 ONLY: mp_sum
       USE mp_wave,            ONLY: splitwf
-      USE mp_global,          ONLY: me_image, nproc_image, root_image, intra_image_comm
-      USE reciprocal_vectors, ONLY: ig_l2g, ngw, ngwt, gzero
-      USE io_global,          ONLY: stdout
+      USE reciprocal_vectors, ONLY: ig_l2g, ngw, gzero, ngwt
       USE random_numbers,     ONLY: randy
       
       IMPLICIT NONE
@@ -740,9 +733,7 @@
       USE kinds,              ONLY: DP
       USE mp,                 ONLY: mp_sum
       USE mp_wave,            ONLY: splitwf
-      USE mp_global,          ONLY: me_image, nproc_image, root_image, intra_image_comm
-      USE reciprocal_vectors, ONLY: ig_l2g, ngw, ngwt, gzero, gx
-      USE io_global,          ONLY: stdout
+      USE reciprocal_vectors, ONLY: ngw, gx
       USE random_numbers,     ONLY: randy
       
       IMPLICIT NONE

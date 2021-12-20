@@ -5,12 +5,13 @@ import argparse
 import subprocess
 import textwrap
 from types import ModuleType
+import koopmans.mpl_config
 import ase
+from koopmans.settings import WorkflowSettingsDict
+from koopmans.calculators import qe_bin_directory
+from koopmans.io import read, write
 from koopmans.utils import chdir
-from koopmans.io import read_json
-from koopmans.io.jsonio import write_json
-from koopmans.calculators.generic import qe_bin_directory
-from koopmans.workflows.generic import valid_settings
+
 
 '''
 Perform KI/KIPZ calculations
@@ -21,7 +22,7 @@ def get_version(module):
     if isinstance(module, ModuleType):
         module = module.__path__[0]
     with chdir(module):
-        version_label = subprocess.check_output(["git", "describe", "--always"]).strip()
+        version_label = subprocess.check_output(["git", "describe", "--always", "--tags"]).strip()
     return version_label.decode("utf-8")
 
 
@@ -42,25 +43,30 @@ def header():
               "",
               " Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna",
               "",
-              f" using QE version {qe_version}, workflow manager version {koopmans_version}, and ASE version {ase_version}",
+              f" using QE version {qe_version}, workflow manager version {koopmans_version}, and ASE version "
+              f"{ase_version}"
               ""]
     return '\n'.join(header)
 
 
 def main():
+    # Write out the header
+    print(header())
+
     # Automatically constructing a list of workflow keywords for 'run_koopmans.py --help'
     # from valid_settings
     epilog = ''
-    maxlen = max([len(s.name) for s in valid_settings]) + 2
-    for s in valid_settings:
+    wf_settings = WorkflowSettingsDict()
+    maxlen = max([len(s.name) for s in wf_settings.settings]) + 2
+    for s in wf_settings.settings:
         entry = f'  {s.name.ljust(maxlen)}{s.description} ('
-        if isinstance(s.type, tuple):
-            entry += '/'.join([t.__name__ for t in s.type])
+        if isinstance(s.kind, tuple):
+            entry += '/'.join([t.__name__ for t in s.kind])
         else:
-            entry += s.type.__name__
+            entry += s.kind.__name__
         if s.default is not None:
             entry += f', default {s.default}'
-        if s.options is not None and s.type is not bool:
+        if s.options is not None and s.kind is not bool:
             entry += ', must be ' + '/'.join([str(o) for o in s.options])
         entry += ')'
         for line in textwrap.wrap(entry, subsequent_indent=' ' * (maxlen + 2), width=120):
@@ -79,17 +85,13 @@ def main():
     args = parser.parse_args()
 
     # Reading in JSON file
-    workflow = read_json(args.json)
-
-    # Write out the header
-    print(header())
+    workflow = read(args.json)
 
     # Run workflow
     workflow.run()
 
     # Save workflow to file
-    with open(args.json.replace('.json', '.kwf'), 'w') as fd:
-        write_json(fd, workflow)
+    write(workflow, args.json.replace('.json', '.kwf'))
 
     # Print farewell message
     print('\n Workflow complete')

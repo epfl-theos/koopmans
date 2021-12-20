@@ -17,6 +17,13 @@ def test_mock_si_ki(capsys, mock_quantum_espresso):
     test.run()
 
 
+@pytest.mark.stumble
+def test_si_ki_stumble(capsys, stumble):
+    test = WorkflowTest(json, capsys)
+    test.run()
+
+
+@pytest.mark.standard
 def test_si_ki(capsys):
     test = WorkflowTest(json, capsys)
     test.run()

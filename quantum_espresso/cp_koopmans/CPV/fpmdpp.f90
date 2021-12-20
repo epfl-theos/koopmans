@@ -24,7 +24,7 @@ PROGRAM fpmd_postproc
 
   USE kinds,      ONLY : DP
   USE constants,  ONLY : bohr => BOHR_RADIUS_ANGS
-  USE io_files,   ONLY : tmp_dir, prefix, iunpun, xmlpun, outdir
+  USE io_files,   ONLY : prefix, xmlpun, outdir
   USE io_global,     ONLY : io_global_start, io_global_getmeta
   USE mp_global,     ONLY : mp_global_start, init_pool
   USE mp,            ONLY : mp_end, mp_start, mp_env
@@ -42,7 +42,6 @@ PROGRAM fpmd_postproc
   INTEGER                    :: np1, np2, np3, np, ispin
   INTEGER, ALLOCATABLE       :: ityp(:)
   REAL(DP)              :: at(3, 3), atinv(3, 3), ht0(3, 3), h0(3, 3)
-  REAL(DP)              :: rhof, rhomax, rhomin, rhoc(6)
   REAL(DP), ALLOCATABLE :: rho_in(:,:,:), rho_out(:,:,:)
   REAL(DP), ALLOCATABLE :: tau_in(:,:), tau_out(:,:)
   REAL(DP), ALLOCATABLE :: sigma(:,:), force(:,:)
@@ -59,8 +58,7 @@ PROGRAM fpmd_postproc
   INTEGER            :: ios, nat, ndr
   INTEGER            :: nproc, mpime, world, root
 
-  REAL(DP) :: x, y, z, fx, fy, fz
-  INTEGER  :: i, j, k, n, ix, iy, iz, ierr
+  INTEGER  :: i, j, k, n, ix, iy, iz
 
   REAL(DP) :: euler(6)
 
@@ -333,8 +331,8 @@ PROGRAM fpmd_postproc
      ! read data from files produced by fpmd
      !
      CALL read_fpmd( lforces, lcharge, lbinary, cunit, punit, funit, dunit, &
-                     natoms, nr1, nr2, nr3, ispin, at, tau_in, force, &
-                     rho_in, prefix, outdir, ndr, charge_density )
+                     natoms, nr1, nr2, nr3, at, tau_in, force, &
+                     rho_in, outdir, ndr, charge_density )
 
      IF( nframes == 1 ) THEN
         !
@@ -451,7 +449,7 @@ PROGRAM fpmd_postproc
   END IF
 
   ! write atomic positions as PDB format
-  CALL write_pdb( bunit, at, tau_out, natoms, ityp, euler, lrotation )
+  CALL write_pdb( bunit, tau_out, natoms, ityp, euler, lrotation )
 
   ! free allocated resources
   CLOSE(punit)
@@ -479,8 +477,8 @@ END PROGRAM fpmd_postproc
 
 
 SUBROUTINE read_fpmd( lforces, lcharge, lbinary, cunit, punit, funit, dunit, &
-                      natoms, nr1, nr2, nr3, ispin, at, tau, force, &
-                      rho, prefix, outdir, ndr, charge_density )
+                      natoms, nr1, nr2, nr3, at, tau, force, &
+                      rho, outdir, ndr, charge_density )
 
   USE kinds,      ONLY: DP
   USE constants,  ONLY: bohr => BOHR_RADIUS_ANGS
@@ -491,19 +489,15 @@ SUBROUTINE read_fpmd( lforces, lcharge, lbinary, cunit, punit, funit, dunit, &
 
   LOGICAL, INTENT(in)   :: lforces, lcharge, lbinary
   INTEGER, INTENT(in)   :: cunit, punit, funit, dunit
-  INTEGER, INTENT(in)   :: natoms, nr1, nr2, nr3, ispin, ndr
+  INTEGER, INTENT(in)   :: natoms, nr1, nr2, nr3, ndr
   REAL(DP), INTENT(out) :: at(3, 3), tau(3, natoms), force(3, natoms)
   REAL(DP), INTENT(out) :: rho(nr1, nr2, nr3)
-  CHARACTER(LEN=*), INTENT(IN) :: prefix
   CHARACTER(LEN=*), INTENT(IN) :: outdir
   CHARACTER(LEN=*), INTENT(IN) :: charge_density
 
-  INTEGER  :: i, j, ix, iy, iz, ierr
-  REAL(DP) :: rhomin, rhomax, rhof
+  INTEGER  :: i, j
   REAL(DP) :: x, y, z, fx, fy, fz
   CHARACTER(LEN=256) :: filename
-  INTEGER       :: n1, n2, n3
-  REAL(DP), ALLOCATABLE :: rho_plane(:)
 
   ! read cell vectors
   ! NOTE: colums are lattice vectors
@@ -578,7 +572,7 @@ SUBROUTINE read_density( filename, dunit, nr1, nr2, nr3, rho, lbinary )
    CHARACTER(LEN=*), INTENT(IN) :: filename
 
    INTEGER  :: ix, iy, iz, ierr
-   REAL(DP) :: rhomin, rhomax, rhof
+   REAL(DP) :: rhomin, rhomax
    INTEGER       :: n1, n2, n3
    REAL(DP), ALLOCATABLE :: rho_plane(:)
 
@@ -890,14 +884,14 @@ SUBROUTINE write_grd( ounit, at, rho, nr1, nr2, nr3 )
   RETURN
 END SUBROUTINE write_grd
 
-SUBROUTINE write_pdb( bunit, at, tau, natoms, ityp, euler, lrotation )
+SUBROUTINE write_pdb( bunit, tau, natoms, ityp, euler, lrotation )
   IMPLICIT NONE
 
   INTEGER, PARAMETER :: DP = KIND(0.0d0)
 
   INTEGER, INTENT(in)       :: bunit, natoms
   INTEGER, INTENT(in)       :: ityp(natoms)
-  REAL(DP), INTENT(in) :: at(3, 3), tau(3, natoms), euler(6)
+  REAL(DP), INTENT(in)      ::  tau(3, natoms), euler(6)
   LOGICAL, INTENT(in)       :: lrotation
 
   INTEGER     :: i, j
