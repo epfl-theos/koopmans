@@ -144,7 +144,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 walltime = time() - start
                 self.results['walltime'] = walltime
                 self.f_out.write(f'\n\tTotal time: {walltime:32.3f} sec\n')
-                self.f_out.write('\nALL DONE')
+                self.f_out.write('\nALL DONE\n')
 
                 self.results['job done'] = True
 
