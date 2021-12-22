@@ -263,7 +263,7 @@ class KoopmansDSCFWorkflow(Workflow):
                                  'and complete KI calculation is required '
                                  'to restart from an old KI calculation"')
             if savedir.is_dir():
-                savedir.rmdir()
+                shutil.rmtree(savedir.as_posix())
 
             # Use the chdir construct in order to create the directory savedir if it does not already exist and is
             # nested
