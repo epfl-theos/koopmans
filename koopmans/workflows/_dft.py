@@ -79,6 +79,11 @@ class PWBandStructureWorkflow(Workflow):
         calc_bands.prefix = 'bands'
         self.run_calculator(calc_bands)
 
+        # Third, a PDOS calculation
+        calc_dos = self.new_calculator('projwfc', filpdos=self.name)
+        self.run_calculator(calc_dos)
+        import ipdb
+        ipdb.set_trace()
         # Finally, plot the band structure
         bs = calc_bands.results['band structure']
         n_filled = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials) // 2

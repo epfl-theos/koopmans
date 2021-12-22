@@ -31,3 +31,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
                 'ASE_PROJWFC_COMMAND', str(qe_bin_directory) + os.path.sep + self.command))
 
         self.results_for_qc = []
+    def is_complete(self):
+        return True
+    def is_converged(self):
+        return True
