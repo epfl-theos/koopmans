@@ -332,7 +332,9 @@
                !
             ELSE
                !
-               IF (nupdwn_emp(1) < nupdwn_emp(2)) CALL errore('empty_cp', 'unexpec emp nupdwn(1) < nupdwn(2)', 10)
+               IF (nupdwn_emp(1) > nupdwn_emp(2)) THEN
+                  CALL errore('empty_cp', 'More spin-up empty states than spin-down; this is not allowed', 10)
+               END IF
                !
                IF (tatomicwfc) THEN
                   !

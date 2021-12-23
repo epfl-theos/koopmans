@@ -250,8 +250,7 @@ subroutine nksic_rot_emin_cg_general(nouter, init_n, ninner, etot, rot_threshold
          !
       end if
       !
-      spin_loop: &
-         do isp = 1, nspin
+      spin_loop: do isp = 1, nspin
          !
          if (nupdwn(isp) .gt. 1) then
             !

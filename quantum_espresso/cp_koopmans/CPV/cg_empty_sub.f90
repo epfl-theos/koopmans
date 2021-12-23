@@ -1286,6 +1286,7 @@ contains
             write (stdout, '(1x,  "Fake EODD (Ha) = ",F22.14) ') eodd_emp
          end if
          !
+         if (etotnew /= etotnew) call errore(' print_out_observables ', 'Energy is NaN', 1)
       end if
       !
       if (ionode .and. mod(itercg, 10) == 0) write (stdout, "()")

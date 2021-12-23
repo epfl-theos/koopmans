@@ -1109,7 +1109,6 @@ CONTAINS
       END IF
 
       CALL electrons_empty_initval(nbnd_provided, emass, emass_cutoff)
-      write (*, *) 'EBL DEBUG:', nbnd, nupdwn(1), nupdwn(2), nupdwn_emp(1), nupdwn_emp(2)
 
       CALL ensemble_initval(occupations, n_inner, fermi_energy, &
                             niter_cold_restart, lambda_cold, rotmass, &

@@ -166,7 +166,7 @@ CONTAINS
          IF (nupdwn_emp(1) < 0) CALL errore(' electrons ', ' cannot have a negative number of empty bands')
 
          IF (nspin == 2) THEN
-            nupdwn_emp(2) = nbnd - nupdwn(1)
+            nupdwn_emp(2) = nbnd - nupdwn(2)
             iupdwn_emp(2) = nupdwn_emp(1) + 1
             IF (nupdwn_emp(2) < 0) CALL errore(' electrons ', ' cannot have a negative number of empty bands')
          END IF
@@ -350,19 +350,21 @@ CONTAINS
       DO j = 1, nspin
          !
          IF (tstdout) THEN
-            WRITE (stdout, 1002) ik, j
-            WRITE (stdout, 1004) (ei(i, j)*autoev, i=1, nupdwn(j))
 
-            !
-            IF (tens .OR. tsmear) THEN
-               WRITE (stdout, 1082) ik, j
-               WRITE (stdout, 1084) (f(i), i=iupdwn(j), iupdwn(j) + nupdwn(j) - 1)
+            IF (nupdwn(j) > 0) THEN
+               WRITE (stdout, 1002) ik, j
+               WRITE (stdout, 1004) (ei(i, j)*autoev, i=1, nupdwn(j))
                !
-               WRITE (stdout, 1092) ik, j
-               WRITE (stdout, 1084) (fmat0_diag(i), i=iupdwn(j), iupdwn(j) + nupdwn(j) - 1)
+               IF (tens .OR. tsmear) THEN
+                  WRITE (stdout, 1082) ik, j
+                  WRITE (stdout, 1084) (f(i), i=iupdwn(j), iupdwn(j) + nupdwn(j) - 1)
+                  !
+                  WRITE (stdout, 1092) ik, j
+                  WRITE (stdout, 1084) (fmat0_diag(i), i=iupdwn(j), iupdwn(j) + nupdwn(j) - 1)
+               END IF
             END IF
             !
-            IF (nbsp_emp .GT. 0) THEN
+            IF (nupdwn_emp(j) > 0) THEN
                WRITE (stdout, 1005) ik, j
                WRITE (stdout, 1004) (ei_emp(i, j)*autoev, i=1, nupdwn_emp(j))
                IF (nupdwn(j) > 0) &
@@ -371,9 +373,11 @@ CONTAINS
          END IF
          !
          IF (tfile) THEN
-            WRITE (ei_unit, 1010) ik, j
-            WRITE (ei_unit, 1020) (ei(i, j)*autoev, i=1, nupdwn(j))
-            IF (nbsp_emp .GT. 0) THEN
+            IF (nupdwn(j) > 0) THEN
+               WRITE (ei_unit, 1010) ik, j
+               WRITE (ei_unit, 1020) (ei(i, j)*autoev, i=1, nupdwn(j))
+            END IF
+            IF (nupdwn_emp(j) > 0) THEN
                WRITE (ei_unit, 1011) ik, j
                WRITE (ei_unit, 1020) (ei_emp(i, j)*autoev, i=1, nupdwn_emp(j))
                IF (nupdwn(j) > 0) &
@@ -428,17 +432,20 @@ CONTAINS
          !
          IF (tstdout) THEN
 
-            WRITE (stdout, 1222) ik, j
-            !
-            IF (do_orbdep) THEN
-               WRITE (stdout, 1444) (i, wfc_centers(1:4, i, j), wfc_spreads(i, j, 1), wfc_spreads(i, j, 2), &
-                                     pink(iupdwn(j) - 1 + sort_spreads(i, j))*hartree_si/electronvolt_si, &
-                                     pzalpha(iupdwn(j) - 1 + sort_spreads(i, j)), i=1, nupdwn(j))
-            ELSE
-               WRITE (stdout, 1445) (i, wfc_centers(1:4, i, j), wfc_spreads(i, j, 1), wfc_spreads(i, j, 2), i=1, nupdwn(j))
+            IF (nupdwn(j) > 0) THEN
+
+               WRITE (stdout, 1222) ik, j
+               !
+               IF (do_orbdep) THEN
+                  WRITE (stdout, 1444) (i, wfc_centers(1:4, i, j), wfc_spreads(i, j, 1), wfc_spreads(i, j, 2), &
+                                        pink(iupdwn(j) - 1 + sort_spreads(i, j))*hartree_si/electronvolt_si, &
+                                        pzalpha(iupdwn(j) - 1 + sort_spreads(i, j)), i=1, nupdwn(j))
+               ELSE
+                  WRITE (stdout, 1445) (i, wfc_centers(1:4, i, j), wfc_spreads(i, j, 1), wfc_spreads(i, j, 2), i=1, nupdwn(j))
+               END IF
             END IF
             !
-            IF (nbsp_emp .GT. 0) THEN
+            IF (nupdwn_emp(j) > 0) THEN
                WRITE (stdout, 1333) ik, j
                !
                IF (do_orbdep) THEN
