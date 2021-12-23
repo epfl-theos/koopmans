@@ -100,12 +100,22 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
     def _swap_spin_channels(self):
         # Parameters
         if self.parameters.fixed_band is not None and self.parameters.fixed_state:
-            if self.parameters.fixed_band > self.parameters.nbnd:
+            if self.parameters.nbnd is None:
+                if self.parameters.nspin == 2:
+                    nbup = self.parameters.nelup
+                    nbdw = self.parameters.neldw
+                else:
+                    nbup = self.parameters.nelec // 2
+                    nbdw = self.parameters.nelec // 2
+            else:
+                nbup = self.parameters.nbnd
+                nbdw = self.parameters.nbnd
+            if self.parameters.fixed_band > nbup:
                 # The fixed band was spin-down
-                self.parameters.fixed_band -= self.parameters.nbnd
+                self.parameters.fixed_band -= nbup
             else:
                 # The fixed band was spin-up
-                self.parameters.fixed_band += self.parameters.nbnd
+                self.parameters.fixed_band += nbdw
         self.parameters.nelup, self.parameters.neldw = self.parameters.neldw, self.parameters.nelup
         self.parameters.tot_magnetization *= -1
 
