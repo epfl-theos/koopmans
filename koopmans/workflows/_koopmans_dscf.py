@@ -11,7 +11,6 @@ import numpy as np
 import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-from ase.spectrum.band_structure import BandStructure
 from koopmans import utils
 from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.bands import Band, Bands
@@ -704,59 +703,10 @@ class KoopmansDSCFWorkflow(Workflow):
 
             self.run_calculator(calc)
 
-    def perform_postprocessing(self) -> None:
-        # Import these here so that if these have been monkey-patched, we get the monkey-patched version
-        from koopmans.workflows import WannierizeWorkflow
-
+    def perform_postprocessing(self, *args) -> None:
         # Transform self.atoms back to the primitive cell
         self.supercell_to_primitive()
-
-        # Store the original w90 calculations
-        w90_calcs = [c for c in self.calculations if isinstance(c, calculators.Wannier90Calculator)
-                     and c.command.flags == ''][-len(self.projections):]
-
-        if self.master_calc_params['ui'].do_smooth_interpolation:
-            wf_kwargs = self.wf_kwargs
-            wf_kwargs['kgrid'] = [x * y for x,
-                                  y in zip(wf_kwargs['kgrid'], self.master_calc_params['ui'].smooth_int_factor)]
-            wannier_workflow = WannierizeWorkflow(**wf_kwargs)
-
-            # Here, we allow for skipping of the smooth dft calcs (assuming they have been already run)
-            # This is achieved via the optional argument of from_scratch in run_subworkflow(), which
-            # overrides the value of wannier_workflow.from_scratch, as well as preventing the inheritance of
-            # self.from_scratch to wannier_workflow.from_scratch and back again after the subworkflow finishes
-            self.run_subworkflow(wannier_workflow, subdirectory='postproc', from_scratch=self._redo_smooth_dft)
-
-        calc: calculators.UnfoldAndInterpolateCalculator
-        if self.parameters.spin_polarised:
-            raise NotImplementedError()
-        for calc_presets in ['occ', 'emp']:
-            calc = self.new_ui_calculator(calc_presets)
-            calc.centers = np.array([center for c in w90_calcs for center in c.results['centers']
-                                    if calc_presets in c.directory.name])
-            calc.spreads = [spread for c in w90_calcs for spread in c.results['spreads']
-                            if calc_presets in c.directory.name]
-            self.run_calculator(calc, enforce_ss=False)
-
-        # Merge the two calculations to print out the DOS and bands
-        calc = self.new_ui_calculator('merge')
-
-        # Merge the bands
-        energies = [c.results['band structure'].energies for c in self.calculations[-2:]]
-        reference = np.max(energies[0])
-        calc.results['band structure'] = BandStructure(self.kpath, np.concatenate(energies, axis=2) - reference)
-
-        if calc.parameters.do_dos:
-            # Generate the DOS
-            calc.calc_dos()
-
-        # Print out the merged bands and DOS
-        if self.parameters.from_scratch:
-            with utils.chdir('postproc'):
-                calc.write_results()
-
-        # Store the calculator in the workflow's list of all the calculators
-        self.calculations.append(calc)
+        return super().perform_postprocessing(from_scratch=self._redo_smooth_dft)
 
     def new_kcp_calculator(self, calc_presets: str = 'dft_init',
                            alphas: Optional[List[List[float]]] = None,
@@ -985,30 +935,6 @@ class KoopmansDSCFWorkflow(Workflow):
             # Don't check N+1 energies because they're known to be unreliable
             if 'energy' in calc.results_for_qc:
                 calc.results_for_qc.remove('energy')
-
-        return calc
-
-    def new_ui_calculator(self, calc_presets: str, **kwargs) -> calculators.UnfoldAndInterpolateCalculator:
-
-        valid_calc_presets = ['occ', 'emp', 'merge']
-        assert calc_presets in valid_calc_presets, 'In KoopmansDSCFWorkflow.new_ui_calculator() calc_presets must be ' \
-            '/'.join([f'"{s}"' for s in valid_calc_presets]) + ', but you have tried to set it equal to {calc_presets}'
-
-        if calc_presets == 'merge':
-            # Dummy calculator for merging bands and dos
-            kwargs['directory'] = Path('postproc')
-            pass
-        else:
-            # Automatically generating UI calculator settings
-            kwargs['directory'] = Path(f'postproc/{calc_presets}')
-            kwargs['kc_ham_file'] = Path(f'final/ham_{calc_presets}_1.dat').resolve()
-            kwargs['w90_seedname'] = Path(f'init/wannier/{calc_presets}/wann').resolve()
-            if self.master_calc_params['ui'].do_smooth_interpolation:
-                kwargs['dft_smooth_ham_file'] = Path(f'postproc/wannier/{calc_presets}/wann_hr.dat').resolve()
-                kwargs['dft_ham_file'] = Path(f'init/wannier/{calc_presets}/wann_hr.dat').resolve()
-
-        calc: calculators.UnfoldAndInterpolateCalculator = self.new_calculator('ui', **kwargs)
-        calc.prefix = self.parameters.functional
 
         return calc
 

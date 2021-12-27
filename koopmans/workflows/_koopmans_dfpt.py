@@ -10,7 +10,7 @@ import os
 import numpy as np
 import koopmans.mpl_config
 from koopmans.bands import Bands
-from koopmans.calculators import Wann2KCCalculator, KoopmansHamCalculator
+from koopmans.calculators import Wann2KCCalculator, KoopmansHamCalculator, UnfoldAndInterpolateCalculator
 from koopmans import utils, io
 from ._generic import Workflow
 
@@ -28,6 +28,7 @@ class KoopmansDFPTWorkflow(Workflow):
             raise NotImplementedError(
                 'Calculating screening parameters with DFPT is not yet possible with functionals other than KI')
         if self.parameters.periodic:
+            self._redo_smooth_dft = self.master_calc_params['ui'].do_smooth_interpolation
             if self.parameters.init_orbitals not in ['mlwfs', 'projwfs']:
                 raise ValueError(
                     'Calculating screening parameters with DFPT for a periodic system is only possible with MLWFs '
@@ -35,7 +36,7 @@ class KoopmansDFPTWorkflow(Workflow):
         else:
             if self.parameters.init_orbitals != 'kohn-sham':
                 raise ValueError(
-                    'Calculating screening parameters with DFPT for a periodic system is only possible with Kohn-Sham '
+                    'Calculating screening parameters with DFPT for a non-periodic system is only possible with Kohn-Sham '
                     'orbitals as the variational orbitals')
         for params in self.master_calc_params.values():
             if self.parameters.periodic:
@@ -81,7 +82,7 @@ class KoopmansDFPTWorkflow(Workflow):
 
         # Delete any pre-existing directories if running from scratch
         if self.parameters.from_scratch:
-            for directory in ['init', 'wannier', 'screening', 'hamiltonian', 'TMP']:
+            for directory in ['init', 'wannier', 'screening', 'hamiltonian', 'postproc', 'TMP']:
                 if os.path.isdir(directory):
                     utils.system_call(f'rm -r {directory}')
 
@@ -191,6 +192,10 @@ class KoopmansDFPTWorkflow(Workflow):
             raise ValueError('Do not set "lrpa" to different values in the "screen" and "ham" blocks')
         self.run_calculator(kc_ham_calc)
 
+        if self.parameters.periodic and self.projections and self.kpath is not None and self.master_calc_params['ui'].do_smooth_interpolation:
+            self.print(f'\nPostprocessing', style='heading')
+            self.perform_postprocessing()
+
         # Plotting
         self.plot_bandstructure()
 
@@ -214,7 +219,7 @@ class KoopmansDFPTWorkflow(Workflow):
                 bs.plot(emin=-20, emax=20, filename=f'{self.name}_bandstructure.png')
 
     def new_calculator(self, calc_presets, **kwargs):
-        if calc_presets not in ['kc_ham', 'kc_screen', 'wann2kc']:
+        if calc_presets not in ['kc_ham', 'kc_screen', 'wann2kc', 'ui']:
             raise ValueError(
                 f'Invalid choice calc_presets={calc_presets} in {self.__class__.__name__}.new_calculator()')
 
@@ -259,12 +264,12 @@ class KoopmansDFPTWorkflow(Workflow):
 
         return calc
 
-    def run_calculator(self, calc):
+    def run_calculator(self, calc, **kwargs):
         # Create this (possibly nested) directory
         calc.directory.mkdir(parents=True, exist_ok=True)
 
         # Provide the rotation matrices and the wannier centres
-        if self.parameters.periodic:
+        if self.parameters.periodic and not isinstance(calc, UnfoldAndInterpolateCalculator):
             exist_ok = not self.parameters.from_scratch
             utils.symlink(f'wannier/occ/wann_u.mat', f'{calc.directory}/', exist_ok=exist_ok)
             utils.symlink(f'wannier/emp/wann_u.mat', f'{calc.directory}/wann_emp_u.mat', exist_ok=exist_ok)
@@ -275,3 +280,6 @@ class KoopmansDFPTWorkflow(Workflow):
                           f'{calc.directory}/wann_emp_centres.xyz', exist_ok=exist_ok)
 
         super().run_calculator(calc)
+
+    def perform_postprocessing(self, *args) -> None:
+        return super().perform_postprocessing(from_scratch=self._redo_smooth_dft)
