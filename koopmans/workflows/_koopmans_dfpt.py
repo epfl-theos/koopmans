@@ -36,8 +36,8 @@ class KoopmansDFPTWorkflow(Workflow):
         else:
             if self.parameters.init_orbitals != 'kohn-sham':
                 raise ValueError(
-                    'Calculating screening parameters with DFPT for a non-periodic system is only possible with Kohn-Sham '
-                    'orbitals as the variational orbitals')
+                    'Calculating screening parameters with DFPT for a non-periodic system is only possible '
+                    'with Kohn-Sham orbitals as the variational orbitals')
         for params in self.master_calc_params.values():
             if self.parameters.periodic:
                 # Gygi-Baldereschi
@@ -192,7 +192,8 @@ class KoopmansDFPTWorkflow(Workflow):
             raise ValueError('Do not set "lrpa" to different values in the "screen" and "ham" blocks')
         self.run_calculator(kc_ham_calc)
 
-        if self.parameters.periodic and self.projections and self.kpath is not None and self.master_calc_params['ui'].do_smooth_interpolation:
+        if self.parameters.periodic and self.projections and self.kpath is not None \
+                and self.master_calc_params['ui'].do_smooth_interpolation:
             self.print(f'\nPostprocessing', style='heading')
             self.perform_postprocessing()
 
