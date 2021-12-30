@@ -28,7 +28,6 @@ class KoopmansDFPTWorkflow(Workflow):
             raise NotImplementedError(
                 'Calculating screening parameters with DFPT is not yet possible with functionals other than KI')
         if self.parameters.periodic:
-            self._redo_smooth_dft = self.master_calc_params['ui'].do_smooth_interpolation
             if self.parameters.init_orbitals not in ['mlwfs', 'projwfs']:
                 raise ValueError(
                     'Calculating screening parameters with DFPT for a periodic system is only possible with MLWFs '
@@ -224,6 +223,9 @@ class KoopmansDFPTWorkflow(Workflow):
             raise ValueError(
                 f'Invalid choice calc_presets={calc_presets} in {self.__class__.__name__}.new_calculator()')
 
+        if calc_presets == 'ui':
+            return super().new_calculator(calc_presets, **kwargs)
+
         calc = super().new_calculator(calc_presets)
 
         calc.prefix = 'kc'
@@ -283,4 +285,4 @@ class KoopmansDFPTWorkflow(Workflow):
         super().run_calculator(calc)
 
     def perform_postprocessing(self, *args) -> None:
-        return super().perform_postprocessing(from_scratch=self._redo_smooth_dft)
+        return super().perform_postprocessing()

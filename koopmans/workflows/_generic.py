@@ -678,7 +678,7 @@ class Workflow(object):
         assert isinstance(value, Bands)
         self._bands = value
 
-    def perform_postprocessing(self, from_scratch=True) -> None:
+    def perform_postprocessing(self, from_scratch=None) -> None:
         # Import these here so that if these have been monkey-patched, we get the monkey-patched version
         from koopmans.workflows import WannierizeWorkflow
 
@@ -749,7 +749,7 @@ class Workflow(object):
                     kwargs['dft_smooth_ham_file'] = Path(f'postproc/wannier/{calc_presets}/wann_hr.dat').resolve()
                     kwargs['dft_ham_file'] = Path(f'init/wannier/{calc_presets}/wann_hr.dat').resolve()
             else:
-                kwargs['kc_ham_file'] = Path(f'hamiltonian/wann_KC_ham_{calc_presets}.dat').resolve()
+                kwargs['kc_ham_file'] = Path(f'hamiltonian/kc.kc_hr_{calc_presets}.dat').resolve()
                 kwargs['w90_seedname'] = Path(f'wannier/{calc_presets}/wann').resolve()
                 if self.master_calc_params['ui'].do_smooth_interpolation:
                     kwargs['dft_smooth_ham_file'] = Path(f'postproc/wannier/{calc_presets}/wann_hr.dat').resolve()
