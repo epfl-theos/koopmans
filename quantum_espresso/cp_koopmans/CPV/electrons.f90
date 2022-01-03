@@ -28,8 +28,20 @@ MODULE electrons_module
    LOGICAL :: band_first = .TRUE.
 
    ! The empty-orbital-equivalents of the variables defined in Modules/electrons_base.f90
+   ! N.B. because nupdwn(1) >= nupdwn(2) it follows that nupdwn_emp(1) <= nupdwn_emp(2), and therefore
+   ! any 'dummy' states required for making these arrays ought to be added to the spin-up channel. However,
+   ! if we were do this, and store the wavefunction arrays ordered by spin alone, this would mean we have some
+   ! dummy states appearing before some real states
+   ! e.g. for a system with nbnd=1 and nelec=1 we would have
+   !   c0 = (up, dummy)
+   !   c0_emp = (dummy, down)
+   ! so here if we were to loop over nbsp_emp, we would loop over the dummy state and not the real spin-down
+   ! empty state. To resolve this, we always set iupdwn_emp such that the dummy states are always at the end
+   ! of our arrays i.e.
+   !   c0 = (up, dummy)
+   !   c0_emp = (down, dummy)
    INTEGER :: nupdwn_emp(2) = 0    !  number of empty states with spin up (1) and down (2)
-   INTEGER :: iupdwn_emp(2) = 0    !  first empty state with spin (1) and down (2)
+   INTEGER :: iupdwn_emp(2) = 0    !  first empty state with spin (1) and down (2).
    INTEGER :: nudx_emp = 0    !  max (nupdw_emp(1),nupdw_emp(2))
    INTEGER :: nbsp_emp = 0    !  total number of electronic states = nupdwn_emp(1) + nupdwn_emp(2)
    INTEGER :: nbspx_emp = 0   !  array dimension nbspx_emp >= nbsp_emp
@@ -161,8 +173,19 @@ CONTAINS
 
       IF (include_empty) THEN
          !
+         IF (nspin == 2) THEN
+            nudx_emp = nbnd - minval(nupdwn)
+         ELSE
+            nudx_emp = nbnd - nupdwn(1)
+         END IF
+         !
          nupdwn_emp(1) = nbnd - nupdwn(1)
-         iupdwn_emp(1) = 1
+         IF (nupdwn_emp(1) == 0) THEN
+            iupdwn_emp(1) = 0
+         ELSE
+            iupdwn_emp(1) = 1
+         END IF
+
          IF (nupdwn_emp(1) < 0) CALL errore(' electrons ', ' cannot have a negative number of empty bands')
 
          IF (nspin == 2) THEN
@@ -171,11 +194,6 @@ CONTAINS
             IF (nupdwn_emp(2) < 0) CALL errore(' electrons ', ' cannot have a negative number of empty bands')
          END IF
          !
-         IF (nspin == 2) THEN
-            nudx_emp = nbnd - minval(nupdwn)
-         ELSE
-            nudx_emp = nbnd - nupdwn(1)
-         END IF
       ELSE
          ! nbnd was not expliclty provided, so we shouldn't perform an empty states calculation
          nupdwn_emp(1) = 0
@@ -186,7 +204,15 @@ CONTAINS
       nbsp_emp = sum(nupdwn_emp)
       nbspx_emp = nbsp_emp + mod(nbsp_emp, 2)
 
-      write (*, *) 'EBL DEBUG', include_empty, nbnd, nupdwn, iupdwn, nupdwn_emp, iupdwn_emp, nbsp_emp, nbspx_emp
+      write (*, *) 'EBL DEBUG'
+      write (*, *) 'include_empty =', include_empty
+      write (*, *) 'nbnd = ', nbnd
+      write (*, *) 'nupdwn = ', nupdwn
+      write (*, *) 'iupdwn = ', iupdwn
+      write (*, *) 'nupdwn_emp = ', nupdwn_emp
+      write (*, *) 'iupdwn_emp = ', iupdwn_emp
+      write (*, *) 'nbsp_emp = ', nbsp_emp
+      write (*, *) 'nbspx_emp = ', nbspx_emp
 
       IF (ALLOCATED(ei)) DEALLOCATE (ei)
       ALLOCATE (ei(nudx, nspin), STAT=ierr)
