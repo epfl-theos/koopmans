@@ -345,6 +345,7 @@ CONTAINS
       REAL(DP), INTENT(IN) :: tps
       !
       INTEGER :: i, j, ik
+      REAL(DP) :: e_homo, e_lumo
       !
       IF (tfile) THEN
          WRITE (ei_unit, 30) nfi, tps
@@ -354,22 +355,25 @@ CONTAINS
       !
       IF (tstdout) THEN
          IF (nspin == 1) THEN
-            WRITE (stdout, 1101)
-            WRITE (stdout, 1444) MAXVAL(ei(1:nupdwn(1), 1)*autoev, nupdwn(1))
+            e_homo = MAXVAL(ei(1:nupdwn(1), 1)*autoev, nupdwn(1))
          ELSE
-            WRITE (stdout, 1101)
-            WRITE (stdout, 1444) MAX(MAXVAL(ei(1:nupdwn(1), 1)*autoev, nupdwn(1)), MAXVAL(ei(1:nupdwn(2), 2)*autoev, nupdwn(2)))
+            e_homo = MAX(MAXVAL(ei(1:nupdwn(1), 1)*autoev, nupdwn(1)), MAXVAL(ei(1:nupdwn(2), 2)*autoev, nupdwn(2)))
          END IF
+         WRITE (stdout, 1101)
+         WRITE (stdout, 1444) e_homo
 
          IF (nbsp_emp .gt. 0) THEN
             IF (nspin == 1) THEN
-               WRITE (stdout, 1201)
-               WRITE (stdout, 1444) MINVAL(ei_emp(1:nupdwn_emp(1), 1)*autoev, nupdwn_emp(1))
+               e_lumo = MINVAL(ei_emp(1:nupdwn_emp(1), 1)*autoev, nupdwn_emp(1))
             ELSE
-               WRITE (stdout, 1201)
-               WRITE (stdout, 1444) MIN(MINVAL(ei_emp(1:nupdwn_emp(1), 1)*autoev, nupdwn_emp(1)), &
-                                        MINVAL(ei_emp(1:nupdwn_emp(2), 2)*autoev, nupdwn_emp(2)))
+               e_lumo = MIN(MINVAL(ei_emp(1:nupdwn_emp(1), 1)*autoev, nupdwn_emp(1)), &
+                            MINVAL(ei_emp(1:nupdwn_emp(2), 2)*autoev, nupdwn_emp(2)))
             END IF
+            WRITE (stdout, 1201)
+            WRITE (stdout, 1444) e_lumo
+
+            IF (tstdout) WRITE (stdout, 1006) e_lumo - e_homo
+            IF (tfile) WRITE (ei_unit, 1021) e_lumo - e_homo
          END IF
       END IF
 
@@ -393,8 +397,6 @@ CONTAINS
             IF (nupdwn_emp(j) > 0) THEN
                WRITE (stdout, 1005) ik, j
                WRITE (stdout, 1004) (ei_emp(i, j)*autoev, i=1, nupdwn_emp(j))
-               IF (nupdwn(j) > 0) &
-                  WRITE (stdout, 1006) (ei_emp(1, j) - ei(nupdwn(j), j))*autoev
             END IF
          END IF
          !
@@ -406,8 +408,6 @@ CONTAINS
             IF (nupdwn_emp(j) > 0) THEN
                WRITE (ei_unit, 1011) ik, j
                WRITE (ei_unit, 1020) (ei_emp(i, j)*autoev, i=1, nupdwn_emp(j))
-               IF (nupdwn(j) > 0) &
-                  WRITE (ei_unit, 1021) ((ei_emp(1, j) - ei(nupdwn(j), j))*autoev)
             END IF
          END IF
          !
