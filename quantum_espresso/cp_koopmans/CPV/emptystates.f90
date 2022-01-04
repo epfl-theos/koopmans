@@ -338,18 +338,18 @@
                !
                IF (tatomicwfc) THEN
                   !
-                  CALL wave_atom_init(c0_emp, nupdwn_emp(1), 1)
+                  CALL wave_atom_init(c0_emp, nupdwn_emp(2), nupdwn_emp(1) + 1)
                   !
                ELSE
                   !
-                  CALL wave_rand_init(c0_emp, nupdwn_emp(1), 1)
+                  CALL wave_rand_init(c0_emp, nupdwn_emp(2), nupdwn_emp(1) + 1)
                   !
                END IF
                !
-               DO i = 1, MIN(nupdwn_emp(1), nupdwn_emp(2))
+               DO i = 1, nupdwn_emp(1)
                   !
                   j = i + iupdwn_emp(2) - 1
-                  c0_emp(:, j) = c0_emp(:, i)
+                  c0_emp(:, i) = c0_emp(:, j)
                   !
                END DO
                !
@@ -371,12 +371,8 @@
                !
                issw = iupdwn(iss)
                !
-               IF (nupdwn(iss) > 0 .and. nupdwn_emp(iss) > 0) THEN
-                  !
-                  CALL gram_empty(.false., eigr, vkb, bec_emp, bec_occ, nkb, &
-                                  c0_emp(:, in_emp:), c0(:, issw:), ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, issw)
-                  !
-               END IF
+               CALL gram_empty(.false., eigr, vkb, bec_emp, bec_occ, nkb, &
+                               c0_emp(:, in_emp:), c0(:, issw:), ngw, nupdwn_emp(iss), nupdwn(iss), in_emp, issw)
                !
             END DO
             !
@@ -1043,7 +1039,7 @@
       !
       ! Quick return if there are either no filled or no empty states with this spin (no need to orthogonalize them)
       !
-      IF (n_emp .le. 0 .or. n_occ .le. 0) THEN
+      IF (n_emp .le. 0) THEN
          !
          return
          !
@@ -1052,19 +1048,21 @@
       call init_twin(csc_emp, lgam)
       call allocate_twin(csc_emp, n_emp, 1, lgam)
       !
-      call init_twin(csc_occ, lgam)
-      call allocate_twin(csc_occ, n_occ, 1, lgam)
+      IF (n_occ > 0) THEN
+         call init_twin(csc_occ, lgam)
+         call allocate_twin(csc_occ, n_occ, 1, lgam)
+      END IF
       !
       ! orthogonalize empty states to the occupied one and among each other
       !
       DO i = 1, n_emp
          !
          call set_twin(csc_emp, CMPLX(0.d0, 0.d0))
-         call set_twin(csc_occ, CMPLX(0.d0, 0.d0))
+         IF (n_occ > 0) call set_twin(csc_occ, CMPLX(0.d0, 0.d0))
          !
          ! compute scalar product csc_occ(k) = <c_emp(i)|c_occ(k)> .. is it <k,i>? Yes! watch out!
          !
-         CALL smooth_csv(c_emp(1:ngwx, i), c_occ(1:ngwx, 1:n_occ), ngwx, csc_occ, n_occ)
+         IF (n_occ > 0) CALL smooth_csv(c_emp(1:ngwx, i), c_occ(1:ngwx, 1:n_occ), ngwx, csc_occ, n_occ)
          !
          IF (.NOT. tortho) THEN
             !
@@ -1080,10 +1078,12 @@
             !
          END IF
          !
-         IF (.not. csc_occ%iscmplx) THEN
-            CALL mp_sum(csc_occ%rvec(1:n_occ, 1:1), intra_image_comm)
-         ELSE
-            CALL mp_sum(csc_occ%cvec(1:n_occ, 1:1), intra_image_comm)
+         IF (n_occ > 0) THEN
+            IF (.not. csc_occ%iscmplx) THEN
+               CALL mp_sum(csc_occ%rvec(1:n_occ, 1:1), intra_image_comm)
+            ELSE
+               CALL mp_sum(csc_occ%cvec(1:n_occ, 1:1), intra_image_comm)
+            END IF
          END IF
          !
          IF (nvb > 1) THEN
@@ -1096,28 +1096,30 @@
                CALL mp_sum(bec_emp%cvec(1:nkbus, i), intra_image_comm)
             END IF
             !
-            CALL bec_csv(bec_emp, bec_occ, nkbx, csc_occ, n_occ, i)
+            IF (n_occ > 0) CALL bec_csv(bec_emp, bec_occ, nkbx, csc_occ, n_occ, i)
             !
             IF (.NOT. tortho) THEN
                CALL bec_csv(bec_emp, bec_emp, nkbx, csc_emp, i - 1, i)
             END IF
             !
-            IF (.not. bec_emp%iscmplx) THEN
-               !
-               DO k = 1, n_occ
-                  DO inl = 1, nkbx
-                     bec_emp%rvec(inl, i) = bec_emp%rvec(inl, i) - csc_occ%rvec(k, 1)*bec_occ%rvec(inl, k)
+            IF (n_occ > 0) THEN
+               IF (.not. bec_emp%iscmplx) THEN
+                  !
+                  DO k = 1, n_occ
+                     DO inl = 1, nkbx
+                        bec_emp%rvec(inl, i) = bec_emp%rvec(inl, i) - csc_occ%rvec(k, 1)*bec_occ%rvec(inl, k)
+                     END DO
                   END DO
-               END DO
-               !
-            ELSE
-               !
-               DO k = 1, n_occ
-                  DO inl = 1, nkbx
-                     bec_emp%cvec(inl, i) = bec_emp%cvec(inl, i) - CONJG(csc_occ%cvec(k, 1))*bec_occ%cvec(inl, k)
+                  !
+               ELSE
+                  !
+                  DO k = 1, n_occ
+                     DO inl = 1, nkbx
+                        bec_emp%cvec(inl, i) = bec_emp%cvec(inl, i) - CONJG(csc_occ%cvec(k, 1))*bec_occ%cvec(inl, k)
+                     END DO
                   END DO
-               END DO
-               !
+                  !
+               END IF
             END IF
             !
             IF (.NOT. tortho) THEN
@@ -1141,30 +1143,32 @@
          ! calculate orthogonalized c_emp(i) : |c_emp(i)> = |c_emp(i)> - SUM_k    csv(k)|c_occ(k)>
          !                          c_emp(i) : |c_emp(i)> = |c_emp(i)> - SUM_k<i  csv(k)|c_emp(k)>
          !
-         IF (.not. csc_occ%iscmplx) THEN
-            !
-            DO k = 1, n_occ
-               CALL DAXPY(2*ngw, -csc_occ%rvec(k, 1), c_occ(:, k), 1, c_emp(:, i), 1)!warning:giovanni tochange
-            END DO
-            !
-            IF (.NOT. tortho) THEN
-               DO k = 1, i - 1
-                  CALL DAXPY(2*ngw, -csc_emp%rvec(k, 1), c_emp(:, k), 1, c_emp(:, i), 1)!warning:giovanni tochange
+         IF (n_occ > 0) THEN
+            IF (.not. csc_occ%iscmplx) THEN
+               !
+               DO k = 1, n_occ
+                  CALL DAXPY(2*ngw, -csc_occ%rvec(k, 1), c_occ(:, k), 1, c_emp(:, i), 1)!warning:giovanni tochange
                END DO
-            END IF
-            !
-         ELSE
-            !
-            DO k = 1, n_occ
-               CALL ZAXPY(ngw, -csc_occ%cvec(k, 1), c_occ(:, k), 1, c_emp(:, i), 1)
-            END DO
-            !
-            IF (.NOT. tortho) THEN
-               DO k = 1, i - 1
-                  CALL ZAXPY(ngw, -csc_emp%cvec(k, 1), c_emp(:, k), 1, c_emp(:, i), 1)
+               !
+               IF (.NOT. tortho) THEN
+                  DO k = 1, i - 1
+                     CALL DAXPY(2*ngw, -csc_emp%rvec(k, 1), c_emp(:, k), 1, c_emp(:, i), 1)!warning:giovanni tochange
+                  END DO
+               END IF
+               !
+            ELSE
+               !
+               DO k = 1, n_occ
+                  CALL ZAXPY(ngw, -csc_occ%cvec(k, 1), c_occ(:, k), 1, c_emp(:, i), 1)
                END DO
+               !
+               IF (.NOT. tortho) THEN
+                  DO k = 1, i - 1
+                     CALL ZAXPY(ngw, -csc_emp%cvec(k, 1), c_emp(:, k), 1, c_emp(:, i), 1)
+                  END DO
+               END IF
+               !
             END IF
-            !
          END IF
          !
          IF (.NOT. tortho) THEN
@@ -1194,7 +1198,7 @@
       END DO
       !
       call deallocate_twin(csc_emp)
-      call deallocate_twin(csc_occ)
+      IF (n_occ > 0) call deallocate_twin(csc_occ)
       !
       RETURN
       !
