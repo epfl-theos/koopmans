@@ -352,7 +352,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         kx: List[float] = [0.0]
         for ik in range(1, len(kvec)):
-            dxmod = np.linalg.norm(kvec[ik] - kvec[ik - 1])
+            dxmod = float(np.linalg.norm(kvec[ik] - kvec[ik - 1]))
             if ik == 1:
                 dxmod_save = dxmod
             if dxmod > 5 * dxmod_save:
