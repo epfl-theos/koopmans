@@ -204,16 +204,6 @@ CONTAINS
       nbsp_emp = sum(nupdwn_emp)
       nbspx_emp = nbsp_emp + mod(nbsp_emp, 2)
 
-      write (*, *) 'EBL DEBUG'
-      write (*, *) 'include_empty =', include_empty
-      write (*, *) 'nbnd = ', nbnd
-      write (*, *) 'nupdwn = ', nupdwn
-      write (*, *) 'iupdwn = ', iupdwn
-      write (*, *) 'nupdwn_emp = ', nupdwn_emp
-      write (*, *) 'iupdwn_emp = ', iupdwn_emp
-      write (*, *) 'nbsp_emp = ', nbsp_emp
-      write (*, *) 'nbspx_emp = ', nbspx_emp
-
       IF (ALLOCATED(ei)) DEALLOCATE (ei)
       ALLOCATE (ei(nudx, nspin), STAT=ierr)
       IF (ierr /= 0) CALL errore(' electrons ', ' allocating ei ', ierr)

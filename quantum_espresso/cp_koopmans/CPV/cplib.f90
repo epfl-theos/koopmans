@@ -4385,15 +4385,6 @@ SUBROUTINE vofrho(nfi, rhor, rhog, rhos, rhoc, tfirst, tlast,           &
    !     etot is the total energy ; ekin, enl were calculated in rhoofr
    !
    etot = ekin + eht + epseu + enl + exc + ebac + e_hubbard + eextfor
-   write (*, *) 'EBL DEBUG'
-   write (*, *) 'ekin', ekin
-   write (*, *) 'eht', eht
-   write (*, *) 'epseu', epseu
-   write (*, *) 'enl', enl
-   write (*, *) 'exc', exc
-   write (*, *) 'ebac', ebac
-   write (*, *) 'e_hubbard', e_hubbard
-   write (*, *) 'eextfor', eextfor
    !
    !     extra contributions
    !
@@ -4492,8 +4483,8 @@ SUBROUTINE vofrho(nfi, rhor, rhog, rhos, rhoc, tfirst, tlast,           &
    RETURN
 
 5555 FORMAT(1x, f12.5, 1x, f12.5, 1x, f12.5/                                &
-                                                         &       1x, f12.5, 1x, f12.5, 1x, f12.5/                                &
-                                                                  &       1x, f12.5, 1x, f12.5, 1x, f12.5//)
+                                                       &       1x, f12.5, 1x, f12.5, 1x, f12.5/                                &
+                                                                &       1x, f12.5, 1x, f12.5, 1x, f12.5//)
 !
 
 END SUBROUTINE vofrho
