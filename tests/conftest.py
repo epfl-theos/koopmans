@@ -542,6 +542,9 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
                           for f in ['data-file-schema.xml', 'charge-density.dat']]
             return [Path(f) for f in files]
 
+        def generate_band_structure(self):
+            pass
+
     class MockWannier90Calculator(MockCalc, Wannier90Calculator):
         # Monkeypatched Wannier90Calculator class which never actually calls wannier90.x
 
@@ -645,6 +648,9 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         @property
         def output_files(self) -> List[Path]:
             return []
+
+        def generate_band_structure(self):
+            pass
 
     monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', MockKoopmansCPCalculator)
     monkeypatch.setattr('koopmans.calculators.PWCalculator', MockPWCalculator)
