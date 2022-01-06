@@ -20,10 +20,13 @@ Sep 2021: Reshuffled files to make imports cleaner
 
 import copy
 from typing import Union, Optional, List, TypeVar, Generic
+from numpy import typing as npt
 from pathlib import Path
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 from ase import Atoms
 import ase.io as ase_io
+from ase.dft.kpoints import BandPath
+from ase.spectrum.band_structure import BandStructure
 from koopmans import utils, settings
 
 # Directories of the various QE calculators
@@ -257,6 +260,29 @@ class CalculatorExt():
         for k, v in dct.items():
             setattr(calc, k.lstrip('_'), v)
         return calc
+
+
+class ReturnsBandStructure(ABC):
+    """
+    Abstract base class to be used for calculators that return bandstructures. These classes implement a
+    self.generate_band_structure() which is called after self.calculate(). This is done after self.calculate()
+    (and not during) because we require access to the band path
+
+    Putting the band structure in self.results is very un-ASE-y, so we might want to ultimately align all of this
+    with the more general self.band_structure() method of ASE
+    """
+
+    @abstractmethod
+    def eigenvalues_from_results(self) -> npt.NDArray[float]:
+        ...
+
+    def generate_band_structure(self):
+        if isinstance(self.parameters.kpts, BandPath):
+            # Fetch bandstructure from results
+            path = self.parameters.kpts
+            eigenvalues_np = self.eigenvalues_from_results()
+            self.results['band structure'] = BandStructure(path, eigenvalues_np)
+        return
 
 
 class KCWannCalculator(CalculatorExt):

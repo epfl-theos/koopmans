@@ -469,6 +469,9 @@ class Workflow(object):
                 if is_complete:
                     if not self.silent:
                         self.print(f'Not running {os.path.relpath(calc_file)} as it is already complete')
+
+                    if isinstance(qe_calc, calculators.ReturnsBandStructure):
+                        qe_calc.generate_band_structure()
                     return
 
         if not self.silent:
@@ -522,6 +525,10 @@ class Workflow(object):
         if old_calc.is_complete():
             # If it is complete, load the results
             qe_calc.results = old_calc.results
+
+            # Load kpts if relevant
+            if hasattr(old_calc, 'kpts'):
+                qe_calc.kpts = old_calc.kpts
 
             # Load bandstructure if present, too
             if isinstance(qe_calc, calculators.UnfoldAndInterpolateCalculator):
