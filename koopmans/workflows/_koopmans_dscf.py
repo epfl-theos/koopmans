@@ -352,7 +352,7 @@ class KoopmansDSCFWorkflow(Workflow):
             # Check the consistency between the PW and CP band gaps
             pw_calc = [c for c in self.calculations if isinstance(
                 c, calculators.PWCalculator) and c.parameters.calculation == 'nscf'][-1]
-            pw_gap = pw_calc.results['lumo_ene'] - pw_calc.results['homo_ene']
+            pw_gap = pw_calc.results['lumo_energy'] - pw_calc.results['homo_energy']
             cp_gap = calc.results['lumo_energy'] - calc.results['homo_energy']
             if abs(pw_gap - cp_gap) > 2e-2 * pw_gap:
                 raise ValueError(f'PW and CP band gaps are not consistent: {pw_gap} {cp_gap}')
