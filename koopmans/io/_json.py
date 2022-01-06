@@ -16,7 +16,7 @@ from ase.io.espresso.utils import ibrav_to_cell
 from ase.calculators.espresso import Espresso_kcp
 from ase.io.espresso.koopmans_cp import KEYS as kcp_keys, construct_namelist
 from koopmans import utils, bands, projections
-from koopmans.pseudopotentials import set_up_pseudos, nelec_from_pseudos
+from koopmans.pseudopotentials import set_up_pseudos, nelec_from_pseudos, valence_from_pseudo
 from koopmans.settings import KoopmansCPSettingsDict, KoopmansHamSettingsDict, KoopmansScreenSettingsDict, \
     PWSettingsDict, PW2WannierSettingsDict, UnfoldAndInterpolateSettingsDict, Wann2KCSettingsDict, \
     Wannier90SettingsDict, WorkflowSettingsDict
@@ -111,9 +111,17 @@ def read_setup_dict(dct, task):
                 calc.parameters.nelup = int(nelec / 2 + tot_mag / 2)
             if 'neldw' not in calc.parameters:
                 calc.parameters.neldw = int(nelec / 2 - tot_mag / 2)
-            if tot_mag != 0:
-                if 'starting_magnetization(1)' not in calc.parameters:
-                    calc.atoms.set_initial_magnetic_moments([tot_mag / len(calc.atoms) for _ in calc.atoms])
+            if 'starting_magnetization(1)' in calc.parameters:
+                labels = [s + str(t) if t != 0 else s for s, t in zip(calc.atoms.symbols, calc.atoms.get_tags())]
+                starting_magmoms = {}
+                for i, (l, p) in enumerate(calc.parameters.pseudopotentials.items()):
+                    # ASE uses absoulte values; QE uses the fraction of the valence
+                    frac_mag = calc.parameters.pop(f'starting_magnetization({i + 1})', 0.0)
+                    valence = valence_from_pseudo(p, calc.parameters.pseudo_dir)
+                    starting_magmoms[l] = frac_mag * valence
+                calc.atoms.set_initial_magnetic_moments([starting_magmoms[l] for l in labels])
+            elif tot_mag != 0:
+                calc.atoms.set_initial_magnetic_moments([tot_mag / len(calc.atoms) for _ in calc.atoms])
 
         # Work out the number of filled and empty bands
         n_filled = nelec // 2 + nelec % 2
@@ -368,10 +376,11 @@ def write_json(workflow: workflows.Workflow, filename: Path):
         bigdct['setup']['cell_parameters'] = construct_cell_parameters_block(workflow.atoms)
 
     # atomic positions
-    if workflow.atoms.has('labels'):
-        labels = workflow.atoms.get_array('labels')
+    if len(set(workflow.atoms.get_tags())) > 1:
+        labels = [s + str(t) if t > 0 else s for s, t in zip(workflow.atoms.symbols, workflow.atoms.get_tags())]
     else:
-        labels = workflow.atoms.get_chemical_symbols()
+        labels = workflow.atoms.symbols
+
     if ibrav == 0:
         bigdct['setup']['atomic_positions'] = {'positions': [
             [label] + [str(x) for x in pos] for label, pos in zip(labels, workflow.atoms.get_positions())],

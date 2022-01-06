@@ -33,6 +33,6 @@ class PWSettingsDict(SettingsDict):
             self.data.pop('tot_magnetization', None)
         if key == 'kpts' and isinstance(value, BandPath):
             # Make sure the kpoints are always printed out in full
-            if len(value.kpts) >= 100:
+            if len(value.kpts) >= 50:
                 self.verbosity = 'high'
         return super().__setitem__(key, value)

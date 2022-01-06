@@ -37,7 +37,7 @@ class WannierizeWorkflow(Workflow):
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
 
             if self.parameters.spin_polarised:
-                spins = [0, 1]
+                spins = ['up', 'down']
             else:
                 spins = [None]
 
@@ -51,7 +51,7 @@ class WannierizeWorkflow(Workflow):
                         num_bands_occ += pw_params.tot_magnetization
                     else:
                         num_bands_occ -= pw_params.tot_magnetization
-                    num_bands_occ //= 2
+                    num_bands_occ = int(num_bands_occ // 2)
                 else:
                     num_bands_occ = nelec // 2
                 self.projections.add_bands(num_bands_occ - num_wann_occ, above=False, spin=spin)

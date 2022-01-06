@@ -1,8 +1,7 @@
 from typing import Optional, List, Union, Any, Dict
 from pathlib import Path
 from ase import Atoms
-from ase.io.wannier90 import num_wann_from_projections, proj_string_to_dict
-from koopmans.utils import list_to_formatted_str
+from ase.io.wannier90 import num_wann_from_projections, proj_string_to_dict, list_to_formatted_str
 
 
 class ProjectionBlock(object):
@@ -37,7 +36,7 @@ class ProjectionBlock(object):
     def __repr__(self) -> str:
         out = f'ProjectionBlock({[self.projections]}, filled={self.filled}'
         if self.spin is not None:
-            out += ', spin={self.spin}'
+            out += f', spin={self.spin}'
         return out + ')'
 
     def __len__(self):
@@ -63,8 +62,6 @@ class ProjectionBlock(object):
             if val is None:
                 raise AttributeError(f'You must define {self.__class__.__name__}.{key} before requesting w90_kwargs')
             kwargs[key] = val
-        if self.spin is not None:
-            kwargs['spin_component'] = self.spin
         return kwargs
 
     @classmethod
@@ -175,6 +172,8 @@ class ProjectionBlocks(object):
         return cls(blocks, atoms)
 
     def add_bands(self, num: int, above: bool = False, spin: Optional[str] = None):
+        if num < 0:
+            raise ValueError('num must be > 0')
         if above:
             self._n_bands_above[spin] += num
         else:
@@ -187,13 +186,13 @@ class ProjectionBlocks(object):
                 if len(subset) > 1:
                     yield subset
 
-    def get_subset(self, occ: Optional[bool] = None, spin: Optional[str] = None):
-        return [b for b in self._blocks if (occ is None or b.filled == occ) and (spin is None or b.spin == spin)]
+    def get_subset(self, occ: Optional[bool] = None, spin: Optional[str] = 'both'):
+        return [b for b in self._blocks if (occ == None or b.filled == occ) and (spin == 'both' or b.spin == spin)]
 
-    def num_wann(self, occ: Optional[bool] = None, spin: Optional[str] = None):
+    def num_wann(self, occ: Optional[bool] = None, spin: Optional[str] = 'both'):
         return sum([num_wann_from_projections(b.projections, self._atoms) for b in self.get_subset(occ, spin)])
 
-    def num_bands(self, occ: Optional[bool] = None, spin: Optional[str] = None):
+    def num_bands(self, occ: Optional[str] = None, spin: Optional[str] = None):
         nbands = self.num_wann(occ, spin)
         try:
             if (occ is True or occ is None):
