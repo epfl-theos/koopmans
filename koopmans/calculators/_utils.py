@@ -19,8 +19,9 @@ Sep 2021: Reshuffled files to make imports cleaner
 """
 
 import copy
-from typing import Union, Optional, List, TypeVar, Generic
+import numpy as np
 from numpy import typing as npt
+from typing import Union, Optional, List, TypeVar, Generic
 from pathlib import Path
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 from ase import Atoms
@@ -273,7 +274,7 @@ class ReturnsBandStructure(ABC):
     """
 
     @abstractmethod
-    def eigenvalues_from_results(self) -> npt.NDArray[float]:
+    def eigenvalues_from_results(self) -> npt.NDArray[np.float_]:
         ...
 
     def generate_band_structure(self):

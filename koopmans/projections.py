@@ -192,7 +192,7 @@ class ProjectionBlocks(object):
     def num_wann(self, occ: Optional[bool] = None, spin: Optional[str] = 'both'):
         return sum([num_wann_from_projections(b.projections, self._atoms) for b in self.get_subset(occ, spin)])
 
-    def num_bands(self, occ: Optional[str] = None, spin: Optional[str] = None):
+    def num_bands(self, occ: Optional[bool] = None, spin: Optional[str] = None):
         nbands = self.num_wann(occ, spin)
         try:
             if (occ is True or occ is None):
