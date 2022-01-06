@@ -185,14 +185,18 @@ class ConvergenceWorkflow(Workflow):
 
                 new_array_shape = list(np.shape(results))
                 new_array_slice: List[Union[int, slice]] = [slice(None) for _ in indices]
+                self.print('Progress update', style='heading')
                 for index, param in enumerate(param_dict):
-                    subarray_slice[index] = slice(None)
-                    if np.all(converged[tuple(subarray_slice)]):
+                    subarray_slice = [slice(None) for _ in param_dict]
+                    subarray_slice[index] = slice(0, -1)
+                    if np.any(converged[tuple(subarray_slice)]):
+                        self.print(f'{param} appears converged')
                         continue
-                    param_dict[param].append(
-                        param_dict[param][-1] + increments[param])
+                    new_val = param_dict[param][-1] + increments[param]
+                    param_dict[param].append(new_val)
                     new_array_shape[index] += 1
                     new_array_slice[index] = slice(None, -1)
+                    self.print(f'{param} still appears unconverged, will reattempt using a finer value')
 
                 new_results = np.empty(new_array_shape)
                 new_results[:] = np.nan
