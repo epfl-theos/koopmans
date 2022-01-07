@@ -79,6 +79,10 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
     def get_fermi_level(self):
         return 0
 
+    def vbm_energy(self) -> float:
+        eigenvalues_np = self.eigenvalues_from_results()
+        return np.max(eigenvalues_np[:, :, self.parameters.num_wann_occ - 1])
+
     def eigenvalues_from_results(self):
         assert 'eigenvalues' in self.results, 'Please call {0}.calculate() prior to calling {0}.band_structure'.format(
             self.__class__.__name__)

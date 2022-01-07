@@ -277,11 +277,18 @@ class ReturnsBandStructure(ABC):
     def eigenvalues_from_results(self) -> npt.NDArray[np.float_]:
         ...
 
+    @abstractmethod
+    def vbm_energy(self) -> float:
+        ...
+
     def generate_band_structure(self):
         if isinstance(self.parameters.kpts, BandPath):
             # Fetch bandstructure from results
             path = self.parameters.kpts
             eigenvalues_np = self.eigenvalues_from_results()
+
+            eigenvalues_np -= self.vbm_energy()
+
             self.results['band structure'] = BandStructure(path, eigenvalues_np)
         return
 

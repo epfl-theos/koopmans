@@ -53,6 +53,9 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
     def is_converged(self):
         return self.results.get('energy', None) is not None
 
+    def vbm_energy(self) -> float:
+        return 0.0
+
     def eigenvalues_from_results(self):
         class_name = self.__class__.__name__
         assert getattr(self, 'kpts', None) is not None, f'Please call {class_name}.calculate() prior to calling ' \
