@@ -165,11 +165,19 @@ class WannierizeWorkflow(Workflow):
             selected_calcs = [c for c in self.calculations[:-1] if 'band structure' in c.results]
 
             # Work out the vertical shift to set the valence band edge to zero
-            w90_emp_num_bands = self.projections.num_bands(occ=False)
-            if w90_emp_num_bands > 0:
-                vbe = np.max(calc_pw_bands.results['band structure'].energies[:, :, :-w90_emp_num_bands])
+            pw_eigs = calc_pw_bands.results['band structure'].energies
+            if self.parameters.spin_polarised:
+                w90_emp_num_bands = [self.projections.num_bands(occ=False, spin=spin) for spin in ['up', 'down']]
+                if any([x > 0 for x in w90_emp_num_bands]):
+                    vbe = np.max([pw_eigs[ispin, :, :-num_bands] for ispin, num_bands in enumerate(w90_emp_num_bands)])
+                else:
+                    vbe = np.max(pw_eigs)
             else:
-                vbe = np.max(calc_pw_bands.results['band structure'].energies)
+                w90_emp_num_bands = self.projections.num_bands(occ=False)
+                if w90_emp_num_bands > 0:
+                    vbe = np.max(pw_eigs[:, :, :-w90_emp_num_bands])
+                else:
+                    vbe = np.max(pw_eigs)
 
             # Work out the energy ranges for plotting
             emin = np.min(selected_calcs[0].results['band structure'].energies) - 1 - vbe
@@ -181,6 +189,7 @@ class WannierizeWorkflow(Workflow):
                 + [f'interpolation ({c.directory.name.replace("_",", ").replace("block", "block ")})'
                    for c in selected_calcs]
             colour_cycle = plt.rcParams["axes.prop_cycle"]()
+            colours = {}
             for calc, label in zip([calc_pw_bands] + selected_calcs, labels):
                 if 'band structure' in calc.results:
                     # Load the bandstructure
@@ -191,14 +200,18 @@ class WannierizeWorkflow(Workflow):
                     bs._energies -= vbe
 
                     # Tweaking the plot aesthetics
-                    colours = [next(colour_cycle)['color'] for _ in range(bs.energies.shape[0])]
                     kwargs = {}
+                    if ', down' in label:
+                        colours[label] = colours[label.replace(', down', ', up')]
+                        kwargs['ls'] = '--'
+                    else:
+                        colours[label] = [next(colour_cycle)['color'] for _ in range(bs.energies.shape[0])]
                     if 'explicit' in label:
                         kwargs['ls'] = 'none'
                         kwargs['marker'] = 'x'
 
                     # Plot
-                    ax = bs.plot(ax=ax, emin=emin, emax=emax, colors=colours, label=label, **kwargs)
+                    ax = bs.plot(ax=ax, emin=emin, emax=emax, colors=colours[label], label=label, **kwargs)
 
             # Move the legend
             lgd = ax.legend(bbox_to_anchor=(1, 1), loc="lower right", ncol=2)

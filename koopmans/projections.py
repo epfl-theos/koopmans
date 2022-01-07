@@ -62,6 +62,8 @@ class ProjectionBlock(object):
             if val is None:
                 raise AttributeError(f'You must define {self.__class__.__name__}.{key} before requesting w90_kwargs')
             kwargs[key] = val
+        if self.spin is not None:
+            kwargs['spin'] = self.spin
         return kwargs
 
     @classmethod
