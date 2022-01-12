@@ -12,7 +12,7 @@ from ase.calculators.espresso import Projwfc
 from ase.spectrum.dosdata import GridDOSData
 from ase.spectrum.doscollection import GridDOSCollection
 from ._utils import CalculatorExt, CalculatorABC, qe_bin_directory
-
+from glob import glob
 
 class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
     # Subclass of CalculatorExt for performing calculations with projwfc.x
@@ -36,29 +36,33 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
 
     def calculate(self):
         super().calculate()
-
-        # Marija add code here to
-        # 1) work out the names of the pDOS files to read
-        #
-        # 2) read in the pDOS file contents
-        # dos = self.read_pdos(filename)
+        for filename in glob(self.parameters.filpdos + '.pdos_atm*'):
+    
+            # Marija add code here to
+            # 1) work out the names of the pDOS files to read
+            # 2) read in the pDOS file contents
+            dos = self.read_pdos(filename)
+              
         #
         # 3) add pDOS to self.results
         # self.results['dos'] = GridDOSCollection(...)
 
-    def read_pdos(filename: str) -> GridDOSData:
+    def read_pdos(self, filename: str) -> GridDOSData:
         # Marija: implement in this function how to extract from a DOS filename the contents of that file
         with open(filename, 'r') as fd:
             flines = fd.readlines()
-
-        # Logic here to turn flines into a DOS object
-        # dos = GridDOSData(...)
-
-        return dos
+        energy = ...
+        dos_list= []
+        for something in something # loop over all over the different pdos
+            weight = ...
+        
+            # Logic here to turn flines into a DOS object
+            dos = GridDOSData(energy, weight)
+            dos_list.append(dos)
+        return dos_list
 
     def is_complete(self):
-        # Change me to check calc.results['job done']!
-        return True
+        return self.results ['job done']
 
     def is_converged(self):
         return True
