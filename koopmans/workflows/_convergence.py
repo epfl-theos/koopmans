@@ -164,8 +164,7 @@ class ConvergenceWorkflow(Workflow):
                 # First, find the indices of the converged array
                 slice_where: List[Union[slice, int]] = [slice(None) for _ in param_dict]
                 slice_where[-1] = 0
-                indices = np.array(np.where(converged[tuple(subarray_slice)]))[
-                    tuple(slice_where)]
+                indices = np.array(np.where(converged[tuple(subarray_slice)]))[tuple(slice_where)]
 
                 # Extract the corresponding parameters
                 converged_parameters = {}
