@@ -661,7 +661,8 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         for i, t_index in enumerate(Tlist):
             for ik, kvect in enumerate(self.parameters.kpath.kpts):
                 for it in t_index:
-                    phase[ik, i] += np.exp(2j * np.pi * np.dot(kvect, Tvec[it]))
+                    phase[ik, i] += np.exp(- 2j * np.pi * np.dot(kvect, Tvec[it]))
+                phase[ik, i] /= len(t_index)
 
         phase = phase.reshape(len(self.parameters.kpath.kpts), self.parameters.num_wann, len(self.Rvec),
                               self.parameters.num_wann)
