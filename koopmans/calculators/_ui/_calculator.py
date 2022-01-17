@@ -350,9 +350,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         for kpt in self.parameters.kpath.kpts:
             kvec.append(crys_to_cart(kpt, self.atoms.acell.reciprocal(), +1))
 
-        kx = [0.]
+        kx: List[float] = [0.0]
         for ik in range(1, len(kvec)):
-            dxmod = np.linalg.norm(kvec[ik] - kvec[ik - 1])
+            dxmod = float(np.linalg.norm(kvec[ik] - kvec[ik - 1]))
             if ik == 1:
                 dxmod_save = dxmod
             if dxmod > 5 * dxmod_save:
@@ -640,9 +640,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         if self.parameters.use_ws_distance:
             # create an array containing all the distances between reference (R=0) WFs and all the other WFs:
             # 1) accounting for their positions within the unit cell
-            wf_dist = np.concatenate([[c] * self.parameters.num_wann_sc
-                                     for c in self.centers[:self.parameters.num_wann]]) \
-                - np.concatenate([self.centers] * self.parameters.num_wann)
+            wf_dist = np.concatenate([self.centers] * self.parameters.num_wann) \
+                - np.concatenate([[c] * self.parameters.num_wann_sc for c in self.centers[:self.parameters.num_wann]])
+
         else:
             # 2) considering only the distance between the unit cells they belong to
             wf_dist = np.array(np.concatenate([[rvec] * self.parameters.num_wann for rvec in self.Rvec]).tolist()
@@ -662,9 +662,10 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             for ik, kvect in enumerate(self.parameters.kpath.kpts):
                 for it in t_index:
                     phase[ik, i] += np.exp(2j * np.pi * np.dot(kvect, Tvec[it]))
+                phase[ik, i] /= len(t_index)
 
         phase = phase.reshape(len(self.parameters.kpath.kpts), self.parameters.num_wann, len(self.Rvec),
                               self.parameters.num_wann)
-        phase = np.transpose(phase, axes=(0, 2, 1, 3))
+        phase = np.transpose(phase, axes=(0, 2, 3, 1))
 
         return phase
