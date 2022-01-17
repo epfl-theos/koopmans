@@ -666,6 +666,6 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         phase = phase.reshape(len(self.parameters.kpath.kpts), self.parameters.num_wann, len(self.Rvec),
                               self.parameters.num_wann)
-        phase = np.transpose(phase, axes=(0, 2, 1, 3))
+        phase = np.transpose(phase, axes=(0, 2, 3, 1))
 
         return phase
