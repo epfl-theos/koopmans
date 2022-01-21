@@ -832,7 +832,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
     monkeypatch.setattr('koopmans.workflows.KoopmansDFPTWorkflow', MockKoopmansDFPTWorkflow)
 
     from koopmans.workflows import UnfoldAndInterpolateWorkflow
-    
+
     class MockUnfoldAndInterpolateWorkflow(MockWorkflow, UnfoldAndInterpolateWorkflow):
         pass
 

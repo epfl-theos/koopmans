@@ -63,7 +63,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         for calc_presets in ['occ', 'emp']:
             calc = self.new_calculator(calc_presets)
             calc.centers = np.array([center for c in w90_calcs for center in c.results['centers']
-                                    if calc_presets in c.directory.name])
+                                     if calc_presets in c.directory.name])
             calc.spreads = [spread for c in w90_calcs for spread in c.results['spreads']
                             if calc_presets in c.directory.name]
             self.run_calculator(calc, enforce_ss=False)
@@ -90,7 +90,8 @@ class UnfoldAndInterpolateWorkflow(Workflow):
 
     def new_calculator(self, calc_presets: str, **kwargs) -> calculators.UnfoldAndInterpolateCalculator:
         valid_calc_presets = ['occ', 'emp', 'merge']
-        assert calc_presets in valid_calc_presets, 'In UnfoldAndInterpolateWorkflow.new_calculator() calc_presets must be ' \
+        assert calc_presets in valid_calc_presets, \
+            'In UnfoldAndInterpolateWorkflow.new_calculator() calc_presets must be ' \
             '/'.join([f'"{s}"' for s in valid_calc_presets]) + ', but you have tried to set it equal to {calc_presets}'
 
         if calc_presets == 'merge':
@@ -119,6 +120,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         calc.prefix = self.parameters.functional
 
         return calc
+
 
 class SingleUIWorkflow(Workflow):
 
