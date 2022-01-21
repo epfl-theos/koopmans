@@ -7,6 +7,7 @@ Written by Edward Linscott Feb 2021
 
 """
 
+import os
 import numpy as np
 from pathlib import Path
 from koopmans import utils
@@ -64,7 +65,8 @@ class FoldToSupercellWorkflow(Workflow):
                             evc_fname = f'evcw.dat'
                         else:
                             evc_fname = f'evcw{evc_index}.dat'
-                        command = ' '.join([f'{calculators.qe_bin_directory}/merge_evc.x -nr {np.prod(self.kgrid)}']
+                        command = ' '.join([os.environ.get('PARA_PREFIX')]
+                                           + [f'{calculators.qe_bin_directory}/merge_evc.x -nr {np.prod(self.kgrid)}']
                                            + [f'-i {b.directory}/{evc_fname}' for b in subset]
                                            + [f'-o {output_directory}/{evc_fname}'])
                         if occ:

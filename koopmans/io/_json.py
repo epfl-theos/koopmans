@@ -254,7 +254,7 @@ def read_json(fd: TextIO, override={}):
 
     # Loading calculator-specific settings
     master_calc_params = {}
-    w90_block_projs = []
+    w90_block_projs: List = []
     w90_block_filling: List[bool] = []
     w90_block_spins: List[Union[str, None]] = []
 

@@ -70,7 +70,7 @@ def write_alpha_file(directory: Path, alphas: List[float], filling: List[bool]):
 
 
 def read_alpha_file(directory: Path) -> List[float]:
-    alphas = []
+    alphas: List[float] = []
     for suffix in ['', '_empty']:
         fname = directory / f'file_alpharef{suffix}.txt'
         if not fname.is_file():
@@ -102,7 +102,7 @@ def read_kpath(calc: Calculator, kpath: Union[str, List[Tuple[float, float, floa
         calc.parameters['kpath'] = bandpath(kpath, calc.atoms.cell, npoints=npoints)
     else:
         # Interpret bandpath as using PW syntax (https://www.quantum-espresso.org/Doc/INPUT_PW.html#idm1290)
-        kpts = []
+        kpts: List[bandpath] = []
         for k1, k2 in zip(kpath[:-1], kpath[1:]):
             # Remove the weights, storing the weight of k1
             npoints = k1[-1]

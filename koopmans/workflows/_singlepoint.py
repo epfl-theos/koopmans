@@ -78,19 +78,26 @@ class SinglepointWorkflow(Workflow):
 
                 # Provide the pKIPZ and KIPZ calculations with a KI starting point
                 if functional == 'ki':
+                    # files are not overwritten as long as from_scratch is false
+                    if self.parameters.from_scratch:
+                        rsync_cmd = 'rsync -a'
+                    else:
+                        rsync_cmd = 'rsync -a --ignore-existing'
+
                     # pKIPZ
-                    utils.system_call('rsync -a ki/ pkipz/')
+                    utils.system_call(f'{rsync_cmd} ki/ pkipz/')
 
                     # KIPZ
-                    utils.system_call('rsync -a ki/final/ kipz/init/')
+                    utils.system_call(f'{rsync_cmd} ki/final/ kipz/init/')
                     utils.system_call('mv kipz/init/ki_final.cpi kipz/init/ki_init.cpi')
                     utils.system_call('mv kipz/init/ki_final.cpo kipz/init/ki_init.cpo')
                     if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-                        utils.system_call('rsync -a ki/init/wannier kipz/init/')
+                        utils.system_call(f'{rsync_cmd} ki/init/wannier kipz/init/')
                     if self.parameters.periodic and self.master_calc_params['ui'].do_smooth_interpolation:
                         # Copy over the smooth PBE calculation from KI for KIPZ to use
-                        utils.system_call('rsync -a ki/postproc kipz/')
-                        utils.system_call('find kipz/postproc/ -name "*interpolated.dat" -delete')
+                        utils.system_call(f'{rsync_cmd} ki/postproc kipz/')
+                        if self.parameters.from_scratch:
+                            utils.system_call('find kipz/postproc/ -name "*interpolated.dat" -delete')
 
         else:
             # self.functional != all and self.method != 'dfpt'
