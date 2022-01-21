@@ -363,17 +363,24 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             else:
                 kx.append(kx[ik - 1] + dxmod)
 
-        with open(f'{directory}/bands_interpolated.dat', 'w') as ofile:
-            ofile.write('# Written at ' + datetime.now().isoformat(timespec='seconds'))
+        bs = self.results['band structure'].energies
+        for energies_spin, label in zip(bs, ['up', 'down']):
+            fname = 'bands_interpolated'
+            if bs.shape[0] == 2:
+                fname += f'_spin_{label}'
 
-            for energies in self.results['band structure'].energies[0].transpose():
-                assert len(kx) == len(energies)
-                for k, energy in zip(kx, energies):
-                    ofile.write(f'\n{k:16.8f}{energy:16.8f}')
-                ofile.write('\n')
+            with open(f'{directory}/{fname}.dat', 'w') as ofile:
+                ofile.write('# Written at ' + datetime.now().isoformat(timespec='seconds'))
+
+                for energies in energies_spin.transpose():
+                    assert len(kx) == len(energies)
+                    for k, energy in zip(kx, energies):
+                        ofile.write(f'\n{k:16.8f}{energy:16.8f}')
+                    ofile.write('\n')
+
         return
 
-    def read_bands(self, directory=None) -> None:
+    def read_bands(self, directory: Optional[str] = None) -> None:
         """
         read_bands reads the interpolated bands, in the QE format, in a file called
                    'bands_interpolated.dat'
@@ -385,19 +392,25 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         if directory is None:
             directory = self.directory
 
-        band_file = f'{directory}/bands_interpolated.dat'
-        bands: List[List] = [[]]
-        if os.path.isfile(band_file):
-            with open(band_file, 'r') as f:
-                flines = f.readlines()
-            for line in flines[1:]:
-                splitline = line.strip().split()
-                if len(splitline) == 0:
-                    bands.append([])
-                else:
-                    bands[-1].append(float(splitline[-1]))
-            self.results['band structure'] = BandStructure(path=self.parameters.kpath, energies=[np.transpose(bands)])
-            self.calc_dos()
+        energies = []
+        for suffix in ['', '_spin_up', '_spin_down']:
+            band_file = f'{directory}/bands_interpolated{suffix}.dat'
+            if os.path.isfile(band_file):
+                energies.append([[]])
+                with open(band_file, 'r') as f:
+                    flines = f.readlines()
+                for line in flines[1:]:
+                    splitline = line.strip().split()
+                    if len(splitline) == 0:
+                        energies[-1].append([])
+                    else:
+                        energies[-1][-1].append(float(splitline[-1]))
+
+        if len(energies) > 0:
+            self.results['band structure'] = BandStructure(
+                path=self.parameters.kpath, energies=np.transpose(energies, (0, 2, 1)))
+
+        self.calc_dos()
 
     def write_dos(self, directory=None) -> None:
         """
