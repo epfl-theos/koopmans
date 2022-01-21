@@ -80,6 +80,9 @@ class SinglepointWorkflow(Workflow):
                 if functional == 'ki':
                     # files are not overwritten as long as from_scratch is false
                     if self.parameters.from_scratch:
+                        for dir in ['pkipz', 'kipz']:
+                            if os.listdir(dir):
+                                utils.system_call(f'rm -rf {dir}')
                         rsync_cmd = 'rsync -a'
                     else:
                         rsync_cmd = 'rsync -a --ignore-existing'

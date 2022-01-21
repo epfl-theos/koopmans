@@ -831,6 +831,13 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
 
     monkeypatch.setattr('koopmans.workflows.KoopmansDFPTWorkflow', MockKoopmansDFPTWorkflow)
 
+    from koopmans.workflows import UnfoldAndInterpolateWorkflow
+    
+    class MockUnfoldAndInterpolateWorkflow(MockWorkflow, UnfoldAndInterpolateWorkflow):
+        pass
+
+    monkeypatch.setattr('koopmans.workflows.UnfoldAndInterpolateWorkflow', MockUnfoldAndInterpolateWorkflow)
+
     # Monkeypatch find_executable, since we don't want to actually try and find the program
     def mock_find_executable(program):
         return './' + program
