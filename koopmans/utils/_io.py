@@ -98,7 +98,8 @@ def read_kpath(calc: Calculator, kpath: Union[str, List[Tuple[float, float, floa
     calc.atoms.cell.pbc = True
     if isinstance(kpath, str):
         # Interpret kpath as a string of points in the BZ
-        calc.parameters['kpath'] = bandpath(kpath, calc.atoms.cell, npoints=len(kpath) * 10 - 9)
+        npoints = 10 * len(kpath) - 9 - 29 * kpath.count(',')
+        calc.parameters['kpath'] = bandpath(kpath, calc.atoms.cell, npoints=npoints)
     else:
         # Interpret bandpath as using PW syntax (https://www.quantum-espresso.org/Doc/INPUT_PW.html#idm1290)
         kpts = []
