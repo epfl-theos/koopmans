@@ -337,7 +337,7 @@ class Workflow(object):
     def update_celldms(self):
         # Update celldm(*) to match the current self.atoms.cell
         for k, params in self.master_calc_params.items():
-            if 'ibrav' in params:
+            if params.get('ibrav', 0) != 0:
                 celldms = cell_to_ibrav(self.atoms.cell, params.ibrav)
                 self.master_calc_params[k].update(**celldms)
 
