@@ -292,7 +292,8 @@ class KoopmansDSCFWorkflow(Workflow):
         elif self.parameters.init_orbitals in ['mlwfs', 'projwfs'] or \
                 (self.parameters.periodic and self.parameters.init_orbitals == 'kohn-sham'):
             # Wannier functions using pw.x, wannier90.x and pw2wannier90.x (pw.x only for Kohn-Sham states)
-            wannier_workflow = WannierizeWorkflow(**self.wf_kwargs)
+            w90_bands = not self.master_calc_params['ui'].do_smooth_interpolation
+            wannier_workflow = WannierizeWorkflow(w90_bands=w90_bands, **self.wf_kwargs)
 
             # Perform the wannierisation workflow within the init directory
             self.run_subworkflow(wannier_workflow, subdirectory='init')
@@ -689,7 +690,7 @@ class KoopmansDSCFWorkflow(Workflow):
         # KI calculation
         if self.parameters.functional == 'pkipz':
             ndr = [c.parameters.ndw for c in self.calculations if c.prefix in [
-                    'ki', 'ki_final'] and hasattr(c.parameters, 'ndw')][-1]
+                'ki', 'ki_final'] and hasattr(c.parameters, 'ndw')][-1]
             calc = self.new_kcp_calculator(final_calc_type, ndr=ndr, write_hr=True)
         else:
             calc = self.new_kcp_calculator(final_calc_type, write_hr=True)

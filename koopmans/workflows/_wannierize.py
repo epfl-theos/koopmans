@@ -25,7 +25,7 @@ CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
 
 class WannierizeWorkflow(Workflow):
 
-    def __init__(self, *args, force_nspin2=False, **kwargs):
+    def __init__(self, *args, force_nspin2=False, w90_bands=None, **kwargs):
         super().__init__(*args, **kwargs)
 
         if 'pw' not in self.master_calc_params:
@@ -83,6 +83,9 @@ class WannierizeWorkflow(Workflow):
         else:
             pw_params.nspin = 1
 
+        # Check whether Wannier90 must print interpolated band structure
+        self.w90_bands = self.parameters.check_wannierisation if w90_bands is None else w90_bands
+
     def run(self):
         '''
 
@@ -134,10 +137,10 @@ class WannierizeWorkflow(Workflow):
                 self.run_calculator(calc_p2w)
 
                 # 3) Wannier90 calculation
-                bands_plot_dct = {'bands_plot': True} if self.parameters.check_wannierisation else {}
+                bands_plot_dct = {'bands_plot': True} if self.w90_bands else {}
                 calc_w90 = self.new_calculator(block.calc_type, directory=w90_dir,
                                                **block.w90_kwargs, **bands_plot_dct)
-                if self.parameters.check_wannierisation:
+                if self.w90_bands:
                     calc_w90.parameters.bands_plot = True
                 calc_w90.prefix = 'wann'
                 self.run_calculator(calc_w90)
