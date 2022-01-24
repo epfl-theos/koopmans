@@ -8,8 +8,7 @@ Converted to a workflow object Nov 2020
 """
 
 import os
-import copy
-import numpy as np
+from pathlib import Path
 from koopmans import utils
 from ._generic import Workflow
 
@@ -78,29 +77,29 @@ class SinglepointWorkflow(Workflow):
 
                 # Provide the pKIPZ and KIPZ calculations with a KI starting point
                 if functional == 'ki':
-                    # files are not overwritten as long as from_scratch is false
                     if self.parameters.from_scratch:
-                        for dir in ['pkipz', 'kipz']:
-                            if os.listdir(dir):
-                                utils.system_call(f'rm -rf {dir}')
-                        rsync_cmd = 'rsync -a'
-                    else:
-                        rsync_cmd = 'rsync -a --ignore-existing'
+                        for directory in ['pkipz', 'kipz']:
+                            if os.listdir(directory):
+                                utils.system_call(f'rm -rf {directory}')
 
                     # pKIPZ
-                    utils.system_call(f'{rsync_cmd} ki/ pkipz/')
+                    for dir in ['init', 'calc_alpha', 'TMP-CP']:
+                        src = Path(f'ki/{dir}/')
+                        if src.is_dir():
+                            utils.system_call(f'rsync -a {src} pkipz/')
+                    if self.parameters.periodic and self.master_calc_params['ui'].do_smooth_interpolation:
+                        utils.system_call('mkdir pkipz/postproc')
+                        utils.system_call(f'rsync -a ki/postproc/wannier pkipz/postproc')
 
                     # KIPZ
-                    utils.system_call(f'{rsync_cmd} ki/final/ kipz/init/')
+                    utils.system_call('rsync -a ki/final/ kipz/init/')
                     utils.system_call('mv kipz/init/ki_final.cpi kipz/init/ki_init.cpi')
                     utils.system_call('mv kipz/init/ki_final.cpo kipz/init/ki_init.cpo')
                     if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-                        utils.system_call(f'{rsync_cmd} ki/init/wannier kipz/init/')
+                        utils.system_call('rsync -a ki/init/wannier kipz/init/')
                     if self.parameters.periodic and self.master_calc_params['ui'].do_smooth_interpolation:
                         # Copy over the smooth PBE calculation from KI for KIPZ to use
-                        utils.system_call(f'{rsync_cmd} ki/postproc kipz/')
-                        if self.parameters.from_scratch:
-                            utils.system_call('find kipz/postproc/ -name "*interpolated.dat" -delete')
+                        utils.system_call('rsync -a ki/postproc/wannier kipz/postproc/')
 
         else:
             # self.functional != all and self.method != 'dfpt'

@@ -16,7 +16,6 @@ from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.bands import Band, Bands
 from koopmans import calculators
 from ._generic import Workflow
-from ._unfold_and_interp import UnfoldAndInterpolateWorkflow
 
 
 class KoopmansDSCFWorkflow(Workflow):
@@ -238,8 +237,9 @@ class KoopmansDSCFWorkflow(Workflow):
 
         # Postprocessing
         if self.parameters.periodic and self.projections and self.kpath is not None:
+            from koopmans.workflows import UnfoldAndInterpolateWorkflow
             self.print(f'\nPostprocessing', style='heading')
-            ui_workflow = UnfoldAndInterpolateWorkflow(**self.wf_kwargs)
+            ui_workflow = UnfoldAndInterpolateWorkflow(redo_smooth_dft=self._redo_smooth_dft, **self.wf_kwargs)
             self.run_subworkflow(ui_workflow, subdirectory='postproc')
 
     def perform_initialisation(self) -> None:
@@ -684,27 +684,19 @@ class KoopmansDSCFWorkflow(Workflow):
         if not directory.is_dir():
             directory.mkdir()
 
+        final_calc_type = f'{self.parameters.functional}_final'
+        # For pKIPZ, the appropriate ndr can change but it is always ndw of the previous
+        # KI calculation
         if self.parameters.functional == 'pkipz':
-            final_calc_types = ['ki', 'pkipz']
-        else:
-            final_calc_types = [self.parameters.functional]
-
-        for final_calc_type in final_calc_types:
-
-            final_calc_type += '_final'
-
-            # For pKIPZ, the appropriate ndr can change but it is always ndw of the previous
-            # KI calculation
-            if final_calc_type == 'pkipz_final':
-                ndr = [c.parameters.ndw for c in self.calculations if c.prefix in [
+            ndr = [c.parameters.ndw for c in self.calculations if c.prefix in [
                     'ki', 'ki_final'] and hasattr(c.parameters, 'ndw')][-1]
-                calc = self.new_kcp_calculator(final_calc_type, ndr=ndr, write_hr=True)
-            else:
-                calc = self.new_kcp_calculator(final_calc_type, write_hr=True)
+            calc = self.new_kcp_calculator(final_calc_type, ndr=ndr, write_hr=True)
+        else:
+            calc = self.new_kcp_calculator(final_calc_type, write_hr=True)
 
-            calc.directory = directory
+        calc.directory = directory
 
-            self.run_calculator(calc)
+        self.run_calculator(calc)
 
     def new_kcp_calculator(self, calc_presets: str = 'dft_init',
                            alphas: Optional[List[List[float]]] = None,
