@@ -191,7 +191,8 @@ class KoopmansDFPTWorkflow(Workflow):
         self.run_calculator(kc_ham_calc)
 
         # Postprocessing
-        if self.parameters.periodic and self.projections and self.kpath is not None:
+        if self.parameters.periodic and self.projections and self.kpath is not None \
+                and self.master_calc_params['ui'].do_smooth_interpolation:
             from koopmans.workflows import UnfoldAndInterpolateWorkflow
             self.print(f'\nPostprocessing', style='heading')
             ui_workflow = UnfoldAndInterpolateWorkflow(**self.wf_kwargs)
