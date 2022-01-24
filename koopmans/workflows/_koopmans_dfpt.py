@@ -12,7 +12,6 @@ from koopmans.bands import Bands
 from koopmans.calculators import Wann2KCCalculator, KoopmansHamCalculator
 from koopmans import utils, io
 from ._generic import Workflow
-from ._unfold_and_interp import UnfoldAndInterpolateWorkflow
 
 
 class KoopmansDFPTWorkflow(Workflow):
@@ -193,6 +192,7 @@ class KoopmansDFPTWorkflow(Workflow):
 
         # Postprocessing
         if self.parameters.periodic and self.projections and self.kpath is not None:
+            from koopmans.workflows import UnfoldAndInterpolateWorkflow
             self.print(f'\nPostprocessing', style='heading')
             ui_workflow = UnfoldAndInterpolateWorkflow(**self.wf_kwargs)
             self.run_subworkflow(ui_workflow, subdirectory='postproc')

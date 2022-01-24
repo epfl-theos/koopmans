@@ -5,7 +5,7 @@ results from the supercell to generate a bandstructure
 
 For the moment the code works only with cubic, tetragonal and orthorhombic systems.
 
-Originally written by Riccardo De Genarro as the standalone 'unfolding and interpolate' code
+Originally written by Riccardo De Gennaro as the standalone 'unfolding and interpolate' code
 Integrated within koopmans by Edward Linscott Jan 2021
 """
 
@@ -61,7 +61,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         if self.parameters.spin_polarised:
             raise NotImplementedError()
         for calc_presets in ['occ', 'emp']:
-            calc = self.new_calculator(calc_presets)
+            calc = self.new_ui_calculator(calc_presets)
             calc.centers = np.array([center for c in w90_calcs for center in c.results['centers']
                                      if calc_presets in c.directory.name])
             calc.spreads = [spread for c in w90_calcs for spread in c.results['spreads']
@@ -69,7 +69,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             self.run_calculator(calc, enforce_ss=False)
 
         # Merge the two calculations to print out the DOS and bands
-        calc = self.new_calculator('merge')
+        calc = self.new_ui_calculator('merge')
 
         # Merge the bands
         energies = [c.results['band structure'].energies for c in self.calculations[-2:]]
@@ -82,13 +82,12 @@ class UnfoldAndInterpolateWorkflow(Workflow):
 
         # Print out the merged bands and DOS
         if self.parameters.from_scratch:
-            with utils.chdir('postproc'):
-                calc.write_results()
+            calc.write_results()
 
         # Store the calculator in the workflow's list of all the calculators
         self.calculations.append(calc)
 
-    def new_calculator(self, calc_presets: str, **kwargs) -> calculators.UnfoldAndInterpolateCalculator:
+    def new_ui_calculator(self, calc_presets: str, **kwargs) -> calculators.UnfoldAndInterpolateCalculator:
         valid_calc_presets = ['occ', 'emp', 'merge']
         assert calc_presets in valid_calc_presets, \
             'In UnfoldAndInterpolateWorkflow.new_calculator() calc_presets must be ' \
