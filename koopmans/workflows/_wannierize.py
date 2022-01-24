@@ -83,8 +83,8 @@ class WannierizeWorkflow(Workflow):
         else:
             pw_params.nspin = 1
 
-        # Check whether Wannier90 must print interpolated band structure
-        self.w90_bands = self.parameters.check_wannierisation if w90_bands is None else w90_bands
+        # Flag controlling the calculation of bands
+        self.w90_bands = w90_bands
 
     def run(self):
         '''
@@ -93,6 +93,8 @@ class WannierizeWorkflow(Workflow):
         using PW and Wannier90
 
         '''
+        # Check whether Wannier90 must print interpolated band structure
+        self.w90_bands = self.parameters.check_wannierisation if self.w90_bands is None else self.w90_bands
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
             self.print('Wannierisation', style='heading')
