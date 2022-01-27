@@ -471,6 +471,8 @@ class Workflow(object):
                 if is_complete:
                     if not self.silent:
                         self.print(f'Not running {os.path.relpath(calc_file)} as it is already complete')
+                    if isinstance (qe_calc, calculators.ProjwfcCalculator): 
+                        qe_calc.generate_dos()
                     return
 
         if not self.silent:
