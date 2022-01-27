@@ -5,6 +5,8 @@ projwfc.x calculator module for koopmans
 """
 
 import os
+import numpy as np
+import re
 from ase import Atoms
 from koopmans.commands import Command, ParallelCommand
 from koopmans.settings import ProjwfcSettingsDict
@@ -27,7 +29,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         Projwfc.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
 
-        self.results_for_qc = ['DOS']
+        self.results_for_qc = ['dos']
         if not isinstance(self.command, Command):
             self.command = ParallelCommand(os.environ.get(
                 'ASE_PROJWFC_COMMAND', str(qe_bin_directory) + os.path.sep + self.command))
@@ -36,28 +38,30 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
 
     def calculate(self):
         super().calculate()
+        self.generate_dos()
+
+    def generate_dos(self):
+        dos_list = []
         for filename in glob(self.parameters.filpdos + '.pdos_atm*'):
-    
-            # Marija add code here to
-            # 1) work out the names of the pDOS files to read
-            # 2) read in the pDOS file contents
-            dos = self.read_pdos(filename)
+            dos_list += self.read_pdos(filename)
               
-        #
-        # 3) add pDOS to self.results
-        # self.results['dos'] = GridDOSCollection(...)
+        
+        #  add pDOS to self.results
+        self.results['dos'] = GridDOSCollection(dos_list)
 
     def read_pdos(self, filename: str) -> GridDOSData:
         # Marija: implement in this function how to extract from a DOS filename the contents of that file
         with open(filename, 'r') as fd:
             flines = fd.readlines()
-        energy = ...
+        [_,index,symbol,_,_,subshell,_]=re.split("#|\(|\)", filename)
         dos_list= []
-        for something in something # loop over all over the different pdos
-            weight = ...
-        
-            # Logic here to turn flines into a DOS object
-            dos = GridDOSData(energy, weight)
+        data =np.array([l.split() for l in flines[1:]],dtype=float).transpose()
+        energy=data[0]
+        orbital_order={"s":["s"], "p":["pz", "px", "py"], "d":["dz2", "dxz", "dyz","dx2-y2", "dxy"]}
+        orbitals = [(o,spin)  for o in orbital_order[subshell] for spin in ["up","down"]]
+        for weight,(label,spin) in zip( data[-len(orbitals):],orbitals):
+            dos = GridDOSData(energy, weight, info={"symbol": symbol, "index": int(index), "l":subshell,
+                "spin":spin, "m":label})
             dos_list.append(dos)
         return dos_list
 
