@@ -6,8 +6,12 @@ Written by Edward Linscott Oct 2020
 
 """
 
-from koopmans import utils, pseudopotentials
+import numpy as np
+from koopmans import utils, pseudopotentials, mpl_config
 from ._generic import Workflow
+import matplotlib.gridspec as gs
+import matplotlib.pyplot as plt
+from matplotlib import transforms
 
 
 class DFTCPWorkflow(Workflow):
@@ -82,10 +86,29 @@ class PWBandStructureWorkflow(Workflow):
         # Third, a PDOS calculation
         calc_dos = self.new_calculator('projwfc', filpdos=self.name)
         self.run_calculator(calc_dos)
-        import ipdb
-        ipdb.set_trace()
-        # Finally, plot the band structure
+
+        # Prepare the band structure for plotting
         bs = calc_bands.results['band structure']
-        n_filled = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials) // 2
-        bs._energies -= bs._energies[:, :, :n_filled].max()
-        bs.plot(filename=f'{self.name}_bands.png')
+        n_filled = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials, calc_scf.parameters.pseudo_dir) // 2
+        vbe = bs._energies[:, :, :n_filled].max()
+        bs._energies -= vbe
+
+        # Prepare the projected density of states for plotting
+        dc = calc_dos.results['dos']
+        dc_summed = dc.sum_by('symbol', 'l', 'spin')
+        dc_summed._energies -= vbe
+        dc_up = dc_summed.select(spin = 'up')
+        dc_down = dc_summed.select(spin = 'down')
+        dc_down._weights *=-1
+
+        # Plot the band structure and DOS
+        fig,axes= plt.subplots(1,2,sharey=True,gridspec_kw={'width_ratios':[3,1]})
+        ax_bs=axes[0]
+        ax_dos= axes[1]
+        bs.plot(ax=ax_bs)
+        [xmin,xmax] = ax_bs.get_ylim()
+        dc_up.plot(ax=ax_dos, xmin=xmin , xmax=xmax, orientation = 'vertical')
+        ax_dos.set_prop_cycle(None)
+        dc_down.plot(ax=ax_dos, xmin = xmin, xmax = xmax, orientation = 'vertical')
+        ax_dos.legend(loc= 'upper left', bbox_to_anchor=(1,1))
+        plt.savefig(fname=f'{self.name}_bands.png')
