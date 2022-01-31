@@ -65,8 +65,7 @@ class FoldToSupercellWorkflow(Workflow):
                             evc_fname = f'evcw.dat'
                         else:
                             evc_fname = f'evcw{evc_index}.dat'
-                        command = ' '.join([os.environ.get('PARA_PREFIX')]
-                                           + [f'{calculators.qe_bin_directory}/merge_evc.x -nr {np.prod(self.kgrid)}']
+                        command = ' '.join([f'{calculators.qe_bin_directory}/merge_evc.x -nr {np.prod(self.kgrid)}']
                                            + [f'-i {b.directory}/{evc_fname}' for b in subset]
                                            + [f'-o {output_directory}/{evc_fname}'])
                         if occ:
