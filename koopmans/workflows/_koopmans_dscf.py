@@ -292,8 +292,8 @@ class KoopmansDSCFWorkflow(Workflow):
         elif self.parameters.init_orbitals in ['mlwfs', 'projwfs'] or \
                 (self.parameters.periodic and self.parameters.init_orbitals == 'kohn-sham'):
             # Wannier functions using pw.x, wannier90.x and pw2wannier90.x (pw.x only for Kohn-Sham states)
-            w90_bands = not self.master_calc_params['ui'].do_smooth_interpolation
-            wannier_workflow = WannierizeWorkflow(w90_bands=w90_bands, **self.wf_kwargs)
+            wannier_workflow = WannierizeWorkflow(**self.wf_kwargs)
+            wannier_workflow.parameters.calculate_bands = not self.master_calc_params['ui'].do_smooth_interpolation
 
             # Perform the wannierisation workflow within the init directory
             self.run_subworkflow(wannier_workflow, subdirectory='init')

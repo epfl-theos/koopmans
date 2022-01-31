@@ -25,7 +25,7 @@ CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
 
 class WannierizeWorkflow(Workflow):
 
-    def __init__(self, *args, force_nspin2=False, w90_bands=None, **kwargs):
+    def __init__(self, *args, force_nspin2=False, **kwargs):
         super().__init__(*args, **kwargs)
 
         if 'pw' not in self.master_calc_params:
@@ -83,9 +83,6 @@ class WannierizeWorkflow(Workflow):
         else:
             pw_params.nspin = 1
 
-        # Flag controlling the calculation of bands
-        self.w90_bands = w90_bands
-
     def run(self):
         '''
 
@@ -93,9 +90,6 @@ class WannierizeWorkflow(Workflow):
         using PW and Wannier90
 
         '''
-        # Check whether Wannier90 must print interpolated band structure
-        self.w90_bands = self.parameters.check_wannierisation if self.w90_bands is None else self.w90_bands
-
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
             self.print('Wannierisation', style='heading')
         else:
@@ -139,11 +133,9 @@ class WannierizeWorkflow(Workflow):
                 self.run_calculator(calc_p2w)
 
                 # 3) Wannier90 calculation
-                bands_plot_dct = {'bands_plot': True} if self.w90_bands else {}
                 calc_w90 = self.new_calculator(block.calc_type, directory=w90_dir,
-                                               **block.w90_kwargs, **bands_plot_dct)
-                if self.w90_bands:
-                    calc_w90.parameters.bands_plot = True
+                                               bands_plot=self.parameters.calculate_bands,
+                                               **block.w90_kwargs)
                 calc_w90.prefix = 'wann'
                 self.run_calculator(calc_w90)
 
@@ -151,7 +143,7 @@ class WannierizeWorkflow(Workflow):
             for block in self.projections.to_merge():
                 self.merge_hr_files(block, prefix=calc_w90.prefix)
 
-        if self.parameters.check_wannierisation:
+        if self.parameters.calculate_bands:
             # Run a "bands" calculation, making sure we don't overwrite
             # the scf/nscf tmp files by setting a different prefix
             calc_pw_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpath)
