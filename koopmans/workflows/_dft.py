@@ -6,7 +6,7 @@ Written by Edward Linscott Oct 2020
 
 """
 
-from koopmans import utils, pseudopotentials
+from koopmans import utils, pseudopotentials, io
 from ._generic import Workflow
 
 
@@ -83,4 +83,5 @@ class PWBandStructureWorkflow(Workflow):
         bs = calc_bands.results['band structure']
         n_filled = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials) // 2
         bs._energies -= bs._energies[:, :, :n_filled].max()
-        bs.plot(filename=f'{self.name}_bands.png')
+        bs.plot()
+        io.savefig(self.name + '_bands', format='png')
