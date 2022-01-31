@@ -73,7 +73,6 @@ class Workflow(object):
         else:
             # If "periodic" was not explicitly provided, use the value from self.atoms.pbc
             self.parameters.periodic = all(self.atoms.pbc)
-
         if all(self.atoms.pbc):
             self.atoms.wrap(pbc=True)
 
@@ -81,6 +80,10 @@ class Workflow(object):
         if 'nelec' not in self.master_calc_params['kcp']:
             pseudo_dir = self.master_calc_params['kcp'].get('pseudo_dir', None)
             self.master_calc_params['kcp'].nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, pseudo_dir)
+
+        # Parse algebraic settings
+        for block in self.master_calc_params.values():
+            block.parse_algebraic_settings(nelec=self.master_calc_params['kcp'].nelec)
 
         # Generate the kpath
         if kpath is None:

@@ -56,10 +56,15 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
         Espresso_kcp.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, skip_qc, **kwargs)
 
-        # Add nelec if it is missing
+        # Add nelec, nelup, neldw if they are missing
         if 'nelec' not in self.parameters and 'pseudopotentials' in self.parameters:
             self.parameters.nelec = pseudopotentials.nelec_from_pseudos(
                 self.atoms, self.pseudopotentials, self.parameters.pseudo_dir)
+        if 'nelec' in self.parameters:
+            if 'nelup' not in self.parameters:
+                self.parameters.nelup = self.parameters.nelec // 2
+            if 'neldw' not in self.parameters:
+                self.parameters.neldw = self.parameters.nelec // 2
 
         if not isinstance(self.command, ParallelCommand):
             self.command = ParallelCommand(os.environ.get(

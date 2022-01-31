@@ -32,7 +32,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     bool, None, (True, False)),
             Setting('periodic',
                     'whether or not the system is periodic',
-                    bool, False, (True, False)),
+                    bool, None, (True, False)),
             Setting('spin_polarised',
                     'if True, the system will be allowed to break spin symmetry i.e. n^{up}(r) != n^{down}(r)',
                     bool, False, (True, False)),
