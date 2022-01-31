@@ -361,6 +361,8 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
             nel = self.parameters.nelup
         elif spin == 1:
             nel = self.parameters.neldw
+        elif 'nelup' in self.parameters and 'neldw' in self.parameters:
+            return self.has_empty_states(spin=0) or self.has_empty_states(spin=1)
         else:
             nel = self.parameters.nelec // 2
         return self.parameters.nbnd > nel
