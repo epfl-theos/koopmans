@@ -16,7 +16,7 @@ class PWSettingsDict(SettingsDict):
 
         super().__init__(valid=[k for block in pw_io.KEYS.values() for k in block],
                          defaults={'calculation': 'scf', 'outdir': './TMP/', 'prefix': 'kc',
-                                   'conv_thr': '2.0e-9*nelec'},
+                                   'conv_thr': '2.0e-9*nelec', 'verbosity': 'high'},
                          are_paths=['outdir', 'pseudo_dir'],
                          to_not_parse=['assume_isolated'],
                          **flattened_kwargs)
@@ -31,8 +31,4 @@ class PWSettingsDict(SettingsDict):
     def __setitem__(self, key: str, value: Any):
         if key == 'nspin' and value == 1:
             self.data.pop('tot_magnetization', None)
-        if key == 'kpts' and isinstance(value, BandPath):
-            # Make sure the kpoints are always printed out in full
-            if len(value.kpts) >= 50:
-                self.verbosity = 'high'
         return super().__setitem__(key, value)
