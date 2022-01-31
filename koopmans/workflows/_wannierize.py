@@ -47,13 +47,20 @@ class WannierizeWorkflow(Workflow):
                 nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, pw_params.pseudo_dir)
                 if self.parameters.spin_polarised:
                     num_bands_occ = nelec
-                    if spin == 0:
+                    if spin == 'up':
                         num_bands_occ += pw_params.tot_magnetization
                     else:
                         num_bands_occ -= pw_params.tot_magnetization
                     num_bands_occ = int(num_bands_occ // 2)
                 else:
                     num_bands_occ = nelec // 2
+                if num_bands_occ < num_wann_occ:
+                    extra_spin_info = ''
+                    if spin is not None:
+                        extra_spin_info = f' for the spin {spin} channel'
+                    raise ValueError(f'You have provided more projectors than there are bands{extra_spin_info}:\n'
+                                     f' number of occupied bands = {num_bands_occ}\n'
+                                     f' number of wannier functions = {num_wann_occ}')
                 self.projections.add_bands(num_bands_occ - num_wann_occ, above=False, spin=spin)
 
                 # Update the projections_blocks to account for additional empty bands
@@ -158,6 +165,8 @@ class WannierizeWorkflow(Workflow):
                 [src, dest] = [(c.parameters.outdir / c.parameters.prefix).with_suffix('.save')
                                for c in [calc_pw, calc_pw_bands]]
 
+                if dest.exists():
+                    shutil.rmtree(str(dest))
                 shutil.copytree(src, dest)
             self.run_calculator(calc_pw_bands)
 
@@ -169,9 +178,10 @@ class WannierizeWorkflow(Workflow):
             if self.parameters.spin_polarised:
                 w90_emp_num_bands = [self.projections.num_bands(occ=False, spin=spin) for spin in ['up', 'down']]
                 if any([x > 0 for x in w90_emp_num_bands]):
-                    vbe = np.max([pw_eigs[ispin, :, :-num_bands] for ispin, num_bands in enumerate(w90_emp_num_bands)])
+                    vbe = max([pw_eigs[ispin, :, :-num_bands].max() if num_bands > 0 else pw_eigs[ispin, :, :].max()
+                               for ispin, num_bands in enumerate(w90_emp_num_bands)])
                 else:
-                    vbe = np.max(pw_eigs)
+                    vbe = pw_eigs.max()
             else:
                 w90_emp_num_bands = self.projections.num_bands(occ=False)
                 if w90_emp_num_bands > 0:
@@ -201,9 +211,11 @@ class WannierizeWorkflow(Workflow):
 
                     # Tweaking the plot aesthetics
                     kwargs = {}
+                    up_label = label.replace(', down', ', up')
                     if ', down' in label:
-                        colours[label] = colours[label.replace(', down', ', up')]
                         kwargs['ls'] = '--'
+                    if ', down' in label and up_label in colours:
+                        colours[label] = colours[up_label]
                     else:
                         colours[label] = [next(colour_cycle)['color'] for _ in range(bs.energies.shape[0])]
                     if 'explicit' in label:

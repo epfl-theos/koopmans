@@ -169,7 +169,7 @@ class ProjectionBlocks(object):
         blocks: List[ProjectionBlock] = []
         for filled in [True, False]:
             blocks += [ProjectionBlock(p, f, s)
-                       for p, f, s in zip(list_of_projections, fillings, spins) if f is filled]
+                       for p, f, s in zip(list_of_projections, fillings, spins) if f is filled and len(p) > 0]
 
         return cls(blocks, atoms)
 

@@ -53,7 +53,10 @@ class KoopmansDSCFWorkflow(Workflow):
 
                     if nbands_occ != nelec:
                         raise ValueError('You have configured this calculation to only wannierise a subset of the '
-                                         'occupied bands. This is incompatible with the subsequent Koopmans '
+                                         'occupied bands:\n'
+                                         f' number of occupied bands = {nelec}\n'
+                                         f' number of occupied Wannier functions = {nbands_occ}\n'
+                                         'This is incompatible with the subsequent Koopmans '
                                          'calculation.\nPlease modify the wannier90 settings in order to wannierise '
                                          'all of the occupied bands. (You may want to consider taking advantage of the '
                                          '"projections_blocks" functionality if your system has a lot of electrons.)')
@@ -328,6 +331,8 @@ class KoopmansDSCFWorkflow(Workflow):
 
             for filling in ['occ', 'emp']:
                 for i_spin, spin in enumerate(['up', 'down']):
+                    if self.projections.num_wann(filling, spin) == 0:
+                        continue
                     if self.parameters.init_orbitals == 'kohn-sham':
                         if filling == 'occ':
                             evcw_file = Path(f'init/wannier/ks2odd/evc_occupied{i_spin + 1}.dat')
