@@ -25,7 +25,7 @@ CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
 
 class WannierizeWorkflow(Workflow):
 
-    def __init__(self, *args, force_nspin2=False, **kwargs):
+    def __init__(self, *args, force_nspin2=False, scf_kgrid=None, **kwargs):
         super().__init__(*args, **kwargs)
 
         if 'pw' not in self.master_calc_params:
@@ -83,6 +83,10 @@ class WannierizeWorkflow(Workflow):
         else:
             pw_params.nspin = 1
 
+        # When running a smooth PW calculation the k-grid for the scf calculation
+        # must match the original k-grid
+        self._scf_kgrid = scf_kgrid
+
     def run(self):
         '''
 
@@ -104,6 +108,8 @@ class WannierizeWorkflow(Workflow):
         calc_pw.parameters.pop('nbnd', None)
         calc_pw.directory = 'wannier'
         calc_pw.prefix = 'scf'
+        if self._scf_kgrid:
+            calc_pw.parameters.kpts = self._scf_kgrid
         self.run_calculator(calc_pw)
 
         calc_pw = self.new_calculator('pw', calculation='nscf', nosym=True, noinv=True)

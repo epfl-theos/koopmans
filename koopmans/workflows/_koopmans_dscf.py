@@ -685,15 +685,23 @@ class KoopmansDSCFWorkflow(Workflow):
         if not directory.is_dir():
             directory.mkdir()
 
-        final_calc_type = f'{self.parameters.functional}_final'
-        # For pKIPZ, the appropriate ndr can change but it is always ndw of the previous
-        # KI calculation
         if self.parameters.functional == 'pkipz':
-            ndr = [c.parameters.ndw for c in self.calculations if c.prefix in [
-                'ki', 'ki_final'] and hasattr(c.parameters, 'ndw')][-1]
-            calc = self.new_kcp_calculator(final_calc_type, ndr=ndr, write_hr=True)
+            final_calc_types = ['ki', 'pkipz']
         else:
-            calc = self.new_kcp_calculator(final_calc_type, write_hr=True)
+            final_calc_types = [self.parameters.functional]
+
+        for final_calc_type in final_calc_types:
+
+            final_calc_type += '_final'
+
+            # For pKIPZ, the appropriate ndr can change but it is always ndw of the previous
+            # KI calculation
+            if final_calc_type == 'pkipz_final':
+                ndr = [c.parameters.ndw for c in self.calculations if c.prefix in [
+                    'ki', 'ki_final'] and hasattr(c.parameters, 'ndw')][-1]
+                calc = self.new_kcp_calculator(final_calc_type, ndr=ndr, write_hr=True)
+            else:
+                calc = self.new_kcp_calculator(final_calc_type, write_hr=True)
 
         calc.directory = directory
 
