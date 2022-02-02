@@ -12,7 +12,7 @@ import copy
 from pathlib import Path
 from ase.io.espresso.utils import cell_to_ibrav
 import numpy as np
-import numpy.typing as npt
+from numpy import typing as npt
 from typing import Optional, Dict, List, Type, Union, Any, TypeVar
 from ase import Atoms
 from ase.build.supercells import make_supercell

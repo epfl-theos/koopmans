@@ -25,7 +25,7 @@ CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
 
 class WannierizeWorkflow(Workflow):
 
-    def __init__(self, *args, force_nspin2=False, **kwargs):
+    def __init__(self, *args, force_nspin2=False, scf_kgrid=None, **kwargs):
         super().__init__(*args, **kwargs)
 
         if 'pw' not in self.master_calc_params:
@@ -83,6 +83,10 @@ class WannierizeWorkflow(Workflow):
         else:
             pw_params.nspin = 1
 
+        # When running a smooth PW calculation the k-grid for the scf calculation
+        # must match the original k-grid
+        self._scf_kgrid = scf_kgrid
+
     def run(self):
         '''
 
@@ -90,7 +94,6 @@ class WannierizeWorkflow(Workflow):
         using PW and Wannier90
 
         '''
-
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
             self.print('Wannierisation', style='heading')
         else:
@@ -105,6 +108,8 @@ class WannierizeWorkflow(Workflow):
         calc_pw.parameters.pop('nbnd', None)
         calc_pw.directory = 'wannier'
         calc_pw.prefix = 'scf'
+        if self._scf_kgrid:
+            calc_pw.parameters.kpts = self._scf_kgrid
         self.run_calculator(calc_pw)
 
         calc_pw = self.new_calculator('pw', calculation='nscf', nosym=True, noinv=True)
@@ -134,11 +139,9 @@ class WannierizeWorkflow(Workflow):
                 self.run_calculator(calc_p2w)
 
                 # 3) Wannier90 calculation
-                bands_plot_dct = {'bands_plot': True} if self.parameters.check_wannierisation else {}
                 calc_w90 = self.new_calculator(block.calc_type, directory=w90_dir,
-                                               **block.w90_kwargs, **bands_plot_dct)
-                if self.parameters.check_wannierisation:
-                    calc_w90.parameters.bands_plot = True
+                                               bands_plot=self.parameters.calculate_bands,
+                                               **block.w90_kwargs)
                 calc_w90.prefix = 'wann'
                 self.run_calculator(calc_w90)
 
@@ -146,7 +149,7 @@ class WannierizeWorkflow(Workflow):
             for block in self.projections.to_merge():
                 self.merge_hr_files(block, prefix=calc_w90.prefix)
 
-        if self.parameters.check_wannierisation:
+        if self.parameters.calculate_bands:
             # Run a "bands" calculation, making sure we don't overwrite
             # the scf/nscf tmp files by setting a different prefix
             calc_pw_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpath)
@@ -200,11 +203,15 @@ class WannierizeWorkflow(Workflow):
                     # Plot
                     ax = bs.plot(ax=ax, emin=emin, emax=emax, colors=colours, label=label, **kwargs)
 
+                    # Undo the vertical shift (we don't want the stored band structure to be vertically shifted
+                    # depending on the value of self.parameters.calculate_bands!)
+                    bs._energies += vbe
+
             # Move the legend
             lgd = ax.legend(bbox_to_anchor=(1, 1), loc="lower right", ncol=2)
 
             # Save the comparison to file (as png and also in editable form)
-            with open('interpolated_bandstructure_{}x{}x{}.fig.pkl'.format(*self.kgrid), 'wb') as fd:
+            with open(self.name + '_interpolated_bandstructure_{}x{}x{}.fig.pkl'.format(*self.kgrid), 'wb') as fd:
                 pickle.dump(plt.gcf(), fd)
             # The "bbox_extra_artists" and "bbox_inches" mean that the legend is not cropped out
             plt.savefig('interpolated_bandstructure_{}x{}x{}.png'.format(*self.kgrid),

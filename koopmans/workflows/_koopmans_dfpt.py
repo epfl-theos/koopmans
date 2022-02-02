@@ -8,7 +8,6 @@ Written by Edward Linscott Feb 2021
 
 import os
 import numpy as np
-import koopmans.mpl_config
 from koopmans.bands import Bands
 from koopmans.calculators import Wann2KCCalculator, KoopmansHamCalculator
 from koopmans import utils, io
@@ -35,8 +34,8 @@ class KoopmansDFPTWorkflow(Workflow):
         else:
             if self.parameters.init_orbitals != 'kohn-sham':
                 raise ValueError(
-                    'Calculating screening parameters with DFPT for a periodic system is only possible with Kohn-Sham '
-                    'orbitals as the variational orbitals')
+                    'Calculating screening parameters with DFPT for a non-periodic system is only possible '
+                    'with Kohn-Sham orbitals as the variational orbitals')
         for params in self.master_calc_params.values():
             if self.parameters.periodic:
                 # Gygi-Baldereschi
@@ -81,7 +80,7 @@ class KoopmansDFPTWorkflow(Workflow):
 
         # Delete any pre-existing directories if running from scratch
         if self.parameters.from_scratch:
-            for directory in ['init', 'wannier', 'screening', 'hamiltonian', 'TMP']:
+            for directory in ['init', 'wannier', 'screening', 'hamiltonian', 'postproc', 'TMP']:
                 if os.path.isdir(directory):
                     utils.system_call(f'rm -r {directory}')
 
@@ -190,6 +189,14 @@ class KoopmansDFPTWorkflow(Workflow):
         if self.parameters.calculate_alpha and kc_ham_calc.parameters.lrpa != kc_screen_calc.parameters.lrpa:
             raise ValueError('Do not set "lrpa" to different values in the "screen" and "ham" blocks')
         self.run_calculator(kc_ham_calc)
+
+        # Postprocessing
+        if self.parameters.periodic and self.projections and self.kpath is not None \
+                and self.master_calc_params['ui'].do_smooth_interpolation:
+            from koopmans.workflows import UnfoldAndInterpolateWorkflow
+            self.print(f'\nPostprocessing', style='heading')
+            ui_workflow = UnfoldAndInterpolateWorkflow(**self.wf_kwargs)
+            self.run_subworkflow(ui_workflow, subdirectory='postproc')
 
         # Plotting
         self.plot_bandstructure()

@@ -78,5 +78,10 @@
       "dis_froz_max": 10.6,
       "dis_win_max": 16.9
     }
+  },
+  "ui": {
+    "Emin": -7.0,
+    "Emax": 6.0,
+    "smooth_int_factor": 4
   }
 }
