@@ -12,7 +12,6 @@ Integrated within koopmans by Edward Linscott Jan 2021
 import numpy as np
 from pathlib import Path
 from typing import Optional
-from koopmans import utils
 from ._generic import Workflow
 from koopmans import calculators
 from ase.spectrum.band_structure import BandStructure
@@ -29,9 +28,9 @@ class UnfoldAndInterpolateWorkflow(Workflow):
 
         Wrapper for the whole unfolding and interpolation workflow, consisting of:
         - a smooth WannierizeWorkflow (if required)
-        - SingleUIWorkflow for occ states
-        - SingleUIWorkflow for emp states
-        - SingleUIWorkflow to merge occ and emp results
+        - an UnfoldAndInterpolateCalculator for occ states
+        - an UnfoldAndInterpolateCalculator for emp states
+        - an UnfoldAndInterpolateCalculator to merge occ and emp results
 
         '''
         # Import these here so that if these have been monkey-patched, we get the monkey-patched version
@@ -124,7 +123,13 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         return calc
 
 
-class SingleUIWorkflow(Workflow):
+class SingleUnfoldAndInterpolateWorkflow(Workflow):
+    '''
+    A workflow that runs a single UnfoldAndInterpolateCalculator
+
+    This exists to make it possible for .uii (i.e. Unfold and Interpolate input) files to be run using the koopmans
+    command
+    '''
 
     def run(self):
         '''

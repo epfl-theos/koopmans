@@ -321,7 +321,7 @@ def read_json(fd: TextIO, override={}):
         workflow = workflows.DeltaSCFWorkflow(atoms, parameters, master_calc_params,
                                               name=name, **workflow_kwargs)
     elif parameters.task == 'ui':
-        workflow = workflows.SingleUIWorkflow(
+        workflow = workflows.SingleUnfoldAndInterpolateWorkflow(
             atoms, parameters, master_calc_params, name=name, **workflow_kwargs)
     elif parameters.task == 'dft_bands':
         workflow = workflows.PWBandStructureWorkflow(

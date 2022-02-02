@@ -8,5 +8,5 @@ from ._generic import Workflow
 from ._koopmans_dfpt import KoopmansDFPTWorkflow
 from ._koopmans_dscf import KoopmansDSCFWorkflow
 from ._singlepoint import SinglepointWorkflow
-from ._unfold_and_interp import UnfoldAndInterpolateWorkflow, SingleUIWorkflow
+from ._unfold_and_interp import UnfoldAndInterpolateWorkflow, SingleUnfoldAndInterpolateWorkflow
 from ._wannierize import WannierizeWorkflow
