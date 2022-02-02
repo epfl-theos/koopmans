@@ -203,11 +203,15 @@ class WannierizeWorkflow(Workflow):
                     # Plot
                     ax = bs.plot(ax=ax, emin=emin, emax=emax, colors=colours, label=label, **kwargs)
 
+                    # Undo the vertical shift (we don't want the stored band structure to be vertically shifted depending
+                    # on the value of self.parameters.calculate_bands!)
+                    bs._energies += vbe
+
             # Move the legend
             lgd = ax.legend(bbox_to_anchor=(1, 1), loc="lower right", ncol=2)
 
             # Save the comparison to file (as png and also in editable form)
-            with open('interpolated_bandstructure_{}x{}x{}.fig.pkl'.format(*self.kgrid), 'wb') as fd:
+            with open(self.name + '_interpolated_bandstructure_{}x{}x{}.fig.pkl'.format(*self.kgrid), 'wb') as fd:
                 pickle.dump(plt.gcf(), fd)
             # The "bbox_extra_artists" and "bbox_inches" mean that the legend is not cropped out
             plt.savefig('interpolated_bandstructure_{}x{}x{}.png'.format(*self.kgrid),
