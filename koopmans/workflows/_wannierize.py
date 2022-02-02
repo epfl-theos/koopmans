@@ -203,8 +203,8 @@ class WannierizeWorkflow(Workflow):
                     # Plot
                     ax = bs.plot(ax=ax, emin=emin, emax=emax, colors=colours, label=label, **kwargs)
 
-                    # Undo the vertical shift (we don't want the stored band structure to be vertically shifted depending
-                    # on the value of self.parameters.calculate_bands!)
+                    # Undo the vertical shift (we don't want the stored band structure to be vertically shifted
+                    # depending on the value of self.parameters.calculate_bands!)
                     bs._energies += vbe
 
             # Move the legend
