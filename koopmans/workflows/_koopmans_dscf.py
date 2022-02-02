@@ -691,7 +691,7 @@ class KoopmansDSCFWorkflow(Workflow):
             final_calc_types = [self.parameters.functional]
 
         for final_calc_type in final_calc_types:
-            
+
             final_calc_type += '_final'
 
             # For pKIPZ, the appropriate ndr can change but it is always ndw of the previous
