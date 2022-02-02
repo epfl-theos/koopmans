@@ -703,9 +703,9 @@ class KoopmansDSCFWorkflow(Workflow):
             else:
                 calc = self.new_kcp_calculator(final_calc_type, write_hr=True)
 
-        calc.directory = directory
+            calc.directory = directory
 
-        self.run_calculator(calc)
+            self.run_calculator(calc)
 
     def new_kcp_calculator(self, calc_presets: str = 'dft_init',
                            alphas: Optional[List[List[float]]] = None,
