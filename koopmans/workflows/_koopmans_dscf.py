@@ -1036,7 +1036,10 @@ class KoopmansDSCFWorkflow(Workflow):
         else:
             # Automatically generating UI calculator settings
             kwargs['directory'] = Path(f'postproc/{calc_presets}')
-            ham_prefix = calc_presets.replace('up', '1').replace('down', '2')
+            if '_' in calc_presets:
+                ham_prefix = calc_presets.replace('up', '1').replace('down', '2')
+            else:
+                ham_prefix = calc_presets + '_1'
             kwargs['kc_ham_file'] = Path(f'final/ham_{ham_prefix}.dat').resolve()
             kwargs['w90_seedname'] = Path(f'init/wannier/{calc_presets}/wann').resolve()
             if self.master_calc_params['ui'].do_smooth_interpolation:
