@@ -331,7 +331,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
             for filling in ['occ', 'emp']:
                 for i_spin, spin in enumerate(['up', 'down']):
-                    if self.projections.num_wann(filling, spin) == 0:
+                    if self.projections.num_wann(occ=(filling == 'occ'), spin=spin) == 0:
                         continue
                     if self.parameters.init_orbitals == 'kohn-sham':
                         if filling == 'occ':
