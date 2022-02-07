@@ -59,7 +59,7 @@ class ProjectionBlock(object):
         kwargs = {}
         for key in ['projections', 'num_wann', 'num_bands', 'exclude_bands']:
             val = getattr(self, key, None)
-            if val is None:
+            if val is None and key != 'exclude_bands':
                 raise AttributeError(f'You must define {self.__class__.__name__}.{key} before requesting w90_kwargs')
             kwargs[key] = val
         if self.spin is not None:
@@ -131,7 +131,8 @@ class ProjectionBlocks(object):
                 else:
                     upper_bound = self.num_bands(spin=spin)
                 to_exclude = [i for i in range(1, upper_bound + 1) if i not in band_indices]
-                b.exclude_bands = list_to_formatted_str(to_exclude)
+                if len(to_exclude) > 0:
+                    b.exclude_bands = list_to_formatted_str(to_exclude)
 
                 # Construct the calc_type
                 if b.filled:
