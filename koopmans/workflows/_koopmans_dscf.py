@@ -71,9 +71,12 @@ class KoopmansDSCFWorkflow(Workflow):
                     if nbands_emp != 0:
                         kcp_params.nbnd = nbands_occ + nbands_emp
                 elif kcp_params.nbnd != nbands_occ + nbands_emp:
-                    raise ValueError('The number of empty states are inconsistent. If you have provided '
-                                     '"nbnd" explicitly to the kcp calculator, check that it matches with the number '
-                                     'of empty projections/bands in your system.')
+                    spin_info = f'spin {spin} ' if self.parameters.spin_polarised else ''
+                    raise ValueError(f'The number of {spin_info}empty states are inconsistent:\n'
+                                     f' number of empty bands = {kcp_params.nbnd - nbands_occ}\n'
+                                     f' number of empty Wannier functions = {nbands_emp}\n'
+                                     'If you have provided "nbnd" explicitly to the kcp calculator, check that it '
+                                     'matches with the number of empty projections/bands in your system.')
 
             # Populating self.parameters.orbital_groups if needed
             # N.B. self.bands.groups is guaranteed to be 2 x num_wann, but self.parameters.orbital_groups
@@ -169,7 +172,7 @@ class KoopmansDSCFWorkflow(Workflow):
     def convert_kcp_to_supercell(self):
         # Multiply all extensive KCP settings by the appropriate prefactor
         prefactor = np.prod(self.kgrid)
-        for attr in ['nelec', 'nelup', 'neldw', 'nbnd', 'conv_thr', 'esic_conv_thr']:
+        for attr in ['nelec', 'nelup', 'neldw', 'nbnd', 'conv_thr', 'esic_conv_thr', 'tot_charge', 'tot_magnetization']:
             value = getattr(self.master_calc_params['kcp'], attr, None)
             if value is not None:
                 setattr(self.master_calc_params['kcp'], attr, prefactor * value)

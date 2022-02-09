@@ -46,7 +46,7 @@ class WannierizeWorkflow(Workflow):
                 num_wann_occ = self.projections.num_bands(occ=True, spin=spin)
                 nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, pw_params.pseudo_dir)
                 if self.parameters.spin_polarised:
-                    num_bands_occ = nelec
+                    num_bands_occ = nelec - pw_params.get('tot_charge', 0)
                     if spin == 'up':
                         num_bands_occ += pw_params.tot_magnetization
                     else:

@@ -100,7 +100,6 @@ class WorkflowTest:
             elif abs(diff) > tols[1]:
                 return {'kind': 'warning', 'message': message}
         elif isinstance(ref_result, np.ndarray):
-            return None
             # For arrays, perform a mixed error test. If Delta = |x - x_ref| then in the limit of large Delta,
             # then this reduces to testing relative error, whereas in the limit of small Delta it reduces to
             # testing absolute error. We use 0.1*max(ref_result) as a reference scale factor.
