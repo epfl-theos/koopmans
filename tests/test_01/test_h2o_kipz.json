@@ -5,29 +5,13 @@
         "calculate_alpha": false,
         "alpha_guess": 0.6,
         "print_qc": true,
-        "from_scratch": true
+        "from_scratch": true,
+        "pseudo_library": "sg15"
     },
     "setup": {
-        "control": {
-            "pseudo_dir": "../../pseudos/"
-        },
         "system": {
             "ecutwfc": 20.0,
             "ecutrho": "4*ecutwfc"
-        },
-        "atomic_species": {
-            "species": [
-                [
-                    "H",
-                    1.0,
-                    "H_ONCV_PBE-1.0.upf"
-                ],
-                [
-                    "O",
-                    1.0,
-                    "O_ONCV_PBE-1.0.upf"
-                ]
-            ]
         },
         "atomic_positions": {
             "units": "angstrom",
