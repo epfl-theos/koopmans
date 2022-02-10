@@ -338,12 +338,13 @@ class KoopmansDSCFWorkflow(Workflow):
             for filling in ['occ', 'emp']:
                 for i_spin, spin in enumerate(['up', 'down']):
                     # Skip if we don't have wannier functions to copy over
-                    if self.parameters.spin_polarised:
-                        if self.projections.num_wann(occ=(filling == 'occ'), spin=spin) == 0:
-                            continue
-                    else:
-                        if self.projections.num_wann(occ=(filling == 'occ'), spin=None) == 0:
-                            continue
+                    if self.parameters.init_orbitals != 'kohn-sham':
+                        if self.parameters.spin_polarised:
+                            if self.projections.num_wann(occ=(filling == 'occ'), spin=spin) == 0:
+                                continue
+                        else:
+                            if self.projections.num_wann(occ=(filling == 'occ'), spin=None) == 0:
+                                continue
 
                     if self.parameters.init_orbitals == 'kohn-sham':
                         if filling == 'occ':
