@@ -67,11 +67,14 @@ class KoopmansDSCFWorkflow(Workflow):
                     nbands_emp = self.master_calc_params['pw'].nbnd - nbands_occ
 
                 # Check the number of empty states has been correctly configured
+                spin_info = f'spin {spin} ' if self.parameters.spin_polarised else ''
                 if kcp_params.nbnd is None:
                     if nbands_emp != 0:
                         kcp_params.nbnd = nbands_occ + nbands_emp
+                elif nbands_occ > kcp_params.nbnd:
+                    raise ValueError(f'The value you have provided for nbnd is less than the number of {spin_info}'
+                                     f'electrons. Please increase nbnd to at least {nbands_occ}')
                 elif kcp_params.nbnd != nbands_occ + nbands_emp:
-                    spin_info = f'spin {spin} ' if self.parameters.spin_polarised else ''
                     raise ValueError(f'The number of {spin_info}empty states are inconsistent:\n'
                                      f' number of empty bands = {kcp_params.nbnd - nbands_occ}\n'
                                      f' number of empty Wannier functions = {nbands_emp}\n'
