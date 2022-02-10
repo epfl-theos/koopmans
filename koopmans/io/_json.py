@@ -34,8 +34,7 @@ def read_setup_dict(dct, task):
 
     calc = Espresso_kcp(atoms=Atoms())
 
-    compulsory_block_readers = {'atomic_species': read_atomic_species,
-                                'atomic_positions': read_atomic_positions}
+    compulsory_block_readers = {'atomic_positions': read_atomic_positions}
 
     for block, subdct in dct.items():
         if block in compulsory_block_readers or block in ['cell_parameters', 'k_points']:
@@ -231,8 +230,7 @@ def read_json(fd: TextIO, override={}):
         atoms, setup_parameters, workflow_kwargs, n_filled, n_empty = read_setup_dict(bigdct['setup'], parameters.task)
         del bigdct['setup']
     elif parameters.task != 'ui':
-        raise ValueError('You must provide a "setup" block in the input file, specifying atomic positions, atomic '
-                         'species, etc.')
+        raise ValueError('You must provide a "setup" block in the input file, specifying atomic positions etc.')
     else:
         # Create dummy objects
         atoms = Atoms()

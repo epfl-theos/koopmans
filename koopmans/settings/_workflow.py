@@ -13,9 +13,15 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
             Setting('functional',
                     'orbital-density-dependent-functional/density-functional to use',
                     str, 'ki', ('ki', 'kipz', 'pkipz', 'dft', 'all')),
+            Setting('base_functional',
+                    'base functional to use',
+                    str, 'pbe', ('lda', 'pbe', 'pbesol')),
             Setting('calculate_alpha',
                     'whether or not to calculate the screening parameters ab-initio',
                     bool, True, (True, False)),
+            Setting('pseudo_library',
+                    'the pseudopotential library to use (valid options depend on the value of base_functional)',
+                    str, None, None),
             Setting('method',
                     'the method to calculate the screening parameters: either with ΔSCF or DFPT',
                     str, 'dscf', ('dscf', 'dfpt')),
@@ -117,4 +123,5 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
         if key == 'orbital_groups' and value is not None:
             if len(value) == 0 or not isinstance(value[0], list):
                 value = [value]
+
         return super().__setitem__(key, value)

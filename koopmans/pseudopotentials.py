@@ -15,6 +15,25 @@ import xml.etree.ElementTree as ET
 from ase import Atoms
 
 
+pseudos_directory = Path(__file__).parents[1] / 'pseudos'
+available_pseudo_libraries = {func.lower(): [directory.name for directory in pseudos_directory.rglob(
+    '*') if (directory / func).exists()] for func in ['LDA', 'PBE', 'PBEsol']}
+
+
+def fetch_pseudo_from_library(element: str, pseudo_library: str, base_functional: str):
+    '''
+    Fetches the appropriate pseudopotential for a particular element from a particular pseudopotential library
+    corresponding to a particular base functional
+    '''
+
+    import ipdb
+    ipdb.set_trace()
+
+
+def pseudos_library_directory(pseudo_library: str, base_functional: str) -> Path:
+    return pseudos_directory / pseudo_library / base_functional.lower()
+
+
 def read_pseudo_file(fd):
     '''
 

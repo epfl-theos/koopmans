@@ -18,7 +18,7 @@ from ase import Atoms
 from ase.build.supercells import make_supercell
 from ase.dft.kpoints import BandPath
 from ase.calculators.calculator import CalculationFailed
-from koopmans.pseudopotentials import nelec_from_pseudos
+from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, fetch_pseudo_from_library
 from koopmans import utils, settings
 import koopmans.calculators as calculators
 from koopmans.commands import ParallelCommandWithPostfix
@@ -51,7 +51,10 @@ class Workflow(object):
         self.calculations: List[calculators.CalculatorExt] = []
         self.silent = False
         self.print_indent = 1
-        self.pseudopotentials = pseudopotentials
+        if pseudopotentials:
+            self.pseudopotentials = pseudopotentials
+        else:
+            self._fetch_pseudopotentials_from_library()
         self.gamma_only = gamma_only
         if self.gamma_only:
             if kgrid != [1, 1, 1]:
@@ -676,3 +679,14 @@ class Workflow(object):
     def bands(self, value):
         assert isinstance(value, Bands)
         self._bands = value
+
+    def _fetch_pseudopotentials_from_library(self):
+        import ipdb
+        ipdb.set_trace()
+        self.pseudopotentials = {symbol: fetch_pseudo_from_library(
+            symbol, self.parameters.pseudo_library, self.parameters.base_functional) for symbol in something}
+
+        psp_directory = pseudos_library_directory(self.pseudo_library, self.base_functional)
+        for c in self.master_calc_params:
+            if 'pseudo_dir' in c.valid:
+                c.pseudo_dir = psp_directory
