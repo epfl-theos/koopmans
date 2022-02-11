@@ -6,7 +6,7 @@
         "alpha_guess": 0.6,
         "print_qc": true,
         "from_scratch": true,
-        "pseudo_library": "sg15"
+        "pseudo_library": "sg15_v1.0"
     },
     "setup": {
         "system": {

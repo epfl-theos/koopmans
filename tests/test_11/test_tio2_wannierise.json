@@ -3,15 +3,10 @@
         "task": "wannierise",
         "periodic": true,
         "init_orbitals": "mlwfs",
-        "from_scratch": true
+        "from_scratch": true,
+        "pseudo_library": "sg15_v1.0"
     },
     "setup": {
-        "atomic_species": {
-            "species": [
-                ["Ti", 47.867, "Ti_ONCV_PBE-1.0.upf"],
-                ["O", 15.994, "O_ONCV_PBE-1.0.upf"]
-            ]
-        },
         "atomic_positions": {
             "units": "crystal",
             "positions": [
@@ -56,9 +51,6 @@
                 2
             ],
             "kpath": "GXG"
-        },
-        "control": {
-            "pseudo_dir": "../../pseudos"
         },
         "system": {
             "ibrav": 6,
