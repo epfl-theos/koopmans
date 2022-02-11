@@ -395,6 +395,9 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             if key.startswith('starting_magnetization'):
                 continue
 
+            if key in ['tot_charge', 'pseudo_dir']:
+                continue
+
             if key == 'ibrav':
                 continue
 

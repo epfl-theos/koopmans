@@ -83,6 +83,8 @@ class Workflow(object):
         elif self.parameters.pseudo_library:
             self.pseudopotentials = {symbol: fetch_pseudo_from_library(
                 symbol, self.parameters.pseudo_library, self.parameters.base_functional) for symbol in set(self.atoms.symbols)}
+        else:
+            self.pseudopotentials = pseudopotentials
 
         # Work out the pseudopotential directory. If using a pseudo_library this is straightforward, if not...
         #  1. try to locating the directory as currently specified by the calculator
