@@ -15,7 +15,7 @@ from koopmans import utils
 from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.bands import Band, Bands
 from koopmans import calculators
-from ._generic import Workflow
+from ._workflow import Workflow
 
 
 class KoopmansDSCFWorkflow(Workflow):

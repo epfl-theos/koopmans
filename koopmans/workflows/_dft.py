@@ -7,7 +7,7 @@ Written by Edward Linscott Oct 2020
 """
 
 from koopmans import utils, pseudopotentials
-from ._generic import Workflow
+from ._workflow import Workflow
 
 
 class DFTCPWorkflow(Workflow):
