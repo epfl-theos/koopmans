@@ -7,7 +7,7 @@ Written by Edward Linscott Jan 2020
 """
 
 import json as json_ext
-from typing import TextIO, Dict
+from typing import TextIO, Dict, Any
 from pathlib import Path
 from ase.io.espresso.koopmans_cp import construct_namelist
 from koopmans import utils
@@ -24,7 +24,7 @@ def update_nested_dict(dct_to_update, second_dct):
             dct_to_update[k] = v
 
 
-def read_json(fd: TextIO, override={}):
+def read_json(fd: TextIO, override: Dict[str, Any] = {}):
     '''
 
     Reads in settings listed in JSON file
