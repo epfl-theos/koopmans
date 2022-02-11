@@ -843,8 +843,8 @@ class Workflow(object):
             master_calc_params[block].update(
                 **{k: v for k, v in setup_parameters.items() if k in master_calc_params[block].valid})
 
-        # Adding the projections to the workflow kwargs (this is unusual in that this is an attribute of the workflow object
-        # but it is provided in the w90 subdictionary)
+        # Adding the projections to the workflow kwargs (this is unusual in that this is an attribute of the workflow
+        # object but it is provided in the w90 subdictionary)
         workflow_kwargs['projections'] = ProjectionBlocks.fromprojections(
             w90_block_projs, w90_block_filling, w90_block_spins, atoms)
 
