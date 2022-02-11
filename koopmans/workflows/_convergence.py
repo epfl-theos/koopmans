@@ -14,7 +14,7 @@ import itertools
 from typing import Dict, Union, List
 from pathlib import Path
 from koopmans import utils
-from ._generic import Workflow
+from ._workflow import Workflow
 from ._singlepoint import SinglepointWorkflow
 
 

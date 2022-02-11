@@ -17,7 +17,7 @@ import koopmans.mpl_config
 import matplotlib.pyplot as plt
 from koopmans import utils, projections, calculators
 from koopmans.pseudopotentials import nelec_from_pseudos
-from ._generic import Workflow
+from ._workflow import Workflow
 
 
 CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')

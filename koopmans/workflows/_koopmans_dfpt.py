@@ -11,7 +11,7 @@ import numpy as np
 from koopmans.bands import Bands
 from koopmans.calculators import Wann2KCCalculator, KoopmansHamCalculator
 from koopmans import utils, io
-from ._generic import Workflow
+from ._workflow import Workflow
 
 
 class KoopmansDFPTWorkflow(Workflow):
