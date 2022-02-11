@@ -10,7 +10,6 @@ Converted workflows from functions to objects Nov 2020
 import os
 import copy
 from pathlib import Path
-from ase.io.espresso.utils import cell_to_ibrav, ibrav_to_cell
 import json as json_ext
 import numpy as np
 from numpy import typing as npt
@@ -20,6 +19,7 @@ from ase.build.supercells import make_supercell
 from ase.dft.kpoints import BandPath
 from ase.calculators.espresso import Espresso_kcp
 from ase.calculators.calculator import CalculationFailed
+from ase.io.espresso.utils import cell_to_ibrav, ibrav_to_cell
 from ase.io.espresso.koopmans_cp import KEYS as kcp_keys
 from koopmans.pseudopotentials import nelec_from_pseudos, set_up_pseudos
 from koopmans import utils, settings
