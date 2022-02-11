@@ -709,11 +709,7 @@ class Workflow(object):
         assert isinstance(value, Bands)
         self._bands = value
 
-
-<< << << < HEAD: koopmans/workflows/_generic.py
- def _fetch_pseudopotentials_from_library(self):
-      import ipdb
-       ipdb.set_trace()
+    def _fetch_pseudopotentials_from_library(self):
         self.pseudopotentials = {symbol: fetch_pseudo_from_library(
             symbol, self.parameters.pseudo_library, self.parameters.base_functional) for symbol in something}
 
@@ -721,11 +717,11 @@ class Workflow(object):
         for c in self.master_calc_params:
             if 'pseudo_dir' in c.valid:
                 c.pseudo_dir = psp_directory
-== == == =
- @classmethod
-  def fromjson(cls, fname: str):
 
-       with open(fname, 'r') as fd:
+    @classmethod
+    def fromjson(cls, fname: str):
+
+        with open(fname, 'r') as fd:
             bigdct = json_ext.loads(fd.read())
 
         # Deal with the nested w90 subdictionaries
@@ -979,5 +975,3 @@ def read_setup_dict(dct: Dict[str, Any], task: str):
             psps_and_kpts[key] = parameters.pop(key)
 
     return atoms, parameters, psps_and_kpts, n_filled, n_empty
-
->>>>>> > master: koopmans/workflows/_workflow.py
