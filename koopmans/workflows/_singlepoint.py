@@ -10,7 +10,7 @@ Converted to a workflow object Nov 2020
 import os
 from pathlib import Path
 from koopmans import utils
-from ._generic import Workflow
+from ._workflow import Workflow
 
 
 load_results_from_output = True

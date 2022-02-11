@@ -12,7 +12,7 @@ import numpy as np
 from pathlib import Path
 from koopmans import utils
 from koopmans import calculators
-from ._generic import Workflow
+from ._workflow import Workflow
 
 
 class FoldToSupercellWorkflow(Workflow):
