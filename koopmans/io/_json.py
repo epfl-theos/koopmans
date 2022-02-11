@@ -7,7 +7,7 @@ Written by Edward Linscott Jan 2020
 """
 
 import json as json_ext
-from typing import TextIO, Dict, Any
+from typing import TextIO, Dict, Any, Type
 from pathlib import Path
 from ase.io.espresso.koopmans_cp import construct_namelist
 from koopmans import utils
@@ -41,7 +41,7 @@ def read_json(fd: TextIO, override: Dict[str, Any] = {}):
     # Loading workflow settings
     parameters = WorkflowSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})))
 
-    workflow_cls: workflows.Workflow.__class__
+    workflow_cls: Type[workflows.Workflow]
     if parameters.task == 'singlepoint':
         workflow_cls = workflows.SinglepointWorkflow
     elif parameters.task == 'convergence':

@@ -95,7 +95,7 @@ class Workflow(object):
                     continue
                 if 'projections' in params or 'projections_blocks' in params:
                     raise ValueError(f'You have provided projection information in the master_calc_params[{block}] '
-                                     f'argument to {self.__name__.__class__}. Please instead specify projections '
+                                     f'argument to {self.__class__.__name__}. Please instead specify projections '
                                      'via the "projections" argument')
                 for kw in ['exclude_bands', 'num_wann', 'num_bands', 'projections']:
                     if kw in params:
