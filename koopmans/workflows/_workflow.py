@@ -9,11 +9,14 @@ Converted workflows from functions to objects Nov 2020
 
 import os
 import copy
+import subprocess
 from pathlib import Path
 import json as json_ext
 import numpy as np
 from numpy import typing as npt
+from types import ModuleType
 from typing import Optional, Dict, List, Type, Union, Any, TypeVar
+import ase
 from ase import Atoms
 from ase.build.supercells import make_supercell
 from ase.dft.kpoints import BandPath
@@ -27,12 +30,13 @@ import koopmans.calculators as calculators
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.bands import Bands
 from koopmans.projections import ProjectionBlocks
+from abc import ABC, abstractmethod
 
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
 
 
-class Workflow(object):
+class Workflow(ABC):
 
     def __init__(self, atoms: Atoms,
                  parameters: settings.SettingsDict = settings.WorkflowSettingsDict(),
@@ -242,6 +246,18 @@ class Workflow(object):
                 utils.warn('Martyna-Tuckerman corrections not applied for an aperiodic calculation; do this with '
                            'caution')
 
+        # Records whether or not this workflow is a subworkflow of another
+        self._is_a_subworkflow = False
+
+    def run(self) -> None:
+        self.print_preamble()
+        self._run()
+        self.print_conclusion()
+
+    @abstractmethod
+    def _run(self) -> None:
+        ...
+
     @property
     def pseudopotentials(self) -> Dict[str, str]:
         return self._pseudopotentials
@@ -350,9 +366,6 @@ class Workflow(object):
             calc.directory = directory
 
         return calc
-
-    def run(self):
-        raise NotImplementedError('This workflow class has not implemented the run() function')
 
     def convert_wavefunction_2to1(self, nspin2_tmpdir: Path, nspin1_tmpdir: Path):
 
@@ -669,6 +682,9 @@ class Workflow(object):
         # Increase the indent level
         workflow.print_indent = self.print_indent + 1
 
+        # Don't print out the header, generate .bib and .kwf files etc. for subworkflows
+        workflow._is_a_subworkflow = True
+
         # Ensure altering workflow.master_calc_params won't affect self.master_calc_params
         if workflow.master_calc_params is self.master_calc_params:
             workflow.master_calc_params = copy.deepcopy(self.master_calc_params)
@@ -903,6 +919,63 @@ class Workflow(object):
         name = fname.replace('.json', '')
 
         return cls(atoms, parameters, master_calc_params, name, **workflow_kwargs)
+
+    def print_header(self):
+        print(header())
+
+    def print_bib(self):
+        pass
+
+    def print_preamble(self):
+        if self._is_a_subworkflow:
+            return
+
+        self.print_header()
+
+        self.print_bib()
+
+    def print_conclusion(self):
+        from koopmans.io import write
+
+        if self._is_a_subworkflow:
+            return
+
+        # Save workflow to file
+        write(self, self.name + '.kwf')
+
+        # Print farewell message
+        print('\n Workflow complete')
+
+
+def get_version(module):
+    if isinstance(module, ModuleType):
+        module = module.__path__[0]
+    with utils.chdir(module):
+        version_label = subprocess.check_output(["git", "describe", "--always", "--tags"]).strip()
+    return version_label.decode("utf-8")
+
+
+def header():
+
+    koopmans_version = get_version(os.path.dirname(__file__))
+    ase_version = get_version(ase)
+    qe_version = get_version(calculators.qe_bin_directory)
+
+    header = [r"  _                                                ",
+              r" | | _____   ___  _ __  _ __ ___   __ _ _ __  ___  ",
+              r" | |/ / _ \ / _ \| '_ \| '_ ` _ \ / _` | '_ \/ __| ",
+              r" |   < (_) | (_) | |_) | | | | | | (_| | | | \__ \ ",
+              r" |_|\_\___/ \___/| .__/|_| |_| |_|\__,_|_| |_|___/ ",
+              r"                 |_|                               ",
+              "",
+              " Koopmans spectral functional calculations with Quantum ESPRESSO",
+              "",
+              " Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna",
+              "",
+              f" using QE version {qe_version}, workflow manager version {koopmans_version}, and ASE version "
+              f"{ase_version}"
+              ""]
+    return '\n'.join(header)
 
 
 def read_setup_dict(dct: Dict[str, Any], task: str):

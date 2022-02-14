@@ -20,7 +20,7 @@ from ._singlepoint import SinglepointWorkflow
 
 class ConvergenceWorkflow(Workflow):
 
-    def run(self, initial_depth: int = 3) -> Dict[str, Union[float, int]]:
+    def _run(self, initial_depth: int = 3) -> Dict[str, Union[float, int]]:
 
         if 'kcp' in self.master_calc_params:
             kcp_master_params = self.master_calc_params['kcp']

@@ -17,7 +17,7 @@ from ._workflow import Workflow
 
 class FoldToSupercellWorkflow(Workflow):
 
-    def run(self):
+    def _run(self):
         '''
 
         Wrapper for folding Wannier or Kohn-Sham functions from the primitive cell

@@ -131,7 +131,7 @@ class SingleUnfoldAndInterpolateWorkflow(Workflow):
     command
     '''
 
-    def run(self):
+    def _run(self):
         '''
         '''
         ui_calc = self.new_calculator('ui')

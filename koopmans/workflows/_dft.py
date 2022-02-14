@@ -12,7 +12,7 @@ from ._workflow import Workflow
 
 class DFTCPWorkflow(Workflow):
 
-    def run(self):
+    def _run(self):
 
         calc = self.new_calculator('kcp')
 
