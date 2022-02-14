@@ -16,6 +16,7 @@ import numpy as np
 from numpy import typing as npt
 from types import ModuleType
 from typing import Optional, Dict, List, Type, Union, Any, TypeVar
+from pybtex.database import BibliographyData
 import ase
 from ase import Atoms
 from ase.build.supercells import make_supercell
@@ -30,6 +31,7 @@ import koopmans.calculators as calculators
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.bands import Bands
 from koopmans.projections import ProjectionBlocks
+from koopmans.references import bib_data
 from abc import ABC, abstractmethod
 
 
@@ -924,7 +926,27 @@ class Workflow(ABC):
         print(header())
 
     def print_bib(self):
-        pass
+        relevant_references = BibliographyData()
+
+        def add_ref(bibkey):
+            if bibkey not in bib_data.entries:
+                raise ValueError(f'Could not find bibliography entry for {bibkey}')
+            else:
+                relevant_references.add_entry(bibkey, bib_data.entries[bibkey])
+
+        if self.parameters.functional in ['ki', 'kipz', 'pkipz', 'all']:
+            add_ref('Dabo2010')
+            add_ref('Borghi2014')
+
+            if self.parameters.periodic:
+                add_ref('Nguyen2018')
+                if self.parameters.calculate_alpha:
+                    add_ref('Colonna2019')
+            else:
+                add_ref('Borghi2015')
+
+        print(f'\n Please cite the papers listed in {self.name}.bib in work involving this calculation')
+        relevant_references.to_file(self.name + '.bib')
 
     def print_preamble(self):
         if self._is_a_subworkflow:
