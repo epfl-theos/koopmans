@@ -44,7 +44,7 @@ class DFTCPWorkflow(Workflow):
 
 class DFTPWWorkflow(Workflow):
 
-    def run(self):
+    def _run(self):
 
         # Create the calculator
         calc = self.new_calculator('pw')
@@ -67,7 +67,7 @@ class DFTPWWorkflow(Workflow):
 
 class PWBandStructureWorkflow(Workflow):
 
-    def run(self):
+    def _run(self):
 
         # First, a scf calculation
         calc_scf = self.new_calculator('pw', nbnd=None)

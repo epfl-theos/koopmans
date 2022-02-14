@@ -23,7 +23,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         super().__init__(*args, **kwargs)
         self._redo_smooth_dft = redo_smooth_dft
 
-    def run(self):
+    def _run(self):
         '''
 
         Wrapper for the whole unfolding and interpolation workflow, consisting of:
