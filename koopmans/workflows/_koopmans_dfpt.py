@@ -232,7 +232,7 @@ class KoopmansDFPTWorkflow(Workflow):
         calc.parameters.outdir = 'TMP'
         calc.parameters.seedname = 'wann'
         calc.parameters.spin_component = 1
-        calc.parameters.kc_at_ks = not self.parameters.periodic
+        calc.parameters.kcw_at_ks = not self.parameters.periodic
         calc.parameters.read_unitary_matrix = self.parameters.periodic
 
         if calc_presets == 'wann2kc':

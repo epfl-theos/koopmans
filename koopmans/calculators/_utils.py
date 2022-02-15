@@ -260,7 +260,7 @@ class CalculatorExt():
 
 
 class KCWannCalculator(CalculatorExt):
-    # Parent class for kc_ham.x, kc_screen.x and wann2kc.x calculators
+    # Parent class for KCWHam, KCWScreen and Wann2KCW calculators
 
     def __init__(self, *args, **kwargs):
 
