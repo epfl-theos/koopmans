@@ -107,8 +107,22 @@ class PWBandStructureWorkflow(Workflow):
         ax_dos= axes[1]
         bs.plot(ax=ax_bs)
         [xmin,xmax] = ax_bs.get_ylim()
+
         dc_up.plot(ax=ax_dos, xmin=xmin , xmax=xmax, orientation = 'vertical')
+        
         ax_dos.set_prop_cycle(None)
-        dc_down.plot(ax=ax_dos, xmin = xmin, xmax = xmax, orientation = 'vertical')
+        dc_down.plot(ax=ax_dos, xmin = xmin, orientation = 'vertical')
+        
+        #ax_dos.axes.get_xaxis().set_ticklabels([]) #No Tick Labels
+        #ax_dos.axes.xaxis.set_visible(False) #No Tick Labels
+        #ax_dos.axes.yaxis.set_visible(False) 
+        ax_dos.xaxis.set_major_locator(plt.NullLocator())
+        ax_dos.xaxis.set_major_formatter(plt.NullFormatter())
+        ax_dos.xticklabels=('down', 'up')
+        labels = [item.get_text() for item in ax_dos.get_xticklabels()]
+        labels[1] = 'down'
+        labels[2] = 'up'
+        ax_dos.set_xticklabels(labels)
+
         ax_dos.legend(loc= 'upper left', bbox_to_anchor=(1,1))
         plt.savefig(fname=f'{self.name}_bands.png')
