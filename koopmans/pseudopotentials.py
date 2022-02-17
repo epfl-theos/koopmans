@@ -10,30 +10,59 @@ Split into a separate module Sep 2021
 
 import os
 import re
+import json
+from itertools import chain
 from pathlib import Path
-from typing import Dict, Optional, Union
+from dataclasses import dataclass
+from typing import Dict, Optional, List
 import xml.etree.ElementTree as ET
 from ase import Atoms
 
 
+@dataclass
+class Pseudopotential:
+    name: str
+    element: str
+    path: Path
+    functional: str
+    library: str
+    citations: List[str]
+    cutoff_wfc: Optional[float] = None
+    cutoff_rho: Optional[float] = None
+
+
 pseudos_directory = Path(__file__).parents[1] / 'pseudos'
-available_pseudo_libraries = {func.lower(): [directory.name for directory in pseudos_directory.rglob(
-    '*') if (directory / func).exists()] for func in ['LDA', 'PBE', 'PBEsol']}
 
+# A database containing all the available pseudopotentials
+pseudo_database = []
+for pseudo_file in chain(pseudos_directory.rglob('*.UPF'), pseudos_directory.rglob('*.upf')):
+    name = pseudo_file.name
+    splitname = re.split(r'\.|_|-', name)[0]
+    element = splitname[0].upper() + splitname[1:].lower()
+    library = pseudo_file.parents[1].name
+    functional = pseudo_file.parent.name
+    citations = []
 
-def fetch_pseudo_from_library(element: str, pseudo_library: str, base_functional: str):
-    '''
-    Fetches the appropriate pseudopotential for a particular element from a particular pseudopotential library
-    corresponding to a particular base functional
-    '''
-
-    directory = pseudos_library_directory(pseudo_library, base_functional)
-    pseudo_matches = [psp.name for psp in directory.glob(
-        '*') if re.split(r'\.|_|-', psp.name)[0].lower() == element.lower()]
-    if len(pseudo_matches) == 0:
-        raise ValueError(f'Failed to find a pseudopotential corresponding to {element} in {directory}')
+    kwargs = {}
+    if library.startswith('sssp'):
+        [json_name] = list(pseudo_file.parent.glob('*.json'))
+        metadata = json.load(open(json_name, 'r'))[element]
+        original_library = metadata['pseudopotential'].replace('SG15', 'sg15').replace('Dojo', 'pseudo_dojo')
+        citations += ['Lehaeghere2016', 'Prandini2018']
+        for key in ['cutoff_wfc', 'cutoff_rho']:
+            kwargs[key] = metadata[key]
     else:
-        return sorted(pseudo_matches)[-1]
+        original_library = library
+
+    if original_library.startswith('sg15'):
+        citations.append('Hamann2013')
+        citations.append('Schlipf2015')
+        if 'relativistic' in original_library:
+            citations.append('Scherpelz2016')
+    elif original_library.startswith('pseudo_dojo'):
+        citations.append('Hamann2013')
+
+    pseudo_database.append(Pseudopotential(name, element, pseudo_file.parent, functional, library, citations))
 
 
 def pseudos_library_directory(pseudo_library: str, base_functional: str) -> Path:

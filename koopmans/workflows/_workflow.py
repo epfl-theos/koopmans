@@ -25,7 +25,7 @@ from ase.calculators.espresso import Espresso_kcp
 from ase.calculators.calculator import CalculationFailed
 from ase.io.espresso.utils import cell_to_ibrav, ibrav_to_cell
 from ase.io.espresso.koopmans_cp import KEYS as kcp_keys
-from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, fetch_pseudo_from_library
+from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, pseudo_database
 from koopmans import utils, settings
 import koopmans.calculators as calculators
 from koopmans.commands import ParallelCommandWithPostfix
@@ -87,8 +87,10 @@ class Workflow(ABC):
         if pseudopotentials:
             self.pseudopotentials = pseudopotentials
         elif self.parameters.pseudo_library:
-            self.pseudopotentials = {symbol: fetch_pseudo_from_library(
-                symbol, self.parameters.pseudo_library, self.parameters.base_functional) for symbol in set(self.atoms.symbols)}
+            self.pseudopotentials = {symbol: [psp.name for psp in pseudo_database if psp.element == symbol
+                                              and psp.functional == self.parameters.base_functional
+                                              and psp.library == self.parameters.pseudo_library][0]
+                                     for symbol in set(self.atoms.symbols)}
         else:
             self.pseudopotentials = pseudopotentials
 
@@ -928,22 +930,37 @@ class Workflow(ABC):
     def print_bib(self):
         relevant_references = BibliographyData()
 
-        def add_ref(bibkey):
+        def add_ref(bibkey: str, note: str):
             if bibkey not in bib_data.entries:
                 raise ValueError(f'Could not find bibliography entry for {bibkey}')
             else:
-                relevant_references.add_entry(bibkey, bib_data.entries[bibkey])
+                entry = bib_data.entries[bibkey]
+                entry.fields['note'] = note
+                relevant_references.add_entry(bibkey, entry)
 
         if self.parameters.functional in ['ki', 'kipz', 'pkipz', 'all']:
-            add_ref('Dabo2010')
-            add_ref('Borghi2014')
+            add_ref('Dabo2010', 'One of the founding Koopmans functionals papers')
+            add_ref('Borghi2014', 'One of the founding Koopmans functionals papers')
 
             if self.parameters.periodic:
-                add_ref('Nguyen2018')
+                add_ref('Nguyen2018', 'Describes Koopmans functionals in periodic systems')
                 if self.parameters.calculate_alpha:
-                    add_ref('Colonna2019')
+                    if self.parameters.method == 'dfpt':
+                        add_ref('Colonna2019', 'Introduces the DFPT method for calculating screening parameters')
+                        add_ref('Colonna2022', 'Describes the algorithms underpinning the kcw.x code')
+                    else:
+                        add_ref('DeGennaro2022', 'Describes how to extract band structures from Koopmans functional calculations')
             else:
-                add_ref('Borghi2015')
+                add_ref('Borghi2015', 'Describes the algorithms underpinning the kcp.x code')
+
+            psp_lib = self.parameters.pseudo_library
+            if psp_lib is not None:
+                psp_subset = [p for p in pseudo_database if p.functional == self.parameters.base_functional
+                              and p.library == psp_lib]
+                citations = set([c for psp in psp_subset for c in psp.citations if psp.element in self.atoms.symbols])
+
+                for citation in citations:
+                    add_ref(citation, f'Citation for the {psp_lib.replace("_", " ")} pseudopotential library')
 
         print(f'\n Please cite the papers listed in {self.name}.bib in work involving this calculation')
         relevant_references.to_file(self.name + '.bib')
