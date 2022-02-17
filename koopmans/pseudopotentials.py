@@ -76,10 +76,7 @@ for pseudo_file in chain(pseudos_directory.rglob('*.UPF'), pseudos_directory.rgl
 
 
 def pseudos_library_directory(pseudo_library: str, base_functional: str) -> Path:
-    directory = pseudos_directory / pseudo_library
-    if directory.is_symlink():
-        directory = Path(os.path.realpath(directory))
-    return directory / base_functional
+    return pseudos_directory / pseudo_library / base_functional
 
 
 def fetch_pseudo(**kwargs):

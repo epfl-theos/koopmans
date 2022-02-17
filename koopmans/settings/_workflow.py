@@ -1,4 +1,7 @@
+import os
+from pathlib import Path
 from typing import Any
+from koopmans import pseudopotentials
 from ._utils import Setting, SettingsDictWithChecks
 
 
@@ -123,5 +126,11 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
         if key == 'orbital_groups' and value is not None:
             if len(value) == 0 or not isinstance(value[0], list):
                 value = [value]
+
+        # Make sure that pseudo libraries shortcuts (e.g. "sg15") are converted to the explicit version (e.g. "sg15_v1.2")
+        if key == 'pseudo_library':
+            full_path = pseudopotentials.pseudos_directory / value
+            if full_path.is_symlink():
+                value = Path(os.path.realpath(full_path)).name
 
         return super().__setitem__(key, value)
