@@ -954,6 +954,7 @@ class Workflow(ABC):
                         add_ref('Colonna2022', 'Describes the algorithms underpinning the kcw.x code')
                     else:
                         add_ref('DeGennaro2021', 'Describes how to extract band structures from Koopmans functional calculations')
+                        add_ref('Borghi2015', 'Describes the algorithms underpinning the kcp.x code')
             else:
                 add_ref('Borghi2015', 'Describes the algorithms underpinning the kcp.x code')
 
