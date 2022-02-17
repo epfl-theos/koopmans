@@ -25,7 +25,7 @@ from ase.calculators.espresso import Espresso_kcp
 from ase.calculators.calculator import CalculationFailed
 from ase.io.espresso.utils import cell_to_ibrav, ibrav_to_cell
 from ase.io.espresso.koopmans_cp import KEYS as kcp_keys
-from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, pseudo_database
+from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, pseudo_database, fetch_pseudo
 from koopmans import utils, settings
 import koopmans.calculators as calculators
 from koopmans.commands import ParallelCommandWithPostfix
@@ -87,10 +87,14 @@ class Workflow(ABC):
         if pseudopotentials:
             self.pseudopotentials = pseudopotentials
         elif self.parameters.pseudo_library:
-            self.pseudopotentials = {symbol: [psp.name for psp in pseudo_database if psp.element == symbol
-                                              and psp.functional == self.parameters.base_functional
-                                              and psp.library == self.parameters.pseudo_library][0]
-                                     for symbol in set(self.atoms.symbols)}
+            self.pseudopotentials = {}
+            for symbol in set(self.atoms.symbols):
+                pseudo = fetch_pseudo(element=symbol, functional=self.parameters.base_functional,
+                                      library=self.parameters.pseudo_library)
+                if pseudo.kind != 'norm-conserving':
+                    raise ValueError(
+                        f'Koopmans functionals only currently support norm-conserving pseudopotentials; {pseudo.name} is {pseudo.kind}')
+                self.pseudopotentials[symbol] = pseudo.name
         else:
             self.pseudopotentials = pseudopotentials
 

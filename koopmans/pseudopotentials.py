@@ -26,6 +26,7 @@ class Pseudopotential:
     path: Path
     functional: str
     library: str
+    kind: str
     citations: List[str]
     cutoff_wfc: Optional[float] = None
     cutoff_rho: Optional[float] = None
@@ -48,11 +49,20 @@ for pseudo_file in chain(pseudos_directory.rglob('*.UPF'), pseudos_directory.rgl
         [json_name] = list(pseudo_file.parent.glob('*.json'))
         metadata = json.load(open(json_name, 'r'))[element]
         original_library = metadata['pseudopotential'].replace('SG15', 'sg15').replace('Dojo', 'pseudo_dojo')
+        if original_library.startswith('sg15') or original_library.startswith('pseudo_dojo'):
+            kind = 'norm-conserving'
+        elif original_library.startswith('GBRV') or original_library in ['031US', '100US', 'THEOS']:
+            kind = 'ultrasoft'
+        elif 'PAW' in original_library or original_library == 'Wentzcovitch':
+            kind = 'projector-augmented wave'
+        else:
+            raise ValueError(f'Unrecognised library {original_library}')
         citations += ['Lehaeghere2016', 'Prandini2018']
         for key in ['cutoff_wfc', 'cutoff_rho']:
             kwargs[key] = metadata[key]
     else:
         original_library = library
+        kind = 'norm-conserving'
 
     if original_library.startswith('sg15'):
         citations.append('Hamann2013')
@@ -62,7 +72,7 @@ for pseudo_file in chain(pseudos_directory.rglob('*.UPF'), pseudos_directory.rgl
     elif original_library.startswith('pseudo_dojo'):
         citations.append('Hamann2013')
 
-    pseudo_database.append(Pseudopotential(name, element, pseudo_file.parent, functional, library, citations))
+    pseudo_database.append(Pseudopotential(name, element, pseudo_file.parent, functional, library, kind, citations))
 
 
 def pseudos_library_directory(pseudo_library: str, base_functional: str) -> Path:
@@ -70,6 +80,17 @@ def pseudos_library_directory(pseudo_library: str, base_functional: str) -> Path
     if directory.is_symlink():
         directory = Path(os.path.realpath(directory))
     return directory / base_functional
+
+
+def fetch_pseudo(**kwargs):
+    matches = [psp for psp in pseudo_database if all([getattr(psp, k) == v for k, v in kwargs.items()])]
+    request_str = ', '.join([f'{k} = {v}' for k, v in kwargs.items()])
+    if len(matches) == 0:
+        raise ValueError('Could not find a pseudopotential in the database matching ' + request_str)
+    elif len(matches) > 1:
+        raise ValueError('Found multiple pseudopotentials in the database matching ' + request_str)
+    else:
+        return matches[0]
 
 
 def read_pseudo_file(fd):
