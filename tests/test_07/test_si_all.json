@@ -19,18 +19,10 @@
             1,
             1,
             1
-        ]
+        ],
+        "pseudo_library": "sg15"
     },
     "setup": {
-        "atomic_species": {
-            "species": [
-                [
-                    "Si",
-                    28.085,
-                    "Si_ONCV_PBE-1.2.upf"
-                ]
-            ]
-        },
         "atomic_positions": {
             "units": "crystal",
             "positions": [
@@ -55,9 +47,6 @@
                 2
             ],
             "kpath": "GL"
-        },
-        "control": {
-            "pseudo_dir": "../../pseudos/"
         },
         "system": {
             "ibrav": 2,

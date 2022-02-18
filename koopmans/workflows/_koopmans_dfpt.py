@@ -101,7 +101,7 @@ class KoopmansDFPTWorkflow(Workflow):
             for key in ['pw', 'kc_screen']:
                 self.master_calc_params[key].kpts = [1, 1, 1]
 
-    def run(self):
+    def _run(self):
         '''
         This function runs the workflow from start to finish
         '''

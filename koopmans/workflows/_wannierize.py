@@ -87,7 +87,7 @@ class WannierizeWorkflow(Workflow):
         # must match the original k-grid
         self._scf_kgrid = scf_kgrid
 
-    def run(self):
+    def _run(self):
         '''
 
         Wrapper for the calculation of (maximally localized) Wannier functions
