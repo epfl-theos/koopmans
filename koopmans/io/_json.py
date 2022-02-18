@@ -8,6 +8,7 @@ Written by Edward Linscott Jan 2020
 
 import json as json_ext
 from typing import TextIO, Dict, Any, Type
+from collections import defaultdict
 from pathlib import Path
 from ase.io.espresso.koopmans_cp import construct_namelist
 from koopmans import utils
@@ -93,8 +94,8 @@ def write_json(workflow: workflows.Workflow, filename: Path):
         bigdct['setup']['cell_parameters'] = construct_cell_parameters_block(workflow.atoms)
 
     # atomic positions
-    if workflow.atoms.has('labels'):
-        labels = workflow.atoms.get_array('labels')
+    if workflow.atoms.has('tags'):
+        labels = [a.symbol + str(a.tag) for a in workflow.atoms]
     else:
         labels = workflow.atoms.get_chemical_symbols()
     if ibrav == 0:
@@ -106,11 +107,16 @@ def write_json(workflow: workflows.Workflow, filename: Path):
             [label] + [str(x) for x in pos] for label, pos in zip(labels, workflow.atoms.get_scaled_positions())],
             'units': 'crystal'}
 
-    # atomic species
-    bigdct['setup']['atomic_species'] = {'species': [[key, 1.0, val]
-                                                     for key, val in workflow.pseudopotentials.items()]}
-
+    bigdct['w90'] = {}
+    bigdct['kcw'] = {}
+    bigdct['ui'] = {}
     for code, params in workflow.master_calc_params.items():
+        # Remove default settings and convert Paths to strings
+        params_dict = {k: v for k, v in params.items() if params.defaults.get(k, None) != v}
+        for k in params_dict:
+            if isinstance(params_dict[k], Path):
+                params_dict[k] = str(params_dict[k])
+
         if isinstance(params, (KoopmansCPSettingsDict, PWSettingsDict)):
             bigdct[code] = {}
 
@@ -118,12 +124,6 @@ def write_json(workflow: workflows.Workflow, filename: Path):
             pseudo_dir = params.pop('pseudo_dir', None)
             if pseudo_dir is not None:
                 bigdct['setup']['control'] = {'pseudo_dir': str(pseudo_dir)}
-
-            # Remove default settings and convert Paths to strings
-            params_dict = {k: v for k, v in params.items() if params.defaults.get(k, None) != v}
-            for k in params_dict:
-                if isinstance(params_dict[k], Path):
-                    params_dict[k] = str(params_dict[k])
 
             # Populate bigdct with the settings
             input_data = construct_namelist(params_dict)
@@ -138,6 +138,24 @@ def write_json(workflow: workflows.Workflow, filename: Path):
                 kpts = {'kgrid': workflow.kgrid,
                         'kpath': workflow.kpath.path}
                 bigdct['setup']['k_points'] = kpts
+        elif code in ['wann2kc', 'kc_screen', 'kc_ham']:
+            bigdct['kcw'][code] = params_dict
+        elif code in ['pw2wannier']:
+            bigdct[code] = params_dict
+        elif code.startswith('ui_'):
+            bigdct['ui'][code.split('_')[-1]] = params_dict
+        elif code == 'ui':
+            bigdct['ui'].update(**params_dict)
+        elif code.startswith('w90'):
+            import operator
+            from functools import reduce
+            nested_keys = code.split('_')[1:]
+            # The following very opaque code fills out the nested dictionary with the list of nested keys
+            for i, k in enumerate(nested_keys):
+                parent_level = reduce(operator.getitem, nested_keys[:i], bigdct['w90'])
+                if k not in parent_level:
+                    reduce(operator.getitem, nested_keys[:i], bigdct['w90'])[k] = {}
+            reduce(operator.getitem, nested_keys[:-1], bigdct['w90'])[k] = params_dict
         else:
             raise NotImplementedError(
                 f'Writing of {params.__class__.__name__} with write_json is not yet implemented')
