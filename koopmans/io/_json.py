@@ -94,8 +94,8 @@ def write_json(workflow: workflows.Workflow, filename: Path):
         bigdct['setup']['cell_parameters'] = construct_cell_parameters_block(workflow.atoms)
 
     # atomic positions
-    if workflow.atoms.has('tags'):
-        labels = [a.symbol + str(a.tag) for a in workflow.atoms]
+    if workflow.atoms.has('labels'):
+        labels = workflow.atoms.get_array('labels')
     else:
         labels = workflow.atoms.get_chemical_symbols()
     if ibrav == 0:
@@ -107,8 +107,11 @@ def write_json(workflow: workflows.Workflow, filename: Path):
             [label] + [str(x) for x in pos] for label, pos in zip(labels, workflow.atoms.get_scaled_positions())],
             'units': 'crystal'}
 
+    # k-points
+    bigdct['setup']['k_points'] = {'kgrid': workflow.kgrid, 'kpath': workflow.kpath.path}
+
+    # Populating calculator-specific blocks
     bigdct['w90'] = {}
-    bigdct['kcw'] = {}
     bigdct['ui'] = {}
     for code, params in workflow.master_calc_params.items():
         # Remove default settings and convert Paths to strings
@@ -117,13 +120,13 @@ def write_json(workflow: workflows.Workflow, filename: Path):
             if isinstance(params_dict[k], Path):
                 params_dict[k] = str(params_dict[k])
 
+        # pseudo directory belongs in setup, not elsewhere
+        pseudo_dir = params_dict.pop('pseudo_dir', None)
+        if pseudo_dir is not None and workflow.parameters.pseudo_library is None:
+            bigdct['setup']['control'] = {'pseudo_dir': str(pseudo_dir)}
+
         if isinstance(params, (KoopmansCPSettingsDict, PWSettingsDict)):
             bigdct[code] = {}
-
-            # pseudo directory
-            pseudo_dir = params.pop('pseudo_dir', None)
-            if pseudo_dir is not None:
-                bigdct['setup']['control'] = {'pseudo_dir': str(pseudo_dir)}
 
             # Populate bigdct with the settings
             input_data = construct_namelist(params_dict)
@@ -133,14 +136,7 @@ def write_json(workflow: workflows.Workflow, filename: Path):
                     bigdct[code][key] = {k: v for k, v in dict(
                         block).items() if v is not None}
 
-            if code == 'pw':
-                # Adding kpoints to "setup"
-                kpts = {'kgrid': workflow.kgrid,
-                        'kpath': workflow.kpath.path}
-                bigdct['setup']['k_points'] = kpts
-        elif code in ['wann2kc', 'kc_screen', 'kc_ham']:
-            bigdct['kcw'][code] = params_dict
-        elif code in ['pw2wannier']:
+        elif code in ['pw2wannier', 'wann2kc', 'kc_screen', 'kc_ham']:
             bigdct[code] = params_dict
         elif code.startswith('ui_'):
             bigdct['ui'][code.split('_')[-1]] = params_dict
@@ -156,6 +152,19 @@ def write_json(workflow: workflows.Workflow, filename: Path):
                 if k not in parent_level:
                     reduce(operator.getitem, nested_keys[:i], bigdct['w90'])[k] = {}
             reduce(operator.getitem, nested_keys[:-1], bigdct['w90'])[k] = params_dict
+            # Projections
+            filling = nested_keys[0] == 'occ'
+            if len(nested_keys) == 2:
+                spin = nested_keys[1]
+            else:
+                spin = None
+            projections = workflow.projections.get_subset(filling, spin)
+            if len(projections) > 1:
+                proj_kwarg = {'projections_blocks': [p.projections for p in projections]}
+            else:
+                proj_kwarg = {'projections': projections[0].projections}
+            reduce(operator.getitem, nested_keys[:-1], bigdct['w90'])[k].update(**proj_kwarg)
+
         else:
             raise NotImplementedError(
                 f'Writing of {params.__class__.__name__} with write_json is not yet implemented')

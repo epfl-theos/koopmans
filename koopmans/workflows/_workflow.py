@@ -48,7 +48,8 @@ class Workflow(ABC):
                  gamma_only: Optional[bool] = False,
                  kgrid: Optional[List[int]] = [1, 1, 1],
                  koffset: Optional[List[int]] = [0, 0, 0],
-                 kpath: Optional[BandPath] = None,
+                 kpath: Optional[Union[BandPath, str]] = None,
+                 kpath_density: Optional[int] = 10,
                  projections: Optional[ProjectionBlocks] = None):
 
         # Parsing parameters
@@ -71,7 +72,19 @@ class Workflow(ABC):
         else:
             self.kgrid = kgrid
             self.koffset = koffset
-        self.projections = ProjectionBlocks([], self.atoms) if projections is None else projections
+        if projections is None:
+            if self.parameters.spin_polarised:
+                proj_list = [[], [], [], []]
+                fillings = [True, True, False, False]
+                spins = ['up', 'down', 'up', 'down']
+            else:
+                proj_list = [[], []]
+                fillings = [True, False]
+                spins = [None, None]
+            self.projections = ProjectionBlocks.fromprojections(
+                proj_list, fillings=fillings, spins=spins, atoms=self.atoms)
+        else:
+            self.projections = projections
 
         if 'periodic' in parameters:
             # If "periodic" was explicitly provided, override self.atoms.pbc
@@ -108,9 +121,10 @@ class Workflow(ABC):
         #  3. if that fails, raise an error
         if self.parameters.pseudo_library:
             pseudo_dir = pseudos_library_directory(self.parameters.pseudo_library, self.parameters.base_functional)
-            if master_calc_params['kcp'].get('pseudo_dir', pseudo_dir) != pseudo_dir:
-                raise ValueError(
-                    '"pseudo_dir" and "pseudo_library" are conflicting; please do not provide "pseudo_dir"')
+            for params in master_calc_params.values():
+                if params.get('pseudo_dir', pseudo_dir) != pseudo_dir:
+                    raise ValueError(
+                        '"pseudo_dir" and "pseudo_library" are conflicting; please do not provide "pseudo_dir"')
         elif 'pseudo_dir' in master_calc_params['kcp']:
             pseudo_dir = master_calc_params['kcp'].pseudo_dir
             if not os.path.isdir(pseudo_dir):
@@ -184,17 +198,18 @@ class Workflow(ABC):
             # Store the sanitised parameters
             self.master_calc_params[block] = params
 
-        # Generate the kpath
+        # Generate a default kpath
         if kpath is None:
             if self.parameters.periodic:
                 # By default, use ASE's default bandpath for this cell (see
                 # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
-                bl = self.atoms.cell.get_bravais_lattice()
-                path = bl.bandpath().path
-                npoints = 10 * len(path) - 9 - 29 * path.count(',')
-                self.kpath = bl.bandpath(npoints=npoints)
+                kpath = self.atoms.cell.get_bravais_lattice().bandpath().path
             else:
-                self.kpath = BandPath(path='G', cell=self.atoms.cell)
+                kpath = 'G'
+
+        # Convert the kpath to a BandPath object
+        if isinstance(kpath, str):
+            self.kpath = utils.convert_kpath_str_to_bandpath(kpath, self.atoms.cell, kpath_density)
         else:
             self.kpath = kpath
 
@@ -260,6 +275,15 @@ class Workflow(ABC):
 
         # Records whether or not this workflow is a subworkflow of another
         self._is_a_subworkflow = False
+
+    def __eq__(self, other):
+        if isinstance(other, Workflow):
+            match = self.__dict__ == other.__dict__
+            if not match:
+                for k in self.__dict__:
+                    if self.__dict__[k] != other.__dict__[k]:
+                        raise ValueError()
+        return False
 
     def run(self) -> None:
         self.print_preamble()
@@ -1076,8 +1100,9 @@ def read_setup_dict(dct: Dict[str, Any], task: str):
         utils.read_atomic_species(calc, dct['atomic_species'])
 
     # Calculating kpoints
+    psps_and_kpts = {}
     if 'k_points' in dct:
-        utils.read_kpoints_block(calc, dct['k_points'])
+        psps_and_kpts.update(**dct['k_points'])
 
     if task != 'ui':
         def read_compulsory_block(block_name, extract_function):
@@ -1095,9 +1120,7 @@ def read_setup_dict(dct: Dict[str, Any], task: str):
     atoms = calc.atoms
     atoms.calc = None
     parameters = calc.parameters
-    psps_and_kpts = {}
-    for key in ['pseudopotentials', 'gamma_only', 'kgrid', 'koffset', 'kpath']:
-        if key in parameters:
-            psps_and_kpts[key] = parameters.pop(key)
+    if 'pseudopotentials' in parameters:
+        psps_and_kpts['pseudopotentials'] = parameters.pop('pseudopotentials')
 
     return atoms, parameters, psps_and_kpts

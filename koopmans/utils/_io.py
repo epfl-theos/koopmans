@@ -83,35 +83,11 @@ def read_alpha_file(directory: Path) -> List[float]:
 
 def read_kpoints_block(calc: Calculator, dct: dict):
     for k, v in dct.items():
-        if k in ['gamma_only', 'kgrid', 'koffset']:
+        if k in ['gamma_only', 'kgrid', 'koffset', 'kpath', 'kpath_density']:
             calc.parameters[k] = v
-        elif k == 'kpath':
-            read_kpath(calc, v)
         else:
             raise KeyError(f'Unrecognised option "{k}" provided in the k_points block')
-
     return
-
-
-def read_kpath(calc: Calculator, kpath: Union[str, List[Tuple[float, float, float, int]]]):
-    calc.atoms.cell.pbc = True
-    if isinstance(kpath, str):
-        # Interpret kpath as a string of points in the BZ
-        calc.parameters['kpath'] = bandpath(kpath, calc.atoms.cell, npoints=len(kpath) * 10 - 9)
-    else:
-        # Interpret bandpath as using PW syntax (https://www.quantum-espresso.org/Doc/INPUT_PW.html#idm1290)
-        kpts: List[bandpath] = []
-        for k1, k2 in zip(kpath[:-1], kpath[1:]):
-            # Remove the weights, storing the weight of k1
-            npoints = k1[-1]
-            # Interpolate the bandpath
-            kpts += bandpath([k1[:-1], k2[:-1]], calc.atoms.cell, npoints + 1).kpts[:-1].tolist()
-        # Don't forget about the final kpoint
-        kpts.append(k2[:-1])
-        if len(kpts) != sum([k[-1] for k in kpath[:-1]]) + 1:
-            raise AssertionError(
-                'Did not get the expected number of kpoints; this suggests there is a bug in the code')
-        calc.parameters['kpath'] = BandPath(calc.atoms.cell, kpts)
 
 
 def read_atomic_species(calc: Calculator, dct: dict):
