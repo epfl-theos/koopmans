@@ -62,7 +62,10 @@ for pseudo_file in chain(pseudos_directory.rglob('*.UPF'), pseudos_directory.rgl
             kwargs[key] = metadata[key]
     else:
         original_library = library
-        kind = 'norm-conserving'
+        if original_library.startswith('sg15') or original_library.startswith('pseudo_dojo'):
+            kind = 'norm-conserving'
+        else:
+            kind = 'unknown'
 
     if original_library.startswith('sg15'):
         citations.append('Hamann2013')

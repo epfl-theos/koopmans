@@ -91,7 +91,11 @@ class Workflow(ABC):
             for symbol in set(self.atoms.symbols):
                 pseudo = fetch_pseudo(element=symbol, functional=self.parameters.base_functional,
                                       library=self.parameters.pseudo_library)
-                if pseudo.kind != 'norm-conserving':
+                if pseudo.kind == 'unknown':
+                    utils.warn(f'You are using an unrecognised pseudopotential {pseudo.name}. Please note that '
+                               'the current implementation of Koopmans functionals only supports norm-conserving '
+                               'pseudopotentials.')
+                elif pseudo.kind != 'norm-conserving':
                     raise ValueError(
                         f'Koopmans functionals only currently support norm-conserving pseudopotentials; {pseudo.name} is {pseudo.kind}')
                 self.pseudopotentials[symbol] = pseudo.name
