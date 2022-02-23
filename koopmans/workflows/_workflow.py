@@ -203,7 +203,7 @@ class Workflow(ABC):
             if self.parameters.periodic:
                 # By default, use ASE's default bandpath for this cell (see
                 # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
-                kpath = self.atoms.cell.get_bravais_lattice().bandpath().path
+                kpath = self.atoms.cell.bandpath().path
             else:
                 kpath = 'G'
 
@@ -278,11 +278,7 @@ class Workflow(ABC):
 
     def __eq__(self, other):
         if isinstance(other, Workflow):
-            match = self.__dict__ == other.__dict__
-            if not match:
-                for k in self.__dict__:
-                    if self.__dict__[k] != other.__dict__[k]:
-                        raise ValueError()
+            return self.__dict__ == other.__dict__
         return False
 
     def run(self) -> None:

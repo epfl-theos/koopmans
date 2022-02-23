@@ -66,4 +66,5 @@ def flatten(l: Union[List, Iterable]) -> Generator:
 
 def convert_kpath_str_to_bandpath(path: str, cell: Cell, density: Optional[int] = 10) -> BandPath:
     npoints = density * len(path) - density + 1 - (3 * density - 1) * path.count(',')
-    return cell.get_bravais_lattice().bandpath(path=path, npoints=npoints)
+    special_points = cell.bandpath().special_points
+    return BandPath(cell=cell, path=path, special_points=special_points).interpolate(npoints=npoints)
