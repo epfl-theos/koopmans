@@ -24,7 +24,7 @@ from ase.dft.kpoints import BandPath
 from ase.calculators.espresso import Espresso_kcp
 from ase.calculators.calculator import CalculationFailed
 from ase.io.espresso.utils import cell_to_ibrav, ibrav_to_cell
-from ase.io.espresso.koopmans_cp import KEYS as kcp_keys
+from ase.io.espresso.koopmans_cp import KEYS as kcp_keys, construct_namelist
 from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, pseudo_database, fetch_pseudo
 from koopmans import utils, settings
 import koopmans.calculators as calculators
@@ -49,7 +49,7 @@ class Workflow(ABC):
                  kgrid: Optional[List[int]] = [1, 1, 1],
                  koffset: Optional[List[int]] = [0, 0, 0],
                  kpath: Optional[Union[BandPath, str]] = None,
-                 kpath_density: Optional[int] = 10,
+                 kpath_density: int = 10,
                  projections: Optional[ProjectionBlocks] = None):
 
         # Parsing parameters
@@ -73,6 +73,8 @@ class Workflow(ABC):
             self.kgrid = kgrid
             self.koffset = koffset
         if projections is None:
+            proj_list: List[List[Any]]
+            spins: List[Optional[str]]
             if self.parameters.spin_polarised:
                 proj_list = [[], [], [], []]
                 fillings = [True, True, False, False]
@@ -1014,6 +1016,110 @@ class Workflow(ABC):
         # Print farewell message
         print('\n Workflow complete')
 
+    def toinputjson(self) -> Dict[str, Dict]:
+
+        bigdct: Dict[str, Dict] = {}
+
+        bigdct['workflow'] = {}
+
+        # "workflow" block (not printing any values that match the defaults except for core keywords)
+        for k, v in self.parameters.items():
+            if v is None:
+                continue
+            if isinstance(v, Path):
+                v = str(v)
+            default = self.parameters.defaults.get(k, None)
+            if v != default or k in ['task', 'functional']:
+                bigdct['workflow'][k] = v
+
+        # "setup" block
+        # Working out ibrav
+        ibrav = self.master_calc_params['kcp'].get('ibrav', self.master_calc_params['pw'].get('ibrav', 0))
+
+        bigdct['setup'] = {}
+
+        # cell parameters
+        if ibrav == 0:
+            bigdct['setup']['cell_parameters'] = utils.construct_cell_parameters_block(self.atoms)
+
+        # atomic positions
+        if self.atoms.has('labels'):
+            labels = self.atoms.get_array('labels')
+        else:
+            labels = self.atoms.get_chemical_symbols()
+        if ibrav == 0:
+            bigdct['setup']['atomic_positions'] = {'positions': [
+                [label] + [str(x) for x in pos] for label, pos in zip(labels, self.atoms.get_positions())],
+                'units': 'angstrom'}
+        else:
+            bigdct['setup']['atomic_positions'] = {'positions': [
+                [label] + [str(x) for x in pos] for label, pos in zip(labels, self.atoms.get_scaled_positions())],
+                'units': 'crystal'}
+
+        # k-points
+        bigdct['setup']['k_points'] = {'kgrid': self.kgrid, 'kpath': self.kpath.path}
+
+        # Populating calculator-specific blocks
+        bigdct['w90'] = {}
+        bigdct['ui'] = {}
+        for code, params in self.master_calc_params.items():
+            # Remove default settings and convert Paths to strings
+            params_dict = {k: v for k, v in params.items() if params.defaults.get(k, None) != v}
+            for k in params_dict:
+                if isinstance(params_dict[k], Path):
+                    params_dict[k] = str(params_dict[k])
+
+            # pseudo directory belongs in setup, not elsewhere
+            pseudo_dir = params_dict.pop('pseudo_dir', None)
+            if pseudo_dir is not None and self.parameters.pseudo_library is None:
+                bigdct['setup']['control'] = {'pseudo_dir': str(pseudo_dir)}
+
+            if code in ['pw', 'kcp']:
+                bigdct[code] = {}
+
+                # Populate bigdct with the settings
+                input_data = construct_namelist(params_dict)
+                for key, block in input_data.items():
+
+                    if len(block) > 0:
+                        bigdct[code][key] = {k: v for k, v in dict(
+                            block).items() if v is not None}
+
+            elif code in ['pw2wannier', 'wann2kc', 'kc_screen', 'kc_ham']:
+                bigdct[code] = params_dict
+            elif code.startswith('ui_'):
+                bigdct['ui'][code.split('_')[-1]] = params_dict
+            elif code == 'ui':
+                bigdct['ui'].update(**params_dict)
+            elif code.startswith('w90'):
+                import operator
+                from functools import reduce
+                nested_keys = code.split('_')[1:]
+                # The following very opaque code fills out the nested dictionary with the list of nested keys
+                for i, k in enumerate(nested_keys):
+                    parent_level = reduce(operator.getitem, nested_keys[:i], bigdct['w90'])
+                    if k not in parent_level:
+                        reduce(operator.getitem, nested_keys[:i], bigdct['w90'])[k] = {}
+                reduce(operator.getitem, nested_keys[:-1], bigdct['w90'])[k] = params_dict
+                # Projections
+                filling = nested_keys[0] == 'occ'
+                if len(nested_keys) == 2:
+                    spin = nested_keys[1]
+                else:
+                    spin = None
+                projections = self.projections.get_subset(filling, spin)
+                if len(projections) > 1:
+                    proj_kwarg = {'projections_blocks': [p.projections for p in projections]}
+                else:
+                    proj_kwarg = {'projections': projections[0].projections}
+                reduce(operator.getitem, nested_keys[:-1], bigdct['w90'])[k].update(**proj_kwarg)
+
+            else:
+                raise NotImplementedError(
+                    f'Writing of {params.__class__.__name__} with write_json is not yet implemented')
+
+        return bigdct
+
 
 def get_version(module):
     if isinstance(module, ModuleType):
@@ -1096,7 +1202,7 @@ def read_setup_dict(dct: Dict[str, Any], task: str):
         utils.read_atomic_species(calc, dct['atomic_species'])
 
     # Calculating kpoints
-    psps_and_kpts = {}
+    psps_and_kpts: Dict[str, Any] = {}
     if 'k_points' in dct:
         psps_and_kpts.update(**dct['k_points'])
 

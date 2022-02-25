@@ -7,11 +7,10 @@ Converted to a workflow object Nov 2020
 
 """
 
-import os
 import copy
 import numpy as np
 import itertools
-from typing import Dict, Union, List
+from typing import Union, List
 from pathlib import Path
 from koopmans import utils
 from ._workflow import Workflow
