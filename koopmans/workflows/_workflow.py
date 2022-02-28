@@ -1234,7 +1234,8 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'w90_emp_down': settings.Wannier90SettingsDict}
 
 
-def sanitise_master_calc_params(dct_in: Dict[str, Union[Dict, settings.SettingsDict]]) -> Dict[str, settings.SettingsDict]:
+def sanitise_master_calc_params(dct_in: Dict[str, Union[Dict, settings.SettingsDict]]) \
+        -> Dict[str, settings.SettingsDict]:
     dct_out = {}
     for k, cls in settings_classes.items():
         dct_out[k] = cls(**dct_in.get(k, {}))
