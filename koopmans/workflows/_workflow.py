@@ -111,8 +111,8 @@ class Workflow(ABC):
                                'the current implementation of Koopmans functionals only supports norm-conserving '
                                'pseudopotentials.')
                 elif pseudo.kind != 'norm-conserving':
-                    raise ValueError(
-                        f'Koopmans functionals only currently support norm-conserving pseudopotentials; {pseudo.name} is {pseudo.kind}')
+                    raise ValueError('Koopmans functionals only currently support norm-conserving pseudopotentials; '
+                                     f'{pseudo.name} is {pseudo.kind}')
                 self.pseudopotentials[symbol] = pseudo.name
         else:
             self.pseudopotentials = pseudopotentials
@@ -160,8 +160,8 @@ class Workflow(ABC):
             n_filled = nelec // 2 + nelec % 2
             n_empty = master_calc_params['kcp'].get('empty_states_nbnd', 0)
             nbnd = n_filled + n_empty
-            generated_keywords = {'nelec': nelec, 'tot_charge': tot_charge,
-                                  'tot_magnetization': tot_mag, 'nelup': nelup, 'neldw': neldw, 'nbnd': nbnd, 'pseudo_dir': pseudo_dir}
+            generated_keywords = {'nelec': nelec, 'tot_charge': tot_charge, 'tot_magnetization': tot_mag,
+                                  'nelup': nelup, 'neldw': neldw, 'nbnd': nbnd, 'pseudo_dir': pseudo_dir}
         else:
             generated_keywords = {}
             nelec = 0
@@ -979,7 +979,8 @@ class Workflow(ABC):
                         add_ref('Colonna2019', 'Introduces the DFPT method for calculating screening parameters')
                         add_ref('Colonna2022', 'Describes the algorithms underpinning the kcw.x code')
                     else:
-                        add_ref('DeGennaro2021', 'Describes how to extract band structures from Koopmans functional calculations')
+                        add_ref('DeGennaro2021', 'Describes how to extract band structures from Koopmans functional '
+                                'calculations')
                         add_ref('Borghi2015', 'Describes the algorithms underpinning the kcp.x code')
             else:
                 add_ref('Borghi2015', 'Describes the algorithms underpinning the kcp.x code')

@@ -79,8 +79,8 @@ class ProjectionBlock(object):
 
 class ProjectionBlocks(object):
     """
-    This object is a collection of blocks of projections. In addition to the projections blocks themselves, it also stores
-    system-wide properties such as how many extra conduction bands we have.
+    This object is a collection of blocks of projections. In addition to the projections blocks themselves, it also
+    stores system-wide properties such as how many extra conduction bands we have.
 
     Whenever a user queries self.blocks (e.g. when they iterate over this object) it will first propagate these
     system-wide properties down to the individual ProjectionBlock objects. See self.blocks() for more details.
