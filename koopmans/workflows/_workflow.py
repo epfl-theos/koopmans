@@ -42,7 +42,8 @@ class Workflow(ABC):
 
     def __init__(self, atoms: Atoms,
                  parameters: settings.SettingsDict = settings.WorkflowSettingsDict(),
-                 master_calc_params: Dict[str, settings.SettingsDict] = settings.default_master_calc_params,
+                 master_calc_params: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]
+                                           ] = settings.default_master_calc_params,
                  name: str = 'koopmans_workflow',
                  pseudopotentials: Dict[str, str] = {},
                  gamma_only: Optional[bool] = False,
@@ -1234,7 +1235,7 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'w90_emp_down': settings.Wannier90SettingsDict}
 
 
-def sanitise_master_calc_params(dct_in: Dict[str, Union[Dict, settings.SettingsDict]]) \
+def sanitise_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]]) \
         -> Dict[str, settings.SettingsDict]:
     dct_out = {}
     for k, cls in settings_classes.items():
