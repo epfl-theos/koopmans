@@ -130,7 +130,8 @@ class SettingsDict(UserDict):
                 value = Path(value)
             elif not isinstance(value, Path):
                 raise ValueError(f'{key} must be either a string or a Path')
-            value = value.resolve()
+            if not value.is_absolute():
+                value = (self.directory / value).resolve()
 
         # Parse any units provided
         if key in self.physicals:

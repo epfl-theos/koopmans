@@ -212,7 +212,9 @@ class CalculatorExt():
         # Load calculator from input file
         calc = ase_io.read(input_file).calc
 
-        # Update self based off the input file
+        # Update self based off the input file, first updating self.directory in order to ensure any settings that are
+        # relative paths are appropriately stored
+        self.directory = input_file.parent
         self.parameters = calc.parameters
         if calc.atoms is not None:
             # Some calculators (e.g. wann2kc) can't reconstruct atoms from an input file

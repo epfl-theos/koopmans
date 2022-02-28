@@ -1,0 +1,155 @@
+{
+  "workflow": {
+    "task": "singlepoint",
+    "functional": "ki",
+    "periodic": true,
+    "fix_spin_contamination": true,
+    "frozen_orbitals": false,
+    "gb_correction": true,
+    "mt_correction": false
+  },
+  "setup": {
+    "cell_parameters": {
+      "vectors": [
+        [
+          9.5142,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          8.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          8.5861
+        ]
+      ],
+      "units": "angstrom"
+    },
+    "atomic_positions": {
+      "positions": [
+        [
+          "O",
+          "4.757099999999999",
+          "3.9999999999999996",
+          "3.9023170000000005"
+        ],
+        [
+          "H",
+          "5.5142",
+          "3.9999999999999996",
+          "4.488417000000001"
+        ],
+        [
+          "H",
+          "4.0",
+          "3.9999999999999996",
+          "4.488417000000001"
+        ]
+      ],
+      "units": "angstrom"
+    },
+    "k_points": {
+      "kgrid": [
+        1,
+        1,
+        1
+      ],
+      "kpath": "GXSYGZURTZ,YT,UX,SR"
+    },
+    "control": {
+      "pseudo_dir": "/home/elinscott/code/koopmans/pseudos/sg15_v1.0/pbe"
+    }
+  },
+  "w90": {
+    "occ": {
+      "projections": []
+    },
+    "emp": {
+      "projections": []
+    }
+  },
+  "ui": {
+    "smooth_int_factor": [
+      1,
+      1,
+      1
+    ],
+    "occ": {
+      "smooth_int_factor": [
+        1,
+        1,
+        1
+      ]
+    },
+    "emp": {
+      "smooth_int_factor": [
+        1,
+        1,
+        1
+      ]
+    }
+  },
+  "kcp": {
+    "control": {
+      "restart_mode": "restart",
+      "outdir": "/home/elinscott/code/koopmans/koopmans/qei_to_json/TMP-CP",
+      "ndr": 99,
+      "ndw": 50
+    },
+    "system": {
+      "ibrav": 0,
+      "tot_charge": 0,
+      "tot_magnetization": 0,
+      "starting_magnetization(1)": 0.0,
+      "starting_magnetization(2)": 0.0,
+      "ecutwfc": 20.0,
+      "ecutrho": 80.0,
+      "do_orbdep": false,
+      "fixed_state": false,
+      "nelec": 8,
+      "nelup": 4,
+      "neldw": 4
+    },
+    "electrons": {
+      "conv_thr": 8e-09,
+      "maxiter": 300,
+      "do_outerloop": true
+    },
+    "ee": {
+      "which_compensation": "tcc"
+    },
+    "nksic": {
+      "do_innerloop": false,
+      "esic_conv_thr": 8e-09
+    }
+  },
+  "kc_ham": {
+    "outdir": "/home/elinscott/code/koopmans/TMP"
+  },
+  "kc_screen": {
+    "outdir": "/home/elinscott/code/koopmans/TMP"
+  },
+  "pw": {
+    "control": {
+      "outdir": "/home/elinscott/code/koopmans/TMP"
+    },
+    "system": {
+      "nbnd": 4,
+      "tot_charge": 0,
+      "tot_magnetization": 0
+    },
+    "electrons": {
+      "conv_thr": 1.6e-08
+    }
+  },
+  "pw2wannier": {
+    "outdir": "/home/elinscott/code/koopmans/TMP"
+  },
+  "wann2kc": {
+    "outdir": "/home/elinscott/code/koopmans/TMP"
+  }
+}

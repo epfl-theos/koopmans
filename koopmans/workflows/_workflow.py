@@ -117,6 +117,10 @@ class Workflow(ABC):
         else:
             self.pseudopotentials = pseudopotentials
 
+        # Make sure master_calc_params isn't missing any entries, and every entry corresponds to settings.SettingsDict
+        # objects
+        master_calc_params = sanitise_master_calc_params(master_calc_params)
+
         # Work out the pseudopotential directory. If using a pseudo_library this is straightforward, if not...
         #  1. try to locating the directory as currently specified by the calculator
         #  2. if that fails, check if $ESPRESSO_PSEUDO is set
@@ -127,8 +131,8 @@ class Workflow(ABC):
                 if params.get('pseudo_dir', pseudo_dir) != pseudo_dir:
                     raise ValueError(
                         '"pseudo_dir" and "pseudo_library" are conflicting; please do not provide "pseudo_dir"')
-        elif 'pseudo_dir' in master_calc_params['kcp']:
-            pseudo_dir = master_calc_params['kcp'].pseudo_dir
+        elif 'pseudo_dir' in master_calc_params['kcp'] or 'pseudo_dir' in master_calc_params['pw']:
+            pseudo_dir = master_calc_params['kcp'].get('pseudo_dir', master_calc_params['pw'].get('pseudo_dir', None))
             if not os.path.isdir(pseudo_dir):
                 raise NotADirectoryError(f'The pseudo_dir you provided ({pseudo_dir}) does not exist')
         elif 'ESPRESSO_PSEUDO' in os.environ:
@@ -166,7 +170,7 @@ class Workflow(ABC):
             generated_keywords = {}
             nelec = 0
 
-        self.master_calc_params = {}
+        self.master_calc_params = settings.default_master_calc_params.copy()
         for block, params in master_calc_params.items():
             # Apply auto-generated keywords
             for k, v in generated_keywords.items():
@@ -861,23 +865,6 @@ class Workflow(ABC):
         kc_wann_blocks = bigdct.pop('kc_wann', {'kc_ham': {}, 'kc_screen': {}, 'wann2kc': {}})
         bigdct.update(**kc_wann_blocks)
 
-        # Define which function to use to read each block
-        settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
-                            'kc_ham': settings.KoopmansHamSettingsDict,
-                            'kc_screen': settings.KoopmansScreenSettingsDict,
-                            'wann2kc': settings.Wann2KCSettingsDict,
-                            'pw': settings.PWSettingsDict,
-                            'pw2wannier': settings.PW2WannierSettingsDict,
-                            'ui': settings.UnfoldAndInterpolateSettingsDict,
-                            'ui_occ': settings.UnfoldAndInterpolateSettingsDict,
-                            'ui_emp': settings.UnfoldAndInterpolateSettingsDict,
-                            'w90_occ': settings.Wannier90SettingsDict,
-                            'w90_emp': settings.Wannier90SettingsDict,
-                            'w90_occ_up': settings.Wannier90SettingsDict,
-                            'w90_emp_up': settings.Wannier90SettingsDict,
-                            'w90_occ_down': settings.Wannier90SettingsDict,
-                            'w90_emp_down': settings.Wannier90SettingsDict}
-
         # Check for unexpected blocks
         for block in bigdct:
             if block not in list(settings_classes.keys()) + ['workflow', 'setup']:
@@ -1227,3 +1214,33 @@ def read_setup_dict(dct: Dict[str, Any], task: str):
         psps_and_kpts['pseudopotentials'] = parameters.pop('pseudopotentials')
 
     return atoms, parameters, psps_and_kpts
+
+
+# Define which function to use to read each block
+settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
+                    'kc_ham': settings.KoopmansHamSettingsDict,
+                    'kc_screen': settings.KoopmansScreenSettingsDict,
+                    'wann2kc': settings.Wann2KCSettingsDict,
+                    'pw': settings.PWSettingsDict,
+                    'pw2wannier': settings.PW2WannierSettingsDict,
+                    'ui': settings.UnfoldAndInterpolateSettingsDict,
+                    'ui_occ': settings.UnfoldAndInterpolateSettingsDict,
+                    'ui_emp': settings.UnfoldAndInterpolateSettingsDict,
+                    'w90_occ': settings.Wannier90SettingsDict,
+                    'w90_emp': settings.Wannier90SettingsDict,
+                    'w90_occ_up': settings.Wannier90SettingsDict,
+                    'w90_emp_up': settings.Wannier90SettingsDict,
+                    'w90_occ_down': settings.Wannier90SettingsDict,
+                    'w90_emp_down': settings.Wannier90SettingsDict}
+
+
+def sanitise_master_calc_params(dct_in: Dict[str, Union[Dict, settings.SettingsDict]]) -> Dict[str, settings.SettingsDict]:
+    dct_out = {}
+    for k, cls in settings_classes.items():
+        dct_out[k] = cls(**dct_in.get(k, {}))
+
+    for k in dct_in.keys():
+        if k not in settings_classes:
+            raise ValueError(
+                f'Unrecognised master_calc_params entry "{k}": valid options are ' + '/'.join(settings_classes.keys()))
+    return dct_out
