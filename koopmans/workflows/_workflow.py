@@ -1245,14 +1245,15 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
 
 def sanitise_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]]) \
         -> Dict[str, settings.SettingsDict]:
-    dct_out = {}
+    dct_out: Dict[str, settings.SettingsDict]
     for k, cls in settings_classes.items():
-        if k in dct_in and isinstance(dct_in[k], settings.SettingsDict):
-            dct_out[k] = dct_in[k]
+        dct: Union[Dict, settings.SettingsDict] = dct_in.get(k, {})
+        if isinstance(dct, settings.SettingsDict):
+            dct_out[k] = dct
             if dct_out[k].directory == '':
                 dct_out[k].directory = Path().resolve()
         else:
-            dct_out[k] = cls(**dct_in.get(k, {}), directory=Path().resolve())
+            dct_out[k] = cls(**dct, directory=Path().resolve())
 
     for k in dct_in.keys():
         if k not in settings_classes:
