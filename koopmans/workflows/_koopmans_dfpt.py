@@ -10,7 +10,7 @@ import os
 import numpy as np
 from koopmans.bands import Bands
 from koopmans.calculators import Wann2KCCalculator, KoopmansHamCalculator
-from koopmans import utils, io
+from koopmans import utils
 from ._workflow import Workflow
 
 
@@ -178,7 +178,7 @@ class KoopmansDFPTWorkflow(Workflow):
         else:
             # Load the alphas
             if self.parameters.alpha_from_file:
-                self.bands.alphas = [io.read_alpha_file()]
+                self.bands.alphas = [utils.read_alpha_file()]
             else:
                 self.bands.alphas = self.parameters.alpha_guess
 
