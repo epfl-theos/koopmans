@@ -415,12 +415,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             if isinstance(ref_val, np.ndarray):
                 ref_val = ref_val.tolist()
 
-            if isinstance(val, BandPath):
-                assert val.path == ref_val.path, f'{key}.path = {val.path} (test) != {ref_val.path} (benchmark)'
-                assert len(val.kpts) == len(ref_val.kpts), \
-                    f'Mismatch between len({key}) = {len(val.kpts)} (test) != {len(ref_val.kpts)} (benchmark)'
-            else:
-                assert val == ref_val, f'{key} = {val} (test) != {ref_val} (benchmark)'
+            assert val == ref_val, f'{key} = {val} (test) != {ref_val} (benchmark)'
 
         # Copy over the results
         calc.results = calc.benchmark['results']

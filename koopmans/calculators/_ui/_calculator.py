@@ -473,7 +473,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             kpoint_block = bigdct['setup'].get('k_points', {})
             if kpoint_block:
                 self.parameters.kgrid = kpoint_block['kgrid']
-                utils.read_kpath(self, kpoint_block['kpath'])
+                self.parameters.kpath = utils.convert_kpath_str_to_bandpath(kpoint_block['kpath'], self.atoms.cell)
 
         return
 
