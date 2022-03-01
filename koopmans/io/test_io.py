@@ -4,6 +4,7 @@ Tests for koopmans.io
 
 '''
 
+import os
 from ase.build import molecule
 from koopmans.workflows import SinglepointWorkflow
 from koopmans.io import write, read
