@@ -83,8 +83,9 @@ class SettingsDict(UserDict):
                  to_not_parse: List[str] = [], directory='', physicals: List[str] = [], **kwargs):
         super().__init__()
         self.valid = valid + self._other_valid_keywords
-        self.defaults = defaults
         self.are_paths = are_paths
+        self.defaults = {k: v for k, v in defaults.items() if k not in self.are_paths}
+        self.defaults.update(**{k: Path(v) for k, v in defaults.items() if k in self.are_paths})
         self.to_not_parse = to_not_parse
         self.directory = directory
         self.physicals = physicals

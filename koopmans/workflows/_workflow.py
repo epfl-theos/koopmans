@@ -9,6 +9,8 @@ Converted workflows from functions to objects Nov 2020
 
 import os
 import copy
+import operator
+from functools import reduce
 import subprocess
 from pathlib import Path
 import json as json_ext
@@ -129,7 +131,7 @@ class Workflow(ABC):
         if self.parameters.pseudo_library:
             pseudo_dir = pseudos_library_directory(self.parameters.pseudo_library, self.parameters.base_functional)
             for params in master_calc_params.values():
-                if params.get('pseudo_dir', pseudo_dir) != pseudo_dir:
+                if params.get('pseudo_dir', pseudo_dir).resolve() != pseudo_dir:
                     raise ValueError(
                         '"pseudo_dir" and "pseudo_library" are conflicting; please do not provide "pseudo_dir"')
         elif 'pseudo_dir' in master_calc_params['kcp'] or 'pseudo_dir' in master_calc_params['pw']:
@@ -1052,8 +1054,12 @@ class Workflow(ABC):
         bigdct['w90'] = {}
         bigdct['ui'] = {}
         for code, params in self.master_calc_params.items():
-            # Remove default settings and convert Paths to strings
+            # Remove default settings (ensuring we switch to using relative paths to check this)
+            tmp, params.use_relative_paths = params.use_relative_paths, True
             params_dict = {k: v for k, v in params.items() if params.defaults.get(k, None) != v}
+            params.use_relative_paths = tmp
+
+            # convert Paths to strings
             for k in params_dict:
                 if isinstance(params_dict[k], Path):
                     params_dict[k] = str(params_dict[k])
@@ -1062,6 +1068,10 @@ class Workflow(ABC):
             pseudo_dir = params_dict.pop('pseudo_dir', None)
             if pseudo_dir is not None and self.parameters.pseudo_library is None:
                 bigdct['setup']['control'] = {'pseudo_dir': str(pseudo_dir)}
+
+            # If the params_dict is empty, don't add a block for this calculator
+            if not params_dict:
+                continue
 
             if code in ['pw', 'kcp']:
                 bigdct[code] = {}
@@ -1081,8 +1091,6 @@ class Workflow(ABC):
             elif code == 'ui':
                 bigdct['ui'].update(**params_dict)
             elif code.startswith('w90'):
-                import operator
-                from functools import reduce
                 nested_keys = code.split('_')[1:]
                 # The following very opaque code fills out the nested dictionary with the list of nested keys
                 for i, k in enumerate(nested_keys):
@@ -1239,7 +1247,12 @@ def sanitise_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, setting
         -> Dict[str, settings.SettingsDict]:
     dct_out = {}
     for k, cls in settings_classes.items():
-        dct_out[k] = cls(**dct_in.get(k, {}))
+        if k in dct_in and isinstance(dct_in[k], settings.SettingsDict):
+            dct_out[k] = dct_in[k]
+            if dct_out[k].directory == '':
+                dct_out[k].directory = Path().resolve()
+        else:
+            dct_out[k] = cls(**dct_in.get(k, {}), directory=Path().resolve())
 
     for k in dct_in.keys():
         if k not in settings_classes:

@@ -21,4 +21,6 @@ def test_write_then_read_json():
 
     assert workflow_out == workflow_in
 
+    os.remove('test.json')
+
     return
