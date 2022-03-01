@@ -1245,7 +1245,7 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
 
 def sanitise_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]]) \
         -> Dict[str, settings.SettingsDict]:
-    dct_out: Dict[str, settings.SettingsDict]
+    dct_out: Dict[str, settings.SettingsDict] = {}
     for k, cls in settings_classes.items():
         dct: Union[Dict, settings.SettingsDict] = dct_in.get(k, {})
         if isinstance(dct, settings.SettingsDict):
