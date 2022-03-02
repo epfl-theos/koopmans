@@ -8,6 +8,7 @@ Written by Edward Linscott Feb 2021
 
 import os
 import numpy as np
+from pathlib import Path
 from koopmans.bands import Bands
 from koopmans.calculators import Wann2KCCalculator, KoopmansHamCalculator
 from koopmans import utils
@@ -234,6 +235,8 @@ class KoopmansDFPTWorkflow(Workflow):
         calc.parameters.spin_component = 1
         calc.parameters.kc_at_ks = not self.parameters.periodic
         calc.parameters.read_unitary_matrix = self.parameters.periodic
+        calc.parameters.have_empty = (self.projections.num_wann(occ=False) > 0)
+        calc.parameters.has_disentangle = (self.projections.num_bands() != self.projections.num_wann())
 
         if calc_presets == 'wann2kc':
             if self.parameters.periodic:
@@ -275,8 +278,9 @@ class KoopmansDFPTWorkflow(Workflow):
             exist_ok = not self.parameters.from_scratch
             utils.symlink(f'wannier/occ/wann_u.mat', f'{calc.directory}/', exist_ok=exist_ok)
             utils.symlink(f'wannier/emp/wann_u.mat', f'{calc.directory}/wann_emp_u.mat', exist_ok=exist_ok)
-            utils.symlink(f'wannier/emp/wann_u_dis.mat',
-                          f'{calc.directory}/wann_emp_u_dis.mat', exist_ok=exist_ok)
+            if Path('wannier/emp/wann_u_dis.mat').exists():
+                utils.symlink(f'wannier/emp/wann_u_dis.mat',
+                              f'{calc.directory}/wann_emp_u_dis.mat', exist_ok=exist_ok)
             utils.symlink(f'wannier/occ/wann_centres.xyz', f'{calc.directory}/', exist_ok=exist_ok)
             utils.symlink(f'wannier/emp/wann_centres.xyz',
                           f'{calc.directory}/wann_emp_centres.xyz', exist_ok=exist_ok)
