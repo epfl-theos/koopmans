@@ -145,9 +145,15 @@ class WannierizeWorkflow(Workflow):
                 calc_w90.prefix = 'wann'
                 self.run_calculator(calc_w90)
 
-            # Merging Hamiltonian files and U matrix files, if necessary
+            # Merging Hamiltonian files, U matrix files, centres files if necessary
             for block in self.projections.to_merge():
                 self.merge_wannier_files(block, prefix=calc_w90.prefix)
+
+                # Extending the U_dis matrix file, if necessary
+                num_wann = sum([b.w90_kwargs['num_wann'] for b in block])
+                num_bands = sum([b.w90_kwargs['num_bands'] for b in block])
+                if not block[0].filled and num_bands > num_wann:
+                    self.extend_wannier_u_dis_file(block, prefix=calc_w90.prefix)
 
         if self.parameters.calculate_bands:
             # Run a "bands" calculation, making sure we don't overwrite
@@ -262,7 +268,7 @@ class WannierizeWorkflow(Workflow):
         # Merging the wannier centres files
         self.merge_wannier_centres_files(dirs_in, dir_out, prefix)
 
-    def merge_wannier_hr_files(self, dirs_in: List[Path], dir_out: Path, prefix):
+    def merge_wannier_hr_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
         # Reading in each hr file in turn
         hr_list = []
         weights_out = None
@@ -304,7 +310,7 @@ class WannierizeWorkflow(Workflow):
 
         utils.write_wannier_hr_file(dir_out / (prefix + '_hr.dat'), hr_out, rvect_out.tolist(), weights_out)
 
-    def merge_wannier_u_files(self, dirs_in: List[Path], dir_out: Path, prefix):
+    def merge_wannier_u_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
         u_list = []
         kpts_master = None
         for dir_in in dirs_in:
@@ -336,7 +342,7 @@ class WannierizeWorkflow(Workflow):
 
         utils.write_wannier_u_file(dir_out / (prefix + '_u.mat'), u_merged, kpts)
 
-    def merge_wannier_centres_files(self, dirs_in: List[Path], dir_out: Path, prefix):
+    def merge_wannier_centres_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
         centres_list = []
         for dir_in in dirs_in:
             # Reading the centres file
@@ -348,3 +354,21 @@ class WannierizeWorkflow(Workflow):
 
         # Writing the centres file
         utils.write_wannier_centres_file(dir_out / (prefix + '_centres.xyz'), centres_list, self.atoms)
+
+    def extend_wannier_u_dis_file(self, block: List[projections.ProjectionBlock], prefix: str = 'wann'):
+        # Read in
+        fname_in = Path('wannier') / block[-1].directory / (prefix + '_u_dis.mat')
+        udis_mat, kpts, _ = utils.read_wannier_u_file(fname_in)
+
+        # Build up the larger U_dis matrix, which is a nkpts x nwann_emp x nbnd_emp matrix...
+        nbnd_tot = self.projections.num_bands(occ=False, spin=block[-1].spin)
+        nwann_tot = self.projections.num_wann(occ=False, spin=block[-1].spin)
+        udis_mat_large = np.zeros((len(kpts), nwann_tot, nbnd_tot), dtype=complex)
+        # ... with the diagonal entries equal to 1...
+        udis_mat_large[:, :nwann_tot, :nwann_tot] = np.identity(nwann_tot)
+        # ... except for the last block, where we insert the contents of the corresponding u_dis file
+        udis_mat_large[:, -udis_mat.shape[1]:, -udis_mat.shape[2]:] = udis_mat
+
+        # Write out
+        fname_out = Path('wannier') / block[-1].merge_directory / (prefix + '_u_dis.mat')
+        utils.write_wannier_u_file(fname_out, udis_mat_large, kpts)

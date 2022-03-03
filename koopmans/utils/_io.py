@@ -239,13 +239,13 @@ def read_wannier_u_file(fname: Path) -> Tuple[npt.NDArray[np.complex_], npt.NDAr
     kpts = np.empty((nk, 3), dtype=float)
     umat = np.empty((nk, m, n), dtype=complex)
 
-    for i, line in enumerate(lines):
-        ik = (i - 3) // (2 + m * n)
-        if (i - 3) % (2 + m * n) != 0:
+    for i, line in enumerate(lines[3:]):
+        ik = i // (2 + m * n)
+        if i % (2 + m * n) != 0:
             continue
         kpts[ik, :] = line.split()
         umat[ik, :, :] = np.reshape([complex(*[float(x) for x in line.split()])
-                                    for line in lines[i + 1:i + 1 + m * n]], (m, n))
+                                    for line in lines[i + 4:i + 4 + m * n]], (m, n))
 
     return umat, kpts, nk
 
