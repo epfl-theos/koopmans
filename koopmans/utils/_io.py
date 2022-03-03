@@ -285,7 +285,8 @@ def write_wannier_centres_file(fname: Path, centres: List[float], atoms: Atoms):
     length = len(centres) + len(atoms)
 
     # Add the header
-    flines = [f'{length:6d}', f' Wannier centres, written by koopmans on {datetime.now().isoformat(timespec="seconds")}']
+    flines = [f'{length:6d}',
+              f' Wannier centres, written by koopmans on {datetime.now().isoformat(timespec="seconds")}']
 
     # Add the centres
     for centre in centres:

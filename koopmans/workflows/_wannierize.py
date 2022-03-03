@@ -246,7 +246,8 @@ class WannierizeWorkflow(Workflow):
 
     def merge_wannier_files(self, block: List[projections.ProjectionBlock], prefix: str = 'wann'):
         """
-        Merges the hr (Hamiltonian), u (rotation matrix), and wannier centres files of a collection of blocks that share the same filling and spin
+        Merges the hr (Hamiltonian), u (rotation matrix), and wannier centres files of a collection of blocks that
+        share the same filling and spin
         """
 
         # Working out the directories where to read in files and where to write out files to
@@ -331,6 +332,7 @@ class WannierizeWorkflow(Workflow):
         shape_u_merged = [nkpts] + np.sum([u.shape for u in u_list], axis=0)[1:].tolist()
         u_merged = np.zeros(shape_u_merged, dtype=complex)
 
+        # Constructing a large block-diagonal U matrix from all the individual matrices in u_list
         i_start = 0
         j_start = 0
         for u in u_list:
@@ -340,6 +342,7 @@ class WannierizeWorkflow(Workflow):
             i_start = i_end
             j_start = j_end
 
+        # Writing out the large U file
         utils.write_wannier_u_file(dir_out / (prefix + '_u.mat'), u_merged, kpts)
 
     def merge_wannier_centres_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
