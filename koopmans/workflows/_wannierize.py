@@ -360,6 +360,7 @@ class WannierizeWorkflow(Workflow):
 
     def extend_wannier_u_dis_file(self, block: List[projections.ProjectionBlock], prefix: str = 'wann'):
         # Read in
+        assert block[-1].directory is not None
         fname_in = Path('wannier') / block[-1].directory / (prefix + '_u_dis.mat')
         udis_mat, kpts, _ = utils.read_wannier_u_file(fname_in)
 
@@ -373,5 +374,6 @@ class WannierizeWorkflow(Workflow):
         udis_mat_large[:, -udis_mat.shape[1]:, -udis_mat.shape[2]:] = udis_mat
 
         # Write out
+        assert block[-1].merge_directory is not None
         fname_out = Path('wannier') / block[-1].merge_directory / (prefix + '_u_dis.mat')
         utils.write_wannier_u_file(fname_out, udis_mat_large, kpts)

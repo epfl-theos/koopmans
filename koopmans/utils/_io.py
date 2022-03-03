@@ -281,7 +281,7 @@ def read_wannier_centres_file(fname: Path):
     return centres, Atoms(symbols=symbols, positions=positions)
 
 
-def write_wannier_centres_file(fname: Path, centres: List[float], atoms: Atoms):
+def write_wannier_centres_file(fname: Path, centres: List[List[float]], atoms: Atoms):
     length = len(centres) + len(atoms)
 
     # Add the header
