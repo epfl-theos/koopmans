@@ -279,6 +279,4 @@ kc_wann_defaults = {'outdir': 'TMP',
                     'kc_at_ks': False,
                     'homo_only': False,
                     'read_unitary_matrix': True,
-                    'check_ks': True,
-                    'have_empty': True,
-                    'has_disentangle': True}
+                    'check_ks': True}
