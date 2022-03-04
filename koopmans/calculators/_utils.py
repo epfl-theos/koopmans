@@ -282,6 +282,7 @@ class KCWannCalculator(CalculatorExt):
 
 class CalculatorCanEnforceSpinSym(ABC):
     # Abstract base class for calculators that can run a sequence of calculations in order to enforce spin symmetry
+    # (with the goal of avoiding spin contamination)
     @abstractproperty
     def from_scratch(self) -> bool:
         ...
@@ -291,11 +292,11 @@ class CalculatorCanEnforceSpinSym(ABC):
         ...
 
     @abstractmethod
-    def nspin1_dummy_calculator(cls: CalculatorCanEnforceSpinSym) -> CalculatorCanEnforceSpinSym:
+    def nspin1_dummy_calculator(self) -> CalculatorCanEnforceSpinSym:
         ...
 
     @abstractmethod
-    def nspin1_calculator(cls: CalculatorCanEnforceSpinSym) -> CalculatorCanEnforceSpinSym:
+    def nspin1_calculator(self) -> CalculatorCanEnforceSpinSym:
         ...
 
     @abstractmethod
@@ -303,7 +304,7 @@ class CalculatorCanEnforceSpinSym(ABC):
         ...
 
     @abstractmethod
-    def nspin2_dummy_calculator(cls: CalculatorCanEnforceSpinSym) -> CalculatorCanEnforceSpinSym:
+    def nspin2_dummy_calculator(self) -> CalculatorCanEnforceSpinSym:
         ...
 
     @abstractmethod
