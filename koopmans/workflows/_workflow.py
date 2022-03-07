@@ -408,72 +408,6 @@ class Workflow(ABC):
 
         return calc
 
-    def convert_wavefunction_2to1(self, nspin2_tmpdir: Path, nspin1_tmpdir: Path):
-
-        if not self.parameters.from_scratch:
-            return
-
-        for directory in [nspin2_tmpdir, nspin1_tmpdir]:
-            if not directory.is_dir():
-                raise OSError(f'{directory} not found')
-
-        for wfile in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
-                      'eigenval.xml', 'evc_empty1.dat', 'lambda01.dat', 'lambdam1.dat']:
-            if '1.' in wfile:
-                prefix, suffix = wfile.split('1.')
-            else:
-                prefix, suffix = wfile.split('.')
-
-            file_out = nspin1_tmpdir / wfile
-            file_in = nspin2_tmpdir / f'{prefix}1.{suffix}'
-
-            if file_in.is_file():
-
-                with open(file_in, 'rb') as fd:
-                    contents = fd.read()
-
-                contents = contents.replace(b'nk="2"', b'nk="1"')
-                contents = contents.replace(b'nspin="2"', b'nspin="1"')
-
-                with open(file_out, 'wb') as fd:
-                    fd.write(contents)
-
-    def convert_wavefunction_1to2(self, nspin1_tmpdir: Path, nspin2_tmpdir: Path):
-
-        if not self.parameters.from_scratch:
-            return
-
-        for directory in [nspin2_tmpdir, nspin1_tmpdir]:
-            if not directory.is_dir():
-                raise OSError(f'{directory} not found')
-
-        for wfile in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
-                      'eigenval.xml', 'evc_empty1.dat', 'lambda01.dat']:
-            if '1.' in wfile:
-                prefix, suffix = wfile.split('1.')
-            else:
-                prefix, suffix = wfile.split('.')
-
-            file_in = nspin1_tmpdir / wfile
-
-            if file_in.is_file():
-                with open(file_in, 'rb') as fd:
-                    contents = fd.read()
-
-                contents = contents.replace(b'nk="1"', b'nk="2"')
-                contents = contents.replace(b'nspin="1"', b'nspin="2"')
-
-                file_out = nspin2_tmpdir / f'{prefix}1.{suffix}'
-                with open(file_out, 'wb') as fd:
-                    fd.write(contents)
-
-                contents = contents.replace(b'ik="1"', b'ik="2"')
-                contents = contents.replace(b'ispin="1"', b'ispin="2"')
-
-                file_out = nspin2_tmpdir / f'{prefix}2.{suffix}'
-                with open(file_out, 'wb') as fd:
-                    fd.write(contents)
-
     def update_celldms(self):
         # Update celldm(*) to match the current self.atoms.cell
         for k, params in self.master_calc_params.items():
@@ -519,71 +453,33 @@ class Workflow(ABC):
         '''
 
         if enforce_ss:
-            if not isinstance(master_qe_calc, calculators.KoopmansCPCalculator):
-                raise NotImplementedError('Workflow.run_calculator(..., enforce_ss = True) needs to be generalised to '
-                                          'other calculator types')
-            # Create a copy of the calculator object (to avoid modifying the input)
-            qe_calc = copy.deepcopy(master_qe_calc)
-            nspin2_tmpdir = master_qe_calc.parameters.outdir / \
-                f'{master_qe_calc.parameters.prefix}_{master_qe_calc.parameters.ndw}.save/K00001'
+            if not isinstance(master_qe_calc, calculators.CalculatorCanEnforceSpinSym):
+                raise NotImplementedError(f'{master_qe_calc.__class__.__name__} cannot enforce spin symmetry')
 
-            if master_qe_calc.parameters.restart_mode == 'restart':
+            if not master_qe_calc.from_scratch:
                 # PBE with nspin=1 dummy
-                qe_calc.prefix += '_nspin1_dummy'
-                qe_calc.parameters.do_outerloop = False
-                qe_calc.parameters.do_outerloop_empty = False
-                qe_calc.parameters.nspin = 1
-                if hasattr(qe_calc, 'alphas'):
-                    qe_calc.alphas = [qe_calc.alphas[0]]
-                if hasattr(qe_calc, 'filling'):
-                    qe_calc.filling = [qe_calc.filling[0]]
-                qe_calc.parameters.nelup = None
-                qe_calc.parameters.neldw = None
-                qe_calc.parameters.tot_magnetization = None
-                qe_calc.parameters.ndw, qe_calc.parameters.ndr = 98, 98
-                qe_calc.parameters.restart_mode = 'from_scratch'
+                qe_calc = master_qe_calc.nspin1_dummy_calculator()
                 qe_calc.skip_qc = True
                 self.run_calculator_single(qe_calc)
                 # Copy over nspin=2 wavefunction to nspin=1 tmp directory (if it has not been done already)
-                nspin1_tmpdir = qe_calc.parameters.outdir / \
-                    f'{qe_calc.parameters.prefix}_{qe_calc.parameters.ndw}.save/K00001'
-                self.convert_wavefunction_2to1(nspin2_tmpdir, nspin1_tmpdir)
+                if self.parameters.from_scratch:
+                    master_qe_calc.convert_wavefunction_2to1()
 
             # PBE with nspin=1
-            qe_calc = copy.deepcopy(master_qe_calc)
-            qe_calc.prefix += '_nspin1'
-            qe_calc.parameters.nspin = 1
-            qe_calc.parameters.nelup = None
-            qe_calc.parameters.neldw = None
-            if hasattr(qe_calc, 'alphas'):
-                qe_calc.alphas = [qe_calc.alphas[0]]
-            if hasattr(qe_calc, 'filling'):
-                qe_calc.filling = [qe_calc.filling[0]]
-            qe_calc.parameters.tot_magnetization = None
-            qe_calc.parameters.ndw, qe_calc.parameters.ndr = 98, 98
-            nspin1_tmpdir = qe_calc.parameters.outdir / \
-                f'{qe_calc.parameters.prefix}_{qe_calc.parameters.ndw}.save/K00001'
+            qe_calc = master_qe_calc.nspin1_calculator()
             self.run_calculator_single(qe_calc)
 
             # PBE from scratch with nspin=2 (dummy run for creating files of appropriate size)
-            qe_calc = copy.deepcopy(master_qe_calc)
-            qe_calc.prefix += '_nspin2_dummy'
-            qe_calc.parameters.restart_mode = 'from_scratch'
-            qe_calc.parameters.do_outerloop = False
-            qe_calc.parameters.do_outerloop_empty = False
-            qe_calc.parameters.ndw = 99
+            qe_calc = master_qe_calc.nspin2_dummy_calculator()
             qe_calc.skip_qc = True
             self.run_calculator_single(qe_calc)
 
             # Copy over nspin=1 wavefunction to nspin=2 tmp directory (if it has not been done already)
-            nspin2_tmpdir = qe_calc.parameters.outdir / \
-                f'{qe_calc.parameters.prefix}_{qe_calc.parameters.ndw}.save/K00001'
-            self.convert_wavefunction_1to2(nspin1_tmpdir, nspin2_tmpdir)
+            if self.parameters.from_scratch:
+                master_qe_calc.convert_wavefunction_1to2()
 
             # PBE with nspin=2, reading in the spin-symmetric nspin=1 wavefunction
-            master_qe_calc.prefix += '_nspin2'
-            master_qe_calc.parameters.restart_mode = 'restart'
-            master_qe_calc.parameters.ndr = 99
+            master_qe_calc.prepare_to_read_nspin1()
             self.run_calculator_single(master_qe_calc)
 
         else:
