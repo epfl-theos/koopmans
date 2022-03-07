@@ -181,7 +181,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         return alphas
 
-    def run(self) -> None:
+    def _run(self) -> None:
         '''
         This function runs a KI/pKIPZ/KIPZ workflow from start to finish
 

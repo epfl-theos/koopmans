@@ -244,7 +244,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         """
 
         # Read the Hamiltonian
-        hr, rvect, _, nrpts = utils.read_hr_file(self.parameters.kc_ham_file)
+        hr, rvect, _, nrpts = utils.read_wannier_hr_file(self.parameters.kc_ham_file)
 
         # Reshape the hamiltonian and convert it to a numpy array
         if nrpts == 1:
@@ -261,7 +261,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         # Reading the two Hamiltonians for the smooth interpolation method
         if self.parameters.do_smooth_interpolation:
             # The coarse Hamiltonian
-            hr_coarse, rvect, _, nrpts = utils.read_hr_file(self.parameters.dft_ham_file)
+            hr_coarse, rvect, _, nrpts = utils.read_wannier_hr_file(self.parameters.dft_ham_file)
             if nrpts == 1:
                 assert len(hr_coarse) == self.parameters.num_wann_sc**2, \
                     f'Wrong number of matrix elements for hr_coarse {len(hr_coarse)}'
@@ -277,7 +277,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 self.hr_coarse = self.hr_coarse.reshape(self.parameters.num_wann_sc, self.parameters.num_wann)
 
             # The smooth Hamiltonian
-            hr_smooth, self.Rsmooth, self.wRs, nrpts = utils.read_hr_file(self.parameters.dft_smooth_ham_file)
+            hr_smooth, self.Rsmooth, self.wRs, nrpts = utils.read_wannier_hr_file(self.parameters.dft_smooth_ham_file)
             assert len(hr_smooth) == nrpts * \
                 self.parameters.num_wann**2, f'Wrong number of matrix elements for hr_smooth {len(self.hr_smooth)}'
             self.hr_smooth = np.array(hr_smooth, dtype=complex)
@@ -473,7 +473,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             kpoint_block = bigdct['setup'].get('k_points', {})
             if kpoint_block:
                 self.parameters.kgrid = kpoint_block['kgrid']
-                utils.read_kpath(self, kpoint_block['kpath'])
+                self.parameters.kpath = utils.convert_kpath_str_to_bandpath(kpoint_block['kpath'], self.atoms.cell)
 
         return
 

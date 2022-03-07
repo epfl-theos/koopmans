@@ -395,7 +395,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             if key.startswith('starting_magnetization'):
                 continue
 
-            if key == 'ibrav':
+            if key in ['ibrav']:
                 continue
 
             assert key in calc.benchmark['parameters'].keys(), f'{key} in {input_file_name} not found in benchmark'
@@ -415,12 +415,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             if isinstance(ref_val, np.ndarray):
                 ref_val = ref_val.tolist()
 
-            if isinstance(val, BandPath):
-                assert val.path == ref_val.path, f'{key}.path = {val.path} (test) != {ref_val.path} (benchmark)'
-                assert len(val.kpts) == len(ref_val.kpts), \
-                    f'Mismatch between len({key}) = {len(val.kpts)} (test) != {len(ref_val.kpts)} (benchmark)'
-            else:
-                assert val == ref_val, f'{key} = {val} (test) != {ref_val} (benchmark)'
+            assert val == ref_val, f'{key} = {val} (test) != {ref_val} (benchmark)'
 
         # Copy over the results
         calc.results = calc.benchmark['results']
@@ -781,8 +776,11 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
     from koopmans.workflows import WannierizeWorkflow
 
     class MockWannierizeWorkflow(MockWorkflow, WannierizeWorkflow):
-        def merge_hr_files(self, block, prefix):
-            # We don't want the Wannierise workflow to attempt to read and write the hr files
+        # We don't want the Wannierise workflow to attempt to read and write wannier90 files
+        def merge_wannier_files(self, block, prefix):
+            return
+
+        def extend_wannier_u_dis_file(self, block, prefix):
             return
 
     monkeypatch.setattr('koopmans.workflows.WannierizeWorkflow', MockWannierizeWorkflow)

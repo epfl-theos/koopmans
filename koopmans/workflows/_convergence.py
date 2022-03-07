@@ -7,11 +7,10 @@ Converted to a workflow object Nov 2020
 
 """
 
-import os
 import copy
 import numpy as np
 import itertools
-from typing import Dict, Union, List
+from typing import Union, List
 from pathlib import Path
 from koopmans import utils
 from ._workflow import Workflow
@@ -20,7 +19,7 @@ from ._singlepoint import SinglepointWorkflow
 
 class ConvergenceWorkflow(Workflow):
 
-    def run(self, initial_depth: int = 3) -> Dict[str, Union[float, int]]:
+    def _run(self, initial_depth: int = 3) -> None:
 
         if 'kcp' in self.master_calc_params:
             kcp_master_params = self.master_calc_params['kcp']
@@ -179,7 +178,7 @@ class ConvergenceWorkflow(Workflow):
                     if self.parameters.print_qc:
                         self.print_qc_keyval(param, value)
 
-                return converged_parameters
+                return
             else:
                 # Work out which parameters are yet to converge, and line up more calculations
                 # for increased values of those parameters

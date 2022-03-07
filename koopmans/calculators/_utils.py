@@ -18,6 +18,7 @@ Feb 2021: Split calculators further into GenericCalc and EspressoCalc
 Sep 2021: Reshuffled files to make imports cleaner
 """
 
+from __future__ import annotations
 import copy
 from typing import Union, Optional, List, TypeVar, Generic
 from pathlib import Path
@@ -212,7 +213,9 @@ class CalculatorExt():
         # Load calculator from input file
         calc = ase_io.read(input_file).calc
 
-        # Update self based off the input file
+        # Update self based off the input file, first updating self.directory in order to ensure any settings that are
+        # relative paths are appropriately stored
+        self.directory = input_file.parent
         self.parameters = calc.parameters
         if calc.atoms is not None:
             # Some calculators (e.g. wann2kc) can't reconstruct atoms from an input file
@@ -275,3 +278,35 @@ class KCWannCalculator(CalculatorExt):
     def filling(self):
         return [[True for _ in range(self.parameters.num_wann_occ)]
                 + [False for _ in range(self.parameters.num_wann_emp)]]
+
+
+class CalculatorCanEnforceSpinSym(ABC):
+    # Abstract base class for calculators that can run a sequence of calculations in order to enforce spin symmetry
+    # (with the goal of avoiding spin contamination)
+    @abstractproperty
+    def from_scratch(self) -> bool:
+        ...
+
+    @abstractmethod
+    def convert_wavefunction_2to1(self):
+        ...
+
+    @abstractmethod
+    def nspin1_dummy_calculator(self) -> CalculatorCanEnforceSpinSym:
+        ...
+
+    @abstractmethod
+    def nspin1_calculator(self) -> CalculatorCanEnforceSpinSym:
+        ...
+
+    @abstractmethod
+    def convert_wavefunction_1to2(self):
+        ...
+
+    @abstractmethod
+    def nspin2_dummy_calculator(self) -> CalculatorCanEnforceSpinSym:
+        ...
+
+    @abstractmethod
+    def prepare_to_read_nspin1(self):
+        ...

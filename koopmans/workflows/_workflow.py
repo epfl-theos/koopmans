@@ -9,40 +9,50 @@ Converted workflows from functions to objects Nov 2020
 
 import os
 import copy
+import operator
+from functools import reduce
+import subprocess
 from pathlib import Path
 import json as json_ext
 import numpy as np
 from numpy import typing as npt
+from types import ModuleType
 from typing import Optional, Dict, List, Type, Union, Any, TypeVar
+from pybtex.database import BibliographyData
+import ase
 from ase import Atoms
 from ase.build.supercells import make_supercell
 from ase.dft.kpoints import BandPath
 from ase.calculators.espresso import Espresso_kcp
 from ase.calculators.calculator import CalculationFailed
 from ase.io.espresso.utils import cell_to_ibrav, ibrav_to_cell
-from ase.io.espresso.koopmans_cp import KEYS as kcp_keys
-from koopmans.pseudopotentials import nelec_from_pseudos, set_up_pseudos
+from ase.io.espresso.koopmans_cp import KEYS as kcp_keys, construct_namelist
+from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, pseudo_database, fetch_pseudo
 from koopmans import utils, settings
 import koopmans.calculators as calculators
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.bands import Bands
 from koopmans.projections import ProjectionBlocks
+from koopmans.references import bib_data
+from abc import ABC, abstractmethod
 
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
 
 
-class Workflow(object):
+class Workflow(ABC):
 
     def __init__(self, atoms: Atoms,
                  parameters: settings.SettingsDict = settings.WorkflowSettingsDict(),
-                 master_calc_params: Dict[str, settings.SettingsDict] = settings.default_master_calc_params,
+                 master_calc_params: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]
+                                           ] = settings.default_master_calc_params,
                  name: str = 'koopmans_workflow',
                  pseudopotentials: Dict[str, str] = {},
                  gamma_only: Optional[bool] = False,
                  kgrid: Optional[List[int]] = [1, 1, 1],
                  koffset: Optional[List[int]] = [0, 0, 0],
-                 kpath: Optional[BandPath] = None,
+                 kpath: Optional[Union[BandPath, str]] = None,
+                 kpath_density: int = 10,
                  projections: Optional[ProjectionBlocks] = None):
 
         # Parsing parameters
@@ -52,7 +62,6 @@ class Workflow(object):
         self.calculations: List[calculators.CalculatorExt] = []
         self.silent = False
         self.print_indent = 1
-        self.pseudopotentials = pseudopotentials
         self.gamma_only = gamma_only
         if self.gamma_only:
             if kgrid != [1, 1, 1]:
@@ -66,7 +75,21 @@ class Workflow(object):
         else:
             self.kgrid = kgrid
             self.koffset = koffset
-        self.projections = ProjectionBlocks([], self.atoms) if projections is None else projections
+        if projections is None:
+            proj_list: List[List[Any]]
+            spins: List[Optional[str]]
+            if self.parameters.spin_polarised:
+                proj_list = [[], [], [], []]
+                fillings = [True, True, False, False]
+                spins = ['up', 'down', 'up', 'down']
+            else:
+                proj_list = [[], []]
+                fillings = [True, False]
+                spins = [None, None]
+            self.projections = ProjectionBlocks.fromprojections(
+                proj_list, fillings=fillings, spins=spins, atoms=self.atoms)
+        else:
+            self.projections = projections
 
         if 'periodic' in parameters:
             # If "periodic" was explicitly provided, override self.atoms.pbc
@@ -78,14 +101,87 @@ class Workflow(object):
         if all(self.atoms.pbc):
             self.atoms.wrap(pbc=True)
 
+        # Pseudopotentials and pseudo_dir
+        if pseudopotentials:
+            self.pseudopotentials = pseudopotentials
+        elif self.parameters.pseudo_library:
+            self.pseudopotentials = {}
+            for symbol in set(self.atoms.symbols):
+                pseudo = fetch_pseudo(element=symbol, functional=self.parameters.base_functional,
+                                      library=self.parameters.pseudo_library)
+                if pseudo.kind == 'unknown':
+                    utils.warn(f'You are using an unrecognised pseudopotential {pseudo.name}. Please note that '
+                               'the current implementation of Koopmans functionals only supports norm-conserving '
+                               'pseudopotentials.')
+                elif pseudo.kind != 'norm-conserving':
+                    raise ValueError('Koopmans functionals only currently support norm-conserving pseudopotentials; '
+                                     f'{pseudo.name} is {pseudo.kind}')
+                self.pseudopotentials[symbol] = pseudo.name
+        else:
+            self.pseudopotentials = pseudopotentials
+
+        # Make sure master_calc_params isn't missing any entries, and every entry corresponds to settings.SettingsDict
+        # objects
+        master_calc_params = sanitise_master_calc_params(master_calc_params)
+
+        # Work out the pseudopotential directory. If using a pseudo_library this is straightforward, if not...
+        #  1. try to locating the directory as currently specified by the calculator
+        #  2. if that fails, check if $ESPRESSO_PSEUDO is set
+        #  3. if that fails, raise an error
+        if self.parameters.pseudo_library:
+            pseudo_dir = pseudos_library_directory(self.parameters.pseudo_library, self.parameters.base_functional)
+            for params in master_calc_params.values():
+                if params.get('pseudo_dir', pseudo_dir).resolve() != pseudo_dir:
+                    raise ValueError(
+                        '"pseudo_dir" and "pseudo_library" are conflicting; please do not provide "pseudo_dir"')
+        elif 'pseudo_dir' in master_calc_params['kcp'] or 'pseudo_dir' in master_calc_params['pw']:
+            pseudo_dir = master_calc_params['kcp'].get('pseudo_dir', master_calc_params['pw'].get('pseudo_dir', None))
+            if not os.path.isdir(pseudo_dir):
+                raise NotADirectoryError(f'The pseudo_dir you provided ({pseudo_dir}) does not exist')
+        elif 'ESPRESSO_PSEUDO' in os.environ:
+            pseudo_dir = Path(os.environ['ESPRESSO_PSEUDO'])
+        else:
+            pseudo_dir = Path.cwd()
+
+        if self.parameters.task != 'ui':
+            for pseudo in self.pseudopotentials.values():
+                if not (pseudo_dir / pseudo).exists():
+                    raise FileNotFoundError(
+                        f'{pseudo_dir / pseudo} does not exist. Please double-check your pseudopotential settings')
+
         # Before saving the master_calc_params, automatically generate some keywords and perform some sanity checks
-        self.master_calc_params = {}
-        pseudo_dir = master_calc_params['kcp'].get('pseudo_dir', None)
-        nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, pseudo_dir)
+        if self.parameters.task != 'ui':
+            # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
+            # and the kcp settings
+            nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, pseudo_dir)
+
+            tot_charge = master_calc_params['kcp'].get('tot_charge', 0)
+            nelec -= tot_charge
+            tot_mag = master_calc_params['kcp'].get('tot_magnetization', nelec % 2)
+            nelup = int(nelec / 2 + tot_mag / 2)
+            neldw = int(nelec / 2 - tot_mag / 2)
+            if tot_mag != 0:
+                atoms.set_initial_magnetic_moments([tot_mag / len(atoms) for _ in atoms])
+
+            # Work out the number of filled and empty bands
+            n_filled = nelec // 2 + nelec % 2
+            n_empty = master_calc_params['kcp'].get('empty_states_nbnd', 0)
+            nbnd = n_filled + n_empty
+            generated_keywords = {'nelec': nelec, 'tot_charge': tot_charge, 'tot_magnetization': tot_mag,
+                                  'nelup': nelup, 'neldw': neldw, 'nbnd': nbnd, 'pseudo_dir': pseudo_dir}
+        else:
+            generated_keywords = {}
+            nelec = 0
+
+        self.master_calc_params = settings.default_master_calc_params.copy()
         for block, params in master_calc_params.items():
-            # Auto-generation of nelec
-            if 'nelec' in params.valid:
-                params.nelec = nelec
+            # Apply auto-generated keywords
+            for k, v in generated_keywords.items():
+                # Skipping nbnd for kcp -- it is valid according to ASE but it is not yet properly implemented
+                if k == 'nbnd' and block == 'kcp':
+                    continue
+                if k in params.valid and k not in params:
+                    setattr(params, k, v)
 
             # Various checks for the wannier90 blocks
             if block.startswith('w90'):
@@ -111,17 +207,18 @@ class Workflow(object):
             # Store the sanitised parameters
             self.master_calc_params[block] = params
 
-        # Generate the kpath
+        # Generate a default kpath
         if kpath is None:
             if self.parameters.periodic:
                 # By default, use ASE's default bandpath for this cell (see
                 # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
-                bl = self.atoms.cell.get_bravais_lattice()
-                path = bl.bandpath().path
-                npoints = 10 * len(path) - 9 - 29 * path.count(',')
-                self.kpath = bl.bandpath(npoints=npoints)
+                kpath = self.atoms.cell.bandpath().path
             else:
-                self.kpath = BandPath(path='G', cell=self.atoms.cell)
+                kpath = 'G'
+
+        # Convert the kpath to a BandPath object
+        if isinstance(kpath, str):
+            self.kpath = utils.convert_kpath_str_to_bandpath(kpath, self.atoms.cell, kpath_density)
         else:
             self.kpath = kpath
 
@@ -184,6 +281,23 @@ class Workflow(object):
             if not self.parameters.mt_correction:
                 utils.warn('Martyna-Tuckerman corrections not applied for an aperiodic calculation; do this with '
                            'caution')
+
+        # Records whether or not this workflow is a subworkflow of another
+        self._is_a_subworkflow = False
+
+    def __eq__(self, other):
+        if isinstance(other, Workflow):
+            return self.__dict__ == other.__dict__
+        return False
+
+    def run(self) -> None:
+        self.print_preamble()
+        self._run()
+        self.print_conclusion()
+
+    @abstractmethod
+    def _run(self) -> None:
+        ...
 
     @property
     def pseudopotentials(self) -> Dict[str, str]:
@@ -294,75 +408,6 @@ class Workflow(object):
 
         return calc
 
-    def run(self):
-        raise NotImplementedError('This workflow class has not implemented the run() function')
-
-    def convert_wavefunction_2to1(self, nspin2_tmpdir: Path, nspin1_tmpdir: Path):
-
-        if not self.parameters.from_scratch:
-            return
-
-        for directory in [nspin2_tmpdir, nspin1_tmpdir]:
-            if not directory.is_dir():
-                raise OSError(f'{directory} not found')
-
-        for wfile in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
-                      'eigenval.xml', 'evc_empty1.dat', 'lambda01.dat', 'lambdam1.dat']:
-            if '1.' in wfile:
-                prefix, suffix = wfile.split('1.')
-            else:
-                prefix, suffix = wfile.split('.')
-
-            file_out = nspin1_tmpdir / wfile
-            file_in = nspin2_tmpdir / f'{prefix}1.{suffix}'
-
-            if file_in.is_file():
-
-                with open(file_in, 'rb') as fd:
-                    contents = fd.read()
-
-                contents = contents.replace(b'nk="2"', b'nk="1"')
-                contents = contents.replace(b'nspin="2"', b'nspin="1"')
-
-                with open(file_out, 'wb') as fd:
-                    fd.write(contents)
-
-    def convert_wavefunction_1to2(self, nspin1_tmpdir: Path, nspin2_tmpdir: Path):
-
-        if not self.parameters.from_scratch:
-            return
-
-        for directory in [nspin2_tmpdir, nspin1_tmpdir]:
-            if not directory.is_dir():
-                raise OSError(f'{directory} not found')
-
-        for wfile in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
-                      'eigenval.xml', 'evc_empty1.dat', 'lambda01.dat']:
-            if '1.' in wfile:
-                prefix, suffix = wfile.split('1.')
-            else:
-                prefix, suffix = wfile.split('.')
-
-            file_in = nspin1_tmpdir / wfile
-
-            if file_in.is_file():
-                with open(file_in, 'rb') as fd:
-                    contents = fd.read()
-
-                contents = contents.replace(b'nk="1"', b'nk="2"')
-                contents = contents.replace(b'nspin="1"', b'nspin="2"')
-
-                file_out = nspin2_tmpdir / f'{prefix}1.{suffix}'
-                with open(file_out, 'wb') as fd:
-                    fd.write(contents)
-
-                contents = contents.replace(b'ik="1"', b'ik="2"')
-                contents = contents.replace(b'ispin="1"', b'ispin="2"')
-
-                file_out = nspin2_tmpdir / f'{prefix}2.{suffix}'
-                with open(file_out, 'wb') as fd:
-                    fd.write(contents)
-
     def update_celldms(self):
         # Update celldm(*) to match the current self.atoms.cell
         for k, params in self.master_calc_params.items():
@@ -408,71 +453,33 @@ class Workflow(object):
         '''
 
         if enforce_ss:
-            if not isinstance(master_qe_calc, calculators.KoopmansCPCalculator):
-                raise NotImplementedError('Workflow.run_calculator(..., enforce_ss = True) needs to be generalised to '
-                                          'other calculator types')
-            # Create a copy of the calculator object (to avoid modifying the input)
-            qe_calc = copy.deepcopy(master_qe_calc)
-            nspin2_tmpdir = master_qe_calc.parameters.outdir / \
-                f'{master_qe_calc.parameters.prefix}_{master_qe_calc.parameters.ndw}.save/K00001'
+            if not isinstance(master_qe_calc, calculators.CalculatorCanEnforceSpinSym):
+                raise NotImplementedError(f'{master_qe_calc.__class__.__name__} cannot enforce spin symmetry')
 
-            if master_qe_calc.parameters.restart_mode == 'restart':
+            if not master_qe_calc.from_scratch:
                 # PBE with nspin=1 dummy
-                qe_calc.prefix += '_nspin1_dummy'
-                qe_calc.parameters.do_outerloop = False
-                qe_calc.parameters.do_outerloop_empty = False
-                qe_calc.parameters.nspin = 1
-                if hasattr(qe_calc, 'alphas'):
-                    qe_calc.alphas = [qe_calc.alphas[0]]
-                if hasattr(qe_calc, 'filling'):
-                    qe_calc.filling = [qe_calc.filling[0]]
-                qe_calc.parameters.nelup = None
-                qe_calc.parameters.neldw = None
-                qe_calc.parameters.tot_magnetization = None
-                qe_calc.parameters.ndw, qe_calc.parameters.ndr = 98, 98
-                qe_calc.parameters.restart_mode = 'from_scratch'
+                qe_calc = master_qe_calc.nspin1_dummy_calculator()
                 qe_calc.skip_qc = True
                 self.run_calculator_single(qe_calc)
                 # Copy over nspin=2 wavefunction to nspin=1 tmp directory (if it has not been done already)
-                nspin1_tmpdir = qe_calc.parameters.outdir / \
-                    f'{qe_calc.parameters.prefix}_{qe_calc.parameters.ndw}.save/K00001'
-                self.convert_wavefunction_2to1(nspin2_tmpdir, nspin1_tmpdir)
+                if self.parameters.from_scratch:
+                    master_qe_calc.convert_wavefunction_2to1()
 
             # PBE with nspin=1
-            qe_calc = copy.deepcopy(master_qe_calc)
-            qe_calc.prefix += '_nspin1'
-            qe_calc.parameters.nspin = 1
-            qe_calc.parameters.nelup = None
-            qe_calc.parameters.neldw = None
-            if hasattr(qe_calc, 'alphas'):
-                qe_calc.alphas = [qe_calc.alphas[0]]
-            if hasattr(qe_calc, 'filling'):
-                qe_calc.filling = [qe_calc.filling[0]]
-            qe_calc.parameters.tot_magnetization = None
-            qe_calc.parameters.ndw, qe_calc.parameters.ndr = 98, 98
-            nspin1_tmpdir = qe_calc.parameters.outdir / \
-                f'{qe_calc.parameters.prefix}_{qe_calc.parameters.ndw}.save/K00001'
+            qe_calc = master_qe_calc.nspin1_calculator()
             self.run_calculator_single(qe_calc)
 
             # PBE from scratch with nspin=2 (dummy run for creating files of appropriate size)
-            qe_calc = copy.deepcopy(master_qe_calc)
-            qe_calc.prefix += '_nspin2_dummy'
-            qe_calc.parameters.restart_mode = 'from_scratch'
-            qe_calc.parameters.do_outerloop = False
-            qe_calc.parameters.do_outerloop_empty = False
-            qe_calc.parameters.ndw = 99
+            qe_calc = master_qe_calc.nspin2_dummy_calculator()
             qe_calc.skip_qc = True
             self.run_calculator_single(qe_calc)
 
             # Copy over nspin=1 wavefunction to nspin=2 tmp directory (if it has not been done already)
-            nspin2_tmpdir = qe_calc.parameters.outdir / \
-                f'{qe_calc.parameters.prefix}_{qe_calc.parameters.ndw}.save/K00001'
-            self.convert_wavefunction_1to2(nspin1_tmpdir, nspin2_tmpdir)
+            if self.parameters.from_scratch:
+                master_qe_calc.convert_wavefunction_1to2()
 
             # PBE with nspin=2, reading in the spin-symmetric nspin=1 wavefunction
-            master_qe_calc.prefix += '_nspin2'
-            master_qe_calc.parameters.restart_mode = 'restart'
-            master_qe_calc.parameters.ndr = 99
+            master_qe_calc.prepare_to_read_nspin1()
             self.run_calculator_single(master_qe_calc)
 
         else:
@@ -611,6 +618,9 @@ class Workflow(object):
 
         # Increase the indent level
         workflow.print_indent = self.print_indent + 1
+
+        # Don't print out the header, generate .bib and .kwf files etc. for subworkflows
+        workflow._is_a_subworkflow = True
 
         # Ensure altering workflow.master_calc_params won't affect self.master_calc_params
         if workflow.master_calc_params is self.master_calc_params:
@@ -754,23 +764,6 @@ class Workflow(object):
         kc_wann_blocks = bigdct.pop('kc_wann', {'kc_ham': {}, 'kc_screen': {}, 'wann2kc': {}})
         bigdct.update(**kc_wann_blocks)
 
-        # Define which function to use to read each block
-        settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
-                            'kc_ham': settings.KoopmansHamSettingsDict,
-                            'kc_screen': settings.KoopmansScreenSettingsDict,
-                            'wann2kc': settings.Wann2KCSettingsDict,
-                            'pw': settings.PWSettingsDict,
-                            'pw2wannier': settings.PW2WannierSettingsDict,
-                            'ui': settings.UnfoldAndInterpolateSettingsDict,
-                            'ui_occ': settings.UnfoldAndInterpolateSettingsDict,
-                            'ui_emp': settings.UnfoldAndInterpolateSettingsDict,
-                            'w90_occ': settings.Wannier90SettingsDict,
-                            'w90_emp': settings.Wannier90SettingsDict,
-                            'w90_occ_up': settings.Wannier90SettingsDict,
-                            'w90_emp_up': settings.Wannier90SettingsDict,
-                            'w90_occ_down': settings.Wannier90SettingsDict,
-                            'w90_emp_down': settings.Wannier90SettingsDict}
-
         # Check for unexpected blocks
         for block in bigdct:
             if block not in list(settings_classes.keys()) + ['workflow', 'setup']:
@@ -782,8 +775,7 @@ class Workflow(object):
 
         # Load default values
         if 'setup' in bigdct:
-            atoms, setup_parameters, workflow_kwargs, n_filled, n_empty = read_setup_dict(
-                bigdct['setup'], parameters.task)
+            atoms, setup_parameters, workflow_kwargs = read_setup_dict(bigdct['setup'], parameters.task)
             del bigdct['setup']
         elif parameters.task != 'ui':
             raise ValueError('You must provide a "setup" block in the input file, specifying atomic positions, atomic '
@@ -793,8 +785,6 @@ class Workflow(object):
             atoms = Atoms()
             setup_parameters = {}
             workflow_kwargs = {}
-            n_filled = 0
-            n_empty = 0
 
         # Loading calculator-specific settings. We generate a SettingsDict for every single kind of calculator,
         # regardless of whether or not there was a corresponding block in the json file
@@ -805,10 +795,7 @@ class Workflow(object):
         for block, settings_class in settings_classes.items():
             # Read the block and add the resulting calculator to the calcs_dct
             dct = bigdct.get(block, {})
-            if block == 'pw':
-                if 'nbnd' not in dct.get('system', {}):
-                    dct['nbnd'] = n_filled + n_empty
-            elif block.startswith('ui'):
+            if block.startswith('ui'):
                 # Dealing with redundancies in UI keywords
                 if 'sc_dim' in dct and 'kpts' in workflow_kwargs:
                     # In this case, the sc_dim keyword is redundant
@@ -853,6 +840,210 @@ class Workflow(object):
 
         return cls(atoms, parameters, master_calc_params, name, **workflow_kwargs)
 
+    def print_header(self):
+        print(header())
+
+    def print_bib(self):
+        relevant_references = BibliographyData()
+
+        def add_ref(bibkey: str, note: str):
+            if bibkey not in bib_data.entries:
+                raise ValueError(f'Could not find bibliography entry for {bibkey}')
+            else:
+                entry = bib_data.entries[bibkey]
+                entry.fields['note'] = note
+                relevant_references.add_entry(bibkey, entry)
+
+        if self.parameters.functional in ['ki', 'kipz', 'pkipz', 'all']:
+            add_ref('Dabo2010', 'One of the founding Koopmans functionals papers')
+            add_ref('Borghi2014', 'One of the founding Koopmans functionals papers')
+
+            if self.parameters.periodic:
+                add_ref('Nguyen2018', 'Describes Koopmans functionals in periodic systems')
+                if self.parameters.calculate_alpha:
+                    if self.parameters.method == 'dfpt':
+                        add_ref('Colonna2019', 'Introduces the DFPT method for calculating screening parameters')
+                        add_ref('Colonna2022', 'Describes the algorithms underpinning the kcw.x code')
+                    else:
+                        add_ref('DeGennaro2021', 'Describes how to extract band structures from Koopmans functional '
+                                'calculations')
+                        add_ref('Borghi2015', 'Describes the algorithms underpinning the kcp.x code')
+            else:
+                add_ref('Borghi2015', 'Describes the algorithms underpinning the kcp.x code')
+
+            psp_lib = self.parameters.pseudo_library
+            if psp_lib is not None:
+                psp_subset = [p for p in pseudo_database if p.functional == self.parameters.base_functional
+                              and p.library == psp_lib]
+                citations = set([c for psp in psp_subset for c in psp.citations if psp.element in self.atoms.symbols])
+
+                for citation in citations:
+                    add_ref(citation, f'Citation for the {psp_lib.replace("_", " ")} pseudopotential library')
+
+        print(f'\n Please cite the papers listed in {self.name}.bib in work involving this calculation')
+        relevant_references.to_file(self.name + '.bib')
+
+    def print_preamble(self):
+        if self._is_a_subworkflow:
+            return
+
+        self.print_header()
+
+        self.print_bib()
+
+    def print_conclusion(self):
+        from koopmans.io import write
+
+        if self._is_a_subworkflow:
+            return
+
+        # Save workflow to file
+        write(self, self.name + '.kwf')
+
+        # Print farewell message
+        print('\n Workflow complete')
+
+    def toinputjson(self) -> Dict[str, Dict]:
+
+        bigdct: Dict[str, Dict] = {}
+
+        bigdct['workflow'] = {}
+
+        # "workflow" block (not printing any values that match the defaults except for core keywords)
+        for k, v in self.parameters.items():
+            if v is None:
+                continue
+            if isinstance(v, Path):
+                v = str(v)
+            default = self.parameters.defaults.get(k, None)
+            if v != default or k in ['task', 'functional']:
+                bigdct['workflow'][k] = v
+
+        # "setup" block
+        # Working out ibrav
+        ibrav = self.master_calc_params['kcp'].get('ibrav', self.master_calc_params['pw'].get('ibrav', 0))
+
+        bigdct['setup'] = {}
+
+        # cell parameters
+        if ibrav == 0:
+            bigdct['setup']['cell_parameters'] = utils.construct_cell_parameters_block(self.atoms)
+
+        # atomic positions
+        if self.atoms.has('labels'):
+            labels = self.atoms.get_array('labels')
+        else:
+            labels = self.atoms.get_chemical_symbols()
+        if ibrav == 0:
+            bigdct['setup']['atomic_positions'] = {'positions': [
+                [label] + [str(x) for x in pos] for label, pos in zip(labels, self.atoms.get_positions())],
+                'units': 'angstrom'}
+        else:
+            bigdct['setup']['atomic_positions'] = {'positions': [
+                [label] + [str(x) for x in pos] for label, pos in zip(labels, self.atoms.get_scaled_positions())],
+                'units': 'crystal'}
+
+        # k-points
+        bigdct['setup']['k_points'] = {'kgrid': self.kgrid, 'kpath': self.kpath.path}
+
+        # Populating calculator-specific blocks
+        bigdct['w90'] = {}
+        bigdct['ui'] = {}
+        for code, params in self.master_calc_params.items():
+            # Remove default settings (ensuring we switch to using relative paths to check this)
+            tmp, params.use_relative_paths = params.use_relative_paths, True
+            params_dict = {k: v for k, v in params.items() if params.defaults.get(k, None) != v}
+            params.use_relative_paths = tmp
+
+            # convert Paths to strings
+            for k in params_dict:
+                if isinstance(params_dict[k], Path):
+                    params_dict[k] = str(params_dict[k])
+
+            # pseudo directory belongs in setup, not elsewhere
+            pseudo_dir = params_dict.pop('pseudo_dir', None)
+            if pseudo_dir is not None and self.parameters.pseudo_library is None:
+                bigdct['setup']['control'] = {'pseudo_dir': str(pseudo_dir)}
+
+            # If the params_dict is empty, don't add a block for this calculator
+            if not params_dict:
+                continue
+
+            if code in ['pw', 'kcp']:
+                bigdct[code] = {}
+
+                # Populate bigdct with the settings
+                input_data = construct_namelist(params_dict)
+                for key, block in input_data.items():
+
+                    if len(block) > 0:
+                        bigdct[code][key] = {k: v for k, v in dict(
+                            block).items() if v is not None}
+
+            elif code in ['pw2wannier', 'wann2kc', 'kc_screen', 'kc_ham']:
+                bigdct[code] = params_dict
+            elif code.startswith('ui_'):
+                bigdct['ui'][code.split('_')[-1]] = params_dict
+            elif code == 'ui':
+                bigdct['ui'].update(**params_dict)
+            elif code.startswith('w90'):
+                nested_keys = code.split('_')[1:]
+                # The following very opaque code fills out the nested dictionary with the list of nested keys
+                for i, k in enumerate(nested_keys):
+                    parent_level = reduce(operator.getitem, nested_keys[:i], bigdct['w90'])
+                    if k not in parent_level:
+                        reduce(operator.getitem, nested_keys[:i], bigdct['w90'])[k] = {}
+                reduce(operator.getitem, nested_keys[:-1], bigdct['w90'])[k] = params_dict
+                # Projections
+                filling = nested_keys[0] == 'occ'
+                if len(nested_keys) == 2:
+                    spin = nested_keys[1]
+                else:
+                    spin = None
+                projections = self.projections.get_subset(filling, spin)
+                if len(projections) > 1:
+                    proj_kwarg = {'projections_blocks': [p.projections for p in projections]}
+                else:
+                    proj_kwarg = {'projections': projections[0].projections}
+                reduce(operator.getitem, nested_keys[:-1], bigdct['w90'])[k].update(**proj_kwarg)
+
+            else:
+                raise NotImplementedError(
+                    f'Writing of {params.__class__.__name__} with write_json is not yet implemented')
+
+        return bigdct
+
+
+def get_version(module):
+    if isinstance(module, ModuleType):
+        module = module.__path__[0]
+    with utils.chdir(module):
+        version_label = subprocess.check_output(["git", "describe", "--always", "--tags"]).strip()
+    return version_label.decode("utf-8")
+
+
+def header():
+
+    koopmans_version = get_version(os.path.dirname(__file__))
+    ase_version = get_version(ase)
+    qe_version = get_version(calculators.qe_bin_directory)
+
+    header = [r"  _                                                ",
+              r" | | _____   ___  _ __  _ __ ___   __ _ _ __  ___  ",
+              r" | |/ / _ \ / _ \| '_ \| '_ ` _ \ / _` | '_ \/ __| ",
+              r" |   < (_) | (_) | |_) | | | | | | (_| | | | \__ \ ",
+              r" |_|\_\___/ \___/| .__/|_| |_| |_|\__,_|_| |_|___/ ",
+              r"                 |_|                               ",
+              "",
+              " Koopmans spectral functional calculations with Quantum ESPRESSO",
+              "",
+              " Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna",
+              "",
+              f" using QE version {qe_version}, workflow manager version {koopmans_version}, and ASE version "
+              f"{ase_version}"
+              ""]
+    return '\n'.join(header)
+
 
 def read_setup_dict(dct: Dict[str, Any], task: str):
     '''
@@ -863,11 +1054,10 @@ def read_setup_dict(dct: Dict[str, Any], task: str):
 
     calc = Espresso_kcp(atoms=Atoms())
 
-    compulsory_block_readers = {'atomic_species': utils.read_atomic_species,
-                                'atomic_positions': utils.read_atomic_positions}
+    compulsory_block_readers = {'atomic_positions': utils.read_atomic_positions}
 
     for block, subdct in dct.items():
-        if block in compulsory_block_readers or block in ['cell_parameters', 'k_points']:
+        if block in compulsory_block_readers or block in ['cell_parameters', 'k_points', 'atomic_species']:
             # We will read these afterwards
             continue
         elif block in kcp_keys:
@@ -900,9 +1090,14 @@ def read_setup_dict(dct: Dict[str, Any], task: str):
     # Attaching the cell to the calculator
     calc.atoms = Atoms(cell=cell)
 
+    # Handling atomic species
+    if 'atomic_species' in dct:
+        utils.read_atomic_species(calc, dct['atomic_species'])
+
     # Calculating kpoints
+    psps_and_kpts: Dict[str, Any] = {}
     if 'k_points' in dct:
-        utils.read_kpoints_block(calc, dct['k_points'])
+        psps_and_kpts.update(**dct['k_points'])
 
     if task != 'ui':
         def read_compulsory_block(block_name, extract_function):
@@ -916,50 +1111,48 @@ def read_setup_dict(dct: Dict[str, Any], task: str):
         for block_name, extract_function in compulsory_block_readers.items():
             read_compulsory_block(block_name, extract_function)
 
-        set_up_pseudos(calc)
-
-        # If they are missing, fill the nelec/nelup/neldw field using information contained
-        # in the pseudopotential files
-        if 'nelec' not in calc.parameters:
-            nelec = nelec_from_pseudos(calc.atoms, calc.parameters.pseudopotentials, calc.parameters.pseudo_dir)
-            calc.parameters.nelec = nelec
-        else:
-            nelec = calc.parameters.nelec
-
-        if calc.parameters.get('nspin', 2) == 2:
-            if 'tot_charge' in calc.parameters:
-                tot_charge = calc.parameters.tot_charge
-                calc.parameters.nelec -= tot_charge
-                nelec -= tot_charge
-            if 'tot_magnetization' in calc.parameters:
-                tot_mag = calc.parameters.tot_magnetization
-            else:
-                tot_mag = nelec % 2
-                calc.parameters.tot_magnetization = tot_mag
-            if 'nelup' not in calc.parameters:
-                calc.parameters.nelup = int(nelec / 2 + tot_mag / 2)
-            if 'neldw' not in calc.parameters:
-                calc.parameters.neldw = int(nelec / 2 - tot_mag / 2)
-            if tot_mag != 0:
-                if 'starting_magnetization(1)' not in calc.parameters:
-                    calc.atoms.set_initial_magnetic_moments([tot_mag / len(calc.atoms) for _ in calc.atoms])
-
-        # Work out the number of filled and empty bands
-        n_filled = nelec // 2 + nelec % 2
-        n_empty = calc.parameters.get('empty_states_nbnd', 0)
-    else:
-        # these parameters require a definition but they are not necessary for a UI workflow
-        calc.parameters.nelec = 0
-        n_filled = 0
-        n_empty = 0
-
     # Separamting the output into atoms, parameters, and psp+kpoint information
     atoms = calc.atoms
     atoms.calc = None
     parameters = calc.parameters
-    psps_and_kpts = {}
-    for key in ['pseudopotentials', 'gamma_only', 'kgrid', 'koffset', 'kpath']:
-        if key in parameters:
-            psps_and_kpts[key] = parameters.pop(key)
+    if 'pseudopotentials' in parameters:
+        psps_and_kpts['pseudopotentials'] = parameters.pop('pseudopotentials')
 
-    return atoms, parameters, psps_and_kpts, n_filled, n_empty
+    return atoms, parameters, psps_and_kpts
+
+
+# Define which function to use to read each block
+settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
+                    'kc_ham': settings.KoopmansHamSettingsDict,
+                    'kc_screen': settings.KoopmansScreenSettingsDict,
+                    'wann2kc': settings.Wann2KCSettingsDict,
+                    'pw': settings.PWSettingsDict,
+                    'pw2wannier': settings.PW2WannierSettingsDict,
+                    'ui': settings.UnfoldAndInterpolateSettingsDict,
+                    'ui_occ': settings.UnfoldAndInterpolateSettingsDict,
+                    'ui_emp': settings.UnfoldAndInterpolateSettingsDict,
+                    'w90_occ': settings.Wannier90SettingsDict,
+                    'w90_emp': settings.Wannier90SettingsDict,
+                    'w90_occ_up': settings.Wannier90SettingsDict,
+                    'w90_emp_up': settings.Wannier90SettingsDict,
+                    'w90_occ_down': settings.Wannier90SettingsDict,
+                    'w90_emp_down': settings.Wannier90SettingsDict}
+
+
+def sanitise_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]]) \
+        -> Dict[str, settings.SettingsDict]:
+    dct_out: Dict[str, settings.SettingsDict] = {}
+    for k, cls in settings_classes.items():
+        dct: Union[Dict, settings.SettingsDict] = dct_in.get(k, {})
+        if isinstance(dct, settings.SettingsDict):
+            dct_out[k] = dct
+            if dct_out[k].directory == '':
+                dct_out[k].directory = Path().resolve()
+        else:
+            dct_out[k] = cls(**dct, directory=Path().resolve())
+
+    for k in dct_in.keys():
+        if k not in settings_classes:
+            raise ValueError(
+                f'Unrecognised master_calc_params entry "{k}": valid options are ' + '/'.join(settings_classes.keys()))
+    return dct_out

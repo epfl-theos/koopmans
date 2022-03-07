@@ -21,6 +21,16 @@ This repository contains...
 Installation
 ------------
 
+Quick installation
+^^^^^^^^^^^^^^^^^^
+For a quick installation one can simply run ``make install``
+
+Detailed installation
+^^^^^^^^^^^^^^^^^^^^^
+
+Setting up a virtual environment
+""""""""""""""""""""""""""""""""
+
 You are encouraged (but it is not necessary) to first create and activate a virtual environment as follows:
 
 .. code-block:: bash
@@ -30,14 +40,24 @@ You are encouraged (but it is not necessary) to first create and activate a virt
    virtualenv ~/venvs/koopmans
    source ~/venvs/koopmans/bin/activate
 
-For a quick installation one can then simply run ``make install``.
+Note that ``koopmans`` requires python v3.7 or later. If your computer's version of python3 corresponds to an earlier version, install python v3.7 or later, and then direct ``virtualenv`` to create the virtual environment using that specific installation of python via
 
-For a more careful installation, first make sure you have downloaded the various ``git`` submodules. To install this, run ``make submodules``, or equivalently
+.. code-block:: bash
+
+   virtualenv ~/venvs/koopmans -p /usr/bin/python3.x
+
+Fetching the submodules
+"""""""""""""""""""""""
+
+Now, ensure you have downloaded the various ``git`` submodules. To do so, run ``make submodules``, or equivalently
 
 .. code-block:: bash
 
    git submodule init
    git submodule update
+
+Compiling Quantum ESPRESSO
+""""""""""""""""""""""""""
 
 Then you need to compile the copies of ``Quantum ESPRESSO``. To do this, run
 
@@ -46,6 +66,9 @@ Then you need to compile the copies of ``Quantum ESPRESSO``. To do this, run
    make espresso MPIF90=<mpif90>
 
 where ``<mpif90>`` should be replaced by the name of your chosen MPI Fortran90 compiler e.g. ``MPIF90=mpiifort``. The code should automatically detect and link the requisite libraries. (If this fails you will need to manually compile the two copies of ``Quantum ESPRESSO`` contained in the ``quantum_espresso/``.)
+
+Installing the workflow manager
+"""""""""""""""""""""""""""""""
 
 Finally, install the python workflow manager, either via ``make workflow``, or
 
@@ -68,6 +91,9 @@ where <seed>.json is the ``koopmans`` input file. For a description of the conte
    
    koopmans --help
 
+Parallelism
+^^^^^^^^^^^
+
 In order to run the code in parallel, define the environment variables ``PARA_PREFIX`` and ``PARA_POSTFIX``. These are defined in the same way as in ``Quantum ESPRESSO``, e.g.
 
 .. code-block:: bash
@@ -75,7 +101,14 @@ In order to run the code in parallel, define the environment variables ``PARA_PR
    export PARA_PREFIX="srun"
    export PARA_POSTFIX="-npool 4"
 
-You can also *optionally* direct the code to use a central pseudopotentials directory by defining
+Pseudopotentials
+^^^^^^^^^^^^^^^^
+
+``koopmans`` ships with several pre-existing pseudopotential libraries -- simply select the one you want to use using the ``pseudo_library`` keyword.
+
+If you prefer to use your own pseudopotentials, add them to ``koopmans/pseudopotentials`` in the subdirectory ``<my_pseudos>/<functional>``, where ``<my_pseudos>`` is a name of your choosing and ``<functional>`` is the functional used to generate your pseudopotentials. You can then direct ``koopmans`` to use these pseudopotentials by setting the keywords ``pseudo_library`` and ``base_functional`` to ``<my_pseudos>`` and ``<functional>`` respectively.
+
+Alternatively, you can direct the code to always use your personal pseudopotentials directory by defining the variable
 
 .. code-block:: bash
 

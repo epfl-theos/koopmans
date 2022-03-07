@@ -2,51 +2,7 @@
 
 import argparse
 import textwrap
-from ase.dft.kpoints import BandPath
-from koopmans.workflows import SinglepointWorkflow
-from koopmans.io import write, read
-
-
-def qei_to_json(input_file, json, workflow_settings={}):
-    '''
-
-    Converts a QE input file to a json file
-
-    Arguments
-    ---------
-        input_file: the name of the QE input file to read in
-        json: the name of the .json file to write out to
-        workflow_settings: the koopmans.py keywords to add to the .json file (these are not
-                    included in the QE input file)
-
-    '''
-    if input_file.endswith('.cpi'):
-        key = 'kcp'
-    elif input_file.endswith('.pwi'):
-        key = 'pw'
-    else:
-        raise ValueError('Unrecognised input file format')
-
-    calc = read(input_file)
-    calc.atoms.calc = None
-
-    wf = SinglepointWorkflow(atoms=calc.atoms,
-                             parameters=workflow_settings,
-                             pseudopotentials=calc.parameters.pseudopotentials)
-
-    wf.master_calc_params[key] = calc.parameters
-    if key == 'pw':
-        if isinstance(calc.parameters.kpts, BandPath):
-            wf.kpath = calc.parameters.kpts
-        else:
-            wf.kgrid = calc.parameters.kpts
-
-    # Remove all the blocks io.write_json can't currently handle
-    wf.master_calc_params = {k: v for k, v in wf.master_calc_params.items() if k in ['kcp', 'pw']}
-
-    write(wf, json)
-
-    return calc
+from koopmans.qei_to_json import qei_to_json
 
 
 if __name__ == '__main__':

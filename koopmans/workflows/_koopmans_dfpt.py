@@ -8,9 +8,10 @@ Written by Edward Linscott Feb 2021
 
 import os
 import numpy as np
+from pathlib import Path
 from koopmans.bands import Bands
 from koopmans.calculators import Wann2KCCalculator, KoopmansHamCalculator
-from koopmans import utils, io
+from koopmans import utils
 from ._workflow import Workflow
 
 
@@ -101,7 +102,7 @@ class KoopmansDFPTWorkflow(Workflow):
             for key in ['pw', 'kc_screen']:
                 self.master_calc_params[key].kpts = [1, 1, 1]
 
-    def run(self):
+    def _run(self):
         '''
         This function runs the workflow from start to finish
         '''
@@ -178,7 +179,7 @@ class KoopmansDFPTWorkflow(Workflow):
         else:
             # Load the alphas
             if self.parameters.alpha_from_file:
-                self.bands.alphas = [io.read_alpha_file()]
+                self.bands.alphas = [utils.read_alpha_file()]
             else:
                 self.bands.alphas = self.parameters.alpha_guess
 
@@ -234,6 +235,8 @@ class KoopmansDFPTWorkflow(Workflow):
         calc.parameters.spin_component = 1
         calc.parameters.kcw_at_ks = not self.parameters.periodic
         calc.parameters.read_unitary_matrix = self.parameters.periodic
+        calc.parameters.have_empty = (self.projections.num_wann(occ=False) > 0)
+        calc.parameters.has_disentangle = (self.projections.num_bands() != self.projections.num_wann())
 
         if calc_presets == 'wann2kc':
             if self.parameters.periodic:
@@ -244,8 +247,8 @@ class KoopmansDFPTWorkflow(Workflow):
             calc.directory = 'screening'
             # If eps_inf is not provided in the kc_wann:screen subdictionary but there is a value provided in the
             # workflow parameters, adopt that value
-            if self.parameters.eps_inf is not None and calc.eps_inf is None and self.parameters.periodic:
-                calc.eps_inf = self.parameters.eps_inf
+            if self.parameters.eps_inf is not None and calc.parameters.eps_inf is None and self.parameters.periodic:
+                calc.parameters.eps_inf = self.parameters.eps_inf
         else:
             calc.directory = 'hamiltonian'
             calc.parameters.do_bands = self.parameters.periodic
@@ -272,13 +275,13 @@ class KoopmansDFPTWorkflow(Workflow):
 
         # Provide the rotation matrices and the wannier centres
         if self.parameters.periodic:
-            exist_ok = not self.parameters.from_scratch
-            utils.symlink(f'wannier/occ/wann_u.mat', f'{calc.directory}/', exist_ok=exist_ok)
-            utils.symlink(f'wannier/emp/wann_u.mat', f'{calc.directory}/wann_emp_u.mat', exist_ok=exist_ok)
-            utils.symlink(f'wannier/emp/wann_u_dis.mat',
-                          f'{calc.directory}/wann_emp_u_dis.mat', exist_ok=exist_ok)
-            utils.symlink(f'wannier/occ/wann_centres.xyz', f'{calc.directory}/', exist_ok=exist_ok)
+            utils.symlink(f'wannier/occ/wann_u.mat', f'{calc.directory}/', exist_ok=True)
+            utils.symlink(f'wannier/emp/wann_u.mat', f'{calc.directory}/wann_emp_u.mat', exist_ok=True)
+            if Path('wannier/emp/wann_u_dis.mat').exists():
+                utils.symlink(f'wannier/emp/wann_u_dis.mat',
+                              f'{calc.directory}/wann_emp_u_dis.mat', exist_ok=True)
+            utils.symlink(f'wannier/occ/wann_centres.xyz', f'{calc.directory}/', exist_ok=True)
             utils.symlink(f'wannier/emp/wann_centres.xyz',
-                          f'{calc.directory}/wann_emp_centres.xyz', exist_ok=exist_ok)
+                          f'{calc.directory}/wann_emp_centres.xyz', exist_ok=True)
 
         super().run_calculator(calc)

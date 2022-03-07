@@ -9,10 +9,8 @@ Written by Edward Linscott Jan 2020
 import json as json_ext
 from typing import TextIO, Dict, Any, Type
 from pathlib import Path
-from ase.io.espresso.koopmans_cp import construct_namelist
 from koopmans import utils
-from koopmans.settings import KoopmansCPSettingsDict, PWSettingsDict, WorkflowSettingsDict
-from koopmans.utils import construct_cell_parameters_block
+from koopmans.settings import WorkflowSettingsDict
 from koopmans import workflows
 
 
@@ -69,80 +67,7 @@ def write_json(workflow: workflows.Workflow, filename: Path):
 
     fd = open(filename, 'w')
 
-    bigdct: Dict[str, Dict] = {}
-
-    # "workflow" block (not printing any values that match the defaults)
-    bigdct['workflow'] = {}
-    for k, v in workflow.parameters.items():
-        if v is None:
-            continue
-        if isinstance(v, Path):
-            v = str(v)
-        default = workflow.parameters.defaults.get(k, None)
-        if v != default:
-            bigdct['workflow'][k] = v
-
-    # "setup" block
-    # Working out ibrav
-    ibrav = workflow.master_calc_params['kcp'].get('ibrav', workflow.master_calc_params['pw'].get('ibrav', 0))
-
-    bigdct['setup'] = {}
-
-    # cell parameters
-    if ibrav == 0:
-        bigdct['setup']['cell_parameters'] = construct_cell_parameters_block(workflow.atoms)
-
-    # atomic positions
-    if workflow.atoms.has('labels'):
-        labels = workflow.atoms.get_array('labels')
-    else:
-        labels = workflow.atoms.get_chemical_symbols()
-    if ibrav == 0:
-        bigdct['setup']['atomic_positions'] = {'positions': [
-            [label] + [str(x) for x in pos] for label, pos in zip(labels, workflow.atoms.get_positions())],
-            'units': 'angstrom'}
-    else:
-        bigdct['setup']['atomic_positions'] = {'positions': [
-            [label] + [str(x) for x in pos] for label, pos in zip(labels, workflow.atoms.get_scaled_positions())],
-            'units': 'crystal'}
-
-    # atomic species
-    bigdct['setup']['atomic_species'] = {'species': [[key, 1.0, val]
-                                                     for key, val in workflow.pseudopotentials.items()]}
-
-    for code, params in workflow.master_calc_params.items():
-        if isinstance(params, (KoopmansCPSettingsDict, PWSettingsDict)):
-            bigdct[code] = {}
-
-            # pseudo directory
-            pseudo_dir = params.pop('pseudo_dir', None)
-            if pseudo_dir is not None:
-                bigdct['setup']['control'] = {'pseudo_dir': str(pseudo_dir)}
-
-            # Remove default settings and convert Paths to strings
-            params_dict = {k: v for k, v in params.items() if params.defaults.get(k, None) != v}
-            for k in params_dict:
-                if isinstance(params_dict[k], Path):
-                    params_dict[k] = str(params_dict[k])
-
-            # Populate bigdct with the settings
-            input_data = construct_namelist(params_dict)
-            for key, block in input_data.items():
-
-                if len(block) > 0:
-                    bigdct[code][key] = {k: v for k, v in dict(
-                        block).items() if v is not None}
-
-            if code == 'pw':
-                # Adding kpoints to "setup"
-                kpts = {'kgrid': workflow.kgrid,
-                        'kpath': workflow.kpath.path}
-                bigdct['setup']['k_points'] = kpts
-        else:
-            raise NotImplementedError(
-                f'Writing of {params.__class__.__name__} with write_json is not yet implemented')
-
-    json_ext.dump(bigdct, fd, indent=2)
+    json_ext.dump(workflow.toinputjson(), fd, indent=2)
 
     fd.close()
 
