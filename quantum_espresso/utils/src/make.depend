@@ -81,8 +81,8 @@ scell_wfc.o : ../../qe_koopmans/Modules/fft_base.o
 scell_wfc.o : ../../qe_koopmans/Modules/kind.o
 scell_wfc.o : ../../qe_koopmans/Modules/mp_bands.o
 scell_wfc.o : ../../qe_koopmans/UtilXlib/mp.o
-wann2kcp.o : ../../qe_koopmans/FFTXlib/fft_interfaces.o
-wann2kcp.o : ../../qe_koopmans/FFTXlib/scatter_mod.o
+wann2kcp.o : ../../qe_koopmans/FFTXlib/src/fft_interfaces.o
+wann2kcp.o : ../../qe_koopmans/FFTXlib/src/scatter_mod.o
 wann2kcp.o : ../../qe_koopmans/Modules/becmod.o
 wann2kcp.o : ../../qe_koopmans/Modules/cell_base.o
 wann2kcp.o : ../../qe_koopmans/Modules/constants.o
