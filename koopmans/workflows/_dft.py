@@ -85,6 +85,21 @@ class PWBandStructureWorkflow(Workflow):
 
         # Third, a PDOS calculation
         calc_dos = self.new_calculator('projwfc', filpdos=self.name)
+        pseudo_dir = calc_scf.parameters.pseudo_dir
+        calc_dos.expected_orbitals = {}
+        subshell = {'1s':2, '2s':2, '2p':6, '3s':2, '3p':6, '4s':2, '3d':10, '4p':6}
+        z_core_to_first_orbital = {0:'1s', 2:'2s', 4:'2p', 10:'3s', 12:'3p', 18:'4s', 20:'3d', 30:'4p'}
+        for atom in self.atoms:
+            if atom.symbol in calc_dos.expected_orbitals:
+                continue
+            pseudo_file = self.pseudopotentials[atom.symbol]
+            upf = pseudopotentials.read_pseudo_file(pseudo_dir/pseudo_file)
+            z_valence =float(upf.find('PP_HEADER').get('z_valence'))
+            z_core = atom.number-z_valence
+            first_orbital = z_core_to_first_orbital[z_core]
+            all_orbitals = list(z_core_to_first_orbital.values())
+            expected_orbitals = all_orbitals[all_orbitals.index(first_orbital):]
+            calc_dos.expected_orbitals[atom.symbol] = expected_orbitals  
         self.run_calculator(calc_dos)
 
         # Prepare the band structure for plotting
@@ -111,18 +126,21 @@ class PWBandStructureWorkflow(Workflow):
         dc_up.plot(ax=ax_dos, xmin=xmin , xmax=xmax, orientation = 'vertical')
         
         ax_dos.set_prop_cycle(None)
-        dc_down.plot(ax=ax_dos, xmin = xmin, orientation = 'vertical')
-        
-        #ax_dos.axes.get_xaxis().set_ticklabels([]) #No Tick Labels
-        #ax_dos.axes.xaxis.set_visible(False) #No Tick Labels
-        #ax_dos.axes.yaxis.set_visible(False) 
-        ax_dos.xaxis.set_major_locator(plt.NullLocator())
-        ax_dos.xaxis.set_major_formatter(plt.NullFormatter())
-        ax_dos.xticklabels=('down', 'up')
-        labels = [item.get_text() for item in ax_dos.get_xticklabels()]
-        labels[1] = 'down'
-        labels[2] = 'up'
-        ax_dos.set_xticklabels(labels)
-
+        dc_down.plot(ax=ax_dos, xmin = xmin, xmax=xmax,  orientation = 'vertical')
+        ax_dos.set_xticks([])
+        ax_dos.text(0.25, 0.10, 'up', ha='center', va='top', transform=ax_dos.transAxes)
+        ax_dos.text(0.75, 0.10, 'down', ha='center', va='top', transform=ax_dos.transAxes)
+        lines = ax_dos.get_lines()
+        for line,pdos in zip(lines,dc_up+dc_down):
+            if pdos.info["spin"] = 'up':
+                line.label = 
+            else:
+                line.label = ""
+            import ipdb
+            ipdb.set_trace()
+            
         ax_dos.legend(loc= 'upper left', bbox_to_anchor=(1,1))
+        plt.subplots_adjust(right=0.85)
+        
+        plt.show()        
         plt.savefig(fname=f'{self.name}_bands.png')
