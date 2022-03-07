@@ -17,9 +17,12 @@ WAN2ODD_OBJS = read_wannier.o fft_supercell.o scell_wfc.o plot_wan2odd.o \
 
 MODULES = $(PWOBJS) $(QEMODS)
 
-TLDEPS= pwlibs
+all : pwlib pplib epsilon.x wann2kcp.x merge_evc.x
 
-all : epsilon.x wann2kcp.x merge_evc.x
+pwlib:
+	cd ../../qe_koopmans/PW/src ; if [ ! -e libpw.a ]; then $(MAKE) libpw.a ; fi || exit 1
+pplib:
+	cd ../../qe_koopmans/PP/src ; if [ ! -e libpp.a ]; then $(MAKE) libpp.a ; fi || exit 1 
 
 merge_evc.x : merge_evc.o $(MODULES) $(LIBOBJS)
 	$(LD) $(LDFLAGS) -o $@ \
