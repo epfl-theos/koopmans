@@ -42,7 +42,6 @@ PROGRAM merge_evc
     !
     USE io_global,              ONLY : stdout, ionode
     USE mp_global,              ONLY : mp_startup
-    USE mp_world,               ONLY : nproc
     USE environment,            ONLY : environment_start, environment_end
     USE kinds,                  ONLY : DP
     !
@@ -59,7 +58,7 @@ PROGRAM merge_evc
     INTEGER :: ounit = 24
     INTEGER :: iunit_
     INTEGER :: npw, npw_ref
-    INTEGER :: ipw, ibnd, ibnd_, ir
+    INTEGER :: ipw, ibnd, ir
     INTEGER :: nbnd, nrtot, istart
     INTEGER, ALLOCATABLE :: nbnd_i(:)
     COMPLEX(DP), ALLOCATABLE :: evc(:)

@@ -5659,7 +5659,7 @@ SUBROUTINE radialpart(ng, q, alfa, rvalue, lmax, radial)
   real(DP), PARAMETER :: xmin=-6.d0, dx=0.025d0, rmax=10.d0
 
   real(DP) :: rad_int, pref, x
-  INTEGER :: l, lp1, ir, ig, mesh_r
+  INTEGER :: l, ir, ig, mesh_r
   real(DP), ALLOCATABLE :: bes(:), func_r(:), r(:), rij(:), aux(:)
 
   mesh_r = nint ( ( log ( rmax ) - xmin ) / dx + 1 )
@@ -5836,8 +5836,6 @@ SUBROUTINE mp_grid_ks2odd( )
    !
    !
    IMPLICIT NONE
-   !
-   LOGICAL :: ks_only
    !
    !
    iknum = iknum / nspin         ! momentarily change the value of iknum

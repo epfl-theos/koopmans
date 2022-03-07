@@ -65,7 +65,6 @@ plot_wan2odd.o : ../../qe_koopmans/PW/src/buffers.o
 plot_wan2odd.o : ../../qe_koopmans/UtilXlib/mp.o
 plot_wan2odd.o : fft_supercell.o
 plot_wan2odd.o : scell_wfc.o
-read_wannier.o : ../../qe_koopmans/Modules/cell_base.o
 read_wannier.o : ../../qe_koopmans/Modules/constants.o
 read_wannier.o : ../../qe_koopmans/Modules/io_global.o
 read_wannier.o : ../../qe_koopmans/Modules/kind.o

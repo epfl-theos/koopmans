@@ -40,6 +40,6 @@ epsilon.x : epsilon.o $(MODULES) $(LIBOBJS)
 	- ( cd ../bin ; ln -fs ../src/$@ . )
 
 clean :
-	- /bin/rm -f *.x *.o *~ *_tmp.f90 *.d *.mod *.i *.L libpp.a
+	- /bin/rm -f *.x *.o *~ *_tmp.f90 *.d *.mod *.i *.L *genmod*
 
 include make.depend

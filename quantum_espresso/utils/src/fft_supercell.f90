@@ -75,7 +75,7 @@ CONTAINS
     ! ...  commensurate to the Brillouin zone sampling.
     !
     USE io_global,           ONLY : stdout, ionode
-    USE fft_base,            ONLY : smap, dffts
+    USE fft_base,            ONLY : dffts
     USE fft_types,           ONLY : fft_type_init
     USE mp_bands,            ONLY : nproc_bgrp, intra_bgrp_comm, nyfft, &
                                     ntask_groups

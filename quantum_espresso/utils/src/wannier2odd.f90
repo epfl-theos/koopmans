@@ -68,18 +68,17 @@ MODULE wannier2odd
                                     save_buffer, get_buffer
     USE lsda_mod,            ONLY : nspin
     USE klist,               ONLY : xk, ngk, igk_k, nelec
-    USE gvect,               ONLY : ngm
-    USE wvfct,               ONLY : wg, npwx, nbnd
+    USE wvfct,               ONLY : wg, nbnd
     USE cell_base,           ONLY : tpiba, omega, at
     USE control_flags,       ONLY : gamma_only
     USE constants,           ONLY : tpi
     USE noncollin_module,    ONLY : npol
     USE scell_wfc,           ONLY : extend_wfc
-    USE fft_supercell,       ONLY : dfftcp, setup_scell_fft, bg_cp, at_cp, omega_cp, &
+    USE fft_supercell,       ONLY : dfftcp, setup_scell_fft, bg_cp, omega_cp, &
                                     gamma_only_x, npwxcp, ngmcp, mill_cp, ig_l2g_cp, &
-                                    iunwann, nwordwann, check_fft
+                                    iunwann, nwordwann
     USE cp_files,            ONLY : write_wannier_cp
-    USE wannier,             ONLY : seedname, ikstart, wannier_plot, gamma_trick, &
+    USE wannier,             ONLY : ikstart, wannier_plot, gamma_trick, &
                                     wan_mode, iknum, mp_grid, print_rho
     USE read_wannier
     !
@@ -100,7 +99,7 @@ MODULE wannier2odd
     REAL(DP) :: dot_prod
     REAL(DP) :: ratio
     COMPLEX(DP) :: phase
-    LOGICAL :: exst, opnd
+    LOGICAL :: exst
     LOGICAL :: calc_rho=.true.
     LOGICAL :: wf_is_cmplx
     !

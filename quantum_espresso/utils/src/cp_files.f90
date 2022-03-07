@@ -74,7 +74,6 @@ MODULE cp_files
     CHARACTER(LEN=3), OPTIONAL, INTENT(IN) :: typ  ! required when ks_only=.true.
     !
     CHARACTER(LEN=20) :: filename
-    INTEGER :: io_level = 1
     INTEGER :: cp_unit = 125
     INTEGER :: num_files
     INTEGER :: npw_g                             ! global number of PWs

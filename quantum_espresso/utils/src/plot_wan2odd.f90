@@ -36,14 +36,14 @@ MODULE plot_wan2odd
     USE mp_bands,            ONLY : intra_bgrp_comm
     USE fft_interfaces,      ONLY : invfft
     USE buffers,             ONLY : get_buffer, close_buffer
-    USE cell_base,           ONLY : alat, omega, at
+    USE cell_base,           ONLY : alat
     USE constants,           ONLY : BOHR_RADIUS_ANGS
     USE ions_base,           ONLY : atm
     USE noncollin_module,    ONLY : npol
     USE parameters,          ONLY : ntypx
     USE scell_wfc,           ONLY : bcast_psic
     USE fft_supercell,       ONLY : dfftcp, at_cp, nat_cp, tau_cp, ityp_cp, &
-                                    ngmcp, npwxcp, iunwann, nwordwann, gamma_only_x
+                                    npwxcp, iunwann, nwordwann, gamma_only_x
     !
     !
     IMPLICIT NONE

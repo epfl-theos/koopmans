@@ -48,7 +48,6 @@ MODULE read_wannier
     USE io_global,           ONLY : ionode, ionode_id
     USE mp_global,           ONLY : intra_image_comm
     USE mp,                  ONLY : mp_bcast
-    USE cell_base,           ONLY : bg
     USE klist,               ONLY : nkstot
     USE wvfct,               ONLY : nbnd
     USE lsda_mod,            ONLY : nspin
