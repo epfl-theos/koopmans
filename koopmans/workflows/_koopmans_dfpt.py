@@ -247,8 +247,8 @@ class KoopmansDFPTWorkflow(Workflow):
             calc.directory = 'screening'
             # If eps_inf is not provided in the kc_wann:screen subdictionary but there is a value provided in the
             # workflow parameters, adopt that value
-            if self.parameters.eps_inf is not None and calc.eps_inf is None and self.parameters.periodic:
-                calc.eps_inf = self.parameters.eps_inf
+            if self.parameters.eps_inf is not None and calc.parameters.eps_inf is None and self.parameters.periodic:
+                calc.parameters.eps_inf = self.parameters.eps_inf
         else:
             calc.directory = 'hamiltonian'
             calc.parameters.do_bands = self.parameters.periodic
