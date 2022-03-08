@@ -1,0 +1,79 @@
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'restart'
+   iprint           = 1
+   outdir           = 'TMP-CP/'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '../../pseudos/sg15_v1.0/pbe/'
+   ndr              = 99
+   ndw              = 50
+   write_hr         = .false.
+/
+&SYSTEM
+   tot_charge       = 0
+   tot_magnetization = 0
+   ecutwfc          = 20.0
+   ecutrho          = 80.0
+   nspin            = 2
+   do_orbdep        = .false.
+   fixed_state      = .false.
+   do_ee            = .true.
+   nelec            = 8
+   nelup            = 4
+   neldw            = 4
+   do_wf_cmplx      = .true.
+   starting_magnetization(1) = 0.0
+   starting_magnetization(2) = 0.0
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8e-09
+   ortho_para       = 1
+   empty_states_nbnd = 0
+   maxiter          = 300
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .true.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8e-09
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+/
+
+ATOMIC_SPECIES
+O  15.999 O_ONCV_PBE-1.0.upf
+H  1.008 H_ONCV_PBE-1.0.upf
+
+CELL_PARAMETERS angstrom
+9.51420000000000 0.00000000000000 0.00000000000000
+0.00000000000000 8.00000000000000 0.00000000000000
+0.00000000000000 0.00000000000000 8.58610000000000
+
+ATOMIC_POSITIONS angstrom
+O  4.7571000000 4.0000000000 3.9023170000
+H  5.5142000000 4.0000000000 4.4884170000
+H  4.0000000000 4.0000000000 4.4884170000
+

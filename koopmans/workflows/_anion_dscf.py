@@ -2,7 +2,7 @@ import os
 from ase.calculators.calculator import CalculationFailed
 from koopmans import utils
 from koopmans.calculators import EnvironCalculator
-from ._generic import Workflow
+from ._workflow import Workflow
 
 '''
 Workflow for performing delta SCF PBE calculations using pw.x --environ
@@ -11,7 +11,7 @@ Workflow for performing delta SCF PBE calculations using pw.x --environ
 
 class DeltaSCFWorkflow(Workflow):
 
-    def run(self):
+    def _run(self):
         # Run workflow
         if self.parameters.from_scratch:
             utils.system_call('rm -r neutral charged 2> /dev/null', False)

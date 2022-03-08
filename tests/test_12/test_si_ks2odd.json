@@ -10,18 +10,10 @@
         "print_qc": true,
         "from_scratch": true,
         "fix_spin_contamination": true,
-        "orbital_groups_self_hartree_tol": 0.5
+        "orbital_groups_self_hartree_tol": 0.5,
+        "pseudo_library": "sg15_v1.2"
     },
     "setup": {
-        "atomic_species": {
-            "species": [
-                [
-                    "Si",
-                    28.085,
-                    "Si_ONCV_PBE-1.2.upf"
-                ]
-            ]
-        },
         "atomic_positions": {
             "units": "crystal",
             "positions": [
@@ -46,9 +38,6 @@
                 2
             ],
             "kpath": "GL"
-        },
-        "control": {
-            "pseudo_dir": "../../pseudos/"
         },
         "system": {
             "ibrav": 2,

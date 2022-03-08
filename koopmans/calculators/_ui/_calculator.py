@@ -144,7 +144,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 walltime = time() - start
                 self.results['walltime'] = walltime
                 self.f_out.write(f'\n\tTotal time: {walltime:32.3f} sec\n')
-                self.f_out.write('\nALL DONE')
+                self.f_out.write('\nALL DONE\n')
 
                 self.results['job done'] = True
 
@@ -244,7 +244,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         """
 
         # Read the Hamiltonian
-        hr, rvect, _, nrpts = utils.read_hr_file(self.parameters.kc_ham_file)
+        hr, rvect, _, nrpts = utils.read_wannier_hr_file(self.parameters.kc_ham_file)
 
         # Reshape the hamiltonian and convert it to a numpy array
         if nrpts == 1:
@@ -261,7 +261,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         # Reading the two Hamiltonians for the smooth interpolation method
         if self.parameters.do_smooth_interpolation:
             # The coarse Hamiltonian
-            hr_coarse, rvect, _, nrpts = utils.read_hr_file(self.parameters.dft_ham_file)
+            hr_coarse, rvect, _, nrpts = utils.read_wannier_hr_file(self.parameters.dft_ham_file)
             if nrpts == 1:
                 assert len(hr_coarse) == self.parameters.num_wann_sc**2, \
                     f'Wrong number of matrix elements for hr_coarse {len(hr_coarse)}'
@@ -277,7 +277,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 self.hr_coarse = self.hr_coarse.reshape(self.parameters.num_wann_sc, self.parameters.num_wann)
 
             # The smooth Hamiltonian
-            hr_smooth, self.Rsmooth, self.wRs, nrpts = utils.read_hr_file(self.parameters.dft_smooth_ham_file)
+            hr_smooth, self.Rsmooth, self.wRs, nrpts = utils.read_wannier_hr_file(self.parameters.dft_smooth_ham_file)
             assert len(hr_smooth) == nrpts * \
                 self.parameters.num_wann**2, f'Wrong number of matrix elements for hr_smooth {len(self.hr_smooth)}'
             self.hr_smooth = np.array(hr_smooth, dtype=complex)
@@ -350,9 +350,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         for kpt in self.parameters.kpath.kpts:
             kvec.append(crys_to_cart(kpt, self.atoms.acell.reciprocal(), +1))
 
-        kx = [0.]
+        kx: List[float] = [0.0]
         for ik in range(1, len(kvec)):
-            dxmod = np.linalg.norm(kvec[ik] - kvec[ik - 1])
+            dxmod = float(np.linalg.norm(kvec[ik] - kvec[ik - 1]))
             if ik == 1:
                 dxmod_save = dxmod
             if dxmod > 5 * dxmod_save:
@@ -473,7 +473,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             kpoint_block = bigdct['setup'].get('k_points', {})
             if kpoint_block:
                 self.parameters.kgrid = kpoint_block['kgrid']
-                utils.read_kpath(self, kpoint_block['kpath'])
+                self.parameters.kpath = utils.convert_kpath_str_to_bandpath(kpoint_block['kpath'], self.atoms.cell)
 
         return
 
@@ -640,9 +640,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         if self.parameters.use_ws_distance:
             # create an array containing all the distances between reference (R=0) WFs and all the other WFs:
             # 1) accounting for their positions within the unit cell
-            wf_dist = np.concatenate([[c] * self.parameters.num_wann_sc
-                                     for c in self.centers[:self.parameters.num_wann]]) \
-                - np.concatenate([self.centers] * self.parameters.num_wann)
+            wf_dist = np.concatenate([self.centers] * self.parameters.num_wann) \
+                - np.concatenate([[c] * self.parameters.num_wann_sc for c in self.centers[:self.parameters.num_wann]])
+
         else:
             # 2) considering only the distance between the unit cells they belong to
             wf_dist = np.array(np.concatenate([[rvec] * self.parameters.num_wann for rvec in self.Rvec]).tolist()
@@ -662,9 +662,10 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             for ik, kvect in enumerate(self.parameters.kpath.kpts):
                 for it in t_index:
                     phase[ik, i] += np.exp(2j * np.pi * np.dot(kvect, Tvec[it]))
+                phase[ik, i] /= len(t_index)
 
         phase = phase.reshape(len(self.parameters.kpath.kpts), self.parameters.num_wann, len(self.Rvec),
                               self.parameters.num_wann)
-        phase = np.transpose(phase, axes=(0, 2, 1, 3))
+        phase = np.transpose(phase, axes=(0, 2, 3, 1))
 
         return phase

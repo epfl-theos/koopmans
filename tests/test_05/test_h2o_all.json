@@ -5,21 +5,16 @@
         "alpha_from_file"           : false,
         "print_qc"                  : true,
         "from_scratch"              : true,
-        "orbital_groups"            : [0, 0, 0, 0, 1]
+        "orbital_groups"            : [0, 0, 0, 0, 1],
+        "pseudo_library"            : "sg15_v1.0"
     },
     "setup": {
-        "control": {
-            "pseudo_dir"            : "../../pseudos/"
-        },
         "system": {
             "ecutwfc"               : 20.0,
             "ecutrho"               : "4*ecutwfc"
         },
         "electrons": {
             "empty_states_nbnd"     : 1
-        },
-        "atomic_species": {
-            "species" : [["H", 1.0, "H_ONCV_PBE-1.0.upf"],["O", 1.0, "O_ONCV_PBE-1.0.upf"]]
         },
         "atomic_positions": {
             "units"                 : "angstrom",

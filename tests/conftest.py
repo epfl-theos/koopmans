@@ -20,6 +20,7 @@ from koopmans.io import read
 from koopmans.io import read_kwf as read_encoded_json
 from koopmans.io import write_kwf as write_encoded_json
 from koopmans import utils
+from koopmans.utils._misc import flatten
 
 
 # A hard and a soft tolerance for checking floats
@@ -128,6 +129,15 @@ class WorkflowTest:
                 return {'kind': 'error', 'message': message}
             elif mixed_diff > tols[1]:
                 return {'kind': 'warning', 'message': message}
+        elif isinstance(ref_result, list):
+            # For lists, the list is first flattened and the elements are compared one by one
+            for a, b in zip(flatten(ref_result), flatten(result)):
+                diff = b - a
+                message = f'{result_name} = {b:.5f} differs from benchmark {a:.5f} by {diff:.2e}'
+                if abs(diff) > tols[0]:
+                    return {'kind': 'error', 'message': message}
+                elif abs(diff) > tols[1]:
+                    return {'kind': 'warning', 'message': message}
         else:
             if result != ref_result:
                 message = f'{result_name} = {result} differs from benchmark {ref_result}'
@@ -385,7 +395,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             if key.startswith('starting_magnetization'):
                 continue
 
-            if key == 'ibrav':
+            if key in ['ibrav']:
                 continue
 
             assert key in calc.benchmark['parameters'].keys(), f'{key} in {input_file_name} not found in benchmark'
@@ -405,12 +415,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             if isinstance(ref_val, np.ndarray):
                 ref_val = ref_val.tolist()
 
-            if isinstance(val, BandPath):
-                assert val.path == ref_val.path, f'{key}.path = {val.path} (test) != {ref_val.path} (benchmark)'
-                assert len(val.kpts) == len(ref_val.kpts), \
-                    f'Mismatch between len({key}) = {len(val.kpts)} (test) != {len(ref_val.kpts)} (benchmark)'
-            else:
-                assert val == ref_val, f'{key} = {val} (test) != {ref_val} (benchmark)'
+            assert val == ref_val, f'{key} = {val} (test) != {ref_val} (benchmark)'
 
         # Copy over the results
         calc.results = calc.benchmark['results']
@@ -771,8 +776,11 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
     from koopmans.workflows import WannierizeWorkflow
 
     class MockWannierizeWorkflow(MockWorkflow, WannierizeWorkflow):
-        def merge_hr_files(self, block, prefix):
-            # We don't want the Wannierise workflow to attempt to read and write the hr files
+        # We don't want the Wannierise workflow to attempt to read and write wannier90 files
+        def merge_wannier_files(self, block, prefix):
+            return
+
+        def extend_wannier_u_dis_file(self, block, prefix):
             return
 
     monkeypatch.setattr('koopmans.workflows.WannierizeWorkflow', MockWannierizeWorkflow)
@@ -820,6 +828,13 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             return
 
     monkeypatch.setattr('koopmans.workflows.KoopmansDFPTWorkflow', MockKoopmansDFPTWorkflow)
+
+    from koopmans.workflows import UnfoldAndInterpolateWorkflow
+
+    class MockUnfoldAndInterpolateWorkflow(MockWorkflow, UnfoldAndInterpolateWorkflow):
+        pass
+
+    monkeypatch.setattr('koopmans.workflows.UnfoldAndInterpolateWorkflow', MockUnfoldAndInterpolateWorkflow)
 
     # Monkeypatch find_executable, since we don't want to actually try and find the program
     def mock_find_executable(program):

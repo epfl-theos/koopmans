@@ -8,10 +8,9 @@ Converted to a workflow object Nov 2020
 """
 
 import os
-import copy
-import numpy as np
+from pathlib import Path
 from koopmans import utils
-from ._generic import Workflow
+from ._workflow import Workflow
 
 
 load_results_from_output = True
@@ -19,7 +18,7 @@ load_results_from_output = True
 
 class SinglepointWorkflow(Workflow):
 
-    def run(self) -> None:
+    def _run(self) -> None:
 
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
         from koopmans.workflows import KoopmansDFPTWorkflow, KoopmansDSCFWorkflow, DFTCPWorkflow
@@ -78,8 +77,23 @@ class SinglepointWorkflow(Workflow):
 
                 # Provide the pKIPZ and KIPZ calculations with a KI starting point
                 if functional == 'ki':
+                    if self.parameters.from_scratch:
+                        for directory in ['pkipz', 'kipz']:
+                            if os.listdir(directory):
+                                utils.system_call(f'rm -rf {directory}')
+
                     # pKIPZ
-                    utils.system_call('rsync -a ki/ pkipz/')
+                    for dir in ['init', 'calc_alpha', 'TMP-CP']:
+                        src = Path(f'ki/{dir}/')
+                        if src.is_dir():
+                            utils.system_call(f'rsync -a {src} pkipz/')
+                    for f in ['ki_final.cpi', 'ki_final.cpo', 'ki_final.ham.pkl', 'ki_final.bare_ham.pkl']:
+                        file = Path(f'ki/final/{f}')
+                        if file.is_file():
+                            utils.system_call(f'rsync -a {file} pkipz/final/')
+                    if self.parameters.periodic and self.master_calc_params['ui'].do_smooth_interpolation:
+                        utils.system_call('mkdir pkipz/postproc')
+                        utils.system_call(f'rsync -a ki/postproc/wannier pkipz/postproc/')
 
                     # KIPZ
                     utils.system_call('rsync -a ki/final/ kipz/init/')
@@ -89,8 +103,7 @@ class SinglepointWorkflow(Workflow):
                         utils.system_call('rsync -a ki/init/wannier kipz/init/')
                     if self.parameters.periodic and self.master_calc_params['ui'].do_smooth_interpolation:
                         # Copy over the smooth PBE calculation from KI for KIPZ to use
-                        utils.system_call('rsync -a ki/postproc kipz/')
-                        utils.system_call('find kipz/postproc/ -name "*interpolated.dat" -delete')
+                        utils.system_call('rsync -a ki/postproc/wannier kipz/postproc/')
 
         else:
             # self.functional != all and self.method != 'dfpt'

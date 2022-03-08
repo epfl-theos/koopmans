@@ -7,13 +7,13 @@ Written by Edward Linscott Oct 2020
 """
 
 from koopmans import utils, pseudopotentials, mpl_config
-from ._generic import Workflow
+from ._workflow import Workflow
 import matplotlib.pyplot as plt
 
 
 class DFTCPWorkflow(Workflow):
 
-    def run(self):
+    def _run(self):
 
         calc = self.new_calculator('kcp')
 
@@ -45,7 +45,7 @@ class DFTCPWorkflow(Workflow):
 
 class DFTPWWorkflow(Workflow):
 
-    def run(self):
+    def _run(self):
 
         # Create the calculator
         calc = self.new_calculator('pw')
@@ -68,7 +68,7 @@ class DFTPWWorkflow(Workflow):
 
 class PWBandStructureWorkflow(Workflow):
 
-    def run(self):
+    def _run(self):
 
         # First, a scf calculation
         calc_scf = self.new_calculator('pw', nbnd=None)
