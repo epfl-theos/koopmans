@@ -46,6 +46,10 @@ def set_up_pseudos(calc):
             raise NotADirectoryError(f'The pseudo_dir you provided ({pseudo_dir}) does not exist')
 
 
+def nelec_from_pseudo(pseudo_file: Path) -> int:
+    return int(float(read_pseudo_file(pseudo_file).find('PP_HEADER').get('z_valence')))
+
+
 def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str],
                        pseudo_dir: Optional[Union[Path, str]] = None) -> int:
     '''
@@ -61,8 +65,7 @@ def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str],
     elif isinstance(pseudo_dir, str):
         pseudo_dir = Path(pseudo_dir)
 
-    valences_dct = {key: read_pseudo_file(pseudo_dir / value).find('PP_HEADER').get(
-        'z_valence') for key, value in pseudopotentials.items()}
+    valences_dct = {key: nelec_from_pseudo(pseudo_dir / value) for key, value in pseudopotentials.items()}
 
     if atoms.has('labels'):
         labels = atoms.get_array('labels')

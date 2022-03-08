@@ -81,21 +81,9 @@ class PWBandStructureWorkflow(Workflow):
         self.run_calculator(calc_bands)
 
         # Third, a PDOS calculation
-        calc_dos = self.new_calculator('projwfc', filpdos=self.name)
-        pseudo_dir = calc_scf.parameters.pseudo_dir
-        calc_dos.expected_orbitals = {}
-        z_core_to_first_orbital = {0: '1s', 2: '2s', 4: '2p', 10: '3s', 12: '3p', 18: '4s', 20: '3d', 30: '4p'}
-        for atom in self.atoms:
-            if atom.symbol in calc_dos.expected_orbitals:
-                continue
-            pseudo_file = self.pseudopotentials[atom.symbol]
-            upf = pseudopotentials.read_pseudo_file(pseudo_dir / pseudo_file)
-            z_valence = float(upf.find('PP_HEADER').get('z_valence'))
-            z_core = atom.number - z_valence
-            first_orbital = z_core_to_first_orbital[z_core]
-            all_orbitals = list(z_core_to_first_orbital.values())
-            expected_orbitals = all_orbitals[all_orbitals.index(first_orbital):]
-            calc_dos.expected_orbitals[atom.symbol] = expected_orbitals
+        calc_dos = self.new_calculator('projwfc', filpdos=self.name, pseudopotentials=self.pseudopotentials,
+                                       spin_polarised=self.parameters.spin_polarised,
+                                       pseudo_dir=calc_scf.parameters.pseudo_dir)
         self.run_calculator(calc_dos)
 
         # Prepare the band structure for plotting
@@ -106,12 +94,17 @@ class PWBandStructureWorkflow(Workflow):
         bs._energies -= vbe
 
         # Prepare the projected density of states for plotting
-        dc = calc_dos.results['dos']
-        dc_summed = dc.sum_by('symbol', 'n', 'l', 'spin')
-        dc_summed._energies -= vbe
-        dc_up = dc_summed.select(spin='up')
-        dc_down = dc_summed.select(spin='down')
-        dc_down._weights *= -1
+        dos = calc_dos.results['dos']
+        dos_summed = dos.sum_by('symbol', 'n', 'l', 'spin')
+        dos_summed._energies -= vbe
+
+        if self.parameters.spin_polarised:
+            dos_up = dos_summed.select(spin='up')
+            dos_down = dos_summed.select(spin='down')
+            dos_down._weights *= -1
+            doss = [dos_up, dos_down]
+        else:
+            doss = [dos_summed]
 
         # Plot the band structure and DOS
         _, axes = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [3, 1]})
@@ -122,26 +115,29 @@ class PWBandStructureWorkflow(Workflow):
         bs.plot(ax=ax_bs, colors=plt.rcParams['axes.prop_cycle'].by_key()['color'])
         [xmin, xmax] = ax_bs.get_ylim()
 
-        # Plot the spin-up DOS
+        # Plot the DOSs
         spdf_order = {'s': 0, 'p': 1, 'd': 2, 'f': 3}
-        for d in sorted(dc_up, key=lambda x: (x.info['symbol'], x.info['n'], spdf_order[x.info['l']])):
-            label = f'{d.info["symbol"]} {d.info["n"]}{d.info["l"]}'
-            d.plot_dos(ax=ax_dos, xmin=xmin, xmax=xmax, orientation='vertical', mplargs={'label': label})
+        for dos in doss:
+            for d in sorted(dos, key=lambda x: (x.info['symbol'], x.info['n'], spdf_order[x.info['l']])):
+                if not self.parameters.spin_polarised or d.info.get('spin') == 'up':
+                    label = f'{d.info["symbol"]} {d.info["n"]}{d.info["l"]}'
+                else:
+                    label = None
+                d.plot_dos(ax=ax_dos, xmin=xmin, xmax=xmax, orientation='vertical', mplargs={'label': label})
 
-        # Reset color cycle
-        ax_dos.set_prop_cycle(None)
-
-        # Plot the spin-down DOS
-        for d in sorted(dc_down, key=lambda x: (x.info['symbol'], x.info['n'], spdf_order[x.info['l']])):
-            d.plot_dos(ax=ax_dos, xmin=xmin, xmax=xmax, orientation='vertical', mplargs={'label': None})
+            # Reset color cycle
+            ax_dos.set_prop_cycle(None)
 
         # Tweaking the DOS figure aesthetics
-        ax_dos.text(0.25, 0.10, 'up', ha='center', va='top', transform=ax_dos.transAxes)
-        ax_dos.text(0.75, 0.10, 'down', ha='center', va='top', transform=ax_dos.transAxes)
-        maxval = 1.1 * dc_summed._weights[:, [e >= xmin and e <= xmax for e in dc_summed._energies]].max()
-        ax_dos.set_xlim([maxval, -maxval])
+        maxval = 1.1 * dos_summed._weights[:, [e >= xmin and e <= xmax for e in dos_summed._energies]].max()
+        if self.parameters.spin_polarised:
+            ax_dos.set_xlim([maxval, -maxval])
+            ax_dos.text(0.25, 0.10, 'up', ha='center', va='top', transform=ax_dos.transAxes)
+            ax_dos.text(0.75, 0.10, 'down', ha='center', va='top', transform=ax_dos.transAxes)
+        else:
+            ax_dos.set_xlim([0, maxval])
         ax_dos.set_xticks([])
-        ax_dos.legend(loc='upper left', bbox_to_anchor=(1, 1))
+        ax_dos.legend(loc='upper left', bbox_to_anchor=(1, 1), frameon=False)
         plt.subplots_adjust(right=0.85, wspace=0.05)
 
         # Saving the figure
