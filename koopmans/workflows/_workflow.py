@@ -380,6 +380,8 @@ class Workflow(ABC):
             calc_class = calculators.KoopmansScreenCalculator
         elif calc_type == 'kc_ham':
             calc_class = calculators.KoopmansHamCalculator
+        elif calc_type == 'projwfc':
+            calc_class = calculators.ProjwfcCalculator
         else:
             raise ValueError(f'Cound not find a calculator of type {calc_type}')
 
@@ -1230,7 +1232,7 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'kc_ham': settings.KoopmansHamSettingsDict,
                     'kc_screen': settings.KoopmansScreenSettingsDict,
                     'wann2kc': settings.Wann2KCSettingsDict,
-                    'projwfc': settings.ProjwfcSettingsDict
+                    'projwfc': settings.ProjwfcSettingsDict,
                     'pw': settings.PWSettingsDict,
                     'pw2wannier': settings.PW2WannierSettingsDict,
                     'ui': settings.UnfoldAndInterpolateSettingsDict,

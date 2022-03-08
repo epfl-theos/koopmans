@@ -171,10 +171,11 @@ class WannierizeWorkflow(Workflow):
                 shutil.copytree(src, dest)
             self.run_calculator(calc_pw_bands)
 
-            # Marija <- here add a projwfc.x calculation, and extract the pDOS
-            calc_projwfc = self.new_calculator('projwfc')
-            self.run_calculator(calc_projwfc)
-            # afterwards we extract the DOS from calc_projwfc.results['DOS']
+            # calc_projwfc = self.new_calculator('projwfc', pseudopotentials=self.pseudopotentials,
+            #                                    pseudo_dir=calc_pw_bands.parameters.pseudo_dir,
+            #                                    spin_polarised=self.parameters.spin_polarised)
+            # self.run_calculator(calc_projwfc)
+            # # afterwards we extract the DOS from calc_projwfc.results['DOS']
 
             # Select those calculations that generated a band structure
             selected_calcs = [c for c in self.calculations[:-1] if 'band structure' in c.results]
