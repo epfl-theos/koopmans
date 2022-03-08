@@ -93,52 +93,9 @@ class PWBandStructureWorkflow(Workflow):
         vbe = bs._energies[:, :, :n_filled].max()
         bs._energies -= vbe
 
-        # Prepare the projected density of states for plotting
+        # Prepare the DOS for plotting
         dos = calc_dos.results['dos']
-        dos_summed = dos.sum_by('symbol', 'n', 'l', 'spin')
-        dos_summed._energies -= vbe
-
-        if self.parameters.spin_polarised:
-            dos_up = dos_summed.select(spin='up')
-            dos_down = dos_summed.select(spin='down')
-            dos_down._weights *= -1
-            doss = [dos_up, dos_down]
-        else:
-            doss = [dos_summed]
+        dos._energies -= vbe
 
         # Plot the band structure and DOS
-        _, axes = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [3, 1]})
-        ax_bs = axes[0]
-        ax_dos = axes[1]
-
-        # Plot the band structure
-        bs.plot(ax=ax_bs, colors=plt.rcParams['axes.prop_cycle'].by_key()['color'])
-        [xmin, xmax] = ax_bs.get_ylim()
-
-        # Plot the DOSs
-        spdf_order = {'s': 0, 'p': 1, 'd': 2, 'f': 3}
-        for dos in doss:
-            for d in sorted(dos, key=lambda x: (x.info['symbol'], x.info['n'], spdf_order[x.info['l']])):
-                if not self.parameters.spin_polarised or d.info.get('spin') == 'up':
-                    label = f'{d.info["symbol"]} {d.info["n"]}{d.info["l"]}'
-                else:
-                    label = None
-                d.plot_dos(ax=ax_dos, xmin=xmin, xmax=xmax, orientation='vertical', mplargs={'label': label})
-
-            # Reset color cycle
-            ax_dos.set_prop_cycle(None)
-
-        # Tweaking the DOS figure aesthetics
-        maxval = 1.1 * dos_summed._weights[:, [e >= xmin and e <= xmax for e in dos_summed._energies]].max()
-        if self.parameters.spin_polarised:
-            ax_dos.set_xlim([maxval, -maxval])
-            ax_dos.text(0.25, 0.10, 'up', ha='center', va='top', transform=ax_dos.transAxes)
-            ax_dos.text(0.75, 0.10, 'down', ha='center', va='top', transform=ax_dos.transAxes)
-        else:
-            ax_dos.set_xlim([0, maxval])
-        ax_dos.set_xticks([])
-        ax_dos.legend(loc='upper left', bbox_to_anchor=(1, 1), frameon=False)
-        plt.subplots_adjust(right=0.85, wspace=0.05)
-
-        # Saving the figure
-        plt.savefig(fname=f'{self.name}_bands.png')
+        self.plot_bandstructure(bs, dos)

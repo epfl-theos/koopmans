@@ -7,6 +7,7 @@ Written by Riccardo De Gennaro Nov 2020
 
 """
 
+import copy
 import numpy as np
 import math
 from pathlib import Path
@@ -196,39 +197,42 @@ class WannierizeWorkflow(Workflow):
             labels = ['explicit'] \
                 + [f'interpolation ({c.directory.name.replace("_",", ").replace("block", "block ")})'
                    for c in selected_calcs]
-            colour_cycle = plt.rcParams["axes.prop_cycle"]()
+            color_cycle = plt.rcParams['axes.prop_cycle']()
+            bs_list = []
+            bsplot_kwargs_list = []
             for calc, label in zip([calc_pw_bands] + selected_calcs, labels):
                 if 'band structure' in calc.results:
-                    # Load the bandstructure
-                    bs = calc.results['band structure']
+                    # Load the bandstructure. Because we are going apply a vertical shift, we take a copy of the
+                    # bandstructure (we don't want the stored band structure to be vertically shifted depending on
+                    # the value of self.parameters.calculate_bands!)
+                    bs = copy.deepcopy(calc.results['band structure'])
 
                     # Unfortunately once a bandstructure object is created you cannot tweak it, so we must alter
                     # this private variable
                     bs._energies -= vbe
 
                     # Tweaking the plot aesthetics
-                    colours = [next(colour_cycle)['color'] for _ in range(bs.energies.shape[0])]
-                    kwargs = {}
+                    kwargs = {'emin': emin, 'emax': emax, 'label': label, 'color': next(color_cycle)['color']}
                     if 'explicit' in label:
                         kwargs['ls'] = 'none'
                         kwargs['marker'] = 'x'
 
-                    # Plot
-                    ax = bs.plot(ax=ax, emin=emin, emax=emax, colors=colours, label=label, **kwargs)
+                    # Store
+                    bs_list.append(bs)
+                    bsplot_kwargs_list.append(kwargs)
 
-                    # Undo the vertical shift (we don't want the stored band structure to be vertically shifted
-                    # depending on the value of self.parameters.calculate_bands!)
-                    bs._energies += vbe
+            # Plot
+            self.plot_bandstructure(bs_list, bsplot_kwargs=bsplot_kwargs_list)
 
-            # Move the legend
-            lgd = ax.legend(bbox_to_anchor=(1, 1), loc="lower right", ncol=2)
+            # # Move the legend
+            # lgd = ax.legend(bbox_to_anchor=(1, 1), loc="lower right", ncol=2)
 
-            # Save the comparison to file (as png and also in editable form)
-            with open(self.name + '_interpolated_bandstructure_{}x{}x{}.fig.pkl'.format(*self.kgrid), 'wb') as fd:
-                pickle.dump(plt.gcf(), fd)
-            # The "bbox_extra_artists" and "bbox_inches" mean that the legend is not cropped out
-            plt.savefig('interpolated_bandstructure_{}x{}x{}.png'.format(*self.kgrid),
-                        bbox_extra_artists=(lgd,), bbox_inches='tight')
+            # # Save the comparison to file (as png and also in editable form)
+            # with open(self.name + '_interpolated_bandstructure_{}x{}x{}.fig.pkl'.format(*self.kgrid), 'wb') as fd:
+            #     pickle.dump(plt.gcf(), fd)
+            # # The "bbox_extra_artists" and "bbox_inches" mean that the legend is not cropped out
+            # plt.savefig(self.name + '_interpolated_bandstructure_{}x{}x{}.png'.format(*self.kgrid),
+            #             bbox_extra_artists=(lgd,), bbox_inches='tight')
 
         return
 
@@ -270,11 +274,12 @@ class WannierizeWorkflow(Workflow):
         # Merging the hr (Hamiltonian) files
         self.merge_wannier_hr_files(dirs_in, dir_out, prefix)
 
-        # Merging the U (rotation matrix) files
-        self.merge_wannier_u_files(dirs_in, dir_out, prefix)
+        if self.parameters.method == 'dfpt':
+            # Merging the U (rotation matrix) files
+            self.merge_wannier_u_files(dirs_in, dir_out, prefix)
 
-        # Merging the wannier centres files
-        self.merge_wannier_centres_files(dirs_in, dir_out, prefix)
+            # Merging the wannier centres files
+            self.merge_wannier_centres_files(dirs_in, dir_out, prefix)
 
     def merge_wannier_hr_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
         # Reading in each hr file in turn

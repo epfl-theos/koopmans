@@ -7,12 +7,14 @@ Converted workflows from functions to objects Nov 2020
 
 """
 
+from abc import ABC, abstractmethod
 import os
 import copy
 import operator
 from functools import reduce
 import subprocess
 from pathlib import Path
+import pickle
 import json as json_ext
 import numpy as np
 from numpy import typing as npt
@@ -27,6 +29,8 @@ from ase.calculators.espresso import Espresso_kcp
 from ase.calculators.calculator import CalculationFailed
 from ase.io.espresso.utils import cell_to_ibrav, ibrav_to_cell
 from ase.io.espresso.koopmans_cp import KEYS as kcp_keys, construct_namelist
+from ase.spectrum.band_structure import BandStructure
+from ase.spectrum.doscollection import GridDOSCollection
 from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, pseudo_database, fetch_pseudo
 from koopmans import utils, settings
 import koopmans.calculators as calculators
@@ -34,7 +38,8 @@ from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.bands import Bands
 from koopmans.projections import ProjectionBlocks
 from koopmans.references import bib_data
-from abc import ABC, abstractmethod
+import koopmans.mpl_config
+import matplotlib.pyplot as plt
 
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
@@ -1118,6 +1123,95 @@ class Workflow(ABC):
                     f'Writing of {params.__class__.__name__} with write_json is not yet implemented')
 
         return bigdct
+
+    def plot_bandstructure(self,
+                           bs: Union[BandStructure, List[BandStructure]],
+                           dos: Optional[GridDOSCollection] = None,
+                           filename: Optional[str] = None,
+                           bsplot_kwargs: Union[Dict[str, Any], List[Dict[str, Any]]] = {},
+                           dosplot_kwargs: Dict[str, Any] = {}):
+        """
+        Plots the provided band structure (and optionally also a provided DOS)
+
+        Arguments:
+        bs -- a bandstructure/list of band structures to be plotted
+        dos -- a density of states object to be plotted
+        filename -- the name of the file to which the figure will be saved
+        bsplot_kwargs -- keyword arguments for when plotting the band structure(s). N.B. if bs is a list of band
+                         structures, bsplot_kwargs must be a list of equal length, with kwarg dicts for each entry
+        dosplot_kwargs -- keyword arguments for when plotting the DOS
+        """
+
+        # Sanitise input
+        if isinstance(bs, BandStructure):
+            bs = [bs]
+        if isinstance(bsplot_kwargs, dict):
+            bsplot_kwargs = [bsplot_kwargs]
+        if len(bs) != len(bsplot_kwargs):
+            raise ValueError('The "bs" and "bsplot_kwargs" arguments to plot_bandstructure() should be the same length')
+
+        colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        if dos is not None:
+            # Construct the axes
+            _, axes = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [3, 1]})
+            ax_bs = axes[0]
+            ax_dos = axes[1]
+        else:
+            ax_bs = None
+
+        # Plot the band structure
+        for b, kwargs in zip(bs, bsplot_kwargs):
+            ax_bs = b.plot(ax=ax_bs, colors=colors, **kwargs)
+
+        # Move the legend (if there is one)
+        if ax_bs.get_legend():
+            ax_bs.legend(loc='lower left', bbox_to_anchor=(0, 1), frameon=False, ncol=min((2, len(bs))))
+
+        if dos is None:
+            axes = [ax_bs]
+        else:
+            # Assemble the densities of state
+            dos_summed = dos.sum_by('symbol', 'n', 'l', 'spin')
+            if self.parameters.spin_polarised:
+                dos_up = dos_summed.select(spin='up')
+                dos_down = dos_summed.select(spin='down')
+                dos_down._weights *= -1
+                doss = [dos_up, dos_down]
+            else:
+                doss = [dos_summed]
+
+            # Plot the DOSs
+            spdf_order = {'s': 0, 'p': 1, 'd': 2, 'f': 3}
+            [xmin, xmax] = ax_bs.get_ylim()
+            for dos in doss:
+                for d in sorted(dos, key=lambda x: (x.info['symbol'], x.info['n'], spdf_order[x.info['l']])):
+                    if not self.parameters.spin_polarised or d.info.get('spin') == 'up':
+                        label = f'{d.info["symbol"]} {d.info["n"]}{d.info["l"]}'
+                    else:
+                        label = None
+                    d.plot_dos(ax=ax_dos, xmin=xmin, xmax=xmax, orientation='vertical', mplargs={'label': label}, **dosplot_kwargs)
+
+                # Reset color cycle so the colors of spin-up match those of spin-down
+                ax_dos.set_prop_cycle(None)
+
+            # Tweaking the DOS figure aesthetics
+            maxval = 1.1 * dos_summed._weights[:, [e >= xmin and e <= xmax for e in dos_summed._energies]].max()
+            if self.parameters.spin_polarised:
+                ax_dos.set_xlim([maxval, -maxval])
+                ax_dos.text(0.25, 0.10, 'up', ha='center', va='top', transform=ax_dos.transAxes)
+                ax_dos.text(0.75, 0.10, 'down', ha='center', va='top', transform=ax_dos.transAxes)
+            else:
+                ax_dos.set_xlim([0, maxval])
+            ax_dos.set_xticks([])
+            ax_dos.legend(loc='upper left', bbox_to_anchor=(1, 1), frameon=False)
+            plt.subplots_adjust(right=0.85, wspace=0.05)
+
+        # Saving the figure to file (as png and also in editable form)
+        filename = filename if filename is not None else f'{self.name}_bandstructure'
+        legends = [ax.get_legend() for ax in axes if ax.get_legend() is not None]
+        with open(filename + '.fig.pkl', 'wb') as fd:
+            pickle.dump(plt.gcf(), fd)
+        plt.savefig(fname=filename + '.png', bbox_extra_artists=legends, bbox_inches='tight')
 
 
 def get_version(module):
