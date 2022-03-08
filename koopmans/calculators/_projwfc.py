@@ -94,7 +94,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
             flines = fd.readlines()
 
         # Parse important information from the filename
-        [_, index, symbol, _, _, subshell, _] = re.split("#|\(|\)", filename)
+        [_, index, symbol, _, _, subshell, _] = re.split(r"#|\(|\)", filename)
 
         # Compare against the expected subshell
         if subshell != expected_subshell[1]:
