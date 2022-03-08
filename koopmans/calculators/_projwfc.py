@@ -9,7 +9,7 @@ import numpy as np
 import re
 from glob import glob
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Optional
 from ase import Atoms
 from ase.calculators.espresso import Projwfc
 from ase.spectrum.dosdata import GridDOSData
@@ -104,6 +104,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         # Work out what orbitals will be contained within the pDOS file
         orbital_order = {"s": ["s"], "p": ["pz", "px", "py"], "d": ["dz2", "dxz", "dyz", "dx2-y2", "dxy"]}
 
+        spins: List[Optional[str]]
         if self.spin_polarised:
             spins = ["up", "down"]
         else:
