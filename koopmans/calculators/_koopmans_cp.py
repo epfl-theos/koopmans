@@ -6,11 +6,12 @@ Written by Edward Linscott Sep 2020
 
 """
 
+from __future__ import annotations
 import os
+import copy
 import math
 import numpy as np
 import pickle
-from glob import glob
 from pathlib import Path
 from scipy.linalg import block_diag
 from typing import Optional, List, Union
@@ -20,7 +21,7 @@ from ase import Atoms
 from ase.calculators.espresso import Espresso_kcp
 from koopmans import utils, settings, pseudopotentials, bands
 from koopmans.commands import ParallelCommand
-from ._utils import CalculatorExt, CalculatorABC, kcp_bin_directory
+from ._utils import CalculatorExt, CalculatorABC, kcp_bin_directory, CalculatorCanEnforceSpinSym
 
 
 def read_ham_file(filename: Path) -> np.ndarray:
@@ -42,7 +43,7 @@ def read_ham_file(filename: Path) -> np.ndarray:
     return ham_array.reshape((length, length))
 
 
-class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
+class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_kcp, CalculatorABC):
     # Subclass of CalculatorExt for performing calculations with kcp.x
     ext_in = '.cpi'
     ext_out = '.cpo'
@@ -334,6 +335,119 @@ class KoopmansCPCalculator(CalculatorExt, Espresso_kcp, CalculatorABC):
 
     def get_fermi_level(self):
         return 0
+
+    def nspin1_dummy_calculator(self) -> KoopmansCPCalculator:
+        calc = copy.deepcopy(self)
+        calc.prefix += '_nspin1_dummy'
+        calc.parameters.do_outerloop = False
+        calc.parameters.do_outerloop_empty = False
+        calc.parameters.nspin = 1
+        if hasattr(calc, 'alphas'):
+            calc.alphas = [calc.alphas[0]]
+        if hasattr(calc, 'filling'):
+            calc.filling = [calc.filling[0]]
+        calc.parameters.nelup = None
+        calc.parameters.neldw = None
+        calc.parameters.tot_magnetization = None
+        calc.parameters.ndw, calc.parameters.ndr = 98, 98
+        calc.parameters.restart_mode = 'from_scratch'
+        return calc
+
+    def nspin1_calculator(self) -> KoopmansCPCalculator:
+        calc = copy.deepcopy(self)
+        calc.prefix += '_nspin1'
+        calc.parameters.nspin = 1
+        calc.parameters.nelup = None
+        calc.parameters.neldw = None
+        if hasattr(calc, 'alphas'):
+            calc.alphas = [calc.alphas[0]]
+        if hasattr(calc, 'filling'):
+            calc.filling = [calc.filling[0]]
+        calc.parameters.tot_magnetization = None
+        calc.parameters.ndw, calc.parameters.ndr = 98, 98
+        return calc
+
+    def nspin2_dummy_calculator(self) -> KoopmansCPCalculator:
+        calc = copy.deepcopy(self)
+        calc.prefix += '_nspin2_dummy'
+        calc.parameters.restart_mode = 'from_scratch'
+        calc.parameters.do_outerloop = False
+        calc.parameters.do_outerloop_empty = False
+        calc.parameters.ndw = 99
+        return calc
+
+    def prepare_to_read_nspin1(self):
+        self.prefix += '_nspin2'
+        self.parameters.restart_mode = 'restart'
+        self.parameters.ndr = 99
+
+    @property
+    def from_scratch(self):
+        return self.parameters.restart_mode == 'from_scratch'
+
+    def convert_wavefunction_2to1(self):
+        nspin2_tmpdir = self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndr}.save/K00001'
+        nspin1_tmpdir = self.parameters.outdir / f'{self.parameters.prefix}_98.save/K00001'
+
+        for directory in [nspin2_tmpdir, nspin1_tmpdir]:
+            if not directory.is_dir():
+                raise OSError(f'{directory} not found')
+
+        for wfile in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
+                      'eigenval.xml', 'evc_empty1.dat', 'lambda01.dat', 'lambdam1.dat']:
+            if '1.' in wfile:
+                prefix, suffix = wfile.split('1.')
+            else:
+                prefix, suffix = wfile.split('.')
+
+            file_out = nspin1_tmpdir / wfile
+            file_in = nspin2_tmpdir / f'{prefix}1.{suffix}'
+
+            if file_in.is_file():
+
+                with open(file_in, 'rb') as fd:
+                    contents = fd.read()
+
+                contents = contents.replace(b'nk="2"', b'nk="1"')
+                contents = contents.replace(b'nspin="2"', b'nspin="1"')
+
+                with open(file_out, 'wb') as fd:
+                    fd.write(contents)
+
+    def convert_wavefunction_1to2(self):
+        nspin1_tmpdir = self.parameters.outdir / f'{self.parameters.prefix}_98.save/K00001'
+        nspin2_tmpdir = self.parameters.outdir / f'{self.parameters.prefix}_99.save/K00001'
+
+        for directory in [nspin2_tmpdir, nspin1_tmpdir]:
+            if not directory.is_dir():
+                raise OSError(f'{directory} not found')
+
+        for wfile in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
+                      'eigenval.xml', 'evc_empty1.dat', 'lambda01.dat']:
+            if '1.' in wfile:
+                prefix, suffix = wfile.split('1.')
+            else:
+                prefix, suffix = wfile.split('.')
+
+            file_in = nspin1_tmpdir / wfile
+
+            if file_in.is_file():
+                with open(file_in, 'rb') as fd:
+                    contents = fd.read()
+
+                contents = contents.replace(b'nk="1"', b'nk="2"')
+                contents = contents.replace(b'nspin="1"', b'nspin="2"')
+
+                file_out = nspin2_tmpdir / f'{prefix}1.{suffix}'
+                with open(file_out, 'wb') as fd:
+                    fd.write(contents)
+
+                contents = contents.replace(b'ik="1"', b'ik="2"')
+                contents = contents.replace(b'ispin="1"', b'ispin="2"')
+
+                file_out = nspin2_tmpdir / f'{prefix}2.{suffix}'
+                with open(file_out, 'wb') as fd:
+                    fd.write(contents)
 
 
 def convert_flat_alphas_for_kcp(flat_alphas: List[float],

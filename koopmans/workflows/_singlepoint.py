@@ -92,7 +92,8 @@ class SinglepointWorkflow(Workflow):
                         if file.is_file():
                             utils.system_call(f'rsync -a {file} pkipz/final/')
                     if self.parameters.periodic and self.master_calc_params['ui'].do_smooth_interpolation:
-                        utils.system_call('mkdir pkipz/postproc')
+                        if not Path('pkipz/postproc').is_dir():
+                            utils.system_call('mkdir pkipz/postproc')
                         utils.system_call(f'rsync -a ki/postproc/wannier pkipz/postproc/')
 
                     # KIPZ
