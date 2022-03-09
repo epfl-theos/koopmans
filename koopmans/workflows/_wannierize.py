@@ -263,11 +263,12 @@ class WannierizeWorkflow(Workflow):
         # Merging the hr (Hamiltonian) files
         self.merge_wannier_hr_files(dirs_in, dir_out, prefix)
 
-        # Merging the U (rotation matrix) files
-        self.merge_wannier_u_files(dirs_in, dir_out, prefix)
+        if self.parameters.method == 'dfpt':
+            # Merging the U (rotation matrix) files
+            self.merge_wannier_u_files(dirs_in, dir_out, prefix)
 
-        # Merging the wannier centres files
-        self.merge_wannier_centres_files(dirs_in, dir_out, prefix)
+            # Merging the wannier centres files
+            self.merge_wannier_centres_files(dirs_in, dir_out, prefix)
 
     def merge_wannier_hr_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
         # Reading in each hr file in turn

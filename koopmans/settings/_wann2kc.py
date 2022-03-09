@@ -15,7 +15,7 @@ class Wann2KCSettingsDict(SettingsDict):
                 flattened_kwargs[k] = v
 
         super().__init__(valid=[k for block in w2k_io.KEYS.values() for k in block],
-                         defaults=kc_wann_defaults,
+                         defaults={'calculation': 'wann2kcw', **kc_wann_defaults},
                          are_paths=['outdir', 'pseudo_dir'],
                          to_not_parse=['assume_isolated'],
                          **flattened_kwargs)
