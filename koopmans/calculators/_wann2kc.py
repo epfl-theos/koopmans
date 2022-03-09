@@ -1,6 +1,6 @@
 """
 
-wann2kc calculator module for koopmans
+Wann2KCW calculator module for koopmans
 
 Written by Edward Linscott Feb 2021
 
@@ -15,7 +15,7 @@ from koopmans.commands import ParallelCommandWithPostfix
 
 
 class Wann2KCCalculator(KCWannCalculator, Wann2KC, CalculatorABC):
-    # Subclass of KCWannCalculator for performing calculations with wann_to_kc.x
+    # Subclass of KCWannCalculator for converting Wannier functions to a KCW format with kcw.x
     ext_in = '.w2ki'
     ext_out = '.w2ko'
 
@@ -28,7 +28,7 @@ class Wann2KCCalculator(KCWannCalculator, Wann2KC, CalculatorABC):
         KCWannCalculator.__init__(self, *args, **kwargs)
 
         self.command = ParallelCommandWithPostfix(
-            f'{qe_bin_directory}{os.path.sep}wann2kc.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
+            f'{qe_bin_directory}{os.path.sep}kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
 
     def is_converged(self):
         return True

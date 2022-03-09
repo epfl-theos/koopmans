@@ -1,6 +1,6 @@
 """
 
-kc_screen calculator module for koopmans
+KCWScreen calculator module for koopmans
 
 Written by Edward Linscott Feb 2021
 
@@ -16,7 +16,7 @@ from koopmans.commands import ParallelCommandWithPostfix
 
 
 class KoopmansScreenCalculator(KCWannCalculator, KoopmansScreen, CalculatorABC):
-    # Subclass of KCWannCalculator for performing calculations with kc_screen.x
+    # Subclass of KCWannCalculator for calculating screening parameters with kcw.x
     ext_in = '.ksi'
     ext_out = '.kso'
 
@@ -30,7 +30,7 @@ class KoopmansScreenCalculator(KCWannCalculator, KoopmansScreen, CalculatorABC):
         super().__init__(*args, **kwargs)
 
         self.command = ParallelCommandWithPostfix(
-            f'{qe_bin_directory}{os.path.sep}kc_screen.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
+            f'{qe_bin_directory}{os.path.sep}kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
 
         self.results_for_qc = ['alphas']
 

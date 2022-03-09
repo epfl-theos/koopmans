@@ -111,7 +111,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                     kwargs['dft_ham_file'] = Path(f'../init/wannier/{calc_presets}/wann_hr.dat').resolve()
             else:
                 # DFPT case
-                kwargs['kc_ham_file'] = Path(f'../hamiltonian/kc.kc_hr_{calc_presets}.dat').resolve()
+                kwargs['kc_ham_file'] = Path(f'../hamiltonian/kc.kcw_hr_{calc_presets}.dat').resolve()
                 kwargs['w90_seedname'] = Path(f'../wannier/{calc_presets}/wann').resolve()
                 if self.master_calc_params['ui'].do_smooth_interpolation:
                     kwargs['dft_smooth_ham_file'] = Path(f'wannier/{calc_presets}/wann_hr.dat').resolve()
