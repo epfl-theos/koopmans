@@ -9,10 +9,88 @@ Split into a separate module Sep 2021
 """
 
 import os
+import re
+import json
+from itertools import chain
 from pathlib import Path
-from typing import Dict, Optional, Union
+from dataclasses import dataclass
+from typing import Dict, Optional, List
 import xml.etree.ElementTree as ET
 from ase import Atoms
+
+
+@dataclass
+class Pseudopotential:
+    name: str
+    element: str
+    path: Path
+    functional: str
+    library: str
+    kind: str
+    citations: List[str]
+    cutoff_wfc: Optional[float] = None
+    cutoff_rho: Optional[float] = None
+
+
+pseudos_directory = Path(__file__).parents[1] / 'pseudos'
+
+# A database containing all the available pseudopotentials
+pseudo_database = []
+for pseudo_file in chain(pseudos_directory.rglob('*.UPF'), pseudos_directory.rglob('*.upf')):
+    name = pseudo_file.name
+    splitname = re.split(r'\.|_|-', name)[0]
+    element = splitname[0].upper() + splitname[1:].lower()
+    library = pseudo_file.parents[1].name
+    functional = pseudo_file.parent.name
+    citations = []
+
+    kwargs = {}
+    if library.startswith('sssp'):
+        [json_name] = list(pseudo_file.parent.glob('*.json'))
+        metadata = json.load(open(json_name, 'r'))[element]
+        original_library = metadata['pseudopotential'].replace('SG15', 'sg15').replace('Dojo', 'pseudo_dojo')
+        if original_library.startswith('sg15') or original_library.startswith('pseudo_dojo'):
+            kind = 'norm-conserving'
+        elif original_library.startswith('GBRV') or original_library in ['031US', '100US', 'THEOS']:
+            kind = 'ultrasoft'
+        elif 'PAW' in original_library or original_library == 'Wentzcovitch':
+            kind = 'projector-augmented wave'
+        else:
+            raise ValueError(f'Unrecognised library {original_library}')
+        citations += ['Lehaeghere2016', 'Prandini2018']
+        for key in ['cutoff_wfc', 'cutoff_rho']:
+            kwargs[key] = metadata[key]
+    else:
+        original_library = library
+        if original_library.startswith('sg15') or original_library.startswith('pseudo_dojo'):
+            kind = 'norm-conserving'
+        else:
+            kind = 'unknown'
+
+    if original_library.startswith('sg15'):
+        citations.append('Hamann2013')
+        citations.append('Schlipf2015')
+        if 'relativistic' in original_library:
+            citations.append('Scherpelz2016')
+    elif original_library.startswith('pseudo_dojo'):
+        citations.append('Hamann2013')
+
+    pseudo_database.append(Pseudopotential(name, element, pseudo_file.parent, functional, library, kind, citations))
+
+
+def pseudos_library_directory(pseudo_library: str, base_functional: str) -> Path:
+    return pseudos_directory / pseudo_library / base_functional
+
+
+def fetch_pseudo(**kwargs):
+    matches = [psp for psp in pseudo_database if all([getattr(psp, k) == v for k, v in kwargs.items()])]
+    request_str = ', '.join([f'{k} = {v}' for k, v in kwargs.items()])
+    if len(matches) == 0:
+        raise ValueError('Could not find a pseudopotential in the database matching ' + request_str)
+    elif len(matches) > 1:
+        raise ValueError('Found multiple pseudopotentials in the database matching ' + request_str)
+    else:
+        return matches[0]
 
 
 def read_pseudo_file(fd):
@@ -25,25 +103,6 @@ def read_pseudo_file(fd):
     upf = ET.parse(fd).getroot()
 
     return upf
-
-
-def set_up_pseudos(calc):
-
-    # Set up pseudopotentials, by...
-    #  1. trying to locating the directory as currently specified by the calculator
-    #  2. if that fails, checking if $ESPRESSO_PSEUDO is set
-    #  3. if that fails, raising an error
-    pseudo_dir = calc.parameters.get('pseudo_dir', None)
-    if pseudo_dir is None:
-        try:
-            calc.parameters.pseudo_dir = os.environ.get('ESPRESSO_PSEUDO')
-        except KeyError:
-            raise NotADirectoryError('Directory for pseudopotentials not found. Please define '
-                                     'the environment variable ESPRESSO_PSEUDO or provide a pseudo_dir in '
-                                     'the kcp block of your json input file.')
-    else:
-        if not os.path.isdir(pseudo_dir):
-            raise NotADirectoryError(f'The pseudo_dir you provided ({pseudo_dir}) does not exist')
 
 
 def valence_from_pseudo(filename: str, pseudo_dir: Optional[Union[Path, str]] = None) -> int:

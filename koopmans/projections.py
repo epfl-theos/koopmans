@@ -47,6 +47,11 @@ class ProjectionBlock(object):
         # Return true if this ProjectionBlock is non-empty
         return len(self) > 0
 
+    def __eq__(self, other):
+        if isinstance(other, ProjectionBlock):
+            return self.__dict__ == other.__dict__
+        return False
+
     def todict(self) -> dict:
         dct = {k: v for k, v in self.__dict__.items()}
         dct['__koopmans_name__'] = self.__class__.__name__
@@ -73,8 +78,8 @@ class ProjectionBlock(object):
 
 class ProjectionBlocks(object):
     """
-    This object is a collection of blocks of projections. In addition to the projections blocks themselves, it also stores
-    system-wide properties such as how many extra conduction bands we have.
+    This object is a collection of blocks of projections. In addition to the projections blocks themselves, it also
+    stores system-wide properties such as how many extra conduction bands we have.
 
     Whenever a user queries self.blocks (e.g. when they iterate over this object) it will first propagate these
     system-wide properties down to the individual ProjectionBlock objects. See self.blocks() for more details.
@@ -102,6 +107,11 @@ class ProjectionBlocks(object):
     def __bool__(self):
         # Return true if this contains any non-empty "ProjectionBlock"s
         return len(self) > 0
+
+    def __eq__(self, other):
+        if isinstance(other, ProjectionBlocks):
+            return self.__dict__ == other.__dict__
+        return False
 
     @property
     def blocks(self):
@@ -190,7 +200,7 @@ class ProjectionBlocks(object):
                     yield subset
 
     def get_subset(self, occ: Optional[bool] = None, spin: Optional[str] = 'both'):
-        return [b for b in self._blocks if (occ == None or b.filled == occ) and (spin == 'both' or b.spin == spin)]
+        return [b for b in self._blocks if (occ is None or b.filled == occ) and (spin == 'both' or b.spin == spin)]
 
     def num_wann(self, occ: Optional[bool] = None, spin: Optional[str] = 'both'):
         return sum([num_wann_from_projections(b.projections, self._atoms) for b in self.get_subset(occ, spin)])

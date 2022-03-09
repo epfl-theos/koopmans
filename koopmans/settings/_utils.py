@@ -83,8 +83,9 @@ class SettingsDict(UserDict):
                  to_not_parse: List[str] = [], directory='', physicals: List[str] = [], **kwargs):
         super().__init__()
         self.valid = valid + self._other_valid_keywords
-        self.defaults = defaults
         self.are_paths = are_paths
+        self.defaults = {k: v for k, v in defaults.items() if k not in self.are_paths}
+        self.defaults.update(**{k: Path(v) for k, v in defaults.items() if k in self.are_paths})
         self.to_not_parse = to_not_parse
         self.directory = directory
         self.physicals = physicals
@@ -130,7 +131,8 @@ class SettingsDict(UserDict):
                 value = Path(value)
             elif not isinstance(value, Path):
                 raise ValueError(f'{key} must be either a string or a Path')
-            value = value.resolve()
+            if not value.is_absolute():
+                value = (self.directory / value).resolve()
 
         # Parse any units provided
         if key in self.physicals:
@@ -188,6 +190,8 @@ class SettingsDict(UserDict):
                     raise ValueError('Failed to parse ' + ''.join(map(str, expr)))
                 else:
                     expr[i] = getattr(self, term)
+            elif len(expr) == 1 and any([c.isalpha() for c in term]):
+                return term.strip('"').strip("'")
             else:
                 expr[i] = float(term)
 
@@ -280,10 +284,11 @@ class SettingsDictWithChecks(SettingsDict):
 
 
 kc_wann_defaults = {'outdir': 'TMP',
-                    'kc_iverbosity': 1,
-                    'kc_at_ks': False,
+                    'kcw_iverbosity': 1,
+                    'kcw_at_ks': False,
                     'homo_only': False,
                     'read_unitary_matrix': True,
+                    'lrpa': False,
                     'check_ks': True,
                     'have_empty': True,
                     'has_disentangle': True}

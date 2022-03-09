@@ -10,6 +10,7 @@ Moved into utils Sep 2021
 from datetime import datetime
 import json
 import numpy as np
+import numpy.typing as npt
 from typing import List, Union, Tuple
 from pathlib import Path
 from ase.atoms import Atoms
@@ -84,36 +85,11 @@ def read_alpha_file(directory: Path) -> List[float]:
 
 def read_kpoints_block(calc: Calculator, dct: dict):
     for k, v in dct.items():
-        if k in ['gamma_only', 'kgrid', 'koffset']:
+        if k in ['gamma_only', 'kgrid', 'koffset', 'kpath', 'kpath_density']:
             calc.parameters[k] = v
-        elif k == 'kpath':
-            read_kpath(calc, v)
         else:
             raise KeyError(f'Unrecognised option "{k}" provided in the k_points block')
-
     return
-
-
-def read_kpath(calc: Calculator, kpath: Union[str, List[Tuple[float, float, float, int]]]):
-    calc.atoms.cell.pbc = True
-    if isinstance(kpath, str):
-        # Interpret kpath as a string of points in the BZ
-        npoints = 10 * len(kpath) - 9 - 29 * kpath.count(',')
-        calc.parameters['kpath'] = bandpath(kpath, calc.atoms.cell, npoints=npoints)
-    else:
-        # Interpret bandpath as using PW syntax (https://www.quantum-espresso.org/Doc/INPUT_PW.html#idm1290)
-        kpts: List[bandpath] = []
-        for k1, k2 in zip(kpath[:-1], kpath[1:]):
-            # Remove the weights, storing the weight of k1
-            npoints = k1[-1]
-            # Interpolate the bandpath
-            kpts += bandpath([k1[:-1], k2[:-1]], calc.atoms.cell, npoints + 1).kpts[:-1].tolist()
-        # Don't forget about the final kpoint
-        kpts.append(k2[:-1])
-        if len(kpts) != sum([k[-1] for k in kpath[:-1]]) + 1:
-            raise AssertionError(
-                'Did not get the expected number of kpoints; this suggests there is a bug in the code')
-        calc.parameters['kpath'] = BandPath(calc.atoms.cell, kpts)
 
 
 def read_atomic_species(calc: Calculator, dct: dict):
@@ -177,7 +153,7 @@ def indented_print(text: str = '', indent: int = 0, **kwargs):
     print_call_end = kwargs.get('end', '\n')
 
 
-def write_hr_file(fname: Path, ham: np.ndarray, rvect: List[List[int]], weights: List[int]) -> None:
+def write_wannier_hr_file(fname: Path, ham: np.ndarray, rvect: List[List[int]], weights: List[int]) -> None:
 
     nrpts = len(rvect)
     num_wann = np.size(ham, -1)
@@ -205,7 +181,7 @@ def write_hr_file(fname: Path, ham: np.ndarray, rvect: List[List[int]], weights:
         fd.write('\n'.join(flines))
 
 
-def read_hr_file(fname: Path) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
+def read_wannier_hr_file(fname: Path) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
     """
     Reads in a hr file, but does not reshape the hamiltonian (because we want to reshape different Hamiltonians
     differently)
@@ -251,3 +227,75 @@ def read_hr_file(fname: Path) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
         rvect_np = np.array(rvect, dtype=int)
 
     return hr_np, rvect_np, weights, nrpts
+
+
+def read_wannier_u_file(fname: Path) -> Tuple[npt.NDArray[np.complex_], npt.NDArray[np.float_], int]:
+
+    with open(fname, 'r') as fd:
+        lines = fd.readlines()
+
+    nk, m, n = [int(x) for x in lines[1].split()]
+
+    kpts = np.empty((nk, 3), dtype=float)
+    umat = np.empty((nk, m, n), dtype=complex)
+
+    for i, line in enumerate(lines[3:]):
+        ik = i // (2 + m * n)
+        if i % (2 + m * n) != 0:
+            continue
+        kpts[ik, :] = line.split()
+        umat[ik, :, :] = np.reshape([complex(*[float(x) for x in line.split()])
+                                    for line in lines[i + 4:i + 4 + m * n]], (m, n))
+
+    return umat, kpts, nk
+
+
+def write_wannier_u_file(fname: Path, umat: npt.NDArray[np.complex_], kpts: npt.NDArray[np.float_]):
+
+    flines = [f' Written on {datetime.now().isoformat(timespec="seconds")}']
+    flines.append(''.join([f'{x:12d}' for x in umat.shape]))
+
+    for kpt, umatk in zip(kpts, umat):
+        flines.append('')
+        flines.append(''.join([f'{k:15.10f}' for k in kpt]))
+        flines += [f'{c.real:15.10f}{c.imag:15.10f}' for c in umatk.flatten()]
+
+    with open(fname, 'w') as fd:
+        fd.write('\n'.join(flines))
+
+
+def read_wannier_centres_file(fname: Path):
+
+    with open(fname, 'r') as fd:
+        lines = fd.readlines()
+
+    centres = []
+    symbols = []
+    positions = []
+    for line in lines[2:]:
+        if line.startswith('X    '):
+            centres.append([float(x) for x in line.split()[1:]])
+        else:
+            symbols.append(line.split()[0])
+            positions.append([float(x) for x in line.split()[1:]])
+    return centres, Atoms(symbols=symbols, positions=positions)
+
+
+def write_wannier_centres_file(fname: Path, centres: List[List[float]], atoms: Atoms):
+    length = len(centres) + len(atoms)
+
+    # Add the header
+    flines = [f'{length:6d}',
+              f' Wannier centres, written by koopmans on {datetime.now().isoformat(timespec="seconds")}']
+
+    # Add the centres
+    for centre in centres:
+        flines.append('X    ' + ''.join([f'{x:16.8f}' for x in centre]))
+
+    # Add the atoms
+    for atom in atoms:
+        flines.append(f'{atom.symbol: <5}' + ''.join([f'{x:16.8f}' for x in atom.position]))
+
+    # Write to file
+    with open(fname, 'w') as fd:
+        fd.write('\n'.join(flines))

@@ -8,11 +8,11 @@ Written by Edward Linscott Feb 2021
 
 import os
 import numpy as np
-import koopmans.mpl_config
+from pathlib import Path
 from koopmans.bands import Bands
 from koopmans.calculators import Wann2KCCalculator, KoopmansHamCalculator
-from koopmans import utils, io
-from ._generic import Workflow
+from koopmans import utils
+from ._workflow import Workflow
 
 
 class KoopmansDFPTWorkflow(Workflow):
@@ -35,8 +35,8 @@ class KoopmansDFPTWorkflow(Workflow):
         else:
             if self.parameters.init_orbitals != 'kohn-sham':
                 raise ValueError(
-                    'Calculating screening parameters with DFPT for a periodic system is only possible with Kohn-Sham '
-                    'orbitals as the variational orbitals')
+                    'Calculating screening parameters with DFPT for a non-periodic system is only possible '
+                    'with Kohn-Sham orbitals as the variational orbitals')
         for params in self.master_calc_params.values():
             if self.parameters.periodic:
                 # Gygi-Baldereschi
@@ -81,7 +81,7 @@ class KoopmansDFPTWorkflow(Workflow):
 
         # Delete any pre-existing directories if running from scratch
         if self.parameters.from_scratch:
-            for directory in ['init', 'wannier', 'screening', 'hamiltonian', 'TMP']:
+            for directory in ['init', 'wannier', 'screening', 'hamiltonian', 'postproc', 'TMP']:
                 if os.path.isdir(directory):
                     utils.system_call(f'rm -r {directory}')
 
@@ -102,7 +102,7 @@ class KoopmansDFPTWorkflow(Workflow):
             for key in ['pw', 'kc_screen']:
                 self.master_calc_params[key].kpts = [1, 1, 1]
 
-    def run(self):
+    def _run(self):
         '''
         This function runs the workflow from start to finish
         '''
@@ -179,7 +179,7 @@ class KoopmansDFPTWorkflow(Workflow):
         else:
             # Load the alphas
             if self.parameters.alpha_from_file:
-                self.bands.alphas = [io.read_alpha_file()]
+                self.bands.alphas = [utils.read_alpha_file()]
             else:
                 self.bands.alphas = self.parameters.alpha_guess
 
@@ -190,6 +190,14 @@ class KoopmansDFPTWorkflow(Workflow):
         if self.parameters.calculate_alpha and kc_ham_calc.parameters.lrpa != kc_screen_calc.parameters.lrpa:
             raise ValueError('Do not set "lrpa" to different values in the "screen" and "ham" blocks')
         self.run_calculator(kc_ham_calc)
+
+        # Postprocessing
+        if self.parameters.periodic and self.projections and self.kpath is not None \
+                and self.master_calc_params['ui'].do_smooth_interpolation:
+            from koopmans.workflows import UnfoldAndInterpolateWorkflow
+            self.print(f'\nPostprocessing', style='heading')
+            ui_workflow = UnfoldAndInterpolateWorkflow(**self.wf_kwargs)
+            self.run_subworkflow(ui_workflow, subdirectory='postproc')
 
         # Plotting
         self.plot_bandstructure()
@@ -225,8 +233,10 @@ class KoopmansDFPTWorkflow(Workflow):
         calc.parameters.outdir = 'TMP'
         calc.parameters.seedname = 'wann'
         calc.parameters.spin_component = 1
-        calc.parameters.kc_at_ks = not self.parameters.periodic
+        calc.parameters.kcw_at_ks = not self.parameters.periodic
         calc.parameters.read_unitary_matrix = self.parameters.periodic
+        calc.parameters.have_empty = (self.projections.num_wann(occ=False) > 0)
+        calc.parameters.has_disentangle = (self.projections.num_bands() != self.projections.num_wann())
 
         if calc_presets == 'wann2kc':
             if self.parameters.periodic:
@@ -265,13 +275,13 @@ class KoopmansDFPTWorkflow(Workflow):
 
         # Provide the rotation matrices and the wannier centres
         if self.parameters.periodic:
-            exist_ok = not self.parameters.from_scratch
-            utils.symlink(f'wannier/occ/wann_u.mat', f'{calc.directory}/', exist_ok=exist_ok)
-            utils.symlink(f'wannier/emp/wann_u.mat', f'{calc.directory}/wann_emp_u.mat', exist_ok=exist_ok)
-            utils.symlink(f'wannier/emp/wann_u_dis.mat',
-                          f'{calc.directory}/wann_emp_u_dis.mat', exist_ok=exist_ok)
-            utils.symlink(f'wannier/occ/wann_centres.xyz', f'{calc.directory}/', exist_ok=exist_ok)
+            utils.symlink(f'wannier/occ/wann_u.mat', f'{calc.directory}/', exist_ok=True)
+            utils.symlink(f'wannier/emp/wann_u.mat', f'{calc.directory}/wann_emp_u.mat', exist_ok=True)
+            if Path('wannier/emp/wann_u_dis.mat').exists():
+                utils.symlink(f'wannier/emp/wann_u_dis.mat',
+                              f'{calc.directory}/wann_emp_u_dis.mat', exist_ok=True)
+            utils.symlink(f'wannier/occ/wann_centres.xyz', f'{calc.directory}/', exist_ok=True)
             utils.symlink(f'wannier/emp/wann_centres.xyz',
-                          f'{calc.directory}/wann_emp_centres.xyz', exist_ok=exist_ok)
+                          f'{calc.directory}/wann_emp_centres.xyz', exist_ok=True)
 
         super().run_calculator(calc)

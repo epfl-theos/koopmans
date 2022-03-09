@@ -1,6 +1,6 @@
 """
 
-kc_ham calculator module for koopmans
+KCWHam calculator module for koopmans
 
 Written by Edward Linscott Feb 2021
 
@@ -18,7 +18,7 @@ from koopmans.commands import ParallelCommand
 
 
 class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure, CalculatorABC):
-    # Subclass of KCWannCalculator for performing calculations with kc_wann.x
+    # Subclass of KCWannCalculator for calculating the Koopmans Hamiltonian with kcw.x
     ext_in = '.khi'
     ext_out = '.kho'
 
@@ -31,7 +31,7 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
         KCWannCalculator.__init__(self, *args, **kwargs)
 
         self.command = ParallelCommand(
-            f'{qe_bin_directory}{os.path.sep}kc_ham.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
+            f'{qe_bin_directory}{os.path.sep}kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
 
         self.results_for_qc = ['ki_eigenvalues_on_grid', 'band structure']
 
@@ -39,7 +39,7 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
         self.alphas = alphas
 
     def write_alphas(self):
-        # self.alphas is a list of alpha values indexed by spin index and then band index. Meanwhile, kc_ham.x takes a
+        # self.alphas is a list of alpha values indexed by spin index and then band index. Meanwhile, kcw.x takes a
         # single file for the alphas (rather than splitting between filled/empty) and does not have two columns for
         # spin up then spin down
         assert self.alphas is not None, 'You have not provided screening parameters to this calculator'

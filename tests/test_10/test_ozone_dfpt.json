@@ -6,12 +6,10 @@
     "init_orbitals": "kohn-sham",
     "frozen_orbitals": true,
     "npool": 1,
-    "from_scratch": true
+    "from_scratch": true,
+    "pseudo_library": "sg15_v1.0"
   },
   "setup": {
-    "control": {
-      "pseudo_dir": "../../pseudos/"
-    },
     "system": {
       "ibrav": 0,
       "ecutwfc": 20.0,
@@ -60,15 +58,6 @@
           "6.0",
           "6.0",
           "6.55"
-        ]
-      ]
-    },
-    "atomic_species": {
-      "species": [
-        [
-          "O",
-          1.0,
-          "O_ONCV_PBE-1.0.upf"
         ]
       ]
     }
