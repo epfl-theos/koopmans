@@ -89,8 +89,13 @@ class ProjectionBlocks(object):
         self._blocks = blocks
         self._atoms = atoms
         # This BandBlocks object must keep track of how many bands we have not belonging to any block
-        self._n_bands_below = {spin: 0 for spin in set([b.spin for b in blocks])}
-        self._n_bands_above = {spin: 0 for spin in set([b.spin for b in blocks])}
+        if len(blocks) > 0:
+            self._n_bands_below = {spin: 0 for spin in set([b.spin for b in blocks])}
+            self._n_bands_above = {spin: 0 for spin in set([b.spin for b in blocks])}
+        else:
+            # By default, assume spin-unpolarised
+            self._n_bands_below = {None: 0}
+            self._n_bands_above = {None: 0}
 
     def __repr__(self):
         out = 'ProjectionBlocks('

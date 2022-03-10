@@ -52,7 +52,7 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
     def calculate(self):
         self.write_alphas()
         super().calculate()
-        if isinstance(self.parameters.kpts, BandPath) and len(self.parameters.kpts.kpts) > 0:
+        if isinstance(self.parameters.kpts, BandPath) and len(self.parameters.kpts.kpts) > 1:
             # Add the bandstructure to the results
             self.generate_band_structure()
 

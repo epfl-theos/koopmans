@@ -127,7 +127,8 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
             if len(value) == 0 or not isinstance(value[0], list):
                 value = [value]
 
-        # Make sure that pseudo libraries shortcuts (e.g. "sg15") are converted to the explicit version (e.g. "sg15_v1.2")
+        # Make sure that pseudo libraries shortcuts (e.g. "sg15") are converted to the explicit version
+        # (e.g. "sg15_v1.2")
         if key == 'pseudo_library':
             full_path = pseudopotentials.pseudos_directory / value
             if full_path.is_symlink():

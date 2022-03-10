@@ -105,7 +105,7 @@ def read_pseudo_file(fd):
     return upf
 
 
-def valence_from_pseudo(filename: str, pseudo_dir: Optional[Union[Path, str]] = None) -> int:
+def valence_from_pseudo(filename: str, pseudo_dir: Optional[Path] = None) -> int:
     '''
     Determines the valence of a pseudopotential
     '''
@@ -123,7 +123,7 @@ def valence_from_pseudo(filename: str, pseudo_dir: Optional[Union[Path, str]] = 
 
 
 def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str],
-                       pseudo_dir: Optional[Union[Path, str]] = None) -> int:
+                       pseudo_dir: Optional[Path] = None) -> int:
     '''
     Determines the number of electrons in the system using information from pseudopotential files
     '''
