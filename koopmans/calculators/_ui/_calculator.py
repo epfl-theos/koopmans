@@ -380,7 +380,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         return
 
-    def read_bands(self, directory: Optional[str] = None) -> None:
+    def read_bands(self, directory: Optional[Path] = None) -> None:
         """
         read_bands reads the interpolated bands, in the QE format, in a file called
                    'bands_interpolated.dat'
@@ -392,9 +392,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         if directory is None:
             directory = self.directory
 
-        energies = []
+        energies: List[List[List[float]]] = []
         for suffix in ['', '_spin_up', '_spin_down']:
-            band_file = f'{directory}/bands_interpolated{suffix}.dat'
+            band_file = directory / f'bands_interpolated{suffix}.dat'
             if os.path.isfile(band_file):
                 energies.append([[]])
                 with open(band_file, 'r') as f:
