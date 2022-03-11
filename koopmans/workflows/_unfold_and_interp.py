@@ -107,7 +107,8 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         valid_calc_presets = ['occ', 'occ_up', 'occ_down', 'emp', 'emp_up', 'emp_down', 'merge']
         assert calc_presets in valid_calc_presets, \
             'In UnfoldAndInterpolateWorkflow.new_calculator() calc_presets must be ' \
-            + '/'.join([f'"{s}"' for s in valid_calc_presets]) + f', but you have tried to set it equal to {calc_presets}'
+            + '/'.join([f'"{s}"' for s in valid_calc_presets]) + \
+            f', but you have tried to set it equal to {calc_presets}'
 
         if calc_presets == 'merge':
             # Dummy calculator for merging bands and dos
@@ -116,12 +117,12 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         else:
             # Automatically generating UI calculator settings
             kwargs['directory'] = Path(f'{calc_presets}')
-            if '_' in calc_presets:
-                ham_prefix = calc_presets.replace('up', '1').replace('down', '2')
-            else:
-                ham_prefix = calc_presets + '_1'
             if self.parameters.method == 'dscf':
                 # DSCF case
+                if '_' in calc_presets:
+                    ham_prefix = calc_presets.replace('up', '1').replace('down', '2')
+                else:
+                    ham_prefix = calc_presets + '_1'
                 kwargs['kc_ham_file'] = Path(f'../final/ham_{ham_prefix}.dat').resolve()
                 kwargs['w90_seedname'] = Path(f'../init/wannier/{calc_presets}/wann').resolve()
                 if self.master_calc_params['ui'].do_smooth_interpolation:
@@ -129,7 +130,9 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                     kwargs['dft_ham_file'] = Path(f'../init/wannier/{calc_presets}/wann_hr.dat').resolve()
             else:
                 # DFPT case
-                kwargs['kc_ham_file'] = Path(f'../hamiltonian/kc.kcw_hr_{ham_prefix}.dat').resolve()
+                if self.parameters.spin_polarised:
+                    raise NotImplementedError()
+                kwargs['kc_ham_file'] = Path(f'../hamiltonian/kc.kcw_hr_{calc_presets}.dat').resolve()
                 kwargs['w90_seedname'] = Path(f'../wannier/{calc_presets}/wann').resolve()
                 if self.master_calc_params['ui'].do_smooth_interpolation:
                     kwargs['dft_smooth_ham_file'] = Path(f'wannier/{calc_presets}/wann_hr.dat').resolve()

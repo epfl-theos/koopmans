@@ -175,8 +175,18 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 filename += str(ispin)
             filename += '.xml'
 
+            # Work out the shape of the arrays we expect (important for padded arrays)
+            if self.parameters.nspin == 2:
+                if ispin == 1:
+                    n_filled = self.parameters.nelup
+                else:
+                    n_filled = self.parameters.neldw
+            else:
+                n_filled = self.parameters.nelec // 2
+            n_empty = self.parameters.get('nbnd', n_filled) - n_filled
+
             # Read the hamiltonian
-            ham_filled = read_ham_file(ham_dir / filename)
+            ham_filled = read_ham_file(ham_dir / filename)[:n_filled, :n_filled]
 
             if self.has_empty_states():
                 # Construct the filename
@@ -189,7 +199,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 filename += '.xml'
 
                 # Read the hamiltonian
-                ham_empty = read_ham_file(ham_dir / filename)
+                ham_empty = read_ham_file(ham_dir / filename)[:n_empty, :n_empty]
                 ham = block_diag(ham_filled, ham_empty)
             else:
                 ham = ham_filled
