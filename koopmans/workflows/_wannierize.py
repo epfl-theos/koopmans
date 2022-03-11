@@ -186,11 +186,16 @@ class WannierizeWorkflow(Workflow):
             pw_eigs = calc_pw_bands.results['band structure'].energies
             if self.parameters.spin_polarised:
                 w90_emp_num_bands = [self.projections.num_bands(occ=False, spin=spin) for spin in ['up', 'down']]
-                if any([x > 0 for x in w90_emp_num_bands]):
-                    vbe = max([pw_eigs[ispin, :, :-num_bands].max() if num_bands > 0 else pw_eigs[ispin, :, :].max()
-                               for ispin, num_bands in enumerate(w90_emp_num_bands)])
-                else:
-                    vbe = pw_eigs.max()
+                vbes: List[float] = []
+                for ispin, num_bands in enumerate(w90_emp_num_bands):
+                    if num_bands == 0:
+                        vbes.append(pw_eigs[ispin, :, :].max())
+                    elif num_bands == pw_eigs.shape[2]:
+                        continue
+                    else:
+                        vbes.append(pw_eigs[ispin, :, :-num_bands].max())
+
+                vbe = max(vbes)
             else:
                 w90_emp_num_bands = self.projections.num_bands(occ=False)
                 if w90_emp_num_bands > 0:

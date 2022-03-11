@@ -161,7 +161,18 @@ class Workflow(ABC):
             tot_mag = master_calc_params['kcp'].get('tot_magnetization', nelec % 2)
             nelup = int(nelec / 2 + tot_mag / 2)
             neldw = int(nelec / 2 - tot_mag / 2)
-            if tot_mag != 0 and np.all(atoms.get_initial_magentic_moments() == 0.0):
+
+            # Setting up the magnetic moments
+            if 'starting_magnetization(1)' in master_calc_params['kcp']:
+                labels = [s + str(t) if t != 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
+                starting_magmoms = {}
+                for i, (l, p) in enumerate(self.pseudopotentials.items()):
+                    # ASE uses absoulte values; QE uses the fraction of the valence
+                    frac_mag = master_calc_params['kcp'].pop(f'starting_magnetization({i + 1})', 0.0)
+                    valence = valence_from_pseudo(p, pseudo_dir)
+                    starting_magmoms[l] = frac_mag * valence
+                atoms.set_initial_magnetic_moments([starting_magmoms[l] for l in labels])
+            elif tot_mag != 0:
                 atoms.set_initial_magnetic_moments([tot_mag / len(atoms) for _ in atoms])
 
             # Work out the number of bands
@@ -835,7 +846,7 @@ class Workflow(ABC):
 
             master_calc_params[block] = settings_class(**dct)
             master_calc_params[block].update(
-                **{k: v for k, v in setup_parameters.items() if k in master_calc_params[block].valid})
+                **{k: v for k, v in setup_parameters.items() if k.split('(')[0] in master_calc_params[block].valid})
 
         # Adding the projections to the workflow kwargs (this is unusual in that this is an attribute of the workflow
         # object but it is provided in the w90 subdictionary)
@@ -1116,17 +1127,6 @@ def read_setup_dict(dct: Dict[str, Any], task: str):
 
         for block_name, extract_function in compulsory_block_readers.items():
             read_compulsory_block(block_name, extract_function)
-
-    # Reading the starting_magnetization if provided
-    if 'starting_magnetization(1)' in calc.parameters:
-        labels = [s + str(t) if t != 0 else s for s, t in zip(calc.atoms.symbols, calc.atoms.get_tags())]
-        starting_magmoms = {}
-        for i, (l, p) in enumerate(calc.parameters.pseudopotentials.items()):
-            # ASE uses absoulte values; QE uses the fraction of the valence
-            frac_mag = calc.parameters.pop(f'starting_magnetization({i + 1})', 0.0)
-            valence = valence_from_pseudo(p, calc.parameters.pseudo_dir)
-            starting_magmoms[l] = frac_mag * valence
-        calc.atoms.set_initial_magnetic_moments([starting_magmoms[l] for l in labels])
 
     # Separamting the output into atoms, parameters, and psp+kpoint information
     atoms = calc.atoms
