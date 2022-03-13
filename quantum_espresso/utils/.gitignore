@@ -1,3 +1,4 @@
 *.o
 *.mod
-src/*.x
+*.x
+bin
