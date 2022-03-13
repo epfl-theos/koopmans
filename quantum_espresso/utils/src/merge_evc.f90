@@ -16,7 +16,7 @@ PROGRAM merge_evc
     ! This program merges all the wavefunction files passed as
     ! standard input arguments. The program can be run as below: 
     ! 
-    ! merge_evc.x -nr 4 -i path/to/file1 -i path/to/file2 -o output
+    ! merge_evc.x -i path/to/file1 -i path/to/file2 -o output
     ! 
     ! The -nr argument is mandatory and it is followed by an integer
     ! specifying the number of R-vectors, i.e. the number of
@@ -87,9 +87,6 @@ PROGRAM merge_evc
     ELSE
       istart = 1
     ENDIF
-    !
-!    IF ( nproc .gt. 1 ) &
-!      WRITE( stdout, fmt='(5X,A)' ) "WARNING: Parallelization not supported"
     !
     CALL parse_args( istart, io_files, nrtot, output_exst )
     !
