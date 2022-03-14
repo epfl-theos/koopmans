@@ -62,6 +62,7 @@ clean: clean_espresso clean_tests
 clean_espresso:
 	@(cd quantum_espresso/cp_koopmans; $(MAKE) veryclean)
 	@(cd quantum_espresso/qe_koopmans; $(MAKE) veryclean)
+	@(cd quantum_espresso/utils; $(MAKE) clean)
 
 tests:
 	python3 -m pytest -m "standard" tests/
