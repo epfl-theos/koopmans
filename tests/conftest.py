@@ -462,9 +462,9 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
                                                                                           f'eigenval{ispin}.xml',
                                                                                           f'lambda0{ispin}.dat',
                                                                                           f'lambdam{ispin}.dat']]
-            if self.parameters.empty_states_nbnd > 0:
-                files += [fname for ispin in range(1, self.parameters.nspin + 1)
-                          for fname in [f'evc0_empty{ispin}.dat', f'evc_empty{ispin}.dat']]
+            for ispin in range(self.parameters.nspin):
+                if self.has_empty_states(ispin):
+                    files += [fname for fname in [f'evc0_empty{ispin + 1}.dat', f'evc_empty{ispin + 1}.dat']]
             return [Path(f) for f in files]
 
         @property
@@ -535,6 +535,9 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
                 files += [f'{self.parameters.outdir}/{self.parameters.prefix}.save/{f}'
                           for f in ['data-file-schema.xml', 'charge-density.dat']]
             return [Path(f) for f in files]
+
+        def generate_band_structure(self):
+            pass
 
     class MockWannier90Calculator(MockCalc, Wannier90Calculator):
         # Monkeypatched Wannier90Calculator class which never actually calls wannier90.x
@@ -639,6 +642,9 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         @property
         def output_files(self) -> List[Path]:
             return []
+
+        def generate_band_structure(self):
+            pass
 
     monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', MockKoopmansCPCalculator)
     monkeypatch.setattr('koopmans.calculators.PWCalculator', MockPWCalculator)

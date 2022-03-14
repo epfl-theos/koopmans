@@ -15,6 +15,7 @@ from typing import List, Union, Tuple
 from pathlib import Path
 from ase.atoms import Atoms
 from ase.dft.kpoints import bandpath, BandPath
+from ase.io.espresso.utils import label_to_symbol, label_to_tag
 from ase.calculators.calculator import Calculator
 
 
@@ -98,9 +99,8 @@ def read_atomic_species(calc: Calculator, dct: dict):
 def read_atomic_positions(calc: Calculator, dct: dict):
 
     pos_array = np.array(dct['positions'])
-    labels = pos_array[:, 0]
-    symbols = [''.join([c for c in label if c.isalpha()])
-               for label in labels]
+    symbols = [label_to_symbol(p) for p in pos_array[:, 0]]
+    tags = [label_to_tag(p) for p in pos_array[:, 0]]
     positions = np.array(pos_array[:, 1:], dtype=float)
 
     scale_positions = False
@@ -120,7 +120,7 @@ def read_atomic_positions(calc: Calculator, dct: dict):
         calc.atoms = Atoms(symbols, scaled_positions=positions, calculator=calc, cell=calc.atoms.cell)
     else:
         calc.atoms = Atoms(symbols, positions=positions, calculator=calc, cell=calc.atoms.cell)
-    calc.atoms.set_array('labels', labels)
+    calc.atoms.set_tags(tags)
 
 
 def read_cell_parameters(calc: Calculator, dct: dict):

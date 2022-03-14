@@ -1,6 +1,6 @@
 """
 
-kc_ham calculator module for koopmans
+KCWHam calculator module for koopmans
 
 Written by Edward Linscott Feb 2021
 
@@ -11,13 +11,14 @@ import numpy as np
 from typing import Optional, List
 from ase import Atoms
 from ase.calculators.espresso import KoopmansHam
+from ase.dft.kpoints import BandPath
 from koopmans import utils, settings
-from ._utils import KCWannCalculator, CalculatorABC, qe_bin_directory
+from ._utils import KCWannCalculator, CalculatorABC, qe_bin_directory, ReturnsBandStructure
 from koopmans.commands import ParallelCommand
 
 
-class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, CalculatorABC):
-    # Subclass of KCWannCalculator for performing calculations with kc_wann.x
+class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure, CalculatorABC):
+    # Subclass of KCWannCalculator for calculating the Koopmans Hamiltonian with kcw.x
     ext_in = '.khi'
     ext_out = '.kho'
 
@@ -30,7 +31,7 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, CalculatorABC):
         KCWannCalculator.__init__(self, *args, **kwargs)
 
         self.command = ParallelCommand(
-            f'{qe_bin_directory}{os.path.sep}kc_ham.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
+            f'{qe_bin_directory}{os.path.sep}kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
 
         self.results_for_qc = ['ki_eigenvalues_on_grid', 'band structure']
 
@@ -38,7 +39,7 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, CalculatorABC):
         self.alphas = alphas
 
     def write_alphas(self):
-        # self.alphas is a list of alpha values indexed by spin index and then band index. Meanwhile, kc_ham.x takes a
+        # self.alphas is a list of alpha values indexed by spin index and then band index. Meanwhile, kcw.x takes a
         # single file for the alphas (rather than splitting between filled/empty) and does not have two columns for
         # spin up then spin down
         assert self.alphas is not None, 'You have not provided screening parameters to this calculator'
@@ -51,6 +52,9 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, CalculatorABC):
     def calculate(self):
         self.write_alphas()
         super().calculate()
+        if isinstance(self.parameters.kpts, BandPath) and len(self.parameters.kpts.kpts) > 1:
+            # Add the bandstructure to the results
+            self.generate_band_structure()
 
     def get_k_point_weights(self):
         utils.warn('Need to properly define k-point weights')
@@ -74,6 +78,16 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, CalculatorABC):
 
     def get_fermi_level(self):
         return 0
+
+    def vbm_energy(self) -> float:
+        eigenvalues_np = self.eigenvalues_from_results()
+        return np.max(eigenvalues_np[:, :, self.parameters.num_wann_occ - 1])
+
+    def eigenvalues_from_results(self):
+        assert 'eigenvalues' in self.results, 'Please call {0}.calculate() prior to calling {0}.band_structure'.format(
+            self.__class__.__name__)
+
+        return np.array([self.results['eigenvalues']])
 
     def is_converged(self):
         raise NotImplementedError('TODO')

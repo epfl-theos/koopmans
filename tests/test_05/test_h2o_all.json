@@ -14,7 +14,7 @@
             "ecutrho"               : "4*ecutwfc"
         },
         "electrons": {
-            "empty_states_nbnd"     : 1
+            "nbnd"                  : 5
         },
         "atomic_positions": {
             "units"                 : "angstrom",

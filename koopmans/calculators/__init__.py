@@ -9,4 +9,4 @@ from ._pw2wannier import PW2WannierCalculator
 from ._wannier90 import Wannier90Calculator
 from ._wann2kc import Wann2KCCalculator
 from ._ui import UnfoldAndInterpolateCalculator
-from ._utils import CalculatorExt, qe_bin_directory
+from ._utils import CalculatorExt, qe_bin_directory, CalculatorCanEnforceSpinSym, ReturnsBandStructure

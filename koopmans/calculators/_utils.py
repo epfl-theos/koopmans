@@ -18,12 +18,17 @@ Feb 2021: Split calculators further into GenericCalc and EspressoCalc
 Sep 2021: Reshuffled files to make imports cleaner
 """
 
+from __future__ import annotations
 import copy
+import numpy as np
+from numpy import typing as npt
 from typing import Union, Optional, List, TypeVar, Generic
 from pathlib import Path
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 from ase import Atoms
 import ase.io as ase_io
+from ase.dft.kpoints import BandPath
+from ase.spectrum.band_structure import BandStructure
 from koopmans import utils, settings
 
 # Directories of the various QE calculators
@@ -261,8 +266,38 @@ class CalculatorExt():
         return calc
 
 
+class ReturnsBandStructure(ABC):
+    """
+    Abstract base class to be used for calculators that return bandstructures. These classes implement a
+    self.generate_band_structure() which is called after self.calculate(). This is done after self.calculate()
+    (and not during) because we require access to the band path
+
+    Putting the band structure in self.results is very un-ASE-y, so we might want to ultimately align all of this
+    with the more general self.band_structure() method of ASE
+    """
+
+    @abstractmethod
+    def eigenvalues_from_results(self) -> npt.NDArray[np.float_]:
+        ...
+
+    @abstractmethod
+    def vbm_energy(self) -> float:
+        ...
+
+    def generate_band_structure(self):
+        if isinstance(self.parameters.kpts, BandPath):
+            # Fetch bandstructure from results
+            path = self.parameters.kpts
+            eigenvalues_np = self.eigenvalues_from_results()
+
+            eigenvalues_np -= self.vbm_energy()
+
+            self.results['band structure'] = BandStructure(path, eigenvalues_np)
+        return
+
+
 class KCWannCalculator(CalculatorExt):
-    # Parent class for kc_ham.x, kc_screen.x and wann2kc.x calculators
+    # Parent class for KCWHam, KCWScreen and Wann2KCW calculators
 
     def __init__(self, *args, **kwargs):
 
@@ -277,3 +312,35 @@ class KCWannCalculator(CalculatorExt):
     def filling(self):
         return [[True for _ in range(self.parameters.num_wann_occ)]
                 + [False for _ in range(self.parameters.num_wann_emp)]]
+
+
+class CalculatorCanEnforceSpinSym(ABC):
+    # Abstract base class for calculators that can run a sequence of calculations in order to enforce spin symmetry
+    # (with the goal of avoiding spin contamination)
+    @abstractproperty
+    def from_scratch(self) -> bool:
+        ...
+
+    @abstractmethod
+    def convert_wavefunction_2to1(self):
+        ...
+
+    @abstractmethod
+    def nspin1_dummy_calculator(self) -> CalculatorCanEnforceSpinSym:
+        ...
+
+    @abstractmethod
+    def nspin1_calculator(self) -> CalculatorCanEnforceSpinSym:
+        ...
+
+    @abstractmethod
+    def convert_wavefunction_1to2(self):
+        ...
+
+    @abstractmethod
+    def nspin2_dummy_calculator(self) -> CalculatorCanEnforceSpinSym:
+        ...
+
+    @abstractmethod
+    def prepare_to_read_nspin1(self):
+        ...

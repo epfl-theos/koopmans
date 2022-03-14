@@ -1,8 +1,7 @@
 from typing import Optional, List, Union, Any, Dict
 from pathlib import Path
 from ase import Atoms
-from ase.io.wannier90 import num_wann_from_projections, proj_string_to_dict
-from koopmans.utils import list_to_formatted_str
+from ase.io.wannier90 import num_wann_from_projections, proj_string_to_dict, list_to_formatted_str
 
 
 class ProjectionBlock(object):
@@ -37,7 +36,7 @@ class ProjectionBlock(object):
     def __repr__(self) -> str:
         out = f'ProjectionBlock({[self.projections]}, filled={self.filled}'
         if self.spin is not None:
-            out += ', spin={self.spin}'
+            out += f', spin={self.spin}'
         return out + ')'
 
     def __len__(self):
@@ -65,11 +64,11 @@ class ProjectionBlock(object):
         kwargs = {}
         for key in ['projections', 'num_wann', 'num_bands', 'exclude_bands']:
             val = getattr(self, key, None)
-            if val is None:
+            if val is None and key != 'exclude_bands':
                 raise AttributeError(f'You must define {self.__class__.__name__}.{key} before requesting w90_kwargs')
             kwargs[key] = val
         if self.spin is not None:
-            kwargs['spin_component'] = self.spin
+            kwargs['spin'] = self.spin
         return kwargs
 
     @classmethod
@@ -90,8 +89,13 @@ class ProjectionBlocks(object):
         self._blocks = blocks
         self._atoms = atoms
         # This BandBlocks object must keep track of how many bands we have not belonging to any block
-        self._n_bands_below = {spin: 0 for spin in set([b.spin for b in blocks])}
-        self._n_bands_above = {spin: 0 for spin in set([b.spin for b in blocks])}
+        if len(blocks) > 0:
+            self._n_bands_below = {spin: 0 for spin in set([b.spin for b in blocks])}
+            self._n_bands_above = {spin: 0 for spin in set([b.spin for b in blocks])}
+        else:
+            # By default, assume spin-unpolarised
+            self._n_bands_below = {None: 0}
+            self._n_bands_above = {None: 0}
 
     def __repr__(self):
         out = 'ProjectionBlocks('
@@ -142,7 +146,8 @@ class ProjectionBlocks(object):
                 else:
                     upper_bound = self.num_bands(spin=spin)
                 to_exclude = [i for i in range(1, upper_bound + 1) if i not in band_indices]
-                b.exclude_bands = list_to_formatted_str(to_exclude)
+                if len(to_exclude) > 0:
+                    b.exclude_bands = list_to_formatted_str(to_exclude)
 
                 # Construct the calc_type
                 if b.filled:
@@ -180,11 +185,13 @@ class ProjectionBlocks(object):
         blocks: List[ProjectionBlock] = []
         for filled in [True, False]:
             blocks += [ProjectionBlock(p, f, s)
-                       for p, f, s in zip(list_of_projections, fillings, spins) if f is filled]
+                       for p, f, s in zip(list_of_projections, fillings, spins) if f is filled and len(p) > 0]
 
         return cls(blocks, atoms)
 
     def add_bands(self, num: int, above: bool = False, spin: Optional[str] = None):
+        if num < 0:
+            raise ValueError('num must be > 0')
         if above:
             self._n_bands_above[spin] += num
         else:
@@ -197,10 +204,10 @@ class ProjectionBlocks(object):
                 if len(subset) > 1:
                     yield subset
 
-    def get_subset(self, occ: Optional[bool] = None, spin: Optional[str] = None):
-        return [b for b in self._blocks if (occ is None or b.filled == occ) and (spin is None or b.spin == spin)]
+    def get_subset(self, occ: Optional[bool] = None, spin: Optional[str] = 'both'):
+        return [b for b in self._blocks if (occ is None or b.filled == occ) and (spin == 'both' or b.spin == spin)]
 
-    def num_wann(self, occ: Optional[bool] = None, spin: Optional[str] = None):
+    def num_wann(self, occ: Optional[bool] = None, spin: Optional[str] = 'both'):
         return sum([num_wann_from_projections(b.projections, self._atoms) for b in self.get_subset(occ, spin)])
 
     def num_bands(self, occ: Optional[bool] = None, spin: Optional[str] = None):

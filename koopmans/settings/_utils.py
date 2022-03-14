@@ -176,9 +176,12 @@ class SettingsDict(UserDict):
         if all([c.isalpha() or c in ['_', '"', "'"] for c in expr]):
             return expr.strip('"').strip("'")
 
-        expr = expr.replace('/', ' / ').replace('*', ' * ').split()
+        for replace in [('/', ' / '), ('*', ' * '), ('-', ' - '), ('+', ' + '), ('e - ', 'e-'), ('e + ', 'e+')]:
+            expr = expr.replace(*replace)
+        expr = expr.split()
+
         for i, term in enumerate(expr):
-            if term in ['*', '/']:
+            if term in ['*', '/', '+', '-']:
                 continue
             elif all([c.isalpha() for c in term]):
                 if term in kwargs:
@@ -187,6 +190,8 @@ class SettingsDict(UserDict):
                     raise ValueError('Failed to parse ' + ''.join(map(str, expr)))
                 else:
                     expr[i] = getattr(self, term)
+            elif len(expr) == 1 and any([c.isalpha() for c in term]):
+                return term.strip('"').strip("'")
             else:
                 expr[i] = float(term)
 
@@ -196,6 +201,10 @@ class SettingsDict(UserDict):
                 value *= float(term)
             elif op == '/':
                 value /= float(term)
+            elif op == '+':
+                value += float(term)
+            elif op == '-':
+                value -= float(term)
             else:
                 raise ValueError('Failed to parse ' + ''.join([str(e) for e in expr]))
 
@@ -275,8 +284,11 @@ class SettingsDictWithChecks(SettingsDict):
 
 
 kc_wann_defaults = {'outdir': 'TMP',
-                    'kc_iverbosity': 1,
-                    'kc_at_ks': False,
+                    'kcw_iverbosity': 1,
+                    'kcw_at_ks': False,
                     'homo_only': False,
                     'read_unitary_matrix': True,
-                    'check_ks': True}
+                    'lrpa': False,
+                    'check_ks': True,
+                    'have_empty': True,
+                    'has_disentangle': True}

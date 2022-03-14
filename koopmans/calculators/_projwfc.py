@@ -64,7 +64,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
             if atom.symbol in expected_orbitals:
                 continue
             pseudo_file = self.pseudopotentials[atom.symbol]
-            z_core = atom.number - pseudopotentials.nelec_from_pseudo(self.pseudo_dir / pseudo_file)
+            z_core = atom.number - pseudopotentials.valence_from_pseudo(self.pseudo_dir, pseudo_file)
             first_orbital = z_core_to_first_orbital[z_core]
             all_orbitals = list(z_core_to_first_orbital.values())
             expected_orbitals[atom.symbol] = all_orbitals[all_orbitals.index(first_orbital):]
