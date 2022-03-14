@@ -1,13 +1,12 @@
 from ._utils import SettingsDict
 
 
-class PW2WannierSettingsDict(SettingsDict):
+class Wann2KCPSettingsDict(SettingsDict):
     def __init__(self, **kwargs) -> None:
-        super().__init__(valid=['outdir', 'prefix', 'seedname', 'write_mmn',
-                                'write_amn', 'write_uHu', 'uHu_formatted',
-                                'write_unk', 'reduce_unk', 'wan_mode', 'spin_component'],
+        super().__init__(valid=['outdir', 'prefix', 'seedname', 'wan_mode', 'spin_component',
+                                'gamma_trick', 'print_rho', 'wannier_plot', 'wannier_plot_list']
                          defaults={'outdir': 'TMP', 'prefix': 'kc', 'seedname': 'wann',
-                                   'wan_mode': 'standalone'},
+                                   'wan_mode': 'wannier2kcp'},
                          are_paths=['outdir'],
                          to_not_parse=['wan_mode'],
                          **kwargs)

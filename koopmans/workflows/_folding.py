@@ -1,7 +1,7 @@
 """
 
 Workflow module for koopmans, containing the workflow for converting W90 or PW files to
-kcp.x friendly-format using a modified version of pw2wannier90.x
+kcp.x friendly-format using wann2kcp.x
 
 Written by Edward Linscott Feb 2021
 
@@ -21,7 +21,7 @@ class FoldToSupercellWorkflow(Workflow):
         '''
 
         Wrapper for folding Wannier or Kohn-Sham functions from the primitive cell
-        to the supercell and convert them to a kcp.x dreindly format.
+        to the supercell and convert them to a kcp.x friendly format.
 
         '''
 
@@ -31,22 +31,22 @@ class FoldToSupercellWorkflow(Workflow):
             # Loop over the various subblocks that we have wannierised separately
             for block in self.projections:
                 # Create the calculator
-                calc_w2o = self.new_calculator('pw2wannier', spin_component=block.spin, wan_mode='wannier2odd',
+                calc_w2k = self.new_calculator('wann2kcp', spin_component=block.spin, wan_mode='wannier2kcp',
                                                directory=block.directory)
-                calc_w2o.prefix = 'wan2odd'
+                calc_w2k.prefix = 'w2kcp'
 
                 # Checking that gamma_trick is consistent with do_wf_cmplx
                 kcp_params = self.master_calc_params['kcp']
-                if calc_w2o.parameters.gamma_trick == kcp_params.do_wf_cmplx:
+                if calc_w2k.parameters.gamma_trick == kcp_params.do_wf_cmplx:
                     utils.warn(
                         f'if do_wf_cmplx is {kcp_params.do_wf_cmplx}, gamma_trick cannot be '
-                        f'{calc_w2o.parameters.gamma_trick}. Changing gamma_trick to {not kcp_params.do_wf_cmplx}')
-                    calc_w2o.parameters.gamma_trick = not kcp_params.do_wf_cmplx
-                elif calc_w2o.parameters.gamma_trick is None and not kcp_params.do_wf_cmplx:
-                    calc_w2o.parameters.gamma_trick = True
+                        f'{calc_w2k.parameters.gamma_trick}. Changing gamma_trick to {not kcp_params.do_wf_cmplx}')
+                    calc_w2k.parameters.gamma_trick = not kcp_params.do_wf_cmplx
+                elif calc_w2k.parameters.gamma_trick is None and not kcp_params.do_wf_cmplx:
+                    calc_w2k.parameters.gamma_trick = True
 
                 # Run the calculator
-                self.run_calculator(calc_w2o)
+                self.run_calculator(calc_w2k)
 
             if self.parameters.spin_polarised:
                 spins = ['up', 'down']
@@ -83,10 +83,10 @@ class FoldToSupercellWorkflow(Workflow):
 
         else:
             # Create the calculator
-            calc_w2o = self.new_calculator('pw2wannier', directory='ks2odd', wan_mode='ks2odd', seedname=None)
-            calc_w2o.prefix = 'ks2odd'
+            calc_w2k = self.new_calculator('wann2kcp', directory='ks2kcp', wan_mode='ks2kcp', seedname=None)
+            calc_w2k.prefix = 'ks2kcp'
 
             # Run the calculator
-            self.run_calculator(calc_w2o)
+            self.run_calculator(calc_w2k)
 
         return

@@ -5,6 +5,7 @@ from ._koopmans_ham import KoopmansHamCalculator
 from ._koopmans_screen import KoopmansScreenCalculator
 from ._pw import PWCalculator
 from ._pw2wannier import PW2WannierCalculator
+from ._wann2kcp import Wann2KCPCalculator
 from ._wannier90 import Wannier90Calculator
 from ._wann2kc import Wann2KCCalculator
 from ._ui import UnfoldAndInterpolateCalculator

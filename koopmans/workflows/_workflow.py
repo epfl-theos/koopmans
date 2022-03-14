@@ -382,6 +382,8 @@ class Workflow(ABC):
             calc_class = calculators.Wannier90Calculator
         elif calc_type == 'pw2wannier':
             calc_class = calculators.PW2WannierCalculator
+        elif calc_type == 'wann2kcp':
+            calc_class = calculators.Wann2KCPCalculator
         elif calc_type.startswith('ui'):
             calc_class = calculators.UnfoldAndInterpolateCalculator
         elif calc_type == 'wann2kc':
