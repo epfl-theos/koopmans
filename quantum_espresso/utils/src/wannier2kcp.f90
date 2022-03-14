@@ -10,7 +10,7 @@
 !
 !
 !----------------------------------------------------------------------------
-MODULE wannier2odd
+MODULE wannier2kcp
   !--------------------------------------------------------------------------
   !
   USE kinds,               ONLY : DP
@@ -392,7 +392,7 @@ MODULE wannier2odd
     IF ( print_rho ) THEN
       !
       IF ( .not. calc_rho ) &
-          CALL errore( 'wannier2odd', 'Cannot write charge density when it is not calculated', 1 )
+          CALL errore( 'wannier2kcp', 'Cannot write charge density when it is not calculated', 1 )
       !
       dirname = './'
       IF ( my_pool_id == 0 .AND. my_bgrp_id == root_bgrp_id ) &
@@ -670,4 +670,4 @@ MODULE wannier2odd
   END SUBROUTINE dealloc_w2odd
   !
   !
-END MODULE wannier2odd
+END MODULE wannier2kcp

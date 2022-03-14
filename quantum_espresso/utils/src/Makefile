@@ -13,7 +13,7 @@ PWOBJS = ../../qe_koopmans/PW/src/libpw.a ../../qe_koopmans/KS_Solvers/libks_sol
 QEMODS = $(BASEMODS)
 
 WAN2ODD_OBJS = read_wannier.o fft_supercell.o scell_wfc.o plot_wan2odd.o \
-               cp_files.o wannier2odd.o
+               cp_files.o wannier2kcp.o
 
 MODULES = $(PWOBJS) $(QEMODS)
 

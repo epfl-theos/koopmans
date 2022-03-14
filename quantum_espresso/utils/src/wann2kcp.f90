@@ -24,7 +24,7 @@ PROGRAM wann2kcp
   USE noncollin_module, ONLY : noncolin
   USE control_flags,    ONLY : gamma_only
   USE environment,      ONLY : environment_start, environment_end
-  USE wannier2odd,      ONLY : wan2odd
+  USE wannier2kcp,      ONLY : wan2odd
   USE plot_wan2odd,     ONLY : plot_wann
   USE wannier
   !
@@ -151,23 +151,23 @@ PROGRAM wann2kcp
     !
     IF ( ionode ) WRITE( stdout, * )
     CALL print_clock( 'init_wann2kcp' )
-    CALL print_clock( 'wannier2odd' )
+    CALL print_clock( 'wannier2kcp' )
     IF ( wannier_plot ) CALL print_clock( 'plot_wann' )
     CALL environment_end( 'WANN2KCP' )
     IF ( ionode ) WRITE( stdout, * )
     !
     CALL stop_pp( )
     !
-  ELSE IF ( wan_mode == 'ks2odd' ) THEN
+  ELSE IF ( wan_mode == 'ks2kcp' ) THEN
     !
     CALL openfil_pp( )
-    CALL mp_grid_ks2odd( )
+    CALL mp_grid_ks2kcp( )
     !
     CALL wan2odd( ks_only = .true. )
     !
     IF ( ionode ) WRITE( stdout, *  )
     CALL print_clock( 'init_wannk2kcp' )
-    CALL print_clock( 'ks2odd' )
+    CALL print_clock( 'ks2kcp' )
     CALL environment_end( 'WANN2KCP' )
     IF ( ionode ) WRITE( stdout, * )
     !
@@ -758,10 +758,10 @@ END SUBROUTINE get_wannier_to_plot
 !
 !
 !----------------------------------------------------------------------------
-SUBROUTINE mp_grid_ks2odd( )
+SUBROUTINE mp_grid_ks2kcp( )
    !---------------------------------------------------------------------------------
    !
-   ! ...  This routine generate mp_grid for the ks2odd mode.
+   ! ...  This routine generate mp_grid for the ks2kcp mode.
    ! ...  It is necessary to momentarily change the definition of
    ! ...  iknum in order to properly define mp_grid.
    !
@@ -784,4 +784,4 @@ SUBROUTINE mp_grid_ks2odd( )
    iknum = iknum * nspin         ! restore the initial value of iknum
    !
    !
- END SUBROUTINE mp_grid_ks2odd
+ END SUBROUTINE mp_grid_ks2kcp
