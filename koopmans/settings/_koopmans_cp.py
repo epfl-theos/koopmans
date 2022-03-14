@@ -31,7 +31,6 @@ class KoopmansCPSettingsDict(SettingsDict):
                     'innerloop_init_n': 3,
                     'innerloop_nmax': 100,
                     'hartree_only_sic': False,
-                    'empty_states_nbnd': 0,
                     'conv_thr': '1.0e-9*nelec',
                     'esic_conv_thr': '1.0e-9*nelec'}
 

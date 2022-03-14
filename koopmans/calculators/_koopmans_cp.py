@@ -57,10 +57,15 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         Espresso_kcp.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, skip_qc, **kwargs)
 
-        # Add nelec if it is missing
+        # Add nelec, nelup, neldw if they are missing
         if 'nelec' not in self.parameters and 'pseudopotentials' in self.parameters:
             self.parameters.nelec = pseudopotentials.nelec_from_pseudos(
                 self.atoms, self.pseudopotentials, self.parameters.pseudo_dir)
+        if 'nelec' in self.parameters:
+            if 'nelup' not in self.parameters:
+                self.parameters.nelup = self.parameters.nelec // 2
+            if 'neldw' not in self.parameters:
+                self.parameters.neldw = self.parameters.nelec // 2
 
         if not isinstance(self.command, ParallelCommand):
             self.command = ParallelCommand(os.environ.get(
@@ -101,13 +106,22 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
     def _swap_spin_channels(self):
         # Parameters
         if self.parameters.fixed_band is not None and self.parameters.fixed_state:
-            n_bands_up = self.parameters.nelup + self.parameters.empty_states_nbnd
-            if self.parameters.fixed_band > n_bands_up:
+            if self.parameters.nbnd is None:
+                if self.parameters.nspin == 2:
+                    nbup = self.parameters.nelup
+                    nbdw = self.parameters.neldw
+                else:
+                    nbup = self.parameters.nelec // 2
+                    nbdw = self.parameters.nelec // 2
+            else:
+                nbup = self.parameters.nbnd
+                nbdw = self.parameters.nbnd
+            if self.parameters.fixed_band > nbup:
                 # The fixed band was spin-down
-                self.parameters.fixed_band -= n_bands_up
+                self.parameters.fixed_band -= nbup
             else:
                 # The fixed band was spin-up
-                self.parameters.fixed_band += self.parameters.neldw + self.parameters.empty_states_nbnd
+                self.parameters.fixed_band += nbdw
         self.parameters.nelup, self.parameters.neldw = self.parameters.neldw, self.parameters.nelup
         self.parameters.tot_magnetization *= -1
 
@@ -161,10 +175,20 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 filename += str(ispin)
             filename += '.xml'
 
-            # Read the hamiltonian
-            ham_filled = read_ham_file(ham_dir / filename)
+            # Work out the shape of the arrays we expect (important for padded arrays)
+            if self.parameters.nspin == 2:
+                if ispin == 1:
+                    n_filled = self.parameters.nelup
+                else:
+                    n_filled = self.parameters.neldw
+            else:
+                n_filled = self.parameters.nelec // 2
+            n_empty = self.parameters.get('nbnd', n_filled) - n_filled
 
-            if self.parameters.empty_states_nbnd > 0:
+            # Read the hamiltonian
+            ham_filled = read_ham_file(ham_dir / filename)[:n_filled, :n_filled]
+
+            if self.has_empty_states():
                 # Construct the filename
                 filename = 'hamiltonian'
                 if bare:
@@ -175,7 +199,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 filename += '.xml'
 
                 # Read the hamiltonian
-                ham_empty = read_ham_file(ham_dir / filename)
+                ham_empty = read_ham_file(ham_dir / filename)[:n_empty, :n_empty]
                 ham = block_diag(ham_filled, ham_empty)
             else:
                 ham = ham_filled
@@ -269,14 +293,17 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
             # Work out how many filled and empty bands we will have for each spin channel
             if self.parameters.nspin == 2:
-                n_filled_bands_list = [self.parameters.nelup, self.parameters.neldw]
+                nel_list = [self.parameters.nelup, self.parameters.neldw]
             else:
-                n_filled_bands_list = [self.parameters.nelec // 2]
-            n_empty_bands = self.parameters.empty_states_nbnd
+                nel_list = [self.parameters.nelec // 2]
 
             # Generate the filling list
-            for n_filled_bands in n_filled_bands_list:
-                filling.append([True for _ in range(n_filled_bands)] + [False for _ in range(n_empty_bands)])
+            for nel in nel_list:
+                if 'nbnd' in self.parameters:
+                    nemp = self.parameters.nbnd - nel
+                else:
+                    nemp = 0
+                filling.append([True for _ in range(nel)] + [False for _ in range(nemp)])
 
             self._filling = filling
         return self._filling
@@ -335,6 +362,21 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
     def get_fermi_level(self):
         return 0
+
+    def has_empty_states(self, spin: Optional[int] = None) -> bool:
+        if 'nbnd' not in self.parameters:
+            return False
+        if self.parameters.nspin == 1:
+            nel = self.parameters.nelec // 2
+        elif spin == 0:
+            nel = self.parameters.nelup
+        elif spin == 1:
+            nel = self.parameters.neldw
+        elif 'nelup' in self.parameters and 'neldw' in self.parameters:
+            return self.has_empty_states(spin=0) or self.has_empty_states(spin=1)
+        else:
+            nel = self.parameters.nelec // 2
+        return self.parameters.nbnd > nel
 
     def nspin1_dummy_calculator(self) -> KoopmansCPCalculator:
         calc = copy.deepcopy(self)
@@ -455,10 +497,11 @@ def convert_flat_alphas_for_kcp(flat_alphas: List[float],
     # Read alpha file returns a flat list ordered by filled spin up, filled spin down, empty spin up, empty spin down
     # Here we reorder this into a nested list indexed by [i_spin][i_orbital]
     if parameters.nspin == 2:
+        nbnd = len(flat_alphas) // 2
         alphas = [flat_alphas[:parameters.nelup]
-                  + flat_alphas[parameters.nelec:-parameters.empty_states_nbnd],
+                  + flat_alphas[parameters.nelec:-(nbnd - parameters.neldw)],
                   flat_alphas[parameters.nelup:parameters.nelec]
-                  + flat_alphas[-parameters.empty_states_nbnd:]]
+                  + flat_alphas[-(nbnd - parameters.neldw):]]
     else:
         alphas = [flat_alphas]
     return alphas

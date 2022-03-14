@@ -235,8 +235,6 @@ class KoopmansDFPTWorkflow(Workflow):
         calc.parameters.spin_component = 1
         calc.parameters.kcw_at_ks = not self.parameters.periodic
         calc.parameters.read_unitary_matrix = self.parameters.periodic
-        calc.parameters.have_empty = (self.projections.num_wann(occ=False) > 0)
-        calc.parameters.has_disentangle = (self.projections.num_bands() != self.projections.num_wann())
 
         if calc_presets == 'wann2kc':
             if self.parameters.periodic:
@@ -257,11 +255,17 @@ class KoopmansDFPTWorkflow(Workflow):
         if self.parameters.periodic:
             nocc = self.projections.num_wann(occ=True)
             nemp = self.projections.num_wann(occ=False)
+            have_empty = (self.projections.num_wann(occ=False) > 0)
+            has_disentangle = (self.projections.num_bands() != self.projections.num_wann())
         else:
             nocc = self.master_calc_params['kcp'].nelec // 2
             nemp = self.master_calc_params['pw'].nbnd - nocc
+            have_empty = nemp > 0
+            has_disentangle = False
         calc.parameters.num_wann_occ = nocc
         calc.parameters.num_wann_emp = nemp
+        calc.parameters.have_empty = have_empty
+        calc.parameters.has_disentangle = has_disentangle
 
         # Apply any additional calculator keywords passed as kwargs
         for k, v in kwargs.items():
