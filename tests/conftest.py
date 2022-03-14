@@ -13,9 +13,9 @@ from pathlib import Path
 import pytest
 from ase.calculators.calculator import CalculationFailed
 from ase.dft.kpoints import BandPath
-from koopmans.calculators import Wannier90Calculator, PW2WannierCalculator, PWCalculator, KoopmansCPCalculator, \
-    EnvironCalculator, UnfoldAndInterpolateCalculator, Wann2KCCalculator, KoopmansScreenCalculator, \
-    KoopmansHamCalculator
+from koopmans.calculators import Wannier90Calculator, PW2WannierCalculator, Wann2KCPCalculator, PWCalculator, \
+    KoopmansCPCalculator, EnvironCalculator, UnfoldAndInterpolateCalculator, Wann2KCCalculator, \
+    KoopmansScreenCalculator, KoopmansHamCalculator
 from koopmans.io import read
 from koopmans.io import read_kwf as read_encoded_json
 from koopmans.io import write_kwf as write_encoded_json
@@ -568,14 +568,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
 
         @property
         def output_files(self) -> List[Path]:
-            if self.parameters.wan_mode == 'wannier2odd':
-                files = [self.directory / fname for fname in ['evcw1.dat', 'evcw2.dat']]
-            elif self.parameters.wan_mode == 'ks2odd':
-                files = [self.directory / fname for i in [1, 2]
-                         for fname in [f'evc_occupied{i}.dat', f'evc0_empty{i}.dat']]
-            else:
-                files = [
-                    self.directory / f'{self.parameters.seedname}{suffix}' for suffix in ['.eig', '.mmn', '.amn']]
+            files = [self.directory / f'{self.parameters.seedname}{suffix}' for suffix in ['.eig', '.mmn', '.amn']]
             return [Path(f) for f in files]
 
         @property
@@ -584,9 +577,29 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             files = [f'{self.parameters.outdir}/{self.parameters.prefix}.save/wfc{i}.dat' for i in i_kpoints]
             files += [f'{self.parameters.outdir}/{self.parameters.prefix}.save/{f}'
                       for f in ['data-file-schema.xml', 'charge-density.dat']]
-            if self.parameters.wan_mode != 'ks2odd':
+            files.append(f'{self.directory}/{self.parameters.seedname}.nnkp')
+            return [Path(f) for f in files]
+
+    class MockWann2KCPCalculator(MockCalc, Wann2KCPCalculator):
+        # Monkeypatched Wann2KCPCalculator class which never actually calls wann2kcp.x
+
+        @property
+        def output_files(self) -> List[Path]:
+            if self.parameters.wan_mode == 'wannier2kcp':
+                files = [self.directory / fname for fname in ['evcw1.dat', 'evcw2.dat']]
+            else:
+                files = [self.directory / fname for i in [1, 2]
+                         for fname in [f'evc_occupied{i}.dat', f'evc0_empty{i}.dat']]
+            return [Path(f) for f in files]
+
+        @property
+        def input_files(self) -> List[Path]:
+            i_kpoints = range(1, np.prod(self.parameters.kpts) + 1)
+            files = [f'{self.parameters.outdir}/{self.parameters.prefix}.save/wfc{i}.dat' for i in i_kpoints]
+            files += [f'{self.parameters.outdir}/{self.parameters.prefix}.save/{f}'
+                      for f in ['data-file-schema.xml', 'charge-density.dat']]
+            if self.parameters.wan_mode == 'wannier2kcp':
                 files.append(f'{self.directory}/{self.parameters.seedname}.nnkp')
-            if self.parameters.wan_mode == 'wannier2odd':
                 files.append(f'{self.directory}/{self.parameters.seedname}.chk')
             return [Path(f) for f in files]
 
@@ -651,6 +664,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
     monkeypatch.setattr('koopmans.calculators.EnvironCalculator', MockEnvironCalculator)
     monkeypatch.setattr('koopmans.calculators.Wannier90Calculator', MockWannier90Calculator)
     monkeypatch.setattr('koopmans.calculators.PW2WannierCalculator', MockPW2WannierCalculator)
+    monkeypatch.setattr('koopmans.calculators.Wann2KCPCalculator', MockWann2KCPCalculator)
     monkeypatch.setattr('koopmans.calculators.UnfoldAndInterpolateCalculator', MockUnfoldAndInterpolateCalculator)
     monkeypatch.setattr('koopmans.calculators.Wann2KCCalculator', MockWann2KCCalculator)
     monkeypatch.setattr('koopmans.calculators.KoopmansScreenCalculator', MockKoopmansScreenCalculator)
@@ -676,7 +690,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
 
             # If this calculator is a pw2wannier object, it need to know how many kpoints there are (usually done via
             # the contents of .nnkp)
-            if isinstance(qe_calc, PW2WannierCalculator):
+            if isinstance(qe_calc, PW2WannierCalculator) or isinstance(qe_calc, Wann2KCPCalculator):
                 qe_calc.parameters.kpts = self.kgrid
 
             # We only need to check input files for calculations...
