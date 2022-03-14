@@ -28,18 +28,6 @@ MODULE electrons_module
    LOGICAL :: band_first = .TRUE.
 
    ! The empty-orbital-equivalents of the variables defined in Modules/electrons_base.f90
-   ! N.B. because nupdwn(1) >= nupdwn(2) it follows that nupdwn_emp(1) <= nupdwn_emp(2), and therefore
-   ! any 'dummy' states required for making these arrays ought to be added to the spin-up channel. However,
-   ! if we were do this, and store the wavefunction arrays ordered by spin alone, this would mean we have some
-   ! dummy states appearing before some real states
-   ! e.g. for a system with nbnd=1 and nelec=1 we would have
-   !   c0 = (up, dummy)
-   !   c0_emp = (dummy, down)
-   ! so here if we were to loop over nbsp_emp, we would loop over the dummy state and not the real spin-down
-   ! empty state. To resolve this, we always set iupdwn_emp such that the dummy states are always at the end
-   ! of our arrays i.e.
-   !   c0 = (up, dummy)
-   !   c0_emp = (down, dummy)
    INTEGER :: nupdwn_emp(2) = 0    !  number of empty states with spin up (1) and down (2)
    INTEGER :: iupdwn_emp(2) = 0    !  first empty state with spin (1) and down (2).
    INTEGER :: nudx_emp = 0    !  max (nupdw_emp(1),nupdw_emp(2))
