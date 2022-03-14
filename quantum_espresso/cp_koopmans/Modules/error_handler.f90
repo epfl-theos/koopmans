@@ -91,13 +91,13 @@ SUBROUTINE errore(calling_routine, message, ierr)
    !
    ! ... try to exit in a smooth way
    !
-   CALL MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
+   CALL MPI_ABORT(MPI_COMM_WORLD, ierr, mpierr)
    !
    CALL MPI_FINALIZE(mpierr)
    !
 #endif
    !
-   ERROR STOP 1
+   ERROR STOP ierr
    !
    RETURN
    !
