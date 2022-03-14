@@ -27,7 +27,7 @@ class ConvergenceWorkflow(Workflow):
             raise NotImplementedError(
                 'Convergence.run() has not been generalised beyond kcp.x')
 
-        increments = {'cell_size': 0.1, 'ecutwfc': 10, 'empty_states_nbnd': 1}
+        increments = {'cell_size': 0.1, 'ecutwfc': 10, 'nbnd': 1}
 
         if self.parameters.from_scratch:
             for key in increments.keys():
@@ -66,14 +66,13 @@ class ConvergenceWorkflow(Workflow):
         # number of convergence parameters
 
         # Record the alpha values for the original calculation
-        provide_alpha = 'empty_states_nbnd' in param_dict \
+        provide_alpha = 'nbnd' in param_dict \
             and self.parameters.functional in ['ki', 'kipz', 'pkipz', 'all'] \
             and self.parameters.alpha_from_file
         if provide_alpha:
             master_alphas = utils.read_alpha_file(directory=Path())
             if self.parameters.orbital_groups is None:
-                self.parameters.orbital_groups = list(
-                    range(kcp_master_params.nelec // 2 + kcp_master_params.empty_states_nbnd))
+                self.parameters.orbital_groups = list(range(kcp_master_params.nbnd))
             master_orbital_groups = copy.deepcopy(self.parameters.orbital_groups)
 
         while True:
@@ -112,9 +111,9 @@ class ConvergenceWorkflow(Workflow):
 
                 if provide_alpha:
                     # Update alpha files and orbitals
-                    extra_orbitals = kcp_params.empty_states_nbnd - kcp_master_params.empty_states_nbnd
+                    extra_orbitals = kcp_params.nbnd - kcp_master_params.nbnd
                     filling = [True] * (kcp_params.nelec // 2) + \
-                        [False] * kcp_params.empty_states_nbnd
+                        [False] * (kcp_params.nbnd - kcp_params.nelec // 2)
                     alphas = master_alphas + [master_alphas[-1] for _ in range(extra_orbitals)]
                     self.parameters.orbital_groups = master_orbital_groups + \
                         [master_orbital_groups[-1]
@@ -185,14 +184,18 @@ class ConvergenceWorkflow(Workflow):
 
                 new_array_shape = list(np.shape(results))
                 new_array_slice: List[Union[int, slice]] = [slice(None) for _ in indices]
+                self.print('Progress update', style='heading')
                 for index, param in enumerate(param_dict):
-                    subarray_slice[index] = slice(None)
-                    if np.all(converged[tuple(subarray_slice)]):
+                    subarray_slice = [slice(None) for _ in param_dict]
+                    subarray_slice[index] = slice(0, -1)
+                    if np.any(converged[tuple(subarray_slice)]):
+                        self.print(f'{param} appears converged')
                         continue
-                    param_dict[param].append(
-                        param_dict[param][-1] + increments[param])
+                    new_val = param_dict[param][-1] + increments[param]
+                    param_dict[param].append(new_val)
                     new_array_shape[index] += 1
                     new_array_slice[index] = slice(None, -1)
+                    self.print(f'{param} still appears unconverged, will reattempt using a finer value')
 
                 new_results = np.empty(new_array_shape)
                 new_results[:] = np.nan

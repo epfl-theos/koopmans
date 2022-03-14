@@ -38,7 +38,7 @@ class WannierizeWorkflow(Workflow):
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
 
             if self.parameters.spin_polarised:
-                spins = [0, 1]
+                spins = ['up', 'down']
             else:
                 spins = [None]
 
@@ -47,14 +47,21 @@ class WannierizeWorkflow(Workflow):
                 num_wann_occ = self.projections.num_bands(occ=True, spin=spin)
                 nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, pw_params.pseudo_dir)
                 if self.parameters.spin_polarised:
-                    num_bands_occ = nelec
-                    if spin == 0:
+                    num_bands_occ = nelec - pw_params.get('tot_charge', 0)
+                    if spin == 'up':
                         num_bands_occ += pw_params.tot_magnetization
                     else:
                         num_bands_occ -= pw_params.tot_magnetization
-                    num_bands_occ //= 2
+                    num_bands_occ = int(num_bands_occ // 2)
                 else:
                     num_bands_occ = nelec // 2
+                if num_bands_occ < num_wann_occ:
+                    extra_spin_info = ''
+                    if spin is not None:
+                        extra_spin_info = f' for the spin {spin} channel'
+                    raise ValueError(f'You have provided more projectors than there are bands{extra_spin_info}:\n'
+                                     f' number of occupied bands = {num_bands_occ}\n'
+                                     f' number of wannier functions = {num_wann_occ}')
                 self.projections.add_bands(num_bands_occ - num_wann_occ, above=False, spin=spin)
 
                 # Update the projections_blocks to account for additional empty bands
@@ -169,6 +176,8 @@ class WannierizeWorkflow(Workflow):
                 [src, dest] = [(c.parameters.outdir / c.parameters.prefix).with_suffix('.save')
                                for c in [calc_pw, calc_pw_bands]]
 
+                if dest.exists():
+                    shutil.rmtree(str(dest))
                 shutil.copytree(src, dest)
             self.run_calculator(calc_pw_bands)
 
@@ -182,11 +191,25 @@ class WannierizeWorkflow(Workflow):
             selected_calcs = [c for c in self.calculations[:-1] if 'band structure' in c.results]
 
             # Work out the vertical shift to set the valence band edge to zero
-            w90_emp_num_bands = self.projections.num_bands(occ=False)
-            if w90_emp_num_bands > 0:
-                vbe = np.max(calc_pw_bands.results['band structure'].energies[:, :, :-w90_emp_num_bands])
+            pw_eigs = calc_pw_bands.results['band structure'].energies
+            if self.parameters.spin_polarised:
+                w90_emp_num_bands = [self.projections.num_bands(occ=False, spin=spin) for spin in ['up', 'down']]
+                vbes: List[float] = []
+                for ispin, num_bands in enumerate(w90_emp_num_bands):
+                    if num_bands == 0:
+                        vbes.append(pw_eigs[ispin, :, :].max())
+                    elif num_bands == pw_eigs.shape[2]:
+                        continue
+                    else:
+                        vbes.append(pw_eigs[ispin, :, :-num_bands].max())
+
+                vbe = max(vbes)
             else:
-                vbe = np.max(calc_pw_bands.results['band structure'].energies)
+                w90_emp_num_bands = self.projections.num_bands(occ=False)
+                if w90_emp_num_bands > 0:
+                    vbe = np.max(pw_eigs[:, :, :-w90_emp_num_bands])
+                else:
+                    vbe = np.max(pw_eigs)
 
             # Work out the energy ranges for plotting
             emin = np.min(selected_calcs[0].results['band structure'].energies) - 1 - vbe
@@ -200,6 +223,7 @@ class WannierizeWorkflow(Workflow):
             color_cycle = plt.rcParams['axes.prop_cycle']()
             bs_list = []
             bsplot_kwargs_list = []
+            colours = {}
             for calc, label in zip([calc_pw_bands] + selected_calcs, labels):
                 if 'band structure' in calc.results:
                     # Load the bandstructure. Because we are going apply a vertical shift, we take a copy of the
@@ -212,10 +236,18 @@ class WannierizeWorkflow(Workflow):
                     bs._energies -= vbe
 
                     # Tweaking the plot aesthetics
-                    kwargs = {'emin': emin, 'emax': emax, 'label': label, 'color': next(color_cycle)['color']}
+                    kwargs = {'emin': emin, 'emax': emax, 'label': label}
+                    up_label = label.replace(', down', ', up')
+                    if ', down' in label:
+                        kwargs['ls'] = '--'
+                    if ', down' in label and up_label in colours:
+                        colours[label] = colours[up_label]
+                    else:
+                        colours[label] = [next(color_cycle)['color'] for _ in range(bs.energies.shape[0])]
                     if 'explicit' in label:
                         kwargs['ls'] = 'none'
                         kwargs['marker'] = 'x'
+                    kwargs['color'] = colours[label]
 
                     # Store
                     bs_list.append(bs)

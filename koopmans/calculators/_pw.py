@@ -7,15 +7,16 @@ Written by Edward Linscott Sep 2020
 """
 
 import os
+import numpy as np
 from ase import Atoms
 from ase.calculators.espresso import Espresso
 from ase.dft.kpoints import BandPath
 from koopmans.settings import PWSettingsDict
-from ._utils import CalculatorExt, CalculatorABC, qe_bin_directory
+from ._utils import CalculatorExt, CalculatorABC, qe_bin_directory, ReturnsBandStructure
 from koopmans.commands import ParallelCommandWithPostfix, Command
 
 
-class PWCalculator(CalculatorExt, Espresso, CalculatorABC):
+class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC):
     # Subclass of CalculatorExt for performing calculations with pw.x
     ext_in = '.pwi'
     ext_out = '.pwo'
@@ -42,8 +43,23 @@ class PWCalculator(CalculatorExt, Espresso, CalculatorABC):
                                'as the kpts parameter')
         super().calculate()
 
+        if isinstance(self.parameters.kpts, BandPath):
+            # Add the bandstructure to the results. This is very un-ASE-y and might eventually be replaced
+            self.generate_band_structure()
+
     def is_complete(self):
         return self.results.get('job done', False)
 
     def is_converged(self):
         return self.results.get('energy', None) is not None
+
+    def vbm_energy(self) -> float:
+        return 0.0
+
+    def eigenvalues_from_results(self):
+        class_name = self.__class__.__name__
+        assert getattr(self, 'kpts', None) is not None, f'Please call {class_name}.calculate() prior to calling ' \
+            f'{class_name}.eigenvalues_from_results()'
+
+        i_spins = [i for i in range(2) if i in [k.s for k in self.kpts]]
+        return np.array([[k.eps_n for k in self.kpts if k.s == i_spin] for i_spin in i_spins])

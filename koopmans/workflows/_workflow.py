@@ -31,7 +31,8 @@ from ase.io.espresso.utils import cell_to_ibrav, ibrav_to_cell
 from ase.io.espresso.koopmans_cp import KEYS as kcp_keys, construct_namelist
 from ase.spectrum.band_structure import BandStructure
 from ase.spectrum.doscollection import GridDOSCollection
-from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, pseudo_database, fetch_pseudo
+from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, pseudos_database, fetch_pseudo, \
+    valence_from_pseudo
 from koopmans import utils, settings
 import koopmans.calculators as calculators
 from koopmans.commands import ParallelCommandWithPostfix
@@ -165,13 +166,22 @@ class Workflow(ABC):
             tot_mag = master_calc_params['kcp'].get('tot_magnetization', nelec % 2)
             nelup = int(nelec / 2 + tot_mag / 2)
             neldw = int(nelec / 2 - tot_mag / 2)
-            if tot_mag != 0:
+
+            # Setting up the magnetic moments
+            if 'starting_magnetization(1)' in master_calc_params['kcp']:
+                labels = [s + str(t) if t != 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
+                starting_magmoms = {}
+                for i, (l, p) in enumerate(self.pseudopotentials.items()):
+                    # ASE uses absoulte values; QE uses the fraction of the valence
+                    frac_mag = master_calc_params['kcp'].pop(f'starting_magnetization({i + 1})', 0.0)
+                    valence = valence_from_pseudo(p, pseudo_dir)
+                    starting_magmoms[l] = frac_mag * valence
+                atoms.set_initial_magnetic_moments([starting_magmoms[l] for l in labels])
+            elif tot_mag != 0:
                 atoms.set_initial_magnetic_moments([tot_mag / len(atoms) for _ in atoms])
 
-            # Work out the number of filled and empty bands
-            n_filled = nelec // 2 + nelec % 2
-            n_empty = master_calc_params['kcp'].get('empty_states_nbnd', 0)
-            nbnd = n_filled + n_empty
+            # Work out the number of bands
+            nbnd = master_calc_params['kcp'].get('nbnd', nelec // 2 + nelec % 2)
             generated_keywords = {'nelec': nelec, 'tot_charge': tot_charge, 'tot_magnetization': tot_mag,
                                   'nelup': nelup, 'neldw': neldw, 'nbnd': nbnd, 'pseudo_dir': pseudo_dir}
         else:
@@ -418,7 +428,7 @@ class Workflow(ABC):
     def update_celldms(self):
         # Update celldm(*) to match the current self.atoms.cell
         for k, params in self.master_calc_params.items():
-            if 'ibrav' in params:
+            if params.get('ibrav', 0) != 0:
                 celldms = cell_to_ibrav(self.atoms.cell, params.ibrav)
                 self.master_calc_params[k].update(**celldms)
 
@@ -512,6 +522,9 @@ class Workflow(ABC):
                 if is_complete:
                     if not self.silent:
                         self.print(f'Not running {os.path.relpath(calc_file)} as it is already complete')
+
+                    if isinstance(qe_calc, calculators.ReturnsBandStructure):
+                        qe_calc.generate_band_structure()
                     return
 
         if not self.silent:
@@ -565,6 +578,10 @@ class Workflow(ABC):
         if old_calc.is_complete():
             # If it is complete, load the results
             qe_calc.results = old_calc.results
+
+            # Load kpts if relevant
+            if hasattr(old_calc, 'kpts'):
+                qe_calc.kpts = old_calc.kpts
 
             # Load bandstructure if present, too
             if isinstance(qe_calc, calculators.UnfoldAndInterpolateCalculator):
@@ -836,7 +853,7 @@ class Workflow(ABC):
 
             master_calc_params[block] = settings_class(**dct)
             master_calc_params[block].update(
-                **{k: v for k, v in setup_parameters.items() if k in master_calc_params[block].valid})
+                **{k: v for k, v in setup_parameters.items() if k.split('(')[0] in master_calc_params[block].valid})
 
         # Adding the projections to the workflow kwargs (this is unusual in that this is an attribute of the workflow
         # object but it is provided in the w90 subdictionary)
@@ -937,10 +954,10 @@ class Workflow(ABC):
             bigdct['setup']['cell_parameters'] = utils.construct_cell_parameters_block(self.atoms)
 
         # atomic positions
-        if self.atoms.has('labels'):
-            labels = self.atoms.get_array('labels')
+        if len(set(self.atoms.get_tags())) > 1:
+            labels = [s + str(t) if t > 0 else s for s, t in zip(self.atoms.symbols, self.atoms.get_tags())]
         else:
-            labels = self.atoms.get_chemical_symbols()
+            labels = self.atoms.symbols
         if ibrav == 0:
             bigdct['setup']['atomic_positions'] = {'positions': [
                 [label] + [str(x) for x in pos] for label, pos in zip(labels, self.atoms.get_positions())],

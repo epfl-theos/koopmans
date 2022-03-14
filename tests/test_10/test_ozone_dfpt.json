@@ -16,7 +16,7 @@
       "ecutrho": 80.0
     },
         "electrons": {
-            "empty_states_nbnd": 1
+            "nbnd": 10
         },
     "cell_parameters": {
       "vectors": [

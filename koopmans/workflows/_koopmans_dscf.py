@@ -11,6 +11,7 @@ import numpy as np
 import shutil
 from pathlib import Path
 from typing import List, Optional, Tuple
+from ase.spectrum.band_structure import BandStructure
 from koopmans import utils
 from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.bands import Band, Bands
@@ -52,7 +53,10 @@ class KoopmansDSCFWorkflow(Workflow):
 
                     if nbands_occ != nelec:
                         raise ValueError('You have configured this calculation to only wannierise a subset of the '
-                                         'occupied bands. This is incompatible with the subsequent Koopmans '
+                                         'occupied bands:\n'
+                                         f' number of occupied bands = {nelec}\n'
+                                         f' number of occupied Wannier functions = {nbands_occ}\n'
+                                         'This is incompatible with the subsequent Koopmans '
                                          'calculation.\nPlease modify the wannier90 settings in order to wannierise '
                                          'all of the occupied bands. (You may want to consider taking advantage of the '
                                          '"projections_blocks" functionality if your system has a lot of electrons.)')
@@ -63,16 +67,19 @@ class KoopmansDSCFWorkflow(Workflow):
                     nbands_emp = self.master_calc_params['pw'].nbnd - nbands_occ
 
                 # Check the number of empty states has been correctly configured
-                if kcp_params.empty_states_nbnd == 0:
-                    # 0 is the default value
-                    kcp_params.empty_states_nbnd = nbands_emp
-                elif kcp_params.empty_states_nbnd != nbands_emp:
-                    if self.parameters.spin_polarised:
-                        raise NotImplementedError(
-                            'TODO: add support for different numbers of empty states for spin-polarised systems')
-                    raise ValueError('The number of empty states are inconsistent. If you have provided '
-                                     '"empty_states_nbnd" explicitly, check that it matches with the number of '
-                                     'empty projections/bands in your system.')
+                spin_info = f'spin {spin} ' if self.parameters.spin_polarised else ''
+                if kcp_params.nbnd is None:
+                    if nbands_emp != 0:
+                        kcp_params.nbnd = nbands_occ + nbands_emp
+                elif nbands_occ > kcp_params.nbnd:
+                    raise ValueError(f'The value you have provided for nbnd is less than the number of {spin_info}'
+                                     f'electrons. Please increase nbnd to at least {nbands_occ}')
+                elif kcp_params.nbnd != nbands_occ + nbands_emp:
+                    raise ValueError(f'The number of {spin_info}empty states are inconsistent:\n'
+                                     f' number of empty bands = {kcp_params.nbnd - nbands_occ}\n'
+                                     f' number of empty Wannier functions = {nbands_emp}\n'
+                                     'If you have provided "nbnd" explicitly to the kcp calculator, check that it '
+                                     'matches with the number of empty projections/bands in your system.')
 
             # Populating self.parameters.orbital_groups if needed
             # N.B. self.bands.groups is guaranteed to be 2 x num_wann, but self.parameters.orbital_groups
@@ -80,8 +87,8 @@ class KoopmansDSCFWorkflow(Workflow):
             if self.parameters.orbital_groups is None:
                 orbital_groups: List[List[int]] = []
                 i_start = 0
-                for i_spin, nelec in enumerate(nelecs):
-                    i_end = i_start + nelec + kcp_params.empty_states_nbnd - 1
+                for nelec in nelecs:
+                    i_end = i_start + kcp_params.get('nbnd', nelec) - 1
                     orbital_groups.append(list(range(i_start, i_end + 1)))
                     i_start = i_end
                 self.parameters.orbital_groups = orbital_groups
@@ -107,12 +114,22 @@ class KoopmansDSCFWorkflow(Workflow):
 
         # Constructing the arrays required to initialise a Bands object
         if self.parameters.spin_polarised:
-            filling = [[True for _ in range(kcp_params.nelup)] + [False for _ in range(kcp_params.empty_states_nbnd)],
-                       [True for _ in range(kcp_params.neldw)] + [False for _ in range(kcp_params.empty_states_nbnd)]]
+            if 'nbnd' in kcp_params:
+                n_emp_up = kcp_params.nbnd - kcp_params.nelup
+                n_emp_dw = kcp_params.nbnd - kcp_params.neldw
+            else:
+                n_emp_up = 0
+                n_emp_dw = 0
+            filling = [[True for _ in range(kcp_params.nelup)] + [False for _ in range(n_emp_up)],
+                       [True for _ in range(kcp_params.neldw)] + [False for _ in range(n_emp_dw)]]
             groups = self.parameters.orbital_groups
         else:
+            if 'nbnd' in kcp_params:
+                n_emp = kcp_params.nbnd - kcp_params.nelec // 2
+            else:
+                n_emp = 0
             filling = [[True for _ in range(kcp_params.nelec // 2)]
-                       + [False for _ in range(kcp_params.empty_states_nbnd)] for _ in range(2)]
+                       + [False for _ in range(n_emp)] for _ in range(2)]
             # self.parameters.orbital_groups does not have a spin index
             if self.parameters.orbital_groups is None:
                 groups = None
@@ -158,7 +175,7 @@ class KoopmansDSCFWorkflow(Workflow):
     def convert_kcp_to_supercell(self):
         # Multiply all extensive KCP settings by the appropriate prefactor
         prefactor = np.prod(self.kgrid)
-        for attr in ['nelec', 'nelup', 'neldw', 'empty_states_nbnd', 'conv_thr', 'esic_conv_thr']:
+        for attr in ['nelec', 'nelup', 'neldw', 'nbnd', 'conv_thr', 'esic_conv_thr', 'tot_charge', 'tot_magnetization']:
             value = getattr(self.master_calc_params['kcp'], attr, None)
             if value is not None:
                 setattr(self.master_calc_params['kcp'], attr, prefactor * value)
@@ -216,7 +233,9 @@ class KoopmansDSCFWorkflow(Workflow):
             calc = self.calculations[-1]
             savedir = f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
             utils.system_call(f'cp {savedir}/evc01.dat {savedir}/evc02.dat')
-            if calc.parameters.empty_states_nbnd is not None and calc.parameters.empty_states_nbnd > 0:
+
+            assert isinstance(calc, calculators.KoopmansCPCalculator)
+            if calc.has_empty_states():
                 utils.system_call(f'cp {savedir}/evc0_empty1.dat {savedir}/evc0_empty2.dat')
 
         self.print('Calculating screening parameters', style='heading')
@@ -276,8 +295,9 @@ class KoopmansDSCFWorkflow(Workflow):
             savedir /= 'K00001'
             files_to_check = [Path('init/ki_init.cpo'), savedir / 'evc01.dat', savedir / 'evc02.dat']
 
-            if calc.parameters.empty_states_nbnd is not None and calc.parameters.empty_states_nbnd > 0:
-                files_to_check += [savedir / f'evc0_empty{i}.dat' for i in [1, 2]]
+            for ispin in range(2):
+                if calc.has_empty_states(ispin):
+                    files_to_check.append(savedir / f'evc0_empty{ispin + 1}.dat')
 
             for fname in files_to_check:
                 if not fname.is_file():
@@ -321,6 +341,15 @@ class KoopmansDSCFWorkflow(Workflow):
 
             for filling in ['occ', 'emp']:
                 for i_spin, spin in enumerate(['up', 'down']):
+                    # Skip if we don't have wannier functions to copy over
+                    if self.parameters.init_orbitals != 'kohn-sham':
+                        if self.parameters.spin_polarised:
+                            if self.projections.num_wann(occ=(filling == 'occ'), spin=spin) == 0:
+                                continue
+                        else:
+                            if self.projections.num_wann(occ=(filling == 'occ'), spin=None) == 0:
+                                continue
+
                     if self.parameters.init_orbitals == 'kohn-sham':
                         if filling == 'occ':
                             evcw_file = Path(f'init/wannier/ks2odd/evc_occupied{i_spin + 1}.dat')
@@ -345,7 +374,7 @@ class KoopmansDSCFWorkflow(Workflow):
             # Check the consistency between the PW and CP band gaps
             pw_calc = [c for c in self.calculations if isinstance(
                 c, calculators.PWCalculator) and c.parameters.calculation == 'nscf'][-1]
-            pw_gap = pw_calc.results['lumo_ene'] - pw_calc.results['homo_ene']
+            pw_gap = pw_calc.results['lumo_energy'] - pw_calc.results['homo_energy']
             cp_gap = calc.results['lumo_energy'] - calc.results['homo_energy']
             if abs(pw_gap - cp_gap) > 2e-2 * pw_gap:
                 raise ValueError(f'PW and CP band gaps are not consistent: {pw_gap} {cp_gap}')
@@ -412,14 +441,14 @@ class KoopmansDSCFWorkflow(Workflow):
             save_prefix = f'{calc.parameters.outdir}/{calc.parameters.prefix}'
             utils.system_call(f'cp -r {save_prefix}_{calc.parameters.ndw}.save {save_prefix}_{ndw}.save')
 
-    def _overwrite_canonical_with_variational_orbitals(self, calc: calculators.CalculatorExt) -> None:
+    def _overwrite_canonical_with_variational_orbitals(self, calc: calculators.KoopmansCPCalculator) -> None:
         self.print('Overwriting the variational orbitals with Kohn-Sham orbitals')
         savedir = f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
         utils.system_call(f'cp {savedir}/evc1.dat {savedir}/evc01.dat')
         utils.system_call(f'cp {savedir}/evc2.dat {savedir}/evc02.dat')
-        if calc.parameters.empty_states_nbnd is not None and calc.parameters.empty_states_nbnd > 0:
-            utils.system_call(f'cp {savedir}/evc_empty1.dat {savedir}/evc0_empty1.dat')
-            utils.system_call(f'cp {savedir}/evc_empty2.dat {savedir}/evc0_empty2.dat')
+        for ispin in range(2):
+            if calc.has_empty_states(ispin):
+                utils.system_call(f'cp {savedir}/evc_empty{ispin + 1}.dat {savedir}/evc0_empty{ispin + 1}.dat')
 
     def perform_alpha_calculations(self) -> None:
         # Set up directories
@@ -563,7 +592,7 @@ class KoopmansDSCFWorkflow(Workflow):
                             #  - the KI calculations
                             #  - DFT calculations on empty variational orbitals
                             # We don't need to redo any of the others
-                            if trial_calc.parameters.empty_states_nbnd == 0 or band.filled:
+                            if not trial_calc.has_empty_states() or band.filled:
                                 if i_sc > 1 and 'ki' not in calc_type:
                                     continue
                         else:
@@ -627,7 +656,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
                                 # The exception to this are KI calculations on empty states. When we update alpha, the
                                 # empty manifold changes, which in turn affects the lambda values
-                                if trial_calc.parameters.empty_states_nbnd > 0 and not band.filled:
+                                if trial_calc.has_empty_states() and not band.filled:
                                     alpha_dep_calcs.append(calc)
                                 else:
                                     alpha_indep_calcs.append(calc)
@@ -847,7 +876,7 @@ class KoopmansDSCFWorkflow(Workflow):
         # increase the energy thresholds
         if not any([s in calc.prefix for s in ['init', 'print', 'final']]) and \
            calc.prefix not in ['ki', 'kipz', 'dft_dummy']:
-            calc.parameters.empty_states_nbnd = 0
+            calc.parameters.nbnd = None
             calc.parameters.conv_thr *= 100
             calc.parameters.esic_conv_thr *= 100
 
@@ -857,18 +886,18 @@ class KoopmansDSCFWorkflow(Workflow):
             calc.parameters.do_innerloop = False
         elif any([s in calc.prefix for s in ['frozen', 'dummy', 'print', 'innerloop']]) or calc.prefix == 'pkipz_final':
             calc.parameters.do_outerloop = False
-            if calc.parameters.empty_states_nbnd > 0:
+            if calc.has_empty_states():
                 calc.parameters.do_outerloop_empty = False
         elif calc.prefix in ['ki', 'ki_final']:
             calc.parameters.do_outerloop = False
-            if calc.parameters.empty_states_nbnd > 0:
+            if calc.has_empty_states():
                 if self.parameters.init_empty_orbitals == 'pz':
                     calc.parameters.do_outerloop_empty = True
                 else:
                     calc.parameters.do_outerloop_empty = False
         else:
             calc.parameters.do_outerloop = True
-            if calc.parameters.empty_states_nbnd > 0:
+            if calc.has_empty_states():
                 calc.parameters.do_outerloop_empty = True
 
         if calc.parameters.maxiter is None and calc.parameters.do_outerloop:
@@ -877,7 +906,7 @@ class KoopmansDSCFWorkflow(Workflow):
             calc.parameters.empty_states_maxstep = 300
 
         # No empty states minimization in the solids workflow for the moment
-        if self.parameters.periodic and calc.parameters.empty_states_nbnd > 0:
+        if self.parameters.periodic and calc.has_empty_states():
             calc.parameters.do_outerloop_empty = False
             calc.parameters.do_innerloop_empty = False
 
@@ -890,7 +919,7 @@ class KoopmansDSCFWorkflow(Workflow):
             calc.parameters.do_innerloop = True
         else:
             calc.parameters.do_innerloop = False
-        if calc.parameters.empty_states_nbnd > 0:
+        if calc.has_empty_states():
             calc.parameters.do_innerloop_empty = False
         if 'kipz' in calc.prefix:
             calc.parameters.which_orbdep = 'nkipz'
@@ -913,7 +942,7 @@ class KoopmansDSCFWorkflow(Workflow):
                                                                                        'kipz_n+1']]):
             calc.parameters.do_outerloop = False
             calc.parameters.do_innerloop = False
-            if calc.parameters.empty_states_nbnd > 0:
+            if calc.has_empty_states():
                 calc.parameters.do_outerloop_empty = False
                 calc.parameters.do_innerloop_empty = False
 

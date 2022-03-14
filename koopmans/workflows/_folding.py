@@ -61,19 +61,20 @@ class FoldToSupercellWorkflow(Workflow):
                     if len(subset) > 1:
                         output_directory = Path(subset[0].merge_directory)
                         output_directory.mkdir(exist_ok=True)
-                        output_file = output_directory / f'evcw{evc_index}.dat'
-                        command = ' '.join([os.environ.get('PARA_PREFIX')]
-                                           + [f'{calculators.qe_bin_directory}/merge_evc.x -nr {np.prod(self.kgrid)}']
-                                           + [f'-i {b.directory}/evcw{evc_index}.dat' for b in subset]
-                                           + [f'-o {output_file}'])
-                        if not self.parameters.from_scratch:
-                            self.parameters.from_scratch = not output_file.exists()
+                        if self.parameters.spin_polarised:
+                            evc_fname = f'evcw.dat'
+                        else:
+                            evc_fname = f'evcw{evc_index}.dat'
+                        command = ' '.join([f'{calculators.qe_bin_directory}/merge_evc.x -nr {np.prod(self.kgrid)}']
+                                           + [f'-i {b.directory}/{evc_fname}' for b in subset]
+                                           + [f'-o {output_directory}/{evc_fname}'])
                         if occ:
                             label = 'occupied'
                         else:
                             label = 'empty'
                         label += f' spin {evc_index}'
-                        if self.parameters.from_scratch:
+                        if self.parameters.from_scratch or not (output_directory / evc_fname).exists():
+                            self.parameters.from_scratch = True
                             self.print(f'Merging the {label} band blocks... ', end='')
                             utils.system_call(command)
                             self.print('done')
