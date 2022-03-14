@@ -1104,7 +1104,8 @@ class Workflow(ABC):
                         label = f'{d.info["symbol"]} {d.info["n"]}{d.info["l"]}'
                     else:
                         label = None
-                    d.plot_dos(ax=ax_dos, xmin=xmin, xmax=xmax, orientation='vertical', mplargs={'label': label}, **dosplot_kwargs)
+                    d.plot_dos(ax=ax_dos, xmin=xmin, xmax=xmax, orientation='vertical', mplargs={'label': label},
+                               **dosplot_kwargs)
 
                 # Reset color cycle so the colors of spin-up match those of spin-down
                 ax_dos.set_prop_cycle(None)

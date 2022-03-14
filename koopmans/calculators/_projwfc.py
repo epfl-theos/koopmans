@@ -25,7 +25,8 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
     ext_in = '.pri'
     ext_out = '.pro'
 
-    def __init__(self, atoms: Atoms, pseudopotentials: Dict[str, str], pseudo_dir: Path, spin_polarised: bool, *args, **kwargs):
+    def __init__(self, atoms: Atoms, pseudopotentials: Dict[str, str], pseudo_dir: Path,
+                 spin_polarised: bool, *args, **kwargs):
         # Define the valid settings
         self.parameters = ProjwfcSettingsDict()
 
@@ -38,8 +39,8 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
             self.command = ParallelCommand(os.environ.get(
                 'ASE_PROJWFC_COMMAND', str(qe_bin_directory) + os.path.sep + self.command))
 
-        # We need pseudopotentials and pseudo dir in order to work out the number of valence electrons for each element, and therefore
-        # what pDOS files to expect
+        # We need pseudopotentials and pseudo dir in order to work out the number of valence electrons for each
+        # element, and therefore what pDOS files to expect
         self.pseudopotentials = pseudopotentials
         self.pseudo_dir = pseudo_dir
 
