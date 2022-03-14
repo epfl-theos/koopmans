@@ -1,1 +1,1 @@
-../quantum_espresso/qe_koopmans/bin/merge_evc.x
+../quantum_espresso/utils/src/merge_evc.x
