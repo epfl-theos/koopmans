@@ -97,7 +97,7 @@ SUBROUTINE errore(calling_routine, message, ierr)
    !
 #endif
    !
-   ERROR STOP ierr
+   ERROR STOP 1
    !
    RETURN
    !
