@@ -32,9 +32,9 @@ from ase.spectrum.band_structure import BandStructure
 from koopmans import utils, settings
 
 # Directories of the various QE calculators
-qe_parent_directory = Path(__file__).parents[2] / 'quantum_espresso'
-qe_bin_directory = qe_parent_directory / 'qe_koopmans/bin/'
-kcp_bin_directory = qe_parent_directory / 'cp_koopmans/bin/'
+qe_parent_directory = Path(__file__).parents[2] / 'bin'
+qe_bin_directory = qe_parent_directory
+kcp_bin_directory = qe_parent_directory
 
 
 def sanitise_filenames(filenames: Union[str, Path, List[str], List[Path]], ext_in: str, ext_out: str) -> List[Path]:
