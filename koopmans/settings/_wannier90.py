@@ -1,6 +1,5 @@
 import numpy as np
-from typing import Any, Dict, List
-from ase import Atoms
+from typing import Any
 from ase.io.wannier90 import construct_kpoint_path, proj_string_to_dict
 from ase.dft.kpoints import BandPath
 from ._utils import SettingsDict
@@ -13,7 +12,8 @@ class Wannier90SettingsDict(SettingsDict):
                                 'num_iter', 'conv_window', 'conv_tol', 'num_print_cycles',
                                 'dis_froz_max', 'dis_num_iter', 'dis_win_max', 'guiding_centres',
                                 'bands_plot', 'mp_grid', 'kpoint_path', 'projections', 'write_hr',
-                                'write_u_matrices', 'write_xyz', 'wannier_plot', 'gamma_only'],
+                                'write_u_matrices', 'write_xyz', 'wannier_plot', 'gamma_only', 'spin',
+                                'use_ws_distance'],
                          defaults={'num_iter': 10000, 'conv_tol': 1.e-10, 'conv_window': 5,
                                    'write_hr': True, 'guiding_centres': True, 'gamma_only': False},
                          to_not_parse=['exclude_bands'],
