@@ -1074,7 +1074,9 @@ class Workflow(ABC):
 
         # Plot the band structure
         for b, kwargs in zip(bs, bsplot_kwargs):
-            ax_bs = b.plot(ax=ax_bs, colors=colors, **kwargs)
+            if 'colors' not in kwargs:
+                kwargs['colors'] = colors
+            ax_bs = b.plot(ax=ax_bs, **kwargs)
 
         # Move the legend (if there is one)
         if ax_bs.get_legend():

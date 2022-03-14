@@ -247,7 +247,7 @@ class WannierizeWorkflow(Workflow):
                     if 'explicit' in label:
                         kwargs['ls'] = 'none'
                         kwargs['marker'] = 'x'
-                    kwargs['color'] = colours[label]
+                    kwargs['colors'] = colours[label]
 
                     # Store
                     bs_list.append(bs)
