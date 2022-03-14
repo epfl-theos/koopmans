@@ -110,6 +110,7 @@ wann2kcp.o : ../../qe_koopmans/upflib/uspp.o
 wann2kcp.o : plot_wan2odd.o
 wann2kcp.o : wannier2kcp.o
 wann2kcp.o : wannier.o
+wannier.o : ../../qe_koopmans/Modules/kind.o
 wannier2kcp.o : ../../qe_koopmans/FFTXlib/src/fft_interfaces.o
 wannier2kcp.o : ../../qe_koopmans/Modules/cell_base.o
 wannier2kcp.o : ../../qe_koopmans/Modules/constants.o
@@ -128,7 +129,6 @@ wannier2kcp.o : ../../qe_koopmans/PW/src/buffers.o
 wannier2kcp.o : ../../qe_koopmans/PW/src/pwcom.o
 wannier2kcp.o : ../../qe_koopmans/PW/src/scf_mod.o
 wannier2kcp.o : ../../qe_koopmans/UtilXlib/mp.o
-wannier.o : ../../qe_koopmans/Modules/kind.o
 wannier2kcp.o : cp_files.o
 wannier2kcp.o : fft_supercell.o
 wannier2kcp.o : read_wannier.o

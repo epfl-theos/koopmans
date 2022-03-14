@@ -12,7 +12,7 @@ MODFLAGS= $(BASEMOD_FLAGS) \
 PWOBJS = ../../qe_koopmans/PW/src/libpw.a ../../qe_koopmans/KS_Solvers/libks_solvers.a ../../qe_koopmans/dft-d3/libdftd3qe.a ../../qe_koopmans/PP/src/libpp.a
 QEMODS = $(BASEMODS)
 
-WAN2ODD_OBJS = read_wannier.o fft_supercell.o scell_wfc.o plot_wan2odd.o \
+WAN2KCP_OBJS = wannier.o read_wannier.o fft_supercell.o scell_wfc.o plot_wan2kcp.o \
                cp_files.o wannier2kcp.o
 
 MODULES = $(PWOBJS) $(QEMODS)
@@ -29,9 +29,9 @@ merge_evc.x : merge_evc.o $(MODULES) $(LIBOBJS)
 	merge_evc.o $(MODULES) $(LIBOBJS) $(QELIBS)
 	- ( cd ../bin ; ln -fs ../src/$@ . )
 
-wann2kcp.x : wann2kcp.o $(WAN2ODD_OBJS) $(MODULES) $(LIBOBJS)
+wann2kcp.x : wann2kcp.o $(WAN2KCP_OBJS) $(MODULES) $(LIBOBJS)
 	$(LD) $(LDFLAGS) -o $@ \
-		wann2kcp.o $(WAN2ODD_OBJS) $(MODULES) $(LIBOBJS) $(QELIBS)
+		wann2kcp.o $(WAN2KCP_OBJS) $(MODULES) $(LIBOBJS) $(QELIBS)
 	- ( cd ../bin ; ln -fs ../src/$@ . )
 
 epsilon.x : epsilon.o $(MODULES) $(LIBOBJS)
