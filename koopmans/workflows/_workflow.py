@@ -31,7 +31,7 @@ from ase.io.espresso.utils import cell_to_ibrav, ibrav_to_cell
 from ase.io.espresso.koopmans_cp import KEYS as kcp_keys, construct_namelist
 from ase.spectrum.band_structure import BandStructure
 from ase.spectrum.doscollection import GridDOSCollection
-from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, pseudos_database, fetch_pseudo, \
+from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, pseudo_database, fetch_pseudo, \
     valence_from_pseudo
 from koopmans import utils, settings
 import koopmans.calculators as calculators
