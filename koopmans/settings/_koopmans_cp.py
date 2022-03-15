@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from ase.io.espresso import koopmans_cp as kcp_io
+from ase.io.espresso import kcp_keys
 from pathlib import Path
 from ._utils import SettingsDict
 
@@ -42,7 +42,7 @@ class KoopmansCPSettingsDict(SettingsDict):
             else:
                 flattened_kwargs[k] = v
 
-        super().__init__(valid=[k for sublist in kcp_io.KEYS.values() for k in sublist],
+        super().__init__(valid=[k for sublist in kcp_keys.values() for k in sublist],
                          defaults=defaults,
                          are_paths=['outdir', 'pseudo_dir'],
                          to_not_parse=['assume_isolated'],
