@@ -14,12 +14,6 @@ epsilon.o : ../../qe_koopmans/PW/src/pw_restart_new.o
 epsilon.o : ../../qe_koopmans/PW/src/pwcom.o
 epsilon.o : ../../qe_koopmans/UtilXlib/mp.o
 epsilon.o : ../../qe_koopmans/upflib/uspp.o
-merge_evc.o : ../../qe_koopmans/Modules/environment.o
-merge_evc.o : ../../qe_koopmans/Modules/io_global.o
-merge_evc.o : ../../qe_koopmans/Modules/kind.o
-merge_evc.o : ../../qe_koopmans/Modules/mp_global.o
-merge_evc.o : ../../qe_koopmans/UtilXlib/clocks_handler.o
-merge_evc.o : ../../qe_koopmans/UtilXlib/error_handler.o
 cp_files.o : ../../qe_koopmans/Modules/io_global.o
 cp_files.o : ../../qe_koopmans/Modules/kind.o
 cp_files.o : ../../qe_koopmans/Modules/mp_bands.o
