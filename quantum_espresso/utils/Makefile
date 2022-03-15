@@ -19,4 +19,4 @@ links : bindir
 clean :
 	if test -d src ; then \
 	( cd src ; $(MAKE) clean ) ; fi
-	- /bin/rm -rf bin
+	- /bin/rm -f bin/*.x

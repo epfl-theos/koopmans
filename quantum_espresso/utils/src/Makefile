@@ -24,9 +24,8 @@ pwlib:
 pplib:
 	cd ../../qe_koopmans/PP/src ; if [ ! -e libpp.a ]; then $(MAKE) libpp.a ; fi || exit 1 
 
-merge_evc.x : merge_evc.o $(MODULES) $(LIBOBJS)
-	$(LD) $(LDFLAGS) -o $@ \
-	merge_evc.o $(MODULES) $(LIBOBJS) $(QELIBS)
+merge_evc.x : merge_evc.o
+	$(LD) $(LDFLAGS) -o $@ merge_evc.o
 	- ( cd ../bin ; ln -fs ../src/$@ . )
 
 wann2kcp.x : wann2kcp.o $(WAN2KCP_OBJS) $(MODULES) $(LIBOBJS)
