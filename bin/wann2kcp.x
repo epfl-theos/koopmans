@@ -1,1 +1,1 @@
-../quantum_espresso/utils/src/wann2kcp.x
+../quantum_espresso/utils/bin/wann2kcp.x
