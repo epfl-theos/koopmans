@@ -14,7 +14,7 @@ from ase.dft.kpoints import BandPath
 from koopmans.utils import warn
 from koopmans.settings import Wannier90SettingsDict
 from koopmans.commands import Command
-from ._utils import CalculatorExt, CalculatorABC, qe_bin_directory
+from ._utils import CalculatorExt, CalculatorABC, bin_directory
 
 
 class Wannier90Calculator(CalculatorExt, Wannier90, CalculatorABC):
@@ -31,7 +31,7 @@ class Wannier90Calculator(CalculatorExt, Wannier90, CalculatorABC):
 
         # Set up the command for running this calculator
         self.command = Command(os.environ.get('ASE_WANNIER90_COMMAND',
-                                              str(qe_bin_directory) + os.path.sep + self.command))
+                                              str(bin_directory) + os.path.sep + self.command))
 
         self.results_for_qc = ['centers', 'spreads']
 

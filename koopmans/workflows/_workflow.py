@@ -1045,7 +1045,7 @@ def header():
 
     koopmans_version = get_version(os.path.dirname(__file__))
     ase_version = get_version(ase)
-    qe_version = get_version(calculators.qe_bin_directory)
+    qe_version = get_version(calculators.bin_directory)
 
     header = [r"  _                                                ",
               r" | | _____   ___  _ __  _ __ ___   __ _ _ __  ___  ",

@@ -12,7 +12,7 @@ from ase import Atoms
 from ase.calculators.espresso import Espresso
 from ase.dft.kpoints import BandPath
 from koopmans.settings import PWSettingsDict
-from ._utils import CalculatorExt, CalculatorABC, qe_bin_directory, ReturnsBandStructure
+from ._utils import CalculatorExt, CalculatorABC, bin_directory, ReturnsBandStructure
 from koopmans.commands import ParallelCommandWithPostfix, Command
 
 
@@ -32,7 +32,7 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         self.results_for_qc = ['energy']
         if not isinstance(self.command, Command):
             self.command = ParallelCommandWithPostfix(os.environ.get(
-                'ASE_ESPRESSO_COMMAND', str(qe_bin_directory) + os.path.sep + self.command))
+                'ASE_ESPRESSO_COMMAND', str(bin_directory) + os.path.sep + self.command))
 
         self.results_for_qc = ['energy']
 

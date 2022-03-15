@@ -21,7 +21,7 @@ from ase import Atoms
 from ase.calculators.espresso import Espresso_kcp
 from koopmans import utils, settings, pseudopotentials, bands
 from koopmans.commands import ParallelCommand
-from ._utils import CalculatorExt, CalculatorABC, kcp_bin_directory, CalculatorCanEnforceSpinSym
+from ._utils import CalculatorExt, CalculatorABC, bin_directory, CalculatorCanEnforceSpinSym
 
 
 def read_ham_file(filename: Path) -> np.ndarray:
@@ -69,7 +69,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
         if not isinstance(self.command, ParallelCommand):
             self.command = ParallelCommand(os.environ.get(
-                'ASE_ESPRESSO_KCP_COMMAND', str(kcp_bin_directory) + os.path.sep + self.command))
+                'ASE_ESPRESSO_KCP_COMMAND', str(bin_directory) + os.path.sep + self.command))
 
         if alphas is not None:
             self.alphas = alphas

@@ -13,7 +13,7 @@ from ase import Atoms
 from ase.calculators.espresso import KoopmansHam
 from ase.dft.kpoints import BandPath
 from koopmans import utils, settings
-from ._utils import KCWannCalculator, CalculatorABC, qe_bin_directory, ReturnsBandStructure
+from ._utils import KCWannCalculator, CalculatorABC, bin_directory, ReturnsBandStructure
 from koopmans.commands import ParallelCommand
 
 
@@ -31,7 +31,7 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
         KCWannCalculator.__init__(self, *args, **kwargs)
 
         self.command = ParallelCommand(
-            f'{qe_bin_directory}{os.path.sep}kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
+            f'{bin_directory}{os.path.sep}kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
 
         self.results_for_qc = ['ki_eigenvalues_on_grid', 'band structure']
 

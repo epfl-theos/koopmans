@@ -11,7 +11,7 @@ from ase import Atoms
 from ase.calculators.espresso import Wann2KCP
 from koopmans.settings import Wann2KCPSettingsDict
 from koopmans.commands import ParallelCommand
-from ._utils import CalculatorExt, CalculatorABC, qe_bin_directory
+from ._utils import CalculatorExt, CalculatorABC, bin_directory
 
 
 class Wann2KCPCalculator(CalculatorExt, Wann2KCP, CalculatorABC):
@@ -27,7 +27,7 @@ class Wann2KCPCalculator(CalculatorExt, Wann2KCP, CalculatorABC):
         CalculatorExt.__init__(self, *args, **kwargs)
 
         self.command = ParallelCommand(os.environ.get('ASE_WANN2KCP_COMMAND',
-                                                      str(qe_bin_directory) + os.path.sep + self.command))
+                                                      str(bin_directory) + os.path.sep + self.command))
 
     def is_converged(self):
         return True
