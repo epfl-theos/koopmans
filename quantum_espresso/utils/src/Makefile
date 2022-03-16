@@ -1,6 +1,6 @@
 # Makefile for Koopmans utils
 
-include ../../qe_koopmans/make.inc
+-include ../../qe_koopmans/make.inc
 
 # location of needed modules and included files (if any)
 MODFLAGS= $(BASEMOD_FLAGS) \
