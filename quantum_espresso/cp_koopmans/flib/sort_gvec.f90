@@ -15,6 +15,7 @@ subroutine sort_gvec( ng, g2, mill )
   !
   use kinds, ONLY: DP
   use constants, ONLY: eps8
+  use cell_base, ONLY : bg
   implicit none
   INTEGER, INTENT(IN) :: ng
   REAL(DP) :: g2( * )
@@ -37,7 +38,18 @@ subroutine sort_gvec( ng, g2, mill )
   END DO
 
   idx(1) = 0
+  WRITE(1001,*) "NICOLA", ng, idx(1), eps8 
+  WRITE(1001,*) "NICOLA", bg(:,1)
+  WRITE(1001,*) "NICOLA", bg(:,2)
+  WRITE(1001,*) "NICOLA", bg(:,3)
+  DO ig = 1, ng ; WRITE(1001,*) ig, gsort(ig); ENDDO
+  CLOSE (1001)
   CALL hpsort_eps( ng, gsort( 1 ), idx( 1 ), eps8 )
+  WRITE(2001,*) "NICOLA", ng, idx(1), eps8 
+  DO ig = 1, ng ; WRITE(2001,*) ig, gsort(ig); ENDDO
+  DO ig = 1, ng ; WRITE(3001,*) ig, idx(ig); ENDDO
+  CLOSE (2001)
+  !CALL hpsort_eps( ngm_g, g2sort_g, igsrt, eps8 )
 
   ! ... sort indices accordingly
   DO ig = 1, ng-1

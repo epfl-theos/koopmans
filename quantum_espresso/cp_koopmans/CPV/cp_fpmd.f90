@@ -377,6 +377,12 @@ end subroutine ggenb
       allocate( mill_g( 3, ng_g ) )
 
       CALL gglobal( ng_g, g2_g, mill_g, b1, b2, b3, nr1, nr2, nr3, gcut, lgam )
+      !
+!     ! NICOLA 
+     DO ig=1,ng
+       WRITE( 104, fmt="( I6, 3I4 )" ) ig, mill_g(1,ig), mill_g(2,ig), mill_g(3,ig)
+     END DO
+     CLOSE( 104 )
 
       !
       !     third step: allocate space
@@ -398,6 +404,13 @@ end subroutine ggenb
       !     local to each processor
       !
       CALL glocal( ng, g, ig_l2g, mill_l, ng_g, g2_g, mill_g, nr1, nr2, nr3, dfftp%isind, dfftp%nr1x  )
+      !
+!     ! NICOLA
+     DO ig=1,ng
+       WRITE( 204, fmt="( I6, 3I4 )" ) ig, mill_l(1,ig), mill_l(2,ig), mill_l(3,ig)
+     END DO
+     CLOSE( 204 )
+!     !NICOLA
 
       IF( iprsta > 3 ) THEN
         WRITE( stdout,*)
@@ -449,10 +462,10 @@ end subroutine ggenb
 
 ! ... Uncomment to make tests and comparisons with other codes
 !      IF ( ionode ) THEN
-!        DO ig=1,ngs
-!          WRITE( 202, fmt="( I6, 2I6, 3I4 )" ) ig, nps(ig), nms(ig), mill_l(1,ig), mill_l(2,ig), mill_l(3,ig)
-!        END DO
-!        CLOSE( 202 )
+        DO ig=1,ngs
+          WRITE( 202, fmt="( I6, 2I6, 3I4 )" ) ig, nps(ig), nms(ig), mill_l(1,ig), mill_l(2,ig), mill_l(3,ig)
+        END DO
+        CLOSE( 202 )
 !      END IF
 
       !  ... here igl is used as temporary storage area
@@ -665,6 +678,7 @@ SUBROUTINE gglobal( ng_g, g2_g, mill_g, b1, b2, b3, nr1, nr2, nr3, gcut, lgam )
                  ng=ng+1
                  if( ng > ng_g ) call errore( ' gglobal ', ' too many G vectors ', ng )
                  g2_g(ng)=g2
+                 WRITE(4000,*) i, j, k, ng, g2_g(ng)
                  mill_g(1,ng)=i
                  mill_g(2,ng)=j
                  mill_g(3,ng)=k
@@ -672,10 +686,26 @@ SUBROUTINE gglobal( ng_g, g2_g, mill_g, b1, b2, b3, nr1, nr2, nr3, gcut, lgam )
             end do loopz
          end do loopy
       end do loopx
-
+      CLOSE(4000) ! NICOLA
       if( ng /= ng_g ) call errore( ' gglobal ', ' inconsistent number of G vectors ', ng )
 
+      ! NICOLA
+      WRITE(201,*) nr1m1, nr2m1, nr3m1
+      WRITE(201,*) nr1m1, nr2m1, nr3m1
+      WRITE(201,*) 3*ng
+      DO i=1,ng
+        WRITE( 201, fmt="( I6, 3I4 )" ) i, mill_g(1,i), mill_g(2,i), mill_g(3,i)
+      END DO
+      CLOSE( 201 )
+      ! NICOLA
+
       CALL sort_gvec( ng, g2_g, mill_g )
+      ! NICOLA
+      DO i=1,ng
+        WRITE( 203, fmt="( I6, 3I4 )" ) i, mill_g(1,i), mill_g(2,i), mill_g(3,i)
+      END DO
+      CLOSE( 203 )
+      !NICOLA
 
 ! ... Uncomment to make tests and comparisons with other codes
 !      IF ( ionode ) THEN
@@ -728,8 +758,19 @@ SUBROUTINE glocal( ng, g, ig_l2g, mill_l, ng_g, g2_g, mill_g, nr1, nr2, nr3, isi
         ig_l2g(ng_l) = ig
         mill_l(1:3,ng_l) = mill_g(1:3,ig)
       end do loop_allg
+      
+      !NICOLA
+      DO ig=1,ng
+        WRITE( 205, fmt="( I6, 3I4 )" ) ig, mill_l(1,ig), mill_l(2,ig), mill_l(3,ig)
+      END DO
+      CLOSE( 205 )
+      !NICOLA
 
       if( ng /= ng_l ) call errore( ' glocal ', ' inconsistent number of G vectors ', ng_l )
+
+      ! NICOLA
+      RETURN 
+      ! NICOLA 
 
       allocate(idx(ng))
 !
@@ -1001,6 +1042,14 @@ END SUBROUTINE gshcount
          g(ig)=gx(1,ig)**2 + gx(2,ig)**2 + gx(3,ig)**2
          if(g(ig).gt.gmax) gmax=g(ig)
       enddo
+     
+     WRITE(*,*) "NICOLA inside gcal"
+ 
+     WRITE(543,*) SIZE(gx)
+     do ig = 1, ngm ! NICOLA 
+     WRITE(543,'(i5, 3x, 3F20.10, 3x, F20.10)') ig, gx(:,ig), g(ig)
+     enddo
+  
  
       tpiba2 = ( tpi / alat ) ** 2
       gcutz  = ecutz / tpiba2

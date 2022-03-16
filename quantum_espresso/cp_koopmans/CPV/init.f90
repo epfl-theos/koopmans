@@ -29,7 +29,7 @@
       use smallbox_grid_dimensions, only: nr1b, nr2b, nr3b, nr1bx, nr2bx, nr3bx
       use smooth_grid_dimensions,   only: nr1s, nr2s, nr3s, nr1sx, nr2sx, nr3sx
       USE grid_subroutines,         ONLY: realspace_grids_init, realspace_grids_para
-      USE reciprocal_vectors,       ONLY: mill_g, g2_g, bi1, bi2, bi3
+      USE reciprocal_vectors,       ONLY: mill_g, g2_g, bi1, bi2, bi3, gx, g
       USE recvecs_subroutines,      ONLY: recvecs_init
       use gvecw,                    only: gkcut, ngw
       use gvecp,                    only: ecut => ecutp, gcut => gcutp, ngm
@@ -148,11 +148,21 @@
       !
       ! ... generate g-space
       !
+      !NICOLA
+      WRITE (542, '(F22.16)') alat
+      WRITE (542, *) b1
+      WRITE (542, *) b2
+      WRITE (542, *) b3
+      WRITE (542, *) a1
+      WRITE (542, *) a2
+      WRITE (542, *) a3
       call ggencp( b1, b2, b3, nr1, nr2, nr3, nr1s, nr2s, nr3s, gcut, gcuts, gkcut, lgam) !added:giovanni do_wf_cmplx
       !
       ngw_=ngw !dirtyfix:giovanni
       ngm_=ngm
       ngs_=ngs
+      ! NICOLA
+      !WRITE(542,'(F20.10, 2I10, L)') gcut, ngm, ngm_, lgam
       CALL recvecs_init( ngm_ , ngw_ , ngs_ ) !dirtyfix:giovanni
       !write(6,*) "init_recvecs", ngw_
       ! 
@@ -351,6 +361,7 @@
       !
       USE kinds,                 ONLY : DP
       USE cell_base,             ONLY : a1, a2, a3, omega, alat, cell_base_reinit
+      USE reciprocal_vectors, ONLY :gx
       !
       implicit none
       !
@@ -371,6 +382,7 @@
       call recips( a1, a2, a3, b1, b2, b3 )
       !
       call gcal( alat, b1, b2, b3, gmax )
+       WRITE(*,*) "NICOLA newini", gx(:,9)
       !
       !   generation of little box g-vectors
       !

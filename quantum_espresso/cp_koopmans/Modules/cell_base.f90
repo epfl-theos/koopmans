@@ -515,6 +515,10 @@ END FUNCTION saw
       !    The matrix "ht" in FPMD correspond to the transpose of matrix "at" in PW
       !
       at        = TRANSPOSE( rd_ht ) * units
+      WRITE(*,*) "NICOLA alat"
+      WRITE(*, '(3F22.16)') at(:,1)
+      WRITE(*, '(3F22.16)') at(:,2)
+      WRITE(*, '(3F22.16)') at(:,3)
       WRITE( stdout, 210 )
       WRITE( stdout, 220 ) ( rd_ht( 1, j ), j = 1, 3 )
       WRITE( stdout, 220 ) ( rd_ht( 2, j ), j = 1, 3 )
@@ -538,14 +542,20 @@ END FUNCTION saw
 240   format(3X,'a, b, c are ignored')
       !
 
+      WRITE(*,*) "NICOLA celldm(1) iinput", celldm(1)
       IF ( celldm(1) == 0.0_DP ) THEN
         !
         ! ... input at are in atomic units: define alat
         !
-        celldm(1) = SQRT( at(1,1)**2 + at(1,2)**2 + at(1,3)**2 )
+        !celldm(1) = SQRT( at(1,1)**2 + at(1,2)**2 + at(1,3)**2 )
+        ! NICOLA: for compatibility with PW latest version
+        !         important to preserve the same order of the g-vectors
+        celldm(1) = SQRT( at(1,1)**2 + at(2,1)**2 + at(3,1)**2 )
       END IF
+      WRITE(*,*) "NICOLA celldm(1) output", celldm(1)
 
       alat = celldm(1)
+      WRITE(*,*) "NICOLA alat=", alat
       !
       ! ... bring at to alat units
       !

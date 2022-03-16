@@ -28,7 +28,7 @@
       use gvecs,                    only : ngs
       use gvecb,                    only : ngb
       use gvecw,                    only : ngw, ngwx
-      use reciprocal_vectors,       only : ng0 => gstart
+      use reciprocal_vectors,       only : ng0 => gstart, gx
       use cvan,                     only : nvb, ish
       use ions_base,                only : na, nat, nsp, zv
       use grid_dimensions,          only : nnr => nnrx, nr1, nr2, nr3
@@ -224,6 +224,7 @@
       !                 begin of the main loop
       !=======================================================================
       !
+      ! NICOLA
       OUTER_LOOP: &
       do while ( itercg < maxiter .and. (.not. ltresh) )
         !
@@ -235,6 +236,18 @@
           call calbec(1,nsp,eigr,c0,bec)
           !  
           call rhoofr(nfi,c0(:,:),irb,eigrb,bec,rhovan,rhor,rhog,rhos,enl,denl,ekin,dekin6)
+          IF (itercg == 1) THEN
+            DO i = 1, ngm
+             WRITE(1002,'(i5, 3F20.10, 2F20.10)') i, gx(:,i), rhog(i,1)
+            ENDDO
+            CLOSE(1002)
+            ! HERE I read the "correct" G-vector list from fort.1003
+!            OPEN (1003)
+!            DO i = 1, ngm
+!              READ(1003,'(i5, 3F20.10)') dum, gx(:,i), dum, dum
+!            ENDDO
+!            CLOSE(1003)
+          ENDIF
           !
           ! put core charge (if present) in rhoc(r)
           !
