@@ -184,10 +184,18 @@ class WannierizeWorkflow(Workflow):
 
             # Work out the vertical shift to set the valence band edge to zero
             pw_eigs = calc_pw_bands.results['band structure'].energies
+            nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.pseudo_dir)
+            tot_charge = calc_pw.parameters.get('tot_charge', 0)
+            nelec -= tot_charge
+
             if self.parameters.spin_polarised:
-                w90_emp_num_bands = [self.projections.num_bands(occ=False, spin=spin) for spin in ['up', 'down']]
+                tot_mag = calc_pw.parameters.get('tot_magnetization', nelec % 2)
+                nelup = int(nelec / 2 + tot_mag / 2)
+                neldw = int(nelec / 2 - tot_mag / 2)
+                nbnd_empty = [calc_pw_bands.parameters.nbnd - x for x in [nelup, neldw]]
+
                 vbes: List[float] = []
-                for ispin, num_bands in enumerate(w90_emp_num_bands):
+                for ispin, num_bands in enumerate(nbnd_empty):
                     if num_bands == 0:
                         vbes.append(pw_eigs[ispin, :, :].max())
                     elif num_bands == pw_eigs.shape[2]:
@@ -197,15 +205,21 @@ class WannierizeWorkflow(Workflow):
 
                 vbe = max(vbes)
             else:
-                w90_emp_num_bands = self.projections.num_bands(occ=False)
-                if w90_emp_num_bands > 0:
-                    vbe = np.max(pw_eigs[:, :, :-w90_emp_num_bands])
+                nbnd_empty = calc_pw_bands.parameters.nbnd - nelec // 2
+                if nbnd_empty > 0:
+                    vbe = np.max(pw_eigs[:, :, :-nbnd_empty])
                 else:
                     vbe = np.max(pw_eigs)
 
             # Work out the energy ranges for plotting
-            emin = np.min(selected_calcs[0].results['band structure'].energies) - 1 - vbe
-            emax = np.max(selected_calcs[-1].results['band structure'].energies) + 1 - vbe
+            if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
+                cmin = selected_calcs[0]
+                cmax = selected_calcs[-1]
+            else:
+                cmin = calc_pw_bands
+                cmax = calc_pw_bands
+            emin = np.min(cmin.results['band structure'].energies) - 1 - vbe
+            emax = np.max(cmax.results['band structure'].energies) + 1 - vbe
 
             # Plot the bandstructures on top of one another
             ax = None
