@@ -20,7 +20,7 @@ MODULES = $(PWOBJS) $(QEMODS)
 all : pwlib pplib epsilon.x wann2kcp.x merge_evc.x
 
 pwlib:
-	cd ../../qe_koopmans/PW/src ; if [ ! -e libpw.a ]; then $(MAKE) libpw.a ; fi || exit 1
+	cd ../../qe_koopmans/ ; if [ ! -e libpw.a ]; then $(MAKE) pwlibs ; fi || exit 1
 pplib:
 	cd ../../qe_koopmans/PP/src ; if [ ! -e libpp.a ]; then $(MAKE) libpp.a ; fi || exit 1 
 
