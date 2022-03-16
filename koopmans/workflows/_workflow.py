@@ -130,14 +130,17 @@ class Workflow(ABC):
         #  1. try to locating the directory as currently specified by the calculator
         #  2. if that fails, check if $ESPRESSO_PSEUDO is set
         #  3. if that fails, raise an error
-        if self.parameters.pseudo_library:
+        if pseudo_dir is not None:
+            pass
+        elif self.parameters.pseudo_library:
             pseudo_dir = pseudos_library_directory(self.parameters.pseudo_library, self.parameters.base_functional)
             for params in master_calc_params.values():
                 if params.get('pseudo_dir', pseudo_dir).resolve() != pseudo_dir:
                     raise ValueError(
                         '"pseudo_dir" and "pseudo_library" are conflicting; please do not provide "pseudo_dir"')
         elif 'pseudo_dir' in master_calc_params['kcp'] or 'pseudo_dir' in master_calc_params['pw']:
-            pseudo_dir = master_calc_params['kcp'].get('pseudo_dir', master_calc_params['pw'].get('pseudo_dir', None))
+            pseudo_dir = master_calc_params['kcp'].get('pseudo_dir', master_calc_params['pw'].get('pseudo_dir'))
+            assert isinstance(pseudo_dir, Path)
             if not os.path.isdir(pseudo_dir):
                 raise NotADirectoryError(f'The pseudo_dir you provided ({pseudo_dir}) does not exist')
         elif 'ESPRESSO_PSEUDO' in os.environ:
