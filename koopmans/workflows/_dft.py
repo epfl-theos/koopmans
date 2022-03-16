@@ -80,12 +80,6 @@ class PWBandStructureWorkflow(Workflow):
         calc_bands.prefix = 'bands'
         self.run_calculator(calc_bands)
 
-        # Third, a PDOS calculation
-        calc_dos = self.new_calculator('projwfc', filpdos=self.name, pseudopotentials=self.pseudopotentials,
-                                       spin_polarised=self.parameters.spin_polarised,
-                                       pseudo_dir=calc_scf.parameters.pseudo_dir)
-        self.run_calculator(calc_dos)
-
         # Prepare the band structure for plotting
         bs = calc_bands.results['band structure']
         n_filled = pseudopotentials.nelec_from_pseudos(
@@ -93,9 +87,24 @@ class PWBandStructureWorkflow(Workflow):
         vbe = bs._energies[:, :, :n_filled].max()
         bs._energies -= vbe
 
-        # Prepare the DOS for plotting
-        dos = calc_dos.results['dos']
-        dos._energies -= vbe
+        # Third, a PDOS calculation
+        pseudos = [pseudopotentials.read_pseudo_file(calc_scf.parameters.pseudo_dir / p) for p in
+                   self.pseudopotentials.values()]
+        if all([int(p.find('PP_HEADER').get('number_of_wfc')) > 0 for p in pseudos]):
+            calc_dos = self.new_calculator('projwfc', filpdos=self.name,
+                                           pseudopotentials=self.pseudopotentials,
+                                           spin_polarised=self.parameters.spin_polarised,
+                                           pseudo_dir=calc_scf.parameters.pseudo_dir)
+            self.run_calculator(calc_dos)
+
+            # Prepare the DOS for plotting
+            dos = calc_dos.results['dos']
+            dos._energies -= vbe
+        else:
+            # Skip if the pseudos don't have the requisite PP_PSWFC blocks
+            utils.warn('Some of the pseudopotentials do not have PP_PSWFC blocks, which means a projected DOS '
+                       'calculation is not possible. Skipping...')
+            dos = None
 
         # Plot the band structure and DOS
         self.plot_bandstructure(bs, dos)

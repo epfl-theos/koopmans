@@ -60,12 +60,12 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         corresponding pseudopotential.
         """
         expected_orbitals = {}
-        z_core_to_first_orbital = {0: '1s', 2: '2s', 4: '2p', 10: '3s', 12: '3p', 18: '4s', 20: '3d', 30: '4p'}
+        z_core_to_first_orbital = {0: '1s', 2: '2s', 4: '2p', 10: '3s', 12: '3p', 18: '3d', 28: '4s', 30: '4p'}
         for atom in self.atoms:
             if atom.symbol in expected_orbitals:
                 continue
             pseudo_file = self.pseudopotentials[atom.symbol]
-            z_core = atom.number - pseudopotentials.valence_from_pseudo(self.pseudo_dir, pseudo_file)
+            z_core = atom.number - pseudopotentials.valence_from_pseudo(pseudo_file, self.pseudo_dir)
             first_orbital = z_core_to_first_orbital[z_core]
             all_orbitals = list(z_core_to_first_orbital.values())
             expected_orbitals[atom.symbol] = all_orbitals[all_orbitals.index(first_orbital):]

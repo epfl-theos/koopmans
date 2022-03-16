@@ -24,12 +24,14 @@ from pybtex.database import BibliographyData
 import ase
 from ase import Atoms
 from ase.build.supercells import make_supercell
+from ase.dft.dos import DOS
 from ase.dft.kpoints import BandPath
 from ase.calculators.espresso import Espresso_kcp
 from ase.calculators.calculator import CalculationFailed
 from ase.io.espresso.utils import cell_to_ibrav, ibrav_to_cell
 from ase.io.espresso.koopmans_cp import KEYS as kcp_keys, construct_namelist
 from ase.spectrum.band_structure import BandStructure
+from ase.spectrum.dosdata import GridDOSData
 from ase.spectrum.doscollection import GridDOSCollection
 from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, pseudo_database, fetch_pseudo, \
     valence_from_pseudo
@@ -1039,7 +1041,7 @@ class Workflow(ABC):
 
     def plot_bandstructure(self,
                            bs: Union[BandStructure, List[BandStructure]],
-                           dos: Optional[GridDOSCollection] = None,
+                           dos: Optional[Union[GridDOSCollection, DOS]] = None,
                            filename: Optional[str] = None,
                            bsplot_kwargs: Union[Dict[str, Any], List[Dict[str, Any]]] = {},
                            dosplot_kwargs: Dict[str, Any] = {}):
@@ -1062,6 +1064,12 @@ class Workflow(ABC):
             bsplot_kwargs = [bsplot_kwargs]
         if len(bs) != len(bsplot_kwargs):
             raise ValueError('The "bs" and "bsplot_kwargs" arguments to plot_bandstructure() should be the same length')
+        if isinstance(dos, DOS):
+            if self.parameters.spin_polarised:
+                spins = ['up', 'down']
+            else:
+                spins = [None]
+            dos = GridDOSCollection([GridDOSData(dos.get_energies(), dos.get_dos(ispin), info={'spin': spin}) for ispin, spin in enumerate(spins)])
 
         colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
         if dos is not None:
@@ -1099,8 +1107,14 @@ class Workflow(ABC):
             spdf_order = {'s': 0, 'p': 1, 'd': 2, 'f': 3}
             [xmin, xmax] = ax_bs.get_ylim()
             for dos in doss:
-                for d in sorted(dos, key=lambda x: (x.info['symbol'], x.info['n'], spdf_order[x.info['l']])):
-                    if not self.parameters.spin_polarised or d.info.get('spin') == 'up':
+                # Before iterating through the DOSs, sort them in a sensible order (by atomic symbol, n, and l)
+                if all([key in d.info for d in dos for key in ['symbol', 'n', 'l']]):
+                    sorted_dos = sorted(dos, key=lambda x: (x.info['symbol'], x.info['n'], spdf_order[x.info['l']]))
+                else:
+                    sorted_dos = dos
+
+                for d in sorted_dos:
+                    if (not self.parameters.spin_polarised or d.info.get('spin') == 'up') and all([key in d.info for key in ['symbol', 'n', 'l']]):
                         label = f'{d.info["symbol"]} {d.info["n"]}{d.info["l"]}'
                     else:
                         label = None
@@ -1119,15 +1133,17 @@ class Workflow(ABC):
             else:
                 ax_dos.set_xlim([0, maxval])
             ax_dos.set_xticks([])
-            ax_dos.legend(loc='upper left', bbox_to_anchor=(1, 1), frameon=False)
+
+            # Move the legend (if there is one)
+            _, labels = ax_dos.get_legend_handles_labels()
+            if len(labels) > 0:
+                ax_dos.legend(loc='upper left', bbox_to_anchor=(1, 1), frameon=False)
             plt.subplots_adjust(right=0.85, wspace=0.05)
 
         # Saving the figure to file (as png and also in editable form)
         filename = filename if filename is not None else f'{self.name}_bandstructure'
         legends = [ax.get_legend() for ax in axes if ax.get_legend() is not None]
-        with open(filename + '.fig.pkl', 'wb') as fd:
-            pickle.dump(plt.gcf(), fd)
-        plt.savefig(fname=filename + '.png', bbox_extra_artists=legends, bbox_inches='tight')
+        utils.savefig(fname=filename + '.png', bbox_extra_artists=legends, bbox_inches='tight')
 
 
 def get_version(module):
