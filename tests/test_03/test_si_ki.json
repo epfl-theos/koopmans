@@ -10,7 +10,7 @@
         "print_qc": true,
         "from_scratch": true,
         "fix_spin_contamination": true,
-        "pseudo_library": "sg15",
+        "pseudo_library": "pseudo_dojo_standard",
         "orbital_groups": [
             0,
             0,
@@ -79,6 +79,7 @@
             2
         ],
         "Emin": -10,
-        "Emax": 4
+        "Emax": 5,
+        "degauss": 0.4
     }
 }
