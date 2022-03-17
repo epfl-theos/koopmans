@@ -183,6 +183,7 @@ END PROGRAM wann2kcp
 SUBROUTINE find_mp_grid( )
   !-----------------------------------------------------------------------
   !
+  USE constants,     ONLY : eps8
   USE io_global,     ONLY : stdout
   USE kinds,         ONLY : DP
   USE wannier
@@ -196,7 +197,7 @@ SUBROUTINE find_mp_grid( )
   min_k=minval(kpt_latt(1,:))
   ii=0
   DO ik=1,iknum
-     IF (kpt_latt(1,ik)==min_k) THEN
+     IF (abs(kpt_latt(1,ik) - min_k) < eps8) THEN
         ii=ii+1
         temp(:,ii)=kpt_latt(:,ik)
      ENDIF
@@ -206,7 +207,7 @@ SUBROUTINE find_mp_grid( )
   min_k=minval(temp(2,1:ntemp))
   ii=0
   DO ik=1,ntemp
-     IF (temp(2,ik)==min_k) THEN
+     IF (abs(temp(2,ik) - min_k) < eps8) THEN
         ii=ii+1
      ENDIF
   ENDDO
@@ -215,7 +216,7 @@ SUBROUTINE find_mp_grid( )
   min_k=minval(temp(3,1:ntemp))
   ii=0
   DO ik=1,ntemp
-     IF (temp(3,ik)==min_k) THEN
+     IF (abs(temp(3,ik) - min_k) < eps8) THEN
         ii=ii+1
      ENDIF
   ENDDO
