@@ -300,12 +300,12 @@ class Workflow(ABC):
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
             if len(self.projections) == 0:
                 raise ValueError(f'In order to use init_orbitals={self.parameters.init_orbitals}, projections must be provided')
-            spins = set([p.spin for p in self.projections])
+            spin_set = set([p.spin for p in self.projections])
             if self.parameters.spin_polarised:
-                if spins != {'up', 'down'}:
+                if spin_set != {'up', 'down'}:
                     raise ValueError('This calculation is spin-polarised; please provide spin-up and spin-down projections')
             else:
-                if spins != {None}:
+                if spin_set != {None}:
                     raise ValueError('This calculation is not spin-polarised; please do not provide spin-indexed projections')
 
         # Records whether or not this workflow is a subworkflow of another
