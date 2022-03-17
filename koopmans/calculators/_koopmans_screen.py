@@ -11,7 +11,7 @@ import numpy as np
 from ase import Atoms
 from ase.calculators.espresso import KoopmansScreen
 from koopmans import utils, settings
-from ._utils import KCWannCalculator, CalculatorABC, qe_bin_directory
+from ._utils import KCWannCalculator, CalculatorABC, bin_directory
 from koopmans.commands import ParallelCommandWithPostfix
 
 
@@ -30,7 +30,7 @@ class KoopmansScreenCalculator(KCWannCalculator, KoopmansScreen, CalculatorABC):
         super().__init__(*args, **kwargs)
 
         self.command = ParallelCommandWithPostfix(
-            f'{qe_bin_directory}{os.path.sep}kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
+            f'{bin_directory}{os.path.sep}kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
 
         self.results_for_qc = ['alphas']
 

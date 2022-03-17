@@ -1,12 +1,12 @@
 from typing import Any
 from ase.dft.kpoints import BandPath
-from ase.io.espresso import koopmans_ham as kch_io
+from ase.io.espresso import kch_keys
 from ._utils import SettingsDict, kc_wann_defaults
 
 
 class KoopmansHamSettingsDict(SettingsDict):
     def __init__(self, **kwargs) -> None:
-        super().__init__(valid=[k for block in kch_io.KEYS.values() for k in block],
+        super().__init__(valid=[k for block in kch_keys.values() for k in block],
                          defaults={'calculation': 'ham', 'do_bands': True, 'use_ws_distance': True, 'write_hr': True,
                                    'l_alpha_corr': False, **kc_wann_defaults},
                          are_paths=['outdir', 'pseudo_dir'],

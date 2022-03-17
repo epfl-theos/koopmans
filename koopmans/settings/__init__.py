@@ -12,6 +12,7 @@ from ._koopmans_screen import KoopmansScreenSettingsDict
 from ._pw import PWSettingsDict
 from ._projwfc import ProjwfcSettingsDict
 from ._pw2wannier import PW2WannierSettingsDict
+from ._wann2kcp import Wann2KCPSettingsDict
 from ._ui import UnfoldAndInterpolateSettingsDict
 from ._utils import Setting, SettingsDict, SettingsDictWithChecks
 from ._wann2kc import Wann2KCSettingsDict
@@ -25,6 +26,7 @@ default_master_calc_params = {'kcp': KoopmansCPSettingsDict(),
                               'projwfc': ProjwfcSettingsDict(),
                               'pw': PWSettingsDict(),
                               'pw2wannier': PW2WannierSettingsDict(),
+                              'wann2kcp': Wann2KCPSettingsDict(),
                               'ui': UnfoldAndInterpolateSettingsDict(),
                               'ui_occ': UnfoldAndInterpolateSettingsDict(),
                               'ui_emp': UnfoldAndInterpolateSettingsDict(),

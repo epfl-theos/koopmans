@@ -1,11 +1,11 @@
 from typing import Any
-from ase.io.espresso import koopmans_screen as kcs_io
+from ase.io.espresso import kcs_keys
 from ._utils import SettingsDict, kc_wann_defaults
 
 
 class KoopmansScreenSettingsDict(SettingsDict):
     def __init__(self, **kwargs) -> None:
-        super().__init__(valid=[k for block in kcs_io.KEYS.values() for k in block],
+        super().__init__(valid=[k for block in kcs_keys.values() for k in block],
                          defaults={'calculation': 'screen', 'tr2': 1.0e-18, 'nmix': 4, 'niter': 33,
                                    'check_spread': True, **kc_wann_defaults},
                          are_paths=['outdir', 'pseudo_dir'],

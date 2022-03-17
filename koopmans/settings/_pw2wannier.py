@@ -5,9 +5,7 @@ class PW2WannierSettingsDict(SettingsDict):
     def __init__(self, **kwargs) -> None:
         super().__init__(valid=['outdir', 'prefix', 'seedname', 'write_mmn',
                                 'write_amn', 'write_uHu', 'uHu_formatted',
-                                'write_unk', 'reduce_unk', 'wan_mode', 'wannier_plot',
-                                'wannier_plot_list', 'gamma_trick', 'spin_component',
-                                'print_rho'],
+                                'write_unk', 'reduce_unk', 'wan_mode', 'spin_component'],
                          defaults={'outdir': 'TMP', 'prefix': 'kc', 'seedname': 'wann',
                                    'wan_mode': 'standalone'},
                          are_paths=['outdir'],

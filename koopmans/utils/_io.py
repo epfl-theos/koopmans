@@ -15,7 +15,7 @@ from typing import List, Union, Tuple
 from pathlib import Path
 from ase.atoms import Atoms
 from ase.dft.kpoints import bandpath, BandPath
-from ase.io.espresso.utils import label_to_symbol, label_to_tag
+from ase.io.espresso import label_to_symbol, label_to_tag
 from ase.calculators.calculator import Calculator
 
 

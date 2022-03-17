@@ -1,5 +1,5 @@
 from typing import Any, Dict
-from ase.io.espresso import pw as pw_io
+from ase.io.espresso import pw_keys
 from ase.dft.kpoints import BandPath
 from ._utils import SettingsDict
 
@@ -14,7 +14,7 @@ class PWSettingsDict(SettingsDict):
             else:
                 flattened_kwargs[k] = v
 
-        super().__init__(valid=[k for block in pw_io.KEYS.values() for k in block],
+        super().__init__(valid=[k for block in pw_keys.values() for k in block],
                          defaults={'calculation': 'scf', 'outdir': './TMP/', 'prefix': 'kc',
                                    'conv_thr': '2.0e-9*nelec', 'verbosity': 'high'},
                          are_paths=['outdir', 'pseudo_dir'],
