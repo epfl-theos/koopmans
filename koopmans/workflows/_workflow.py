@@ -297,6 +297,20 @@ class Workflow(ABC):
                 utils.warn('Martyna-Tuckerman corrections not applied for an aperiodic calculation; do this with '
                            'caution')
 
+        if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
+            if len(self.projections) == 0:
+                raise ValueError(f'In order to use init_orbitals={self.parameters.init_orbitals}, projections must be '
+                                 'provided')
+            spin_set = set([p.spin for p in self.projections])
+            if self.parameters.spin_polarised:
+                if spin_set != {'up', 'down'}:
+                    raise ValueError('This calculation is spin-polarised; please provide spin-up and spin-down '
+                                     'projections')
+            else:
+                if spin_set != {None}:
+                    raise ValueError('This calculation is not spin-polarised; please do not provide spin-indexed '
+                                     'projections')
+
         # Records whether or not this workflow is a subworkflow of another
         self._is_a_subworkflow = False
 
@@ -854,7 +868,7 @@ class Workflow(ABC):
 
             master_calc_params[block] = settings_class(**dct)
             master_calc_params[block].update(
-                **{k: v for k, v in setup_parameters.items() if k.split('(')[0] in master_calc_params[block].valid})
+                **{k: v for k, v in setup_parameters.items() if master_calc_params[block].is_valid(k)})
 
         # Adding the projections to the workflow kwargs (this is unusual in that this is an attribute of the workflow
         # object but it is provided in the w90 subdictionary)
