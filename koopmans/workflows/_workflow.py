@@ -245,60 +245,6 @@ class Workflow(ABC):
                        'a calculator. This calculator will be ignored.')
             self.atoms.calc = None
 
-        # Check internal consistency of workflow settings
-        if self.parameters.fix_spin_contamination is None:
-            self.parameters.fix_spin_contamination = not self.parameters.spin_polarised
-        else:
-            if self.parameters.fix_spin_contamination and self.parameters.spin_polarised:
-                raise ValueError('fix_spin_contamination = True is incompatible with spin_polarised = True')
-
-        if self.parameters.method == 'dfpt':
-            if self.parameters.frozen_orbitals is None:
-                self.parameters.frozen_orbitals = True
-            if not self.parameters.frozen_orbitals:
-                raise ValueError('"frozen_orbitals" must be equal to True when "method" is "dfpt"')
-        else:
-            if self.parameters.frozen_orbitals is None:
-                self.parameters.frozen_orbitals = False
-            if self.parameters.frozen_orbitals:
-                utils.warn('You have requested a ΔSCF calculation with frozen orbitals. This is unusual; proceed '
-                           'only if you know what you are doing')
-
-        if self.parameters.periodic:
-            if self.parameters.gb_correction is None:
-                self.parameters.gb_correction = True
-
-            if self.parameters.mp_correction:
-                if self.parameters.eps_inf is None:
-                    raise ValueError('eps_inf missing in input; needed when mp_correction is true')
-                elif self.parameters.eps_inf < 1.0:
-                    raise ValueError('eps_inf cannot be lower than 1')
-            else:
-                utils.warn('Makov-Payne corrections not applied for a periodic calculation; do this with '
-                           'caution')
-
-            if self.parameters.mt_correction is None:
-                self.parameters.mt_correction = False
-            if self.parameters.mt_correction:
-                raise ValueError('Do not use Martyna-Tuckerman corrections for periodic systems')
-
-        else:
-            if self.parameters.gb_correction is None:
-                self.parameters.gb_correction = False
-            if self.parameters.gb_correction:
-                raise ValueError('Do not use Gygi-Baldereschi corrections for aperiodic systems')
-
-            if self.parameters.mp_correction is None:
-                self.parameters.mp_correction = False
-            if self.parameters.mp_correction:
-                raise ValueError('Do not use Makov-Payne corrections for aperiodic systems')
-
-            if self.parameters.mt_correction is None:
-                self.parameters.mt_correction = True
-            if not self.parameters.mt_correction:
-                utils.warn('Martyna-Tuckerman corrections not applied for an aperiodic calculation; do this with '
-                           'caution')
-
         # Records whether or not this workflow is a subworkflow of another
         self._is_a_subworkflow = False
 
@@ -309,6 +255,8 @@ class Workflow(ABC):
 
     def run(self) -> None:
         self.print_preamble()
+        if not self._is_a_subworkflow:
+            self._run_sanity_checks()
         self._run()
         self.print_conclusion()
 
@@ -372,6 +320,61 @@ class Workflow(ABC):
                 'kgrid': copy.deepcopy(self.kgrid),
                 'kpath': copy.deepcopy(self.kpath),
                 'projections': copy.deepcopy(self.projections)}
+
+    def _run_sanity_checks(self):
+        # Check internal consistency of workflow settings
+        if self.parameters.fix_spin_contamination is None:
+            self.parameters.fix_spin_contamination = not self.parameters.spin_polarised
+        else:
+            if self.parameters.fix_spin_contamination and self.parameters.spin_polarised:
+                raise ValueError('fix_spin_contamination = True is incompatible with spin_polarised = True')
+
+        if self.parameters.method == 'dfpt':
+            if self.parameters.frozen_orbitals is None:
+                self.parameters.frozen_orbitals = True
+            if not self.parameters.frozen_orbitals:
+                raise ValueError('"frozen_orbitals" must be equal to True when "method" is "dfpt"')
+        else:
+            if self.parameters.frozen_orbitals is None:
+                self.parameters.frozen_orbitals = False
+            if self.parameters.frozen_orbitals:
+                utils.warn('You have requested a ΔSCF calculation with frozen orbitals. This is unusual; proceed '
+                           'only if you know what you are doing')
+
+        if self.parameters.periodic:
+            if self.parameters.gb_correction is None:
+                self.parameters.gb_correction = True
+
+            if self.parameters.mp_correction:
+                if self.parameters.eps_inf is None:
+                    raise ValueError('eps_inf missing in input; needed when mp_correction is true')
+                elif self.parameters.eps_inf < 1.0:
+                    raise ValueError('eps_inf cannot be lower than 1')
+            else:
+                utils.warn('Makov-Payne corrections not applied for a periodic calculation; do this with '
+                           'caution')
+
+            if self.parameters.mt_correction is None:
+                self.parameters.mt_correction = False
+            if self.parameters.mt_correction:
+                raise ValueError('Do not use Martyna-Tuckerman corrections for periodic systems')
+
+        else:
+            if self.parameters.gb_correction is None:
+                self.parameters.gb_correction = False
+            if self.parameters.gb_correction:
+                raise ValueError('Do not use Gygi-Baldereschi corrections for aperiodic systems')
+
+            if self.parameters.mp_correction is None:
+                self.parameters.mp_correction = False
+            if self.parameters.mp_correction:
+                raise ValueError('Do not use Makov-Payne corrections for aperiodic systems')
+
+            if self.parameters.mt_correction is None:
+                self.parameters.mt_correction = True
+            if not self.parameters.mt_correction:
+                utils.warn('Martyna-Tuckerman corrections not applied for an aperiodic calculation; do this with '
+                           'caution')
 
     def new_calculator(self,
                        calc_type: str,

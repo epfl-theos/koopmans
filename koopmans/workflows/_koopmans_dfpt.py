@@ -203,23 +203,25 @@ class KoopmansDFPTWorkflow(Workflow):
         self.plot_bandstructure()
 
     def plot_bandstructure(self):
+        if not self.parameters.periodic:
+            return
+
         # Identify the relevant calculators
         [wann2kc_calc] = [c for c in self.calculations if isinstance(c, Wann2KCCalculator)]
         [kc_ham_calc] = [c for c in self.calculations if isinstance(c, KoopmansHamCalculator)]
 
-        if self.parameters.periodic:
-            # Align the bandstructure to the VBM
-            bs = kc_ham_calc.results['band structure']
-            reference = None
-            n_occ = wann2kc_calc.parameters.num_wann_occ
-            if n_occ is not None:
-                reference = np.max(bs.energies, axis=1)[:, n_occ - 1][0]
-                bs._reference = reference
-                bs = bs.subtract_reference()
+        # Align the bandstructure to the VBM
+        bs = kc_ham_calc.results['band structure']
+        reference = None
+        n_occ = wann2kc_calc.parameters.num_wann_occ
+        if n_occ is not None:
+            reference = np.max(bs.energies, axis=1)[:, n_occ - 1][0]
+            bs._reference = reference
+            bs = bs.subtract_reference()
 
-            # Plot the bandstructure if the band path has been specified
-            if bs.path.path:
-                bs.plot(emin=-20, emax=20, filename=f'{self.name}_bandstructure.png')
+        # Plot the bandstructure if the band path has been specified
+        if bs.path.path:
+            super().plot_bandstructure(bs)
 
     def new_calculator(self, calc_presets, **kwargs):
         if calc_presets not in ['kc_ham', 'kc_screen', 'wann2kc']:
