@@ -29,9 +29,9 @@ from ase.dft.kpoints import BandPath
 from ase.calculators.espresso import Espresso_kcp
 from ase.calculators.calculator import CalculationFailed
 from ase.io.espresso import cell_to_ibrav, ibrav_to_cell, kcp_keys, contruct_kcp_namelist as construct_namelist
-from ase.spectrum.band_structure import bandstructure
-from ase.spectrum.dosdata import griddosdata
-from ase.spectrum.doscollection import griddoscollection
+from ase.spectrum.band_structure import BandStructure
+from ase.spectrum.dosdata import GridDOSData
+from ase.spectrum.doscollection import GridDOSCollection
 from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, pseudo_database, fetch_pseudo, \
     valence_from_pseudo
 from koopmans import utils, settings

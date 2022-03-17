@@ -17,7 +17,7 @@ from ase.spectrum.doscollection import GridDOSCollection
 from koopmans import pseudopotentials
 from koopmans.commands import Command, ParallelCommand
 from koopmans.settings import ProjwfcSettingsDict
-from ._utils import CalculatorExt, CalculatorABC, qe_bin_directory
+from ._utils import CalculatorExt, CalculatorABC, bin_directory
 
 
 class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
@@ -37,7 +37,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         self.results_for_qc = ['dos']
         if not isinstance(self.command, Command):
             self.command = ParallelCommand(os.environ.get(
-                'ASE_PROJWFC_COMMAND', str(qe_bin_directory) + os.path.sep + self.command))
+                'ASE_PROJWFC_COMMAND', str(bin_directory) + os.path.sep + self.command))
 
         # We need pseudopotentials and pseudo dir in order to work out the number of valence electrons for each
         # element, and therefore what pDOS files to expect
