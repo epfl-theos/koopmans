@@ -25,8 +25,8 @@ from ase.build.supercells import make_supercell
 from ase.dft.kpoints import BandPath
 from ase.calculators.espresso import Espresso_kcp
 from ase.calculators.calculator import CalculationFailed
-from ase.io.espresso.utils import cell_to_ibrav, ibrav_to_cell
-from ase.io.espresso.koopmans_cp import KEYS as kcp_keys, construct_namelist
+from ase.io.espresso import cell_to_ibrav, ibrav_to_cell
+from ase.io.espresso import kcp_keys, contruct_kcp_namelist as construct_namelist
 from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, pseudo_database, fetch_pseudo, \
     valence_from_pseudo
 from koopmans import utils, settings
@@ -49,6 +49,7 @@ class Workflow(ABC):
                                            ] = settings.default_master_calc_params,
                  name: str = 'koopmans_workflow',
                  pseudopotentials: Dict[str, str] = {},
+                 pseudo_dir: Optional[Path] = None,
                  gamma_only: Optional[bool] = False,
                  kgrid: Optional[List[int]] = [1, 1, 1],
                  koffset: Optional[List[int]] = [0, 0, 0],
@@ -129,14 +130,17 @@ class Workflow(ABC):
         #  1. try to locating the directory as currently specified by the calculator
         #  2. if that fails, check if $ESPRESSO_PSEUDO is set
         #  3. if that fails, raise an error
-        if self.parameters.pseudo_library:
+        if pseudo_dir is not None:
+            pass
+        elif self.parameters.pseudo_library:
             pseudo_dir = pseudos_library_directory(self.parameters.pseudo_library, self.parameters.base_functional)
             for params in master_calc_params.values():
                 if params.get('pseudo_dir', pseudo_dir).resolve() != pseudo_dir:
                     raise ValueError(
                         '"pseudo_dir" and "pseudo_library" are conflicting; please do not provide "pseudo_dir"')
         elif 'pseudo_dir' in master_calc_params['kcp'] or 'pseudo_dir' in master_calc_params['pw']:
-            pseudo_dir = master_calc_params['kcp'].get('pseudo_dir', master_calc_params['pw'].get('pseudo_dir', None))
+            pseudo_dir = master_calc_params['kcp'].get('pseudo_dir', master_calc_params['pw'].get('pseudo_dir'))
+            assert isinstance(pseudo_dir, Path)
             if not os.path.isdir(pseudo_dir):
                 raise NotADirectoryError(f'The pseudo_dir you provided ({pseudo_dir}) does not exist')
         elif 'ESPRESSO_PSEUDO' in os.environ:
@@ -149,12 +153,13 @@ class Workflow(ABC):
                 if not (pseudo_dir / pseudo).exists():
                     raise FileNotFoundError(
                         f'{pseudo_dir / pseudo} does not exist. Please double-check your pseudopotential settings')
+        self.pseudo_dir = pseudo_dir
 
         # Before saving the master_calc_params, automatically generate some keywords and perform some sanity checks
         if self.parameters.task != 'ui':
             # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
             # and the kcp settings
-            nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, pseudo_dir)
+            nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.pseudo_dir)
 
             tot_charge = master_calc_params['kcp'].get('tot_charge', 0)
             nelec -= tot_charge
@@ -169,7 +174,7 @@ class Workflow(ABC):
                 for i, (l, p) in enumerate(self.pseudopotentials.items()):
                     # ASE uses absoulte values; QE uses the fraction of the valence
                     frac_mag = master_calc_params['kcp'].pop(f'starting_magnetization({i + 1})', 0.0)
-                    valence = valence_from_pseudo(p, pseudo_dir)
+                    valence = valence_from_pseudo(p, self.pseudo_dir)
                     starting_magmoms[l] = frac_mag * valence
                 atoms.set_initial_magnetic_moments([starting_magmoms[l] for l in labels])
             elif tot_mag != 0:
@@ -178,7 +183,7 @@ class Workflow(ABC):
             # Work out the number of bands
             nbnd = master_calc_params['kcp'].get('nbnd', nelec // 2 + nelec % 2)
             generated_keywords = {'nelec': nelec, 'tot_charge': tot_charge, 'tot_magnetization': tot_mag,
-                                  'nelup': nelup, 'neldw': neldw, 'nbnd': nbnd, 'pseudo_dir': pseudo_dir}
+                                  'nelup': nelup, 'neldw': neldw, 'nbnd': nbnd, 'pseudo_dir': self.pseudo_dir}
         else:
             generated_keywords = {}
             nelec = 0
@@ -292,6 +297,20 @@ class Workflow(ABC):
                 utils.warn('Martyna-Tuckerman corrections not applied for an aperiodic calculation; do this with '
                            'caution')
 
+        if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
+            if len(self.projections) == 0:
+                raise ValueError(f'In order to use init_orbitals={self.parameters.init_orbitals}, projections must be '
+                                 'provided')
+            spin_set = set([p.spin for p in self.projections])
+            if self.parameters.spin_polarised:
+                if spin_set != {'up', 'down'}:
+                    raise ValueError('This calculation is spin-polarised; please provide spin-up and spin-down '
+                                     'projections')
+            else:
+                if spin_set != {None}:
+                    raise ValueError('This calculation is not spin-polarised; please do not provide spin-indexed '
+                                     'projections')
+
         # Records whether or not this workflow is a subworkflow of another
         self._is_a_subworkflow = False
 
@@ -361,6 +380,7 @@ class Workflow(ABC):
                 'master_calc_params': copy.deepcopy(self.master_calc_params),
                 'name': copy.deepcopy(self.name),
                 'pseudopotentials': copy.deepcopy(self.pseudopotentials),
+                'pseudo_dir': copy.deepcopy(self.pseudo_dir),
                 'gamma_only': copy.deepcopy(self.gamma_only),
                 'kgrid': copy.deepcopy(self.kgrid),
                 'kpath': copy.deepcopy(self.kpath),
@@ -382,6 +402,8 @@ class Workflow(ABC):
             calc_class = calculators.Wannier90Calculator
         elif calc_type == 'pw2wannier':
             calc_class = calculators.PW2WannierCalculator
+        elif calc_type == 'wann2kcp':
+            calc_class = calculators.Wann2KCPCalculator
         elif calc_type.startswith('ui'):
             calc_class = calculators.UnfoldAndInterpolateCalculator
         elif calc_type == 'wann2kc':
@@ -405,7 +427,7 @@ class Workflow(ABC):
             all_kwargs['kpts'] = kpts if kpts is not None else self.kgrid
 
         # Add pseudopotential and kpt information to the calculator as required
-        for kw in ['pseudopotentials', 'gamma_only', 'kgrid', 'kpath', 'koffset']:
+        for kw in ['pseudopotentials', 'pseudo_dir', 'gamma_only', 'kgrid', 'kpath', 'koffset']:
             if kw not in all_kwargs and kw in master_calc_params.valid:
                 all_kwargs[kw] = getattr(self, kw)
 
@@ -846,7 +868,7 @@ class Workflow(ABC):
 
             master_calc_params[block] = settings_class(**dct)
             master_calc_params[block].update(
-                **{k: v for k, v in setup_parameters.items() if k.split('(')[0] in master_calc_params[block].valid})
+                **{k: v for k, v in setup_parameters.items() if master_calc_params[block].is_valid(k)})
 
         # Adding the projections to the workflow kwargs (this is unusual in that this is an attribute of the workflow
         # object but it is provided in the w90 subdictionary)
@@ -1043,7 +1065,7 @@ def header():
 
     koopmans_version = get_version(os.path.dirname(__file__))
     ase_version = get_version(ase)
-    qe_version = get_version(calculators.qe_bin_directory)
+    qe_version = get_version(calculators.bin_directory)
 
     header = [r"  _                                                ",
               r" | | _____   ___  _ __  _ __ ___   __ _ _ __  ___  ",
@@ -1145,6 +1167,7 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'wann2kc': settings.Wann2KCSettingsDict,
                     'pw': settings.PWSettingsDict,
                     'pw2wannier': settings.PW2WannierSettingsDict,
+                    'wann2kcp': settings.Wann2KCPSettingsDict,
                     'ui': settings.UnfoldAndInterpolateSettingsDict,
                     'ui_occ': settings.UnfoldAndInterpolateSettingsDict,
                     'ui_emp': settings.UnfoldAndInterpolateSettingsDict,

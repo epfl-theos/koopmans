@@ -352,9 +352,9 @@ class KoopmansDSCFWorkflow(Workflow):
 
                     if self.parameters.init_orbitals == 'kohn-sham':
                         if filling == 'occ':
-                            evcw_file = Path(f'init/wannier/ks2odd/evc_occupied{i_spin + 1}.dat')
+                            evcw_file = Path(f'init/wannier/ks2kcp/evc_occupied{i_spin + 1}.dat')
                         else:
-                            evcw_file = Path(f'init/wannier/ks2odd/evc0_empty{i_spin + 1}.dat')
+                            evcw_file = Path(f'init/wannier/ks2kcp/evc0_empty{i_spin + 1}.dat')
                     elif self.parameters.spin_polarised:
                         evcw_file = Path(f'init/wannier/{filling}_{spin}/evcw.dat')
                     else:
