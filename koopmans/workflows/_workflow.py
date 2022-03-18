@@ -551,6 +551,9 @@ class Workflow(ABC):
 
                     if isinstance(qe_calc, calculators.ReturnsBandStructure):
                         qe_calc.generate_band_structure()
+
+                    if isinstance(qe_calc, calculators.ProjwfcCalculator):
+                        qe_calc.generate_dos()
                     return
 
         if not self.silent:
