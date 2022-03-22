@@ -318,7 +318,6 @@ class KoopmansDSCFWorkflow(Workflow):
             else:
                 wannier_workflow.parameters.calculate_bands = self.parameters.calculate_bands
 
-
             # Perform the wannierisation workflow within the init directory
             self.run_subworkflow(wannier_workflow, subdirectory='init')
 
