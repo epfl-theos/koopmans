@@ -123,7 +123,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 """
                  2) Core of the unfolding and interpolation code:
                     - build the map |i> ---> |Rn>
-                    - calc interpolated (if needed) bands
+                    - calc interpolated bands (if needed)
                     - calc DOS (if needed)
                 """
 
@@ -523,11 +523,12 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         reset = time()
 
         # Step 2: calculate the electronic bands along kpath
-        self.calc_bands()
-        self.f_out.write(f'\tCalculating bands in: {time()-reset:22.3f} sec\n')
-        reset = time()
+        if self.parameters.do_bands:
+            self.calc_bands()
+            self.f_out.write(f'\tCalculating bands in: {time()-reset:22.3f} sec\n')
+            reset = time()
 
-        # Step 3 (optional) : calculate the density-of-states
+        # Step 3: calculate the density-of-states
         if self.parameters.do_dos:
             self.calc_dos()
             self.f_out.write(f'\tCalculating DOS in: {time()-reset:24.3f} sec\n')
