@@ -1,3 +1,5 @@
+## MARIJA
+
 """
 
 Workflow module for performing a single DFT calculation with either kcp.x or pw.x
@@ -63,6 +65,13 @@ class DFTPWWorkflow(Workflow):
         self.run_calculator(calc)
 
         return
+
+class DFTPhWorkflow(Workflow):
+
+    def _run(self):
+
+        # Add here a scf calculation and then a ph calculation
+        # calc_ph = self.new_calculator('ph')
 
 
 class PWBandStructureWorkflow(Workflow):

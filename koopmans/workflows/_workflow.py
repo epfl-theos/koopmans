@@ -412,6 +412,8 @@ class Workflow(ABC):
             calc_class = calculators.KoopmansScreenCalculator
         elif calc_type == 'kc_ham':
             calc_class = calculators.KoopmansHamCalculator
+        elif calc_type == 'ph':
+            calc_class = calculators.PhCalculator
         else:
             raise ValueError(f'Cound not find a calculator of type {calc_type}')
 
