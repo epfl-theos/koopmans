@@ -51,10 +51,6 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             wannier_workflow = WannierizeWorkflow(**wf_kwargs)
             # For the moment not enabling this change
             # wannier_workflow = WannierizeWorkflow(scf_kgrid=self.kgrid, **wf_kwargs)
-            if self.parameters.calculate_bands is None:
-                wannier_workflow.parameters.calculate_bands = True
-            else:
-                wannier_workflow.parameters.calculate_bands = self.parameters.calculate_bands
 
             # Here, we allow for skipping of the smooth dft calcs (assuming they have been already run)
             # This is achieved via the optional argument of from_scratch in run_subworkflow(), which
@@ -120,7 +116,6 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         else:
             # Automatically generating UI calculator settings
             kwargs['directory'] = Path(f'{calc_presets}')
-            kwargs['do_bands'] = self.parameters.calculate_bands
             if self.parameters.method == 'dscf':
                 # DSCF case
                 if '_' in calc_presets:

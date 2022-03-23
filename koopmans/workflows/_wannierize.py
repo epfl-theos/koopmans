@@ -94,6 +94,12 @@ class WannierizeWorkflow(Workflow):
         # must match the original k-grid
         self._scf_kgrid = scf_kgrid
 
+        # Calculate by default the band structure
+        if self.parameters.calculate_bands is None and len(self.kpath.kpts) > 1:
+            self.parameters.calculate_bands = True
+        else:
+            self.parameters.calculate_bands = False
+
     def _run(self):
         '''
 
@@ -172,7 +178,7 @@ class WannierizeWorkflow(Workflow):
             # Link the save directory so that the bands calculation can use the old density
             if self.parameters.from_scratch:
                 [src, dest] = [(c.parameters.outdir / c.parameters.prefix).with_suffix('.save')
-                               for c in [calc_pw, calc_pw_bands]]
+                            for c in [calc_pw, calc_pw_bands]]
 
                 if dest.exists():
                     shutil.rmtree(str(dest))
