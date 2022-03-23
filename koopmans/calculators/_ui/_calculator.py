@@ -523,10 +523,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         reset = time()
 
         # Step 2: calculate the electronic bands along kpath
-        if self.parameters.do_bands:
-            self.calc_bands()
-            self.f_out.write(f'\tCalculating bands in: {time()-reset:22.3f} sec\n')
-            reset = time()
+        self.calc_bands()
+        self.f_out.write(f'\tCalculating bands in: {time()-reset:22.3f} sec\n')
+        reset = time()
 
         # Step 3: calculate the density-of-states
         if self.parameters.do_dos:

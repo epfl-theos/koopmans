@@ -35,10 +35,6 @@ valid_settings: List[Setting] = [
             'the Wannier90 code. In particular, this accounts for the periodic boundary conditions and it is '
             'crucial for a good interpolation when using coarse MP meshes or, equivalently, small supercells',
             bool, True, (True, False)),
-    Setting('do_bands',
-            'if True, the band structure is interpolated along the input kpath. The bands are written to a '
-            'file called "bands_interpolated.dat"',
-            bool, True, (True, False)),
     Setting('kpath',
             'path in the Brillouin zone for generating the band structure, specified by a string e.g. "GXG"',
             (str, BandPath), None, None),
