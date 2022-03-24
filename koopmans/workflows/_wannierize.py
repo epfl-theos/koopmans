@@ -218,14 +218,22 @@ class WannierizeWorkflow(Workflow):
                     vbe = np.max(pw_eigs)
 
             # Work out the energy ranges for plotting
-            if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-                cmin = selected_calcs[0]
-                cmax = selected_calcs[-1]
+            if self.plot_params.Emin is None:
+                if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
+                    cmin = selected_calcs[0]
+                else:
+                    cmin = calc_pw_bands
+                emin = np.min(cmin.results['band structure'].energies) - 1 - vbe
             else:
-                cmin = calc_pw_bands
-                cmax = calc_pw_bands
-            emin = np.min(cmin.results['band structure'].energies) - 1 - vbe
-            emax = np.max(cmax.results['band structure'].energies) + 1 - vbe
+                emin = self.plot_params.Emin
+            if self.plot_params.Emax is None:
+                if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
+                    cmax = selected_calcs[-1]
+                else:
+                    cmax = calc_pw_bands
+                emax = np.max(cmax.results['band structure'].energies) + 1 - vbe
+            else:
+                emax = self.plot_params.Emax
 
             # Plot the bandstructures on top of one another
             ax = None

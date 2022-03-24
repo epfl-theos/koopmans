@@ -267,9 +267,9 @@ class KoopmansDSCFWorkflow(Workflow):
                 # If Emin, Emax are not defined, find the energy range 
                 eigenvalues = self.calculations[-1].results['eigenvalues']
                 if self.plot_params.Emin is None:
-                    self.plot_params.Emin = np.min(eigenvalues) - 0.1
+                    self.plot_params.Emin = np.min(eigenvalues) - 1
                 if self.plot_params.Emax is None:
-                    self.plot_params.Emax = np.max(eigenvalues) + 0.1
+                    self.plot_params.Emax = np.max(eigenvalues) + 1
                 # Generate the DOS only
                 # NB: this implementation is currently bugged, since the function DOS from ASE
                 #     requires to be called from a calculator. In particular, the object calling

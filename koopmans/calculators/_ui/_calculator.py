@@ -187,9 +187,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
     def get_energy_range(self):
         # Finds the range containing all the energy eigenvalues
         if self.parameters.plot_params.Emin is None:
-            self.parameters.plot_params.Emin = np.min(self.get_eigenvalues() - 0.1)
+            self.parameters.plot_params.Emin = np.min(self.get_eigenvalues() - 1)
         if self.parameters.plot_params.Emax is None:
-            self.parameters.plot_params.Emax = np.max(self.get_eigenvalues() + 0.1)
+            self.parameters.plot_params.Emax = np.max(self.get_eigenvalues() + 1)
 
     def parse_w90(self) -> None:
         '''
