@@ -7,6 +7,7 @@ Split off from workflow.py Oct 2020
 
 """
 
+from ase.dft import DOS
 import numpy as np
 import shutil
 from pathlib import Path
@@ -255,11 +256,22 @@ class KoopmansDSCFWorkflow(Workflow):
         self.perform_final_calculations()
 
         # Postprocessing
-        if self.parameters.periodic and self.projections and self.kpath is not None:
-            from koopmans.workflows import UnfoldAndInterpolateWorkflow
-            self.print(f'\nPostprocessing', style='heading')
-            ui_workflow = UnfoldAndInterpolateWorkflow(redo_smooth_dft=self._redo_smooth_dft, **self.wf_kwargs)
-            self.run_subworkflow(ui_workflow, subdirectory='postproc')
+        if self.parameters.periodic:
+            if self.parameters.calculate_bands in [None, True] and self.projections and self.kpath is not None:
+                # Calculate interpolated band structure and DOS with UI
+                from koopmans.workflows import UnfoldAndInterpolateWorkflow
+                self.print(f'\nPostprocessing', style='heading')
+                ui_workflow = UnfoldAndInterpolateWorkflow(redo_smooth_dft=self._redo_smooth_dft, **self.wf_kwargs)
+                self.run_subworkflow(ui_workflow, subdirectory='postproc')
+            else:
+                # If Emin, Emax are not defined, find the energy range 
+                eigenvalues = self.calculations[-1].results['eigenvalues']
+                import ipdb; ipdb.set_trace()
+                if self.plot_params.Emin is None:
+                    self.plot_params.Emin = np.min(self.get_eigenvalues() - 0.1)
+                # Generate the DOS only
+                dos = DOS(self, width=self.plot_params.degauss, window=(self.plot_params.Emin, self.plot_params.Emax), npts=self.plot_params.nstep + 1)
+                self.calculations[-1].results['dos'] = dos
 
     def perform_initialisation(self) -> None:
         # Import these here so that if these have been monkey-patched, we get the monkey-patched version

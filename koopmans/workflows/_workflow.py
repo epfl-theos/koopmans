@@ -55,7 +55,8 @@ class Workflow(ABC):
                  koffset: Optional[List[int]] = [0, 0, 0],
                  kpath: Optional[Union[BandPath, str]] = None,
                  kpath_density: int = 10,
-                 projections: Optional[ProjectionBlocks] = None):
+                 projections: Optional[ProjectionBlocks] = None,
+                 plot_params: Optional[settings.PlotSettingsDict] = None):
 
         # Parsing parameters
         self.parameters = settings.WorkflowSettingsDict(**parameters)
@@ -92,6 +93,8 @@ class Workflow(ABC):
                 proj_list, fillings=fillings, spins=spins, atoms=self.atoms)
         else:
             self.projections = projections
+        if plot_params is not None:
+            self.plot_params = plot_params
 
         if 'periodic' in parameters:
             # If "periodic" was explicitly provided, override self.atoms.pbc
@@ -384,7 +387,8 @@ class Workflow(ABC):
                 'gamma_only': copy.deepcopy(self.gamma_only),
                 'kgrid': copy.deepcopy(self.kgrid),
                 'kpath': copy.deepcopy(self.kpath),
-                'projections': copy.deepcopy(self.projections)}
+                'projections': copy.deepcopy(self.projections),
+                'plot_params': copy.deepcopy(self.plot_params)}
 
     def new_calculator(self,
                        calc_type: str,
@@ -427,7 +431,7 @@ class Workflow(ABC):
             all_kwargs['kpts'] = kpts if kpts is not None else self.kgrid
 
         # Add pseudopotential and kpt information to the calculator as required
-        for kw in ['pseudopotentials', 'pseudo_dir', 'gamma_only', 'kgrid', 'kpath', 'koffset']:
+        for kw in ['pseudopotentials', 'pseudo_dir', 'gamma_only', 'kgrid', 'kpath', 'koffset', 'plot_params']:
             if kw not in all_kwargs and kw in master_calc_params.valid:
                 all_kwargs[kw] = getattr(self, kw)
 
@@ -809,6 +813,9 @@ class Workflow(ABC):
                 raise ValueError(f'Unrecognised block "{block}" in json input file; '
                                  'valid options are workflow/' + '/'.join(settings_classes.keys()))
 
+        # Loading plot settings
+        plot_params = settings.PlotSettingsDict(**utils.parse_dict(bigdct.get('plot', {})))
+
         # Loading workflow settings
         parameters = settings.WorkflowSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})))
 
@@ -874,6 +881,8 @@ class Workflow(ABC):
         # object but it is provided in the w90 subdictionary)
         workflow_kwargs['projections'] = ProjectionBlocks.fromprojections(
             w90_block_projs, w90_block_filling, w90_block_spins, atoms)
+
+        workflow_kwargs['plot_params'] = plot_params
 
         name = fname.replace('.json', '')
 
@@ -1176,7 +1185,8 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'w90_occ_up': settings.Wannier90SettingsDict,
                     'w90_emp_up': settings.Wannier90SettingsDict,
                     'w90_occ_down': settings.Wannier90SettingsDict,
-                    'w90_emp_down': settings.Wannier90SettingsDict}
+                    'w90_emp_down': settings.Wannier90SettingsDict,
+                    'plot': settings.PlotSettingsDict}
 
 
 def sanitise_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]]) \

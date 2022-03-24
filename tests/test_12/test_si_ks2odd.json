@@ -50,12 +50,7 @@
             "nbnd": 12
         }
     },
-    "ui": {
-        "smooth_int_factor": [
-            2,
-            2,
-            2
-        ],
+    "plot": {
         "Emin": -10,
         "Emax": 4
     }

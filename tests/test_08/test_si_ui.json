@@ -47,7 +47,9 @@
     "use_ws_distance": true,
     "dft_ham_file": "input_files/dft_ham.dat",
     "dft_smooth_ham_file": "input_files/smooth_dft_ham.dat",
-    "do_dos": true,
+    "do_dos": true
+  },
+  "plot": {
     "degauss": 0.05,
     "nstep": 1000,
     "Emin": -10,

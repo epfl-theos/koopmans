@@ -69,8 +69,10 @@
     }
   },
   "ui": {
-    "Emin": -7.0,
-    "Emax": 6.0,
     "smooth_int_factor": 4
+  },
+  "plot": {
+    "Emin": -7.0,
+    "Emax": 6.0
   }
 }

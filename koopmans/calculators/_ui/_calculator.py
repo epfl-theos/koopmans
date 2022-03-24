@@ -9,6 +9,7 @@ import copy
 import json
 from time import time
 from ase.geometry.cell import crystal_structure_from_cell
+from matplotlib.pyplot import plot
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 from typing import Union, List, Optional
@@ -19,7 +20,7 @@ from ase.calculators.calculator import Calculator
 from ase.dft.dos import DOS
 from ase.spectrum.band_structure import BandStructure
 from koopmans import utils
-from koopmans.settings import UnfoldAndInterpolateSettingsDict
+from koopmans.settings import UnfoldAndInterpolateSettingsDict, PlotSettingsDict
 from .._utils import CalculatorExt, CalculatorABC, sanitise_filenames
 from ._utils import crys_to_cart, extract_hr, latt_vect
 from ._atoms import UIAtoms
@@ -33,7 +34,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
     results_for_qc = ['band structure', 'dos']
 
     def __init__(self, atoms: Atoms, *args, **kwargs):
-        self.parameters = UnfoldAndInterpolateSettingsDict()
+        self.parameters = UnfoldAndInterpolateSettingsDict()        
 
         # Initialise first with the base ASE calculator, and then with the calculator extensions
         Calculator.__init__(self, atoms=atoms, *args, **kwargs)
@@ -182,6 +183,13 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
     def get_fermi_level(self):
         return 0
+
+    def get_energy_range(self):
+        # Finds the range containing all the energy eigenvalues
+        if self.parameters.plot_params.Emin is None:
+            self.parameters.plot_params.Emin = np.min(self.get_eigenvalues() - 0.1)
+        if self.parameters.plot_params.Emax is None:
+            self.parameters.plot_params.Emax = np.max(self.get_eigenvalues() + 0.1)
 
     def parse_w90(self) -> None:
         '''
@@ -443,6 +451,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 kgrid = settings.pop('kgrid')
                 kpath = settings.pop('kpath')
 
+                # Remove the plot parameters from the settings dict
+                plot_params = settings.pop('plot_params')
+
                 # Converting Paths to JSON-serialisable strings
                 for k in self.parameters.are_paths:
                     if k in settings:
@@ -453,6 +464,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
                 # Provide the bandpath information in the form of a string
                 bigdct['setup'] = {'k_points': {'kpath': kpath.path, 'kgrid': kgrid}}
+
+                # Provide the plot information
+                bigdct['plot'] = {k: v for k, v in plot_params.items()}
 
                 # We also need to provide a cell so the explicit kpath can be reconstructed from the string alone
                 bigdct['setup']['cell_parameters'] = utils.construct_cell_parameters_block(atoms)
@@ -477,6 +491,12 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         # Update the parameters
         self.parameters = bigdct['ui']
+
+        # Update plot parameters
+        self.parameters.plot_params = PlotSettingsDict()
+        plot_params = bigdct['plot']
+        for key, value in plot_params.items():
+            self.parameters.plot_params[key] = value
 
         # Load the cell and kpts if they are provided
         if 'setup' in bigdct:
@@ -626,13 +646,11 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                  as a list [ [E1, DOS(E1)], [E2, DOS[E2]], ... , [En, DOS(En)] ]
         """
 
-        if self.parameters.Emin is None:
-            self.parameters.Emin = np.min(self.get_eigenvalues() - 0.1)
-        if self.parameters.Emax is None:
-            self.parameters.Emax = np.max(self.get_eigenvalues() + 0.1)
+        if self.parameters.plot_params.Emin is None or self.parameters.plot_params.Emax is None:
+            self.get_energy_range()
 
-        self.results['dos'] = DOS(self, width=self.parameters.degauss, window=(
-            self.parameters.Emin, self.parameters.Emax), npts=self.parameters.nstep + 1)
+        self.results['dos'] = DOS(self, width=self.parameters.plot_params.degauss, window=(
+            self.parameters.plot_params.Emin, self.parameters.plot_params.Emax), npts=self.parameters.plot_params.nstep + 1)
 
         return
 

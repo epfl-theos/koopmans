@@ -8,7 +8,7 @@
         "calculate_alpha": false,
         "alpha_guess": 0.077,
         "print_qc": true,
-        "from_scratch": true,
+        "from_scratch": false,
         "fix_spin_contamination": true,
         "pseudo_library": "sg15",
         "orbital_groups": [
@@ -77,7 +77,9 @@
             2,
             2,
             2
-        ],
+        ]
+    },
+    "plot": {
         "Emin": -10,
         "Emax": 4
     }
