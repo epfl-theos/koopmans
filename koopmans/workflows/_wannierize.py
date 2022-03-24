@@ -178,7 +178,7 @@ class WannierizeWorkflow(Workflow):
             # Link the save directory so that the bands calculation can use the old density
             if self.parameters.from_scratch:
                 [src, dest] = [(c.parameters.outdir / c.parameters.prefix).with_suffix('.save')
-                            for c in [calc_pw, calc_pw_bands]]
+                               for c in [calc_pw, calc_pw_bands]]
 
                 if dest.exists():
                     shutil.rmtree(str(dest))

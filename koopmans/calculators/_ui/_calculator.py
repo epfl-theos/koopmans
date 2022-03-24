@@ -34,7 +34,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
     results_for_qc = ['band structure', 'dos']
 
     def __init__(self, atoms: Atoms, *args, **kwargs):
-        self.parameters = UnfoldAndInterpolateSettingsDict()        
+        self.parameters = UnfoldAndInterpolateSettingsDict()
 
         # Initialise first with the base ASE calculator, and then with the calculator extensions
         Calculator.__init__(self, atoms=atoms, *args, **kwargs)
@@ -650,7 +650,8 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             self.get_energy_range()
 
         self.results['dos'] = DOS(self, width=self.parameters.plot_params.degauss, window=(
-            self.parameters.plot_params.Emin, self.parameters.plot_params.Emax), npts=self.parameters.plot_params.nstep + 1)
+            self.parameters.plot_params.Emin, self.parameters.plot_params.Emax),
+            npts=self.parameters.plot_params.nstep + 1)
 
         return
 
