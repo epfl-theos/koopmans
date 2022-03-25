@@ -275,9 +275,9 @@ class KoopmansDSCFWorkflow(Workflow):
                 #     requires to be called from a calculator. In particular, the object calling
                 #     the function DOS must have the attirbutes get_k_point_weights, get_number_of_spins
                 #     and get_eigenvalues.
-                dos = DOS(self, width=self.plot_params.degauss, window=(
-                    self.plot_params.Emin, self.plot_params.Emax), npts=self.plot_params.nstep + 1)
-                self.calculations[-1].results['dos'] = dos
+#                dos = DOS(self, width=self.plot_params.degauss, window=(
+#                    self.plot_params.Emin, self.plot_params.Emax), npts=self.plot_params.nstep + 1)
+#                self.calculations[-1].results['dos'] = dos
 
     def perform_initialisation(self) -> None:
         # Import these here so that if these have been monkey-patched, we get the monkey-patched version
