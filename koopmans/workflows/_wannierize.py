@@ -165,7 +165,7 @@ class WannierizeWorkflow(Workflow):
                 # Extending the U_dis matrix file, if necessary
                 num_wann = sum([b.w90_kwargs['num_wann'] for b in block])
                 num_bands = sum([b.w90_kwargs['num_bands'] for b in block])
-                if not block[0].filled and num_bands > num_wann:
+                if not block[0].filled and num_bands > num_wann and self.parameters.method == 'dfpt':
                     self.extend_wannier_u_dis_file(block, prefix=calc_w90.prefix)
 
         if self.parameters.calculate_bands:
