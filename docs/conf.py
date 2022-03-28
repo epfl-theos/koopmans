@@ -24,7 +24,7 @@ author = 'Edward Linscott, Riccardo De Gennaro, and Nicola Colonna'
 language = None
 with open('../koopmans/__init__.py', 'r') as f:
     # The full version, including alpha/beta/rc tags
-    release = f.readlines()[1].split('=').strip()
+    release = f.readlines()[1].split('=')[-1].strip()
 version = ''.join([c for c in release if not c.isalpha()])
 
 # -- General configuration ---------------------------------------------------

@@ -6,7 +6,7 @@ from glob import glob
 from setuptools import setup, find_packages
 
 with open('koopmans/__init__.py', 'r') as f:
-    version = f.readlines()[1].split('=').strip()
+    version = f.readlines()[1].split('=')[-1].strip()
 
 with open('requirements/requirements.txt', 'r') as f:
     requirements = [line.strip() for line in f.readlines()]
