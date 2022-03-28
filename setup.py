@@ -5,6 +5,9 @@ import os
 from glob import glob
 from setuptools import setup, find_packages
 
+with open('koopmans/__init__.py', 'r') as f:
+    version = f.readlines()[1].split('=').strip()
+
 with open('requirements/requirements.txt', 'r') as f:
     requirements = [line.strip() for line in f.readlines()]
 
@@ -27,7 +30,7 @@ with open("README.rst", "r") as f:
     long_description = f.read()
 
 setup(name='koopmans',
-      version='0.4.1',
+      version=version,
       description='Koopmans spectral functional calculations with python and Quantum ESPRESSO',
       long_description=long_description,
       url='https://github.com/epfl-theos/koopmans',

@@ -22,9 +22,10 @@ project = 'koopmans'
 copyright = '2020, Edward Linscott, Riccardo De Gennaro, and Nicola Colonna'
 author = 'Edward Linscott, Riccardo De Gennaro, and Nicola Colonna'
 language = None
-version = '0.0.9'
-# The full version, including alpha/beta/rc tags
-release = '0.0.9a'
+with open('../koopmans/__init__.py', 'r') as f:
+    # The full version, including alpha/beta/rc tags
+    release = f.readlines()[1].split('=').strip()
+version = ''.join([c for c in release if not c.isalpha()])
 
 # -- General configuration ---------------------------------------------------
 
