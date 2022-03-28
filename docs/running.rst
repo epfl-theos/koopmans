@@ -24,6 +24,6 @@ The input file is a JSON-formatted file that contains the calculation parameters
 Environment variables
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. include:: koopmans_readme.rst
+.. include:: ../README.rst
     :start-line: 68
     :end-line: 80
