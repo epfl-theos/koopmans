@@ -120,13 +120,13 @@ Written and maintained by Edward Linscott, Riccardo De Gennaro, and Nicola Colon
 
 For help and feedback email edward.linscott@gmail.com
 
-.. |GH Actions| image:: https://img.shields.io/github/workflow/status/elinscott/python_KI/Run%20tests/master?label=master&logo=github
-   :target: https://github.com/elinscott/python_KI/actions?query=branch%3Amaster
-.. |Coverage Status| image:: https://img.shields.io/codecov/c/gh/elinscott/python_KI/master?logo=codecov
-   :target: https://codecov.io/gh/elinscott/python_KI
+.. |GH Actions| image:: https://img.shields.io/github/workflow/status/epfl-theos/koopmans/Run%20tests/master?label=master&logo=github
+   :target: https://github.com/epfl-theos/koopmans/actions?query=branch%3Amaster
+.. |Coverage Status| image:: https://img.shields.io/codecov/c/gh/epfl-theos/koopmans/master?logo=codecov
+   :target: https://codecov.io/gh/epfl-theos/koopmans
 .. |MIT License| image:: https://img.shields.io/badge/license-MIT-blue.svg
-   :target: https://github.com/elinscott/python_KI/blob/master/LICENSE
-.. |Documentation Status| image:: https://readthedocs.org/projects/koopmans-docs/badge/?version=latest
-   :target: https://koopmans-docs.readthedocs.io/en/latest/?badge=latest
+   :target: https://github.com/epfl-theos/koopmans/blob/master/LICENSE
+.. |Documentation Status| image:: https://readthedocs.org/projects/koopmans/badge/?version=latest
+   :target: https://koopmans-functionals.org/en/latest/?badge=latest
    :alt: Documentation Status
 

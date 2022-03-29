@@ -1,0 +1,170 @@
+<table id="workflowTable" style="width:100%; text-align:left">
+   <tr>
+      <th>Keyword</th>
+      <th>Description</th>
+      <th>Type</th>
+      <th>Default</th>
+   </tr>
+   <tr>
+      <td><code>task</code></td>
+      <td>Task to perform</td>
+      <td><code>str</code></td>
+      <td><code>singlepoint</code> (must be <code>singlepoint</code>/<code>convergence</code>/<code>wannierise</code>/<code>environ_dscf</code>/<code>ui</code>/<code>dft_bands</code>)</td>
+   </tr>
+   <tr>
+      <td><code>functional</code></td>
+      <td>orbital-density-dependent-functional/density-functional to use</td>
+      <td><code>str</code></td>
+      <td><code>ki</code> (must be <code>ki</code>/<code>kipz</code>/<code>pkipz</code>/<code>dft</code>/<code>all</code>)</td>
+   </tr>
+   <tr>
+      <td><code>calculate_alpha</code></td>
+      <td>whether or not to calculate the screening parameters ab-initio</td>
+      <td><code>bool</code></td>
+      <td><code>True</code></td>
+   </tr>
+   <tr>
+      <td><code>method</code></td>
+      <td>the method to calculate the screening parameters: either with ΔSCF or DFPT</td>
+      <td><code>str</code></td>
+      <td><code>dscf</code> (must be <code>dscf</code>/<code>dfpt</code>)</td>
+   </tr>
+   <tr>
+      <td><code>init_orbitals</code></td>
+      <td>which orbitals to use as an initial guess for the variational orbitals</td>
+      <td><code>str</code></td>
+      <td><code>pz</code> (must be <code>pz</code>/<code>kohn-sham</code>/<code>mlwfs</code>/<code>projwfs</code>/<code>from old ki</code>)</td>
+   </tr>
+   <tr>
+      <td><code>init_empty_orbitals</code></td>
+      <td>which orbitals to use as an initial guess for the empty variational orbitals (defaults to the same value as "init_orbitals")</td>
+      <td><code>str</code></td>
+      <td><code>same</code> (must be <code>same</code>/<code>pz</code>/<code>kohn-sham</code>/<code>mlwfs</code>/<code>projwfs</code>/<code>from old ki</code>)</td>
+   </tr>
+   <tr>
+      <td><code>frozen_orbitals</code></td>
+      <td>if True, freeze the variational orbitals for the duration of the calculation once they've been initialised</td>
+      <td><code>bool</code></td>
+      <td></td>
+   </tr>
+   <tr>
+      <td><code>periodic</code></td>
+      <td>whether or not the system is periodic</td>
+      <td><code>bool</code></td>
+      <td><code>False</code></td>
+   </tr>
+   <tr>
+      <td><code>npool</code></td>
+      <td>Number of pools for parallelising over kpoints (should be commensurate with the k-point grid)</td>
+      <td><code>int</code></td>
+      <td></td>
+   </tr>
+   <tr>
+      <td><code>gb_correction</code></td>
+      <td>if True, apply the Gygi-Baldereschi scheme to deal with the q-&gt;0 divergence of the Coulomb interation for periodic systems</td>
+      <td><code>bool</code></td>
+      <td></td>
+   </tr>
+   <tr>
+      <td><code>mp_correction</code></td>
+      <td>if True, apply the Makov-Payne correction for charged periodic systems</td>
+      <td><code>bool</code></td>
+      <td><code>False</code></td>
+   </tr>
+   <tr>
+      <td><code>mt_correction</code></td>
+      <td>if True, apply the Martyna-Tuckerman correction for charged aperiodic systems</td>
+      <td><code>bool</code></td>
+      <td></td>
+   </tr>
+   <tr>
+      <td><code>eps_inf</code></td>
+      <td>dielectric constant of the system used by the Gygi-Baldereschi and Makov-Payne corrections</td>
+      <td><code>float</code></td>
+      <td></td>
+   </tr>
+   <tr>
+      <td><code>n_max_sc_steps</code></td>
+      <td>maximum number of self-consistency steps for calculating alpha</td>
+      <td><code>int</code></td>
+      <td><code>1</code></td>
+   </tr>
+   <tr>
+      <td><code>alpha_conv_thr</code></td>
+      <td>convergence threshold for |Delta E_i - epsilon_i|; if below this threshold, the corresponding alpha value is not updated</td>
+      <td><code>float</code>/<code>str</code></td>
+      <td><code>0.001</code></td>
+   </tr>
+   <tr>
+      <td><code>alpha_guess</code></td>
+      <td>starting guess for alpha (overridden if alpha_from_file is true)</td>
+      <td><code>float</code>/<code>list</code></td>
+      <td><code>0.6</code></td>
+   </tr>
+   <tr>
+      <td><code>alpha_from_file</code></td>
+      <td>if True, uses the file_alpharef.txt from the base directory as a starting guess</td>
+      <td><code>bool</code></td>
+      <td><code>False</code></td>
+   </tr>
+   <tr>
+      <td><code>print_qc</code></td>
+      <td>if True, prints out strings for the purposes of quality control</td>
+      <td><code>bool</code></td>
+      <td><code>False</code></td>
+   </tr>
+   <tr>
+      <td><code>from_scratch</code></td>
+      <td>if True, will delete any preexisting workflow and start again; if False, will resume a workflow from where it was last up to</td>
+      <td><code>bool</code></td>
+      <td><code>False</code></td>
+   </tr>
+   <tr>
+      <td><code>orbital_groups</code></td>
+      <td>a list of integers the same length as the total number of bands, denoting which bands to assign the same screening parameter to</td>
+      <td><code>list</code></td>
+      <td></td>
+   </tr>
+   <tr>
+      <td><code>orbital_groups_self_hartree_tol</code></td>
+      <td>when calculating alpha parameters, the code will group orbitals together only if their self-Hartree energy is within this threshold</td>
+      <td><code>float</code></td>
+      <td></td>
+   </tr>
+   <tr>
+      <td><code>enforce_spin_symmetry</code></td>
+      <td>if True, the spin-up and spin-down wavefunctions will be forced to be the same</td>
+      <td><code>bool</code></td>
+      <td><code>True</code></td>
+   </tr>
+   <tr>
+      <td><code>check_wannierisation</code></td>
+      <td>if True, checks the Im/Re ratio and generates a plot of the interpolated band structure</td>
+      <td><code>bool</code></td>
+      <td><code>False</code></td>
+   </tr>
+   <tr>
+      <td><code>convergence_observable</code></td>
+      <td>System observable of interest which we converge</td>
+      <td><code>str</code></td>
+      <td><code>total energy</code> (must be <code>homo energy</code>/<code>lumo energy</code>/<code>total energy</code>)</td>
+   </tr>
+   <tr>
+      <td><code>convergence_threshold</code></td>
+      <td>Convergence threshold for the system observable of interest</td>
+      <td><code>str</code>/<code>float</code></td>
+      <td></td>
+   </tr>
+   <tr>
+      <td><code>convergence_parameters</code></td>
+      <td>The observable of interest will be converged with respect to this/these simulation parameter(s)</td>
+      <td><code>list</code>/<code>str</code></td>
+      <td><code>['ecutwfc']</code></td>
+   </tr>
+   <tr>
+      <td><code>eps_cavity</code></td>
+      <td>a list of epsilon_infinity values for the cavity in dscf calculations</td>
+      <td><code>list</code></td>
+      <td><code>[1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20]</code></td>
+   </tr>
+</table>

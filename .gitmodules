@@ -4,6 +4,3 @@
 [submodule "ase"]
 	path = ase
 	url = git@github.com:elinscott/ase_koopmans
-[submodule "docs"]
-	path = docs
-	url = git@github.com:elinscott/koopmans_docs.git

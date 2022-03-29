@@ -1,0 +1,26 @@
+The w90 block
+^^^^^^^^^^^^^
+This block contains keywords specific to ``wannier90.x``, which are documented `here <https://github.com/wannier-developers/wannier90/raw/v3.1.0/doc/compiled_docs/user_guide.pdf>`_. Because the occupied and empty manifolds are wannierised separately, you may want to use slightly different wannierisation protocols for each. You can do this by placing keywords within the ``occ`` and ``emp`` sub-dictionaries e.g.
+
+.. literalinclude:: ../tutorials/tutorial_2/si.json
+  :lines: 83-99
+
+In this case both the occupied and empty manifolds will use ``sp3`` projections, but only the empty manifold will use the provided ``dis_froz_max`` etc.
+
+The contents of the projections blocks can be specified in one of two ways. The first option, as demonstrated above, involves providing a list of dictionaries, where each dictionary corresponds to a single projector. The required entries for this dictionary are
+
+  ``site``/``csite``/``fsite``
+    an atom label/cartesian coordinate/fractional coordinate to be used as the projections' centre. The three are mutually exclusive.
+
+  ``ang_mtm``
+    a string specifying the angular momentum states e.g. ``"l=2"``  
+
+The user can also optionally specify ``zaxis``, ``xaxis``, ``radial``, ``zona`` (see the Wannier90 User Guide for details).
+
+Alternatively, the user can simply specify each projection as a single string using Wannier90 syntax e.g.
+
+.. code:: json
+  
+  "projections": [
+    "f=0.25,0.25,0.25:sp3"
+  ]
