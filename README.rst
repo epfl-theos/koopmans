@@ -122,8 +122,8 @@ For help and feedback email edward.linscott@gmail.com
 
 .. |GH Actions| image:: https://img.shields.io/github/workflow/status/epfl-theos/koopmans/Run%20tests/master?label=master&logo=github
    :target: https://github.com/epfl-theos/koopmans/actions?query=branch%3Amaster
-.. |Coverage Status| image:: https://img.shields.io/codecov/c/gh/elinscott/python_KI/master?logo=codecov
-   :target: https://codecov.io/gh/elinscott/python_KI
+.. |Coverage Status| image:: https://img.shields.io/codecov/c/gh/epfl-theos/koopmans/master?logo=codecov
+   :target: https://codecov.io/gh/epfl-theos/koopmans
 .. |MIT License| image:: https://img.shields.io/badge/license-MIT-blue.svg
    :target: https://github.com/epfl-theos/koopmans/blob/master/LICENSE
 .. |Documentation Status| image:: https://readthedocs.org/projects/koopmans/badge/?version=latest
