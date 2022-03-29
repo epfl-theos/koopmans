@@ -6,6 +6,7 @@ Written by Edward Linscott May 2020
 
 '''
 
+from ._figures import savefig
 from ._io import parse_dict, indented_print, construct_cell_parameters_block, \
     construct_atomic_positions_block, construct_atomic_species_block, write_alpha_file, \
     read_alpha_file, read_atomic_species, read_atomic_positions, read_cell_parameters, \
