@@ -32,7 +32,8 @@ version = ''.join([c for c in release if not c.isalpha()])
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['recommonmark', 'sphinx.ext.mathjax', 'sphinx.ext.autosectionlabel', 'sphinxcontrib.bibtex', 'sphinx_toolbox.collapse']
+extensions = ['recommonmark', 'sphinx.ext.mathjax', 'sphinx.ext.autosectionlabel', 'sphinxcontrib.bibtex',
+              'sphinx_toolbox.collapse']
 bibtex_bibfiles = ['refs.bib']
 
 # Add any paths that contain templates here, relative to this directory.

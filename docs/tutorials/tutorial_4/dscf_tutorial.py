@@ -11,7 +11,7 @@ import seaborn as sns
 from koopmans import io
 
 sns.set_style('darkgrid')
-sns.set_style("darkgrid", {"axes.facecolor" : "d2d2d9"})
+sns.set_style("darkgrid", {"axes.facecolor": "d2d2d9"})
 
 if __name__ == '__main__':
     # Read in json file
@@ -21,9 +21,10 @@ if __name__ == '__main__':
     workflow.run()
 
     # Load results into a pandas dataframe
-    epsilons = sorted(list(set([c.environ_settings['ENVIRON']['env_static_permittivity'] for c in workflow.calculations])))
+    epsilons = sorted(list(set([c.environ_settings['ENVIRON']['env_static_permittivity'] for c in
+                                workflow.calculations])))
     results = set([k for c in workflow.calculations for k in c.results.keys()])
-    
+
     columns = [f'{label} {result}' for label in ['charged', 'neutral'] for result in results]
     columns.append('EA')
     df = pd.DataFrame(index=epsilons, columns=columns)
@@ -49,13 +50,14 @@ if __name__ == '__main__':
     ax = df.plot(y='EA', style='o', label='data')
 
     # Interpolate with a quartic
-    coeffs = np.polyfit(df.index, df['EA'], deg=4) 
+    coeffs = np.polyfit(df.index, df['EA'], deg=4)
     x_interp = np.linspace(1, max(epsilons))
     y_interp = np.polyval(coeffs, x_interp)
     ax.plot(x_interp, y_interp, label='quartic fit')
 
     # Label the extrapolated value
-    ax.annotate(f'EA = {y_interp[0]:.3f} eV', xy=(1, y_interp[0]), xycoords='data', xytext=(1.5, y_interp[0]), ha='left', va='center', arrowprops={'arrowstyle': '->', 'color': 'k'})
+    ax.annotate(f'EA = {y_interp[0]:.3f} eV', xy=(1, y_interp[0]), xycoords='data', xytext=(1.5, y_interp[0]),
+                ha='left', va='center', arrowprops={'arrowstyle': '->', 'color': 'k'})
 
     # Figure aesthetics
     ax.set_xlabel(r'$\varepsilon$')
@@ -65,4 +67,4 @@ if __name__ == '__main__':
     plt.tight_layout()
 
     # Save the figure to file
-    plt.savefig('o2_dscf_ea_result.png', facecolor=(1,1,1,0))
+    plt.savefig('o2_dscf_ea_result.png', facecolor=(1, 1, 1, 0))
