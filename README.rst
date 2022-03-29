@@ -125,8 +125,8 @@ For help and feedback email edward.linscott@gmail.com
 .. |Coverage Status| image:: https://img.shields.io/codecov/c/gh/elinscott/python_KI/master?logo=codecov
    :target: https://codecov.io/gh/elinscott/python_KI
 .. |MIT License| image:: https://img.shields.io/badge/license-MIT-blue.svg
-   :target: https://github.com/elinscott/python_KI/blob/master/LICENSE
-.. |Documentation Status| image:: https://readthedocs.org/projects/koopmans-docs/badge/?version=latest
-   :target: https://koopmans-docs.readthedocs.io/en/latest/?badge=latest
+   :target: https://github.com/epfl-theos/koopmans/blob/master/LICENSE
+.. |Documentation Status| image:: https://readthedocs.org/projects/koopmans/badge/?version=latest
+   :target: https://koopmans-functionals.org/en/latest/?badge=latest
    :alt: Documentation Status
 
