@@ -72,7 +72,8 @@ class DFTPhWorkflow(Workflow):
 
         # Add here a scf calculation and then a ph calculation
         # calc_ph = self.new_calculator('ph')
-
+        import ipdb
+        ipdb.set_trace()
 
 class PWBandStructureWorkflow(Workflow):
 
