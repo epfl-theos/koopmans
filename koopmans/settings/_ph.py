@@ -5,10 +5,9 @@ from ._utils import SettingsDict
 
 class PhSettingsDict(SettingsDict):
     def __init__(self, **kwargs) -> None:
-        super().__init__(valid=['outdir', 'prefix', 'seedname', 'write_mmn',
-                                'write_amn', 'write_uHu', 'uHu_formatted',
-                                'write_unk', 'reduce_unk', 'wan_mode', 'spin_component'],
-                         defaults={'outdir': 'TMP', 'prefix': 'kc', 'seedname': 'wann',
+        super().__init__(valid=['outdir', 'prefix', 'epsil', 'amass',
+                                'fildyn', 'tr2_ph',
+                         defaults={'outdir': 'TMP', 'prefix': 'kc', 'epsil': '.true.',
                                    'wan_mode': 'standalone'},
                          are_paths=['outdir'],
                          to_not_parse=['wan_mode'],
