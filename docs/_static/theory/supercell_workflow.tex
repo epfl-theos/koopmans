@@ -1,0 +1,135 @@
+% \begin{tikzpicture}[font=\tiny, x=3.5cm, y=1cm]
+\begin{pgfonlayer}{background}
+   % \node[fit= (KC init) (empty label) (filled label) (sc loop 1) (converged label), fill=seaborn_bg_grey, inner sep=0.5cm] (calculating screening) {};
+   % \node [dummy, above=0cm of calculating screening, font=\sffamily]{Calculating screening parameters};
+   \fill [seaborn_bg_grey_dark] (-2.1,-0.8) rectangle (1.3,4.6);
+   \node at (-2.1, 4.6) [default_text] {\large Initialisation (molecules)};
+   \fill [seaborn_bg_grey_dark] (-2.1,-4.6) rectangle (1.3,-1.2);
+   \node at (-2.1, -1.2) [default_text] {\large Initialisation (solids)};
+   \fill [seaborn_bg_grey_dark] (1.4,-4.6) rectangle (6.9,4.6);
+   \node at (1.4, 4.6) [default_text] {\large Calculating screening parameters};
+   \fill [seaborn_bg_grey_dark] (7,-4.6) rectangle (8,4.6);
+   \node at (7, 4.6) [default_text, text width=3.5cm] {\large Final calculation};
+   \fill [seaborn_bg_grey_dark] (8.1,-4.6) rectangle (9.1,4.6);
+   \node at (8.1, 4.6) [default_text, text width=3.5cm] {\large Postprocessing (solids)};
+\end{pgfonlayer}
+
+% Key
+\node at (6.85, 5.25) [cp, text width=1.4cm, minimum height=0.7cm] {\texttt{cp}};
+\node at (7.35, 5.25) [pw, text width=1.4cm, minimum height=0.7cm] {\texttt{pw}};
+\node at (7.85, 5.25) [wannier90, text width=1.4cm, minimum height=0.7cm] {\texttt{wannier90}};
+\node at (8.35, 5.25) [bespoke, text width=1.4cm, minimum height=0.7cm, font=\tiny] {bespoke code};
+\node at (8.85, 5.25) [observable, text width=1.4cm, minimum height=0.7cm, font=\tiny] {quantity of interest};
+
+% Initialisation
+% Option 1
+\node at (-1, 2.9) [cp] (PBE init) {PBE};
+\node at (0, 2.9) [cp] (PZ innerloop) {PZ unitary rotation};
+\path [line] (PBE init) -- (PZ innerloop);
+
+% OR
+\node at (-0.5, 1.9) [default] (or) {or};
+
+% Option 2
+\node at (-0.5, 0.9) [cp] (PZ init) {PZ};
+
+% Solids
+\node at (-1.5, -2.9) [pw] (pw PBE init) {PBE (primitive cell)};
+\node at (-0.5, -2.9) [wannier90] (wannierize) {wannierize};
+\node at (0.5, -2.9) [bespoke] (unfold) {unfold to supercell};
+\path [line] (pw PBE init) -- (wannierize);
+\path [line] (wannierize) -- (unfold);
+
+% Calculating screening parameters
+\node at (2, 0) [cp] (KC init) {$\alpha_0$KI/$\alpha_0$KIPZ};
+
+\path let
+\p1 = (PZ innerloop),
+\p2 = (unfold.east)
+in
+coordinate (dummy) at (\x2, \y1);
+\path let
+\p1 = (PZ init),
+\p2 = (unfold.east)
+in
+coordinate (dummy2) at (\x2, \y1);
+\path [line] (PZ innerloop) -- (dummy) to[-|-=0.3] ([yshift=2\myyshift]KC init.west);
+\path [line] (PZ init.east) -- ([xshift=-3.5\myyshift]dummy2) to[-|-=0.3] (KC init.west);
+\path [line] ([yshift=-2\myyshift]unfold.east) to[-|-=0.3] ([yshift=-2\myyshift]KC init.west);
+
+% KI filled %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% calculations
+\node at (3, 3) [cp] (N-1_filled) {PBE/$\alpha_0$KIPZ ($N-1$)};
+\node at (3, 2) [cp] (PBE_filled) {PBE};
+\node at (3, -2) [cp] (PBE_empty) {PBE};
+\node at (3, -3) [cp] (N+1_empty) {PBE/$\alpha_0$KIPZ ($N+1$)};
+
+\path [line] (KC init) to[-|-] (PBE_filled);
+\path [line] (KC init) to[-|-] (N-1_filled);
+\path [line] (KC init) to[-|-] (PBE_empty);
+\path [line] (KC init) to[-|-] (N+1_empty);
+
+% results
+\node at (4, 3) [observable] (EN-1_filled) {$E_i(N-1)$};
+\node at (4, 2) [observable] (lambda0_filled) {$\lambda^{0}_{ii}(1)$};
+\node at (4, 1) [observable] (lambda_filled) {$\lambda^{\alpha_0}_{ii}(1)$};
+\node at (4, 0) [observable] (EN) {$E(N)$};
+\node at (4, -1) [observable] (lambda_empty) {$\lambda^{\alpha_0}_{ii}(0)$};
+\node at (4, -2) [observable] (lambda0_empty) {$\lambda^{0}_{ii}(0)$};
+\node at (4, -3) [observable] (EN+1_empty) {$E_i(N+1)$};
+
+\path [line] (KC init) -- (EN);
+\path [line] (KC init.east) to[-|-] (lambda_filled.west);
+\path [line] (KC init.east) to[-|-] (lambda_empty.west);
+
+\path [line] (PBE_filled) -- (lambda0_filled);
+\path [line] (N-1_filled) -- (EN-1_filled);
+
+\path [line] (PBE_empty) -- (lambda0_empty);
+\path [line] (N+1_empty) -- (EN+1_empty);
+
+% alpha parameters
+\node at (5, 1.5) [observable] (alpha filled) {$\alpha_{i \in \text{filled}}$};
+\node at (5, -1.5) [observable] (alpha empty) {$\alpha_{i \in \text{empty}}$};
+
+\path [line] (lambda_filled) to[-|-] (alpha filled);
+\path [line] ([yshift=\myyshift]EN.east) to[-|-] (alpha filled.west);
+\path [line] (lambda0_filled) to[-|-] (alpha filled);
+\path [line] (EN-1_filled) to[-|-] (alpha filled);
+
+\path [line] (lambda_empty) to[-|-] (alpha empty);
+\path [line] ([yshift=-\myyshift]EN.east) to[-|-] (alpha empty.west);
+\path [line] (lambda0_empty) to[-|-] (alpha empty);
+\path [line] (EN+1_empty) to[-|-] (alpha empty);
+
+% SC check
+\coordinate (sc check) at (6, 0);
+\path [headless_line] (alpha empty) to[-|-] (sc check);
+\path [headless_line] (alpha filled) to[-|-] (sc check);
+
+% SC loop
+\node [below= of EN+1_empty] (sc loop y) {};
+\path let
+\p1 = (sc check),
+\p2 = (sc loop y)
+in
+coordinate (sc loop 1) at (\x1, \y2);
+\path [line] (sc check) -- node [midway, right, font=\sffamily] (not converged label) {\footnotesize $\{\alpha_i\}$ not converged} (sc loop 1) -| (KC init.south);
+
+% Final calc
+\node at (7.5, 0) [cp] (final KI) {$\alpha$KI/$\alpha$KIPZ};
+\path [line] (sc check) -- node [midway, above, font=\sffamily] (converged label) {\footnotesize $\{\alpha_i\}$ converged} (final KI);
+
+% Postproc
+\node at (8.6, 0) [bespoke] (upfold) {fold to primitive cell};
+\path [line] (final KI) -- (upfold);
+
+% Boxes
+% Screening parametere
+\node [boxwhite, fit= (N-1_filled) (lambda_filled) (alpha filled),
+   draw, dashed, fill opacity=0, inner sep=0.35cm](filled box){};
+\node [dummy, above=0cm of filled box, font=\sffamily](filled label){one per filled orbital (index $i$)};
+\node [boxwhite, fit= (N+1_empty) (lambda_empty) (alpha empty),
+   draw, dashed, fill opacity=0, inner sep=0.35cm](empty box){};
+\node [dummy, below=0cm of empty box, font=\sffamily](empty label){one per empty orbital (index $i$)};
