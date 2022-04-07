@@ -247,7 +247,7 @@ class Workflow(ABC):
         # Check the consistency between PW's gamma_only and KCP's do_wf_cmplx
         if not self.gamma_only and self.master_calc_params['kcp'].do_wf_cmplx is False:
             utils.warn('In KCP do_wf_cmplx = False is not consistent with gamma_only = False. '
-            'Changing do_wf_cmplx to True')
+                       'Changing do_wf_cmplx to True')
             self.master_calc_params['kcp'].do_wf_cmplx = True
 
         # Check internal consistency of workflow settings
