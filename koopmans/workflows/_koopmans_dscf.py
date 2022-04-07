@@ -295,7 +295,8 @@ class KoopmansDSCFWorkflow(Workflow):
             files_to_check = [Path('init/ki_init.cpo')]
             savedir /= 'K00001'
             if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-                files_to_check += ['evc_occupied1.dat', 'evc_occupied2.dat', 'evc0_empty1.dat', 'evc0_empty2.dat']
+                for f in ['evc_occupied1.dat', 'evc_occupied2.dat', 'evc0_empty1.dat', 'evc0_empty2.dat']:
+                    files_to_check.append(savedir / f)
             else:
                 files_to_check += [savedir / 'evc01.dat', savedir / 'evc02.dat']
 
