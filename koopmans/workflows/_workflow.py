@@ -77,6 +77,7 @@ class Workflow(ABC):
         else:
             self.kgrid = kgrid
             self.koffset = koffset
+
         if projections is None:
             proj_list: List[List[Any]]
             spins: List[Optional[str]]
@@ -242,6 +243,12 @@ class Workflow(ABC):
             utils.warn(f'You have initialised a {self.__class__.__name__} object with an atoms object that possesses '
                        'a calculator. This calculator will be ignored.')
             self.atoms.calc = None
+
+        # Check the consistency between PW's gamma_only and KCP's do_wf_cmplx
+        if not self.gamma_only and self.master_calc_params['kcp'].do_wf_cmplx is False:
+            utils.warn('In KCP do_wf_cmplx = False is not consistent with gamma_only = False. '
+            'Changing do_wf_cmplx to True')
+            self.master_calc_params['kcp'].do_wf_cmplx = True
 
         # Check internal consistency of workflow settings
         if self.parameters.fix_spin_contamination is None:
