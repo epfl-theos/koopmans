@@ -264,20 +264,9 @@ class KoopmansDSCFWorkflow(Workflow):
                 ui_workflow = UnfoldAndInterpolateWorkflow(redo_smooth_dft=self._redo_smooth_dft, **self.wf_kwargs)
                 self.run_subworkflow(ui_workflow, subdirectory='postproc')
             else:
-                # If Emin, Emax are not defined, find the energy range
-                eigenvalues = self.calculations[-1].results['eigenvalues']
-                if self.plot_params.Emin is None:
-                    self.plot_params.Emin = np.min(eigenvalues) - 1
-                if self.plot_params.Emax is None:
-                    self.plot_params.Emax = np.max(eigenvalues) + 1
                 # Generate the DOS only
-                # NB: this implementation is currently bugged, since the function DOS from ASE
-                #     requires to be called from a calculator. In particular, the object calling
-                #     the function DOS must have the attirbutes get_k_point_weights, get_number_of_spins
-                #     and get_eigenvalues.
-#                dos = DOS(self, width=self.plot_params.degauss, window=(
-#                    self.plot_params.Emin, self.plot_params.Emax), npts=self.plot_params.nstep + 1)
-#                self.calculations[-1].results['dos'] = dos
+                dos = DOS(self.calculations[-1], width=self.plot_params.degauss, npts=self.plot_params.nstep + 1)
+                self.calculations[-1].results['dos'] = dos
 
     def perform_initialisation(self) -> None:
         # Import these here so that if these have been monkey-patched, we get the monkey-patched version
