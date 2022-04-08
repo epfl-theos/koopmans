@@ -278,9 +278,9 @@ class WannierizeWorkflow(Workflow):
                 calc.parameters.dis_num_iter = 5000
             if self.parameters.init_orbitals == 'projwfs':
                 calc.parameters.num_iter = 0
-            if self.parameters.gamma_only != self.gamma_only:
+            if calc.parameters.gamma_only != self.gamma_only:
                 # forcing W90 to follow the same logic of PW for the gamma_trick
-                self.parameters.gamma_only = self.gamma_only
+                calc.parameters.gamma_only = self.gamma_only
         if calc_type == 'pw2wannier':
             if self._force_nspin2 and not self.parameters.spin_polarised:
                 calc.parameters.spin_component = 'up'
