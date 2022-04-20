@@ -793,6 +793,10 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
 
             return qe_calc.is_complete()
 
+        def check_convergence(self, qe_calc):
+            # Monkeypatched version of check_convergence to avoid any convergence check
+            return
+
     from koopmans.workflows import WannierizeWorkflow
 
     class MockWannierizeWorkflow(MockWorkflow, WannierizeWorkflow):
