@@ -292,13 +292,8 @@ class KoopmansDSCFWorkflow(Workflow):
                 utils.system_call(f'rsync -a {old_savedir}/ .')
 
             # Check that the files defining the variational orbitals exist
-            files_to_check = [Path('init/ki_init.cpo')]
             savedir /= 'K00001'
-            if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-                for f in ['evc_occupied1.dat', 'evc_occupied2.dat', 'evc0_empty1.dat', 'evc0_empty2.dat']:
-                    files_to_check.append(savedir / f)
-            else:
-                files_to_check += [savedir / 'evc01.dat', savedir / 'evc02.dat']
+            files_to_check = [Path('init/ki_init.cpo'), savedir / 'evc01.dat', savedir / 'evc02.dat']
 
             for ispin in range(2):
                 if calc.has_empty_states(ispin):
@@ -487,7 +482,8 @@ class KoopmansDSCFWorkflow(Workflow):
                     iteration_directory.mkdir()
 
             # Do a KI/KIPZ calculation with the updated alpha values
-            restart_from_wannier_pwscf = self.parameters.init_orbitals in ['mlwfs', 'projwfs']
+            restart_from_wannier_pwscf = True if self.parameters.init_orbitals in [
+                'mlwfs', 'projwfs'] and not self._restart_from_old_ki else None
             trial_calc = self.new_kcp_calculator(calc_presets=self.parameters.functional.replace('pkipz', 'ki'),
                                                  alphas=self.bands.alphas,
                                                  restart_from_wannier_pwscf=restart_from_wannier_pwscf)
@@ -743,10 +739,11 @@ class KoopmansDSCFWorkflow(Workflow):
                 calc = self.new_kcp_calculator(final_calc_type, ndr=ndr, write_hr=True)
             else:
                 calc = self.new_kcp_calculator(final_calc_type, write_hr=True)
+                if self.parameters.functional == 'ki' and self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
+                        and not self.parameters.calculate_alpha:
+                    calc.parameters.restart_from_wannier_pwscf = True
 
             calc.directory = directory
-            if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] and not self.parameters.calculate_alpha:
-                calc.parameters.restart_from_wannier_pwscf = True
 
             self.run_calculator(calc)
 
