@@ -7,6 +7,7 @@
         "init_orbitals": "kohn-sham",
         "calculate_alpha": true,
         "alpha_guess": 0.077,
+        "calculate_bands": false,
         "print_qc": true,
         "from_scratch": true,
         "fix_spin_contamination": true,
