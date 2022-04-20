@@ -51,7 +51,10 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         return self.results.get('job done', False)
 
     def is_converged(self):
-        return self.results.get('energy', None) is not None
+        if self.parameters.calculation == 'scf':
+            return self.results.get('energy', None) is not None
+        else:
+            return True
 
     def vbm_energy(self) -> float:
         return 0.0
