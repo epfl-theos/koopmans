@@ -8,7 +8,7 @@
         "calculate_alpha": false,
         "alpha_guess": 0.077,
         "print_qc": true,
-        "from_scratch": false,
+        "from_scratch": true,
         "fix_spin_contamination": true,
         "pseudo_library": "sg15",
         "orbital_groups": [

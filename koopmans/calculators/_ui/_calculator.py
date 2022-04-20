@@ -642,8 +642,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
     def calc_dos(self) -> None:
         """
-        calc_dos calculates the density of states using a gaussian smearing. The DOS is saved
-                 as a list [ [E1, DOS(E1)], [E2, DOS[E2]], ... , [En, DOS(En)] ]
+        calc_dos calculates the density of states using the DOS function from ASE
         """
 
         if self.parameters.plot_params.Emin is None or self.parameters.plot_params.Emax is None:
