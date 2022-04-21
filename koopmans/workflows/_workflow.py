@@ -614,7 +614,10 @@ class Workflow(ABC):
 
     def check_convergence(self, qe_calc):
         # Check the convergence of a given calculation
-        if qe_calc.is_converged():
+        if isinstance(qe_calc, (calculators.KoopmansScreenCalculator, calculators.KoopmansHamCalculator)):
+            # is_converged not implemented yet for KoopmansScreenCalculator and KoopmansHamCalculator
+            pass
+        elif qe_calc.is_converged():
             if isinstance(qe_calc, calculators.KoopmansCPCalculator):
                 # Check spin-up and spin-down eigenvalues match
                 if 'eigenvalues' in qe_calc.results and qe_calc.parameters.do_outerloop \
