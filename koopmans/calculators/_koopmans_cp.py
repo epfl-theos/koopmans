@@ -257,10 +257,10 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         convergence_data = self.results['convergence'].values()
         converged = []
         for do_outer, convergence in zip(do_outers, convergence_data):
-            if len(convergence) == 0:
-                return False
             if not do_outer:
                 converged.append(True)
+            elif len(convergence) == 0:
+                return False
             else:
                 converged.append(
                     convergence[-1]['delta_E'] < self.parameters.conv_thr * utils.units.Hartree)

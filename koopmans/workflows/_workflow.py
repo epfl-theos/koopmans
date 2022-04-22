@@ -72,6 +72,7 @@ class Workflow(ABC):
         else:
             self.kgrid = kgrid
             self.koffset = koffset
+
         if projections is None:
             proj_list: List[List[Any]]
             spins: List[Optional[str]]
@@ -239,6 +240,12 @@ class Workflow(ABC):
             utils.warn(f'You have initialised a {self.__class__.__name__} object with an atoms object that possesses '
                        'a calculator. This calculator will be ignored.')
             self.atoms.calc = None
+
+        # Check the consistency between PW's gamma_only and KCP's do_wf_cmplx
+        if not self.gamma_only and self.master_calc_params['kcp'].do_wf_cmplx is False:
+            utils.warn('In KCP do_wf_cmplx = False is not consistent with gamma_only = False. '
+                       'Changing do_wf_cmplx to True')
+            self.master_calc_params['kcp'].do_wf_cmplx = True
 
         # Check internal consistency of workflow settings
         if self.parameters.fix_spin_contamination is None:
@@ -536,6 +543,9 @@ class Workflow(ABC):
                     if not self.silent:
                         self.print(f'Not running {os.path.relpath(calc_file)} as it is already complete')
 
+                    # Check the convergence of the calculation
+                    self.check_convergence(qe_calc)
+
                     if isinstance(qe_calc, calculators.ReturnsBandStructure):
                         qe_calc.generate_band_structure()
                     return
@@ -559,15 +569,8 @@ class Workflow(ABC):
         if not self.silent:
             self.print(' done')
 
-        # Check spin-up and spin-down eigenvalues match
-        if 'eigenvalues' in qe_calc.results and isinstance(qe_calc, calculators.KoopmansCPCalculator):
-            if qe_calc.is_converged() and qe_calc.parameters.do_outerloop and qe_calc.parameters.nspin == 2 \
-                    and qe_calc.parameters.tot_magnetization == 0 and not qe_calc.parameters.fixed_state \
-                    and len(qe_calc.results['eigenvalues']) > 0:
-                rms_eigenval_difference = np.sqrt(
-                    np.mean(np.diff(qe_calc.results['eigenvalues'], axis=0)**2))
-                if rms_eigenval_difference > 0.05:
-                    utils.warn('Spin-up and spin-down eigenvalues differ substantially')
+        # Check the convergence of the calculation
+        self.check_convergence(qe_calc)
 
         # Store the calculator
         self.calculations.append(qe_calc)
@@ -606,6 +609,29 @@ class Workflow(ABC):
             self.calculations.append(qe_calc)
 
         return old_calc.is_complete()
+
+    def check_convergence(self, qe_calc):
+        # Check the convergence of a given calculation
+        if isinstance(qe_calc, (calculators.KoopmansScreenCalculator, calculators.KoopmansHamCalculator)):
+            # is_converged not implemented yet for KoopmansScreenCalculator and KoopmansHamCalculator
+            pass
+        elif qe_calc.is_converged():
+            if isinstance(qe_calc, calculators.KoopmansCPCalculator):
+                # Check spin-up and spin-down eigenvalues match
+                if 'eigenvalues' in qe_calc.results and qe_calc.parameters.do_outerloop \
+                        and qe_calc.parameters.nspin == 2 and qe_calc.parameters.tot_magnetization == 0 \
+                        and not qe_calc.parameters.fixed_state and len(qe_calc.results['eigenvalues']) > 0:
+                    rms_eigenval_difference = np.sqrt(np.mean(np.diff(qe_calc.results['eigenvalues'], axis=0)**2))
+                    if rms_eigenval_difference > 0.05:
+                        utils.warn('Spin-up and spin-down eigenvalues differ substantially')
+        else:
+            if isinstance(qe_calc, calculators.Wannier90Calculator):
+                # For projwfs and preproc calculations the convergence check cannot be applied;
+                # for mlwfs a warning is printed out in case the calculation is not converged
+                if self.parameters.init_orbitals != 'projwfs' and 'preproc' not in qe_calc.prefix:
+                    utils.warn(f'Be careful, the wannierization did not converge !')
+            else:
+                raise CalculationFailed(f'{qe_calc.prefix} is not converged')
 
     def print(self, text='', style='body', **kwargs):
         if style == 'body':

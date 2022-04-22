@@ -35,15 +35,13 @@ class FoldToSupercellWorkflow(Workflow):
                                                directory=block.directory)
                 calc_w2k.prefix = 'w2kcp'
 
-                # Checking that gamma_trick is consistent with do_wf_cmplx
-                kcp_params = self.master_calc_params['kcp']
-                if calc_w2k.parameters.gamma_trick == kcp_params.do_wf_cmplx:
-                    utils.warn(
-                        f'if do_wf_cmplx is {kcp_params.do_wf_cmplx}, gamma_trick cannot be '
-                        f'{calc_w2k.parameters.gamma_trick}. Changing gamma_trick to {not kcp_params.do_wf_cmplx}')
-                    calc_w2k.parameters.gamma_trick = not kcp_params.do_wf_cmplx
-                elif calc_w2k.parameters.gamma_trick is None and not kcp_params.do_wf_cmplx:
+                # Checking that gamma_trick is consistent with gamma_only
+                if calc_w2k.parameters.gamma_trick and not self.gamma_only:
+                    calc_w2k.parameters.gamma_trick = False
+                elif not calc_w2k.parameters.gamma_trick and self.gamma_only:
                     calc_w2k.parameters.gamma_trick = True
+                else:
+                    pass
 
                 # Run the calculator
                 self.run_calculator(calc_w2k)
