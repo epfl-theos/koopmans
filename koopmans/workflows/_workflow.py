@@ -67,13 +67,7 @@ class Workflow(ABC):
         self.print_indent = 1
         self.gamma_only = gamma_only
         if self.gamma_only:
-            if kgrid != [1, 1, 1]:
-                utils.warn(f'You have initialised kgrid to {kgrid}, not compatible with gamma_only=True; '
-                           'kgrid is set equal to [1, 1, 1]')
-            if koffset != [0, 0, 0]:
-                utils.warn(f'You have initialised koffset to {koffset}, not compatible with gamma_only=True; '
-                           'koffset is set equal to [0, 0, 0]')
-            self.kgrid = [1, 1, 1]
+            self.kgrid = None
             self.koffset = [0, 0, 0]
         else:
             self.kgrid = kgrid
@@ -454,7 +448,7 @@ class Workflow(ABC):
     def primitive_to_supercell(self, matrix: Optional[npt.NDArray[np.int_]] = None, **kwargs):
         # Converts to a supercell as given by a 3x3 transformation matrix
         if matrix is None:
-            matrix = np.diag(self.kgrid)
+            matrix = np.diag(self.kgrid) if not self.gamma_only else np.identity(3)
         assert np.shape(matrix) == (3, 3)
         self.atoms = make_supercell(self.atoms, matrix, **kwargs)
 

@@ -94,16 +94,17 @@ class KoopmansDSCFWorkflow(Workflow):
                     i_start = i_end
                 self.parameters.orbital_groups = orbital_groups
 
-            # Update the KCP settings to correspond to a supercell (leaving self.atoms unchanged for the moment)
-            self.convert_kcp_to_supercell()
+            if not self.gamma_only:
+                # Update the KCP settings to correspond to a supercell (leaving self.atoms unchanged for the moment)
+                self.convert_kcp_to_supercell()
 
-            # Expanding self.parameters.orbital_groups to account for the supercell, grouping equivalent wannier
-            # functions together
-            for i_spin, nelec in enumerate(nelecs):
-                self.parameters.orbital_groups[i_spin] = [i for _ in range(np.prod(self.kgrid))
-                                                          for i in self.parameters.orbital_groups[i_spin][:nelec]] \
-                    + [i for _ in range(np.prod(self.kgrid))
-                       for i in self.parameters.orbital_groups[i_spin][nelec:]]
+                # Expanding self.parameters.orbital_groups to account for the supercell, grouping equivalent wannier
+                # functions together
+                for i_spin, nelec in enumerate(nelecs):
+                    self.parameters.orbital_groups[i_spin] = [i for _ in range(np.prod(self.kgrid))
+                                                            for i in self.parameters.orbital_groups[i_spin][:nelec]] \
+                        + [i for _ in range(np.prod(self.kgrid))
+                        for i in self.parameters.orbital_groups[i_spin][nelec:]]
 
         # Check the shape of self.parameters.orbital_groups is as expected
         if self.parameters.spin_polarised:
