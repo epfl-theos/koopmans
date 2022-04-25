@@ -388,7 +388,7 @@ class KoopmansDSCFWorkflow(Workflow):
             # Add to the outdir of dft_init a link to the files containing the Wannier functions
             dst = Path(f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001/')
             for file in ['evc_occupied1.dat', 'evc_occupied2.dat', 'evc0_empty1.dat', 'evc0_empty2.dat']:
-                utils.system_call(f'ln -sf {restart_dir}/{file} {dst}')
+                utils.symlink(f'{restart_dir}/{file}', dst, force=True)
 
         elif self.parameters.functional in ['ki', 'pkipz']:
             calc = self.new_kcp_calculator('dft_init')

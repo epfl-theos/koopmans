@@ -98,7 +98,7 @@ class CalculatorABC(ABC, Generic[T]):
 
     def check_convergence(self) -> None:
         if not self.is_converged():
-            raise CalculationFailed(f'{qe_calc.prefix} is not converged')
+            raise CalculationFailed(f'{self.prefix} is not converged')
 
     @abstractmethod
     def todict(self) -> dict:

@@ -450,6 +450,10 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             # Don't check if the code is installed
             return
 
+        def check_convergence(self):
+            # Monkeypatched version of check_convergence to avoid any convergence check
+            return
+
     class MockKoopmansCPCalculator(MockCalc, KoopmansCPCalculator):
         # Monkeypatched KoopmansCPCalculator class which never actually calls kcp.x
 
@@ -792,10 +796,6 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
                 raise ValueError(f'Found multiple calculators for {qe_calc.directory}/{qe_calc.prefix}')
 
             return qe_calc.is_complete()
-
-        def check_convergence(self, qe_calc):
-            # Monkeypatched version of check_convergence to avoid any convergence check
-            return
 
     from koopmans.workflows import WannierizeWorkflow
 

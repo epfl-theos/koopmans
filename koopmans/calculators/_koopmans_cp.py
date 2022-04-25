@@ -99,7 +99,13 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
         super().calculate()
 
-        # Eigenvalue check here
+        # Check spin-up and spin-down eigenvalues match
+        if 'eigenvalues' in self.results and self.parameters.do_outerloop \
+                and self.parameters.nspin == 2 and self.parameters.tot_magnetization == 0 \
+                and not self.parameters.fixed_state and len(self.results['eigenvalues']) > 0:
+            rms_eigenval_difference = np.sqrt(np.mean(np.diff(self.results['eigenvalues'], axis=0)**2))
+            if rms_eigenval_difference > 0.05:
+                utils.warn('Spin-up and spin-down eigenvalues differ substantially')
 
         # Swap the spin channels back
         if spin_channels_are_swapped:
