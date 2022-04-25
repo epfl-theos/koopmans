@@ -561,12 +561,11 @@ class Workflow(ABC):
             if isinstance(qe_calc.command, ParallelCommandWithPostfix):
                 qe_calc.command.postfix = f'-npool {self.parameters.npool}'
 
-        qe_calc.calculate()
-
-        if not qe_calc.is_complete():
+        try:
+            qe_calc.calculate()
+        except CalculationFailed as e:
             self.print(' failed')
-            raise CalculationFailed(
-                f'{qe_calc.directory}/{qe_calc.prefix} failed; check the Quantum ESPRESSO output file for more details')
+            raise CalculationFailed(e)
 
         if not self.silent:
             self.print(' done')

@@ -27,6 +27,7 @@ from pathlib import Path
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 from ase import Atoms
 import ase.io as ase_io
+from ase.calculators.calculator import CalculationFailed
 from ase.dft.kpoints import BandPath
 from ase.spectrum.band_structure import BandStructure
 from koopmans import utils, settings
@@ -94,6 +95,10 @@ class CalculatorABC(ABC, Generic[T]):
     @abstractmethod
     def is_complete(self) -> bool:
         ...
+
+    def check_convergence(self) -> None:
+        if not self.is_converged():
+            raise CalculationFailed(f'{qe_calc.prefix} is not converged')
 
     @abstractmethod
     def todict(self) -> dict:
@@ -192,6 +197,14 @@ class CalculatorExt():
 
         # Then call the relevant ASE calculate() function
         self._ase_calculate()
+
+        # Then check if the calculation completed
+        if not self.is_complete():
+            raise CalculationFailed(
+                f'{self.directory}/{self.prefix} failed; check the Quantum ESPRESSO output file for more details')
+
+        # Then check convergence
+        self.check_convergence()
 
     def _ase_calculate(self):
         # ASE expects self.command to be a string

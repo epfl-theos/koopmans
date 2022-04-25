@@ -99,6 +99,8 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
         super().calculate()
 
+        # Eigenvalue check here
+
         # Swap the spin channels back
         if spin_channels_are_swapped:
             self._swap_spin_channels()
