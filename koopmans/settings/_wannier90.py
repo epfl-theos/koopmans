@@ -32,6 +32,11 @@ class Wannier90SettingsDict(SettingsDict):
 
     def __setitem__(self, key: str, value: Any):
         if key == 'kgrid':
+            if value is None:
+                # When kgrid is None, i.e. we are performing a Γ-only calculation,
+                # Wannier90 still wants the mp_grid to be defined
+                value = [1, 1, 1]
+
             # Making sure the input is the correct format (a list of length 3)
             assert isinstance(value, list)
             assert len(value) == 3
