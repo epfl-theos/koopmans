@@ -15,7 +15,7 @@ def savefig(fname, **kwargs):
     else:
         fmt = splitfname[1]
 
-    plt.savefig(fname=f'{fname}.{fmt}', **kwargs)
+    plt.savefig(fname=f'{fname}.{fmt}', dpi=1000, **kwargs)
 
     with open(fname + '.fig.pkl', 'wb') as fd:
         pickle.dump(plt.gcf(), fd)
