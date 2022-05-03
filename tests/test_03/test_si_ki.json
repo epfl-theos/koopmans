@@ -59,6 +59,13 @@
             "nbnd": 12
         }
     },
+    "kcp": {
+        "system": {
+            "nr1b": 20,
+            "nr2b": 20,
+            "nr3b": 20
+        }
+    },
     "w90": {
         "conv_window": 5,
         "projections": [
@@ -80,6 +87,6 @@
         ],
         "Emin": -10,
         "Emax": 5,
-        "degauss": 0.4
+        "degauss": 0.5
     }
 }
