@@ -101,8 +101,6 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             calc.write_results()
 
         # Plot the band structure and DOS
-        bs_list = []
-        bsplot_kwargs_list = []
         bs = calc.results['band structure']
         if calc.parameters.do_dos:
             dos = calc.results['dos']
@@ -117,7 +115,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                            'in the "ui" block)')
         else:
             dos = None
-        self.plot_bandstructure(bs, dos)
+        self.plot_bandstructure(bs, dos, bsplot_kwargs={'emin': calc.parameters.Emin, 'emax': calc.parameters.Emax})
 
         # Store the calculator in the workflow's list of all the calculators
         self.calculations.append(calc)
