@@ -10,6 +10,7 @@ from ._koopmans_cp import KoopmansCPSettingsDict
 from ._koopmans_ham import KoopmansHamSettingsDict
 from ._koopmans_screen import KoopmansScreenSettingsDict
 from ._pw import PWSettingsDict
+from ._projwfc import ProjwfcSettingsDict
 from ._pw2wannier import PW2WannierSettingsDict
 from ._wann2kcp import Wann2KCPSettingsDict
 from ._ui import UnfoldAndInterpolateSettingsDict
@@ -22,6 +23,7 @@ from ._workflow import WorkflowSettingsDict
 default_master_calc_params = {'kcp': KoopmansCPSettingsDict(),
                               'kc_ham': KoopmansHamSettingsDict(),
                               'kc_screen': KoopmansScreenSettingsDict(),
+                              'projwfc': ProjwfcSettingsDict(),
                               'pw': PWSettingsDict(),
                               'pw2wannier': PW2WannierSettingsDict(),
                               'wann2kcp': Wann2KCPSettingsDict(),

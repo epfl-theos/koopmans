@@ -10,7 +10,7 @@
         "print_qc": true,
         "from_scratch": true,
         "fix_spin_contamination": true,
-        "pseudo_library": "sg15",
+        "pseudo_library": "pseudo_dojo_standard",
         "orbital_groups": [
             0,
             0,
@@ -59,6 +59,13 @@
             "nbnd": 12
         }
     },
+    "kcp": {
+        "system": {
+            "nr1b": 20,
+            "nr2b": 20,
+            "nr3b": 20
+        }
+    },
     "w90": {
         "conv_window": 5,
         "projections": [
@@ -79,6 +86,7 @@
             2
         ],
         "Emin": -10,
-        "Emax": 4
+        "Emax": 5,
+        "degauss": 0.5
     }
 }

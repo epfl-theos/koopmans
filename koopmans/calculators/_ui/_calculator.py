@@ -627,9 +627,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         """
 
         if self.parameters.Emin is None:
-            self.parameters.Emin = np.min(self.get_eigenvalues() - 0.1)
+            self.parameters.Emin = np.min(self.get_eigenvalues() - 10 * self.parameters.degauss)
         if self.parameters.Emax is None:
-            self.parameters.Emax = np.max(self.get_eigenvalues() + 0.1)
+            self.parameters.Emax = np.max(self.get_eigenvalues() + 10 * self.parameters.degauss)
 
         self.results['dos'] = DOS(self, width=self.parameters.degauss, window=(
             self.parameters.Emin, self.parameters.Emax), npts=self.parameters.nstep + 1)

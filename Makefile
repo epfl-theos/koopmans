@@ -46,7 +46,7 @@ espresso_4:
 	@(cd quantum_espresso/kcp; $(MAKE) kcp)
 
 espresso_7:
-	@(cd quantum_espresso/q-e; $(MAKE) kcw)
+	@(cd quantum_espresso/q-e; $(MAKE) pw kcw)
 
 espresso_utils:
 	@(cd quantum_espresso/utils; $(MAKE) all)

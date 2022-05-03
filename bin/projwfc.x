@@ -1,0 +1,1 @@
+../quantum_espresso/q-e/bin/projwfc.x
