@@ -5,12 +5,12 @@ on:
       branches:
          - master
       paths:
-         - 'quantum_espresso/cp_koopmans/**'
+         - 'quantum_espresso/kcp/**'
    push:
       branches:
          - master
       paths:
-         - 'quantum_espresso/cp_koopmans/**'
+         - 'quantum_espresso/kcp/**'
 
 jobs:
    gfortran:
@@ -31,10 +31,10 @@ jobs:
            run: |
               sudo apt-get update
               sudo apt-get install gfortran libopenmpi-dev libblas-dev liblapack-dev fftw3-dev
-         - name: Configure cp_koopmans
+         - name: Configure kcp
            run: |
               make configure_4 MPIF90=mpif90
-         - name: Build cp_koopmans
+         - name: Build kcp
            run: |
               make espresso_4 MPIF90=mpif90
 

@@ -1,0 +1,2 @@
+sphinxcontrib-bibtex>=2.1.4
+sphinx_toolbox>=2.5.0

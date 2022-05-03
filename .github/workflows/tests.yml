@@ -40,7 +40,7 @@ jobs:
            run: |
               pytest -m mock tests/ --cov-config=.coveragerc --cov=./koopmans/ --cov-report=xml
          - name: Upload coverage to Codecov
-           if: github.repository == 'elinscott/python_KI'
+           if: github.repository == 'epfl-theos/koopmans'
            uses: codecov/codecov-action@v1
            with:
               token: ${{ secrets.CODECOV_TOKEN }}
