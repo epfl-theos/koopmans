@@ -1096,7 +1096,8 @@ class Workflow(ABC):
                 spins = ['up', 'down']
             else:
                 spins = [None]
-            dos = GridDOSCollection([GridDOSData(dos.get_energies(), dos.get_dos(ispin), info={'spin': spin}) for ispin, spin in enumerate(spins)])
+            dos = GridDOSCollection([GridDOSData(dos.get_energies(), dos.get_dos(ispin), info={'spin': spin})
+                                     for ispin, spin in enumerate(spins)])
 
         colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
         if dos is not None:
@@ -1141,7 +1142,8 @@ class Workflow(ABC):
                     sorted_dos = dos
 
                 for d in sorted_dos:
-                    if (not self.parameters.spin_polarised or d.info.get('spin') == 'up') and all([key in d.info for key in ['symbol', 'n', 'l']]):
+                    if (not self.parameters.spin_polarised or d.info.get('spin') == 'up') \
+                            and all([key in d.info for key in ['symbol', 'n', 'l']]):
                         label = f'{d.info["symbol"]} {d.info["n"]}{d.info["l"]}'
                     else:
                         label = None

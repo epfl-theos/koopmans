@@ -40,7 +40,8 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
                 'ASE_PROJWFC_COMMAND', str(bin_directory) + os.path.sep + self.command))
 
         # We need pseudopotentials and pseudo dir in order to work out the number of valence electrons for each
-        # element, and therefore what pDOS files to expect. We also need spin-polarised to know if the pDOS files will contain columns for each spin channel
+        # element, and therefore what pDOS files to expect. We also need spin-polarised to know if the pDOS files will
+        # contain columns for each spin channel
 
         # These must be provided post-initialisation (because we want to be allowed to initialise the calculator)
         # without providing these arguments
@@ -53,7 +54,8 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
     def calculate(self):
         for attr in ['pseudopotentials', 'pseudo_dir', 'spin_polarised']:
             if not hasattr(self, attr):
-                raise ValueError(f'Please set {self.__class__.__name__}.{attr} before calling {self.__class__.__name__.calculate()}')
+                raise ValueError(f'Please set {self.__class__.__name__}.{attr} before calling '
+                                 f'{self.__class__.__name__.calculate()}')
         super().calculate()
         self.generate_dos()
 
@@ -64,7 +66,8 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         corresponding pseudopotential.
         """
         expected_orbitals = {}
-        z_core_to_first_orbital = {0: '1s', 2: '2s', 4: '2p', 10: '3s', 12: '3p', 18: '3d', 28: '4s', 30: '4p', 36: '4d', 46: '5s', 48: '5p', 50: '6s'}
+        z_core_to_first_orbital = {0: '1s', 2: '2s', 4: '2p', 10: '3s', 12: '3p', 18: '3d', 28: '4s', 30: '4p',
+                                   36: '4d', 46: '5s', 48: '5p', 50: '6s'}
         for atom in self.atoms:
             if atom.symbol in expected_orbitals:
                 continue

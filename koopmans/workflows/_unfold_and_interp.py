@@ -106,8 +106,8 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         bs = calc.results['band structure']
         if calc.parameters.do_dos:
             dos = calc.results['dos']
-            # Add the DOS only if the k-path is sufficiently sampled to mean the individual Gaussians are not visible (by
-            # comparing the median jump between adjacent eigenvalues to the smearing width)
+            # Add the DOS only if the k-path is sufficiently sampled to mean the individual Gaussians are not visible
+            # (by comparing the median jump between adjacent eigenvalues to the smearing width)
             median_eval_gap = max([np.median(e[1:] - e[:-1]) for e in [np.sort(ekn.flatten()) for ekn in dos.e_skn]])
             if dos.width < 5 * median_eval_gap:
                 dos = None
