@@ -7,12 +7,14 @@ Converted workflows from functions to objects Nov 2020
 
 """
 
+from abc import ABC, abstractmethod
 import os
 import copy
 import operator
 from functools import reduce
 import subprocess
 from pathlib import Path
+import pickle
 import json as json_ext
 import numpy as np
 from numpy import typing as npt
@@ -22,11 +24,14 @@ from pybtex.database import BibliographyData
 import ase
 from ase import Atoms
 from ase.build.supercells import make_supercell
+from ase.dft.dos import DOS
 from ase.dft.kpoints import BandPath
 from ase.calculators.espresso import Espresso_kcp
 from ase.calculators.calculator import CalculationFailed
-from ase.io.espresso import cell_to_ibrav, ibrav_to_cell
-from ase.io.espresso import kcp_keys, contruct_kcp_namelist as construct_namelist
+from ase.io.espresso import cell_to_ibrav, ibrav_to_cell, kcp_keys, contruct_kcp_namelist as construct_namelist
+from ase.spectrum.band_structure import BandStructure
+from ase.spectrum.dosdata import GridDOSData
+from ase.spectrum.doscollection import GridDOSCollection
 from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, pseudo_database, fetch_pseudo, \
     valence_from_pseudo
 from koopmans import utils, settings
@@ -35,7 +40,8 @@ from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.bands import Bands
 from koopmans.projections import ProjectionBlocks
 from koopmans.references import bib_data
-from abc import ABC, abstractmethod
+import koopmans.mpl_config
+import matplotlib.pyplot as plt
 
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
@@ -55,7 +61,8 @@ class Workflow(ABC):
                  koffset: Optional[List[int]] = [0, 0, 0],
                  kpath: Optional[Union[BandPath, str]] = None,
                  kpath_density: int = 10,
-                 projections: Optional[ProjectionBlocks] = None):
+                 projections: Optional[ProjectionBlocks] = None,
+                 autogenerate_settings: bool = True):
 
         # Parsing parameters
         self.parameters = settings.WorkflowSettingsDict(**parameters)
@@ -141,22 +148,15 @@ class Workflow(ABC):
         elif 'pseudo_dir' in master_calc_params['kcp'] or 'pseudo_dir' in master_calc_params['pw']:
             pseudo_dir = master_calc_params['kcp'].get('pseudo_dir', master_calc_params['pw'].get('pseudo_dir'))
             assert isinstance(pseudo_dir, Path)
-            if not os.path.isdir(pseudo_dir):
-                raise NotADirectoryError(f'The pseudo_dir you provided ({pseudo_dir}) does not exist')
         elif 'ESPRESSO_PSEUDO' in os.environ:
             pseudo_dir = Path(os.environ['ESPRESSO_PSEUDO'])
         else:
             pseudo_dir = Path.cwd()
 
-        if self.parameters.task != 'ui':
-            for pseudo in self.pseudopotentials.values():
-                if not (pseudo_dir / pseudo).exists():
-                    raise FileNotFoundError(
-                        f'{pseudo_dir / pseudo} does not exist. Please double-check your pseudopotential settings')
         self.pseudo_dir = pseudo_dir
 
         # Before saving the master_calc_params, automatically generate some keywords and perform some sanity checks
-        if self.parameters.task != 'ui':
+        if self.parameters.task != 'ui' and autogenerate_settings:
             # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
             # and the kcp settings
             nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.pseudo_dir)
@@ -243,6 +243,84 @@ class Workflow(ABC):
                        'a calculator. This calculator will be ignored.')
             self.atoms.calc = None
 
+        # Records whether or not this workflow is a subworkflow of another
+        self._is_a_subworkflow = False
+
+    def __eq__(self, other):
+        if isinstance(other, Workflow):
+            return self.__dict__ == other.__dict__
+        return False
+
+    def run(self) -> None:
+        self.print_preamble()
+        if not self._is_a_subworkflow:
+            self._run_sanity_checks()
+        self._run()
+        self.print_conclusion()
+
+    @abstractmethod
+    def _run(self) -> None:
+        ...
+
+    @property
+    def pseudopotentials(self) -> Dict[str, str]:
+        return self._pseudopotentials
+
+    @pseudopotentials.setter
+    def pseudopotentials(self, value: Dict[str, str]):
+        self._pseudopotentials = value
+
+    @property
+    def gamma_only(self):
+        return self._gamma_only
+
+    @gamma_only.setter
+    def gamma_only(self, value: bool):
+        self._gamma_only = value
+
+    @property
+    def kgrid(self):
+        return self._kgrid
+
+    @kgrid.setter
+    def kgrid(self, value: List[int]):
+        self._kgrid = value
+
+    @property
+    def koffset(self):
+        return self._koffset
+
+    @koffset.setter
+    def koffset(self, value: List[int]):
+        self._koffset = value
+
+    @property
+    def kpath(self):
+        return self._kpath
+
+    @kpath.setter
+    def kpath(self, value: Union[str, BandPath]):
+        if isinstance(value, str):
+            raise NotImplementedError()
+        self._kpath = value
+
+    @property
+    def wf_kwargs(self):
+        # Returns a kwargs designed to be used to initialise another workflow with the same configuration as this one
+        # i.e.
+        # > sub_wf = Workflow(**self.wf_kwargs)
+        return {'atoms': copy.deepcopy(self.atoms),
+                'parameters': copy.deepcopy(self.parameters),
+                'master_calc_params': copy.deepcopy(self.master_calc_params),
+                'name': copy.deepcopy(self.name),
+                'pseudopotentials': copy.deepcopy(self.pseudopotentials),
+                'pseudo_dir': copy.deepcopy(self.pseudo_dir),
+                'gamma_only': copy.deepcopy(self.gamma_only),
+                'kgrid': copy.deepcopy(self.kgrid),
+                'kpath': copy.deepcopy(self.kpath),
+                'projections': copy.deepcopy(self.projections)}
+
+    def _run_sanity_checks(self):
         # Check internal consistency of workflow settings
         if self.parameters.fix_spin_contamination is None:
             self.parameters.fix_spin_contamination = not self.parameters.spin_polarised
@@ -311,80 +389,14 @@ class Workflow(ABC):
                     raise ValueError('This calculation is not spin-polarised; please do not provide spin-indexed '
                                      'projections')
 
-        # Records whether or not this workflow is a subworkflow of another
-        self._is_a_subworkflow = False
-
-    def __eq__(self, other):
-        if isinstance(other, Workflow):
-            return self.__dict__ == other.__dict__
-        return False
-
-    def run(self) -> None:
-        self.print_preamble()
-        self._run()
-        self.print_conclusion()
-
-    @abstractmethod
-    def _run(self) -> None:
-        ...
-
-    @property
-    def pseudopotentials(self) -> Dict[str, str]:
-        return self._pseudopotentials
-
-    @pseudopotentials.setter
-    def pseudopotentials(self, value: Dict[str, str]):
-        self._pseudopotentials = value
-
-    @property
-    def gamma_only(self):
-        return self._gamma_only
-
-    @gamma_only.setter
-    def gamma_only(self, value: bool):
-        self._gamma_only = value
-
-    @property
-    def kgrid(self):
-        return self._kgrid
-
-    @kgrid.setter
-    def kgrid(self, value: List[int]):
-        self._kgrid = value
-
-    @property
-    def koffset(self):
-        return self._koffset
-
-    @koffset.setter
-    def koffset(self, value: List[int]):
-        self._koffset = value
-
-    @property
-    def kpath(self):
-        return self._kpath
-
-    @kpath.setter
-    def kpath(self, value: Union[str, BandPath]):
-        if isinstance(value, str):
-            raise NotImplementedError()
-        self._kpath = value
-
-    @property
-    def wf_kwargs(self):
-        # Returns a kwargs designed to be used to initialise another workflow with the same configuration as this one
-        # i.e.
-        # > sub_wf = Workflow(**self.wf_kwargs)
-        return {'atoms': copy.deepcopy(self.atoms),
-                'parameters': copy.deepcopy(self.parameters),
-                'master_calc_params': copy.deepcopy(self.master_calc_params),
-                'name': copy.deepcopy(self.name),
-                'pseudopotentials': copy.deepcopy(self.pseudopotentials),
-                'pseudo_dir': copy.deepcopy(self.pseudo_dir),
-                'gamma_only': copy.deepcopy(self.gamma_only),
-                'kgrid': copy.deepcopy(self.kgrid),
-                'kpath': copy.deepcopy(self.kpath),
-                'projections': copy.deepcopy(self.projections)}
+        # Check pseudopotentials exist
+        if not os.path.isdir(self.pseudo_dir):
+            raise NotADirectoryError(f'The pseudo_dir you provided ({self.pseudo_dir}) does not exist')
+        if self.parameters.task != 'ui':
+            for pseudo in self.pseudopotentials.values():
+                if not (self.pseudo_dir / pseudo).exists():
+                    raise FileNotFoundError(
+                        f'{self.pseudo_dir / pseudo} does not exist. Please double-check your pseudopotential settings')
 
     def new_calculator(self,
                        calc_type: str,
@@ -412,6 +424,8 @@ class Workflow(ABC):
             calc_class = calculators.KoopmansScreenCalculator
         elif calc_type == 'kc_ham':
             calc_class = calculators.KoopmansHamCalculator
+        elif calc_type == 'projwfc':
+            calc_class = calculators.ProjwfcCalculator
         else:
             raise ValueError(f'Cound not find a calculator of type {calc_type}')
 
@@ -540,6 +554,9 @@ class Workflow(ABC):
 
                     if isinstance(qe_calc, calculators.ReturnsBandStructure):
                         qe_calc.generate_band_structure()
+
+                    if isinstance(qe_calc, calculators.ProjwfcCalculator):
+                        qe_calc.generate_dos()
                     return
 
         if not self.silent:
@@ -737,7 +754,8 @@ class Workflow(ABC):
                  gamma_only=dct.pop('_gamma_only'),
                  kgrid=dct.pop('_kgrid'),
                  kpath=dct.pop('_kpath'),
-                 projections=dct.pop('projections'))
+                 projections=dct.pop('projections'),
+                 autogenerate_settings=False)
 
         for k, v in dct.items():
             setattr(wf, k, v)
@@ -1052,6 +1070,115 @@ class Workflow(ABC):
 
         return bigdct
 
+    def plot_bandstructure(self,
+                           bs: Union[BandStructure, List[BandStructure]],
+                           dos: Optional[Union[GridDOSCollection, DOS]] = None,
+                           filename: Optional[str] = None,
+                           bsplot_kwargs: Union[Dict[str, Any], List[Dict[str, Any]]] = {},
+                           dosplot_kwargs: Dict[str, Any] = {}):
+        """
+        Plots the provided band structure (and optionally also a provided DOS)
+
+        Arguments:
+        bs -- a bandstructure/list of band structures to be plotted
+        dos -- a density of states object to be plotted
+        filename -- the name of the file to which the figure will be saved
+        bsplot_kwargs -- keyword arguments for when plotting the band structure(s). N.B. if bs is a list of band
+                         structures, bsplot_kwargs must be a list of equal length, with kwarg dicts for each entry
+        dosplot_kwargs -- keyword arguments for when plotting the DOS
+        """
+
+        # Sanitise input
+        if isinstance(bs, BandStructure):
+            bs = [bs]
+        if isinstance(bsplot_kwargs, dict):
+            bsplot_kwargs = [bsplot_kwargs]
+        if len(bs) != len(bsplot_kwargs):
+            raise ValueError('The "bs" and "bsplot_kwargs" arguments to plot_bandstructure() should be the same length')
+        spins: List[Union[Optional[str]]]
+        if isinstance(dos, DOS):
+            if self.parameters.spin_polarised:
+                spins = ['up', 'down']
+            else:
+                spins = [None]
+            dos = GridDOSCollection([GridDOSData(dos.get_energies(), dos.get_dos(ispin), info={'spin': spin})
+                                     for ispin, spin in enumerate(spins)])
+
+        colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        if dos is not None:
+            # Construct the axes
+            _, axes = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [3, 1]})
+            ax_bs = axes[0]
+            ax_dos = axes[1]
+        else:
+            ax_bs = None
+
+        # Plot the band structure
+        for b, kwargs in zip(bs, bsplot_kwargs):
+            if 'colors' not in kwargs:
+                kwargs['colors'] = colors
+            ax_bs = b.plot(ax=ax_bs, **kwargs)
+
+        # Move the legend (if there is one)
+        if ax_bs.get_legend():
+            ax_bs.legend(loc='lower left', bbox_to_anchor=(0, 1), frameon=False, ncol=min((2, len(bs))))
+
+        if dos is None:
+            axes = [ax_bs]
+        else:
+            # Assemble the densities of state
+            dos_summed = dos.sum_by('symbol', 'n', 'l', 'spin')
+            if self.parameters.spin_polarised:
+                dos_up = dos_summed.select(spin='up')
+                dos_down = dos_summed.select(spin='down')
+                dos_down._weights *= -1
+                doss = [dos_up, dos_down]
+            else:
+                doss = [dos_summed]
+
+            # Plot the DOSs
+            spdf_order = {'s': 0, 'p': 1, 'd': 2, 'f': 3}
+            [xmin, xmax] = ax_bs.get_ylim()
+            for dos in doss:
+                # Before iterating through the DOSs, sort them in a sensible order (by atomic symbol, n, and l)
+                if all([key in d.info for d in dos for key in ['symbol', 'n', 'l']]):
+                    sorted_dos = sorted(dos, key=lambda x: (x.info['symbol'], x.info['n'], spdf_order[x.info['l']]))
+                else:
+                    sorted_dos = dos
+
+                for d in sorted_dos:
+                    if (not self.parameters.spin_polarised or d.info.get('spin') == 'up') \
+                            and all([key in d.info for key in ['symbol', 'n', 'l']]):
+                        label = f'{d.info["symbol"]} {d.info["n"]}{d.info["l"]}'
+                    else:
+                        label = None
+                    d.plot_dos(ax=ax_dos, xmin=xmin, xmax=xmax, orientation='vertical', mplargs={'label': label},
+                               **dosplot_kwargs)
+
+                # Reset color cycle so the colors of spin-up match those of spin-down
+                ax_dos.set_prop_cycle(None)
+
+            # Tweaking the DOS figure aesthetics
+            maxval = 1.1 * dos_summed._weights[:, [e >= xmin and e <= xmax for e in dos_summed._energies]].max()
+            if self.parameters.spin_polarised:
+                ax_dos.set_xlim([maxval, -maxval])
+                ax_dos.text(0.25, 0.10, 'up', ha='center', va='top', transform=ax_dos.transAxes)
+                ax_dos.text(0.75, 0.10, 'down', ha='center', va='top', transform=ax_dos.transAxes)
+            else:
+                ax_dos.set_xlim([0, maxval])
+            ax_dos.set_xticks([])
+
+            # Move the legend (if there is one)
+            _, labels = ax_dos.get_legend_handles_labels()
+            if len(labels) > 0:
+                ax_dos.legend(loc='upper left', bbox_to_anchor=(1, 1), frameon=False)
+            plt.subplots_adjust(right=0.85, wspace=0.05)
+
+        # Saving the figure to file (as png and also in editable form)
+        filename = filename if filename is not None else f'{self.name}_bandstructure'
+        legends = [ax.get_legend() for ax in axes if ax.get_legend() is not None]
+        utils.savefig(fname=filename + '.png', bbox_extra_artists=legends, bbox_inches='tight')
+
 
 def get_version(module):
     if isinstance(module, ModuleType):
@@ -1065,7 +1192,7 @@ def header():
 
     koopmans_version = get_version(os.path.dirname(__file__))
     ase_version = get_version(ase)
-    qe_version = get_version(calculators.bin_directory)
+    qe_version = get_version((calculators.bin_directory / 'pw.x').resolve().parents[2])
 
     header = [r"  _                                                ",
               r" | | _____   ___  _ __  _ __ ___   __ _ _ __  ___  ",
@@ -1165,6 +1292,7 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'kc_ham': settings.KoopmansHamSettingsDict,
                     'kc_screen': settings.KoopmansScreenSettingsDict,
                     'wann2kc': settings.Wann2KCSettingsDict,
+                    'projwfc': settings.ProjwfcSettingsDict,
                     'pw': settings.PWSettingsDict,
                     'pw2wannier': settings.PW2WannierSettingsDict,
                     'wann2kcp': settings.Wann2KCPSettingsDict,
