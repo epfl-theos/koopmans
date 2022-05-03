@@ -82,7 +82,7 @@ class PWBandStructureWorkflow(Workflow):
 
         # Prepare the band structure for plotting
         bs = calc_bands.results['band structure']
-        n_filled = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials) // 2
+        n_filled = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials, self.pseudo_dir) // 2
         vbe = bs._energies[:, :, :n_filled].max()
         bs._energies -= vbe
 
@@ -93,7 +93,7 @@ class PWBandStructureWorkflow(Workflow):
             calc_dos = self.new_calculator('projwfc', filpdos=self.name)
             calc_dos.pseudopotentials = self.pseudopotentials
             calc_dos.spin_polarised = self.parameters.spin_polarised
-            calc_dos.pseudo_dir = calc_pw_bands.parameters.pseudo_dir
+            calc_dos.pseudo_dir = calc_bands.parameters.pseudo_dir
             self.run_calculator(calc_dos)
 
             # Prepare the DOS for plotting
