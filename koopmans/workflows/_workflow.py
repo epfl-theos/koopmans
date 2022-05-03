@@ -61,7 +61,8 @@ class Workflow(ABC):
                  koffset: Optional[List[int]] = [0, 0, 0],
                  kpath: Optional[Union[BandPath, str]] = None,
                  kpath_density: int = 10,
-                 projections: Optional[ProjectionBlocks] = None):
+                 projections: Optional[ProjectionBlocks] = None,
+                 autogenerate_settings: bool = True):
 
         # Parsing parameters
         self.parameters = settings.WorkflowSettingsDict(**parameters)
@@ -147,22 +148,15 @@ class Workflow(ABC):
         elif 'pseudo_dir' in master_calc_params['kcp'] or 'pseudo_dir' in master_calc_params['pw']:
             pseudo_dir = master_calc_params['kcp'].get('pseudo_dir', master_calc_params['pw'].get('pseudo_dir'))
             assert isinstance(pseudo_dir, Path)
-            if not os.path.isdir(pseudo_dir):
-                raise NotADirectoryError(f'The pseudo_dir you provided ({pseudo_dir}) does not exist')
         elif 'ESPRESSO_PSEUDO' in os.environ:
             pseudo_dir = Path(os.environ['ESPRESSO_PSEUDO'])
         else:
             pseudo_dir = Path.cwd()
 
-        if self.parameters.task != 'ui':
-            for pseudo in self.pseudopotentials.values():
-                if not (pseudo_dir / pseudo).exists():
-                    raise FileNotFoundError(
-                        f'{pseudo_dir / pseudo} does not exist. Please double-check your pseudopotential settings')
         self.pseudo_dir = pseudo_dir
 
         # Before saving the master_calc_params, automatically generate some keywords and perform some sanity checks
-        if self.parameters.task != 'ui':
+        if self.parameters.task != 'ui' and autogenerate_settings:
             # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
             # and the kcp settings
             nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.pseudo_dir)
@@ -394,6 +388,15 @@ class Workflow(ABC):
                 if spin_set != {None}:
                     raise ValueError('This calculation is not spin-polarised; please do not provide spin-indexed '
                                      'projections')
+
+        # Check pseudopotentials exist
+        if not os.path.isdir(self.pseudo_dir):
+            raise NotADirectoryError(f'The pseudo_dir you provided ({self.pseudo_dir}) does not exist')
+        if self.parameters.task != 'ui':
+            for pseudo in self.pseudopotentials.values():
+                if not (self.pseudo_dir / pseudo).exists():
+                    raise FileNotFoundError(
+                        f'{self.pseudo_dir / pseudo} does not exist. Please double-check your pseudopotential settings')
 
     def new_calculator(self,
                        calc_type: str,
@@ -751,7 +754,8 @@ class Workflow(ABC):
                  gamma_only=dct.pop('_gamma_only'),
                  kgrid=dct.pop('_kgrid'),
                  kpath=dct.pop('_kpath'),
-                 projections=dct.pop('projections'))
+                 projections=dct.pop('projections'),
+                 autogenerate_settings=False)
 
         for k, v in dct.items():
             setattr(wf, k, v)
