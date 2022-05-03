@@ -1091,6 +1091,7 @@ class Workflow(ABC):
             bsplot_kwargs = [bsplot_kwargs]
         if len(bs) != len(bsplot_kwargs):
             raise ValueError('The "bs" and "bsplot_kwargs" arguments to plot_bandstructure() should be the same length')
+        spins: List[Union[Optional[str]]]
         if isinstance(dos, DOS):
             if self.parameters.spin_polarised:
                 spins = ['up', 'down']
