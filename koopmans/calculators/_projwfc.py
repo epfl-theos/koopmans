@@ -84,14 +84,14 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         """
         dos_list = []
         for atom in self.atoms:
-            filenames = sorted(glob(self.parameters.filpdos + f'.pdos_atm#{atom.index+1}*'))
+            filenames = sorted(self.directory.glob(self.parameters.filpdos + f'.pdos_atm#{atom.index+1}*'))
             # The filename does not encode the principal quantum number n. In order to recover this number, we compare
             # the reported angular momentum quantum number l against the list of expected orbitals, and infer n
             # assuming only that the file corresponding to nl will come before (n+1)l
             orbitals = copy.copy(self._expected_orbitals[atom.symbol])
             for filename in filenames:
                 # Infer l from the filename
-                subshell = filename[-2]
+                subshell = filename.name[-2]
                 # Find the orbital with matching l with the smallest n
                 orbital = [o for o in orbitals if o[-1] == subshell][0]
                 orbitals.remove(orbital)
@@ -102,7 +102,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         #  add pDOS to self.results
         self.results['dos'] = GridDOSCollection(dos_list)
 
-    def read_pdos(self, filename: str, expected_subshell: str) -> List[GridDOSData]:
+    def read_pdos(self, filename: Path, expected_subshell: str) -> List[GridDOSData]:
         """
         Function for reading a pDOS file
         """
@@ -112,12 +112,12 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
             flines = fd.readlines()
 
         # Parse important information from the filename
-        [_, index, symbol, _, _, subshell, _] = re.split(r"#|\(|\)", filename)
+        [_, index, symbol, _, _, subshell, _] = re.split(r"#|\(|\)", filename.name)
 
         # Compare against the expected subshell
         if subshell != expected_subshell[1]:
             raise ValueError(
-                f"Unexpected pdos file {filename}, a pdos file corresponding to {expected_subshell} was expected")
+                f"Unexpected pdos file {filename.name}, a pdos file corresponding to {expected_subshell} was expected")
 
         # Work out what orbitals will be contained within the pDOS file
         orbital_order = {"s": ["s"], "p": ["pz", "px", "py"], "d": ["dz2", "dxz", "dyz", "dx2-y2", "dxy"]}
