@@ -1,1 +1,1 @@
-../quantum_espresso/qe_koopmans/bin/wannier90.x
+../quantum_espresso/q-e/bin/wannier90.x
