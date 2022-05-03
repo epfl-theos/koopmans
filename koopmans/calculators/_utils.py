@@ -237,6 +237,13 @@ class CalculatorABC(ABC, Generic[TCalc]):
     def is_complete(self) -> bool:
         ...
 
+    def check_convergence(self) -> None:
+        # Default behaviour is to check self.is_converged(), and raise an error if this returns False. Override
+        # this function if this behaviour is undesired
+        if not self.is_converged():
+            raise CalculationFailed(f'{self.directory}/{self.prefix} did not converge; check the Quantum ESPRESSO '
+                                    'output file for more details')
+
     @abstractmethod
     def todict(self) -> dict:
         ...
