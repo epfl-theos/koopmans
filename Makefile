@@ -35,18 +35,18 @@ submodules:
 	git submodule update
 
 configure_4:
-	cd quantum_espresso/cp_koopmans; ./configure MPIF90=$(MPIF90);
+	cd quantum_espresso/kcp; ./configure MPIF90=$(MPIF90);
 
 configure_7:
-	cd quantum_espresso/qe_koopmans; ./configure MPIF90=$(MPIF90);
+	cd quantum_espresso/q-e; ./configure MPIF90=$(MPIF90);
 
 configure: configure_4 configure_7
 
 espresso_4:
-	@(cd quantum_espresso/cp_koopmans; $(MAKE) kcp)
+	@(cd quantum_espresso/kcp; $(MAKE) kcp)
 
 espresso_7:
-	@(cd quantum_espresso/qe_koopmans; $(MAKE) kcw)
+	@(cd quantum_espresso/q-e; $(MAKE) kcw)
 
 espresso_utils:
 	@(cd quantum_espresso/utils; $(MAKE) all)
@@ -60,8 +60,8 @@ workflow:
 clean: clean_espresso clean_tests
 
 clean_espresso:
-	@(cd quantum_espresso/cp_koopmans; $(MAKE) veryclean)
-	@(cd quantum_espresso/qe_koopmans; $(MAKE) veryclean)
+	@(cd quantum_espresso/kcp; $(MAKE) veryclean)
+	@(cd quantum_espresso/q-e; $(MAKE) veryclean)
 	@(cd quantum_espresso/utils; $(MAKE) clean)
 
 tests:

@@ -5,12 +5,12 @@ on:
       branches:
          - master
       paths:
-         - 'quantum_espresso/qe_koopmans/**'
+         - 'quantum_espresso/q-e/**'
    push:
       branches:
          - master
       paths:
-         - 'quantum_espresso/qe_koopmans/**'
+         - 'quantum_espresso/q-e/**'
 
 jobs:
    gfortran:
@@ -31,10 +31,10 @@ jobs:
            run: |
               sudo apt-get update
               sudo apt-get install gfortran libopenmpi-dev libblas-dev liblapack-dev fftw3-dev
-         - name: Configure qe_koopmans
+         - name: Configure q-e
            run: |
               make configure_6 MPIF90=mpif90
-         - name: Build qe_koopmans
+         - name: Build q-e
            run: |
               make espresso_6 MPIF90=mpif90
 

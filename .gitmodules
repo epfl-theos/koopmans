@@ -1,6 +1,6 @@
-[submodule "quantum_espresso/qe_koopmans"]
-	path = quantum_espresso/qe_koopmans
-	url = git@gitlab.com:elinscott/qe_koopmans.git
 [submodule "ase"]
 	path = ase
 	url = git@github.com:elinscott/ase_koopmans
+[submodule "quantum_espresso/q-e"]
+	path = quantum_espresso/q-e
+	url = git@gitlab.com:QEF/q-e.git

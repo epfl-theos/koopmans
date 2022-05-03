@@ -22,7 +22,7 @@ from __future__ import annotations
 import copy
 import numpy as np
 from numpy import typing as npt
-from typing import Union, Optional, List, TypeVar, Generic
+from typing import Union, Optional, List, TypeVar, Generic, Type
 from pathlib import Path
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 from ase import Atoms
@@ -55,86 +55,8 @@ def sanitise_filenames(filenames: Union[str, Path, List[str], List[Path]], ext_i
     return sanitised_filenames
 
 
-T = TypeVar('T', bound='CalculatorExt')
-
-
-class CalculatorABC(ABC, Generic[T]):
-
-    '''
-    This abstract base class defines various functions we expect any Calculator to possess
-
-    '''
-
-    ext_in: str
-    ext_out: str
-
-    def __init__(self, atoms: Atoms) -> None:
-        self.prefix: str = ''
-        pass
-
-    @abstractmethod
-    def read_input(self, input_file: Optional[Path] = None):
-        ...
-
-    @abstractmethod
-    def read_results(self) -> None:
-        ...
-
-    @abstractproperty
-    def directory(self) -> Path:
-        ...
-
-    @directory.setter
-    def directory(self, value: Union[Path, str]) -> None:
-        ...
-
-    @abstractmethod
-    def is_converged(self) -> bool:
-        ...
-
-    @abstractmethod
-    def is_complete(self) -> bool:
-        ...
-
-    def check_convergence(self) -> None:
-        if not self.is_converged():
-            raise CalculationFailed(f'{self.prefix} is not converged')
-
-    @abstractmethod
-    def todict(self) -> dict:
-        ...
-
-    @abstractclassmethod
-    def fromdict(cls, dct: dict) -> T:
-        ...
-
-    @classmethod
-    def fromfile(cls, filenames: Union[str, Path, List[str], List[Path]]):
-        sanitised_filenames = sanitise_filenames(filenames, cls.ext_in, cls.ext_out)
-
-        # Initialise a new calc object
-        calc = cls(atoms=Atoms())
-
-        # Read qe input file
-        for filename in [f for f in sanitised_filenames if f.suffix == cls.ext_in]:
-            calc.read_input(input_file=filename)
-
-        # Read qe output file
-        for filename in [f for f in sanitised_filenames if f.suffix == cls.ext_out]:
-            calc.directory = filename.parent
-            calc.prefix = filename.stem
-            try:
-                calc.read_results()
-            except:
-                # Calculation could not be read; must have been incomplete
-                pass
-
-        # Update calc.directory and calc.parameters.prefix
-        calc.directory = sanitised_filenames[0].parent
-        calc.prefix = sanitised_filenames[0].stem
-
-        # Return the new calc object
-        return calc
+TCalc = TypeVar('TCalc', bound='CalculatorExt')
+TCalcABC = TypeVar('TCalcABC', bound='CalculatorABC')
 
 
 class CalculatorExt():
@@ -270,10 +192,86 @@ class CalculatorExt():
         return dct
 
     @classmethod
-    def fromdict(cls, dct: dict) -> 'CalculatorExt':
+    def fromdict(cls: Type[TCalc], dct: dict) -> TCalc:
         calc = cls(dct.pop('atoms'))
         for k, v in dct.items():
             setattr(calc, k.lstrip('_'), v)
+        return calc
+
+
+class CalculatorABC(ABC, Generic[TCalc]):
+
+    '''
+    This abstract base class defines various functions we expect any Calculator to possess
+
+    '''
+
+    ext_in: str
+    ext_out: str
+
+    def __init__(self, atoms: Atoms) -> None:
+        self.prefix: str = ''
+        pass
+
+    @abstractmethod
+    def read_input(self, input_file: Optional[Path] = None):
+        ...
+
+    @abstractmethod
+    def read_results(self) -> None:
+        ...
+
+    @abstractproperty
+    def directory(self) -> Path:
+        ...
+
+    @directory.setter
+    def directory(self, value: Union[Path, str]) -> None:
+        ...
+
+    @abstractmethod
+    def is_converged(self) -> bool:
+        ...
+
+    @abstractmethod
+    def is_complete(self) -> bool:
+        ...
+
+    @abstractmethod
+    def todict(self) -> dict:
+        ...
+
+    @classmethod
+    @abstractmethod
+    def fromdict(cls: Type[TCalcABC], dct: dict) -> TCalc:
+        ...
+
+    @classmethod
+    def fromfile(cls, filenames: Union[str, Path, List[str], List[Path]]):
+        sanitised_filenames = sanitise_filenames(filenames, cls.ext_in, cls.ext_out)
+
+        # Initialise a new calc object
+        calc = cls(atoms=Atoms())
+
+        # Read qe input file
+        for filename in [f for f in sanitised_filenames if f.suffix == cls.ext_in]:
+            calc.read_input(input_file=filename)
+
+        # Read qe output file
+        for filename in [f for f in sanitised_filenames if f.suffix == cls.ext_out]:
+            calc.directory = filename.parent
+            calc.prefix = filename.stem
+            try:
+                calc.read_results()
+            except Exception:
+                # Calculation could not be read; must have been incomplete
+                pass
+
+        # Update calc.directory and calc.parameters.prefix
+        calc.directory = sanitised_filenames[0].parent
+        calc.prefix = sanitised_filenames[0].stem
+
+        # Return the new calc object
         return calc
 
 
