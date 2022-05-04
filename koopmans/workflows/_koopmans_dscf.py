@@ -100,9 +100,8 @@ class KoopmansDSCFWorkflow(Workflow):
             # functions together
             for i_spin, nelec in enumerate(nelecs):
                 self.parameters.orbital_groups[i_spin] = [i for _ in range(np.prod(self.kgrid))
-                                                          for i in self.parameters.orbital_groups[i_spin][:nelec]] \
-                    + [i for _ in range(np.prod(self.kgrid))
-                       for i in self.parameters.orbital_groups[i_spin][nelec:]]
+                    for i in self.parameters.orbital_groups[i_spin][:nelec]] \
+                    + [i for _ in range(np.prod(self.kgrid)) for i in self.parameters.orbital_groups[i_spin][nelec:]]
 
         # Check the shape of self.parameters.orbital_groups is as expected
         if self.parameters.spin_polarised:
