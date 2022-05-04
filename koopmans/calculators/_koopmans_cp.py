@@ -99,6 +99,14 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
         super().calculate()
 
+        # Check spin-up and spin-down eigenvalues match
+        if 'eigenvalues' in self.results and self.parameters.do_outerloop \
+                and self.parameters.nspin == 2 and self.parameters.tot_magnetization == 0 \
+                and not self.parameters.fixed_state and len(self.results['eigenvalues']) > 0:
+            rms_eigenval_difference = np.sqrt(np.mean(np.diff(self.results['eigenvalues'], axis=0)**2))
+            if rms_eigenval_difference > 0.05:
+                utils.warn('Spin-up and spin-down eigenvalues differ substantially')
+
         # Swap the spin channels back
         if spin_channels_are_swapped:
             self._swap_spin_channels()
@@ -152,14 +160,32 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 fpath_2.replace(fpath_1)
                 fpath_tmp.replace(fpath_2)
 
-    def is_complete(self):
+    def is_complete(self) -> bool:
         return self.results.get('job_done', False)
 
-    def is_converged(self):
+    def is_converged(self) -> bool:
         # Checks convergence of the calculation
         if 'conv_thr' not in self.parameters:
             raise ValueError('Cannot check convergence when "conv_thr" is not set')
-        return self._ase_is_converged()
+
+        if 'convergence' not in self.results:
+            raise ValueError('Could not locate calculation details to check convergence')
+
+        # Check convergence for both filled and empty, allowing for the possibility
+        # of do_outerloop(_empty) = False meaning the calculation is immediately
+        # 'converged'
+        do_outers = [self.parameters.do_outerloop, self.parameters.do_outerloop_empty]
+        convergence_data = self.results['convergence'].values()
+        converged = []
+        for do_outer, convergence in zip(do_outers, convergence_data):
+            if not do_outer:
+                converged.append(True)
+            elif len(convergence) == 0:
+                return False
+            else:
+                converged.append(
+                    convergence[-1]['delta_E'] < self.parameters.conv_thr * utils.units.Hartree)
+        return all(converged)
 
     def read_ham_xml_files(self, bare=False) -> List[np.ndarray]:
         # Reads all expected hamiltonian XML files
@@ -244,27 +270,6 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         self.results['lambda'] = self.read_ham_files()
         if self.parameters.do_bare_eigs:
             self.results['bare lambda'] = self.read_ham_files(bare=True)
-
-    def _ase_is_converged(self):
-        if 'convergence' not in self.results:
-            raise ValueError(
-                'Could not locate calculation details to check convergence')
-
-        # Check convergence for both filled and empty, allowing for the possibility
-        # of do_outerloop(_empty) = False meaning the calculation is immediately
-        # 'converged'
-        do_outers = [self.parameters.do_outerloop, self.parameters.do_outerloop_empty]
-        convergence_data = self.results['convergence'].values()
-        converged = []
-        for do_outer, convergence in zip(do_outers, convergence_data):
-            if not do_outer:
-                converged.append(True)
-            elif len(convergence) == 0:
-                return False
-            else:
-                converged.append(
-                    convergence[-1]['delta_E'] < self.parameters.conv_thr * utils.units.Hartree)
-        return all(converged)
 
     @property
     def alphas(self) -> List[List[float]]:

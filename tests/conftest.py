@@ -11,11 +11,12 @@ import copy
 from typing import List, Union, Dict, Tuple
 from pathlib import Path
 import pytest
+from abc import ABC, abstractproperty
 from ase.calculators.calculator import CalculationFailed
 from ase.dft.kpoints import BandPath
 from koopmans.calculators import Wannier90Calculator, PW2WannierCalculator, Wann2KCPCalculator, PWCalculator, \
     KoopmansCPCalculator, EnvironCalculator, UnfoldAndInterpolateCalculator, Wann2KCCalculator, \
-    KoopmansScreenCalculator, KoopmansHamCalculator
+    KoopmansScreenCalculator, KoopmansHamCalculator, ProjwfcCalculator
 from koopmans.io import read
 from koopmans.io import read_kwf as read_encoded_json
 from koopmans.io import write_kwf as write_encoded_json
@@ -438,7 +439,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
                         json.dump({'filename': filename, 'written_to': str(relative_directory(path)),
                                    'written_by': f'{input_file_name}'}, f)
 
-    class MockCalc(object):
+    class MockCalc(ABC):
         def _ase_calculate(self):
             # Monkeypatching _ase_calculate to replace it with a pretend calculation
             generic_mock_calculate(self)
@@ -449,6 +450,18 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         def check_code_is_installed(self):
             # Don't check if the code is installed
             return
+
+        def check_convergence(self):
+            # Monkeypatched version of check_convergence to avoid any convergence check
+            return
+
+        @abstractproperty
+        def input_files(self) -> List[Path]:
+            ...
+
+        @abstractproperty
+        def output_files(self) -> List[Path]:
+            ...
 
     class MockKoopmansCPCalculator(MockCalc, KoopmansCPCalculator):
         # Monkeypatched KoopmansCPCalculator class which never actually calls kcp.x
@@ -659,6 +672,18 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
         def generate_band_structure(self):
             pass
 
+    class MockProjwfcCalculator(MockCalc, ProjwfcCalculator):
+        @property
+        def input_files(self) -> List[Path]:
+            return []
+
+        @property
+        def output_files(self) -> List[Path]:
+            return []
+
+        def generate_dos(self):
+            return
+
     monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', MockKoopmansCPCalculator)
     monkeypatch.setattr('koopmans.calculators.PWCalculator', MockPWCalculator)
     monkeypatch.setattr('koopmans.calculators.EnvironCalculator', MockEnvironCalculator)
@@ -669,6 +694,7 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
     monkeypatch.setattr('koopmans.calculators.Wann2KCCalculator', MockWann2KCCalculator)
     monkeypatch.setattr('koopmans.calculators.KoopmansScreenCalculator', MockKoopmansScreenCalculator)
     monkeypatch.setattr('koopmans.calculators.KoopmansHamCalculator', MockKoopmansHamCalculator)
+    monkeypatch.setattr('koopmans.calculators.ProjwfcCalculator', MockProjwfcCalculator)
 
     # MockWorkflow class only intended to be used to generate other MockWorkflow subclasses with multiple inheritance
     class MockWorkflow(object):

@@ -92,6 +92,10 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
     def is_converged(self):
         raise NotImplementedError('TODO')
 
+    def check_convergence(self) -> None:
+        # is_converged has not been implemented yet for this calculator
+        return
+
     def read_input(self, **kwargs):
         # A .khi file doesn't have the requisite information to reconstruct the bandpath, so in the event that kpts
         # are already provided in self.parameters, don't overwrite them

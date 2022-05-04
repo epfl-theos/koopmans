@@ -45,3 +45,7 @@ class KoopmansScreenCalculator(KCWannCalculator, KoopmansScreen, CalculatorABC):
 
     def is_converged(self):
         raise NotImplementedError('TODO')
+
+    def check_convergence(self) -> None:
+        # is_converged has not been implemented yet for this calculator
+        return

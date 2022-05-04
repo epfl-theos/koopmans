@@ -7,6 +7,7 @@ Written by Riccardo De Gennaro Nov 2020
 
 """
 
+import copy
 import numpy as np
 import math
 from pathlib import Path
@@ -16,7 +17,7 @@ from typing import List, TypeVar
 import koopmans.mpl_config
 import matplotlib.pyplot as plt
 from koopmans import utils, projections, calculators
-from koopmans.pseudopotentials import nelec_from_pseudos
+from koopmans.pseudopotentials import nelec_from_pseudos, read_pseudo_file
 from ._workflow import Workflow
 
 
@@ -175,6 +176,7 @@ class WannierizeWorkflow(Workflow):
             calc_pw_bands.directory = 'wannier'
             calc_pw_bands.prefix = 'bands'
             calc_pw_bands.parameters.prefix += '_bands'
+
             # Link the save directory so that the bands calculation can use the old density
             if self.parameters.from_scratch:
                 [src, dest] = [(c.parameters.outdir / c.parameters.prefix).with_suffix('.save')
@@ -184,6 +186,25 @@ class WannierizeWorkflow(Workflow):
                     shutil.rmtree(str(dest))
                 shutil.copytree(src, dest)
             self.run_calculator(calc_pw_bands)
+
+            # Calculate a projected DOS
+            pseudos = [read_pseudo_file(calc_pw_bands.parameters.pseudo_dir / p) for p in
+                       self.pseudopotentials.values()]
+            if all([int(p.find('PP_HEADER').get('number_of_wfc')) > 0 for p in pseudos]):
+                calc_dos = self.new_calculator('projwfc', filpdos=self.name)
+                calc_dos.directory = 'pdos'
+                calc_dos.pseudopotentials = self.pseudopotentials
+                calc_dos.spin_polarised = self.parameters.spin_polarised
+                calc_dos.pseudo_dir = calc_pw_bands.parameters.pseudo_dir
+                self.run_calculator(calc_dos)
+
+                # Prepare the DOS for plotting
+                dos = calc_dos.results['dos']
+            else:
+                # Skip if the pseudos don't have the requisite PP_PSWFC blocks
+                utils.warn('Some of the pseudopotentials do not have PP_PSWFC blocks, which means a projected DOS '
+                           'calculation is not possible. Skipping...')
+                dos = None
 
             # Select those calculations that generated a band structure
             selected_calcs = [c for c in self.calculations[:-1] if 'band structure' in c.results]
@@ -217,6 +238,9 @@ class WannierizeWorkflow(Workflow):
                 else:
                     vbe = np.max(pw_eigs)
 
+            if dos is not None:
+                dos._energies -= vbe
+
             # Work out the energy ranges for plotting
             if self.plot_params.Emin is None:
                 if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
@@ -235,51 +259,46 @@ class WannierizeWorkflow(Workflow):
             else:
                 emax = self.plot_params.Emax
 
-            # Plot the bandstructures on top of one another
+            # Prepare the band structures for plotting
             ax = None
             labels = ['explicit'] \
                 + [f'interpolation ({c.directory.name.replace("_",", ").replace("block", "block ")})'
                    for c in selected_calcs]
-            colour_cycle = plt.rcParams["axes.prop_cycle"]()
+            color_cycle = plt.rcParams['axes.prop_cycle']()
+            bs_list = []
+            bsplot_kwargs_list = []
             colours = {}
             for calc, label in zip([calc_pw_bands] + selected_calcs, labels):
                 if 'band structure' in calc.results:
-                    # Load the bandstructure
-                    bs = calc.results['band structure']
+                    # Load the bandstructure. Because we are going apply a vertical shift, we take a copy of the
+                    # bandstructure (we don't want the stored band structure to be vertically shifted depending on
+                    # the value of self.parameters.calculate_bands!)
+                    bs = copy.deepcopy(calc.results['band structure'])
 
                     # Unfortunately once a bandstructure object is created you cannot tweak it, so we must alter
                     # this private variable
                     bs._energies -= vbe
 
                     # Tweaking the plot aesthetics
-                    kwargs = {}
+                    kwargs = {'emin': emin, 'emax': emax, 'label': label}
                     up_label = label.replace(', down', ', up')
                     if ', down' in label:
                         kwargs['ls'] = '--'
                     if ', down' in label and up_label in colours:
                         colours[label] = colours[up_label]
                     else:
-                        colours[label] = [next(colour_cycle)['color'] for _ in range(bs.energies.shape[0])]
+                        colours[label] = [next(color_cycle)['color'] for _ in range(bs.energies.shape[0])]
                     if 'explicit' in label:
                         kwargs['ls'] = 'none'
                         kwargs['marker'] = 'x'
+                    kwargs['colors'] = colours[label]
 
-                    # Plot
-                    ax = bs.plot(ax=ax, emin=emin, emax=emax, colors=colours[label], label=label, **kwargs)
+                    # Store
+                    bs_list.append(bs)
+                    bsplot_kwargs_list.append(kwargs)
 
-                    # Undo the vertical shift (we don't want the stored band structure to be vertically shifted
-                    # depending on the value of self.parameters.calculate_bands!)
-                    bs._energies += vbe
-
-            # Move the legend
-            lgd = ax.legend(bbox_to_anchor=(1, 1), loc="lower right", ncol=2)
-
-            # Save the comparison to file (as png and also in editable form)
-            with open(self.name + '_interpolated_bandstructure_{}x{}x{}.fig.pkl'.format(*self.kgrid), 'wb') as fd:
-                pickle.dump(plt.gcf(), fd)
-            # The "bbox_extra_artists" and "bbox_inches" mean that the legend is not cropped out
-            plt.savefig('interpolated_bandstructure_{}x{}x{}.png'.format(*self.kgrid),
-                        bbox_extra_artists=(lgd,), bbox_inches='tight')
+            # Plot
+            self.plot_bandstructure(bs_list, dos, bsplot_kwargs=bsplot_kwargs_list)
 
         return
 
