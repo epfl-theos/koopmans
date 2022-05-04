@@ -482,7 +482,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
             # Do a KI/KIPZ calculation with the updated alpha values
             restart_from_wannier_pwscf = True if self.parameters.init_orbitals in [
-                'mlwfs', 'projwfs'] and not self._restart_from_old_ki else None
+                'mlwfs', 'projwfs'] and not self._restart_from_old_ki and i_sc == 1 else None
             trial_calc = self.new_kcp_calculator(calc_presets=self.parameters.functional.replace('pkipz', 'ki'),
                                                  alphas=self.bands.alphas,
                                                  restart_from_wannier_pwscf=restart_from_wannier_pwscf)
