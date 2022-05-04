@@ -23,12 +23,13 @@ def system_call(command, check_ierr=True):
         raise OSError(f'{command} exited with exit code {ierr}')
 
 
-def symlink(src: Union[str, Path], dest: Union[str, Path], relative: bool = True, exist_ok: bool = False):
+def symlink(src: Union[str, Path], dest: Union[str, Path], relative: bool = True, exist_ok: bool = False,
+            force: bool = False):
     # Create a symlink of "src" at "dest"
     if isinstance(src, str) and '*' in src:
         # Follow the syntax of ln, whereby ln -s src/* dest/ will create multiple links
         for src_file in glob(src):
-            symlink(src_file, dest, relative, exist_ok)
+            symlink(src_file, dest, relative, exist_ok, force)
     else:
         # Sanitise input
         if isinstance(src, str):
@@ -53,6 +54,10 @@ def symlink(src: Union[str, Path], dest: Union[str, Path], relative: bool = True
         else:
             # The equivalent of ln -s
             pass
+
+        if force:
+            # The equivalent of ln -sf
+            dest.unlink(missing_ok=True)
 
         if exist_ok:
             try:

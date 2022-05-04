@@ -451,6 +451,10 @@ def mock_quantum_espresso(monkeypatch, pytestconfig):
             # Don't check if the code is installed
             return
 
+        def check_convergence(self):
+            # Monkeypatched version of check_convergence to avoid any convergence check
+            return
+
         @abstractproperty
         def input_files(self) -> List[Path]:
             ...

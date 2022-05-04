@@ -14,7 +14,6 @@ import operator
 from functools import reduce
 import subprocess
 from pathlib import Path
-import pickle
 import json as json_ext
 import numpy as np
 from numpy import typing as npt
@@ -84,6 +83,7 @@ class Workflow(ABC):
         else:
             self.kgrid = kgrid
             self.koffset = koffset
+
         if projections is None:
             proj_list: List[List[Any]]
             spins: List[Optional[str]]
@@ -389,6 +389,12 @@ class Workflow(ABC):
                     raise ValueError('This calculation is not spin-polarised; please do not provide spin-indexed '
                                      'projections')
 
+        # Check the consistency between self.gamma_only and KCP's do_wf_cmplx
+        if not self.gamma_only and self.master_calc_params['kcp'].do_wf_cmplx is False:
+            utils.warn('In KCP do_wf_cmplx = False is not consistent with gamma_only = False. '
+                       'Changing do_wf_cmplx to True')
+            self.master_calc_params['kcp'].do_wf_cmplx = True
+
         # Check pseudopotentials exist
         if not os.path.isdir(self.pseudo_dir):
             raise NotADirectoryError(f'The pseudo_dir you provided ({self.pseudo_dir}) does not exist')
@@ -552,6 +558,9 @@ class Workflow(ABC):
                     if not self.silent:
                         self.print(f'Not running {os.path.relpath(calc_file)} as it is already complete')
 
+                    # Check the convergence of the calculation
+                    qe_calc.check_convergence()
+
                     if isinstance(qe_calc, calculators.ReturnsBandStructure):
                         qe_calc.generate_band_structure()
 
@@ -568,25 +577,14 @@ class Workflow(ABC):
             if isinstance(qe_calc.command, ParallelCommandWithPostfix):
                 qe_calc.command.postfix = f'-npool {self.parameters.npool}'
 
-        qe_calc.calculate()
-
-        if not qe_calc.is_complete():
+        try:
+            qe_calc.calculate()
+        except CalculationFailed as e:
             self.print(' failed')
-            raise CalculationFailed(
-                f'{qe_calc.directory}/{qe_calc.prefix} failed; check the Quantum ESPRESSO output file for more details')
+            raise CalculationFailed(e)
 
         if not self.silent:
             self.print(' done')
-
-        # Check spin-up and spin-down eigenvalues match
-        if 'eigenvalues' in qe_calc.results and isinstance(qe_calc, calculators.KoopmansCPCalculator):
-            if qe_calc.is_converged() and qe_calc.parameters.do_outerloop and qe_calc.parameters.nspin == 2 \
-                    and qe_calc.parameters.tot_magnetization == 0 and not qe_calc.parameters.fixed_state \
-                    and len(qe_calc.results['eigenvalues']) > 0:
-                rms_eigenval_difference = np.sqrt(
-                    np.mean(np.diff(qe_calc.results['eigenvalues'], axis=0)**2))
-                if rms_eigenval_difference > 0.05:
-                    utils.warn('Spin-up and spin-down eigenvalues differ substantially')
 
         # Store the calculator
         self.calculations.append(qe_calc)
@@ -1095,7 +1093,7 @@ class Workflow(ABC):
             bsplot_kwargs = [bsplot_kwargs]
         if len(bs) != len(bsplot_kwargs):
             raise ValueError('The "bs" and "bsplot_kwargs" arguments to plot_bandstructure() should be the same length')
-        spins: List[Union[Optional[str]]]
+        spins: List[Optional[str]]
         if isinstance(dos, DOS):
             if self.parameters.spin_polarised:
                 spins = ['up', 'down']

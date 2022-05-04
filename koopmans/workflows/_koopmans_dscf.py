@@ -100,9 +100,8 @@ class KoopmansDSCFWorkflow(Workflow):
             # functions together
             for i_spin, nelec in enumerate(nelecs):
                 self.parameters.orbital_groups[i_spin] = [i for _ in range(np.prod(self.kgrid))
-                                                          for i in self.parameters.orbital_groups[i_spin][:nelec]] \
-                    + [i for _ in range(np.prod(self.kgrid))
-                       for i in self.parameters.orbital_groups[i_spin][nelec:]]
+                    for i in self.parameters.orbital_groups[i_spin][:nelec]] \
+                    + [i for _ in range(np.prod(self.kgrid)) for i in self.parameters.orbital_groups[i_spin][nelec:]]
 
         # Check the shape of self.parameters.orbital_groups is as expected
         if self.parameters.spin_polarised:
@@ -385,6 +384,11 @@ class KoopmansDSCFWorkflow(Workflow):
             if abs(Efin - Eini) > 1e-6 * abs(Efin):
                 raise ValueError(f'Too much difference between the initial and final CP energies: {Eini} {Efin}')
 
+            # Add to the outdir of dft_init a link to the files containing the Wannier functions
+            dst = Path(f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001/')
+            for file in ['evc_occupied1.dat', 'evc_occupied2.dat', 'evc0_empty1.dat', 'evc0_empty2.dat']:
+                utils.symlink(f'{restart_dir}/{file}', dst, force=True)
+
         elif self.parameters.functional in ['ki', 'pkipz']:
             calc = self.new_kcp_calculator('dft_init')
             calc.directory = Path('init')
@@ -477,8 +481,11 @@ class KoopmansDSCFWorkflow(Workflow):
                     iteration_directory.mkdir()
 
             # Do a KI/KIPZ calculation with the updated alpha values
+            restart_from_wannier_pwscf = True if self.parameters.init_orbitals in [
+                'mlwfs', 'projwfs'] and not self._restart_from_old_ki and i_sc == 1 else None
             trial_calc = self.new_kcp_calculator(calc_presets=self.parameters.functional.replace('pkipz', 'ki'),
-                                                 alphas=self.bands.alphas)
+                                                 alphas=self.bands.alphas,
+                                                 restart_from_wannier_pwscf=restart_from_wannier_pwscf)
             trial_calc.directory = iteration_directory
 
             if i_sc == 1:
@@ -731,6 +738,9 @@ class KoopmansDSCFWorkflow(Workflow):
                 calc = self.new_kcp_calculator(final_calc_type, ndr=ndr, write_hr=True)
             else:
                 calc = self.new_kcp_calculator(final_calc_type, write_hr=True)
+                if self.parameters.functional == 'ki' and self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
+                        and not self.parameters.calculate_alpha:
+                    calc.parameters.restart_from_wannier_pwscf = True
 
             calc.directory = directory
 
