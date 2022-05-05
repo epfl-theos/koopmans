@@ -9,7 +9,6 @@ import copy
 import json
 from time import time
 from ase.geometry.cell import crystal_structure_from_cell
-from matplotlib.pyplot import plot
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 from typing import Union, List, Optional
@@ -493,10 +492,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         self.parameters = bigdct['ui']
 
         # Update plot parameters
-        self.parameters.plot_params = PlotSettingsDict()
-        plot_params = bigdct['plot']
-        for key, value in plot_params.items():
-            self.parameters.plot_params[key] = value
+        self.parameters.plot_params = PlotSettingsDict(**bigdct['plot'])
 
         # Load the cell and kpts if they are provided
         if 'setup' in bigdct:

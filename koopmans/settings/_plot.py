@@ -1,8 +1,5 @@
 """
-Settings module for the UI calculator
-
-Originally written by Riccardo De Gennaro as part of the standalone 'unfolding and interpolate' code
-Integrated within koopmans by Edward Linscott Jan 2021
+Settings module for plotting
 
 """
 

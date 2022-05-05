@@ -112,7 +112,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                            'in the "plot" block)')
         else:
             dos = None
-        self.plot_bandstructure(bs, dos, bsplot_kwargs={'emin': calc.parameters.Emin, 'emax': calc.parameters.Emax})
+        self.plot_bandstructure(bs, dos)
 
         # Store the calculator in the workflow's list of all the calculators
         self.calculations.append(calc)

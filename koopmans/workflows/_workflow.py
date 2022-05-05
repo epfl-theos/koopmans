@@ -1138,9 +1138,11 @@ class Workflow(ABC):
             ax_bs = None
 
         # Plot the band structure
+        defaults = {'colors': colors, 'emin': self.plot_params.Emin, 'emax': self.plot_params.Emax}
         for b, kwargs in zip(bs, bsplot_kwargs):
-            if 'colors' not in kwargs:
-                kwargs['colors'] = colors
+            for k, v in defaults.items():
+                if k not in kwargs:
+                    kwargs[k] = v
             ax_bs = b.plot(ax=ax_bs, **kwargs)
 
         # Move the legend (if there is one)
