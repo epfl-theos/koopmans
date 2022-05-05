@@ -84,9 +84,11 @@
             2,
             2,
             2
-        ],
-        "Emin": -10,
-        "Emax": 5,
-        "degauss": 0.5
+        ]
+    },
+    "plot": {
+        "Emin": -15,
+        "Emax": 10,
+        "degauss": 1
     }
 }

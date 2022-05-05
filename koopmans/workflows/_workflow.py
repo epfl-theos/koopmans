@@ -61,6 +61,7 @@ class Workflow(ABC):
                  kpath: Optional[Union[BandPath, str]] = None,
                  kpath_density: int = 10,
                  projections: Optional[ProjectionBlocks] = None,
+                 plot_params: Optional[settings.PlotSettingsDict] = None,
                  autogenerate_settings: bool = True):
 
         # Parsing parameters
@@ -72,13 +73,7 @@ class Workflow(ABC):
         self.print_indent = 1
         self.gamma_only = gamma_only
         if self.gamma_only:
-            if kgrid != [1, 1, 1]:
-                utils.warn(f'You have initialised kgrid to {kgrid}, not compatible with gamma_only=True; '
-                           'kgrid is set equal to [1, 1, 1]')
-            if koffset != [0, 0, 0]:
-                utils.warn(f'You have initialised koffset to {koffset}, not compatible with gamma_only=True; '
-                           'koffset is set equal to [0, 0, 0]')
-            self.kgrid = [1, 1, 1]
+            self.kgrid = None
             self.koffset = [0, 0, 0]
         else:
             self.kgrid = kgrid
@@ -99,6 +94,8 @@ class Workflow(ABC):
                 proj_list, fillings=fillings, spins=spins, atoms=self.atoms)
         else:
             self.projections = projections
+
+        self.plot_params = settings.PlotSettingsDict() if plot_params is None else plot_params
 
         if 'periodic' in parameters:
             # If "periodic" was explicitly provided, override self.atoms.pbc
@@ -318,7 +315,8 @@ class Workflow(ABC):
                 'gamma_only': copy.deepcopy(self.gamma_only),
                 'kgrid': copy.deepcopy(self.kgrid),
                 'kpath': copy.deepcopy(self.kpath),
-                'projections': copy.deepcopy(self.projections)}
+                'projections': copy.deepcopy(self.projections),
+                'plot_params': copy.deepcopy(self.plot_params)}
 
     def _run_sanity_checks(self):
         # Check internal consistency of workflow settings
@@ -447,7 +445,7 @@ class Workflow(ABC):
             all_kwargs['kpts'] = kpts if kpts is not None else self.kgrid
 
         # Add pseudopotential and kpt information to the calculator as required
-        for kw in ['pseudopotentials', 'pseudo_dir', 'gamma_only', 'kgrid', 'kpath', 'koffset']:
+        for kw in ['pseudopotentials', 'pseudo_dir', 'gamma_only', 'kgrid', 'kpath', 'koffset', 'plot_params']:
             if kw not in all_kwargs and kw in master_calc_params.valid:
                 all_kwargs[kw] = getattr(self, kw)
 
@@ -470,7 +468,7 @@ class Workflow(ABC):
     def primitive_to_supercell(self, matrix: Optional[npt.NDArray[np.int_]] = None, **kwargs):
         # Converts to a supercell as given by a 3x3 transformation matrix
         if matrix is None:
-            matrix = np.diag(self.kgrid)
+            matrix = np.diag(self.kgrid) if not self.gamma_only else np.identity(3, dtype=float)
         assert np.shape(matrix) == (3, 3)
         self.atoms = make_supercell(self.atoms, matrix, **kwargs)
 
@@ -825,6 +823,9 @@ class Workflow(ABC):
                 raise ValueError(f'Unrecognised block "{block}" in json input file; '
                                  'valid options are workflow/' + '/'.join(settings_classes.keys()))
 
+        # Loading plot settings
+        plot_params = settings.PlotSettingsDict(**utils.parse_dict(bigdct.get('plot', {})))
+
         # Loading workflow settings
         parameters = settings.WorkflowSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})))
 
@@ -890,6 +891,8 @@ class Workflow(ABC):
         # object but it is provided in the w90 subdictionary)
         workflow_kwargs['projections'] = ProjectionBlocks.fromprojections(
             w90_block_projs, w90_block_filling, w90_block_spins, atoms)
+
+        workflow_kwargs['plot_params'] = plot_params
 
         name = fname.replace('.json', '')
 
@@ -1112,9 +1115,11 @@ class Workflow(ABC):
             ax_bs = None
 
         # Plot the band structure
+        defaults = {'colors': colors, 'emin': self.plot_params.Emin, 'emax': self.plot_params.Emax}
         for b, kwargs in zip(bs, bsplot_kwargs):
-            if 'colors' not in kwargs:
-                kwargs['colors'] = colors
+            for k, v in defaults.items():
+                if k not in kwargs:
+                    kwargs[k] = v
             ax_bs = b.plot(ax=ax_bs, **kwargs)
 
         # Move the legend (if there is one)
@@ -1302,7 +1307,8 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'w90_occ_up': settings.Wannier90SettingsDict,
                     'w90_emp_up': settings.Wannier90SettingsDict,
                     'w90_occ_down': settings.Wannier90SettingsDict,
-                    'w90_emp_down': settings.Wannier90SettingsDict}
+                    'w90_emp_down': settings.Wannier90SettingsDict,
+                    'plot': settings.PlotSettingsDict}
 
 
 def sanitise_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]]) \

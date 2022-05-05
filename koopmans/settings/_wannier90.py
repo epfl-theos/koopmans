@@ -12,11 +12,11 @@ class Wannier90SettingsDict(SettingsDict):
                                 'num_iter', 'conv_window', 'conv_tol', 'num_print_cycles',
                                 'dis_froz_max', 'dis_num_iter', 'dis_win_max', 'guiding_centres',
                                 'bands_plot', 'mp_grid', 'kpoint_path', 'projections', 'write_hr',
-                                'write_u_matrices', 'write_xyz', 'wannier_plot', 'gamma_only', 'spin',
-                                'use_ws_distance'],
+                                'write_u_matrices', 'write_xyz', 'wannier_plot', 'wannier_plot_list',
+                                'gamma_only', 'spin', 'use_ws_distance'],
                          defaults={'num_iter': 10000, 'conv_tol': 1.e-10, 'conv_window': 5,
                                    'write_hr': True, 'guiding_centres': True, 'gamma_only': False},
-                         to_not_parse=['exclude_bands'],
+                         to_not_parse=['exclude_bands', 'wannier_plot_list'],
                          **kwargs)
 
     def update(self, *args, **kwargs) -> None:
@@ -32,6 +32,11 @@ class Wannier90SettingsDict(SettingsDict):
 
     def __setitem__(self, key: str, value: Any):
         if key == 'kgrid':
+            if value is None:
+                # When kgrid is None, i.e. we are performing a Γ-only calculation,
+                # Wannier90 still wants the mp_grid to be defined
+                value = [1, 1, 1]
+
             # Making sure the input is the correct format (a list of length 3)
             assert isinstance(value, list)
             assert len(value) == 3
@@ -58,6 +63,8 @@ class Wannier90SettingsDict(SettingsDict):
             self.kpoint_path = construct_kpoint_path(
                 path=self.kpoint_path.path, cell=self.kpoint_path.cell, bands_point_num=value)
         else:
+            if key == 'wannier_plot_list':
+                assert isinstance(value, str), 'wannier_plot_list must be a string, e.g. "1,3-5"'
             if key == 'kpoint_path':
                 assert self.bands_plot, 'Do not try and set a kpoint_path for a Wannier90 calculation which does ' \
                     'not have bands_plot = True'

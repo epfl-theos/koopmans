@@ -95,6 +95,12 @@ class WannierizeWorkflow(Workflow):
         # must match the original k-grid
         self._scf_kgrid = scf_kgrid
 
+        # Calculate by default the band structure
+        if self.parameters.calculate_bands is None and len(self.kpath.kpts) > 1:
+            self.parameters.calculate_bands = True
+        else:
+            self.parameters.calculate_bands = False
+
     def _run(self):
         '''
 
@@ -160,7 +166,7 @@ class WannierizeWorkflow(Workflow):
                 # Extending the U_dis matrix file, if necessary
                 num_wann = sum([b.w90_kwargs['num_wann'] for b in block])
                 num_bands = sum([b.w90_kwargs['num_bands'] for b in block])
-                if not block[0].filled and num_bands > num_wann:
+                if not block[0].filled and num_bands > num_wann and self.parameters.method == 'dfpt':
                     self.extend_wannier_u_dis_file(block, prefix=calc_w90.prefix)
 
         if self.parameters.calculate_bands:
@@ -235,16 +241,6 @@ class WannierizeWorkflow(Workflow):
             if dos is not None:
                 dos._energies -= vbe
 
-            # Work out the energy ranges for plotting
-            if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-                cmin = selected_calcs[0]
-                cmax = selected_calcs[-1]
-            else:
-                cmin = calc_pw_bands
-                cmax = calc_pw_bands
-            emin = np.min(cmin.results['band structure'].energies) - 1 - vbe
-            emax = np.max(cmax.results['band structure'].energies) + 1 - vbe
-
             # Prepare the band structures for plotting
             ax = None
             labels = ['explicit'] \
@@ -266,7 +262,7 @@ class WannierizeWorkflow(Workflow):
                     bs._energies -= vbe
 
                     # Tweaking the plot aesthetics
-                    kwargs = {'emin': emin, 'emax': emax, 'label': label}
+                    kwargs = {'label': label}
                     up_label = label.replace(', down', ', up')
                     if ', down' in label:
                         kwargs['ls'] = '--'

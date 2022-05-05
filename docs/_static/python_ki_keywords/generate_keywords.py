@@ -1,4 +1,4 @@
-from koopmans.settings import WorkflowSettingsDict, UnfoldAndInterpolateSettingsDict
+from koopmans.settings import WorkflowSettingsDict, UnfoldAndInterpolateSettingsDict, PlotSettingsDict
 
 
 def print_settings_as_html(settings, table_id, fd):
@@ -45,3 +45,6 @@ if __name__ == '__main__':
 
     with open('ui_keywords.html', 'w') as fd:
         print_settings_as_html(UnfoldAndInterpolateSettingsDict(), 'uiTable', fd)
+
+    with open('plot_keywords.html', 'w') as fd:
+        print_settings_as_html(PlotSettingsDict(), 'plotTable', fd)

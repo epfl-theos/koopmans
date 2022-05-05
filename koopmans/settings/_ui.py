@@ -53,19 +53,7 @@ valid_settings: List[Setting] = [
     Setting('do_dos',
             'if True, the density-of-states is interpolated along the input kpath. The DOS is written to a '
             'file called "dos_interpolated.dat"',
-            bool, True, (True, False)),
-    Setting('degauss',
-            'gaussian broadening (in eV) for the DOS interpolation, as in QE',
-            (str, float, int), 0.05, None),
-    Setting('nstep',
-            'number of steps for the plot of the interpolated DOS',
-            int, 1000, None),
-    Setting('Emin',
-            'minimum energy for the plot of the interpolated DOS',
-            (str, float, int), None, None),
-    Setting('Emax',
-            'maximum energy for the plot of the interpolated DOS',
-            (str, float, int), None, None)]
+            bool, True, (True, False))]
 
 
 class UnfoldAndInterpolateSettingsDict(SettingsDictWithChecks):
@@ -73,12 +61,11 @@ class UnfoldAndInterpolateSettingsDict(SettingsDictWithChecks):
     def __init__(self, **kwargs):
         super().__init__(settings=valid_settings,
                          to_not_parse=[],
-                         physicals=['degauss', 'Emin', 'Emax'],
                          **kwargs)
 
     @property
     def _other_valid_keywords(self):
-        return ['kgrid', 'kpath']
+        return ['kgrid', 'kpath', 'plot_params']
 
     def __setitem__(self, key: str, value: Any):
         if key == 'w90_calc':
