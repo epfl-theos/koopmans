@@ -20,6 +20,7 @@ The input file is a JSON-formatted file that contains the calculation parameters
   running/w90
   running/pw2wannier
   running/ui
+  running/plot
 
 Environment variables
 ^^^^^^^^^^^^^^^^^^^^^
