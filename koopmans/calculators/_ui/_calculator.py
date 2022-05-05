@@ -183,13 +183,6 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
     def get_fermi_level(self):
         return 0
 
-    def get_energy_range(self):
-        # Finds the range containing all the energy eigenvalues
-        if self.parameters.plot_params.Emin is None:
-            self.parameters.plot_params.Emin = np.min(self.get_eigenvalues() - 10 * self.parameters.degauss)
-        if self.parameters.plot_params.Emax is None:
-            self.parameters.plot_params.Emax = np.max(self.get_eigenvalues() + 10 * self.parameters.degauss)
-
     def parse_w90(self) -> None:
         '''
         centers : centers of WFs (in PC crystal units)
@@ -640,9 +633,6 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         """
         calc_dos calculates the density of states using the DOS function from ASE
         """
-
-        if self.parameters.plot_params.Emin is None or self.parameters.plot_params.Emax is None:
-            self.get_energy_range()
 
         self.results['dos'] = DOS(self, width=self.parameters.plot_params.degauss, window=(
             self.parameters.plot_params.Emin, self.parameters.plot_params.Emax),
