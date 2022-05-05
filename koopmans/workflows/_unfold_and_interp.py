@@ -131,7 +131,6 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         else:
             # Automatically generating UI calculator settings
             kwargs['directory'] = Path(f'{calc_presets}')
-            kwargs['plot_params'] = self.plot_params
             if self.parameters.method == 'dscf':
                 # DSCF case
                 if '_' in calc_presets:
