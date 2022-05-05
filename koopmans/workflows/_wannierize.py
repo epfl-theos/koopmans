@@ -241,24 +241,6 @@ class WannierizeWorkflow(Workflow):
             if dos is not None:
                 dos._energies -= vbe
 
-            # Work out the energy ranges for plotting
-            if self.plot_params.Emin is None:
-                if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-                    cmin = selected_calcs[0]
-                else:
-                    cmin = calc_pw_bands
-                emin = np.min(cmin.results['band structure'].energies) - 1 - vbe
-            else:
-                emin = self.plot_params.Emin
-            if self.plot_params.Emax is None:
-                if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-                    cmax = selected_calcs[-1]
-                else:
-                    cmax = calc_pw_bands
-                emax = np.max(cmax.results['band structure'].energies) + 1 - vbe
-            else:
-                emax = self.plot_params.Emax
-
             # Prepare the band structures for plotting
             ax = None
             labels = ['explicit'] \
@@ -280,7 +262,7 @@ class WannierizeWorkflow(Workflow):
                     bs._energies -= vbe
 
                     # Tweaking the plot aesthetics
-                    kwargs = {'emin': emin, 'emax': emax, 'label': label}
+                    kwargs = {'label': label}
                     up_label = label.replace(', down', ', up')
                     if ', down' in label:
                         kwargs['ls'] = '--'
