@@ -112,7 +112,7 @@ class Workflow(ABC):
             self.pseudopotentials = pseudopotentials
         elif self.parameters.pseudo_library:
             self.pseudopotentials = {}
-            for symbol in set(self.atoms.symbols):
+            for symbol, tag in set([(a.symbol, a.tag) for a in self.atoms]):
                 pseudo = fetch_pseudo(element=symbol, functional=self.parameters.base_functional,
                                       library=self.parameters.pseudo_library)
                 if pseudo.kind == 'unknown':
@@ -122,6 +122,8 @@ class Workflow(ABC):
                 elif pseudo.kind != 'norm-conserving':
                     raise ValueError('Koopmans functionals only currently support norm-conserving pseudopotentials; '
                                      f'{pseudo.name} is {pseudo.kind}')
+                if tag > 0:
+                    symbol += str(tag)
                 self.pseudopotentials[symbol] = pseudo.name
         else:
             self.pseudopotentials = pseudopotentials
@@ -166,7 +168,7 @@ class Workflow(ABC):
 
             # Setting up the magnetic moments
             if 'starting_magnetization(1)' in master_calc_params['kcp']:
-                labels = [s + str(t) if t != 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
+                labels = [s + str(t) if t > 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
                 starting_magmoms = {}
                 for i, (l, p) in enumerate(self.pseudopotentials.items()):
                     # ASE uses absoulte values; QE uses the fraction of the valence
