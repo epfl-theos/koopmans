@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
-from koopmans import __path__ as koopmans_base_directory
+from koopmans import __path__ as koopmans_path
 
-koopmans_base_directory = Path(koopmans_base_directory[0]).parent
+koopmans_base_directory = Path(koopmans_path[0]).parent
 
 
 def benchmark_filename(calc):
