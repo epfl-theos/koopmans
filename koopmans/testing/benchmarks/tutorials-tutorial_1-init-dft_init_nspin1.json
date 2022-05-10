@@ -1,7 +1,7 @@
 {
  "_parameters": {
   "outdir": {
-   "__path__": "/home/elinscott/code/koopmans/tutorials/tutorial_1/TMP-CP"
+   "__path__": "../TMP-CP"
   },
   "nspin": 1,
   "conv_thr": 1.8000000000000002e-08,
@@ -13,7 +13,7 @@
   "nelec": 18,
   "tot_charge": 0,
   "pseudo_dir": {
-   "__path__": "/home/elinscott/code/koopmans/pseudos/sg15_v1.2/pbe"
+   "__path__": "../../../pseudos/sg15_v1.2/pbe"
   },
   "pseudopotentials": {
    "O": "O_ONCV_PBE-1.2.upf"
@@ -814,7 +814,7 @@
    ]
   },
   "job_done": true,
-  "walltime": 47.81,
+  "walltime": 51.76,
   "lambda": [
    {
     "__ndarray__": [

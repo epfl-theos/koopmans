@@ -10,7 +10,10 @@ class BenchmarkGenCalc():
         # Make sure we store all paths as relative paths
         self.parameters.use_relative_paths = True
 
-        # Save the calculator as an encoded json in tests/benchmarks/
+        # Don't store the walltime
+        self.results.pop('walltime', None)
+
+        # Save the calculator as an encoded json in the benchmarks directory
         with open(benchmark_filename(self), 'w') as fd:
             write_encoded_json(self, fd)
 
