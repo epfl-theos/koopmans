@@ -38,7 +38,7 @@ jobs:
               pip install -e ase/ -e .[test]
          - name: Test with pytest
            run: |
-              pytest -m mock tests/ --cov-config=.coveragerc --cov=./koopmans/ --cov-report=xml
+              pytest --mock --cov-config=.coveragerc --cov=./koopmans/ --cov-report=xml
          - name: Upload coverage to Codecov
            if: github.repository == 'epfl-theos/koopmans'
            uses: codecov/codecov-action@v1
