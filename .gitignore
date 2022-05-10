@@ -1,9 +1,16 @@
 *.pyc
 *.kwf
+*.??i
+*.??o
+*.bib
 __pycache__/
 .vscode
-python_KI.egg-info
+monkeytype.sqlite3
 coverage.xml
 .coverage
 *.egg-info/
 .mypy_cache/
+TMP-CP/
+calc_alpha/
+final/
+init/
