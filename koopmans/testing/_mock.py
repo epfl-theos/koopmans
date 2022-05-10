@@ -11,11 +11,11 @@ from ._utils import benchmark_filename
 
 class MockCalc(ABC):
     def _ase_calculate(self):
-        with open(benchmark_filename(self), 'r') as fd:
-            calc = read_encoded_json(fd)
-
-        calc.parameters.use_relative_paths = True
-        self.parameters.use_relative_paths = True
+        with utils.chdir(self.directory):
+            # By moving into the directory where the calculation was run, we ensure when we read in the settings that
+            # paths are interpreted relative to this particular working directory
+            with open(benchmark_filename(self), 'r') as fd:
+                calc = read_encoded_json(fd)
 
         # Compare the settings
         for key in set(list(self.parameters.keys()) + list(calc.parameters.keys())):
@@ -26,6 +26,7 @@ class MockCalc(ABC):
             else:
                 val = self.parameters[key]
                 ref_val = calc.parameters[key]
+
                 if val != ref_val:
                     raise ValueError(f'Error in {self.prefix}: {key} differs ({val} != {ref_val})')
 

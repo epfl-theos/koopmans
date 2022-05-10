@@ -5,19 +5,17 @@
     "periodic": false,
     "init_orbitals": "kohn-sham",
     "from_scratch": true,
-    "n_max_sc_steps": 1
+    "n_max_sc_steps": 1,
+    "pseudo_library": "sg15"
   },
   "setup": {
-    "control": {
-      "pseudo_dir": "../../../pseudos/"
-    },
     "system": {
       "ibrav": 0,
       "ecutwfc": 65.0,
       "ecutrho": 260.0
     },
         "electrons": {
-            "empty_states_nbnd": 1
+            "nbnd": 10
         },
     "cell_parameters": {
       "vectors": [
@@ -59,15 +57,6 @@
           "6.0",
           "6.0",
           "6.55"
-        ]
-      ]
-    },
-    "atomic_species": {
-      "species": [
-        [
-          "O",
-          1.0,
-          "O_ONCV_PBE-1.0.upf"
         ]
       ]
     }
