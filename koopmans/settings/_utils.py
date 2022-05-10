@@ -228,7 +228,8 @@ class SettingsDict(UserDict):
         # Construct a minimal representation of this dictionary. Most of the requisite information
         # (defaults, valid, are_paths, etc) is contained in the class itself so we needn't store this
         dct = {}
-        for k, v in self.data.items():
+        for k in self.data:
+            v = self[k]
             if k in self.defaults:
                 if isinstance(v, np.ndarray) and np.all(v == self.defaults[k]):
                     continue

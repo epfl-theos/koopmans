@@ -6,7 +6,7 @@ The ``koopmans`` package can also calculate the PBE electron affinities of small
 
 Running these calculations is enabled with the ``environ_dscf`` task, and ``eps_cavity`` is a list of the trial values of :math:`\varepsilon_\infty` to use e.g.
 
-.. literalinclude:: tutorial_4/o2_environ_dscf.json
+.. literalinclude:: ../../tutorials/tutorial_4/o2_environ_dscf.json
   :lines: 2-5
   :linenos:
 
@@ -40,7 +40,7 @@ The full input file can be downloaded `here <https://raw.githubusercontent.com/e
 
 so we can see that for :math:`\varepsilon_\infty = 2` the anion became unstable, as expected. If we perform a quartic fit to the energies (following the example of Nattino *et al.*) we can extrapolate back to :math:`\varepsilon_\infty = 1` to obtain the electron affinity of 1.30 eV.
 
-.. image:: tutorial_4/o2_dscf_ea_result.png
+.. image:: ../../tutorials/tutorial_4/o2_dscf_ea_result.png
   :width: 800
   :alt: Quartic fit to embedded energies of O2 to calculate its vertical electron affinity 
   :align: center
