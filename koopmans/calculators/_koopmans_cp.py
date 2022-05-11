@@ -22,7 +22,39 @@ from ase.calculators.espresso import Espresso_kcp
 from koopmans import utils, settings, pseudopotentials, bands
 from koopmans.commands import ParallelCommand
 from ._utils import CalculatorExt, CalculatorABC, bin_directory, CalculatorCanEnforceSpinSym
+from ase.io.espresso import cell_to_ibrav, ibrav_to_cell
+from koopmans.pseudopotentials import read_pseudo_file
 
+def allowed(nr):
+    #define whether i is a good fft grid number
+    mr = nr
+    factor = [2,3,5,7,11]
+    allowed = False
+    pwr = [0,0,0,0,0]
+    for i, fac in enumerate(factor):
+        maxpwr = int( np.log( mr ) / np.log( fac ) )
+        for p in range(maxpwr) :
+            if  mr == 1 : 
+                break
+            if  mr%fac == 0 :
+                mr /= fac
+                pwr[i] += 1 
+#    print (pwr)
+    if  mr != 1 :
+        allowed = False
+    else:
+        allowed = (pwr[3] == 0)  and  (pwr[4] == 0)
+    return allowed
+
+
+def good_fft(nr):	
+    # Return good grid dimension (optimal for the FFT)
+    nfftx=2049
+    new = nr
+    while  allowed( new ) == False  and ( new <= nfftx ) :
+        new = new + 1
+    nr=new
+    return nr
 
 def read_ham_file(filename: Path) -> np.ndarray:
     # Read a single hamiltonian XML file
@@ -47,6 +79,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
     # Subclass of CalculatorExt for performing calculations with kcp.x
     ext_in = '.cpi'
     ext_out = '.cpo'
+ 
 
     def __init__(self, atoms: Atoms, skip_qc: bool = False, alphas: Optional[List[List[float]]] = None,
                  filling: Optional[List[List[bool]]] = None, **kwargs):
@@ -81,6 +114,53 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         # fixed_state = .true.. N.B. this differs from self.parameters.fixed_band in the case of empty orbitals (see
         # koopmans.workflows._koopmans_dscf.py for more details)
         self.fixed_band: Optional[bands.Band] = None
+        #
+        # For NC pseudo the small box grid (nr1b,nr2b,nr3b) is needed in case the pseudo has NLCC
+        # Define the small box grid to be consistent with the charge density one (default in PW and 
+        # very safe choice) 
+        #import ipdb
+        #ipdb.set_trace()
+        has_nlcc = False
+        for i, (l, p) in enumerate(self.parameters.pseudopotentials.items()):
+            upf=read_pseudo_file(self.parameters.pseudo_dir / p)
+            if upf.find('PP_HEADER').get('core_correction') == 'T':
+                has_nlcc = True
+            #print (i, l, p, has_nlcc)
+        #print (has_nlcc)
+        if has_nlcc and (self.parameters.nr1b is None or self.parameters.nr2b is None or self.parameters.nr3b is None): 
+            print ("   Small box parameters \"nrb\" not set: going to set to (very safe) default values")
+            # First define alat and the reduced lattice vectors (`at` in espresso)
+            # ibrav = 0 is a special case: 
+            if self.parameters.ibrav == 0 :
+                at = np.transpose(self.atoms.cell)
+                alat = np.sqrt(self.atoms.cell[0,0]**2 + self.atoms.cell[1,0]**2 + self.atoms.cell[2,0]**2)
+                at = at/alat
+                alat = alat / utils.units.Bohr
+            else:
+                # not sure the call to cell_to_ibrav is needed. I use it to have celldm in the right format for ibrav_to_cell 
+                celldm = cell_to_ibrav(self.atoms.cell, self.parameters.ibrav)
+                regen_cell = ibrav_to_cell(celldm)[1]
+                alat= ibrav_to_cell(celldm)[0]
+                at = np.transpose(regen_cell)
+                at = at / alat
+                regen_cell = regen_cell/utils.units.Bohr
+                alat= alat / utils.units.Bohr
+            #
+            # nr1 = int ( sqrt (gcutm) * sqrt (at(1, 1)**2 + at(2, 1)**2 + at(3, 1)**2) ) + 1
+            nr1b = np.sqrt(self.parameters.ecutrho)/(2.0*np.pi/alat)*np.sqrt(at[0,0]**2+at[0,1]**2+at[0,2]**2) + 1 
+            nr1b = int(nr1b) * 2
+            nr2b = np.sqrt(self.parameters.ecutrho)/(2.0*np.pi/alat)*np.sqrt(at[1,0]**2+at[1,1]**2+at[1,2]**2) + 1 
+            nr2b = int(nr2b) * 2
+            nr3b = np.sqrt(self.parameters.ecutrho)/(2.0*np.pi/alat)*np.sqrt(at[2,0]**2+at[2,1]**2+at[2,2]**2) + 1 
+            nr3b = int(nr3b) * 2
+            # set "good" FFT dimensions (only if nrb not provided)
+            self.parameters.nr1b = good_fft(nr1b)
+            self.parameters.nr2b = good_fft(nr2b)
+            self.parameters.nr3b = good_fft(nr3b)
+            #
+            #print (nr1b, nr2b, nr3b)
+            #print (self.parameters.nr1b, self.parameters.nr2b, self.parameters.nr3b)
+    
 
     def calculate(self):
         # kcp.x imposes nelup >= neldw, so if we try to run a calcualtion with neldw > nelup, swap the spin channels
