@@ -196,6 +196,7 @@ class WannierizeWorkflow(Workflow):
                 calc_dos.pseudopotentials = self.pseudopotentials
                 calc_dos.spin_polarised = self.parameters.spin_polarised
                 calc_dos.pseudo_dir = calc_pw_bands.parameters.pseudo_dir
+                calc_dos.parameters.prefix = calc_pw_bands.parameters.prefix
                 self.run_calculator(calc_dos)
 
                 # Prepare the DOS for plotting
@@ -207,7 +208,7 @@ class WannierizeWorkflow(Workflow):
                 dos = None
 
             # Select those calculations that generated a band structure
-            selected_calcs = [c for c in self.calculations[:-1] if 'band structure' in c.results]
+            selected_calcs = [c for c in self.calculations[:-1] if 'band structure' in c.results and c != calc_pw_bands]
 
             # Work out the vertical shift to set the valence band edge to zero
             pw_eigs = calc_pw_bands.results['band structure'].energies
