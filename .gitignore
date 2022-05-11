@@ -3,6 +3,7 @@
 *.??i
 *.??o
 *.bib
+*.pkl
 __pycache__/
 .vscode
 monkeytype.sqlite3
@@ -14,3 +15,6 @@ TMP-CP/
 calc_alpha/
 final/
 init/
+pdos/
+postproc/
+wannier/
