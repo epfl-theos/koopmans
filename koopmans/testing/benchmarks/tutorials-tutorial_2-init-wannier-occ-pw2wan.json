@@ -1,0 +1,111 @@
+{
+ "_parameters": {
+  "outdir": {
+   "__path__": "../TMP"
+  },
+  "__koopmans_name__": "PW2WannierSettingsDict",
+  "__koopmans_module__": "koopmans.settings._pw2wannier"
+ },
+ "atoms": {
+  "numbers": {
+   "__ndarray__": [
+    [
+     2
+    ],
+    "int64",
+    [
+     14,
+     14
+    ]
+   ]
+  },
+  "positions": {
+   "__ndarray__": [
+    [
+     2,
+     3
+    ],
+    "float64",
+    [
+     0.0,
+     0.0,
+     0.0,
+     -1.357630586891428,
+     1.357630586891428,
+     1.357630586891428
+    ]
+   ]
+  },
+  "tags": {
+   "__ndarray__": [
+    [
+     2
+    ],
+    "int64",
+    [
+     0,
+     0
+    ]
+   ]
+  },
+  "cell": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     -2.715261173782856,
+     0.0,
+     2.715261173782856,
+     0.0,
+     2.715261173782856,
+     2.715261173782856,
+     -2.715261173782856,
+     2.715261173782856,
+     0.0
+    ]
+   ]
+  },
+  "pbc": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "bool",
+    [
+     true,
+     true,
+     true
+    ]
+   ]
+  },
+  "__ase_objtype__": "atoms"
+ },
+ "results": {
+  "job done": true
+ },
+ "_directory": {
+  "__path__": "/home/elinscott/code/koopmans/tutorials/tutorial_2/init/wannier/occ"
+ },
+ "prefix": "pw2wan",
+ "name": "benchgenpw2wanniercalculator",
+ "command": {
+  "mpi_command": "mpirun -np 8",
+  "path": {
+   "__path__": "/home/elinscott/code/koopmans/bin"
+  },
+  "executable": "pw2wannier90.x",
+  "_flags": "",
+  "suffix": "-in PREFIX.p2wi > PREFIX.p2wo",
+  "__koopmans_name__": "ParallelCommand",
+  "__koopmans_module__": "koopmans.commands"
+ },
+ "calc": {},
+ "skip_qc": false,
+ "results_for_qc": [],
+ "qc_results": {},
+ "__koopmans_name__": "BenchGenPW2WannierCalculator",
+ "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+}

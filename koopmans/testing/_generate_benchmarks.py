@@ -7,8 +7,8 @@ from koopmans.calculators import Wannier90Calculator, PW2WannierCalculator, Wann
 
 
 class BenchmarkGenCalc():
-    def _calculate(self):
-        super()._calculate()
+    def calculate(self):
+        super().calculate()
 
         # Make sure we store all paths as relative paths
         self.parameters.use_relative_paths = True

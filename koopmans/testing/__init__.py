@@ -1,2 +1,7 @@
-from ._mock import MockKoopmansCPCalculator
-from ._generate_benchmarks import BenchGenKoopmansCPCalculator
+from ._mock import MockWannier90Calculator, MockPW2WannierCalculator, MockWann2KCPCalculator, MockPWCalculator, \
+    MockKoopmansCPCalculator, MockEnvironCalculator, MockUnfoldAndInterpolateCalculator, MockWann2KCCalculator, \
+    MockKoopmansScreenCalculator, MockKoopmansHamCalculator, MockProjwfcCalculator
+from ._generate_benchmarks import BenchGenWannier90Calculator, BenchGenPW2WannierCalculator, \
+    BenchGenWann2KCPCalculator, BenchGenPWCalculator, BenchGenKoopmansCPCalculator, BenchGenEnvironCalculator, \
+    BenchGenUnfoldAndInterpolateCalculator, BenchGenWann2KCCalculator, BenchGenKoopmansScreenCalculator, \
+    BenchGenKoopmansHamCalculator, BenchGenProjwfcCalculator
