@@ -118,7 +118,7 @@ class CalculatorExt():
         self.check_code_is_installed()
 
         # Then call the relevant ASE calculate() function
-        self._ase_calculate()
+        self._calculate()
 
         # Then check if the calculation completed
         if not self.is_complete():
@@ -128,7 +128,7 @@ class CalculatorExt():
         # Then check convergence
         self.check_convergence()
 
-    def _ase_calculate(self):
+    def _calculate(self):
         # ASE expects self.command to be a string
         command = copy.deepcopy(self.command)
         self.command = str(command)

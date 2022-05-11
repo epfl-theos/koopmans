@@ -101,9 +101,15 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         bs = calc.results['band structure']
         if calc.parameters.do_dos:
             dos = calc.results['dos']
-            evals = [e for ekn in dos.e_skn for e in ekn.flatten()]
-            if not self._dos_suitable_for_plotting(evals):
+            # Add the DOS only if the k-path is sufficiently sampled to mean the individual Gaussians are not visible
+            # (by comparing the median jump between adjacent eigenvalues to the smearing width)
+            median_eval_gap = max([np.median(e[1:] - e[:-1]) for e in [np.sort(ekn.flatten()) for ekn in dos.e_skn]])
+            if dos.width < 5 * median_eval_gap:
                 dos = None
+                utils.warn('The DOS will not be plotted, because the Brillouin zone is too poorly sampled for the '
+                           'specified value of smearing. In order to generate a DOS, increase the k-point density '
+                           '("kpath_density" in the "setup":"k_points" subblock) and/or the smearing ("degauss" '
+                           'in the "plot" block)')
         else:
             dos = None
         self.plot_bandstructure(bs, dos)

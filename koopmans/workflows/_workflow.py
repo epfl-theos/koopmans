@@ -1073,22 +1073,6 @@ class Workflow(ABC):
 
         return bigdct
 
-    def _dos_suitable_for_plotting(self, evals: List[float]) -> bool:
-        '''
-        Check if a DOS is suitable for plotting i.e. if the k-path is sufficiently sampled such that the individual
-        Gaussians are not visible (by comparing the median jump between adjacent eigenvalues to the smearing width)
-        '''
-
-        median_eval_gap = max([np.median(e[1:] - e[:-1]) for e in sorted(evals)])
-        if dos.width < 5 * median_eval_gap:
-            utils.warn('The DOS will not be plotted, because the Brillouin zone is too poorly sampled for the '
-                       'specified value of smearing. In order to generate a DOS, increase the k-point density '
-                       '("kpath_density" in the "setup":"k_points" subblock) and/or the smearing ("degauss" '
-                       'in the "plot" block)')
-            return False
-        else:
-            return True
-
     def plot_bandstructure(self,
                            bs: Union[BandStructure, List[BandStructure]],
                            dos: Optional[Union[GridDOSCollection, DOS]] = None,

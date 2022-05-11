@@ -10,7 +10,7 @@ from ._utils import benchmark_filename
 
 
 class MockCalc(ABC):
-    def _ase_calculate(self):
+    def _calculate(self):
         with utils.chdir(self.directory):
             # By moving into the directory where the calculation was run, we ensure when we read in the settings that
             # paths are interpreted relative to this particular working directory
@@ -77,36 +77,219 @@ class MockCalc(ABC):
     def output_files(self) -> List[Path]:
         ...
 
+    class MockKoopmansCPCalculator(MockCalc, KoopmansCPCalculator):
+        # Monkeypatched KoopmansCPCalculator class which never actually calls kcp.x
 
-class MockKoopmansCPCalculator(MockCalc, KoopmansCPCalculator):
-    @property
-    def __files(self) -> List[Path]:
-        files = [fname for ispin in range(1, self.parameters.nspin + 1) for fname in [f'evc0{ispin}.dat',
-                                                                                      f'evc{ispin}.dat',
-                                                                                      f'evcm{ispin}.dat',
-                                                                                      f'hamiltonian{ispin}.xml',
-                                                                                      f'eigenval{ispin}.xml',
-                                                                                      f'lambda0{ispin}.dat',
-                                                                                      f'lambdam{ispin}.dat']]
-        for ispin in range(self.parameters.nspin):
-            if self.has_empty_states(ispin):
-                files += [fname for fname in [f'evc0_empty{ispin + 1}.dat', f'evc_empty{ispin + 1}.dat']]
-        return [Path(f) for f in files]
-
-    @property
-    def output_files(self) -> List[Path]:
-        files = self.__files
-        if self.parameters.print_wfc_anion:
+        @property
+        def __files(self) -> List[Path]:
+            files = [fname for ispin in range(1, self.parameters.nspin + 1) for fname in [f'evc0{ispin}.dat',
+                                                                                          f'evc{ispin}.dat',
+                                                                                          f'evcm{ispin}.dat',
+                                                                                          f'hamiltonian{ispin}.xml',
+                                                                                          f'eigenval{ispin}.xml',
+                                                                                          f'lambda0{ispin}.dat',
+                                                                                          f'lambdam{ispin}.dat']]
             for ispin in range(self.parameters.nspin):
-                files.append(Path(f'evcfixed_empty{ispin + 1}.dat'))
-        return [self.parameters.outdir
-                / Path(f'{self.parameters.prefix}_{self.parameters.ndw}.save/K00001/{fname}') for fname in files]
+                if self.has_empty_states(ispin):
+                    files += [fname for fname in [f'evc0_empty{ispin + 1}.dat', f'evc_empty{ispin + 1}.dat']]
+            return [Path(f) for f in files]
 
-    @property
-    def input_files(self) -> List[Path]:
-        files = self.__files
-        if self.parameters.restart_from_wannier_pwscf:
-            for ispin in range(self.parameters.nspin):
-                files.append(Path(f'evc_occupied{ispin + 1}.dat'))
-        return [self.parameters.outdir
-                / Path(f'{self.parameters.prefix}_{self.parameters.ndr}.save/K00001/{fname}') for fname in files]
+        @property
+        def output_files(self) -> List[Path]:
+            files = self.__files
+            if self.parameters.print_wfc_anion:
+                for ispin in range(self.parameters.nspin):
+                    files.append(Path(f'evcfixed_empty{ispin + 1}.dat'))
+            return [self.parameters.outdir
+                    / Path(f'{self.parameters.prefix}_{self.parameters.ndw}.save/K00001/{fname}') for fname in files]
+
+        @property
+        def input_files(self) -> List[Path]:
+            files = self.__files
+            if self.parameters.restart_from_wannier_pwscf:
+                for ispin in range(self.parameters.nspin):
+                    files.append(Path(f'evc_occupied{ispin + 1}.dat'))
+            return [self.parameters.outdir
+                    / Path(f'{self.parameters.prefix}_{self.parameters.ndr}.save/K00001/{fname}') for fname in files]
+
+    class MockEnvironCalculator(MockCalc, EnvironCalculator):
+        # Monkeypatched EnvironCalculator class which never actually calls pw.x
+
+        @property
+        def output_files(self) -> List[Path]:
+            files = []
+            if 'kpts' in self.parameters:
+                assert self.parameters.kpts == [
+                    1, 1, 1], 'Have not implemented dummy environ calculations for kpts != [1, 1, 1]'
+
+                i_kpoints = range(1)
+                files += [f'{self.parameters.outdir}/{self.parameters.prefix}.save/wfc{i}.dat' for i in i_kpoints]
+                if self.parameters.nosym:
+                    files += [f'{self.parameters.outdir}/wfc{i}.dat' for i in i_kpoints]
+            files += [f'{self.parameters.outdir}/{self.parameters.prefix}.xml']
+            return [Path(f) for f in files]
+
+        @property
+        def input_files(self) -> List[Path]:
+            # Not yet implemented
+            return []
+
+    class MockPWCalculator(MockCalc, PWCalculator):
+        # Monkeypatched PWCalculator class which never actually calls pw.x
+
+        @property
+        def output_files(self) -> List[Path]:
+            files = []
+            if 'kpts' in self.parameters:
+                if isinstance(self.parameters.kpts, BandPath):
+                    n_kpoints = len(self.parameters.kpts.kpts)
+                elif self.parameters.nosym:
+                    n_kpoints = np.prod(self.parameters['kpts']) + 1
+                else:
+                    n_kpoints = len(BandPath(self.parameters['kpts'], self.atoms.cell).kpts)
+                i_kpoints = range(1, n_kpoints + 1)
+
+                files += [f'{self.parameters.outdir}/{self.parameters.prefix}.save/wfc{i}.dat' for i in i_kpoints]
+            files += [f'{self.parameters.outdir}/{self.parameters.prefix}.xml']
+            files += [f'{self.parameters.outdir}/{self.parameters.prefix}.save/{f}'
+                      for f in ['data-file-schema.xml', 'charge-density.dat']]
+            return [Path(f) for f in files]
+
+        @property
+        def input_files(self) -> List[Path]:
+            files = []
+            if self.parameters.calculation == 'nscf':
+                files += [f'{self.parameters.outdir}/{self.parameters.prefix}.save/{f}'
+                          for f in ['data-file-schema.xml', 'charge-density.dat']]
+            return [Path(f) for f in files]
+
+        def generate_band_structure(self):
+            pass
+
+    class MockWannier90Calculator(MockCalc, Wannier90Calculator):
+        # Monkeypatched Wannier90Calculator class which never actually calls wannier90.x
+
+        @property
+        def output_files(self) -> List[Path]:
+            if '-pp' in self.command.flags:
+                files = [self.directory / f'{self.prefix}.nnkp']
+            else:
+                suffixes = ['.chk', '_wsvec.dat', '_hr.dat']
+                if self.parameters.get('write_u_matrices', False):
+                    suffixes += ['_u.mat', '_u_dis.mat']
+                if self.parameters.get('write_xyz', False):
+                    suffixes += ['_centres.xyz']
+                files = [self.directory / f'{self.prefix}{suffix}' for suffix in suffixes]
+            return [f for f in files]
+
+        @property
+        def input_files(self) -> List[Path]:
+            if '-pp' in self.command.flags:
+                files = []
+            else:
+                files = [f'{self.directory}/{self.prefix}{suffix}' for suffix in ['.eig', '.mmn', '.amn']]
+            return [Path(f) for f in files]
+
+    class MockPW2WannierCalculator(MockCalc, PW2WannierCalculator):
+        # Monkeypatched PW2WannierCalculator class which never actually calls pw2wannier90.x
+
+        @property
+        def output_files(self) -> List[Path]:
+            files = [self.directory / f'{self.parameters.seedname}{suffix}' for suffix in ['.eig', '.mmn', '.amn']]
+            return [Path(f) for f in files]
+
+        @property
+        def input_files(self) -> List[Path]:
+            i_kpoints = range(1, np.prod(self.parameters.kpts) + 1)
+            files = [f'{self.parameters.outdir}/{self.parameters.prefix}.save/wfc{i}.dat' for i in i_kpoints]
+            files += [f'{self.parameters.outdir}/{self.parameters.prefix}.save/{f}'
+                      for f in ['data-file-schema.xml', 'charge-density.dat']]
+            files.append(f'{self.directory}/{self.parameters.seedname}.nnkp')
+            return [Path(f) for f in files]
+
+    class MockWann2KCPCalculator(MockCalc, Wann2KCPCalculator):
+        # Monkeypatched Wann2KCPCalculator class which never actually calls wann2kcp.x
+
+        @property
+        def output_files(self) -> List[Path]:
+            if self.parameters.wan_mode == 'wannier2kcp':
+                files = [self.directory / fname for fname in ['evcw1.dat', 'evcw2.dat']]
+            else:
+                files = [self.directory / fname for i in [1, 2]
+                         for fname in [f'evc_occupied{i}.dat', f'evc0_empty{i}.dat']]
+            return [Path(f) for f in files]
+
+        @property
+        def input_files(self) -> List[Path]:
+            i_kpoints = range(1, np.prod(self.parameters.kpts) + 1)
+            files = [f'{self.parameters.outdir}/{self.parameters.prefix}.save/wfc{i}.dat' for i in i_kpoints]
+            files += [f'{self.parameters.outdir}/{self.parameters.prefix}.save/{f}'
+                      for f in ['data-file-schema.xml', 'charge-density.dat']]
+            if self.parameters.wan_mode == 'wannier2kcp':
+                files.append(f'{self.directory}/{self.parameters.seedname}.nnkp')
+                files.append(f'{self.directory}/{self.parameters.seedname}.chk')
+            return [Path(f) for f in files]
+
+    class MockUnfoldAndInterpolateCalculator(MockCalc, UnfoldAndInterpolateCalculator):
+        def write_results(self):
+            # Do nothing when it goes to write out the results (because this relies on self.bg, among others)
+            return
+
+        # We don't ever construct self.bg during a mock calculation, but we refer to it later, so give it a dummy value
+        @property
+        def bg(self):
+            return None
+
+        @bg.setter
+        def bg(self, value):
+            return
+
+        @property
+        def output_files(self):
+            return []
+
+        @property
+        def input_files(self):
+            return []
+
+    class MockWann2KCCalculator(MockCalc, Wann2KCCalculator):
+        @property
+        def input_files(self) -> List[Path]:
+            return []
+
+        @property
+        def output_files(self) -> List[Path]:
+            return []
+
+    class MockKoopmansScreenCalculator(MockCalc, KoopmansScreenCalculator):
+        @property
+        def input_files(self) -> List[Path]:
+            return []
+
+        @property
+        def output_files(self) -> List[Path]:
+            return []
+
+    class MockKoopmansHamCalculator(MockCalc, KoopmansHamCalculator):
+        @property
+        def input_files(self) -> List[Path]:
+            return []
+
+        @property
+        def output_files(self) -> List[Path]:
+            return []
+
+        def generate_band_structure(self):
+            pass
+
+    class MockProjwfcCalculator(MockCalc, ProjwfcCalculator):
+        @property
+        def input_files(self) -> List[Path]:
+            return []
+
+        @property
+        def output_files(self) -> List[Path]:
+            return []
+
+        def generate_dos(self):
+            return
