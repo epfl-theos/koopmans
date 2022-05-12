@@ -92,7 +92,7 @@ class PWBandStructureWorkflow(Workflow):
             # Third, a PDOS calculation
             pseudos = [pseudopotentials.read_pseudo_file(calc_scf.parameters.pseudo_dir / p) for p in
                        self.pseudopotentials.values()]
-            if all([int(p.find('PP_HEADER').get('number_of_wfc')) > 0 for p in pseudos]):
+            if all([p['header']['number_of_wfc'] > 0 for p in pseudos]):
                 calc_dos = self.new_calculator('projwfc', filpdos=self.name)
                 calc_dos.pseudopotentials = self.pseudopotentials
                 calc_dos.spin_polarised = self.parameters.spin_polarised

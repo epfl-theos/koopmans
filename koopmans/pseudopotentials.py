@@ -14,8 +14,8 @@ import json
 from itertools import chain
 from pathlib import Path
 from dataclasses import dataclass
-from typing import Dict, Optional, List
-import xml.etree.ElementTree as ET
+from typing import Dict, Optional, List, Any
+from upf_to_json import upf_to_json
 from ase import Atoms
 
 
@@ -93,16 +93,16 @@ def fetch_pseudo(**kwargs):
         return matches[0]
 
 
-def read_pseudo_file(fd):
+def read_pseudo_file(filename: Path) -> Dict[str, Any]:
     '''
 
-    Reads in settings from a .upf file using XML parser
+    Reads in settings from a .upf file
 
     '''
 
-    upf = ET.parse(fd).getroot()
+    upf = upf_to_json(open(filename, 'r').read(), filename.name)
 
-    return upf
+    return upf['pseudo_potential']
 
 
 def valence_from_pseudo(filename: str, pseudo_dir: Optional[Path] = None) -> int:
@@ -119,7 +119,7 @@ def valence_from_pseudo(filename: str, pseudo_dir: Optional[Path] = None) -> int
     elif isinstance(pseudo_dir, str):
         pseudo_dir = Path(pseudo_dir)
 
-    return int(float(read_pseudo_file(pseudo_dir / filename).find('PP_HEADER').get('z_valence')))
+    return int(read_pseudo_file(pseudo_dir / filename)['header']['z_valence'])
 
 
 def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str],
