@@ -10,6 +10,7 @@ monkeytype.sqlite3
 coverage.xml
 .coverage
 *.egg-info/
+*.eggs/
 .mypy_cache/
 TMP-CP/
 calc_alpha/

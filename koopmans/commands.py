@@ -74,6 +74,9 @@ class Command(object):
         command = cls(**{k.lstrip('_'): v for k, v in dct.items()})
         return command
 
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+
 
 class ParallelCommand(Command):
     """
@@ -116,7 +119,7 @@ class ParallelCommandWithPostfix(ParallelCommand):
 
     @property
     def flags(self) -> str:
-        return self.postfix + ' ' + self._flags
+        return (self.postfix + ' ' + self._flags).strip()
 
     @flags.setter
     def flags(self, value: str):
