@@ -1,0 +1,531 @@
+{
+ "_parameters": {
+  "conv_thr": 8e-09,
+  "esic_conv_thr": 8e-09,
+  "ecutwfc": 50.0,
+  "nelec": 8,
+  "tot_charge": 0,
+  "tot_magnetization": 0,
+  "nelup": 4,
+  "neldw": 4,
+  "pseudo_dir": {
+   "__path__": "../../../../../../pseudos/sg15"
+  },
+  "ecutrho": 200.0,
+  "pseudopotentials": {
+   "H": "H_ONCV_PBE-1.0.upf",
+   "O": "O_ONCV_PBE-1.0.upf"
+  },
+  "ndr": 50,
+  "ndw": 51,
+  "restart_mode": "from_scratch",
+  "do_orbdep": false,
+  "fixed_state": false,
+  "do_outerloop": true,
+  "which_compensation": "tcc",
+  "maxiter": 300,
+  "__koopmans_name__": "KoopmansCPSettingsDict",
+  "__koopmans_module__": "koopmans.settings._koopmans_cp"
+ },
+ "atoms": {
+  "numbers": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "int64",
+    [
+     8,
+     1,
+     1
+    ]
+   ]
+  },
+  "positions": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     3.7571,
+     3.0,
+     2.902317,
+     4.5142,
+     3.0,
+     3.488417,
+     3.0,
+     3.0,
+     3.488417
+    ]
+   ]
+  },
+  "tags": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "int64",
+    [
+     0,
+     0,
+     0
+    ]
+   ]
+  },
+  "cell": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     7.5142,
+     0.0,
+     0.0,
+     0.0,
+     6.0,
+     0.0,
+     0.0,
+     0.0,
+     6.5861
+    ]
+   ]
+  },
+  "pbc": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "bool",
+    [
+     false,
+     false,
+     false
+    ]
+   ]
+  },
+  "__ase_objtype__": "atoms"
+ },
+ "results": {
+  "energy": -465.79078716774586,
+  "odd_energy": 0.0,
+  "homo_energy": -7.1941,
+  "lumo_energy": null,
+  "mp1_energy": null,
+  "mp2_energy": null,
+  "eigenvalues": [
+   [
+    -25.5023,
+    -13.2271,
+    -9.3047,
+    -7.1941
+   ],
+   [
+    -25.5023,
+    -13.2271,
+    -9.3047,
+    -7.1941
+   ]
+  ],
+  "lambda_ii": null,
+  "orbital_data": {
+   "charge": [
+    [
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ]
+   ],
+   "centres": [
+    [
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ],
+    [
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   ],
+   "spreads": [
+    [
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ]
+   ],
+   "self-Hartree": [
+    [
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ]
+   ]
+  },
+  "convergence": {
+   "filled": [
+    {
+     "iteration": 1,
+     "eff iteration": 1,
+     "Etot": 1335.9486824306885
+    },
+    {
+     "iteration": 2,
+     "eff iteration": 2,
+     "Etot": 369.90010411814484
+    },
+    {
+     "iteration": 3,
+     "eff iteration": 3,
+     "Etot": -41.07951025260581,
+     "delta_E": 966.0485783125569
+    },
+    {
+     "iteration": 4,
+     "eff iteration": 4,
+     "Etot": -246.4654327282509,
+     "delta_E": 410.97961437074525
+    },
+    {
+     "iteration": 5,
+     "eff iteration": 5,
+     "Etot": -353.25527448012065,
+     "delta_E": 205.38592247564426
+    },
+    {
+     "iteration": 6,
+     "eff iteration": 6,
+     "Etot": -408.89839205483594,
+     "delta_E": 106.78984175186925
+    },
+    {
+     "iteration": 7,
+     "eff iteration": 7,
+     "Etot": -436.2381266219522,
+     "delta_E": 55.64311757471475
+    },
+    {
+     "iteration": 8,
+     "eff iteration": 8,
+     "Etot": -450.34245304508426,
+     "delta_E": 27.33973456711597
+    },
+    {
+     "iteration": 9,
+     "eff iteration": 9,
+     "Etot": -457.57558871604124,
+     "delta_E": 14.104326423132294
+    },
+    {
+     "iteration": 10,
+     "eff iteration": 10,
+     "Etot": -461.4785425929444,
+     "delta_E": 7.2331356709570285
+    },
+    {
+     "iteration": 11,
+     "eff iteration": 11,
+     "Etot": -464.09066312791543,
+     "delta_E": 3.902953876903123
+    },
+    {
+     "iteration": 12,
+     "eff iteration": 12,
+     "Etot": -465.1806820633192,
+     "delta_E": 2.6121205349710785
+    },
+    {
+     "iteration": 13,
+     "eff iteration": 13,
+     "Etot": -465.5663250572021,
+     "delta_E": 1.0900189354037177
+    },
+    {
+     "iteration": 14,
+     "eff iteration": 14,
+     "Etot": -465.7131366878537,
+     "delta_E": 0.3856429938829298
+    },
+    {
+     "iteration": 15,
+     "eff iteration": 15,
+     "Etot": -465.76044817922775,
+     "delta_E": 0.1468116306515159
+    },
+    {
+     "iteration": 16,
+     "eff iteration": 16,
+     "Etot": -465.77912206970865,
+     "delta_E": 0.04731149137394398
+    },
+    {
+     "iteration": 17,
+     "eff iteration": 17,
+     "Etot": -465.78657920242387,
+     "delta_E": 0.01867389048102089
+    },
+    {
+     "iteration": 18,
+     "eff iteration": 18,
+     "Etot": -465.7893332460716,
+     "delta_E": 0.007457132715268754
+    },
+    {
+     "iteration": 19,
+     "eff iteration": 19,
+     "Etot": -465.79029157777586,
+     "delta_E": 0.0027540436477345243
+    },
+    {
+     "iteration": 20,
+     "eff iteration": 20,
+     "Etot": -465.79061042994425,
+     "delta_E": 0.000958331704157046
+    },
+    {
+     "iteration": 21,
+     "eff iteration": 21,
+     "Etot": -465.79069645320226,
+     "delta_E": 0.00031885216841746303
+    },
+    {
+     "iteration": 22,
+     "eff iteration": 22,
+     "Etot": -465.790750878751,
+     "delta_E": 8.602325801587281e-05
+    },
+    {
+     "iteration": 23,
+     "eff iteration": 23,
+     "Etot": -465.79077358031066,
+     "delta_E": 5.4425548815386415e-05
+    },
+    {
+     "iteration": 24,
+     "eff iteration": 24,
+     "Etot": -465.7907821516203,
+     "delta_E": 2.2701559545141336e-05
+    },
+    {
+     "iteration": 25,
+     "eff iteration": 25,
+     "Etot": -465.7907853394668,
+     "delta_E": 8.571309655126637e-06
+    },
+    {
+     "iteration": 26,
+     "eff iteration": 26,
+     "Etot": -465.7907864815262,
+     "delta_E": 3.187846438667499e-06
+    },
+    {
+     "iteration": 27,
+     "eff iteration": 27,
+     "Etot": -465.79078691839976,
+     "delta_E": 1.1420593859702781e-06
+    },
+    {
+     "iteration": 28,
+     "eff iteration": 28,
+     "Etot": -465.79078707416556,
+     "delta_E": 4.368736682893068e-07
+    },
+    {
+     "iteration": 29,
+     "eff iteration": 29,
+     "Etot": -465.7907871337559,
+     "delta_E": 1.5576591109035463e-07
+    },
+    {
+     "iteration": 30,
+     "eff iteration": 30,
+     "Etot": -465.7907871560545,
+     "delta_E": 5.9590204548605325e-08
+    },
+    {
+     "iteration": 31,
+     "eff iteration": 31,
+     "Etot": -465.79078716597604,
+     "delta_E": 2.2298593791985784e-08
+    }
+   ],
+   "empty": []
+  },
+  "job_done": true,
+  "lambda": [
+   {
+    "__ndarray__": [
+     [
+      4,
+      4
+     ],
+     "complex128",
+     [
+      -13.924805050735495,
+      4.162822716127235e-15,
+      1.0137434621949564,
+      5.117974024506312,
+      -3.312532752882255,
+      2.738848406280711,
+      -3.0027457917670137,
+      0.9308506778491991,
+      1.0137434621949564,
+      -5.117974024506312,
+      -15.999934868372385,
+      -1.7318050562485376e-15,
+      -2.159539876424748,
+      -4.282039625436819,
+      1.3547639997876753,
+      -2.215030563879073,
+      -3.312532752882255,
+      -2.738848406280711,
+      -2.159539876424748,
+      4.282039625436819,
+      -12.115383071422997,
+      9.639988111230148e-16,
+      -3.2385245102629856,
+      0.8467961599821614,
+      -3.0027457917670137,
+      -0.9308506778491991,
+      1.3547639997876753,
+      2.215030563879073,
+      -3.2385245102629856,
+      -0.8467961599821614,
+      -13.188091053071947,
+      -5.354729432863878e-16
+     ]
+    ]
+   },
+   {
+    "__ndarray__": [
+     [
+      4,
+      4
+     ],
+     "complex128",
+     [
+      -13.624610517979612,
+      -1.8350643015103755e-15,
+      -0.602137408527064,
+      -3.108080656484102,
+      -2.589034259435672,
+      -0.36819110715992875,
+      -3.3564183421539493,
+      -2.4134356227818037,
+      -0.602137408527064,
+      3.108080656484102,
+      -19.153498827681933,
+      -1.2275864738047956e-15,
+      -0.22496367673008477,
+      4.668731813565725,
+      -3.2341498931371406,
+      2.8566566564320515,
+      -2.589034259435672,
+      0.36819110715992875,
+      -0.22496367673008477,
+      -4.668731813565725,
+      -9.830391082479418,
+      4.867935848058069e-16,
+      -1.7417960000081443,
+      -0.42949611261767207,
+      -3.3564183421539493,
+      2.4134356227818037,
+      -3.2341498931371406,
+      -2.8566566564320515,
+      -1.7417960000081443,
+      0.42949611261767207,
+      -12.619709117738982,
+      -7.670686790879384e-17
+     ]
+    ]
+   }
+  ]
+ },
+ "_directory": {
+  "__path__": "/home/elinscott/code/koopmans/tutorials/tutorial_3/ecutwfc_50d0/cell_size_1d0"
+ },
+ "prefix": "dft",
+ "name": "benchgenkoopmanscpcalculator",
+ "command": {
+  "mpi_command": "mpirun -np 8",
+  "path": {
+   "__path__": "/home/elinscott/code/koopmans/bin"
+  },
+  "executable": "kcp.x",
+  "_flags": "",
+  "suffix": "-in PREFIX.cpi > PREFIX.cpo",
+  "__koopmans_name__": "ParallelCommand",
+  "__koopmans_module__": "koopmans.commands"
+ },
+ "calc": {},
+ "skip_qc": false,
+ "results_for_qc": [
+  "energy",
+  "homo_energy",
+  "lumo_energy"
+ ],
+ "qc_results": {},
+ "fixed_band": null,
+ "kpts": null,
+ "__koopmans_name__": "BenchGenKoopmansCPCalculator",
+ "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+}

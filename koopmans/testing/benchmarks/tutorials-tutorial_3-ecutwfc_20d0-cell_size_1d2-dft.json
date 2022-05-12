@@ -1,0 +1,561 @@
+{
+ "_parameters": {
+  "conv_thr": 8e-09,
+  "esic_conv_thr": 8e-09,
+  "ecutwfc": 20.0,
+  "nelec": 8,
+  "tot_charge": 0,
+  "tot_magnetization": 0,
+  "nelup": 4,
+  "neldw": 4,
+  "pseudo_dir": {
+   "__path__": "../../../../../../pseudos/sg15"
+  },
+  "ecutrho": 80.0,
+  "pseudopotentials": {
+   "H": "H_ONCV_PBE-1.0.upf",
+   "O": "O_ONCV_PBE-1.0.upf"
+  },
+  "ndr": 50,
+  "ndw": 51,
+  "restart_mode": "from_scratch",
+  "do_orbdep": false,
+  "fixed_state": false,
+  "do_outerloop": true,
+  "which_compensation": "tcc",
+  "maxiter": 300,
+  "__koopmans_name__": "KoopmansCPSettingsDict",
+  "__koopmans_module__": "koopmans.settings._koopmans_cp"
+ },
+ "atoms": {
+  "numbers": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "int64",
+    [
+     8,
+     1,
+     1
+    ]
+   ]
+  },
+  "positions": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     3.7571,
+     3.0,
+     2.902317,
+     4.5142,
+     3.0,
+     3.488417,
+     3.0,
+     3.0,
+     3.488417
+    ]
+   ]
+  },
+  "tags": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "int64",
+    [
+     0,
+     0,
+     0
+    ]
+   ]
+  },
+  "cell": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     9.01704,
+     0.0,
+     0.0,
+     0.0,
+     7.199999999999999,
+     0.0,
+     0.0,
+     0.0,
+     7.90332
+    ]
+   ]
+  },
+  "pbc": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "bool",
+    [
+     false,
+     false,
+     false
+    ]
+   ]
+  },
+  "__ase_objtype__": "atoms"
+ },
+ "results": {
+  "energy": -442.0663980493912,
+  "odd_energy": 0.0,
+  "homo_energy": -6.996,
+  "lumo_energy": null,
+  "mp1_energy": null,
+  "mp2_energy": null,
+  "eigenvalues": [
+   [
+    -29.1108,
+    -13.2516,
+    -9.7664,
+    -6.996
+   ],
+   [
+    -29.1108,
+    -13.2516,
+    -9.7664,
+    -6.996
+   ]
+  ],
+  "lambda_ii": null,
+  "orbital_data": {
+   "charge": [
+    [
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ]
+   ],
+   "centres": [
+    [
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ],
+    [
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   ],
+   "spreads": [
+    [
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ]
+   ],
+   "self-Hartree": [
+    [
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ]
+   ]
+  },
+  "convergence": {
+   "filled": [
+    {
+     "iteration": 1,
+     "eff iteration": 1,
+     "Etot": 574.956987395485
+    },
+    {
+     "iteration": 2,
+     "eff iteration": 2,
+     "Etot": 133.57554521917507
+    },
+    {
+     "iteration": 3,
+     "eff iteration": 3,
+     "Etot": -131.13203129176887,
+     "delta_E": 441.3814421763089
+    },
+    {
+     "iteration": 4,
+     "eff iteration": 4,
+     "Etot": -299.01038418052093,
+     "delta_E": 264.70757651094505
+    },
+    {
+     "iteration": 5,
+     "eff iteration": 5,
+     "Etot": -382.1894277609356,
+     "delta_E": 167.87835288875314
+    },
+    {
+     "iteration": 6,
+     "eff iteration": 6,
+     "Etot": -413.2918157747383,
+     "delta_E": 83.17904358041353
+    },
+    {
+     "iteration": 7,
+     "eff iteration": 7,
+     "Etot": -426.25167051122696,
+     "delta_E": 31.102388013803296
+    },
+    {
+     "iteration": 8,
+     "eff iteration": 8,
+     "Etot": -432.48992497455225,
+     "delta_E": 12.959854736488953
+    },
+    {
+     "iteration": 9,
+     "eff iteration": 9,
+     "Etot": -435.5139591639793,
+     "delta_E": 6.238254463325283
+    },
+    {
+     "iteration": 10,
+     "eff iteration": 10,
+     "Etot": -437.52365341215506,
+     "delta_E": 3.0240341894270037
+    },
+    {
+     "iteration": 11,
+     "eff iteration": 11,
+     "Etot": -439.03674536498806,
+     "delta_E": 2.0096942481757325
+    },
+    {
+     "iteration": 12,
+     "eff iteration": 12,
+     "Etot": -440.2209073575609,
+     "delta_E": 1.513091952832864
+    },
+    {
+     "iteration": 13,
+     "eff iteration": 13,
+     "Etot": -440.98123656443187,
+     "delta_E": 1.184161992572907
+    },
+    {
+     "iteration": 14,
+     "eff iteration": 14,
+     "Etot": -441.4544326242436,
+     "delta_E": 0.7603292068709463
+    },
+    {
+     "iteration": 15,
+     "eff iteration": 15,
+     "Etot": -441.71697276374533,
+     "delta_E": 0.47319605981179125
+    },
+    {
+     "iteration": 16,
+     "eff iteration": 16,
+     "Etot": -441.871467926969,
+     "delta_E": 0.262540139501576
+    },
+    {
+     "iteration": 17,
+     "eff iteration": 17,
+     "Etot": -441.9544494698551,
+     "delta_E": 0.15449516322369475
+    },
+    {
+     "iteration": 18,
+     "eff iteration": 18,
+     "Etot": -442.00103793835865,
+     "delta_E": 0.08298154288624605
+    },
+    {
+     "iteration": 19,
+     "eff iteration": 19,
+     "Etot": -442.02699715716346,
+     "delta_E": 0.04658846850348043
+    },
+    {
+     "iteration": 20,
+     "eff iteration": 20,
+     "Etot": -442.0427927599081,
+     "delta_E": 0.025959218804798113
+    },
+    {
+     "iteration": 21,
+     "eff iteration": 21,
+     "Etot": -442.05477902438207,
+     "delta_E": 0.015795602744619178
+    },
+    {
+     "iteration": 22,
+     "eff iteration": 22,
+     "Etot": -442.0619741701022,
+     "delta_E": 0.011986264473909042
+    },
+    {
+     "iteration": 23,
+     "eff iteration": 23,
+     "Etot": -442.0646306531181,
+     "delta_E": 0.007195145720199377
+    },
+    {
+     "iteration": 24,
+     "eff iteration": 24,
+     "Etot": -442.06571411663526,
+     "delta_E": 0.0026564830160649977
+    },
+    {
+     "iteration": 25,
+     "eff iteration": 25,
+     "Etot": -442.06613957050786,
+     "delta_E": 0.0010834635170345517
+    },
+    {
+     "iteration": 26,
+     "eff iteration": 26,
+     "Etot": -442.0663089745993,
+     "delta_E": 0.00042545387257226505
+    },
+    {
+     "iteration": 27,
+     "eff iteration": 27,
+     "Etot": -442.06636661472544,
+     "delta_E": 0.00016940409133914863
+    },
+    {
+     "iteration": 28,
+     "eff iteration": 28,
+     "Etot": -442.06638616759375,
+     "delta_E": 5.7640126362470005e-05
+    },
+    {
+     "iteration": 29,
+     "eff iteration": 29,
+     "Etot": -442.06639380817455,
+     "delta_E": 1.95528683068573e-05
+    },
+    {
+     "iteration": 30,
+     "eff iteration": 30,
+     "Etot": -442.0663965346515,
+     "delta_E": 7.640580578765928e-06
+    },
+    {
+     "iteration": 31,
+     "eff iteration": 31,
+     "Etot": -442.0663975448067,
+     "delta_E": 2.7264770607771666e-06
+    },
+    {
+     "iteration": 32,
+     "eff iteration": 32,
+     "Etot": -442.0663979006649,
+     "delta_E": 1.0101550980377146e-06
+    },
+    {
+     "iteration": 33,
+     "eff iteration": 33,
+     "Etot": -442.06639799949426,
+     "delta_E": 3.558582251745352e-07
+    },
+    {
+     "iteration": 34,
+     "eff iteration": 34,
+     "Etot": -442.06639803117776,
+     "delta_E": 9.882951153437513e-08
+    },
+    {
+     "iteration": 35,
+     "eff iteration": 35,
+     "Etot": -442.0663980433655,
+     "delta_E": 3.168334383621003e-08
+    },
+    {
+     "iteration": 36,
+     "eff iteration": 36,
+     "Etot": -442.0663980484211,
+     "delta_E": 1.2187723413361151e-08
+    }
+   ],
+   "empty": []
+  },
+  "job_done": true,
+  "lambda": [
+   {
+    "__ndarray__": [
+     [
+      4,
+      4
+     ],
+     "complex128",
+     [
+      -16.044861735982543,
+      2.8322535843246945e-16,
+      -0.706426549814604,
+      3.1383033185495344,
+      6.735778286515145,
+      -3.4233959782697876,
+      0.848332213395959,
+      1.5222086087107762,
+      -0.706426549814604,
+      -3.1383033185495344,
+      -14.60396615790128,
+      -3.540316980405868e-16,
+      6.267865277051248,
+      2.273269511916043,
+      1.2523625764015214,
+      -0.022935861664914833,
+      6.735778286515145,
+      3.4233959782697876,
+      6.267865277051248,
+      -2.273269511916043,
+      -19.53034905784058,
+      -2.053383848635404e-15,
+      0.58154151461397,
+      -0.8728364386527114,
+      0.848332213395959,
+      -1.5222086087107762,
+      1.2523625764015214,
+      0.022935861664914833,
+      0.58154151461397,
+      0.8728364386527114,
+      -8.945493190086362,
+      -3.835343395439692e-16
+     ]
+    ]
+   },
+   {
+    "__ndarray__": [
+     [
+      4,
+      4
+     ],
+     "complex128",
+     [
+      -19.66369353704347,
+      -8.319744903953794e-16,
+      7.323193096691002,
+      -2.816106144758597,
+      0.28763293208106394,
+      -1.270506297366977,
+      1.7353371616417088,
+      -3.155595340520645,
+      7.323193096691002,
+      2.816106144758597,
+      -18.168215154267894,
+      1.1092993205271725e-15,
+      0.15841385975607844,
+      2.966663247888309,
+      -4.414965960168128,
+      1.7475763904524115,
+      0.28763293208106394,
+      1.270506297366977,
+      0.15841385975607844,
+      -2.966663247888309,
+      -12.044446988095435,
+      3.80584075393631e-16,
+      -0.09283758261899532,
+      -1.550476456255222,
+      1.7353371616417088,
+      3.155595340520645,
+      -4.414965960168128,
+      -1.7475763904524115,
+      -0.09283758261899532,
+      1.550476456255222,
+      -9.248314473602223,
+      -1.8291637732096988e-16
+     ]
+    ]
+   }
+  ]
+ },
+ "_directory": {
+  "__path__": "/home/elinscott/code/koopmans/tutorials/tutorial_3/ecutwfc_20d0/cell_size_1d2"
+ },
+ "prefix": "dft",
+ "name": "benchgenkoopmanscpcalculator",
+ "command": {
+  "mpi_command": "mpirun -np 8",
+  "path": {
+   "__path__": "/home/elinscott/code/koopmans/bin"
+  },
+  "executable": "kcp.x",
+  "_flags": "",
+  "suffix": "-in PREFIX.cpi > PREFIX.cpo",
+  "__koopmans_name__": "ParallelCommand",
+  "__koopmans_module__": "koopmans.commands"
+ },
+ "calc": {},
+ "skip_qc": false,
+ "results_for_qc": [
+  "energy",
+  "homo_energy",
+  "lumo_energy"
+ ],
+ "qc_results": {},
+ "fixed_band": null,
+ "kpts": null,
+ "__koopmans_name__": "BenchGenKoopmansCPCalculator",
+ "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+}
