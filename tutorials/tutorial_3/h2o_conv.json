@@ -10,7 +10,7 @@
             "cell_size"
         ],
         "fix_spin_contamination": false,
-        "pseudo_library": "sg15"
+        "pseudo_library": "sg15_v1.0"
     },
     "setup": {
         "system": {

@@ -9,7 +9,7 @@
   "nelup": 4,
   "neldw": 4,
   "pseudo_dir": {
-   "__path__": "../../../../../../pseudos/sg15"
+   "__path__": "../../../../pseudos/sg15_v1.0/pbe"
   },
   "ecutrho": 160.0,
   "pseudopotentials": {
