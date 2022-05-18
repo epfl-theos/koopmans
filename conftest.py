@@ -50,3 +50,15 @@ def mock(monkeypatch, pytestconfig):
         monkeypatch.setattr('koopmans.calculators.KoopmansScreenCalculator', testing.MockKoopmansScreenCalculator)
         monkeypatch.setattr('koopmans.calculators.KoopmansHamCalculator', testing.MockKoopmansHamCalculator)
         monkeypatch.setattr('koopmans.calculators.ProjwfcCalculator', testing.MockProjwfcCalculator)
+
+
+def sys2file(capsys, tmp_path):
+    # Run the test
+    yield
+
+    # Write stdout and stderr to file
+    out, err = capsys.readouterr()
+    if out or err:
+        with open(tmp_path.with_suffix('.stdout'), 'w') as f:
+            f.write(out)
+            f.write(err)

@@ -1042,7 +1042,7 @@ class Workflow(ABC):
                         bigdct[code][key] = {k: v for k, v in dict(
                             block).items() if v is not None}
 
-            elif code in ['pw2wannier', 'wann2kc', 'kc_screen', 'kc_ham', 'projwfc', 'wann2kcp']:
+            elif code in ['pw2wannier', 'wann2kc', 'kc_screen', 'kc_ham', 'projwfc', 'wann2kcp', 'plot']:
                 bigdct[code] = params_dict
             elif code.startswith('ui_'):
                 bigdct['ui'][code.split('_')[-1]] = params_dict
