@@ -15,6 +15,9 @@ from ._utils import benchmark_filename
 
 class MockCalc(ABC):
     def calculate(self):
+        # Write the input file
+        self.write_input(self.atoms)
+
         with utils.chdir(self.directory):
             # By moving into the directory where the calculation was run, we ensure when we read in the settings that
             # paths are interpreted relative to this particular working directory

@@ -50,8 +50,7 @@ class Workflow(ABC):
 
     def __init__(self, atoms: Atoms,
                  parameters: settings.SettingsDict = settings.WorkflowSettingsDict(),
-                 master_calc_params: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]
-                                           ] = settings.default_master_calc_params,
+                 master_calc_params: Optional[Union[Dict[str, Dict], Dict[str, settings.SettingsDict]]] = None,
                  name: str = 'koopmans_workflow',
                  pseudopotentials: Dict[str, str] = {},
                  pseudo_dir: Optional[Path] = None,
@@ -110,7 +109,11 @@ class Workflow(ABC):
         # Pseudopotentials and pseudo_dir
         if pseudopotentials:
             self.pseudopotentials = pseudopotentials
-        elif self.parameters.pseudo_library:
+        else:
+            if self.parameters.pseudo_library is None:
+                utils.warn(
+                    'Neither a pseudopotential library nor a list of pseudopotentials was provided; defaulting to sg15_v1.2')
+                self.parameters.pseudo_library = 'sg15_v1.2'
             self.pseudopotentials = {}
             for symbol, tag in set([(a.symbol, a.tag) for a in self.atoms]):
                 pseudo = fetch_pseudo(element=symbol, functional=self.parameters.base_functional,
@@ -125,12 +128,11 @@ class Workflow(ABC):
                 if tag > 0:
                     symbol += str(tag)
                 self.pseudopotentials[symbol] = pseudo.name
-        else:
-            self.pseudopotentials = pseudopotentials
 
         # Make sure master_calc_params isn't missing any entries, and every entry corresponds to settings.SettingsDict
         # objects
-        master_calc_params = sanitise_master_calc_params(master_calc_params)
+        master_calc_params = sanitise_master_calc_params(
+            master_calc_params) if master_calc_params is not None else generate_default_master_calc_params()
 
         # Work out the pseudopotential directory. If using a pseudo_library this is straightforward, if not...
         #  1. try to locating the directory as currently specified by the calculator
@@ -187,7 +189,7 @@ class Workflow(ABC):
             generated_keywords = {}
             nelec = 0
 
-        self.master_calc_params = settings.default_master_calc_params.copy()
+        self.master_calc_params = generate_default_master_calc_params()
         for block, params in master_calc_params.items():
             # Apply auto-generated keywords
             for k, v in generated_keywords.items():
@@ -1040,7 +1042,7 @@ class Workflow(ABC):
                         bigdct[code][key] = {k: v for k, v in dict(
                             block).items() if v is not None}
 
-            elif code in ['pw2wannier', 'wann2kc', 'kc_screen', 'kc_ham']:
+            elif code in ['pw2wannier', 'wann2kc', 'kc_screen', 'kc_ham', 'projwfc', 'wann2kcp']:
                 bigdct[code] = params_dict
             elif code.startswith('ui_'):
                 bigdct['ui'][code.split('_')[-1]] = params_dict
@@ -1292,6 +1294,25 @@ def read_setup_dict(dct: Dict[str, Any], task: str):
     return atoms, parameters, psps_and_kpts
 
 
+def generate_default_master_calc_params():
+    # Dictionary to be used as the default value for 'master_calc_params' when initialising a workflow
+    # We create this dynamically in order for the .directory attributes to make sense
+    return {'kcp': settings.KoopmansCPSettingsDict(),
+            'kc_ham': settings.KoopmansHamSettingsDict(),
+            'kc_screen': settings.KoopmansScreenSettingsDict(),
+            'projwfc': settings.ProjwfcSettingsDict(),
+            'pw': settings.PWSettingsDict(),
+            'pw2wannier': settings.PW2WannierSettingsDict(),
+            'wann2kcp': settings.Wann2KCPSettingsDict(),
+            'ui': settings.UnfoldAndInterpolateSettingsDict(),
+            'ui_occ': settings.UnfoldAndInterpolateSettingsDict(),
+            'ui_emp': settings.UnfoldAndInterpolateSettingsDict(),
+            'wann2kc': settings.Wann2KCSettingsDict(),
+            'w90_occ': settings.Wannier90SettingsDict(),
+            'w90_emp': settings.Wannier90SettingsDict(),
+            'plot': settings.PlotSettingsDict()}
+
+
 # Define which function to use to read each block
 settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'kc_ham': settings.KoopmansHamSettingsDict,
@@ -1321,9 +1342,9 @@ def sanitise_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, setting
         if isinstance(dct, settings.SettingsDict):
             dct_out[k] = dct
             if dct_out[k].directory == '':
-                dct_out[k].directory = Path().resolve()
+                dct_out[k].directory = Path.cwd()
         else:
-            dct_out[k] = cls(**dct, directory=Path().resolve())
+            dct_out[k] = cls(**dct, directory=Path.cwd())
 
     for k in dct_in.keys():
         if k not in settings_classes:

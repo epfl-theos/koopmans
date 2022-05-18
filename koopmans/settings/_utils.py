@@ -87,7 +87,7 @@ class SettingsDict(UserDict):
         self.defaults = {k: v for k, v in defaults.items() if k not in self.are_paths}
         self.defaults.update(**{k: Path(v) for k, v in defaults.items() if k in self.are_paths})
         self.to_not_parse = to_not_parse
-        self.directory = directory
+        self.directory = directory if directory is not None else Path.cwd()
         self.physicals = physicals
         self.update(**defaults)
         self.update(**kwargs)
@@ -95,7 +95,10 @@ class SettingsDict(UserDict):
 
     def __getattr__(self, name):
         if name != 'valid' and self.is_valid(name):
-            return self.data.get(name, None)
+            if name in self.data:
+                return self.__getitem__(name)
+            else:
+                return None
         else:
             try:
                 super().__getattr__(name)
