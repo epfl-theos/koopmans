@@ -52,6 +52,7 @@ def mock(monkeypatch, pytestconfig):
         monkeypatch.setattr('koopmans.calculators.ProjwfcCalculator', testing.MockProjwfcCalculator)
 
 
+@pytest.fixture
 def sys2file(capsys, tmp_path):
     # Run the test
     yield
