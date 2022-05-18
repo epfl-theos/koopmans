@@ -1,0 +1,310 @@
+{
+ "_parameters": {
+  "do_bands": false,
+  "outdir": {
+   "__path__": "../TMP"
+  },
+  "kcw_at_ks": true,
+  "read_unitary_matrix": false,
+  "has_disentangle": false,
+  "l_vcut": false,
+  "assume_isolated": "m-t",
+  "kpts": {
+   "kpts": {
+    "__ndarray__": [
+     [
+      1,
+      3
+     ],
+     "float64",
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "special_points": {
+    "G": {
+     "__ndarray__": [
+      [
+       3
+      ],
+      "float64",
+      [
+       0.0,
+       0.0,
+       0.0
+      ]
+     ]
+    },
+    "R": {
+     "__ndarray__": [
+      [
+       3
+      ],
+      "float64",
+      [
+       -0.5,
+       -0.5,
+       -0.5
+      ]
+     ]
+    },
+    "S": {
+     "__ndarray__": [
+      [
+       3
+      ],
+      "float64",
+      [
+       -0.5,
+       0.0,
+       -0.5
+      ]
+     ]
+    },
+    "T": {
+     "__ndarray__": [
+      [
+       3
+      ],
+      "float64",
+      [
+       0.0,
+       -0.5,
+       -0.5
+      ]
+     ]
+    },
+    "U": {
+     "__ndarray__": [
+      [
+       3
+      ],
+      "float64",
+      [
+       -0.5,
+       -0.5,
+       0.0
+      ]
+     ]
+    },
+    "X": {
+     "__ndarray__": [
+      [
+       3
+      ],
+      "float64",
+      [
+       -0.5,
+       0.0,
+       0.0
+      ]
+     ]
+    },
+    "Y": {
+     "__ndarray__": [
+      [
+       3
+      ],
+      "float64",
+      [
+       0.0,
+       0.0,
+       -0.5
+      ]
+     ]
+    },
+    "Z": {
+     "__ndarray__": [
+      [
+       3
+      ],
+      "float64",
+      [
+       0.0,
+       -0.5,
+       0.0
+      ]
+     ]
+    }
+   },
+   "labelseq": "G",
+   "cell": {
+    "array": {
+     "__ndarray__": [
+      [
+       3,
+       3
+      ],
+      "float64",
+      [
+       10.0,
+       0.0,
+       0.0,
+       0.0,
+       12.20762,
+       0.0,
+       0.0,
+       0.0,
+       10.685626
+      ]
+     ]
+    },
+    "__ase_objtype__": "cell"
+   },
+   "__ase_objtype__": "bandpath"
+  },
+  "mp1": 1,
+  "mp2": 1,
+  "mp3": 1,
+  "prefix": "kc",
+  "seedname": "wann",
+  "num_wann_occ": 9,
+  "num_wann_emp": 1,
+  "__koopmans_name__": "KoopmansHamSettingsDict",
+  "__koopmans_module__": "koopmans.settings._koopmans_ham"
+ },
+ "atoms": {
+  "numbers": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "int64",
+    [
+     8,
+     8,
+     8
+    ]
+   ]
+  },
+  "positions": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     5.0,
+     7.20762,
+     4.999999999999999,
+     5.0,
+     6.10381,
+     5.685625999999999,
+     5.0,
+     5.0,
+     4.999999999999999
+    ]
+   ]
+  },
+  "cell": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     10.0,
+     0.0,
+     0.0,
+     0.0,
+     12.20762,
+     0.0,
+     0.0,
+     0.0,
+     10.685626
+    ]
+   ]
+  },
+  "pbc": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "bool",
+    [
+     false,
+     false,
+     false
+    ]
+   ]
+  },
+  "__ase_objtype__": "atoms"
+ },
+ "results": {
+  "job_done": true,
+  "eigenvalues": [],
+  "ks_eigenvalues_on_grid": [
+   [
+    -37.7901,
+    -30.4475,
+    -23.5615,
+    -14.9711,
+    -14.4031,
+    -14.3019,
+    -8.3798,
+    -7.228,
+    -7.0982,
+    -4.7321
+   ]
+  ],
+  "ki_eigenvalues_on_grid": [
+   [
+    -43.103,
+    -35.3067,
+    -28.1702,
+    -19.5553,
+    -19.0341,
+    -18.8921,
+    -12.6638,
+    -11.4394,
+    -11.386,
+    -0.5211
+   ]
+  ]
+ },
+ "_directory": {
+  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_ozone_ki_dfpt0/hamiltonian"
+ },
+ "prefix": "kc",
+ "name": "benchgenkoopmanshamcalculator",
+ "command": {
+  "mpi_command": "mpirun -np 8",
+  "path": {
+   "__path__": "/home/elinscott/code/koopmans/bin"
+  },
+  "executable": "kcw.x",
+  "_flags": "",
+  "suffix": "-in PREFIX.khi > PREFIX.kho",
+  "__koopmans_name__": "ParallelCommand",
+  "__koopmans_module__": "koopmans.commands"
+ },
+ "calc": {},
+ "skip_qc": false,
+ "results_for_qc": [
+  "ki_eigenvalues_on_grid",
+  "band structure"
+ ],
+ "qc_results": {},
+ "alphas": [
+  [
+   0.62714039,
+   0.69970991,
+   0.74556982,
+   0.75413536,
+   0.69159054,
+   0.71895278,
+   0.7539257,
+   0.77489742,
+   0.7482113,
+   0.775329
+  ]
+ ],
+ "kpts": null,
+ "__koopmans_name__": "BenchGenKoopmansHamCalculator",
+ "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+}

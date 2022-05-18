@@ -1,0 +1,136 @@
+{
+ "_parameters": {
+  "outdir": {
+   "__path__": "../TMP"
+  },
+  "l_vcut": true,
+  "mp1": 2,
+  "mp2": 2,
+  "mp3": 2,
+  "prefix": "kc",
+  "seedname": "wann",
+  "eps_inf": 13.02,
+  "num_wann_occ": 4,
+  "num_wann_emp": 4,
+  "__koopmans_name__": "KoopmansScreenSettingsDict",
+  "__koopmans_module__": "koopmans.settings._koopmans_screen"
+ },
+ "atoms": {
+  "numbers": {
+   "__ndarray__": [
+    [
+     2
+    ],
+    "int64",
+    [
+     14,
+     14
+    ]
+   ]
+  },
+  "positions": {
+   "__ndarray__": [
+    [
+     2,
+     3
+    ],
+    "float64",
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.3575,
+     1.3575,
+     1.3575
+    ]
+   ]
+  },
+  "cell": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     0.0,
+     2.715,
+     2.715,
+     2.715,
+     0.0,
+     2.715,
+     2.715,
+     2.715,
+     0.0
+    ]
+   ]
+  },
+  "pbc": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "bool",
+    [
+     true,
+     true,
+     true
+    ]
+   ]
+  },
+  "__ase_objtype__": "atoms"
+ },
+ "results": {
+  "job_done": true,
+  "alphas": [
+   [
+    0.14357807,
+    0.14357807,
+    0.14357807,
+    0.14357807,
+    0.09079424,
+    0.09079424,
+    0.09079424,
+    0.09079424
+   ]
+  ],
+  "orbital_data": {
+   "self-Hartree": [
+    4.835191751470625,
+    4.835191751470625,
+    4.835191751470625,
+    4.835191751470625,
+    3.9112187359325876,
+    3.9112187359325876,
+    3.9112187359325876,
+    3.9112187359325876
+   ]
+  }
+ },
+ "_directory": {
+  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dfpt0/screening"
+ },
+ "prefix": "kc",
+ "name": "benchgenkoopmansscreencalculator",
+ "command": {
+  "postfix": "",
+  "mpi_command": "mpirun -np 8",
+  "path": {
+   "__path__": "/home/elinscott/code/koopmans/bin"
+  },
+  "executable": "kcw.x",
+  "_flags": "",
+  "suffix": "-in PREFIX.ksi > PREFIX.kso",
+  "__koopmans_name__": "ParallelCommandWithPostfix",
+  "__koopmans_module__": "koopmans.commands"
+ },
+ "calc": {},
+ "skip_qc": false,
+ "results_for_qc": [
+  "alphas"
+ ],
+ "qc_results": {},
+ "kpts": null,
+ "__koopmans_name__": "BenchGenKoopmansScreenCalculator",
+ "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+}
