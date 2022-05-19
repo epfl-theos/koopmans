@@ -3,12 +3,13 @@ import json
 import numpy as np
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Union
 from ase.dft.kpoints import BandPath
 from koopmans.calculators import Wannier90Calculator, PW2WannierCalculator, Wann2KCPCalculator, PWCalculator, \
     KoopmansCPCalculator, EnvironCalculator, UnfoldAndInterpolateCalculator, Wann2KCCalculator, \
     KoopmansScreenCalculator, KoopmansHamCalculator, ProjwfcCalculator
-from koopmans import utils
+from koopmans.workflows import WannierizeWorkflow
+from koopmans import utils, projections
 from koopmans.io import read_kwf as read_encoded_json
 from ._utils import benchmark_filename
 
@@ -317,3 +318,37 @@ class MockProjwfcCalculator(MockCalc, ProjwfcCalculator):
 
     def generate_dos(self):
         return
+
+
+class MockWorkflow:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.parameters.from_scratch = True
+
+    def write_mock_file(self, filename: Union[Path, str]):
+        filename = Path(filename)
+        with utils.chdir(filename.parent):
+            with open(filename.name, 'w') as fd:
+                json.dump({'filename': filename.name,
+                           'written_to': str(filename.parent),
+                           'written_by': 'workflow'}, fd)
+
+
+class MockWannierizeWorkflow(MockWorkflow, WannierizeWorkflow):
+    def _merge_wannier_files(self, dirs_in: List[Path], dir_out: Path, fname: str):
+        for dir_in in dirs_in:
+            fname_in = dir_in.resolve() / fname
+            assert fname_in.exists()
+        self.write_mock_file(dir_out / fname)
+
+    def merge_wannier_hr_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
+        self._merge_wannier_files(dirs_in, dir_out, prefix + '_hr.dat')
+
+    def merge_wannier_u_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
+        self._merge_wannier_files(dirs_in, dir_out, prefix + '_u.mat')
+
+    def merge_wannier_centres_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
+        self._merge_wannier_files(dirs_in, dir_out, prefix + '_centres.xyz')
+
+    def extend_wannier_u_dis_file(self, block: List[projections.ProjectionBlock], prefix: str = 'wann'):
+        raise NotImplementedError()
