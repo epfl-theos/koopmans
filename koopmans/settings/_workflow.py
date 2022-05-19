@@ -111,7 +111,14 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
             Setting('eps_cavity',
                     'a list of epsilon_infinity values for the cavity in dscf calculations',
                     list, [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], None)]
+
+        # Defer storing init_empty_orbitals...
+        init_empty_orbitals = kwargs.pop('init_empty_orbitals', 'same')
+
         super().__init__(settings=settings, physicals=['alpha_conv_thr', 'convergence_threshold'], **kwargs)
+
+        # ... until we are sure that init_orbitals has been defined
+        self.init_empty_orbitals = init_empty_orbitals
 
     @property
     def _other_valid_keywords(self):
@@ -126,6 +133,10 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
         if key == 'orbital_groups' and value is not None:
             if len(value) == 0 or not isinstance(value[0], list):
                 value = [value]
+
+        # Support init_empty_orbitals == same
+        if key == 'init_empty_orbitals' and value == 'same':
+            value = self.init_orbitals
 
         # Make sure that pseudo libraries shortcuts (e.g. "sg15") are converted to the explicit version
         # (e.g. "sg15_v1.2")
