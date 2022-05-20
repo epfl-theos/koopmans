@@ -346,7 +346,8 @@ class WannierizeWorkflow(Workflow):
             # Merging the wannier centres files
             self.merge_wannier_centres_files(dirs_in, dir_out, prefix)
 
-    def merge_wannier_hr_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
+    @staticmethod
+    def merge_wannier_hr_files(dirs_in: List[Path], dir_out: Path, prefix: str):
         # Reading in each hr file in turn
         hr_list = []
         weights_out = None
@@ -388,7 +389,8 @@ class WannierizeWorkflow(Workflow):
 
         utils.write_wannier_hr_file(dir_out / (prefix + '_hr.dat'), hr_out, rvect_out.tolist(), weights_out)
 
-    def merge_wannier_u_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
+    @staticmethod
+    def merge_wannier_u_files(dirs_in: List[Path], dir_out: Path, prefix: str):
         u_list = []
         kpts_master = None
         for dir_in in dirs_in:

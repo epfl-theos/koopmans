@@ -1,10 +1,16 @@
 import pytest
-from koopmans import testing
+from koopmans import testing, base_directory
 
 
 def pytest_addoption(parser):
     parser.addoption("--mock", action="store_true", default=False, help="TODO")
     parser.addoption("--generate_benchmark", action="store_true", default=False, help="TODO")
+
+
+@pytest.fixture
+def datadir():
+    # Returns the directory where various reference QE files are stored
+    return base_directory / 'tests' / 'data'
 
 
 @pytest.fixture(autouse=True)
