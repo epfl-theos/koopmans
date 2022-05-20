@@ -7,9 +7,13 @@ Written by Edward Linscott Oct 2020
 """
 
 import shutil
+from typing import TypeVar
 from pathlib import Path
-from koopmans import utils, pseudopotentials
+from koopmans import utils, pseudopotentials, calculators
 from ._workflow import Workflow
+
+
+T = TypeVar('T', bound='calculators.CalculatorExt')
 
 
 class DFTCPWorkflow(Workflow):
@@ -118,9 +122,10 @@ class PWBandStructureWorkflow(Workflow):
     def new_calculator(self,
                        calc_type: str,
                        *args,
-                       **kwargs):
-        calc = super().new_calculator(calc_type, *args, **kwargs)
+                       **kwargs) -> T:
+        calc: T = super().new_calculator(calc_type, *args, **kwargs)
         if calc_type == 'projwfc':
+            assert isinstance(calc, calculators.ProjwfcCalculator)
             calc.parameters.filpdos = self.name
             calc.pseudopotentials = self.pseudopotentials
             calc.spin_polarised = self.parameters.spin_polarised

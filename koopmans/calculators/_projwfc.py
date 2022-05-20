@@ -45,9 +45,9 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
 
         # These must be provided post-initialisation (because we want to be allowed to initialise the calculator)
         # without providing these arguments
-        self.pseudopotentials = None
-        self.pseudo_dir = None
-        self.spin_polarised = None
+        self.pseudopotentials: Optional[Dict[str, str]] = None
+        self.pseudo_dir: Optional[Path] = None
+        self.spin_polarised: Optional[bool] = None
 
         self.results_for_qc = []
 
