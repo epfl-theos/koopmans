@@ -325,7 +325,8 @@ class MockWorkflow:
         super().__init__(*args, **kwargs)
         self.parameters.from_scratch = True
 
-    def write_mock_file(self, filename: Union[Path, str]):
+    @staticmethod
+    def write_mock_file(filename: Union[Path, str]):
         filename = Path(filename)
         with utils.chdir(filename.parent):
             with open(filename.name, 'w') as fd:
@@ -335,20 +336,25 @@ class MockWorkflow:
 
 
 class MockWannierizeWorkflow(MockWorkflow, WannierizeWorkflow):
-    def _merge_wannier_files(self, dirs_in: List[Path], dir_out: Path, fname: str):
+
+    @staticmethod
+    def _merge_wannier_files(dirs_in: List[Path], dir_out: Path, fname: str):
         for dir_in in dirs_in:
             fname_in = dir_in.resolve() / fname
             assert fname_in.exists()
-        self.write_mock_file(dir_out / fname)
+        MockWorkflow.write_mock_file(dir_out / fname)
 
-    def merge_wannier_hr_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
-        self._merge_wannier_files(dirs_in, dir_out, prefix + '_hr.dat')
+    @staticmethod
+    def merge_wannier_hr_files(dirs_in: List[Path], dir_out: Path, prefix: str):
+        MockWannierizeWorkflow._merge_wannier_files(dirs_in, dir_out, prefix + '_hr.dat')
 
-    def merge_wannier_u_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
-        self._merge_wannier_files(dirs_in, dir_out, prefix + '_u.mat')
+    @staticmethod
+    def merge_wannier_u_files(dirs_in: List[Path], dir_out: Path, prefix: str):
+        MockWannierizeWorkflow._merge_wannier_files(dirs_in, dir_out, prefix + '_u.mat')
 
-    def merge_wannier_centres_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
-        self._merge_wannier_files(dirs_in, dir_out, prefix + '_centres.xyz')
+    @staticmethod
+    def merge_wannier_centres_files(dirs_in: List[Path], dir_out: Path, prefix: str):
+        MockWannierizeWorkflow._merge_wannier_files(dirs_in, dir_out, prefix + '_centres.xyz')
 
     def extend_wannier_u_dis_file(self, block: List[projections.ProjectionBlock], prefix: str = 'wann'):
         raise NotImplementedError()
