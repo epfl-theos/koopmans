@@ -1,5 +1,8 @@
 import pytest
+from ase.build import molecule, bulk
+from ase.spacegroup import crystal
 from koopmans import testing, base_directory
+from koopmans.projections import ProjectionBlocks
 
 
 def pytest_addoption(parser):
@@ -73,3 +76,52 @@ def sys2file(capsys, tmp_path):
         with open(tmp_path.with_suffix('.stdout'), 'w') as f:
             f.write(out)
             f.write(err)
+
+
+@pytest.fixture
+def water():
+    # water
+    return {'atoms': molecule('H2O', vacuum=5.0, pbc=False),
+            'master_calc_params': {'kcp': {'ecutwfc': 20.0, 'nbnd': 5}}}
+
+
+@pytest.fixture
+def silicon():
+    # bulk silicon
+    si = bulk('Si')
+    pdict = [{'fsite': [0.25, 0.25, 0.25], 'ang_mtm': 'sp3'}]
+    si_projs = ProjectionBlocks.fromprojections([pdict, pdict], fillings=[True, False], spins=[None, None], atoms=si)
+    return {'atoms': si,
+            'master_calc_params': {'kcp': {'ecutwfc': 40.0},
+                                   'pw': {'ecutwfc': 40.0, 'nbnd': 10},
+                                   'w90_occ': {'conv_window': 5, },
+                                   'w90_emp': {'conv_window': 5, 'dis_froz_max': 10.6, 'dis_win_max': 16.9},
+                                   'ui': {'smooth_int_factor': 2},
+                                   'plot': {'Emin': -10, 'Emax': 4, 'degauss': 0.5}
+                                   },
+            'projections': si_projs}
+
+
+@pytest.fixture
+def ozone():
+    # ozone
+    return {'atoms': molecule('O3', vacuum=5.0, pbc=False),
+            'master_calc_params': {'pw': {'ecutwfc': 20.0, 'nbnd': 10}}}
+
+
+@pytest.fixture
+def tio2():
+    # rutile TiO2
+    a = 4.6
+    c = 2.95
+    atoms = crystal(['Ti', 'O'], basis=[(0, 0, 0), (0.3, 0.3, 0.0)],
+                    spacegroup=136, cellpar=[a, a, c, 90, 90, 90])
+
+    projs = ProjectionBlocks.fromprojections([["Ti:l=0"], ["Ti:l=1"], ["O:l=0"], ["O:l=1"], ["Ti:l=0", "Ti:l=2"]],
+                                             fillings=[True, True, True, True, False],
+                                             spins=[None, None, None, None, None],
+                                             atoms=atoms)
+
+    return {'atoms': atoms,
+            'projections': projs,
+            'master_calc_params': {'pw': {'ecutwfc': 40, 'nbnd': 36}}}
