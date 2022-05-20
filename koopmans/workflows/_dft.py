@@ -6,9 +6,10 @@ Written by Edward Linscott Oct 2020
 
 """
 
+import shutil
+from pathlib import Path
 from koopmans import utils, pseudopotentials
 from ._workflow import Workflow
-import matplotlib.pyplot as plt
 
 
 class DFTCPWorkflow(Workflow):
@@ -72,6 +73,11 @@ class PWBandStructureWorkflow(Workflow):
 
         self.print('DFT bandstructure workflow', style='heading')
 
+        if self.parameters.from_scratch:
+            path = Path('dft_bands')
+            if path.exists():
+                shutil.rmtree(path)
+
         with utils.chdir('dft_bands'):
             # First, a scf calculation
             calc_scf = self.new_calculator('pw', nbnd=None)
@@ -93,9 +99,7 @@ class PWBandStructureWorkflow(Workflow):
             pseudos = [pseudopotentials.read_pseudo_file(calc_scf.parameters.pseudo_dir / p) for p in
                        self.pseudopotentials.values()]
             if all([int(p.find('PP_HEADER').get('number_of_wfc')) > 0 for p in pseudos]):
-                calc_dos = self.new_calculator('projwfc', filpdos=self.name)
-                calc_dos.pseudopotentials = self.pseudopotentials
-                calc_dos.spin_polarised = self.parameters.spin_polarised
+                calc_dos = self.new_calculator('projwfc')
                 calc_dos.pseudo_dir = calc_bands.parameters.pseudo_dir
                 self.run_calculator(calc_dos)
 
@@ -110,3 +114,14 @@ class PWBandStructureWorkflow(Workflow):
 
             # Plot the band structure and DOS
             self.plot_bandstructure(bs, dos)
+
+    def new_calculator(self,
+                       calc_type: str,
+                       *args,
+                       **kwargs):
+        calc = super().new_calculator(calc_type, *args, **kwargs)
+        if calc_type == 'projwfc':
+            calc.parameters.filpdos = self.name
+            calc.pseudopotentials = self.pseudopotentials
+            calc.spin_polarised = self.parameters.spin_polarised
+        return calc
