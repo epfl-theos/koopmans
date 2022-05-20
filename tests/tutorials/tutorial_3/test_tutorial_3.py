@@ -8,7 +8,7 @@ tutorial_dir = base_directory / 'tutorials' / 'tutorial_3'
 
 
 @pytest.mark.tutorials
-def test_run():
+def test_run(mockable):
     with chdir(tutorial_dir):
         wf = read('h2o_conv.json')
         wf.run()

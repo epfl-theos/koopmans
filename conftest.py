@@ -36,8 +36,8 @@ def benchmark_gen(monkeypatch, pytestconfig):
         monkeypatch.setattr('koopmans.calculators.ProjwfcCalculator', testing.BenchGenProjwfcCalculator)
 
 
-@pytest.fixture(autouse=True)
-def mock(monkeypatch, pytestconfig):
+@pytest.fixture
+def mockable(monkeypatch, pytestconfig):
     '''
     Instead of running a calculation, access the results from the benchmarks directory
     '''

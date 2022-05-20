@@ -8,7 +8,7 @@ tutorial_dir = base_directory / 'tutorials' / 'tutorial_2'
 
 
 @pytest.mark.tutorials
-def test_wannierise():
+def test_wannierise(mockable):
     with chdir(tutorial_dir):
         exec(open('wannierise.py', 'r').read())
 
@@ -20,7 +20,7 @@ def test_plot_pickled_fig():
 
 
 @pytest.mark.tutorials
-def test_run_ki():
+def test_run_ki(mockable):
     with chdir(tutorial_dir):
         wf = read('si.json', override={'workflow': {'task': 'singlepoint'}})
         wf.parameters.task = 'singlepoint'

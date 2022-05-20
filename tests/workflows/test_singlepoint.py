@@ -26,7 +26,7 @@ ozone = molecule('O3', vacuum=5.0, pbc=False)
 ozone_master_calc_params = {'pw': {'ecutwfc': 20.0, 'nbnd': 10}}
 
 
-def test_singlepoint_h2o_all_dscf(tmp_path, sys2file):
+def test_singlepoint_h2o_all_dscf(mockable, tmp_path, sys2file):
     with chdir(tmp_path):
         parameters = {'functional': 'all',
                       'n_max_sc_steps': 2,
@@ -39,7 +39,7 @@ def test_singlepoint_h2o_all_dscf(tmp_path, sys2file):
         wf.run()
 
 
-def test_singlepoint_si_ki_dscf(tmp_path, sys2file):
+def test_singlepoint_si_ki_dscf(mockable, tmp_path, sys2file):
     with chdir(tmp_path):
         parameters = {'functional': 'ki',
                       'method': 'dscf',
@@ -59,7 +59,7 @@ def test_singlepoint_si_ki_dscf(tmp_path, sys2file):
         wf.run()
 
 
-def test_singlepoint_si_ki_dfpt(tmp_path, sys2file):
+def test_singlepoint_si_ki_dfpt(mockable, tmp_path, sys2file):
     with chdir(tmp_path):
 
         parameters = {'functional': 'ki',
@@ -79,7 +79,7 @@ def test_singlepoint_si_ki_dfpt(tmp_path, sys2file):
         wf.run()
 
 
-def test_singlepoint_ozone_ki_dfpt(tmp_path, sys2file):
+def test_singlepoint_ozone_ki_dfpt(mockable, tmp_path, sys2file):
     with chdir(tmp_path):
         parameters = {'functional': 'ki',
                       'method': 'dfpt',

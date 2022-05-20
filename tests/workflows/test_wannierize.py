@@ -23,7 +23,7 @@ tio2_projs = ProjectionBlocks.fromprojections([["Ti:l=0"], ["Ti:l=1"], ["O:l=0"]
 tio2_master_calc_params = {'pw': {'ecutwfc': 40, 'nbnd': 36}}
 
 
-def test_wannierize_tio2(tmp_path, sys2file):
+def test_wannierize_tio2(tmp_path, sys2file, mockable):
     with chdir(tmp_path):
         parameters = {
             "init_orbitals": "mlwfs",
