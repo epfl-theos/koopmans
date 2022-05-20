@@ -5,3 +5,4 @@ from ._generate_benchmarks import BenchGenWannier90Calculator, BenchGenPW2Wannie
     BenchGenWann2KCPCalculator, BenchGenPWCalculator, BenchGenKoopmansCPCalculator, BenchGenEnvironCalculator, \
     BenchGenUnfoldAndInterpolateCalculator, BenchGenWann2KCCalculator, BenchGenKoopmansScreenCalculator, \
     BenchGenKoopmansHamCalculator, BenchGenProjwfcCalculator
+from ._utils import benchmark_filename
