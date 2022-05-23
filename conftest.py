@@ -42,11 +42,14 @@ def benchmark_gen(monkeypatch, pytestconfig):
 @pytest.fixture
 def mockable(monkeypatch, pytestconfig):
     '''
-    Instead of running a calculation, access the results from the benchmarks directory
+    Marker identifying tests where we either...
+     a) instead of running a calculation, access the results from the benchmarks directory
+    or
+     b) after running a calculation. check the results against the benchmark
     '''
 
     if pytestconfig.getoption('mock'):
-        # Calculators
+        # Replace calculators with mock versions that obtain results from the database
         monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', testing.MockKoopmansCPCalculator)
         monkeypatch.setattr('koopmans.calculators.Wannier90Calculator', testing.MockWannier90Calculator)
         monkeypatch.setattr('koopmans.calculators.PW2WannierCalculator', testing.MockPW2WannierCalculator)
@@ -63,6 +66,22 @@ def mockable(monkeypatch, pytestconfig):
 
         # Workflows
         monkeypatch.setattr('koopmans.workflows.WannierizeWorkflow', testing.MockWannierizeWorkflow)
+
+    elif not pytestconfig.getoption('generate_benchmark'):
+        # Replace calculators with versions that double-check their results against
+        monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', testing.CheckKoopmansCPCalculator)
+        monkeypatch.setattr('koopmans.calculators.Wannier90Calculator', testing.CheckWannier90Calculator)
+        monkeypatch.setattr('koopmans.calculators.PW2WannierCalculator', testing.CheckPW2WannierCalculator)
+        monkeypatch.setattr('koopmans.calculators.Wann2KCPCalculator', testing.CheckWann2KCPCalculator)
+        monkeypatch.setattr('koopmans.calculators.PWCalculator', testing.CheckPWCalculator)
+        monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', testing.CheckKoopmansCPCalculator)
+        monkeypatch.setattr('koopmans.calculators.EnvironCalculator', testing.CheckEnvironCalculator)
+        monkeypatch.setattr('koopmans.calculators.UnfoldAndInterpolateCalculator',
+                            testing.CheckUnfoldAndInterpolateCalculator)
+        monkeypatch.setattr('koopmans.calculators.Wann2KCCalculator', testing.CheckWann2KCCalculator)
+        monkeypatch.setattr('koopmans.calculators.KoopmansScreenCalculator', testing.CheckKoopmansScreenCalculator)
+        monkeypatch.setattr('koopmans.calculators.KoopmansHamCalculator', testing.CheckKoopmansHamCalculator)
+        monkeypatch.setattr('koopmans.calculators.ProjwfcCalculator', testing.CheckProjwfcCalculator)
 
 
 @pytest.fixture
