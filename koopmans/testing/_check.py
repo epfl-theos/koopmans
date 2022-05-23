@@ -209,12 +209,12 @@ class CheckWannier90Calculator(CheckCalc, Wannier90Calculator):
 
 
 class CheckPW2WannierCalculator(CheckCalc, PW2WannierCalculator):
-    results_for_qc = []
+    results_for_qc: List[str] = []
     pass
 
 
 class CheckWann2KCPCalculator(CheckCalc, Wann2KCPCalculator):
-    results_for_qc = []
+    results_for_qc: List[str] = []
     pass
 
 
@@ -224,7 +224,7 @@ class CheckUnfoldAndInterpolateCalculator(CheckCalc, UnfoldAndInterpolateCalcula
 
 
 class CheckWann2KCCalculator(CheckCalc, Wann2KCCalculator):
-    results_for_qc = []
+    results_for_qc: List[str] = []
     pass
 
 
