@@ -104,7 +104,7 @@ def compare(result, ref_result, result_name):
 
 class CheckCalc(ABC):
     @abstractproperty
-    def results_for_qc() -> List[str]:
+    def results_for_qc(self) -> List[str]:
         ...
 
     def calculate(self):
