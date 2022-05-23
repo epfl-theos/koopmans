@@ -2,6 +2,7 @@ import os
 import pytest
 from koopmans.commands import Command, ParallelCommand, ParallelCommandWithPostfix
 from koopmans.io import encode, decode
+from koopmans import utils
 
 
 def test_command():
@@ -29,11 +30,12 @@ def test_parallel_command():
 
 
 def test_parallel_command_with_postfix():
-    c_str = 'mpirun -n 16 pw.x -in in.pwi > out.pwi'
-    postfix = '-npool 4'
-    os.environ['PARA_POSTFIX'] = postfix
-    c = ParallelCommandWithPostfix(c_str)
+    with utils.set_env(PARA_POSTFIX='-npool 4'):
+        c_str = 'mpirun -n 16 pw.x -in in.pwi > out.pwi'
+        postfix = '-npool 4'
+        os.environ['PARA_POSTFIX'] = postfix
+        c = ParallelCommandWithPostfix(c_str)
 
-    assert c.postfix == postfix
-    assert c.flags == postfix
-    assert decode(encode(c)) == c
+        assert c.postfix == postfix
+        assert c.flags == postfix
+        assert decode(encode(c)) == c

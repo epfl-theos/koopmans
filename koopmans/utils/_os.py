@@ -91,6 +91,23 @@ def chdir(path: Union[Path, str]):
         os.chdir(this_dir)
 
 
+@contextlib.contextmanager
+def set_env(**environ):
+    """
+    Temporarily set the process environment variables.
+
+    :type environ: dict[str, unicode]
+    :param environ: Environment variables to set
+    """
+    old_environ = dict(os.environ)
+    os.environ.update(environ)
+    try:
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(old_environ)
+
+
 def find_executable(program: Path):
     # Equivalent to the unix command "which"
     def is_exe(fpath: Path):

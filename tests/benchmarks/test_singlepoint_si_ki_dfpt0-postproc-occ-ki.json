@@ -703,8 +703,6 @@
  "prefix": "ki",
  "name": "benchgenunfoldandinterpolatecalculator",
  "skip_qc": false,
- "results_for_qc": [],
- "qc_results": {},
  "centers": {
   "__ndarray__": [
    [

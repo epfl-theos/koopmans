@@ -175,11 +175,6 @@
  },
  "calc": {},
  "skip_qc": false,
- "results_for_qc": [
-  "centers",
-  "spreads"
- ],
- "qc_results": {},
  "__koopmans_name__": "BenchGenWannier90Calculator",
  "__koopmans_module__": "koopmans.testing._generate_benchmarks"
 }

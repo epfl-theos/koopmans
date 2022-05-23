@@ -1004,7 +1004,7 @@ class Workflow(ABC):
                 bigdct['setup']['control'] = {'pseudo_dir': str(pseudo_dir)}
 
             # If the params_dict is empty, don't add a block for this calculator
-            if not params_dict:
+            if not params_dict and not code.startswith('w90'):
                 continue
 
             if code in ['pw', 'kcp']:
@@ -1044,7 +1044,6 @@ class Workflow(ABC):
                 else:
                     proj_kwarg = {'projections': projections[0].projections}
                 reduce(operator.getitem, nested_keys[:-1], bigdct['w90'])[k].update(**proj_kwarg)
-
             else:
                 raise NotImplementedError(
                     f'Writing of {params.__class__.__name__} with write_json is not yet implemented')

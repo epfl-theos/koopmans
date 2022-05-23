@@ -1022,11 +1022,6 @@
  },
  "calc": {},
  "skip_qc": false,
- "results_for_qc": [
-  "ki_eigenvalues_on_grid",
-  "band structure"
- ],
- "qc_results": {},
  "alphas": [
   [
    0.14357807,

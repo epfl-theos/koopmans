@@ -389,12 +389,6 @@
  },
  "calc": {},
  "skip_qc": true,
- "results_for_qc": [
-  "energy",
-  "homo_energy",
-  "lumo_energy"
- ],
- "qc_results": {},
  "fixed_band": null,
  "kpts": null,
  "__koopmans_name__": "BenchGenKoopmansCPCalculator",

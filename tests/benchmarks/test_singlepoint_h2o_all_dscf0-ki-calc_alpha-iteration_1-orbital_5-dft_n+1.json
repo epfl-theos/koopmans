@@ -424,12 +424,7 @@
   "__koopmans_module__": "koopmans.commands"
  },
  "calc": {},
- "skip_qc": false,
- "results_for_qc": [
-  "homo_energy",
-  "lumo_energy"
- ],
- "qc_results": {},
+ "skip_qc": true,
  "_alphas": [
   [
    0.6,

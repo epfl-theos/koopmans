@@ -755,12 +755,6 @@
  },
  "calc": {},
  "skip_qc": false,
- "results_for_qc": [
-  "energy",
-  "homo_energy",
-  "lumo_energy"
- ],
- "qc_results": {},
  "fixed_band": null,
  "_filling": [
   [

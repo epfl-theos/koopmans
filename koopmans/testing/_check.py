@@ -103,7 +103,7 @@ def compare(result, ref_result, result_name):
 
 
 class CheckCalc(ABC):
-    @abstractproperty()
+    @abstractproperty
     def results_for_qc() -> List[str]:
         ...
 
@@ -145,16 +145,19 @@ class CheckCalc(ABC):
         super().calculate()
 
         # Check the results
-        if 'n-1' in self.prefix or self.directory.name == 'postproc':
-            # Skip checking the results if the calculation...
-            # a) is a n-1 calculation since these are known to be unreliable
-            # b) is in the base postproc directory because this corresponds to the calculation where we simply merge the two previous calculations together
+        if self.skip_qc:
+            # For some calculations (e.g. dummy calculations) we don't care about the results and actively don't
+            # want to compare them against a benchmark. For these calculations, we set self.skip_qc to False inside
+            # the corresponding workflow
             pass
         else:
             messages = []
 
             # Loop through results that require checking
             for result_name, ref_result in benchmark.results.items():
+                # Only inspect results listed in self.results_for_qc
+                if result_name not in self.results_for_qc:
+                    continue
                 assert result_name in self.results, f'Error in {calc_path}: {result_name} is missing'
                 result = self.results[result_name]
 
@@ -206,10 +209,12 @@ class CheckWannier90Calculator(CheckCalc, Wannier90Calculator):
 
 
 class CheckPW2WannierCalculator(CheckCalc, PW2WannierCalculator):
+    results_for_qc = []
     pass
 
 
 class CheckWann2KCPCalculator(CheckCalc, Wann2KCPCalculator):
+    results_for_qc = []
     pass
 
 
@@ -219,6 +224,7 @@ class CheckUnfoldAndInterpolateCalculator(CheckCalc, UnfoldAndInterpolateCalcula
 
 
 class CheckWann2KCCalculator(CheckCalc, Wann2KCCalculator):
+    results_for_qc = []
     pass
 
 

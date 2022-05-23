@@ -1839,10 +1839,6 @@
  },
  "calc": {},
  "skip_qc": false,
- "results_for_qc": [
-  "energy"
- ],
- "qc_results": {},
  "kpts": [
   {
    "weight": 0.0217391,

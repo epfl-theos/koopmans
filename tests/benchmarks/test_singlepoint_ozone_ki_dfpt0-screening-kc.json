@@ -137,10 +137,6 @@
  },
  "calc": {},
  "skip_qc": false,
- "results_for_qc": [
-  "alphas"
- ],
- "qc_results": {},
  "kpts": null,
  "__koopmans_name__": "BenchGenKoopmansScreenCalculator",
  "__koopmans_module__": "koopmans.testing._generate_benchmarks"

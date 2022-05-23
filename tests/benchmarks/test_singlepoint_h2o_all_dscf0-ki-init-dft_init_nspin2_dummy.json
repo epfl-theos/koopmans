@@ -393,12 +393,6 @@
  },
  "calc": {},
  "skip_qc": true,
- "results_for_qc": [
-  "energy",
-  "homo_energy",
-  "lumo_energy"
- ],
- "qc_results": {},
  "_alphas": [
   [
    0.6,

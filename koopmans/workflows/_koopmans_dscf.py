@@ -979,12 +979,8 @@ class KoopmansDSCFWorkflow(Workflow):
                              'an index_empty_to_save. Provide this as an argument to new_cp_calculator')
 
         # don't print QC in some cases
-        if 'dummy' in calc.prefix:
+        if 'dummy' in calc.prefix or calc.prefix[-2:] == '+1':
             calc.skip_qc = True
-        elif calc.prefix[-2:] == '+1':
-            # Don't check N+1 energies because they're known to be unreliable
-            if 'energy' in calc.results_for_qc:
-                calc.results_for_qc.remove('energy')
 
         return calc
 

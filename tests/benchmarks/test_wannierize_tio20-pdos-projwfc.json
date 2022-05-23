@@ -259966,8 +259966,6 @@
  },
  "calc": {},
  "skip_qc": false,
- "results_for_qc": [],
- "qc_results": {},
  "pseudopotentials": {
   "O": "O.upf",
   "Ti": "Ti.upf"
