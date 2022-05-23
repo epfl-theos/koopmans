@@ -82,9 +82,6 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     'if True, uses the file_alpharef.txt from the base directory as a '
                     'starting guess',
                     bool, False, (True, False)),
-            Setting('print_qc',
-                    'if True, prints out strings for the purposes of quality control',
-                    bool, False, (True, False)),
             Setting('from_scratch',
                     'if True, will delete any preexisting workflow and start again; '
                     'if False, will resume a workflow from where it was last up to',

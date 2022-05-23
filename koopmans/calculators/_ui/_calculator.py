@@ -30,7 +30,6 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
     ext_in = '.uii'
     ext_out = '.uio'
-    results_for_qc = ['band structure', 'dos']
 
     def __init__(self, atoms: Atoms, *args, **kwargs):
         self.parameters = UnfoldAndInterpolateSettingsDict()

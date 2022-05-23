@@ -76,10 +76,9 @@ class CalculatorExt():
         # Handle any recognised QE keywords passed as arguments
         self.parameters.update(**kwargs)
 
-        # Initialise quality control variables
+        # Some calculations we don't want to check their results for when performing tests; for such calculations, set
+        # skip_qc = True
         self.skip_qc = skip_qc
-        self.results_for_qc = []
-        self.qc_results = {}
 
     @property
     def parameters(self):
@@ -314,13 +313,6 @@ class ReturnsBandStructure(ABC):
 
 class KCWannCalculator(CalculatorExt):
     # Parent class for KCWHam, KCWScreen and Wann2KCW calculators
-
-    def __init__(self, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-
-        self.results_for_qc = []
-
     def is_complete(self):
         return self.results.get('job_done', False)
 

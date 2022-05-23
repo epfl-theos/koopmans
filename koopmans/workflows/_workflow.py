@@ -591,13 +591,6 @@ class Workflow(ABC):
         # Store the calculator
         self.calculations.append(qe_calc)
 
-        # Print quality control
-        if self.parameters.print_qc and not qe_calc.skip_qc:
-            for result in qe_calc.results_for_qc:
-                val = qe_calc.results.get(result, None)
-                if val:
-                    self.print_qc_keyval(result, val, qe_calc)
-
         # If we reached here, all future calculations should be performed from scratch
         self.parameters.from_scratch = True
 
@@ -640,23 +633,6 @@ class Workflow(ABC):
             utils.indented_print()
             utils.indented_print(str(text), self.print_indent, **kwargs)
             utils.indented_print(underline * len(text), self.print_indent, **kwargs)
-
-    def print_qc_keyval(self, key, value, calc=None):
-        '''
-        Prints out a quality control message for testcode to evaluate, and if a calculator is provided, stores the
-        result in calc.qc_results
-        '''
-
-        if calc is None:
-            calc_str = ''
-        else:
-            calc_str = f'{calc.prefix}_'
-
-        if not isinstance(value, list):
-            self.print(f'<QC> {calc_str}{key} {value}')
-
-        if calc is not None:
-            calc.qc_results[key] = value
 
     def run_subworkflow(self, workflow, subdirectory=None, from_scratch=None, **kwargs):
         '''

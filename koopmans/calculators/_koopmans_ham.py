@@ -33,8 +33,6 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
         self.command = ParallelCommand(
             f'{bin_directory}{os.path.sep}kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
 
-        self.results_for_qc = ['ki_eigenvalues_on_grid', 'band structure']
-
         # Store the alphas
         self.alphas = alphas
 

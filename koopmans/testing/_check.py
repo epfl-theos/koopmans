@@ -103,6 +103,10 @@ def compare(result, ref_result, result_name):
 
 
 class CheckCalc(ABC):
+    @abstractproperty()
+    def results_for_qc() -> List[str]:
+        ...
+
     def calculate(self):
         # Before running the calculation, check the settings are the same
 
@@ -182,22 +186,22 @@ class CheckCalc(ABC):
 
 
 class CheckKoopmansCPCalculator(CheckCalc, KoopmansCPCalculator):
-    pass
-
-
-class CheckKoopmansCPCalculator(CheckCalc, KoopmansCPCalculator):
-    pass
-
-
-class CheckEnvironCalculator(CheckCalc, EnvironCalculator):
+    results_for_qc = ['energy', 'homo_energy', 'lumo_energy']
     pass
 
 
 class CheckPWCalculator(CheckCalc, PWCalculator):
+    results_for_qc = ['energy']
+    pass
+
+
+class CheckEnvironCalculator(CheckCalc, EnvironCalculator):
+    results_for_qc = ['energy', 'electrostatic embedding']
     pass
 
 
 class CheckWannier90Calculator(CheckCalc, Wannier90Calculator):
+    results_for_qc = ['centers', 'spreads']
     pass
 
 
@@ -210,6 +214,7 @@ class CheckWann2KCPCalculator(CheckCalc, Wann2KCPCalculator):
 
 
 class CheckUnfoldAndInterpolateCalculator(CheckCalc, UnfoldAndInterpolateCalculator):
+    results_for_qc = ['band structure', 'dos']
     pass
 
 
@@ -218,12 +223,15 @@ class CheckWann2KCCalculator(CheckCalc, Wann2KCCalculator):
 
 
 class CheckKoopmansScreenCalculator(CheckCalc, KoopmansScreenCalculator):
+    results_for_qc = ['alphas']
     pass
 
 
 class CheckKoopmansHamCalculator(CheckCalc, KoopmansHamCalculator):
+    results_for_qc = ['ki_eigenvalues_on_grid', 'band structure']
     pass
 
 
 class CheckProjwfcCalculator(CheckCalc, ProjwfcCalculator):
+    results_for_qc = ['dos']
     pass

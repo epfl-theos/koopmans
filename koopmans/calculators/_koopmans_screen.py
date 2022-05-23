@@ -32,8 +32,6 @@ class KoopmansScreenCalculator(KCWannCalculator, KoopmansScreen, CalculatorABC):
         self.command = ParallelCommandWithPostfix(
             f'{bin_directory}{os.path.sep}kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
 
-        self.results_for_qc = ['alphas']
-
     def calculate(self):
         # Check eps infinity
         kpoints = [self.parameters.mp1, self.parameters.mp2, self.parameters.mp3]

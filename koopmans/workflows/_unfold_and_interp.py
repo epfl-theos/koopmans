@@ -174,10 +174,3 @@ class SingleUnfoldAndInterpolateWorkflow(Workflow):
 
         ui_calc.calculate()
         self.calculations = [ui_calc]
-
-        # Print quality control
-        if self.parameters.print_qc and not ui_calc.skip_qc:
-            for key in ui_calc.results_for_qc:
-                val = ui_calc.results.get(key, None)
-                if val is not None:
-                    ui_calc.qc_results[key] = val

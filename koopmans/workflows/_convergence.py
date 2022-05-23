@@ -172,11 +172,6 @@ class ConvergenceWorkflow(Workflow):
                 self.print('\n Converged parameters are '
                            + ', '.join([f'{k} = {v}' for k, v in converged_parameters.items()]))
 
-                # Print out quality control if requested
-                for param, value in converged_parameters.items():
-                    if self.parameters.print_qc:
-                        self.print_qc_keyval(param, value)
-
                 return
             else:
                 # Work out which parameters are yet to converge, and line up more calculations

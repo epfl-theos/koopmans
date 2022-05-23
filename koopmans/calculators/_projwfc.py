@@ -34,7 +34,6 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         Projwfc.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
 
-        self.results_for_qc = ['dos']
         if not isinstance(self.command, Command):
             self.command = ParallelCommand(os.environ.get(
                 'ASE_PROJWFC_COMMAND', str(bin_directory) + os.path.sep + self.command))
@@ -48,8 +47,6 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         self.pseudopotentials: Optional[Dict[str, str]] = None
         self.pseudo_dir: Optional[Path] = None
         self.spin_polarised: Optional[bool] = None
-
-        self.results_for_qc = []
 
     def calculate(self):
         for attr in ['pseudopotentials', 'pseudo_dir', 'spin_polarised']:
