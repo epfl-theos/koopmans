@@ -38,4 +38,4 @@ jobs:
               pip install -e ase/ -e .[test]
          - name: Test the tutorials
            run: |
-              pytest --mock tests/ -m tutorials
+              pytest --ci tests/ -m tutorials
