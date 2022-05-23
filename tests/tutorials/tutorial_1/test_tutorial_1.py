@@ -8,7 +8,7 @@ tutorial_dir = base_directory / 'tutorials' / 'tutorial_1'
 
 
 @pytest.mark.tutorials
-def test_run(mockable):
+def test_run(tutorial_patch):
     with chdir(tutorial_dir):
         exec(open('run.py', 'r').read())
 

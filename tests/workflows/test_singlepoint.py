@@ -5,7 +5,7 @@ from koopmans.io import write
 from koopmans.utils import chdir
 
 
-def test_singlepoint_h2o_all_dscf(water, mockable, tmp_path, sys2file):
+def test_singlepoint_h2o_all_dscf(water, workflow_patch, tmp_path, sys2file):
     with chdir(tmp_path):
         parameters = {'functional': 'all',
                       'n_max_sc_steps': 2,
@@ -16,7 +16,7 @@ def test_singlepoint_h2o_all_dscf(water, mockable, tmp_path, sys2file):
         wf.run()
 
 
-def test_singlepoint_si_ki_dscf(silicon, mockable, tmp_path, sys2file):
+def test_singlepoint_si_ki_dscf(silicon, workflow_patch, tmp_path, sys2file):
     with chdir(tmp_path):
         parameters = {'functional': 'ki',
                       'method': 'dscf',
@@ -31,7 +31,7 @@ def test_singlepoint_si_ki_dscf(silicon, mockable, tmp_path, sys2file):
         wf.run()
 
 
-def test_singlepoint_si_ki_dfpt(silicon, mockable, tmp_path, sys2file):
+def test_singlepoint_si_ki_dfpt(silicon, workflow_patch, tmp_path, sys2file):
     with chdir(tmp_path):
 
         parameters = {'functional': 'ki',
@@ -46,7 +46,7 @@ def test_singlepoint_si_ki_dfpt(silicon, mockable, tmp_path, sys2file):
         wf.run()
 
 
-def test_singlepoint_ozone_ki_dfpt(ozone, mockable, tmp_path, sys2file):
+def test_singlepoint_ozone_ki_dfpt(ozone, workflow_patch, tmp_path, sys2file):
     with chdir(tmp_path):
         parameters = {'functional': 'ki',
                       'method': 'dfpt',

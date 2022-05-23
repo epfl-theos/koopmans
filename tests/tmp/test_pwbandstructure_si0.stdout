@@ -1,0 +1,22 @@
+  _                                                
+ | | _____   ___  _ __  _ __ ___   __ _ _ __  ___  
+ | |/ / _ \ / _ \| '_ \| '_ ` _ \ / _` | '_ \/ __| 
+ |   < (_) | (_) | |_) | | | | | | (_| | | | \__ \ 
+ |_|\_\___/ \___/| .__/|_| |_| |_|\__,_|_| |_|___/ 
+                 |_|                               
+
+ Koopmans spectral functional calculations with Quantum ESPRESSO
+
+ Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna
+
+ using QE version qe-7.0-452-g3fb637cac, workflow manager version v0.5-60-g2ca9e35f, and ASE version 221d08443
+
+ Please cite the papers listed in si.bib in work involving this calculation
+
+ DFT bandstructure workflow
+ ==========================
+  Running ./scf... done
+  Running ./bands... done
+  Running ./projwfc... done
+
+ Workflow complete

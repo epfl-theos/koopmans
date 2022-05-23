@@ -1,0 +1,72 @@
+  _                                                
+ | | _____   ___  _ __  _ __ ___   __ _ _ __  ___  
+ | |/ / _ \ / _ \| '_ \| '_ ` _ \ / _` | '_ \/ __| 
+ |   < (_) | (_) | |_) | | | | | | (_| | | | \__ \ 
+ |_|\_\___/ \___/| .__/|_| |_| |_|\__,_|_| |_|___/ 
+                 |_|                               
+
+ Koopmans spectral functional calculations with Quantum ESPRESSO
+
+ Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna
+
+ using QE version qe-7.0-452-g3fb637cac, workflow manager version v0.5-60-g2ca9e35f, and ASE version 221d08443
+
+ Please cite the papers listed in koopmans_workflow.bib in work involving this calculation
+
+ ecutwfc = 20.0, cell_size = 1.0
+ -------------------------------
+    Running ./dft_nspin1... done
+    Running ./dft_nspin2_dummy... done
+    Running ./dft_nspin2... done
+
+ ecutwfc = 20.0, cell_size = 1.1
+ -------------------------------
+    Running ./dft_nspin1... done
+    Running ./dft_nspin2_dummy... done
+    Running ./dft_nspin2... done
+
+ ecutwfc = 20.0, cell_size = 1.2
+ -------------------------------
+    Running ./dft_nspin1... done
+    Running ./dft_nspin2_dummy... done
+    Running ./dft_nspin2... done
+
+ ecutwfc = 30.0, cell_size = 1.0
+ -------------------------------
+    Running ./dft_nspin1... done
+    Running ./dft_nspin2_dummy... done
+    Running ./dft_nspin2... done
+
+ ecutwfc = 30.0, cell_size = 1.1
+ -------------------------------
+    Running ./dft_nspin1... done
+    Running ./dft_nspin2_dummy... done
+    Running ./dft_nspin2... done
+
+ ecutwfc = 30.0, cell_size = 1.2
+ -------------------------------
+    Running ./dft_nspin1... done
+    Running ./dft_nspin2_dummy... done
+    Running ./dft_nspin2... done
+
+ ecutwfc = 40.0, cell_size = 1.0
+ -------------------------------
+    Running ./dft_nspin1... done
+    Running ./dft_nspin2_dummy... done
+    Running ./dft_nspin2... done
+
+ ecutwfc = 40.0, cell_size = 1.1
+ -------------------------------
+    Running ./dft_nspin1... done
+    Running ./dft_nspin2_dummy... done
+    Running ./dft_nspin2... done
+
+ ecutwfc = 40.0, cell_size = 1.2
+ -------------------------------
+    Running ./dft_nspin1... done
+    Running ./dft_nspin2_dummy... done
+    Running ./dft_nspin2... done
+  
+   Converged parameters are ecutwfc = 30.0, cell_size = 1.0
+
+ Workflow complete

@@ -6,7 +6,7 @@ from koopmans.projections import ProjectionBlocks
 
 
 def pytest_addoption(parser):
-    parser.addoption("--mock", action="store_true", default=False, help="TODO")
+    parser.addoption("--ci", action="store_true", default=False, help="TODO")
     parser.addoption("--generate_benchmark", action="store_true", default=False, help="TODO")
 
 
@@ -16,72 +16,93 @@ def datadir():
     return base_directory / 'tests' / 'data'
 
 
-@pytest.fixture(autouse=True)
-def benchmark_gen(monkeypatch, pytestconfig):
-    '''
-    After each calculation is run, store the results in a json (one json per calculation)
+def monkeypatch_bench(monkeypatch):
+    # After each calculation is run, store the results in a json (one json per calculation)
+    monkeypatch.setattr('koopmans.calculators.Wannier90Calculator', testing.BenchGenWannier90Calculator)
+    monkeypatch.setattr('koopmans.calculators.PW2WannierCalculator', testing.BenchGenPW2WannierCalculator)
+    monkeypatch.setattr('koopmans.calculators.Wann2KCPCalculator', testing.BenchGenWann2KCPCalculator)
+    monkeypatch.setattr('koopmans.calculators.PWCalculator', testing.BenchGenPWCalculator)
+    monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', testing.BenchGenKoopmansCPCalculator)
+    monkeypatch.setattr('koopmans.calculators.EnvironCalculator', testing.BenchGenEnvironCalculator)
+    monkeypatch.setattr('koopmans.calculators.UnfoldAndInterpolateCalculator',
+                        testing.BenchGenUnfoldAndInterpolateCalculator)
+    monkeypatch.setattr('koopmans.calculators.Wann2KCCalculator', testing.BenchGenWann2KCCalculator)
+    monkeypatch.setattr('koopmans.calculators.KoopmansScreenCalculator', testing.BenchGenKoopmansScreenCalculator)
+    monkeypatch.setattr('koopmans.calculators.KoopmansHamCalculator', testing.BenchGenKoopmansHamCalculator)
+    monkeypatch.setattr('koopmans.calculators.ProjwfcCalculator', testing.BenchGenProjwfcCalculator)
 
-    Only perform this patching if pytest is run with the mark "benchmark_gen"
-    '''
 
-    if pytestconfig.getoption('generate_benchmark'):
-        monkeypatch.setattr('koopmans.calculators.Wannier90Calculator', testing.BenchGenWannier90Calculator)
-        monkeypatch.setattr('koopmans.calculators.PW2WannierCalculator', testing.BenchGenPW2WannierCalculator)
-        monkeypatch.setattr('koopmans.calculators.Wann2KCPCalculator', testing.BenchGenWann2KCPCalculator)
-        monkeypatch.setattr('koopmans.calculators.PWCalculator', testing.BenchGenPWCalculator)
-        monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', testing.BenchGenKoopmansCPCalculator)
-        monkeypatch.setattr('koopmans.calculators.EnvironCalculator', testing.BenchGenEnvironCalculator)
-        monkeypatch.setattr('koopmans.calculators.UnfoldAndInterpolateCalculator',
-                            testing.BenchGenUnfoldAndInterpolateCalculator)
-        monkeypatch.setattr('koopmans.calculators.Wann2KCCalculator', testing.BenchGenWann2KCCalculator)
-        monkeypatch.setattr('koopmans.calculators.KoopmansScreenCalculator', testing.BenchGenKoopmansScreenCalculator)
-        monkeypatch.setattr('koopmans.calculators.KoopmansHamCalculator', testing.BenchGenKoopmansHamCalculator)
-        monkeypatch.setattr('koopmans.calculators.ProjwfcCalculator', testing.BenchGenProjwfcCalculator)
+def monkeypatch_mock(monkeypatch):
+    # Replace calculators with mock versions that obtain results from the database
+    monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', testing.MockKoopmansCPCalculator)
+    monkeypatch.setattr('koopmans.calculators.Wannier90Calculator', testing.MockWannier90Calculator)
+    monkeypatch.setattr('koopmans.calculators.PW2WannierCalculator', testing.MockPW2WannierCalculator)
+    monkeypatch.setattr('koopmans.calculators.Wann2KCPCalculator', testing.MockWann2KCPCalculator)
+    monkeypatch.setattr('koopmans.calculators.PWCalculator', testing.MockPWCalculator)
+    monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', testing.MockKoopmansCPCalculator)
+    monkeypatch.setattr('koopmans.calculators.EnvironCalculator', testing.MockEnvironCalculator)
+    monkeypatch.setattr('koopmans.calculators.UnfoldAndInterpolateCalculator',
+                        testing.MockUnfoldAndInterpolateCalculator)
+    monkeypatch.setattr('koopmans.calculators.Wann2KCCalculator', testing.MockWann2KCCalculator)
+    monkeypatch.setattr('koopmans.calculators.KoopmansScreenCalculator', testing.MockKoopmansScreenCalculator)
+    monkeypatch.setattr('koopmans.calculators.KoopmansHamCalculator', testing.MockKoopmansHamCalculator)
+    monkeypatch.setattr('koopmans.calculators.ProjwfcCalculator', testing.MockProjwfcCalculator)
+
+    # Workflows
+    monkeypatch.setattr('koopmans.workflows.WannierizeWorkflow', testing.MockWannierizeWorkflow)
+
+
+def monkeypatch_check(monkeypatch):
+    # Replace calculators with versions that double-check their results against
+    monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', testing.CheckKoopmansCPCalculator)
+    monkeypatch.setattr('koopmans.calculators.Wannier90Calculator', testing.CheckWannier90Calculator)
+    monkeypatch.setattr('koopmans.calculators.PW2WannierCalculator', testing.CheckPW2WannierCalculator)
+    monkeypatch.setattr('koopmans.calculators.Wann2KCPCalculator', testing.CheckWann2KCPCalculator)
+    monkeypatch.setattr('koopmans.calculators.PWCalculator', testing.CheckPWCalculator)
+    monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', testing.CheckKoopmansCPCalculator)
+    monkeypatch.setattr('koopmans.calculators.EnvironCalculator', testing.CheckEnvironCalculator)
+    monkeypatch.setattr('koopmans.calculators.UnfoldAndInterpolateCalculator',
+                        testing.CheckUnfoldAndInterpolateCalculator)
+    monkeypatch.setattr('koopmans.calculators.Wann2KCCalculator', testing.CheckWann2KCCalculator)
+    monkeypatch.setattr('koopmans.calculators.KoopmansScreenCalculator', testing.CheckKoopmansScreenCalculator)
+    monkeypatch.setattr('koopmans.calculators.KoopmansHamCalculator', testing.CheckKoopmansHamCalculator)
+    monkeypatch.setattr('koopmans.calculators.ProjwfcCalculator', testing.CheckProjwfcCalculator)
 
 
 @pytest.fixture
-def mockable(monkeypatch, pytestconfig):
-    '''
-    Marker identifying tests where we either...
-     a) instead of running a calculation, access the results from the benchmarks directory
-    or
-     b) after running a calculation. check the results against the benchmark
-    '''
+def tutorial_patch(monkeypatch, pytestconfig):
+    # For the tutorials...
+    if pytestconfig.getoption('generate_benchmark'):
+        # when generating benchmarks, use BenchCalcs
+        monkeypatch_bench(monkeypatch)
+    else:
+        # we use MockCalcs when running our tests on github, OR if the user is running locally
+        monkeypatch_mock(monkeypatch)
 
-    if pytestconfig.getoption('mock'):
-        # Replace calculators with mock versions that obtain results from the database
-        monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', testing.MockKoopmansCPCalculator)
-        monkeypatch.setattr('koopmans.calculators.Wannier90Calculator', testing.MockWannier90Calculator)
-        monkeypatch.setattr('koopmans.calculators.PW2WannierCalculator', testing.MockPW2WannierCalculator)
-        monkeypatch.setattr('koopmans.calculators.Wann2KCPCalculator', testing.MockWann2KCPCalculator)
-        monkeypatch.setattr('koopmans.calculators.PWCalculator', testing.MockPWCalculator)
-        monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', testing.MockKoopmansCPCalculator)
-        monkeypatch.setattr('koopmans.calculators.EnvironCalculator', testing.MockEnvironCalculator)
-        monkeypatch.setattr('koopmans.calculators.UnfoldAndInterpolateCalculator',
-                            testing.MockUnfoldAndInterpolateCalculator)
-        monkeypatch.setattr('koopmans.calculators.Wann2KCCalculator', testing.MockWann2KCCalculator)
-        monkeypatch.setattr('koopmans.calculators.KoopmansScreenCalculator', testing.MockKoopmansScreenCalculator)
-        monkeypatch.setattr('koopmans.calculators.KoopmansHamCalculator', testing.MockKoopmansHamCalculator)
-        monkeypatch.setattr('koopmans.calculators.ProjwfcCalculator', testing.MockProjwfcCalculator)
 
-        # Workflows
-        monkeypatch.setattr('koopmans.workflows.WannierizeWorkflow', testing.MockWannierizeWorkflow)
+@pytest.fixture
+def workflow_patch(monkeypatch, pytestconfig):
+    # For tests involving the workflow...
+    if pytestconfig.getoption('generate_benchmark'):
+        # when generating benchmarks, use BenchCalcs
+        monkeypatch_bench(monkeypatch)
+    else:
+        # we use MockCalcs when running our tests on github, OR if the user is running locally
+        monkeypatch_mock(monkeypatch)
 
-    elif not pytestconfig.getoption('generate_benchmark'):
-        # Replace calculators with versions that double-check their results against
-        monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', testing.CheckKoopmansCPCalculator)
-        monkeypatch.setattr('koopmans.calculators.Wannier90Calculator', testing.CheckWannier90Calculator)
-        monkeypatch.setattr('koopmans.calculators.PW2WannierCalculator', testing.CheckPW2WannierCalculator)
-        monkeypatch.setattr('koopmans.calculators.Wann2KCPCalculator', testing.CheckWann2KCPCalculator)
-        monkeypatch.setattr('koopmans.calculators.PWCalculator', testing.CheckPWCalculator)
-        monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', testing.CheckKoopmansCPCalculator)
-        monkeypatch.setattr('koopmans.calculators.EnvironCalculator', testing.CheckEnvironCalculator)
-        monkeypatch.setattr('koopmans.calculators.UnfoldAndInterpolateCalculator',
-                            testing.CheckUnfoldAndInterpolateCalculator)
-        monkeypatch.setattr('koopmans.calculators.Wann2KCCalculator', testing.CheckWann2KCCalculator)
-        monkeypatch.setattr('koopmans.calculators.KoopmansScreenCalculator', testing.CheckKoopmansScreenCalculator)
-        monkeypatch.setattr('koopmans.calculators.KoopmansHamCalculator', testing.CheckKoopmansHamCalculator)
-        monkeypatch.setattr('koopmans.calculators.ProjwfcCalculator', testing.CheckProjwfcCalculator)
+
+@pytest.fixture
+def espresso_patch(monkeypatch, pytestconfig):
+    # For tests involving Quantum ESPRESSO...
+    if pytestconfig.getoption('generate_benchmark'):
+        # when generating benchmarks, use BenchCalcs
+        monkeypatch_bench(monkeypatch)
+    elif pytestconfig.getoption('ci'):
+        # when running our tests on github, these tests shold not be called!
+        raise ValueError('These tests cannot be run with --ci')
+    else:
+        # when the user is running locally, use CheckCalcs
+        monkeypatch_check(monkeypatch)
 
 
 @pytest.fixture

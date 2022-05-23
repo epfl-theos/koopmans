@@ -2,7 +2,7 @@ import pytest
 from koopmans import workflows, utils
 
 
-def test_convergence_h2o(water, mockable, tmp_path, sys2file):
+def test_convergence_h2o(water, workflow_patch, tmp_path, sys2file):
     with utils.chdir(tmp_path):
         parameters = {
             "functional": "dft",

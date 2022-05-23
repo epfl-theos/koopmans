@@ -6,7 +6,7 @@ from koopmans.io import write
 from koopmans import workflows
 
 
-def test_wannierize_tio2(tio2, tmp_path, sys2file, mockable):
+def test_wannierize_tio2(tio2, tmp_path, sys2file, workflow_patch):
     with chdir(tmp_path):
         parameters = {
             "init_orbitals": "mlwfs",
