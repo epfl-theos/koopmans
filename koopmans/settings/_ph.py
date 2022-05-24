@@ -7,10 +7,9 @@ class PhSettingsDict(SettingsDict):
     def __init__(self, **kwargs) -> None:
         super().__init__(valid=['outdir', 'prefix', 'epsil', 'amass',
                                 'fildyn', 'tr2_ph',
-                         defaults={'outdir': 'TMP', 'prefix': 'kc', 'epsil': '.true.',
-                                   'wan_mode': 'standalone'},
+                         defaults={'outdir': 'TMP', 'prefix': 'kc', 'epsil': True,
+                                   },
                          are_paths=['outdir'],
-                         to_not_parse=['wan_mode'],
                          **kwargs)
 
     @property
