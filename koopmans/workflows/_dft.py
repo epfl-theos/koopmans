@@ -70,10 +70,13 @@ class DFTPhWorkflow(Workflow):
 
     def _run(self):
 
-        # Add here a scf calculation and then a ph calculation
-        # calc_ph = self.new_calculator('ph')
-        import ipdb
-        ipdb.set_trace()
+        calc_scf = self.new_calculator('pw', nbnd=None)
+        calc_scf.prefix = 'scf'
+        self.run_calculator(calc_scf)
+
+        calc_ph = self.new_calculator('ph', epsil = True, fildyn = f'{self.name}.dynG')
+        self.run_calculator(calc_ph)
+         
 
 class PWBandStructureWorkflow(Workflow):
 
