@@ -22,9 +22,9 @@ from __future__ import annotations
 import copy
 import numpy as np
 from numpy import typing as npt
-from typing import Union, Optional, List, TypeVar, Generic, Type
+from typing import Union, Optional, List, TypeVar, Generic, Type, Dict, Any
 from pathlib import Path
-from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod, abstractproperty
 from ase import Atoms
 import ase.io as ase_io
 from ase.calculators.calculator import CalculationFailed
@@ -87,7 +87,7 @@ class CalculatorExt():
         return self._parameters
 
     @parameters.setter
-    def parameters(self, value: Union[settings.SettingsDict, dict, None]):
+    def parameters(self, value: Union[settings.SettingsDict, Dict[str, Any], None]):
         if isinstance(value, settings.SettingsDict):
             self._parameters = value
         else:
@@ -121,6 +121,7 @@ class CalculatorExt():
 
         # Then check if the calculation completed
         if not self.is_complete():
+
             raise CalculationFailed(
                 f'{self.directory}/{self.prefix} failed; check the Quantum ESPRESSO output file for more details')
 

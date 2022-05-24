@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import List, Union, Optional
 from koopmans.calculators import Wannier90Calculator, PW2WannierCalculator, Wann2KCPCalculator, PWCalculator, \
     KoopmansCPCalculator, EnvironCalculator, UnfoldAndInterpolateCalculator, Wann2KCCalculator, \
-    KoopmansScreenCalculator, KoopmansHamCalculator, ProjwfcCalculator, CalculatorExt
+    KoopmansScreenCalculator, KoopmansHamCalculator, ProjwfcCalculator, Calc
 from koopmans.workflows import WannierizeWorkflow, KoopmansDSCFWorkflow
 from koopmans import utils, projections
 from koopmans.io import read_kwf as read_encoded_json
@@ -154,11 +154,14 @@ class MockProjwfcCalculator(MockCalc, ProjwfcCalculator):
 
 
 class MockWorkflow:
+
+    calculations: List[Calc]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.parameters.from_scratch = True
 
-    def load_old_calculator(self, calc: CalculatorExt) -> bool:
+    def load_old_calculator(self, calc: Calc) -> bool:
         # Load old calculators by looking through the workflow's list of previous calculations
         # (During the test suite, the only scenario where we want to reload an old calculation will arise
         # because we did it earlier in the same workflow)

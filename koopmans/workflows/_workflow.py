@@ -67,7 +67,7 @@ class Workflow(ABC):
         self.parameters = settings.WorkflowSettingsDict(**parameters)
         self.atoms = atoms
         self.name = name
-        self.calculations: List[calculators.CalculatorExt] = []
+        self.calculations: List[calculators.Calc] = []
         self.silent = False
         self.print_indent = 1
         self.gamma_only = gamma_only
