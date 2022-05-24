@@ -1,4 +1,6 @@
 import pytest
+from typing import Dict, Any
+from ase import Atoms
 from ase.build import molecule, bulk
 from ase.spacegroup import crystal
 from koopmans import testing, base_directory
@@ -49,6 +51,7 @@ def monkeypatch_mock(monkeypatch):
     monkeypatch.setattr('koopmans.calculators.ProjwfcCalculator', testing.MockProjwfcCalculator)
 
     # Workflows
+    monkeypatch.setattr('koopmans.workflows.KoopmansDSCFWorkflow', testing.MockKoopmansDSCFWorkflow)
     monkeypatch.setattr('koopmans.workflows.WannierizeWorkflow', testing.MockWannierizeWorkflow)
 
 
@@ -119,16 +122,16 @@ def sys2file(capsys, tmp_path):
 
 
 @pytest.fixture
-def water():
+def water() -> Dict[str, Any]:
     # water
     return {'atoms': molecule('H2O', vacuum=5.0, pbc=False),
             'master_calc_params': {'kcp': {'ecutwfc': 20.0, 'nbnd': 5}}}
 
 
 @pytest.fixture
-def silicon():
+def silicon() -> Dict[str, Any]:
     # bulk silicon
-    si = bulk('Si')
+    si: Atoms = bulk('Si')
     pdict = [{'fsite': [0.25, 0.25, 0.25], 'ang_mtm': 'sp3'}]
     si_projs = ProjectionBlocks.fromprojections([pdict, pdict], fillings=[True, False], spins=[None, None], atoms=si)
     return {'atoms': si,
@@ -137,25 +140,25 @@ def silicon():
                                    'w90_occ': {'conv_window': 5, },
                                    'w90_emp': {'conv_window': 5, 'dis_froz_max': 10.6, 'dis_win_max': 16.9},
                                    'ui': {'smooth_int_factor': 2},
-                                   'plot': {'Emin': -10, 'Emax': 4, 'degauss': 0.5}
                                    },
+            'plot_params': {'Emin': -10, 'Emax': 4, 'degauss': 0.5},
             'projections': si_projs}
 
 
 @pytest.fixture
-def ozone():
+def ozone() -> Dict[str, Any]:
     # ozone
     return {'atoms': molecule('O3', vacuum=5.0, pbc=False),
             'master_calc_params': {'pw': {'ecutwfc': 20.0, 'nbnd': 10}}}
 
 
 @pytest.fixture
-def tio2():
+def tio2() -> Dict[str, Any]:
     # rutile TiO2
     a = 4.6
     c = 2.95
-    atoms = crystal(['Ti', 'O'], basis=[(0, 0, 0), (0.3, 0.3, 0.0)],
-                    spacegroup=136, cellpar=[a, a, c, 90, 90, 90])
+    atoms: Atoms = crystal(['Ti', 'O'], basis=[(0, 0, 0), (0.3, 0.3, 0.0)],
+                           spacegroup=136, cellpar=[a, a, c, 90, 90, 90])
 
     projs = ProjectionBlocks.fromprojections([["Ti:l=0"], ["Ti:l=1"], ["O:l=0"], ["O:l=1"], ["Ti:l=0", "Ti:l=2"]],
                                              fillings=[True, True, True, True, False],

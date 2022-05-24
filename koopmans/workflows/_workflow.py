@@ -33,8 +33,7 @@ from ase.spectrum.dosdata import GridDOSData
 from ase.spectrum.doscollection import GridDOSCollection
 from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, pseudo_database, fetch_pseudo, \
     valence_from_pseudo
-from koopmans import utils, settings
-import koopmans.calculators as calculators
+from koopmans import utils, settings, calculators
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.bands import Bands
 from koopmans.projections import ProjectionBlocks
@@ -50,7 +49,8 @@ class Workflow(ABC):
 
     def __init__(self, atoms: Atoms,
                  parameters: settings.SettingsDict = settings.WorkflowSettingsDict(),
-                 master_calc_params: Optional[Union[Dict[str, Dict], Dict[str, settings.SettingsDict]]] = None,
+                 master_calc_params: Optional[Union[Dict[str, Dict[str, Any]],
+                                                    Dict[str, settings.SettingsDict]]] = None,
                  name: str = 'koopmans_workflow',
                  pseudopotentials: Dict[str, str] = {},
                  pseudo_dir: Optional[Path] = None,
@@ -60,7 +60,7 @@ class Workflow(ABC):
                  kpath: Optional[Union[BandPath, str]] = None,
                  kpath_density: int = 10,
                  projections: Optional[ProjectionBlocks] = None,
-                 plot_params: Optional[settings.PlotSettingsDict] = None,
+                 plot_params: Union[Dict[str, Any], settings.PlotSettingsDict] = {},
                  autogenerate_settings: bool = True):
 
         # Parsing parameters
@@ -94,7 +94,7 @@ class Workflow(ABC):
         else:
             self.projections = projections
 
-        self.plot_params = settings.PlotSettingsDict() if plot_params is None else plot_params
+        self.plot_params = settings.PlotSettingsDict(**plot_params)
 
         if 'periodic' in parameters:
             # If "periodic" was explicitly provided, override self.atoms.pbc
@@ -247,7 +247,7 @@ class Workflow(ABC):
         # Records whether or not this workflow is a subworkflow of another
         self._is_a_subworkflow = False
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any):
         if isinstance(other, Workflow):
             return self.__dict__ == other.__dict__
         return False
@@ -272,11 +272,11 @@ class Workflow(ABC):
         self._pseudopotentials = value
 
     @property
-    def gamma_only(self):
+    def gamma_only(self) -> Optional[bool]:
         return self._gamma_only
 
     @gamma_only.setter
-    def gamma_only(self, value: bool):
+    def gamma_only(self, value: Optional[bool]):
         self._gamma_only = value
 
     @property
@@ -306,7 +306,7 @@ class Workflow(ABC):
         self._kpath = value
 
     @property
-    def wf_kwargs(self):
+    def wf_kwargs(self) -> Dict[str, Any]:
         # Returns a kwargs designed to be used to initialise another workflow with the same configuration as this one
         # i.e.
         # > sub_wf = Workflow(**self.wf_kwargs)

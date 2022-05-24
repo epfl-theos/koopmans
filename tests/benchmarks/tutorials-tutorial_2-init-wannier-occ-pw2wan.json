@@ -104,8 +104,6 @@
  },
  "calc": {},
  "skip_qc": false,
- "results_for_qc": [],
- "qc_results": {},
  "__koopmans_name__": "BenchGenPW2WannierCalculator",
  "__koopmans_module__": "koopmans.testing._generate_benchmarks"
 }

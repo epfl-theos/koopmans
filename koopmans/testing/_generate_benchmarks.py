@@ -1,6 +1,9 @@
+import os
+import json
+from typing import List
 from koopmans.calculators import KoopmansCPCalculator
 from koopmans.io import write_kwf as write_encoded_json
-from ._utils import benchmark_filename
+from ._utils import benchmark_filename, metadata_filename, find_subfiles_of_calc
 from koopmans.calculators import Wannier90Calculator, PW2WannierCalculator, Wann2KCPCalculator, PWCalculator, \
     KoopmansCPCalculator, EnvironCalculator, UnfoldAndInterpolateCalculator, Wann2KCCalculator, \
     KoopmansScreenCalculator, KoopmansHamCalculator, ProjwfcCalculator
@@ -8,8 +11,21 @@ from koopmans.calculators import Wannier90Calculator, PW2WannierCalculator, Wann
 
 class BenchmarkGenCalc():
     def calculate(self):
+        # Before running the calculation, make a list of the files that exist
+        files_before = find_subfiles_of_calc(self)
+
         super().calculate()
 
+        # After running the calculation, make a new list of the files, and then work out which files have been
+        # modified by the calculation
+        files_after = find_subfiles_of_calc(self)
+        modified_files: List[str] = sorted([str(os.path.relpath(x[0], self.directory))
+                                           for x in files_after - files_before])
+        # Exclude the input file, since we don't want to create a dummy version of this for the mock calc (it is
+        # already written in full)
+        modified_files.remove(self.prefix + self.ext_in)
+
+        # Write out the calculator itself to file
         # Make sure we store all paths as relative paths
         tmp, self.parameters.use_relative_paths = self.parameters.use_relative_paths, True
 
@@ -22,6 +38,11 @@ class BenchmarkGenCalc():
 
         # Restore the behaviour of use_relative_paths
         self.parameters.use_relative_paths = tmp
+
+        # Write out the modified files to the "_metadata.json" file
+        fname = metadata_filename(self)
+        with open(fname, 'w') as fd:
+            json.dump({'output_files': modified_files}, fd)
 
 
 class BenchGenWannier90Calculator(BenchmarkGenCalc, Wannier90Calculator):

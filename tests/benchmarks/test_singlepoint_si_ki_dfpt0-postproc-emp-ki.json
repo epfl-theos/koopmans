@@ -204,6 +204,9 @@
    "__ase_objtype__": "bandpath"
   },
   "plot_params": {
+   "degauss": 0.5,
+   "Emin": -10,
+   "Emax": 4,
    "__koopmans_name__": "PlotSettingsDict",
    "__koopmans_module__": "koopmans.settings._plot"
   },
@@ -559,10 +562,10 @@
   },
   "dos": {
    "calc": null,
-   "width": 0.05,
+   "width": 0.5,
    "window": [
-    6.888343021615413,
-    17.16162425383033
+    -10.0,
+    4.0
    ],
    "npts": 1001,
    "nspins": 1,

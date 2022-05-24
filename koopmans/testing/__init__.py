@@ -1,6 +1,7 @@
 from ._mock import MockWannier90Calculator, MockPW2WannierCalculator, MockWann2KCPCalculator, MockPWCalculator, \
     MockKoopmansCPCalculator, MockEnvironCalculator, MockUnfoldAndInterpolateCalculator, MockWann2KCCalculator, \
-    MockKoopmansScreenCalculator, MockKoopmansHamCalculator, MockProjwfcCalculator, MockWannierizeWorkflow
+    MockKoopmansScreenCalculator, MockKoopmansHamCalculator, MockProjwfcCalculator, MockWannierizeWorkflow, \
+    MockKoopmansDSCFWorkflow
 from ._check import CheckWannier90Calculator, CheckPW2WannierCalculator, CheckWann2KCPCalculator, CheckPWCalculator, \
     CheckKoopmansCPCalculator, CheckEnvironCalculator, CheckUnfoldAndInterpolateCalculator, CheckWann2KCCalculator, \
     CheckKoopmansScreenCalculator, CheckKoopmansHamCalculator, CheckProjwfcCalculator

@@ -34298,8 +34298,6 @@
  },
  "calc": {},
  "skip_qc": false,
- "results_for_qc": [],
- "qc_results": {},
  "pseudopotentials": {
   "Si": "Si.upf"
  },

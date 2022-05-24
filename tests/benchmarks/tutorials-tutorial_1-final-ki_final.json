@@ -357,7 +357,6 @@
    ]
   },
   "job_done": true,
-  "walltime": 13.8,
   "lambda": [
    {
     "__ndarray__": [
@@ -1225,12 +1224,6 @@
  },
  "calc": {},
  "skip_qc": false,
- "results_for_qc": [
-  "energy",
-  "homo_energy",
-  "lumo_energy"
- ],
- "qc_results": {},
  "_alphas": [
   [
    0.6556908202756268,

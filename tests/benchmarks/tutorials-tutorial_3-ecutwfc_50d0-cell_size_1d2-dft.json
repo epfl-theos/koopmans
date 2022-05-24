@@ -13,8 +13,8 @@
   },
   "ecutrho": 200.0,
   "pseudopotentials": {
-   "H": "H_ONCV_PBE-1.0.upf",
-   "O": "O_ONCV_PBE-1.0.upf"
+   "O": "O_ONCV_PBE-1.0.upf",
+   "H": "H_ONCV_PBE-1.0.upf"
   },
   "ndr": 50,
   "ndw": 51,
@@ -542,12 +542,6 @@
  },
  "calc": {},
  "skip_qc": false,
- "results_for_qc": [
-  "energy",
-  "homo_energy",
-  "lumo_energy"
- ],
- "qc_results": {},
  "fixed_band": null,
  "kpts": null,
  "__koopmans_name__": "BenchGenKoopmansCPCalculator",

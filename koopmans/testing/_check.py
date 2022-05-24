@@ -1,20 +1,17 @@
-from abc import ABC, abstractproperty
+from abc import ABC
 import json
 import numpy as np
-import os
 from pathlib import Path
-from typing import List, Union
-from ase.dft.kpoints import BandPath
+from typing import List, Optional, Any, Dict, Set
 from ase.spectrum.band_structure import BandStructure
 from ase.spectrum.doscollection import GridDOSCollection
 from ase.dft.dos import DOS
 from koopmans.calculators import Wannier90Calculator, PW2WannierCalculator, Wann2KCPCalculator, PWCalculator, \
     KoopmansCPCalculator, EnvironCalculator, UnfoldAndInterpolateCalculator, Wann2KCCalculator, \
     KoopmansScreenCalculator, KoopmansHamCalculator, ProjwfcCalculator
-from koopmans.workflows import WannierizeWorkflow
-from koopmans import utils, projections, base_directory
+from koopmans import utils, base_directory, settings
 from koopmans.io import read_kwf as read_encoded_json
-from ._utils import benchmark_filename
+from ._utils import benchmark_filename, metadata_filename
 
 # A hard and a soft tolerance for checking floats
 tolerances = {'alpha': (2e-3, 2e-5),
@@ -25,7 +22,7 @@ tolerances = {'alpha': (2e-3, 2e-5),
               'default': (1e-4, 1e-7)}
 
 
-def compare(result, ref_result, result_name):
+def compare(result: Any, ref_result: Any, result_name: str) -> Optional[Dict[str, str]]:
     # Compare the calculated result to the reference result
 
     # Sanitise the input and fetch the corresponding tolerances
@@ -103,9 +100,7 @@ def compare(result, ref_result, result_name):
 
 
 class CheckCalc(ABC):
-    @abstractproperty
-    def results_for_qc(self) -> List[str]:
-        ...
+    results_for_qc: List[str]
 
     def calculate(self):
         # Before running the calculation, check the settings are the same
@@ -117,7 +112,8 @@ class CheckCalc(ABC):
                 benchmark = read_encoded_json(fd)
 
         # Compare the settings
-        for key in set(list(self.parameters.keys()) + list(benchmark.parameters.keys())):
+        unique_keys: Set[str] = set(list(self.parameters.keys()) + list(benchmark.parameters.keys()))
+        for key in unique_keys:
             if key not in self.parameters:
                 raise ValueError(f'Error in {self.prefix}: {key} is in benchmark but not in test')
             elif key not in benchmark.parameters:
@@ -145,20 +141,22 @@ class CheckCalc(ABC):
         super().calculate()
 
         # Check the results
+        calcname = (self.directory / self.prefix).relative_to(base_directory / 'tests' / 'tmp')
+        calcname = calcname.relative_to(calcname.parts[0])
         if self.skip_qc:
             # For some calculations (e.g. dummy calculations) we don't care about the results and actively don't
             # want to compare them against a benchmark. For these calculations, we set self.skip_qc to False inside
             # the corresponding workflow
             pass
         else:
-            messages = []
+            messages: List[Dict[str, str]] = []
 
             # Loop through results that require checking
             for result_name, ref_result in benchmark.results.items():
                 # Only inspect results listed in self.results_for_qc
                 if result_name not in self.results_for_qc:
                     continue
-                assert result_name in self.results, f'Error in {calc_path}: {result_name} is missing'
+                assert result_name in self.results, f'Error in {calcname}: {result_name} is missing'
                 result = self.results[result_name]
 
                 # Check the result against the benchmark
@@ -166,10 +164,6 @@ class CheckCalc(ABC):
 
                 if message is not None:
                     messages.append(message)
-
-            # Construct the name of this calculation
-            calcname = (self.directory / self.prefix).relative_to(base_directory / 'tests' / 'tmp')
-            calcname = calcname.relative_to(calcname.parts[0])
 
             # Warn for warnings:
             warnings = [f'  {m["message"]}' for m in messages if m['kind'] == 'warning']
@@ -186,6 +180,13 @@ class CheckCalc(ABC):
                 if len(errors) == 1:
                     message = message.replace('disagreements', 'disagreement')
                 raise ValueError(message)
+
+        # Check the expected files were produced
+        with open(metadata_filename(self), 'r') as fd:
+            metadata: Dict[str, str] = json.load(fd)
+
+        for output_file in metadata['output_files']:
+            assert (self.directory / output_file).exists(), f'Error in {calcname}: {output_file} was not generated'
 
 
 class CheckKoopmansCPCalculator(CheckCalc, KoopmansCPCalculator):
