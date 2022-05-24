@@ -2,37 +2,46 @@
 
 """
 
-wann2kcp calculator module for koopmans
+PhCalculator calculator module for koopmans
 
-Written by Riccardo De Gennaro Mar 2022
+Written by Marija Stojkovic  May 2022
 
 """
 
 import os
 from ase import Atoms
 from ase.calculators.espresso import EspressoPh
-from koopmans.settings import Wann2KCPSettingsDict
+from koopmans.settings import PhSettingsDict
 from koopmans.commands import ParallelCommand
 from ._utils import CalculatorExt, CalculatorABC, bin_directory
 
 
 class PhCalculator(CalculatorExt, EspressoPh, CalculatorABC):
 
-    ext_in = '.wki'
-    ext_out = '.wko'
+    # ext_in = '.phi'
+    # ext_out = '.pho'
 
     def __init__(self, atoms: Atoms, *args, **kwargs):
-        self.parameters = Wann2KCPSettingsDict()
+        self.parameters = PhSettingsDict()
 
         # Initialise first using the ASE parent and then CalculatorExt
-        Wann2KCP.__init__(self, atoms=atoms)
+        EspressoPh.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
 
-        self.command = ParallelCommand(os.environ.get('ASE_WANN2KCP_COMMAND',
-                                                      str(bin_directory) + os.path.sep + self.command))
+        self.command = ParallelCommand(f'{bin_directory}{os.path.sep}ph.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
 
     def is_converged(self):
         return True
 
     def is_complete(self):
         return self.results['job done']
+
+    def calculate(self):
+        super().calculate()
+	self.read_dyng()
+
+    def read_dyng(self):
+	with open(self.parameters.fildyn, 'r') as fd:
+	    flines = fd.readlines()
+	# HERE ADD CODE TO PARSE THE DYNG FILE
+	self.results['dielectric tensor'] = ?
