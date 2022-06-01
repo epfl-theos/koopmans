@@ -6,9 +6,9 @@ from koopmans.utils import chdir
 
 
 @pytest.mark.espresso
-def test_singlepoint_h2o_ki_dscf(water, espresso_patch, tmp_path, sys2file):
+def test_singlepoint_h2o_ki_dscf_explicit(water, espresso_patch, tmp_path, sys2file):
     '''
-    Test of H2O calculation of water that explicitly callsed Quantum ESPRESSO
+    Test of H2O calculation of water that explicitly calls Quantum ESPRESSO
     '''
     with chdir(tmp_path):
         parameters = {'functional': 'ki',
@@ -43,6 +43,22 @@ def test_singlepoint_si_ki_dscf(silicon, workflow_patch, tmp_path, sys2file):
                       'orbital_groups_self_hartree_tol': 100.0}
 
         wf = SinglepointWorkflow(parameters=parameters, kgrid=[2, 2, 2], kpath='GL', kpath_density=50, **silicon)
+        wf.run()
+
+
+@pytest.mark.espresso
+def test_singlepoint_si_ki_dfpt_explicit(silicon, espresso_patch, tmp_path, sys2file):
+    with chdir(tmp_path):
+
+        parameters = {'functional': 'ki',
+                      'method': 'dfpt',
+                      'from_scratch': True,
+                      'eps_inf': 13.02,
+                      'init_orbitals': 'mlwfs',
+                      'alpha_guess': 0.077,
+                      'orbital_groups_self_hartree_tol': 100.0}
+
+        wf = SinglepointWorkflow(parameters=parameters, kgrid=[2, 2, 2], kpath='GXG', **silicon)
         wf.run()
 
 

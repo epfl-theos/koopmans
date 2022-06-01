@@ -1,0 +1,155 @@
+{
+ "_parameters": {
+  "dis_froz_max": 10.6,
+  "dis_win_max": 16.9,
+  "write_u_matrices": true,
+  "write_xyz": true,
+  "projections": [
+   {
+    "fsite": [
+     0.25,
+     0.25,
+     0.25
+    ],
+    "ang_mtm": "sp3"
+   }
+  ],
+  "num_wann": 4,
+  "num_bands": 6,
+  "exclude_bands": "1-4",
+  "mp_grid": [
+   2,
+   2,
+   2
+  ],
+  "kpoints": {
+   "__ndarray__": [
+    [
+     8,
+     3
+    ],
+    "float64",
+    [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     -0.5,
+     0.0,
+     -0.5,
+     0.0,
+     0.0,
+     -0.5,
+     -0.5,
+     -0.5,
+     0.0,
+     0.0,
+     -0.5,
+     0.0,
+     -0.5,
+     -0.5,
+     -0.5,
+     0.0,
+     -0.5,
+     -0.5,
+     -0.5
+    ]
+   ]
+  },
+  "dis_num_iter": 5000,
+  "__koopmans_name__": "Wannier90SettingsDict",
+  "__koopmans_module__": "koopmans.settings._wannier90"
+ },
+ "atoms": {
+  "numbers": {
+   "__ndarray__": [
+    [
+     2
+    ],
+    "int64",
+    [
+     14,
+     14
+    ]
+   ]
+  },
+  "positions": {
+   "__ndarray__": [
+    [
+     2,
+     3
+    ],
+    "float64",
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.3575,
+     1.3575,
+     1.3575
+    ]
+   ]
+  },
+  "cell": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     0.0,
+     2.715,
+     2.715,
+     2.715,
+     0.0,
+     2.715,
+     2.715,
+     2.715,
+     0.0
+    ]
+   ]
+  },
+  "pbc": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "bool",
+    [
+     true,
+     true,
+     true
+    ]
+   ]
+  },
+  "__ase_objtype__": "atoms"
+ },
+ "results": {
+  "job done": true,
+  "convergence": false,
+  "Im/Re ratio": [],
+  "centers": [],
+  "spreads": []
+ },
+ "_directory": {
+  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dfpt_ex0/wannier/emp"
+ },
+ "prefix": "wann_preproc",
+ "name": "benchgenwannier90calculator",
+ "command": {
+  "path": {
+   "__path__": "/home/elinscott/code/koopmans/bin"
+  },
+  "executable": "wannier90.x",
+  "_flags": "-pp",
+  "suffix": "PREFIX.win > PREFIX.wout",
+  "__koopmans_name__": "Command",
+  "__koopmans_module__": "koopmans.commands"
+ },
+ "calc": {},
+ "skip_qc": false,
+ "__koopmans_name__": "BenchGenWannier90Calculator",
+ "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+}
