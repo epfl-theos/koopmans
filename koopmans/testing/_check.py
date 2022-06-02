@@ -8,8 +8,8 @@ from ase.spectrum.doscollection import GridDOSCollection
 from ase.dft.dos import DOS
 from koopmans.calculators import Wannier90Calculator, PW2WannierCalculator, Wann2KCPCalculator, PWCalculator, \
     KoopmansCPCalculator, EnvironCalculator, UnfoldAndInterpolateCalculator, Wann2KCCalculator, \
-    KoopmansScreenCalculator, KoopmansHamCalculator, ProjwfcCalculator
-from koopmans import utils, base_directory, settings
+    KoopmansScreenCalculator, KoopmansHamCalculator, ProjwfcCalculator, Calc
+from koopmans import utils, base_directory
 from koopmans.io import read_kwf as read_encoded_json
 from ._utils import benchmark_filename, metadata_filename
 
@@ -64,7 +64,8 @@ def compare(result: Any, ref_result: Any, result_name: str) -> Optional[Dict[str
 
         # Calculate the mixed difference
         scale_factor = 0.1 * np.max(np.abs(ref_result))
-        if scale_factor == 0.0:
+        if scale_factor < 1e-10:
+            # The array appears to be empty
             scale_factor = 1.0
         mixed_diffs = abs_diffs / (scale_factor + np.abs(ref_result))
 
@@ -101,6 +102,50 @@ def compare(result: Any, ref_result: Any, result_name: str) -> Optional[Dict[str
 
 class CheckCalc(ABC):
     results_for_qc: List[str]
+
+    @property
+    def _calcname(self) -> Path:
+        calcname = (self.directory / self.prefix).relative_to(base_directory / 'tests' / 'tmp')
+        return calcname.relative_to(calcname.parts[0])
+
+    def _check_results(self, benchmark: Calc):
+        messages = self._generate_messages(benchmark)
+        self._print_messages(messages)
+
+    def _generate_messages(self, benchmark: Calc) -> List[Dict[str, str]]:
+        messages: List[Dict[str, str]] = []
+
+        # Loop through results that require checking
+        for result_name, ref_result in benchmark.results.items():
+            # Only inspect results listed in self.results_for_qc
+            if result_name not in self.results_for_qc:
+                continue
+            assert result_name in self.results, f'Error in {calcname}: {result_name} is missing'
+            result = self.results[result_name]
+
+            # Check the result against the benchmark
+            message = compare(result, ref_result, result_name)
+
+            if message is not None:
+                messages.append(message)
+        return messages
+
+    def _print_messages(self, messages: List[Dict[str, str]]) -> None:
+        # Warn for warnings:
+        warnings = [f'  {m["message"]}' for m in messages if m['kind'] == 'warning']
+        if len(warnings) > 0:
+            message = f'Minor disagreements with benchmark detected for {self._calcname}\n' + '\n'.join(warnings)
+            if len(warnings) == 1:
+                message = message.replace('disagreements', 'disagreement')
+            utils.warn(message)
+
+        # Raise errors for errors:
+        errors = [f'  {m["message"]}' for m in messages if m['kind'] == 'error']
+        if len(errors) > 0:
+            message = f'Major disagreements with benchmark detected for {self._calcname}\n' + '\n'.join(errors)
+            if len(errors) == 1:
+                message = message.replace('disagreements', 'disagreement')
+            raise ValueError(message)
 
     def calculate(self):
         # Before running the calculation, check the settings are the same
@@ -141,52 +186,21 @@ class CheckCalc(ABC):
         super().calculate()
 
         # Check the results
-        calcname = (self.directory / self.prefix).relative_to(base_directory / 'tests' / 'tmp')
-        calcname = calcname.relative_to(calcname.parts[0])
         if self.skip_qc:
             # For some calculations (e.g. dummy calculations) we don't care about the results and actively don't
             # want to compare them against a benchmark. For these calculations, we set self.skip_qc to False inside
             # the corresponding workflow
             pass
         else:
-            messages: List[Dict[str, str]] = []
-
-            # Loop through results that require checking
-            for result_name, ref_result in benchmark.results.items():
-                # Only inspect results listed in self.results_for_qc
-                if result_name not in self.results_for_qc:
-                    continue
-                assert result_name in self.results, f'Error in {calcname}: {result_name} is missing'
-                result = self.results[result_name]
-
-                # Check the result against the benchmark
-                message = compare(result, ref_result, result_name)
-
-                if message is not None:
-                    messages.append(message)
-
-            # Warn for warnings:
-            warnings = [f'  {m["message"]}' for m in messages if m['kind'] == 'warning']
-            if len(warnings) > 0:
-                message = f'Minor disagreements with benchmark detected for {calcname}\n' + '\n'.join(warnings)
-                if len(warnings) == 1:
-                    message = message.replace('disagreements', 'disagreement')
-                utils.warn(message)
-
-            # Raise errors for errors:
-            errors = [f'  {m["message"]}' for m in messages if m['kind'] == 'error']
-            if len(errors) > 0:
-                message = f'Major disagreements with benchmark detected for {calcname}\n' + '\n'.join(errors)
-                if len(errors) == 1:
-                    message = message.replace('disagreements', 'disagreement')
-                raise ValueError(message)
+            self._check_results(benchmark)
 
         # Check the expected files were produced
         with open(metadata_filename(self), 'r') as fd:
             metadata: Dict[str, str] = json.load(fd)
 
         for output_file in metadata['output_files']:
-            assert (self.directory / output_file).exists(), f'Error in {calcname}: {output_file} was not generated'
+            assert (self.directory /
+                    output_file).exists(), f'Error in {self._calcname}: {output_file} was not generated'
 
 
 class CheckKoopmansCPCalculator(CheckCalc, KoopmansCPCalculator):
@@ -206,7 +220,52 @@ class CheckEnvironCalculator(CheckCalc, EnvironCalculator):
 
 class CheckWannier90Calculator(CheckCalc, Wannier90Calculator):
     results_for_qc = ['centers', 'spreads']
-    pass
+
+    def _generate_messages(self, benchmark: Calc) -> List[Dict[str, str]]:
+        # For a Wannier90 calculator, we don't want to check the contents of self.results key-by-key. Instead, we want
+        # to check if the same wannier functions have been found, accounting for permutations and for periodic images
+
+        messages: List[Dict[str, str]] = []
+
+        for key in ['centers', 'spreads']:
+            assert len(self.results[key]) == len(benchmark.results[key]), f'The list of {key} is the wrong length'
+
+        # If an empty list, return immediately
+        if len(benchmark.results['centers']) == 0:
+            return []
+
+        # Translate wannier centres to the unit cell
+        centers = self.atoms.cell.scaled_positions(np.array(self.results['centers'])) % 1
+        ref_centers = self.atoms.cell.scaled_positions(np.array(benchmark.results['centers'])) % 1
+
+        for i, (center, spread) in enumerate(zip(centers, self.results['spreads'])):
+            result = center + [spread]
+            match = False
+            rough_match = False
+            for j, (ref_center, ref_spread) in enumerate(zip(ref_centers, benchmark.results['spreads'])):
+                ref_result = ref_center + [ref_spread]
+                if np.allclose(result, ref_result, tolerances['default'][0]):
+                    match = True
+                    break
+                elif np.allclose(result, ref_result, tolerances['default'][1]):
+                    rough_match = True
+                    match_index = j
+                    match_spread = ref_spread
+                    match_center_str = ', '.join([f'{x:.5f}' for x in benchmark.results['centers'][match_index]])
+
+            center_str = ', '.join([f'{x:.5f}' for x in self.results['centers'][i]])
+
+            if match:
+                pass
+            elif rough_match:
+                message = f'Wannier function #{i+1}, with center = {center_str} and spread = {spread:.5f} does not precisely match' \
+                          f'the benchmark Wannier function #{j+1}, with center = {match_center_str} and spread = {match_spread:.5f}'
+                messages.append({'kind': 'warning', 'message': message})
+            else:
+                message = f'Wannier function #{i+1}, with center = {center_str} and spread = {spread:.5f} not found'
+                messages.append({'kind': 'error', 'message': message})
+
+        return messages
 
 
 class CheckPW2WannierCalculator(CheckCalc, PW2WannierCalculator):
