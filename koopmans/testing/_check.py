@@ -1,4 +1,4 @@
-from abc import ABC, abstractproperty
+from abc import ABC, abstractmethod
 import json
 import numpy as np
 from pathlib import Path
@@ -100,18 +100,15 @@ def compare(result: Any, ref_result: Any, result_name: str) -> Optional[Dict[str
     return None
 
 
-class CheckCalc(ABC):
+class CheckCalc:
     results_for_qc: List[str]
     prefix: str
     results: Dict[Any, Any]
 
-    @abstractproperty
-    def directory(self) -> Path:
-        ...
-
     @property
     def _calcname(self) -> Path:
-        calcname = (self.directory / self.prefix).relative_to(base_directory / 'tests' / 'tmp')
+        calcname = (self.directory / self.prefix).relative_to(base_directory /  # type: ignore[attr-defined]
+                                                              'tests' / 'tmp')
         return calcname.relative_to(calcname.parts[0])
 
     def _check_results(self, benchmark: Calc):
