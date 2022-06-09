@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractproperty
 import json
 import numpy as np
 from pathlib import Path
@@ -102,6 +102,12 @@ def compare(result: Any, ref_result: Any, result_name: str) -> Optional[Dict[str
 
 class CheckCalc(ABC):
     results_for_qc: List[str]
+    prefix: str
+    results: Dict[Any, Any]
+
+    @abstractproperty
+    def directory(self) -> Path:
+        ...
 
     @property
     def _calcname(self) -> Path:
@@ -120,7 +126,7 @@ class CheckCalc(ABC):
             # Only inspect results listed in self.results_for_qc
             if result_name not in self.results_for_qc:
                 continue
-            assert result_name in self.results, f'Error in {calcname}: {result_name} is missing'
+            assert result_name in self.results, f'Error in {self._calcname}: {result_name} is missing'
             result = self.results[result_name]
 
             # Check the result against the benchmark
