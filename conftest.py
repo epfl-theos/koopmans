@@ -10,6 +10,7 @@ from koopmans.projections import ProjectionBlocks
 def pytest_addoption(parser):
     parser.addoption("--ci", action="store_true", default=False, help="TODO")
     parser.addoption("--generate_benchmark", action="store_true", default=False, help="TODO")
+    parser.addoption("--stumble", action="store_true", default=False, help="TODO")
 
 
 @pytest.fixture
@@ -72,15 +73,33 @@ def monkeypatch_check(monkeypatch):
     monkeypatch.setattr('koopmans.calculators.ProjwfcCalculator', testing.CheckProjwfcCalculator)
 
 
+def monkeypatch_stumble(monkeypatch):
+    monkeypatch.setattr('koopmans.workflows.WannierizeWorkflow', testing.StumblingWannierizeWorkflow)
+    monkeypatch.setattr('koopmans.workflows.KoopmansDSCFWorkflow', testing.StumblingKoopmansDSCFWorkflow)
+    monkeypatch.setattr('koopmans.workflows.SinglepointWorkflow', testing.StumblingSinglepointWorkflow)
+    monkeypatch.setattr('koopmans.workflows.ConvergenceWorkflow', testing.StumblingConvergenceWorkflow)
+    monkeypatch.setattr('koopmans.workflows.FoldToSupercellWorkflow', testing.StumblingFoldToSupercellWorkflow)
+    monkeypatch.setattr('koopmans.workflows.DFTCPWorkflow', testing.StumblingDFTCPWorkflow)
+    monkeypatch.setattr('koopmans.workflows.DFTPWWorkflow', testing.StumblingDFTPWWorkflow)
+    monkeypatch.setattr('koopmans.workflows.DeltaSCFWorkflow', testing.StumblingDeltaSCFWorkflow)
+    monkeypatch.setattr('koopmans.workflows.KoopmansDFPTWorkflow', testing.StumblingKoopmansDFPTWorkflow)
+    # When running with stumble mode, we want to check our results against the benchmarks by using CheckCalcs
+    monkeypatch_check(monkeypatch)
+
+
 @pytest.fixture
 def tutorial_patch(monkeypatch, pytestconfig):
     # For the tutorials...
     if pytestconfig.getoption('generate_benchmark'):
         # when generating benchmarks, use BenchCalcs
         monkeypatch_bench(monkeypatch)
+    elif pytestconfig.getoption('stumble'):
+        # when testing recovery from a crash, use StumblingWorkflows
+        monkeypatch_stumble(monkeypatch)
     else:
         # we use MockCalcs when running our tests on github, OR if the user is running locally
         monkeypatch_mock(monkeypatch)
+        monkeypatch_stumble(monkeypatch, pytestconfig, mock=True)
 
 
 @pytest.fixture
@@ -89,6 +108,9 @@ def workflow_patch(monkeypatch, pytestconfig):
     if pytestconfig.getoption('generate_benchmark'):
         # when generating benchmarks, use BenchCalcs
         monkeypatch_bench(monkeypatch)
+    elif pytestconfig.getoption('stumble'):
+        # when testing recovery from a crash, use StumblingWorkflows
+        monkeypatch_stumble(monkeypatch)
     else:
         # we use MockCalcs when running our tests on github, OR if the user is running locally
         monkeypatch_mock(monkeypatch)
@@ -100,12 +122,16 @@ def espresso_patch(monkeypatch, pytestconfig):
     if pytestconfig.getoption('generate_benchmark'):
         # when generating benchmarks, use BenchCalcs
         monkeypatch_bench(monkeypatch)
+    elif pytestconfig.getoption('stumble'):
+        # when testing recovery from a crash, use StumblingWorkflows
+        monkeypatch_stumble(monkeypatch)
     elif pytestconfig.getoption('ci'):
         # when running our tests on github, these tests shold not be called!
         raise ValueError('These tests cannot be run with --ci')
     else:
         # when the user is running locally, use CheckCalcs
         monkeypatch_check(monkeypatch)
+        monkeypatch_stumble(monkeypatch, pytestconfig, mock=False)
 
 
 @pytest.fixture

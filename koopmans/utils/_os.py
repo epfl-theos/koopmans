@@ -14,7 +14,7 @@ import subprocess
 import contextlib
 
 
-def system_call(command, check_ierr=True):
+def system_call(command: str, check_ierr: bool = True):
     '''
     Make a system call and check the exit code
     '''
