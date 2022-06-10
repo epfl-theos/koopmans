@@ -39,9 +39,8 @@ def symlink(src: Union[str, Path], dest: Union[str, Path], relative: bool = True
 
         if dest.is_dir():
             dest /= src.name
-
-        dest = dest.resolve()
-        src = src.resolve()
+        dest = dest.absolute()
+        src = src.absolute()
 
         # Check if the src exists
         if not src.exists():
@@ -50,7 +49,6 @@ def symlink(src: Union[str, Path], dest: Union[str, Path], relative: bool = True
         if relative:
             # The equivalent of ln -sr
             src = Path(os.path.relpath(src, dest.parent))
-
         else:
             # The equivalent of ln -s
             pass
