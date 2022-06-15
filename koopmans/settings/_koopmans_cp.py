@@ -32,7 +32,9 @@ class KoopmansCPSettingsDict(SettingsDict):
                     'innerloop_nmax': 100,
                     'hartree_only_sic': False,
                     'conv_thr': '1.0e-9*nelec',
-                    'esic_conv_thr': '1.0e-9*nelec'}
+                    'esic_conv_thr': '1.0e-9*nelec',
+                    'print_real_space_density': False
+                    }
 
         # Get rid of any nested kwargs
         flattened_kwargs: Dict[str, Any] = {}
@@ -42,6 +44,7 @@ class KoopmansCPSettingsDict(SettingsDict):
             else:
                 flattened_kwargs[k] = v
 
+        
         super().__init__(valid=[k for sublist in kcp_keys.values() for k in sublist],
                          defaults=defaults,
                          are_paths=['outdir', 'pseudo_dir'],

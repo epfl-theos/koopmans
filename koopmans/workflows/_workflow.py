@@ -63,7 +63,7 @@ class Workflow(ABC):
                  projections: Optional[ProjectionBlocks] = None,
                  plot_params: Optional[settings.PlotSettingsDict] = None,
                  autogenerate_settings: bool = True):
-
+        
         # Parsing parameters
         self.parameters = settings.WorkflowSettingsDict(**parameters)
         self.atoms = atoms
