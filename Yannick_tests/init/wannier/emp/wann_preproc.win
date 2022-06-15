@@ -1,0 +1,34 @@
+num_iter = 10000
+conv_tol = 1e-10
+conv_window = 5
+write_hr = .true.
+guiding_centres = .true.
+gamma_only = .false.
+bands_plot = .false.
+dis_froz_max = 4.0
+
+begin projections
+  H:s
+end projections
+num_wann = 2
+num_bands = 8
+exclude_bands = 1-4
+mp_grid = 1 1 1
+
+begin kpoints
+  0.0 0.0 0.0 1.0
+end kpoints
+dis_num_iter = 5000
+
+begin atoms_frac
+  O 0.45407761700066596 0.45251635741124924 0.5369739703248912
+  H 0.49606466065266086 0.5820554483599066 0.5776493348682527
+  H 0.5459223829993339 0.4179445516400934 0.42235066513174724
+end atoms_frac
+
+begin unit_cell_cart
+  ang
+  6.6068 0.0 0.0
+  0.0 6.8929 0.0
+  0.0 0.0 6.2544
+end unit_cell_cart

@@ -1,0 +1,96 @@
+{
+    "workflow": {
+      "task": "trajectory",
+      "functional": "ki",
+      "init_orbitals": "mlwfs",
+      "mp_correction": true,
+      "periodic": true,
+      "pseudo_library": "sg15_v1.2",
+      "gb_correction": false,
+      "eps_inf": 1.72,
+      "fix_spin_contamination": true,
+      "frozen_orbitals": false,
+      "mt_correction": false
+    },
+    "setup": {
+    "snapshots": "water_traj.xyz" , 
+      "cell_parameters": {
+        "vectors": [
+          [
+            9.8149,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            9.8149,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            9.8149
+          ]
+        ],
+        "units": "angstrom"
+      },
+      "k_points": {
+        "kgrid": [
+          1,
+          1,
+          1
+        ],
+        "kpath": "GX"
+      }
+    },
+    "w90": {
+      "occ": {
+        "bands_plot": false,
+        "projections": [
+          {
+            "site": "O",
+            "ang_mtm": "sp3"
+          }
+        ]
+      },
+      "emp": {
+        "bands_plot": false,
+        "dis_froz_max": 4.0,
+        "projections": [
+          {
+            "site": "H",
+            "ang_mtm": "s"
+          }
+        ]
+      }
+    },
+    "ui": {},
+    "kcp": {
+      "system": {
+        "nbnd": 192,
+        "tot_charge": 0,
+        "tot_magnetization": 0,
+        "ecutwfc": 80,
+        "nelec": 256,
+        "nelup": 128,
+        "neldw": 128
+      },
+      "electrons": {
+        "conv_thr": 2.56e-07
+      },
+      "nksic": {
+        "esic_conv_thr": 2.56e-07
+      }
+    },
+    "pw": {
+      "system": {
+        "nbnd": 256,
+        "tot_charge": 0,
+        "tot_magnetization": 0,
+        "ecutwfc": 80
+      },
+      "electrons": {
+        "conv_thr": 5.12e-07
+      }
+    }
+  }

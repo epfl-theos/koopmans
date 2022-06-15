@@ -1,0 +1,43 @@
+&CONTROL
+   calculation      = 'nscf'
+   verbosity        = 'high'
+   outdir           = '/home/yshubert/code/koopmans/Yannick_tests/init/wannier/TMP/'
+   prefix           = 'kc'
+   pseudo_dir       = '/home/yshubert/code/koopmans/pseudos/sg15_v1.2/pbe/'
+/
+&SYSTEM
+   nbnd             = 12
+   tot_charge       = 0
+   ecutwfc          = 50
+   nosym            = .true.
+   noinv            = .true.
+   nspin            = 1
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 5.12e-07
+/
+&IONS
+/
+&CELL
+/
+
+ATOMIC_SPECIES
+O 15.999 O_ONCV_PBE-1.2.upf
+H 1.008 H_ONCV_PBE-1.2.upf
+
+K_POINTS automatic
+1 1 1  0 0 0
+
+CELL_PARAMETERS angstrom
+6.60680000000000 0.00000000000000 0.00000000000000
+0.00000000000000 6.89290000000000 0.00000000000000
+0.00000000000000 0.00000000000000 6.25440000000000
+
+ATOMIC_POSITIONS angstrom
+O 3.0000000000 3.1191500000 3.3584500000 
+H 3.2774000000 4.0120500000 3.6128500000 
+H 3.6068000000 2.8808500000 2.6415500000 
+

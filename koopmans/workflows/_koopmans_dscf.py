@@ -18,6 +18,7 @@ from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.bands import Band, Bands
 from koopmans import calculators
 from ._workflow import Workflow
+from ._ML import MLCapableWorkflow
 
 
 class KoopmansDSCFWorkflow(Workflow):
@@ -211,6 +212,8 @@ class KoopmansDSCFWorkflow(Workflow):
             final/                -- the final KI/KIPZ calculation
             postproc/             -- the unfolding and interpolation of the final band structure
         '''
+
+        # print("Yannick: n_max = ", self.n_max)
 
         # Removing old directories
         if self.parameters.from_scratch:
@@ -650,6 +653,7 @@ class KoopmansDSCFWorkflow(Workflow):
                                                        index_empty_to_save=index_empty_to_save, outdir=outdir_band,
                                                        add_to_spin_up=(band.spin == 0))
                         calc.directory = directory
+
 
                         # Run kcp.x
                         self.run_calculator(calc)

@@ -774,6 +774,12 @@ class Workflow(ABC):
 
         with open(fname, 'r') as fd:
             bigdct = json_ext.loads(fd.read())
+        wf = cls._fromjsondct(bigdct)
+        wf.name = fname.replace('.json', '')
+        return wf
+    
+    @classmethod
+    def _fromjsondct(cls, bigdct: Dict[str, Any]):
 
         # Deal with the nested w90 subdictionaries
         if 'w90' in bigdct:
@@ -894,9 +900,9 @@ class Workflow(ABC):
 
         workflow_kwargs['plot_params'] = plot_params
 
-        name = fname.replace('.json', '')
+        
 
-        return cls(atoms, parameters, master_calc_params, name, **workflow_kwargs)
+        return cls(atoms, parameters, master_calc_params, **workflow_kwargs)
 
     def print_header(self):
         print(header())
@@ -988,18 +994,7 @@ class Workflow(ABC):
             bigdct['setup']['cell_parameters'] = utils.construct_cell_parameters_block(self.atoms)
 
         # atomic positions
-        if len(set(self.atoms.get_tags())) > 1:
-            labels = [s + str(t) if t > 0 else s for s, t in zip(self.atoms.symbols, self.atoms.get_tags())]
-        else:
-            labels = self.atoms.symbols
-        if ibrav == 0:
-            bigdct['setup']['atomic_positions'] = {'positions': [
-                [label] + [str(x) for x in pos] for label, pos in zip(labels, self.atoms.get_positions())],
-                'units': 'angstrom'}
-        else:
-            bigdct['setup']['atomic_positions'] = {'positions': [
-                [label] + [str(x) for x in pos] for label, pos in zip(labels, self.atoms.get_scaled_positions())],
-                'units': 'crystal'}
+        bigdct['setup']['atomic_positions'] = utils.construct_atomic_positions_block(self.atoms, ibrav!=0)
 
         # k-points
         bigdct['setup']['k_points'] = {'kgrid': self.kgrid, 'kpath': self.kpath.path}

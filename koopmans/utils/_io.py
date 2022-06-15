@@ -9,6 +9,7 @@ Moved into utils Sep 2021
 
 from datetime import datetime
 import json
+from xmlrpc.client import boolean
 import numpy as np
 import numpy.typing as npt
 from typing import List, Union, Tuple
@@ -47,10 +48,20 @@ def construct_cell_parameters_block(atoms: Atoms) -> dict:
     return {'vectors': [list(row) for row in atoms.cell[:]], 'units': 'angstrom'}
 
 
-def construct_atomic_positions_block(atoms: Atoms) -> dict:
-    labels = atoms.get_chemical_symbols()
-    positions = atoms.get_scaled_positions()
-    return {'positions': list([label] + [x for x in pos] for label, pos in zip(labels, positions)), 'units': 'crystal'}
+def construct_atomic_positions_block(atoms: Atoms, crystal: bool = True) -> dict:
+    if len(set(atoms.get_tags())) > 1:
+        labels = [s + str(t) if t > 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
+    else:
+        labels = atoms.symbols
+    if not crystal:
+        dct = {'positions': [
+            [label] + [str(x) for x in pos] for label, pos in zip(labels, atoms.get_positions())],
+            'units': 'angstrom'}
+    else:
+        dct = {'positions': [
+            [label] + [str(x) for x in pos] for label, pos in zip(labels, atoms.get_scaled_positions())],
+            'units': 'crystal'}
+    return dct
 
 
 def construct_atomic_species_block(atoms: Atoms) -> dict:
