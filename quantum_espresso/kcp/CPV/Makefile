@@ -108,8 +108,8 @@ inner_loop_generalize.o \
 makov_payne.o \
 pc3nc_fixed.o \
 empty_koopmans_pp.o \
-perturbing_pot.o #\
-# yannick.o
+perturbing_pot.o \
+yannick.o
 
 # dgradcorr.o 
 # setup_gga.o

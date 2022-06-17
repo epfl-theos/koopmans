@@ -70,7 +70,7 @@
              | 675 Mass Ave, Cambridge, MA 02139, USA.           |
              |                                                   |
              +---------------------------------------------------+
-             |    Execution started on 17Jun2022 at 10:03:05     |
+             |    Execution started on 17Jun2022 at 11:19:07     |
              +---------------------------------------------------+
  
  ******************************************************************************
@@ -218,7 +218,7 @@
  |             3         0.000000    0.000000    1.004602                     |
  +----------------------------------------------------------------------------+
   
- Time to get kmesh              0.005 (sec)
+ Time to get kmesh              0.007 (sec)
  *============================================================================*
  |                              MEMORY ESTIMATE                               |
  |         Maximum RAM allocated during each phase of the calculation         |
@@ -229,6 +229,6 @@
   
  Starting a new Wannier90 calculation ...
 
- Time to write kmesh            0.009 (sec)
+ Time to write kmesh            0.010 (sec)
 
  Exiting... wann_preproc.nnkp written.

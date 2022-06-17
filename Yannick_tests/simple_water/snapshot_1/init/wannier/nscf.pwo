@@ -1,5 +1,5 @@
 
-     Program PWSCF v.7.0 starts on 17Jun2022 at 10: 3: 4 
+     Program PWSCF v.7.0 starts on 17Jun2022 at 11:19: 6 
 
      This program is part of the open-source Quantum ESPRESSO suite
      for quantum simulation of materials; please cite
@@ -13,8 +13,8 @@
      Parallel version (MPI), running on     8 processors
 
      MPI processes distributed on     1 nodes
-     7976 MiB available memory on the printing compute node when the environment starts
- 
+     5625 MiB available memory on the printing compute node when the environment starts
+
      Reading input from nscf.pwi
 Warning: card &IONS ignored
 Warning: card / ignored
@@ -29,22 +29,22 @@ Warning: card / ignored
      Atomic positions and unit cell read from directory:
      /home/yshubert/code/koopmans/Yannick_tests/simple_water/snapshot_1/init/wannier/TMP/kc.save/
      Atomic positions from file used, from input discarded
- 
- 
+
+
      R & G space division:  proc/nbgrp/npool/nimage =       8
      Subspace diagonalization in iterative solution of the eigenvalue problem:
      a serial algorithm will be used
 
- 
+
      Parallelization info
      --------------------
      sticks:   dense  smooth     PW     G-vecs:    dense   smooth      PW
      Min         324     324     81                11471    11471    1432
      Max         326     326     83                11472    11472    1434
      Sum        2595    2595    653                91775    91775   11463
- 
+
      Using Slab Decomposition
- 
+
 
 
      bravais-lattice index     =            0
@@ -177,11 +177,11 @@ Warning: card / ignored
      Davidson diagonalization with overlap
 
      Computing kpt #:     1  of     1
-     total cpu time spent up to now is        0.6 secs
+     total cpu time spent up to now is        0.7 secs
 
      ethr =  6.40E-09,  avg # of iterations = 49.0
 
-     total cpu time spent up to now is        0.6 secs
+     total cpu time spent up to now is        0.7 secs
 
      End of band structure calculation
 
@@ -197,54 +197,54 @@ Warning: card / ignored
      highest occupied, lowest unoccupied level (ev):    -6.7751   -1.0768
 
      Writing all to output data dir /home/yshubert/code/koopmans/Yannick_tests/simple_water/snapshot_1/init/wannier/TMP/kc.save/
- 
-     init_run     :      0.08s CPU      0.12s WALL (       1 calls)
-     electrons    :      0.36s CPU      0.45s WALL (       1 calls)
+
+     init_run     :      0.11s CPU      0.17s WALL (       1 calls)
+     electrons    :      0.40s CPU      0.44s WALL (       1 calls)
 
      Called by init_run:
      wfcinit      :      0.00s CPU      0.00s WALL (       1 calls)
-     wfcinit:wfcr :      0.00s CPU      0.01s WALL (       1 calls)
+     wfcinit:wfcr :      0.01s CPU      0.01s WALL (       1 calls)
      potinit      :      0.01s CPU      0.02s WALL (       1 calls)
-     hinit0       :      0.05s CPU      0.09s WALL (       1 calls)
+     hinit0       :      0.09s CPU      0.13s WALL (       1 calls)
 
      Called by electrons:
-     c_bands      :      0.36s CPU      0.45s WALL (       1 calls)
+     c_bands      :      0.40s CPU      0.44s WALL (       1 calls)
      v_of_rho     :      0.01s CPU      0.02s WALL (       1 calls)
      v_h          :      0.00s CPU      0.00s WALL (       1 calls)
-     v_xc         :      0.01s CPU      0.02s WALL (       1 calls)
+     v_xc         :      0.01s CPU      0.01s WALL (       1 calls)
 
      Called by c_bands:
      init_us_2    :      0.00s CPU      0.00s WALL (       1 calls)
      init_us_2:cp :      0.00s CPU      0.00s WALL (       1 calls)
-     cegterg      :      0.36s CPU      0.44s WALL (       3 calls)
+     cegterg      :      0.39s CPU      0.43s WALL (       3 calls)
 
      Called by sum_band:
 
      Called by *egterg:
      cdiaghg      :      0.01s CPU      0.01s WALL (      50 calls)
-     cegterg:over :      0.02s CPU      0.03s WALL (      49 calls)
-     cegterg:upda :      0.00s CPU      0.01s WALL (      49 calls)
-     cegterg:last :      0.01s CPU      0.01s WALL (      37 calls)
-     h_psi        :      0.30s CPU      0.38s WALL (      53 calls)
+     cegterg:over :      0.02s CPU      0.02s WALL (      49 calls)
+     cegterg:upda :      0.01s CPU      0.01s WALL (      49 calls)
+     cegterg:last :      0.01s CPU      0.02s WALL (      37 calls)
+     h_psi        :      0.33s CPU      0.36s WALL (      53 calls)
      g_psi        :      0.00s CPU      0.00s WALL (      49 calls)
 
      Called by h_psi:
      h_psi:calbec :      0.01s CPU      0.01s WALL (      53 calls)
-     vloc_psi     :      0.29s CPU      0.36s WALL (      53 calls)
-     add_vuspsi   :      0.00s CPU      0.00s WALL (      53 calls)
+     vloc_psi     :      0.31s CPU      0.34s WALL (      53 calls)
+     add_vuspsi   :      0.01s CPU      0.01s WALL (      53 calls)
 
      General routines
      calbec       :      0.01s CPU      0.01s WALL (      53 calls)
-     fft          :      0.01s CPU      0.03s WALL (      10 calls)
-     fftw         :      0.27s CPU      0.33s WALL (     824 calls)
+     fft          :      0.01s CPU      0.05s WALL (      10 calls)
+     fftw         :      0.28s CPU      0.30s WALL (     824 calls)
      davcio       :      0.00s CPU      0.00s WALL (       2 calls)
- 
-     Parallel routines
- 
-     PWSCF        :      0.49s CPU      0.64s WALL
 
- 
-   This run was terminated on:  10: 3: 5  17Jun2022            
+     Parallel routines
+
+     PWSCF        :      0.57s CPU      0.68s WALL
+
+
+   This run was terminated on:  11:19: 7  17Jun2022            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

@@ -1,0 +1,980 @@
+=------------------------------------------------------------------------------=
+
+     CP: variable-cell Car-Parrinello molecular dynamics
+     using norm-conserving and ultrasoft Vanderbilt pseudopotentials
+
+     Version: 4.1 - Fr 17 Jun 2022 11:09:14 CEST                          
+     Authors: Alfredo Pasquarello, Kari Laasonen, Andrea Trave, Roberto Car,
+       Paolo Giannozzi, Nicola Marzari, Carlo Cavazzoni, Guido Chiarotti,
+       Sandro Scandolo, Paolo Focher, Gerardo Ballabio, and others
+
+=------------------------------------------------------------------------------=
+
+   This run was started on:  11:19:19  17Jun2022               
+
+   MPI Parallel Build
+   Tasks =    8  This task id =    0
+     Message from routine  system_checkin     :
+      starting_magnetization is not used in CP 
+Warning: card &NKSIC ignored
+Warning: card    DO_INNERLOOP     = .FALSE. ignored
+Warning: card    INNERLOOP_CG_NRESET = 20 ignored
+Warning: card    INNERLOOP_CG_NSD = 2 ignored
+Warning: card    INNERLOOP_INIT_N = 3 ignored
+Warning: card    HARTREE_ONLY_SIC = .FALSE. ignored
+Warning: card    ESIC_CONV_THR    = 2.56E-07 ignored
+Warning: card    DO_INNERLOOP_CG  = .TRUE. ignored
+Warning: card    INNERLOOP_NMAX   = 100 ignored
+Warning: card    DO_INNERLOOP_EMPTY = .FALSE. ignored
+Warning: card / ignored
+
+   Job Title: MD Simulation
+
+
+   Atomic Pseudopotentials Parameters
+   ----------------------------------
+
+   Reading pseudopotential for specie #  1 from file :
+   /home/yshubert/code/koopmans/pseudos/sg15_v1.2/pbe/O_ONCV_PBE-1.2.upf
+   file type is 20: UPF
+ read_nonlocal
+
+   Reading pseudopotential for specie #  2 from file :
+   /home/yshubert/code/koopmans/pseudos/sg15_v1.2/pbe/H_ONCV_PBE-1.2.upf
+   file type is 20: UPF
+ read_nonlocal
+
+
+   Main Simulation Parameters (from input)
+   ---------------------------------------
+   ion_nstepe or cell_nstepe have no effects 
+   Restart Mode       =       1   restart        
+   Number of MD Steps =      50
+   Print out every            1 MD Steps
+   Reads from unit    =      50
+   Writes to unit     =      51
+   MD Simulation time step            =       1.00
+   Electronic fictitious mass (emass) =     400.00
+   emass cut-off                      =       2.50
+
+   Simulation Cell Parameters (from input)
+   external pressure       =            0.00 [GPa]
+   wmass (calculated)      =         2495.49 [AU]
+   initial cell from CELL_PARAMETERS card
+       6.60680000    0.00000000    0.00000000
+       0.00000000    6.89290000    0.00000000
+       0.00000000    0.00000000    6.25440000
+   ibrav =    0
+   alat  =    12.48504256
+   a1    =    12.48504256    0.00000000    0.00000000
+   a2    =     0.00000000   13.02569320    0.00000000
+   a3    =     0.00000000    0.00000000   11.81910307
+
+   b1    =     0.08009584    0.00000000    0.00000000
+   b2    =     0.00000000    0.07677135    0.00000000
+   b3    =     0.00000000    0.00000000    0.08460879
+   omega =  1922.09740446
+ nbeg           1
+
+    ========================================
+    |  CONJUGATE GRADIENT                  |
+    ========================================
+    | iterations   =           300         |
+    | conv_thr     = 0.00000025600 a.u.    |
+    | passop       =       2.00000 a.u.    |
+    | niter_cg_restart =  20      |
+    ========================================
+
+   Energy Cut-offs
+   ---------------
+   Ecutwfc =   50.0 Ry,      Ecutrho =  200.0 Ry,      Ecuts =  200.0 Ry
+   Gcutwfc =   14.1     ,    Gcutrho =   28.1          Gcuts =   28.1
+   NOTA BENE: refg, mmx =   0.050000  8000
+   Orthog. with Gram-Schmidt
+   Electron dynamics with conjugate gradient
+   Electron dynamics : the temperature is not controlled
+
+   Electronic states
+   -----------------
+   Local Spin Density calculation
+   Number of Electron =     8
+   Spins up   =     4, occupations: 
+   1.00 1.00 1.00 1.00
+   Spins down =     4, occupations: 
+   1.00 1.00 1.00 1.00
+
+
+   Empty states minimization
+   --------------------------
+      states =        8
+     maxiter =      300
+        ethr =   0.1000D-05
+
+
+   Exchange and correlations functionals
+   -------------------------------------
+   Using Local Density Approximation with
+     Exchange functional: SLATER                                                      
+     Correlation functional: PERDEW AND WANG                                             
+   Using Generalized Gradient Corrections with
+     Exchange functional: PERDEW BURKE ERNZERHOF                                      
+     Correlation functional: PERDEW BURKE ERNZERHOF                                      
+     Exchange-correlation      = PBE (1434)
+   Wavefunctions will be written to file as Kohn-Sham states
+
+
+   Ions Simulation Parameters
+   --------------------------
+   Ions are not allowed to move
+   Ionic position (from input)
+   sorted by specie, and converted to real a.u. coordinates
+   Species   1 atoms =    1 mass =     29164.39 (a.u.),        16.00 (amu) rcmax =   1.00 (a.u.)
+        5.669178     5.894339     6.346551
+   Species   2 atoms =    2 mass =      1837.47 (a.u.),         1.01 (amu) rcmax =   1.00 (a.u.)
+        6.193388     7.581676     6.827297
+        6.815864     5.444018     4.991806
+   Ionic position will be re-read from restart file
+
+
+   Cell Dynamics Parameters (from STDIN)
+   -------------------------------------
+   Starting cell generated from CELLDM
+   Cell parameters will be re-read from restart file
+   Constant VOLUME Molecular dynamics
+   cell parameters are not allowed to move
+
+   Verbosity: iprsta =  1
+
+ nbeg           1
+
+
+   Simulation dimensions initialization
+   ------------------------------------
+
+   unit vectors of full simulation cell
+   in real space:                         in reciprocal space (units 2pi/alat):
+   1    12.4850    0.0000    0.0000              1.0000    0.0000    0.0000
+   2     0.0000   13.0257    0.0000              0.0000    0.9585    0.0000
+   3     0.0000    0.0000   11.8191              0.0000    0.0000    1.0563
+
+   Stick Mesh
+   ----------
+   nst =  1298,  nstw =   327, nsts =  1298
+        PEs    n.st   n.stw   n.sts    n.g    n.gw   n.gs
+          1     324      80     324   11472    1432   11472
+          2     324      82     324   11472    1434   11472
+          3     324      82     324   11472    1434   11472
+          4     324      82     324   11472    1434   11472
+          5     324      82     324   11472    1434   11472
+          6     327      81     327   11471    1431   11471
+          7     324      82     324   11472    1434   11472
+          8     324      82     324   11472    1430   11472
+          0    2595     653    2595   91775   11463   91775
+
+
+   Real Mesh
+   ---------
+   Global Dimensions   Local  Dimensions   Processor Grid
+   .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
+    60    60    54      60    60     7       1     1     8
+   Array leading dimensions ( nr1x, nr2x, nr3x )   =     60    60    54
+   Local number of cell to store the grid ( nnrx ) =      25200
+   Number of x-y planes for each processors: 
+   nr3l =     7    7    7    7    7    7    6    6
+
+   Smooth Real Mesh
+   ----------------
+   Global Dimensions   Local  Dimensions   Processor Grid
+   .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
+    60    60    54      60    60     7       1     1     8
+   Array leading dimensions ( nr1x, nr2x, nr3x )   =     60    60    54
+   Local number of cell to store the grid ( nnrx ) =      25200
+   Number of x-y planes for each processors: 
+   nr3sl =     7    7    7    7    7    7    6    6
+
+   Reciprocal Space Mesh
+   ---------------------
+                Large Mesh
+   PE   Global(ngmt)     Local(ngm) MaxLocal(ngmx)
+    1          91775          11472          11472
+    2          91775          11472          11472
+    3          91775          11472          11472
+    4          91775          11472          11472
+    5          91775          11472          11472
+    6          91775          11471          11472
+    7          91775          11472          11472
+    8          91775          11472          11472
+                Smooth Mesh
+   PE   Global(ngst)     Local(ngs) MaxLocal(ngsx)
+    1          91775          11472          11472
+    2          91775          11472          11472
+    3          91775          11472          11472
+    4          91775          11472          11472
+    5          91775          11472          11472
+    6          91775          11471          11472
+    7          91775          11472          11472
+    8          91775          11472          11472
+                Wave function Mesh
+   PE   Global(ngwt)     Local(ngw) MaxLocal(ngwx)
+    1          11463           1432           1434
+    2          11463           1434           1434
+    3          11463           1434           1434
+    4          11463           1434           1434
+    5          11463           1434           1434
+    6          11463           1431           1434
+    7          11463           1434           1434
+    8          11463           1430           1434
+
+
+   System geometry initialization
+   ------------------------------
+
+   Scaled positions from standard input
+   O    4.540776E-01  4.525164E-01  5.369740E-01
+   H    4.960647E-01  5.820554E-01  5.776493E-01
+   H    5.459224E-01  4.179446E-01  4.223507E-01
+   ibrav =    0       cell parameters 
+
+      12.48504       0.00000       0.00000
+       0.00000      13.02569       0.00000
+       0.00000       0.00000      11.81910
+
+
+   Matrix Multiplication Performances
+   ortho mmul, time for parallel driver      =   0.00000 with    1 procs
+
+   Constraints matrixes will be distributed block like on
+   ortho sub-group =    1*   1 procs
+
+
+
+   Pseudopotentials initialization
+   -------------------------------
+
+
+   Common initialization
+
+   Specie:     1
+   1  indv=  1   ang. mom=  0
+   2  indv=  2   ang. mom=  0
+   3  indv=  3   ang. mom=  1
+   4  indv=  3   ang. mom=  1
+   5  indv=  3   ang. mom=  1
+   6  indv=  4   ang. mom=  1
+   7  indv=  4   ang. mom=  1
+   8  indv=  4   ang. mom=  1
+
+                        dion 
+      9.757151948500      0.000000000000      0.000000000000      0.000000000000
+      0.000000000000      1.376126720650      0.000000000000      0.000000000000
+      0.000000000000      0.000000000000     -4.806858824850      0.000000000000
+      0.000000000000      0.000000000000      0.000000000000     -1.616239702250
+
+   Specie:     2
+   1  indv=  1   ang. mom=  0
+   2  indv=  2   ang. mom=  0
+
+                        dion 
+    -12.008220743500      0.000000000000
+      0.000000000000     -0.516823145650
+
+   Short Legend and Physical Units in the Output
+   ---------------------------------------------
+   NFI    [int]          - step index
+   EKINC  [HARTREE A.U.] - kinetic energy of the fictitious electronic dynamics
+   TEMPH  [K]            - Temperature of the fictitious cell dynamics
+   TEMP   [K]            - Ionic temperature
+   ETOT   [HARTREE A.U.] - Scf total energy (Kohn-Sham hamiltonian)
+   ENTHAL [HARTREE A.U.] - Enthalpy ( ETOT + P * V )
+   ECONS  [HARTREE A.U.] - Enthalpy + kinetic energy of ions and cell
+   ECONT  [HARTREE A.U.] - Constant of motion for the CP lagrangian
+
+
+   f_cutoff =  0.0100
+   do_spinsym   =    F
+   EE with periodic-image correction method = tcc                 
+ USING TCC FOR ODD T
+
+   reading restart file: /home/yshubert/code/koopmans/Yannick_tests/simple_water/snapshot_1/TMP-CP//kc_50.save
+ here should be iotk first error
+ here should be iotk first error
+   restart file read in    0.008 sec.
+
+ nprint_nfi=           -2
+ nprint_nfi=            1
+
+   formf: eself=  15.15981
+   formf:     vps(g=0)=  -0.0077088     rhops(g=0)=  -0.0029301
+   formf:     vps(g=0)=  -0.0077088     rhops(g=0)=  -0.0029301
+   formf: sum_g vps(g)=  -8.5353623 sum_g rhops(g)=  -1.0775227
+   formf:     vps(g=0)=  -0.0014917     rhops(g=0)=  -0.0004883
+   formf:     vps(g=0)=  -0.0014917     rhops(g=0)=  -0.0004883
+   formf: sum_g vps(g)=  -3.4260746 sum_g rhops(g)=  -0.1795871
+   Delta V(G=0):   0.013073Ry,    0.355736eV
+ in init_run from wannier start Linh
+ in init_run from wannier end Linh
+
+ * Physical Quantities at step:     2
+
+PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
+
+     CP           :     0.67s CPU time,    0.86s wall time
+
+     iteration =   1  eff iteration =   1   Etot (Ha) =              Infinity
+     CP           :     0.79s CPU time,    0.98s wall time
+
+     iteration =   2  eff iteration =   2   Etot (Ha) =              Infinity
+     CP           :     0.87s CPU time,    1.08s wall time
+
+     iteration =   3  eff iteration =   3   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     0.96s CPU time,    1.18s wall time
+
+     iteration =   4  eff iteration =   4   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     1.06s CPU time,    1.29s wall time
+
+     iteration =   5  eff iteration =   5   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     1.14s CPU time,    1.39s wall time
+
+     iteration =   6  eff iteration =   6   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     1.24s CPU time,    1.49s wall time
+
+     iteration =   7  eff iteration =   7   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     1.33s CPU time,    1.60s wall time
+
+     iteration =   8  eff iteration =   8   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     1.41s CPU time,    1.70s wall time
+
+     iteration =   9  eff iteration =   9   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     1.50s CPU time,    1.81s wall time
+
+     iteration =  10  eff iteration =  10   Etot (Ha) =              Infinity delta_E=                   NaN
+
+     CP           :     1.58s CPU time,    1.91s wall time
+
+     iteration =  11  eff iteration =  11   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     1.68s CPU time,    2.02s wall time
+
+     iteration =  12  eff iteration =  12   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     1.78s CPU time,    2.12s wall time
+
+     iteration =  13  eff iteration =  13   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     1.86s CPU time,    2.22s wall time
+
+     iteration =  14  eff iteration =  14   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     1.95s CPU time,    2.32s wall time
+
+     iteration =  15  eff iteration =  15   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     2.04s CPU time,    2.42s wall time
+
+     iteration =  16  eff iteration =  16   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     2.14s CPU time,    2.53s wall time
+
+     iteration =  17  eff iteration =  17   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     2.22s CPU time,    2.63s wall time
+
+     iteration =  18  eff iteration =  18   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     2.31s CPU time,    2.74s wall time
+
+     iteration =  19  eff iteration =  19   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     2.40s CPU time,    2.86s wall time
+
+     iteration =  20  eff iteration =  20   Etot (Ha) =              Infinity delta_E=                   NaN
+
+     CP           :     2.53s CPU time,    3.02s wall time
+
+     iteration =  21  eff iteration =  21   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     2.65s CPU time,    3.16s wall time
+
+     iteration =  22  eff iteration =  22   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     2.74s CPU time,    3.29s wall time
+
+     iteration =  23  eff iteration =  23   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     2.85s CPU time,    3.42s wall time
+
+     iteration =  24  eff iteration =  24   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     2.96s CPU time,    3.56s wall time
+
+     iteration =  25  eff iteration =  25   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     3.08s CPU time,    3.70s wall time
+
+     iteration =  26  eff iteration =  26   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     3.19s CPU time,    3.83s wall time
+
+     iteration =  27  eff iteration =  27   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     3.30s CPU time,    3.96s wall time
+
+     iteration =  28  eff iteration =  28   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     3.39s CPU time,    4.09s wall time
+
+     iteration =  29  eff iteration =  29   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     3.50s CPU time,    4.23s wall time
+
+     iteration =  30  eff iteration =  30   Etot (Ha) =              Infinity delta_E=                   NaN
+
+     CP           :     3.61s CPU time,    4.36s wall time
+
+     iteration =  31  eff iteration =  31   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     3.73s CPU time,    4.49s wall time
+
+     iteration =  32  eff iteration =  32   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     3.84s CPU time,    4.62s wall time
+
+     iteration =  33  eff iteration =  33   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     3.95s CPU time,    4.75s wall time
+
+     iteration =  34  eff iteration =  34   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     4.05s CPU time,    4.88s wall time
+
+     iteration =  35  eff iteration =  35   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     4.16s CPU time,    5.01s wall time
+
+     iteration =  36  eff iteration =  36   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     4.29s CPU time,    5.14s wall time
+
+     iteration =  37  eff iteration =  37   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     4.40s CPU time,    5.27s wall time
+
+     iteration =  38  eff iteration =  38   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     4.51s CPU time,    5.40s wall time
+
+     iteration =  39  eff iteration =  39   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     4.62s CPU time,    5.53s wall time
+
+     iteration =  40  eff iteration =  40   Etot (Ha) =              Infinity delta_E=                   NaN
+
+     CP           :     4.76s CPU time,    5.69s wall time
+
+     iteration =  41  eff iteration =  41   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     4.87s CPU time,    5.82s wall time
+
+     iteration =  42  eff iteration =  42   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     5.00s CPU time,    5.95s wall time
+
+     iteration =  43  eff iteration =  43   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     5.11s CPU time,    6.08s wall time
+
+     iteration =  44  eff iteration =  44   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     5.21s CPU time,    6.21s wall time
+
+     iteration =  45  eff iteration =  45   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     5.33s CPU time,    6.34s wall time
+
+     iteration =  46  eff iteration =  46   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     5.44s CPU time,    6.47s wall time
+
+     iteration =  47  eff iteration =  47   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     5.55s CPU time,    6.60s wall time
+
+     iteration =  48  eff iteration =  48   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     5.64s CPU time,    6.71s wall time
+
+     iteration =  49  eff iteration =  49   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     5.73s CPU time,    6.81s wall time
+
+     iteration =  50  eff iteration =  50   Etot (Ha) =              Infinity delta_E=                   NaN
+
+     CP           :     5.83s CPU time,    6.92s wall time
+
+     iteration =  51  eff iteration =  51   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     5.93s CPU time,    7.03s wall time
+
+     iteration =  52  eff iteration =  52   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     6.03s CPU time,    7.14s wall time
+
+     iteration =  53  eff iteration =  53   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     6.12s CPU time,    7.25s wall time
+
+     iteration =  54  eff iteration =  54   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     6.21s CPU time,    7.36s wall time
+
+     iteration =  55  eff iteration =  55   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     6.32s CPU time,    7.47s wall time
+
+     iteration =  56  eff iteration =  56   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     6.41s CPU time,    7.59s wall time
+
+     iteration =  57  eff iteration =  57   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     6.51s CPU time,    7.71s wall time
+
+     iteration =  58  eff iteration =  58   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     6.61s CPU time,    7.82s wall time
+
+     iteration =  59  eff iteration =  59   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     6.70s CPU time,    7.93s wall time
+
+     iteration =  60  eff iteration =  60   Etot (Ha) =              Infinity delta_E=                   NaN
+
+     CP           :     6.82s CPU time,    8.06s wall time
+
+     iteration =  61  eff iteration =  61   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     6.91s CPU time,    8.16s wall time
+
+     iteration =  62  eff iteration =  62   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     7.00s CPU time,    8.26s wall time
+
+     iteration =  63  eff iteration =  63   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     7.09s CPU time,    8.37s wall time
+
+     iteration =  64  eff iteration =  64   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     7.18s CPU time,    8.47s wall time
+
+     iteration =  65  eff iteration =  65   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     7.27s CPU time,    8.56s wall time
+
+     iteration =  66  eff iteration =  66   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     7.35s CPU time,    8.66s wall time
+
+     iteration =  67  eff iteration =  67   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     7.44s CPU time,    8.75s wall time
+
+     iteration =  68  eff iteration =  68   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     7.52s CPU time,    8.85s wall time
+
+     iteration =  69  eff iteration =  69   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     7.60s CPU time,    8.95s wall time
+
+     iteration =  70  eff iteration =  70   Etot (Ha) =              Infinity delta_E=                   NaN
+
+     CP           :     7.69s CPU time,    9.05s wall time
+
+     iteration =  71  eff iteration =  71   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     7.77s CPU time,    9.14s wall time
+
+     iteration =  72  eff iteration =  72   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     7.86s CPU time,    9.24s wall time
+
+     iteration =  73  eff iteration =  73   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     7.95s CPU time,    9.34s wall time
+
+     iteration =  74  eff iteration =  74   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     8.04s CPU time,    9.43s wall time
+
+     iteration =  75  eff iteration =  75   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     8.11s CPU time,    9.53s wall time
+
+     iteration =  76  eff iteration =  76   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     8.20s CPU time,    9.63s wall time
+
+     iteration =  77  eff iteration =  77   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     8.29s CPU time,    9.72s wall time
+
+     iteration =  78  eff iteration =  78   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     8.38s CPU time,    9.82s wall time
+
+     iteration =  79  eff iteration =  79   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     8.47s CPU time,    9.92s wall time
+
+     iteration =  80  eff iteration =  80   Etot (Ha) =              Infinity delta_E=                   NaN
+
+     CP           :     8.58s CPU time,   10.04s wall time
+
+     iteration =  81  eff iteration =  81   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     8.68s CPU time,   10.14s wall time
+
+     iteration =  82  eff iteration =  82   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     8.78s CPU time,   10.27s wall time
+
+     iteration =  83  eff iteration =  83   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     8.89s CPU time,   10.40s wall time
+
+     iteration =  84  eff iteration =  84   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     9.00s CPU time,   10.53s wall time
+
+     iteration =  85  eff iteration =  85   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     9.12s CPU time,   10.66s wall time
+
+     iteration =  86  eff iteration =  86   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     9.23s CPU time,   10.79s wall time
+
+     iteration =  87  eff iteration =  87   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     9.34s CPU time,   10.92s wall time
+
+     iteration =  88  eff iteration =  88   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     9.45s CPU time,   11.05s wall time
+
+     iteration =  89  eff iteration =  89   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     9.54s CPU time,   11.18s wall time
+
+     iteration =  90  eff iteration =  90   Etot (Ha) =              Infinity delta_E=                   NaN
+
+     CP           :     9.65s CPU time,   11.31s wall time
+
+     iteration =  91  eff iteration =  91   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     9.75s CPU time,   11.44s wall time
+
+     iteration =  92  eff iteration =  92   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     9.86s CPU time,   11.58s wall time
+
+     iteration =  93  eff iteration =  93   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :     9.96s CPU time,   11.71s wall time
+
+     iteration =  94  eff iteration =  94   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    10.07s CPU time,   11.84s wall time
+
+     iteration =  95  eff iteration =  95   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    10.18s CPU time,   11.97s wall time
+
+     iteration =  96  eff iteration =  96   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    10.29s CPU time,   12.10s wall time
+
+     iteration =  97  eff iteration =  97   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    10.41s CPU time,   12.23s wall time
+
+     iteration =  98  eff iteration =  98   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    10.54s CPU time,   12.36s wall time
+
+     iteration =  99  eff iteration =  99   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    10.65s CPU time,   12.49s wall time
+
+     iteration = 100  eff iteration = 100   Etot (Ha) =              Infinity delta_E=                   NaN
+
+     CP           :    10.79s CPU time,   12.65s wall time
+
+     iteration = 101  eff iteration = 101   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    10.91s CPU time,   12.78s wall time
+
+     iteration = 102  eff iteration = 102   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    11.01s CPU time,   12.91s wall time
+
+     iteration = 103  eff iteration = 103   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    11.12s CPU time,   13.04s wall time
+
+     iteration = 104  eff iteration = 104   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    11.23s CPU time,   13.17s wall time
+
+     iteration = 105  eff iteration = 105   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    11.34s CPU time,   13.31s wall time
+
+     iteration = 106  eff iteration = 106   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    11.44s CPU time,   13.44s wall time
+
+     iteration = 107  eff iteration = 107   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    11.56s CPU time,   13.57s wall time
+
+     iteration = 108  eff iteration = 108   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    11.68s CPU time,   13.70s wall time
+
+     iteration = 109  eff iteration = 109   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    11.78s CPU time,   13.83s wall time
+
+     iteration = 110  eff iteration = 110   Etot (Ha) =              Infinity delta_E=                   NaN
+
+     CP           :    11.87s CPU time,   13.96s wall time
+
+     iteration = 111  eff iteration = 111   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    11.96s CPU time,   14.06s wall time
+
+     iteration = 112  eff iteration = 112   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    12.05s CPU time,   14.16s wall time
+
+     iteration = 113  eff iteration = 113   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    12.14s CPU time,   14.27s wall time
+
+     iteration = 114  eff iteration = 114   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    12.24s CPU time,   14.38s wall time
+
+     iteration = 115  eff iteration = 115   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    12.33s CPU time,   14.49s wall time
+
+     iteration = 116  eff iteration = 116   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    12.43s CPU time,   14.60s wall time
+
+     iteration = 117  eff iteration = 117   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    12.51s CPU time,   14.72s wall time
+
+     iteration = 118  eff iteration = 118   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    12.61s CPU time,   14.83s wall time
+
+     iteration = 119  eff iteration = 119   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    12.71s CPU time,   14.94s wall time
+
+     iteration = 120  eff iteration = 120   Etot (Ha) =              Infinity delta_E=                   NaN
+
+     CP           :    12.83s CPU time,   15.08s wall time
+
+     iteration = 121  eff iteration = 121   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    12.91s CPU time,   15.19s wall time
+
+     iteration = 122  eff iteration = 122   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    13.01s CPU time,   15.30s wall time
+
+     iteration = 123  eff iteration = 123   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    13.10s CPU time,   15.41s wall time
+
+     iteration = 124  eff iteration = 124   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    13.19s CPU time,   15.51s wall time
+
+     iteration = 125  eff iteration = 125   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    13.29s CPU time,   15.62s wall time
+
+     iteration = 126  eff iteration = 126   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    13.37s CPU time,   15.72s wall time
+
+     iteration = 127  eff iteration = 127   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    13.46s CPU time,   15.82s wall time
+
+     iteration = 128  eff iteration = 128   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    13.55s CPU time,   15.91s wall time
+
+     iteration = 129  eff iteration = 129   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    13.63s CPU time,   16.01s wall time
+
+     iteration = 130  eff iteration = 130   Etot (Ha) =              Infinity delta_E=                   NaN
+
+     CP           :    13.72s CPU time,   16.10s wall time
+
+     iteration = 131  eff iteration = 131   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    13.81s CPU time,   16.20s wall time
+
+     iteration = 132  eff iteration = 132   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    13.90s CPU time,   16.30s wall time
+
+     iteration = 133  eff iteration = 133   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    13.98s CPU time,   16.40s wall time
+
+     iteration = 134  eff iteration = 134   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    14.07s CPU time,   16.49s wall time
+
+     iteration = 135  eff iteration = 135   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    14.16s CPU time,   16.59s wall time
+
+     iteration = 136  eff iteration = 136   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    14.23s CPU time,   16.68s wall time
+
+     iteration = 137  eff iteration = 137   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    14.33s CPU time,   16.78s wall time
+
+     iteration = 138  eff iteration = 138   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    14.41s CPU time,   16.88s wall time
+
+     iteration = 139  eff iteration = 139   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    14.51s CPU time,   16.98s wall time
+
+     iteration = 140  eff iteration = 140   Etot (Ha) =              Infinity delta_E=                   NaN
+
+     CP           :    14.60s CPU time,   17.10s wall time
+
+     iteration = 141  eff iteration = 141   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    14.68s CPU time,   17.19s wall time
+
+     iteration = 142  eff iteration = 142   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    14.78s CPU time,   17.29s wall time
+
+     iteration = 143  eff iteration = 143   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    14.86s CPU time,   17.39s wall time
+
+     iteration = 144  eff iteration = 144   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    14.95s CPU time,   17.49s wall time
+
+     iteration = 145  eff iteration = 145   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    15.05s CPU time,   17.62s wall time
+
+     iteration = 146  eff iteration = 146   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    15.17s CPU time,   17.75s wall time
+
+     iteration = 147  eff iteration = 147   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    15.27s CPU time,   17.88s wall time
+
+     iteration = 148  eff iteration = 148   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    15.38s CPU time,   18.02s wall time
+
+     iteration = 149  eff iteration = 149   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    15.49s CPU time,   18.14s wall time
+
+     iteration = 150  eff iteration = 150   Etot (Ha) =              Infinity delta_E=                   NaN
+
+     CP           :    15.60s CPU time,   18.28s wall time
+
+     iteration = 151  eff iteration = 151   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    15.73s CPU time,   18.41s wall time
+
+     iteration = 152  eff iteration = 152   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    15.85s CPU time,   18.54s wall time
+
+     iteration = 153  eff iteration = 153   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    15.94s CPU time,   18.67s wall time
+
+     iteration = 154  eff iteration = 154   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    16.05s CPU time,   18.80s wall time
+
+     iteration = 155  eff iteration = 155   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    16.17s CPU time,   18.93s wall time
+
+     iteration = 156  eff iteration = 156   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    16.27s CPU time,   19.06s wall time
+
+     iteration = 157  eff iteration = 157   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    16.38s CPU time,   19.19s wall time
+
+     iteration = 158  eff iteration = 158   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    16.51s CPU time,   19.32s wall time
+
+     iteration = 159  eff iteration = 159   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    16.60s CPU time,   19.45s wall time
+
+     iteration = 160  eff iteration = 160   Etot (Ha) =              Infinity delta_E=                   NaN
+
+     CP           :    16.74s CPU time,   19.61s wall time
+
+     iteration = 161  eff iteration = 161   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    16.85s CPU time,   19.74s wall time
+
+     iteration = 162  eff iteration = 162   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    16.97s CPU time,   19.87s wall time
+
+     iteration = 163  eff iteration = 163   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    17.08s CPU time,   20.00s wall time
+
+     iteration = 164  eff iteration = 164   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    17.18s CPU time,   20.13s wall time
+
+     iteration = 165  eff iteration = 165   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    17.29s CPU time,   20.26s wall time
+
+     iteration = 166  eff iteration = 166   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    17.40s CPU time,   20.39s wall time
+
+     iteration = 167  eff iteration = 167   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    17.50s CPU time,   20.52s wall time
+
+     iteration = 168  eff iteration = 168   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    17.61s CPU time,   20.65s wall time
+
+     iteration = 169  eff iteration = 169   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    17.72s CPU time,   20.79s wall time
+
+     iteration = 170  eff iteration = 170   Etot (Ha) =              Infinity delta_E=                   NaN
+
+     CP           :    17.82s CPU time,   20.91s wall time
+
+     iteration = 171  eff iteration = 171   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    17.91s CPU time,   21.05s wall time
+
+     iteration = 172  eff iteration = 172   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    18.03s CPU time,   21.18s wall time
+
+     iteration = 173  eff iteration = 173   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    18.15s CPU time,   21.31s wall time
+
+     iteration = 174  eff iteration = 174   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    18.25s CPU time,   21.41s wall time
+
+     iteration = 175  eff iteration = 175   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    18.35s CPU time,   21.52s wall time
+
+     iteration = 176  eff iteration = 176   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    18.44s CPU time,   21.63s wall time
+
+     iteration = 177  eff iteration = 177   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    18.54s CPU time,   21.75s wall time
+
+     iteration = 178  eff iteration = 178   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    18.64s CPU time,   21.86s wall time
+
+     iteration = 179  eff iteration = 179   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    18.73s CPU time,   21.97s wall time
+
+     iteration = 180  eff iteration = 180   Etot (Ha) =              Infinity delta_E=                   NaN
+
+     CP           :    18.84s CPU time,   22.11s wall time
+
+     iteration = 181  eff iteration = 181   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    18.94s CPU time,   22.22s wall time
+
+     iteration = 182  eff iteration = 182   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    19.05s CPU time,   22.33s wall time
+
+     iteration = 183  eff iteration = 183   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    19.14s CPU time,   22.44s wall time
+
+     iteration = 184  eff iteration = 184   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    19.24s CPU time,   22.56s wall time
+
+     iteration = 185  eff iteration = 185   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    19.34s CPU time,   22.65s wall time
+
+     iteration = 186  eff iteration = 186   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    19.44s CPU time,   22.76s wall time
+
+     iteration = 187  eff iteration = 187   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    19.53s CPU time,   22.86s wall time
+
+     iteration = 188  eff iteration = 188   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    19.62s CPU time,   22.96s wall time
+
+     iteration = 189  eff iteration = 189   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    19.69s CPU time,   23.05s wall time
+
+     iteration = 190  eff iteration = 190   Etot (Ha) =              Infinity delta_E=                   NaN
+
+     CP           :    19.78s CPU time,   23.16s wall time
+
+     iteration = 191  eff iteration = 191   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    19.86s CPU time,   23.25s wall time
+
+     iteration = 192  eff iteration = 192   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    19.96s CPU time,   23.35s wall time
+
+     iteration = 193  eff iteration = 193   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    20.05s CPU time,   23.44s wall time
+
+     iteration = 194  eff iteration = 194   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    20.13s CPU time,   23.54s wall time
+
+     iteration = 195  eff iteration = 195   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    20.22s CPU time,   23.64s wall time
+
+     iteration = 196  eff iteration = 196   Etot (Ha) =              Infinity delta_E=                   NaN
+     CP           :    20.31s CPU time,   23.74s wall time
+
+     iteration = 197  eff iteration = 197   Etot (Ha) =              Infinity delta_E=                   NaN
+[mpiexec@theospc17] Sending Ctrl-C to processes as requested
+[mpiexec@theospc17] Press Ctrl-C again to force abort
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 0 PID 279190 RUNNING AT theospc17
+=   KILLED BY SIGNAL: 2 (Interrupt)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 1 PID 279191 RUNNING AT theospc17
+=   KILLED BY SIGNAL: 2 (Interrupt)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 2 PID 279192 RUNNING AT theospc17
+=   KILLED BY SIGNAL: 2 (Interrupt)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 3 PID 279193 RUNNING AT theospc17
+=   KILLED BY SIGNAL: 2 (Interrupt)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 4 PID 279195 RUNNING AT theospc17
+=   KILLED BY SIGNAL: 2 (Interrupt)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 5 PID 279196 RUNNING AT theospc17
+=   KILLED BY SIGNAL: 2 (Interrupt)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 6 PID 279197 RUNNING AT theospc17
+=   KILLED BY SIGNAL: 2 (Interrupt)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 7 PID 279198 RUNNING AT theospc17
+=   KILLED BY SIGNAL: 2 (Interrupt)
+===================================================================================

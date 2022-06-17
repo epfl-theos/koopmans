@@ -1,5 +1,5 @@
 
-     Program PWSCF v.7.0 starts on 17Jun2022 at 10: 3: 7 
+     Program PWSCF v.7.0 starts on 17Jun2022 at 11:19: 9 
 
      This program is part of the open-source Quantum ESPRESSO suite
      for quantum simulation of materials; please cite
@@ -13,8 +13,8 @@
      Parallel version (MPI), running on     8 processors
 
      MPI processes distributed on     1 nodes
-     12173 MiB available memory on the printing compute node when the environment starts
- 
+     11079 MiB available memory on the printing compute node when the environment starts
+
      Reading input from bands.pwi
 Warning: card &IONS ignored
 Warning: card / ignored
@@ -29,22 +29,22 @@ Warning: card / ignored
      Atomic positions and unit cell read from directory:
      /home/yshubert/code/koopmans/Yannick_tests/simple_water/snapshot_1/init/wannier/TMP/kc_bands.save/
      Atomic positions from file used, from input discarded
- 
- 
+
+
      R & G space division:  proc/nbgrp/npool/nimage =       8
      Subspace diagonalization in iterative solution of the eigenvalue problem:
      a serial algorithm will be used
 
- 
+
      Parallelization info
      --------------------
      sticks:   dense  smooth     PW     G-vecs:    dense   smooth      PW
      Min         324     324     86                11471    11471    1600
      Max         326     326     87                11472    11472    1603
      Sum        2595    2595    695                91775    91775   12817
- 
+
      Using Slab Decomposition
- 
+
 
 
      bravais-lattice index     =            0
@@ -203,29 +203,143 @@ Warning: card / ignored
      total cpu time spent up to now is        0.9 secs
 
      Computing kpt #:     3  of    11
-     total cpu time spent up to now is        1.3 secs
+     total cpu time spent up to now is        1.4 secs
 
      Computing kpt #:     4  of    11
-     total cpu time spent up to now is        1.7 secs
+     total cpu time spent up to now is        1.9 secs
 
      Computing kpt #:     5  of    11
-     total cpu time spent up to now is        2.2 secs
+     total cpu time spent up to now is        2.4 secs
 
      Computing kpt #:     6  of    11
-     total cpu time spent up to now is        2.6 secs
+     total cpu time spent up to now is        2.9 secs
 
      Computing kpt #:     7  of    11
-     total cpu time spent up to now is        3.1 secs
+     total cpu time spent up to now is        3.4 secs
 
      Computing kpt #:     8  of    11
-     total cpu time spent up to now is        3.5 secs
+     total cpu time spent up to now is        3.8 secs
 
      Computing kpt #:     9  of    11
-     total cpu time spent up to now is        4.0 secs
+     total cpu time spent up to now is        4.3 secs
 
      Computing kpt #:    10  of    11
-     total cpu time spent up to now is        4.4 secs
+     total cpu time spent up to now is        4.7 secs
 
      Computing kpt #:    11  of    11
-[mpiexec@theospc17] Sending Ctrl-C to processes as requested
-[mpiexec@theospc17] Press Ctrl-C again to force abort
+     total cpu time spent up to now is        5.0 secs
+
+     ethr =  6.40E-09,  avg # of iterations = 49.3
+
+     total cpu time spent up to now is        5.0 secs
+
+     End of band structure calculation
+
+          k = 0.0000 0.0000 0.0000 ( 11463 PWs)   bands (ev):
+
+   -24.9704 -12.6746  -8.9133  -6.7751  -1.0768   1.8234   2.1351   2.6375
+     2.7673   3.0972   3.1879   4.6395
+
+          k = 0.0000 0.0000 0.0528 ( 11495 PWs)   bands (ev):
+
+   -24.9712 -12.6762  -8.9149  -6.7779  -1.0679   1.8068   2.1379   2.6276
+     2.7131   2.9863   3.4138   4.6292
+
+          k = 0.0000 0.0000 0.1056 ( 11505 PWs)   bands (ev):
+
+   -24.9715 -12.6764  -8.9156  -6.7792  -1.0409   1.7462   2.1463   2.5255
+     2.6949   2.9699   3.7109   4.6006
+
+          k = 0.0000 0.0000 0.1585 ( 11489 PWs)   bands (ev):
+
+   -24.9709 -12.6750  -8.9151  -6.7792  -0.9964   1.6194   2.1604   2.4415
+     2.7302   3.0040   3.9807   4.5737
+
+          k = 0.0000 0.0000 0.2113 ( 11473 PWs)   bands (ev):
+
+   -24.9706 -12.6748  -8.9145  -6.7780  -0.9352   1.4324   2.1851   2.4311
+     2.7838   3.0637   4.1007   4.4693
+
+          k = 0.0000 0.0000 0.2641 ( 11461 PWs)   bands (ev):
+
+   -24.9703 -12.6753  -8.9133  -6.7777  -0.8592   1.2179   2.2239   2.4690
+     2.8513   3.1441   4.0325   4.2774
+
+          k = 0.0000 0.0000 0.3169 ( 11477 PWs)   bands (ev):
+
+   -24.9707 -12.6765  -8.9141  -6.7797  -0.7714   1.0018   2.2738   2.5328
+     2.9288   3.2429   3.8943   4.1018
+
+          k = 0.0000 0.0000 0.3697 ( 11468 PWs)   bands (ev):
+
+   -24.9705 -12.6761  -8.9139  -6.7801  -0.6764   0.8012   2.3296   2.6103
+     3.0109   3.3585   3.7456   3.9544
+
+          k = 0.0000 0.0000 0.4225 ( 11478 PWs)   bands (ev):
+
+   -24.9708 -12.6769  -8.9145  -6.7814  -0.5840   0.6308   2.3820   2.6892
+     3.0877   3.4845   3.6121   3.8502
+
+          k = 0.0000 0.0000 0.4754 ( 11488 PWs)   bands (ev):
+
+   -24.9711 -12.6775  -8.9150  -6.7827  -0.5113   0.5103   2.4210   2.7530
+     3.1454   3.5011   3.6165   3.8095
+
+          k = 0.0000 0.0000 0.5282 ( 11466 PWs)   bands (ev):
+
+   -24.9706 -12.6761  -8.9143  -6.7812  -0.4823   0.4658   2.4361   2.7788
+     3.1681   3.4620   3.6718   3.8312
+
+     Writing all to output data dir /home/yshubert/code/koopmans/Yannick_tests/simple_water/snapshot_1/init/wannier/TMP/kc_bands.save/
+
+     init_run     :      0.12s CPU      0.14s WALL (       1 calls)
+     electrons    :      3.88s CPU      4.81s WALL (       1 calls)
+
+     Called by init_run:
+     wfcinit      :      0.00s CPU      0.00s WALL (       1 calls)
+     wfcinit:wfcr :      0.11s CPU      0.13s WALL (      11 calls)
+     potinit      :      0.01s CPU      0.02s WALL (       1 calls)
+     hinit0       :      0.10s CPU      0.11s WALL (       1 calls)
+
+     Called by electrons:
+     c_bands      :      3.88s CPU      4.81s WALL (       1 calls)
+     v_of_rho     :      0.01s CPU      0.01s WALL (       1 calls)
+     v_h          :      0.00s CPU      0.00s WALL (       1 calls)
+     v_xc         :      0.01s CPU      0.01s WALL (       1 calls)
+
+     Called by c_bands:
+     init_us_2    :      0.00s CPU      0.00s WALL (      11 calls)
+     init_us_2:cp :      0.00s CPU      0.00s WALL (      11 calls)
+     cegterg      :      3.75s CPU      4.66s WALL (      34 calls)
+
+     Called by sum_band:
+
+     Called by *egterg:
+     cdiaghg      :      0.09s CPU      0.11s WALL (     553 calls)
+     cegterg:over :      0.22s CPU      0.27s WALL (     542 calls)
+     cegterg:upda :      0.06s CPU      0.07s WALL (     542 calls)
+     cegterg:last :      0.11s CPU      0.13s WALL (     394 calls)
+     h_psi        :      3.19s CPU      3.96s WALL (     587 calls)
+     g_psi        :      0.04s CPU      0.04s WALL (     542 calls)
+
+     Called by h_psi:
+     h_psi:calbec :      0.11s CPU      0.13s WALL (     587 calls)
+     vloc_psi     :      3.04s CPU      3.77s WALL (     587 calls)
+     add_vuspsi   :      0.03s CPU      0.04s WALL (     587 calls)
+
+     General routines
+     calbec       :      0.11s CPU      0.13s WALL (     587 calls)
+     fft          :      0.02s CPU      0.03s WALL (      10 calls)
+     fftw         :      2.80s CPU      3.48s WALL (    9024 calls)
+     davcio       :      0.00s CPU      0.00s WALL (      22 calls)
+
+     Parallel routines
+
+     PWSCF        :      4.09s CPU      5.08s WALL
+
+
+   This run was terminated on:  11:19:14  17Jun2022            
+
+=------------------------------------------------------------------------------=
+   JOB DONE.
+=------------------------------------------------------------------------------=

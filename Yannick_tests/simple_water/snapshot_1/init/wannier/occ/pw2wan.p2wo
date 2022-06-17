@@ -1,5 +1,5 @@
 
-     Program PW2WANNIER v.7.0 starts on 17Jun2022 at 10: 3: 5 
+     Program PW2WANNIER v.7.0 starts on 17Jun2022 at 11:19: 7 
 
      This program is part of the open-source Quantum ESPRESSO suite
      for quantum simulation of materials; please cite
@@ -14,9 +14,9 @@
 
      MPI processes distributed on     1 nodes
      R & G space division:  proc/nbgrp/npool/nimage =       8
-     4329 MiB available memory on the printing compute node when the environment starts
- 
- 
+     1863 MiB available memory on the printing compute node when the environment starts
+
+
   Reading nscf_save data
 
      Reading xml data from directory:
@@ -29,101 +29,101 @@
      Any further DFT definition will be discarded
      Please, verify this is what you really want
 
- 
+
      Parallelization info
      --------------------
      sticks:   dense  smooth     PW     G-vecs:    dense   smooth      PW
      Min         324     324     81                11471    11471    1432
      Max         326     326     83                11472    11472    1434
      Sum        2595    2595    653                91775    91775   11463
- 
+
      Using Slab Decomposition
- 
+
      Reading collected, re-writing distributed wavefunctions
- 
+
   Spin CASE ( default = unpolarized )
- 
+
   Wannier mode is: standalone     
- 
+
   -----------------
   *** Reading nnkp 
   -----------------
- 
+
   Checking info from wannier.nnkp file
- 
+
   - Real lattice is ok
   - Reciprocal lattice is ok
   - K-points are ok
   - Number of wannier functions is ok (  4)
   - All guiding functions are given 
- 
+
  Projections:
     0.454080    0.472116    0.508329 -3  1  1    1.000000
     0.454080    0.472116    0.508329 -3  2  1    1.000000
     0.454080    0.472116    0.508329 -3  3  1    1.000000
     0.454080    0.472116    0.508329 -3  4  1    1.000000
- 
+
   Reading data about k-point neighbours 
- 
+
   All neighbours are found 
- 
+
   Opening pp-files 
- 
- 
+
+
   --------------------------
   *** Compute  A projections
   --------------------------
- 
+
   AMN: iknum =        1
        1
 
   AMN calculated
- 
+
   ---------------
   *** Compute  M 
   ---------------
- 
+
   MMN: iknum =        1
        1
 
   MMN calculated
- 
+
   -----------------------------------
   *** Orbital terms are not computed 
   -----------------------------------
- 
+
   -----------------------------------
   *** SHC terms are not computed 
   -----------------------------------
- 
+
   ----------------
   *** Write bands 
   ----------------
- 
- 
+
+
   -----------------------------
   *** Plot info is not printed 
   -----------------------------
- 
+
   -----------------------------
   *** Parity info is not printed 
   -----------------------------
- 
+
   ------------
   *** Stop pp 
   ------------
- 
- 
-     init_pw2wan  :      0.11s CPU      0.14s WALL (       1 calls)
-     compute_amn  :      0.14s CPU      0.14s WALL (       1 calls)
-     compute_mmn  :      0.02s CPU      0.03s WALL (       1 calls)
- 
-     PW2WANNIER   :      0.27s CPU      0.31s WALL
 
- 
-   This run was terminated on:  10: 3: 5  17Jun2022            
+
+     init_pw2wan  :      0.17s CPU      0.21s WALL (       1 calls)
+     compute_amn  :      0.23s CPU      0.26s WALL (       1 calls)
+     compute_mmn  :      0.01s CPU      0.02s WALL (       1 calls)
+
+     PW2WANNIER   :      0.42s CPU      0.49s WALL
+
+
+   This run was terminated on:  11:19: 8  17Jun2022            
 
 =------------------------------------------------------------------------------=
    JOB DONE.
 =------------------------------------------------------------------------------=
- 
+
