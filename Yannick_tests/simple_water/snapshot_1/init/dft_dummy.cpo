@@ -3,14 +3,14 @@
      CP: variable-cell Car-Parrinello molecular dynamics
      using norm-conserving and ultrasoft Vanderbilt pseudopotentials
 
-     Version: 4.1 - Fr 17 Jun 2022 11:09:14 CEST                          
+     Version: 4.1 - Fr 17 Jun 2022 12:47:42 CEST                          
      Authors: Alfredo Pasquarello, Kari Laasonen, Andrea Trave, Roberto Car,
        Paolo Giannozzi, Nicola Marzari, Carlo Cavazzoni, Guido Chiarotti,
        Sandro Scandolo, Paolo Focher, Gerardo Ballabio, and others
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  11:19:18  17Jun2022               
+   This run was started on:  18:46:35  17Jun2022               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -69,7 +69,7 @@ Warning: card / ignored
    a1    =    12.48504256    0.00000000    0.00000000
    a2    =     0.00000000   13.02569320    0.00000000
    a3    =     0.00000000    0.00000000   11.81910307
-
+ 
    b1    =     0.08009584    0.00000000    0.00000000
    b2    =     0.00000000    0.07677135    0.00000000
    b3    =     0.00000000    0.00000000    0.08460879
@@ -156,7 +156,7 @@ Warning: card / ignored
    1    12.4850    0.0000    0.0000              1.0000    0.0000    0.0000
    2     0.0000   13.0257    0.0000              0.0000    0.9585    0.0000
    3     0.0000    0.0000   11.8191              0.0000    0.0000    1.0563
-
+ 
    Stick Mesh
    ----------
    nst =  1298,  nstw =   327, nsts =  1298
@@ -170,8 +170,8 @@ Warning: card / ignored
           7     324      82     324   11472    1434   11472
           8     324      82     324   11472    1430   11472
           0    2595     653    2595   91775   11463   91775
-
-
+ 
+ 
    Real Mesh
    ---------
    Global Dimensions   Local  Dimensions   Processor Grid
@@ -181,7 +181,7 @@ Warning: card / ignored
    Local number of cell to store the grid ( nnrx ) =      25200
    Number of x-y planes for each processors: 
    nr3l =     7    7    7    7    7    7    6    6
-
+ 
    Smooth Real Mesh
    ----------------
    Global Dimensions   Local  Dimensions   Processor Grid
@@ -191,7 +191,7 @@ Warning: card / ignored
    Local number of cell to store the grid ( nnrx ) =      25200
    Number of x-y planes for each processors: 
    nr3sl =     7    7    7    7    7    7    6    6
-
+ 
    Reciprocal Space Mesh
    ---------------------
                 Large Mesh
@@ -228,7 +228,7 @@ Warning: card / ignored
 
    System geometry initialization
    ------------------------------
-
+ 
    Scaled positions from standard input
    O    4.540776E-01  4.525164E-01  5.369740E-01
    H    4.960647E-01  5.820554E-01  5.776493E-01
@@ -257,7 +257,7 @@ Warning: card / ignored
    6  indv=  4   ang. mom=  1
    7  indv=  4   ang. mom=  1
    8  indv=  4   ang. mom=  1
-
+ 
                         dion 
       9.757151948500      0.000000000000      0.000000000000      0.000000000000
       0.000000000000      1.376126720650      0.000000000000      0.000000000000
@@ -267,11 +267,11 @@ Warning: card / ignored
    Specie:     2
    1  indv=  1   ang. mom=  0
    2  indv=  2   ang. mom=  0
-
+ 
                         dion 
     -12.008220743500      0.000000000000
       0.000000000000     -0.516823145650
-
+ 
    Short Legend and Physical Units in the Output
    ---------------------------------------------
    NFI    [int]          - step index
@@ -282,7 +282,7 @@ Warning: card / ignored
    ENTHAL [HARTREE A.U.] - Enthalpy ( ETOT + P * V )
    ECONS  [HARTREE A.U.] - Enthalpy + kinetic energy of ions and cell
    ECONT  [HARTREE A.U.] - Constant of motion for the CP lagrangian
-
+ 
 
    f_cutoff =  0.0100
    do_spinsym   =    F
@@ -310,9 +310,9 @@ Warning: card / ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.75s CPU time,    0.91s wall time
+     CP           :     0.27s CPU time,    0.28s wall time
 
-     iteration =   1  eff iteration =   1   Etot (Ha) =              Infinity
+     iteration =   1  eff iteration =   1   Etot (Ha) =     48.82949302203299
 
 
    Empty-states WFCs file NOT FOUND
@@ -324,10 +324,10 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EMPTY STATES
 
-     CP           :     0.77s CPU time,    0.93s wall time
+     CP           :     0.28s CPU time,    0.30s wall time
 
-     iteration =   1  eff iteration =   1   Etot (Ha) =     46.24630219858971
-     Ekin (Ha) =      47.66583443807878 Enl (Ha) =      -0.00074750044433 Eloc (Ha) =     -1.41878473904474
+     iteration =   1  eff iteration =   1   Etot (Ha) =     46.24630219858970
+     Ekin (Ha) =      47.66583443807875 Enl (Ha) =      -0.00074750044433 Eloc (Ha) =     -1.41878473904473
 
    writing empty state KC  Hamiltonian file: hamiltonian_emp
 
@@ -349,10 +349,10 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EMPTY STATES
 
 
 
-                total energy =           Infinity Hartree a.u.
+                total energy =      48.8294930220 Hartree a.u.
               kinetic energy =      47.6672325734 Hartree a.u.
-        electrostatic energy =           Infinity Hartree a.u.
-                         esr =           Infinity Hartree a.u.
+        electrostatic energy =       3.5368480354 Hartree a.u.
+                         esr =       0.4409668149 Hartree a.u.
                        eself =      15.1598066553 Hartree a.u.
       pseudopotential energy =      -0.0686299381 Hartree a.u.
   n-l pseudopotential energy =       0.0017874681 Hartree a.u.
@@ -417,8 +417,8 @@ EMP    1 --    0.00   ---    0.00    0.00    0.00   ---   0.000   0.000
 EMP    2 --    0.00   ---    0.00    0.00    0.00   ---   0.000   0.000
 EMP    3 --    0.00   ---    0.00    0.00    0.00   ---   0.000   0.000
 EMP    4 --    0.00   ---    0.00    0.00    0.00   ---   0.000   0.000
-
-
+ 
+ 
    CELL_PARAMETERS
     1.24850426E+01    0.00000000E+00    0.00000000E+00
     0.00000000E+00    1.30256932E+01    0.00000000E+00
@@ -433,27 +433,27 @@ EMP    4 --    0.00   ---    0.00    0.00    0.00   ---   0.000   0.000
    O    5.669178E+00  5.894339E+00  6.346551E+00
    H    6.193388E+00  7.581676E+00  6.827297E+00
    H    6.815864E+00  5.444018E+00  4.991806E+00
-
+ 
    ATOMIC_VELOCITIES
    O    0.000000E+00  0.000000E+00  0.000000E+00
    H    0.000000E+00  0.000000E+00  0.000000E+00
    H    0.000000E+00  0.000000E+00  0.000000E+00
-
+ 
 
 
    Partial temperatures (for each ionic specie) 
    Species  Temp (K)   Mean Square Displacement (a.u.)
         1       0.00     0.0000
         2       0.00     0.0000
-
+ 
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
-
+ 
        nfi   tempp            E -T.S-mu.nbsp         +K_p #Iter
-Step     1       0     Infinity     Infinity     Infinity     1
+Step     1       0     48.82949     48.82949     48.82949     1
  tnosep= F thdyn= F
 
    writing restart file: /home/yshubert/code/koopmans/Yannick_tests/simple_water/snapshot_1/TMP-CP//kc_50.save
-   restart file written in    0.028 sec.
+   restart file written in    0.071 sec.
 
 
 
@@ -461,23 +461,23 @@ Step     1       0     Infinity     Infinity     Infinity     1
                       accomulated      this run
    ekinc         :        0.00000       0.00000 (AU)
    ekin          :       47.66723      47.66723 (AU)
-   epot          :       Infinity      Infinity (AU)
-   total energy  :       Infinity      Infinity (AU)
+   epot          :        1.16047       1.16047 (AU)
+   total energy  :       48.82949      48.82949 (AU)
    temperature   :        0.00000       0.00000 (K )
    enthalpy      :        0.00000       0.00000 (AU)
-   econs         :       Infinity      Infinity (AU)
+   econs         :       48.82949      48.82949 (AU)
    pressure      :        0.00000       0.00000 (Gpa)
    volume        :     1922.09740    1922.09740 (AU)
 
 
-     initialize   :     0.66s CPU
-     total_time   :     0.09s CPU
-     formf        :     0.21s CPU
-     rhoofr       :     0.02s CPU (       2 calls,   0.009 s avg)
-     vofrho       :     0.05s CPU
-     vofrho1      :     0.05s CPU
-     dforce       :     0.01s CPU (       8 calls,   0.002 s avg)
-     dforce2      :     0.04s CPU
+     initialize   :     0.20s CPU
+     total_time   :     0.06s CPU
+     formf        :     0.04s CPU
+     rhoofr       :     0.01s CPU (       2 calls,   0.003 s avg)
+     vofrho       :     0.03s CPU
+     vofrho1      :     0.03s CPU
+     dforce       :     0.01s CPU (       8 calls,   0.001 s avg)
+     dforce2      :     0.10s CPU
      calphi       :     0.00s CPU (       2 calls,   0.000 s avg)
      gram         :     0.00s CPU (       3 calls,   0.000 s avg)
      newd         :     0.00s CPU
@@ -486,21 +486,21 @@ Step     1       0     Infinity     Infinity     Infinity     1
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
      nlsm1        :     0.00s CPU (       8 calls,   0.000 s avg)
-     fft          :     0.16s CPU (      19 calls,   0.009 s avg)
-     ffts         :     0.00s CPU (       3 calls,   0.001 s avg)
-     fftw         :     0.02s CPU (      48 calls,   0.000 s avg)
-     cft3s        :     0.19s CPU (      70 calls,   0.003 s avg)
-     fft_scatter  :     0.18s CPU (      70 calls,   0.003 s avg)
+     fft          :     0.01s CPU (      19 calls,   0.001 s avg)
+     ffts         :     0.00s CPU (       3 calls,   0.000 s avg)
+     fftw         :     0.01s CPU (      48 calls,   0.000 s avg)
+     cft3s        :     0.02s CPU (      70 calls,   0.000 s avg)
+     fft_scatter  :     0.01s CPU (      70 calls,   0.000 s avg)
 
-     outer_loop   :     0.10s CPU
-     runcg_uspp   :     0.08s CPU (       2 calls,   0.041 s avg)
+     outer_loop   :     0.14s CPU
+     runcg_uspp   :     0.05s CPU (       2 calls,   0.026 s avg)
      emass_p_tpa  :     0.00s CPU (       2 calls,   0.000 s avg)
+ 
+ 
+     CP           :     0.37s CPU time,    0.44s wall time
 
-
-     CP           :     0.80s CPU time,    0.98s wall time
-
-
-   This run was terminated on:  11:19:19  17Jun2022            
+ 
+   This run was terminated on:  18:46:36  17Jun2022            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

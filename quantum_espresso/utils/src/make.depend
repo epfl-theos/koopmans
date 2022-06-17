@@ -128,3 +128,4 @@ wannier2kcp.o : fft_supercell.o
 wannier2kcp.o : read_wannier.o
 wannier2kcp.o : scell_wfc.o
 wannier2kcp.o : wannier.o
+bin2xml_real_space_density.o : ../../kcp/iotk/src/iotk_module.o

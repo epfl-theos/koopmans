@@ -4,7 +4,6 @@ module yannick_print_orbr
         use grid_dimensions,          only: nnrx
         use nksic,                    only: orb_rhor
         use io_pot_sic_xml,           only: write_pot_sic
-        use io_global,                only: ionode
         use cp_interfaces,            only: nksic_get_orbitalrho
         use gvecw,                    only: ngw
         use wavefunctions_module,     only: c0
@@ -19,27 +18,19 @@ module yannick_print_orbr
         integer              :: j
         integer              :: jj
         integer              :: i
-        character(len=1024)  :: filename
-        character(len=1024)  :: filename_complete
+        character(len=256)  :: filename
+        character(len=256)  :: filename_complete
     
         do j=1,nbsp,2
             call nksic_get_orbitalrho( ngw, nnrx, bec, ispin, nbsp, &
                         c0(:,j), c0(:,j+1), orb_rhor, j, j+1, lgam) 
             do jj = 1, 2
                 i=j+jj-1
-                if(ionode) then
-                    write(*,*) "Yannick Debug own_module: Printing the density of orbital ", i
-                end if
-                write(filename, "(I3)") i
-                ! if(i<10) then
-                !     write(filename, "(I1)") i
-                ! else if(i<100) then
-                !     write(filename, "(I2)") i
-                ! else
-                !     write(filename, "(I3)") i
-                ! end if
+
+                write(filename, "(I5.5)") i
+
                 if(is_empty) then 
-                    filename_complete = 'empty.' // TRIM(filename)
+                    filename_complete = 'emp.' // TRIM(filename)
                 else
                     filename_complete = 'occ.' // TRIM(filename)
                 end if

@@ -2,8 +2,8 @@ module bin2xml
     use iotk_module
     contains 
     subroutine write_bin2xml(source, dest)
-        character(LEN=256) :: source
-        character(LEN=256) :: dest
+        character(len=256) :: source
+        character(len=256) :: dest
         integer            :: maxsize
         integer            :: ierr
         integer            :: iunout
@@ -18,24 +18,49 @@ end module bin2xml
 
 program bin2xml_real_space_density
     use bin2xml
+    character(len=256) :: source_dir
+    character(len=256) :: dest_dir
+    character(len=5)   :: nbsp_occ_char
+    character(len=5)   :: nbsp_emp_char
+
+    integer            :: nbsp_occ
+    integer            :: nbsp_emp
     character(LEN=256) :: source_filename
     character(LEN=256) :: dest_filename
+    character(LEN=5)   :: file_number
+    
 
-    if(command_argument_count().ne.2) then 
+    if(command_argument_count().ne.4) then 
         call errore('bin2xml_real_space_density', 'Wrong value number of input arguments', 1 )
     end if
 
-    call get_command_argument(1, source_filename)
-    call get_command_argument(2, dest_filename)
+    call get_command_argument(1, source_dir)
+    call get_command_argument(2, dest_dir)
+    call get_command_argument(3, nbsp_occ_char)
+    call get_command_argument(4, nbsp_emp_char)
+
+    read(nbsp_occ_char,'(i)') nbsp_occ
+    read(nbsp_emp_char,'(i)') nbsp_emp
 
 
-    ! write(*,*) source_filename
-    ! write(*,*) dest_filename
-
-
-    ! source_filename     = '/scratch/yshubert/All_Water/path-integral-nqe_0/snapshot_1/kc_70.save/sic_potential.occ.1.dat'
-    ! dest_filename       = '/home/yshubert/Documents/master_project/final_ML_complete/extract_descriptor/All_Water/path-integral-nqe_0/snapshot_1/orbital.occ.1.xml'
-
+    ! First write total density to XML
+    source_filename =  TRIM(source_dir)//'/charge-density.dat'
+    dest_filename   =  TRIM(dest_dir)//'/charge-density.xml'
     call write_bin2xml(source_filename, dest_filename)
 
+    ! Then write all orbital densities to XML
+    do i = 1, nbsp_occ
+        write(file_number, "(I5.5)") i
+        source_filename =  TRIM(source_dir)//'/sic_potential.occ.'//TRIM(file_number)//'.dat'
+        dest_filename   =  TRIM(dest_dir)//'/orbital.occ.'//TRIM(file_number)//'.xml'
+        call write_bin2xml(source_filename, dest_filename)
+    end do
+
+    ! Then write all emp densities
+    do i = 1, nbsp_emp
+        write(file_number, "(I5.5)") i
+        source_filename =  TRIM(source_dir)//'/sic_potential.emp.'//TRIM(file_number)//'.dat'
+        dest_filename   =  TRIM(dest_dir)//'/orbital.emp.'//TRIM(file_number)//'.xml'
+        call write_bin2xml(source_filename, dest_filename)
+    end do
 end program 

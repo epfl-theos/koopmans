@@ -24,19 +24,19 @@ MD Simulation
  4.766723257339488E+001
     </KINETIC_ENERGY>
     <HARTREE_ENERGY type="real" size="1" UNITS="Hartree">
-               Infinity
+ 3.536848035413589E+000
     </HARTREE_ENERGY>
     <EWALD_TERM type="real" size="1" UNITS="Hartree">
-               Infinity
+ 4.409668148518238E-001
     </EWALD_TERM>
     <GAUSS_SELFINT type="real" size="1" UNITS="Hartree">
  1.515980665525444E+001
     </GAUSS_SELFINT>
     <LPSP_ENERGY type="real" size="1" UNITS="Hartree">
--6.862993809669045E-002
+-6.862993809669091E-002
     </LPSP_ENERGY>
     <NLPSP_ENERGY type="real" size="1" UNITS="Hartree">
- 1.787468100445024E-003
+ 1.787468100445022E-003
     </NLPSP_ENERGY>
     <EXC_ENERGY type="real" size="1" UNITS="Hartree">
 -2.307745116779238E+000
@@ -241,11 +241,11 @@ T
       <ACCUMULATORS type="real" size="10">
  0.000000000000000E+000
  4.766723257339488E+001
-               Infinity
-               Infinity
+ 1.160472980537661E+000
+ 4.882949302203299E+001
  0.000000000000000E+000
  0.000000000000000E+000
-               Infinity
+ 4.882949302203299E+001
  0.000000000000000E+000
  1.922097404461821E+003
  0.000000000000000E+000
@@ -270,9 +270,9 @@ T
  5.762670630669387E+000  5.963554386724971E+000  6.297647549249945E+000
         </cdmi>
         <force type="real" size="9" columns="3">
-                    NaN                     NaN                     NaN 
-                    NaN                     NaN                     NaN 
-                    NaN                     NaN                     NaN
+-6.139153696843217E-001 -4.612952052886955E-001  3.413265671381780E-001 
+ 1.775632715185231E-001  5.917438910176842E-001  1.812936994987566E-001 
+ 4.052111605058918E-001 -1.665194782919918E-001 -4.862148406631402E-001
         </force>
       </IONS_POSITIONS>
       <IONS_NOSE>
@@ -526,4 +526,4 @@ T
     </K-POINT.1>
   </EIGENVECTORS>
 </Root>
-
+ 

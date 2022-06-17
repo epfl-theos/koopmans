@@ -326,8 +326,10 @@ class KoopmansDSCFWorkflow(MLCapableWorkflow):
             if wannier_workflow.parameters.calculate_bands:
                 wannier_workflow.parameters.calculate_bands = not self.master_calc_params['ui'].do_smooth_interpolation
 
+    
             # Perform the wannierisation workflow within the init directory
             self.run_subworkflow(wannier_workflow, subdirectory='init')
+
 
             # Now, convert the files over from w90 format to (k)cp format
             fold_workflow = FoldToSupercellWorkflow(**self.wf_kwargs)
@@ -517,7 +519,7 @@ class KoopmansDSCFWorkflow(MLCapableWorkflow):
             self.run_calculator(trial_calc, enforce_ss=self.parameters.fix_spin_contamination and i_sc > 1)
 
             # Yannick Debug: replace the actual fixed-band calculations with my logic
-            mlfit = MLFiitingWorkflow(self.ml_model, -1, trial_calc, **self.wf_kwargs)
+            mlfit = MLFiitingWorkflow(self.ml_model, -1, trial_calc,self, **self.wf_kwargs)
             self.run_subworkflow(mlfit)
             # end Yannick Debug
 
@@ -604,8 +606,8 @@ class KoopmansDSCFWorkflow(MLCapableWorkflow):
                             index_empty_to_save += self.bands.num(filled=False, spin=0)
 
                     # Yannick Debug: replace the actual fixed-band calculations with my logic
-                    mlfit = MLFiitingWorkflow(self.ml_model, band.index, trial_calc, band.filled, **self.wf_kwargs)
-                    self.run_subworkflow(mlfit)
+                    # mlfit = MLFiitingWorkflow(self.ml_model, band.index, trial_calc, band.filled, **self.wf_kwargs)
+                    # self.run_subworkflow(mlfit)
                     alpha_predicted = mlfit.get_prediction_for_latest_alpha()
                     if(mlfit.use_prediction()):
                         band.alpha = alpha_predicted
