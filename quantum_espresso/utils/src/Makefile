@@ -6,10 +6,11 @@
 MODFLAGS= $(BASEMOD_FLAGS) \
           $(MOD_FLAG)../../q-e/PW/src \
           $(MOD_FLAG)../../q-e/Modules/ \
-          $(MOD_FLAG)../../q-e/dft-d3/
+          $(MOD_FLAG)../../q-e/dft-d3/ \
+		  $(MOD_FLAG)../../kcp/iotk/src # Yannick Debug: $(MOD_FLAG)../../kcp/iotk/src
 
 
-PWOBJS = ../../q-e/PW/src/libpw.a ../../q-e/KS_Solvers/libks_solvers.a ../../q-e/dft-d3/libdftd3qe.a ../../q-e/PP/src/libpp.a
+PWOBJS = ../../q-e/PW/src/libpw.a ../../q-e/KS_Solvers/libks_solvers.a ../../q-e/dft-d3/libdftd3qe.a ../../q-e/PP/src/libpp.a ../../kcp/iotk/src/libiotk.a # Yannick Debug: ../../kcp/iotk/src/libiotk.a
 QEMODS = $(BASEMODS)
 
 WAN2KCP_OBJS = wannier.o read_wannier.o fft_supercell.o scell_wfc.o plot_wan2kcp.o \
@@ -17,7 +18,7 @@ WAN2KCP_OBJS = wannier.o read_wannier.o fft_supercell.o scell_wfc.o plot_wan2kcp
 
 MODULES = $(PWOBJS) $(QEMODS)
 
-all : pwlib pplib epsilon.x wann2kcp.x merge_evc.x
+all : pwlib pplib epsilon.x wann2kcp.x merge_evc.x bin2xml_real_space_density.x
 
 pwlib:
 	cd ../../q-e/ ; $(MAKE) pwlibs || exit 1
@@ -38,7 +39,15 @@ epsilon.x : epsilon.o $(MODULES) $(LIBOBJS)
 	$(LIBOBJS) $(QELIBS)
 	- ( cd ../bin ; ln -fs ../src/$@ . )
 
+# begin Yannick Debug
+bin2xml_real_space_density.x: bin2xml_real_space_density.o $(MODULES) $(LIBOBJS)
+	$(LD) $(LDFLAGS) -o $@ bin2xml_real_space_density.o $(MODULES) \
+	$(LIBOBJS) $(QELIBS)
+		- ( cd ../bin ; ln -fs ../src/$@ . )
+# end Yannick Debug
+
 clean :
 	- /bin/rm -f *.x *.o *~ *_tmp.f90 *.d *.mod *.i *.L *genmod*
 
 include make.depend
+

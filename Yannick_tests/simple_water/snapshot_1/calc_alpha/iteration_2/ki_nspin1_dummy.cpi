@@ -1,0 +1,79 @@
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'from_scratch'
+   iprint           = 1
+   outdir           = '/home/yshubert/code/koopmans/Yannick_tests/simple_water/snapshot_1/TMP-CP/'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/yshubert/code/koopmans/pseudos/sg15_v1.2/pbe/'
+   ndr              = 98
+   ndw              = 98
+   write_hr         = .false.
+   print_real_space_density = .true.
+/
+&SYSTEM
+   nbnd             = 8
+   tot_charge       = 0
+   ecutwfc          = 50
+   nspin            = 1
+   do_orbdep        = .true.
+   fixed_state      = .false.
+   do_ee            = .true.
+   nelec            = 8
+   do_wf_cmplx      = .true.
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 2.56e-07
+   ortho_para       = 1
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .false.
+   do_outerloop_empty = .false.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   odd_nkscalfact   = .true.
+   odd_nkscalfact_empty = .true.
+   which_orbdep     = 'nki'
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 2.56e-07
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+   do_innerloop_empty = .false.
+   do_bare_eigs     = .true.
+/
+
+ATOMIC_SPECIES
+O 15.999 O_ONCV_PBE-1.2.upf
+H 1.008 H_ONCV_PBE-1.2.upf
+
+CELL_PARAMETERS angstrom
+6.60680000000000 0.00000000000000 0.00000000000000
+0.00000000000000 6.89290000000000 0.00000000000000
+0.00000000000000 0.00000000000000 6.25440000000000
+
+ATOMIC_POSITIONS angstrom
+O 3.0000000000 3.1191500000 3.3584500000 
+H 3.2774000000 4.0120500000 3.6128500000 
+H 3.6068000000 2.8808500000 2.6415500000 
+

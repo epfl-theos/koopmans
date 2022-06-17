@@ -120,7 +120,7 @@ SUBROUTINE cprmain(tau_out, fion_out, etot_out)
    USE small_box, ONLY: ainvb
    USE descriptors, ONLY: descla_siz_
    USE twin_types
-   USE input_parameters, ONLY: fixed_state, fixed_band
+   USE input_parameters, ONLY: fixed_state, fixed_band, print_real_space_density
    !
    IMPLICIT NONE
    !
@@ -1060,6 +1060,7 @@ SUBROUTINE cprmain(tau_out, fion_out, etot_out)
    IF (iprsta > 1 .OR. fixed_state) CALL print_lambda(lambda, nbsp, nbsp, 1.D0)
    !
    IF (lda_plus_u) DEALLOCATE (forceh)
+   !
    !
    RETURN
    !

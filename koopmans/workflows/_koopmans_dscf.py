@@ -495,10 +495,13 @@ class KoopmansDSCFWorkflow(MLCapableWorkflow):
             # Do a KI/KIPZ calculation with the updated alpha values
             restart_from_wannier_pwscf = True if self.parameters.init_orbitals in [
                 'mlwfs', 'projwfs'] and not self._restart_from_old_ki and i_sc == 1 else None
+            # Yannick Debug: print_real_space_density = True
             trial_calc = self.new_kcp_calculator(calc_presets=self.parameters.functional.replace('pkipz', 'ki'),
+                                                 print_real_space_density = True,
                                                  alphas=self.bands.alphas,
                                                  restart_from_wannier_pwscf=restart_from_wannier_pwscf)
             trial_calc.directory = iteration_directory
+
 
             if i_sc == 1:
                 if self.parameters.functional == 'kipz' and not self.parameters.periodic:
@@ -512,6 +515,13 @@ class KoopmansDSCFWorkflow(MLCapableWorkflow):
             # Run the calculation and store the result. Note that we only need to continue
             # enforcing the spin symmetry if the density will change
             self.run_calculator(trial_calc, enforce_ss=self.parameters.fix_spin_contamination and i_sc > 1)
+
+            # Yannick Debug: replace the actual fixed-band calculations with my logic
+            mlfit = MLFiitingWorkflow(self.ml_model, -1, trial_calc, **self.wf_kwargs)
+            self.run_subworkflow(mlfit)
+            # end Yannick Debug
+
+
             alpha_dep_calcs = [trial_calc]
 
             # Update the bands' self-Hartree and energies (assuming spin-symmetry)
@@ -594,7 +604,7 @@ class KoopmansDSCFWorkflow(MLCapableWorkflow):
                             index_empty_to_save += self.bands.num(filled=False, spin=0)
 
                     # Yannick Debug: replace the actual fixed-band calculations with my logic
-                    mlfit = MLFiitingWorkflow(**self.wf_kwargs, ml_model = self.ml_model)
+                    mlfit = MLFiitingWorkflow(self.ml_model, band.index, trial_calc, band.filled, **self.wf_kwargs)
                     self.run_subworkflow(mlfit)
                     alpha_predicted = mlfit.get_prediction_for_latest_alpha()
                     if(mlfit.use_prediction()):
@@ -602,6 +612,7 @@ class KoopmansDSCFWorkflow(MLCapableWorkflow):
                     else:
                         self.perform_fixed_band_calculations(band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band, directory, alpha_indep_calcs)
                         mlfit.train()
+                    # end Yannick Debug
                     
 
                 # Calculate an updated alpha and a measure of the error
@@ -985,9 +996,11 @@ class KoopmansDSCFWorkflow(MLCapableWorkflow):
                 calc.parameters.do_innerloop_empty = False
 
 
-        # Yannick Debug: add a calc parameter
-        calc.parameters.print_real_space_density = True
-        # End Yannick Debug
+        # # Yannick Debug: add a calc parameter
+        # if calc.prefix in ['ki']:
+        #     print("Set print_real_space_density to true")
+        #     calc.parameters.print_real_space_density = True
+        # # End Yannick Debug
 
         
         # Handle any keywords provided by kwargs

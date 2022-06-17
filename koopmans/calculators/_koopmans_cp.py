@@ -53,6 +53,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         # Define the valid parameters
         self.parameters = settings.KoopmansCPSettingsDict()
 
+
         # Initialise first using the ASE parent and then CalculatorExt
         Espresso_kcp.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, skip_qc, **kwargs)
@@ -81,6 +82,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         # fixed_state = .true.. N.B. this differs from self.parameters.fixed_band in the case of empty orbitals (see
         # koopmans.workflows._koopmans_dscf.py for more details)
         self.fixed_band: Optional[bands.Band] = None
+
 
     def calculate(self):
         # kcp.x imposes nelup >= neldw, so if we try to run a calcualtion with neldw > nelup, swap the spin channels
@@ -147,6 +149,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         # Input and output files
         for nd in [self.parameters.ndr, self.parameters.ndw]:
             outdir = self.parameters.outdir / f'{self.parameters.prefix}_{nd}.save/K00001'
+
             for fpath_1 in outdir.glob('*1.*'):
                 # Swap the two files around
                 fpath_tmp = fpath_1.parent / fpath_1.name.replace('1', 'tmp')

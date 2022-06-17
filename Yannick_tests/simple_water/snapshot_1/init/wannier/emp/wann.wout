@@ -70,7 +70,7 @@
              | 675 Mass Ave, Cambridge, MA 02139, USA.           |
              |                                                   |
              +---------------------------------------------------+
-             |    Execution started on 15Jun2022 at 21:12:50     |
+             |    Execution started on 17Jun2022 at 09:35:12     |
              +---------------------------------------------------+
  
  ******************************************************************************
@@ -247,11 +247,11 @@
  Starting a new Wannier90 calculation ...
 
 
- Reading overlaps from wann.mmn    :  Created on 15Jun2022 at 21:12:50
+ Reading overlaps from wann.mmn    :  Created on 17Jun2022 at  9:35:12
 
- Reading projections from wann.amn :  Created on 15Jun2022 at 21:12:50
+ Reading projections from wann.amn :  Created on 17Jun2022 at  9:35:12
 
- Time to read overlaps          0.000 (sec)
+ Time to read overlaps          0.001 (sec)
 
  *------------------------------- DISENTANGLE --------------------------------*
  +----------------------------------------------------------------------------+
@@ -323,7 +323,7 @@
 
  +----------------------------------------------------------------------------+
 
- Time to disentangle bands      0.001 (sec)
+ Time to disentangle bands      0.002 (sec)
 
  Writing checkpoint file wann.chk... done
 
@@ -419,7 +419,7 @@
                                Omega OD     =     0.109222089
     Final Spread (Ang^2)       Omega Total  =     4.696007879
  ------------------------------------------------------------------------------
- Time for wannierise            0.000 (sec)
+ Time for wannierise            0.001 (sec)
 
  Writing checkpoint file wann.chk... done
 
@@ -430,10 +430,10 @@
  
  Calculating interpolated band-structure
  
- Time to calculate interpolated band structure       0.001 (sec)
+ Time to calculate interpolated band structure       0.002 (sec)
  
  Time for plotting              0.002 (sec)
- Total Execution Time           0.011 (sec)
+ Total Execution Time           0.014 (sec)
 
  *===========================================================================*
  |                             TIMING INFORMATION                            |
@@ -443,9 +443,9 @@
  |kmesh: get                                        :         1         0.005|
  |overlap: allocate                                 :         1         0.000|
  |overlap: read                                     :         1         0.000|
- |dis: main                                         :         1         0.001|
- |wann: main                                        :         1         0.000|
- |plot: main                                        :         1         0.001|
+ |dis: main                                         :         1         0.002|
+ |wann: main                                        :         1         0.001|
+ |plot: main                                        :         1         0.002|
  *---------------------------------------------------------------------------*
  
  All done: wannier90 exiting

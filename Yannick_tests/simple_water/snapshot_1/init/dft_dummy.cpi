@@ -10,7 +10,7 @@
    ndr              = 50
    ndw              = 50
    write_hr         = .false.
-   print_real_space_density = .true.
+   print_real_space_density = .false.
 /
 &SYSTEM
    nbnd             = 8

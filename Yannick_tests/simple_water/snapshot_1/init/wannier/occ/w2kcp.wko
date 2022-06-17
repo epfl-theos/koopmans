@@ -1,5 +1,5 @@
 
-     Program WANN2KCP v.7.0 starts on 15Jun2022 at 21:12:57 
+     Program WANN2KCP v.7.0 starts on 17Jun2022 at  9:35:19 
 
      This program is part of the open-source Quantum ESPRESSO suite
      for quantum simulation of materials; please cite
@@ -14,7 +14,7 @@
 
      MPI processes distributed on     1 nodes
      R & G space division:  proc/nbgrp/npool/nimage =       8
-     16678 MiB available memory on the printing compute node when the environment starts
+     1610 MiB available memory on the printing compute node when the environment starts
  
  
   Reading nscf_save data
@@ -76,13 +76,13 @@
      Gamma-only algorithm is not used --> complex wavefunctions
  
  
-     init_wann2kc :      0.11s CPU      0.14s WALL (       1 calls)
-     wannier2kcp  :      0.04s CPU      0.05s WALL (       1 calls)
+     init_wann2kc :      0.14s CPU      0.17s WALL (       1 calls)
+     wannier2kcp  :      0.06s CPU      0.06s WALL (       1 calls)
  
-     WANN2KCP     :      0.15s CPU      0.19s WALL
+     WANN2KCP     :      0.20s CPU      0.24s WALL
 
  
-   This run was terminated on:  21:12:57  15Jun2022            
+   This run was terminated on:   9:35:19  17Jun2022            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

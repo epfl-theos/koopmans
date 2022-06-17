@@ -12,7 +12,7 @@
       "frozen_orbitals": false,
       "mt_correction": true, 
       "from_scratch": true,
-      "n_max_sc_steps": 1
+      "n_max_sc_steps": 2
     },
     "setup": {
     "snapshots": "simple_water.xyz" , 
