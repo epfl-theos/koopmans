@@ -30,13 +30,14 @@ module yannick_print_orbr
                 if(ionode) then
                     write(*,*) "Yannick Debug own_module: Printing the density of orbital ", i
                 end if
-                if(i<10) then
-                    write(filename, "(I1)") i
-                else if(i<100) then
-                    write(filename, "(I2)") i
-                else
-                    write(filename, "(I3)") i
-                end if
+                write(filename, "(I3)") i
+                ! if(i<10) then
+                !     write(filename, "(I1)") i
+                ! else if(i<100) then
+                !     write(filename, "(I2)") i
+                ! else
+                !     write(filename, "(I3)") i
+                ! end if
                 if(is_empty) then 
                     filename_complete = 'empty.' // TRIM(filename)
                 else

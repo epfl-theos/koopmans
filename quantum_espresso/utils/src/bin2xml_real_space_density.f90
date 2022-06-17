@@ -2,8 +2,8 @@ module bin2xml
     use iotk_module
     contains 
     subroutine write_bin2xml(source, dest)
-        character(LEN=256) :: source
-        character(LEN=256) :: dest
+        character(len=256) :: source
+        character(len=256) :: dest
         integer            :: maxsize
         integer            :: ierr
         integer            :: iunout
@@ -18,8 +18,8 @@ end module bin2xml
 
 program bin2xml_real_space_density
     use bin2xml
-    character(LEN=256) :: source_filename
-    character(LEN=256) :: dest_filename
+    character(len=256) :: source_dir
+    character(len=256) :: dest_dir
 
     if(command_argument_count().ne.2) then 
         call errore('bin2xml_real_space_density', 'Wrong value number of input arguments', 1 )
@@ -29,13 +29,40 @@ program bin2xml_real_space_density
     call get_command_argument(2, dest_filename)
 
 
-    ! write(*,*) source_filename
-    ! write(*,*) dest_filename
+    if (compute_charge_density==.True.) then
+        source_filename =  TRIM(source_dir)//'charge-density.dat'
+        dest_filename   =  TRIM(dest_dir)//'charge-density.xml'
+        call write_bin2xml(source_filename, dest_filename)
+    end if 
 
+    do i = nbsp_occ_start, nbsp_occ_start+nbsp_occ-1
+        if(i<10) then
+            write(file_number, "(I1)") i
+        else if(i<100) then
+            write(file_number, "(I2)") i
+        else if
+            write(file_number, "(I3)") i
+        end if(i<1000) then
+            write(file_number, "(I4)") i
+        else if(i<10000)
+            write(file_number, "(I5)") i
+        else 
+            call errore('bin2xml_real_space_density', 'Too many orbitals for this program', 1 )
+        source_filename =  TRIM(source_dir)//'sic_potential.occ.'//TRIM(file_number)//'.dat'
+        dest_filename   =  TRIM(dest_dir)//'orbital.occ.'//TRIM(file_number)//'.xml'
+        call copy_file_yannick(source_filename, dest_filename)
+    end do
 
-    ! source_filename     = '/scratch/yshubert/All_Water/path-integral-nqe_0/snapshot_1/kc_70.save/sic_potential.occ.1.dat'
-    ! dest_filename       = '/home/yshubert/Documents/master_project/final_ML_complete/extract_descriptor/All_Water/path-integral-nqe_0/snapshot_1/orbital.occ.1.xml'
-
-    call write_bin2xml(source_filename, dest_filename)
-
+    do i = nbsp_empty_start, nbsp_empty_start+nbsp_empty-1
+        if(i<10) then
+            write(file_number, "(I1)") i
+        else if(i<100) then
+            write(file_number, "(I2)") i
+        else
+            write(file_number, "(I3)") i
+        end if
+        source_filename =  TRIM(source_dir)//'sic_potential.empty.'//TRIM(file_number)//'.dat'
+        dest_filename   =  TRIM(dest_dir)//'orbital.empty.'//TRIM(file_number)//'.xml'
+        call copy_file_yannick(source_filename, dest_filename)
+    end do
 end program 

@@ -70,7 +70,7 @@
              | 675 Mass Ave, Cambridge, MA 02139, USA.           |
              |                                                   |
              +---------------------------------------------------+
-             |    Execution started on 17Jun2022 at 09:35:11     |
+             |    Execution started on 17Jun2022 at 10:03:06     |
              +---------------------------------------------------+
  
  ******************************************************************************
@@ -151,7 +151,7 @@
  *----------------------------------------------------------------------------*
  |  Plotting Hamiltonian in WF basis          :                 T             |
  *----------------------------------------------------------------------------*
- Time to read parameters        0.004 (sec)
+ Time to read parameters        0.002 (sec)
 
  *---------------------------------- K-MESH ----------------------------------*
  +----------------------------------------------------------------------------+
@@ -239,11 +239,11 @@
  Starting a new Wannier90 calculation ...
 
 
- Reading overlaps from wann.mmn    :  Created on 17Jun2022 at  9:35:11
+ Reading overlaps from wann.mmn    :  Created on 17Jun2022 at 10: 3: 5
 
- Reading projections from wann.amn :  Created on 17Jun2022 at  9:35:11
+ Reading projections from wann.amn :  Created on 17Jun2022 at 10: 3: 5
 
- Time to read overlaps          0.001 (sec)
+ Time to read overlaps          0.000 (sec)
 
  Writing checkpoint file wann.chk... done
 
@@ -522,10 +522,10 @@
  
  Calculating interpolated band-structure
  
- Time to calculate interpolated band structure       0.004 (sec)
+ Time to calculate interpolated band structure       0.002 (sec)
  
- Time for plotting              0.005 (sec)
- Total Execution Time           0.017 (sec)
+ Time for plotting              0.003 (sec)
+ Total Execution Time           0.013 (sec)
 
  *===========================================================================*
  |                             TIMING INFORMATION                            |
@@ -534,9 +534,9 @@
  |---------------------------------------------------------------------------|
  |kmesh: get                                        :         1         0.005|
  |overlap: allocate                                 :         1         0.000|
- |overlap: read                                     :         1         0.001|
+ |overlap: read                                     :         1         0.000|
  |wann: main                                        :         1         0.002|
- |plot: main                                        :         1         0.005|
+ |plot: main                                        :         1         0.003|
  *---------------------------------------------------------------------------*
  
  All done: wannier90 exiting
