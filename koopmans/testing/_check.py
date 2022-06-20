@@ -108,7 +108,7 @@ class CheckCalc:
 
     @property
     def _calcname(self) -> Path:
-        calcname = (self.directory / self.prefix).relative_to(base_directory  # type: ignore[attr-defined]
+        calcname: Path = (self.directory / self.prefix).relative_to(base_directory  # type: ignore[attr-defined]
                                                               / 'tests' / 'tmp')
         return calcname.relative_to(calcname.parts[0])
 
@@ -154,7 +154,7 @@ class CheckCalc:
     def calculate(self):
         # Before running the calculation, check the settings are the same
 
-        with utils.chdir(self.directory):
+        with utils.chdir(self.directory):  # type: ignore[attr-defined]
             # By moving into the directory where the calculation was run, we ensure when we read in the settings that
             # paths are interpreted relative to this particular working directory
             with open(benchmark_filename(self), 'r') as fd:
