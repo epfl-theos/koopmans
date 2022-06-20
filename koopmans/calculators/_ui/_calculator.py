@@ -56,6 +56,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         self.Rsmooth: NDArray[np.int_] = np.array([])
         self.wRs: List[int] = []
 
+        # Does not have a command (but we still want self.command to be defined)
+        self.command = None
+
     @classmethod
     def fromfile(cls, filenames: Union[str, Path, List[str], List[Path]]) -> 'UnfoldAndInterpolateCalculator':
         sanitised_filenames = sanitise_filenames(filenames, cls.ext_in, cls.ext_out)

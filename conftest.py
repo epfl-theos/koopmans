@@ -207,4 +207,5 @@ def tio2() -> Dict[str, Any]:
 
     return {'atoms': atoms,
             'projections': projs,
-            'master_calc_params': {'pw': {'ecutwfc': 40, 'nbnd': 36}}}
+            'master_calc_params': {'pw': {'ecutwfc': 40, 'nbnd': 36},
+                                   'kcp': {'ecutwfc': 40}}}

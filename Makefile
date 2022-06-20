@@ -65,7 +65,7 @@ tests:
 	python3 -m pytest -m "not tutorials" tests/
 
 clean_tests:
-	rm -r tests/tmp
+	rm -rf tests/tmp
 
 benchmark:
 	python3 -m pytest --generate_benchmark
