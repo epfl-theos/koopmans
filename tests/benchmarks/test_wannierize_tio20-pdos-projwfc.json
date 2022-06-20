@@ -259967,8 +259967,8 @@
  "calc": {},
  "skip_qc": false,
  "pseudopotentials": {
-  "O": "O.upf",
-  "Ti": "Ti.upf"
+  "Ti": "Ti.upf",
+  "O": "O.upf"
  },
  "pseudo_dir": {
   "__path__": "/home/elinscott/code/koopmans/pseudos/pseudo_dojo_standard_v0.4.1/pbe"

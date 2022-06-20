@@ -171,8 +171,8 @@
    "__ase_objtype__": "bandpath"
   },
   "pseudopotentials": {
-   "O": "O.upf",
-   "Ti": "Ti.upf"
+   "Ti": "Ti.upf",
+   "O": "O.upf"
   },
   "gamma_only": false,
   "koffset": [
