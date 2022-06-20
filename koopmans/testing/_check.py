@@ -14,7 +14,7 @@ from koopmans.io import read_kwf as read_encoded_json
 from ._utils import benchmark_filename, metadata_filename
 
 # A hard and a soft tolerance for checking floats
-tolerances = {'alpha': (2e-3, 2e-5),
+tolerances = {'alphas': (2e-3, 2e-5),
               'homo_energy': (2e-3, 2e-5),
               'lumo_energy': (2e-3, 2e-5),
               'self-hartree': (2e-3, 2e-5),
