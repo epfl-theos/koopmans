@@ -33,14 +33,14 @@ def kpath_length(path: BandPath, cell: Cell) -> float:
     _, paths = resolve_kpt_path_string(path.path, path.special_points)
     points = np.concatenate(paths)
     dists = points[1:] - points[:-1]
-    lengths = [np.linalg.norm(d) for d in kpoint_convert(cell, skpts_kc=dists)]
+    lengths: List[float] = [float(np.linalg.norm(d)) for d in kpoint_convert(cell, skpts_kc=dists)]
 
     i = 0
     for path in paths[:-1]:
         i += len(path)
-        lengths[i - 1] = 0
+        lengths[i - 1] = 0.0
 
-    return sum(lengths)
+    return np.sum(lengths)
 
 
 def kpath_to_dict(path: BandPath, cell: Cell) -> Dict[str, Any]:
