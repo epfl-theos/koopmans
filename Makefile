@@ -67,5 +67,5 @@ tests:
 clean_tests:
 	rm -r tests/tmp
 
-tests:
+benchmark:
 	python3 -m pytest --generate_benchmark
