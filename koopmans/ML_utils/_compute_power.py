@@ -30,41 +30,42 @@ def compute_power(coff_matrix, n_max, l_max):
     return np.array(power)
 
 
-def main_compute_power(n_max, l_max, input_dir, nbnd):
+def main_compute_power(n_max, l_max, r_min, r_max, ML_directory, power_dir, nbnd):
+    dir_coeff = ML_directory + '/coefficients_'    + str(n_max) + '_' + str(l_max) + '_' + str(r_min) + '_' + str(r_max)
+    dir_power = power_dir
+    os.system('mkdir -p ' + dir_power)
+    dir_orb   = dir_coeff + '/coff_orb/'
+    dir_tot   = dir_coeff + '/coff_tot/'
 
     size_power_mat = sum(i for i in range(1,n_max+1))*l_max*3
 
     print(size_power_mat)
 
-    input_dir_orb = input_dir + 'coff_orb/'
-    input_dir_tot = input_dir + 'coff_tot/'
 
     if nbnd[1] > 0:
 
-        num_orbitals = nbnd[1]#len([name for name in os.listdir(input_dir_orb)])# only emp orbital for now
+        num_orbitals = nbnd[1]#len([name for name in os.listdir(dir_orb)])# only emp orbital for now
 
         power_mat    = np.zeros((num_orbitals, size_power_mat))
         print(np.shape(power_mat))
 
         for i in range(num_orbitals):
-            coff_orb        = np.atleast_1d(np.loadtxt(input_dir_orb + 'coff.orbital.occ.' + str(i+1) + '.txt'))
-            coff_tot        = np.atleast_1d(np.loadtxt(input_dir_tot + 'coff.total.occ.' + str(i+1) + '.txt'))
+            coff_orb        = np.atleast_1d(np.loadtxt(dir_orb + 'coff.orbital.occ.' + str(i+1) + '.txt'))
+            coff_tot        = np.atleast_1d(np.loadtxt(dir_tot + 'coff.total.occ.' + str(i+1) + '.txt'))
             coff_matrix     = read_in(coff_orb, coff_tot, n_max, l_max)
             power_mat[i,:]  = compute_power(coff_matrix, n_max, l_max)
-
-        np.savetxt(input_dir + "power_mat_occ.txt", power_mat)
+            np.savetxt(dir_power + "/power_spectrum.orbital.occ." + str(i) + ".txt", power_mat)
     
     if nbnd[0] > 0:
 
-        num_orbitals = nbnd[0]#len([name for name in os.listdir(input_dir_orb)])# only emp orbital for now
+        num_orbitals = nbnd[0]#len([name for name in os.listdir(dir_orb)])# only emp orbital for now
 
         power_mat = np.zeros((num_orbitals, size_power_mat))
         print(np.shape(power_mat))
 
         for i in range(num_orbitals):
-            coff_orb        = np.atleast_1d(np.loadtxt(input_dir_orb + 'coff.orbital.emp.' + str(i+1) + '.txt'))
-            coff_tot        = np.atleast_1d(np.loadtxt(input_dir_tot + 'coff.total.emp.' + str(i+1) + '.txt'))
+            coff_orb        = np.atleast_1d(np.loadtxt(dir_orb + 'coff.orbital.emp.' + str(i+1) + '.txt'))
+            coff_tot        = np.atleast_1d(np.loadtxt(dir_tot + 'coff.total.emp.' + str(i+1) + '.txt'))
             coff_matrix     = read_in(coff_orb, coff_tot, n_max, l_max)
             power_mat[i,:]  = compute_power(coff_matrix, n_max, l_max)
-
-        np.savetxt(input_dir + "power_mat_emp.txt", power_mat)
+            np.savetxt(dir_power+ "/power_spectrum.orbital.emp." + str(i) + ".txt", power_mat)

@@ -1,5 +1,5 @@
 
-     Program WANN2KCP v.7.0 starts on 17Jun2022 at 18:46:34 
+     Program WANN2KCP v.7.0 starts on 20Jun2022 at 14: 0:42 
 
      This program is part of the open-source Quantum ESPRESSO suite
      for quantum simulation of materials; please cite
@@ -14,7 +14,7 @@
 
      MPI processes distributed on     1 nodes
      R & G space division:  proc/nbgrp/npool/nimage =       8
-     29987 MiB available memory on the printing compute node when the environment starts
+     27969 MiB available memory on the printing compute node when the environment starts
  
  
   Reading nscf_save data
@@ -33,9 +33,9 @@
      Parallelization info
      --------------------
      sticks:   dense  smooth     PW     G-vecs:    dense   smooth      PW
-     Min         324     324     81                11471    11471    1432
-     Max         326     326     83                11472    11472    1434
-     Sum        2595    2595    653                91775    91775   11463
+     Min         582     582    144                27708    27708    3460
+     Max         583     583    145                27712    27712    3465
+     Sum        4657    4657   1159               221683   221683   27705
  
      Using Slab Decomposition
  
@@ -65,22 +65,22 @@
      Info about the supercell FFT
      ----------------------------
      sticks:   smooth     PW     G-vecs:    smooth      PW
-     Min          324     81                 11471    1432
-     Max          326     83                 11472    1434
-     Sum         2595    653                 91775   11463
+     Min          582    144                 27708    3460
+     Max          583    145                 27712    3465
+     Sum         4657   1159                221683   27705
 
-     grid:      91775 G-vectors     FFT dimensions: (  60,  60,  54)
+     grid:     221683 G-vectors     FFT dimensions: (  75,  80,  72)
 
      Gamma-only algorithm is not used --> complex wavefunctions
  
  
-     init_wann2kc :      0.10s CPU      0.11s WALL (       1 calls)
-     wannier2kcp  :      0.06s CPU      0.06s WALL (       1 calls)
+     init_wann2kc :      0.19s CPU      0.21s WALL (       1 calls)
+     wannier2kcp  :      0.13s CPU      0.13s WALL (       1 calls)
  
-     WANN2KCP     :      0.16s CPU      0.18s WALL
+     WANN2KCP     :      0.31s CPU      0.34s WALL
 
  
-   This run was terminated on:  18:46:35  17Jun2022            
+   This run was terminated on:  14: 0:42  20Jun2022            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

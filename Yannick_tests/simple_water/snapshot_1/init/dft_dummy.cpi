@@ -6,7 +6,7 @@
    outdir           = '/home/yshubert/code/koopmans/Yannick_tests/simple_water/snapshot_1/TMP-CP/'
    prefix           = 'kc'
    disk_io          = 'high'
-   pseudo_dir       = '/home/yshubert/code/koopmans/pseudos/sg15_v1.2/pbe/'
+   pseudo_dir       = '/home/yshubert/code/koopmans/pseudos/sg15_relativistic_v1.0/pbe/'
    ndr              = 50
    ndw              = 50
    write_hr         = .false.
@@ -16,7 +16,7 @@
    nbnd             = 8
    tot_charge       = 0
    tot_magnetization = 0
-   ecutwfc          = 50
+   ecutwfc          = 90
    nspin            = 2
    do_orbdep        = .false.
    fixed_state      = .false.
@@ -65,8 +65,8 @@
 /
 
 ATOMIC_SPECIES
-O  15.999 O_ONCV_PBE-1.2.upf
-H  1.008 H_ONCV_PBE-1.2.upf
+O  15.999 O_ONCV_PBE_FR-1.0.upf
+H  1.008 H_ONCV_PBE_FR-1.0.upf
 
 CELL_PARAMETERS angstrom
 6.60680000000000 0.00000000000000 0.00000000000000

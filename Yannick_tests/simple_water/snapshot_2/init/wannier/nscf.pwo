@@ -1,0 +1,251 @@
+
+     Program PWSCF v.7.0 starts on 20Jun2022 at 12:29:57 
+
+     This program is part of the open-source Quantum ESPRESSO suite
+     for quantum simulation of materials; please cite
+         "P. Giannozzi et al., J. Phys.:Condens. Matter 21 395502 (2009);
+         "P. Giannozzi et al., J. Phys.:Condens. Matter 29 465901 (2017);
+         "P. Giannozzi et al., J. Chem. Phys. 152 154105 (2020);
+          URL http://www.quantum-espresso.org", 
+     in publications or presentations arising from this work. More details at
+     http://www.quantum-espresso.org/quote
+
+     Parallel version (MPI), running on     8 processors
+
+     MPI processes distributed on     1 nodes
+     27760 MiB available memory on the printing compute node when the environment starts
+ 
+     Reading input from nscf.pwi
+Warning: card &IONS ignored
+Warning: card / ignored
+Warning: card &CELL ignored
+Warning: card / ignored
+
+     Current dimensions of program PWSCF are:
+     Max number of different atomic species (ntypx) = 10
+     Max number of k-points (npk) =  40000
+     Max angular momentum in pseudopotentials (lmaxx) =  4
+
+     Atomic positions and unit cell read from directory:
+     /home/yshubert/code/koopmans/Yannick_tests/simple_water/snapshot_2/init/wannier/TMP/kc.save/
+     Atomic positions from file used, from input discarded
+ 
+ 
+     R & G space division:  proc/nbgrp/npool/nimage =       8
+     Subspace diagonalization in iterative solution of the eigenvalue problem:
+     a serial algorithm will be used
+
+ 
+     Parallelization info
+     --------------------
+     sticks:   dense  smooth     PW     G-vecs:    dense   smooth      PW
+     Min         324     324     81                11471    11471    1432
+     Max         326     326     83                11472    11472    1434
+     Sum        2595    2595    653                91775    91775   11463
+ 
+     Using Slab Decomposition
+ 
+
+
+     bravais-lattice index     =            0
+     lattice parameter (alat)  =      12.4850  a.u.
+     unit-cell volume          =    1922.0974 (a.u.)^3
+     number of atoms/cell      =            3
+     number of atomic types    =            2
+     number of electrons       =         8.00
+     number of Kohn-Sham states=           12
+     kinetic-energy cutoff     =      50.0000  Ry
+     charge density cutoff     =     200.0000  Ry
+     Exchange-correlation= PBE
+                           (   1   4   3   4   0   0   0)
+
+     celldm(1)=  12.485043  celldm(2)=   0.000000  celldm(3)=   0.000000
+     celldm(4)=   0.000000  celldm(5)=   0.000000  celldm(6)=   0.000000
+
+     crystal axes: (cart. coord. in units of alat)
+               a(1) = (   1.000000   0.000000   0.000000 )  
+               a(2) = (   0.000000   1.043304   0.000000 )  
+               a(3) = (   0.000000   0.000000   0.946661 )  
+
+     reciprocal axes: (cart. coord. in units 2 pi/alat)
+               b(1) = (  1.000000  0.000000  0.000000 )  
+               b(2) = (  0.000000  0.958494  0.000000 )  
+               b(3) = (  0.000000  0.000000  1.056344 )  
+
+
+     PseudoPot. # 1 for O  read from file:
+     /home/yshubert/code/koopmans/pseudos/sg15_v1.2/pbe/O_ONCV_PBE-1.2.upf
+     MD5 check sum: e36c48deb68f4e355fffe4602be2c42c
+     Pseudo is Norm-conserving, Zval =  6.0
+     Generated using ONCVPSP code by D. R. Hamann
+     Using radial grid of  602 points,  4 beta functions with: 
+                l(1) =   0
+                l(2) =   0
+                l(3) =   1
+                l(4) =   1
+
+     PseudoPot. # 2 for H  read from file:
+     /home/yshubert/code/koopmans/pseudos/sg15_v1.2/pbe/H_ONCV_PBE-1.2.upf
+     MD5 check sum: bf21e08b90ac4ce7d0149ac4e8138190
+     Pseudo is Norm-conserving, Zval =  1.0
+     Generated using ONCVPSP code by D. R. Hamann
+     Using radial grid of  602 points,  2 beta functions with: 
+                l(1) =   0
+                l(2) =   0
+
+     atomic species   valence    mass     pseudopotential
+        O              6.00    15.99900     O ( 1.00)
+        H              1.00     1.00800     H ( 1.00)
+
+     No symmetry found
+
+
+                                    s                        frac. trans.
+
+      isym =  1     identity                                     
+
+ cryst.   s( 1) = (     1          0          0      )
+                  (     0          1          0      )
+                  (     0          0          1      )
+
+ cart.    s( 1) = (  1.0000000  0.0000000  0.0000000 )
+                  (  0.0000000  1.0000000  0.0000000 )
+                  (  0.0000000  0.0000000  1.0000000 )
+
+
+   Cartesian axes
+
+     site n.     atom                  positions (alat units)
+         1           O   tau(   1) = (   0.4540776   0.4721121   0.5083323  )
+         2           H   tau(   2) = (   0.4960647   0.6072607   0.5468381  )
+         3           H   tau(   3) = (   0.5459224   0.4360432   0.3998229  )
+
+   Crystallographic axes
+
+     site n.     atom                  positions (cryst. coord.)
+         1           O   tau(   1) = (  0.4540776  0.4525164  0.5369740  )
+         2           H   tau(   2) = (  0.4960647  0.5820554  0.5776493  )
+         3           H   tau(   3) = (  0.5459224  0.4179446  0.4223507  )
+
+     number of k points=     1
+                       cart. coord. in units 2pi/alat
+        k(    1) = (   0.0000000   0.0000000   0.0000000), wk =   2.0000000
+
+                       cryst. coord.
+        k(    1) = (   0.0000000   0.0000000   0.0000000), wk =   2.0000000
+
+     Dense  grid:    91775 G-vectors     FFT dimensions: (  60,  60,  54)
+
+     Dynamical RAM for                 wfc:       0.26 MB
+
+     Dynamical RAM for     wfc (w. buffer):       0.26 MB
+
+     Dynamical RAM for           str. fact:       0.35 MB
+
+     Dynamical RAM for           local pot:       0.00 MB
+
+     Dynamical RAM for          nlocal pot:       0.26 MB
+
+     Dynamical RAM for                qrad:       0.65 MB
+
+     Dynamical RAM for          rho,v,vnew:       1.10 MB
+
+     Dynamical RAM for           G-vectors:       0.74 MB
+
+     Dynamical RAM for          h,s,v(r/c):       0.03 MB
+
+     Dynamical RAM for          <psi|beta>:       0.00 MB
+
+     Dynamical RAM for                 psi:       0.53 MB
+
+     Dynamical RAM for                hpsi:       0.53 MB
+
+     Dynamical RAM for      wfcinit/wfcrot:       0.53 MB
+
+     Estimated static dynamical RAM per process >       4.86 MB
+
+     Estimated max dynamical RAM per process >       5.94 MB
+
+     Estimated total dynamical RAM >      47.48 MB
+
+     The potential is recalculated from file :
+     /home/yshubert/code/koopmans/Yannick_tests/simple_water/snapshot_2/init/wannier/TMP/kc.save/charge-density
+
+     Starting wfcs are random
+
+     Band Structure Calculation
+     Davidson diagonalization with overlap
+
+     Computing kpt #:     1  of     1
+     total cpu time spent up to now is        0.5 secs
+
+     ethr =  6.40E-09,  avg # of iterations = 49.0
+
+     total cpu time spent up to now is        0.5 secs
+
+     End of band structure calculation
+
+          k = 0.0000 0.0000 0.0000 ( 11463 PWs)   bands (ev):
+
+   -24.9704 -12.6746  -8.9133  -6.7751  -1.0768   1.8234   2.1351   2.6375
+     2.7673   3.0972   3.1879   4.6395
+
+     occupation numbers 
+     1.0000   1.0000   1.0000   1.0000   0.0000   0.0000   0.0000   0.0000
+     0.0000   0.0000   0.0000   0.0000
+
+     highest occupied, lowest unoccupied level (ev):    -6.7751   -1.0768
+
+     Writing all to output data dir /home/yshubert/code/koopmans/Yannick_tests/simple_water/snapshot_2/init/wannier/TMP/kc.save/
+ 
+     init_run     :      0.08s CPU      0.09s WALL (       1 calls)
+     electrons    :      0.30s CPU      0.34s WALL (       1 calls)
+
+     Called by init_run:
+     wfcinit      :      0.00s CPU      0.00s WALL (       1 calls)
+     wfcinit:wfcr :      0.01s CPU      0.01s WALL (       1 calls)
+     potinit      :      0.01s CPU      0.01s WALL (       1 calls)
+     hinit0       :      0.05s CPU      0.06s WALL (       1 calls)
+
+     Called by electrons:
+     c_bands      :      0.30s CPU      0.34s WALL (       1 calls)
+     v_of_rho     :      0.01s CPU      0.01s WALL (       1 calls)
+     v_h          :      0.00s CPU      0.00s WALL (       1 calls)
+     v_xc         :      0.01s CPU      0.01s WALL (       1 calls)
+
+     Called by c_bands:
+     init_us_2    :      0.00s CPU      0.00s WALL (       1 calls)
+     init_us_2:cp :      0.00s CPU      0.00s WALL (       1 calls)
+     cegterg      :      0.29s CPU      0.33s WALL (       3 calls)
+
+     Called by sum_band:
+
+     Called by *egterg:
+     cdiaghg      :      0.01s CPU      0.01s WALL (      50 calls)
+     cegterg:over :      0.01s CPU      0.02s WALL (      49 calls)
+     cegterg:upda :      0.00s CPU      0.00s WALL (      49 calls)
+     cegterg:last :      0.01s CPU      0.01s WALL (      37 calls)
+     h_psi        :      0.25s CPU      0.28s WALL (      53 calls)
+     g_psi        :      0.00s CPU      0.00s WALL (      49 calls)
+
+     Called by h_psi:
+     h_psi:calbec :      0.01s CPU      0.01s WALL (      53 calls)
+     vloc_psi     :      0.24s CPU      0.27s WALL (      53 calls)
+     add_vuspsi   :      0.00s CPU      0.00s WALL (      53 calls)
+
+     General routines
+     calbec       :      0.01s CPU      0.01s WALL (      53 calls)
+     fft          :      0.01s CPU      0.01s WALL (      10 calls)
+     fftw         :      0.22s CPU      0.25s WALL (     824 calls)
+     davcio       :      0.00s CPU      0.00s WALL (       2 calls)
+ 
+     Parallel routines
+ 
+     PWSCF        :      0.45s CPU      0.52s WALL
+
+ 
+   This run was terminated on:  12:29:58  20Jun2022            
+
+=------------------------------------------------------------------------------=
+   JOB DONE.
+=------------------------------------------------------------------------------=

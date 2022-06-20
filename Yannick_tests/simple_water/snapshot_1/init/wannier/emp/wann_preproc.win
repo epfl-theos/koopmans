@@ -5,7 +5,7 @@ write_hr = .true.
 guiding_centres = .true.
 gamma_only = .false.
 bands_plot = .false.
-dis_froz_max = 0.5
+dis_froz_max = 2.0
 
 begin projections
   H:s

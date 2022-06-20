@@ -3,11 +3,11 @@
    verbosity        = 'high'
    outdir           = '/home/yshubert/code/koopmans/Yannick_tests/simple_water/snapshot_1/init/wannier/TMP/'
    prefix           = 'kc'
-   pseudo_dir       = '/home/yshubert/code/koopmans/pseudos/sg15_v1.2/pbe/'
+   pseudo_dir       = '/home/yshubert/code/koopmans/pseudos/sg15_relativistic_v1.0/pbe/'
 /
 &SYSTEM
    tot_charge       = 0
-   ecutwfc          = 50
+   ecutwfc          = 90
    nspin            = 1
    ntyp             = 2
    nat              = 3
@@ -22,8 +22,8 @@
 /
 
 ATOMIC_SPECIES
-O 15.999 O_ONCV_PBE-1.2.upf
-H 1.008 H_ONCV_PBE-1.2.upf
+O 15.999 O_ONCV_PBE_FR-1.0.upf
+H 1.008 H_ONCV_PBE_FR-1.0.upf
 
 K_POINTS automatic
 1 1 1  0 0 0

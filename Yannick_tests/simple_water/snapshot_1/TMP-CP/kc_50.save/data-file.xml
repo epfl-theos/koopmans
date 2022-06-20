@@ -21,10 +21,10 @@ T
 MD Simulation
     </TITLE>
     <KINETIC_ENERGY type="real" size="1" UNITS="Hartree">
- 4.766723257339488E+001
+ 8.582699310021182E+001
     </KINETIC_ENERGY>
     <HARTREE_ENERGY type="real" size="1" UNITS="Hartree">
- 3.536848035413589E+000
+ 4.254626513825146E+000
     </HARTREE_ENERGY>
     <EWALD_TERM type="real" size="1" UNITS="Hartree">
  4.409668148518238E-001
@@ -33,13 +33,13 @@ MD Simulation
  1.515980665525444E+001
     </GAUSS_SELFINT>
     <LPSP_ENERGY type="real" size="1" UNITS="Hartree">
--6.862993809669091E-002
+-7.223683400977451E-002
     </LPSP_ENERGY>
     <NLPSP_ENERGY type="real" size="1" UNITS="Hartree">
- 1.787468100445022E-003
+-1.049604461433034E-003
     </NLPSP_ENERGY>
     <EXC_ENERGY type="real" size="1" UNITS="Hartree">
--2.307745116779238E+000
+-2.742367025772171E+000
     </EXC_ENERGY>
     <AVERAGE_POT type="real" size="1" UNITS="Hartree">
  0.000000000000000E+000
@@ -106,8 +106,8 @@ O
       <MASS type="real" size="1">
  1.599900000000000E+001
       </MASS>
-      <PSEUDO type="character" size="1" len="18">
-O_ONCV_PBE-1.2.upf
+      <PSEUDO type="character" size="1" len="21">
+O_ONCV_PBE_FR-1.0.upf
       </PSEUDO>
     </SPECIE.1>
     <SPECIE.2>
@@ -117,12 +117,12 @@ H
       <MASS type="real" size="1">
  1.008000000000000E+000
       </MASS>
-      <PSEUDO type="character" size="1" len="18">
-H_ONCV_PBE-1.2.upf
+      <PSEUDO type="character" size="1" len="21">
+H_ONCV_PBE_FR-1.0.upf
       </PSEUDO>
     </SPECIE.2>
-    <PSEUDO_DIR type="character" size="1" len="51">
-/home/yshubert/code/koopmans/pseudos/sg15_v1.2/pbe/
+    <PSEUDO_DIR type="character" size="1" len="64">
+/home/yshubert/code/koopmans/pseudos/sg15_relativistic_v1.0/pbe/
     </PSEUDO_DIR>
     <UNITS_FOR_ATOMIC_POSITIONS UNITS="Bohr"/>
     <ATOM.1 SPECIES="O  " INDEX="1" tau="5.669178373877310E+000 5.894339241626471E+000 6.346550703249418E+000" if_pos="1 1 1"/>
@@ -132,13 +132,13 @@ H_ONCV_PBE-1.2.upf
   <PLANE_WAVES>
     <UNITS_FOR_CUTOFF UNITS="Hartree"/>
     <WFC_CUTOFF type="real" size="1">
- 2.500000000000000E+001
+ 4.500000000000000E+001
     </WFC_CUTOFF>
     <RHO_CUTOFF type="real" size="1">
- 1.000000000000000E+002
+ 1.800000000000000E+002
     </RHO_CUTOFF>
     <MAX_NUMBER_OF_GK-VECTORS type="integer" size="1">
-     11463
+     27705
     </MAX_NUMBER_OF_GK-VECTORS>
     <DO_WF_CMPLX type="logical" size="1">
 T
@@ -146,13 +146,13 @@ T
     <GAMMA_ONLY type="logical" size="1">
 F
     </GAMMA_ONLY>
-    <FFT_GRID nr1="60" nr2="60" nr3="54"/>
+    <FFT_GRID nr1="75" nr2="80" nr3="72"/>
     <GVECT_NUMBER type="integer" size="1">
-     91775
+    221683
     </GVECT_NUMBER>
-    <SMOOTH_FFT_GRID nr1s="60" nr2s="60" nr3s="54"/>
+    <SMOOTH_FFT_GRID nr1s="75" nr2s="80" nr3s="72"/>
     <SMOOTH_GVECT_NUMBER type="integer" size="1">
-     91775
+    221683
     </SMOOTH_GVECT_NUMBER>
     <G-VECTORS iotk_link="./gvectors.dat">
       <!--This is a link to the file indicated in the iotk_link attribute-->
@@ -240,12 +240,12 @@ T
     <STEP0>
       <ACCUMULATORS type="real" size="10">
  0.000000000000000E+000
- 4.766723257339488E+001
- 1.160472980537661E+000
- 4.882949302203299E+001
+ 8.582699310021182E+001
+ 1.440022654043200E+000
+ 8.726596614979360E+001
  0.000000000000000E+000
  0.000000000000000E+000
- 4.882949302203299E+001
+ 8.726596614979360E+001
  0.000000000000000E+000
  1.922097404461821E+003
  0.000000000000000E+000
@@ -270,9 +270,9 @@ T
  5.762670630669387E+000  5.963554386724971E+000  6.297647549249945E+000
         </cdmi>
         <force type="real" size="9" columns="3">
--6.139153696843217E-001 -4.612952052886955E-001  3.413265671381780E-001 
- 1.775632715185231E-001  5.917438910176842E-001  1.812936994987566E-001 
- 4.052111605058918E-001 -1.665194782919918E-001 -4.862148406631402E-001
+-6.174121868105719E-001 -4.667396082908518E-001  3.477057810444594E-001 
+ 1.771955077876560E-001  5.919193160852440E-001  1.810624957065927E-001 
+ 4.056659235299985E-001 -1.672828600846729E-001 -4.866558585462630E-001
         </force>
       </IONS_POSITIONS>
       <IONS_NOSE>
@@ -478,11 +478,11 @@ T
   </EIGENVALUES>
   <EIGENVECTORS>
     <MAX_NUMBER_OF_GK-VECTORS type="integer" size="1">
-     11463
+     27705
     </MAX_NUMBER_OF_GK-VECTORS>
     <K-POINT.1>
       <NUMBER_OF_GK-VECTORS type="integer" size="1">
-     11463
+     27705
       </NUMBER_OF_GK-VECTORS>
       <GK-VECTORS iotk_link="./K00001/gkvectors.dat">
         <!--This is a link to the file indicated in the iotk_link attribute-->

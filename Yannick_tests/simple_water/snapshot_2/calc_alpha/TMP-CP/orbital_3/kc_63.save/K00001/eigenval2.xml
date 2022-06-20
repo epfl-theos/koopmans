@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<?iotk version="1.1.0development"?>
+<?iotk file_version="1.0"?>
+<?iotk binary="F"?>
+<Root>
+  <INFO nbnd="4" ik="1" ispin="2"/>
+  <UNITS_FOR_ENERGIES UNITS="Hartree"/>
+  <EIGENVALUES type="real" size="4">
+-1.442113705909543E+000
+-9.472379483050051E-001
+-8.864260996695661E-001
+-7.608465434440388E-001
+  </EIGENVALUES>
+  <OCCUPATIONS type="real" size="4">
+ 5.000000000000000E-001
+ 5.000000000000000E-001
+ 5.000000000000000E-001
+ 5.000000000000000E-001
+  </OCCUPATIONS>
+</Root>
+ 

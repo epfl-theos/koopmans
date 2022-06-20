@@ -326,10 +326,12 @@ def func_compute_decomposition(n_max, l_max, r_min, r_max, r_cut, ML_directory, 
 
     r[:,:,:,:] = r_xsf[:-1,:-1,:-1,:]
 
+
     print("computing the alternative cartesian grid on which the actual integration is performed")
     number_of_x_grid_points, number_of_y_grid_points, number_of_z_grid_points, r_cartesian = generate_integration_box(r, r_cut)
     print("compute r_spherical from r_cartesian")
     r_spherical = cart2sph_array(r_cartesian)
+    
     if Debug:
         r_min     = np.min(r_spherical[:,:,:,0])
         r_max     = np.max(r_spherical[:,:,:,0])

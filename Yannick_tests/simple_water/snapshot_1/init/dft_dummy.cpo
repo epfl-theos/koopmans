@@ -10,7 +10,7 @@
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  18:46:35  17Jun2022               
+   This run was started on:  14: 0:43  20Jun2022               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -35,12 +35,12 @@ Warning: card / ignored
    ----------------------------------
 
    Reading pseudopotential for specie #  1 from file :
-   /home/yshubert/code/koopmans/pseudos/sg15_v1.2/pbe/O_ONCV_PBE-1.2.upf
+   /home/yshubert/code/koopmans/pseudos/sg15_relativistic_v1.0/pbe/O_ONCV_PBE_FR-1.0.upf
    file type is 20: UPF
  read_nonlocal
 
    Reading pseudopotential for specie #  2 from file :
-   /home/yshubert/code/koopmans/pseudos/sg15_v1.2/pbe/H_ONCV_PBE-1.2.upf
+   /home/yshubert/code/koopmans/pseudos/sg15_relativistic_v1.0/pbe/H_ONCV_PBE_FR-1.0.upf
    file type is 20: UPF
  read_nonlocal
 
@@ -87,9 +87,9 @@ Warning: card / ignored
 
    Energy Cut-offs
    ---------------
-   Ecutwfc =   50.0 Ry,      Ecutrho =  200.0 Ry,      Ecuts =  200.0 Ry
-   Gcutwfc =   14.1     ,    Gcutrho =   28.1          Gcuts =   28.1
-   NOTA BENE: refg, mmx =   0.050000  8000
+   Ecutwfc =   90.0 Ry,      Ecutrho =  360.0 Ry,      Ecuts =  360.0 Ry
+   Gcutwfc =   18.9     ,    Gcutrho =   37.7          Gcuts =   37.7
+   NOTA BENE: refg, mmx =   0.050000 14400
    Orthog. with Gram-Schmidt
    Electron dynamics with conjugate gradient
    Electron dynamics : the temperature is not controlled
@@ -159,71 +159,71 @@ Warning: card / ignored
  
    Stick Mesh
    ----------
-   nst =  1298,  nstw =   327, nsts =  1298
+   nst =  2329,  nstw =   580, nsts =  2329
         PEs    n.st   n.stw   n.sts    n.g    n.gw   n.gs
-          1     324      80     324   11472    1432   11472
-          2     324      82     324   11472    1434   11472
-          3     324      82     324   11472    1434   11472
-          4     324      82     324   11472    1434   11472
-          5     324      82     324   11472    1434   11472
-          6     327      81     327   11471    1431   11471
-          7     324      82     324   11472    1434   11472
-          8     324      82     324   11472    1430   11472
-          0    2595     653    2595   91775   11463   91775
+          1     582     146     582   27714    3466   27714
+          2     584     146     584   27708    3466   27708
+          3     582     144     582   27710    3460   27710
+          4     582     144     582   27710    3460   27710
+          5     582     144     582   27710    3460   27710
+          6     581     145     581   27711    3467   27711
+          7     582     144     582   27710    3460   27710
+          8     582     146     582   27710    3466   27710
+          0    4657    1159    4657  221683   27705  221683
  
  
    Real Mesh
    ---------
    Global Dimensions   Local  Dimensions   Processor Grid
    .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
-    60    60    54      60    60     7       1     1     8
-   Array leading dimensions ( nr1x, nr2x, nr3x )   =     60    60    54
-   Local number of cell to store the grid ( nnrx ) =      25200
+    75    80    72      75    80     9       1     1     8
+   Array leading dimensions ( nr1x, nr2x, nr3x )   =     75    80    72
+   Local number of cell to store the grid ( nnrx ) =      54000
    Number of x-y planes for each processors: 
-   nr3l =     7    7    7    7    7    7    6    6
+   nr3l =     9    9    9    9    9    9    9    9
  
    Smooth Real Mesh
    ----------------
    Global Dimensions   Local  Dimensions   Processor Grid
    .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
-    60    60    54      60    60     7       1     1     8
-   Array leading dimensions ( nr1x, nr2x, nr3x )   =     60    60    54
-   Local number of cell to store the grid ( nnrx ) =      25200
+    75    80    72      75    80     9       1     1     8
+   Array leading dimensions ( nr1x, nr2x, nr3x )   =     75    80    72
+   Local number of cell to store the grid ( nnrx ) =      54000
    Number of x-y planes for each processors: 
-   nr3sl =     7    7    7    7    7    7    6    6
+   nr3sl =     9    9    9    9    9    9    9    9
  
    Reciprocal Space Mesh
    ---------------------
                 Large Mesh
    PE   Global(ngmt)     Local(ngm) MaxLocal(ngmx)
-    1          91775          11472          11472
-    2          91775          11472          11472
-    3          91775          11472          11472
-    4          91775          11472          11472
-    5          91775          11472          11472
-    6          91775          11471          11472
-    7          91775          11472          11472
-    8          91775          11472          11472
+    1         221683          27714          27714
+    2         221683          27708          27714
+    3         221683          27710          27714
+    4         221683          27710          27714
+    5         221683          27710          27714
+    6         221683          27711          27714
+    7         221683          27710          27714
+    8         221683          27710          27714
                 Smooth Mesh
    PE   Global(ngst)     Local(ngs) MaxLocal(ngsx)
-    1          91775          11472          11472
-    2          91775          11472          11472
-    3          91775          11472          11472
-    4          91775          11472          11472
-    5          91775          11472          11472
-    6          91775          11471          11472
-    7          91775          11472          11472
-    8          91775          11472          11472
+    1         221683          27714          27714
+    2         221683          27708          27714
+    3         221683          27710          27714
+    4         221683          27710          27714
+    5         221683          27710          27714
+    6         221683          27711          27714
+    7         221683          27710          27714
+    8         221683          27710          27714
                 Wave function Mesh
    PE   Global(ngwt)     Local(ngw) MaxLocal(ngwx)
-    1          11463           1432           1434
-    2          11463           1434           1434
-    3          11463           1434           1434
-    4          11463           1434           1434
-    5          11463           1434           1434
-    6          11463           1431           1434
-    7          11463           1434           1434
-    8          11463           1430           1434
+    1          27705           3466           3467
+    2          27705           3466           3467
+    3          27705           3460           3467
+    4          27705           3460           3467
+    5          27705           3460           3467
+    6          27705           3467           3467
+    7          27705           3460           3467
+    8          27705           3466           3467
 
 
    System geometry initialization
@@ -257,20 +257,28 @@ Warning: card / ignored
    6  indv=  4   ang. mom=  1
    7  indv=  4   ang. mom=  1
    8  indv=  4   ang. mom=  1
+   9  indv=  5   ang. mom=  1
+  10  indv=  5   ang. mom=  1
+  11  indv=  5   ang. mom=  1
+  12  indv=  6   ang. mom=  1
+  13  indv=  6   ang. mom=  1
+  14  indv=  6   ang. mom=  1
  
                         dion 
-      9.757151948500      0.000000000000      0.000000000000      0.000000000000
-      0.000000000000      1.376126720650      0.000000000000      0.000000000000
-      0.000000000000      0.000000000000     -4.806858824850      0.000000000000
-      0.000000000000      0.000000000000      0.000000000000     -1.616239702250
+      1.407619345750      0.000000000000      0.000000000000      0.000000000000      0.000000000000      0.000000000000
+      0.000000000000      9.742647218000      0.000000000000      0.000000000000      0.000000000000      0.000000000000
+      0.000000000000      0.000000000000     -4.813021423250      0.000000000000      0.000000000000      0.000000000000
+      0.000000000000      0.000000000000      0.000000000000     -4.807259340050      0.000000000000      0.000000000000
+      0.000000000000      0.000000000000      0.000000000000      0.000000000000     -1.613679870800      0.000000000000
+      0.000000000000      0.000000000000      0.000000000000      0.000000000000      0.000000000000     -1.610050840050
 
    Specie:     2
    1  indv=  1   ang. mom=  0
    2  indv=  2   ang. mom=  0
  
                         dion 
-    -12.008220743500      0.000000000000
-      0.000000000000     -0.516823145650
+    -12.873318778500      0.000000000000
+      0.000000000000     -0.540296819450
  
    Short Legend and Physical Units in the Output
    ---------------------------------------------
@@ -298,21 +306,21 @@ Warning: card / ignored
     1.00 1.00 1.00 1.00
 
    formf: eself=  15.15981
-   formf:     vps(g=0)=  -0.0077088     rhops(g=0)=  -0.0029301
-   formf:     vps(g=0)=  -0.0077088     rhops(g=0)=  -0.0029301
-   formf: sum_g vps(g)=  -8.5353623 sum_g rhops(g)=  -1.0775227
-   formf:     vps(g=0)=  -0.0014917     rhops(g=0)=  -0.0004883
-   formf:     vps(g=0)=  -0.0014917     rhops(g=0)=  -0.0004883
-   formf: sum_g vps(g)=  -3.4260746 sum_g rhops(g)=  -0.1795871
+   formf:     vps(g=0)=  -0.0077092     rhops(g=0)=  -0.0029301
+   formf:     vps(g=0)=  -0.0077092     rhops(g=0)=  -0.0029301
+   formf: sum_g vps(g)=  -8.9176650 sum_g rhops(g)=  -1.0775227
+   formf:     vps(g=0)=  -0.0014919     rhops(g=0)=  -0.0004883
+   formf:     vps(g=0)=  -0.0014919     rhops(g=0)=  -0.0004883
+   formf: sum_g vps(g)=  -3.3905828 sum_g rhops(g)=  -0.1795871
    Delta V(G=0):   0.013073Ry,    0.355736eV
 
  * Physical Quantities at step:     1
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.27s CPU time,    0.28s wall time
+     CP           :     0.61s CPU time,    0.67s wall time
 
-     iteration =   1  eff iteration =   1   Etot (Ha) =     48.82949302203299
+     iteration =   1  eff iteration =   1   Etot (Ha) =     87.26596614979360
 
 
    Empty-states WFCs file NOT FOUND
@@ -324,10 +332,10 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EMPTY STATES
 
-     CP           :     0.28s CPU time,    0.30s wall time
+     CP           :     0.65s CPU time,    0.71s wall time
 
-     iteration =   1  eff iteration =   1   Etot (Ha) =     46.24630219858970
-     Ekin (Ha) =      47.66583443807875 Enl (Ha) =      -0.00074750044433 Eloc (Ha) =     -1.41878473904473
+     iteration =   1  eff iteration =   1   Etot (Ha) =     84.37305011360121
+     Ekin (Ha) =      85.80536486808157 Enl (Ha) =      -0.00403555251655 Eloc (Ha) =     -1.42827920196380
 
    writing empty state KC  Hamiltonian file: hamiltonian_emp
 
@@ -336,27 +344,27 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EMPTY STATES
  Projectability EMP states on OCC manifold
  -----------------------------------------
 
-    orbital #    1 :   0.26643586
-    orbital #    2 :   0.21308260
-    orbital #    3 :   0.18507676
-    orbital #    4 :   0.16348392
-    orbital #    5 :   0.22667739
-    orbital #    6 :   0.18731441
-    orbital #    7 :   0.18621960
-    orbital #    8 :   0.16426382
+    orbital #    1 :   0.26950630
+    orbital #    2 :   0.22416118
+    orbital #    3 :   0.18210795
+    orbital #    4 :   0.15854578
+    orbital #    5 :   0.26651977
+    orbital #    6 :   0.22321716
+    orbital #    7 :   0.16877503
+    orbital #    8 :   0.16871719
 
-      Total projectability =   0.19906930
+      Total projectability =   0.20769380
 
 
 
-                total energy =      48.8294930220 Hartree a.u.
-              kinetic energy =      47.6672325734 Hartree a.u.
-        electrostatic energy =       3.5368480354 Hartree a.u.
+                total energy =      87.2659661498 Hartree a.u.
+              kinetic energy =      85.8269931002 Hartree a.u.
+        electrostatic energy =       4.2546265138 Hartree a.u.
                          esr =       0.4409668149 Hartree a.u.
                        eself =      15.1598066553 Hartree a.u.
-      pseudopotential energy =      -0.0686299381 Hartree a.u.
-  n-l pseudopotential energy =       0.0017874681 Hartree a.u.
- exchange-correlation energy =      -2.3077451168 Hartree a.u.
+      pseudopotential energy =      -0.0722368340 Hartree a.u.
+  n-l pseudopotential energy =      -0.0010496045 Hartree a.u.
+ exchange-correlation energy =      -2.7423670258 Hartree a.u.
            average potential =       0.0000000000 Hartree a.u.
                   odd energy =       0.0000000000 Hartree a.u.
         van der waals energy =       0.0000000000 Hartree a.u.
@@ -365,30 +373,30 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EMPTY STATES
 
    HOMO Eigenvalue (eV)
 
-  201.0470
+  342.9539
 
    LUMO Eigenvalue (eV)
 
-  153.1600
+  281.7050
 
-   Electronic Gap (eV) =   -47.8870
+   Electronic Gap (eV) =   -61.2489
 
 
    Eigenvalues (eV), kp =   1 , spin =  1
 
-  153.3215  156.1744  158.0142  201.0470
+  282.2895  286.4965  288.4084  340.5469
 
    Empty States Eigenvalues (eV), kp =   1 , spin =  1
 
-  155.8385  156.5031  157.8011  160.4436
+  283.7705  285.7673  288.0006  291.7094
 
    Eigenvalues (eV), kp =   1 , spin =  2
 
-  153.2425  155.2462  157.9021  200.7772
+  282.3308  285.3458  288.3888  342.9539
 
    Empty States Eigenvalues (eV), kp =   1 , spin =  2
 
-  153.1600  155.8310  159.1614  159.6872
+  281.7050  285.0318  287.4940  292.4290
 
    Orb -- Charge  ---   Centers xyz (Bohr)  ---  Spreads (Bohr^2) - SH(eV), kp =   1 , spin =  1
 
@@ -449,35 +457,35 @@ EMP    4 --    0.00   ---    0.00    0.00    0.00   ---   0.000   0.000
   nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
  
        nfi   tempp            E -T.S-mu.nbsp         +K_p #Iter
-Step     1       0     48.82949     48.82949     48.82949     1
+Step     1       0     87.26597     87.26597     87.26597     1
  tnosep= F thdyn= F
 
    writing restart file: /home/yshubert/code/koopmans/Yannick_tests/simple_water/snapshot_1/TMP-CP//kc_50.save
-   restart file written in    0.071 sec.
+   restart file written in    0.122 sec.
 
 
 
    Averaged Physical Quantities
                       accomulated      this run
    ekinc         :        0.00000       0.00000 (AU)
-   ekin          :       47.66723      47.66723 (AU)
-   epot          :        1.16047       1.16047 (AU)
-   total energy  :       48.82949      48.82949 (AU)
+   ekin          :       85.82699      85.82699 (AU)
+   epot          :        1.44002       1.44002 (AU)
+   total energy  :       87.26597      87.26597 (AU)
    temperature   :        0.00000       0.00000 (K )
    enthalpy      :        0.00000       0.00000 (AU)
-   econs         :       48.82949      48.82949 (AU)
+   econs         :       87.26597      87.26597 (AU)
    pressure      :        0.00000       0.00000 (Gpa)
    volume        :     1922.09740    1922.09740 (AU)
 
 
-     initialize   :     0.20s CPU
-     total_time   :     0.06s CPU
-     formf        :     0.04s CPU
-     rhoofr       :     0.01s CPU (       2 calls,   0.003 s avg)
-     vofrho       :     0.03s CPU
-     vofrho1      :     0.03s CPU
-     dforce       :     0.01s CPU (       8 calls,   0.001 s avg)
-     dforce2      :     0.10s CPU
+     initialize   :     0.49s CPU
+     total_time   :     0.16s CPU
+     formf        :     0.08s CPU
+     rhoofr       :     0.01s CPU (       2 calls,   0.007 s avg)
+     vofrho       :     0.09s CPU
+     vofrho1      :     0.09s CPU
+     dforce       :     0.03s CPU (       8 calls,   0.004 s avg)
+     dforce2      :     0.24s CPU
      calphi       :     0.00s CPU (       2 calls,   0.000 s avg)
      gram         :     0.00s CPU (       3 calls,   0.000 s avg)
      newd         :     0.00s CPU
@@ -486,21 +494,21 @@ Step     1       0     48.82949     48.82949     48.82949     1
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
      nlsm1        :     0.00s CPU (       8 calls,   0.000 s avg)
-     fft          :     0.01s CPU (      19 calls,   0.001 s avg)
-     ffts         :     0.00s CPU (       3 calls,   0.000 s avg)
-     fftw         :     0.01s CPU (      48 calls,   0.000 s avg)
-     cft3s        :     0.02s CPU (      70 calls,   0.000 s avg)
-     fft_scatter  :     0.01s CPU (      70 calls,   0.000 s avg)
+     fft          :     0.03s CPU (      19 calls,   0.001 s avg)
+     ffts         :     0.00s CPU (       3 calls,   0.001 s avg)
+     fftw         :     0.03s CPU (      48 calls,   0.001 s avg)
+     cft3s        :     0.06s CPU (      70 calls,   0.001 s avg)
+     fft_scatter  :     0.03s CPU (      70 calls,   0.000 s avg)
 
-     outer_loop   :     0.14s CPU
-     runcg_uspp   :     0.05s CPU (       2 calls,   0.026 s avg)
+     outer_loop   :     0.33s CPU
+     runcg_uspp   :     0.14s CPU (       2 calls,   0.071 s avg)
      emass_p_tpa  :     0.00s CPU (       2 calls,   0.000 s avg)
  
  
-     CP           :     0.37s CPU time,    0.44s wall time
+     CP           :     0.85s CPU time,    1.01s wall time
 
  
-   This run was terminated on:  18:46:36  17Jun2022            
+   This run was terminated on:  14: 0:44  20Jun2022            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

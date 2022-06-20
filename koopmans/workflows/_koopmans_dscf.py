@@ -389,6 +389,7 @@ class KoopmansDSCFWorkflow(MLCapableWorkflow):
                 c, calculators.PWCalculator) and c.parameters.calculation == 'nscf'][-1]
             pw_gap = pw_calc.results['lumo_energy'] - pw_calc.results['homo_energy']
             cp_gap = calc.results['lumo_energy'] - calc.results['homo_energy']
+            print((f'Yannick Debug PW and CP band gaps: {pw_gap} {cp_gap}'))
             if abs(pw_gap - cp_gap) > 2e-2 * pw_gap:
                 raise ValueError(f'PW and CP band gaps are not consistent: {pw_gap} {cp_gap}')
 
@@ -536,6 +537,7 @@ class KoopmansDSCFWorkflow(MLCapableWorkflow):
             first_band_of_each_channel = [self.bands.get(spin=spin)[0] for spin in range(2)]
             # Loop over removing/adding an electron from/to each orbital
             for band in self.bands:
+                use_prediction = False
                 # For a KI calculation with only filled bands, we don't have any further calculations to
                 # do so we don't enter this section to avoid printing any headers
                 if self.parameters.functional != 'ki' or any([not b.filled for b in self.bands]) or i_sc == 1:
@@ -606,30 +608,33 @@ class KoopmansDSCFWorkflow(MLCapableWorkflow):
                             index_empty_to_save += self.bands.num(filled=False, spin=0)
 
                     # Yannick Debug: replace the actual fixed-band calculations with my logic
-                    # mlfit = MLFiitingWorkflow(self.ml_model, band.index, trial_calc, band.filled, **self.wf_kwargs)
-                    # self.run_subworkflow(mlfit)
                     alpha_predicted = mlfit.get_prediction_for_latest_alpha()
-                    if(mlfit.use_prediction()):
-                        band.alpha = alpha_predicted
-                    else:
+                    use_prediction  = mlfit.use_prediction()
+                    if(not use_prediction):
                         self.perform_fixed_band_calculations(band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band, directory, alpha_indep_calcs)
-                        mlfit.train()
                     # end Yannick Debug
                     
 
-                # Calculate an updated alpha and a measure of the error
-                # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
-                # E_i(N + 1) - E(N) - lambda^alpha_ii(0)     (empty)
-                #
-                # Note that we can do this even from calculations that have been skipped because
-                # we read in all the requisite information from the output files and .pkl files
-                # that do not get overwritten
+                if(use_prediction):
+                    alpha = alpha_predicted
+                    error = 0.0 # TODO: what do we define as an error
+                else:
+                    # Calculate an updated alpha and a measure of the error
+                    # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
+                    # E_i(N + 1) - E(N) - lambda^alpha_ii(0)     (empty)
+                    #
+                    # Note that we can do this even from calculations that have been skipped because
+                    # we read in all the requisite information from the output files and .pkl files
+                    # that do not get overwritten
 
-                calcs = [c for calc_set in [alpha_dep_calcs, alpha_indep_calcs]
-                         for c in calc_set if c.fixed_band == band]
+                    calcs = [c for calc_set in [alpha_dep_calcs, alpha_indep_calcs]
+                            for c in calc_set if c.fixed_band == band]
 
-                alpha, error = self.calculate_alpha_from_list_of_calcs(
-                    calcs, trial_calc, band, filled=band.filled)
+                    alpha, error = self.calculate_alpha_from_list_of_calcs(
+                        calcs, trial_calc, band, filled=band.filled)
+                    
+                    mlfit.train([band.index], [band.filled], [alpha])
+
 
                 for b in self.bands:
                     if b == band or (b.group is not None and b.group == band.group):

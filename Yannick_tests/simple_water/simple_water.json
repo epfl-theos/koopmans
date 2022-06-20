@@ -5,7 +5,7 @@
       "init_orbitals": "mlwfs",
       "mp_correction": false,
       "periodic": false,
-      "pseudo_library": "sg15_v1.2",
+      "pseudo_library": "sg15_relativistic",
       "gb_correction": false,
       "eps_inf": 1.72,
       "fix_spin_contamination": true,
@@ -57,12 +57,12 @@
       },
       "emp": {
         "bands_plot": false,
-        "dis_froz_max": 0.5,
-        "projections": [
-          {
-            "site": "H",
-            "ang_mtm": "s"
-          }
+        "dis_froz_max": 2.0,
+         "projections": [
+           {
+             "site": "H",
+             "ang_mtm": "s"
+           }
         ]
       }
     },
@@ -72,7 +72,7 @@
         "nbnd": 8,
         "tot_charge": 0,
         "tot_magnetization": 0,
-        "ecutwfc": 50,
+        "ecutwfc": 90,
         "nelec": 8,
         "nelup": 4,
         "neldw": 4
@@ -89,7 +89,7 @@
         "nbnd": 12,
         "tot_charge": 0,
         "tot_magnetization": 0,
-        "ecutwfc": 50
+        "ecutwfc": 90
       },
       "electrons": {
         "conv_thr": 5.12e-07

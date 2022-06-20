@@ -1,30 +1,20 @@
   STEP:      1       0.00
-   Electronic Gap (eV) =   -47.89
+   Electronic Gap (eV) =   -61.25
    Eigenvalues (eV), kp =   1 , spin =  1
-  153.32  156.17  158.01  201.05
+  282.29  286.50  288.41  340.55
    Empty States Eigenvalues (eV), kp =   1 , spin =  1
-  155.84  156.50  157.80  160.44
+  283.77  285.77  288.00  291.71
    Eigenvalues (eV), kp =   1 , spin =  2
-  153.24  155.25  157.90  200.78
+  282.33  285.35  288.39  342.95
    Empty States Eigenvalues (eV), kp =   1 , spin =  2
-  153.16  155.83  159.16  159.69
+  281.71  285.03  287.49  292.43
   STEP:      2       0.00
-   Electronic Gap (eV) =     5.70
+   Electronic Gap (eV) =     7.39
    Eigenvalues (eV), kp =   1 , spin =  1
-  -25.40  -13.10   -9.33   -7.19
+  -17.67  -13.82   -9.46   -8.49
    Empty States Eigenvalues (eV), kp =   1 , spin =  1
-   -1.49    1.38    1.75    2.26
+   -1.09    0.29    1.37    2.19
    Eigenvalues (eV), kp =   1 , spin =  2
-  -25.40  -13.10   -9.33   -7.19
+  -17.67  -13.82   -9.46   -8.49
    Empty States Eigenvalues (eV), kp =   1 , spin =  2
-   -1.49    1.38    1.75    2.26
-  STEP:      3       0.00
-   Electronic Gap (eV) =   169.40
-   Eigenvalues (eV), kp =   1 , spin =  1
-  -30.87  -18.55  -14.83  -12.73
-   Empty States Eigenvalues (eV), kp =   1 , spin =  1
-  156.67  159.58  161.54  162.56
-   Eigenvalues (eV), kp =   1 , spin =  2
-  -30.87  -18.55  -14.83  -12.73
-   Empty States Eigenvalues (eV), kp =   1 , spin =  2
-  157.57  159.25  161.15  162.81
+   -1.09    0.29    1.37    2.19
