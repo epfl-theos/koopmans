@@ -55,7 +55,8 @@ def compare(result: Any, ref_result: Any, result_name: str) -> Optional[Dict[str
         # testing absolute error. We use 0.1*max(ref_result) as a reference scale factor.
 
         # Sanitise the input
-        assert result.shape == ref_result.shape, f'Array shape mismatch between result and benchmark for {result_name}'
+        if result.shape != ref_result.shape:
+            return {'kind': 'error', 'message': f'Array shape mismatch between result and benchmark for {result_name}'}
         result = result.flatten()
         ref_result = ref_result.flatten()
 
@@ -107,8 +108,8 @@ class CheckCalc:
 
     @property
     def _calcname(self) -> Path:
-        calcname = (self.directory / self.prefix).relative_to(base_directory /  # type: ignore[attr-defined]
-                                                              'tests' / 'tmp')
+        calcname = (self.directory / self.prefix).relative_to(base_directory  # type: ignore[attr-defined]
+                                                              / 'tests' / 'tmp')
         return calcname.relative_to(calcname.parts[0])
 
     def _check_results(self, benchmark: Calc):
@@ -202,8 +203,8 @@ class CheckCalc:
             metadata: Dict[str, str] = json.load(fd)
 
         for output_file in metadata['output_files']:
-            assert (self.directory /
-                    output_file).exists(), f'Error in {self._calcname}: {output_file} was not generated'
+            assert (self.directory
+                    / output_file).exists(), f'Error in {self._calcname}: {output_file} was not generated'
 
 
 class CheckKoopmansCPCalculator(CheckCalc, KoopmansCPCalculator):

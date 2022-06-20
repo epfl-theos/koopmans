@@ -105,3 +105,7 @@ class StumblingDeltaSCFWorkflow(StumblingWorkflow, workflows.DeltaSCFWorkflow):
 
 class StumblingKoopmansDFPTWorkflow(StumblingWorkflow, workflows.KoopmansDFPTWorkflow):
     pass
+
+
+class StumblingUnfoldAndInterpolateWorkflow(StumblingWorkflow, workflows.UnfoldAndInterpolateWorkflow):
+    pass

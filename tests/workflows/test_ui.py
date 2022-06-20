@@ -6,7 +6,7 @@ from koopmans.utils import chdir
 from koopmans.testing import benchmark_filename
 
 
-def test_ui_si(silicon, tmp_path, sys2file, datadir):
+def test_ui_si(silicon, tmp_path, sys2file, datadir, ui_patch):
     with chdir(tmp_path):
         parameters = {'ui': {'smooth_int_factor': 2,
                              "kc_ham_file": datadir / "ui" / "kc_ham.dat",

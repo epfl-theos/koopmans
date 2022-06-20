@@ -13,8 +13,8 @@
   },
   "ecutrho": 200.0,
   "pseudopotentials": {
-   "O": "O_ONCV_PBE-1.0.upf",
-   "H": "H_ONCV_PBE-1.0.upf"
+   "H": "H_ONCV_PBE-1.0.upf",
+   "O": "O_ONCV_PBE-1.0.upf"
   },
   "ndr": 50,
   "ndw": 51,

@@ -454,7 +454,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 bigdct = {"workflow": {"task": "ui"}, "ui": settings}
 
                 # Provide the bandpath information in the form of a string
-                bigdct['setup'] = {'k_points': {'kpath': kpath.path, 'kgrid': kgrid}}
+                bigdct['setup'] = {'k_points': {'kgrid': kgrid, **utils.kpath_to_dict(kpath, atoms.cell)}}
 
                 # Provide the plot information
                 bigdct['plot'] = {k: v for k, v in plot_params.items()}
@@ -494,7 +494,8 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             kpoint_block = bigdct['setup'].get('k_points', {})
             if kpoint_block:
                 self.parameters.kgrid = kpoint_block['kgrid']
-                self.parameters.kpath = utils.convert_kpath_str_to_bandpath(kpoint_block['kpath'], self.atoms.cell)
+                self.parameters.kpath = utils.convert_kpath_str_to_bandpath(
+                    kpoint_block['kpath'], self.atoms.cell, kpoint_block.get('kpath_density', None))
 
         return
 

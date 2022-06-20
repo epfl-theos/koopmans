@@ -258,9 +258,10 @@ class KoopmansDSCFWorkflow(Workflow):
         if self.parameters.periodic:
             if self.parameters.calculate_bands in [None, True] and self.projections and self.kpath is not None:
                 # Calculate interpolated band structure and DOS with UI
-                from koopmans.workflows import UnfoldAndInterpolateWorkflow
+                from koopmans import workflows
                 self.print(f'\nPostprocessing', style='heading')
-                ui_workflow = UnfoldAndInterpolateWorkflow(redo_smooth_dft=self._redo_smooth_dft, **self.wf_kwargs)
+                ui_workflow = workflows.UnfoldAndInterpolateWorkflow(
+                    redo_smooth_dft=self._redo_smooth_dft, **self.wf_kwargs)
                 self.run_subworkflow(ui_workflow, subdirectory='postproc')
             else:
                 # Generate the DOS only
@@ -269,7 +270,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
     def perform_initialisation(self) -> None:
         # Import these here so that if these have been monkey-patched, we get the monkey-patched version
-        from koopmans.workflows import WannierizeWorkflow, FoldToSupercellWorkflow
+        from koopmans import workflows
 
         # The final calculation during the initialisation, regardless of the workflow settings, should write to ndw = 51
         ndw_final = 51
@@ -318,7 +319,7 @@ class KoopmansDSCFWorkflow(Workflow):
         elif self.parameters.init_orbitals in ['mlwfs', 'projwfs'] or \
                 (self.parameters.periodic and self.parameters.init_orbitals == 'kohn-sham'):
             # Wannier functions using pw.x, wannier90.x and pw2wannier90.x (pw.x only for Kohn-Sham states)
-            wannier_workflow = WannierizeWorkflow(**self.wf_kwargs)
+            wannier_workflow = workflows.WannierizeWorkflow(**self.wf_kwargs)
             if wannier_workflow.parameters.calculate_bands:
                 wannier_workflow.parameters.calculate_bands = not self.master_calc_params['ui'].do_smooth_interpolation
 
@@ -326,7 +327,7 @@ class KoopmansDSCFWorkflow(Workflow):
             self.run_subworkflow(wannier_workflow, subdirectory='init')
 
             # Now, convert the files over from w90 format to (k)cp format
-            fold_workflow = FoldToSupercellWorkflow(**self.wf_kwargs)
+            fold_workflow = workflows.FoldToSupercellWorkflow(**self.wf_kwargs)
 
             # Do this in the same directory as the wannierisation
             self.run_subworkflow(fold_workflow, subdirectory='init/wannier')

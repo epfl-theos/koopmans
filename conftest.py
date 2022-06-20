@@ -83,6 +83,8 @@ def monkeypatch_stumble(monkeypatch):
     monkeypatch.setattr('koopmans.workflows.DFTPWWorkflow', testing.StumblingDFTPWWorkflow)
     monkeypatch.setattr('koopmans.workflows.DeltaSCFWorkflow', testing.StumblingDeltaSCFWorkflow)
     monkeypatch.setattr('koopmans.workflows.KoopmansDFPTWorkflow', testing.StumblingKoopmansDFPTWorkflow)
+    monkeypatch.setattr('koopmans.workflows.UnfoldAndInterpolateWorkflow',
+                        testing.StumblingUnfoldAndInterpolateWorkflow)
     # When running with stumble mode, we want to check our results against the benchmarks by using CheckCalcs
     monkeypatch_check(monkeypatch)
 
@@ -99,7 +101,6 @@ def tutorial_patch(monkeypatch, pytestconfig):
     else:
         # we use MockCalcs when running our tests on github, OR if the user is running locally
         monkeypatch_mock(monkeypatch)
-        monkeypatch_stumble(monkeypatch, pytestconfig, mock=True)
 
 
 @pytest.fixture
@@ -117,6 +118,20 @@ def workflow_patch(monkeypatch, pytestconfig):
 
 
 @pytest.fixture
+def ui_patch(monkeypatch, pytestconfig):
+    # For tests involving the UI python routines only...
+    if pytestconfig.getoption('generate_benchmark'):
+        # when generating benchmarks, use BenchCalcs
+        monkeypatch_bench(monkeypatch)
+    elif pytestconfig.getoption('stumble'):
+        # when testing recovery from a crash, use StumblingWorkflows
+        monkeypatch_stumble(monkeypatch)
+    else:
+        # we can run the calculations directly when running our tests on github, OR if the user is running locally
+        pass
+
+
+@pytest.fixture
 def espresso_patch(monkeypatch, pytestconfig):
     # For tests involving Quantum ESPRESSO...
     if pytestconfig.getoption('generate_benchmark'):
@@ -131,7 +146,6 @@ def espresso_patch(monkeypatch, pytestconfig):
     else:
         # when the user is running locally, use CheckCalcs
         monkeypatch_check(monkeypatch)
-        monkeypatch_stumble(monkeypatch, pytestconfig, mock=False)
 
 
 @pytest.fixture

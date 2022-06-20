@@ -15,8 +15,8 @@
    "__path__": "../../../../../../../pseudos/sg15_v1.2/pbe"
   },
   "pseudopotentials": {
-   "O": "O_ONCV_PBE-1.2.upf",
-   "H": "H_ONCV_PBE-1.2.upf"
+   "H": "H_ONCV_PBE-1.2.upf",
+   "O": "O_ONCV_PBE-1.2.upf"
   },
   "ndw": 68,
   "ndr": 65,
