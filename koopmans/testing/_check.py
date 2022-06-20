@@ -19,7 +19,7 @@ tolerances = {'alphas': (2e-3, 2e-5),
               'lumo_energy': (2e-3, 2e-5),
               'self-hartree': (2e-3, 2e-5),
               'array': (2e-2, 2e-4),
-              'default': (1e-4, 1e-7)}
+              'default': (2e-4, 2e-6)}
 
 
 def compare(result: Any, ref_result: Any, result_name: str) -> Optional[Dict[str, str]]:
