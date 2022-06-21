@@ -19,6 +19,7 @@ from ._wann2kc import Wann2KCSettingsDict
 from ._wannier90 import Wannier90SettingsDict
 from ._workflow import WorkflowSettingsDict
 from ._plot import PlotSettingsDict
+from ._ML import MLSettingsDict
 
 # Dictionary to be used as the default value for 'master_calc_params' when initialising a workflow
 default_master_calc_params = {'kcp': KoopmansCPSettingsDict(),
@@ -34,4 +35,5 @@ default_master_calc_params = {'kcp': KoopmansCPSettingsDict(),
                               'wann2kc': Wann2KCSettingsDict(),
                               'w90_occ': Wannier90SettingsDict(),
                               'w90_emp': Wannier90SettingsDict(),
-                              'plot': PlotSettingsDict()}
+                              'plot': PlotSettingsDict(),
+                              'ML': MLSettingsDict()}

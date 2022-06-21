@@ -1303,7 +1303,8 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'w90_emp_up': settings.Wannier90SettingsDict,
                     'w90_occ_down': settings.Wannier90SettingsDict,
                     'w90_emp_down': settings.Wannier90SettingsDict,
-                    'plot': settings.PlotSettingsDict}
+                    'plot': settings.PlotSettingsDict,
+                    'ML': settings.MLSettingsDict}
 
 
 def sanitise_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]]) \

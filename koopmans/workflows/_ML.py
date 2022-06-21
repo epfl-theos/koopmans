@@ -23,43 +23,33 @@ import copy
 #     def train(self) -> None:
 #         ...
 
-class MLModel():
-
-    def predict(self):
-        print("model.predict()")
-
-    def train(self):
-        print("model.train()")
 
 
-class MLCapableWorkflow(Workflow):
 
-    def __init__(self, *args, ml_model:MLModel=None, **kwargs):
-        if ml_model is not None:
-            self.ml_model = ml_model
+# class MLCapableWorkflow(Workflow):
+
+#     def __init__(self, *args, ml_model:MLModel=None, **kwargs):
+#         if ml_model is not None:
+#             self.ml_model = ml_model
         
+#         super().__init__(*args, **kwargs)
+        
+    
+#     # @abstractmethod
+#     # def convert_binary_to_xml(self) -> None:
+#     #     ...
+    
+#     @property
+#     def wf_kwargs(self) -> Dict[str, Any]:
+#         h = super().wf_kwargs
+#         h.update({'ml_model': copy.deepcopy(self.ml_model)})
+#         return h
+
+
+class MLFiitingWorkflow(Workflow):
+
+    def __init__(self, calc_that_produced_orbital_densities, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
-    
-    # @abstractmethod
-    # def convert_binary_to_xml(self) -> None:
-    #     ...
-    
-    @property
-    def wf_kwargs(self) -> Dict[str, Any]:
-        h = super().wf_kwargs
-        h.update({'ml_model': copy.deepcopy(self.ml_model)})
-        return h
-
-
-class MLFiitingWorkflow(MLCapableWorkflow):
-
-    def __init__(self, calc_that_produced_orbital_densities, **kwargs):
-        super().__init__(**kwargs)
-        self.n_max                                = 4
-        self.l_max                                = 4
-        self.r_min                                = 0.5
-        self.r_max                                = 4.0
         self.method_to_extract_from_binary        = 'from_ki'
         # TODO: don't hard-code the number of bands
         self.num_occ_bands                        = 4
@@ -67,9 +57,12 @@ class MLFiitingWorkflow(MLCapableWorkflow):
         # end TODO
         self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
         self.ML_dir                               = self.calc_that_produced_orbital_densities.directory / 'ML' / 'TMP'
+        ML_params = self.master_calc_params['ML']
+        self.n_max = ML_params.n_max
+        self.l_max = ML_params.l_max
+        self.r_min = ML_params.r_min
+        self.r_max = ML_params.r_max
 
-        import ipdb 
-        ipdb.set_trace()
         
         
 
@@ -100,6 +93,8 @@ class MLFiitingWorkflow(MLCapableWorkflow):
         if self.method_to_extract_from_binary == 'from_ki':
             centers_occ = np.array(self.calculations[4].results['centers'])
             centers_emp = np.array(self.calculations[7].results['centers'])
+        import ipdb 
+        ipdb.set_trace()
         ML_utils.precompute_radial_basis(self.n_max, self.l_max, self.r_min, self.r_max, self.ML_dir)
         ML_utils.func_compute_decomposition(self.n_max, self.l_max, self.r_min, self.r_max, self.r_cut, self.ML_dir, [self.num_emp_bands, self.num_occ_bands], self.atoms, centers_occ, centers_emp)
     
@@ -127,7 +122,6 @@ class MLFiitingWorkflow(MLCapableWorkflow):
             else:
                 occ_string = 'emp'
             power_spectrum = np.loadtxt(self.dir_power / f'power_spectrum.orbital.{occ_string}.{orbital}.txt')
-            print(power_spectrum)
             print("adding orbital ", orbital)
             print("filling orbital ", orbital_filling)
             print("alpha orbital ", alpha)

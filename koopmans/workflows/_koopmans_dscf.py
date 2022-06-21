@@ -18,10 +18,10 @@ from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.bands import Band, Bands
 from koopmans import calculators
 from ._workflow import Workflow
-from ._ML import MLFiitingWorkflow, MLCapableWorkflow, MLModel
+from ._ML import MLFiitingWorkflow
 
 
-class KoopmansDSCFWorkflow(MLCapableWorkflow):
+class KoopmansDSCFWorkflow(Workflow):
 
     def __init__(self, *args, redo_smooth_dft: Optional[bool] = None, restart_from_old_ki: bool = False, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -329,6 +329,8 @@ class KoopmansDSCFWorkflow(MLCapableWorkflow):
             # Perform the wannierisation workflow within the init directory
             self.run_subworkflow(wannier_workflow, subdirectory='init')
 
+            import ipdb
+            ipdb.set_trace()
 
             # Now, convert the files over from w90 format to (k)cp format
             fold_workflow = FoldToSupercellWorkflow(**self.wf_kwargs)
@@ -518,11 +520,14 @@ class KoopmansDSCFWorkflow(MLCapableWorkflow):
             # enforcing the spin symmetry if the density will change
             self.run_calculator(trial_calc, enforce_ss=self.parameters.fix_spin_contamination and i_sc > 1)
 
+            
             # Yannick Debug: replace the actual fixed-band calculations with my logic
+            import ipdb 
+            ipdb.set_trace()
             mlfit = MLFiitingWorkflow(trial_calc, **self.wf_kwargs)
             self.run_subworkflow(mlfit)
             # end Yannick Debug
-
+            
 
             alpha_dep_calcs = [trial_calc]
 

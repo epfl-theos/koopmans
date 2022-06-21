@@ -22,9 +22,7 @@ class TrajectoryWorkflow(Workflow):
     def _run(self) -> None:
          # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
         from koopmans.workflows import KoopmansDFPTWorkflow, KoopmansDSCFWorkflow
-        from ._ML import MLModel
-
-        ml_model = MLModel()
+        
 
         for i, snapshot in enumerate(self.snapshots):
         
@@ -33,7 +31,7 @@ class TrajectoryWorkflow(Workflow):
                 workflow = KoopmansDFPTWorkflow(**self.wf_kwargs)
                 self.run_subworkflow(workflow)
             else:
-                dscf_workflow = KoopmansDSCFWorkflow(**self.wf_kwargs, ml_model=ml_model)
+                dscf_workflow = KoopmansDSCFWorkflow(**self.wf_kwargs)
                 self.run_subworkflow(dscf_workflow, subdirectory='snapshot_' + str(i+1))
 
     @classmethod
