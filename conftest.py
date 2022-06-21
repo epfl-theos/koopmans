@@ -8,9 +8,12 @@ from koopmans.projections import ProjectionBlocks
 
 
 def pytest_addoption(parser):
-    parser.addoption("--ci", action="store_true", default=False, help="TODO")
-    parser.addoption("--generate_benchmark", action="store_true", default=False, help="TODO")
-    parser.addoption("--stumble", action="store_true", default=False, help="TODO")
+    parser.addoption("--ci", action="store_true", default=False,
+                     help="Run only those tests that do not require an installation of Quantum ESPRESSO")
+    parser.addoption("--generate_benchmark", action="store_true", default=False, help="Generate new benchmark files")
+    parser.addoption("--stumble", action="store_true", default=False,
+                     help="Make the workflows deliberately crash and restart after each calculation, in order to test "
+                     "that the code can restart at any stage")
 
 
 @pytest.fixture
