@@ -203,12 +203,12 @@ def tio2() -> Dict[str, Any]:
     atoms: Atoms = crystal(['Ti', 'O'], basis=[(0, 0, 0), (0.3, 0.3, 0.0)],
                            spacegroup=136, cellpar=[a, a, c, 90, 90, 90])
 
-    projs = ProjectionBlocks.fromprojections([["Ti:l=0"], ["Ti:l=1"], ["O:l=0"], ["O:l=1"], ["Ti:l=0", "Ti:l=2"]],
+    projs = ProjectionBlocks.fromprojections([["Ti:l=0"], ["Ti:l=1"], ["O:l=0"], ["O:l=1"], ["Ti:l=2"]],
                                              fillings=[True, True, True, True, False],
                                              spins=[None, None, None, None, None],
                                              atoms=atoms)
 
     return {'atoms': atoms,
             'projections': projs,
-            'master_calc_params': {'pw': {'ecutwfc': 40, 'nbnd': 36},
+            'master_calc_params': {'pw': {'ecutwfc': 40, 'nbnd': 34},
                                    'kcp': {'ecutwfc': 40}}}

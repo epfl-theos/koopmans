@@ -42,7 +42,8 @@ def test_singlepoint_si_ki_dscf(silicon, workflow_patch, tmp_path, sys2file):
                       'alpha_guess': 0.077,
                       'orbital_groups_self_hartree_tol': 100.0}
 
-        wf = workflows.SinglepointWorkflow(parameters=parameters, kgrid=[2, 2, 2], kpath='GL', kpath_density=50, **silicon)
+        wf = workflows.SinglepointWorkflow(parameters=parameters, kgrid=[
+                                           2, 2, 2], kpath='GL', kpath_density=50, **silicon)
         wf.run()
 
 
@@ -90,6 +91,7 @@ def test_singlepoint_ozone_ki_dfpt(ozone, workflow_patch, tmp_path, sys2file):
         wf = workflows.SinglepointWorkflow(parameters=parameters, **ozone)
         wf.run()
 
+
 @pytest.mark.espresso
 def test_singlepoint_tio2_wan2odd(tio2, espresso_patch, tmp_path, sys2file):
     with chdir(tmp_path):
@@ -99,7 +101,8 @@ def test_singlepoint_tio2_wan2odd(tio2, espresso_patch, tmp_path, sys2file):
                       'calculate_alpha': False,
                       'init_orbitals': 'projwfs',
                       'npool': 1,
-                      'pseudo_library': 'sg15_v1.0'
+                      'pseudo_library': 'sg15_v1.0',
+                      'calculate_bands': False
                       }
-        wf = workflows.SinglepointWorkflow(parameters=parameters, **tio2)
+        wf = workflows.SinglepointWorkflow(parameters=parameters, kgrid=[2, 2, 2], **tio2)
         wf.run()
