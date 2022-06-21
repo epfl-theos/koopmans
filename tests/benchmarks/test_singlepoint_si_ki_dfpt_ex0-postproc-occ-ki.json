@@ -5568,6 +5568,7 @@
   6,
   4
  ],
+ "command": null,
  "__koopmans_name__": "BenchGenUnfoldAndInterpolateCalculator",
  "__koopmans_module__": "koopmans.testing._generate_benchmarks"
 }
