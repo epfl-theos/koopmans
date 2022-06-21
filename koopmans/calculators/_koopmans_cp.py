@@ -135,7 +135,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             if self.parameters.ibrav == 0:
                 at = np.transpose(self.atoms.cell)
                 alat = np.sqrt(self.atoms.cell[0, 0]**2 + self.atoms.cell[1, 0]**2 + self.atoms.cell[2, 0]**2)
-                at /= alat
+                at = at / alat
                 alat /= utils.units.Bohr
             else:
                 # not sure the call to cell_to_ibrav is needed. I use it to have celldm in the right format for ibrav_to_cell
