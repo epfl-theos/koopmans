@@ -23,9 +23,8 @@ from ._ML import MLFiitingWorkflow, MLCapableWorkflow, MLModel
 
 class KoopmansDSCFWorkflow(MLCapableWorkflow):
 
-    def __init__(self, *args, redo_smooth_dft: Optional[bool] = None, restart_from_old_ki: bool = False, ml_model: MLModel = None,
-                 **kwargs) -> None:
-        super().__init__(*args, ml_model = ml_model, **kwargs)
+    def __init__(self, *args, redo_smooth_dft: Optional[bool] = None, restart_from_old_ki: bool = False, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
 
         # The following two additional keywords allow for some tweaking of the workflow when running a singlepoint
         # workflow with functional == 'all'
@@ -520,7 +519,7 @@ class KoopmansDSCFWorkflow(MLCapableWorkflow):
             self.run_calculator(trial_calc, enforce_ss=self.parameters.fix_spin_contamination and i_sc > 1)
 
             # Yannick Debug: replace the actual fixed-band calculations with my logic
-            mlfit = MLFiitingWorkflow(self.ml_model, -1, trial_calc,self, **self.wf_kwargs)
+            mlfit = MLFiitingWorkflow(trial_calc, **self.wf_kwargs)
             self.run_subworkflow(mlfit)
             # end Yannick Debug
 
@@ -617,7 +616,7 @@ class KoopmansDSCFWorkflow(MLCapableWorkflow):
 
                 if(use_prediction):
                     alpha = alpha_predicted
-                    error = 0.0 # TODO: what do we define as an error
+                    error = np.nan # TODO: what do we define as an error
                 else:
                     # Calculate an updated alpha and a measure of the error
                     # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
@@ -1127,6 +1126,3 @@ class KoopmansDSCFWorkflow(MLCapableWorkflow):
         error = dE - lambda_a
 
         return alpha, error
-
-    def convert_binary_to_xml(self):
-        print("This is the DSCF real-space-density-metod")

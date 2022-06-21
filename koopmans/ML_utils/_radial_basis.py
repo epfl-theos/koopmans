@@ -66,14 +66,14 @@ def precompute_radial_basis(n_max, l_max, r_min_thr, r_max_thr, ML_directory):
     for l in range(l_max):
         betas[:,:,l] = compute_beta(n_max, l, alphas)
     
-    betas_folder  = ML_directory + '/betas'
-    alphas_folder = ML_directory + '/alphas'
-    os.system('mkdir -p ' + betas_folder)
-    os.system('mkdir -p ' + alphas_folder)
+    betas_folder  = ML_directory / 'betas'  
+    alphas_folder = ML_directory / 'alphas'  
+    betas_folder.mkdir(exist_ok=True)
+    alphas_folder.mkdir(exist_ok=True)
 
 
-    betas.tofile(ML_directory  + '/betas/betas_'    + str(n_max) + '_' + str(l_max) + '_' + str(r_min_thr) + '_' + str(r_max_thr) + '.dat')
-    alphas.tofile(ML_directory + '/alphas/alphas_'  + str(n_max) + '_' + str(l_max) + '_' + str(r_min_thr) + '_' + str(r_max_thr) + '.dat')
+    betas.tofile(betas_folder / ('betas_'    + '_'.join(str(x) for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
+    alphas.tofile(alphas_folder / ('alphas_'    + '_'.join(str(x) for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
 
 
     # r = np.linspace(0,4,1000)

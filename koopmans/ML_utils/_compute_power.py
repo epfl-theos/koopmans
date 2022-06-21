@@ -30,12 +30,11 @@ def compute_power(coff_matrix, n_max, l_max):
     return np.array(power)
 
 
-def main_compute_power(n_max, l_max, r_min, r_max, ML_directory, power_dir, nbnd):
-    dir_coeff = ML_directory + '/coefficients_'    + str(n_max) + '_' + str(l_max) + '_' + str(r_min) + '_' + str(r_max)
-    dir_power = power_dir
-    os.system('mkdir -p ' + dir_power)
-    dir_orb   = dir_coeff + '/coff_orb/'
-    dir_tot   = dir_coeff + '/coff_tot/'
+def main_compute_power(n_max, l_max, r_min, r_max, ML_directory, dir_power, nbnd):
+    dir_coeff = ML_directory / ('coefficients_' + '_'.join(str(x) for x in [n_max, l_max, r_min, r_max]))
+    dir_power.mkdir(exist_ok=True)
+    dir_orb   = dir_coeff / 'coff_orb'
+    dir_tot   = dir_coeff / 'coff_tot'
 
     size_power_mat = sum(i for i in range(1,n_max+1))*l_max*3
 
@@ -50,11 +49,11 @@ def main_compute_power(n_max, l_max, r_min, r_max, ML_directory, power_dir, nbnd
         print(np.shape(power_mat))
 
         for i in range(num_orbitals):
-            coff_orb        = np.atleast_1d(np.loadtxt(dir_orb + 'coff.orbital.occ.' + str(i+1) + '.txt'))
-            coff_tot        = np.atleast_1d(np.loadtxt(dir_tot + 'coff.total.occ.' + str(i+1) + '.txt'))
+            coff_orb        = np.atleast_1d(np.loadtxt(dir_orb / f'coff.orbital.occ.{i+1}.txt'))
+            coff_tot        = np.atleast_1d(np.loadtxt(dir_tot / f'coff.total.occ.{i+1}.txt'))
             coff_matrix     = read_in(coff_orb, coff_tot, n_max, l_max)
             power_mat[i,:]  = compute_power(coff_matrix, n_max, l_max)
-            np.savetxt(dir_power + "/power_spectrum.orbital.occ." + str(i) + ".txt", power_mat)
+            np.savetxt(dir_power / f"power_spectrum.orbital.occ.{i}.txt", power_mat)
     
     if nbnd[0] > 0:
 
@@ -64,8 +63,8 @@ def main_compute_power(n_max, l_max, r_min, r_max, ML_directory, power_dir, nbnd
         print(np.shape(power_mat))
 
         for i in range(num_orbitals):
-            coff_orb        = np.atleast_1d(np.loadtxt(dir_orb + 'coff.orbital.emp.' + str(i+1) + '.txt'))
-            coff_tot        = np.atleast_1d(np.loadtxt(dir_tot + 'coff.total.emp.' + str(i+1) + '.txt'))
+            coff_orb        = np.atleast_1d(np.loadtxt(dir_orb / f'coff.orbital.emp.{i+1}.txt'))
+            coff_tot        = np.atleast_1d(np.loadtxt(dir_tot / f'coff.total.emp.{i+1}.txt'))
             coff_matrix     = read_in(coff_orb, coff_tot, n_max, l_max)
             power_mat[i,:]  = compute_power(coff_matrix, n_max, l_max)
-            np.savetxt(dir_power+ "/power_spectrum.orbital.emp." + str(i) + ".txt", power_mat)
+            np.savetxt(dir_power / f"power_spectrum.orbital.emp.{i}.txt", power_mat)

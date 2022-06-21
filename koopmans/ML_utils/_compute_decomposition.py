@@ -271,16 +271,16 @@ def load_density_into_array(file_rho, nr1, nr2, nr3, norm_const, string='EFFECTI
     return rho_r, rho_r_xsf
 
 
-def func_compute_decomposition(n_max, l_max, r_min, r_max, r_cut, ML_directory, nbnd, workflow, centers_occ, centers_emp):
+def func_compute_decomposition(n_max, l_max, r_min, r_max, r_cut, ML_directory, nbnd, atoms, centers_occ, centers_emp):
 
+    
+    dir_coeff = ML_directory / ('coefficients_' + '_'.join(str(x) for x in [n_max, l_max, r_min, r_max]))
+    dir_orb   = dir_coeff / 'coff_orb'
+    dir_tot   = dir_coeff / 'coff_tot'
 
-    dir_coeff = ML_directory + '/coefficients_'    + str(n_max) + '_' + str(l_max) + '_' + str(r_min) + '_' + str(r_max)
-    dir_orb   = dir_coeff + '/coff_orb'
-    dir_tot   = dir_coeff + '/coff_tot'
-
-    os.system('mkdir -p ' + dir_coeff)
-    os.system('mkdir -p ' + dir_orb)
-    os.system('mkdir -p ' + dir_tot)
+    dir_coeff.mkdir(exist_ok=True)
+    dir_orb.mkdir(exist_ok=True)
+    dir_tot.mkdir(exist_ok=True)
 
     # TODO Don't hardcode these parameters
     norm_const      = 6.748334698446981
@@ -289,11 +289,10 @@ def func_compute_decomposition(n_max, l_max, r_min, r_max, r_cut, ML_directory, 
 
 
 
-    atoms         = workflow.atoms
     # filling       = np.array(workflow.bands.filling[0])
     
 
-    file_rho   = ML_directory + '/charge-density.xml'
+    file_rho   = ML_directory / 'charge-density.xml'
     with open(file_rho, 'r') as fd:
         tree = ET.parse(fd)
     rho_file = tree.getroot()
@@ -310,8 +309,8 @@ def func_compute_decomposition(n_max, l_max, r_min, r_max, r_cut, ML_directory, 
 
 
     # load precomputed vectors defining the radial basis functions 
-    betas  = np.fromfile(ML_directory + '/betas/betas_'    + str(n_max) + '_' + str(l_max) + '_' + str(r_min) + '_' + str(r_max) + '.dat').reshape((n_max, n_max, l_max))
-    alphas = np.fromfile(ML_directory + '/alphas/alphas_'  + str(n_max) + '_' + str(l_max) + '_' + str(r_min) + '_' + str(r_max) + '.dat').reshape(n_max)
+    betas  = np.fromfile(ML_directory / 'betas'  / ('betas_'    + '_'.join(str(x) for x in [n_max, l_max, r_min, r_max]) + '.dat')).reshape((n_max, n_max, l_max))
+    alphas = np.fromfile(ML_directory / 'alphas' / ('alphas_'    + '_'.join(str(x) for x in [n_max, l_max, r_min, r_max]) + '.dat')).reshape(n_max)
 
     lat_vecs = np.array([cell_parameters[2,2], cell_parameters[1,1], cell_parameters[0,0]])
 
@@ -348,7 +347,7 @@ def func_compute_decomposition(n_max, l_max, r_min, r_max, r_cut, ML_directory, 
 
     
     print("writing the total density into an array")
-    file_rho = ML_directory + '/charge-density.xml'
+    file_rho = ML_directory / 'charge-density.xml'
     total_density_r, total_density_r_xsf = load_density_into_array(file_rho, nr1, nr2, nr3, norm_const, 'CHARGE-DENSITY')
 
     if Debug:
@@ -356,9 +355,8 @@ def func_compute_decomposition(n_max, l_max, r_min, r_max, r_cut, ML_directory, 
 
         if write_to_xsf:
             print("writing total density to xsf file")
-            filename_xsf = ML_directory + '/charge-density.xsf'
+            filename_xsf = ML_directory / 'charge-density.xsf'
             print_to_xsf_file(filename_xsf, cell_parameters, positions, symbols, [total_density_r_xsf], nr1, nr2, nr3, [])
-            # os.system(str('rm ' + file_rho))
 
 
     total_basis_array = precompute_basis_function(r_cartesian, r_spherical, n_max, l_max, betas, alphas)
@@ -367,13 +365,13 @@ def func_compute_decomposition(n_max, l_max, r_min, r_max, r_cut, ML_directory, 
         for idx in range(nbnd[is_filled]):
             print(filled + " orbital " + str(idx+1) + "/" + str(nbnd[is_filled]))
 
-            file_rho = ML_directory + '/orbital.' + filled + '.' + '{:05d}'.format(idx+1) + '.xml'
+            file_rho = ML_directory / 'orbital.{}.{:05d}.xml'.format(filled, idx+1) 
             
             rho_r, rho_r_xsf = load_density_into_array(file_rho, nr1, nr2, nr3, norm_const)
 
             if Debug:
                 print("writing orbital to xsf file")
-                filename_xsf = ML_directory + '/orbital.' + filled + '.' + str(idx+1) + '.xsf'
+                filename_xsf = ML_directory / ('orbital.' + filled + '.' + str(idx+1) + '.xsf')
                 print_to_xsf_file(filename_xsf, cell_parameters, positions, symbols, [rho_r_xsf], nr1, nr2, nr3, [])
                 # os.system(str('rm ' + file_rho))
 
@@ -397,8 +395,8 @@ def func_compute_decomposition(n_max, l_max, r_min, r_max, r_cut, ML_directory, 
                 else:
                     assert(False)
 
-                np.savetxt(dir_orb + '/coff.orbital.' + filled + '.' + str(idx+1) + '.txt', coefficients_orbital)
-                np.savetxt(dir_tot + '/coff.total.' + filled + '.' + str(idx+1) + '.txt', coefficients_total)
+                np.savetxt(dir_orb / f'coff.orbital.{filled}.{idx+1}.txt', coefficients_orbital)
+                np.savetxt(dir_tot / f'coff.total.{filled}.{idx+1}.txt', coefficients_total)
 
 
                 if Debug:
