@@ -24,7 +24,7 @@ This directory contains...
 Generating a new benchmark
 --------------------------
 
-To generate new benchmarks, run with the additional flag ``--generate_benchmark``
+To generate new benchmarks, run with the additional flag ``--generate_benchmark``.
 
 Creating new tests
 ------------------
@@ -32,10 +32,7 @@ Creating new tests
 To create a new test...
 
 - identify which functionality you want to test, and in which module it is defined
-- add a function called ``test_<name>`` to the relevant ``test_<module>.py`` file
-- run ``pytest tests/ --generate_benchmark`` to generate a benchmark
-- check that both ``pytest tests/`` and ``pytest tests/ --mock`` pass
+- add a function called ``test_<name>`` to the relevant ``test_<module>.py`` file (the directory structure of ``tests/`` mirrors that of the source code)
+- run ``pytest tests/ --generate_benchmark -k test_<name>`` to generate a benchmark
+- check that ``pytest tests/``, ``pytest tests/ --mock``, and ``pytest tests/ --stumble`` pass
 
-.. tip::
-
-    make use of pytest's ``-k`` flag to only run ``pytest`` on your newly created test and not the entire test set
