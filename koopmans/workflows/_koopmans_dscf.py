@@ -468,9 +468,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 utils.system_call(f'cp {savedir}/evc_empty{ispin + 1}.dat {savedir}/evc0_empty{ispin + 1}.dat')
 
     def perform_alpha_calculations(self) -> None:
-        # Yannick Debug:
-        for band in self.bands:
-            print(f"{band.index}, {band.filled}")
+
 
         # Set up directories
         Path('calc_alpha').mkdir(exist_ok=True)
@@ -520,13 +518,7 @@ class KoopmansDSCFWorkflow(Workflow):
             # Run the calculation and store the result. Note that we only need to continue
             # enforcing the spin symmetry if the density will change
             self.run_calculator(trial_calc, enforce_ss=self.parameters.fix_spin_contamination and i_sc > 1)
-
-            
-            # Yannick Debug: replace the actual fixed-band calculations with my logic
-            mlfit = MLFiitingWorkflow(trial_calc, **self.wf_kwargs)
-            self.run_subworkflow(mlfit)
-            # end Yannick Debug
-            
+          
 
             alpha_dep_calcs = [trial_calc]
 
@@ -539,6 +531,14 @@ class KoopmansDSCFWorkflow(Workflow):
             skipped_orbitals = []
             first_band_of_each_channel = [self.bands.get(spin=spin)[0] for spin in range(2)]
             # Loop over removing/adding an electron from/to each orbital
+            
+            # Yannick Debug: replace the actual fixed-band calculations with my logic
+            mlfit = MLFiitingWorkflow(trial_calc, **self.wf_kwargs)
+            self.run_subworkflow(mlfit)
+            # end Yannick Debug
+
+            
+
             for band in self.bands:
                 use_prediction = False
                 # For a KI calculation with only filled bands, we don't have any further calculations to

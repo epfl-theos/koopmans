@@ -38,6 +38,7 @@ program bin2xml_real_space_density
     call get_command_argument(1, source_dir)
     call get_command_argument(2, dest_dir)
     call get_command_argument(3, nbsp_occ_char)
+    call get_command_argument(3, nbsp_occ_total_char)
     call get_command_argument(4, nbsp_emp_char)
 
     read(nbsp_occ_char,'(i)') nbsp_occ
@@ -59,7 +60,7 @@ program bin2xml_real_space_density
 
     ! Then write all emp densities
     do i = 1, nbsp_emp
-        write(file_number, "(I5.5)") (i + 2*nbsp_occ)
+        write(file_number, "(I5.5)") (i)
         write(file_number_emp, "(I5.5)") (i + nbsp_occ)
         source_filename =  TRIM(source_dir)//'/sic_potential.emp.'//TRIM(file_number)//'.dat'
         dest_filename   =  TRIM(dest_dir)//'/orbital.emp.'//TRIM(file_number_emp)//'.xml'

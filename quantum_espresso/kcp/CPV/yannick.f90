@@ -7,7 +7,7 @@ module yannick_print_orbr
         use cp_interfaces,            only: nksic_get_orbitalrho
         use gvecw,                    only: ngw
         use wavefunctions_module,     only: c0
-        use electrons_base,           only:  nbsp      ! Yannick Debug
+        use electrons_base,           only: nbsp      ! Yannick Debug
         use twin_types
     
         type(twin_matrix), intent(in) :: bec 
@@ -20,22 +20,25 @@ module yannick_print_orbr
         integer             :: jj
         integer             :: i
         character(len=256)  :: filename
-        character(len=256)  :: filename_complete
+        character(len=2)    :: spin_identifier
+        character(len=5)    :: orbital_identifier
     
         do j=1,nbsp_filling,2
             call nksic_get_orbitalrho( ngw, nnrx, bec, ispin, nbsp_filling, &
                         c0(:,j), c0(:,j+1), orb_rhor, j, j+1, lgam) 
+            
             do jj = 1, 2
                 i=j+jj-1
+                
+                write(spin_identifier, "(I2.2)")       jj
+                write(orbital_identifier, "(I5.5)")    j
 
-                if(is_empty) then 
-                    write(filename, "(I5.5)") i+nbsp
-                    filename_complete = 'emp.' // TRIM(filename)
+                if(is_empty) then      
+                    filename = 'emp.' // TRIM(spin_identifier) // '.' // TRIM(orbital_identifier)
                 else
-                    write(filename, "(I5.5)") i
-                    filename_complete = 'occ.' // TRIM(filename)
+                    filename = 'occ.' // TRIM(spin_identifier) // '.' // TRIM(orbital_identifier)
                 end if
-                call write_pot_sic ( orb_rhor(:, jj), filename_complete)
+                call write_pot_sic ( orb_rhor(:, jj), filename)
             end do  
         end do
     end subroutine

@@ -1,1 +1,0 @@
-CHARACTER(LEN=70), PARAMETER :: version_date = 'Mo 14 Mär 2022 08:01:32 CET'

@@ -59,10 +59,11 @@ class MLFiitingWorkflow(Workflow):
         self.r_min = ML_params.r_min
         self.r_max = ML_params.r_max
 
-        
-        
 
     def _run(self):
+        
+        self.bands_to_extract     = self.bands.to_solve
+        self.n_bands_to_extract = [len([band for band in self.bands_to_extract if band.filled==filled]) for filled in [True, False]]
         self.extract_input_vector_for_ML_model()
 
 
@@ -79,7 +80,7 @@ class MLFiitingWorkflow(Workflow):
 
         if self.method_to_extract_from_binary == 'from_ki':
             utils.system_call(f'mkdir -p {self.ML_dir}')
-            command  = str(calculators.bin_directory / 'bin2xml_real_space_density.x ') + ' '.join(str(x) for x in [orbital_densities_bin_dir, self.ML_dir, self.num_occ_bands, self.num_emp_bands])
+            command  = str(calculators.bin_directory / 'bin2xml_real_space_density.x ') + ' '.join(str(x) for x in [orbital_densities_bin_dir, self.ML_dir, self.n_bands_to_extract[0], self.n_bands_to_extract[1]])
             utils.system_call(command)
 
     def compute_decomposition(self):
@@ -93,16 +94,15 @@ class MLFiitingWorkflow(Workflow):
         
         
         ML_utils.precompute_radial_basis(self.n_max, self.l_max, self.r_min, self.r_max, self.ML_dir)
-        ML_utils.func_compute_decomposition(self.n_max, self.l_max, self.r_min, self.r_max, self.r_cut, self.ML_dir, self.bands, self.atoms, centers)
+        ML_utils.func_compute_decomposition(self.n_max, self.l_max, self.r_min, self.r_max, self.r_cut, self.ML_dir, self.bands_to_extract, self.atoms, centers)
     
     def compute_power_spectrum(self):
         print("compute power spectrum")
         self.dir_power = self.ML_dir / f'power_spectra_{self.n_max}_{self.l_max}_{self.r_min}_{self.r_max}'
-        ML_utils.main_compute_power(self.n_max, self.l_max, self.r_min, self.r_max, self.ML_dir, self.dir_power, [self.num_emp_bands, self.num_occ_bands])
+        ML_utils.main_compute_power(self.n_max, self.l_max, self.r_min, self.r_max, self.ML_dir, self.dir_power, self.n_bands_to_extract)
 
     def predict(self):
-        
-        
+
         self.ml_model.predict()
     
     def train(self, new_orbitals:List[int]=None, new_orbitals_filling:List[bool]=None, new_alphas:List[float]=None):
