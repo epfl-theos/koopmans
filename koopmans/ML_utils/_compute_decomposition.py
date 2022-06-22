@@ -365,8 +365,10 @@ def func_compute_decomposition(n_max, l_max, r_min, r_max, r_cut, ML_directory, 
             filled_str = 'occ'
         else:
             filled_str = 'emp'
+        
 
-        file_rho = ML_directory / 'orbital.{}.{:05d}.xml'.format(filled_str, band.index) 
+
+        file_rho = ML_directory / 'orbital.{}.{}.{:05d}.xml'.format(filled_str,band.spin, band.index) 
         
         rho_r, rho_r_xsf = load_density_into_array(file_rho, nr1, nr2, nr3, norm_const)
 
@@ -391,8 +393,8 @@ def func_compute_decomposition(n_max, l_max, r_min, r_max, r_cut, ML_directory, 
             else:
                 coefficients_orbital, coefficients_total = get_coefficients(rho_r_new, total_density_r_new, r_cartesian, total_basis_array)
 
-            np.savetxt(dir_orb / f'coff.orbital.{band.index}.txt', coefficients_orbital)
-            np.savetxt(dir_tot / f'coff.total.{band.index}.txt', coefficients_total)
+            np.savetxt(dir_orb / f'coff.orbital.{filled_str}.{band.index}.txt', coefficients_orbital)
+            np.savetxt(dir_tot / f'coff.total.{filled_str}.{band.index}.txt', coefficients_total)
 
 
             if Debug:

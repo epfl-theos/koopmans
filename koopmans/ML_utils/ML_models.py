@@ -1,6 +1,9 @@
 
 
 class RidgeRegression():
+    def todict(self):
+        # TODO: implement
+        return 
 
     def predict(self):
         print("model.predict()")

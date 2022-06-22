@@ -30,8 +30,8 @@ module yannick_print_orbr
             do jj = 1, 2
                 i=j+jj-1
                 
-                write(spin_identifier, "(I2.2)")       jj
-                write(orbital_identifier, "(I5.5)")    j
+                write(spin_identifier, "(I1.1)")       jj-1
+                write(orbital_identifier, "(I5.5)")    (j+1)/2
 
                 if(is_empty) then      
                     filename = 'emp.' // TRIM(spin_identifier) // '.' // TRIM(orbital_identifier)

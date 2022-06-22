@@ -13,38 +13,6 @@ from typing import List, Dict, Any
 
 import copy
 
-# class MLModel(ABC):
-
-#     @abstractmethod
-#     def predict(self) -> None:
-#         ...
-    
-#     @abstractmethod
-#     def train(self) -> None:
-#         ...
-
-
-
-
-# class MLCapableWorkflow(Workflow):
-
-#     def __init__(self, *args, ml_model:MLModel=None, **kwargs):
-#         if ml_model is not None:
-#             self.ml_model = ml_model
-        
-#         super().__init__(*args, **kwargs)
-        
-    
-#     # @abstractmethod
-#     # def convert_binary_to_xml(self) -> None:
-#     #     ...
-    
-#     @property
-#     def wf_kwargs(self) -> Dict[str, Any]:
-#         h = super().wf_kwargs
-#         h.update({'ml_model': copy.deepcopy(self.ml_model)})
-#         return h
-
 
 class MLFiitingWorkflow(Workflow):
 
@@ -63,7 +31,11 @@ class MLFiitingWorkflow(Workflow):
     def _run(self):
         
         self.bands_to_extract     = self.bands.to_solve
-        self.n_bands_to_extract = [len([band for band in self.bands_to_extract if band.filled==filled]) for filled in [True, False]]
+        self.n_bands_to_extract   = [len([band for band in self.bands_to_extract if band.filled==filled]) for filled in [True, False]]
+        if self.bands.spin_polarised:
+            self.nspin_to_extract = 2
+        else:
+            self.nspin_to_extract = 1
         self.extract_input_vector_for_ML_model()
 
 
@@ -73,6 +45,7 @@ class MLFiitingWorkflow(Workflow):
         self.compute_power_spectrum()
             
 
+    # TODO: currently it extracts all orbitals in [1,..,self.n_bands_to_extract[0]] instead of the indices given by self.bands_to_extract
     def convert_binary_to_xml(self):
         print("Convert binary to xml")
         orbital_densities_bin_dir            = self.calc_that_produced_orbital_densities.parameters.outdir/ f'kc_{self.calc_that_produced_orbital_densities.parameters.ndw}.save'
@@ -80,7 +53,7 @@ class MLFiitingWorkflow(Workflow):
 
         if self.method_to_extract_from_binary == 'from_ki':
             utils.system_call(f'mkdir -p {self.ML_dir}')
-            command  = str(calculators.bin_directory / 'bin2xml_real_space_density.x ') + ' '.join(str(x) for x in [orbital_densities_bin_dir, self.ML_dir, self.n_bands_to_extract[0], self.n_bands_to_extract[1]])
+            command  = str(calculators.bin_directory / 'bin2xml_real_space_density.x ') + ' '.join(str(x) for x in [orbital_densities_bin_dir, self.ML_dir, self.n_bands_to_extract[0], self.n_bands_to_extract[1], self.nspin_to_extract])
             utils.system_call(command)
 
     def compute_decomposition(self):
@@ -99,7 +72,7 @@ class MLFiitingWorkflow(Workflow):
     def compute_power_spectrum(self):
         print("compute power spectrum")
         self.dir_power = self.ML_dir / f'power_spectra_{self.n_max}_{self.l_max}_{self.r_min}_{self.r_max}'
-        ML_utils.main_compute_power(self.n_max, self.l_max, self.r_min, self.r_max, self.ML_dir, self.dir_power, self.n_bands_to_extract)
+        ML_utils.main_compute_power(self.n_max, self.l_max, self.r_min, self.r_max, self.ML_dir, self.dir_power, self.bands_to_extract)
 
     def predict(self):
 
