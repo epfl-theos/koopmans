@@ -51,10 +51,6 @@ class MLFiitingWorkflow(Workflow):
     def __init__(self, calc_that_produced_orbital_densities, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.method_to_extract_from_binary        = 'from_ki'
-        # TODO: don't hard-code the number of bands
-        self.num_occ_bands                        = 4
-        self.num_emp_bands                        = 2
-        # end TODO
         self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
         self.ML_dir                               = self.calc_that_produced_orbital_densities.directory / 'ML' / 'TMP'
         ML_params = self.master_calc_params['ML']
@@ -93,10 +89,11 @@ class MLFiitingWorkflow(Workflow):
         if self.method_to_extract_from_binary == 'from_ki':
             centers_occ = np.array(self.calculations[4].results['centers'])
             centers_emp = np.array(self.calculations[7].results['centers'])
-        import ipdb 
-        ipdb.set_trace()
+            centers     = np.concatenate([centers_occ, centers_emp])
+        
+        
         ML_utils.precompute_radial_basis(self.n_max, self.l_max, self.r_min, self.r_max, self.ML_dir)
-        ML_utils.func_compute_decomposition(self.n_max, self.l_max, self.r_min, self.r_max, self.r_cut, self.ML_dir, [self.num_emp_bands, self.num_occ_bands], self.atoms, centers_occ, centers_emp)
+        ML_utils.func_compute_decomposition(self.n_max, self.l_max, self.r_min, self.r_max, self.r_cut, self.ML_dir, self.bands, self.atoms, centers)
     
     def compute_power_spectrum(self):
         print("compute power spectrum")
@@ -104,6 +101,7 @@ class MLFiitingWorkflow(Workflow):
         ML_utils.main_compute_power(self.n_max, self.l_max, self.r_min, self.r_max, self.ML_dir, self.dir_power, [self.num_emp_bands, self.num_occ_bands])
 
     def predict(self):
+        
         
         self.ml_model.predict()
     

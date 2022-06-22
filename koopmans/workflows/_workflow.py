@@ -41,6 +41,7 @@ from koopmans.projections import ProjectionBlocks
 from koopmans.references import bib_data
 import koopmans.mpl_config
 import matplotlib.pyplot as plt
+from koopmans.ML_utils.ML_models import RidgeRegression
 
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
@@ -242,6 +243,11 @@ class Workflow(ABC):
 
         # Records whether or not this workflow is a subworkflow of another
         self._is_a_subworkflow = False
+
+
+        # Yannick Debug: initialize the RidgeRegression() model
+        if self.master_calc_params['ML'].use_ML:
+            self.ml_model = RidgeRegression()
 
     def __eq__(self, other):
         if isinstance(other, Workflow):
@@ -686,6 +692,10 @@ class Workflow(ABC):
 
         # Link the list of calculations
         workflow.calculations = self.calculations
+
+        # Yannick Debug: Link the ML_Model
+        if self.master_calc_params['ML'].use_ML:
+            workflow.ml_model = self.ml_model
 
         # Link the bands
         if hasattr(self, 'bands'):

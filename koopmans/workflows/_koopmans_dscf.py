@@ -329,9 +329,6 @@ class KoopmansDSCFWorkflow(Workflow):
             # Perform the wannierisation workflow within the init directory
             self.run_subworkflow(wannier_workflow, subdirectory='init')
 
-            import ipdb
-            ipdb.set_trace()
-
             # Now, convert the files over from w90 format to (k)cp format
             fold_workflow = FoldToSupercellWorkflow(**self.wf_kwargs)
 
@@ -471,6 +468,10 @@ class KoopmansDSCFWorkflow(Workflow):
                 utils.system_call(f'cp {savedir}/evc_empty{ispin + 1}.dat {savedir}/evc0_empty{ispin + 1}.dat')
 
     def perform_alpha_calculations(self) -> None:
+        # Yannick Debug:
+        for band in self.bands:
+            print(f"{band.index}, {band.filled}")
+
         # Set up directories
         Path('calc_alpha').mkdir(exist_ok=True)
 
@@ -522,8 +523,6 @@ class KoopmansDSCFWorkflow(Workflow):
 
             
             # Yannick Debug: replace the actual fixed-band calculations with my logic
-            import ipdb 
-            ipdb.set_trace()
             mlfit = MLFiitingWorkflow(trial_calc, **self.wf_kwargs)
             self.run_subworkflow(mlfit)
             # end Yannick Debug

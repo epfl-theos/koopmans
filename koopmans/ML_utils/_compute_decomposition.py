@@ -271,7 +271,7 @@ def load_density_into_array(file_rho, nr1, nr2, nr3, norm_const, string='EFFECTI
     return rho_r, rho_r_xsf
 
 
-def func_compute_decomposition(n_max, l_max, r_min, r_max, r_cut, ML_directory, nbnd, atoms, centers_occ, centers_emp):
+def func_compute_decomposition(n_max, l_max, r_min, r_max, r_cut, ML_directory, bands, atoms, centers):
 
     
     dir_coeff = ML_directory / ('coefficients_' + '_'.join(str(x) for x in [n_max, l_max, r_min, r_max]))
@@ -287,9 +287,6 @@ def func_compute_decomposition(n_max, l_max, r_min, r_max, r_cut, ML_directory, 
     # TODO end
     # TODO: find the normalization constant 6.748334698446981
 
-
-
-    # filling       = np.array(workflow.bands.filling[0])
     
 
     file_rho   = ML_directory / 'charge-density.xml'
@@ -361,81 +358,80 @@ def func_compute_decomposition(n_max, l_max, r_min, r_max, r_cut, ML_directory, 
 
     total_basis_array = precompute_basis_function(r_cartesian, r_spherical, n_max, l_max, betas, alphas)
 
-    for filled, is_filled in zip(['occ', 'emp'], [True, False]):
-        for idx in range(nbnd[is_filled]):
-            print(filled + " orbital " + str(idx+1) + "/" + str(nbnd[is_filled]))
+    for band in bands:
+        print(f'calculating decomposition of band {band.index}') 
 
-            file_rho = ML_directory / 'orbital.{}.{:05d}.xml'.format(filled, idx+1) 
-            
-            rho_r, rho_r_xsf = load_density_into_array(file_rho, nr1, nr2, nr3, norm_const)
+        if band.filled:
+            filled_str = 'occ'
+        else:
+            filled_str = 'emp'
+
+        file_rho = ML_directory / 'orbital.{}.{:05d}.xml'.format(filled_str, band.index) 
+        
+        rho_r, rho_r_xsf = load_density_into_array(file_rho, nr1, nr2, nr3, norm_const)
+
+        if Debug:
+            print("writing orbital to xsf file")
+            filename_xsf = ML_directory /  'orbital.{}.{:05d}.xsf'.format(filled_str, band.index) 
+            print_to_xsf_file(filename_xsf, cell_parameters, positions, symbols, [rho_r_xsf], nr1, nr2, nr3, [])
+            # os.system(str('rm ' + file_rho))
+
+
+        if compute_decomposition:
+            print("Set up the new integration domain")
+            wfc_center_tmp      = centers[band.index-1]
+            wfc_center          = np.array([wfc_center_tmp[2]%lat_vecs[0], wfc_center_tmp[1]%lat_vecs[1], wfc_center_tmp[0]%lat_vecs[2]])
+            print(wfc_center)
+            center_index        = get_index(r, wfc_center)
+            rho_r_new           = generate_integration_domain(rho_r,           center_index, number_of_x_grid_points, number_of_y_grid_points, number_of_z_grid_points)                
+            total_density_r_new = generate_integration_domain(total_density_r, center_index, number_of_x_grid_points, number_of_y_grid_points, number_of_z_grid_points)
+            print("computing coefficients of the orbital and total density")
+            if band.filled:
+                coefficients_orbital, coefficients_total = get_coefficients(rho_r_new, total_density_r_new, r_cartesian, total_basis_array)
+            else:
+                coefficients_orbital, coefficients_total = get_coefficients(rho_r_new, total_density_r_new, r_cartesian, total_basis_array)
+
+            np.savetxt(dir_orb / f'coff.orbital.{band.index}.txt', coefficients_orbital)
+            np.savetxt(dir_tot / f'coff.total.{band.index}.txt', coefficients_total)
+
 
             if Debug:
-                print("writing orbital to xsf file")
-                filename_xsf = ML_directory / ('orbital.' + filled + '.' + str(idx+1) + '.xsf')
-                print_to_xsf_file(filename_xsf, cell_parameters, positions, symbols, [rho_r_xsf], nr1, nr2, nr3, [])
-                # os.system(str('rm ' + file_rho))
+                print("reconstruct orbital density")
+                rho_r_reconstruced      = get_reconstructed_orbital_densities(total_basis_array, coefficients_orbital)
+                print("max rho_r_reconstructed                  = ", np.max(rho_r_reconstruced))
+                print("writing reconstructed orbital to to xsf file")
+                rho_r_reconstruced      = map_again_to_original_grid(rho_r_reconstruced, center_index, number_of_x_grid_points, number_of_y_grid_points, number_of_z_grid_points, nr1, nr2, nr3)
+                print("max rho_r_reconstructed on original grid = ", np.max(rho_r_reconstruced))
+                difference              = np.linalg.norm(rho_r_reconstruced-rho_r)
+                print("Difference to original density           = ", difference)
+                differences_to_original.append(difference)
+                
 
 
-            if compute_decomposition:
-                print("Set up the new integration domain")
-                if is_filled:
-                    wfc_center_tmp = centers_occ[idx]
-                else:
-                    wfc_center_tmp = centers_emp[idx]
-                wfc_center          = np.array([wfc_center_tmp[2]%lat_vecs[0], wfc_center_tmp[1]%lat_vecs[1], wfc_center_tmp[0]%lat_vecs[2]])
-                print(wfc_center)
-                center_index        = get_index(r, wfc_center)
-                rho_r_new           = generate_integration_domain(rho_r,           center_index, number_of_x_grid_points, number_of_y_grid_points, number_of_z_grid_points)                
-                total_density_r_new = generate_integration_domain(total_density_r, center_index, number_of_x_grid_points, number_of_y_grid_points, number_of_z_grid_points)
-                print("computing coefficients of the orbital and total density")
-                if filled=='occ':
-                    coefficients_orbital, coefficients_total = get_coefficients(rho_r_new, total_density_r_new, r_cartesian, total_basis_array)
-                elif filled=='emp':
-                    coefficients_orbital, coefficients_total = get_coefficients(rho_r_new, total_density_r_new, r_cartesian, total_basis_array)
-                else:
-                    assert(False)
-
-                np.savetxt(dir_orb / f'coff.orbital.{filled}.{idx+1}.txt', coefficients_orbital)
-                np.savetxt(dir_tot / f'coff.total.{filled}.{idx+1}.txt', coefficients_total)
+                # c_matrix                = get_coefficient_matrix(coefficients_orbital, n_max, l_max)
+                if write_to_xsf:
+                    rho_r_reconstructed_xsf = get_orbital_density_to_xsf_grid(rho_r_reconstruced)
+                    filename_xsf = ML_directory /  'orbital.{}.{:05d}.reconstructed.xsf'.format(band.filled, band.index) 
+                    print_to_xsf_file(filename_xsf, cell_parameters, positions, symbols, [rho_r_reconstructed_xsf], nr1, nr2, nr3, [])
 
 
-                if Debug:
-                    print("reconstruct orbital density")
-                    rho_r_reconstruced      = get_reconstructed_orbital_densities(total_basis_array, coefficients_orbital)
-                    print("max rho_r_reconstructed                  = ", np.max(rho_r_reconstruced))
+                print("reconstruct total density")
+                rho_r_reconstruced      = get_reconstructed_orbital_densities(total_basis_array, coefficients_total)
+                # c_matrix                = get_coefficient_matrix(coefficients_total, n_max, l_max)
+                
+                if write_to_xsf:
                     print("writing reconstructed orbital to to xsf file")
                     rho_r_reconstruced      = map_again_to_original_grid(rho_r_reconstruced, center_index, number_of_x_grid_points, number_of_y_grid_points, number_of_z_grid_points, nr1, nr2, nr3)
-                    print("max rho_r_reconstructed on original grid = ", np.max(rho_r_reconstruced))
-                    difference              = np.linalg.norm(rho_r_reconstruced-rho_r)
-                    print("Difference to original density           = ", difference)
-                    differences_to_original.append(difference)
-                    
+                    rho_r_reconstructed_xsf = get_orbital_density_to_xsf_grid(rho_r_reconstruced)
+                    filename_xsf = ML_directory /  'total.{}.{:05d}.reconstructed.xsf'.format(band.filled, band.index) 
+                    print_to_xsf_file(filename_xsf, cell_parameters, positions, symbols, [rho_r_reconstructed_xsf], nr1, nr2, nr3, [])
 
 
-                    # c_matrix                = get_coefficient_matrix(coefficients_orbital, n_max, l_max)
-                    if write_to_xsf:
-                        rho_r_reconstructed_xsf = get_orbital_density_to_xsf_grid(rho_r_reconstruced)
-                        filename_xsf            = ML_directory + '/orbital.' + filled + '.' + str(idx+1) + '.reconstructed.xsf'
-                        print_to_xsf_file(filename_xsf, cell_parameters, positions, symbols, [rho_r_reconstructed_xsf], nr1, nr2, nr3, [])
+                    print("writing total density minus orbital density to xsf file")
+                    filename_xsf = ML_directory /  'total_minus.{}.{:05d}.reconstructed.xsf'.format(band.filled, band.index) 
+                    print_to_xsf_file(filename_xsf, cell_parameters, positions, symbols, [total_density_r_xsf-rho_r_xsf], nr1, nr2, nr3, [])
 
-
-                    print("reconstruct total density")
-                    rho_r_reconstruced      = get_reconstructed_orbital_densities(total_basis_array, coefficients_total)
-                    # c_matrix                = get_coefficient_matrix(coefficients_total, n_max, l_max)
-                    
-                    if write_to_xsf:
-                        print("writing reconstructed orbital to to xsf file")
-                        rho_r_reconstruced      = map_again_to_original_grid(rho_r_reconstruced, center_index, number_of_x_grid_points, number_of_y_grid_points, number_of_z_grid_points, nr1, nr2, nr3)
-                        rho_r_reconstructed_xsf = get_orbital_density_to_xsf_grid(rho_r_reconstruced)
-                        filename_xsf = ML_directory + '/total.' + filled + '.' + str(idx+1) + '.reconstructed.xsf'
-                        print_to_xsf_file(filename_xsf, cell_parameters, positions, symbols, [rho_r_reconstructed_xsf], nr1, nr2, nr3, [])
-
-
-                        print("writing total density minus orbital density to xsf file")
-                        filename_xsf = ML_directory + '/total_minus.' + filled + '.' + str(idx+1) + '.xsf'
-                        print_to_xsf_file(filename_xsf, cell_parameters, positions, symbols, [total_density_r_xsf-rho_r_xsf], nr1, nr2, nr3, [])
-
-                print("length of coefficient vector = ", len(coefficients_orbital))
+            print("length of coefficient vector = ", len(coefficients_orbital))
     if Debug:
         return np.mean(differences_to_original)
 

@@ -1,5 +1,5 @@
 
-     Program PROJWFC v.7.0 starts on 21Jun2022 at 21:58:46 
+     Program PROJWFC v.7.0 starts on 22Jun2022 at 13: 2:13 
 
      This program is part of the open-source Quantum ESPRESSO suite
      for quantum simulation of materials; please cite
@@ -14,7 +14,7 @@
 
      MPI processes distributed on     1 nodes
      R & G space division:  proc/nbgrp/npool/nimage =       8
-     25799 MiB available memory on the printing compute node when the environment starts
+     25925 MiB available memory on the printing compute node when the environment starts
  
 
      Reading xml data from directory:
@@ -120,10 +120,10 @@ Lowdin Charges:
      Atom #   3: total charge =   0.5775, p =  0.0000, pz=  0.0000, px=  0.0000, py=  0.0000, 
      Spilling Parameter:   0.0155
  
-     PROJWFC      :      0.31s CPU      0.42s WALL
+     PROJWFC      :      0.32s CPU      0.43s WALL
 
  
-   This run was terminated on:  21:58:46  21Jun2022            
+   This run was terminated on:  13: 2:14  22Jun2022            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

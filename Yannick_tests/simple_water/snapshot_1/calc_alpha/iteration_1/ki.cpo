@@ -10,7 +10,7 @@
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  21:59: 4  21Jun2022               
+   This run was started on:  13: 2:29  22Jun2022               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -294,7 +294,7 @@
    reading restart file: /home/yshubert/code/koopmans/Yannick_tests/simple_water/snapshot_1/TMP-CP//kc_51.save
  here should be iotk first error
  here should be iotk first error
-   restart file read in    0.370 sec.
+   restart file read in    0.288 sec.
 
  nprint_nfi=           -2
  nprint_nfi=            2
@@ -314,7 +314,7 @@
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     1.73s CPU time,    2.25s wall time
+     CP           :     1.60s CPU time,    2.09s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =    -17.15795240389196
  Yannick Debug: Print Real Space Density
@@ -339,7 +339,7 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EMPTY STATES
 
-     CP           :     3.03s CPU time,    3.76s wall time
+     CP           :     2.89s CPU time,    3.60s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =     85.15090120145969
      Ekin (Ha) =      85.86540836136510 Enl (Ha) =       0.00494077436239 Eloc (Ha) =     -0.43652603565125
@@ -348,6 +348,22 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EMPTY STATES
    writing empty state DFT Hamiltonian file: hamiltonian0_emp
 
    writing empty state KC  Hamiltonian file: hamiltonian_emp
+ Yannick Debug n_emps = 
+           8
+ Yannick Debug n_emps = 
+           8
+ Yannick Debug n_emps = 
+           8
+ Yannick Debug n_emps = 
+           8
+ Yannick Debug n_emps = 
+           8
+ Yannick Debug n_emps = 
+           8
+ Yannick Debug n_emps = 
+           8
+ Yannick Debug n_emps = 
+           8
 
 
  -----------------------------------------
@@ -471,7 +487,7 @@ Step     3       0    -17.15795    -17.15795    -17.15795     1
  tnosep= F thdyn= F
 
    writing restart file: /home/yshubert/code/koopmans/Yannick_tests/simple_water/snapshot_1/TMP-CP//kc_60.save
-   restart file written in    0.193 sec.
+   restart file written in    0.133 sec.
 
 
 
@@ -488,14 +504,14 @@ Step     3       0    -17.15795    -17.15795    -17.15795     1
    volume        :     1922.09740    1922.09740 (AU)
 
 
-     initialize   :     0.88s CPU
-     total_time   :     2.26s CPU
-     formf        :     0.20s CPU
-     rhoofr       :     0.03s CPU (       2 calls,   0.014 s avg)
-     vofrho       :     0.09s CPU
-     vofrho1      :     0.09s CPU
+     initialize   :     0.80s CPU
+     total_time   :     2.23s CPU
+     formf        :     0.15s CPU
+     rhoofr       :     0.02s CPU (       2 calls,   0.010 s avg)
+     vofrho       :     0.07s CPU
+     vofrho1      :     0.07s CPU
      dforce       :     0.03s CPU (       8 calls,   0.004 s avg)
-     dforce2      :     1.71s CPU
+     dforce2      :     1.65s CPU
      calphi       :     0.00s CPU (       2 calls,   0.000 s avg)
      gram         :     0.00s CPU
      newd         :     0.00s CPU
@@ -504,27 +520,27 @@ Step     3       0    -17.15795    -17.15795    -17.15795     1
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
      nlsm1        :     0.00s CPU (       9 calls,   0.000 s avg)
-     fft          :     0.78s CPU (     383 calls,   0.002 s avg)
+     fft          :     0.82s CPU (     383 calls,   0.002 s avg)
      ffts         :     0.00s CPU (       3 calls,   0.001 s avg)
-     fftw         :     0.04s CPU (      48 calls,   0.001 s avg)
-     cft3s        :     0.82s CPU (     434 calls,   0.002 s avg)
-     fft_scatter  :     0.56s CPU (     434 calls,   0.001 s avg)
+     fftw         :     0.03s CPU (      48 calls,   0.001 s avg)
+     cft3s        :     0.86s CPU (     434 calls,   0.002 s avg)
+     fft_scatter  :     0.60s CPU (     434 calls,   0.001 s avg)
 
      nk_eforce    :     0.05s CPU (       8 calls,   0.006 s avg)
-     nk_corr      :     1.58s CPU (      16 calls,   0.098 s avg)
+     nk_corr      :     1.57s CPU (      16 calls,   0.098 s avg)
      nk_corr_h    :     0.08s CPU (      16 calls,   0.005 s avg)
      nk_corr_vxc  :     1.48s CPU (      16 calls,   0.093 s avg)
 
 
-     outer_loop   :     2.50s CPU
-     runcg_uspp   :     2.25s CPU (       2 calls,   1.124 s avg)
+     outer_loop   :     2.40s CPU
+     runcg_uspp   :     2.22s CPU (       2 calls,   1.110 s avg)
      emass_p_tpa  :     0.00s CPU (       2 calls,   0.000 s avg)
  
  
-     CP           :     3.44s CPU time,    4.37s wall time
+     CP           :     3.25s CPU time,    4.09s wall time
 
  
-   This run was terminated on:  21:59: 8  21Jun2022            
+   This run was terminated on:  13: 2:33  22Jun2022            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

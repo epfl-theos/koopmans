@@ -94,5 +94,12 @@
       "electrons": {
         "conv_thr": 5.12e-07
       }
+    },
+    "ML": {
+      "use_ML": true,
+      "n_max" : 3,
+      "l_max" : 3,
+      "r_min" : 0.75, 
+      "r_max" : 5.0
     }
   }

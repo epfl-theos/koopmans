@@ -1,5 +1,5 @@
 
-     Program PW2WANNIER v.7.0 starts on 21Jun2022 at 21:58:38 
+     Program PW2WANNIER v.7.0 starts on 22Jun2022 at 13: 2: 6 
 
      This program is part of the open-source Quantum ESPRESSO suite
      for quantum simulation of materials; please cite
@@ -14,7 +14,7 @@
 
      MPI processes distributed on     1 nodes
      R & G space division:  proc/nbgrp/npool/nimage =       8
-     25642 MiB available memory on the printing compute node when the environment starts
+     26249 MiB available memory on the printing compute node when the environment starts
  
  
   Reading nscf_save data
@@ -112,14 +112,14 @@
   ------------
  
  
-     init_pw2wan  :      0.27s CPU      0.36s WALL (       1 calls)
-     compute_amn  :      0.15s CPU      0.16s WALL (       1 calls)
-     compute_mmn  :      0.06s CPU      0.08s WALL (       1 calls)
+     init_pw2wan  :      0.27s CPU      0.33s WALL (       1 calls)
+     compute_amn  :      0.15s CPU      0.15s WALL (       1 calls)
+     compute_mmn  :      0.08s CPU      0.08s WALL (       1 calls)
  
-     PW2WANNIER   :      0.48s CPU      0.60s WALL
+     PW2WANNIER   :      0.50s CPU      0.56s WALL
 
  
-   This run was terminated on:  21:58:39  21Jun2022            
+   This run was terminated on:  13: 2: 6  22Jun2022            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

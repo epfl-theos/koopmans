@@ -28,6 +28,7 @@ program bin2xml_real_space_density
     character(LEN=256) :: source_filename
     character(LEN=256) :: dest_filename
     character(LEN=5)   :: file_number
+    character(LEN=5)   :: file_number_emp
     
 
     if(command_argument_count().ne.4) then 
@@ -58,9 +59,10 @@ program bin2xml_real_space_density
 
     ! Then write all emp densities
     do i = 1, nbsp_emp
-        write(file_number, "(I5.5)") i
+        write(file_number, "(I5.5)") (i + 2*nbsp_occ)
+        write(file_number_emp, "(I5.5)") (i + nbsp_occ)
         source_filename =  TRIM(source_dir)//'/sic_potential.emp.'//TRIM(file_number)//'.dat'
-        dest_filename   =  TRIM(dest_dir)//'/orbital.emp.'//TRIM(file_number)//'.xml'
+        dest_filename   =  TRIM(dest_dir)//'/orbital.emp.'//TRIM(file_number_emp)//'.xml'
         call write_bin2xml(source_filename, dest_filename)
     end do
 end program 

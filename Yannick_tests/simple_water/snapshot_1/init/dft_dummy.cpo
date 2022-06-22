@@ -10,7 +10,7 @@
 
 =------------------------------------------------------------------------------=
 
-   This run was started on:  21:58:53  21Jun2022               
+   This run was started on:  13: 2:18  22Jun2022               
 
    MPI Parallel Build
    Tasks =    8  This task id =    0
@@ -310,7 +310,7 @@ Warning: card / ignored
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
-     CP           :     0.52s CPU time,    0.55s wall time
+     CP           :     0.51s CPU time,    0.55s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =     87.27126847219827
 
@@ -324,7 +324,7 @@ PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
 
 PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EMPTY STATES
 
-     CP           :     0.55s CPU time,    0.58s wall time
+     CP           :     0.54s CPU time,    0.59s wall time
 
      iteration =   1  eff iteration =   1   Etot (Ha) =     84.37921986431482
      Ekin (Ha) =      85.80536486808157 Enl (Ha) =       0.00204480050951 Eloc (Ha) =     -1.42818980427625
@@ -453,7 +453,7 @@ Step     1       0     87.27127     87.27127     87.27127     1
  tnosep= F thdyn= F
 
    writing restart file: /home/yshubert/code/koopmans/Yannick_tests/simple_water/snapshot_1/TMP-CP//kc_50.save
-   restart file written in    0.130 sec.
+   restart file written in    0.123 sec.
 
 
 
@@ -471,13 +471,13 @@ Step     1       0     87.27127     87.27127     87.27127     1
 
 
      initialize   :     0.40s CPU
-     total_time   :     0.13s CPU
+     total_time   :     0.12s CPU
      formf        :     0.11s CPU
-     rhoofr       :     0.02s CPU (       2 calls,   0.011 s avg)
+     rhoofr       :     0.01s CPU (       2 calls,   0.007 s avg)
      vofrho       :     0.07s CPU
      vofrho1      :     0.07s CPU
      dforce       :     0.03s CPU (       8 calls,   0.003 s avg)
-     dforce2      :     0.24s CPU
+     dforce2      :     0.22s CPU
      calphi       :     0.00s CPU (       2 calls,   0.000 s avg)
      gram         :     0.00s CPU (       3 calls,   0.000 s avg)
      newd         :     0.00s CPU
@@ -486,21 +486,21 @@ Step     1       0     87.27127     87.27127     87.27127     1
      strucf       :     0.00s CPU
      nlfl         :     0.00s CPU
      nlsm1        :     0.00s CPU (       8 calls,   0.000 s avg)
-     fft          :     0.02s CPU (      19 calls,   0.001 s avg)
+     fft          :     0.03s CPU (      19 calls,   0.001 s avg)
      ffts         :     0.00s CPU (       3 calls,   0.001 s avg)
-     fftw         :     0.03s CPU (      48 calls,   0.001 s avg)
+     fftw         :     0.02s CPU (      48 calls,   0.001 s avg)
      cft3s        :     0.05s CPU (      70 calls,   0.001 s avg)
      fft_scatter  :     0.02s CPU (      70 calls,   0.000 s avg)
 
-     outer_loop   :     0.32s CPU
-     runcg_uspp   :     0.12s CPU (       2 calls,   0.062 s avg)
+     outer_loop   :     0.29s CPU
+     runcg_uspp   :     0.11s CPU (       2 calls,   0.057 s avg)
      emass_p_tpa  :     0.00s CPU (       2 calls,   0.000 s avg)
  
  
-     CP           :     0.76s CPU time,    0.88s wall time
+     CP           :     0.73s CPU time,    0.88s wall time
 
  
-   This run was terminated on:  21:58:53  21Jun2022            
+   This run was terminated on:  13: 2:19  22Jun2022            
 
 =------------------------------------------------------------------------------=
    JOB DONE.

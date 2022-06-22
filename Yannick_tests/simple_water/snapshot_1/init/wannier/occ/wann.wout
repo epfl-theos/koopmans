@@ -70,7 +70,7 @@
              | 675 Mass Ave, Cambridge, MA 02139, USA.           |
              |                                                   |
              +---------------------------------------------------+
-             |    Execution started on 21Jun2022 at 21:58:38     |
+             |    Execution started on 22Jun2022 at 13:02:05     |
              +---------------------------------------------------+
  
  ******************************************************************************
@@ -239,9 +239,9 @@
  Starting a new Wannier90 calculation ...
 
 
- Reading overlaps from wann.mmn    :  Created on 21Jun2022 at 21:58:37
+ Reading overlaps from wann.mmn    :  Created on 22Jun2022 at 13: 2: 5
 
- Reading projections from wann.amn :  Created on 21Jun2022 at 21:58:37
+ Reading projections from wann.amn :  Created on 22Jun2022 at 13: 2: 5
 
  Time to read overlaps          0.000 (sec)
 
@@ -525,7 +525,7 @@
  Time to calculate interpolated band structure       0.002 (sec)
  
  Time for plotting              0.003 (sec)
- Total Execution Time           0.011 (sec)
+ Total Execution Time           0.012 (sec)
 
  *===========================================================================*
  |                             TIMING INFORMATION                            |
