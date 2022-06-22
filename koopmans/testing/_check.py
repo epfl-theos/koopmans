@@ -15,9 +15,8 @@ from ._utils import benchmark_filename, metadata_filename
 
 # A hard and a soft tolerance for checking floats
 tolerances = {'alphas': (2e-3, 2e-5),
-              'homo_energy': (2e-3, 2e-5),
-              'lumo_energy': (2e-3, 2e-5),
-              'self-hartree': (2e-3, 2e-5),
+              'eigenenergies': (2e-3, 2e-5),
+              'centersandspreads': (2e-2, 2e-4),
               'array': (2e-2, 2e-4),
               'default': (2e-4, 2e-6)}
 
@@ -38,6 +37,8 @@ def compare(result: Any, ref_result: Any, result_name: str) -> Optional[Dict[str
         result = result.get_dos()
         ref_result = ref_result.get_dos()
         tols = tolerances['array']
+    elif result_name in ['homo_energy', 'lumo_energy', 'eigenvalues', 'ki_eigenvalues_on_grid']:
+        tols = tolerances.get('eigenenergies', tolerances['default'])
     else:
         tols = tolerances.get(result_name, tolerances['default'])
 
@@ -109,7 +110,7 @@ class CheckCalc:
     @property
     def _calcname(self) -> Path:
         calcname: Path = (self.directory / self.prefix).relative_to(base_directory  # type: ignore[attr-defined]
-                                                              / 'tests' / 'tmp')
+                                                                    / 'tests' / 'tmp')
         return calcname.relative_to(calcname.parts[0])
 
     def _check_results(self, benchmark: Calc):
@@ -213,7 +214,7 @@ class CheckKoopmansCPCalculator(CheckCalc, KoopmansCPCalculator):
 
 
 class CheckPWCalculator(CheckCalc, PWCalculator):
-    results_for_qc = ['energy']
+    results_for_qc = ['energy', 'eigenvalues', 'band structure']
     pass
 
 
@@ -242,31 +243,31 @@ class CheckWannier90Calculator(CheckCalc, Wannier90Calculator):
         centers = self.atoms.cell.scaled_positions(np.array(self.results['centers'])) % 1
         ref_centers = self.atoms.cell.scaled_positions(np.array(benchmark.results['centers'])) % 1
 
-        for i, (center, spread) in enumerate(zip(centers, self.results['spreads'])):
-            result = center + [spread]
+        for i, (ref_center, ref_spread) in enumerate(zip(ref_centers, benchmark.results['spreads'])):
+            ref_result = ref_center + [ref_spread]
             match = False
             rough_match = False
-            for j, (ref_center, ref_spread) in enumerate(zip(ref_centers, benchmark.results['spreads'])):
-                ref_result = ref_center + [ref_spread]
-                if np.allclose(result, ref_result, tolerances['default'][0]):
+            for j, (center, spread) in enumerate(zip(centers, self.results['spreads'])):
+                result = center + [spread]
+                if np.allclose(result, ref_result, tolerances['centersandspreads'][0]):
                     match = True
                     break
-                elif np.allclose(result, ref_result, tolerances['default'][1]):
+                elif np.allclose(result, ref_result, tolerances['centersandspreads'][1]):
                     rough_match = True
                     match_index = j
                     match_spread = ref_spread
                     match_center_str = ', '.join([f'{x:.5f}' for x in benchmark.results['centers'][match_index]])
 
-            center_str = ', '.join([f'{x:.5f}' for x in self.results['centers'][i]])
+            ref_center_str = ', '.join([f'{x:.5f}' for x in benchmark.results['centers'][i]])
 
             if match:
                 pass
             elif rough_match:
-                message = f'Wannier function #{i+1}, with center = {center_str} and spread = {spread:.5f} does not precisely match' \
+                message = f'Wannier function #{i+1}, with center = {ref_center_str} and spread = {ref_spread:.5f} does not precisely match' \
                           f'the benchmark Wannier function #{j+1}, with center = {match_center_str} and spread = {match_spread:.5f}'
                 messages.append({'kind': 'warning', 'message': message})
             else:
-                message = f'Wannier function #{i+1}, with center = {center_str} and spread = {spread:.5f} not found'
+                message = f'Wannier function #{i+1}, with center = {ref_center_str} and spread = {ref_spread:.5f} not found'
                 messages.append({'kind': 'error', 'message': message})
 
         return messages
