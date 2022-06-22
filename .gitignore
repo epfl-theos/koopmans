@@ -7,3 +7,4 @@ coverage.xml
 .coverage
 *.egg-info/
 .mypy_cache/
+Yannick_tests
