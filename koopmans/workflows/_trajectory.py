@@ -25,6 +25,7 @@ class TrajectoryWorkflow(Workflow):
         
 
         for i, snapshot in enumerate(self.snapshots):
+            self.master_calc_params['ML'].current_snapshot = i
         
             self.atoms.set_positions(snapshot.positions)
             if self.parameters.method == 'dfpt':
@@ -49,4 +50,4 @@ class TrajectoryWorkflow(Workflow):
     
     def todict(self):
         # TODO: implement
-        return ['TODO']
+        return {}

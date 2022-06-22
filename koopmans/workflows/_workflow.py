@@ -247,7 +247,7 @@ class Workflow(ABC):
 
         # Yannick Debug: initialize the RidgeRegression() model
         if self.master_calc_params['ML'].use_ML:
-            self.ml_model = RidgeRegression()
+            self.ml_model         = RidgeRegression()
 
     def __eq__(self, other):
         if isinstance(other, Workflow):
@@ -696,6 +696,7 @@ class Workflow(ABC):
         # Yannick Debug: Link the ML_Model
         if self.master_calc_params['ML'].use_ML:
             workflow.ml_model = self.ml_model
+
 
         # Link the bands
         if hasattr(self, 'bands'):

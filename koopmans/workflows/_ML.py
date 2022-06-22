@@ -21,11 +21,18 @@ class MLFiitingWorkflow(Workflow):
         self.method_to_extract_from_binary        = 'from_ki'
         self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
         self.ML_dir                               = self.calc_that_produced_orbital_densities.directory / 'ML' / 'TMP'
-        ML_params = self.master_calc_params['ML']
-        self.n_max = ML_params.n_max
-        self.l_max = ML_params.l_max
-        self.r_min = ML_params.r_min
-        self.r_max = ML_params.r_max
+        self.predicted_alphas                     = []
+        self.fillings_of_predicted_alphas         = []
+        
+        
+        ML_params                = self.master_calc_params['ML']
+        self.n_max               = ML_params.n_max
+        self.l_max               = ML_params.l_max
+        self.r_min               = ML_params.r_min
+        self.r_max               = ML_params.r_max
+        self.criterium           = ML_params.criterium 
+        self.number_of_snapshots = ML_params.number_of_snapshots
+        self.current_snapshot    = ML_params.current_snapshot
 
 
     def _run(self):
@@ -64,7 +71,8 @@ class MLFiitingWorkflow(Workflow):
             centers_occ = np.array(self.calculations[4].results['centers'])
             centers_emp = np.array(self.calculations[7].results['centers'])
             centers     = np.concatenate([centers_occ, centers_emp])
-        
+        else: 
+             raise ValueError(f'Currently it is only implemented to extract the real space orbital densities from the ki-trial calculation after the initial wannier-calculation')
         
         ML_utils.precompute_radial_basis(self.n_max, self.l_max, self.r_min, self.r_max, self.ML_dir)
         ML_utils.func_compute_decomposition(self.n_max, self.l_max, self.r_min, self.r_max, self.r_cut, self.ML_dir, self.bands_to_extract, self.atoms, centers)
@@ -75,9 +83,13 @@ class MLFiitingWorkflow(Workflow):
         ML_utils.main_compute_power(self.n_max, self.l_max, self.r_min, self.r_max, self.ML_dir, self.dir_power, self.bands_to_extract)
 
     def predict(self, band):
+        # TODO: currently only capable of making one prediction at a time
         power_spectrum = self.load_power_spectrum(band)
-        y_predict = self.ml_model.predict(power_spectrum)
+        y_predict      = self.ml_model.predict(power_spectrum)[0]
+        self.predicted_alphas.append(y_predict)
+        self.fillings_of_predicted_alphas.append(band.filled)
         print("y_predict = ", y_predict)
+
         return y_predict
     
     def train(self):
@@ -104,4 +116,21 @@ class MLFiitingWorkflow(Workflow):
     
     def use_prediction(self):
         print("Use prediction -> False")
-        return False
+        if self.criterium == 'after_fixed_num_of_snapshots':
+            print("current snapshot = ", self.current_snapshot)
+            if self.current_snapshot <= self.number_of_snapshots:
+                return False
+            else:
+                return True
+        else: 
+             raise ValueError(f'criterium = {self.criterium} is currently not implemented')
+
+
+    def write_predicted_alphas(self):
+        if self.nspin_to_extract==1:
+            duplicate = 2
+        else:
+            duplicate = 1
+        alphas   = [a for _ in range(duplicate) for a in self.predicted_alphas]
+        fillings = [f for _ in range(duplicate) for f in self.fillings_of_predicted_alphas]
+        utils.write_alpha_file(self.ML_dir, alphas, fillings)

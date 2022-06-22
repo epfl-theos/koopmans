@@ -24,7 +24,7 @@ class RidgeRegression():
             y_predict = self.model.predict(X_test)
             return y_predict
         else:
-            return np.nan
+            return np.array([np.nan])
 
     def train(self):
         print(np.shape(self.X_train))

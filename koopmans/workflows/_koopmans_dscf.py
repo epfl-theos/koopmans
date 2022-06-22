@@ -647,6 +647,8 @@ class KoopmansDSCFWorkflow(Workflow):
                     mlfit.train()
 
 
+            mlfit.write_predicted_alphas()
+
             self.bands.print_history(indent=self.print_indent + 1)
 
             converged = all([abs(b.error) < 1e-3 for b in self.bands])
