@@ -13,8 +13,8 @@
    2
   ],
   "pseudopotentials": {
-   "O": "O_ONCV_PBE-1.0.upf",
-   "Ti": "Ti_ONCV_PBE-1.0.upf"
+   "Ti": "Ti_ONCV_PBE-1.0.upf",
+   "O": "O_ONCV_PBE-1.0.upf"
   },
   "gamma_only": false,
   "koffset": [

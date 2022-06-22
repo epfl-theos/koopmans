@@ -13,8 +13,8 @@
    2
   ],
   "pseudopotentials": {
-   "Ti": "Ti.upf",
-   "O": "O.upf"
+   "O": "O.upf",
+   "Ti": "Ti.upf"
   },
   "gamma_only": false,
   "koffset": [

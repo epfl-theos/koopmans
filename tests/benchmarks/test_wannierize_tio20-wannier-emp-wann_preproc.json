@@ -4,15 +4,11 @@
   "projections": [
    {
     "site": "Ti",
-    "ang_mtm": "l=0"
-   },
-   {
-    "site": "Ti",
     "ang_mtm": "l=2"
    }
   ],
-  "num_wann": 12,
-  "num_bands": 12,
+  "num_wann": 10,
+  "num_bands": 10,
   "exclude_bands": "1-24",
   "mp_grid": [
    2,

@@ -8,7 +8,7 @@
   ],
   "num_wann": 12,
   "num_bands": 12,
-  "exclude_bands": "1-12,25-36",
+  "exclude_bands": "1-12,25-34",
   "mp_grid": [
    2,
    2,

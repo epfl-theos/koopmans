@@ -9,7 +9,7 @@
   ],
   "num_wann": 2,
   "num_bands": 2,
-  "exclude_bands": "3-36",
+  "exclude_bands": "3-34",
   "mp_grid": [
    2,
    2,
@@ -884,8 +884,8 @@
   "Im/Re ratio": [],
   "centers": [
    [
-    -0.0,
-    -0.0,
+    0.0,
+    0.0,
     -0.0
    ],
    [
@@ -895,7 +895,7 @@
    ]
   ],
   "spreads": [
-   0.31625861,
+   0.31625862,
    0.31625861
   ],
   "band structure": {
