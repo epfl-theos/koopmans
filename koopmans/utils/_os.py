@@ -53,9 +53,9 @@ def symlink(src: Union[str, Path], dest: Union[str, Path], relative: bool = True
             # The equivalent of ln -s
             pass
 
-        if force:
+        if force and dest.exists():
             # The equivalent of ln -sf
-            dest.unlink(missing_ok=True)
+            dest.unlink()
 
         if exist_ok:
             try:
