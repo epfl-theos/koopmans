@@ -46,3 +46,7 @@ class TrajectoryWorkflow(Workflow):
 
         wf.snapshots = snapshots
         return wf
+    
+    def todict(self):
+        # TODO: implement
+        return ['TODO']

@@ -38,7 +38,6 @@ def main_compute_power(n_max, l_max, r_min, r_max, ML_directory, dir_power, band
 
 
     for band in bands:
-        print(f'calculating decomposition of band {band.index}') 
 
         if band.filled:
             filled_str = 'occ'

@@ -387,7 +387,6 @@ class KoopmansDSCFWorkflow(Workflow):
                 c, calculators.PWCalculator) and c.parameters.calculation == 'nscf'][-1]
             pw_gap = pw_calc.results['lumo_energy'] - pw_calc.results['homo_energy']
             cp_gap = calc.results['lumo_energy'] - calc.results['homo_energy']
-            print((f'Yannick Debug PW and CP band gaps: {pw_gap} {cp_gap}'))
             if abs(pw_gap - cp_gap) > 2e-2 * pw_gap:
                 raise ValueError(f'PW and CP band gaps are not consistent: {pw_gap} {cp_gap}')
 
@@ -611,7 +610,7 @@ class KoopmansDSCFWorkflow(Workflow):
                             index_empty_to_save += self.bands.num(filled=False, spin=0)
 
                     # Yannick Debug: replace the actual fixed-band calculations with my logic
-                    alpha_predicted = mlfit.get_prediction_for_latest_alpha()
+                    alpha_predicted = mlfit.predict(band)
                     use_prediction  = mlfit.use_prediction()
                     if(not use_prediction):
                         self.perform_fixed_band_calculations(band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band, directory, alpha_indep_calcs)
@@ -636,13 +635,17 @@ class KoopmansDSCFWorkflow(Workflow):
                     alpha, error = self.calculate_alpha_from_list_of_calcs(
                         calcs, trial_calc, band, filled=band.filled)
                     
-                    mlfit.train([band.index], [band.filled], [alpha])
 
 
                 for b in self.bands:
                     if b == band or (b.group is not None and b.group == band.group):
                         b.alpha = alpha
                         b.error = error
+
+                if(not use_prediction):
+                    mlfit.add_training_data(band)
+                    mlfit.train()
+
 
             self.bands.print_history(indent=self.print_indent + 1)
 

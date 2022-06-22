@@ -74,32 +74,33 @@ class MLFiitingWorkflow(Workflow):
         self.dir_power = self.ML_dir / f'power_spectra_{self.n_max}_{self.l_max}_{self.r_min}_{self.r_max}'
         ML_utils.main_compute_power(self.n_max, self.l_max, self.r_min, self.r_max, self.ML_dir, self.dir_power, self.bands_to_extract)
 
-    def predict(self):
-
-        self.ml_model.predict()
+    def predict(self, band):
+        power_spectrum = self.load_power_spectrum(band)
+        y_predict = self.ml_model.predict(power_spectrum)
+        print("y_predict = ", y_predict)
+        return y_predict
     
-    def train(self, new_orbitals:List[int]=None, new_orbitals_filling:List[bool]=None, new_alphas:List[float]=None):
+    def train(self):
         print("Now training")
-        if new_orbitals != None:
-            if not(len(new_orbitals) == len(new_orbitals_filling) == len(new_alphas)):
-                raise ValueError('new_orbitals and new_alphas have to be of the same length')
-            self.add_training_data(new_orbitals, new_orbitals_filling, new_alphas)
         self.ml_model.train()
     
-    def add_training_data(self, new_orbitals:List[int], new_orbitals_filling:List[bool], new_alphas:List[float]):
-        for orbital, orbital_filling, alpha in zip(new_orbitals, new_orbitals_filling, new_alphas):
-            if orbital_filling:
-                occ_string = 'occ'
-            else:
-                occ_string = 'emp'
-            power_spectrum = np.loadtxt(self.dir_power / f'power_spectrum.orbital.{occ_string}.{orbital}.txt')
-            print("adding orbital ", orbital)
-            print("filling orbital ", orbital_filling)
-            print("alpha orbital ", alpha)
+    def add_training_data(self, band):
+        power_spectrum = self.load_power_spectrum(band)
+        alpha          = band.alpha
+        print("adding orbital ", band.index)
+        print("filling orbital ", band.filled)
+        print("alpha orbital ", band.alpha)
+        self.ml_model.add_training_data(power_spectrum, alpha)
+
+    def load_power_spectrum(self, band):
+        if band.filled:
+            filled_str = 'occ'
+        else:
+            filled_str = 'emp'
+        return np.loadtxt(self.dir_power / f"power_spectrum.orbital.{filled_str}.{band.index}.txt")
+
 
     
-    def get_prediction_for_latest_alpha(self):
-        return 0.65
     
     def use_prediction(self):
         print("Use prediction -> False")
