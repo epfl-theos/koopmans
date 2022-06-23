@@ -30,7 +30,6 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
     ext_in = '.uii'
     ext_out = '.uio'
-    results_for_qc = ['band structure', 'dos']
 
     def __init__(self, atoms: Atoms, *args, **kwargs):
         self.parameters = UnfoldAndInterpolateSettingsDict()
@@ -56,6 +55,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         self.Rvec: NDArray[np.int_] = np.array([])
         self.Rsmooth: NDArray[np.int_] = np.array([])
         self.wRs: List[int] = []
+
+        # Does not have a command (but we still want self.command to be defined)
+        self.command = None
 
     @classmethod
     def fromfile(cls, filenames: Union[str, Path, List[str], List[Path]]) -> 'UnfoldAndInterpolateCalculator':
@@ -455,7 +457,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 bigdct = {"workflow": {"task": "ui"}, "ui": settings}
 
                 # Provide the bandpath information in the form of a string
-                bigdct['setup'] = {'k_points': {'kpath': kpath.path, 'kgrid': kgrid}}
+                bigdct['setup'] = {'k_points': {'kgrid': kgrid, **utils.kpath_to_dict(kpath, atoms.cell)}}
 
                 # Provide the plot information
                 bigdct['plot'] = {k: v for k, v in plot_params.items()}
@@ -495,7 +497,8 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             kpoint_block = bigdct['setup'].get('k_points', {})
             if kpoint_block:
                 self.parameters.kgrid = kpoint_block['kgrid']
-                self.parameters.kpath = utils.convert_kpath_str_to_bandpath(kpoint_block['kpath'], self.atoms.cell)
+                self.parameters.kpath = utils.convert_kpath_str_to_bandpath(
+                    kpoint_block['kpath'], self.atoms.cell, kpoint_block.get('kpath_density', None))
 
         return
 

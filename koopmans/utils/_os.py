@@ -14,7 +14,7 @@ import subprocess
 import contextlib
 
 
-def system_call(command, check_ierr=True):
+def system_call(command: str, check_ierr: bool = True):
     '''
     Make a system call and check the exit code
     '''
@@ -39,9 +39,8 @@ def symlink(src: Union[str, Path], dest: Union[str, Path], relative: bool = True
 
         if dest.is_dir():
             dest /= src.name
-
-        dest = dest.resolve()
-        src = src.resolve()
+        dest = dest.absolute()
+        src = src.absolute()
 
         # Check if the src exists
         if not src.exists():
@@ -50,14 +49,13 @@ def symlink(src: Union[str, Path], dest: Union[str, Path], relative: bool = True
         if relative:
             # The equivalent of ln -sr
             src = Path(os.path.relpath(src, dest.parent))
-
         else:
             # The equivalent of ln -s
             pass
 
-        if force:
+        if force and dest.exists():
             # The equivalent of ln -sf
-            dest.unlink(missing_ok=True)
+            dest.unlink()
 
         if exist_ok:
             try:
@@ -89,6 +87,23 @@ def chdir(path: Union[Path, str]):
     finally:
         # Return to the original directory
         os.chdir(this_dir)
+
+
+@contextlib.contextmanager
+def set_env(**environ):
+    """
+    Temporarily set the process environment variables.
+
+    :type environ: dict[str, unicode]
+    :param environ: Environment variables to set
+    """
+    old_environ = dict(os.environ)
+    os.environ.update(environ)
+    try:
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(old_environ)
 
 
 def find_executable(program: Path):

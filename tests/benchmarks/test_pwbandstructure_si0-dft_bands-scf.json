@@ -1,0 +1,150 @@
+{
+ "_parameters": {
+  "outdir": {
+   "__path__": "../TMP"
+  },
+  "conv_thr": 1.6e-08,
+  "ecutwfc": 40.0,
+  "tot_charge": 0,
+  "tot_magnetization": 0,
+  "pseudo_dir": {
+   "__path__": "../../../../pseudos/pseudo_dojo_standard_v0.4.1/pbesol"
+  },
+  "kpts": [
+   1,
+   1,
+   1
+  ],
+  "pseudopotentials": {
+   "Si": "Si.upf"
+  },
+  "gamma_only": false,
+  "koffset": [
+   0,
+   0,
+   0
+  ],
+  "__koopmans_name__": "PWSettingsDict",
+  "__koopmans_module__": "koopmans.settings._pw"
+ },
+ "atoms": {
+  "numbers": {
+   "__ndarray__": [
+    [
+     2
+    ],
+    "int64",
+    [
+     14,
+     14
+    ]
+   ]
+  },
+  "positions": {
+   "__ndarray__": [
+    [
+     2,
+     3
+    ],
+    "float64",
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.3575,
+     1.3575,
+     1.3575
+    ]
+   ]
+  },
+  "cell": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     0.0,
+     2.715,
+     2.715,
+     2.715,
+     0.0,
+     2.715,
+     2.715,
+     2.715,
+     0.0
+    ]
+   ]
+  },
+  "pbc": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "bool",
+    [
+     true,
+     true,
+     true
+    ]
+   ]
+  },
+  "__ase_objtype__": "atoms"
+ },
+ "results": {
+  "energy": -212.99236684858133,
+  "homo_energy": 7.1938,
+  "lumo_energy": null,
+  "electrostatic embedding": null,
+  "iterations": 7,
+  "job done": true
+ },
+ "_directory": {
+  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_pwbandstructure_si0/dft_bands"
+ },
+ "prefix": "scf",
+ "name": "benchgenpwcalculator",
+ "command": {
+  "postfix": "",
+  "mpi_command": "mpirun -np 8",
+  "path": {
+   "__path__": "/home/elinscott/code/koopmans/bin"
+  },
+  "executable": "pw.x",
+  "_flags": "",
+  "suffix": "-in PREFIX.pwi > PREFIX.pwo 2>&1",
+  "__koopmans_name__": "ParallelCommandWithPostfix",
+  "__koopmans_module__": "koopmans.commands"
+ },
+ "calc": {},
+ "skip_qc": false,
+ "kpts": [
+  {
+   "weight": 2.0,
+   "s": 0,
+   "k": {
+    "__ndarray__": [
+     [
+      3
+     ],
+     "float64",
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "eps_n": [
+    -5.0461,
+    7.1938,
+    7.1938,
+    7.1938
+   ],
+   "f_n": []
+  }
+ ],
+ "__koopmans_name__": "BenchGenPWCalculator",
+ "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+}

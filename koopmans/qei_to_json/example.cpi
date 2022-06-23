@@ -33,7 +33,6 @@
 &ELECTRONS
    conv_thr         = 8e-09
    ortho_para       = 1
-   empty_states_nbnd = 0
    maxiter          = 300
    electron_dynamics = 'cg'
    passop           = 2.0

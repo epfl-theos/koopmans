@@ -29,12 +29,9 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         Espresso.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
 
-        self.results_for_qc = ['energy']
         if not isinstance(self.command, Command):
             self.command = ParallelCommandWithPostfix(os.environ.get(
                 'ASE_ESPRESSO_COMMAND', str(bin_directory) + os.path.sep + self.command))
-
-        self.results_for_qc = ['energy']
 
     def calculate(self):
         if self.parameters.calculation == 'bands':

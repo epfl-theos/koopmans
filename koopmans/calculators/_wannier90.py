@@ -33,8 +33,6 @@ class Wannier90Calculator(CalculatorExt, Wannier90, CalculatorABC):
         self.command = Command(os.environ.get('ASE_WANNIER90_COMMAND',
                                               str(bin_directory) + os.path.sep + self.command))
 
-        self.results_for_qc = ['centers', 'spreads']
-
     def is_converged(self):
         return self.results['convergence']
 

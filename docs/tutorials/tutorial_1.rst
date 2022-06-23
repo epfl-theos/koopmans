@@ -7,30 +7,30 @@ In this tutorial, we will calculate the ionisation potential and electron affini
 The input
 ---------
 
-The input file for this calculation can be downloaded :download:`here <tutorial_1/ozone.json>`. Just to briefly highlight the most important details of the workflow block
+The input file for this calculation can be downloaded :download:`here <../../tutorials/tutorial_1/ozone.json>`. Just to briefly highlight the most important details of the workflow block
 
-.. literalinclude:: tutorial_1/ozone.json
+.. literalinclude:: ../../tutorials/tutorial_1/ozone.json
   :lines: 2-4
   :lineno-start: 2
   :emphasize-lines: 2
 
 here we select the KI functional (as opposed to KIPZ),
 
-.. literalinclude:: tutorial_1/ozone.json
+.. literalinclude:: ../../tutorials/tutorial_1/ozone.json
   :lines: 3-5
   :lineno-start: 3
   :emphasize-lines: 2
 
 specifies that we are going to calculate the screening parameters via a ΔSCF procedure, whereby we compute the energies of various :math:`N`, :math:`N-1`, and :math:`N+1`-electron systems (see :ref:`the theory section<theory_dscf>` for details),
 
-.. literalinclude:: tutorial_1/ozone.json
+.. literalinclude:: ../../tutorials/tutorial_1/ozone.json
   :lines: 4-6
   :lineno-start: 4
   :emphasize-lines: 2
 
 specifies that our ozone molecule is not a periodic system, and
 
-.. literalinclude:: tutorial_1/ozone.json
+.. literalinclude:: ../../tutorials/tutorial_1/ozone.json
   :lineno-start: 5
   :lines: 5-7
   :emphasize-lines: 2
@@ -39,7 +39,7 @@ specifies that we have chosen to use the Kohn-Sham orbitals as our :ref:`variati
 
 Meanwhile, the ``setup`` block contains standard keywords specifying the system configuration, such as the ``cell_parameters``, ``atomic_positions``, and ``atomic_species``. If you are familiar with ``Quantum ESPRESSO`` input files then most of this should look very familiar to you (albeit in JSON format). The one keyword that will be unfamiliar is
 
-.. literalinclude:: tutorial_1/ozone.json
+.. literalinclude:: ../../tutorials/tutorial_1/ozone.json
   :lines: 17-22
   :lineno-start: 18
   :emphasize-lines: 3-4
@@ -65,7 +65,7 @@ Initialisation
 ^^^^^^^^^^^^^^
 The first step in any Koopmans calculation is the initialisation step. In this step we initialise the density and the variational orbitals.
 
-.. literalinclude:: tutorial_1/ozone.out
+.. literalinclude:: ../../tutorials/tutorial_1/ozone.out
   :language: text
   :lines: 14-20
   :lineno-start: 14
@@ -84,7 +84,7 @@ Calculating the screening parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The second step in the calculation involves the calculation of the screening parameters:
 
-.. literalinclude:: tutorial_1/ozone.out
+.. literalinclude:: ../../tutorials/tutorial_1/ozone.out
   :language: text
   :lines: 22-40
   :lineno-start: 22
@@ -93,7 +93,7 @@ etc. Here, we are calculating the screening parameters using the :ref:`ΔSCF met
 
 The procedure for empty orbitals is slightly different, as we can see when it comes to orbital 10:
 
-.. literalinclude:: tutorial_1/ozone.out
+.. literalinclude:: ../../tutorials/tutorial_1/ozone.out
   :language: text
   :lines: 61-67
   :lineno-start: 61
@@ -110,7 +110,7 @@ where now we must call Quantum ESPRESSO several times in order to obtain :math:`
 
 At the end of this section we can see a couple of tables:
 
-.. literalinclude:: tutorial_1/ozone.out
+.. literalinclude:: ../../tutorials/tutorial_1/ozone.out
   :language: text
   :lines: 67-81
   :lineno-start: 67
@@ -128,7 +128,7 @@ The final calculation
 ^^^^^^^^^^^^^^^^^^^^^
 Having determined the screening parameters, the final KI calculation is now run:
 
-.. literalinclude:: tutorial_1/ozone.out
+.. literalinclude:: ../../tutorials/tutorial_1/ozone.out
   :language: text
   :lines: 83-87
   :lineno-start: 83
@@ -183,11 +183,11 @@ Meanwhile, the electron affinity (EA) corresponds to the negative of the energy 
 
   You can read these files like so:
 
-  .. literalinclude:: tutorial_1/read.py
+  .. literalinclude:: ../../tutorials/tutorial_1/read.py
 
   Indeed, it is also possible to run the workflow from within ``python`` (rather than calling ``koopmans`` from the command line)
 
-  .. literalinclude:: tutorial_1/run.py
+  .. literalinclude:: ../../tutorials/tutorial_1/run.py
 
   in which case you have immediate access to the workflow object ``wf`` rather than having to load in the ``.kwf`` file.
 

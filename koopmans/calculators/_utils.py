@@ -22,9 +22,9 @@ from __future__ import annotations
 import copy
 import numpy as np
 from numpy import typing as npt
-from typing import Union, Optional, List, TypeVar, Generic, Type
+from typing import Union, Optional, List, TypeVar, Generic, Type, Dict, Any
 from pathlib import Path
-from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod, abstractproperty
 from ase import Atoms
 import ase.io as ase_io
 from ase.calculators.calculator import CalculationFailed
@@ -76,10 +76,9 @@ class CalculatorExt():
         # Handle any recognised QE keywords passed as arguments
         self.parameters.update(**kwargs)
 
-        # Initialise quality control variables
+        # Some calculations we don't want to check their results for when performing tests; for such calculations, set
+        # skip_qc = True
         self.skip_qc = skip_qc
-        self.results_for_qc = []
-        self.qc_results = {}
 
     @property
     def parameters(self):
@@ -88,7 +87,7 @@ class CalculatorExt():
         return self._parameters
 
     @parameters.setter
-    def parameters(self, value: Union[settings.SettingsDict, dict, None]):
+    def parameters(self, value: Union[settings.SettingsDict, Dict[str, Any], None]):
         if isinstance(value, settings.SettingsDict):
             self._parameters = value
         else:
@@ -118,17 +117,18 @@ class CalculatorExt():
         self.check_code_is_installed()
 
         # Then call the relevant ASE calculate() function
-        self._ase_calculate()
+        self._calculate()
 
         # Then check if the calculation completed
         if not self.is_complete():
+
             raise CalculationFailed(
                 f'{self.directory}/{self.prefix} failed; check the Quantum ESPRESSO output file for more details')
 
         # Then check convergence
         self.check_convergence()
 
-    def _ase_calculate(self):
+    def _calculate(self):
         # ASE expects self.command to be a string
         command = copy.deepcopy(self.command)
         self.command = str(command)
@@ -314,13 +314,6 @@ class ReturnsBandStructure(ABC):
 
 class KCWannCalculator(CalculatorExt):
     # Parent class for KCWHam, KCWScreen and Wann2KCW calculators
-
-    def __init__(self, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-
-        self.results_for_qc = []
-
     def is_complete(self):
         return self.results.get('job_done', False)
 

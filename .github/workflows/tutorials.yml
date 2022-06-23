@@ -1,0 +1,41 @@
+name: Run the tutorials
+
+on:
+   pull_request:
+      branches:
+         - master
+   push:
+      branches:
+         - master
+
+jobs:
+   test:
+      runs-on: ${{ matrix.os }}
+      strategy:
+         fail-fast: false
+         max-parallel: 6
+         matrix:
+            os: [ubuntu-latest, macOS-latest]
+      steps:
+         - name: Set up git user
+           run: |
+              git config --global user.name "koopmans-tester"
+              git config --global user.email ${{ secrets.KOOPMANS_TESTER_EMAIL }}
+         - name: Checkout
+           uses: actions/checkout@v2
+           with:
+              submodules: true
+              ssh-known-hosts: 'gitlab.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAfuCHKVTjquxvt6CM6tdG4SLp1Btn/nOeHHE5UOzRdf'
+              ssh-strict: false
+              ssh-key: ${{ secrets.KOOPMANS_TESTER_PRIVATE_KEY }}
+         - name: Set up Python 3.8
+           uses: actions/setup-python@v2
+           with:
+              python-version: 3.8
+         - name: Install dependencies
+           run: |
+              python -m pip install --upgrade pip
+              pip install -e ase/ -e .[test]
+         - name: Test the tutorials
+           run: |
+              pytest --ci tests/ -m tutorials
