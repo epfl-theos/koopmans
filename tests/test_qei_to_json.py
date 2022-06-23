@@ -5,11 +5,9 @@ from koopmans.qei_to_json import qei_to_json
 
 def test_pwi_to_json(tmpdir, datadir):
     with utils.chdir(tmpdir):
-        basedir = datadir / 'qei_to_json'
-        qei_to_json(basedir / 'example.pwi', 'example.json')
+        qei_to_json(datadir / 'qei_to_json' / 'example.pwi', 'example.json')
 
 
 def test_cpi_to_json(tmpdir, datadir):
     with utils.chdir(tmpdir):
-        basedir = datadir / 'qei_to_json'
-        qei_to_json(basedir / 'example.cpi', 'example.json')
+        qei_to_json(datadir / 'qei_to_json' / 'example.cpi', 'example.json')
