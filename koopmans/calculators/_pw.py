@@ -29,12 +29,9 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         Espresso.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
 
-        self.results_for_qc = ['energy']
         if not isinstance(self.command, Command):
             self.command = ParallelCommandWithPostfix(os.environ.get(
                 'ASE_ESPRESSO_COMMAND', str(bin_directory) + os.path.sep + self.command))
-
-        self.results_for_qc = ['energy']
 
     def calculate(self):
         if self.parameters.calculation == 'bands':
@@ -51,7 +48,14 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         return self.results.get('job done', False)
 
     def is_converged(self):
-        return self.results.get('energy', None) is not None
+        if self.parameters.calculation == 'scf':
+            return self.results.get('energy', None) is not None
+        else:
+            return True
+
+    def check_convergence(self) -> None:
+        if self.parameters.calculation == 'scf':
+            return super().check_convergence()
 
     def vbm_energy(self) -> float:
         return 0.0

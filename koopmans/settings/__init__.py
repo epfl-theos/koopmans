@@ -18,18 +18,4 @@ from ._utils import Setting, SettingsDict, SettingsDictWithChecks
 from ._wann2kc import Wann2KCSettingsDict
 from ._wannier90 import Wannier90SettingsDict
 from ._workflow import WorkflowSettingsDict
-
-# Dictionary to be used as the default value for 'master_calc_params' when initialising a workflow
-default_master_calc_params = {'kcp': KoopmansCPSettingsDict(),
-                              'kc_ham': KoopmansHamSettingsDict(),
-                              'kc_screen': KoopmansScreenSettingsDict(),
-                              'projwfc': ProjwfcSettingsDict(),
-                              'pw': PWSettingsDict(),
-                              'pw2wannier': PW2WannierSettingsDict(),
-                              'wann2kcp': Wann2KCPSettingsDict(),
-                              'ui': UnfoldAndInterpolateSettingsDict(),
-                              'ui_occ': UnfoldAndInterpolateSettingsDict(),
-                              'ui_emp': UnfoldAndInterpolateSettingsDict(),
-                              'wann2kc': Wann2KCSettingsDict(),
-                              'w90_occ': Wannier90SettingsDict(),
-                              'w90_emp': Wannier90SettingsDict()}
+from ._plot import PlotSettingsDict

@@ -8,7 +8,7 @@ class Wann2KCPSettingsDict(SettingsDict):
                          defaults={'outdir': 'TMP', 'prefix': 'kc', 'seedname': 'wann',
                                    'wan_mode': 'wannier2kcp'},
                          are_paths=['outdir'],
-                         to_not_parse=['wan_mode'],
+                         to_not_parse=['wan_mode', 'wannier_plot_list'],
                          **kwargs)
 
     @property

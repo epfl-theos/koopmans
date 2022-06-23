@@ -1,0 +1,104 @@
+{
+ "_parameters": {
+  "outdir": {
+   "__path__": "../TMP"
+  },
+  "l_vcut": true,
+  "prefix": "kc",
+  "seedname": "wann",
+  "num_wann_occ": 4,
+  "num_wann_emp": 4,
+  "__koopmans_name__": "Wann2KCSettingsDict",
+  "__koopmans_module__": "koopmans.settings._wann2kc"
+ },
+ "atoms": {
+  "numbers": {
+   "__ndarray__": [
+    [
+     2
+    ],
+    "int64",
+    [
+     14,
+     14
+    ]
+   ]
+  },
+  "positions": {
+   "__ndarray__": [
+    [
+     2,
+     3
+    ],
+    "float64",
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.3575,
+     1.3575,
+     1.3575
+    ]
+   ]
+  },
+  "cell": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     0.0,
+     2.715,
+     2.715,
+     2.715,
+     0.0,
+     2.715,
+     2.715,
+     2.715,
+     0.0
+    ]
+   ]
+  },
+  "pbc": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "bool",
+    [
+     true,
+     true,
+     true
+    ]
+   ]
+  },
+  "__ase_objtype__": "atoms"
+ },
+ "results": {
+  "job_done": true
+ },
+ "_directory": {
+  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dfpt_ex0/wannier"
+ },
+ "prefix": "kc",
+ "name": "benchgenwann2kccalculator",
+ "command": {
+  "postfix": "",
+  "mpi_command": "mpirun -np 8",
+  "path": {
+   "__path__": "/home/elinscott/code/koopmans/bin"
+  },
+  "executable": "kcw.x",
+  "_flags": "",
+  "suffix": "-in PREFIX.w2ki > PREFIX.w2ko 2>&1",
+  "__koopmans_name__": "ParallelCommandWithPostfix",
+  "__koopmans_module__": "koopmans.commands"
+ },
+ "calc": {},
+ "skip_qc": false,
+ "kpts": null,
+ "__koopmans_name__": "BenchGenWann2KCCalculator",
+ "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+}

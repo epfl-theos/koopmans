@@ -18,10 +18,22 @@
       <td><code>ki</code> (must be <code>ki</code>/<code>kipz</code>/<code>pkipz</code>/<code>dft</code>/<code>all</code>)</td>
    </tr>
    <tr>
+      <td><code>base_functional</code></td>
+      <td>base functional to use</td>
+      <td><code>str</code></td>
+      <td><code>pbe</code> (must be <code>lda</code>/<code>pbe</code>/<code>pbesol</code>)</td>
+   </tr>
+   <tr>
       <td><code>calculate_alpha</code></td>
       <td>whether or not to calculate the screening parameters ab-initio</td>
       <td><code>bool</code></td>
       <td><code>True</code></td>
+   </tr>
+   <tr>
+      <td><code>pseudo_library</code></td>
+      <td>the pseudopotential library to use (valid options depend on the value of base_functional)</td>
+      <td><code>str</code></td>
+      <td></td>
    </tr>
    <tr>
       <td><code>method</code></td>
@@ -33,13 +45,13 @@
       <td><code>init_orbitals</code></td>
       <td>which orbitals to use as an initial guess for the variational orbitals</td>
       <td><code>str</code></td>
-      <td><code>pz</code> (must be <code>pz</code>/<code>kohn-sham</code>/<code>mlwfs</code>/<code>projwfs</code>/<code>from old ki</code>)</td>
+      <td><code>pz</code> (must be <code>pz</code>/<code>kohn-sham</code>/<code>mlwfs</code>/<code>projwfs</code>)</td>
    </tr>
    <tr>
       <td><code>init_empty_orbitals</code></td>
       <td>which orbitals to use as an initial guess for the empty variational orbitals (defaults to the same value as "init_orbitals")</td>
       <td><code>str</code></td>
-      <td><code>same</code> (must be <code>same</code>/<code>pz</code>/<code>kohn-sham</code>/<code>mlwfs</code>/<code>projwfs</code>/<code>from old ki</code>)</td>
+      <td><code>same</code> (must be <code>same</code>/<code>pz</code>/<code>kohn-sham</code>/<code>mlwfs</code>/<code>projwfs</code>)</td>
    </tr>
    <tr>
       <td><code>frozen_orbitals</code></td>
@@ -51,7 +63,25 @@
       <td><code>periodic</code></td>
       <td>whether or not the system is periodic</td>
       <td><code>bool</code></td>
+      <td></td>
+   </tr>
+   <tr>
+      <td><code>calculate_bands</code></td>
+      <td>whether or not to calculate the band structure of the system (if relevant)</td>
+      <td><code>bool</code></td>
+      <td></td>
+   </tr>
+   <tr>
+      <td><code>spin_polarised</code></td>
+      <td>if True, the system will be allowed to break spin symmetry i.e. n^{up}(r) != n^{down}(r)</td>
+      <td><code>bool</code></td>
       <td><code>False</code></td>
+   </tr>
+   <tr>
+      <td><code>fix_spin_contamination</code></td>
+      <td>if True, steps will be taken to try and avoid spin contamination. This is only sensible when performing a non-spin-polarised calculation, and is turned on by default for such calculations</td>
+      <td><code>bool</code></td>
+      <td></td>
    </tr>
    <tr>
       <td><code>npool</code></td>
@@ -130,18 +160,6 @@
       <td>when calculating alpha parameters, the code will group orbitals together only if their self-Hartree energy is within this threshold</td>
       <td><code>float</code></td>
       <td></td>
-   </tr>
-   <tr>
-      <td><code>enforce_spin_symmetry</code></td>
-      <td>if True, the spin-up and spin-down wavefunctions will be forced to be the same</td>
-      <td><code>bool</code></td>
-      <td><code>True</code></td>
-   </tr>
-   <tr>
-      <td><code>check_wannierisation</code></td>
-      <td>if True, checks the Im/Re ratio and generates a plot of the interpolated band structure</td>
-      <td><code>bool</code></td>
-      <td><code>False</code></td>
    </tr>
    <tr>
       <td><code>convergence_observable</code></td>

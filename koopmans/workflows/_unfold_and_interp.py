@@ -48,10 +48,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             wf_kwargs = self.wf_kwargs
             wf_kwargs['kgrid'] = [x * y for x,
                                   y in zip(wf_kwargs['kgrid'], self.master_calc_params['ui'].smooth_int_factor)]
-            wannier_workflow = WannierizeWorkflow(**wf_kwargs)
-            # For the moment not enabling this change
-            # wannier_workflow = WannierizeWorkflow(scf_kgrid=self.kgrid, **wf_kwargs)
-            wannier_workflow.parameters.calculate_bands = True
+            wannier_workflow = WannierizeWorkflow(scf_kgrid=self.kgrid, **wf_kwargs)
 
             # Here, we allow for skipping of the smooth dft calcs (assuming they have been already run)
             # This is achieved via the optional argument of from_scratch in run_subworkflow(), which
@@ -111,11 +108,11 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                 dos = None
                 utils.warn('The DOS will not be plotted, because the Brillouin zone is too poorly sampled for the '
                            'specified value of smearing. In order to generate a DOS, increase the k-point density '
-                           '("kpath_density" in the "setup":"k_points" subblock) and/or the smearing ("degauss" '
+                           '("kpath_density" in the "setup" "k_points" subblock) and/or the smearing ("degauss" '
                            'in the "plot" block)')
         else:
             dos = None
-        self.plot_bandstructure(bs, dos, bsplot_kwargs={'emin': calc.parameters.Emin, 'emax': calc.parameters.Emax})
+        self.plot_bandstructure(bs, dos)
 
         # Store the calculator in the workflow's list of all the calculators
         self.calculations.append(calc)
@@ -177,10 +174,3 @@ class SingleUnfoldAndInterpolateWorkflow(Workflow):
 
         ui_calc.calculate()
         self.calculations = [ui_calc]
-
-        # Print quality control
-        if self.parameters.print_qc and not ui_calc.skip_qc:
-            for key in ui_calc.results_for_qc:
-                val = ui_calc.results.get(key, None)
-                if val is not None:
-                    ui_calc.qc_results[key] = val

@@ -19,7 +19,7 @@ from ase.calculators.calculator import Calculator
 from ase.dft.dos import DOS
 from ase.spectrum.band_structure import BandStructure
 from koopmans import utils
-from koopmans.settings import UnfoldAndInterpolateSettingsDict
+from koopmans.settings import UnfoldAndInterpolateSettingsDict, PlotSettingsDict
 from .._utils import CalculatorExt, CalculatorABC, sanitise_filenames
 from ._utils import crys_to_cart, extract_hr, latt_vect
 from ._atoms import UIAtoms
@@ -30,7 +30,6 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
     ext_in = '.uii'
     ext_out = '.uio'
-    results_for_qc = ['band structure', 'dos']
 
     def __init__(self, atoms: Atoms, *args, **kwargs):
         self.parameters = UnfoldAndInterpolateSettingsDict()
@@ -56,6 +55,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         self.Rvec: NDArray[np.int_] = np.array([])
         self.Rsmooth: NDArray[np.int_] = np.array([])
         self.wRs: List[int] = []
+
+        # Does not have a command (but we still want self.command to be defined)
+        self.command = None
 
     @classmethod
     def fromfile(cls, filenames: Union[str, Path, List[str], List[Path]]) -> 'UnfoldAndInterpolateCalculator':
@@ -123,7 +125,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 """
                  2) Core of the unfolding and interpolation code:
                     - build the map |i> ---> |Rn>
-                    - calc interpolated (if needed) bands
+                    - calc interpolated bands (if needed)
                     - calc DOS (if needed)
                 """
 
@@ -443,6 +445,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 kgrid = settings.pop('kgrid')
                 kpath = settings.pop('kpath')
 
+                # Remove the plot parameters from the settings dict
+                plot_params = settings.pop('plot_params')
+
                 # Converting Paths to JSON-serialisable strings
                 for k in self.parameters.are_paths:
                     if k in settings:
@@ -452,7 +457,10 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 bigdct = {"workflow": {"task": "ui"}, "ui": settings}
 
                 # Provide the bandpath information in the form of a string
-                bigdct['setup'] = {'k_points': {'kpath': kpath.path, 'kgrid': kgrid}}
+                bigdct['setup'] = {'k_points': {'kgrid': kgrid, **utils.kpath_to_dict(kpath, atoms.cell)}}
+
+                # Provide the plot information
+                bigdct['plot'] = {k: v for k, v in plot_params.items()}
 
                 # We also need to provide a cell so the explicit kpath can be reconstructed from the string alone
                 bigdct['setup']['cell_parameters'] = utils.construct_cell_parameters_block(atoms)
@@ -478,6 +486,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         # Update the parameters
         self.parameters = bigdct['ui']
 
+        # Update plot parameters
+        self.parameters.plot_params = PlotSettingsDict(**bigdct['plot'])
+
         # Load the cell and kpts if they are provided
         if 'setup' in bigdct:
             cell = utils.read_cell_parameters(None, bigdct['setup'].get('cell_parameters', {}))
@@ -486,7 +497,8 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             kpoint_block = bigdct['setup'].get('k_points', {})
             if kpoint_block:
                 self.parameters.kgrid = kpoint_block['kgrid']
-                self.parameters.kpath = utils.convert_kpath_str_to_bandpath(kpoint_block['kpath'], self.atoms.cell)
+                self.parameters.kpath = utils.convert_kpath_str_to_bandpath(
+                    kpoint_block['kpath'], self.atoms.cell, kpoint_block.get('kpath_density', None))
 
         return
 
@@ -527,7 +539,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         self.f_out.write(f'\tCalculating bands in: {time()-reset:22.3f} sec\n')
         reset = time()
 
-        # Step 3 (optional) : calculate the density-of-states
+        # Step 3: calculate the density-of-states
         if self.parameters.do_dos:
             self.calc_dos()
             self.f_out.write(f'\tCalculating DOS in: {time()-reset:24.3f} sec\n')
@@ -622,17 +634,12 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
     def calc_dos(self) -> None:
         """
-        calc_dos calculates the density of states using a gaussian smearing. The DOS is saved
-                 as a list [ [E1, DOS(E1)], [E2, DOS[E2]], ... , [En, DOS(En)] ]
+        calc_dos calculates the density of states using the DOS function from ASE
         """
 
-        if self.parameters.Emin is None:
-            self.parameters.Emin = np.min(self.get_eigenvalues() - 10 * self.parameters.degauss)
-        if self.parameters.Emax is None:
-            self.parameters.Emax = np.max(self.get_eigenvalues() + 10 * self.parameters.degauss)
-
-        self.results['dos'] = DOS(self, width=self.parameters.degauss, window=(
-            self.parameters.Emin, self.parameters.Emax), npts=self.parameters.nstep + 1)
+        self.results['dos'] = DOS(self, width=self.parameters.plot_params.degauss, window=(
+            self.parameters.plot_params.Emin, self.parameters.plot_params.Emax),
+            npts=self.parameters.plot_params.nstep + 1)
 
         return
 

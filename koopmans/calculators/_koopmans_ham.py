@@ -31,9 +31,7 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
         KCWannCalculator.__init__(self, *args, **kwargs)
 
         self.command = ParallelCommand(
-            f'{bin_directory}{os.path.sep}kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
-
-        self.results_for_qc = ['ki_eigenvalues_on_grid', 'band structure']
+            f'{bin_directory}{os.path.sep}kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out} 2>&1')
 
         # Store the alphas
         self.alphas = alphas
@@ -91,6 +89,10 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
 
     def is_converged(self):
         raise NotImplementedError('TODO')
+
+    def check_convergence(self) -> None:
+        # is_converged has not been implemented yet for this calculator
+        return
 
     def read_input(self, **kwargs):
         # A .khi file doesn't have the requisite information to reconstruct the bandpath, so in the event that kpts

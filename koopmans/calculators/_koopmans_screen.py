@@ -30,9 +30,7 @@ class KoopmansScreenCalculator(KCWannCalculator, KoopmansScreen, CalculatorABC):
         super().__init__(*args, **kwargs)
 
         self.command = ParallelCommandWithPostfix(
-            f'{bin_directory}{os.path.sep}kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
-
-        self.results_for_qc = ['alphas']
+            f'{bin_directory}{os.path.sep}kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out} 2>&1')
 
     def calculate(self):
         # Check eps infinity
@@ -45,3 +43,7 @@ class KoopmansScreenCalculator(KCWannCalculator, KoopmansScreen, CalculatorABC):
 
     def is_converged(self):
         raise NotImplementedError('TODO')
+
+    def check_convergence(self) -> None:
+        # is_converged has not been implemented yet for this calculator
+        return
