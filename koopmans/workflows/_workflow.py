@@ -113,7 +113,8 @@ class Workflow(ABC):
         else:
             if self.parameters.pseudo_library is None:
                 utils.warn(
-                    'Neither a pseudopotential library nor a list of pseudopotentials was provided; defaulting to sg15_v1.2')
+                    'Neither a pseudopotential library nor a list of pseudopotentials was provided; defaulting to '
+                    'sg15_v1.2')
                 self.parameters.pseudo_library = 'sg15_v1.2'
             self.pseudopotentials = {}
             for symbol, tag in set([(a.symbol, a.tag) for a in self.atoms]):
