@@ -85,10 +85,10 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
             Setting('from_scratch',
                     'if True, will delete any preexisting workflow and start again; '
                     'if False, will resume a workflow from where it was last up to',
-                    bool, False, (True, False)),
+                    bool, True, (True, False)),
             Setting('keep_tmpdirs',
-                    'If True, delete all of the temporary directories at the end of the calculation',
-                    bool, False, (True, False)),
+                    'If False, delete all of the temporary directories at the end of the calculation',
+                    bool, True, (True, False)),
             Setting('orbital_groups',
                     'a list of integers the same length as the total number of bands, '
                     'denoting which bands to assign the same screening parameter to',
