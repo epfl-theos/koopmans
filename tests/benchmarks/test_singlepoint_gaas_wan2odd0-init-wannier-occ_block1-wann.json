@@ -125,16 +125,21 @@
   "centers": [
    [
     0.0,
-    0.0,
+    -0.0,
     -0.0
    ],
    [
     -0.0,
     0.0,
-    -0.0
+    0.0
    ],
    [
+    -0.0,
     0.0,
+    0.0
+   ],
+   [
+    -0.0,
     -0.0,
     -0.0
    ],
@@ -142,29 +147,24 @@
     0.0,
     -0.0,
     0.0
-   ],
-   [
-    0.0,
-    0.0,
-    -0.0
    ]
   ],
   "spreads": [
-   0.32924437,
-   0.34723522,
-   0.34723522,
-   0.32924437,
-   0.34723522
+   0.32923606,
+   0.34720717,
+   0.34720717,
+   0.32923606,
+   0.34720717
   ]
  },
  "_directory": {
-  "__path__": "/home/degennar/CODES/koopmans/tests/tmp/test_singlepoint_gaas_wan2odd0/init/wannier/occ_block1"
+  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_gaas_wan2odd0/init/wannier/occ_block1"
  },
  "prefix": "wann",
  "name": "benchgenwannier90calculator",
  "command": {
   "path": {
-   "__path__": "/home/degennar/CODES/koopmans/bin"
+   "__path__": "/home/elinscott/code/koopmans/bin"
   },
   "executable": "wannier90.x",
   "_flags": "",

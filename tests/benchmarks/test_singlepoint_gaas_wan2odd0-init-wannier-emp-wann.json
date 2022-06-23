@@ -127,45 +127,45 @@
   "Im/Re ratio": [],
   "centers": [
    [
-    0.376211,
-    0.376211,
-    0.376211
+    0.376263,
+    0.376263,
+    0.376263
    ],
    [
-    0.376211,
-    -0.376211,
-    -0.376211
+    0.376263,
+    -0.376263,
+    -0.376263
    ],
    [
-    -0.376211,
-    0.376211,
-    -0.376211
+    -0.376263,
+    0.376263,
+    -0.376263
    ],
    [
-    -0.376211,
-    -0.376211,
-    0.376211
+    -0.376263,
+    -0.376263,
+    0.376263
    ]
   ],
   "spreads": [
-   2.37954789,
-   2.37954789,
-   2.37954789,
-   2.37954789
+   2.37951475,
+   2.37951475,
+   2.37951475,
+   2.37951475
   ]
  },
  "_directory": {
-  "__path__": "/home/degennar/CODES/koopmans/tests/tmp/test_singlepoint_gaas_wan2odd0/init/wannier/emp"
+  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_gaas_wan2odd0/init/wannier/emp"
  },
  "prefix": "wann",
  "name": "benchgenwannier90calculator",
  "command": {
   "path": {
-   "__path__": "/home/degennar/CODES/koopmans/bin"
+   "__path__": "/home/elinscott/code/koopmans/bin"
   },
   "executable": "wannier90.x",
   "_flags": "",
-  "suffix": "PREFIX.win > PREFIX.wout",
+  "suffix": "PREFIX.win > PREFIX.wout 2>&1",
   "__koopmans_name__": "Command",
   "__koopmans_module__": "koopmans.commands"
  },

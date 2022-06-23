@@ -75,14 +75,14 @@
   "job done": true
  },
  "_directory": {
-  "__path__": "/home/degennar/CODES/koopmans/tests/tmp/test_singlepoint_gaas_wan2odd0/init/wannier/emp"
+  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_gaas_wan2odd0/init/wannier/emp"
  },
  "prefix": "w2kcp",
  "name": "benchgenwann2kcpcalculator",
  "command": {
-  "mpi_command": "mpirun -np 24",
+  "mpi_command": "mpirun -np 8",
   "path": {
-   "__path__": "/home/degennar/CODES/koopmans/bin"
+   "__path__": "/home/elinscott/code/koopmans/bin"
   },
   "executable": "wann2kcp.x",
   "_flags": "",

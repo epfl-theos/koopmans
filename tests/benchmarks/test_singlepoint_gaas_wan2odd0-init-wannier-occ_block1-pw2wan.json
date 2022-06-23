@@ -75,14 +75,14 @@
   "job done": true
  },
  "_directory": {
-  "__path__": "/home/degennar/CODES/koopmans/tests/tmp/test_singlepoint_gaas_wan2odd0/init/wannier/occ_block1"
+  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_gaas_wan2odd0/init/wannier/occ_block1"
  },
  "prefix": "pw2wan",
  "name": "benchgenpw2wanniercalculator",
  "command": {
-  "mpi_command": "mpirun -np 24",
+  "mpi_command": "mpirun -np 8",
   "path": {
-   "__path__": "/home/degennar/CODES/koopmans/bin"
+   "__path__": "/home/elinscott/code/koopmans/bin"
   },
   "executable": "pw2wannier90.x",
   "_flags": "",
