@@ -9,6 +9,7 @@ Converted workflows from functions to objects Nov 2020
 
 from abc import ABC, abstractmethod
 import os
+import shutil
 import copy
 import operator
 from functools import reduce
@@ -258,6 +259,8 @@ class Workflow(ABC):
             self._run_sanity_checks()
         self._run()
         self.print_conclusion()
+        if not self._is_a_subworkflow:
+            self._teardown()
 
     @abstractmethod
     def _run(self) -> None:
@@ -1160,6 +1163,18 @@ class Workflow(ABC):
         filename = filename if filename is not None else f'{self.name}_bandstructure'
         legends = [ax.get_legend() for ax in axes if ax.get_legend() is not None]
         utils.savefig(fname=filename + '.png', bbox_extra_artists=legends, bbox_inches='tight')
+
+    def _teardown(self):
+        '''
+        Performs final tasks before the workflow completes
+        '''
+
+        # Removing tmpdirs
+        if not self.parameters.keep_tmpdirs:
+            all_outdirs = [calc.parameters.get('outdir', None) for calc in self.calculations]
+            outdirs = set([o.resolve() for o in all_outdirs if o is not None and o.exists()])
+            for outdir in outdirs:
+                shutil.rmtree(outdir)
 
 
 def get_version(module):
