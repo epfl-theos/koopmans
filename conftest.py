@@ -180,8 +180,7 @@ def silicon() -> Dict[str, Any]:
     return {'atoms': si,
             'master_calc_params': {'kcp': {'ecutwfc': 40.0},
                                    'pw': {'ecutwfc': 40.0, 'nbnd': 10},
-                                   'w90_occ': {'conv_window': 5, },
-                                   'w90_emp': {'conv_window': 5, 'dis_froz_max': 10.6, 'dis_win_max': 16.9},
+                                   'w90_emp': {'dis_froz_max': 10.6, 'dis_win_max': 16.9},
                                    'ui': {'smooth_int_factor': 2},
                                    },
             'plot_params': {'Emin': -10, 'Emax': 4, 'degauss': 0.5},
@@ -209,6 +208,24 @@ def tio2() -> Dict[str, Any]:
                                              atoms=atoms)
 
     return {'atoms': atoms,
-            'projections': projs,
             'master_calc_params': {'pw': {'ecutwfc': 40, 'nbnd': 34},
-                                   'kcp': {'ecutwfc': 40}}}
+                                   'kcp': {'ecutwfc': 40.0}},
+            'projections': projs}
+
+
+@pytest.fixture
+def gaas() -> Dict[str, Any]:
+    # bulk gallium arsenide
+    atoms: Atoms = bulk('GaAs', crystalstructure='zincblende', a=5.6536)
+    gaas_projs = ProjectionBlocks.fromprojections([["Ga: d"], ["As: sp3"], ["Ga: sp3"]],
+                                                  fillings=[True, True, False],
+                                                  spins=[None, None, None],
+                                                  atoms=atoms)
+    return {'atoms': atoms,
+            'master_calc_params': {'kcp': {'ecutwfc': 40.0},
+                                   'pw': {'ecutwfc': 40.0, 'nbnd': 45},
+                                   'w90_emp': {'dis_froz_max': 14.6, 'dis_win_max': 18.6},
+                                   'ui': {'smooth_int_factor': 4},
+                                   },
+            'plot_params': {'degauss': 0.5},
+            'projections': gaas_projs}

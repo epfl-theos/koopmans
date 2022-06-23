@@ -93,16 +93,16 @@ def test_singlepoint_ozone_ki_dfpt(ozone, workflow_patch, tmp_path, sys2file):
 
 
 @pytest.mark.espresso
-def test_singlepoint_tio2_wan2odd(tio2, espresso_patch, tmp_path, sys2file):
+def test_singlepoint_gaas_wan2odd(gaas, espresso_patch, tmp_path, sys2file):
     with chdir(tmp_path):
         parameters = {'functional': 'ki',
                       'method': 'dscf',
                       'from_scratch': True,
                       'calculate_alpha': False,
-                      'init_orbitals': 'projwfs',
+                      'init_orbitals': 'mlwfs',
                       'npool': 1,
                       'pseudo_library': 'sg15_v1.0',
                       'calculate_bands': False
                       }
-        wf = workflows.SinglepointWorkflow(parameters=parameters, kgrid=[2, 2, 2], **tio2)
+        wf = workflows.SinglepointWorkflow(parameters=parameters, kgrid=[2, 2, 2], **gaas)
         wf.run()
