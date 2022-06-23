@@ -12,7 +12,6 @@ from scipy.special import sph_harm
 import sys
 
 
-
 def get_orbital_density_to_xsf_grid(rho_r_reconstructed):
     nr3m1, nr2m1, nr1m1 = np.shape(rho_r_reconstructed)
     nr3 = nr3m1 + 1 
@@ -272,7 +271,9 @@ def load_density_into_array(file_rho, nr1, nr2, nr3, norm_const, string='EFFECTI
 
 
 def func_compute_decomposition(n_max, l_max, r_min, r_max, r_cut, ML_directory, bands, atoms, centers):
-
+    orig_stdout = sys.stdout
+    f = open('decomposition.out', 'w')
+    sys.stdout = f        
     
     dir_coeff = ML_directory / ('coefficients_' + '_'.join(str(x) for x in [n_max, l_max, r_min, r_max]))
     dir_orb   = dir_coeff / 'coff_orb'
@@ -436,6 +437,9 @@ def func_compute_decomposition(n_max, l_max, r_min, r_max, r_cut, ML_directory, 
             print("length of coefficient vector = ", len(coefficients_orbital))
     if Debug:
         return np.mean(differences_to_original)
+    
+    sys.stdout = orig_stdout
+    f.close()   
 
 
 # Say what you want to compute
