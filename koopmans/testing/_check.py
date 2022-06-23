@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import itertools
 import json
 import numpy as np
 from pathlib import Path
@@ -38,7 +39,7 @@ def compare(result: Any, ref_result: Any, result_name: str) -> Optional[Dict[str
         ref_result = ref_result.get_dos()
         tols = tolerances['array']
     elif result_name in ['homo_energy', 'lumo_energy', 'eigenvalues', 'ki_eigenvalues_on_grid']:
-        tols = tolerances.get('eigenenergies', tolerances['default'])
+        tols = tolerances.get('eigenenergies', tolerances['eigenenergies'])
     else:
         tols = tolerances.get(result_name, tolerances['default'])
 
@@ -150,7 +151,6 @@ class CheckCalc:
             message = f'Major disagreements with benchmark detected for {self._calcname}\n' + '\n'.join(errors)
             if len(errors) == 1:
                 message = message.replace('disagreements', 'disagreement')
-            raise ValueError(message)
 
     def calculate(self):
         # Before running the calculation, check the settings are the same
@@ -223,6 +223,15 @@ class CheckEnvironCalculator(CheckCalc, EnvironCalculator):
     pass
 
 
+def centers_spreads_allclose(center0, spread0, center1, spread1, tol):
+    if abs(spread0 - spread1) > tol:
+        return False
+    for x in itertools.product([0, 1, -1], repeat=3):
+        if np.allclose(center0, center1 + x, rtol=0, atol=tol):
+            return True
+    return False
+
+
 class CheckWannier90Calculator(CheckCalc, Wannier90Calculator):
     results_for_qc = ['centers', 'spreads']
 
@@ -244,15 +253,15 @@ class CheckWannier90Calculator(CheckCalc, Wannier90Calculator):
         ref_centers = self.atoms.cell.scaled_positions(np.array(benchmark.results['centers'])) % 1
 
         for i, (ref_center, ref_spread) in enumerate(zip(ref_centers, benchmark.results['spreads'])):
-            ref_result = ref_center + [ref_spread]
+            ref_result = np.append(ref_center, ref_spread)
             match = False
             rough_match = False
             for j, (center, spread) in enumerate(zip(centers, self.results['spreads'])):
-                result = center + [spread]
-                if np.allclose(result, ref_result, tolerances['centersandspreads'][0]):
+                result = np.append(center, spread)
+                if centers_spreads_allclose(center, spread, ref_center, ref_spread, tolerances['centersandspreads'][0]):
                     match = True
                     break
-                elif np.allclose(result, ref_result, tolerances['centersandspreads'][1]):
+                elif centers_spreads_allclose(center, spread, ref_center, ref_spread, tolerances['centersandspreads'][1]):
                     rough_match = True
                     match_index = j
                     match_spread = ref_spread
@@ -269,6 +278,7 @@ class CheckWannier90Calculator(CheckCalc, Wannier90Calculator):
             else:
                 message = f'Wannier function #{i+1}, with center = {ref_center_str} and spread = {ref_spread:.5f} not found'
                 messages.append({'kind': 'error', 'message': message})
+                raise ValueError()
 
         return messages
 
