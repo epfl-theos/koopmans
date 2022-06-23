@@ -13,7 +13,7 @@ def test_singlepoint_h2o_ki_dscf_explicit(water, espresso_patch, tmp_path, sys2f
     with chdir(tmp_path):
         parameters = {'functional': 'ki',
                       'n_max_sc_steps': 1,
-                      'from_scratch': True,
+                      'keep_tmpdirs': False,
                       'orbital_groups_self_hartree_tol': 100.0
                       }
         wf = workflows.SinglepointWorkflow(parameters=parameters, **water)
@@ -24,7 +24,7 @@ def test_singlepoint_h2o_all_dscf(water, workflow_patch, tmp_path, sys2file):
     with chdir(tmp_path):
         parameters = {'functional': 'all',
                       'n_max_sc_steps': 2,
-                      'from_scratch': True,
+                      'keep_tmpdirs': False,
                       'orbital_groups_self_hartree_tol': 100.0
                       }
         wf = workflows.SinglepointWorkflow(parameters=parameters, **water)
@@ -35,7 +35,7 @@ def test_singlepoint_si_ki_dscf(silicon, workflow_patch, tmp_path, sys2file):
     with chdir(tmp_path):
         parameters = {'functional': 'ki',
                       'method': 'dscf',
-                      'from_scratch': True,
+                      'keep_tmpdirs': False,
                       'mp_correction': True,
                       'eps_inf': 13.02,
                       'init_orbitals': 'mlwfs',
@@ -53,7 +53,7 @@ def test_singlepoint_si_ki_dfpt_explicit(silicon, espresso_patch, tmp_path, sys2
 
         parameters = {'functional': 'ki',
                       'method': 'dfpt',
-                      'from_scratch': True,
+                      'keep_tmpdirs': False,
                       'eps_inf': 13.02,
                       'init_orbitals': 'mlwfs',
                       'alpha_guess': 0.077,
@@ -68,7 +68,7 @@ def test_singlepoint_si_ki_dfpt(silicon, workflow_patch, tmp_path, sys2file):
 
         parameters = {'functional': 'ki',
                       'method': 'dfpt',
-                      'from_scratch': True,
+                      'keep_tmpdirs': False,
                       'eps_inf': 13.02,
                       'init_orbitals': 'mlwfs',
                       'alpha_guess': 0.077,
@@ -82,7 +82,7 @@ def test_singlepoint_ozone_ki_dfpt(ozone, workflow_patch, tmp_path, sys2file):
     with chdir(tmp_path):
         parameters = {'functional': 'ki',
                       'method': 'dfpt',
-                      'from_scratch': True,
+                      'keep_tmpdirs': False,
                       'init_orbitals': 'kohn-sham',
                       'npool': 1,
                       'orbital_groups_self_hartree_tol': 100.0,
@@ -97,7 +97,7 @@ def test_singlepoint_gaas_wan2odd(gaas, espresso_patch, tmp_path, sys2file):
     with chdir(tmp_path):
         parameters = {'functional': 'ki',
                       'method': 'dscf',
-                      'from_scratch': True,
+                      'keep_tmpdirs': False,
                       'calculate_alpha': False,
                       'init_orbitals': 'mlwfs',
                       'npool': 1,
