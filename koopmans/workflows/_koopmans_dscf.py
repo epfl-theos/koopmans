@@ -898,7 +898,7 @@ class KoopmansDSCFWorkflow(Workflow):
         # For all calculations calculating alpha, remove the empty states and
         # increase the energy thresholds
         if not any([s in calc.prefix for s in ['init', 'print', 'final']]) and \
-           calc.prefix not in ['ki', 'kipz', 'dft_dummy']:
+           calc.prefix not in ['ki', 'kipz']:
             calc.parameters.nbnd = None
             calc.parameters.conv_thr *= 100
             calc.parameters.esic_conv_thr *= 100
