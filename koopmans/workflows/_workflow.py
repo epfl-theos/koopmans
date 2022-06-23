@@ -1173,7 +1173,7 @@ class Workflow(ABC):
         # Removing tmpdirs
         if not self.parameters.keep_tmpdirs:
             all_outdirs = [calc.parameters.get('outdir', None) for calc in self.calculations]
-            outdirs = set([o.resolve() for o in all_outdirs if o is not None and o.exists()])
+            outdirs = set([o.resolve() for o in all_outdirs if o is not None and o.resolve().exists()])
             for outdir in outdirs:
                 shutil.rmtree(outdir)
 
