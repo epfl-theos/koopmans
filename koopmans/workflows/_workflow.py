@@ -1045,8 +1045,10 @@ class Workflow(ABC):
                 projections = self.projections.get_subset(filling, spin)
                 if len(projections) > 1:
                     proj_kwarg = {'projections_blocks': [p.projections for p in projections]}
-                else:
+                elif len(projections) == 1:
                     proj_kwarg = {'projections': projections[0].projections}
+                else:
+                    proj_kwarg = {}
                 reduce(operator.getitem, nested_keys[:-1], bigdct['w90'])[k].update(**proj_kwarg)
             else:
                 raise NotImplementedError(
