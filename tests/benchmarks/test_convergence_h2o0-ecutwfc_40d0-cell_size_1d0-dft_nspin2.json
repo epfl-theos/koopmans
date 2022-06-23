@@ -14,8 +14,8 @@
   },
   "ecutrho": 160.0,
   "pseudopotentials": {
-   "H": "H_ONCV_PBE-1.2.upf",
-   "O": "O_ONCV_PBE-1.2.upf"
+   "O": "O_ONCV_PBE-1.2.upf",
+   "H": "H_ONCV_PBE-1.2.upf"
   },
   "ndr": 99,
   "ndw": 51,
@@ -495,7 +495,7 @@
   },
   "executable": "kcp.x",
   "_flags": "",
-  "suffix": "-in PREFIX.cpi > PREFIX.cpo",
+  "suffix": "-in PREFIX.cpi > PREFIX.cpo 2>&1",
   "__koopmans_name__": "ParallelCommand",
   "__koopmans_module__": "koopmans.commands"
  },

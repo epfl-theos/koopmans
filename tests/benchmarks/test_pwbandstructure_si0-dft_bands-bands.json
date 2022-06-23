@@ -1545,7 +1545,7 @@
   },
   "executable": "pw.x",
   "_flags": "",
-  "suffix": "-in PREFIX.pwi > PREFIX.pwo",
+  "suffix": "-in PREFIX.pwi > PREFIX.pwo 2>&1",
   "__koopmans_name__": "ParallelCommandWithPostfix",
   "__koopmans_module__": "koopmans.commands"
  },

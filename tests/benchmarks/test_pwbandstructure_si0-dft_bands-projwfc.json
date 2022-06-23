@@ -22174,7 +22174,7 @@
   },
   "executable": "projwfc.x",
   "_flags": "",
-  "suffix": "-in PREFIX.pri > PREFIX.pro",
+  "suffix": "-in PREFIX.pri > PREFIX.pro 2>&1",
   "__koopmans_name__": "ParallelCommand",
   "__koopmans_module__": "koopmans.commands"
  },

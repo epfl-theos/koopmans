@@ -92,7 +92,7 @@
   },
   "executable": "kcw.x",
   "_flags": "",
-  "suffix": "-in PREFIX.w2ki > PREFIX.w2ko",
+  "suffix": "-in PREFIX.w2ki > PREFIX.w2ko 2>&1",
   "__koopmans_name__": "ParallelCommandWithPostfix",
   "__koopmans_module__": "koopmans.commands"
  },

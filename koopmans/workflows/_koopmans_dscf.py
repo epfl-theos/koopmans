@@ -902,6 +902,10 @@ class KoopmansDSCFWorkflow(Workflow):
             calc.parameters.nbnd = None
             calc.parameters.conv_thr *= 100
             calc.parameters.esic_conv_thr *= 100
+        # For the dft_dummy calculation, we don't need empty states because these will be overwritten by the w90
+        # wavefunctions
+        if calc.prefix == 'dft_dummy':
+            calc.parameters.nbnd = None
 
         if self.parameters.periodic and not any([s == calc.prefix for s in ['dft_init', 'dft_n-1', 'dft_n+1',
                                                                             'kipz', 'kipz_n-1', 'kipz_n+1']]):

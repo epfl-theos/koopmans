@@ -120,7 +120,7 @@
   },
   "executable": "kcw.x",
   "_flags": "",
-  "suffix": "-in PREFIX.ksi > PREFIX.kso",
+  "suffix": "-in PREFIX.ksi > PREFIX.kso 2>&1",
   "__koopmans_name__": "ParallelCommandWithPostfix",
   "__koopmans_module__": "koopmans.commands"
  },

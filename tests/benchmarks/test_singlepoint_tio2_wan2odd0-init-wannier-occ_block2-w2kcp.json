@@ -125,7 +125,7 @@
   },
   "executable": "wann2kcp.x",
   "_flags": "",
-  "suffix": "-in PREFIX.wki > PREFIX.wko",
+  "suffix": "-in PREFIX.wki > PREFIX.wko 2>&1",
   "__koopmans_name__": "ParallelCommand",
   "__koopmans_module__": "koopmans.commands"
  },
