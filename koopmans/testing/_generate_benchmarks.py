@@ -26,7 +26,7 @@ class BenchmarkGenCalc():
         modified_files.remove(self.prefix + self.ext_in)
 
         # Exclude .wfc* files because these depend on the parallelism
-        if isinstance(self, PWCalculator):
+        if isinstance(self, (PWCalculator, Wann2KCCalculator)):
             wfc_prefix = os.path.relpath(self.parameters.outdir, self.directory) + f'/{self.parameters.prefix}.wfc'
             modified_files = [f for f in modified_files if not f.startswith(wfc_prefix)]
 

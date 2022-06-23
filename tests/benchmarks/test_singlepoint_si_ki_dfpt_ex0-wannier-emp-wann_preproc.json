@@ -144,7 +144,7 @@
   },
   "executable": "wannier90.x",
   "_flags": "-pp",
-  "suffix": "PREFIX.win > PREFIX.wout",
+  "suffix": "PREFIX.win > PREFIX.wout 2>&1",
   "__koopmans_name__": "Command",
   "__koopmans_module__": "koopmans.commands"
  },
