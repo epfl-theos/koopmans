@@ -29,10 +29,6 @@ class WannierizeWorkflow(Workflow):
     def __init__(self, *args, force_nspin2=False, scf_kgrid=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if 'pw' not in self.master_calc_params:
-            raise ValueError(
-                'You need to provide a pw block in your input')
-
         pw_params = self.master_calc_params['pw']
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
@@ -99,6 +95,9 @@ class WannierizeWorkflow(Workflow):
             self.parameters.calculate_bands = True
         else:
             self.parameters.calculate_bands = False
+
+        # This workflow only makes sense for DFT, not an ODD
+        self.parameters.functional = 'dft'
 
     def _run(self):
         '''
