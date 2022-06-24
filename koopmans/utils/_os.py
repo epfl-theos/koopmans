@@ -72,7 +72,7 @@ def chdir(path: Union[Path, str]):
     # context will be executed in the directory "path"
 
     # Ensure path is a Path object
-    if isinstance(path, str):
+    if not isinstance(path, Path):
         path = Path(path)
 
     this_dir = Path.cwd()

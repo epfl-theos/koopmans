@@ -9,6 +9,7 @@ Converted workflows from functions to objects Nov 2020
 
 from abc import ABC, abstractmethod
 import os
+import shutil
 import copy
 import operator
 from functools import reduce
@@ -112,7 +113,8 @@ class Workflow(ABC):
         else:
             if self.parameters.pseudo_library is None:
                 utils.warn(
-                    'Neither a pseudopotential library nor a list of pseudopotentials was provided; defaulting to sg15_v1.2')
+                    'Neither a pseudopotential library nor a list of pseudopotentials was provided; defaulting to '
+                    'sg15_v1.2')
                 self.parameters.pseudo_library = 'sg15_v1.2'
             self.pseudopotentials = {}
             for symbol, tag in set([(a.symbol, a.tag) for a in self.atoms]):
@@ -258,6 +260,8 @@ class Workflow(ABC):
             self._run_sanity_checks()
         self._run()
         self.print_conclusion()
+        if not self._is_a_subworkflow:
+            self._teardown()
 
     @abstractmethod
     def _run(self) -> None:
@@ -1041,8 +1045,10 @@ class Workflow(ABC):
                 projections = self.projections.get_subset(filling, spin)
                 if len(projections) > 1:
                     proj_kwarg = {'projections_blocks': [p.projections for p in projections]}
-                else:
+                elif len(projections) == 1:
                     proj_kwarg = {'projections': projections[0].projections}
+                else:
+                    proj_kwarg = {}
                 reduce(operator.getitem, nested_keys[:-1], bigdct['w90'])[k].update(**proj_kwarg)
             else:
                 raise NotImplementedError(
@@ -1160,6 +1166,18 @@ class Workflow(ABC):
         filename = filename if filename is not None else f'{self.name}_bandstructure'
         legends = [ax.get_legend() for ax in axes if ax.get_legend() is not None]
         utils.savefig(fname=filename + '.png', bbox_extra_artists=legends, bbox_inches='tight')
+
+    def _teardown(self):
+        '''
+        Performs final tasks before the workflow completes
+        '''
+
+        # Removing tmpdirs
+        if not self.parameters.keep_tmpdirs:
+            all_outdirs = [calc.parameters.get('outdir', None) for calc in self.calculations]
+            outdirs = set([o.resolve() for o in all_outdirs if o is not None and o.resolve().exists()])
+            for outdir in outdirs:
+                shutil.rmtree(outdir)
 
 
 def get_version(module):

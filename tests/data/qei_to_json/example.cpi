@@ -6,7 +6,7 @@
    outdir           = 'TMP-CP/'
    prefix           = 'kc'
    disk_io          = 'high'
-   pseudo_dir       = '../../pseudos/sg15_v1.0/pbe/'
+   pseudo_dir       = '../../../pseudos/sg15_v1.0/pbe/'
    ndr              = 99
    ndw              = 50
    write_hr         = .false.
