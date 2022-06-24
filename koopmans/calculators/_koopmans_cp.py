@@ -128,7 +128,8 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             # print (i, l, p, has_nlcc)
         # print (has_nlcc)
         if has_nlcc and (self.parameters.nr1b is None or self.parameters.nr2b is None or self.parameters.nr3b is None):
-            print("   Small box parameters \"nrb\" not set: going to set to (very safe) default values")
+            print("   Small box parameters \"nrb\" not given in input: going to set to (very safe) default values")
+            print("   These values can be probably decreased, but requires convergence tests")
             # First define alat and the reduced lattice vectors (`at` in espresso)
             # ibrav = 0 is a special case:
             if self.parameters.ibrav == 0:
@@ -162,7 +163,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             self.parameters.nr3b = good_fft(nr3b)
             #
             # print (nr1b, nr2b, nr3b)
-            # print (self.parameters.nr1b, self.parameters.nr2b, self.parameters.nr3b)
+            print ("   Array leading dimensions ( nr1b, nr2b, nr3b )   = ", self.parameters.nr1b, self.parameters.nr2b, self.parameters.nr3b, "\n")
 
     def calculate(self):
         # kcp.x imposes nelup >= neldw, so if we try to run a calcualtion with neldw > nelup, swap the spin channels
