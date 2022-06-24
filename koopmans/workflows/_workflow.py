@@ -372,18 +372,19 @@ class Workflow(ABC):
                     utils.warn('Makov-Payne corrections are not being used; do this with '
                                'caution for periodic systems')
 
+                if self.parameters.eps_inf is None:
+                    utils.warn('eps_inf missing in input; it will default to 1.0. Proceed with caution for periodic '
+                               'systems')
+                    self.parameters.eps_inf = 1.0
+
             if self.parameters.mt_correction is None:
                 self.parameters.mt_correction = False
             if self.parameters.mt_correction:
                 raise ValueError('Do not use Martyna-Tuckerman corrections for periodic systems')
 
             # Check the value of eps_inf
-            if self.parameters.eps_inf is None:
-                utils.warn('eps_inf missing in input; it will default to 1.0. Proceed with caution for periodic '
-                           'systems')
-                self.parameters.eps_inf = 1.0
-            elif self.parameters.eps_inf < 1.0:
-                raise ValueError('eps_inf cannot be lower than 1')
+            if self.parameters.eps_inf and self.parameters.eps_inf < 1.0:
+                raise ValueError('eps_inf cannot be lower than 1.0')
 
             # Check symmetry of the system
             dataset = symmetrize.check_symmetry(self.atoms, 1e-6, verbose=True)
