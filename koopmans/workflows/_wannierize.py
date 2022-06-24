@@ -31,7 +31,8 @@ class WannierizeWorkflow(Workflow):
 
         pw_params = self.master_calc_params['pw']
 
-        if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
+        if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
+                and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
 
             if self.parameters.spin_polarised:
                 spins = ['up', 'down']
@@ -74,8 +75,8 @@ class WannierizeWorkflow(Workflow):
             pass
 
         else:
-            raise NotImplementedError('WannierizeWorkflow only supports setting init_orbitals and init_empty_orbitals to '
-                                      '"mlwfs"/"projwfs" or "kohn-sham"')
+            raise NotImplementedError('WannierizeWorkflow only supports setting init_orbitals and init_empty_orbitals '
+                                      'to "mlwfs"/"projwfs" or "kohn-sham"')
 
         # Spin-polarisation
         self._force_nspin2 = force_nspin2
@@ -129,7 +130,8 @@ class WannierizeWorkflow(Workflow):
         calc_pw.prefix = 'nscf'
         self.run_calculator(calc_pw)
 
-        if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] and self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
+        if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
+                and self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
             # Loop over the various subblocks that we must wannierise separately
             for block in self.projections:
                 if block.filled:
