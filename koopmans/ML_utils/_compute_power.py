@@ -31,6 +31,11 @@ def compute_power(coff_matrix, n_max, l_max):
 
 
 def main_compute_power(n_max, l_max, r_min, r_max, ML_directory, dir_power, bands):
+    orig_stdout = sys.stdout
+    f = open(ML_directory / 'orbitals_to_power_spectra.out', 'a')
+    sys.stdout = f 
+    print("\n\ncompute power spectrum\n")
+
     dir_coeff = ML_directory / ('coefficients_' + '_'.join(str(x) for x in [n_max, l_max, r_min, r_max]))
     dir_power.mkdir(exist_ok=True)
     dir_orb   = dir_coeff / 'coff_orb'
@@ -49,5 +54,8 @@ def main_compute_power(n_max, l_max, r_min, r_max, ML_directory, dir_power, band
         coff_matrix     = read_in(coff_orb, coff_tot, n_max, l_max)
         power_mat       = compute_power(coff_matrix, n_max, l_max)
         np.savetxt(dir_power / f"power_spectrum.orbital.{filled_str}.{band.index}.txt", power_mat)
+    
+    sys.stdout = orig_stdout
+    f.close() 
         
 

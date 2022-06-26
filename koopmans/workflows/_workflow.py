@@ -408,6 +408,26 @@ class Workflow(ABC):
                     raise FileNotFoundError(
                         f'{self.pseudo_dir / pseudo} does not exist. Please double-check your pseudopotential settings')
 
+        # Make sanity checks for the ML model
+        if self.master_calc_params['ML'].use_ML:
+            if self.parameters.task != 'trajectory':
+                utils.warn(f'Using the ML-prediction for the {self.parameter.task}-task has not yet been implemented.')
+            if self.parameters.functional != 'ki':
+                utils.warn(f'Using the ML-prediction for the {self.parameters.functional}-functional has not yet been implemented.')
+            if self.parameters.init_orbitals != 'mlwfs':
+                raise NotImplementedError(f'Using the ML-prediction for {self.parameters.init_orbitals}-init orbitals has not yet been implemented.')
+            if self.parameters.init_empty_orbitals != 'same':
+                raise NotImplementedError(f'Using the ML-prediction for using different init orbitals for empty states than for occupied states has not yet been implemented.')
+            if not self.parameters.periodic:
+                utils.warn(f'Using the ML-prediction for non-periodic systems has not yet been implemented')
+            if self.parameters.spin_polarised:
+                utils.warn(f'Using the ML-prediction for spin-polarised systems has not yet been implemented')
+            if self.parameters.orbital_groups: 
+                utils.warn('Using orbital_groups has not yet been extensively tested')
+
+
+
+
     def new_calculator(self,
                        calc_type: str,
                        directory: Optional[Path] = None,

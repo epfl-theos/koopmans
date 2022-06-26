@@ -11,8 +11,7 @@ import numpy as np
 
 from typing import List, Dict, Any
 
-import copy
-
+from sklearn.metrics import mean_absolute_error as mae
 
 class MLFiitingWorkflow(Workflow):
 
@@ -22,7 +21,9 @@ class MLFiitingWorkflow(Workflow):
         self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
         self.ML_dir                               = self.calc_that_produced_orbital_densities.directory / 'ML' / 'TMP'
         self.predicted_alphas                     = []
+        self.calculated_alphas                    = []
         self.fillings_of_predicted_alphas         = []
+        self.use_predictions                      = []
         
         
         ML_params                = self.master_calc_params['ML']
@@ -47,14 +48,15 @@ class MLFiitingWorkflow(Workflow):
 
 
     def extract_input_vector_for_ML_model(self):
+        self.print(f'Computing the power spectra from the real space densities...', end='', flush=True)
         self.convert_binary_to_xml()
         self.compute_decomposition()
         self.compute_power_spectrum()
+        self.print(f' done')
             
 
     # TODO: currently it extracts all orbitals in [1,..,self.n_bands_to_extract[0]] instead of the indices given by self.bands_to_extract
     def convert_binary_to_xml(self):
-        print("Convert binary to xml")
         orbital_densities_bin_dir            = self.calc_that_produced_orbital_densities.parameters.outdir/ f'kc_{self.calc_that_produced_orbital_densities.parameters.ndw}.save'
         
 
@@ -64,9 +66,7 @@ class MLFiitingWorkflow(Workflow):
             utils.system_call(command)
 
     def compute_decomposition(self):
-        print("compute decomposition")
         self.r_cut = min(self.atoms.get_cell_lengths_and_angles()[:3])/2.5 #the maximum radius has to be smaller than half of the cell-size
-        print(self.r_cut)
         if self.method_to_extract_from_binary == 'from_ki':
             centers_occ = np.array(self.calculations[4].results['centers'])
             centers_emp = np.array(self.calculations[7].results['centers'])
@@ -78,30 +78,28 @@ class MLFiitingWorkflow(Workflow):
         ML_utils.func_compute_decomposition(self.n_max, self.l_max, self.r_min, self.r_max, self.r_cut, self.ML_dir, self.bands_to_extract, self.atoms, centers)
     
     def compute_power_spectrum(self):
-        print("compute power spectrum")
         self.dir_power = self.ML_dir / f'power_spectra_{self.n_max}_{self.l_max}_{self.r_min}_{self.r_max}'
         ML_utils.main_compute_power(self.n_max, self.l_max, self.r_min, self.r_max, self.ML_dir, self.dir_power, self.bands_to_extract)
 
     def predict(self, band):
+        self.print('Predicting screening parameter')
         # TODO: currently only capable of making one prediction at a time
         power_spectrum = self.load_power_spectrum(band)
         y_predict      = self.ml_model.predict(power_spectrum)[0]
         self.predicted_alphas.append(y_predict)
         self.fillings_of_predicted_alphas.append(band.filled)
-        print("y_predict = ", y_predict)
 
         return y_predict
     
     def train(self):
-        print("Now training")
+        self.print('Training the ML model')
         self.ml_model.train()
     
     def add_training_data(self, band):
+        self.print('Adding this orbital to the training data')
         power_spectrum = self.load_power_spectrum(band)
         alpha          = band.alpha
-        print("adding orbital ", band.index)
-        print("filling orbital ", band.filled)
-        print("alpha orbital ", band.alpha)
+        self.calculated_alphas.append(alpha)
         self.ml_model.add_training_data(power_spectrum, alpha)
 
     def load_power_spectrum(self, band):
@@ -115,15 +113,23 @@ class MLFiitingWorkflow(Workflow):
     
     
     def use_prediction(self):
-        print("Use prediction -> False")
+        # defualt is to not use the prediction
+        use_prediction = False
         if self.criterium == 'after_fixed_num_of_snapshots':
-            print("current snapshot = ", self.current_snapshot)
-            if self.current_snapshot <= self.number_of_snapshots:
-                return False
+            if self.current_snapshot < self.number_of_snapshots:
+                use_prediction = False
             else:
-                return True
+                use_prediction = True
         else: 
              raise ValueError(f'criterium = {self.criterium} is currently not implemented')
+        if use_prediction:
+            self.print('The prediction-criterium is satisfied -> Use the predicted screening parameter')
+        else:
+            self.print('The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio')
+        
+        self.use_predictions.append(use_prediction)
+        
+        return use_prediction
 
 
     def write_predicted_alphas(self):
@@ -134,3 +140,21 @@ class MLFiitingWorkflow(Workflow):
         alphas   = [a for _ in range(duplicate) for a in self.predicted_alphas]
         fillings = [f for _ in range(duplicate) for f in self.fillings_of_predicted_alphas]
         utils.write_alpha_file(self.ML_dir, alphas, fillings)
+
+    
+    def print_error_of_single_orbital(self, alpha_predicted, alpha_calculated, indent: int = 0):
+        # Printing out the error of the predicted alpha
+        utils.indented_print('\npredicted  screening parameter: {0:.5f}'.format(alpha_predicted), indent=indent)
+        utils.indented_print(  'calculated screening parameter: {0:.5f}'.format(alpha_calculated), indent=indent)
+        utils.indented_print(  'absoulute error               : {0:.5f}'.format(np.abs(alpha_predicted-alpha_calculated)), indent=indent)
+        utils.indented_print('')
+
+    def print_error_of_all_orbitals(self, indent: int = 0):
+        # Printing out a progress summary
+        # utils.indented_print(f'\nerror of predictions', indent=indent)
+        # utils.indented_print('calculated ' + str(self.calculated_alphas), indent=indent)
+        # utils.indented_print('predicted  ' + str(self.predicted_alphas), indent=indent)
+        # utils.indented_print(str(self.bands.alpha_history), indent=indent)
+        # utils.indented_print('')
+        utils.indented_print('\nThe mean absolut error of the predicted screening parameters of this snapshot is {0:.5f}'.format(mae(self.predicted_alphas, self.calculated_alphas)), indent=indent)
+        utils.indented_print('')

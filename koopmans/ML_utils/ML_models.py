@@ -17,24 +17,20 @@ class RidgeRegression():
         return 
 
     def predict(self, x_test):
-        print("model.predict()")
         if self.is_trained:
             X_test = np.atleast_2d(x_test)
             self.scaler.transform(X_test)
             y_predict = self.model.predict(X_test)
             return y_predict
         else:
-            return np.array([np.nan])
+            return np.array([1.0]) # dummy value 
+            # return np.array([np.nan])
 
     def train(self):
-        print(np.shape(self.X_train))
-        print(np.shape(self.Y_train))
-        print("model.train()")
         self.model.fit(self.X_train,self.Y_train)
         self.is_trained = True
     
     def add_training_data(self, x_train, y_train):
-        print("now adding the training data")
         x_train = np.atleast_2d(x_train)
         y_train = np.atleast_1d(y_train)
         if self.X_train == []:

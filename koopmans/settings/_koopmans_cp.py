@@ -44,7 +44,6 @@ class KoopmansCPSettingsDict(SettingsDict):
             else:
                 flattened_kwargs[k] = v
 
-        
         super().__init__(valid=[k for sublist in kcp_keys.values() for k in sublist],
                          defaults=defaults,
                          are_paths=['outdir', 'pseudo_dir'],

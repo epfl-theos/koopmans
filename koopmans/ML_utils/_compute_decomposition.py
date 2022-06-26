@@ -272,8 +272,10 @@ def load_density_into_array(file_rho, nr1, nr2, nr3, norm_const, string='EFFECTI
 
 def func_compute_decomposition(n_max, l_max, r_min, r_max, r_cut, ML_directory, bands, atoms, centers):
     orig_stdout = sys.stdout
-    f = open('decomposition.out', 'w')
-    sys.stdout = f        
+    f = open(ML_directory / 'orbitals_to_power_spectra.out', 'a')
+    sys.stdout = f       
+
+    print("\ncompute decomposition\n") 
     
     dir_coeff = ML_directory / ('coefficients_' + '_'.join(str(x) for x in [n_max, l_max, r_min, r_max]))
     dir_orb   = dir_coeff / 'coff_orb'

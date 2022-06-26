@@ -155,6 +155,7 @@ class KoopmansDSCFWorkflow(Workflow):
         else:
             # Initialising alpha with a guess
             self.bands.alphas = self.parameters.alpha_guess
+        
 
         # Raise errors if any UI keywords are provided but will be overwritten by the workflow
         for ui_keyword in ['kc_ham_file', 'w90_seedname', 'dft_ham_file', 'dft_smooth_ham_file']:
@@ -212,6 +213,8 @@ class KoopmansDSCFWorkflow(Workflow):
             postproc/             -- the unfolding and interpolation of the final band structure
         '''
 
+        # import ipdb 
+        # ipdb.set_trace()
 
         # Removing old directories
         if self.parameters.from_scratch:
@@ -228,6 +231,10 @@ class KoopmansDSCFWorkflow(Workflow):
         self.print('Initialisation of density and variational orbitals', style='heading')
         self.perform_initialisation()
 
+        # import ipdb 
+        # ipdb.set_trace()
+        # print("Yannick Debug: already here alpha is no longer 0.6")
+
         if self.parameters.from_scratch and not self._restart_from_old_ki \
                 and self.parameters.fix_spin_contamination \
                 and self.parameters.init_orbitals not in ['mlwfs', 'projwfs'] \
@@ -241,6 +248,9 @@ class KoopmansDSCFWorkflow(Workflow):
             if calc.has_empty_states():
                 utils.system_call(f'cp {savedir}/evc0_empty1.dat {savedir}/evc0_empty2.dat')
 
+        # import ipdb 
+        # ipdb.set_trace()
+
         self.print('Calculating screening parameters', style='heading')
         if self.parameters.calculate_alpha:
             self.perform_alpha_calculations()
@@ -252,6 +262,7 @@ class KoopmansDSCFWorkflow(Workflow):
             else:
                 self.print()
             self.bands.print_history(indent=self.print_indent + 1)
+
 
         # Final calculation
         self.print(f'Final {self.parameters.functional.upper().replace("PK","pK")} calculation', style='heading')
@@ -467,7 +478,9 @@ class KoopmansDSCFWorkflow(Workflow):
                 utils.system_call(f'cp {savedir}/evc_empty{ispin + 1}.dat {savedir}/evc0_empty{ispin + 1}.dat')
 
     def perform_alpha_calculations(self) -> None:
-
+        # import ipdb 
+        # ipdb.set_trace()
+        # print("Yannick Debug: Here are the alphas already set to the values from the previous snapshot")
 
         # Set up directories
         Path('calc_alpha').mkdir(exist_ok=True)
@@ -532,14 +545,18 @@ class KoopmansDSCFWorkflow(Workflow):
             # Loop over removing/adding an electron from/to each orbital
             
             # Yannick Debug: replace the actual fixed-band calculations with my logic
-            mlfit = MLFiitingWorkflow(trial_calc, **self.wf_kwargs)
-            self.run_subworkflow(mlfit)
+            use_ML = self.master_calc_params['ML'].use_ML
+
+            if use_ML:
+                mlfit = MLFiitingWorkflow(trial_calc, **self.wf_kwargs)
+                self.run_subworkflow(mlfit)
             # end Yannick Debug
 
-            
 
             for band in self.bands:
-                use_prediction = False
+
+                if use_ML:
+                    use_prediction = False
                 # For a KI calculation with only filled bands, we don't have any further calculations to
                 # do so we don't enter this section to avoid printing any headers
                 if self.parameters.functional != 'ki' or any([not b.filled for b in self.bands]) or i_sc == 1:
@@ -610,16 +627,18 @@ class KoopmansDSCFWorkflow(Workflow):
                             index_empty_to_save += self.bands.num(filled=False, spin=0)
 
                     # Yannick Debug: replace the actual fixed-band calculations with my logic
-                    alpha_predicted = mlfit.predict(band)
-                    use_prediction  = mlfit.use_prediction()
-                    if(not use_prediction):
+                    if use_ML:
+                        alpha_predicted = mlfit.predict(band)
+                        use_prediction  = mlfit.use_prediction()
+                    if(not (use_ML and use_prediction)):
                         self.perform_fixed_band_calculations(band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band, directory, alpha_indep_calcs)
                     # end Yannick Debug
+ 
                     
 
-                if(use_prediction):
+                if(use_ML and use_prediction):
                     alpha = alpha_predicted
-                    error = np.nan # TODO: what do we define as an error
+                    error = 0.0 # I would set the error for the predicted alphas to 0.0, because currently we don't want to make another scf-step because of predicted alphas
                 else:
                     # Calculate an updated alpha and a measure of the error
                     # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
@@ -642,16 +661,17 @@ class KoopmansDSCFWorkflow(Workflow):
                         b.alpha = alpha
                         b.error = error
 
-                if(not use_prediction):
+                if(use_ML and not use_prediction):
+                    mlfit.print_error_of_single_orbital(alpha_predicted, alpha, indent = self.print_indent+2)
                     mlfit.add_training_data(band)
                     mlfit.train()
-
-
-            mlfit.write_predicted_alphas()
 
             self.bands.print_history(indent=self.print_indent + 1)
 
             converged = all([abs(b.error) < 1e-3 for b in self.bands])
+
+            if(use_ML and not any(mlfit.use_predictions)):
+                mlfit.print_error_of_all_orbitals(indent=self.print_indent + 1)
 
         if converged:
             self.print('Screening parameters have been converged')

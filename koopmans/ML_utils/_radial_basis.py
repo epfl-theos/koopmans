@@ -3,6 +3,7 @@ from scipy.integrate import quad
 from scipy.optimize import fsolve
 import matplotlib.pyplot as plt
 import os
+import sys
 
 def phi(r,l,alpha):
     return r**l*np.exp(-alpha*r**2)
@@ -44,6 +45,11 @@ def g(r,n,n_max,l,betas,alphas):
 
 
 def precompute_radial_basis(n_max, l_max, r_min_thr, r_max_thr, ML_directory):
+    orig_stdout = sys.stdout
+    f = open(ML_directory / 'orbitals_to_power_spectra.out', 'a')
+    sys.stdout = f 
+
+    print("\nprecompute radial basis\n") 
     
 
     thr   = 10**(-3)
@@ -57,7 +63,7 @@ def precompute_radial_basis(n_max, l_max, r_min_thr, r_max_thr, ML_directory):
         for i in range(n_max):
             r_thrs[i] = r_min_thr + i*(r_max_thr-r_min_thr)/(n_max-1.0)
 
-    print(r_thrs)
+    print('Threshold values = ', r_thrs)
 
     alphas = compute_alphas(n_max, r_thrs, thr)
 
@@ -74,6 +80,9 @@ def precompute_radial_basis(n_max, l_max, r_min_thr, r_max_thr, ML_directory):
 
     betas.tofile(betas_folder / ('betas_'    + '_'.join(str(x) for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
     alphas.tofile(alphas_folder / ('alphas_'    + '_'.join(str(x) for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
+
+    sys.stdout = orig_stdout
+    f.close() 
 
 
     # r = np.linspace(0,4,1000)
