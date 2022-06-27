@@ -485,6 +485,8 @@ class KoopmansDSCFWorkflow(Workflow):
         # Set up directories
         Path('calc_alpha').mkdir(exist_ok=True)
 
+        use_ML = self.master_calc_params['ML'].use_ML
+
         converged = False
         i_sc = 0
 
@@ -511,8 +513,12 @@ class KoopmansDSCFWorkflow(Workflow):
             restart_from_wannier_pwscf = True if self.parameters.init_orbitals in [
                 'mlwfs', 'projwfs'] and not self._restart_from_old_ki and i_sc == 1 else None
             # Yannick Debug: print_real_space_density = True
+            if use_ML:
+                print_real_space_density = True
+            else:
+                print_real_space_density = False
             trial_calc = self.new_kcp_calculator(calc_presets=self.parameters.functional.replace('pkipz', 'ki'),
-                                                 print_real_space_density = True,
+                                                 print_real_space_density = print_real_space_density,
                                                  alphas=self.bands.alphas,
                                                  restart_from_wannier_pwscf=restart_from_wannier_pwscf)
             trial_calc.directory = iteration_directory
@@ -545,7 +551,6 @@ class KoopmansDSCFWorkflow(Workflow):
             # Loop over removing/adding an electron from/to each orbital
             
             # Yannick Debug: replace the actual fixed-band calculations with my logic
-            use_ML = self.master_calc_params['ML'].use_ML
 
             if use_ML:
                 mlfit = MLFiitingWorkflow(trial_calc, **self.wf_kwargs)
@@ -627,11 +632,13 @@ class KoopmansDSCFWorkflow(Workflow):
                             index_empty_to_save += self.bands.num(filled=False, spin=0)
 
                     # Yannick Debug: replace the actual fixed-band calculations with my logic
+                    Debug_Yannick = True
                     if use_ML:
                         alpha_predicted = mlfit.predict(band)
                         use_prediction  = mlfit.use_prediction()
-                    if(not (use_ML and use_prediction)):
-                        self.perform_fixed_band_calculations(band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band, directory, alpha_indep_calcs)
+                    if not Debug_Yannick:
+                        if(not (use_ML and use_prediction)):
+                            self.perform_fixed_band_calculations(band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band, directory, alpha_indep_calcs)
                     # end Yannick Debug
  
                     
@@ -640,20 +647,24 @@ class KoopmansDSCFWorkflow(Workflow):
                     alpha = alpha_predicted
                     error = 0.0 # I would set the error for the predicted alphas to 0.0, because currently we don't want to make another scf-step because of predicted alphas
                 else:
-                    # Calculate an updated alpha and a measure of the error
-                    # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
-                    # E_i(N + 1) - E(N) - lambda^alpha_ii(0)     (empty)
-                    #
-                    # Note that we can do this even from calculations that have been skipped because
-                    # we read in all the requisite information from the output files and .pkl files
-                    # that do not get overwritten
+                    if Debug_Yannick:
+                        # Yannick Debug: dummy calculation to circumvent the fixed-band-calculation for debugging
+                        alpha, error = mlfit.get_alpha_from_file_for_debugging(band)
+                    else:
+                        # Calculate an updated alpha and a measure of the error
+                        # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
+                        # E_i(N + 1) - E(N) - lambda^alpha_ii(0)     (empty)
+                        #
+                        # Note that we can do this even from calculations that have been skipped because
+                        # we read in all the requisite information from the output files and .pkl files
+                        # that do not get overwritten
 
-                    calcs = [c for calc_set in [alpha_dep_calcs, alpha_indep_calcs]
-                            for c in calc_set if c.fixed_band == band]
+                        calcs = [c for calc_set in [alpha_dep_calcs, alpha_indep_calcs]
+                                for c in calc_set if c.fixed_band == band]
 
-                    alpha, error = self.calculate_alpha_from_list_of_calcs(
-                        calcs, trial_calc, band, filled=band.filled)
-                    
+                        alpha, error = self.calculate_alpha_from_list_of_calcs(
+                            calcs, trial_calc, band, filled=band.filled)
+                            
 
 
                 for b in self.bands:

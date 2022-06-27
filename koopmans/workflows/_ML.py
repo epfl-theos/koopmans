@@ -10,6 +10,7 @@ from koopmans import ML_utils
 import numpy as np
 
 from typing import List, Dict, Any
+from pathlib import Path
 
 from sklearn.metrics import mean_absolute_error as mae
 
@@ -158,3 +159,9 @@ class MLFiitingWorkflow(Workflow):
         # utils.indented_print('')
         utils.indented_print('\nThe mean absolut error of the predicted screening parameters of this snapshot is {0:.5f}'.format(mae(self.predicted_alphas, self.calculated_alphas)), indent=indent)
         utils.indented_print('')
+    
+    def get_alpha_from_file_for_debugging(self, band):
+        flat_alphas = utils.read_alpha_file(Path())
+        params = self.master_calc_params['kcp']
+        alphas = calculators.convert_flat_alphas_for_kcp(flat_alphas, params)
+        return alphas[0][band.index-1], 0.0
