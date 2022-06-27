@@ -38,6 +38,7 @@ module yannick_print_orbr
                 else
                     filename = 'occ.' // TRIM(spin_identifier) // '.' // TRIM(orbital_identifier)
                 end if
+                write(*,*) "Yannick: just before write_pot_sic"
                 call write_pot_sic ( orb_rhor(:, jj), filename)
             end do  
         end do
