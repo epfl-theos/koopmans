@@ -81,7 +81,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         """
         dos_list = []
         for atom in self.atoms:
-            filenames = sorted(self.directory.glob(self.parameters.filpdos + f'.pdos_atm#{atom.index+1}*'))
+            filenames = sorted(self.directory.glob(self.parameters.filpdos + f'.pdos_atm#{atom.index+1}(*'))
             # The filename does not encode the principal quantum number n. In order to recover this number, we compare
             # the reported angular momentum quantum number l against the list of expected orbitals, and infer n
             # assuming only that the file corresponding to nl will come before (n+1)l

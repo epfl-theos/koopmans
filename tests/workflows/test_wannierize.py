@@ -11,6 +11,7 @@ def test_wannierize_tio2(tio2, tmp_path, sys2file, workflow_patch):
         parameters = {
             "init_orbitals": "mlwfs",
             "init_empty_orbitals": "projwfs",
+            "keep_tmpdirs": False,
             "pseudo_library": "pseudo_dojo_standard"}
         wf = workflows.WannierizeWorkflow(parameters=parameters, kgrid=[2, 2, 2], kpath='GXG', **tio2)
         wf.run()
