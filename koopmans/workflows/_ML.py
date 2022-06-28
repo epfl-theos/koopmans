@@ -69,8 +69,8 @@ class MLFiitingWorkflow(Workflow):
     def compute_decomposition(self):
         self.r_cut = min(self.atoms.get_cell_lengths_and_angles()[:3])/2.5 #the maximum radius has to be smaller than half of the cell-size
         if self.method_to_extract_from_binary == 'from_ki':
-            centers_occ = np.array(self.calculations[4].results['centers'])
-            centers_emp = np.array(self.calculations[7].results['centers'])
+            centers_occ = np.array(self.calculations[-11].results['centers'])
+            centers_emp = np.array(self.calculations[-8].results['centers'])
             centers     = np.concatenate([centers_occ, centers_emp])
         else: 
              raise ValueError(f'Currently it is only implemented to extract the real space orbital densities from the ki-trial calculation after the initial wannier-calculation')
@@ -157,6 +157,8 @@ class MLFiitingWorkflow(Workflow):
         # utils.indented_print('predicted  ' + str(self.predicted_alphas), indent=indent)
         # utils.indented_print(str(self.bands.alpha_history), indent=indent)
         # utils.indented_print('')
+        print("Yannick Debug: len(predicted alphas) = ", len(self.predicted_alphas))
+        print("Yannick Debug: len(calculated alphas) = ", len(self.calculated_alphas))
         utils.indented_print('\nThe mean absolut error of the predicted screening parameters of this snapshot is {0:.5f}'.format(mae(self.predicted_alphas, self.calculated_alphas)), indent=indent)
         utils.indented_print('')
     
