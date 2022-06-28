@@ -19,7 +19,8 @@ class RidgeRegression():
     def predict(self, x_test):
         if self.is_trained:
             X_test = np.atleast_2d(x_test)
-            self.scaler.transform(X_test)
+            X_test = self.scaler.transform(X_test)
+            print("Yannick Debug: shape(X_test) = ", np.shape(X_test))
             y_predict = self.model.predict(X_test)
             return y_predict
         else:
@@ -27,7 +28,12 @@ class RidgeRegression():
             # return np.array([np.nan])
 
     def train(self):
-        self.model.fit(self.X_train,self.Y_train)
+        self.scaler     = self.scaler.fit(self.X_train)
+        X_train_scaled  = self.scaler.transform(self.X_train)
+
+        print("Yannick Debug: shape(X_train) = ", np.shape(self.X_train))
+        print("Yannick Debug: shape(Y_train) = ", np.shape(self.Y_train))
+        self.model.fit(X_train_scaled,self.Y_train)
         self.is_trained = True
     
     def add_training_data(self, x_train, y_train):
@@ -40,6 +46,5 @@ class RidgeRegression():
             self.X_train = np.concatenate([self.X_train, x_train])
             self.Y_train = np.concatenate([self.Y_train, y_train])
         
-        self.scaler     = self.scaler.fit(self.X_train)
-        self.X_train    = self.scaler.transform(self.X_train)
+        
         
