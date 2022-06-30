@@ -18,9 +18,9 @@ class MLFiitingWorkflow(Workflow):
 
     def __init__(self, calc_that_produced_orbital_densities, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.method_to_extract_from_binary        = 'from_ki'
+        self.method_to_extract_from_binary    = 'from_ki'
         self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
-        self.ML_dir                               = self.calc_that_produced_orbital_densities.directory / 'ML' / 'TMP'
+        self.ML_dir                                                         = self.calc_that_produced_orbital_densities.directory / 'ML' / 'TMP'
         self.predicted_alphas                     = []
         self.calculated_alphas                    = []
         self.fillings_of_predicted_alphas         = []
@@ -69,8 +69,8 @@ class MLFiitingWorkflow(Workflow):
     def compute_decomposition(self):
         self.r_cut = min(self.atoms.get_cell_lengths_and_angles()[:3])/2.5 #the maximum radius has to be smaller than half of the cell-size
         if self.method_to_extract_from_binary == 'from_ki':
-            centers_occ = np.array(self.calculations[4].results['centers'])
-            centers_emp = np.array(self.calculations[7].results['centers'])
+            centers_occ = np.array(self.calculations[-11].results['centers'])
+            centers_emp = np.array(self.calculations[-8].results['centers'])
             centers     = np.concatenate([centers_occ, centers_emp])
         else: 
              raise ValueError(f'Currently it is only implemented to extract the real space orbital densities from the ki-trial calculation after the initial wannier-calculation')

@@ -864,7 +864,11 @@ class Workflow(ABC):
         plot_params = settings.PlotSettingsDict(**utils.parse_dict(bigdct.get('plot', {})))
 
         # Loading workflow settings
-        parameters = settings.WorkflowSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})))
+        if 'ml' in bigdct:
+            parameters = settings.MLSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})),
+                                                 **utils.parse_dict(bigdct['ml']))
+        else:
+            parameters = settings.WorkflowSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})))
 
         # Load default values
         if 'setup' in bigdct:

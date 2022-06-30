@@ -11,6 +11,9 @@ class RidgeRegression():
         self.Y_train    = []
         self.scaler     = StandardScaler()
         self.model      = Ridge(alpha=1.0)
+    
+    def __repr__(self):
+        return f'RidgeRegression(is_trained={self.is_trained})'
 
     def todict(self):
         # TODO: implement
