@@ -266,7 +266,10 @@ class SettingsDictWithChecks(SettingsDict):
         # Always accept pseudopotentials and k-point data
         if key in self._other_valid_keywords:
             return
-
+        
+        # print("Yannick Debug: self.settings = ", self.settings)
+        # print("Yannick Debug: key = ", key)
+        # print("Yannick Debug: [setting] = ", [s for s in self.settings if s.name == key])
         # Fetch the record of the setting in question
         [setting] = [s for s in self.settings if s.name == key]
 

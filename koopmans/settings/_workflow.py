@@ -113,11 +113,23 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                         'a list of epsilon_infinity values for the cavity in dscf calculations',
                         list, [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], None)]
 
-
+        
         if 'settings' not in kwargs:
             kwargs['settings'] = valid_settings
         else:
-            kwargs['settings'] += valid_settings
+            settings_local = kwargs['settings']
+            # print(set(settings_local))
+            # print(set(valid_settings))
+            settings_local_set = set(settings_local)
+            for vs in valid_settings:
+                print(vs)
+                settings_local_set.update(vs)
+            settings_local = list(settings_local)
+            kwargs['settings'] = settings_local 
+            # kwargs['settings'].append(vs in valid_settings if: (for s in kwargs['settings']: s.name!=vs.name)) 
+            
+            # += valid_settings
+        
         super().__init__(physicals=['alpha_conv_thr', 'convergence_threshold'], **kwargs)
 
     @property
