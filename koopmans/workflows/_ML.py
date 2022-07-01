@@ -67,7 +67,8 @@ class MLFiitingWorkflow(Workflow):
             utils.system_call(command)
 
     def compute_decomposition(self):
-        self.r_cut = min(self.atoms.get_cell_lengths_and_angles()[:3])/2.5 #the maximum radius has to be smaller than half of the cell-size
+        self.r_cut = min(self.atoms.get_cell_lengths_and_angles()[:3])#/2.5 #the maximum radius will be set to the minimum of self.r_cut and half of the cell-size later on
+        print("r_cut = ", self.r_cut)
         if self.method_to_extract_from_binary == 'from_ki':
             centers_occ = np.array(self.calculations[-11].results['centers'])
             centers_emp = np.array(self.calculations[-8].results['centers'])
