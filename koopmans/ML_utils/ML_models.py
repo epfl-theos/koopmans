@@ -28,6 +28,7 @@ class RidgeRegression():
             # return np.array([np.nan])
 
     def train(self):
+        self.model      = Ridge(alpha=1.0)
         self.scaler     = self.scaler.fit(self.X_train)
         X_train_scaled  = self.scaler.transform(self.X_train)
 
