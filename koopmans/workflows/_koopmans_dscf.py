@@ -631,8 +631,8 @@ class KoopmansDSCFWorkflow(Workflow):
                         if self.parameters.spin_polarised and band.spin == 1:
                             index_empty_to_save += self.bands.num(filled=False, spin=0)
 
-                    # Yannick Debug: replace the actual fixed-band calculations with my logic
-                    Debug_Yannick = True
+                    # Yannick Debug: replace the actual fixed-band calculations with reading them from a file
+                    Debug_Yannick = True 
                     if use_ML:
                         alpha_predicted = mlfit.predict(band)
                         use_prediction  = mlfit.use_prediction()
@@ -643,7 +643,7 @@ class KoopmansDSCFWorkflow(Workflow):
  
                     
 
-                if(use_ML and use_prediction):
+                if(use_ML and use_prediction and not Debug_Yannick):
                     alpha = alpha_predicted
                     error = 0.0 # I would set the error for the predicted alphas to 0.0, because currently we don't want to make another scf-step because of predicted alphas
                 else:
@@ -672,16 +672,17 @@ class KoopmansDSCFWorkflow(Workflow):
                         b.alpha = alpha
                         b.error = error
 
-                if(use_ML and not use_prediction):
+                if(use_ML and (not use_prediction or Debug_Yannick)):
                     mlfit.print_error_of_single_orbital(alpha_predicted, alpha, indent = self.print_indent+2)
                     mlfit.add_training_data(band)
-                    mlfit.train()
+                    if not use_prediction:
+                        mlfit.train()
 
             self.bands.print_history(indent=self.print_indent + 1)
 
             converged = all([abs(b.error) < 1e-3 for b in self.bands])
 
-            if(use_ML and not any(mlfit.use_predictions)):
+            if(use_ML and (not any(mlfit.use_predictions) or Debug_Yannick)):
                 mlfit.print_error_of_all_orbitals(indent=self.print_indent + 1)
 
         if converged:
