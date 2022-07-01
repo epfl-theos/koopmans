@@ -148,9 +148,13 @@ def generate_integration_box(r, r_cut):
     dz = z[1]-z[0]
     dy = y[1]-y[0]
     dx = x[1]-x[0]
-    number_of_x_grid_points = int(r_cut/dx)
-    number_of_y_grid_points = int(r_cut/dy)
-    number_of_z_grid_points = int(r_cut/dz)
+    # number_of_x_grid_points = int(r_cut/dx)
+    # number_of_y_grid_points = int(r_cut/dy)
+    # number_of_z_grid_points = int(r_cut/dz)
+
+    number_of_x_grid_points = min(int(r_cut/dx),len(x)//2-1)
+    number_of_y_grid_points = min(int(r_cut/dy),len(y)//2-1)
+    number_of_z_grid_points = min(int(r_cut/dz),len(z)//2-1)
 
     z_ = dz*np.arange(-number_of_z_grid_points, number_of_z_grid_points+1)
     y_ = dy*np.arange(-number_of_y_grid_points, number_of_y_grid_points+1)

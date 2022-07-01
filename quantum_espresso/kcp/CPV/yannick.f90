@@ -27,11 +27,23 @@ module yannick_print_orbr
             call nksic_get_orbitalrho( ngw, nnrx, bec, ispin, nbsp_filling, &
                         c0(:,j), c0(:,j+1), orb_rhor, j, j+1, lgam) 
             
+            write(*,*) "Yannick Debug:"
+            write(*,*) j
+            write(*,*) (i - (nbsp_filling+1)/2)
             do jj = 1, 2
                 i=j+jj-1
                 
-                write(spin_identifier, "(I1.1)")       jj-1
-                write(orbital_identifier, "(I5.5)")    (j+1)/2
+                ! write(spin_identifier, "(I1.1)")       jj-1
+                ! write(orbital_identifier, "(I5.5)")    (j+1)/2
+
+                if (j<(nbsp_filling/2)) then 
+                    write(spin_identifier, "(I1.1)")       0
+                    write(orbital_identifier, "(I5.5)")    i
+                else
+                    write(spin_identifier, "(I1.1)")       1
+                    write(orbital_identifier, "(I5.5)")    (i - (nbsp_filling+1)/2)
+                end if 
+
 
                 if(is_empty) then      
                     filename = 'emp.' // TRIM(spin_identifier) // '.' // TRIM(orbital_identifier)
