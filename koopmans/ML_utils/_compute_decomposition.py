@@ -1,9 +1,7 @@
 from pathlib import Path
 from typing import List
-from xml.dom import NotFoundErr
-from xml.dom.minidom import Element
 import numpy as np
-from ase.data import Atoms
+from ase import Atoms
 from numpy.linalg import norm
 import xml.etree.ElementTree as ET
 from numpy.linalg import norm 
@@ -259,9 +257,9 @@ def load_density_into_array(file_rho:Path, nr1:int, nr2:int, nr3:int, norm_const
     for k in range(nr3):
         current_name = 'z.' + str(k%(nr3-1)+1)
         rho_file_str = rho_file.find(string)
-        assert isinstance(rho_file_str, Element)
+        assert isinstance(rho_file_str, ET.Element)
         rho_file_str_current_name = rho_file_str.find(current_name)
-        assert isinstance(rho_file_str_current_name, Element)
+        assert isinstance(rho_file_str_current_name, ET.Element)
         rho_file_str_current_name_text = rho_file_str_current_name.text
         assert isinstance(rho_file_str_current_name_text, str)
         rho_tmp = np.array(rho_file_str_current_name_text.split('\n')[1:-1], dtype=float)
@@ -276,185 +274,184 @@ def load_density_into_array(file_rho:Path, nr1:int, nr2:int, nr3:int, norm_const
 
 def func_compute_decomposition(n_max:int, l_max:int, r_min:float, r_max:float, r_cut:float, ML_directory:Path, bands:Bands, atoms:Atoms, centers: np.ndarray):
     orig_stdout = sys.stdout
-    f = open(ML_directory / 'orbitals_to_power_spectra.out', 'a')
-    sys.stdout = f       
+    with open(ML_directory / 'orbitals_to_power_spectra.out', 'a') as f:
+        sys.stdout = f       
 
-    print("\ncompute decomposition\n") 
-    
-    dir_coeff = ML_directory / ('coefficients_' + '_'.join(str(x) for x in [n_max, l_max, r_min, r_max]))
-    dir_orb   = dir_coeff / 'coff_orb'
-    dir_tot   = dir_coeff / 'coff_tot'
+        print("\ncompute decomposition\n") 
+        
+        dir_coeff = ML_directory / ('coefficients_' + '_'.join(str(x) for x in [n_max, l_max, r_min, r_max]))
+        dir_orb   = dir_coeff / 'coff_orb'
+        dir_tot   = dir_coeff / 'coff_tot'
 
-    dir_coeff.mkdir(exist_ok=True)
-    dir_orb.mkdir(exist_ok=True)
-    dir_tot.mkdir(exist_ok=True)
+        dir_coeff.mkdir(exist_ok=True)
+        dir_orb.mkdir(exist_ok=True)
+        dir_tot.mkdir(exist_ok=True)
 
-    # TODO Don't hardcode these parameters
-    norm_const      = 6.748334698446981
-    # TODO end
-    # TODO: find the normalization constant 6.748334698446981
+        # TODO Don't hardcode these parameters
+        norm_const      = 6.748334698446981
+        # TODO end
+        # TODO: find the normalization constant 6.748334698446981
 
-    
-
-    file_rho   = ML_directory / 'charge-density.xml'
-    with open(file_rho, 'r') as fd:
-        tree = ET.parse(fd)
-    rho_file = tree.getroot()
-    rho_file_charge_density = rho_file.find('CHARGE-DENSITY')
-    nrs = [0,0,0]
-    assert isinstance(rho_file_charge_density, Element)
-    info = rho_file_charge_density.find('INFO')
-    assert isinstance(info, Element)
-    for i in range(3):
-        attr = 'nr' + str(i+1)
-        info_i = info.get(attr)
-        assert isinstance(info_i, str)
-        nrs[i]  = int(info_i) + 1
-    nr1 = nrs[0]
-    nr2 = nrs[1]
-    nr3 = nrs[2]
-    
-    positions       = atoms.get_positions()
-    symbols         = atoms.get_chemical_symbols()
-    cell_parameters = atoms.get_cell()
-
-    # centers_occ = parse_w90(file_path_rho_base+'wann_occ.wout')
-
-
-    # load precomputed vectors defining the radial basis functions 
-    betas  = np.fromfile(ML_directory / 'betas'  / ('betas_'    + '_'.join(str(x) for x in [n_max, l_max, r_min, r_max]) + '.dat')).reshape((n_max, n_max, l_max))
-    alphas = np.fromfile(ML_directory / 'alphas' / ('alphas_'    + '_'.join(str(x) for x in [n_max, l_max, r_min, r_max]) + '.dat')).reshape(n_max)
-
-    lat_vecs = np.array([cell_parameters[2,2], cell_parameters[1,1], cell_parameters[0,0]])
-
-
-    print("writing cartesian grid into an array")
-    r_xsf     = np.zeros((nr3, nr2, nr1, 3), dtype=float)
-    r         = np.zeros((nr3-1, nr2-1, nr1-1, 3), dtype=float)
-    for k in range(nr3):
-        for j in range(nr2):
-            for i in range(nr1):
-                r_xsf[k,j,i, :] = np.multiply(np.array([1.0*(k%(nr3-1))/(nr3-1), 1.0*(j%(nr2-1))/(nr2-1), 1.0*(i%(nr1-1))/(nr1-1)]), lat_vecs)
-
-    r[:,:,:,:] = r_xsf[:-1,:-1,:-1,:]
-
-
-    print("computing the alternative cartesian grid on which the actual integration is performed")
-    number_of_x_grid_points, number_of_y_grid_points, number_of_z_grid_points, r_cartesian = generate_integration_box(r, r_cut)
-    print("compute r_spherical from r_cartesian")
-    r_spherical = cart2sph_array(r_cartesian)
-    
-    if Debug:
-        r_min     = np.min(r_spherical[:,:,:,0])
-        r_max     = np.max(r_spherical[:,:,:,0])
-        theta_min = np.min(r_spherical[:,:,:,1])
-        theta_max = np.max(r_spherical[:,:,:,1])
-        phi_min   = np.min(r_spherical[:,:,:,2])
-        phi_max   = np.max(r_spherical[:,:,:,2])
-        print("r_min   = ", r_min) 
-        print("r_max   = ", r_max)
-        print("theta_min = ", theta_min) 
-        print("theta_max = ", theta_max)
-        print("phi_min   = ", phi_min) 
-        print("phi_max   = ", phi_max)
-
-    
-    print("writing the total density into an array")
-    file_rho = ML_directory / 'charge-density.xml'
-    total_density_r, total_density_r_xsf = load_density_into_array(file_rho, nr1, nr2, nr3, norm_const, 'CHARGE-DENSITY')
-
-    if Debug:
-        differences_to_original           = []
-
-        if write_to_xsf:
-            print("writing total density to xsf file")
-            filename_xsf = ML_directory / 'charge-density.xsf'
-            print_to_xsf_file(filename_xsf, cell_parameters, positions, symbols, [total_density_r_xsf], nr1, nr2, nr3, [])
-
-
-    total_basis_array = precompute_basis_function(r_cartesian, r_spherical, n_max, l_max, betas, alphas)
-
-    for band in bands:
-        print(f'calculating decomposition of band {band.index}') 
-
-        if band.filled:
-            filled_str = 'occ'
-        else:
-            filled_str = 'emp'
         
 
-
-        file_rho = ML_directory / 'orbital.{}.{}.{:05d}.xml'.format(filled_str,band.spin, band.index) 
+        file_rho   = ML_directory / 'charge-density.xml'
+        with open(file_rho, 'r') as fd:
+            tree = ET.parse(fd)
+        rho_file = tree.getroot()
+        rho_file_charge_density = rho_file.find('CHARGE-DENSITY')
+        nrs = [0,0,0]
+        assert isinstance(rho_file_charge_density, ET.Element)
+        info = rho_file_charge_density.find('INFO')
+        assert isinstance(info, ET.Element)
+        for i in range(3):
+            attr = 'nr' + str(i+1)
+            info_i = info.get(attr)
+            assert isinstance(info_i, str)
+            nrs[i]  = int(info_i) + 1
+        nr1 = nrs[0]
+        nr2 = nrs[1]
+        nr3 = nrs[2]
         
-        rho_r, rho_r_xsf = load_density_into_array(file_rho, nr1, nr2, nr3, norm_const)
+        positions       = atoms.get_positions()
+        symbols         = atoms.get_chemical_symbols()
+        cell_parameters = atoms.get_cell()
+
+        # centers_occ = parse_w90(file_path_rho_base+'wann_occ.wout')
+
+
+        # load precomputed vectors defining the radial basis functions 
+        betas  = np.fromfile(ML_directory / 'betas'  / ('betas_'    + '_'.join(str(x) for x in [n_max, l_max, r_min, r_max]) + '.dat')).reshape((n_max, n_max, l_max))
+        alphas = np.fromfile(ML_directory / 'alphas' / ('alphas_'    + '_'.join(str(x) for x in [n_max, l_max, r_min, r_max]) + '.dat')).reshape(n_max)
+
+        lat_vecs = np.array([cell_parameters[2,2], cell_parameters[1,1], cell_parameters[0,0]])
+
+
+        print("writing cartesian grid into an array")
+        r_xsf     = np.zeros((nr3, nr2, nr1, 3), dtype=float)
+        r         = np.zeros((nr3-1, nr2-1, nr1-1, 3), dtype=float)
+        for k in range(nr3):
+            for j in range(nr2):
+                for i in range(nr1):
+                    r_xsf[k,j,i, :] = np.multiply(np.array([1.0*(k%(nr3-1))/(nr3-1), 1.0*(j%(nr2-1))/(nr2-1), 1.0*(i%(nr1-1))/(nr1-1)]), lat_vecs)
+
+        r[:,:,:,:] = r_xsf[:-1,:-1,:-1,:]
+
+
+        print("computing the alternative cartesian grid on which the actual integration is performed")
+        number_of_x_grid_points, number_of_y_grid_points, number_of_z_grid_points, r_cartesian = generate_integration_box(r, r_cut)
+        print("compute r_spherical from r_cartesian")
+        r_spherical = cart2sph_array(r_cartesian)
+        
+        if Debug:
+            r_min     = np.min(r_spherical[:,:,:,0])
+            r_max     = np.max(r_spherical[:,:,:,0])
+            theta_min = np.min(r_spherical[:,:,:,1])
+            theta_max = np.max(r_spherical[:,:,:,1])
+            phi_min   = np.min(r_spherical[:,:,:,2])
+            phi_max   = np.max(r_spherical[:,:,:,2])
+            print("r_min   = ", r_min) 
+            print("r_max   = ", r_max)
+            print("theta_min = ", theta_min) 
+            print("theta_max = ", theta_max)
+            print("phi_min   = ", phi_min) 
+            print("phi_max   = ", phi_max)
+
+        
+        print("writing the total density into an array")
+        file_rho = ML_directory / 'charge-density.xml'
+        total_density_r, total_density_r_xsf = load_density_into_array(file_rho, nr1, nr2, nr3, norm_const, 'CHARGE-DENSITY')
 
         if Debug:
-            print("writing orbital to xsf file")
-            filename_xsf = ML_directory /  'orbital.{}.{:05d}.xsf'.format(filled_str, band.index) 
-            print_to_xsf_file(filename_xsf, cell_parameters, positions, symbols, [rho_r_xsf], nr1, nr2, nr3, [])
-            # os.system(str('rm ' + file_rho))
+            differences_to_original           = []
+
+            if write_to_xsf:
+                print("writing total density to xsf file")
+                filename_xsf = ML_directory / 'charge-density.xsf'
+                print_to_xsf_file(filename_xsf, cell_parameters, positions, symbols, [total_density_r_xsf], nr1, nr2, nr3, [])
 
 
-        if compute_decomposition:
-            print("Set up the new integration domain")
-            wfc_center_tmp      = centers[band.index-1]
-            wfc_center          = np.array([wfc_center_tmp[2]%lat_vecs[0], wfc_center_tmp[1]%lat_vecs[1], wfc_center_tmp[0]%lat_vecs[2]])
-            print(wfc_center)
-            center_index        = get_index(r, wfc_center)
-            rho_r_new           = generate_integration_domain(rho_r,           center_index, number_of_x_grid_points, number_of_y_grid_points, number_of_z_grid_points)                
-            total_density_r_new = generate_integration_domain(total_density_r, center_index, number_of_x_grid_points, number_of_y_grid_points, number_of_z_grid_points)
-            print("computing coefficients of the orbital and total density")
+        total_basis_array = precompute_basis_function(r_cartesian, r_spherical, n_max, l_max, betas, alphas)
+
+        for band in bands:
+            print(f'calculating decomposition of band {band.index}') 
+
             if band.filled:
-                coefficients_orbital, coefficients_total = get_coefficients(rho_r_new, total_density_r_new, r_cartesian, total_basis_array)
+                filled_str = 'occ'
             else:
-                coefficients_orbital, coefficients_total = get_coefficients(rho_r_new, total_density_r_new, r_cartesian, total_basis_array)
+                filled_str = 'emp'
+            
 
-            np.savetxt(dir_orb / f'coff.orbital.{filled_str}.{band.index}.txt', coefficients_orbital)
-            np.savetxt(dir_tot / f'coff.total.{filled_str}.{band.index}.txt', coefficients_total)
 
+            file_rho = ML_directory / 'orbital.{}.{}.{:05d}.xml'.format(filled_str,band.spin, band.index) 
+            
+            rho_r, rho_r_xsf = load_density_into_array(file_rho, nr1, nr2, nr3, norm_const)
 
             if Debug:
-                print("reconstruct orbital density")
-                rho_r_reconstruced      = get_reconstructed_orbital_densities(total_basis_array, coefficients_orbital)
-                print("max rho_r_reconstructed                  = ", np.max(rho_r_reconstruced))
-                print("writing reconstructed orbital to to xsf file")
-                rho_r_reconstruced      = map_again_to_original_grid(rho_r_reconstruced, center_index, number_of_x_grid_points, number_of_y_grid_points, number_of_z_grid_points, nr1, nr2, nr3)
-                print("max rho_r_reconstructed on original grid = ", np.max(rho_r_reconstruced))
-                difference              = np.linalg.norm(rho_r_reconstruced-rho_r)
-                print("Difference to original density           = ", difference)
-                differences_to_original.append(difference)
-                
+                print("writing orbital to xsf file")
+                filename_xsf = ML_directory /  'orbital.{}.{:05d}.xsf'.format(filled_str, band.index) 
+                print_to_xsf_file(filename_xsf, cell_parameters, positions, symbols, [rho_r_xsf], nr1, nr2, nr3, [])
+                # os.system(str('rm ' + file_rho))
 
 
-                # c_matrix                = get_coefficient_matrix(coefficients_orbital, n_max, l_max)
-                if write_to_xsf:
-                    rho_r_reconstructed_xsf = get_orbital_density_to_xsf_grid(rho_r_reconstruced)
-                    filename_xsf = ML_directory /  'orbital.{}.{:05d}.reconstructed.xsf'.format(band.filled, band.index) 
-                    print_to_xsf_file(filename_xsf, cell_parameters, positions, symbols, [rho_r_reconstructed_xsf], nr1, nr2, nr3, [])
+            if compute_decomposition:
+                print("Set up the new integration domain")
+                wfc_center_tmp      = centers[band.index-1]
+                wfc_center          = np.array([wfc_center_tmp[2]%lat_vecs[0], wfc_center_tmp[1]%lat_vecs[1], wfc_center_tmp[0]%lat_vecs[2]])
+                print(wfc_center)
+                center_index        = get_index(r, wfc_center)
+                rho_r_new           = generate_integration_domain(rho_r,           center_index, number_of_x_grid_points, number_of_y_grid_points, number_of_z_grid_points)                
+                total_density_r_new = generate_integration_domain(total_density_r, center_index, number_of_x_grid_points, number_of_y_grid_points, number_of_z_grid_points)
+                print("computing coefficients of the orbital and total density")
+                if band.filled:
+                    coefficients_orbital, coefficients_total = get_coefficients(rho_r_new, total_density_r_new, r_cartesian, total_basis_array)
+                else:
+                    coefficients_orbital, coefficients_total = get_coefficients(rho_r_new, total_density_r_new, r_cartesian, total_basis_array)
+
+                np.savetxt(dir_orb / f'coff.orbital.{filled_str}.{band.index}.txt', coefficients_orbital)
+                np.savetxt(dir_tot / f'coff.total.{filled_str}.{band.index}.txt', coefficients_total)
 
 
-                print("reconstruct total density")
-                rho_r_reconstruced      = get_reconstructed_orbital_densities(total_basis_array, coefficients_total)
-                # c_matrix                = get_coefficient_matrix(coefficients_total, n_max, l_max)
-                
-                if write_to_xsf:
+                if Debug:
+                    print("reconstruct orbital density")
+                    rho_r_reconstruced      = get_reconstructed_orbital_densities(total_basis_array, coefficients_orbital)
+                    print("max rho_r_reconstructed                  = ", np.max(rho_r_reconstruced))
                     print("writing reconstructed orbital to to xsf file")
                     rho_r_reconstruced      = map_again_to_original_grid(rho_r_reconstruced, center_index, number_of_x_grid_points, number_of_y_grid_points, number_of_z_grid_points, nr1, nr2, nr3)
-                    rho_r_reconstructed_xsf = get_orbital_density_to_xsf_grid(rho_r_reconstruced)
-                    filename_xsf = ML_directory /  'total.{}.{:05d}.reconstructed.xsf'.format(band.filled, band.index) 
-                    print_to_xsf_file(filename_xsf, cell_parameters, positions, symbols, [rho_r_reconstructed_xsf], nr1, nr2, nr3, [])
+                    print("max rho_r_reconstructed on original grid = ", np.max(rho_r_reconstruced))
+                    difference              = np.linalg.norm(rho_r_reconstruced-rho_r)
+                    print("Difference to original density           = ", difference)
+                    differences_to_original.append(difference)
+                    
 
 
-                    print("writing total density minus orbital density to xsf file")
-                    filename_xsf = ML_directory /  'total_minus.{}.{:05d}.reconstructed.xsf'.format(band.filled, band.index) 
-                    print_to_xsf_file(filename_xsf, cell_parameters, positions, symbols, [total_density_r_xsf-rho_r_xsf], nr1, nr2, nr3, [])
+                    # c_matrix                = get_coefficient_matrix(coefficients_orbital, n_max, l_max)
+                    if write_to_xsf:
+                        rho_r_reconstructed_xsf = get_orbital_density_to_xsf_grid(rho_r_reconstruced)
+                        filename_xsf = ML_directory /  'orbital.{}.{:05d}.reconstructed.xsf'.format(band.filled, band.index) 
+                        print_to_xsf_file(filename_xsf, cell_parameters, positions, symbols, [rho_r_reconstructed_xsf], nr1, nr2, nr3, [])
 
-            print("length of coefficient vector = ", len(coefficients_orbital))
-    if Debug:
-        return np.mean(differences_to_original)
+
+                    print("reconstruct total density")
+                    rho_r_reconstruced      = get_reconstructed_orbital_densities(total_basis_array, coefficients_total)
+                    # c_matrix                = get_coefficient_matrix(coefficients_total, n_max, l_max)
+                    
+                    if write_to_xsf:
+                        print("writing reconstructed orbital to to xsf file")
+                        rho_r_reconstruced      = map_again_to_original_grid(rho_r_reconstruced, center_index, number_of_x_grid_points, number_of_y_grid_points, number_of_z_grid_points, nr1, nr2, nr3)
+                        rho_r_reconstructed_xsf = get_orbital_density_to_xsf_grid(rho_r_reconstruced)
+                        filename_xsf = ML_directory /  'total.{}.{:05d}.reconstructed.xsf'.format(band.filled, band.index) 
+                        print_to_xsf_file(filename_xsf, cell_parameters, positions, symbols, [rho_r_reconstructed_xsf], nr1, nr2, nr3, [])
+
+
+                        print("writing total density minus orbital density to xsf file")
+                        filename_xsf = ML_directory /  'total_minus.{}.{:05d}.reconstructed.xsf'.format(band.filled, band.index) 
+                        print_to_xsf_file(filename_xsf, cell_parameters, positions, symbols, [total_density_r_xsf-rho_r_xsf], nr1, nr2, nr3, [])
+
+                print("length of coefficient vector = ", len(coefficients_orbital))
+        if Debug:
+            return np.mean(differences_to_original)
     
-    sys.stdout = orig_stdout
-    f.close()   
+    sys.stdout = orig_stdout  
 
 
 # Say what you want to compute

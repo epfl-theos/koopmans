@@ -47,43 +47,42 @@ def g(r: np.ndarray,n:int,n_max:int,l:int,betas: np.ndarray,alphas: np.ndarray):
 
 def precompute_radial_basis(n_max:int , l_max:int, r_min_thr:float, r_max_thr:float, ML_directory:Path):
     orig_stdout = sys.stdout
-    f = open(ML_directory / 'orbitals_to_power_spectra.out', 'a')
-    sys.stdout = f 
+    with open(ML_directory / 'orbitals_to_power_spectra.out', 'a') as f:
+        sys.stdout = f 
 
-    print("\nprecompute radial basis\n") 
-    
+        print("\nprecompute radial basis\n") 
+        
 
-    thr   = 10**(-3)
-    r_thrs = np.zeros(n_max)
-    # for i in range(n_max):
-    #     r_thrs[i] = r_min_thr + i*(r_max_thr-1)/n_max
+        thr   = 10**(-3)
+        r_thrs = np.zeros(n_max)
+        # for i in range(n_max):
+        #     r_thrs[i] = r_min_thr + i*(r_max_thr-1)/n_max
 
-    if n_max==1:
-        r_thrs[0] = r_min_thr
-    else:
-        for i in range(n_max):
-            r_thrs[i] = r_min_thr + i*(r_max_thr-r_min_thr)/(n_max-1.0)
+        if n_max==1:
+            r_thrs[0] = r_min_thr
+        else:
+            for i in range(n_max):
+                r_thrs[i] = r_min_thr + i*(r_max_thr-r_min_thr)/(n_max-1.0)
 
-    print('Threshold values = ', r_thrs)
+        print('Threshold values = ', r_thrs)
 
-    alphas = compute_alphas(n_max, r_thrs, thr)
+        alphas = compute_alphas(n_max, r_thrs, thr)
 
-    betas = np.zeros((n_max, n_max, l_max))
+        betas = np.zeros((n_max, n_max, l_max))
 
-    for l in range(l_max):
-        betas[:,:,l] = compute_beta(n_max, l, alphas)
-    
-    betas_folder  = ML_directory / 'betas'  
-    alphas_folder = ML_directory / 'alphas'  
-    betas_folder.mkdir(exist_ok=True)
-    alphas_folder.mkdir(exist_ok=True)
+        for l in range(l_max):
+            betas[:,:,l] = compute_beta(n_max, l, alphas)
+        
+        betas_folder  = ML_directory / 'betas'  
+        alphas_folder = ML_directory / 'alphas'  
+        betas_folder.mkdir(exist_ok=True)
+        alphas_folder.mkdir(exist_ok=True)
 
 
-    betas.tofile(betas_folder / ('betas_'    + '_'.join(str(x) for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
-    alphas.tofile(alphas_folder / ('alphas_'    + '_'.join(str(x) for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
+        betas.tofile(betas_folder / ('betas_'    + '_'.join(str(x) for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
+        alphas.tofile(alphas_folder / ('alphas_'    + '_'.join(str(x) for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
 
     sys.stdout = orig_stdout
-    f.close() 
 
 
     # r = np.linspace(0,4,1000)
