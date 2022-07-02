@@ -14,7 +14,7 @@ class RidgeRegression():
         self.model      = Ridge(alpha=1.0)
     
     def __repr__(self):
-        return f'RidgeRegression(is_trained={self.is_trained})'
+        return f'RidgeRegression(is_trained={self.is_trained},number_of_training_vectors={self.X_train.shape[0]},input_vector_dimension={self.Y_train.shape[0]})'
 
     def todict(self):
         # TODO: implement
