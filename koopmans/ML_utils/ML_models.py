@@ -1,3 +1,4 @@
+from typing import Union
 import numpy as np
 from sklearn.linear_model import Ridge 
 from sklearn.preprocessing import StandardScaler
@@ -19,7 +20,7 @@ class RidgeRegression():
         # TODO: implement
         return 
 
-    def predict(self, x_test):
+    def predict(self, x_test: np.ndarray):
         if self.is_trained:
             X_test = np.atleast_2d(x_test)
             X_test = self.scaler.transform(X_test)
@@ -40,7 +41,7 @@ class RidgeRegression():
         self.model.fit(X_train_scaled,self.Y_train)
         self.is_trained = True
     
-    def add_training_data(self, x_train, y_train):
+    def add_training_data(self, x_train: np.ndarray, y_train: Union[float, np.ndarray]):
         x_train = np.atleast_2d(x_train)
         y_train = np.atleast_1d(y_train)
         if self.X_train == []:

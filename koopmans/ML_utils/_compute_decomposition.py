@@ -1,18 +1,20 @@
+from pathlib import Path
+from typing import List
+from xml.dom import NotFoundErr
+from xml.dom.minidom import Element
 import numpy as np
-from ase.data import pubchem
+from ase.data import Atoms
 from numpy.linalg import norm
 import xml.etree.ElementTree as ET
-import os
-# from scipy.integrate import simpson, trapezoid
 from numpy.linalg import norm 
 import math 
 from scipy.special import sph_harm
-# from ase.io import read
-# from koopmans.io import read
 import sys
 
+from koopmans.bands import Bands
 
-def get_orbital_density_to_xsf_grid(rho_r_reconstructed):
+
+def get_orbital_density_to_xsf_grid(rho_r_reconstructed: np.ndarray):
     nr3m1, nr2m1, nr1m1 = np.shape(rho_r_reconstructed)
     nr3 = nr3m1 + 1 
     nr2 = nr2m1 + 1
@@ -25,25 +27,25 @@ def get_orbital_density_to_xsf_grid(rho_r_reconstructed):
     return rho_r_reconstruced_xsf
 
 
-def get_reconstructed_orbital_densities(total_basis_array, coefficients):
+def get_reconstructed_orbital_densities(total_basis_array: np.ndarray, coefficients: np.ndarray):
     rho_r_reconstruced = np.einsum('ijkl,l->ijk', total_basis_array, coefficients)
     return rho_r_reconstruced
 
-def phi(r,l,alpha):
+def phi(r: np.ndarray,l: int, alpha: float):
     return r**l*np.exp(-alpha*r**2)
 
 
-def g(r,n,n_max,l,betas,alphas):
+def g(r: np.ndarray, n: int,n_max: int,l,betas: np.ndarray,alphas: np.ndarray):
     return sum(betas[n_prime, n, l]*phi(r, l, alphas[n_prime]) for n_prime in range(n_max))
 
 
-def radial_basis_function(r,n,n_max,l,betas,alphas):
+def radial_basis_function(r: np.ndarray,n:int ,n_max:int ,l:int,betas: np.ndarray,alphas: np.ndarray):
     return g(r,n,n_max,l,betas,alphas)
 
 
 # from https://scipython.com/blog/visualizing-the-real-forms-of-the-spherical-harmonics/
 
-def real_spherical_harmonics(theta, phi, l, m):
+def real_spherical_harmonics(theta:float, phi:float, l:int, m:int):
     Y = sph_harm(abs(m), l, phi, theta) #Yannick: not sure about order of theta and phi
     if m < 0:
         Y = np.sqrt(2) * (-1)**m * Y.imag
@@ -51,14 +53,14 @@ def real_spherical_harmonics(theta, phi, l, m):
         Y = np.sqrt(2) * (-1)**m * Y.real
     return Y.real #Yannick: added .real to only get real values
 
-def cart2sph(x,y,z):
+def cart2sph(x:float,y:float,z:float):
     XsqPlusYsq = x**2 + y**2
     r = math.sqrt(XsqPlusYsq + z**2)               # r
     theta = math.atan2(z,math.sqrt(XsqPlusYsq))+np.pi/2.0    # theta
     phi = math.atan2(y,x) + np.pi                          # phi
     return r, theta, phi
 
-def cart2sph_array(r_cartesian):
+def cart2sph_array(r_cartesian: np.ndarray):
     (k_max, j_max, i_max, _) = np.shape(r_cartesian)
     r_spherical                = np.zeros_like(r_cartesian)
     for k in range(k_max):
@@ -70,7 +72,7 @@ def cart2sph_array(r_cartesian):
 
 
 
-def precompute_basis_function(r_cartesian, r_spherical, n_max, l_max, betas, alphas):
+def precompute_basis_function(r_cartesian: np.ndarray, r_spherical: np.ndarray, n_max: int, l_max: int, betas: np.ndarray, alphas: np.ndarray):
     Y_array_all = np.zeros((np.shape(r_cartesian)[0], np.shape(r_cartesian)[1], np.shape(r_cartesian)[2], l_max, 2*l_max+1))
     for l in range(l_max):
         for i, m in enumerate(range(-l, l+1)):
@@ -93,10 +95,10 @@ def precompute_basis_function(r_cartesian, r_spherical, n_max, l_max, betas, alp
     return total_basis_function_array
 
 
-def get_coefficients(rho, rho_total, r_cartesian, total_basis_function_array):    
+def get_coefficients(rho: np.ndarray, rho_total: np.ndarray, r_cartesian: np.ndarray, total_basis_function_array: np.ndarray):    
     print("starting with the loop to compute the coefficients")
-    coefficients = []
-    coefficients_total = []
+    coefficients: List[np.ndarray] = []
+    coefficients_total: List[np.ndarray] = []
 
     rho_tmp       = np.expand_dims(rho, axis=3)
     rho_total_tmp = np.expand_dims(rho_total, axis=3)
@@ -115,25 +117,17 @@ def get_coefficients(rho, rho_total, r_cartesian, total_basis_function_array):
     return coefficients, coefficients_total
 
 
-def shift_coordinates(r, index):
+def shift_coordinates(r: np.ndarray, index:List):
     return r-r[index[0],index[1],index[2],:]
 
 
-def get_index(r, value):
+def get_index(r: np.ndarray, value: np.ndarray):
     norms = norm(r - value, axis=3)
     idx = np.unravel_index(np.argmin(norms), np.shape(r)[:-1])
     return idx
 
 
-
-def compute_3d_integral_naive(f, r):
-    z = r[:,0,0,0]
-    y = r[0,:,0,1]
-    x = r[0,0,:,2]
-    result_n  = np.sum(f, axis=(0,1,2))*(x[-1]-x[0])*(y[-1]-y[0])*(z[-1]-z[0])/((len(x)-1)*(len(y)-1)*(len(z)-1))
-    return result_n
-
-def compute_3d_integral_naive_specialized(f, r):
+def compute_3d_integral_naive_specialized(f: np.ndarray, r: np.ndarray):
     z = r[:,0,0,0]
     y = r[0,:,0,1]
     x = r[0,0,:,2]
@@ -141,7 +135,7 @@ def compute_3d_integral_naive_specialized(f, r):
     return result_n
 
 
-def generate_integration_box(r, r_cut):
+def generate_integration_box(r: np.ndarray, r_cut:float):
     z = r[:,0,0,0]
     y = r[0,:,0,1]
     x = r[0,0,:,2]
@@ -168,7 +162,7 @@ def generate_integration_box(r, r_cut):
     return number_of_x_grid_points, number_of_y_grid_points, number_of_z_grid_points, r_new
 
 
-def generate_integration_domain(f, wfc_center_index, number_of_x_grid_points, number_of_y_grid_points, number_of_z_grid_points):
+def generate_integration_domain(f: np.ndarray, wfc_center_index: np.ndarray, number_of_x_grid_points:int, number_of_y_grid_points:int, number_of_z_grid_points:int):
     
     f_rolled = np.roll(f, (-(wfc_center_index[0]-number_of_z_grid_points), -(wfc_center_index[1]-number_of_y_grid_points), -(wfc_center_index[2]-number_of_x_grid_points)), axis=(0,1,2))    
     f_new = f_rolled[:2*number_of_z_grid_points+1, :2*number_of_y_grid_points+1, :2*number_of_x_grid_points+1]
@@ -182,7 +176,7 @@ def generate_integration_domain(f, wfc_center_index, number_of_x_grid_points, nu
     
 
 
-def map_again_to_original_grid(f_new, wfc_center_index, number_of_x_grid_points, number_of_y_grid_points, number_of_z_grid_points, nr1, nr2, nr3):
+def map_again_to_original_grid(f_new: np.ndarray, wfc_center_index: np.ndarray, number_of_x_grid_points:int, number_of_y_grid_points:int, number_of_z_grid_points:int, nr1:int, nr2:int, nr3:int):
 
     f_on_reg_grid = np.zeros((nr3-1, nr2-1, nr1-1), dtype=float)
 
@@ -195,7 +189,7 @@ def map_again_to_original_grid(f_new, wfc_center_index, number_of_x_grid_points,
 
 
 
-def get_coefficient_matrix(c, n_max, l_max):
+def get_coefficient_matrix(c: np.ndarray, n_max:int, l_max:int):
     c_matrix = np.zeros((n_max, l_max))
     idx = 0
     for n in range(n_max):
@@ -207,7 +201,7 @@ def get_coefficient_matrix(c, n_max, l_max):
 
 
 
-def print_to_xsf_file(filename, cell_parameters, positions, symbols, list_of_evcs, nr1, nr2, nr3, wfc_centers=[]):
+def print_to_xsf_file(filename:Path, cell_parameters: np.ndarray, positions: np.ndarray, symbols:List[str], list_of_evcs:List[np.ndarray], nr1:int, nr2:int, nr3:int, wfc_centers:List[np.ndarray]=[]):
     with open(filename, 'w') as out:
         out.write('# xsf file \n')
         out.write('CRYSTAL\n\n')
@@ -254,7 +248,7 @@ def print_to_xsf_file(filename, cell_parameters, positions, symbols, list_of_evc
         out.write('END_BLOCK_DATAGRID_3D')
 
 
-def load_density_into_array(file_rho, nr1, nr2, nr3, norm_const, string='EFFECTIVE-POTENTIAL'):#string='EFFECTIVE-POTENTIAL'):
+def load_density_into_array(file_rho:Path, nr1:int, nr2:int, nr3:int, norm_const:float, string:str='EFFECTIVE-POTENTIAL'):#string='EFFECTIVE-POTENTIAL'):
     rho_r_xsf = np.zeros((nr3, nr2, nr1), dtype=float)
     rho_r     = np.zeros((nr3-1, nr2-1, nr1-1), dtype=float)
 
@@ -264,7 +258,13 @@ def load_density_into_array(file_rho, nr1, nr2, nr3, norm_const, string='EFFECTI
 
     for k in range(nr3):
         current_name = 'z.' + str(k%(nr3-1)+1)
-        rho_tmp = np.array(rho_file.find(string).find(current_name).text.split('\n')[1:-1], dtype=float)
+        rho_file_str = rho_file.find(string)
+        assert isinstance(rho_file_str, Element)
+        rho_file_str_current_name = rho_file_str.find(current_name)
+        assert isinstance(rho_file_str_current_name, Element)
+        rho_file_str_current_name_text = rho_file_str_current_name.text
+        assert isinstance(rho_file_str_current_name_text, str)
+        rho_tmp = np.array(rho_file_str_current_name_text.split('\n')[1:-1], dtype=float)
         for j in range(nr2):
             for i in range(nr1):
                 rho_r_xsf[k, j, i] = rho_tmp[(j%(nr2-1))*(nr1-1)+(i%(nr1-1))]#np.dot(r[k,j,i, :], r[k,j,i, :])#
@@ -274,7 +274,7 @@ def load_density_into_array(file_rho, nr1, nr2, nr3, norm_const, string='EFFECTI
     return rho_r, rho_r_xsf
 
 
-def func_compute_decomposition(n_max, l_max, r_min, r_max, r_cut, ML_directory, bands, atoms, centers):
+def func_compute_decomposition(n_max:int, l_max:int, r_min:float, r_max:float, r_cut:float, ML_directory:Path, bands:Bands, atoms:Atoms, centers: np.ndarray):
     orig_stdout = sys.stdout
     f = open(ML_directory / 'orbitals_to_power_spectra.out', 'a')
     sys.stdout = f       
@@ -300,10 +300,19 @@ def func_compute_decomposition(n_max, l_max, r_min, r_max, r_cut, ML_directory, 
     with open(file_rho, 'r') as fd:
         tree = ET.parse(fd)
     rho_file = tree.getroot()
-    info = rho_file.find('CHARGE-DENSITY').find('INFO')
-    nr1  = int(info.get('nr1')) + 1
-    nr2  = int(info.get('nr2')) + 1
-    nr3  = int(info.get('nr3')) + 1
+    rho_file_charge_density = rho_file.find('CHARGE-DENSITY')
+    nrs = [0,0,0]
+    assert isinstance(rho_file_charge_density, Element)
+    info = rho_file_charge_density.find('INFO')
+    assert isinstance(info, Element)
+    for i in range(3):
+        attr = 'nr' + str(i+1)
+        info_i = info.get(attr)
+        assert isinstance(info_i, str)
+        nrs[i]  = int(info_i) + 1
+    nr1 = nrs[0]
+    nr2 = nrs[1]
+    nr3 = nrs[2]
     
     positions       = atoms.get_positions()
     symbols         = atoms.get_chemical_symbols()

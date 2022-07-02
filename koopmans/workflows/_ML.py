@@ -3,13 +3,15 @@ from abc import ABC, abstractmethod
 from xmlrpc.client import boolean
 
 from koopmans import calculators
+from koopmans.bands import Band
 from ._workflow import Workflow
 from koopmans import utils
+from koopmans.settings import KoopmansCPSettingsDict
 
 from koopmans import ML_utils
 import numpy as np
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 from pathlib import Path
 
 from sklearn.metrics import mean_absolute_error as mae
@@ -74,7 +76,7 @@ class MLFiitingWorkflow(Workflow):
         self.dir_power = self.ML_dir / f'power_spectra_{self.parameters.n_max}_{self.parameters.l_max}_{self.parameters.r_min}_{self.parameters.r_max}'
         ML_utils.main_compute_power(self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max, self.ML_dir, self.dir_power, self.bands_to_extract)
 
-    def predict(self, band):
+    def predict(self, band: Band) -> float:
         self.print('Predicting screening parameter')
         # TODO: currently only capable of making one prediction at a time
         power_spectrum = self.load_power_spectrum(band)
@@ -88,14 +90,15 @@ class MLFiitingWorkflow(Workflow):
         self.print('Training the ML model')
         self.ml_model.train()
     
-    def add_training_data(self, band):
+    def add_training_data(self, band: Band):
         self.print('Adding this orbital to the training data')
         power_spectrum = self.load_power_spectrum(band)
         alpha          = band.alpha
+        assert isinstance(alpha, float)
         self.calculated_alphas.append(alpha)
         self.ml_model.add_training_data(power_spectrum, alpha)
 
-    def load_power_spectrum(self, band):
+    def load_power_spectrum(self, band: Band) -> np.ndarray:
         if band.filled:
             filled_str = 'occ'
         else:
@@ -105,7 +108,7 @@ class MLFiitingWorkflow(Workflow):
 
     
     
-    def use_prediction(self):
+    def use_prediction(self) -> bool:
         # defualt is to not use the prediction
         use_prediction = False
         if self.parameters.criterium == 'after_fixed_num_of_snapshots':
@@ -135,7 +138,7 @@ class MLFiitingWorkflow(Workflow):
         utils.write_alpha_file(self.ML_dir, alphas, fillings)
 
     
-    def print_error_of_single_orbital(self, alpha_predicted, alpha_calculated, indent: int = 0):
+    def print_error_of_single_orbital(self, alpha_predicted:float, alpha_calculated:float, indent: int = 0):
         # Printing out the error of the predicted alpha
         utils.indented_print('\npredicted  screening parameter: {0:.5f}'.format(alpha_predicted), indent=indent)
         utils.indented_print(  'calculated screening parameter: {0:.5f}'.format(alpha_calculated), indent=indent)
@@ -154,8 +157,11 @@ class MLFiitingWorkflow(Workflow):
         utils.indented_print('\nThe mean absolut error of the predicted screening parameters of this snapshot is {0:.5f}'.format(mae(self.predicted_alphas, self.calculated_alphas)), indent=indent)
         utils.indented_print('')
     
-    def get_alpha_from_file_for_debugging(self, band):
+    def get_alpha_from_file_for_debugging(self, band:Band) -> Tuple[float, float]:
         flat_alphas = utils.read_alpha_file(Path())
         params = self.master_calc_params['kcp']
+        assert isinstance(params, KoopmansCPSettingsDict)
         alphas = calculators.convert_flat_alphas_for_kcp(flat_alphas, params)
+        assert isinstance(band.index, float)
         return alphas[0][band.index-1], 0.0
+

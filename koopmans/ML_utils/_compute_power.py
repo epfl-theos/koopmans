@@ -1,8 +1,10 @@
+from pathlib import Path
 import numpy as np
-import os
 import sys
 
-def read_in(coff_orb, coff_tot, n_max, l_max):
+from koopmans.bands import Bands
+
+def read_in(coff_orb: np.ndarray, coff_tot: np.ndarray, n_max: int, l_max: int):
     coff_matrix = np.zeros((2, n_max, l_max, 2*l_max+1), dtype=float)
     idx = 0
     for n in range(n_max):
@@ -18,7 +20,7 @@ def read_in(coff_orb, coff_tot, n_max, l_max):
                 idx += 1
     return coff_matrix
 
-def compute_power(coff_matrix, n_max, l_max):
+def compute_power(coff_matrix: np.ndarray, n_max: int, l_max: int):
     power = []
     for i1, _ in enumerate(['orb', 'tot']):
         for i2 in range(i1, 2):
@@ -30,7 +32,7 @@ def compute_power(coff_matrix, n_max, l_max):
     return np.array(power)
 
 
-def main_compute_power(n_max, l_max, r_min, r_max, ML_directory, dir_power, bands):
+def main_compute_power(n_max: int, l_max: int, r_min: float, r_max: float, ML_directory: Path, dir_power: Path, bands: Bands):
     orig_stdout = sys.stdout
     f = open(ML_directory / 'orbitals_to_power_spectra.out', 'a')
     sys.stdout = f 

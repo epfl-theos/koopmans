@@ -1,3 +1,4 @@
+from pathlib import Path
 import numpy as np
 from scipy.integrate import quad
 from scipy.optimize import fsolve
@@ -5,19 +6,19 @@ import matplotlib.pyplot as plt
 import os
 import sys
 
-def phi(r,l,alpha):
+def phi(r: np.ndarray,l: int,alpha: float):
     return r**l*np.exp(-alpha*r**2)
 
-def compute_overlap(n,n_prime,l,alphas):
+def compute_overlap(n: int,n_prime: int,l: int,alphas: np.ndarray):
     integrand = lambda r: r**2*phi(r,l,alphas[n])*phi(r,l,alphas[n_prime])
     return quad(integrand, 0.0, np.inf)
 
 # https://github.com/pyscf/pyscf.github.io/blob/master/examples/dmrg/32-dmrg_casscf_nevpt2_for_FeS.py
-def lowdin(s):
+def lowdin(s: np.ndarray):
     e, v = np.linalg.eigh(s)
     return np.dot(v/np.sqrt(e), v.T.conj())
 
-def compute_s(n_max, l, alphas):
+def compute_s(n_max: int, l:int, alphas:np.ndarray):
     s = np.zeros((n_max, n_max))
     for n in range(n_max):
         for n_prime in range(n_max):
@@ -25,13 +26,13 @@ def compute_s(n_max, l, alphas):
             s[n,n_prime] = tmp
     return s
 
-def compute_beta(n_max, l, alphas):
+def compute_beta(n_max:int , l: int, alphas: np.ndarray):
     s = compute_s(n_max, l, alphas)
     beta = lowdin(s)
     return beta
 
 
-def compute_alphas(n_max, r_thrs, thr=10**(-3.0)):    
+def compute_alphas(n_max:int, r_thrs:np.ndarray, thr:float=10**(-3.0)):    
     alphas = np.zeros(n_max)
     for n in range(n_max):
         r_thr = r_thrs[n]
@@ -40,11 +41,11 @@ def compute_alphas(n_max, r_thrs, thr=10**(-3.0)):
         alphas[n] = root
     return alphas
 
-def g(r,n,n_max,l,betas,alphas):
+def g(r: np.ndarray,n:int,n_max:int,l:int,betas: np.ndarray,alphas: np.ndarray):
     return sum(betas[n_prime, n, l]*phi(r, l, alphas[n_prime]) for n_prime in range(n_max))
 
 
-def precompute_radial_basis(n_max, l_max, r_min_thr, r_max_thr, ML_directory):
+def precompute_radial_basis(n_max:int , l_max:int, r_min_thr:float, r_max_thr:float, ML_directory:Path):
     orig_stdout = sys.stdout
     f = open(ML_directory / 'orbitals_to_power_spectra.out', 'a')
     sys.stdout = f 
