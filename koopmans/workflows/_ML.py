@@ -70,9 +70,16 @@ class MLFiitingWorkflow(Workflow):
         self.r_cut = min(self.atoms.get_cell_lengths_and_angles()[:3])#/2.5 #the maximum radius will be set to the minimum of self.r_cut and half of the cell-size later on
         print("r_cut = ", self.r_cut)
         if self.method_to_extract_from_binary == 'from_ki':
-            centers_occ = np.array(self.calculations[-11].results['centers'])
-            centers_emp = np.array(self.calculations[-8].results['centers'])
-            centers     = np.concatenate([centers_occ, centers_emp])
+            # Store the original w90 calculations
+            w90_calcs = [c for c in self.calculations if isinstance(c, calculators.Wannier90Calculator) and c.command.flags == ''][-len(self.projections):]
+            
+            # TODO: implement also the spin-unpolarized case?
+            calc_presets_occ = 'occ'
+            calc_presets_emp = 'emp'
+            centers_occ      = np.array([center for c in w90_calcs for center in c.results['centers'] if calc_presets_occ in c.directory.name])
+            centers_emp      = np.array([center for c in w90_calcs for center in c.results['centers'] if calc_presets_emp in c.directory.name]) 
+            centers = np.concatenate([centers_occ, centers_emp])
+
         else: 
              raise ValueError(f'Currently it is only implemented to extract the real space orbital densities from the ki-trial calculation after the initial wannier-calculation')
         
