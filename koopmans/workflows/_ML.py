@@ -18,23 +18,14 @@ class MLFiitingWorkflow(Workflow):
 
     def __init__(self, calc_that_produced_orbital_densities, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.method_to_extract_from_binary    = 'from_ki'
+        self.method_to_extract_from_binary        = 'from_ki'
         self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
-        self.ML_dir                                                         = self.calc_that_produced_orbital_densities.directory / 'ML' / 'TMP'
+        self.ML_dir                               = self.calc_that_produced_orbital_densities.directory / 'ML' / 'TMP'
         self.predicted_alphas                     = []
         self.calculated_alphas                    = []
         self.fillings_of_predicted_alphas         = []
         self.use_predictions                      = []
         
-        
-        ML_params                = self.master_calc_params['ML']
-        self.n_max               = ML_params.n_max
-        self.l_max               = ML_params.l_max
-        self.r_min               = ML_params.r_min
-        self.r_max               = ML_params.r_max
-        self.criterium           = ML_params.criterium 
-        self.number_of_snapshots = ML_params.number_of_snapshots
-        self.current_snapshot    = ML_params.current_snapshot
 
 
     def _run(self):
@@ -76,12 +67,12 @@ class MLFiitingWorkflow(Workflow):
         else: 
              raise ValueError(f'Currently it is only implemented to extract the real space orbital densities from the ki-trial calculation after the initial wannier-calculation')
         
-        ML_utils.precompute_radial_basis(self.n_max, self.l_max, self.r_min, self.r_max, self.ML_dir)
-        ML_utils.func_compute_decomposition(self.n_max, self.l_max, self.r_min, self.r_max, self.r_cut, self.ML_dir, self.bands_to_extract, self.atoms, centers)
+        ML_utils.precompute_radial_basis(self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max, self.ML_dir)
+        ML_utils.func_compute_decomposition(self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max, self.r_cut, self.ML_dir, self.bands_to_extract, self.atoms, centers)
     
     def compute_power_spectrum(self):
-        self.dir_power = self.ML_dir / f'power_spectra_{self.n_max}_{self.l_max}_{self.r_min}_{self.r_max}'
-        ML_utils.main_compute_power(self.n_max, self.l_max, self.r_min, self.r_max, self.ML_dir, self.dir_power, self.bands_to_extract)
+        self.dir_power = self.ML_dir / f'power_spectra_{self.parameters.n_max}_{self.parameters.l_max}_{self.parameters.r_min}_{self.parameters.r_max}'
+        ML_utils.main_compute_power(self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max, self.ML_dir, self.dir_power, self.bands_to_extract)
 
     def predict(self, band):
         self.print('Predicting screening parameter')
@@ -117,13 +108,13 @@ class MLFiitingWorkflow(Workflow):
     def use_prediction(self):
         # defualt is to not use the prediction
         use_prediction = False
-        if self.criterium == 'after_fixed_num_of_snapshots':
-            if self.current_snapshot < self.number_of_snapshots:
+        if self.parameters.criterium == 'after_fixed_num_of_snapshots':
+            if self.parameters.current_snapshot < self.parameters.number_of_snapshots:
                 use_prediction = False
             else:
                 use_prediction = True
         else: 
-             raise ValueError(f'criterium = {self.criterium} is currently not implemented')
+             raise ValueError(f'criterium = {self.parameters.criterium} is currently not implemented')
         if use_prediction:
             self.print('The prediction-criterium is satisfied -> Use the predicted screening parameter')
         else:

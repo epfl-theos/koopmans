@@ -25,10 +25,11 @@ class TrajectoryWorkflow(Workflow):
 
 
         for i, snapshot in enumerate(self.snapshots):
-            self.master_calc_params['ML'].current_snapshot = i
+            self.parameters.current_snapshot = i
             self.atoms.set_positions(snapshot.positions)
 
             self.print(f'Performing Koopmans calculation on snapshot {i+1} / {len(self.snapshots)}', style='heading')
+
 
 
             if self.parameters.method == 'dfpt':
@@ -50,9 +51,7 @@ class TrajectoryWorkflow(Workflow):
         if isinstance(snapshots, Atoms):
             snapshots = [snapshots]
         bigdct['setup']['atomic_positions'] = utils.construct_atomic_positions_block(snapshots[0])
-
         wf = super(TrajectoryWorkflow, cls)._fromjsondct(bigdct)
-
         wf.snapshots = snapshots
         return wf
     

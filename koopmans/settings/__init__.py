@@ -35,5 +35,4 @@ default_master_calc_params = {'kcp': KoopmansCPSettingsDict(),
                               'wann2kc': Wann2KCSettingsDict(),
                               'w90_occ': Wannier90SettingsDict(),
                               'w90_emp': Wannier90SettingsDict(),
-                              'plot': PlotSettingsDict(),
-                              'ML': MLSettingsDict()}
+                              'plot': PlotSettingsDict()}

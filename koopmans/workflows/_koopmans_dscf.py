@@ -485,8 +485,6 @@ class KoopmansDSCFWorkflow(Workflow):
         # Set up directories
         Path('calc_alpha').mkdir(exist_ok=True)
 
-        use_ML = self.master_calc_params['ML'].use_ML
-
         converged = False
         i_sc = 0
 
@@ -513,7 +511,7 @@ class KoopmansDSCFWorkflow(Workflow):
             restart_from_wannier_pwscf = True if self.parameters.init_orbitals in [
                 'mlwfs', 'projwfs'] and not self._restart_from_old_ki and i_sc == 1 else None
             # Yannick Debug: print_real_space_density = True
-            if use_ML:
+            if self.parameters.use_ML:
                 print_real_space_density = True
             else:
                 print_real_space_density = False
@@ -552,7 +550,7 @@ class KoopmansDSCFWorkflow(Workflow):
             
             # Yannick Debug: replace the actual fixed-band calculations with my logic
 
-            if use_ML:
+            if self.parameters.use_ML:
                 mlfit = MLFiitingWorkflow(trial_calc, **self.wf_kwargs)
                 self.run_subworkflow(mlfit)
             # end Yannick Debug
@@ -560,7 +558,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
             for band in self.bands:
 
-                if use_ML:
+                if self.parameters.use_ML:
                     use_prediction = False
                 # For a KI calculation with only filled bands, we don't have any further calculations to
                 # do so we don't enter this section to avoid printing any headers
@@ -633,17 +631,17 @@ class KoopmansDSCFWorkflow(Workflow):
 
                     # Yannick Debug: replace the actual fixed-band calculations with reading them from a file
                     Debug_Yannick = True 
-                    if use_ML:
+                    if self.parameters.use_ML:
                         alpha_predicted = mlfit.predict(band)
                         use_prediction  = mlfit.use_prediction()
                     if not Debug_Yannick:
-                        if(not (use_ML and use_prediction)):
+                        if(not (self.parameters.use_ML and use_prediction)):
                             self.perform_fixed_band_calculations(band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band, directory, alpha_indep_calcs)
                     # end Yannick Debug
  
                     
 
-                if(use_ML and use_prediction and not Debug_Yannick):
+                if(self.parameters.use_ML and use_prediction and not Debug_Yannick):
                     alpha = alpha_predicted
                     error = 0.0 # I would set the error for the predicted alphas to 0.0, because currently we don't want to make another scf-step because of predicted alphas
                 else:
@@ -672,7 +670,7 @@ class KoopmansDSCFWorkflow(Workflow):
                         b.alpha = alpha
                         b.error = error
 
-                if(use_ML and (not use_prediction or Debug_Yannick)):
+                if(self.parameters.use_ML and (not use_prediction or Debug_Yannick)):
                     mlfit.print_error_of_single_orbital(alpha_predicted, alpha, indent = self.print_indent+2)
                     mlfit.add_training_data(band)
                     if not use_prediction:
@@ -682,7 +680,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
             converged = all([abs(b.error) < 1e-3 for b in self.bands])
 
-            if(use_ML and (not any(mlfit.use_predictions) or Debug_Yannick)):
+            if(self.parameters.use_ML and (not any(mlfit.use_predictions) or Debug_Yannick)):
                 mlfit.print_error_of_all_orbitals(indent=self.print_indent + 1)
 
         if converged:

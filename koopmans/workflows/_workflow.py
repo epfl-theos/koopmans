@@ -66,7 +66,11 @@ class Workflow(ABC):
                  autogenerate_settings: bool = True):
         
         # Parsing parameters
-        self.parameters = settings.WorkflowSettingsDict(**parameters)
+        if 'use_ML' in parameters:
+            self.parameters = settings.MLSettingsDict(**parameters)
+        else:
+            self.parameters = settings.WorkflowSettingsDict(**parameters)
+        
         self.atoms = atoms
         self.name = name
         self.calculations: List[calculators.CalculatorExt] = []
@@ -244,9 +248,8 @@ class Workflow(ABC):
         # Records whether or not this workflow is a subworkflow of another
         self._is_a_subworkflow = False
 
-
         # Yannick Debug: initialize the RidgeRegression() model
-        if self.master_calc_params['ML'].use_ML:
+        if self.parameters.use_ML:
             self.ml_model         = RidgeRegression()
 
     def __eq__(self, other):
@@ -409,7 +412,7 @@ class Workflow(ABC):
                         f'{self.pseudo_dir / pseudo} does not exist. Please double-check your pseudopotential settings')
 
         # Make sanity checks for the ML model
-        if self.master_calc_params['ML'].use_ML:
+        if self.parameters.use_ML:
             if self.parameters.task != 'trajectory':
                 utils.warn(f'Using the ML-prediction for the {self.parameter.task}-task has not yet been implemented.')
             if self.parameters.functional != 'ki':
@@ -714,7 +717,7 @@ class Workflow(ABC):
         workflow.calculations = self.calculations
 
         # Yannick Debug: Link the ML_Model
-        if self.master_calc_params['ML'].use_ML:
+        if self.parameters.use_ML:
             workflow.ml_model = self.ml_model
 
 
@@ -854,21 +857,23 @@ class Workflow(ABC):
         kc_wann_blocks = bigdct.pop('kc_wann', {'kc_ham': {}, 'kc_screen': {}, 'wann2kc': {}})
         bigdct.update(**kc_wann_blocks)
 
+        # Loading plot settings
+        plot_params = settings.PlotSettingsDict(**utils.parse_dict(bigdct.get('plot', {})))
+
+
+        # Loading workflow settings
+        if 'ML' in bigdct:
+            parameters = settings.MLSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})),
+                                                 **utils.parse_dict(bigdct['ML']))
+            bigdct.pop('ML')
+        else:
+            parameters = settings.WorkflowSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})))
+
         # Check for unexpected blocks
         for block in bigdct:
             if block not in list(settings_classes.keys()) + ['workflow', 'setup']:
                 raise ValueError(f'Unrecognised block "{block}" in json input file; '
                                  'valid options are workflow/' + '/'.join(settings_classes.keys()))
-
-        # Loading plot settings
-        plot_params = settings.PlotSettingsDict(**utils.parse_dict(bigdct.get('plot', {})))
-
-        # Loading workflow settings
-        if 'ml' in bigdct:
-            parameters = settings.MLSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})),
-                                                 **utils.parse_dict(bigdct['ml']))
-        else:
-            parameters = settings.WorkflowSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})))
 
         # Load default values
         if 'setup' in bigdct:
@@ -882,6 +887,8 @@ class Workflow(ABC):
             atoms = Atoms()
             setup_parameters = {}
             workflow_kwargs = {}
+
+
 
         # Loading calculator-specific settings. We generate a SettingsDict for every single kind of calculator,
         # regardless of whether or not there was a corresponding block in the json file
@@ -926,7 +933,7 @@ class Workflow(ABC):
 
             master_calc_params[block] = settings_class(**dct)
             master_calc_params[block].update(
-                **{k: v for k, v in setup_parameters.items() if master_calc_params[block].is_valid(k)})
+                **{k: v for k, v in setup_parameters.items() if master_calc_params[block].is_valid(k)})  
 
         # Adding the projections to the workflow kwargs (this is unusual in that this is an attribute of the workflow
         # object but it is provided in the w90 subdictionary)
@@ -936,7 +943,6 @@ class Workflow(ABC):
         workflow_kwargs['plot_params'] = plot_params
 
         
-
         return cls(atoms, parameters, master_calc_params, **workflow_kwargs)
 
     def print_header(self):
@@ -1338,8 +1344,7 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'w90_emp_up': settings.Wannier90SettingsDict,
                     'w90_occ_down': settings.Wannier90SettingsDict,
                     'w90_emp_down': settings.Wannier90SettingsDict,
-                    'plot': settings.PlotSettingsDict,
-                    'ML': settings.MLSettingsDict}
+                    'plot': settings.PlotSettingsDict}
 
 
 def sanitise_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]]) \
