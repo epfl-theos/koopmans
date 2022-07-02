@@ -162,6 +162,6 @@ class MLFiitingWorkflow(Workflow):
         params = self.master_calc_params['kcp']
         assert isinstance(params, KoopmansCPSettingsDict)
         alphas = calculators.convert_flat_alphas_for_kcp(flat_alphas, params)
-        assert isinstance(band.index, float)
+        assert isinstance(band.index, int)
         return alphas[0][band.index-1], 0.0
 
