@@ -2,7 +2,7 @@
 
 
 from ._workflow import Workflow
-from typing import List
+from typing import List, Dict, Any
 from ase import Atoms, io
 import json as json_ext
 from koopmans import utils
@@ -45,7 +45,7 @@ class TrajectoryWorkflow(Workflow):
                 self.run_subworkflow(dscf_workflow, subdirectory='snapshot_' + str(i+1))
 
     @classmethod
-    def _fromjsondct(cls, bigdct: str):
+    def _fromjsondct(cls, bigdct: Dict[str, Any]):
         snapshots_file = bigdct['setup'].pop('snapshots')
         snapshots = io.read(snapshots_file, index=':') #TODO raise ValueError if not provided
         if isinstance(snapshots, Atoms):
