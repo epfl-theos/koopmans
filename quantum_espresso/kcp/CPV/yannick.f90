@@ -27,9 +27,6 @@ module yannick_print_orbr
             call nksic_get_orbitalrho( ngw, nnrx, bec, ispin, nbsp_filling, &
                         c0(:,j), c0(:,j+1), orb_rhor, j, j+1, lgam) 
             
-            write(*,*) "Yannick Debug:"
-            write(*,*) j
-            write(*,*) (i - (nbsp_filling+1)/2)
             do jj = 1, 2
                 i=j+jj-1
                 
