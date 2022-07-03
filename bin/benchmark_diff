@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+import argparse
+from pathlib import Path
+from ase.spectrum.band_structure import BandStructure
+from koopmans.utils import system_call
+from koopmans.testing import compare
+from koopmans import mpl_config
+import matplotlib.pyplot as plt
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Detect how a benchmark file has changed')
+    parser.add_argument('seed', metavar='seed', type=str, nargs=1,
+                        help='the benchmark file')
+
+    from koopmans.io import read_kwf as read_encoded_json
+
+    args = parser.parse_args()
+    seed = Path(args.seed[0])
+    with open(seed, 'r') as fd:
+        new_calc = read_encoded_json(fd)
+
+    system_call('git stash > /dev/null')
+
+    with open(seed, 'r') as fd:
+        old_calc = read_encoded_json(fd)
+
+    system_call('git stash apply > /dev/null')
+
+    # Loop through results
+    keys = sorted(list(set(old_calc.results.keys()) | set(new_calc.results.keys())))
+    for key in keys:
+        if key not in new_calc.results:
+            print(f'{key} has been removed')
+        elif key not in old_calc.results:
+            print(f'{key} has been added')
+        else:
+            result = new_calc.results[key]
+            ref_result = old_calc.results[key]
+            message = compare(result, ref_result, key)
+            if message is not None:
+                print(message['message'])
+
+                if isinstance(result, BandStructure):
+                    emin = min([result.energies.min(), ref_result.energies.min()])
+                    emax = max([result.energies.max(), ref_result.energies.max()])
+                    ax = result.plot(colors='rg', emin=emin, emax=emax)
+                    ref_result.plot(ax=ax, colors='bk', ls='--', emin=emin, emax=emax)
+                    plt.show()

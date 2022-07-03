@@ -35,7 +35,7 @@ class WannierizeWorkflow(Workflow):
 
         pw_params = self.master_calc_params['pw']
 
-        if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
+        if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
 
             if self.parameters.spin_polarised:
                 spins = ['up', 'down']
@@ -68,19 +68,18 @@ class WannierizeWorkflow(Workflow):
                 num_wann_emp = self.projections.num_bands(occ=False, spin=spin)
                 num_bands_emp = pw_params.nbnd - num_bands_occ
                 self.projections.add_bands(num_bands_emp - num_wann_emp, above=True, spin=spin)
-
                 # Sanity checking
                 w90_nbnd = self.projections.num_bands(spin=spin)
                 if pw_params.nbnd != w90_nbnd:
                     raise ValueError(
                         f'Number of bands disagrees between pw ({pw_params.nbnd}) and wannier90 ({w90_nbnd})')
 
-        elif self.parameters.init_orbitals == 'kohn-sham':
+        elif self.parameters.init_orbitals == 'kohn-sham' and self.parameters.init_empty_orbitals == 'kohn-sham':
             pass
 
         else:
-            raise NotImplementedError('WannierizeWorkflow supports only init_orbitals = '
-                                      '"mlwfs", "projwfs" or "kohn-sham"')
+            raise NotImplementedError('WannierizeWorkflow only supports setting init_orbitals and init_empty_orbitals to '
+                                      '"mlwfs"/"projwfs" or "kohn-sham"')
 
         # Spin-polarisation
         self._force_nspin2 = force_nspin2
@@ -131,14 +130,19 @@ class WannierizeWorkflow(Workflow):
         calc_pw.prefix = 'nscf'
         self.run_calculator(calc_pw)
 
-        if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
+        if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] and self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
             # Loop over the various subblocks that we must wannierise separately
             for block in self.projections:
+                if block.filled:
+                    init_orbs = self.parameters.init_orbitals
+                else:
+                    init_orbs = self.parameters.init_empty_orbitals
+
                 # Construct the subdirectory label
                 w90_dir = Path('wannier') / block.directory
 
                 # 1) pre-processing Wannier90 calculation
-                calc_w90 = self.new_calculator(block.calc_type, directory=w90_dir,
+                calc_w90 = self.new_calculator(block.calc_type, init_orbitals=init_orbs, directory=w90_dir,
                                                **block.w90_kwargs)
                 calc_w90.prefix = 'wann_preproc'
                 calc_w90.command.flags = '-pp'
@@ -154,6 +158,7 @@ class WannierizeWorkflow(Workflow):
 
                 # 3) Wannier90 calculation
                 calc_w90 = self.new_calculator(block.calc_type, directory=w90_dir,
+                                               init_orbitals=init_orbs,
                                                bands_plot=self.parameters.calculate_bands,
                                                **block.w90_kwargs)
                 calc_w90.prefix = 'wann'
@@ -196,6 +201,7 @@ class WannierizeWorkflow(Workflow):
                 calc_dos.pseudopotentials = self.pseudopotentials
                 calc_dos.spin_polarised = self.parameters.spin_polarised
                 calc_dos.pseudo_dir = calc_pw_bands.parameters.pseudo_dir
+                calc_dos.parameters.prefix = calc_pw_bands.parameters.prefix
                 self.run_calculator(calc_dos)
 
                 # Prepare the DOS for plotting
@@ -207,7 +213,7 @@ class WannierizeWorkflow(Workflow):
                 dos = None
 
             # Select those calculations that generated a band structure
-            selected_calcs = [c for c in self.calculations[:-1] if 'band structure' in c.results]
+            selected_calcs = [c for c in self.calculations[:-1] if 'band structure' in c.results and c != calc_pw_bands]
 
             # Work out the vertical shift to set the valence band edge to zero
             pw_eigs = calc_pw_bands.results['band structure'].energies
@@ -285,14 +291,22 @@ class WannierizeWorkflow(Workflow):
         return
 
     def new_calculator(self, calc_type, *args, **kwargs) -> CalcExtType:
+        init_orbs = kwargs.pop('init_orbitals', None)
         calc: CalcExtType = super().new_calculator(calc_type, *args, **kwargs)
 
         # Extra tweaks for Wannier90 calculations
         if calc_type.startswith('w90'):
             if calc.parameters.num_bands != calc.parameters.num_wann and calc.parameters.dis_num_iter is None:
                 calc.parameters.dis_num_iter = 5000
-            if self.parameters.init_orbitals == 'projwfs':
+
+            # mlwfs/projwfs
+            if init_orbs == 'projwfs':
                 calc.parameters.num_iter = 0
+            elif init_orbs == 'mlwfs':
+                pass
+            else:
+                raise ValueError(f'Unrecognised orbital type {init_orbs} (must be "mlwfs" or "projwfs")')
+
             if calc.parameters.gamma_only != self.gamma_only:
                 # forcing W90 to follow the same logic of PW for the gamma_trick
                 calc.parameters.gamma_only = self.gamma_only
@@ -332,7 +346,8 @@ class WannierizeWorkflow(Workflow):
             # Merging the wannier centres files
             self.merge_wannier_centres_files(dirs_in, dir_out, prefix)
 
-    def merge_wannier_hr_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
+    @staticmethod
+    def merge_wannier_hr_files(dirs_in: List[Path], dir_out: Path, prefix: str):
         # Reading in each hr file in turn
         hr_list = []
         weights_out = None
@@ -374,7 +389,8 @@ class WannierizeWorkflow(Workflow):
 
         utils.write_wannier_hr_file(dir_out / (prefix + '_hr.dat'), hr_out, rvect_out.tolist(), weights_out)
 
-    def merge_wannier_u_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
+    @staticmethod
+    def merge_wannier_u_files(dirs_in: List[Path], dir_out: Path, prefix: str):
         u_list = []
         kpts_master = None
         for dir_in in dirs_in:

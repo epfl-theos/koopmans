@@ -24,8 +24,27 @@ class MLFiitingWorkflow(Workflow):
         super().__init__(*args, **kwargs)
         self.method_to_extract_from_binary        = 'from_ki'
         self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
-        self.ML_dir                               = self.calc_that_produced_orbital_densities.directory / 'ML' / 'TMP'
-        utils.system_call(f'mkdir -p {self.ML_dir}')
+        
+        
+        ML_dir                                    = self.calc_that_produced_orbital_densities.directory / 'ML' / 'TMP'
+        dir_suffix                                = '_'.join(str(x) for x in [self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max])
+        self.dirs                                 = {
+            'ML'        : ML_dir,
+            'xml'       : ML_dir / 'xml', 
+            'alphas'    : ML_dir / 'alphas', 
+            'betas'     : ML_dir / 'betas', 
+            'coeff'     : ML_dir / ('coefficients_'  + dir_suffix),
+            'coeff_orb' : ML_dir / ('coefficients_'  + dir_suffix) / 'coeff_orb',
+            'coeff_tot' : ML_dir / ('coefficients_'  + dir_suffix) / 'coeff_tot',
+            'power'     : ML_dir / ('power_spectra_' + dir_suffix)
+        }
+
+
+        for dir in self.dirs.values():
+            utils.system_call(f'mkdir -p {dir}')
+
+
+
         self.predicted_alphas                     = []
         self.calculated_alphas                    = []
         self.fillings_of_predicted_alphas         = []
@@ -48,7 +67,6 @@ class MLFiitingWorkflow(Workflow):
         self.convert_bin2xml()
         self.compute_decomposition()
         self.compute_power_spectrum()
-        self.print(f' done')
             
 
     # TODO: currently it extracts all orbitals in [1,..,self.n_bands_to_extract[0]] instead of the indices given by self.bands_to_extract
@@ -58,37 +76,31 @@ class MLFiitingWorkflow(Workflow):
         else:
             raise NotImplementedError(f'Currently it is only implemented to extract the real space orbital densities from the ki-trial calculation after the initial wannier-calculation')
 
-        calculation_title = 'convert binary->xml real space densities'
-        xml_dir                              = self.ML_dir / 'xml'
-        utils.system_call(f'mkdir -p {xml_dir}')
-        is_complete = self.check_if_bin2xml_is_complete(xml_dir)
+        calculation_title = 'conversion binary->xml of real-space-densities'
+        is_complete = self.check_if_bin2xml_is_complete()
         
-
         if not self.parameters.from_scratch and is_complete:
             self.print(f'Not running {calculation_title} as it is already complete')
         else:
             self.print(f'Running {calculation_title}...', end='', flush=True)
-            command  = str(calculators.bin_directory / 'bin2xml_real_space_density.x ') + ' '.join(str(x) for x in [orbital_densities_bin_dir, xml_dir, self.n_bands_to_extract[0], self.n_bands_to_extract[1], self.nspin_to_extract])
+            command  = str(calculators.bin_directory / 'bin2xml_real_space_density.x ') + ' '.join(str(x) for x in [orbital_densities_bin_dir, self.dirs['xml'], self.n_bands_to_extract[0], self.n_bands_to_extract[1], self.nspin_to_extract])
             utils.system_call(command)
             self.print(f' done')
             
 
-    def check_if_bin2xml_is_complete(self, xml_dir: Path) -> bool:
-        print(print(os.listdir(xml_dir)))
-        print("length of files in directory = ", len([name for name in os.listdir(xml_dir) if os.path.isfile(xml_dir / name)]))
-        if (len([name for name in os.listdir(xml_dir) if os.path.isfile(xml_dir / name)])==(self.n_bands_to_extract[0] + self.n_bands_to_extract[1])):
+    def check_if_bin2xml_is_complete(self) -> bool:
+        if (len([name for name in os.listdir(self.dirs['xml']) if os.path.isfile(self.dirs['xml'] / name)])==(self.n_bands_to_extract[0] + self.n_bands_to_extract[1]+1)):
             return True
         else:
             return False
 
     def compute_decomposition(self):
-        calculation_title = 'compute decomposition of real space density'
-        is_complete       = self.check_if_bin2xml_is_complete(self.ML_dir)
+        calculation_title = 'computation of decomposition of real-space-density'
+        is_complete       = self.check_if_compute_decomposition_is_complete()
         if not self.parameters.from_scratch and is_complete:
             self.print(f'Not running {calculation_title} as it is already complete')
         else:
-
-
+            self.print(f'Running {calculation_title}...', end='', flush=True)
             self.r_cut = min(self.atoms.get_cell_lengths_and_angles()[:3])#/2.5 #the maximum radius will be set to the minimum of self.r_cut and half of the cell-size later on
             if self.method_to_extract_from_binary == 'from_ki':
                 centers_occ = np.array(self.calculations[-11].results['centers'])
@@ -97,19 +109,21 @@ class MLFiitingWorkflow(Workflow):
             else: 
                 raise NotImplementedError(f'Currently it is only implemented to extract the real space orbital densities from the ki-trial calculation after the initial wannier-calculation')
             
-            ML_utils.precompute_radial_basis(self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max, self.ML_dir)
-            ML_utils.func_compute_decomposition(self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max, self.r_cut, self.ML_dir, self.bands_to_extract, self.atoms, centers)
+            ML_utils.precompute_radial_basis(self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max, self.dirs)
+            ML_utils.func_compute_decomposition(self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max, self.r_cut, self.dirs, self.bands_to_extract, self.atoms, centers)
+            self.print(f' done')
     
-    def check_if_compute_decomposition_is_complete(self, coff_dir: Path) -> bool:
-        if (len([name for name in os.listdir(coff_dir) if os.path.isfile(name)])==(self.n_bands_to_extract[0] + self.n_bands_to_extract[1])):
+    def check_if_compute_decomposition_is_complete(self) -> bool:
+        if (len([name for name in os.listdir(self.dirs['coeff'] / 'coeff_tot') if os.path.isfile(self.dirs['coeff'] / 'coeff_tot' / name)])==(self.n_bands_to_extract[0] + self.n_bands_to_extract[1])):
             return True
         else:
             return False
     
     def compute_power_spectrum(self):
-        self.print(f'compute power spectrum...', end='', flush=True)
-        self.dir_power = self.ML_dir / f'power_spectra_{self.parameters.n_max}_{self.parameters.l_max}_{self.parameters.r_min}_{self.parameters.r_max}'
-        ML_utils.main_compute_power(self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max, self.ML_dir, self.dir_power, self.bands_to_extract)
+        calculation_title = 'computation of power spectrum'
+        self.print(f'Running {calculation_title}...', end='', flush=True)
+        ML_utils.main_compute_power(self.parameters.n_max, self.parameters.l_max, self.dirs, self.bands_to_extract)
+        self.print(f' done')
 
     def predict(self, band: Band) -> float:
         self.print('Predicting screening parameter')
@@ -138,7 +152,7 @@ class MLFiitingWorkflow(Workflow):
             filled_str = 'occ'
         else:
             filled_str = 'emp'
-        return np.loadtxt(self.dir_power / f"power_spectrum.orbital.{filled_str}.{band.index}.txt")
+        return np.loadtxt(self.dirs['power'] / f"power_spectrum.orbital.{filled_str}.{band.index}.txt")
 
 
     
@@ -170,7 +184,7 @@ class MLFiitingWorkflow(Workflow):
             duplicate = 1
         alphas   = [a for _ in range(duplicate) for a in self.predicted_alphas]
         fillings = [f for _ in range(duplicate) for f in self.fillings_of_predicted_alphas]
-        utils.write_alpha_file(self.ML_dir, alphas, fillings)
+        utils.write_alpha_file(self.dirs['ML'], alphas, fillings)
 
     
     def print_error_of_single_orbital(self, alpha_predicted:float, alpha_calculated:float, indent: int = 0):

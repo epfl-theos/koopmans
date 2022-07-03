@@ -9,6 +9,7 @@ Converted workflows from functions to objects Nov 2020
 
 from abc import ABC, abstractmethod
 import os
+import shutil
 import copy
 import operator
 from functools import reduce
@@ -33,8 +34,7 @@ from ase.spectrum.dosdata import GridDOSData
 from ase.spectrum.doscollection import GridDOSCollection
 from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, pseudo_database, fetch_pseudo, \
     valence_from_pseudo
-from koopmans import utils, settings
-import koopmans.calculators as calculators
+from koopmans import utils, settings, calculators
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.bands import Bands
 from koopmans.projections import ProjectionBlocks
@@ -51,8 +51,8 @@ class Workflow(ABC):
 
     def __init__(self, atoms: Atoms,
                  parameters: settings.SettingsDict = settings.WorkflowSettingsDict(),
-                 master_calc_params: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]
-                                           ] = settings.default_master_calc_params,
+                 master_calc_params: Optional[Union[Dict[str, Dict[str, Any]],
+                                                    Dict[str, settings.SettingsDict]]] = None,
                  name: str = 'koopmans_workflow',
                  pseudopotentials: Dict[str, str] = {},
                  pseudo_dir: Optional[Path] = None,
@@ -62,7 +62,7 @@ class Workflow(ABC):
                  kpath: Optional[Union[BandPath, str]] = None,
                  kpath_density: int = 10,
                  projections: Optional[ProjectionBlocks] = None,
-                 plot_params: Optional[settings.PlotSettingsDict] = None,
+                 plot_params: Union[Dict[str, Any], settings.PlotSettingsDict] = {},
                  autogenerate_settings: bool = True):
         
         # Parsing parameters
@@ -73,7 +73,7 @@ class Workflow(ABC):
         
         self.atoms = atoms
         self.name = name
-        self.calculations: List[calculators.CalculatorExt] = []
+        self.calculations: List[calculators.Calc] = []
         self.silent = False
         self.print_indent = 1
         self.gamma_only = gamma_only
@@ -100,7 +100,7 @@ class Workflow(ABC):
         else:
             self.projections = projections
 
-        self.plot_params = settings.PlotSettingsDict() if plot_params is None else plot_params
+        self.plot_params = settings.PlotSettingsDict(**plot_params)
 
         if 'periodic' in parameters:
             # If "periodic" was explicitly provided, override self.atoms.pbc
@@ -115,9 +115,14 @@ class Workflow(ABC):
         # Pseudopotentials and pseudo_dir
         if pseudopotentials:
             self.pseudopotentials = pseudopotentials
-        elif self.parameters.pseudo_library:
+        else:
+            if self.parameters.pseudo_library is None:
+                utils.warn(
+                    'Neither a pseudopotential library nor a list of pseudopotentials was provided; defaulting to '
+                    'sg15_v1.2')
+                self.parameters.pseudo_library = 'sg15_v1.2'
             self.pseudopotentials = {}
-            for symbol in set(self.atoms.symbols):
+            for symbol, tag in set([(a.symbol, a.tag) for a in self.atoms]):
                 pseudo = fetch_pseudo(element=symbol, functional=self.parameters.base_functional,
                                       library=self.parameters.pseudo_library)
                 if pseudo.kind == 'unknown':
@@ -127,13 +132,14 @@ class Workflow(ABC):
                 elif pseudo.kind != 'norm-conserving':
                     raise ValueError('Koopmans functionals only currently support norm-conserving pseudopotentials; '
                                      f'{pseudo.name} is {pseudo.kind}')
+                if tag > 0:
+                    symbol += str(tag)
                 self.pseudopotentials[symbol] = pseudo.name
-        else:
-            self.pseudopotentials = pseudopotentials
 
         # Make sure master_calc_params isn't missing any entries, and every entry corresponds to settings.SettingsDict
         # objects
-        master_calc_params = sanitise_master_calc_params(master_calc_params)
+        master_calc_params = sanitise_master_calc_params(
+            master_calc_params) if master_calc_params is not None else generate_default_master_calc_params()
 
         # Work out the pseudopotential directory. If using a pseudo_library this is straightforward, if not...
         #  1. try to locating the directory as currently specified by the calculator
@@ -171,7 +177,7 @@ class Workflow(ABC):
 
             # Setting up the magnetic moments
             if 'starting_magnetization(1)' in master_calc_params['kcp']:
-                labels = [s + str(t) if t != 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
+                labels = [s + str(t) if t > 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
                 starting_magmoms = {}
                 for i, (l, p) in enumerate(self.pseudopotentials.items()):
                     # ASE uses absoulte values; QE uses the fraction of the valence
@@ -190,7 +196,7 @@ class Workflow(ABC):
             generated_keywords = {}
             nelec = 0
 
-        self.master_calc_params = settings.default_master_calc_params.copy()
+        self.master_calc_params = generate_default_master_calc_params()
         for block, params in master_calc_params.items():
             # Apply auto-generated keywords
             for k, v in generated_keywords.items():
@@ -252,7 +258,7 @@ class Workflow(ABC):
         if self.parameters.use_ML:
             self.ml_model         = RidgeRegression()
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any):
         if isinstance(other, Workflow):
             return self.__dict__ == other.__dict__
         return False
@@ -263,6 +269,8 @@ class Workflow(ABC):
             self._run_sanity_checks()
         self._run()
         self.print_conclusion()
+        if not self._is_a_subworkflow:
+            self._teardown()
 
     @abstractmethod
     def _run(self) -> None:
@@ -277,11 +285,11 @@ class Workflow(ABC):
         self._pseudopotentials = value
 
     @property
-    def gamma_only(self):
+    def gamma_only(self) -> Optional[bool]:
         return self._gamma_only
 
     @gamma_only.setter
-    def gamma_only(self, value: bool):
+    def gamma_only(self, value: Optional[bool]):
         self._gamma_only = value
 
     @property
@@ -311,7 +319,7 @@ class Workflow(ABC):
         self._kpath = value
 
     @property
-    def wf_kwargs(self):
+    def wf_kwargs(self) -> Dict[str, Any]:
         # Returns a kwargs designed to be used to initialise another workflow with the same configuration as this one
         # i.e.
         # > sub_wf = Workflow(**self.wf_kwargs)
@@ -419,7 +427,7 @@ class Workflow(ABC):
                 utils.warn(f'Using the ML-prediction for the {self.parameters.functional}-functional has not yet been implemented.')
             if self.parameters.init_orbitals != 'mlwfs':
                 raise NotImplementedError(f'Using the ML-prediction for {self.parameters.init_orbitals}-init orbitals has not yet been implemented.')
-            if self.parameters.init_empty_orbitals != 'same':
+            if self.parameters.init_empty_orbitals != self.parameters.init_orbitals:
                 raise NotImplementedError(f'Using the ML-prediction for using different init orbitals for empty states than for occupied states has not yet been implemented.')
             if not self.parameters.periodic:
                 utils.warn(f'Using the ML-prediction for non-periodic systems has not yet been implemented')
@@ -616,13 +624,6 @@ class Workflow(ABC):
         # Store the calculator
         self.calculations.append(qe_calc)
 
-        # Print quality control
-        if self.parameters.print_qc and not qe_calc.skip_qc:
-            for result in qe_calc.results_for_qc:
-                val = qe_calc.results.get(result, None)
-                if val:
-                    self.print_qc_keyval(result, val, qe_calc)
-
         # If we reached here, all future calculations should be performed from scratch
         self.parameters.from_scratch = True
 
@@ -665,23 +666,6 @@ class Workflow(ABC):
             utils.indented_print()
             utils.indented_print(str(text), self.print_indent, **kwargs)
             utils.indented_print(underline * len(text), self.print_indent, **kwargs)
-
-    def print_qc_keyval(self, key, value, calc=None):
-        '''
-        Prints out a quality control message for testcode to evaluate, and if a calculator is provided, stores the
-        result in calc.qc_results
-        '''
-
-        if calc is None:
-            calc_str = ''
-        else:
-            calc_str = f'{calc.prefix}_'
-
-        if not isinstance(value, list):
-            self.print(f'<QC> {calc_str}{key} {value}')
-
-        if calc is not None:
-            calc.qc_results[key] = value
 
     def run_subworkflow(self, workflow, subdirectory=None, from_scratch=None, **kwargs):
         '''
@@ -1060,7 +1044,7 @@ class Workflow(ABC):
                 bigdct['setup']['control'] = {'pseudo_dir': str(pseudo_dir)}
 
             # If the params_dict is empty, don't add a block for this calculator
-            if not params_dict:
+            if not params_dict and not code.startswith('w90'):
                 continue
 
             if code in ['pw', 'kcp']:
@@ -1074,7 +1058,7 @@ class Workflow(ABC):
                         bigdct[code][key] = {k: v for k, v in dict(
                             block).items() if v is not None}
 
-            elif code in ['pw2wannier', 'wann2kc', 'kc_screen', 'kc_ham']:
+            elif code in ['pw2wannier', 'wann2kc', 'kc_screen', 'kc_ham', 'projwfc', 'wann2kcp', 'plot']:
                 bigdct[code] = params_dict
             elif code.startswith('ui_'):
                 bigdct['ui'][code.split('_')[-1]] = params_dict
@@ -1097,10 +1081,11 @@ class Workflow(ABC):
                 projections = self.projections.get_subset(filling, spin)
                 if len(projections) > 1:
                     proj_kwarg = {'projections_blocks': [p.projections for p in projections]}
-                else:
+                elif len(projections) == 1:
                     proj_kwarg = {'projections': projections[0].projections}
+                else:
+                    proj_kwarg = {}
                 reduce(operator.getitem, nested_keys[:-1], bigdct['w90'])[k].update(**proj_kwarg)
-
             else:
                 raise NotImplementedError(
                     f'Writing of {params.__class__.__name__} with write_json is not yet implemented')
@@ -1218,6 +1203,18 @@ class Workflow(ABC):
         legends = [ax.get_legend() for ax in axes if ax.get_legend() is not None]
         utils.savefig(fname=filename + '.png', bbox_extra_artists=legends, bbox_inches='tight')
 
+    def _teardown(self):
+        '''
+        Performs final tasks before the workflow completes
+        '''
+
+        # Removing tmpdirs
+        if not self.parameters.keep_tmpdirs:
+            all_outdirs = [calc.parameters.get('outdir', None) for calc in self.calculations]
+            outdirs = set([o.resolve() for o in all_outdirs if o is not None and o.resolve().exists()])
+            for outdir in outdirs:
+                shutil.rmtree(outdir)
+
 
 def get_version(module):
     if isinstance(module, ModuleType):
@@ -1326,6 +1323,25 @@ def read_setup_dict(dct: Dict[str, Any], task: str):
     return atoms, parameters, psps_and_kpts
 
 
+def generate_default_master_calc_params():
+    # Dictionary to be used as the default value for 'master_calc_params' when initialising a workflow
+    # We create this dynamically in order for the .directory attributes to make sense
+    return {'kcp': settings.KoopmansCPSettingsDict(),
+            'kc_ham': settings.KoopmansHamSettingsDict(),
+            'kc_screen': settings.KoopmansScreenSettingsDict(),
+            'projwfc': settings.ProjwfcSettingsDict(),
+            'pw': settings.PWSettingsDict(),
+            'pw2wannier': settings.PW2WannierSettingsDict(),
+            'wann2kcp': settings.Wann2KCPSettingsDict(),
+            'ui': settings.UnfoldAndInterpolateSettingsDict(),
+            'ui_occ': settings.UnfoldAndInterpolateSettingsDict(),
+            'ui_emp': settings.UnfoldAndInterpolateSettingsDict(),
+            'wann2kc': settings.Wann2KCSettingsDict(),
+            'w90_occ': settings.Wannier90SettingsDict(),
+            'w90_emp': settings.Wannier90SettingsDict(),
+            'plot': settings.PlotSettingsDict()}
+
+
 # Define which function to use to read each block
 settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'kc_ham': settings.KoopmansHamSettingsDict,
@@ -1355,9 +1371,9 @@ def sanitise_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, setting
         if isinstance(dct, settings.SettingsDict):
             dct_out[k] = dct
             if dct_out[k].directory == '':
-                dct_out[k].directory = Path().resolve()
+                dct_out[k].directory = Path.cwd()
         else:
-            dct_out[k] = cls(**dct, directory=Path().resolve())
+            dct_out[k] = cls(**dct, directory=Path.cwd())
 
     for k in dct_in.keys():
         if k not in settings_classes:

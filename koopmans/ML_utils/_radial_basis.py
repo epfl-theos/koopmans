@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Dict
 import numpy as np
 from scipy.integrate import quad
 from scipy.optimize import fsolve
@@ -45,9 +46,9 @@ def g(r: np.ndarray,n:int,n_max:int,l:int,betas: np.ndarray,alphas: np.ndarray):
     return sum(betas[n_prime, n, l]*phi(r, l, alphas[n_prime]) for n_prime in range(n_max))
 
 
-def precompute_radial_basis(n_max:int , l_max:int, r_min_thr:float, r_max_thr:float, ML_directory:Path):
+def precompute_radial_basis(n_max:int , l_max:int, r_min_thr:float, r_max_thr:float, dirs:Dict[str,Path]):
     orig_stdout = sys.stdout
-    with open(ML_directory / 'orbitals_to_power_spectra.out', 'a') as f:
+    with open(dirs['ML'] / 'orbitals_to_power_spectra.out', 'a') as f:
         sys.stdout = f 
 
         print("\nprecompute radial basis\n") 
@@ -73,16 +74,11 @@ def precompute_radial_basis(n_max:int , l_max:int, r_min_thr:float, r_max_thr:fl
         for l in range(l_max):
             betas[:,:,l] = compute_beta(n_max, l, alphas)
         
-        betas_folder  = ML_directory / 'betas'  
-        alphas_folder = ML_directory / 'alphas'  
-        betas_folder.mkdir(exist_ok=True)
-        alphas_folder.mkdir(exist_ok=True)
 
-
-        betas.tofile(betas_folder / ('betas_'    + '_'.join(str(x) for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
-        alphas.tofile(alphas_folder / ('alphas_'    + '_'.join(str(x) for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
-
+        betas.tofile(dirs['betas'] / ('betas_'    + '_'.join(str(x) for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
+        alphas.tofile(dirs['alphas'] / ('alphas_'    + '_'.join(str(x) for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
     sys.stdout = orig_stdout
+
 
 
     # r = np.linspace(0,4,1000)

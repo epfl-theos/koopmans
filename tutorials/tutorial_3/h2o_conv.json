@@ -1,0 +1,63 @@
+{
+    "workflow": {
+        "functional": "dft",
+        "task": "convergence",
+        "from_scratch": true,
+        "convergence_observable": "homo energy",
+        "convergence_threshold": "0.01 eV",
+        "convergence_parameters": [
+            "ecutwfc",
+            "cell_size"
+        ],
+        "fix_spin_contamination": false,
+        "pseudo_library": "sg15_v1.0"
+    },
+    "setup": {
+        "system": {
+            "ecutwfc": 20.0
+        },
+        "atomic_positions": {
+            "units": "angstrom",
+            "positions": [
+                [
+                    "O",
+                    3.7571,
+                    3.0,
+                    2.902317
+                ],
+                [
+                    "H",
+                    4.5142,
+                    3.0,
+                    3.488417
+                ],
+                [
+                    "H",
+                    3.0,
+                    3.0,
+                    3.488417
+                ]
+            ]
+        },
+        "cell_parameters": {
+            "units": "angstrom",
+            "vectors": [
+                [
+                    7.514200,
+                    0.000000,
+                    0.000000
+                ],
+                [
+                    0.000000,
+                    6.000000,
+                    0.000000
+                ],
+                [
+                    0.000000,
+                    0.000000,
+                    6.586100
+                ]
+            ]
+        }
+    }
+}

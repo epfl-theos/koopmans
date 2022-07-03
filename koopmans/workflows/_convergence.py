@@ -14,12 +14,14 @@ from typing import Union, List
 from pathlib import Path
 from koopmans import utils
 from ._workflow import Workflow
-from ._singlepoint import SinglepointWorkflow
 
 
 class ConvergenceWorkflow(Workflow):
 
     def _run(self, initial_depth: int = 3) -> None:
+
+        # Deferred import to allow for monkeypatchings
+        from koopmans import workflows
 
         if 'kcp' in self.master_calc_params:
             kcp_master_params = self.master_calc_params['kcp']
@@ -126,7 +128,7 @@ class ConvergenceWorkflow(Workflow):
                 wf_kwargs = self.wf_kwargs
                 wf_kwargs['atoms'] = atoms
                 wf_kwargs['master_calc_params']['kcp'] = kcp_params
-                singlepoint = SinglepointWorkflow(**wf_kwargs)
+                singlepoint = workflows.SinglepointWorkflow(**wf_kwargs)
                 self.run_subworkflow(singlepoint, subdirectory=subdir)
                 solved_calc = singlepoint.calculations[-1]
 
@@ -171,11 +173,6 @@ class ConvergenceWorkflow(Workflow):
 
                 self.print('\n Converged parameters are '
                            + ', '.join([f'{k} = {v}' for k, v in converged_parameters.items()]))
-
-                # Print out quality control if requested
-                for param, value in converged_parameters.items():
-                    if self.parameters.print_qc:
-                        self.print_qc_keyval(param, value)
 
                 return
             else:

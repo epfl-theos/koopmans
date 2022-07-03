@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Dict
 import numpy as np
 import sys
 
@@ -32,17 +33,12 @@ def compute_power(coff_matrix: np.ndarray, n_max: int, l_max: int):
     return np.array(power)
 
 
-def main_compute_power(n_max: int, l_max: int, r_min: float, r_max: float, ML_directory: Path, dir_power: Path, bands: Bands):
+def main_compute_power(n_max: int, l_max: int, dirs: Dict[str, Path], bands: Bands):
     orig_stdout = sys.stdout
-    with open(ML_directory / 'orbitals_to_power_spectra.out', 'a') as f:
+    with open(dirs['ML'] / 'orbitals_to_power_spectra.out', 'a') as f:
 
         sys.stdout = f 
         print("\n\ncompute power spectrum\n")
-
-        dir_coeff = ML_directory / ('coefficients_' + '_'.join(str(x) for x in [n_max, l_max, r_min, r_max]))
-        dir_power.mkdir(exist_ok=True)
-        dir_orb   = dir_coeff / 'coff_orb'
-        dir_tot   = dir_coeff / 'coff_tot'
 
 
         for band in bands:
@@ -52,11 +48,11 @@ def main_compute_power(n_max: int, l_max: int, r_min: float, r_max: float, ML_di
             else:
                 filled_str = 'emp'
             
-            coff_orb        = np.atleast_1d(np.loadtxt(dir_orb / f'coff.orbital.{filled_str}.{band.index}.txt'))
-            coff_tot        = np.atleast_1d(np.loadtxt(dir_tot / f'coff.total.{filled_str}.{band.index}.txt'))
+            coff_orb        = np.atleast_1d(np.loadtxt(dirs['coeff_orb'] / f'coff.orbital.{filled_str}.{band.index}.txt'))
+            coff_tot        = np.atleast_1d(np.loadtxt(dirs['coeff_tot'] / f'coff.total.{filled_str}.{band.index}.txt'))
             coff_matrix     = read_in(coff_orb, coff_tot, n_max, l_max)
             power_mat       = compute_power(coff_matrix, n_max, l_max)
-            np.savetxt(dir_power / f"power_spectrum.orbital.{filled_str}.{band.index}.txt", power_mat)
-    
+            np.savetxt(dirs['power'] / f"power_spectrum.orbital.{filled_str}.{band.index}.txt", power_mat)
     sys.stdout = orig_stdout
+    
 

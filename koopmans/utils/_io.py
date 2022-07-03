@@ -196,6 +196,13 @@ def read_wannier_hr_file(fname: Path) -> Tuple[np.ndarray, np.ndarray, List[int]
     """
     Reads in a hr file, but does not reshape the hamiltonian (because we want to reshape different Hamiltonians
     differently)
+
+    Returns a tuple containing...
+        - the hamiltonian
+        - the r-vectors
+        - the list of weights
+        - the number of wannier functions
+
     """
 
     with open(fname, 'r') as fd:

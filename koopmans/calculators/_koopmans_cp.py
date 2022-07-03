@@ -48,7 +48,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
     ext_in = '.cpi'
     ext_out = '.cpo'
 
-    def __init__(self, atoms: Atoms, skip_qc: bool = False, alphas: Optional[List[List[float]]] = None,
+    def __init__(self, atoms: Atoms, alphas: Optional[List[List[float]]] = None,
                  filling: Optional[List[List[bool]]] = None, **kwargs):
         # Define the valid parameters
         self.parameters = settings.KoopmansCPSettingsDict()
@@ -56,7 +56,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
         # Initialise first using the ASE parent and then CalculatorExt
         Espresso_kcp.__init__(self, atoms=atoms)
-        CalculatorExt.__init__(self, skip_qc, **kwargs)
+        CalculatorExt.__init__(self, **kwargs)
 
         # Add nelec, nelup, neldw if they are missing
         if 'nelec' not in self.parameters and 'pseudopotentials' in self.parameters:
@@ -76,7 +76,6 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             self.alphas = alphas
         if filling is not None:
             self.filling = filling
-        self.results_for_qc = ['energy', 'homo_energy', 'lumo_energy']
 
         # Give the calculator an attribute to keep track of which band has been held fixed, for calculations where
         # fixed_state = .true.. N.B. this differs from self.parameters.fixed_band in the case of empty orbitals (see
