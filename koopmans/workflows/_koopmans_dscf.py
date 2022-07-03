@@ -213,8 +213,6 @@ class KoopmansDSCFWorkflow(Workflow):
             postproc/             -- the unfolding and interpolation of the final band structure
         '''
 
-        # import ipdb 
-        # ipdb.set_trace()
 
         # Removing old directories
         if self.parameters.from_scratch:
@@ -231,9 +229,6 @@ class KoopmansDSCFWorkflow(Workflow):
         self.print('Initialisation of density and variational orbitals', style='heading')
         self.perform_initialisation()
 
-        # import ipdb 
-        # ipdb.set_trace()
-        # print("Yannick Debug: already here alpha is no longer 0.6")
 
         if self.parameters.from_scratch and not self._restart_from_old_ki \
                 and self.parameters.fix_spin_contamination \
@@ -248,8 +243,6 @@ class KoopmansDSCFWorkflow(Workflow):
             if calc.has_empty_states():
                 utils.system_call(f'cp {savedir}/evc0_empty1.dat {savedir}/evc0_empty2.dat')
 
-        # import ipdb 
-        # ipdb.set_trace()
 
         self.print('Calculating screening parameters', style='heading')
         if self.parameters.calculate_alpha:
@@ -478,10 +471,6 @@ class KoopmansDSCFWorkflow(Workflow):
                 utils.system_call(f'cp {savedir}/evc_empty{ispin + 1}.dat {savedir}/evc0_empty{ispin + 1}.dat')
 
     def perform_alpha_calculations(self) -> None:
-        # import ipdb 
-        # ipdb.set_trace()
-        # print("Yannick Debug: Here are the alphas already set to the values from the previous snapshot")
-
         # Set up directories
         Path('calc_alpha').mkdir(exist_ok=True)
 
@@ -510,7 +499,6 @@ class KoopmansDSCFWorkflow(Workflow):
             # Do a KI/KIPZ calculation with the updated alpha values
             restart_from_wannier_pwscf = True if self.parameters.init_orbitals in [
                 'mlwfs', 'projwfs'] and not self._restart_from_old_ki and i_sc == 1 else None
-            # Yannick Debug: print_real_space_density = True
             if self.parameters.use_ML:
                 print_real_space_density = True
             else:

@@ -14,6 +14,8 @@ import numpy as np
 from typing import List, Dict, Any, Tuple
 from pathlib import Path
 
+import os
+
 from sklearn.metrics import mean_absolute_error as mae
 
 class MLFiitingWorkflow(Workflow):
@@ -23,6 +25,7 @@ class MLFiitingWorkflow(Workflow):
         self.method_to_extract_from_binary        = 'from_ki'
         self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
         self.ML_dir                               = self.calc_that_produced_orbital_densities.directory / 'ML' / 'TMP'
+        utils.system_call(f'mkdir -p {self.ML_dir}')
         self.predicted_alphas                     = []
         self.calculated_alphas                    = []
         self.fillings_of_predicted_alphas         = []
@@ -42,37 +45,69 @@ class MLFiitingWorkflow(Workflow):
 
 
     def extract_input_vector_for_ML_model(self):
-        self.print(f'Computing the power spectra from the real space densities...', end='', flush=True)
-        self.convert_binary_to_xml()
+        self.convert_bin2xml()
         self.compute_decomposition()
         self.compute_power_spectrum()
         self.print(f' done')
             
 
     # TODO: currently it extracts all orbitals in [1,..,self.n_bands_to_extract[0]] instead of the indices given by self.bands_to_extract
-    def convert_binary_to_xml(self):
-        orbital_densities_bin_dir            = self.calc_that_produced_orbital_densities.parameters.outdir/ f'kc_{self.calc_that_produced_orbital_densities.parameters.ndw}.save'
+    def convert_bin2xml(self):
+        if self.method_to_extract_from_binary == 'from_ki':
+            orbital_densities_bin_dir            = self.calc_that_produced_orbital_densities.parameters.outdir/ f'kc_{self.calc_that_produced_orbital_densities.parameters.ndw}.save'
+        else:
+            raise NotImplementedError(f'Currently it is only implemented to extract the real space orbital densities from the ki-trial calculation after the initial wannier-calculation')
+
+        calculation_title = 'convert binary->xml real space densities'
+        xml_dir                              = self.ML_dir / 'xml'
+        utils.system_call(f'mkdir -p {xml_dir}')
+        is_complete = self.check_if_bin2xml_is_complete(xml_dir)
         
 
-        if self.method_to_extract_from_binary == 'from_ki':
-            utils.system_call(f'mkdir -p {self.ML_dir}')
-            command  = str(calculators.bin_directory / 'bin2xml_real_space_density.x ') + ' '.join(str(x) for x in [orbital_densities_bin_dir, self.ML_dir, self.n_bands_to_extract[0], self.n_bands_to_extract[1], self.nspin_to_extract])
+        if not self.parameters.from_scratch and is_complete:
+            self.print(f'Not running {calculation_title} as it is already complete')
+        else:
+            self.print(f'Running {calculation_title}...', end='', flush=True)
+            command  = str(calculators.bin_directory / 'bin2xml_real_space_density.x ') + ' '.join(str(x) for x in [orbital_densities_bin_dir, xml_dir, self.n_bands_to_extract[0], self.n_bands_to_extract[1], self.nspin_to_extract])
             utils.system_call(command)
+            self.print(f' done')
+            
+
+    def check_if_bin2xml_is_complete(self, xml_dir: Path) -> bool:
+        print(print(os.listdir(xml_dir)))
+        print("length of files in directory = ", len([name for name in os.listdir(xml_dir) if os.path.isfile(xml_dir / name)]))
+        if (len([name for name in os.listdir(xml_dir) if os.path.isfile(xml_dir / name)])==(self.n_bands_to_extract[0] + self.n_bands_to_extract[1])):
+            return True
+        else:
+            return False
 
     def compute_decomposition(self):
-        self.r_cut = min(self.atoms.get_cell_lengths_and_angles()[:3])#/2.5 #the maximum radius will be set to the minimum of self.r_cut and half of the cell-size later on
-        print("r_cut = ", self.r_cut)
-        if self.method_to_extract_from_binary == 'from_ki':
-            centers_occ = np.array(self.calculations[-11].results['centers'])
-            centers_emp = np.array(self.calculations[-8].results['centers'])
-            centers     = np.concatenate([centers_occ, centers_emp])
-        else: 
-             raise ValueError(f'Currently it is only implemented to extract the real space orbital densities from the ki-trial calculation after the initial wannier-calculation')
-        
-        ML_utils.precompute_radial_basis(self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max, self.ML_dir)
-        ML_utils.func_compute_decomposition(self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max, self.r_cut, self.ML_dir, self.bands_to_extract, self.atoms, centers)
+        calculation_title = 'compute decomposition of real space density'
+        is_complete       = self.check_if_bin2xml_is_complete(self.ML_dir)
+        if not self.parameters.from_scratch and is_complete:
+            self.print(f'Not running {calculation_title} as it is already complete')
+        else:
+
+
+            self.r_cut = min(self.atoms.get_cell_lengths_and_angles()[:3])#/2.5 #the maximum radius will be set to the minimum of self.r_cut and half of the cell-size later on
+            if self.method_to_extract_from_binary == 'from_ki':
+                centers_occ = np.array(self.calculations[-11].results['centers'])
+                centers_emp = np.array(self.calculations[-8].results['centers'])
+                centers     = np.concatenate([centers_occ, centers_emp])
+            else: 
+                raise NotImplementedError(f'Currently it is only implemented to extract the real space orbital densities from the ki-trial calculation after the initial wannier-calculation')
+            
+            ML_utils.precompute_radial_basis(self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max, self.ML_dir)
+            ML_utils.func_compute_decomposition(self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max, self.r_cut, self.ML_dir, self.bands_to_extract, self.atoms, centers)
+    
+    def check_if_compute_decomposition_is_complete(self, coff_dir: Path) -> bool:
+        if (len([name for name in os.listdir(coff_dir) if os.path.isfile(name)])==(self.n_bands_to_extract[0] + self.n_bands_to_extract[1])):
+            return True
+        else:
+            return False
     
     def compute_power_spectrum(self):
+        self.print(f'compute power spectrum...', end='', flush=True)
         self.dir_power = self.ML_dir / f'power_spectra_{self.parameters.n_max}_{self.parameters.l_max}_{self.parameters.r_min}_{self.parameters.r_max}'
         ML_utils.main_compute_power(self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max, self.ML_dir, self.dir_power, self.bands_to_extract)
 
@@ -117,7 +152,7 @@ class MLFiitingWorkflow(Workflow):
             else:
                 use_prediction = True
         else: 
-             raise ValueError(f'criterium = {self.parameters.criterium} is currently not implemented')
+             raise NotImplementedError(f'criterium = {self.parameters.criterium} is currently not implemented')
         if use_prediction:
             self.print('The prediction-criterium is satisfied -> Use the predicted screening parameter')
         else:
