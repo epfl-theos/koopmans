@@ -3,14 +3,14 @@ from typing import Any, List
 from ._utils import Setting
 from ._workflow import WorkflowSettingsDict
 from koopmans import utils
-from koopmans.ML_utils.ML_models import RidgeRegression
+from koopmans.ml_utils._ml_models import RidgeRegression
 
 # TODO: perform more sanity checks, like: r_max>r_min, n_max>0, l_max>0, r_max<cell_size/2, the angles of the simulation cell are all 90° 
 
 class MLSettingsDict(WorkflowSettingsDict):
 	def __init__(self, **kwargs) -> None:
 		valid_settings = [
-			Setting('use_ML',
+			Setting('use_ml',
 					'wheather to use the ML model or not',
 					bool, False, (True, False)),
 			Setting('n_max',

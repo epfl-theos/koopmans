@@ -41,7 +41,7 @@ from koopmans.projections import ProjectionBlocks
 from koopmans.references import bib_data
 import koopmans.mpl_config
 import matplotlib.pyplot as plt
-from koopmans.ML_utils.ML_models import RidgeRegression
+from koopmans.ml_utils._ml_models import RidgeRegression
 
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
@@ -66,7 +66,7 @@ class Workflow(ABC):
                  autogenerate_settings: bool = True):
         
         # Parsing parameters
-        if 'use_ML' in parameters:
+        if 'use_ml' in parameters:
             self.parameters = settings.MLSettingsDict(**parameters)
         else:
             self.parameters = settings.WorkflowSettingsDict(**parameters)
@@ -255,7 +255,7 @@ class Workflow(ABC):
         self._is_a_subworkflow = False
 
         # Yannick Debug: initialize the RidgeRegression() model
-        if self.parameters.use_ML:
+        if self.parameters.use_ml:
             self.ml_model         = RidgeRegression()
 
     def __eq__(self, other: Any):
@@ -420,7 +420,7 @@ class Workflow(ABC):
                         f'{self.pseudo_dir / pseudo} does not exist. Please double-check your pseudopotential settings')
 
         # Make sanity checks for the ML model
-        if self.parameters.use_ML:
+        if self.parameters.use_ml:
             if self.parameters.task != 'trajectory':
                 utils.warn(f'Using the ML-prediction for the {self.parameter.task}-task has not yet been implemented.')
             if self.parameters.functional != 'ki':
@@ -701,7 +701,7 @@ class Workflow(ABC):
         workflow.calculations = self.calculations
 
         # Yannick Debug: Link the ML_Model
-        if self.parameters.use_ML:
+        if self.parameters.use_ml:
             workflow.ml_model = self.ml_model
 
 

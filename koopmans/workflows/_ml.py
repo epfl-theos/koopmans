@@ -8,7 +8,7 @@ from ._workflow import Workflow
 from koopmans import utils
 from koopmans.settings import KoopmansCPSettingsDict
 
-from koopmans import ML_utils
+from koopmans import ml_utils
 import numpy as np
 
 from typing import List, Dict, Any, Tuple
@@ -26,17 +26,17 @@ class MLFiitingWorkflow(Workflow):
         self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
         
         
-        ML_dir                                    = self.calc_that_produced_orbital_densities.directory / 'ML' / 'TMP'
+        ml_dir                                    = self.calc_that_produced_orbital_densities.directory / 'ml' / 'TMP'
         dir_suffix                                = '_'.join(str(x) for x in [self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max])
         self.dirs                                 = {
-            'ML'        : ML_dir,
-            'xml'       : ML_dir / 'xml', 
-            'alphas'    : ML_dir / 'alphas', 
-            'betas'     : ML_dir / 'betas', 
-            'coeff'     : ML_dir / ('coefficients_'  + dir_suffix),
-            'coeff_orb' : ML_dir / ('coefficients_'  + dir_suffix) / 'coeff_orb',
-            'coeff_tot' : ML_dir / ('coefficients_'  + dir_suffix) / 'coeff_tot',
-            'power'     : ML_dir / ('power_spectra_' + dir_suffix)
+            'ml'        : ml_dir,
+            'xml'       : ml_dir / 'xml', 
+            'alphas'    : ml_dir / 'alphas', 
+            'betas'     : ml_dir / 'betas', 
+            'coeff'     : ml_dir / ('coefficients_'  + dir_suffix),
+            'coeff_orb' : ml_dir / ('coefficients_'  + dir_suffix) / 'coeff_orb',
+            'coeff_tot' : ml_dir / ('coefficients_'  + dir_suffix) / 'coeff_tot',
+            'power'     : ml_dir / ('power_spectra_' + dir_suffix)
         }
 
 
@@ -60,10 +60,10 @@ class MLFiitingWorkflow(Workflow):
             self.nspin_to_extract = 2
         else:
             self.nspin_to_extract = 1
-        self.extract_input_vector_for_ML_model()
+        self.extract_input_vector_for_ml_model()
 
 
-    def extract_input_vector_for_ML_model(self):
+    def extract_input_vector_for_ml_model(self):
         self.convert_bin2xml()
         self.compute_decomposition()
         self.compute_power_spectrum()
@@ -117,8 +117,8 @@ class MLFiitingWorkflow(Workflow):
             else: 
                 raise NotImplementedError(f'Currently it is only implemented to extract the real space orbital densities from the ki-trial calculation after the initial wannier-calculation')
             
-            ML_utils.precompute_radial_basis(self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max, self.dirs)
-            ML_utils.func_compute_decomposition(self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max, self.r_cut, self.dirs, self.bands_to_extract, self.atoms, centers)
+            ml_utils.precompute_radial_basis(self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max, self.dirs)
+            ml_utils.func_compute_decomposition(self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max, self.r_cut, self.dirs, self.bands_to_extract, self.atoms, centers)
             self.print(f' done')
     
     def check_if_compute_decomposition_is_complete(self) -> bool:
@@ -130,7 +130,7 @@ class MLFiitingWorkflow(Workflow):
     def compute_power_spectrum(self):
         calculation_title = 'computation of power spectrum'
         self.print(f'Running {calculation_title}...', end='', flush=True)
-        ML_utils.main_compute_power(self.parameters.n_max, self.parameters.l_max, self.dirs, self.bands_to_extract)
+        ml_utils.main_compute_power(self.parameters.n_max, self.parameters.l_max, self.dirs, self.bands_to_extract)
         self.print(f' done')
 
     def predict(self, band: Band) -> float:
@@ -192,7 +192,7 @@ class MLFiitingWorkflow(Workflow):
             duplicate = 1
         alphas   = [a for _ in range(duplicate) for a in self.predicted_alphas]
         fillings = [f for _ in range(duplicate) for f in self.fillings_of_predicted_alphas]
-        utils.write_alpha_file(self.dirs['ML'], alphas, fillings)
+        utils.write_alpha_file(self.dirs['ml'], alphas, fillings)
 
     
     def print_error_of_single_orbital(self, alpha_predicted:float, alpha_calculated:float, indent: int = 0):

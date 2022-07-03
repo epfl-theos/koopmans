@@ -19,4 +19,4 @@ from ._wann2kc import Wann2KCSettingsDict
 from ._wannier90 import Wannier90SettingsDict
 from ._workflow import WorkflowSettingsDict
 from ._plot import PlotSettingsDict
-from ._ML import MLSettingsDict
+from ._ml import MLSettingsDict
