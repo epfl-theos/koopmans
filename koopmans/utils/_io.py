@@ -9,7 +9,6 @@ Moved into utils Sep 2021
 
 from datetime import datetime
 import json
-from xmlrpc.client import boolean
 import numpy as np
 import numpy.typing as npt
 from typing import List, Union, Tuple
