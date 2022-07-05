@@ -274,7 +274,7 @@ CONTAINS
        call set_dft_value (icorr,4)
        call set_dft_value (igcx, 8)
        call set_dft_value (igcc, 4)
-   else if (matches ('PBE', dftout) ) then
+   else if (matches ('Yannick_Debug_PBE', dftout) ) then
     ! special case : PBE
        call set_dft_value (icorr,4)
        call set_dft_value (igcx, 3)
