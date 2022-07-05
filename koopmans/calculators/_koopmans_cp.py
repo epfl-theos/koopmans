@@ -503,9 +503,9 @@ def convert_flat_alphas_for_kcp(flat_alphas: List[float],
     if parameters.nspin == 2:
         nbnd = len(flat_alphas) // 2
         alphas = [flat_alphas[:parameters.nelup]
-                  + flat_alphas[parameters.nelec:-(nbnd - parameters.neldw)],
+                  + flat_alphas[parameters.nelec:(nbnd + parameters.neldw)],
                   flat_alphas[parameters.nelup:parameters.nelec]
-                  + flat_alphas[-(nbnd - parameters.neldw):]]
+                  + flat_alphas[(nbnd + parameters.neldw):]]
     else:
         alphas = [flat_alphas]
     return alphas
