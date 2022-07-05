@@ -618,7 +618,7 @@ class KoopmansDSCFWorkflow(Workflow):
                             index_empty_to_save += self.bands.num(filled=False, spin=0)
 
                     # Yannick Debug: replace the actual fixed-band calculations with reading them from a file
-                    Debug_Yannick = True 
+                    Debug_Yannick = False
                     if self.parameters.use_ml:
                         alpha_predicted = mlfit.predict(band)
                         use_prediction  = mlfit.use_prediction()
