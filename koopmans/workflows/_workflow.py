@@ -66,7 +66,7 @@ class Workflow(ABC):
                  autogenerate_settings: bool = True):
 
         # Parsing parameters
-        if 'use_ml' in parameters:
+        if 'current_snapshot' in parameters:
             self.parameters = settings.MLSettingsDict(**parameters)
         else:
             self.parameters = settings.WorkflowSettingsDict(**parameters)
