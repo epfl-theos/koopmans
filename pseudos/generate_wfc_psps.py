@@ -38,9 +38,9 @@ for fname in Path().rglob('*.upf'):
 
     # Work out the appropriate program
     if pseudo.find('PP_HEADER').get('relativistic') == 'full':
-        prog = '~/code/oncvpsp/src/oncvpspr.x'
+        prog = 'oncvpspr.x'
     else:
-        prog = '~/code/oncvpsp/src/oncvpsp.x'
+        prog = 'oncvpsp.x'
     # pp_header.
 
     # Run oncvpsp.x
