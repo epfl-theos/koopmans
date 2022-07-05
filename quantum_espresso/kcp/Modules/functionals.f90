@@ -274,16 +274,16 @@ CONTAINS
        call set_dft_value (icorr,4)
        call set_dft_value (igcx, 8)
        call set_dft_value (igcc, 4)
-   else if (matches ('PBE', dftout) ) then
-    ! special case : PBE
-       call set_dft_value (icorr,4)
-       call set_dft_value (igcx, 3)
-       call set_dft_value (igcc, 4)
    else if (matches ('PBESOL', dftout) ) then
     ! special case : PBEsol
        call set_dft_value (icorr,4)
        call set_dft_value (igcx,10)
        call set_dft_value (igcc, 8)
+   else if (matches ('PBE', dftout) ) then
+    ! special case : PBE
+       call set_dft_value (icorr,4)
+       call set_dft_value (igcx, 3)
+       call set_dft_value (igcc, 4)
    else if (matches ('WC', dftout) ) then
     ! special case : Wu-Cohen
        call set_dft_value (icorr,4)
