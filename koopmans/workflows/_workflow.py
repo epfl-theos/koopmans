@@ -64,13 +64,13 @@ class Workflow(ABC):
                  projections: Optional[ProjectionBlocks] = None,
                  plot_params: Union[Dict[str, Any], settings.PlotSettingsDict] = {},
                  autogenerate_settings: bool = True):
-        
+
         # Parsing parameters
         if 'use_ml' in parameters:
             self.parameters = settings.MLSettingsDict(**parameters)
         else:
             self.parameters = settings.WorkflowSettingsDict(**parameters)
-        
+
         self.atoms = atoms
         self.name = name
         self.calculations: List[calculators.Calc] = []
@@ -256,7 +256,7 @@ class Workflow(ABC):
 
         # Yannick Debug: initialize the RidgeRegression() model
         if self.parameters.use_ml:
-            self.ml_model         = RidgeRegression()
+            self.ml_model = RidgeRegression()
 
     def __eq__(self, other: Any):
         if isinstance(other, Workflow):
@@ -424,20 +424,20 @@ class Workflow(ABC):
             if self.parameters.task != 'trajectory':
                 utils.warn(f'Using the ML-prediction for the {self.parameter.task}-task has not yet been implemented.')
             if self.parameters.functional != 'ki':
-                utils.warn(f'Using the ML-prediction for the {self.parameters.functional}-functional has not yet been implemented.')
+                utils.warn(
+                    f'Using the ML-prediction for the {self.parameters.functional}-functional has not yet been implemented.')
             if self.parameters.init_orbitals != 'mlwfs':
-                raise NotImplementedError(f'Using the ML-prediction for {self.parameters.init_orbitals}-init orbitals has not yet been implemented.')
+                raise NotImplementedError(
+                    f'Using the ML-prediction for {self.parameters.init_orbitals}-init orbitals has not yet been implemented.')
             if self.parameters.init_empty_orbitals != self.parameters.init_orbitals:
-                raise NotImplementedError(f'Using the ML-prediction for using different init orbitals for empty states than for occupied states has not yet been implemented.')
+                raise NotImplementedError(
+                    f'Using the ML-prediction for using different init orbitals for empty states than for occupied states has not yet been implemented.')
             if not self.parameters.periodic:
                 utils.warn(f'Using the ML-prediction for non-periodic systems has not yet been implemented')
             if self.parameters.spin_polarised:
                 utils.warn(f'Using the ML-prediction for spin-polarised systems has not yet been implemented')
-            if self.parameters.orbital_groups: 
+            if self.parameters.orbital_groups:
                 utils.warn('Using orbital_groups has not yet been extensively tested')
-
-
-
 
     def new_calculator(self,
                        calc_type: str,
@@ -704,7 +704,6 @@ class Workflow(ABC):
         if self.parameters.use_ml:
             workflow.ml_model = self.ml_model
 
-
         # Link the bands
         if hasattr(self, 'bands'):
             workflow.bands = copy.deepcopy(self.bands)
@@ -795,7 +794,7 @@ class Workflow(ABC):
         wf = cls._fromjsondct(bigdct)
         wf.name = fname.replace('.json', '')
         return wf
-    
+
     @classmethod
     def _fromjsondct(cls, bigdct: Dict[str, Any]):
 
@@ -844,7 +843,6 @@ class Workflow(ABC):
         # Loading plot settings
         plot_params = settings.PlotSettingsDict(**utils.parse_dict(bigdct.get('plot', {})))
 
-
         # Loading workflow settings
         if 'ML' in bigdct:
             parameters = settings.MLSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})),
@@ -871,8 +869,6 @@ class Workflow(ABC):
             atoms = Atoms()
             setup_parameters = {}
             workflow_kwargs = {}
-
-
 
         # Loading calculator-specific settings. We generate a SettingsDict for every single kind of calculator,
         # regardless of whether or not there was a corresponding block in the json file
@@ -917,7 +913,7 @@ class Workflow(ABC):
 
             master_calc_params[block] = settings_class(**dct)
             master_calc_params[block].update(
-                **{k: v for k, v in setup_parameters.items() if master_calc_params[block].is_valid(k)})  
+                **{k: v for k, v in setup_parameters.items() if master_calc_params[block].is_valid(k)})
 
         # Adding the projections to the workflow kwargs (this is unusual in that this is an attribute of the workflow
         # object but it is provided in the w90 subdictionary)
@@ -926,7 +922,6 @@ class Workflow(ABC):
 
         workflow_kwargs['plot_params'] = plot_params
 
-        
         return cls(atoms, parameters, master_calc_params, **workflow_kwargs)
 
     def print_header(self):
@@ -1019,7 +1014,7 @@ class Workflow(ABC):
             bigdct['setup']['cell_parameters'] = utils.construct_cell_parameters_block(self.atoms)
 
         # atomic positions
-        bigdct['setup']['atomic_positions'] = utils.construct_atomic_positions_block(self.atoms, ibrav!=0)
+        bigdct['setup']['atomic_positions'] = utils.construct_atomic_positions_block(self.atoms, ibrav != 0)
 
         # k-points
         bigdct['setup']['k_points'] = {'kgrid': self.kgrid, 'kpath': self.kpath.path}
