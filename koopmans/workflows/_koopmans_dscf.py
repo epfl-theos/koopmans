@@ -155,7 +155,6 @@ class KoopmansDSCFWorkflow(Workflow):
         else:
             # Initialising alpha with a guess
             self.bands.alphas = self.parameters.alpha_guess
-        
 
         # Raise errors if any UI keywords are provided but will be overwritten by the workflow
         for ui_keyword in ['kc_ham_file', 'w90_seedname', 'dft_ham_file', 'dft_smooth_ham_file']:
@@ -213,7 +212,6 @@ class KoopmansDSCFWorkflow(Workflow):
             postproc/             -- the unfolding and interpolation of the final band structure
         '''
 
-
         # Removing old directories
         if self.parameters.from_scratch:
             if not self._restart_from_old_ki:
@@ -229,7 +227,6 @@ class KoopmansDSCFWorkflow(Workflow):
         self.print('Initialisation of density and variational orbitals', style='heading')
         self.perform_initialisation()
 
-
         if self.parameters.from_scratch and not self._restart_from_old_ki \
                 and self.parameters.fix_spin_contamination \
                 and self.parameters.init_orbitals not in ['mlwfs', 'projwfs'] \
@@ -243,7 +240,6 @@ class KoopmansDSCFWorkflow(Workflow):
             if calc.has_empty_states():
                 utils.system_call(f'cp {savedir}/evc0_empty1.dat {savedir}/evc0_empty2.dat')
 
-
         self.print('Calculating screening parameters', style='heading')
         if self.parameters.calculate_alpha:
             self.perform_alpha_calculations()
@@ -255,7 +251,6 @@ class KoopmansDSCFWorkflow(Workflow):
             else:
                 self.print()
             self.bands.print_history(indent=self.print_indent + 1)
-
 
         # Final calculation
         self.print(f'Final {self.parameters.functional.upper().replace("PK","pK")} calculation', style='heading')
@@ -329,7 +324,6 @@ class KoopmansDSCFWorkflow(Workflow):
             if wannier_workflow.parameters.calculate_bands:
                 wannier_workflow.parameters.calculate_bands = not self.master_calc_params['ui'].do_smooth_interpolation
 
-    
             # Perform the wannierisation workflow within the init directory
             self.run_subworkflow(wannier_workflow, subdirectory='init')
 
@@ -504,11 +498,10 @@ class KoopmansDSCFWorkflow(Workflow):
             else:
                 print_real_space_density = False
             trial_calc = self.new_kcp_calculator(calc_presets=self.parameters.functional.replace('pkipz', 'ki'),
-                                                 print_real_space_density = print_real_space_density,
+                                                 print_real_space_density=print_real_space_density,
                                                  alphas=self.bands.alphas,
                                                  restart_from_wannier_pwscf=restart_from_wannier_pwscf)
             trial_calc.directory = iteration_directory
-
 
             if i_sc == 1:
                 if self.parameters.functional == 'kipz' and not self.parameters.periodic:
@@ -522,7 +515,6 @@ class KoopmansDSCFWorkflow(Workflow):
             # Run the calculation and store the result. Note that we only need to continue
             # enforcing the spin symmetry if the density will change
             self.run_calculator(trial_calc, enforce_ss=self.parameters.fix_spin_contamination and i_sc > 1)
-          
 
             alpha_dep_calcs = [trial_calc]
 
@@ -535,14 +527,13 @@ class KoopmansDSCFWorkflow(Workflow):
             skipped_orbitals = []
             first_band_of_each_channel = [self.bands.get(spin=spin)[0] for spin in range(2)]
             # Loop over removing/adding an electron from/to each orbital
-            
+
             # Yannick Debug: replace the actual fixed-band calculations with my logic
 
             if self.parameters.use_ml:
                 mlfit = MLFiitingWorkflow(trial_calc, **self.wf_kwargs)
                 self.run_subworkflow(mlfit)
             # end Yannick Debug
-
 
             for band in self.bands:
 
@@ -621,17 +612,16 @@ class KoopmansDSCFWorkflow(Workflow):
                     Debug_Yannick = False
                     if self.parameters.use_ml:
                         alpha_predicted = mlfit.predict(band)
-                        use_prediction  = mlfit.use_prediction()
+                        use_prediction = mlfit.use_prediction()
                     if not Debug_Yannick:
                         if(not (self.parameters.use_ml and use_prediction)):
-                            self.perform_fixed_band_calculations(band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band, directory, alpha_indep_calcs)
+                            self.perform_fixed_band_calculations(
+                                band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band, directory, alpha_indep_calcs)
                     # end Yannick Debug
- 
-                    
 
                 if(self.parameters.use_ml and use_prediction and not Debug_Yannick):
                     alpha = alpha_predicted
-                    error = 0.0 # I would set the error for the predicted alphas to 0.0, because currently we don't want to make another scf-step because of predicted alphas
+                    error = 0.0  # I would set the error for the predicted alphas to 0.0, because currently we don't want to make another scf-step because of predicted alphas
                 else:
                     if Debug_Yannick:
                         # Yannick Debug: dummy calculation to circumvent the fixed-band-calculation for debugging
@@ -646,12 +636,10 @@ class KoopmansDSCFWorkflow(Workflow):
                         # that do not get overwritten
 
                         calcs = [c for calc_set in [alpha_dep_calcs, alpha_indep_calcs]
-                                for c in calc_set if c.fixed_band == band]
+                                 for c in calc_set if c.fixed_band == band]
 
                         alpha, error = self.calculate_alpha_from_list_of_calcs(
                             calcs, trial_calc, band, filled=band.filled)
-                            
-
 
                 for b in self.bands:
                     if b == band or (b.group is not None and b.group == band.group):
@@ -659,7 +647,7 @@ class KoopmansDSCFWorkflow(Workflow):
                         b.error = error
 
                 if(self.parameters.use_ml and (not use_prediction or Debug_Yannick)):
-                    mlfit.print_error_of_single_orbital(alpha_predicted, alpha, indent = self.print_indent+2)
+                    mlfit.print_error_of_single_orbital(alpha_predicted, alpha, indent=self.print_indent+2)
                     mlfit.add_training_data(band)
                     if not use_prediction:
                         mlfit.train()
@@ -676,7 +664,6 @@ class KoopmansDSCFWorkflow(Workflow):
         else:
             self.print('Screening parameters have been determined but are not necessarily converged')
 
-    
     def perform_fixed_band_calculations(self, band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band, directory, alpha_indep_calcs) -> None:
         # Perform the fixed-band-dependent calculations
         if self.parameters.functional in ['ki', 'pkipz']:
@@ -734,10 +721,9 @@ class KoopmansDSCFWorkflow(Workflow):
 
             # Set up calculator
             calc = self.new_kcp_calculator(calc_type, alphas=alphas, filling=filling, fixed_band=fixed_band,
-                                            index_empty_to_save=index_empty_to_save, outdir=outdir_band,
-                                            add_to_spin_up=(band.spin == 0))
+                                           index_empty_to_save=index_empty_to_save, outdir=outdir_band,
+                                           add_to_spin_up=(band.spin == 0))
             calc.directory = directory
-
 
             # Run kcp.x
             self.run_calculator(calc)
@@ -785,8 +771,6 @@ class KoopmansDSCFWorkflow(Workflow):
                     else:
                         raise OSError(f'Could not find {src}')
 
-    
-    
     def perform_final_calculations(self) -> None:
 
         directory = Path('final')
@@ -1028,14 +1012,12 @@ class KoopmansDSCFWorkflow(Workflow):
                 calc.parameters.do_outerloop_empty = False
                 calc.parameters.do_innerloop_empty = False
 
-
         # # Yannick Debug: add a calc parameter
         # if calc.prefix in ['ki']:
         #     print("Set print_real_space_density to true")
         #     calc.parameters.print_real_space_density = True
         # # End Yannick Debug
 
-        
         # Handle any keywords provided by kwargs
         # Note that since this is performed after the above logic this can (deliberately
         # or accidentally) overwrite the above settings
@@ -1047,14 +1029,9 @@ class KoopmansDSCFWorkflow(Workflow):
                              'an index_empty_to_save. Provide this as an argument to new_cp_calculator')
 
         # don't print QC in some cases
-        if 'dummy' in calc.prefix:
+        if 'dummy' in calc.prefix or calc.prefix[-2:] == '+1':
             calc.skip_qc = True
-        elif calc.prefix[-2:] == '+1':
-            # Don't check N+1 energies because they're known to be unreliable
-            if 'energy' in calc.results_for_qc:
-                calc.results_for_qc.remove('energy')
 
-        
         return calc
 
     def calculate_alpha_from_list_of_calcs(self,
