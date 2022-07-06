@@ -1012,12 +1012,6 @@ class KoopmansDSCFWorkflow(Workflow):
                 calc.parameters.do_outerloop_empty = False
                 calc.parameters.do_innerloop_empty = False
 
-        # # Yannick Debug: add a calc parameter
-        # if calc.prefix in ['ki']:
-        #     print("Set print_real_space_density to true")
-        #     calc.parameters.print_real_space_density = True
-        # # End Yannick Debug
-
         # Handle any keywords provided by kwargs
         # Note that since this is performed after the above logic this can (deliberately
         # or accidentally) overwrite the above settings
