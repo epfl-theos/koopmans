@@ -8,6 +8,7 @@ from numpy.linalg import norm
 import math
 from scipy.special import sph_harm
 import sys
+import koopmans.ml_utils._got_basis as gb
 
 from koopmans.bands import Bands
 from koopmans import utils
@@ -18,20 +19,6 @@ import koopmans.ml_utils.debugging as debugging
 # Say what you want to compute
 Debug = True
 write_to_xsf = True
-
-
-def phi(r: np.ndarray, l: int, alpha: float) -> np.ndarray:
-    """Corresponding to phi_nl eq. (24) in Hilmanen et al 2020."""
-    return r**l*np.exp(-alpha*r**2)
-
-
-def g(r: np.ndarray, n: int, n_max: int, l, betas: np.ndarray, alphas: np.ndarray) -> np.ndarray:
-    """Corresponding to """
-    return sum(betas[n_prime, n, l]*phi(r, l, alphas[n_prime]) for n_prime in range(n_max))
-
-
-def radial_basis_function(r: np.ndarray, n: int, n_max: int, l: int, betas: np.ndarray, alphas: np.ndarray):
-    return g(r, n, n_max, l, betas, alphas)
 
 
 def real_spherical_harmonics(theta: float, phi: float, l: int, m: int):
@@ -64,24 +51,25 @@ def cart2sph_array(r_cartesian: np.ndarray):
 
 def precompute_basis_function(r_cartesian: np.ndarray, r_spherical: np.ndarray, n_max: int, l_max: int, betas: np.ndarray, alphas: np.ndarray):
     Y_array_all = np.zeros((np.shape(r_cartesian)[0], np.shape(r_cartesian)[
-                           1], np.shape(r_cartesian)[2], l_max, 2*l_max+1))
-    for l in range(l_max):
+                           1], np.shape(r_cartesian)[2], l_max+1, 2*l_max+1))
+    for l in range(l_max+1):
         for i, m in enumerate(range(-l, l+1)):
             Y_array_all[:, :, :, l, i] = real_spherical_harmonics(
                 r_spherical[:, :, :, 1], r_spherical[:, :, :, 2], l, m)
 
-    g_array_all = np.zeros((np.shape(r_cartesian)[0], np.shape(r_cartesian)[1], np.shape(r_cartesian)[2], n_max, l_max))
+    g_array_all = np.zeros((np.shape(r_cartesian)[0], np.shape(r_cartesian)[
+                           1], np.shape(r_cartesian)[2], n_max, l_max+1))
 
     for n in range(n_max):
-        for l in range(l_max):
-            g_array_all[:, :, :, n, l] = radial_basis_function(r_spherical[:, :, :, 0], n, n_max, l, betas, alphas)
+        for l in range(l_max+1):
+            g_array_all[:, :, :, n, l] = gb.radial_basis_function(r_spherical[:, :, :, 0], n, n_max, l, betas, alphas)
 
-    number_of_l_elements = sum(2*l+1 for l in range(0, l_max))
+    number_of_l_elements = sum(2*l+1 for l in range(0, l_max+1))
     total_basis_function_array = np.zeros((np.shape(r_cartesian)[0], np.shape(
         r_cartesian)[1], np.shape(r_cartesian)[2], n_max*number_of_l_elements))
     idx = 0
     for n in range(n_max):
-        for l in range(l_max):
+        for l in range(l_max+1):
             total_basis_function_array[:, :, :, idx:(
                 idx+2*l+1)] = np.expand_dims(g_array_all[:, :, :, n, l], axis=3)*Y_array_all[:, :, :, l, 0:2*l+1]
             idx += 2*l+1
@@ -251,9 +239,9 @@ def func_compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: floa
 
         # load precomputed vectors defining the radial basis functions
         betas = np.fromfile(dirs['betas'] / ('betas_' + '_'.join(str(x)
-                            for x in [n_max, l_max, r_min, r_max]) + '.dat')).reshape((n_max, n_max, l_max))
+                            for x in [n_max, l_max, r_min, r_max]) + '.dat')).reshape((n_max, n_max, l_max+1))
         alphas = np.fromfile(dirs['alphas'] / ('alphas_' + '_'.join(str(x)
-                             for x in [n_max, l_max, r_min, r_max]) + '.dat')).reshape(n_max)
+                             for x in [n_max, l_max, r_min, r_max]) + '.dat')).reshape(n_max, l_max+1)
 
         # Compute R_nl Y_lm for each point on the integration domain
         total_basis_array = precompute_basis_function(r_cartesian, r_spherical, n_max, l_max, betas, alphas)
