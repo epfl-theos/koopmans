@@ -2,14 +2,16 @@ from pathlib import Path
 from typing import Dict
 import numpy as np
 from scipy.integrate import quad
-from scipy.optimize import fsolve
 import matplotlib.pyplot as plt
-import koopmans.ml_utils._got_basis as gb
-import os
-import sys
+import koopmans.ml_utils.basis_functions as basis
 
 
-def compute_alphas(n_max: int, l_max: int, r_thrs: np.ndarray, thr: float = 10**(-3.0)):
+def compute_alphas(n_max: int, l_max: int, r_thrs: np.ndarray, thr: float):
+    """
+    Computes the decay-coefficients alpha_nl, by demanding that for each r_thrs[n],
+    the corresponding phi_nl decays to threshold value thr at a cutoff radius of r_thr.
+    """
+
     alphas = np.zeros((n_max, l_max+1))
     for n in range(n_max):
         for l in range(l_max+1):
@@ -18,16 +20,19 @@ def compute_alphas(n_max: int, l_max: int, r_thrs: np.ndarray, thr: float = 10**
 
 
 def compute_overlap(n: int, n_prime: int, l: int, alphas: np.ndarray):
-    def integrand(r): return r**2*gb.phi(r, l, alphas[n, l])*gb.phi(r, l, alphas[n_prime, l])
+    """
+    Computes the overelap between two radial basis functions phi_nl, phi_n'l.
+    """
+
+    def integrand(r): return r**2*basis.phi(r, l, alphas[n, l])*basis.phi(r, l, alphas[n_prime, l])
     return quad(integrand, 0.0, np.inf)[0]
 
 
-def lowdin(s: np.ndarray):
-    e, v = np.linalg.eigh(s)
-    return np.dot(v/np.sqrt(e), v.T.conj())
+def compute_s(n_max: int, l: int, alphas: np.ndarray) -> np.ndarray:
+    """
+    Computes the overlap matrix S (as in eq. (26) in Hilmanen et al 2020).
+    """
 
-
-def compute_s(n_max: int, l: int, alphas: np.ndarray):
     s = np.zeros((n_max, n_max))
     for n in range(n_max):
         for n_prime in range(n_max):
@@ -36,37 +41,46 @@ def compute_s(n_max: int, l: int, alphas: np.ndarray):
     return s
 
 
-def compute_beta(n_max: int, l: int, alphas: np.ndarray):
+def lowdin(s: np.ndarray):
+    """
+    Computes the Löwdin orthogonalization of the matrix s.
+    """
+
+    e, v = np.linalg.eigh(s)
+    return np.dot(v/np.sqrt(e), v.T.conj())
+
+
+def compute_beta(n_max: int, l: int, alphas: np.ndarray) -> np.ndarray:
+    """
+    Computes beta such that the corresponding basis is orthogonal (as in eq. (25) Hilmanen et al 2020).
+    """
+
     s = compute_s(n_max, l, alphas)
     beta = lowdin(s)
     return beta
 
 
-def precompute_radial_basis(n_max: int, l_max: int, r_min_thr: float, r_max_thr: float, dirs: Dict[str, Path]):
-    orig_stdout = sys.stdout
-    with open(dirs['ml'] / 'orbitals_to_power_spectra.out', 'a') as f:
-        sys.stdout = f
+def precompute_parameters_of_radial_basis(n_max: int, l_max: int, r_min_thr: float, r_max_thr: float, dirs: Dict[str, Path]):
+    """
+    Precomputes the alphas and betas needed to define the basis functions (as in Hilmanen et al 2020).
+    """
 
-        print("\nprecompute radial basis\n")
+    thr = 10**(-3)
+    r_thrs = np.zeros(n_max)
 
-        thr = 10**(-3)
-        r_thrs = np.zeros(n_max)
+    r_thrs = np.linspace(r_min_thr, r_max_thr, n_max)
 
-        r_thrs = np.linspace(r_min_thr, r_max_thr, n_max)
-        print('Threshold values = ', r_thrs)
+    alphas = compute_alphas(n_max, l_max, r_thrs, thr)
 
-        alphas = compute_alphas(n_max, l_max, r_thrs, thr)
+    betas = np.zeros((n_max, n_max, l_max+1))
 
-        betas = np.zeros((n_max, n_max, l_max+1))
+    for l in range(l_max+1):
+        betas[:, :, l] = compute_beta(n_max, l, alphas)
 
-        for l in range(l_max+1):
-            betas[:, :, l] = compute_beta(n_max, l, alphas)
-
-        betas.tofile(dirs['betas'] / ('betas_' + '_'.join(str(x)
-                                                          for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
-        alphas.tofile(dirs['alphas'] / ('alphas_' + '_'.join(str(x)
-                                                             for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
-    sys.stdout = orig_stdout
+    betas.tofile(dirs['betas'] / ('betas_' + '_'.join(str(x)
+                                                      for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
+    alphas.tofile(dirs['alphas'] / ('alphas_' + '_'.join(str(x)
+                                                         for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
 
     # r = np.linspace(0, 4, 1000)
     # for l in range(l_max):
