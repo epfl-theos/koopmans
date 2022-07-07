@@ -1,11 +1,8 @@
-import numpy as np
-from typing import Any, List
+from typing import Any
 from ._utils import Setting
 from ._workflow import WorkflowSettingsDict
-from koopmans import utils
-from koopmans.ml_utils._ml_models import RidgeRegression
 
-# TODO: perform more sanity checks, like: r_max>r_min, n_max>0, l_max>0, r_max<cell_size/2, the angles of the simulation cell are all 90°
+# TODO Yannick: perform more sanity checks, like: r_max>r_min, n_max>0, l_max>0, r_max<cell_size/2, the angles of the simulation cell are all 90°
 
 
 class MLSettingsDict(WorkflowSettingsDict):
