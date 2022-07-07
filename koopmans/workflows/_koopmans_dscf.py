@@ -615,6 +615,7 @@ class KoopmansDSCFWorkflow(Workflow):
                         use_prediction = mlfit.use_prediction()
                     if not Debug_Yannick:
                         if(not (self.parameters.use_ml and use_prediction)):
+                            print("Perform fixed")
                             self.perform_fixed_band_calculations(
                                 band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band, directory, alpha_indep_calcs)
                     # end Yannick Debug
