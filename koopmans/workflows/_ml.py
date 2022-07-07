@@ -1,3 +1,7 @@
+"""
+Written by Yannick Schubert Jul 2022
+"""
+
 import numpy as np
 import os
 from typing import Tuple
@@ -281,8 +285,8 @@ class MLFiitingWorkflow(Workflow):
         # utils.indented_print('predicted  ' + str(self.predicted_alphas), indent=indent)
         # utils.indented_print(str(self.bands.alpha_history), indent=indent)
         # utils.indented_print('')
-        # print("Yannick Debug: len(predicted alphas) = ", len(self.predicted_alphas))
-        # print("Yannick Debug: len(calculated alphas) = ", len(self.calculated_alphas))
+        # print("Debug: len(predicted alphas) = ", len(self.predicted_alphas))
+        # print("Debug: len(calculated alphas) = ", len(self.calculated_alphas))
         utils.indented_print('\nThe mean absolut error of the predicted screening parameters of this snapshot is {0:.5f}'.format(
             mae(self.predicted_alphas, self.calculated_alphas)), indent=indent)
         utils.indented_print('')

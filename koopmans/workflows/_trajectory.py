@@ -47,8 +47,13 @@ class TrajectoryWorkflow(Workflow):
         Reads the atomic positions for each snapshot from the xyz-file specified by the user in the snapshots-file.
         """
 
-        snapshots_file = bigdct['setup'].pop('snapshots')
-        snapshots = io.read(snapshots_file, index=':')  # TODO raise ValueError if not provided
+        try:
+            snapshots_file = bigdct['setup'].pop('snapshots')
+        except:
+            raise ValueError(
+                f'To calculate a trajectory, please provide a xyz-file containing the atomic positions of the snapshots in the setup-block of the json-input file.')
+
+        snapshots = io.read(snapshots_file, index=':')
         if isinstance(snapshots, Atoms):
             snapshots = [snapshots]
         bigdct['setup']['atomic_positions'] = utils.construct_atomic_positions_block(snapshots[0])
@@ -57,5 +62,5 @@ class TrajectoryWorkflow(Workflow):
         return wf
 
     def todict(self):
-        # TODO Yannick: implement
+        # TODO Yannick: implement todict-function
         return {}
