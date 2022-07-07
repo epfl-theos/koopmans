@@ -66,7 +66,8 @@ class Workflow(ABC):
                  autogenerate_settings: bool = True):
 
         # Parsing parameters
-        if 'current_snapshot' in parameters:
+        self.parameters: Union[settings.MLSettingsDict, settings.WorkflowSettingsDict]
+        if parameters.use_ml:
             self.parameters = settings.MLSettingsDict(**parameters)
         else:
             self.parameters = settings.WorkflowSettingsDict(**parameters)
@@ -254,7 +255,7 @@ class Workflow(ABC):
         # Records whether or not this workflow is a subworkflow of another
         self._is_a_subworkflow = False
 
-        # Yannick Debug: initialize the RidgeRegression() model
+        # Initialize the RidgeRegression() model
         if self.parameters.use_ml:
             self.ml_model = RidgeRegression()
 
@@ -700,7 +701,7 @@ class Workflow(ABC):
         # Link the list of calculations
         workflow.calculations = self.calculations
 
-        # Yannick Debug: Link the ML_Model
+        # Link the ML_Model
         if self.parameters.use_ml:
             workflow.ml_model = self.ml_model
 
@@ -844,10 +845,14 @@ class Workflow(ABC):
         plot_params = settings.PlotSettingsDict(**utils.parse_dict(bigdct.get('plot', {})))
 
         # Loading workflow settings
+        parameters: Union[settings.MLSettingsDict, settings.WorkflowSettingsDict]
         if 'ML' in bigdct:
-            parameters = settings.MLSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})),
-                                                 **utils.parse_dict(bigdct['ML']))
-            bigdct.pop('ML')
+            if bigdct['ML']['use_ml']:  # If the user wants to use the ML model, a bigger dictionary needs to be loaded to the parameters
+                parameters = settings.MLSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})),
+                                                     **utils.parse_dict(bigdct['ML']))
+            else:
+                parameters = settings.WorkflowSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})))
+            bigdct.pop('ML')  # remove ML from the master-calc params
         else:
             parameters = settings.WorkflowSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})))
 
@@ -1165,6 +1170,7 @@ class Workflow(ABC):
                 else:
                     sorted_dos = dos
 
+                label: Union[str, None]
                 for d in sorted_dos:
                     if (not self.parameters.spin_polarised or d.info.get('spin') == 'up') \
                             and all([key in d.info for key in ['symbol', 'n', 'l']]):

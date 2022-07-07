@@ -1,5 +1,3 @@
-
-from abc import ABC
 import numpy as np
 import os
 from typing import Tuple
@@ -10,8 +8,8 @@ from koopmans import calculators
 from koopmans import utils
 from koopmans import ml_utils
 from koopmans.bands import Band
-from koopmans.workflows import Workflow
 from koopmans.settings import KoopmansCPSettingsDict
+from ._workflow import Workflow
 
 
 class MLFiitingWorkflow(Workflow):
