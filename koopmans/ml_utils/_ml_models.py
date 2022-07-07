@@ -16,7 +16,7 @@ class RidgeRegression():
         return f'RidgeRegression(is_trained={self.is_trained},number_of_training_vectors={self.X_train.shape[0]},input_vector_dimension={self.Y_train.shape[0]})'
 
     def todict(self):
-        # TODO: implement
+        # TODO Yannick: implement the todict-function
         return
 
     def predict(self, x_test: np.ndarray):

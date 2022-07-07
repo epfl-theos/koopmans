@@ -13,6 +13,7 @@ import shutil
 import copy
 import operator
 from functools import reduce
+from socket import IP_DROP_MEMBERSHIP
 import subprocess
 from pathlib import Path
 import json as json_ext
@@ -67,7 +68,7 @@ class Workflow(ABC):
 
         # Parsing parameters
         self.parameters: Union[settings.MLSettingsDict, settings.WorkflowSettingsDict]
-        if parameters.use_ml:
+        if hasattr(parameters, 'use_ml') and parameters.use_ml:
             self.parameters = settings.MLSettingsDict(**parameters)
         else:
             self.parameters = settings.WorkflowSettingsDict(**parameters)

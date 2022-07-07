@@ -264,7 +264,7 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
         utils.system_call(f'mkdir -p {dir_xsf}')
         dirs.update({'xsf': dir_xsf})
 
-    # TODO: find the normalization constant 6.748334698446981
+    # TODO Yannick: find the normalization constant 6.748334698446981
     norm_const = 6.748334698446981
 
     # load the grid dimensions nr_xml from charge-density-file
