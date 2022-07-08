@@ -196,16 +196,18 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 fpath_tmp.replace(fpath_2)
 
     def _autogenerate_nr(self):
-        # For NC pseudo the small box grid (nr1b,nr2b,nr3b) is needed in case the pseudo has NLCC
-        # Define the small box grid to be consistent with the charge density one (default in PW and
-        # very safe choice)
+        '''
+        For norm-conserving pseudopotentials the small box grid (nr1b, nr2b, nr3b) is needed in case the pseudo has
+        non-linear core corrections. This function automatically defines this small box using a conservative guess.
+        '''
+
         has_nlcc = False
         for p in self.parameters.pseudopotentials.values():
             upf = read_pseudo_file(self.parameters.pseudo_dir / p)
             if upf['header']['core_correction']:
                 has_nlcc = True
         if has_nlcc and (self.parameters.nr1b is None or self.parameters.nr2b is None or self.parameters.nr3b is None):
-            # First define alat and the reduced lattice vectors (`at` in espresso)
+            # First define alat and the reduced lattice vectors ("at" in espresso)
             # ibrav = 0 is a special case:
             if self.parameters.ibrav == 0:
                 at = np.transpose(self.atoms.cell)
@@ -238,12 +240,12 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             # radius used to generate the PP and L1 is the dimension of the simulation Box.
             # N.B. we assume here 3 Bohr is a safe choice; all the rc in the DOJO pseudos are <= 2.6:
             rc_safe = 3.0
-            [nr1b, nr2b, nr3b] = [nr * 2 * rc_safe / (np.linalg.norm(vec) * alat)
+            [nr1b, nr2b, nr3b] = [int(nr * 2 * rc_safe / (np.linalg.norm(vec) * alat))
                                   for vec, nr in zip(at, [nr1, nr2, nr3])]
 
-            self.parameters.nr1b = good_fft(int(nr1b))
-            self.parameters.nr2b = good_fft(int(nr2b))
-            self.parameters.nr3b = good_fft(int(nr3b))
+            self.parameters.nr1b = good_fft(nr1b)
+            self.parameters.nr2b = good_fft(nr2b)
+            self.parameters.nr3b = good_fft(nr3b)
 
             print("\n   Small box parameters \"nrb\" not given in input: going to set to safe default values")
             print("   These values can probably be decreased, but requires convergence tests")
