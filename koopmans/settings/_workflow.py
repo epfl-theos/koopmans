@@ -112,7 +112,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     'a list of epsilon_infinity values for the cavity in dscf calculations',
                     list, [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], None),
             Setting('use_ml',
-                    'wheather to use the ML model or not',
+                    'wheather to use a Machine Learning model to predict the alpha-parameters or not',
                     bool, False, (True, False)),
         ]
         # Defer storing init_empty_orbitals...

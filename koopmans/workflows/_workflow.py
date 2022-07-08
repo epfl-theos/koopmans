@@ -424,9 +424,13 @@ class Workflow(ABC):
         # Make sanity checks for the ML model
         if self.parameters.use_ml:
             if self.parameters.task != 'trajectory':
-                utils.warn(f'Using the ML-prediction for the {self.parameter.task}-task has not yet been implemented.')
+                raise NotImplementedError(
+                    f'Using the ML-prediction for the {self.parameter.task}-task has not yet been implemented.')
+            if self.parameters.method != 'dscf':  # TODO Yannick: implement also with DFPT
+                raise NotImplementedError(
+                    f"Using the ML-prediction for the {self.parameters.method}-method has not yet been implemented")
             if self.parameters.functional != 'ki':
-                utils.warn(
+                raise NotImplementedError(
                     f'Using the ML-prediction for the {self.parameters.functional}-functional has not yet been implemented.')
             if self.parameters.init_orbitals != 'mlwfs':
                 raise NotImplementedError(
@@ -434,12 +438,13 @@ class Workflow(ABC):
             if self.parameters.init_empty_orbitals != self.parameters.init_orbitals:
                 raise NotImplementedError(
                     f'Using the ML-prediction for using different init orbitals for empty states than for occupied states has not yet been implemented.')
-            if not self.parameters.periodic:
-                utils.warn(f'Using the ML-prediction for non-periodic systems has not yet been implemented')
             if self.parameters.spin_polarised:
-                utils.warn(f'Using the ML-prediction for spin-polarised systems has not yet been implemented')
+                raise NotImplementedError(
+                    f'Using the ML-prediction for spin-polarised systems has not yet been implemented.')
+            if not self.parameters.periodic:
+                utils.warn(f'Using the ML-prediction for non-periodic systems has not yet been extensively tested.')
             if self.parameters.orbital_groups:
-                utils.warn('Using orbital_groups has not yet been extensively tested')
+                utils.warn('Using orbital_groups has not yet been extensively tested.')
 
     def new_calculator(self,
                        calc_type: str,
