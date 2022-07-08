@@ -29,12 +29,12 @@ valid_settings: List[Setting] = [
             'a calculation with k-points it must be equal to \'pc\'.\n',
             str, 'pc', ('pc', 'sc')),
     Setting('do_map',
-            'if True, it realizes the map |m> --> |Rn>, that connects the Wannier functions in the supercell to '
+            'if True, it realises the map |m> --> |Rn>, that connects the Wannier functions in the supercell to '
             'those in the primitive cell. This is basically the unfolding procedure. It can be activated only '
             'if w90_calc=\'sc\'',
             bool, False, (True, False)),
     Setting('use_ws_distance',
-            'if True, the real Wigner-Seitz distance between the Wannier functions centers is considered as in '
+            'if True, the real Wigner-Seitz distance between the Wannier functions centres is considered as in '
             'the Wannier90 code. In particular, this accounts for the periodic boundary conditions and it is '
             'crucial for a good interpolation when using coarse MP meshes or, equivalently, small supercells',
             bool, True, (True, False)),

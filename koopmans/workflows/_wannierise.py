@@ -1,6 +1,6 @@
 """
 
-Workflow module for koopmans, containing the workflow for generating maximally localized
+Workflow module for koopmans, containing the workflow for generating maximally localised
 Wannier functions (MLWFs), using the Wannier90 code
 
 Written by Riccardo De Gennaro Nov 2020
@@ -26,7 +26,7 @@ from ._workflow import Workflow
 CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
 
 
-class WannierizeWorkflow(Workflow):
+class WannieriseWorkflow(Workflow):
 
     def __init__(self, *args, force_nspin2=False, scf_kgrid=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -80,7 +80,7 @@ class WannierizeWorkflow(Workflow):
             pass
 
         else:
-            raise NotImplementedError('WannierizeWorkflow only supports setting init_orbitals and init_empty_orbitals to '
+            raise NotImplementedError('WannieriseWorkflow only supports setting init_orbitals and init_empty_orbitals to '
                                       '"mlwfs"/"projwfs" or "kohn-sham"')
 
         # Spin-polarisation
@@ -105,7 +105,7 @@ class WannierizeWorkflow(Workflow):
     def _run(self):
         '''
 
-        Wrapper for the calculation of (maximally localized) Wannier functions
+        Wrapper for the calculation of (maximally localised) Wannier functions
         using PW and Wannier90
 
         '''

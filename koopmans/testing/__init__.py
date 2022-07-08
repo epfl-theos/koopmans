@@ -21,7 +21,7 @@ from ._mock import (MockEnvironCalculator, MockKoopmansCPCalculator,
                     MockPW2WannierCalculator, MockPWCalculator,
                     MockUnfoldAndInterpolateCalculator, MockWann2KCCalculator,
                     MockWann2KCPCalculator, MockWannier90Calculator,
-                    MockWannierizeWorkflow)
+                    MockWannieriseWorkflow)
 from ._stumble import (StumblingConvergenceWorkflow, StumblingDeltaSCFWorkflow,
                        StumblingDFTCPWorkflow, StumblingDFTPWWorkflow,
                        StumblingFoldToSupercellWorkflow,
@@ -29,5 +29,5 @@ from ._stumble import (StumblingConvergenceWorkflow, StumblingDeltaSCFWorkflow,
                        StumblingKoopmansDSCFWorkflow,
                        StumblingSinglepointWorkflow,
                        StumblingUnfoldAndInterpolateWorkflow,
-                       StumblingWannierizeWorkflow)
+                       StumblingWannieriseWorkflow)
 from ._utils import benchmark_filename

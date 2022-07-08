@@ -80,7 +80,7 @@ class Command(object):
 
 class ParallelCommand(Command):
     """
-    An extension to the Command class for mpi-parallelized executables
+    An extension to the Command class for mpi-parallelised executables
     """
 
     def __init__(self, *args, **kwargs):

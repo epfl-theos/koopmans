@@ -111,7 +111,7 @@ class KoopmansDFPTWorkflow(Workflow):
         '''
 
         # Import these here so that if they have been monkey-patched, we get the monkey-patched version
-        from koopmans.workflows import DFTPWWorkflow, WannierizeWorkflow
+        from koopmans.workflows import DFTPWWorkflow, WannieriseWorkflow
 
         if self.parameters.periodic:
             # Run PW and Wannierisation
@@ -119,7 +119,7 @@ class KoopmansDFPTWorkflow(Workflow):
                 if key.startswith('w90'):
                     self.master_calc_params[key].write_u_matrices = True
                     self.master_calc_params[key].write_xyz = True
-            wf_workflow = WannierizeWorkflow(force_nspin2=True, **self.wf_kwargs)
+            wf_workflow = WannieriseWorkflow(force_nspin2=True, **self.wf_kwargs)
             self.run_subworkflow(wf_workflow)
 
         else:

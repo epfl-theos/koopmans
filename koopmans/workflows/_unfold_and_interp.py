@@ -30,14 +30,14 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         '''
 
         Wrapper for the whole unfolding and interpolation workflow, consisting of:
-        - a smooth WannierizeWorkflow (if required)
+        - a smooth WannieriseWorkflow (if required)
         - an UnfoldAndInterpolateCalculator for occ states
         - an UnfoldAndInterpolateCalculator for emp states
         - an UnfoldAndInterpolateCalculator to merge occ and emp results
 
         '''
         # Import these here so that if these have been monkey-patched, we get the monkey-patched version
-        from koopmans.workflows import WannierizeWorkflow
+        from koopmans.workflows import WannieriseWorkflow
 
         # Transform self.atoms back to the primitive cell
         if self.parameters.method == 'dscf':
@@ -51,7 +51,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             wf_kwargs = self.wf_kwargs
             wf_kwargs['kgrid'] = [x * y for x,
                                   y in zip(wf_kwargs['kgrid'], self.master_calc_params['ui'].smooth_int_factor)]
-            wannier_workflow = WannierizeWorkflow(scf_kgrid=self.kgrid, **wf_kwargs)
+            wannier_workflow = WannieriseWorkflow(scf_kgrid=self.kgrid, **wf_kwargs)
 
             # Here, we allow for skipping of the smooth dft calcs (assuming they have been already run)
             # This is achieved via the optional argument of from_scratch in run_subworkflow(), which
@@ -71,7 +71,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                 if spin:
                     calc_presets += '_' + spin
                 calc = self.new_ui_calculator(calc_presets)
-                calc.centers = np.array([center for c in w90_calcs for center in c.results['centers']
+                calc.centres = np.array([centre for c in w90_calcs for centre in c.results['centers']
                                         if calc_presets in c.directory.name])
                 calc.spreads = [spread for c in w90_calcs for spread in c.results['spreads']
                                 if calc_presets in c.directory.name]

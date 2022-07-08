@@ -15,7 +15,7 @@ from koopmans.calculators import (Calc, EnvironCalculator,
                                   Wann2KCCalculator, Wann2KCPCalculator,
                                   Wannier90Calculator)
 from koopmans.io import read_kwf as read_encoded_json
-from koopmans.workflows import KoopmansDSCFWorkflow, WannierizeWorkflow
+from koopmans.workflows import KoopmansDSCFWorkflow, WannieriseWorkflow
 
 from ._utils import benchmark_filename, metadata_filename
 
@@ -200,7 +200,7 @@ class MockKoopmansDSCFWorkflow(MockWorkflow, KoopmansDSCFWorkflow):
     pass
 
 
-class MockWannierizeWorkflow(MockWorkflow, WannierizeWorkflow):
+class MockWannieriseWorkflow(MockWorkflow, WannieriseWorkflow):
 
     @staticmethod
     def _merge_wannier_files(dirs_in: List[Path], dir_out: Path, fname: str):
@@ -211,15 +211,15 @@ class MockWannierizeWorkflow(MockWorkflow, WannierizeWorkflow):
 
     @staticmethod
     def merge_wannier_hr_files(dirs_in: List[Path], dir_out: Path, prefix: str):
-        MockWannierizeWorkflow._merge_wannier_files(dirs_in, dir_out, prefix + '_hr.dat')
+        MockWannieriseWorkflow._merge_wannier_files(dirs_in, dir_out, prefix + '_hr.dat')
 
     @staticmethod
     def merge_wannier_u_files(dirs_in: List[Path], dir_out: Path, prefix: str):
-        MockWannierizeWorkflow._merge_wannier_files(dirs_in, dir_out, prefix + '_u.mat')
+        MockWannieriseWorkflow._merge_wannier_files(dirs_in, dir_out, prefix + '_u.mat')
 
     @staticmethod
     def merge_wannier_centres_files(dirs_in: List[Path], dir_out: Path, prefix: str):
-        MockWannierizeWorkflow._merge_wannier_files(dirs_in, dir_out, prefix + '_centres.xyz')
+        MockWannieriseWorkflow._merge_wannier_files(dirs_in, dir_out, prefix + '_centres.xyz')
 
     def extend_wannier_u_dis_file(self, block: List[projections.ProjectionBlock], prefix: str = 'wann'):
         raise NotImplementedError()

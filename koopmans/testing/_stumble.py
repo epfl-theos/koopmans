@@ -80,7 +80,7 @@ class StumblingConvergenceWorkflow(StumblingWorkflow, workflows.ConvergenceWorkf
     pass
 
 
-class StumblingWannierizeWorkflow(StumblingWorkflow, workflows.WannierizeWorkflow):
+class StumblingWannieriseWorkflow(StumblingWorkflow, workflows.WannieriseWorkflow):
     pass
 
 

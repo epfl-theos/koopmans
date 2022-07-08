@@ -28,7 +28,7 @@ class DeltaSCFWorkflow(Workflow):
         for charge, label in zip([0, -1], ['neutral', 'charged']):
             self.print(f'Performing {label} calculations', style='subheading')
 
-            # Initialize variables
+            # Initialise variables
             i_eps = 0
             epsilon = epsilons[i_eps]
             environ_restart = False

@@ -1155,8 +1155,8 @@ class Workflow(ABC):
             maxval = 1.1 * dos_summed._weights[:, [e >= xmin and e <= xmax for e in dos_summed._energies]].max()
             if self.parameters.spin_polarised:
                 ax_dos.set_xlim([maxval, -maxval])
-                ax_dos.text(0.25, 0.10, 'up', ha='center', va='top', transform=ax_dos.transAxes)
-                ax_dos.text(0.75, 0.10, 'down', ha='center', va='top', transform=ax_dos.transAxes)
+                ax_dos.text(0.25, 0.10, 'up', ha='centre', va='top', transform=ax_dos.transAxes)
+                ax_dos.text(0.75, 0.10, 'down', ha='centre', va='top', transform=ax_dos.transAxes)
             else:
                 ax_dos.set_xlim([0, maxval])
             ax_dos.set_xticks([])
