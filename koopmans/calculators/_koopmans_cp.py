@@ -214,7 +214,8 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 at = at / alat
                 alat /= utils.units.Bohr
             else:
-                # not sure the call to cell_to_ibrav is needed. I use it to have celldm in the right format for ibrav_to_cell
+                # not sure the call to cell_to_ibrav is needed. I use it to have celldm in the right format for
+                # ibrav_to_cell
                 celldm = cell_to_ibrav(self.atoms.cell, self.parameters.ibrav)
                 alat, regen_cell = ibrav_to_cell(celldm)
                 alat = ibrav_to_cell(celldm)
