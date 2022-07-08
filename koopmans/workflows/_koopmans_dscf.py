@@ -477,7 +477,7 @@ class KoopmansDSCFWorkflow(Workflow):
         converged = False
         i_sc = 0
 
-        alpha_indep_calcs = []
+        alpha_indep_calcs: List[calculators.KoopmansCPCalculator] = []
 
         while not converged and i_sc < self.parameters.n_max_sc_steps:
             i_sc += 1
