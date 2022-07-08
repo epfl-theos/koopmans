@@ -1,7 +1,9 @@
 import os
+
 from ase.calculators.calculator import CalculationFailed
 from koopmans import utils
 from koopmans.calculators import EnvironCalculator
+
 from ._workflow import Workflow
 
 '''

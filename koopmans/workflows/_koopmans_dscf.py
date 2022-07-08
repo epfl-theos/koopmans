@@ -7,16 +7,18 @@ Split off from workflow.py Oct 2020
 
 """
 
-from ase.dft import DOS
-import numpy as np
 import shutil
 from pathlib import Path
 from typing import List, Optional, Tuple
+
+import numpy as np
+
+from ase.dft import DOS
 from ase.spectrum.band_structure import BandStructure
-from koopmans import utils
-from koopmans.settings import KoopmansCPSettingsDict
+from koopmans import calculators, utils
 from koopmans.bands import Band, Bands
-from koopmans import calculators
+from koopmans.settings import KoopmansCPSettingsDict
+
 from ._workflow import Workflow
 
 

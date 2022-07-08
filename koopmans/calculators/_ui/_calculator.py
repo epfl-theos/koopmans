@@ -4,25 +4,29 @@ The calculator class defining the Unfolding & interpolating calculator
 
 """
 
-import os
 import copy
 import json
+import os
+from datetime import datetime
+from pathlib import Path
 from time import time
-from ase.geometry.cell import crystal_structure_from_cell
+from typing import List, Optional, Union
+
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
-from typing import Union, List, Optional
-from pathlib import Path
-from datetime import datetime
+
 from ase import Atoms
 from ase.calculators.calculator import Calculator
 from ase.dft.dos import DOS
+from ase.geometry.cell import crystal_structure_from_cell
 from ase.spectrum.band_structure import BandStructure
 from koopmans import utils
-from koopmans.settings import UnfoldAndInterpolateSettingsDict, PlotSettingsDict
-from .._utils import CalculatorExt, CalculatorABC, sanitise_filenames
-from ._utils import crys_to_cart, extract_hr, latt_vect
+from koopmans.settings import (PlotSettingsDict,
+                               UnfoldAndInterpolateSettingsDict)
+
+from .._utils import CalculatorABC, CalculatorExt, sanitise_filenames
 from ._atoms import UIAtoms
+from ._utils import crys_to_cart, extract_hr, latt_vect
 
 
 class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):

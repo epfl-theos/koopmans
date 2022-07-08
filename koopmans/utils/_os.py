@@ -6,12 +6,12 @@ Written by Edward Linscott May 2020
 
 '''
 
+import contextlib
 import os
+import subprocess
 from glob import glob
 from pathlib import Path
 from typing import Union
-import subprocess
-import contextlib
 
 
 def system_call(command: str, check_ierr: bool = True):

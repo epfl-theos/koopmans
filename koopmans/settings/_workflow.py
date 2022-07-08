@@ -1,7 +1,9 @@
 import os
 from pathlib import Path
 from typing import Any
+
 from koopmans import pseudopotentials
+
 from ._utils import Setting, SettingsDictWithChecks
 
 

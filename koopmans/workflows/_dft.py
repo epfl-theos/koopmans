@@ -7,11 +7,12 @@ Written by Edward Linscott Oct 2020
 """
 
 import shutil
-from typing import TypeVar
 from pathlib import Path
-from koopmans import utils, pseudopotentials, calculators
-from ._workflow import Workflow
+from typing import TypeVar
 
+from koopmans import calculators, pseudopotentials, utils
+
+from ._workflow import Workflow
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
 

@@ -1,7 +1,9 @@
-from typing import Optional, List, Union, Any, Dict
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
+
 from ase import Atoms
-from ase.io.wannier90 import num_wann_from_projections, proj_string_to_dict, list_to_formatted_str
+from ase.io.wannier90 import (list_to_formatted_str, num_wann_from_projections,
+                              proj_string_to_dict)
 
 
 class ProjectionBlock(object):

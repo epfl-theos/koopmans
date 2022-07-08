@@ -4,21 +4,24 @@ projwfc.x calculator module for koopmans
 
 """
 
-import os
 import copy
-import numpy as np
+import os
 import re
 from glob import glob
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
+
+import numpy as np
+
 from ase import Atoms
 from ase.calculators.espresso import Projwfc
-from ase.spectrum.dosdata import GridDOSData
 from ase.spectrum.doscollection import GridDOSCollection
+from ase.spectrum.dosdata import GridDOSData
 from koopmans import pseudopotentials
 from koopmans.commands import Command, ParallelCommand
 from koopmans.settings import ProjwfcSettingsDict
-from ._utils import CalculatorExt, CalculatorABC, bin_directory
+
+from ._utils import CalculatorABC, CalculatorExt, bin_directory
 
 
 class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):

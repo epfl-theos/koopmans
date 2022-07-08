@@ -1,9 +1,10 @@
-from typing import Union, Dict, Any
 from pathlib import Path
+from typing import Any, Dict, Union
+
 from ase.dft.kpoints import BandPath
-from koopmans.io import write, read
-from koopmans.workflows import SinglepointWorkflow
+from koopmans.io import read, write
 from koopmans.settings import WorkflowSettingsDict
+from koopmans.workflows import SinglepointWorkflow
 
 
 def qei_to_json(input_file: Union[str, Path], json: Union[str, Path],

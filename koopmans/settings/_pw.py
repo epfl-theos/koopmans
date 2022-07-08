@@ -1,6 +1,8 @@
 from typing import Any, Dict
-from ase.io.espresso import pw_keys
+
 from ase.dft.kpoints import BandPath
+from ase.io.espresso import pw_keys
+
 from ._utils import SettingsDict
 
 

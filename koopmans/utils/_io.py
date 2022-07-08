@@ -7,16 +7,18 @@ Moved into utils Sep 2021
 
 """
 
-from datetime import datetime
 import json
+from datetime import datetime
+from pathlib import Path
+from typing import List, Tuple, Union
+
 import numpy as np
 import numpy.typing as npt
-from typing import List, Union, Tuple
-from pathlib import Path
+
 from ase.atoms import Atoms
-from ase.dft.kpoints import bandpath, BandPath
-from ase.io.espresso import label_to_symbol, label_to_tag
 from ase.calculators.calculator import Calculator
+from ase.dft.kpoints import BandPath, bandpath
+from ase.io.espresso import label_to_symbol, label_to_tag
 
 
 def parse_dict(dct: dict) -> dict:

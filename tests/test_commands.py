@@ -1,8 +1,11 @@
 import os
+
 import pytest
-from koopmans.commands import Command, ParallelCommand, ParallelCommandWithPostfix
-from koopmans.io import encode, decode
+
 from koopmans import utils
+from koopmans.commands import (Command, ParallelCommand,
+                               ParallelCommandWithPostfix)
+from koopmans.io import decode, encode
 
 
 def test_command():

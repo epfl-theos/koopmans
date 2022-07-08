@@ -7,11 +7,14 @@ Written by Edward Linscott Feb 2021
 """
 
 import os
-import numpy as np
 from pathlib import Path
-from koopmans.bands import Bands
-from koopmans.calculators import Wann2KCCalculator, KoopmansHamCalculator
+
+import numpy as np
+
 from koopmans import utils
+from koopmans.bands import Bands
+from koopmans.calculators import KoopmansHamCalculator, Wann2KCCalculator
+
 from ._workflow import Workflow
 
 

@@ -1,6 +1,7 @@
 import os
-from typing import Set, Tuple
 from pathlib import Path
+from typing import Set, Tuple
+
 from koopmans import base_directory, calculators
 
 

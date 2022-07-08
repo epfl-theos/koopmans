@@ -19,18 +19,21 @@ Sep 2021: Reshuffled files to make imports cleaner
 """
 
 from __future__ import annotations
+
 import copy
+from abc import ABC, abstractmethod, abstractproperty
+from pathlib import Path
+from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
+
 import numpy as np
 from numpy import typing as npt
-from typing import Union, Optional, List, TypeVar, Generic, Type, Dict, Any
-from pathlib import Path
-from abc import ABC, abstractmethod, abstractproperty
-from ase import Atoms
+
 import ase.io as ase_io
+from ase import Atoms
 from ase.calculators.calculator import CalculationFailed
 from ase.dft.kpoints import BandPath
 from ase.spectrum.band_structure import BandStructure
-from koopmans import utils, settings
+from koopmans import settings, utils
 
 # Directories of the various QE calculators
 bin_directory = Path(__file__).parents[2] / 'bin'

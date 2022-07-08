@@ -1,17 +1,24 @@
-from abc import ABC, abstractmethod
 import itertools
 import json
-import numpy as np
+from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional, Any, Dict, Set
+from typing import Any, Dict, List, Optional, Set
+
+import numpy as np
+
+from ase.dft.dos import DOS
 from ase.spectrum.band_structure import BandStructure
 from ase.spectrum.doscollection import GridDOSCollection
-from ase.dft.dos import DOS
-from koopmans.calculators import Wannier90Calculator, PW2WannierCalculator, Wann2KCPCalculator, PWCalculator, \
-    KoopmansCPCalculator, EnvironCalculator, UnfoldAndInterpolateCalculator, Wann2KCCalculator, \
-    KoopmansScreenCalculator, KoopmansHamCalculator, ProjwfcCalculator, Calc
-from koopmans import utils, base_directory
+from koopmans import base_directory, utils
+from koopmans.calculators import (Calc, EnvironCalculator,
+                                  KoopmansCPCalculator, KoopmansHamCalculator,
+                                  KoopmansScreenCalculator, ProjwfcCalculator,
+                                  PW2WannierCalculator, PWCalculator,
+                                  UnfoldAndInterpolateCalculator,
+                                  Wann2KCCalculator, Wann2KCPCalculator,
+                                  Wannier90Calculator)
 from koopmans.io import read_kwf as read_encoded_json
+
 from ._utils import benchmark_filename, metadata_filename
 
 # A hard and a soft tolerance for checking floats

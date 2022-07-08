@@ -8,18 +8,20 @@ Written by Riccardo De Gennaro Nov 2020
 """
 
 import copy
-import numpy as np
 import math
-from pathlib import Path
 import pickle
 import shutil
+from pathlib import Path
 from typing import List, TypeVar
-import koopmans.mpl_config
-import matplotlib.pyplot as plt
-from koopmans import utils, projections, calculators
-from koopmans.pseudopotentials import nelec_from_pseudos, read_pseudo_file
-from ._workflow import Workflow
 
+import matplotlib.pyplot as plt
+import numpy as np
+
+import koopmans.mpl_config
+from koopmans import calculators, projections, utils
+from koopmans.pseudopotentials import nelec_from_pseudos, read_pseudo_file
+
+from ._workflow import Workflow
 
 CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
 

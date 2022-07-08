@@ -2,10 +2,10 @@
 
 import argparse
 import textwrap
-import koopmans.mpl_config
-from koopmans.settings import WorkflowSettingsDict
-from koopmans.io import read, write
 
+import koopmans.mpl_config
+from koopmans.io import read, write
+from koopmans.settings import WorkflowSettingsDict
 
 '''
 Perform KI/KIPZ calculations

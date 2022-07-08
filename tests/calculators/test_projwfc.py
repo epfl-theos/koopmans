@@ -1,7 +1,10 @@
-import pytest
 import shutil
-from koopmans import workflows, utils, base_directory
-from koopmans.io import read_kwf as read_encoded_json, write_kwf as write_encoded_json
+
+import pytest
+
+from koopmans import base_directory, utils, workflows
+from koopmans.io import read_kwf as read_encoded_json
+from koopmans.io import write_kwf as write_encoded_json
 from koopmans.testing import benchmark_filename
 
 

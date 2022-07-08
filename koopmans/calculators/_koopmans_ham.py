@@ -7,14 +7,18 @@ Written by Edward Linscott Feb 2021
 """
 
 import os
+from typing import List, Optional
+
 import numpy as np
-from typing import Optional, List
+
 from ase import Atoms
 from ase.calculators.espresso import KoopmansHam
 from ase.dft.kpoints import BandPath
-from koopmans import utils, settings
-from ._utils import KCWannCalculator, CalculatorABC, bin_directory, ReturnsBandStructure
+from koopmans import settings, utils
 from koopmans.commands import ParallelCommand
+
+from ._utils import (CalculatorABC, KCWannCalculator, ReturnsBandStructure,
+                     bin_directory)
 
 
 class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure, CalculatorABC):

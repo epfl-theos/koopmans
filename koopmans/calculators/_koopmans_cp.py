@@ -7,21 +7,26 @@ Written by Edward Linscott Sep 2020
 """
 
 from __future__ import annotations
-import os
+
 import copy
 import math
-import numpy as np
+import os
 import pickle
-from pathlib import Path
-from scipy.linalg import block_diag
-from typing import Optional, List, Union
-from pandas.core.series import Series
 import xml.etree.ElementTree as ET
+from pathlib import Path
+from typing import List, Optional, Union
+
+import numpy as np
+from pandas.core.series import Series
+from scipy.linalg import block_diag
+
 from ase import Atoms
 from ase.calculators.espresso import Espresso_kcp
-from koopmans import utils, settings, pseudopotentials, bands
+from koopmans import bands, pseudopotentials, settings, utils
 from koopmans.commands import ParallelCommand
-from ._utils import CalculatorExt, CalculatorABC, bin_directory, CalculatorCanEnforceSpinSym
+
+from ._utils import (CalculatorABC, CalculatorCanEnforceSpinSym, CalculatorExt,
+                     bin_directory)
 
 
 def read_ham_file(filename: Path) -> np.ndarray:

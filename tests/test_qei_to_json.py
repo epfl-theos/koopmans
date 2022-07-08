@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from koopmans import utils
 from koopmans.qei_to_json import qei_to_json
 

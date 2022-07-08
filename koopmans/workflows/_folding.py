@@ -8,10 +8,12 @@ Written by Edward Linscott Feb 2021
 """
 
 import os
-import numpy as np
 from pathlib import Path
-from koopmans import utils
-from koopmans import calculators
+
+import numpy as np
+
+from koopmans import calculators, utils
+
 from ._workflow import Workflow
 
 

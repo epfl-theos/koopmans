@@ -9,12 +9,15 @@ Originally written by Riccardo De Gennaro as the standalone 'unfolding and inter
 Integrated within koopmans by Edward Linscott Jan 2021
 """
 
-import numpy as np
 from pathlib import Path
 from typing import Optional
-from ._workflow import Workflow
-from koopmans import calculators, utils
+
+import numpy as np
+
 from ase.spectrum.band_structure import BandStructure
+from koopmans import calculators, utils
+
+from ._workflow import Workflow
 
 
 class UnfoldAndInterpolateWorkflow(Workflow):

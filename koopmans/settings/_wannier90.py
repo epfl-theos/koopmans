@@ -1,7 +1,10 @@
-import numpy as np
 from typing import Any
-from ase.io.wannier90 import construct_kpoint_path, proj_string_to_dict
+
+import numpy as np
+
 from ase.dft.kpoints import BandPath
+from ase.io.wannier90 import construct_kpoint_path, proj_string_to_dict
+
 from ._utils import SettingsDict
 
 

@@ -7,41 +7,46 @@ Converted workflows from functions to objects Nov 2020
 
 """
 
-from abc import ABC, abstractmethod
+import copy
+import json as json_ext
+import operator
 import os
 import shutil
-import copy
-import operator
-from functools import reduce
 import subprocess
+from abc import ABC, abstractmethod
+from functools import reduce
 from pathlib import Path
-import json as json_ext
+from types import ModuleType
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+
+import matplotlib.pyplot as plt
 import numpy as np
 from numpy import typing as npt
-from types import ModuleType
-from typing import Optional, Dict, List, Type, Union, Any, TypeVar
 from pybtex.database import BibliographyData
+
 import ase
+import koopmans.mpl_config
 from ase import Atoms
 from ase.build.supercells import make_supercell
+from ase.calculators.calculator import CalculationFailed
+from ase.calculators.espresso import Espresso_kcp
 from ase.dft.dos import DOS
 from ase.dft.kpoints import BandPath
-from ase.calculators.espresso import Espresso_kcp
-from ase.calculators.calculator import CalculationFailed
-from ase.io.espresso import cell_to_ibrav, ibrav_to_cell, kcp_keys, contruct_kcp_namelist as construct_namelist
+from ase.io.espresso import cell_to_ibrav
+from ase.io.espresso import contruct_kcp_namelist as construct_namelist
+from ase.io.espresso import ibrav_to_cell, kcp_keys
 from ase.spectrum.band_structure import BandStructure
-from ase.spectrum.dosdata import GridDOSData
 from ase.spectrum.doscollection import GridDOSCollection
-from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, pseudo_database, fetch_pseudo, \
-    valence_from_pseudo
-from koopmans import utils, settings, calculators
-from koopmans.commands import ParallelCommandWithPostfix
+from ase.spectrum.dosdata import GridDOSData
+from koopmans import calculators, settings, utils
 from koopmans.bands import Bands
+from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.projections import ProjectionBlocks
+from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
+                                       pseudo_database,
+                                       pseudos_library_directory,
+                                       valence_from_pseudo)
 from koopmans.references import bib_data
-import koopmans.mpl_config
-import matplotlib.pyplot as plt
-
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
 

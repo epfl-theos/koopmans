@@ -1,7 +1,9 @@
 import pickle
-from koopmans import mpl_config
-from matplotlib.axes import Axes
+
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
+
+from koopmans import mpl_config
 
 
 def savefig(fname, **kwargs):

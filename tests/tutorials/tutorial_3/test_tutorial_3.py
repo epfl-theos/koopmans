@@ -1,8 +1,10 @@
-import pytest
 from pathlib import Path
+
+import pytest
+
+from koopmans import base_directory
 from koopmans.io import read
 from koopmans.utils import chdir
-from koopmans import base_directory
 
 tutorial_dir = base_directory / 'tutorials' / 'tutorial_3'
 

@@ -1,5 +1,6 @@
 import pytest
-from koopmans import workflows, utils
+
+from koopmans import utils, workflows
 
 
 def test_pwbandstructure_si(silicon, workflow_patch, tmp_path, sys2file):
