@@ -8,6 +8,7 @@ Split off from workflow.py Oct 2020
 """
 
 from distutils.log import debug
+from multiprocessing.sharedctypes import Value
 from ase.dft import DOS
 import numpy as np
 import shutil
@@ -341,7 +342,11 @@ class KoopmansDSCFWorkflow(Workflow):
             # to copy the previously calculated Wannier functions
             calc = self.new_kcp_calculator('dft_dummy')
             calc.directory = Path('init')
+
+            # try:
             self.run_calculator(calc, enforce_ss=False)
+            # except:
+            #     raise ValueError("run_cal")
 
             # DFT restarting from Wannier functions (after copying the Wannier functions)
             calc = self.new_kcp_calculator('dft_init', restart_mode='restart',
@@ -948,6 +953,11 @@ class KoopmansDSCFWorkflow(Workflow):
             calc.parameters.nbnd = None
             calc.parameters.conv_thr *= 100
             calc.parameters.esic_conv_thr *= 100
+
+        # For the dft_dummy calculation, we don't need empty states because these will be overwritten by the w90
+        # wavefunctions
+        if calc.prefix == 'dft_dummy':
+            calc.parameters.nbnd = None
 
         if self.parameters.periodic and not any([s == calc.prefix for s in ['dft_init', 'dft_n-1', 'dft_n+1',
                                                                             'kipz', 'kipz_n-1', 'kipz_n+1']]):
