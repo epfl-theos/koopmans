@@ -27,7 +27,7 @@ from pathlib import Path
 from abc import ABC, abstractmethod, abstractproperty
 from ase import Atoms
 import ase.io as ase_io
-from ase.calculators.calculator import CalculationFailed
+from ase.calculators.calculator import Calculator, CalculationFailed
 from ase.dft.kpoints import BandPath
 from ase.spectrum.band_structure import BandStructure
 from koopmans import utils, settings
@@ -68,7 +68,7 @@ class CalculatorExt():
     '''
 
     prefix: str = ''
-    results: dict
+    results: Dict[str, Any]
     ext_in: str = ''
     ext_out: str = ''
 
@@ -81,7 +81,7 @@ class CalculatorExt():
         self.skip_qc = skip_qc
 
     @property
-    def parameters(self):
+    def parameters(self) -> settings.SettingsDict:
         if not hasattr(self, '_parameters'):
             raise ValueError(f'{self}.parameters has not yet been set')
         return self._parameters
@@ -148,13 +148,13 @@ class CalculatorExt():
             input_file = input_file.with_suffix(self.ext_in)
 
         # Load calculator from input file
-        calc = ase_io.read(input_file).calc
+        calc: Calculator = ase_io.read(input_file).calc
 
         # Update self based off the input file, first updating self.directory in order to ensure any settings that are
         # relative paths are appropriately stored
         self.directory = input_file.parent
         self.parameters = calc.parameters
-        if calc.atoms is not None:
+        if isinstance(calc.atoms, Atoms):
             # Some calculators (e.g. wann2kc) can't reconstruct atoms from an input file
             self.atoms = calc.atoms
             self.atoms.calc = self
@@ -245,12 +245,12 @@ class CalculatorABC(ABC, Generic[TCalc]):
                                     'output file for more details')
 
     @abstractmethod
-    def todict(self) -> dict:
+    def todict(self) -> Dict[str, Any]:
         ...
 
     @classmethod
     @abstractmethod
-    def fromdict(cls: Type[TCalcABC], dct: dict) -> TCalc:
+    def fromdict(cls: Type[TCalcABC], dct: Dict[str, Any]) -> TCalc:
         ...
 
     @classmethod
