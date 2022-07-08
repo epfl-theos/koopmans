@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Dict, List, Tuple
 import numpy as np
-from ase import Atoms
+from ase import Atoms, units
 from numpy.linalg import norm
 import xml.etree.ElementTree as ET
 from numpy.linalg import norm
@@ -264,8 +264,7 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
         utils.system_call(f'mkdir -p {dir_xsf}')
         dirs.update({'xsf': dir_xsf})
 
-    # TODO Yannick: find the normalization constant 6.748334698446981
-    norm_const = 6.748334698446981
+    norm_const = 1/(units.Bohr)**3  # normalization of the densities
 
     # load the grid dimensions nr_xml from charge-density-file
     file_rho = dirs['xml'] / 'charge-density.xml'
@@ -306,6 +305,7 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
     # load the total charge density
     file_rho = dirs['xml'] / 'charge-density.xml'
     total_density_r, total_density_r_xsf = load_density_into_array(file_rho, nr_xml, norm_const, 'CHARGE-DENSITY')
+    print("normalization = ",  compute_3d_integral_naive(total_density_r, r))
 
     # for debugging print the total charge density to a xsf file that can be plotted with xcrysden
     if Debug:
