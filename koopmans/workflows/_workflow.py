@@ -445,6 +445,8 @@ class Workflow(ABC):
                 utils.warn(f'Using the ML-prediction for non-periodic systems has not yet been extensively tested.')
             if self.parameters.orbital_groups:
                 utils.warn('Using orbital_groups has not yet been extensively tested.')
+            if not np.all(self.atoms.cell.angles() == 90.0):
+                raise ValueError(f"The ML-workflow has only been implemented for simulation cells that have 90° angles")
 
     def new_calculator(self,
                        calc_type: str,
