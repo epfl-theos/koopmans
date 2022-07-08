@@ -14,7 +14,7 @@ import numpy as np
 import pickle
 from pathlib import Path
 from scipy.linalg import block_diag
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Any
 from pandas.core.series import Series
 import xml.etree.ElementTree as ET
 from ase import Atoms
@@ -26,7 +26,7 @@ from ase.io.espresso import cell_to_ibrav, ibrav_to_cell
 from koopmans.pseudopotentials import read_pseudo_file
 
 
-def allowed(nr):
+def allowed(nr: int) -> bool:
     # define whether i is a good fft grid number
     mr = nr
     factor = [2, 3, 5, 7, 11]
@@ -34,13 +34,12 @@ def allowed(nr):
     pwr = [0, 0, 0, 0, 0]
     for i, fac in enumerate(factor):
         maxpwr = int(np.log(mr) / np.log(fac))
-        for p in range(maxpwr):
+        for _ in range(maxpwr):
             if mr == 1:
                 break
             if mr % fac == 0:
-                mr /= fac
+                mr //= fac
                 pwr[i] += 1
-#    print (pwr)
     if mr != 1:
         allowed = False
     else:
@@ -48,7 +47,7 @@ def allowed(nr):
     return allowed
 
 
-def good_fft(nr):
+def good_fft(nr: int) -> int:
     # Return good grid dimension (optimal for the FFT)
     nfftx = 2049
     new = nr
@@ -58,7 +57,7 @@ def good_fft(nr):
     return nr
 
 
-def read_ham_file(filename: Path) -> np.ndarray:
+def read_ham_file(filename: Path) -> np.ndarray[Any, np.dtype[np.cfloat]]:
     # Read a single hamiltonian XML file
     if not filename.exists():
         raise FileExistsError(f'{filename} does not exist')
@@ -72,7 +71,7 @@ def read_ham_file(filename: Path) -> np.ndarray:
     assert ham_xml.text is not None, f'{filename} is empty'
 
     ham_array = np.array([complex(*[float(x) for x in line.split(',')])
-                          for line in ham_xml.text.strip().split('\n')], dtype=complex) * utils.units.Hartree
+                          for line in ham_xml.text.strip().split('\n')], dtype=np.cfloat) * utils.units.Hartree
 
     return ham_array.reshape((length, length))
 
