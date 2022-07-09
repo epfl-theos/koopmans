@@ -534,16 +534,12 @@ class KoopmansDSCFWorkflow(Workflow):
             first_band_of_each_channel = [self.bands.get(spin=spin)[0] for spin in range(2)]
 
             # Initialize the ML-model
-            debug_ml = False  # possibility to replace the ab-initio computation with an auxillary function that reads them from a file
             if self.parameters.use_ml:
                 mlfit = MLFiitingWorkflow(trial_calc, **self.wf_kwargs)
                 self.run_subworkflow(mlfit)
 
             # Loop over removing/adding an electron from/to each orbital
             for band in self.bands:
-
-                # Wheather to use the ML-prediction
-                use_prediction = False
 
                 # For a KI calculation with only filled bands, we don't have any further calculations to
                 # do so we don't enter this section to avoid printing any headers
@@ -617,18 +613,17 @@ class KoopmansDSCFWorkflow(Workflow):
                     # Make ML-prediction and decide wheather we want to use this prediction
                     if self.parameters.use_ml:
                         alpha_predicted = mlfit.predict(band)
+                        # Wheather to use the ML-prediction
                         use_prediction = mlfit.use_prediction()
-                    if not debug_ml:
-                        if not use_prediction:
-                            self.perform_fixed_band_calculations(
-                                band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band, directory, alpha_indep_calcs)
+                    if not self.parameters.use_ml or not (use_prediction or self.parameters.alphas_from_file_for_debugging_ml_model):
+                        self.perform_fixed_band_calculations(
+                            band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band, directory, alpha_indep_calcs)
 
-                if use_prediction:
-                    if not debug_ml:
-                        alpha = alpha_predicted
-                        error = 0.0  # I would set the error for the predicted alphas to 0.0, because currently we don't want to make another scf-step because of predicted alphas
+                if self.parameters.use_ml and use_prediction:
+                    alpha = alpha_predicted
+                    error = 0.0  # I would set the error for the predicted alphas to 0.0, because currently we don't want to make another scf-step because of predicted alphas
                 else:
-                    if debug_ml:
+                    if self.parameters.use_ml and self.parameters.alphas_from_file_for_debugging_ml_model:
                         # Dummy calculation to circumvent the fixed-band-calculation for debugging
                         alpha, error = mlfit.get_alpha_from_file_for_debugging(band)
                     else:
@@ -652,19 +647,22 @@ class KoopmansDSCFWorkflow(Workflow):
                         b.error = error
 
                 # add alpha to training data
-                if self.parameters.use_ml:
-                    if not use_prediction or debug_ml:
-                        mlfit.print_error_of_single_orbital(alpha_predicted, alpha, indent=self.print_indent+2)
-                        mlfit.add_training_data(band)
-                        if not use_prediction:
-                            mlfit.train()
+                if self.parameters.use_ml and not use_prediction:
+                    mlfit.print_error_of_single_orbital(alpha_predicted, alpha, indent=self.print_indent+2)
+                    mlfit.add_training_data(band)
+                    # if the user wants to train on the fly, train the model after the calculation of each orbital
+                    if self.parameters.train_on_the_fly:
+                        mlfit.train()
 
             self.bands.print_history(indent=self.print_indent + 1)
 
             converged = all([abs(b.error) < 1e-3 for b in self.bands])
 
-            # Print summary of all predictions
-            if(self.parameters.use_ml and (not any(mlfit.use_predictions) or debug_ml)):
+            if self.parameters.use_ml and not any(mlfit.use_predictions):
+                # if the user don't wants to train on the fly, train the model at the end of each snapshot
+                if not self.parameters.train_on_the_fly:
+                    mlfit.train()
+                # Print summary of all predictions
                 mlfit.print_error_of_all_orbitals(indent=self.print_indent + 1)
 
         if converged:

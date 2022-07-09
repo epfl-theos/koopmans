@@ -2,8 +2,6 @@ from typing import Any
 from ._utils import Setting
 from ._workflow import WorkflowSettingsDict
 
-# TODO Yannick: perform more sanity checks, like: r_max>r_min, n_max>0, l_max>0, r_max<cell_size/2, the angles of the simulation cell are all 90°
-
 
 class MLSettingsDict(WorkflowSettingsDict):
     def __init__(self, **kwargs) -> None:
@@ -28,7 +26,11 @@ class MLSettingsDict(WorkflowSettingsDict):
                     int, 1, None),
             Setting('current_snapshot',
                     'Number of snapshots already trained on',
-                    int, 0, None)]
+                    int, 0, None),
+            Setting('alphas_from_file_for_debugging_ml_model', 'If true, read the screening coefficients from file instead of calculating them ab-initio',
+                    bool, False, (True, False)),
+            Setting('train_on_the_fly', 'If true, the ML-model gets trained after the calculation of each orbital. If false, the ML-model gets trained at the end of each snapshot',
+                    bool, False, (True, False))]
         super().__init__(settings=valid_settings, **kwargs)
 
         if not kwargs['r_min'] < kwargs['r_max']:
