@@ -1,7 +1,7 @@
 import copy
 from curses import has_key
 from multiprocessing.sharedctypes import Value
-from typing import List, Union
+from typing import Dict, List, Union
 import numpy as np
 from deepdiff import DeepDiff
 from sklearn.linear_model import Ridge
@@ -23,20 +23,14 @@ class RidgeRegression():
             return f'RidgeRegression(is_trained={self.is_trained},number_of_training_vectors={self.X_train.shape[0]},input_vector_dimension={self.Y_train.shape[0]})'
 
     def todict(self):
-        # TODO Yannick: implement the todict-function
-        # Shallow copy
-        dct = dict(self.__dict__)
+        dct = copy.deepcopy(dict(self.__dict__))
         items_to_pop = ['model', 'scaler']
         for item in items_to_pop:
             dct.pop(item)
-
-        # # Adding information required by the json decoder
-        # dct['__koopmans_name__'] = self.__class__.__name__
-        # dct['__koopmans_module__'] = self.__class__.__module__
         return dct
 
     @classmethod
-    def fromdict(cls, dct):
+    def fromdict(cls, dct: Dict):
         return cls(**dct)
 
     def predict(self, x_test: np.ndarray):
@@ -87,7 +81,6 @@ class RidgeRegression():
                     other_dict.pop(item)
                 if item in self_dict:
                     self_dict.pop(item)
-            # raise ValueError()
             return DeepDiff(self_dict, other_dict, significant_digits=8, number_format_notation='e') == {}
         else:
             return False
