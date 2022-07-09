@@ -10,7 +10,7 @@ import math
 from koopmans.bands import Bands
 from koopmans import utils
 from koopmans.ml_utils import debugging
-from koopmans.ml_utils import basis_functions as basis
+from koopmans.ml_utils import _basis_functions as basis
 
 
 # Possibilities for Debugging
@@ -305,7 +305,6 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
     # load the total charge density
     file_rho = dirs['xml'] / 'charge-density.xml'
     total_density_r, total_density_r_xsf = load_density_into_array(file_rho, nr_xml, norm_const, 'CHARGE-DENSITY')
-    print("normalization = ",  compute_3d_integral_naive(total_density_r, r))
 
     # for debugging print the total charge density to a xsf file that can be plotted with xcrysden
     if Debug:

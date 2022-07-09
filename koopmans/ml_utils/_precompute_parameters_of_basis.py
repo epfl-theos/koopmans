@@ -3,7 +3,7 @@ from typing import Dict
 import numpy as np
 from scipy.integrate import quad
 import matplotlib.pyplot as plt
-import koopmans.ml_utils.basis_functions as basis
+import koopmans.ml_utils._basis_functions as basis
 
 
 def compute_alphas(n_max: int, l_max: int, r_thrs: np.ndarray, thr: float):
