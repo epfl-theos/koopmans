@@ -1,23 +1,43 @@
-from typing import Union
+import copy
+from curses import has_key
+from multiprocessing.sharedctypes import Value
+from typing import List, Union
 import numpy as np
+from deepdiff import DeepDiff
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
 
 
 class RidgeRegression():
-    def __init__(self):
-        self.is_trained = False
-        self.X_train = []
-        self.Y_train = []
+    def __init__(self, is_trained: bool = False, X_train: np.ndarray = None, Y_train: np.ndarray = None):
+        self.is_trained = is_trained
+        self.X_train = X_train
+        self.Y_train = Y_train
         self.scaler = StandardScaler()
         self.model = Ridge(alpha=1.0)
 
     def __repr__(self):
-        return f'RidgeRegression(is_trained={self.is_trained},number_of_training_vectors={self.X_train.shape[0]},input_vector_dimension={self.Y_train.shape[0]})'
+        if self.X_train is None:
+            return f'RidgeRegression(is_trained={self.is_trained}, no training data has been added so far)'
+        else:
+            return f'RidgeRegression(is_trained={self.is_trained},number_of_training_vectors={self.X_train.shape[0]},input_vector_dimension={self.Y_train.shape[0]})'
 
     def todict(self):
         # TODO Yannick: implement the todict-function
-        return
+        # Shallow copy
+        dct = dict(self.__dict__)
+        items_to_pop = ['model', 'scaler']
+        for item in items_to_pop:
+            dct.pop(item)
+
+        # # Adding information required by the json decoder
+        # dct['__koopmans_name__'] = self.__class__.__name__
+        # dct['__koopmans_module__'] = self.__class__.__module__
+        return dct
+
+    @classmethod
+    def fromdict(cls, dct):
+        return cls(**dct)
 
     def predict(self, x_test: np.ndarray):
         """
@@ -50,9 +70,24 @@ class RidgeRegression():
 
         x_train = np.atleast_2d(x_train)
         y_train = np.atleast_1d(y_train)
-        if self.X_train == []:
+        if self.X_train is None:
             self.X_train = x_train
             self.Y_train = y_train
         else:
             self.X_train = np.concatenate([self.X_train, x_train])
             self.Y_train = np.concatenate([self.Y_train, y_train])
+
+    def __eq__(self, other):
+        items_to_pop = ['model', 'scaler']
+        if isinstance(other, RidgeRegression):
+            self_dict = copy.deepcopy(self.__dict__)
+            other_dict = copy.deepcopy(other.__dict__)
+            for item in items_to_pop:
+                if item in other_dict:
+                    other_dict.pop(item)
+                if item in self_dict:
+                    self_dict.pop(item)
+            # raise ValueError()
+            return DeepDiff(self_dict, other_dict, significant_digits=8, number_format_notation='e') == {}
+        else:
+            return False

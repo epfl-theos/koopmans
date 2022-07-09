@@ -60,7 +60,3 @@ class TrajectoryWorkflow(Workflow):
         wf = super(TrajectoryWorkflow, cls)._fromjsondct(bigdct)
         wf.snapshots = snapshots
         return wf
-
-    def todict(self):
-        # TODO Yannick: implement todict-function
-        return {}
