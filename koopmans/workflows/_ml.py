@@ -61,7 +61,6 @@ class MLFiitingWorkflow(Workflow):
         """
 
         # Specify for which bands we want to compute the decomposition
-        # TODO Yannick: is self.bands.to_solve the most sensible choice?
         self.bands_to_extract = self.bands.to_solve
         self.n_bands_to_extract = [len([band for band in self.bands_to_extract if band.filled == filled])
                                    for filled in [True, False]]

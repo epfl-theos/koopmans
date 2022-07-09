@@ -37,8 +37,6 @@ class TrajectoryWorkflow(Workflow):
 
                 # reset the bands to the initial guesses (i.e. either from file or to 0.6 but not from the previous calculation)
                 self.bands = dscf_workflow.bands
-                # TODO Yannick: check if there are other results that need to be reset
-
                 self.run_subworkflow(dscf_workflow, subdirectory='snapshot_' + str(i+1))
 
     @classmethod
