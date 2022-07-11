@@ -8,7 +8,6 @@ import os
 import copy
 import numpy as np
 import re
-from glob import glob
 from pathlib import Path
 from typing import List, Dict, Optional
 from ase import Atoms
@@ -62,18 +61,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         Generates a list of orbitals (e.g. 1s, 2s, 2p, ...) expected for each element in the system, based on the
         corresponding pseudopotential.
         """
-        expected_orbitals = {}
-        z_core_to_first_orbital = {0: '1s', 2: '2s', 4: '2p', 10: '3s', 12: '3p', 18: '3d', 28: '4s', 30: '4p',
-                                   36: '4d', 46: '5s', 48: '5p', 50: '6s'}
-        for atom in self.atoms:
-            if atom.symbol in expected_orbitals:
-                continue
-            pseudo_file = self.pseudopotentials[atom.symbol]
-            z_core = atom.number - pseudopotentials.valence_from_pseudo(pseudo_file, self.pseudo_dir)
-            first_orbital = z_core_to_first_orbital[z_core]
-            all_orbitals = list(z_core_to_first_orbital.values())
-            expected_orbitals[atom.symbol] = all_orbitals[all_orbitals.index(first_orbital):]
-        return expected_orbitals
+        return pseudopotentials.expected_subshells(self.atoms, self.pseudopotentials, self.pseudo_dir)
 
     def generate_dos(self) -> GridDOSCollection:
         """
