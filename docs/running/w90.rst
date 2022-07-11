@@ -10,7 +10,7 @@ In this case both the occupied and empty manifolds will use ``sp3`` projections,
 The contents of the projections blocks can be specified in one of two ways. The first option, as demonstrated above, involves providing a list of dictionaries, where each dictionary corresponds to a single projector. The required entries for this dictionary are
 
   ``site``/``csite``/``fsite``
-    an atom label/cartesian coordinate/fractional coordinate to be used as the projections' centre. The three are mutually exclusive.
+    an atom label/cartesian coordinate/fractional coordinate to be used as the projections' center. The three are mutually exclusive.
 
   ``ang_mtm``
     a string specifying the angular momentum states e.g. ``"l=2"``  

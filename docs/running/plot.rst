@@ -10,7 +10,7 @@ This block controls the plotting of band structures and densities of states
    <br>
 
 .. raw:: html
-   :file: ../_static/python_ki_keywords/plot_keywords.html
+   :file: ../_static/keywords/plot_keywords.html
 
 .. raw:: html
-   :file: ../_static/python_ki_keywords/lookup_table.html
+   :file: ../_static/keywords/lookup_table.html

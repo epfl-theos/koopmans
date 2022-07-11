@@ -10,7 +10,7 @@ This block controls the unfolding and interpolation procedure for generating ban
    <br>
 
 .. raw:: html
-   :file: ../_static/python_ki_keywords/ui_keywords.html
+   :file: ../_static/keywords/ui_keywords.html
 
 .. raw:: html
-   :file: ../_static/python_ki_keywords/lookup_table.html
+   :file: ../_static/keywords/lookup_table.html
