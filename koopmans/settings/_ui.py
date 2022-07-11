@@ -29,7 +29,7 @@ valid_settings: List[Setting] = [
             'a calculation with k-points it must be equal to \'pc\'.\n',
             str, 'pc', ('pc', 'sc')),
     Setting('do_map',
-            'if True, it realises the map |m> --> |Rn>, that connects the Wannier functions in the supercell to '
+            'if True, it realizes the map |m> --> |Rn>, that connects the Wannier functions in the supercell to '
             'those in the primitive cell. This is basically the unfolding procedure. It can be activated only '
             'if w90_calc=\'sc\'',
             bool, False, (True, False)),

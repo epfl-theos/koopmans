@@ -63,22 +63,22 @@ First, let us inspect the contents of ``ozone.out``: after the header we can see
 
 .. _tutorial_1_initialization:
 
-Initialisation
+Initialization
 ^^^^^^^^^^^^^^
-The first step in any Koopmans calculation is the initialisation step. In this step we initialise the density and the variational orbitals.
+The first step in any Koopmans calculation is the initialization step. In this step we initialize the density and the variational orbitals.
 
 .. literalinclude:: ../../tutorials/tutorial_1/ozone.out
   :language: text
   :lines: 14-20
   :lineno-start: 14
 
-For this calculation we can see that ``koopmans`` has run three PBE calculations. These initialise the density with the PBE density. Indeed, from this point onwards in the calcuation the density will never change, because the KI functional yields the same density as the base functional. (N.B. This is not true of KIPZ.)
+For this calculation we can see that ``koopmans`` has run three PBE calculations. These initialize the density with the PBE density. Indeed, from this point onwards in the calcuation the density will never change, because the KI functional yields the same density as the base functional. (N.B. This is not true of KIPZ.)
 
 These PBE calculations also have provided us with our variational orbitals -- we can see that the calculation has selected the PBE Kohn-Sham orbitals as the variational orbitals (because earlier we set ``"init_orbitals": "kohn-sham"``).
 
 But why three PBE calculations? The reason for this is that the calculations we will perform later involve the addition/removal of a single electron, which means the density we need to generate here must correspond to a ``nspin = 2`` calculation. However, we know ozone is a closed-shell molecule and simply performing a ``nspin = 2`` PBE calculation risks introducing spin contamination (i.e. falling into a local minimum where :math:`n^\uparrow(\mathbf{r}) \neq n^\downarrow(\mathbf{r})`).
 
-This sequence of three calculations is designed to avoid this; we first optimise the density constrained to be spin-unpolarised, and only once that density has been minimised do we lift this restriction. This additional step can be disabled by adding ``"fix_spin_contamination": false`` to the ``workflow`` block of ``ozone.json``.
+This sequence of three calculations is designed to avoid this; we first optimise the density constrained to be spin-unpolarized, and only once that density has been minimised do we lift this restriction. This additional step can be disabled by adding ``"fix_spin_contamination": false`` to the ``workflow`` block of ``ozone.json``.
 
 The input and output Quantum ESPRESSO files for this first step can all be found in the directory ``init/``.
 

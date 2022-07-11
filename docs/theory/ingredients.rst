@@ -29,7 +29,7 @@ If we have minimised the total Koopmans energy we can then construct the Hamilto
 
 .. note::
 
-   Transforming a DFT to an ODDFT may seem like a bothersome complication but actually it is a natural generalisation -- indeed, an ODDFT is in fact an energy-discretised spectral functional theory :cite:`Ferretti2014`.
+   Transforming a DFT to an ODDFT may seem like a bothersome complication but actually it is a natural generalization -- indeed, an ODDFT is in fact an energy-discretized spectral functional theory :cite:`Ferretti2014`.
 
 .. _theory_screening:
 

@@ -5,7 +5,7 @@ In a semi-local DFT calculation, all that one needs to do is obtain the ground s
 
 Typically, a Koopmans calculation can be divided into three stages
 
-1. an initialisation step, where the density and variational orbitals are initialised
+1. an initialization step, where the density and variational orbitals are initialized
 2. the calculation of screening parameters
 3. a final calculation using the obtained variational orbitals and screening parameters
    

@@ -166,7 +166,7 @@ If you run this new input the output will be remarkably similar to that from the
   :lineno-start: 16
   :language: text
 
-which replaces the previous series of semi-local and PZ calculations that we used to initialise the variational orbitals for a molecule.
+which replaces the previous series of semi-local and PZ calculations that we used to initialize the variational orbitals for a molecule.
 
 There is then an new "folding to supercell" subsection:
 
