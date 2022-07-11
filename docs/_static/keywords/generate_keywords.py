@@ -1,4 +1,8 @@
-from koopmans.settings import WorkflowSettingsDict, UnfoldAndInterpolateSettingsDict, PlotSettingsDict
+from koopmans.settings import (
+    PlotSettingsDict,
+    UnfoldAndInterpolateSettingsDict,
+    WorkflowSettingsDict,
+)
 
 
 def print_settings_as_html(settings, table_id, fd):

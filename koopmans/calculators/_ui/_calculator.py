@@ -5,9 +5,9 @@ The calculator class defining the Unfolding & interpolating calculator
 """
 
 import copy
+from datetime import datetime
 import json
 import os
-from datetime import datetime
 from pathlib import Path
 from time import time
 from typing import List, Optional, Union
@@ -21,8 +21,7 @@ from ase.dft.dos import DOS
 from ase.geometry.cell import crystal_structure_from_cell
 from ase.spectrum.band_structure import BandStructure
 from koopmans import utils
-from koopmans.settings import (PlotSettingsDict,
-                               UnfoldAndInterpolateSettingsDict)
+from koopmans.settings import PlotSettingsDict, UnfoldAndInterpolateSettingsDict
 
 from .._utils import CalculatorABC, CalculatorExt, sanitize_filenames
 from ._atoms import UIAtoms

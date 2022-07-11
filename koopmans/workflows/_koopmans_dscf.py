@@ -7,8 +7,8 @@ Split off from workflow.py Oct 2020
 
 """
 
-import shutil
 from pathlib import Path
+import shutil
 from typing import List, Optional, Tuple
 
 import numpy as np

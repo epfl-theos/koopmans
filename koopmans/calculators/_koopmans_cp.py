@@ -11,10 +11,10 @@ from __future__ import annotations
 import copy
 import math
 import os
-import pickle
-import xml.etree.ElementTree as ET
 from pathlib import Path
+import pickle
 from typing import List, Optional, Union
+import xml.etree.ElementTree as ET
 
 import numpy as np
 from pandas.core.series import Series
@@ -25,8 +25,12 @@ from ase.calculators.espresso import Espresso_kcp
 from koopmans import bands, pseudopotentials, settings, utils
 from koopmans.commands import ParallelCommand
 
-from ._utils import (CalculatorABC, CalculatorCanEnforceSpinSym, CalculatorExt,
-                     bin_directory)
+from ._utils import (
+    CalculatorABC,
+    CalculatorCanEnforceSpinSym,
+    CalculatorExt,
+    bin_directory,
+)
 
 
 def read_ham_file(filename: Path) -> np.ndarray:

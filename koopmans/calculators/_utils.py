@@ -20,18 +20,18 @@ Sep 2021: Reshuffled files to make imports cleaner
 
 from __future__ import annotations
 
-import copy
 from abc import ABC, abstractmethod, abstractproperty
+import copy
 from pathlib import Path
 from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
 
 import numpy as np
 from numpy import typing as npt
 
-import ase.io as ase_io
 from ase import Atoms
 from ase.calculators.calculator import CalculationFailed
 from ase.dft.kpoints import BandPath
+import ase.io as ase_io
 from ase.spectrum.band_structure import BandStructure
 from koopmans import settings, utils
 

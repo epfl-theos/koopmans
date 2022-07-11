@@ -6,8 +6,8 @@ Written by Edward Linscott Oct 2020
 
 """
 
-import shutil
 from pathlib import Path
+import shutil
 from typing import TypeVar
 
 from koopmans import calculators, pseudopotentials, utils

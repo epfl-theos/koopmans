@@ -4,11 +4,14 @@ Script for the bulk Si example
 Written by Edward Linscott, Mar 2021
 '''
 
+# isort: off
 import koopmans.mpl_config
 import matplotlib.pyplot as plt
-from koopmans import utils, io
+# isort: on
+
 from ase.dft.dos import DOS
 from ase.spectrum.band_structure import BandStructurePlot
+from koopmans import io, utils
 
 
 def run(from_scratch=True):

@@ -8,14 +8,14 @@ Split into a separate module Sep 2021
 
 """
 
-import json
-import os
-import re
-import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from itertools import chain
+import json
+import os
 from pathlib import Path
+import re
 from typing import Dict, List, Optional
+import xml.etree.ElementTree as ET
 
 from ase import Atoms
 

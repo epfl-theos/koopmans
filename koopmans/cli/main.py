@@ -3,8 +3,8 @@
 import argparse
 import textwrap
 
-import koopmans.mpl_config
 from koopmans.io import read
+import koopmans.mpl_config
 from koopmans.settings import WorkflowSettingsDict
 
 '''

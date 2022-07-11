@@ -7,15 +7,15 @@ Converted workflows from functions to objects Nov 2020
 
 """
 
+from abc import ABC, abstractmethod
 import copy
+from functools import reduce
 import json as json_ext
 import operator
 import os
+from pathlib import Path
 import shutil
 import subprocess
-from abc import ABC, abstractmethod
-from functools import reduce
-from pathlib import Path
 from types import ModuleType
 from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 
@@ -45,10 +45,13 @@ from koopmans import calculators, settings, utils
 from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.projections import ProjectionBlocks
-from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
-                                       pseudo_database,
-                                       pseudos_library_directory,
-                                       valence_from_pseudo)
+from koopmans.pseudopotentials import (
+    fetch_pseudo,
+    nelec_from_pseudos,
+    pseudo_database,
+    pseudos_library_directory,
+    valence_from_pseudo,
+)
 from koopmans.references import bib_data
 
 T = TypeVar('T', bound='calculators.CalculatorExt')

@@ -3,8 +3,7 @@ import os
 import pytest
 
 from koopmans import utils
-from koopmans.commands import (Command, ParallelCommand,
-                               ParallelCommandWithPostfix)
+from koopmans.commands import Command, ParallelCommand, ParallelCommandWithPostfix
 from koopmans.io import decode, encode
 
 

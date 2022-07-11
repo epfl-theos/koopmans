@@ -7,8 +7,8 @@ Moved into utils Sep 2021
 
 """
 
-import json
 from datetime import datetime
+import json
 from pathlib import Path
 from typing import List, Tuple, Union
 

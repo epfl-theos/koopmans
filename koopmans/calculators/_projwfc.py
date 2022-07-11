@@ -5,10 +5,10 @@ projwfc.x calculator module for koopmans
 """
 
 import copy
-import os
-import re
 from glob import glob
+import os
 from pathlib import Path
+import re
 from typing import Dict, List, Optional
 
 import numpy as np

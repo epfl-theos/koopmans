@@ -9,8 +9,8 @@ Written by Riccardo De Gennaro Nov 2020
 
 import copy
 import math
-import shutil
 from pathlib import Path
+import shutil
 from typing import List, TypeVar
 
 # isort: off

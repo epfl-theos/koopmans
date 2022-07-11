@@ -6,8 +6,8 @@ Written by Edward Linscott May 2020
 
 '''
 
-import os
 from collections import UserDict
+import os
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Type, Union
 

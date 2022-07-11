@@ -7,10 +7,10 @@ Written by Edward Linscott May 2020
 '''
 
 import contextlib
-import os
-import subprocess
 from glob import glob
+import os
 from pathlib import Path
+import subprocess
 from typing import Union
 
 

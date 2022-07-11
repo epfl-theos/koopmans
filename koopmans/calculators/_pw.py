@@ -16,8 +16,7 @@ from ase.dft.kpoints import BandPath
 from koopmans.commands import Command, ParallelCommandWithPostfix
 from koopmans.settings import PWSettingsDict
 
-from ._utils import (CalculatorABC, CalculatorExt, ReturnsBandStructure,
-                     bin_directory)
+from ._utils import CalculatorABC, CalculatorExt, ReturnsBandStructure, bin_directory
 
 
 class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC):
