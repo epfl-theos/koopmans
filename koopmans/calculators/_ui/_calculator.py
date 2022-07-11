@@ -613,7 +613,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             hr = hr - self.hr_coarse
         hr = hr.reshape(len(self.Rvec), self.parameters.num_wann, self.parameters.num_wann)
 
-        # renormalise H(R) on the WF phases
+        # renormalize H(R) on the WF phases
         if self.phases:
             hr = np.conjugate(self.phases) * (hr.transpose() * self.phases).transpose()
 

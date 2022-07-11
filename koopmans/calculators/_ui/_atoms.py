@@ -1,8 +1,8 @@
 """
 
 An extended atoms class that has the additional properties
-  acell: the cell, normalised by alat
-  asupercell: a supercell, normalised by alat
+  acell: the cell, normalized by alat
+  asupercell: a supercell, normalized by alat
 for use as the Atoms object associated with a UI calculator
 
 """
@@ -31,12 +31,12 @@ class UIAtoms(Atoms):
 
     @property
     def acell(self) -> Cell:
-        # The cell, normalised by alat
+        # The cell, normalized by alat
         return Cell(self.cell / np.linalg.norm(self.cell[0]))
 
     @property
     def asupercell(self) -> Cell:
-        # The supercell, normalised by alat
+        # The supercell, normalized by alat
         return Cell(self.supercell / np.linalg.norm(self.cell[0]))
 
     @property
