@@ -346,7 +346,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         """
         write_bands prints the interpolated bands, in the QE format, in a file called
                     'bands_interpolated.dat'.
-                    (see PP/src/bands.f90 around line 574 for the linearised path)
+                    (see PP/src/bands.f90 around line 574 for the linearized path)
         """
 
         if directory is None:
@@ -390,7 +390,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         """
         read_bands reads the interpolated bands, in the QE format, in a file called
                    'bands_interpolated.dat'
-                   (see PP/src/bands.f90 around line 574 for the linearised path)
+                   (see PP/src/bands.f90 around line 574 for the linearized path)
 
                    This function also then regenerates the DOS based off the bandstructure
         """
