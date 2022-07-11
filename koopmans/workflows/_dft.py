@@ -16,7 +16,13 @@ from ._workflow import Workflow
 T = TypeVar('T', bound='calculators.CalculatorExt')
 
 
-class DFTCPWorkflow(Workflow):
+class DFTWorkflow(Workflow):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.parameters.functional = 'dft'
+
+
+class DFTCPWorkflow(DFTWorkflow):
 
     def _run(self):
 
@@ -48,7 +54,7 @@ class DFTCPWorkflow(Workflow):
         return calc
 
 
-class DFTPWWorkflow(Workflow):
+class DFTPWWorkflow(DFTWorkflow):
 
     def _run(self):
 
@@ -71,7 +77,7 @@ class DFTPWWorkflow(Workflow):
         return
 
 
-class PWBandStructureWorkflow(Workflow):
+class PWBandStructureWorkflow(DFTWorkflow):
 
     def _run(self):
 

@@ -166,6 +166,10 @@ class SingleUnfoldAndInterpolateWorkflow(Workflow):
     command
     '''
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.parameters.calculate_alpha = False
+
     def _run(self):
         '''
         '''

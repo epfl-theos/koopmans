@@ -26,6 +26,7 @@ from ase import Atoms
 from ase.build.supercells import make_supercell
 from ase.dft.dos import DOS
 from ase.dft.kpoints import BandPath
+from ase.spacegroup import symmetrize
 from ase.calculators.espresso import Espresso_kcp
 from ase.calculators.calculator import CalculationFailed
 from ase.io.espresso import cell_to_ibrav, ibrav_to_cell, kcp_keys, contruct_kcp_namelist as construct_namelist
@@ -346,23 +347,51 @@ class Workflow(ABC):
                 utils.warn('You have requested a ΔSCF calculation with frozen orbitals. This is unusual; proceed '
                            'only if you know what you are doing')
 
-        if self.parameters.periodic:
-            if self.parameters.gb_correction is None:
-                self.parameters.gb_correction = True
+        if self.parameters.functional == 'dft':
+            self.parameters.calculate_alpha = False
 
-            if self.parameters.mp_correction:
+        # Checking periodic image correction schemes
+        if not self.parameters.calculate_alpha:
+            # If we are not calculating alpha, we do not consider charged systems and therefore we don't need image
+            # corrections, so we skip the following checks
+            pass
+        elif self.parameters.periodic:
+            if self.parameters.method == 'dfpt':
+                # For DPFT, we use gb_correction
+                if self.parameters.gb_correction is None:
+                    self.parameters.gb_correction = True
+                if not self.parameters.gb_correction:
+                    utils.warn('Gygi-Baldereschi corrections are not being used; do this with '
+                               'caution for periodic systems')
+
+            elif self.parameters.method == 'dscf':
+                # For DSCF, we use mp_correction
+                if self.parameters.mp_correction is None:
+                    self.parameters.mp_correction = True
+                if not self.parameters.mp_correction:
+                    utils.warn('Makov-Payne corrections are not being used; do this with '
+                               'caution for periodic systems')
+
                 if self.parameters.eps_inf is None:
-                    raise ValueError('eps_inf missing in input; needed when mp_correction is true')
-                elif self.parameters.eps_inf < 1.0:
-                    raise ValueError('eps_inf cannot be lower than 1')
-            else:
-                utils.warn('Makov-Payne corrections not applied for a periodic calculation; do this with '
-                           'caution')
+                    utils.warn('eps_inf missing in input; it will default to 1.0. Proceed with caution for periodic '
+                               'systems')
+                    self.parameters.eps_inf = 1.0
 
             if self.parameters.mt_correction is None:
                 self.parameters.mt_correction = False
             if self.parameters.mt_correction:
                 raise ValueError('Do not use Martyna-Tuckerman corrections for periodic systems')
+
+            # Check the value of eps_inf
+            if self.parameters.eps_inf and self.parameters.eps_inf < 1.0:
+                raise ValueError('eps_inf cannot be lower than 1.0')
+
+            # Check symmetry of the system
+            dataset = symmetrize.check_symmetry(self.atoms, 1e-6, verbose=True)
+            if dataset['number'] not in range(195, 231):
+                utils.warn('This system is not cubic and will therefore not have a uniform dielectric tensor. However, '
+                           'the image-correction schemes that are currently implemented assume a uniform dielectric. '
+                           'Proceed with caution')
 
         else:
             if self.parameters.gb_correction is None:
