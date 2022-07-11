@@ -15,3 +15,4 @@ jobs:
     - uses: ammaraskar/sphinx-action@master
       with:
         docs-folder: "docs/"
+        build-command: "make html SPHINXOPTS='-W --keep-going -n'"

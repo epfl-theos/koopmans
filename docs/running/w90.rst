@@ -3,7 +3,7 @@ The w90 block
 This block contains keywords specific to ``wannier90.x``, which are documented `here <https://github.com/wannier-developers/wannier90/raw/v3.1.0/doc/compiled_docs/user_guide.pdf>`_. Because the occupied and empty manifolds are wannierized separately, you may want to use slightly different wannierization protocols for each. You can do this by placing keywords within the ``occ`` and ``emp`` sub-dictionaries e.g.
 
 .. literalinclude:: ../../tutorials/tutorial_2/si.json
-  :lines: 83-99
+  :lines: 73-88
 
 In this case both the occupied and empty manifolds will use ``sp3`` projections, but only the empty manifold will use the provided ``dis_froz_max`` etc.
 
