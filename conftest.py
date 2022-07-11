@@ -168,7 +168,8 @@ def sys2file(capsys, tmp_path):
 def water() -> Dict[str, Any]:
     # water
     return {'atoms': molecule('H2O', vacuum=5.0, pbc=False),
-            'master_calc_params': {'kcp': {'ecutwfc': 20.0, 'nbnd': 5}}}
+            'ecutwfc': 20.0,
+            'nbnd': 5}  # master_calc_params': {'kcp': {'ecutwfc': 20.0, 'nbnd': 5}}}
 
 
 @pytest.fixture
@@ -178,13 +179,13 @@ def silicon() -> Dict[str, Any]:
     pdict = [{'fsite': [0.25, 0.25, 0.25], 'ang_mtm': 'sp3'}]
     si_projs = ProjectionBlocks.fromprojections([pdict, pdict], fillings=[True, False], spins=[None, None], atoms=si)
     return {'atoms': si,
-            'master_calc_params': {'kcp': {'ecutwfc': 40.0},
-                                   'pw': {'ecutwfc': 40.0, 'nbnd': 10},
-                                   'w90_emp': {'dis_froz_max': 10.6, 'dis_win_max': 16.9},
-                                   'ui': {'smooth_int_factor': 2},
+            'master_calc_params': {'pw': {'nbnd': 10},
+                                   'w90_emp': {'dis_froz_max': 10.6, 'dis_win_max': 16.9}
                                    },
             'plot_params': {'Emin': -10, 'Emax': 4, 'degauss': 0.5},
-            'projections': si_projs}
+            'projections': si_projs,
+            'ecutwfc': 40.0,
+            'smooth_int_factor': 2}
 
 
 @pytest.fixture
@@ -208,9 +209,9 @@ def tio2() -> Dict[str, Any]:
                                              atoms=atoms)
 
     return {'atoms': atoms,
-            'master_calc_params': {'pw': {'ecutwfc': 40, 'nbnd': 34},
-                                   'kcp': {'ecutwfc': 40.0}},
-            'projections': projs}
+            'master_calc_params': {'pw': {'nbnd': 34}},
+            'projections': projs,
+            'ecutwfc': 40.0}
 
 
 @pytest.fixture
@@ -222,10 +223,10 @@ def gaas() -> Dict[str, Any]:
                                                   spins=[None, None, None],
                                                   atoms=atoms)
     return {'atoms': atoms,
-            'master_calc_params': {'kcp': {'ecutwfc': 40.0},
-                                   'pw': {'ecutwfc': 40.0, 'nbnd': 45},
-                                   'w90_emp': {'dis_froz_max': 14.6, 'dis_win_max': 18.6},
-                                   'ui': {'smooth_int_factor': 4},
+            'master_calc_params': {'pw': {'nbnd': 45},
+                                   'w90_emp': {'dis_froz_max': 14.6, 'dis_win_max': 18.6}
                                    },
+            'ecutwfc': 40.0,
+            'smooth_int_factor': 4,
             'plot_params': {'degauss': 0.5},
             'projections': gaas_projs}

@@ -147,7 +147,7 @@ class SettingsDict(UserDict):
         # Set the item
         super().__setitem__(key, value)
 
-    def is_valid(self, name):
+    def is_valid(self, name: str) -> bool:
         # Check if a keyword is valid. This is a separate subroutine to allow child classes to overwrite it
         # e.g. QE calculators want to be able to set keywords such as Hubbard(i) where i is an arbitrary integer
         return name in self.valid

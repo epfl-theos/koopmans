@@ -62,7 +62,8 @@ class Workflow(ABC):
                  kpath_density: int = 10,
                  projections: Optional[ProjectionBlocks] = None,
                  plot_params: Union[Dict[str, Any], settings.PlotSettingsDict] = {},
-                 autogenerate_settings: bool = True):
+                 autogenerate_settings: bool = True,
+                 **kwargs: Dict[str, Any]):
 
         # Parsing parameters
         self.parameters = settings.WorkflowSettingsDict(**parameters)
@@ -248,6 +249,23 @@ class Workflow(ABC):
 
         # Records whether or not this workflow is a subworkflow of another
         self._is_a_subworkflow = False
+
+        # For any kwargs...
+        for key, value in kwargs.items():
+            match = False
+            if self.parameters.is_valid(key):
+                # if they correspond to a valid workflow setting, set it
+                self.parameters[key] = value
+                match = True
+            else:
+                # or if they correspond to any valid calculator parameter, set it
+                for calc_params in self.master_calc_params.values():
+                    if calc_params.is_valid(key):
+                        calc_params[key] = value
+                        match = True
+            # if neither of the above, raise an error
+            if not match:
+                raise ValueError(f'{key} is not a valid setting')
 
     def __eq__(self, other: Any):
         if isinstance(other, Workflow):
