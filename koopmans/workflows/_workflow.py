@@ -1095,7 +1095,7 @@ class Workflow(ABC):
             dos = GridDOSCollection([GridDOSData(dos.get_energies(), dos.get_dos(ispin), info={'spin': spin})
                                      for ispin, spin in enumerate(spins)])
 
-        colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        colours = plt.rcParams['axes.prop_cycle'].by_key()['color']
         if dos is not None:
             # Construct the axes
             _, axes = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [3, 1]})
@@ -1105,7 +1105,7 @@ class Workflow(ABC):
             ax_bs = None
 
         # Plot the band structure
-        defaults = {'colors': colors, 'emin': self.plot_params.Emin, 'emax': self.plot_params.Emax}
+        defaults = {'colors': colours, 'emin': self.plot_params.Emin, 'emax': self.plot_params.Emax}
         for b, kwargs in zip(bs, bsplot_kwargs):
             for k, v in defaults.items():
                 if k not in kwargs:
@@ -1148,7 +1148,7 @@ class Workflow(ABC):
                     d.plot_dos(ax=ax_dos, xmin=xmin, xmax=xmax, orientation='vertical', mplargs={'label': label},
                                **dosplot_kwargs)
 
-                # Reset color cycle so the colors of spin-up match those of spin-down
+                # Reset colour cycle so the colours of spin-up match those of spin-down
                 ax_dos.set_prop_cycle(None)
 
             # Tweaking the DOS figure aesthetics

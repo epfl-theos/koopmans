@@ -254,7 +254,7 @@ class WannieriseWorkflow(Workflow):
             labels = ['explicit'] \
                 + [f'interpolation ({c.directory.name.replace("_",", ").replace("block", "block ")})'
                    for c in selected_calcs]
-            color_cycle = plt.rcParams['axes.prop_cycle']()
+            colour_cycle = plt.rcParams['axes.prop_cycle']()
             bs_list = []
             bsplot_kwargs_list = []
             colours = {}
@@ -277,7 +277,7 @@ class WannieriseWorkflow(Workflow):
                     if ', down' in label and up_label in colours:
                         colours[label] = colours[up_label]
                     else:
-                        colours[label] = [next(color_cycle)['color'] for _ in range(bs.energies.shape[0])]
+                        colours[label] = [next(colour_cycle)['color'] for _ in range(bs.energies.shape[0])]
                     if 'explicit' in label:
                         kwargs['ls'] = 'none'
                         kwargs['marker'] = 'x'
