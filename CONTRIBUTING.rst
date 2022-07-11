@@ -39,6 +39,10 @@ Once your pull request is ready, mark your request as `ready for review <https:/
 
 If there are issues with your pull request, you may be asked to make changes. There is no need to create a new pull request. You can apply the requested changes directly to the branch for which the pull request was issued and they will be automatically added your pull request.
 
+Using pre-commit
+^^^^^^^^^^^^^^^^
+We recommend you use the tool ``pre-commit`` in order to perform some automated checks before you make commits. To set this up, simply run ``pre-commit install``.
+
 Working on the Quantum ESPRESSO submodule
 -----------------------------------------
 By default, the official Quantum ESPRESSO repository is a submodule of ``koopmans``, located in the subdirectory ``quantum_espresso/q-e``. Because we do not administer the Quantum ESPRESSO repository, hotfixes to bugs will first be published to `this fork <https://gitlab.com/elinscott/qe_koopmans>`_ of Quantum ESPRESSO.
