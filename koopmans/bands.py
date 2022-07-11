@@ -205,22 +205,22 @@ class Bands(object):
                 # Select one band
                 guess = unassigned[0]
 
-                # Find the neighbourhood of adjacent bands (with 2x larger threshold)
-                neighbourhood = [b for b in unassigned if points_are_close(guess, b)]
+                # Find the neighborhood of adjacent bands (with 2x larger threshold)
+                neighborhood = [b for b in unassigned if points_are_close(guess, b)]
 
-                # Find the center of that neighbourhood
-                av_sh = np.mean([b.self_hartree for b in neighbourhood])
+                # Find the center of that neighborhood
+                av_sh = np.mean([b.self_hartree for b in neighborhood])
                 center = Band(self_hartree=av_sh)
 
-                # Find a revised neighbourhood close to the center (using a factor of 0.5 because we want points that
-                # are on opposite sides of the neighbourhood to be within "tol" of each other which means they can be
-                # at most 0.5*tol away from the neighbourhood center
-                neighbourhood = [b for b in unassigned if points_are_close(center, b, 0.5)]
+                # Find a revised neighborhood close to the center (using a factor of 0.5 because we want points that
+                # are on opposite sides of the neighborhood to be within "tol" of each other which means they can be
+                # at most 0.5*tol away from the neighborhood center
+                neighborhood = [b for b in unassigned if points_are_close(center, b, 0.5)]
 
-                # Check the neighbourhood is isolated
-                wider_neighbourhood = [b for b in unassigned if points_are_close(center, b)]
+                # Check the neighborhood is isolated
+                wider_neighborhood = [b for b in unassigned if points_are_close(center, b)]
 
-                if neighbourhood != wider_neighbourhood:
+                if neighborhood != wider_neighborhood:
                     if self.self_hartree_tol and sh_tol < 0.01 * self.self_hartree_tol:
                         # We have recursed too deeply, abort
                         raise Exception('Clustering algorithm failed')
@@ -229,7 +229,7 @@ class Bands(object):
                                            allow_reassignment=allow_reassignment)
                         return
 
-                for b in neighbourhood:
+                for b in neighborhood:
                     unassigned.remove(b)
 
                     if allow_reassignment:
