@@ -61,6 +61,8 @@ The output
 ----------
 First, let us inspect the contents of ``ozone.out``: after the header we can see there are a list of Quantum ESPRESSO calculations that have been run by ``koopmans``. These come under three main headings.
 
+.. _tutorial_1_initialization:
+
 Initialisation
 ^^^^^^^^^^^^^^
 The first step in any Koopmans calculation is the initialisation step. In this step we initialise the density and the variational orbitals.
@@ -79,6 +81,8 @@ But why three PBE calculations? The reason for this is that the calculations we 
 This sequence of three calculations is designed to avoid this; we first optimise the density constrained to be spin-unpolarised, and only once that density has been minimised do we lift this restriction. This additional step can be disabled by adding ``"fix_spin_contamination": false`` to the ``workflow`` block of ``ozone.json``.
 
 The input and output Quantum ESPRESSO files for this first step can all be found in the directory ``init/``.
+
+.. _tutorial_1_screening_parameters:
 
 Calculating the screening parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

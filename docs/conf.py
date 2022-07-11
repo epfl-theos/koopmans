@@ -35,6 +35,7 @@ version = ''.join([c for c in release if not c.isalpha()])
 extensions = ['recommonmark', 'sphinx.ext.mathjax', 'sphinx.ext.autosectionlabel', 'sphinxcontrib.bibtex',
               'sphinx_toolbox.collapse']
 bibtex_bibfiles = ['refs.bib']
+autosectionlabel_prefix_document = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

@@ -72,7 +72,7 @@ which tells the code to perform a standalone Wannierization calculation. Meanwhi
   :lines: 73-89
   :lineno-start: 82
 
-Here, the keywords provided in the ``emp`` subdictionary are only applied during the Wannierization of the empty manifold. The ``w90`` block format is explained more fully :ref:`here <The w90 block>`.
+Here, the keywords provided in the ``emp`` subdictionary are only applied during the Wannierization of the empty manifold. The ``w90`` block format is explained more fully :ref:`here <running/w90:The w90 block>`.
 
 We run this calculation as per usual:
 
@@ -157,8 +157,7 @@ Having obtained a Wannierization of silicon that we are happy with, we can proce
 
   Although we just discovered that a :math:`2\times2\times2` :math:`k`-point grid was inadequate for producing good Wannier functions, this next calculation is a lot more computationally intensive and will take a long time on most desktop computers. We therefore suggest that for the purposes of this tutorial you switch back to the small :math:`k`-point grid. (But for any proper calculations, always use high-quality Wannier functions!)
 
-
-Initialisation
+Initialization
 ^^^^^^^^^^^^^^
 If you run this new input the output will be remarkably similar to that from the previous tutorial, with a couple of exceptions. At the start of the workflow you will see there is a Wannierization procedure, much like we had earlier when we running with the ``wannierize`` task:
 
@@ -213,7 +212,7 @@ Here, we transform back our results from the supercell sampled at :math:`\Gamma`
   :lineno-start: 100
   :emphasize-lines: 2
 
-For more details on the "unfold and interpolate" procedure see :ref:`here <The ui block>` and Ref. :cite:`DeGennaro2022`.
+For more details on the "unfold and interpolate" procedure see :ref:`here <running/ui:The ui block>` and Ref. :cite:`DeGennaro2022`.
 
 Extracting the KI bandstructure and the bandgap of Si
 -----------------------------------------------------

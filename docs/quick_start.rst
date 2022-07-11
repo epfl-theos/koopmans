@@ -1,7 +1,7 @@
 Quick start
 ===========
 
-1. install the code following the :ref:`installation instructions <Installation>`
+1. install the code following the :ref:`installation instructions <installation:Installation>`
 2. download the :download:`input file for tutorial 1 <../tutorials/tutorial_1/ozone.json>`
 3. run ``koopmans ozone.json``
 
