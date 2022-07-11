@@ -725,6 +725,15 @@ class KoopmansDSCFWorkflow(Workflow):
 
             converged = all([abs(b.error) < 1e-3 for b in self.bands])
 
+        if self.parameters.functional == 'ki' and self.bands.num(filled=False):
+            # For this case the screening parameters are guaranteed to converge instantly
+            if self.parameters.n_max_sc_steps == 1:
+                # Print the "converged" message rather than the "determined but not necessarily converged" message
+                converged = True
+            else:
+                # Do the subsequent loop
+                utils.warn('The screening parameters for a KI calculation with no empty states will converge '
+                           'instantly; to save computational time set n_max_sc_steps == 1')
         if converged:
             self.print('Screening parameters have been converged')
         else:

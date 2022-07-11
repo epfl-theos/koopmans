@@ -63,7 +63,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     bool, None, (True, False)),
             Setting('mp_correction',
                     'if True, apply the Makov-Payne correction for charged periodic systems',
-                    bool, False, (True, False)),
+                    bool, None, (True, False)),
             Setting('mt_correction',
                     'if True, apply the Martyna-Tuckerman correction for charged aperiodic systems',
                     bool, None, (True, False)),
