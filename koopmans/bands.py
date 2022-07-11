@@ -11,7 +11,7 @@ class Band(object):
     def __init__(self, index: Optional[int] = None, spin: int = 0, filled: bool = True, group: Optional[int] = None,
                  alpha: Optional[float] = None, error: Optional[float] = None,
                  self_hartree: Optional[float] = None,
-                 centre: Optional[np.ndarray] = None) -> None:
+                 center: Optional[np.ndarray] = None) -> None:
         self.index = index
         self.spin = spin
         self.filled = filled
@@ -21,7 +21,7 @@ class Band(object):
         self.alpha = alpha
         self.error = error
         self.self_hartree = self_hartree
-        self.centre = centre
+        self.center = center
 
     @classmethod
     def fromdict(cls, dct):
@@ -208,17 +208,17 @@ class Bands(object):
                 # Find the neighbourhood of adjacent bands (with 2x larger threshold)
                 neighbourhood = [b for b in unassigned if points_are_close(guess, b)]
 
-                # Find the centre of that neighbourhood
+                # Find the center of that neighbourhood
                 av_sh = np.mean([b.self_hartree for b in neighbourhood])
-                centre = Band(self_hartree=av_sh)
+                center = Band(self_hartree=av_sh)
 
-                # Find a revised neighbourhood close to the centre (using a factor of 0.5 because we want points that
+                # Find a revised neighbourhood close to the center (using a factor of 0.5 because we want points that
                 # are on opposite sides of the neighbourhood to be within "tol" of each other which means they can be
-                # at most 0.5*tol away from the neighbourhood centre
-                neighbourhood = [b for b in unassigned if points_are_close(centre, b, 0.5)]
+                # at most 0.5*tol away from the neighbourhood center
+                neighbourhood = [b for b in unassigned if points_are_close(center, b, 0.5)]
 
                 # Check the neighbourhood is isolated
-                wider_neighbourhood = [b for b in unassigned if points_are_close(centre, b)]
+                wider_neighbourhood = [b for b in unassigned if points_are_close(center, b)]
 
                 if neighbourhood != wider_neighbourhood:
                     if self.self_hartree_tol and sh_tol < 0.01 * self.self_hartree_tol:

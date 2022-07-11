@@ -166,7 +166,7 @@ class WannieriseWorkflow(Workflow):
                 calc_w90.prefix = 'wann'
                 self.run_calculator(calc_w90)
 
-            # Merging Hamiltonian files, U matrix files, centres files if necessary
+            # Merging Hamiltonian files, U matrix files, centers files if necessary
             for block in self.projections.to_merge():
                 self.merge_wannier_files(block, prefix=calc_w90.prefix)
 
@@ -324,7 +324,7 @@ class WannieriseWorkflow(Workflow):
 
     def merge_wannier_files(self, block: List[projections.ProjectionBlock], prefix: str = 'wann'):
         """
-        Merges the hr (Hamiltonian), u (rotation matrix), and wannier centres files of a collection of blocks that
+        Merges the hr (Hamiltonian), u (rotation matrix), and wannier centers files of a collection of blocks that
         share the same filling and spin
         """
 
@@ -345,8 +345,8 @@ class WannieriseWorkflow(Workflow):
             # Merging the U (rotation matrix) files
             self.merge_wannier_u_files(dirs_in, dir_out, prefix)
 
-            # Merging the wannier centres files
-            self.merge_wannier_centres_files(dirs_in, dir_out, prefix)
+            # Merging the wannier centers files
+            self.merge_wannier_centers_files(dirs_in, dir_out, prefix)
 
     @staticmethod
     def merge_wannier_hr_files(dirs_in: List[Path], dir_out: Path, prefix: str):
@@ -426,18 +426,18 @@ class WannieriseWorkflow(Workflow):
         # Writing out the large U file
         utils.write_wannier_u_file(dir_out / (prefix + '_u.mat'), u_merged, kpts)
 
-    def merge_wannier_centres_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
-        centres_list = []
+    def merge_wannier_centers_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
+        centers_list = []
         for dir_in in dirs_in:
-            # Reading the centres file
-            fname_in = dir_in / (prefix + '_centres.xyz')
+            # Reading the centers file
+            fname_in = dir_in / (prefix + '_centers.xyz')
 
-            centres, _ = utils.read_wannier_centres_file(fname_in)
+            centers, _ = utils.read_wannier_centers_file(fname_in)
 
-            centres_list += centres
+            centers_list += centers
 
-        # Writing the centres file
-        utils.write_wannier_centres_file(dir_out / (prefix + '_centres.xyz'), centres_list, self.atoms)
+        # Writing the centers file
+        utils.write_wannier_centers_file(dir_out / (prefix + '_centers.xyz'), centers_list, self.atoms)
 
     def extend_wannier_u_dis_file(self, block: List[projections.ProjectionBlock], prefix: str = 'wann'):
         # Read in

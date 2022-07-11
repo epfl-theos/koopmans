@@ -282,7 +282,7 @@ class KoopmansDFPTWorkflow(Workflow):
         # Create this (possibly nested) directory
         calc.directory.mkdir(parents=True, exist_ok=True)
 
-        # Provide the rotation matrices and the wannier centres
+        # Provide the rotation matrices and the wannier centers
         if self.parameters.periodic:
             utils.symlink(f'wannier/occ/wann_u.mat', f'{calc.directory}/', exist_ok=True)
             utils.symlink(f'wannier/emp/wann_u.mat', f'{calc.directory}/wann_emp_u.mat', exist_ok=True)

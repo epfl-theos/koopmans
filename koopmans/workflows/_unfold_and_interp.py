@@ -71,7 +71,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                 if spin:
                     calc_presets += '_' + spin
                 calc = self.new_ui_calculator(calc_presets)
-                calc.centres = np.array([centre for c in w90_calcs for centre in c.results['centers']
+                calc.centers = np.array([center for c in w90_calcs for center in c.results['centers']
                                         if calc_presets in c.directory.name])
                 calc.spreads = [spread for c in w90_calcs for spread in c.results['spreads']
                                 if calc_presets in c.directory.name]

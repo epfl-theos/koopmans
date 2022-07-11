@@ -49,7 +49,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         self.atoms.calc = self
 
         # Intermediate variables
-        self.centres: NDArray[np.float_] = np.array([])
+        self.centers: NDArray[np.float_] = np.array([])
         self.spreads: List[float] = []
         self.phases: List[complex] = []
         self.hr: NDArray[np.complex_] = np.array([])
@@ -191,17 +191,17 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
     def parse_w90(self) -> None:
         '''
-        centres : centres of WFs (in PC crystal units)
+        centers : centers of WFs (in PC crystal units)
         spreads : spreads of WFs (in Ang^2)
         '''
 
-        if len(self.centres) > 0 and len(self.spreads) > 0:
-            num_wann = len(self.centres)
+        if len(self.centers) > 0 and len(self.spreads) > 0:
+            num_wann = len(self.centers)
         else:
             with open(self.parameters.w90_seedname.with_suffix('.wout'), 'r') as ifile:
                 lines = ifile.readlines()
 
-            centres = []
+            centers = []
             self.spreads = []
             count = 0
 
@@ -211,14 +211,14 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 if count > 0 and count <= num_wann:
                     start = line.find('(')
                     end = line.find(')')
-                    centres.append(np.array(line[start + 1:end].replace(',', ' ').split(),
+                    centers.append(np.array(line[start + 1:end].replace(',', ' ').split(),
                                             dtype=float))
                     self.spreads.append(float(line.split()[-1]))
                     count += 1
                 if 'Final State' in line:
                     count += 1
 
-            self.centres = np.array(centres)
+            self.centers = np.array(centers)
 
         self.Rvec = latt_vect(*self.parameters.kgrid)
 
@@ -229,11 +229,11 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             self.parameters.num_wann = num_wann
             self.parameters.num_wann_sc = num_wann * np.prod(self.parameters.kgrid)
 
-        self.centres /= np.linalg.norm(self.atoms.cell[0])
-        self.centres = crys_to_cart(self.centres, self.atoms.acell.reciprocal(), -1)
+        self.centers /= np.linalg.norm(self.atoms.cell[0])
+        self.centers = crys_to_cart(self.centers, self.atoms.acell.reciprocal(), -1)
 
-        # generate the centres and spreads of all the other (R/=0) WFs
-        self.centres = np.concatenate([self.centres + rvec for rvec in self.Rvec])
+        # generate the centers and spreads of all the other (R/=0) WFs
+        self.centers = np.concatenate([self.centers + rvec for rvec in self.Rvec])
         self.spreads *= len(self.Rvec)
 
         return
@@ -307,9 +307,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             self.phases = []
         return
 
-    def print_centres(self, centres: NDArray[np.float_] = np.array([])) -> None:
+    def print_centers(self, centers: NDArray[np.float_] = np.array([])) -> None:
         """
-        print_centres simply prints out the centres in the following Xcrysden-readable format:
+        print_centers simply prints out the centers in the following Xcrysden-readable format:
 
                       X  0.000  0.000  0.000
                       X  0.000  0.000  0.000
@@ -320,11 +320,11 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         """
 
-        if len(centres) == 0:
-            centres = self.centres
+        if len(centers) == 0:
+            centers = self.centers
 
         for n in range(self.parameters.num_wann_sc):
-            self.f_out.write(' X' + ''.join([f'  {x:10.6f}' for x in centres[n]]) + '\n')
+            self.f_out.write(' X' + ''.join([f'  {x:10.6f}' for x in centers[n]]) + '\n')
 
         return
 
@@ -555,32 +555,32 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         map_wannier builds the map |i> --> |Rn> between the WFs in the SC and in the PC.
         """
 
-        centres = []
+        centers = []
         spreads = []
         index = []
 
         # here we identify the WFs within the R=0 cell
-        self.centres /= self.parameters.kgrid
-        self.centres -= np.floor(self.centres)
-        self.centres *= self.parameters.kgrid
+        self.centers /= self.parameters.kgrid
+        self.centers -= np.floor(self.centers)
+        self.centers *= self.parameters.kgrid
         for n in range(self.parameters.num_wann_sc):
-            if all([x - 1 < 1.e-3 for x in self.centres[n]]):
-                centres.append(self.centres[n])
+            if all([x - 1 < 1.e-3 for x in self.centers[n]]):
+                centers.append(self.centers[n])
                 spreads.append(self.spreads[n])
                 index.append(n)
 
         # check on the WFs found in the R=0 cell
-        assert len(centres) == self.parameters.num_wann, 'Did not find the right number of WFs in the R=0 cell'
+        assert len(centers) == self.parameters.num_wann, 'Did not find the right number of WFs in the R=0 cell'
 
-        # here we identify with |Rn> the WFs in the rest of the SC, by comparing centres and spreads
+        # here we identify with |Rn> the WFs in the rest of the SC, by comparing centers and spreads
         # the WFs are now ordered as (R0,1),(R0,2),...,(R0,n),(R1,1),...
         for rvect in self.Rvec[1:]:
             count = 0
             for m in range(self.parameters.num_wann):
                 for n in range(self.parameters.num_wann_sc):
-                    if all(abs(self.centres[n] - centres[m] - rvect) < 1.e-3) and \
+                    if all(abs(self.centers[n] - centers[m] - rvect) < 1.e-3) and \
                        abs(self.spreads[n] - spreads[m]) < 1.e-3:
-                        centres.append(self.centres[n])
+                        centers.append(self.centers[n])
                         spreads.append(self.spreads[n])
                         index.append(n)
                         count += 1
@@ -591,7 +591,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         if self.phases:
             self.phases = [self.phases[i] for i in index]
 
-        self.centres = np.array(centres, dtype=float)
+        self.centers = np.array(centers, dtype=float)
         self.spreads = spreads
         self.hr = np.array(hr, dtype=complex).reshape(self.parameters.num_wann_sc, self.parameters.num_wann_sc)
 
@@ -664,8 +664,8 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         if self.parameters.use_ws_distance:
             # create an array containing all the distances between reference (R=0) WFs and all the other WFs:
             # 1) accounting for their positions within the unit cell
-            wf_dist = np.concatenate([self.centres] * self.parameters.num_wann) \
-                - np.concatenate([[c] * self.parameters.num_wann_sc for c in self.centres[:self.parameters.num_wann]])
+            wf_dist = np.concatenate([self.centers] * self.parameters.num_wann) \
+                - np.concatenate([[c] * self.parameters.num_wann_sc for c in self.centers[:self.parameters.num_wann]])
 
         else:
             # 2) considering only the distance between the unit cells they belong to

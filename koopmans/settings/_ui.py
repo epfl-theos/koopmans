@@ -34,7 +34,7 @@ valid_settings: List[Setting] = [
             'if w90_calc=\'sc\'',
             bool, False, (True, False)),
     Setting('use_ws_distance',
-            'if True, the real Wigner-Seitz distance between the Wannier functions centres is considered as in '
+            'if True, the real Wigner-Seitz distance between the Wannier functions centers is considered as in '
             'the Wannier90 code. In particular, this accounts for the periodic boundary conditions and it is '
             'crucial for a good interpolation when using coarse MP meshes or, equivalently, small supercells',
             bool, True, (True, False)),

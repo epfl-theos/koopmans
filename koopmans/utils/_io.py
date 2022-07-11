@@ -273,33 +273,33 @@ def write_wannier_u_file(fname: Path, umat: npt.NDArray[np.complex_], kpts: npt.
         fd.write('\n'.join(flines))
 
 
-def read_wannier_centres_file(fname: Path):
+def read_wannier_centers_file(fname: Path):
 
     with open(fname, 'r') as fd:
         lines = fd.readlines()
 
-    centres = []
+    centers = []
     symbols = []
     positions = []
     for line in lines[2:]:
         if line.startswith('X    '):
-            centres.append([float(x) for x in line.split()[1:]])
+            centers.append([float(x) for x in line.split()[1:]])
         else:
             symbols.append(line.split()[0])
             positions.append([float(x) for x in line.split()[1:]])
-    return centres, Atoms(symbols=symbols, positions=positions)
+    return centers, Atoms(symbols=symbols, positions=positions)
 
 
-def write_wannier_centres_file(fname: Path, centres: List[List[float]], atoms: Atoms):
-    length = len(centres) + len(atoms)
+def write_wannier_centers_file(fname: Path, centers: List[List[float]], atoms: Atoms):
+    length = len(centers) + len(atoms)
 
     # Add the header
     flines = [f'{length:6d}',
-              f' Wannier centres, written by koopmans on {datetime.now().isoformat(timespec="seconds")}']
+              f' Wannier centers, written by koopmans on {datetime.now().isoformat(timespec="seconds")}']
 
-    # Add the centres
-    for centre in centres:
-        flines.append('X    ' + ''.join([f'{x:16.8f}' for x in centre]))
+    # Add the centers
+    for center in centers:
+        flines.append('X    ' + ''.join([f'{x:16.8f}' for x in center]))
 
     # Add the atoms
     for atom in atoms:
