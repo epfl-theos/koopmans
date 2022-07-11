@@ -107,7 +107,7 @@ class WannierizeWorkflow(Workflow):
     def _run(self):
         '''
 
-        Wrapper for the calculation of (maximally localised) Wannier functions
+        Wrapper for the calculation of (maximally localized) Wannier functions
         using PW and Wannier90
 
         '''
