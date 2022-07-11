@@ -912,7 +912,7 @@ class Workflow(ABC):
                         add_ref('Colonna2019', 'Introduces the DFPT method for calculating screening parameters')
                         add_ref('Colonna2022', 'Describes the algorithms underpinning the kcw.x code')
                     else:
-                        add_ref('DeGennaro2021', 'Describes how to extract band structures from Koopmans functional '
+                        add_ref('DeGennaro2022', 'Describes how to extract band structures from Koopmans functional '
                                 'calculations')
                         add_ref('Borghi2015', 'Describes the algorithms underpinning the kcp.x code')
             else:
