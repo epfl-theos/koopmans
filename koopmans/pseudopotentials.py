@@ -57,7 +57,7 @@ for pseudo_file in chain(pseudos_directory.rglob('*.UPF'), pseudos_directory.rgl
         elif 'PAW' in original_library or original_library == 'Wentzcovitch':
             kind = 'projector-augmented wave'
         else:
-            raise ValueError(f'Unrecognised library {original_library}')
+            raise ValueError(f'Unrecognized library {original_library}')
         citations += ['Lehaeghere2016', 'Prandini2018']
         for key in ['cutoff_wfc', 'cutoff_rho']:
             kwargs[key] = metadata[key]

@@ -34,7 +34,7 @@ def qei_to_json(input_file: Union[str, Path], json: Union[str, Path],
     elif input_file.suffix == '.pwi':
         key = 'pw'
     else:
-        raise ValueError('Unrecognised input file format: must be either .cpi or .pwi')
+        raise ValueError('Unrecognized input file format: must be either .cpi or .pwi')
 
     calc = read(input_file)
     calc.atoms.calc = None

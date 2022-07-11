@@ -39,7 +39,7 @@ def read(filename: Union[str, Path, List[str], List[Path]], **kwargs) -> Union[W
         try:
             return read_calculator(filename)
         except ValueError:
-            raise ValueError(f'Unrecognised file type for {filename}')
+            raise ValueError(f'Unrecognized file type for {filename}')
 
 
 def write(obj: Workflow, filename: Union[str, Path]):
@@ -54,4 +54,4 @@ def write(obj: Workflow, filename: Union[str, Path]):
     elif filename.suffix == '.json':
         write_json(obj, filename)
     else:
-        raise ValueError(f'Unrecognised file type for {filename}')
+        raise ValueError(f'Unrecognized file type for {filename}')

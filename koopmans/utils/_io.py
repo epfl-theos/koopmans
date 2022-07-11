@@ -90,7 +90,7 @@ def read_kpoints_block(calc: Calculator, dct: dict):
         if k in ['gamma_only', 'kgrid', 'koffset', 'kpath', 'kpath_density']:
             calc.parameters[k] = v
         else:
-            raise KeyError(f'Unrecognised option "{k}" provided in the k_points block')
+            raise KeyError(f'Unrecognized option "{k}" provided in the k_points block')
     return
 
 
@@ -204,7 +204,7 @@ def read_wannier_hr_file(fname: Path) -> Tuple[np.ndarray, np.ndarray, List[int]
     elif 'xml version' in lines[0] or fname == 'hamiltonian_emp.dat':
         raise ValueError(f'The format of {fname} is no longer supported')
     else:
-        raise ValueError(f'The format of {fname} is not recognised')
+        raise ValueError(f'The format of {fname} is not recognized')
 
     # Read in the number of r-points and the number of Wannier functions
     nrpts = int(lines[2].split()[0])

@@ -126,7 +126,7 @@ class Workflow(ABC):
                 pseudo = fetch_pseudo(element=symbol, functional=self.parameters.base_functional,
                                       library=self.parameters.pseudo_library)
                 if pseudo.kind == 'unknown':
-                    utils.warn(f'You are using an unrecognised pseudopotential {pseudo.name}. Please note that '
+                    utils.warn(f'You are using an unrecognized pseudopotential {pseudo.name}. Please note that '
                                'the current implementation of Koopmans functionals only supports norm-conserving '
                                'pseudopotentials.')
                 elif pseudo.kind != 'norm-conserving':
@@ -809,7 +809,7 @@ class Workflow(ABC):
         # Check for unexpected blocks
         for block in bigdct:
             if block not in list(settings_classes.keys()) + ['workflow', 'setup']:
-                raise ValueError(f'Unrecognised block "{block}" in json input file; '
+                raise ValueError(f'Unrecognized block "{block}" in json input file; '
                                  'valid options are workflow/' + '/'.join(settings_classes.keys()))
 
         # Loading plot settings
@@ -1246,7 +1246,7 @@ def read_setup_dict(dct: Dict[str, Any], task: str):
                     pass
                 calc.parameters[key] = value
         else:
-            raise ValueError(f'Unrecognised block "setup:{block}" in the input file')
+            raise ValueError(f'Unrecognized block "setup:{block}" in the input file')
 
     # Calculating the simulation cell
     cell = None
@@ -1347,5 +1347,5 @@ def sanitise_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, setting
     for k in dct_in.keys():
         if k not in settings_classes:
             raise ValueError(
-                f'Unrecognised master_calc_params entry "{k}": valid options are ' + '/'.join(settings_classes.keys()))
+                f'Unrecognized master_calc_params entry "{k}": valid options are ' + '/'.join(settings_classes.keys()))
     return dct_out

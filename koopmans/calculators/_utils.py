@@ -54,7 +54,7 @@ def sanitise_filenames(filenames: Union[str, Path, List[str], List[Path]], ext_i
             # ... and it has no suffix, automatically add the expected suffixes for both the input and output files
             sanitised_filenames = [filenames.with_suffix(ext_in), filenames.with_suffix(ext_out)]
         else:
-            raise ValueError(f'Unrecognised file format {filenames.suffix}')
+            raise ValueError(f'Unrecognized file format {filenames.suffix}')
     return sanitised_filenames
 
 
@@ -76,7 +76,7 @@ class CalculatorExt():
     ext_out: str = ''
 
     def __init__(self, skip_qc=False, **kwargs):
-        # Handle any recognised QE keywords passed as arguments
+        # Handle any recognized QE keywords passed as arguments
         self.parameters.update(**kwargs)
 
         # Some calculations we don't want to check their results for when performing tests; for such calculations, set

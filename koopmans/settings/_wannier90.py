@@ -79,6 +79,6 @@ class Wannier90SettingsDict(SettingsDict):
                     assert isinstance(v, dict)
                     for k in v.keys():
                         if k not in ['site', 'csite', 'fsite', 'ang_mtm', 'zaxis', 'xaxis', 'radial', 'zona']:
-                            raise KeyError(f'Unrecognised key {k} in the w90 projections block')
+                            raise KeyError(f'Unrecognized key {k} in the w90 projections block')
                     value[i] = v
             return super().__setitem__(key, value)

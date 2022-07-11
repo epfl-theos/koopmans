@@ -307,7 +307,7 @@ class WannieriseWorkflow(Workflow):
             elif init_orbs == 'mlwfs':
                 pass
             else:
-                raise ValueError(f'Unrecognised orbital type {init_orbs} (must be "mlwfs" or "projwfs")')
+                raise ValueError(f'Unrecognized orbital type {init_orbs} (must be "mlwfs" or "projwfs")')
 
             if calc.parameters.gamma_only != self.gamma_only:
                 # forcing W90 to follow the same logic of PW for the gamma_trick
