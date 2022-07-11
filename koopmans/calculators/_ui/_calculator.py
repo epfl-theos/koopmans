@@ -38,7 +38,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
     def __init__(self, atoms: Atoms, *args, **kwargs):
         self.parameters = UnfoldAndInterpolateSettingsDict()
 
-        # Initialise first with the base ASE calculator, and then with the calculator extensions
+        # Initialize first with the base ASE calculator, and then with the calculator extensions
         Calculator.__init__(self, atoms=atoms, *args, **kwargs)
         CalculatorExt.__init__(self, *args, **kwargs)
 

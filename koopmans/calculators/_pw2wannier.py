@@ -24,7 +24,7 @@ class PW2WannierCalculator(CalculatorExt, PW2Wannier, CalculatorABC):
     def __init__(self, atoms: Atoms, *args, **kwargs):
         self.parameters = PW2WannierSettingsDict()
 
-        # Initialise first using the ASE parent and then CalculatorExt
+        # Initialize first using the ASE parent and then CalculatorExt
         PW2Wannier.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
 

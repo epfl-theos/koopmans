@@ -30,7 +30,7 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
         # Define the valid settings
         self.parameters = settings.KoopmansHamSettingsDict()
 
-        # Initialise using the ASE parent, and then CalculatorExt
+        # Initialize using the ASE parent, and then CalculatorExt
         KoopmansHam.__init__(self, atoms=atoms)
         KCWannCalculator.__init__(self, *args, **kwargs)
 

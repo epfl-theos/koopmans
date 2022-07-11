@@ -179,7 +179,7 @@ class Bands(object):
             # Do not perform clustering
             return
 
-        # By default use the settings provided when Bands() was initialised
+        # By default use the settings provided when Bands() was initialized
         sh_tol = sh_tol if sh_tol is not None else self.self_hartree_tol
 
         # Separate the orbitals into different subsets, where we don't want any grouping of orbitals belonging to

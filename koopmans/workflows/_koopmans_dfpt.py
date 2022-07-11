@@ -88,7 +88,7 @@ class KoopmansDFPTWorkflow(Workflow):
                 if os.path.isdir(directory):
                     utils.system_call(f'rm -r {directory}')
 
-        # Initialise the bands
+        # Initialize the bands
         if self.parameters.periodic:
             nocc = self.projections.num_wann(occ=True)
             nemp = self.projections.num_wann(occ=False)
@@ -124,7 +124,7 @@ class KoopmansDFPTWorkflow(Workflow):
 
         else:
             # Run PW
-            self.print('Initialisation of density and variational orbitals', style='heading')
+            self.print('Initialization of density and variational orbitals', style='heading')
 
             # Create the workflow
             pw_workflow = DFTPWWorkflow(**self.wf_kwargs)

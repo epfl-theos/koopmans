@@ -28,7 +28,7 @@ class Wannier90Calculator(CalculatorExt, Wannier90, CalculatorABC):
         # Define the list of parameters
         self.parameters = Wannier90SettingsDict()
 
-        # Initialise first using the ASE parent and then CalculatorExt
+        # Initialize first using the ASE parent and then CalculatorExt
         Wannier90.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
 

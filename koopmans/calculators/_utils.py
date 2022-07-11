@@ -260,7 +260,7 @@ class CalculatorABC(ABC, Generic[TCalc]):
     def fromfile(cls, filenames: Union[str, Path, List[str], List[Path]]):
         sanitised_filenames = sanitise_filenames(filenames, cls.ext_in, cls.ext_out)
 
-        # Initialise a new calc object
+        # Initialize a new calc object
         calc = cls(atoms=Atoms())
 
         # Read qe input file

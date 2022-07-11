@@ -58,7 +58,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         # Define the valid parameters
         self.parameters = settings.KoopmansCPSettingsDict()
 
-        # Initialise first using the ASE parent and then CalculatorExt
+        # Initialize first using the ASE parent and then CalculatorExt
         Espresso_kcp.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, **kwargs)
 
@@ -278,7 +278,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
     @property
     def alphas(self) -> List[List[float]]:
         if not hasattr(self, '_alphas'):
-            raise AttributeError(f'{self}.alphas has not been initialised')
+            raise AttributeError(f'{self}.alphas has not been initialized')
         return self._alphas
 
     @alphas.setter

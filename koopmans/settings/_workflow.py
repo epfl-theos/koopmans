@@ -39,7 +39,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     str, 'same', ('same', 'pz', 'kohn-sham', 'mlwfs', 'projwfs')),
             Setting('frozen_orbitals',
                     "if True, freeze the variational orbitals for the duration of the calculation once they've been "
-                    "initialised",
+                    "initialized",
                     bool, None, (True, False)),
             Setting('periodic',
                     'whether or not the system is periodic',

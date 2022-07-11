@@ -27,7 +27,7 @@ class KoopmansScreenCalculator(KCWannCalculator, KoopmansScreen, CalculatorABC):
         # Define the valid settings
         self.parameters = settings.KoopmansScreenSettingsDict()
 
-        # Initialise first using the ASE parent and then CalculatorExt
+        # Initialize first using the ASE parent and then CalculatorExt
         KoopmansScreen.__init__(self, atoms=atoms)
         KCWannCalculator.__init__(self, *args, **kwargs)
         super().__init__(*args, **kwargs)

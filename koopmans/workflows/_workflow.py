@@ -247,7 +247,7 @@ class Workflow(ABC):
 
         # If atoms has a calculator, overwrite the kpoints and pseudopotentials variables and then detach the calculator
         if atoms.calc is not None:
-            utils.warn(f'You have initialised a {self.__class__.__name__} object with an atoms object that possesses '
+            utils.warn(f'You have initialized a {self.__class__.__name__} object with an atoms object that possesses '
                        'a calculator. This calculator will be ignored.')
             self.atoms.calc = None
 
@@ -316,7 +316,7 @@ class Workflow(ABC):
 
     @property
     def wf_kwargs(self) -> Dict[str, Any]:
-        # Returns a kwargs designed to be used to initialise another workflow with the same configuration as this one
+        # Returns a kwargs designed to be used to initialize another workflow with the same configuration as this one
         # i.e.
         # > sub_wf = Workflow(**self.wf_kwargs)
         return {'atoms': copy.deepcopy(self.atoms),
@@ -750,7 +750,7 @@ class Workflow(ABC):
     @property
     def bands(self):
         if not hasattr(self, '_bands'):
-            raise AttributeError('Bands have not been initialised')
+            raise AttributeError('Bands have not been initialized')
         return self._bands
 
     @bands.setter
@@ -1293,7 +1293,7 @@ def read_setup_dict(dct: Dict[str, Any], task: str):
 
 
 def generate_default_master_calc_params():
-    # Dictionary to be used as the default value for 'master_calc_params' when initialising a workflow
+    # Dictionary to be used as the default value for 'master_calc_params' when initializing a workflow
     # We create this dynamically in order for the .directory attributes to make sense
     return {'kcp': settings.KoopmansCPSettingsDict(),
             'kc_ham': settings.KoopmansHamSettingsDict(),

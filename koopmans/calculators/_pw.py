@@ -29,7 +29,7 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         # Define the valid settings
         self.parameters = PWSettingsDict()
 
-        # Initialise first using the ASE parent and then CalculatorExt
+        # Initialize first using the ASE parent and then CalculatorExt
         Espresso.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
 

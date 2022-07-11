@@ -33,7 +33,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         # Define the valid settings
         self.parameters = ProjwfcSettingsDict()
 
-        # Initialise first using the ASE parent and then CalculatorExt
+        # Initialize first using the ASE parent and then CalculatorExt
         Projwfc.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
 
@@ -45,7 +45,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         # element, and therefore what pDOS files to expect. We also need spin-polarised to know if the pDOS files will
         # contain columns for each spin channel
 
-        # These must be provided post-initialisation (because we want to be allowed to initialise the calculator)
+        # These must be provided post-initialization (because we want to be allowed to initialize the calculator)
         # without providing these arguments
         self.pseudopotentials: Optional[Dict[str, str]] = None
         self.pseudo_dir: Optional[Path] = None

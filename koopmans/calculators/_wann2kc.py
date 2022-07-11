@@ -25,7 +25,7 @@ class Wann2KCCalculator(KCWannCalculator, Wann2KC, CalculatorABC):
         # Define the valid settings
         self.parameters = Wann2KCSettingsDict()
 
-        # Initialise first using the ASE parent and then CalculatorExt
+        # Initialize first using the ASE parent and then CalculatorExt
         Wann2KC.__init__(self, atoms=atoms)
         KCWannCalculator.__init__(self, *args, **kwargs)
 

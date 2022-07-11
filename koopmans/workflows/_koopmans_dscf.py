@@ -116,7 +116,7 @@ class KoopmansDSCFWorkflow(Workflow):
         if self.parameters.orbital_groups is not None:
             assert len(self.parameters.orbital_groups) == target_length
 
-        # Constructing the arrays required to initialise a Bands object
+        # Constructing the arrays required to initialize a Bands object
         if self.parameters.spin_polarised:
             if 'nbnd' in kcp_params:
                 n_emp_up = kcp_params.nbnd - kcp_params.nelup
@@ -146,7 +146,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 assert len(g) == len(f), 'orbital_groups is the wrong dimension; its length should match the number ' \
                     'of bands'
 
-        # Initialise the bands object
+        # Initialize the bands object
         self.bands = Bands(n_bands=[len(f) for f in filling], n_spin=2, spin_polarised=self.parameters.spin_polarised,
                            filling=filling, groups=groups,
                            self_hartree_tol=self.parameters.orbital_groups_self_hartree_tol)
@@ -155,7 +155,7 @@ class KoopmansDSCFWorkflow(Workflow):
             # Reading alpha values from file
             self.bands.alphas = self.read_alphas_from_file()
         else:
-            # Initialising alpha with a guess
+            # Initializing alpha with a guess
             self.bands.alphas = self.parameters.alpha_guess
 
         # Raise errors if any UI keywords are provided but will be overwritten by the workflow
@@ -205,7 +205,7 @@ class KoopmansDSCFWorkflow(Workflow):
         This function runs a KI/pKIPZ/KIPZ workflow from start to finish
 
         Running this function will generate several directories:
-            init/                 -- the density and manifold initialisation calculations
+            init/                 -- the density and manifold initialization calculations
             calc_alpha/orbital_#/ -- calculations where we have fixed a particular orbital
                                      in order to calculate alpha
             final/                -- the final KI/KIPZ calculation
@@ -224,8 +224,8 @@ class KoopmansDSCFWorkflow(Workflow):
             if self._redo_smooth_dft in [None, True]:
                 utils.system_call('rm -r postproc 2>/dev/null', False)
 
-        self.print('Initialisation of density and variational orbitals', style='heading')
-        self.perform_initialisation()
+        self.print('Initialization of density and variational orbitals', style='heading')
+        self.perform_initialization()
 
         if self.parameters.from_scratch and not self._restart_from_old_ki \
                 and self.parameters.fix_spin_contamination \
@@ -270,11 +270,11 @@ class KoopmansDSCFWorkflow(Workflow):
                 dos = DOS(self.calculations[-1], width=self.plot_params.degauss, npts=self.plot_params.nstep + 1)
                 self.calculations[-1].results['dos'] = dos
 
-    def perform_initialisation(self) -> None:
+    def perform_initialization(self) -> None:
         # Import these here so that if these have been monkey-patched, we get the monkey-patched version
         from koopmans import workflows
 
-        # The final calculation during the initialisation, regardless of the workflow settings, should write to ndw = 51
+        # The final calculation during the initialization, regardless of the workflow settings, should write to ndw = 51
         ndw_final = 51
 
         if self._restart_from_old_ki:
@@ -314,7 +314,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
             if not calc.is_complete():
                 raise ValueError('init/ki_init.cpo is incomplete so cannot be used '
-                                 'to initialise the density and orbitals')
+                                 'to initialize the density and orbitals')
 
             self.calculations.append(calc)
 
@@ -416,7 +416,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 if self.calculations[-1].parameters.nelec == 2:
                     # If we only have two electrons, then the filled manifold is trivially invariant under unitary
                     # transformations. Furthermore, the PZ functional is invariant w.r.t. unitary rotations of the
-                    # empty states. Thus in this instance we can skip the initialisation of the manifold entirely
+                    # empty states. Thus in this instance we can skip the initialization of the manifold entirely
                     self.print('Skipping the optimisation of the variational orbitals since they are invariant under '
                                'unitary transformations')
                     self._copy_most_recent_calc_to_ndw(ndw_final)
@@ -432,7 +432,7 @@ class KoopmansDSCFWorkflow(Workflow):
             self.run_calculator(calc, enforce_ss=self.parameters.fix_spin_contamination)
 
             if self.parameters.init_orbitals == 'kohn-sham':
-                # Initialise the density with DFT and use the KS eigenfunctions as guesses for the variational orbitals
+                # Initialize the density with DFT and use the KS eigenfunctions as guesses for the variational orbitals
                 self._overwrite_canonical_with_variational_orbitals(calc)
                 self._copy_most_recent_calc_to_ndw(ndw_final)
             elif self.parameters.init_orbitals == 'pz':
@@ -505,7 +505,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     trial_calc.parameters.do_innerloop = True
             else:
                 # For later SC loops, read in the matching calculation from the
-                # previous loop rather than the initialisation calculations
+                # previous loop rather than the initialization calculations
                 trial_calc.parameters.ndr = trial_calc.parameters.ndw
 
             # Run the calculation and store the result. Note that we only need to continue
@@ -778,7 +778,7 @@ class KoopmansDSCFWorkflow(Workflow):
             calc_presets
                 The set of preset values to use; must be one of the following strings:
 
-                Initialisation
+                Initialization
                 'dft_init'            DFT calculation from scratch
                 'pz_init'             PZ calculation starting from DFT restart
                 'pz_innerloop_init'   PZ calculation starting from DFT restart (innerloop only)
@@ -965,7 +965,7 @@ class KoopmansDSCFWorkflow(Workflow):
             calc.parameters.which_compensation = 'none'
 
         # If we are using frozen orbitals, we override the above logic and freeze the variational orbitals
-        # post-initialisation
+        # post-initialization
         if self.parameters.frozen_orbitals and 'init' not in calc.prefix and not any([s == calc.prefix for s in
                                                                                       ['dft_n-1', 'dft_n+1', 'kipz_n-1',
                                                                                        'kipz_n+1']]):

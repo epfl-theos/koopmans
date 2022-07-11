@@ -24,7 +24,7 @@ class Wann2KCPCalculator(CalculatorExt, Wann2KCP, CalculatorABC):
     def __init__(self, atoms: Atoms, *args, **kwargs):
         self.parameters = Wann2KCPSettingsDict()
 
-        # Initialise first using the ASE parent and then CalculatorExt
+        # Initialize first using the ASE parent and then CalculatorExt
         Wann2KCP.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
 
