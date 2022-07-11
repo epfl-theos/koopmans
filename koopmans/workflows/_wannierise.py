@@ -254,10 +254,10 @@ class WannieriseWorkflow(Workflow):
             labels = ['explicit'] \
                 + [f'interpolation ({c.directory.name.replace("_",", ").replace("block", "block ")})'
                    for c in selected_calcs]
-            colour_cycle = plt.rcParams['axes.prop_cycle']()
+            color_cycle = plt.rcParams['axes.prop_cycle']()
             bs_list = []
             bsplot_kwargs_list = []
-            colours = {}
+            colors = {}
             for calc, label in zip([calc_pw_bands] + selected_calcs, labels):
                 if 'band structure' in calc.results:
                     # Load the bandstructure. Because we are going apply a vertical shift, we take a copy of the
@@ -274,14 +274,14 @@ class WannieriseWorkflow(Workflow):
                     up_label = label.replace(', down', ', up')
                     if ', down' in label:
                         kwargs['ls'] = '--'
-                    if ', down' in label and up_label in colours:
-                        colours[label] = colours[up_label]
+                    if ', down' in label and up_label in colors:
+                        colors[label] = colors[up_label]
                     else:
-                        colours[label] = [next(colour_cycle)['color'] for _ in range(bs.energies.shape[0])]
+                        colors[label] = [next(color_cycle)['color'] for _ in range(bs.energies.shape[0])]
                     if 'explicit' in label:
                         kwargs['ls'] = 'none'
                         kwargs['marker'] = 'x'
-                    kwargs['colors'] = colours[label]
+                    kwargs['colors'] = colors[label]
 
                     # Store
                     bs_list.append(bs)
