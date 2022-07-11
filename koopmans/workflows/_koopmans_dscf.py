@@ -50,17 +50,17 @@ class KoopmansDSCFWorkflow(Workflow):
                 nelecs = [kcp_params.nelec // 2]
 
             for spin, nelec in zip(spins, nelecs):
-                # Check that we have wannierised every filled orbital
+                # Check that we have wannierized every filled orbital
                 if self.projections:
                     nbands_occ = self.projections.num_wann(occ=True, spin=spin)
 
                     if nbands_occ != nelec:
-                        raise ValueError('You have configured this calculation to only wannierise a subset of the '
+                        raise ValueError('You have configured this calculation to only wannierize a subset of the '
                                          'occupied bands:\n'
                                          f' number of occupied bands = {nelec}\n'
                                          f' number of occupied Wannier functions = {nbands_occ}\n'
                                          'This is incompatible with the subsequent Koopmans '
-                                         'calculation.\nPlease modify the wannier90 settings in order to wannierise '
+                                         'calculation.\nPlease modify the wannier90 settings in order to wannierize '
                                          'all of the occupied bands. (You may want to consider taking advantage of the '
                                          '"projections_blocks" functionality if your system has a lot of electrons.)')
 
@@ -321,17 +321,17 @@ class KoopmansDSCFWorkflow(Workflow):
         elif self.parameters.init_orbitals in ['mlwfs', 'projwfs'] or \
                 (self.parameters.periodic and self.parameters.init_orbitals == 'kohn-sham'):
             # Wannier functions using pw.x, wannier90.x and pw2wannier90.x (pw.x only for Kohn-Sham states)
-            wannier_workflow = workflows.WannieriseWorkflow(**self.wf_kwargs)
+            wannier_workflow = workflows.WannierizeWorkflow(**self.wf_kwargs)
             if wannier_workflow.parameters.calculate_bands:
                 wannier_workflow.parameters.calculate_bands = not self.master_calc_params['ui'].do_smooth_interpolation
 
-            # Perform the wannierisation workflow within the init directory
+            # Perform the wannierization workflow within the init directory
             self.run_subworkflow(wannier_workflow, subdirectory='init')
 
             # Now, convert the files over from w90 format to (k)cp format
             fold_workflow = workflows.FoldToSupercellWorkflow(**self.wf_kwargs)
 
-            # Do this in the same directory as the wannierisation
+            # Do this in the same directory as the wannierization
             self.run_subworkflow(fold_workflow, subdirectory='init/wannier')
 
             # Convert self.atoms to the supercell

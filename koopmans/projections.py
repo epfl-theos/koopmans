@@ -143,7 +143,7 @@ class ProjectionBlocks(object):
                 band_indices = range(wann_counter, wann_counter + b.num_wann)
                 wann_counter += b.num_wann
                 if include_above:
-                    # For the uppermost block we don't want to exclude any extra bands from the wannierisation
+                    # For the uppermost block we don't want to exclude any extra bands from the wannierization
                     upper_bound = max(band_indices)
                 else:
                     upper_bound = self.num_bands(spin=spin)

@@ -56,7 +56,7 @@ def monkeypatch_mock(monkeypatch):
 
     # Workflows
     monkeypatch.setattr('koopmans.workflows.KoopmansDSCFWorkflow', testing.MockKoopmansDSCFWorkflow)
-    monkeypatch.setattr('koopmans.workflows.WannieriseWorkflow', testing.MockWannieriseWorkflow)
+    monkeypatch.setattr('koopmans.workflows.WannierizeWorkflow', testing.MockWannierizeWorkflow)
 
 
 def monkeypatch_check(monkeypatch):
@@ -77,7 +77,7 @@ def monkeypatch_check(monkeypatch):
 
 
 def monkeypatch_stumble(monkeypatch):
-    monkeypatch.setattr('koopmans.workflows.WannieriseWorkflow', testing.StumblingWannieriseWorkflow)
+    monkeypatch.setattr('koopmans.workflows.WannierizeWorkflow', testing.StumblingWannierizeWorkflow)
     monkeypatch.setattr('koopmans.workflows.KoopmansDSCFWorkflow', testing.StumblingKoopmansDSCFWorkflow)
     monkeypatch.setattr('koopmans.workflows.SinglepointWorkflow', testing.StumblingSinglepointWorkflow)
     monkeypatch.setattr('koopmans.workflows.ConvergenceWorkflow', testing.StumblingConvergenceWorkflow)

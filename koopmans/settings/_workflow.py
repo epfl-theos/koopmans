@@ -13,7 +13,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
         settings = [
             Setting('task',
                     'Task to perform',
-                    str, 'singlepoint', ('singlepoint', 'convergence', 'wannierise', 'environ_dscf', 'ui',
+                    str, 'singlepoint', ('singlepoint', 'convergence', 'wannierize', 'environ_dscf', 'ui',
                                          'dft_bands')),
             Setting('functional',
                     'orbital-density-dependent-functional/density-functional to use',
@@ -127,9 +127,9 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
         return []
 
     def __setitem__(self, key: str, value: Any):
-        # Be forgiving to Americans
-        if key == 'task' and value == 'wannierize':
-            value = 'wannierise'
+        # Be forgiving to people who spell things properly
+        if key == 'task' and value == 'wannierise':
+            value = 'wannierize'
 
         # Make sure that orbital_groups is always stored as a list of lists
         if key == 'orbital_groups' and value is not None:

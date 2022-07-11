@@ -30,7 +30,7 @@ class FoldToSupercellWorkflow(Workflow):
         self.print('Folding to supercell', style='subheading')
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-            # Loop over the various subblocks that we have wannierised separately
+            # Loop over the various subblocks that we have wannierized separately
             for block in self.projections:
                 # Create the calculator
                 calc_w2k = self.new_calculator('wann2kcp', spin_component=block.spin, wan_mode='wannier2kcp',

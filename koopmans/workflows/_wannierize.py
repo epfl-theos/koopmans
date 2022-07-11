@@ -26,7 +26,7 @@ from ._workflow import Workflow
 CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
 
 
-class WannieriseWorkflow(Workflow):
+class WannierizeWorkflow(Workflow):
 
     def __init__(self, *args, force_nspin2=False, scf_kgrid=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -80,7 +80,7 @@ class WannieriseWorkflow(Workflow):
             pass
 
         else:
-            raise NotImplementedError('WannieriseWorkflow only supports setting init_orbitals and init_empty_orbitals to '
+            raise NotImplementedError('WannierizeWorkflow only supports setting init_orbitals and init_empty_orbitals to '
                                       '"mlwfs"/"projwfs" or "kohn-sham"')
 
         # Spin-polarization
@@ -110,7 +110,7 @@ class WannieriseWorkflow(Workflow):
 
         '''
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-            self.print('Wannierisation', style='heading')
+            self.print('Wannierization', style='heading')
         else:
             self.print('Kohn-Sham orbitals', style='heading')
 
@@ -133,7 +133,7 @@ class WannieriseWorkflow(Workflow):
         self.run_calculator(calc_pw)
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] and self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-            # Loop over the various subblocks that we must wannierise separately
+            # Loop over the various subblocks that we must wannierize separately
             for block in self.projections:
                 if block.filled:
                     init_orbs = self.parameters.init_orbitals

@@ -30,14 +30,14 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         '''
 
         Wrapper for the whole unfolding and interpolation workflow, consisting of:
-        - a smooth WannieriseWorkflow (if required)
+        - a smooth WannierizeWorkflow (if required)
         - an UnfoldAndInterpolateCalculator for occ states
         - an UnfoldAndInterpolateCalculator for emp states
         - an UnfoldAndInterpolateCalculator to merge occ and emp results
 
         '''
         # Import these here so that if these have been monkey-patched, we get the monkey-patched version
-        from koopmans.workflows import WannieriseWorkflow
+        from koopmans.workflows import WannierizeWorkflow
 
         # Transform self.atoms back to the primitive cell
         if self.parameters.method == 'dscf':
@@ -51,7 +51,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             wf_kwargs = self.wf_kwargs
             wf_kwargs['kgrid'] = [x * y for x,
                                   y in zip(wf_kwargs['kgrid'], self.master_calc_params['ui'].smooth_int_factor)]
-            wannier_workflow = WannieriseWorkflow(scf_kgrid=self.kgrid, **wf_kwargs)
+            wannier_workflow = WannierizeWorkflow(scf_kgrid=self.kgrid, **wf_kwargs)
 
             # Here, we allow for skipping of the smooth dft calcs (assuming they have been already run)
             # This is achieved via the optional argument of from_scratch in run_subworkflow(), which

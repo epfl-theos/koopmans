@@ -8,9 +8,9 @@ tutorial_dir = base_directory / 'tutorials' / 'tutorial_2'
 
 
 @pytest.mark.tutorials
-def test_wannierise(tutorial_patch):
+def test_wannierize(tutorial_patch):
     with chdir(tutorial_dir):
-        exec(open('wannierise.py', 'r').read())
+        exec(open('wannierize.py', 'r').read())
 
 
 @pytest.mark.tutorials
