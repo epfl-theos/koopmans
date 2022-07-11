@@ -4,7 +4,7 @@ import argparse
 import textwrap
 
 import koopmans.mpl_config
-from koopmans.io import read, write
+from koopmans.io import read
 from koopmans.settings import WorkflowSettingsDict
 
 '''

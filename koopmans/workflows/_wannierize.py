@@ -9,15 +9,17 @@ Written by Riccardo De Gennaro Nov 2020
 
 import copy
 import math
-import pickle
 import shutil
 from pathlib import Path
 from typing import List, TypeVar
 
+# isort: off
+import koopmans.mpl_config
 import matplotlib.pyplot as plt
+# isort: on
+
 import numpy as np
 
-import koopmans.mpl_config
 from koopmans import calculators, projections, utils
 from koopmans.pseudopotentials import nelec_from_pseudos, read_pseudo_file
 

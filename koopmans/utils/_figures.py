@@ -1,9 +1,9 @@
 import pickle
 
-import matplotlib.pyplot as plt
-from matplotlib.axes import Axes
-
+# isort: off
 from koopmans import mpl_config
+import matplotlib.pyplot as plt
+# isort: on
 
 
 def savefig(fname, **kwargs):

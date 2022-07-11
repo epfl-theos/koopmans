@@ -55,7 +55,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     'performing a non-spin-polarized calculation, and is turned on by default for such calculations',
                     bool, None, (True, False)),
             Setting('npool',
-                    'Number of pools for parallelising over kpoints (should be commensurate with the k-point grid)',
+                    'Number of pools for parallelizing over kpoints (should be commensurate with the k-point grid)',
                     int, None, None),
             Setting('gb_correction',
                     'if True, apply the Gygi-Baldereschi scheme to deal with the q->0 divergence of the Coulomb '

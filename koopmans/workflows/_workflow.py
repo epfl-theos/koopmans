@@ -19,13 +19,16 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 
-import matplotlib.pyplot as plt
 import numpy as np
 from numpy import typing as npt
 from pybtex.database import BibliographyData
 
-import ase
+# isort: off
 import koopmans.mpl_config
+import matplotlib.pyplot as plt
+# isort: on
+
+import ase
 from ase import Atoms
 from ase.build.supercells import make_supercell
 from ase.calculators.calculator import CalculationFailed
