@@ -32,7 +32,7 @@ tolerances = {'alphas': (2e-3, 2e-5),
 def compare(result: Any, ref_result: Any, result_name: str) -> Optional[Dict[str, str]]:
     # Compare the calculated result to the reference result
 
-    # Sanitise the input and fetch the corresponding tolerances
+    # Sanitize the input and fetch the corresponding tolerances
     if isinstance(result, BandStructure):
         result = result.energies
         ref_result = ref_result.energies
@@ -63,7 +63,7 @@ def compare(result: Any, ref_result: Any, result_name: str) -> Optional[Dict[str
         # then this reduces to testing relative error, whereas in the limit of small Delta it reduces to
         # testing absolute error. We use 0.1*max(ref_result) as a reference scale factor.
 
-        # Sanitise the input
+        # Sanitize the input
         if result.shape != ref_result.shape:
             return {'kind': 'error', 'message': f'Array shape mismatch between result and benchmark for {result_name}'}
         result = result.flatten()

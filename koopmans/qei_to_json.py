@@ -22,7 +22,7 @@ def qei_to_json(input_file: Union[str, Path], json: Union[str, Path],
 
     '''
 
-    # Sanitising input variables
+    # Sanitizing input variables
     input_file = Path(input_file)
     json = Path(json)
     if not isinstance(workflow_settings, WorkflowSettingsDict):

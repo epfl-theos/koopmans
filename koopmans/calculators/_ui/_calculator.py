@@ -24,7 +24,7 @@ from koopmans import utils
 from koopmans.settings import (PlotSettingsDict,
                                UnfoldAndInterpolateSettingsDict)
 
-from .._utils import CalculatorABC, CalculatorExt, sanitise_filenames
+from .._utils import CalculatorABC, CalculatorExt, sanitize_filenames
 from ._atoms import UIAtoms
 from ._utils import crys_to_cart, extract_hr, latt_vect
 
@@ -65,12 +65,12 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
     @classmethod
     def fromfile(cls, filenames: Union[str, Path, List[str], List[Path]]) -> 'UnfoldAndInterpolateCalculator':
-        sanitised_filenames = sanitise_filenames(filenames, cls.ext_in, cls.ext_out)
+        sanitized_filenames = sanitize_filenames(filenames, cls.ext_in, cls.ext_out)
 
-        calc = super(UnfoldAndInterpolateCalculator, cls).fromfile(sanitised_filenames)
+        calc = super(UnfoldAndInterpolateCalculator, cls).fromfile(sanitized_filenames)
 
         # If we were reading generating this object from files, look for bands, too
-        if any([f.suffix == calc.ext_out for f in sanitised_filenames]):
+        if any([f.suffix == calc.ext_out for f in sanitized_filenames]):
             calc.read_bands()
 
         return calc

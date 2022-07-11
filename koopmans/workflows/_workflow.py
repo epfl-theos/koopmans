@@ -138,7 +138,7 @@ class Workflow(ABC):
 
         # Make sure master_calc_params isn't missing any entries, and every entry corresponds to settings.SettingsDict
         # objects
-        master_calc_params = sanitise_master_calc_params(
+        master_calc_params = sanitize_master_calc_params(
             master_calc_params) if master_calc_params is not None else generate_default_master_calc_params()
 
         # Work out the pseudopotential directory. If using a pseudo_library this is straightforward, if not...
@@ -227,7 +227,7 @@ class Workflow(ABC):
             # algebraically
             params.parse_algebraic_settings(nelec=nelec)
 
-            # Store the sanitised parameters
+            # Store the sanitized parameters
             self.master_calc_params[block] = params
 
         # Generate a default kpath
@@ -1079,7 +1079,7 @@ class Workflow(ABC):
         dosplot_kwargs -- keyword arguments for when plotting the DOS
         """
 
-        # Sanitise input
+        # Sanitize input
         if isinstance(bs, BandStructure):
             bs = [bs]
         if isinstance(bsplot_kwargs, dict):
@@ -1332,7 +1332,7 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'plot': settings.PlotSettingsDict}
 
 
-def sanitise_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]]) \
+def sanitize_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]]) \
         -> Dict[str, settings.SettingsDict]:
     dct_out: Dict[str, settings.SettingsDict] = {}
     for k, cls in settings_classes.items():

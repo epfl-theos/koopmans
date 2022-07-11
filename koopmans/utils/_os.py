@@ -31,7 +31,7 @@ def symlink(src: Union[str, Path], dest: Union[str, Path], relative: bool = True
         for src_file in glob(src):
             symlink(src_file, dest, relative, exist_ok, force)
     else:
-        # Sanitise input
+        # Sanitize input
         if isinstance(src, str):
             src = Path(src)
         if isinstance(dest, str):
