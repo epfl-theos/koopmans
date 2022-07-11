@@ -2,7 +2,7 @@ Tutorial 2: a simple KI calculation on bulk silicon
 ===================================================
 In this tutorial, we will calculate the KI bandstructure of bulk silicon. The input file used for this calculation can be downloaded :download:`here <../../tutorials/tutorial_2/si.json>`.
 
-Wannierisation
+Wannierization
 --------------
 While this calculation will bear a lot of similarity to the previous tutorial, there are several differences between performing a Koopmans calculation on a bulk system vs. a molecule. One major difference is that we use Wannier functions as our variational orbitals.
 
@@ -51,13 +51,13 @@ The Wannier functions that minimise this spread are called maximally localised W
 
 How do I calculate Wannier functions?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-MLWFs can be calculated with `Wannier90 <http://www.wannier.org/>`_, an open-source code that is distributed with ``Quantum ESPRESSO``. Performing a Wannierisation with Wannier90 requires a series of calculations to be performed with ``pw.x``, ``wannier90.x``, and ``pw2wannier90.x``. This workflow is automated within ``koopmans``, as we will see in this tutorial.
+MLWFs can be calculated with `Wannier90 <http://www.wannier.org/>`_, an open-source code that is distributed with ``Quantum ESPRESSO``. Performing a Wannierization with Wannier90 requires a series of calculations to be performed with ``pw.x``, ``wannier90.x``, and ``pw2wannier90.x``. This workflow is automated within ``koopmans``, as we will see in this tutorial.
 
 .. note::
 
-  This tutorial will not discuss in detail how perfrom a Wannierisation with Wannier90. The Wannier90 website contains lots of excellent `tutorials <http://www.wannier.org/support/>`_.
+  This tutorial will not discuss in detail how perfrom a Wannierization with Wannier90. The Wannier90 website contains lots of excellent `tutorials <http://www.wannier.org/support/>`_.
 
-  One important distinction to make for Koopmans calculations --- as opposed to many of the Wannier90 tutorials --- is that we need to separately Wannierise the occupied and empty manifolds.
+  One important distinction to make for Koopmans calculations --- as opposed to many of the Wannier90 tutorials --- is that we need to separately Wannierize the occupied and empty manifolds.
 
 Let's now inspect this tutorial's :download:`input file <../../tutorials/tutorial_2/si.json>`. At the top you will see that
 
@@ -66,23 +66,23 @@ Let's now inspect this tutorial's :download:`input file <../../tutorials/tutoria
   :lineno-start: 2
   :emphasize-lines: 2
 
-which tells the code to perform a standalone Wannierisation calculation. Meanwhile, at the bottom of the file there are some Wannier90-specific parameters provided in the ``w90`` block
+which tells the code to perform a standalone Wannierization calculation. Meanwhile, at the bottom of the file there are some Wannier90-specific parameters provided in the ``w90`` block
 
 .. literalinclude:: ../../tutorials/tutorial_2/si.json
   :lines: 82-99
   :lineno-start: 82
 
-Here, the keywords provided in the ``emp`` subdictionary are only applied during the Wannierisation of the empty manifold. The ``w90`` block format is explained more fully :ref:`here <The w90 block>`.
+Here, the keywords provided in the ``emp`` subdictionary are only applied during the Wannierization of the empty manifold. The ``w90`` block format is explained more fully :ref:`here <The w90 block>`.
 
 We run this calculation as per usual:
 
 .. code-block:: bash
 
-  koopmans si.json | tee si_wannierise.out
+  koopmans si.json | tee si_wannierize.out
 
 After the usual header, you should see something like the following:
 
-.. literalinclude:: ../../tutorials/tutorial_2/si_wannierise.out
+.. literalinclude:: ../../tutorials/tutorial_2/si_wannierize.out
   :lines: 15-27
 
 These various calculations that are required to obtain the MLWFs of bulk silicon. You can inspect the  and various output files will have been generated in a new ``wannier/`` directory.
@@ -108,11 +108,11 @@ These various calculations that are required to obtain the MLWFs of bulk silicon
     the analogous calculations as those in ``occ/``, but for the empty manifold
   
   bands
-    a ``pw.x`` calculation that calculates the band structure of silicon explicitly, used for verification of the Wannierisation (see the next section)
+    a ``pw.x`` calculation that calculates the band structure of silicon explicitly, used for verification of the Wannierization (see the next section)
 
 |
 
-The main output files of interest in ``wannier/`` are files ``occ/wann.wout`` and ``emp/wann.wout``, which contain the output of ``wannier90.x`` for the Wannierisation of the occupied and empty manifolds. If you inspect either of these files you will be able to see a lot of starting information, and then under a heading like
+The main output files of interest in ``wannier/`` are files ``occ/wann.wout`` and ``emp/wann.wout``, which contain the output of ``wannier90.x`` for the Wannierization of the occupied and empty manifolds. If you inspect either of these files you will be able to see a lot of starting information, and then under a heading like
 
 .. code-block::
 
@@ -121,11 +121,11 @@ The main output files of interest in ``wannier/`` are files ``occ/wann.wout`` an
   | Iter  Delta Spread     RMS Gradient      Spread (Ang^2)      Time  |<-- CONV
   +--------------------------------------------------------------------+<-- CONV
 
-you will then see a series of steps where you can see the Wannier functions being optimised and the spread (labelled ``SPRD``) decreasing from one step to the next. Scrolling down further you should see a statement that the Wannierisation procedure has converged, alongside with a summary of the final state of the WFs.
+you will then see a series of steps where you can see the Wannier functions being optimised and the spread (labelled ``SPRD``) decreasing from one step to the next. Scrolling down further you should see a statement that the Wannierization procedure has converged, alongside with a summary of the final state of the WFs.
 
 How do I know if the Wannier functions I have calculated are "good"?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Performing a Wannierisation calculation is not a straightforward procedure, and requires the tweaking of the Wannier90 input parameters in order to obtain a "good" set of Wannier functions.
+Performing a Wannierization calculation is not a straightforward procedure, and requires the tweaking of the Wannier90 input parameters in order to obtain a "good" set of Wannier functions.
 
 One check is to see if an interpolated bandstructure generated by the MLWFs resembles an explicitly-calculated band structure. (For an explanation of how one can use Wannier functions to interpolate band structures, refer to Ref. :cite:`Marzari2012`.) You might have noticed that when we ran ``koopmans`` earlier it also generated a file called ``interpolated_bandstructure_2x2x2.png``. It should look something like this:
 
@@ -140,9 +140,9 @@ Clearly, we can see that the interpolation is no good! (The interpolated band st
 
 .. tip::
 
-  Trying different grid sizes can be very easily automated within ``python``. Here is a simple script that will run the Wannierisation for three different grid sizes:
+  Trying different grid sizes can be very easily automated within ``python``. Here is a simple script that will run the Wannierization for three different grid sizes:
 
-  .. literalinclude:: ../../tutorials/tutorial_2/wannierise.py
+  .. literalinclude:: ../../tutorials/tutorial_2/wannierize.py
 
 .. tip::
   You may also notice a file called ``interpolated_bandstructure_2x2x2.fig.pkl``. This is a version of the figure that you can load in python and modify as you see fit. e.g. here is a script that changes the y-axis limits and label:
@@ -151,7 +151,7 @@ Clearly, we can see that the interpolation is no good! (The interpolated band st
 
 The KI calculation
 ------------------
-Having obtained a Wannierisation of silicon that we are happy with, we can proceed with the KI calculation. In order to do this simply change the ``task`` keyword in the input file from ``wannierise`` to ``singlepoint``.
+Having obtained a Wannierization of silicon that we are happy with, we can proceed with the KI calculation. In order to do this simply change the ``task`` keyword in the input file from ``wannierize`` to ``singlepoint``.
 
 .. tip::
 
@@ -160,7 +160,7 @@ Having obtained a Wannierisation of silicon that we are happy with, we can proce
 
 Initialisation
 ^^^^^^^^^^^^^^
-If you run this new input the output will be remarkably similar to that from the previous tutorial, with a couple of exceptions. At the start of the workflow you will see there is a Wannierisation procedure, much like we had earlier when we running with the ``wannierise`` task:
+If you run this new input the output will be remarkably similar to that from the previous tutorial, with a couple of exceptions. At the start of the workflow you will see there is a Wannierization procedure, much like we had earlier when we running with the ``wannierize`` task:
 
 .. literalinclude:: ../../tutorials/tutorial_2/si_ki.out
   :lines: 16-27
@@ -206,7 +206,7 @@ The final difference for the solids calculation is that there is an additional p
   :lineno-start: 72
   :language: text
 
-Here, we transform back our results from the supercell sampled at :math:`\Gamma` to the primitive cell with :math:`k`-space sampling. This allows us to obtain a bandstructure. The extra Wannierisation step that is being performed is to assist the interpolation of the band structure in the primitive cell, and has been performed because in the input file we specified
+Here, we transform back our results from the supercell sampled at :math:`\Gamma` to the primitive cell with :math:`k`-space sampling. This allows us to obtain a bandstructure. The extra Wannierization step that is being performed is to assist the interpolation of the band structure in the primitive cell, and has been performed because in the input file we specified
 
 .. literalinclude:: ../../tutorials/tutorial_2/si.json
   :lines: 100-102

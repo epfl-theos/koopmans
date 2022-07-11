@@ -9,7 +9,7 @@ Typically, a Koopmans calculation can be divided into three stages
 2. the calculation of screening parameters
 3. a final calculation using the obtained variational orbitals and screening parameters
    
-Depending on the method for calculating screening parameters, the resulting workflow can look quite different. Differences also emerge between molecules and solids. For the latter, maximally localised Wannier functions are typically used as variational orbitals, which necessitates an additional Wannierisation procedure, performed using `Wannier90 <http://www.wannier.org/>`_.
+Depending on the method for calculating screening parameters, the resulting workflow can look quite different. Differences also emerge between molecules and solids. For the latter, maximally localised Wannier functions are typically used as variational orbitals, which necessitates an additional Wannierization procedure, performed using `Wannier90 <http://www.wannier.org/>`_.
 
 .. figure:: figures/dscf_workflow.svg
     :alt: The ΔSCF workflow
