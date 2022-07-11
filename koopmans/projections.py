@@ -95,7 +95,7 @@ class ProjectionBlocks(object):
             self._n_bands_below = {spin: 0 for spin in set([b.spin for b in blocks])}
             self._n_bands_above = {spin: 0 for spin in set([b.spin for b in blocks])}
         else:
-            # By default, assume spin-unpolarised
+            # By default, assume spin-unpolarized
             self._n_bands_below = {None: 0}
             self._n_bands_above = {None: 0}
 

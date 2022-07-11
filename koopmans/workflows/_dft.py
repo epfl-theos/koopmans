@@ -129,5 +129,5 @@ class PWBandStructureWorkflow(Workflow):
             assert isinstance(calc, calculators.ProjwfcCalculator)
             calc.parameters.filpdos = self.name
             calc.pseudopotentials = self.pseudopotentials
-            calc.spin_polarised = self.parameters.spin_polarised
+            calc.spin_polarized = self.parameters.spin_polarized
         return calc

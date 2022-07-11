@@ -65,7 +65,7 @@ class Band(object):
 
 
 class Bands(object):
-    def __init__(self, n_bands: Union[int, List[int]], n_spin: int = 1, spin_polarised: bool = False,
+    def __init__(self, n_bands: Union[int, List[int]], n_spin: int = 1, spin_polarized: bool = False,
                  self_hartree_tol=None, **kwargs):
         if isinstance(n_bands, int):
             self.n_bands = [n_bands for _ in range(n_spin)]
@@ -74,8 +74,8 @@ class Bands(object):
                 raise ValueError(f'n_bands = {n_bands} should have length matching n_spin = {n_spin}')
             self.n_bands = n_bands
         self.n_spin = n_spin
-        self.spin_polarised = spin_polarised
-        if self.spin_polarised:
+        self.spin_polarized = spin_polarized
+        if self.spin_polarized:
             # Assign every single band a distinct group
             self._bands: List[Band] = []
             for i_spin, n_bands_spin in enumerate(self.n_bands):
@@ -184,7 +184,7 @@ class Bands(object):
 
         # Separate the orbitals into different subsets, where we don't want any grouping of orbitals belonging to
         # different subsets
-        if self.spin_polarised:
+        if self.spin_polarized:
             # Separate by both spin and filling
             unassigned_sets = [[b for b in self if b.filled == filled and b.spin == i_spin]
                                for i_spin in range(self.n_spin) for filled in [True, False]]
@@ -246,7 +246,7 @@ class Bands(object):
                 # Move on to next group
                 group += 1
 
-        if not self.spin_polarised and self.n_spin == 2:
+        if not self.spin_polarized and self.n_spin == 2:
             for b in self.get(spin=1):
                 [match] = [b_op for b_op in self.get(spin=0) if b_op.index == b.index]
                 b.group = match.group
@@ -264,11 +264,11 @@ class Bands(object):
 
         # If groups have not been assigned...
         if None in [b.group for b in self]:
-            if self.spin_polarised:
-                # ... and spin-polarised, solve all bands
+            if self.spin_polarized:
+                # ... and spin-polarized, solve all bands
                 return self.get()
             else:
-                # ... and not spin-polarised, solve the spin-up bands only
+                # ... and not spin-polarized, solve the spin-up bands only
                 return self.get(spin=0)
 
         # If not, work out which bands to solve explicitly
@@ -309,7 +309,7 @@ class Bands(object):
 
         if isinstance(value, pd.DataFrame):
             assert group is None, 'Cannot update only one group via a pandas DataFrame'
-            if self.spin_polarised:
+            if self.spin_polarized:
                 raise NotImplementedError()
             else:
                 tmp_arr = np.transpose(value.values)
@@ -356,7 +356,7 @@ class Bands(object):
 
     def _create_dataframe(self, attr) -> pd.DataFrame:
         # Generate a dataframe containing the requested attribute, sorting the bands first by index, then by spin
-        if self.spin_polarised:
+        if self.spin_polarized:
             columns = pd.MultiIndex.from_tuples([(f'spin {b.spin}', b.index) for b in self])
             band_subset = sorted(self, key=lambda x: (x.spin, x.index))
         else:

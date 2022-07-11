@@ -24,9 +24,9 @@ class KoopmansDFPTWorkflow(Workflow):
         super().__init__(*args, **kwargs)
 
         # Check the consistency of keywords
-        if self.parameters.spin_polarised:
+        if self.parameters.spin_polarized:
             raise NotImplementedError(
-                'Calculating screening parameters with DFPT is not yet possible for spin-polarised systems')
+                'Calculating screening parameters with DFPT is not yet possible for spin-polarized systems')
         if self.parameters.functional != 'ki':
             raise NotImplementedError(
                 'Calculating screening parameters with DFPT is not yet possible with functionals other than KI')

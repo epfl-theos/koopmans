@@ -46,7 +46,7 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
         # spin up then spin down
         assert self.alphas is not None, 'You have not provided screening parameters to this calculator'
         if not len(self.alphas) == 1:
-            raise NotImplementedError('KoopmansHamCalculator yet to be implemented for spin-polarised systems')
+            raise NotImplementedError('KoopmansHamCalculator yet to be implemented for spin-polarized systems')
         [alphas] = self.alphas
         filling = [True for _ in range(len(alphas))]
         utils.write_alpha_file(self.directory, alphas, filling)
@@ -68,7 +68,7 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
     def get_eigenvalues(self, kpt=None, spin=0):
         if spin != 0:
             raise NotImplementedError(
-                f'Koopmans Hamiltonian calculator is not implemented for spin-polarised systems')
+                f'Koopmans Hamiltonian calculator is not implemented for spin-polarized systems')
 
         if 'band structure' not in self.results:
             raise ValueError('You must first calculate the band structure before you try to access the KS eigenvalues')

@@ -39,7 +39,7 @@ class WannieriseWorkflow(Workflow):
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
 
-            if self.parameters.spin_polarised:
+            if self.parameters.spin_polarized:
                 spins = ['up', 'down']
             else:
                 spins = [None]
@@ -48,7 +48,7 @@ class WannieriseWorkflow(Workflow):
                 # Update the projections_blocks to account for additional occupied bands
                 num_wann_occ = self.projections.num_bands(occ=True, spin=spin)
                 nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, pw_params.pseudo_dir)
-                if self.parameters.spin_polarised:
+                if self.parameters.spin_polarized:
                     num_bands_occ = nelec - pw_params.get('tot_charge', 0)
                     if spin == 'up':
                         num_bands_occ += pw_params.tot_magnetization
@@ -83,11 +83,11 @@ class WannieriseWorkflow(Workflow):
             raise NotImplementedError('WannieriseWorkflow only supports setting init_orbitals and init_empty_orbitals to '
                                       '"mlwfs"/"projwfs" or "kohn-sham"')
 
-        # Spin-polarisation
+        # Spin-polarization
         self._force_nspin2 = force_nspin2
         if force_nspin2:
             pw_params.nspin = 2
-        elif self.parameters.spin_polarised:
+        elif self.parameters.spin_polarized:
             pw_params.nspin = 2
         else:
             pw_params.nspin = 1
@@ -201,7 +201,7 @@ class WannieriseWorkflow(Workflow):
                 calc_dos = self.new_calculator('projwfc', filpdos=self.name)
                 calc_dos.directory = 'pdos'
                 calc_dos.pseudopotentials = self.pseudopotentials
-                calc_dos.spin_polarised = self.parameters.spin_polarised
+                calc_dos.spin_polarized = self.parameters.spin_polarized
                 calc_dos.pseudo_dir = calc_pw_bands.parameters.pseudo_dir
                 calc_dos.parameters.prefix = calc_pw_bands.parameters.prefix
                 self.run_calculator(calc_dos)
@@ -223,7 +223,7 @@ class WannieriseWorkflow(Workflow):
             tot_charge = calc_pw.parameters.get('tot_charge', 0)
             nelec -= tot_charge
 
-            if self.parameters.spin_polarised:
+            if self.parameters.spin_polarized:
                 tot_mag = calc_pw.parameters.get('tot_magnetization', nelec % 2)
                 nelup = int(nelec / 2 + tot_mag / 2)
                 neldw = int(nelec / 2 - tot_mag / 2)
@@ -313,7 +313,7 @@ class WannieriseWorkflow(Workflow):
                 # forcing W90 to follow the same logic of PW for the gamma_trick
                 calc.parameters.gamma_only = self.gamma_only
         if calc_type == 'pw2wannier':
-            if self._force_nspin2 and not self.parameters.spin_polarised:
+            if self._force_nspin2 and not self.parameters.spin_polarized:
                 calc.parameters.spin_component = 'up'
 
         # Use a unified tmp directory

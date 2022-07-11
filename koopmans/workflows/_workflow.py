@@ -87,7 +87,7 @@ class Workflow(ABC):
         if projections is None:
             proj_list: List[List[Any]]
             spins: List[Optional[str]]
-            if self.parameters.spin_polarised:
+            if self.parameters.spin_polarized:
                 proj_list = [[], [], [], []]
                 fillings = [True, True, False, False]
                 spins = ['up', 'down', 'up', 'down']
@@ -208,9 +208,9 @@ class Workflow(ABC):
 
             # Various checks for the wannier90 blocks
             if block.startswith('w90'):
-                # If we are spin-polarised, don't store the spin-independent w90 block
-                # Likewise, if we are not spin-polarised, don't store the spin-dependent w90 blocks
-                if self.parameters.spin_polarised is not ('up' in block or 'down' in block):
+                # If we are spin-polarized, don't store the spin-independent w90 block
+                # Likewise, if we are not spin-polarized, don't store the spin-dependent w90 blocks
+                if self.parameters.spin_polarized is not ('up' in block or 'down' in block):
                     continue
                 if 'projections' in params or 'projections_blocks' in params:
                     raise ValueError(f'You have provided projection information in the master_calc_params[{block}] '
@@ -334,10 +334,10 @@ class Workflow(ABC):
     def _run_sanity_checks(self):
         # Check internal consistency of workflow settings
         if self.parameters.fix_spin_contamination is None:
-            self.parameters.fix_spin_contamination = not self.parameters.spin_polarised
+            self.parameters.fix_spin_contamination = not self.parameters.spin_polarized
         else:
-            if self.parameters.fix_spin_contamination and self.parameters.spin_polarised:
-                raise ValueError('fix_spin_contamination = True is incompatible with spin_polarised = True')
+            if self.parameters.fix_spin_contamination and self.parameters.spin_polarized:
+                raise ValueError('fix_spin_contamination = True is incompatible with spin_polarized = True')
 
         if self.parameters.method == 'dfpt':
             if self.parameters.frozen_orbitals is None:
@@ -391,13 +391,13 @@ class Workflow(ABC):
                 raise ValueError(f'In order to use init_orbitals={self.parameters.init_orbitals}, projections must be '
                                  'provided')
             spin_set = set([p.spin for p in self.projections])
-            if self.parameters.spin_polarised:
+            if self.parameters.spin_polarized:
                 if spin_set != {'up', 'down'}:
-                    raise ValueError('This calculation is spin-polarised; please provide spin-up and spin-down '
+                    raise ValueError('This calculation is spin-polarized; please provide spin-up and spin-down '
                                      'projections')
             else:
                 if spin_set != {None}:
-                    raise ValueError('This calculation is not spin-polarised; please do not provide spin-indexed '
+                    raise ValueError('This calculation is not spin-polarized; please do not provide spin-indexed '
                                      'projections')
 
         # Check the consistency between self.gamma_only and KCP's do_wf_cmplx
@@ -852,9 +852,9 @@ class Workflow(ABC):
                         raise ValueError('kpath in the UI block should match that provided in the setup block')
                     dct.pop('kpath')
             elif block.startswith('w90'):
-                # If we are spin-polarised, don't store the spin-independent w90 block
-                # Likewise, if we are not spin-polarised, don't store the spin-dependent w90 blocks
-                if parameters.spin_polarised is not ('up' in block or 'down' in block):
+                # If we are spin-polarized, don't store the spin-independent w90 block
+                # Likewise, if we are not spin-polarized, don't store the spin-dependent w90 blocks
+                if parameters.spin_polarized is not ('up' in block or 'down' in block):
                     continue
                 if 'projections' in dct and 'projections_blocks' in dct:
                     raise ValueError(f'You have provided both "projections" and "projections_block" for {block} but '
@@ -1088,7 +1088,7 @@ class Workflow(ABC):
             raise ValueError('The "bs" and "bsplot_kwargs" arguments to plot_bandstructure() should be the same length')
         spins: List[Optional[str]]
         if isinstance(dos, DOS):
-            if self.parameters.spin_polarised:
+            if self.parameters.spin_polarized:
                 spins = ['up', 'down']
             else:
                 spins = [None]
@@ -1121,7 +1121,7 @@ class Workflow(ABC):
         else:
             # Assemble the densities of state
             dos_summed = dos.sum_by('symbol', 'n', 'l', 'spin')
-            if self.parameters.spin_polarised:
+            if self.parameters.spin_polarized:
                 dos_up = dos_summed.select(spin='up')
                 dos_down = dos_summed.select(spin='down')
                 dos_down._weights *= -1
@@ -1140,7 +1140,7 @@ class Workflow(ABC):
                     sorted_dos = dos
 
                 for d in sorted_dos:
-                    if (not self.parameters.spin_polarised or d.info.get('spin') == 'up') \
+                    if (not self.parameters.spin_polarized or d.info.get('spin') == 'up') \
                             and all([key in d.info for key in ['symbol', 'n', 'l']]):
                         label = f'{d.info["symbol"]} {d.info["n"]}{d.info["l"]}'
                     else:
@@ -1153,7 +1153,7 @@ class Workflow(ABC):
 
             # Tweaking the DOS figure aesthetics
             maxval = 1.1 * dos_summed._weights[:, [e >= xmin and e <= xmax for e in dos_summed._energies]].max()
-            if self.parameters.spin_polarised:
+            if self.parameters.spin_polarized:
                 ax_dos.set_xlim([maxval, -maxval])
                 ax_dos.text(0.25, 0.10, 'up', ha='center', va='top', transform=ax_dos.transAxes)
                 ax_dos.text(0.75, 0.10, 'down', ha='center', va='top', transform=ax_dos.transAxes)

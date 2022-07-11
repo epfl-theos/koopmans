@@ -42,7 +42,7 @@ class KoopmansDSCFWorkflow(Workflow):
         kcp_params = self.master_calc_params['kcp']
         if self.parameters.periodic:
             spins: List[Optional[str]]
-            if self.parameters.spin_polarised:
+            if self.parameters.spin_polarized:
                 spins = ['up', 'down']
                 nelecs = [kcp_params.nelup, kcp_params.neldw]
             else:
@@ -70,7 +70,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     nbands_emp = self.master_calc_params['pw'].nbnd - nbands_occ
 
                 # Check the number of empty states has been correctly configured
-                spin_info = f'spin {spin} ' if self.parameters.spin_polarised else ''
+                spin_info = f'spin {spin} ' if self.parameters.spin_polarized else ''
                 if kcp_params.nbnd is None:
                     if nbands_emp != 0:
                         kcp_params.nbnd = nbands_occ + nbands_emp
@@ -86,7 +86,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
             # Populating self.parameters.orbital_groups if needed
             # N.B. self.bands.groups is guaranteed to be 2 x num_wann, but self.parameters.orbital_groups
-            # is either 1- or 2- long, depending on if we are spin-polarised or not
+            # is either 1- or 2- long, depending on if we are spin-polarized or not
             if self.parameters.orbital_groups is None:
                 orbital_groups: List[List[int]] = []
                 i_start = 0
@@ -109,7 +109,7 @@ class KoopmansDSCFWorkflow(Workflow):
                            self.parameters.orbital_groups[i_spin][nelec:]]
 
         # Check the shape of self.parameters.orbital_groups is as expected
-        if self.parameters.spin_polarised:
+        if self.parameters.spin_polarized:
             target_length = 2
         else:
             target_length = 1
@@ -117,7 +117,7 @@ class KoopmansDSCFWorkflow(Workflow):
             assert len(self.parameters.orbital_groups) == target_length
 
         # Constructing the arrays required to initialize a Bands object
-        if self.parameters.spin_polarised:
+        if self.parameters.spin_polarized:
             if 'nbnd' in kcp_params:
                 n_emp_up = kcp_params.nbnd - kcp_params.nelup
                 n_emp_dw = kcp_params.nbnd - kcp_params.neldw
@@ -147,7 +147,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     'of bands'
 
         # Initialize the bands object
-        self.bands = Bands(n_bands=[len(f) for f in filling], n_spin=2, spin_polarised=self.parameters.spin_polarised,
+        self.bands = Bands(n_bands=[len(f) for f in filling], n_spin=2, spin_polarized=self.parameters.spin_polarized,
                            filling=filling, groups=groups,
                            self_hartree_tol=self.parameters.orbital_groups_self_hartree_tol)
 
@@ -195,7 +195,7 @@ class KoopmansDSCFWorkflow(Workflow):
         assert isinstance(params, KoopmansCPSettingsDict)
         alphas = calculators.convert_flat_alphas_for_kcp(flat_alphas, params)
 
-        if self.parameters.spin_polarised:
+        if self.parameters.spin_polarized:
             raise NotImplementedError('Need to check implementation')
 
         return alphas
@@ -353,7 +353,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 for i_spin, spin in enumerate(['up', 'down']):
                     # Skip if we don't have wannier functions to copy over
                     if self.parameters.init_orbitals != 'kohn-sham':
-                        if self.parameters.spin_polarised:
+                        if self.parameters.spin_polarized:
                             if self.projections.num_wann(occ=(filling == 'occ'), spin=spin) == 0:
                                 continue
                         else:
@@ -365,7 +365,7 @@ class KoopmansDSCFWorkflow(Workflow):
                             evcw_file = Path(f'init/wannier/ks2kcp/evc_occupied{i_spin + 1}.dat')
                         else:
                             evcw_file = Path(f'init/wannier/ks2kcp/evc0_empty{i_spin + 1}.dat')
-                    elif self.parameters.spin_polarised:
+                    elif self.parameters.spin_polarized:
                         evcw_file = Path(f'init/wannier/{filling}_{spin}/evcw.dat')
                     else:
                         evcw_file = Path(f'init/wannier/{filling}/evcw{i_spin + 1}.dat')
@@ -528,12 +528,12 @@ class KoopmansDSCFWorkflow(Workflow):
                 print_headings = self.parameters.functional != 'ki' \
                     or any([not b.filled for b in self.bands]) or i_sc == 1
 
-                if self.parameters.spin_polarised and band in first_band_of_each_channel:
+                if self.parameters.spin_polarized and band in first_band_of_each_channel:
                     self.print(f'Spin {band.spin + 1}', style='subheading')
 
                 # Working out what to print for the orbital heading (grouping skipped bands together)
                 if band in self.bands.to_solve or band == self.bands.get(spin=band.spin)[-1]:
-                    if band not in self.bands.to_solve and (self.parameters.spin_polarised or band.spin == 0):
+                    if band not in self.bands.to_solve and (self.parameters.spin_polarized or band.spin == 0):
                         skipped_orbitals.append(band.index)
                     if len(skipped_orbitals) > 0:
                         if len(skipped_orbitals) == 1:
@@ -548,7 +548,7 @@ class KoopmansDSCFWorkflow(Workflow):
                         skipped_orbitals = []
                     if band not in self.bands.to_solve:
                         continue
-                elif not self.parameters.spin_polarised and band.spin == 1:
+                elif not self.parameters.spin_polarized and band.spin == 1:
                     # In this case, skip over the bands entirely and don't include it in the printout about which
                     # bands we've skipped
                     continue
@@ -562,7 +562,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     self.print(f'Orbital {band.index}', style='subheading')
 
                 # Set up directories
-                if self.parameters.spin_polarised:
+                if self.parameters.spin_polarized:
                     directory = Path(f'{iteration_directory}/spin_{band.spin + 1}/orbital_{band.index}')
                     outdir_band = outdir / f'spin_{band.spin + 1}/orbital_{band.index}'
                 else:
@@ -594,7 +594,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     index_empty_to_save = None
                 else:
                     index_empty_to_save = band.index - self.bands.num(filled=True, spin=band.spin)
-                    if self.parameters.spin_polarised and band.spin == 1:
+                    if self.parameters.spin_polarized and band.spin == 1:
                         index_empty_to_save += self.bands.num(filled=False, spin=0)
 
                 # Perform the fixed-band-dependent calculations
@@ -648,7 +648,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     # Work out the index of the band that is fixed (noting that we will be throwing away all empty
                     # bands)
                     fixed_band = min(band.index, self.bands.num(filled=True, spin=band.spin) + 1)
-                    if self.parameters.spin_polarised and band.spin == 1:
+                    if self.parameters.spin_polarized and band.spin == 1:
                         fixed_band += self.bands.num(filled=True, spin=0)
 
                     # Set up calculator

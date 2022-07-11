@@ -176,7 +176,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
     def get_eigenvalues(self, kpt=None, spin=0):
         if spin != 0:
             raise NotImplementedError(
-                f'Unfolding and interpolating calculator is not implemented for spin-polarised systems')
+                f'Unfolding and interpolating calculator is not implemented for spin-polarized systems')
 
         if 'band structure' not in self.results:
             raise ValueError('You must first calculate the band structure before you try to access the KS eigenvalues')
