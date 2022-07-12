@@ -7,3 +7,4 @@ pytest>=5.4
 typing>=3.6
 pybtex>=0.24
 spglib>=1.9
+upf-to-json>=0.9.5
