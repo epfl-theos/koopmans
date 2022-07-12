@@ -165,7 +165,7 @@ def expected_subshells(atoms: Atoms, pseudopotentials: Dict[str, str],
         if z_core in z_core_to_first_orbital:
             first_orbital = z_core_to_first_orbital[z_core]
         else:
-            raise ValueError(f'Failed to identify the subshells of the valence of {pseudo_filename}')
+            raise ValueError(f'Failed to identify the subshells of the valence of {pseudo_file}')
         all_orbitals = list(z_core_to_first_orbital.values()) + ['5d', '6p', '6d']
         expected_orbitals[atom.symbol] = sorted(all_orbitals[all_orbitals.index(first_orbital):])
     return expected_orbitals
