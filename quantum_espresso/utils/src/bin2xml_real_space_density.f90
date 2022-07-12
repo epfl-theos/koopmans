@@ -32,11 +32,9 @@ program bin2xml_real_space_density
     character(LEN=256) :: dest_filename
     character(LEN=5)   :: orbital_identifier, orbital_identifier_xml
     character(LEN=1)   :: spin_identifier
-    
 
-    if(command_argument_count().ne.5) then 
-        call errore('bin2xml_real_space_density', 'Wrong value number of input arguments', 1 )
-    end if
+    integer              :: num_bands
+    integer, allocatable :: bands(:)
 
     call get_command_argument(1, source_dir)
     call get_command_argument(2, dest_dir)
@@ -48,6 +46,30 @@ program bin2xml_real_space_density
     read(nbsp_occ_char,'(i)') nbsp_occ
     read(nbsp_emp_char,'(i)') nbsp_emp
     read(nspin_char,'(i)')    nspin
+    
+    num_bands = 7
+    allocate(bands(num_bands))
+    write(*,*) "Beginn read"
+    open(unit=1, file=TRIM(dest_dir)//'/bands_to_solve.txt', status='old')
+    do i=1,num_bands
+        write(*,*) "here"
+        read(*) bands(i)
+        write(*,*) "adter"
+    enddo
+    CLOSE (UNIT=1)
+    write(*,*) "Beginn write"
+
+    do i=1,num_bands
+        write(*,*), bands(i)
+    enddo
+
+    
+
+    if(command_argument_count().ne.5) then 
+        call errore('bin2xml_real_space_density', 'Wrong value number of input arguments', 1 )
+    end if
+
+    
 
 
     ! First write total density to XML

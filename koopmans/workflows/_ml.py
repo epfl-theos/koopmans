@@ -88,6 +88,14 @@ class MLFiitingWorkflow(Workflow):
         Converts the binary files produced by a previous calculation to python-readable xml-files. 
         """
 
+        # import ipdb
+        # ipdb.set_trace()
+        # np.savetxt(, np.array([9, 4, 5], dtype=np.int8))
+
+        test = np.array([9, 4, 5])
+        with open(self.dirs['xml'] / 'bands_to_solve.txt', "wb") as f:
+            np.savetxt(f, test.astype(int), fmt='%i', delimiter="\n")
+
         if self.method_to_extract_from_binary == 'from_ki':
             orbital_densities_bin_dir = self.calc_that_produced_orbital_densities.parameters.outdir / \
                 f'kc_{self.calc_that_produced_orbital_densities.parameters.ndw}.save'
