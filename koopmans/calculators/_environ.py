@@ -1,5 +1,6 @@
-import os
 import copy
+import os
+
 from ._pw import PWCalculator
 
 _default_settings = {

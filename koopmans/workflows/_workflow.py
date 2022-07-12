@@ -8,41 +8,52 @@ Converted workflows from functions to objects Nov 2020
 """
 
 from abc import ABC, abstractmethod
-import os
-import shutil
 import copy
-import operator
 from functools import reduce
-import subprocess
-from pathlib import Path
 import json as json_ext
+import operator
+import os
+from pathlib import Path
+import shutil
+import subprocess
+from types import ModuleType
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+
 import numpy as np
 from numpy import typing as npt
-from types import ModuleType
-from typing import Optional, Dict, List, Type, Union, Any, TypeVar
 from pybtex.database import BibliographyData
+
+# isort: off
+import koopmans.mpl_config
+import matplotlib.pyplot as plt
+# isort: on
+
 import ase
 from ase import Atoms
 from ase.build.supercells import make_supercell
+from ase.calculators.calculator import CalculationFailed
+from ase.calculators.espresso import Espresso_kcp
 from ase.dft.dos import DOS
 from ase.dft.kpoints import BandPath
+from ase.io.espresso import cell_to_ibrav
+from ase.io.espresso import contruct_kcp_namelist as construct_namelist
+from ase.io.espresso import ibrav_to_cell, kcp_keys
 from ase.spacegroup import symmetrize
-from ase.calculators.espresso import Espresso_kcp
-from ase.calculators.calculator import CalculationFailed
-from ase.io.espresso import cell_to_ibrav, ibrav_to_cell, kcp_keys, contruct_kcp_namelist as construct_namelist
 from ase.spectrum.band_structure import BandStructure
-from ase.spectrum.dosdata import GridDOSData
 from ase.spectrum.doscollection import GridDOSCollection
-from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, pseudo_database, fetch_pseudo, \
-    valence_from_pseudo
-from koopmans import utils, settings, calculators
-from koopmans.commands import ParallelCommandWithPostfix
+from ase.spectrum.dosdata import GridDOSData
+from koopmans import calculators, settings, utils
 from koopmans.bands import Bands
+from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.projections import ProjectionBlocks
+from koopmans.pseudopotentials import (
+    fetch_pseudo,
+    nelec_from_pseudos,
+    pseudo_database,
+    pseudos_library_directory,
+    valence_from_pseudo,
+)
 from koopmans.references import bib_data
-import koopmans.mpl_config
-import matplotlib.pyplot as plt
-
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
 
@@ -83,7 +94,7 @@ class Workflow(ABC):
         if projections is None:
             proj_list: List[List[Any]]
             spins: List[Optional[str]]
-            if self.parameters.spin_polarised:
+            if self.parameters.spin_polarized:
                 proj_list = [[], [], [], []]
                 fillings = [True, True, False, False]
                 spins = ['up', 'down', 'up', 'down']
@@ -122,7 +133,7 @@ class Workflow(ABC):
                 pseudo = fetch_pseudo(element=symbol, functional=self.parameters.base_functional,
                                       library=self.parameters.pseudo_library)
                 if pseudo.kind == 'unknown':
-                    utils.warn(f'You are using an unrecognised pseudopotential {pseudo.name}. Please note that '
+                    utils.warn(f'You are using an unrecognized pseudopotential {pseudo.name}. Please note that '
                                'the current implementation of Koopmans functionals only supports norm-conserving '
                                'pseudopotentials.')
                 elif pseudo.kind != 'norm-conserving':
@@ -134,7 +145,7 @@ class Workflow(ABC):
 
         # Make sure master_calc_params isn't missing any entries, and every entry corresponds to settings.SettingsDict
         # objects
-        master_calc_params = sanitise_master_calc_params(
+        master_calc_params = sanitize_master_calc_params(
             master_calc_params) if master_calc_params is not None else generate_default_master_calc_params()
 
         # Work out the pseudopotential directory. If using a pseudo_library this is straightforward, if not...
@@ -204,9 +215,9 @@ class Workflow(ABC):
 
             # Various checks for the wannier90 blocks
             if block.startswith('w90'):
-                # If we are spin-polarised, don't store the spin-independent w90 block
-                # Likewise, if we are not spin-polarised, don't store the spin-dependent w90 blocks
-                if self.parameters.spin_polarised is not ('up' in block or 'down' in block):
+                # If we are spin-polarized, don't store the spin-independent w90 block
+                # Likewise, if we are not spin-polarized, don't store the spin-dependent w90 blocks
+                if self.parameters.spin_polarized is not ('up' in block or 'down' in block):
                     continue
                 if 'projections' in params or 'projections_blocks' in params:
                     raise ValueError(f'You have provided projection information in the master_calc_params[{block}] '
@@ -223,7 +234,7 @@ class Workflow(ABC):
             # algebraically
             params.parse_algebraic_settings(nelec=nelec)
 
-            # Store the sanitised parameters
+            # Store the sanitized parameters
             self.master_calc_params[block] = params
 
         # Generate a default kpath
@@ -243,7 +254,7 @@ class Workflow(ABC):
 
         # If atoms has a calculator, overwrite the kpoints and pseudopotentials variables and then detach the calculator
         if atoms.calc is not None:
-            utils.warn(f'You have initialised a {self.__class__.__name__} object with an atoms object that possesses '
+            utils.warn(f'You have initialized a {self.__class__.__name__} object with an atoms object that possesses '
                        'a calculator. This calculator will be ignored.')
             self.atoms.calc = None
 
@@ -312,7 +323,7 @@ class Workflow(ABC):
 
     @property
     def wf_kwargs(self) -> Dict[str, Any]:
-        # Returns a kwargs designed to be used to initialise another workflow with the same configuration as this one
+        # Returns a kwargs designed to be used to initialize another workflow with the same configuration as this one
         # i.e.
         # > sub_wf = Workflow(**self.wf_kwargs)
         return {'atoms': copy.deepcopy(self.atoms),
@@ -330,10 +341,10 @@ class Workflow(ABC):
     def _run_sanity_checks(self):
         # Check internal consistency of workflow settings
         if self.parameters.fix_spin_contamination is None:
-            self.parameters.fix_spin_contamination = not self.parameters.spin_polarised
+            self.parameters.fix_spin_contamination = not self.parameters.spin_polarized
         else:
-            if self.parameters.fix_spin_contamination and self.parameters.spin_polarised:
-                raise ValueError('fix_spin_contamination = True is incompatible with spin_polarised = True')
+            if self.parameters.fix_spin_contamination and self.parameters.spin_polarized:
+                raise ValueError('fix_spin_contamination = True is incompatible with spin_polarized = True')
 
         if self.parameters.method == 'dfpt':
             if self.parameters.frozen_orbitals is None:
@@ -415,13 +426,13 @@ class Workflow(ABC):
                 raise ValueError(f'In order to use init_orbitals={self.parameters.init_orbitals}, projections must be '
                                  'provided')
             spin_set = set([p.spin for p in self.projections])
-            if self.parameters.spin_polarised:
+            if self.parameters.spin_polarized:
                 if spin_set != {'up', 'down'}:
-                    raise ValueError('This calculation is spin-polarised; please provide spin-up and spin-down '
+                    raise ValueError('This calculation is spin-polarized; please provide spin-up and spin-down '
                                      'projections')
             else:
                 if spin_set != {None}:
-                    raise ValueError('This calculation is not spin-polarised; please do not provide spin-indexed '
+                    raise ValueError('This calculation is not spin-polarized; please do not provide spin-indexed '
                                      'projections')
 
         # Check the consistency between self.gamma_only and KCP's do_wf_cmplx
@@ -774,7 +785,7 @@ class Workflow(ABC):
     @property
     def bands(self):
         if not hasattr(self, '_bands'):
-            raise AttributeError('Bands have not been initialised')
+            raise AttributeError('Bands have not been initialized')
         return self._bands
 
     @bands.setter
@@ -833,7 +844,7 @@ class Workflow(ABC):
         # Check for unexpected blocks
         for block in bigdct:
             if block not in list(settings_classes.keys()) + ['workflow', 'setup']:
-                raise ValueError(f'Unrecognised block "{block}" in json input file; '
+                raise ValueError(f'Unrecognized block "{block}" in json input file; '
                                  'valid options are workflow/' + '/'.join(settings_classes.keys()))
 
         # Loading plot settings
@@ -876,9 +887,9 @@ class Workflow(ABC):
                         raise ValueError('kpath in the UI block should match that provided in the setup block')
                     dct.pop('kpath')
             elif block.startswith('w90'):
-                # If we are spin-polarised, don't store the spin-independent w90 block
-                # Likewise, if we are not spin-polarised, don't store the spin-dependent w90 blocks
-                if parameters.spin_polarised is not ('up' in block or 'down' in block):
+                # If we are spin-polarized, don't store the spin-independent w90 block
+                # Likewise, if we are not spin-polarized, don't store the spin-dependent w90 blocks
+                if parameters.spin_polarized is not ('up' in block or 'down' in block):
                     continue
                 if 'projections' in dct and 'projections_blocks' in dct:
                     raise ValueError(f'You have provided both "projections" and "projections_block" for {block} but '
@@ -936,7 +947,7 @@ class Workflow(ABC):
                         add_ref('Colonna2019', 'Introduces the DFPT method for calculating screening parameters')
                         add_ref('Colonna2022', 'Describes the algorithms underpinning the kcw.x code')
                     else:
-                        add_ref('DeGennaro2021', 'Describes how to extract band structures from Koopmans functional '
+                        add_ref('DeGennaro2022', 'Describes how to extract band structures from Koopmans functional '
                                 'calculations')
                         add_ref('Borghi2015', 'Describes the algorithms underpinning the kcp.x code')
             else:
@@ -1103,7 +1114,7 @@ class Workflow(ABC):
         dosplot_kwargs -- keyword arguments for when plotting the DOS
         """
 
-        # Sanitise input
+        # Sanitize input
         if isinstance(bs, BandStructure):
             bs = [bs]
         if isinstance(bsplot_kwargs, dict):
@@ -1112,7 +1123,7 @@ class Workflow(ABC):
             raise ValueError('The "bs" and "bsplot_kwargs" arguments to plot_bandstructure() should be the same length')
         spins: List[Optional[str]]
         if isinstance(dos, DOS):
-            if self.parameters.spin_polarised:
+            if self.parameters.spin_polarized:
                 spins = ['up', 'down']
             else:
                 spins = [None]
@@ -1145,7 +1156,7 @@ class Workflow(ABC):
         else:
             # Assemble the densities of state
             dos_summed = dos.sum_by('symbol', 'n', 'l', 'spin')
-            if self.parameters.spin_polarised:
+            if self.parameters.spin_polarized:
                 dos_up = dos_summed.select(spin='up')
                 dos_down = dos_summed.select(spin='down')
                 dos_down._weights *= -1
@@ -1164,7 +1175,7 @@ class Workflow(ABC):
                     sorted_dos = dos
 
                 for d in sorted_dos:
-                    if (not self.parameters.spin_polarised or d.info.get('spin') == 'up') \
+                    if (not self.parameters.spin_polarized or d.info.get('spin') == 'up') \
                             and all([key in d.info for key in ['symbol', 'n', 'l']]):
                         label = f'{d.info["symbol"]} {d.info["n"]}{d.info["l"]}'
                     else:
@@ -1177,7 +1188,7 @@ class Workflow(ABC):
 
             # Tweaking the DOS figure aesthetics
             maxval = 1.1 * dos_summed._weights[:, [e >= xmin and e <= xmax for e in dos_summed._energies]].max()
-            if self.parameters.spin_polarised:
+            if self.parameters.spin_polarized:
                 ax_dos.set_xlim([maxval, -maxval])
                 ax_dos.text(0.25, 0.10, 'up', ha='center', va='top', transform=ax_dos.transAxes)
                 ax_dos.text(0.75, 0.10, 'down', ha='center', va='top', transform=ax_dos.transAxes)
@@ -1270,7 +1281,7 @@ def read_setup_dict(dct: Dict[str, Any], task: str):
                     pass
                 calc.parameters[key] = value
         else:
-            raise ValueError(f'Unrecognised block "setup:{block}" in the input file')
+            raise ValueError(f'Unrecognized block "setup:{block}" in the input file')
 
     # Calculating the simulation cell
     cell = None
@@ -1317,7 +1328,7 @@ def read_setup_dict(dct: Dict[str, Any], task: str):
 
 
 def generate_default_master_calc_params():
-    # Dictionary to be used as the default value for 'master_calc_params' when initialising a workflow
+    # Dictionary to be used as the default value for 'master_calc_params' when initializing a workflow
     # We create this dynamically in order for the .directory attributes to make sense
     return {'kcp': settings.KoopmansCPSettingsDict(),
             'kc_ham': settings.KoopmansHamSettingsDict(),
@@ -1356,7 +1367,7 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'plot': settings.PlotSettingsDict}
 
 
-def sanitise_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]]) \
+def sanitize_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]]) \
         -> Dict[str, settings.SettingsDict]:
     dct_out: Dict[str, settings.SettingsDict] = {}
     for k, cls in settings_classes.items():
@@ -1371,5 +1382,5 @@ def sanitise_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, setting
     for k in dct_in.keys():
         if k not in settings_classes:
             raise ValueError(
-                f'Unrecognised master_calc_params entry "{k}": valid options are ' + '/'.join(settings_classes.keys()))
+                f'Unrecognized master_calc_params entry "{k}": valid options are ' + '/'.join(settings_classes.keys()))
     return dct_out

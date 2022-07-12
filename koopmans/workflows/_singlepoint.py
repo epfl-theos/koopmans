@@ -9,9 +9,10 @@ Converted to a workflow object Nov 2020
 
 import os
 from pathlib import Path
-from koopmans import utils
-from ._workflow import Workflow
 
+from koopmans import utils
+
+from ._workflow import Workflow
 
 load_results_from_output = True
 
@@ -21,7 +22,11 @@ class SinglepointWorkflow(Workflow):
     def _run(self) -> None:
 
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
-        from koopmans.workflows import KoopmansDFPTWorkflow, KoopmansDSCFWorkflow, DFTCPWorkflow
+        from koopmans.workflows import (
+            DFTCPWorkflow,
+            KoopmansDFPTWorkflow,
+            KoopmansDSCFWorkflow,
+        )
 
         if self.parameters.method == 'dfpt':
             workflow = KoopmansDFPTWorkflow(**self.wf_kwargs)

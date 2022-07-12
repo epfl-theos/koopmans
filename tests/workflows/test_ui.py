@@ -1,9 +1,10 @@
 import pytest
+
 from ase.spectrum.band_structure import BandStructure
 from koopmans import workflows
 from koopmans.io import read_kwf as read_encoded_json
-from koopmans.utils import chdir
 from koopmans.testing import benchmark_filename
+from koopmans.utils import chdir
 
 
 def test_ui_si(silicon, tmp_path, sys2file, datadir, ui_patch):

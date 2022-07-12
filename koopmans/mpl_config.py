@@ -3,8 +3,9 @@ Import this matplotlib config file prior to importing matplotlib.pyplot in order
 matplotlib backend
 """
 
-import matplotlib
 import os
+
+import matplotlib
 
 if 'DISPLAY' not in os.environ:
     matplotlib.use('Agg')

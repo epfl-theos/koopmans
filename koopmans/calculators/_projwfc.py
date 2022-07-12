@@ -4,20 +4,23 @@ projwfc.x calculator module for koopmans
 
 """
 
-import os
 import copy
-import numpy as np
-import re
+import os
 from pathlib import Path
-from typing import List, Dict, Optional
+import re
+from typing import Dict, List, Optional
+
+import numpy as np
+
 from ase import Atoms
 from ase.calculators.espresso import Projwfc
-from ase.spectrum.dosdata import GridDOSData
 from ase.spectrum.doscollection import GridDOSCollection
+from ase.spectrum.dosdata import GridDOSData
 from koopmans import pseudopotentials
 from koopmans.commands import Command, ParallelCommand
 from koopmans.settings import ProjwfcSettingsDict
-from ._utils import CalculatorExt, CalculatorABC, bin_directory
+
+from ._utils import CalculatorABC, CalculatorExt, bin_directory
 
 
 class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
@@ -29,7 +32,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         # Define the valid settings
         self.parameters = ProjwfcSettingsDict()
 
-        # Initialise first using the ASE parent and then CalculatorExt
+        # Initialize first using the ASE parent and then CalculatorExt
         Projwfc.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
 
@@ -38,17 +41,17 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
                 'ASE_PROJWFC_COMMAND', str(bin_directory) + os.path.sep + self.command))
 
         # We need pseudopotentials and pseudo dir in order to work out the number of valence electrons for each
-        # element, and therefore what pDOS files to expect. We also need spin-polarised to know if the pDOS files will
+        # element, and therefore what pDOS files to expect. We also need spin-polarized to know if the pDOS files will
         # contain columns for each spin channel
 
-        # These must be provided post-initialisation (because we want to be allowed to initialise the calculator)
+        # These must be provided post-initialization (because we want to be allowed to initialize the calculator)
         # without providing these arguments
         self.pseudopotentials: Optional[Dict[str, str]] = None
         self.pseudo_dir: Optional[Path] = None
-        self.spin_polarised: Optional[bool] = None
+        self.spin_polarized: Optional[bool] = None
 
     def calculate(self):
-        for attr in ['pseudopotentials', 'pseudo_dir', 'spin_polarised']:
+        for attr in ['pseudopotentials', 'pseudo_dir', 'spin_polarized']:
             if not hasattr(self, attr):
                 raise ValueError(f'Please set {self.__class__.__name__}.{attr} before calling '
                                  f'{self.__class__.__name__.calculate()}')
@@ -108,7 +111,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         orbital_order = {"s": ["s"], "p": ["pz", "px", "py"], "d": ["dz2", "dxz", "dyz", "dx2-y2", "dxy"]}
 
         spins: List[Optional[str]]
-        if self.spin_polarised:
+        if self.spin_polarized:
             spins = ["up", "down"]
         else:
             spins = [None]
@@ -123,7 +126,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         for weight, (label, spin) in zip(data[-len(orbitals):], orbitals):
             # Assemble all of the information about this particular pDOS
             info = {"symbol": symbol, "index": int(index), "n": expected_subshell[0], "l": subshell, "m": label}
-            if self.spin_polarised:
+            if self.spin_polarized:
                 info['spin'] = spin
 
             # Create and store the pDOS as a GridDOSData object

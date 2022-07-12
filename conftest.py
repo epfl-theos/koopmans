@@ -1,9 +1,11 @@
+from typing import Any, Dict
+
 import pytest
-from typing import Dict, Any
+
 from ase import Atoms
-from ase.build import molecule, bulk
+from ase.build import bulk, molecule
 from ase.spacegroup import crystal
-from koopmans import testing, base_directory
+from koopmans import base_directory, testing
 from koopmans.projections import ProjectionBlocks
 
 

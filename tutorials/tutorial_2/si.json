@@ -1,6 +1,6 @@
 {
     "workflow": {
-        "task": "wannierise",
+        "task": "wannierize",
         "functional": "ki",
         "base_functional": "lda",
         "periodic": true,

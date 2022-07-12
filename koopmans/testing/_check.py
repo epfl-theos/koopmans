@@ -1,17 +1,31 @@
 from abc import ABC, abstractmethod
 import itertools
 import json
-import numpy as np
 from pathlib import Path
-from typing import List, Optional, Any, Dict, Set
+from typing import Any, Dict, List, Optional, Set
+
+import numpy as np
+
+from ase.dft.dos import DOS
 from ase.spectrum.band_structure import BandStructure
 from ase.spectrum.doscollection import GridDOSCollection
-from ase.dft.dos import DOS
-from koopmans.calculators import Wannier90Calculator, PW2WannierCalculator, Wann2KCPCalculator, PWCalculator, \
-    KoopmansCPCalculator, EnvironCalculator, UnfoldAndInterpolateCalculator, Wann2KCCalculator, \
-    KoopmansScreenCalculator, KoopmansHamCalculator, ProjwfcCalculator, Calc
-from koopmans import utils, base_directory
+from koopmans import base_directory, utils
+from koopmans.calculators import (
+    Calc,
+    EnvironCalculator,
+    KoopmansCPCalculator,
+    KoopmansHamCalculator,
+    KoopmansScreenCalculator,
+    ProjwfcCalculator,
+    PW2WannierCalculator,
+    PWCalculator,
+    UnfoldAndInterpolateCalculator,
+    Wann2KCCalculator,
+    Wann2KCPCalculator,
+    Wannier90Calculator,
+)
 from koopmans.io import read_kwf as read_encoded_json
+
 from ._utils import benchmark_filename, metadata_filename
 
 # A hard and a soft tolerance for checking floats
@@ -25,7 +39,7 @@ tolerances = {'alphas': (2e-3, 2e-5),
 def compare(result: Any, ref_result: Any, result_name: str) -> Optional[Dict[str, str]]:
     # Compare the calculated result to the reference result
 
-    # Sanitise the input and fetch the corresponding tolerances
+    # Sanitize the input and fetch the corresponding tolerances
     if isinstance(result, BandStructure):
         result = result.energies
         ref_result = ref_result.energies
@@ -56,7 +70,7 @@ def compare(result: Any, ref_result: Any, result_name: str) -> Optional[Dict[str
         # then this reduces to testing relative error, whereas in the limit of small Delta it reduces to
         # testing absolute error. We use 0.1*max(ref_result) as a reference scale factor.
 
-        # Sanitise the input
+        # Sanitize the input
         if result.shape != ref_result.shape:
             return {'kind': 'error', 'message': f'Array shape mismatch between result and benchmark for {result_name}'}
         result = result.flatten()
@@ -248,7 +262,7 @@ class CheckWannier90Calculator(CheckCalc, Wannier90Calculator):
         if len(benchmark.results['centers']) == 0:
             return []
 
-        # Translate wannier centres to the unit cell
+        # Translate wannier centers to the unit cell
         centers = self.atoms.cell.scaled_positions(np.array(self.results['centers'])) % 1
         ref_centers = self.atoms.cell.scaled_positions(np.array(benchmark.results['centers'])) % 1
 

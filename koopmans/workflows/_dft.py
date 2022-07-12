@@ -6,12 +6,13 @@ Written by Edward Linscott Oct 2020
 
 """
 
+from pathlib import Path
 import shutil
 from typing import TypeVar
-from pathlib import Path
-from koopmans import utils, pseudopotentials, calculators
-from ._workflow import Workflow
 
+from koopmans import calculators, pseudopotentials, utils
+
+from ._workflow import Workflow
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
 
@@ -134,5 +135,5 @@ class PWBandStructureWorkflow(DFTWorkflow):
             assert isinstance(calc, calculators.ProjwfcCalculator)
             calc.parameters.filpdos = self.name
             calc.pseudopotentials = self.pseudopotentials
-            calc.spin_polarised = self.parameters.spin_polarised
+            calc.spin_polarized = self.parameters.spin_polarized
         return calc

@@ -8,14 +8,16 @@ Split into a separate module Sep 2021
 
 """
 
-import os
-import re
-import json
-from itertools import chain
-from pathlib import Path
 from dataclasses import dataclass
-from typing import Dict, Optional, List, Any
+from itertools import chain
+import json
+import os
+from pathlib import Path
+import re
+from typing import Any, Dict, List, Optional
+
 from upf_to_json import upf_to_json
+
 from ase import Atoms
 
 
@@ -56,7 +58,7 @@ for pseudo_file in chain(pseudos_directory.rglob('*.UPF'), pseudos_directory.rgl
         elif 'PAW' in original_library or original_library == 'Wentzcovitch':
             kind = 'projector-augmented wave'
         else:
-            raise ValueError(f'Unrecognised library {original_library}')
+            raise ValueError(f'Unrecognized library {original_library}')
         citations += ['Lehaeghere2016', 'Prandini2018']
         for key in ['cutoff_wfc', 'cutoff_rho']:
             kwargs[key] = metadata[key]

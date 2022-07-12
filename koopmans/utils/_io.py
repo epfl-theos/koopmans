@@ -9,14 +9,16 @@ Moved into utils Sep 2021
 
 from datetime import datetime
 import json
+from pathlib import Path
+from typing import List, Tuple, Union
+
 import numpy as np
 import numpy.typing as npt
-from typing import List, Union, Tuple
-from pathlib import Path
+
 from ase.atoms import Atoms
-from ase.dft.kpoints import bandpath, BandPath
-from ase.io.espresso import label_to_symbol, label_to_tag
 from ase.calculators.calculator import Calculator
+from ase.dft.kpoints import BandPath, bandpath
+from ase.io.espresso import label_to_symbol, label_to_tag
 
 
 def parse_dict(dct: dict) -> dict:
@@ -88,7 +90,7 @@ def read_kpoints_block(calc: Calculator, dct: dict):
         if k in ['gamma_only', 'kgrid', 'koffset', 'kpath', 'kpath_density']:
             calc.parameters[k] = v
         else:
-            raise KeyError(f'Unrecognised option "{k}" provided in the k_points block')
+            raise KeyError(f'Unrecognized option "{k}" provided in the k_points block')
     return
 
 
@@ -202,7 +204,7 @@ def read_wannier_hr_file(fname: Path) -> Tuple[np.ndarray, np.ndarray, List[int]
     elif 'xml version' in lines[0] or fname == 'hamiltonian_emp.dat':
         raise ValueError(f'The format of {fname} is no longer supported')
     else:
-        raise ValueError(f'The format of {fname} is not recognised')
+        raise ValueError(f'The format of {fname} is not recognized')
 
     # Read in the number of r-points and the number of Wannier functions
     nrpts = int(lines[2].split()[0])
@@ -271,33 +273,33 @@ def write_wannier_u_file(fname: Path, umat: npt.NDArray[np.complex_], kpts: npt.
         fd.write('\n'.join(flines))
 
 
-def read_wannier_centres_file(fname: Path):
+def read_wannier_centers_file(fname: Path):
 
     with open(fname, 'r') as fd:
         lines = fd.readlines()
 
-    centres = []
+    centers = []
     symbols = []
     positions = []
     for line in lines[2:]:
         if line.startswith('X    '):
-            centres.append([float(x) for x in line.split()[1:]])
+            centers.append([float(x) for x in line.split()[1:]])
         else:
             symbols.append(line.split()[0])
             positions.append([float(x) for x in line.split()[1:]])
-    return centres, Atoms(symbols=symbols, positions=positions)
+    return centers, Atoms(symbols=symbols, positions=positions)
 
 
-def write_wannier_centres_file(fname: Path, centres: List[List[float]], atoms: Atoms):
-    length = len(centres) + len(atoms)
+def write_wannier_centers_file(fname: Path, centers: List[List[float]], atoms: Atoms):
+    length = len(centers) + len(atoms)
 
     # Add the header
     flines = [f'{length:6d}',
-              f' Wannier centres, written by koopmans on {datetime.now().isoformat(timespec="seconds")}']
+              f' Wannier centers, written by koopmans on {datetime.now().isoformat(timespec="seconds")}']
 
-    # Add the centres
-    for centre in centres:
-        flines.append('X    ' + ''.join([f'{x:16.8f}' for x in centre]))
+    # Add the centers
+    for center in centers:
+        flines.append('X    ' + ''.join([f'{x:16.8f}' for x in center]))
 
     # Add the atoms
     for atom in atoms:

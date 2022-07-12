@@ -4,25 +4,28 @@ The calculator class defining the Unfolding & interpolating calculator
 
 """
 
-import os
 import copy
+from datetime import datetime
 import json
+import os
+from pathlib import Path
 from time import time
-from ase.geometry.cell import crystal_structure_from_cell
+from typing import List, Optional, Union
+
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
-from typing import Union, List, Optional
-from pathlib import Path
-from datetime import datetime
+
 from ase import Atoms
 from ase.calculators.calculator import Calculator
 from ase.dft.dos import DOS
+from ase.geometry.cell import crystal_structure_from_cell
 from ase.spectrum.band_structure import BandStructure
 from koopmans import utils
-from koopmans.settings import UnfoldAndInterpolateSettingsDict, PlotSettingsDict
-from .._utils import CalculatorExt, CalculatorABC, sanitise_filenames
-from ._utils import crys_to_cart, extract_hr, latt_vect
+from koopmans.settings import PlotSettingsDict, UnfoldAndInterpolateSettingsDict
+
+from .._utils import CalculatorABC, CalculatorExt, sanitize_filenames
 from ._atoms import UIAtoms
+from ._utils import crys_to_cart, extract_hr, latt_vect
 
 
 class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
@@ -34,7 +37,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
     def __init__(self, atoms: Atoms, *args, **kwargs):
         self.parameters = UnfoldAndInterpolateSettingsDict()
 
-        # Initialise first with the base ASE calculator, and then with the calculator extensions
+        # Initialize first with the base ASE calculator, and then with the calculator extensions
         Calculator.__init__(self, atoms=atoms, *args, **kwargs)
         CalculatorExt.__init__(self, *args, **kwargs)
 
@@ -61,12 +64,12 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
     @classmethod
     def fromfile(cls, filenames: Union[str, Path, List[str], List[Path]]) -> 'UnfoldAndInterpolateCalculator':
-        sanitised_filenames = sanitise_filenames(filenames, cls.ext_in, cls.ext_out)
+        sanitized_filenames = sanitize_filenames(filenames, cls.ext_in, cls.ext_out)
 
-        calc = super(UnfoldAndInterpolateCalculator, cls).fromfile(sanitised_filenames)
+        calc = super(UnfoldAndInterpolateCalculator, cls).fromfile(sanitized_filenames)
 
         # If we were reading generating this object from files, look for bands, too
-        if any([f.suffix == calc.ext_out for f in sanitised_filenames]):
+        if any([f.suffix == calc.ext_out for f in sanitized_filenames]):
             calc.read_bands()
 
         return calc
@@ -172,7 +175,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
     def get_eigenvalues(self, kpt=None, spin=0):
         if spin != 0:
             raise NotImplementedError(
-                f'Unfolding and interpolating calculator is not implemented for spin-polarised systems')
+                f'Unfolding and interpolating calculator is not implemented for spin-polarized systems')
 
         if 'band structure' not in self.results:
             raise ValueError('You must first calculate the band structure before you try to access the KS eigenvalues')

@@ -9,7 +9,7 @@
       <td><code>task</code></td>
       <td>Task to perform</td>
       <td><code>str</code></td>
-      <td><code>singlepoint</code> (must be <code>singlepoint</code>/<code>convergence</code>/<code>wannierise</code>/<code>environ_dscf</code>/<code>ui</code>/<code>dft_bands</code>)</td>
+      <td><code>singlepoint</code> (must be <code>singlepoint</code>/<code>convergence</code>/<code>wannierize</code>/<code>environ_dscf</code>/<code>ui</code>/<code>dft_bands</code>)</td>
    </tr>
    <tr>
       <td><code>functional</code></td>
@@ -55,7 +55,7 @@
    </tr>
    <tr>
       <td><code>frozen_orbitals</code></td>
-      <td>if True, freeze the variational orbitals for the duration of the calculation once they've been initialised</td>
+      <td>if True, freeze the variational orbitals for the duration of the calculation once they've been initialized</td>
       <td><code>bool</code></td>
       <td></td>
    </tr>
@@ -72,20 +72,20 @@
       <td></td>
    </tr>
    <tr>
-      <td><code>spin_polarised</code></td>
+      <td><code>spin_polarized</code></td>
       <td>if True, the system will be allowed to break spin symmetry i.e. n^{up}(r) != n^{down}(r)</td>
       <td><code>bool</code></td>
       <td><code>False</code></td>
    </tr>
    <tr>
       <td><code>fix_spin_contamination</code></td>
-      <td>if True, steps will be taken to try and avoid spin contamination. This is only sensible when performing a non-spin-polarised calculation, and is turned on by default for such calculations</td>
+      <td>if True, steps will be taken to try and avoid spin contamination. This is only sensible when performing a non-spin-polarized calculation, and is turned on by default for such calculations</td>
       <td><code>bool</code></td>
       <td></td>
    </tr>
    <tr>
       <td><code>npool</code></td>
-      <td>Number of pools for parallelising over kpoints (should be commensurate with the k-point grid)</td>
+      <td>Number of pools for parallelizing over kpoints (should be commensurate with the k-point grid)</td>
       <td><code>int</code></td>
       <td></td>
    </tr>
@@ -138,16 +138,16 @@
       <td><code>False</code></td>
    </tr>
    <tr>
-      <td><code>print_qc</code></td>
-      <td>if True, prints out strings for the purposes of quality control</td>
-      <td><code>bool</code></td>
-      <td><code>False</code></td>
-   </tr>
-   <tr>
       <td><code>from_scratch</code></td>
       <td>if True, will delete any preexisting workflow and start again; if False, will resume a workflow from where it was last up to</td>
       <td><code>bool</code></td>
-      <td><code>False</code></td>
+      <td><code>True</code></td>
+   </tr>
+   <tr>
+      <td><code>keep_tmpdirs</code></td>
+      <td>If False, delete all of the temporary directories at the end of the calculation</td>
+      <td><code>bool</code></td>
+      <td><code>True</code></td>
    </tr>
    <tr>
       <td><code>orbital_groups</code></td>
