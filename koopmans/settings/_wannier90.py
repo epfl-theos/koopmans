@@ -1,7 +1,10 @@
-import numpy as np
 from typing import Any
-from ase.io.wannier90 import construct_kpoint_path, proj_string_to_dict
+
+import numpy as np
+
 from ase.dft.kpoints import BandPath
+from ase.io.wannier90 import construct_kpoint_path, proj_string_to_dict
+
 from ._utils import SettingsDict
 
 
@@ -76,6 +79,6 @@ class Wannier90SettingsDict(SettingsDict):
                     assert isinstance(v, dict)
                     for k in v.keys():
                         if k not in ['site', 'csite', 'fsite', 'ang_mtm', 'zaxis', 'xaxis', 'radial', 'zona']:
-                            raise KeyError(f'Unrecognised key {k} in the w90 projections block')
+                            raise KeyError(f'Unrecognized key {k} in the w90 projections block')
                     value[i] = v
             return super().__setitem__(key, value)

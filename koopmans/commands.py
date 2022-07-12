@@ -31,7 +31,7 @@ class Command(object):
 
         # Accepts setting of public attributes as kwargs
         for k, v in kwargs.items():
-            assert hasattr(self, k), f'Unrecognised argument {k} provided to {self.__class__.__name__}'
+            assert hasattr(self, k), f'Unrecognized argument {k} provided to {self.__class__.__name__}'
             assert not k.startswith(
                 '_'), f'Do not attempt to set private variables via {self.__class__.__name__}.__init__()'
             setattr(self, k, v)

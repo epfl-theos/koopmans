@@ -4,6 +4,7 @@ Create a "stumbling" workflow that deliberately crashes the code after every sin
 
 import copy
 from traceback import format_stack
+
 from ase.calculators.calculator import CalculationFailed
 from koopmans import workflows
 

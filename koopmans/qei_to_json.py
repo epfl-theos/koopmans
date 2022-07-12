@@ -1,9 +1,10 @@
-from typing import Union, Dict, Any
 from pathlib import Path
+from typing import Any, Dict, Union
+
 from ase.dft.kpoints import BandPath
-from koopmans.io import write, read
-from koopmans.workflows import SinglepointWorkflow
+from koopmans.io import read, write
 from koopmans.settings import WorkflowSettingsDict
+from koopmans.workflows import SinglepointWorkflow
 
 
 def qei_to_json(input_file: Union[str, Path], json: Union[str, Path],
@@ -21,7 +22,7 @@ def qei_to_json(input_file: Union[str, Path], json: Union[str, Path],
 
     '''
 
-    # Sanitising input variables
+    # Sanitizing input variables
     input_file = Path(input_file)
     json = Path(json)
     if not isinstance(workflow_settings, WorkflowSettingsDict):
@@ -33,7 +34,7 @@ def qei_to_json(input_file: Union[str, Path], json: Union[str, Path],
     elif input_file.suffix == '.pwi':
         key = 'pw'
     else:
-        raise ValueError('Unrecognised input file format: must be either .cpi or .pwi')
+        raise ValueError('Unrecognized input file format: must be either .cpi or .pwi')
 
     calc = read(input_file)
     calc.atoms.calc = None

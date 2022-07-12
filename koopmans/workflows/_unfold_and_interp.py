@@ -9,12 +9,15 @@ Originally written by Riccardo De Gennaro as the standalone 'unfolding and inter
 Integrated within koopmans by Edward Linscott Jan 2021
 """
 
-import numpy as np
 from pathlib import Path
 from typing import Optional
-from ._workflow import Workflow
-from koopmans import calculators, utils
+
+import numpy as np
+
 from ase.spectrum.band_structure import BandStructure
+from koopmans import calculators, utils
+
+from ._workflow import Workflow
 
 
 class UnfoldAndInterpolateWorkflow(Workflow):
@@ -57,7 +60,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             self.run_subworkflow(wannier_workflow, from_scratch=self._redo_smooth_dft)
 
         calc: calculators.UnfoldAndInterpolateCalculator
-        if self.parameters.spin_polarised:
+        if self.parameters.spin_polarized:
             spins = ['up', 'down']
         else:
             spins = [None]
@@ -78,7 +81,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         calc = self.new_ui_calculator('merge')
 
         # Merge the bands
-        if self.parameters.spin_polarised:
+        if self.parameters.spin_polarized:
             energies = [[c.results['band structure'].energies for c in subset]
                         for subset in [self.calculations[-4:-2], self.calculations[-2:]]]
             reference = np.max([e[0] for e in energies])
@@ -144,7 +147,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                     kwargs['dft_ham_file'] = Path(f'../init/wannier/{calc_presets}/wann_hr.dat').resolve()
             else:
                 # DFPT case
-                if self.parameters.spin_polarised:
+                if self.parameters.spin_polarized:
                     raise NotImplementedError()
                 kwargs['kc_ham_file'] = Path(f'../hamiltonian/kc.kcw_hr_{calc_presets}.dat').resolve()
                 kwargs['w90_seedname'] = Path(f'../wannier/{calc_presets}/wann').resolve()
@@ -165,6 +168,10 @@ class SingleUnfoldAndInterpolateWorkflow(Workflow):
     This exists to make it possible for .uii (i.e. Unfold and Interpolate input) files to be run using the koopmans
     command
     '''
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.parameters.calculate_alpha = False
 
     def _run(self):
         '''

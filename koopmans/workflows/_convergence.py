@@ -8,11 +8,14 @@ Converted to a workflow object Nov 2020
 """
 
 import copy
-import numpy as np
 import itertools
-from typing import Union, List
 from pathlib import Path
+from typing import List, Union
+
+import numpy as np
+
 from koopmans import utils
+
 from ._workflow import Workflow
 
 
@@ -27,7 +30,7 @@ class ConvergenceWorkflow(Workflow):
             kcp_master_params = self.master_calc_params['kcp']
         else:
             raise NotImplementedError(
-                'Convergence.run() has not been generalised beyond kcp.x')
+                'Convergence.run() has not been generalized beyond kcp.x')
 
         increments = {'cell_size': 0.1, 'ecutwfc': 10, 'nbnd': 1}
 

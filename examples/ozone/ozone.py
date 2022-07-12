@@ -4,10 +4,11 @@ Script for running the ozone example
 Written by Edward Linscott, Jun 2021
 '''
 
-import numpy as np
-import koopmans.mpl_config
 import matplotlib.pyplot as plt
-from koopmans import utils, io
+import numpy as np
+
+from koopmans import io, utils
+import koopmans.mpl_config
 
 
 def run(from_scratch=False):

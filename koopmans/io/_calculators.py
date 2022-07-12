@@ -1,9 +1,20 @@
 from glob import glob
-from typing import Union, List, Type
 from pathlib import Path
-from koopmans.calculators import KoopmansCPCalculator, PWCalculator, Wannier90Calculator, \
-    PW2WannierCalculator, Wann2KCPCalculator, UnfoldAndInterpolateCalculator, Wann2KCCalculator, \
-    KoopmansScreenCalculator, KoopmansHamCalculator, Calc, CalcType
+from typing import List, Type, Union
+
+from koopmans.calculators import (
+    Calc,
+    CalcType,
+    KoopmansCPCalculator,
+    KoopmansHamCalculator,
+    KoopmansScreenCalculator,
+    PW2WannierCalculator,
+    PWCalculator,
+    UnfoldAndInterpolateCalculator,
+    Wann2KCCalculator,
+    Wann2KCPCalculator,
+    Wannier90Calculator,
+)
 
 
 def read_calculator(filenames: Union[Path, List[Path]]) -> Calc:

@@ -6,11 +6,13 @@ Written by Edward Linscott May 2020
 
 '''
 
-import os
-import numpy as np
-from pathlib import Path
 from collections import UserDict
-from typing import Union, Type, Tuple, NamedTuple, Dict, Any, Optional, List
+import os
+from pathlib import Path
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Type, Union
+
+import numpy as np
+
 from koopmans.utils import units
 
 

@@ -7,11 +7,14 @@ Written by Edward Linscott Feb 2021
 """
 
 import os
-import numpy as np
 from pathlib import Path
-from koopmans.bands import Bands
-from koopmans.calculators import Wann2KCCalculator, KoopmansHamCalculator
+
+import numpy as np
+
 from koopmans import utils
+from koopmans.bands import Bands
+from koopmans.calculators import KoopmansHamCalculator, Wann2KCCalculator
+
 from ._workflow import Workflow
 
 
@@ -21,9 +24,9 @@ class KoopmansDFPTWorkflow(Workflow):
         super().__init__(*args, **kwargs)
 
         # Check the consistency of keywords
-        if self.parameters.spin_polarised:
+        if self.parameters.spin_polarized:
             raise NotImplementedError(
-                'Calculating screening parameters with DFPT is not yet possible for spin-polarised systems')
+                'Calculating screening parameters with DFPT is not yet possible for spin-polarized systems')
         if self.parameters.functional != 'ki':
             raise NotImplementedError(
                 'Calculating screening parameters with DFPT is not yet possible with functionals other than KI')
@@ -85,7 +88,7 @@ class KoopmansDFPTWorkflow(Workflow):
                 if os.path.isdir(directory):
                     utils.system_call(f'rm -r {directory}')
 
-        # Initialise the bands
+        # Initialize the bands
         if self.parameters.periodic:
             nocc = self.projections.num_wann(occ=True)
             nemp = self.projections.num_wann(occ=False)
@@ -111,7 +114,7 @@ class KoopmansDFPTWorkflow(Workflow):
         from koopmans.workflows import DFTPWWorkflow, WannierizeWorkflow
 
         if self.parameters.periodic:
-            # Run PW and Wannierisation
+            # Run PW and Wannierization
             for key in self.master_calc_params.keys():
                 if key.startswith('w90'):
                     self.master_calc_params[key].write_u_matrices = True
@@ -121,7 +124,7 @@ class KoopmansDFPTWorkflow(Workflow):
 
         else:
             # Run PW
-            self.print('Initialisation of density and variational orbitals', style='heading')
+            self.print('Initialization of density and variational orbitals', style='heading')
 
             # Create the workflow
             pw_workflow = DFTPWWorkflow(**self.wf_kwargs)
@@ -279,7 +282,7 @@ class KoopmansDFPTWorkflow(Workflow):
         # Create this (possibly nested) directory
         calc.directory.mkdir(parents=True, exist_ok=True)
 
-        # Provide the rotation matrices and the wannier centres
+        # Provide the rotation matrices and the wannier centers
         if self.parameters.periodic:
             utils.symlink(f'wannier/occ/wann_u.mat', f'{calc.directory}/', exist_ok=True)
             utils.symlink(f'wannier/emp/wann_u.mat', f'{calc.directory}/wann_emp_u.mat', exist_ok=True)

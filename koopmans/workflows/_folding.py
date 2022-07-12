@@ -8,10 +8,12 @@ Written by Edward Linscott Feb 2021
 """
 
 import os
-import numpy as np
 from pathlib import Path
-from koopmans import utils
-from koopmans import calculators
+
+import numpy as np
+
+from koopmans import calculators, utils
+
 from ._workflow import Workflow
 
 
@@ -28,7 +30,7 @@ class FoldToSupercellWorkflow(Workflow):
         self.print('Folding to supercell', style='subheading')
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-            # Loop over the various subblocks that we have wannierised separately
+            # Loop over the various subblocks that we have wannierized separately
             for block in self.projections:
                 # Create the calculator
                 calc_w2k = self.new_calculator('wann2kcp', spin_component=block.spin, wan_mode='wannier2kcp',
@@ -46,7 +48,7 @@ class FoldToSupercellWorkflow(Workflow):
                 # Run the calculator
                 self.run_calculator(calc_w2k)
 
-            if self.parameters.spin_polarised:
+            if self.parameters.spin_polarized:
                 spins = ['up', 'down']
             else:
                 spins = [None, None]
@@ -59,7 +61,7 @@ class FoldToSupercellWorkflow(Workflow):
                     if len(subset) > 1:
                         output_directory = Path(subset[0].merge_directory)
                         output_directory.mkdir(exist_ok=True)
-                        if self.parameters.spin_polarised:
+                        if self.parameters.spin_polarized:
                             evc_fname = f'evcw.dat'
                         else:
                             evc_fname = f'evcw{evc_index}.dat'

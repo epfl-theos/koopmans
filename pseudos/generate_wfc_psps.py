@@ -6,6 +6,7 @@ Written by Edward Linscott, March 2022
 from glob import glob
 from pathlib import Path
 import subprocess
+
 from koopmans.pseudopotentials import read_pseudo_file
 
 for fname in Path().rglob('*.upf'):

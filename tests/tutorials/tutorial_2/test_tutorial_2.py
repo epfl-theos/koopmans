@@ -1,16 +1,16 @@
 import pytest
+
+from koopmans import base_directory
 from koopmans.io import read
 from koopmans.utils import chdir
-from koopmans import base_directory
-
 
 tutorial_dir = base_directory / 'tutorials' / 'tutorial_2'
 
 
 @pytest.mark.tutorials
-def test_wannierise(tutorial_patch):
+def test_wannierize(tutorial_patch):
     with chdir(tutorial_dir):
-        exec(open('wannierise.py', 'r').read())
+        exec(open('wannierize.py', 'r').read())
 
 
 @pytest.mark.tutorials

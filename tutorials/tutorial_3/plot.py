@@ -1,7 +1,9 @@
-from koopmans import io
 import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+
+from koopmans import io
+
+matplotlib.use('Agg')  # nopep8
+import matplotlib.pyplot as plt  # nopep8
 
 if __name__ == '__main__':
 

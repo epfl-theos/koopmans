@@ -19,40 +19,43 @@ Sep 2021: Reshuffled files to make imports cleaner
 """
 
 from __future__ import annotations
+
+from abc import ABC, abstractmethod, abstractproperty
 import copy
+from pathlib import Path
+from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
+
 import numpy as np
 from numpy import typing as npt
-from typing import Union, Optional, List, TypeVar, Generic, Type, Dict, Any
-from pathlib import Path
-from abc import ABC, abstractmethod, abstractproperty
+
 from ase import Atoms
-import ase.io as ase_io
 from ase.calculators.calculator import CalculationFailed
 from ase.dft.kpoints import BandPath
+import ase.io as ase_io
 from ase.spectrum.band_structure import BandStructure
-from koopmans import utils, settings
+from koopmans import settings, utils
 
 # Directories of the various QE calculators
 bin_directory = Path(__file__).parents[2] / 'bin'
 
 
-def sanitise_filenames(filenames: Union[str, Path, List[str], List[Path]], ext_in: str, ext_out: str) -> List[Path]:
-    # Generic function for sanitising the input of CalculatorExt.fromfile()
+def sanitize_filenames(filenames: Union[str, Path, List[str], List[Path]], ext_in: str, ext_out: str) -> List[Path]:
+    # Generic function for sanitizing the input of CalculatorExt.fromfile()
     if isinstance(filenames, List):
-        sanitised_filenames = [Path(f) for f in filenames]
+        sanitized_filenames = [Path(f) for f in filenames]
     else:
         if isinstance(filenames, str):
             filenames = Path(filenames)
         # If the input is a single string...
         if filenames.suffix in [ext_in, ext_out]:
             # ... and it has a valid suffix, convert it to a list and proceed
-            sanitised_filenames = [filenames]
+            sanitized_filenames = [filenames]
         elif filenames.suffix == '':
             # ... and it has no suffix, automatically add the expected suffixes for both the input and output files
-            sanitised_filenames = [filenames.with_suffix(ext_in), filenames.with_suffix(ext_out)]
+            sanitized_filenames = [filenames.with_suffix(ext_in), filenames.with_suffix(ext_out)]
         else:
-            raise ValueError(f'Unrecognised file format {filenames.suffix}')
-    return sanitised_filenames
+            raise ValueError(f'Unrecognized file format {filenames.suffix}')
+    return sanitized_filenames
 
 
 TCalc = TypeVar('TCalc', bound='CalculatorExt')
@@ -73,7 +76,7 @@ class CalculatorExt():
     ext_out: str = ''
 
     def __init__(self, skip_qc=False, **kwargs):
-        # Handle any recognised QE keywords passed as arguments
+        # Handle any recognized QE keywords passed as arguments
         self.parameters.update(**kwargs)
 
         # Some calculations we don't want to check their results for when performing tests; for such calculations, set
@@ -255,17 +258,17 @@ class CalculatorABC(ABC, Generic[TCalc]):
 
     @classmethod
     def fromfile(cls, filenames: Union[str, Path, List[str], List[Path]]):
-        sanitised_filenames = sanitise_filenames(filenames, cls.ext_in, cls.ext_out)
+        sanitized_filenames = sanitize_filenames(filenames, cls.ext_in, cls.ext_out)
 
-        # Initialise a new calc object
+        # Initialize a new calc object
         calc = cls(atoms=Atoms())
 
         # Read qe input file
-        for filename in [f for f in sanitised_filenames if f.suffix == cls.ext_in]:
+        for filename in [f for f in sanitized_filenames if f.suffix == cls.ext_in]:
             calc.read_input(input_file=filename)
 
         # Read qe output file
-        for filename in [f for f in sanitised_filenames if f.suffix == cls.ext_out]:
+        for filename in [f for f in sanitized_filenames if f.suffix == cls.ext_out]:
             calc.directory = filename.parent
             calc.prefix = filename.stem
             try:
@@ -275,8 +278,8 @@ class CalculatorABC(ABC, Generic[TCalc]):
                 pass
 
         # Update calc.directory and calc.parameters.prefix
-        calc.directory = sanitised_filenames[0].parent
-        calc.prefix = sanitised_filenames[0].stem
+        calc.directory = sanitized_filenames[0].parent
+        calc.prefix = sanitized_filenames[0].stem
 
         # Return the new calc object
         return calc

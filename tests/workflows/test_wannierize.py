@@ -1,9 +1,11 @@
-import pytest
-import numpy as np
 from pathlib import Path
-from koopmans.utils import chdir, read_wannier_hr_file
-from koopmans.io import write
+
+import numpy as np
+import pytest
+
 from koopmans import workflows
+from koopmans.io import write
+from koopmans.utils import chdir, read_wannier_hr_file
 
 
 def test_wannierize_tio2(tio2, tmp_path, sys2file, workflow_patch):

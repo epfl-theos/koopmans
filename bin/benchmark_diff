@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 import argparse
 from pathlib import Path
-from ase.spectrum.band_structure import BandStructure
-from koopmans.utils import system_call
-from koopmans.testing import compare
+
+# isort: off
 from koopmans import mpl_config
 import matplotlib.pyplot as plt
+# isort: on
+
+from ase.spectrum.band_structure import BandStructure
+from koopmans.testing import compare
+from koopmans.utils import system_call
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Detect how a benchmark file has changed')

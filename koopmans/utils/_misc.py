@@ -7,10 +7,12 @@ Written by Edward Linscott May 2020
 '''
 
 
-from typing import List, Union, Generator, Iterable, Any, Dict, Optional
+from typing import Any, Dict, Generator, Iterable, List, Optional, Union
+
 import numpy as np
+
 from ase.cell import Cell
-from ase.dft.kpoints import BandPath, resolve_kpt_path_string, kpoint_convert
+from ase.dft.kpoints import BandPath, kpoint_convert, resolve_kpt_path_string
 
 
 def flatten(l: Union[List[Any], Iterable[Any]]) -> Generator[Any, None, None]:
