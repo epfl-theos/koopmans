@@ -14,8 +14,9 @@ import json
 import os
 from pathlib import Path
 import re
-from typing import Dict, List, Optional
-import xml.etree.ElementTree as ET
+from typing import Any, Dict, List, Optional
+
+from upf_to_json import upf_to_json
 
 from ase import Atoms
 
@@ -76,7 +77,8 @@ for pseudo_file in chain(pseudos_directory.rglob('*.UPF'), pseudos_directory.rgl
     elif original_library.startswith('pseudo_dojo'):
         citations.append('Hamann2013')
 
-    pseudo_database.append(Pseudopotential(name, element, pseudo_file.parent, functional, library, kind, citations))
+    pseudo_database.append(Pseudopotential(name, element, pseudo_file.parent,
+                           functional, library, kind, citations, **kwargs))
 
 
 def pseudos_library_directory(pseudo_library: str, base_functional: str) -> Path:
@@ -94,16 +96,16 @@ def fetch_pseudo(**kwargs):
         return matches[0]
 
 
-def read_pseudo_file(fd):
+def read_pseudo_file(filename: Path) -> Dict[str, Any]:
     '''
 
-    Reads in settings from a .upf file using XML parser
+    Reads in settings from a .upf file
 
     '''
 
-    upf = ET.parse(fd).getroot()
+    upf = upf_to_json(open(filename, 'r').read(), filename.name)
 
-    return upf
+    return upf['pseudo_potential']
 
 
 def valence_from_pseudo(filename: str, pseudo_dir: Optional[Path] = None) -> int:
@@ -120,7 +122,7 @@ def valence_from_pseudo(filename: str, pseudo_dir: Optional[Path] = None) -> int
     elif isinstance(pseudo_dir, str):
         pseudo_dir = Path(pseudo_dir)
 
-    return int(float(read_pseudo_file(pseudo_dir / filename).find('PP_HEADER').get('z_valence')))
+    return int(read_pseudo_file(pseudo_dir / filename)['header']['z_valence'])
 
 
 def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str],
@@ -138,3 +140,34 @@ def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str],
 
     valences = [valences_dct[l] for l in labels]
     return sum(valences)
+
+
+def expected_subshells(atoms: Atoms, pseudopotentials: Dict[str, str],
+                       pseudo_dir: Optional[Path] = None) -> Dict[str, List[str]]:
+    """
+    Determine which subshells will make up the valences of a set of pseudopotentials.
+
+    Returns
+    -------
+    Dict[str, List[str]]
+        a dict mapping element names to a corresponding list of suborbitals that *might* be in the pseudopotential
+        valence (depending on how many bands are included)
+
+    """
+
+    z_core_to_first_orbital = {0: '1s', 2: '2s', 4: '2p', 10: '3s', 12: '3p', 18: '3d', 28: '4s', 30: '4p',
+                               36: '4d', 46: '4f', 60: '5s', 62: '5p', 68: '6s'}
+
+    expected_orbitals = {}
+    for atom in atoms:
+        if atom.symbol in expected_orbitals:
+            continue
+        pseudo_file = pseudopotentials[atom.symbol]
+        z_core = atom.number - valence_from_pseudo(pseudo_file, pseudo_dir)
+        if z_core in z_core_to_first_orbital:
+            first_orbital = z_core_to_first_orbital[z_core]
+        else:
+            raise ValueError(f'Failed to identify the subshells of the valence of {pseudo_file}')
+        all_orbitals = list(z_core_to_first_orbital.values()) + ['5d', '6p', '6d']
+        expected_orbitals[atom.symbol] = sorted(all_orbitals[all_orbitals.index(first_orbital):])
+    return expected_orbitals
