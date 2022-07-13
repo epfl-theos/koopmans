@@ -55,9 +55,9 @@ class MLFiitingWorkflow(Workflow):
         Runs the MLFitting-workflow.
 
         It consists of three steps:
-        1) Converting the binary files containing real space densities to xml-files. 
+        1) Converting the binary files containing real space densities to xml-files.
         2) Reading the real space densities from the xml-files and calculating the decomposition into spherical harmonics and radial basis functions.
-        3) Computing the power spectra of the resulting coefficient vectors. 
+        3) Computing the power spectra of the resulting coefficient vectors.
         """
 
         # Specify for which bands we want to compute the decomposition
@@ -85,16 +85,17 @@ class MLFiitingWorkflow(Workflow):
 
     def convert_bin2xml(self):
         """
-        Converts the binary files produced by a previous calculation to python-readable xml-files. 
+        Converts the binary files produced by a previous calculation to python-readable xml-files.
         """
 
         # import ipdb
         # ipdb.set_trace()
         # np.savetxt(, np.array([9, 4, 5], dtype=np.int8))
-
-        test = np.array([9, 4, 5])
-        with open(self.dirs['xml'] / 'bands_to_solve.txt', "wb") as f:
-            np.savetxt(f, test.astype(int), fmt='%i', delimiter="\n")
+        with open(self.dirs['xml'] / 'bands_to_solve.txt', "w") as f:
+            f.write(f"{len(self.bands_to_extract)}\n")
+            for i in range(len(self.bands_to_extract)):
+                print(self.bands_to_extract[i].index)
+                f.write(f"{self.bands_to_extract[i].index}\n")
 
         if self.method_to_extract_from_binary == 'from_ki':
             orbital_densities_bin_dir = self.calc_that_produced_orbital_densities.parameters.outdir / \
@@ -117,7 +118,7 @@ class MLFiitingWorkflow(Workflow):
 
     def check_if_bin2xml_is_complete(self) -> bool:
         """
-        Checks if the compuation  bin2xml was already performed. 
+        Checks if the compuation  bin2xml was already performed.
         """
 
         # If there are as many xml-files as there are bands to solve, the calculation was already completed
@@ -128,7 +129,7 @@ class MLFiitingWorkflow(Workflow):
 
     def compute_decomposition(self):
         """
-        Performs the decomposition into radial basis functions and spherical harmonics. 
+        Performs the decomposition into radial basis functions and spherical harmonics.
         """
 
         calculation_title = 'computation of decomposition of real-space-density'
@@ -151,9 +152,9 @@ class MLFiitingWorkflow(Workflow):
                 calc_presets_occ = 'occ'
                 calc_presets_emp = 'emp'
                 centers_occ = np.array([center for c in w90_calcs for center in c.results['centers']
-                                       if calc_presets_occ in c.directory.name])
+                                        if calc_presets_occ in c.directory.name])
                 centers_emp = np.array([center for c in w90_calcs for center in c.results['centers']
-                                       if calc_presets_emp in c.directory.name])
+                                        if calc_presets_emp in c.directory.name])
                 centers = np.concatenate([centers_occ, centers_emp])
 
             else:

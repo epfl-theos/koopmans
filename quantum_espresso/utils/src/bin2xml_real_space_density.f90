@@ -47,14 +47,14 @@ program bin2xml_real_space_density
     read(nbsp_emp_char,'(i)') nbsp_emp
     read(nspin_char,'(i)')    nspin
     
-    num_bands = 7
+
+    open(unit=1, file=TRIM(dest_dir)//'/bands_to_solve.txt', status='old', action='read')
+    read(1, *) num_bands
     allocate(bands(num_bands))
     write(*,*) "Beginn read"
-    open(unit=1, file=TRIM(dest_dir)//'/bands_to_solve.txt', status='old')
+    
     do i=1,num_bands
-        write(*,*) "here"
-        read(*) bands(i)
-        write(*,*) "adter"
+        read(1, *) bands(i)
     enddo
     CLOSE (UNIT=1)
     write(*,*) "Beginn write"
