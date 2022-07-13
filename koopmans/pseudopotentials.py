@@ -85,7 +85,7 @@ def pseudos_library_directory(pseudo_library: str, base_functional: str) -> Path
     return pseudos_directory / pseudo_library / base_functional
 
 
-def fetch_pseudo(**kwargs) -> Pseudopotential:
+def fetch_pseudo(**kwargs: Any) -> Pseudopotential:
     matches = [psp for psp in pseudo_database if all([getattr(psp, k) == v for k, v in kwargs.items()])]
     request_str = ', '.join([f'{k} = {v}' for k, v in kwargs.items()])
     if len(matches) == 0:

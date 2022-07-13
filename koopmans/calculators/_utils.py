@@ -71,11 +71,11 @@ class CalculatorExt():
     '''
 
     prefix: str = ''
-    results: dict
+    results: Dict[str, Any]
     ext_in: str = ''
     ext_out: str = ''
 
-    def __init__(self, skip_qc=False, **kwargs):
+    def __init__(self, skip_qc: bool = False, **kwargs: Any):
         # Handle any recognized QE keywords passed as arguments
         self.parameters.update(**kwargs)
 
@@ -195,7 +195,7 @@ class CalculatorExt():
         return dct
 
     @classmethod
-    def fromdict(cls: Type[TCalc], dct: dict) -> TCalc:
+    def fromdict(cls: Type[TCalc], dct: Any) -> TCalc:
         calc = cls(dct.pop('atoms'))
         for k, v in dct.items():
             setattr(calc, k.lstrip('_'), v)
@@ -248,12 +248,12 @@ class CalculatorABC(ABC, Generic[TCalc]):
                                     'output file for more details')
 
     @abstractmethod
-    def todict(self) -> dict:
+    def todict(self) -> Dict[str, Any]:
         ...
 
     @classmethod
     @abstractmethod
-    def fromdict(cls: Type[TCalcABC], dct: dict) -> TCalc:
+    def fromdict(cls: Type[TCalcABC], dct: Dict[str, Any]) -> TCalc:
         ...
 
     @classmethod
@@ -317,7 +317,7 @@ class ReturnsBandStructure(ABC):
 
 class KCWannCalculator(CalculatorExt):
     # Parent class for KCWHam, KCWScreen and Wann2KCW calculators
-    def is_complete(self):
+    def is_complete(self) -> bool:
         return self.results.get('job_done', False)
 
     @property

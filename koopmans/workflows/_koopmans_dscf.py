@@ -103,6 +103,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 # Expanding self.parameters.orbital_groups to account for the supercell, grouping equivalent wannier
                 # functions together
                 for i_spin, nelec in enumerate(nelecs):
+                    assert self.kgrid is not None
                     self.parameters.orbital_groups[i_spin] = [i for _ in range(np.prod(self.kgrid))
                                                               for i in self.parameters.orbital_groups[i_spin][:nelec]] \
                         + [i for _ in range(np.prod(self.kgrid)) for i in
@@ -262,9 +263,9 @@ class KoopmansDSCFWorkflow(Workflow):
                 # Calculate interpolated band structure and DOS with UI
                 from koopmans import workflows
                 self.print(f'\nPostprocessing', style='heading')
-                ui_workflow = workflows.UnfoldAndInterpolateWorkflow(
-                    redo_smooth_dft=self._redo_smooth_dft, **self.wf_kwargs)
-                self.run_subworkflow(ui_workflow, subdirectory='postproc')
+                ui_workflow = workflows.UnfoldAndInterpolateWorkflow.fromparent(
+                    self, redo_smooth_dft=self._redo_smooth_dft)
+                ui_workflow.run(subdirectory='postproc')
             else:
                 # Generate the DOS only
                 dos = DOS(self.calculations[-1], width=self.plot_params.degauss, npts=self.plot_params.nstep + 1)
@@ -321,18 +322,18 @@ class KoopmansDSCFWorkflow(Workflow):
         elif self.parameters.init_orbitals in ['mlwfs', 'projwfs'] or \
                 (self.parameters.periodic and self.parameters.init_orbitals == 'kohn-sham'):
             # Wannier functions using pw.x, wannier90.x and pw2wannier90.x (pw.x only for Kohn-Sham states)
-            wannier_workflow = workflows.WannierizeWorkflow(**self.wf_kwargs)
+            wannier_workflow = workflows.WannierizeWorkflow.fromparent(self)
             if wannier_workflow.parameters.calculate_bands:
                 wannier_workflow.parameters.calculate_bands = not self.master_calc_params['ui'].do_smooth_interpolation
 
             # Perform the wannierization workflow within the init directory
-            self.run_subworkflow(wannier_workflow, subdirectory='init')
+            wannier_workflow.run(subdirectory='init')
 
             # Now, convert the files over from w90 format to (k)cp format
-            fold_workflow = workflows.FoldToSupercellWorkflow(**self.wf_kwargs)
+            fold_workflow = workflows.FoldToSupercellWorkflow.fromparent(self)
 
             # Do this in the same directory as the wannierization
-            self.run_subworkflow(fold_workflow, subdirectory='init/wannier')
+            fold_workflow.run(subdirectory='init/wannier')
 
             # Convert self.atoms to the supercell
             self.primitive_to_supercell()

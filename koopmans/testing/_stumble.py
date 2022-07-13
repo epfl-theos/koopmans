@@ -2,8 +2,12 @@
 Create a "stumbling" workflow that deliberately crashes the code after every single calculation and attempts to restart (for testing purposes)
 '''
 
+from __future__ import annotations
+
+from contextlib import contextmanager
 import copy
-from traceback import format_stack
+from pathlib import Path
+from typing import Generator, Optional, Union
 
 from ase.calculators.calculator import CalculationFailed
 from koopmans import workflows
@@ -25,11 +29,11 @@ class StumblingWorkflow:
         self.calc_counter = 1
 
     @property
-    def calc_counter(self):
+    def calc_counter(self) -> int:
         return self._calc_counter
 
     @calc_counter.setter
-    def calc_counter(self, value):
+    def calc_counter(self, value: int):
         self._calc_counter = value
 
     def run_calculator_single(self, *args, **kwargs):
@@ -40,7 +44,7 @@ class StumblingWorkflow:
             super().run_calculator_single(*args, **kwargs)
 
     def _run(self, *args, **kwargs):
-        if not self._is_a_subworkflow:
+        if self.parent is None:
             # Create a copy of the state of the workflow before we start running it
             dct_before_running = {k: copy.deepcopy(v) for k, v in self.__dict__.items() if k not in
                                   ['calc_counter']}
@@ -62,14 +66,9 @@ class StumblingWorkflow:
                 self._run(*args, **kwargs)
         else:
             # Prevent subworkflows from catching stumbles
+            self.calc_counter = self.parent.calc_counter
             super()._run(*args, **kwargs)
-
-    def run_subworkflow(self, workflow, *args, **kwargs):
-        assert isinstance(workflow, StumblingWorkflow), \
-            'The subworkflow is not a Stumbling workflow; the monkeypatching must have failed'
-        workflow.calc_counter = self.calc_counter
-        super().run_subworkflow(workflow, *args, **kwargs)
-        self.calc_counter = workflow.calc_counter
+            self.parent.calc_counter = self.calc_counter
 
 
 class StumblingSinglepointWorkflow(StumblingWorkflow, workflows.SinglepointWorkflow):

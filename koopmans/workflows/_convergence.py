@@ -94,18 +94,17 @@ class ConvergenceWorkflow(Workflow):
 
                 # For each parameter we're converging wrt...
                 header = ''
-                subdir = ''
+                subdir = Path()
                 for index, param, values in zip(indices, param_dict.keys(), param_dict.values()):
                     value = values[index]
-                    if isinstance(value, int):
+                    if isinstance(value, float):
+                        value_str = f'{value:.1f}'
+                    else:
                         value_str = str(value)
-                    elif isinstance(value, float):
-                        value_str = '{:.1f}'.format(value)
                     header += f'{param} = {value_str}, '
 
                     # Create new working directory
-                    subdir += f'{param}_{value_str}/'.replace(
-                        ' ', '_').replace('.', 'd')
+                    subdir /= f'{param}_{value_str}'.replace(' ', '_').replace('.', 'd')
 
                     if param == 'cell_size':
                         atoms.cell *= value
@@ -128,11 +127,10 @@ class ConvergenceWorkflow(Workflow):
                 self.print(header.rstrip(', '), style='subheading')
 
                 # Perform calculation
-                wf_kwargs = self.wf_kwargs
-                wf_kwargs['atoms'] = atoms
-                wf_kwargs['master_calc_params']['kcp'] = kcp_params
-                singlepoint = workflows.SinglepointWorkflow(**wf_kwargs)
-                self.run_subworkflow(singlepoint, subdirectory=subdir)
+                singlepoint = workflows.SinglepointWorkflow.fromparent(self)
+                singlepoint.atoms = atoms
+                singlepoint.master_calc_params['kcp'] = kcp_params
+                singlepoint.run(subdirectory=subdir)
                 solved_calc = singlepoint.calculations[-1]
 
                 # Store the result

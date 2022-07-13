@@ -10,6 +10,7 @@ Converted workflows from functions to objects Nov 2020
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 import copy
 from functools import reduce
 import json as json_ext
@@ -19,7 +20,7 @@ from pathlib import Path
 import shutil
 import subprocess
 from types import ModuleType
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+from typing import Any, Dict, Generator, List, Optional, Type, TypeVar, Union
 
 import numpy as np
 from numpy import typing as npt
@@ -81,13 +82,13 @@ class Workflow(ABC):
         True if performing a calculation at the gamma-point only
 
     kgrid : List[int]
-        A list of three integers specifying the shape of the regular grid of k-points
+        a list of three integers specifying the shape of the regular grid of k-points
 
     koffset : List[int]
-        A list of three integers specifying the offset from gamma of the regular grid of k-points
+        a list of three integers specifying the offset from gamma of the regular grid of k-points
 
     kpath : str | ase.dft.kpoints.BandPath
-        A string (or ASE ``BandPath`` object) specifying the k-path as defined by the special points of the Bravais
+        a string (or ASE ``BandPath`` object) specifying the k-path as defined by the special points of the Bravais
         lattice e.g ``"GXYSG,XP"``
 
     kpath_density : float
@@ -96,15 +97,44 @@ class Workflow(ABC):
     projections : ProjectionsBlocks
         The projections to be used in the Wannierization
 
+    name : str
+        a name for the workflow
+
+    parameters : Dict[str, Any] | koopmans.settings.WorkflowSettingsDict
+        a dictionary specifying any workflow settings to use; note that a simpler alternative is to provide workflow
+        settings as keyword arguments
+
+    master_calc_params : Dict[str, koopmans.settings.SettingsDict]
+        a dictionary containing calculator-specific settings; as for the parameters, it is usually simpler to specify
+        these individually as keyword arguments
+
+    plot_params : koopmans.settings.PlotSettingsDict
+        a dictionary containing settings specific to plotting; again, it is usually simpler to specify these
+        individually as keyword arguments
+
     **kwargs
         Any valid workflow or calculator settings e.g. ``{"functional": "ki", "ecutwfc": 50.0}``
 
     '''
 
+    atoms: Atoms
+    parameters: settings.WorkflowSettingsDict
+    master_calc_params: Dict[str, settings.SettingsDict]
+    name: str
+    _gamma_only: bool
+    _kgrid: Optional[List[int]]
+    _koffset: Optional[List[int]]
+    _kpath: BandPath
+    kpath_density: float
+    _pseudopotentials: Dict[str, str]
+    pseudo_dir: Path
+    projections: ProjectionBlocks
+    parent: Optional[Workflow]
+
     def __init__(self, atoms: Atoms,
                  pseudopotentials: Dict[str, str] = {},
                  pseudo_dir: Optional[Path] = None,
-                 gamma_only: Optional[bool] = False,
+                 gamma_only: bool = False,
                  kgrid: Optional[List[int]] = [1, 1, 1],
                  koffset: Optional[List[int]] = [0, 0, 0],
                  kpath: Optional[Union[BandPath, str]] = None,
@@ -120,6 +150,9 @@ class Workflow(ABC):
 
         # Parsing parameters
         self.parameters = settings.WorkflowSettingsDict(**parameters)
+        for key, value in kwargs.items():
+            if self.parameters.is_valid(key):
+                self.parameters[key] = value
         self.atoms: Atoms = atoms
         self.name = name
         self.calculations: List[calculators.Calc] = []
@@ -150,6 +183,9 @@ class Workflow(ABC):
             self.projections = projections
 
         self.plot_params = settings.PlotSettingsDict(**plot_params)
+        for key, value in kwargs.items():
+            if self.plot_params.is_valid(key):
+                self.plot_params[key] = value
 
         if 'periodic' in parameters:
             # If "periodic" was explicitly provided, override self.atoms.pbc
@@ -300,24 +336,19 @@ class Workflow(ABC):
                        'a calculator. This calculator will be ignored.')
             self.atoms.calc = None
 
-        # Records whether or not this workflow is a subworkflow of another
-        self._is_a_subworkflow = False
+        # Initialize self.parent
+        self.parent: Optional[Workflow] = None
 
         # For any kwargs...
         for key, value in kwargs.items():
             match = False
-            if self.parameters.is_valid(key):
-                # if they correspond to a valid workflow setting, set it
-                self.parameters[key] = value
-                match = True
-            else:
-                # or if they correspond to any valid calculator parameter, set it
-                for calc_params in self.master_calc_params.values():
-                    if calc_params.is_valid(key):
-                        calc_params[key] = value
-                        match = True
-            # if neither of the above, raise an error
-            if not match:
+            # if they correspond to any valid calculator parameter, set it
+            for calc_params in self.master_calc_params.values():
+                if calc_params.is_valid(key):
+                    calc_params[key] = value
+                    match = True
+            # if not a calculator, workflow, or plot_params keyword, raise an error
+            if not match and not self.parameters.is_valid(key) and not self.plot_params.is_valid(key):
                 raise ValueError(f'{key} is not a valid setting')
 
     def __eq__(self, other: Any):
@@ -325,17 +356,25 @@ class Workflow(ABC):
             return self.__dict__ == other.__dict__
         return False
 
-    def run(self) -> None:
+    def run(self, subdirectory: Optional[Union[str, Path]] = None, from_scratch: Optional[bool] = None) -> None:
         '''
         Run the workflow
         '''
 
         self.print_preamble()
-        if not self._is_a_subworkflow:
+
+        if not self.parent:
             self._run_sanity_checks()
-        self._run()
+
+        if self.parent:
+            with self._parent_context(subdirectory, from_scratch):
+                self._run()
+        else:
+            self._run()
+
         self.print_conclusion()
-        if not self._is_a_subworkflow:
+
+        if not self.parent:
             self._teardown()
 
     @abstractmethod
@@ -351,31 +390,31 @@ class Workflow(ABC):
         self._pseudopotentials = value
 
     @property
-    def gamma_only(self) -> Optional[bool]:
+    def gamma_only(self) -> bool:
         return self._gamma_only
 
     @gamma_only.setter
-    def gamma_only(self, value: Optional[bool]):
+    def gamma_only(self, value: bool):
         self._gamma_only = value
 
     @property
-    def kgrid(self):
+    def kgrid(self) -> Optional[List[int]]:
         return self._kgrid
 
     @kgrid.setter
-    def kgrid(self, value: List[int]):
+    def kgrid(self, value: Optional[List[int]]):
         self._kgrid = value
 
     @property
-    def koffset(self):
+    def koffset(self) -> Optional[List[int]]:
         return self._koffset
 
     @koffset.setter
-    def koffset(self, value: List[int]):
+    def koffset(self, value: Optional[List[int]]):
         self._koffset = value
 
     @property
-    def kpath(self):
+    def kpath(self) -> BandPath:
         return self._kpath
 
     @kpath.setter
@@ -384,22 +423,34 @@ class Workflow(ABC):
             raise NotImplementedError()
         self._kpath = value
 
-    @property
-    def wf_kwargs(self) -> Dict[str, Any]:
-        # Returns a kwargs designed to be used to initialize another workflow with the same configuration as this one
-        # i.e.
-        # > sub_wf = Workflow(**self.wf_kwargs)
-        return {'atoms': copy.deepcopy(self.atoms),
-                'parameters': copy.deepcopy(self.parameters),
-                'master_calc_params': copy.deepcopy(self.master_calc_params),
-                'name': copy.deepcopy(self.name),
-                'pseudopotentials': copy.deepcopy(self.pseudopotentials),
-                'pseudo_dir': copy.deepcopy(self.pseudo_dir),
-                'gamma_only': copy.deepcopy(self.gamma_only),
-                'kgrid': copy.deepcopy(self.kgrid),
-                'kpath': copy.deepcopy(self.kpath),
-                'projections': copy.deepcopy(self.projections),
-                'plot_params': copy.deepcopy(self.plot_params)}
+    @classmethod
+    def fromparent(cls, parent_wf: Workflow, **kwargs: Any) -> Workflow:
+        '''
+        Creates a subworkflow with the same configuration as the parent workflow
+
+        e.g.
+        >>> sub_wf = Workflow.fromparent(self)
+        '''
+
+        parameters = copy.deepcopy(parent_wf.parameters)
+        parameter_kwargs = {k: v for k, v in kwargs.items() if parameters.is_valid(k)}
+        other_kwargs = {k: v for k, v in kwargs.items() if not parameters.is_valid(k)}
+        parameters.update(**parameter_kwargs)
+
+        child_wf = cls(atoms=copy.deepcopy(parent_wf.atoms),
+                       parameters=parameters,
+                       master_calc_params=copy.deepcopy(parent_wf.master_calc_params),
+                       name=copy.deepcopy(parent_wf.name),
+                       pseudopotentials=copy.deepcopy(parent_wf.pseudopotentials),
+                       pseudo_dir=copy.deepcopy(parent_wf.pseudo_dir),
+                       gamma_only=copy.deepcopy(parent_wf.gamma_only),
+                       kgrid=copy.deepcopy(parent_wf.kgrid),
+                       kpath=copy.deepcopy(parent_wf.kpath),
+                       projections=copy.deepcopy(parent_wf.projections),
+                       plot_params=copy.deepcopy(parent_wf.plot_params),
+                       **other_kwargs)
+        child_wf.parent = parent_wf
+        return child_wf
 
     def _run_sanity_checks(self):
         # Check internal consistency of workflow settings
@@ -579,6 +630,7 @@ class Workflow(ABC):
     def primitive_to_supercell(self, matrix: Optional[npt.NDArray[np.int_]] = None, **kwargs):
         # Converts to a supercell as given by a 3x3 transformation matrix
         if matrix is None:
+            assert self.kgrid is not None
             matrix = np.diag(self.kgrid) if not self.gamma_only else np.identity(3, dtype=float)
         assert np.shape(matrix) == (3, 3)
         self.atoms = make_supercell(self.atoms, matrix, **kwargs)
@@ -589,6 +641,7 @@ class Workflow(ABC):
         # Converts from a supercell to a primitive cell, as given by a 3x3 transformation matrix
         # The inverse of self.primitive_to_supercell()
         if matrix is None:
+            assert self.kgrid is not None
             matrix = np.diag(self.kgrid)
         assert np.shape(matrix) == (3, 3)
 
@@ -608,7 +661,7 @@ class Workflow(ABC):
 
         self.update_celldms()
 
-    def run_calculator(self, master_qe_calc, enforce_ss=False):
+    def run_calculator(self, master_qe_calc: calculators.Calc, enforce_ss=False):
         '''
         Wrapper for run_calculator_single that manages the optional enforcing of spin symmetry
         '''
@@ -649,7 +702,7 @@ class Workflow(ABC):
 
         return
 
-    def run_calculator_single(self, qe_calc):
+    def run_calculator_single(self, qe_calc: calculators.Calc):
         # Runs qe_calc.calculate with additional checks
 
         # If an output file already exists, check if the run completed successfully
@@ -703,7 +756,7 @@ class Workflow(ABC):
 
         return
 
-    def load_old_calculator(self, qe_calc):
+    def load_old_calculator(self, qe_calc: calculators.Calc) -> bool:
         # This is a separate function so that it can be monkeypatched by the test suite
         old_calc = qe_calc.__class__.fromfile(qe_calc.directory / qe_calc.prefix)
 
@@ -726,7 +779,7 @@ class Workflow(ABC):
 
         return old_calc.is_complete()
 
-    def print(self, text='', style='body', **kwargs):
+    def print(self, text: str = '', style: str = 'body', **kwargs: Any):
         if style == 'body':
             utils.indented_print(str(text), self.print_indent + 1, **kwargs)
         else:
@@ -741,83 +794,82 @@ class Workflow(ABC):
             utils.indented_print(str(text), self.print_indent, **kwargs)
             utils.indented_print(underline * len(text), self.print_indent, **kwargs)
 
-    def run_subworkflow(self, workflow, subdirectory=None, from_scratch=None, **kwargs):
+    @contextmanager
+    def _parent_context(self, subdirectory: Optional[Union[str, Path]] = None, from_scratch: Optional[bool] = None) -> Generator[None, None, None]:
         '''
-        Runs a workflow object, taking care of inheritance of several important properties
+        Context for calling self._run(), within which self inherits relevant information from self.parent, runs, and then passes back relevant information to self.parent
 
         '''
 
-        # When testing, make sure the sub-workflow has access to the benchmark
-        if hasattr(self, 'benchmark'):
-            workflow.benchmark = self.benchmark
+        assert self.parent is not None
 
         # Automatically pass along the name of the overall workflow
-        if workflow.name is None:
-            workflow.name = self.name
+        if self.name is None:
+            self.name = self.parent.name
 
         # Increase the indent level
-        workflow.print_indent = self.print_indent + 1
+        self.print_indent = self.parent.print_indent + 1
 
-        # Don't print out the header, generate .bib and .kwf files etc. for subworkflows
-        workflow._is_a_subworkflow = True
-
-        # Ensure altering workflow.master_calc_params won't affect self.master_calc_params
-        if workflow.master_calc_params is self.master_calc_params:
-            workflow.master_calc_params = copy.deepcopy(self.master_calc_params)
+        # Ensure altering self.master_calc_params won't affect self.parent.master_calc_params
+        if self.master_calc_params is self.parent.master_calc_params:
+            self.master_calc_params = copy.deepcopy(self.parent.master_calc_params)
 
         # Setting from_scratch to a non-None value will override the value of subworkflow.from_scratch...
         if from_scratch is None:
-            workflow.parameters.from_scratch = self.parameters.from_scratch
+            self.parameters.from_scratch = self.parent.parameters.from_scratch
         else:
-            workflow.parameters.from_scratch = from_scratch
+            self.parameters.from_scratch = from_scratch
 
         # Link the list of calculations
-        workflow.calculations = self.calculations
+        self.calculations = self.parent.calculations
 
         # Link the bands
-        if hasattr(self, 'bands'):
-            workflow.bands = copy.deepcopy(self.bands)
+        if hasattr(self.parent, 'bands'):
+            self.bands = copy.deepcopy(self.parent.bands)
             # Only include the most recent screening parameter and wipe the error history
-            for b in workflow.bands:
+            for b in self.bands:
                 if len(b.alpha_history) > 0:
                     b.alpha_history = [b.alpha]
                 b.error_history = []
 
-        if subdirectory is not None:
-            # Update directories
-            for key in workflow.master_calc_params.keys():
-                params = workflow.master_calc_params[key]
-                for setting in params.are_paths:
-                    if setting == 'pseudo_dir':
-                        continue
-                    path = getattr(params, setting, None)
-                    if path is not None and Path.cwd() in path.parents:
-                        new_path = Path(subdirectory).resolve() / os.path.relpath(path)
-                        setattr(params, setting, new_path)
+        try:
+            if subdirectory is not None:
+                # Ensure subdirectory is a Path
+                subdirectory = Path(subdirectory)
+                # Update directories
+                for key in self.master_calc_params.keys():
+                    params = self.master_calc_params[key]
+                    for setting in params.are_paths:
+                        if setting == 'pseudo_dir':
+                            continue
+                        path = getattr(params, setting, None)
+                        if path is not None and Path.cwd() in path.parents:
+                            new_path = subdirectory.resolve() / os.path.relpath(path)
+                            setattr(params, setting, new_path)
 
-            # Run the workflow
-            with utils.chdir(subdirectory):
-                workflow.run(**kwargs)
-        else:
-            workflow.run(**kwargs)
-
-        # ... and will prevent inheritance of from_scratch
-        if from_scratch is None:
-            self.parameters.from_scratch = workflow.parameters.from_scratch
-
-        # Copy back over the bands
-        if hasattr(workflow, 'bands'):
-            if hasattr(self, 'bands'):
-                # Add the alpha and error history
-                for b, b_sub in zip(self.bands, workflow.bands):
-                    b.alpha_history += b_sub.alpha_history[1:]
-                    b.error_history += b_sub.error_history
+                # Run the workflow
+                with utils.chdir(subdirectory):
+                    yield
             else:
-                # Copy the entire bands object
-                self.bands = workflow.bands
+                yield
+        finally:
+            # ... and will prevent inheritance of from_scratch
+            if from_scratch is None:
+                self.parent.parameters.from_scratch = self.parameters.from_scratch
 
-        # Make sure any updates to the projections are passed along
-        self.projections = workflow.projections
+            # Copy back over the bands
+            if hasattr(self, 'bands'):
+                if hasattr(self.parent, 'bands'):
+                    # Add the alpha and error history
+                    for b, b_sub in zip(self.parent.bands, self.bands):
+                        b.alpha_history += b_sub.alpha_history[1:]
+                        b.error_history += b_sub.error_history
+                else:
+                    # Copy the entire bands object
+                    self.parent.bands = self.bands
+
+            # Make sure any updates to the projections are passed along
+            self.parent.projections = self.projections
 
     def todict(self):
         # Shallow copy
@@ -1029,7 +1081,7 @@ class Workflow(ABC):
         relevant_references.to_file(self.name + '.bib')
 
     def print_preamble(self):
-        if self._is_a_subworkflow:
+        if self.parent:
             return
 
         self.print_header()
@@ -1039,7 +1091,7 @@ class Workflow(ABC):
     def print_conclusion(self):
         from koopmans.io import write
 
-        if self._is_a_subworkflow:
+        if self.parent:
             return
 
         # Save workflow to file
@@ -1390,7 +1442,7 @@ def read_setup_dict(dct: Dict[str, Any], task: str):
     return atoms, parameters, psps_and_kpts
 
 
-def generate_default_master_calc_params():
+def generate_default_master_calc_params() -> Dict[str, settings.SettingsDict]:
     # Dictionary to be used as the default value for 'master_calc_params' when initializing a workflow
     # We create this dynamically in order for the .directory attributes to make sense
     return {'kcp': settings.KoopmansCPSettingsDict(),
