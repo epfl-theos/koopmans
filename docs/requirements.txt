@@ -1,3 +1,4 @@
+sphinx>=3.0
 sphinxcontrib-bibtex>=2.1.4
 sphinx_toolbox>=2.5.0
 sphinx_rtd_theme>=1.0.0
