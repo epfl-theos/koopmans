@@ -113,7 +113,7 @@ class Workflow(ABC):
         individually as keyword arguments
 
     **kwargs
-        Any valid workflow or calculator settings e.g. ``{"functional": "ki", "ecutwfc": 50.0}``
+        any valid workflow, calculator, or plotting settings e.g. ``{"functional": "ki", "ecutwfc": 50.0}``
 
     '''
 
