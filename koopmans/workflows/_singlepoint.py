@@ -39,8 +39,9 @@ class SinglepointWorkflow(Workflow):
         >>>                                           fillings=[True, True, False],
         >>>                                           spins=[None, None, None],
         >>>                                           atoms=gaas)
-        >>> wf = SinglepointWorkflow(gaas, kgrid=[2, 2, 2], projections=projs, init_orbitals='mlwfs', pseudo_library='sg15_v1.0', ecutwfc=40.0,
-        >>>                          master_calc_params={'pw': {'nbnd': 45}, 'w90_emp': {'dis_froz_max': 14.6, 'dis_win_max': 18.6}})
+        >>> wf = SinglepointWorkflow(gaas, kgrid=[2, 2, 2], projections=projs, init_orbitals='mlwfs',
+        >>>                          pseudo_library='sg15_v1.0', ecutwfc=40.0, master_calc_params={'pw': {'nbnd': 45},
+        >>>                          'w90_emp': {'dis_froz_max': 14.6, 'dis_win_max': 18.6}})
         >>> wf.run()
     '''
 

@@ -1,13 +1,11 @@
 '''
-Create a "stumbling" workflow that deliberately crashes the code after every single calculation and attempts to restart (for testing purposes)
+Create a "stumbling" workflow that deliberately crashes the code after every single calculation and attempts to
+restart (for testing purposes)
 '''
 
 from __future__ import annotations
 
-from contextlib import contextmanager
 import copy
-from pathlib import Path
-from typing import Generator, Optional, Union
 
 from ase.calculators.calculator import CalculationFailed
 from koopmans import workflows

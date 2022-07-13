@@ -158,7 +158,8 @@ def read_cell_parameters(calc: Calculator, dct: dict):
 print_call_end = '\n'
 
 
-def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '\n', file: IO = sys.stdout, flush: bool = False):
+def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '\n', file: IO = sys.stdout,
+                   flush: bool = False):
     global print_call_end
     for substring in text.split('\n'):
         if print_call_end == '\n':

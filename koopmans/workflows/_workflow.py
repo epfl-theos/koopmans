@@ -795,9 +795,11 @@ class Workflow(ABC):
             utils.indented_print(underline * len(text), self.print_indent, **kwargs)
 
     @contextmanager
-    def _parent_context(self, subdirectory: Optional[Union[str, Path]] = None, from_scratch: Optional[bool] = None) -> Generator[None, None, None]:
+    def _parent_context(self, subdirectory: Optional[Union[str, Path]] = None,
+                        from_scratch: Optional[bool] = None) -> Generator[None, None, None]:
         '''
-        Context for calling self._run(), within which self inherits relevant information from self.parent, runs, and then passes back relevant information to self.parent
+        Context for calling self._run(), within which self inherits relevant information from self.parent, runs, and
+        then passes back relevant information to self.parent
 
         '''
 
