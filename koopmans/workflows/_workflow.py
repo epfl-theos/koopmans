@@ -112,6 +112,10 @@ class Workflow(ABC):
         a dictionary containing settings specific to plotting; again, it is usually simpler to specify these
         individually as keyword arguments
 
+    autogenerate_settings : bool
+        if True (the default), autogenerate various calculator settings; the only scenario where you do not want to do
+        this is when creating a new workflow from a .kwf file
+
     **kwargs
         any valid workflow, calculator, or plotting settings e.g. ``{"functional": "ki", "ecutwfc": 50.0}``
 
