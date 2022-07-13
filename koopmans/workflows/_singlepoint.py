@@ -19,6 +19,34 @@ load_results_from_output = True
 
 class SinglepointWorkflow(Workflow):
 
+    '''
+    Examples
+    --------
+
+    Running a Koopmans calculation on ozone
+
+        >>> from ase.build import molecule
+        >>> ozone = molecule('O3', vacuum=5.0, pbc=False)
+        >>> wf = SinglepointWorkflow(ozone, ecutwfc = 20.0)
+        >>> wf.run()
+
+    Running a Koopmans calculation on GaAs
+
+        >>> from ase.build import bulk
+        >>> from koopmans.projections import ProjectionBlocks
+        >>> gaas = bulk('GaAs', crystalstructure='zincblende', a=5.6536)
+        >>> projs = ProjectionBlocks.fromprojections([["Ga: d"], ["As: sp3"], ["Ga: sp3"]],
+        >>>                                           fillings=[True, True, False],
+        >>>                                           spins=[None, None, None],
+        >>>                                           atoms=gaas)
+        >>> wf = SinglepointWorkflow(gaas, kgrid=[2, 2, 2], projections=projs, init_orbitals='mlwfs', pseudo_library='sg15_v1.0', ecutwfc=40.0,
+        >>>                          master_calc_params={'pw': {'nbnd': 45}, 'w90_emp': {'dis_froz_max': 14.6, 'dis_win_max': 18.6}})
+        >>> wf.run()
+    '''
+
+    if Workflow.__doc__ and __doc__:
+        __doc__ = Workflow.__doc__ + __doc__
+
     def _run(self) -> None:
 
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version

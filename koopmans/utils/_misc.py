@@ -26,7 +26,7 @@ def flatten(l: Union[List[Any], Iterable[Any]]) -> Generator[Any, None, None]:
             yield item
 
 
-def convert_kpath_str_to_bandpath(path: str, cell: Cell, density: Optional[int] = None) -> BandPath:
+def convert_kpath_str_to_bandpath(path: str, cell: Cell, density: Optional[float] = None) -> BandPath:
     special_points: Dict[str, np.ndarray] = cell.bandpath().special_points
     return BandPath(cell=cell, path=path, special_points=special_points).interpolate(density=density)
 

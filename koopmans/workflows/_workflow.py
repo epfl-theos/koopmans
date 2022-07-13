@@ -7,6 +7,8 @@ Converted workflows from functions to objects Nov 2020
 
 """
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 import copy
 from functools import reduce
@@ -60,26 +62,65 @@ T = TypeVar('T', bound='calculators.CalculatorExt')
 
 class Workflow(ABC):
 
+    r'''
+    Abstract base class that defines a Koopmans workflow
+
+    Parameters
+    ----------
+
+    atoms : Atoms
+        an ASE ``Atoms`` object defining the atomic positions, cell, etc
+
+    pseudopotentals : Dict[str, str]
+        a dictionary mapping atom labels to pseudopotential filenames
+
+    pseudo_dir : pathlib.Path
+        the path containing the pseudopotential files
+
+    gamma_only : bool
+        True if performing a calculation at the gamma-point only
+
+    kgrid : List[int]
+        A list of three integers specifying the shape of the regular grid of k-points
+
+    koffset : List[int]
+        A list of three integers specifying the offset from gamma of the regular grid of k-points
+
+    kpath : str | ase.dft.kpoints.BandPath
+        A string (or ASE ``BandPath`` object) specifying the k-path as defined by the special points of the Bravais
+        lattice e.g ``"GXYSG,XP"``
+
+    kpath_density : float
+        k-points per inverse Angstrom along the k-path
+
+    projections : ProjectionsBlocks
+        The projections to be used in the Wannierization
+
+    **kwargs
+        Any valid workflow or calculator settings e.g. ``{"functional": "ki", "ecutwfc": 50.0}``
+
+    '''
+
     def __init__(self, atoms: Atoms,
-                 parameters: settings.SettingsDict = settings.WorkflowSettingsDict(),
-                 master_calc_params: Optional[Union[Dict[str, Dict[str, Any]],
-                                                    Dict[str, settings.SettingsDict]]] = None,
-                 name: str = 'koopmans_workflow',
                  pseudopotentials: Dict[str, str] = {},
                  pseudo_dir: Optional[Path] = None,
                  gamma_only: Optional[bool] = False,
                  kgrid: Optional[List[int]] = [1, 1, 1],
                  koffset: Optional[List[int]] = [0, 0, 0],
                  kpath: Optional[Union[BandPath, str]] = None,
-                 kpath_density: int = 10,
+                 kpath_density: float = 10.0,
                  projections: Optional[ProjectionBlocks] = None,
+                 name: str = 'koopmans_workflow',
+                 parameters: Union[Dict[str, Any], settings.WorkflowSettingsDict] = {},
+                 master_calc_params: Optional[Union[Dict[str, Dict[str, Any]],
+                                                    Dict[str, settings.SettingsDict]]] = None,
                  plot_params: Union[Dict[str, Any], settings.PlotSettingsDict] = {},
                  autogenerate_settings: bool = True,
                  **kwargs: Dict[str, Any]):
 
         # Parsing parameters
         self.parameters = settings.WorkflowSettingsDict(**parameters)
-        self.atoms = atoms
+        self.atoms: Atoms = atoms
         self.name = name
         self.calculations: List[calculators.Calc] = []
         self.silent = False
@@ -285,6 +326,10 @@ class Workflow(ABC):
         return False
 
     def run(self) -> None:
+        '''
+        Run the workflow
+        '''
+
         self.print_preamble()
         if not self._is_a_subworkflow:
             self._run_sanity_checks()
@@ -784,7 +829,7 @@ class Workflow(ABC):
         return dct
 
     @classmethod
-    def fromdict(cls, dct: Dict):
+    def fromdict(cls, dct: Dict[str, Any]) -> Workflow:
         wf = cls(atoms=dct.pop('atoms'),
                  parameters=dct.pop('parameters'),
                  master_calc_params=dct.pop('master_calc_params'),
@@ -807,7 +852,7 @@ class Workflow(ABC):
         return self._bands
 
     @bands.setter
-    def bands(self, value):
+    def bands(self, value: Bands):
         assert isinstance(value, Bands)
         self._bands = value
 
@@ -938,7 +983,7 @@ class Workflow(ABC):
 
         name = fname.replace('.json', '')
 
-        return cls(atoms, parameters, master_calc_params, name, **workflow_kwargs)
+        return cls(atoms, parameters=parameters, master_calc_params=master_calc_params, name=name, **workflow_kwargs)
 
     def print_header(self):
         print(header())
@@ -1119,7 +1164,7 @@ class Workflow(ABC):
                            dos: Optional[Union[GridDOSCollection, DOS]] = None,
                            filename: Optional[str] = None,
                            bsplot_kwargs: Union[Dict[str, Any], List[Dict[str, Any]]] = {},
-                           dosplot_kwargs: Dict[str, Any] = {}):
+                           dosplot_kwargs: Dict[str, Any] = {}) -> None:
         """
         Plots the provided band structure (and optionally also a provided DOS)
 

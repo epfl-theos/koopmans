@@ -37,14 +37,14 @@ class Pseudopotential:
 pseudos_directory = Path(__file__).parents[1] / 'pseudos'
 
 # A database containing all the available pseudopotentials
-pseudo_database = []
+pseudo_database: List[Pseudopotential] = []
 for pseudo_file in chain(pseudos_directory.rglob('*.UPF'), pseudos_directory.rglob('*.upf')):
     name = pseudo_file.name
     splitname = re.split(r'\.|_|-', name)[0]
     element = splitname[0].upper() + splitname[1:].lower()
     library = pseudo_file.parents[1].name
     functional = pseudo_file.parent.name
-    citations = []
+    citations: List[str] = []
 
     kwargs = {}
     if library.startswith('sssp'):
@@ -85,7 +85,7 @@ def pseudos_library_directory(pseudo_library: str, base_functional: str) -> Path
     return pseudos_directory / pseudo_library / base_functional
 
 
-def fetch_pseudo(**kwargs):
+def fetch_pseudo(**kwargs) -> Pseudopotential:
     matches = [psp for psp in pseudo_database if all([getattr(psp, k) == v for k, v in kwargs.items()])]
     request_str = ', '.join([f'{k} = {v}' for k, v in kwargs.items()])
     if len(matches) == 0:
@@ -103,7 +103,7 @@ def read_pseudo_file(filename: Path) -> Dict[str, Any]:
 
     '''
 
-    upf = upf_to_json(open(filename, 'r').read(), filename.name)
+    upf: Dict[str, Any] = upf_to_json(open(filename, 'r').read(), filename.name)
 
     return upf['pseudo_potential']
 
