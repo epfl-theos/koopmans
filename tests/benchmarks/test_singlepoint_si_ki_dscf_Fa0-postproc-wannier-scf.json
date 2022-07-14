@@ -1,0 +1,201 @@
+{
+ "_parameters": {
+  "conv_thr": 1.6e-08,
+  "tot_charge": 0,
+  "pseudo_dir": {
+   "__path__": "../../../../../pseudos/sg15_v1.2/pbe"
+  },
+  "ecutwfc": 40.0,
+  "nspin": 1,
+  "kpts": [
+   2,
+   2,
+   2
+  ],
+  "pseudopotentials": {
+   "Si": "Si_ONCV_PBE-1.2.upf"
+  },
+  "gamma_only": false,
+  "koffset": [
+   0,
+   0,
+   0
+  ],
+  "__koopmans_name__": "PWSettingsDict",
+  "__koopmans_module__": "koopmans.settings._pw"
+ },
+ "atoms": {
+  "numbers": {
+   "__ndarray__": [
+    [
+     2
+    ],
+    "int64",
+    [
+     14,
+     14
+    ]
+   ]
+  },
+  "positions": {
+   "__ndarray__": [
+    [
+     2,
+     3
+    ],
+    "float64",
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.3575,
+     1.3575,
+     1.3575
+    ]
+   ]
+  },
+  "cell": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     0.0,
+     2.715,
+     2.715,
+     2.715,
+     0.0,
+     2.715,
+     2.715,
+     2.715,
+     0.0
+    ]
+   ]
+  },
+  "pbc": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "bool",
+    [
+     true,
+     true,
+     true
+    ]
+   ]
+  },
+  "__ase_objtype__": "atoms"
+ },
+ "results": {
+  "energy": -211.9423361448876,
+  "homo_energy": 6.5277,
+  "lumo_energy": null,
+  "electrostatic embedding": null,
+  "iterations": 6,
+  "job done": true,
+  "energy contributions": {
+   "one-electron": 65.89871145306851,
+   "hartree": 17.296794519260317,
+   "xc": -66.57658838646321,
+   "ewald": -228.56125373075326
+  }
+ },
+ "_directory": {
+  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dscf_Fa0/postproc/wannier"
+ },
+ "prefix": "scf",
+ "name": "benchgenpwcalculator",
+ "command": {
+  "postfix": "",
+  "mpi_command": "mpirun -np 8",
+  "path": {
+   "__path__": "/home/elinscott/code/koopmans/bin"
+  },
+  "executable": "pw.x",
+  "_flags": "",
+  "suffix": "-in PREFIX.pwi > PREFIX.pwo 2>&1",
+  "__koopmans_name__": "ParallelCommandWithPostfix",
+  "__koopmans_module__": "koopmans.commands"
+ },
+ "calc": {},
+ "skip_qc": false,
+ "kpts": [
+  {
+   "weight": 0.25,
+   "s": 0,
+   "k": {
+    "__ndarray__": [
+     [
+      3
+     ],
+     "float64",
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "eps_n": [
+    -5.4889,
+    6.5277,
+    6.5277,
+    6.5277
+   ],
+   "f_n": []
+  },
+  {
+   "weight": 1.0,
+   "s": 0,
+   "k": {
+    "__ndarray__": [
+     [
+      3
+     ],
+     "float64",
+     [
+      8.910734988648721e-18,
+      8.910734988648721e-18,
+      -0.5000000133031198
+     ]
+    ]
+   },
+   "eps_n": [
+    -3.1379,
+    -0.5081,
+    5.3077,
+    5.3077
+   ],
+   "f_n": []
+  },
+  {
+   "weight": 0.75,
+   "s": 0,
+   "k": {
+    "__ndarray__": [
+     [
+      3
+     ],
+     "float64",
+     [
+      0.0,
+      -0.5000000133031198,
+      -0.5000000133031198
+     ]
+    ]
+   },
+   "eps_n": [
+    -1.3225,
+    -1.3225,
+    3.6208,
+    3.6208
+   ],
+   "f_n": []
+  }
+ ],
+ "__koopmans_name__": "BenchGenPWCalculator",
+ "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+}
