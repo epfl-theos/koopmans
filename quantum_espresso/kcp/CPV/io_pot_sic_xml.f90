@@ -33,7 +33,7 @@ MODULE io_pot_sic_xml
   CONTAINS
 
     !------------------------------------------------------------------------
-    SUBROUTINE write_pot_sic_only( pot, extension )
+    SUBROUTINE write_pot_sic_only( pot, extension, field_specifier)
       !------------------------------------------------------------------------
       !
       ! ... this routine writes the charge-density in xml format into the
@@ -49,6 +49,7 @@ MODULE io_pot_sic_xml
       IMPLICIT NONE
       !
       REAL(DP),         INTENT(IN)           :: pot(dfftp%nnr)
+      CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: field_specifier
       CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: extension
       !
       CHARACTER(LEN=256)    :: dirname, file_base
@@ -65,7 +66,11 @@ MODULE io_pot_sic_xml
       !
       IF ( PRESENT( extension ) ) ext = '.' // TRIM( extension )
       !
-      file_base = TRIM( dirname ) // '/sic_potential' // TRIM( ext )
+      IF ( PRESENT( extension ) ) THEN 
+        file_base = TRIM( dirname ) // '/' // TRIM(field_specifier) // TRIM( ext )
+      ELSE 
+        file_base = TRIM( dirname ) // '/sic_potential' // TRIM( ext )
+      END IF
       !
       ! 
       CALL write_pot_xml( file_base, pot(:), dfftp%nr1, dfftp%nr2, &

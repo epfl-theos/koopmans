@@ -88,14 +88,11 @@ class MLFiitingWorkflow(Workflow):
         Converts the binary files produced by a previous calculation to python-readable xml-files.
         """
 
-        # import ipdb
-        # ipdb.set_trace()
-        # np.savetxt(, np.array([9, 4, 5], dtype=np.int8))
         with open(self.dirs['xml'] / 'bands_to_solve.txt', "w") as f:
             f.write(f"{len(self.bands_to_extract)}\n")
             for i in range(len(self.bands_to_extract)):
-                print(self.bands_to_extract[i].index)
-                f.write(f"{self.bands_to_extract[i].index}\n")
+                f.write(
+                    f"{self.bands_to_extract[i].index}, {int(self.bands_to_extract[i].filled)}, {self.bands_to_extract[i].spin}\n")
 
         if self.method_to_extract_from_binary == 'from_ki':
             orbital_densities_bin_dir = self.calc_that_produced_orbital_densities.parameters.outdir / \
@@ -112,7 +109,7 @@ class MLFiitingWorkflow(Workflow):
         else:
             self.print(f'Running {calculation_title}...', end='', flush=True)
             command = str(calculators.bin_directory / 'bin2xml_real_space_density.x ') + ' '.join(str(x) for x in [
-                orbital_densities_bin_dir, self.dirs['xml'], self.n_bands_to_extract[0], self.n_bands_to_extract[1], self.nspin_to_extract])
+                orbital_densities_bin_dir, self.dirs['xml'], self.n_bands_to_extract[0]])
             utils.system_call(command)
             self.print(f' done')
 
@@ -122,7 +119,7 @@ class MLFiitingWorkflow(Workflow):
         """
 
         # If there are as many xml-files as there are bands to solve, the calculation was already completed
-        if (len([name for name in os.listdir(self.dirs['xml']) if os.path.isfile(self.dirs['xml'] / name)]) == (self.n_bands_to_extract[0] + self.n_bands_to_extract[1]+1)):
+        if (len([name for name in os.listdir(self.dirs['xml']) if os.path.isfile(self.dirs['xml'] / name)]) == (self.n_bands_to_extract[0] + self.n_bands_to_extract[1]+2)):
             return True
         else:
             return False

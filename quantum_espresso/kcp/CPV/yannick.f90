@@ -29,9 +29,6 @@ module yannick_print_orbr
             
             do jj = 1, 2
                 i=j+jj-1
-                
-                ! write(spin_identifier, "(I1.1)")       jj-1
-                ! write(orbital_identifier, "(I5.5)")    (j+1)/2
 
                 if (j<(nbsp_filling/2)) then 
                     write(spin_identifier, "(I1.1)")       0
@@ -47,7 +44,7 @@ module yannick_print_orbr
                 else
                     filename = 'occ.' // TRIM(spin_identifier) // '.' // TRIM(orbital_identifier)
                 end if
-                call write_pot_sic ( orb_rhor(:, jj), filename)
+                call write_pot_sic ( orb_rhor(:, jj), filename, field_specifier='real_space_orb_density')
             end do  
         end do
     end subroutine
