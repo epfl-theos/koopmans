@@ -1,7 +1,12 @@
-from typing import Optional, List, Union, Any, Dict
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
+
 from ase import Atoms
-from ase.io.wannier90 import num_wann_from_projections, proj_string_to_dict, list_to_formatted_str
+from ase.io.wannier90 import (
+    list_to_formatted_str,
+    num_wann_from_projections,
+    proj_string_to_dict,
+)
 
 
 class ProjectionBlock(object):
@@ -93,7 +98,7 @@ class ProjectionBlocks(object):
             self._n_bands_below = {spin: 0 for spin in set([b.spin for b in blocks])}
             self._n_bands_above = {spin: 0 for spin in set([b.spin for b in blocks])}
         else:
-            # By default, assume spin-unpolarised
+            # By default, assume spin-unpolarized
             self._n_bands_below = {None: 0}
             self._n_bands_above = {None: 0}
 
@@ -141,7 +146,7 @@ class ProjectionBlocks(object):
                 band_indices = range(wann_counter, wann_counter + b.num_wann)
                 wann_counter += b.num_wann
                 if include_above:
-                    # For the uppermost block we don't want to exclude any extra bands from the wannierisation
+                    # For the uppermost block we don't want to exclude any extra bands from the wannierization
                     upper_bound = max(band_indices)
                 else:
                     upper_bound = self.num_bands(spin=spin)

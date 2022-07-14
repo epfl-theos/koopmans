@@ -10,4 +10,4 @@ This section contains a brief introduction to Koopmans functionals.
     theory/workflows
     theory/limitations
 
-For more details, refer to our various :ref:`publications <references>`.
+For more details, refer to our various :ref:`publications <references:references>`.

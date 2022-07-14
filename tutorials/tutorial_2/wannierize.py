@@ -1,5 +1,6 @@
 from koopmans.io import read
 from koopmans.utils import chdir
+
 for grid_size in [2, 4, 8]:
 
     # Read in the input file

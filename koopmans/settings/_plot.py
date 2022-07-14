@@ -4,6 +4,7 @@ Settings module for plotting
 """
 
 from typing import List
+
 from ._utils import Setting, SettingsDictWithChecks
 
 valid_settings: List[Setting] = [

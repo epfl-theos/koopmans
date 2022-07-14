@@ -7,23 +7,30 @@ Written by Edward Linscott Sep 2020
 """
 
 from __future__ import annotations
-import os
+
 import copy
 import math
-import numpy as np
-import pickle
+import os
 from pathlib import Path
-from scipy.linalg import block_diag
-from typing import Optional, List, Union, Any
-from pandas.core.series import Series
+import pickle
+from typing import Any, List, Optional, Union
 import xml.etree.ElementTree as ET
+
+import numpy as np
+from pandas.core.series import Series
+from scipy.linalg import block_diag
+
 from ase import Atoms
 from ase.calculators.espresso import Espresso_kcp
-from koopmans import utils, settings, pseudopotentials, bands
+from koopmans import bands, pseudopotentials, settings, utils
 from koopmans.commands import ParallelCommand
-from ._utils import CalculatorExt, CalculatorABC, bin_directory, CalculatorCanEnforceSpinSym
-from ase.io.espresso import cell_to_ibrav, ibrav_to_cell
-from koopmans.pseudopotentials import read_pseudo_file
+
+from ._utils import (
+    CalculatorABC,
+    CalculatorCanEnforceSpinSym,
+    CalculatorExt,
+    bin_directory,
+)
 
 
 def allowed(nr: int) -> bool:
@@ -86,7 +93,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         # Define the valid parameters
         self.parameters = settings.KoopmansCPSettingsDict()
 
-        # Initialise first using the ASE parent and then CalculatorExt
+        # Initialize first using the ASE parent and then CalculatorExt
         Espresso_kcp.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, **kwargs)
 
@@ -367,7 +374,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
     @property
     def alphas(self) -> List[List[float]]:
         if not hasattr(self, '_alphas'):
-            raise AttributeError(f'{self}.alphas has not been initialised')
+            raise AttributeError(f'{self}.alphas has not been initialized')
         return self._alphas
 
     @alphas.setter
@@ -599,9 +606,9 @@ def convert_flat_alphas_for_kcp(flat_alphas: List[float],
     if parameters.nspin == 2:
         nbnd = len(flat_alphas) // 2
         alphas = [flat_alphas[:parameters.nelup]
-                  + flat_alphas[parameters.nelec:-(nbnd - parameters.neldw)],
+                  + flat_alphas[parameters.nelec:(nbnd + parameters.neldw)],
                   flat_alphas[parameters.nelup:parameters.nelec]
-                  + flat_alphas[-(nbnd - parameters.neldw):]]
+                  + flat_alphas[(nbnd + parameters.neldw):]]
     else:
         alphas = [flat_alphas]
     return alphas

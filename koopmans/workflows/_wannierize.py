@@ -8,18 +8,22 @@ Written by Riccardo De Gennaro Nov 2020
 """
 
 import copy
-import numpy as np
 import math
 from pathlib import Path
-import pickle
 import shutil
 from typing import List, TypeVar
+
+# isort: off
 import koopmans.mpl_config
 import matplotlib.pyplot as plt
-from koopmans import utils, projections, calculators
-from koopmans.pseudopotentials import nelec_from_pseudos, read_pseudo_file
-from ._workflow import Workflow
+# isort: on
 
+import numpy as np
+
+from koopmans import calculators, projections, utils
+from koopmans.pseudopotentials import nelec_from_pseudos, read_pseudo_file
+
+from ._workflow import Workflow
 
 CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
 
@@ -29,16 +33,12 @@ class WannierizeWorkflow(Workflow):
     def __init__(self, *args, force_nspin2=False, scf_kgrid=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if 'pw' not in self.master_calc_params:
-            raise ValueError(
-                'You need to provide a pw block in your input')
-
         pw_params = self.master_calc_params['pw']
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
                 and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
 
-            if self.parameters.spin_polarised:
+            if self.parameters.spin_polarized:
                 spins = ['up', 'down']
             else:
                 spins = [None]
@@ -47,7 +47,7 @@ class WannierizeWorkflow(Workflow):
                 # Update the projections_blocks to account for additional occupied bands
                 num_wann_occ = self.projections.num_bands(occ=True, spin=spin)
                 nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, pw_params.pseudo_dir)
-                if self.parameters.spin_polarised:
+                if self.parameters.spin_polarized:
                     num_bands_occ = nelec - pw_params.get('tot_charge', 0)
                     if spin == 'up':
                         num_bands_occ += pw_params.tot_magnetization
@@ -82,11 +82,11 @@ class WannierizeWorkflow(Workflow):
             raise NotImplementedError('WannierizeWorkflow only supports setting init_orbitals and init_empty_orbitals '
                                       'to "mlwfs"/"projwfs" or "kohn-sham"')
 
-        # Spin-polarisation
+        # Spin-polarization
         self._force_nspin2 = force_nspin2
         if force_nspin2:
             pw_params.nspin = 2
-        elif self.parameters.spin_polarised:
+        elif self.parameters.spin_polarized:
             pw_params.nspin = 2
         else:
             pw_params.nspin = 1
@@ -101,6 +101,9 @@ class WannierizeWorkflow(Workflow):
         else:
             self.parameters.calculate_bands = False
 
+        # This workflow only makes sense for DFT, not an ODD
+        self.parameters.functional = 'dft'
+
     def _run(self):
         '''
 
@@ -109,7 +112,7 @@ class WannierizeWorkflow(Workflow):
 
         '''
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-            self.print('Wannierisation', style='heading')
+            self.print('Wannierization', style='heading')
         else:
             self.print('Kohn-Sham orbitals', style='heading')
 
@@ -133,7 +136,7 @@ class WannierizeWorkflow(Workflow):
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
                 and self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-            # Loop over the various subblocks that we must wannierise separately
+            # Loop over the various subblocks that we must wannierize separately
             for block in self.projections:
                 if block.filled:
                     init_orbs = self.parameters.init_orbitals
@@ -166,7 +169,7 @@ class WannierizeWorkflow(Workflow):
                 calc_w90.prefix = 'wann'
                 self.run_calculator(calc_w90)
 
-            # Merging Hamiltonian files, U matrix files, centres files if necessary
+            # Merging Hamiltonian files, U matrix files, centers files if necessary
             for block in self.projections.to_merge():
                 self.merge_wannier_files(block, prefix=calc_w90.prefix)
 
@@ -201,7 +204,7 @@ class WannierizeWorkflow(Workflow):
                 calc_dos = self.new_calculator('projwfc', filpdos=self.name)
                 calc_dos.directory = 'pdos'
                 calc_dos.pseudopotentials = self.pseudopotentials
-                calc_dos.spin_polarised = self.parameters.spin_polarised
+                calc_dos.spin_polarized = self.parameters.spin_polarized
                 calc_dos.pseudo_dir = calc_pw_bands.parameters.pseudo_dir
                 calc_dos.parameters.prefix = calc_pw_bands.parameters.prefix
                 self.run_calculator(calc_dos)
@@ -223,7 +226,7 @@ class WannierizeWorkflow(Workflow):
             tot_charge = calc_pw.parameters.get('tot_charge', 0)
             nelec -= tot_charge
 
-            if self.parameters.spin_polarised:
+            if self.parameters.spin_polarized:
                 tot_mag = calc_pw.parameters.get('tot_magnetization', nelec % 2)
                 nelup = int(nelec / 2 + tot_mag / 2)
                 neldw = int(nelec / 2 - tot_mag / 2)
@@ -257,7 +260,7 @@ class WannierizeWorkflow(Workflow):
             color_cycle = plt.rcParams['axes.prop_cycle']()
             bs_list = []
             bsplot_kwargs_list = []
-            colours = {}
+            colors = {}
             for calc, label in zip([calc_pw_bands] + selected_calcs, labels):
                 if 'band structure' in calc.results:
                     # Load the bandstructure. Because we are going apply a vertical shift, we take a copy of the
@@ -274,14 +277,14 @@ class WannierizeWorkflow(Workflow):
                     up_label = label.replace(', down', ', up')
                     if ', down' in label:
                         kwargs['ls'] = '--'
-                    if ', down' in label and up_label in colours:
-                        colours[label] = colours[up_label]
+                    if ', down' in label and up_label in colors:
+                        colors[label] = colors[up_label]
                     else:
-                        colours[label] = [next(color_cycle)['color'] for _ in range(bs.energies.shape[0])]
+                        colors[label] = [next(color_cycle)['color'] for _ in range(bs.energies.shape[0])]
                     if 'explicit' in label:
                         kwargs['ls'] = 'none'
                         kwargs['marker'] = 'x'
-                    kwargs['colors'] = colours[label]
+                    kwargs['colors'] = colors[label]
 
                     # Store
                     bs_list.append(bs)
@@ -307,13 +310,13 @@ class WannierizeWorkflow(Workflow):
             elif init_orbs == 'mlwfs':
                 pass
             else:
-                raise ValueError(f'Unrecognised orbital type {init_orbs} (must be "mlwfs" or "projwfs")')
+                raise ValueError(f'Unrecognized orbital type {init_orbs} (must be "mlwfs" or "projwfs")')
 
             if calc.parameters.gamma_only != self.gamma_only:
                 # forcing W90 to follow the same logic of PW for the gamma_trick
                 calc.parameters.gamma_only = self.gamma_only
         if calc_type == 'pw2wannier':
-            if self._force_nspin2 and not self.parameters.spin_polarised:
+            if self._force_nspin2 and not self.parameters.spin_polarized:
                 calc.parameters.spin_component = 'up'
 
         # Use a unified tmp directory
@@ -324,7 +327,7 @@ class WannierizeWorkflow(Workflow):
 
     def merge_wannier_files(self, block: List[projections.ProjectionBlock], prefix: str = 'wann'):
         """
-        Merges the hr (Hamiltonian), u (rotation matrix), and wannier centres files of a collection of blocks that
+        Merges the hr (Hamiltonian), u (rotation matrix), and wannier centers files of a collection of blocks that
         share the same filling and spin
         """
 
@@ -345,8 +348,8 @@ class WannierizeWorkflow(Workflow):
             # Merging the U (rotation matrix) files
             self.merge_wannier_u_files(dirs_in, dir_out, prefix)
 
-            # Merging the wannier centres files
-            self.merge_wannier_centres_files(dirs_in, dir_out, prefix)
+            # Merging the wannier centers files
+            self.merge_wannier_centers_files(dirs_in, dir_out, prefix)
 
     @staticmethod
     def merge_wannier_hr_files(dirs_in: List[Path], dir_out: Path, prefix: str):
@@ -426,18 +429,18 @@ class WannierizeWorkflow(Workflow):
         # Writing out the large U file
         utils.write_wannier_u_file(dir_out / (prefix + '_u.mat'), u_merged, kpts)
 
-    def merge_wannier_centres_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
-        centres_list = []
+    def merge_wannier_centers_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
+        centers_list = []
         for dir_in in dirs_in:
-            # Reading the centres file
-            fname_in = dir_in / (prefix + '_centres.xyz')
+            # Reading the centers file
+            fname_in = dir_in / (prefix + '_centers.xyz')
 
-            centres, _ = utils.read_wannier_centres_file(fname_in)
+            centers, _ = utils.read_wannier_centers_file(fname_in)
 
-            centres_list += centres
+            centers_list += centers
 
-        # Writing the centres file
-        utils.write_wannier_centres_file(dir_out / (prefix + '_centres.xyz'), centres_list, self.atoms)
+        # Writing the centers file
+        utils.write_wannier_centers_file(dir_out / (prefix + '_centers.xyz'), centers_list, self.atoms)
 
     def extend_wannier_u_dis_file(self, block: List[projections.ProjectionBlock], prefix: str = 'wann'):
         # Read in

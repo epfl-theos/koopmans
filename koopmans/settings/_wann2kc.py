@@ -1,5 +1,7 @@
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
 from ase.io.espresso import w2kcw_keys
+
 from ._utils import SettingsDict, kc_wann_defaults
 
 

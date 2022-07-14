@@ -18,6 +18,7 @@ Contents
    theory
    installation
    running
+   modules
    tutorials
    links
    references

@@ -6,12 +6,12 @@ Written by Edward Linscott May 2020
 
 '''
 
-import os
-from glob import glob
-from pathlib import Path
-from typing import Union
-import subprocess
 import contextlib
+from glob import glob
+import os
+from pathlib import Path
+import subprocess
+from typing import Union
 
 
 def system_call(command: str, check_ierr: bool = True):
@@ -31,7 +31,7 @@ def symlink(src: Union[str, Path], dest: Union[str, Path], relative: bool = True
         for src_file in glob(src):
             symlink(src_file, dest, relative, exist_ok, force)
     else:
-        # Sanitise input
+        # Sanitize input
         if isinstance(src, str):
             src = Path(src)
         if isinstance(dest, str):

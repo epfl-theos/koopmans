@@ -7,11 +7,13 @@ Written by Riccardo De Gennaro Mar 2022
 """
 
 import os
+
 from ase import Atoms
 from ase.calculators.espresso import Wann2KCP
-from koopmans.settings import Wann2KCPSettingsDict
 from koopmans.commands import ParallelCommand
-from ._utils import CalculatorExt, CalculatorABC, bin_directory
+from koopmans.settings import Wann2KCPSettingsDict
+
+from ._utils import CalculatorABC, CalculatorExt, bin_directory
 
 
 class Wann2KCPCalculator(CalculatorExt, Wann2KCP, CalculatorABC):
@@ -22,7 +24,7 @@ class Wann2KCPCalculator(CalculatorExt, Wann2KCP, CalculatorABC):
     def __init__(self, atoms: Atoms, *args, **kwargs):
         self.parameters = Wann2KCPSettingsDict()
 
-        # Initialise first using the ASE parent and then CalculatorExt
+        # Initialize first using the ASE parent and then CalculatorExt
         Wann2KCP.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
 

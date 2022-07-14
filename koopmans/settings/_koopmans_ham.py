@@ -1,6 +1,8 @@
 from typing import Any
+
 from ase.dft.kpoints import BandPath
 from ase.io.espresso import kch_keys
+
 from ._utils import SettingsDict, kc_wann_defaults
 
 

@@ -7,14 +7,17 @@ Written by Edward Linscott Sep 2020
 """
 
 import os
+
 import numpy as np
+
 from ase import Atoms
 from ase.calculators.wannier90 import Wannier90
 from ase.dft.kpoints import BandPath
-from koopmans.utils import warn
-from koopmans.settings import Wannier90SettingsDict
 from koopmans.commands import Command
-from ._utils import CalculatorExt, CalculatorABC, bin_directory
+from koopmans.settings import Wannier90SettingsDict
+from koopmans.utils import warn
+
+from ._utils import CalculatorABC, CalculatorExt, bin_directory
 
 
 class Wannier90Calculator(CalculatorExt, Wannier90, CalculatorABC):
@@ -25,7 +28,7 @@ class Wannier90Calculator(CalculatorExt, Wannier90, CalculatorABC):
         # Define the list of parameters
         self.parameters = Wannier90SettingsDict()
 
-        # Initialise first using the ASE parent and then CalculatorExt
+        # Initialize first using the ASE parent and then CalculatorExt
         Wannier90.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
 

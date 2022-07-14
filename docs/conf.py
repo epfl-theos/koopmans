@@ -11,9 +11,11 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 # import os
-# import sys
+import sys
+
 import sphinx_rtd_theme
-# sys.path.insert(0, os.path.abspath('.'))
+
+sys.path.append('..')
 
 
 # -- Project information -----------------------------------------------------
@@ -32,9 +34,11 @@ version = ''.join([c for c in release if not c.isalpha()])
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['recommonmark', 'sphinx.ext.mathjax', 'sphinx.ext.autosectionlabel', 'sphinxcontrib.bibtex',
-              'sphinx_toolbox.collapse']
+extensions = ['recommonmark', 'sphinx.ext.mathjax', 'sphinx.ext.autosectionlabel',
+              'sphinxcontrib.bibtex', 'sphinx_toolbox.collapse', 'sphinx.ext.autodoc',
+              'numpydoc', 'sphinx.ext.autosummary']
 bibtex_bibfiles = ['refs.bib']
+autosectionlabel_prefix_document = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -61,3 +65,7 @@ html_favicon = "_static/logos/k_white_on_grey_tiny.png"
 html_theme_options = {'logo_only': True, 'display_version': False}
 
 master_doc = 'index'
+
+# -- Autodoc options ----------------------------------------------------------
+autodoc_typehints = 'none'
+numpydoc_show_class_members = False

@@ -6,9 +6,10 @@ Integrated within koopmans by Edward Linscott Jan 2021
 
 """
 
+from typing import List, TypeVar, Union
+
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
-from typing import TypeVar, Union, List
 
 
 def crys_to_cart(vec: NDArray[np.float_], trmat: NDArray[np.float_], typ: int) -> NDArray[np.float_]:

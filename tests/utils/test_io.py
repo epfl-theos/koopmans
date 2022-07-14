@@ -1,7 +1,9 @@
-import pytest
-import numpy as np
 import itertools
 from pathlib import Path
+
+import numpy as np
+import pytest
+
 from koopmans import utils, workflows
 
 wann_files_dir = Path(__file__).parent / 'w90_example_files'

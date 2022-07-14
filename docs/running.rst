@@ -1,17 +1,20 @@
-Running
-=======
-To run a calculation, all that is required is 
+How to run
+==========
+To run a calculation from the command line, all that is required is 
 
 .. code-block:: bash
 
   $ koopmans <seed>.json
 
+where ``<seed>.json`` is a ``koopmans`` input file.
+
 The input file
 ^^^^^^^^^^^^^^
-The input file is a JSON-formatted file that contains the calculation parameters, divided into the :ref:`workflow <The workflow block>`, :ref:`setup <The setup block>`, :ref:`kcp <The kcp block>`, :ref:`pw <The pw block>`, :ref:`w90 <The w90 block>`, :ref:`pw2wannier <The pw2wannier block>`, and :ref:`ui <The ui block>` blocks.
+
+The input file is a JSON-formatted file that contains the calculation parameters, divided into various blocks
+
 
 .. toctree::
-  :hidden:
 
   running/workflow
   running/setup
@@ -22,9 +25,33 @@ The input file is a JSON-formatted file that contains the calculation parameters
   running/ui
   running/plot
 
-Environment variables
-^^^^^^^^^^^^^^^^^^^^^
+Running via python
+^^^^^^^^^^^^^^^^^^
+It is possible to run ``koopmans`` workflows from within python, bypassing the need for an input file entirely. To do this, all you need to do is create a ``SinglepointWorkflow`` object
+
+.. code-block:: python
+
+  wf = SinglepointWorkflow(...)
+
+and then simply call
+
+.. code-block:: python
+
+  wf.run()
+
+For details of how to initialize a workflow object, see the :ref:`workflow class documentation <modules:The workflow module>`. After a calculation has finished, you can access the individual calculations e.g.
+
+.. code-block:: python
+
+  final_calc = wf.calculations[-1]
+
+and fetch their results e.g.
+
+.. code-block:: python
+
+  total_energy = final_calc.results['energy']
 
 .. include:: ../README.rst
-    :start-line: 68
-    :end-line: 80
+    :start-line: 93
+    :end-line: 115
+

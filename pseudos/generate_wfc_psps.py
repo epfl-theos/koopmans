@@ -3,7 +3,6 @@ Script for regenerating pseudopotentials missing PP_PSWFC fields with oncvpsp(r)
 Written by Edward Linscott, March 2022
 '''
 
-from glob import glob
 from pathlib import Path
 import subprocess
 import xml.etree.ElementTree as ET
