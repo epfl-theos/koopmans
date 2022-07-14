@@ -78,7 +78,7 @@ def test_read_write_wannier_centers_file(silicon, tmp_path, datadir):
 
         # Generate some pseudo-random centers
         np.random.seed(100)
-        centers = 10*np.random.random_sample((3, 10))
+        centers = 10 * np.random.random_sample((3, 10))
 
         # Write the centers file
         xyz_file = tmp_path / 'centers.xyz'
