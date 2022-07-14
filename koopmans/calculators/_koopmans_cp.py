@@ -512,9 +512,10 @@ def convert_flat_alphas_for_kcp(flat_alphas: List[float],
     # Here we reorder this into a nested list indexed by [i_spin][i_orbital]
     if parameters.nspin == 2:
         nbnd = len(flat_alphas) // 2
+        nelec = parameters.nelec if parameters.nelec else parameters.nelup + parameters.neldw
         alphas = [flat_alphas[:parameters.nelup]
-                  + flat_alphas[parameters.nelec:(nbnd + parameters.neldw)],
-                  flat_alphas[parameters.nelup:parameters.nelec]
+                  + flat_alphas[nelec:(nbnd + parameters.neldw)],
+                  flat_alphas[parameters.nelup:nelec]
                   + flat_alphas[(nbnd + parameters.neldw):]]
     else:
         alphas = [flat_alphas]
