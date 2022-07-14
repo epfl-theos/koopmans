@@ -163,9 +163,9 @@ def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '
     global print_call_end
     for substring in text.split('\n'):
         if print_call_end == '\n':
-            print(' ' * indent + substring, sep, end, file, flush)
+            print(' ' * indent + substring, sep=sep, end=end, file=file, flush=flush)
         else:
-            print(substring, sep, end, file, flush)
+            print(substring, sep=sep, end=end, file=file, flush=flush)
     print_call_end = end
 
 
