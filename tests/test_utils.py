@@ -54,3 +54,40 @@ def test_write_read_wannier_u_file(tmp_path):
         # Compare the two
         assert np.allclose(umat, umat_out)
         assert np.allclose(kpts, kpts_out)
+
+
+def test_read_wannier_centers_file(tmp_path, datadir):
+    '''
+    Test function for utils.read_wannier_centers_file
+    '''
+    with utils.chdir(tmp_path):
+        xyz_file = (datadir / 'w90' / 'example_centres.xyz').resolve()
+
+        centers, atoms = utils.read_wannier_centers_file(xyz_file)
+
+        assert all(atoms.symbols == 'C12H12')
+
+
+def test_read_write_wannier_centers_file(silicon, tmp_path, datadir):
+    '''
+    Test function for utils.read_wannier_centers_file and utils.write_wannier_centers_file
+    '''
+    with utils.chdir(tmp_path):
+        # Use silicon as the atoms
+        atoms = silicon['atoms']
+
+        # Generate some pseudo-random centers
+        np.random.seed(100)
+        centers = 10*np.random.random_sample((3, 10))
+
+        # Write the centers file
+        xyz_file = tmp_path / 'centers.xyz'
+        utils.write_wannier_centers_file(xyz_file, centers, atoms)
+
+        # Read the centers file
+        centers_in, atoms_in = utils.read_wannier_centers_file(xyz_file)
+
+        # Check that the centers and atoms are unchanged
+        assert np.allclose(centers_in, centers)
+        assert np.allclose(atoms.positions, atoms_in.positions)
+        assert all(atoms.symbols == atoms_in.symbols)
