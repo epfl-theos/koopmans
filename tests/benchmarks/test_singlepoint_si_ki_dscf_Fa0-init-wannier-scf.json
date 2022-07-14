@@ -95,13 +95,7 @@
   "lumo_energy": null,
   "electrostatic embedding": null,
   "iterations": 6,
-  "job done": true,
-  "energy contributions": {
-   "one-electron": 65.89871145306851,
-   "hartree": 17.296794519260317,
-   "xc": -66.57658838646321,
-   "ewald": -228.56125373075326
-  }
+  "job done": true
  },
  "_directory": {
   "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dscf_Fa0/init/wannier"
