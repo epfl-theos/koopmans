@@ -19,6 +19,35 @@ load_results_from_output = True
 
 class SinglepointWorkflow(Workflow):
 
+    '''
+    Examples
+    --------
+
+    Running a Koopmans calculation on ozone
+
+        >>> from ase.build import molecule
+        >>> ozone = molecule('O3', vacuum=5.0, pbc=False)
+        >>> wf = SinglepointWorkflow(ozone, ecutwfc = 20.0)
+        >>> wf.run()
+
+    Running a Koopmans calculation on GaAs
+
+        >>> from ase.build import bulk
+        >>> from koopmans.projections import ProjectionBlocks
+        >>> gaas = bulk('GaAs', crystalstructure='zincblende', a=5.6536)
+        >>> projs = ProjectionBlocks.fromprojections([["Ga: d"], ["As: sp3"], ["Ga: sp3"]],
+        >>>                                           fillings=[True, True, False],
+        >>>                                           spins=[None, None, None],
+        >>>                                           atoms=gaas)
+        >>> wf = SinglepointWorkflow(gaas, kgrid=[2, 2, 2], projections=projs, init_orbitals='mlwfs',
+        >>>                          pseudo_library='sg15_v1.0', ecutwfc=40.0, master_calc_params={'pw': {'nbnd': 45},
+        >>>                          'w90_emp': {'dis_froz_max': 14.6, 'dis_win_max': 18.6}})
+        >>> wf.run()
+    '''
+
+    if Workflow.__doc__ and __doc__:
+        __doc__ = Workflow.__doc__ + __doc__
+
     def _run(self) -> None:
 
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
@@ -29,8 +58,8 @@ class SinglepointWorkflow(Workflow):
         )
 
         if self.parameters.method == 'dfpt':
-            workflow = KoopmansDFPTWorkflow(**self.wf_kwargs)
-            self.run_subworkflow(workflow)
+            workflow = KoopmansDFPTWorkflow.fromparent(self)
+            workflow.run()
 
         elif self.parameters.functional == 'all':
             # if 'all', create subdirectories and run
@@ -49,25 +78,17 @@ class SinglepointWorkflow(Workflow):
             for functional in functionals:
                 self.print(f'\n{functional.upper().replace("PKIPZ", "pKIPZ")} calculation', style='heading')
 
-                # Make a copy of the workflow settings to modify
-                wf_kwargs = self.wf_kwargs
-                local_parameters = wf_kwargs.pop('parameters')
-
-                # Select the functional
-                local_parameters.functional = functional
-
                 # For pKIPZ/KIPZ, use KI as a starting point
-                if functional == 'pkipz':
-                    local_parameters.calculate_alpha = False
                 restart_from_old_ki = (functional == 'kipz')
 
                 # We only need to do the smooth interpolation the first time (i.e. for KI)
                 redo_smooth_dft = None if functional == 'ki' else False
 
                 # Create a KC workflow for this particular functional
-                kc_workflow = KoopmansDSCFWorkflow(parameters=local_parameters,
-                                                   restart_from_old_ki=restart_from_old_ki,
-                                                   redo_smooth_dft=redo_smooth_dft, **wf_kwargs)
+                kc_workflow = KoopmansDSCFWorkflow.fromparent(self, functional=functional,
+                                                              restart_from_old_ki=restart_from_old_ki,
+                                                              redo_smooth_dft=redo_smooth_dft,
+                                                              calculate_alpha=(functional != 'pkipz'))
 
                 # Transform to the supercell
                 if functional == 'kipz':
@@ -76,9 +97,9 @@ class SinglepointWorkflow(Workflow):
                 # Run the workflow
                 if functional == 'pkipz' and self.parameters.from_scratch:
                     # We want to run pKIPZ with from_scratch = False, but don't want this to be inherited
-                    self.run_subworkflow(kc_workflow, subdirectory=functional, from_scratch=False)
+                    kc_workflow.run(subdirectory=functional, from_scratch=False)
                 else:
-                    self.run_subworkflow(kc_workflow, subdirectory=functional)
+                    kc_workflow.run(subdirectory=functional)
 
                 # Provide the pKIPZ and KIPZ calculations with a KI starting point
                 if functional == 'ki':
@@ -114,8 +135,8 @@ class SinglepointWorkflow(Workflow):
         else:
             # self.functional != all and self.method != 'dfpt'
             if self.parameters.functional in ['ki', 'pkipz', 'kipz']:
-                dscf_workflow = KoopmansDSCFWorkflow(**self.wf_kwargs)
-                self.run_subworkflow(dscf_workflow)
+                dscf_workflow = KoopmansDSCFWorkflow.fromparent(self)
+                dscf_workflow.run()
             else:
-                dft_workflow = DFTCPWorkflow(**self.wf_kwargs)
-                self.run_subworkflow(dft_workflow)
+                dft_workflow = DFTCPWorkflow.fromparent(self)
+                dft_workflow.run()

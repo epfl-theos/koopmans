@@ -48,16 +48,15 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                      and c.command.flags == ''][-len(self.projections):]
 
         if self.master_calc_params['ui'].do_smooth_interpolation:
-            wf_kwargs = self.wf_kwargs
-            wf_kwargs['kgrid'] = [x * y for x,
-                                  y in zip(wf_kwargs['kgrid'], self.master_calc_params['ui'].smooth_int_factor)]
-            wannier_workflow = WannierizeWorkflow(scf_kgrid=self.kgrid, **wf_kwargs)
+            wannier_workflow = WannierizeWorkflow.fromparent(self, scf_kgrid=self.kgrid)
+            wannier_workflow.kgrid = [x * y for x,
+                                      y in zip(self.kgrid, self.master_calc_params['ui'].smooth_int_factor)]
 
             # Here, we allow for skipping of the smooth dft calcs (assuming they have been already run)
-            # This is achieved via the optional argument of from_scratch in run_subworkflow(), which
+            # This is achieved via the optional argument of from_scratch in run(), which
             # overrides the value of wannier_workflow.from_scratch, as well as preventing the inheritance of
             # self.from_scratch to wannier_workflow.from_scratch and back again after the subworkflow finishes
-            self.run_subworkflow(wannier_workflow, from_scratch=self._redo_smooth_dft)
+            wannier_workflow.run(from_scratch=self._redo_smooth_dft)
 
         calc: calculators.UnfoldAndInterpolateCalculator
         if self.parameters.spin_polarized:

@@ -119,15 +119,15 @@ class KoopmansDFPTWorkflow(Workflow):
                 if key.startswith('w90'):
                     self.master_calc_params[key].write_u_matrices = True
                     self.master_calc_params[key].write_xyz = True
-            wf_workflow = WannierizeWorkflow(force_nspin2=True, **self.wf_kwargs)
-            self.run_subworkflow(wf_workflow)
+            wf_workflow = WannierizeWorkflow.fromparent(self, force_nspin2=True)
+            wf_workflow.run()
 
         else:
             # Run PW
             self.print('Initialization of density and variational orbitals', style='heading')
 
             # Create the workflow
-            pw_workflow = DFTPWWorkflow(**self.wf_kwargs)
+            pw_workflow = DFTPWWorkflow.fromparent(self)
 
             # Update settings
             pw_params = pw_workflow.master_calc_params['pw']
@@ -136,7 +136,7 @@ class KoopmansDFPTWorkflow(Workflow):
 
             # Run the subworkflow
             with utils.chdir('init'):
-                self.run_subworkflow(pw_workflow)
+                pw_workflow.run()
 
         # Copy the outdir to the base directory
         base_outdir = self.master_calc_params['pw'].outdir
@@ -199,8 +199,8 @@ class KoopmansDFPTWorkflow(Workflow):
                 and self.master_calc_params['ui'].do_smooth_interpolation:
             from koopmans.workflows import UnfoldAndInterpolateWorkflow
             self.print(f'\nPostprocessing', style='heading')
-            ui_workflow = UnfoldAndInterpolateWorkflow(**self.wf_kwargs)
-            self.run_subworkflow(ui_workflow, subdirectory='postproc')
+            ui_workflow = UnfoldAndInterpolateWorkflow.fromparent(self)
+            ui_workflow.run(subdirectory='postproc')
 
         # Plotting
         self.plot_bandstructure()
