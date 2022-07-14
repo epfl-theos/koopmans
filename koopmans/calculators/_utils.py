@@ -84,7 +84,7 @@ class CalculatorExt():
         self.skip_qc = skip_qc
 
     @property
-    def parameters(self):
+    def parameters(self) -> settings.SettingsDict:
         if not hasattr(self, '_parameters'):
             raise ValueError(f'{self}.parameters has not yet been set')
         return self._parameters

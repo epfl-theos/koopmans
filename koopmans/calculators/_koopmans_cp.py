@@ -353,6 +353,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
         flat_alphas = utils.read_alpha_file(self.directory)
 
+        assert isinstance(self.parameters, settings.KoopmansCPSettingsDict)
         return convert_flat_alphas_for_kcp(flat_alphas, self.parameters)
 
     # The following functions enable DOS generation via ase.dft.dos.DOS(<KoopmansCPCalculator object>)
