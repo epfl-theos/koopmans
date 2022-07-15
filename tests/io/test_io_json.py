@@ -1,6 +1,6 @@
 '''
 
-Tests for koopmans.io
+Tests for koopmans.io._json
 
 '''
 

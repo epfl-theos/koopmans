@@ -1,0 +1,40 @@
+&CONTROL
+   calculation      = 'scf'
+   verbosity        = 'high'
+   outdir           = '/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dfpt_ex0/wannier/TMP/'
+   prefix           = 'kc'
+   pseudo_dir       = '/home/elinscott/code/koopmans/pseudos/sg15_v1.2/pbe/'
+/
+&SYSTEM
+   tot_charge       = 0
+   tot_magnetization = 0
+   ecutwfc          = 40.0
+   nspin            = 2
+   starting_magnetization(1) = 0.0
+   ntyp             = 1
+   nat              = 2
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 1.6e-08
+/
+&IONS
+/
+&CELL
+/
+
+ATOMIC_SPECIES
+Si  28.085 Si_ONCV_PBE-1.2.upf
+
+K_POINTS automatic
+2 2 2  0 0 0
+
+CELL_PARAMETERS angstrom
+0.00000000000000 2.71500000000000 2.71500000000000
+2.71500000000000 0.00000000000000 2.71500000000000
+2.71500000000000 2.71500000000000 0.00000000000000
+
+ATOMIC_POSITIONS crystal
+Si  0.0000000000 0.0000000000 -0.0000000000
+Si  0.2500000000 0.2500000000 0.2500000000
+

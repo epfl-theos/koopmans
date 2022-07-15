@@ -1,0 +1,84 @@
+&CONTROL
+   calculation      = 'cp'
+   verbosity        = 'low'
+   restart_mode     = 'restart'
+   iprint           = 1
+   outdir           = '/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_h2o_ki_dscf_e0/TMP-CP/'
+   prefix           = 'kc'
+   disk_io          = 'high'
+   pseudo_dir       = '/home/elinscott/code/koopmans/pseudos/sg15_v1.2/pbe/'
+   ndr              = 60
+   ndw              = 70
+   write_hr         = .true.
+/
+&SYSTEM
+   nbnd             = 5
+   tot_charge       = 0
+   tot_magnetization = 0
+   ecutwfc          = 20.0
+   nspin            = 2
+   do_orbdep        = .true.
+   fixed_state      = .false.
+   do_ee            = .true.
+   nelec            = 8
+   nelup            = 4
+   neldw            = 4
+   do_wf_cmplx      = .true.
+   starting_magnetization(1) = 0.0
+   starting_magnetization(2) = 0.0
+   ntyp             = 2
+   nat              = 3
+   ibrav            = 0
+/
+&ELECTRONS
+   conv_thr         = 8e-09
+   ortho_para       = 1
+   empty_states_maxstep = 300
+   electron_dynamics = 'cg'
+   passop           = 2.0
+   do_outerloop     = .false.
+   do_outerloop_empty = .true.
+/
+&IONS
+   ion_dynamics     = 'none'
+   ion_nstepe       = 5
+   ion_radius(1)    = 1.0
+   ion_radius(2)    = 1.0
+   ion_radius(3)    = 1.0
+   ion_radius(4)    = 1.0
+/
+&CELL
+/
+&EE
+   which_compensation = 'tcc'
+/
+&NKSIC
+   do_innerloop     = .false.
+   odd_nkscalfact   = .true.
+   odd_nkscalfact_empty = .true.
+   which_orbdep     = 'nki'
+   innerloop_cg_nreset = 20
+   innerloop_cg_nsd = 2
+   innerloop_init_n = 3
+   hartree_only_sic = .false.
+   esic_conv_thr    = 8e-09
+   do_innerloop_cg  = .true.
+   innerloop_nmax   = 100
+   do_innerloop_empty = .false.
+   do_bare_eigs     = .true.
+/
+
+ATOMIC_SPECIES
+O  15.999 O_ONCV_PBE-1.2.upf
+H  1.008 H_ONCV_PBE-1.2.upf
+
+CELL_PARAMETERS angstrom
+10.00000000000000 0.00000000000000 0.00000000000000
+0.00000000000000 11.52647800000000 0.00000000000000
+0.00000000000000 0.00000000000000 10.59630900000000
+
+ATOMIC_POSITIONS angstrom
+O  5.0000000000 5.7632390000 5.5963090000
+H  5.0000000000 6.5264780000 5.0000000000
+H  5.0000000000 5.0000000000 5.0000000000
+
