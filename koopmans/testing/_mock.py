@@ -106,9 +106,13 @@ class MockCalc:
     def is_complete(self):
         return (self.directory / f'{self.prefix}{self.ext_out}').is_file()
 
-    def check_code_is_installed(self) -> bool:
-        # Don't check if the code is installed
-        return True
+    def check_code_is_installed(self):
+        try:
+            super().check_code_is_installed()
+        except OSError as e:
+            # The only valid error to encounter is that the code in question is not installed
+            assert str(e) == f'{self.command.executable} is not installed'
+        return
 
     def read_results(self) -> None:
         raise AssertionError('A MockCalc should not attempt to read results')

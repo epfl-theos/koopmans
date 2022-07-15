@@ -167,13 +167,14 @@ class CalculatorExt():
 
     def check_code_is_installed(self):
         # Checks the corresponding code is installed
-        if self.command.path == '':
+        if self.command.path == Path():
+            if not (self.command.path / self.command.executable).is_file():
+                raise OSError(f'{self.command.executable} is not installed')
+        else:
             executable_with_path = utils.find_executable(self.command.executable)
             if executable_with_path is None:
                 raise OSError(f'{self.command.executable} is not installed')
             self.command.path = executable_with_path.rsplit('/', 1)[0] + '/'
-        else:
-            assert (self.command.path / self.command.executable).is_file
         return
 
     def write_alphas(self):

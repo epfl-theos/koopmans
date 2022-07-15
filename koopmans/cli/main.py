@@ -13,7 +13,7 @@ Perform KI/KIPZ calculations
 
 
 def main():
-    # Automatically constructing a list of workflow keywords for 'run_koopmans.py --help'
+    # Automatically constructing a list of workflow keywords for 'koopmans --help'
     # from valid_settings
     epilog = ''
     wf_settings = WorkflowSettingsDict()
