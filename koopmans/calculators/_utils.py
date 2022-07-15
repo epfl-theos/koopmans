@@ -76,6 +76,9 @@ class CalculatorExt():
     ext_out: str = ''
 
     def __init__(self, skip_qc: bool = False, **kwargs: Any):
+        # Remove arguments that should not be treated as QE keywords
+        kwargs.pop('directory', None)
+
         # Handle any recognized QE keywords passed as arguments
         self.parameters.update(**kwargs)
 
