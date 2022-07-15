@@ -18,12 +18,12 @@ def test_cart2sph(r_spherical: np.ndarray, debug_out: Path):
         theta_max = np.max(r_spherical[:, :, :, 1])
         phi_min = np.min(r_spherical[:, :, :, 2])
         phi_max = np.max(r_spherical[:, :, :, 2])
-        file.write(f"r_min     = {r_min}")
-        file.write(f"r_max     = {r_max}")
-        file.write(f"theta_min = {theta_min}")
-        file.write(f"theta_max = {theta_max}")
-        file.write(f"phi_min   = {phi_min}")
-        file.write(f"phi_max   = {phi_max}")
+        file.write(f"r_min     = {r_min}\n")
+        file.write(f"r_max     = {r_max}\n")
+        file.write(f"theta_min = {theta_min}\n")
+        file.write(f"theta_max = {theta_max}\n")
+        file.write(f"phi_min   = {phi_min}\n")
+        file.write(f"phi_max   = {phi_max}\n")
 
 
 def test_translate_to_new_integration_domain(f: np.ndarray, f_new: np.ndarray, wfc_center: np.ndarray, debug_out: Path):
@@ -32,12 +32,12 @@ def test_translate_to_new_integration_domain(f: np.ndarray, f_new: np.ndarray, w
     """
 
     with open(debug_out, 'a') as file:
-        file.write(f"wfc_center                = ({wfc_center[0]}, {wfc_center[1]}, {wfc_center[2]})")
-        file.write(f"Max of f on original grid = {np.max(f)}")
-        file.write(f"Max of f on new grid:     = {np.max(f_new)}")
+        file.write(f"wfc_center                = ({wfc_center[0]}, {wfc_center[1]}, {wfc_center[2]})\n")
+        file.write(f"Max of f on original grid = {np.max(f)}\n")
+        file.write(f"Max of f on new grid:     = {np.max(f_new)}\n")
 
 
-def test_decomposition(total_basis_array: np.ndarray, rho_r: np.ndarray, rho_r_xsf: np.ndarray, total_density_r_xsf: np.ndarray, coefficients_orbital: List[float], coefficients_total: List[float], nr_xml: Tuple[int, int, int], nr_new_integration_domain: Tuple[int, int, int], center_index: Tuple[int, int, int], band: Band, atoms: Atoms, write_to_xsf: bool, dirs: Dict[str, Path], debug_out: Path):
+def test_decomposition(total_basis_array: np.ndarray, rho_r: np.ndarray, rho_r_xsf: np.ndarray, total_density_r_xsf: np.ndarray, coefficients_orbital: List[float], coefficients_total: List[float], nr_xml: Tuple[int, int, int], nr_new_integration_domain: Tuple[int, int, int], center_index: Tuple[int, int, int], band: Band, atoms: Atoms, write_to_xsf: bool, dirs: Dict[str, Path], debug_out: Path, wfc_center: np.ndarray):
     """
     Write some quantities to outputfile to find problems in the compuation of the expansion coefficients.
     """
@@ -49,25 +49,25 @@ def test_decomposition(total_basis_array: np.ndarray, rho_r: np.ndarray, rho_r_x
             filled_str = 'emp'
 
         rho_r_reconstruced = get_reconstructed_orbital_densities(total_basis_array, coefficients_orbital)
-        file.write(f"max rho_r_reconstructed                  = {np.max(rho_r_reconstruced)}")
-        file.write(f"writing reconstructed orbital to to xsf file")
+        file.write(f"max rho_r_reconstructed                  = {np.max(rho_r_reconstruced)}\n")
+        file.write(f"writing reconstructed orbital to to xsf file\n")
         rho_r_reconstruced = map_again_to_original_grid(
             rho_r_reconstruced, center_index, nr_xml, nr_new_integration_domain)
-        file.write(f"max rho_r_reconstructed on original grid = {np.max(rho_r_reconstruced)}")
+        file.write(f"max rho_r_reconstructed on original grid = {np.max(rho_r_reconstruced)}\n")
         difference = np.linalg.norm(rho_r_reconstruced-rho_r)
-        file.write(f"Difference to original density           = {difference}")
+        file.write(f"Difference to original density           = {difference}\n")
 
         if write_to_xsf:
             rho_r_reconstructed_xsf = get_orbital_density_to_xsf_grid(rho_r_reconstruced, nr_xml)
             assert isinstance(band.index, int)
             filename_xsf = dirs['xsf'] / 'orbital.reconstructed.{}.{:05d}.xsf'.format(filled_str, band.index)
-            print_to_xsf_file(filename_xsf, atoms, [rho_r_reconstructed_xsf], nr_xml)
+            print_to_xsf_file(filename_xsf, atoms, [rho_r_reconstructed_xsf], nr_xml, [wfc_center])
 
-        file.write(f"reconstruct total density")
+        file.write(f"reconstruct total density\n")
         rho_r_reconstruced = get_reconstructed_orbital_densities(total_basis_array, coefficients_total)
 
         if write_to_xsf:
-            file.write(f"writing reconstructed orbital to to xsf file")
+            file.write(f"writing reconstructed orbital to to xsf file\n")
             rho_r_reconstruced = map_again_to_original_grid(
                 rho_r_reconstruced, center_index, nr_xml, nr_new_integration_domain)
             rho_r_reconstructed_xsf = get_orbital_density_to_xsf_grid(rho_r_reconstruced, nr_xml)
@@ -75,7 +75,7 @@ def test_decomposition(total_basis_array: np.ndarray, rho_r: np.ndarray, rho_r_x
             filename_xsf = dirs['xsf'] / 'total.reconstructed.{}.{:05d}.xsf'.format(filled_str, band.index)
             print_to_xsf_file(filename_xsf, atoms, [rho_r_reconstructed_xsf], nr_xml)
 
-            file.write(f"writing total density minus orbital density to xsf file")
+            file.write(f"writing total density minus orbital density to xsf file\n")
             assert isinstance(band.index, int)
             filename_xsf = dirs['xsf'] / 'total_minus.reconstructed.{}.{:05d}.xsf'.format(filled_str, band.index)
             print_to_xsf_file(filename_xsf, atoms, [total_density_r_xsf-rho_r_xsf], nr_xml)

@@ -260,7 +260,6 @@ MODULE input_parameters
           ! if true, print out the occupied and empty hamiltonians
           ! in the representation of variational orbitals
         
-        ! Yannick Debug: add variable
         LOGICAL :: print_real_space_density = .false.
           ! if true, print out the real space orbital density
 

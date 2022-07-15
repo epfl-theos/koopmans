@@ -355,4 +355,4 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
 
         if Debug:
             debugging.test_decomposition(total_basis_array, rho_r, rho_r_xsf, total_density_r_xsf, coefficients_orbital,
-                                         coefficients_total, nr_xml, nr_new_integration_domain, center_index, band, atoms, write_to_xsf, dirs, debug_out)
+                                         coefficients_total, nr_xml, nr_new_integration_domain, center_index, band, atoms, write_to_xsf, dirs, debug_out, wfc_center)

@@ -57,7 +57,7 @@ cg_empty_sub.o : ions_positions.o
 cg_empty_sub.o : mainvar.o
 cg_empty_sub.o : modules.o
 cg_empty_sub.o : ortho_base.o
-cg_empty_sub.o : yannick.o
+cg_empty_sub.o : print_real_space_orbital_density.o
 cg_sub.o : ../Modules/cell_base.o
 cg_sub.o : ../Modules/constants.o
 cg_sub.o : ../Modules/control_flags.o
@@ -88,7 +88,7 @@ cg_sub.o : ions_positions.o
 cg_sub.o : mainvar.o
 cg_sub.o : modules.o
 cg_sub.o : ortho_base.o
-cg_sub.o : yannick.o
+cg_sub.o : print_real_space_orbital_density.o
 cglib.o : ../Modules/cell_base.o
 cglib.o : ../Modules/constants.o
 cglib.o : ../Modules/control_flags.o
@@ -1553,10 +1553,10 @@ vol_clu.o : ../include/f_defs.h
 wannier.o : ../include/f_defs.h
 wave.o : ../include/f_defs.h
 wf.o : ../include/f_defs.h
-yannick.o : ../Modules/griddim.o
-yannick.o : nksiclib.o
-yannick.o : io_pot_sic_xml.o
-yannick.o : cp_interfaces.o
-yannick.o : ../Modules/twin_types.o
-yannick.o : ../Modules/wavefunctions.o
+print_real_space_orbital_density.o : ../Modules/griddim.o
+print_real_space_orbital_density.o : nksiclib.o
+print_real_space_orbital_density.o : io_pot_sic_xml.o
+print_real_space_orbital_density.o : cp_interfaces.o
+print_real_space_orbital_density.o : ../Modules/twin_types.o
+print_real_space_orbital_density.o : ../Modules/wavefunctions.o
 

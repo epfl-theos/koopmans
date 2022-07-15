@@ -6,6 +6,11 @@ import matplotlib.pyplot as plt
 import koopmans.ml_utils._basis_functions as basis
 
 
+import matplotlib.pyplot as plt
+
+Debug = True
+
+
 def compute_alphas(n_max: int, l_max: int, r_thrs: np.ndarray, thr: float):
     """
     Computes the decay-coefficients alpha_nl, by demanding that for each r_thrs[n],
@@ -56,6 +61,7 @@ def compute_beta(n_max: int, l: int, alphas: np.ndarray) -> np.ndarray:
     """
 
     s = compute_s(n_max, l, alphas)
+
     beta = lowdin(s)
     return beta
 
@@ -69,6 +75,11 @@ def precompute_parameters_of_radial_basis(n_max: int, l_max: int, r_min_thr: flo
     r_thrs = np.zeros(n_max)
 
     r_thrs = np.linspace(r_min_thr, r_max_thr, n_max)
+
+    if Debug:
+        debug_out = dirs['ml'] / 'orbitals_to_power_spectra_debug.out'
+        with open(debug_out, 'a') as file:
+            file.write(f"r_thrs = {r_thrs}\n")
 
     alphas = compute_alphas(n_max, l_max, r_thrs, thr)
 

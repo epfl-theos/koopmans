@@ -2,6 +2,7 @@
 Written by Yannick Schubert Jul 2022
 """
 
+from black import ipynb_diff
 import numpy as np
 import os
 from typing import Tuple
@@ -62,8 +63,11 @@ class MLFiitingWorkflow(Workflow):
 
         # Specify for which bands we want to compute the decomposition
         self.bands_to_extract = self.bands.to_solve
-        self.n_bands_to_extract = [len([band for band in self.bands_to_extract if band.filled == filled])
-                                   for filled in [True, False]]
+        self.num_bands_occ = [len([band for band in self.bands if (band.filled == True and band.spin == spin)])
+                              for spin in [0, 1]]
+        self.num_bands_to_extract = [len([band for band in self.bands_to_extract if band.filled == filled])
+                                     for filled in [True, False]]
+
         if self.bands.spin_polarised:
             self.nspin_to_extract = 2
         else:
@@ -81,18 +85,10 @@ class MLFiitingWorkflow(Workflow):
         self.compute_decomposition()
         self.compute_power_spectrum()
 
-    # TODO Yannick: currently it extracts all orbitals in [1,..,self.n_bands_to_extract[0]] instead of the indices given by self.bands_to_extract
-
     def convert_bin2xml(self):
         """
         Converts the binary files produced by a previous calculation to python-readable xml-files.
         """
-
-        with open(self.dirs['xml'] / 'bands_to_solve.txt', "w") as f:
-            f.write(f"{len(self.bands_to_extract)}\n")
-            for i in range(len(self.bands_to_extract)):
-                f.write(
-                    f"{self.bands_to_extract[i].index}, {int(self.bands_to_extract[i].filled)}, {self.bands_to_extract[i].spin}\n")
 
         if self.method_to_extract_from_binary == 'from_ki':
             orbital_densities_bin_dir = self.calc_that_produced_orbital_densities.parameters.outdir / \
@@ -107,9 +103,14 @@ class MLFiitingWorkflow(Workflow):
         if not self.parameters.from_scratch and is_complete:
             self.print(f'Not running {calculation_title} as it is already complete')
         else:
+            with open(self.dirs['xml'] / 'bands_to_solve.txt', "w") as f:
+                f.write(f"{len(self.bands_to_extract)}\n")
+                for i in range(len(self.bands_to_extract)):
+                    f.write(
+                        f"{self.bands_to_extract[i].index}, {int(self.bands_to_extract[i].filled)}, {self.bands_to_extract[i].spin}\n")
             self.print(f'Running {calculation_title}...', end='', flush=True)
             command = str(calculators.bin_directory / 'bin2xml_real_space_density.x ') + ' '.join(str(x) for x in [
-                orbital_densities_bin_dir, self.dirs['xml'], self.n_bands_to_extract[0]])
+                orbital_densities_bin_dir, self.dirs['xml'], self.num_bands_occ[0]])
             utils.system_call(command)
             self.print(f' done')
 
@@ -119,7 +120,7 @@ class MLFiitingWorkflow(Workflow):
         """
 
         # If there are as many xml-files as there are bands to solve, the calculation was already completed
-        if (len([name for name in os.listdir(self.dirs['xml']) if os.path.isfile(self.dirs['xml'] / name)]) == (self.n_bands_to_extract[0] + self.n_bands_to_extract[1]+2)):
+        if (len([name for name in os.listdir(self.dirs['xml']) if os.path.isfile(self.dirs['xml'] / name)]) == (self.num_bands_to_extract[0] + self.num_bands_to_extract[1]+2)):
             return True
         else:
             return False
@@ -145,14 +146,20 @@ class MLFiitingWorkflow(Workflow):
                 w90_calcs = [c for c in self.calculations if isinstance(
                     c, calculators.Wannier90Calculator) and c.command.flags == ''][-len(self.projections):]
 
-                # TODO Yannick: implement also the spin-polarized case?
-                calc_presets_occ = 'occ'
-                calc_presets_emp = 'emp'
-                centers_occ = np.array([center for c in w90_calcs for center in c.results['centers']
-                                        if calc_presets_occ in c.directory.name])
-                centers_emp = np.array([center for c in w90_calcs for center in c.results['centers']
-                                        if calc_presets_emp in c.directory.name])
-                centers = np.concatenate([centers_occ, centers_emp])
+                if self.parameters.spin_polarised:
+                    spins = ['up', 'down']
+                else:
+                    spins = [None]
+
+                centers_list = []
+                for spin in spins:
+                    for filling in ['occ', 'emp']:
+                        calc_presets = filling
+                        if spin:
+                            calc_presets += '_' + spin
+                        centers_list.append(np.array([center for c in w90_calcs for center in c.results['centers']
+                                                      if calc_presets in c.directory.name]))
+                centers = np.concatenate(centers_list)
 
             else:
                 raise NotImplementedError(
@@ -170,7 +177,7 @@ class MLFiitingWorkflow(Workflow):
         """
 
         # If there are as many coefficient-files as there are bands to solve, the calculation was already completed
-        if (len([name for name in os.listdir(self.dirs['coeff'] / 'coeff_tot') if os.path.isfile(self.dirs['coeff'] / 'coeff_tot' / name)]) == (self.n_bands_to_extract[0] + self.n_bands_to_extract[1])):
+        if (len([name for name in os.listdir(self.dirs['coeff'] / 'coeff_tot') if os.path.isfile(self.dirs['coeff'] / 'coeff_tot' / name)]) == (self.num_bands_to_extract[0] + self.num_bands_to_extract[1])):
             return True
         else:
             return False
@@ -292,7 +299,7 @@ class MLFiitingWorkflow(Workflow):
         # utils.indented_print('')
         # print("Debug: len(predicted alphas) = ", len(self.predicted_alphas))
         # print("Debug: len(calculated alphas) = ", len(self.calculated_alphas))
-        utils.indented_print('\nThe mean absolut error of the predicted screening parameters of this snapshot is {0:.5f}'.format(
+        utils.indented_print('\nThe mean absolut error of the predicted screening parameters of this snapshot is {0:.7f}'.format(
             mae(self.predicted_alphas, self.calculated_alphas)), indent=indent)
         utils.indented_print('')
 

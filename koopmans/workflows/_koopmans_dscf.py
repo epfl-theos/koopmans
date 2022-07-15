@@ -93,7 +93,8 @@ class KoopmansDSCFWorkflow(Workflow):
                 for nelec in nelecs:
                     i_end = i_start + kcp_params.get('nbnd', nelec) - 1
                     orbital_groups.append(list(range(i_start, i_end + 1)))
-                    i_start = i_end
+                    print("Yannick TODO: i_end -> i_end +1; check if this is correct")
+                    i_start = i_end + 1
                 self.parameters.orbital_groups = orbital_groups
 
             if not self.gamma_only:

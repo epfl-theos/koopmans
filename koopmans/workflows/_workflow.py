@@ -439,8 +439,7 @@ class Workflow(ABC):
                 raise NotImplementedError(
                     f'Using the ML-prediction for using different init orbitals for empty states than for occupied states has not yet been implemented.')
             if self.parameters.spin_polarised:
-                raise NotImplementedError(
-                    f'Using the ML-prediction for spin-polarised systems has not yet been implemented.')
+                utils.warn(f'Using the ML-prediction for spin-polarised systems has not yet been implemented.')
             if not self.parameters.periodic:
                 utils.warn(f'Using the ML-prediction for non-periodic systems has not yet been extensively tested.')
             if self.parameters.orbital_groups:

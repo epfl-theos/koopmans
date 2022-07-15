@@ -28,10 +28,11 @@ program bin2xml_real_space_density
     integer            :: nbsp_emp
     integer            :: nspin
     integer            :: spin
-    character(LEN=256) :: source_filename
-    character(LEN=256) :: dest_filename
-    character(LEN=5)   :: orbital_identifier, orbital_identifier_dat
-    character(LEN=1)   :: spin_identifier
+    character(len=256) :: source_filename
+    character(len=256) :: dest_filename
+    character(len=5)   :: orbital_identifier, orbital_identifier_dat
+    character(len=1)   :: spin_identifier
+    character(len=3)   :: occpuation_identifier 
 
     integer              :: num_bands
     integer, allocatable :: bands(:,:)
@@ -66,13 +67,23 @@ program bin2xml_real_space_density
         write(orbital_identifier, "(I5.5)")    bands(i,1)
 
         if (bands(i,2)==1) then 
-            source_filename =  TRIM(source_dir)//'/real_space_orb_density.occ.' // TRIM(spin_identifier) // '.' //TRIM(orbital_identifier)//'.dat'
-            dest_filename   =  TRIM(dest_dir)//'/orbital.occ.' // TRIM(spin_identifier) // '.' //TRIM(orbital_identifier)//'.xml'
+            occpuation_identifier = 'occ'
         else 
-            write(orbital_identifier_dat, "(I5.5)")    bands(i,1) - nbsp_occ
-            source_filename =  TRIM(source_dir)//'/real_space_orb_density.emp.' // TRIM(spin_identifier) // '.' //TRIM(orbital_identifier_dat)//'.dat'
-            dest_filename   =  TRIM(dest_dir)//'/orbital.emp.' // TRIM(spin_identifier) // '.' //TRIM(orbital_identifier)//'.xml'
-        end if 
+            occpuation_identifier = 'emp'
+        end if
+
+        source_filename =  TRIM(source_dir)//'/real_space_orb_density.' // TRIM(occpuation_identifier) // '.' // TRIM(spin_identifier) // '.' //TRIM(orbital_identifier)//'.dat'
+        dest_filename   =  TRIM(dest_dir)  //'/orbital.'                // TRIM(occpuation_identifier) // '.' // TRIM(spin_identifier) // '.' //TRIM(orbital_identifier)//'.xml'
+
+
+        !     source_filename =  TRIM(source_dir)//'/real_space_orb_density.occ.' // TRIM(spin_identifier) // '.' //TRIM(orbital_identifier)//'.dat'
+        !     dest_filename   =  TRIM(dest_dir)//'/orbital.occ.' // TRIM(spin_identifier) // '.' //TRIM(orbital_identifier)//'.xml'
+        ! else 
+        !     source_filename =  TRIM(source_dir)//'/real_space_orb_density.emp.' // TRIM(spin_identifier) // '.' //TRIM(orbital_identifier_dat)//'.dat'
+        !     dest_filename   =  TRIM(dest_dir)//'/orbital.emp.' // TRIM(spin_identifier) // '.' //TRIM(orbital_identifier)//'.xml'
+        ! end if 
+        ! write(*,*) "Yannick Debug: orbital identifier"
+        ! write(*,*) orbital_identifier
 
         call write_bin2xml(source_filename, dest_filename)
     end do 

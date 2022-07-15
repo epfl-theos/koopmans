@@ -64,8 +64,8 @@ subroutine runcg_uspp_emp(c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx, &
    use uspp_param, only: nhm
    use descriptors, only: descla_siz_
    use input_parameters, only: odd_nkscalfact_empty, wo_odd_in_empty_run, odd_nkscalfact, &
-                               do_outerloop_empty, reortho, print_real_space_density ! Yannick Debug
-   use yannick_print_orbr,       only: print_orbr ! Yannick Debug
+                               do_outerloop_empty, reortho, print_real_space_density 
+   use print_real_space_orbital_density,       only: print_orbr 
    !
    implicit none
    !
@@ -370,8 +370,6 @@ subroutine runcg_uspp_emp(c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx, &
       !
       do iss = 1, nspin
          !
-         in_emp = iupdwn_emp(iss)
-         issw = iupdwn(iss)
          !
          CALL gram_empty(.true., eigr, betae, becm, bec, nhsa, &
                          hpsi(:, in_emp:), c0(:, issw:), ngw, &
@@ -1110,11 +1108,9 @@ subroutine runcg_uspp_emp(c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx, &
    WRITE (stdout, '(/,3X,"writing empty state KC  Hamiltonian file: ",A)') TRIM(fname)
    CALL write_ham_emp_xml(nspin, nudx_emp, lambda_emp, desc_emp, fname)
    !
-   if (print_real_space_density) then ! Yannick
-      write(*,*) "Yannick Debug n_emps = "
-      write(*,*) n_emps
-      call print_orbr(bec, n_emps, ispin_emp, n_empx, lgam, .True.) ! Yannick
-   end if ! Yannick
+   if (print_real_space_density) then
+      call print_orbr(bec, n_emps, ispin_emp, lgam, .True., c0_emp) 
+   end if 
 
 
    call do_deallocation()

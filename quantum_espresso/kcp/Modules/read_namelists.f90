@@ -109,7 +109,6 @@ CONTAINS
       saverho = .TRUE.
       !
       write_hr = .FALSE.
-      ! Yannick Debug: added print_real_space_density
       print_real_space_density = .False.
       !
       RETURN
@@ -833,7 +832,7 @@ CONTAINS
       CALL mp_bcast(nberrycyc, ionode_id)
       CALL mp_bcast(saverho, ionode_id)
       CALL mp_bcast(write_hr, ionode_id)
-      CALL mp_bcast(print_real_space_density, ionode_id) ! Yannick Debug
+      CALL mp_bcast(print_real_space_density, ionode_id) 
       !
       RETURN
       !

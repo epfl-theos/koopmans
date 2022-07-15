@@ -73,8 +73,8 @@ subroutine runcg_uspp(nfi, tfirst, tlast, eigr, bec, irb, eigrb, &
    use control_flags, only: iprint_manifold_overlap, iprint_spreads
    use input_parameters, only: fixed_state, fixed_band, odd_nkscalfact, do_outerloop, &
                                finite_field_introduced, finite_field_for_empty_state, &
-                               print_real_space_density !Yannick Debug: added print_real_space_density
-   use yannick_print_orbr, only: print_orbr
+                               print_real_space_density 
+   use print_real_space_orbital_density, only: print_orbr
    !
    implicit none
    !
@@ -1442,8 +1442,7 @@ subroutine runcg_uspp(nfi, tfirst, tlast, eigr, bec, irb, eigrb, &
    end if
    !
    if (print_real_space_density) then
-      write(*,*) "Yannick Debug: Print Real Space Density"
-      call print_orbr(bec, nbsp, ispin, nbspx, lgam, .False.) ! Yannick
+      call print_orbr(bec, nbsp, ispin, lgam, .False., c0) 
    end if
    !
    call do_deallocation()
