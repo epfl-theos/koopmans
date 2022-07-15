@@ -1,0 +1,260 @@
+
+     Program KCW v.7.0 starts on 15Jul2022 at 17:59: 2 
+
+     This program is part of the open-source Quantum ESPRESSO suite
+     for quantum simulation of materials; please cite
+         "P. Giannozzi et al., J. Phys.:Condens. Matter 21 395502 (2009);
+         "P. Giannozzi et al., J. Phys.:Condens. Matter 29 465901 (2017);
+         "P. Giannozzi et al., J. Chem. Phys. 152 154105 (2020);
+          URL http://www.quantum-espresso.org", 
+     in publications or presentations arising from this work. More details at
+     http://www.quantum-espresso.org/quote
+
+     Parallel version (MPI), running on     8 processors
+
+     MPI processes distributed on     1 nodes
+     R & G space division:  proc/nbgrp/npool/nimage =       8
+     42056 MiB available memory on the printing compute node when the environment starts
+ 
+      Title line not specified: using 'default'.
+
+     KCW INPUT SUMMARY 
+     ============================================
+
+      CONTROL 
+       # title               =           default
+       # out_dir             =/home/elinscott/co
+       # prefix              =                kc
+       # calculation         =          wann2kcw
+       # kcw_iverbosity      =                 1
+       # kcw_at_ks           =                 F
+       # spin_component      =                 1
+       # homo_only           =                 F
+       # read_unitary_matrix =                 T
+       # check_ks            =                 T
+       # l_vcut              =                 T
+       # assume_isolated     =              none
+
+      WANNIER 
+       # seedname            =              wann
+       # num_wann_occ        =                 4
+       # num_wann_emp        =                 4
+       # have_empty          =                 T
+       # has_disentangle     =                 T
+       # l_unique_manifold   =                 F
+     ============================================
+
+     INFO: Reading pwscf data
+
+     Reading xml data from directory:
+
+     /home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dfpt_ex0/TMP/kc.save/
+
+     IMPORTANT: XC functional enforced from input :
+     Exchange-correlation= PBE
+                           (   1   4   3   4   0   0   0)
+     Any further DFT definition will be discarded
+     Please, verify this is what you really want
+
+ 
+     Parallelization info
+     --------------------
+     sticks:   dense  smooth     PW     G-vecs:    dense   smooth      PW
+     Min          72      72     21                 1155     1155     183
+     Max          73      73     22                 1158     1158     185
+     Sum         583     583    169                 9257     9257    1471
+ 
+     Using Slab Decomposition
+ 
+     Reading collected, re-writing distributed wavefunctions
+
+     INFO: Minimizing orbitals from Unitary Matrix Rotation
+
+        INFO: Performing a check on the eigenvalues of the rotated KS Hamilotnian ... 
+
+        KS Hamiltonian calculation at k=      0.0000      0.0000      0.0000   ...    DONE 
+
+        WANN    -5.4890   6.5277   6.5277   6.5277   8.9749   8.9749   8.9749   9.8931
+        PWSCF   -5.4890   6.5277   6.5277   6.5277   8.9749   8.9749   8.9749   9.8931
+
+        KS Hamiltonian calculation at k=     -0.3536     -0.3536      0.3536   ...    DONE 
+
+        WANN    -3.1379  -0.5082   5.3077   5.3077   8.0062   9.7226   9.7226  14.1583
+        PWSCF   -3.1379  -0.5082   5.3077   5.3077   8.0062   9.7226   9.7226  14.1583
+
+        KS Hamiltonian calculation at k=     -0.3536      0.3536     -0.3536   ...    DONE 
+
+        WANN    -3.1379  -0.5082   5.3077   5.3077   8.0062   9.7226   9.7226  14.1583
+        PWSCF   -3.1379  -0.5082   5.3077   5.3077   8.0062   9.7226   9.7226  14.1583
+
+        KS Hamiltonian calculation at k=     -0.7071      0.0000      0.0000   ...    DONE 
+
+        WANN    -1.3226  -1.3226   3.6207   3.6207   7.1112   7.1112  16.5873  16.5873
+        PWSCF   -1.3226  -1.3226   3.6207   3.6207   7.1112   7.1112  16.5873  16.5873
+
+        KS Hamiltonian calculation at k=      0.3536     -0.3536     -0.3536   ...    DONE 
+
+        WANN    -3.1379  -0.5082   5.3077   5.3077   8.0062   9.7226   9.7226  14.1583
+        PWSCF   -3.1379  -0.5082   5.3077   5.3077   8.0062   9.7226   9.7226  14.1583
+
+        KS Hamiltonian calculation at k=      0.0000     -0.7071      0.0000   ...    DONE 
+
+        WANN    -1.3226  -1.3226   3.6207   3.6207   7.1112   7.1112  16.5873  16.5873
+        PWSCF   -1.3226  -1.3226   3.6207   3.6207   7.1112   7.1112  16.5873  16.5873
+
+        KS Hamiltonian calculation at k=      0.0000      0.0000     -0.7071   ...    DONE 
+
+        WANN    -1.3226  -1.3226   3.6207   3.6207   7.1112   7.1112  16.5873  16.5873
+        PWSCF   -1.3226  -1.3226   3.6207   3.6207   7.1112   7.1112  16.5873  16.5873
+
+        KS Hamiltonian calculation at k=     -0.3536     -0.3536     -0.3536   ...    DONE 
+
+        WANN    -3.1379  -0.5082   5.3077   5.3077   8.0062   9.7226   9.7226  14.1583
+        PWSCF   -3.1379  -0.5082   5.3077   5.3077   8.0062   9.7226   9.7226  14.1583
+
+        INFO: Performing a check on the eigenvalues of the rotated KS Hamilotnian ... DONE
+
+     INFO: Minimizing orbitals DEFINED
+
+
+     INFO: PREPARING THE KCW CALCULATION ...
+
+     INFO: Compute Wannier-orbital Densities ...
+
+        ==============================================================================
+        iq =     1
+        The Wannier density at  q =    0.0000000   0.0000000   0.0000000  [Cart ]
+        The Wannier density at  q =    0.0000000   0.0000000   0.0000000  [Cryst]
+        ==============================================================================
+
+        INFO: Map k+q -> p in 1BZ DONE  
+
+        INFO: rho_q(r) DONE 
+
+
+        ==============================================================================
+        iq =     2
+        The Wannier density at  q =   -0.3535534  -0.3535534   0.3535534  [Cart ]
+        The Wannier density at  q =    0.0000000   0.0000000  -0.5000000  [Cryst]
+        ==============================================================================
+
+        INFO: Map k+q -> p in 1BZ DONE  
+
+        INFO: rho_q(r) DONE 
+
+
+        ==============================================================================
+        iq =     3
+        The Wannier density at  q =   -0.3535534   0.3535534  -0.3535534  [Cart ]
+        The Wannier density at  q =    0.0000000  -0.5000000   0.0000000  [Cryst]
+        ==============================================================================
+
+        INFO: Map k+q -> p in 1BZ DONE  
+
+        INFO: rho_q(r) DONE 
+
+
+        ==============================================================================
+        iq =     4
+        The Wannier density at  q =   -0.7071068   0.0000000   0.0000000  [Cart ]
+        The Wannier density at  q =    0.0000000  -0.5000000  -0.5000000  [Cryst]
+        ==============================================================================
+
+        INFO: Map k+q -> p in 1BZ DONE  
+
+        INFO: rho_q(r) DONE 
+
+
+        ==============================================================================
+        iq =     5
+        The Wannier density at  q =    0.3535534  -0.3535534  -0.3535534  [Cart ]
+        The Wannier density at  q =   -0.5000000   0.0000000   0.0000000  [Cryst]
+        ==============================================================================
+
+        INFO: Map k+q -> p in 1BZ DONE  
+
+        INFO: rho_q(r) DONE 
+
+
+        ==============================================================================
+        iq =     6
+        The Wannier density at  q =    0.0000000  -0.7071068   0.0000000  [Cart ]
+        The Wannier density at  q =   -0.5000000   0.0000000  -0.5000000  [Cryst]
+        ==============================================================================
+
+        INFO: Map k+q -> p in 1BZ DONE  
+
+        INFO: rho_q(r) DONE 
+
+
+        ==============================================================================
+        iq =     7
+        The Wannier density at  q =    0.0000000   0.0000000  -0.7071068  [Cart ]
+        The Wannier density at  q =   -0.5000000  -0.5000000   0.0000000  [Cryst]
+        ==============================================================================
+
+        INFO: Map k+q -> p in 1BZ DONE  
+
+        INFO: rho_q(r) DONE 
+
+
+        ==============================================================================
+        iq =     8
+        The Wannier density at  q =   -0.3535534  -0.3535534  -0.3535534  [Cart ]
+        The Wannier density at  q =   -0.5000000  -0.5000000  -0.5000000  [Cryst]
+        ==============================================================================
+
+        INFO: Map k+q -> p in 1BZ DONE  
+
+        INFO: rho_q(r) DONE 
+
+     INFO: Orbital Self-Hartree (SH)
+     orb     1     SH   0.131973
+     orb     2     SH   0.131973
+     orb     3     SH   0.131973
+     orb     4     SH   0.131973
+     orb     5     SH   0.064062
+     orb     6     SH   0.064062
+     orb     7     SH   0.064062
+     orb     8     SH   0.064062
+
+     INFO: PREPARING THE KCW CALCULATION ... DONE
+
+
+ 
+     KCW          :      0.17s CPU      0.21s WALL
+
+     INITIALIZATION: 
+     map          :      0.00s CPU      0.00s WALL (       8 calls)
+     rho_of_q     :      0.06s CPU      0.06s WALL (       8 calls)
+ 
+     init_vloc    :      0.00s CPU      0.00s WALL (       1 calls)
+     init_us_1    :      0.00s CPU      0.00s WALL (       1 calls)
+ 
+ 
+ 
+ 
+ 
+     h_psi        :      0.01s CPU      0.01s WALL (       8 calls)
+ 
+     h_psi        :      0.01s CPU      0.01s WALL (       8 calls)
+     add_vuspsi   :      0.00s CPU      0.00s WALL (       8 calls)
+ 
+ 
+ 
+      General routines
+     calbec       :      0.00s CPU      0.00s WALL (       8 calls)
+     fft          :      0.01s CPU      0.02s WALL (      18 calls)
+     ffts         :      0.02s CPU      0.02s WALL (     448 calls)
+     fftw         :      0.05s CPU      0.05s WALL (    1152 calls)
+     davcio       :      0.00s CPU      0.00s WALL (     184 calls)
+ 
+ 
+     KCW          :      0.17s CPU      0.21s WALL
+
+ 
+   This run was terminated on:  17:59: 2  15Jul2022            
+
+=------------------------------------------------------------------------------=
+   JOB DONE.
+=------------------------------------------------------------------------------=
