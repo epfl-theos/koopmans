@@ -52,7 +52,7 @@ espresso: configure_4 espresso_4 configure_7 espresso_7 espresso_utils
 
 workflow:
 	python3 -m pip install --upgrade pip
-	python3 -m pip install -e . -e ase/
+	python3 -m pip install -e .
 
 clean: clean_espresso clean_tests
 

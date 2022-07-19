@@ -1,8 +1,8 @@
 # coding: utf-8
 # Distributed under the terms of the MIT License.
 
-from glob import glob
 import os
+from glob import glob
 from typing import Dict
 
 from setuptools import find_packages, setup
@@ -41,9 +41,9 @@ setup(name='koopmans',
       author_email='edwardlinscott@gmail.com',
       maintainer='Edward Linscott',
       maintainer_email='edwardlinscott@gmail.com',
-      license='MIT',
-      packages=find_packages(),
-      package_dir={'': '.'},
+      license='GPL',
+      packages=find_packages() + find_packages('ase'),
+      package_dir={'koopmans': 'koopmans', 'ase': 'ase/ase'},
       python_requires='>=3.7',
       install_requires=requirements,
       scripts=[s for s in glob('bin/*') if s[-2:] != '.x'],
