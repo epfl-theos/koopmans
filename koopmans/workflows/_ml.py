@@ -247,7 +247,7 @@ class MLFiitingWorkflow(Workflow):
         # defualt is to not use the prediction
         use_prediction = False
         if self.parameters.criterium == 'after_fixed_num_of_snapshots':
-            if self.parameters.current_snapshot < self.parameters.number_of_snapshots:
+            if self.parameters.current_snapshot < self.parameters.number_of_training_snapshots:
                 use_prediction = False
             else:
                 use_prediction = True

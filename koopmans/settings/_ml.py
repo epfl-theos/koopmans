@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List
 from ._utils import Setting
 from ._workflow import WorkflowSettingsDict
 
@@ -21,7 +21,7 @@ class MLSettingsDict(WorkflowSettingsDict):
             Setting('criterium',
                     'The criteium which has to be satisfied in order to use the ML-predicted screening coefficients instead of computing them ab-initio',
                     str, 'after_fixed_num_of_snapshots', ('after_fixed_num_of_snapshots', )),
-            Setting('number_of_snapshots',
+            Setting('number_of_training_snapshots',
                     'Number of snapshots needed for the "after_fixed_num_of_snapshots"-criterium',
                     int, 1, None),
             Setting('current_snapshot',
@@ -30,7 +30,10 @@ class MLSettingsDict(WorkflowSettingsDict):
             Setting('alphas_from_file_for_debugging_ml_model', 'If true, read the screening coefficients from file instead of calculating them ab-initio',
                     bool, False, (True, False)),
             Setting('train_on_the_fly', 'If true, the ML-model gets trained after the calculation of each orbital. If false, the ML-model gets trained at the end of each snapshot',
-                    bool, False, (True, False))]
+                    bool, False, (True, False)),
+            Setting('mode', 'For "convergence", run a convergence analysis w.r.t. the number of training snapshots. The maximimum number of training snapshots is given by "number_of_training_snapshots".',
+                    str, "convergence", ("normal", "convergence"))]
+
         super().__init__(settings=valid_settings, **kwargs)
 
         if not kwargs['r_min'] < kwargs['r_max']:

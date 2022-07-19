@@ -256,9 +256,9 @@ class Workflow(ABC):
         # Records whether or not this workflow is a subworkflow of another
         self._is_a_subworkflow = False
 
-        # Initialize the RidgeRegression() model
-        if self.parameters.use_ml:
-            self.ml_model = RidgeRegression()
+        # # Initialize the RidgeRegression() model
+        # if self.parameters.use_ml:
+        #     self.ml_model = RidgeRegression()
 
     def __eq__(self, other: Any):
         if isinstance(other, Workflow):
