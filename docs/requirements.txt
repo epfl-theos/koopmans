@@ -4,4 +4,3 @@ sphinx_toolbox>=2.5.0
 sphinx_rtd_theme>=1.0.0
 recommonmark>=0.7.1
 numpydoc>=1.4.0
-ase @ https://github.com/elinscott/ase_koopmans.git
