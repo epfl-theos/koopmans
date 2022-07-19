@@ -69,5 +69,7 @@ master_doc = 'index'
 
 # -- Autodoc options ----------------------------------------------------------
 autodoc_typehints = 'none'
-autodoc_mock_imports = ['numpy', 'ase']
+autodoc_mock_imports = ['ase']
+with open('../requirements/requirements.txt', 'r') as fd:
+    autodoc_mock_imports += [line.split('>')[0].split('=')[0] for line in fd.readlines()]
 numpydoc_show_class_members = False
