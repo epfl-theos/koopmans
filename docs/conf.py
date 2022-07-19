@@ -16,6 +16,7 @@ import sys
 import sphinx_rtd_theme
 
 sys.path.append('..')
+sys.path.append('../ase')
 
 
 # -- Project information -----------------------------------------------------
