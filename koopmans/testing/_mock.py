@@ -2,10 +2,11 @@ from abc import ABC
 import json
 import os
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Union
 
 import numpy as np
 
+from ase.atoms import Atoms
 from koopmans import projections, utils
 from koopmans.calculators import (
     Calc,
@@ -36,8 +37,13 @@ def write_mock_file(filename: Union[Path, str], written_by: str):
                        'written_by': written_by}, fd)
 
 
-class MockCalc(ABC):
-    def calculate(self):
+class MockCalc:
+    atoms: Atoms
+    prefix: str
+    ext_in: str
+    ext_out: str
+
+    def _calculate(self):
         # Write the input file
         self.write_input(self.atoms)
 
@@ -101,11 +107,11 @@ class MockCalc(ABC):
         return (self.directory / f'{self.prefix}{self.ext_out}').is_file()
 
     def check_code_is_installed(self):
-        # Don't check if the code is installed
-        return
-
-    def check_convergence(self):
-        # Monkeypatched version of check_convergence to avoid any convergence check
+        try:
+            super().check_code_is_installed()
+        except OSError as e:
+            # The only valid error to encounter is that the code in question is not installed
+            assert str(e) == f'{self.command.executable} is not installed'
         return
 
     def read_results(self) -> None:
@@ -144,7 +150,7 @@ class MockWann2KCPCalculator(MockCalc, Wann2KCPCalculator):
 
 
 class MockUnfoldAndInterpolateCalculator(MockCalc, UnfoldAndInterpolateCalculator):
-    def write_results(self):
+    def write_results(self, *args, **kwargs):
         # Do nothing when it goes to write out the results (because this relies on self.bg, among others)
         return
 

@@ -163,9 +163,9 @@ def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '
     global print_call_end
     for substring in text.split('\n'):
         if print_call_end == '\n':
-            print(' ' * indent + substring, sep, end, file, flush)
+            print(' ' * indent + substring, sep=sep, end=end, file=file, flush=flush)
         else:
-            print(substring, sep, end, file, flush)
+            print(substring, sep=sep, end=end, file=file, flush=flush)
     print_call_end = end
 
 
@@ -301,7 +301,7 @@ def read_wannier_centers_file(fname: Path):
         else:
             symbols.append(line.split()[0])
             positions.append([float(x) for x in line.split()[1:]])
-    return centers, Atoms(symbols=symbols, positions=positions)
+    return centers, Atoms(symbols=symbols, positions=positions, pbc=True)
 
 
 def write_wannier_centers_file(fname: Path, centers: List[List[float]], atoms: Atoms):

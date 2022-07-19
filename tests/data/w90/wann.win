@@ -1,0 +1,45 @@
+num_iter = 10000
+conv_tol = 1e-10
+conv_window = 5
+write_hr = .true.
+guiding_centres = .true.
+gamma_only = .false.
+write_u_matrices = .true.
+write_xyz = .true.
+bands_plot = .true.
+
+begin projections
+  f=0.25,0.25,0.25:sp3
+end projections
+num_wann = 4
+num_bands = 4
+exclude_bands = 5-10
+mp_grid = 2 2 2
+
+begin kpoints
+  0.0 0.0 0.0 0.125
+  0.0 0.0 -0.5 0.125
+  0.0 -0.5 0.0 0.125
+  0.0 -0.5 -0.5 0.125
+  -0.5 0.0 0.0 0.125
+  -0.5 0.0 -0.5 0.125
+  -0.5 -0.5 0.0 0.125
+  -0.5 -0.5 -0.5 0.125
+end kpoints
+
+begin kpoint_path
+   G  0.00000   0.00000   0.00000 X  0.50000   0.00000   0.50000
+   X  0.50000   0.00000   0.50000 G  0.00000   0.00000   0.00000
+end kpoint_path
+
+begin atoms_frac
+  Si 0.0 0.0 0.0
+  Si 0.25 0.25 0.25
+end atoms_frac
+
+begin unit_cell_cart
+  ang
+  0.0 2.715 2.715
+  2.715 0.0 2.715
+  2.715 2.715 0.0
+end unit_cell_cart

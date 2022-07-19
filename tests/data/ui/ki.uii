@@ -1,0 +1,57 @@
+{
+  "workflow": {
+    "task": "ui"
+  },
+  "ui": {
+    "w90_calc": "pc",
+    "do_map": false,
+    "use_ws_distance": true,
+    "smooth_int_factor": [
+      2,
+      2,
+      2
+    ],
+    "do_dos": true,
+    "kc_ham_file": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dfpt_ex0/hamiltonian/kc.kcw_hr_occ.dat",
+    "w90_seedname": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dfpt_ex0/wannier/occ/wann",
+    "dft_smooth_ham_file": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dfpt_ex0/postproc/wannier/occ/wann_hr.dat",
+    "dft_ham_file": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dfpt_ex0/wannier/occ/wann_hr.dat"
+  },
+  "setup": {
+    "k_points": {
+      "kgrid": [
+        2,
+        2,
+        2
+      ],
+      "kpath": "GXG",
+      "kpath_density": 9.938430421373404
+    },
+    "cell_parameters": {
+      "vectors": [
+        [
+          0.0,
+          2.715,
+          2.715
+        ],
+        [
+          2.715,
+          0.0,
+          2.715
+        ],
+        [
+          2.715,
+          2.715,
+          0.0
+        ]
+      ],
+      "units": "angstrom"
+    }
+  },
+  "plot": {
+    "degauss": 0.5,
+    "nstep": 1000,
+    "Emin": -10,
+    "Emax": 4
+  }
+}
