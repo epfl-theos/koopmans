@@ -4,6 +4,7 @@
 *.??o
 *.bib
 *.pkl
+*.swp
 __pycache__/
 .vscode
 monkeytype.sqlite3
