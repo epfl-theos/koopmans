@@ -69,4 +69,5 @@ master_doc = 'index'
 
 # -- Autodoc options ----------------------------------------------------------
 autodoc_typehints = 'none'
+autodoc_mock_imports = ['numpy', 'ase']
 numpydoc_show_class_members = False
