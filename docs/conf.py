@@ -10,12 +10,12 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
+import os
 import sys
 
 import sphinx_rtd_theme
 
-sys.path.append('..')
+sys.path.insert(0, os.path.abspath('../'))
 
 
 # -- Project information -----------------------------------------------------
@@ -68,4 +68,5 @@ master_doc = 'index'
 
 # -- Autodoc options ----------------------------------------------------------
 autodoc_typehints = 'none'
+autodoc_mock_imports = ['ase']
 numpydoc_show_class_members = False

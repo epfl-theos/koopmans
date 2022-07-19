@@ -22,6 +22,7 @@ python:
   version: 3.7
   install:
     - requirements: docs/requirements.txt
+    - requirements: requirements/requirements.txt
 
 # Make sure to checkout the ase submodule (this is a dependency required for the autodocs)
 submodules:
