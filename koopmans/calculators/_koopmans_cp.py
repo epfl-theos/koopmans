@@ -210,7 +210,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
         has_nlcc = False
         for p in self.parameters.pseudopotentials.values():
-            upf = read_pseudo_file(self.parameters.pseudo_dir / p)
+            upf = pseudopotentials.read_pseudo_file(self.parameters.pseudo_dir / p)
             if upf['header']['core_correction']:
                 has_nlcc = True
         if has_nlcc and (self.parameters.nr1b is None or self.parameters.nr2b is None or self.parameters.nr3b is None):
