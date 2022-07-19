@@ -8,7 +8,8 @@ from typing import Dict
 from setuptools import find_packages, setup
 
 with open('koopmans/__init__.py', 'r') as f:
-    version = f.readlines()[1].split('=')[-1].strip()
+    [versionline] = [line for line in f.readlines() if 'version' in line]
+    version = versionline.split('=')[-1].strip().strip("'")
 
 with open('requirements/requirements.txt', 'r') as f:
     requirements = [line.strip() for line in f.readlines()]

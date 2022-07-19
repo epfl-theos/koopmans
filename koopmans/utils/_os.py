@@ -106,7 +106,10 @@ def set_env(**environ):
         os.environ.update(old_environ)
 
 
-def find_executable(program: Path):
+def find_executable(program: Union[Path, str]):
+    if isinstance(program, str):
+        program = Path(program)
+
     # Equivalent to the unix command "which"
     def is_exe(fpath: Path):
         return fpath.is_file() and os.access(fpath, os.X_OK)

@@ -1,3 +1,5 @@
+import copy
+
 import pytest
 
 from koopmans import workflows
@@ -32,10 +34,12 @@ def test_singlepoint_h2o_all_dscf(water, workflow_patch, tmp_path, sys2file):
         wf.run()
 
 
-def test_singlepoint_si_ki_dscf(silicon, workflow_patch, tmp_path, sys2file):
+@pytest.mark.parametrize('spin_polarized', [True, False])
+def test_singlepoint_si_ki_dscf(spin_polarized, silicon, workflow_patch, tmp_path, sys2file):
     with chdir(tmp_path):
         parameters = {'functional': 'ki',
                       'method': 'dscf',
+                      'spin_polarized': spin_polarized,
                       'keep_tmpdirs': False,
                       'mp_correction': True,
                       'eps_inf': 13.02,
@@ -43,6 +47,15 @@ def test_singlepoint_si_ki_dscf(silicon, workflow_patch, tmp_path, sys2file):
                       'alpha_guess': 0.077,
                       'orbital_groups_self_hartree_tol': 100.0}
 
+        if spin_polarized:
+            projs = silicon.pop('projections')
+            spin_projs = []
+            for spin in ['up', 'down']:
+                for proj in projs:
+                    spin_proj = copy.deepcopy(proj)
+                    spin_proj.spin = spin
+                    spin_projs.append(spin_proj)
+            silicon['projections'] = ProjectionBlocks(spin_projs, silicon['atoms'])
         wf = workflows.SinglepointWorkflow(parameters=parameters, kgrid=[
                                            2, 2, 2], kpath='GL', kpath_density=50, **silicon)
         wf.run()
