@@ -45,7 +45,8 @@ def test_singlepoint_si_ki_dscf(spin_polarized, silicon, workflow_patch, tmp_pat
                       'eps_inf': 13.02,
                       'init_orbitals': 'mlwfs',
                       'alpha_guess': 0.077,
-                      'orbital_groups_self_hartree_tol': 100.0}
+                      'orbital_groups_self_hartree_tol': 100.0,
+                      'pseudo_library': 'pseudo_dojo_standard'}
 
         if spin_polarized:
             projs = silicon.pop('projections')

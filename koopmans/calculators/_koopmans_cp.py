@@ -11,10 +11,10 @@ from __future__ import annotations
 import copy
 import math
 import os
-from pathlib import Path
 import pickle
-from typing import Any, List, Optional, Union
 import xml.etree.ElementTree as ET
+from pathlib import Path
+from typing import Any, List, Optional, Union
 
 import numpy as np
 from pandas.core.series import Series
@@ -22,15 +22,12 @@ from scipy.linalg import block_diag
 
 from ase import Atoms
 from ase.calculators.espresso import Espresso_kcp
+from ase.io.espresso import cell_to_ibrav
 from koopmans import bands, pseudopotentials, settings, utils
 from koopmans.commands import ParallelCommand
 
-from ._utils import (
-    CalculatorABC,
-    CalculatorCanEnforceSpinSym,
-    CalculatorExt,
-    bin_directory,
-)
+from ._utils import (CalculatorABC, CalculatorCanEnforceSpinSym, CalculatorExt,
+                     bin_directory)
 
 
 def allowed(nr: int) -> bool:
@@ -216,7 +213,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         if has_nlcc and (self.parameters.nr1b is None or self.parameters.nr2b is None or self.parameters.nr3b is None):
             # First define alat and the reduced lattice vectors ("at" in espresso)
             # ibrav = 0 is a special case:
-            if self.parameters.ibrav == 0:
+            if self.parameters.ibrav in [0, None]:
                 at = np.transpose(self.atoms.cell)
                 alat = np.linalg.norm(self.atoms.cell[:, 0])
                 at = at / alat
@@ -226,14 +223,13 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 # ibrav_to_cell
                 celldm = cell_to_ibrav(self.atoms.cell, self.parameters.ibrav)
                 alat, regen_cell = ibrav_to_cell(celldm)
-                alat = ibrav_to_cell(celldm)
                 at = np.transpose(regen_cell)
                 at = at / alat
                 regen_cell /= utils.units.Bohr
                 alat /= utils.units.Bohr
 
             # nr1 = int ( sqrt (gcutm) * sqrt (at(1, 1)**2 + at(2, 1)**2 + at(3, 1)**2) ) + 1
-            [nr1, nr2, nr3] = [2 * int(np.sqrt(self.parameters.ecutrho) / (2.0 * np.pi / alat)
+            [nr1, nr2, nr3] = [2 * int(np.sqrt(self.parameters.get('ecutrho', 4 * self.parameters.ecutwfc)) / (2.0 * np.pi / alat)
                                        * np.linalg.norm(vec) + 1) for vec in at]
 
             # set good_fft dimensions

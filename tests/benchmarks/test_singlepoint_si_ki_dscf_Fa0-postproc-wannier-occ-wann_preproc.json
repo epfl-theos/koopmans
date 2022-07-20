@@ -302,7 +302,7 @@
  "prefix": "wann_preproc",
  "name": "benchgenwannier90calculator",
  "command": {
-  "path": {
+  "_path": {
    "__path__": "/home/elinscott/code/koopmans/bin"
   },
   "executable": "wannier90.x",
