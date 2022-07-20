@@ -32,7 +32,7 @@ class MLSettingsDict(WorkflowSettingsDict):
             Setting('train_on_the_fly', 'If true, the ML-model gets trained after the calculation of each orbital. If false, the ML-model gets trained at the end of each snapshot',
                     bool, False, (True, False)),
             Setting('mode', 'For "convergence", run a convergence analysis w.r.t. the number of training snapshots. The maximimum number of training snapshots is given by "number_of_training_snapshots".',
-                    str, "convergence", ("normal", "convergence"))]
+                    str, "normal", ("normal", "convergence"))]
 
         super().__init__(settings=valid_settings, **kwargs)
 
