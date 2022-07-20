@@ -1,8 +1,6 @@
 """
 Written by Yannick Schubert Jul 2022
 """
-
-from black import ipynb_diff
 import numpy as np
 import os
 from typing import Tuple
