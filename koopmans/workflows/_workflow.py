@@ -9,16 +9,16 @@ Converted workflows from functions to objects Nov 2020
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from contextlib import contextmanager
 import copy
-from functools import reduce
 import json as json_ext
 import operator
 import os
-from pathlib import Path
 import shutil
 import subprocess
+from abc import ABC, abstractmethod
+from contextlib import contextmanager
+from functools import reduce
+from pathlib import Path
 from types import ModuleType
 from typing import Any, Dict, Generator, List, Optional, Type, TypeVar, Union
 
@@ -49,13 +49,10 @@ from koopmans import calculators, settings, utils
 from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.projections import ProjectionBlocks
-from koopmans.pseudopotentials import (
-    fetch_pseudo,
-    nelec_from_pseudos,
-    pseudo_database,
-    pseudos_library_directory,
-    valence_from_pseudo,
-)
+from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
+                                       pseudo_database,
+                                       pseudos_library_directory,
+                                       valence_from_pseudo)
 from koopmans.references import bib_data
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
@@ -734,6 +731,9 @@ class Workflow(ABC):
 
                     if isinstance(qe_calc, calculators.ProjwfcCalculator):
                         qe_calc.generate_dos()
+
+                    if isinstance(qe_calc, calculators.PhCalculator):
+                        qe_calc.read_dynG()
                     return
 
         if not self.silent:
@@ -1456,6 +1456,7 @@ def generate_default_master_calc_params() -> Dict[str, settings.SettingsDict]:
     return {'kcp': settings.KoopmansCPSettingsDict(),
             'kc_ham': settings.KoopmansHamSettingsDict(),
             'kc_screen': settings.KoopmansScreenSettingsDict(),
+            'ph': settings.PhSettingsDict(),
             'projwfc': settings.ProjwfcSettingsDict(),
             'pw': settings.PWSettingsDict(),
             'pw2wannier': settings.PW2WannierSettingsDict(),
@@ -1474,6 +1475,7 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'kc_ham': settings.KoopmansHamSettingsDict,
                     'kc_screen': settings.KoopmansScreenSettingsDict,
                     'wann2kc': settings.Wann2KCSettingsDict,
+                    'ph': settings.PhSettingsDict,
                     'projwfc': settings.ProjwfcSettingsDict,
                     'pw': settings.PWSettingsDict,
                     'pw2wannier': settings.PW2WannierSettingsDict,

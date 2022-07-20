@@ -1,4 +1,4 @@
-## MARIJA
+# MARIJA
 
 from ._utils import SettingsDict
 
@@ -14,5 +14,8 @@ class PhSettingsDict(SettingsDict):
 
     @property
     def _other_valid_keywords(self):
-        # Don't accept either kpoints data or pseudpotentials
-        return []
+        return ['pseudopotentials']
+
+    def is_valid(self, name: str) -> bool:
+        # Allow for keywords such as amass(i) where i is some arbitrary index
+        return super().is_valid(name.split('(')[0])
