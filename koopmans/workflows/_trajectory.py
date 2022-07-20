@@ -2,7 +2,6 @@
 
 from pathlib import Path
 from ase.calculators.calculator import Calculator
-from black import ipynb_diff
 from sklearn.metrics import mean_absolute_error as mae
 from ._workflow import Workflow
 from typing import List, Dict, Any
