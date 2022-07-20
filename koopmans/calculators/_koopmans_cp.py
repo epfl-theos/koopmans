@@ -229,8 +229,8 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 alat /= utils.units.Bohr
 
             # nr1 = int ( sqrt (gcutm) * sqrt (at(1, 1)**2 + at(2, 1)**2 + at(3, 1)**2) ) + 1
-            [nr1, nr2, nr3] = [2 * int(np.sqrt(self.parameters.get('ecutrho', 4 * self.parameters.ecutwfc)) / (2.0 * np.pi / alat)
-                                       * np.linalg.norm(vec) + 1) for vec in at]
+            [nr1, nr2, nr3] = [2 * int(np.sqrt(self.parameters.get('ecutrho', 4 * self.parameters.ecutwfc))
+                                       / (2.0 * np.pi / alat) * np.linalg.norm(vec) + 1) for vec in at]
 
             # set good_fft dimensions
             nr1 = good_fft(nr1)
