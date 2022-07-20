@@ -32,6 +32,8 @@ from ._utils import (CalculatorABC, CalculatorCanEnforceSpinSym, CalculatorExt,
 
 def allowed(nr: int) -> bool:
     # define whether i is a good fft grid number
+    if nr < 1:
+        return False
     mr = nr
     factor = [2, 3, 5, 7, 11]
     allowed = False
