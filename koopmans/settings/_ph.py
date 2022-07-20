@@ -6,7 +6,7 @@ from ._utils import SettingsDict
 class PhSettingsDict(SettingsDict):
     def __init__(self, **kwargs) -> None:
         super().__init__(valid=['outdir', 'prefix', 'epsil', 'amass',
-                                'fildyn', 'tr2_ph',
+                                'fildyn', 'tr2_ph'],
                          defaults={'outdir': 'TMP', 'prefix': 'kc', 'epsil': True,
                                    },
                          are_paths=['outdir'],

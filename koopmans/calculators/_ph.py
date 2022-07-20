@@ -8,6 +8,7 @@ Written by Marija Stojkovic  May 2022
 
 """
 
+import numpy as np
 import os
 from ase import Atoms
 from ase.calculators.espresso import EspressoPh
@@ -38,10 +39,13 @@ class PhCalculator(CalculatorExt, EspressoPh, CalculatorABC):
 
     def calculate(self):
         super().calculate()
-	self.read_dyng()
+	    self.read_dyng()
 
     def read_dyng(self):
-	with open(self.parameters.fildyn, 'r') as fd:
-	    flines = fd.readlines()
-	# HERE ADD CODE TO PARSE THE DYNG FILE
-	self.results['dielectric tensor'] = ?
+	    with open(self.parameters.fildyn, 'r') as fd:
+	        flines = fd.readlines()
+
+        i = [x.strip() for x in flines].index('Dielectric Tensor:')
+        k = [x.strip() for x in flines].index('Effective Charges E-U: Z_{alpha}{s,beta}')
+        epsilon = np.array([x.split() for x in flines[i+2:k-1]], dtype=float)
+	    self.results['dielectric tensor'] = epsilon
