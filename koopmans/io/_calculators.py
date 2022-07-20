@@ -1,16 +1,23 @@
 from glob import glob
-from typing import Union, List, Type
 from pathlib import Path
-from koopmans.calculators import KoopmansCPCalculator, PWCalculator, Wannier90Calculator, \
-    PW2WannierCalculator, Wann2KCPCalculator, UnfoldAndInterpolateCalculator, Wann2KCCalculator, \
-    KoopmansScreenCalculator, KoopmansHamCalculator
+from typing import List, Type, Union
+
+from koopmans.calculators import (
+    Calc,
+    CalcType,
+    KoopmansCPCalculator,
+    KoopmansHamCalculator,
+    KoopmansScreenCalculator,
+    PW2WannierCalculator,
+    PWCalculator,
+    UnfoldAndInterpolateCalculator,
+    Wann2KCCalculator,
+    Wann2KCPCalculator,
+    Wannier90Calculator,
+)
 
 
-def read_calculator(filenames: Union[Path, List[Path]]) -> Union[KoopmansCPCalculator, PWCalculator,
-                                                                 Wannier90Calculator, PW2WannierCalculator,
-                                                                 Wann2KCPCalculator, UnfoldAndInterpolateCalculator,
-                                                                 Wann2KCCalculator, KoopmansScreenCalculator,
-                                                                 KoopmansHamCalculator]:
+def read_calculator(filenames: Union[Path, List[Path]]) -> Calc:
 
     # Interpreting the filenames argument
     if not isinstance(filenames, list):
@@ -21,9 +28,7 @@ def read_calculator(filenames: Union[Path, List[Path]]) -> Union[KoopmansCPCalcu
         filenames = [Path(f) for prefix in filenames for f in glob(f'{prefix}.*') if Path(f).suffix in valid_extensions]
     extensions = set([f.suffix for f in filenames])
 
-    calc_class: Union[Type[KoopmansCPCalculator], Type[PWCalculator], Type[Wannier90Calculator],
-                      Type[PW2WannierCalculator], Type[Wann2KCPCalculator], Type[UnfoldAndInterpolateCalculator],
-                      Type[Wann2KCCalculator], Type[KoopmansScreenCalculator], Type[KoopmansHamCalculator]]
+    calc_class: CalcType
 
     if extensions.issubset(set(['.cpi', '.cpo'])):
         calc_class = KoopmansCPCalculator

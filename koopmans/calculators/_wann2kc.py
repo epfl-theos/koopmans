@@ -7,11 +7,13 @@ Written by Edward Linscott Feb 2021
 """
 
 import os
+
 from ase import Atoms
 from ase.calculators.espresso import Wann2KC
-from ._utils import KCWannCalculator, bin_directory, CalculatorABC
-from koopmans.settings import Wann2KCSettingsDict
 from koopmans.commands import ParallelCommandWithPostfix
+from koopmans.settings import Wann2KCSettingsDict
+
+from ._utils import CalculatorABC, KCWannCalculator, bin_directory
 
 
 class Wann2KCCalculator(KCWannCalculator, Wann2KC, CalculatorABC):
@@ -23,12 +25,12 @@ class Wann2KCCalculator(KCWannCalculator, Wann2KC, CalculatorABC):
         # Define the valid settings
         self.parameters = Wann2KCSettingsDict()
 
-        # Initialise first using the ASE parent and then CalculatorExt
+        # Initialize first using the ASE parent and then CalculatorExt
         Wann2KC.__init__(self, atoms=atoms)
         KCWannCalculator.__init__(self, *args, **kwargs)
 
         self.command = ParallelCommandWithPostfix(
-            f'{bin_directory}{os.path.sep}kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
+            f'{bin_directory}{os.path.sep}kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out} 2>&1')
 
     def is_converged(self):
         return True

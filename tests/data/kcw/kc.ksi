@@ -1,0 +1,29 @@
+&CONTROL
+   prefix           = 'kc'
+   outdir           = '/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dfpt_ex0/TMP/'
+   kcw_iverbosity   = 1
+   kcw_at_ks        = .false.
+   calculation      = 'screen'
+   lrpa             = .false.
+   mp1              = 2
+   mp2              = 2
+   mp3              = 2
+   homo_only        = .false.
+   read_unitary_matrix = .true.
+   l_vcut           = .true.
+/
+&WANNIER
+   seedname         = 'wann'
+   check_ks         = .true.
+   num_wann_occ     = 4
+   num_wann_emp     = 4
+   have_empty       = .true.
+   has_disentangle  = .true.
+/
+&SCREEN
+   tr2              = 1e-18
+   nmix             = 4
+   niter            = 33
+   eps_inf          = 13.02
+   check_spread     = .true.
+/

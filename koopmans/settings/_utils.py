@@ -6,11 +6,13 @@ Written by Edward Linscott May 2020
 
 '''
 
-import os
-import numpy as np
-from pathlib import Path
 from collections import UserDict
-from typing import Union, Type, Tuple, NamedTuple, Dict, Any, Optional, List
+import os
+from pathlib import Path
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Type, Union
+
+import numpy as np
+
 from koopmans.utils import units
 
 
@@ -87,7 +89,7 @@ class SettingsDict(UserDict):
         self.defaults = {k: v for k, v in defaults.items() if k not in self.are_paths}
         self.defaults.update(**{k: Path(v) for k, v in defaults.items() if k in self.are_paths})
         self.to_not_parse = to_not_parse
-        self.directory = directory
+        self.directory = directory if directory is not None else Path.cwd()
         self.physicals = physicals
         self.update(**defaults)
         self.update(**kwargs)
@@ -95,7 +97,10 @@ class SettingsDict(UserDict):
 
     def __getattr__(self, name):
         if name != 'valid' and self.is_valid(name):
-            return self.data.get(name, None)
+            if name in self.data:
+                return self.__getitem__(name)
+            else:
+                return None
         else:
             try:
                 super().__getattr__(name)
@@ -144,7 +149,7 @@ class SettingsDict(UserDict):
         # Set the item
         super().__setitem__(key, value)
 
-    def is_valid(self, name):
+    def is_valid(self, name: str) -> bool:
         # Check if a keyword is valid. This is a separate subroutine to allow child classes to overwrite it
         # e.g. QE calculators want to be able to set keywords such as Hubbard(i) where i is an arbitrary integer
         return name in self.valid
@@ -228,7 +233,8 @@ class SettingsDict(UserDict):
         # Construct a minimal representation of this dictionary. Most of the requisite information
         # (defaults, valid, are_paths, etc) is contained in the class itself so we needn't store this
         dct = {}
-        for k, v in self.data.items():
+        for k in self.data:
+            v = self[k]
             if k in self.defaults:
                 if isinstance(v, np.ndarray) and np.all(v == self.defaults[k]):
                     continue

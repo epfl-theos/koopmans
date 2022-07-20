@@ -7,34 +7,15 @@ Written by Edward Linscott May 2020
 '''
 
 
-from typing import List, Union, Generator, Iterable, Optional
+from typing import Any, Dict, Generator, Iterable, List, Optional, Union
+
+import numpy as np
+
 from ase.cell import Cell
-from ase.dft.kpoints import BandPath
+from ase.dft.kpoints import BandPath, kpoint_convert, resolve_kpt_path_string
 
 
-def calc_diff(calcs, silent=False):
-    # Returns the differences in the settings of a list of calculators
-
-    # If calcs is a dict, convert it to a list (we only need the values)
-    if isinstance(calcs, dict):
-        calcs = calcs.values()
-
-    diffs = []
-
-    settings = [c._settings for c in calcs]
-
-    keys = set([k for s in settings for k in s.keys()])
-    for key in sorted(keys):
-        vals = [s.get(key, None) for s in settings]
-        if len(set(vals)) > 1:
-            if not silent:
-                print(f'{key}: ' + ', '.join(map(str, vals)))
-            diffs.append(key)
-
-    return diffs
-
-
-def flatten(l: Union[List, Iterable]) -> Generator:
+def flatten(l: Union[List[Any], Iterable[Any]]) -> Generator[Any, None, None]:
     # Converts a list of any kind of object (numbers, arrays, lists, strings, ecc.)
     # to a generator
     for item in l:
@@ -45,7 +26,27 @@ def flatten(l: Union[List, Iterable]) -> Generator:
             yield item
 
 
-def convert_kpath_str_to_bandpath(path: str, cell: Cell, density: int = 10) -> BandPath:
-    npoints = density * len(path) - density + 1 - (3 * density - 1) * path.count(',')
-    special_points = cell.bandpath().special_points
-    return BandPath(cell=cell, path=path, special_points=special_points).interpolate(npoints=npoints)
+def convert_kpath_str_to_bandpath(path: str, cell: Cell, density: Optional[float] = None) -> BandPath:
+    special_points: Dict[str, np.ndarray] = cell.bandpath().special_points
+    return BandPath(cell=cell, path=path, special_points=special_points).interpolate(density=density)
+
+
+def kpath_length(path: BandPath, cell: Cell) -> float:
+    _, paths = resolve_kpt_path_string(path.path, path.special_points)
+    points = np.concatenate(paths)
+    dists = points[1:] - points[:-1]
+    lengths: List[float] = [float(np.linalg.norm(d)) for d in kpoint_convert(cell, skpts_kc=dists)]
+
+    i = 0
+    for path in paths[:-1]:
+        i += len(path)
+        lengths[i - 1] = 0.0
+
+    return np.sum(lengths)
+
+
+def kpath_to_dict(path: BandPath, cell: Cell) -> Dict[str, Any]:
+    dct = {}
+    dct['kpath'] = path.path
+    dct['kpath_density'] = len(path.kpts) / kpath_length(path, cell)
+    return dct

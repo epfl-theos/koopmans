@@ -2,10 +2,10 @@
 
 import argparse
 import textwrap
+
+from koopmans.io import read
 import koopmans.mpl_config
 from koopmans.settings import WorkflowSettingsDict
-from koopmans.io import read, write
-
 
 '''
 Perform KI/KIPZ calculations
@@ -13,7 +13,7 @@ Perform KI/KIPZ calculations
 
 
 def main():
-    # Automatically constructing a list of workflow keywords for 'run_koopmans.py --help'
+    # Automatically constructing a list of workflow keywords for 'koopmans --help'
     # from valid_settings
     epilog = ''
     wf_settings = WorkflowSettingsDict()

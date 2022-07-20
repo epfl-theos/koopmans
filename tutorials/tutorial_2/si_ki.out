@@ -1,0 +1,93 @@
+  _                                                
+ | | _____   ___  _ __  _ __ ___   __ _ _ __  ___  
+ | |/ / _ \ / _ \| '_ \| '_ ` _ \ / _` | '_ \/ __| 
+ |   < (_) | (_) | |_) | | | | | | (_| | | | \__ \ 
+ |_|\_\___/ \___/| .__/|_| |_| |_|\__,_|_| |_|___/ 
+                 |_|                               
+
+ Koopmans spectral functional calculations with Quantum ESPRESSO
+
+ Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna
+
+ using QE version qe-6.7MaX-Release-31-g57aa172e9, workflow manager version v0.4-6-g452fb267, and ASE version 5dfcc3659
+
+  Initialisation of density and variational orbitals
+  ==================================================
+
+   Wannierisation
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/wan2odd... done
+    Running emp/wan2odd... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+
+  Orbitals 1-31
+  -------------
+   Skipping; will use the screening parameter of an equivalent orbital
+
+  Orbital 32
+  ----------
+   Running calc_alpha/orbital_32/dft_n-1... done
+
+  Orbital 33
+  ----------
+   Running calc_alpha/orbital_33/pz_print... done
+   Running calc_alpha/orbital_33/dft_n+1_dummy... done
+   Running calc_alpha/orbital_33/dft_n+1... done
+
+  Orbitals 34-64
+  --------------
+   Skipping; will use the screening parameter of an equivalent orbital
+   
+   alpha
+            1         2         3   ...        62        63        64
+   0  0.077000  0.077000  0.077000  ...  0.077000  0.077000  0.077000
+   1  0.132741  0.132741  0.132741  ...  0.040357  0.040357  0.040357
+   
+   [2 rows x 64 columns]
+   
+   Delta E_i - epsilon_i (eV)
+            1         2         3         4   ...       61       62       63       64
+   0 -0.310253 -0.310253 -0.310253 -0.310253  ... -0.11398 -0.11398 -0.11398 -0.11398
+   
+   [1 rows x 64 columns]
+
+   Screening parameters have been determined but are not necessarily converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+  
+  Postprocessing
+  ===============
+
+   Wannierisation
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+   Running postproc/occ/ki... done
+   Running postproc/emp/ki... done
+
+ Workflow complete

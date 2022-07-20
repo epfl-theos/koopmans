@@ -6,6 +6,7 @@ Written by Edward Linscott, Feb 2021
 
 import os
 from pathlib import Path
+from typing import Union
 
 
 class Command(object):
@@ -19,7 +20,7 @@ class Command(object):
     """
 
     def __init__(self, value=None, **kwargs):
-        self.path: Path = Path()
+        self._path = Path()
         self.executable: str = ''
         self._flags: str = ''
         self.suffix: str = ''
@@ -31,7 +32,7 @@ class Command(object):
 
         # Accepts setting of public attributes as kwargs
         for k, v in kwargs.items():
-            assert hasattr(self, k), f'Unrecognised argument {k} provided to {self.__class__.__name__}'
+            assert hasattr(self, k), f'Unrecognized argument {k} provided to {self.__class__.__name__}'
             assert not k.startswith(
                 '_'), f'Do not attempt to set private variables via {self.__class__.__name__}.__init__()'
             setattr(self, k, v)
@@ -56,6 +57,14 @@ class Command(object):
         return ' '.join([str(self.path / self.executable), self.flags, self.suffix]).replace('  ', ' ')
 
     @property
+    def path(self) -> Path:
+        return self._path
+
+    @path.setter
+    def path(self, value: Union[Path, str]):
+        self._path = Path(value)
+
+    @property
     def flags(self) -> str:
         return self._flags
 
@@ -73,6 +82,9 @@ class Command(object):
     def fromdict(cls, dct):
         command = cls(**{k.lstrip('_'): v for k, v in dct.items()})
         return command
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
 
 
 class ParallelCommand(Command):
@@ -116,7 +128,7 @@ class ParallelCommandWithPostfix(ParallelCommand):
 
     @property
     def flags(self) -> str:
-        return self.postfix + ' ' + self._flags
+        return (self.postfix + ' ' + self._flags).strip()
 
     @flags.setter
     def flags(self, value: str):

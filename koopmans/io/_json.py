@@ -7,11 +7,11 @@ Written by Edward Linscott Jan 2020
 """
 
 import json as json_ext
-from typing import TextIO, Dict, Any, Type
 from pathlib import Path
-from koopmans import utils
+from typing import Any, Dict, TextIO, Type
+
+from koopmans import utils, workflows
 from koopmans.settings import WorkflowSettingsDict
-from koopmans import workflows
 
 
 def update_nested_dict(dct_to_update, second_dct):
@@ -44,7 +44,7 @@ def read_json(fd: TextIO, override: Dict[str, Any] = {}):
         workflow_cls = workflows.SinglepointWorkflow
     elif parameters.task == 'convergence':
         workflow_cls = workflows.ConvergenceWorkflow
-    elif parameters.task == 'wannierise':
+    elif parameters.task == 'wannierize':
         workflow_cls = workflows.WannierizeWorkflow
     elif parameters.task == 'environ_dscf':
         workflow_cls = workflows.DeltaSCFWorkflow

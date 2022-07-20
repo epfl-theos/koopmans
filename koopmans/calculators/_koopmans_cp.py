@@ -7,21 +7,30 @@ Written by Edward Linscott Sep 2020
 """
 
 from __future__ import annotations
-import os
+
 import copy
 import math
-import numpy as np
-import pickle
+import os
 from pathlib import Path
-from scipy.linalg import block_diag
-from typing import Optional, List, Union
-from pandas.core.series import Series
+import pickle
+from typing import List, Optional, Union
 import xml.etree.ElementTree as ET
+
+import numpy as np
+from pandas.core.series import Series
+from scipy.linalg import block_diag
+
 from ase import Atoms
 from ase.calculators.espresso import Espresso_kcp
-from koopmans import utils, settings, pseudopotentials, bands
+from koopmans import bands, pseudopotentials, settings, utils
 from koopmans.commands import ParallelCommand
-from ._utils import CalculatorExt, CalculatorABC, bin_directory, CalculatorCanEnforceSpinSym
+
+from ._utils import (
+    CalculatorABC,
+    CalculatorCanEnforceSpinSym,
+    CalculatorExt,
+    bin_directory,
+)
 
 
 def read_ham_file(filename: Path) -> np.ndarray:
@@ -48,14 +57,14 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
     ext_in = '.cpi'
     ext_out = '.cpo'
 
-    def __init__(self, atoms: Atoms, skip_qc: bool = False, alphas: Optional[List[List[float]]] = None,
+    def __init__(self, atoms: Atoms, alphas: Optional[List[List[float]]] = None,
                  filling: Optional[List[List[bool]]] = None, **kwargs):
         # Define the valid parameters
         self.parameters = settings.KoopmansCPSettingsDict()
 
-        # Initialise first using the ASE parent and then CalculatorExt
+        # Initialize first using the ASE parent and then CalculatorExt
         Espresso_kcp.__init__(self, atoms=atoms)
-        CalculatorExt.__init__(self, skip_qc, **kwargs)
+        CalculatorExt.__init__(self, **kwargs)
 
         # Add nelec, nelup, neldw if they are missing
         if 'nelec' not in self.parameters and 'pseudopotentials' in self.parameters:
@@ -75,7 +84,6 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             self.alphas = alphas
         if filling is not None:
             self.filling = filling
-        self.results_for_qc = ['energy', 'homo_energy', 'lumo_energy']
 
         # Give the calculator an attribute to keep track of which band has been held fixed, for calculations where
         # fixed_state = .true.. N.B. this differs from self.parameters.fixed_band in the case of empty orbitals (see
@@ -98,6 +106,14 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             self.write_alphas()
 
         super().calculate()
+
+        # Check spin-up and spin-down eigenvalues match
+        if 'eigenvalues' in self.results and self.parameters.do_outerloop \
+                and self.parameters.nspin == 2 and self.parameters.tot_magnetization == 0 \
+                and not self.parameters.fixed_state and len(self.results['eigenvalues']) > 0:
+            rms_eigenval_difference = np.sqrt(np.mean(np.diff(self.results['eigenvalues'], axis=0)**2))
+            if rms_eigenval_difference > 0.05:
+                utils.warn('Spin-up and spin-down eigenvalues differ substantially')
 
         # Swap the spin channels back
         if spin_channels_are_swapped:
@@ -152,14 +168,32 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 fpath_2.replace(fpath_1)
                 fpath_tmp.replace(fpath_2)
 
-    def is_complete(self):
+    def is_complete(self) -> bool:
         return self.results.get('job_done', False)
 
-    def is_converged(self):
+    def is_converged(self) -> bool:
         # Checks convergence of the calculation
         if 'conv_thr' not in self.parameters:
             raise ValueError('Cannot check convergence when "conv_thr" is not set')
-        return self._ase_is_converged()
+
+        if 'convergence' not in self.results:
+            raise ValueError('Could not locate calculation details to check convergence')
+
+        # Check convergence for both filled and empty, allowing for the possibility
+        # of do_outerloop(_empty) = False meaning the calculation is immediately
+        # 'converged'
+        do_outers = [self.parameters.do_outerloop, self.parameters.do_outerloop_empty]
+        convergence_data = self.results['convergence'].values()
+        converged = []
+        for do_outer, convergence in zip(do_outers, convergence_data):
+            if not do_outer:
+                converged.append(True)
+            elif len(convergence) == 0:
+                return False
+            else:
+                converged.append(
+                    convergence[-1]['delta_E'] < self.parameters.conv_thr * utils.units.Hartree)
+        return all(converged)
 
     def read_ham_xml_files(self, bare=False) -> List[np.ndarray]:
         # Reads all expected hamiltonian XML files
@@ -245,31 +279,10 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         if self.parameters.do_bare_eigs:
             self.results['bare lambda'] = self.read_ham_files(bare=True)
 
-    def _ase_is_converged(self):
-        if 'convergence' not in self.results:
-            raise ValueError(
-                'Could not locate calculation details to check convergence')
-
-        # Check convergence for both filled and empty, allowing for the possibility
-        # of do_outerloop(_empty) = False meaning the calculation is immediately
-        # 'converged'
-        do_outers = [self.parameters.do_outerloop, self.parameters.do_outerloop_empty]
-        convergence_data = self.results['convergence'].values()
-        converged = []
-        for do_outer, convergence in zip(do_outers, convergence_data):
-            if len(convergence) == 0:
-                return False
-            if not do_outer:
-                converged.append(True)
-            else:
-                converged.append(
-                    convergence[-1]['delta_E'] < self.parameters.conv_thr * utils.units.Hartree)
-        return all(converged)
-
     @property
     def alphas(self) -> List[List[float]]:
         if not hasattr(self, '_alphas'):
-            raise AttributeError(f'{self}.alphas has not been initialised')
+            raise AttributeError(f'{self}.alphas has not been initialized')
         return self._alphas
 
     @alphas.setter
@@ -340,6 +353,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
         flat_alphas = utils.read_alpha_file(self.directory)
 
+        assert isinstance(self.parameters, settings.KoopmansCPSettingsDict)
         return convert_flat_alphas_for_kcp(flat_alphas, self.parameters)
 
     # The following functions enable DOS generation via ase.dft.dos.DOS(<KoopmansCPCalculator object>)
@@ -498,10 +512,11 @@ def convert_flat_alphas_for_kcp(flat_alphas: List[float],
     # Here we reorder this into a nested list indexed by [i_spin][i_orbital]
     if parameters.nspin == 2:
         nbnd = len(flat_alphas) // 2
+        nelec = parameters.nelec if parameters.nelec else parameters.nelup + parameters.neldw
         alphas = [flat_alphas[:parameters.nelup]
-                  + flat_alphas[parameters.nelec:-(nbnd - parameters.neldw)],
-                  flat_alphas[parameters.nelup:parameters.nelec]
-                  + flat_alphas[-(nbnd - parameters.neldw):]]
+                  + flat_alphas[nelec:(nbnd + parameters.neldw)],
+                  flat_alphas[parameters.nelup:nelec]
+                  + flat_alphas[(nbnd + parameters.neldw):]]
     else:
         alphas = [flat_alphas]
     return alphas

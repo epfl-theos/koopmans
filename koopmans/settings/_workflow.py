@@ -1,7 +1,9 @@
 import os
 from pathlib import Path
 from typing import Any
+
 from koopmans import pseudopotentials
+
 from ._utils import Setting, SettingsDictWithChecks
 
 
@@ -11,7 +13,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
         settings = [
             Setting('task',
                     'Task to perform',
-                    str, 'singlepoint', ('singlepoint', 'convergence', 'wannierise', 'environ_dscf', 'ui',
+                    str, 'singlepoint', ('singlepoint', 'convergence', 'wannierize', 'environ_dscf', 'ui',
                                          'dft_bands', 'eps_inf')),
             Setting('functional',
                     'orbital-density-dependent-functional/density-functional to use',
@@ -37,23 +39,23 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     str, 'same', ('same', 'pz', 'kohn-sham', 'mlwfs', 'projwfs')),
             Setting('frozen_orbitals',
                     "if True, freeze the variational orbitals for the duration of the calculation once they've been "
-                    "initialised",
+                    "initialized",
                     bool, None, (True, False)),
             Setting('periodic',
                     'whether or not the system is periodic',
                     bool, None, (True, False)),
             Setting('calculate_bands',
                     'whether or not to calculate the band structure of the system (if relevant)',
-                    bool, True, (True, False)),
-            Setting('spin_polarised',
+                    bool, None, (True, False)),
+            Setting('spin_polarized',
                     'if True, the system will be allowed to break spin symmetry i.e. n^{up}(r) != n^{down}(r)',
                     bool, False, (True, False)),
             Setting('fix_spin_contamination',
                     'if True, steps will be taken to try and avoid spin contamination. This is only sensible when '
-                    'performing a non-spin-polarised calculation, and is turned on by default for such calculations',
+                    'performing a non-spin-polarized calculation, and is turned on by default for such calculations',
                     bool, None, (True, False)),
             Setting('npool',
-                    'Number of pools for parallelising over kpoints (should be commensurate with the k-point grid)',
+                    'Number of pools for parallelizing over kpoints (should be commensurate with the k-point grid)',
                     int, None, None),
             Setting('gb_correction',
                     'if True, apply the Gygi-Baldereschi scheme to deal with the q->0 divergence of the Coulomb '
@@ -61,7 +63,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     bool, None, (True, False)),
             Setting('mp_correction',
                     'if True, apply the Makov-Payne correction for charged periodic systems',
-                    bool, False, (True, False)),
+                    bool, None, (True, False)),
             Setting('mt_correction',
                     'if True, apply the Martyna-Tuckerman correction for charged aperiodic systems',
                     bool, None, (True, False)),
@@ -82,13 +84,13 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     'if True, uses the file_alpharef.txt from the base directory as a '
                     'starting guess',
                     bool, False, (True, False)),
-            Setting('print_qc',
-                    'if True, prints out strings for the purposes of quality control',
-                    bool, False, (True, False)),
             Setting('from_scratch',
                     'if True, will delete any preexisting workflow and start again; '
                     'if False, will resume a workflow from where it was last up to',
-                    bool, False, (True, False)),
+                    bool, True, (True, False)),
+            Setting('keep_tmpdirs',
+                    'If False, delete all of the temporary directories at the end of the calculation',
+                    bool, True, (True, False)),
             Setting('orbital_groups',
                     'a list of integers the same length as the total number of bands, '
                     'denoting which bands to assign the same screening parameter to',
@@ -111,21 +113,32 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
             Setting('eps_cavity',
                     'a list of epsilon_infinity values for the cavity in dscf calculations',
                     list, [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], None)]
+
+        # Defer storing init_empty_orbitals...
+        init_empty_orbitals = kwargs.pop('init_empty_orbitals', 'same')
+
         super().__init__(settings=settings, physicals=['alpha_conv_thr', 'convergence_threshold'], **kwargs)
+
+        # ... until we are sure that init_orbitals has been defined
+        self.init_empty_orbitals = init_empty_orbitals
 
     @property
     def _other_valid_keywords(self):
         return []
 
     def __setitem__(self, key: str, value: Any):
-        # Be forgiving to Americans
-        if key == 'task' and value == 'wannierize':
-            value = 'wannierise'
+        # Be forgiving to people who spell things properly
+        if key == 'task' and value == 'wannierise':
+            value = 'wannierize'
 
         # Make sure that orbital_groups is always stored as a list of lists
         if key == 'orbital_groups' and value is not None:
             if len(value) == 0 or not isinstance(value[0], list):
                 value = [value]
+
+        # Support init_empty_orbitals == same
+        if key == 'init_empty_orbitals' and value == 'same':
+            value = self.init_orbitals
 
         # Make sure that pseudo libraries shortcuts (e.g. "sg15") are converted to the explicit version
         # (e.g. "sg15_v1.2")

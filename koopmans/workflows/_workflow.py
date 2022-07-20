@@ -7,80 +7,173 @@ Converted workflows from functions to objects Nov 2020
 
 """
 
-import os
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from contextlib import contextmanager
 import copy
-import operator
 from functools import reduce
-import subprocess
-from pathlib import Path
 import json as json_ext
+import operator
+import os
+from pathlib import Path
+import shutil
+import subprocess
+from types import ModuleType
+from typing import Any, Dict, Generator, List, Optional, Type, TypeVar, Union
+
 import numpy as np
 from numpy import typing as npt
-from types import ModuleType
-from typing import Optional, Dict, List, Type, Union, Any, TypeVar
 from pybtex.database import BibliographyData
+
+# isort: off
+import koopmans.mpl_config
+import matplotlib.pyplot as plt
+# isort: on
+
 import ase
 from ase import Atoms
 from ase.build.supercells import make_supercell
-from ase.dft.kpoints import BandPath
-from ase.calculators.espresso import Espresso_kcp
 from ase.calculators.calculator import CalculationFailed
-from ase.io.espresso import cell_to_ibrav, ibrav_to_cell
-from ase.io.espresso import kcp_keys, contruct_kcp_namelist as construct_namelist
-from koopmans.pseudopotentials import nelec_from_pseudos, pseudos_library_directory, pseudo_database, fetch_pseudo, \
-    valence_from_pseudo
-from koopmans import utils, settings
-import koopmans.calculators as calculators
-from koopmans.commands import ParallelCommandWithPostfix
+from ase.calculators.espresso import Espresso_kcp
+from ase.dft.dos import DOS
+from ase.dft.kpoints import BandPath
+from ase.io.espresso import cell_to_ibrav
+from ase.io.espresso import contruct_kcp_namelist as construct_namelist
+from ase.io.espresso import ibrav_to_cell, kcp_keys
+from ase.spacegroup import symmetrize
+from ase.spectrum.band_structure import BandStructure
+from ase.spectrum.doscollection import GridDOSCollection
+from ase.spectrum.dosdata import GridDOSData
+from koopmans import calculators, settings, utils
 from koopmans.bands import Bands
+from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.projections import ProjectionBlocks
+from koopmans.pseudopotentials import (
+    fetch_pseudo,
+    nelec_from_pseudos,
+    pseudo_database,
+    pseudos_library_directory,
+    valence_from_pseudo,
+)
 from koopmans.references import bib_data
-from abc import ABC, abstractmethod
-
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
 
 
 class Workflow(ABC):
 
+    r'''
+    Abstract base class that defines a Koopmans workflow
+
+    Parameters
+    ----------
+
+    atoms : Atoms
+        an ASE ``Atoms`` object defining the atomic positions, cell, etc
+
+    pseudopotentals : Dict[str, str]
+        a dictionary mapping atom labels to pseudopotential filenames
+
+    pseudo_dir : pathlib.Path
+        the path containing the pseudopotential files
+
+    gamma_only : bool
+        True if performing a calculation at the gamma-point only
+
+    kgrid : List[int]
+        a list of three integers specifying the shape of the regular grid of k-points
+
+    koffset : List[int]
+        a list of three integers specifying the offset from gamma of the regular grid of k-points
+
+    kpath : str | ase.dft.kpoints.BandPath
+        a string (or ASE ``BandPath`` object) specifying the k-path as defined by the special points of the Bravais
+        lattice e.g ``"GXYSG,XP"``
+
+    kpath_density : float
+        k-points per inverse Angstrom along the k-path
+
+    projections : ProjectionsBlocks
+        The projections to be used in the Wannierization
+
+    name : str
+        a name for the workflow
+
+    parameters : Dict[str, Any] | koopmans.settings.WorkflowSettingsDict
+        a dictionary specifying any workflow settings to use; note that a simpler alternative is to provide workflow
+        settings as keyword arguments
+
+    master_calc_params : Dict[str, koopmans.settings.SettingsDict]
+        a dictionary containing calculator-specific settings; as for the parameters, it is usually simpler to specify
+        these individually as keyword arguments
+
+    plot_params : koopmans.settings.PlotSettingsDict
+        a dictionary containing settings specific to plotting; again, it is usually simpler to specify these
+        individually as keyword arguments
+
+    autogenerate_settings : bool
+        if True (the default), autogenerate various calculator settings; the only scenario where you do not want to do
+        this is when creating a new workflow from a .kwf file
+
+    **kwargs
+        any valid workflow, calculator, or plotting settings e.g. ``{"functional": "ki", "ecutwfc": 50.0}``
+
+    '''
+
+    atoms: Atoms
+    parameters: settings.WorkflowSettingsDict
+    master_calc_params: Dict[str, settings.SettingsDict]
+    name: str
+    _gamma_only: bool
+    _kgrid: Optional[List[int]]
+    _koffset: Optional[List[int]]
+    _kpath: BandPath
+    kpath_density: float
+    _pseudopotentials: Dict[str, str]
+    pseudo_dir: Path
+    projections: ProjectionBlocks
+    parent: Optional[Workflow]
+
     def __init__(self, atoms: Atoms,
-                 parameters: settings.SettingsDict = settings.WorkflowSettingsDict(),
-                 master_calc_params: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]
-                                           ] = settings.default_master_calc_params,
-                 name: str = 'koopmans_workflow',
                  pseudopotentials: Dict[str, str] = {},
                  pseudo_dir: Optional[Path] = None,
-                 gamma_only: Optional[bool] = False,
+                 gamma_only: bool = False,
                  kgrid: Optional[List[int]] = [1, 1, 1],
                  koffset: Optional[List[int]] = [0, 0, 0],
                  kpath: Optional[Union[BandPath, str]] = None,
-                 kpath_density: int = 10,
-                 projections: Optional[ProjectionBlocks] = None):
+                 kpath_density: float = 10.0,
+                 projections: Optional[ProjectionBlocks] = None,
+                 name: str = 'koopmans_workflow',
+                 parameters: Union[Dict[str, Any], settings.WorkflowSettingsDict] = {},
+                 master_calc_params: Optional[Union[Dict[str, Dict[str, Any]],
+                                                    Dict[str, settings.SettingsDict]]] = None,
+                 plot_params: Union[Dict[str, Any], settings.PlotSettingsDict] = {},
+                 autogenerate_settings: bool = True,
+                 **kwargs: Dict[str, Any]):
 
         # Parsing parameters
         self.parameters = settings.WorkflowSettingsDict(**parameters)
-        self.atoms = atoms
+        for key, value in kwargs.items():
+            if self.parameters.is_valid(key):
+                self.parameters[key] = value
+        self.atoms: Atoms = atoms
         self.name = name
-        self.calculations: List[calculators.CalculatorExt] = []
+        self.calculations: List[calculators.Calc] = []
         self.silent = False
         self.print_indent = 1
         self.gamma_only = gamma_only
         if self.gamma_only:
-            if kgrid != [1, 1, 1]:
-                utils.warn(f'You have initialised kgrid to {kgrid}, not compatible with gamma_only=True; '
-                           'kgrid is set equal to [1, 1, 1]')
-            if koffset != [0, 0, 0]:
-                utils.warn(f'You have initialised koffset to {koffset}, not compatible with gamma_only=True; '
-                           'koffset is set equal to [0, 0, 0]')
-            self.kgrid = [1, 1, 1]
+            self.kgrid = None
             self.koffset = [0, 0, 0]
         else:
             self.kgrid = kgrid
             self.koffset = koffset
+
         if projections is None:
             proj_list: List[List[Any]]
             spins: List[Optional[str]]
-            if self.parameters.spin_polarised:
+            if self.parameters.spin_polarized:
                 proj_list = [[], [], [], []]
                 fillings = [True, True, False, False]
                 spins = ['up', 'down', 'up', 'down']
@@ -92,6 +185,11 @@ class Workflow(ABC):
                 proj_list, fillings=fillings, spins=spins, atoms=self.atoms)
         else:
             self.projections = projections
+
+        self.plot_params = settings.PlotSettingsDict(**plot_params)
+        for key, value in kwargs.items():
+            if self.plot_params.is_valid(key):
+                self.plot_params[key] = value
 
         if 'periodic' in parameters:
             # If "periodic" was explicitly provided, override self.atoms.pbc
@@ -106,25 +204,31 @@ class Workflow(ABC):
         # Pseudopotentials and pseudo_dir
         if pseudopotentials:
             self.pseudopotentials = pseudopotentials
-        elif self.parameters.pseudo_library:
+        else:
+            if self.parameters.pseudo_library is None:
+                utils.warn(
+                    'Neither a pseudopotential library nor a list of pseudopotentials was provided; defaulting to '
+                    'sg15_v1.2')
+                self.parameters.pseudo_library = 'sg15_v1.2'
             self.pseudopotentials = {}
-            for symbol in set(self.atoms.symbols):
+            for symbol, tag in set([(a.symbol, a.tag) for a in self.atoms]):
                 pseudo = fetch_pseudo(element=symbol, functional=self.parameters.base_functional,
                                       library=self.parameters.pseudo_library)
                 if pseudo.kind == 'unknown':
-                    utils.warn(f'You are using an unrecognised pseudopotential {pseudo.name}. Please note that '
+                    utils.warn(f'You are using an unrecognized pseudopotential {pseudo.name}. Please note that '
                                'the current implementation of Koopmans functionals only supports norm-conserving '
                                'pseudopotentials.')
                 elif pseudo.kind != 'norm-conserving':
                     raise ValueError('Koopmans functionals only currently support norm-conserving pseudopotentials; '
                                      f'{pseudo.name} is {pseudo.kind}')
+                if tag > 0:
+                    symbol += str(tag)
                 self.pseudopotentials[symbol] = pseudo.name
-        else:
-            self.pseudopotentials = pseudopotentials
 
         # Make sure master_calc_params isn't missing any entries, and every entry corresponds to settings.SettingsDict
         # objects
-        master_calc_params = sanitise_master_calc_params(master_calc_params)
+        master_calc_params = sanitize_master_calc_params(
+            master_calc_params) if master_calc_params is not None else generate_default_master_calc_params()
 
         # Work out the pseudopotential directory. If using a pseudo_library this is straightforward, if not...
         #  1. try to locating the directory as currently specified by the calculator
@@ -141,22 +245,15 @@ class Workflow(ABC):
         elif 'pseudo_dir' in master_calc_params['kcp'] or 'pseudo_dir' in master_calc_params['pw']:
             pseudo_dir = master_calc_params['kcp'].get('pseudo_dir', master_calc_params['pw'].get('pseudo_dir'))
             assert isinstance(pseudo_dir, Path)
-            if not os.path.isdir(pseudo_dir):
-                raise NotADirectoryError(f'The pseudo_dir you provided ({pseudo_dir}) does not exist')
         elif 'ESPRESSO_PSEUDO' in os.environ:
             pseudo_dir = Path(os.environ['ESPRESSO_PSEUDO'])
         else:
             pseudo_dir = Path.cwd()
 
-        if self.parameters.task != 'ui':
-            for pseudo in self.pseudopotentials.values():
-                if not (pseudo_dir / pseudo).exists():
-                    raise FileNotFoundError(
-                        f'{pseudo_dir / pseudo} does not exist. Please double-check your pseudopotential settings')
         self.pseudo_dir = pseudo_dir
 
         # Before saving the master_calc_params, automatically generate some keywords and perform some sanity checks
-        if self.parameters.task != 'ui':
+        if self.parameters.task != 'ui' and autogenerate_settings:
             # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
             # and the kcp settings
             nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.pseudo_dir)
@@ -169,7 +266,7 @@ class Workflow(ABC):
 
             # Setting up the magnetic moments
             if 'starting_magnetization(1)' in master_calc_params['kcp']:
-                labels = [s + str(t) if t != 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
+                labels = [s + str(t) if t > 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
                 starting_magmoms = {}
                 for i, (l, p) in enumerate(self.pseudopotentials.items()):
                     # ASE uses absoulte values; QE uses the fraction of the valence
@@ -188,7 +285,7 @@ class Workflow(ABC):
             generated_keywords = {}
             nelec = 0
 
-        self.master_calc_params = settings.default_master_calc_params.copy()
+        self.master_calc_params = generate_default_master_calc_params()
         for block, params in master_calc_params.items():
             # Apply auto-generated keywords
             for k, v in generated_keywords.items():
@@ -200,9 +297,9 @@ class Workflow(ABC):
 
             # Various checks for the wannier90 blocks
             if block.startswith('w90'):
-                # If we are spin-polarised, don't store the spin-independent w90 block
-                # Likewise, if we are not spin-polarised, don't store the spin-dependent w90 blocks
-                if self.parameters.spin_polarised is not ('up' in block or 'down' in block):
+                # If we are spin-polarized, don't store the spin-independent w90 block
+                # Likewise, if we are not spin-polarized, don't store the spin-dependent w90 blocks
+                if self.parameters.spin_polarized is not ('up' in block or 'down' in block):
                     continue
                 if 'projections' in params or 'projections_blocks' in params:
                     raise ValueError(f'You have provided projection information in the master_calc_params[{block}] '
@@ -219,7 +316,7 @@ class Workflow(ABC):
             # algebraically
             params.parse_algebraic_settings(nelec=nelec)
 
-            # Store the sanitised parameters
+            # Store the sanitized parameters
             self.master_calc_params[block] = params
 
         # Generate a default kpath
@@ -239,16 +336,133 @@ class Workflow(ABC):
 
         # If atoms has a calculator, overwrite the kpoints and pseudopotentials variables and then detach the calculator
         if atoms.calc is not None:
-            utils.warn(f'You have initialised a {self.__class__.__name__} object with an atoms object that possesses '
+            utils.warn(f'You have initialized a {self.__class__.__name__} object with an atoms object that possesses '
                        'a calculator. This calculator will be ignored.')
             self.atoms.calc = None
 
+        # Initialize self.parent
+        self.parent: Optional[Workflow] = None
+
+        # For any kwargs...
+        for key, value in kwargs.items():
+            match = False
+            # if they correspond to any valid calculator parameter, set it
+            for calc_params in self.master_calc_params.values():
+                if calc_params.is_valid(key):
+                    calc_params[key] = value
+                    match = True
+            # if not a calculator, workflow, or plot_params keyword, raise an error
+            if not match and not self.parameters.is_valid(key) and not self.plot_params.is_valid(key):
+                raise ValueError(f'{key} is not a valid setting')
+
+    def __eq__(self, other: Any):
+        if isinstance(other, Workflow):
+            return self.__dict__ == other.__dict__
+        return False
+
+    def run(self, subdirectory: Optional[Union[str, Path]] = None, from_scratch: Optional[bool] = None) -> None:
+        '''
+        Run the workflow
+        '''
+
+        self.print_preamble()
+
+        if not self.parent:
+            self._run_sanity_checks()
+
+        if self.parent:
+            with self._parent_context(subdirectory, from_scratch):
+                self._run()
+        else:
+            self._run()
+
+        self.print_conclusion()
+
+        if not self.parent:
+            self._teardown()
+
+    @abstractmethod
+    def _run(self) -> None:
+        ...
+
+    @property
+    def pseudopotentials(self) -> Dict[str, str]:
+        return self._pseudopotentials
+
+    @pseudopotentials.setter
+    def pseudopotentials(self, value: Dict[str, str]):
+        self._pseudopotentials = value
+
+    @property
+    def gamma_only(self) -> bool:
+        return self._gamma_only
+
+    @gamma_only.setter
+    def gamma_only(self, value: bool):
+        self._gamma_only = value
+
+    @property
+    def kgrid(self) -> Optional[List[int]]:
+        return self._kgrid
+
+    @kgrid.setter
+    def kgrid(self, value: Optional[List[int]]):
+        self._kgrid = value
+
+    @property
+    def koffset(self) -> Optional[List[int]]:
+        return self._koffset
+
+    @koffset.setter
+    def koffset(self, value: Optional[List[int]]):
+        self._koffset = value
+
+    @property
+    def kpath(self) -> BandPath:
+        return self._kpath
+
+    @kpath.setter
+    def kpath(self, value: Union[str, BandPath]):
+        if isinstance(value, str):
+            raise NotImplementedError()
+        self._kpath = value
+
+    @classmethod
+    def fromparent(cls, parent_wf: Workflow, **kwargs: Any) -> Workflow:
+        '''
+        Creates a subworkflow with the same configuration as the parent workflow
+
+        e.g.
+        >>> sub_wf = Workflow.fromparent(self)
+        '''
+
+        parameters = copy.deepcopy(parent_wf.parameters)
+        parameter_kwargs = {k: v for k, v in kwargs.items() if parameters.is_valid(k)}
+        other_kwargs = {k: v for k, v in kwargs.items() if not parameters.is_valid(k)}
+        parameters.update(**parameter_kwargs)
+
+        child_wf = cls(atoms=copy.deepcopy(parent_wf.atoms),
+                       parameters=parameters,
+                       master_calc_params=copy.deepcopy(parent_wf.master_calc_params),
+                       name=copy.deepcopy(parent_wf.name),
+                       pseudopotentials=copy.deepcopy(parent_wf.pseudopotentials),
+                       pseudo_dir=copy.deepcopy(parent_wf.pseudo_dir),
+                       gamma_only=copy.deepcopy(parent_wf.gamma_only),
+                       kgrid=copy.deepcopy(parent_wf.kgrid),
+                       kpath=copy.deepcopy(parent_wf.kpath),
+                       projections=copy.deepcopy(parent_wf.projections),
+                       plot_params=copy.deepcopy(parent_wf.plot_params),
+                       **other_kwargs)
+        child_wf.parent = parent_wf
+        return child_wf
+
+    def _run_sanity_checks(self):
         # Check internal consistency of workflow settings
         if self.parameters.fix_spin_contamination is None:
-            self.parameters.fix_spin_contamination = not self.parameters.spin_polarised
+            self.parameters.fix_spin_contamination = not self.parameters.spin_polarized
         else:
-            if self.parameters.fix_spin_contamination and self.parameters.spin_polarised:
-                raise ValueError('fix_spin_contamination = True is incompatible with spin_polarised = True')
+            if self.parameters.fix_spin_contamination and self.parameters.spin_polarized:
+                raise ValueError('fix_spin_contamination = True is incompatible with spin_polarized = True')
 
         if self.parameters.method == 'dfpt':
             if self.parameters.frozen_orbitals is None:
@@ -262,23 +476,51 @@ class Workflow(ABC):
                 utils.warn('You have requested a ΔSCF calculation with frozen orbitals. This is unusual; proceed '
                            'only if you know what you are doing')
 
-        if self.parameters.periodic:
-            if self.parameters.gb_correction is None:
-                self.parameters.gb_correction = True
+        if self.parameters.functional == 'dft':
+            self.parameters.calculate_alpha = False
 
-            if self.parameters.mp_correction:
+        # Checking periodic image correction schemes
+        if not self.parameters.calculate_alpha:
+            # If we are not calculating alpha, we do not consider charged systems and therefore we don't need image
+            # corrections, so we skip the following checks
+            pass
+        elif self.parameters.periodic:
+            if self.parameters.method == 'dfpt':
+                # For DPFT, we use gb_correction
+                if self.parameters.gb_correction is None:
+                    self.parameters.gb_correction = True
+                if not self.parameters.gb_correction:
+                    utils.warn('Gygi-Baldereschi corrections are not being used; do this with '
+                               'caution for periodic systems')
+
+            elif self.parameters.method == 'dscf':
+                # For DSCF, we use mp_correction
+                if self.parameters.mp_correction is None:
+                    self.parameters.mp_correction = True
+                if not self.parameters.mp_correction:
+                    utils.warn('Makov-Payne corrections are not being used; do this with '
+                               'caution for periodic systems')
+
                 if self.parameters.eps_inf is None:
-                    raise ValueError('eps_inf missing in input; needed when mp_correction is true')
-                elif self.parameters.eps_inf < 1.0:
-                    raise ValueError('eps_inf cannot be lower than 1')
-            else:
-                utils.warn('Makov-Payne corrections not applied for a periodic calculation; do this with '
-                           'caution')
+                    utils.warn('eps_inf missing in input; it will default to 1.0. Proceed with caution for periodic '
+                               'systems')
+                    self.parameters.eps_inf = 1.0
 
             if self.parameters.mt_correction is None:
                 self.parameters.mt_correction = False
             if self.parameters.mt_correction:
                 raise ValueError('Do not use Martyna-Tuckerman corrections for periodic systems')
+
+            # Check the value of eps_inf
+            if self.parameters.eps_inf and self.parameters.eps_inf < 1.0:
+                raise ValueError('eps_inf cannot be lower than 1.0')
+
+            # Check symmetry of the system
+            dataset = symmetrize.check_symmetry(self.atoms, 1e-6, verbose=True)
+            if dataset['number'] not in range(195, 231):
+                utils.warn('This system is not cubic and will therefore not have a uniform dielectric tensor. However, '
+                           'the image-correction schemes that are currently implemented assume a uniform dielectric. '
+                           'Proceed with caution')
 
         else:
             if self.parameters.gb_correction is None:
@@ -302,89 +544,29 @@ class Workflow(ABC):
                 raise ValueError(f'In order to use init_orbitals={self.parameters.init_orbitals}, projections must be '
                                  'provided')
             spin_set = set([p.spin for p in self.projections])
-            if self.parameters.spin_polarised:
+            if self.parameters.spin_polarized:
                 if spin_set != {'up', 'down'}:
-                    raise ValueError('This calculation is spin-polarised; please provide spin-up and spin-down '
+                    raise ValueError('This calculation is spin-polarized; please provide spin-up and spin-down '
                                      'projections')
             else:
                 if spin_set != {None}:
-                    raise ValueError('This calculation is not spin-polarised; please do not provide spin-indexed '
+                    raise ValueError('This calculation is not spin-polarized; please do not provide spin-indexed '
                                      'projections')
 
-        # Records whether or not this workflow is a subworkflow of another
-        self._is_a_subworkflow = False
+        # Check the consistency between self.gamma_only and KCP's do_wf_cmplx
+        if not self.gamma_only and self.master_calc_params['kcp'].do_wf_cmplx is False:
+            utils.warn('In KCP do_wf_cmplx = False is not consistent with gamma_only = False. '
+                       'Changing do_wf_cmplx to True')
+            self.master_calc_params['kcp'].do_wf_cmplx = True
 
-    def __eq__(self, other):
-        if isinstance(other, Workflow):
-            return self.__dict__ == other.__dict__
-        return False
-
-    def run(self) -> None:
-        self.print_preamble()
-        self._run()
-        self.print_conclusion()
-
-    @abstractmethod
-    def _run(self) -> None:
-        ...
-
-    @property
-    def pseudopotentials(self) -> Dict[str, str]:
-        return self._pseudopotentials
-
-    @pseudopotentials.setter
-    def pseudopotentials(self, value: Dict[str, str]):
-        self._pseudopotentials = value
-
-    @property
-    def gamma_only(self):
-        return self._gamma_only
-
-    @gamma_only.setter
-    def gamma_only(self, value: bool):
-        self._gamma_only = value
-
-    @property
-    def kgrid(self):
-        return self._kgrid
-
-    @kgrid.setter
-    def kgrid(self, value: List[int]):
-        self._kgrid = value
-
-    @property
-    def koffset(self):
-        return self._koffset
-
-    @koffset.setter
-    def koffset(self, value: List[int]):
-        self._koffset = value
-
-    @property
-    def kpath(self):
-        return self._kpath
-
-    @kpath.setter
-    def kpath(self, value: Union[str, BandPath]):
-        if isinstance(value, str):
-            raise NotImplementedError()
-        self._kpath = value
-
-    @property
-    def wf_kwargs(self):
-        # Returns a kwargs designed to be used to initialise another workflow with the same configuration as this one
-        # i.e.
-        # > sub_wf = Workflow(**self.wf_kwargs)
-        return {'atoms': copy.deepcopy(self.atoms),
-                'parameters': copy.deepcopy(self.parameters),
-                'master_calc_params': copy.deepcopy(self.master_calc_params),
-                'name': copy.deepcopy(self.name),
-                'pseudopotentials': copy.deepcopy(self.pseudopotentials),
-                'pseudo_dir': copy.deepcopy(self.pseudo_dir),
-                'gamma_only': copy.deepcopy(self.gamma_only),
-                'kgrid': copy.deepcopy(self.kgrid),
-                'kpath': copy.deepcopy(self.kpath),
-                'projections': copy.deepcopy(self.projections)}
+        # Check pseudopotentials exist
+        if not os.path.isdir(self.pseudo_dir):
+            raise NotADirectoryError(f'The pseudo_dir you provided ({self.pseudo_dir}) does not exist')
+        if self.parameters.task != 'ui':
+            for pseudo in self.pseudopotentials.values():
+                if not (self.pseudo_dir / pseudo).exists():
+                    raise FileNotFoundError(
+                        f'{self.pseudo_dir / pseudo} does not exist. Please double-check your pseudopotential settings')
 
     def new_calculator(self,
                        calc_type: str,
@@ -414,6 +596,8 @@ class Workflow(ABC):
             calc_class = calculators.KoopmansHamCalculator
         elif calc_type == 'ph':
             calc_class = calculators.PhCalculator
+        elif calc_type == 'projwfc':
+            calc_class = calculators.ProjwfcCalculator
         else:
             raise ValueError(f'Cound not find a calculator of type {calc_type}')
 
@@ -429,7 +613,7 @@ class Workflow(ABC):
             all_kwargs['kpts'] = kpts if kpts is not None else self.kgrid
 
         # Add pseudopotential and kpt information to the calculator as required
-        for kw in ['pseudopotentials', 'pseudo_dir', 'gamma_only', 'kgrid', 'kpath', 'koffset']:
+        for kw in ['pseudopotentials', 'pseudo_dir', 'gamma_only', 'kgrid', 'kpath', 'koffset', 'plot_params']:
             if kw not in all_kwargs and kw in master_calc_params.valid:
                 all_kwargs[kw] = getattr(self, kw)
 
@@ -452,7 +636,8 @@ class Workflow(ABC):
     def primitive_to_supercell(self, matrix: Optional[npt.NDArray[np.int_]] = None, **kwargs):
         # Converts to a supercell as given by a 3x3 transformation matrix
         if matrix is None:
-            matrix = np.diag(self.kgrid)
+            assert self.kgrid is not None
+            matrix = np.diag(self.kgrid) if not self.gamma_only else np.identity(3, dtype=float)
         assert np.shape(matrix) == (3, 3)
         self.atoms = make_supercell(self.atoms, matrix, **kwargs)
 
@@ -462,6 +647,7 @@ class Workflow(ABC):
         # Converts from a supercell to a primitive cell, as given by a 3x3 transformation matrix
         # The inverse of self.primitive_to_supercell()
         if matrix is None:
+            assert self.kgrid is not None
             matrix = np.diag(self.kgrid)
         assert np.shape(matrix) == (3, 3)
 
@@ -481,7 +667,7 @@ class Workflow(ABC):
 
         self.update_celldms()
 
-    def run_calculator(self, master_qe_calc, enforce_ss=False):
+    def run_calculator(self, master_qe_calc: calculators.Calc, enforce_ss=False):
         '''
         Wrapper for run_calculator_single that manages the optional enforcing of spin symmetry
         '''
@@ -522,7 +708,7 @@ class Workflow(ABC):
 
         return
 
-    def run_calculator_single(self, qe_calc):
+    def run_calculator_single(self, qe_calc: calculators.Calc):
         # Runs qe_calc.calculate with additional checks
 
         # If an output file already exists, check if the run completed successfully
@@ -540,8 +726,14 @@ class Workflow(ABC):
                     if not self.silent:
                         self.print(f'Not running {os.path.relpath(calc_file)} as it is already complete')
 
+                    # Check the convergence of the calculation
+                    qe_calc.check_convergence()
+
                     if isinstance(qe_calc, calculators.ReturnsBandStructure):
                         qe_calc.generate_band_structure()
+
+                    if isinstance(qe_calc, calculators.ProjwfcCalculator):
+                        qe_calc.generate_dos()
                     return
 
         if not self.silent:
@@ -553,42 +745,24 @@ class Workflow(ABC):
             if isinstance(qe_calc.command, ParallelCommandWithPostfix):
                 qe_calc.command.postfix = f'-npool {self.parameters.npool}'
 
-        qe_calc.calculate()
-
-        if not qe_calc.is_complete():
+        try:
+            qe_calc.calculate()
+        except CalculationFailed as e:
             self.print(' failed')
-            raise CalculationFailed(
-                f'{qe_calc.directory}/{qe_calc.prefix} failed; check the Quantum ESPRESSO output file for more details')
+            raise CalculationFailed(e)
 
         if not self.silent:
             self.print(' done')
 
-        # Check spin-up and spin-down eigenvalues match
-        if 'eigenvalues' in qe_calc.results and isinstance(qe_calc, calculators.KoopmansCPCalculator):
-            if qe_calc.is_converged() and qe_calc.parameters.do_outerloop and qe_calc.parameters.nspin == 2 \
-                    and qe_calc.parameters.tot_magnetization == 0 and not qe_calc.parameters.fixed_state \
-                    and len(qe_calc.results['eigenvalues']) > 0:
-                rms_eigenval_difference = np.sqrt(
-                    np.mean(np.diff(qe_calc.results['eigenvalues'], axis=0)**2))
-                if rms_eigenval_difference > 0.05:
-                    utils.warn('Spin-up and spin-down eigenvalues differ substantially')
-
         # Store the calculator
         self.calculations.append(qe_calc)
-
-        # Print quality control
-        if self.parameters.print_qc and not qe_calc.skip_qc:
-            for result in qe_calc.results_for_qc:
-                val = qe_calc.results.get(result, None)
-                if val:
-                    self.print_qc_keyval(result, val, qe_calc)
 
         # If we reached here, all future calculations should be performed from scratch
         self.parameters.from_scratch = True
 
         return
 
-    def load_old_calculator(self, qe_calc):
+    def load_old_calculator(self, qe_calc: calculators.Calc) -> bool:
         # This is a separate function so that it can be monkeypatched by the test suite
         old_calc = qe_calc.__class__.fromfile(qe_calc.directory / qe_calc.prefix)
 
@@ -611,7 +785,7 @@ class Workflow(ABC):
 
         return old_calc.is_complete()
 
-    def print(self, text='', style='body', **kwargs):
+    def print(self, text: str = '', style: str = 'body', **kwargs: Any):
         if style == 'body':
             utils.indented_print(str(text), self.print_indent + 1, **kwargs)
         else:
@@ -626,100 +800,84 @@ class Workflow(ABC):
             utils.indented_print(str(text), self.print_indent, **kwargs)
             utils.indented_print(underline * len(text), self.print_indent, **kwargs)
 
-    def print_qc_keyval(self, key, value, calc=None):
+    @contextmanager
+    def _parent_context(self, subdirectory: Optional[Union[str, Path]] = None,
+                        from_scratch: Optional[bool] = None) -> Generator[None, None, None]:
         '''
-        Prints out a quality control message for testcode to evaluate, and if a calculator is provided, stores the
-        result in calc.qc_results
-        '''
-
-        if calc is None:
-            calc_str = ''
-        else:
-            calc_str = f'{calc.prefix}_'
-
-        if not isinstance(value, list):
-            self.print(f'<QC> {calc_str}{key} {value}')
-
-        if calc is not None:
-            calc.qc_results[key] = value
-
-    def run_subworkflow(self, workflow, subdirectory=None, from_scratch=None, **kwargs):
-        '''
-        Runs a workflow object, taking care of inheritance of several important properties
+        Context for calling self._run(), within which self inherits relevant information from self.parent, runs, and
+        then passes back relevant information to self.parent
 
         '''
 
-        # When testing, make sure the sub-workflow has access to the benchmark
-        if hasattr(self, 'benchmark'):
-            workflow.benchmark = self.benchmark
+        assert self.parent is not None
 
         # Automatically pass along the name of the overall workflow
-        if workflow.name is None:
-            workflow.name = self.name
+        if self.name is None:
+            self.name = self.parent.name
 
         # Increase the indent level
-        workflow.print_indent = self.print_indent + 1
+        self.print_indent = self.parent.print_indent + 1
 
-        # Don't print out the header, generate .bib and .kwf files etc. for subworkflows
-        workflow._is_a_subworkflow = True
-
-        # Ensure altering workflow.master_calc_params won't affect self.master_calc_params
-        if workflow.master_calc_params is self.master_calc_params:
-            workflow.master_calc_params = copy.deepcopy(self.master_calc_params)
+        # Ensure altering self.master_calc_params won't affect self.parent.master_calc_params
+        if self.master_calc_params is self.parent.master_calc_params:
+            self.master_calc_params = copy.deepcopy(self.parent.master_calc_params)
 
         # Setting from_scratch to a non-None value will override the value of subworkflow.from_scratch...
         if from_scratch is None:
-            workflow.parameters.from_scratch = self.parameters.from_scratch
+            self.parameters.from_scratch = self.parent.parameters.from_scratch
         else:
-            workflow.parameters.from_scratch = from_scratch
+            self.parameters.from_scratch = from_scratch
 
         # Link the list of calculations
-        workflow.calculations = self.calculations
+        self.calculations = self.parent.calculations
 
         # Link the bands
-        if hasattr(self, 'bands'):
-            workflow.bands = copy.deepcopy(self.bands)
+        if hasattr(self.parent, 'bands'):
+            self.bands = copy.deepcopy(self.parent.bands)
             # Only include the most recent screening parameter and wipe the error history
-            for b in workflow.bands:
+            for b in self.bands:
                 if len(b.alpha_history) > 0:
                     b.alpha_history = [b.alpha]
                 b.error_history = []
 
-        if subdirectory is not None:
-            # Update directories
-            for key in workflow.master_calc_params.keys():
-                params = workflow.master_calc_params[key]
-                for setting in params.are_paths:
-                    if setting == 'pseudo_dir':
-                        continue
-                    path = getattr(params, setting, None)
-                    if path is not None and Path.cwd() in path.parents:
-                        new_path = Path(subdirectory).resolve() / os.path.relpath(path)
-                        setattr(params, setting, new_path)
+        try:
+            if subdirectory is not None:
+                # Ensure subdirectory is a Path
+                subdirectory = Path(subdirectory)
+                # Update directories
+                for key in self.master_calc_params.keys():
+                    params = self.master_calc_params[key]
+                    for setting in params.are_paths:
+                        if setting == 'pseudo_dir':
+                            continue
+                        path = getattr(params, setting, None)
+                        if path is not None and Path.cwd() in path.parents:
+                            new_path = subdirectory.resolve() / os.path.relpath(path)
+                            setattr(params, setting, new_path)
 
-            # Run the workflow
-            with utils.chdir(subdirectory):
-                workflow.run(**kwargs)
-        else:
-            workflow.run(**kwargs)
-
-        # ... and will prevent inheritance of from_scratch
-        if from_scratch is None:
-            self.parameters.from_scratch = workflow.parameters.from_scratch
-
-        # Copy back over the bands
-        if hasattr(workflow, 'bands'):
-            if hasattr(self, 'bands'):
-                # Add the alpha and error history
-                for b, b_sub in zip(self.bands, workflow.bands):
-                    b.alpha_history += b_sub.alpha_history[1:]
-                    b.error_history += b_sub.error_history
+                # Run the workflow
+                with utils.chdir(subdirectory):
+                    yield
             else:
-                # Copy the entire bands object
-                self.bands = workflow.bands
+                yield
+        finally:
+            # ... and will prevent inheritance of from_scratch
+            if from_scratch is None:
+                self.parent.parameters.from_scratch = self.parameters.from_scratch
 
-        # Make sure any updates to the projections are passed along
-        self.projections = workflow.projections
+            # Copy back over the bands
+            if hasattr(self, 'bands'):
+                if hasattr(self.parent, 'bands'):
+                    # Add the alpha and error history
+                    for b, b_sub in zip(self.parent.bands, self.bands):
+                        b.alpha_history += b_sub.alpha_history[1:]
+                        b.error_history += b_sub.error_history
+                else:
+                    # Copy the entire bands object
+                    self.parent.bands = self.bands
+
+            # Make sure any updates to the projections are passed along
+            self.parent.projections = self.projections
 
     def todict(self):
         # Shallow copy
@@ -731,7 +889,7 @@ class Workflow(ABC):
         return dct
 
     @classmethod
-    def fromdict(cls, dct: Dict):
+    def fromdict(cls, dct: Dict[str, Any]) -> Workflow:
         wf = cls(atoms=dct.pop('atoms'),
                  parameters=dct.pop('parameters'),
                  master_calc_params=dct.pop('master_calc_params'),
@@ -739,7 +897,8 @@ class Workflow(ABC):
                  gamma_only=dct.pop('_gamma_only'),
                  kgrid=dct.pop('_kgrid'),
                  kpath=dct.pop('_kpath'),
-                 projections=dct.pop('projections'))
+                 projections=dct.pop('projections'),
+                 autogenerate_settings=False)
 
         for k, v in dct.items():
             setattr(wf, k, v)
@@ -749,11 +908,11 @@ class Workflow(ABC):
     @property
     def bands(self):
         if not hasattr(self, '_bands'):
-            raise AttributeError('Bands have not been initialised')
+            raise AttributeError('Bands have not been initialized')
         return self._bands
 
     @bands.setter
-    def bands(self, value):
+    def bands(self, value: Bands):
         assert isinstance(value, Bands)
         self._bands = value
 
@@ -808,8 +967,11 @@ class Workflow(ABC):
         # Check for unexpected blocks
         for block in bigdct:
             if block not in list(settings_classes.keys()) + ['workflow', 'setup']:
-                raise ValueError(f'Unrecognised block "{block}" in json input file; '
+                raise ValueError(f'Unrecognized block "{block}" in json input file; '
                                  'valid options are workflow/' + '/'.join(settings_classes.keys()))
+
+        # Loading plot settings
+        plot_params = settings.PlotSettingsDict(**utils.parse_dict(bigdct.get('plot', {})))
 
         # Loading workflow settings
         parameters = settings.WorkflowSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})))
@@ -848,9 +1010,9 @@ class Workflow(ABC):
                         raise ValueError('kpath in the UI block should match that provided in the setup block')
                     dct.pop('kpath')
             elif block.startswith('w90'):
-                # If we are spin-polarised, don't store the spin-independent w90 block
-                # Likewise, if we are not spin-polarised, don't store the spin-dependent w90 blocks
-                if parameters.spin_polarised is not ('up' in block or 'down' in block):
+                # If we are spin-polarized, don't store the spin-independent w90 block
+                # Likewise, if we are not spin-polarized, don't store the spin-dependent w90 blocks
+                if parameters.spin_polarized is not ('up' in block or 'down' in block):
                     continue
                 if 'projections' in dct and 'projections_blocks' in dct:
                     raise ValueError(f'You have provided both "projections" and "projections_block" for {block} but '
@@ -877,9 +1039,11 @@ class Workflow(ABC):
         workflow_kwargs['projections'] = ProjectionBlocks.fromprojections(
             w90_block_projs, w90_block_filling, w90_block_spins, atoms)
 
+        workflow_kwargs['plot_params'] = plot_params
+
         name = fname.replace('.json', '')
 
-        return cls(atoms, parameters, master_calc_params, name, **workflow_kwargs)
+        return cls(atoms, parameters=parameters, master_calc_params=master_calc_params, name=name, **workflow_kwargs)
 
     def print_header(self):
         print(header())
@@ -906,7 +1070,7 @@ class Workflow(ABC):
                         add_ref('Colonna2019', 'Introduces the DFPT method for calculating screening parameters')
                         add_ref('Colonna2022', 'Describes the algorithms underpinning the kcw.x code')
                     else:
-                        add_ref('DeGennaro2021', 'Describes how to extract band structures from Koopmans functional '
+                        add_ref('DeGennaro2022', 'Describes how to extract band structures from Koopmans functional '
                                 'calculations')
                         add_ref('Borghi2015', 'Describes the algorithms underpinning the kcp.x code')
             else:
@@ -925,7 +1089,7 @@ class Workflow(ABC):
         relevant_references.to_file(self.name + '.bib')
 
     def print_preamble(self):
-        if self._is_a_subworkflow:
+        if self.parent:
             return
 
         self.print_header()
@@ -935,7 +1099,7 @@ class Workflow(ABC):
     def print_conclusion(self):
         from koopmans.io import write
 
-        if self._is_a_subworkflow:
+        if self.parent:
             return
 
         # Save workflow to file
@@ -1007,7 +1171,7 @@ class Workflow(ABC):
                 bigdct['setup']['control'] = {'pseudo_dir': str(pseudo_dir)}
 
             # If the params_dict is empty, don't add a block for this calculator
-            if not params_dict:
+            if not params_dict and not code.startswith('w90'):
                 continue
 
             if code in ['pw', 'kcp']:
@@ -1021,7 +1185,7 @@ class Workflow(ABC):
                         bigdct[code][key] = {k: v for k, v in dict(
                             block).items() if v is not None}
 
-            elif code in ['pw2wannier', 'wann2kc', 'kc_screen', 'kc_ham']:
+            elif code in ['pw2wannier', 'wann2kc', 'kc_screen', 'kc_ham', 'projwfc', 'wann2kcp', 'plot']:
                 bigdct[code] = params_dict
             elif code.startswith('ui_'):
                 bigdct['ui'][code.split('_')[-1]] = params_dict
@@ -1044,15 +1208,139 @@ class Workflow(ABC):
                 projections = self.projections.get_subset(filling, spin)
                 if len(projections) > 1:
                     proj_kwarg = {'projections_blocks': [p.projections for p in projections]}
-                else:
+                elif len(projections) == 1:
                     proj_kwarg = {'projections': projections[0].projections}
+                else:
+                    proj_kwarg = {}
                 reduce(operator.getitem, nested_keys[:-1], bigdct['w90'])[k].update(**proj_kwarg)
-
             else:
                 raise NotImplementedError(
                     f'Writing of {params.__class__.__name__} with write_json is not yet implemented')
 
         return bigdct
+
+    def plot_bandstructure(self,
+                           bs: Union[BandStructure, List[BandStructure]],
+                           dos: Optional[Union[GridDOSCollection, DOS]] = None,
+                           filename: Optional[str] = None,
+                           bsplot_kwargs: Union[Dict[str, Any], List[Dict[str, Any]]] = {},
+                           dosplot_kwargs: Dict[str, Any] = {}) -> None:
+        """
+        Plots the provided band structure (and optionally also a provided DOS)
+
+        Arguments:
+        bs -- a bandstructure/list of band structures to be plotted
+        dos -- a density of states object to be plotted
+        filename -- the name of the file to which the figure will be saved
+        bsplot_kwargs -- keyword arguments for when plotting the band structure(s). N.B. if bs is a list of band
+                         structures, bsplot_kwargs must be a list of equal length, with kwarg dicts for each entry
+        dosplot_kwargs -- keyword arguments for when plotting the DOS
+        """
+
+        # Sanitize input
+        if isinstance(bs, BandStructure):
+            bs = [bs]
+        if isinstance(bsplot_kwargs, dict):
+            bsplot_kwargs = [bsplot_kwargs]
+        if len(bs) != len(bsplot_kwargs):
+            raise ValueError('The "bs" and "bsplot_kwargs" arguments to plot_bandstructure() should be the same length')
+        spins: List[Optional[str]]
+        if isinstance(dos, DOS):
+            if self.parameters.spin_polarized:
+                spins = ['up', 'down']
+            else:
+                spins = [None]
+            dos = GridDOSCollection([GridDOSData(dos.get_energies(), dos.get_dos(ispin), info={'spin': spin})
+                                     for ispin, spin in enumerate(spins)])
+
+        colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        if dos is not None:
+            # Construct the axes
+            _, axes = plt.subplots(1, 2, sharey=True, gridspec_kw={'width_ratios': [3, 1]})
+            ax_bs = axes[0]
+            ax_dos = axes[1]
+        else:
+            ax_bs = None
+
+        # Plot the band structure
+        defaults = {'colors': colors, 'emin': self.plot_params.Emin, 'emax': self.plot_params.Emax}
+        for b, kwargs in zip(bs, bsplot_kwargs):
+            for k, v in defaults.items():
+                if k not in kwargs:
+                    kwargs[k] = v
+            ax_bs = b.plot(ax=ax_bs, **kwargs)
+
+        # Move the legend (if there is one)
+        if ax_bs.get_legend():
+            ax_bs.legend(loc='lower left', bbox_to_anchor=(0, 1), frameon=False, ncol=min((2, len(bs))))
+
+        if dos is None:
+            axes = [ax_bs]
+        else:
+            # Assemble the densities of state
+            dos_summed = dos.sum_by('symbol', 'n', 'l', 'spin')
+            if self.parameters.spin_polarized:
+                dos_up = dos_summed.select(spin='up')
+                dos_down = dos_summed.select(spin='down')
+                dos_down._weights *= -1
+                doss = [dos_up, dos_down]
+            else:
+                doss = [dos_summed]
+
+            # Plot the DOSs
+            spdf_order = {'s': 0, 'p': 1, 'd': 2, 'f': 3}
+            [xmin, xmax] = ax_bs.get_ylim()
+            for dos in doss:
+                # Before iterating through the DOSs, sort them in a sensible order (by atomic symbol, n, and l)
+                if all([key in d.info for d in dos for key in ['symbol', 'n', 'l']]):
+                    sorted_dos = sorted(dos, key=lambda x: (x.info['symbol'], x.info['n'], spdf_order[x.info['l']]))
+                else:
+                    sorted_dos = dos
+
+                for d in sorted_dos:
+                    if (not self.parameters.spin_polarized or d.info.get('spin') == 'up') \
+                            and all([key in d.info for key in ['symbol', 'n', 'l']]):
+                        label = f'{d.info["symbol"]} {d.info["n"]}{d.info["l"]}'
+                    else:
+                        label = None
+                    d.plot_dos(ax=ax_dos, xmin=xmin, xmax=xmax, orientation='vertical', mplargs={'label': label},
+                               **dosplot_kwargs)
+
+                # Reset color cycle so the colors of spin-up match those of spin-down
+                ax_dos.set_prop_cycle(None)
+
+            # Tweaking the DOS figure aesthetics
+            maxval = 1.1 * dos_summed._weights[:, [e >= xmin and e <= xmax for e in dos_summed._energies]].max()
+            if self.parameters.spin_polarized:
+                ax_dos.set_xlim([maxval, -maxval])
+                ax_dos.text(0.25, 0.10, 'up', ha='center', va='top', transform=ax_dos.transAxes)
+                ax_dos.text(0.75, 0.10, 'down', ha='center', va='top', transform=ax_dos.transAxes)
+            else:
+                ax_dos.set_xlim([0, maxval])
+            ax_dos.set_xticks([])
+
+            # Move the legend (if there is one)
+            _, labels = ax_dos.get_legend_handles_labels()
+            if len(labels) > 0:
+                ax_dos.legend(loc='upper left', bbox_to_anchor=(1, 1), frameon=False)
+            plt.subplots_adjust(right=0.85, wspace=0.05)
+
+        # Saving the figure to file (as png and also in editable form)
+        filename = filename if filename is not None else f'{self.name}_bandstructure'
+        legends = [ax.get_legend() for ax in axes if ax.get_legend() is not None]
+        utils.savefig(fname=filename + '.png', bbox_extra_artists=legends, bbox_inches='tight')
+
+    def _teardown(self):
+        '''
+        Performs final tasks before the workflow completes
+        '''
+
+        # Removing tmpdirs
+        if not self.parameters.keep_tmpdirs:
+            all_outdirs = [calc.parameters.get('outdir', None) for calc in self.calculations]
+            outdirs = set([o.resolve() for o in all_outdirs if o is not None and o.resolve().exists()])
+            for outdir in outdirs:
+                shutil.rmtree(outdir)
 
 
 def get_version(module):
@@ -1067,7 +1355,7 @@ def header():
 
     koopmans_version = get_version(os.path.dirname(__file__))
     ase_version = get_version(ase)
-    qe_version = get_version(calculators.bin_directory)
+    qe_version = get_version((calculators.bin_directory / 'pw.x').resolve().parents[2])
 
     header = [r"  _                                                ",
               r" | | _____   ___  _ __  _ __ ___   __ _ _ __  ___  ",
@@ -1116,7 +1404,7 @@ def read_setup_dict(dct: Dict[str, Any], task: str):
                     pass
                 calc.parameters[key] = value
         else:
-            raise ValueError(f'Unrecognised block "setup:{block}" in the input file')
+            raise ValueError(f'Unrecognized block "setup:{block}" in the input file')
 
     # Calculating the simulation cell
     cell = None
@@ -1162,11 +1450,31 @@ def read_setup_dict(dct: Dict[str, Any], task: str):
     return atoms, parameters, psps_and_kpts
 
 
+def generate_default_master_calc_params() -> Dict[str, settings.SettingsDict]:
+    # Dictionary to be used as the default value for 'master_calc_params' when initializing a workflow
+    # We create this dynamically in order for the .directory attributes to make sense
+    return {'kcp': settings.KoopmansCPSettingsDict(),
+            'kc_ham': settings.KoopmansHamSettingsDict(),
+            'kc_screen': settings.KoopmansScreenSettingsDict(),
+            'projwfc': settings.ProjwfcSettingsDict(),
+            'pw': settings.PWSettingsDict(),
+            'pw2wannier': settings.PW2WannierSettingsDict(),
+            'wann2kcp': settings.Wann2KCPSettingsDict(),
+            'ui': settings.UnfoldAndInterpolateSettingsDict(),
+            'ui_occ': settings.UnfoldAndInterpolateSettingsDict(),
+            'ui_emp': settings.UnfoldAndInterpolateSettingsDict(),
+            'wann2kc': settings.Wann2KCSettingsDict(),
+            'w90_occ': settings.Wannier90SettingsDict(),
+            'w90_emp': settings.Wannier90SettingsDict(),
+            'plot': settings.PlotSettingsDict()}
+
+
 # Define which function to use to read each block
 settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'kc_ham': settings.KoopmansHamSettingsDict,
                     'kc_screen': settings.KoopmansScreenSettingsDict,
                     'wann2kc': settings.Wann2KCSettingsDict,
+                    'projwfc': settings.ProjwfcSettingsDict,
                     'pw': settings.PWSettingsDict,
                     'pw2wannier': settings.PW2WannierSettingsDict,
                     'wann2kcp': settings.Wann2KCPSettingsDict,
@@ -1178,10 +1486,11 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'w90_occ_up': settings.Wannier90SettingsDict,
                     'w90_emp_up': settings.Wannier90SettingsDict,
                     'w90_occ_down': settings.Wannier90SettingsDict,
-                    'w90_emp_down': settings.Wannier90SettingsDict}
+                    'w90_emp_down': settings.Wannier90SettingsDict,
+                    'plot': settings.PlotSettingsDict}
 
 
-def sanitise_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]]) \
+def sanitize_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]]) \
         -> Dict[str, settings.SettingsDict]:
     dct_out: Dict[str, settings.SettingsDict] = {}
     for k, cls in settings_classes.items():
@@ -1189,12 +1498,12 @@ def sanitise_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, setting
         if isinstance(dct, settings.SettingsDict):
             dct_out[k] = dct
             if dct_out[k].directory == '':
-                dct_out[k].directory = Path().resolve()
+                dct_out[k].directory = Path.cwd()
         else:
-            dct_out[k] = cls(**dct, directory=Path().resolve())
+            dct_out[k] = cls(**dct, directory=Path.cwd())
 
     for k in dct_in.keys():
         if k not in settings_classes:
             raise ValueError(
-                f'Unrecognised master_calc_params entry "{k}": valid options are ' + '/'.join(settings_classes.keys()))
+                f'Unrecognized master_calc_params entry "{k}": valid options are ' + '/'.join(settings_classes.keys()))
     return dct_out

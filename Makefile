@@ -1,5 +1,5 @@
 # List of available tasks
-.PHONY: help install submodules configure_4 configure_7 configure espresso_4 espresso_7 espresso_utils espresso workflow tests mock_tests clean clean_espresso clean_tests
+.PHONY: help install submodules configure_4 configure_7 configure espresso_4 espresso_7 espresso_utils espresso workflow tests clean clean_espresso clean_tests benchmarks
 
 MPIF90 = "mpif90"
 
@@ -21,9 +21,6 @@ help:
 	@echo ' To run the test suite'
 	@echo ' > make tests'
 	@echo ''
-	@echo ' To test without calling QE'
-	@echo ' > make mock_tests'
-	@echo ''
 	@echo ' To clean the repository (removing compilations of QE and all test outputs)'
 	@echo ' > make clean'
 	@echo ''
@@ -35,18 +32,18 @@ submodules:
 	git submodule update
 
 configure_4:
-	cd quantum_espresso/cp_koopmans; ./configure MPIF90=$(MPIF90);
+	cd quantum_espresso/kcp; ./configure MPIF90=$(MPIF90);
 
 configure_7:
-	cd quantum_espresso/qe_koopmans; ./configure MPIF90=$(MPIF90);
+	cd quantum_espresso/q-e; ./configure MPIF90=$(MPIF90);
 
 configure: configure_4 configure_7
 
 espresso_4:
-	@(cd quantum_espresso/cp_koopmans; $(MAKE) kcp)
+	@(cd quantum_espresso/kcp; $(MAKE) kcp)
 
 espresso_7:
-	@(cd quantum_espresso/qe_koopmans; $(MAKE) kcw)
+	@(cd quantum_espresso/q-e; $(MAKE) pw kcw)
 
 espresso_utils:
 	@(cd quantum_espresso/utils; $(MAKE) all)
@@ -60,22 +57,15 @@ workflow:
 clean: clean_espresso clean_tests
 
 clean_espresso:
-	@(cd quantum_espresso/cp_koopmans; $(MAKE) veryclean)
-	@(cd quantum_espresso/qe_koopmans; $(MAKE) veryclean)
+	@(cd quantum_espresso/kcp; $(MAKE) veryclean)
+	@(cd quantum_espresso/q-e; $(MAKE) veryclean)
 	@(cd quantum_espresso/utils; $(MAKE) clean)
 
 tests:
-	python3 -m pytest -m "standard" tests/
-
-mock_tests:
-	python3 -m pytest -m "mock" tests/
-
-KEEP_TESTS := -name '*.py' -o -name '*.json'
-TEST_DIRS := ki; pkipz; kipz; init; calc_alpha; final; TMP-CP; ecutwfc; charged; neutral
-CLEAN_TEST_DIRS := $(pathsubst %,;, -o name %)
+	python3 -m pytest -m "not tutorials" tests/
 
 clean_tests:
-	find tests/test_??/ -path */*/input_files -prune -false -o \
-		-type f ! \( ${KEEP_TESTS} \) | xargs -i rm -v {}
-	find tests/test_??/* -type d ${CLEAN_TEST_DIRS} | grep -v input_files | xargs -i rm -vrf {}
+	rm -rf tests/tmp
 
+benchmark:
+	python3 -m pytest --generate_benchmark

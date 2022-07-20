@@ -9,12 +9,15 @@ Originally written by Riccardo De Gennaro as the standalone 'unfolding and inter
 Integrated within koopmans by Edward Linscott Jan 2021
 """
 
-import numpy as np
 from pathlib import Path
 from typing import Optional
-from ._workflow import Workflow
-from koopmans import calculators
+
+import numpy as np
+
 from ase.spectrum.band_structure import BandStructure
+from koopmans import calculators, utils
+
+from ._workflow import Workflow
 
 
 class UnfoldAndInterpolateWorkflow(Workflow):
@@ -45,22 +48,18 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                      and c.command.flags == ''][-len(self.projections):]
 
         if self.master_calc_params['ui'].do_smooth_interpolation:
-            wf_kwargs = self.wf_kwargs
-            wf_kwargs['kgrid'] = [x * y for x,
-                                  y in zip(wf_kwargs['kgrid'], self.master_calc_params['ui'].smooth_int_factor)]
-            wannier_workflow = WannierizeWorkflow(**wf_kwargs)
-            # For the moment not enabling this change
-            # wannier_workflow = WannierizeWorkflow(scf_kgrid=self.kgrid, **wf_kwargs)
-            wannier_workflow.parameters.calculate_bands = True
+            wannier_workflow = WannierizeWorkflow.fromparent(self, scf_kgrid=self.kgrid)
+            wannier_workflow.kgrid = [x * y for x,
+                                      y in zip(self.kgrid, self.master_calc_params['ui'].smooth_int_factor)]
 
             # Here, we allow for skipping of the smooth dft calcs (assuming they have been already run)
-            # This is achieved via the optional argument of from_scratch in run_subworkflow(), which
+            # This is achieved via the optional argument of from_scratch in run(), which
             # overrides the value of wannier_workflow.from_scratch, as well as preventing the inheritance of
             # self.from_scratch to wannier_workflow.from_scratch and back again after the subworkflow finishes
-            self.run_subworkflow(wannier_workflow, from_scratch=self._redo_smooth_dft)
+            wannier_workflow.run(from_scratch=self._redo_smooth_dft)
 
         calc: calculators.UnfoldAndInterpolateCalculator
-        if self.parameters.spin_polarised:
+        if self.parameters.spin_polarized:
             spins = ['up', 'down']
         else:
             spins = [None]
@@ -81,7 +80,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         calc = self.new_ui_calculator('merge')
 
         # Merge the bands
-        if self.parameters.spin_polarised:
+        if self.parameters.spin_polarized:
             energies = [[c.results['band structure'].energies for c in subset]
                         for subset in [self.calculations[-4:-2], self.calculations[-2:]]]
             reference = np.max([e[0] for e in energies])
@@ -99,6 +98,23 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         # Print out the merged bands and DOS
         if self.parameters.from_scratch:
             calc.write_results()
+
+        # Plot the band structure and DOS
+        bs = calc.results['band structure']
+        if calc.parameters.do_dos:
+            dos = calc.results['dos']
+            # Add the DOS only if the k-path is sufficiently sampled to mean the individual Gaussians are not visible
+            # (by comparing the median jump between adjacent eigenvalues to the smearing width)
+            median_eval_gap = max([np.median(e[1:] - e[:-1]) for e in [np.sort(ekn.flatten()) for ekn in dos.e_skn]])
+            if dos.width < 5 * median_eval_gap:
+                dos = None
+                utils.warn('The DOS will not be plotted, because the Brillouin zone is too poorly sampled for the '
+                           'specified value of smearing. In order to generate a DOS, increase the k-point density '
+                           '("kpath_density" in the "setup" "k_points" subblock) and/or the smearing ("degauss" '
+                           'in the "plot" block)')
+        else:
+            dos = None
+        self.plot_bandstructure(bs, dos)
 
         # Store the calculator in the workflow's list of all the calculators
         self.calculations.append(calc)
@@ -130,7 +146,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                     kwargs['dft_ham_file'] = Path(f'../init/wannier/{calc_presets}/wann_hr.dat').resolve()
             else:
                 # DFPT case
-                if self.parameters.spin_polarised:
+                if self.parameters.spin_polarized:
                     raise NotImplementedError()
                 kwargs['kc_ham_file'] = Path(f'../hamiltonian/kc.kcw_hr_{calc_presets}.dat').resolve()
                 kwargs['w90_seedname'] = Path(f'../wannier/{calc_presets}/wann').resolve()
@@ -152,6 +168,10 @@ class SingleUnfoldAndInterpolateWorkflow(Workflow):
     command
     '''
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.parameters.calculate_alpha = False
+
     def _run(self):
         '''
         '''
@@ -160,10 +180,3 @@ class SingleUnfoldAndInterpolateWorkflow(Workflow):
 
         ui_calc.calculate()
         self.calculations = [ui_calc]
-
-        # Print quality control
-        if self.parameters.print_qc and not ui_calc.skip_qc:
-            for key in ui_calc.results_for_qc:
-                val = ui_calc.results.get(key, None)
-                if val is not None:
-                    ui_calc.qc_results[key] = val

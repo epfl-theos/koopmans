@@ -1,0 +1,209 @@
+{
+ "_parameters": {
+  "conv_thr": 1.6e-08,
+  "ibrav": 2,
+  "celldm(1)": 10.2622,
+  "ecutwfc": 60.0,
+  "tot_charge": 0,
+  "pseudo_dir": {
+   "__path__": "../../../../pseudos/pseudo_dojo_standard_v0.4.1/lda"
+  },
+  "nspin": 1,
+  "kpts": [
+   2,
+   2,
+   2
+  ],
+  "pseudopotentials": {
+   "Si": "Si.upf"
+  },
+  "gamma_only": false,
+  "koffset": [
+   0,
+   0,
+   0
+  ],
+  "__koopmans_name__": "PWSettingsDict",
+  "__koopmans_module__": "koopmans.settings._pw"
+ },
+ "atoms": {
+  "numbers": {
+   "__ndarray__": [
+    [
+     2
+    ],
+    "int64",
+    [
+     14,
+     14
+    ]
+   ]
+  },
+  "positions": {
+   "__ndarray__": [
+    [
+     2,
+     3
+    ],
+    "float64",
+    [
+     0.0,
+     0.0,
+     0.0,
+     -1.357630586891428,
+     1.357630586891428,
+     1.357630586891428
+    ]
+   ]
+  },
+  "tags": {
+   "__ndarray__": [
+    [
+     2
+    ],
+    "int64",
+    [
+     0,
+     0
+    ]
+   ]
+  },
+  "cell": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     -2.715261173782856,
+     0.0,
+     2.715261173782856,
+     0.0,
+     2.715261173782856,
+     2.715261173782856,
+     -2.715261173782856,
+     2.715261173782856,
+     0.0
+    ]
+   ]
+  },
+  "pbc": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "bool",
+    [
+     true,
+     true,
+     true
+    ]
+   ]
+  },
+  "__ase_objtype__": "atoms"
+ },
+ "results": {
+  "energy": -229.36240245082345,
+  "homo_energy": 6.3365,
+  "lumo_energy": null,
+  "electrostatic embedding": null,
+  "iterations": 7,
+  "job done": true
+ },
+ "_directory": {
+  "__path__": "/home/elinscott/code/koopmans/tutorials/tutorial_2/2x2x2/wannier"
+ },
+ "prefix": "scf",
+ "name": "benchgenpwcalculator",
+ "command": {
+  "postfix": "",
+  "mpi_command": "mpirun -np 8",
+  "path": {
+   "__path__": "/home/elinscott/code/koopmans/bin"
+  },
+  "executable": "pw.x",
+  "_flags": "",
+  "suffix": "-in PREFIX.pwi > PREFIX.pwo 2>&1",
+  "__koopmans_name__": "ParallelCommandWithPostfix",
+  "__koopmans_module__": "koopmans.commands"
+ },
+ "calc": {},
+ "skip_qc": false,
+ "kpts": [
+  {
+   "weight": 0.25,
+   "s": 0,
+   "k": {
+    "__ndarray__": [
+     [
+      3
+     ],
+     "float64",
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "eps_n": [
+    -5.7066,
+    6.3365,
+    6.3365,
+    6.3365
+   ],
+   "f_n": []
+  },
+  {
+   "weight": 1.0,
+   "s": 0,
+   "k": {
+    "__ndarray__": [
+     [
+      3
+     ],
+     "float64",
+     [
+      -3.10175793360997e-17,
+      -3.10175793360997e-17,
+      -0.7071067811865476
+     ]
+    ]
+   },
+   "eps_n": [
+    -3.3372,
+    -0.7598,
+    5.1104,
+    5.1104
+   ],
+   "f_n": []
+  },
+  {
+   "weight": 0.75,
+   "s": 0,
+   "k": {
+    "__ndarray__": [
+     [
+      3
+     ],
+     "float64",
+     [
+      0.0,
+      -0.7071067811865476,
+      -0.7071067811865476
+     ]
+    ]
+   },
+   "eps_n": [
+    -1.5316,
+    -1.5316,
+    3.4077,
+    3.4077
+   ],
+   "f_n": []
+  }
+ ],
+ "__koopmans_name__": "BenchGenPWCalculator",
+ "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+}

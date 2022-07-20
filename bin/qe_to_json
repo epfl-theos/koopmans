@@ -2,8 +2,8 @@
 
 import argparse
 import textwrap
-from koopmans.qei_to_json import qei_to_json
 
+from koopmans.qei_to_json import qei_to_json
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(

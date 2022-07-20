@@ -1,5 +1,6 @@
-import os
 import copy
+import os
+
 from ._pw import PWCalculator
 
 _default_settings = {
@@ -21,9 +22,6 @@ class EnvironCalculator(PWCalculator):
 
         # Ensure we're using an environ-enabled version of pw.x
         self.command.flags = '--environ'
-
-        # Add electrostatic embedding to the results printed out during QC
-        self.results_for_qc.append('electrostatic embedding')
 
         # Add dictionary of environ settings
         self.environ_settings = copy.deepcopy(_default_settings)

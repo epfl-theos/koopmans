@@ -7,20 +7,21 @@ Written by Edward Linscott May 2020
 '''
 
 
-import warnings
+import sys
 import traceback
+from typing import Optional, TextIO, Type, Union
+import warnings
 
 
-def _warning(message, category=UserWarning, filename='', lineno=-1, file=None, line=None):
+def _warning(message: Union[str, Warning], category: Type[Warning] = UserWarning, filename: str = '', lineno: int = -1, file: Optional[TextIO] = None, line: Optional[str] = None) -> None:
     '''
     Monkey-patching warnings.warn
     '''
     print(f'{category.__name__}: {message}')
 
 
-def _warn_with_traceback(message, category, filename, lineno, file=None, line=None):
-
-    log = file if hasattr(file, 'write') else sys.stderr
+def _warn_with_traceback(message: Union[str, Warning], category: Type[Warning] = UserWarning, filename: str = '', lineno: int = -1, file: Optional[TextIO] = None, line: Optional[str] = None) -> None:
+    log = file if file and hasattr(file, 'write') else sys.stderr
     traceback.print_stack(file=log)
     log.write(warnings.formatwarning(message, category, filename, lineno, line))
 
@@ -29,7 +30,7 @@ def _warn_with_traceback(message, category, filename, lineno, file=None, line=No
 warnings.showwarning = _warning
 
 
-def warn(message):
+def warn(message: str) -> None:
     '''
     Allowing the monkey-patched warnings.warn to be imported as utils.warn
     '''

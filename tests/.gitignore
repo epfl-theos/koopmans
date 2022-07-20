@@ -1,16 +1,1 @@
-*.ui?
-*.kwf
-*.stdout
-*.png
-*.fig.pkl
-*.bib
-test_??/alphas.pkl
-test_??/errors.pkl
-test_??/tab_alpha_values.tex
-test_??/converged.json
-test_??/*/
-test_??/*.stdout
-test_08/bands_interpolated.dat
-test_08/dos_interpolated.dat
-coverage.xml
-
+tmp/

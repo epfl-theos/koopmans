@@ -7,11 +7,13 @@ Written by Edward Linscott Sep 2020
 """
 
 import os
+
 from ase import Atoms
 from ase.calculators.espresso import PW2Wannier
-from koopmans.settings import PW2WannierSettingsDict
 from koopmans.commands import ParallelCommand
-from ._utils import CalculatorExt, CalculatorABC, bin_directory
+from koopmans.settings import PW2WannierSettingsDict
+
+from ._utils import CalculatorABC, CalculatorExt, bin_directory
 
 
 class PW2WannierCalculator(CalculatorExt, PW2Wannier, CalculatorABC):
@@ -22,7 +24,7 @@ class PW2WannierCalculator(CalculatorExt, PW2Wannier, CalculatorABC):
     def __init__(self, atoms: Atoms, *args, **kwargs):
         self.parameters = PW2WannierSettingsDict()
 
-        # Initialise first using the ASE parent and then CalculatorExt
+        # Initialize first using the ASE parent and then CalculatorExt
         PW2Wannier.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
 

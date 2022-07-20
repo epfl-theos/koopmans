@@ -8,11 +8,24 @@ Written by Edward Linscott Oct 2020
 
 """
 
-from koopmans import utils, pseudopotentials, io
+from pathlib import Path
+import shutil
+from typing import TypeVar
+
+from koopmans import calculators, pseudopotentials, utils
+
 from ._workflow import Workflow
 
+T = TypeVar('T', bound='calculators.CalculatorExt')
 
-class DFTCPWorkflow(Workflow):
+
+class DFTWorkflow(Workflow):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.parameters.functional = 'dft'
+
+
+class DFTCPWorkflow(DFTWorkflow):
 
     def _run(self):
 
@@ -44,7 +57,7 @@ class DFTCPWorkflow(Workflow):
         return calc
 
 
-class DFTPWWorkflow(Workflow):
+class DFTPWWorkflow(DFTWorkflow):
 
     def _run(self):
 
@@ -78,23 +91,62 @@ class DFTPhWorkflow(Workflow):
         self.run_calculator(calc_ph)
          
 
-class PWBandStructureWorkflow(Workflow):
+class PWBandStructureWorkflow(DFTWorkflow):
 
     def _run(self):
 
-        # First, a scf calculation
-        calc_scf = self.new_calculator('pw', nbnd=None)
-        calc_scf.prefix = 'scf'
-        self.run_calculator(calc_scf)
+        self.print('DFT bandstructure workflow', style='heading')
 
-        # Second, a bands calculation
-        calc_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpath)
-        calc_bands.prefix = 'bands'
-        self.run_calculator(calc_bands)
+        if self.parameters.from_scratch:
+            path = Path('dft_bands')
+            if path.exists():
+                shutil.rmtree(path)
 
-        # Finally, plot the band structure
-        bs = calc_bands.results['band structure']
-        n_filled = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials) // 2
-        bs._energies -= bs._energies[:, :, :n_filled].max()
-        bs.plot()
-        io.savefig(self.name + '_bands', format='png')
+        with utils.chdir('dft_bands'):
+            # First, a scf calculation
+            calc_scf = self.new_calculator('pw', nbnd=None)
+            calc_scf.prefix = 'scf'
+            self.run_calculator(calc_scf)
+
+            # Second, a bands calculation
+            calc_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpath)
+            calc_bands.prefix = 'bands'
+            self.run_calculator(calc_bands)
+
+            # Prepare the band structure for plotting
+            bs = calc_bands.results['band structure']
+            n_filled = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials, self.pseudo_dir) // 2
+            vbe = bs._energies[:, :, :n_filled].max()
+            bs._energies -= vbe
+
+            # Third, a PDOS calculation
+            pseudos = [pseudopotentials.read_pseudo_file(calc_scf.parameters.pseudo_dir / p) for p in
+                       self.pseudopotentials.values()]
+            if all([p['header']['number_of_wfc'] > 0 for p in pseudos]):
+                calc_dos = self.new_calculator('projwfc')
+                calc_dos.pseudo_dir = calc_bands.parameters.pseudo_dir
+                self.run_calculator(calc_dos)
+
+                # Prepare the DOS for plotting
+                dos = calc_dos.results['dos']
+                dos._energies -= vbe
+            else:
+                # Skip if the pseudos don't have the requisite PP_PSWFC blocks
+                utils.warn('Some of the pseudopotentials do not have PP_PSWFC blocks, which means a projected DOS '
+                           'calculation is not possible. Skipping...')
+                dos = None
+
+            # Plot the band structure and DOS
+            self.plot_bandstructure(bs, dos)
+
+    def new_calculator(self,
+                       calc_type: str,
+                       *args,
+                       **kwargs) -> T:
+        calc: T = super().new_calculator(calc_type, *args, **kwargs)
+        if calc_type == 'projwfc':
+            assert isinstance(calc, calculators.ProjwfcCalculator)
+            calc.parameters.filpdos = self.name
+            calc.pseudopotentials = self.pseudopotentials
+            calc.spin_polarized = self.parameters.spin_polarized
+        return calc

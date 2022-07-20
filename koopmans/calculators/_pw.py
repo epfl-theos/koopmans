@@ -7,13 +7,16 @@ Written by Edward Linscott Sep 2020
 """
 
 import os
+
 import numpy as np
+
 from ase import Atoms
 from ase.calculators.espresso import Espresso
 from ase.dft.kpoints import BandPath
+from koopmans.commands import Command, ParallelCommandWithPostfix
 from koopmans.settings import PWSettingsDict
-from ._utils import CalculatorExt, CalculatorABC, bin_directory, ReturnsBandStructure
-from koopmans.commands import ParallelCommandWithPostfix, Command
+
+from ._utils import CalculatorABC, CalculatorExt, ReturnsBandStructure, bin_directory
 
 
 class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC):
@@ -25,23 +28,20 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         # Define the valid settings
         self.parameters = PWSettingsDict()
 
-        # Initialise first using the ASE parent and then CalculatorExt
+        # Initialize first using the ASE parent and then CalculatorExt
         Espresso.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
 
-        self.results_for_qc = ['energy']
         if not isinstance(self.command, Command):
             self.command = ParallelCommandWithPostfix(os.environ.get(
                 'ASE_ESPRESSO_COMMAND', str(bin_directory) + os.path.sep + self.command))
 
-        self.results_for_qc = ['energy']
-
-    def calculate(self):
+    def _calculate(self):
         if self.parameters.calculation == 'bands':
             if not isinstance(self.parameters.kpts, BandPath):
                 raise KeyError('You are running a calculation that requires a kpoint path; please provide a BandPath '
                                'as the kpts parameter')
-        super().calculate()
+        super()._calculate()
 
         if isinstance(self.parameters.kpts, BandPath):
             # Add the bandstructure to the results. This is very un-ASE-y and might eventually be replaced
@@ -51,7 +51,14 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         return self.results.get('job done', False)
 
     def is_converged(self):
-        return self.results.get('energy', None) is not None
+        if self.parameters.calculation == 'scf':
+            return self.results.get('energy', None) is not None
+        else:
+            return True
+
+    def check_convergence(self) -> None:
+        if self.parameters.calculation == 'scf':
+            return super().check_convergence()
 
     def vbm_energy(self) -> float:
         return 0.0

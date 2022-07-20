@@ -1,0 +1,185 @@
+{
+ "_parameters": {
+  "projections": [
+   {
+    "site": "Ti",
+    "ang_mtm": "l=0"
+   }
+  ],
+  "num_wann": 2,
+  "num_bands": 2,
+  "exclude_bands": "3-34",
+  "mp_grid": [
+   2,
+   2,
+   2
+  ],
+  "kpoints": {
+   "__ndarray__": [
+    [
+     8,
+     3
+    ],
+    "float64",
+    [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     -0.5,
+     0.0,
+     -0.5,
+     0.0,
+     0.0,
+     -0.5,
+     -0.5,
+     -0.5,
+     0.0,
+     0.0,
+     -0.5,
+     0.0,
+     -0.5,
+     -0.5,
+     -0.5,
+     0.0,
+     -0.5,
+     -0.5,
+     -0.5
+    ]
+   ]
+  },
+  "__koopmans_name__": "Wannier90SettingsDict",
+  "__koopmans_module__": "koopmans.settings._wannier90"
+ },
+ "atoms": {
+  "numbers": {
+   "__ndarray__": [
+    [
+     6
+    ],
+    "int64",
+    [
+     22,
+     22,
+     8,
+     8,
+     8,
+     8
+    ]
+   ]
+  },
+  "positions": {
+   "__ndarray__": [
+    [
+     6,
+     3
+    ],
+    "float64",
+    [
+     0.0,
+     0.0,
+     0.0,
+     2.2999999999999994,
+     2.2999999999999994,
+     1.4749999999999999,
+     1.38,
+     1.38,
+     0.0,
+     3.22,
+     3.22,
+     0.0,
+     0.9199999999999999,
+     3.6799999999999997,
+     1.4749999999999999,
+     3.6799999999999997,
+     0.9199999999999999,
+     1.4749999999999999
+    ]
+   ]
+  },
+  "spacegroup_kinds": {
+   "__ndarray__": [
+    [
+     6
+    ],
+    "int64",
+    [
+     0,
+     0,
+     1,
+     1,
+     1,
+     1
+    ]
+   ]
+  },
+  "cell": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     4.6,
+     0.0,
+     0.0,
+     0.0,
+     4.6,
+     0.0,
+     0.0,
+     0.0,
+     2.95
+    ]
+   ]
+  },
+  "pbc": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "bool",
+    [
+     true,
+     true,
+     true
+    ]
+   ]
+  },
+  "info": {
+   "spacegroup": {
+    "number": 136,
+    "setting": 1
+   },
+   "unit_cell": "conventional"
+  },
+  "__ase_objtype__": "atoms"
+ },
+ "results": {
+  "job done": true,
+  "convergence": false,
+  "Im/Re ratio": [],
+  "centers": [],
+  "spreads": []
+ },
+ "_directory": {
+  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_wannierize_tio20/wannier/occ_block1"
+ },
+ "prefix": "wann_preproc",
+ "name": "benchgenwannier90calculator",
+ "command": {
+  "path": {
+   "__path__": "/home/elinscott/code/koopmans/bin"
+  },
+  "executable": "wannier90.x",
+  "_flags": "-pp",
+  "suffix": "PREFIX.win > PREFIX.wout 2>&1",
+  "__koopmans_name__": "Command",
+  "__koopmans_module__": "koopmans.commands"
+ },
+ "calc": {},
+ "skip_qc": false,
+ "__koopmans_name__": "BenchGenWannier90Calculator",
+ "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+}

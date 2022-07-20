@@ -5,9 +5,12 @@ codecov:
 coverage:
   precision: 2
   round: down
-  range: "50...80"
+  range: "50..90"
 
   status:
     project: off
     patch: off
     changes: off
+
+ignore:
+  - "koopmans/testing"
