@@ -6,8 +6,8 @@ projwfc.x calculator module for koopmans
 
 import copy
 import os
-from pathlib import Path
 import re
+from pathlib import Path
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -56,6 +56,9 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
                 raise ValueError(f'Please set {self.__class__.__name__}.{attr} before calling '
                                  f'{self.__class__.__name__.calculate()}')
         super().calculate()
+
+    def _calculate(self):
+        super()._calculate()
         self.generate_dos()
 
     @property
