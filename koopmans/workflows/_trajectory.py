@@ -47,7 +47,7 @@ class TrajectoryWorkflow(Workflow):
             self.dirs[f'convergence_{convergence_point}'] = self.dirs[f'convergence_pred'] / \
                 f"predicted_after_{convergence_point+1}"
             self.dirs[f'convergence_figures_{convergence_point}'] = self.dirs[f'convergence_figures'] / \
-                'figures' / f"predicted_after_{convergence_point+1}"
+                f"predicted_after_{convergence_point+1}"
         for dir in self.dirs.values():
             utils.system_call(f'mkdir -p {dir}')
         self.quantities_of_interest = ['alphas', 'evs']
@@ -159,12 +159,11 @@ class TrajectoryWorkflow(Workflow):
 
         for spin in range(self.bands.n_spin):
             spin_id = str("spin_"+str(spin))
-            for j, test_index in enumerate(self.test_indices):
-                for qoi in self.quantities_of_interest:
+            for qoi in self.quantities_of_interest:
+                for j, test_index in enumerate(self.test_indices):
                     self.result_dict[spin_id][qoi]['true_array'][j, :] = np.loadtxt(
                         self.dirs['convergence_true'] / f"{qoi}_snapshot_{test_index+1}.txt")[spin, :]
-            for i, convergence_point in enumerate(self.convergence_points):
-                for qoi in self.quantities_of_interest:
+                for i, convergence_point in enumerate(self.convergence_points):
                     for metric in self.metrics.keys():
                         tmp_array = np.zeros(len(self.test_indices))
                         for j, test_index in enumerate(self.test_indices):
@@ -173,8 +172,15 @@ class TrajectoryWorkflow(Workflow):
 
                             tmp_array[j] = self.metrics[metric](
                                 self.result_dict[spin_id][qoi]['pred_array'][i, j, :], self.result_dict[spin_id][qoi]['true_array'][j, :])
-                            # import ipdb
-                            # ipdb.set_trace()
+                            print("j = ", j)
+                            print("tmp_array[j] = ", tmp_array[j])
+                            print("pred:")
+                            print(self.result_dict[spin_id][qoi]['pred_array'][i, j, :])
+                            print("true:")
+                            print(self.result_dict[spin_id][qoi]['true_array'][j, :])
+                        assert(False)
+                        # import ipdb
+                        # ipdb.set_trace()
 
                         for statistic in self.statistics:
                             self.result_dict[spin_id][qoi][metric][statistic][i] = self.statistics[statistic](tmp_array)
