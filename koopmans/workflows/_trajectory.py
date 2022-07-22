@@ -40,10 +40,14 @@ class TrajectoryWorkflow(Workflow):
         self.dirs = {
             'convergence': convergence_dir,
             'convergence_true': convergence_dir / 'true',
-            'convergence_pred': convergence_dir / 'pred'
+            'convergence_pred': convergence_dir / 'pred',
+            'convergence_figures': convergence_dir / 'figures'
         }
         for convergence_point in self.convergence_points:
-            self.dirs[f'convergence_{convergence_point}'] = convergence_dir / f"predicted_after_{convergence_point}"
+            self.dirs[f'convergence_{convergence_point}'] = self.dirs[f'convergence_pred'] / \
+                f"predicted_after_{convergence_point+1}"
+            self.dirs[f'convergence_figures_{convergence_point}'] = self.dirs[f'convergence_figures'] / \
+                'figures' / f"predicted_after_{convergence_point+1}"
         for dir in self.dirs.values():
             utils.system_call(f'mkdir -p {dir}')
         self.quantities_of_interest = ['alphas', 'evs']
@@ -169,6 +173,7 @@ class TrajectoryWorkflow(Workflow):
 
                             tmp_array[j] = self.metrics[metric](
                                 self.result_dict[spin_id][qoi]['pred_array'][i, j, :], self.result_dict[spin_id][qoi]['true_array'][i, :])
+                            print("tmp_array[j] = ", tmp_array[j])
 
                         for statistic in self.statistics:
                             self.result_dict[spin_id][qoi][metric][statistic][i] = self.statistics[statistic](tmp_array)
@@ -178,16 +183,16 @@ class TrajectoryWorkflow(Workflow):
         for spin in range(self.bands.n_spin):
             spin_id = str("spin_"+str(spin))
             for qoi in self.quantities_of_interest:
-                for i in range(len(self.convergence_points)):
+                for convergence_point in self.convergence_points:
                     res = self.result_dict[spin_id][qoi]
-                    self.plot_calculated_vs_predicted(res['true_array'].flatten(), res['pred_array'][i].flatten(
-                    ), qoi, self.dirs['convergence'] / f"{spin_id}_{qoi}_calculated_vs_predicted.png", ('MAE', res['MAE']['mean'][i]))
-                    self.plot_error_histogram(res['true_array'].flatten(), res['pred_array'][i].flatten(
-                    ), qoi, self.dirs['convergence'] / f"{spin_id}_{qoi}_error_histogram.png", ('MAE', res['MAE']['mean'][i]))
+                    self.plot_calculated_vs_predicted(res['true_array'].flatten(), res['pred_array'][convergence_point].flatten(
+                    ), qoi, self.dirs[f'convergence_figures_{convergence_point}'] / f"{spin_id}_{qoi}_calculated_vs_predicted.png", ('MAE', res['MAE']['mean'][convergence_point]))
+                    self.plot_error_histogram(res['true_array'].flatten(), res['pred_array'][convergence_point].flatten(
+                    ), qoi, self.dirs[f'convergence_figures_{convergence_point}'] / f"{spin_id}_{qoi}_error_histogram.png", ('MAE', res['MAE']['mean'][convergence_point]))
                 for metric in self.metrics:
                     res = self.result_dict[spin_id][qoi][metric]
-                    self.plot_convergence(self.convergence_points,
-                                          res['mean'], res['stdd'], qoi, metric, spin, self.dirs['convergence'] / f"{spin_id}_{qoi}_{metric}_convergence")
+                    self.plot_convergence(self.convergence_points, res['mean'], res['stdd'], qoi, metric,
+                                          spin, self.dirs['convergence_figures'] / f"{spin_id}_{qoi}_{metric}_convergence")
 
     def plot_calculated_vs_predicted(self, y: np.ndarray, y_pred: np.ndarray, qoi: str, filename: Path, metric: Tuple[str, float]):
         fig, ax = plt.subplots(1, 1, figsize=(7.5, 7.5))
