@@ -5,11 +5,13 @@ import json as json_ext
 import os
 import statistics
 from pathlib import Path
+from tracemalloc import Snapshot
 from typing import Any, Dict, List, Optional, Tuple, Union
 from unittest import result
 
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn import metrics
 from sklearn.metrics import mean_absolute_error, r2_score
 
 from ase import Atoms, io
@@ -79,19 +81,24 @@ class TrajectoryWorkflow(Workflow):
                     f'Training on {len(train_indices)} snapshot(s) and then testing on the last {len(self.test_indices)} snapshot(s)', style='heading')
                 self.run_trajectory(train_indices)  # train the model
                 # test the model (without retraining the model)
-                self.run_trajectory(self.test_indices, save_dir=self.dirs[f'convergence_{convergence_point}'])
+                delete_final_dir = False
+                if 'evs' in self.quantities_of_interest:
+                    delete_final_dir = True
+                self.run_trajectory(
+                    self.test_indices, save_dir=self.dirs[f'convergence_{convergence_point}'], delete_final_dir=delete_final_dir)
             self.get_result_dict()
             self.make_plots_from_result_dict()
         else:
             snapshot_indices = list(range(0, len(self.snapshots)))
             self.run_trajectory(snapshot_indices)
 
-    def run_trajectory(self, indices: List[int], save_dir: Optional[Path] = None):
+    def run_trajectory(self, indices: List[int], save_dir: Optional[Path] = None, delete_final_dir: Optional[bool] = False):
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
         from koopmans.workflows import (KoopmansDFPTWorkflow,
                                         KoopmansDSCFWorkflow)
 
         for i in indices:
+            subdirectory = f'snapshot_{i+1}'
             snapshot = self.snapshots[i]
             self.parameters.current_snapshot = i
             self.atoms.set_positions(snapshot.positions)
@@ -109,7 +116,14 @@ class TrajectoryWorkflow(Workflow):
                 raise NotImplementedError("The trajectory workflow is currently only implemented with dfpt and dscf.")
             # reset the bands to the initial guesses (i.e. either from file or to 0.6 but not from the previous calculation)
             self.bands = workflow.bands
-            self.run_subworkflow(workflow, subdirectory=f'snapshot_{i+1}')
+            if delete_final_dir:
+                utils.system_call(f'rm -r {subdirectory}/final')
+
+            self.run_subworkflow(workflow, subdirectory=subdirectory)
+
+            # since we have deleted the final directory and therefore had to rerun, we must now make sure, that from_scratch is again set to false
+            if delete_final_dir:
+                self.parameters.from_scratch = False
 
             if save_dir is not None:
                 final_calc = [c for c in workflow.calculations if isinstance(c, final_calculator)][-1]
