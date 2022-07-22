@@ -72,6 +72,7 @@ class TrajectoryWorkflow(Workflow):
             self.run_trajectory(self.test_indices, save_dir=self.dirs['convergence_true'])
             # set the number of training snapshots back to its original value
             self.parameters.number_of_training_snapshots = tmp_number_of_training_snapshots
+            self.ml_model = RidgeRegression()
             for convergence_point in self.convergence_points:
                 train_indices = [convergence_point]
                 self.print(
@@ -172,18 +173,6 @@ class TrajectoryWorkflow(Workflow):
 
                             tmp_array[j] = self.metrics[metric](
                                 self.result_dict[spin_id][qoi]['pred_array'][i, j, :], self.result_dict[spin_id][qoi]['true_array'][j, :])
-                            print("j = ", j)
-                            print("tmp_array[j] = ", tmp_array[j])
-                            print("pred:")
-                            print(self.result_dict[spin_id][qoi]['pred_array'][i, j, :])
-                            print("true:")
-                            print(self.result_dict[spin_id][qoi]['true_array'][j, :])
-                        assert(False)
-                        # import ipdb
-                        # ipdb.set_trace()
-
-                        for statistic in self.statistics:
-                            self.result_dict[spin_id][qoi][metric][statistic][i] = self.statistics[statistic](tmp_array)
 
     def make_plots_from_result_dict(self):
 
