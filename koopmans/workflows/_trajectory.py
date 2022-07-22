@@ -174,6 +174,9 @@ class TrajectoryWorkflow(Workflow):
                             tmp_array[j] = self.metrics[metric](
                                 self.result_dict[spin_id][qoi]['pred_array'][i, j, :], self.result_dict[spin_id][qoi]['true_array'][j, :])
 
+                        for statistic in self.statistics:
+                            self.result_dict[spin_id][qoi][metric][statistic][i] = self.statistics[statistic](tmp_array)
+
     def make_plots_from_result_dict(self):
 
         for spin in range(self.bands.n_spin):
