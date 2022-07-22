@@ -172,8 +172,9 @@ class TrajectoryWorkflow(Workflow):
                                 self.dirs[f'convergence_{convergence_point}'] / f"{qoi}_snapshot_{test_index+1}.txt")[spin, :]
 
                             tmp_array[j] = self.metrics[metric](
-                                self.result_dict[spin_id][qoi]['pred_array'][i, j, :], self.result_dict[spin_id][qoi]['true_array'][i, :])
-                            print("tmp_array[j] = ", tmp_array[j])
+                                self.result_dict[spin_id][qoi]['pred_array'][i, j, :], self.result_dict[spin_id][qoi]['true_array'][j, :])
+                            # import ipdb
+                            # ipdb.set_trace()
 
                         for statistic in self.statistics:
                             self.result_dict[spin_id][qoi][metric][statistic][i] = self.statistics[statistic](tmp_array)
@@ -183,12 +184,12 @@ class TrajectoryWorkflow(Workflow):
         for spin in range(self.bands.n_spin):
             spin_id = str("spin_"+str(spin))
             for qoi in self.quantities_of_interest:
-                for convergence_point in self.convergence_points:
+                for i, convergence_point in enumerate(self.convergence_points):
                     res = self.result_dict[spin_id][qoi]
-                    self.plot_calculated_vs_predicted(res['true_array'].flatten(), res['pred_array'][convergence_point].flatten(
-                    ), qoi, self.dirs[f'convergence_figures_{convergence_point}'] / f"{spin_id}_{qoi}_calculated_vs_predicted.png", ('MAE', res['MAE']['mean'][convergence_point]))
-                    self.plot_error_histogram(res['true_array'].flatten(), res['pred_array'][convergence_point].flatten(
-                    ), qoi, self.dirs[f'convergence_figures_{convergence_point}'] / f"{spin_id}_{qoi}_error_histogram.png", ('MAE', res['MAE']['mean'][convergence_point]))
+                    self.plot_calculated_vs_predicted(res['true_array'].flatten(), res['pred_array'][i, :, :].flatten(
+                    ), qoi, self.dirs[f'convergence_figures_{i}'] / f"{spin_id}_{qoi}_calculated_vs_predicted.png", ('MAE', res['MAE']['mean'][i]))
+                    self.plot_error_histogram(res['true_array'].flatten(), res['pred_array'][i, :, :].flatten(
+                    ), qoi, self.dirs[f'convergence_figures_{i}'] / f"{spin_id}_{qoi}_error_histogram.png", ('MAE', res['MAE']['mean'][i]))
                 for metric in self.metrics:
                     res = self.result_dict[spin_id][qoi][metric]
                     self.plot_convergence(self.convergence_points, res['mean'], res['stdd'], qoi, metric,
@@ -223,7 +224,7 @@ class TrajectoryWorkflow(Workflow):
         plt.xlabel(f"error")
         if qoi == 'alphas':
             lb_x = 0.0
-            ub_x = 0.7
+            ub_x = 10*max(error)
         elif qoi == 'evs':
             lb_x = 0.0
             ub_x = 0.7
