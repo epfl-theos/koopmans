@@ -18,7 +18,7 @@ from sklearn.metrics import mean_absolute_error, r2_score
 from ase import Atoms, io
 from ase.calculators.calculator import Calculator
 from koopmans import calculators, utils
-from koopmans.ml_utils import RidgeRegression
+from koopmans.ml_utils import MLModel
 from koopmans.ml_utils._plotting_routines import plot_calculated_vs_predicted, plot_error_histogram, plot_convergence
 
 from ._workflow import Workflow
@@ -45,7 +45,7 @@ class ConvergenceMLWorkflow(Workflow):
         self.run_subworkflow(twf, indices=self.test_indices, save_dir=self.dirs['convergence_true'])
         # set the number of training snapshots back to its original value
         self.parameters.number_of_training_snapshots = tmp_number_of_training_snapshots
-        self.ml_model = RidgeRegression()
+        self.ml_model = MLModel()
         for convergence_point in self.convergence_points:
             train_indices = [convergence_point]
             self.print(

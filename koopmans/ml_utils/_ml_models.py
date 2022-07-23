@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import copy
 from curses import has_key
 from multiprocessing.sharedctypes import Value
@@ -8,13 +9,43 @@ from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
 
 
-class RidgeRegression():
+class MLModelWrapper(ABC):
+
+    @abstractmethod
+    def predict(self,  x_test: np.ndarray) -> np.ndarray:
+        ...
+
+    @abstractmethod
+    def fit(self, X_train: np.ndarray, Y_train: np.ndarray):
+        ...
+
+
+class RidgeRegressionModel(MLModelWrapper):
+    def __init__(self) -> None:
+        self.scaler = StandardScaler()
+        self.model = Ridge(alpha=1.0)
+
+    def predict(self,  x_test: np.ndarray) -> np.ndarray:
+        X_test = np.atleast_2d(x_test)
+        X_test = self.scaler.transform(X_test)
+        y_predict = self.model.predict(X_test)
+        return y_predict
+
+    def fit(self, X_train: np.ndarray, Y_train: np.ndarray):
+        self.scaler = self.scaler.fit(X_train)
+        X_train_scaled = self.scaler.transform(X_train)
+        self.model.fit(X_train_scaled, Y_train)
+
+
+class MLModel():
     def __init__(self, is_trained: bool = False, X_train: np.ndarray = None, Y_train: np.ndarray = None):
         self.is_trained = is_trained
         self.X_train = X_train
         self.Y_train = Y_train
-        self.scaler = StandardScaler()
-        self.model = Ridge(alpha=1.0)
+        self.init_and_reset_model()
+
+    def init_and_reset_model(self):
+        self.model = RidgeRegressionModel()
 
     def __repr__(self):
         if self.X_train is None:
@@ -24,7 +55,7 @@ class RidgeRegression():
 
     def todict(self):
         dct = copy.deepcopy(dict(self.__dict__))
-        items_to_pop = ['model', 'scaler']
+        items_to_pop = ['model']
         for item in items_to_pop:
             dct.pop(item)
         return dct
@@ -39,10 +70,12 @@ class RidgeRegression():
         """
 
         if self.is_trained:
-            X_test = np.atleast_2d(x_test)
-            X_test = self.scaler.transform(X_test)
-            y_predict = self.model.predict(X_test)
+            y_predict = self.model.predict(x_test)
             return y_predict
+            # X_test = np.atleast_2d(x_test)
+            # X_test = self.scaler.transform(X_test)
+            # y_predict = self.model.predict(X_test)
+            # return y_predict
         else:
             return np.array([1.0])  # dummy value
 
@@ -50,11 +83,14 @@ class RidgeRegression():
         """
         Reset the model and train the model (including the StandardScaler) with all training data added so far. 
         """
+        print('TODO')
+        self.init_and_reset_model()
+        self.model.fit(self.X_train, self.Y_train)
 
-        self.model = Ridge(alpha=1.0)
-        self.scaler = self.scaler.fit(self.X_train)
-        X_train_scaled = self.scaler.transform(self.X_train)
-        self.model.fit(X_train_scaled, self.Y_train)
+        # self.model = Ridge(alpha=1.0)
+        # self.scaler = self.scaler.fit(self.X_train)
+        # X_train_scaled = self.scaler.transform(self.X_train)
+        # self.model.fit(X_train_scaled, self.Y_train)
         self.is_trained = True
 
     def add_training_data(self, x_train: np.ndarray, y_train: Union[float, np.ndarray]):
@@ -71,16 +107,16 @@ class RidgeRegression():
             self.X_train = np.concatenate([self.X_train, x_train])
             self.Y_train = np.concatenate([self.Y_train, y_train])
 
-    def __eq__(self, other):
-        items_to_pop = ['model', 'scaler']
-        if isinstance(other, RidgeRegression):
-            self_dict = copy.deepcopy(self.__dict__)
-            other_dict = copy.deepcopy(other.__dict__)
-            for item in items_to_pop:
-                if item in other_dict:
-                    other_dict.pop(item)
-                if item in self_dict:
-                    self_dict.pop(item)
-            return DeepDiff(self_dict, other_dict, significant_digits=8, number_format_notation='e') == {}
-        else:
-            return False
+    # def __eq__(self, other):
+    #     items_to_pop = ['model', 'scaler']
+    #     if isinstance(other, RidgeRegression):
+    #         self_dict = copy.deepcopy(self.__dict__)
+    #         other_dict = copy.deepcopy(other.__dict__)
+    #         for item in items_to_pop:
+    #             if item in other_dict:
+    #                 other_dict.pop(item)
+    #             if item in self_dict:
+    #                 self_dict.pop(item)
+    #         return DeepDiff(self_dict, other_dict, significant_digits=8, number_format_notation='e') == {}
+    #     else:
+    #         return False

@@ -42,7 +42,7 @@ from ase.spectrum.dosdata import GridDOSData
 from koopmans import calculators, settings, utils
 from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
-from koopmans.ml_utils._ml_models import RidgeRegression
+from koopmans.ml_utils._ml_models import MLModel
 from koopmans.projections import ProjectionBlocks
 from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
                                        pseudo_database,
@@ -261,9 +261,9 @@ class Workflow(ABC):
         # Records whether or not this workflow is a subworkflow of another
         self._is_a_subworkflow = False
 
-        # Initialize the RidgeRegression() model
+        # Initialize the MLModel
         if self.parameters.use_ml:
-            self.ml_model = RidgeRegression()
+            self.ml_model = MLModel()
 
     def __eq__(self, other: Any):
         if isinstance(other, Workflow):

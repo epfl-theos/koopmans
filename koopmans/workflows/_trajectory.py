@@ -17,7 +17,6 @@ from sklearn.metrics import mean_absolute_error, r2_score
 from ase import Atoms, io
 from ase.calculators.calculator import Calculator
 from koopmans import calculators, utils
-from koopmans.ml_utils import RidgeRegression
 
 from ._workflow import Workflow
 
