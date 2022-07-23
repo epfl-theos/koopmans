@@ -270,11 +270,11 @@ class Workflow(ABC):
             return self.__dict__ == other.__dict__
         return False
 
-    def run(self) -> None:
+    def run(self, **kwargs) -> None:
         self.print_preamble()
         if not self._is_a_subworkflow:
             self._run_sanity_checks()
-        self._run()
+        self._run(**kwargs)
         self.print_conclusion()
         if not self._is_a_subworkflow:
             self._teardown()
@@ -428,7 +428,7 @@ class Workflow(ABC):
 
         # Make sanity checks for the ML model
         if self.parameters.use_ml:
-            if self.parameters.task != 'trajectory':
+            if self.parameters.task not in ['trajectory', 'convergence_ml']:
                 raise NotImplementedError(
                     f'Using the ML-prediction for the {self.parameter.task}-task has not yet been implemented.')
             if self.parameters.method != 'dscf':  # TODO Yannick: implement also with DFPT

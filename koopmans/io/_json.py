@@ -54,6 +54,8 @@ def read_json(fd: TextIO, override: Dict[str, Any] = {}):
         workflow_cls = workflows.PWBandStructureWorkflow
     elif parameters.task == 'trajectory':
         workflow_cls = workflows.TrajectoryWorkflow
+    elif parameters.task == 'convergence_ml':
+        workflow_cls = workflows.ConvergenceMLWorkflow
     else:
         raise ValueError('Invalid task name "{task_name}"')
 

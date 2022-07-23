@@ -370,6 +370,8 @@ subroutine runcg_uspp_emp(c0_emp, cm_emp, bec_emp, f_emp, fsic_emp, n_empx, &
       !
       do iss = 1, nspin
          !
+         in_emp = iupdwn_emp(iss)
+         issw = iupdwn(iss)
          !
          CALL gram_empty(.true., eigr, betae, becm, bec, nhsa, &
                          hpsi(:, in_emp:), c0(:, issw:), ngw, &
