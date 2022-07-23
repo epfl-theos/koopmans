@@ -26,8 +26,8 @@ load_results_from_output = True
 
 class TrajectoryWorkflow(Workflow):
 
-    def __init__(self, snapshots, *args, **kwargs):
-        self.snapshots: List[Atoms] = snapshots
+    def __init__(self, *args, **kwargs):
+        self.snapshots: List[Atoms] = kwargs.pop('snapshots', [])
         self.number_of_snapshots = len(self.snapshots)
         super().__init__(*args, **kwargs)
 
