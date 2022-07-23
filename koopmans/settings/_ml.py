@@ -36,14 +36,14 @@ class MLSettingsDict(WorkflowSettingsDict):
 
         super().__init__(settings=valid_settings, **kwargs)
 
-        if not kwargs['r_min'] < kwargs['r_max']:
+        if not self['r_min'] < self['r_max']:
             raise ValueError(
-                f"r_min should be smaller smaller than r_max. The provided values are r_min={kwargs['r_min']} and r_max={kwargs['r_max']}")
-        if not kwargs['l_max'] >= 0:
+                f"r_min should be smaller smaller than r_max. The provided values are r_min={self['r_min']} and r_max={self['r_max']}")
+        if not self['l_max'] >= 0:
             raise ValueError(
-                f"l_max has to be equal or larger than zero. The provided value is l_max={kwargs['l_max']}")
-        if not kwargs['n_max'] > 0:
-            raise ValueError(f"n_max has to be larger than zero. The provided value is n_max={kwargs['n_max']}")
+                f"l_max has to be equal or larger than zero. The provided value is l_max={self['l_max']}")
+        if not self['n_max'] > 0:
+            raise ValueError(f"n_max has to be larger than zero. The provided value is n_max={self['n_max']}")
 
     def __setitem__(self, key: str, value: Any):
         return super().__setitem__(key, value)

@@ -152,6 +152,61 @@ class TrajectoryWorkflow(Workflow):
         wf.snapshots = snapshots
         return wf
 
+    # @classmethod
+    # def fromdict(cls, bigdct: Dict):
+
+    #     try:
+    #         snapshots = bigdct.pop('snapshots')
+    #     except:
+    #         raise ValueError(
+    #             f'To calculate a trajectory, please provide a xyz-file containing the atomic positions of the snapshots in the setup-block of the json-input file.')
+
+    #     # snapshots = io.read(snapshots_file, index=':')
+    #     if isinstance(snapshots, Atoms):
+    #         snapshots = [snapshots]
+    #     bigdct['atomic_positions'] = utils.construct_atomic_positions_block(snapshots[0])
+    #     import ipdb
+    #     ipdb.set_trace()
+    #     wf = super(TrajectoryWorkflow, cls).fromdict(bigdct)
+    #     wf.snapshots = snapshots
+    #     return wf
+
+    # @classmethod
+    # def fromdict(cls, dct: Dict):
+
+    #     if dct['parameters']['use_ml'] and
+
+    #     wf = cls(snapshots=dct.pop('snapshots'),
+    #              parameters=dct.pop('parameters'),
+    #              master_calc_params=dct.pop('master_calc_params'),
+    #              pseudopotentials=dct.pop('_pseudopotentials'),
+    #              gamma_only=dct.pop('_gamma_only'),
+    #              kgrid=dct.pop('_kgrid'),
+    #              kpath=dct.pop('_kpath'),
+    #              projections=dct.pop('projections'),
+    #              autogenerate_settings=False)
+
+    #     for k, v in dct.items():
+    #         setattr(wf, k, v)
+
+    #     return wf
+
+    #     try:
+    #         snapshots = bigdct.pop('snapshots')
+    #     except:
+    #         raise ValueError(
+    #             f'To calculate a trajectory, please provide a xyz-file containing the atomic positions of the snapshots in the setup-block of the json-input file.')
+
+    #     # snapshots = io.read(snapshots_file, index=':')
+    #     if isinstance(snapshots, Atoms):
+    #         snapshots = [snapshots]
+    #     bigdct['atomic_positions'] = utils.construct_atomic_positions_block(snapshots[0])
+    #     import ipdb
+    #     ipdb.set_trace()
+    #     wf = super(TrajectoryWorkflow, cls).fromdict(bigdct)
+    #     wf.snapshots = snapshots
+    #     return wf
+
     def get_result_dict(self):
         result_dict = {}
 
@@ -198,93 +253,100 @@ class TrajectoryWorkflow(Workflow):
             for qoi in self.quantities_of_interest:
                 for i, convergence_point in enumerate(self.convergence_points):
                     res = self.result_dict[spin_id][qoi]
-                    self.plot_calculated_vs_predicted(res['true_array'].flatten(), res['pred_array'][i, :, :].flatten(
+                    plot_calculated_vs_predicted(res['true_array'].flatten(), res['pred_array'][i, :, :].flatten(
                     ), qoi, self.dirs[f'convergence_figures_{i}'] / f"{spin_id}_{qoi}_calculated_vs_predicted.png", ('MAE', res['MAE']['mean'][i]))
-                    self.plot_error_histogram(res['true_array'].flatten(), res['pred_array'][i, :, :].flatten(
+                    plot_error_histogram(res['true_array'].flatten(), res['pred_array'][i, :, :].flatten(
                     ), qoi, self.dirs[f'convergence_figures_{i}'] / f"{spin_id}_{qoi}_error_histogram.png", ('MAE', res['MAE']['mean'][i]))
                 for metric in self.metrics:
                     res = self.result_dict[spin_id][qoi][metric]
-                    self.plot_convergence(self.convergence_points, res['mean'], res['stdd'], qoi, metric,
-                                          spin, self.dirs['convergence_figures'] / f"{spin_id}_{qoi}_{metric}_convergence")
-
-    def plot_calculated_vs_predicted(self, y: np.ndarray, y_pred: np.ndarray, qoi: str, filename: Path, metric: Tuple[str, float]):
-        fig, ax = plt.subplots(1, 1, figsize=(7.5, 7.5))
-        lb_x = 0.995*min(y)
-        ub_x = 1.005*max(y)
-        # if qoi == 'alphas':
-        #     lb_x = 0.995*min(y)
-        #     ub_x = 1.005*max(y)
-        # elif qoi == 'evs':
-        #     lb_x = 0.995*min(y)
-        #     ub_x = 1.005*max(y)
-        x = np.linspace(lb_x, ub_x, 1000)
-        ax.set_xlim((lb_x, ub_x))
-        ax.set_ylim((lb_x, ub_x))
-        ax.plot(y, y_pred, 'o', color='green', label=f"{metric[0]} = {metric[1]}")
-        ax.plot(x, x, color='grey', linewidth=0.75)
-        plt.ylabel(f"predicted {qoi}")
-        plt.xlabel(f"calculated {qoi}")
-        plt.legend()
-        plt.savefig(filename)
-        plt.close()
-
-    def plot_error_histogram(self, y: np.ndarray, y_pred: np.ndarray, qoi: str, filename: Path, metric: Tuple[str, float]):
-        error = np.abs(y-y_pred)
-        fig, ax = plt.subplots(1, 1, figsize=(7.5, 7.5))
-        lb_x = 0.0
-        ub_x = 10*max(error)
-        plt.xlabel(f"error")
-        if qoi == 'alphas':
-            lb_x = 0.0
-            ub_x = 10*max(error)
-        elif qoi == 'evs':
-            lb_x = 0.0
-            ub_x = 0.7
-            plt.xlabel(f"error in eV")
-        bins = np.linspace(lb_x, ub_x, 100)
-        # ax.set_xlim((lb_x, ub_x))
-        # ax.set_ylim((0, 1000))
-        ax.hist(error, bins,  label=f"{metric[0]} = {metric[1]}")
-        plt.ylabel(f"number of {qoi}")
-        plt.legend()
-        plt.savefig(filename)
-        plt.close()
-
-    def plot_convergence(self, convergence_points: np.ndarray, means: np.ndarray, stddevs: np.ndarray, qoi: str, metric_name: str, spin: int, filename: Path):
-        np.savetxt(filename.with_suffix(".txt"), np.array([convergence_points, means, stddevs]).T)
-
-        def snap2orb(x):
-            return x * self.bands.n_bands[spin]
-
-        def orb2snap(x):
-            return x/self.bands.n_bands[spin]
-
-        fig, ax = plt.subplots(1, 1, figsize=(15.0, 7.5))
-        lb_y = 0.0
-        ub_y = 4*max(means)
-        # if qoi == 'alphas':
-        #     lb_y = 0.0
-        #     ub_y = 0.0175
-        # elif qoi == 'evs':
-        #     lb_y = 0.0
-        #     ub_y = 0.0175
-
-        ax.set_ylim(lb_y, ub_y)
-        ax.xaxis.get_major_locator().set_params(integer=True)
-        ax.set_xlabel("Number of snapshots for training")
-        ax.set_ylabel(f"{metric_name} of predicted {qoi}")
-        ax.errorbar(convergence_points, means, stddevs, marker='o', linestyle="--")
-        secax = ax.secondary_xaxis('top', functions=(snap2orb, orb2snap))
-        secax.set_xlabel('Number of orbitals for training')
-        plt.savefig(filename.with_suffix(".png"))
-        plt.close()
+                    plot_convergence(self.convergence_points, res['mean'], res['stdd'], qoi, metric,
+                                     spin, self.dirs['convergence_figures'] / f"{spin_id}_{qoi}_{metric}_convergence")
 
     def todict(self):
 
         dct = dict(self.__dict__)
+
+        items_to_pop = ['atoms']
+        for item in items_to_pop:
+            dct.pop(item)
 
         if self.parameters.use_ml and self.parameters.mode == 'convergence':
             items_to_pop = ['metrics', 'statistics']
             for item in items_to_pop:
                 dct.pop(item)
         return dct
+
+
+def plot_calculated_vs_predicted(y: np.ndarray, y_pred: np.ndarray, qoi: str, filename: Path, metric: Tuple[str, float]):
+    fig, ax = plt.subplots(1, 1, figsize=(7.5, 7.5))
+    lb_x = 0.995*min(y)
+    ub_x = 1.005*max(y)
+    # if qoi == 'alphas':
+    #     lb_x = 0.995*min(y)
+    #     ub_x = 1.005*max(y)
+    # elif qoi == 'evs':
+    #     lb_x = 0.995*min(y)
+    #     ub_x = 1.005*max(y)
+    x = np.linspace(lb_x, ub_x, 1000)
+    ax.set_xlim((lb_x, ub_x))
+    ax.set_ylim((lb_x, ub_x))
+    ax.plot(y, y_pred, 'o', color='green', label="{} = {:1.6f}".format(metric[0], metric[1]))
+    ax.plot(x, x, color='grey', linewidth=0.75)
+    plt.ylabel(f"predicted {qoi}")
+    plt.xlabel(f"calculated {qoi}")
+    plt.legend()
+    utils.savefig(fname=str(filename))
+    plt.close()
+
+
+def plot_error_histogram(y: np.ndarray, y_pred: np.ndarray, qoi: str, filename: Path, metric: Tuple[str, float]):
+    error = np.abs(y-y_pred)
+    fig, ax = plt.subplots(1, 1, figsize=(7.5, 7.5))
+    lb_x = 0.0
+    ub_x = 10*max(error)
+    plt.xlabel(f"error")
+    if qoi == 'alphas':
+        lb_x = 0.0
+        ub_x = 10*max(error)
+    elif qoi == 'evs':
+        lb_x = 0.0
+        ub_x = 0.7
+        plt.xlabel(f"error in eV")
+    bins = np.linspace(lb_x, ub_x, 100)
+    # ax.set_xlim((lb_x, ub_x))
+    # ax.set_ylim((0, 1000))
+    ax.hist(error, bins,  label="{} = {:1.6f}".format(metric[0], metric[1]))
+    plt.ylabel(f"number of {qoi}")
+    plt.legend()
+    utils.savefig(fname=str(filename))
+    plt.close()
+
+
+def plot_convergence(convergence_points: np.ndarray, means: np.ndarray, stddevs: np.ndarray, qoi: str, metric_name: str, spin: int, filename: Path):
+    np.savetxt(filename.with_suffix(".txt"), np.array([convergence_points, means, stddevs]).T)
+
+    # def snap2orb(x):
+    #     return x * self.bands.n_bands[spin]
+
+    # def orb2snap(x):
+    #     return x/self.bands.n_bands[spin]
+
+    fig, ax = plt.subplots(1, 1, figsize=(15.0, 7.5))
+    lb_y = 0.0
+    ub_y = 4*max(means)
+    # if qoi == 'alphas':
+    #     lb_y = 0.0
+    #     ub_y = 0.0175
+    # elif qoi == 'evs':
+    #     lb_y = 0.0
+    #     ub_y = 0.0175
+
+    ax.set_ylim(lb_y, ub_y)
+    ax.xaxis.get_major_locator().set_params(integer=True)
+    ax.set_xlabel("Number of snapshots for training")
+    ax.set_ylabel(f"{metric_name} of predicted {qoi}")
+    ax.errorbar(convergence_points, means, stddevs, marker='o', linestyle="--")
+    # secax = ax.secondary_xaxis('top', functions=(snap2orb, orb2snap))
+    # secax.set_xlabel('Number of orbitals for training')
+    utils.savefig(fname=str(filename.with_suffix(".png")))
+    plt.close()
