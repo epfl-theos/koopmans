@@ -162,7 +162,7 @@ class ConvergenceMLWorkflow(Workflow):
                 f"predicted_after_{convergence_point+1}"
         for dir in wf.dirs.values():
             utils.system_call(f'mkdir -p {dir}')
-        wf.quantities_of_interest = ['alphas', 'evs']
+        wf.quantities_of_interest = ['alphas']  # , 'evs']
         wf.metrics = {'MAE': mean_absolute_error, 'R2S': r2_score}
         wf.statistics = {'mean': np.mean, 'stdd': np.std}
 

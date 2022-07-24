@@ -29,16 +29,25 @@ class MLFiitingWorkflow(Workflow):
         ml_dir = self.calc_that_produced_orbital_densities.directory / 'ml' / 'TMP'
         dir_suffix = '_'.join(str(x) for x in [self.parameters.n_max,
                               self.parameters.l_max, self.parameters.r_min, self.parameters.r_max])
-        self.dirs = {
-            'ml': ml_dir,
-            'xml': ml_dir / 'xml',
-            'alphas': ml_dir / 'alphas',
-            'betas': ml_dir / 'betas',
-            'coeff': ml_dir / ('coefficients_' + dir_suffix),
-            'coeff_orb': ml_dir / ('coefficients_' + dir_suffix) / 'coeff_orb',
-            'coeff_tot': ml_dir / ('coefficients_' + dir_suffix) / 'coeff_tot',
-            'power': ml_dir / ('power_spectra_' + dir_suffix)
-        }
+        if self.parameters.input_data == 'Orbital Density':
+            self.dirs = {
+                'ml': ml_dir,
+                'xml': ml_dir / 'xml',
+                'alphas': ml_dir / 'alphas',
+                'betas': ml_dir / 'betas',
+                'coeff': ml_dir / ('coefficients_' + dir_suffix),
+                'coeff_orb': ml_dir / ('coefficients_' + dir_suffix) / 'coeff_orb',
+                'coeff_tot': ml_dir / ('coefficients_' + dir_suffix) / 'coeff_tot',
+                'power': ml_dir / ('power_spectra_' + dir_suffix)
+            }
+        elif self.parameters.input_data == 'Self-Hartree':
+            self.dirs = {
+                'ml': ml_dir,
+                'SH': ml_dir / 'SH'
+            }
+        else:
+            raise ValueError(
+                f"{self.parameters.input_data} is currently not implemented as a valid input for the ml model.")
 
         for dir in self.dirs.values():
             utils.system_call(f'mkdir -p {dir}')
@@ -71,10 +80,32 @@ class MLFiitingWorkflow(Workflow):
         else:
             self.nspin_to_extract = 1
 
-        # Start the actual three steps
-        self.extract_input_vector_for_ml_model()
+        if self.parameters.type_ml_model == 'Mean':
+            return  # this model needs no X-data
+        else:
+            if self.parameters.input_data == 'Orbital Density':
+                # Start the actual three steps
+                self.extract_input_vector_from_orbital_densities()
+            elif self.parameters.input_data == 'Self-Hartree':
+                self.extract_input_vector_from_self_hartrees()
+            else:
+                raise ValueError(
+                    f"{self.parameters.input_data} is currently not implemented as a valid input for the ml model.")
 
-    def extract_input_vector_for_ml_model(self):
+    def extract_input_vector_from_self_hartrees(self):
+        print("TODO: Check for spin-polarized case. ")
+        SH = self.calc_that_produced_orbital_densities.results['orbital_data']['self-Hartree']
+        for band in self.bands_to_extract:
+            if band.filled:
+                filled_str = 'occ'
+            else:
+                filled_str = 'emp'
+            np.savetxt(self.dirs['SH'] / f"SH.orbital.{filled_str}.{band.index}.txt",
+                       np.array([SH[band.spin][band.index-1]]))
+
+        return
+
+    def extract_input_vector_from_orbital_densities(self):
         """
         Performs the three steps of the MLFItting-workflow
         """
@@ -196,15 +227,21 @@ class MLFiitingWorkflow(Workflow):
         """
 
         self.print('Predicting screening parameter')
-        power_spectrum = self.load_power_spectrum(band)
+        if self.parameters.input_data == 'Orbital Density':
+            input_data = self.load_power_spectrum(band)
+        elif self.parameters.input_data == 'Self-Hartree':
+            input_data = self.load_SH(band)
+        else:
+            raise ValueError(
+                f"{self.parameters.input_data} is currently not implemented as a valid input for the ml model.")
 
         if self.parameters.occ_and_emp_together:
-            y_predict = self.ml_model.predict(power_spectrum)[0]
+            y_predict = self.ml_model.predict(input_data)[0]
         else:
             if band.filled:
-                y_predict = self.ml_model_occ.predict(power_spectrum)[0]
+                y_predict = self.ml_model_occ.predict(input_data)[0]
             else:
-                y_predict = self.ml_model_emp.predict(power_spectrum)[0]
+                y_predict = self.ml_model_emp.predict(input_data)[0]
 
         self.predicted_alphas.append(y_predict)
         self.fillings_of_predicted_alphas.append(band.filled)
@@ -229,17 +266,23 @@ class MLFiitingWorkflow(Workflow):
         """
 
         self.print('Adding this orbital to the training data')
-        power_spectrum = self.load_power_spectrum(band)
+        if self.parameters.input_data == 'Orbital Density':
+            input_data = self.load_power_spectrum(band)
+        elif self.parameters.input_data == 'Self-Hartree':
+            input_data = self.load_SH(band)
+        else:
+            raise ValueError(
+                f"{self.parameters.input_data} is currently not implemented as a valid input for the ml model.")
         alpha = band.alpha
         assert isinstance(alpha, float)
         self.calculated_alphas.append(alpha)
         if self.parameters.occ_and_emp_together:
-            self.ml_model.add_training_data(power_spectrum, alpha)
+            self.ml_model.add_training_data(input_data, alpha)
         else:
             if band.filled:
-                self.ml_model_occ.add_training_data(power_spectrum, alpha)
+                self.ml_model_occ.add_training_data(input_data, alpha)
             else:
-                self.ml_model_emp.add_training_data(power_spectrum, alpha)
+                self.ml_model_emp.add_training_data(input_data, alpha)
 
     def load_power_spectrum(self, band: Band) -> np.ndarray:
         """
@@ -251,6 +294,13 @@ class MLFiitingWorkflow(Workflow):
         else:
             filled_str = 'emp'
         return np.loadtxt(self.dirs['power'] / f"power_spectrum.orbital.{filled_str}.{band.index}.txt")
+
+    def load_SH(self, band: Band) -> np.ndarray:
+        if band.filled:
+            filled_str = 'occ'
+        else:
+            filled_str = 'emp'
+        return np.loadtxt(self.dirs['SH'] / f"SH.orbital.{filled_str}.{band.index}.txt")
 
     def use_prediction(self) -> bool:
         """

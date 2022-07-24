@@ -24,11 +24,13 @@ class RidgeRegressionModel(MLModelWrapper):
     def __init__(self) -> None:
         self.scaler = StandardScaler()
         self.model = Ridge(alpha=1.0)
+        self.is_trained = False
 
     def fit(self, X_train: np.ndarray, Y_train: np.ndarray):
         self.scaler = self.scaler.fit(X_train)
         X_train_scaled = self.scaler.transform(X_train)
         self.model.fit(X_train_scaled, Y_train)
+        self.is_trained = True
 
     def predict(self,  x_test: np.ndarray) -> np.ndarray:
         X_test = np.atleast_2d(x_test)
@@ -40,6 +42,7 @@ class RidgeRegressionModel(MLModelWrapper):
 class MeanModel(MLModelWrapper):
     def __init__(self) -> None:
         self.mean = 0.0
+        self.is_trained = True
 
     def fit(self, X_train: np.ndarray, Y_train: np.ndarray):
         self.mean = np.mean(Y_train)
@@ -51,7 +54,6 @@ class MeanModel(MLModelWrapper):
 
 class MLModel():
     def __init__(self, type_ml_model='Ridge Regression', is_trained: bool = False, X_train: np.ndarray = None, Y_train: np.ndarray = None):
-        self.is_trained = is_trained
         self.X_train = X_train
         self.Y_train = Y_train
         self.type_ml_model = type_ml_model
@@ -67,10 +69,11 @@ class MLModel():
 
     def __repr__(self):
         # Yannick TODO: update
-        if self.X_train is None:
-            return f'RidgeRegression(is_trained={self.is_trained}, no training data has been added so far)'
-        else:
-            return f'RidgeRegression(is_trained={self.is_trained},number_of_training_vectors={self.X_train.shape[0]},input_vector_dimension={self.Y_train.shape[0]})'
+        return 'TODO'
+        # if self.X_train is None:
+        #     return f'RidgeRegression(is_trained={self.is_trained}, no training data has been added so far)'
+        # else:
+        #     return f'RidgeRegression(is_trained={self.is_trained},number_of_training_vectors={self.X_train.shape[0]},input_vector_dimension={self.Y_train.shape[0]})'
 
     def todict(self):
         dct = copy.deepcopy(dict(self.__dict__))
@@ -88,7 +91,7 @@ class MLModel():
         Make a prediction of using the trained model. 
         """
 
-        if self.is_trained:
+        if self.model.is_trained:
             y_predict = self.model.predict(x_test)
             return y_predict
         else:

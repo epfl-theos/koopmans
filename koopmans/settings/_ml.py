@@ -34,7 +34,9 @@ class MLSettingsDict(WorkflowSettingsDict):
             Setting('occ_and_emp_together', 'If true, there will be one ML Model for both, occupied and empty states. If False, there will be one ML Model for occupied states and one for empty ones',
                     bool, True, (True, False)),
             Setting('type_ml_model', 'Which ML model to use for making the predictions',
-                    str, 'Ridge Regression', ('Ridge Regression', 'Mean'))]
+                    str, 'Ridge Regression', ('Ridge Regression', 'Mean')),
+            Setting('input_data', 'Which Data to use in case of the Ridge Regression Model',
+                    str, 'Orbital Density', ('Orbital Density', 'Self-Hartree'))]
 
         super().__init__(settings=valid_settings, **kwargs)
 
