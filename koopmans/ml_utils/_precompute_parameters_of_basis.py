@@ -85,8 +85,12 @@ def precompute_parameters_of_radial_basis(n_max: int, l_max: int, r_min_thr: flo
 
     betas = np.zeros((n_max, n_max, l_max+1))
 
-    for l in range(l_max+1):
-        betas[:, :, l] = compute_beta(n_max, l, alphas)
+    try:
+        for l in range(l_max+1):
+            betas[:, :, l] = compute_beta(n_max, l, alphas)
+    except:
+        raise ValueError(
+            f"Failed to precompute the radial basis. You might want to try a larger r_min, e.g. r_min=0.5.")
 
     betas.tofile(dirs['betas'] / ('betas_' + '_'.join(str(x)
                                                       for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))

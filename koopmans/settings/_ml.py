@@ -8,16 +8,16 @@ class MLSettingsDict(WorkflowSettingsDict):
         valid_settings = [
             Setting('n_max',
                     'The maximum expansion coefficient n for radial basis functions',
-                    int, 4, None),
+                    (int, list), 4, None),
             Setting('l_max',
                     'The maximum angular expansion coefficient',
-                    int, 4, None),
+                    (int, list), 4, None),
             Setting('r_min',
                     'The width of the narrowest radial basis function',
-                    float, 0.5, None),
+                    (float, list), 0.5, None),
             Setting('r_max',
                     'The width of the broadest radial basis function',
-                    float, 4.0, None),
+                    (float, list), 4.0, None),
             Setting('criterium',
                     'The criteium which has to be satisfied in order to use the ML-predicted screening coefficients instead of computing them ab-initio',
                     str, 'after_fixed_num_of_snapshots', ('after_fixed_num_of_snapshots', )),
@@ -40,14 +40,28 @@ class MLSettingsDict(WorkflowSettingsDict):
 
         super().__init__(settings=valid_settings, **kwargs)
 
-        if not self['r_min'] < self['r_max']:
-            raise ValueError(
-                f"r_min should be smaller smaller than r_max. The provided values are r_min={self['r_min']} and r_max={self['r_max']}")
-        if not self['l_max'] >= 0:
-            raise ValueError(
-                f"l_max has to be equal or larger than zero. The provided value is l_max={self['l_max']}")
-        if not self['n_max'] > 0:
-            raise ValueError(f"n_max has to be larger than zero. The provided value is n_max={self['n_max']}")
+        def convert_to_list(param, type):
+            if isinstance(param, type):
+                return [param]
+            else:
+                return param
+        n_maxs = convert_to_list(self['n_max'], int)
+        l_maxs = convert_to_list(self['l_max'], int)
+        r_mins = convert_to_list(self['r_min'], float)
+        r_maxs = convert_to_list(self['r_max'], float)
+
+        for n_max in n_maxs:
+            for l_max in l_maxs:
+                for r_min in r_mins:
+                    for r_max in r_maxs:
+                        if not r_min < r_max:
+                            raise ValueError(
+                                f"r_min should be smaller smaller than r_max. The provided values are r_min={self['r_min']} and r_max={self['r_max']}")
+                        if not l_max >= 0:
+                            raise ValueError(
+                                f"l_max has to be equal or larger than zero. The provided value is l_max={self['l_max']}")
+                        if not n_max > 0:
+                            raise ValueError(f"n_max has to be larger than zero. The provided value is n_max={n_max}")
 
     def __setitem__(self, key: str, value: Any):
         return super().__setitem__(key, value)
