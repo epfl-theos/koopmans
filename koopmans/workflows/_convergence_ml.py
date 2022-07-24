@@ -33,7 +33,9 @@ class ConvergenceMLWorkflow(Workflow):
         if self.parameters.number_of_training_snapshots >= len(self.snapshots):
             raise ValueError(
                 "There are not enough test-snapshots available for a convergence_analysis. Please increase the number of snapshots in the xyz-file or decrease 'number_of_training_snapshots'")
-
+        delete_final_dir = False
+        if 'evs' in self.quantities_of_interest:
+            delete_final_dir = True
         # Yannick TODO: find more elegant solution
         tmp_number_of_training_snapshots = self.parameters.number_of_training_snapshots
         # set the number of training snapshots to a very high value to not use the prediction for the first run
@@ -42,10 +44,12 @@ class ConvergenceMLWorkflow(Workflow):
             f'Obtaining ab-initio results for the last {len(self.test_indices)} snapshot(s)', style='heading')
         # get the ab-initio result for the test_indices
         twf = TrajectoryWorkflow(snapshots=self.snapshots, **self.wf_kwargs)
-        self.run_subworkflow(twf, indices=self.test_indices, save_dir=self.dirs['convergence_true'])
+        self.run_subworkflow(twf, indices=self.test_indices,
+                             save_dir=self.dirs['convergence_true'], delete_final_dir=delete_final_dir)
         # set the number of training snapshots back to its original value
         self.parameters.number_of_training_snapshots = tmp_number_of_training_snapshots
         self.ml_model = MLModel()
+        from_scratch = False
         for convergence_point in self.convergence_points:
             train_indices = [convergence_point]
             self.print(
@@ -53,13 +57,9 @@ class ConvergenceMLWorkflow(Workflow):
             twf = TrajectoryWorkflow(snapshots=self.snapshots, **self.wf_kwargs)
             self.run_subworkflow(twf, indices=train_indices)  # train the model
             # test the model (without retraining the model)
-            delete_final_dir = False
-            if 'evs' in self.quantities_of_interest:
-                delete_final_dir = True
             twf = TrajectoryWorkflow(snapshots=self.snapshots, **self.wf_kwargs)
-            self.run_subworkflow(twf, indices=self.test_indices,
+            self.run_subworkflow(twf, from_scratch=from_scratch, indices=self.test_indices,
                                  save_dir=self.dirs[f'convergence_{convergence_point}'], delete_final_dir=delete_final_dir)
-            self.parameters.from_scratch = False
         self.get_result_dict()
         self.make_plots_from_result_dict()
 
@@ -157,7 +157,7 @@ class ConvergenceMLWorkflow(Workflow):
                 f"predicted_after_{convergence_point+1}"
         for dir in wf.dirs.values():
             utils.system_call(f'mkdir -p {dir}')
-        wf.quantities_of_interest = ['alphas']  # , 'evs']
+        wf.quantities_of_interest = ['alphas', 'evs']
         wf.metrics = {'MAE': mean_absolute_error, 'R2S': r2_score}
         wf.statistics = {'mean': np.mean, 'stdd': np.std}
 
