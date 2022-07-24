@@ -39,6 +39,21 @@ class RidgeRegressionModel(MLModelWrapper):
         return y_predict
 
 
+class LinearRegressionModel(MLModelWrapper):
+    def __init__(self) -> None:
+        self.model = Ridge(alpha=0.0)
+        self.is_trained = False
+
+    def fit(self, X_train: np.ndarray, Y_train: np.ndarray):
+        self.model.fit(X_train, Y_train)
+        self.is_trained = True
+
+    def predict(self,  x_test: np.ndarray) -> np.ndarray:
+        X_test = np.atleast_2d(x_test)
+        y_predict = self.model.predict(X_test)
+        return y_predict
+
+
 class MeanModel(MLModelWrapper):
     def __init__(self) -> None:
         self.mean = 0.0
@@ -62,6 +77,8 @@ class MLModel():
     def init_and_reset_model(self):
         if self.type_ml_model == 'Ridge Regression':
             self.model = RidgeRegressionModel()
+        elif self.type_ml_model == 'Linear Regression':
+            self.model = LinearRegressionModel()
         elif self.type_ml_model == 'Mean':
             self.model = MeanModel()
         else:
@@ -92,6 +109,7 @@ class MLModel():
         """
 
         if self.model.is_trained:
+            print("Yannick Debug: np.shape(X_train): ", np.shape(self.X_train))
             y_predict = self.model.predict(x_test)
             return y_predict
         else:
