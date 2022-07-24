@@ -62,7 +62,7 @@ class TrajectoryWorkflow(Workflow):
             # reset the bands to the initial guesses (i.e. either from file or to 0.6 but not from the previous calculation)
             self.bands = workflow.bands
             if delete_final_dir:
-                utils.system_call(f'rm -r {subdirectory}/final')
+                utils.system_call(f'rm -rf {subdirectory}/final')
 
             self.run_subworkflow(workflow, subdirectory=subdirectory)
 

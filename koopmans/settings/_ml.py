@@ -30,7 +30,11 @@ class MLSettingsDict(WorkflowSettingsDict):
             Setting('alphas_from_file_for_debugging_ml_model', 'If true, read the screening coefficients from file instead of calculating them ab-initio',
                     bool, False, (True, False)),
             Setting('train_on_the_fly', 'If true, the ML-model gets trained after the calculation of each orbital. If false, the ML-model gets trained at the end of each snapshot',
-                    bool, False, (True, False))]
+                    bool, False, (True, False)),
+            Setting('occ_and_emp_together', 'If true, there will be one ML Model for both, occupied and empty states. If False, there will be one ML Model for occupied states and one for empty ones',
+                    bool, True, (True, False)),
+            Setting('type_ml_model', 'Which ML model to use for making the predictions',
+                    str, 'Ridge Regression', ('Ridge Regression', 'Mean'))]
 
         super().__init__(settings=valid_settings, **kwargs)
 

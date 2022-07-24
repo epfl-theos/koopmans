@@ -263,7 +263,11 @@ class Workflow(ABC):
 
         # Initialize the MLModel
         if self.parameters.use_ml:
-            self.ml_model = MLModel()
+            if self.parameters.occ_and_emp_together:
+                self.ml_model = MLModel(self.parameters.type_ml_model)
+            else:
+                self.ml_model_occ = MLModel(self.parameters.type_ml_model)
+                self.ml_model_emp = MLModel(self.parameters.type_ml_model)
 
     def __eq__(self, other: Any):
         if isinstance(other, Workflow):
@@ -715,7 +719,11 @@ class Workflow(ABC):
 
         # Link the ML_Model
         if self.parameters.use_ml:
-            workflow.ml_model = self.ml_model
+            if self.parameters.occ_and_emp_together:
+                workflow.ml_model = self.ml_model
+            else:
+                workflow.ml_model_occ = self.ml_model_occ
+                workflow.ml_model_emp = self.ml_model_emp
 
         # Link the bands
         if hasattr(self, 'bands'):

@@ -197,7 +197,15 @@ class MLFiitingWorkflow(Workflow):
 
         self.print('Predicting screening parameter')
         power_spectrum = self.load_power_spectrum(band)
-        y_predict = self.ml_model.predict(power_spectrum)[0]
+
+        if self.parameters.occ_and_emp_together:
+            y_predict = self.ml_model.predict(power_spectrum)[0]
+        else:
+            if band.filled:
+                y_predict = self.ml_model_occ.predict(power_spectrum)[0]
+            else:
+                y_predict = self.ml_model_emp.predict(power_spectrum)[0]
+
         self.predicted_alphas.append(y_predict)
         self.fillings_of_predicted_alphas.append(band.filled)
 
@@ -209,7 +217,11 @@ class MLFiitingWorkflow(Workflow):
         """
 
         self.print('Training the ML model')
-        self.ml_model.train()
+        if self.parameters.occ_and_emp_together:
+            self.ml_model.train()
+        else:
+            self.ml_model_occ.train()
+            self.ml_model_emp.train()
 
     def add_training_data(self, band: Band):
         """
@@ -221,7 +233,13 @@ class MLFiitingWorkflow(Workflow):
         alpha = band.alpha
         assert isinstance(alpha, float)
         self.calculated_alphas.append(alpha)
-        self.ml_model.add_training_data(power_spectrum, alpha)
+        if self.parameters.occ_and_emp_together:
+            self.ml_model.add_training_data(power_spectrum, alpha)
+        else:
+            if band.filled:
+                self.ml_model_occ.add_training_data(power_spectrum, alpha)
+            else:
+                self.ml_model_emp.add_training_data(power_spectrum, alpha)
 
     def load_power_spectrum(self, band: Band) -> np.ndarray:
         """

@@ -25,29 +25,48 @@ class RidgeRegressionModel(MLModelWrapper):
         self.scaler = StandardScaler()
         self.model = Ridge(alpha=1.0)
 
+    def fit(self, X_train: np.ndarray, Y_train: np.ndarray):
+        self.scaler = self.scaler.fit(X_train)
+        X_train_scaled = self.scaler.transform(X_train)
+        self.model.fit(X_train_scaled, Y_train)
+
     def predict(self,  x_test: np.ndarray) -> np.ndarray:
         X_test = np.atleast_2d(x_test)
         X_test = self.scaler.transform(X_test)
         y_predict = self.model.predict(X_test)
         return y_predict
 
+
+class MeanModel(MLModelWrapper):
+    def __init__(self) -> None:
+        self.mean = 0.0
+
     def fit(self, X_train: np.ndarray, Y_train: np.ndarray):
-        self.scaler = self.scaler.fit(X_train)
-        X_train_scaled = self.scaler.transform(X_train)
-        self.model.fit(X_train_scaled, Y_train)
+        self.mean = np.mean(Y_train)
+
+    def predict(self,  x_test: np.ndarray) -> np.ndarray:
+        shape = np.shape(x_test)[0]
+        return self.mean*np.ones(shape)
 
 
 class MLModel():
-    def __init__(self, is_trained: bool = False, X_train: np.ndarray = None, Y_train: np.ndarray = None):
+    def __init__(self, type_ml_model='Ridge Regression', is_trained: bool = False, X_train: np.ndarray = None, Y_train: np.ndarray = None):
         self.is_trained = is_trained
         self.X_train = X_train
         self.Y_train = Y_train
+        self.type_ml_model = type_ml_model
         self.init_and_reset_model()
 
     def init_and_reset_model(self):
-        self.model = RidgeRegressionModel()
+        if self.type_ml_model == 'Ridge Regression':
+            self.model = RidgeRegressionModel()
+        elif self.type_ml_model == 'Mean':
+            self.model = MeanModel()
+        else:
+            raise ValueError(f"{self.type_ml_model} is not implemented as a valid ML model.")
 
     def __repr__(self):
+        # Yannick TODO: update
         if self.X_train is None:
             return f'RidgeRegression(is_trained={self.is_trained}, no training data has been added so far)'
         else:
@@ -72,10 +91,6 @@ class MLModel():
         if self.is_trained:
             y_predict = self.model.predict(x_test)
             return y_predict
-            # X_test = np.atleast_2d(x_test)
-            # X_test = self.scaler.transform(X_test)
-            # y_predict = self.model.predict(X_test)
-            # return y_predict
         else:
             return np.array([1.0])  # dummy value
 
@@ -86,11 +101,6 @@ class MLModel():
         print('TODO')
         self.init_and_reset_model()
         self.model.fit(self.X_train, self.Y_train)
-
-        # self.model = Ridge(alpha=1.0)
-        # self.scaler = self.scaler.fit(self.X_train)
-        # X_train_scaled = self.scaler.transform(self.X_train)
-        # self.model.fit(X_train_scaled, self.Y_train)
         self.is_trained = True
 
     def add_training_data(self, x_train: np.ndarray, y_train: Union[float, np.ndarray]):
