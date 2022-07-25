@@ -54,9 +54,9 @@ class MLSettingsDict(WorkflowSettingsDict):
             for l_max in l_maxs:
                 for r_min in r_mins:
                     for r_max in r_maxs:
-                        if not r_min < r_max:
-                            raise ValueError(
-                                f"r_min should be smaller smaller than r_max. The provided values are r_min={self['r_min']} and r_max={self['r_max']}")
+                        # if not r_min < r_max:
+                        #     raise ValueError(
+                        #         f"r_min should be smaller smaller than r_max. The provided values are r_min={self['r_min']} and r_max={self['r_max']}")
                         if not l_max >= 0:
                             raise ValueError(
                                 f"l_max has to be equal or larger than zero. The provided value is l_max={self['l_max']}")

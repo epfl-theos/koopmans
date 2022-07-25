@@ -86,7 +86,7 @@ class ConvergenceMLWorkflow(Workflow):
                             self.print(
                                 f'Training on {len(train_indices)} snapshot(s) and then testing on the last {len(self.test_indices)} snapshot(s)', style='heading')
                             twf = TrajectoryWorkflow(snapshots=self.snapshots, **self.wf_kwargs)
-                            self.run_subworkflow(twf, indices=train_indices)  # train the model
+                            self.run_subworkflow(twf, from_scratch = from_scratch, indices=train_indices)  # train the model
                             # test the model (without retraining the model)
                             twf = TrajectoryWorkflow(snapshots=self.snapshots, **self.wf_kwargs)
                             self.run_subworkflow(twf, from_scratch=from_scratch, indices=self.test_indices,
