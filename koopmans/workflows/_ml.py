@@ -22,14 +22,13 @@ class MLFiitingWorkflow(Workflow):
 
         # Specify from which calculation we extract the real space densities. Currently only
         # the ki-calculation at the beginning of the alpha calculations is a valid option
-        self.method_to_extract_from_binary = 'from_ki'
         self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
 
         # Define and create the different subdirectories for the outputs of the ML-workflow
         ml_dir = self.calc_that_produced_orbital_densities.directory / 'ml' / 'TMP'
         dir_suffix = '_'.join(str(x) for x in [self.parameters.n_max,
                               self.parameters.l_max, self.parameters.r_min, self.parameters.r_max])
-        if self.parameters.input_data == 'Orbital Density':
+        if self.parameters.input_data_for_ml_model == 'orbital_density':
             self.dirs = {
                 'ml': ml_dir,
                 'xml': ml_dir / 'xml',
@@ -40,14 +39,14 @@ class MLFiitingWorkflow(Workflow):
                 'coeff_tot': ml_dir / ('coefficients_' + dir_suffix) / 'coeff_tot',
                 'power': ml_dir / ('power_spectra_' + dir_suffix)
             }
-        elif self.parameters.input_data == 'Self-Hartree':
+        elif self.parameters.input_data_for_ml_model == 'self_hartree':
             self.dirs = {
                 'ml': ml_dir,
                 'SH': ml_dir / 'SH'
             }
         else:
             raise ValueError(
-                f"{self.parameters.input_data} is currently not implemented as a valid input for the ml model.")
+                f"{self.parameters.input_data_for_ml_model} is currently not implemented as a valid input for the ml model.")
 
         for dir in self.dirs.values():
             utils.system_call(f'mkdir -p {dir}')
@@ -62,7 +61,7 @@ class MLFiitingWorkflow(Workflow):
         """
         Runs the MLFitting-workflow.
 
-        It consists of three steps:
+        If the input-data are orbital densities, this worflow consists of three steps:
         1) Converting the binary files containing real space densities to xml-files.
         2) Reading the real space densities from the xml-files and calculating the decomposition into spherical harmonics and radial basis functions.
         3) Computing the power spectra of the resulting coefficient vectors.
@@ -80,20 +79,23 @@ class MLFiitingWorkflow(Workflow):
         else:
             self.nspin_to_extract = 1
 
-        if self.parameters.type_ml_model == 'Mean':
+        if self.parameters.type_of_ml_model == 'mean':
             return  # this model needs no X-data
         else:
-            if self.parameters.input_data == 'Orbital Density':
-                # Start the actual three steps
+            if self.parameters.input_data_for_ml_model == 'orbital_density':
+                # start the actual three steps
                 self.extract_input_vector_from_orbital_densities()
-            elif self.parameters.input_data == 'Self-Hartree':
+            elif self.parameters.input_data_for_ml_model == 'self_hartree':
+                # get the self hartree energies
                 self.extract_input_vector_from_self_hartrees()
             else:
                 raise ValueError(
-                    f"{self.parameters.input_data} is currently not implemented as a valid input for the ml model.")
+                    f"{self.parameters.input_data_for_ml_model} is currently not implemented as a valid input for the ml model.")
 
     def extract_input_vector_from_self_hartrees(self):
-        print("TODO: Check for spin-polarized case. ")
+        """
+        Extracts the self-Hartree energies from the corresponding calculation.
+        """
         SH = self.calc_that_produced_orbital_densities.results['orbital_data']['self-Hartree']
         for band in self.bands_to_extract:
             if band.filled:
@@ -118,13 +120,8 @@ class MLFiitingWorkflow(Workflow):
         """
         Converts the binary files produced by a previous calculation to python-readable xml-files.
         """
-
-        if self.method_to_extract_from_binary == 'from_ki':
-            orbital_densities_bin_dir = self.calc_that_produced_orbital_densities.parameters.outdir / \
-                f'kc_{self.calc_that_produced_orbital_densities.parameters.ndw}.save'
-        else:
-            raise NotImplementedError(
-                f'Currently it is only implemented to extract the real space orbital densities from the ki-trial calculation after the initial wannier-calculation')
+        orbital_densities_bin_dir = self.calc_that_produced_orbital_densities.parameters.outdir / \
+            f'kc_{self.calc_that_produced_orbital_densities.parameters.ndw}.save'
 
         calculation_title = 'conversion binary->xml of real-space-densities'
         is_complete = self.check_if_bin2xml_is_complete()
@@ -170,29 +167,24 @@ class MLFiitingWorkflow(Workflow):
             self.r_cut = min(self.atoms.get_cell_lengths_and_angles()[:3])
 
             # Extract te wannier-centres
-            if self.method_to_extract_from_binary == 'from_ki':
-                # Store the original w90 calculations
-                w90_calcs = [c for c in self.calculations if isinstance(
-                    c, calculators.Wannier90Calculator) and c.command.flags == ''][-len(self.projections):]
+            # Store the original w90 calculations
+            w90_calcs = [c for c in self.calculations if isinstance(
+                c, calculators.Wannier90Calculator) and c.command.flags == ''][-len(self.projections):]
 
-                if self.parameters.spin_polarised:
-                    spins = ['up', 'down']
-                else:
-                    spins = [None]
-
-                centers_list = []
-                for spin in spins:
-                    for filling in ['occ', 'emp']:
-                        calc_presets = filling
-                        if spin:
-                            calc_presets += '_' + spin
-                        centers_list.append(np.array([center for c in w90_calcs for center in c.results['centers']
-                                                      if calc_presets in c.directory.name]))
-                centers = np.concatenate(centers_list)
-
+            if self.parameters.spin_polarised:
+                spins = ['up', 'down']
             else:
-                raise NotImplementedError(
-                    f'Currently it is only implemented to extract the real space orbital densities from the ki-trial calculation after the initial wannier-calculation')
+                spins = [None]
+
+            centers_list = []
+            for spin in spins:
+                for filling in ['occ', 'emp']:
+                    calc_presets = filling
+                    if spin:
+                        calc_presets += '_' + spin
+                    centers_list.append(np.array([center for c in w90_calcs for center in c.results['centers']
+                                                  if calc_presets in c.directory.name]))
+            centers = np.concatenate(centers_list)
 
             ml_utils.precompute_parameters_of_radial_basis(self.parameters.n_max, self.parameters.l_max,
                                                            self.parameters.r_min, self.parameters.r_max, self.dirs)
@@ -221,19 +213,30 @@ class MLFiitingWorkflow(Workflow):
         ml_utils.compute_power(self.parameters.n_max, self.parameters.l_max, self.dirs, self.bands_to_extract)
         self.print(f' done')
 
+    def get_input_data(self, band) -> np.ndarray:
+        """
+        Loads the input data depending on the ML model
+        """
+        if self.parameters.type_of_ml_model == 'mean':
+            input_data = np.array([1.0])  # dummy value
+        else:
+            if self.parameters.input_data_for_ml_model == 'orbital_density':
+                input_data = self.load_power_spectrum(band)
+            elif self.parameters.input_data_for_ml_model == 'self_hartree':
+                input_data = self.load_SH(band)
+            else:
+                raise ValueError(
+                    f"{self.parameters.input_data_for_ml_model} is currently not implemented as a valid input for the ml model.")
+
+        return input_data
+
     def predict(self, band: Band) -> float:
         """
         Make the prediction for one band. 
         """
 
         self.print('Predicting screening parameter')
-        if self.parameters.input_data == 'Orbital Density':
-            input_data = self.load_power_spectrum(band)
-        elif self.parameters.input_data == 'Self-Hartree':
-            input_data = self.load_SH(band)
-        else:
-            raise ValueError(
-                f"{self.parameters.input_data} is currently not implemented as a valid input for the ml model.")
+        input_data = self.get_input_data(band)
 
         if self.parameters.occ_and_emp_together:
             y_predict = self.ml_model.predict(input_data)[0]
@@ -266,13 +269,7 @@ class MLFiitingWorkflow(Workflow):
         """
 
         self.print('Adding this orbital to the training data')
-        if self.parameters.input_data == 'Orbital Density':
-            input_data = self.load_power_spectrum(band)
-        elif self.parameters.input_data == 'Self-Hartree':
-            input_data = self.load_SH(band)
-        else:
-            raise ValueError(
-                f"{self.parameters.input_data} is currently not implemented as a valid input for the ml model.")
+        input_data = self.get_input_data(band)
         alpha = band.alpha
         assert isinstance(alpha, float)
         self.calculated_alphas.append(alpha)
@@ -363,8 +360,6 @@ class MLFiitingWorkflow(Workflow):
         # utils.indented_print('predicted  ' + str(self.predicted_alphas), indent=indent)
         # utils.indented_print(str(self.bands.alpha_history), indent=indent)
         # utils.indented_print('')
-        # print("Debug: len(predicted alphas) = ", len(self.predicted_alphas))
-        # print("Debug: len(calculated alphas) = ", len(self.calculated_alphas))
         utils.indented_print('\nThe mean absolut error of the predicted screening parameters of this snapshot is {0:.7f}'.format(
             mae(self.predicted_alphas, self.calculated_alphas)), indent=indent)
         utils.indented_print('')

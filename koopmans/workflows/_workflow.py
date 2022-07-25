@@ -264,10 +264,10 @@ class Workflow(ABC):
         # Initialize the MLModel
         if self.parameters.use_ml:
             if self.parameters.occ_and_emp_together:
-                self.ml_model = MLModel(self.parameters.type_ml_model)
+                self.ml_model = MLModel(self.parameters.type_of_ml_model)
             else:
-                self.ml_model_occ = MLModel(self.parameters.type_ml_model)
-                self.ml_model_emp = MLModel(self.parameters.type_ml_model)
+                self.ml_model_occ = MLModel(self.parameters.type_of_ml_model)
+                self.ml_model_emp = MLModel(self.parameters.type_of_ml_model)
 
     def __eq__(self, other: Any):
         if isinstance(other, Workflow):
@@ -435,7 +435,7 @@ class Workflow(ABC):
             if self.parameters.task not in ['trajectory', 'convergence_ml']:
                 raise NotImplementedError(
                     f'Using the ML-prediction for the {self.parameter.task}-task has not yet been implemented.')
-            if self.parameters.method != 'dscf':  # TODO Yannick: implement also with DFPT
+            if self.parameters.method != 'dscf':
                 raise NotImplementedError(
                     f"Using the ML-prediction for the {self.parameters.method}-method has not yet been implemented")
             if self.parameters.functional != 'ki':

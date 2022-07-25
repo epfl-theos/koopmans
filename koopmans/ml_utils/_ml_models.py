@@ -1,15 +1,13 @@
 from abc import ABC, abstractmethod
 import copy
-from curses import has_key
-from multiprocessing.sharedctypes import Value
-from typing import Dict, List, Union
+from typing import Dict, Union
 import numpy as np
 from deepdiff import DeepDiff
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
 
 
-class MLModelWrapper(ABC):
+class AbstractPredictor(ABC):
 
     @abstractmethod
     def predict(self,  x_test: np.ndarray) -> np.ndarray:
@@ -20,7 +18,7 @@ class MLModelWrapper(ABC):
         ...
 
 
-class RidgeRegressionModel(MLModelWrapper):
+class RidgeRegressionModel(AbstractPredictor):
     def __init__(self) -> None:
         self.scaler = StandardScaler()
         self.model = Ridge(alpha=1.0)
@@ -39,7 +37,7 @@ class RidgeRegressionModel(MLModelWrapper):
         return y_predict
 
 
-class LinearRegressionModel(MLModelWrapper):
+class LinearRegressionModel(AbstractPredictor):
     def __init__(self) -> None:
         self.model = Ridge(alpha=0.0)
         self.is_trained = False
@@ -54,7 +52,7 @@ class LinearRegressionModel(MLModelWrapper):
         return y_predict
 
 
-class MeanModel(MLModelWrapper):
+class MeanModel(AbstractPredictor):
     def __init__(self) -> None:
         self.mean = 0.0
         self.is_trained = True
@@ -68,29 +66,28 @@ class MeanModel(MLModelWrapper):
 
 
 class MLModel():
-    def __init__(self, type_ml_model='Ridge Regression', is_trained: bool = False, X_train: np.ndarray = None, Y_train: np.ndarray = None):
+    def __init__(self, type_of_ml_model='ridge_regression', is_trained: bool = False, X_train: np.ndarray = None, Y_train: np.ndarray = None):
         self.X_train = X_train
         self.Y_train = Y_train
-        self.type_ml_model = type_ml_model
+        self.type_of_ml_model = type_of_ml_model
+        self.is_trained = is_trained
         self.init_and_reset_model()
 
     def init_and_reset_model(self):
-        if self.type_ml_model == 'Ridge Regression':
+        if self.type_of_ml_model == 'ridge_regression':
             self.model = RidgeRegressionModel()
-        elif self.type_ml_model == 'Linear Regression':
+        elif self.type_of_ml_model == 'linear_regression':
             self.model = LinearRegressionModel()
-        elif self.type_ml_model == 'Mean':
+        elif self.type_of_ml_model == 'mean':
             self.model = MeanModel()
         else:
-            raise ValueError(f"{self.type_ml_model} is not implemented as a valid ML model.")
+            raise ValueError(f"{self.type_of_ml_model} is not implemented as a valid ML model.")
 
     def __repr__(self):
-        # Yannick TODO: update
-        return 'TODO'
-        # if self.X_train is None:
-        #     return f'RidgeRegression(is_trained={self.is_trained}, no training data has been added so far)'
-        # else:
-        #     return f'RidgeRegression(is_trained={self.is_trained},number_of_training_vectors={self.X_train.shape[0]},input_vector_dimension={self.Y_train.shape[0]})'
+        if self.X_train is None:
+            return f'{self.type_of_ml_model}(is_trained={self.model.is_trained}, no training data has been added so far)'
+        else:
+            return f'{self.type_of_ml_model}(is_trained={self.model.is_trained}, number_of_training_vectors={self.X_train.shape[0]}, input_vector_dimension={self.Y_train.shape[0]})'
 
     def todict(self):
         dct = copy.deepcopy(dict(self.__dict__))
@@ -109,7 +106,6 @@ class MLModel():
         """
 
         if self.model.is_trained:
-            print("Yannick Debug: np.shape(X_train): ", np.shape(self.X_train))
             y_predict = self.model.predict(x_test)
             return y_predict
         else:
@@ -119,7 +115,6 @@ class MLModel():
         """
         Reset the model and train the model (including the StandardScaler) with all training data added so far. 
         """
-        print('TODO')
         self.init_and_reset_model()
         self.model.fit(self.X_train, self.Y_train)
         self.is_trained = True
@@ -138,16 +133,16 @@ class MLModel():
             self.X_train = np.concatenate([self.X_train, x_train])
             self.Y_train = np.concatenate([self.Y_train, y_train])
 
-    # def __eq__(self, other):
-    #     items_to_pop = ['model', 'scaler']
-    #     if isinstance(other, RidgeRegression):
-    #         self_dict = copy.deepcopy(self.__dict__)
-    #         other_dict = copy.deepcopy(other.__dict__)
-    #         for item in items_to_pop:
-    #             if item in other_dict:
-    #                 other_dict.pop(item)
-    #             if item in self_dict:
-    #                 self_dict.pop(item)
-    #         return DeepDiff(self_dict, other_dict, significant_digits=8, number_format_notation='e') == {}
-    #     else:
-    #         return False
+    def __eq__(self, other):
+        items_to_pop = ['model']
+        if isinstance(other, MLModel):
+            self_dict = copy.deepcopy(self.__dict__)
+            other_dict = copy.deepcopy(other.__dict__)
+            for item in items_to_pop:
+                if item in other_dict:
+                    other_dict.pop(item)
+                if item in self_dict:
+                    self_dict.pop(item)
+            return DeepDiff(self_dict, other_dict, significant_digits=8, number_format_notation='e') == {}
+        else:
+            return False

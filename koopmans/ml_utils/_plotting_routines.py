@@ -6,7 +6,11 @@ import numpy as np
 
 
 def plot_calculated_vs_predicted(y: np.ndarray, y_pred: np.ndarray, qoi: str, filename: Path, metric: Tuple[str, float]):
+    """
+    Plot the the calculated vs predicted alpha parameters (or other quantities of interest) for a given number of training samples. 
+    """
     fig, ax = plt.subplots(1, 1, figsize=(7.5, 7.5))
+    # TODO: Yannick: find optimal boundaries of the plot
     lb_x = 0.995*min(y)
     ub_x = 1.005*max(y)
     # if qoi == 'alphas':
@@ -28,11 +32,15 @@ def plot_calculated_vs_predicted(y: np.ndarray, y_pred: np.ndarray, qoi: str, fi
 
 
 def plot_error_histogram(y: np.ndarray, y_pred: np.ndarray, qoi: str, filename: Path, metric: Tuple[str, float]):
+    """
+    Plot the error histogram of the alpha parameters (or other quantities of interest) for a given number of training samples. 
+    """
     error = np.abs(y-y_pred)
     fig, ax = plt.subplots(1, 1, figsize=(7.5, 7.5))
     lb_x = 0.0
     ub_x = 10*max(error)
     plt.xlabel(f"error")
+    # TODO: Yannick: find optimal boundaries of the plot
     if qoi == 'alphas':
         lb_x = 0.0
         ub_x = 10*max(error)
@@ -51,8 +59,14 @@ def plot_error_histogram(y: np.ndarray, y_pred: np.ndarray, qoi: str, filename: 
 
 
 def plot_convergence(convergence_points: np.ndarray, means: np.ndarray, stddevs: np.ndarray, qoi: str, metric_name: str, spin: int, filename: Path):
+    """
+    Plot the convergence of the MAE (or other error-metrics) of the alpha parameters (or other quantities of interest) as a function of the training samples. 
+    """
+
+    # save the result in text form for easier debugging
     np.savetxt(filename.with_suffix(".txt"), np.array([convergence_points, means, stddevs]).T)
 
+    # TODO Yannick: second axis produces errors for pickle
     # def snap2orb(x):
     #     return x * self.bands.n_bands[spin]
 
@@ -60,6 +74,8 @@ def plot_convergence(convergence_points: np.ndarray, means: np.ndarray, stddevs:
     #     return x/self.bands.n_bands[spin]
 
     fig, ax = plt.subplots(1, 1, figsize=(15.0, 7.5))
+
+    # TODO: Yannick: find optimal boundaries of the plot
     lb_y = 0.0
     ub_y = 4*max(means)
     # if qoi == 'alphas':
