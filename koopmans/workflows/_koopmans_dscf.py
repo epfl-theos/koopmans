@@ -640,8 +640,7 @@ class KoopmansDSCFWorkflow(Workflow):
                         # we read in all the requisite information from the output files and .pkl files
                         # that do not get overwritten
 
-                        calcs = [c for calc_set in [alpha_dep_calcs, alpha_indep_calcs]
-                                 for c in calc_set if c.fixed_band == band]
+                        calcs = [c for c in alpha_dep_calcs + alpha_indep_calcs if c.fixed_band == band]
 
                         alpha, error = self.calculate_alpha_from_list_of_calcs(
                             calcs, trial_calc, band, filled=band.filled)
