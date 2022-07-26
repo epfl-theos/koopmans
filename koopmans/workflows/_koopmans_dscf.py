@@ -537,8 +537,8 @@ class KoopmansDSCFWorkflow(Workflow):
 
             # Initialize the ML-model
             if self.parameters.use_ml:
-                mlfit = MLFiitingWorkflow(trial_calc, **self.wf_kwargs)
-                self.run_subworkflow(mlfit)
+                mlfit = MLFiitingWorkflow.fromparent(self, calc_that_produced_orbital_densities=trial_calc)
+                mlfit.run()
 
             # Loop over removing/adding an electron from/to each orbital
             for band in self.bands:

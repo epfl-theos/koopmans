@@ -80,9 +80,10 @@ class TrajectoryWorkflow(Workflow):
                 utils.system_call(f'rm -rf {subdirectory}/final')
 
             # initialize and run the DSCF workflow
-            workflow = KoopmansDSCFWorkflow(**self.wf_kwargs)
+            # workflow = KoopmansDSCFWorkflow(**self.wf_kwargs)
+            workflow = KoopmansDSCFWorkflow.fromparent(self)
             self.bands = workflow.bands  # reset the bands to the initial guesses
-            self.run_subworkflow(workflow, subdirectory=subdirectory)
+            workflow.run(subdirectory=subdirectory)
 
             # since we have deleted the final directory and therefore had to rerun, we must now make sure, that from_scratch is again set to its original value
             if get_evs:

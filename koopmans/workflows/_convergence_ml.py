@@ -144,9 +144,8 @@ class ConvergenceMLWorkflow(Workflow):
         # set the ml_model to a simple model such that not much time is wasted for computing the decomposition
         type_of_ml_model = self.parameters.type_of_ml_model
         self.parameters.type_of_ml_model = 'mean'
-        twf = TrajectoryWorkflow(snapshots=self.snapshots, **self.wf_kwargs)
-        self.run_subworkflow(twf, indices=self.test_indices,
-                             save_dir=self.dirs['convergence_true'], get_evs=get_evs)
+        twf = TrajectoryWorkflow.fromparent(self, snapshots=self.snapshots)
+        twf.run(indices=self.test_indices, save_dir=self.dirs['convergence_true'], get_evs=get_evs)
         self.parameters.type_of_ml_model = type_of_ml_model
         self.parameters.number_of_training_snapshots = number_of_training_snapshots
 
@@ -177,18 +176,17 @@ class ConvergenceMLWorkflow(Workflow):
                             train_indices = [convergence_point]
 
                             # Train on this snapshot
-                            twf = TrajectoryWorkflow(snapshots=self.snapshots, **self.wf_kwargs)
-                            self.run_subworkflow(twf, from_scratch=from_scratch,
-                                                 indices=train_indices)
+                            twf = TrajectoryWorkflow.fromparent(self, snapshots=self.snapshots)
+                            twf.run(from_scratch=from_scratch, indices=train_indices)
 
                             # for the grid search we are only interested in the result after all training snapshots have been added
                             if not (grid_search_mode and convergence_point != self.convergence_points[-1]):
 
                                 # Test the model (and recalculate the final calculation in case we are interested in eigenvalues) and save the results
                                 self.print(f'Testing on the last {len(self.test_indices)} snapshot(s)', style='heading')
-                                twf = TrajectoryWorkflow(snapshots=self.snapshots, **self.wf_kwargs)
-                                self.run_subworkflow(twf, from_scratch=from_scratch, indices=self.test_indices,
-                                                     save_dir=self.dirs[f'convergence_{convergence_point}'], get_evs=get_evs)
+                                twf = TrajectoryWorkflow.fromparent(self, snapshots=self.snapshots)
+                                twf.run_subworkflow(from_scratch=from_scratch, indices=self.test_indices,
+                                                    save_dir=self.dirs[f'convergence_{convergence_point}'], get_evs=get_evs)
 
                         # gather all the important results
                         self.get_result_dict()

@@ -600,7 +600,7 @@ class Workflow(ABC):
             if self.parameters.init_empty_orbitals != self.parameters.init_orbitals:
                 raise NotImplementedError(
                     f'Using the ML-prediction for using different init orbitals for empty states than for occupied states has not yet been implemented.')
-            if self.parameters.spin_polarised:
+            if self.parameters.spin_polarized:
                 utils.warn(f'Using the ML-prediction for spin-polarised systems has not yet been implemented.')
             if not self.parameters.periodic:
                 utils.warn(f'Using the ML-prediction for non-periodic systems has not yet been extensively tested.')
@@ -871,12 +871,12 @@ class Workflow(ABC):
         self.calculations = self.parent.calculations
 
         # Link the ML_Model
-        if self.parameters.use_ml:
-            if self.parameters.occ_and_emp_together:
-                workflow.ml_model = self.ml_model
+        if self.parent.parameters.use_ml:
+            if self.parent.parameters.occ_and_emp_together:
+                self.ml_model = self.parent.ml_model
             else:
-                workflow.ml_model_occ = self.ml_model_occ
-                workflow.ml_model_emp = self.ml_model_emp
+                self.ml_model_occ = self.parent.ml_model_occ
+                self.ml_model_emp = self.parent.ml_model_emp
 
         # Link the bands
         if hasattr(self.parent, 'bands'):
@@ -968,6 +968,12 @@ class Workflow(ABC):
 
         with open(fname, 'r') as fd:
             bigdct = json_ext.loads(fd.read())
+        wf = cls._fromjsondct(bigdct)
+        wf.name = fname.replace('.json', '')
+        return wf
+
+    @classmethod
+    def _fromjsondct(cls, bigdct: Dict[str, Any]):
 
         # Deal with the nested w90 subdictionaries
         if 'w90' in bigdct:
@@ -1097,9 +1103,7 @@ class Workflow(ABC):
 
         workflow_kwargs['plot_params'] = plot_params
 
-        name = fname.replace('.json', '')
-
-        return cls(atoms, parameters=parameters, master_calc_params=master_calc_params, name=name, **workflow_kwargs)
+        return cls(atoms, parameters=parameters, master_calc_params=master_calc_params, **workflow_kwargs)
 
     def print_header(self):
         print(header())
