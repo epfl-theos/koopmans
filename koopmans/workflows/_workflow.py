@@ -73,7 +73,7 @@ class Workflow(ABC):
 
         # Parsing parameters
         self.parameters: Union[settings.MLSettingsDict, settings.WorkflowSettingsDict]
-        if hasattr(parameters, 'use_ml') and parameters.use_ml:
+        if 'use_ml' in parameters and parameters['use_ml']:
             self.parameters = settings.MLSettingsDict(**parameters)
         else:
             self.parameters = settings.WorkflowSettingsDict(**parameters)

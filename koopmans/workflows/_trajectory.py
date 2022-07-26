@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from attr import has
 import numpy as np
 from sklearn.metrics import mean_absolute_error, r2_score
 from ase import Atoms, io
@@ -12,9 +13,13 @@ from ._workflow import Workflow
 class TrajectoryWorkflow(Workflow):
 
     def __init__(self, *args, **kwargs):
-        self.snapshots: List[Atoms] = kwargs.pop('snapshots', [])
-        self.number_of_snapshots = len(self.snapshots)
+        snapshots: List[Atoms] = kwargs.pop('snapshots', [])
+        if 'atoms' not in kwargs and snapshots != []:
+            kwargs['atoms'] = snapshots[0]
+
         super().__init__(*args, **kwargs)
+        self.snapshots = snapshots
+        self.number_of_snapshots = len(self.snapshots)
 
     @ classmethod
     def _fromjsondct(cls, bigdct: Dict[str, Any]):
