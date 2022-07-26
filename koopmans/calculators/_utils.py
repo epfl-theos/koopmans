@@ -76,6 +76,9 @@ class CalculatorExt():
     ext_out: str = ''
 
     def __init__(self, skip_qc: bool = False, **kwargs: Any):
+        # Remove arguments that should not be treated as QE keywords
+        kwargs.pop('directory', None)
+
         # Handle any recognized QE keywords passed as arguments
         self.parameters.update(**kwargs)
 
@@ -84,7 +87,7 @@ class CalculatorExt():
         self.skip_qc = skip_qc
 
     @property
-    def parameters(self):
+    def parameters(self) -> settings.SettingsDict:
         if not hasattr(self, '_parameters'):
             raise ValueError(f'{self}.parameters has not yet been set')
         return self._parameters
@@ -164,13 +167,14 @@ class CalculatorExt():
 
     def check_code_is_installed(self):
         # Checks the corresponding code is installed
-        if self.command.path == '':
+        if self.command.path == Path():
             executable_with_path = utils.find_executable(self.command.executable)
             if executable_with_path is None:
                 raise OSError(f'{self.command.executable} is not installed')
             self.command.path = executable_with_path.rsplit('/', 1)[0] + '/'
         else:
-            assert (self.command.path / self.command.executable).is_file
+            if not (self.command.path / self.command.executable).is_file():
+                raise OSError(f'{self.command.executable} is not installed')
         return
 
     def write_alphas(self):

@@ -306,7 +306,7 @@ def read_wannier_centers_file(fname: Path):
         else:
             symbols.append(line.split()[0])
             positions.append([float(x) for x in line.split()[1:]])
-    return centers, Atoms(symbols=symbols, positions=positions)
+    return centers, Atoms(symbols=symbols, positions=positions, pbc=True)
 
 
 def write_wannier_centers_file(fname: Path, centers: List[List[float]], atoms: Atoms):

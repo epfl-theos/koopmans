@@ -6,6 +6,7 @@ Written by Edward Linscott, Feb 2021
 
 import os
 from pathlib import Path
+from typing import Union
 
 
 class Command(object):
@@ -19,7 +20,7 @@ class Command(object):
     """
 
     def __init__(self, value=None, **kwargs):
-        self.path: Path = Path()
+        self._path = Path()
         self.executable: str = ''
         self._flags: str = ''
         self.suffix: str = ''
@@ -54,6 +55,14 @@ class Command(object):
 
     def __repr__(self):
         return ' '.join([str(self.path / self.executable), self.flags, self.suffix]).replace('  ', ' ')
+
+    @property
+    def path(self) -> Path:
+        return self._path
+
+    @path.setter
+    def path(self, value: Union[Path, str]):
+        self._path = Path(value)
 
     @property
     def flags(self) -> str:

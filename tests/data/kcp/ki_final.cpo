@@ -1,0 +1,648 @@
+=------------------------------------------------------------------------------=
+
+     CP: variable-cell Car-Parrinello molecular dynamics
+     using norm-conserving and ultrasoft Vanderbilt pseudopotentials
+
+     Version: 4.1 - Tue 03 May 2022 12:10:57 PM CEST                      
+     Authors: Alfredo Pasquarello, Kari Laasonen, Andrea Trave, Roberto Car,
+       Paolo Giannozzi, Nicola Marzari, Carlo Cavazzoni, Guido Chiarotti,
+       Sandro Scandolo, Paolo Focher, Gerardo Ballabio, and others
+
+=------------------------------------------------------------------------------=
+
+   This run was started on:  17:58:49  15Jul2022               
+
+   MPI Parallel Build
+   Tasks =    8  This task id =    0
+     Message from routine  system_checkin     :
+      starting_magnetization is not used in CP 
+
+   Job Title: MD Simulation
+
+
+   Atomic Pseudopotentials Parameters
+   ----------------------------------
+
+   Reading pseudopotential for specie #  1 from file :
+   /home/elinscott/code/koopmans/pseudos/sg15_v1.2/pbe/O_ONCV_PBE-1.2.upf
+   file type is 20: UPF
+ read_nonlocal
+
+   Reading pseudopotential for specie #  2 from file :
+   /home/elinscott/code/koopmans/pseudos/sg15_v1.2/pbe/H_ONCV_PBE-1.2.upf
+   file type is 20: UPF
+ read_nonlocal
+
+
+   Main Simulation Parameters (from input)
+   ---------------------------------------
+   ion_nstepe or cell_nstepe have no effects 
+   Restart Mode       =       1   restart        
+   Number of MD Steps =      50
+   Print out every            1 MD Steps
+   Reads from unit    =      60
+   Writes to unit     =      70
+   MD Simulation time step            =       1.00
+   Electronic fictitious mass (emass) =     400.00
+   emass cut-off                      =       2.50
+
+   Simulation Cell Parameters (from input)
+   external pressure       =            0.00 [GPa]
+   wmass (calculated)      =         2495.49 [AU]
+   initial cell from CELL_PARAMETERS card
+      10.00000000    0.00000000    0.00000000
+       0.00000000   11.52647800    0.00000000
+       0.00000000    0.00000000   10.59630900
+   ibrav =    0
+   alat  =    18.89726125
+   a1    =    18.89726125    0.00000000    0.00000000
+   a2    =     0.00000000   21.78188660    0.00000000
+   a3    =     0.00000000    0.00000000   20.02412194
+ 
+   b1    =     0.05291772    0.00000000    0.00000000
+   b2    =     0.00000000    0.04590971    0.00000000
+   b3    =     0.00000000    0.00000000    0.04993977
+   omega =  8242.28905643
+ nbeg           1
+
+    ========================================
+    |  CONJUGATE GRADIENT                  |
+    ========================================
+    | iterations   =           100         |
+    | conv_thr     = 0.00000000800 a.u.    |
+    | passop       =       2.00000 a.u.    |
+    | niter_cg_restart =  20      |
+    ========================================
+
+   Energy Cut-offs
+   ---------------
+   Ecutwfc =   20.0 Ry,      Ecutrho =   80.0 Ry,      Ecuts =   80.0 Ry
+   Gcutwfc =   13.5     ,    Gcutrho =   26.9          Gcuts =   26.9
+   NOTA BENE: refg, mmx =   0.050000  3200
+   Orthog. with Gram-Schmidt
+   Electron dynamics with conjugate gradient
+   Electron dynamics : the temperature is not controlled
+
+   Electronic states
+   -----------------
+   Local Spin Density calculation
+   Number of Electron =     8
+   Spins up   =     4, occupations: 
+   1.00 1.00 1.00 1.00
+   Spins down =     4, occupations: 
+   1.00 1.00 1.00 1.00
+
+
+   Empty states minimization
+   --------------------------
+      states =        2
+     maxiter =      300
+        ethr =   0.1000D-05
+
+
+   Exchange and correlations functionals
+   -------------------------------------
+   Using Local Density Approximation with
+     Exchange functional: SLATER                                                      
+     Correlation functional: PERDEW AND WANG                                             
+   Using Generalized Gradient Corrections with
+     Exchange functional: PERDEW BURKE ERNZERHOF                                      
+     Correlation functional: PERDEW BURKE ERNZERHOF                                      
+     Exchange-correlation      = PBE (1434)
+   Wavefunctions will be written to file as Kohn-Sham states
+
+
+   Ions Simulation Parameters
+   --------------------------
+   Ions are not allowed to move
+   Ionic position (from input)
+   sorted by specie, and converted to real a.u. coordinates
+   Species   1 atoms =    1 mass =     29164.39 (a.u.),        16.00 (amu) rcmax =   1.00 (a.u.)
+        9.448631    10.890943    10.575491
+   Species   2 atoms =    2 mass =      1837.47 (a.u.),         1.01 (amu) rcmax =   1.00 (a.u.)
+        9.448631    12.333256     9.448631
+        9.448631     9.448631     9.448631
+   Ionic position will be re-read from restart file
+
+
+   Cell Dynamics Parameters (from STDIN)
+   -------------------------------------
+   Starting cell generated from CELLDM
+   Cell parameters will be re-read from restart file
+   Constant VOLUME Molecular dynamics
+   cell parameters are not allowed to move
+
+   Verbosity: iprsta =  1
+
+ nbeg           1
+
+
+   Simulation dimensions initialization
+   ------------------------------------
+
+   unit vectors of full simulation cell
+   in real space:                         in reciprocal space (units 2pi/alat):
+   1    18.8973    0.0000    0.0000              1.0000    0.0000    0.0000
+   2     0.0000   21.7819    0.0000              0.0000    0.8676    0.0000
+   3     0.0000    0.0000   20.0241              0.0000    0.0000    0.9437
+ 
+   Stick Mesh
+   ----------
+   nst =  1306,  nstw =   329, nsts =  1306
+        PEs    n.st   n.stw   n.sts    n.g    n.gw   n.gs
+          1     326      82     326   12434    1562   12434
+          2     326      82     326   12434    1562   12434
+          3     325      81     325   12433    1561   12433
+          4     326      82     326   12434    1562   12434
+          5     328      82     328   12432    1558   12432
+          6     326      82     326   12434    1558   12434
+          7     328      84     328   12432    1556   12432
+          8     326      82     326   12430    1558   12430
+          0    2611     657    2611   99463   12477   99463
+ 
+ 
+   Real Mesh
+   ---------
+   Global Dimensions   Local  Dimensions   Processor Grid
+   .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
+    54    64    60      54    64     8       1     1     8
+   Array leading dimensions ( nr1x, nr2x, nr3x )   =     54    64    60
+   Local number of cell to store the grid ( nnrx ) =      27648
+   Number of x-y planes for each processors: 
+   nr3l =     8    8    8    8    7    7    7    7
+ 
+   Smooth Real Mesh
+   ----------------
+   Global Dimensions   Local  Dimensions   Processor Grid
+   .X.   .Y.   .Z.     .X.   .Y.   .Z.     .X.   .Y.   .Z.
+    54    64    60      54    64     8       1     1     8
+   Array leading dimensions ( nr1x, nr2x, nr3x )   =     54    64    60
+   Local number of cell to store the grid ( nnrx ) =      27648
+   Number of x-y planes for each processors: 
+   nr3sl =     8    8    8    8    7    7    7    7
+ 
+   Reciprocal Space Mesh
+   ---------------------
+                Large Mesh
+   PE   Global(ngmt)     Local(ngm) MaxLocal(ngmx)
+    1          99463          12434          12434
+    2          99463          12434          12434
+    3          99463          12433          12434
+    4          99463          12434          12434
+    5          99463          12432          12434
+    6          99463          12434          12434
+    7          99463          12432          12434
+    8          99463          12430          12434
+                Smooth Mesh
+   PE   Global(ngst)     Local(ngs) MaxLocal(ngsx)
+    1          99463          12434          12434
+    2          99463          12434          12434
+    3          99463          12433          12434
+    4          99463          12434          12434
+    5          99463          12432          12434
+    6          99463          12434          12434
+    7          99463          12432          12434
+    8          99463          12430          12434
+                Wave function Mesh
+   PE   Global(ngwt)     Local(ngw) MaxLocal(ngwx)
+    1          12477           1562           1562
+    2          12477           1562           1562
+    3          12477           1561           1562
+    4          12477           1562           1562
+    5          12477           1558           1562
+    6          12477           1558           1562
+    7          12477           1556           1562
+    8          12477           1558           1562
+
+
+   System geometry initialization
+   ------------------------------
+ 
+   Scaled positions from standard input
+   O    5.000000E-01  5.000000E-01  5.281376E-01
+   H    5.000000E-01  5.662162E-01  4.718624E-01
+   H    5.000000E-01  4.337838E-01  4.718624E-01
+   ibrav =    0       cell parameters 
+
+      18.89726       0.00000       0.00000
+       0.00000      21.78189       0.00000
+       0.00000       0.00000      20.02412
+ 
+
+   Matrix Multiplication Performances
+   ortho mmul, time for parallel driver      =   0.00000 with    1 procs
+
+   Constraints matrixes will be distributed block like on
+   ortho sub-group =    1*   1 procs
+
+
+
+   Pseudopotentials initialization
+   -------------------------------
+
+
+   Common initialization
+
+   Specie:     1
+   1  indv=  1   ang. mom=  0
+   2  indv=  2   ang. mom=  0
+   3  indv=  3   ang. mom=  1
+   4  indv=  3   ang. mom=  1
+   5  indv=  3   ang. mom=  1
+   6  indv=  4   ang. mom=  1
+   7  indv=  4   ang. mom=  1
+   8  indv=  4   ang. mom=  1
+ 
+                        dion 
+      9.757151948500      0.000000000000      0.000000000000      0.000000000000
+      0.000000000000      1.376126720650      0.000000000000      0.000000000000
+      0.000000000000      0.000000000000     -4.806858824850      0.000000000000
+      0.000000000000      0.000000000000      0.000000000000     -1.616239702250
+
+   Specie:     2
+   1  indv=  1   ang. mom=  0
+   2  indv=  2   ang. mom=  0
+ 
+                        dion 
+    -12.008220743500      0.000000000000
+      0.000000000000     -0.516823145650
+ 
+   Short Legend and Physical Units in the Output
+   ---------------------------------------------
+   NFI    [int]          - step index
+   EKINC  [HARTREE A.U.] - kinetic energy of the fictitious electronic dynamics
+   TEMPH  [K]            - Temperature of the fictitious cell dynamics
+   TEMP   [K]            - Ionic temperature
+   ETOT   [HARTREE A.U.] - Scf total energy (Kohn-Sham hamiltonian)
+   ENTHAL [HARTREE A.U.] - Enthalpy ( ETOT + P * V )
+   ECONS  [HARTREE A.U.] - Enthalpy + kinetic energy of ions and cell
+   ECONT  [HARTREE A.U.] - Constant of motion for the CP lagrangian
+ 
+   NK sic with integral ref =    T
+
+   NK background density factor =  1.0000
+   NK scaling factor =  1.0000
+   rhothr =  0.1E-11
+   NK memusage =      6.704 MB
+
+
+   f_cutoff =  0.0100
+   do_spinsym   =    F
+   EE with periodic-image correction method = tcc                 
+ USING TCC FOR ODD T
+
+   reading restart file: /home/elinscott/code/koopmans/tests/tmp/test_singlepoint_h2o_ki_dscf_e0/TMP-CP//kc_60.save
+ here should be iotk first error
+ here should be iotk first error
+   restart file read in    0.109 sec.
+
+ nprint_nfi=           -2
+ nprint_nfi=            4
+
+   formf: eself=  15.15981
+   formf:     vps(g=0)=  -0.0018362     rhops(g=0)=  -0.0007081
+   formf:     vps(g=0)=  -0.0018362     rhops(g=0)=  -0.0007081
+   formf: sum_g vps(g)=  -8.1474013 sum_g rhops(g)=  -1.0775227
+   formf:     vps(g=0)=  -0.0003545     rhops(g=0)=  -0.0001180
+   formf:     vps(g=0)=  -0.0003545     rhops(g=0)=  -0.0001180
+   formf: sum_g vps(g)=  -2.9739404 sum_g rhops(g)=  -0.1795871
+   Delta V(G=0):   0.003049Ry,    0.082957eV
+
+ * Physical Quantities at step:     5
+
+PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EL. STATES
+
+     CP           :     0.44s CPU time,    0.51s wall time
+
+     iteration =   1  eff iteration =   1   Etot (Ha) =    -16.24974701580384
+
+   Empty-states: WFCs read from file
+   Empty-states: Going to re-orthogonalize to occ manifold
+
+   Empty states minimization starting 
+   nfi         dekinc         ekinc
+
+PERFORMING CONJUGATE GRADIENT MINIMIZATION OF EMPTY STATES
+
+     CP           :     0.56s CPU time,    0.64s wall time
+
+     iteration =   1  eff iteration =   1   Etot (Ha) =     -0.00030388940000
+     Ekin (Ha) =       0.15360614249529 Enl (Ha) =       0.02020513525550 Eloc (Ha) =     -0.24422823135914
+ Fake EODD (Ha) =       0.07011306420835
+     CP           :     0.77s CPU time,    0.85s wall time
+
+     iteration =   2  eff iteration =   2   Etot (Ha) =     -0.00212225721377
+     Ekin (Ha) =       0.11332658553027 Enl (Ha) =       0.01404908712689 Eloc (Ha) =     -0.19084750290338
+ Fake EODD (Ha) =       0.06134957303246
+     CP           :     0.98s CPU time,    1.06s wall time
+
+     iteration =   3  eff iteration =   3   Etot (Ha) =     -0.00310893824369 delta_E=  0.18183678137650E-02
+     Ekin (Ha) =       0.08923161948789 Enl (Ha) =       0.01142270709699 Eloc (Ha) =     -0.16079299739792
+ Fake EODD (Ha) =       0.05702973256935
+     CP           :     1.19s CPU time,    1.27s wall time
+
+     iteration =   4  eff iteration =   4   Etot (Ha) =     -0.00347503705815 delta_E=  0.98668102991724E-03
+     Ekin (Ha) =       0.08122948043755 Enl (Ha) =       0.01119858240013 Eloc (Ha) =     -0.15120018989811
+ Fake EODD (Ha) =       0.05529709000228
+     CP           :     1.41s CPU time,    1.48s wall time
+
+     iteration =   5  eff iteration =   5   Etot (Ha) =     -0.00377426680024 delta_E=  0.36609881446674E-03
+     Ekin (Ha) =       0.07889331183850 Enl (Ha) =       0.01132763932681 Eloc (Ha) =     -0.14789117370369
+ Fake EODD (Ha) =       0.05389595573814
+     CP           :     1.61s CPU time,    1.69s wall time
+
+     iteration =   6  eff iteration =   6   Etot (Ha) =     -0.00395316029769 delta_E=  0.29922974208950E-03
+     Ekin (Ha) =       0.08002735062705 Enl (Ha) =       0.01148407312246 Eloc (Ha) =     -0.14852393162016
+ Fake EODD (Ha) =       0.05305934757296
+     CP           :     1.82s CPU time,    1.90s wall time
+
+     iteration =   7  eff iteration =   7   Etot (Ha) =     -0.00403492382982 delta_E=  0.17889349744685E-03
+     Ekin (Ha) =       0.08099084761966 Enl (Ha) =       0.01117874754658 Eloc (Ha) =     -0.14890891367288
+ Fake EODD (Ha) =       0.05270439467682
+     CP           :     2.03s CPU time,    2.11s wall time
+
+     iteration =   8  eff iteration =   8   Etot (Ha) =     -0.00408657638754 delta_E=  0.81763532130019E-04
+     Ekin (Ha) =       0.08113440724474 Enl (Ha) =       0.01101613695633 Eloc (Ha) =     -0.14875121040243
+ Fake EODD (Ha) =       0.05251408981382
+     CP           :     2.24s CPU time,    2.32s wall time
+
+     iteration =   9  eff iteration =   9   Etot (Ha) =     -0.00411851591595 delta_E=  0.51652557719412E-04
+     Ekin (Ha) =       0.08067709032685 Enl (Ha) =       0.01117072761586 Eloc (Ha) =     -0.14840099315186
+ Fake EODD (Ha) =       0.05243465929321
+     CP           :     2.45s CPU time,    2.53s wall time
+
+     iteration =  10  eff iteration =  10   Etot (Ha) =     -0.00413933042791 delta_E=  0.31939528407146E-04
+     Ekin (Ha) =       0.08030495137107 Enl (Ha) =       0.01113005168323 Eloc (Ha) =     -0.14796352764764
+ Fake EODD (Ha) =       0.05238919416543
+
+     CP           :     2.67s CPU time,    2.74s wall time
+
+     iteration =  11  eff iteration =  11   Etot (Ha) =     -0.00415393927383 delta_E=  0.20814511968101E-04
+     Ekin (Ha) =       0.08023245386946 Enl (Ha) =       0.01122845155897 Eloc (Ha) =     -0.14796470617938
+ Fake EODD (Ha) =       0.05234986147712
+     CP           :     2.88s CPU time,    2.95s wall time
+
+     iteration =  12  eff iteration =  12   Etot (Ha) =     -0.00416264479428 delta_E=  0.14608845917807E-04
+     Ekin (Ha) =       0.08039298956680 Enl (Ha) =       0.01133795796424 Eloc (Ha) =     -0.14822303001899
+ Fake EODD (Ha) =       0.05232943769367
+     CP           :     3.09s CPU time,    3.16s wall time
+
+     iteration =  13  eff iteration =  13   Etot (Ha) =     -0.00416685338133 delta_E=  0.87055204462602E-05
+     Ekin (Ha) =       0.08059185590058 Enl (Ha) =       0.01131331104328 Eloc (Ha) =     -0.14839248724716
+ Fake EODD (Ha) =       0.05232046692197
+     CP           :     3.29s CPU time,    3.37s wall time
+
+     iteration =  14  eff iteration =  14   Etot (Ha) =     -0.00416944307359 delta_E=  0.42085870514269E-05
+     Ekin (Ha) =       0.08070948116412 Enl (Ha) =       0.01133356512304 Eloc (Ha) =     -0.14852941814202
+ Fake EODD (Ha) =       0.05231692878127
+     CP           :     3.50s CPU time,    3.58s wall time
+
+     iteration =  15  eff iteration =  15   Etot (Ha) =     -0.00417099887609 delta_E=  0.25896922629179E-05
+     Ekin (Ha) =       0.08072913955619 Enl (Ha) =       0.01133378383490 Eloc (Ha) =     -0.14855194419595
+ Fake EODD (Ha) =       0.05231802192877
+     CP           :     3.71s CPU time,    3.79s wall time
+
+     iteration =  16  eff iteration =  16   Etot (Ha) =     -0.00417181540803 delta_E=  0.15558024954176E-05
+     Ekin (Ha) =       0.08071113431147 Enl (Ha) =       0.01131972936508 Eloc (Ha) =     -0.14852387003334
+ Fake EODD (Ha) =       0.05232119094876
+     CP           :     3.92s CPU time,    4.00s wall time
+
+     iteration =  17  eff iteration =  17   Etot (Ha) =     -0.00417221911616 delta_E=  0.81653194084624E-06
+     Ekin (Ha) =       0.08070815595646 Enl (Ha) =       0.01134018576320 Eloc (Ha) =     -0.14854348876528
+ Fake EODD (Ha) =       0.05232292792946
+     CP           :     4.13s CPU time,    4.21s wall time
+
+     iteration =  18  eff iteration =  18   Etot (Ha) =     -0.00417241868711 delta_E=  0.40370812883633E-06
+     Ekin (Ha) =       0.08072934867426 Enl (Ha) =       0.01134488128150 Eloc (Ha) =     -0.14857142198641
+ Fake EODD (Ha) =       0.05232477334354
+     CP           :     4.34s CPU time,    4.42s wall time
+
+     iteration =  19  eff iteration =  19   Etot (Ha) =     -0.00417251432397 delta_E=  0.19957095351297E-06
+     Ekin (Ha) =       0.08075470952993 Enl (Ha) =       0.01133828333727 Eloc (Ha) =     -0.14859191519622
+ Fake EODD (Ha) =       0.05232640800505
+     CP           :     4.55s CPU time,    4.63s wall time
+
+     iteration =  20  eff iteration =  20   Etot (Ha) =     -0.00417256647874 delta_E=  0.95636859598347E-07
+     Ekin (Ha) =       0.08077202123634 Enl (Ha) =       0.01134066160467 Eloc (Ha) =     -0.14861329387432
+ Fake EODD (Ha) =       0.05232804455457
+
+     CP           :     4.76s CPU time,    4.84s wall time
+
+     iteration =  21  eff iteration =  21   Etot (Ha) =     -0.00417258554656 delta_E=  0.52154771904012E-07
+     Ekin (Ha) =       0.08077094931040 Enl (Ha) =       0.01133862338266 Eloc (Ha) =     -0.14861058189868
+ Fake EODD (Ha) =       0.05232842365907
+     CP           :     4.97s CPU time,    5.05s wall time
+
+     iteration =  22  eff iteration =  22   Etot (Ha) =     -0.00417260630402 delta_E=  0.19067815153206E-07
+     Ekin (Ha) =       0.08076784188161 Enl (Ha) =       0.01133714897219 Eloc (Ha) =     -0.14860726228012
+ Fake EODD (Ha) =       0.05232966512230
+     CP           :     5.18s CPU time,    5.26s wall time
+
+     iteration =  23  eff iteration =  23   Etot (Ha) =     -0.00417262321408 delta_E=  0.20757458550624E-07
+     Ekin (Ha) =       0.08076760099103 Enl (Ha) =       0.01133734688330 Eloc (Ha) =     -0.14860878161992
+ Fake EODD (Ha) =       0.05233121053151
+     CP           :     5.38s CPU time,    5.47s wall time
+
+     iteration =  24  eff iteration =  24   Etot (Ha) =     -0.00417263785433 delta_E=  0.16910068706411E-07
+     Ekin (Ha) =       0.08077309769536 Enl (Ha) =       0.01133609388018 Eloc (Ha) =     -0.14861457214155
+ Fake EODD (Ha) =       0.05233274271168
+     CP           :     5.59s CPU time,    5.68s wall time
+
+     iteration =  25  eff iteration =  25   Etot (Ha) =     -0.00417264785892 delta_E=  0.14640246806530E-07
+     Ekin (Ha) =       0.08077936365996 Enl (Ha) =       0.01133796212721 Eloc (Ha) =     -0.14862387341588
+ Fake EODD (Ha) =       0.05233389976980
+     CP           :     5.80s CPU time,    5.89s wall time
+
+     iteration =  26  eff iteration =  26   Etot (Ha) =     -0.00417265328420 delta_E=  0.10004584688472E-07
+     Ekin (Ha) =       0.08078152744211 Enl (Ha) =       0.01133967731987 Eloc (Ha) =     -0.14862862469617
+ Fake EODD (Ha) =       0.05233476664999
+     CP           :     6.01s CPU time,    6.10s wall time
+
+     iteration =  27  eff iteration =  27   Etot (Ha) =     -0.00417265614989 delta_E=  0.54252869072235E-08
+     Ekin (Ha) =       0.08078143172580 Enl (Ha) =       0.01133937685295 Eloc (Ha) =     -0.14862877089867
+ Fake EODD (Ha) =       0.05233530617005
+     CP           :     6.22s CPU time,    6.31s wall time
+
+     iteration =  28  eff iteration =  28   Etot (Ha) =     -0.00417265771195 delta_E=  0.28656824899165E-08
+     Ekin (Ha) =       0.08078193234273 Enl (Ha) =       0.01133963247414 Eloc (Ha) =     -0.14862986997167
+ Fake EODD (Ha) =       0.05233564744285
+     WARNING cg_sub: missed minimum, case 1, iteration   28      1.480374116998
+     CP           :     6.54s CPU time,    6.63s wall time
+
+     iteration =  29  eff iteration =  29   Etot (Ha) =     -0.00417265870148 delta_E=  0.15620611887313E-08
+     Ekin (Ha) =       0.08078364591774 Enl (Ha) =       0.01133950533919 Eloc (Ha) =     -0.14863169180416
+ Fake EODD (Ha) =       0.05233588184575
+
+   writing empty state DFT Hamiltonian file: hamiltonian0_emp
+
+   writing empty state KC  Hamiltonian file: hamiltonian_emp
+
+
+ -----------------------------------------
+ Projectability EMP states on OCC manifold
+ -----------------------------------------
+
+    orbital #    1 :  -0.00000000
+    orbital #    2 :  -0.00000000
+
+      Total projectability =  -0.00000000
+
+
+
+                total energy =     -16.2497470158 Hartree a.u.
+              kinetic energy =       9.7557747536 Hartree a.u.
+        electrostatic energy =     -14.5789840372 Hartree a.u.
+                         esr =       0.4419477965 Hartree a.u.
+                       eself =      15.1598066553 Hartree a.u.
+      pseudopotential energy =      -7.9280578797 Hartree a.u.
+  n-l pseudopotential energy =       0.4848377289 Hartree a.u.
+ exchange-correlation energy =      -3.9833175814 Hartree a.u.
+           average potential =       0.0000000000 Hartree a.u.
+                  odd energy =       0.0000000000 Hartree a.u.
+        van der waals energy =       0.0000000000 Hartree a.u.
+
+
+
+   HOMO Eigenvalue (eV)
+
+  -12.3254
+
+   LUMO Eigenvalue (eV)
+
+   -0.0568
+
+   Electronic Gap (eV) =    12.2687
+
+
+   Eigenvalues (eV), kp =   1 , spin =  1
+
+  -35.6065  -18.3904  -16.4462  -12.3254
+
+   Empty States Eigenvalues (eV), kp =   1 , spin =  1
+
+   -0.0568
+
+   Eigenvalues (eV), kp =   1 , spin =  2
+
+  -35.6065  -18.3904  -16.4462  -12.3254
+
+   Empty States Eigenvalues (eV), kp =   1 , spin =  2
+
+   -0.0568
+
+   Orb -- Charge  ---   Centers xyz (Bohr)  ---  Spreads (Bohr^2) - SH(eV), kp =   1 , spin =  1
+
+OCC    1 --    1.00   ---    2.18    1.70    5.82   --- 230.959  10.451   0.000   0.721
+OCC    2 --    1.00   ---    2.23    0.00    0.07   --- 257.376   8.572   0.000   0.721
+OCC    3 --    1.00   ---    1.96    2.17   -7.91   --- 192.642  11.611   0.000   0.721
+OCC    4 --    1.00   ---    0.00    2.24   -3.27   --- 246.634   8.730   0.000   0.721
+
+   Orb -- Empty Charge  ---   Centers xyz (Bohr)  ---  Spreads (Bohr^2) - SH(eV), kp =   1 , spin =  1
+
+EMP    1 --    1.00   ---    0.28    0.20    1.20   --- 116.863   1.647   0.712   0.981
+
+   Orb -- Charge  ---   Centers xyz (Bohr)  ---  Spreads (Bohr^2) - SH(eV), kp =   1 , spin =  2
+
+OCC    1 --    1.00   ---    2.18    1.70    5.82   --- 230.959  10.451   0.000   0.721
+OCC    2 --    1.00   ---    2.23    0.00    0.07   --- 257.376   8.572   0.000   0.721
+OCC    3 --    1.00   ---    1.96    2.17   -7.91   --- 192.642  11.611   0.000   0.721
+OCC    4 --    1.00   ---    0.00    2.24   -3.27   --- 246.634   8.730   0.000   0.721
+
+   Orb -- Empty Charge  ---   Centers xyz (Bohr)  ---  Spreads (Bohr^2) - SH(eV), kp =   1 , spin =  2
+
+EMP    1 --    1.00   ---    0.28    0.20    1.20   --- 116.863   1.647   0.712   0.981
+ 
+ 
+   CELL_PARAMETERS
+    1.88972612E+01    0.00000000E+00    0.00000000E+00
+    0.00000000E+00    2.17818866E+01    0.00000000E+00
+    0.00000000E+00    0.00000000E+00    2.00241219E+01
+
+   System Density [g/cm^3] :     0.0245
+
+
+   Center of mass square displacement (a.u.):   0.000000
+
+   ATOMIC_POSITIONS
+   O    9.448631E+00  1.089094E+01  1.057549E+01
+   H    9.448631E+00  1.233326E+01  9.448631E+00
+   H    9.448631E+00  9.448631E+00  9.448631E+00
+ 
+   ATOMIC_VELOCITIES
+   O    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+   H    0.000000E+00  0.000000E+00  0.000000E+00
+ 
+
+
+   Partial temperatures (for each ionic specie) 
+   Species  Temp (K)   Mean Square Displacement (a.u.)
+        1       0.00     0.0000
+        2       0.00     0.0000
+ 
+  nfi    ekinc  temph  tempp        etot      enthal       econs       econt    vnhh   xnhh0    vnhp   xnhp0
+ 
+       nfi   tempp            E -T.S-mu.nbsp         +K_p #Iter
+Step     5       0    -16.24975    -16.24975    -16.24975    30
+ tnosep= F thdyn= F
+
+   writing restart file: /home/elinscott/code/koopmans/tests/tmp/test_singlepoint_h2o_ki_dscf_e0/TMP-CP//kc_70.save
+   restart file written in    0.052 sec.
+
+
+
+   Averaged Physical Quantities
+                      accomulated      this run
+   ekinc         :        0.00000       0.00000 (AU)
+   ekin          :       11.61648       9.75577 (AU)
+   epot          :      -20.50652     -26.49036 (AU)
+   total energy  :       -8.47635     -16.24975 (AU)
+   temperature   :        0.00000       0.00000 (K )
+   enthalpy      :        0.00000       0.00000 (AU)
+   econs         :       -8.47635     -16.24975 (AU)
+   pressure      :        0.00000       0.00000 (Gpa)
+   volume        :     8242.28906    8242.28906 (AU)
+
+
+     initialize   :     0.18s CPU
+     total_time   :     6.55s CPU
+     formf        :     0.02s CPU
+     rhoofr       :     0.09s CPU (      61 calls,   0.002 s avg)
+     vofrho       :     0.03s CPU
+     vofrho1      :     0.03s CPU
+     dforce       :     0.04s CPU (      34 calls,   0.001 s avg)
+     dforce2      :     6.36s CPU
+     calphi       :     0.00s CPU (      31 calls,   0.000 s avg)
+     gram         :     0.00s CPU
+     newd         :     0.00s CPU
+     calbec       :     0.00s CPU (       4 calls,   0.000 s avg)
+     prefor       :     0.00s CPU (       5 calls,   0.000 s avg)
+     strucf       :     0.00s CPU
+     nlfl         :     0.00s CPU
+     nlsm1        :     0.02s CPU (     273 calls,   0.000 s avg)
+     fft          :     2.27s CPU (    3348 calls,   0.001 s avg)
+     ffts         :     0.02s CPU (      62 calls,   0.000 s avg)
+     fftw         :     0.05s CPU (     264 calls,   0.000 s avg)
+     cft3s        :     2.34s CPU (    3674 calls,   0.001 s avg)
+     fft_scatter  :     1.75s CPU (    3674 calls,   0.000 s avg)
+
+     nk_eforce    :     0.04s CPU (      34 calls,   0.001 s avg)
+     nk_corr      :     5.84s CPU (     128 calls,   0.046 s avg)
+     nk_corr_h    :     0.13s CPU (     128 calls,   0.001 s avg)
+     nk_corr_vxc  :     5.71s CPU (     128 calls,   0.045 s avg)
+
+
+     outer_loop   :     6.55s CPU (      29 calls,   0.226 s avg)
+     runcg_uspp   :     6.54s CPU (       2 calls,   3.272 s avg)
+     xminus1      :     0.00s CPU (      58 calls,   0.000 s avg)
+     emass_p_tpa  :     0.00s CPU (       2 calls,   0.000 s avg)
+ 
+ 
+     CP           :     6.81s CPU time,    6.91s wall time
+
+ 
+   This run was terminated on:  17:58:56  15Jul2022            
+
+=------------------------------------------------------------------------------=
+   JOB DONE.
+=------------------------------------------------------------------------------=

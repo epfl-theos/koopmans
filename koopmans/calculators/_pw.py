@@ -36,12 +36,12 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
             self.command = ParallelCommandWithPostfix(os.environ.get(
                 'ASE_ESPRESSO_COMMAND', str(bin_directory) + os.path.sep + self.command))
 
-    def calculate(self):
+    def _calculate(self):
         if self.parameters.calculation == 'bands':
             if not isinstance(self.parameters.kpts, BandPath):
                 raise KeyError('You are running a calculation that requires a kpoint path; please provide a BandPath '
                                'as the kpts parameter')
-        super().calculate()
+        super()._calculate()
 
         if isinstance(self.parameters.kpts, BandPath):
             # Add the bandstructure to the results. This is very un-ASE-y and might eventually be replaced
