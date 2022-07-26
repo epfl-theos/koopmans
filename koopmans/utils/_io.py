@@ -9,23 +9,26 @@ Moved into utils Sep 2021
 
 from datetime import datetime
 import json
+from pathlib import Path
+import sys
+from typing import IO, Any, AnyStr, Dict, List, Tuple, Union
+
 import numpy as np
 import numpy.typing as npt
-from typing import List, Union, Tuple
-from pathlib import Path
+
 from ase.atoms import Atoms
-from ase.dft.kpoints import bandpath, BandPath
-from ase.io.espresso import label_to_symbol, label_to_tag
 from ase.calculators.calculator import Calculator
+from ase.dft.kpoints import BandPath, bandpath
+from ase.io.espresso import label_to_symbol, label_to_tag
 
 
-def parse_dict(dct: dict) -> dict:
+def parse_dict(dct: Dict[str, Any]) -> Dict[str, Any]:
     '''
 
     Reads in a dict, formatting the values appropriately if they are not already
 
     '''
-    settings = {}
+    settings: Dict[str, Any] = {}
     for k, v in dct.items():
         # Deal with bools separately since JSON strictly only will interpret
         # 'false' as False, while 'False' will be left as a string and
@@ -43,7 +46,7 @@ def parse_dict(dct: dict) -> dict:
     return settings
 
 
-def construct_cell_parameters_block(atoms: Atoms) -> dict:
+def construct_cell_parameters_block(atoms: Atoms) -> Dict[str, Any]:
     return {'vectors': [list(row) for row in atoms.cell[:]], 'units': 'angstrom'}
 
 
@@ -63,11 +66,18 @@ def construct_atomic_positions_block(atoms: Atoms, crystal: bool = True) -> dict
     return dct
 
 
-def construct_atomic_species_block(atoms: Atoms) -> dict:
-    labels = atoms.get_chemical_symbols()
-    masses = atoms.get_masses()
+def construct_atomic_species_block(atoms: Atoms) -> Dict[str, Any]:
+    labels: List[str] = atoms.get_chemical_symbols()
+    masses: List[float] = atoms.get_masses()
     pseudopotentials = ['Si_ONCV_PBE-1.2.upf', 'Si_ONCV_PBE-1.2.upf']
-    return {'species': list([label] + [m] + [pp] for label, m, pp in zip(labels, masses, pseudopotentials))}
+    species: List[List[Union[str, float]]] = []
+    for label, m, pp in zip(labels, masses, pseudopotentials):
+        line: List[Union[str, float]] = [label]
+        line.append(m)
+        line.append(pp)
+        species.append(line)
+
+    return {'species': species}
 
 
 def write_alpha_file(directory: Path, alphas: List[float], filling: List[bool]):
@@ -93,20 +103,20 @@ def read_alpha_file(directory: Path) -> List[float]:
     return alphas
 
 
-def read_kpoints_block(calc: Calculator, dct: dict):
+def read_kpoints_block(calc: Calculator, dct: Dict[str, Any]):
     for k, v in dct.items():
         if k in ['gamma_only', 'kgrid', 'koffset', 'kpath', 'kpath_density']:
             calc.parameters[k] = v
         else:
-            raise KeyError(f'Unrecognised option "{k}" provided in the k_points block')
+            raise KeyError(f'Unrecognized option "{k}" provided in the k_points block')
     return
 
 
-def read_atomic_species(calc: Calculator, dct: dict):
+def read_atomic_species(calc: Calculator, dct: Dict[str, Any]):
     calc.parameters['pseudopotentials'] = {l[0]: l[2] for l in dct['species']}
 
 
-def read_atomic_positions(calc: Calculator, dct: dict):
+def read_atomic_positions(calc: Calculator, dct: Dict[str, Any]):
 
     pos_array = np.array(dct['positions'])
     symbols = [label_to_symbol(p) for p in pos_array[:, 0]]
@@ -153,14 +163,15 @@ def read_cell_parameters(calc: Calculator, dct: dict):
 print_call_end = '\n'
 
 
-def indented_print(text: str = '', indent: int = 0, **kwargs):
+def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '\n', file: IO = sys.stdout,
+                   flush: bool = False):
     global print_call_end
     for substring in text.split('\n'):
         if print_call_end == '\n':
-            print(' ' * indent + substring, **kwargs)
+            print(' ' * indent + substring, sep=sep, end=end, file=file, flush=flush)
         else:
-            print(substring, **kwargs)
-    print_call_end = kwargs.get('end', '\n')
+            print(substring, sep=sep, end=end, file=file, flush=flush)
+    print_call_end = end
 
 
 def write_wannier_hr_file(fname: Path, ham: np.ndarray, rvect: List[List[int]], weights: List[int]) -> None:
@@ -212,7 +223,7 @@ def read_wannier_hr_file(fname: Path) -> Tuple[np.ndarray, np.ndarray, List[int]
     elif 'xml version' in lines[0] or fname == 'hamiltonian_emp.dat':
         raise ValueError(f'The format of {fname} is no longer supported')
     else:
-        raise ValueError(f'The format of {fname} is not recognised')
+        raise ValueError(f'The format of {fname} is not recognized')
 
     # Read in the number of r-points and the number of Wannier functions
     nrpts = int(lines[2].split()[0])
@@ -262,7 +273,7 @@ def read_wannier_u_file(fname: Path) -> Tuple[npt.NDArray[np.complex_], npt.NDAr
             continue
         kpts[ik, :] = line.split()
         umat[ik, :, :] = np.reshape([complex(*[float(x) for x in line.split()])
-                                    for line in lines[i + 4:i + 4 + m * n]], (m, n))
+                                     for line in lines[i + 4:i + 4 + m * n]], (m, n))
 
     return umat, kpts, nk
 
@@ -281,33 +292,33 @@ def write_wannier_u_file(fname: Path, umat: npt.NDArray[np.complex_], kpts: npt.
         fd.write('\n'.join(flines))
 
 
-def read_wannier_centres_file(fname: Path):
+def read_wannier_centers_file(fname: Path):
 
     with open(fname, 'r') as fd:
         lines = fd.readlines()
 
-    centres = []
+    centers = []
     symbols = []
     positions = []
     for line in lines[2:]:
         if line.startswith('X    '):
-            centres.append([float(x) for x in line.split()[1:]])
+            centers.append([float(x) for x in line.split()[1:]])
         else:
             symbols.append(line.split()[0])
             positions.append([float(x) for x in line.split()[1:]])
-    return centres, Atoms(symbols=symbols, positions=positions)
+    return centers, Atoms(symbols=symbols, positions=positions)
 
 
-def write_wannier_centres_file(fname: Path, centres: List[List[float]], atoms: Atoms):
-    length = len(centres) + len(atoms)
+def write_wannier_centers_file(fname: Path, centers: List[List[float]], atoms: Atoms):
+    length = len(centers) + len(atoms)
 
     # Add the header
     flines = [f'{length:6d}',
-              f' Wannier centres, written by koopmans on {datetime.now().isoformat(timespec="seconds")}']
+              f' Wannier centers, written by koopmans on {datetime.now().isoformat(timespec="seconds")}']
 
-    # Add the centres
-    for centre in centres:
-        flines.append('X    ' + ''.join([f'{x:16.8f}' for x in centre]))
+    # Add the centers
+    for center in centers:
+        flines.append('X    ' + ''.join([f'{x:16.8f}' for x in center]))
 
     # Add the atoms
     for atom in atoms:

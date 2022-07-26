@@ -7,13 +7,16 @@ Written by Edward Linscott Sep 2020
 """
 
 import os
+
 import numpy as np
+
 from ase import Atoms
 from ase.calculators.espresso import Espresso
 from ase.dft.kpoints import BandPath
+from koopmans.commands import Command, ParallelCommandWithPostfix
 from koopmans.settings import PWSettingsDict
-from ._utils import CalculatorExt, CalculatorABC, bin_directory, ReturnsBandStructure
-from koopmans.commands import ParallelCommandWithPostfix, Command
+
+from ._utils import CalculatorABC, CalculatorExt, ReturnsBandStructure, bin_directory
 
 
 class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC):
@@ -25,7 +28,7 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         # Define the valid settings
         self.parameters = PWSettingsDict()
 
-        # Initialise first using the ASE parent and then CalculatorExt
+        # Initialize first using the ASE parent and then CalculatorExt
         Espresso.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
 

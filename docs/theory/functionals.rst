@@ -68,7 +68,7 @@ Thus we arrive at the form of the Koopmans functional:
    {+ f_i \eta_i}
    \right)
 
-This functional, by construction, has orbital energies that possess two key properties discussed :ref:`above <_theory_motivating_idea>`.
+This functional, by construction, has orbital energies that possess two key properties discussed :ref:`above <theory_motivating_idea>`.
 
 Understanding the functional
 ----------------------------

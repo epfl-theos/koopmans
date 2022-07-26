@@ -1,4 +1,5 @@
 import pickle
+
 import matplotlib.pyplot as plt
 
 with open('2x2x2/si_bandstructure.fig.pkl', 'rb') as fd:

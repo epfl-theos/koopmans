@@ -7,21 +7,30 @@ Written by Edward Linscott Sep 2020
 """
 
 from __future__ import annotations
-import os
+
 import copy
 import math
-import numpy as np
-import pickle
+import os
 from pathlib import Path
-from scipy.linalg import block_diag
-from typing import Optional, List, Union
-from pandas.core.series import Series
+import pickle
+from typing import List, Optional, Union
 import xml.etree.ElementTree as ET
+
+import numpy as np
+from pandas.core.series import Series
+from scipy.linalg import block_diag
+
 from ase import Atoms
 from ase.calculators.espresso import Espresso_kcp
-from koopmans import utils, settings, pseudopotentials, bands
+from koopmans import bands, pseudopotentials, settings, utils
 from koopmans.commands import ParallelCommand
-from ._utils import CalculatorExt, CalculatorABC, bin_directory, CalculatorCanEnforceSpinSym
+
+from ._utils import (
+    CalculatorABC,
+    CalculatorCanEnforceSpinSym,
+    CalculatorExt,
+    bin_directory,
+)
 
 
 def read_ham_file(filename: Path) -> np.ndarray:
@@ -53,8 +62,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         # Define the valid parameters
         self.parameters = settings.KoopmansCPSettingsDict()
 
-
-        # Initialise first using the ASE parent and then CalculatorExt
+        # Initialize first using the ASE parent and then CalculatorExt
         Espresso_kcp.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, **kwargs)
 
@@ -81,7 +89,6 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         # fixed_state = .true.. N.B. this differs from self.parameters.fixed_band in the case of empty orbitals (see
         # koopmans.workflows._koopmans_dscf.py for more details)
         self.fixed_band: Optional[bands.Band] = None
-
 
     def calculate(self):
         # kcp.x imposes nelup >= neldw, so if we try to run a calcualtion with neldw > nelup, swap the spin channels
@@ -276,7 +283,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
     @property
     def alphas(self) -> List[List[float]]:
         if not hasattr(self, '_alphas'):
-            raise AttributeError(f'{self}.alphas has not been initialised')
+            raise AttributeError(f'{self}.alphas has not been initialized')
         return self._alphas
 
     @alphas.setter

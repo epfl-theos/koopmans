@@ -9,7 +9,7 @@ In order to run this calculation, our ``workflow`` block needs a few particular 
 .. literalinclude:: ../../tutorials/tutorial_3/h2o_conv.json
   :lines: 1-11
   :linenos:
-  :emphasize-lines: 5, 7-9
+  :emphasize-lines: 4, 6-10
 
 The important lines are highlighted. ``"task": "convergence"`` means that we will be performing a convergence test. The other three highlighted keywords specifying that we are going to converge the HOMO energy to within 0.01 eV, with respect to *both* the energy cutoff ``ecutwfc`` and the cell size. The full input file can be found :download:`here <../../tutorials/tutorial_3/h2o_conv.json>`.
 

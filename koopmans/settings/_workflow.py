@@ -1,7 +1,9 @@
 import os
 from pathlib import Path
 from typing import Any
+
 from koopmans import pseudopotentials
+
 from ._utils import Setting, SettingsDictWithChecks
 
 
@@ -37,7 +39,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     str, 'same', ('same', 'pz', 'kohn-sham', 'mlwfs', 'projwfs')),
             Setting('frozen_orbitals',
                     "if True, freeze the variational orbitals for the duration of the calculation once they've been "
-                    "initialised",
+                    "initialized",
                     bool, None, (True, False)),
             Setting('periodic',
                     'whether or not the system is periodic',
@@ -45,15 +47,15 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
             Setting('calculate_bands',
                     'whether or not to calculate the band structure of the system (if relevant)',
                     bool, None, (True, False)),
-            Setting('spin_polarised',
+            Setting('spin_polarized',
                     'if True, the system will be allowed to break spin symmetry i.e. n^{up}(r) != n^{down}(r)',
                     bool, False, (True, False)),
             Setting('fix_spin_contamination',
                     'if True, steps will be taken to try and avoid spin contamination. This is only sensible when '
-                    'performing a non-spin-polarised calculation, and is turned on by default for such calculations',
+                    'performing a non-spin-polarized calculation, and is turned on by default for such calculations',
                     bool, None, (True, False)),
             Setting('npool',
-                    'Number of pools for parallelising over kpoints (should be commensurate with the k-point grid)',
+                    'Number of pools for parallelizing over kpoints (should be commensurate with the k-point grid)',
                     int, None, None),
             Setting('gb_correction',
                     'if True, apply the Gygi-Baldereschi scheme to deal with the q->0 divergence of the Coulomb '
@@ -61,7 +63,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     bool, None, (True, False)),
             Setting('mp_correction',
                     'if True, apply the Makov-Payne correction for charged periodic systems',
-                    bool, False, (True, False)),
+                    bool, None, (True, False)),
             Setting('mt_correction',
                     'if True, apply the Martyna-Tuckerman correction for charged aperiodic systems',
                     bool, None, (True, False)),
@@ -133,9 +135,9 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
         return []
 
     def __setitem__(self, key: str, value: Any):
-        # Be forgiving to Americans
-        if key == 'task' and value == 'wannierize':
-            value = 'wannierise'
+        # Be forgiving to people who spell things properly
+        if key == 'task' and value == 'wannierise':
+            value = 'wannierize'
 
         # Make sure that orbital_groups is always stored as a list of lists
         if key == 'orbital_groups' and value is not None:

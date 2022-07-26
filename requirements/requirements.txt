@@ -8,3 +8,5 @@ typing>=3.6
 pybtex>=0.24
 sklearn>=0.0
 deepdiff>=5.8.1
+spglib>=1.9
+upf-to-json>=0.9.5

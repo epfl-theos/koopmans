@@ -6,14 +6,16 @@ Written by Edward Linscott Jan 2020
 
 """
 
-from typing import Union, List
 from pathlib import Path
-from koopmans.utils import chdir
+from typing import List, Union
+
 from koopmans.calculators import CalculatorExt
+from koopmans.utils import chdir
 from koopmans.workflows import Workflow
+
+from ._calculators import read_calculator
 from ._json import read_json, write_json
 from ._kwf import read_kwf, write_kwf
-from ._calculators import read_calculator
 
 
 def read(filename: Union[str, Path, List[str], List[Path]], **kwargs) -> Union[Workflow, CalculatorExt]:
@@ -37,7 +39,7 @@ def read(filename: Union[str, Path, List[str], List[Path]], **kwargs) -> Union[W
         try:
             return read_calculator(filename)
         except ValueError:
-            raise ValueError(f'Unrecognised file type for {filename}')
+            raise ValueError(f'Unrecognized file type for {filename}')
 
 
 def write(obj: Workflow, filename: Union[str, Path]):
@@ -52,4 +54,4 @@ def write(obj: Workflow, filename: Union[str, Path]):
     elif filename.suffix == '.json':
         write_json(obj, filename)
     else:
-        raise ValueError(f'Unrecognised file type for {filename}')
+        raise ValueError(f'Unrecognized file type for {filename}')

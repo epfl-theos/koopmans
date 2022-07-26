@@ -6,10 +6,13 @@ Integrated within koopmans by Edward Linscott Jan 2021
 
 """
 
-import numpy as np
-from typing import List, Any
 from pathlib import Path
+from typing import Any, List
+
+import numpy as np
+
 from ase.dft.kpoints import BandPath
+
 from ._utils import Setting, SettingsDictWithChecks
 
 valid_settings: List[Setting] = [

@@ -6,17 +6,24 @@ Written by Edward Linscott Oct 2020
 
 """
 
+from pathlib import Path
 import shutil
 from typing import TypeVar
-from pathlib import Path
-from koopmans import utils, pseudopotentials, calculators
-from ._workflow import Workflow
 
+from koopmans import calculators, pseudopotentials, utils
+
+from ._workflow import Workflow
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
 
 
-class DFTCPWorkflow(Workflow):
+class DFTWorkflow(Workflow):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.parameters.functional = 'dft'
+
+
+class DFTCPWorkflow(DFTWorkflow):
 
     def _run(self):
 
@@ -48,7 +55,7 @@ class DFTCPWorkflow(Workflow):
         return calc
 
 
-class DFTPWWorkflow(Workflow):
+class DFTPWWorkflow(DFTWorkflow):
 
     def _run(self):
 
@@ -71,7 +78,7 @@ class DFTPWWorkflow(Workflow):
         return
 
 
-class PWBandStructureWorkflow(Workflow):
+class PWBandStructureWorkflow(DFTWorkflow):
 
     def _run(self):
 
@@ -102,7 +109,7 @@ class PWBandStructureWorkflow(Workflow):
             # Third, a PDOS calculation
             pseudos = [pseudopotentials.read_pseudo_file(calc_scf.parameters.pseudo_dir / p) for p in
                        self.pseudopotentials.values()]
-            if all([int(p.find('PP_HEADER').get('number_of_wfc')) > 0 for p in pseudos]):
+            if all([p['header']['number_of_wfc'] > 0 for p in pseudos]):
                 calc_dos = self.new_calculator('projwfc')
                 calc_dos.pseudo_dir = calc_bands.parameters.pseudo_dir
                 self.run_calculator(calc_dos)
@@ -128,5 +135,5 @@ class PWBandStructureWorkflow(Workflow):
             assert isinstance(calc, calculators.ProjwfcCalculator)
             calc.parameters.filpdos = self.name
             calc.pseudopotentials = self.pseudopotentials
-            calc.spin_polarised = self.parameters.spin_polarised
+            calc.spin_polarized = self.parameters.spin_polarized
         return calc

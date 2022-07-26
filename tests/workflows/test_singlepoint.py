@@ -1,7 +1,8 @@
 import pytest
+
 from koopmans import workflows
-from koopmans.projections import ProjectionBlocks
 from koopmans.io import write
+from koopmans.projections import ProjectionBlocks
 from koopmans.utils import chdir
 
 

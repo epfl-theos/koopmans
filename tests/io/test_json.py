@@ -6,8 +6,8 @@ Tests for koopmans.io
 
 from ase.build import molecule
 from koopmans import utils
+from koopmans.io import read, write
 from koopmans.workflows import SinglepointWorkflow
-from koopmans.io import write, read
 
 
 def test_write_then_read_json(tmpdir):

@@ -9,7 +9,10 @@ from ._koopmans_dscf import KoopmansDSCFWorkflow
 from ._singlepoint import SinglepointWorkflow
 from ._trajectory import TrajectoryWorkflow
 from ._convergence_ml import ConvergenceMLWorkflow
-from ._unfold_and_interp import UnfoldAndInterpolateWorkflow, SingleUnfoldAndInterpolateWorkflow
+from ._unfold_and_interp import (
+    SingleUnfoldAndInterpolateWorkflow,
+    UnfoldAndInterpolateWorkflow,
+)
 from ._wannierize import WannierizeWorkflow
 from ._workflow import Workflow
 from ._ml import MLFiitingWorkflow

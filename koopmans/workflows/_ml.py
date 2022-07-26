@@ -74,7 +74,7 @@ class MLFiitingWorkflow(Workflow):
         self.num_bands_to_extract = [len([band for band in self.bands_to_extract if band.filled == filled])
                                      for filled in [True, False]]
 
-        if self.bands.spin_polarised:
+        if self.bands.spin_polarized:
             self.nspin_to_extract = 2
         else:
             self.nspin_to_extract = 1
@@ -171,7 +171,7 @@ class MLFiitingWorkflow(Workflow):
             w90_calcs = [c for c in self.calculations if isinstance(
                 c, calculators.Wannier90Calculator) and c.command.flags == ''][-len(self.projections):]
 
-            if self.parameters.spin_polarised:
+            if self.parameters.spin_polarized:
                 spins = ['up', 'down']
             else:
                 spins = [None]

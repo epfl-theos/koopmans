@@ -7,12 +7,15 @@ Written by Edward Linscott Feb 2021
 """
 
 import os
+
 import numpy as np
+
 from ase import Atoms
 from ase.calculators.espresso import KoopmansScreen
-from koopmans import utils, settings
-from ._utils import KCWannCalculator, CalculatorABC, bin_directory
+from koopmans import settings, utils
 from koopmans.commands import ParallelCommandWithPostfix
+
+from ._utils import CalculatorABC, KCWannCalculator, bin_directory
 
 
 class KoopmansScreenCalculator(KCWannCalculator, KoopmansScreen, CalculatorABC):
@@ -24,7 +27,7 @@ class KoopmansScreenCalculator(KCWannCalculator, KoopmansScreen, CalculatorABC):
         # Define the valid settings
         self.parameters = settings.KoopmansScreenSettingsDict()
 
-        # Initialise first using the ASE parent and then CalculatorExt
+        # Initialize first using the ASE parent and then CalculatorExt
         KoopmansScreen.__init__(self, atoms=atoms)
         KCWannCalculator.__init__(self, *args, **kwargs)
         super().__init__(*args, **kwargs)
