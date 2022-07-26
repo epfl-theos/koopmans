@@ -9,8 +9,8 @@ Written by Riccardo De Gennaro Nov 2020
 
 import copy
 import math
-from pathlib import Path
 import shutil
+from pathlib import Path
 from typing import List, TypeVar
 
 # isort: off
@@ -33,7 +33,7 @@ class WannierizeWorkflow(Workflow):
     def __init__(self, *args, force_nspin2=False, scf_kgrid=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        pw_params = self.master_calc_params['pw']
+        pw_params = self.calculator_parameters['pw']
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
                 and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:

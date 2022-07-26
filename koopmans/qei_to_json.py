@@ -48,7 +48,7 @@ def qei_to_json(input_file: Union[str, Path], json: Union[str, Path],
 
     wf = SinglepointWorkflow(atoms=calc.atoms,
                              parameters=workflow_settings,
-                             master_calc_params={key: calc.parameters},
+                             calculator_parameters={key: calc.parameters},
                              **kwargs)
 
     write(wf, json)

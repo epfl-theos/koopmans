@@ -26,8 +26,8 @@ class ConvergenceWorkflow(Workflow):
         # Deferred import to allow for monkeypatchings
         from koopmans import workflows
 
-        if 'kcp' in self.master_calc_params:
-            kcp_master_params = self.master_calc_params['kcp']
+        if 'kcp' in self.calculator_parameters:
+            kcp_master_params = self.calculator_parameters['kcp']
         else:
             raise NotImplementedError(
                 'Convergence.run() has not been generalized beyond kcp.x')
@@ -89,7 +89,7 @@ class ConvergenceWorkflow(Workflow):
                     continue
 
                 # Create duplicate kcp calculator settings and atoms
-                kcp_params = copy.deepcopy(self.master_calc_params['kcp'])
+                kcp_params = copy.deepcopy(self.calculator_parameters['kcp'])
                 atoms = copy.deepcopy(self.atoms)
 
                 # For each parameter we're converging wrt...
@@ -129,7 +129,7 @@ class ConvergenceWorkflow(Workflow):
                 # Perform calculation
                 singlepoint = workflows.SinglepointWorkflow.fromparent(self)
                 singlepoint.atoms = atoms
-                singlepoint.master_calc_params['kcp'] = kcp_params
+                singlepoint.calculator_parameters['kcp'] = kcp_params
                 singlepoint.run(subdirectory=subdir)
                 solved_calc = singlepoint.calculations[-1]
 

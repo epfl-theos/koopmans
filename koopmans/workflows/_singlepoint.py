@@ -40,7 +40,7 @@ class SinglepointWorkflow(Workflow):
         >>>                                           spins=[None, None, None],
         >>>                                           atoms=gaas)
         >>> wf = SinglepointWorkflow(gaas, kgrid=[2, 2, 2], projections=projs, init_orbitals='mlwfs',
-        >>>                          pseudo_library='sg15_v1.0', ecutwfc=40.0, master_calc_params={'pw': {'nbnd': 45},
+        >>>                          pseudo_library='sg15_v1.0', ecutwfc=40.0, calculator_parameters={'pw': {'nbnd': 45},
         >>>                          'w90_emp': {'dis_froz_max': 14.6, 'dis_win_max': 18.6}})
         >>> wf.run()
     '''
@@ -51,11 +51,8 @@ class SinglepointWorkflow(Workflow):
     def _run(self) -> None:
 
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
-        from koopmans.workflows import (
-            DFTCPWorkflow,
-            KoopmansDFPTWorkflow,
-            KoopmansDSCFWorkflow,
-        )
+        from koopmans.workflows import (DFTCPWorkflow, KoopmansDFPTWorkflow,
+                                        KoopmansDSCFWorkflow)
 
         if self.parameters.method == 'dfpt':
             workflow = KoopmansDFPTWorkflow.fromparent(self)
@@ -117,7 +114,7 @@ class SinglepointWorkflow(Workflow):
                         file = Path(f'ki/final/{f}')
                         if file.is_file():
                             utils.system_call(f'rsync -a {file} pkipz/final/')
-                    if self.parameters.periodic and self.master_calc_params['ui'].do_smooth_interpolation:
+                    if self.parameters.periodic and self.calculator_parameters['ui'].do_smooth_interpolation:
                         if not Path('pkipz/postproc').is_dir():
                             utils.system_call('mkdir pkipz/postproc')
                         utils.system_call(f'rsync -a ki/postproc/wannier pkipz/postproc/')
@@ -128,7 +125,7 @@ class SinglepointWorkflow(Workflow):
                     utils.system_call('mv kipz/init/ki_final.cpo kipz/init/ki_init.cpo')
                     if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
                         utils.system_call('rsync -a ki/init/wannier kipz/init/')
-                    if self.parameters.periodic and self.master_calc_params['ui'].do_smooth_interpolation:
+                    if self.parameters.periodic and self.calculator_parameters['ui'].do_smooth_interpolation:
                         # Copy over the smooth PBE calculation from KI for KIPZ to use
                         utils.system_call('rsync -a ki/postproc/wannier kipz/postproc/')
 

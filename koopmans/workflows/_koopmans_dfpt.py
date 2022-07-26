@@ -40,7 +40,7 @@ class KoopmansDFPTWorkflow(Workflow):
                 raise ValueError(
                     'Calculating screening parameters with DFPT for a non-periodic system is only possible '
                     'with Kohn-Sham orbitals as the variational orbitals')
-        for params in self.master_calc_params.values():
+        for params in self.calculator_parameters.values():
             if self.parameters.periodic:
                 # Gygi-Baldereschi
                 if self.parameters.gb_correction:
@@ -93,8 +93,8 @@ class KoopmansDFPTWorkflow(Workflow):
             nocc = self.projections.num_wann(occ=True)
             nemp = self.projections.num_wann(occ=False)
         else:
-            nocc = self.master_calc_params['kcp'].nelec // 2
-            nemp = self.master_calc_params['pw'].nbnd - nocc
+            nocc = self.calculator_parameters['kcp'].nelec // 2
+            nemp = self.calculator_parameters['pw'].nbnd - nocc
         if self.parameters.orbital_groups is None:
             self.parameters.orbital_groups = [list(range(nocc + nemp))]
         self.bands = Bands(n_bands=nocc + nemp, filling=[[True] * nocc + [False] * nemp],
@@ -103,7 +103,7 @@ class KoopmansDFPTWorkflow(Workflow):
         # Populating kpoints if absent
         if not self.parameters.periodic:
             for key in ['pw', 'kc_screen']:
-                self.master_calc_params[key].kpts = [1, 1, 1]
+                self.calculator_parameters[key].kpts = [1, 1, 1]
 
     def _run(self):
         '''
@@ -115,10 +115,10 @@ class KoopmansDFPTWorkflow(Workflow):
 
         if self.parameters.periodic:
             # Run PW and Wannierization
-            for key in self.master_calc_params.keys():
+            for key in self.calculator_parameters.keys():
                 if key.startswith('w90'):
-                    self.master_calc_params[key].write_u_matrices = True
-                    self.master_calc_params[key].write_xyz = True
+                    self.calculator_parameters[key].write_u_matrices = True
+                    self.calculator_parameters[key].write_xyz = True
             wf_workflow = WannierizeWorkflow.fromparent(self, force_nspin2=True)
             wf_workflow.run()
 
@@ -130,7 +130,7 @@ class KoopmansDFPTWorkflow(Workflow):
             pw_workflow = DFTPWWorkflow.fromparent(self)
 
             # Update settings
-            pw_params = pw_workflow.master_calc_params['pw']
+            pw_params = pw_workflow.calculator_parameters['pw']
             pw_params.nspin = 2
             pw_params.tot_magnetization = 0
 
@@ -139,7 +139,7 @@ class KoopmansDFPTWorkflow(Workflow):
                 pw_workflow.run()
 
         # Copy the outdir to the base directory
-        base_outdir = self.master_calc_params['pw'].outdir
+        base_outdir = self.calculator_parameters['pw'].outdir
         base_outdir.mkdir(exist_ok=True)
         init_outdir = self.calculations[0].parameters.outdir
         if self.parameters.from_scratch and init_outdir != base_outdir:
@@ -196,7 +196,7 @@ class KoopmansDFPTWorkflow(Workflow):
 
         # Postprocessing
         if self.parameters.periodic and self.projections and self.kpath is not None \
-                and self.master_calc_params['ui'].do_smooth_interpolation:
+                and self.calculator_parameters['ui'].do_smooth_interpolation:
             from koopmans.workflows import UnfoldAndInterpolateWorkflow
             self.print(f'\nPostprocessing', style='heading')
             ui_workflow = UnfoldAndInterpolateWorkflow.fromparent(self)
@@ -263,8 +263,8 @@ class KoopmansDFPTWorkflow(Workflow):
             have_empty = (self.projections.num_wann(occ=False) > 0)
             has_disentangle = (self.projections.num_bands() != self.projections.num_wann())
         else:
-            nocc = self.master_calc_params['kcp'].nelec // 2
-            nemp = self.master_calc_params['pw'].nbnd - nocc
+            nocc = self.calculator_parameters['kcp'].nelec // 2
+            nemp = self.calculator_parameters['pw'].nbnd - nocc
             have_empty = nemp > 0
             has_disentangle = False
         calc.parameters.num_wann_occ = nocc

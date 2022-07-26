@@ -47,10 +47,10 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         w90_calcs = [c for c in self.calculations if isinstance(c, calculators.Wannier90Calculator)
                      and c.command.flags == ''][-len(self.projections):]
 
-        if self.master_calc_params['ui'].do_smooth_interpolation:
+        if self.calculator_parameters['ui'].do_smooth_interpolation:
             wannier_workflow = WannierizeWorkflow.fromparent(self, scf_kgrid=self.kgrid)
             wannier_workflow.kgrid = [x * y for x,
-                                      y in zip(self.kgrid, self.master_calc_params['ui'].smooth_int_factor)]
+                                      y in zip(self.kgrid, self.calculator_parameters['ui'].smooth_int_factor)]
 
             # Here, we allow for skipping of the smooth dft calcs (assuming they have been already run)
             # This is achieved via the optional argument of from_scratch in run(), which
@@ -141,7 +141,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                     ham_prefix = calc_presets + '_1'
                 kwargs['kc_ham_file'] = Path(f'../final/ham_{ham_prefix}.dat').resolve()
                 kwargs['w90_seedname'] = Path(f'../init/wannier/{calc_presets}/wann').resolve()
-                if self.master_calc_params['ui'].do_smooth_interpolation:
+                if self.calculator_parameters['ui'].do_smooth_interpolation:
                     kwargs['dft_smooth_ham_file'] = Path(f'wannier/{calc_presets}/wann_hr.dat').resolve()
                     kwargs['dft_ham_file'] = Path(f'../init/wannier/{calc_presets}/wann_hr.dat').resolve()
             else:
@@ -150,7 +150,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                     raise NotImplementedError()
                 kwargs['kc_ham_file'] = Path(f'../hamiltonian/kc.kcw_hr_{calc_presets}.dat').resolve()
                 kwargs['w90_seedname'] = Path(f'../wannier/{calc_presets}/wann').resolve()
-                if self.master_calc_params['ui'].do_smooth_interpolation:
+                if self.calculator_parameters['ui'].do_smooth_interpolation:
                     kwargs['dft_smooth_ham_file'] = Path(f'wannier/{calc_presets}/wann_hr.dat').resolve()
                     kwargs['dft_ham_file'] = Path(f'../wannier/{calc_presets}/wann_hr.dat').resolve()
 

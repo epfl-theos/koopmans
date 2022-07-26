@@ -7,8 +7,8 @@ Split off from workflow.py Oct 2020
 
 """
 
-from pathlib import Path
 import shutil
+from pathlib import Path
 from typing import List, Optional, Tuple
 
 import numpy as np
@@ -39,7 +39,7 @@ class KoopmansDSCFWorkflow(Workflow):
         self._restart_from_old_ki = restart_from_old_ki
 
         # If periodic, convert the kcp calculation into a Γ-only supercell calculation
-        kcp_params = self.master_calc_params['kcp']
+        kcp_params = self.calculator_parameters['kcp']
         if self.parameters.periodic:
             spins: List[Optional[str]]
             if self.parameters.spin_polarized:
@@ -67,7 +67,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     nbands_emp = self.projections.num_wann(occ=False, spin=spin)
                 else:
                     nbands_occ = nelec
-                    nbands_emp = self.master_calc_params['pw'].nbnd - nbands_occ
+                    nbands_emp = self.calculator_parameters['pw'].nbnd - nbands_occ
 
                 # Check the number of empty states has been correctly configured
                 spin_info = f'spin {spin} ' if self.parameters.spin_polarized else ''
@@ -162,8 +162,8 @@ class KoopmansDSCFWorkflow(Workflow):
         # Raise errors if any UI keywords are provided but will be overwritten by the workflow
         for ui_keyword in ['kc_ham_file', 'w90_seedname', 'dft_ham_file', 'dft_smooth_ham_file']:
             for ui_kind in ['occ', 'emp']:
-                value = getattr(self.master_calc_params[f'ui_{ui_kind}'], ui_keyword)
-                [default_value] = [s.default for s in self.master_calc_params['ui'].settings if s.name == ui_keyword]
+                value = getattr(self.calculator_parameters[f'ui_{ui_kind}'], ui_keyword)
+                [default_value] = [s.default for s in self.calculator_parameters['ui'].settings if s.name == ui_keyword]
                 if value != default_value:
                     raise ValueError(f'UI keyword {ui_keyword} has been set in the input file, but this will be '
                                      'automatically set by the Koopmans workflow. Remove this keyword from the input '
@@ -179,9 +179,9 @@ class KoopmansDSCFWorkflow(Workflow):
         # Multiply all extensive KCP settings by the appropriate prefactor
         prefactor = np.prod(self.kgrid)
         for attr in ['nelec', 'nelup', 'neldw', 'nbnd', 'conv_thr', 'esic_conv_thr', 'tot_charge', 'tot_magnetization']:
-            value = getattr(self.master_calc_params['kcp'], attr, None)
+            value = getattr(self.calculator_parameters['kcp'], attr, None)
             if value is not None:
-                setattr(self.master_calc_params['kcp'], attr, prefactor * value)
+                setattr(self.calculator_parameters['kcp'], attr, prefactor * value)
 
     def read_alphas_from_file(self, directory: Path = Path()):
         '''
@@ -192,7 +192,7 @@ class KoopmansDSCFWorkflow(Workflow):
         '''
 
         flat_alphas = utils.read_alpha_file(directory)
-        params = self.master_calc_params['kcp']
+        params = self.calculator_parameters['kcp']
         assert isinstance(params, KoopmansCPSettingsDict)
         alphas = calculators.convert_flat_alphas_for_kcp(flat_alphas, params)
 
@@ -219,7 +219,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 # if self._restart_from_old_ki we don't want to delete the directory containing
                 # the KI calculation we're reading the manifold from, or the TMP files
                 utils.system_call('rm -r init 2>/dev/null', False)
-                utils.system_call(f'rm -r {self.master_calc_params["kcp"].outdir} 2>/dev/null', False)
+                utils.system_call(f'rm -r {self.calculator_parameters["kcp"].outdir} 2>/dev/null', False)
             utils.system_call('rm -r calc_alpha 2>/dev/null', False)
             utils.system_call('rm -r final 2>/dev/null', False)
             if self._redo_smooth_dft in [None, True]:
@@ -324,7 +324,7 @@ class KoopmansDSCFWorkflow(Workflow):
             # Wannier functions using pw.x, wannier90.x and pw2wannier90.x (pw.x only for Kohn-Sham states)
             wannier_workflow = workflows.WannierizeWorkflow.fromparent(self)
             if wannier_workflow.parameters.calculate_bands:
-                wannier_workflow.parameters.calculate_bands = not self.master_calc_params['ui'].do_smooth_interpolation
+                wannier_workflow.parameters.calculate_bands = not self.calculator_parameters['ui'].do_smooth_interpolation
 
             # Perform the wannierization workflow within the init directory
             wannier_workflow.run(subdirectory='init')
@@ -480,7 +480,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
             # Setting up directories
             iteration_directory = Path('calc_alpha')
-            outdir = self.master_calc_params['kcp'].outdir.name
+            outdir = self.calculator_parameters['kcp'].outdir.name
             outdir = Path.cwd() / iteration_directory / outdir
 
             if not outdir.is_dir():
@@ -778,7 +778,7 @@ class KoopmansDSCFWorkflow(Workflow):
                            **kwargs) -> calculators.KoopmansCPCalculator:
         """
 
-        Generates a new KCP calculator based on the self.master_calc_params["kcp"]
+        Generates a new KCP calculator based on the self.calculator_parameters["kcp"]
         parameters, modifying the appropriate settings to match the
         chosen calc_presets, and altering any Quantum Espresso keywords
         specified as kwargs

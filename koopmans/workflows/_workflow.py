@@ -9,16 +9,16 @@ Converted workflows from functions to objects Nov 2020
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from contextlib import contextmanager
 import copy
-from functools import reduce
 import json as json_ext
 import operator
 import os
-from pathlib import Path
 import shutil
 import subprocess
+from abc import ABC, abstractmethod
+from contextlib import contextmanager
+from functools import reduce
+from pathlib import Path
 from types import ModuleType
 from typing import Any, Dict, Generator, List, Optional, Type, TypeVar, Union
 
@@ -49,13 +49,10 @@ from koopmans import calculators, settings, utils
 from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.projections import ProjectionBlocks
-from koopmans.pseudopotentials import (
-    fetch_pseudo,
-    nelec_from_pseudos,
-    pseudo_database,
-    pseudos_library_directory,
-    valence_from_pseudo,
-)
+from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
+                                       pseudo_database,
+                                       pseudos_library_directory,
+                                       valence_from_pseudo)
 from koopmans.references import bib_data
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
@@ -104,7 +101,7 @@ class Workflow(ABC):
         a dictionary specifying any workflow settings to use; note that a simpler alternative is to provide workflow
         settings as keyword arguments
 
-    master_calc_params : Dict[str, koopmans.settings.SettingsDict]
+    calculator_parameters : Dict[str, koopmans.settings.SettingsDict]
         a dictionary containing calculator-specific settings; as for the parameters, it is usually simpler to specify
         these individually as keyword arguments
 
@@ -123,7 +120,7 @@ class Workflow(ABC):
 
     atoms: Atoms
     parameters: settings.WorkflowSettingsDict
-    master_calc_params: Dict[str, settings.SettingsDict]
+    calculator_parameters: Dict[str, settings.SettingsDict]
     name: str
     _gamma_only: bool
     _kgrid: Optional[List[int]]
@@ -146,8 +143,8 @@ class Workflow(ABC):
                  projections: Optional[ProjectionBlocks] = None,
                  name: str = 'koopmans_workflow',
                  parameters: Union[Dict[str, Any], settings.WorkflowSettingsDict] = {},
-                 master_calc_params: Optional[Union[Dict[str, Dict[str, Any]],
-                                                    Dict[str, settings.SettingsDict]]] = None,
+                 calculator_parameters: Optional[Union[Dict[str, Dict[str, Any]],
+                                                       Dict[str, settings.SettingsDict]]] = None,
                  plot_params: Union[Dict[str, Any], settings.PlotSettingsDict] = {},
                  autogenerate_settings: bool = True,
                  **kwargs: Dict[str, Any]):
@@ -225,10 +222,10 @@ class Workflow(ABC):
                     symbol += str(tag)
                 self.pseudopotentials[symbol] = pseudo.name
 
-        # Make sure master_calc_params isn't missing any entries, and every entry corresponds to settings.SettingsDict
+        # Make sure calculator_parameters isn't missing any entries, and every entry corresponds to settings.SettingsDict
         # objects
-        master_calc_params = sanitize_master_calc_params(
-            master_calc_params) if master_calc_params is not None else generate_default_master_calc_params()
+        calculator_parameters = sanitize_calculator_parameters(
+            calculator_parameters) if calculator_parameters is not None else generate_default_calculator_parameters()
 
         # Work out the pseudopotential directory. If using a pseudo_library this is straightforward, if not...
         #  1. try to locating the directory as currently specified by the calculator
@@ -238,12 +235,12 @@ class Workflow(ABC):
             pass
         elif self.parameters.pseudo_library:
             pseudo_dir = pseudos_library_directory(self.parameters.pseudo_library, self.parameters.base_functional)
-            for params in master_calc_params.values():
+            for params in calculator_parameters.values():
                 if params.get('pseudo_dir', pseudo_dir).resolve() != pseudo_dir:
                     raise ValueError(
                         '"pseudo_dir" and "pseudo_library" are conflicting; please do not provide "pseudo_dir"')
-        elif 'pseudo_dir' in master_calc_params['kcp'] or 'pseudo_dir' in master_calc_params['pw']:
-            pseudo_dir = master_calc_params['kcp'].get('pseudo_dir', master_calc_params['pw'].get('pseudo_dir'))
+        elif 'pseudo_dir' in calculator_parameters['kcp'] or 'pseudo_dir' in calculator_parameters['pw']:
+            pseudo_dir = calculator_parameters['kcp'].get('pseudo_dir', calculator_parameters['pw'].get('pseudo_dir'))
             assert isinstance(pseudo_dir, Path)
         elif 'ESPRESSO_PSEUDO' in os.environ:
             pseudo_dir = Path(os.environ['ESPRESSO_PSEUDO'])
@@ -252,25 +249,25 @@ class Workflow(ABC):
 
         self.pseudo_dir = pseudo_dir
 
-        # Before saving the master_calc_params, automatically generate some keywords and perform some sanity checks
+        # Before saving the calculator_parameters, automatically generate some keywords and perform some sanity checks
         if self.parameters.task != 'ui' and autogenerate_settings:
             # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
             # and the kcp settings
             nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.pseudo_dir)
 
-            tot_charge = master_calc_params['kcp'].get('tot_charge', 0)
+            tot_charge = calculator_parameters['kcp'].get('tot_charge', 0)
             nelec -= tot_charge
-            tot_mag = master_calc_params['kcp'].get('tot_magnetization', nelec % 2)
+            tot_mag = calculator_parameters['kcp'].get('tot_magnetization', nelec % 2)
             nelup = int(nelec / 2 + tot_mag / 2)
             neldw = int(nelec / 2 - tot_mag / 2)
 
             # Setting up the magnetic moments
-            if 'starting_magnetization(1)' in master_calc_params['kcp']:
+            if 'starting_magnetization(1)' in calculator_parameters['kcp']:
                 labels = [s + str(t) if t > 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
                 starting_magmoms = {}
                 for i, (l, p) in enumerate(self.pseudopotentials.items()):
                     # ASE uses absoulte values; QE uses the fraction of the valence
-                    frac_mag = master_calc_params['kcp'].pop(f'starting_magnetization({i + 1})', 0.0)
+                    frac_mag = calculator_parameters['kcp'].pop(f'starting_magnetization({i + 1})', 0.0)
                     valence = valence_from_pseudo(p, self.pseudo_dir)
                     starting_magmoms[l] = frac_mag * valence
                 atoms.set_initial_magnetic_moments([starting_magmoms[l] for l in labels])
@@ -278,15 +275,15 @@ class Workflow(ABC):
                 atoms.set_initial_magnetic_moments([tot_mag / len(atoms) for _ in atoms])
 
             # Work out the number of bands
-            nbnd = master_calc_params['kcp'].get('nbnd', nelec // 2 + nelec % 2)
+            nbnd = calculator_parameters['kcp'].get('nbnd', nelec // 2 + nelec % 2)
             generated_keywords = {'nelec': nelec, 'tot_charge': tot_charge, 'tot_magnetization': tot_mag,
                                   'nelup': nelup, 'neldw': neldw, 'nbnd': nbnd, 'pseudo_dir': self.pseudo_dir}
         else:
             generated_keywords = {}
             nelec = 0
 
-        self.master_calc_params = generate_default_master_calc_params()
-        for block, params in master_calc_params.items():
+        self.calculator_parameters = generate_default_calculator_parameters()
+        for block, params in calculator_parameters.items():
             # Apply auto-generated keywords
             for k, v in generated_keywords.items():
                 # Skipping nbnd for kcp -- it is valid according to ASE but it is not yet properly implemented
@@ -302,7 +299,7 @@ class Workflow(ABC):
                 if self.parameters.spin_polarized is not ('up' in block or 'down' in block):
                     continue
                 if 'projections' in params or 'projections_blocks' in params:
-                    raise ValueError(f'You have provided projection information in the master_calc_params[{block}] '
+                    raise ValueError(f'You have provided projection information in the calculator_parameters[{block}] '
                                      f'argument to {self.__class__.__name__}. Please instead specify projections '
                                      'via the "projections" argument')
                 for kw in ['exclude_bands', 'num_wann', 'num_bands', 'projections']:
@@ -317,7 +314,7 @@ class Workflow(ABC):
             params.parse_algebraic_settings(nelec=nelec)
 
             # Store the sanitized parameters
-            self.master_calc_params[block] = params
+            self.calculator_parameters[block] = params
 
         # Generate a default kpath
         if kpath is None:
@@ -347,7 +344,7 @@ class Workflow(ABC):
         for key, value in kwargs.items():
             match = False
             # if they correspond to any valid calculator parameter, set it
-            for calc_params in self.master_calc_params.values():
+            for calc_params in self.calculator_parameters.values():
                 if calc_params.is_valid(key):
                     calc_params[key] = value
                     match = True
@@ -443,7 +440,7 @@ class Workflow(ABC):
 
         child_wf = cls(atoms=copy.deepcopy(parent_wf.atoms),
                        parameters=parameters,
-                       master_calc_params=copy.deepcopy(parent_wf.master_calc_params),
+                       calculator_parameters=copy.deepcopy(parent_wf.calculator_parameters),
                        name=copy.deepcopy(parent_wf.name),
                        pseudopotentials=copy.deepcopy(parent_wf.pseudopotentials),
                        pseudo_dir=copy.deepcopy(parent_wf.pseudo_dir),
@@ -554,10 +551,10 @@ class Workflow(ABC):
                                      'projections')
 
         # Check the consistency between self.gamma_only and KCP's do_wf_cmplx
-        if not self.gamma_only and self.master_calc_params['kcp'].do_wf_cmplx is False:
+        if not self.gamma_only and self.calculator_parameters['kcp'].do_wf_cmplx is False:
             utils.warn('In KCP do_wf_cmplx = False is not consistent with gamma_only = False. '
                        'Changing do_wf_cmplx to True')
-            self.master_calc_params['kcp'].do_wf_cmplx = True
+            self.calculator_parameters['kcp'].do_wf_cmplx = True
 
         # Check pseudopotentials exist
         if not os.path.isdir(self.pseudo_dir):
@@ -599,20 +596,20 @@ class Workflow(ABC):
         else:
             raise ValueError(f'Cound not find a calculator of type {calc_type}')
 
-        # Merge master_calc_params and kwargs, giving kwargs higher precedence
+        # Merge calculator_parameters and kwargs, giving kwargs higher precedence
         all_kwargs: Dict[str, Any] = {}
-        master_calc_params = self.master_calc_params[calc_type]
-        all_kwargs.update(**master_calc_params)
+        calculator_parameters = self.calculator_parameters[calc_type]
+        all_kwargs.update(**calculator_parameters)
         all_kwargs.update(**kwargs)
 
         # For the k-points, the Workflow has two options: self.kgrid and self.kpath. A calculator should only ever
         # have one of these two. By default, use the kgrid.
-        if 'kpts' in master_calc_params.valid:
+        if 'kpts' in calculator_parameters.valid:
             all_kwargs['kpts'] = kpts if kpts is not None else self.kgrid
 
         # Add pseudopotential and kpt information to the calculator as required
         for kw in ['pseudopotentials', 'pseudo_dir', 'gamma_only', 'kgrid', 'kpath', 'koffset', 'plot_params']:
-            if kw not in all_kwargs and kw in master_calc_params.valid:
+            if kw not in all_kwargs and kw in calculator_parameters.valid:
                 all_kwargs[kw] = getattr(self, kw)
 
         # Create the calculator
@@ -626,10 +623,10 @@ class Workflow(ABC):
 
     def update_celldms(self):
         # Update celldm(*) to match the current self.atoms.cell
-        for k, params in self.master_calc_params.items():
+        for k, params in self.calculator_parameters.items():
             if params.get('ibrav', 0) != 0:
                 celldms = cell_to_ibrav(self.atoms.cell, params.ibrav)
-                self.master_calc_params[k].update(**celldms)
+                self.calculator_parameters[k].update(**celldms)
 
     def primitive_to_supercell(self, matrix: Optional[npt.NDArray[np.int_]] = None, **kwargs):
         # Converts to a supercell as given by a 3x3 transformation matrix
@@ -816,9 +813,9 @@ class Workflow(ABC):
         # Increase the indent level
         self.print_indent = self.parent.print_indent + 1
 
-        # Ensure altering self.master_calc_params won't affect self.parent.master_calc_params
-        if self.master_calc_params is self.parent.master_calc_params:
-            self.master_calc_params = copy.deepcopy(self.parent.master_calc_params)
+        # Ensure altering self.calculator_parameters won't affect self.parent.calculator_parameters
+        if self.calculator_parameters is self.parent.calculator_parameters:
+            self.calculator_parameters = copy.deepcopy(self.parent.calculator_parameters)
 
         # Setting from_scratch to a non-None value will override the value of subworkflow.from_scratch...
         if from_scratch is None:
@@ -843,8 +840,8 @@ class Workflow(ABC):
                 # Ensure subdirectory is a Path
                 subdirectory = Path(subdirectory)
                 # Update directories
-                for key in self.master_calc_params.keys():
-                    params = self.master_calc_params[key]
+                for key in self.calculator_parameters.keys():
+                    params = self.calculator_parameters[key]
                     for setting in params.are_paths:
                         if setting == 'pseudo_dir':
                             continue
@@ -890,7 +887,7 @@ class Workflow(ABC):
     def fromdict(cls, dct: Dict[str, Any]) -> Workflow:
         wf = cls(atoms=dct.pop('atoms'),
                  parameters=dct.pop('parameters'),
-                 master_calc_params=dct.pop('master_calc_params'),
+                 calculator_parameters=dct.pop('calculator_parameters'),
                  pseudopotentials=dct.pop('_pseudopotentials'),
                  gamma_only=dct.pop('_gamma_only'),
                  kgrid=dct.pop('_kgrid'),
@@ -920,47 +917,51 @@ class Workflow(ABC):
         with open(fname, 'r') as fd:
             bigdct = json_ext.loads(fd.read())
 
+        calcdict = bigdct['calculators']
+
         # Deal with the nested w90 subdictionaries
-        if 'w90' in bigdct:
+        if 'w90' in calcdict:
             for filling in ['occ', 'emp']:
                 for spin in ['up', 'down']:
                     # Add any keywords in the filling:spin subsubdictionary
-                    subsubdct = bigdct['w90'].get(filling, {}).get(spin, {})
-                    bigdct[f'w90_{filling}_{spin}'] = subsubdct
+                    subsubdct = calcdict['w90'].get(filling, {}).get(spin, {})
+                    calcdict[f'w90_{filling}_{spin}'] = subsubdct
                     # Add any keywords in the filling subdictionary
-                    subdct = {k: v for k, v in bigdct['w90'].get(filling, {}).items() if k not in ['up', 'down']}
-                    bigdct[f'w90_{filling}_{spin}'].update(subdct)
+                    subdct = {k: v for k, v in calcdict['w90'].get(filling, {}).items() if k not in ['up', 'down']}
+                    calcdict[f'w90_{filling}_{spin}'].update(subdct)
                     # Add any keywords in the main dictionary
-                    dct = {k: v for k, v in bigdct['w90'].items() if k not in ['occ', 'emp']}
-                    bigdct[f'w90_{filling}_{spin}'].update(dct)
+                    dct = {k: v for k, v in calcdict['w90'].items() if k not in ['occ', 'emp']}
+                    calcdict[f'w90_{filling}_{spin}'].update(dct)
                 # Also create a spin-independent set of parameters
-                bigdct[f'w90_{filling}'] = {}
-                bigdct[f'w90_{filling}'].update(subdct)
-                bigdct[f'w90_{filling}'].update(dct)
+                calcdict[f'w90_{filling}'] = {}
+                calcdict[f'w90_{filling}'].update(subdct)
+                calcdict[f'w90_{filling}'].update(dct)
             # Finally, remove the nested w90 entry
-            del bigdct['w90']
+            del calcdict['w90']
 
         # Deal with UI subdicts
-        if 'ui' in bigdct:
+        if 'ui' in calcdict:
             subdcts = {}
             keys = ['occ', 'emp']
             for key in keys:
                 # First, we must remove the occ and emp subdicts from the UI dict
-                if key in bigdct['ui']:
-                    subdcts[key] = bigdct['ui'].pop(key)
+                if key in calcdict['ui']:
+                    subdcts[key] = calcdict['ui'].pop(key)
 
-            # Now, we add the ui_occ and ui_emp calculators to master_calc_params
+            # Now, we add the ui_occ and ui_emp calculators to calculator_parameters
             for key in keys:
                 if key in subdcts:
                     # Add the corresponding subdict to the rest of the UI block
-                    bigdct[f'ui_{key}'] = dict(bigdct['ui'], **subdcts[key])
+                    calcdict[f'ui_{key}'] = dict(calcdict['ui'], **subdcts[key])
                 else:
                     # Duplicate the UI block
-                    bigdct[f'ui_{key}'] = bigdct['ui']
+                    calcdict[f'ui_{key}'] = calcdict['ui']
 
         # Deal with kc_wann subdicts
-        kc_wann_blocks = bigdct.pop('kc_wann', {'kc_ham': {}, 'kc_screen': {}, 'wann2kc': {}})
-        bigdct.update(**kc_wann_blocks)
+        kc_wann_blocks = calcdict.pop('kc_wann', {'kc_ham': {}, 'kc_screen': {}, 'wann2kc': {}})
+        calcdict.update(**kc_wann_blocks)
+
+        raise ValueError()
 
         # Check for unexpected blocks
         for block in bigdct:
@@ -989,7 +990,7 @@ class Workflow(ABC):
 
         # Loading calculator-specific settings. We generate a SettingsDict for every single kind of calculator,
         # regardless of whether or not there was a corresponding block in the json file
-        master_calc_params = {}
+        calculator_parameters = {}
         w90_block_projs: List = []
         w90_block_filling: List[bool] = []
         w90_block_spins: List[Union[str, None]] = []
@@ -1028,9 +1029,9 @@ class Workflow(ABC):
                 else:
                     w90_block_spins += [None for _ in range(len(projs))]
 
-            master_calc_params[block] = settings_class(**dct)
-            master_calc_params[block].update(
-                **{k: v for k, v in setup_parameters.items() if master_calc_params[block].is_valid(k)})
+            calculator_parameters[block] = settings_class(**dct)
+            calculator_parameters[block].update(
+                **{k: v for k, v in setup_parameters.items() if calculator_parameters[block].is_valid(k)})
 
         # Adding the projections to the workflow kwargs (this is unusual in that this is an attribute of the workflow
         # object but it is provided in the w90 subdictionary)
@@ -1041,7 +1042,7 @@ class Workflow(ABC):
 
         name = fname.replace('.json', '')
 
-        return cls(atoms, parameters=parameters, master_calc_params=master_calc_params, name=name, **workflow_kwargs)
+        return cls(atoms, parameters=parameters, calculator_parameters=calculator_parameters, name=name, **workflow_kwargs)
 
     def print_header(self):
         print(header())
@@ -1122,15 +1123,15 @@ class Workflow(ABC):
             if v != default or k in ['task', 'functional']:
                 bigdct['workflow'][k] = v
 
-        # "setup" block
+        # "atoms" block
         # Working out ibrav
-        ibrav = self.master_calc_params['kcp'].get('ibrav', self.master_calc_params['pw'].get('ibrav', 0))
+        ibrav = self.calculator_parameters['kcp'].get('ibrav', self.calculator_parameters['pw'].get('ibrav', 0))
 
-        bigdct['setup'] = {}
+        bigdct['atoms'] = {}
 
         # cell parameters
         if ibrav == 0:
-            bigdct['setup']['cell_parameters'] = utils.construct_cell_parameters_block(self.atoms)
+            bigdct['atoms']['cell_parameters'] = utils.construct_cell_parameters_block(self.atoms)
 
         # atomic positions
         if len(set(self.atoms.get_tags())) > 1:
@@ -1138,21 +1139,23 @@ class Workflow(ABC):
         else:
             labels = self.atoms.symbols
         if ibrav == 0:
-            bigdct['setup']['atomic_positions'] = {'positions': [
+            bigdct['atoms']['atomic_positions'] = {'positions': [
                 [label] + [str(x) for x in pos] for label, pos in zip(labels, self.atoms.get_positions())],
                 'units': 'angstrom'}
         else:
-            bigdct['setup']['atomic_positions'] = {'positions': [
+            bigdct['atoms']['atomic_positions'] = {'positions': [
                 [label] + [str(x) for x in pos] for label, pos in zip(labels, self.atoms.get_scaled_positions())],
                 'units': 'crystal'}
 
         # k-points
-        bigdct['setup']['k_points'] = {'kgrid': self.kgrid, 'kpath': self.kpath.path}
+        bigdct['k_points'] = {'kgrid': self.kgrid, 'kpath': self.kpath.path}
 
-        # Populating calculator-specific blocks
-        bigdct['w90'] = {}
-        bigdct['ui'] = {}
-        for code, params in self.master_calc_params.items():
+        # Populating the calculator subdictionary
+        bigdct['calculators'] = {}
+        calcdct = bigdct['calculators']
+        calcdct['w90'] = {}
+        calcdct['ui'] = {}
+        for code, params in self.calculator_parameters.items():
             # Remove default settings (ensuring we switch to using relative paths to check this)
             tmp, params.use_relative_paths = params.use_relative_paths, True
             params_dict = {k: v for k, v in params.items() if params.defaults.get(k, None) != v}
@@ -1166,37 +1169,37 @@ class Workflow(ABC):
             # pseudo directory belongs in setup, not elsewhere
             pseudo_dir = params_dict.pop('pseudo_dir', None)
             if pseudo_dir is not None and self.parameters.pseudo_library is None:
-                bigdct['setup']['control'] = {'pseudo_dir': str(pseudo_dir)}
+                calcdct['atoms']['control'] = {'pseudo_dir': str(pseudo_dir)}
 
             # If the params_dict is empty, don't add a block for this calculator
             if not params_dict and not code.startswith('w90'):
                 continue
 
             if code in ['pw', 'kcp']:
-                bigdct[code] = {}
+                calcdct[code] = {}
 
-                # Populate bigdct with the settings
+                # Populate calcdct with the settings
                 input_data = construct_namelist(params_dict)
                 for key, block in input_data.items():
 
                     if len(block) > 0:
-                        bigdct[code][key] = {k: v for k, v in dict(
+                        calcdct[code][key] = {k: v for k, v in dict(
                             block).items() if v is not None}
 
-            elif code in ['pw2wannier', 'wann2kc', 'kc_screen', 'kc_ham', 'projwfc', 'wann2kcp', 'plot']:
-                bigdct[code] = params_dict
+            elif code in ['pw2wannier', 'wann2kc', 'kc_screen', 'kc_ham', 'projwfc', 'wann2kcp']:
+                calcdct[code] = params_dict
             elif code.startswith('ui_'):
-                bigdct['ui'][code.split('_')[-1]] = params_dict
+                calcdct['ui'][code.split('_')[-1]] = params_dict
             elif code == 'ui':
-                bigdct['ui'].update(**params_dict)
+                calcdct['ui'].update(**params_dict)
             elif code.startswith('w90'):
                 nested_keys = code.split('_')[1:]
                 # The following very opaque code fills out the nested dictionary with the list of nested keys
                 for i, k in enumerate(nested_keys):
-                    parent_level = reduce(operator.getitem, nested_keys[:i], bigdct['w90'])
+                    parent_level = reduce(operator.getitem, nested_keys[:i], calcdct['w90'])
                     if k not in parent_level:
-                        reduce(operator.getitem, nested_keys[:i], bigdct['w90'])[k] = {}
-                reduce(operator.getitem, nested_keys[:-1], bigdct['w90'])[k] = params_dict
+                        reduce(operator.getitem, nested_keys[:i], calcdct['w90'])[k] = {}
+                reduce(operator.getitem, nested_keys[:-1], calcdct['w90'])[k] = params_dict
                 # Projections
                 filling = nested_keys[0] == 'occ'
                 if len(nested_keys) == 2:
@@ -1210,10 +1213,16 @@ class Workflow(ABC):
                     proj_kwarg = {'projections': projections[0].projections}
                 else:
                     proj_kwarg = {}
-                reduce(operator.getitem, nested_keys[:-1], bigdct['w90'])[k].update(**proj_kwarg)
+                reduce(operator.getitem, nested_keys[:-1], calcdct['w90'])[k].update(**proj_kwarg)
             else:
                 raise NotImplementedError(
                     f'Writing of {params.__class__.__name__} with write_json is not yet implemented')
+
+        other_blocks: Dict[str, Any] = {'plotting': self.plot_params}
+        for key, params in other_blocks.items():
+            dct: Dict[str, Any] = {k: v for k, v in params.items() if params.defaults.get(k, None) != v}
+            if dct:
+                bigdct[key] = dct
 
         return bigdct
 
@@ -1448,8 +1457,8 @@ def read_setup_dict(dct: Dict[str, Any], task: str):
     return atoms, parameters, psps_and_kpts
 
 
-def generate_default_master_calc_params() -> Dict[str, settings.SettingsDict]:
-    # Dictionary to be used as the default value for 'master_calc_params' when initializing a workflow
+def generate_default_calculator_parameters() -> Dict[str, settings.SettingsDict]:
+    # Dictionary to be used as the default value for 'calculator_parameters' when initializing a workflow
     # We create this dynamically in order for the .directory attributes to make sense
     return {'kcp': settings.KoopmansCPSettingsDict(),
             'kc_ham': settings.KoopmansHamSettingsDict(),
@@ -1488,7 +1497,7 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'plot': settings.PlotSettingsDict}
 
 
-def sanitize_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]]) \
+def sanitize_calculator_parameters(dct_in: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]]) \
         -> Dict[str, settings.SettingsDict]:
     dct_out: Dict[str, settings.SettingsDict] = {}
     for k, cls in settings_classes.items():
@@ -1503,5 +1512,5 @@ def sanitize_master_calc_params(dct_in: Union[Dict[str, Dict], Dict[str, setting
     for k in dct_in.keys():
         if k not in settings_classes:
             raise ValueError(
-                f'Unrecognized master_calc_params entry "{k}": valid options are ' + '/'.join(settings_classes.keys()))
+                f'Unrecognized calculator_parameters entry "{k}": valid options are ' + '/'.join(settings_classes.keys()))
     return dct_out

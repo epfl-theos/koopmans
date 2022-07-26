@@ -29,7 +29,7 @@ def test_ui_si(silicon, tmp_path, sys2file, datadir, ui_patch):
                                                           kgrid=[2, 2, 2],
                                                           kpath="GL",
                                                           name='si_ui',
-                                                          master_calc_params=parameters)
+                                                          calculator_parameters=parameters)
         wf.run()
 
         # Check the results. Usually result-checking is automated within the MockCalc class, but here...
