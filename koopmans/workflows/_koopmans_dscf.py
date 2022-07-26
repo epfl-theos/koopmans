@@ -565,17 +565,17 @@ class KoopmansDSCFWorkflow(Workflow):
                             if print_headings:
                                 self.print(f'Skipping; will use the screening parameter of an equivalent orbital')
                             skipped_orbitals = []
-                        if band not in self.bands.to_solve:
-                            continue
-                    elif not self.parameters.spin_polarized and band.spin == 1:
-                        # In this case, skip over the bands entirely and don't include it in the printout about which
-                        # bands we've skipped
+                    if band not in self.bands.to_solve:
                         continue
-                    else:
-                        # Skip the bands which can copy the screening parameter from another
-                        # calculation in the same orbital group
-                        skipped_orbitals.append(band.index)
-                        continue
+                elif not self.parameters.spin_polarized and band.spin == 1:
+                    # In this case, skip over the bands entirely and don't include it in the printout about which
+                    # bands we've skipped
+                    continue
+                else:
+                    # Skip the bands which can copy the screening parameter from another
+                    # calculation in the same orbital group
+                    skipped_orbitals.append(band.index)
+                    continue
                 if print_headings:
                     self.print(f'Orbital {band.index}', style='subheading')
 
@@ -615,14 +615,14 @@ class KoopmansDSCFWorkflow(Workflow):
                     if self.parameters.spin_polarized and band.spin == 1:
                         index_empty_to_save += self.bands.num(filled=False, spin=0)
 
-                    # Make ML-prediction and decide wheather we want to use this prediction
-                    if self.parameters.use_ml:
-                        alpha_predicted = mlfit.predict(band)
-                        # Wheather to use the ML-prediction
-                        use_prediction = mlfit.use_prediction()
-                    if not self.parameters.use_ml or not (use_prediction or self.parameters.alphas_from_file_for_debugging_ml_model):
-                        self.perform_fixed_band_calculations(
-                            band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band, directory, alpha_indep_calcs)
+                # Make ML-prediction and decide wheather we want to use this prediction
+                if self.parameters.use_ml:
+                    alpha_predicted = mlfit.predict(band)
+                    # Wheather to use the ML-prediction
+                    use_prediction = mlfit.use_prediction()
+                if not self.parameters.use_ml or not (use_prediction or self.parameters.alphas_from_file_for_debugging_ml_model):
+                    self.perform_fixed_band_calculations(
+                        band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band, directory, alpha_indep_calcs)
 
                 if self.parameters.use_ml and use_prediction:
                     alpha = alpha_predicted
@@ -1096,8 +1096,6 @@ class KoopmansDSCFWorkflow(Workflow):
         else:
             # self.functional in ['ki', 'pkipz']
             if filled:
-                import ipdb
-                ipdb.set_trace()
                 # DFT N-1
                 [dft_m1_calc] = [c for c in calcs if not c.parameters.do_orbdep
                                  and c.parameters.restart_mode == 'restart' and c.parameters.f_cutoff < 0.0001]
