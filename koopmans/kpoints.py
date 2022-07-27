@@ -5,6 +5,8 @@ Written by Edward Linscott, July 2022
 """
 
 
+from __future__ import annotations
+
 from typing import Any, Dict, List, Optional, Union
 
 from ase.cell import Cell
@@ -119,3 +121,11 @@ class Kpoints:
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Kpoints):
+            return False
+        for k, v in self.__dict__.items():
+            if v != getattr(other, k, None):
+                return False
+        return True
