@@ -48,9 +48,9 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                      and c.command.flags == ''][-len(self.projections):]
 
         if self.calculator_parameters['ui'].do_smooth_interpolation:
-            wannier_workflow = WannierizeWorkflow.fromparent(self, scf_kgrid=self.kgrid)
-            wannier_workflow.kgrid = [x * y for x,
-                                      y in zip(self.kgrid, self.calculator_parameters['ui'].smooth_int_factor)]
+            wannier_workflow = WannierizeWorkflow.fromparent(self, scf_kgrid=self.kpoints.grid)
+            wannier_workflow.kpoints.grid = [x * y for x,
+                                             y in zip(self.kpoints.grid, self.calculator_parameters['ui'].smooth_int_factor)]
 
             # Here, we allow for skipping of the smooth dft calcs (assuming they have been already run)
             # This is achieved via the optional argument of from_scratch in run(), which

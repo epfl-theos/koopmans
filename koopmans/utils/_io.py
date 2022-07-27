@@ -7,10 +7,10 @@ Moved into utils Sep 2021
 
 """
 
-from datetime import datetime
 import json
-from pathlib import Path
 import sys
+from datetime import datetime
+from pathlib import Path
 from typing import IO, Any, AnyStr, Dict, List, Tuple, Union
 
 import numpy as np
@@ -96,15 +96,6 @@ def read_alpha_file(directory: Path) -> List[float]:
             n_orbs = int(flines[0])
             alphas += [float(line.split()[1]) for line in flines[1:n_orbs + 1]]
     return alphas
-
-
-def read_kpoints_block(calc: Calculator, dct: Dict[str, Any]):
-    for k, v in dct.items():
-        if k in ['gamma_only', 'kgrid', 'koffset', 'kpath', 'kpath_density']:
-            calc.parameters[k] = v
-        else:
-            raise KeyError(f'Unrecognized option "{k}" provided in the k_points block')
-    return
 
 
 def read_atomic_species(calc: Calculator, dct: Dict[str, Any]):

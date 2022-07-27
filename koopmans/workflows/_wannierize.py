@@ -312,9 +312,9 @@ class WannierizeWorkflow(Workflow):
             else:
                 raise ValueError(f'Unrecognized orbital type {init_orbs} (must be "mlwfs" or "projwfs")')
 
-            if calc.parameters.gamma_only != self.gamma_only:
+            if calc.parameters.gamma_only != self.kpoints.gamma_only:
                 # forcing W90 to follow the same logic of PW for the gamma_trick
-                calc.parameters.gamma_only = self.gamma_only
+                calc.parameters.gamma_only = self.kpoints.gamma_only
         if calc_type == 'pw2wannier':
             if self._force_nspin2 and not self.parameters.spin_polarized:
                 calc.parameters.spin_component = 'up'

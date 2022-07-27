@@ -26,10 +26,9 @@ def test_ui_si(silicon, tmp_path, sys2file, datadir, ui_patch):
                                }
                       }
         wf = workflows.SingleUnfoldAndInterpolateWorkflow(atoms=silicon['atoms'],
-                                                          kgrid=[2, 2, 2],
-                                                          kpath="GL",
                                                           name='si_ui',
                                                           calculator_parameters=parameters)
+        wf.kpoints.set_path('GL', silicon['atoms'].cell)
         wf.run()
 
         # Check the results. Usually result-checking is automated within the MockCalc class, but here...

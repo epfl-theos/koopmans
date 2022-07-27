@@ -96,17 +96,17 @@ class KoopmansDSCFWorkflow(Workflow):
                     i_start = i_end
                 self.parameters.orbital_groups = orbital_groups
 
-            if not self.gamma_only:
+            if not self.kpoints.gamma_only:
                 # Update the KCP settings to correspond to a supercell (leaving self.atoms unchanged for the moment)
                 self.convert_kcp_to_supercell()
 
                 # Expanding self.parameters.orbital_groups to account for the supercell, grouping equivalent wannier
                 # functions together
                 for i_spin, nelec in enumerate(nelecs):
-                    assert self.kgrid is not None
-                    self.parameters.orbital_groups[i_spin] = [i for _ in range(np.prod(self.kgrid))
+                    assert self.kpoints.grid is not None
+                    self.parameters.orbital_groups[i_spin] = [i for _ in range(np.prod(self.kpoints.grid))
                                                               for i in self.parameters.orbital_groups[i_spin][:nelec]] \
-                        + [i for _ in range(np.prod(self.kgrid)) for i in
+                        + [i for _ in range(np.prod(self.kpoints.grid)) for i in
                            self.parameters.orbital_groups[i_spin][nelec:]]
 
         # Check the shape of self.parameters.orbital_groups is as expected
@@ -177,7 +177,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
     def convert_kcp_to_supercell(self):
         # Multiply all extensive KCP settings by the appropriate prefactor
-        prefactor = np.prod(self.kgrid)
+        prefactor = np.prod(self.kpoints.grid)
         for attr in ['nelec', 'nelup', 'neldw', 'nbnd', 'conv_thr', 'esic_conv_thr', 'tot_charge', 'tot_magnetization']:
             value = getattr(self.calculator_parameters['kcp'], attr, None)
             if value is not None:
@@ -259,7 +259,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         # Postprocessing
         if self.parameters.periodic:
-            if self.parameters.calculate_bands in [None, True] and self.projections and self.kpath is not None:
+            if self.parameters.calculate_bands in [None, True] and self.projections and self.kpoints.path is not None:
                 # Calculate interpolated band structure and DOS with UI
                 from koopmans import workflows
                 self.print(f'\nPostprocessing', style='heading')

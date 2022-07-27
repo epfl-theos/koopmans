@@ -48,6 +48,7 @@ from ase.spectrum.dosdata import GridDOSData
 from koopmans import calculators, settings, utils
 from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
+from koopmans.kpoints import Kpoints
 from koopmans.projections import ProjectionBlocks
 from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
                                        pseudo_database,
@@ -78,18 +79,8 @@ class Workflow(ABC):
     gamma_only : bool
         True if performing a calculation at the gamma-point only
 
-    kgrid : List[int]
-        a list of three integers specifying the shape of the regular grid of k-points
-
-    koffset : List[int]
-        a list of three integers specifying the offset from gamma of the regular grid of k-points
-
-    kpath : str | ase.dft.kpoints.BandPath
-        a string (or ASE ``BandPath`` object) specifying the k-path as defined by the special points of the Bravais
-        lattice e.g ``"GXYSG,XP"``
-
-    kpath_density : float
-        k-points per inverse Angstrom along the k-path
+    kpoints : koopmans.kpoints.Kpoints
+        a dataclass defining the k-point sampling and paths
 
     projections : ProjectionsBlocks
         The projections to be used in the Wannierization
@@ -122,11 +113,7 @@ class Workflow(ABC):
     parameters: settings.WorkflowSettingsDict
     calculator_parameters: Dict[str, settings.SettingsDict]
     name: str
-    _gamma_only: bool
-    _kgrid: Optional[List[int]]
-    _koffset: Optional[List[int]]
-    _kpath: BandPath
-    kpath_density: float
+    kpoints: Kpoints
     _pseudopotentials: Dict[str, str]
     pseudo_dir: Path
     projections: ProjectionBlocks
@@ -135,11 +122,7 @@ class Workflow(ABC):
     def __init__(self, atoms: Atoms,
                  pseudopotentials: Dict[str, str] = {},
                  pseudo_dir: Optional[Path] = None,
-                 gamma_only: bool = False,
-                 kgrid: Optional[List[int]] = [1, 1, 1],
-                 koffset: Optional[List[int]] = [0, 0, 0],
-                 kpath: Optional[Union[BandPath, str]] = None,
-                 kpath_density: float = 10.0,
+                 kpoints: Optional[Kpoints] = None,
                  projections: Optional[ProjectionBlocks] = None,
                  name: str = 'koopmans_workflow',
                  parameters: Union[Dict[str, Any], settings.WorkflowSettingsDict] = {},
@@ -159,13 +142,6 @@ class Workflow(ABC):
         self.calculations: List[calculators.Calc] = []
         self.silent = False
         self.print_indent = 1
-        self.gamma_only = gamma_only
-        if self.gamma_only:
-            self.kgrid = None
-            self.koffset = [0, 0, 0]
-        else:
-            self.kgrid = kgrid
-            self.koffset = koffset
 
         if projections is None:
             proj_list: List[List[Any]]
@@ -197,6 +173,19 @@ class Workflow(ABC):
 
         if all(self.atoms.pbc):
             self.atoms.wrap(pbc=True)
+
+        # kpoints
+        if self.parameters.periodic:
+            # By default, use ASE's default bandpath for this cell (see
+            # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
+            default_path = self.atoms.cell.bandpath().path
+        else:
+            default_path = 'G'
+        if kpoints is None:
+            kpoints = Kpoints(grid=None, offset=None, path=default_path, gamma_only=False, cell=self.atoms.cell)
+        elif kpoints.path is None:
+            kpoints.path = default_path
+        self.kpoints = kpoints
 
         # Pseudopotentials and pseudo_dir
         if pseudopotentials:
@@ -316,21 +305,6 @@ class Workflow(ABC):
             # Store the sanitized parameters
             self.calculator_parameters[block] = params
 
-        # Generate a default kpath
-        if kpath is None:
-            if self.parameters.periodic:
-                # By default, use ASE's default bandpath for this cell (see
-                # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
-                kpath = self.atoms.cell.bandpath().path
-            else:
-                kpath = 'G'
-
-        # Convert the kpath to a BandPath object
-        if isinstance(kpath, str):
-            self.kpath = utils.convert_kpath_str_to_bandpath(kpath, self.atoms.cell, kpath_density)
-        else:
-            self.kpath = kpath
-
         # If atoms has a calculator, overwrite the kpoints and pseudopotentials variables and then detach the calculator
         if atoms.calc is not None:
             utils.warn(f'You have initialized a {self.__class__.__name__} object with an atoms object that possesses '
@@ -390,40 +364,6 @@ class Workflow(ABC):
     def pseudopotentials(self, value: Dict[str, str]):
         self._pseudopotentials = value
 
-    @property
-    def gamma_only(self) -> bool:
-        return self._gamma_only
-
-    @gamma_only.setter
-    def gamma_only(self, value: bool):
-        self._gamma_only = value
-
-    @property
-    def kgrid(self) -> Optional[List[int]]:
-        return self._kgrid
-
-    @kgrid.setter
-    def kgrid(self, value: Optional[List[int]]):
-        self._kgrid = value
-
-    @property
-    def koffset(self) -> Optional[List[int]]:
-        return self._koffset
-
-    @koffset.setter
-    def koffset(self, value: Optional[List[int]]):
-        self._koffset = value
-
-    @property
-    def kpath(self) -> BandPath:
-        return self._kpath
-
-    @kpath.setter
-    def kpath(self, value: Union[str, BandPath]):
-        if isinstance(value, str):
-            raise NotImplementedError()
-        self._kpath = value
-
     @classmethod
     def fromparent(cls, parent_wf: Workflow, **kwargs: Any) -> Workflow:
         '''
@@ -444,9 +384,7 @@ class Workflow(ABC):
                        name=copy.deepcopy(parent_wf.name),
                        pseudopotentials=copy.deepcopy(parent_wf.pseudopotentials),
                        pseudo_dir=copy.deepcopy(parent_wf.pseudo_dir),
-                       gamma_only=copy.deepcopy(parent_wf.gamma_only),
-                       kgrid=copy.deepcopy(parent_wf.kgrid),
-                       kpath=copy.deepcopy(parent_wf.kpath),
+                       kpoints=copy.deepcopy(parent_wf.kpoints),
                        projections=copy.deepcopy(parent_wf.projections),
                        plot_params=copy.deepcopy(parent_wf.plot_params),
                        **other_kwargs)
@@ -602,15 +540,23 @@ class Workflow(ABC):
         all_kwargs.update(**calculator_parameters)
         all_kwargs.update(**kwargs)
 
-        # For the k-points, the Workflow has two options: self.kgrid and self.kpath. A calculator should only ever
-        # have one of these two. By default, use the kgrid.
+        # For the k-points, the Workflow has two options: self.kpoints.grid and self.kpoints.path. A calculator should only ever
+        # have one of these two. By default, use the grid.
         if 'kpts' in calculator_parameters.valid:
-            all_kwargs['kpts'] = kpts if kpts is not None else self.kgrid
+            all_kwargs['kpts'] = kpts if kpts is not None else self.kpoints.grid
 
-        # Add pseudopotential and kpt information to the calculator as required
+        # Add further information to the calculator as required
         for kw in ['pseudopotentials', 'pseudo_dir', 'gamma_only', 'kgrid', 'kpath', 'koffset', 'plot_params']:
             if kw not in all_kwargs and kw in calculator_parameters.valid:
-                all_kwargs[kw] = getattr(self, kw)
+                if kw == 'kgrid':
+                    val = self.kpoints.grid
+                elif kw == 'kpath':
+                    val = self.kpoints.path
+                elif kw == 'koffset':
+                    val = self.kpoints.offset
+                else:
+                    val = getattr(self, kw)
+                all_kwargs[kw] = val
 
         # Create the calculator
         calc = calc_class(atoms=copy.deepcopy(self.atoms), **all_kwargs)
@@ -631,8 +577,8 @@ class Workflow(ABC):
     def primitive_to_supercell(self, matrix: Optional[npt.NDArray[np.int_]] = None, **kwargs):
         # Converts to a supercell as given by a 3x3 transformation matrix
         if matrix is None:
-            assert self.kgrid is not None
-            matrix = np.diag(self.kgrid) if not self.gamma_only else np.identity(3, dtype=float)
+            assert self.kpoints.grid is not None
+            matrix = np.diag(self.kpoints.grid) if not self.kpoints.gamma_only else np.identity(3, dtype=float)
         assert np.shape(matrix) == (3, 3)
         self.atoms = make_supercell(self.atoms, matrix, **kwargs)
 
@@ -642,8 +588,8 @@ class Workflow(ABC):
         # Converts from a supercell to a primitive cell, as given by a 3x3 transformation matrix
         # The inverse of self.primitive_to_supercell()
         if matrix is None:
-            assert self.kgrid is not None
-            matrix = np.diag(self.kgrid)
+            assert self.kpoints.grid is not None
+            matrix = np.diag(self.kpoints.grid)
         assert np.shape(matrix) == (3, 3)
 
         # # Work out the atoms belonging to the primitive cell
@@ -889,9 +835,7 @@ class Workflow(ABC):
                  parameters=dct.pop('parameters'),
                  calculator_parameters=dct.pop('calculator_parameters'),
                  pseudopotentials=dct.pop('_pseudopotentials'),
-                 gamma_only=dct.pop('_gamma_only'),
-                 kgrid=dct.pop('_kgrid'),
-                 kpath=dct.pop('_kpath'),
+                 kpoints=dct.pop('kpoints'),
                  projections=dct.pop('projections'),
                  autogenerate_settings=False)
 
@@ -917,7 +861,7 @@ class Workflow(ABC):
         with open(fname, 'r') as fd:
             bigdct = json_ext.loads(fd.read())
 
-        calcdict = bigdct['calculators']
+        calcdict = bigdct['calculator_parameters']
 
         # Deal with the nested w90 subdictionaries
         if 'w90' in calcdict:
@@ -1148,11 +1092,11 @@ class Workflow(ABC):
                 'units': 'crystal'}
 
         # k-points
-        bigdct['k_points'] = {'kgrid': self.kgrid, 'kpath': self.kpath.path}
+        bigdct['kpoints'] = self.kpoints.tojson()
 
         # Populating the calculator subdictionary
-        bigdct['calculators'] = {}
-        calcdct = bigdct['calculators']
+        bigdct['calculator_parameters'] = {}
+        calcdct = bigdct['calculator_parameters']
         calcdct['w90'] = {}
         calcdct['ui'] = {}
         for code, params in self.calculator_parameters.items():
