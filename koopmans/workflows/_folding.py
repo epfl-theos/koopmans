@@ -38,9 +38,9 @@ class FoldToSupercellWorkflow(Workflow):
                 calc_w2k.prefix = 'w2kcp'
 
                 # Checking that gamma_trick is consistent with gamma_only
-                if calc_w2k.parameters.gamma_trick and not self.gamma_only:
+                if calc_w2k.parameters.gamma_trick and not self.kpoints.gamma_only:
                     calc_w2k.parameters.gamma_trick = False
-                elif not calc_w2k.parameters.gamma_trick and self.gamma_only:
+                elif not calc_w2k.parameters.gamma_trick and self.kpoints.gamma_only:
                     calc_w2k.parameters.gamma_trick = True
                 else:
                     pass

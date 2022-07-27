@@ -18,6 +18,7 @@ import numpy.typing as npt
 
 from ase.atoms import Atoms
 from ase.calculators.calculator import Calculator
+from ase.cell import Cell
 from ase.dft.kpoints import BandPath, bandpath
 from ase.io.espresso import label_to_symbol, label_to_tag
 
@@ -98,14 +99,10 @@ def read_alpha_file(directory: Path) -> List[float]:
     return alphas
 
 
-def read_atomic_species(calc: Calculator, dct: Dict[str, Any]):
-    calc.parameters['pseudopotentials'] = {l[0]: l[2] for l in dct['species']}
-
-
-def read_atomic_positions(calc: Calculator, dct: Dict[str, Any]):
+def read_atomic_positions(atoms: Atoms, dct: Dict[str, Any]):
 
     pos_array = np.array(dct['positions'])
-    symbols = [label_to_symbol(p) for p in pos_array[:, 0]]
+    symbols: List[str] = [label_to_symbol(p) for p in pos_array[:, 0]]
     tags = [label_to_tag(p) for p in pos_array[:, 0]]
     positions = np.array(pos_array[:, 1:], dtype=float)
 
@@ -119,21 +116,22 @@ def read_atomic_positions(calc: Calculator, dct: Dict[str, Any]):
         raise NotImplementedError(
             f'atomic_positions units = {units} is not yet implemented')
 
-    if not calc.atoms.cell:
+    if not atoms.cell:
         raise ValueError('io.read_atomic_positions() must be called after io.read_cell_parameters()')
 
+    assert len(atoms) == 0, 'Atoms should be length zero at this stage'
     if scale_positions:
-        calc.atoms = Atoms(symbols, scaled_positions=positions, calculator=calc, cell=calc.atoms.cell)
+        atoms += Atoms(symbols, scaled_positions=positions, cell=atoms.cell)
     else:
-        calc.atoms = Atoms(symbols, positions=positions, calculator=calc, cell=calc.atoms.cell)
-    calc.atoms.set_tags(tags)
+        atoms += Atoms(symbols, positions=positions, cell=atoms.cell)
+    atoms.set_tags(tags)
 
 
-def read_cell_parameters(calc: Calculator, dct: dict):
+def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
     cell = dct.get('vectors', None)
     units = dct.get('units', None)
     if cell is None and units in [None, 'alat']:
-        if 'ibrav' not in calc.parameters:
+        if 'ibrav' not in dct:
             raise KeyError('Cell has not been defined. Please specify either "ibrav" and related "celldm"s) '
                            ' or a "cell_parameters" block in "setup"')
     elif cell is not None and units == 'angstrom':
@@ -143,7 +141,8 @@ def read_cell_parameters(calc: Calculator, dct: dict):
         raise NotImplementedError('the combination of vectors, ibrav, & units '
                                   'in the cell_parameter block cannot be read (may not yet be '
                                   'implemented)')
-    return cell
+    atoms.cell = cell
+    return
 
 
 print_call_end = '\n'

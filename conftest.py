@@ -186,8 +186,9 @@ def silicon() -> Dict[str, Any]:
             'calculator_parameters': {'pw': {'nbnd': 10},
                                       'w90_emp': {'dis_froz_max': 10.6, 'dis_win_max': 16.9}
                                       },
-            'plot_params': {'Emin': -10, 'Emax': 4, 'degauss': 0.5},
+            'plotting': {'Emin': -10, 'Emax': 4, 'degauss': 0.5},
             'projections': si_projs,
+            'kpoints': kpoints,
             'ecutwfc': 40.0,
             'smooth_int_factor': 2}
 
@@ -235,6 +236,6 @@ def gaas() -> Dict[str, Any]:
                                       },
             'ecutwfc': 40.0,
             'smooth_int_factor': 4,
-            'plot_params': {'degauss': 0.5},
+            'plotting': {'degauss': 0.5},
             'projections': gaas_projs,
             'kpoints': kpoints}

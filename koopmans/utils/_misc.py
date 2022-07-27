@@ -28,14 +28,17 @@ def flatten(l: Union[List[Any], Iterable[Any]]) -> Generator[Any, None, None]:
 
 def convert_kpath_str_to_bandpath(path: str, cell: Cell, density: Optional[float] = None) -> BandPath:
     special_points: Dict[str, np.ndarray] = cell.bandpath().special_points
-    return BandPath(cell=cell, path=path, special_points=special_points).interpolate(density=density)
+    bp = BandPath(cell=cell, path=path, special_points=special_points)
+    if len(path) > 1:
+        bp = bp.interpolate(density=density)
+    return bp
 
 
-def kpath_length(path: BandPath, cell: Cell) -> float:
+def kpath_length(path: BandPath) -> float:
     _, paths = resolve_kpt_path_string(path.path, path.special_points)
     points = np.concatenate(paths)
     dists = points[1:] - points[:-1]
-    lengths: List[float] = [float(np.linalg.norm(d)) for d in kpoint_convert(cell, skpts_kc=dists)]
+    lengths: List[float] = [float(np.linalg.norm(d)) for d in kpoint_convert(path.cell, skpts_kc=dists)]
 
     i = 0
     for path in paths[:-1]:
@@ -45,8 +48,9 @@ def kpath_length(path: BandPath, cell: Cell) -> float:
     return np.sum(lengths)
 
 
-def kpath_to_dict(path: BandPath, cell: Cell) -> Dict[str, Any]:
+def kpath_to_dict(path: BandPath) -> Dict[str, Any]:
     dct = {}
-    dct['kpath'] = path.path
-    dct['kpath_density'] = len(path.kpts) / kpath_length(path, cell)
+    dct['path'] = path.path
+    if len(path.path) > 1:
+        dct['density'] = len(path.kpts) / kpath_length(path)
     return dct

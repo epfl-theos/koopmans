@@ -268,7 +268,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 ui_workflow.run(subdirectory='postproc')
             else:
                 # Generate the DOS only
-                dos = DOS(self.calculations[-1], width=self.plot_params.degauss, npts=self.plot_params.nstep + 1)
+                dos = DOS(self.calculations[-1], width=self.plotting.degauss, npts=self.plotting.nstep + 1)
                 self.calculations[-1].results['dos'] = dos
 
     def perform_initialization(self) -> None:

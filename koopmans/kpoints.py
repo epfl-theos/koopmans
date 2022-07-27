@@ -5,15 +5,13 @@ Written by Edward Linscott, July 2022
 """
 
 
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from ase.cell import Cell
 from ase.dft.kpoints import BandPath
 from koopmans import utils
 
 
-@dataclass
 class Kpoints:
     """
     A class for storing k-point information
@@ -33,11 +31,11 @@ class Kpoints:
     """
 
     _grid: Optional[List[int]]
-    _offset: Optional[List[int]]
+    _offset: List[int]
     _path: Optional[BandPath]
     gamma_only: bool
 
-    def __init__(self, grid: Optional[List[int]] = None, offset: Optional[List[int]] = None, path: Optional[Union[str, BandPath]] = None, gamma_only: bool = False, cell: Optional[Cell] = None, density: float = 10.0):
+    def __init__(self, grid: Optional[List[int]] = None, offset: List[int] = [0, 0, 0], path: Optional[Union[str, BandPath]] = None, gamma_only: bool = False, cell: Optional[Cell] = None, density: float = 10.0):
         """
         Initialize a Kpoint object. The path can be initialized using a string, but if so the additional requirements
         density and cell are required, where...
@@ -60,6 +58,9 @@ class Kpoints:
 
         self.set_path(path, cell, density)
 
+    def __repr__(self):
+        return 'Kpoints(' + ', '.join(f'{k.lstrip("_")}={v}' for k, v in self.__dict__.items() if v is not None) + ')'
+
     @property
     def grid(self) -> Optional[List[int]]:
         return self._grid
@@ -72,16 +73,15 @@ class Kpoints:
         self._grid = value
 
     @property
-    def offset(self) -> Optional[List[int]]:
+    def offset(self) -> List[int]:
         return self._offset
 
     @offset.setter
-    def offset(self, value: Optional[List[int]]):
-        if value is not None:
-            if len(value) != 3:
-                raise ValueError('"offset" must be a list of three integers')
-            if any([x not in [0, 1] for x in value]):
-                raise ValueError('"offset" must only contain either 0 or 1s')
+    def offset(self, value: List[int]):
+        if len(value) != 3:
+            raise ValueError('"offset" must be a list of three integers')
+        if any([x not in [0, 1] for x in value]):
+            raise ValueError('"offset" must only contain either 0 or 1s')
         self._offset = value
 
     @property
@@ -102,8 +102,15 @@ class Kpoints:
             path = utils.convert_kpath_str_to_bandpath(path, cell, density)
         self.path = path
 
-    def tojson(self) -> Dict[str, Union[str, bool, List[int], BandPath]]:
-        return {k.lstrip('_'): v for k, v in self.__dict__.items()}
+    def tojson(self) -> Dict[str, Union[str, bool, List[int], Dict[str, Any]]]:
+        dct: Dict[str, Union[str, bool, List[int], Dict[str, Any]]] = {}
+        for k, v in self.__dict__.items():
+            k = k.lstrip('_')
+            if isinstance(v, BandPath):
+                dct.update(**utils.kpath_to_dict(v))
+            else:
+                dct[k] = v
+        return dct
 
     def todict(self) -> Dict[str, Union[str, bool, List[int], BandPath]]:
         dct = self.tojson()
