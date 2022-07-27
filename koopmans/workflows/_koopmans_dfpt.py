@@ -188,14 +188,14 @@ class KoopmansDFPTWorkflow(Workflow):
 
         # Calculate the Hamiltonian
         self.print('Construction of the Hamiltonian', style='heading')
-        kc_ham_calc = self.new_calculator('kc_ham', kpts=self.kpath)
+        kc_ham_calc = self.new_calculator('kc_ham', kpts=self.kpoints.path)
 
         if self.parameters.calculate_alpha and kc_ham_calc.parameters.lrpa != kc_screen_calc.parameters.lrpa:
             raise ValueError('Do not set "lrpa" to different values in the "screen" and "ham" blocks')
         self.run_calculator(kc_ham_calc)
 
         # Postprocessing
-        if self.parameters.periodic and self.projections and self.kpath is not None \
+        if self.parameters.periodic and self.projections and self.kpoints.path is not None \
                 and self.calculator_parameters['ui'].do_smooth_interpolation:
             from koopmans.workflows import UnfoldAndInterpolateWorkflow
             self.print(f'\nPostprocessing', style='heading')

@@ -37,7 +37,7 @@ class Kpoints:
     _path: Optional[BandPath]
     gamma_only: bool
 
-    def __init__(self, grid: Optional[List[int]] = None, offset: List[int] = [0, 0, 0], path: Optional[Union[str, BandPath]] = None, gamma_only: bool = False, cell: Optional[Cell] = None, density: float = 10.0):
+    def __init__(self, grid: List[int] = [1, 1, 1], offset: List[int] = [0, 0, 0], path: Optional[Union[str, BandPath]] = None, gamma_only: bool = False, cell: Optional[Cell] = None, density: float = 10.0):
         """
         Initialize a Kpoint object. The path can be initialized using a string, but if so the additional requirements
         density and cell are required, where...
@@ -94,7 +94,7 @@ class Kpoints:
     def path(self, value: Optional[BandPath]):
         self._path = value
 
-    def set_path(self, path: Union[str, BandPath], cell: Optional[Cell] = None, density: float = 10.0):
+    def set_path(self, path: Optional[Union[str, BandPath]], cell: Optional[Cell] = None, density: float = 10.0):
         # A function for setting self.path with a string
         if isinstance(path, str):
             # Convert the string to a BandPath object

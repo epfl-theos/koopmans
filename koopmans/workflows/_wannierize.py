@@ -46,7 +46,7 @@ class WannierizeWorkflow(Workflow):
             for spin in spins:
                 # Update the projections_blocks to account for additional occupied bands
                 num_wann_occ = self.projections.num_bands(occ=True, spin=spin)
-                nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, pw_params.pseudo_dir)
+                nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
                 if self.parameters.spin_polarized:
                     num_bands_occ = nelec - pw_params.get('tot_charge', 0)
                     if spin == 'up':
@@ -96,7 +96,7 @@ class WannierizeWorkflow(Workflow):
         self._scf_kgrid = scf_kgrid
 
         # Calculate by default the band structure
-        if self.parameters.calculate_bands is None and len(self.kpath.kpts) > 1:
+        if self.parameters.calculate_bands is None and len(self.kpoints.path.kpts) > 1:
             self.parameters.calculate_bands = True
         else:
             self.parameters.calculate_bands = False
@@ -182,7 +182,7 @@ class WannierizeWorkflow(Workflow):
         if self.parameters.calculate_bands:
             # Run a "bands" calculation, making sure we don't overwrite
             # the scf/nscf tmp files by setting a different prefix
-            calc_pw_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpath)
+            calc_pw_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpoints.path)
             calc_pw_bands.directory = 'wannier'
             calc_pw_bands.prefix = 'bands'
             calc_pw_bands.parameters.prefix += '_bands'
@@ -222,7 +222,7 @@ class WannierizeWorkflow(Workflow):
 
             # Work out the vertical shift to set the valence band edge to zero
             pw_eigs = calc_pw_bands.results['band structure'].energies
-            nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.pseudo_dir)
+            nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
             tot_charge = calc_pw.parameters.get('tot_charge', 0)
             nelec -= tot_charge
 

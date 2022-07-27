@@ -179,7 +179,7 @@ class Workflow(ABC):
         else:
             default_path = 'G'
         if kpoints is None:
-            kpoints = Kpoints(grid=None, path=default_path, gamma_only=False, cell=self.atoms.cell)
+            kpoints = Kpoints(path=default_path, gamma_only=False, cell=self.atoms.cell)
         elif kpoints.path is None:
             kpoints.path = default_path
         self.kpoints = kpoints
@@ -579,8 +579,11 @@ class Workflow(ABC):
     def primitive_to_supercell(self, matrix: Optional[npt.NDArray[np.int_]] = None, **kwargs):
         # Converts to a supercell as given by a 3x3 transformation matrix
         if matrix is None:
-            assert self.kpoints.grid is not None
-            matrix = np.diag(self.kpoints.grid) if not self.kpoints.gamma_only else np.identity(3, dtype=float)
+            if self.kpoints.gamma_only:
+                matrix = np.identity(3, dtype=float)
+            else:
+                assert self.kpoints.grid is not None
+                matrix = np.diag(self.kpoints.grid)
         assert np.shape(matrix) == (3, 3)
         self.atoms = make_supercell(self.atoms, matrix, **kwargs)
 
