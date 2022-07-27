@@ -3,9 +3,9 @@ Script for regenerating pseudopotentials missing PP_PSWFC fields with oncvpsp(r)
 Written by Edward Linscott, March 2022
 '''
 
+import subprocess
 from glob import glob
 from pathlib import Path
-import subprocess
 
 from koopmans.pseudopotentials import read_pseudo_file
 

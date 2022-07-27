@@ -9,16 +9,17 @@ Converted workflows from functions to objects Nov 2020
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from contextlib import contextmanager
 import copy
-from functools import reduce
 import json as json_ext
 import operator
 import os
-from pathlib import Path
 import shutil
 import subprocess
+import typing
+from abc import ABC, abstractmethod
+from contextlib import contextmanager
+from functools import reduce
+from pathlib import Path
 from types import ModuleType
 from typing import Any, Dict, Generator, List, Optional, Type, TypeVar, Union
 
@@ -51,16 +52,14 @@ from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.ml_utils._ml_models import MLModel
 from koopmans.projections import ProjectionBlocks
-from koopmans.pseudopotentials import (
-    fetch_pseudo,
-    nelec_from_pseudos,
-    pseudo_database,
-    pseudos_library_directory,
-    valence_from_pseudo,
-)
+from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
+                                       pseudo_database,
+                                       pseudos_library_directory,
+                                       valence_from_pseudo)
 from koopmans.references import bib_data
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
+W = TypeVar('W', bound='Workflow')
 
 
 class Workflow(ABC):
@@ -443,7 +442,7 @@ class Workflow(ABC):
         self._kpath = value
 
     @classmethod
-    def fromparent(cls, parent_wf: Workflow, **kwargs: Any) -> Workflow:
+    def fromparent(cls: Type[W], parent_wf: Workflow, **kwargs: Any) -> W:
         '''
         Creates a subworkflow with the same configuration as the parent workflow
 

@@ -1,8 +1,8 @@
 # coding: utf-8
 # Distributed under the terms of the MIT License.
 
-from glob import glob
 import os
+from glob import glob
 from typing import Dict
 
 from setuptools import find_packages, setup

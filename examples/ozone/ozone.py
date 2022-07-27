@@ -7,8 +7,8 @@ Written by Edward Linscott, Jun 2021
 import matplotlib.pyplot as plt
 import numpy as np
 
-from koopmans import io, utils
 import koopmans.mpl_config
+from koopmans import io, utils
 
 
 def run(from_scratch=False):

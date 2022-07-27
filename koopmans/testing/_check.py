@@ -1,6 +1,6 @@
-from abc import ABC, abstractmethod
 import itertools
 import json
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
@@ -10,20 +10,13 @@ from ase.dft.dos import DOS
 from ase.spectrum.band_structure import BandStructure
 from ase.spectrum.doscollection import GridDOSCollection
 from koopmans import base_directory, utils
-from koopmans.calculators import (
-    Calc,
-    EnvironCalculator,
-    KoopmansCPCalculator,
-    KoopmansHamCalculator,
-    KoopmansScreenCalculator,
-    ProjwfcCalculator,
-    PW2WannierCalculator,
-    PWCalculator,
-    UnfoldAndInterpolateCalculator,
-    Wann2KCCalculator,
-    Wann2KCPCalculator,
-    Wannier90Calculator,
-)
+from koopmans.calculators import (Calc, EnvironCalculator,
+                                  KoopmansCPCalculator, KoopmansHamCalculator,
+                                  KoopmansScreenCalculator, ProjwfcCalculator,
+                                  PW2WannierCalculator, PWCalculator,
+                                  UnfoldAndInterpolateCalculator,
+                                  Wann2KCCalculator, Wann2KCPCalculator,
+                                  Wannier90Calculator)
 from koopmans.io import read_kwf as read_encoded_json
 
 from ._utils import benchmark_filename, metadata_filename

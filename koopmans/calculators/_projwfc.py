@@ -6,8 +6,8 @@ projwfc.x calculator module for koopmans
 
 import copy
 import os
-from pathlib import Path
 import re
+from pathlib import Path
 from typing import Dict, List, Optional
 
 import numpy as np

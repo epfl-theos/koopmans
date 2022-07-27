@@ -1,12 +1,11 @@
 from pathlib import Path
 from typing import Dict
+
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import quad
-import matplotlib.pyplot as plt
+
 import koopmans.ml_utils._basis_functions as basis
-
-
-import matplotlib.pyplot as plt
 
 Debug = True
 

@@ -1,13 +1,15 @@
 from pathlib import Path
 from typing import Tuple
+
 import matplotlib.pyplot as plt
-from koopmans import utils
 import numpy as np
+
+from koopmans import utils
 
 
 def plot_calculated_vs_predicted(y: np.ndarray, y_pred: np.ndarray, qoi: str, filename: Path, metric: Tuple[str, float]):
     """
-    Plot the the calculated vs predicted alpha parameters (or other quantities of interest) for a given number of training samples. 
+    Plot the the calculated vs predicted alpha parameters (or other quantities of interest) for a given number of training samples.
     """
     fig, ax = plt.subplots(1, 1, figsize=(7.5, 7.5))
     # TODO: Yannick: find optimal boundaries of the plot
@@ -33,7 +35,7 @@ def plot_calculated_vs_predicted(y: np.ndarray, y_pred: np.ndarray, qoi: str, fi
 
 def plot_error_histogram(y: np.ndarray, y_pred: np.ndarray, qoi: str, filename: Path, metric: Tuple[str, float]):
     """
-    Plot the error histogram of the alpha parameters (or other quantities of interest) for a given number of training samples. 
+    Plot the error histogram of the alpha parameters (or other quantities of interest) for a given number of training samples.
     """
     error = np.abs(y-y_pred)
     fig, ax = plt.subplots(1, 1, figsize=(7.5, 7.5))
@@ -60,7 +62,7 @@ def plot_error_histogram(y: np.ndarray, y_pred: np.ndarray, qoi: str, filename: 
 
 def plot_convergence(convergence_points: np.ndarray, means: np.ndarray, stddevs: np.ndarray, qoi: str, metric_name: str, spin: int, filename: Path):
     """
-    Plot the convergence of the MAE (or other error-metrics) of the alpha parameters (or other quantities of interest) as a function of the training samples. 
+    Plot the convergence of the MAE (or other error-metrics) of the alpha parameters (or other quantities of interest) as a function of the training samples.
     """
 
     # save the result in text form for easier debugging

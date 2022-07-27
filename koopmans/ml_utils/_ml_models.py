@@ -1,6 +1,7 @@
-from abc import ABC, abstractmethod
 import copy
+from abc import ABC, abstractmethod
 from typing import Dict, Union
+
 import numpy as np
 from deepdiff import DeepDiff
 from sklearn.linear_model import Ridge
@@ -102,7 +103,7 @@ class MLModel():
 
     def predict(self, x_test: np.ndarray):
         """
-        Make a prediction of using the trained model. 
+        Make a prediction of using the trained model.
         """
 
         if self.model.is_trained:
@@ -113,7 +114,7 @@ class MLModel():
 
     def train(self):
         """
-        Reset the model and train the model (including the StandardScaler) with all training data added so far. 
+        Reset the model and train the model (including the StandardScaler) with all training data added so far.
         """
         self.init_and_reset_model()
         self.model.fit(self.X_train, self.Y_train)

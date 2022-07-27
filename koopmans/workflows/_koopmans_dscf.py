@@ -7,8 +7,8 @@ Split off from workflow.py Oct 2020
 
 """
 
-from pathlib import Path
 import shutil
+from pathlib import Path
 from typing import List, Optional, Tuple
 
 import numpy as np
@@ -19,8 +19,8 @@ from koopmans import calculators, utils
 from koopmans.bands import Band, Bands
 from koopmans.settings import KoopmansCPSettingsDict
 
-from ._workflow import Workflow
 from ._ml import MLFiitingWorkflow
+from ._workflow import Workflow
 
 
 class KoopmansDSCFWorkflow(Workflow):

@@ -1,6 +1,7 @@
 from typing import Any, List
 
 from koopmans import utils
+
 from ._utils import Setting
 from ._workflow import WorkflowSettingsDict
 

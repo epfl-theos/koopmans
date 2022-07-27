@@ -9,8 +9,8 @@ Written by Edward Linscott May 2020
 
 import sys
 import traceback
-from typing import Optional, TextIO, Type, Union
 import warnings
+from typing import Optional, TextIO, Type, Union
 
 
 def _warning(message: Union[str, Warning], category: Type[Warning] = UserWarning, filename: str = '', lineno: int = -1, file: Optional[TextIO] = None, line: Optional[str] = None) -> None:

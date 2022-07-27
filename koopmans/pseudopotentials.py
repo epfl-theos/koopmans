@@ -8,12 +8,12 @@ Split into a separate module Sep 2021
 
 """
 
-from dataclasses import dataclass
-from itertools import chain
 import json
 import os
-from pathlib import Path
 import re
+from dataclasses import dataclass
+from itertools import chain
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from upf_to_json import upf_to_json

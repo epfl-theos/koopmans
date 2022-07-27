@@ -1,8 +1,9 @@
 from pathlib import Path
-from typing import List, Tuple, Dict
-from ase import Atoms
+from typing import Dict, List, Tuple
+
 import numpy as np
 
+from ase import Atoms
 from koopmans.bands import Band
 
 
@@ -28,7 +29,7 @@ def test_cart2sph(r_spherical: np.ndarray, debug_out: Path):
 
 def test_translate_to_new_integration_domain(f: np.ndarray, f_new: np.ndarray, wfc_center: np.ndarray, debug_out: Path):
     """
-    Write some quantities to file to find problems in the function translate_to_new_integration_domain. 
+    Write some quantities to file to find problems in the function translate_to_new_integration_domain.
     """
 
     with open(debug_out, 'a') as file:
@@ -97,7 +98,7 @@ def get_orbital_density_to_xsf_grid(rho_r_reconstructed: np.ndarray, nr_xml: Tup
 
 def get_reconstructed_orbital_densities(total_basis_array: np.ndarray, coefficients: List[float]) -> np.ndarray:
     """
-    Reconstruct the density with the truncated expansion coefficients multiplied with the corresponding basis functions. 
+    Reconstruct the density with the truncated expansion coefficients multiplied with the corresponding basis functions.
     """
 
     rho_r_reconstruced = np.einsum('ijkl,l->ijk', total_basis_array, coefficients)
@@ -106,7 +107,7 @@ def get_reconstructed_orbital_densities(total_basis_array: np.ndarray, coefficie
 
 def map_again_to_original_grid(f_new: np.ndarray, wfc_center_index: Tuple[int, int, int], nr_xml: Tuple[int, int, int], nr_new_integration_domain: Tuple[int, int, int]):
     """
-    Maps the function f_new defined on the new integration domain back to the unit cell. 
+    Maps the function f_new defined on the new integration domain back to the unit cell.
     """
 
     f_on_reg_grid = np.zeros((nr_xml[2]-1, nr_xml[1]-1, nr_xml[0]-1), dtype=float)
@@ -121,7 +122,7 @@ def map_again_to_original_grid(f_new: np.ndarray, wfc_center_index: Tuple[int, i
 
 def print_to_xsf_file(filename: Path, atoms: Atoms, list_vectors: List[np.ndarray], nr_xml: Tuple[int, int, int], wfc_centers: List[np.ndarray] = []):
     """
-    Writes a quantity defined on the real space grid to a xsf file, which can be plotted with xcrysden    
+    Writes a quantity defined on the real space grid to a xsf file, which can be plotted with xcrysden
     """
 
     cell_parameters = atoms.get_cell()

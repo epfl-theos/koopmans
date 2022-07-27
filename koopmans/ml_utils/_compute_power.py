@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Dict
+
 import numpy as np
 
 from koopmans.bands import Bands
@@ -23,7 +24,7 @@ def read_coeff_matrix(coff_orb: np.ndarray, coff_tot: np.ndarray, n_max: int, l_
 
 def compute_power_mat(coff_matrix: np.ndarray, n_max: int, l_max: int) -> np.ndarray:
     """
-    Computes the power_spectrum from the coefficient matrices. 
+    Computes the power_spectrum from the coefficient matrices.
     """
 
     # Note that we only store the inequivalent entries and hence the second for-loops of each elements iterate only over
@@ -41,7 +42,7 @@ def compute_power_mat(coff_matrix: np.ndarray, n_max: int, l_max: int) -> np.nda
 
 def compute_power(n_max: int, l_max: int, dirs: Dict[str, Path], bands: Bands):
     """
-    Loads the coefficient vectors corresponding to the orbital and to the total density, computes the corresponding power spectrum and saves it to a file. 
+    Loads the coefficient vectors corresponding to the orbital and to the total density, computes the corresponding power spectrum and saves it to a file.
     """
 
     for band in bands:

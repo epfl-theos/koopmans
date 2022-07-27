@@ -1,15 +1,17 @@
-from attr import s
-from ._trajectory import TrajectoryWorkflow
-from abc import ABC
 from pathlib import Path
 from typing import Any, Dict, List
-import matplotlib.pyplot as plt
+
 import numpy as np
 from sklearn.metrics import mean_absolute_error, r2_score
+
 from ase import Atoms, io
 from koopmans import utils
 from koopmans.ml_utils import MLModel
-from koopmans.ml_utils._plotting_routines import plot_calculated_vs_predicted, plot_error_histogram, plot_convergence
+from koopmans.ml_utils._plotting_routines import (plot_calculated_vs_predicted,
+                                                  plot_convergence,
+                                                  plot_error_histogram)
+
+from ._trajectory import TrajectoryWorkflow
 from ._workflow import Workflow
 
 
@@ -66,7 +68,7 @@ class ConvergenceMLWorkflow(Workflow):
     def inititalize_directories(self, grid_search_mode):
         '''
         Delete the old folder of the convergence analysis and initialize
-        all new folders needed for the convergence analysis. 
+        all new folders needed for the convergence analysis.
         '''
         convergence_dir = Path.cwd() / 'convergence_analysis'
         utils.system_call(f'rm -rf {convergence_dir}')
@@ -94,14 +96,14 @@ class ConvergenceMLWorkflow(Workflow):
         """
         Depending on the provided input parameters this workflow performs either of the following:
 
-        i) If for at least one the hyper parameters (n_max, l_max, r_min, r_max) a list with more than one number is provided, 
+        i) If for at least one the hyper parameters (n_max, l_max, r_min, r_max) a list with more than one number is provided,
         we perform a grid search w.r.t. these parameters.
-        That means that the MAE (or other error-metrics) of the alpha parameters (or other quantities of interest) is computed 
-        for every valid (r_min<r_max) combination of (n_max, l_max, r_min, r_max) when trained on (1,..,number_of_training_samples) and evaluated on the 
+        That means that the MAE (or other error-metrics) of the alpha parameters (or other quantities of interest) is computed
+        for every valid (r_min<r_max) combination of (n_max, l_max, r_min, r_max) when trained on (1,..,number_of_training_samples) and evaluated on the
         remaining snapshots (number_of_training_samples,...,number of snapshots provided in the xyz file).
 
-        ii) Else, a convergence analyis with respect to the number of training samples is performed. 
-        That means that the MAE (or other error-metrics) of the alpha parameters (or other quantities of interest) are calculated 
+        ii) Else, a convergence analyis with respect to the number of training samples is performed.
+        That means that the MAE (or other error-metrics) of the alpha parameters (or other quantities of interest) are calculated
         when trained on (1,..,number_of_training_samples) and evaluated on the remaining snapshots (number_of_training_samples,...,number of snapshots provided in the xyz file).
         """
         if self.parameters.number_of_training_snapshots >= len(self.snapshots):
@@ -144,8 +146,9 @@ class ConvergenceMLWorkflow(Workflow):
         # set the ml_model to a simple model such that not much time is wasted for computing the decomposition
         type_of_ml_model = self.parameters.type_of_ml_model
         self.parameters.type_of_ml_model = 'mean'
-        twf = TrajectoryWorkflow.fromparent(self, snapshots=self.snapshots)
-        twf.run(indices=self.test_indices, save_dir=self.dirs['convergence_true'], get_evs=get_evs)
+        twf = TrajectoryWorkflow.fromparent(
+            self, snapshots=self.snapshots, indices=self.test_indices, save_dir=self.dirs['convergence_true'], get_evs=get_evs)
+        twf.run()
         self.parameters.type_of_ml_model = type_of_ml_model
         self.parameters.number_of_training_snapshots = number_of_training_snapshots
 
@@ -176,17 +179,17 @@ class ConvergenceMLWorkflow(Workflow):
                             train_indices = [convergence_point]
 
                             # Train on this snapshot
-                            twf = TrajectoryWorkflow.fromparent(self, snapshots=self.snapshots)
-                            twf.run(from_scratch=from_scratch, indices=train_indices)
+                            twf = TrajectoryWorkflow.fromparent(self, snapshots=self.snapshots, indices=train_indices)
+                            twf.run(from_scratch=from_scratch)
 
                             # for the grid search we are only interested in the result after all training snapshots have been added
                             if not (grid_search_mode and convergence_point != self.convergence_points[-1]):
 
                                 # Test the model (and recalculate the final calculation in case we are interested in eigenvalues) and save the results
                                 self.print(f'Testing on the last {len(self.test_indices)} snapshot(s)', style='heading')
-                                twf = TrajectoryWorkflow.fromparent(self, snapshots=self.snapshots)
-                                twf.run_subworkflow(from_scratch=from_scratch, indices=self.test_indices,
-                                                    save_dir=self.dirs[f'convergence_{convergence_point}'], get_evs=get_evs)
+                                twf = TrajectoryWorkflow.fromparent(self, snapshots=self.snapshots, indices=self.test_indices,
+                                                                    save_dir=self.dirs[f'convergence_{convergence_point}'], get_evs=get_evs)
+                                twf.run(from_scratch=from_scratch)
 
                         # gather all the important results
                         self.get_result_dict()
@@ -200,7 +203,7 @@ class ConvergenceMLWorkflow(Workflow):
 
     def get_result_dict(self):
         '''
-        Create a directory that contains all relevant results. This intermediate step is supposed to simplify debugging and postprocessing. 
+        Create a directory that contains all relevant results. This intermediate step is supposed to simplify debugging and postprocessing.
         '''
         # define the quantities we are interested in (calculating the eigenvalues requires performing the final calculation
         # afresh for every snapshot and is hence a little bit more computationally expensive).
@@ -247,7 +250,7 @@ class ConvergenceMLWorkflow(Workflow):
 
     def make_convergence_analysis_plots(self):
         """
-        Create all relevant plots for the convergence analysis. 
+        Create all relevant plots for the convergence analysis.
         """
         metrics = {'MAE': mean_absolute_error, 'R2S': r2_score}
 

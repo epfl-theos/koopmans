@@ -6,14 +6,14 @@ Written by Edward Linscott Mar 2021, largely modelled off ase.io.jsonio
 
 """
 
-from importlib import import_module
 import inspect
 import json
+from importlib import import_module
 from pathlib import Path
 from typing import TextIO, Union
 
-from ase.io import jsonio as ase_json
 import koopmans.workflows as workflows
+from ase.io import jsonio as ase_json
 
 
 class KoopmansEncoder(ase_json.MyEncoder):

@@ -1,17 +1,16 @@
+import math
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Dict, List, Tuple
+
 import numpy as np
+from numpy.linalg import norm
+
 from ase import Atoms, units
-from numpy.linalg import norm
-import xml.etree.ElementTree as ET
-from numpy.linalg import norm
-import math
-
-from koopmans.bands import Bands
 from koopmans import utils
-from koopmans.ml_utils import debugging
+from koopmans.bands import Bands
 from koopmans.ml_utils import _basis_functions as basis
-
+from koopmans.ml_utils import debugging
 
 # Possibilities for Debugging
 Debug = False  # if True, pmore information about the decomposition is printed to a file
@@ -22,10 +21,10 @@ write_to_xsf = False  # if True, the original and reconstructed densities are pr
 
 def radial_basis_function(r: np.ndarray, n: int, n_max: int, l: int, betas: np.ndarray, alphas: np.ndarray) -> np.ndarray:
     """
-    Wrapper for the radial basis function. 
+    Wrapper for the radial basis function.
 
-    Currently only Gaussian Type Basis Functions (see Hilmanen et al 2020) are implemented as radial basis functions. 
-    This wrapper allows to simply exchange them with other choices of radial basis functions. 
+    Currently only Gaussian Type Basis Functions (see Hilmanen et al 2020) are implemented as radial basis functions.
+    This wrapper allows to simply exchange them with other choices of radial basis functions.
     """
 
     return basis.g(r, n, n_max, l, betas, alphas)
@@ -33,10 +32,10 @@ def radial_basis_function(r: np.ndarray, n: int, n_max: int, l: int, betas: np.n
 
 def spherical_basis_function(theta: np.ndarray, phi: np.ndarray, l: int, m: int) -> np.ndarray:
     """
-    Wrapper for the spherical basis function. 
+    Wrapper for the spherical basis function.
 
-    Currently only real spherical harmonics (see Hilmanen et al 2020) are implemented as spherical basis functions. 
-    This wrapper allows to simply exchange them with other choices of spherical basis functions. 
+    Currently only real spherical harmonics (see Hilmanen et al 2020) are implemented as spherical basis functions.
+    This wrapper allows to simply exchange them with other choices of spherical basis functions.
     """
 
     return basis.real_spherical_harmonics(theta, phi, l, m)
@@ -44,7 +43,7 @@ def spherical_basis_function(theta: np.ndarray, phi: np.ndarray, l: int, m: int)
 
 def precompute_basis_function(r_cartesian: np.ndarray, r_spherical: np.ndarray, n_max: int, l_max: int, betas: np.ndarray, alphas: np.ndarray) -> np.ndarray:
     """
-    Precomputes the total basis function (radial_basis_function*spherical_basis_function) for each point on the integration domain. 
+    Precomputes the total basis function (radial_basis_function*spherical_basis_function) for each point on the integration domain.
     """
 
     # Define the vector containing the values of the spherical basis function for each grid point for each pair of (n,l).
@@ -78,7 +77,7 @@ def precompute_basis_function(r_cartesian: np.ndarray, r_spherical: np.ndarray, 
 
 def cart2sph(x: float, y: float, z: float) -> Tuple[float, float, float]:
     """
-    Converts one cartesian coordinate into the corresponding spherical one.  
+    Converts one cartesian coordinate into the corresponding spherical one.
     """
 
     XsqPlusYsq = x**2 + y**2
@@ -90,7 +89,7 @@ def cart2sph(x: float, y: float, z: float) -> Tuple[float, float, float]:
 
 def cart2sph_array(r_cartesian: np.ndarray) -> np.ndarray:
     """
-    Converts an array of cartesian coordinates into the corresponding spherical ones.  
+    Converts an array of cartesian coordinates into the corresponding spherical ones.
     """
 
     (k_max, j_max, i_max, _) = np.shape(r_cartesian)
@@ -108,7 +107,7 @@ def cart2sph_array(r_cartesian: np.ndarray) -> np.ndarray:
 
 def load_grid_dimension_from_xml_file(xml_file: Path, string: str = 'CHARGE-DENSITY') -> Tuple[int, int, int]:
     """
-    Extracts the grid dimension on which the real space densities are defined from 'xml_file'. 
+    Extracts the grid dimension on which the real space densities are defined from 'xml_file'.
     """
 
     with open(xml_file, 'r') as fd:
@@ -130,7 +129,7 @@ def load_grid_dimension_from_xml_file(xml_file: Path, string: str = 'CHARGE-DENS
 
 def load_density_into_array(file_rho: Path, nr_xml: Tuple[int, int, int], norm_const: float, string: str = 'EFFECTIVE-POTENTIAL') -> Tuple[np.ndarray, np.ndarray]:
     """
-    Loads the real space density from a xml into an array. 
+    Loads the real space density from a xml into an array.
     """
 
     rho_r_xsf = np.zeros((nr_xml[2], nr_xml[1], nr_xml[0]), dtype=float)
@@ -174,10 +173,10 @@ def get_index(r: np.ndarray, vec: np.ndarray) -> Tuple[int, int, int]:
 
 def generate_integration_box(r: np.ndarray, r_cut: float) -> Tuple[Tuple[int, int, int], np.ndarray]:
     """
-    Defines the cartesian coordinates of the new integration domain. 
+    Defines the cartesian coordinates of the new integration domain.
 
     This new integration domain is cubic, has the same grid spacing (dx,dy,dz) as the original grid
-    but the mesh-size can be smaller (depending) on the cutoff value r_cut. 
+    but the mesh-size can be smaller (depending) on the cutoff value r_cut.
     """
 
     z = r[:, 0, 0, 0]
@@ -219,7 +218,7 @@ def translate_to_new_integration_domain(f: np.ndarray, wfc_center_index: Tuple[i
 
 def compute_3d_integral_naive(f: np.ndarray, r: np.ndarray) -> np.ndarray:
     """
-    Computes the 3d-integral of an array of functions f on r with a simple trapezoidal rule.   
+    Computes the 3d-integral of an array of functions f on r with a simple trapezoidal rule.
     """
 
     z = r[:, 0, 0, 0]

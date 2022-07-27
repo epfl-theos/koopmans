@@ -2,17 +2,19 @@
 
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from attr import has
+
 import numpy as np
 from sklearn.metrics import mean_absolute_error, r2_score
+
 from ase import Atoms, io
 from koopmans import calculators, utils
+
 from ._workflow import Workflow
 
 
 class TrajectoryWorkflow(Workflow):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, indices=None, save_dir=None, get_evs=False, *args, **kwargs):
         snapshots: List[Atoms] = kwargs.pop('snapshots', [])
         if 'atoms' not in kwargs and snapshots != []:
             kwargs['atoms'] = snapshots[0]
@@ -20,6 +22,10 @@ class TrajectoryWorkflow(Workflow):
         super().__init__(*args, **kwargs)
         self.snapshots = snapshots
         self.number_of_snapshots = len(self.snapshots)
+
+        self.indices: Optional[List[int]] = indices
+        self.save_dir: Optional[Path] = save_dir
+        self.get_evs: Optional[bool] = get_evs
 
     @ classmethod
     def _fromjsondct(cls, bigdct: Dict[str, Any]):
@@ -52,7 +58,7 @@ class TrajectoryWorkflow(Workflow):
 
         return dct
 
-    def _run(self, indices: Optional[List[int]] = None, save_dir: Optional[Path] = None, get_evs: Optional[bool] = False):
+    def _run(self):
         """
         Starts the KoopmansDSCF Workflow for each snapshot indicated in indidses
         """
@@ -60,10 +66,10 @@ class TrajectoryWorkflow(Workflow):
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
         from koopmans.workflows import KoopmansDSCFWorkflow
 
-        if indices is None:
-            indices = list(range(0, self.number_of_snapshots))
+        if self.indices is None:
+            self.indices = list(range(0, self.number_of_snapshots))
 
-        for i in indices:
+        for i in self.indices:
             self.print(
                 f'Performing Koopmans calculation on snapshot {i+1} / {self.number_of_snapshots}', style='heading')
 
@@ -75,7 +81,7 @@ class TrajectoryWorkflow(Workflow):
 
             # if we are interested in the prediction of the eigenvalues,
             # delete the final directory to make sure that the final calcualtion is rerun.
-            if get_evs:
+            if self.get_evs:
                 from_scratch = self.parameters.from_scratch
                 utils.system_call(f'rm -rf {subdirectory}/final')
 
@@ -86,15 +92,15 @@ class TrajectoryWorkflow(Workflow):
             workflow.run(subdirectory=subdirectory)
 
             # since we have deleted the final directory and therefore had to rerun, we must now make sure, that from_scratch is again set to its original value
-            if get_evs:
+            if self.get_evs:
                 self.parameters.from_scratch = from_scratch
 
             # if necessary, save the results (e.g. for the convergence analysis)
-            if save_dir is not None:
+            if self.save_dir is not None:
                 alphas = self.bands.alphas
-                np.savetxt(save_dir / f"alphas_snapshot_{i+1}.txt", alphas)
-                if get_evs:
+                np.savetxt(self.save_dir / f"alphas_snapshot_{i+1}.txt", alphas)
+                if self.get_evs:
                     final_calculator = calculators.KoopmansCPCalculator
                     final_calc = [c for c in workflow.calculations if isinstance(c, final_calculator)][-1]
                     evs = final_calc.results['eigenvalues']
-                    np.savetxt(save_dir / f"evs_snapshot_{i+1}.txt", evs)
+                    np.savetxt(self.save_dir / f"evs_snapshot_{i+1}.txt", evs)

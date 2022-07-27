@@ -6,18 +6,13 @@ Tests for koopmans.io._calculators
 
 import pytest
 
-from koopmans.calculators import (
-    Calc,
-    KoopmansCPCalculator,
-    KoopmansHamCalculator,
-    KoopmansScreenCalculator,
-    PW2WannierCalculator,
-    PWCalculator,
-    UnfoldAndInterpolateCalculator,
-    Wann2KCCalculator,
-    Wann2KCPCalculator,
-    Wannier90Calculator,
-)
+from koopmans.calculators import (Calc, KoopmansCPCalculator,
+                                  KoopmansHamCalculator,
+                                  KoopmansScreenCalculator,
+                                  PW2WannierCalculator, PWCalculator,
+                                  UnfoldAndInterpolateCalculator,
+                                  Wann2KCCalculator, Wann2KCPCalculator,
+                                  Wannier90Calculator)
 from koopmans.io._calculators import read_calculator
 
 example_files = {KoopmansCPCalculator: 'kcp/ki_final',

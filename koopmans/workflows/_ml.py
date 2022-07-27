@@ -1,17 +1,17 @@
 """
 Written by Yannick Schubert Jul 2022
 """
-import numpy as np
 import os
-from typing import Tuple
 from pathlib import Path
+from typing import Tuple
+
+import numpy as np
 from sklearn.metrics import mean_absolute_error as mae
 
-from koopmans import calculators
-from koopmans import utils
-from koopmans import ml_utils
+from koopmans import calculators, ml_utils, utils
 from koopmans.bands import Band
 from koopmans.settings import KoopmansCPSettingsDict
+
 from ._workflow import Workflow
 
 
@@ -194,7 +194,7 @@ class MLFiitingWorkflow(Workflow):
 
     def check_if_compute_decomposition_is_complete(self) -> bool:
         """
-        Checks if the compuation of the expansion coefficients was already performed. 
+        Checks if the compuation of the expansion coefficients was already performed.
         """
 
         # If there are as many coefficient-files as there are bands to solve, the calculation was already completed
@@ -205,7 +205,7 @@ class MLFiitingWorkflow(Workflow):
 
     def compute_power_spectrum(self):
         """
-        Performs the computation of the power spectra. 
+        Performs the computation of the power spectra.
         """
 
         calculation_title = 'computation of power spectrum'
@@ -232,7 +232,7 @@ class MLFiitingWorkflow(Workflow):
 
     def predict(self, band: Band) -> float:
         """
-        Make the prediction for one band. 
+        Make the prediction for one band.
         """
 
         self.print('Predicting screening parameter')
@@ -253,7 +253,7 @@ class MLFiitingWorkflow(Workflow):
 
     def train(self):
         """
-        Reset the model and train the ML-model (including the StandardScaler) with all training data added so far.  
+        Reset the model and train the ML-model (including the StandardScaler) with all training data added so far.
         """
 
         self.print('Training the ML model')
@@ -301,7 +301,7 @@ class MLFiitingWorkflow(Workflow):
 
     def use_prediction(self) -> bool:
         """
-        Check if the prediction criterium specified by the user is satisfied. 
+        Check if the prediction criterium specified by the user is satisfied.
 
         If True: use the ML-prediction for the alpha value
         If False: compute this alpha value ab-initio
@@ -328,7 +328,7 @@ class MLFiitingWorkflow(Workflow):
 
     def write_predicted_alphas(self):
         """
-        Wrapper to write the predicted alpha values to a file. 
+        Wrapper to write the predicted alpha values to a file.
         """
 
         if self.nspin_to_extract == 1:
@@ -352,7 +352,7 @@ class MLFiitingWorkflow(Workflow):
 
     def print_error_of_all_orbitals(self, indent: int = 0):
         """
-        Prints a summary of the prediction of the alphas values of all bands. 
+        Prints a summary of the prediction of the alphas values of all bands.
         """
         # Printing out a progress summary
         # utils.indented_print(f'\nerror of predictions', indent=indent)

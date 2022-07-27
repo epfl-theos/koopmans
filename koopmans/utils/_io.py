@@ -7,10 +7,10 @@ Moved into utils Sep 2021
 
 """
 
-from datetime import datetime
 import json
-from pathlib import Path
 import sys
+from datetime import datetime
+from pathlib import Path
 from typing import IO, Any, AnyStr, Dict, List, Tuple, Union
 
 import numpy as np
