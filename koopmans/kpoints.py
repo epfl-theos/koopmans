@@ -92,6 +92,8 @@ class Kpoints:
 
     @path.setter
     def path(self, value: Optional[BandPath]):
+        if isinstance(value, str):
+            raise ValueError('To set Kpoints.path with a string, please use Kpoints.set_path()')
         self._path = value
 
     def set_path(self, path: Optional[Union[str, BandPath]], cell: Optional[Cell] = None, density: float = 10.0):
@@ -121,6 +123,11 @@ class Kpoints:
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct
+
+    @classmethod
+    def fromdict(cls, dct) -> Kpoints:
+        cell = Cell(**dct.pop('cell'))
+        return cls(cell=cell, **dct)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Kpoints):

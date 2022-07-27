@@ -21,6 +21,7 @@ from ase.calculators.calculator import Calculator
 from ase.cell import Cell
 from ase.dft.kpoints import BandPath, bandpath
 from ase.io.espresso import label_to_symbol, label_to_tag
+from koopmans.cell import parameters_to_cell
 
 
 def parse_dict(dct: Dict[str, Any]) -> Dict[str, Any]:
@@ -128,14 +129,19 @@ def read_atomic_positions(atoms: Atoms, dct: Dict[str, Any]):
 
 
 def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
-    cell = dct.get('vectors', None)
-    units = dct.get('units', None)
-    if cell is None and units in [None, 'alat']:
+    cell = dct.pop('vectors', None)
+    units = dct.pop('units', None)
+    if cell is None:
         if 'ibrav' not in dct:
             raise KeyError('Cell has not been defined. Please specify either "ibrav" and related "celldm"s) '
                            ' or a "cell_parameters" block in "setup"')
-    elif cell is not None and units == 'angstrom':
+        celldms = {int(k): v for k, v in dct.pop('celldms', {}).items()}
+        cell = parameters_to_cell(celldms=celldms, **dct)
+    elif units == 'angstrom':
         pass
+    elif units == 'alat':
+        # TODO
+        raise NotImplementedError('IMPLEMENT THIS BEFORE MERGING THIS PR')
 
     else:
         raise NotImplementedError('the combination of vectors, ibrav, & units '

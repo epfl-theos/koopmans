@@ -181,7 +181,7 @@ class Workflow(ABC):
         if kpoints is None:
             kpoints = Kpoints(path=default_path, gamma_only=False, cell=self.atoms.cell)
         elif kpoints.path is None:
-            kpoints.path = default_path
+            kpoints.set_path(default_path, cell=self.atoms.cell)
         self.kpoints = kpoints
 
         # Pseudopotentials and pseudo_dir
@@ -866,9 +866,28 @@ class Workflow(ABC):
         with open(fname, 'r') as fd:
             bigdct = json_ext.loads(fd.read())
 
+        kwargs: Dict[str, Any] = {}
+
+        # Loading atoms object
+        atoms_dict = bigdct.pop('atoms', None)
+        if atoms_dict:
+            atoms = read_atoms_dict(utils.parse_dict(atoms_dict))
+        else:
+            raise ValueError('Please provide an "atoms" block in the json input file')
+
+        # Loading plot settings
+        kwargs['plotting'] = settings.PlotSettingsDict(**utils.parse_dict(bigdct.pop('plotting', {})))
+
+        # Loading workflow settings
+        parameters = settings.WorkflowSettingsDict(**utils.parse_dict(bigdct.pop('workflow', {})))
+
+        # Loading kpoints
+        kpts = Kpoints(**utils.parse_dict(bigdct.pop('kpoints', {})), cell=atoms.cell)
+
+        # Loading calculator-specific settings
         calcdict = bigdct.pop('calculator_parameters', {})
 
-        # Deal with the nested w90 subdictionaries
+        # First, extract the nested w90 subdictionaries
         if 'w90' in calcdict:
             for filling in ['occ', 'emp']:
                 for spin in ['up', 'down']:
@@ -888,7 +907,7 @@ class Workflow(ABC):
             # Finally, remove the nested w90 entry
             del calcdict['w90']
 
-        # Deal with UI subdicts
+        # Secondly, flatten the UI subdictionaries
         if 'ui' in calcdict:
             subdcts = {}
             keys = ['occ', 'emp']
@@ -906,33 +925,18 @@ class Workflow(ABC):
                     # Duplicate the UI block
                     calcdict[f'ui_{key}'] = calcdict['ui']
 
-        # Deal with kc_wann subdicts
+        # Third, flatten the kc_wann subdicts
         kc_wann_blocks = calcdict.pop('kc_wann', {'kc_ham': {}, 'kc_screen': {}, 'wann2kc': {}})
         calcdict.update(**kc_wann_blocks)
 
-        kwargs: Dict[str, Any] = {}
-
-        # Loading atoms object
-        atoms = read_atoms_dict(utils.parse_dict(bigdct.pop('atoms', {})))
-
-        # Loading plot settings
-        kwargs['plotting'] = settings.PlotSettingsDict(**utils.parse_dict(bigdct.pop('plotting', {})))
-
-        # Loading workflow settings
-        parameters = settings.WorkflowSettingsDict(**utils.parse_dict(bigdct.pop('workflow', {})))
-
-        # Loading kpoints
-        kpts = Kpoints(**utils.parse_dict(bigdct.pop('kpoints', {})), cell=atoms.cell)
-
-        # Loading calculator-specific settings. We generate a SettingsDict for every single kind of calculator,
-        # regardless of whether or not there was a corresponding block in the json file
+        # Finally, generate a SettingsDict for every single kind of calculator, regardless of whether or not there was a corresponding block in the json file
         calculator_parameters = {}
         w90_block_projs: List = []
         w90_block_filling: List[bool] = []
         w90_block_spins: List[Union[str, None]] = []
         for block, settings_class in settings_classes.items():
             # Read the block and add the resulting calculator to the calcs_dct
-            dct = bigdct.get(block, {})
+            dct = calcdict.pop(block, {})
             if block.startswith('ui'):
                 # Dealing with redundancies in UI keywords
                 if 'sc_dim' in dct and kpts.grid is not None:
@@ -973,13 +977,15 @@ class Workflow(ABC):
         kwargs['projections'] = ProjectionBlocks.fromprojections(
             w90_block_projs, w90_block_filling, w90_block_spins, atoms)
 
+        # Define the name of the workflow using the name of the json file
         kwargs['name'] = fname.replace('.json', '')
 
         # Check for unexpected blocks
         for block in bigdct:
             raise ValueError(f'Unrecognized block "{block}" in the json input file')
 
-        return cls(atoms, parameters=parameters, kpoints=kpts, calculator_parameters=calculator_parameters, **kwargs)
+        # Create the workflow. Note that any keywords provided in the calculator_parameters (i.e. whatever is left in calcdict) are provided as kwargs
+        return cls(atoms, parameters=parameters, kpoints=kpts, calculator_parameters=calculator_parameters, **kwargs, **calcdict)
 
     def print_header(self):
         print(header())

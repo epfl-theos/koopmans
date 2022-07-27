@@ -51,6 +51,7 @@ def kpath_length(path: BandPath) -> float:
 def kpath_to_dict(path: BandPath) -> Dict[str, Any]:
     dct = {}
     dct['path'] = path.path
+    dct['cell'] = path.cell.todict()
     if len(path.path) > 1:
         dct['density'] = len(path.kpts) / kpath_length(path)
     return dct

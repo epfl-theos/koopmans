@@ -8,15 +8,7 @@
     "n_max_sc_steps": 1,
     "pseudo_library": "sg15"
   },
-  "setup": {
-    "system": {
-      "ibrav": 0,
-      "ecutwfc": 65.0,
-      "ecutrho": 260.0
-    },
-        "electrons": {
-            "nbnd": 10
-        },
+  "atoms": {
     "cell_parameters": {
       "vectors": [
         [
@@ -60,5 +52,11 @@
         ]
       ]
     }
+  },
+  "calculator_parameters": {
+    "ibrav": 0,
+    "ecutwfc": 65.0,
+    "ecutrho": 260.0,
+    "nbnd": 10
   }
 }
