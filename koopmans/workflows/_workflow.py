@@ -1164,6 +1164,8 @@ class Workflow(ABC):
             if dct:
                 bigdct[key] = dct
 
+        raise ValueError()
+
         return bigdct
 
     def plot_bandstructure(self,

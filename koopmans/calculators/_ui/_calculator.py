@@ -21,7 +21,7 @@ from ase.dft.dos import DOS
 from ase.geometry.cell import crystal_structure_from_cell
 from ase.spectrum.band_structure import BandStructure
 from koopmans import utils
-from koopmans.kpoints import Kpoints
+from koopmans.kpoints import Kpoints, kpath_to_dict
 from koopmans.settings import (PlotSettingsDict,
                                UnfoldAndInterpolateSettingsDict)
 
@@ -462,7 +462,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 bigdct = {"workflow": {"task": "ui"}, "ui": settings}
 
                 # Provide the bandpath information in the form of a string
-                bigdct['kpoints'] = {'grid': kgrid, **utils.kpath_to_dict(kpath)}
+                bigdct['kpoints'] = {'grid': kgrid, **kpath_to_dict(kpath)}
 
                 # Provide the plot information
                 bigdct['plotting'] = {k: v for k, v in plotting.items()}

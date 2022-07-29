@@ -9,9 +9,10 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Union
 
+import numpy as np
+
 from ase.cell import Cell
-from ase.dft.kpoints import BandPath
-from koopmans import utils
+from ase.dft.kpoints import BandPath, kpoint_convert, resolve_kpt_path_string
 
 
 class Kpoints:
@@ -33,11 +34,11 @@ class Kpoints:
     """
 
     _grid: Optional[List[int]]
-    _offset: List[int]
+    _offset: Optional[List[int]]
     _path: Optional[BandPath]
     gamma_only: bool
 
-    def __init__(self, grid: List[int] = [1, 1, 1], offset: List[int] = [0, 0, 0], path: Optional[Union[str, BandPath]] = None, gamma_only: bool = False, cell: Optional[Cell] = None, density: float = 10.0):
+    def __init__(self, grid: Optional[List[int]] = [1, 1, 1], offset: Optional[List[int]] = [0, 0, 0], path: Optional[Union[str, BandPath]] = None, gamma_only: bool = False, cell: Optional[Cell] = None, density: float = 10.0):
         """
         Initialize a Kpoint object. The path can be initialized using a string, but if so the additional requirements
         density and cell are required, where...
@@ -75,15 +76,16 @@ class Kpoints:
         self._grid = value
 
     @property
-    def offset(self) -> List[int]:
+    def offset(self) -> Optional[List[int]]:
         return self._offset
 
     @offset.setter
-    def offset(self, value: List[int]):
-        if len(value) != 3:
-            raise ValueError('"offset" must be a list of three integers')
-        if any([x not in [0, 1] for x in value]):
-            raise ValueError('"offset" must only contain either 0 or 1s')
+    def offset(self, value: Optional[List[int]]):
+        if isinstance(value, list):
+            if len(value) != 3:
+                raise ValueError('"offset" must be a list of three integers')
+            if any([x not in [0, 1] for x in value]):
+                raise ValueError('"offset" must only contain either 0 or 1s')
         self._offset = value
 
     @property
@@ -103,7 +105,7 @@ class Kpoints:
             if cell is None:
                 raise ValueError(
                     'To set the path of a Kpoints object with a string, please provide a value for "cell"')
-            path = utils.convert_kpath_str_to_bandpath(path, cell, density)
+            path = convert_kpath_str_to_bandpath(path, cell, density)
         self.path = path
 
     def tojson(self) -> Dict[str, Union[str, bool, List[int], Dict[str, Any]]]:
@@ -111,13 +113,19 @@ class Kpoints:
         for k, v in self.__dict__.items():
             k = k.lstrip('_')
             if isinstance(v, BandPath):
-                dct.update(**utils.kpath_to_dict(v))
+                # Store the path and the density, but not the cell because that is stored elsewhere
+                dct.update(**kpath_to_dict(v))
+                dct.pop('cell')
             else:
                 dct[k] = v
         return dct
 
     def todict(self) -> Dict[str, Union[str, bool, List[int], BandPath]]:
         dct = self.tojson()
+
+        # We also need the cell
+        assert isinstance(self.path, BandPath)
+        dct['cell'] = self.path.cell
 
         # Adding information required by the json decoder
         dct['__koopmans_name__'] = self.__class__.__name__
@@ -126,13 +134,61 @@ class Kpoints:
 
     @classmethod
     def fromdict(cls, dct) -> Kpoints:
-        cell = Cell(**dct.pop('cell'))
-        return cls(cell=cell, **dct)
+        # Remove name and module if they're there
+        dct.pop('__koopmans_name__', None)
+        dct.pop('__koopmans_module__', None)
+
+        return cls(**dct)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Kpoints):
             return False
         for k, v in self.__dict__.items():
-            if v != getattr(other, k, None):
-                return False
+            vother = getattr(other, k, None)
+            if isinstance(v, np.ndarray):
+                assert isinstance(vother, np.ndarray)
+                if v.shape != vother.shape:
+                    return False
+                if not np.allclose(v, vother):
+                    return False
+            else:
+                if v != vother:
+                    return False
         return True
+
+
+def convert_kpath_str_to_bandpath(path: str, cell: Cell, density: Optional[float] = None) -> BandPath:
+    special_points: Dict[str, np.ndarray] = cell.bandpath().special_points
+    bp = BandPath(cell=cell, path=path, special_points=special_points)
+    if len(path) > 1:
+        bp = bp.interpolate(density=density)
+    return bp
+
+
+def kpath_length(path: BandPath) -> float:
+    _, paths = resolve_kpt_path_string(path.path, path.special_points)
+    points = np.concatenate(paths)
+    dists = points[1:] - points[:-1]
+    lengths: List[float] = [float(np.linalg.norm(d)) for d in kpoint_convert(path.cell, skpts_kc=dists)]
+
+    i = 0
+    for path in paths[:-1]:
+        i += len(path)
+        lengths[i - 1] = 0.0
+
+    return np.sum(lengths)
+
+
+def kpath_to_dict(path: BandPath) -> Dict[str, Any]:
+    dct = {}
+    dct['path'] = path.path
+    dct['cell'] = path.cell.todict()
+    if len(path.path) > 1:
+        dct['density'] = len(path.kpts) / kpath_length(path)
+    return dct
+
+
+def dict_to_kpath(dct: Dict[str, Any]) -> BandPath:
+    density = dct.pop('density', None)
+    cell = Cell(dct.pop('cell')['array'])
+    return BandPath(cell=cell, special_points=cell.bandpath().special_points, **dct).interpolate(density=density)

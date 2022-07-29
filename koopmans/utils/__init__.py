@@ -15,7 +15,7 @@ from ._io import (construct_atomic_positions_block,
                   read_wannier_u_file, write_alpha_file,
                   write_wannier_centers_file, write_wannier_hr_file,
                   write_wannier_u_file)
-from ._misc import convert_kpath_str_to_bandpath, flatten, kpath_to_dict
+from ._misc import flatten
 from ._os import chdir, find_executable, set_env, symlink, system_call
 from ._units import units
 from ._warnings import warn
