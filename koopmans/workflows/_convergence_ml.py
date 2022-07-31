@@ -1,3 +1,4 @@
+import pickle
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -247,6 +248,9 @@ class ConvergenceMLWorkflow(Workflow):
 
                         for statistic in statistics:
                             self.result_dict[spin_id][qoi][metric][statistic][i] = statistics[statistic](tmp_array)
+
+        with open(self.dirs['convergence_final_results'] / 'result_dict.pkl', 'wb') as handle:
+            pickle.dump(result_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def make_convergence_analysis_plots(self):
         """
