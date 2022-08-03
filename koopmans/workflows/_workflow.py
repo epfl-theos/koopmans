@@ -513,7 +513,7 @@ class Workflow(ABC):
                 raise ValueError('eps_inf cannot be lower than 1.0')
 
             # Check symmetry of the system
-            dataset = symmetrize.check_symmetry(self.atoms, 1e-6, verbose=True)
+            dataset = symmetrize.check_symmetry(self.atoms, 1e-6, verbose=False)
             if dataset['number'] not in range(195, 231):
                 utils.warn('This system is not cubic and will therefore not have a uniform dielectric tensor. However, '
                            'the image-correction schemes that are currently implemented assume a uniform dielectric. '
