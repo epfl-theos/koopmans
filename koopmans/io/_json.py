@@ -52,7 +52,7 @@ def read_json(fd: TextIO, override: Dict[str, Any] = {}):
         workflow_cls = workflows.SingleUnfoldAndInterpolateWorkflow
     elif parameters.task == 'dft_bands':
         workflow_cls = workflows.PWBandStructureWorkflow
-    elif parameters.task == 'eps_inf':
+    elif parameters.task == 'dft_eps':
         workflow_cls = workflows.DFTPhWorkflow
     else:
         raise ValueError('Invalid task name "{task_name}"')

@@ -500,7 +500,7 @@ class Workflow(ABC):
 
                 if self.parameters.eps_inf is None:
                     utils.warn('eps_inf missing in input; it will default to 1.0. Proceed with caution for periodic '
-                               'systems')
+                               'systems; consider setting eps_inf == "auto" to calculate it automatically.')
                     self.parameters.eps_inf = 1.0
 
             if self.parameters.mt_correction is None:
@@ -509,8 +509,9 @@ class Workflow(ABC):
                 raise ValueError('Do not use Martyna-Tuckerman corrections for periodic systems')
 
             # Check the value of eps_inf
-            if self.parameters.eps_inf and self.parameters.eps_inf < 1.0:
-                raise ValueError('eps_inf cannot be lower than 1.0')
+            if self.parameters.eps_inf:
+                if isinstance(self.parameters.eps_inf, float) and self.parameters.eps_inf < 1.0:
+                    raise ValueError('eps_inf cannot be lower than 1.0')
 
             # Check symmetry of the system
             dataset = symmetrize.check_symmetry(self.atoms, 1e-6, verbose=False)

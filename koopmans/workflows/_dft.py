@@ -84,6 +84,8 @@ class DFTPhWorkflow(Workflow):
 
     def _run(self):
 
+        self.print('Calculate the dielectric tensor', style='heading')
+
         calc_scf = self.new_calculator('pw', nbnd=None)
         calc_scf.prefix = 'scf'
         self.run_calculator(calc_scf)
