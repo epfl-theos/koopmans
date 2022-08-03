@@ -1,4 +1,4 @@
-# MARIJA
+
 
 """
 
@@ -51,5 +51,5 @@ class PhCalculator(CalculatorExt, EspressoPh, CalculatorABC):
 
         i = [x.strip() for x in flines].index('Dielectric Tensor:')
         k = [x.strip() for x in flines].index('Effective Charges E-U: Z_{alpha}{s,beta}')
-        epsilon = np.array([x.split() for x in flines[i+2:k-1]], dtype=float)
+        epsilon = np.array([x.split() for x in flines[i + 2: k - 1]], dtype=float)
         self.results['dielectric tensor'] = epsilon

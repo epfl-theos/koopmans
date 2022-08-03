@@ -1,4 +1,4 @@
-## MARIJA
+
 
 """
 
@@ -8,8 +8,8 @@ Written by Edward Linscott Oct 2020
 
 """
 
-from pathlib import Path
 import shutil
+from pathlib import Path
 from typing import TypeVar
 
 from koopmans import calculators, pseudopotentials, utils
@@ -79,6 +79,7 @@ class DFTPWWorkflow(DFTWorkflow):
 
         return
 
+
 class DFTPhWorkflow(Workflow):
 
     def _run(self):
@@ -86,10 +87,9 @@ class DFTPhWorkflow(Workflow):
         calc_scf = self.new_calculator('pw', nbnd=None)
         calc_scf.prefix = 'scf'
         self.run_calculator(calc_scf)
-
-        calc_ph = self.new_calculator('ph', epsil = True, fildyn = f'{self.name}.dynG')
+        calc_ph = self.new_calculator('ph', epsil=True, fildyn=f'{self.name}.dynG')
         self.run_calculator(calc_ph)
-         
+
 
 class PWBandStructureWorkflow(DFTWorkflow):
 
