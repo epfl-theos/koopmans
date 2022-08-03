@@ -1,1 +1,1 @@
-../quantum_espresso/qe_koopmans/bin/ph.x
+../quantum_espresso/q-e/bin/ph.x
