@@ -2,22 +2,17 @@ import json
 import os
 from typing import List
 
-from koopmans.calculators import (
-    EnvironCalculator,
-    KoopmansCPCalculator,
-    KoopmansHamCalculator,
-    KoopmansScreenCalculator,
-    ProjwfcCalculator,
-    PW2WannierCalculator,
-    PWCalculator,
-    UnfoldAndInterpolateCalculator,
-    Wann2KCCalculator,
-    Wann2KCPCalculator,
-    Wannier90Calculator,
-)
+from koopmans.calculators import (EnvironCalculator, KoopmansCPCalculator,
+                                  KoopmansHamCalculator,
+                                  KoopmansScreenCalculator, PhCalculator,
+                                  ProjwfcCalculator, PW2WannierCalculator,
+                                  PWCalculator, UnfoldAndInterpolateCalculator,
+                                  Wann2KCCalculator, Wann2KCPCalculator,
+                                  Wannier90Calculator)
 from koopmans.io import write_kwf as write_encoded_json
 
-from ._utils import benchmark_filename, find_subfiles_of_calc, metadata_filename
+from ._utils import (benchmark_filename, find_subfiles_of_calc,
+                     metadata_filename)
 
 
 class BenchmarkGenCalc():
@@ -85,6 +80,10 @@ class BenchGenPW2WannierCalculator(BenchmarkGenCalc, PW2WannierCalculator):
 
 
 class BenchGenWann2KCPCalculator(BenchmarkGenCalc, Wann2KCPCalculator):
+    pass
+
+
+class BenchGenPhCalculator(BenchmarkGenCalc, PhCalculator):
     pass
 
 

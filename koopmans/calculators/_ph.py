@@ -41,8 +41,8 @@ class PhCalculator(CalculatorExt, EspressoPh, CalculatorABC):
     def is_complete(self):
         return self.results['job done']
 
-    def calculate(self):
-        super().calculate()
+    def _calculate(self):
+        super()._calculate()
         self.read_dynG()
 
     def read_dynG(self):

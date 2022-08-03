@@ -1,29 +1,23 @@
-from abc import ABC, abstractmethod
 import itertools
 import json
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 import numpy as np
 
+from ase.calculators.calculator import CalculationFailed
 from ase.dft.dos import DOS
 from ase.spectrum.band_structure import BandStructure
 from ase.spectrum.doscollection import GridDOSCollection
 from koopmans import base_directory, utils
-from koopmans.calculators import (
-    Calc,
-    EnvironCalculator,
-    KoopmansCPCalculator,
-    KoopmansHamCalculator,
-    KoopmansScreenCalculator,
-    ProjwfcCalculator,
-    PW2WannierCalculator,
-    PWCalculator,
-    UnfoldAndInterpolateCalculator,
-    Wann2KCCalculator,
-    Wann2KCPCalculator,
-    Wannier90Calculator,
-)
+from koopmans.calculators import (Calc, EnvironCalculator,
+                                  KoopmansCPCalculator, KoopmansHamCalculator,
+                                  KoopmansScreenCalculator, PhCalculator,
+                                  ProjwfcCalculator, PW2WannierCalculator,
+                                  PWCalculator, UnfoldAndInterpolateCalculator,
+                                  Wann2KCCalculator, Wann2KCPCalculator,
+                                  Wannier90Calculator)
 from koopmans.io import read_kwf as read_encoded_json
 
 from ._utils import benchmark_filename, metadata_filename
@@ -94,6 +88,7 @@ def compare(result: Any, ref_result: Any, result_name: str) -> Optional[Dict[str
         # Generate an error message if necessary
         message = f'{result_name}[{i_max}] = {result[i_max]:.5f} differs from benchmark ' \
                   f'{ref_result[i_max]:.5f} by {abs_diff:.2e}'
+
         if mixed_diff > tols[0]:
             return {'kind': 'error', 'message': message}
         elif mixed_diff > tols[1]:
@@ -148,6 +143,7 @@ class CheckCalc:
 
             if message is not None:
                 messages.append(message)
+
         return messages
 
     def _print_messages(self, messages: List[Dict[str, str]]) -> None:
@@ -165,6 +161,8 @@ class CheckCalc:
             message = f'Major disagreements with benchmark detected for {self._calcname}\n' + '\n'.join(errors)
             if len(errors) == 1:
                 message = message.replace('disagreements', 'disagreement')
+
+            raise CalculationFailed(message)
 
     def calculate(self):
         # Before running the calculation, check the settings are the same
@@ -224,6 +222,11 @@ class CheckCalc:
 
 class CheckKoopmansCPCalculator(CheckCalc, KoopmansCPCalculator):
     results_for_qc = ['energy', 'homo_energy', 'lumo_energy']
+    pass
+
+
+class CheckPhCalculator(CheckCalc, PhCalculator):
+    results_for_qc = ['dielectric tensor']
     pass
 
 
