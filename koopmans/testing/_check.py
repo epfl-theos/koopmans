@@ -46,6 +46,8 @@ def compare(result: Any, ref_result: Any, result_name: str) -> Optional[Dict[str
         result = result.get_dos()
         ref_result = ref_result.get_dos()
         tols = tolerances['array']
+    elif result_name == 'dielectric tensor':
+        tols = tolerances['array']
     elif result_name in ['homo_energy', 'lumo_energy', 'eigenvalues', 'ki_eigenvalues_on_grid']:
         tols = tolerances.get('eigenenergies', tolerances['eigenenergies'])
     else:

@@ -123,28 +123,28 @@
     ],
     "float64",
     [
-     10.191112245019,
+     10.19076937233,
      0.0,
      0.0,
      0.0,
-     10.191112245019,
+     10.19076937233,
      0.0,
      0.0,
      0.0,
-     11.768224748844
+     11.767944193825
     ]
    ]
   }
  },
  "_directory": {
-  "__path__": "/home/mstojkovic/Documents/code/koopmans/tests/tmp/test_dftph_tio20"
+  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_dftph_tio20"
  },
  "prefix": "ph",
  "name": "benchgenphcalculator",
  "command": {
-  "mpi_command": "mpirun -n 14",
+  "mpi_command": "mpirun -np 8",
   "_path": {
-   "__path__": "/home/mstojkovic/Documents/code/koopmans/bin"
+   "__path__": "/home/elinscott/code/koopmans/bin"
   },
   "executable": "ph.x",
   "_flags": "",
