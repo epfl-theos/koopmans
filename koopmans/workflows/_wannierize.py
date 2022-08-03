@@ -96,10 +96,11 @@ class WannierizeWorkflow(Workflow):
         self._scf_kgrid = scf_kgrid
 
         # Calculate by default the band structure
-        if self.parameters.calculate_bands is None and len(self.kpoints.path.kpts) > 1:
-            self.parameters.calculate_bands = True
-        else:
-            self.parameters.calculate_bands = False
+        if self.parameters.calculate_bands is None:
+            if len(self.kpoints.path.kpts) > 1:
+                self.parameters.calculate_bands = True
+            else:
+                self.parameters.calculate_bands = False
 
         # This workflow only makes sense for DFT, not an ODD
         self.parameters.functional = 'dft'
@@ -291,7 +292,8 @@ class WannierizeWorkflow(Workflow):
                     bsplot_kwargs_list.append(kwargs)
 
             # Plot
-            self.plot_bandstructure(bs_list, dos, bsplot_kwargs=bsplot_kwargs_list)
+            self.plot_bandstructure(bs_list, dos, filename=self.name
+                                    + '_wannierize', bsplot_kwargs=bsplot_kwargs_list)
 
         return
 

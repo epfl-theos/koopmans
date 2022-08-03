@@ -15,7 +15,7 @@ bravais_lattices = {1: CUB, 2: FCC, 3: BCC, 4: HEX, 5: RHL, 6: TET, 7: BCT,
 
 @given(cell=kst.ase_cells())
 @settings(max_examples=100, report_multiple_bugs=False)
-def test_cell_to_parameters(cell):
+def test_cell_to_parameters(cell: Cell):
     try:
         params = cell_to_parameters(cell)
         bl_class = bravais_lattices[params['ibrav']]
@@ -27,7 +27,7 @@ def test_cell_to_parameters(cell):
 
 @given(cell=kst.ase_cells())
 @settings(max_examples=100, report_multiple_bugs=False)
-def test_roundtrip(cell):
+def test_roundtrip_cell_parameters(cell: Cell):
     try:
         params = cell_to_parameters(cell)
         new_cell = parameters_to_cell(**params)
@@ -41,10 +41,3 @@ def test_roundtrip(cell):
     except ValueError as e:
         if 'You have provided a cell that is not Niggli-reduced' not in str(e):
             raise
-
-# @given(cell=kst.ase_cells())
-# @settings(max_examples=100, report_multiple_bugs=False)
-# def test_roundtrip_cell_bandpath(cell):
-#     cell_roundtrip = cell.bandpath().cell
-#     assert np.allclose(cell, cell_roundtrip)
-#

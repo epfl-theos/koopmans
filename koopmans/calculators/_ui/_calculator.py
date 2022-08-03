@@ -463,6 +463,8 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
                 # Provide the bandpath information in the form of a string
                 bigdct['kpoints'] = {'grid': kgrid, **kpath_to_dict(kpath)}
+                # The cell is stored elsewhere
+                bigdct['kpoints'].pop('cell')
 
                 # Provide the plot information
                 bigdct['plotting'] = {k: v for k, v in plotting.items()}

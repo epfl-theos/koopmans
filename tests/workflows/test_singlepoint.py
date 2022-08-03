@@ -117,7 +117,7 @@ def test_singlepoint_gaas_wan2odd(gaas, espresso_patch, tmp_path, sys2file):
                       'init_orbitals': 'mlwfs',
                       'npool': 1,
                       'pseudo_library': 'sg15_v1.0',
-                      'calculate_bands': False
+                      'calculate_bands': True
                       }
-        wf = workflows.SinglepointWorkflow(parameters=parameters, **gaas)
+        wf = workflows.SinglepointWorkflow(parameters=parameters, kgrid=[2, 2, 2], **gaas)
         wf.run()

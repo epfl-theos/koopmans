@@ -6,8 +6,8 @@ Written by Edward Linscott Oct 2020
 
 """
 
-from pathlib import Path
 import shutil
+from pathlib import Path
 from typing import TypeVar
 
 from koopmans import calculators, pseudopotentials, utils
@@ -96,7 +96,7 @@ class PWBandStructureWorkflow(DFTWorkflow):
             self.run_calculator(calc_scf)
 
             # Second, a bands calculation
-            calc_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpath)
+            calc_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpoints.path)
             calc_bands.prefix = 'bands'
             self.run_calculator(calc_bands)
 

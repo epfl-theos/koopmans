@@ -7,6 +7,7 @@ Written by Edward Linscott, July 2022
 
 from __future__ import annotations
 
+import copy
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
@@ -184,11 +185,34 @@ def kpath_to_dict(path: BandPath) -> Dict[str, Any]:
     dct['path'] = path.path
     dct['cell'] = path.cell.todict()
     if len(path.path) > 1:
-        dct['density'] = len(path.kpts) / kpath_length(path)
+        attempts = 0
+        density_guess = len(path.kpts) / kpath_length(path)
+        density_max = None
+        density_min = None
+
+        # Super-dumb bisection approach to obtain a density that gives the correct nunber of kpoints.
+        # We have to resort to this because the length of paths produced by BandPath().interpolate(density=...) is unreliable
+        while attempts < 100:
+            dct['density'] = density_guess
+            new_path = dict_to_kpath(dct)
+            if len(new_path.kpts) == len(path.kpts):
+                break
+            elif len(new_path.kpts) < len(path.kpts):
+                density_min = density_guess
+                density_guess = density_min + 1.0
+            else:
+                density_max = density_guess
+                density_guess = density_max - 1.0
+            if density_min and density_max:
+                density_guess = (density_max + density_min) / 2
+            attempts += 1
+        if attempts >= 100:
+            raise ValueError('Search failed')
     return dct
 
 
 def dict_to_kpath(dct: Dict[str, Any]) -> BandPath:
+    dct = copy.deepcopy(dct)
     density = dct.pop('density', None)
     cell = Cell(dct.pop('cell')['array'])
     return BandPath(cell=cell, special_points=cell.bandpath().special_points, **dct).interpolate(density=density)

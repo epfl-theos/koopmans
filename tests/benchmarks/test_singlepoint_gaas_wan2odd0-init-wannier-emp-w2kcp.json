@@ -81,7 +81,7 @@
  "name": "benchgenwann2kcpcalculator",
  "command": {
   "mpi_command": "mpirun -np 8",
-  "path": {
+  "_path": {
    "__path__": "/home/elinscott/code/koopmans/bin"
   },
   "executable": "wann2kcp.x",

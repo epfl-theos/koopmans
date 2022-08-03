@@ -2,12 +2,9 @@
  "_parameters": {
   "calculation": "nscf",
   "conv_thr": 3.6000000000000005e-08,
-  "ecutwfc": 40.0,
   "nbnd": 45,
   "tot_charge": 0,
-  "pseudo_dir": {
-   "__path__": "../../../../../pseudos/sg15_v1.0/pbe"
-  },
+  "ecutwfc": 40.0,
   "nspin": 1,
   "nosym": true,
   "noinv": true,
@@ -17,8 +14,11 @@
    2
   ],
   "pseudopotentials": {
-   "As": "As_ONCV_PBE-1.0.upf",
-   "Ga": "Ga_ONCV_PBE-1.0.upf"
+   "Ga": "Ga_ONCV_PBE-1.0.upf",
+   "As": "As_ONCV_PBE-1.0.upf"
+  },
+  "pseudo_dir": {
+   "__path__": "../../../../../pseudos/sg15_v1.0/pbe"
   },
   "gamma_only": false,
   "koffset": [
@@ -109,7 +109,7 @@
  "command": {
   "postfix": "-npool 1",
   "mpi_command": "mpirun -np 8",
-  "path": {
+  "_path": {
    "__path__": "/home/elinscott/code/koopmans/bin"
   },
   "executable": "pw.x",

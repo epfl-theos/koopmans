@@ -89,7 +89,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             energies = [c.results['band structure'].energies for c in self.calculations[-2:]]
             reference = np.max(energies[0])
             energies_np = np.concatenate(energies, axis=2)
-        calc.results['band structure'] = BandStructure(self.kpath, energies_np - reference)
+        calc.results['band structure'] = BandStructure(self.kpoints.path, energies_np - reference)
 
         if calc.parameters.do_dos:
             # Generate the DOS

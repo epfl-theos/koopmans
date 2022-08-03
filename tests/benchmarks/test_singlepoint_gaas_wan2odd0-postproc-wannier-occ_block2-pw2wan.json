@@ -75,7 +75,7 @@
   "job done": true
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_gaas_wan2odd0/init/wannier/emp"
+  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_gaas_wan2odd0/postproc/wannier/occ_block2"
  },
  "prefix": "pw2wan",
  "name": "benchgenpw2wanniercalculator",
