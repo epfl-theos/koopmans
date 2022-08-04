@@ -1132,7 +1132,7 @@ class Workflow(ABC):
                         calcdct[code][key] = {k: v for k, v in dict(
                             block).items() if v is not None}
 
-            elif code in ['pw2wannier', 'wann2kc', 'kc_screen', 'kc_ham', 'projwfc', 'wann2kcp']:
+            elif code in ['pw2wannier', 'wann2kc', 'kc_screen', 'kc_ham', 'projwfc', 'wann2kcp', 'ph']:
                 calcdct[code] = params_dict
             elif code.startswith('ui_'):
                 calcdct['ui'][code.split('_')[-1]] = params_dict
@@ -1169,8 +1169,6 @@ class Workflow(ABC):
             dct: Dict[str, Any] = {k: v for k, v in params.items() if params.defaults.get(k, None) != v}
             if dct:
                 bigdct[key] = dct
-
-        raise ValueError()
 
         return bigdct
 
