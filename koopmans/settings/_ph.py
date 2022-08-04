@@ -1,5 +1,3 @@
-# MARIJA
-
 from ._utils import SettingsDict
 
 
