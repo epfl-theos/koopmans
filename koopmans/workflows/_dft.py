@@ -1,3 +1,5 @@
+
+
 """
 
 Workflow module for performing a single DFT calculation with either kcp.x or pw.x
@@ -76,6 +78,20 @@ class DFTPWWorkflow(DFTWorkflow):
         self.run_calculator(calc)
 
         return
+
+
+class DFTPhWorkflow(Workflow):
+
+    def _run(self):
+
+        self.print('Calculate the dielectric tensor', style='heading')
+
+        calc_scf = self.new_calculator('pw', nbnd=None)
+        calc_scf.prefix = 'scf'
+        self.run_calculator(calc_scf)
+        calc_ph = self.new_calculator('ph', epsil=True, fildyn=f'{self.name}.dynG')
+        calc_ph.prefix = 'eps'
+        self.run_calculator(calc_ph)
 
 
 class PWBandStructureWorkflow(DFTWorkflow):

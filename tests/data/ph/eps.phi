@@ -1,0 +1,10 @@
+&inputph
+   outdir           = '/home/elinscott/code/koopmans/tests/tmp/test_dftph_tio20/TMP'
+   prefix           = 'kc'
+   epsil            = .true.
+   tr2_ph           = 1e-14
+   fildyn           = 'tio2.dynG'
+   amass(1)         = 15.999
+   amass(2)         = 47.867
+/
+0.0 0.0 0.0

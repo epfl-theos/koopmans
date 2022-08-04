@@ -10,6 +10,8 @@ Converted to a workflow object Nov 2020
 import os
 from pathlib import Path
 
+import numpy as np
+
 from koopmans import utils
 
 from ._workflow import Workflow
@@ -55,8 +57,14 @@ class SinglepointWorkflow(Workflow):
     def _run(self) -> None:
 
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
-        from koopmans.workflows import (DFTCPWorkflow, KoopmansDFPTWorkflow,
+        from koopmans.workflows import (DFTCPWorkflow, DFTPhWorkflow,
+                                        KoopmansDFPTWorkflow,
                                         KoopmansDSCFWorkflow)
+
+        if self.parameters.eps_inf == 'auto':
+            eps_workflow = DFTPhWorkflow.fromparent(self)
+            eps_workflow.run(subdirectory='calculate_eps')
+            self.parameters.eps_inf = np.trace(eps_workflow.calculations[-1].results['dielectric tensor']) / 3
 
         if self.parameters.method == 'dfpt':
             workflow = KoopmansDFPTWorkflow.fromparent(self)

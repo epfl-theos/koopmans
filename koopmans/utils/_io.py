@@ -154,14 +154,14 @@ def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
 print_call_end = '\n'
 
 
-def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '\n', file: IO = sys.stdout,
+def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '\n',
                    flush: bool = False):
     global print_call_end
     for substring in text.split('\n'):
         if print_call_end == '\n':
-            print(' ' * indent + substring, sep=sep, end=end, file=file, flush=flush)
+            print(' ' * indent + substring, sep=sep, end=end, flush=flush)
         else:
-            print(substring, sep=sep, end=end, file=file, flush=flush)
+            print(substring, sep=sep, end=end, flush=flush)
     print_call_end = end
 
 
