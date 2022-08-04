@@ -90,6 +90,7 @@ class DFTPhWorkflow(Workflow):
         calc_scf.prefix = 'scf'
         self.run_calculator(calc_scf)
         calc_ph = self.new_calculator('ph', epsil=True, fildyn=f'{self.name}.dynG')
+        calc_ph.prefix = 'eps'
         self.run_calculator(calc_ph)
 
 

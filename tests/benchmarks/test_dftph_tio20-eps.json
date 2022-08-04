@@ -139,7 +139,7 @@
  "_directory": {
   "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_dftph_tio20"
  },
- "prefix": "ph",
+ "prefix": "eps",
  "name": "benchgenphcalculator",
  "command": {
   "mpi_command": "mpirun -np 8",
