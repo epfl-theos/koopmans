@@ -748,9 +748,9 @@ class Workflow(ABC):
 
         try:
             qe_calc.calculate()
-        except CalculationFailed as e:
+        except CalculationFailed:
             self.print(' failed')
-            raise CalculationFailed(e)
+            raise
 
         if not self.silent:
             self.print(' done')
