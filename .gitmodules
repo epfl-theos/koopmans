@@ -3,4 +3,4 @@
 	url = ../../elinscott/ase_koopmans
 [submodule "quantum_espresso/q-e"]
 	path = quantum_espresso/q-e
-	url = git@gitlab.com:QEF/q-e.git
+	url = https://gitlab.com/QEF/q-e.git

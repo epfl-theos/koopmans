@@ -7,10 +7,10 @@ Moved into utils Sep 2021
 
 """
 
-from datetime import datetime
 import json
-from pathlib import Path
 import sys
+from datetime import datetime
+from pathlib import Path
 from typing import IO, Any, AnyStr, Dict, List, Tuple, Union
 
 import numpy as np
@@ -158,14 +158,14 @@ def read_cell_parameters(calc: Calculator, dct: dict):
 print_call_end = '\n'
 
 
-def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '\n', file: IO = sys.stdout,
+def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '\n',
                    flush: bool = False):
     global print_call_end
     for substring in text.split('\n'):
         if print_call_end == '\n':
-            print(' ' * indent + substring, sep=sep, end=end, file=file, flush=flush)
+            print(' ' * indent + substring, sep=sep, end=end, flush=flush)
         else:
-            print(substring, sep=sep, end=end, file=file, flush=flush)
+            print(substring, sep=sep, end=end, flush=flush)
     print_call_end = end
 
 

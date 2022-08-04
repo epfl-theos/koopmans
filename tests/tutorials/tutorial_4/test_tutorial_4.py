@@ -6,7 +6,7 @@ from koopmans import base_directory
 from koopmans.io import read
 from koopmans.utils import chdir
 
-tutorial_dir = base_directory / 'tutorials' / 'tutorial_3'
+tutorial_dir = base_directory / 'tutorials' / 'tutorial_4'
 
 
 @pytest.mark.tutorials

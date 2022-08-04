@@ -9,16 +9,16 @@ Converted workflows from functions to objects Nov 2020
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from contextlib import contextmanager
 import copy
-from functools import reduce
 import json as json_ext
 import operator
 import os
-from pathlib import Path
 import shutil
 import subprocess
+from abc import ABC, abstractmethod
+from contextlib import contextmanager
+from functools import reduce
+from pathlib import Path
 from types import ModuleType
 from typing import Any, Dict, Generator, List, Optional, Type, TypeVar, Union
 
@@ -49,13 +49,10 @@ from koopmans import calculators, settings, utils
 from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.projections import ProjectionBlocks
-from koopmans.pseudopotentials import (
-    fetch_pseudo,
-    nelec_from_pseudos,
-    pseudo_database,
-    pseudos_library_directory,
-    valence_from_pseudo,
-)
+from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
+                                       pseudo_database,
+                                       pseudos_library_directory,
+                                       valence_from_pseudo)
 from koopmans.references import bib_data
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
@@ -503,7 +500,7 @@ class Workflow(ABC):
 
                 if self.parameters.eps_inf is None:
                     utils.warn('eps_inf missing in input; it will default to 1.0. Proceed with caution for periodic '
-                               'systems')
+                               'systems; consider setting eps_inf == "auto" to calculate it automatically.')
                     self.parameters.eps_inf = 1.0
 
             if self.parameters.mt_correction is None:
@@ -512,11 +509,12 @@ class Workflow(ABC):
                 raise ValueError('Do not use Martyna-Tuckerman corrections for periodic systems')
 
             # Check the value of eps_inf
-            if self.parameters.eps_inf and self.parameters.eps_inf < 1.0:
-                raise ValueError('eps_inf cannot be lower than 1.0')
+            if self.parameters.eps_inf:
+                if isinstance(self.parameters.eps_inf, float) and self.parameters.eps_inf < 1.0:
+                    raise ValueError('eps_inf cannot be lower than 1.0')
 
             # Check symmetry of the system
-            dataset = symmetrize.check_symmetry(self.atoms, 1e-6, verbose=True)
+            dataset = symmetrize.check_symmetry(self.atoms, 1e-6, verbose=False)
             if dataset['number'] not in range(195, 231):
                 utils.warn('This system is not cubic and will therefore not have a uniform dielectric tensor. However, '
                            'the image-correction schemes that are currently implemented assume a uniform dielectric. '
@@ -594,6 +592,8 @@ class Workflow(ABC):
             calc_class = calculators.KoopmansScreenCalculator
         elif calc_type == 'kc_ham':
             calc_class = calculators.KoopmansHamCalculator
+        elif calc_type == 'ph':
+            calc_class = calculators.PhCalculator
         elif calc_type == 'projwfc':
             calc_class = calculators.ProjwfcCalculator
         else:
@@ -732,6 +732,9 @@ class Workflow(ABC):
 
                     if isinstance(qe_calc, calculators.ProjwfcCalculator):
                         qe_calc.generate_dos()
+
+                    if isinstance(qe_calc, calculators.PhCalculator):
+                        qe_calc.read_dynG()
                     return
 
         if not self.silent:
@@ -745,9 +748,9 @@ class Workflow(ABC):
 
         try:
             qe_calc.calculate()
-        except CalculationFailed as e:
+        except CalculationFailed:
             self.print(' failed')
-            raise CalculationFailed(e)
+            raise
 
         if not self.silent:
             self.print(' done')
@@ -1454,6 +1457,7 @@ def generate_default_master_calc_params() -> Dict[str, settings.SettingsDict]:
     return {'kcp': settings.KoopmansCPSettingsDict(),
             'kc_ham': settings.KoopmansHamSettingsDict(),
             'kc_screen': settings.KoopmansScreenSettingsDict(),
+            'ph': settings.PhSettingsDict(),
             'projwfc': settings.ProjwfcSettingsDict(),
             'pw': settings.PWSettingsDict(),
             'pw2wannier': settings.PW2WannierSettingsDict(),
@@ -1472,6 +1476,7 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'kc_ham': settings.KoopmansHamSettingsDict,
                     'kc_screen': settings.KoopmansScreenSettingsDict,
                     'wann2kc': settings.Wann2KCSettingsDict,
+                    'ph': settings.PhSettingsDict,
                     'projwfc': settings.ProjwfcSettingsDict,
                     'pw': settings.PWSettingsDict,
                     'pw2wannier': settings.PW2WannierSettingsDict,
