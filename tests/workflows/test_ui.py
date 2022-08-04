@@ -26,6 +26,7 @@ def test_ui_si(silicon, tmp_path, sys2file, datadir, ui_patch):
                                }
                       }
         wf = workflows.SingleUnfoldAndInterpolateWorkflow(atoms=silicon['atoms'],
+                                                          kpoints=silicon['kpoints'],
                                                           name='si_ui',
                                                           calculator_parameters=parameters)
         wf.kpoints.set_path('GL', silicon['atoms'].cell)
