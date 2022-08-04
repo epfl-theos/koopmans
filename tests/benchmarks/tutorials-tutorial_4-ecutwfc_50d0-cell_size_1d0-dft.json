@@ -501,7 +501,7 @@
   ]
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tutorials/tutorial_3/ecutwfc_50d0/cell_size_1d0"
+  "__path__": "/home/elinscott/code/koopmans/tutorials/tutorial_4/ecutwfc_50d0/cell_size_1d0"
  },
  "prefix": "dft",
  "name": "benchgenkoopmanscpcalculator",
