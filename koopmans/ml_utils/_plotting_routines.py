@@ -66,7 +66,7 @@ def plot_convergence(convergence_points: np.ndarray, means: np.ndarray, stddevs:
     """
 
     # save the result in text form for easier debugging
-    np.savetxt(filename.with_suffix(".txt"), np.array([convergence_points, means, stddevs]).T)
+    # np.savetxt(filename.with_suffix(".txt"), np.array([convergence_points, means, stddevs]).T)
 
     # TODO Yannick: second axis produces errors for pickle
     # def snap2orb(x):
