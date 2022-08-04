@@ -14,12 +14,15 @@ from ._workflow import Workflow
 
 class TrajectoryWorkflow(Workflow):
 
-    def __init__(self, indices=None, save_dir=None, get_evs=False, *args, **kwargs):
+    def __init__(self, atoms=None, indices=None, save_dir=None, get_evs=False, *args, **kwargs):
         snapshots: List[Atoms] = kwargs.pop('snapshots', [])
-        if 'atoms' not in kwargs and snapshots != []:
+        if 'atoms' not in kwargs and atoms is None and snapshots != []:
             kwargs['atoms'] = snapshots[0]
+        elif atoms is not None:
+            kwargs['atoms'] = atoms
 
         super().__init__(*args, **kwargs)
+
         self.snapshots = snapshots
         self.number_of_snapshots = len(self.snapshots)
 
