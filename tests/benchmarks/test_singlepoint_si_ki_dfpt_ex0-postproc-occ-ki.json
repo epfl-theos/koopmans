@@ -209,7 +209,7 @@
    },
    "__ase_objtype__": "bandpath"
   },
-  "plot_params": {
+  "plotting": {
    "degauss": 0.5,
    "Emin": -10,
    "Emax": 4,
