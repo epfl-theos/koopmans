@@ -118,7 +118,8 @@ class PWBandStructureWorkflow(DFTWorkflow):
 
             # Prepare the band structure for plotting
             bs = calc_bands.results['band structure']
-            n_filled = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials, self.pseudo_dir) // 2
+            n_filled = pseudopotentials.nelec_from_pseudos(
+                self.atoms, self.pseudopotentials, self.parameters.pseudo_directory) // 2
             vbe = bs._energies[:, :, :n_filled].max()
             bs._energies -= vbe
 

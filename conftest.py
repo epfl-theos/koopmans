@@ -217,7 +217,7 @@ def tio2() -> Dict[str, Any]:
                                              spins=[None, None, None, None, None],
                                              atoms=atoms)
 
-    kpoints = Kpoints(grid=[2, 2, 2], path='GXG')
+    kpoints = Kpoints(grid=[2, 2, 2], path='GXG', cell=atoms.cell)
     return {'atoms': atoms,
             'calculator_parameters': {'pw': {'nbnd': 34}},
             'projections': projs,

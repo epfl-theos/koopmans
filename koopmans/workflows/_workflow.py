@@ -74,9 +74,6 @@ class Workflow(ABC):
     pseudopotentals : Dict[str, str]
         a dictionary mapping atom labels to pseudopotential filenames
 
-    pseudo_dir : pathlib.Path
-        the path containing the pseudopotential files
-
     kpoints : koopmans.kpoints.Kpoints
         a dataclass defining the k-point sampling and paths
 
