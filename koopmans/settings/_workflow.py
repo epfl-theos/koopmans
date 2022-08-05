@@ -106,7 +106,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     float, None, None),
             Setting('convergence_observable',
                     'System observable of interest which we converge',
-                    str, 'total energy', ('homo energy', 'lumo energy', 'total energy')),
+                    str, 'total energy', None),
             Setting('convergence_threshold',
                     'Convergence threshold for the system observable of interest',
                     (str, float), None, None),

@@ -66,6 +66,20 @@ def set_calc_value(wf: Workflow, value: Union[int, float], key: str) -> None:
             settings[key] = value
 
 
+def fetch_result_default(wf: Workflow, observable: str) -> float:
+    calc = wf.calculations[-1]
+    observable = observable.replace('total ', '').replace(' ', '_')
+    if observable not in calc.results:
+        raise ValueError(
+            f'{calc.prefix} has not returned a value for {observable}')
+    return calc.results[observable]
+
+
+def fetch_eps_inf(wf: Workflow) -> float:
+    calc = wf.calculations[-1]
+    return np.mean(np.diag(calc.results['dielectric tensor']))
+
+
 class ConvergenceWorkflow(Workflow):
 
     def _run(self, initial_depth: int = 3) -> None:
@@ -107,7 +121,7 @@ class ConvergenceWorkflow(Workflow):
                 values = [get_value(self) + i * increment for i in range(initial_depth)]
 
             elif conv_param == 'kgrid':
-                increment = 2
+                increment = 1
 
                 def get_value(wf: Workflow) -> List[int]:
                     assert wf.kpoints.grid
@@ -120,6 +134,11 @@ class ConvergenceWorkflow(Workflow):
             else:
                 raise NotImplementedError(f'Convergence with respect to {conv_param} has not yet been implemented')
             convergence_parameters.append(ConvergenceParameter(conv_param, increment, get_value, set_value, values))
+
+        if self.parameters.convergence_observable == 'eps_inf':
+            fetch_result = fetch_eps_inf
+        else:
+            fetch_result = partial(fetch_result_default, key=self.parameters.convergence_observable)
 
         if self.parameters.from_scratch:
             for c in convergence_parameters:
@@ -153,7 +172,10 @@ class ConvergenceWorkflow(Workflow):
                     continue
 
                 # Create a new workflow
-                subwf = workflows.SinglepointWorkflow.fromparent(self)
+                if self.parameters.convergence_observable == 'eps_inf':
+                    subwf = workflows.DFTPhWorkflow.fromparent(self)
+                else:
+                    subwf = workflows.SinglepointWorkflow.fromparent(self)
 
                 # For each parameter we're converging wrt...
                 header = ''
@@ -165,6 +187,9 @@ class ConvergenceWorkflow(Workflow):
                     else:
                         value_str = str(value)
                     header += f'{parameter.name} = {value_str}, '
+
+                    if isinstance(value, list):
+                        value_str = ''.join([str(x) for x in value])
 
                     # Create new working directory
                     subdir /= f'{parameter.name}_{value_str}'.replace(' ', '_').replace('.', 'd')
@@ -188,16 +213,9 @@ class ConvergenceWorkflow(Workflow):
 
                 # Perform calculation
                 subwf.run(subdirectory=subdir)
-                solved_calc = subwf.calculations[-1]
 
                 # Store the result
-                obs = self.parameters.convergence_observable
-                obs = obs.replace('total ', '').replace(' ', '_')
-                if obs not in solved_calc.results:
-                    raise ValueError(
-                        f'{solved_calc.prefix} has not returned a value for {obs}')
-                result = solved_calc.results[obs]
-                results[indices] = result
+                results[indices] = fetch_result(subwf)
 
             # Check convergence
             converged = np.empty([len(p.values) for p in convergence_parameters], dtype=bool)
