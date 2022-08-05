@@ -1261,7 +1261,10 @@ class Workflow(ABC):
             plt.subplots_adjust(right=0.85, wspace=0.05)
 
         # Saving the figure to file (as png and also in editable form)
-        filename = filename if filename is not None else f'{self.name}_bandstructure'
+        workflow_name = self.__class__.__name__.lower()
+        for s in ['workflow', 'mock', 'benchgen', 'stumbling', 'check']:
+            workflow_name = workflow_name.replace(s, '')
+        filename = filename if filename is not None else f'{self.name}_{workflow_name}_bandstructure'
         legends = [ax.get_legend() for ax in axes if ax.get_legend() is not None]
         utils.savefig(fname=filename + '.png', bbox_extra_artists=legends, bbox_inches='tight')
 

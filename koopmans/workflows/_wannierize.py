@@ -292,8 +292,7 @@ class WannierizeWorkflow(Workflow):
                     bsplot_kwargs_list.append(kwargs)
 
             # Plot
-            self.plot_bandstructure(bs_list, dos, filename=self.name
-                                    + '_wannierize', bsplot_kwargs=bsplot_kwargs_list)
+            self.plot_bandstructure(bs_list, dos, bsplot_kwargs=bsplot_kwargs_list)
 
         return
 
