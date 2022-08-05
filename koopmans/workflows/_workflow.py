@@ -322,6 +322,22 @@ class Workflow(ABC):
             return self.__dict__ == other.__dict__
         return False
 
+    def __repr__(self):
+        entries = []
+
+        # atoms
+        entries.append(f'atoms={self.atoms.symbols}')
+
+        # parameters
+        entries.append(f'parameters={self.parameters.briefrepr()}')
+
+        # kpoints
+        entries.append(f'kpoints={self.kpoints}')
+
+        # pseudopotentials
+        entries.append(f'pseudopotentials={self.pseudopotentials}')
+        return f'{self.__class__.__name__}(' + ',\n   '.join(entries) + ')'
+
     def run(self, subdirectory: Optional[Union[str, Path]] = None, from_scratch: Optional[bool] = None) -> None:
         '''
         Run the workflow

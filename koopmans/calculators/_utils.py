@@ -20,18 +20,19 @@ Sep 2021: Reshuffled files to make imports cleaner
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod, abstractproperty
 import copy
+import os
+from abc import ABC, abstractmethod, abstractproperty
 from pathlib import Path
 from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
 
 import numpy as np
 from numpy import typing as npt
 
+import ase.io as ase_io
 from ase import Atoms
 from ase.calculators.calculator import CalculationFailed
 from ase.dft.kpoints import BandPath
-import ase.io as ase_io
 from ase.spectrum.band_structure import BandStructure
 from koopmans import settings, utils
 
@@ -85,6 +86,19 @@ class CalculatorExt():
         # Some calculations we don't want to check their results for when performing tests; for such calculations, set
         # skip_qc = True
         self.skip_qc = skip_qc
+
+    def __repr__(self):
+        entries = []
+
+        # prefix
+        entries.append(f'prefix={self.prefix}')
+
+        # directory
+        entries.append(f'directory={os.path.relpath(self.directory, ".")}')
+
+        entries.append(f'parameters={self.parameters.briefrepr()}')
+
+        return self.__class__.__name__ + '(' + ',\n   '.join(entries) + ')'
 
     @property
     def parameters(self) -> settings.SettingsDict:

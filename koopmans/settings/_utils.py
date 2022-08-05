@@ -258,6 +258,15 @@ class SettingsDict(UserDict):
     def fromdict(cls, dct):
         return cls(**dct)
 
+    def briefrepr(self) -> str:
+        entries = str(self)[1:-1]
+        try:
+            comma_index = entries[:80].rindex(',')
+            body = entries[:comma_index + 2]
+        except ValueError:
+            body = ''
+        return '{' + body + '...}'
+
 
 class SettingsDictWithChecks(SettingsDict):
     def __init__(self, settings: List[Setting], **kwargs):

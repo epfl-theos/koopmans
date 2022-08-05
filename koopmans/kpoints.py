@@ -63,7 +63,17 @@ class Kpoints:
         self.set_path(path, cell, density)
 
     def __repr__(self):
-        return 'Kpoints(' + ', '.join(f'{k.lstrip("_")}={v}' for k, v in self.__dict__.items() if v is not None) + ')'
+        entries = []
+        for k, v in self.__dict__.items():
+            if v is None:
+                continue
+            elif isinstance(v, BandPath):
+                v = v.path
+            else:
+                pass
+            entries.append(f'{k.lstrip("_")}={v}')
+
+        return 'Kpoints(' + ', '.join(entries) + ')'
 
     @property
     def grid(self) -> Optional[List[int]]:
