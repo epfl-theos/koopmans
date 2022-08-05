@@ -8,6 +8,7 @@ Converted to a workflow object Nov 2020
 """
 
 import os
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -64,6 +65,8 @@ class SinglepointWorkflow(Workflow):
 
         if self.parameters.eps_inf == 'auto':
             eps_workflow = DFTPhWorkflow.fromparent(self)
+            if self.parameters.from_scratch and Path('calculate_eps').exists():
+                shutil.rmtree('calculate_eps')
             eps_workflow.run(subdirectory='calculate_eps')
             self.parameters.eps_inf = np.trace(eps_workflow.calculations[-1].results['dielectric tensor']) / 3
 

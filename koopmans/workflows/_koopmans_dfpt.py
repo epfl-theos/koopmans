@@ -7,13 +7,15 @@ Written by Edward Linscott Feb 2021
 """
 
 import os
+import shutil
 from pathlib import Path
 
 import numpy as np
 
 from koopmans import utils
 from koopmans.bands import Bands
-from koopmans.calculators import KoopmansHamCalculator, Wann2KCCalculator
+from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
+                                  Wann2KCCalculator)
 
 from ._workflow import Workflow
 
@@ -82,12 +84,6 @@ class KoopmansDFPTWorkflow(Workflow):
                             raise ValueError(
                                 f'assume_isolated = {params.assume_isolated} is incompatible with mt_correction = True')
 
-        # Delete any pre-existing directories if running from scratch
-        if self.parameters.from_scratch:
-            for directory in ['init', 'wannier', 'screening', 'hamiltonian', 'postproc', 'TMP']:
-                if os.path.isdir(directory):
-                    utils.system_call(f'rm -r {directory}')
-
         # Initialize the bands
         if self.parameters.periodic:
             nocc = self.projections.num_wann(occ=True)
@@ -112,6 +108,12 @@ class KoopmansDFPTWorkflow(Workflow):
 
         # Import these here so that if they have been monkey-patched, we get the monkey-patched version
         from koopmans.workflows import DFTPWWorkflow, WannierizeWorkflow
+
+        if self.parameters.from_scratch:
+            for output_directory in [self.calculator_parameters['pw'].outdir, 'wannier', 'init', 'screening', 'hamiltonian', 'postproc']:
+                output_directory = Path(output_directory)
+                if output_directory.exists():
+                    shutil.rmtree(output_directory)
 
         if self.parameters.periodic:
             # Run PW and Wannierization
@@ -141,7 +143,8 @@ class KoopmansDFPTWorkflow(Workflow):
         # Copy the outdir to the base directory
         base_outdir = self.calculator_parameters['pw'].outdir
         base_outdir.mkdir(exist_ok=True)
-        init_outdir = self.calculations[0].parameters.outdir
+        scf_calcs = [c for c in self.calculations if isinstance(c, PWCalculator) and c.parameters.calculation == 'scf']
+        init_outdir = scf_calcs[-1].parameters.outdir
         if self.parameters.from_scratch and init_outdir != base_outdir:
             utils.symlink(f'{init_outdir}/*', base_outdir)
 
