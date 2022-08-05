@@ -204,8 +204,8 @@ class Workflow(ABC):
 
         # Make sure calculator_parameters isn't missing any entries, and every entry corresponds to settings.SettingsDict
         # objects
-        calculator_parameters = sanitize_calculator_parameters(
-            calculator_parameters) if calculator_parameters is not None else generate_default_calculator_parameters()
+        calculator_parameters = sanitize_calculator_parameters(calculator_parameters) if calculator_parameters \
+            is not None else generate_default_calculator_parameters()
 
         # Work out the pseudopotential directory. If using a pseudo_library this is straightforward, if not...
         #  1. try to locating the directory as currently specified by the calculator
@@ -550,8 +550,8 @@ class Workflow(ABC):
         all_kwargs.update(**calculator_parameters)
         all_kwargs.update(**kwargs)
 
-        # For the k-points, the Workflow has two options: self.kpoints.grid and self.kpoints.path. A calculator should only ever
-        # have one of these two. By default, use the grid.
+        # For the k-points, the Workflow has two options: self.kpoints.grid and self.kpoints.path. A calculator should
+        # only ever have one of these two. By default, use the grid.
         if 'kpts' in calculator_parameters.valid:
             all_kwargs['kpts'] = kpts if kpts is not None else self.kpoints.grid
 
@@ -933,7 +933,8 @@ class Workflow(ABC):
         kc_wann_blocks = calcdict.pop('kc_wann', {'kc_ham': {}, 'kc_screen': {}, 'wann2kc': {}})
         calcdict.update(**kc_wann_blocks)
 
-        # Finally, generate a SettingsDict for every single kind of calculator, regardless of whether or not there was a corresponding block in the json file
+        # Finally, generate a SettingsDict for every single kind of calculator, regardless of whether or not there was
+        # a corresponding block in the json file
         calculator_parameters = {}
         w90_block_projs: List = []
         w90_block_filling: List[bool] = []
@@ -988,8 +989,10 @@ class Workflow(ABC):
         for block in bigdct:
             raise ValueError(f'Unrecognized block "{block}" in the json input file')
 
-        # Create the workflow. Note that any keywords provided in the calculator_parameters (i.e. whatever is left in calcdict) are provided as kwargs
-        return cls(atoms, parameters=parameters, kpoints=kpts, calculator_parameters=calculator_parameters, **kwargs, **calcdict)
+        # Create the workflow. Note that any keywords provided in the calculator_parameters (i.e. whatever is left in
+        # calcdict) are provided as kwargs
+        return cls(atoms, parameters=parameters, kpoints=kpts, calculator_parameters=calculator_parameters, **kwargs,
+                   **calcdict)
 
     def print_header(self):
         print(header())
@@ -1410,5 +1413,6 @@ def sanitize_calculator_parameters(dct_in: Union[Dict[str, Dict], Dict[str, sett
     for k in dct_in.keys():
         if k not in settings_classes:
             raise ValueError(
-                f'Unrecognized calculator_parameters entry "{k}": valid options are ' + '/'.join(settings_classes.keys()))
+                f'Unrecognized calculator_parameters entry "{k}": valid options are '
+                '/'.join(settings_classes.keys()))
     return dct_out

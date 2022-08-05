@@ -46,7 +46,8 @@ class SinglepointWorkflow(Workflow):
         >>>                                           atoms=gaas)
         >>> kpoints = Kpoints(grid=[2, 2, 2])
         >>> wf = SinglepointWorkflow(gaas, kpoints=kpoints, projections=projs, init_orbitals='mlwfs',
-        >>>                          pseudo_library='sg15_v1.0', ecutwfc=40.0, calculator_parameters={'pw': {'nbnd': 45},
+        >>>                          pseudo_library='sg15_v1.0', ecutwfc=40.0,
+        >>>                          calculator_parameters={'pw': {'nbnd': 45},
         >>>                          'w90_emp': {'dis_froz_max': 14.6, 'dis_win_max': 18.6}})
         >>> wf.run()
     '''

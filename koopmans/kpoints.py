@@ -39,7 +39,9 @@ class Kpoints:
     _path: Optional[BandPath]
     gamma_only: bool
 
-    def __init__(self, grid: Optional[List[int]] = [1, 1, 1], offset: Optional[List[int]] = [0, 0, 0], path: Optional[Union[str, BandPath]] = None, gamma_only: bool = False, cell: Optional[Cell] = None, density: float = 10.0):
+    def __init__(self, grid: Optional[List[int]] = [1, 1, 1], offset: Optional[List[int]] = [0, 0, 0],
+                 path: Optional[Union[str, BandPath]] = None, gamma_only: bool = False, cell: Optional[Cell] = None,
+                 density: float = 10.0):
         """
         Initialize a Kpoint object. The path can be initialized using a string, but if so the additional requirements
         density and cell are required, where...
@@ -201,7 +203,8 @@ def kpath_to_dict(path: BandPath) -> Dict[str, Any]:
         density_min = None
 
         # Super-dumb bisection approach to obtain a density that gives the correct nunber of kpoints.
-        # We have to resort to this because the length of paths produced by BandPath().interpolate(density=...) is unreliable
+        # We have to resort to this because the length of paths produced by BandPath().interpolate(density=...)
+        # is unreliable
         while attempts < 100:
             dct['density'] = density_guess
             new_path = dict_to_kpath(dct)

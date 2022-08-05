@@ -324,7 +324,8 @@ class KoopmansDSCFWorkflow(Workflow):
             # Wannier functions using pw.x, wannier90.x and pw2wannier90.x (pw.x only for Kohn-Sham states)
             wannier_workflow = workflows.WannierizeWorkflow.fromparent(self)
             if wannier_workflow.parameters.calculate_bands:
-                wannier_workflow.parameters.calculate_bands = not self.calculator_parameters['ui'].do_smooth_interpolation
+                wannier_workflow.parameters.calculate_bands = \
+                    not self.calculator_parameters['ui'].do_smooth_interpolation
 
             # Perform the wannierization workflow within the init directory
             wannier_workflow.run(subdirectory='init')
