@@ -13,10 +13,12 @@ import numpy as np
 from ase import Atoms
 from ase.calculators.espresso import Espresso
 from ase.dft.kpoints import BandPath
+from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
 from koopmans.commands import Command, ParallelCommandWithPostfix
 from koopmans.settings import PWSettingsDict
 
-from ._utils import CalculatorABC, CalculatorExt, ReturnsBandStructure, bin_directory
+from ._utils import (CalculatorABC, CalculatorExt, ReturnsBandStructure,
+                     bin_directory)
 
 
 class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC):
@@ -41,6 +43,13 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
             if not isinstance(self.parameters.kpts, BandPath):
                 raise KeyError('You are running a calculation that requires a kpoint path; please provide a BandPath '
                                'as the kpts parameter')
+
+        # Update ibrav and celldms
+        if cell_follows_qe_conventions(self.atoms.cell):
+            self.parameters.update(**cell_to_parameters(self.atoms.cell))
+        else:
+            self.parameters.ibrav = 0
+
         super()._calculate()
 
         if isinstance(self.parameters.kpts, BandPath):

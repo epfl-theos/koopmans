@@ -36,12 +36,9 @@ import ase
 from ase import Atoms
 from ase.build.supercells import make_supercell
 from ase.calculators.calculator import CalculationFailed
-from ase.calculators.espresso import Espresso_kcp
 from ase.dft.dos import DOS
 from ase.dft.kpoints import BandPath
-from ase.io.espresso import cell_to_ibrav
 from ase.io.espresso import contruct_kcp_namelist as construct_namelist
-from ase.io.espresso import ibrav_to_cell, kcp_keys
 from ase.spacegroup import symmetrize
 from ase.spectrum.band_structure import BandStructure
 from ase.spectrum.doscollection import GridDOSCollection
@@ -569,13 +566,6 @@ class Workflow(ABC):
 
         return calc
 
-    def update_celldms(self):
-        # Update celldm(*) to match the current self.atoms.cell
-        for k, params in self.calculator_parameters.items():
-            if params.get('ibrav', 0) != 0:
-                celldms = cell_to_ibrav(self.atoms.cell, params.ibrav)
-                self.calculator_parameters[k].update(**celldms)
-
     def primitive_to_supercell(self, matrix: Optional[npt.NDArray[np.int_]] = None, **kwargs):
         # Converts to a supercell as given by a 3x3 transformation matrix
         if matrix is None:
@@ -586,8 +576,6 @@ class Workflow(ABC):
                 matrix = np.diag(self.kpoints.grid)
         assert np.shape(matrix) == (3, 3)
         self.atoms = make_supercell(self.atoms, matrix, **kwargs)
-
-        self.update_celldms()
 
     def supercell_to_primitive(self, matrix: Optional[npt.NDArray[np.int_]] = None):
         # Converts from a supercell to a primitive cell, as given by a 3x3 transformation matrix
@@ -610,8 +598,6 @@ class Workflow(ABC):
                 wrapped_a in zip(self.atoms, wrapped_atoms)]
 
         self.atoms = self.atoms[mask]
-
-        self.update_celldms()
 
     def run_calculator(self, master_qe_calc: calculators.Calc, enforce_ss=False):
         '''
@@ -667,7 +653,6 @@ class Workflow(ABC):
                 verb = 'Rerunning'
 
                 is_complete = self.load_old_calculator(qe_calc)
-
                 if is_complete:
                     if not self.silent:
                         self.print(f'Not running {os.path.relpath(calc_file)} as it is already complete')

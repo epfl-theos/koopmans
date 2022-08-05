@@ -3,10 +3,10 @@ from typing import Any, Dict
 
 from ase.io.espresso import kcp_keys
 
-from ._utils import SettingsDict
+from ._utils import IbravDict, SettingsDict
 
 
-class KoopmansCPSettingsDict(SettingsDict):
+class KoopmansCPSettingsDict(IbravDict, SettingsDict):
     def __init__(self, **kwargs) -> None:
         defaults = {'calculation': 'cp',
                     'outdir': Path('./TMP-CP/'),

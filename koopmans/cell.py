@@ -1,3 +1,4 @@
+import copy
 from typing import Dict, Union
 
 import numpy as np
@@ -5,6 +6,7 @@ import numpy as np
 from ase.cell import Cell
 from ase.lattice import (BCC, BCT, CUB, FCC, HEX, MCL, MCLC, ORC, ORCC, ORCF,
                          ORCI, RHL, TET, TRI, BravaisLattice)
+from ase.units import Bohr
 
 
 def parameters_to_cell(ibrav: int, celldms: Dict[int, float]) -> Cell:
@@ -30,6 +32,10 @@ def parameters_to_cell(ibrav: int, celldms: Dict[int, float]) -> Cell:
 
     if not isinstance(celldms, dict):
         raise ValueError('Please provide celldms as a dictionary e.g. "celldms": {"1": 10.0, "3": 0.75}')
+
+    # Convert from Bohr to Angstrom
+    celldms = copy.deepcopy(celldms)
+    celldms[1] *= Bohr
 
     if ibrav == 1:
         new_array = celldms[1] * np.identity(3)
@@ -246,4 +252,12 @@ def cell_to_parameters(cell: Cell) -> Dict[str, Union[int, Dict[int, float]]]:
     else:
         raise ValueError(f"Unrecognised Bravais lattice {lat.name}")
 
+    # Convert to Bohr radii
+    celldms[1] /= Bohr
+
     return {'ibrav': ibrav, 'celldms': celldms}
+
+
+def cell_follows_qe_conventions(cell: Cell) -> bool:
+    qe_cell = parameters_to_cell(**cell_to_parameters(cell))  # type: ignore
+    return np.allclose(cell, qe_cell)

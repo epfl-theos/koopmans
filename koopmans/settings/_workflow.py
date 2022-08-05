@@ -144,6 +144,10 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
         if key == 'init_empty_orbitals' and value == 'same':
             value = self.init_orbitals
 
+        # Convert convergence_parameters to a list
+        if key == 'convergence_parameters' and isinstance(value, str):
+            value = [value]
+
         # Make sure that pseudo libraries shortcuts (e.g. "sg15") are converted to the explicit version
         # (e.g. "sg15_v1.2")
         if key == 'pseudo_library':
