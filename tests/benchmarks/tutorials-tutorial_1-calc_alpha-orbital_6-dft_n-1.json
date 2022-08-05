@@ -5,19 +5,19 @@
   },
   "conv_thr": 1.8000000000000001e-06,
   "esic_conv_thr": 1.8000000000000001e-06,
-  "ibrav": 0,
-  "ecutwfc": 65.0,
-  "ecutrho": 260.0,
   "nelec": 18,
   "tot_charge": 0,
   "tot_magnetization": 0,
   "nelup": 9,
   "neldw": 9,
-  "pseudo_dir": {
-   "__path__": "../../../../pseudos/sg15_v1.2/pbe"
-  },
+  "ibrav": 0,
+  "ecutwfc": 65.0,
+  "ecutrho": 260.0,
   "pseudopotentials": {
    "O": "O_ONCV_PBE-1.2.upf"
+  },
+  "pseudo_dir": {
+   "__path__": "../../../../pseudos/sg15_v1.2/pbe"
   },
   "ndw": 63,
   "ndr": 60,
@@ -773,14 +773,14 @@
   ]
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tutorials/tutorial_1/calc_alpha/orbital_6"
+  "__path__": "calc_alpha/orbital_6"
  },
  "prefix": "dft_n-1",
  "name": "benchgenkoopmanscpcalculator",
  "command": {
   "mpi_command": "mpirun -np 8",
-  "path": {
-   "__path__": "/home/elinscott/code/koopmans/bin"
+  "_path": {
+   "__path__": "../../bin"
   },
   "executable": "kcp.x",
   "_flags": "",

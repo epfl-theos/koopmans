@@ -2,20 +2,20 @@
  "_parameters": {
   "conv_thr": 8e-09,
   "esic_conv_thr": 8e-09,
-  "ecutwfc": 20.0,
-  "nbnd": 5,
   "nelec": 8,
   "tot_charge": 0,
   "tot_magnetization": 0,
   "nelup": 4,
   "neldw": 4,
-  "pseudo_dir": {
-   "__path__": "../../../../../pseudos/sg15_v1.2/pbe"
-  },
+  "ecutwfc": 20.0,
+  "nbnd": 5,
   "ecutrho": 80.0,
   "pseudopotentials": {
    "O": "O_ONCV_PBE-1.2.upf",
    "H": "H_ONCV_PBE-1.2.upf"
+  },
+  "pseudo_dir": {
+   "__path__": "../../../../../pseudos/sg15_v1.2/pbe"
   },
   "ndr": 50,
   "ndw": 99,
@@ -27,6 +27,7 @@
   "maxiter": 300,
   "do_outerloop_empty": false,
   "empty_states_maxstep": 300,
+  "ibrav": 0,
   "__koopmans_name__": "KoopmansCPSettingsDict",
   "__koopmans_module__": "koopmans.settings._koopmans_cp"
  },
@@ -372,14 +373,14 @@
   ]
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_convergence_h2o0/ecutwfc_20d0/cell_size_1d1"
+  "__path__": "."
  },
  "prefix": "dft_nspin2_dummy",
  "name": "benchgenkoopmanscpcalculator",
  "command": {
   "mpi_command": "mpirun -np 8",
-  "path": {
-   "__path__": "/home/elinscott/code/koopmans/bin"
+  "_path": {
+   "__path__": "../../../../../bin"
   },
   "executable": "kcp.x",
   "_flags": "",

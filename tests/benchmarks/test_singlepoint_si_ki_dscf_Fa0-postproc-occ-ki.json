@@ -1136,7 +1136,7 @@
   "job done": true
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dscf_Fa0/postproc/occ"
+  "__path__": "occ"
  },
  "prefix": "ki",
  "name": "benchgenunfoldandinterpolatecalculator",

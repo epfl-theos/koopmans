@@ -731,7 +731,7 @@
   "job done": true
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dfpt_ex0/postproc/emp"
+  "__path__": "emp"
  },
  "prefix": "ki",
  "name": "benchgenunfoldandinterpolatecalculator",

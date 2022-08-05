@@ -92,15 +92,15 @@
   "alphas": [
    [
     0.62714039,
-    0.69970991,
-    0.74556982,
-    0.75413536,
-    0.69159054,
+    0.69970992,
+    0.74556983,
+    0.75413537,
+    0.69159055,
     0.71895278,
-    0.7539257,
-    0.77489742,
+    0.75392571,
+    0.77489743,
     0.7482113,
-    0.775329
+    0.77532901
    ]
   ],
   "orbital_data": {
@@ -119,15 +119,15 @@
   }
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_ozone_ki_dfpt0/screening"
+  "__path__": "screening"
  },
  "prefix": "kc",
  "name": "benchgenkoopmansscreencalculator",
  "command": {
   "postfix": "-npool 1",
   "mpi_command": "mpirun -np 8",
-  "path": {
-   "__path__": "/home/elinscott/code/koopmans/bin"
+  "_path": {
+   "__path__": "../../../bin"
   },
   "executable": "kcw.x",
   "_flags": "",

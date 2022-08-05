@@ -10,8 +10,8 @@
    2
   ],
   "pseudopotentials": {
-   "Ga": "Ga_ONCV_PBE-1.0.upf",
-   "As": "As_ONCV_PBE-1.0.upf"
+   "As": "As_ONCV_PBE-1.0.upf",
+   "Ga": "Ga_ONCV_PBE-1.0.upf"
   },
   "pseudo_dir": {
    "__path__": "../../../../../pseudos/sg15_v1.0/pbe"
@@ -22,6 +22,7 @@
    0,
    0
   ],
+  "ibrav": 0,
   "__koopmans_name__": "PWSettingsDict",
   "__koopmans_module__": "koopmans.settings._pw"
  },
@@ -99,7 +100,7 @@
   "job done": true
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_gaas_wan2odd0/init/wannier"
+  "__path__": "wannier"
  },
  "prefix": "scf",
  "name": "benchgenpwcalculator",
@@ -107,7 +108,7 @@
   "postfix": "-npool 1",
   "mpi_command": "mpirun -np 8",
   "_path": {
-   "__path__": "/home/elinscott/code/koopmans/bin"
+   "__path__": "../../../../bin"
   },
   "executable": "pw.x",
   "_flags": "",

@@ -534,7 +534,7 @@
   "job done": true
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_ui_si0"
+  "__path__": "."
  },
  "prefix": "si_ui",
  "name": "benchgenunfoldandinterpolatecalculator",

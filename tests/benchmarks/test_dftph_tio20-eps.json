@@ -3,8 +3,8 @@
   "tr2_ph": 1e-14,
   "fildyn": "tio2.dynG",
   "pseudopotentials": {
-   "O": "O.upf",
-   "Ti": "Ti.upf"
+   "Ti": "Ti.upf",
+   "O": "O.upf"
   },
   "__koopmans_name__": "PhSettingsDict",
   "__koopmans_module__": "koopmans.settings._ph"
@@ -123,28 +123,28 @@
     ],
     "float64",
     [
-     10.19076937233,
+     10.19076547377,
      0.0,
      0.0,
      0.0,
-     10.19076937233,
+     10.19076547377,
      0.0,
      0.0,
      0.0,
-     11.767944193825
+     11.767942283925
     ]
    ]
   }
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_dftph_tio20"
+  "__path__": "."
  },
  "prefix": "eps",
  "name": "benchgenphcalculator",
  "command": {
   "mpi_command": "mpirun -np 8",
   "_path": {
-   "__path__": "/home/elinscott/code/koopmans/bin"
+   "__path__": "../../../bin"
   },
   "executable": "ph.x",
   "_flags": "",

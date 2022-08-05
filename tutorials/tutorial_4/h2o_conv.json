@@ -12,10 +12,7 @@
         "fix_spin_contamination": false,
         "pseudo_library": "sg15_v1.0"
     },
-    "setup": {
-        "system": {
-            "ecutwfc": 20.0
-        },
+    "atoms": {
         "atomic_positions": {
             "units": "angstrom",
             "positions": [
@@ -59,5 +56,8 @@
                 ]
             ]
         }
+    },
+    "calculator_parameters": {
+        "ecutwfc": 20.0
     }
 }

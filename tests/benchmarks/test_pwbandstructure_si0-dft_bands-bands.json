@@ -208,6 +208,7 @@
    0,
    0
   ],
+  "ibrav": 0,
   "__koopmans_name__": "PWSettingsDict",
   "__koopmans_module__": "koopmans.settings._pw"
  },
@@ -717,7 +718,7 @@
   }
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_pwbandstructure_si0/dft_bands"
+  "__path__": "."
  },
  "prefix": "bands",
  "name": "benchgenpwcalculator",
@@ -725,7 +726,7 @@
   "postfix": "",
   "mpi_command": "mpirun -np 8",
   "_path": {
-   "__path__": "/home/elinscott/code/koopmans/bin"
+   "__path__": "../../../../bin"
   },
   "executable": "pw.x",
   "_flags": "",

@@ -14,8 +14,8 @@
   "ecutwfc": 40.0,
   "nbnd": 104,
   "pseudopotentials": {
-   "Ga": "Ga_ONCV_PBE-1.0.upf",
-   "As": "As_ONCV_PBE-1.0.upf"
+   "As": "As_ONCV_PBE-1.0.upf",
+   "Ga": "Ga_ONCV_PBE-1.0.upf"
   },
   "pseudo_dir": {
    "__path__": "../../../../pseudos/sg15_v1.0/pbe"
@@ -35,6 +35,7 @@
   "which_orbdep": "nki",
   "which_compensation": "none",
   "restart_from_wannier_pwscf": true,
+  "ibrav": 0,
   "__koopmans_name__": "KoopmansCPSettingsDict",
   "__koopmans_module__": "koopmans.settings._koopmans_cp"
  },
@@ -88666,14 +88667,14 @@
   ]
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_gaas_wan2odd0/final"
+  "__path__": "final"
  },
  "prefix": "ki_final",
  "name": "benchgenkoopmanscpcalculator",
  "command": {
   "mpi_command": "mpirun -np 8",
   "_path": {
-   "__path__": "/home/elinscott/code/koopmans/bin"
+   "__path__": "../../../bin"
   },
   "executable": "kcp.x",
   "_flags": "",
