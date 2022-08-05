@@ -38,17 +38,19 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
             self.command = ParallelCommandWithPostfix(os.environ.get(
                 'ASE_ESPRESSO_COMMAND', str(bin_directory) + os.path.sep + self.command))
 
-    def _calculate(self):
-        if self.parameters.calculation == 'bands':
-            if not isinstance(self.parameters.kpts, BandPath):
-                raise KeyError('You are running a calculation that requires a kpoint path; please provide a BandPath '
-                               'as the kpts parameter')
-
+    def calculate(self):
         # Update ibrav and celldms
         if cell_follows_qe_conventions(self.atoms.cell):
             self.parameters.update(**cell_to_parameters(self.atoms.cell))
         else:
             self.parameters.ibrav = 0
+        super().calculate()
+
+    def _calculate(self):
+        if self.parameters.calculation == 'bands':
+            if not isinstance(self.parameters.kpts, BandPath):
+                raise KeyError('You are running a calculation that requires a kpoint path; please provide a BandPath '
+                               'as the kpts parameter')
 
         super()._calculate()
 
