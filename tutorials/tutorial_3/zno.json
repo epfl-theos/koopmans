@@ -1,0 +1,67 @@
+{
+    "workflow": {
+        "functional": "ki",
+        "method": "dfpt",
+        "periodic": true,
+        "gb_correction" : true,
+        "eps_inf": "auto",
+        "init_orbitals": "projwfs",
+        "calculate_alpha" : false,
+        "base_functional": "lda",
+        "pseudo_library": "pseudo_dojo_standard",
+        "from_scratch": true
+    },
+    "atoms": {
+       "cell_parameters": {
+         "ibrav": 4,
+         "celldms": {"1": 9.97674, "3": 1.60204}
+        },
+        "atomic_positions": {
+            "units": "crystal",
+            "positions": [
+                ["Zn", 0.33330, 0.66670, 0.50000 ],
+                ["Zn", 0.66670, 0.33330, 0.00000 ],
+                ["O" , 0.33330, 0.66670, 0.11725 ],
+                ["O" , 0.66670, 0.33330, 0.61725 ]
+            ]
+        }
+    },
+    "kpoints": {
+        "grid": [
+            8,
+            8,
+            8 
+        ],
+        "path": "ALMGAHK"
+    },
+    "calculator_parameters": {
+        "ecutwfc": 50.0,
+        "pw": {
+            "system": {
+                "nbnd": 52
+            }
+        },
+        "w90": {
+            "occ": {
+            "projections": [
+                {"site": "Zn", "ang_mtm": "l=0"},
+                {"site": "Zn", "ang_mtm": "l=1"},
+                {"site": "Zn", "ang_mtm": "l=2"},
+                {"site": "O", "ang_mtm": "l=0"},
+                {"site": "O", "ang_mtm": "l=1"}
+            ]
+            },
+            "emp": {
+                "dis_froz_max": 14.5,
+                "dis_win_max": 17.0,
+                "projections": [
+                    {"site": "Zn", "ang_mtm": "l=0" }
+                ]
+            }
+        }
+    },
+    "plotting": {
+        "Emin": -20,
+        "Emax": 15
+    }
+}
