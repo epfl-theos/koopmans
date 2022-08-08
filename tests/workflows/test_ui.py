@@ -34,7 +34,8 @@ def test_ui_si(silicon, tmp_path, sys2file, datadir, ui_patch):
 
         # Check the results. Usually result-checking is automated within the MockCalc class, but here...
         # 1) we don't want to mock the calculators
-        # 2) we can afford to be a lot more strict, because it's just python we're running so the results should be identical
+        # 2) we can afford to be a lot more strict, because it's just python we're running so the results should be
+        #    identical
         calc = wf.calculations[-1]
         results = calc.results
         # Save the calculator as an encoded json in the benchmarks directory

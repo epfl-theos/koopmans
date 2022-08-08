@@ -202,8 +202,8 @@ class Workflow(ABC):
                     symbol += str(tag)
                 self.pseudopotentials[symbol] = pseudo.name
 
-        # Make sure calculator_parameters isn't missing any entries, and every entry corresponds to settings.SettingsDict
-        # objects
+        # Make sure calculator_parameters isn't missing any entries, and every entry corresponds to
+        # settings.SettingsDict objects
         calculator_parameters = sanitize_calculator_parameters(calculator_parameters) if calculator_parameters \
             is not None else generate_default_calculator_parameters()
 
@@ -508,8 +508,8 @@ class Workflow(ABC):
         if self.parameters.task != 'ui':
             for pseudo in self.pseudopotentials.values():
                 if not (self.parameters.pseudo_directory / pseudo).exists():
-                    raise FileNotFoundError(
-                        f'{self.parameters.pseudo_directory / pseudo} does not exist. Please double-check your pseudopotential settings')
+                    raise FileNotFoundError(f'{self.parameters.pseudo_directory / pseudo} does not exist. Please '
+                                            'double-check your pseudopotential settings')
 
     def new_calculator(self,
                        calc_type: str,

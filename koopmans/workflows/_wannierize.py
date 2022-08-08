@@ -171,14 +171,15 @@ class WannierizeWorkflow(Workflow):
                 self.run_calculator(calc_w90)
 
             # Merging Hamiltonian files, U matrix files, centers files if necessary
-            for block in self.projections.to_merge():
-                self.merge_wannier_files(block, prefix=calc_w90.prefix)
+            if self.parent is not None:
+                for block in self.projections.to_merge():
+                    self.merge_wannier_files(block, prefix=calc_w90.prefix)
 
-                # Extending the U_dis matrix file, if necessary
-                num_wann = sum([b.w90_kwargs['num_wann'] for b in block])
-                num_bands = sum([b.w90_kwargs['num_bands'] for b in block])
-                if not block[0].filled and num_bands > num_wann and self.parameters.method == 'dfpt':
-                    self.extend_wannier_u_dis_file(block, prefix=calc_w90.prefix)
+                    # Extending the U_dis matrix file, if necessary
+                    num_wann = sum([b.w90_kwargs['num_wann'] for b in block])
+                    num_bands = sum([b.w90_kwargs['num_bands'] for b in block])
+                    if not block[0].filled and num_bands > num_wann and self.parameters.method == 'dfpt':
+                        self.extend_wannier_u_dis_file(block, prefix=calc_w90.prefix)
 
         if self.parameters.calculate_bands:
             # Run a "bands" calculation, making sure we don't overwrite
@@ -434,14 +435,14 @@ class WannierizeWorkflow(Workflow):
         centers_list = []
         for dir_in in dirs_in:
             # Reading the centers file
-            fname_in = dir_in / (prefix + '_centers.xyz')
+            fname_in = dir_in / (prefix + '_centres.xyz')
 
             centers, _ = utils.read_wannier_centers_file(fname_in)
 
             centers_list += centers
 
         # Writing the centers file
-        utils.write_wannier_centers_file(dir_out / (prefix + '_centers.xyz'), centers_list, self.atoms)
+        utils.write_wannier_centers_file(dir_out / (prefix + '_centres.xyz'), centers_list, self.atoms)
 
     def extend_wannier_u_dis_file(self, block: List[projections.ProjectionBlock], prefix: str = 'wann'):
         # Read in

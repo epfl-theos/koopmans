@@ -110,7 +110,8 @@ class KoopmansDFPTWorkflow(Workflow):
         from koopmans.workflows import DFTPWWorkflow, WannierizeWorkflow
 
         if self.parameters.from_scratch:
-            for output_directory in [self.calculator_parameters['pw'].outdir, 'wannier', 'init', 'screening', 'hamiltonian', 'postproc']:
+            for output_directory in [self.calculator_parameters['pw'].outdir, 'wannier', 'init', 'screening',
+                                     'hamiltonian', 'postproc']:
                 output_directory = Path(output_directory)
                 if output_directory.exists():
                     shutil.rmtree(output_directory)
