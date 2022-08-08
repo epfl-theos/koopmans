@@ -17,7 +17,8 @@ def test_roundtrip_kpath_dict(bp: BandPath):
 
 
 @given(kpts=kst.kpoints)
-def test_roundtrip_Kpoints_dict(kpts, deadline=None):
+@settings(report_multiple_bugs=False, deadline=None)
+def test_roundtrip_Kpoints_dict(kpts):
     # TODO work out why kpts.path.special_points changes
     kpts_roundtrip = Kpoints.fromdict(kpts.todict())
     assert kpts.gamma_only == kpts_roundtrip.gamma_only
