@@ -26,7 +26,7 @@ def test_cell_to_parameters(cell: Cell):
 
 
 @given(cell=kst.ase_cells())
-@settings(max_examples=100, report_multiple_bugs=False)
+@settings(max_examples=100, report_multiple_bugs=False, deadline=None)
 def test_roundtrip_cell_parameters(cell: Cell):
     try:
         params = cell_to_parameters(cell)
