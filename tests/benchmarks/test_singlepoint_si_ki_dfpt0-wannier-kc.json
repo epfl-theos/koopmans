@@ -9,6 +9,7 @@
   "mp3": 2,
   "prefix": "kc",
   "seedname": "wann",
+  "spin_component": 1,
   "num_wann_occ": 4,
   "num_wann_emp": 4,
   "__koopmans_name__": "Wann2KCSettingsDict",
