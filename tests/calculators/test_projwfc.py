@@ -11,7 +11,7 @@ from koopmans.testing import benchmark_filename
 def test_generate_dos(silicon, tmp_path, datadir, pytestconfig):
     with utils.chdir(tmp_path):
         # Create a projwfc calculator to match the one that was used to generate the pdos files
-        wf = workflows.PWBandStructureWorkflow(
+        wf = workflows.DFTBandsWorkflow(
             parameters={'pseudo_library': 'pseudo_dojo_standard', 'base_functional': 'pbesol', 'from_scratch': True},
             name='si', **silicon)
 

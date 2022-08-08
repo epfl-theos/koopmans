@@ -94,7 +94,7 @@ class DFTPhWorkflow(Workflow):
         self.run_calculator(calc_ph)
 
 
-class PWBandStructureWorkflow(DFTWorkflow):
+class DFTBandsWorkflow(DFTWorkflow):
 
     def _run(self):
 

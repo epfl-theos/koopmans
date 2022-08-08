@@ -51,7 +51,7 @@ def read_json(fd: TextIO, override: Dict[str, Any] = {}):
     elif parameters.task == 'ui':
         workflow_cls = workflows.SingleUnfoldAndInterpolateWorkflow
     elif parameters.task == 'dft_bands':
-        workflow_cls = workflows.PWBandStructureWorkflow
+        workflow_cls = workflows.DFTBandsWorkflow
     elif parameters.task == 'dft_eps':
         workflow_cls = workflows.DFTPhWorkflow
     else:
