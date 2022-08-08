@@ -121,7 +121,7 @@ class ConvergenceWorkflow(Workflow):
                 values = [get_value(self) + i * increment for i in range(initial_depth)]
 
             elif conv_param == 'kgrid':
-                increment = 1
+                increment = 2
 
                 def get_value(wf: Workflow) -> List[int]:
                     assert wf.kpoints.grid
@@ -138,7 +138,7 @@ class ConvergenceWorkflow(Workflow):
         if self.parameters.convergence_observable == 'eps_inf':
             fetch_result = fetch_eps_inf
         else:
-            fetch_result = partial(fetch_result_default, key=self.parameters.convergence_observable)
+            fetch_result = partial(fetch_result_default, observable=self.parameters.convergence_observable)
 
         if self.parameters.from_scratch:
             for c in convergence_parameters:
