@@ -327,9 +327,7 @@ class ReturnsBandStructure(ABC):
             path = self.parameters.kpts
             eigenvalues_np = self.eigenvalues_from_results()
 
-            eigenvalues_np -= self.vbm_energy()
-
-            self.results['band structure'] = BandStructure(path, eigenvalues_np)
+            self.results['band structure'] = BandStructure(path, eigenvalues_np, reference=self.vbm_energy())
         return
 
 

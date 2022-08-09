@@ -9,6 +9,7 @@ Originally written by Riccardo De Gennaro as the standalone 'unfolding and inter
 Integrated within koopmans by Edward Linscott Jan 2021
 """
 
+import copy
 from pathlib import Path
 from typing import Optional
 
@@ -89,7 +90,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             energies = [c.results['band structure'].energies for c in self.calculations[-2:]]
             reference = np.max(energies[0])
             energies_np = np.concatenate(energies, axis=2)
-        calc.results['band structure'] = BandStructure(self.kpoints.path, energies_np - reference)
+        calc.results['band structure'] = BandStructure(self.kpoints.path, energies_np, reference=reference)
 
         if calc.parameters.do_dos:
             # Generate the DOS
@@ -114,7 +115,16 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                            'in the "plot" block)')
         else:
             dos = None
-        self.plot_bandstructure(bs, dos)
+
+        # Shift the DOS to align with the band structure
+        if dos is not None:
+            dos.e_skn -= bs.reference
+
+        self.plot_bandstructure(bs.subtract_reference(), dos)
+
+        # Shift the DOS back
+        if dos is not None:
+            dos.e_skn += bs.reference
 
         # Store the calculator in the workflow's list of all the calculators
         self.calculations.append(calc)

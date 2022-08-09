@@ -14,7 +14,6 @@ from typing import List, Optional, Tuple
 import numpy as np
 
 from ase.dft import DOS
-from ase.spectrum.band_structure import BandStructure
 from koopmans import calculators, utils
 from koopmans.bands import Band, Bands
 from koopmans.settings import KoopmansCPSettingsDict

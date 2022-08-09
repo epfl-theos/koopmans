@@ -339,8 +339,8 @@
    "__ase_objtype__": "bandpath"
   },
   "pseudopotentials": {
-   "As": "As_ONCV_PBE-1.0.upf",
-   "Ga": "Ga_ONCV_PBE-1.0.upf"
+   "Ga": "Ga_ONCV_PBE-1.0.upf",
+   "As": "As_ONCV_PBE-1.0.upf"
   },
   "pseudo_dir": {
    "__path__": "../../../../../pseudos/sg15_v1.0/pbe"
@@ -3965,7 +3965,7 @@
      ]
     ]
    },
-   "reference": 0.0,
+   "reference": 7.669,
    "__ase_objtype__": "bandstructure"
   }
  },

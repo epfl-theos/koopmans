@@ -212,47 +212,21 @@ class WannierizeWorkflow(Workflow):
                 self.run_calculator(calc_dos)
 
                 # Prepare the DOS for plotting
-                dos = calc_dos.results['dos']
+                dos = copy.deepcopy(calc_dos.results['dos'])
             else:
                 # Skip if the pseudos don't have the requisite PP_PSWFC blocks
                 utils.warn('Some of the pseudopotentials do not have PP_PSWFC blocks, which means a projected DOS '
                            'calculation is not possible. Skipping...')
                 dos = None
 
-            # Select those calculations that generated a band structure
-            selected_calcs = [c for c in self.calculations[:-1] if 'band structure' in c.results and c != calc_pw_bands]
+            # Select those calculations that generated a band structure (and are part of this wannierize workflow)
+            i_scf = [i for i, c in enumerate(self.calculations) if isinstance(c, calculators.PWCalculator)
+                     and c.parameters.calculation == 'scf'][-1]
+            selected_calcs = [c for c in self.calculations[i_scf:-1]
+                              if 'band structure' in c.results and c != calc_pw_bands]
 
-            # Work out the vertical shift to set the valence band edge to zero
-            pw_eigs = calc_pw_bands.results['band structure'].energies
-            nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
-            tot_charge = calc_pw.parameters.get('tot_charge', 0)
-            nelec -= tot_charge
-
-            if self.parameters.spin_polarized:
-                tot_mag = calc_pw.parameters.get('tot_magnetization', nelec % 2)
-                nelup = int(nelec / 2 + tot_mag / 2)
-                neldw = int(nelec / 2 - tot_mag / 2)
-                nbnd_empty = [calc_pw_bands.parameters.nbnd - x for x in [nelup, neldw]]
-
-                vbes: List[float] = []
-                for ispin, num_bands in enumerate(nbnd_empty):
-                    if num_bands == 0:
-                        vbes.append(pw_eigs[ispin, :, :].max())
-                    elif num_bands == pw_eigs.shape[2]:
-                        continue
-                    else:
-                        vbes.append(pw_eigs[ispin, :, :-num_bands].max())
-
-                vbe = max(vbes)
-            else:
-                nbnd_empty = calc_pw_bands.parameters.nbnd - nelec // 2
-                if nbnd_empty > 0:
-                    vbe = np.max(pw_eigs[:, :, :-nbnd_empty])
-                else:
-                    vbe = np.max(pw_eigs)
-
-            if dos is not None:
-                dos._energies -= vbe
+            # Store the pw BandStructure (for working out the vertical shift to set the valence band edge to zero)
+            pw_bands = calc_pw_bands.results['band structure']
 
             # Prepare the band structures for plotting
             ax = None
@@ -265,14 +239,8 @@ class WannierizeWorkflow(Workflow):
             colors = {}
             for calc, label in zip([calc_pw_bands] + selected_calcs, labels):
                 if 'band structure' in calc.results:
-                    # Load the bandstructure. Because we are going apply a vertical shift, we take a copy of the
-                    # bandstructure (we don't want the stored band structure to be vertically shifted depending on
-                    # the value of self.parameters.calculate_bands!)
-                    bs = copy.deepcopy(calc.results['band structure'])
-
-                    # Unfortunately once a bandstructure object is created you cannot tweak it, so we must alter
-                    # this private variable
-                    bs._energies -= vbe
+                    # Load the bandstructure, shifted by the valence band maximum of the pw bands calculation
+                    bs = calc.results['band structure'].subtract_reference(pw_bands.reference)
 
                     # Tweaking the plot aesthetics
                     kwargs = {'label': label}
@@ -291,6 +259,10 @@ class WannierizeWorkflow(Workflow):
                     # Store
                     bs_list.append(bs)
                     bsplot_kwargs_list.append(kwargs)
+
+            # Shift the DOS, too
+            if dos is not None:
+                dos._energies -= pw_bands.reference
 
             # Plot
             self.plot_bandstructure(bs_list, dos, bsplot_kwargs=bsplot_kwargs_list)
