@@ -8,5 +8,6 @@ fig = pickle.load(open('dft_bands/zno_dftbands_bandstructure.fig.pkl', 'rb'))
 # Rescale the y axes
 fig.axes[0].set_ylim([-5, 15])
 
-# Show the figure
-plt.show()
+# Show/save the figure (uncomment as desired)
+plt.savefig('zno_dftbands_bandstructure_rescaled.png')
+# plt.show()
