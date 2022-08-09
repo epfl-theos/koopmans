@@ -4,6 +4,7 @@
 *.??o
 *.bib
 *.pkl
+*.png
 __pycache__/
 .vscode
 monkeytype.sqlite3
@@ -13,9 +14,14 @@ coverage.xml
 *.eggs/
 .mypy_cache/
 TMP-CP/
+TMP/
 calc_alpha/
+calculate_eps/
+dft_bands/
 final/
 init/
 pdos/
 postproc/
 wannier/
+screening/
+hamiltonian/
