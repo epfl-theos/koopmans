@@ -1,20 +1,23 @@
 {
     "workflow": {
-        "functional": "ki",
-        "method": "dfpt",
-        "periodic": true,
-        "gb_correction" : true,
-        "eps_inf": "auto",
-        "init_orbitals": "projwfs",
-        "calculate_alpha" : false,
+        "task": "dft_bands",
         "base_functional": "lda",
         "pseudo_library": "pseudo_dojo_standard",
-        "from_scratch": true
+        "periodic": true,
+        "gb_correction" : true,
+        "eps_inf": 5.3,
+        "init_orbitals": "mlwfs",
+        "functional": "ki",
+        "method": "dfpt",
+        "calculate_alpha" : false,
+        "alpha_guess": [[0.3580, 0.3641, 0.3640, 0.3641, 0.3571, 0.3577, 0.3577, 0.3573, 0.3573, 0.3580, 0.3641, 0.3640, 0.3641, 0.3571, 0.3577, 0.3577, 0.3573, 0.3573, 0.2158, 0.2323, 0.2344, 0.2343, 0.2158, 0.2323, 0.2344, 0.2343, 0.2231, 0.2231]],
+        "from_scratch": true,
+        "npool": 4
     },
     "atoms": {
        "cell_parameters": {
          "ibrav": 4,
-         "celldms": {"1": 9.97674, "3": 1.60204}
+         "celldms": {"1": 6.14057, "3": 1.60204}
         },
         "atomic_positions": {
             "units": "crystal",
@@ -28,9 +31,9 @@
     },
     "kpoints": {
         "grid": [
-            8,
-            8,
-            8 
+            4,
+            4,
+            4
         ],
         "path": "ALMGAHK"
     },
@@ -40,28 +43,6 @@
             "system": {
                 "nbnd": 52
             }
-        },
-        "w90": {
-            "occ": {
-            "projections": [
-                {"site": "Zn", "ang_mtm": "l=0"},
-                {"site": "Zn", "ang_mtm": "l=1"},
-                {"site": "Zn", "ang_mtm": "l=2"},
-                {"site": "O", "ang_mtm": "l=0"},
-                {"site": "O", "ang_mtm": "l=1"}
-            ]
-            },
-            "emp": {
-                "dis_froz_max": 14.5,
-                "dis_win_max": 17.0,
-                "projections": [
-                    {"site": "Zn", "ang_mtm": "l=0" }
-                ]
-            }
         }
-    },
-    "plotting": {
-        "Emin": -20,
-        "Emax": 15
     }
 }

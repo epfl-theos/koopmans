@@ -481,7 +481,7 @@ class Workflow(ABC):
                 utils.warn('Martyna-Tuckerman corrections not applied for an aperiodic calculation; do this with '
                            'caution')
 
-        if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
+        if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] and not self.parameters.task.startswith('dft'):
             if len(self.projections) == 0:
                 raise ValueError(f'In order to use init_orbitals={self.parameters.init_orbitals}, projections must be '
                                  'provided')
@@ -865,10 +865,13 @@ class Workflow(ABC):
         self._bands = value
 
     @classmethod
-    def fromjson(cls, fname: str):
+    def fromjson(cls, fname: str, override: Dict[str, Any] = {}):
 
         with open(fname, 'r') as fd:
             bigdct = json_ext.loads(fd.read())
+
+        # Override all keywords provided explicitly
+        utils.update_nested_dict(bigdct, override)
 
         kwargs: Dict[str, Any] = {}
 

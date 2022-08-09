@@ -19,3 +19,11 @@ def flatten(l: Union[List[Any], Iterable[Any]]) -> Generator[Any, None, None]:
                 yield x
         else:
             yield item
+
+
+def update_nested_dict(dct_to_update, second_dct):
+    for k, v in second_dct.items():
+        if k in dct_to_update and isinstance(v, dict):
+            update_nested_dict(dct_to_update[k], second_dct[k])
+        else:
+            dct_to_update[k] = v
