@@ -45,7 +45,8 @@ ax.annotate(xy=(x_vbm, y_vbm), xycoords='data',
             xytext=(x_cbm, y_cbm), textcoords='data', text='',
             arrowprops={'arrowstyle': '<->', 'shrinkA': 0, 'shrinkB': 0})
 ax.text((x_cbm + x_vbm) / 2 + 0.1, (y_cbm + y_vbm) / 2,
-        f'{y_cbm - y_vbm:.2f} eV', ha='left', va='center', path_effects=[pe.withStroke(linewidth=4, foreground='white')])
+        f'{y_cbm - y_vbm:.2f} eV', ha='left', va='center',
+        path_effects=[pe.withStroke(linewidth=4, foreground='white')])
 
 # Tweak the figure aesthetics
 ax.legend(loc='lower right', ncol=2, bbox_to_anchor=(1, 1))
