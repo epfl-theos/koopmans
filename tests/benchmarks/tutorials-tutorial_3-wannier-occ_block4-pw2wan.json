@@ -3,6 +3,7 @@
   "outdir": {
    "__path__": "../TMP"
   },
+  "spin_component": "up",
   "__koopmans_name__": "PW2WannierSettingsDict",
   "__koopmans_module__": "koopmans.settings._pw2wannier"
  },
@@ -31,7 +32,7 @@
     [
      -0.00016247248519362943,
      1.8761644647817146,
-     2.602874201795554,
+     2.6028742017955535,
      1.6248873244211965,
      0.9379415270912637,
      0.0,
