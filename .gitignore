@@ -10,6 +10,7 @@ __pycache__/
 monkeytype.sqlite3
 coverage.xml
 .coverage
+.hypothesis
 *.egg-info/
 *.eggs/
 .mypy_cache/
