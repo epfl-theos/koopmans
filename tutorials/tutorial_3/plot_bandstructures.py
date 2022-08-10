@@ -2,7 +2,6 @@ import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 import numpy as np
 
-from koopmans.calculators import PWCalculator
 from koopmans.io import read
 
 # Load the workflow

@@ -1,5 +1,5 @@
-Tutorial 2: a simple KI calculation on bulk silicon
-===================================================
+Tutorial 2: the band structure of bulk silicon (calculated via a supercell)
+===========================================================================
 In this tutorial, we will calculate the KI bandstructure of bulk silicon. The input file used for this calculation can be downloaded :download:`here <../../tutorials/tutorial_2/si.json>`.
 
 Wannierization
@@ -55,7 +55,7 @@ MLWFs can be calculated with `Wannier90 <http://www.wannier.org/>`_, an open-sou
 
 .. note::
 
-  This tutorial will not discuss in detail how perfrom a Wannierization with Wannier90. The Wannier90 website contains lots of excellent `tutorials <http://www.wannier.org/support/>`_.
+  This tutorial will not discuss in detail how perform a Wannierization with Wannier90. The Wannier90 website contains lots of excellent `tutorials <http://www.wannier.org/support/>`_.
 
   One important distinction to make for Koopmans calculations --- as opposed to many of the Wannier90 tutorials --- is that we need to separately Wannierize the occupied and empty manifolds.
 

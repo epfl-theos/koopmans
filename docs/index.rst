@@ -3,10 +3,7 @@
    :align: center
    :alt: Koopmans logo
 
-   a package for performing Koopmans spectral functional calculations with ``Quantum ESPRESSO``
-
-.. warning::
-   This website is still under development!
+   a package for performing and automating Koopmans functional calculations
 
 Contents
 --------

@@ -1,7 +1,7 @@
 .. _tutorial1:
 
-Tutorial 1: a simple KI calculation on an ozone molecule
-========================================================
+Tutorial 1: the ionization potential and electron affinity of ozone
+===================================================================
 In this tutorial, we will calculate the ionisation potential and electron affinity of ozone.
 
 The input
