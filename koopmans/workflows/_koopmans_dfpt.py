@@ -32,7 +32,7 @@ class KoopmansDFPTWorkflow(Workflow):
         if self.parameters.functional != 'ki':
             raise NotImplementedError(
                 'Calculating screening parameters with DFPT is not yet possible with functionals other than KI')
-        if self.parameters.periodic:
+        if all(self.atoms.pbc):
             if self.parameters.init_orbitals not in ['mlwfs', 'projwfs']:
                 raise ValueError(
                     'Calculating screening parameters with DFPT for a periodic system is only possible with MLWFs '
@@ -43,7 +43,7 @@ class KoopmansDFPTWorkflow(Workflow):
                     'Calculating screening parameters with DFPT for a non-periodic system is only possible '
                     'with Kohn-Sham orbitals as the variational orbitals')
         for params in self.calculator_parameters.values():
-            if self.parameters.periodic:
+            if all(self.atoms.pbc):
                 # Gygi-Baldereschi
                 if self.parameters.gb_correction:
                     if hasattr(params, 'l_vcut'):
@@ -85,7 +85,7 @@ class KoopmansDFPTWorkflow(Workflow):
                                 f'assume_isolated = {params.assume_isolated} is incompatible with mt_correction = True')
 
         # Initialize the bands
-        if self.parameters.periodic:
+        if all(self.atoms.pbc):
             nocc = self.projections.num_wann(occ=True)
             nemp = self.projections.num_wann(occ=False)
         else:
@@ -97,7 +97,7 @@ class KoopmansDFPTWorkflow(Workflow):
                            groups=self.parameters.orbital_groups)
 
         # Populating kpoints if absent
-        if not self.parameters.periodic:
+        if not all(self.atoms.pbc):
             for key in ['pw', 'kc_screen']:
                 self.calculator_parameters[key].kpts = [1, 1, 1]
 
@@ -116,7 +116,7 @@ class KoopmansDFPTWorkflow(Workflow):
                 if output_directory.exists():
                     shutil.rmtree(output_directory)
 
-        if self.parameters.periodic:
+        if all(self.atoms.pbc):
             # Run PW and Wannierization
             for key in self.calculator_parameters.keys():
                 if key.startswith('w90'):
@@ -199,7 +199,7 @@ class KoopmansDFPTWorkflow(Workflow):
         self.run_calculator(kc_ham_calc)
 
         # Postprocessing
-        if self.parameters.periodic and self.projections and self.kpoints.path is not None \
+        if all(self.atoms.pbc) and self.projections and self.kpoints.path is not None \
                 and self.calculator_parameters['ui'].do_smooth_interpolation:
             from koopmans.workflows import UnfoldAndInterpolateWorkflow
             self.print(f'\nPostprocessing', style='heading')
@@ -210,7 +210,7 @@ class KoopmansDFPTWorkflow(Workflow):
         self.plot_bandstructure()
 
     def plot_bandstructure(self):
-        if not self.parameters.periodic:
+        if not all(self.atoms.pbc):
             return
 
         # Identify the relevant calculators
@@ -234,11 +234,11 @@ class KoopmansDFPTWorkflow(Workflow):
         calc.parameters.outdir = 'TMP'
         calc.parameters.seedname = 'wann'
         calc.parameters.spin_component = 1
-        calc.parameters.kcw_at_ks = not self.parameters.periodic
-        calc.parameters.read_unitary_matrix = self.parameters.periodic
+        calc.parameters.kcw_at_ks = not all(self.atoms.pbc)
+        calc.parameters.read_unitary_matrix = all(self.atoms.pbc)
 
         if calc_presets == 'wann2kc':
-            if self.parameters.periodic:
+            if all(self.atoms.pbc):
                 calc.directory = 'wannier'
             else:
                 calc.directory = 'init'
@@ -246,14 +246,14 @@ class KoopmansDFPTWorkflow(Workflow):
             calc.directory = 'screening'
             # If eps_inf is not provided in the kc_wann:screen subdictionary but there is a value provided in the
             # workflow parameters, adopt that value
-            if self.parameters.eps_inf is not None and calc.parameters.eps_inf is None and self.parameters.periodic:
+            if self.parameters.eps_inf is not None and calc.parameters.eps_inf is None and all(self.atoms.pbc):
                 calc.parameters.eps_inf = self.parameters.eps_inf
         else:
             calc.directory = 'hamiltonian'
-            calc.parameters.do_bands = self.parameters.periodic
+            calc.parameters.do_bands = all(self.atoms.pbc)
             calc.alphas = self.bands.alphas
 
-        if self.parameters.periodic:
+        if all(self.atoms.pbc):
             nocc = self.projections.num_wann(occ=True)
             nemp = self.projections.num_wann(occ=False)
             have_empty = (self.projections.num_wann(occ=False) > 0)
@@ -279,7 +279,7 @@ class KoopmansDFPTWorkflow(Workflow):
         calc.directory.mkdir(parents=True, exist_ok=True)
 
         # Provide the rotation matrices and the wannier centers
-        if self.parameters.periodic:
+        if all(self.atoms.pbc):
             utils.symlink(f'wannier/occ/wann_u.mat', f'{calc.directory}/', exist_ok=True)
             utils.symlink(f'wannier/emp/wann_u.mat', f'{calc.directory}/wann_emp_u.mat', exist_ok=True)
             if Path('wannier/emp/wann_u_dis.mat').exists():

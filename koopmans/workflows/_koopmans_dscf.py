@@ -39,7 +39,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         # If periodic, convert the kcp calculation into a Γ-only supercell calculation
         kcp_params = self.calculator_parameters['kcp']
-        if self.parameters.periodic:
+        if all(self.atoms.pbc):
             spins: List[Optional[str]]
             if self.parameters.spin_polarized:
                 spins = ['up', 'down']
@@ -230,7 +230,7 @@ class KoopmansDSCFWorkflow(Workflow):
         if self.parameters.from_scratch and not self._restart_from_old_ki \
                 and self.parameters.fix_spin_contamination \
                 and self.parameters.init_orbitals not in ['mlwfs', 'projwfs'] \
-                and not (self.parameters.periodic and self.parameters.init_orbitals == 'kohn-sham'):
+                and not (all(self.atoms.pbc) and self.parameters.init_orbitals == 'kohn-sham'):
             self.print('Copying the spin-up variational orbitals over to the spin-down channel')
             calc = self.calculations[-1]
             savedir = f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
@@ -257,7 +257,7 @@ class KoopmansDSCFWorkflow(Workflow):
         self.perform_final_calculations()
 
         # Postprocessing
-        if self.parameters.periodic:
+        if all(self.atoms.pbc):
             if self.parameters.calculate_bands in [None, True] and self.projections and self.kpoints.path is not None:
                 # Calculate interpolated band structure and DOS with UI
                 from koopmans import workflows
@@ -319,7 +319,7 @@ class KoopmansDSCFWorkflow(Workflow):
             self.calculations.append(calc)
 
         elif self.parameters.init_orbitals in ['mlwfs', 'projwfs'] or \
-                (self.parameters.periodic and self.parameters.init_orbitals == 'kohn-sham'):
+                (all(self.atoms.pbc) and self.parameters.init_orbitals == 'kohn-sham'):
             # Wannier functions using pw.x, wannier90.x and pw2wannier90.x (pw.x only for Kohn-Sham states)
             wannier_workflow = workflows.WannierizeWorkflow.fromparent(self)
             if wannier_workflow.parameters.calculate_bands:
@@ -501,7 +501,7 @@ class KoopmansDSCFWorkflow(Workflow):
             trial_calc.directory = iteration_directory
 
             if i_sc == 1:
-                if self.parameters.functional == 'kipz' and not self.parameters.periodic:
+                if self.parameters.functional == 'kipz' and not all(self.atoms.pbc):
                     # For the first KIPZ trial calculation, do the innerloop
                     trial_calc.parameters.do_innerloop = True
             else:
@@ -919,8 +919,8 @@ class KoopmansDSCFWorkflow(Workflow):
         if calc.prefix == 'dft_dummy':
             calc.parameters.nbnd = None
 
-        if self.parameters.periodic and not any([s == calc.prefix for s in ['dft_init', 'dft_n-1', 'dft_n+1',
-                                                                            'kipz', 'kipz_n-1', 'kipz_n+1']]):
+        if all(self.atoms.pbc) and not any([s == calc.prefix for s in ['dft_init', 'dft_n-1', 'dft_n+1',
+                                                                       'kipz', 'kipz_n-1', 'kipz_n+1']]):
             calc.parameters.do_outerloop = False
             calc.parameters.do_innerloop = False
         elif any([s in calc.prefix for s in ['frozen', 'dummy', 'print', 'innerloop']]) or calc.prefix == 'pkipz_final':
@@ -945,7 +945,7 @@ class KoopmansDSCFWorkflow(Workflow):
             calc.parameters.empty_states_maxstep = 300
 
         # No empty states minimization in the solids workflow for the moment
-        if self.parameters.periodic and calc.has_empty_states():
+        if all(self.atoms.pbc) and calc.has_empty_states():
             calc.parameters.do_outerloop_empty = False
             calc.parameters.do_innerloop_empty = False
 

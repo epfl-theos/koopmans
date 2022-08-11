@@ -130,7 +130,7 @@ class SinglepointWorkflow(Workflow):
                         file = Path(f'ki/final/{f}')
                         if file.is_file():
                             utils.system_call(f'rsync -a {file} pkipz/final/')
-                    if self.parameters.periodic and self.calculator_parameters['ui'].do_smooth_interpolation:
+                    if all(self.atoms.pbc) and self.calculator_parameters['ui'].do_smooth_interpolation:
                         if not Path('pkipz/postproc').is_dir():
                             utils.system_call('mkdir pkipz/postproc')
                         utils.system_call(f'rsync -a ki/postproc/wannier pkipz/postproc/')
@@ -141,7 +141,7 @@ class SinglepointWorkflow(Workflow):
                     utils.system_call('mv kipz/init/ki_final.cpo kipz/init/ki_init.cpo')
                     if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
                         utils.system_call('rsync -a ki/init/wannier kipz/init/')
-                    if self.parameters.periodic and self.calculator_parameters['ui'].do_smooth_interpolation:
+                    if all(self.atoms.pbc) and self.calculator_parameters['ui'].do_smooth_interpolation:
                         # Copy over the smooth PBE calculation from KI for KIPZ to use
                         utils.system_call('rsync -a ki/postproc/wannier kipz/postproc/')
 

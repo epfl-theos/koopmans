@@ -155,18 +155,11 @@ class Workflow(ABC):
             if self.plotting.is_valid(key):
                 self.plotting[key] = value
 
-        if 'periodic' in parameters:
-            # If "periodic" was explicitly provided, override self.atoms.pbc
-            self.atoms.pbc = self.parameters.periodic
-        else:
-            # If "periodic" was not explicitly provided, use the value from self.atoms.pbc
-            self.parameters.periodic = all(self.atoms.pbc)
-
         if all(self.atoms.pbc):
             self.atoms.wrap(pbc=True)
 
         # kpoints
-        if self.parameters.periodic:
+        if all(self.atoms.pbc):
             # By default, use ASE's default bandpath for this cell (see
             # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
             default_path = self.atoms.cell.bandpath().path
@@ -425,7 +418,7 @@ class Workflow(ABC):
             # If we are not calculating alpha, we do not consider charged systems and therefore we don't need image
             # corrections, so we skip the following checks
             pass
-        elif self.parameters.periodic:
+        elif all(self.atoms.pbc):
             if self.parameters.method == 'dfpt':
                 # For DPFT, we use gb_correction
                 if self.parameters.gb_correction is None:
@@ -1015,7 +1008,7 @@ class Workflow(ABC):
             add_ref('Dabo2010', 'One of the founding Koopmans functionals papers')
             add_ref('Borghi2014', 'One of the founding Koopmans functionals papers')
 
-            if self.parameters.periodic:
+            if all(self.atoms.pbc):
                 add_ref('Nguyen2018', 'Describes Koopmans functionals in periodic systems')
                 if self.parameters.calculate_alpha:
                     if self.parameters.method == 'dfpt':
