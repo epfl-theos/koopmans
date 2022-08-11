@@ -49,7 +49,7 @@ def parse_dict(dct: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def construct_cell_parameters_block(atoms: Atoms) -> Dict[str, Any]:
-    return {'vectors': [list(row) for row in atoms.cell[:]], 'units': 'angstrom'}
+    return {'vectors': [list(row) for row in atoms.cell[:]], 'units': 'angstrom', 'periodic': all(atoms.pbc)}
 
 
 def construct_atomic_positions_block(atoms: Atoms) -> Dict[str, Any]:
@@ -147,6 +147,7 @@ def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
         raise NotImplementedError('the combination of vectors, ibrav, & units '
                                   'in the cell_parameter block cannot be read (may not yet be '
                                   'implemented)')
+    atoms.pbc = dct.pop('periodic', True)
     atoms.cell = cell
     return
 

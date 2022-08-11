@@ -67,6 +67,7 @@ class MockCalc:
 
         # Compare the atoms and the cell
         # TODO
+        assert all(calc.atoms.pbc == self.atoms.pbc)
 
         # Check that the right files exist
         # TODO

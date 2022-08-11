@@ -44,9 +44,6 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     "if True, freeze the variational orbitals for the duration of the calculation once they've been "
                     "initialized",
                     bool, None, (True, False)),
-            Setting('periodic',
-                    'whether or not the system is periodic',
-                    bool, None, (True, False)),
             Setting('calculate_bands',
                     'whether or not to calculate the band structure of the system (if relevant)',
                     bool, None, (True, False)),
