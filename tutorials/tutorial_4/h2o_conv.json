@@ -37,6 +37,7 @@
             ]
         },
         "cell_parameters": {
+            "periodic": false,
             "units": "angstrom",
             "vectors": [
                 [

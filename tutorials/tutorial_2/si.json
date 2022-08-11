@@ -3,7 +3,6 @@
         "task": "wannierize",
         "functional": "ki",
         "base_functional": "lda",
-        "periodic": true,
         "method": "dscf",
         "mp_correction": false,
         "init_orbitals": "mlwfs",
@@ -14,6 +13,7 @@
     },
     "atoms": {
         "cell_parameters": {
+            "periodic": true,
             "ibrav": 2,
             "celldms": {"1": 10.2622}
         },
