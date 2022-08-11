@@ -34,13 +34,13 @@ The ``atoms`` block contains details about the atomic positions and the simulati
   describes the simulation cell. This can be specified explicitly
 
   .. literalinclude:: ../tutorials/tutorial_1/ozone.json
-    :lines: 12-17
+    :lines: 11-17
     :dedent:
 
   or using ``ibrav`` and ``celldms`` (following the conventions of Quantum ESPRESSO) e.g.
 
   .. literalinclude:: ../tutorials/tutorial_2/si.json
-    :lines: 16-19
+    :lines: 15-19
     :dedent:
 
 The kpoints block

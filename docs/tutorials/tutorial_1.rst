@@ -21,18 +21,11 @@ here we select the KI functional (as opposed to KIPZ),
   :lineno-start: 3
   :emphasize-lines: 2
 
-specifies that we are going to calculate the screening parameters via a ΔSCF procedure, whereby we compute the energies of various :math:`N`, :math:`N-1`, and :math:`N+1`-electron systems (see :ref:`the theory section<theory_dscf>` for details),
+specifies that we are going to calculate the screening parameters via a ΔSCF procedure, whereby we compute the energies of various :math:`N`, :math:`N-1`, and :math:`N+1`-electron systems (see :ref:`the theory section<theory_dscf>` for details), and
 
 .. literalinclude:: ../../tutorials/tutorial_1/ozone.json
-  :lines: 4-6
   :lineno-start: 4
-  :emphasize-lines: 2
-
-specifies that our ozone molecule is not a periodic system, and
-
-.. literalinclude:: ../../tutorials/tutorial_1/ozone.json
-  :lineno-start: 5
-  :lines: 5-7
+  :lines: 4-6
   :emphasize-lines: 2
 
 specifies that we have chosen to use the Kohn-Sham orbitals as our :ref:`variational orbitals <theory_vorbs_vs_corbs>`. This is common practice for molecules.
