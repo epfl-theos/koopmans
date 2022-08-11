@@ -14,6 +14,7 @@ Contents
    quick_start
    theory
    installation
+   input_file
    running
    modules
    tutorials
@@ -21,3 +22,4 @@ Contents
    references
    license
    contact
+

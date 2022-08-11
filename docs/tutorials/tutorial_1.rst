@@ -1,4 +1,4 @@
-.. _tutorial1:
+.. _tutorial_1:
 
 Tutorial 1: the ionization potential and electron affinity of ozone
 ===================================================================
@@ -37,14 +37,7 @@ specifies that our ozone molecule is not a periodic system, and
 
 specifies that we have chosen to use the Kohn-Sham orbitals as our :ref:`variational orbitals <theory_vorbs_vs_corbs>`. This is common practice for molecules.
 
-Meanwhile, the ``setup`` block contains standard keywords specifying the system configuration, such as the ``cell_parameters``, ``atomic_positions``, and ``atomic_species``. If you are familiar with ``Quantum ESPRESSO`` input files then most of this should look very familiar to you (albeit in JSON format). The one keyword that will be unfamiliar is
-
-.. literalinclude:: ../../tutorials/tutorial_1/ozone.json
-  :lines: 17-22
-  :lineno-start: 18
-  :emphasize-lines: 3-4
-
-which tells ``kcp.x`` to perform a calculation including one empty orbital (which is necessary for obtaining the electron affinity).
+Meanwhile, the ``atoms`` block describes the both the cell and the atoms it contains. If you are familiar with ``Quantum ESPRESSO`` input files then most of this should look very familiar to you (albeit in JSON format).
 
 Running the calculation
 ------------------------

@@ -6,24 +6,7 @@ To run a calculation from the command line, all that is required is
 
   $ koopmans <seed>.json
 
-where ``<seed>.json`` is a ``koopmans`` input file.
-
-The input file
-^^^^^^^^^^^^^^
-
-The input file is a JSON-formatted file that contains the calculation parameters, divided into various blocks
-
-
-.. toctree::
-
-  running/workflow
-  running/setup
-  running/kcp
-  running/pw
-  running/w90
-  running/pw2wannier
-  running/ui
-  running/plot
+where ``<seed>.json`` is a ``koopmans`` input file. The format of the input file is documented :ref:`here <input_file:The input file>`.
 
 Running via python
 ^^^^^^^^^^^^^^^^^^

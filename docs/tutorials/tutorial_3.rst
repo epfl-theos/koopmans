@@ -1,3 +1,5 @@
+.. _tutorial_3:
+
 Tutorial 3: the band structure of ZnO (calculated with explicit k-points)
 =========================================================================
 
@@ -90,6 +92,8 @@ This script has also labelled the band gap for us, which is 3.55 eV. This is pre
   :align: center
 
   The band structure of ZnO from Colonna et al. :cite:`Colonna2022`
+
+.. _projections_blocks_explanation:
 
 Bonus material: understanding the Wannier projections
 -----------------------------------------------------

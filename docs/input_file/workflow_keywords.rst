@@ -1,6 +1,5 @@
-The workflow block
-^^^^^^^^^^^^^^^^^^
-The ``workflow`` block contains variables that define the details of the workflow that we are going to run. Valid keywords are as follows: 
+Valid keywords
+==============
 
 .. raw:: html
 

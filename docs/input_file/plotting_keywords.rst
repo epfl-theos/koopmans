@@ -1,6 +1,5 @@
-The plot block
-^^^^^^^^^^^^^^
-This block controls the plotting of band structures and densities of states
+Valid keywords
+==============
 
 .. raw:: html
 

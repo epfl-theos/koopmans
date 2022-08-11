@@ -8,16 +8,7 @@
         "mp_correction": false,
         "init_orbitals": "mlwfs",
         "alpha_guess": 0.077,
-        "orbital_groups": [
-            0,
-            0,
-            0,
-            0,
-            1,
-            1,
-            1,
-            1
-        ],
+        "orbital_groups": [0, 0, 0, 0, 1, 1, 1, 1],
         "pseudo_library": "pseudo_dojo_standard",
         "from_scratch": true
     },
@@ -28,33 +19,13 @@
         },
         "atomic_positions": {
             "units": "crystal",
-            "positions": [
-                [
-                    "Si",
-                    0.00,
-                    0.00,
-                    0.00
-                ],
-                [
-                    "Si",
-                    0.25,
-                    0.25,
-                    0.25
-                ]
-            ]
+            "positions": [["Si", 0.00, 0.00, 0.00],
+                          ["Si", 0.25, 0.25, 0.25]]
         }
     },
     "kpoints": {
-        "grid": [
-            2,
-            2,
-            2
-        ],
-        "offset": [
-            0,
-            0,
-            0
-        ],
+        "grid": [2, 2, 2],
+        "offset": [0, 0, 0],
         "path": "LGXKG"
     },
     "calculator_parameters": {
@@ -73,16 +44,7 @@
         },
         "w90": {
             "bands_plot": true,
-            "projections": [
-                {
-                    "fsite": [
-                        0.25,
-                        0.25,
-                        0.25
-                    ],
-                    "ang_mtm": "sp3"
-                }
-            ],
+            "projections": [{"fsite": [ 0.25, 0.25, 0.25 ], "ang_mtm": "sp3"}],
             "emp": {
                 "dis_froz_max": 10.6,
                 "dis_win_max": 16.9

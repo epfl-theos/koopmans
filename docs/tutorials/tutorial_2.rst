@@ -1,3 +1,5 @@
+.. _tutorial_2:
+
 Tutorial 2: the band structure of bulk silicon (calculated via a supercell)
 ===========================================================================
 In this tutorial, we will calculate the KI bandstructure of bulk silicon. The input file used for this calculation can be downloaded :download:`here <../../tutorials/tutorial_2/si.json>`.
@@ -66,13 +68,13 @@ Let's now inspect this tutorial's :download:`input file <../../tutorials/tutoria
   :lineno-start: 2
   :emphasize-lines: 2
 
-which tells the code to perform a standalone Wannierization calculation. Meanwhile, at the bottom of the file there are some Wannier90-specific parameters provided in the ``w90`` block
+which tells the code to perform a standalone Wannierization calculation. Meanwhile, near the bottom of the file there are some Wannier90-specific parameters provided in the ``w90`` block
 
 .. literalinclude:: ../../tutorials/tutorial_2/si.json
-  :lines: 73-89
-  :lineno-start: 82
+  :lines: 45-52
+  :lineno-start: 45
 
-Here, the keywords provided in the ``emp`` subdictionary are only applied during the Wannierization of the empty manifold. The ``w90`` block format is explained more fully :ref:`here <running/w90:The w90 block>`.
+Here, the keywords provided in the ``emp`` subdictionary are only applied during the Wannierization of the empty manifold. The ``w90`` block format is explained more fully :ref:`here <input_file:The w90 subblock>`.
 
 We run this calculation as per usual:
 
@@ -190,9 +192,9 @@ Having transformed into a supercell, the calculation of the screening parameters
 The code is doing this because of what we provided for the ``orbital_groups`` in the input file:
 
 .. literalinclude:: ../../tutorials/tutorial_2/si.json
-  :lines: 10-21
+  :lines: 10-12
   :lineno-start: 10
-  :emphasize-lines: 2-11
+  :emphasize-lines: 2
 
 which tells the code to use the same parameter for orbitals belonging to the same group. In this instance we are calculating a single screening parameter for all four filled orbitals, and a single screening parameter for the empty orbitals.
 
@@ -208,11 +210,11 @@ The final difference for the solids calculation is that there is an additional p
 Here, we transform back our results from the supercell sampled at :math:`\Gamma` to the primitive cell with :math:`k`-space sampling. This allows us to obtain a bandstructure. The extra Wannierization step that is being performed is to assist the interpolation of the band structure in the primitive cell, and has been performed because in the input file we specified
 
 .. literalinclude:: ../../tutorials/tutorial_2/si.json
-  :lines: 90-92
-  :lineno-start: 100
+  :lines: 53-55
+  :lineno-start: 53
   :emphasize-lines: 2
 
-For more details on the "unfold and interpolate" procedure see :ref:`here <running/ui:The ui block>` and Ref. :cite:`DeGennaro2022`.
+For more details on the "unfold and interpolate" procedure see :ref:`here <input_file:The ui subblock>` and Ref. :cite:`DeGennaro2022`.
 
 Extracting the KI bandstructure and the bandgap of Si
 -----------------------------------------------------

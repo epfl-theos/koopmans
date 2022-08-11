@@ -1,6 +1,5 @@
-The ui block
-^^^^^^^^^^^^
-This block controls the unfolding and interpolation procedure for generating band structures and densities of states from Γ-only supercell calculations
+Valid keywords
+==============
 
 .. raw:: html
 
