@@ -131,6 +131,7 @@ def read_atomic_positions(atoms: Atoms, dct: Dict[str, Any]):
 def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
     cell = dct.pop('vectors', None)
     units = dct.pop('units', None)
+    atoms.pbc = dct.pop('periodic', True)
     if cell is None:
         if 'ibrav' not in dct:
             raise KeyError('Cell has not been defined. Please specify either "ibrav" and related "celldm"s) '
@@ -147,7 +148,6 @@ def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
         raise NotImplementedError('the combination of vectors, ibrav, & units '
                                   'in the cell_parameter block cannot be read (may not yet be '
                                   'implemented)')
-    atoms.pbc = dct.pop('periodic', True)
     atoms.cell = cell
     return
 
