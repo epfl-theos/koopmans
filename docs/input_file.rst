@@ -28,7 +28,7 @@ The ``atoms`` block contains details about the atomic positions and the simulati
     :lines: 18-25
     :dedent:
 
-  Valid options for ``units`` are ``angstrom`` and ``crystal``
+  Valid options for ``units`` are ``alat``, ``angstrom``, ``bohr``, and ``crystal``
 
 ``cell_parameters``
   describes the simulation cell. This can be specified explicitly
