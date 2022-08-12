@@ -37,7 +37,7 @@ The ``atoms`` block contains details about the atomic positions and the simulati
     :lines: 11-17
     :dedent:
 
-  or using ``ibrav`` and ``celldms`` (following the conventions of Quantum ESPRESSO) e.g.
+  (with units ``angstrom``, ``bohr``, or ``alat``), or using ``ibrav`` and ``celldms`` following the conventions of Quantum ESPRESSO e.g.
 
   .. literalinclude:: ../tutorials/tutorial_2/si.json
     :lines: 15-19

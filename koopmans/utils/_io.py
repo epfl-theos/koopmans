@@ -8,19 +8,16 @@ Moved into utils Sep 2021
 """
 
 import json
-import sys
 from datetime import datetime
 from pathlib import Path
-from typing import IO, Any, AnyStr, Dict, List, Tuple, Union
+from typing import IO, Any, Dict, List, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
 
 from ase.atoms import Atoms
-from ase.calculators.calculator import Calculator
-from ase.cell import Cell
-from ase.dft.kpoints import BandPath, bandpath
 from ase.io.espresso import label_to_symbol, label_to_tag
+from ase.units import Bohr
 from koopmans.cell import parameters_to_cell
 
 
@@ -130,7 +127,7 @@ def read_atomic_positions(atoms: Atoms, dct: Dict[str, Any]):
 
 def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
     cell = dct.pop('vectors', None)
-    units = dct.pop('units', None)
+    units = dct.pop('units', '')
     atoms.pbc = dct.pop('periodic', True)
     if cell is None:
         if 'ibrav' not in dct:
@@ -138,16 +135,17 @@ def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
                            ' or a "cell_parameters" block in "setup"')
         celldms = {int(k): v for k, v in dct.pop('celldms', {}).items()}
         cell = parameters_to_cell(celldms=celldms, **dct)
-    elif units == 'angstrom':
+    elif units.lower() == 'angstrom':
         pass
-    elif units == 'alat':
-        # TODO
-        raise NotImplementedError('IMPLEMENT THIS BEFORE MERGING THIS PR')
-
+    elif units.lower() == 'bohr':
+        cell = np.array(cell) / Bohr
+    elif units.lower() == 'alat':
+        alat = dct.get('celldms', {}).get('1', None)
+        if alat is None:
+            raise ValueError('Please provide celldm(1) for a cell specified in units of alat')
+        cell = np.array(cell) * alat / Bohr
     else:
-        raise NotImplementedError('the combination of vectors, ibrav, & units '
-                                  'in the cell_parameter block cannot be read (may not yet be '
-                                  'implemented)')
+        raise ValueError('The combination of vectors, ibrav, & units in the cell_parameter block is not valid')
     atoms.cell = cell
     return
 
