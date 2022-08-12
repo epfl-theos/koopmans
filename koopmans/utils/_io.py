@@ -18,7 +18,8 @@ import numpy.typing as npt
 from ase.atoms import Atoms
 from ase.io.espresso import label_to_symbol, label_to_tag
 from ase.units import Bohr
-from koopmans.cell import parameters_to_cell
+from koopmans.cell import (cell_follows_qe_conventions, cell_to_parameters,
+                           parameters_to_cell)
 
 
 def parse_dict(dct: Dict[str, Any]) -> Dict[str, Any]:
@@ -46,7 +47,13 @@ def parse_dict(dct: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def construct_cell_parameters_block(atoms: Atoms) -> Dict[str, Any]:
-    return {'vectors': [list(row) for row in atoms.cell[:]], 'units': 'angstrom', 'periodic': all(atoms.pbc)}
+    params: Dict[str, Any]
+    if cell_follows_qe_conventions(atoms.cell):
+        params = cell_to_parameters(atoms.cell)
+    else:
+        params = {'vectors': [list(row) for row in atoms.cell[:]], 'units': 'angstrom'}
+    params['periodic'] = all(atoms.pbc)
+    return params
 
 
 def construct_atomic_positions_block(atoms: Atoms) -> Dict[str, Any]:
