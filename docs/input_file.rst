@@ -137,7 +137,7 @@ Projections blocks
 
 The pw2wannier subblock
 ~~~~~~~~~~~~~~~~~~~~~~~
-This subblock contains ``pw2wannier.x`` keywords, in a single dictionary with no subdictionaries.
+This subblock contains ``pw2wannier90.x`` keywords, in a single dictionary with no subdictionaries.
 
 The kcp subblock
 ~~~~~~~~~~~~~~~~
