@@ -8,7 +8,7 @@ results = wf.calculations[-1].results
 bs = results['band structure']
 
 # Print the band strucutre to file
-bs.plot(filename='ki_bandstructure.png')
+bs.plot(filename='si_bandstructure.png')
 
 # Extract the band gap
 n_occ = wf.projections.num_wann(occ=True)

@@ -6,8 +6,8 @@ Written by Edward Linscott May 2020
 
 '''
 
-from collections import UserDict
 import os
+from collections import UserDict
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Type, Union
 
@@ -258,6 +258,15 @@ class SettingsDict(UserDict):
     def fromdict(cls, dct):
         return cls(**dct)
 
+    def briefrepr(self) -> str:
+        entries = str(self)[1:-1]
+        try:
+            comma_index = entries[:80].rindex(',')
+            body = entries[:comma_index + 2]
+        except ValueError:
+            body = ''
+        return '{' + body + '...}'
+
 
 class SettingsDictWithChecks(SettingsDict):
     def __init__(self, settings: List[Setting], **kwargs):
@@ -287,6 +296,18 @@ class SettingsDictWithChecks(SettingsDict):
         # Check the value is among the valid options
         if setting.options is not None and value not in setting.options:
             raise ValueError(f'{setting.name} may only be set to ' + '/'.join([str(o) for o in setting.options]))
+
+
+class IbravDict():
+    def __setitem__(self, key: str, value: Any) -> None:
+        if key == 'celldms':
+            if not isinstance(value, dict):
+                raise ValueError('celldms should be a dictionary')
+            for k, v in value.items():
+                self[f'celldm({k})'] = v
+            return
+        else:
+            return super().__setitem__(key, value)  # type: ignore
 
 
 kc_wann_defaults = {'outdir': 'TMP',

@@ -1,5 +1,5 @@
-Tutorial 4: convergence testing
-===============================
+Tutorial 4: running convergence tests
+=====================================
 While ``koopmans`` is a package primarily oriented towards performing Koopmans spectral functional calculations, it does have a couple of other useful functionalities. In this tutorial, we will make use of its ``convergence`` task to determine how large a cell size and energy cutoff is required to converge the PBE energy of the highest occupied molecular orbital (HOMO) of a water molecule.
 
 The input file

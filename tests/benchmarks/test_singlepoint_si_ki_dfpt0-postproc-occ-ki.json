@@ -209,7 +209,7 @@
    },
    "__ase_objtype__": "bandpath"
   },
-  "plot_params": {
+  "plotting": {
    "degauss": 0.5,
    "Emin": -10,
    "Emax": 4,
@@ -731,7 +731,7 @@
   "job done": true
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dfpt0/postproc/occ"
+  "__path__": "occ"
  },
  "prefix": "ki",
  "name": "benchgenunfoldandinterpolatecalculator",

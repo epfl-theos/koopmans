@@ -1,0 +1,119 @@
+{
+ "_parameters": {
+  "outdir": {
+   "__path__": "../TMP"
+  },
+  "__koopmans_name__": "PW2WannierSettingsDict",
+  "__koopmans_module__": "koopmans.settings._pw2wannier"
+ },
+ "atoms": {
+  "numbers": {
+   "__ndarray__": [
+    [
+     4
+    ],
+    "int64",
+    [
+     30,
+     30,
+     8,
+     8
+    ]
+   ]
+  },
+  "positions": {
+   "__ndarray__": [
+    [
+     4,
+     3
+    ],
+    "float64",
+    [
+     -0.00016247248519362943,
+     1.8761644647817146,
+     2.602874201795554,
+     1.6248873244211965,
+     0.9379415270912637,
+     0.0,
+     -0.00016247248519362943,
+     1.8761644647817146,
+     0.6103740003210575,
+     1.6248873244211965,
+     0.9379415270912637,
+     3.2132482021166116
+    ]
+   ]
+  },
+  "tags": {
+   "__ndarray__": [
+    [
+     4
+    ],
+    "int64",
+    [
+     0,
+     0,
+     0,
+     0
+    ]
+   ]
+  },
+  "cell": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     3.2494497038720063,
+     0.0,
+     0.0,
+     -1.6247248519360031,
+     2.8141059918729785,
+     0.0,
+     0.0,
+     0.0,
+     5.205748403591109
+    ]
+   ]
+  },
+  "pbc": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "bool",
+    [
+     true,
+     true,
+     true
+    ]
+   ]
+  },
+  "__ase_objtype__": "atoms"
+ },
+ "results": {
+  "job done": true
+ },
+ "_directory": {
+  "__path__": "wannier/occ_block4"
+ },
+ "prefix": "pw2wan",
+ "name": "benchgenpw2wanniercalculator",
+ "command": {
+  "mpi_command": "mpirun -np 8",
+  "_path": {
+   "__path__": "../../bin"
+  },
+  "executable": "pw2wannier90.x",
+  "_flags": "",
+  "suffix": "-in PREFIX.p2wi > PREFIX.p2wo 2>&1",
+  "__koopmans_name__": "ParallelCommand",
+  "__koopmans_module__": "koopmans.commands"
+ },
+ "calc": {},
+ "skip_qc": false,
+ "__koopmans_name__": "BenchGenPW2WannierCalculator",
+ "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+}

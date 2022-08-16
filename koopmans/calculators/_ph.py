@@ -33,7 +33,7 @@ class PhCalculator(CalculatorExt, EspressoPh, CalculatorABC):
         CalculatorExt.__init__(self, *args, **kwargs)
 
         self.command = ParallelCommand(
-            f'{bin_directory}{os.path.sep}ph.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out}')
+            f'{bin_directory}{os.path.sep}ph.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out} 2>&1')
 
     def is_converged(self):
         return True

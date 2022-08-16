@@ -3,10 +3,10 @@ from typing import Any, Dict
 from ase.dft.kpoints import BandPath
 from ase.io.espresso import pw_keys
 
-from ._utils import SettingsDict
+from ._utils import IbravDict, SettingsDict
 
 
-class PWSettingsDict(SettingsDict):
+class PWSettingsDict(IbravDict, SettingsDict):
     def __init__(self, **kwargs) -> None:
         # Get rid of any nested kwargs
         flattened_kwargs: Dict[str, Any] = {}

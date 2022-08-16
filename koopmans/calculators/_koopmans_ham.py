@@ -17,7 +17,8 @@ from ase.dft.kpoints import BandPath
 from koopmans import settings, utils
 from koopmans.commands import ParallelCommand
 
-from ._utils import CalculatorABC, KCWannCalculator, ReturnsBandStructure, bin_directory
+from ._utils import (CalculatorABC, KCWannCalculator, ReturnsBandStructure,
+                     bin_directory)
 
 
 class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure, CalculatorABC):
@@ -50,9 +51,9 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
         filling = [True for _ in range(len(alphas))]
         utils.write_alpha_file(self.directory, alphas, filling)
 
-    def calculate(self):
+    def _calculate(self):
         self.write_alphas()
-        super().calculate()
+        super()._calculate()
         if isinstance(self.parameters.kpts, BandPath) and len(self.parameters.kpts.kpts) > 1:
             # Add the bandstructure to the results
             self.generate_band_structure()

@@ -6,6 +6,7 @@ from ase import Atoms
 from ase.build import bulk, molecule
 from ase.spacegroup import crystal
 from koopmans import base_directory, testing
+from koopmans.kpoints import Kpoints
 from koopmans.projections import ProjectionBlocks
 
 
@@ -175,7 +176,7 @@ def water() -> Dict[str, Any]:
     # water
     return {'atoms': molecule('H2O', vacuum=5.0, pbc=False),
             'ecutwfc': 20.0,
-            'nbnd': 5}  # master_calc_params': {'kcp': {'ecutwfc': 20.0, 'nbnd': 5}}}
+            'nbnd': 5}  # calculator_parameters': {'kcp': {'ecutwfc': 20.0, 'nbnd': 5}}}
 
 
 @pytest.fixture
@@ -184,12 +185,14 @@ def silicon() -> Dict[str, Any]:
     si: Atoms = bulk('Si')
     pdict = [{'fsite': [0.25, 0.25, 0.25], 'ang_mtm': 'sp3'}]
     si_projs = ProjectionBlocks.fromprojections([pdict, pdict], fillings=[True, False], spins=[None, None], atoms=si)
+    kpoints = Kpoints(grid=[2, 2, 2], path='GXG', cell=si.cell)
     return {'atoms': si,
-            'master_calc_params': {'pw': {'nbnd': 10},
-                                   'w90_emp': {'dis_froz_max': 10.6, 'dis_win_max': 16.9}
-                                   },
-            'plot_params': {'Emin': -10, 'Emax': 4, 'degauss': 0.5},
+            'calculator_parameters': {'pw': {'nbnd': 10},
+                                      'w90_emp': {'dis_froz_max': 10.6, 'dis_win_max': 16.9}
+                                      },
+            'plotting': {'Emin': -10, 'Emax': 4, 'degauss': 0.5},
             'projections': si_projs,
+            'kpoints': kpoints,
             'ecutwfc': 40.0,
             'smooth_int_factor': 2}
 
@@ -198,7 +201,7 @@ def silicon() -> Dict[str, Any]:
 def ozone() -> Dict[str, Any]:
     # ozone
     return {'atoms': molecule('O3', vacuum=5.0, pbc=False),
-            'master_calc_params': {'pw': {'ecutwfc': 20.0, 'nbnd': 10}}}
+            'calculator_parameters': {'pw': {'ecutwfc': 20.0, 'nbnd': 10}}}
 
 
 @pytest.fixture
@@ -214,9 +217,11 @@ def tio2() -> Dict[str, Any]:
                                              spins=[None, None, None, None, None],
                                              atoms=atoms)
 
+    kpoints = Kpoints(grid=[2, 2, 2], path='GXG', cell=atoms.cell)
     return {'atoms': atoms,
-            'master_calc_params': {'pw': {'nbnd': 34}},
+            'calculator_parameters': {'pw': {'nbnd': 34}},
             'projections': projs,
+            'kpoints': kpoints,
             'ecutwfc': 40.0}
 
 
@@ -228,11 +233,13 @@ def gaas() -> Dict[str, Any]:
                                                   fillings=[True, True, False],
                                                   spins=[None, None, None],
                                                   atoms=atoms)
+    kpoints = Kpoints(grid=[2, 2, 2])
     return {'atoms': atoms,
-            'master_calc_params': {'pw': {'nbnd': 45},
-                                   'w90_emp': {'dis_froz_max': 14.6, 'dis_win_max': 18.6}
-                                   },
+            'calculator_parameters': {'pw': {'nbnd': 45},
+                                      'w90_emp': {'dis_froz_max': 14.6, 'dis_win_max': 18.6}
+                                      },
             'ecutwfc': 40.0,
             'smooth_int_factor': 4,
-            'plot_params': {'degauss': 0.5},
-            'projections': gaas_projs}
+            'plotting': {'degauss': 0.5},
+            'projections': gaas_projs,
+            'kpoints': kpoints}

@@ -166,7 +166,7 @@ class CheckCalc:
 
             raise CalculationFailed(message)
 
-    def calculate(self):
+    def _calculate(self):
         # Before running the calculation, check the settings are the same
 
         with utils.chdir(self.directory):  # type: ignore[attr-defined]
@@ -202,7 +202,7 @@ class CheckCalc:
         # TODO
 
         # Run the calculation
-        super().calculate()
+        super()._calculate()
 
         # Check the results
         if self.skip_qc:

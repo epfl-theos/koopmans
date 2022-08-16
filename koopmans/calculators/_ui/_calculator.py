@@ -5,9 +5,9 @@ The calculator class defining the Unfolding & interpolating calculator
 """
 
 import copy
-from datetime import datetime
 import json
 import os
+from datetime import datetime
 from pathlib import Path
 from time import time
 from typing import List, Optional, Union
@@ -21,7 +21,9 @@ from ase.dft.dos import DOS
 from ase.geometry.cell import crystal_structure_from_cell
 from ase.spectrum.band_structure import BandStructure
 from koopmans import utils
-from koopmans.settings import PlotSettingsDict, UnfoldAndInterpolateSettingsDict
+from koopmans.kpoints import Kpoints, kpath_to_dict
+from koopmans.settings import (PlotSettingsDict,
+                               UnfoldAndInterpolateSettingsDict)
 
 from .._utils import CalculatorABC, CalculatorExt, sanitize_filenames
 from ._atoms import UIAtoms
@@ -449,7 +451,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 kpath = settings.pop('kpath')
 
                 # Remove the plot parameters from the settings dict
-                plot_params = settings.pop('plot_params')
+                plotting = settings.pop('plotting')
 
                 # Converting Paths to JSON-serialisable strings
                 for k in self.parameters.are_paths:
@@ -460,13 +462,15 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                 bigdct = {"workflow": {"task": "ui"}, "ui": settings}
 
                 # Provide the bandpath information in the form of a string
-                bigdct['setup'] = {'k_points': {'kgrid': kgrid, **utils.kpath_to_dict(kpath, atoms.cell)}}
+                bigdct['kpoints'] = {'grid': kgrid, **kpath_to_dict(kpath)}
+                # The cell is stored elsewhere
+                bigdct['kpoints'].pop('cell')
 
                 # Provide the plot information
-                bigdct['plot'] = {k: v for k, v in plot_params.items()}
+                bigdct['plotting'] = {k: v for k, v in plotting.items()}
 
                 # We also need to provide a cell so the explicit kpath can be reconstructed from the string alone
-                bigdct['setup']['cell_parameters'] = utils.construct_cell_parameters_block(atoms)
+                bigdct['atoms'] = {'cell_parameters': utils.construct_cell_parameters_block(atoms)}
 
                 json.dump(bigdct, fd, indent=2)
 
@@ -490,18 +494,17 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         self.parameters = bigdct['ui']
 
         # Update plot parameters
-        self.parameters.plot_params = PlotSettingsDict(**bigdct['plot'])
+        self.parameters.plotting = PlotSettingsDict(**bigdct.get('plotting', {}))
 
         # Load the cell and kpts if they are provided
-        if 'setup' in bigdct:
-            cell = utils.read_cell_parameters(None, bigdct['setup'].get('cell_parameters', {}))
-            if cell:
-                self.atoms.cell = cell
-            kpoint_block = bigdct['setup'].get('k_points', {})
-            if kpoint_block:
-                self.parameters.kgrid = kpoint_block['kgrid']
-                self.parameters.kpath = utils.convert_kpath_str_to_bandpath(
-                    kpoint_block['kpath'], self.atoms.cell, kpoint_block.get('kpath_density', None))
+        if 'atoms' in bigdct:
+            utils.read_cell_parameters(self.atoms, bigdct['atoms'].get('cell_parameters', {}))
+
+        kpoint_block = bigdct.get('kpoints', {})
+        if kpoint_block:
+            kpts = Kpoints(**kpoint_block, cell=self.atoms.cell)
+            self.parameters.kgrid = kpts.grid
+            self.parameters.kpath = kpts.path
 
         return
 
@@ -640,9 +643,9 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         calc_dos calculates the density of states using the DOS function from ASE
         """
 
-        self.results['dos'] = DOS(self, width=self.parameters.plot_params.degauss, window=(
-            self.parameters.plot_params.Emin, self.parameters.plot_params.Emax),
-            npts=self.parameters.plot_params.nstep + 1)
+        self.results['dos'] = DOS(self, width=self.parameters.plotting.degauss, window=(
+            self.parameters.plotting.Emin, self.parameters.plotting.Emax),
+            npts=self.parameters.plotting.nstep + 1)
 
         return
 

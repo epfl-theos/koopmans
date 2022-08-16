@@ -11,10 +11,10 @@ from __future__ import annotations
 import copy
 import math
 import os
-from pathlib import Path
 import pickle
-from typing import List, Optional, Union
 import xml.etree.ElementTree as ET
+from pathlib import Path
+from typing import List, Optional, Union
 
 import numpy as np
 from pandas.core.series import Series
@@ -23,14 +23,11 @@ from scipy.linalg import block_diag
 from ase import Atoms
 from ase.calculators.espresso import Espresso_kcp
 from koopmans import bands, pseudopotentials, settings, utils
+from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
 from koopmans.commands import ParallelCommand
 
-from ._utils import (
-    CalculatorABC,
-    CalculatorCanEnforceSpinSym,
-    CalculatorExt,
-    bin_directory,
-)
+from ._utils import (CalculatorABC, CalculatorCanEnforceSpinSym, CalculatorExt,
+                     bin_directory)
 
 
 def read_ham_file(filename: Path) -> np.ndarray:
@@ -104,6 +101,12 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         # Write out screening parameters to file
         if self.parameters.get('do_orbdep', False):
             self.write_alphas()
+
+        # Update ibrav and celldms
+        if cell_follows_qe_conventions(self.atoms.cell):
+            self.parameters.update(**cell_to_parameters(self.atoms.cell))
+        else:
+            self.parameters.ibrav = 0
 
         super().calculate()
 

@@ -76,14 +76,14 @@
   "job done": true
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dscf_Tr0/init/wannier/occ_down"
+  "__path__": "occ_down"
  },
  "prefix": "w2kcp",
  "name": "benchgenwann2kcpcalculator",
  "command": {
   "mpi_command": "mpirun -np 8",
-  "path": {
-   "__path__": "/home/elinscott/code/koopmans/bin"
+  "_path": {
+   "__path__": "../../../../../bin"
   },
   "executable": "wann2kcp.x",
   "_flags": "",

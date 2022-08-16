@@ -4,6 +4,7 @@ import pytest
 
 from koopmans import workflows
 from koopmans.io import write
+from koopmans.kpoints import Kpoints
 from koopmans.projections import ProjectionBlocks
 from koopmans.utils import chdir
 
@@ -56,8 +57,8 @@ def test_singlepoint_si_ki_dscf(spin_polarized, silicon, workflow_patch, tmp_pat
                     spin_proj.spin = spin
                     spin_projs.append(spin_proj)
             silicon['projections'] = ProjectionBlocks(spin_projs, silicon['atoms'])
-        wf = workflows.SinglepointWorkflow(parameters=parameters, kgrid=[
-                                           2, 2, 2], kpath='GL', kpath_density=50, **silicon)
+        silicon['kpoints'] = Kpoints(grid=[2, 2, 2], path='GL', density=50.0, cell=silicon['atoms'].cell)
+        wf = workflows.SinglepointWorkflow(parameters=parameters, **silicon)
         wf.run()
 
 
@@ -73,7 +74,7 @@ def test_singlepoint_si_ki_dfpt_explicit(silicon, espresso_patch, tmp_path, sys2
                       'alpha_guess': 0.077,
                       'orbital_groups_self_hartree_tol': 100.0}
 
-        wf = workflows.SinglepointWorkflow(parameters=parameters, kgrid=[2, 2, 2], kpath='GXG', **silicon)
+        wf = workflows.SinglepointWorkflow(parameters=parameters, **silicon)
         wf.run()
 
 
@@ -88,7 +89,7 @@ def test_singlepoint_si_ki_dfpt(silicon, workflow_patch, tmp_path, sys2file):
                       'alpha_guess': 0.077,
                       'orbital_groups_self_hartree_tol': 100.0}
 
-        wf = workflows.SinglepointWorkflow(parameters=parameters, kgrid=[2, 2, 2], kpath='GXG', **silicon)
+        wf = workflows.SinglepointWorkflow(parameters=parameters, **silicon)
         wf.run()
 
 
@@ -116,7 +117,7 @@ def test_singlepoint_gaas_wan2odd(gaas, espresso_patch, tmp_path, sys2file):
                       'init_orbitals': 'mlwfs',
                       'npool': 1,
                       'pseudo_library': 'sg15_v1.0',
-                      'calculate_bands': False
+                      'calculate_bands': True
                       }
         wf = workflows.SinglepointWorkflow(parameters=parameters, kgrid=[2, 2, 2], **gaas)
         wf.run()
