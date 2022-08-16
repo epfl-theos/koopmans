@@ -13,8 +13,8 @@ from koopmans.ml_utils import _basis_functions as basis
 from koopmans.ml_utils import debugging
 
 # Possibilities for Debugging
-Debug = False  # if True, pmore information about the decomposition is printed to a file
-write_to_xsf = True  # if True, the original and reconstructed densities are printed to xsf-files which can be plotted with xcrysden
+Debug = True  # if True, pmore information about the decomposition is printed to a file
+write_to_xsf = False  # if True, the original and reconstructed densities are printed to xsf-files which can be plotted with xcrysden
 
 # Functions for the basis functions
 
