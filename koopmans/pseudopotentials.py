@@ -8,12 +8,12 @@ Split into a separate module Sep 2021
 
 """
 
-from dataclasses import dataclass
-from itertools import chain
 import json
 import os
-from pathlib import Path
 import re
+from dataclasses import dataclass
+from itertools import chain
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from upf_to_json import upf_to_json
@@ -59,7 +59,7 @@ for pseudo_file in chain(pseudos_directory.rglob('*.UPF'), pseudos_directory.rgl
             kind = 'projector-augmented wave'
         else:
             raise ValueError(f'Unrecognized library {original_library}')
-        citations += ['Lehaeghere2016', 'Prandini2018']
+        citations += ['Lejaeghere2016', 'Prandini2018']
         for key in ['cutoff_wfc', 'cutoff_rho']:
             kwargs[key] = metadata[key]
     else:
@@ -76,6 +76,7 @@ for pseudo_file in chain(pseudos_directory.rglob('*.UPF'), pseudos_directory.rgl
             citations.append('Scherpelz2016')
     elif original_library.startswith('pseudo_dojo'):
         citations.append('Hamann2013')
+        citations.append('vanSetten2018')
 
     pseudo_database.append(Pseudopotential(name, element, pseudo_file.parent,
                            functional, library, kind, citations, **kwargs))

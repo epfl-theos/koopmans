@@ -17,16 +17,16 @@
     "dft_smooth_ham_file": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dfpt_ex0/postproc/wannier/occ/wann_hr.dat",
     "dft_ham_file": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dfpt_ex0/wannier/occ/wann_hr.dat"
   },
-  "setup": {
-    "k_points": {
-      "kgrid": [
-        2,
-        2,
-        2
-      ],
-      "kpath": "GXG",
-      "kpath_density": 9.938430421373404
-    },
+  "kpoints": {
+    "grid": [
+      2,
+      2,
+      2
+    ],
+    "path": "GXG",
+    "density": 9.938430421373404
+  },
+  "atoms": {
     "cell_parameters": {
       "vectors": [
         [
@@ -48,7 +48,7 @@
       "units": "angstrom"
     }
   },
-  "plot": {
+  "plotting": {
     "degauss": 0.5,
     "nstep": 1000,
     "Emin": -10,

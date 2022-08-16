@@ -38,9 +38,9 @@ class FoldToSupercellWorkflow(Workflow):
                 calc_w2k.prefix = 'w2kcp'
 
                 # Checking that gamma_trick is consistent with gamma_only
-                if calc_w2k.parameters.gamma_trick and not self.gamma_only:
+                if calc_w2k.parameters.gamma_trick and not self.kpoints.gamma_only:
                     calc_w2k.parameters.gamma_trick = False
-                elif not calc_w2k.parameters.gamma_trick and self.gamma_only:
+                elif not calc_w2k.parameters.gamma_trick and self.kpoints.gamma_only:
                     calc_w2k.parameters.gamma_trick = True
                 else:
                     pass
@@ -65,7 +65,7 @@ class FoldToSupercellWorkflow(Workflow):
                             evc_fname = f'evcw.dat'
                         else:
                             evc_fname = f'evcw{evc_index}.dat'
-                        command = ' '.join([f'{calculators.bin_directory}/merge_evc.x -nr {np.prod(self.kgrid)}']
+                        command = ' '.join([f'{calculators.bin_directory}/merge_evc.x -nr {np.prod(self.kpoints.grid)}']
                                            + [f'-i {b.directory}/{evc_fname}' for b in subset]
                                            + [f'-o {output_directory}/{evc_fname}'])
                         if occ:

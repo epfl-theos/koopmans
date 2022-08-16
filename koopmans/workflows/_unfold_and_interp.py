@@ -9,6 +9,7 @@ Originally written by Riccardo De Gennaro as the standalone 'unfolding and inter
 Integrated within koopmans by Edward Linscott Jan 2021
 """
 
+import copy
 from pathlib import Path
 from typing import Optional
 
@@ -47,10 +48,10 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         w90_calcs = [c for c in self.calculations if isinstance(c, calculators.Wannier90Calculator)
                      and c.command.flags == ''][-len(self.projections):]
 
-        if self.master_calc_params['ui'].do_smooth_interpolation:
-            wannier_workflow = WannierizeWorkflow.fromparent(self, scf_kgrid=self.kgrid)
-            wannier_workflow.kgrid = [x * y for x,
-                                      y in zip(self.kgrid, self.master_calc_params['ui'].smooth_int_factor)]
+        if self.calculator_parameters['ui'].do_smooth_interpolation:
+            wannier_workflow = WannierizeWorkflow.fromparent(self, scf_kgrid=self.kpoints.grid)
+            wannier_workflow.kpoints.grid = [x * y for x, y in zip(self.kpoints.grid,
+                                             self.calculator_parameters['ui'].smooth_int_factor)]
 
             # Here, we allow for skipping of the smooth dft calcs (assuming they have been already run)
             # This is achieved via the optional argument of from_scratch in run(), which
@@ -89,7 +90,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             energies = [c.results['band structure'].energies for c in self.calculations[-2:]]
             reference = np.max(energies[0])
             energies_np = np.concatenate(energies, axis=2)
-        calc.results['band structure'] = BandStructure(self.kpath, energies_np - reference)
+        calc.results['band structure'] = BandStructure(self.kpoints.path, energies_np, reference=reference)
 
         if calc.parameters.do_dos:
             # Generate the DOS
@@ -114,7 +115,16 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                            'in the "plot" block)')
         else:
             dos = None
-        self.plot_bandstructure(bs, dos)
+
+        # Shift the DOS to align with the band structure
+        if dos is not None:
+            dos.e_skn -= bs.reference
+
+        self.plot_bandstructure(bs.subtract_reference(), dos)
+
+        # Shift the DOS back
+        if dos is not None:
+            dos.e_skn += bs.reference
 
         # Store the calculator in the workflow's list of all the calculators
         self.calculations.append(calc)
@@ -141,7 +151,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                     ham_prefix = calc_presets + '_1'
                 kwargs['kc_ham_file'] = Path(f'../final/ham_{ham_prefix}.dat').resolve()
                 kwargs['w90_seedname'] = Path(f'../init/wannier/{calc_presets}/wann').resolve()
-                if self.master_calc_params['ui'].do_smooth_interpolation:
+                if self.calculator_parameters['ui'].do_smooth_interpolation:
                     kwargs['dft_smooth_ham_file'] = Path(f'wannier/{calc_presets}/wann_hr.dat').resolve()
                     kwargs['dft_ham_file'] = Path(f'../init/wannier/{calc_presets}/wann_hr.dat').resolve()
             else:
@@ -150,7 +160,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                     raise NotImplementedError()
                 kwargs['kc_ham_file'] = Path(f'../hamiltonian/kc.kcw_hr_{calc_presets}.dat').resolve()
                 kwargs['w90_seedname'] = Path(f'../wannier/{calc_presets}/wann').resolve()
-                if self.master_calc_params['ui'].do_smooth_interpolation:
+                if self.calculator_parameters['ui'].do_smooth_interpolation:
                     kwargs['dft_smooth_ham_file'] = Path(f'wannier/{calc_presets}/wann_hr.dat').resolve()
                     kwargs['dft_ham_file'] = Path(f'../wannier/{calc_presets}/wann_hr.dat').resolve()
 

@@ -14,7 +14,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
             Setting('task',
                     'Task to perform',
                     str, 'singlepoint', ('singlepoint', 'convergence', 'wannierize', 'environ_dscf', 'ui',
-                                         'dft_bands')),
+                                         'dft_bands', 'dft_eps')),
             Setting('functional',
                     'orbital-density-dependent-functional/density-functional to use',
                     str, 'ki', ('ki', 'kipz', 'pkipz', 'dft', 'all')),
@@ -27,6 +27,9 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
             Setting('pseudo_library',
                     'the pseudopotential library to use (valid options depend on the value of base_functional)',
                     str, None, None),
+            Setting('pseudo_directory',
+                    'the folder containing the pseudopotentials to use (mutually exclusive with "pseudo_library")',
+                    (str, Path), None, None),
             Setting('method',
                     'the method to calculate the screening parameters: either with ΔSCF or DFPT',
                     str, 'dscf', ('dscf', 'dfpt')),
@@ -40,9 +43,6 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
             Setting('frozen_orbitals',
                     "if True, freeze the variational orbitals for the duration of the calculation once they've been "
                     "initialized",
-                    bool, None, (True, False)),
-            Setting('periodic',
-                    'whether or not the system is periodic',
                     bool, None, (True, False)),
             Setting('calculate_bands',
                     'whether or not to calculate the band structure of the system (if relevant)',
@@ -68,8 +68,9 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     'if True, apply the Martyna-Tuckerman correction for charged aperiodic systems',
                     bool, None, (True, False)),
             Setting('eps_inf',
-                    'dielectric constant of the system used by the Gygi-Baldereschi and Makov-Payne corrections',
-                    float, None, None),
+                    'dielectric constant of the system used by the Gygi-Baldereschi and Makov-Payne corrections; '
+                    'either provide an explicit value or set to "auto" to calculate it ab initio',
+                    (float, str), None, None),
             Setting('n_max_sc_steps',
                     'maximum number of self-consistency steps for calculating alpha',
                     int, 1, None),
@@ -102,7 +103,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     float, None, None),
             Setting('convergence_observable',
                     'System observable of interest which we converge',
-                    str, 'total energy', ('homo energy', 'lumo energy', 'total energy')),
+                    str, 'total energy', None),
             Setting('convergence_threshold',
                     'Convergence threshold for the system observable of interest',
                     (str, float), None, None),
@@ -139,6 +140,10 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
         # Support init_empty_orbitals == same
         if key == 'init_empty_orbitals' and value == 'same':
             value = self.init_orbitals
+
+        # Convert convergence_parameters to a list
+        if key == 'convergence_parameters' and isinstance(value, str):
+            value = [value]
 
         # Make sure that pseudo libraries shortcuts (e.g. "sg15") are converted to the explicit version
         # (e.g. "sg15_v1.2")

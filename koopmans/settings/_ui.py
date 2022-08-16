@@ -68,7 +68,7 @@ class UnfoldAndInterpolateSettingsDict(SettingsDictWithChecks):
 
     @property
     def _other_valid_keywords(self):
-        return ['kgrid', 'kpath', 'plot_params']
+        return ['kgrid', 'kpath', 'plotting']
 
     def __setitem__(self, key: str, value: Any):
         if key == 'w90_calc':

@@ -12,7 +12,7 @@ def test_read_input(silicon, datadir):
     assert calc.parameters.smooth_int_factor == [2, 2, 2]
     assert calc.parameters.do_dos is True
     assert calc.parameters.kgrid == [2, 2, 2]
-    assert calc.parameters.plot_params.Emin == -10
+    assert calc.parameters.plotting.Emin == -10
 
 
 def test_read_results(silicon, datadir):

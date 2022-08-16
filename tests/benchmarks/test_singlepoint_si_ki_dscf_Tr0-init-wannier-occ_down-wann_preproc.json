@@ -130,13 +130,13 @@
   "spreads": []
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dscf_Tr0/init/wannier/occ_down"
+  "__path__": "wannier/occ_down"
  },
  "prefix": "wann_preproc",
  "name": "benchgenwannier90calculator",
  "command": {
   "_path": {
-   "__path__": "/home/elinscott/code/koopmans/bin"
+   "__path__": "../../../../bin"
   },
   "executable": "wannier90.x",
   "_flags": "-pp",

@@ -75,14 +75,14 @@
   "job done": true
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dscf_Fa0/init/wannier/occ"
+  "__path__": "wannier/occ"
  },
  "prefix": "pw2wan",
  "name": "benchgenpw2wanniercalculator",
  "command": {
   "mpi_command": "mpirun -np 8",
   "_path": {
-   "__path__": "/home/elinscott/code/koopmans/bin"
+   "__path__": "../../../../bin"
   },
   "executable": "pw2wannier90.x",
   "_flags": "",

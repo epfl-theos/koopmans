@@ -6,9 +6,6 @@
   "nbnd": 10,
   "tot_charge": 0,
   "tot_magnetization": 0,
-  "pseudo_dir": {
-   "__path__": "../../../../../pseudos/pseudo_dojo_standard_v0.4.1/pbe"
-  },
   "ecutwfc": 40.0,
   "nspin": 2,
   "kpts": {
@@ -282,12 +279,16 @@
   "pseudopotentials": {
    "Si": "Si.upf"
   },
+  "pseudo_dir": {
+   "__path__": "../../../../../pseudos/pseudo_dojo_standard_v0.4.1/pbe"
+  },
   "gamma_only": false,
   "koffset": [
    0,
    0,
    0
   ],
+  "ibrav": 0,
   "__koopmans_name__": "PWSettingsDict",
   "__koopmans_module__": "koopmans.settings._pw"
  },
@@ -1643,12 +1644,12 @@
      ]
     ]
    },
-   "reference": 0.0,
+   "reference": 6.534,
    "__ase_objtype__": "bandstructure"
   }
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dscf_Tr0/postproc/wannier"
+  "__path__": "wannier"
  },
  "prefix": "bands",
  "name": "benchgenpwcalculator",
@@ -1656,7 +1657,7 @@
   "postfix": "",
   "mpi_command": "mpirun -np 8",
   "_path": {
-   "__path__": "/home/elinscott/code/koopmans/bin"
+   "__path__": "../../../../bin"
   },
   "executable": "pw.x",
   "_flags": "",

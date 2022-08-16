@@ -171,7 +171,7 @@
    },
    "__ase_objtype__": "bandpath"
   },
-  "plot_params": {
+  "plotting": {
    "__koopmans_name__": "PlotSettingsDict",
    "__koopmans_module__": "koopmans.settings._plot"
   },
@@ -534,7 +534,7 @@
   "job done": true
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_ui_si0"
+  "__path__": "."
  },
  "prefix": "si_ui",
  "name": "benchgenunfoldandinterpolatecalculator",

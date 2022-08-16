@@ -1,6 +1,6 @@
-from abc import ABC
 import json
 import os
+from abc import ABC
 from pathlib import Path
 from typing import List, Union
 
@@ -8,20 +8,13 @@ import numpy as np
 
 from ase.atoms import Atoms
 from koopmans import projections, utils
-from koopmans.calculators import (
-    Calc,
-    EnvironCalculator,
-    KoopmansCPCalculator,
-    KoopmansHamCalculator,
-    KoopmansScreenCalculator,
-    ProjwfcCalculator,
-    PW2WannierCalculator,
-    PWCalculator,
-    UnfoldAndInterpolateCalculator,
-    Wann2KCCalculator,
-    Wann2KCPCalculator,
-    Wannier90Calculator,
-)
+from koopmans.calculators import (Calc, EnvironCalculator,
+                                  KoopmansCPCalculator, KoopmansHamCalculator,
+                                  KoopmansScreenCalculator, PhCalculator,
+                                  ProjwfcCalculator, PW2WannierCalculator,
+                                  PWCalculator, UnfoldAndInterpolateCalculator,
+                                  Wann2KCCalculator, Wann2KCPCalculator,
+                                  Wannier90Calculator)
 from koopmans.io import read_kwf as read_encoded_json
 from koopmans.workflows import KoopmansDSCFWorkflow, WannierizeWorkflow
 
@@ -74,6 +67,7 @@ class MockCalc:
 
         # Compare the atoms and the cell
         # TODO
+        assert all(calc.atoms.pbc == self.atoms.pbc)
 
         # Check that the right files exist
         # TODO
@@ -126,6 +120,12 @@ class MockKoopmansCPCalculator(MockCalc, KoopmansCPCalculator):
 class MockEnvironCalculator(MockCalc, EnvironCalculator):
     # Monkeypatched EnvironCalculator class which never actually calls pw.x
     pass
+
+
+class MockPhCalculator(MockCalc, PhCalculator):
+    # Monkeypatched PhCalculator class which never actually calls ph.x
+    def generate_band_structure(self):
+        pass
 
 
 class MockPWCalculator(MockCalc, PWCalculator):

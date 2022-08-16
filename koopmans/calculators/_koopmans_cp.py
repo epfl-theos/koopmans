@@ -24,6 +24,7 @@ from ase import Atoms
 from ase.calculators.espresso import Espresso_kcp
 from ase.io.espresso import cell_to_ibrav
 from koopmans import bands, pseudopotentials, settings, utils
+from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
 from koopmans.commands import ParallelCommand
 
 from ._utils import (CalculatorABC, CalculatorCanEnforceSpinSym, CalculatorExt,
@@ -134,6 +135,12 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         # Write out screening parameters to file
         if self.parameters.get('do_orbdep', False):
             self.write_alphas()
+
+        # Update ibrav and celldms
+        if cell_follows_qe_conventions(self.atoms.cell):
+            self.parameters.update(**cell_to_parameters(self.atoms.cell))
+        else:
+            self.parameters.ibrav = 0
 
         # Autogenerate the nr keywords
         self._autogenerate_nr()

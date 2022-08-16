@@ -3,6 +3,7 @@ from typing import Any, Dict, Union
 
 from ase.dft.kpoints import BandPath
 from koopmans.io import read, write
+from koopmans.kpoints import Kpoints
 from koopmans.settings import WorkflowSettingsDict
 from koopmans.workflows import SinglepointWorkflow
 
@@ -42,13 +43,13 @@ def qei_to_json(input_file: Union[str, Path], json: Union[str, Path],
     kwargs = {'pseudopotentials': calc.parameters.pop('pseudopotentials')}
     if key == 'pw':
         if isinstance(calc.parameters.kpts, BandPath):
-            kwargs['kpath'] = calc.parameters.kpts
+            kwargs['kpoints'] = Kpoints(path=calc.parameters.kpts)
         else:
-            kwargs['kgrid'] = calc.parameters.kpts
+            kwargs['kpoints'] = Kpoints(grid=calc.parameters.kpts)
 
     wf = SinglepointWorkflow(atoms=calc.atoms,
                              parameters=workflow_settings,
-                             master_calc_params={key: calc.parameters},
+                             calculator_parameters={key: calc.parameters},
                              **kwargs)
 
     write(wf, json)

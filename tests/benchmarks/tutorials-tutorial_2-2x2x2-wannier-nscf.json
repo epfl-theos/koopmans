@@ -3,13 +3,8 @@
   "calculation": "nscf",
   "conv_thr": 1.6e-08,
   "nbnd": 20,
-  "ibrav": 2,
-  "celldm(1)": 10.2622,
-  "ecutwfc": 60.0,
   "tot_charge": 0,
-  "pseudo_dir": {
-   "__path__": "../../../../pseudos/pseudo_dojo_standard_v0.4.1/lda"
-  },
+  "ecutwfc": 60.0,
   "nspin": 1,
   "nosym": true,
   "noinv": true,
@@ -21,12 +16,17 @@
   "pseudopotentials": {
    "Si": "Si.upf"
   },
+  "pseudo_dir": {
+   "__path__": "../../../../pseudos/pseudo_dojo_standard_v0.4.1/lda"
+  },
   "gamma_only": false,
   "koffset": [
    0,
    0,
    0
   ],
+  "ibrav": 2,
+  "celldm(1)": 10.262200000000002,
   "__koopmans_name__": "PWSettingsDict",
   "__koopmans_module__": "koopmans.settings._pw"
  },
@@ -54,9 +54,9 @@
      0.0,
      0.0,
      0.0,
-     -1.357630586891428,
-     1.357630586891428,
-     1.357630586891428
+     -1.3576305925620626,
+     1.3576305925620626,
+     1.3576305925620626
     ]
    ]
   },
@@ -80,14 +80,14 @@
     ],
     "float64",
     [
-     -2.715261173782856,
+     -2.7152611851241253,
      0.0,
-     2.715261173782856,
+     2.7152611851241253,
      0.0,
-     2.715261173782856,
-     2.715261173782856,
-     -2.715261173782856,
-     2.715261173782856,
+     2.7152611851241253,
+     2.7152611851241253,
+     -2.7152611851241253,
+     2.7152611851241253,
      0.0
     ]
    ]
@@ -115,15 +115,15 @@
   "job done": true
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tutorials/tutorial_2/2x2x2/wannier"
+  "__path__": "wannier"
  },
  "prefix": "nscf",
  "name": "benchgenpwcalculator",
  "command": {
   "postfix": "",
   "mpi_command": "mpirun -np 8",
-  "path": {
-   "__path__": "/home/elinscott/code/koopmans/bin"
+  "_path": {
+   "__path__": "../../../bin"
   },
   "executable": "pw.x",
   "_flags": "",
