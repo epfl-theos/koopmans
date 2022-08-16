@@ -162,8 +162,9 @@ class ConvergenceMLWorkflow(Workflow):
                 for self.parameters.r_min in r_mins:
                     for self.parameters.r_max in r_maxs:
                         # Skip this combination if r_max<r_min
-                        if self.parameters.r_max <= self.parameters.r_min:
+                        if self.parameters.r_max <= self.parameters.r_min or [self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max]==[8,8,0.5, 2.0]:
                             continue
+                        self.print(f"(n_max, l_max, r_min, r_max) = ({self.parameters.n_max}, {self.parameters.l_max}, {self.parameters.r_min}, {self.parameters.r_max})")
 
                         # Reset the MLModel for every new combination of (n_max, l_max, r_min, r_max)
                         if self.parameters.occ_and_emp_together:
