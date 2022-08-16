@@ -7,7 +7,7 @@ from scipy.integrate import quad
 
 import koopmans.ml_utils._basis_functions as basis
 
-Debug = True
+Debug = False
 
 
 def compute_alphas(n_max: int, l_max: int, r_thrs: np.ndarray, thr: float):
