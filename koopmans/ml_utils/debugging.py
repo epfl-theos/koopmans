@@ -62,7 +62,7 @@ def test_decomposition(total_basis_array: np.ndarray, rho_r: np.ndarray, rho_r_x
             rho_r_reconstructed_xsf = get_orbital_density_to_xsf_grid(rho_r_reconstruced, nr_xml)
             assert isinstance(band.index, int)
             filename_xsf = dirs['xsf'] / 'orbital.reconstructed.{}.{:05d}.xsf'.format(filled_str, band.index)
-            print_to_xsf_file(filename_xsf, atoms, [rho_r_reconstructed_xsf], nr_xml, [wfc_center])
+            print_to_xsf_file(filename_xsf, atoms, [rho_r_reconstructed_xsf], nr_xml)
 
         file.write(f"reconstruct total density\n")
         rho_r_reconstruced = get_reconstructed_orbital_densities(total_basis_array, coefficients_total)
