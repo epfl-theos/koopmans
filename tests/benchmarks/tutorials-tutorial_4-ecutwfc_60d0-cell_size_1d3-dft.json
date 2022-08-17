@@ -10,8 +10,8 @@
   "ecutwfc": 60.0,
   "ecutrho": 240.0,
   "pseudopotentials": {
-   "O": "O_ONCV_PBE-1.0.upf",
-   "H": "H_ONCV_PBE-1.0.upf"
+   "H": "H_ONCV_PBE-1.0.upf",
+   "O": "O_ONCV_PBE-1.0.upf"
   },
   "pseudo_dir": {
    "__path__": "../../../../pseudos/sg15_v1.0/pbe"

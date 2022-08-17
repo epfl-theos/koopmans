@@ -89,7 +89,7 @@ The calculator_parameters block
 The ``calculator_parameters`` block can be used to specify code-specific codes e.g.
 
 .. literalinclude:: ../tutorials/tutorial_2/si.json
-  :lines: 31-56
+  :lines: 31-49
   :dedent:
 
 Note that any keyword specified outside of a subblock (e.g. ``ecutwfc`` in the above example) is applied to all calculators for which it is recognized keyword.

@@ -220,26 +220,21 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             if upf['header']['core_correction']:
                 has_nlcc = True
         if has_nlcc and (self.parameters.nr1b is None or self.parameters.nr2b is None or self.parameters.nr3b is None):
-            # First define alat and the reduced lattice vectors ("at" in espresso)
-            # ibrav = 0 is a special case:
-            if self.parameters.ibrav in [0, None]:
-                at = np.transpose(self.atoms.cell)
-                alat = np.linalg.norm(self.atoms.cell[:, 0])
-                at = at / alat
-                alat /= utils.units.Bohr
+            # Extract ibrav and alat (in Bohr)
+            if cell_follows_qe_conventions(self.atoms.cell):
+                params = cell_to_parameters(self.atoms.cell)
+                ibrav = params['ibrav']
+                alat = params['celldms'][1]
             else:
-                # not sure the call to cell_to_ibrav is needed. I use it to have celldm in the right format for
-                # ibrav_to_cell
-                celldm = cell_to_ibrav(self.atoms.cell, self.parameters.ibrav)
-                alat, regen_cell = ibrav_to_cell(celldm)
-                at = np.transpose(regen_cell)
-                at = at / alat
-                regen_cell /= utils.units.Bohr
-                alat /= utils.units.Bohr
+                ibrav = 0
+                alat = np.linalg.norm(self.atoms.cell) / utils.units.Bohr
+
+            # Define reduced lattice vectors ("at" in espresso)
+            at = np.transpose(self.atoms.cell) / (alat * utils.units.Bohr)
 
             # nr1 = int ( sqrt (gcutm) * sqrt (at(1, 1)**2 + at(2, 1)**2 + at(3, 1)**2) ) + 1
-            [nr1, nr2, nr3] = [2 * int(np.sqrt(self.parameters.get('ecutrho', 4 * self.parameters.ecutwfc))
-                                       / (2.0 * np.pi / alat) * np.linalg.norm(vec) + 1) for vec in at]
+            ecutrho = self.parameters.get('ecutrho', 4 * self.parameters.ecutwfc)
+            [nr1, nr2, nr3] = [2 * int(np.sqrt(ecutrho) / (2.0 * np.pi / alat) * np.linalg.norm(vec) + 1) for vec in at]
 
             # set good_fft dimensions
             nr1 = good_fft(nr1)
@@ -259,11 +254,11 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             self.parameters.nr2b = good_fft(nr2b)
             self.parameters.nr3b = good_fft(nr3b)
 
-            print("\n   Small box parameters \"nrb\" not given in input: going to set to safe default values")
-            print("   These values can probably be decreased, but requires convergence tests")
-            print("   Estimated real mesh dimension ( nr1 , nr2 , nr3  )   = ", nr1, nr2, nr3)
-            print("   Small box mesh      dimension ( nr1b, nr2b, nr3b )   = ",
-                  self.parameters.nr1b, self.parameters.nr2b, self.parameters.nr3b, "\n")
+            utils.warn('Small box parameters "nrb" not provided in input: these will be automatically set to safe '
+                       'default values. These values can probably be decreased, but this would require convergence '
+                       f'tests.\n   Estimated real mesh dimension (nr1, nr2, nr3) = {nr1} {nr2} {nr3} \n   Small box '
+                       f'mesh dimension (nr1b, nr2b, nr3b) = {self.parameters.nr1b} {self.parameters.nr2b} '
+                       f'{self.parameters.nr3b}\n')
 
     def is_complete(self) -> bool:
         return self.results.get('job_done', False)

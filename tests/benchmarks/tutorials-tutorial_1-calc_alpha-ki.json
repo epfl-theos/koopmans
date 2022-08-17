@@ -10,7 +10,6 @@
   "tot_magnetization": 0,
   "nelup": 9,
   "neldw": 9,
-  "ibrav": 0,
   "ecutwfc": 65.0,
   "ecutrho": 260.0,
   "nbnd": 10,
@@ -34,6 +33,7 @@
   "do_innerloop_empty": false,
   "which_orbdep": "nki",
   "which_compensation": "tcc",
+  "ibrav": 0,
   "__koopmans_name__": "KoopmansCPSettingsDict",
   "__koopmans_module__": "koopmans.settings._koopmans_cp"
  },
