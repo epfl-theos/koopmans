@@ -220,13 +220,11 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             if upf['header']['core_correction']:
                 has_nlcc = True
         if has_nlcc and (self.parameters.nr1b is None or self.parameters.nr2b is None or self.parameters.nr3b is None):
-            # Extract ibrav and alat (in Bohr)
+            # Extract alat (in Bohr)
             if cell_follows_qe_conventions(self.atoms.cell):
                 params = cell_to_parameters(self.atoms.cell)
-                ibrav = params['ibrav']
                 alat = params['celldms'][1]
             else:
-                ibrav = 0
                 alat = np.linalg.norm(self.atoms.cell) / utils.units.Bohr
 
             # Define reduced lattice vectors ("at" in espresso)
