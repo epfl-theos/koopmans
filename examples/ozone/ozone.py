@@ -1,32 +1,37 @@
+
+
 '''
 Script for running the ozone example
-
-Written by Edward Linscott, Jun 2021
 '''
 
-import matplotlib.pyplot as plt
 import numpy as np
 
-from koopmans import io, utils
+# isort: off
 import koopmans.mpl_config
+import matplotlib.pyplot as plt
+# isort: on
+
+from ase.build import molecule
+from koopmans import io, utils, workflows
 
 
 def run(from_scratch=False):
     names = ['dscf', 'dfpt', 'dfpt_with_dscf_screening']
+    ozone = molecule('O3', vacuum=6)
+    parameters = {'functional': 'ki', 'init_orbitals': 'kohn-sham', 'frozen_orbitals': True}
 
     wfs = {}
     for name in names:
         with utils.chdir(name):
-            wf = io.read('ozone.json')
+            wf = workflows.SinglepointWorkflow(atoms=ozone, parameters=parameters,
+                                               nbnd=10, method=name[:4], ecutwfc=65.0)
             wf.parameters.from_scratch = from_scratch
             if 'screening' in name:
                 wf.parameters.calculate_alpha = False
-                wf.parameters.alpha_guess = wfs['dscf'].bands.alphas
+                wf.parameters.alpha_guess = [wfs['dscf'].bands.alphas[0]]
+
+            # io.write(wf, wf.name + '.json')
             wf.run()
-
-            # Save workflow to file
-            io.write(wf, 'ozone.kwf')
-
         wfs[name] = wf
     return wfs
 
@@ -34,7 +39,7 @@ def run(from_scratch=False):
 def plot(wfs):
     # Setting up figure
     _, axes = plt.subplots(ncols=1, nrows=3, sharex=True)
-    x = np.array(wfs['dscf'].bands.indices)
+    x = np.array(wfs['dscf'].bands.indices[0])
 
     # Plotting self-Hartrees
     ax = axes[0]
@@ -84,7 +89,7 @@ def label_bars(bars):
 
 if __name__ == '__main__':
     # Run calculations
-    wfs = run(from_scratch=True)
+    wfs = run(from_scratch=False)
 
     # Plot the results
     plot(wfs)

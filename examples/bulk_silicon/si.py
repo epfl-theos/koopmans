@@ -1,7 +1,5 @@
 '''
 Script for the bulk Si example
-
-Written by Edward Linscott, Mar 2021
 '''
 
 # isort: off
@@ -18,17 +16,15 @@ def run(from_scratch=True):
     names = ['dscf', 'dfpt', 'dfpt_with_dscf_screening']
     wfs = {}
     for name in names:
+        wf = io.read(f'si.json')
+        wf.parameters.method = name[:4]
+        wf.from_scratch = from_scratch
+        if 'screening' in name:
+            wf.parameters.calculate_alpha = False
+            dscf_alphas = wfs['dscf'].bands.alphas
+            wf.parameters.alpha_guess = dscf_alphas[len(dscf_alphas) // 2 - 4: len(dscf_alphas) // 2 + 4]
         with utils.chdir(name):
-            wf = io.read(f'si.json')
-            wf.from_scratch = from_scratch
-            if 'screening' in name:
-                wf.parameters.calculate_alpha = False
-                dscf_alphas = wfs['dscf'].bands.alphas
-                wf.parameters.alpha_guess = dscf_alphas[len(dscf_alphas) // 2 - 4: len(dscf_alphas) // 2 + 4]
             wf.run()
-
-            # Save workflow to file
-            io.write(wf, 'si.kwf')
         wfs[name] = wf
     return wfs
 
@@ -61,5 +57,5 @@ def plot(wfs):
 
 
 if __name__ == '__main__':
-    wfs = run()
+    wfs = run(from_scratch=False)
     plot(wfs)
