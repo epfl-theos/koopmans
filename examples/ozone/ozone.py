@@ -52,7 +52,7 @@ def plot(wfs):
 
     # Plotting alphas
     ax = axes[1]
-    alphas = np.array([wf.bands.alphas for wf in wfs.values()])
+    alphas = np.array([wf.bands.alphas[0] for wf in wfs.values()])
     ax.bar(x, alphas[1] - alphas[0], width=0.25, label='DFPT')
     ax.set_ylabel(r'$\alpha_i^\mathrm{DFPT} - \alpha_i^\mathrm{\Delta SCF}$')
     ax.axhline(y=0, color='k', linestyle='-', lw=0.5)
@@ -89,7 +89,7 @@ def label_bars(bars):
 
 if __name__ == '__main__':
     # Run calculations
-    wfs = run(from_scratch=False)
+    wfs = run(from_scratch=True)
 
     # Plot the results
     plot(wfs)
