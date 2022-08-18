@@ -323,11 +323,11 @@ class ReturnsBandStructure(ABC):
 
     def generate_band_structure(self):
         if isinstance(self.parameters.kpts, BandPath):
-            # Fetch bandstructure from results
             path = self.parameters.kpts
-            eigenvalues_np = self.eigenvalues_from_results()
-
-            self.results['band structure'] = BandStructure(path, eigenvalues_np, reference=self.vbm_energy())
+            if len(path.kpts) > 1:
+                # Fetch bandstructure from results
+                eigenvalues_np = self.eigenvalues_from_results()
+                self.results['band structure'] = BandStructure(path, eigenvalues_np, reference=self.vbm_energy())
         return
 
 
