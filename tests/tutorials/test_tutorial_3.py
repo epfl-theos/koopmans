@@ -22,6 +22,7 @@ def test_replot_dft_bandstructure():
         exec(open('replot_dft_bandstructure.py', 'r').read())
 
 
+@pytest.mark.filterwarnings("ignore::koopmans.utils.CalculatorNotConvergedWarning")
 @pytest.mark.tutorials
 def test_zno_wannierize(tutorial_patch):
     with chdir(tutorial_dir):
@@ -29,6 +30,7 @@ def test_zno_wannierize(tutorial_patch):
         wf.run()
 
 
+@pytest.mark.filterwarnings("ignore::koopmans.utils.CalculatorNotConvergedWarning")
 @pytest.mark.tutorials
 def test_zno_ki(tutorial_patch):
     with chdir(tutorial_dir / 'dfpt'):
