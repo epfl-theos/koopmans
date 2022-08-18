@@ -225,10 +225,10 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 params = cell_to_parameters(self.atoms.cell)
                 alat = params['celldms'][1]
             else:
-                alat = np.linalg.norm(self.atoms.cell) / utils.units.Bohr
+                alat = np.linalg.norm(self.atoms.cell[0]) / utils.units.Bohr
 
             # Define reduced lattice vectors ("at" in espresso)
-            at = np.transpose(self.atoms.cell) / (alat * utils.units.Bohr)
+            at = self.atoms.cell / (alat * utils.units.Bohr)
 
             # nr1 = int ( sqrt (gcutm) * sqrt (at(1, 1)**2 + at(2, 1)**2 + at(3, 1)**2) ) + 1
             ecutrho = self.parameters.get('ecutrho', 4 * self.parameters.ecutwfc)
