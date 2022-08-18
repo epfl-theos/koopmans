@@ -18,4 +18,4 @@ from ._io import (construct_atomic_positions_block,
 from ._misc import flatten, update_nested_dict
 from ._os import chdir, find_executable, set_env, symlink, system_call
 from ._units import units
-from ._warnings import warn
+from ._warnings import CalculatorNotConvergedWarning, warn
