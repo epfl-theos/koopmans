@@ -228,4 +228,5 @@ def dict_to_kpath(dct: Dict[str, Any]) -> BandPath:
     dct = copy.deepcopy(dct)
     density = dct.pop('density', None)
     cell = Cell(dct.pop('cell')['array'])
-    return BandPath(cell=cell, special_points=cell.bandpath().special_points, **dct).interpolate(density=density)
+    return BandPath(cell=cell, special_points=cell.bandpath(eps=1e-10).special_points,
+                    **dct).interpolate(density=density)
