@@ -17,14 +17,16 @@ class CalculatorNotConvergedWarning(UserWarning):
     pass
 
 
-def _warning(message: Union[str, Warning], category: Type[Warning] = UserWarning, filename: str = '', lineno: int = -1, file: Optional[TextIO] = None, line: Optional[str] = None) -> None:
+def _warning(message: Union[str, Warning], category: Type[Warning] = UserWarning, filename: str = '',
+             lineno: int = -1, file: Optional[TextIO] = None, line: Optional[str] = None) -> None:
     '''
     Monkey-patching warnings.warn
     '''
     print(f'{category.__name__}: {message}')
 
 
-def _warn_with_traceback(message: Union[str, Warning], category: Type[Warning] = UserWarning, filename: str = '', lineno: int = -1, file: Optional[TextIO] = None, line: Optional[str] = None) -> None:
+def _warn_with_traceback(message: Union[str, Warning], category: Type[Warning] = UserWarning, filename: str = '',
+                         lineno: int = -1, file: Optional[TextIO] = None, line: Optional[str] = None) -> None:
     log = file if file and hasattr(file, 'write') else sys.stderr
     traceback.print_stack(file=log)
     log.write(warnings.formatwarning(message, category, filename, lineno, line))

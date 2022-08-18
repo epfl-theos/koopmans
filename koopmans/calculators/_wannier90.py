@@ -49,4 +49,5 @@ class Wannier90Calculator(CalculatorExt, Wannier90, CalculatorABC):
         if self.parameters.num_iter == 0 or 'preproc' in self.prefix:
             pass
         elif not self.is_converged():
-            warn(f'{self.directory}/{self.prefix} did not converge; proceed with caution', CalculatorNotConvergedWarning)
+            warn(f'{self.directory}/{self.prefix} did not converge; proceed with caution',
+                 CalculatorNotConvergedWarning)
