@@ -1313,19 +1313,18 @@ def header():
     ase_version = get_version(ase)
     qe_version = get_version((calculators.bin_directory / 'pw.x').resolve().parents[2])
 
-    header = [r"  _                                                ",
-              r" | | _____   ___  _ __  _ __ ___   __ _ _ __  ___  ",
-              r" | |/ / _ \ / _ \| '_ \| '_ ` _ \ / _` | '_ \/ __| ",
+    header = [r"  _",
+              r" | | _____   ___  _ __  _ __ ___   __ _ _ __  ___",
+              r" | |/ / _ \ / _ \| '_ \| '_ ` _ \ / _` | '_ \/ __|",
               r" |   < (_) | (_) | |_) | | | | | | (_| | | | \__ \ ",
-              r" |_|\_\___/ \___/| .__/|_| |_| |_|\__,_|_| |_|___/ ",
-              r"                 |_|                               ",
+              r" |_|\_\___/ \___/| .__/|_| |_| |_|\__,_|_| |_|___/",
+              f"                 |_|",
               "",
               " Koopmans spectral functional calculations with Quantum ESPRESSO",
               "",
-              " Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna",
+              f" {koopmans_version}, using {qe_version} and ASE v{ase_version}",
               "",
-              f" using QE version {qe_version}, workflow manager version {koopmans_version}, and ASE version "
-              f"{ase_version}"
+              " Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna",
               ""]
     return '\n'.join(header)
 

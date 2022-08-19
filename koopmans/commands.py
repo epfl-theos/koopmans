@@ -102,11 +102,24 @@ class ParallelCommand(Command):
     def __set__(self, value: str):
         if isinstance(value, str):
             default_mpi_command = os.environ.get('PARA_PREFIX', None)
-            if value.startswith('srun'):
-                [self.mpi_command, rest_of_command] = value.split(' ', 1)
-            elif value.startswith('mpirun -n'):
-                [mpirun, np, np_num, rest_of_command] = value.split(' ', 3)
-                self.mpi_command = f'mpirun -n {np_num}'
+            if value.startswith('srun') or value.startswith('mpirun'):
+                splitval = value.split()
+
+                i_command = None
+                for i, val in enumerate(splitval[1:]):
+                    prev_val = splitval[i]
+                    if val.startswith('-'):
+                        continue
+                    elif prev_val.startswith('-') and '=' not in prev_val:
+                        continue
+                    else:
+                        i_command = i + 1
+                        break
+                if i_command is None:
+                    raise ValueError(f'Failed to parse {value}')
+
+                self.mpi_command = ' '.join(splitval[:i_command])
+                rest_of_command = ' '.join(splitval[i_command:])
             elif default_mpi_command is not None:
                 self.mpi_command = default_mpi_command
                 rest_of_command = value
