@@ -18,8 +18,6 @@ Contents
    running
    modules
    tutorials
-   links
+   support
    references
-   license
-   contact
-
+   links
