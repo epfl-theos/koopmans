@@ -10,10 +10,10 @@
    2
   ],
   "pseudopotentials": {
-   "Si": "Si_ONCV_PBE-1.2.upf"
+   "Si": "Si.upf"
   },
   "pseudo_dir": {
-   "__path__": "../../../../../pseudos/sg15_v1.2/pbe"
+   "__path__": "../../../../../pseudos/pseudo_dojo_standard_v0.4.1/pbe"
   },
   "gamma_only": false,
   "koffset": [
@@ -91,8 +91,8 @@
   "__ase_objtype__": "atoms"
  },
  "results": {
-  "energy": -211.9423361448876,
-  "homo_energy": 6.5277,
+  "energy": -227.7152535751128,
+  "homo_energy": 6.5344,
   "lumo_energy": null,
   "electrostatic embedding": null,
   "iterations": 6,
@@ -135,10 +135,10 @@
     ]
    },
    "eps_n": [
-    -5.4889,
-    6.5277,
-    6.5277,
-    6.5277
+    -5.4893,
+    6.5344,
+    6.5344,
+    6.5344
    ],
    "f_n": []
   },
@@ -159,10 +159,10 @@
     ]
    },
    "eps_n": [
-    -3.1379,
-    -0.5081,
-    5.3077,
-    5.3077
+    -3.1385,
+    -0.5104,
+    5.3031,
+    5.3031
    ],
    "f_n": []
   },
@@ -183,10 +183,10 @@
     ]
    },
    "eps_n": [
-    -1.3225,
-    -1.3225,
-    3.6208,
-    3.6208
+    -1.3238,
+    -1.3238,
+    3.6122,
+    3.6122
    ],
    "f_n": []
   }

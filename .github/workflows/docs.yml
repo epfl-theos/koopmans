@@ -1,5 +1,5 @@
 name: "Build docs"
-on: 
+on:
    pull_request:
       branches:
          - master

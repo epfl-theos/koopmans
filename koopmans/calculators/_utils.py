@@ -31,7 +31,7 @@ from numpy import typing as npt
 
 import ase.io as ase_io
 from ase import Atoms
-from ase.calculators.calculator import CalculationFailed
+from ase.calculators.calculator import CalculationFailed, Calculator
 from ase.dft.kpoints import BandPath
 from ase.spectrum.band_structure import BandStructure
 from koopmans import settings, utils
@@ -168,13 +168,13 @@ class CalculatorExt():
             input_file = input_file.with_suffix(self.ext_in)
 
         # Load calculator from input file
-        calc = ase_io.read(input_file).calc
+        calc: Calculator = ase_io.read(input_file).calc
 
         # Update self based off the input file, first updating self.directory in order to ensure any settings that are
         # relative paths are appropriately stored
         self.directory = input_file.parent
         self.parameters = calc.parameters
-        if calc.atoms is not None:
+        if isinstance(calc.atoms, Atoms):
             # Some calculators (e.g. wann2kc) can't reconstruct atoms from an input file
             self.atoms = calc.atoms
             self.atoms.calc = self

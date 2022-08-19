@@ -14,7 +14,7 @@ import os
 import pickle
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 
 import numpy as np
 from pandas.core.series import Series
@@ -22,6 +22,7 @@ from scipy.linalg import block_diag
 
 from ase import Atoms
 from ase.calculators.espresso import Espresso_kcp
+from ase.io.espresso import cell_to_ibrav
 from koopmans import bands, pseudopotentials, settings, utils
 from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
 from koopmans.commands import ParallelCommand
@@ -30,7 +31,40 @@ from ._utils import (CalculatorABC, CalculatorCanEnforceSpinSym, CalculatorExt,
                      bin_directory)
 
 
-def read_ham_file(filename: Path) -> np.ndarray:
+def allowed(nr: int) -> bool:
+    # define whether i is a good fft grid number
+    if nr < 1:
+        return False
+    mr = nr
+    factor = [2, 3, 5, 7, 11]
+    allowed = False
+    pwr = [0, 0, 0, 0, 0]
+    for i, fac in enumerate(factor):
+        maxpwr = int(np.log(mr) / np.log(fac))
+        for _ in range(maxpwr):
+            if mr == 1:
+                break
+            if mr % fac == 0:
+                mr //= fac
+                pwr[i] += 1
+    if mr != 1:
+        allowed = False
+    else:
+        allowed = (pwr[3] == 0) and (pwr[4] == 0)
+    return allowed
+
+
+def good_fft(nr: int) -> int:
+    # Return good grid dimension (optimal for the FFT)
+    nfftx = 2049
+    new = nr
+    while allowed(new) is False and (new <= nfftx):
+        new = new + 1
+    nr = new
+    return nr
+
+
+def read_ham_file(filename: Path) -> np.ndarray[Any, np.dtype[np.cfloat]]:
     # Read a single hamiltonian XML file
     if not filename.exists():
         raise FileExistsError(f'{filename} does not exist')
@@ -44,7 +78,7 @@ def read_ham_file(filename: Path) -> np.ndarray:
     assert ham_xml.text is not None, f'{filename} is empty'
 
     ham_array = np.array([complex(*[float(x) for x in line.split(',')])
-                          for line in ham_xml.text.strip().split('\n')], dtype=complex) * utils.units.Hartree
+                          for line in ham_xml.text.strip().split('\n')], dtype=np.cfloat) * utils.units.Hartree
 
     return ham_array.reshape((length, length))
 
@@ -66,7 +100,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         # Add nelec, nelup, neldw if they are missing
         if 'nelec' not in self.parameters and 'pseudopotentials' in self.parameters:
             self.parameters.nelec = pseudopotentials.nelec_from_pseudos(
-                self.atoms, self.pseudopotentials, self.parameters.pseudo_dir)
+                self.atoms, self.parameters.pseudopotentials, self.parameters.pseudo_dir)
         if 'nelec' in self.parameters:
             if 'nelup' not in self.parameters:
                 self.parameters.nelup = self.parameters.nelec // 2
@@ -107,6 +141,9 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             self.parameters.update(**cell_to_parameters(self.atoms.cell))
         else:
             self.parameters.ibrav = 0
+
+        # Autogenerate the nr keywords
+        self._autogenerate_nr()
 
         super().calculate()
 
@@ -170,6 +207,56 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 fpath_1.replace(fpath_tmp)
                 fpath_2.replace(fpath_1)
                 fpath_tmp.replace(fpath_2)
+
+    def _autogenerate_nr(self):
+        '''
+        For norm-conserving pseudopotentials the small box grid (nr1b, nr2b, nr3b) is needed in case the pseudo has
+        non-linear core corrections. This function automatically defines this small box using a conservative guess.
+        '''
+
+        has_nlcc = False
+        for p in self.parameters.pseudopotentials.values():
+            upf = pseudopotentials.read_pseudo_file(self.parameters.pseudo_dir / p)
+            if upf['header']['core_correction']:
+                has_nlcc = True
+        if has_nlcc and (self.parameters.nr1b is None or self.parameters.nr2b is None or self.parameters.nr3b is None):
+            # Extract alat (in Bohr)
+            if cell_follows_qe_conventions(self.atoms.cell):
+                params = cell_to_parameters(self.atoms.cell)
+                alat = params['celldms'][1]
+            else:
+                alat = np.linalg.norm(self.atoms.cell[0]) / utils.units.Bohr
+
+            # Define reduced lattice vectors ("at" in espresso)
+            at = self.atoms.cell / (alat * utils.units.Bohr)
+
+            # nr1 = int ( sqrt (gcutm) * sqrt (at(1, 1)**2 + at(2, 1)**2 + at(3, 1)**2) ) + 1
+            ecutrho = self.parameters.get('ecutrho', 4 * self.parameters.ecutwfc)
+            [nr1, nr2, nr3] = [2 * int(np.sqrt(ecutrho) / (2.0 * np.pi / alat) * np.linalg.norm(vec) + 1) for vec in at]
+
+            # set good_fft dimensions
+            nr1 = good_fft(nr1)
+            nr2 = good_fft(nr2)
+            nr3 = good_fft(nr3)
+
+            # At this stage nr should match with the one generated by CP or PW for the charge density. This can be a
+            # very safe choice for nrb, but most probably too conservative. If we have access to the pseudopotential
+            # cutoff radius we can define a more reasonable one as nr1b = nr1 * (2*rc/L1) where rc is the cutoff
+            # radius used to generate the PP and L1 is the dimension of the simulation Box.
+            # N.B. we assume here 3 Bohr is a safe choice; all the rc in the DOJO pseudos are <= 2.6:
+            rc_safe = 3.0
+            [nr1b, nr2b, nr3b] = [int(nr * 2 * rc_safe / (np.linalg.norm(vec) * alat))
+                                  for vec, nr in zip(at, [nr1, nr2, nr3])]
+
+            self.parameters.nr1b = good_fft(nr1b)
+            self.parameters.nr2b = good_fft(nr2b)
+            self.parameters.nr3b = good_fft(nr3b)
+
+            utils.warn('Small box parameters "nrb" not provided in input: these will be automatically set to safe '
+                       'default values. These values can probably be decreased, but this would require convergence '
+                       f'tests.\n   Estimated real mesh dimension (nr1, nr2, nr3) = {nr1} {nr2} {nr3} \n   Small box '
+                       f'mesh dimension (nr1b, nr2b, nr3b) = {self.parameters.nr1b} {self.parameters.nr2b} '
+                       f'{self.parameters.nr3b}\n')
 
     def is_complete(self) -> bool:
         return self.results.get('job_done', False)
@@ -357,6 +444,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         flat_alphas = utils.read_alpha_file(self.directory)
 
         assert isinstance(self.parameters, settings.KoopmansCPSettingsDict)
+
         return convert_flat_alphas_for_kcp(flat_alphas, self.parameters)
 
     # The following functions enable DOS generation via ase.dft.dos.DOS(<KoopmansCPCalculator object>)

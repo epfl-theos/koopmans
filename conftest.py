@@ -176,7 +176,7 @@ def water() -> Dict[str, Any]:
     # water
     return {'atoms': molecule('H2O', vacuum=5.0, pbc=False),
             'ecutwfc': 20.0,
-            'nbnd': 5}  # calculator_parameters': {'kcp': {'ecutwfc': 20.0, 'nbnd': 5}}}
+            'nbnd': 5}
 
 
 @pytest.fixture

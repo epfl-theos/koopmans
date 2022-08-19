@@ -1283,6 +1283,9 @@ class Workflow(ABC):
         legends = [ax.get_legend() for ax in axes if ax.get_legend() is not None]
         utils.savefig(fname=filename + '.png', bbox_extra_artists=legends, bbox_inches='tight')
 
+        # Close the figure
+        plt.close()
+
     def _teardown(self):
         '''
         Performs final tasks before the workflow completes

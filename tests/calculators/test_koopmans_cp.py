@@ -2,9 +2,13 @@ import shutil
 
 import numpy as np
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 from koopmans import settings, utils, workflows
-from koopmans.calculators._koopmans_cp import convert_flat_alphas_for_kcp
+from koopmans.calculators._koopmans_cp import (allowed,
+                                               convert_flat_alphas_for_kcp,
+                                               good_fft)
 from koopmans.testing import benchmark_filename
 
 
@@ -72,3 +76,41 @@ def test_read_ham(water, datadir, tmp_path):
 
         assert np.allclose(screened_lambda, screened_lambda_pkl)
         assert np.allclose(bare_lambda, bare_lambda_pkl)
+
+
+small_ints = st.integers(min_value=0, max_value=2)
+
+
+@given(small_ints, small_ints, small_ints, small_ints, small_ints, small_ints)
+def test_allowed_nr(p2: int, p3: int, p5: int, p7: int, p11: int, p13: int):
+    '''
+    The allowed() function should return True if nr has no prime factors greater than 5
+    '''
+    nr = 2 ** p2 * 3 ** p3 * 5 ** p5 * 7 ** p7 * 11 ** p11 * 13 * p13
+
+    allow = allowed(nr)
+    assert allow == ((p7 == 0 and p11 == 0 and p13 == 0) and nr != 0)
+
+
+small_pos_ints = st.integers(min_value=1, max_value=2)
+
+
+@given(small_pos_ints, small_pos_ints, small_pos_ints, small_pos_ints, small_pos_ints, small_pos_ints)
+def test_good_fft(p2: int, p3: int, p5: int, p7: int, p11: int, p13: int):
+    '''
+    The good_fft() function should return an allowed integer
+    '''
+    nr = 2 ** p2 * 3 ** p3 * 5 ** p5 * 7 ** p7 * 11 ** p11 * 13 * p13
+
+    # This nr should not be allowed
+    assert not allowed(nr)
+
+    # Find a good nr
+    nr_new = good_fft(nr)
+
+    # Check that new_nr is indeed good
+    if nr <= 2050:
+        assert allowed(nr_new)
+        assert nr_new <= 2050
+    else:
+        assert nr_new == nr

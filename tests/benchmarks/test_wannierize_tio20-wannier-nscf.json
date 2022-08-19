@@ -14,8 +14,8 @@
    2
   ],
   "pseudopotentials": {
-   "Ti": "Ti.upf",
-   "O": "O.upf"
+   "O": "O.upf",
+   "Ti": "Ti.upf"
   },
   "pseudo_dir": {
    "__path__": "../../../../pseudos/pseudo_dojo_standard_v0.4.1/pbe"

@@ -10,7 +10,6 @@
   "tot_magnetization": 0,
   "nelup": 9,
   "neldw": 9,
-  "ibrav": 0,
   "ecutwfc": 65.0,
   "ecutrho": 260.0,
   "pseudopotentials": {
@@ -30,6 +29,7 @@
   "do_innerloop": false,
   "which_compensation": "tcc",
   "fixed_band": 1,
+  "ibrav": 0,
   "__koopmans_name__": "KoopmansCPSettingsDict",
   "__koopmans_module__": "koopmans.settings._koopmans_cp"
  },

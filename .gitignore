@@ -4,6 +4,7 @@
 *.??o
 *.bib
 *.pkl
+*.swp
 *.png
 __pycache__/
 .vscode

@@ -71,8 +71,8 @@ Let's now inspect this tutorial's :download:`input file <../../tutorials/tutoria
 which tells the code to perform a standalone Wannierization calculation. Meanwhile, near the bottom of the file there are some Wannier90-specific parameters provided in the ``w90`` block
 
 .. literalinclude:: ../../tutorials/tutorial_2/si.json
-  :lines: 45-52
-  :lineno-start: 45
+  :lines: 38-45
+  :lineno-start: 38
 
 Here, the keywords provided in the ``emp`` subdictionary are only applied during the Wannierization of the empty manifold. The ``w90`` block format is explained more fully :ref:`here <input_file:The w90 subblock>`.
 
@@ -210,8 +210,8 @@ The final difference for the solids calculation is that there is an additional p
 Here, we transform back our results from the supercell sampled at :math:`\Gamma` to the primitive cell with :math:`k`-space sampling. This allows us to obtain a bandstructure. The extra Wannierization step that is being performed is to assist the interpolation of the band structure in the primitive cell, and has been performed because in the input file we specified
 
 .. literalinclude:: ../../tutorials/tutorial_2/si.json
-  :lines: 53-55
-  :lineno-start: 53
+  :lines: 46-48
+  :lineno-start: 46
   :emphasize-lines: 2
 
 For more details on the "unfold and interpolate" procedure see :ref:`here <input_file:The ui subblock>` and Ref. :cite:`DeGennaro2022`.

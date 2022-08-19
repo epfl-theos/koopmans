@@ -3,15 +3,13 @@ Script for regenerating pseudopotentials missing PP_PSWFC fields with oncvpsp(r)
 Written by Edward Linscott, March 2022
 '''
 
-from glob import glob
 from pathlib import Path
 import subprocess
-
-from koopmans.pseudopotentials import read_pseudo_file
+import xml.etree.ElementTree as ET
 
 for fname in Path().rglob('*.upf'):
     try:
-        pseudo = read_pseudo_file(fname)
+        pseudo = ET.parse(fname).getroot()
     except Exception:
         raise ValueError(f'Failed to read {fname}')
 
