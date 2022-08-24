@@ -1,6 +1,6 @@
 {
     "workflow": {
-        "task": "wannierize",
+        "task": "singlepoint",
         "functional": "ki",
         "base_functional": "lda",
         "method": "dscf",
@@ -33,13 +33,6 @@
         "pw": {
             "system": {
                 "nbnd": 20
-            }
-        },
-        "kcp": {
-            "system": {
-                "nr1b": 20,
-                "nr2b": 20,
-                "nr3b": 20
             }
         },
         "w90": {
