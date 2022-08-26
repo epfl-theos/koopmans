@@ -1,7 +1,7 @@
 {
  "_parameters": {
   "outdir": {
-   "__path__": "../TMP"
+   "__path__": "../../TMP"
   },
   "spin_component": "down",
   "__koopmans_name__": "Wann2KCPSettingsDict",

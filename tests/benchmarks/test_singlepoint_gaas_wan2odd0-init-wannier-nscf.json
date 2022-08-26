@@ -1,6 +1,9 @@
 {
  "_parameters": {
   "calculation": "nscf",
+  "outdir": {
+   "__path__": "../TMP"
+  },
   "conv_thr": 3.6000000000000005e-08,
   "nbnd": 45,
   "tot_charge": 0,
@@ -14,8 +17,8 @@
    2
   ],
   "pseudopotentials": {
-   "As": "As_ONCV_PBE-1.0.upf",
-   "Ga": "Ga_ONCV_PBE-1.0.upf"
+   "Ga": "Ga_ONCV_PBE-1.0.upf",
+   "As": "As_ONCV_PBE-1.0.upf"
   },
   "pseudo_dir": {
    "__path__": "../../../../../pseudos/sg15_v1.0/pbe"

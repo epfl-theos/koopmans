@@ -1,6 +1,6 @@
 {
     "workflow": {
-        "task": "singlepoint",
+        "task": "wannierize",
         "functional": "ki",
         "base_functional": "lda",
         "method": "dscf",

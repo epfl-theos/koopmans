@@ -1,7 +1,7 @@
 {
  "_parameters": {
   "outdir": {
-   "__path__": "../TMP"
+   "__path__": "../../TMP"
   },
   "__koopmans_name__": "PW2WannierSettingsDict",
   "__koopmans_module__": "koopmans.settings._pw2wannier"
