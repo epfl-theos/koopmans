@@ -333,7 +333,7 @@ class KoopmansDSCFWorkflow(Workflow):
             fold_workflow = workflows.FoldToSupercellWorkflow.fromparent(self)
 
             # Do this in the same directory as the wannierization
-            fold_workflow.run(subdirectory='init/wannier')
+            fold_workflow.run(subdirectory='init')
 
             # Convert self.atoms to the supercell
             self.primitive_to_supercell()
