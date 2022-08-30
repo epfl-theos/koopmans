@@ -5,8 +5,7 @@
 
    a package for performing and automating Koopmans functional calculations
 
-.. note:: Online school
-   We will be holding an online virtual tutorial titled 
+.. note:: We will be holding an online virtual tutorial 
   
    **Advanced Quantum ESPRESSO tutorial: Hubbard and Koopmans functionals from linear response**
 
