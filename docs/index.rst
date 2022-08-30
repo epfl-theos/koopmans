@@ -5,6 +5,16 @@
 
    a package for performing and automating Koopmans functional calculations
 
+.. note:
+
+  We will be holding an online virtual tutorial titled 
+  
+  .. class:: center
+  
+    **Advanced Quantum ESPRESSO tutorial: Hubbard and Koopmans functionals from linear response**
+
+  from 9 to 11 November 2022. Register now `here <https://sites.google.com/view/hubbard-koopmans/home>`_
+
 Contents
 --------
 .. toctree::
