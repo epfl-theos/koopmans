@@ -4,7 +4,7 @@ from typing import List, Type, Union
 
 from koopmans.calculators import (Calc, CalcType, KoopmansCPCalculator,
                                   KoopmansHamCalculator,
-                                  KoopmansScreenCalculator,
+                                  KoopmansScreenCalculator, PhCalculator,
                                   PW2WannierCalculator, PWCalculator,
                                   UnfoldAndInterpolateCalculator,
                                   Wann2KCCalculator, Wann2KCPCalculator,
@@ -17,7 +17,8 @@ def read_calculator(filenames: Union[Path, List[Path]]) -> Calc:
     if not isinstance(filenames, list):
         filenames = [filenames]
     valid_extensions = ['.cpi', '.cpo', '.pwi', '.pwo', '.win', '.wout', '.p2wi', '.p2wo',
-                        '.wki', '.wko', '.uii', '.uio', '.w2ki', '.w2ko', '.ksi', '.kso', '.khi', '.kho']
+                        '.wki', '.wko', '.uii', '.uio', '.w2ki', '.w2ko', '.ksi', '.kso',
+                        '.khi', '.kho', '.phi', '.pho']
     if not all([f.is_file() for f in filenames]):
         filenames = [Path(f) for prefix in filenames for f in glob(f'{prefix}.*') if Path(f).suffix in valid_extensions]
     extensions = set([f.suffix for f in filenames])
@@ -28,6 +29,8 @@ def read_calculator(filenames: Union[Path, List[Path]]) -> Calc:
         calc_class = KoopmansCPCalculator
     elif extensions.issubset(set(['.pwi', '.pwo'])):
         calc_class = PWCalculator
+    elif extensions.issubset(set(['.phi', '.pho'])):
+        calc_class = PhCalculator
     elif extensions.issubset(set(['.win', '.wout'])):
         calc_class = Wannier90Calculator
     elif extensions.issubset(set(['.p2wi', '.p2wo'])):

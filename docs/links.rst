@@ -1,6 +1,11 @@
 Useful links
 ############
 
+koopmans
+********
+* `Github <https://github.com/epfl-theos/koopmans/>`_
+* `Mailing list <https://groups.google.com/g/koopmans-users>`_
+
 Quantum Espresso
 ****************
 * `Website <https://www.quantum-espresso.org>`_

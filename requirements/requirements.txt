@@ -10,3 +10,4 @@ sklearn>=0.0
 deepdiff>=5.8.1
 spglib>=1.9
 upf-to-json>=0.9.5
+hypothesis>=6.0.0

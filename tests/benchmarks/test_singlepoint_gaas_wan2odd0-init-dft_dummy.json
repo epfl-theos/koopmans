@@ -5,18 +5,18 @@
   },
   "conv_thr": 1.4400000000000002e-07,
   "esic_conv_thr": 1.4400000000000002e-07,
-  "ecutwfc": 40.0,
   "nelec": 144,
   "tot_charge": 0,
   "tot_magnetization": 0,
   "nelup": 72,
   "neldw": 72,
-  "pseudo_dir": {
-   "__path__": "../../../../pseudos/sg15_v1.0/pbe"
-  },
+  "ecutwfc": 40.0,
   "pseudopotentials": {
    "As": "As_ONCV_PBE-1.0.upf",
    "Ga": "Ga_ONCV_PBE-1.0.upf"
+  },
+  "pseudo_dir": {
+   "__path__": "../../../../pseudos/sg15_v1.0/pbe"
   },
   "ndw": 50,
   "ndr": 50,
@@ -26,6 +26,7 @@
   "do_outerloop": false,
   "do_innerloop": false,
   "which_compensation": "none",
+  "ibrav": 0,
   "__koopmans_name__": "KoopmansCPSettingsDict",
   "__koopmans_module__": "koopmans.settings._koopmans_cp"
  },
@@ -22259,14 +22260,14 @@
   ]
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_gaas_wan2odd0/init"
+  "__path__": "init"
  },
  "prefix": "dft_dummy",
  "name": "benchgenkoopmanscpcalculator",
  "command": {
   "mpi_command": "mpirun -np 8",
-  "path": {
-   "__path__": "/home/elinscott/code/koopmans/bin"
+  "_path": {
+   "__path__": "../../../bin"
   },
   "executable": "kcp.x",
   "_flags": "",

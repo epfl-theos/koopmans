@@ -22,12 +22,18 @@ def test_command():
     assert str(c) == c_str
 
 
-def test_parallel_command():
-    c_str = 'mpirun -n 16 pw.x -in in.pwi > out.pwi'
+parallel_commands = [('mpirun -n 16', 'pw.x', '-in in.pwi > out.pwi'),
+                     ('srun', 'pw.x', '-in in.pwi > out.pwo 2>&1'),
+                     ('srun --mpi=pmi2 -n 48', 'pw.x', '-in in.pwi > out.pwo 2>&1')]
+
+
+@pytest.mark.parametrize('mpi_command,executable,suffix', parallel_commands)
+def test_parallel_command(mpi_command, executable, suffix):
+    c_str = ' '.join((mpi_command, executable, suffix))
     c = ParallelCommand(c_str)
 
-    assert c.executable == 'pw.x'
-    assert c.mpi_command == 'mpirun -n 16'
+    assert c.executable == executable
+    assert c.mpi_command == mpi_command
     assert str(c) == c_str
     assert decode(encode(c)) == c
 

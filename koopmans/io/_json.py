@@ -14,14 +14,6 @@ from koopmans import utils, workflows
 from koopmans.settings import WorkflowSettingsDict
 
 
-def update_nested_dict(dct_to_update, second_dct):
-    for k, v in second_dct.items():
-        if k in dct_to_update and isinstance(v, dict):
-            update_nested_dict(dct_to_update[k], second_dct[k])
-        else:
-            dct_to_update[k] = v
-
-
 def read_json(fd: TextIO, override: Dict[str, Any] = {}):
     '''
 
@@ -34,7 +26,7 @@ def read_json(fd: TextIO, override: Dict[str, Any] = {}):
     bigdct = json_ext.loads(fd.read())
 
     # Override all keywords provided explicitly
-    update_nested_dict(bigdct, override)
+    utils.update_nested_dict(bigdct, override)
 
     # Loading workflow settings
     parameters = WorkflowSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})))
@@ -51,15 +43,17 @@ def read_json(fd: TextIO, override: Dict[str, Any] = {}):
     elif parameters.task == 'ui':
         workflow_cls = workflows.SingleUnfoldAndInterpolateWorkflow
     elif parameters.task == 'dft_bands':
-        workflow_cls = workflows.PWBandStructureWorkflow
+        workflow_cls = workflows.DFTBandsWorkflow
+    elif parameters.task == 'dft_eps':
+        workflow_cls = workflows.DFTPhWorkflow
     elif parameters.task == 'trajectory':
         workflow_cls = workflows.TrajectoryWorkflow
     elif parameters.task == 'convergence_ml':
         workflow_cls = workflows.ConvergenceMLWorkflow
     else:
-        raise ValueError('Invalid task name "{task_name}"')
+        raise ValueError(f'Invalid task name "{parameters.task}"')
 
-    return workflow_cls.fromjson(fd.name)
+    return workflow_cls.fromjson(fd.name, override)
 
 
 def write_json(workflow: workflows.Workflow, filename: Path):

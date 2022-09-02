@@ -36,5 +36,4 @@ class Wann2KCCalculator(KCWannCalculator, Wann2KC, CalculatorABC):
         return True
 
     def is_complete(self):
-        # TODO implement me
-        return True
+        return self.results['job_done']

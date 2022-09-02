@@ -129,41 +129,41 @@
   "Im/Re ratio": [],
   "centers": [
    [
-    1.544241,
-    1.544241,
-    1.544241
+    1.54496,
+    1.54496,
+    1.54496
    ],
    [
-    1.544241,
-    1.170759,
-    1.170759
+    1.54496,
+    1.17004,
+    1.17004
    ],
    [
-    1.170759,
-    1.544241,
-    1.170759
+    1.17004,
+    1.54496,
+    1.17004
    ],
    [
-    1.170759,
-    1.170759,
-    1.544241
+    1.17004,
+    1.17004,
+    1.54496
    ]
   ],
   "spreads": [
-   1.72686825,
-   1.72686826,
-   1.72686825,
-   1.72686825
+   1.72746207,
+   1.72746209,
+   1.72746209,
+   1.72746209
   ]
  },
  "_directory": {
-  "__path__": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dscf_Tr0/init/wannier/occ_down"
+  "__path__": "wannier/occ_down"
  },
  "prefix": "wann",
  "name": "benchgenwannier90calculator",
  "command": {
-  "path": {
-   "__path__": "/home/elinscott/code/koopmans/bin"
+  "_path": {
+   "__path__": "../../../../bin"
   },
   "executable": "wannier90.x",
   "_flags": "",

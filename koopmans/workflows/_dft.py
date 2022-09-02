@@ -1,3 +1,5 @@
+
+
 """
 
 Workflow module for performing a single DFT calculation with either kcp.x or pw.x
@@ -6,6 +8,7 @@ Written by Edward Linscott Oct 2020
 
 """
 
+import copy
 import shutil
 from pathlib import Path
 from typing import TypeVar
@@ -78,7 +81,21 @@ class DFTPWWorkflow(DFTWorkflow):
         return
 
 
-class PWBandStructureWorkflow(DFTWorkflow):
+class DFTPhWorkflow(Workflow):
+
+    def _run(self):
+
+        self.print('Calculate the dielectric tensor', style='heading')
+
+        calc_scf = self.new_calculator('pw', nbnd=None)
+        calc_scf.prefix = 'scf'
+        self.run_calculator(calc_scf)
+        calc_ph = self.new_calculator('ph', epsil=True, fildyn=f'{self.name}.dynG')
+        calc_ph.prefix = 'eps'
+        self.run_calculator(calc_ph)
+
+
+class DFTBandsWorkflow(DFTWorkflow):
 
     def _run(self):
 
@@ -96,27 +113,24 @@ class PWBandStructureWorkflow(DFTWorkflow):
             self.run_calculator(calc_scf)
 
             # Second, a bands calculation
-            calc_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpath)
+            calc_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpoints.path)
             calc_bands.prefix = 'bands'
             self.run_calculator(calc_bands)
 
             # Prepare the band structure for plotting
             bs = calc_bands.results['band structure']
-            n_filled = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials, self.pseudo_dir) // 2
-            vbe = bs._energies[:, :, :n_filled].max()
-            bs._energies -= vbe
 
             # Third, a PDOS calculation
             pseudos = [pseudopotentials.read_pseudo_file(calc_scf.parameters.pseudo_dir / p) for p in
                        self.pseudopotentials.values()]
-            if all([p['header']['number_of_wfc'] > 0 for p in pseudos]):
+            if all([int(p['header'].get('number_of_wfc', 0)) > 0 for p in pseudos]):
                 calc_dos = self.new_calculator('projwfc')
                 calc_dos.pseudo_dir = calc_bands.parameters.pseudo_dir
                 self.run_calculator(calc_dos)
 
                 # Prepare the DOS for plotting
-                dos = calc_dos.results['dos']
-                dos._energies -= vbe
+                dos = copy.deepcopy(calc_dos.results['dos'])
+                dos._energies -= bs.reference
             else:
                 # Skip if the pseudos don't have the requisite PP_PSWFC blocks
                 utils.warn('Some of the pseudopotentials do not have PP_PSWFC blocks, which means a projected DOS '
@@ -124,7 +138,7 @@ class PWBandStructureWorkflow(DFTWorkflow):
                 dos = None
 
             # Plot the band structure and DOS
-            self.plot_bandstructure(bs, dos)
+            self.plot_bandstructure(bs.subtract_reference(), dos)
 
     def new_calculator(self,
                        calc_type: str,

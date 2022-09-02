@@ -24,4 +24,13 @@ class Wann2KCSettingsDict(SettingsDict):
 
     @property
     def _other_valid_keywords(self) -> List[str]:
-        return []
+        return ['kgrid']
+
+    def __setitem__(self, key: str, value: Any):
+        if key == 'kgrid':
+            assert isinstance(value, list)
+            assert len(value) == 3
+            for i, x in enumerate(value):
+                self.__setitem__(f'mp{i+1}', x)
+        else:
+            return super().__setitem__(key, value)

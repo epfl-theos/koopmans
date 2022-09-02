@@ -93,6 +93,10 @@ class StumblingDFTCPWorkflow(StumblingWorkflow, workflows.DFTCPWorkflow):
     pass
 
 
+class StumblingDFTPhWorkflow(StumblingWorkflow, workflows.DFTPhWorkflow):
+    pass
+
+
 class StumblingDFTPWWorkflow(StumblingWorkflow, workflows.DFTPWWorkflow):
     pass
 

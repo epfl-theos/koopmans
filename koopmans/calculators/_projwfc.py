@@ -50,12 +50,12 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         self.pseudo_dir: Optional[Path] = None
         self.spin_polarized: Optional[bool] = None
 
-    def calculate(self):
+    def _calculate(self):
         for attr in ['pseudopotentials', 'pseudo_dir', 'spin_polarized']:
             if not hasattr(self, attr):
                 raise ValueError(f'Please set {self.__class__.__name__}.{attr} before calling '
                                  f'{self.__class__.__name__.calculate()}')
-        super().calculate()
+        super()._calculate()
         self.generate_dos()
 
     @property

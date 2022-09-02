@@ -6,15 +6,16 @@ from typing import Any, Dict, List, Optional, Set
 
 import numpy as np
 
+from ase.calculators.calculator import CalculationFailed
 from ase.dft.dos import DOS
 from ase.spectrum.band_structure import BandStructure
 from ase.spectrum.doscollection import GridDOSCollection
 from koopmans import base_directory, utils
 from koopmans.calculators import (Calc, EnvironCalculator,
                                   KoopmansCPCalculator, KoopmansHamCalculator,
-                                  KoopmansScreenCalculator, ProjwfcCalculator,
-                                  PW2WannierCalculator, PWCalculator,
-                                  UnfoldAndInterpolateCalculator,
+                                  KoopmansScreenCalculator, PhCalculator,
+                                  ProjwfcCalculator, PW2WannierCalculator,
+                                  PWCalculator, UnfoldAndInterpolateCalculator,
                                   Wann2KCCalculator, Wann2KCPCalculator,
                                   Wannier90Calculator)
 from koopmans.io import read_kwf as read_encoded_json
@@ -44,6 +45,8 @@ def compare(result: Any, ref_result: Any, result_name: str) -> Optional[Dict[str
     elif isinstance(result, DOS):
         result = result.get_dos()
         ref_result = ref_result.get_dos()
+        tols = tolerances['array']
+    elif result_name == 'dielectric tensor':
         tols = tolerances['array']
     elif result_name in ['homo_energy', 'lumo_energy', 'eigenvalues', 'ki_eigenvalues_on_grid']:
         tols = tolerances.get('eigenenergies', tolerances['eigenenergies'])
@@ -87,6 +90,7 @@ def compare(result: Any, ref_result: Any, result_name: str) -> Optional[Dict[str
         # Generate an error message if necessary
         message = f'{result_name}[{i_max}] = {result[i_max]:.5f} differs from benchmark ' \
                   f'{ref_result[i_max]:.5f} by {abs_diff:.2e}'
+
         if mixed_diff > tols[0]:
             return {'kind': 'error', 'message': message}
         elif mixed_diff > tols[1]:
@@ -141,6 +145,7 @@ class CheckCalc:
 
             if message is not None:
                 messages.append(message)
+
         return messages
 
     def _print_messages(self, messages: List[Dict[str, str]]) -> None:
@@ -159,7 +164,9 @@ class CheckCalc:
             if len(errors) == 1:
                 message = message.replace('disagreements', 'disagreement')
 
-    def calculate(self):
+            raise CalculationFailed(message)
+
+    def _calculate(self):
         # Before running the calculation, check the settings are the same
 
         with utils.chdir(self.directory):  # type: ignore[attr-defined]
@@ -195,7 +202,7 @@ class CheckCalc:
         # TODO
 
         # Run the calculation
-        super().calculate()
+        super()._calculate()
 
         # Check the results
         if self.skip_qc:
@@ -217,6 +224,11 @@ class CheckCalc:
 
 class CheckKoopmansCPCalculator(CheckCalc, KoopmansCPCalculator):
     results_for_qc = ['energy', 'homo_energy', 'lumo_energy']
+    pass
+
+
+class CheckPhCalculator(CheckCalc, PhCalculator):
+    results_for_qc = ['dielectric tensor']
     pass
 
 
@@ -268,7 +280,8 @@ class CheckWannier90Calculator(CheckCalc, Wannier90Calculator):
                 if centers_spreads_allclose(center, spread, ref_center, ref_spread, tolerances['centersandspreads'][0]):
                     match = True
                     break
-                elif centers_spreads_allclose(center, spread, ref_center, ref_spread, tolerances['centersandspreads'][1]):
+                elif centers_spreads_allclose(center, spread, ref_center, ref_spread,
+                                              tolerances['centersandspreads'][1]):
                     rough_match = True
                     match_index = j
                     match_spread = ref_spread
@@ -279,13 +292,14 @@ class CheckWannier90Calculator(CheckCalc, Wannier90Calculator):
             if match:
                 pass
             elif rough_match:
-                message = f'Wannier function #{i+1}, with center = {ref_center_str} and spread = {ref_spread:.5f} does not precisely match' \
-                          f'the benchmark Wannier function #{j+1}, with center = {match_center_str} and spread = {match_spread:.5f}'
+                message = f'Wannier function #{i+1}, with center = {ref_center_str} and spread = {ref_spread:.5f} ' \
+                          f'does not precisely match the benchmark Wannier function #{j+1}, with center = ' \
+                          f'{match_center_str} and spread = {match_spread:.5f}'
                 messages.append({'kind': 'warning', 'message': message})
             else:
-                message = f'Wannier function #{i+1}, with center = {ref_center_str} and spread = {ref_spread:.5f} not found'
+                message = f'Wannier function #{i+1}, with center = {ref_center_str} and spread = {ref_spread:.5f} ' \
+                    'not found'
                 messages.append({'kind': 'error', 'message': message})
-                raise ValueError()
 
         return messages
 

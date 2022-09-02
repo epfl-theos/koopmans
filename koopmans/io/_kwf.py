@@ -8,6 +8,7 @@ Written by Edward Linscott Mar 2021, largely modelled off ase.io.jsonio
 
 import inspect
 import json
+import os
 from importlib import import_module
 from pathlib import Path
 from typing import TextIO, Union
@@ -21,7 +22,7 @@ class KoopmansEncoder(ase_json.MyEncoder):
         if isinstance(obj, set):
             return {'__set__': list(obj)}
         elif isinstance(obj, Path):
-            return {'__path__': str(obj)}
+            return {'__path__': os.path.relpath(obj, '.')}
         elif inspect.isclass(obj):
             return {'__class__': {'__name__': obj.__name__, '__module__': obj.__module__}}
         elif hasattr(obj, 'todict'):

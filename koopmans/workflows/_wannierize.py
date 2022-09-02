@@ -33,7 +33,7 @@ class WannierizeWorkflow(Workflow):
     def __init__(self, *args, force_nspin2=False, scf_kgrid=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        pw_params = self.master_calc_params['pw']
+        pw_params = self.calculator_parameters['pw']
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
                 and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
@@ -46,7 +46,7 @@ class WannierizeWorkflow(Workflow):
             for spin in spins:
                 # Update the projections_blocks to account for additional occupied bands
                 num_wann_occ = self.projections.num_bands(occ=True, spin=spin)
-                nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, pw_params.pseudo_dir)
+                nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
                 if self.parameters.spin_polarized:
                     num_bands_occ = nelec - pw_params.get('tot_charge', 0)
                     if spin == 'up':
@@ -96,10 +96,11 @@ class WannierizeWorkflow(Workflow):
         self._scf_kgrid = scf_kgrid
 
         # Calculate by default the band structure
-        if self.parameters.calculate_bands is None and len(self.kpath.kpts) > 1:
-            self.parameters.calculate_bands = True
-        else:
-            self.parameters.calculate_bands = False
+        if self.parameters.calculate_bands is None:
+            if len(self.kpoints.path.kpts) > 1:
+                self.parameters.calculate_bands = True
+            else:
+                self.parameters.calculate_bands = False
 
         # This workflow only makes sense for DFT, not an ODD
         self.parameters.functional = 'dft'
@@ -170,19 +171,20 @@ class WannierizeWorkflow(Workflow):
                 self.run_calculator(calc_w90)
 
             # Merging Hamiltonian files, U matrix files, centers files if necessary
-            for block in self.projections.to_merge():
-                self.merge_wannier_files(block, prefix=calc_w90.prefix)
+            if self.parent is not None:
+                for block in self.projections.to_merge():
+                    self.merge_wannier_files(block, prefix=calc_w90.prefix)
 
-                # Extending the U_dis matrix file, if necessary
-                num_wann = sum([b.w90_kwargs['num_wann'] for b in block])
-                num_bands = sum([b.w90_kwargs['num_bands'] for b in block])
-                if not block[0].filled and num_bands > num_wann and self.parameters.method == 'dfpt':
-                    self.extend_wannier_u_dis_file(block, prefix=calc_w90.prefix)
+                    # Extending the U_dis matrix file, if necessary
+                    num_wann = sum([b.w90_kwargs['num_wann'] for b in block])
+                    num_bands = sum([b.w90_kwargs['num_bands'] for b in block])
+                    if not block[0].filled and num_bands > num_wann and self.parameters.method == 'dfpt':
+                        self.extend_wannier_u_dis_file(block, prefix=calc_w90.prefix)
 
         if self.parameters.calculate_bands:
             # Run a "bands" calculation, making sure we don't overwrite
             # the scf/nscf tmp files by setting a different prefix
-            calc_pw_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpath)
+            calc_pw_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpoints.path)
             calc_pw_bands.directory = 'wannier'
             calc_pw_bands.prefix = 'bands'
             calc_pw_bands.parameters.prefix += '_bands'
@@ -210,47 +212,21 @@ class WannierizeWorkflow(Workflow):
                 self.run_calculator(calc_dos)
 
                 # Prepare the DOS for plotting
-                dos = calc_dos.results['dos']
+                dos = copy.deepcopy(calc_dos.results['dos'])
             else:
                 # Skip if the pseudos don't have the requisite PP_PSWFC blocks
                 utils.warn('Some of the pseudopotentials do not have PP_PSWFC blocks, which means a projected DOS '
                            'calculation is not possible. Skipping...')
                 dos = None
 
-            # Select those calculations that generated a band structure
-            selected_calcs = [c for c in self.calculations[:-1] if 'band structure' in c.results and c != calc_pw_bands]
+            # Select those calculations that generated a band structure (and are part of this wannierize workflow)
+            i_scf = [i for i, c in enumerate(self.calculations) if isinstance(c, calculators.PWCalculator)
+                     and c.parameters.calculation == 'scf'][-1]
+            selected_calcs = [c for c in self.calculations[i_scf:-1]
+                              if 'band structure' in c.results and c != calc_pw_bands]
 
-            # Work out the vertical shift to set the valence band edge to zero
-            pw_eigs = calc_pw_bands.results['band structure'].energies
-            nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.pseudo_dir)
-            tot_charge = calc_pw.parameters.get('tot_charge', 0)
-            nelec -= tot_charge
-
-            if self.parameters.spin_polarized:
-                tot_mag = calc_pw.parameters.get('tot_magnetization', nelec % 2)
-                nelup = int(nelec / 2 + tot_mag / 2)
-                neldw = int(nelec / 2 - tot_mag / 2)
-                nbnd_empty = [calc_pw_bands.parameters.nbnd - x for x in [nelup, neldw]]
-
-                vbes: List[float] = []
-                for ispin, num_bands in enumerate(nbnd_empty):
-                    if num_bands == 0:
-                        vbes.append(pw_eigs[ispin, :, :].max())
-                    elif num_bands == pw_eigs.shape[2]:
-                        continue
-                    else:
-                        vbes.append(pw_eigs[ispin, :, :-num_bands].max())
-
-                vbe = max(vbes)
-            else:
-                nbnd_empty = calc_pw_bands.parameters.nbnd - nelec // 2
-                if nbnd_empty > 0:
-                    vbe = np.max(pw_eigs[:, :, :-nbnd_empty])
-                else:
-                    vbe = np.max(pw_eigs)
-
-            if dos is not None:
-                dos._energies -= vbe
+            # Store the pw BandStructure (for working out the vertical shift to set the valence band edge to zero)
+            pw_bands = calc_pw_bands.results['band structure']
 
             # Prepare the band structures for plotting
             ax = None
@@ -263,14 +239,8 @@ class WannierizeWorkflow(Workflow):
             colors = {}
             for calc, label in zip([calc_pw_bands] + selected_calcs, labels):
                 if 'band structure' in calc.results:
-                    # Load the bandstructure. Because we are going apply a vertical shift, we take a copy of the
-                    # bandstructure (we don't want the stored band structure to be vertically shifted depending on
-                    # the value of self.parameters.calculate_bands!)
-                    bs = copy.deepcopy(calc.results['band structure'])
-
-                    # Unfortunately once a bandstructure object is created you cannot tweak it, so we must alter
-                    # this private variable
-                    bs._energies -= vbe
+                    # Load the bandstructure, shifted by the valence band maximum of the pw bands calculation
+                    bs = calc.results['band structure'].subtract_reference(pw_bands.reference)
 
                     # Tweaking the plot aesthetics
                     kwargs = {'label': label}
@@ -289,6 +259,10 @@ class WannierizeWorkflow(Workflow):
                     # Store
                     bs_list.append(bs)
                     bsplot_kwargs_list.append(kwargs)
+
+            # Shift the DOS, too
+            if dos is not None:
+                dos._energies -= pw_bands.reference
 
             # Plot
             self.plot_bandstructure(bs_list, dos, bsplot_kwargs=bsplot_kwargs_list)
@@ -312,9 +286,9 @@ class WannierizeWorkflow(Workflow):
             else:
                 raise ValueError(f'Unrecognized orbital type {init_orbs} (must be "mlwfs" or "projwfs")')
 
-            if calc.parameters.gamma_only != self.gamma_only:
+            if calc.parameters.gamma_only != self.kpoints.gamma_only:
                 # forcing W90 to follow the same logic of PW for the gamma_trick
-                calc.parameters.gamma_only = self.gamma_only
+                calc.parameters.gamma_only = self.kpoints.gamma_only
         if calc_type == 'pw2wannier':
             if self._force_nspin2 and not self.parameters.spin_polarized:
                 calc.parameters.spin_component = 'up'
@@ -433,14 +407,14 @@ class WannierizeWorkflow(Workflow):
         centers_list = []
         for dir_in in dirs_in:
             # Reading the centers file
-            fname_in = dir_in / (prefix + '_centers.xyz')
+            fname_in = dir_in / (prefix + '_centres.xyz')
 
             centers, _ = utils.read_wannier_centers_file(fname_in)
 
             centers_list += centers
 
         # Writing the centers file
-        utils.write_wannier_centers_file(dir_out / (prefix + '_centers.xyz'), centers_list, self.atoms)
+        utils.write_wannier_centers_file(dir_out / (prefix + '_centres.xyz'), centers_list, self.atoms)
 
     def extend_wannier_u_dis_file(self, block: List[projections.ProjectionBlock], prefix: str = 'wann'):
         # Read in

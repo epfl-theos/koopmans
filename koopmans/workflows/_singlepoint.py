@@ -8,7 +8,10 @@ Converted to a workflow object Nov 2020
 """
 
 import os
+import shutil
 from pathlib import Path
+
+import numpy as np
 
 from koopmans import utils
 
@@ -26,6 +29,7 @@ class SinglepointWorkflow(Workflow):
     Running a Koopmans calculation on ozone
 
         >>> from ase.build import molecule
+        >>> from koopmans.workflows import SinglepointWorkflow
         >>> ozone = molecule('O3', vacuum=5.0, pbc=False)
         >>> wf = SinglepointWorkflow(ozone, ecutwfc = 20.0)
         >>> wf.run()
@@ -34,13 +38,17 @@ class SinglepointWorkflow(Workflow):
 
         >>> from ase.build import bulk
         >>> from koopmans.projections import ProjectionBlocks
+        >>> from koopmans.kpoints import Kpoints
+        >>> from koopmans.workflows import SinglepointWorkflow
         >>> gaas = bulk('GaAs', crystalstructure='zincblende', a=5.6536)
         >>> projs = ProjectionBlocks.fromprojections([["Ga: d"], ["As: sp3"], ["Ga: sp3"]],
         >>>                                           fillings=[True, True, False],
         >>>                                           spins=[None, None, None],
         >>>                                           atoms=gaas)
-        >>> wf = SinglepointWorkflow(gaas, kgrid=[2, 2, 2], projections=projs, init_orbitals='mlwfs',
-        >>>                          pseudo_library='sg15_v1.0', ecutwfc=40.0, master_calc_params={'pw': {'nbnd': 45},
+        >>> kpoints = Kpoints(grid=[2, 2, 2])
+        >>> wf = SinglepointWorkflow(gaas, kpoints=kpoints, projections=projs, init_orbitals='mlwfs',
+        >>>                          pseudo_library='sg15_v1.0', ecutwfc=40.0,
+        >>>                          calculator_parameters={'pw': {'nbnd': 45},
         >>>                          'w90_emp': {'dis_froz_max': 14.6, 'dis_win_max': 18.6}})
         >>> wf.run()
     '''
@@ -51,8 +59,16 @@ class SinglepointWorkflow(Workflow):
     def _run(self) -> None:
 
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
-        from koopmans.workflows import (DFTCPWorkflow, KoopmansDFPTWorkflow,
+        from koopmans.workflows import (DFTCPWorkflow, DFTPhWorkflow,
+                                        KoopmansDFPTWorkflow,
                                         KoopmansDSCFWorkflow)
+
+        if self.parameters.eps_inf == 'auto':
+            eps_workflow = DFTPhWorkflow.fromparent(self)
+            if self.parameters.from_scratch and Path('calculate_eps').exists():
+                shutil.rmtree('calculate_eps')
+            eps_workflow.run(subdirectory='calculate_eps')
+            self.parameters.eps_inf = np.trace(eps_workflow.calculations[-1].results['dielectric tensor']) / 3
 
         if self.parameters.method == 'dfpt':
             workflow = KoopmansDFPTWorkflow.fromparent(self)
@@ -114,7 +130,7 @@ class SinglepointWorkflow(Workflow):
                         file = Path(f'ki/final/{f}')
                         if file.is_file():
                             utils.system_call(f'rsync -a {file} pkipz/final/')
-                    if self.parameters.periodic and self.master_calc_params['ui'].do_smooth_interpolation:
+                    if all(self.atoms.pbc) and self.calculator_parameters['ui'].do_smooth_interpolation:
                         if not Path('pkipz/postproc').is_dir():
                             utils.system_call('mkdir pkipz/postproc')
                         utils.system_call(f'rsync -a ki/postproc/wannier pkipz/postproc/')
@@ -125,7 +141,7 @@ class SinglepointWorkflow(Workflow):
                     utils.system_call('mv kipz/init/ki_final.cpo kipz/init/ki_init.cpo')
                     if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
                         utils.system_call('rsync -a ki/init/wannier kipz/init/')
-                    if self.parameters.periodic and self.master_calc_params['ui'].do_smooth_interpolation:
+                    if all(self.atoms.pbc) and self.calculator_parameters['ui'].do_smooth_interpolation:
                         # Copy over the smooth PBE calculation from KI for KIPZ to use
                         utils.system_call('rsync -a ki/postproc/wannier kipz/postproc/')
 

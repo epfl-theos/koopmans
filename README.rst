@@ -65,7 +65,7 @@ Then you need to compile the copies of ``Quantum ESPRESSO``. To do this, run
 
    make espresso MPIF90=<mpif90>
 
-where ``<mpif90>`` should be replaced by the name of your chosen MPI Fortran90 compiler e.g. ``MPIF90=mpiifort``. The code should automatically detect and link the requisite libraries. (If this fails you will need to manually compile the two copies of ``Quantum ESPRESSO`` contained in the ``quantum_espresso/``.)
+where ``<mpif90>`` should be replaced by the name of your chosen MPI Fortran90 compiler e.g. ``MPIF90=mpiifort``. The code should automatically detect and link the requisite libraries. (If this fails you may need to manually compile the two versions of ``Quantum ESPRESSO`` contained in the ``quantum_espresso/`` directory.)
 
 Installing the workflow manager
 """""""""""""""""""""""""""""""

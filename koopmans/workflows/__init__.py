@@ -3,7 +3,7 @@
 from ._anion_dscf import DeltaSCFWorkflow
 from ._convergence import ConvergenceWorkflow
 from ._convergence_ml import ConvergenceMLWorkflow
-from ._dft import DFTCPWorkflow, DFTPWWorkflow, PWBandStructureWorkflow
+from ._dft import DFTBandsWorkflow, DFTCPWorkflow, DFTPhWorkflow, DFTPWWorkflow
 from ._folding import FoldToSupercellWorkflow
 from ._koopmans_dfpt import KoopmansDFPTWorkflow
 from ._koopmans_dscf import KoopmansDSCFWorkflow

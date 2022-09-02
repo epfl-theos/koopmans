@@ -21,9 +21,9 @@ class DeltaSCFWorkflow(Workflow):
         epsilons = sorted(self.parameters.eps_cavity, reverse=True)
         self.print('PBE ΔSCF WORKFLOW', style='heading')
 
-        # Remove settings from master_calc_params that will be overwritten
+        # Remove settings from calculator_parameters that will be overwritten
         for key in ['tot_charge', 'tot_magnetization', 'disk_io', 'restart_mode']:
-            self.master_calc_params['pw'].pop(key, None)
+            self.calculator_parameters['pw'].pop(key, None)
 
         for charge, label in zip([0, -1], ['neutral', 'charged']):
             self.print(f'Performing {label} calculations', style='subheading')
@@ -44,7 +44,7 @@ class DeltaSCFWorkflow(Workflow):
                 # Create a new Environ calculator object
                 pw_calc = EnvironCalculator(atoms=self.atoms, restart_mode=restart_mode, disk_io='medium',
                                             tot_charge=charge, tot_magnetization=-charge,
-                                            **self.master_calc_params['pw'])
+                                            **self.calculator_parameters['pw'])
                 pw_calc.prefix = 'pbe'
                 pw_calc.directory = f'{label}/{epsilon}'
                 pw_calc.parameters.outdir = 'TMP'

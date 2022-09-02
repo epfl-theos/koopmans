@@ -8,18 +8,18 @@ Moved into utils Sep 2021
 """
 
 import json
-import sys
 from datetime import datetime
 from pathlib import Path
-from typing import IO, Any, AnyStr, Dict, List, Tuple, Union
+from typing import IO, Any, Dict, List, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
 
 from ase.atoms import Atoms
-from ase.calculators.calculator import Calculator
-from ase.dft.kpoints import BandPath, bandpath
 from ase.io.espresso import label_to_symbol, label_to_tag
+from ase.units import Bohr
+from koopmans.cell import (cell_follows_qe_conventions, cell_to_parameters,
+                           parameters_to_cell)
 
 
 def parse_dict(dct: Dict[str, Any]) -> Dict[str, Any]:
@@ -47,7 +47,13 @@ def parse_dict(dct: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def construct_cell_parameters_block(atoms: Atoms) -> Dict[str, Any]:
-    return {'vectors': [list(row) for row in atoms.cell[:]], 'units': 'angstrom'}
+    params: Dict[str, Any]
+    if cell_follows_qe_conventions(atoms.cell):
+        params = cell_to_parameters(atoms.cell)
+    else:
+        params = {'vectors': [list(row) for row in atoms.cell[:]], 'units': 'angstrom'}
+    params['periodic'] = all(atoms.pbc)
+    return params
 
 
 def construct_atomic_positions_block(atoms: Atoms, crystal: bool = True) -> dict:
@@ -103,23 +109,10 @@ def read_alpha_file(directory: Path) -> List[float]:
     return alphas
 
 
-def read_kpoints_block(calc: Calculator, dct: Dict[str, Any]):
-    for k, v in dct.items():
-        if k in ['gamma_only', 'kgrid', 'koffset', 'kpath', 'kpath_density']:
-            calc.parameters[k] = v
-        else:
-            raise KeyError(f'Unrecognized option "{k}" provided in the k_points block')
-    return
-
-
-def read_atomic_species(calc: Calculator, dct: Dict[str, Any]):
-    calc.parameters['pseudopotentials'] = {l[0]: l[2] for l in dct['species']}
-
-
-def read_atomic_positions(calc: Calculator, dct: Dict[str, Any]):
+def read_atomic_positions(atoms: Atoms, dct: Dict[str, Any]):
 
     pos_array = np.array(dct['positions'])
-    symbols = [label_to_symbol(p) for p in pos_array[:, 0]]
+    symbols: List[str] = [label_to_symbol(p) for p in pos_array[:, 0]]
     tags = [label_to_tag(p) for p in pos_array[:, 0]]
     positions = np.array(pos_array[:, 1:], dtype=float)
 
@@ -127,50 +120,65 @@ def read_atomic_positions(calc: Calculator, dct: Dict[str, Any]):
     units = dct.get('units', 'angstrom').lower()
     if units == 'angstrom':
         pass
+    elif units == 'bohr':
+        positions /= Bohr
+    elif units == 'alat':
+        celldms = cell_to_parameters(atoms.cell).get('celldms')
+        assert isinstance(celldms, dict)
+        positions *= celldms[1] / Bohr
     elif units == 'crystal':
         scale_positions = True
     else:
         raise NotImplementedError(
             f'atomic_positions units = {units} is not yet implemented')
 
-    if not calc.atoms.cell:
+    if not atoms.cell:
         raise ValueError('io.read_atomic_positions() must be called after io.read_cell_parameters()')
 
+    assert len(atoms) == 0, 'Atoms should be length zero at this stage'
     if scale_positions:
-        calc.atoms = Atoms(symbols, scaled_positions=positions, calculator=calc, cell=calc.atoms.cell)
+        atoms += Atoms(symbols, scaled_positions=positions, cell=atoms.cell)
     else:
-        calc.atoms = Atoms(symbols, positions=positions, calculator=calc, cell=calc.atoms.cell)
-    calc.atoms.set_tags(tags)
+        atoms += Atoms(symbols, positions=positions, cell=atoms.cell)
+    atoms.set_tags(tags)
 
 
-def read_cell_parameters(calc: Calculator, dct: dict):
-    cell = dct.get('vectors', None)
-    units = dct.get('units', None)
-    if cell is None and units in [None, 'alat']:
-        if 'ibrav' not in calc.parameters:
+def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
+    cell = dct.pop('vectors', None)
+    units = dct.pop('units', '')
+    atoms.pbc = dct.pop('periodic', True)
+    if cell is None:
+        if 'ibrav' not in dct:
             raise KeyError('Cell has not been defined. Please specify either "ibrav" and related "celldm"s) '
                            ' or a "cell_parameters" block in "setup"')
-    elif cell is not None and units == 'angstrom':
+        celldms = {int(k): v for k, v in dct.pop('celldms', {}).items()}
+        cell = parameters_to_cell(celldms=celldms, **dct)
+    elif units.lower() == 'angstrom':
         pass
-
+    elif units.lower() == 'bohr':
+        cell = np.array(cell) / Bohr
+    elif units.lower() == 'alat':
+        alat = dct.get('celldms', {}).get(1, None)
+        if alat is None:
+            raise ValueError('Please provide celldm(1) for a cell specified in units of alat')
+        cell = np.array(cell) * alat / Bohr
     else:
-        raise NotImplementedError('the combination of vectors, ibrav, & units '
-                                  'in the cell_parameter block cannot be read (may not yet be '
-                                  'implemented)')
-    return cell
+        raise ValueError('The combination of vectors, ibrav, & units in the cell_parameter block is not valid')
+    atoms.cell = cell
+    return
 
 
 print_call_end = '\n'
 
 
-def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '\n', file: IO = sys.stdout,
+def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '\n',
                    flush: bool = False):
     global print_call_end
     for substring in text.split('\n'):
         if print_call_end == '\n':
-            print(' ' * indent + substring, sep=sep, end=end, file=file, flush=flush)
+            print(' ' * indent + substring, sep=sep, end=end, flush=flush)
         else:
-            print(substring, sep=sep, end=end, file=file, flush=flush)
+            print(substring, sep=sep, end=end, flush=flush)
     print_call_end = end
 
 

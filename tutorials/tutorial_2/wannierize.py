@@ -7,7 +7,7 @@ for grid_size in [2, 4, 8]:
     wf = read('si.json')
 
     # Modify the kgrid
-    wf.kgrid = [grid_size, grid_size, grid_size]
+    wf.kpoints.grid = [grid_size, grid_size, grid_size]
 
     # Run the workflow in a subdirectory
     with chdir('{0}x{0}x{0}'.format(grid_size)):

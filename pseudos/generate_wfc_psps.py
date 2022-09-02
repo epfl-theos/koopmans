@@ -4,14 +4,12 @@ Written by Edward Linscott, March 2022
 '''
 
 import subprocess
-from glob import glob
+import xml.etree.ElementTree as ET
 from pathlib import Path
-
-from koopmans.pseudopotentials import read_pseudo_file
 
 for fname in Path().rglob('*.upf'):
     try:
-        pseudo = read_pseudo_file(fname)
+        pseudo = ET.parse(fname).getroot()
     except Exception:
         raise ValueError(f'Failed to read {fname}')
 

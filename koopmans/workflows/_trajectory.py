@@ -31,13 +31,13 @@ class TrajectoryWorkflow(Workflow):
         self.get_evs: Optional[bool] = get_evs
 
     @ classmethod
-    def _fromjsondct(cls, bigdct: Dict[str, Any]):
+    def _fromjsondct(cls, bigdct: Dict[str, Any], override: Dict[str, Any] = {}):
         """
         Reads the atomic positions for each snapshot from the xyz-file specified by the user in the snapshots-file.
         """
 
         try:
-            snapshots_file = bigdct['setup'].pop('snapshots')
+            snapshots_file = bigdct['atoms']['atomic_positions'].pop('snapshots')
         except:
             raise ValueError(
                 f'To calculate a trajectory, please provide a xyz-file containing the atomic positions of the snapshots in the setup-block of the json-input file.')
@@ -45,8 +45,8 @@ class TrajectoryWorkflow(Workflow):
         snapshots = io.read(snapshots_file, index=':')
         if isinstance(snapshots, Atoms):
             snapshots = [snapshots]
-        bigdct['setup']['atomic_positions'] = utils.construct_atomic_positions_block(snapshots[0])
-        wf = super(TrajectoryWorkflow, cls)._fromjsondct(bigdct)
+        bigdct['atoms']['atomic_positions'] = utils.construct_atomic_positions_block(snapshots[0])
+        wf = super(TrajectoryWorkflow, cls)._fromjsondct(bigdct, override)
         wf.snapshots = snapshots
         wf.number_of_snapshots = len(snapshots)
         return wf
@@ -79,7 +79,7 @@ class TrajectoryWorkflow(Workflow):
             # get the atomic positions for the current snapshot
             subdirectory = f'snapshot_{i+1}'
             snapshot = self.snapshots[i]
-            self.parameters.current_snapshot = i
+            self.ml.current_snapshot = i
             self.atoms.set_positions(snapshot.positions)
 
             # if we are interested in the prediction of the eigenvalues,

@@ -13,7 +13,9 @@ import numpy as np
 from ase import Atoms
 from ase.calculators.espresso import Espresso
 from ase.dft.kpoints import BandPath
+from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
 from koopmans.commands import Command, ParallelCommandWithPostfix
+from koopmans.pseudopotentials import nelec_from_pseudos
 from koopmans.settings import PWSettingsDict
 
 from ._utils import (CalculatorABC, CalculatorExt, ReturnsBandStructure,
@@ -37,11 +39,20 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
             self.command = ParallelCommandWithPostfix(os.environ.get(
                 'ASE_ESPRESSO_COMMAND', str(bin_directory) + os.path.sep + self.command))
 
+    def calculate(self):
+        # Update ibrav and celldms
+        if cell_follows_qe_conventions(self.atoms.cell):
+            self.parameters.update(**cell_to_parameters(self.atoms.cell))
+        else:
+            self.parameters.ibrav = 0
+        super().calculate()
+
     def _calculate(self):
         if self.parameters.calculation == 'bands':
             if not isinstance(self.parameters.kpts, BandPath):
                 raise KeyError('You are running a calculation that requires a kpoint path; please provide a BandPath '
                                'as the kpts parameter')
+
         super()._calculate()
 
         if isinstance(self.parameters.kpts, BandPath):
@@ -62,7 +73,22 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
             return super().check_convergence()
 
     def vbm_energy(self) -> float:
-        return 0.0
+        # Fetch the eigenvalues
+        eigenvals = self.eigenvalues_from_results()
+
+        # Fetch the total number of electrons in the system
+        nelec = nelec_from_pseudos(self.atoms, self.parameters.pseudopotentials,
+                                   self.parameters.pseudo_dir) + self.parameters.get('tot_charge', 0)
+
+        # Determine the number of occupied bands in each spin channel
+        if self.parameters.nspin == 1:
+            n_occs = [nelec // 2]
+        else:
+            mag = self.parameters.get('tot_magnetization', nelec % 2)
+            n_occs = [int(nelec / 2 + mag / 2), int(nelec / 2 - mag / 2)]
+
+        # Return the energy of the highest occupied band
+        return np.nanmax([eigs[:, :n_occ] for eigs, n_occ in zip(eigenvals, n_occs)])
 
     def eigenvalues_from_results(self):
         class_name = self.__class__.__name__

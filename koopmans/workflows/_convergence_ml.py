@@ -28,14 +28,13 @@ class ConvergenceMLWorkflow(Workflow):
         super().__init__(*args, **kwargs)
 
     @ classmethod
-    def _fromjsondct(cls, bigdct: Dict[str, Any]):
+    def _fromjsondct(cls, bigdct: Dict[str, Any], override: Dict[str, Any] = {}):
         """
         Reads the atomic positions for each snapshot from the xyz-file specified by the user in the snapshots-file and initialize
         the snapshot-indices for training and testing
         """
-        # Read the xyz-file into atomic positions
         try:
-            snapshots_file = bigdct['setup'].pop('snapshots')
+            snapshots_file = bigdct['atoms']['atomic_positions'].pop('snapshots')
         except:
             raise ValueError(
                 f'To calculate a trajectory, please provide a xyz-file containing the atomic positions of the snapshots in the setup-block of the json-input file.')
@@ -43,15 +42,15 @@ class ConvergenceMLWorkflow(Workflow):
         snapshots = io.read(snapshots_file, index=':')
         if isinstance(snapshots, Atoms):
             snapshots = [snapshots]
-        bigdct['setup']['atomic_positions'] = utils.construct_atomic_positions_block(snapshots[0])
+        bigdct['atoms']['atomic_positions'] = utils.construct_atomic_positions_block(snapshots[0])
 
-        wf = super(ConvergenceMLWorkflow, cls)._fromjsondct(bigdct)
+        wf = super(ConvergenceMLWorkflow, cls)._fromjsondct(bigdct, override)
 
         # initialize the set of snapshots for training and testing
         wf.snapshots = snapshots
         wf.number_of_snapshots = len(snapshots)
-        wf.convergence_points = list(range(0, wf.parameters.number_of_training_snapshots))
-        wf.test_indices = list(range(wf.parameters.number_of_training_snapshots,
+        wf.convergence_points = list(range(0, wf.ml.number_of_training_snapshots))
+        wf.test_indices = list(range(wf.ml.number_of_training_snapshots,
                                      wf.number_of_snapshots))
 
         return wf
@@ -107,7 +106,7 @@ class ConvergenceMLWorkflow(Workflow):
         That means that the MAE (or other error-metrics) of the alpha parameters (or other quantities of interest) are calculated
         when trained on (1,..,number_of_training_samples) and evaluated on the remaining snapshots (number_of_training_samples,...,number of snapshots provided in the xyz file).
         """
-        if self.parameters.number_of_training_snapshots >= len(self.snapshots):
+        if self.ml.number_of_training_snapshots >= len(self.snapshots):
             raise ValueError(
                 "There are not enough test-snapshots available for a convergence_analysis. Please increase the number of snapshots in the xyz-file or decrease 'number_of_training_snapshots'")
 
@@ -120,10 +119,10 @@ class ConvergenceMLWorkflow(Workflow):
                     assert(isinstance(value, type))
                 return param
 
-        n_maxs = convert_to_list(self.parameters.n_max, int)
-        l_maxs = convert_to_list(self.parameters.l_max, int)
-        r_mins = convert_to_list(self.parameters.r_min, float)
-        r_maxs = convert_to_list(self.parameters.r_max, float)
+        n_maxs = convert_to_list(self.ml.n_max, int)
+        l_maxs = convert_to_list(self.ml.l_max, int)
+        r_mins = convert_to_list(self.ml.r_min, float)
+        r_maxs = convert_to_list(self.ml.r_max, float)
 
         # perform a grid search iff there is at least one parameter that contains more than one number
         if len(n_maxs)+len(l_maxs)+len(r_mins)+len(r_maxs) > 4:
@@ -136,42 +135,43 @@ class ConvergenceMLWorkflow(Workflow):
         # if the eigenvalues are quantities of interest we have to perform the final calcualtion afresh for every snapshot
         # since its result (and thereby the eigenvalues) depend on the prediction of the alpha parameters
         get_evs = False
-        if 'evs' in self.parameters.quantities_of_interest:
+        if 'evs' in self.ml.quantities_of_interest:
             get_evs = True
 
         # get the ab-initio result for the test_indices
         self.print(f'Obtaining ab-initio results for the last {len(self.test_indices)} snapshot(s)', style='heading')
         # make sure that we compute these snapshots ab-initio and don't use the ml-predicted alpha values
-        number_of_training_snapshots = self.parameters.number_of_training_snapshots
-        self.parameters.number_of_training_snapshots = self.number_of_snapshots+1
+        number_of_training_snapshots = self.ml.number_of_training_snapshots
+        self.ml.number_of_training_snapshots = self.number_of_snapshots+1
         # set the ml_model to a simple model such that not much time is wasted for computing the decomposition
-        type_of_ml_model = self.parameters.type_of_ml_model
-        self.parameters.type_of_ml_model = 'mean'
+        type_of_ml_model = self.ml.type_of_ml_model
+        self.ml.type_of_ml_model = 'mean'
         twf = TrajectoryWorkflow.fromparent(
             self, snapshots=self.snapshots, indices=self.test_indices, save_dir=self.dirs['convergence_true'], get_evs=get_evs)
         twf.run()
-        self.parameters.type_of_ml_model = type_of_ml_model
-        self.parameters.number_of_training_snapshots = number_of_training_snapshots
+        self.ml.type_of_ml_model = type_of_ml_model
+        self.ml.number_of_training_snapshots = number_of_training_snapshots
 
         from_scratch = False  # we want to make sure that no snapshot is calculated afresh just because the final directory of the preceeding calculation was deleted
 
         with open(self.dirs['convergence'] / "result_grid_search.txt", "w") as fd:
             fd.write('n_max\tl_max\tr_min\tr_max\tMAE\n')
-        for self.parameters.n_max in n_maxs:
-            for self.parameters.l_max in l_maxs:
-                for self.parameters.r_min in r_mins:
-                    for self.parameters.r_max in r_maxs:
+        for self.ml.n_max in n_maxs:
+            for self.ml.l_max in l_maxs:
+                for self.ml.r_min in r_mins:
+                    for self.ml.r_max in r_maxs:
                         # Skip this combination if r_max<r_min
-                        if self.parameters.r_max <= self.parameters.r_min or [self.parameters.n_max, self.parameters.l_max, self.parameters.r_min, self.parameters.r_max]==[8,8,0.5, 2.0]:
+                        if self.ml.r_max <= self.ml.r_min or [self.ml.n_max, self.ml.l_max, self.ml.r_min, self.ml.r_max] == [8, 8, 0.5, 2.0]:
                             continue
-                        self.print(f"(n_max, l_max, r_min, r_max) = ({self.parameters.n_max}, {self.parameters.l_max}, {self.parameters.r_min}, {self.parameters.r_max})")
+                        self.print(
+                            f"(n_max, l_max, r_min, r_max) = ({self.ml.n_max}, {self.ml.l_max}, {self.ml.r_min}, {self.ml.r_max})")
 
                         # Reset the MLModel for every new combination of (n_max, l_max, r_min, r_max)
-                        if self.parameters.occ_and_emp_together:
-                            self.ml_model = MLModel(self.parameters.type_of_ml_model)
+                        if self.ml.occ_and_emp_together:
+                            self.ml.ml_model = MLModel(self.ml.type_of_ml_model)
                         else:
-                            self.ml_model_occ = MLModel(self.parameters.type_of_ml_model)
-                            self.ml_model_emp = MLModel(self.parameters.type_of_ml_model)
+                            self.ml.ml_model_occ = MLModel(self.ml.type_of_ml_model)
+                            self.ml.ml_model_emp = MLModel(self.ml.type_of_ml_model)
 
                         # train the model on (1,...,number_of_training_snapshots) samples
                         for convergence_point in self.convergence_points:
@@ -200,8 +200,8 @@ class ConvergenceMLWorkflow(Workflow):
                             self.make_convergence_analysis_plots()
                         else:  # add the result to the result-file of the grid search
                             with open(self.dirs['convergence'] / "result_grid_search.txt", "a") as fd:
-                                fd.write("{:5.4f}\t{:5.4f}\t{:5.4f}\t{:5.4f}\t{:5.8f}\n".format(self.parameters.n_max, self.parameters.l_max,
-                                                                                                self.parameters.r_min, self.parameters.r_max, (self.result_dict[str("spin_"+str(0))]['alphas']['MAE']['mean'][-1])))
+                                fd.write("{:5.4f}\t{:5.4f}\t{:5.4f}\t{:5.4f}\t{:5.8f}\n".format(self.ml.n_max, self.ml.l_max,
+                                                                                                self.ml.r_min, self.ml.r_max, (self.result_dict[str("spin_"+str(0))]['alphas']['MAE']['mean'][-1])))
 
     def get_result_dict(self):
         '''
@@ -217,7 +217,7 @@ class ConvergenceMLWorkflow(Workflow):
         for spin in range(self.bands.n_spin):
             spin_id = str("spin_"+str(spin))
             result_dict[spin_id] = {}
-            for qoi in self.parameters.quantities_of_interest:
+            for qoi in self.ml.quantities_of_interest:
                 result_dict[spin_id][qoi] = {}
                 result_dict[spin_id][qoi]['pred_array'] = np.zeros(
                     (len(self.convergence_points), len(self.test_indices), self.bands.n_bands[spin]))
@@ -233,7 +233,7 @@ class ConvergenceMLWorkflow(Workflow):
 
         for spin in range(self.bands.n_spin):
             spin_id = str("spin_"+str(spin))
-            for qoi in self.parameters.quantities_of_interest:
+            for qoi in self.ml.quantities_of_interest:
                 for j, test_index in enumerate(self.test_indices):
                     self.result_dict[spin_id][qoi]['true_array'][j, :] = np.loadtxt(
                         self.dirs['convergence_true'] / f"{qoi}_snapshot_{test_index+1}.txt")[spin, :]
@@ -261,7 +261,7 @@ class ConvergenceMLWorkflow(Workflow):
 
         for spin in range(self.bands.n_spin):
             spin_id = str("spin_"+str(spin))
-            for qoi in self.parameters.quantities_of_interest:
+            for qoi in self.ml.quantities_of_interest:
                 for i, convergence_point in enumerate(self.convergence_points):
                     res = self.result_dict[spin_id][qoi]
                     plot_calculated_vs_predicted(res['true_array'].flatten(), res['pred_array'][i, :, :].flatten(

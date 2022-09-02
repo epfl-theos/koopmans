@@ -26,9 +26,9 @@ class MLFiitingWorkflow(Workflow):
 
         # Define and create the different subdirectories for the outputs of the ML-workflow
         ml_dir = self.calc_that_produced_orbital_densities.directory / 'ml' / 'TMP'
-        dir_suffix = '_'.join(str(x) for x in [self.parameters.n_max,
-                              self.parameters.l_max, self.parameters.r_min, self.parameters.r_max])
-        if self.parameters.input_data_for_ml_model == 'orbital_density':
+        dir_suffix = '_'.join(str(x) for x in [self.ml.n_max,
+                              self.ml.l_max, self.ml.r_min, self.ml.r_max])
+        if self.ml.input_data_for_ml_model == 'orbital_density':
             self.dirs = {
                 'ml': ml_dir,
                 'xml': ml_dir / 'xml',
@@ -39,14 +39,14 @@ class MLFiitingWorkflow(Workflow):
                 'coeff_tot': ml_dir / ('coefficients_' + dir_suffix) / 'coeff_tot',
                 'power': ml_dir / ('power_spectra_' + dir_suffix)
             }
-        elif self.parameters.input_data_for_ml_model == 'self_hartree':
+        elif self.ml.input_data_for_ml_model == 'self_hartree':
             self.dirs = {
                 'ml': ml_dir,
                 'SH': ml_dir / 'SH'
             }
         else:
             raise ValueError(
-                f"{self.parameters.input_data_for_ml_model} is currently not implemented as a valid input for the ml model.")
+                f"{self.ml.input_data_for_ml_model} is currently not implemented as a valid input for the ml model.")
 
         for dir in self.dirs.values():
             utils.system_call(f'mkdir -p {dir}')
@@ -79,18 +79,18 @@ class MLFiitingWorkflow(Workflow):
         else:
             self.nspin_to_extract = 1
 
-        if self.parameters.type_of_ml_model == 'mean':
+        if self.ml.type_of_ml_model == 'mean':
             return  # this model needs no X-data
         else:
-            if self.parameters.input_data_for_ml_model == 'orbital_density':
+            if self.ml.input_data_for_ml_model == 'orbital_density':
                 # start the actual three steps
                 self.extract_input_vector_from_orbital_densities()
-            elif self.parameters.input_data_for_ml_model == 'self_hartree':
+            elif self.ml.input_data_for_ml_model == 'self_hartree':
                 # get the self hartree energies
                 self.extract_input_vector_from_self_hartrees()
             else:
                 raise ValueError(
-                    f"{self.parameters.input_data_for_ml_model} is currently not implemented as a valid input for the ml model.")
+                    f"{self.ml.input_data_for_ml_model} is currently not implemented as a valid input for the ml model.")
 
     def extract_input_vector_from_self_hartrees(self):
         """
@@ -186,10 +186,10 @@ class MLFiitingWorkflow(Workflow):
                                                   if calc_presets in c.directory.name]))
             centers = np.concatenate(centers_list)
 
-            ml_utils.precompute_parameters_of_radial_basis(self.parameters.n_max, self.parameters.l_max,
-                                                           self.parameters.r_min, self.parameters.r_max, self.dirs)
-            ml_utils.compute_decomposition(self.parameters.n_max, self.parameters.l_max, self.parameters.r_min,
-                                           self.parameters.r_max, self.r_cut, self.dirs, self.bands_to_extract, self.atoms, centers)
+            ml_utils.precompute_parameters_of_radial_basis(self.ml.n_max, self.ml.l_max,
+                                                           self.ml.r_min, self.ml.r_max, self.dirs)
+            ml_utils.compute_decomposition(self.ml.n_max, self.ml.l_max, self.ml.r_min,
+                                           self.ml.r_max, self.r_cut, self.dirs, self.bands_to_extract, self.atoms, centers)
             self.print(f' done')
 
     def check_if_compute_decomposition_is_complete(self) -> bool:
@@ -210,23 +210,23 @@ class MLFiitingWorkflow(Workflow):
 
         calculation_title = 'computation of power spectrum'
         self.print(f'Running {calculation_title}...', end='', flush=True)
-        ml_utils.compute_power(self.parameters.n_max, self.parameters.l_max, self.dirs, self.bands_to_extract)
+        ml_utils.compute_power(self.ml.n_max, self.ml.l_max, self.dirs, self.bands_to_extract)
         self.print(f' done')
 
     def get_input_data(self, band) -> np.ndarray:
         """
         Loads the input data depending on the ML model
         """
-        if self.parameters.type_of_ml_model == 'mean':
+        if self.ml.type_of_ml_model == 'mean':
             input_data = np.array([1.0])  # dummy value
         else:
-            if self.parameters.input_data_for_ml_model == 'orbital_density':
+            if self.ml.input_data_for_ml_model == 'orbital_density':
                 input_data = self.load_power_spectrum(band)
-            elif self.parameters.input_data_for_ml_model == 'self_hartree':
+            elif self.ml.input_data_for_ml_model == 'self_hartree':
                 input_data = self.load_SH(band)
             else:
                 raise ValueError(
-                    f"{self.parameters.input_data_for_ml_model} is currently not implemented as a valid input for the ml model.")
+                    f"{self.ml.input_data_for_ml_model} is currently not implemented as a valid input for the ml model.")
 
         return input_data
 
@@ -238,13 +238,13 @@ class MLFiitingWorkflow(Workflow):
         self.print('Predicting screening parameter')
         input_data = self.get_input_data(band)
 
-        if self.parameters.occ_and_emp_together:
-            y_predict = self.ml_model.predict(input_data)[0]
+        if self.ml.occ_and_emp_together:
+            y_predict = self.ml.ml_model.predict(input_data)[0]
         else:
             if band.filled:
-                y_predict = self.ml_model_occ.predict(input_data)[0]
+                y_predict = self.ml.ml_model_occ.predict(input_data)[0]
             else:
-                y_predict = self.ml_model_emp.predict(input_data)[0]
+                y_predict = self.ml.ml_model_emp.predict(input_data)[0]
 
         self.predicted_alphas.append(y_predict)
         self.fillings_of_predicted_alphas.append(band.filled)
@@ -257,11 +257,11 @@ class MLFiitingWorkflow(Workflow):
         """
 
         self.print('Training the ML model')
-        if self.parameters.occ_and_emp_together:
-            self.ml_model.train()
+        if self.ml.occ_and_emp_together:
+            self.ml.ml_model.train()
         else:
-            self.ml_model_occ.train()
-            self.ml_model_emp.train()
+            self.ml.ml_model_occ.train()
+            self.ml.ml_model_emp.train()
 
     def add_training_data(self, band: Band):
         """
@@ -273,13 +273,13 @@ class MLFiitingWorkflow(Workflow):
         alpha = band.alpha
         assert isinstance(alpha, float)
         self.calculated_alphas.append(alpha)
-        if self.parameters.occ_and_emp_together:
-            self.ml_model.add_training_data(input_data, alpha)
+        if self.ml.occ_and_emp_together:
+            self.ml.ml_model.add_training_data(input_data, alpha)
         else:
             if band.filled:
-                self.ml_model_occ.add_training_data(input_data, alpha)
+                self.ml.ml_model_occ.add_training_data(input_data, alpha)
             else:
-                self.ml_model_emp.add_training_data(input_data, alpha)
+                self.ml.ml_model_emp.add_training_data(input_data, alpha)
 
     def load_power_spectrum(self, band: Band) -> np.ndarray:
         """
@@ -309,13 +309,13 @@ class MLFiitingWorkflow(Workflow):
 
         # defualt is to not use the prediction
         use_prediction = False
-        if self.parameters.criterium == 'after_fixed_num_of_snapshots':
-            if self.parameters.current_snapshot < self.parameters.number_of_training_snapshots:
+        if self.ml.criterium == 'after_fixed_num_of_snapshots':
+            if self.ml.current_snapshot < self.ml.number_of_training_snapshots:
                 use_prediction = False
             else:
                 use_prediction = True
         else:
-            raise NotImplementedError(f'criterium = {self.parameters.criterium} is currently not implemented')
+            raise NotImplementedError(f'criterium = {self.ml.criterium} is currently not implemented')
         if use_prediction:
             self.print('The prediction-criterium is satisfied -> Use the predicted screening parameter')
         else:
@@ -370,8 +370,10 @@ class MLFiitingWorkflow(Workflow):
         """
 
         flat_alphas = utils.read_alpha_file(Path())
-        params = self.master_calc_params['kcp']
+        params = self.calculator_parameters['kcp']
         assert isinstance(params, KoopmansCPSettingsDict)
         alphas = calculators.convert_flat_alphas_for_kcp(flat_alphas, params)
+        if self.parameters.spin_polarized:
+            raise NotImplementedError('Need to check implementation')
         assert isinstance(band.index, int)
         return alphas[0][band.index-1], 0.0

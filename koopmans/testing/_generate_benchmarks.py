@@ -4,9 +4,9 @@ from typing import List
 
 from koopmans.calculators import (EnvironCalculator, KoopmansCPCalculator,
                                   KoopmansHamCalculator,
-                                  KoopmansScreenCalculator, ProjwfcCalculator,
-                                  PW2WannierCalculator, PWCalculator,
-                                  UnfoldAndInterpolateCalculator,
+                                  KoopmansScreenCalculator, PhCalculator,
+                                  ProjwfcCalculator, PW2WannierCalculator,
+                                  PWCalculator, UnfoldAndInterpolateCalculator,
                                   Wann2KCCalculator, Wann2KCPCalculator,
                                   Wannier90Calculator)
 from koopmans.io import write_kwf as write_encoded_json
@@ -61,7 +61,7 @@ class BenchmarkGenCalc():
         modified_files.remove(self.prefix + self.ext_in)
 
         # Exclude .wfc* files because these depend on the parallelism
-        if isinstance(self, (PWCalculator, Wann2KCCalculator)):
+        if isinstance(self, (PWCalculator, Wann2KCCalculator, PhCalculator)):
             wfc_prefix = os.path.relpath(self.parameters.outdir, self.directory) + f'/{self.parameters.prefix}.wfc'
             modified_files = [f for f in modified_files if not f.startswith(wfc_prefix)]
 
@@ -80,6 +80,10 @@ class BenchGenPW2WannierCalculator(BenchmarkGenCalc, PW2WannierCalculator):
 
 
 class BenchGenWann2KCPCalculator(BenchmarkGenCalc, Wann2KCPCalculator):
+    pass
+
+
+class BenchGenPhCalculator(BenchmarkGenCalc, PhCalculator):
     pass
 
 

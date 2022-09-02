@@ -21,6 +21,7 @@ Sep 2021: Reshuffled files to make imports cleaner
 from __future__ import annotations
 
 import copy
+import os
 from abc import ABC, abstractmethod, abstractproperty
 from pathlib import Path
 from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
@@ -30,7 +31,7 @@ from numpy import typing as npt
 
 import ase.io as ase_io
 from ase import Atoms
-from ase.calculators.calculator import CalculationFailed
+from ase.calculators.calculator import CalculationFailed, Calculator
 from ase.dft.kpoints import BandPath
 from ase.spectrum.band_structure import BandStructure
 from koopmans import settings, utils
@@ -85,6 +86,19 @@ class CalculatorExt():
         # Some calculations we don't want to check their results for when performing tests; for such calculations, set
         # skip_qc = True
         self.skip_qc = skip_qc
+
+    def __repr__(self):
+        entries = []
+
+        # prefix
+        entries.append(f'prefix={self.prefix}')
+
+        # directory
+        entries.append(f'directory={os.path.relpath(self.directory, ".")}')
+
+        entries.append(f'parameters={self.parameters.briefrepr()}')
+
+        return self.__class__.__name__ + '(' + ',\n   '.join(entries) + ')'
 
     @property
     def parameters(self) -> settings.SettingsDict:
@@ -154,13 +168,13 @@ class CalculatorExt():
             input_file = input_file.with_suffix(self.ext_in)
 
         # Load calculator from input file
-        calc = ase_io.read(input_file).calc
+        calc: Calculator = ase_io.read(input_file).calc
 
         # Update self based off the input file, first updating self.directory in order to ensure any settings that are
         # relative paths are appropriately stored
         self.directory = input_file.parent
         self.parameters = calc.parameters
-        if calc.atoms is not None:
+        if isinstance(calc.atoms, Atoms):
             # Some calculators (e.g. wann2kc) can't reconstruct atoms from an input file
             self.atoms = calc.atoms
             self.atoms.calc = self
@@ -309,13 +323,11 @@ class ReturnsBandStructure(ABC):
 
     def generate_band_structure(self):
         if isinstance(self.parameters.kpts, BandPath):
-            # Fetch bandstructure from results
             path = self.parameters.kpts
-            eigenvalues_np = self.eigenvalues_from_results()
-
-            eigenvalues_np -= self.vbm_energy()
-
-            self.results['band structure'] = BandStructure(path, eigenvalues_np)
+            if len(path.kpts) > 1:
+                # Fetch bandstructure from results
+                eigenvalues_np = self.eigenvalues_from_results()
+                self.results['band structure'] = BandStructure(path, eigenvalues_np, reference=self.vbm_energy())
         return
 
 

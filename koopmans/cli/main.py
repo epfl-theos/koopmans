@@ -7,37 +7,13 @@ import koopmans.mpl_config
 from koopmans.io import read
 from koopmans.settings import WorkflowSettingsDict
 
-'''
-Perform KI/KIPZ calculations
-'''
-
 
 def main():
-    # Automatically constructing a list of workflow keywords for 'koopmans --help'
-    # from valid_settings
-    epilog = ''
-    wf_settings = WorkflowSettingsDict()
-    maxlen = max([len(s.name) for s in wf_settings.settings]) + 2
-    for s in wf_settings.settings:
-        entry = f'  {s.name.ljust(maxlen)}{s.description} ('
-        if isinstance(s.kind, tuple):
-            entry += '/'.join([t.__name__ for t in s.kind])
-        else:
-            entry += s.kind.__name__
-        if s.default is not None:
-            entry += f', default {s.default}'
-        if s.options is not None and s.kind is not bool:
-            entry += ', must be ' + '/'.join([str(o) for o in s.options])
-        entry += ')'
-        for line in textwrap.wrap(entry, subsequent_indent=' ' * (maxlen + 2), width=120):
-            epilog += '\n' + line
-        epilog += '\n'
-
     # Construct parser
     parser = argparse.ArgumentParser(
-        description='Perform a Koopmans spectral functional calculation using Quantum ESPRESSO',
+        description='Perform Koopmans functional calculations',
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="'workflow' block arguments:" + epilog)
+        epilog='See https://koopmans-functionals.org for more details')
     parser.add_argument('json', metavar='system.json', type=str,
                         help='a single JSON file containing the workflow and code settings')
 
