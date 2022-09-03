@@ -2,7 +2,7 @@
     "workflow": {
         "functional": "ki",
         "init_orbitals": "mlwfs",
-        "task": "trajectory",
+        "task": "convergence_ml",
         "from_scratch": true,
         "fix_spin_contamination": false,
         "pseudo_library": "sg15_v1.0",
@@ -12,7 +12,7 @@
     "atoms": {
         "atomic_positions": {
             "units": "angstrom",
-            "snapshots": "h2o_positions.xyz"
+            "snapshots": "snapshots.xyz"
         },
         "cell_parameters": {
             "periodic": true,
@@ -43,8 +43,12 @@
         "r_min": 0.5,
         "r_max": 6.0,
         "criterium": "after_fixed_num_of_snapshots",
-        "number_of_training_snapshots": 2,
-        "train_on_the_fly": true
+        "number_of_training_snapshots": 5,
+        "train_on_the_fly": false,
+        "quantities_of_interest": [
+            "alphas",
+            "evs"
+        ]
     },
     "calculator_parameters": {
         "ecutwfc": 50.0,
