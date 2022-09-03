@@ -1,1 +1,0 @@
-n_max	l_max	r_min	r_max	MAE
