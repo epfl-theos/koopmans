@@ -257,17 +257,24 @@ class ConvergenceMLWorkflow(Workflow):
         """
         Create all relevant plots for the convergence analysis.
         """
-        metrics = {'MAE': mean_absolute_error, 'R2S': r2_score}
+        metrics = {'MAE': mean_absolute_error}  # , 'R2S': r2_score}
 
-        for spin in range(self.bands.n_spin):
+        if self.parameters.spin_polarized:
+            max_spin = self.bands.n_spin
+        else:
+            max_spin = 1
+
+        for spin in range(max_spin):
             spin_id = str("spin_"+str(spin))
             for qoi in self.ml.quantities_of_interest:
                 for i, convergence_point in enumerate(self.convergence_points):
                     res = self.result_dict[spin_id][qoi]
-                    plot_calculated_vs_predicted(res['true_array'].flatten(), res['pred_array'][i, :, :].flatten(
-                    ), qoi, self.dirs[f'convergence_final_results_{i}'] / f"{spin_id}_{qoi}_calculated_vs_predicted.png", ('MAE', res['MAE']['mean'][i]))
-                    plot_error_histogram(res['true_array'].flatten(), res['pred_array'][i, :, :].flatten(
-                    ), qoi, self.dirs[f'convergence_final_results_{i}'] / f"{spin_id}_{qoi}_error_histogram.png", ('MAE', res['MAE']['mean'][i]))
+                    if qoi == 'alphas':
+                        plot_calculated_vs_predicted(res['true_array'].flatten(), res['pred_array'][i, :, :].flatten(
+                        ), qoi, self.dirs[f'convergence_final_results_{i}'] / f"{spin_id}_{qoi}_calculated_vs_predicted.png", ('MAE', res['MAE']['mean'][i]))
+                    elif qoi == 'evs':
+                        plot_error_histogram(res['true_array'].flatten(), res['pred_array'][i, :, :].flatten(
+                        ), qoi, self.dirs[f'convergence_final_results_{i}'] / f"{spin_id}_{qoi}_error_histogram.png", ('MAE', res['MAE']['mean'][i]))
                 for metric in metrics:
                     res = self.result_dict[spin_id][qoi][metric]
                     plot_convergence(self.convergence_points, res['mean'], res['stdd'], qoi, metric,
