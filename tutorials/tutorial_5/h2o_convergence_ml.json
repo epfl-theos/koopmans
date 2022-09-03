@@ -40,14 +40,13 @@
         "use_ml": true,
         "n_max": 6,
         "l_max": 6,
-        "r_min": 0.5,
-        "r_max": 6.0,
+        "r_min": 1.0,
+        "r_max": 4.0,
         "criterium": "after_fixed_num_of_snapshots",
-        "number_of_training_snapshots": 5,
+        "number_of_training_snapshots": 10,
         "train_on_the_fly": false,
         "quantities_of_interest": [
-            "alphas",
-            "evs"
+            "alphas"
         ]
     },
     "calculator_parameters": {
