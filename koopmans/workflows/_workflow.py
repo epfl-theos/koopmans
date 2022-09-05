@@ -505,6 +505,32 @@ class Workflow(ABC):
                     raise FileNotFoundError(f'{self.parameters.pseudo_directory / pseudo} does not exist. Please '
                                             'double-check your pseudopotential settings')
 
+        # Make sanity checks for the ML model
+        if self.parameters.use_ml:
+            if self.parameters.task not in ['trajectory', 'convergence_ml']:
+                raise NotImplementedError(
+                    f'Using the ML-prediction for the {self.parameter.task}-task has not yet been implemented.')
+            if self.parameters.method != 'dscf':
+                raise NotImplementedError(
+                    f"Using the ML-prediction for the {self.parameters.method}-method has not yet been implemented")
+            if self.parameters.functional != 'ki':
+                raise NotImplementedError(
+                    f'Using the ML-prediction for the {self.parameters.functional}-functional has not yet been implemented.')
+            if self.parameters.init_orbitals != 'mlwfs':
+                raise NotImplementedError(
+                    f'Using the ML-prediction for {self.parameters.init_orbitals}-init orbitals has not yet been implemented.')
+            if self.parameters.init_empty_orbitals != self.parameters.init_orbitals:
+                raise NotImplementedError(
+                    f'Using the ML-prediction for using different init orbitals for empty states than for occupied states has not yet been implemented.')
+            if self.parameters.spin_polarized:
+                utils.warn(f'Using the ML-prediction for spin-polarised systems has not yet been implemented.')
+            if not self.parameters.periodic:
+                utils.warn(f'Using the ML-prediction for non-periodic systems has not yet been extensively tested.')
+            if self.parameters.orbital_groups:
+                utils.warn('Using orbital_groups has not yet been extensively tested.')
+            if not np.all(self.atoms.cell.angles() == 90.0):
+                raise ValueError(f"The ML-workflow has only been implemented for simulation cells that have 90° angles")
+
     def new_calculator(self,
                        calc_type: str,
                        directory: Optional[Path] = None,
